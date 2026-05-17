@@ -181,7 +181,8 @@ def prepare_dataset(
     print(f"[prepare_dataset] 新数据：{len(merged)} 条")
 
     # 采样旧数据
-    old_files = glob.glob(os.path.join(TRAIN_DATA_DIR, "*.json"))
+    old_files = [f for f in glob.glob(os.path.join(TRAIN_DATA_DIR, "*.json"))
+                 if not f.endswith("merged_temp.json")]
     old_records = []
     for fpath in old_files:
         try:
@@ -466,25 +467,25 @@ def _update_status(updates: dict) -> None:
         json.dump(status, f, indent=2, ensure_ascii=False)
 
 
-def run_auto_cycle() -> None:
-    """完整的一次自动训练周期。
+def run_auto_cycle(mode: str = "incremental") -> dict | None:
+    """完整的一次自动训练周期，mode 由调用方（auto_distill_main）传入。
 
-    执行流程：check_trigger → prepare_dataset → start_training → wait_and_register
+    执行流程：prepare_dataset → start_training → wait_and_register
     训练完成后提示运行 eval_loop.py 评估新模型。
+
+    Args:
+        mode: 训练模式，"incremental" 或 "full"，由调用方的 check_trigger() 决定。
+
+    Returns:
+        成功时返回 ModelRecord 字典，失败或数据为空时返回 None。
     """
     print("[run_auto_cycle] 开始自动训练周期...")
 
-    # 1. 检查触发条件
-    should_train, mode = check_trigger()
-    if not should_train:
-        print("[run_auto_cycle] 未满足触发条件，跳过本次训练。")
-        return
-
-    # 2. 准备数据集
+    # 1. 准备数据集
     new_data_paths = _get_new_data_paths(POOL_DIR)
     if not new_data_paths:
         print("[run_auto_cycle] 增量数据池为空，跳过训练。")
-        return
+        return None
 
     dataset_path = prepare_dataset(new_data_paths)
 
@@ -505,6 +506,7 @@ def run_auto_cycle() -> None:
         print(f"  adapter 路径：{record.get('adapter_path')}")
     else:
         print("[run_auto_cycle] 训练失败，请检查日志。")
+    return record
 
 
 # ========== 测试块 ==========

@@ -156,11 +156,9 @@ def promote(version: str) -> bool:
                 ["cmd", "/c", "rmdir", link],
                 capture_output=True,
             )
-        # 路径含空格时需加引号，通过 shell=True 传整条命令
-        cmd = f'mklink /J "{link}" "{target}"'
         result = subprocess.run(
-            cmd,
-            shell=True,
+            ["cmd", "/c", "mklink", "/J", link, target],
+            shell=False,
             capture_output=True,
             text=True,
         )

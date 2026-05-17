@@ -410,7 +410,7 @@ def _process_job(job: dict) -> dict | None:
         "source":          job["source"],
         "source_backend":  primary_backend,
         "teacher_backends": backends,
-        "all_answers":     all_answers,
+        "all_answers":     list(all_answers.values()) if isinstance(all_answers, dict) else all_answers,
         "priority":        job["priority"],
         "created_at":      job["created_at"],
         "distilled_at":    datetime.utcnow().isoformat(),

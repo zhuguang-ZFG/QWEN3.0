@@ -321,6 +321,7 @@ def _score_answer(answer: str, keywords: list) -> bool:
 def run_eval(
     adapter_path: str,
     eval_set_path: str = EVAL_SET_PATH,
+    version: str = None,
 ) -> dict:
     """加载评估集，对每条题目调用 LM Studio 推理，按域统计准确率。
 
@@ -330,11 +331,13 @@ def run_eval(
     Args:
         adapter_path: adapter 目录路径，用于推断版本号
         eval_set_path: 评估集 JSON 文件路径
+        version: 可选版本号；传入时直接使用，不再从 adapter_path 推断
 
     Returns:
         EvalResult 字典，包含 version/domain_scores/overall/passed 等字段
     """
-    version = _infer_version(adapter_path)
+    if version is None:
+        version = _infer_version(adapter_path)
     timestamp = datetime.now().isoformat()
 
     # 加载评估集
@@ -536,11 +539,12 @@ def promote_if_better(new_result: dict) -> bool:
     return passed
 
 
-def run_full_eval_cycle(adapter_path: str) -> dict:
+def run_full_eval_cycle(adapter_path: str, version: str = None) -> dict:
     """完整评估周期：创建评估集 → 推理评估 → 对比升级。
 
     Args:
         adapter_path: adapter 目录路径
+        version: 可选版本号；传入时直接使用，不再从 adapter_path 推断
 
     Returns:
         最终 EvalResult 字典
@@ -553,7 +557,7 @@ def run_full_eval_cycle(adapter_path: str) -> dict:
 
     # 步骤2：运行评估
     print("[eval_loop] 正在推理评估...")
-    result = run_eval(adapter_path)
+    result = run_eval(adapter_path, version=version)
 
     # 步骤3：对比并决定是否升级
     promoted = promote_if_better(result)

@@ -203,7 +203,7 @@ def run_training_phase(state: dict) -> dict:
         return transition(new_state, "IDLE")
 
     print(f"[training] 触发训练，模式：{mode}，启动 run_auto_cycle()")
-    auto_trainer.run_auto_cycle()
+    auto_trainer.run_auto_cycle(mode=mode)
 
     new_state["last_train_at"] = datetime.now().isoformat()
     new_state["train_pool_count"] = 0  # 训练后重置计数
@@ -235,10 +235,11 @@ def run_eval_phase(state: dict) -> dict:
         return transition(new_state, "IDLE")
 
     adapter_path = active.get("adapter_path", "")
+    version = active.get("version")
     print(f"[eval] 激活模型：{active.get('version', '?')}  路径：{adapter_path}")
 
     if _EVAL_LOOP_AVAILABLE:
-        _eval_loop_mod.run_full_eval_cycle(adapter_path)
+        _eval_loop_mod.run_full_eval_cycle(adapter_path, version=version)
     else:
         print("[eval] eval_loop.run_full_eval_cycle 尚未实现，跳过评估步骤")
 
