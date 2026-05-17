@@ -247,17 +247,28 @@ def filter_batch(pairs: list, threshold: float = 0.75) -> tuple:
     Returns:
         (passed_list, rejected_list) 元组，每条记录附加 score_detail 字段。
     """
-    passed_list   = []
-    rejected_list = []
+    passed_list      = []
+    rejected_list    = []
+    score_details_list = []
 
     for pair in pairs:
         detail = score(pair, threshold=threshold)
+        score_details_list.append(detail)
         enriched = dict(pair)
         enriched['score_detail'] = detail
         if detail['passed']:
             passed_list.append(enriched)
         else:
             rejected_list.append(enriched)
+
+    # DPO 三元组收集（失败不影响主流程）
+    try:
+        import dpo_collector
+        dpo_count = dpo_collector.collect_from_batch(pairs, score_details_list)
+        if dpo_count > 0:
+            print(f"[quality_gate] DPO 三元组 +{dpo_count}，池总量={dpo_collector.get_pool_count()}")
+    except Exception:
+        pass
 
     return passed_list, rejected_list
 
