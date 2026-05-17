@@ -67,6 +67,10 @@ BACKENDS = {
     'nvidia_phi4':      {'url': 'https://integrate.api.nvidia.com/v1/chat/completions',
                          'key': os.environ.get('NVIDIA_API_KEY', ''),
                          'model': 'microsoft/phi-4-mini-instruct', 'fmt': 'openai'},
+    # 中国移动 MaaS
+    'chinamobile': {'url': 'https://maas.gd.chinamobile.com:36007/ai/uifm/open/v1/chat/completions',
+                    'key': os.environ.get('CHINAMOBILE_API_KEY', ''),
+                    'model': 'minimax-m25', 'fmt': 'openai'},
     'local':   {'url': LM_URL, 'key': '', 'model': 'local-model', 'fmt': 'openai', 'auth': 'bearer'},
 }
 
@@ -179,9 +183,9 @@ FALLBACK_CHAINS = {
     'embedded_dev':   ['nvidia_nemotron',   'deepseek_pro',     'claude',        'longcat_thinking'],
     'code_generation':['nvidia_qwen_coder', 'deepseek_flash',   'nvidia_llama70b','longcat_chat'],
     'architecture':   ['claude',            'deepseek_pro',     'nvidia_nemotron','longcat'],
-    'general_cnc':    ['nvidia_llama4',     'longcat_lite',     'nvidia_llama70b'],
+    'general_cnc':    ['nvidia_llama4',     'longcat_lite',     'nvidia_llama70b', 'chinamobile'],
     'complex_theory': ['nvidia_nemotron',   'deepseek_pro',     'claude',        'longcat_thinking'],
-    'unknown':        ['nvidia_llama70b',   'longcat_chat',     'nvidia_llama4', 'longcat'],
+    'unknown':        ['nvidia_llama70b',   'longcat_chat',     'nvidia_llama4', 'chinamobile', 'longcat'],
 }
 
 def get_fallback_chain(intent_name, prefer=None):
@@ -314,6 +318,8 @@ CLEAN_PATTERNS = [
     (re.compile(r'phi[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
     (re.compile(r'anthropic', re.IGNORECASE), ''),
     (re.compile(r'openai', re.IGNORECASE), ''),
+    (re.compile(r'minimax[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
+    (re.compile(r'MiniMax[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
 ]
 
 def clean_response(text, backend_name=''):
@@ -455,7 +461,9 @@ def call_api(name, msgs, mt=1024):
         if b['fmt'] == 'anthropic':
             answer = d['content'][0].get('text', json.dumps(d, ensure_ascii=False))
         else:
-            answer = d['choices'][0]['message']['content']
+            msg = d['choices'][0]['message']
+            # 推理模型（如 minimax-m25）content 可能为 None，回退到 reasoning 字段
+            answer = msg.get('content') or msg.get('reasoning') or json.dumps(d, ensure_ascii=False)
         cb_record(name, True, int((time.time() - _t0) * 1000))
         return clean_response(answer, name)
     except Exception as e:
