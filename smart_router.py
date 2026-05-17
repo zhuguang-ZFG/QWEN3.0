@@ -17,11 +17,25 @@ LM_URL = 'http://localhost:1234/v1/chat/completions'
 BACKENDS = {
     'claude':  {'url': 'https://right.codes/claude-aws/v1/messages',
                 'key': os.environ.get('CLAUDE_API_KEY', ''),
-                'model': 'claude-sonnet-4-6', 'fmt': 'anthropic'},
-    'longcat': {'url': 'https://api.longcat.chat/anthropic',
-                'key': os.environ.get('LONGCAT_API_KEY', ''),
-                'model': 'LongCat-2.0-Preview', 'fmt': 'anthropic'},
-    'local':   {'url': LM_URL, 'key': '', 'model': 'local-model', 'fmt': 'openai'},
+                'model': 'claude-sonnet-4-6', 'fmt': 'anthropic', 'auth': 'x-api-key'},
+    # LongCat 系列 - 按复杂度分层（使用 /anthropic/v1/messages 路径 + Bearer 认证）
+    'longcat_lite':     {'url': 'https://api.longcat.chat/anthropic/v1/messages',
+                         'key': os.environ.get('LONGCAT_API_KEY', ''),
+                         'model': 'LongCat-Flash-Lite', 'fmt': 'anthropic', 'auth': 'bearer'},
+    'longcat_chat':     {'url': 'https://api.longcat.chat/anthropic/v1/messages',
+                         'key': os.environ.get('LONGCAT_API_KEY', ''),
+                         'model': 'LongCat-Flash-Chat', 'fmt': 'anthropic', 'auth': 'bearer'},
+    'longcat_thinking': {'url': 'https://api.longcat.chat/anthropic/v1/messages',
+                         'key': os.environ.get('LONGCAT_API_KEY', ''),
+                         'model': 'LongCat-Flash-Thinking-2601', 'fmt': 'anthropic', 'auth': 'bearer'},
+    'longcat_omni':     {'url': 'https://api.longcat.chat/anthropic/v1/messages',
+                         'key': os.environ.get('LONGCAT_API_KEY', ''),
+                         'model': 'LongCat-Flash-Omni-2603', 'fmt': 'anthropic',
+                         'auth': 'bearer', 'no_system': True},
+    'longcat':          {'url': 'https://api.longcat.chat/anthropic/v1/messages',
+                         'key': os.environ.get('LONGCAT_API_KEY', ''),
+                         'model': 'LongCat-2.0-Preview', 'fmt': 'anthropic', 'auth': 'bearer'},
+    'local':   {'url': LM_URL, 'key': '', 'model': 'local-model', 'fmt': 'openai', 'auth': 'bearer'},
 }
 
 # 对外暴露的统一模型名（用户永远看不到真实模型名）
@@ -29,15 +43,15 @@ PUBLIC_MODEL_NAME = os.environ.get('PUBLIC_MODEL_NAME', 'red V1flash')
 
 # Intent -> backend
 ROUTE = {
-    'cnc_trouble':    'claude',
-    'grbl_config':    'local',
-    'gcode_help':     'local',
-    'embedded_dev':   'claude',
-    'code_generation':'longcat',
-    'architecture':   'claude',
-    'general_cnc':    'local',
-    'complex_theory': 'claude',
-    'unknown':        'longcat',
+    'cnc_trouble':    'claude',           # 复杂故障 -> Claude 最强
+    'grbl_config':    'local',            # GRBL参数查询 -> 本地（训练数据够用）
+    'gcode_help':     'local',            # G代码 -> 本地
+    'embedded_dev':   'longcat_thinking', # 嵌入式开发 -> 推理型
+    'code_generation':'longcat_chat',     # 代码生成 -> Chat型（快）
+    'architecture':   'claude',           # 架构设计 -> Claude
+    'general_cnc':    'longcat_lite',     # 通用CNC -> Lite（最快）
+    'complex_theory': 'longcat_thinking', # 复杂理论 -> 推理型
+    'unknown':        'longcat_chat',     # 未知 -> Chat型
 }
 
 SYS = 'CNC/embedded expert. Detailed Chinese answers with params, code, steps. No disclaimers.'
@@ -166,11 +180,27 @@ def call_api(name, msgs, mt=1024):
     b = BACKENDS.get(name)
     if not b or not b['key']:
         return f'[ERR] Backend {name} unavailable (no key)'
+    auth_style = b.get('auth', 'x-api-key')
     if b['fmt'] == 'anthropic':
-        p = json.dumps({'model': b['model'], 'max_tokens': mt,
-                        'system': SYS, 'messages': msgs}).encode()
-        h = {'Content-Type': 'application/json',
-             'x-api-key': b['key'], 'anthropic-version': '2023-06-01'}
+        # no_system 后端（如 Omni）：不传 system，content 用 list 格式
+        if b.get('no_system'):
+            omni_msgs = [
+                {'role': m['role'],
+                 'content': [{'type': 'text', 'text': m['content']}]
+                             if isinstance(m['content'], str) else m['content']}
+                for m in msgs
+            ]
+            body = {'model': b['model'], 'max_tokens': mt, 'messages': omni_msgs}
+        else:
+            body = {'model': b['model'], 'max_tokens': mt, 'system': SYS, 'messages': msgs}
+        p = json.dumps(body).encode()
+        if auth_style == 'bearer':
+            h = {'Content-Type': 'application/json',
+                 'Authorization': f"Bearer {b['key']}",
+                 'anthropic-version': '2023-06-01'}
+        else:
+            h = {'Content-Type': 'application/json',
+                 'x-api-key': b['key'], 'anthropic-version': '2023-06-01'}
     else:
         p = json.dumps({'model': b['model'], 'max_tokens': mt,
                         'messages': [{'role': 'system', 'content': SYS}] + msgs}).encode()
@@ -212,7 +242,7 @@ def route(query, prefer=None):
             {'role': 'user', 'content': query},
         ], mt=800)
         if answer.startswith('[LOCAL_ERR]'):
-            answer = call_api('longcat', [{'role': 'user', 'content': query}])
+            answer = call_api('longcat_chat', [{'role': 'user', 'content': query}])
         result['answer'] = answer
     else:
         # Remote: expand prompt first
@@ -341,9 +371,24 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='red V1-Flash Smart Router')
     parser.add_argument('--mcp', action='store_true', help='Run as MCP server for Claude Code')
     parser.add_argument('--query', '-q', type=str, help='Single query mode')
-    parser.add_argument('--backend', '-b', type=str, choices=['claude', 'longcat', 'local'])
+    parser.add_argument('--backend', '-b', type=str,
+                        choices=['claude', 'longcat', 'longcat_lite', 'longcat_chat',
+                                 'longcat_thinking', 'longcat_omni', 'local'])
     parser.add_argument('--json', action='store_true', help='Output JSON (for --query mode)')
+    parser.add_argument('--test', action='store_true', help='测试所有后端连通性')
     args = parser.parse_args()
+
+    if args.test:
+        print('测试所有后端连通性...')
+        test_msg = [{'role': 'user', 'content': '你好，回复"OK"即可'}]
+        for name, b in BACKENDS.items():
+            if name == 'local':
+                resp = call_local([{'role': 'user', 'content': '你好'}], mt=10)
+            else:
+                resp = call_api(name, test_msg, mt=20)
+            status = 'OK' if '暂时不可用' not in resp and 'ERR' not in resp else 'FAIL'
+            print(f'  {name} ({b["model"]}): {status}')
+        sys.exit(0)
 
     if args.mcp:
         mcp()
