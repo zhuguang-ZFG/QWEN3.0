@@ -48,6 +48,19 @@ BACKENDS = {
     'deepseek_flash_1m':{'url': 'https://api.deepseek.com/anthropic/v1/messages',
                          'key': os.environ.get('DEEPSEEK_API_KEY', ''),
                          'model': 'deepseek-v4-flash', 'fmt': 'anthropic'},
+    # Nvidia NIM 系列 - 免费额度，OpenAI 兼容
+    'nvidia_nemotron':  {'url': 'https://integrate.api.nvidia.com/v1/chat/completions',
+                         'key': os.environ.get('NVIDIA_API_KEY', ''),
+                         'model': 'nvidia/llama-3.3-nemotron-super-49b-v1', 'fmt': 'openai'},
+    'nvidia_llama70b':  {'url': 'https://integrate.api.nvidia.com/v1/chat/completions',
+                         'key': os.environ.get('NVIDIA_API_KEY', ''),
+                         'model': 'meta/llama-3.3-70b-instruct', 'fmt': 'openai'},
+    'nvidia_qwen_coder':{'url': 'https://integrate.api.nvidia.com/v1/chat/completions',
+                         'key': os.environ.get('NVIDIA_API_KEY', ''),
+                         'model': 'qwen/qwen3-coder-480b-a35b-instruct', 'fmt': 'openai'},
+    'nvidia_llama4':    {'url': 'https://integrate.api.nvidia.com/v1/chat/completions',
+                         'key': os.environ.get('NVIDIA_API_KEY', ''),
+                         'model': 'meta/llama-4-maverick-17b-128e-instruct', 'fmt': 'openai'},
     'local':   {'url': LM_URL, 'key': '', 'model': 'local-model', 'fmt': 'openai', 'auth': 'bearer'},
 }
 
@@ -176,6 +189,9 @@ CLEAN_PATTERNS = [
     (re.compile(r'longcat[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
     (re.compile(r'deepseek[\w\-\.\[\]]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
     (re.compile(r'gpt-?4[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
+    (re.compile(r'nvidia[\w\-\.\/]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
+    (re.compile(r'nemotron[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
+    (re.compile(r'llama[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
     (re.compile(r'anthropic', re.IGNORECASE), ''),
     (re.compile(r'openai', re.IGNORECASE), ''),
 ]
@@ -497,7 +513,9 @@ if __name__ == '__main__':
                         choices=['claude', 'longcat', 'longcat_lite', 'longcat_chat',
                                  'longcat_thinking', 'longcat_omni',
                                  'deepseek_pro', 'deepseek_pro_1m',
-                                 'deepseek_flash', 'deepseek_flash_1m', 'local'])
+                                 'deepseek_flash', 'deepseek_flash_1m',
+                                 'nvidia_nemotron', 'nvidia_llama70b',
+                                 'nvidia_qwen_coder', 'nvidia_llama4', 'local'])
     parser.add_argument('--json', action='store_true', help='Output JSON (for --query mode)')
     parser.add_argument('--test', action='store_true', help='测试所有后端连通性')
     args = parser.parse_args()
