@@ -20,7 +20,7 @@ from pathlib import Path
 MODEL_NAME = "Qwen/Qwen3-8B"
 LOCAL_MODEL_PATH = r"D:\GIT\models\Qwen\Qwen3-8B"
 OUTPUT_DIR = r"D:\GIT\my_code_model_qwen3"
-DATA_PATH = r"D:\GIT\round3_training_data.json"  # Same data, new base
+DATA_PATH = os.environ.get("TRAIN_DATA_PATH", r"D:\GIT\round5_training_data.json")
 RESUME_FROM = None  # Fresh start on new base model
 GGUF_OUTPUT = r"D:\GIT\my_code_model_gguf"
 

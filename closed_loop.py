@@ -100,6 +100,7 @@ def check_and_retrain(new_pairs: list):
     # Start training in background (limited steps for quick update)
     env = os.environ.copy()
     env["PYTHONIOENCODING"] = "utf-8"
+    env["TRAIN_DATA_PATH"] = CONFIG["training_data"]  # = round5_training_data.json
     subprocess.Popen(
         [r"D:\GIT\venv\Scripts\python.exe", CONFIG["train_script"], "--quick"],
         env=env, creationflags=subprocess.CREATE_NO_WINDOW
@@ -112,16 +113,45 @@ def check_and_retrain(new_pairs: list):
 # ============================================================
 def export_gguf_if_needed():
     """Check if new weights exist and export to GGUF."""
+    python_exe = r"D:\GIT\venv\Scripts\python.exe"
     weights_dir = r"D:\GIT\my_code_model_qwen3"
     adapter = os.path.join(weights_dir, "adapter_model.safetensors")
+    convert_script = r"D:\GIT\llama.cpp\convert_hf_to_gguf.py"
+
     if not os.path.exists(adapter):
         print("  No adapter weights yet")
         return False
 
-    # TODO: Merge LoRA -> full model -> convert to GGUF
-    # For now, just report status
     print(f"  Weights ready at {weights_dir}")
-    print("  To export: use llama.cpp convert_hf_to_gguf.py")
+
+    if not os.path.exists(convert_script):
+        print("  GGUF export skipped - llama.cpp not found")
+        # Adapter exists but llama.cpp missing: weights are ready, just not GGUF yet
+        return True
+
+    # Step 1: merge LoRA into full model
+    print("  Step 1: Merging LoRA into full model...")
+    merge_cmd = [python_exe, r"D:\GIT\lora_merge.py"]
+    merge_result = subprocess.run(merge_cmd, timeout=600)
+    if merge_result.returncode != 0:
+        print(f"  LoRA merge failed (exit {merge_result.returncode})")
+        return False
+
+    # Step 2: convert to GGUF
+    print("  Step 2: Converting to GGUF...")
+    merged_path = os.path.join(weights_dir, "merged")
+    gguf_output = r"D:\GIT\my_code_model_gguf\model-q4_K_M.gguf"
+    os.makedirs(os.path.dirname(gguf_output), exist_ok=True)
+    convert_result = subprocess.run(
+        [python_exe, convert_script, merged_path,
+         "--outfile", gguf_output, "--outtype", "q4_k_m"],
+        timeout=600,
+    )
+    if convert_result.returncode != 0:
+        print(f"  GGUF conversion failed (exit {convert_result.returncode})")
+        return False
+
+    print(f"  GGUF exported to {gguf_output}")
     return True
 
 
@@ -153,11 +183,18 @@ def main():
 
     # 3. Export check
     print("\n[3] Model Export Check")
-    export_gguf_if_needed()
+    export_ok = export_gguf_if_needed()
 
     # 4. Health + Discovery
     print("\n[4] API Maintenance")
     run_maintenance()
+
+    # 5. Auto-deploy if export succeeded
+    python_exe = r"D:\GIT\venv\Scripts\python.exe"
+    env = os.environ.copy()
+    print("\n[5] Auto-Deploy")
+    if export_ok:
+        subprocess.run([python_exe, r"D:\GIT\auto_deploy.py"], timeout=60, env=env)
 
     print(f"\n{'='*60}")
     print("  Pipeline complete")
@@ -165,4 +202,14 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--loop', action='store_true', help='Run continuously every 30 min')
+    args = parser.parse_args()
+    if args.loop:
+        while True:
+            main()
+            print("Sleeping 30 min...")
+            time.sleep(1800)
+    else:
+        main()
