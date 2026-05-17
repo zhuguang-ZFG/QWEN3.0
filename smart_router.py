@@ -86,6 +86,117 @@ ROUTE = {
     'unknown':        'nvidia_llama70b',     # 未知 -> Llama 70B（免费+通用）
 }
 
+# ── Circuit Breaker ──────────────────────────────────────────────────────────
+import threading
+
+_cb_lock = threading.Lock()
+_cb_state = {}  # backend_name -> state dict
+
+CB_FAILURE_THRESHOLD = 3    # 连续失败 N 次后熔断
+CB_RECOVERY_TIMEOUT  = 60   # 熔断后 N 秒尝试恢复（half-open）
+CB_SUCCESS_THRESHOLD = 2    # half-open 状态下连续成功 N 次才关闭熔断
+
+def _cb_get(name):
+    with _cb_lock:
+        if name not in _cb_state:
+            _cb_state[name] = {
+                'state': 'closed',   # closed / open / half-open
+                'failures': 0,
+                'successes': 0,
+                'opened_at': 0,
+                'total_calls': 0,
+                'total_errors': 0,
+                'total_latency_ms': 0,
+            }
+        return dict(_cb_state[name])
+
+def cb_allow(name):
+    """返回 True 表示允许调用，False 表示熔断中。"""
+    s = _cb_get(name)
+    if s['state'] == 'closed':
+        return True
+    if s['state'] == 'open':
+        if time.time() - s['opened_at'] > CB_RECOVERY_TIMEOUT:
+            with _cb_lock:
+                _cb_state[name]['state'] = 'half-open'
+                _cb_state[name]['successes'] = 0
+            return True
+        return False
+    # half-open: 允许一次试探
+    return True
+
+def cb_record(name, success, latency_ms=0):
+    """记录调用结果，更新熔断器状态。"""
+    with _cb_lock:
+        s = _cb_state.setdefault(name, {
+            'state': 'closed', 'failures': 0, 'successes': 0,
+            'opened_at': 0, 'total_calls': 0, 'total_errors': 0, 'total_latency_ms': 0,
+        })
+        s['total_calls'] += 1
+        s['total_latency_ms'] += latency_ms
+        if success:
+            s['total_errors'] = max(0, s['total_errors'])
+            if s['state'] == 'half-open':
+                s['successes'] += 1
+                if s['successes'] >= CB_SUCCESS_THRESHOLD:
+                    s['state'] = 'closed'
+                    s['failures'] = 0
+                    if DEBUG:
+                        print(f'[CB] {name}: half-open -> closed', file=sys.stderr)
+            else:
+                s['failures'] = 0
+        else:
+            s['total_errors'] += 1
+            s['failures'] += 1
+            if s['state'] in ('closed', 'half-open') and s['failures'] >= CB_FAILURE_THRESHOLD:
+                s['state'] = 'open'
+                s['opened_at'] = time.time()
+                print(f'[CB] {name}: OPEN (circuit breaker tripped after {s["failures"]} failures)', file=sys.stderr)
+
+def cb_status():
+    """返回所有后端的熔断器状态摘要。"""
+    result = {}
+    with _cb_lock:
+        for name, s in _cb_state.items():
+            total = s['total_calls']
+            err_rate = s['total_errors'] / total if total > 0 else 0
+            avg_lat = s['total_latency_ms'] / total if total > 0 else 0
+            result[name] = {
+                'state': s['state'],
+                'failures': s['failures'],
+                'error_rate': f'{err_rate:.1%}',
+                'avg_latency_ms': int(avg_lat),
+                'total_calls': total,
+            }
+    return result
+
+# ── Fallback Chains ──────────────────────────────────────────────────────────
+# 每个意图的降级顺序：主力 -> 备用1 -> 备用2 -> 最终兜底
+FALLBACK_CHAINS = {
+    'cnc_trouble':    ['deepseek_pro',      'nvidia_nemotron',  'claude',        'longcat'],
+    'grbl_config':    ['local',             'nvidia_llama4',    'longcat_lite'],
+    'gcode_help':     ['local',             'nvidia_llama4',    'longcat_lite'],
+    'embedded_dev':   ['nvidia_nemotron',   'deepseek_pro',     'claude',        'longcat_thinking'],
+    'code_generation':['nvidia_qwen_coder', 'deepseek_flash',   'nvidia_llama70b','longcat_chat'],
+    'architecture':   ['claude',            'deepseek_pro',     'nvidia_nemotron','longcat'],
+    'general_cnc':    ['nvidia_llama4',     'longcat_lite',     'nvidia_llama70b'],
+    'complex_theory': ['nvidia_nemotron',   'deepseek_pro',     'claude',        'longcat_thinking'],
+    'unknown':        ['nvidia_llama70b',   'longcat_chat',     'nvidia_llama4', 'longcat'],
+}
+
+def get_fallback_chain(intent_name, prefer=None):
+    """获取意图对应的降级链，过滤掉没有 key 的后端。"""
+    chain = list(FALLBACK_CHAINS.get(intent_name, ['nvidia_llama70b', 'longcat', 'claude']))
+    # 如果有偏好后端，插到最前面
+    if prefer and prefer in BACKENDS and prefer not in chain:
+        chain.insert(0, prefer)
+    elif prefer and prefer in chain:
+        chain.remove(prefer)
+        chain.insert(0, prefer)
+    # 过滤掉没有 key 的后端
+    chain = [b for b in chain if b in BACKENDS and (BACKENDS[b]['key'] or b == 'local')]
+    return chain
+
 SYS = 'CNC/embedded expert. Detailed Chinese answers with params, code, steps. No disclaimers.'
 
 # ── Layer 1: Fast keyword rules ──────────────────────────────────────────────
@@ -302,6 +413,12 @@ def qa_check(text, intent=None, backend=None):
 # ── API backend calls ────────────────────────────────────────────────────────
 def call_api(name, msgs, mt=1024):
     """Call an external API backend."""
+    # 熔断检查
+    if not cb_allow(name):
+        if DEBUG:
+            print(f'[CB] {name}: blocked by circuit breaker', file=sys.stderr)
+        return None  # 返回 None 表示熔断，由调用方降级
+    _t0 = time.time()
     b = BACKENDS.get(name)
     if not b or not b['key']:
         return f'[ERR] Backend {name} unavailable (no key)'
@@ -339,9 +456,11 @@ def call_api(name, msgs, mt=1024):
             answer = d['content'][0].get('text', json.dumps(d, ensure_ascii=False))
         else:
             answer = d['choices'][0]['message']['content']
+        cb_record(name, True, int((time.time() - _t0) * 1000))
         return clean_response(answer, name)
     except Exception as e:
         print(f'[DEBUG] {name} error: {e}', file=sys.stderr)
+        cb_record(name, False)
         return '服务暂时不可用，请稍后重试'
 
 # ── Main router ──────────────────────────────────────────────────────────────
@@ -355,25 +474,44 @@ def route(query, prefer=None):
     result['intent'] = intent
     result['classify_ms'] = int((time.time() - t0) * 1000)
 
-    # Backend selection
-    backend = prefer if prefer in BACKENDS else ROUTE.get(intent.get('intent', 'unknown'), 'longcat')
+    # 获取降级链
+    intent_name = intent.get('intent', 'unknown')
+    fallback_chain = get_fallback_chain(intent_name, prefer=prefer)
+    backend = fallback_chain[0] if fallback_chain else 'longcat'
     result['backend'] = backend
+    result['fallback_chain'] = fallback_chain
 
-    # Local: answer directly, skip expansion
-    if backend == 'local':
-        result['expanded'] = query
-        answer = call_local([
-            {'role': 'system', 'content': SYS},
-            {'role': 'user', 'content': query},
-        ], mt=800)
-        if answer.startswith('[LOCAL_ERR]'):
-            answer = call_api('longcat_chat', [{'role': 'user', 'content': query}])
-        result['answer'] = answer
-    else:
-        # Remote: expand prompt first
-        expanded = expand(query, intent)
-        result['expanded'] = expanded
-        result['answer'] = call_api(backend, [{'role': 'user', 'content': expanded}])
+    # 尝试降级链中的每个后端
+    answer = None
+    used_backend = backend
+    expanded_q = query
+    for attempt_backend in fallback_chain:
+        if attempt_backend == 'local':
+            ans = call_local([
+                {'role': 'system', 'content': SYS},
+                {'role': 'user', 'content': query},
+            ], mt=800)
+            if ans and not ans.startswith('[LOCAL_ERR]'):
+                answer = ans
+                used_backend = 'local'
+                break
+            continue
+
+        expanded_q = expand(query, intent)
+        ans = call_api(attempt_backend, [{'role': 'user', 'content': expanded_q}])
+        if ans is not None and not ans.startswith('[ERR]') and '暂时不可用' not in ans:
+            answer = ans
+            used_backend = attempt_backend
+            if attempt_backend != backend and DEBUG:
+                print(f'[FALLBACK] {backend} -> {attempt_backend}', file=sys.stderr)
+            break
+
+    if answer is None:
+        answer = '服务暂时不可用，请稍后重试'
+
+    result['expanded'] = expanded_q
+    result['backend'] = used_backend
+    result['answer'] = answer
 
     result['total_ms'] = int((time.time() - t0) * 1000)
     result['answer'] = clean_response(result.get('answer', ''), result.get('backend', ''))
@@ -400,6 +538,89 @@ def route(query, prefer=None):
             result['answer'] = result['answer'] + '\n' + clean_response(continuation, backend)
 
     return result
+
+# ── Pressure Test ────────────────────────────────────────────────────────────
+def pressure_test(backends=None, concurrency=3, rounds=5):
+    """对指定后端进行压力测试，报告成功率、延迟、稳定性。"""
+    import concurrent.futures
+
+    test_queries = [
+        'GRBL $100 参数怎么设置',
+        '步进电机失步怎么排查',
+        '写一个 ESP32 读取编码器的代码',
+        'G2 圆弧插补的 IJK 参数怎么用',
+        'FreeRTOS 任务优先级怎么设置',
+    ]
+
+    if backends is None:
+        backends = [b for b, cfg in BACKENDS.items() if cfg.get('key') or b == 'local']
+
+    print(f'\n压力测试: {len(backends)} 个后端, 并发={concurrency}, 轮次={rounds}')
+    print('=' * 70)
+
+    results = {}
+
+    for backend in backends:
+        if backend == 'local' and not BACKENDS['local']['key']:
+            resp = call_local([{'role': 'user', 'content': 'hi'}], mt=5)
+            if resp.startswith('[LOCAL_ERR]'):
+                print(f'  {backend:20s}: SKIP (LM Studio 未运行)')
+                continue
+
+        successes = 0
+        failures = 0
+        latencies = []
+        errors = []
+
+        def single_test(q, _b=backend):
+            t0 = time.time()
+            if _b == 'local':
+                resp = call_local([{'role': 'user', 'content': q}], mt=50)
+                ok = resp and not resp.startswith('[LOCAL_ERR]')
+            else:
+                resp = call_api(_b, [{'role': 'user', 'content': q}], mt=50)
+                ok = resp is not None and '暂时不可用' not in str(resp) and not str(resp).startswith('[ERR]')
+            lat = int((time.time() - t0) * 1000)
+            return ok, lat, resp
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as ex:
+            futures = [ex.submit(single_test, test_queries[i % len(test_queries)]) for i in range(rounds)]
+            for f in concurrent.futures.as_completed(futures):
+                ok, lat, resp = f.result()
+                if ok:
+                    successes += 1
+                    latencies.append(lat)
+                else:
+                    failures += 1
+                    if resp:
+                        errors.append(str(resp)[:50])
+
+        total = successes + failures
+        rate = successes / total * 100 if total > 0 else 0
+        avg_lat = sum(latencies) / len(latencies) if latencies else 0
+        p95_lat = sorted(latencies)[int(len(latencies) * 0.95)] if latencies else 0
+
+        status = 'STABLE' if rate >= 80 else ('UNSTABLE' if rate >= 50 else 'UNRELIABLE')
+        model = BACKENDS.get(backend, {}).get('model', 'local')[:35]
+
+        print(f'  {backend:20s} [{status:10s}] 成功率={rate:.0f}% avg={avg_lat:.0f}ms p95={p95_lat:.0f}ms  ({model})')
+        if errors:
+            print(f'    错误样本: {errors[0]}')
+
+        results[backend] = {
+            'status': status, 'success_rate': rate,
+            'avg_latency_ms': avg_lat, 'p95_latency_ms': p95_lat,
+        }
+
+        # 重置熔断器（测试后恢复）
+        with _cb_lock:
+            if backend in _cb_state:
+                _cb_state[backend]['state'] = 'closed'
+                _cb_state[backend]['failures'] = 0
+
+    print('=' * 70)
+    print(f'测试完成。稳定后端: {[b for b, r in results.items() if r["status"] == "STABLE"]}')
+    return results
 
 # ── CLI mode ─────────────────────────────────────────────────────────────────
 def cli():
@@ -528,7 +749,23 @@ if __name__ == '__main__':
                                  'nvidia_mistral', 'nvidia_phi4', 'local'])
     parser.add_argument('--json', action='store_true', help='Output JSON (for --query mode)')
     parser.add_argument('--test', action='store_true', help='测试所有后端连通性')
+    parser.add_argument('--pressure-test', action='store_true', help='对所有后端进行压力测试')
+    parser.add_argument('--status', action='store_true', help='显示熔断器状态')
+    parser.add_argument('--backends', type=str, help='指定测试的后端（逗号分隔）')
     args = parser.parse_args()
+
+    if args.pressure_test:
+        blist = args.backends.split(',') if args.backends else None
+        pressure_test(backends=blist)
+        sys.exit(0)
+    if args.status:
+        status = cb_status()
+        if not status:
+            print('暂无调用记录')
+        else:
+            for name, s in status.items():
+                print(f'  {name:20s}: {s["state"]:10s} 错误率={s["error_rate"]} 平均延迟={s["avg_latency_ms"]}ms 总调用={s["total_calls"]}')
+        sys.exit(0)
 
     if args.test:
         print('测试所有后端连通性...')
@@ -538,7 +775,7 @@ if __name__ == '__main__':
                 resp = call_local([{'role': 'user', 'content': '你好'}], mt=10)
             else:
                 resp = call_api(name, test_msg, mt=20)
-            status = 'OK' if '暂时不可用' not in resp and 'ERR' not in resp else 'FAIL'
+            status = 'OK' if resp and '暂时不可用' not in str(resp) and 'ERR' not in str(resp) else 'FAIL'
             print(f'  {name} ({b["model"]}): {status}')
         sys.exit(0)
 
