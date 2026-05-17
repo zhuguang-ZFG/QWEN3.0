@@ -7,7 +7,7 @@ Infinite improvement loop. DeepSeek-R1's secret.
 import json, urllib.request, time, os, sys
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
-API = {"url": "https://www.right.codes/claude-aws/v1/messages", "key": "YOUR_API_KEY_HERE"}
+API = {"url": "https://www.right.codes/claude-aws/v1/messages", "key": "sk-8838ce42deaf4d8e82c7f364cf6d963e"}
 LMSTUDIO = "http://localhost:1234/v1/chat/completions"
 EVOLVE_FILE = r"D:\GIT\evolved_training_data.json"
 ROUND = 1

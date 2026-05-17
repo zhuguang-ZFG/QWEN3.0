@@ -190,13 +190,13 @@ LOCAL_MODEL = "qwen2.5-7b-instruct"  # LM Studio loaded model
 RTK = r"D:\tools\rtk\rtk.exe"
 
 API_POOL = [
-    {"name": "claude", "url": "https://www.right.codes/claude-aws/v1/messages", "key": "YOUR_API_KEY_HERE", "model": "claude-sonnet-4-6", "type": "anthropic", "priority": 1, "cost_per_1k_in": 0.003, "cost_per_1k_out": 0.015},
-    {"name": "deepseek", "url": "https://api.deepseek.com/anthropic/v1/messages", "key": "YOUR_API_KEY_HERE", "model": "deepseek-chat", "type": "anthropic", "priority": 2, "cost_per_1k_in": 0.00014, "cost_per_1k_out": 0.00028},
-    {"name": "gpt55", "url": "https://www.right.codes/codex/v1/chat/completions", "key": "YOUR_API_KEY_HERE", "model": "gpt-5.5", "type": "openai", "priority": 2, "cost_per_1k_in": 0, "cost_per_1k_out": 0},
-    {"name": "nvidia_dsv4", "url": "https://integrate.api.nvidia.com/v1/chat/completions", "key": "YOUR_NVIDIA_KEY_HERE", "model": "deepseek-ai/deepseek-v4-flash", "type": "openai", "priority": 3, "cost_per_1k_in": 0, "cost_per_1k_out": 0},
-    {"name": "openrouter_dsv4", "url": "https://openrouter.ai/api/v1/chat/completions", "key": "YOUR_API_KEY_HERE", "model": "deepseek/deepseek-v4-flash:free", "type": "openrouter", "priority": 3, "cost_per_1k_in": 0, "cost_per_1k_out": 0},
-    {"name": "openrouter_minimax", "url": "https://openrouter.ai/api/v1/chat/completions", "key": "YOUR_API_KEY_HERE", "model": "minimax/minimax-m2.5:free", "type": "openrouter", "priority": 4, "cost_per_1k_in": 0, "cost_per_1k_out": 0},
-    {"name": "openrouter_nemotron", "url": "https://openrouter.ai/api/v1/chat/completions", "key": "YOUR_API_KEY_HERE", "model": "nvidia/nemotron-3-super-120b-a12b:free", "type": "openrouter", "priority": 4, "cost_per_1k_in": 0, "cost_per_1k_out": 0},
+    {"name": "claude", "url": "https://www.right.codes/claude-aws/v1/messages", "key": "sk-8838ce42deaf4d8e82c7f364cf6d963e", "model": "claude-sonnet-4-6", "type": "anthropic", "priority": 1, "cost_per_1k_in": 0.003, "cost_per_1k_out": 0.015},
+    {"name": "deepseek", "url": "https://api.deepseek.com/anthropic/v1/messages", "key": "sk-639fd931aa1846318b6ff12704ee98ec", "model": "deepseek-chat", "type": "anthropic", "priority": 2, "cost_per_1k_in": 0.00014, "cost_per_1k_out": 0.00028},
+    {"name": "gpt55", "url": "https://www.right.codes/codex/v1/chat/completions", "key": "sk-32e7bfbab36f46ada4e15580dd034682", "model": "gpt-5.5", "type": "openai", "priority": 2, "cost_per_1k_in": 0, "cost_per_1k_out": 0},
+    {"name": "nvidia_dsv4", "url": "https://integrate.api.nvidia.com/v1/chat/completions", "key": "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", "model": "deepseek-ai/deepseek-v4-flash", "type": "openai", "priority": 3, "cost_per_1k_in": 0, "cost_per_1k_out": 0},
+    {"name": "openrouter_dsv4", "url": "https://openrouter.ai/api/v1/chat/completions", "key": "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", "model": "deepseek/deepseek-v4-flash:free", "type": "openrouter", "priority": 3, "cost_per_1k_in": 0, "cost_per_1k_out": 0},
+    {"name": "openrouter_minimax", "url": "https://openrouter.ai/api/v1/chat/completions", "key": "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", "model": "minimax/minimax-m2.5:free", "type": "openrouter", "priority": 4, "cost_per_1k_in": 0, "cost_per_1k_out": 0},
+    {"name": "openrouter_nemotron", "url": "https://openrouter.ai/api/v1/chat/completions", "key": "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", "model": "nvidia/nemotron-3-super-120b-a12b:free", "type": "openrouter", "priority": 4, "cost_per_1k_in": 0, "cost_per_1k_out": 0},
 ]
 FALLBACK_APIS = [a for a in API_POOL if a["priority"] >= 3]  # Free APIs as last resort
 

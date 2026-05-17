@@ -5,8 +5,8 @@ import json, urllib.request, time, random, os, sys
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 APIS = [
-    ("claude", "https://www.right.codes/claude-aws/v1/messages", "YOUR_API_KEY_HERE", "claude-sonnet-4-6", "anthropic"),
-    ("deepseek", "https://api.deepseek.com/anthropic/v1/messages", "YOUR_API_KEY_HERE", "deepseek-chat", "anthropic"),
+    ("claude", "https://www.right.codes/claude-aws/v1/messages", "sk-8838ce42deaf4d8e82c7f364cf6d963e", "claude-sonnet-4-6", "anthropic"),
+    ("deepseek", "https://api.deepseek.com/anthropic/v1/messages", "sk-639fd931aa1846318b6ff12704ee98ec", "deepseek-chat", "anthropic"),
 ]
 
 OUTPUT = r"D:\GIT\dpo_preferences.json"
