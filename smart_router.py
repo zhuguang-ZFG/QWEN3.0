@@ -61,6 +61,12 @@ BACKENDS = {
     'nvidia_llama4':    {'url': 'https://integrate.api.nvidia.com/v1/chat/completions',
                          'key': os.environ.get('NVIDIA_API_KEY', ''),
                          'model': 'meta/llama-4-maverick-17b-128e-instruct', 'fmt': 'openai'},
+    'nvidia_mistral':   {'url': 'https://integrate.api.nvidia.com/v1/chat/completions',
+                         'key': os.environ.get('NVIDIA_API_KEY', ''),
+                         'model': 'mistralai/mistral-large-3-675b-instruct-2512', 'fmt': 'openai'},
+    'nvidia_phi4':      {'url': 'https://integrate.api.nvidia.com/v1/chat/completions',
+                         'key': os.environ.get('NVIDIA_API_KEY', ''),
+                         'model': 'microsoft/phi-4-mini-instruct', 'fmt': 'openai'},
     'local':   {'url': LM_URL, 'key': '', 'model': 'local-model', 'fmt': 'openai', 'auth': 'bearer'},
 }
 
@@ -69,15 +75,15 @@ PUBLIC_MODEL_NAME = os.environ.get('PUBLIC_MODEL_NAME', 'red V1flash')
 
 # Intent -> backend
 ROUTE = {
-    'cnc_trouble':    'deepseek_pro',      # CNC故障 -> DeepSeek PRO（强推理）
-    'grbl_config':    'local',             # GRBL参数 -> 本地（训练数据够用）
-    'gcode_help':     'local',             # G代码 -> 本地
-    'embedded_dev':   'deepseek_pro',      # 嵌入式开发 -> DeepSeek PRO
-    'code_generation':'deepseek_flash',    # 代码生成 -> DeepSeek FLASH（快+强代码）
-    'architecture':   'claude',            # 架构设计 -> Claude（最强综合）
-    'general_cnc':    'longcat_lite',      # 通用CNC -> LongCat Lite（最快）
-    'complex_theory': 'deepseek_pro',      # 复杂理论 -> DeepSeek PRO
-    'unknown':        'longcat_chat',      # 未知 -> LongCat Chat
+    'cnc_trouble':    'deepseek_pro',        # CNC故障 -> DeepSeek PRO（强推理）
+    'grbl_config':    'local',               # GRBL参数 -> 本地
+    'gcode_help':     'local',               # G代码 -> 本地
+    'embedded_dev':   'nvidia_nemotron',     # 嵌入式开发 -> Nvidia Nemotron（免费+强）
+    'code_generation':'nvidia_qwen_coder',   # 代码生成 -> Qwen Coder 480B（免费+最强代码）
+    'architecture':   'claude',              # 架构设计 -> Claude（最强综合）
+    'general_cnc':    'nvidia_llama4',       # 通用CNC -> Llama4（免费+快）
+    'complex_theory': 'nvidia_nemotron',     # 复杂理论 -> Nvidia Nemotron（免费+强推理）
+    'unknown':        'nvidia_llama70b',     # 未知 -> Llama 70B（免费+通用）
 }
 
 SYS = 'CNC/embedded expert. Detailed Chinese answers with params, code, steps. No disclaimers.'
@@ -192,6 +198,9 @@ CLEAN_PATTERNS = [
     (re.compile(r'nvidia[\w\-\.\/]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
     (re.compile(r'nemotron[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
     (re.compile(r'llama[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
+    (re.compile(r'mistral[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
+    (re.compile(r'qwen[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
+    (re.compile(r'phi[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
     (re.compile(r'anthropic', re.IGNORECASE), ''),
     (re.compile(r'openai', re.IGNORECASE), ''),
 ]
@@ -515,7 +524,8 @@ if __name__ == '__main__':
                                  'deepseek_pro', 'deepseek_pro_1m',
                                  'deepseek_flash', 'deepseek_flash_1m',
                                  'nvidia_nemotron', 'nvidia_llama70b',
-                                 'nvidia_qwen_coder', 'nvidia_llama4', 'local'])
+                                 'nvidia_qwen_coder', 'nvidia_llama4',
+                                 'nvidia_mistral', 'nvidia_phi4', 'local'])
     parser.add_argument('--json', action='store_true', help='Output JSON (for --query mode)')
     parser.add_argument('--test', action='store_true', help='测试所有后端连通性')
     args = parser.parse_args()
