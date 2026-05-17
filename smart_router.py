@@ -545,7 +545,50 @@ def route(query, prefer=None):
         if continuation and not continuation.startswith('[ERR]'):
             result['answer'] = result['answer'] + '\n' + clean_response(continuation, backend)
 
+    # 写入蒸馏队列（失败不影响主流程）
+    _log_to_distill_queue(query, result.get('answer', ''), intent, result.get('backend', ''))
+
     return result
+
+# ── Distill Queue Logger ─────────────────────────────────────────────────────
+DISTILL_QUEUE_DIR = os.path.join(os.path.dirname(__file__), 'data', 'distill_queue', 'pending')
+
+def _log_to_distill_queue(query: str, answer: str, intent: dict, backend: str) -> None:
+    """将路由结果写入蒸馏队列，供 distill_scheduler 使用。
+
+    只记录满足以下条件的条目：
+    1. 后端不是 'local'（本地模型回答不需要蒸馏）
+    2. 回答不含错误标志
+    3. 日志功能已启用（DISTILL_LOG=1 环境变量）
+    """
+    if os.environ.get('DISTILL_LOG', '0') != '1':
+        return
+    if backend == 'local':
+        return
+    if not answer or '暂时不可用' in answer:
+        return
+
+    try:
+        os.makedirs(DISTILL_QUEUE_DIR, exist_ok=True)
+        import hashlib, datetime
+        entry = {
+            'query': query,
+            'answer': answer,
+            'intent': intent.get('intent', 'unknown'),
+            'complexity': intent.get('complexity', 0.5),
+            'source_backend': backend,
+            'logged_at': datetime.datetime.now().isoformat(),
+        }
+        qhash = hashlib.md5(query.encode()).hexdigest()[:8]
+        ts = time.strftime('%Y%m%d_%H%M%S')
+        fname = os.path.join(DISTILL_QUEUE_DIR, f'{ts}_{qhash}.json')
+        with open(fname, 'w', encoding='utf-8') as f:
+            json.dump(entry, f, ensure_ascii=False, indent=2)
+        if DEBUG:
+            print(f'[DISTILL] logged: {query[:30]}... -> {backend}', file=sys.stderr)
+    except Exception as e:
+        if DEBUG:
+            print(f'[DISTILL] log failed: {e}', file=sys.stderr)
 
 # ── Pressure Test ────────────────────────────────────────────────────────────
 def pressure_test(backends=None, concurrency=3, rounds=5):
