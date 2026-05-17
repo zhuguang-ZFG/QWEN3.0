@@ -7,3 +7,14 @@ sessions.db
 api_health.json
 api_config.json
 feedback_queue.json
+round5_training_data.json
+round*.json
+grbl_qa_data.json
+grbl_training_data.json
+local_code_distilled.json
+*_training_data.json
+*_checkpoint.json
+hf_cache/
+my_code_model_*/
+models/
+*.gguf

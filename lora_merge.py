@@ -12,12 +12,10 @@ sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 BASE = r"D:\GIT\models\Qwen\Qwen3-8B"
 MERGE_OUTPUT = r"D:\GIT\my_code_model_merged"
 LORA_SOURCES = {
-    "cnc_domain": r"D:\GIT\my_code_model_qwen3",      # Our trained LoRA (CNC/ESP32/RE)
-    "code_style": r"D:\GIT\my_code_model_round3",     # Round 3 LoRA (code patterns from Claude Code etc)
-    "general_knowledge": r"D:\GIT\my_code_model",     # Round 1 base LoRA
+    "cnc_domain": r"D:\GIT\my_code_model_qwen3",      # Round 4 LoRA (Qwen3-8B, CNC/ESP32/RE)
 }
 
-MERGE_WEIGHTS = {"cnc_domain": 0.5, "code_style": 0.3, "general_knowledge": 0.2}
+MERGE_WEIGHTS = {"cnc_domain": 1.0}
 
 
 def merge_loras():

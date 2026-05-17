@@ -88,8 +88,11 @@ def check_and_retrain(new_pairs: list):
     if not new_pairs:
         return False
 
-    with open(CONFIG["training_data"], 'r', encoding='utf-8') as f:
-        data = json.load(f)
+    if os.path.exists(CONFIG["training_data"]):
+        with open(CONFIG["training_data"], 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    else:
+        data = []
     data.extend(new_pairs)
     with open(CONFIG["training_data"], 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
@@ -124,6 +127,12 @@ def export_gguf_if_needed():
 
     print(f"  Weights ready at {weights_dir}")
 
+    gguf_output = r"D:\GIT\my_code_model_gguf\model-q4_K_M.gguf"
+    if os.path.exists(gguf_output):
+        if os.path.getmtime(adapter) <= os.path.getmtime(gguf_output):
+            print("  GGUF already up-to-date, skipping export")
+            return True
+
     if not os.path.exists(convert_script):
         print("  GGUF export skipped - llama.cpp not found")
         # Adapter exists but llama.cpp missing: weights are ready, just not GGUF yet
@@ -140,7 +149,6 @@ def export_gguf_if_needed():
     # Step 2: convert to GGUF
     print("  Step 2: Converting to GGUF...")
     merged_path = os.path.join(weights_dir, "merged")
-    gguf_output = r"D:\GIT\my_code_model_gguf\model-q4_K_M.gguf"
     os.makedirs(os.path.dirname(gguf_output), exist_ok=True)
     convert_result = subprocess.run(
         [python_exe, convert_script, merged_path,

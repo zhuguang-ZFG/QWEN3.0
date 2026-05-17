@@ -46,27 +46,30 @@ def prepare_test_set():
     return len(texts)
 
 
-def calculate_perplexity(model_path: str, label: str):
-    """Calculate perplexity of a LoRA model on the test set."""
+def calculate_perplexity(model_path, label: str, base_model_path: str):
+    """Calculate perplexity of a model (optionally with LoRA) on the test set."""
     if not os.path.exists(r"D:\GIT\test_set.pt"):
         prepare_test_set()
 
-    encodings = torch.load(r"D:\GIT\test_set.pt")
-    tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL, trust_remote_code=True)
+    encodings = torch.load(r"D:\GIT\test_set.pt", weights_only=False)
+    tokenizer = AutoTokenizer.from_pretrained(base_model_path, trust_remote_code=True)
 
     print(f"\n  Loading {label} for perplexity evaluation...")
     bnb = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_use_double_quant=True,
                               bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16)
 
-    model = AutoModelForCausalLM.from_pretrained(BASE_MODEL, quantization_config=bnb,
+    model = AutoModelForCausalLM.from_pretrained(base_model_path, quantization_config=bnb,
                                                   device_map="auto", trust_remote_code=True, torch_dtype=torch.bfloat16)
 
-    # Load LoRA if available
-    adapter = os.path.join(model_path, "adapter_model.safetensors")
-    if os.path.exists(adapter):
-        from peft import PeftModel
-        model = PeftModel.from_pretrained(model, model_path)
-        print(f"  LoRA loaded from {model_path}")
+    # Load LoRA if model_path is provided
+    if model_path is not None:
+        adapter = os.path.join(model_path, "adapter_model.safetensors")
+        if os.path.exists(adapter):
+            from peft import PeftModel
+            model = PeftModel.from_pretrained(model, model_path)
+            print(f"  LoRA loaded from {model_path}")
+        else:
+            print(f"  WARNING: adapter not found at {model_path}, using base model only")
     else:
         print("  Using base model (no LoRA)")
 
@@ -123,19 +126,23 @@ def compare_rounds():
     print("=" * 60)
 
     rounds = [
-        (r"D:\GIT\my_code_model", "Round 1 (Qwen2.5, 98K)"),
-        (r"D:\GIT\my_code_model_round3", "Round 3 (Qwen2.5, 208K)"),
-        (r"D:\GIT\my_code_model_qwen3", "Round 4 (Qwen3, 208K, 4K ctx)"),
+        (None, "Qwen3-8B Base (no LoRA)", r"D:\GIT\models\Qwen\Qwen3-8B"),
+        (r"D:\GIT\my_code_model_qwen3", "Round 4 (Qwen3, 208K, 4K ctx)", r"D:\GIT\models\Qwen\Qwen3-8B"),
     ]
 
     results = []
-    for path, label in rounds:
-        adapter = os.path.join(path, "adapter_model.safetensors")
-        if os.path.exists(adapter):
-            ppl, loss = calculate_perplexity(path, label)
-            results.append({"round": label, "perplexity": ppl, "avg_loss": loss, "path": path})
+    for path, label, base_model_path in rounds:
+        if path is None:
+            # Baseline: no LoRA, just the base model
+            ppl, loss = calculate_perplexity(None, label, base_model_path)
+            results.append({"round": label, "perplexity": ppl, "avg_loss": loss, "path": base_model_path})
         else:
-            print(f"  SKIP {label}: adapter not found (training not complete)")
+            adapter = os.path.join(path, "adapter_model.safetensors")
+            if os.path.exists(adapter):
+                ppl, loss = calculate_perplexity(path, label, base_model_path)
+                results.append({"round": label, "perplexity": ppl, "avg_loss": loss, "path": path})
+            else:
+                print(f"  SKIP {label}: adapter not found at {path}")
 
     # Compare
     if len(results) >= 2:
