@@ -1,101 +1,209 @@
-# red V1-Flash
+# red V1flash - CNC/嵌入式领域 AI 助手
 
-> 深圳市动力巢科技 (www.donglicao.com)
-> 基于 Qwen3-8B + QLoRA 微调的 CNC/嵌入式/逆向工程 领域专精大模型
+基于 Qwen3-8B + QLoRA 微调的 CNC/嵌入式领域专精 AI 助手服务，通过智能路由将用户问题分发到最合适的后端，对外统一呈现为 **red V1flash**。
 
 ---
 
-## 架构
+## 核心架构
 
 ```
-用户输入 → Router V3 (语义路由+意图识别+质量评分)
-  ├─ CNC/ESP32/SVG → red V1-Flash 本地 (免费)
-  ├─ 复杂推理 → LongCat Thinking + red V1-Flash
-  ├─ 质量兜底 → Claude API (right.codes)
-  └─ 超长上下文 → DeepSeek 1M API
-         ↑
-    rtk Token 压缩 (省 60-90% API 费用)
+用户输入
+    │
+    ▼
+┌─────────────────────────────────────┐
+│         两层意图分类                 │
+│  Layer 1: 关键词规则 (80% 命中)      │
+│  Layer 2: 本地模型 (20% 模糊查询)    │
+└──────────────┬──────────────────────┘
+               │ intent + complexity
+               ▼
+┌─────────────────────────────────────┐
+│         Prompt 扩写                  │
+│  本地模型将短问题扩写为技术详细问题   │
+└──────────────┬──────────────────────┘
+               │
+       ┌───────┴────────┐
+       ▼                ▼
+  本地模型          外部 API
+  (GRBL/GCode)   ┌──────────────┐
+                 │ Claude       │ ← 复杂故障/架构设计
+                 │ LongCat系列  │ ← 嵌入式/代码/通用
+                 └──────────────┘
+               │
+               ▼
+    响应清洗（隐藏底层模型名）
+               │
+               ▼
+        red V1flash 统一输出
 ```
 
-## 核心能力
-
-| 领域 | 覆盖 |
-|------|------|
-| CNC/Grbl | GCode、步进控制、归零、限位、参数调优 |
-| ESP32/STM32 | GPIO/I2C/SPI/UART、固件开发、FreeRTOS |
-| SVG/图像 | 矢量处理、Inkscape插件、SVG→GCode |
-| 逆向工程 | 固件提取、JTAG/SWD、协议分析、Ghidra |
-| AI 工具链 | Claude Code/Cursor/CC-switch 优化 |
-
-## 训练管线
-
-| 轮次 | 基座 | 数据量 | 方法 | 状态 |
-|------|------|--------|------|------|
-| R1 | Qwen2.5-7B | 98K | SFT QLoRA | ✅ |
-| R2 | Qwen2.5-7B | 206K | SFT QLoRA | ✅ |
-| R3 | Qwen2.5-7B | 208K | SFT QLoRA | ✅ |
-| R4 | Qwen3-8B | 208K | SFT QLoRA (4096 ctx) | 🔄 |
-| R5 | Qwen3-8B | 100K | SFT QLoRA + DPO | ⏳ |
-| DPO | Qwen3-8B | 500+ 偏好对 | DPO QLoRA | ⏳ |
-
-## 路由系统
-
-| 版本 | 核心功能 |
-|------|----------|
-| V1 | 关键词路由 + 本地/API + 断网兜底 |
-| V2 | RAG + 质量评分 + 缓存 + 流式 + 推理引擎 |
-| V3 | 语义路由 + 意图识别 + 多模型共识 + 断路器 + 会话持久化 |
-
-## API 供应商 (7 个)
-
-| 供应商 | 类型 | 成本 |
-|------|------|------|
-| red V1-Flash (LM Studio) | 本地 | 免费 |
-| Claude Sonnet 4.6 (right.codes) | 付费 | 低 |
-| DeepSeek V4 (官方) | 付费 | 极低 |
-| GPT 5.5 (right.codes) | 付费 | 低 |
-| DeepSeek V4 Flash (Nvidia) | 免费 | 免费 |
-| DeepSeek V4 Flash (OpenRouter) | 免费 | 免费 |
-| Nemotron 120B (OpenRouter) | 免费 | 免费 |
-
-## 关键优化
-
-| 优化 | 来源 | 效果 |
-|------|------|------|
-| 极致简洁响应 | Claude Code 2.0 内部提示词 | 减少废话 |
-| KNOW WHEN TO STOP | Orchids.app 提示词 | 不画蛇添足 |
-| RAG 代码检索 | 自定义 RAG 索引 | 基于原文回答 |
-| 三路蒸馏 | Claude + DeepSeek + GPT | 1695 高质量问答 |
-| Abliteration 去审查 | Dolphin + better-uncensored | 移除拒绝向量 |
-| 知识边界训练 | HypoTermInstruct 模式 | 主动说"不知道" |
-| rtk Token 压缩 | rtk v0.40 | API 费用降低 60-90% |
-| CC-switch 集成 | 自定义预设 | Claude Code/Cursor 中直接切换 |
-
-## 反幻觉措施
-
-- ✅❓❌ 确定性标注系统
-- RAG 基于原文回答
-- 多模型共识验证
-- 质量评分 + API 兜底
-- "我不知道" 训练数据
-- 断路器防雪崩
+---
 
 ## 快速开始
 
+### 1. 安装依赖
+
 ```bash
-# 启动本地推理
+pip install python-dotenv
+```
+
+### 2. 配置环境变量
+
+```bash
+cp .env.example .env
+# 编辑 .env，填入真实 API Key
+```
+
+### 3. 启动本地推理（可选，用于 GRBL/GCode 本地回答）
+
+```bash
+# 使用 LM Studio 加载本地模型，默认监听 http://localhost:1234
 lms server start
 lms load qwen3-8b
-
-# 启动路由系统
-python router_v3.py
-
-# 启动 Web UI
-python web_chat.py
-
-# 健康检测
-python api_health_checker.py
-
-# 自动发现新免费 API
-python api_auto_discovery.py
 ```
+
+### 4. 运行智能路由器
+
+```bash
+# 交互式 CLI
+python smart_router.py
+
+# MCP 服务模式（供 Claude Code 调用）
+python smart_router.py --mcp
+
+# 调试模式（显示路由详情和 Prompt 扩写）
+RED_DEBUG=1 python smart_router.py
+```
+
+---
+
+## 意图路由表
+
+| 意图 (intent) | 触发关键词示例 | 后端 | 说明 |
+|---|---|---|---|
+| `grbl_config` | `$100`、`步数/mm`、`归零`、`$22` | 本地模型 | GRBL 参数训练数据充足，本地直答 |
+| `gcode_help` | `G0`、`G2`、`M3`、`圆弧`、`插补` | 本地模型 | G 代码解释，本地直答 |
+| `cnc_trouble` | `失步`、`抖动`、`限位`、`报警` | Claude | 复杂故障诊断，调用最强模型 |
+| `embedded_dev` | `ESP32`、`STM32`、`FreeRTOS`、`DMA` | LongCat Thinking | 嵌入式开发，需要推理能力 |
+| `code_generation` | `写代码`、`生成代码`、`实现函数` | LongCat Chat | 代码生成，快速响应 |
+| `architecture` | `架构`、`方案`、`选型`、`对比` | Claude | 架构设计，调用最强模型 |
+| `complex_theory` | `FOC`、`PID`、`闭环`、`伺服` | LongCat Thinking | 复杂理论，需要推理能力 |
+| `general_cnc` | `PCB`、`激光`、`主轴`、`RPM` | LongCat Lite | 通用 CNC，最快响应 |
+| `unknown` | 其他 | LongCat Chat | 兜底后端 |
+
+---
+
+## 训练数据说明
+
+共 **156,414 条** CNC/嵌入式领域问答对，来源分布：
+
+| 数据来源 | 说明 |
+|---|---|
+| StackExchange | CNC/嵌入式相关技术问答 |
+| 知乎 | 中文 CNC/嵌入式讨论 |
+| GRBL 源码蒸馏 | 从 GRBL 源码提取参数、错误码、报警码知识 |
+| 本地代码蒸馏 | 从本地项目代码提取实现细节 |
+| Claude 专家问答 | 三路蒸馏（Claude + DeepSeek + GPT）生成高质量问答 |
+
+---
+
+## 模型训练
+
+### 训练配置
+
+- 基座模型：Qwen3-8B
+- 训练方式：QLoRA（rank=16，alpha=32，4-bit 量化）
+- 序列长度：4096 tokens
+- 硬件要求：RTX 5060 Ti 16GB（或同等 VRAM）
+- 有效批次大小：8（batch=1 × gradient_accumulation=8）
+
+### 运行训练
+
+```bash
+# 设置训练数据路径（默认读取 round5_training_data.json）
+export TRAIN_DATA_PATH=/path/to/your/training_data.json
+
+# 开始训练
+python train_model.py
+
+# 仅导出 GGUF（跳过训练）
+python train_model.py --export_only
+
+# 通过 llama.cpp 导出
+python train_model.py --export_only --use_llama_cpp
+```
+
+### 训练轮次记录
+
+| 轮次 | 基座 | 数据量 | 方法 | 状态 |
+|---|---|---|---|---|
+| R1-R3 | Qwen2.5-7B | 98K-208K | SFT QLoRA | 已完成 |
+| R4-R7 | Qwen3-8B | 156K+ | SFT QLoRA | 进行中（R7 step 1000/4000，loss=1.05）|
+
+---
+
+## MCP 集成（Claude Code）
+
+smart_router.py 内置 MCP stdio 服务，可作为 Claude Code 工具使用。
+
+### 配置方法
+
+在 Claude Code 的 MCP 配置文件中添加：
+
+```json
+{
+  "mcpServers": {
+    "red-v1-flash": {
+      "command": "python",
+      "args": ["/path/to/QWEN3.0/smart_router.py", "--mcp"],
+      "env": {
+        "CLAUDE_API_KEY": "your_key",
+        "LONGCAT_API_KEY": "your_key"
+      }
+    }
+  }
+}
+```
+
+### 可用 MCP 工具
+
+| 工具名 | 功能 |
+|---|---|
+| `cnc_route` | 分析 CNC/嵌入式问题，自动路由到最佳后端 |
+| `grbl_lookup` | 查询 GRBL 参数（`$0`-`$132`）、错误码、报警码、G 代码 |
+
+---
+
+## 目录结构
+
+| 文件 | 用途 |
+|---|---|
+| `smart_router.py` | 智能路由器核心（两层路由 + Prompt 扩写 + MCP 服务） |
+| `train_model.py` | QLoRA 训练脚本（Qwen3-8B，RTX 5060 Ti 适配） |
+| `closed_loop.py` | 闭环训练流程（自动评估 → 触发重训） |
+| `grpo_train.py` | GRPO 强化学习训练 |
+| `lora_merge.py` | LoRA 权重合并导出 |
+| `evaluate_model.py` | 模型评估脚本 |
+| `extract_grbl_qa.py` | GRBL 知识问答生成 |
+| `extract_grbl_training.py` | GRBL 源码蒸馏 |
+| `distill_local_code.py` | 本地代码蒸馏 |
+| `collect_zhihu_data.py` | 知乎数据采集 |
+| `append_datasets.py` | 多数据集合并 |
+| `web_chat.py` | Web 聊天界面 |
+| `router_v3.py` | 旧版路由器（已由 smart_router.py 取代） |
+| `.env.example` | 环境变量模板 |
+
+---
+
+## 环境变量
+
+| 变量 | 说明 | 默认值 |
+|---|---|---|
+| `CLAUDE_API_KEY` | Claude API Key（right.codes） | 必填 |
+| `LONGCAT_API_KEY` | LongCat API Key | 必填 |
+| `PUBLIC_MODEL_NAME` | 对外展示的模型名 | `red V1flash` |
+| `RED_DEBUG` | 调试模式（显示路由详情） | `0` |
+
+---
+
+> 深圳市动力巢科技 (www.donglicao.com)
