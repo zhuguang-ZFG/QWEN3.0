@@ -139,9 +139,25 @@ def check_trigger(
     return (True, mode)
 
 
+def _infer_intent_simple(text: str) -> str:
+    """简单关键词分类，用于旧数据分域采样。"""
+    text = text.lower()
+    if any(k in text for k in ['$', 'grbl', '步数', 'steps_per_mm', '归零', 'homing']):
+        return 'grbl_config'
+    if any(k in text for k in ['失步', '抖动', '报警', 'alarm', '限位', '接线']):
+        return 'cnc_trouble'
+    if any(k in text for k in ['esp32', 'stm32', 'freertos', '中断', 'dma', '定时器']):
+        return 'embedded_dev'
+    if any(k in text for k in ['代码', 'code', '函数', 'function', '实现']):
+        return 'code_generation'
+    if any(k in text for k in ['g0', 'g1', 'g2', 'g3', 'gcode', 'g代码', '插补']):
+        return 'gcode_help'
+    return 'general_cnc'
+
+
 def prepare_dataset(
     new_data_paths: list,
-    old_data_sample_ratio: float = 0.05,
+    old_data_sample_ratio: float = 0.15,
     output_path: str = MERGED_TEMP_PATH,
 ) -> str:
     """合并新旧数据，写入临时 JSON 文件，返回文件路径。
@@ -151,7 +167,7 @@ def prepare_dataset(
 
     Args:
         new_data_paths: 新数据 .json 文件路径列表
-        old_data_sample_ratio: 旧数据采样比例，默认 0.05
+        old_data_sample_ratio: 旧数据采样比例，默认 0.15
         output_path: 合并后输出文件路径
 
     Returns:
@@ -196,7 +212,30 @@ def prepare_dataset(
 
     if old_records:
         sample_size = max(1, int(len(old_records) * old_data_sample_ratio))
-        sampled = random.sample(old_records, min(sample_size, len(old_records)))
+        # 按 intent 分域均匀采样，防止灾难性遗忘时偏向某一领域
+        from collections import defaultdict
+        domain_buckets = defaultdict(list)
+        for rec in old_records:
+            content = ''
+            if isinstance(rec, dict):
+                msgs = rec.get('messages', [])
+                if msgs:
+                    content = msgs[0].get('content', '') if isinstance(msgs[0], dict) else ''
+            intent = _infer_intent_simple(content)
+            domain_buckets[intent].append(rec)
+
+        domains = list(domain_buckets.keys())
+        per_domain = max(1, sample_size // max(len(domains), 1))
+        sampled = []
+        for domain, recs in domain_buckets.items():
+            n = min(per_domain, len(recs))
+            sampled.extend(random.sample(recs, n))
+        # 如果总数不足，随机补充
+        if len(sampled) < sample_size:
+            remaining = [r for r in old_records if r not in sampled]
+            extra = min(sample_size - len(sampled), len(remaining))
+            if extra > 0:
+                sampled.extend(random.sample(remaining, extra))
         # 旧数据可能已是训练格式，也可能是 QAPair 格式
         for rec in sampled:
             if "messages" in rec:
@@ -242,7 +281,7 @@ def start_training(
     """
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_dir = os.path.join(CHECKPOINT_BASE, f"run_{timestamp}") + "/"
-    max_steps = 2000 if mode == "incremental" else 4000
+    max_steps = 1000 if mode == "incremental" else 4000
 
     if dataset_path is None:
         dataset_path = MERGED_TEMP_PATH
@@ -252,6 +291,10 @@ def start_training(
     train_env["TRAIN_DATA_PATH"] = dataset_path
     train_env["TRAIN_OUTPUT_DIR"] = output_dir
     train_env["TRAIN_MAX_STEPS"] = str(max_steps)
+    if mode == "incremental":
+        train_env["TRAIN_LEARNING_RATE"] = "5e-5"   # 比全量 2e-4 低4倍
+    else:
+        train_env["TRAIN_LEARNING_RATE"] = "2e-4"
     if resume_checkpoint:
         train_env["TRAIN_RESUME_FROM"] = resume_checkpoint
 

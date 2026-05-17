@@ -31,7 +31,7 @@ LORA_ALPHA = 32
 LORA_DROPOUT = 0
 BATCH_SIZE = 1  # Must be 1 for 16GB VRAM
 GRADIENT_ACCUMULATION = 8  # Effective batch size = 8
-LEARNING_RATE = 2e-4
+LEARNING_RATE = float(os.environ.get("TRAIN_LEARNING_RATE", "2e-4"))
 MAX_STEPS = int(os.environ.get("TRAIN_MAX_STEPS", "4000"))  # Round 6: 155K data, targeting ~0.3 epoch
 WARMUP_RATIO = 0.05
 
