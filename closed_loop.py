@@ -6,6 +6,8 @@ Feedback -> Distill -> Train -> Export -> Deploy -> Validate
 
 import json, os, subprocess, sys, time, urllib.request
 from datetime import datetime
+from dotenv import load_dotenv
+load_dotenv()
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 CONFIG = {
@@ -28,14 +30,15 @@ CONFIG = {
 def process_feedback():
     """Take low-scored feedback, distill into better answers via API."""
     if not os.path.exists(CONFIG["feedback_queue"]): return []
-    queue = json.load(open(CONFIG["feedback_queue"], 'r', encoding='utf-8'))
+    with open(CONFIG["feedback_queue"], 'r', encoding='utf-8') as f:
+        queue = json.load(f)
 
     if len(queue) < CONFIG["distill_threshold"]:
         print(f"  Feedback queue: {len(queue)} items (< {CONFIG['distill_threshold']}, waiting)")
         return []
 
     print(f"  Processing {len(queue)} feedback items for distillation...")
-    api_key = "sk-8838ce42deaf4d8e82c7f364cf6d963e"
+    api_key = os.environ.get("CLAUDE_API_KEY", "")
     improved = []
 
     for item in queue[:50]:  # Max 50 per cycle
@@ -69,8 +72,11 @@ def process_feedback():
             print(f"    Distill FAIL: {e}")
         time.sleep(0.5)
 
-    # Clear queue, save improved pairs
-    json.dump([], open(CONFIG["feedback_queue"], 'w', encoding='utf-8'))
+    # Only clear successfully processed items
+    processed_count = len(improved)
+    remaining_queue = queue[processed_count:]
+    with open(CONFIG["feedback_queue"], 'w', encoding='utf-8') as f:
+        json.dump(remaining_queue, f, ensure_ascii=False)
     return improved
 
 
@@ -82,9 +88,11 @@ def check_and_retrain(new_pairs: list):
     if not new_pairs:
         return False
 
-    data = json.load(open(CONFIG["training_data"], 'r', encoding='utf-8'))
+    with open(CONFIG["training_data"], 'r', encoding='utf-8') as f:
+        data = json.load(f)
     data.extend(new_pairs)
-    json.dump(data, open(CONFIG["training_data"], 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
+    with open(CONFIG["training_data"], 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
     print(f"  Merged {len(new_pairs)} new pairs. Total: {len(data)}")
 
     if len(new_pairs) < CONFIG["retrain_threshold"]:

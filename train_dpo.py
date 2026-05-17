@@ -18,11 +18,9 @@ SFT_DATA = r"D:\GIT\round5_training_data.json"
 def generate_dpo_data():
     print("Generating DPO preference pairs...")
 
-    sft = json.load(open(SFT_DATA, 'r', encoding='utf-8'))
+    with open(SFT_DATA, 'r', encoding='utf-8') as f:
+        sft = json.load(f)
     preferences = []
-
-    # Strategy: For each SFT pair, the SFT answer is "chosen"
-    # Generate a "rejected" variant by creating a worse version
     rejected_templates = [
         "{question} 这个问题我不太确定，建议查阅官方文档获取准确信息。",
         "关于 {question}，这是一个很常见的问题。通常的做法是按照标准流程操作。具体细节因设备而异。",
@@ -51,7 +49,8 @@ def generate_dpo_data():
 
     # Shuffle and save
     random.shuffle(preferences)
-    json.dump(preferences, open(DPO_DATA, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
+    with open(DPO_DATA, 'w', encoding='utf-8') as f:
+        json.dump(preferences, f, ensure_ascii=False, indent=2)
     print(f"Generated {len(preferences)} DPO preference pairs")
     return len(preferences)
 
@@ -85,7 +84,9 @@ def train_dpo():
     print(f"\nStarting DPO training ({n} pairs)...")
     env = os.environ.copy()
     env["PYTHONIOENCODING"] = "utf-8"
-    subprocess.run(cmd, env=env)
+    result = subprocess.run(cmd, env=env)
+    if result.returncode != 0:
+        raise RuntimeError(f"Training failed with exit code {result.returncode}")
 
 
 def main():

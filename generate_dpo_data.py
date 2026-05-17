@@ -2,11 +2,13 @@
 """Generate real DPO preference pairs using API: chosen=good, rejected=bad."""
 
 import json, urllib.request, time, random, os, sys
+from dotenv import load_dotenv
+load_dotenv()
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 APIS = [
-    ("claude", "https://www.right.codes/claude-aws/v1/messages", "sk-8838ce42deaf4d8e82c7f364cf6d963e", "claude-sonnet-4-6", "anthropic"),
-    ("deepseek", "https://api.deepseek.com/anthropic/v1/messages", "sk-639fd931aa1846318b6ff12704ee98ec", "deepseek-chat", "anthropic"),
+    ("claude", "https://www.right.codes/claude-aws/v1/messages", os.environ.get("CLAUDE_API_KEY", ""), "claude-sonnet-4-6", "anthropic"),
+    ("deepseek", "https://api.deepseek.com/anthropic/v1/messages", os.environ.get("DEEPSEEK_API_KEY", ""), "deepseek-chat", "anthropic"),
 ]
 
 OUTPUT = r"D:\GIT\dpo_preferences.json"
@@ -52,7 +54,8 @@ def main():
     done = set()
     results = []
     if os.path.exists(CHECKPOINT):
-        cp = json.load(open(CHECKPOINT,'r',encoding='utf-8'))
+        with open(CHECKPOINT, 'r', encoding='utf-8') as f:
+            cp = json.load(f)
         done = set(cp.get("done",[]))
         results = cp.get("results",[])
         print(f"Resuming: {len(results)} already done")
@@ -88,11 +91,13 @@ def main():
         done.add(str(idx))
 
         # Save checkpoint
-        json.dump({"done": list(done), "results": results}, open(CHECKPOINT,'w',encoding='utf-8'), ensure_ascii=False, indent=2)
+        with open(CHECKPOINT, 'w', encoding='utf-8') as f:
+            json.dump({"done": list(done), "results": results}, f, ensure_ascii=False, indent=2)
         print(f"  Done ({len(chosen)} chosen vs {len(rejected)} rejected)")
         time.sleep(1)
 
-    json.dump(results, open(OUTPUT,'w',encoding='utf-8'), ensure_ascii=False, indent=2)
+    with open(OUTPUT, 'w', encoding='utf-8') as f:
+        json.dump(results, f, ensure_ascii=False, indent=2)
     print(f"\nGenerated {len(results)} DPO pairs -> {OUTPUT}")
 
 

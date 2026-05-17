@@ -15,7 +15,8 @@ GRPO_OUTPUT = r"D:\GIT\my_code_model_grpo"
 
 def prepare_grpo_data():
     """GRPO needs only prompts, no labels. Model self-evaluates groups."""
-    sft = json.load(open(SFT_DATA, 'r', encoding='utf-8'))
+    with open(SFT_DATA, 'r', encoding='utf-8') as f:
+        sft = json.load(f)
     prompts = []
     seen = set()
     for item in sft:
@@ -28,7 +29,8 @@ def prepare_grpo_data():
         prompts.append({"prompt": prompt})
         if len(prompts) >= 1000: break
 
-    json.dump(prompts, open(r"D:\GIT\grpo_prompts.json", 'w', encoding='utf-8'), ensure_ascii=False)
+    with open(r"D:\GIT\grpo_prompts.json", 'w', encoding='utf-8') as f:
+        json.dump(prompts, f, ensure_ascii=False)
     print(f"GRPO prompts prepared: {len(prompts)}")
     return len(prompts)
 
@@ -59,7 +61,9 @@ def train_grpo():
 
     env = os.environ.copy()
     env["PYTHONIOENCODING"] = "utf-8"
-    subprocess.run(cmd, env=env)
+    result = subprocess.run(cmd, env=env)
+    if result.returncode != 0:
+        raise RuntimeError(f"Training failed with exit code {result.returncode}")
 
 
 if __name__ == "__main__":

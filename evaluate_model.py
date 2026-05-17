@@ -17,7 +17,8 @@ EVAL_REPORT = r"D:\GIT\eval_report.json"
 
 def prepare_test_set():
     """Extract a held-out test set that was never in training data."""
-    data = json.load(open(r"D:\GIT\round5_training_data.json", 'r', encoding='utf-8'))
+    # Use round3 data as held-out test — never included in round5 training
+    data = json.load(open(r"D:\GIT\round3_training_data.json", 'r', encoding='utf-8'))
 
     # Take the *last* 200 items as test (training was on earlier data)
     random.seed(42)
@@ -86,8 +87,9 @@ def calculate_perplexity(model_path: str, label: str):
 
             outputs = model(input_ids=batch_ids, attention_mask=batch_mask, labels=labels)
             loss = outputs.loss
-            total_loss += loss.item() * batch_ids.size(0) * batch_ids.size(1)
-            total_tokens += batch_mask.sum().item()
+            n_tokens = batch_mask.sum().item()
+            total_loss += loss.item() * n_tokens
+            total_tokens += n_tokens
 
             if i % 20 == 0:
                 print(f"    {i}/{len(input_ids)}...", end=" ")
@@ -147,8 +149,9 @@ def compare_rounds():
             print(f"  {r['round']:<35} {r['perplexity']:<10.2f} {improvement:+.1f}%")
 
     # Save report
-    json.dump({"results": results, "timestamp": str(__import__('datetime').datetime.now())},
-              open(EVAL_REPORT, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
+    with open(EVAL_REPORT, 'w', encoding='utf-8') as f:
+        json.dump({"results": results, "timestamp": str(__import__('datetime').datetime.now())},
+                  f, ensure_ascii=False, indent=2)
     print(f"\n  Report saved to {EVAL_REPORT}")
 
 

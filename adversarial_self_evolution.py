@@ -5,9 +5,11 @@ Infinite improvement loop. DeepSeek-R1's secret.
 """
 
 import json, urllib.request, time, os, sys
+from dotenv import load_dotenv
+load_dotenv()
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
-API = {"url": "https://www.right.codes/claude-aws/v1/messages", "key": "sk-8838ce42deaf4d8e82c7f364cf6d963e"}
+API = {"url": "https://www.right.codes/claude-aws/v1/messages", "key": os.environ.get("CLAUDE_API_KEY", "")}
 LMSTUDIO = "http://localhost:1234/v1/chat/completions"
 EVOLVE_FILE = r"D:\GIT\evolved_training_data.json"
 ROUND = 1
@@ -87,9 +89,13 @@ def run_evolution_cycle(n_questions=50):
         time.sleep(1)
 
     # Save evolved data
-    existing = json.load(open(EVOLVE_FILE, 'r', encoding='utf-8')) if os.path.exists(EVOLVE_FILE) else []
+    existing = []
+    if os.path.exists(EVOLVE_FILE):
+        with open(EVOLVE_FILE, 'r', encoding='utf-8') as f:
+            existing = json.load(f)
     existing.extend(improved_pairs)
-    json.dump(existing, open(EVOLVE_FILE, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
+    with open(EVOLVE_FILE, 'w', encoding='utf-8') as f:
+        json.dump(existing, f, ensure_ascii=False, indent=2)
     print(f"\n  Cycle result: {len(improved_pairs)} improved pairs")
     print(f"  Total evolved data: {len(existing)} pairs")
 

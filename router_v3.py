@@ -6,15 +6,18 @@ Router V3: Semantic Routing + Intent + Consensus + Cost + Feedback + Persistence
 import sys, os, json, re, hashlib, urllib.request, time, threading, subprocess, tempfile, sqlite3
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dotenv import load_dotenv
+load_dotenv()
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 # ============================================================
 # 1. SESSION PERSISTENCE (SQLite)
 # ============================================================
 DB_PATH = r"D:\GIT\sessions.db"
+_db_lock = threading.Lock()
 
 def init_db():
-    db = sqlite3.connect(DB_PATH)
+    db = sqlite3.connect(DB_PATH, check_same_thread=False)
     db.execute('''CREATE TABLE IF NOT EXISTS conversations (
         id TEXT PRIMARY KEY, messages TEXT, created REAL, updated REAL)''')
     db.execute('''CREATE TABLE IF NOT EXISTS costs (
@@ -32,31 +35,41 @@ def init_db():
 db = init_db()
 
 def save_session(session_id: str, messages: list):
-    db.execute("INSERT OR REPLACE INTO conversations VALUES (?,?,?,?)",
-              (session_id, json.dumps(messages, ensure_ascii=False), time.time(), time.time()))
-    db.commit()
+    with _db_lock:
+        db.execute("INSERT OR REPLACE INTO conversations VALUES (?,?,?,?)",
+                  (session_id, json.dumps(messages, ensure_ascii=False), time.time(), time.time()))
+        db.commit()
 
 def load_session(session_id: str) -> list:
-    row = db.execute("SELECT messages FROM conversations WHERE id=?", (session_id,)).fetchone()
+    with _db_lock:
+        row = db.execute("SELECT messages FROM conversations WHERE id=?", (session_id,)).fetchone()
     return json.loads(row[0]) if row else []
 
 def log_cost(provider: str, model: str, tokens_in: int, tokens_out: int, cost: float, latency_ms: int, success: bool):
-    db.execute("INSERT INTO costs VALUES (NULL,?,?,?,?,?,?,?,?)",
-              (time.time(), provider, model, tokens_in, tokens_out, cost, latency_ms, 1 if success else 0))
-    db.commit()
+    with _db_lock:
+        db.execute("INSERT INTO costs VALUES (NULL,?,?,?,?,?,?,?,?)",
+                  (time.time(), provider, model, tokens_in, tokens_out, cost, latency_ms, 1 if success else 0))
+        db.commit()
 
 def log_feedback(query: str, response: str, score: int, source: str):
-    db.execute("INSERT INTO feedback VALUES (NULL,?,?,?,?,?)",
-              (time.time(), query, response, score, source))
-    db.commit()
+    with _db_lock:
+        db.execute("INSERT INTO feedback VALUES (NULL,?,?,?,?,?)",
+                  (time.time(), query, response, score, source))
+        db.commit()
     # Auto-queue low-score responses for distillation
     if score <= 2:
-        distilled_queue = json.load(open(r"D:\GIT\feedback_queue.json", 'r', encoding='utf-8')) if os.path.exists(r"D:\GIT\feedback_queue.json") else []
+        queue_path = r"D:\GIT\feedback_queue.json"
+        distilled_queue = []
+        if os.path.exists(queue_path):
+            with open(queue_path, 'r', encoding='utf-8') as f:
+                distilled_queue = json.load(f)
         distilled_queue.append({"query": query, "response": response, "score": score, "source": source, "time": time.time()})
-        json.dump(distilled_queue, open(r"D:\GIT\feedback_queue.json", 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
+        with open(queue_path, 'w', encoding='utf-8') as f:
+            json.dump(distilled_queue, f, ensure_ascii=False, indent=2)
 
 def get_cost_summary() -> str:
-    rows = db.execute("SELECT provider, COUNT(*), SUM(cost_estimate), SUM(tokens_in+COALESCE(tokens_out,0)) FROM costs GROUP BY provider").fetchall()
+    with _db_lock:
+        rows = db.execute("SELECT provider, COUNT(*), SUM(cost_estimate), SUM(tokens_in+COALESCE(tokens_out,0)) FROM costs GROUP BY provider").fetchall()
     lines = [f"{r[0]}: {r[1]} calls, ${r[2]:.4f}, {r[3]} tokens" for r in rows]
     return "\n".join(lines) if lines else "No API costs recorded yet"
 
@@ -65,7 +78,8 @@ def get_cost_summary() -> str:
 # 2. CIRCUIT BREAKER
 # ============================================================
 def check_circuit(provider: str) -> bool:
-    row = db.execute("SELECT failures, disabled_until FROM circuit_breakers WHERE provider=?", (provider,)).fetchone()
+    with _db_lock:
+        row = db.execute("SELECT failures, disabled_until FROM circuit_breakers WHERE provider=?", (provider,)).fetchone()
     if not row: return True
     failures, disabled_until = row
     if disabled_until and time.time() < disabled_until:
@@ -73,14 +87,17 @@ def check_circuit(provider: str) -> bool:
     return True  # Circuit is CLOSED (allowed)
 
 def record_failure(provider: str):
-    row = db.execute("SELECT failures FROM circuit_breakers WHERE provider=?", (provider,)).fetchone()
-    failures = (row[0] if row else 0) + 1
-    disabled_until = time.time() + 300 if failures >= 3 else 0  # 5 min timeout after 3 failures
-    db.execute("INSERT OR REPLACE INTO circuit_breakers VALUES (?,?,?)", (provider, failures, disabled_until))
-    db.commit()
+    with _db_lock:
+        row = db.execute("SELECT failures FROM circuit_breakers WHERE provider=?", (provider,)).fetchone()
+        failures = (row[0] if row else 0) + 1
+        disabled_until = time.time() + 300 if failures >= 3 else 0  # 5 min timeout after 3 failures
+        db.execute("INSERT OR REPLACE INTO circuit_breakers VALUES (?,?,?)", (provider, failures, disabled_until))
+        db.commit()
 
 def record_success(provider: str):
-    db.execute("INSERT OR REPLACE INTO circuit_breakers VALUES (?,0,0)", (provider,))
+    with _db_lock:
+        db.execute("INSERT OR REPLACE INTO circuit_breakers VALUES (?,0,0)", (provider,))
+        db.commit()
 
 
 # ============================================================
@@ -190,13 +207,13 @@ LOCAL_MODEL = "qwen2.5-7b-instruct"  # LM Studio loaded model
 RTK = r"D:\tools\rtk\rtk.exe"
 
 API_POOL = [
-    {"name": "claude", "url": "https://www.right.codes/claude-aws/v1/messages", "key": "sk-8838ce42deaf4d8e82c7f364cf6d963e", "model": "claude-sonnet-4-6", "type": "anthropic", "priority": 1, "cost_per_1k_in": 0.003, "cost_per_1k_out": 0.015},
-    {"name": "deepseek", "url": "https://api.deepseek.com/anthropic/v1/messages", "key": "sk-639fd931aa1846318b6ff12704ee98ec", "model": "deepseek-chat", "type": "anthropic", "priority": 2, "cost_per_1k_in": 0.00014, "cost_per_1k_out": 0.00028},
-    {"name": "gpt55", "url": "https://www.right.codes/codex/v1/chat/completions", "key": "sk-32e7bfbab36f46ada4e15580dd034682", "model": "gpt-5.5", "type": "openai", "priority": 2, "cost_per_1k_in": 0, "cost_per_1k_out": 0},
-    {"name": "nvidia_dsv4", "url": "https://integrate.api.nvidia.com/v1/chat/completions", "key": "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", "model": "deepseek-ai/deepseek-v4-flash", "type": "openai", "priority": 3, "cost_per_1k_in": 0, "cost_per_1k_out": 0},
-    {"name": "openrouter_dsv4", "url": "https://openrouter.ai/api/v1/chat/completions", "key": "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", "model": "deepseek/deepseek-v4-flash:free", "type": "openrouter", "priority": 3, "cost_per_1k_in": 0, "cost_per_1k_out": 0},
-    {"name": "openrouter_minimax", "url": "https://openrouter.ai/api/v1/chat/completions", "key": "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", "model": "minimax/minimax-m2.5:free", "type": "openrouter", "priority": 4, "cost_per_1k_in": 0, "cost_per_1k_out": 0},
-    {"name": "openrouter_nemotron", "url": "https://openrouter.ai/api/v1/chat/completions", "key": "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", "model": "nvidia/nemotron-3-super-120b-a12b:free", "type": "openrouter", "priority": 4, "cost_per_1k_in": 0, "cost_per_1k_out": 0},
+    {"name": "claude", "url": "https://www.right.codes/claude-aws/v1/messages", "key": os.environ.get("CLAUDE_API_KEY", ""), "model": "claude-sonnet-4-6", "type": "anthropic", "priority": 1, "cost_per_1k_in": 0.003, "cost_per_1k_out": 0.015},
+    {"name": "deepseek", "url": "https://api.deepseek.com/anthropic/v1/messages", "key": os.environ.get("DEEPSEEK_API_KEY", ""), "model": "deepseek-chat", "type": "anthropic", "priority": 2, "cost_per_1k_in": 0.00014, "cost_per_1k_out": 0.00028},
+    {"name": "gpt55", "url": "https://www.right.codes/codex/v1/chat/completions", "key": os.environ.get("GPT_API_KEY", ""), "model": "gpt-5.5", "type": "openai", "priority": 2, "cost_per_1k_in": 0, "cost_per_1k_out": 0},
+    {"name": "nvidia_dsv4", "url": "https://integrate.api.nvidia.com/v1/chat/completions", "key": os.environ.get("NVIDIA_API_KEY", ""), "model": "deepseek-ai/deepseek-v4-flash", "type": "openai", "priority": 3, "cost_per_1k_in": 0, "cost_per_1k_out": 0},
+    {"name": "openrouter_dsv4", "url": "https://openrouter.ai/api/v1/chat/completions", "key": os.environ.get("OPENROUTER_API_KEY", ""), "model": "deepseek/deepseek-v4-flash:free", "type": "openrouter", "priority": 3, "cost_per_1k_in": 0, "cost_per_1k_out": 0},
+    {"name": "openrouter_minimax", "url": "https://openrouter.ai/api/v1/chat/completions", "key": os.environ.get("OPENROUTER_API_KEY", ""), "model": "minimax/minimax-m2.5:free", "type": "openrouter", "priority": 4, "cost_per_1k_in": 0, "cost_per_1k_out": 0},
+    {"name": "openrouter_nemotron", "url": "https://openrouter.ai/api/v1/chat/completions", "key": os.environ.get("OPENROUTER_API_KEY", ""), "model": "nvidia/nemotron-3-super-120b-a12b:free", "type": "openrouter", "priority": 4, "cost_per_1k_in": 0, "cost_per_1k_out": 0},
 ]
 FALLBACK_APIS = [a for a in API_POOL if a["priority"] >= 3]  # Free APIs as last resort
 
@@ -240,7 +257,8 @@ def call_api_with_fallback(prompt: str, max_apis: int = 3) -> tuple[str, dict]:
     alive_names = set()
     if os.path.exists(r"D:\GIT\api_health.json"):
         try:
-            health = json.load(open(r"D:\GIT\api_health.json",'r',encoding='utf-8'))
+            with open(r"D:\GIT\api_health.json", 'r', encoding='utf-8') as f:
+                health = json.load(f)
             alive_names = set(health.get("healthy", []))
         except: pass
 
@@ -338,7 +356,7 @@ def route_v3(query: str, session_id: str = "default", use_consensus: bool = Fals
     # Multi-model consensus for important queries
     consensus_result = None
     if use_consensus and intent in ("debugging", "concept_explanation"):
-        api_resp, api_stats = call_api_with_fallback(, query)
+        api_resp, api_stats = call_api_with_fallback(query)
         consensus_result = consensus_check(query, response, api_resp)
         if not consensus_result["agreement"]:
             response = consensus_result["combined"]

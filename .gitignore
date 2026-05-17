@@ -1,0 +1,9 @@
+.env
+*.pyc
+__pycache__/
+*.pt
+*.safetensors
+sessions.db
+api_health.json
+api_config.json
+feedback_queue.json

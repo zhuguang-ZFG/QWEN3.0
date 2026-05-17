@@ -65,9 +65,11 @@ def merge_loras():
 
         # Weighted average: merge our LoRA with temp LoRA
         # Using linear interpolation: merged = w1 * lora1 + w2 * lora2 / (w1 + w2)
-        for our_param, temp_param in zip(model.parameters(), temp_model.parameters()):
-            if our_param.requires_grad:
-                our_param.data = (our_param.data * total_weight + temp_param.data * temp_weight) / (total_weight + temp_weight)
+        our_state = dict(model.named_parameters())
+        temp_state = dict(temp_model.named_parameters())
+        for name, our_param in our_state.items():
+            if "lora_" in name and name in temp_state:
+                our_param.data = (our_param.data * total_weight + temp_state[name].data * temp_weight) / (total_weight + temp_weight)
 
         total_weight += temp_weight
         merged_sources.append(name)
@@ -80,8 +82,9 @@ def merge_loras():
     print(f"Saved to {MERGE_OUTPUT}")
 
     # Save merge manifest
-    json.dump({"base_model": BASE, "sources": loaded_loras, "weights": MERGE_WEIGHTS, "timestamp": str(__import__('datetime').datetime.now())},
-              open(os.path.join(MERGE_OUTPUT, "merge_manifest.json"), 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
+    with open(os.path.join(MERGE_OUTPUT, "merge_manifest.json"), 'w', encoding='utf-8') as f:
+        json.dump({"base_model": BASE, "sources": loaded_loras, "weights": MERGE_WEIGHTS, "timestamp": str(__import__('datetime').datetime.now())},
+                  f, ensure_ascii=False, indent=2)
 
 
 def main():

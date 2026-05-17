@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
 """API Health Checker. Daily run updates api_health.json for router_v3."""
-import json, urllib.request, time, sys
+import json, urllib.request, time, sys, os
 from datetime import datetime
+from dotenv import load_dotenv
+load_dotenv()
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 TEST_PROMPT = "Say OK."
 
 APIS = {
-    "claude_rightcodes": {"url":"https://www.right.codes/claude-aws/v1/messages","key":"YOUR_API_KEY_HERE","model":"claude-sonnet-4-6","type":"anthropic","priority":1},
-    "deepseek_official": {"url":"https://api.deepseek.com/anthropic/v1/messages","key":"YOUR_API_KEY_HERE","model":"deepseek-chat","type":"anthropic","priority":2},
-    "gpt55_rightcodes": {"url":"https://www.right.codes/codex/v1/chat/completions","key":"YOUR_API_KEY_HERE","model":"gpt-5.5","type":"openai","priority":2},
-    "nvidia_dsv4": {"url":"https://integrate.api.nvidia.com/v1/chat/completions","key":"YOUR_NVIDIA_KEY_HERE","model":"deepseek-ai/deepseek-v4-flash","type":"openai","priority":3},
-    "openrouter_dsv4_free": {"url":"https://openrouter.ai/api/v1/chat/completions","key":"YOUR_API_KEY_HERE","model":"deepseek/deepseek-v4-flash:free","type":"openrouter","priority":3},
-    "openrouter_minimax_free": {"url":"https://openrouter.ai/api/v1/chat/completions","key":"YOUR_API_KEY_HERE","model":"minimax/minimax-m2.5:free","type":"openrouter","priority":4},
-    "openrouter_nemotron_free": {"url":"https://openrouter.ai/api/v1/chat/completions","key":"YOUR_API_KEY_HERE","model":"nvidia/nemotron-3-super-120b-a12b:free","type":"openrouter","priority":4},
+    "claude_rightcodes": {"url":"https://www.right.codes/claude-aws/v1/messages","key":os.environ.get("CLAUDE_API_KEY",""),"model":"claude-sonnet-4-6","type":"anthropic","priority":1},
+    "deepseek_official": {"url":"https://api.deepseek.com/anthropic/v1/messages","key":os.environ.get("DEEPSEEK_API_KEY",""),"model":"deepseek-chat","type":"anthropic","priority":2},
+    "gpt55_rightcodes": {"url":"https://www.right.codes/codex/v1/chat/completions","key":os.environ.get("GPT_API_KEY",""),"model":"gpt-5.5","type":"openai","priority":2},
+    "nvidia_dsv4": {"url":"https://integrate.api.nvidia.com/v1/chat/completions","key":os.environ.get("NVIDIA_API_KEY",""),"model":"deepseek-ai/deepseek-v4-flash","type":"openai","priority":3},
+    "openrouter_dsv4_free": {"url":"https://openrouter.ai/api/v1/chat/completions","key":os.environ.get("OPENROUTER_API_KEY",""),"model":"deepseek/deepseek-v4-flash:free","type":"openrouter","priority":3},
+    "openrouter_minimax_free": {"url":"https://openrouter.ai/api/v1/chat/completions","key":os.environ.get("OPENROUTER_API_KEY",""),"model":"minimax/minimax-m2.5:free","type":"openrouter","priority":4},
+    "openrouter_nemotron_free": {"url":"https://openrouter.ai/api/v1/chat/completions","key":os.environ.get("OPENROUTER_API_KEY",""),"model":"nvidia/nemotron-3-super-120b-a12b:free","type":"openrouter","priority":4},
 }
 
 def check_all():
@@ -42,8 +44,10 @@ def check_all():
             results["unhealthy"].append({"name":name,"model":cfg["model"],"error":str(e)[:80]})
             print("FAIL")
 
-    json.dump(results,open(r"D:\GIT\api_config.json",'w',encoding='utf-8'),ensure_ascii=False,indent=2)
-    json.dump({"healthy":[h["name"] for h in results["healthy"]],"unhealthy":[u["name"] for u in results["unhealthy"]],"updated":results["timestamp"]},open(r"D:\GIT\api_health.json",'w',encoding='utf-8'),ensure_ascii=False,indent=2)
+    with open(r"D:\GIT\api_config.json", 'w', encoding='utf-8') as f:
+        json.dump(results, f, ensure_ascii=False, indent=2)
+    with open(r"D:\GIT\api_health.json", 'w', encoding='utf-8') as f:
+        json.dump({"healthy":[h["name"] for h in results["healthy"]],"unhealthy":[u["name"] for u in results["unhealthy"]],"updated":results["timestamp"]}, f, ensure_ascii=False, indent=2)
     print(f"\n  Healthy: {len(results['healthy'])} | Unhealthy: {len(results['unhealthy'])}")
 
 if __name__ == '__main__': check_all()
