@@ -18,6 +18,7 @@ import urllib.request
 import urllib.error
 from datetime import datetime, date
 from dotenv import load_dotenv
+import quota_tracker
 
 load_dotenv()
 
@@ -312,6 +313,17 @@ def _call_teacher(backend_name: str, query: str, max_tokens: int = 800) -> str |
         print(f"[distill] 未知后端: {backend_name}")
         return None
 
+    # 配额检查：超限时自动降级到免费后端
+    actual_backend = backend_name
+    if not quota_tracker.check_quota(backend_name):
+        fallback = quota_tracker.get_fallback(backend_name)
+        print(f"[distill] {backend_name} 配额超限，降级到 {fallback}")
+        actual_backend = fallback
+        cfg = BACKEND_CONFIGS.get(actual_backend)
+        if not cfg:
+            print(f"[distill] 降级后端 {actual_backend} 未配置，跳过")
+            return None
+
     api_key = os.environ.get(cfg["key_env"], "")
     if not api_key:
         print(f"[distill] {backend_name} 缺少 API key ({cfg['key_env']})")
@@ -355,9 +367,13 @@ def _call_teacher(backend_name: str, query: str, max_tokens: int = 800) -> str |
             body = json.loads(resp.read().decode("utf-8"))
 
         if fmt == "anthropic":
-            return body["content"][0]["text"]
+            result_text = body["content"][0]["text"]
         else:
-            return body["choices"][0]["message"]["content"]
+            result_text = body["choices"][0]["message"]["content"]
+
+        # 调用成功，记录配额
+        quota_tracker.record_call(actual_backend)
+        return result_text
 
     except urllib.error.HTTPError as exc:
         print(f"[distill] {backend_name} HTTP {exc.code}: {exc.reason}")

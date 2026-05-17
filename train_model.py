@@ -15,6 +15,7 @@ import json
 import argparse
 import torch
 from pathlib import Path
+import train_lock
 
 # ========== CONFIGURATION ==========
 MODEL_NAME = "Qwen/Qwen3-8B"
@@ -313,10 +314,19 @@ def main():
         export_gguf()
         return
 
+    # 检查并发训练锁
+    if not train_lock.acquire("manual"):
+        print("另一个训练进程正在运行，请等待其完成后再试。")
+        print(f"锁信息：{train_lock.get_lock_info()}")
+        return
+
     # Full training
-    train()
-    print("\nTraining done! To export to GGUF:")
-    print("  python train_model.py --export_only")
+    try:
+        train()
+        print("\nTraining done! To export to GGUF:")
+        print("  python train_model.py --export_only")
+    finally:
+        train_lock.release()
 
 
 if __name__ == '__main__':

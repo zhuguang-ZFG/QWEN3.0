@@ -14,6 +14,7 @@ import random
 from datetime import datetime, timezone
 
 import model_registry
+import train_lock
 
 # ========== 路径常量 ==========
 POOL_DIR = "D:/GIT/data/training_data/incremental/"
@@ -283,6 +284,11 @@ def start_training(
     output_dir = os.path.join(CHECKPOINT_BASE, f"run_{timestamp}") + "/"
     max_steps = 1000 if mode == "incremental" else 4000
 
+    # 获取训练锁，防止并发训练冲突
+    if not train_lock.acquire(mode):
+        print(f"[start_training] 警告：另一个训练进程正在运行，跳过本次启动")
+        return None
+
     if dataset_path is None:
         dataset_path = MERGED_TEMP_PATH
 
@@ -443,51 +449,54 @@ def wait_and_register(
         成功时返回 ModelRecord 字典，失败时返回 None
     """
     print(f"[wait_and_register] 等待训练进程完成（PID={popen.pid}）...")
-    popen.wait()
-    returncode = popen.returncode
-    print(f"[wait_and_register] 进程退出，returncode={returncode}")
+    try:
+        popen.wait()
+        returncode = popen.returncode
+        print(f"[wait_and_register] 进程退出，returncode={returncode}")
 
-    if returncode == 0:
-        # 读取最终 loss
-        final_loss = 0.0
-        state_path = os.path.join(output_dir, "trainer_state.json")
-        # 也检查最新 checkpoint
-        checkpoint_dirs = sorted(
-            glob.glob(os.path.join(output_dir, "checkpoint-*")),
-            key=lambda p: int(p.rsplit("-", 1)[-1]) if p.rsplit("-", 1)[-1].isdigit() else 0,
-        )
-        if checkpoint_dirs:
-            cp_state = os.path.join(checkpoint_dirs[-1], "trainer_state.json")
-            if os.path.exists(cp_state):
-                state_path = cp_state
+        if returncode == 0:
+            # 读取最终 loss
+            final_loss = 0.0
+            state_path = os.path.join(output_dir, "trainer_state.json")
+            # 也检查最新 checkpoint
+            checkpoint_dirs = sorted(
+                glob.glob(os.path.join(output_dir, "checkpoint-*")),
+                key=lambda p: int(p.rsplit("-", 1)[-1]) if p.rsplit("-", 1)[-1].isdigit() else 0,
+            )
+            if checkpoint_dirs:
+                cp_state = os.path.join(checkpoint_dirs[-1], "trainer_state.json")
+                if os.path.exists(cp_state):
+                    state_path = cp_state
 
-        if os.path.exists(state_path):
-            try:
-                with open(state_path, "r", encoding="utf-8") as f:
-                    trainer_state = json.load(f)
-                log_history = trainer_state.get("log_history", [])
-                for entry in reversed(log_history):
-                    if "loss" in entry:
-                        final_loss = entry["loss"]
-                        break
-            except Exception as e:
-                print(f"[wait_and_register] 读取 trainer_state.json 失败：{e}")
+            if os.path.exists(state_path):
+                try:
+                    with open(state_path, "r", encoding="utf-8") as f:
+                        trainer_state = json.load(f)
+                    log_history = trainer_state.get("log_history", [])
+                    for entry in reversed(log_history):
+                        if "loss" in entry:
+                            final_loss = entry["loss"]
+                            break
+                except Exception as e:
+                    print(f"[wait_and_register] 读取 trainer_state.json 失败：{e}")
 
-        # 注册新版本
-        record = model_registry.register(
-            adapter_path=output_dir,
-            metrics={"loss": final_loss},
-            training_data_count=training_data_count,
-        )
-        print(f"[wait_and_register] 已注册新版本：{record.get('version')}，loss={final_loss:.4f}")
+            # 注册新版本
+            record = model_registry.register(
+                adapter_path=output_dir,
+                metrics={"loss": final_loss},
+                training_data_count=training_data_count,
+            )
+            print(f"[wait_and_register] 已注册新版本：{record.get('version')}，loss={final_loss:.4f}")
 
-        # 更新状态文件
-        _update_status({"running": False, "completed_at": datetime.now().isoformat()})
-        return record
-    else:
-        print(f"[wait_and_register] 训练失败，returncode={returncode}")
-        _update_status({"running": False, "failed_at": datetime.now().isoformat(), "returncode": returncode})
-        return None
+            # 更新状态文件
+            _update_status({"running": False, "completed_at": datetime.now().isoformat()})
+            return record
+        else:
+            print(f"[wait_and_register] 训练失败，returncode={returncode}")
+            _update_status({"running": False, "failed_at": datetime.now().isoformat(), "returncode": returncode})
+            return None
+    finally:
+        train_lock.release()
 
 
 def _update_status(updates: dict) -> None:
