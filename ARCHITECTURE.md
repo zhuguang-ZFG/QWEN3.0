@@ -815,7 +815,161 @@ model_registry 升级本地模型
                     飞轮持续转动
 ```
 
+## 11. 系统性风险（头脑风暴）
 
+### 11.1 API 费用失控（高风险）
 
+**现状**：`distill_scheduler` 无预算上限，若 24 小时运行并频繁调用 DeepSeek PRO / Claude，月账单可能失控。
 
+**防护方案**：
+- `D:/GIT/data/usage.json` 记录每日每后端调用次数
+- 每日硬限制：`deepseek_pro` ≤ 200次，`claude` ≤ 50次，超出自动降级到 Nvidia NIM 免费模型
+- `distill_scheduler._call_teacher()` 调用前检查配额
+
+### 11.2 并发训练冲突（必然发生）
+
+**现状**：用户手动运行 `train_model.py` 与 `auto_distill_main` 自动触发训练同时发生时，两个进程争抢 16GB 显存，必然 OOM 崩溃。
+
+**防护方案**：全局训练锁文件 `D:/GIT/data/train.lock`，训练开始时写入 PID，结束时删除。任何训练启动前检查锁文件是否存在且进程仍活跃。
+
+### 11.3 磁盘无限增长
+
+**现状**：`distill_queue/` 和 `training_data/incremental/` 无清理策略，长期运行后磁盘耗尽。
+
+**防护方案**：
+- `auto_distill_main` 每日检查磁盘使用量
+- `distill_queue/completed/` 处理完成后移入 `training_data/incremental/`，原文件删除
+- `training_data/incremental/` 超过 50MB 时触发合并压缩
+
+### 11.4 训练数据投毒
+
+**现状**：`quality_gate` 检查格式和参数范围，但不检查语义正确性。精心构造的错误答案（如"GRBL $100 应设为 0"）可能通过质量门控进入训练集。
+
+**防护方案**：
+- 对 GRBL 参数值做硬规则验证（已有 `GRBL_PARAM_RANGES`，需在 quality_gate 中强制执行）
+- 新增"反常识检测"：回答中的数值与已知正确范围偏差超过 10 倍时拒绝
+- 人工抽检：每批次随机抽取 5% 样本写入 `D:/GIT/data/review_queue/` 供人工审核
+
+### 11.5 eval_set 过时问题
+
+**现状**：固定 200 题评估集，模型训练几轮后全部记住，eval 分数虚高，失去判别力。
+
+**防护方案**：
+- 评估集分为"固定核心集"（100题，永不变）和"轮换集"（100题，每月更新）
+- 轮换集从蒸馏数据中随机抽取，确保模型从未在训练中见过
+
+### 11.6 GRBL 版本混淆
+
+**现状**：训练数据未区分 GRBL 0.9 / GRBL 1.1 / GRBL-HAL，模型可能给出版本不匹配的建议。
+
+**防护方案**：
+- 训练数据添加 `grbl_version` 字段标注
+- 路由器意图分类新增 GRBL 版本检测（用户提问中提取版本信息）
+- 回答时在 Prompt 中注入版本上下文
+
+---
+
+## 12. 新开发方向
+
+### 12.1 DPO 负样本训练（P0，最高价值）
+
+**原理**：`quality_gate` 拒绝的低分回答天然是负样本，与高分回答配对构成 DPO 三元组：
+```
+(query, 好答案[score≥0.75], 坏答案[score<0.5])
+```
+
+**数据流**：
+```
+distill_scheduler 生成3个回答
+    │
+    ├─ 最高分回答 → 训练池（正样本）
+    └─ 最低分回答 → DPO 负样本池（若分差 > 0.3）
+```
+
+**实现文件**：`dpo_collector.py`（收集三元组）+ `train_dpo.py`（DPO 训练）
+
+**触发条件**：DPO 负样本池积累 ≥ 200 条三元组时触发一次 DPO 训练。
+
+### 12.2 并发训练锁（P0，防崩溃）
+
+**实现**：`D:/GIT/data/train.lock` 文件，内容为 `{"pid": int, "started_at": str, "mode": str}`。
+
+所有训练入口（`auto_trainer.start_training()`、`train_model.py` 主函数）启动前检查锁，结束后释放。
+
+### 12.3 API 配额追踪器（P0，防费用失控）
+
+**实现**：`D:/GIT/data/usage.json`，格式：
+```json
+{
+  "date": "2026-05-18",
+  "calls": {
+    "deepseek_pro": 45,
+    "claude": 12,
+    "nvidia_nemotron": 230
+  },
+  "limits": {
+    "deepseek_pro": 200,
+    "claude": 50
+  }
+}
+```
+
+`distill_scheduler._call_teacher()` 调用前检查，超限返回 None 并降级到免费后端。
+
+### 12.4 多轮对话支持（P1）
+
+**现状**：所有训练数据和路由均为单轮 Q&A。CNC 故障排查需要追问。
+
+**实现方向**：
+- `smart_router.py` 添加 `session_id` 和 `history` 参数
+- 训练数据中加入多轮对话样本（从用户日志中提取连续提问序列）
+- 意图分类考虑上下文（"它"指代上一轮提到的设备）
+
+### 12.5 Web UI（P1）
+
+**最小可用形态**：FastAPI + 单页 HTML，本地运行，端口 8080。
+
+功能：输入框 + 发送按钮 + 回答展示 + 意图/后端显示（调试模式）。
+
+不需要用户认证，仅本地访问。
+
+### 12.6 数据备份策略（P1）
+
+**关键数据**：adapter 权重、156K 训练数据、蒸馏队列、registry.json。
+
+**方案**：每周自动压缩打包关键目录，上传到 GitHub Release 或本地 NAS。
+
+```python
+# backup.py - 每周日凌晨3点运行
+# 压缩 D:/GIT/my_code_model_qwen3/ + D:/GIT/data/
+# 上传到 GitHub Release（使用 gh CLI）
+```
+
+### 12.7 Superpower 飞轮完整形态
+
+```
+真实用户提问（DISTILL_LOG=1）
+    │
+    ▼
+smart_router 路由 → 写入 distill_queue/pending/
+    │
+    ▼
+GPU 空闲 → distill_scheduler 用 TEACHER_MAP 最强模型重新回答
+    │
+    ├─ 高分回答 → training_data/incremental/（正样本）
+    └─ 低分回答 → dpo_negative_pool/（负样本）
+    │
+    ▼
+auto_trainer：积累500条正样本 → 增量SFT训练（LR=5e-5，1000步）
+dpo_collector：积累200条三元组 → DPO训练
+    │
+    ▼
+eval_loop：200题评估（固定100+轮换100）
+    │
+    ├─ 通过 → model_registry.promote() → LM Studio 热更新
+    └─ 失败 → rollback() + 写入错误日志
+    │
+    ▼
+本地模型更强 → 更多问题本地直答 → API成本降低 → 飞轮加速
+```
 
