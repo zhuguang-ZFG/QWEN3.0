@@ -286,65 +286,245 @@ smart_router.py 内置 MCP stdio 服务，协议版本 `2024-11-05`。
          └─────────────────────────────────────┘
 ```
 
-### 4.2 五个模块说明
-
-**model_registry.py — 模型版本注册**
-
-职责：记录每个训练轮次的模型路径、评估指标、激活状态，支持回滚。
-
-核心数据结构：
-```python
-ModelRecord = {
-    "version": "r7_step1400",
-    "path": "D:/models/qwen3-8b-r7/",
-    "metrics": {"loss": 1.35, "grbl_acc": 0.87},
-    "created_at": "2026-05-18T10:00:00",
-    "active": True
-}
-```
-
-主要函数：`register(path, metrics)`, `get_active()`, `rollback(version)`
-
-**distill_scheduler.py — 蒸馏调度**
-
-职责：从路由器收集低质量回答，批量调用强模型（Claude/DeepSeek）生成高质量答案对。
-
-核心数据结构：
-```python
-DistillJob = {
-    "query": str,
-    "bad_answer": str,
-    "intent": str,
-    "priority": float,  # 基于质量分数
-    "teacher_model": str  # claude / deepseek_pro
-}
-```
-
-主要函数：`enqueue(query, answer, score)`, `run_batch(size=50)`, `get_pending_count()`
+### 4.2 五个模块详细接口
 
 **quality_gate.py — 质量门控**
 
-职责：对蒸馏生成的数据进行质量评分，过滤低质量样本，确保训练数据质量。
+职责：对蒸馏生成的 Q&A 对进行多维度质量评分，过滤低质量样本。
 
-评分维度：技术准确性、回答完整性、GRBL参数合法性、无幻觉信号。
+```python
+# 数据结构
+QAPair = {
+    "query": str,           # 用户问题
+    "answer": str,          # 模型回答
+    "intent": str,          # 意图分类（来自 smart_router）
+    "source_backend": str,  # 生成回答的后端名
+    "teacher_backends": list[str],  # 参与交叉验证的后端列表
+    "all_answers": list[str],       # 所有后端的原始回答
+}
 
-主要函数：`score(qa_pair) -> float`, `filter_batch(pairs, threshold=0.8) -> list`
+ScoreDetail = {
+    "total": float,          # 综合分 0.0-1.0
+    "accuracy": float,       # 技术准确性（GRBL参数范围验证）0.4权重
+    "completeness": float,   # 回答完整性（长度/结构）0.25权重
+    "consistency": float,    # 多模型一致性（嵌入余弦相似度）0.2权重
+    "format": float,         # 格式规范（代码块/单位/步骤）0.15权重
+    "passed": bool,          # total >= threshold
+    "rejection_reason": str, # 不通过时的原因
+}
+
+def score(qa_pair: dict) -> ScoreDetail:
+    """对单条 Q&A 对进行质量评分。
+    - accuracy: 提取回答中的 GRBL 参数值，与 GRBL_PARAM_RANGES 对比
+    - completeness: 长度 100-2000 字符为满分，过短/过长扣分
+    - consistency: 计算 all_answers 两两嵌入余弦相似度均值（需 sentence-transformers）
+    - format: 检查代码块是否闭合、是否有单位、是否有步骤编号
+    """
+
+def filter_batch(pairs: list[dict], threshold: float = 0.75) -> tuple[list[dict], list[dict]]:
+    """批量过滤，返回 (passed_list, rejected_list)。"""
+
+def dedup(pair: dict, existing_hashes: set) -> bool:
+    """MinHash 去重，返回 True 表示重复（应丢弃）。
+    使用 datasketch.MinHash，jaccard 阈值 0.85。
+    existing_hashes 从 D:/GIT/data/training_data/ 全量数据预计算。
+    """
+
+def sanitize_pii(text: str) -> str:
+    """脱敏：替换公司名/文件路径/IP地址/手机号为占位符。"""
+```
+
+---
+
+**model_registry.py — 模型版本注册**
+
+职责：记录每个训练轮次的 adapter 路径、评估指标、激活状态，支持回滚。
+
+```python
+# 数据结构（持久化到 D:/GIT/data/models/registry.json）
+ModelRecord = {
+    "version": str,          # 如 "r7_step4000"
+    "adapter_path": str,     # 如 "D:/GIT/my_code_model_qwen3/"
+    "base_model": str,       # 如 "Qwen3-8B"
+    "metrics": {
+        "loss": float,
+        "grbl_acc": float,   # GRBL 参数题准确率
+        "cnc_acc": float,    # CNC 故障题准确率
+        "embed_acc": float,  # 嵌入式题准确率
+        "overall": float,    # 综合分
+    },
+    "training_data_count": int,
+    "created_at": str,       # ISO8601
+    "active": bool,          # 只有一个版本为 True
+    "notes": str,
+}
+
+def register(adapter_path: str, metrics: dict, notes: str = "") -> ModelRecord:
+    """注册新版本，写入 registry.json，不自动激活。"""
+
+def get_active() -> ModelRecord | None:
+    """返回当前激活的模型记录，无则返回 None。"""
+
+def promote(version: str) -> bool:
+    """激活指定版本（同时停用其他版本），更新 LM Studio 软链接。
+    Windows 下使用 junction 而非 symlink（无需管理员权限）。
+    """
+
+def rollback() -> ModelRecord | None:
+    """回滚到上一个激活版本，返回回滚后的记录。"""
+
+def list_versions() -> list[ModelRecord]:
+    """返回所有版本，按 created_at 降序。"""
+```
+
+---
+
+**distill_scheduler.py — 蒸馏调度**
+
+职责：GPU 空闲时，从题库取题，并发调用多个强模型生成高质量 Q&A 对，写入待质检目录。
+
+Superpower 原则：按意图匹配最强教师模型——代码题用 Qwen Coder 480B，故障诊断用 DeepSeek PRO，嵌入式用 Nvidia Nemotron，通用用 Claude。
+
+```python
+# 数据结构
+DistillJob = {
+    "job_id": str,           # uuid
+    "query": str,
+    "intent": str,
+    "priority": float,       # 0.0-1.0，越高越优先
+    "source": str,           # "user_log" | "variant" | "synthetic"
+    "teacher_backends": list[str],  # 3个互补后端
+    "status": str,           # "pending" | "running" | "done" | "failed"
+    "created_at": str,
+}
+
+# 意图 -> 教师模型映射（Superpower：用最强的模型教对应领域）
+TEACHER_MAP = {
+    "cnc_trouble":    ["deepseek_pro", "nvidia_nemotron", "claude"],
+    "grbl_config":    ["deepseek_pro", "nvidia_llama70b", "longcat"],
+    "gcode_help":     ["deepseek_flash", "nvidia_llama70b", "longcat_chat"],
+    "embedded_dev":   ["nvidia_nemotron", "deepseek_pro", "claude"],
+    "code_generation":["nvidia_qwen_coder", "deepseek_flash", "nvidia_llama70b"],
+    "complex_theory": ["nvidia_nemotron", "deepseek_pro", "claude"],
+    "general_cnc":    ["nvidia_llama70b", "longcat", "chinamobile"],
+    "unknown":        ["nvidia_llama70b", "deepseek_flash", "longcat_chat"],
+}
+
+def check_gpu_idle(util_threshold: int = 30, mem_threshold_gb: float = 4.0,
+                   window_minutes: int = 5) -> bool:
+    """调用 nvidia-smi 检测 GPU 空闲状态。
+    滑动窗口均值 < util_threshold 且显存占用 < mem_threshold_gb 返回 True。
+    """
+
+def build_job_queue(max_jobs: int = 100) -> list[DistillJob]:
+    """构建优先级队列：
+    1. 读 D:/GIT/data/distill_queue/pending/ 中的用户日志低置信度条目（priority=1.0）
+    2. 从 156K 数据随机采样问题变体（priority=0.6）
+    3. 合成题（priority=0.3）
+    按 priority 降序排列。
+    """
+
+def run_batch(jobs: list[DistillJob], concurrency: int = 3) -> list[dict]:
+    """并发调用教师模型，返回 QAPair 列表。
+    使用 concurrent.futures.ThreadPoolExecutor。
+    每个 job 调用 TEACHER_MAP 中的3个后端，结果写入 QAPair.all_answers。
+    """
+
+def save_pending(qa_pairs: list[dict], out_dir: str = "D:/GIT/data/distill_queue/completed/") -> int:
+    """将 QAPair 列表写入 Parquet 文件，返回写入条数。
+    文件名格式：{date}_{job_id[:8]}.parquet
+    """
+
+def run_idle_loop(interval_seconds: int = 60) -> None:
+    """主循环：每 interval_seconds 检查 GPU 空闲，空闲则触发一批蒸馏。"""
+```
+
+---
 
 **auto_trainer.py — 自动训练触发**
 
-职责：监控蒸馏数据积累量，达到阈值时自动触发增量训练，管理训练进程。
+职责：监控蒸馏数据积累量，达到阈值时自动触发增量 QLoRA 训练，管理训练进程。
 
-触发条件：新增高质量数据 >= 500 条，或距上次训练 >= 7 天。
+```python
+TrainConfig = {
+    "mode": str,             # "incremental" | "full"
+    "new_data_paths": list[str],   # 新增数据文件路径
+    "old_data_sample_ratio": float, # 混入旧数据比例，默认 0.05
+    "base_adapter": str,     # 继续训练的起点 adapter 路径
+    "output_dir": str,       # 新 adapter 输出路径
+    "max_steps": int,        # 默认 2000（增量）或 4000（全量）
+    "resume_checkpoint": str | None,
+}
 
-主要函数：`check_trigger() -> bool`, `start_training(config)`, `get_status() -> dict`
+def check_trigger(pool_dir: str = "D:/GIT/data/training_data/incremental/",
+                  min_new_samples: int = 500,
+                  max_days_since_last: int = 7) -> tuple[bool, str]:
+    """检查是否满足训练触发条件。
+    返回 (should_train, mode)，mode 为 "incremental" 或 "full"。
+    新数据 >= 5% 总量时触发全量训练，否则增量。
+    """
+
+def prepare_dataset(config: TrainConfig) -> str:
+    """合并新旧数据，写入临时 JSON 文件，返回文件路径。
+    混入 old_data_sample_ratio 比例的旧数据防止灾难性遗忘。
+    """
+
+def start_training(config: TrainConfig) -> subprocess.Popen:
+    """启动训练子进程（调用 train_model.py），返回进程对象。
+    支持断点续训（resume_checkpoint 不为 None 时传入 --resume_from_checkpoint）。
+    """
+
+def get_status() -> dict:
+    """返回当前训练状态：
+    {"running": bool, "step": int, "max_steps": int, "loss": float, "eta_minutes": int}
+    读取最新 checkpoint 的 trainer_state.json。
+    """
+
+def on_complete(output_dir: str) -> None:
+    """训练完成回调：调用 model_registry.register()，然后触发 eval_loop.run_eval()。"""
+```
+
+---
 
 **eval_loop.py — 评估循环**
 
 职责：训练完成后自动运行评估集，对比新旧模型指标，决定是否切换激活版本。
 
-评估集：固定 200 条 CNC/嵌入式问答（覆盖 grbl_config/cnc_trouble/embedded_dev 三类）。
+```python
+EvalResult = {
+    "version": str,
+    "adapter_path": str,
+    "timestamp": str,
+    "domain_scores": {
+        "grbl_config": float,    # GRBL 参数题准确率
+        "cnc_trouble": float,    # CNC 故障诊断准确率
+        "embedded_dev": float,   # 嵌入式开发准确率
+    },
+    "overall": float,            # 三域加权均值
+    "passed": bool,              # 是否优于当前激活版本
+    "rollback_reason": str | None,
+}
 
-主要函数：`run_eval(model_path) -> metrics`, `compare(old, new) -> bool`, `promote_if_better()`
+def run_eval(adapter_path: str,
+             eval_set_path: str = "D:/GIT/data/eval/eval_set.json") -> EvalResult:
+    """加载 adapter，对 200 题评估集逐题推理，按域统计准确率。
+    评估集格式：[{"query": str, "answer": str, "intent": str, "keywords": list[str]}]
+    准确率 = 回答中包含 keywords 中至少一个关键词的比例。
+    """
+
+def compare(new: EvalResult, history_path: str = "D:/GIT/data/eval/results/") -> bool:
+    """对比新版本与当前激活版本：
+    - 新 overall >= 旧 overall
+    - 且无单域下降 > 5%
+    两个条件都满足才返回 True。
+    """
+
+def promote_if_better(new_result: EvalResult) -> bool:
+    """如果 compare() 为 True，调用 model_registry.promote()，返回是否升级。"""
+
+def append_history(result: EvalResult) -> None:
+    """追加写入 D:/GIT/data/eval/results/{version}.json。"""
+```
 
 ### 4.3 存储结构
 
