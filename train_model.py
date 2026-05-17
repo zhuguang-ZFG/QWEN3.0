@@ -19,9 +19,9 @@ from pathlib import Path
 # ========== CONFIGURATION ==========
 MODEL_NAME = "Qwen/Qwen3-8B"
 LOCAL_MODEL_PATH = r"D:\GIT\models\Qwen\Qwen3-8B"
-OUTPUT_DIR = r"D:\GIT\my_code_model_qwen3"
+OUTPUT_DIR = os.environ.get("TRAIN_OUTPUT_DIR", r"D:\GIT\my_code_model_qwen3")
 DATA_PATH = os.environ.get("TRAIN_DATA_PATH", r"D:\GIT\round5_training_data.json")
-RESUME_FROM = None  # Fresh start on new base model
+RESUME_FROM = os.environ.get("TRAIN_RESUME_FROM", None) or None  # empty string → None
 GGUF_OUTPUT = r"D:\GIT\my_code_model_gguf"
 
 # Training hyperparameters - tuned for 16GB VRAM
@@ -32,7 +32,7 @@ LORA_DROPOUT = 0
 BATCH_SIZE = 1  # Must be 1 for 16GB VRAM
 GRADIENT_ACCUMULATION = 8  # Effective batch size = 8
 LEARNING_RATE = 2e-4
-MAX_STEPS = 4000  # Round 6: 155K data, targeting ~0.3 epoch
+MAX_STEPS = int(os.environ.get("TRAIN_MAX_STEPS", "4000"))  # Round 6: 155K data, targeting ~0.3 epoch
 WARMUP_RATIO = 0.05
 
 # LoRA target modules
