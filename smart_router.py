@@ -35,6 +35,19 @@ BACKENDS = {
     'longcat':          {'url': 'https://api.longcat.chat/anthropic/v1/messages',
                          'key': os.environ.get('LONGCAT_API_KEY', ''),
                          'model': 'LongCat-2.0-Preview', 'fmt': 'anthropic', 'auth': 'bearer'},
+    # DeepSeek 系列
+    'deepseek_pro':    {'url': 'https://api.deepseek.com/anthropic/v1/messages',
+                        'key': os.environ.get('DEEPSEEK_API_KEY', ''),
+                        'model': 'deepseek-v4-pro', 'fmt': 'anthropic'},
+    'deepseek_pro_1m': {'url': 'https://api.deepseek.com/anthropic/v1/messages',
+                        'key': os.environ.get('DEEPSEEK_API_KEY', ''),
+                        'model': 'deepseek-v4-pro', 'fmt': 'anthropic'},
+    'deepseek_flash':  {'url': 'https://api.deepseek.com/anthropic/v1/messages',
+                        'key': os.environ.get('DEEPSEEK_API_KEY', ''),
+                        'model': 'deepseek-v4-flash', 'fmt': 'anthropic'},
+    'deepseek_flash_1m':{'url': 'https://api.deepseek.com/anthropic/v1/messages',
+                         'key': os.environ.get('DEEPSEEK_API_KEY', ''),
+                         'model': 'deepseek-v4-flash', 'fmt': 'anthropic'},
     'local':   {'url': LM_URL, 'key': '', 'model': 'local-model', 'fmt': 'openai', 'auth': 'bearer'},
 }
 
@@ -43,15 +56,15 @@ PUBLIC_MODEL_NAME = os.environ.get('PUBLIC_MODEL_NAME', 'red V1flash')
 
 # Intent -> backend
 ROUTE = {
-    'cnc_trouble':    'claude',           # 复杂故障 -> Claude 最强
-    'grbl_config':    'local',            # GRBL参数查询 -> 本地（训练数据够用）
-    'gcode_help':     'local',            # G代码 -> 本地
-    'embedded_dev':   'longcat_thinking', # 嵌入式开发 -> 推理型
-    'code_generation':'longcat_chat',     # 代码生成 -> Chat型（快）
-    'architecture':   'claude',           # 架构设计 -> Claude
-    'general_cnc':    'longcat_lite',     # 通用CNC -> Lite（最快）
-    'complex_theory': 'longcat_thinking', # 复杂理论 -> 推理型
-    'unknown':        'longcat_chat',     # 未知 -> Chat型
+    'cnc_trouble':    'deepseek_pro',      # CNC故障 -> DeepSeek PRO（强推理）
+    'grbl_config':    'local',             # GRBL参数 -> 本地（训练数据够用）
+    'gcode_help':     'local',             # G代码 -> 本地
+    'embedded_dev':   'deepseek_pro',      # 嵌入式开发 -> DeepSeek PRO
+    'code_generation':'deepseek_flash',    # 代码生成 -> DeepSeek FLASH（快+强代码）
+    'architecture':   'claude',            # 架构设计 -> Claude（最强综合）
+    'general_cnc':    'longcat_lite',      # 通用CNC -> LongCat Lite（最快）
+    'complex_theory': 'deepseek_pro',      # 复杂理论 -> DeepSeek PRO
+    'unknown':        'longcat_chat',      # 未知 -> LongCat Chat
 }
 
 SYS = 'CNC/embedded expert. Detailed Chinese answers with params, code, steps. No disclaimers.'
@@ -161,6 +174,7 @@ def expand(query, intent):
 CLEAN_PATTERNS = [
     (re.compile(r'claude[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
     (re.compile(r'longcat[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
+    (re.compile(r'deepseek[\w\-\.\[\]]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
     (re.compile(r'gpt-?4[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
     (re.compile(r'anthropic', re.IGNORECASE), ''),
     (re.compile(r'openai', re.IGNORECASE), ''),
@@ -173,6 +187,92 @@ def clean_response(text, backend_name=''):
     for pattern, repl in CLEAN_PATTERNS:
         text = pattern.sub(repl, text)
     return text
+
+# ── Quality Assurance Layer ──────────────────────────────────────────────────
+# GRBL 参数合理范围（防止 AI 编造错误参数值）
+GRBL_PARAM_RANGES = {
+    '$0': (1, 255),       '$1': (0, 255),       '$2': (0, 7),
+    '$3': (0, 7),         '$4': (0, 1),          '$5': (0, 1),
+    '$6': (0, 1),         '$10': (0, 255),       '$11': (0.0, 10.0),
+    '$12': (0.0, 1.0),    '$13': (0, 1),         '$20': (0, 1),
+    '$21': (0, 1),        '$22': (0, 1),         '$23': (0, 7),
+    '$24': (1.0, 10000.0),'$25': (1.0, 100000.0),'$26': (0, 255),
+    '$27': (0.0, 100.0),  '$30': (1, 100000),    '$31': (0, 100000),
+    '$32': (0, 1),
+    '$100': (1.0, 10000.0), '$101': (1.0, 10000.0), '$102': (1.0, 10000.0),
+    '$110': (1.0, 100000.0),'$111': (1.0, 100000.0),'$112': (1.0, 100000.0),
+    '$120': (1.0, 100000.0),'$121': (1.0, 100000.0),'$122': (1.0, 100000.0),
+    '$130': (0.0, 100000.0),'$131': (0.0, 100000.0),'$132': (0.0, 100000.0),
+}
+
+# 不确定性信号词
+UNCERTAINTY_SIGNALS = [
+    '我不确定', '可能是', '大概', '也许', '不太清楚', '不确定',
+    '需要更多信息', '取决于具体情况', '可能需要', '建议测试',
+    'not sure', 'might be', 'possibly', 'uncertain',
+]
+
+# 免责声明模式（清洗掉）
+DISCLAIMER_PATTERNS = [
+    re.compile(r'作为AI.*?[。\n]', re.DOTALL),
+    re.compile(r'我无法保证.*?[。\n]', re.DOTALL),
+    re.compile(r'建议咨询专业.*?[。\n]', re.DOTALL),
+    re.compile(r'请注意.*?安全.*?[。\n]', re.DOTALL),
+    re.compile(r'以上仅供参考.*?[。\n]', re.DOTALL),
+    re.compile(r'作为.*?语言模型.*?[。\n]', re.DOTALL),
+]
+
+def validate_grbl_params(text):
+    """检测回答里的 GRBL 参数值是否在合理范围内，返回警告列表。"""
+    warnings = []
+    for match in re.finditer(r'(\$\d+)\s*[=:]\s*([\d.]+)', text):
+        param = match.group(1)
+        try:
+            value = float(match.group(2))
+        except ValueError:
+            continue
+        if param in GRBL_PARAM_RANGES:
+            lo, hi = GRBL_PARAM_RANGES[param]
+            if not (lo <= value <= hi):
+                warnings.append(f'{param}={value} 超出合理范围 [{lo}, {hi}]')
+    return warnings
+
+def is_truncated(text):
+    """检测回答是否被截断。"""
+    if not text or len(text) < 20:
+        return True
+    if text.count('```') % 2 != 0:
+        return True
+    stripped = text.rstrip()
+    if stripped and stripped[-1] not in '。！？.!?\n）)】]':
+        if len(stripped) > 100 and stripped[-1].isalnum():
+            return True
+    return False
+
+def detect_uncertainty(text):
+    """检测回答是否包含不确定性信号。"""
+    return any(s in text for s in UNCERTAINTY_SIGNALS)
+
+def remove_disclaimers(text):
+    """清洗掉常见的 AI 免责声明。"""
+    for pattern in DISCLAIMER_PATTERNS:
+        text = pattern.sub('', text)
+    return text.strip()
+
+def qa_check(text, intent=None, backend=None):
+    """质量检查：验证参数范围、检测截断、清洗免责声明。
+    返回 (checked_text, issues) 其中 issues 是问题列表。
+    """
+    issues = []
+    text = remove_disclaimers(text)
+    if is_truncated(text):
+        issues.append('truncated')
+    if intent and intent.get('cnc_subdomain') == 'grbl':
+        param_warnings = validate_grbl_params(text)
+        if param_warnings:
+            issues.append('param_warning')
+            text += '\n\n⚠️ 参数提示：' + '；'.join(param_warnings) + '，请结合实际硬件验证。'
+    return text, issues
 
 # ── API backend calls ────────────────────────────────────────────────────────
 def call_api(name, msgs, mt=1024):
@@ -252,6 +352,28 @@ def route(query, prefer=None):
 
     result['total_ms'] = int((time.time() - t0) * 1000)
     result['answer'] = clean_response(result.get('answer', ''), result.get('backend', ''))
+
+    # 质量检查
+    answer, issues = qa_check(result['answer'], intent=intent, backend=backend)
+    result['answer'] = answer
+
+    # 不确定性检测：自动升级到更强模型
+    if detect_uncertainty(result['answer']) and backend not in ('claude', 'deepseek_pro'):
+        upgraded = call_api('deepseek_pro', [{'role': 'user', 'content': query}])
+        if not detect_uncertainty(upgraded):
+            result['answer'] = clean_response(upgraded, 'deepseek_pro')
+            result['upgraded'] = True
+
+    # 截断检测：自动续写
+    if 'truncated' in issues and backend != 'local':
+        continuation = call_api(backend, [
+            {'role': 'user', 'content': query},
+            {'role': 'assistant', 'content': result['answer']},
+            {'role': 'user', 'content': '请继续完成上面的回答。'},
+        ], mt=512)
+        if continuation and not continuation.startswith('[ERR]'):
+            result['answer'] = result['answer'] + '\n' + clean_response(continuation, backend)
+
     return result
 
 # ── CLI mode ─────────────────────────────────────────────────────────────────
@@ -373,7 +495,9 @@ if __name__ == '__main__':
     parser.add_argument('--query', '-q', type=str, help='Single query mode')
     parser.add_argument('--backend', '-b', type=str,
                         choices=['claude', 'longcat', 'longcat_lite', 'longcat_chat',
-                                 'longcat_thinking', 'longcat_omni', 'local'])
+                                 'longcat_thinking', 'longcat_omni',
+                                 'deepseek_pro', 'deepseek_pro_1m',
+                                 'deepseek_flash', 'deepseek_flash_1m', 'local'])
     parser.add_argument('--json', action='store_true', help='Output JSON (for --query mode)')
     parser.add_argument('--test', action='store_true', help='测试所有后端连通性')
     args = parser.parse_args()
