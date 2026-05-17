@@ -95,10 +95,7 @@ def check_and_retrain(new_pairs: list):
         json.dump(data, f, ensure_ascii=False, indent=2)
     print(f"  Merged {len(new_pairs)} new pairs. Total: {len(data)}")
 
-    if len(new_pairs) < CONFIG["retrain_threshold"]:
-        print(f"  < {CONFIG['retrain_threshold']} new pairs, skipping retrain")
-        return False
-
+    # Trigger retrain whenever new pairs were added (distillation already gates on 10+ items)
     print(f"  Triggering incremental training with {len(new_pairs)} new pairs...")
     # Start training in background (limited steps for quick update)
     env = os.environ.copy()

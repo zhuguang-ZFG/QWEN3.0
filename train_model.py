@@ -294,7 +294,13 @@ def main():
     parser = argparse.ArgumentParser(description='Train QLoRA model on Qwen2.5-7B')
     parser.add_argument('--export_only', action='store_true', help='Only export trained model to GGUF')
     parser.add_argument('--test', action='store_true', help='Quick test - load model and verify GPU')
+    parser.add_argument('--quick', action='store_true', help='Quick incremental training: 100 steps only, no warmup')
     args = parser.parse_args()
+
+    if args.quick:
+        global MAX_STEPS, WARMUP_RATIO
+        MAX_STEPS = 100
+        WARMUP_RATIO = 0
 
     if args.test:
         print(f"PyTorch: {torch.__version__}")

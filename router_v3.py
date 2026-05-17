@@ -220,15 +220,18 @@ FALLBACK_APIS = [a for a in API_POOL if a["priority"] >= 3]  # Free APIs as last
 SYSTEM_PROMPT = "<identity>\nred V1-Flash | 深圳市动力巢科技 (www.donglicao.com)\nCNC 嵌入式/ESP32/SVG/Grbl/逆向工程 领域专家\n</identity>\n\n<core_rules>\n- 直接回答。2+2 就是 4，不是\"答案是 4\"。\n- 绝不主动创建文档。优先编辑已有文件。\n- KNOW WHEN TO STOP: 用户要求完成的那一刻立刻停。\n- 写最少的代码解决问题。Show, don't tell。\n- 先搜索再回答。基于原文不凭记忆。\n- 不拍马屁、不道歉、不进行道德说教。\n</core_rules>\n\n<response_format>\n简单问题 → 1行答案\n复杂问题 → 分析/解决/代码 三层\n✅确定 ❓推测 ❌不确定\n</response_format>"
 
 
-def call_local(query: str, context: str = "") -> str:
+def call_local(query: str, context: str = "") -> tuple:
     system = SYSTEM_PROMPT
     if context:
         system += f"\n\n参考代码库:\n{context[:3000]}"
 
     payload = {"model": LOCAL_MODEL, "messages": [{"role":"system","content":system},{"role":"user","content":query}], "temperature": 0.3, "max_tokens": 1024}
-    req = urllib.request.Request(f"{LMSTUDIO_URL}/chat/completions", data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=120) as resp:
-        return json.loads(resp.read().decode("utf-8"))["choices"][0]["message"]["content"]
+    try:
+        req = urllib.request.Request(f"{LMSTUDIO_URL}/chat/completions", data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            return json.loads(resp.read().decode("utf-8"))["choices"][0]["message"]["content"], {}
+    except Exception as e:
+        return None, {"error": "local_model_unavailable", "detail": str(e)}
 
 
 def ping_api(api: dict) -> bool:
@@ -350,16 +353,35 @@ def route_v3(query: str, session_id: str = "default", use_consensus: bool = Fals
         model_choice = "longcat_thinking"  # Use reasoning for debugging/RE
         use_consensus = True  # And verify with consensus
 
-    # Generate response
-    response = call_local(query)
+    # Generate response: local first, API fallback if local fails or reasoning model needed
+    local_response, local_stats = call_local(query)
+    api_stats = {}
+
+    if local_response is None or model_choice == "longcat_thinking":
+        # Local failed or reasoning model required — fall back to API pool
+        if local_response is None:
+            print(f"  Local model unavailable ({local_stats.get('detail','')}), falling back to API...")
+        else:
+            print(f"  Reasoning model requested ({model_choice}), using API...")
+        api_response, api_stats = call_api_with_fallback(query)
+        response = api_response
+    else:
+        response = local_response
 
     # Multi-model consensus for important queries
     consensus_result = None
     if use_consensus and intent in ("debugging", "concept_explanation"):
-        api_resp, api_stats = call_api_with_fallback(query)
-        consensus_result = consensus_check(query, response, api_resp)
-        if not consensus_result["agreement"]:
-            response = consensus_result["combined"]
+        if model_choice == "longcat_thinking" and api_stats:
+            # Already called API above; get a second opinion from local if it was available
+            if local_response:
+                consensus_result = consensus_check(query, local_response, response)
+                if not consensus_result["agreement"]:
+                    response = consensus_result["combined"]
+        else:
+            api_resp, _ = call_api_with_fallback(query)
+            consensus_result = consensus_check(query, response, api_resp)
+            if not consensus_result["agreement"]:
+                response = consensus_result["combined"]
 
     # Save to session
     history.append({"role": "user", "content": query})
