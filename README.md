@@ -2,6 +2,8 @@
 
 基于 Qwen3-8B + QLoRA 微调的 CNC/嵌入式领域专精 AI 助手服务，通过智能路由将用户问题分发到最合适的后端，对外统一呈现为 **red V1flash**。
 
+详细架构设计请参阅 [ARCHITECTURE.md](ARCHITECTURE.md)
+
 ---
 
 ## 核心架构
