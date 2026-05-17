@@ -700,6 +700,121 @@ python D:/GIT/smart_router.py --pressure-test --backends nvidia_nemotron,deepsee
 
 red V1flash 定位为 CNC/嵌入式领域的 AI 助手服务，面向数控机床操作员、嵌入式开发者和 CNC 设备厂商。商业模式是提供比通用大模型更精准的领域回答，同时通过智能路由控制 API 成本（优先使用免费的 Nvidia NIM 额度，付费 API 仅在必要时调用）。项目不对外宣称自研大模型，核心竞争力在于领域数据积累、路由策略优化和持续的蒸馏训练闭环。
 
+---
+
+## 9. 未闭环缺口（Gap Analysis）
+
+### 9.1 最关键缺口：smart_router 未连接 distill_queue
+
+**现状**：`smart_router.py` 路由用户提问到外部 API，获得回答后直接返回，不记录任何数据。
+`distill_scheduler.build_job_queue()` 读取 `D:/GIT/data/distill_queue/pending/`，但该目录永远为空。
+
+**影响**：蒸馏系统只能用合成题，无法从真实用户提问中学习，飞轮效应无法启动。
+
+**修复方案**：在 `smart_router.py` 的 `route()` 函数末尾添加日志写入：
+
+```python
+def _log_to_distill_queue(query, answer, intent, backend, score):
+    """将路由结果写入蒸馏队列，供 distill_scheduler 使用。"""
+    # 只记录外部 API 回答（本地模型回答不需要蒸馏）
+    # 只记录质量分数 < 0.85 的回答（高质量的不需要重新蒸馏）
+```
+
+### 9.2 model_registry 无历史记录
+
+**现状**：`D:/GIT/data/models/registry.json` 为空，当前 Round 7 adapter 未注册。
+`eval_loop.compare()` 无历史可比，首次评估自动通过（无法检测退化）。
+
+**修复方案**：Round 7 训练完成后立即运行 `model_registry.register()`。
+
+### 9.3 eval_loop 依赖手动 LM Studio
+
+**现状**：`eval_loop.run_eval()` 调用 `http://localhost:1234`，需要人工确保 LM Studio 运行且加载了正确模型。
+
+**修复方案**：eval_loop 应能通过 `subprocess` 自动启动/停止 LM Studio，或改用直接加载 adapter 推理（不依赖 LM Studio）。
+
+### 9.4 Windows 任务计划未配置
+
+**现状**：`auto_distill_main.py --start` 需要手动运行，重启后不会自动恢复。
+
+**配置命令**：
+
+```cmd
+schtasks /create /tn "RedV1FlashDistill" /tr "python D:\GIT\auto_distill_main.py --start" /sc ONSTART /ru SYSTEM /f
+```
+
+### 9.5 Nvidia NIM 配额无追踪
+
+**现状**：每日免费额度使用量未记录，可能悄悄耗尽导致蒸馏失败。
+
+**修复方案**：`distill_scheduler._call_teacher()` 成功调用后写入 `D:/GIT/data/usage.json`，`auto_distill_main` 每日重置计数。
+
+---
+
+## 10. 高收益路线图
+
+### 优先级 P0（立即做，收益极高）
+
+| 任务 | 收益 | 工作量 | 说明 |
+|------|------|--------|------|
+| smart_router 写入 distill_queue | 极高 | 低（~30行） | 打通飞轮，真实用户数据驱动训练 |
+| 注册 Round 7 adapter | 高 | 低（1条命令） | 让 eval_loop 有基准可比 |
+| 配置 Windows 任务计划 | 高 | 低（1条命令） | 守护进程开机自启 |
+
+### 优先级 P1（本周内，高收益）
+
+| 任务 | 收益 | 工作量 | 说明 |
+|------|------|--------|------|
+| 扩充 eval_set 到 200 题 | 高 | 中 | 评估更可信，覆盖更多边界情况 |
+| Nvidia NIM 配额追踪 | 中 | 低 | 防止免费额度耗尽 |
+| 答案缓存（高频问题） | 中 | 低 | 降低 API 成本，提升响应速度 |
+
+### 优先级 P2（下周，中等收益）
+
+| 任务 | 收益 | 工作量 | 说明 |
+|------|------|--------|------|
+| FastAPI 接口层 | 中 | 中 | 可接入微信/钉钉/网页前端 |
+| 多轮对话支持 | 中 | 中 | CNC 故障排查需要追问 |
+| eval_loop 脱离 LM Studio 依赖 | 中 | 高 | 真正全自动评估 |
+
+### 优先级 P3（长期，高价值但复杂）
+
+| 任务 | 收益 | 工作量 | 说明 |
+|------|------|--------|------|
+| DPO 训练（负样本对齐） | 极高 | 高 | 用用户踩的答案做负样本，对齐人类偏好 |
+| 多模态支持（图片识别故障） | 高 | 高 | CNC 操作员喜欢拍照问，nvidia_vision 已就绪 |
+| 模型蒸馏到更小尺寸（3B） | 中 | 高 | 降低推理成本，支持边缘部署 |
+
+### Superpower 飞轮（最终形态）
+
+```
+用户提问（真实需求）
+    │
+    ▼
+smart_router 路由 + 记录到 distill_queue
+    │
+    ▼
+GPU 空闲时：distill_scheduler 用最强教师模型重新回答
+    │
+    ▼
+quality_gate 过滤（三模型交叉验证）
+    │
+    ▼
+auto_trainer 增量训练（每积累500条触发）
+    │
+    ▼
+eval_loop 评估（200题基准集）
+    │
+    ▼
+model_registry 升级本地模型
+    │
+    ▼
+本地模型更强 → 更多问题本地直答 → API 成本降低
+    │
+    └──────────────────────────────────────────────┘
+                    飞轮持续转动
+```
+
 
 
 
