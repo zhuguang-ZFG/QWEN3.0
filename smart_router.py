@@ -335,6 +335,83 @@ RULES = [
     (r'PCB|雕刻|激光|切割|主轴|转速|RPM', 'general_cnc', 0.80),
 ]
 
+# ── Layer 1.1: Signal Dictionary Classifier (V2) ─────────────────────────────
+SIGNAL_DICT = {
+    "code_generation": {
+        "identity": ["写代码", "实现", "开发", "编写", "create", "implement", "write a"],
+        "tools": ["python", "javascript", "typescript", "react", "vue", "rust", "go"],
+        "complexity": ["算法", "架构", "设计模式", "重构", "优化"],
+    },
+    "debugging": {
+        "identity": ["报错", "bug", "修复", "error", "fix", "crash", "失败"],
+        "tools": ["traceback", "stack trace", "exception", "TypeError", "undefined"],
+        "context": ["为什么", "不工作", "怎么解决"],
+    },
+    "explanation": {
+        "identity": ["解释", "什么是", "怎么理解", "原理", "区别", "对比"],
+        "context": ["为什么要", "有什么用", "怎么选"],
+    },
+    "hardware": {
+        "identity": ["esp32", "stm32", "arduino", "grbl", "gpio", "固件"],
+        "tools": ["串口", "i2c", "spi", "pwm", "adc", "uart"],
+        "config": ["\\$\\d+", "参数", "配置", "烧录"],
+    },
+    "trivial": {
+        "identity": ["你好", "hello", "hi", "谢谢", "再见", "在吗"],
+    },
+}
+
+SIGNAL_WEIGHTS = {
+    "identity": 3.0,
+    "tools": 2.0,
+    "complexity": 1.5,
+    "context": 1.5,
+    "config": 1.0,
+}
+
+def signal_classify(query):
+    """Layer 1.1: 信号字典加权评分分类器。返回 (intent_dict, confidence) 或 None。"""
+    q = query[:800].lower()
+    scores = {}
+    evidence = {}
+    for intent, dimensions in SIGNAL_DICT.items():
+        score = 0.0
+        hits = []
+        for dim, keywords in dimensions.items():
+            weight = SIGNAL_WEIGHTS.get(dim, 1.0)
+            for kw in keywords:
+                if re.search(kw, q, re.IGNORECASE):
+                    score += weight
+                    hits.append(f"{dim}:{kw}")
+        if score > 0:
+            scores[intent] = score
+            evidence[intent] = hits
+
+    if not scores:
+        return None
+
+    best_intent = max(scores, key=scores.get)
+    best_score = scores[best_intent]
+
+    if best_score >= 8.0:
+        confidence = 0.95
+    elif best_score >= 5.0:
+        confidence = 0.90
+    elif best_score >= 3.0:
+        confidence = 0.75
+    else:
+        return None
+
+    return {
+        'intent': best_intent,
+        'complexity': 0.7 if best_intent == 'code_generation' else 0.3,
+        'needs_code': best_intent in ('code_generation', 'debugging'),
+        'domain_keywords': evidence.get(best_intent, []),
+        'cnc_subdomain': 'grbl' if 'grbl' in q else 'general',
+        'source': 'signal_v2',
+        'confidence': confidence,
+    }
+
 def rule_classify(query):
     """Layer 1: fast keyword matching. Returns (intent, confidence) or None."""
     best_intent, best_conf = None, 0.0
@@ -519,6 +596,11 @@ def analyze(query, system_prompt="", ide="unknown"):
     result = rule_classify(query)
     if result:
         return result
+
+    # Layer 1.1: 信号字典加权评分（V2，0ms）
+    signal_result = signal_classify(query)
+    if signal_result:
+        return signal_result
 
     # Layer 1.5: 本地 Qwen3 路由模型旧路径（50-100ms GPU, 首次加载 ~10s）
     local_decision = _local_route_decision(query)
