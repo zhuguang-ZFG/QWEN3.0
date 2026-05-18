@@ -80,16 +80,17 @@ def build_stream_chunk(chat_id: str, content: str, finish: bool = False) -> str:
     return f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
 
 
-def build_anthropic_response(msg_id: str, content: str, backend: str) -> dict:
+def build_anthropic_response(msg_id: str, content: str, backend: str, model: str = MODEL_ID) -> dict:
     """构建 Anthropic Messages API 响应格式。"""
     return {
-        "id": msg_id,
+        "id": f"msg_{uuid.uuid4().hex[:24]}",
         "type": "message",
         "role": "assistant",
-        "model": MODEL_ID,
+        "model": model,
         "content": [{"type": "text", "text": content}],
         "stop_reason": "end_turn",
-        "usage": {"input_tokens": 0, "output_tokens": 0},
+        "stop_sequence": None,
+        "usage": {"input_tokens": 10, "output_tokens": len(content) // 4},
     }
 
 
@@ -152,25 +153,88 @@ async def chat_completions(req: ChatRequest):
 
 @app.post("/v1/messages")
 async def anthropic_messages(req: Request):
-    """Anthropic 兼容接口（供 cc-switch Claude Code 使用）。"""
+    """Anthropic 兼容接口（供 cc-switch Claude Code 使用）。支持流式和非流式。"""
     body = await req.json()
-    # 转换 Anthropic 格式 → 内部格式
-    messages = [Message(role=m["role"], content=m["content"])
-                for m in body.get("messages", []) if m["role"] in ("user", "assistant")]
-    # system prompt 作为第一条消息
+    messages = [Message(role=m["role"], content=m.get("content", ""))
+                for m in body.get("messages", []) if m.get("role") in ("user", "assistant") and isinstance(m.get("content"), str)]
     if body.get("system"):
-        messages.insert(0, Message(role="system", content=body["system"]))
+        if isinstance(body["system"], str):
+            messages.insert(0, Message(role="system", content=body["system"]))
+        elif isinstance(body["system"], list):
+            txt = " ".join(b.get("text", "") for b in body["system"] if b.get("type") == "text")
+            if txt:
+                messages.insert(0, Message(role="system", content=txt))
+
+    req_model = body.get("model", MODEL_ID)
+    is_stream = body.get("stream", False)
 
     chat_req = ChatRequest(
-        model=body.get("model", MODEL_ID).replace("[1m]", ""),
+        model=req_model.replace("[1m]", ""),
         messages=messages,
         stream=False,
-        max_tokens=body.get("max_tokens", 1024)
+        max_tokens=body.get("max_tokens", 4096)
     )
-    return await _handle_chat(chat_req, fmt="anthropic")
+
+    if is_stream:
+        return StreamingResponse(
+            _anthropic_stream(chat_req, req_model),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+        )
+    return await _handle_chat(chat_req, fmt="anthropic", request_model=req_model)
 
 
-async def _handle_chat(req: ChatRequest, fmt: str = "openai"):
+async def _anthropic_stream(req: ChatRequest, model: str):
+    """Anthropic SSE 流式响应。"""
+    query = extract_query(req.messages)
+    intent = smart_router.analyze(query)
+    use_orch = needs_orchestration(query, intent)
+
+    if use_orch:
+        result = await asyncio.to_thread(orchestrate, query)
+    else:
+        result = await asyncio.to_thread(smart_router.route, query)
+
+    content = result.get("answer", "")
+    msg_id = f"msg_{uuid.uuid4().hex[:24]}"
+
+    # message_start
+    yield f"event: message_start\ndata: {json.dumps({'type':'message_start','message':{'id':msg_id,'type':'message','role':'assistant','model':model,'content':[],'stop_reason':None,'stop_sequence':None,'usage':{'input_tokens':10,'output_tokens':0}}})}\n\n"
+
+    # content_block_start
+    yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':0,'content_block':{'type':'text','text':''}})}\n\n"
+
+    # content_block_delta - 分块发送
+    chunk_size = 20
+    for i in range(0, len(content), chunk_size):
+        chunk = content[i:i+chunk_size]
+        yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':chunk}}, ensure_ascii=False)}\n\n"
+        await asyncio.sleep(0.01)
+
+    # content_block_stop
+    yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':0})}\n\n"
+
+    # message_delta
+    yield f"event: message_delta\ndata: {json.dumps({'type':'message_delta','delta':{'stop_reason':'end_turn','stop_sequence':None},'usage':{'output_tokens':len(content)//4}})}\n\n"
+
+    # message_stop
+    yield f"event: message_stop\ndata: {json.dumps({'type':'message_stop'})}\n\n"
+
+    # 记录日志
+    sys_prompt = extract_system_prompt(req.messages)
+    if sys_prompt:
+        try:
+            _log_sys_prompt(sys_prompt)
+        except Exception:
+            pass
+    try:
+        if os.environ.get("DISTILL_LOG", "0") == "1":
+            smart_router._log_to_distill_queue(query, content, intent, result.get("backend", "unknown"))
+    except Exception:
+        pass
+
+
+async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str = None):
     query = extract_query(req.messages)
     if not query.strip():
         raise HTTPException(status_code=400, detail="Empty query")
@@ -214,7 +278,7 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai"):
             pass
 
     if fmt == "anthropic":
-        return JSONResponse(build_anthropic_response(chat_id, content, backend))
+        return JSONResponse(build_anthropic_response(chat_id, content, backend, request_model or MODEL_ID))
     return JSONResponse(build_response(chat_id, content, backend, total_ms))
 
 
