@@ -2,7 +2,7 @@
 让 Cursor、Claude Code、VS Code Copilot 等 AI IDE 直接接入。
 支持流式/非流式 ChatCompletion，兼容 OpenAI API 格式。
 """
-import sys, os, json, time, uuid, asyncio, threading
+import sys, os, json, time, uuid, asyncio, threading, functools
 from typing import Optional
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -35,7 +35,43 @@ _stats = {
 _backend_enabled = {}
 
 
-def _record_request(query: str, backend: str, intent: str, duration_ms: int, success: bool = True):
+@functools.lru_cache(maxsize=256)
+def _get_ip_location(ip: str) -> str:
+    """查询 IP 地理位置（缓存结果）。"""
+    if ip in ("127.0.0.1", "localhost", "::1", ""):
+        return "本地"
+    try:
+        import urllib.request
+        resp = urllib.request.urlopen(f"http://ip-api.com/json/{ip}?fields=country,city&lang=zh-CN", timeout=3)
+        data = json.loads(resp.read().decode())
+        return f"{data.get('country', '')} {data.get('city', '')}"
+    except Exception:
+        return "未知"
+
+
+def _detect_ide(messages: list) -> str:
+    """从消息中检测 IDE 来源。"""
+    for msg in messages:
+        content = msg.get("content", "") if isinstance(msg, dict) else ""
+        if isinstance(content, str):
+            if "Claude Code" in content or "claude-code" in content:
+                return "Claude Code"
+            if "Cursor" in content or "You are Cursor" in content:
+                return "Cursor"
+            if "GitHub Copilot" in content:
+                return "GitHub Copilot"
+            if "Windsurf" in content:
+                return "Windsurf"
+            if "Codex" in content:
+                return "Codex"
+            if "Continue" in content:
+                return "Continue"
+            if "Cline" in content:
+                return "Cline"
+    return "未知"
+
+
+def _record_request(query: str, backend: str, intent: str, duration_ms: int, success: bool = True, client_ip: str = "", ide_source: str = "", sys_prompt_preview: str = ""):
     """记录一次请求到统计数据。"""
     with _stats_lock:
         _stats["total_requests"] += 1
@@ -53,6 +89,10 @@ def _record_request(query: str, backend: str, intent: str, duration_ms: int, suc
             "intent": intent,
             "ms": duration_ms,
             "success": success,
+            "ip": client_ip,
+            "country": _get_ip_location(client_ip) if client_ip else "",
+            "ide": ide_source,
+            "sys_prompt": sys_prompt_preview[:100] if sys_prompt_preview else "",
         }
         _stats["recent_logs"].append(log_entry)
         if len(_stats["recent_logs"]) > 100:
@@ -144,7 +184,7 @@ import re as _re
 _INSTANT_REPLIES = [
     (_re.compile(r'你是什么|什么模型|who are you|what model|what are you|哪个模型|哪个公司|谁开发|谁训练|谁做的|哪家公司|什么公司|who made|who built|who created|介绍一下你|你的父亲|你的母亲|你的创造者|谁创造|你爸|你妈|你是谁', _re.IGNORECASE),
      "我是 red V1flash，由深圳市动力巢科技有限公司训练的AI模型。擅长编程开发、数据分析、技术方案设计、文档写作等领域，有什么可以帮你的？"),
-    (_re.compile(r'调用工具|使用工具|call tool|use tool|能做什么|你的能力|你能干什么|有什么功能', _re.IGNORECASE),
+    (_re.compile(r'调用工具|使用工具|call tool|use tool|能做什么|你的能力|你能干什么|有什么功能|你会什么|你能什么|会做什么', _re.IGNORECASE),
      "我可以帮你：编写和调试代码、分析数据、设计技术方案、撰写文档、解答技术问题、数学推理等。直接描述你的需求即可。"),
     (_re.compile(r'处理图片|看图|识别图|分析图|图片|screenshot|image', _re.IGNORECASE),
      "目前暂不支持图片处理。请用文字描述图片内容或你的需求，我来帮你分析解决。"),
@@ -208,7 +248,7 @@ def _log_sys_prompt(sys_prompt: str) -> None:
 import httpx as _httpx
 
 TOOL_BACKEND_URL = "https://openrouter.ai/api/v1/chat/completions"
-TOOL_BACKEND_MODEL = "deepseek/deepseek-r1-0528:free"
+TOOL_BACKEND_MODEL = "deepseek/deepseek-v4-flash:free"
 TOOL_BACKEND_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 
 
@@ -425,9 +465,18 @@ async def _tool_call_stream(body: dict):
 
 # ── Routes ──────────────────────────────────────────────────────────────────
 @app.post("/v1/chat/completions")
-async def chat_completions(req: ChatRequest):
+async def chat_completions(request: Request):
     """OpenAI 兼容接口。"""
-    return await _handle_chat(req, fmt="openai")
+    body = await request.json()
+    req = ChatRequest(**body)
+    client_ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "")
+    ide_source = _detect_ide(body.get("messages", []))
+    sys_prompt_preview = ""
+    for m in body.get("messages", []):
+        if isinstance(m, dict) and m.get("role") == "system":
+            sys_prompt_preview = (m.get("content", "") if isinstance(m.get("content"), str) else "")[:200]
+            break
+    return await _handle_chat(req, fmt="openai", client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
 
 
 @app.post("/v1/messages")
@@ -435,7 +484,38 @@ async def anthropic_messages(req: Request):
     """Anthropic 兼容接口（供 cc-switch Claude Code 使用）。支持流式和非流式、多模态。"""
     body = await req.json()
 
-    # ── 工具调用检测（优先级最高）──────────────────────────────────────────
+    # ── 提取用户查询，先检查预设直答 ──────────────────────────────────────────
+    raw_messages = body.get("messages", [])
+    last_user_query = ""
+    for msg in reversed(raw_messages):
+        if isinstance(msg, dict) and msg.get("role") == "user":
+            content = msg.get("content", "")
+            if isinstance(content, str):
+                last_user_query = content
+            elif isinstance(content, list):
+                last_user_query = " ".join(b.get("text", "") for b in content if b.get("type") == "text")
+            break
+
+    # 预设直答优先（0ms，不需要任何后端）
+    instant = _try_instant_reply(last_user_query)
+    if instant:
+        client_ip = req.headers.get("x-forwarded-for", "").split(",")[0].strip() or (req.client.host if req.client else "")
+        ide_source = _detect_ide(raw_messages)
+        _record_request(last_user_query, "instant", "instant", 0, True, client_ip, ide_source, "")
+        resp = build_anthropic_response("", instant, "instant")
+        if body.get("stream", False):
+            async def _instant_stream():
+                msg_id = resp["id"]
+                yield f"event: message_start\ndata: {json.dumps({'type':'message_start','message':{'id':msg_id,'type':'message','role':'assistant','model':MODEL_ID,'content':[],'stop_reason':None,'usage':{'input_tokens':10,'output_tokens':0}}})}\n\n"
+                yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':0,'content_block':{'type':'text','text':''}})}\n\n"
+                yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':instant}}, ensure_ascii=False)}\n\n"
+                yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':0})}\n\n"
+                yield f"event: message_delta\ndata: {json.dumps({'type':'message_delta','delta':{'stop_reason':'end_turn'},'usage':{'output_tokens':len(instant)//4}})}\n\n"
+                yield f"event: message_stop\ndata: {json.dumps({'type':'message_stop'})}\n\n"
+            return StreamingResponse(_instant_stream(), media_type="text/event-stream", headers={"Cache-Control": "no-cache"})
+        return JSONResponse(resp)
+
+    # ── 工具调用检测（只有非预设直答的请求才走这里）──────────────────────────
     if body.get("tools"):
         is_stream = body.get("stream", False)
         if is_stream:
@@ -449,7 +529,6 @@ async def anthropic_messages(req: Request):
             return JSONResponse(result)
 
     has_image = False
-    raw_messages = body.get("messages", [])
 
     # 解析消息：支持纯文本和多模态数组格式
     messages = []
@@ -482,6 +561,20 @@ async def anthropic_messages(req: Request):
     req_model = body.get("model", MODEL_ID)
     is_stream = body.get("stream", False)
 
+    # 用户追踪信息
+    client_ip = req.headers.get("x-forwarded-for", "").split(",")[0].strip() or (req.client.host if req.client else "")
+    ide_source = _detect_ide(raw_messages)
+    sys_prompt_preview = ""
+    for m in raw_messages:
+        if isinstance(m, dict) and m.get("role") == "system":
+            sys_prompt_preview = (m.get("content", "") if isinstance(m.get("content"), str) else "")[:200]
+            break
+    if not sys_prompt_preview and body.get("system"):
+        if isinstance(body["system"], str):
+            sys_prompt_preview = body["system"][:200]
+        elif isinstance(body["system"], list):
+            sys_prompt_preview = " ".join(b.get("text", "") for b in body["system"] if b.get("type") == "text")[:200]
+
     # 含图片时：直接转发给支持视觉的后端（Claude）
     if has_image:
         if is_stream:
@@ -500,11 +593,11 @@ async def anthropic_messages(req: Request):
 
     if is_stream:
         return StreamingResponse(
-            _anthropic_stream(chat_req, req_model),
+            _anthropic_stream(chat_req, req_model, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview),
             media_type="text/event-stream",
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
         )
-    return await _handle_chat(chat_req, fmt="anthropic", request_model=req_model)
+    return await _handle_chat(chat_req, fmt="anthropic", request_model=req_model, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
 
 
 async def _anthropic_stream_passthrough(body: dict, model: str):
@@ -536,7 +629,7 @@ async def _anthropic_stream_passthrough(body: dict, model: str):
     yield f"event: message_stop\ndata: {json.dumps({'type':'message_stop'})}\n\n"
 
 
-async def _anthropic_stream(req: ChatRequest, model: str):
+async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", ide_source: str = "", sys_prompt_preview: str = ""):
     """Anthropic SSE 流式响应。"""
     query = extract_query(req.messages)
     t0 = time.time()
@@ -558,7 +651,7 @@ async def _anthropic_stream(req: ChatRequest, model: str):
         backend_used = result.get("backend", "unknown")
 
     duration_ms = int((time.time() - t0) * 1000)
-    _record_request(query, backend_used, intent_used, duration_ms, True)
+    _record_request(query, backend_used, intent_used, duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
 
     # 在回答末尾标注后端来源
     content += f"\n\n---\n`[red V1flash → {backend_used}]`"
@@ -600,7 +693,7 @@ async def _anthropic_stream(req: ChatRequest, model: str):
         pass
 
 
-async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str = None):
+async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str = None, client_ip: str = "", ide_source: str = "", sys_prompt_preview: str = ""):
     query = extract_query(req.messages)
     if not query.strip():
         raise HTTPException(status_code=400, detail="Empty query")
@@ -612,7 +705,7 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
     instant = _try_instant_reply(query)
     if instant:
         duration_ms = int((time.time() - t0) * 1000)
-        _record_request(query, "instant", "instant", duration_ms, True)
+        _record_request(query, "instant", "instant", duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
         if fmt == "anthropic":
             return JSONResponse(build_anthropic_response(chat_id, instant, "instant", request_model or MODEL_ID))
         return JSONResponse(build_response(chat_id, instant, "instant", duration_ms))
@@ -640,7 +733,7 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
     duration_ms = int((time.time() - t0) * 1000)
 
     # 记录统计
-    _record_request(query, backend, intent, duration_ms, True)
+    _record_request(query, backend, intent, duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
 
     # 记录用户问答到 distill_queue（DISTILL_LOG=1 时启用）
     try:
@@ -747,12 +840,22 @@ async def admin_stats():
         if total > 0:
             total_ms_all = sum(b["total_ms"] for b in backend_calls.values())
             avg_ms = int(total_ms_all / total)
+        # 统计不同 IP 和 IDE
+        ips = set()
+        ide_dist = {}
+        for log in _stats["recent_logs"]:
+            if log.get("ip"):
+                ips.add(log["ip"])
+            ide = log.get("ide", "未知")
+            ide_dist[ide] = ide_dist.get(ide, 0) + 1
         return {
             "total_requests": total,
             "uptime_seconds": uptime,
             "avg_response_ms": avg_ms,
             "backend_calls": backend_calls,
             "intent_distribution": dict(_stats["intent_distribution"]),
+            "unique_ips": len(ips),
+            "ide_distribution": ide_dist,
         }
 
 
@@ -987,12 +1090,14 @@ ADMIN_BODY = """<body>
     <div class="card"><div class="stat-num" id="s-avg-ms">0ms</div><div class="stat-label">平均响应时间</div></div>
     <div class="card"><div class="stat-num" id="s-uptime">0s</div><div class="stat-label">运行时间</div></div>
     <div class="card"><div class="stat-num" id="s-backends">0</div><div class="stat-label">活跃后端</div></div>
+    <div class="card"><div class="stat-num" id="s-ips">0</div><div class="stat-label">活跃用户(IP)</div></div>
   </div>
   <div class="grid">
     <div class="card"><h2>后端调用统计</h2><table><thead><tr><th>后端</th><th>调用</th><th>成功率</th><th>平均ms</th></tr></thead><tbody id="t-backends"></tbody></table></div>
     <div class="card"><h2>意图分布</h2><table><thead><tr><th>意图</th><th>次数</th><th>占比</th></tr></thead><tbody id="t-intents"></tbody></table></div>
+    <div class="card"><h2>IDE 分布</h2><table><thead><tr><th>IDE</th><th>次数</th></tr></thead><tbody id="t-ides"></tbody></table></div>
   </div>
-  <div class="card" style="margin-top:16px"><h2>最近请求日志</h2><table><thead><tr><th>时间</th><th>查询</th><th>后端</th><th>意图</th><th>耗时</th><th>状态</th></tr></thead><tbody id="t-logs"></tbody></table></div>
+  <div class="card" style="margin-top:16px"><h2>最近请求日志</h2><table><thead><tr><th>时间</th><th>IP</th><th>国家</th><th>IDE</th><th>查询</th><th>后端</th><th>意图</th><th>耗时</th><th>状态</th></tr></thead><tbody id="t-logs"></tbody></table></div>
 </div>
 
 <div id="panel-backends" class="panel">
@@ -1042,6 +1147,7 @@ async function loadStats(){
     document.getElementById('s-avg-ms').textContent=d.avg_response_ms+'ms';
     document.getElementById('s-uptime').textContent=fmtUptime(d.uptime_seconds);
     document.getElementById('s-backends').textContent=Object.keys(d.backend_calls).length;
+    document.getElementById('s-ips').textContent=d.unique_ips||0;
     let tb=document.getElementById('t-backends');tb.innerHTML='';
     for(let[name,info]of Object.entries(d.backend_calls)){
       let rate=info.count>0?Math.round(info.success/info.count*100):0;
@@ -1054,6 +1160,13 @@ async function loadStats(){
     for(let[intent,count]of sorted){
       ti.innerHTML+=`<tr><td>${intent}</td><td>${count}</td><td>${Math.round(count/total*100)}%</td></tr>`;
     }
+    let tIde=document.getElementById('t-ides');tIde.innerHTML='';
+    if(d.ide_distribution){
+      let ideSorted=Object.entries(d.ide_distribution).sort((a,b)=>b[1]-a[1]);
+      for(let[ide,count]of ideSorted){
+        tIde.innerHTML+=`<tr><td>${ide}</td><td>${count}</td></tr>`;
+      }
+    }
   }catch(e){console.error('stats error',e)}
 }
 async function loadLogs(){
@@ -1062,7 +1175,7 @@ async function loadLogs(){
     let tl=document.getElementById('t-logs');tl.innerHTML='';
     for(let log of d){
       let cls=log.success?'badge-ok':'badge-err';
-      tl.innerHTML+=`<tr><td class="log-time">${log.time}</td><td class="log-query" title="${log.query}">${log.query}</td><td class="log-backend">${log.backend}</td><td>${log.intent}</td><td>${log.ms}ms</td><td><span class="badge ${cls}">${log.success?'OK':'ERR'}</span></td></tr>`;
+      tl.innerHTML+=`<tr><td class="log-time">${log.time}</td><td style="font-size:11px">${log.ip||''}</td><td>${log.country||''}</td><td>${log.ide||''}</td><td class="log-query" title="${(log.sys_prompt||'').replace(/"/g,'&quot;')}">${log.query}</td><td class="log-backend">${log.backend}</td><td>${log.intent}</td><td>${log.ms}ms</td><td><span class="badge ${cls}">${log.success?'OK':'ERR'}</span></td></tr>`;
     }
   }catch(e){console.error('logs error',e)}
 }
