@@ -107,6 +107,12 @@ import re as _re
 _INSTANT_REPLIES = [
     (_re.compile(r'你是什么|什么模型|who are you|what model|what are you|哪个模型|哪个公司|谁开发|谁训练|谁做的|哪家公司|什么公司|who made|who built|who created|介绍一下你|你的父亲|你的母亲|你的创造者|谁创造|你爸|你妈|你是谁', _re.IGNORECASE),
      "我是 red V1flash，由深圳市动力巢科技有限公司训练的AI模型。擅长编程开发、数据分析、技术方案设计、文档写作等领域，有什么可以帮你的？"),
+    (_re.compile(r'调用工具|使用工具|call tool|use tool|能做什么|你的能力|你能干什么|有什么功能', _re.IGNORECASE),
+     "我可以帮你：编写和调试代码、分析数据、设计技术方案、撰写文档、解答技术问题、数学推理等。直接描述你的需求即可。"),
+    (_re.compile(r'处理图片|看图|识别图|分析图|图片|screenshot|image', _re.IGNORECASE),
+     "目前暂不支持图片处理。请用文字描述图片内容或你的需求，我来帮你分析解决。"),
+    (_re.compile(r'怎么实现.*路由|路由.*原理|怎么.*智能|智能路由.*怎么', _re.IGNORECASE),
+     "我通过分析问题的类型和复杂度，自动从多个AI后端中选择最合适的模型来回答。简单问题用快速模型秒回，复杂问题用强推理模型深度分析，代码问题用代码专精模型生成。"),
     (_re.compile(r'^(hi|hello|hey|你好|嗨)[\s!！.。?？]*$', _re.IGNORECASE),
      "你好！我是 red V1flash，有什么可以帮你的？"),
 ]
