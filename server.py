@@ -230,6 +230,7 @@ class ChatRequest(BaseModel):
     stream: bool = False
     max_tokens: Optional[int] = Field(default=1024, alias="max_tokens")
     temperature: Optional[float] = 0.7
+    thinking: Optional[bool] = False
 
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
@@ -298,6 +299,131 @@ def extract_query(messages: list[Message]) -> str:
     return messages[-1].content if messages else ""
 
 
+# ── Deep Thinking Mode Helper ─────────────────────────────────────────────────
+async def _thinking_route(query: str, max_tokens: int = 4096, ide: str = "unknown") -> dict | None:
+    """Route to a thinking-capable backend. Returns result dict or None on failure."""
+    thinking_backend = smart_router.get_thinking_backend()
+    msgs = [{"role": "user", "content": query}]
+    try:
+        result = await asyncio.wait_for(
+            asyncio.to_thread(smart_router.call_api, thinking_backend, msgs, max_tokens, ide),
+            timeout=90.0  # thinking models need more time
+        )
+        if result and not (isinstance(result, str) and (result.startswith("[ERR]") or "暂时不可用" in result)):
+            return {"answer": result, "backend": thinking_backend, "thinking_mode": True}
+    except (asyncio.TimeoutError, Exception) as e:
+        if smart_router.DEBUG:
+            print(f"[THINKING] {thinking_backend} failed: {e}", file=sys.stderr)
+    # Try fallback thinking backends
+    for alt in smart_router.THINKING_BACKENDS:
+        if alt == thinking_backend:
+            continue
+        if alt not in smart_router.BACKENDS or not smart_router.BACKENDS[alt].get('key'):
+            continue
+        if not smart_router.cb_allow(alt):
+            continue
+        try:
+            result = await asyncio.wait_for(
+                asyncio.to_thread(smart_router.call_api, alt, msgs, max_tokens, ide),
+                timeout=90.0
+            )
+            if result and not (isinstance(result, str) and (result.startswith("[ERR]") or "暂时不可用" in result)):
+                return {"answer": result, "backend": alt, "thinking_mode": True}
+        except (asyncio.TimeoutError, Exception):
+            continue
+    return None
+
+
+# ── Vision (Photo-to-Answer) Mode Helper ─────────────────────────────────────
+async def _vision_route(messages: list, max_tokens: int = 4096, ide: str = "unknown") -> dict | None:
+    """Route vision requests to a multimodal backend. Returns result dict or None."""
+    for backend_name in smart_router.VISION_BACKENDS:
+        if backend_name not in smart_router.BACKENDS:
+            continue
+        if not smart_router.BACKENDS[backend_name].get('key'):
+            continue
+        if not smart_router.cb_allow(backend_name):
+            continue
+        try:
+            result = await asyncio.wait_for(
+                asyncio.to_thread(_call_vision_backend, backend_name, messages, max_tokens, ide),
+                timeout=60.0
+            )
+            if result and not (isinstance(result, str) and (result.startswith("[ERR]") or "暂时不可用" in result)):
+                return {"answer": result, "backend": backend_name}
+        except (asyncio.TimeoutError, Exception) as e:
+            if smart_router.DEBUG:
+                print(f"[VISION] {backend_name} failed: {e}", file=sys.stderr)
+            continue
+    return None
+
+
+def _call_vision_backend(backend_name: str, messages: list, max_tokens: int, ide: str) -> str | None:
+    """Call a vision-capable backend with image content."""
+    import urllib.request as _ur
+    b = smart_router.BACKENDS[backend_name]
+    fmt = b.get('fmt', 'openai')
+    auth_style = b.get('auth', 'x-api-key')
+
+    if fmt == 'anthropic':
+        # Convert OpenAI vision format to Anthropic format
+        anthropic_msgs = smart_router.convert_openai_vision_to_anthropic(messages)
+
+        if b.get('no_system'):
+            # For no_system backends (like longcat_omni): inject system prompt as first user message
+            system_text_block = {"type": "text", "text": smart_router.VISION_SYSTEM_PROMPT}
+            if anthropic_msgs and anthropic_msgs[0]["role"] == "user":
+                anthropic_msgs[0]["content"].insert(0, system_text_block)
+            else:
+                anthropic_msgs.insert(0, {"role": "user", "content": [system_text_block]})
+            body = {'model': b['model'], 'max_tokens': max_tokens, 'messages': anthropic_msgs}
+        else:
+            body = {'model': b['model'], 'max_tokens': max_tokens,
+                    'system': smart_router.VISION_SYSTEM_PROMPT, 'messages': anthropic_msgs}
+
+        p = json.dumps(body).encode()
+        if auth_style == 'bearer':
+            h = {'Content-Type': 'application/json',
+                 'Authorization': f"Bearer {b['key']}",
+                 'anthropic-version': '2023-06-01'}
+        else:
+            h = {'Content-Type': 'application/json',
+                 'x-api-key': b['key'], 'anthropic-version': '2023-06-01'}
+    else:
+        # OpenAI format: pass messages through with vision system prompt
+        openai_msgs = [{'role': 'system', 'content': smart_router.VISION_SYSTEM_PROMPT}] + messages
+        body = {'model': b['model'], 'max_tokens': max_tokens, 'messages': openai_msgs}
+        p = json.dumps(body).encode()
+        h = {'Content-Type': 'application/json', 'Authorization': f"Bearer {b['key']}"}
+
+    try:
+        req = _ur.Request(b['url'], data=p, headers=h)
+        _timeout = b.get('timeout', 60)
+        with _ur.urlopen(req, timeout=_timeout) as resp:
+            d = json.loads(resp.read().decode())
+        if fmt == 'anthropic':
+            answer = d['content'][0].get('text', '')
+        else:
+            answer = d['choices'][0]['message'].get('content', '')
+        smart_router.cb_record(backend_name, True)
+        return smart_router.clean_response(answer, backend_name)
+    except Exception as e:
+        if smart_router.DEBUG:
+            print(f'[VISION] {backend_name} call error: {e}', file=sys.stderr)
+        smart_router.cb_record(backend_name, False)
+        return None
+
+
+async def _stream_vision_response(chat_id: str, content: str):
+    """Stream a vision response in OpenAI SSE format."""
+    sentences = _split_sentences(content)
+    for sentence in sentences:
+        yield build_stream_chunk(chat_id, sentence)
+        await asyncio.sleep(0.02)
+    yield build_stream_chunk(chat_id, "", finish=True)
+    yield "data: [DONE]\n\n"
+
+
 # ── 快速直答（不调用任何后端，0ms）──────────────────────────────────────────
 import re as _re
 _INSTANT_REPLIES = [
@@ -305,8 +431,8 @@ _INSTANT_REPLIES = [
      "我是 LiMa（力码），由深圳市动力巢科技有限公司训练的AI模型。推理能力比肩 DEEPSEEK-V4-PRO。擅长编程开发、数据分析、技术方案设计、文档写作等领域，有什么可以帮你的？"),
     (_re.compile(r'调用工具|使用工具|call tool|use tool|能做什么|你的能力|你能干什么|有什么功能|你会什么|你能什么|会做什么', _re.IGNORECASE),
      "我可以帮你：编写和调试代码、分析数据、设计技术方案、撰写文档、解答技术问题、数学推理等。直接描述你的需求即可。"),
-    (_re.compile(r'处理图片|看图|识别图|分析图|图片|screenshot|image', _re.IGNORECASE),
-     "目前暂不支持图片处理。请用文字描述图片内容或你的需求，我来帮你分析解决。"),
+    (_re.compile(r'处理图片|看图|识别图|分析图|screenshot|image', _re.IGNORECASE),
+     "支持图片分析！请直接上传图片（拍照或截图），我会识别内容并帮你解答。如果是题目，我会分步骤给出答案。"),
     (_re.compile(r'怎么实现.*路由|路由.*原理|怎么.*智能|智能路由.*怎么', _re.IGNORECASE),
      "我通过分析问题的类型和复杂度，自动从多个AI后端中选择最合适的模型来回答。简单问题用快速模型秒回，复杂问题用强推理模型深度分析，代码问题用代码专精模型生成。"),
     (_re.compile(r'动力巢|donglicao|公司.*干什么|公司.*做什么|公司.*简介|公司.*介绍', _re.IGNORECASE),
@@ -369,6 +495,7 @@ def _log_sys_prompt(sys_prompt: str) -> None:
 
 # ── Tool Call Forwarding (DeepSeek R1 via OpenRouter) ─────────────────────────
 import httpx as _httpx
+import urllib.parse as _urllib_parse
 
 TOOL_BACKEND_URL = "https://openrouter.ai/api/v1/chat/completions"
 TOOL_BACKEND_MODEL = "deepseek/deepseek-v4-flash:free"
@@ -586,19 +713,97 @@ async def _tool_call_stream(body: dict):
     yield f"event: message_stop\ndata: {json.dumps({'type':'message_stop'})}\n\n"
 
 
+# ── Image Generation (Pollinations.ai) ────────────────────────────────────────
+class ImageRequest(BaseModel):
+    prompt: str
+    model: str = "lima-image"
+    size: str = "1024x1024"
+    n: int = 1
+
+
+def _build_pollinations_url(prompt: str, size: str = "1024x1024") -> str:
+    """Build Pollinations.ai image URL from prompt and size."""
+    parts = size.split("x")
+    width = int(parts[0]) if len(parts) == 2 else 1024
+    height = int(parts[1]) if len(parts) == 2 else 1024
+    encoded_prompt = _urllib_parse.quote(prompt)
+    return f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true"
+
+
+@app.post("/v1/images/generations")
+async def image_generations(request: Request):
+    """OpenAI-compatible image generation endpoint using Pollinations.ai."""
+    body = await request.json()
+    img_req = ImageRequest(**body)
+    prompt = img_req.prompt.strip()
+    if not prompt:
+        raise HTTPException(status_code=400, detail="Empty prompt")
+
+    # Detect if Chinese and enhance prompt
+    has_chinese = bool(_re.search(r'[一-鿿]', prompt))
+    if has_chinese:
+        prompt = f"high quality, detailed, {prompt}"
+
+    urls = []
+    for _ in range(img_req.n):
+        url = _build_pollinations_url(prompt, img_req.size)
+        urls.append({"url": url})
+
+    client_ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "")
+    _record_request(img_req.prompt[:80], "pollinations", "image_generation", 0, True, client_ip=client_ip)
+
+    return JSONResponse({
+        "created": int(time.time()),
+        "data": urls
+    })
+
+
 # ── Routes ──────────────────────────────────────────────────────────────────
 @app.post("/v1/chat/completions")
 async def chat_completions(request: Request):
     """OpenAI 兼容接口。"""
     body = await request.json()
-    req = ChatRequest(**body)
+    raw_messages = body.get("messages", [])
+    # Support explicit thinking flag from request body
     client_ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "")
-    ide_source = _detect_ide(body.get("messages", []))
+    ide_source = _detect_ide(raw_messages)
     sys_prompt_preview = ""
-    for m in body.get("messages", []):
+    for m in raw_messages:
         if isinstance(m, dict) and m.get("role") == "system":
             sys_prompt_preview = (m.get("content", "") if isinstance(m.get("content"), str) else "")[:200]
             break
+
+    # ── Vision detection on raw messages (before Pydantic parsing) ────────
+    if smart_router.detect_vision_request(raw_messages):
+        chat_id = make_chat_id()
+        t0 = time.time()
+        # Extract text query for logging
+        query_text = ""
+        for m in reversed(raw_messages):
+            if m.get("role") == "user":
+                c = m.get("content", "")
+                if isinstance(c, str):
+                    query_text = c
+                elif isinstance(c, list):
+                    query_text = " ".join(b.get("text", "") for b in c if isinstance(b, dict) and b.get("type") == "text")
+                break
+        vision_result = await _vision_route(raw_messages, body.get("max_tokens", 4096), ide_source)
+        if vision_result:
+            content = vision_result["answer"]
+            backend = vision_result["backend"]
+            duration_ms = int((time.time() - t0) * 1000)
+            _record_request(query_text or "[vision]", backend, "vision", duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
+            if body.get("stream", False):
+                return StreamingResponse(
+                    _stream_vision_response(chat_id, content),
+                    media_type="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+                )
+            return JSONResponse(build_response(chat_id, content, backend, duration_ms))
+
+    req = ChatRequest(**body)
+    if body.get("thinking", False):
+        req.thinking = True
     return await _handle_chat(req, fmt="openai", client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
 
 
@@ -711,8 +916,56 @@ async def anthropic_messages(req: Request):
         elif isinstance(body["system"], list):
             sys_prompt_preview = " ".join(b.get("text", "") for b in body["system"] if b.get("type") == "text")[:200]
 
-    # 含图片时：直接转发给支持视觉的后端（Claude）
+    # 含图片时：路由给视觉模型处理
     if has_image:
+        # Build raw messages for vision routing (preserve image blocks)
+        vision_msgs = []
+        for m in raw_messages:
+            if isinstance(m, dict) and m.get("role") in ("user", "assistant"):
+                content = m.get("content", "")
+                if isinstance(content, list):
+                    # Convert Anthropic image blocks to OpenAI vision format for unified processing
+                    openai_blocks = []
+                    for block in content:
+                        if block.get("type") == "text":
+                            openai_blocks.append({"type": "text", "text": block.get("text", "")})
+                        elif block.get("type") == "image":
+                            source = block.get("source", {})
+                            if source.get("type") == "base64":
+                                media_type = source.get("media_type", "image/jpeg")
+                                data = source.get("data", "")
+                                openai_blocks.append({
+                                    "type": "image_url",
+                                    "image_url": {"url": f"data:{media_type};base64,{data}"}
+                                })
+                        else:
+                            openai_blocks.append(block)
+                    vision_msgs.append({"role": m["role"], "content": openai_blocks})
+                else:
+                    vision_msgs.append({"role": m["role"], "content": content})
+
+        vision_result = await _vision_route(vision_msgs, body.get("max_tokens", 4096), ide_source)
+        if vision_result:
+            content_text = vision_result["answer"]
+            backend_used = vision_result["backend"]
+            duration_ms = int((time.time() - time.time()) * 1000)
+            _record_request(last_user_query or "[vision]", backend_used, "vision", 0, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
+            if is_stream:
+                async def _vision_anthropic_stream():
+                    msg_id = f"msg_{uuid.uuid4().hex[:24]}"
+                    yield f"event: message_start\ndata: {json.dumps({'type':'message_start','message':{'id':msg_id,'type':'message','role':'assistant','model':req_model,'content':[],'stop_reason':None,'usage':{'input_tokens':10,'output_tokens':0}}})}\n\n"
+                    yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':0,'content_block':{'type':'text','text':''}})}\n\n"
+                    chunk_size = 30
+                    for i in range(0, len(content_text), chunk_size):
+                        chunk = content_text[i:i+chunk_size]
+                        yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':chunk}}, ensure_ascii=False)}\n\n"
+                        await asyncio.sleep(0.01)
+                    yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':0})}\n\n"
+                    yield f"event: message_delta\ndata: {json.dumps({'type':'message_delta','delta':{'stop_reason':'end_turn','stop_sequence':None},'usage':{'output_tokens':len(content_text)//4}})}\n\n"
+                    yield f"event: message_stop\ndata: {json.dumps({'type':'message_stop'})}\n\n"
+                return StreamingResponse(_vision_anthropic_stream(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+            return JSONResponse(build_anthropic_response(f"msg_{uuid.uuid4().hex[:24]}", content_text, backend_used, req_model))
+        # If vision routing failed, fall through to the old passthrough behavior
         if is_stream:
             return StreamingResponse(
                 _anthropic_stream_passthrough(body, req_model),
@@ -770,6 +1023,24 @@ async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", i
     query = extract_query(req.messages)
     t0 = time.time()
 
+    # ── Image generation intent detection ──────────────────────────────────
+    is_image, image_prompt = smart_router.detect_image_intent(query)
+    if is_image:
+        image_url = _build_pollinations_url(image_prompt, "1024x1024")
+        content = f"![image]({image_url})\n\n已为您生成图片，点击查看。"
+        backend_used = "pollinations"
+        duration_ms = int((time.time() - t0) * 1000)
+        _record_request(query, backend_used, "image_generation", duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
+        # Stream the image response
+        msg_id = f"msg_{uuid.uuid4().hex[:24]}"
+        yield f"event: message_start\ndata: {json.dumps({'type':'message_start','message':{'id':msg_id,'type':'message','role':'assistant','model':model,'content':[],'stop_reason':None,'stop_sequence':None,'usage':{'input_tokens':10,'output_tokens':0}}})}\n\n"
+        yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':0,'content_block':{'type':'text','text':''}})}\n\n"
+        yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':content}}, ensure_ascii=False)}\n\n"
+        yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':0})}\n\n"
+        yield f"event: message_delta\ndata: {json.dumps({'type':'message_delta','delta':{'stop_reason':'end_turn','stop_sequence':None},'usage':{'output_tokens':len(content)//4}})}\n\n"
+        yield f"event: message_stop\ndata: {json.dumps({'type':'message_stop'})}\n\n"
+        return
+
     # 快速直答：元问题/问候，不调用后端（0ms）
     instant = _try_instant_reply(query)
     if instant:
@@ -777,48 +1048,61 @@ async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", i
         backend_used = "instant"
         intent_used = "instant"
     else:
-        intent_used = smart_router.analyze(query, system_prompt=sys_prompt_preview, ide=ide_source)
-        intent_name = intent_used.get("intent", "unknown") if isinstance(intent_used, dict) else "unknown"
-        complexity = intent_used.get("complexity", 0.5) if isinstance(intent_used, dict) else 0.5
-        use_orch = needs_orchestration(query, intent_used)
-        if use_orch:
-            result = await asyncio.to_thread(orchestrate, query)
-        else:
-            result = await asyncio.to_thread(smart_router.route, query, system_prompt=sys_prompt_preview, ide=ide_source)
-        content = result.get("answer", "")
-        backend_used = result.get("backend", "unknown")
+        # ── Deep Thinking Mode Detection ──
+        use_thinking = getattr(req, 'thinking', False) or smart_router.detect_thinking_intent(query)
+        thinking_handled = False
+        if use_thinking:
+            thinking_result = await _thinking_route(query, req.max_tokens or 4096, ide_source)
+            if thinking_result:
+                content = thinking_result["answer"]
+                backend_used = thinking_result["backend"]
+                intent_used = "thinking"
+                thinking_handled = True
 
-        # ── Fallback 层：质量检查失败时尝试降级/升级 ──
-        if not _quality_check(content, complexity, backend_used):
-            fallback_backend = _default_route(query, ide_source) if backend_used == "unknown" else backend_used
-            # 同层降级
-            same_tier = _get_same_tier_backends(fallback_backend)
-            fallback_found = False
-            for alt in same_tier:
-                alt_result = await _try_backend(alt, query, req.max_tokens or 4096)
-                if alt_result and _quality_check(alt_result["answer"], complexity, alt):
-                    content = alt_result["answer"]
-                    backend_used = alt
-                    intent_name = f"fallback_same_tier_{intent_name}"
-                    _record_fallback(query, fallback_backend, alt, intent_name, ide_source)
-                    fallback_found = True
-                    break
-            # 跨层升级
-            if not fallback_found:
-                upgrade_chain = _get_upgrade_chain(fallback_backend)
-                for upgraded in upgrade_chain:
-                    up_result = await _try_backend(upgraded, query, req.max_tokens or 4096)
-                    if up_result and _quality_check(up_result["answer"], complexity, upgraded):
-                        content = up_result["answer"]
-                        backend_used = upgraded
-                        intent_name = f"fallback_upgrade_{intent_name}"
-                        _record_fallback(query, fallback_backend, upgraded, intent_name, ide_source)
+        if not thinking_handled:
+            # Normal routing path (original logic)
+            intent_used = smart_router.analyze(query, system_prompt=sys_prompt_preview, ide=ide_source)
+            intent_name = intent_used.get("intent", "unknown") if isinstance(intent_used, dict) else "unknown"
+            complexity = intent_used.get("complexity", 0.5) if isinstance(intent_used, dict) else 0.5
+            use_orch = needs_orchestration(query, intent_used)
+            if use_orch:
+                result = await asyncio.to_thread(orchestrate, query)
+            else:
+                result = await asyncio.to_thread(smart_router.route, query, system_prompt=sys_prompt_preview, ide=ide_source)
+            content = result.get("answer", "")
+            backend_used = result.get("backend", "unknown")
+
+            # ── Fallback 层：质量检查失败时尝试降级/升级 ──
+            if not _quality_check(content, complexity, backend_used):
+                fallback_backend = _default_route(query, ide_source) if backend_used == "unknown" else backend_used
+                # 同层降级
+                same_tier = _get_same_tier_backends(fallback_backend)
+                fallback_found = False
+                for alt in same_tier:
+                    alt_result = await _try_backend(alt, query, req.max_tokens or 4096)
+                    if alt_result and _quality_check(alt_result["answer"], complexity, alt):
+                        content = alt_result["answer"]
+                        backend_used = alt
+                        intent_name = f"fallback_same_tier_{intent_name}"
+                        _record_fallback(query, fallback_backend, alt, intent_name, ide_source)
                         fallback_found = True
                         break
-            # 全部失败
-            if not fallback_found and not content:
-                content = "当前所有服务暂时不可用，请稍后重试。如果问题持续，请联系管理员。"
-                backend_used = "fallback_exhausted"
+                # 跨层升级
+                if not fallback_found:
+                    upgrade_chain = _get_upgrade_chain(fallback_backend)
+                    for upgraded in upgrade_chain:
+                        up_result = await _try_backend(upgraded, query, req.max_tokens or 4096)
+                        if up_result and _quality_check(up_result["answer"], complexity, upgraded):
+                            content = up_result["answer"]
+                            backend_used = upgraded
+                            intent_name = f"fallback_upgrade_{intent_name}"
+                            _record_fallback(query, fallback_backend, upgraded, intent_name, ide_source)
+                            fallback_found = True
+                            break
+                # 全部失败
+                if not fallback_found and not content:
+                    content = "当前所有服务暂时不可用，请稍后重试。如果问题持续，请联系管理员。"
+                    backend_used = "fallback_exhausted"
 
     duration_ms = int((time.time() - t0) * 1000)
     record_intent = intent_used if isinstance(intent_used, str) else (intent_used.get("intent", "unknown") if isinstance(intent_used, dict) else "unknown")
@@ -872,6 +1156,17 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
     chat_id = make_chat_id()
     t0 = time.time()
 
+    # ── Image generation intent detection ──────────────────────────────────
+    is_image, image_prompt = smart_router.detect_image_intent(query)
+    if is_image:
+        image_url = _build_pollinations_url(image_prompt, "1024x1024")
+        content = f"![image]({image_url})\n\n已为您生成图片，点击查看。"
+        duration_ms = int((time.time() - t0) * 1000)
+        _record_request(query, "pollinations", "image_generation", duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
+        if fmt == "anthropic":
+            return JSONResponse(build_anthropic_response(chat_id, content, "pollinations", request_model or MODEL_ID))
+        return JSONResponse(build_response(chat_id, content, "pollinations", duration_ms))
+
     # 快速直答
     instant = _try_instant_reply(query)
     if instant:
@@ -881,13 +1176,31 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
             return JSONResponse(build_anthropic_response(chat_id, instant, "instant", request_model or MODEL_ID))
         return JSONResponse(build_response(chat_id, instant, "instant", duration_ms))
 
+    # ── Deep Thinking Mode ──────────────────────────────────────────────────
+    use_thinking = getattr(req, 'thinking', False) or smart_router.detect_thinking_intent(query)
+    if use_thinking and not req.stream:
+        thinking_result = await _thinking_route(query, req.max_tokens or 4096, ide_source)
+        if thinking_result:
+            content = thinking_result["answer"]
+            backend = thinking_result["backend"]
+            duration_ms = int((time.time() - t0) * 1000)
+            _record_request(query, backend, "thinking", duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
+            if fmt == "anthropic":
+                resp = build_anthropic_response(chat_id, content, backend, request_model or MODEL_ID)
+                return JSONResponse(resp)
+            resp = build_response(chat_id, content, backend, duration_ms)
+            resp["choices"][0]["message"]["thinking"] = True
+            resp["x_lima_meta"]["thinking_mode"] = True
+            return JSONResponse(resp)
+        # Thinking backends all failed, fall through to normal routing
+
     # 判断是否需要编排模式
     intent = smart_router.analyze(query, system_prompt=sys_prompt_preview, ide=ide_source)
     use_orchestration = needs_orchestration(query, intent)
 
     if req.stream:
         return StreamingResponse(
-            _stream_response(chat_id, query, use_orchestration, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview),
+            _stream_response(chat_id, query, use_orchestration, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview, use_thinking=use_thinking),
             media_type="text/event-stream",
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
         )
@@ -965,14 +1278,37 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
     return JSONResponse(build_response(chat_id, content, backend, total_ms))
 
 
-async def _stream_response(chat_id: str, query: str, use_orchestration: bool, ide_source: str = "", sys_prompt_preview: str = ""):
+async def _stream_response(chat_id: str, query: str, use_orchestration: bool, ide_source: str = "", sys_prompt_preview: str = "", use_thinking: bool = False):
     """SSE 流式生成器：逐句输出。"""
-    if use_orchestration:
+    # ── Image generation intent detection ──────────────────────────────────
+    is_image, image_prompt = smart_router.detect_image_intent(query)
+    if is_image:
+        image_url = _build_pollinations_url(image_prompt, "1024x1024")
+        content = f"![image]({image_url})\n\n已为您生成图片，点击查看。"
+        yield build_stream_chunk(chat_id, content)
+        yield build_stream_chunk(chat_id, "", finish=True)
+        yield "data: [DONE]\n\n"
+        return
+
+    if use_thinking:
+        thinking_result = await _thinking_route(query, 4096, ide_source)
+        if thinking_result:
+            content = thinking_result.get("answer", "")
+            # Wrap thinking content with <think> tags for frontend parsing
+            content = f"<think>\n{content}\n</think>"
+        else:
+            # Fallback to normal routing
+            if use_orchestration:
+                result = await asyncio.to_thread(orchestrate, query)
+            else:
+                result = await asyncio.to_thread(smart_router.route, query, system_prompt=sys_prompt_preview, ide=ide_source)
+            content = result.get("answer", "") if isinstance(result, dict) else str(result)
+    elif use_orchestration:
         result = await asyncio.to_thread(orchestrate, query)
+        content = result.get("answer", "") if isinstance(result, dict) else str(result)
     else:
         result = await asyncio.to_thread(smart_router.route, query, system_prompt=sys_prompt_preview, ide=ide_source)
-
-    content = result.get("answer", "") if isinstance(result, dict) else str(result)
+        content = result.get("answer", "") if isinstance(result, dict) else str(result)
 
     # 模拟流式：按句子分割输出
     sentences = _split_sentences(content)

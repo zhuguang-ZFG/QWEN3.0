@@ -125,6 +125,7 @@ ROUTE = {
     'architecture':   'longcat',           # L1: LongCat免费，综合最强
     'general_cnc':    'longcat_lite',      # L1: LongCat免费，快速
     'complex_theory': 'longcat_thinking',  # L1: LongCat免费推理
+    'thinking':       'or_deepseek_r1',    # L3: Deep Thinking Mode（深度推理）
     'unknown':        'longcat_chat',      # L1: LongCat免费，通用
 }
 
@@ -288,6 +289,13 @@ FALLBACK_CHAINS = {
         'deepseek_pro',       # L4: 付费兜底
         'claude',             # L4: 付费最终兜底
     ],
+    'thinking': [
+        'or_deepseek_r1',     # L3: DeepSeek R1（深度推理首选）
+        'longcat_thinking',   # L1: LongCat推理（免费）
+        'deepseek_pro',       # L4: DeepSeek Pro（付费兜底）
+        'longcat',            # L1: LongCat最强（免费）
+        'claude',             # L4: 付费最终兜底
+    ],
     'unknown': [
         'longcat_chat',       # L1: LongCat通用（免费）
         'chinamobile',        # L1: 中国移动（免费）
@@ -341,6 +349,54 @@ def assemble_prompt(features=None):
 
 # 默认 SYS 从片段组装（可缓存：完全静态，不含动态数据）
 SYS = assemble_prompt()
+
+# ── Deep Thinking Mode Detection ─────────────────────────────────────────────
+_THINKING_PATTERNS = [
+    # Chinese triggers
+    re.compile(r'仔细想想|深度分析|深入分析|深度思考|仔细分析|认真想|好好想|慢慢想', re.IGNORECASE),
+    re.compile(r'逐步推理|一步一步|分步骤|详细推导|严格证明|严谨分析', re.IGNORECASE),
+    re.compile(r'证明.*(?:定理|公式|等式|不等式|无理数|收敛|存在)', re.IGNORECASE),
+    re.compile(r'数学证明|形式化证明|逻辑推导|归纳证明|反证法', re.IGNORECASE),
+    re.compile(r'复杂度分析|时间复杂度|空间复杂度|算法.*证明', re.IGNORECASE),
+    re.compile(r'系统架构.*设计|分布式.*设计|微服务.*拆分', re.IGNORECASE),
+    # English triggers
+    re.compile(r'think carefully|think step by step|step by step|think harder', re.IGNORECASE),
+    re.compile(r'prove that|formal proof|mathematical proof|rigorous proof', re.IGNORECASE),
+    re.compile(r'deep analysis|in-depth analysis|thorough analysis', re.IGNORECASE),
+    re.compile(r'multi.?step.*(?:reason|logic|problem)', re.IGNORECASE),
+    re.compile(r'code architecture.*design|system design.*from scratch', re.IGNORECASE),
+    # Math proof patterns
+    re.compile(r'证明.*根号|证明.*√|prove.*sqrt|prove.*irrational', re.IGNORECASE),
+    re.compile(r'求证|证明如下|请证明|帮我证明', re.IGNORECASE),
+]
+
+# Thinking-capable backends in priority order
+THINKING_BACKENDS = ['or_deepseek_r1', 'longcat_thinking', 'deepseek_pro']
+
+
+def detect_thinking_intent(query: str) -> bool:
+    """Detect if a query requires deep reasoning / thinking mode.
+    Returns True when the query matches patterns for math proofs,
+    complex analysis, multi-step logic, or explicit thinking requests.
+    """
+    if not query:
+        return False
+    for pattern in _THINKING_PATTERNS:
+        if pattern.search(query):
+            return True
+    return False
+
+
+def get_thinking_backend() -> str:
+    """Get the best available thinking-capable backend.
+    Priority: or_deepseek_r1 > longcat_thinking > deepseek_pro > fallback.
+    """
+    for name in THINKING_BACKENDS:
+        if name in BACKENDS and BACKENDS[name].get('key') and cb_allow(name):
+            return name
+    # Ultimate fallback
+    return 'longcat_thinking'
+
 
 # ── Layer 1: Fast keyword rules ──────────────────────────────────────────────
 RULES = [
@@ -1272,6 +1328,141 @@ def mcp():
             err = {'id': None, 'error': {'code': -32700, 'message': str(e)}}
             sys.stdout.write(json.dumps(err) + '\n')
             sys.stdout.flush()
+
+# ── Vision (Photo-to-Answer) Detection ────────────────────────────────────────
+VISION_BACKENDS = ['longcat_omni', 'or_deepseek_r1']
+
+VISION_SYSTEM_PROMPT = "你是一位耐心的老师。用户上传了一道题目的图片。请：1. 识别题目内容 2. 分步骤解答 3. 给出最终答案。如果是选择题，明确指出正确选项。"
+
+
+def detect_vision_request(messages: list) -> bool:
+    """Detect if any message contains image content (OpenAI vision format).
+    OpenAI vision format: content is a list with {"type": "image_url", ...} blocks.
+    """
+    if not messages:
+        return False
+    for msg in messages:
+        if not isinstance(msg, dict):
+            continue
+        content = msg.get("content")
+        if isinstance(content, list):
+            for block in content:
+                if isinstance(block, dict) and block.get("type") == "image_url":
+                    return True
+    return False
+
+
+def convert_openai_vision_to_anthropic(messages: list) -> list:
+    """Convert OpenAI vision format messages to Anthropic format.
+    OpenAI: {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,..."}}
+    Anthropic: {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": "..."}}
+    """
+    converted = []
+    for msg in messages:
+        if not isinstance(msg, dict):
+            continue
+        role = msg.get("role", "user")
+        content = msg.get("content")
+        if isinstance(content, str):
+            converted.append({"role": role, "content": [{"type": "text", "text": content}]})
+        elif isinstance(content, list):
+            new_blocks = []
+            for block in content:
+                if not isinstance(block, dict):
+                    continue
+                if block.get("type") == "text":
+                    new_blocks.append({"type": "text", "text": block.get("text", "")})
+                elif block.get("type") == "image_url":
+                    image_url = block.get("image_url", {})
+                    url = image_url.get("url", "")
+                    # Parse data URI: data:image/jpeg;base64,<data>
+                    if url.startswith("data:"):
+                        # Extract media type and base64 data
+                        header, _, data = url.partition(",")
+                        # header = "data:image/jpeg;base64"
+                        media_type = header.split(":")[1].split(";")[0] if ":" in header else "image/jpeg"
+                        new_blocks.append({
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": media_type,
+                                "data": data,
+                            }
+                        })
+                    else:
+                        # URL-based image - pass as-is in text form (fallback)
+                        new_blocks.append({"type": "text", "text": f"[Image URL: {url}]"})
+                else:
+                    new_blocks.append(block)
+            converted.append({"role": role, "content": new_blocks})
+        else:
+            converted.append({"role": role, "content": [{"type": "text", "text": str(content)}]})
+    return converted
+
+
+# ── Image Generation Intent Detection ────────────────────────────────────────
+_IMAGE_PATTERNS = [
+    re.compile(r'画一[个只张幅副]', re.IGNORECASE),
+    re.compile(r'画个', re.IGNORECASE),
+    re.compile(r'生成.*图', re.IGNORECASE),
+    re.compile(r'画.*图', re.IGNORECASE),
+    re.compile(r'设计.*logo', re.IGNORECASE),
+    re.compile(r'generate.*image', re.IGNORECASE),
+    re.compile(r'\bdraw\b', re.IGNORECASE),
+    re.compile(r'create.*picture', re.IGNORECASE),
+    re.compile(r'画.*画', re.IGNORECASE),
+    re.compile(r'帮我画', re.IGNORECASE),
+    re.compile(r'给我画', re.IGNORECASE),
+    re.compile(r'生成.*照片', re.IGNORECASE),
+    re.compile(r'生成.*插画', re.IGNORECASE),
+    re.compile(r'make.*image', re.IGNORECASE),
+]
+
+# Extraction patterns: strip the "command" prefix to get the description
+_IMAGE_STRIP_PATTERNS = [
+    re.compile(r'^(请|帮我|给我|帮忙)?(画一[个只张幅副]|画个|画一下|画)'),
+    re.compile(r'^(请|帮我|给我)?生成(一[张幅副])?(.*?)(图片?|图像|照片|插画)的?'),
+    re.compile(r'^(请|帮我|给我)?设计(一个)?'),
+    re.compile(r'^(please\s+)?(generate|draw|create|make)\s+(an?\s+)?(image|picture|photo)\s*(of\s+)?', re.IGNORECASE),
+]
+
+
+def detect_image_intent(query: str) -> tuple:
+    """Detect if a query is an image generation request.
+    Returns (is_image_request: bool, extracted_prompt: str).
+    The extracted prompt is optimized for Pollinations.ai.
+    """
+    if not query:
+        return (False, "")
+
+    is_image = False
+    for pattern in _IMAGE_PATTERNS:
+        if pattern.search(query):
+            is_image = True
+            break
+
+    if not is_image:
+        return (False, "")
+
+    # Extract the description part
+    prompt = query.strip()
+    for strip_pat in _IMAGE_STRIP_PATTERNS:
+        prompt = strip_pat.sub('', prompt).strip()
+
+    # If stripping removed everything, use original query
+    if not prompt or len(prompt) < 2:
+        prompt = query.strip()
+
+    # Remove trailing punctuation
+    prompt = re.sub(r'[。！？.!?]+$', '', prompt).strip()
+
+    # For Chinese prompts, prepend quality keywords for better generation
+    has_chinese = bool(re.search(r'[一-鿿]', prompt))
+    if has_chinese:
+        prompt = f"high quality, detailed, {prompt}"
+
+    return (True, prompt)
+
 
 # ── Entry point ──────────────────────────────────────────────────────────────
 if __name__ == '__main__':
