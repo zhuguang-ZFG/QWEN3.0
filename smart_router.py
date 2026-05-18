@@ -539,17 +539,37 @@ def analyze(query, system_prompt="", ide="unknown"):
     return model_classify(query)
 
 # ── Prompt expansion ─────────────────────────────────────────────────────────
+_EXPAND_TEMPLATES = {}
+_TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), 'templates')
+
+def _load_template(intent_name):
+    """按需加载 expand 模板，带缓存。"""
+    if intent_name in _EXPAND_TEMPLATES:
+        return _EXPAND_TEMPLATES[intent_name]
+    mapping = {
+        'code_generation': 'expand_code.txt',
+        'code_review': 'expand_code.txt',
+        'debugging': 'expand_debug.txt',
+        'explanation': 'expand_explain.txt',
+        'hardware': 'expand_hardware.txt',
+        'cnc_operation': 'expand_hardware.txt',
+        'grbl_config': 'expand_hardware.txt',
+    }
+    fname = mapping.get(intent_name, 'expand_default.txt')
+    path = os.path.join(_TEMPLATE_DIR, fname)
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            tpl = f.read().strip()
+    except FileNotFoundError:
+        tpl = "Rewrite this query into a detailed technical question.\nUnder 300 chars. Chinese. Output ONLY the expanded question."
+    _EXPAND_TEMPLATES[intent_name] = tpl
+    return tpl
+
 def expand(query, intent):
-    """Expand short query into detailed technical prompt using local model."""
-    prompt = (
-        "As a CNC/embedded expert, rewrite this short user query into a detailed "
-        "technical question for an AI expert. Add specific technical context. "
-        "Under 300 chars. Chinese. Output ONLY the expanded question.\n\n"
-        f"Query: {query}\n"
-        f"Intent: {intent.get('intent', 'unknown')}\n"
-        f"Domain: {intent.get('cnc_subdomain', 'general')}\n\n"
-        "Expanded:"
-    )
+    """Expand short query into detailed prompt using intent-specific template."""
+    intent_name = intent.get('intent', 'unknown') if isinstance(intent, dict) else str(intent)
+    template = _load_template(intent_name)
+    prompt = f"{template}\n\nQuery: {query}\nExpanded:"
     resp = call_local([{'role': 'user', 'content': prompt}], mt=200, t=0.3)
     stripped = resp.strip()
     if not stripped or stripped.startswith('[LOCAL_ERR]') or stripped.startswith('{'):
@@ -668,6 +688,8 @@ def qa_check(text, intent=None, backend=None):
     text = remove_disclaimers(text)
     if is_truncated(text):
         issues.append('truncated')
+    if len(text.strip()) < 20 and backend != 'local':
+        issues.append('low_quality')
     if intent and intent.get('cnc_subdomain') == 'grbl':
         param_warnings = validate_grbl_params(text)
         if param_warnings:
@@ -738,6 +760,28 @@ def call_api(name, msgs, mt=1024, ide="unknown"):
         cb_record(name, False)
         return '服务暂时不可用，请稍后重试'
 
+# ── IDE metadata routing hints ──────────────────────────────────────────────
+def _ide_routing_hint(ide, system_prompt, query):
+    """根据 IDE 元数据推断最优后端偏好。"""
+    sp_lower = system_prompt.lower() if system_prompt else ''
+    q_lower = query.lower()
+
+    # Rust/Go 项目偏好 Claude（强类型推理）
+    if any(ext in sp_lower for ext in ['.rs', 'rust', 'cargo']):
+        return 'claude'
+    if any(ext in sp_lower for ext in ['.go', 'golang', 'go.mod']):
+        return 'claude'
+
+    # 嵌入式/硬件项目偏好长上下文模型
+    if any(kw in q_lower for kw in ['esp32', 'stm32', 'arduino', 'grbl', 'firmware']):
+        return 'longcat'
+
+    # Cursor 用户通常需要快速响应
+    if ide == 'cursor':
+        return 'deepseek_flash'
+
+    return None
+
 # ── Main router ──────────────────────────────────────────────────────────────
 def route(query, prefer=None, system_prompt="", ide="unknown"):
     """Route a query: analyze intent -> expand -> call best backend."""
@@ -749,9 +793,13 @@ def route(query, prefer=None, system_prompt="", ide="unknown"):
     result['intent'] = intent
     result['classify_ms'] = int((time.time() - t0) * 1000)
 
+    # IDE 元数据增强路由偏好
+    ide_prefer = _ide_routing_hint(ide, system_prompt, query)
+    effective_prefer = prefer or ide_prefer
+
     # 获取降级链
     intent_name = intent.get('intent', 'unknown')
-    fallback_chain = get_fallback_chain(intent_name, prefer=prefer)
+    fallback_chain = get_fallback_chain(intent_name, prefer=effective_prefer)
     backend = fallback_chain[0] if fallback_chain else 'longcat'
     result['backend'] = backend
     result['fallback_chain'] = fallback_chain
@@ -760,7 +808,9 @@ def route(query, prefer=None, system_prompt="", ide="unknown"):
     answer = None
     used_backend = backend
     expanded_q = expand(query, intent)
+    tried_backends = set()
     for attempt_backend in fallback_chain:
+        tried_backends.add(attempt_backend)
         if attempt_backend == 'local':
             ans = call_local([
                 {'role': 'system', 'content': SYS},
@@ -790,25 +840,42 @@ def route(query, prefer=None, system_prompt="", ide="unknown"):
     result['total_ms'] = int((time.time() - t0) * 1000)
 
     # 质量检查
-    answer, issues = qa_check(result['answer'], intent=intent, backend=backend)
+    answer, issues = qa_check(result['answer'], intent=intent, backend=used_backend)
     result['answer'] = answer
 
+    # 质量不达标时尝试下一个 fallback（仅重试一次）
+    if issues and 'low_quality' in issues and used_backend != 'claude':
+        remaining = [b for b in fallback_chain if b not in tried_backends and b != 'local']
+        if remaining:
+            retry_backend = remaining[0]
+            retry_ans = call_api(retry_backend, [{'role': 'user', 'content': expanded_q}], ide=ide)
+            if retry_ans and not retry_ans.startswith('[ERR]') and '暂时不可用' not in retry_ans:
+                retry_clean = clean_response(retry_ans, retry_backend)
+                retry_answer, retry_issues = qa_check(retry_clean, intent=intent, backend=retry_backend)
+                if 'low_quality' not in retry_issues:
+                    result['answer'] = retry_answer
+                    used_backend = retry_backend
+                    result['backend'] = used_backend
+                    result['quality_retry'] = True
+                    if DEBUG:
+                        print(f'[QUALITY_RETRY] {result.get("backend")} -> {retry_backend}', file=sys.stderr)
+
     # 不确定性检测：自动升级到更强模型
-    if detect_uncertainty(result['answer']) and backend not in ('claude', 'deepseek_pro'):
+    if detect_uncertainty(result['answer']) and used_backend not in ('claude', 'deepseek_pro'):
         upgraded = call_api('deepseek_pro', [{'role': 'user', 'content': query}])
-        if upgraded and '暂时不可用' not in upgraded and not detect_uncertainty(upgraded):
+        if upgraded and not upgraded.startswith('[ERR]') and '暂时不可用' not in upgraded and not detect_uncertainty(upgraded):
             result['answer'] = clean_response(upgraded, 'deepseek_pro')
             result['upgraded'] = True
 
-    # 截断检测：自动续写
-    if 'truncated' in issues and backend != 'local':
-        continuation = call_api(backend, [
+    # 截断检测：自动续写（用实际成功的后端）
+    if 'truncated' in issues and used_backend != 'local':
+        continuation = call_api(used_backend, [
             {'role': 'user', 'content': query},
             {'role': 'assistant', 'content': result['answer']},
             {'role': 'user', 'content': '请继续完成上面的回答。'},
         ], mt=512)
         if continuation and not continuation.startswith('[ERR]'):
-            result['answer'] = result['answer'] + '\n' + clean_response(continuation, backend)
+            result['answer'] = result['answer'] + '\n' + clean_response(continuation, used_backend)
 
     # 写入蒸馏队列（失败不影响主流程）
     _log_to_distill_queue(query, result.get('answer', ''), intent, result.get('backend', ''))
