@@ -99,16 +99,18 @@ BACKENDS = {
 PUBLIC_MODEL_NAME = os.environ.get('PUBLIC_MODEL_NAME', 'red V1flash')
 
 # Intent -> backend
+# 路由策略：免费模型优先，按层级榨取，付费模型最后兜底
+# L0=本地零成本 | L1=LongCat/中国移动免费无限 | L2=Nvidia免费额度 | L3=OpenRouter免费额度 | L4=付费兜底
 ROUTE = {
-    'cnc_trouble':    'deepseek_pro',        # CNC故障 -> DeepSeek PRO（强推理）
-    'grbl_config':    'local',               # GRBL参数 -> 本地
-    'gcode_help':     'local',               # G代码 -> 本地
-    'embedded_dev':   'nvidia_nemotron',     # 嵌入式开发 -> Nvidia Nemotron（免费+强）
-    'code_generation':'nvidia_qwen_coder',   # 代码生成 -> Qwen Coder 480B（免费+最强代码）
-    'architecture':   'claude',              # 架构设计 -> Claude（最强综合）
-    'general_cnc':    'nvidia_llama4',       # 通用CNC -> Llama4（免费+快）
-    'complex_theory': 'nvidia_nemotron',     # 复杂理论 -> Nvidia Nemotron（免费+强推理）
-    'unknown':        'nvidia_llama70b',     # 未知 -> Llama 70B（免费+通用）
+    'cnc_trouble':    'longcat_thinking',  # L1: LongCat推理（免费，故障诊断）
+    'grbl_config':    'local',             # L0: 本地直答，零成本
+    'gcode_help':     'local',             # L0: 本地直答，零成本
+    'embedded_dev':   'nvidia_nemotron',   # L2: Nvidia免费额度，嵌入式强
+    'code_generation':'nvidia_qwen_coder', # L2: Nvidia免费额度，代码最强
+    'architecture':   'longcat',           # L1: LongCat免费，综合最强
+    'general_cnc':    'longcat_lite',      # L1: LongCat免费，快速
+    'complex_theory': 'longcat_thinking',  # L1: LongCat免费推理
+    'unknown':        'longcat_chat',      # L1: LongCat免费，通用
 }
 
 # ── Circuit Breaker ──────────────────────────────────────────────────────────
@@ -196,17 +198,85 @@ def cb_status():
     return result
 
 # ── Fallback Chains ──────────────────────────────────────────────────────────
-# 每个意图的降级顺序：主力 -> 备用1 -> 备用2 -> 最终兜底
+# 降级顺序严格按层级：L1免费无限 -> L2Nvidia免费额度 -> L3OpenRouter免费额度 -> L4付费兜底
 FALLBACK_CHAINS = {
-    'cnc_trouble':    ['deepseek_pro', 'or_deepseek_r1', 'nvidia_nemotron', 'or_nemotron', 'claude', 'longcat'],
-    'grbl_config':    ['local', 'nvidia_llama4', 'or_llama70b', 'longcat_lite'],
-    'gcode_help':     ['local', 'nvidia_llama4', 'or_llama70b', 'longcat_lite'],
-    'embedded_dev':   ['nvidia_nemotron', 'or_nemotron', 'deepseek_pro', 'or_deepseek_r1', 'claude', 'longcat_thinking'],
-    'code_generation':['nvidia_qwen_coder', 'or_qwen3_235b', 'deepseek_flash', 'or_llama70b', 'nvidia_llama70b', 'longcat_chat'],
-    'architecture':   ['claude', 'deepseek_pro', 'or_deepseek_r1', 'nvidia_nemotron', 'longcat'],
-    'general_cnc':    ['nvidia_llama4', 'or_llama70b', 'or_qwen3_30b', 'longcat_lite', 'nvidia_llama70b', 'chinamobile'],
-    'complex_theory': ['nvidia_nemotron', 'or_deepseek_r1', 'deepseek_pro', 'claude', 'longcat_thinking'],
-    'unknown':        ['nvidia_llama70b', 'or_llama70b', 'or_qwen3_30b', 'longcat_chat', 'nvidia_llama4', 'chinamobile', 'longcat'],
+    'cnc_trouble': [
+        'longcat_thinking',   # L1: LongCat推理（免费）
+        'longcat',            # L1: LongCat最强（免费）
+        'chinamobile',        # L1: 中国移动（免费）
+        'nvidia_nemotron',    # L2: Nvidia推理（免费额度）
+        'or_nemotron',        # L3: OpenRouter Nemotron（免费额度）
+        'or_deepseek_r1',     # L3: OpenRouter DeepSeek（免费额度）
+        'deepseek_pro',       # L4: 付费兜底
+        'claude',             # L4: 付费最终兜底
+    ],
+    'grbl_config': [
+        'local',              # L0: 本地直答
+        'longcat_lite',       # L1: LongCat（免费）
+        'chinamobile',        # L1: 中国移动（免费）
+        'nvidia_llama4',      # L2: Nvidia（免费额度）
+        'or_llama70b',        # L3: OpenRouter（免费额度）
+        'deepseek_flash',     # L4: 付费兜底
+    ],
+    'gcode_help': [
+        'local',              # L0: 本地直答
+        'longcat_lite',       # L1: LongCat（免费）
+        'chinamobile',        # L1: 中国移动（免费）
+        'nvidia_llama4',      # L2: Nvidia（免费额度）
+        'or_llama70b',        # L3: OpenRouter（免费额度）
+        'deepseek_flash',     # L4: 付费兜底
+    ],
+    'embedded_dev': [
+        'nvidia_nemotron',    # L2: Nvidia嵌入式（免费额度）
+        'longcat_thinking',   # L1: LongCat推理（免费）
+        'longcat',            # L1: LongCat最强（免费）
+        'or_nemotron',        # L3: OpenRouter Nemotron（免费额度）
+        'or_deepseek_r1',     # L3: OpenRouter DeepSeek（免费额度）
+        'deepseek_pro',       # L4: 付费兜底
+        'claude',             # L4: 付费最终兜底
+    ],
+    'code_generation': [
+        'nvidia_qwen_coder',  # L2: Qwen Coder 480B（免费额度，代码最强）
+        'or_qwen3_235b',      # L3: OpenRouter Qwen3（免费额度）
+        'longcat_chat',       # L1: LongCat（免费）
+        'nvidia_llama70b',    # L2: Nvidia（免费额度）
+        'or_llama70b',        # L3: OpenRouter（免费额度）
+        'deepseek_flash',     # L4: 付费兜底
+    ],
+    'architecture': [
+        'longcat',            # L1: LongCat最强（免费）
+        'longcat_thinking',   # L1: LongCat推理（免费）
+        'nvidia_nemotron',    # L2: Nvidia（免费额度）
+        'or_deepseek_r1',     # L3: OpenRouter DeepSeek（免费额度）
+        'deepseek_pro',       # L4: 付费兜底
+        'claude',             # L4: 付费最终兜底
+    ],
+    'general_cnc': [
+        'longcat_lite',       # L1: LongCat快速（免费）
+        'chinamobile',        # L1: 中国移动（免费）
+        'nvidia_llama4',      # L2: Nvidia快速（免费额度）
+        'or_qwen3_30b',       # L3: OpenRouter快速（免费额度）
+        'or_llama70b',        # L3: OpenRouter通用（免费额度）
+        'deepseek_flash',     # L4: 付费兜底
+    ],
+    'complex_theory': [
+        'longcat_thinking',   # L1: LongCat推理（免费）
+        'longcat',            # L1: LongCat最强（免费）
+        'nvidia_nemotron',    # L2: Nvidia推理（免费额度）
+        'or_nemotron',        # L3: OpenRouter Nemotron（免费额度）
+        'or_deepseek_r1',     # L3: OpenRouter DeepSeek（免费额度）
+        'deepseek_pro',       # L4: 付费兜底
+        'claude',             # L4: 付费最终兜底
+    ],
+    'unknown': [
+        'longcat_chat',       # L1: LongCat通用（免费）
+        'chinamobile',        # L1: 中国移动（免费）
+        'nvidia_llama70b',    # L2: Nvidia通用（免费额度）
+        'or_llama70b',        # L3: OpenRouter通用（免费额度）
+        'or_qwen3_30b',       # L3: OpenRouter快速（免费额度）
+        'longcat',            # L1: LongCat最强（免费，最终免费兜底）
+        'deepseek_flash',     # L4: 付费兜底
+    ],
 }
 
 def get_fallback_chain(intent_name, prefer=None):

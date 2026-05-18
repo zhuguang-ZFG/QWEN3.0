@@ -24,16 +24,17 @@ load_dotenv()
 
 # ---------------------------------------------------------------------------
 # Superpower 教师模型映射（意图 -> 最强教师后端列表）
+# 免费优先原则：L1=LongCat/中国移动免费 | L2=Nvidia免费额度 | L3=OpenRouter免费额度
 # ---------------------------------------------------------------------------
 TEACHER_MAP = {
-    "cnc_trouble":     ["deepseek_pro", "nvidia_nemotron", "claude"],
-    "grbl_config":     ["deepseek_pro", "nvidia_llama70b", "longcat"],
-    "gcode_help":      ["deepseek_flash", "nvidia_llama70b", "longcat_chat"],
-    "embedded_dev":    ["nvidia_nemotron", "deepseek_pro", "claude"],
-    "code_generation": ["nvidia_qwen_coder", "deepseek_flash", "nvidia_llama70b"],
-    "complex_theory":  ["nvidia_nemotron", "deepseek_pro", "claude"],
-    "general_cnc":     ["nvidia_llama70b", "longcat", "chinamobile"],
-    "unknown":         ["nvidia_llama70b", "deepseek_flash", "longcat_chat"],
+    "cnc_trouble":     ["longcat_thinking", "nvidia_nemotron", "or_deepseek_r1"],
+    "grbl_config":     ["longcat", "nvidia_llama70b", "or_llama70b"],
+    "gcode_help":      ["longcat_chat", "nvidia_llama4", "or_llama70b"],
+    "embedded_dev":    ["nvidia_nemotron", "longcat_thinking", "or_nemotron"],
+    "code_generation": ["nvidia_qwen_coder", "or_qwen3_235b", "longcat_chat"],
+    "complex_theory":  ["longcat_thinking", "nvidia_nemotron", "or_deepseek_r1"],
+    "general_cnc":     ["longcat_lite", "chinamobile", "nvidia_llama4"],
+    "unknown":         ["longcat_chat", "nvidia_llama70b", "or_llama70b"],
 }
 
 # ---------------------------------------------------------------------------
