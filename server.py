@@ -268,6 +268,7 @@ async def _anthropic_stream(req: ChatRequest, model: str):
     instant = _try_instant_reply(query)
     if instant:
         content = instant
+        backend_used = "instant"
     else:
         intent = smart_router.analyze(query)
         use_orch = needs_orchestration(query, intent)
@@ -276,6 +277,10 @@ async def _anthropic_stream(req: ChatRequest, model: str):
         else:
             result = await asyncio.to_thread(smart_router.route, query)
         content = result.get("answer", "")
+        backend_used = result.get("backend", "unknown")
+
+    # 在回答末尾标注后端来源
+    content += f"\n\n---\n`[red V1flash → {backend_used}]`"
     msg_id = f"msg_{uuid.uuid4().hex[:24]}"
 
     # message_start
