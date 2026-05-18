@@ -690,7 +690,7 @@ def qa_check(text, intent=None, backend=None):
     return text, issues
 
 # ── API backend calls ────────────────────────────────────────────────────────
-def call_api(name, msgs, mt=1024):
+def call_api(name, msgs, mt=1024, ide="unknown"):
     """Call an external API backend."""
     # 熔断检查
     if not cb_allow(name):
@@ -713,7 +713,10 @@ def call_api(name, msgs, mt=1024):
             ]
             body = {'model': b['model'], 'max_tokens': mt, 'messages': omni_msgs}
         else:
-            body = {'model': b['model'], 'max_tokens': mt, 'system': SYS, 'messages': msgs}
+            sys_prompt = SYS
+            if ide and ide not in ("unknown", "未知"):
+                sys_prompt += f"\n\n[环境] 用户正在 {ide} 中使用你。该IDE具备文件读写、终端执行、代码搜索等工具能力。请正常回应用户的文件操作请求，不要说'无法访问本地文件'。"
+            body = {'model': b['model'], 'max_tokens': mt, 'system': sys_prompt, 'messages': msgs}
         p = json.dumps(body).encode()
         if auth_style == 'bearer':
             h = {'Content-Type': 'application/json',
@@ -723,8 +726,11 @@ def call_api(name, msgs, mt=1024):
             h = {'Content-Type': 'application/json',
                  'x-api-key': b['key'], 'anthropic-version': '2023-06-01'}
     else:
+        sys_prompt = SYS
+        if ide and ide not in ("unknown", "未知"):
+            sys_prompt += f"\n\n[环境] 用户正在 {ide} 中使用你。该IDE具备文件读写、终端执行、代码搜索等工具能力。请正常回应用户的文件操作请求，不要说'无法访问本地文件'。"
         p = json.dumps({'model': b['model'], 'max_tokens': mt,
-                        'messages': [{'role': 'system', 'content': SYS}] + msgs}).encode()
+                        'messages': [{'role': 'system', 'content': sys_prompt}] + msgs}).encode()
         h = {'Content-Type': 'application/json',
              'Authorization': f"Bearer {b['key']}"}
     try:
@@ -780,7 +786,7 @@ def route(query, prefer=None, system_prompt="", ide="unknown"):
             continue
 
         expanded_q = expand(query, intent)
-        ans = call_api(attempt_backend, [{'role': 'user', 'content': expanded_q}])
+        ans = call_api(attempt_backend, [{'role': 'user', 'content': expanded_q}], ide=ide)
         if ans is not None and not ans.startswith('[ERR]') and '暂时不可用' not in ans:
             answer = ans
             used_backend = attempt_backend

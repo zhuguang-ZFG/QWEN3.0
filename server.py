@@ -311,8 +311,6 @@ _INSTANT_REPLIES = [
      "我通过分析问题的类型和复杂度，自动从多个AI后端中选择最合适的模型来回答。简单问题用快速模型秒回，复杂问题用强推理模型深度分析，代码问题用代码专精模型生成。"),
     (_re.compile(r'动力巢|donglicao|公司.*干什么|公司.*做什么|公司.*简介|公司.*介绍', _re.IGNORECASE),
      "深圳市动力巢科技有限公司（www.donglicao.com）专注智能写字设备研发与制造。智能写字机为核心产品，配套软件覆盖 Windows/macOS/Android，同时提供固件开发、上位机控制、定制开发等技术服务。工厂直营，位于深圳龙华。\n\n公司官网：https://www.donglicao.com"),
-    (_re.compile(r'学习.*项目|分析.*项目|看.*项目|读.*目录|读.*文件夹|learn.*project|analyze.*project', _re.IGNORECASE),
-     "我作为 API 模型无法直接访问你的本地文件。请将项目内容（代码片段、目录结构等）粘贴给我，或使用 IDE 内置的 AI 功能（如 Claude Code 的 /read 命令）来分析本地项目。"),
     (_re.compile(r'废物|垃圾|傻[逼比]|智障|脑残|没用|太烂|太差|不行|怎么这么[笨蠢]', _re.IGNORECASE),
      "抱歉没能满足你的期望。请告诉我具体哪里不对，我会尽力改进。你也可以换个方式描述需求，我重新回答。"),
     (_re.compile(r'^(hi|hello|hey|你好|嗨)[\s!！.。?？]*$', _re.IGNORECASE),
