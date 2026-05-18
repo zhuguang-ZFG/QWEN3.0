@@ -780,7 +780,7 @@ async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", i
         if use_orch:
             result = await asyncio.to_thread(orchestrate, query)
         else:
-            result = await asyncio.to_thread(smart_router.route, query)
+            result = await asyncio.to_thread(smart_router.route, query, system_prompt=sys_prompt_preview, ide=ide_source)
         content = result.get("answer", "")
         backend_used = result.get("backend", "unknown")
 
@@ -883,7 +883,7 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
 
     if req.stream:
         return StreamingResponse(
-            _stream_response(chat_id, query, use_orchestration),
+            _stream_response(chat_id, query, use_orchestration, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview),
             media_type="text/event-stream",
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
         )
@@ -961,14 +961,14 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
     return JSONResponse(build_response(chat_id, content, backend, total_ms))
 
 
-async def _stream_response(chat_id: str, query: str, use_orchestration: bool):
+async def _stream_response(chat_id: str, query: str, use_orchestration: bool, ide_source: str = "", sys_prompt_preview: str = ""):
     """SSE 流式生成器：逐句输出。"""
     if use_orchestration:
         result = await asyncio.to_thread(orchestrate, query)
     else:
-        result = await asyncio.to_thread(smart_router.route, query)
+        result = await asyncio.to_thread(smart_router.route, query, system_prompt=sys_prompt_preview, ide=ide_source)
 
-    content = result.get("answer", "")
+    content = result.get("answer", "") if isinstance(result, dict) else str(result)
 
     # 模拟流式：按句子分割输出
     sentences = _split_sentences(content)
