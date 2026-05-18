@@ -9,6 +9,12 @@ sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 from dotenv import load_dotenv
 load_dotenv()
 
+# ── Local Router Model (Qwen3-1.7B, trained Round 8) ────────────────────────
+LOCAL_ROUTER_MODEL = "D:/GIT/my_code_model_qwen3_r8/final"
+_local_model = None
+_local_tokenizer = None
+_local_model_failed = False  # 标记模型加载是否失败过，避免重复尝试
+
 DEBUG = os.environ.get('RED_DEBUG', '') == '1'
 
 # ── Config ──────────────────────────────────────────────────────────────────
@@ -335,6 +341,91 @@ def rule_classify(query):
                 'source': 'rules', 'confidence': best_conf}
     return None
 
+# ── Layer 1.5: Local Qwen3 Router Model ─────────────────────────────────────
+def _load_local_router():
+    """懒加载本地路由模型（Qwen3-1.7B R8）。首次调用约 10 秒。"""
+    global _local_model, _local_tokenizer, _local_model_failed
+    if _local_model is not None or _local_model_failed:
+        return
+    try:
+        from transformers import AutoTokenizer, AutoModelForCausalLM
+        import torch
+        if DEBUG:
+            print('[ROUTER] Loading local Qwen3 router model...', file=sys.stderr)
+        _local_tokenizer = AutoTokenizer.from_pretrained(
+            LOCAL_ROUTER_MODEL, trust_remote_code=True)
+        # 尝试 GPU，显存不够则 fallback 到 CPU
+        try:
+            _local_model = AutoModelForCausalLM.from_pretrained(
+                LOCAL_ROUTER_MODEL, trust_remote_code=True,
+                torch_dtype=torch.float16, device_map="auto")
+        except Exception:
+            if DEBUG:
+                print('[ROUTER] GPU failed, falling back to CPU', file=sys.stderr)
+            _local_model = AutoModelForCausalLM.from_pretrained(
+                LOCAL_ROUTER_MODEL, trust_remote_code=True,
+                torch_dtype=torch.float32, device_map="cpu")
+        _local_model.eval()
+        if DEBUG:
+            print('[ROUTER] Local router model loaded OK', file=sys.stderr)
+    except Exception as e:
+        _local_model_failed = True
+        print(f'[ROUTER] Failed to load local model: {e}', file=sys.stderr)
+
+
+def _local_route_decision(query: str) -> dict | None:
+    """用本地 Qwen3 模型做路由决策。返回 {intent, complexity, backend} 或 None。
+    超时 5 秒自动放弃。
+    """
+    global _local_model_failed
+    if _local_model_failed:
+        return None
+    import threading
+
+    result_holder = [None]
+
+    def _infer():
+        try:
+            import torch
+            _load_local_router()
+            if _local_model is None:
+                return
+            system_msg = "你是AI智能路由器。分析用户请求，输出路由决策JSON。"
+            messages = [
+                {"role": "system", "content": system_msg},
+                {"role": "user", "content": query[:500]}
+            ]
+            text = _local_tokenizer.apply_chat_template(
+                messages, tokenize=False, add_generation_prompt=True)
+            inputs = _local_tokenizer(text, return_tensors="pt").to(_local_model.device)
+            with torch.no_grad():
+                outputs = _local_model.generate(
+                    **inputs, max_new_tokens=200,
+                    temperature=0.1, do_sample=False)
+            response = _local_tokenizer.decode(
+                outputs[0][inputs['input_ids'].shape[1]:],
+                skip_special_tokens=True)
+            # 解析 JSON
+            json_match = re.search(r'\{[^}]+\}', response)
+            if json_match:
+                decision = json.loads(json_match.group())
+                if 'backend' in decision or 'intent' in decision:
+                    decision.setdefault('source', 'local_qwen3')
+                    result_holder[0] = decision
+        except Exception as e:
+            if DEBUG:
+                print(f'[ROUTER] local inference error: {e}', file=sys.stderr)
+
+    t = threading.Thread(target=_infer, daemon=True)
+    t.start()
+    t.join(timeout=5.0)  # 最多等 5 秒
+    if t.is_alive():
+        if DEBUG:
+            print('[ROUTER] local model timeout (>5s), skipping', file=sys.stderr)
+        return None
+    return result_holder[0]
+
+
 # ── Layer 2: Local model ─────────────────────────────────────────────────────
 def call_local(msgs, mt=512, t=0.3):
     """Call LM Studio (OpenAI-compatible)."""
@@ -381,10 +472,29 @@ def model_classify(query):
                 'domain_keywords': [], 'cnc_subdomain': 'general', 'source': 'fallback'}
 
 def analyze(query):
-    """Two-layer intent analysis: rules first, model if ambiguous."""
+    """Three-layer intent analysis: rules -> local Qwen3 -> LM Studio model."""
+    # Layer 1: 正则规则（0ms）
     result = rule_classify(query)
     if result:
         return result
+
+    # Layer 1.5: 本地 Qwen3 路由模型（50-100ms GPU, 首次加载 ~10s）
+    local_decision = _local_route_decision(query)
+    if local_decision:
+        # 确保返回格式与 rule_classify 一致
+        intent_name = local_decision.get('intent', 'unknown')
+        return {
+            'intent': intent_name,
+            'complexity': local_decision.get('complexity', 0.5),
+            'needs_code': local_decision.get('needs_code', False),
+            'domain_keywords': local_decision.get('domain_keywords', []),
+            'cnc_subdomain': local_decision.get('cnc_subdomain', 'general'),
+            'source': 'local_qwen3',
+            'confidence': local_decision.get('confidence', 0.75),
+            'backend_hint': local_decision.get('backend'),
+        }
+
+    # Layer 2: LM Studio 模型分类（需要 LM Studio 运行）
     return model_classify(query)
 
 # ── Prompt expansion ─────────────────────────────────────────────────────────
