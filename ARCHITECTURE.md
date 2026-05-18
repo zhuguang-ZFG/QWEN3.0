@@ -973,3 +973,142 @@ eval_loop：200题评估（固定100+轮换100）
 本地模型更强 → 更多问题本地直答 → API成本降低 → 飞轮加速
 ```
 
+## 13. 编排层升级：从路由器到 1+N >> N 编排器
+
+### 13.1 核心思想
+
+当前系统是"路由器"：一个问题 → 选最好的模型 → 一个回答。
+目标是"编排器"：一个复杂问题 → 拆解为子任务 → 每个子任务给最强的专业模型 → 合并结果。
+
+效果：1（编排层）+ N（专业模型）>> N（任何单个模型）
+
+### 13.2 编排 vs 路由的判断标准
+
+满足以下任一条件触发编排模式（否则直接路由）：
+- 问题复杂度 complexity > 0.8
+- 问题跨越多个领域（如"写一个显示CNC状态的React组件"= 代码+CNC领域）
+- 问题包含明确的多步骤（"先...然后...最后..."）
+- 问题长度 > 200 字且包含多个问号
+
+### 13.3 编排流程
+
+```
+用户请求
+    │
+    ▼
+orchestrate() 函数
+    │
+    ├─ 判断是否需要编排
+    │   └─ 否 → route()（现有路由逻辑）
+    │
+    ├─ 任务分解（本地模型，输出 JSON 子任务列表）
+    │   例：[{"task": "CNC数据结构", "backend": "local"},
+    │        {"task": "React代码生成", "backend": "nvidia_qwen_coder"},
+    │        {"task": "UI设计建议", "backend": "longcat"}]
+    │
+    ├─ 并发执行（ThreadPoolExecutor，最多3个并发）
+    │
+    └─ 结果合并（longcat 或本地模型做合并）
+```
+
+### 13.4 新增函数接口
+
+```python
+def orchestrate(query: str, session_id: str = None) -> dict:
+    """编排入口，自动判断路由 vs 编排。"""
+
+def needs_orchestration(query: str, intent: dict) -> bool:
+    """判断是否需要编排模式。"""
+
+def decompose(query: str) -> list[SubTask]:
+    """本地模型将复杂问题拆解为子任务列表。"""
+
+def synthesize(query: str, subtask_results: list) -> str:
+    """将多个子任务结果合并为最终回答。"""
+
+SubTask = {
+    "task_id": str,
+    "description": str,   # 子任务描述
+    "backend": str,        # 指定后端
+    "context": str,        # 上下文（其他子任务的结果）
+    "result": str,         # 执行结果
+}
+```
+
+## 14. AI IDE 集成方案
+
+### 14.1 定位
+
+red V1flash 作为 AI IDE 的底层路由编排层：
+
+```
+Cursor / Claude Code / Codex / VS Code Copilot
+                    │
+                    ▼ (OpenAI 兼容接口 / MCP)
+         red V1flash 编排层
+                    │
+        ┌───────────┼───────────┐
+        ▼           ▼           ▼
+    LongCat    Qwen Coder   DeepSeek
+   (通用对话)  (代码生成)   (故障诊断)
+```
+
+### 14.2 接入方式
+
+**Cursor**：设置 → Models → Add Model → 填入 red V1flash 的 OpenAI 兼容端点
+**Claude Code**：`~/.claude/mcp_servers.json` 中配置 MCP 服务（已支持 `--mcp` 参数）
+**VS Code Copilot**：通过 GitHub Copilot Chat 扩展的自定义 API 端点
+
+### 14.3 FastAPI 接口层（待实现）
+
+```python
+# server.py - OpenAI 兼容接口
+POST /v1/chat/completions   # 主接口，兼容所有 IDE
+GET  /v1/models             # 返回 "red-v1flash" 模型列表
+GET  /health                # 健康检查
+GET  /v1/status             # 路由器状态（熔断器、配额）
+```
+
+请求格式：标准 OpenAI ChatCompletion 格式
+响应格式：标准 OpenAI ChatCompletion 格式（流式 SSE 支持）
+
+### 14.4 AI IDE 知识训练价值
+
+训练本地路由模型学习 AI IDE 知识的价值：
+
+| 知识类型 | 训练价值 | 说明 |
+|---------|---------|------|
+| Cursor/Claude Code system prompt 结构 | 高 | 理解 IDE 请求的上下文和意图 |
+| 各模型能力边界描述 | 极高 | 路由决策的核心依据 |
+| 编程任务分类体系 | 高 | 代码生成/调试/重构/文档的意图识别 |
+| 多步骤任务分解模式 | 极高 | 编排模式的核心能力 |
+| IDE 工作流模式 | 中 | 理解用户在 IDE 中的典型操作序列 |
+
+**参考资源**：`system-prompts-and-models-of-ai-tools` 类仓库包含各 AI 工具的 system prompt，
+可提取为路由训练数据：让本地模型学会识别"这是 Cursor 风格的代码请求"还是"这是 CNC 故障诊断请求"。
+
+### 14.5 路由模型训练数据策略（Round 8）
+
+```
+Round 8 训练目标（路由器专项）：
+  意图分类：5K 条（8类CNC意图 + 6类编程意图）
+  任务分解：3K 条（复杂问题→子任务列表）
+  Prompt扩写：10K 条（短问题→详细问题）
+  GRBL直答：20K 条（参数查表、错误码）
+  IDE请求识别：5K 条（Cursor/Claude Code风格请求分类）
+  合计：~43K 条，训练时间约 2-3 小时
+  
+vs Round 7：156K 条，训练时间 8 小时
+```
+
+### 14.6 免费模型层级策略（已实现）
+
+```
+L0 本地（零成本）：grbl_config, gcode_help
+L1 免费无限（LongCat + 中国移动）：cnc_trouble, architecture, general_cnc
+L2 免费额度（Nvidia NIM）：embedded_dev, code_generation
+L3 免费额度（OpenRouter）：降级备用
+L4 付费（最后兜底）：deepseek_pro, claude
+```
+
+目标：正常使用中 L4 付费模型调用率 < 5%。
