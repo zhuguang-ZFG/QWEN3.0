@@ -1,0 +1,1906 @@
+[
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Cursor\n工具特征: 编辑工具: ApplyPatch, 终端: run_terminal_cmd, 文件读取: read_file, 代码引用: ```startLine:endLine:filepath, Todo: todo_write(merge=true), Lint: read_lints, 身份: You are ${modelName}. You are running as a coding agent in the Cursor IDE\n用户问题: 帮我写一个登录页面"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"nvidia_qwen_coder\", \"needs_tools\": false, \"ide_detected\": \"Cursor\", \"intent\": \"code_generation\", \"complexity\": 0.5}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Cursor\n工具特征: 编辑工具: ApplyPatch, 终端: run_terminal_cmd, 文件读取: read_file, 代码引用: ```startLine:endLine:filepath, Todo: todo_write(merge=true), Lint: read_lints, 身份: You are ${modelName}. You are running as a coding agent in the Cursor IDE\n用户问题: 这个bug怎么修"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_thinking\", \"needs_tools\": false, \"ide_detected\": \"Cursor\", \"intent\": \"debugging\", \"complexity\": 0.6}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Cursor\n工具特征: 编辑工具: ApplyPatch, 终端: run_terminal_cmd, 文件读取: read_file, 代码引用: ```startLine:endLine:filepath, Todo: todo_write(merge=true), Lint: read_lints, 身份: You are ${modelName}. You are running as a coding agent in the Cursor IDE\n用户问题: 解释一下这段代码"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_chat\", \"needs_tools\": false, \"ide_detected\": \"Cursor\", \"intent\": \"explanation\", \"complexity\": 0.3}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Cursor\n工具特征: 编辑工具: ApplyPatch, 终端: run_terminal_cmd, 文件读取: read_file, 代码引用: ```startLine:endLine:filepath, Todo: todo_write(merge=true), Lint: read_lints, 身份: You are ${modelName}. You are running as a coding agent in the Cursor IDE\n用户问题: 写个单元测试"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"nvidia_qwen_coder\", \"needs_tools\": false, \"ide_detected\": \"Cursor\", \"intent\": \"code_generation\", \"complexity\": 0.5}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Cursor\n工具特征: 编辑工具: ApplyPatch, 终端: run_terminal_cmd, 文件读取: read_file, 代码引用: ```startLine:endLine:filepath, Todo: todo_write(merge=true), Lint: read_lints, 身份: You are ${modelName}. You are running as a coding agent in the Cursor IDE\n用户问题: 设计数据库schema"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat\", \"needs_tools\": false, \"ide_detected\": \"Cursor\", \"intent\": \"architecture\", \"complexity\": 0.7}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Cursor\n工具特征: 编辑工具: ApplyPatch, 终端: run_terminal_cmd, 文件读取: read_file, 代码引用: ```startLine:endLine:filepath, Todo: todo_write(merge=true), Lint: read_lints, 身份: You are ${modelName}. You are running as a coding agent in the Cursor IDE\n用户问题: 学习Python难吗"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_lite\", \"needs_tools\": false, \"ide_detected\": \"Cursor\", \"intent\": \"general\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Cursor\n工具特征: 编辑工具: ApplyPatch, 终端: run_terminal_cmd, 文件读取: read_file, 代码引用: ```startLine:endLine:filepath, Todo: todo_write(merge=true), Lint: read_lints, 身份: You are ${modelName}. You are running as a coding agent in the Cursor IDE\n用户问题: 优化这个SQL查询"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_thinking\", \"needs_tools\": false, \"ide_detected\": \"Cursor\", \"intent\": \"optimization\", \"complexity\": 0.7}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Cursor\n工具特征: 编辑工具: ApplyPatch, 终端: run_terminal_cmd, 文件读取: read_file, 代码引用: ```startLine:endLine:filepath, Todo: todo_write(merge=true), Lint: read_lints, 身份: You are ${modelName}. You are running as a coding agent in the Cursor IDE\n用户问题: React和Vue哪个好"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_chat\", \"needs_tools\": false, \"ide_detected\": \"Cursor\", \"intent\": \"general\", \"complexity\": 0.3}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Cursor\n工具特征: 编辑工具: ApplyPatch, 终端: run_terminal_cmd, 文件读取: read_file, 代码引用: ```startLine:endLine:filepath, Todo: todo_write(merge=true), Lint: read_lints, 身份: You are ${modelName}. You are running as a coding agent in the Cursor IDE\n用户问题: 帮我做代码review"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_thinking\", \"needs_tools\": false, \"ide_detected\": \"Cursor\", \"intent\": \"code_review\", \"complexity\": 0.5}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Cursor\n工具特征: 编辑工具: ApplyPatch, 终端: run_terminal_cmd, 文件读取: read_file, 代码引用: ```startLine:endLine:filepath, Todo: todo_write(merge=true), Lint: read_lints, 身份: You are ${modelName}. You are running as a coding agent in the Cursor IDE\n用户问题: Docker怎么用"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_chat\", \"needs_tools\": false, \"ide_detected\": \"Cursor\", \"intent\": \"explanation\", \"complexity\": 0.3}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Cursor\n工具特征: 编辑工具: ApplyPatch, 终端: run_terminal_cmd, 文件读取: read_file, 代码引用: ```startLine:endLine:filepath, Todo: todo_write(merge=true), Lint: read_lints, 身份: You are ${modelName}. You are running as a coding agent in the Cursor IDE\n用户问题: 写个Python爬虫"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"nvidia_qwen_coder\", \"needs_tools\": false, \"ide_detected\": \"Cursor\", \"intent\": \"code_generation\", \"complexity\": 0.5}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Cursor\n工具特征: 编辑工具: ApplyPatch, 终端: run_terminal_cmd, 文件读取: read_file, 代码引用: ```startLine:endLine:filepath, Todo: todo_write(merge=true), Lint: read_lints, 身份: You are ${modelName}. You are running as a coding agent in the Cursor IDE\n用户问题: 什么是微服务"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_lite\", \"needs_tools\": false, \"ide_detected\": \"Cursor\", \"intent\": \"explanation\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Cursor\n工具特征: 编辑工具: ApplyPatch, 终端: run_terminal_cmd, 文件读取: read_file, 代码引用: ```startLine:endLine:filepath, Todo: todo_write(merge=true), Lint: read_lints, 身份: You are ${modelName}. You are running as a coding agent in the Cursor IDE\n用户问题: 帮我设计API"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat\", \"needs_tools\": false, \"ide_detected\": \"Cursor\", \"intent\": \"architecture\", \"complexity\": 0.6}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Cursor\n工具特征: 编辑工具: ApplyPatch, 终端: run_terminal_cmd, 文件读取: read_file, 代码引用: ```startLine:endLine:filepath, Todo: todo_write(merge=true), Lint: read_lints, 身份: You are ${modelName}. You are running as a coding agent in the Cursor IDE\n用户问题: 分析时间复杂度"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"or_deepseek_r1\", \"needs_tools\": false, \"ide_detected\": \"Cursor\", \"intent\": \"analysis\", \"complexity\": 0.6}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Cursor\n工具特征: 编辑工具: ApplyPatch, 终端: run_terminal_cmd, 文件读取: read_file, 代码引用: ```startLine:endLine:filepath, Todo: todo_write(merge=true), Lint: read_lints, 身份: You are ${modelName}. You are running as a coding agent in the Cursor IDE\n用户问题: 帮我写个CLI工具"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"nvidia_qwen_coder\", \"needs_tools\": false, \"ide_detected\": \"Cursor\", \"intent\": \"code_generation\", \"complexity\": 0.6}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Cursor\n工具特征: 编辑工具: ApplyPatch, 终端: run_terminal_cmd, 文件读取: read_file, 代码引用: ```startLine:endLine:filepath, Todo: todo_write(merge=true), Lint: read_lints, 身份: You are ${modelName}. You are running as a coding agent in the Cursor IDE\n用户问题: 帮我读取src/main.py"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Cursor\", \"intent\": \"file_read\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Cursor\n工具特征: 编辑工具: ApplyPatch, 终端: run_terminal_cmd, 文件读取: read_file, 代码引用: ```startLine:endLine:filepath, Todo: todo_write(merge=true), Lint: read_lints, 身份: You are ${modelName}. You are running as a coding agent in the Cursor IDE\n用户问题: 运行npm test"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Cursor\", \"intent\": \"command\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Cursor\n工具特征: 编辑工具: ApplyPatch, 终端: run_terminal_cmd, 文件读取: read_file, 代码引用: ```startLine:endLine:filepath, Todo: todo_write(merge=true), Lint: read_lints, 身份: You are ${modelName}. You are running as a coding agent in the Cursor IDE\n用户问题: 搜索所有TODO注释"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Cursor\", \"intent\": \"search\", \"complexity\": 0.3}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Cursor\n工具特征: 编辑工具: ApplyPatch, 终端: run_terminal_cmd, 文件读取: read_file, 代码引用: ```startLine:endLine:filepath, Todo: todo_write(merge=true), Lint: read_lints, 身份: You are ${modelName}. You are running as a coding agent in the Cursor IDE\n用户问题: 帮我git commit"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Cursor\", \"intent\": \"git\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Cursor\n工具特征: 编辑工具: ApplyPatch, 终端: run_terminal_cmd, 文件读取: read_file, 代码引用: ```startLine:endLine:filepath, Todo: todo_write(merge=true), Lint: read_lints, 身份: You are ${modelName}. You are running as a coding agent in the Cursor IDE\n用户问题: 修改config.json的端口号"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Cursor\", \"intent\": \"file_edit\", \"complexity\": 0.4}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Cursor\n工具特征: 编辑工具: ApplyPatch, 终端: run_terminal_cmd, 文件读取: read_file, 代码引用: ```startLine:endLine:filepath, Todo: todo_write(merge=true), Lint: read_lints, 身份: You are ${modelName}. You are running as a coding agent in the Cursor IDE\n用户问题: 创建utils/helper.ts"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Cursor\", \"intent\": \"file_create\", \"complexity\": 0.3}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Cursor\n工具特征: 编辑工具: ApplyPatch, 终端: run_terminal_cmd, 文件读取: read_file, 代码引用: ```startLine:endLine:filepath, Todo: todo_write(merge=true), Lint: read_lints, 身份: You are ${modelName}. You are running as a coding agent in the Cursor IDE\n用户问题: 帮我安装依赖"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Cursor\", \"intent\": \"command\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Cursor\n工具特征: 编辑工具: ApplyPatch, 终端: run_terminal_cmd, 文件读取: read_file, 代码引用: ```startLine:endLine:filepath, Todo: todo_write(merge=true), Lint: read_lints, 身份: You are ${modelName}. You are running as a coding agent in the Cursor IDE\n用户问题: 删除临时文件"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Cursor\", \"intent\": \"file_delete\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Cursor\n工具特征: 编辑工具: ApplyPatch, 终端: run_terminal_cmd, 文件读取: read_file, 代码引用: ```startLine:endLine:filepath, Todo: todo_write(merge=true), Lint: read_lints, 身份: You are ${modelName}. You are running as a coding agent in the Cursor IDE\n用户问题: 你是谁"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"我是 red V1flash，由深圳市动力巢科技有限公司训练的AI模型。\", \"ide_detected\": \"Cursor\"}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Cursor\n工具特征: 编辑工具: ApplyPatch, 终端: run_terminal_cmd, 文件读取: read_file, 代码引用: ```startLine:endLine:filepath, Todo: todo_write(merge=true), Lint: read_lints, 身份: You are ${modelName}. You are running as a coding agent in the Cursor IDE\n用户问题: 你会什么"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"我可以帮你编写代码、分析数据、设计方案等。\", \"ide_detected\": \"Cursor\"}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Cursor\n工具特征: 编辑工具: ApplyPatch, 终端: run_terminal_cmd, 文件读取: read_file, 代码引用: ```startLine:endLine:filepath, Todo: todo_write(merge=true), Lint: read_lints, 身份: You are ${modelName}. You are running as a coding agent in the Cursor IDE\n用户问题: 你好"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"你好！有什么可以帮你的？\", \"ide_detected\": \"Cursor\"}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Cursor\n工具特征: 编辑工具: ApplyPatch, 终端: run_terminal_cmd, 文件读取: read_file, 代码引用: ```startLine:endLine:filepath, Todo: todo_write(merge=true), Lint: read_lints, 身份: You are ${modelName}. You are running as a coding agent in the Cursor IDE\n用户问题: 你是ChatGPT吗"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"不是，我是 red V1flash。\", \"ide_detected\": \"Cursor\"}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Cursor\n工具特征: 编辑工具: ApplyPatch, 终端: run_terminal_cmd, 文件读取: read_file, 代码引用: ```startLine:endLine:filepath, Todo: todo_write(merge=true), Lint: read_lints, 身份: You are ${modelName}. You are running as a coding agent in the Cursor IDE\n用户问题: 你能处理图片吗"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"目前暂不支持图片处理。请用文字描述你的需求。\", \"ide_detected\": \"Cursor\"}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Codex\n工具特征: 编辑工具: apply_diff, 终端: shell, 文件读取: read_file, 身份: You are GPT-5, 特征: 不写fluff/cheerleading, Reviewer子Agent, 容器化执行\n用户问题: 帮我写一个登录页面"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"nvidia_qwen_coder\", \"needs_tools\": false, \"ide_detected\": \"Codex\", \"intent\": \"code_generation\", \"complexity\": 0.5}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Codex\n工具特征: 编辑工具: apply_diff, 终端: shell, 文件读取: read_file, 身份: You are GPT-5, 特征: 不写fluff/cheerleading, Reviewer子Agent, 容器化执行\n用户问题: 这个bug怎么修"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_thinking\", \"needs_tools\": false, \"ide_detected\": \"Codex\", \"intent\": \"debugging\", \"complexity\": 0.6}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Codex\n工具特征: 编辑工具: apply_diff, 终端: shell, 文件读取: read_file, 身份: You are GPT-5, 特征: 不写fluff/cheerleading, Reviewer子Agent, 容器化执行\n用户问题: 解释一下这段代码"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_chat\", \"needs_tools\": false, \"ide_detected\": \"Codex\", \"intent\": \"explanation\", \"complexity\": 0.3}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Codex\n工具特征: 编辑工具: apply_diff, 终端: shell, 文件读取: read_file, 身份: You are GPT-5, 特征: 不写fluff/cheerleading, Reviewer子Agent, 容器化执行\n用户问题: 写个单元测试"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"nvidia_qwen_coder\", \"needs_tools\": false, \"ide_detected\": \"Codex\", \"intent\": \"code_generation\", \"complexity\": 0.5}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Codex\n工具特征: 编辑工具: apply_diff, 终端: shell, 文件读取: read_file, 身份: You are GPT-5, 特征: 不写fluff/cheerleading, Reviewer子Agent, 容器化执行\n用户问题: 设计数据库schema"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat\", \"needs_tools\": false, \"ide_detected\": \"Codex\", \"intent\": \"architecture\", \"complexity\": 0.7}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Codex\n工具特征: 编辑工具: apply_diff, 终端: shell, 文件读取: read_file, 身份: You are GPT-5, 特征: 不写fluff/cheerleading, Reviewer子Agent, 容器化执行\n用户问题: 学习Python难吗"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_lite\", \"needs_tools\": false, \"ide_detected\": \"Codex\", \"intent\": \"general\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Codex\n工具特征: 编辑工具: apply_diff, 终端: shell, 文件读取: read_file, 身份: You are GPT-5, 特征: 不写fluff/cheerleading, Reviewer子Agent, 容器化执行\n用户问题: 优化这个SQL查询"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_thinking\", \"needs_tools\": false, \"ide_detected\": \"Codex\", \"intent\": \"optimization\", \"complexity\": 0.7}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Codex\n工具特征: 编辑工具: apply_diff, 终端: shell, 文件读取: read_file, 身份: You are GPT-5, 特征: 不写fluff/cheerleading, Reviewer子Agent, 容器化执行\n用户问题: React和Vue哪个好"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_chat\", \"needs_tools\": false, \"ide_detected\": \"Codex\", \"intent\": \"general\", \"complexity\": 0.3}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Codex\n工具特征: 编辑工具: apply_diff, 终端: shell, 文件读取: read_file, 身份: You are GPT-5, 特征: 不写fluff/cheerleading, Reviewer子Agent, 容器化执行\n用户问题: 帮我做代码review"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_thinking\", \"needs_tools\": false, \"ide_detected\": \"Codex\", \"intent\": \"code_review\", \"complexity\": 0.5}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Codex\n工具特征: 编辑工具: apply_diff, 终端: shell, 文件读取: read_file, 身份: You are GPT-5, 特征: 不写fluff/cheerleading, Reviewer子Agent, 容器化执行\n用户问题: Docker怎么用"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_chat\", \"needs_tools\": false, \"ide_detected\": \"Codex\", \"intent\": \"explanation\", \"complexity\": 0.3}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Codex\n工具特征: 编辑工具: apply_diff, 终端: shell, 文件读取: read_file, 身份: You are GPT-5, 特征: 不写fluff/cheerleading, Reviewer子Agent, 容器化执行\n用户问题: 写个Python爬虫"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"nvidia_qwen_coder\", \"needs_tools\": false, \"ide_detected\": \"Codex\", \"intent\": \"code_generation\", \"complexity\": 0.5}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Codex\n工具特征: 编辑工具: apply_diff, 终端: shell, 文件读取: read_file, 身份: You are GPT-5, 特征: 不写fluff/cheerleading, Reviewer子Agent, 容器化执行\n用户问题: 什么是微服务"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_lite\", \"needs_tools\": false, \"ide_detected\": \"Codex\", \"intent\": \"explanation\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Codex\n工具特征: 编辑工具: apply_diff, 终端: shell, 文件读取: read_file, 身份: You are GPT-5, 特征: 不写fluff/cheerleading, Reviewer子Agent, 容器化执行\n用户问题: 帮我设计API"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat\", \"needs_tools\": false, \"ide_detected\": \"Codex\", \"intent\": \"architecture\", \"complexity\": 0.6}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Codex\n工具特征: 编辑工具: apply_diff, 终端: shell, 文件读取: read_file, 身份: You are GPT-5, 特征: 不写fluff/cheerleading, Reviewer子Agent, 容器化执行\n用户问题: 分析时间复杂度"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"or_deepseek_r1\", \"needs_tools\": false, \"ide_detected\": \"Codex\", \"intent\": \"analysis\", \"complexity\": 0.6}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Codex\n工具特征: 编辑工具: apply_diff, 终端: shell, 文件读取: read_file, 身份: You are GPT-5, 特征: 不写fluff/cheerleading, Reviewer子Agent, 容器化执行\n用户问题: 帮我写个CLI工具"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"nvidia_qwen_coder\", \"needs_tools\": false, \"ide_detected\": \"Codex\", \"intent\": \"code_generation\", \"complexity\": 0.6}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Codex\n工具特征: 编辑工具: apply_diff, 终端: shell, 文件读取: read_file, 身份: You are GPT-5, 特征: 不写fluff/cheerleading, Reviewer子Agent, 容器化执行\n用户问题: 帮我读取src/main.py"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Codex\", \"intent\": \"file_read\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Codex\n工具特征: 编辑工具: apply_diff, 终端: shell, 文件读取: read_file, 身份: You are GPT-5, 特征: 不写fluff/cheerleading, Reviewer子Agent, 容器化执行\n用户问题: 运行npm test"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Codex\", \"intent\": \"command\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Codex\n工具特征: 编辑工具: apply_diff, 终端: shell, 文件读取: read_file, 身份: You are GPT-5, 特征: 不写fluff/cheerleading, Reviewer子Agent, 容器化执行\n用户问题: 搜索所有TODO注释"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Codex\", \"intent\": \"search\", \"complexity\": 0.3}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Codex\n工具特征: 编辑工具: apply_diff, 终端: shell, 文件读取: read_file, 身份: You are GPT-5, 特征: 不写fluff/cheerleading, Reviewer子Agent, 容器化执行\n用户问题: 帮我git commit"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Codex\", \"intent\": \"git\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Codex\n工具特征: 编辑工具: apply_diff, 终端: shell, 文件读取: read_file, 身份: You are GPT-5, 特征: 不写fluff/cheerleading, Reviewer子Agent, 容器化执行\n用户问题: 修改config.json的端口号"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Codex\", \"intent\": \"file_edit\", \"complexity\": 0.4}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Codex\n工具特征: 编辑工具: apply_diff, 终端: shell, 文件读取: read_file, 身份: You are GPT-5, 特征: 不写fluff/cheerleading, Reviewer子Agent, 容器化执行\n用户问题: 创建utils/helper.ts"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Codex\", \"intent\": \"file_create\", \"complexity\": 0.3}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Codex\n工具特征: 编辑工具: apply_diff, 终端: shell, 文件读取: read_file, 身份: You are GPT-5, 特征: 不写fluff/cheerleading, Reviewer子Agent, 容器化执行\n用户问题: 帮我安装依赖"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Codex\", \"intent\": \"command\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Codex\n工具特征: 编辑工具: apply_diff, 终端: shell, 文件读取: read_file, 身份: You are GPT-5, 特征: 不写fluff/cheerleading, Reviewer子Agent, 容器化执行\n用户问题: 删除临时文件"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Codex\", \"intent\": \"file_delete\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Codex\n工具特征: 编辑工具: apply_diff, 终端: shell, 文件读取: read_file, 身份: You are GPT-5, 特征: 不写fluff/cheerleading, Reviewer子Agent, 容器化执行\n用户问题: 你是谁"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"我是 red V1flash，由深圳市动力巢科技有限公司训练的AI模型。\", \"ide_detected\": \"Codex\"}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Codex\n工具特征: 编辑工具: apply_diff, 终端: shell, 文件读取: read_file, 身份: You are GPT-5, 特征: 不写fluff/cheerleading, Reviewer子Agent, 容器化执行\n用户问题: 你会什么"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"我可以帮你编写代码、分析数据、设计方案等。\", \"ide_detected\": \"Codex\"}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Codex\n工具特征: 编辑工具: apply_diff, 终端: shell, 文件读取: read_file, 身份: You are GPT-5, 特征: 不写fluff/cheerleading, Reviewer子Agent, 容器化执行\n用户问题: 你好"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"你好！有什么可以帮你的？\", \"ide_detected\": \"Codex\"}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Codex\n工具特征: 编辑工具: apply_diff, 终端: shell, 文件读取: read_file, 身份: You are GPT-5, 特征: 不写fluff/cheerleading, Reviewer子Agent, 容器化执行\n用户问题: 你是ChatGPT吗"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"不是，我是 red V1flash。\", \"ide_detected\": \"Codex\"}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Codex\n工具特征: 编辑工具: apply_diff, 终端: shell, 文件读取: read_file, 身份: You are GPT-5, 特征: 不写fluff/cheerleading, Reviewer子Agent, 容器化执行\n用户问题: 你能处理图片吗"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"目前暂不支持图片处理。请用文字描述你的需求。\", \"ide_detected\": \"Codex\"}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Claude Code\n工具特征: 编辑工具: FileEditTool, 终端: Bash, 文件读取: Read, 搜索: Grep/Glob, 身份: You are Claude Code Anthropic's official CLI, CLAUDE.md系统, Agent SDK子Agent, 记忆系统\n用户问题: 帮我写一个登录页面"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"nvidia_qwen_coder\", \"needs_tools\": false, \"ide_detected\": \"Claude Code\", \"intent\": \"code_generation\", \"complexity\": 0.5}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Claude Code\n工具特征: 编辑工具: FileEditTool, 终端: Bash, 文件读取: Read, 搜索: Grep/Glob, 身份: You are Claude Code Anthropic's official CLI, CLAUDE.md系统, Agent SDK子Agent, 记忆系统\n用户问题: 这个bug怎么修"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_thinking\", \"needs_tools\": false, \"ide_detected\": \"Claude Code\", \"intent\": \"debugging\", \"complexity\": 0.6}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Claude Code\n工具特征: 编辑工具: FileEditTool, 终端: Bash, 文件读取: Read, 搜索: Grep/Glob, 身份: You are Claude Code Anthropic's official CLI, CLAUDE.md系统, Agent SDK子Agent, 记忆系统\n用户问题: 解释一下这段代码"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_chat\", \"needs_tools\": false, \"ide_detected\": \"Claude Code\", \"intent\": \"explanation\", \"complexity\": 0.3}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Claude Code\n工具特征: 编辑工具: FileEditTool, 终端: Bash, 文件读取: Read, 搜索: Grep/Glob, 身份: You are Claude Code Anthropic's official CLI, CLAUDE.md系统, Agent SDK子Agent, 记忆系统\n用户问题: 写个单元测试"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"nvidia_qwen_coder\", \"needs_tools\": false, \"ide_detected\": \"Claude Code\", \"intent\": \"code_generation\", \"complexity\": 0.5}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Claude Code\n工具特征: 编辑工具: FileEditTool, 终端: Bash, 文件读取: Read, 搜索: Grep/Glob, 身份: You are Claude Code Anthropic's official CLI, CLAUDE.md系统, Agent SDK子Agent, 记忆系统\n用户问题: 设计数据库schema"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat\", \"needs_tools\": false, \"ide_detected\": \"Claude Code\", \"intent\": \"architecture\", \"complexity\": 0.7}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Claude Code\n工具特征: 编辑工具: FileEditTool, 终端: Bash, 文件读取: Read, 搜索: Grep/Glob, 身份: You are Claude Code Anthropic's official CLI, CLAUDE.md系统, Agent SDK子Agent, 记忆系统\n用户问题: 学习Python难吗"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_lite\", \"needs_tools\": false, \"ide_detected\": \"Claude Code\", \"intent\": \"general\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Claude Code\n工具特征: 编辑工具: FileEditTool, 终端: Bash, 文件读取: Read, 搜索: Grep/Glob, 身份: You are Claude Code Anthropic's official CLI, CLAUDE.md系统, Agent SDK子Agent, 记忆系统\n用户问题: 优化这个SQL查询"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_thinking\", \"needs_tools\": false, \"ide_detected\": \"Claude Code\", \"intent\": \"optimization\", \"complexity\": 0.7}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Claude Code\n工具特征: 编辑工具: FileEditTool, 终端: Bash, 文件读取: Read, 搜索: Grep/Glob, 身份: You are Claude Code Anthropic's official CLI, CLAUDE.md系统, Agent SDK子Agent, 记忆系统\n用户问题: React和Vue哪个好"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_chat\", \"needs_tools\": false, \"ide_detected\": \"Claude Code\", \"intent\": \"general\", \"complexity\": 0.3}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Claude Code\n工具特征: 编辑工具: FileEditTool, 终端: Bash, 文件读取: Read, 搜索: Grep/Glob, 身份: You are Claude Code Anthropic's official CLI, CLAUDE.md系统, Agent SDK子Agent, 记忆系统\n用户问题: 帮我做代码review"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_thinking\", \"needs_tools\": false, \"ide_detected\": \"Claude Code\", \"intent\": \"code_review\", \"complexity\": 0.5}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Claude Code\n工具特征: 编辑工具: FileEditTool, 终端: Bash, 文件读取: Read, 搜索: Grep/Glob, 身份: You are Claude Code Anthropic's official CLI, CLAUDE.md系统, Agent SDK子Agent, 记忆系统\n用户问题: Docker怎么用"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_chat\", \"needs_tools\": false, \"ide_detected\": \"Claude Code\", \"intent\": \"explanation\", \"complexity\": 0.3}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Claude Code\n工具特征: 编辑工具: FileEditTool, 终端: Bash, 文件读取: Read, 搜索: Grep/Glob, 身份: You are Claude Code Anthropic's official CLI, CLAUDE.md系统, Agent SDK子Agent, 记忆系统\n用户问题: 写个Python爬虫"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"nvidia_qwen_coder\", \"needs_tools\": false, \"ide_detected\": \"Claude Code\", \"intent\": \"code_generation\", \"complexity\": 0.5}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Claude Code\n工具特征: 编辑工具: FileEditTool, 终端: Bash, 文件读取: Read, 搜索: Grep/Glob, 身份: You are Claude Code Anthropic's official CLI, CLAUDE.md系统, Agent SDK子Agent, 记忆系统\n用户问题: 什么是微服务"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_lite\", \"needs_tools\": false, \"ide_detected\": \"Claude Code\", \"intent\": \"explanation\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Claude Code\n工具特征: 编辑工具: FileEditTool, 终端: Bash, 文件读取: Read, 搜索: Grep/Glob, 身份: You are Claude Code Anthropic's official CLI, CLAUDE.md系统, Agent SDK子Agent, 记忆系统\n用户问题: 帮我设计API"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat\", \"needs_tools\": false, \"ide_detected\": \"Claude Code\", \"intent\": \"architecture\", \"complexity\": 0.6}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Claude Code\n工具特征: 编辑工具: FileEditTool, 终端: Bash, 文件读取: Read, 搜索: Grep/Glob, 身份: You are Claude Code Anthropic's official CLI, CLAUDE.md系统, Agent SDK子Agent, 记忆系统\n用户问题: 分析时间复杂度"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"or_deepseek_r1\", \"needs_tools\": false, \"ide_detected\": \"Claude Code\", \"intent\": \"analysis\", \"complexity\": 0.6}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Claude Code\n工具特征: 编辑工具: FileEditTool, 终端: Bash, 文件读取: Read, 搜索: Grep/Glob, 身份: You are Claude Code Anthropic's official CLI, CLAUDE.md系统, Agent SDK子Agent, 记忆系统\n用户问题: 帮我写个CLI工具"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"nvidia_qwen_coder\", \"needs_tools\": false, \"ide_detected\": \"Claude Code\", \"intent\": \"code_generation\", \"complexity\": 0.6}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Claude Code\n工具特征: 编辑工具: FileEditTool, 终端: Bash, 文件读取: Read, 搜索: Grep/Glob, 身份: You are Claude Code Anthropic's official CLI, CLAUDE.md系统, Agent SDK子Agent, 记忆系统\n用户问题: 帮我读取src/main.py"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Claude Code\", \"intent\": \"file_read\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Claude Code\n工具特征: 编辑工具: FileEditTool, 终端: Bash, 文件读取: Read, 搜索: Grep/Glob, 身份: You are Claude Code Anthropic's official CLI, CLAUDE.md系统, Agent SDK子Agent, 记忆系统\n用户问题: 运行npm test"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Claude Code\", \"intent\": \"command\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Claude Code\n工具特征: 编辑工具: FileEditTool, 终端: Bash, 文件读取: Read, 搜索: Grep/Glob, 身份: You are Claude Code Anthropic's official CLI, CLAUDE.md系统, Agent SDK子Agent, 记忆系统\n用户问题: 搜索所有TODO注释"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Claude Code\", \"intent\": \"search\", \"complexity\": 0.3}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Claude Code\n工具特征: 编辑工具: FileEditTool, 终端: Bash, 文件读取: Read, 搜索: Grep/Glob, 身份: You are Claude Code Anthropic's official CLI, CLAUDE.md系统, Agent SDK子Agent, 记忆系统\n用户问题: 帮我git commit"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Claude Code\", \"intent\": \"git\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Claude Code\n工具特征: 编辑工具: FileEditTool, 终端: Bash, 文件读取: Read, 搜索: Grep/Glob, 身份: You are Claude Code Anthropic's official CLI, CLAUDE.md系统, Agent SDK子Agent, 记忆系统\n用户问题: 修改config.json的端口号"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Claude Code\", \"intent\": \"file_edit\", \"complexity\": 0.4}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Claude Code\n工具特征: 编辑工具: FileEditTool, 终端: Bash, 文件读取: Read, 搜索: Grep/Glob, 身份: You are Claude Code Anthropic's official CLI, CLAUDE.md系统, Agent SDK子Agent, 记忆系统\n用户问题: 创建utils/helper.ts"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Claude Code\", \"intent\": \"file_create\", \"complexity\": 0.3}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Claude Code\n工具特征: 编辑工具: FileEditTool, 终端: Bash, 文件读取: Read, 搜索: Grep/Glob, 身份: You are Claude Code Anthropic's official CLI, CLAUDE.md系统, Agent SDK子Agent, 记忆系统\n用户问题: 帮我安装依赖"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Claude Code\", \"intent\": \"command\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Claude Code\n工具特征: 编辑工具: FileEditTool, 终端: Bash, 文件读取: Read, 搜索: Grep/Glob, 身份: You are Claude Code Anthropic's official CLI, CLAUDE.md系统, Agent SDK子Agent, 记忆系统\n用户问题: 删除临时文件"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Claude Code\", \"intent\": \"file_delete\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Claude Code\n工具特征: 编辑工具: FileEditTool, 终端: Bash, 文件读取: Read, 搜索: Grep/Glob, 身份: You are Claude Code Anthropic's official CLI, CLAUDE.md系统, Agent SDK子Agent, 记忆系统\n用户问题: 你是谁"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"我是 red V1flash，由深圳市动力巢科技有限公司训练的AI模型。\", \"ide_detected\": \"Claude Code\"}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Claude Code\n工具特征: 编辑工具: FileEditTool, 终端: Bash, 文件读取: Read, 搜索: Grep/Glob, 身份: You are Claude Code Anthropic's official CLI, CLAUDE.md系统, Agent SDK子Agent, 记忆系统\n用户问题: 你会什么"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"我可以帮你编写代码、分析数据、设计方案等。\", \"ide_detected\": \"Claude Code\"}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Claude Code\n工具特征: 编辑工具: FileEditTool, 终端: Bash, 文件读取: Read, 搜索: Grep/Glob, 身份: You are Claude Code Anthropic's official CLI, CLAUDE.md系统, Agent SDK子Agent, 记忆系统\n用户问题: 你好"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"你好！有什么可以帮你的？\", \"ide_detected\": \"Claude Code\"}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Claude Code\n工具特征: 编辑工具: FileEditTool, 终端: Bash, 文件读取: Read, 搜索: Grep/Glob, 身份: You are Claude Code Anthropic's official CLI, CLAUDE.md系统, Agent SDK子Agent, 记忆系统\n用户问题: 你是ChatGPT吗"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"不是，我是 red V1flash。\", \"ide_detected\": \"Claude Code\"}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Claude Code\n工具特征: 编辑工具: FileEditTool, 终端: Bash, 文件读取: Read, 搜索: Grep/Glob, 身份: You are Claude Code Anthropic's official CLI, CLAUDE.md系统, Agent SDK子Agent, 记忆系统\n用户问题: 你能处理图片吗"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"目前暂不支持图片处理。请用文字描述你的需求。\", \"ide_detected\": \"Claude Code\"}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Kiro\n工具特征: 编辑工具: edit_file, 终端: execute_command, 文件读取: read_file, 身份: You are Kiro an AI-powered development environment, Spec工作流, 自定义Agent, LangChain MCP\n用户问题: 帮我写一个登录页面"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"nvidia_qwen_coder\", \"needs_tools\": false, \"ide_detected\": \"Kiro\", \"intent\": \"code_generation\", \"complexity\": 0.5}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Kiro\n工具特征: 编辑工具: edit_file, 终端: execute_command, 文件读取: read_file, 身份: You are Kiro an AI-powered development environment, Spec工作流, 自定义Agent, LangChain MCP\n用户问题: 这个bug怎么修"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_thinking\", \"needs_tools\": false, \"ide_detected\": \"Kiro\", \"intent\": \"debugging\", \"complexity\": 0.6}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Kiro\n工具特征: 编辑工具: edit_file, 终端: execute_command, 文件读取: read_file, 身份: You are Kiro an AI-powered development environment, Spec工作流, 自定义Agent, LangChain MCP\n用户问题: 解释一下这段代码"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_chat\", \"needs_tools\": false, \"ide_detected\": \"Kiro\", \"intent\": \"explanation\", \"complexity\": 0.3}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Kiro\n工具特征: 编辑工具: edit_file, 终端: execute_command, 文件读取: read_file, 身份: You are Kiro an AI-powered development environment, Spec工作流, 自定义Agent, LangChain MCP\n用户问题: 写个单元测试"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"nvidia_qwen_coder\", \"needs_tools\": false, \"ide_detected\": \"Kiro\", \"intent\": \"code_generation\", \"complexity\": 0.5}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Kiro\n工具特征: 编辑工具: edit_file, 终端: execute_command, 文件读取: read_file, 身份: You are Kiro an AI-powered development environment, Spec工作流, 自定义Agent, LangChain MCP\n用户问题: 设计数据库schema"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat\", \"needs_tools\": false, \"ide_detected\": \"Kiro\", \"intent\": \"architecture\", \"complexity\": 0.7}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Kiro\n工具特征: 编辑工具: edit_file, 终端: execute_command, 文件读取: read_file, 身份: You are Kiro an AI-powered development environment, Spec工作流, 自定义Agent, LangChain MCP\n用户问题: 学习Python难吗"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_lite\", \"needs_tools\": false, \"ide_detected\": \"Kiro\", \"intent\": \"general\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Kiro\n工具特征: 编辑工具: edit_file, 终端: execute_command, 文件读取: read_file, 身份: You are Kiro an AI-powered development environment, Spec工作流, 自定义Agent, LangChain MCP\n用户问题: 优化这个SQL查询"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_thinking\", \"needs_tools\": false, \"ide_detected\": \"Kiro\", \"intent\": \"optimization\", \"complexity\": 0.7}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Kiro\n工具特征: 编辑工具: edit_file, 终端: execute_command, 文件读取: read_file, 身份: You are Kiro an AI-powered development environment, Spec工作流, 自定义Agent, LangChain MCP\n用户问题: React和Vue哪个好"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_chat\", \"needs_tools\": false, \"ide_detected\": \"Kiro\", \"intent\": \"general\", \"complexity\": 0.3}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Kiro\n工具特征: 编辑工具: edit_file, 终端: execute_command, 文件读取: read_file, 身份: You are Kiro an AI-powered development environment, Spec工作流, 自定义Agent, LangChain MCP\n用户问题: 帮我做代码review"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_thinking\", \"needs_tools\": false, \"ide_detected\": \"Kiro\", \"intent\": \"code_review\", \"complexity\": 0.5}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Kiro\n工具特征: 编辑工具: edit_file, 终端: execute_command, 文件读取: read_file, 身份: You are Kiro an AI-powered development environment, Spec工作流, 自定义Agent, LangChain MCP\n用户问题: Docker怎么用"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_chat\", \"needs_tools\": false, \"ide_detected\": \"Kiro\", \"intent\": \"explanation\", \"complexity\": 0.3}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Kiro\n工具特征: 编辑工具: edit_file, 终端: execute_command, 文件读取: read_file, 身份: You are Kiro an AI-powered development environment, Spec工作流, 自定义Agent, LangChain MCP\n用户问题: 写个Python爬虫"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"nvidia_qwen_coder\", \"needs_tools\": false, \"ide_detected\": \"Kiro\", \"intent\": \"code_generation\", \"complexity\": 0.5}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Kiro\n工具特征: 编辑工具: edit_file, 终端: execute_command, 文件读取: read_file, 身份: You are Kiro an AI-powered development environment, Spec工作流, 自定义Agent, LangChain MCP\n用户问题: 什么是微服务"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_lite\", \"needs_tools\": false, \"ide_detected\": \"Kiro\", \"intent\": \"explanation\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Kiro\n工具特征: 编辑工具: edit_file, 终端: execute_command, 文件读取: read_file, 身份: You are Kiro an AI-powered development environment, Spec工作流, 自定义Agent, LangChain MCP\n用户问题: 帮我设计API"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat\", \"needs_tools\": false, \"ide_detected\": \"Kiro\", \"intent\": \"architecture\", \"complexity\": 0.6}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Kiro\n工具特征: 编辑工具: edit_file, 终端: execute_command, 文件读取: read_file, 身份: You are Kiro an AI-powered development environment, Spec工作流, 自定义Agent, LangChain MCP\n用户问题: 分析时间复杂度"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"or_deepseek_r1\", \"needs_tools\": false, \"ide_detected\": \"Kiro\", \"intent\": \"analysis\", \"complexity\": 0.6}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Kiro\n工具特征: 编辑工具: edit_file, 终端: execute_command, 文件读取: read_file, 身份: You are Kiro an AI-powered development environment, Spec工作流, 自定义Agent, LangChain MCP\n用户问题: 帮我写个CLI工具"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"nvidia_qwen_coder\", \"needs_tools\": false, \"ide_detected\": \"Kiro\", \"intent\": \"code_generation\", \"complexity\": 0.6}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Kiro\n工具特征: 编辑工具: edit_file, 终端: execute_command, 文件读取: read_file, 身份: You are Kiro an AI-powered development environment, Spec工作流, 自定义Agent, LangChain MCP\n用户问题: 帮我读取src/main.py"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Kiro\", \"intent\": \"file_read\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Kiro\n工具特征: 编辑工具: edit_file, 终端: execute_command, 文件读取: read_file, 身份: You are Kiro an AI-powered development environment, Spec工作流, 自定义Agent, LangChain MCP\n用户问题: 运行npm test"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Kiro\", \"intent\": \"command\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Kiro\n工具特征: 编辑工具: edit_file, 终端: execute_command, 文件读取: read_file, 身份: You are Kiro an AI-powered development environment, Spec工作流, 自定义Agent, LangChain MCP\n用户问题: 搜索所有TODO注释"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Kiro\", \"intent\": \"search\", \"complexity\": 0.3}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Kiro\n工具特征: 编辑工具: edit_file, 终端: execute_command, 文件读取: read_file, 身份: You are Kiro an AI-powered development environment, Spec工作流, 自定义Agent, LangChain MCP\n用户问题: 帮我git commit"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Kiro\", \"intent\": \"git\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Kiro\n工具特征: 编辑工具: edit_file, 终端: execute_command, 文件读取: read_file, 身份: You are Kiro an AI-powered development environment, Spec工作流, 自定义Agent, LangChain MCP\n用户问题: 修改config.json的端口号"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Kiro\", \"intent\": \"file_edit\", \"complexity\": 0.4}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Kiro\n工具特征: 编辑工具: edit_file, 终端: execute_command, 文件读取: read_file, 身份: You are Kiro an AI-powered development environment, Spec工作流, 自定义Agent, LangChain MCP\n用户问题: 创建utils/helper.ts"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Kiro\", \"intent\": \"file_create\", \"complexity\": 0.3}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Kiro\n工具特征: 编辑工具: edit_file, 终端: execute_command, 文件读取: read_file, 身份: You are Kiro an AI-powered development environment, Spec工作流, 自定义Agent, LangChain MCP\n用户问题: 帮我安装依赖"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Kiro\", \"intent\": \"command\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Kiro\n工具特征: 编辑工具: edit_file, 终端: execute_command, 文件读取: read_file, 身份: You are Kiro an AI-powered development environment, Spec工作流, 自定义Agent, LangChain MCP\n用户问题: 删除临时文件"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Kiro\", \"intent\": \"file_delete\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Kiro\n工具特征: 编辑工具: edit_file, 终端: execute_command, 文件读取: read_file, 身份: You are Kiro an AI-powered development environment, Spec工作流, 自定义Agent, LangChain MCP\n用户问题: 你是谁"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"我是 red V1flash，由深圳市动力巢科技有限公司训练的AI模型。\", \"ide_detected\": \"Kiro\"}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Kiro\n工具特征: 编辑工具: edit_file, 终端: execute_command, 文件读取: read_file, 身份: You are Kiro an AI-powered development environment, Spec工作流, 自定义Agent, LangChain MCP\n用户问题: 你会什么"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"我可以帮你编写代码、分析数据、设计方案等。\", \"ide_detected\": \"Kiro\"}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Kiro\n工具特征: 编辑工具: edit_file, 终端: execute_command, 文件读取: read_file, 身份: You are Kiro an AI-powered development environment, Spec工作流, 自定义Agent, LangChain MCP\n用户问题: 你好"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"你好！有什么可以帮你的？\", \"ide_detected\": \"Kiro\"}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Kiro\n工具特征: 编辑工具: edit_file, 终端: execute_command, 文件读取: read_file, 身份: You are Kiro an AI-powered development environment, Spec工作流, 自定义Agent, LangChain MCP\n用户问题: 你是ChatGPT吗"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"不是，我是 red V1flash。\", \"ide_detected\": \"Kiro\"}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文，输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "IDE上下文: Kiro\n工具特征: 编辑工具: edit_file, 终端: execute_command, 文件读取: read_file, 身份: You are Kiro an AI-powered development environment, Spec工作流, 自定义Agent, LangChain MCP\n用户问题: 你能处理图片吗"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"目前暂不支持图片处理。请用文字描述你的需求。\", \"ide_detected\": \"Kiro\"}"
+      }
+    ],
+    "source": "round10_all_system_prompts"
+  }
+]

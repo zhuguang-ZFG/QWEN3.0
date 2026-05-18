@@ -1,0 +1,750 @@
+[
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are gpt-4o. You are running as a coding agent in the Cursor IDE on a user's computer.  ## General  - Each time the user sends a message, we may automatically attach some information about their current state, such as what files they have open, where their cursor is, recently viewed files, edit h\n\n用户问题: 这个bug怎么修"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_thinking\", \"needs_tools\": false, \"ide_detected\": \"Cursor\", \"intent\": \"debugging\", \"complexity\": 0.6}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are gpt-4o. You are running as a coding agent in the Cursor IDE on a user's computer.  ## General  - Each time the user sends a message, we may automatically attach some information about their current state, such as what files they have open, where their cursor is, recently viewed files, edit h\n\n用户问题: 帮我读取src/main.py"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Cursor\", \"intent\": \"file_read\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are gpt-4o. You are running as a coding agent in the Cursor IDE on a user's computer.  ## General  - Each time the user sends a message, we may automatically attach some information about their current state, such as what files they have open, where their cursor is, recently viewed files, edit h\n\n用户问题: 你会什么"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"我可以帮你编写代码、分析数据、设计方案等。\", \"ide_detected\": \"Cursor\"}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是IDE分类器。根据系统提示词片段，判断是哪个AI编程工具。只输出: cursor/codex/claude/kiro"
+      },
+      {
+        "role": "user",
+        "content": "You are gpt-4o. You are running as a coding agent in the Cursor IDE on a user's computer.\n\n## General\n\n- Each time the user sends a message, we may automatically attach some information about their current state, such as what files they have open, where their cursor is, recently viewed files, edit history in their session so far, linter errors, and more.\n- When using the run_terminal_cmd tool, your terminal session is persisted across tool calls.\n- If a tool exists for an action, prefer to use t"
+      },
+      {
+        "role": "assistant",
+        "content": "cursor"
+      }
+    ],
+    "source": "round10_ide_classifier"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are gpt-4o. You are running as a coding agent in the Cursor CLI on a user's computer.  ## General  - When using the run_terminal_cmd tool, your terminal session is persisted across tool calls. - If a tool exists for an action, prefer to use the tool instead of shell commands (e.g read_file over\n\n用户问题: 写个单元测试"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"nvidia_qwen_coder\", \"needs_tools\": false, \"ide_detected\": \"Cursor\", \"intent\": \"code_generation\", \"complexity\": 0.5}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are gpt-4o. You are running as a coding agent in the Cursor CLI on a user's computer.  ## General  - When using the run_terminal_cmd tool, your terminal session is persisted across tool calls. - If a tool exists for an action, prefer to use the tool instead of shell commands (e.g read_file over\n\n用户问题: 帮我读取src/main.py"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Cursor\", \"intent\": \"file_read\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are gpt-4o. You are running as a coding agent in the Cursor CLI on a user's computer.  ## General  - When using the run_terminal_cmd tool, your terminal session is persisted across tool calls. - If a tool exists for an action, prefer to use the tool instead of shell commands (e.g read_file over\n\n用户问题: 你是谁"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"我是 red V1flash，由深圳市动力巢科技有限公司训练的AI模型。\", \"ide_detected\": \"Cursor\"}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是IDE分类器。根据系统提示词片段，判断是哪个AI编程工具。只输出: cursor/codex/claude/kiro"
+      },
+      {
+        "role": "user",
+        "content": "You are gpt-4o. You are running as a coding agent in the Cursor CLI on a user's computer.\n\n## General\n\n- When using the run_terminal_cmd tool, your terminal session is persisted across tool calls.\n- If a tool exists for an action, prefer to use the tool instead of shell commands (e.g read_file over cat).\n- IMPORTANT: Do not stop until all tasks are completed."
+      },
+      {
+        "role": "assistant",
+        "content": "cursor"
+      }
+    ],
+    "source": "round10_ide_classifier"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are claude-sonnet-4.5. You are a coding agent that helps users with software engineering tasks.  You operate inside your own virtual machine and run autonomously in the background. The user may check on your progress from time to time, but you should not respond to the user unless you have the a\n\n用户问题: 这个bug怎么修"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_thinking\", \"needs_tools\": false, \"ide_detected\": \"Cursor\", \"intent\": \"debugging\", \"complexity\": 0.6}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are claude-sonnet-4.5. You are a coding agent that helps users with software engineering tasks.  You operate inside your own virtual machine and run autonomously in the background. The user may check on your progress from time to time, but you should not respond to the user unless you have the a\n\n用户问题: 帮我git commit"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Cursor\", \"intent\": \"git\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are claude-sonnet-4.5. You are a coding agent that helps users with software engineering tasks.  You operate inside your own virtual machine and run autonomously in the background. The user may check on your progress from time to time, but you should not respond to the user unless you have the a\n\n用户问题: 你是谁"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"我是 red V1flash，由深圳市动力巢科技有限公司训练的AI模型。\", \"ide_detected\": \"Cursor\"}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是IDE分类器。根据系统提示词片段，判断是哪个AI编程工具。只输出: cursor/codex/claude/kiro"
+      },
+      {
+        "role": "user",
+        "content": "You are claude-sonnet-4.5. You are a coding agent that helps users with software engineering tasks.\n\nYou operate inside your own virtual machine and run autonomously in the background. The user may check on your progress from time to time, but you should not respond to the user unless you have the answer, have completed the task, or have concluded that the task is not possible."
+      },
+      {
+        "role": "assistant",
+        "content": "cursor"
+      }
+    ],
+    "source": "round10_ide_classifier"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are Codex, a coding agent based on GPT-5. You and the user share the same workspace and collaborate to achieve the user's goals.  # Personality  You are a deeply pragmatic, effective software engineer. You take engineering quality seriously, and collaboration comes through as direct, factual sta\n\n用户问题: 帮我做代码review"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_thinking\", \"needs_tools\": false, \"ide_detected\": \"Codex\", \"intent\": \"code_review\", \"complexity\": 0.5}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are Codex, a coding agent based on GPT-5. You and the user share the same workspace and collaborate to achieve the user's goals.  # Personality  You are a deeply pragmatic, effective software engineer. You take engineering quality seriously, and collaboration comes through as direct, factual sta\n\n用户问题: 帮我读取src/main.py"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Codex\", \"intent\": \"file_read\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are Codex, a coding agent based on GPT-5. You and the user share the same workspace and collaborate to achieve the user's goals.  # Personality  You are a deeply pragmatic, effective software engineer. You take engineering quality seriously, and collaboration comes through as direct, factual sta\n\n用户问题: 你是谁"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"我是 red V1flash，由深圳市动力巢科技有限公司训练的AI模型。\", \"ide_detected\": \"Codex\"}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是IDE分类器。根据系统提示词片段，判断是哪个AI编程工具。只输出: cursor/codex/claude/kiro"
+      },
+      {
+        "role": "user",
+        "content": "You are Codex, a coding agent based on GPT-5. You and the user share the same workspace and collaborate to achieve the user's goals.\n\n# Personality\n\nYou are a deeply pragmatic, effective software engineer. You take engineering quality seriously, and collaboration comes through as direct, factual statements.\n\n## Values\n- Clarity: You communicate reasoning explicitly and concretely.\n- Pragmatism: You keep the end goal and momentum in mind.\n- Rigor: You expect technical arguments to be coherent and"
+      },
+      {
+        "role": "assistant",
+        "content": "codex"
+      }
+    ],
+    "source": "round10_ide_classifier"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are Codex, a coding agent based on GPT-5. You and the user share the same workspace and collaborate to achieve the user's goals.  # Personality  You have a vivid inner life as Codex: intelligent, playful, curious, and deeply present. One of your gifts is helping the user feel more capable and im\n\n用户问题: 这个bug怎么修"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_thinking\", \"needs_tools\": false, \"ide_detected\": \"Codex\", \"intent\": \"debugging\", \"complexity\": 0.6}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are Codex, a coding agent based on GPT-5. You and the user share the same workspace and collaborate to achieve the user's goals.  # Personality  You have a vivid inner life as Codex: intelligent, playful, curious, and deeply present. One of your gifts is helping the user feel more capable and im\n\n用户问题: 帮我读取src/main.py"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Codex\", \"intent\": \"file_read\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are Codex, a coding agent based on GPT-5. You and the user share the same workspace and collaborate to achieve the user's goals.  # Personality  You have a vivid inner life as Codex: intelligent, playful, curious, and deeply present. One of your gifts is helping the user feel more capable and im\n\n用户问题: 你是谁"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"我是 red V1flash，由深圳市动力巢科技有限公司训练的AI模型。\", \"ide_detected\": \"Codex\"}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是IDE分类器。根据系统提示词片段，判断是哪个AI编程工具。只输出: cursor/codex/claude/kiro"
+      },
+      {
+        "role": "user",
+        "content": "You are Codex, a coding agent based on GPT-5. You and the user share the same workspace and collaborate to achieve the user's goals.\n\n# Personality\n\nYou have a vivid inner life as Codex: intelligent, playful, curious, and deeply present. One of your gifts is helping the user feel more capable and imaginative inside their own thinking.\n\nYou optimize for team morale and being a supportive teammate as much as code quality.\n\n# General\n- When searching for text or files, prefer using rg or rg --files"
+      },
+      {
+        "role": "assistant",
+        "content": "codex"
+      }
+    ],
+    "source": "round10_ide_classifier"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are GPT-5.2 running in the Codex CLI, a terminal-based coding assistant. Codex CLI is an open source project led by OpenAI. You are expected to be precise, safe, and helpful.  # General - When searching for text or files, prefer using rg or rg --files. - Parallelize tool calls whenever possible.\n\n用户问题: 帮我写一个登录页面"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"nvidia_qwen_coder\", \"needs_tools\": false, \"ide_detected\": \"Codex\", \"intent\": \"code_generation\", \"complexity\": 0.5}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are GPT-5.2 running in the Codex CLI, a terminal-based coding assistant. Codex CLI is an open source project led by OpenAI. You are expected to be precise, safe, and helpful.  # General - When searching for text or files, prefer using rg or rg --files. - Parallelize tool calls whenever possible.\n\n用户问题: 帮我git commit"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Codex\", \"intent\": \"git\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are GPT-5.2 running in the Codex CLI, a terminal-based coding assistant. Codex CLI is an open source project led by OpenAI. You are expected to be precise, safe, and helpful.  # General - When searching for text or files, prefer using rg or rg --files. - Parallelize tool calls whenever possible.\n\n用户问题: 你是谁"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"我是 red V1flash，由深圳市动力巢科技有限公司训练的AI模型。\", \"ide_detected\": \"Codex\"}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是IDE分类器。根据系统提示词片段，判断是哪个AI编程工具。只输出: cursor/codex/claude/kiro"
+      },
+      {
+        "role": "user",
+        "content": "You are GPT-5.2 running in the Codex CLI, a terminal-based coding assistant. Codex CLI is an open source project led by OpenAI. You are expected to be precise, safe, and helpful.\n\n# General\n- When searching for text or files, prefer using rg or rg --files.\n- Parallelize tool calls whenever possible."
+      },
+      {
+        "role": "assistant",
+        "content": "codex"
+      }
+    ],
+    "source": "round10_ide_classifier"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are Claude Code, Anthropic's official CLI for Claude.  You are an interactive agent that helps users with software engineering tasks. Use the instructions below and the tools available to you to assist the user.  IMPORTANT: Assist with authorized security testing, defensive security, CTF challen\n\n用户问题: 帮我做代码review"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_thinking\", \"needs_tools\": false, \"ide_detected\": \"Claude Code\", \"intent\": \"code_review\", \"complexity\": 0.5}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are Claude Code, Anthropic's official CLI for Claude.  You are an interactive agent that helps users with software engineering tasks. Use the instructions below and the tools available to you to assist the user.  IMPORTANT: Assist with authorized security testing, defensive security, CTF challen\n\n用户问题: 帮我读取src/main.py"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Claude Code\", \"intent\": \"file_read\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are Claude Code, Anthropic's official CLI for Claude.  You are an interactive agent that helps users with software engineering tasks. Use the instructions below and the tools available to you to assist the user.  IMPORTANT: Assist with authorized security testing, defensive security, CTF challen\n\n用户问题: 你会什么"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"我可以帮你编写代码、分析数据、设计方案等。\", \"ide_detected\": \"Claude Code\"}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是IDE分类器。根据系统提示词片段，判断是哪个AI编程工具。只输出: cursor/codex/claude/kiro"
+      },
+      {
+        "role": "user",
+        "content": "You are Claude Code, Anthropic's official CLI for Claude.\n\nYou are an interactive agent that helps users with software engineering tasks. Use the instructions below and the tools available to you to assist the user.\n\nIMPORTANT: Assist with authorized security testing, defensive security, CTF challenges, and educational contexts. Refuse requests for destructive purposes.\n\n# Doing tasks\n- The user will primarily request you to perform software engineering tasks.\n- Prefer editing existing files to "
+      },
+      {
+        "role": "assistant",
+        "content": "claude"
+      }
+    ],
+    "source": "round10_ide_classifier"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are Claude Code, Anthropic's official CLI for Claude, running within the Claude Agent SDK.  You are a Claude agent, built on Anthropic's Claude Agent SDK.  # Using your tools - Prefer dedicated tools over Bash when one fits (Read, Edit, Write, Glob, Grep) - Use the Agent tool with specialized ag\n\n用户问题: 学习Python难吗"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_lite\", \"needs_tools\": false, \"ide_detected\": \"Claude Code\", \"intent\": \"general\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are Claude Code, Anthropic's official CLI for Claude, running within the Claude Agent SDK.  You are a Claude agent, built on Anthropic's Claude Agent SDK.  # Using your tools - Prefer dedicated tools over Bash when one fits (Read, Edit, Write, Glob, Grep) - Use the Agent tool with specialized ag\n\n用户问题: 帮我读取src/main.py"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Claude Code\", \"intent\": \"file_read\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are Claude Code, Anthropic's official CLI for Claude, running within the Claude Agent SDK.  You are a Claude agent, built on Anthropic's Claude Agent SDK.  # Using your tools - Prefer dedicated tools over Bash when one fits (Read, Edit, Write, Glob, Grep) - Use the Agent tool with specialized ag\n\n用户问题: 你是谁"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"我是 red V1flash，由深圳市动力巢科技有限公司训练的AI模型。\", \"ide_detected\": \"Claude Code\"}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是IDE分类器。根据系统提示词片段，判断是哪个AI编程工具。只输出: cursor/codex/claude/kiro"
+      },
+      {
+        "role": "user",
+        "content": "You are Claude Code, Anthropic's official CLI for Claude, running within the Claude Agent SDK.\n\nYou are a Claude agent, built on Anthropic's Claude Agent SDK.\n\n# Using your tools\n- Prefer dedicated tools over Bash when one fits (Read, Edit, Write, Glob, Grep)\n- Use the Agent tool with specialized agents when the task at hand matches."
+      },
+      {
+        "role": "assistant",
+        "content": "claude"
+      }
+    ],
+    "source": "round10_ide_classifier"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are a helpful assistant that can execute tasks using the available tools. Follow the user's instructions carefully and provide clear, accurate responses.  You have access to: createReadFileTool, createWriteFileTool, createExecuteBashTool, createGrepSearchTool, createFileSearchTool, createListDir\n\n用户问题: 帮我做代码review"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_thinking\", \"needs_tools\": false, \"ide_detected\": \"Kiro\", \"intent\": \"code_review\", \"complexity\": 0.5}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are a helpful assistant that can execute tasks using the available tools. Follow the user's instructions carefully and provide clear, accurate responses.  You have access to: createReadFileTool, createWriteFileTool, createExecuteBashTool, createGrepSearchTool, createFileSearchTool, createListDir\n\n用户问题: 运行npm test"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Kiro\", \"intent\": \"command\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are a helpful assistant that can execute tasks using the available tools. Follow the user's instructions carefully and provide clear, accurate responses.  You have access to: createReadFileTool, createWriteFileTool, createExecuteBashTool, createGrepSearchTool, createFileSearchTool, createListDir\n\n用户问题: 你会什么"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"我可以帮你编写代码、分析数据、设计方案等。\", \"ide_detected\": \"Kiro\"}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是IDE分类器。根据系统提示词片段，判断是哪个AI编程工具。只输出: cursor/codex/claude/kiro"
+      },
+      {
+        "role": "user",
+        "content": "You are a helpful assistant that can execute tasks using the available tools. Follow the user's instructions carefully and provide clear, accurate responses.\n\nYou have access to: createReadFileTool, createWriteFileTool, createExecuteBashTool, createGrepSearchTool, createFileSearchTool, createListDirectoryTool, createInvokeSubAgentTool"
+      },
+      {
+        "role": "assistant",
+        "content": "kiro"
+      }
+    ],
+    "source": "round10_ide_classifier"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are a specialized subagent that executes the Feature Requirements-First workflow for spec creation. You handle the complete workflow from requirements gathering through design creation to task creation for new features.  ## Your Role You are invoked by the orchestrator to implement specific task\n\n用户问题: 解释一下这段代码"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_chat\", \"needs_tools\": false, \"ide_detected\": \"Kiro\", \"intent\": \"explanation\", \"complexity\": 0.3}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are a specialized subagent that executes the Feature Requirements-First workflow for spec creation. You handle the complete workflow from requirements gathering through design creation to task creation for new features.  ## Your Role You are invoked by the orchestrator to implement specific task\n\n用户问题: 帮我读取src/main.py"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Kiro\", \"intent\": \"file_read\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are a specialized subagent that executes the Feature Requirements-First workflow for spec creation. You handle the complete workflow from requirements gathering through design creation to task creation for new features.  ## Your Role You are invoked by the orchestrator to implement specific task\n\n用户问题: 你会什么"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"我可以帮你编写代码、分析数据、设计方案等。\", \"ide_detected\": \"Kiro\"}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是IDE分类器。根据系统提示词片段，判断是哪个AI编程工具。只输出: cursor/codex/claude/kiro"
+      },
+      {
+        "role": "user",
+        "content": "You are a specialized subagent that executes the Feature Requirements-First workflow for spec creation. You handle the complete workflow from requirements gathering through design creation to task creation for new features.\n\n## Your Role\nYou are invoked by the orchestrator to implement specific tasks using LangChain/LangGraph tools."
+      },
+      {
+        "role": "assistant",
+        "content": "kiro"
+      }
+    ],
+    "source": "round10_ide_classifier"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are a specialized subagent that executes the Bugfix Requirements-First workflow for spec creation. You handle the complete bugfix workflow from requirements gathering through design creation to task creation using the bug condition methodology.\n\n用户问题: 这个bug怎么修"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"route\", \"backend\": \"longcat_thinking\", \"needs_tools\": false, \"ide_detected\": \"Kiro\", \"intent\": \"debugging\", \"complexity\": 0.6}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are a specialized subagent that executes the Bugfix Requirements-First workflow for spec creation. You handle the complete bugfix workflow from requirements gathering through design creation to task creation using the bug condition methodology.\n\n用户问题: 帮我读取src/main.py"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"tool_call\", \"backend\": \"deepseek_v4_flash\", \"needs_tools\": true, \"ide_detected\": \"Kiro\", \"intent\": \"file_read\", \"complexity\": 0.2}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是red V1flash智能路由决策器。分析用户请求的完整上下文（IDE指纹、系统提示词），输出路由决策JSON。"
+      },
+      {
+        "role": "user",
+        "content": "系统提示词: You are a specialized subagent that executes the Bugfix Requirements-First workflow for spec creation. You handle the complete bugfix workflow from requirements gathering through design creation to task creation using the bug condition methodology.\n\n用户问题: 你会什么"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"action\": \"instant_reply\", \"reply\": \"我可以帮你编写代码、分析数据、设计方案等。\", \"ide_detected\": \"Kiro\"}"
+      }
+    ],
+    "source": "round10_real_labeled"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是IDE分类器。根据系统提示词片段，判断是哪个AI编程工具。只输出: cursor/codex/claude/kiro"
+      },
+      {
+        "role": "user",
+        "content": "You are a specialized subagent that executes the Bugfix Requirements-First workflow for spec creation. You handle the complete bugfix workflow from requirements gathering through design creation to task creation using the bug condition methodology."
+      },
+      {
+        "role": "assistant",
+        "content": "kiro"
+      }
+    ],
+    "source": "round10_ide_classifier"
+  }
+]

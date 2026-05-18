@@ -1,0 +1,2212 @@
+[
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "帮我写一个React登录表单组件，包含邮箱和密码输入"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_generation\", \"complexity\": 0.4, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"前端组件生成，代码专精模型最适合，复杂度中等\"}"
+      }
+    ],
+    "source": "cursor_agent_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "用Python实现一个LRU缓存，支持过期时间"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_generation\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"数据结构实现，需要代码专精能力，单文件任务无需编排\"}"
+      }
+    ],
+    "source": "claude_code_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "写一个Express中间件处理JWT认证"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_generation\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"后端中间件生成，涉及安全模式，代码专精模型处理\"}"
+      }
+    ],
+    "source": "cursor_agent_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "帮我生成一个Rust的并发安全HashMap封装"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_generation\", \"complexity\": 0.7, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"Rust并发编程，需要强代码能力处理所有权和生命周期\"}"
+      }
+    ],
+    "source": "devin_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "创建一个CLI工具，支持子命令解析和帮助文档自动生成"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_generation\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"CLI工具开发，模式明确，代码生成模型直接处理\"}"
+      }
+    ],
+    "source": "claude_code_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "写一个WebSocket服务端，支持房间管理和消息广播"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_generation\", \"complexity\": 0.7, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"实时通信服务实现，代码量中等，代码专精模型适合\"}"
+      }
+    ],
+    "source": "windsurf_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "用Go写一个文件上传API，支持分片上传和断点续传"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_generation\", \"complexity\": 0.8, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"复杂文件处理逻辑，需要强代码生成能力，但仍是单一功能模块\"}"
+      }
+    ],
+    "source": "cursor_agent_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "帮我写一个数据库连接池，支持自动重连和健康检查"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_generation\", \"complexity\": 0.7, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"基础设施代码生成，模式成熟，代码专精模型直接输出\"}"
+      }
+    ],
+    "source": "devin_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "实现一个简单的事件总线EventBus，支持on/off/emit"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_generation\", \"complexity\": 0.3, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"经典设计模式实现，复杂度低，代码模型快速生成\"}"
+      }
+    ],
+    "source": "vscode_agent_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "写一个TypeScript装饰器，实现方法级别的缓存"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_generation\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"TS高级特性使用，代码专精模型对装饰器模式熟悉\"}"
+      }
+    ],
+    "source": "cursor_agent_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "这个函数报TypeError: Cannot read properties of undefined，帮我看看哪里有问题"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_debug\", \"complexity\": 0.4, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"运行时错误调试，需要推理分析错误链路\"}"
+      }
+    ],
+    "source": "cursor_agent_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "我的API返回500错误，日志显示数据库连接超时，但连接池配置看起来没问题"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_debug\", \"complexity\": 0.7, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"多层排查问题，需要推理能力分析连接池、网络、配置等多个可能原因\"}"
+      }
+    ],
+    "source": "claude_code_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "React组件重新渲染太频繁导致性能问题，怎么定位和修复"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_debug\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"性能调试需要分析渲染链路和依赖关系，推理模型适合\"}"
+      }
+    ],
+    "source": "windsurf_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "并发测试偶尔出现死锁，但不是每次都能复现，帮我分析可能的原因"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_debug\", \"complexity\": 0.9, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"并发死锁是高难度调试问题，需要深度推理分析锁顺序和竞态条件\"}"
+      }
+    ],
+    "source": "devin_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "webpack构建报错Module not found，但文件明明存在"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_debug\", \"complexity\": 0.4, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"构建工具配置问题，需要推理路径解析和别名配置\"}"
+      }
+    ],
+    "source": "cursor_agent_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "内存泄漏，Node进程RSS持续增长，heapdump显示大量detached DOM节点"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_debug\", \"complexity\": 0.8, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"内存泄漏分析需要深度推理，追踪引用链和GC行为\"}"
+      }
+    ],
+    "source": "claude_code_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "CI流水线在Docker构建阶段失败，本地构建正常，错误是permission denied"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_debug\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"环境差异导致的构建问题，需要推理Docker权限模型\"}"
+      }
+    ],
+    "source": "vscode_agent_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "GraphQL查询返回null但数据库里有数据，resolver看起来没问题"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_debug\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"数据流追踪调试，需要推理resolver链和类型映射\"}"
+      }
+    ],
+    "source": "cursor_agent_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "测试在本地通过但CI上随机失败，看起来是时序相关的问题"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_debug\", \"complexity\": 0.7, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"Flaky test诊断需要分析异步时序和环境差异，推理模型适合\"}"
+      }
+    ],
+    "source": "devin_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "TypeScript编译报错：Type 'string' is not assignable to type 'never'，在联合类型narrowing的时候"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_debug\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"类型系统推理问题，需要分析类型收窄逻辑\"}"
+      }
+    ],
+    "source": "cursor_agent_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "帮我重构这个函数，提取公共逻辑到独立的工具函数"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_refactor\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"函数提取重构，代码专精模型理解代码结构最好\"}"
+      }
+    ],
+    "source": "cursor_agent_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "这个类太大了，有800多行，帮我拆分成多个职责单一的模块"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_refactor\", \"complexity\": 0.8, \"needs_orchestration\": true, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"大规模模块拆分涉及多文件修改和依赖更新，需要编排协调\"}"
+      }
+    ],
+    "source": "claude_code_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "把这些回调风格的代码改成async/await"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_refactor\", \"complexity\": 0.4, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"异步模式转换，模式明确，代码模型直接处理\"}"
+      }
+    ],
+    "source": "windsurf_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "将这个monolith的用户模块抽取为独立的微服务"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_refactor\", \"complexity\": 0.9, \"needs_orchestration\": true, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"微服务拆分是大规模重构，需要编排处理API边界、数据迁移、接口定义等多步骤\"}"
+      }
+    ],
+    "source": "devin_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "用策略模式替换这个巨大的switch-case"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_refactor\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"设计模式应用，代码专精模型熟悉常见重构手法\"}"
+      }
+    ],
+    "source": "cursor_agent_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "把项目从JavaScript迁移到TypeScript，先从核心模块开始"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_refactor\", \"complexity\": 0.9, \"needs_orchestration\": true, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"语言迁移是大工程，需要编排处理类型定义、配置更新、逐模块转换\"}"
+      }
+    ],
+    "source": "claude_code_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "这段代码有很多重复的错误处理逻辑，帮我抽取一个统一的错误处理中间件"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_refactor\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"DRY原则应用，提取公共错误处理，代码模型直接重构\"}"
+      }
+    ],
+    "source": "vscode_agent_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "重构数据访问层，从直接SQL查询改为Repository模式"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_refactor\", \"complexity\": 0.7, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"架构模式重构，涉及接口定义和实现分离，代码专精模型处理\"}"
+      }
+    ],
+    "source": "cursor_agent_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "把组件的状态管理从prop drilling改成Context + useReducer"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_refactor\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"React状态管理重构，模式明确，代码模型熟悉React生态\"}"
+      }
+    ],
+    "source": "windsurf_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "消除这个模块的循环依赖，重新组织导入关系"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_refactor\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"依赖关系重构，需要理解模块图，代码专精模型适合\"}"
+      }
+    ],
+    "source": "devin_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "设计一个高可用的消息队列系统，支持百万级TPS"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"architecture\", \"complexity\": 0.95, \"needs_orchestration\": true, \"backend\": \"longcat\", \"reason\": \"高级架构设计需要综合考虑分布式、容错、性能，需要最强综合模型\"}"
+      }
+    ],
+    "source": "devin_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "我们的系统需要从单体架构迁移到微服务，帮我设计迁移方案"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"architecture\", \"complexity\": 0.95, \"needs_orchestration\": true, \"backend\": \"longcat\", \"reason\": \"架构迁移方案设计，需要全局视角和深度分析，编排模式处理多阶段规划\"}"
+      }
+    ],
+    "source": "claude_code_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "设计一个支持多租户的SaaS平台数据隔离方案"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"architecture\", \"complexity\": 0.8, \"needs_orchestration\": false, \"backend\": \"longcat\", \"reason\": \"多租户架构设计，需要综合考虑安全性和性能，综合模型适合\"}"
+      }
+    ],
+    "source": "cursor_agent_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "帮我设计一个事件驱动的订单处理系统，要考虑幂等性和最终一致性"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"architecture\", \"complexity\": 0.85, \"needs_orchestration\": true, \"backend\": \"longcat\", \"reason\": \"分布式系统设计涉及事件溯源、CQRS等模式，需要综合推理能力\"}"
+      }
+    ],
+    "source": "windsurf_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "设计API网关的限流和熔断策略"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"architecture\", \"complexity\": 0.7, \"needs_orchestration\": false, \"backend\": \"longcat\", \"reason\": \"基础设施架构设计，需要综合考虑流量模型和故障恢复\"}"
+      }
+    ],
+    "source": "cursor_agent_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "我们要做一个实时协作编辑器，类似Google Docs，帮我选择技术方案"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"architecture\", \"complexity\": 0.9, \"needs_orchestration\": true, \"backend\": \"longcat\", \"reason\": \"实时协作系统涉及CRDT/OT算法选型、冲突解决、同步策略，需要深度架构分析\"}"
+      }
+    ],
+    "source": "devin_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "设计一个可扩展的插件系统架构，支持热加载"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"architecture\", \"complexity\": 0.7, \"needs_orchestration\": false, \"backend\": \"longcat\", \"reason\": \"插件架构设计需要考虑隔离性、API稳定性、生命周期管理\"}"
+      }
+    ],
+    "source": "vscode_agent_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "帮我设计数据库分库分表方案，目前单表已经5000万行"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"architecture\", \"complexity\": 0.8, \"needs_orchestration\": false, \"backend\": \"longcat\", \"reason\": \"数据库架构设计，需要综合考虑分片策略、路由规则、数据迁移\"}"
+      }
+    ],
+    "source": "claude_code_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "设计一个ML模型服务化平台，支持A/B测试和灰度发布"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"architecture\", \"complexity\": 0.85, \"needs_orchestration\": true, \"backend\": \"longcat\", \"reason\": \"MLOps平台设计涉及模型管理、流量分配、监控告警等多个子系统\"}"
+      }
+    ],
+    "source": "cursor_agent_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "我们的系统需要支持全球多区域部署，帮我设计数据同步和一致性方案"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"architecture\", \"complexity\": 0.95, \"needs_orchestration\": true, \"backend\": \"longcat\", \"reason\": \"全球化部署架构是最高复杂度设计，涉及CAP权衡、跨区域同步、故障域隔离\"}"
+      }
+    ],
+    "source": "devin_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "解释一下这段代码的作用，特别是这个递归函数的终止条件"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_explain\", \"complexity\": 0.3, \"needs_orchestration\": false, \"backend\": \"longcat_lite\", \"reason\": \"代码解释任务，不需要强推理，快速模型即可\"}"
+      }
+    ],
+    "source": "cursor_agent_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "帮我写这个API的接口文档，包含请求参数和响应格式"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"documentation\", \"complexity\": 0.3, \"needs_orchestration\": false, \"backend\": \"longcat_lite\", \"reason\": \"API文档生成是结构化输出任务，快速模型足够\"}"
+      }
+    ],
+    "source": "claude_code_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "这个项目的整体架构是什么样的？帮我梳理一下模块关系"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_explain\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"longcat_lite\", \"reason\": \"代码库梳理和解释，需要阅读理解但不需要强推理\"}"
+      }
+    ],
+    "source": "windsurf_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "给这个函数写单元测试的注释说明，解释每个测试用例覆盖什么场景"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"documentation\", \"complexity\": 0.3, \"needs_orchestration\": false, \"backend\": \"longcat_lite\", \"reason\": \"测试文档编写，结构化描述任务，快速模型处理\"}"
+      }
+    ],
+    "source": "vscode_agent_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "什么是CQRS模式？在什么场景下应该使用它？"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_explain\", \"complexity\": 0.4, \"needs_orchestration\": false, \"backend\": \"longcat_lite\", \"reason\": \"概念解释类问题，快速模型知识储备足够\"}"
+      }
+    ],
+    "source": "cursor_agent_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "帮我写一份项目的README，包含安装步骤、使用方法和贡献指南"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"documentation\", \"complexity\": 0.4, \"needs_orchestration\": false, \"backend\": \"longcat_lite\", \"reason\": \"README文档生成，模板化输出，快速模型即可\"}"
+      }
+    ],
+    "source": "claude_code_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "解释一下这个正则表达式的含义：^(?=.*[A-Z])(?=.*\\d)[A-Za-z\\d@$!%*?&]{8,}$"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_explain\", \"complexity\": 0.3, \"needs_orchestration\": false, \"backend\": \"longcat_lite\", \"reason\": \"正则表达式解读，模式匹配解释，快速模型直接回答\"}"
+      }
+    ],
+    "source": "cursor_agent_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "帮我生成这个TypeScript接口的JSDoc注释"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"documentation\", \"complexity\": 0.2, \"needs_orchestration\": false, \"backend\": \"longcat_lite\", \"reason\": \"代码注释生成，最简单的文档任务，快速模型秒回\"}"
+      }
+    ],
+    "source": "windsurf_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "对比一下Redux和Zustand的优缺点，我的项目应该选哪个"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_explain\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"longcat_lite\", \"reason\": \"技术选型对比分析，需要知识广度但不需要深度推理\"}"
+      }
+    ],
+    "source": "devin_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"
+      },
+      {
+        "role": "user",
+        "content": "帮我写一份变更日志，总结这次版本更新的所有改动"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"documentation\", \"complexity\": 0.3, \"needs_orchestration\": false, \"backend\": \"longcat_lite\", \"reason\": \"CHANGELOG生成，结构化总结任务，快速模型处理\"}"
+      }
+    ],
+    "source": "claude_code_prompt"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "帮我review一下这个PR的代码质量"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_review\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"代码审查需要推理分析能力，识别潜在问题和改进点\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "检查我刚写的用户注册模块有没有问题"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_review\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"代码审查需要推理分析能力，识别潜在问题和改进点\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "这段代码有没有潜在的bug，帮我审查一下"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_review\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"代码审查需要推理分析能力，识别潜在问题和改进点\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "review下这个service层的实现，看看有没有代码坏味道"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_review\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"代码审查需要推理分析能力，识别潜在问题和改进点\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "帮我看看这个React组件的代码质量怎么样"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_review\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"代码审查需要推理分析能力，识别潜在问题和改进点\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "我刚重构了数据层，帮我做个code review"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_review\", \"complexity\": 0.7, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"代码审查需要推理分析能力，识别潜在问题和改进点\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "检查这个API handler的错误处理是否完善"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_review\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"代码审查需要推理分析能力，识别潜在问题和改进点\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "帮我审查这个工具函数的边界条件处理"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_review\", \"complexity\": 0.4, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"代码审查需要推理分析能力，识别潜在问题和改进点\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "review这个中间件的实现，关注可维护性"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_review\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"代码审查需要推理分析能力，识别潜在问题和改进点\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "看看这段TypeScript代码的类型设计合不合理"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_review\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"代码审查需要推理分析能力，识别潜在问题和改进点\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "项目build失败了，报了一堆TypeScript类型错误"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"build_fix\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"构建错误修复需要代码专精能力，快速定位和修复编译问题\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "npm run build报错Module not found，怎么修"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"build_fix\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"构建错误修复需要代码专精能力，快速定位和修复编译问题\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "编译报错：Cannot find module @/utils/auth"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"build_fix\", \"complexity\": 0.4, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"构建错误修复需要代码专精能力，快速定位和修复编译问题\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "tsc --noEmit报了15个类型错误，帮我修复"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"build_fix\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"构建错误修复需要代码专精能力，快速定位和修复编译问题\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "webpack打包失败，loader配置有问题"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"build_fix\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"构建错误修复需要代码专精能力，快速定位和修复编译问题\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "Next.js build失败，getServerSideProps类型不匹配"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"build_fix\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"构建错误修复需要代码专精能力，快速定位和修复编译问题\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "Rust cargo build报lifetime错误，帮我修"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"build_fix\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"构建错误修复需要代码专精能力，快速定位和修复编译问题\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "Go编译报错undefined reference，依赖没解析对"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"build_fix\", \"complexity\": 0.4, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"构建错误修复需要代码专精能力，快速定位和修复编译问题\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "Maven build失败，dependency conflict怎么解决"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"build_fix\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"构建错误修复需要代码专精能力，快速定位和修复编译问题\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "Docker build失败在npm install步骤，权限问题"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"build_fix\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"构建错误修复需要代码专精能力，快速定位和修复编译问题\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "检查这个登录接口有没有安全漏洞"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"security_audit\", \"complexity\": 0.7, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"安全审计需要深度推理能力，系统性检查漏洞和攻击面\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "帮我做一次OWASP Top 10安全审计"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"security_audit\", \"complexity\": 0.8, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"安全审计需要深度推理能力，系统性检查漏洞和攻击面\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "这个文件上传功能有没有路径遍历风险"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"security_audit\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"安全审计需要深度推理能力，系统性检查漏洞和攻击面\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "审查一下这个支付模块的安全性"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"security_audit\", \"complexity\": 0.8, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"安全审计需要深度推理能力，系统性检查漏洞和攻击面\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "检查SQL注入风险，我用了字符串拼接查询"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"security_audit\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"安全审计需要深度推理能力，系统性检查漏洞和攻击面\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "这个API有没有CSRF防护，帮我检查"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"security_audit\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"安全审计需要深度推理能力，系统性检查漏洞和攻击面\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "审计一下用户输入处理，有没有XSS漏洞"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"security_audit\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"安全审计需要深度推理能力，系统性检查漏洞和攻击面\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "检查JWT实现是否安全，token有没有正确验证"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"security_audit\", \"complexity\": 0.7, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"安全审计需要深度推理能力，系统性检查漏洞和攻击面\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "帮我review这个认证中间件的安全性"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"security_audit\", \"complexity\": 0.7, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"安全审计需要深度推理能力，系统性检查漏洞和攻击面\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "这个webhook处理有没有SSRF风险"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"security_audit\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"安全审计需要深度推理能力，系统性检查漏洞和攻击面\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "这个页面加载太慢了，帮我分析性能瓶颈"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"performance\", \"complexity\": 0.7, \"needs_orchestration\": false, \"backend\": \"or_deepseek_r1\", \"reason\": \"性能优化需要强推理能力，分析瓶颈并设计优化方案\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "React组件频繁重渲染，怎么优化"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"performance\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"or_deepseek_r1\", \"reason\": \"性能优化需要强推理能力，分析瓶颈并设计优化方案\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "数据库查询太慢，帮我优化这个SQL"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"performance\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"or_deepseek_r1\", \"reason\": \"性能优化需要强推理能力，分析瓶颈并设计优化方案\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "bundle size太大了，怎么做代码分割"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"performance\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"or_deepseek_r1\", \"reason\": \"性能优化需要强推理能力，分析瓶颈并设计优化方案\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "这个算法时间复杂度是O(n2)，能优化到O(n log n)吗"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"performance\", \"complexity\": 0.7, \"needs_orchestration\": false, \"backend\": \"or_deepseek_r1\", \"reason\": \"性能优化需要强推理能力，分析瓶颈并设计优化方案\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "Node.js服务内存泄漏，帮我定位问题"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"performance\", \"complexity\": 0.8, \"needs_orchestration\": false, \"backend\": \"or_deepseek_r1\", \"reason\": \"性能优化需要强推理能力，分析瓶颈并设计优化方案\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "API响应时间从200ms涨到2s了，帮我排查"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"performance\", \"complexity\": 0.7, \"needs_orchestration\": false, \"backend\": \"or_deepseek_r1\", \"reason\": \"性能优化需要强推理能力，分析瓶颈并设计优化方案\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "前端首屏渲染时间太长，怎么优化LCP"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"performance\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"or_deepseek_r1\", \"reason\": \"性能优化需要强推理能力，分析瓶颈并设计优化方案\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "这个循环里有N+1查询问题，帮我优化"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"performance\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"or_deepseek_r1\", \"reason\": \"性能优化需要强推理能力，分析瓶颈并设计优化方案\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "Redis缓存命中率太低，帮我优化缓存策略"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"performance\", \"complexity\": 0.7, \"needs_orchestration\": false, \"backend\": \"or_deepseek_r1\", \"reason\": \"性能优化需要强推理能力，分析瓶颈并设计优化方案\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "帮我给这个用户服务写单元测试"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"testing\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"测试编写是代码生成任务，需要代码专精模型生成测试代码\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "用TDD方式实现一个购物车功能"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"testing\", \"complexity\": 0.7, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"测试编写是代码生成任务，需要代码专精模型生成测试代码\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "这个API endpoint需要集成测试，帮我写"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"testing\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"测试编写是代码生成任务，需要代码专精模型生成测试代码\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "帮我写E2E测试覆盖登录流程"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"testing\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"测试编写是代码生成任务，需要代码专精模型生成测试代码\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "测试覆盖率只有40%，帮我补充测试用例"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"testing\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"测试编写是代码生成任务，需要代码专精模型生成测试代码\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "这个工具函数的边界条件测试怎么写"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"testing\", \"complexity\": 0.4, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"测试编写是代码生成任务，需要代码专精模型生成测试代码\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "帮我mock外部API依赖写测试"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"testing\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"测试编写是代码生成任务，需要代码专精模型生成测试代码\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "用Jest给这个React hook写测试"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"testing\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"测试编写是代码生成任务，需要代码专精模型生成测试代码\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "帮我写数据库操作的集成测试"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"testing\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"测试编写是代码生成任务，需要代码专精模型生成测试代码\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "这个状态机需要测试所有状态转换"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"testing\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"测试编写是代码生成任务，需要代码专精模型生成测试代码\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "帮我更新这个模块的API文档"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"documentation\", \"complexity\": 0.3, \"needs_orchestration\": false, \"backend\": \"longcat_lite\", \"reason\": \"文档生成是快速通用任务，不需要深度推理\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "给这个项目生成README文档"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"documentation\", \"complexity\": 0.4, \"needs_orchestration\": false, \"backend\": \"longcat_lite\", \"reason\": \"文档生成是快速通用任务，不需要深度推理\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "帮我写这个函数的JSDoc注释"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"documentation\", \"complexity\": 0.2, \"needs_orchestration\": false, \"backend\": \"longcat_lite\", \"reason\": \"文档生成是快速通用任务，不需要深度推理\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "更新架构文档，反映最近的重构"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"documentation\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"longcat_lite\", \"reason\": \"文档生成是快速通用任务，不需要深度推理\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "帮我生成这个REST API的OpenAPI规范"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"documentation\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"longcat_lite\", \"reason\": \"文档生成是快速通用任务，不需要深度推理\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "写一个部署指南文档"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"documentation\", \"complexity\": 0.4, \"needs_orchestration\": false, \"backend\": \"longcat_lite\", \"reason\": \"文档生成是快速通用任务，不需要深度推理\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "帮我更新CHANGELOG，记录最近的变更"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"documentation\", \"complexity\": 0.3, \"needs_orchestration\": false, \"backend\": \"longcat_lite\", \"reason\": \"文档生成是快速通用任务，不需要深度推理\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "给这个库写使用示例文档"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"documentation\", \"complexity\": 0.4, \"needs_orchestration\": false, \"backend\": \"longcat_lite\", \"reason\": \"文档生成是快速通用任务，不需要深度推理\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "帮我生成代码地图，展示模块依赖关系"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"documentation\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"longcat_lite\", \"reason\": \"文档生成是快速通用任务，不需要深度推理\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "更新贡献指南，加入新的开发流程"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"documentation\", \"complexity\": 0.3, \"needs_orchestration\": false, \"backend\": \"longcat_lite\", \"reason\": \"文档生成是快速通用任务，不需要深度推理\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "帮我设计用户权限系统的数据库schema"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"database\", \"complexity\": 0.7, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"数据库设计需要推理能力，考虑性能、一致性和扩展性\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "这个查询需要加什么索引才能提升性能"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"database\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"数据库设计需要推理能力，考虑性能、一致性和扩展性\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "帮我设计多租户系统的数据隔离方案"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"database\", \"complexity\": 0.8, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"数据库设计需要推理能力，考虑性能、一致性和扩展性\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "Review这个migration文件，检查有没有问题"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"database\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"数据库设计需要推理能力，考虑性能、一致性和扩展性\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "帮我优化这个复杂的JOIN查询"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"database\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"数据库设计需要推理能力，考虑性能、一致性和扩展性\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "设计一个支持软删除和审计日志的schema"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"database\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"数据库设计需要推理能力，考虑性能、一致性和扩展性\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "PostgreSQL的RLS策略怎么设计比较安全"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"database\", \"complexity\": 0.7, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"数据库设计需要推理能力，考虑性能、一致性和扩展性\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "帮我设计订单系统的数据模型，要支持状态机"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"database\", \"complexity\": 0.7, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"数据库设计需要推理能力，考虑性能、一致性和扩展性\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "这个表需要分区吗，数据量预计千万级"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"database\", \"complexity\": 0.7, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"数据库设计需要推理能力，考虑性能、一致性和扩展性\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "帮我设计一个时序数据的存储方案"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"database\", \"complexity\": 0.7, \"needs_orchestration\": false, \"backend\": \"longcat_thinking\", \"reason\": \"数据库设计需要推理能力，考虑性能、一致性和扩展性\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "帮我从零搭建一个全栈项目，包含认证、数据库、API和前端"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"architecture\", \"complexity\": 0.95, \"needs_orchestration\": true, \"backend\": \"longcat\", \"reason\": \"多步骤复杂任务，需要编排多个专业agent协作完成\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "重构整个支付模块，需要先写测试再改代码最后做安全审计"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"refactoring\", \"complexity\": 0.9, \"needs_orchestration\": true, \"backend\": \"longcat_thinking\", \"reason\": \"多步骤复杂任务，需要编排多个专业agent协作完成\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "帮我做一次完整的代码质量提升：review、修bug、补测试、更新文档"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"code_quality\", \"complexity\": 0.9, \"needs_orchestration\": true, \"backend\": \"longcat\", \"reason\": \"多步骤复杂任务，需要编排多个专业agent协作完成\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "设计并实现一个微服务拆分方案，包含API网关和服务发现"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"architecture\", \"complexity\": 0.95, \"needs_orchestration\": true, \"backend\": \"longcat\", \"reason\": \"多步骤复杂任务，需要编排多个专业agent协作完成\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "帮我把这个单体应用容器化，写Dockerfile、docker-compose和CI/CD"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"devops\", \"complexity\": 0.85, \"needs_orchestration\": true, \"backend\": \"longcat_thinking\", \"reason\": \"多步骤复杂任务，需要编排多个专业agent协作完成\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "实现一个完整的用户系统：注册、登录、权限、密码重置、2FA"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"feature_development\", \"complexity\": 0.9, \"needs_orchestration\": true, \"backend\": \"longcat\", \"reason\": \"多步骤复杂任务，需要编排多个专业agent协作完成\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "帮我做性能优化：先profiling定位瓶颈，再优化代码，最后写性能测试"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"performance\", \"complexity\": 0.85, \"needs_orchestration\": true, \"backend\": \"or_deepseek_r1\", \"reason\": \"多步骤复杂任务，需要编排多个专业agent协作完成\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "从需求分析到部署，帮我实现一个实时通知系统"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"feature_development\", \"complexity\": 0.9, \"needs_orchestration\": true, \"backend\": \"longcat\", \"reason\": \"多步骤复杂任务，需要编排多个专业agent协作完成\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "帮我做安全加固：审计现有代码、修复漏洞、加WAF规则、写安全测试"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"security_audit\", \"complexity\": 0.9, \"needs_orchestration\": true, \"backend\": \"longcat_thinking\", \"reason\": \"多步骤复杂任务，需要编排多个专业agent协作完成\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  },
+  {
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。不要回答问题本身。"
+      },
+      {
+        "role": "user",
+        "content": "重新设计数据库schema，迁移数据，更新所有相关的API和测试"
+      },
+      {
+        "role": "assistant",
+        "content": "{\"intent\": \"database\", \"complexity\": 0.9, \"needs_orchestration\": true, \"backend\": \"longcat_thinking\", \"reason\": \"多步骤复杂任务，需要编排多个专业agent协作完成\"}"
+      }
+    ],
+    "source": "everything-claude-code"
+  }
+]

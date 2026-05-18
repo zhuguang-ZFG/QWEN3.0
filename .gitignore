@@ -1,0 +1,64 @@
+# === 模型文件 ===
+my_code_model_*/
+active_model/
+*.bin
+*.safetensors
+*.gguf
+*.pt
+*.pth
+
+# === Python ===
+venv/
+__pycache__/
+*.pyc
+.env
+
+# === 第三方项目 ===
+llama.cpp/
+GRBL-Plotter/
+Grbl_Esp32/
+LaserGRBL/
+QWEN3.0/
+AutoMergePublicNodes/
+Free-servers/
+FreeNodes/
+NoMoreWalls/
+GitNexus/
+ai-prompts-ref/
+andrej-karpathy-skills/
+better-uncensored/
+chalsh/
+autolook/
+axidraw/
+codex_skillsplus/
+
+# === 构建产物 ===
+net/new-site/out/
+net/new-site/node_modules/
+net/new-site/.next/
+
+# === 数据文件 ===
+*.jsonl
+data/distill_queue/
+data/usage.json
+ab_results/
+anti_hallucination_full.json
+
+# === 临时文件 ===
+_temp_*.py
+_upstream_check/
+*.log
+logs/
+
+# === 系统 ===
+.DS_Store
+Thumbs.db
+*.swp
+
+# === 敏感配置 ===
+api_config.json
+api_health.json
+frp/frpc.toml
+pay_orders.db
+sessions.db
+feedback_queue.json

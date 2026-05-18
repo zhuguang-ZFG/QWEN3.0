@@ -1,0 +1,402 @@
+[
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "帮我把这个函数的变量名从驼峰改成下划线风格"},
+      {"role": "assistant", "content": "{\"intent\": \"code_edit\", \"complexity\": 0.2, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"简单重命名重构，单文件diff编辑，类似aider的editblock模式\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "设计一个微服务架构，把现有的单体应用拆分成用户服务、订单服务和支付服务"},
+      {"role": "assistant", "content": "{\"intent\": \"architecture_design\", \"complexity\": 0.9, \"needs_orchestration\": true, \"backend\": \"longcat_thinking\", \"reason\": \"架构级设计决策，类似aider architect模式用强模型规划，需要多步骤编排\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "这段代码为什么会报TypeError？"},
+      {"role": "assistant", "content": "{\"intent\": \"debugging\", \"complexity\": 0.3, \"needs_orchestration\": false, \"backend\": \"longcat_lite\", \"reason\": \"简单错误解释，类似cline的read_file+分析模式，轻量模型即可\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "重构整个项目的数据库访问层，从直接SQL改成Repository模式"},
+      {"role": "assistant", "content": "{\"intent\": \"refactoring\", \"complexity\": 0.85, \"needs_orchestration\": true, \"backend\": \"longcat_thinking\", \"reason\": \"多文件重构，类似aider architect模式：先用强模型规划架构变更，再用编辑模型逐文件实现\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "给这个API接口加上参数校验"},
+      {"role": "assistant", "content": "{\"intent\": \"code_edit\", \"complexity\": 0.35, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"单文件代码编辑，类似aider editblock模式，添加验证逻辑\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "解释一下这个正则表达式是做什么的：^(?=.*[A-Z])(?=.*\\d)[A-Za-z\\d]{8,}$"},
+      {"role": "assistant", "content": "{\"intent\": \"explanation\", \"complexity\": 0.2, \"needs_orchestration\": false, \"backend\": \"longcat_lite\", \"reason\": \"代码解释任务，类似continue的chat模式，轻量模型即可完成\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "写一个完整的用户认证模块，包含注册、登录、JWT刷新、密码重置"},
+      {"role": "assistant", "content": "{\"intent\": \"code_generation\", \"complexity\": 0.75, \"needs_orchestration\": true, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"多文件代码生成，类似cline的多步骤任务分解：创建多个文件、执行命令安装依赖\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "帮我补全这个函数的下一行代码"},
+      {"role": "assistant", "content": "{\"intent\": \"code_completion\", \"complexity\": 0.1, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"行级代码补全，类似continue的tabAutocomplete角色，最轻量的代码任务\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "这个生产环境的内存泄漏问题怎么排查？应用运行几小时后RSS从200MB涨到2GB"},
+      {"role": "assistant", "content": "{\"intent\": \"debugging\", \"complexity\": 0.8, \"needs_orchestration\": false, \"backend\": \"or_deepseek_r1\", \"reason\": \"复杂调试需要深度推理，分析内存泄漏需要系统性思考，类似cline的多步骤分析流程\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "把这个文件里的console.log全部删掉"},
+      {"role": "assistant", "content": "{\"intent\": \"code_edit\", \"complexity\": 0.1, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"批量简单编辑，类似aider的wholefile模式，机械性替换操作\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "分析这个项目的整体架构，画出模块依赖关系图"},
+      {"role": "assistant", "content": "{\"intent\": \"analysis\", \"complexity\": 0.7, \"needs_orchestration\": false, \"backend\": \"longcat\", \"reason\": \"项目分析需要理解多文件关系，类似aider的ask模式+context模式，需要长上下文能力\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "用TDD方式给这个购物车模块写单元测试"},
+      {"role": "assistant", "content": "{\"intent\": \"test_generation\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"测试代码生成，类似continue的/test slash command，代码专精模型适合\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "把这个Express应用迁移到Fastify框架"},
+      {"role": "assistant", "content": "{\"intent\": \"refactoring\", \"complexity\": 0.8, \"needs_orchestration\": true, \"backend\": \"longcat_thinking\", \"reason\": \"框架迁移涉及多文件重构，类似aider architect模式：先规划迁移策略，再逐步执行\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "在第45行加一个空行"},
+      {"role": "assistant", "content": "{\"intent\": \"code_edit\", \"complexity\": 0.05, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"最简单的编辑操作，类似aider的diff模式，单行变更\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "这个并发bug很诡异，两个goroutine在特定时序下会死锁，帮我分析race condition"},
+      {"role": "assistant", "content": "{\"intent\": \"debugging\", \"complexity\": 0.85, \"needs_orchestration\": false, \"backend\": \"or_deepseek_r1\", \"reason\": \"并发死锁分析需要深度推理能力，需要模拟执行时序，类似cline的多步骤分析\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "给这个函数加个注释说明参数含义"},
+      {"role": "assistant", "content": "{\"intent\": \"documentation\", \"complexity\": 0.15, \"needs_orchestration\": false, \"backend\": \"longcat_lite\", \"reason\": \"简单文档注释，类似continue的/comment slash command，轻量任务\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "设计一个事件驱动的消息队列系统，支持消息重试、死信队列和消费者组"},
+      {"role": "assistant", "content": "{\"intent\": \"architecture_design\", \"complexity\": 0.9, \"needs_orchestration\": true, \"backend\": \"longcat_thinking\", \"reason\": \"系统设计任务，类似aider architect模式的强模型规划阶段，需要深度思考\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "运行npm test看看测试结果"},
+      {"role": "assistant", "content": "{\"intent\": \"command_execution\", \"complexity\": 0.1, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"命令执行，类似cline的execute_command工具，简单操作\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "把项目从JavaScript迁移到TypeScript，需要添加类型定义、配置tsconfig、更新构建脚本"},
+      {"role": "assistant", "content": "{\"intent\": \"refactoring\", \"complexity\": 0.85, \"needs_orchestration\": true, \"backend\": \"longcat_thinking\", \"reason\": \"大规模迁移涉及所有文件，类似aider architect+editor双模型协作：规划迁移顺序后逐文件执行\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "这个if-else太多了，帮我用策略模式重构一下"},
+      {"role": "assistant", "content": "{\"intent\": \"refactoring\", \"complexity\": 0.45, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"单文件设计模式重构，类似aider editblock模式，中等复杂度代码变更\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "搜索项目里所有用到deprecated API的地方"},
+      {"role": "assistant", "content": "{\"intent\": \"code_search\", \"complexity\": 0.3, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"代码搜索任务，类似cline的search_files工具，需要代码理解能力\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "写一个CLI工具，支持子命令、参数解析、帮助文档生成"},
+      {"role": "assistant", "content": "{\"intent\": \"code_generation\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"完整功能开发但范围明确，类似cline的write_to_file多步骤创建，代码模型适合\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "对比分析React和Vue的状态管理方案，哪个更适合我们的中型项目"},
+      {"role": "assistant", "content": "{\"intent\": \"analysis\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"longcat\", \"reason\": \"技术方案对比分析，类似aider的ask模式，需要广泛知识而非代码生成\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "实现一个分布式锁，基于Redis，支持可重入和自动续期"},
+      {"role": "assistant", "content": "{\"intent\": \"code_generation\", \"complexity\": 0.7, \"needs_orchestration\": false, \"backend\": \"or_deepseek_r1\", \"reason\": \"分布式系统实现需要深度推理确保正确性，涉及并发安全和边界条件\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "帮我review一下这个PR的代码变更"},
+      {"role": "assistant", "content": "{\"intent\": \"code_review\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"longcat\", \"reason\": \"代码审查需要理解上下文和最佳实践，类似continue的chat模式分析\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "把这个同步的文件读取改成异步的"},
+      {"role": "assistant", "content": "{\"intent\": \"code_edit\", \"complexity\": 0.3, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"单文件API替换，类似aider的editblock模式，将fs.readFileSync改为fs.promises.readFile\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "从零搭建一个monorepo项目，包含前端React应用、后端Node服务、共享类型库"},
+      {"role": "assistant", "content": "{\"intent\": \"project_setup\", \"complexity\": 0.8, \"needs_orchestration\": true, \"backend\": \"longcat_thinking\", \"reason\": \"项目脚手架搭建涉及多包配置，类似cline的多步骤任务：创建目录、写配置、安装依赖\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "这个SQL查询太慢了，执行要5秒，帮我优化"},
+      {"role": "assistant", "content": "{\"intent\": \"optimization\", \"complexity\": 0.55, \"needs_orchestration\": false, \"backend\": \"or_deepseek_r1\", \"reason\": \"SQL性能优化需要分析执行计划和索引策略，需要推理能力\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "生成这个TypeScript接口的mock数据"},
+      {"role": "assistant", "content": "{\"intent\": \"code_generation\", \"complexity\": 0.2, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"简单数据生成，类似continue的autocomplete角色，代码模型快速完成\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "设计一个可扩展的插件系统，支持热加载、依赖注入和生命周期管理"},
+      {"role": "assistant", "content": "{\"intent\": \"architecture_design\", \"complexity\": 0.85, \"needs_orchestration\": true, \"backend\": \"longcat_thinking\", \"reason\": \"复杂系统设计，类似aider architect模式的规划阶段，需要深度架构思考\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "把错误信息从英文翻译成中文"},
+      {"role": "assistant", "content": "{\"intent\": \"translation\", \"complexity\": 0.15, \"needs_orchestration\": false, \"backend\": \"longcat_lite\", \"reason\": \"简单翻译任务，不需要代码能力，轻量模型即可\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "实现OAuth2.0授权码流程，包含PKCE扩展"},
+      {"role": "assistant", "content": "{\"intent\": \"code_generation\", \"complexity\": 0.75, \"needs_orchestration\": true, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"安全相关的多步骤实现，类似cline的多文件创建流程，需要编排多个步骤\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "列出src目录下所有的.ts文件"},
+      {"role": "assistant", "content": "{\"intent\": \"file_operation\", \"complexity\": 0.05, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"文件列表操作，类似cline的list_files工具，最简单的操作\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "这个递归函数的时间复杂度是多少？能优化到O(n)吗？"},
+      {"role": "assistant", "content": "{\"intent\": \"analysis\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"or_deepseek_r1\", \"reason\": \"算法复杂度分析需要数学推理，类似aider ask模式但需要更强推理\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "给这个React组件加上loading状态和错误处理"},
+      {"role": "assistant", "content": "{\"intent\": \"code_edit\", \"complexity\": 0.35, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"单组件增强，类似aider editblock模式添加状态逻辑，代码模型适合\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "写一份API文档，描述所有REST端点的请求和响应格式"},
+      {"role": "assistant", "content": "{\"intent\": \"documentation\", \"complexity\": 0.4, \"needs_orchestration\": false, \"backend\": \"longcat\", \"reason\": \"文档生成需要理解代码结构，类似continue的/docs slash command，需要上下文理解\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "实现一个编译器前端，包含词法分析、语法分析和AST生成"},
+      {"role": "assistant", "content": "{\"intent\": \"code_generation\", \"complexity\": 0.9, \"needs_orchestration\": true, \"backend\": \"or_deepseek_r1\", \"reason\": \"编译器实现需要深度CS知识和推理，多模块协作，需要编排\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "把这个class组件改成hooks函数组件"},
+      {"role": "assistant", "content": "{\"intent\": \"refactoring\", \"complexity\": 0.4, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"单文件模式转换，类似aider wholefile模式重写整个组件，代码模型擅长\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "帮我配置GitHub Actions CI/CD流水线，包含lint、test、build、deploy四个阶段"},
+      {"role": "assistant", "content": "{\"intent\": \"code_generation\", \"complexity\": 0.55, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"配置文件生成，类似cline的write_to_file创建yaml，代码模型有CI/CD知识\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "为什么await在for循环里性能差？应该怎么改？"},
+      {"role": "assistant", "content": "{\"intent\": \"explanation\", \"complexity\": 0.3, \"needs_orchestration\": false, \"backend\": \"longcat_lite\", \"reason\": \"概念解释+简单建议，类似continue chat模式，轻量模型可以解释Promise.all模式\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "实现一个实时协作编辑器，支持CRDT冲突解决和WebSocket同步"},
+      {"role": "assistant", "content": "{\"intent\": \"architecture_design\", \"complexity\": 0.95, \"needs_orchestration\": true, \"backend\": \"longcat_thinking\", \"reason\": \"分布式系统+实时协作是最复杂的架构挑战，需要architect模式深度规划后多步实现\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "给这个函数加个try-catch"},
+      {"role": "assistant", "content": "{\"intent\": \"code_edit\", \"complexity\": 0.15, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"最简单的代码包装，类似aider editblock模式的单处修改\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "分析这段代码的安全漏洞，特别是SQL注入和XSS风险"},
+      {"role": "assistant", "content": "{\"intent\": \"security_review\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"longcat\", \"reason\": \"安全审查需要领域知识和上下文理解，类似cline的read_file+分析模式\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "写一个Dockerfile和docker-compose.yml，把这个Node应用容器化"},
+      {"role": "assistant", "content": "{\"intent\": \"code_generation\", \"complexity\": 0.4, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"配置文件生成，类似cline的write_to_file创建两个文件，代码模型有Docker知识\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "这个项目有20多个文件需要统一错误处理模式，目前每个文件的try-catch写法都不一样"},
+      {"role": "assistant", "content": "{\"intent\": \"refactoring\", \"complexity\": 0.75, \"needs_orchestration\": true, \"backend\": \"longcat_thinking\", \"reason\": \"20+文件统一重构，典型的aider architect模式：先设计统一模式，再批量应用到每个文件\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "用Rust实现一个高性能的JSON解析器"},
+      {"role": "assistant", "content": "{\"intent\": \"code_generation\", \"complexity\": 0.8, \"needs_orchestration\": false, \"backend\": \"or_deepseek_r1\", \"reason\": \"Rust高性能实现需要深度推理确保内存安全和零拷贝设计\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "git log看看最近的提交记录"},
+      {"role": "assistant", "content": "{\"intent\": \"command_execution\", \"complexity\": 0.05, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"简单git命令，类似cline的execute_command工具，最轻量操作\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "设计数据库schema，用户表、订单表、商品表，考虑索引和外键关系"},
+      {"role": "assistant", "content": "{\"intent\": \"architecture_design\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"longcat\", \"reason\": \"数据库设计需要理解业务关系，类似aider ask模式的分析+代码生成\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "把这个200行的函数拆分成多个小函数"},
+      {"role": "assistant", "content": "{\"intent\": \"refactoring\", \"complexity\": 0.5, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"单文件函数拆分，类似aider wholefile模式重写，代码模型擅长结构化重构\"}"}
+    ],
+    "source": "aider_continue_cline"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI路由编排器。分析用户请求，输出JSON路由决策。"},
+      {"role": "user", "content": "帮我写一个WebSocket服务端，处理多房间聊天和心跳检测"},
+      {"role": "assistant", "content": "{\"intent\": \"code_generation\", \"complexity\": 0.6, \"needs_orchestration\": false, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"网络编程实现，类似cline的多步骤write_to_file，代码模型有WebSocket知识\"}"}
+    ],
+    "source": "aider_continue_cline"
+  }
+]

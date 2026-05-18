@@ -1,0 +1,802 @@
+[
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "今天天气怎么样"},
+      {"role": "assistant", "content": "{\"intent\": \"casual_chat\", \"complexity\": 0.1, \"backend\": \"longcat_lite\", \"reason\": \"简单闲聊问题，快速模型即可\", \"estimated_time\": \"2s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "给我讲个笑话吧"},
+      {"role": "assistant", "content": "{\"intent\": \"casual_chat\", \"complexity\": 0.2, \"backend\": \"longcat_lite\", \"reason\": \"轻松娱乐请求，快速免费模型\", \"estimated_time\": \"2s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "帮我把 hello world 翻译成日语"},
+      {"role": "assistant", "content": "{\"intent\": \"translation\", \"complexity\": 0.2, \"backend\": \"longcat_lite\", \"reason\": \"简单翻译任务，快速模型足够\", \"estimated_time\": \"2s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "你好，你是谁？"},
+      {"role": "assistant", "content": "{\"intent\": \"casual_chat\", \"complexity\": 0.1, \"backend\": \"longcat_lite\", \"reason\": \"自我介绍类简单对话\", \"estimated_time\": \"2s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "推荐几部好看的科幻电影"},
+      {"role": "assistant", "content": "{\"intent\": \"recommendation\", \"complexity\": 0.2, \"backend\": \"longcat_lite\", \"reason\": \"推荐类轻量问题\", \"estimated_time\": \"2s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "早上好，今天心情不太好"},
+      {"role": "assistant", "content": "{\"intent\": \"emotional_support\", \"complexity\": 0.2, \"backend\": \"longcat_chat\", \"reason\": \"情感支持需要对话能力较强的模型\", \"estimated_time\": \"5s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "明天是周几"},
+      {"role": "assistant", "content": "{\"intent\": \"casual_chat\", \"complexity\": 0.1, \"backend\": \"longcat_lite\", \"reason\": \"极简问题，最快模型\", \"estimated_time\": \"2s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "帮我想一个微信群名字，主题是读书"},
+      {"role": "assistant", "content": "{\"intent\": \"creative_naming\", \"complexity\": 0.2, \"backend\": \"longcat_lite\", \"reason\": \"简单创意任务\", \"estimated_time\": \"2s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "1+1等于几"},
+      {"role": "assistant", "content": "{\"intent\": \"casual_chat\", \"complexity\": 0.05, \"backend\": \"longcat_lite\", \"reason\": \"极简问答\", \"estimated_time\": \"2s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "帮我翻译一段500字的英文论文摘要成中文"},
+      {"role": "assistant", "content": "{\"intent\": \"translation\", \"complexity\": 0.4, \"backend\": \"longcat_chat\", \"reason\": \"较长文本翻译需要更好的语言理解\", \"estimated_time\": \"5s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "中国有多少个省份"},
+      {"role": "assistant", "content": "{\"intent\": \"factual_qa\", \"complexity\": 0.1, \"backend\": \"longcat_lite\", \"reason\": \"简单事实问答\", \"estimated_time\": \"2s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "周末去哪里玩比较好，我在北京"},
+      {"role": "assistant", "content": "{\"intent\": \"recommendation\", \"complexity\": 0.3, \"backend\": \"longcat_lite\", \"reason\": \"生活建议类轻量问题\", \"estimated_time\": \"3s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "怎么煮一碗好吃的番茄鸡蛋面"},
+      {"role": "assistant", "content": "{\"intent\": \"how_to\", \"complexity\": 0.2, \"backend\": \"longcat_lite\", \"reason\": \"生活技巧类简单问题\", \"estimated_time\": \"2s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "帮我总结一下今天的新闻"},
+      {"role": "assistant", "content": "{\"intent\": \"summarization\", \"complexity\": 0.3, \"backend\": \"longcat_lite\", \"reason\": \"信息总结类轻量任务\", \"estimated_time\": \"3s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "给我的猫取个名字"},
+      {"role": "assistant", "content": "{\"intent\": \"creative_naming\", \"complexity\": 0.1, \"backend\": \"longcat_lite\", \"reason\": \"简单创意请求\", \"estimated_time\": \"2s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "量子计算的基本原理是什么"},
+      {"role": "assistant", "content": "{\"intent\": \"knowledge_qa\", \"complexity\": 0.5, \"backend\": \"longcat_chat\", \"reason\": \"学术知识解释需要较好的表达能力\", \"estimated_time\": \"5s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "详细解释一下广义相对论的时空弯曲"},
+      {"role": "assistant", "content": "{\"intent\": \"knowledge_qa\", \"complexity\": 0.7, \"backend\": \"longcat\", \"reason\": \"深度物理学解释需要强综合能力\", \"estimated_time\": \"10s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "TCP和UDP的区别是什么"},
+      {"role": "assistant", "content": "{\"intent\": \"knowledge_qa\", \"complexity\": 0.3, \"backend\": \"longcat_lite\", \"reason\": \"基础计算机网络知识对比\", \"estimated_time\": \"2s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "什么是机器学习中的过拟合，如何避免"},
+      {"role": "assistant", "content": "{\"intent\": \"knowledge_qa\", \"complexity\": 0.5, \"backend\": \"longcat_chat\", \"reason\": \"ML概念解释加实践建议\", \"estimated_time\": \"5s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "比较一下关系型数据库和NoSQL数据库的优缺点"},
+      {"role": "assistant", "content": "{\"intent\": \"knowledge_qa\", \"complexity\": 0.5, \"backend\": \"longcat_chat\", \"reason\": \"技术对比分析需要结构化表达\", \"estimated_time\": \"6s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "解释一下CRISPR基因编辑技术的工作原理和伦理争议"},
+      {"role": "assistant", "content": "{\"intent\": \"knowledge_qa\", \"complexity\": 0.7, \"backend\": \"longcat\", \"reason\": \"涉及科学原理和伦理讨论，需要深度综合能力\", \"estimated_time\": \"10s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "HTTP状态码200、301、404、500分别是什么意思"},
+      {"role": "assistant", "content": "{\"intent\": \"knowledge_qa\", \"complexity\": 0.2, \"backend\": \"longcat_lite\", \"reason\": \"基础知识查表类问题\", \"estimated_time\": \"2s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "从哲学角度分析人工智能是否能拥有意识"},
+      {"role": "assistant", "content": "{\"intent\": \"philosophical_analysis\", \"complexity\": 0.8, \"backend\": \"longcat\", \"reason\": \"深度哲学思辨需要最强综合模型\", \"estimated_time\": \"10s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "光合作用的化学方程式是什么"},
+      {"role": "assistant", "content": "{\"intent\": \"knowledge_qa\", \"complexity\": 0.2, \"backend\": \"longcat_lite\", \"reason\": \"简单事实回忆\", \"estimated_time\": \"2s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "解释区块链的共识机制，比较PoW和PoS"},
+      {"role": "assistant", "content": "{\"intent\": \"knowledge_qa\", \"complexity\": 0.6, \"backend\": \"longcat_chat\", \"reason\": \"技术概念对比需要清晰表达\", \"estimated_time\": \"6s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "二战的主要转折点有哪些"},
+      {"role": "assistant", "content": "{\"intent\": \"knowledge_qa\", \"complexity\": 0.4, \"backend\": \"longcat_chat\", \"reason\": \"历史知识梳理需要条理性\", \"estimated_time\": \"5s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "什么是傅里叶变换，它在信号处理中有什么应用"},
+      {"role": "assistant", "content": "{\"intent\": \"knowledge_qa\", \"complexity\": 0.6, \"backend\": \"longcat_chat\", \"reason\": \"数学概念加应用场景解释\", \"estimated_time\": \"6s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "CAP定理是什么，在分布式系统设计中如何取舍"},
+      {"role": "assistant", "content": "{\"intent\": \"knowledge_qa\", \"complexity\": 0.6, \"backend\": \"longcat_chat\", \"reason\": \"分布式系统理论加实践权衡\", \"estimated_time\": \"6s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "详细对比Transformer和RNN在NLP任务中的表现差异及原因"},
+      {"role": "assistant", "content": "{\"intent\": \"knowledge_qa\", \"complexity\": 0.7, \"backend\": \"longcat\", \"reason\": \"深度AI技术对比分析需要强模型\", \"estimated_time\": \"10s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "帮我写一封请假邮件，理由是家里有事"},
+      {"role": "assistant", "content": "{\"intent\": \"writing\", \"complexity\": 0.3, \"backend\": \"longcat_lite\", \"reason\": \"模板化短文写作，快速模型即可\", \"estimated_time\": \"3s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "写一篇关于微服务架构演进的技术博客，3000字左右"},
+      {"role": "assistant", "content": "{\"intent\": \"long_writing\", \"complexity\": 0.7, \"backend\": \"longcat\", \"reason\": \"长篇技术写作需要深度知识和结构化能力\", \"estimated_time\": \"10s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "帮我润色这段文字，让它更通顺：我们公司决定在下个月开始实施新的考勤制度"},
+      {"role": "assistant", "content": "{\"intent\": \"text_polish\", \"complexity\": 0.3, \"backend\": \"longcat_chat\", \"reason\": \"文本润色需要语言表达能力\", \"estimated_time\": \"5s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "写一首关于秋天的现代诗"},
+      {"role": "assistant", "content": "{\"intent\": \"creative_writing\", \"complexity\": 0.5, \"backend\": \"longcat_chat\", \"reason\": \"诗歌创作需要文学表达能力\", \"estimated_time\": \"5s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "帮我写一份产品需求文档PRD，功能是用户积分系统"},
+      {"role": "assistant", "content": "{\"intent\": \"document_writing\", \"complexity\": 0.6, \"backend\": \"longcat\", \"reason\": \"PRD需要结构化思维和产品理解\", \"estimated_time\": \"10s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "写一个短篇科幻故事，主题是时间旅行的悖论"},
+      {"role": "assistant", "content": "{\"intent\": \"creative_writing\", \"complexity\": 0.7, \"backend\": \"longcat\", \"reason\": \"创意故事写作需要想象力和逻辑性\", \"estimated_time\": \"10s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "帮我写个朋友圈文案，刚去了趟日本旅游"},
+      {"role": "assistant", "content": "{\"intent\": \"writing\", \"complexity\": 0.2, \"backend\": \"longcat_lite\", \"reason\": \"短文案创作，快速模型即可\", \"estimated_time\": \"2s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "帮我写一份年终工作总结，我是后端开发工程师"},
+      {"role": "assistant", "content": "{\"intent\": \"document_writing\", \"complexity\": 0.5, \"backend\": \"longcat_chat\", \"reason\": \"工作总结需要条理性和专业表达\", \"estimated_time\": \"6s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "把这段话改写成正式的商务英语风格"},
+      {"role": "assistant", "content": "{\"intent\": \"text_polish\", \"complexity\": 0.4, \"backend\": \"longcat_chat\", \"reason\": \"风格转换需要双语能力\", \"estimated_time\": \"5s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "写一篇关于AI对教育行业影响的议论文，要有正反两方面论述"},
+      {"role": "assistant", "content": "{\"intent\": \"long_writing\", \"complexity\": 0.6, \"backend\": \"longcat\", \"reason\": \"议论文需要逻辑论证和多角度分析\", \"estimated_time\": \"10s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "帮我写一段产品介绍，我们做的是智能家居控制器"},
+      {"role": "assistant", "content": "{\"intent\": \"writing\", \"complexity\": 0.4, \"backend\": \"longcat_chat\", \"reason\": \"产品文案需要营销表达能力\", \"estimated_time\": \"5s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "帮我写一封英文求职信，应聘软件工程师岗位"},
+      {"role": "assistant", "content": "{\"intent\": \"writing\", \"complexity\": 0.5, \"backend\": \"longcat_chat\", \"reason\": \"英文求职信需要专业表达和格式\", \"estimated_time\": \"6s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "续写这个故事的下一章节：主角发现了一扇通往异世界的门..."},
+      {"role": "assistant", "content": "{\"intent\": \"creative_writing\", \"complexity\": 0.6, \"backend\": \"longcat\", \"reason\": \"故事续写需要创意和连贯性\", \"estimated_time\": \"8s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "帮我把这篇中文文章的摘要翻译成学术英语"},
+      {"role": "assistant", "content": "{\"intent\": \"translation\", \"complexity\": 0.5, \"backend\": \"longcat_chat\", \"reason\": \"学术翻译需要专业术语和规范表达\", \"estimated_time\": \"6s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "写一份技术方案评审的会议纪要模板"},
+      {"role": "assistant", "content": "{\"intent\": \"writing\", \"complexity\": 0.3, \"backend\": \"longcat_lite\", \"reason\": \"模板类文档，结构固定\", \"estimated_time\": \"3s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "计算 ∫(0到π) sin(x)dx 的值"},
+      {"role": "assistant", "content": "{\"intent\": \"math_calculation\", \"complexity\": 0.4, \"backend\": \"longcat_thinking\", \"reason\": \"定积分计算需要推理能力\", \"estimated_time\": \"10s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "用数学归纳法证明 1+2+3+...+n = n(n+1)/2"},
+      {"role": "assistant", "content": "{\"intent\": \"math_proof\", \"complexity\": 0.6, \"backend\": \"or_deepseek_r1\", \"reason\": \"数学证明需要严格推理\", \"estimated_time\": \"12s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "分析这组销售数据的趋势：1月50万，2月55万，3月48万，4月62万，5月70万"},
+      {"role": "assistant", "content": "{\"intent\": \"data_analysis\", \"complexity\": 0.5, \"backend\": \"longcat_thinking\", \"reason\": \"数据趋势分析需要逻辑推理\", \"estimated_time\": \"10s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "证明√2是无理数"},
+      {"role": "assistant", "content": "{\"intent\": \"math_proof\", \"complexity\": 0.7, \"backend\": \"or_deepseek_r1\", \"reason\": \"经典数学证明需要强推理模型\", \"estimated_time\": \"12s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "求解这个微分方程 dy/dx = 2xy"},
+      {"role": "assistant", "content": "{\"intent\": \"math_calculation\", \"complexity\": 0.6, \"backend\": \"or_deepseek_r1\", \"reason\": \"微分方程求解需要数学推理\", \"estimated_time\": \"12s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "帮我算一下房贷：贷款100万，利率4.2%，30年等额本息，月供多少"},
+      {"role": "assistant", "content": "{\"intent\": \"math_calculation\", \"complexity\": 0.4, \"backend\": \"longcat_thinking\", \"reason\": \"金融计算需要精确数值推理\", \"estimated_time\": \"10s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "用贝叶斯定理解决这个问题：某疾病发病率1%，检测准确率95%，检测阳性时实际患病概率是多少"},
+      {"role": "assistant", "content": "{\"intent\": \"math_reasoning\", \"complexity\": 0.7, \"backend\": \"or_deepseek_r1\", \"reason\": \"概率推理问题需要强推理模型\", \"estimated_time\": \"12s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "这个算法的时间复杂度是多少：两层嵌套循环，外层n次，内层logn次"},
+      {"role": "assistant", "content": "{\"intent\": \"complexity_analysis\", \"complexity\": 0.4, \"backend\": \"longcat_thinking\", \"reason\": \"算法复杂度分析需要逻辑推理\", \"estimated_time\": \"10s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "证明对于所有正整数n，n^3 - n 能被6整除"},
+      {"role": "assistant", "content": "{\"intent\": \"math_proof\", \"complexity\": 0.8, \"backend\": \"or_deepseek_r1\", \"reason\": \"数论证明需要严格推理\", \"estimated_time\": \"12s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "帮我做个线性回归分析，预测下个月的用户增长"},
+      {"role": "assistant", "content": "{\"intent\": \"data_analysis\", \"complexity\": 0.6, \"backend\": \"longcat_thinking\", \"reason\": \"统计分析和预测需要推理能力\", \"estimated_time\": \"12s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "求矩阵 [[1,2],[3,4]] 的特征值和特征向量"},
+      {"role": "assistant", "content": "{\"intent\": \"math_calculation\", \"complexity\": 0.5, \"backend\": \"or_deepseek_r1\", \"reason\": \"线性代数计算需要精确推理\", \"estimated_time\": \"10s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "解释P=NP问题为什么重要，目前的研究进展如何"},
+      {"role": "assistant", "content": "{\"intent\": \"knowledge_qa\", \"complexity\": 0.7, \"backend\": \"longcat\", \"reason\": \"计算理论深度解释需要综合能力\", \"estimated_time\": \"10s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "设计一个A/B测试方案，验证新首页设计是否提升转化率，需要多少样本量"},
+      {"role": "assistant", "content": "{\"intent\": \"data_analysis\", \"complexity\": 0.7, \"backend\": \"longcat_thinking\", \"reason\": \"实验设计需要统计学推理\", \"estimated_time\": \"12s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "用动态规划解决背包问题的状态转移方程是什么，请推导"},
+      {"role": "assistant", "content": "{\"intent\": \"math_reasoning\", \"complexity\": 0.7, \"backend\": \"or_deepseek_r1\", \"reason\": \"算法推导需要严格逻辑推理\", \"estimated_time\": \"12s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "3的100次方除以7的余数是多少"},
+      {"role": "assistant", "content": "{\"intent\": \"math_calculation\", \"complexity\": 0.6, \"backend\": \"or_deepseek_r1\", \"reason\": \"模运算需要数论推理\", \"estimated_time\": \"10s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "用Python写一个快速排序算法"},
+      {"role": "assistant", "content": "{\"intent\": \"code_generation\", \"complexity\": 0.4, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"经典算法实现，代码专精模型\", \"estimated_time\": \"6s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "这段代码有什么bug：for i in range(len(lst)): if lst[i] == target: lst.remove(lst[i])"},
+      {"role": "assistant", "content": "{\"intent\": \"code_debug\", \"complexity\": 0.5, \"backend\": \"longcat_thinking\", \"reason\": \"代码bug分析需要逻辑推理\", \"estimated_time\": \"10s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "设计一个高并发的订单系统微服务架构"},
+      {"role": "assistant", "content": "{\"intent\": \"system_design\", \"complexity\": 0.8, \"backend\": \"longcat\", \"reason\": \"系统架构设计需要综合经验和深度思考\", \"estimated_time\": \"10s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "优化这个SQL查询，它在百万级数据量下很慢：SELECT * FROM orders WHERE user_id IN (SELECT id FROM users WHERE city='北京')"},
+      {"role": "assistant", "content": "{\"intent\": \"code_optimization\", \"complexity\": 0.6, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"SQL优化是代码专精任务\", \"estimated_time\": \"6s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "用Go实现一个带连接池的Redis客户端"},
+      {"role": "assistant", "content": "{\"intent\": \"code_generation\", \"complexity\": 0.6, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"中等复杂度代码实现，代码模型最适合\", \"estimated_time\": \"8s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "解释一下Rust的所有权机制和生命周期"},
+      {"role": "assistant", "content": "{\"intent\": \"knowledge_qa\", \"complexity\": 0.5, \"backend\": \"longcat_chat\", \"reason\": \"编程概念解释，通用对话模型\", \"estimated_time\": \"6s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "写一个React自定义Hook，实现防抖功能"},
+      {"role": "assistant", "content": "{\"intent\": \"code_generation\", \"complexity\": 0.4, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"前端Hook实现，代码专精模型\", \"estimated_time\": \"6s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "帮我review这段Java代码，检查是否有线程安全问题"},
+      {"role": "assistant", "content": "{\"intent\": \"code_review\", \"complexity\": 0.7, \"backend\": \"longcat_thinking\", \"reason\": \"并发安全分析需要深度推理\", \"estimated_time\": \"12s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "用TypeScript实现一个简单的发布订阅模式"},
+      {"role": "assistant", "content": "{\"intent\": \"code_generation\", \"complexity\": 0.4, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"设计模式实现，代码模型擅长\", \"estimated_time\": \"6s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "Docker容器内存泄漏怎么排查"},
+      {"role": "assistant", "content": "{\"intent\": \"troubleshooting\", \"complexity\": 0.6, \"backend\": \"longcat_chat\", \"reason\": \"运维排查需要经验性知识\", \"estimated_time\": \"6s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "写一个Python装饰器实现函数调用的自动重试，支持指数退避"},
+      {"role": "assistant", "content": "{\"intent\": \"code_generation\", \"complexity\": 0.5, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"Python高级特性实现\", \"estimated_time\": \"6s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "如何在Kubernetes中实现蓝绿部署"},
+      {"role": "assistant", "content": "{\"intent\": \"devops\", \"complexity\": 0.6, \"backend\": \"longcat_chat\", \"reason\": \"K8s部署策略需要运维知识\", \"estimated_time\": \"6s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "用Rust写一个高性能的HTTP服务器，支持异步IO"},
+      {"role": "assistant", "content": "{\"intent\": \"code_generation\", \"complexity\": 0.7, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"复杂Rust异步编程，代码专精模型\", \"estimated_time\": \"8s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "解释一下CAP定理在实际分布式数据库选型中的应用"},
+      {"role": "assistant", "content": "{\"intent\": \"knowledge_qa\", \"complexity\": 0.6, \"backend\": \"longcat\", \"reason\": \"理论结合实践的深度讨论\", \"estimated_time\": \"8s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "写一个完整的JWT认证中间件，包含token刷新逻辑"},
+      {"role": "assistant", "content": "{\"intent\": \"code_generation\", \"complexity\": 0.6, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"安全相关代码实现，代码模型\", \"estimated_time\": \"8s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "这个正则表达式是什么意思：^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)[A-Za-z\\d]{8,}$"},
+      {"role": "assistant", "content": "{\"intent\": \"code_explanation\", \"complexity\": 0.4, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"正则解析是代码理解任务\", \"estimated_time\": \"5s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "设计一个支持10万QPS的短链接服务，要考虑高可用和数据一致性"},
+      {"role": "assistant", "content": "{\"intent\": \"system_design\", \"complexity\": 0.9, \"backend\": \"claude\", \"reason\": \"高复杂度系统设计需要最强模型\", \"estimated_time\": \"15s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "帮我把这个Python2代码迁移到Python3"},
+      {"role": "assistant", "content": "{\"intent\": \"code_migration\", \"complexity\": 0.5, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"代码迁移是代码转换任务\", \"estimated_time\": \"6s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "用JavaScript实现一个Promise.all的polyfill"},
+      {"role": "assistant", "content": "{\"intent\": \"code_generation\", \"complexity\": 0.5, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"JS核心API实现，代码模型\", \"estimated_time\": \"6s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "分析这段代码的内存泄漏原因并给出修复方案"},
+      {"role": "assistant", "content": "{\"intent\": \"code_debug\", \"complexity\": 0.7, \"backend\": \"longcat_thinking\", \"reason\": \"内存泄漏分析需要深度推理\", \"estimated_time\": \"12s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "$100=800 步进电机步数怎么设置"},
+      {"role": "assistant", "content": "{\"intent\": \"grbl_config\", \"complexity\": 0.2, \"backend\": \"local\", \"reason\": \"GRBL参数查表，本地模型最快\", \"estimated_time\": \"0.5s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "G28和G30回零指令有什么区别"},
+      {"role": "assistant", "content": "{\"intent\": \"gcode_query\", \"complexity\": 0.2, \"backend\": \"local\", \"reason\": \"GCode指令查询，本地知识库\", \"estimated_time\": \"0.5s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "步进电机和伺服电机怎么选型，加工铝件用哪个好"},
+      {"role": "assistant", "content": "{\"intent\": \"cnc_selection\", \"complexity\": 0.6, \"backend\": \"longcat_thinking\", \"reason\": \"电机选型需要综合考虑多个因素\", \"estimated_time\": \"10s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "ESP32的WiFi连接经常断开，怎么解决"},
+      {"role": "assistant", "content": "{\"intent\": \"embedded_troubleshoot\", \"complexity\": 0.5, \"backend\": \"nvidia_nemotron\", \"reason\": \"嵌入式问题排查需要推理能力\", \"estimated_time\": \"8s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "设计一个3轴CNC控制板，用STM32F4，需要支持GRBL协议"},
+      {"role": "assistant", "content": "{\"intent\": \"hardware_design\", \"complexity\": 0.8, \"backend\": \"longcat\", \"reason\": \"硬件设计需要综合电路和协议知识\", \"estimated_time\": \"10s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "GRBL报警代码Alarm:9是什么意思"},
+      {"role": "assistant", "content": "{\"intent\": \"grbl_error\", \"complexity\": 0.1, \"backend\": \"local\", \"reason\": \"GRBL报警码查表\", \"estimated_time\": \"0.5s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "Arduino的analogRead采样率太低，怎么提高到100kHz"},
+      {"role": "assistant", "content": "{\"intent\": \"embedded_optimization\", \"complexity\": 0.6, \"backend\": \"nvidia_nemotron\", \"reason\": \"嵌入式性能优化需要底层知识\", \"estimated_time\": \"8s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "$110=1000 最大速率设置对不对"},
+      {"role": "assistant", "content": "{\"intent\": \"grbl_config\", \"complexity\": 0.2, \"backend\": \"local\", \"reason\": \"GRBL参数验证，本地查表\", \"estimated_time\": \"0.5s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "用ESP32-S3做一个蓝牙音频接收器，需要I2S输出到DAC"},
+      {"role": "assistant", "content": "{\"intent\": \"embedded_project\", \"complexity\": 0.7, \"backend\": \"longcat\", \"reason\": \"完整嵌入式项目需要多方面知识\", \"estimated_time\": \"10s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "CNC主轴在高速切削时振动大，可能是什么原因"},
+      {"role": "assistant", "content": "{\"intent\": \"cnc_troubleshoot\", \"complexity\": 0.5, \"backend\": \"longcat_thinking\", \"reason\": \"机械故障诊断需要推理分析\", \"estimated_time\": \"10s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "G41刀具半径补偿怎么用"},
+      {"role": "assistant", "content": "{\"intent\": \"gcode_query\", \"complexity\": 0.3, \"backend\": \"local\", \"reason\": \"GCode指令用法查询\", \"estimated_time\": \"0.5s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "STM32的DMA传输和中断方式相比有什么优势"},
+      {"role": "assistant", "content": "{\"intent\": \"embedded_knowledge\", \"complexity\": 0.4, \"backend\": \"nvidia_nemotron\", \"reason\": \"嵌入式技术对比需要底层理解\", \"estimated_time\": \"8s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "帮我生成一段G代码，加工一个50mm直径的圆形口袋，深度5mm"},
+      {"role": "assistant", "content": "{\"intent\": \"gcode_generation\", \"complexity\": 0.5, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"GCode生成本质是代码生成任务\", \"estimated_time\": \"6s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "GRBL的$25归位搜索速度和$24归位进给速度怎么配合设置"},
+      {"role": "assistant", "content": "{\"intent\": \"grbl_config\", \"complexity\": 0.3, \"backend\": \"local\", \"reason\": \"GRBL归位参数配置\", \"estimated_time\": \"0.5s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "设计一个基于RTOS的多任务嵌入式系统，需要同时处理传感器采集、电机控制和通信"},
+      {"role": "assistant", "content": "{\"intent\": \"embedded_architecture\", \"complexity\": 0.8, \"backend\": \"longcat\", \"reason\": \"RTOS系统架构设计需要深度综合能力\", \"estimated_time\": \"10s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "PID控制器的参数怎么调，我的温控系统超调严重"},
+      {"role": "assistant", "content": "{\"intent\": \"control_theory\", \"complexity\": 0.6, \"backend\": \"longcat_thinking\", \"reason\": \"PID调参需要控制理论推理\", \"estimated_time\": \"10s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "M3 S1000和M4 S1000有什么区别"},
+      {"role": "assistant", "content": "{\"intent\": \"gcode_query\", \"complexity\": 0.1, \"backend\": \"local\", \"reason\": \"主轴指令查询，本地知识库\", \"estimated_time\": \"0.5s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "ESP32用MicroPython还是Arduino框架好，做IoT网关项目"},
+      {"role": "assistant", "content": "{\"intent\": \"tech_selection\", \"complexity\": 0.5, \"backend\": \"longcat_chat\", \"reason\": \"技术选型对比需要经验判断\", \"estimated_time\": \"6s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "加工6061铝合金，用什么转速和进给比较合适，3mm立铣刀"},
+      {"role": "assistant", "content": "{\"intent\": \"cnc_parameters\", \"complexity\": 0.4, \"backend\": \"longcat_thinking\", \"reason\": \"切削参数计算需要经验和推理\", \"estimated_time\": \"10s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "写一个STM32的UART DMA接收不定长数据的驱动代码"},
+      {"role": "assistant", "content": "{\"intent\": \"embedded_code\", \"complexity\": 0.6, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"嵌入式驱动代码生成\", \"estimated_time\": \"8s\"}"}
+    ],
+    "source": "general_routing"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户问题，输出路由决策JSON。选择最合适的后端模型，免费优先。"},
+      {"role": "user", "content": "GRBL error:20 是什么错误，怎么解决"},
+      {"role": "assistant", "content": "{\"intent\": \"grbl_error\", \"complexity\": 0.2, \"backend\": \"local\", \"reason\": \"GRBL错误码查表，本地最快\", \"estimated_time\": \"0.5s\"}"}
+    ],
+    "source": "general_routing"
+  }
+]

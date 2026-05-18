@@ -1,0 +1,402 @@
+[
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "帮我总结一下这篇文章的要点"},
+      {"role": "assistant", "content": "{\"intent\": \"summarization\", \"complexity\": 0.3, \"backend\": \"longcat_lite\", \"reason\": \"内容摘要任务，快速模型即可\", \"estimated_time\": \"3s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "分析这段论述中的逻辑谬误和事实错误"},
+      {"role": "assistant", "content": "{\"intent\": \"analysis\", \"complexity\": 0.8, \"backend\": \"longcat_thinking\", \"reason\": \"深度逻辑分析需要推理能力\", \"estimated_time\": \"10s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "用Python写一个REST API项目，包含用户认证和数据库"},
+      {"role": "assistant", "content": "{\"intent\": \"code_generation\", \"complexity\": 0.8, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"完整项目代码生成需要专业编码模型\", \"estimated_time\": \"15s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "解释一下这段代码的功能和逻辑"},
+      {"role": "assistant", "content": "{\"intent\": \"explanation\", \"complexity\": 0.4, \"backend\": \"longcat_lite\", \"reason\": \"代码解释属于轻量理解任务\", \"estimated_time\": \"4s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "帮我改进这篇文章的表达，让它更流畅专业"},
+      {"role": "assistant", "content": "{\"intent\": \"writing\", \"complexity\": 0.5, \"backend\": \"longcat_chat\", \"reason\": \"写作润色需要语言表达能力\", \"estimated_time\": \"6s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "从这个视频文字稿中提取关键观点和金句"},
+      {"role": "assistant", "content": "{\"intent\": \"extraction\", \"complexity\": 0.4, \"backend\": \"longcat_lite\", \"reason\": \"信息提取任务，快速模型足够\", \"estimated_time\": \"5s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "写一篇关于AI对教育影响的深度文章"},
+      {"role": "assistant", "content": "{\"intent\": \"creative\", \"complexity\": 0.7, \"backend\": \"longcat\", \"reason\": \"深度创作需要强大的语言生成能力\", \"estimated_time\": \"12s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "一步步推导为什么 P=NP 问题如此困难"},
+      {"role": "assistant", "content": "{\"intent\": \"reasoning\", \"complexity\": 0.9, \"backend\": \"or_deepseek_r1\", \"reason\": \"需要深度链式推理的数学问题\", \"estimated_time\": \"20s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "对比React和Vue的优缺点，列表展示"},
+      {"role": "assistant", "content": "{\"intent\": \"comparison\", \"complexity\": 0.5, \"backend\": \"longcat_thinking\", \"reason\": \"技术对比需要结构化分析能力\", \"estimated_time\": \"8s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "帮我制定一个3个月的学习计划，目标是掌握机器学习"},
+      {"role": "assistant", "content": "{\"intent\": \"planning\", \"complexity\": 0.6, \"backend\": \"longcat\", \"reason\": \"规划任务需要综合考虑多因素\", \"estimated_time\": \"10s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "把这篇英文论文翻译成中文并总结核心观点"},
+      {"role": "assistant", "content": "{\"intent\": \"summarization\", \"complexity\": 0.5, \"backend\": \"longcat_lite\", \"reason\": \"翻译加摘要属于信息压缩任务\", \"estimated_time\": \"6s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "分析这个商业计划书的可行性和风险点"},
+      {"role": "assistant", "content": "{\"intent\": \"analysis\", \"complexity\": 0.7, \"backend\": \"longcat_thinking\", \"reason\": \"商业分析需要多维度推理\", \"estimated_time\": \"12s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "写一个JavaScript函数实现深拷贝"},
+      {"role": "assistant", "content": "{\"intent\": \"code_generation\", \"complexity\": 0.4, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"代码实现任务路由到编码模型\", \"estimated_time\": \"5s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "这段Rust代码的borrow checker报错是什么意思"},
+      {"role": "assistant", "content": "{\"intent\": \"explanation\", \"complexity\": 0.5, \"backend\": \"longcat_lite\", \"reason\": \"错误解释属于知识查询类任务\", \"estimated_time\": \"4s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "帮我写一封正式的商务邮件，拒绝合作邀请"},
+      {"role": "assistant", "content": "{\"intent\": \"writing\", \"complexity\": 0.4, \"backend\": \"longcat_chat\", \"reason\": \"正式邮件写作需要语言润色能力\", \"estimated_time\": \"5s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "从这份会议记录中提取所有行动项和负责人"},
+      {"role": "assistant", "content": "{\"intent\": \"extraction\", \"complexity\": 0.3, \"backend\": \"longcat_lite\", \"reason\": \"结构化信息提取，快速模型即可\", \"estimated_time\": \"4s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "帮我构思一个科幻短篇小说的大纲"},
+      {"role": "assistant", "content": "{\"intent\": \"creative\", \"complexity\": 0.7, \"backend\": \"longcat\", \"reason\": \"创意写作需要想象力和叙事能力\", \"estimated_time\": \"10s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "证明：对于所有正整数n，1+2+...+n = n(n+1)/2"},
+      {"role": "assistant", "content": "{\"intent\": \"reasoning\", \"complexity\": 0.7, \"backend\": \"or_deepseek_r1\", \"reason\": \"数学证明需要严格逻辑推理\", \"estimated_time\": \"15s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "对比AWS Lambda和Google Cloud Functions的定价和性能"},
+      {"role": "assistant", "content": "{\"intent\": \"comparison\", \"complexity\": 0.6, \"backend\": \"longcat_thinking\", \"reason\": \"云服务对比需要多维度分析\", \"estimated_time\": \"8s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "设计一个微服务架构的电商系统方案"},
+      {"role": "assistant", "content": "{\"intent\": \"planning\", \"complexity\": 0.8, \"backend\": \"longcat\", \"reason\": \"系统架构设计需要全局规划能力\", \"estimated_time\": \"15s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "用一句话概括这本书的核心思想"},
+      {"role": "assistant", "content": "{\"intent\": \"summarization\", \"complexity\": 0.2, \"backend\": \"longcat_lite\", \"reason\": \"极简摘要任务，快速模型即可\", \"estimated_time\": \"2s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "分析这个候选人的简历，评估其技术能力和潜力"},
+      {"role": "assistant", "content": "{\"intent\": \"analysis\", \"complexity\": 0.6, \"backend\": \"longcat_thinking\", \"reason\": \"人才评估需要多维度分析判断\", \"estimated_time\": \"8s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "实现一个带缓存的LRU算法，用Go语言"},
+      {"role": "assistant", "content": "{\"intent\": \"code_generation\", \"complexity\": 0.6, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"算法实现需要专业编码模型\", \"estimated_time\": \"8s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "解释什么是Transformer架构，用简单的比喻"},
+      {"role": "assistant", "content": "{\"intent\": \"explanation\", \"complexity\": 0.4, \"backend\": \"longcat_lite\", \"reason\": \"概念解释属于知识传递任务\", \"estimated_time\": \"5s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "帮我把这段技术文档改写成面向非技术人员的版本"},
+      {"role": "assistant", "content": "{\"intent\": \"writing\", \"complexity\": 0.5, \"backend\": \"longcat_chat\", \"reason\": \"文档改写需要语言表达调整能力\", \"estimated_time\": \"6s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "从这篇播客文字稿中提取所有推荐的书籍和工具"},
+      {"role": "assistant", "content": "{\"intent\": \"extraction\", \"complexity\": 0.3, \"backend\": \"longcat_lite\", \"reason\": \"实体提取任务，模式匹配即可\", \"estimated_time\": \"4s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "为我的SaaS产品写一个吸引人的landing page文案"},
+      {"role": "assistant", "content": "{\"intent\": \"creative\", \"complexity\": 0.6, \"backend\": \"longcat\", \"reason\": \"营销文案需要创意和说服力\", \"estimated_time\": \"8s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "这个算法的时间复杂度是多少？请推导过程"},
+      {"role": "assistant", "content": "{\"intent\": \"reasoning\", \"complexity\": 0.7, \"backend\": \"or_deepseek_r1\", \"reason\": \"复杂度分析需要严格数学推导\", \"estimated_time\": \"12s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "PostgreSQL和MongoDB在什么场景下各有优势"},
+      {"role": "assistant", "content": "{\"intent\": \"comparison\", \"complexity\": 0.5, \"backend\": \"longcat_thinking\", \"reason\": \"数据库对比需要场景化分析\", \"estimated_time\": \"7s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "帮我规划一个开源项目的发布路线图"},
+      {"role": "assistant", "content": "{\"intent\": \"planning\", \"complexity\": 0.6, \"backend\": \"longcat\", \"reason\": \"项目规划需要战略思维\", \"estimated_time\": \"10s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "总结这次会议的决议和下一步行动"},
+      {"role": "assistant", "content": "{\"intent\": \"summarization\", \"complexity\": 0.3, \"backend\": \"longcat_lite\", \"reason\": \"会议摘要属于信息压缩任务\", \"estimated_time\": \"4s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "分析这段代码的安全漏洞和潜在风险"},
+      {"role": "assistant", "content": "{\"intent\": \"analysis\", \"complexity\": 0.8, \"backend\": \"longcat_thinking\", \"reason\": \"安全分析需要深度推理和专业知识\", \"estimated_time\": \"12s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "写一个React组件实现无限滚动列表"},
+      {"role": "assistant", "content": "{\"intent\": \"code_generation\", \"complexity\": 0.6, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"前端组件开发需要编码模型\", \"estimated_time\": \"8s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "解释TCP三次握手的过程和原因"},
+      {"role": "assistant", "content": "{\"intent\": \"explanation\", \"complexity\": 0.3, \"backend\": \"longcat_lite\", \"reason\": \"标准知识解释，快速模型即可\", \"estimated_time\": \"3s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "帮我写一篇产品发布的新闻稿"},
+      {"role": "assistant", "content": "{\"intent\": \"writing\", \"complexity\": 0.5, \"backend\": \"longcat_chat\", \"reason\": \"新闻稿写作需要专业表达能力\", \"estimated_time\": \"7s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "从这份合同中提取所有关键条款和日期"},
+      {"role": "assistant", "content": "{\"intent\": \"extraction\", \"complexity\": 0.4, \"backend\": \"longcat_lite\", \"reason\": \"合同条款提取属于结构化抽取\", \"estimated_time\": \"5s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "为我的播客节目写一段吸引人的开场白"},
+      {"role": "assistant", "content": "{\"intent\": \"creative\", \"complexity\": 0.5, \"backend\": \"longcat\", \"reason\": \"创意开场白需要表达力和吸引力\", \"estimated_time\": \"6s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "分析这个博弈论问题的纳什均衡"},
+      {"role": "assistant", "content": "{\"intent\": \"reasoning\", \"complexity\": 0.9, \"backend\": \"or_deepseek_r1\", \"reason\": \"博弈论分析需要严格数学推理\", \"estimated_time\": \"18s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "Kubernetes和Docker Swarm哪个更适合中小团队"},
+      {"role": "assistant", "content": "{\"intent\": \"comparison\", \"complexity\": 0.6, \"backend\": \"longcat_thinking\", \"reason\": \"技术选型对比需要场景化分析\", \"estimated_time\": \"8s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "帮我制定一个产品从0到1的MVP开发计划"},
+      {"role": "assistant", "content": "{\"intent\": \"planning\", \"complexity\": 0.7, \"backend\": \"longcat\", \"reason\": \"MVP规划需要产品思维和技术判断\", \"estimated_time\": \"12s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "把这个10分钟的演讲稿压缩成3分钟版本"},
+      {"role": "assistant", "content": "{\"intent\": \"summarization\", \"complexity\": 0.4, \"backend\": \"longcat_lite\", \"reason\": \"内容压缩属于摘要类任务\", \"estimated_time\": \"5s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "评估这个创业想法的市场机会和竞争格局"},
+      {"role": "assistant", "content": "{\"intent\": \"analysis\", \"complexity\": 0.7, \"backend\": \"longcat_thinking\", \"reason\": \"市场分析需要多角度深度思考\", \"estimated_time\": \"12s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "用TypeScript实现一个事件总线EventBus"},
+      {"role": "assistant", "content": "{\"intent\": \"code_generation\", \"complexity\": 0.5, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"设计模式实现需要编码模型\", \"estimated_time\": \"6s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "用通俗语言解释量子计算的基本原理"},
+      {"role": "assistant", "content": "{\"intent\": \"explanation\", \"complexity\": 0.5, \"backend\": \"longcat_lite\", \"reason\": \"科普解释属于知识传递任务\", \"estimated_time\": \"5s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "帮我润色这篇学术论文的摘要部分"},
+      {"role": "assistant", "content": "{\"intent\": \"writing\", \"complexity\": 0.5, \"backend\": \"longcat_chat\", \"reason\": \"学术写作润色需要专业语言能力\", \"estimated_time\": \"6s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "从这份调研报告中提取所有数据指标和趋势"},
+      {"role": "assistant", "content": "{\"intent\": \"extraction\", \"complexity\": 0.4, \"backend\": \"longcat_lite\", \"reason\": \"数据指标提取属于信息抽取任务\", \"estimated_time\": \"5s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "帮我设计一个AI助手的人设和对话风格"},
+      {"role": "assistant", "content": "{\"intent\": \"creative\", \"complexity\": 0.6, \"backend\": \"longcat\", \"reason\": \"人设设计需要创意和一致性思考\", \"estimated_time\": \"8s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "如果一个系统有n个节点，每对节点间通信延迟不同，如何找到最优广播树？请给出思路"},
+      {"role": "assistant", "content": "{\"intent\": \"reasoning\", \"complexity\": 0.8, \"backend\": \"or_deepseek_r1\", \"reason\": \"图论优化问题需要深度推理\", \"estimated_time\": \"15s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "gRPC和REST API在微服务场景下的优劣对比"},
+      {"role": "assistant", "content": "{\"intent\": \"comparison\", \"complexity\": 0.5, \"backend\": \"longcat_thinking\", \"reason\": \"通信协议对比需要技术分析\", \"estimated_time\": \"7s\"}"}
+    ],
+    "source": "fabric_patterns"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求，输出路由决策JSON。"},
+      {"role": "user", "content": "帮我制定一个团队从单体应用迁移到微服务的分阶段计划"},
+      {"role": "assistant", "content": "{\"intent\": \"planning\", \"complexity\": 0.8, \"backend\": \"longcat\", \"reason\": \"架构迁移规划需要全局视角和风险评估\", \"estimated_time\": \"15s\"}"}
+    ],
+    "source": "fabric_patterns"
+  }
+]

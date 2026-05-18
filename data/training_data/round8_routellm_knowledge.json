@@ -1,0 +1,402 @@
+[
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "帮我写一个完整的分布式事务框架，支持Saga模式和TCC模式，需要处理网络分区和脑裂问题"},
+      {"role": "assistant", "content": "{\"intent\": \"architecture_design\", \"complexity\": 0.95, \"backend\": \"or_deepseek_r1\", \"reason\": \"分布式事务框架涉及复杂的一致性协议设计、故障恢复机制和网络分区处理，需要深度推理能力\", \"confidence\": 0.92}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "今天天气怎么样"},
+      {"role": "assistant", "content": "{\"intent\": \"chitchat\", \"complexity\": 0.1, \"backend\": \"longcat_lite\", \"reason\": \"简单闲聊问题，无需复杂推理，轻量模型即可快速响应\", \"confidence\": 0.95}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "分析这段代码的时间复杂度并提出优化方案：一个三层嵌套循环处理图的最短路径"},
+      {"role": "assistant", "content": "{\"intent\": \"code_analysis\", \"complexity\": 0.78, \"backend\": \"longcat_thinking\", \"reason\": \"算法复杂度分析和优化需要深入理解图论算法，涉及Floyd-Warshall等高级算法的对比分析\", \"confidence\": 0.88}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "Python里怎么反转一个列表"},
+      {"role": "assistant", "content": "{\"intent\": \"code_qa\", \"complexity\": 0.15, \"backend\": \"chinamobile\", \"reason\": \"基础Python语法问题，任何模型都能准确回答，选择最快响应的弱模型\", \"confidence\": 0.97}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "设计一个支持百万级并发的实时消息推送系统，要考虑消息可靠性、顺序性和幂等性"},
+      {"role": "assistant", "content": "{\"intent\": \"system_design\", \"complexity\": 0.92, \"backend\": \"claude\", \"reason\": \"高并发系统设计涉及消息队列选型、分布式架构、一致性保证等多维度复杂决策，需要最强推理模型\", \"confidence\": 0.90}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "把这个JSON格式化一下：{\"name\":\"test\",\"age\":20}"},
+      {"role": "assistant", "content": "{\"intent\": \"formatting\", \"complexity\": 0.08, \"backend\": \"nvidia_phi4\", \"reason\": \"纯格式化任务无需理解语义，最轻量的模型即可完成\", \"confidence\": 0.98}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "请对比分析Transformer、Mamba和RWKV三种架构在长序列建模上的优劣，并预测未来发展方向"},
+      {"role": "assistant", "content": "{\"intent\": \"research_analysis\", \"complexity\": 0.88, \"backend\": \"or_deepseek_r1\", \"reason\": \"需要深入理解三种不同架构的数学原理和工程实现，进行多维度对比分析并做前瞻性判断\", \"confidence\": 0.85}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "翻译这句话成英文：我喜欢吃苹果"},
+      {"role": "assistant", "content": "{\"intent\": \"translation\", \"complexity\": 0.12, \"backend\": \"longcat_lite\", \"reason\": \"简单句子翻译，无歧义无专业术语，弱模型完全胜任\", \"confidence\": 0.96}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "实现一个基于CRDT的协同编辑引擎，支持离线编辑和冲突自动合并"},
+      {"role": "assistant", "content": "{\"intent\": \"complex_implementation\", \"complexity\": 0.93, \"backend\": \"longcat_thinking\", \"reason\": \"CRDT实现需要深入理解分布式数据结构、因果一致性和向量时钟，属于高难度编程任务\", \"confidence\": 0.89}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "1+1等于几"},
+      {"role": "assistant", "content": "{\"intent\": \"math_trivial\", \"complexity\": 0.05, \"backend\": \"nvidia_phi4\", \"reason\": \"最基础的算术问题，任何模型都能正确回答，选择延迟最低的模型\", \"confidence\": 0.99}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "从零推导反向传播算法的数学公式，并解释为什么梯度消失问题在深层网络中更严重"},
+      {"role": "assistant", "content": "{\"intent\": \"math_derivation\", \"complexity\": 0.85, \"backend\": \"or_deepseek_r1\", \"reason\": \"数学推导需要严格的链式法则应用和深层网络梯度分析，需要强推理模型\", \"confidence\": 0.91}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "写一个hello world程序用Java"},
+      {"role": "assistant", "content": "{\"intent\": \"code_generation\", \"complexity\": 0.1, \"backend\": \"chinamobile\", \"reason\": \"最基础的编程示例，所有模型都能正确生成，选择响应最快的\", \"confidence\": 0.98}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "设计一个零知识证明系统用于隐私保护的身份验证，要求支持可验证凭证和选择性披露"},
+      {"role": "assistant", "content": "{\"intent\": \"cryptography_design\", \"complexity\": 0.96, \"backend\": \"claude\", \"reason\": \"零知识证明系统设计涉及高级密码学原语、协议安全性证明和隐私工程，属于最高难度任务\", \"confidence\": 0.93}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "帮我把这段文字总结成三句话：今天公司开了一个会议讨论了下季度的销售目标"},
+      {"role": "assistant", "content": "{\"intent\": \"summarization\", \"complexity\": 0.2, \"backend\": \"longcat_lite\", \"reason\": \"简单文本摘要任务，输入短且无复杂逻辑，轻量模型足够\", \"confidence\": 0.94}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "实现一个支持增量同步的搜索引擎，包含倒排索引构建、BM25评分、分布式分片和实时索引更新"},
+      {"role": "assistant", "content": "{\"intent\": \"complex_system\", \"complexity\": 0.91, \"backend\": \"longcat_thinking\", \"reason\": \"搜索引擎实现涉及信息检索理论、分布式系统和实时数据处理多个复杂领域的交叉\", \"confidence\": 0.87}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "CSS怎么让一个div水平垂直居中"},
+      {"role": "assistant", "content": "{\"intent\": \"code_qa\", \"complexity\": 0.18, \"backend\": \"nvidia_phi4\", \"reason\": \"CSS基础布局问题，标准答案固定（flexbox或grid），弱模型即可\", \"confidence\": 0.96}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "分析Linux内核的CFS调度器源码，解释其红黑树实现和虚拟运行时间的计算逻辑"},
+      {"role": "assistant", "content": "{\"intent\": \"source_analysis\", \"complexity\": 0.87, \"backend\": \"or_deepseek_r1\", \"reason\": \"内核源码分析需要理解操作系统调度理论、红黑树数据结构和时间片计算的底层实现\", \"confidence\": 0.86}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "给我讲个笑话"},
+      {"role": "assistant", "content": "{\"intent\": \"entertainment\", \"complexity\": 0.08, \"backend\": \"chinamobile\", \"reason\": \"创意性闲聊请求，不需要推理能力，轻量模型响应更快\", \"confidence\": 0.95}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "用Rust实现一个lock-free的并发哈希表，要求支持无锁读写和渐进式rehash"},
+      {"role": "assistant", "content": "{\"intent\": \"systems_programming\", \"complexity\": 0.94, \"backend\": \"longcat_thinking\", \"reason\": \"无锁并发数据结构需要深入理解内存模型、CAS操作和ABA问题，是系统编程最难的领域之一\", \"confidence\": 0.90}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "HTTP状态码404是什么意思"},
+      {"role": "assistant", "content": "{\"intent\": \"knowledge_qa\", \"complexity\": 0.07, \"backend\": \"nvidia_phi4\", \"reason\": \"标准知识查询，答案固定明确，最轻量模型即可\", \"confidence\": 0.99}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "帮我review这段Go代码的并发安全性，检查是否有data race"},
+      {"role": "assistant", "content": "{\"intent\": \"code_review\", \"complexity\": 0.65, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"代码审查属于中等复杂度任务，需要理解并发模型但不需要最强推理，专业代码模型更合适\", \"confidence\": 0.82}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "写一篇关于人工智能伦理的2000字论文，要有学术引用和论证结构"},
+      {"role": "assistant", "content": "{\"intent\": \"long_form_writing\", \"complexity\": 0.72, \"backend\": \"longcat\", \"reason\": \"长文写作需要结构化思维和连贯表达能力，中等模型的长上下文能力适合此任务\", \"confidence\": 0.84}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "用Python写一个快速排序算法"},
+      {"role": "assistant", "content": "{\"intent\": \"algorithm_implementation\", \"complexity\": 0.35, \"backend\": \"nvidia_nemotron\", \"reason\": \"经典算法实现属于中低复杂度，模式固定，中等模型即可高质量完成\", \"confidence\": 0.90}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "解释一下什么是微服务架构，和单体架构有什么区别"},
+      {"role": "assistant", "content": "{\"intent\": \"concept_explanation\", \"complexity\": 0.4, \"backend\": \"longcat\", \"reason\": \"概念解释需要清晰的表达但不需要深度推理，中等模型能提供全面且准确的解答\", \"confidence\": 0.88}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "帮我写一个React组件，实现一个带搜索过滤的下拉选择框"},
+      {"role": "assistant", "content": "{\"intent\": \"frontend_component\", \"complexity\": 0.5, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"中等复杂度的前端组件开发，需要状态管理和事件处理，代码专用模型效率更高\", \"confidence\": 0.85}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "我的Docker容器启动后立即退出了，日志显示OOM killed，怎么排查"},
+      {"role": "assistant", "content": "{\"intent\": \"debugging\", \"complexity\": 0.55, \"backend\": \"nvidia_nemotron\", \"reason\": \"容器OOM问题排查有标准流程，中等模型能提供系统化的排查步骤和解决方案\", \"confidence\": 0.86}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "写一个SQL查询：从orders表中找出每个用户最近30天的订单总金额，按金额降序排列"},
+      {"role": "assistant", "content": "{\"intent\": \"sql_query\", \"complexity\": 0.38, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"中等复杂度SQL查询涉及聚合和日期过滤，代码模型对SQL语法更精准\", \"confidence\": 0.89}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "帮我写一封英文商务邮件，拒绝供应商的报价但保持合作关系"},
+      {"role": "assistant", "content": "{\"intent\": \"business_writing\", \"complexity\": 0.45, \"backend\": \"longcat\", \"reason\": \"商务写作需要语气把控和文化敏感度，中等模型的语言能力足以胜任\", \"confidence\": 0.87}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "Kubernetes的Pod一直处于Pending状态，describe显示insufficient memory，集群有3个节点"},
+      {"role": "assistant", "content": "{\"intent\": \"ops_troubleshooting\", \"complexity\": 0.52, \"backend\": \"nvidia_nemotron\", \"reason\": \"K8s调度问题排查有明确的诊断路径，中等模型能给出资源调整和调度策略建议\", \"confidence\": 0.84}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "用Python的pandas处理一个CSV文件，做数据清洗：去重、填充缺失值、类型转换"},
+      {"role": "assistant", "content": "{\"intent\": \"data_processing\", \"complexity\": 0.42, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"数据处理任务模式化程度高，pandas API调用为主，代码模型更擅长\", \"confidence\": 0.88}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "帮我配置Nginx反向代理，把/api路径转发到后端8080端口"},
+      {"role": "assistant", "content": "{\"intent\": \"config_generation\", \"complexity\": 0.3, \"backend\": \"nvidia_nemotron\", \"reason\": \"Nginx配置属于模板化任务，中等模型对常见配置模式掌握充分\", \"confidence\": 0.91}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "解释量子计算中Shor算法如何破解RSA加密，并分析后量子密码学的替代方案"},
+      {"role": "assistant", "content": "{\"intent\": \"advanced_science\", \"complexity\": 0.89, \"backend\": \"claude\", \"reason\": \"涉及量子计算理论、数论和密码学的交叉分析，需要最强模型的跨领域推理能力\", \"confidence\": 0.88}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "git怎么撤销最近一次commit但保留修改"},
+      {"role": "assistant", "content": "{\"intent\": \"tool_usage\", \"complexity\": 0.15, \"backend\": \"longcat_lite\", \"reason\": \"Git常用操作，答案标准化（git reset --soft HEAD~1），弱模型即可\", \"confidence\": 0.95}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "设计一个推荐系统的AB测试框架，要支持多臂老虎机算法和贝叶斯优化的自动流量分配"},
+      {"role": "assistant", "content": "{\"intent\": \"ml_system_design\", \"complexity\": 0.83, \"backend\": \"or_deepseek_r1\", \"reason\": \"结合推荐系统、统计学和优化算法的复杂系统设计，需要深度推理\", \"confidence\": 0.85}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "写一个正则表达式匹配邮箱地址"},
+      {"role": "assistant", "content": "{\"intent\": \"regex\", \"complexity\": 0.25, \"backend\": \"chinamobile\", \"reason\": \"常见正则表达式模式，网上有大量标准实现，弱模型足够\", \"confidence\": 0.92}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "分析这个微服务系统的性能瓶颈：用户请求经过API Gateway -> Auth Service -> Order Service -> Payment Service -> Notification Service，P99延迟超过5秒"},
+      {"role": "assistant", "content": "{\"intent\": \"performance_analysis\", \"complexity\": 0.73, \"backend\": \"longcat_thinking\", \"reason\": \"分布式系统性能分析需要理解调用链路、识别瓶颈点并提出优化策略，需要较强推理\", \"confidence\": 0.83}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "JavaScript中var、let、const有什么区别"},
+      {"role": "assistant", "content": "{\"intent\": \"language_basics\", \"complexity\": 0.13, \"backend\": \"nvidia_phi4\", \"reason\": \"JavaScript基础概念问题，答案标准化，最轻量模型即可准确回答\", \"confidence\": 0.97}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "帮我写一个Terraform模块，在AWS上部署一个EKS集群，包含自动扩缩容、日志收集和监控告警"},
+      {"role": "assistant", "content": "{\"intent\": \"infrastructure_code\", \"complexity\": 0.68, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"IaC编写需要熟悉云服务API和Terraform语法，代码模型对此类模板化代码更擅长\", \"confidence\": 0.81}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "用中文解释一下TCP三次握手的过程"},
+      {"role": "assistant", "content": "{\"intent\": \"concept_explanation\", \"complexity\": 0.25, \"backend\": \"longcat_lite\", \"reason\": \"经典网络知识点，解释流程固定，弱模型能清晰表达\", \"confidence\": 0.93}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "这段代码有bug吗？看起来运行结果不对但我不确定问题在哪"},
+      {"role": "assistant", "content": "{\"intent\": \"debugging_ambiguous\", \"complexity\": 0.6, \"backend\": \"longcat_thinking\", \"reason\": \"用户描述模糊，未提供具体代码，路由器无法确定真实复杂度，保守选择较强模型以确保质量\", \"confidence\": 0.45}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "帮我优化一下这个系统"},
+      {"role": "assistant", "content": "{\"intent\": \"optimization_vague\", \"complexity\": 0.5, \"backend\": \"longcat\", \"reason\": \"请求过于模糊，未指明是性能优化、架构优化还是代码优化，无法准确判断复杂度，选择中等模型作为安全选择\", \"confidence\": 0.35}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "我想做一个项目，你觉得用什么技术栈好"},
+      {"role": "assistant", "content": "{\"intent\": \"tech_consultation\", \"complexity\": 0.5, \"backend\": \"longcat\", \"reason\": \"缺少项目类型、规模、团队背景等关键信息，无法精确判断所需模型能力，建议先澄清需求\", \"confidence\": 0.3}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "这个算法的复杂度是多少？能不能更快？"},
+      {"role": "assistant", "content": "{\"intent\": \"algorithm_analysis\", \"complexity\": 0.55, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"未提供具体算法代码，但问题本身指向算法分析领域，选择代码模型但置信度较低\", \"confidence\": 0.42}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "我在学机器学习，能给我一些建议吗"},
+      {"role": "assistant", "content": "{\"intent\": \"learning_guidance\", \"complexity\": 0.4, \"backend\": \"longcat\", \"reason\": \"学习建议请求范围宽泛，不确定用户水平和具体方向，中等模型可提供通用建议但可能不够针对性\", \"confidence\": 0.5}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "帮我处理一下这个数据"},
+      {"role": "assistant", "content": "{\"intent\": \"data_processing_vague\", \"complexity\": 0.4, \"backend\": \"nvidia_nemotron\", \"reason\": \"未指明数据格式、处理目标和输出要求，路由决策不确定，选择通用中等模型\", \"confidence\": 0.32}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "写一个程序，要求很高的性能"},
+      {"role": "assistant", "content": "{\"intent\": \"performance_coding\", \"complexity\": 0.6, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"性能要求高但未指明语言、场景和约束条件，无法判断是否需要系统级优化还是算法优化\", \"confidence\": 0.38}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "这个错误怎么解决：TypeError: Cannot read properties of undefined"},
+      {"role": "assistant", "content": "{\"intent\": \"error_resolution\", \"complexity\": 0.35, \"backend\": \"nvidia_qwen_coder\", \"reason\": \"常见JS错误但缺少上下文代码，可能是简单的null check也可能涉及复杂的异步逻辑，置信度中等\", \"confidence\": 0.55}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "能不能帮我做个东西"},
+      {"role": "assistant", "content": "{\"intent\": \"unknown\", \"complexity\": 0.3, \"backend\": \"longcat_lite\", \"reason\": \"请求完全模糊，无法判断任务类型和复杂度，先用轻量模型引导用户澄清需求\", \"confidence\": 0.2}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "证明P!=NP，或者至少解释为什么这个问题这么难"},
+      {"role": "assistant", "content": "{\"intent\": \"theoretical_cs\", \"complexity\": 0.97, \"backend\": \"claude\", \"reason\": \"计算复杂性理论的核心开放问题，解释其困难性需要深入理解对角化、相对化和自然证明障碍\", \"confidence\": 0.75}"}
+    ],
+    "source": "routellm_semantic_router"
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "你是AI智能路由器。分析用户请求的复杂度和类型，输出路由决策JSON。选择最合适的后端模型。"},
+      {"role": "user", "content": "帮我生成一个UUID"},
+      {"role": "assistant", "content": "{\"intent\": \"utility\", \"complexity\": 0.05, \"backend\": \"nvidia_phi4\", \"reason\": \"纯工具性操作，无需任何推理能力，最快的模型即可\", \"confidence\": 0.99}"}
+    ],
+    "source": "routellm_semantic_router"
+  }
+]
