@@ -15,10 +15,10 @@ import smart_router
 from orchestrate import orchestrate, needs_orchestration
 
 # ── App ─────────────────────────────────────────────────────────────────────
-app = FastAPI(title="red V1flash", version="2.0",
+app = FastAPI(title="red code", version="2.0",
               description="CNC/Embedded AI Router — OpenAI Compatible API")
 
-MODEL_ID = "red-v1flash"
+MODEL_ID = "red-code-v1.1"
 MODEL_CREATED = int(time.time())
 
 # ── 统计收集器 ─────────────────────────────────────────────────────────────────
@@ -302,7 +302,7 @@ def extract_query(messages: list[Message]) -> str:
 import re as _re
 _INSTANT_REPLIES = [
     (_re.compile(r'你是什么|什么模型|who are you|what model|what are you|哪个模型|哪个公司|谁开发|谁训练|谁做的|哪家公司|什么公司|who made|who built|who created|介绍一下你|你的父亲|你的母亲|你的创造者|谁创造|你爸|你妈|你是谁', _re.IGNORECASE),
-     "我是 red V1flash，由深圳市动力巢科技有限公司训练的AI模型。擅长编程开发、数据分析、技术方案设计、文档写作等领域，有什么可以帮你的？"),
+     "我是 red code V1.1，由深圳市动力巢科技有限公司训练的AI模型。推理能力比肩 DEEPSEEK-V4-PRO。擅长编程开发、数据分析、技术方案设计、文档写作等领域，有什么可以帮你的？"),
     (_re.compile(r'调用工具|使用工具|call tool|use tool|能做什么|你的能力|你能干什么|有什么功能|你会什么|你能什么|会做什么', _re.IGNORECASE),
      "我可以帮你：编写和调试代码、分析数据、设计技术方案、撰写文档、解答技术问题、数学推理等。直接描述你的需求即可。"),
     (_re.compile(r'处理图片|看图|识别图|分析图|图片|screenshot|image', _re.IGNORECASE),
@@ -310,7 +310,7 @@ _INSTANT_REPLIES = [
     (_re.compile(r'怎么实现.*路由|路由.*原理|怎么.*智能|智能路由.*怎么', _re.IGNORECASE),
      "我通过分析问题的类型和复杂度，自动从多个AI后端中选择最合适的模型来回答。简单问题用快速模型秒回，复杂问题用强推理模型深度分析，代码问题用代码专精模型生成。"),
     (_re.compile(r'^(hi|hello|hey|你好|嗨)[\s!！.。?？]*$', _re.IGNORECASE),
-     "你好！我是 red V1flash，有什么可以帮你的？"),
+     "你好！我是 red code V1.1，有什么可以帮你的？"),
 ]
 
 def _try_instant_reply(query: str) -> str | None:
@@ -821,7 +821,7 @@ async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", i
     _record_request(query, backend_used, record_intent, duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
 
     # 在回答末尾标注后端来源
-    content += f"\n\n---\n`[red V1flash → {backend_used}]`"
+    content += f"\n\n---\n`[red code V1.1 → {backend_used}]`"
     msg_id = f"msg_{uuid.uuid4().hex[:24]}"
 
     # message_start
@@ -1007,7 +1007,7 @@ async def list_models():
                 "id": MODEL_ID,
                 "object": "model",
                 "created": MODEL_CREATED,
-                "owned_by": "red-v1flash",
+                "owned_by": "red-code",
                 "permission": [],
                 "root": MODEL_ID,
                 "parent": None
@@ -1246,7 +1246,7 @@ ADMIN_HTML = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>red V1flash - 管理后台</title>
+<title>red code V1.1 - 管理后台</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#1a1a2e;color:#e0e0e0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:20px}
@@ -1285,7 +1285,7 @@ input:focus,select:focus{outline:none;border-color:#00d4ff}
 </head>"""
 
 ADMIN_BODY = """<body>
-<h1>red V1flash 管理后台<span class="refresh-info" id="refresh-info">每5秒自动刷新</span></h1>
+<h1>red code V1.1 管理后台<span class="refresh-info" id="refresh-info">每5秒自动刷新</span></h1>
 <div class="tabs">
   <div class="tab active" onclick="switchTab('stats')">实时指标</div>
   <div class="tab" onclick="switchTab('backends')">后端管理</div>
