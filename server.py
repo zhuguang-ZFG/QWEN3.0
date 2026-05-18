@@ -80,6 +80,19 @@ def build_stream_chunk(chat_id: str, content: str, finish: bool = False) -> str:
     return f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
 
 
+def build_anthropic_response(msg_id: str, content: str, backend: str) -> dict:
+    """构建 Anthropic Messages API 响应格式。"""
+    return {
+        "id": msg_id,
+        "type": "message",
+        "role": "assistant",
+        "model": MODEL_ID,
+        "content": [{"type": "text", "text": content}],
+        "stop_reason": "end_turn",
+        "usage": {"input_tokens": 0, "output_tokens": 0},
+    }
+
+
 def extract_query(messages: list[Message]) -> str:
     """从 messages 列表提取最后一条 user 消息作为 query。"""
     for msg in reversed(messages):
@@ -133,7 +146,31 @@ def _log_sys_prompt(sys_prompt: str) -> None:
 # ── Routes ──────────────────────────────────────────────────────────────────
 @app.post("/v1/chat/completions")
 async def chat_completions(req: ChatRequest):
-    """主接口：兼容 OpenAI ChatCompletion 格式。"""
+    """OpenAI 兼容接口。"""
+    return await _handle_chat(req, fmt="openai")
+
+
+@app.post("/v1/messages")
+async def anthropic_messages(req: Request):
+    """Anthropic 兼容接口（供 cc-switch Claude Code 使用）。"""
+    body = await req.json()
+    # 转换 Anthropic 格式 → 内部格式
+    messages = [Message(role=m["role"], content=m["content"])
+                for m in body.get("messages", []) if m["role"] in ("user", "assistant")]
+    # system prompt 作为第一条消息
+    if body.get("system"):
+        messages.insert(0, Message(role="system", content=body["system"]))
+
+    chat_req = ChatRequest(
+        model=body.get("model", MODEL_ID).replace("[1m]", ""),
+        messages=messages,
+        stream=False,
+        max_tokens=body.get("max_tokens", 1024)
+    )
+    return await _handle_chat(chat_req, fmt="anthropic")
+
+
+async def _handle_chat(req: ChatRequest, fmt: str = "openai"):
     query = extract_query(req.messages)
     if not query.strip():
         raise HTTPException(status_code=400, detail="Empty query")
@@ -176,6 +213,8 @@ async def chat_completions(req: ChatRequest):
         except Exception:
             pass
 
+    if fmt == "anthropic":
+        return JSONResponse(build_anthropic_response(chat_id, content, backend))
     return JSONResponse(build_response(chat_id, content, backend, total_ms))
 
 
