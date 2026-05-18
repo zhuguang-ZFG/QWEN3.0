@@ -453,6 +453,131 @@ location /ws/voice {
 - [openai/whisper](https://github.com/openai/whisper) — 语音识别
 - [fishaudio/fish-speech](https://github.com/fishaudio/fish-speech) — 开源 TTS
 
+### 9.10 Level 2: 语音 + 动画头像（类豆包视频通话）
+
+**目标：** 用户看到一个会说话、有表情的 AI 形象，实现"视频通话"体验。
+
+**核心原理：**
+```
+语音输入 → Whisper → LiMa → Edge-TTS → 音频
+                                    ↓ 同时
+                              口型状态机 → CSS/Canvas 动画头像
+                                    ↓
+                              用户看到"AI 在说话"
+```
+
+**技术方案（零成本，纯前端动画）：**
+
+```
+┌─────────────────────────────────────────────────┐
+│  前端 (浏览器)                                   │
+│                                                  │
+│  ┌──────────────┐  ┌─────────────────────────┐  │
+│  │  AI 头像区    │  │  对话文字区             │  │
+│  │  - SVG 头像   │  │  - 实时字幕             │  │
+│  │  - 口型动画   │  │  - 历史消息             │  │
+│  │  - 眨眼/点头  │  │                         │  │
+│  └──────────────┘  └─────────────────────────┘  │
+│                                                  │
+│  ┌──────────────────────────────────────────┐   │
+│  │  🎤 按住说话    [结束通话]                │   │
+│  └──────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────┘
+```
+
+**口型同步实现（无需 GPU）：**
+
+```javascript
+// 基于音频振幅驱动口型
+const analyser = audioContext.createAnalyser();
+const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+function animateMouth() {
+    analyser.getByteFrequencyData(dataArray);
+    const volume = dataArray.reduce((a, b) => a + b) / dataArray.length;
+
+    // 5 种口型状态映射
+    if (volume < 10) mouthState = 'closed';
+    else if (volume < 40) mouthState = 'slightly_open';
+    else if (volume < 80) mouthState = 'open';
+    else if (volume < 120) mouthState = 'wide';
+    else mouthState = 'very_wide';
+
+    updateAvatarMouth(mouthState);
+    requestAnimationFrame(animateMouth);
+}
+```
+
+**AI 头像方案：**
+
+| 方案 | 效果 | 成本 | 实现难度 |
+|------|------|------|----------|
+| SVG 矢量头像 + CSS 动画 | 卡通风格，流畅 | ¥0 | 低 |
+| Canvas 2D 绘制 | 更精细表情 | ¥0 | 中 |
+| Lottie 动画 | 设计师级别 | ¥0 | 低(需设计资源) |
+| Live2D (看板娘) | 二次元风格 | ¥0 | 中 |
+
+**推荐：SVG 头像 + CSS 动画（最快落地）**
+
+```svg
+<!-- LiMa AI 头像示例 -->
+<svg viewBox="0 0 200 200">
+  <!-- 头部 -->
+  <circle cx="100" cy="100" r="80" fill="#6366f1"/>
+  <!-- 眼睛 (会眨眼) -->
+  <ellipse class="eye-left" cx="75" cy="85" rx="8" ry="10" fill="white"/>
+  <ellipse class="eye-right" cx="125" cy="85" rx="8" ry="10" fill="white"/>
+  <!-- 嘴巴 (口型同步) -->
+  <ellipse class="mouth" cx="100" cy="130" rx="15" ry="5" fill="white"/>
+</svg>
+
+<style>
+  /* 眨眼动画 */
+  @keyframes blink { 0%,95%{ry:10} 97%{ry:1} 100%{ry:10} }
+  .eye-left, .eye-right { animation: blink 4s infinite; }
+
+  /* 口型状态 */
+  .mouth[data-state="closed"] { ry: 2; rx: 12; }
+  .mouth[data-state="open"] { ry: 12; rx: 15; }
+  .mouth[data-state="wide"] { ry: 18; rx: 18; }
+
+  /* 说话时轻微点头 */
+  @keyframes nod { 0%,100%{transform:rotate(0)} 50%{transform:rotate(2deg)} }
+  .speaking svg { animation: nod 0.8s ease infinite; }
+</style>
+```
+
+**完整交互流程：**
+
+```
+1. 用户点击"视频通话"按钮
+2. 界面切换为全屏通话模式（头像居中 + 字幕底部）
+3. 用户按住说话 → 录音 → 松开
+4. 音频 → WebSocket → Whisper → 文字（显示字幕）
+5. 文字 → LiMa Router → AI 回复（流式）
+6. 回复文字 → Edge-TTS → 音频流
+7. 音频播放同时 → 振幅分析 → 驱动口型动画
+8. AI "说完" → 等待用户下一句
+```
+
+**Sprint 计划 (额外 0.5 周):**
+
+| 步骤 | 工作量 | 内容 |
+|------|--------|------|
+| 1 | 2h | SVG 头像设计 + CSS 动画（眨眼/点头/口型） |
+| 2 | 2h | 音频振幅分析 → 口型状态映射 |
+| 3 | 2h | 全屏通话 UI 模式 |
+| 4 | 1h | 集成到现有 Voice Gateway |
+
+**Level 3 升级路径（未来有 GPU 时）：**
+
+| 技术 | GitHub | 效果 |
+|------|--------|------|
+| MuseTalk | [TMElyralab/MuseTalk](https://github.com/TMElyralab/MuseTalk) | 真人照片口型驱动 |
+| SadTalker | [OpenTalker/SadTalker](https://github.com/OpenTalker/SadTalker) | 照片生成说话视频 |
+| LivePortrait | [KwaiVGI/LivePortrait](https://github.com/KwaiVGI/LivePortrait) | 快手开源表情迁移 |
+| HeyGem | [GuijiAI/HeyGem.ai](https://github.com/GuijiAI/HeyGem.ai) | 完整数字人方案 |
+
 ---
 
 ## 十、更新后的总路线图
@@ -464,4 +589,12 @@ location /ws/voice {
 | 3 | 拍题答疑 (Vision) | 1周 | ¥0 |
 | 4 | 语音实时交互 | 1.5周 | ¥0 |
 
-**总计: 4.5 周交付全部 4 个新功能，零成本运营。**
+**总计: 5 周交付全部 5 个新功能，零成本运营。**
+
+| Sprint | 功能 | 周期 | 成本 |
+|--------|------|------|------|
+| 1 | 深度思考模式 | 1周 | ¥0 |
+| 2 | AI 生图 | 1周 | ¥0 |
+| 3 | 拍题答疑 (Vision) | 1周 | ¥0 |
+| 4 | 语音实时交互 | 1.5周 | ¥0 |
+| 5 | 动画头像视频通话 (Level 2) | 0.5周 | ¥0 |
