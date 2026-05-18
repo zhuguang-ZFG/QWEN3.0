@@ -648,6 +648,50 @@ def route(query, prefer=None):
 # ── Distill Queue Logger ─────────────────────────────────────────────────────
 DISTILL_QUEUE_DIR = os.path.join(os.path.dirname(__file__), 'data', 'distill_queue', 'pending')
 
+
+def _quick_score(query: str, answer: str) -> float:
+    """快速质量评分，纯本地规则，0ms延迟。返回 0.0-1.0。"""
+    if not answer:
+        return 0.0
+
+    # 长度分（0.3权重）
+    length = len(answer)
+    if 100 <= length <= 2000:
+        len_score = 1.0
+    elif length < 50:
+        len_score = 0.0
+    elif length < 100:
+        len_score = (length - 50) / 50
+    else:  # > 2000
+        len_score = max(0.7, 1.0 - (length - 2000) / 5000)
+
+    # 格式分（0.3权重）
+    fmt_score = 0.0
+    if '```' in answer and answer.count('```') % 2 == 0:
+        fmt_score += 0.4
+    if any(c.isdigit() for c in answer):
+        fmt_score += 0.3
+    if any(marker in answer for marker in ['1.', '2.', '- ', '* ', '步骤']):
+        fmt_score += 0.3
+
+    # 完整性分（0.2权重）
+    comp_score = 1.0
+    bad_markers = ['抱歉', '无法', '不确定', '我不能', '暂时不可用']
+    if any(m in answer for m in bad_markers):
+        comp_score = 0.3
+
+    # 相关性分（0.2权重）
+    query_words = set(query.lower().replace('?', '').replace('？', '').split())
+    answer_lower = answer.lower()
+    if query_words:
+        overlap = sum(1 for w in query_words if w in answer_lower and len(w) > 1)
+        rel_score = min(1.0, overlap / max(len(query_words) * 0.3, 1))
+    else:
+        rel_score = 0.5
+
+    total = len_score * 0.3 + fmt_score * 0.3 + comp_score * 0.2 + rel_score * 0.2
+    return round(total, 3)
+
 def _log_to_distill_queue(query: str, answer: str, intent: dict, backend: str) -> None:
     """将路由结果写入蒸馏队列，供 distill_scheduler 使用。
 
@@ -666,12 +710,15 @@ def _log_to_distill_queue(query: str, answer: str, intent: dict, backend: str) -
     try:
         os.makedirs(DISTILL_QUEUE_DIR, exist_ok=True)
         import hashlib, datetime
+        score = _quick_score(query, answer)
         entry = {
             'query': query,
             'answer': answer,
             'intent': intent.get('intent', 'unknown'),
             'complexity': intent.get('complexity', 0.5),
             'source_backend': backend,
+            'quality_score': score,
+            'routing_correct': score >= 0.7,
             'logged_at': datetime.datetime.now().isoformat(),
         }
         qhash = hashlib.md5(query.encode()).hexdigest()[:8]
