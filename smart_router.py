@@ -9,8 +9,8 @@ sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 from dotenv import load_dotenv
 load_dotenv()
 
-# ── Local Router Model (Qwen3-1.7B, trained Round 8) ────────────────────────
-LOCAL_ROUTER_MODEL = "D:/GIT/my_code_model_qwen3_r8/final"
+# ── Local Router Model (Qwen3-1.7B, trained Round 12) ───────────────────────
+LOCAL_ROUTER_MODEL = "D:/GIT/my_code_model_qwen3_r12/final"
 _local_model = None
 _local_tokenizer = None
 _local_model_failed = False  # 标记模型加载是否失败过，避免重复尝试
@@ -426,6 +426,49 @@ def _local_route_decision(query: str) -> dict | None:
     return result_holder[0]
 
 
+# ── Model Route (Round 12 模型路由决策) ──────────────────────────────────────
+def model_route(query: str, system_prompt: str = "", ide: str = "unknown") -> dict | None:
+    """用本地 Round 12 模型做路由决策。返回 dict 或 None（失败时）。
+    替代正则直答，全部交给模型决策。
+    """
+    global _local_model_failed
+    if _local_model_failed:
+        return None
+    try:
+        import torch
+        _load_local_router()
+        if _local_model is None:
+            return None
+
+        messages = [
+            {"role": "system", "content": "你是red V1flash智能路由决策器。分析用户请求，输出路由决策JSON。"},
+            {"role": "user", "content": f"IDE上下文: {ide}\n用户问题: {query[:300]}"}
+        ]
+
+        text = _local_tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True)
+        inputs = _local_tokenizer(text, return_tensors="pt").to(_local_model.device)
+
+        with torch.no_grad():
+            outputs = _local_model.generate(
+                **inputs, max_new_tokens=200, do_sample=False)
+
+        response = _local_tokenizer.decode(
+            outputs[0][inputs['input_ids'].shape[1]:],
+            skip_special_tokens=True)
+
+        # 解析 JSON
+        json_match = re.search(r'\{.*\}', response, re.DOTALL)
+        if json_match:
+            result = json.loads(json_match.group())
+            result.setdefault('source', 'model_r12')
+            return result
+    except Exception as e:
+        if DEBUG:
+            print(f'[MODEL_ROUTE] error: {e}', file=sys.stderr)
+    return None
+
+
 # ── Layer 2: Local model ─────────────────────────────────────────────────────
 def call_local(msgs, mt=512, t=0.3):
     """Call LM Studio (OpenAI-compatible)."""
@@ -472,16 +515,32 @@ def model_classify(query):
                 'domain_keywords': [], 'cnc_subdomain': 'general', 'source': 'fallback'}
 
 def analyze(query):
-    """Three-layer intent analysis: rules -> local Qwen3 -> LM Studio model."""
-    # Layer 1: 正则规则（0ms）
+    """Three-layer intent analysis: model_route (R12) -> rules -> LM Studio model.
+    Round 12 模型优先做路由决策，正则规则作为快速 fallback。
+    """
+    # Layer 0: Round 12 模型路由决策（主路径）
+    model_decision = model_route(query)
+    if model_decision:
+        intent_name = model_decision.get('intent', 'unknown')
+        return {
+            'intent': intent_name,
+            'complexity': model_decision.get('complexity', 0.5),
+            'needs_code': model_decision.get('needs_code', False),
+            'domain_keywords': model_decision.get('domain_keywords', []),
+            'cnc_subdomain': model_decision.get('cnc_subdomain', 'general'),
+            'source': 'model_r12',
+            'confidence': model_decision.get('confidence', 0.85),
+            'backend_hint': model_decision.get('backend'),
+        }
+
+    # Layer 1: 正则规则 fallback（模型不可用时，0ms）
     result = rule_classify(query)
     if result:
         return result
 
-    # Layer 1.5: 本地 Qwen3 路由模型（50-100ms GPU, 首次加载 ~10s）
+    # Layer 1.5: 本地 Qwen3 路由模型旧路径（50-100ms GPU, 首次加载 ~10s）
     local_decision = _local_route_decision(query)
     if local_decision:
-        # 确保返回格式与 rule_classify 一致
         intent_name = local_decision.get('intent', 'unknown')
         return {
             'intent': intent_name,

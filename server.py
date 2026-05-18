@@ -34,6 +34,27 @@ _stats = {
 # 后端启用/禁用状态
 _backend_enabled = {}
 
+# ── Fallback 日志（供自动训练闭环使用）────────────────────────────────────────
+FALLBACK_LOG = "D:/GIT/data/fallback_log.jsonl"
+
+
+def _record_fallback(query, original_backend, fallback_backend, intent, ide):
+    """记录 fallback 事件到日志文件，供 auto_retrain 自动训练使用。"""
+    try:
+        os.makedirs(os.path.dirname(FALLBACK_LOG), exist_ok=True)
+        entry = {
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "query": query[:300],
+            "original_backend": original_backend,
+            "fallback_backend": fallback_backend,
+            "intent": intent,
+            "ide": ide,
+        }
+        with open(FALLBACK_LOG, 'a', encoding='utf-8') as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + '\n')
+    except Exception:
+        pass
+
 # ── Fallback 架构 ─────────────────────────────────────────────────────────────
 # 后端层级映射
 BACKEND_TIERS = {
@@ -775,6 +796,7 @@ async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", i
                     content = alt_result["answer"]
                     backend_used = alt
                     intent_name = f"fallback_same_tier_{intent_name}"
+                    _record_fallback(query, fallback_backend, alt, intent_name, ide_source)
                     fallback_found = True
                     break
             # 跨层升级
@@ -786,6 +808,7 @@ async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", i
                         content = up_result["answer"]
                         backend_used = upgraded
                         intent_name = f"fallback_upgrade_{intent_name}"
+                        _record_fallback(query, fallback_backend, upgraded, intent_name, ide_source)
                         fallback_found = True
                         break
             # 全部失败
@@ -889,6 +912,7 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
             if alt_result and _quality_check(alt_result["answer"], complexity, alt):
                 content = alt_result["answer"]
                 backend = alt
+                _record_fallback(query, fallback_backend, alt, f"fallback_same_tier_{fallback_intent}", ide_source)
                 _record_request(query, backend, f"fallback_same_tier_{fallback_intent}", int((time.time() - t0) * 1000), True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
                 if fmt == "anthropic":
                     return JSONResponse(build_anthropic_response(chat_id, content, backend, request_model or MODEL_ID))
@@ -901,6 +925,7 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
             if up_result and _quality_check(up_result["answer"], complexity, upgraded):
                 content = up_result["answer"]
                 backend = upgraded
+                _record_fallback(query, fallback_backend, upgraded, f"fallback_upgrade_{fallback_intent}", ide_source)
                 _record_request(query, backend, f"fallback_upgrade_{fallback_intent}", int((time.time() - t0) * 1000), True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
                 if fmt == "anthropic":
                     return JSONResponse(build_anthropic_response(chat_id, content, backend, request_model or MODEL_ID))
