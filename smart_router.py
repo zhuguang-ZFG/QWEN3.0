@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ── Local Router Model (Qwen3-1.7B, trained Round 12) ───────────────────────
-LOCAL_ROUTER_MODEL = "D:/GIT/my_code_model_qwen3_r12/final"
+LOCAL_ROUTER_MODEL = "D:/GIT/my_code_model_qwen3_r13/final"
 _local_model = None
 _local_tokenizer = None
 _local_model_failed = False  # 标记模型加载是否失败过，避免重复尝试

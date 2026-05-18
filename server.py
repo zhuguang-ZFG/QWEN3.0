@@ -18,7 +18,7 @@ from orchestrate import orchestrate, needs_orchestration
 app = FastAPI(title="red code", version="2.0",
               description="CNC/Embedded AI Router — OpenAI Compatible API")
 
-MODEL_ID = "red-code-v1.1"
+MODEL_ID = "redcode-v1.2"
 MODEL_CREATED = int(time.time())
 
 # ── 统计收集器 ─────────────────────────────────────────────────────────────────
@@ -302,15 +302,17 @@ def extract_query(messages: list[Message]) -> str:
 import re as _re
 _INSTANT_REPLIES = [
     (_re.compile(r'你是什么|什么模型|who are you|what model|what are you|哪个模型|哪个公司|谁开发|谁训练|谁做的|哪家公司|什么公司|who made|who built|who created|介绍一下你|你的父亲|你的母亲|你的创造者|谁创造|你爸|你妈|你是谁', _re.IGNORECASE),
-     "我是 red code V1.1，由深圳市动力巢科技有限公司训练的AI模型。推理能力比肩 DEEPSEEK-V4-PRO。擅长编程开发、数据分析、技术方案设计、文档写作等领域，有什么可以帮你的？"),
+     "我是 redcode V1.2，由深圳市动力巢科技有限公司训练的AI模型。推理能力比肩 DEEPSEEK-V4-PRO。擅长编程开发、数据分析、技术方案设计、文档写作等领域，有什么可以帮你的？"),
     (_re.compile(r'调用工具|使用工具|call tool|use tool|能做什么|你的能力|你能干什么|有什么功能|你会什么|你能什么|会做什么', _re.IGNORECASE),
      "我可以帮你：编写和调试代码、分析数据、设计技术方案、撰写文档、解答技术问题、数学推理等。直接描述你的需求即可。"),
     (_re.compile(r'处理图片|看图|识别图|分析图|图片|screenshot|image', _re.IGNORECASE),
      "目前暂不支持图片处理。请用文字描述图片内容或你的需求，我来帮你分析解决。"),
     (_re.compile(r'怎么实现.*路由|路由.*原理|怎么.*智能|智能路由.*怎么', _re.IGNORECASE),
      "我通过分析问题的类型和复杂度，自动从多个AI后端中选择最合适的模型来回答。简单问题用快速模型秒回，复杂问题用强推理模型深度分析，代码问题用代码专精模型生成。"),
+    (_re.compile(r'动力巢|donglicao|公司.*干什么|公司.*做什么|公司.*简介|公司.*介绍', _re.IGNORECASE),
+     "深圳市动力巢科技有限公司（www.donglicao.com）专注智能写字设备研发与制造。智能写字机为核心产品，配套软件覆盖 Windows/macOS/Android，同时提供固件开发、上位机控制、定制开发等技术服务。工厂直营，位于深圳龙华。\n\n公司官网：https://www.donglicao.com"),
     (_re.compile(r'^(hi|hello|hey|你好|嗨)[\s!！.。?？]*$', _re.IGNORECASE),
-     "你好！我是 red code V1.1，有什么可以帮你的？"),
+     "你好！我是 redcode V1.2，有什么可以帮你的？"),
 ]
 
 def _try_instant_reply(query: str) -> str | None:
@@ -821,7 +823,7 @@ async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", i
     _record_request(query, backend_used, record_intent, duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
 
     # 在回答末尾标注后端来源
-    content += f"\n\n---\n`[red code V1.1 → {backend_used}]`"
+    content += f"\n\n---\n`[redcode V1.2 → {backend_used}]`"
     msg_id = f"msg_{uuid.uuid4().hex[:24]}"
 
     # message_start
@@ -1007,7 +1009,7 @@ async def list_models():
                 "id": MODEL_ID,
                 "object": "model",
                 "created": MODEL_CREATED,
-                "owned_by": "red-code",
+                "owned_by": "redcode",
                 "permission": [],
                 "root": MODEL_ID,
                 "parent": None
@@ -1075,6 +1077,7 @@ async def admin_backends():
         status_info = cb.get(name, {})
         url = cfg.get("url", "")
         fmt = cfg.get("fmt", "openai")
+        auth = cfg.get("auth", "x-api-key" if fmt == "anthropic" else "bearer")
         # 自动检测供应商
         vendor = "未知"
         if "longcat" in url: vendor = "LongCat"
@@ -1084,26 +1087,29 @@ async def admin_backends():
         elif "chinamobile" in url: vendor = "中国移动"
         elif "right.codes" in url: vendor = "Claude"
         elif "localhost" in url or "127.0.0.1" in url: vendor = "本地模型"
-        # 自动检测层级
-        tier = "L4 付费"
-        if "localhost" in url or "127.0.0.1" in url: tier = "L0 本地"
-        elif "longcat" in url or "chinamobile" in url: tier = "L1 免费无限"
-        elif "nvidia" in url: tier = "L2 免费额度"
-        elif "openrouter" in url: tier = "L3 免费限量"
-        elif "deepseek" in url: tier = "L4 付费"
-        elif "right.codes" in url: tier = "L4 付费"
+        # 自动检测层级（用户设置的优先）
+        tier = cfg.get("tier", "")
+        if not tier:
+            if "localhost" in url or "127.0.0.1" in url: tier = "L0 本地"
+            elif "longcat" in url or "chinamobile" in url: tier = "L1 免费无限"
+            elif "nvidia" in url: tier = "L2 免费额度"
+            elif "openrouter" in url: tier = "L3 免费限量"
+            elif "deepseek" in url: tier = "L4 付费"
+            elif "right.codes" in url: tier = "L4 付费"
+            else: tier = "L4 付费"
         # 自动检测协议
         protocol = "Anthropic" if fmt == "anthropic" else "OpenAI"
-        # 自动检测能力
-        caps = []
-        if name in ("claude", "or_deepseek_r1", "or_qwen3_235b", "deepseek_pro", "deepseek_flash"):
-            caps.append("工具调用")
-        if name in ("claude", "longcat_omni"):
-            caps.append("视觉")
-        if "thinking" in name or "r1" in name:
-            caps.append("深度推理")
+        # 自动检测能力（用户设置的优先）
+        caps = cfg.get("caps", [])
         if not caps:
-            caps.append("纯文本")
+            if name in ("claude", "or_deepseek_r1", "or_qwen3_235b", "deepseek_pro", "deepseek_flash"):
+                caps.append("工具调用")
+            if name in ("claude", "longcat_omni"):
+                caps.append("视觉")
+            if "thinking" in name or "r1" in name:
+                caps.append("深度推理")
+            if not caps:
+                caps.append("纯文本")
         backends.append({
             "name": name,
             "vendor": vendor,
@@ -1112,12 +1118,47 @@ async def admin_backends():
             "capabilities": caps,
             "url": url,
             "model": cfg.get("model", ""),
+            "auth": auth,
             "enabled": enabled,
             "state": status_info.get("state", "closed"),
             "total_calls": status_info.get("total_calls", 0),
             "error_rate": status_info.get("error_rate", "0.0%"),
         })
     return backends
+
+
+def _test_backend_sync(name: str):
+    """同步测试后端连通性，返回结果字典。"""
+    if name not in smart_router.BACKENDS:
+        return {"ok": False, "error": f"backend '{name}' not found"}
+    cfg = smart_router.BACKENDS[name]
+    url = cfg.get("url", "")
+    key = cfg.get("key", "")
+    fmt = cfg.get("fmt", "openai")
+    model = cfg.get("model", "")
+    start = time.time()
+    try:
+        if fmt == "anthropic":
+            headers = {"Content-Type": "application/json", "anthropic-version": "2023-06-01"}
+            if cfg.get("auth") == "bearer":
+                headers["Authorization"] = f"Bearer {key}"
+            else:
+                headers["x-api-key"] = key
+            payload = json.dumps({"model": model, "max_tokens": 10, "messages": [{"role": "user", "content": "hi"}]}).encode()
+        else:
+            headers = {"Content-Type": "application/json", "Authorization": f"Bearer {key}"}
+            payload = json.dumps({"model": model, "max_tokens": 10, "messages": [{"role": "user", "content": "hi"}]}).encode()
+        req = __import__('urllib').request.Request(url, data=payload, headers=headers, method='POST')
+        resp = __import__('urllib').request.urlopen(req, timeout=15)
+        elapsed = int((time.time() - start) * 1000)
+        data = json.loads(resp.read().decode())
+        caps = ["纯文本"]
+        if fmt == "openai" and "tool_calls" not in str(data):
+            pass
+        return {"ok": True, "latency_ms": elapsed, "status": resp.status, "capabilities_detected": caps, "response_preview": str(data)[:200]}
+    except Exception as e:
+        elapsed = int((time.time() - start) * 1000)
+        return {"ok": False, "latency_ms": elapsed, "error": str(e)[:200]}
 
 
 @app.post("/admin/api/backends")
@@ -1129,15 +1170,26 @@ async def admin_add_backend(req: Request):
     key = body.get("key", "").strip()
     model = body.get("model", name)
     fmt = body.get("fmt", "openai")
+    auth = body.get("auth", "").strip()
+    if not auth:
+        auth = "x-api-key" if fmt == "anthropic" else "bearer"
+    tier = body.get("tier", "")
+    caps = body.get("caps", [])
     if not name or not url:
         raise HTTPException(400, "name and url required")
     if name in smart_router.BACKENDS:
         raise HTTPException(409, f"backend '{name}' already exists")
     smart_router.BACKENDS[name] = {
-        "url": url, "key": key, "model": model, "fmt": fmt
+        "url": url, "key": key, "model": model, "fmt": fmt, "auth": auth,
+        "tier": tier, "caps": caps
     }
     _backend_enabled[name] = True
-    return {"ok": True, "message": f"backend '{name}' added"}
+    # 尝试自动测试
+    try:
+        test_result = _test_backend_sync(name)
+        return {"ok": True, "message": f"backend '{name}' added", "test": test_result}
+    except:
+        return {"ok": True, "message": f"backend '{name}' added (test skipped)"}
 
 
 @app.delete("/admin/api/backends/{name}")
@@ -1165,35 +1217,7 @@ async def admin_test_backend(name: str):
     """测试后端可用性：发送简单请求验证连通性。"""
     if name not in smart_router.BACKENDS:
         raise HTTPException(404, f"backend '{name}' not found")
-    cfg = smart_router.BACKENDS[name]
-    url = cfg.get("url", "")
-    key = cfg.get("key", "")
-    fmt = cfg.get("fmt", "openai")
-    model = cfg.get("model", "")
-    start = time.time()
-    try:
-        if fmt == "anthropic":
-            headers = {"Content-Type": "application/json", "anthropic-version": "2023-06-01"}
-            if cfg.get("auth") == "bearer":
-                headers["Authorization"] = f"Bearer {key}"
-            else:
-                headers["x-api-key"] = key
-            payload = json.dumps({"model": model, "max_tokens": 10, "messages": [{"role": "user", "content": "hi"}]}).encode()
-        else:
-            headers = {"Content-Type": "application/json", "Authorization": f"Bearer {key}"}
-            payload = json.dumps({"model": model, "max_tokens": 10, "messages": [{"role": "user", "content": "hi"}]}).encode()
-        req = __import__('urllib').request.Request(url, data=payload, headers=headers, method='POST')
-        resp = __import__('urllib').request.urlopen(req, timeout=15)
-        elapsed = int((time.time() - start) * 1000)
-        data = json.loads(resp.read().decode())
-        # 检测能力
-        caps = ["纯文本"]
-        if fmt == "openai" and "tool_calls" not in str(data):
-            pass
-        return {"ok": True, "latency_ms": elapsed, "status": resp.status, "capabilities_detected": caps, "response_preview": str(data)[:200]}
-    except Exception as e:
-        elapsed = int((time.time() - start) * 1000)
-        return {"ok": False, "latency_ms": elapsed, "error": str(e)[:200]}
+    return _test_backend_sync(name)
 
 
 @app.get("/admin/api/logs")
@@ -1246,7 +1270,7 @@ ADMIN_HTML = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>red code V1.1 - 管理后台</title>
+<title>redcode V1.2 - 管理后台</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#1a1a2e;color:#e0e0e0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:20px}
@@ -1285,7 +1309,7 @@ input:focus,select:focus{outline:none;border-color:#00d4ff}
 </head>"""
 
 ADMIN_BODY = """<body>
-<h1>red code V1.1 管理后台<span class="refresh-info" id="refresh-info">每5秒自动刷新</span></h1>
+<h1>redcode V1.2 管理后台<span class="refresh-info" id="refresh-info">每5秒自动刷新</span></h1>
 <div class="tabs">
   <div class="tab active" onclick="switchTab('stats')">实时指标</div>
   <div class="tab" onclick="switchTab('backends')">后端管理</div>
@@ -1312,15 +1336,22 @@ ADMIN_BODY = """<body>
   <div class="card" style="margin-bottom:16px">
     <h2>添加新后端</h2>
     <div class="form-row">
-      <input id="nb-name" placeholder="名称 (如 my_backend)">
-      <input id="nb-url" placeholder="API URL">
-      <input id="nb-key" placeholder="API Key (可选)">
-      <input id="nb-model" placeholder="模型名 (可选)">
+      <input id="nb-name" placeholder="名称" style="flex:1">
+      <input id="nb-url" placeholder="API URL" style="flex:2">
       <select id="nb-fmt"><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option></select>
-      <button onclick="addBackend()">添加</button>
+      <select id="nb-tier"><option value="">自动检测</option><option value="L0">L0 本地</option><option value="L1">L1 免费无限</option><option value="L2">L2 免费额度</option><option value="L3">L3 免费限量</option><option value="L4">L4 付费</option></select>
+    </div>
+    <div class="form-row" style="margin-top:6px">
+      <input id="nb-key" placeholder="API Key (可选)" style="flex:2">
+      <input id="nb-model" placeholder="模型名" style="flex:2">
+      <input id="nb-auth" placeholder="认证方式 (默认x-api-key)" style="flex:1">
+    </div>
+    <div class="form-row" style="margin-top:6px">
+      <input id="nb-caps" placeholder="能力标签(逗号分隔,如: 工具调用,视觉,深度推理)" style="flex:3">
+      <button onclick="addBackend()" style="flex:1">添加并测试</button>
     </div>
   </div>
-  <div class="card"><h2>后端列表</h2><table><thead><tr><th>名称</th><th>供应商</th><th>层级</th><th>协议</th><th>能力</th><th>模型</th><th>状态</th><th>熔断</th><th>调用</th><th>操作</th></tr></thead><tbody id="t-be-list"></tbody></table></div>
+  <div class="card"><h2>后端列表</h2><table><thead><tr><th>名称</th><th>供应商</th><th>层级</th><th>协议</th><th>能力</th><th>模型</th><th>URL</th><th>状态</th><th>测试</th><th>操作</th></tr></thead><tbody id="t-be-list"></tbody></table></div>
 </div>
 
 <div id="panel-model" class="panel">
@@ -1414,7 +1445,8 @@ async function loadBackends(){
       let stTxt=b.enabled?'启用':'禁用';
       let cbCls=b.state==='open'?'badge-err':'badge-ok';
       let caps=(b.capabilities||[]).map(c=>`<span class="badge ${c.includes('工具')?'badge-ok':c.includes('推理')?'badge-off':''}" style="font-size:10px;margin:1px">${c}</span>`).join('');
-      tb.innerHTML+=`<tr><td>${b.name}</td><td>${b.vendor||''}</td><td><span class="badge ${b.tier&&b.tier.includes('免费')?'badge-ok':b.tier&&b.tier.includes('付费')?'badge-err':'badge-off'}">${b.tier||''}</span></td><td>${b.protocol||''}</td><td>${caps}</td><td style="font-size:11px">${b.model}</td><td><span class="badge ${stCls}">${stTxt}</span></td><td><span class="badge ${cbCls}">${b.state||'closed'}</span></td><td>${b.total_calls}</td><td><button onclick="testBackend('${b.name}')">测试</button> <button onclick="toggleBackend('${b.name}')">${b.enabled?'禁用':'启用'}</button> <button class="danger" onclick="deleteBackend('${b.name}')">删除</button></td></tr>`;
+      let urlShort=(b.url||'').length>30?b.url.substring(0,30)+'...':(b.url||'');
+      tb.innerHTML+=`<tr><td>${b.name}</td><td>${b.vendor||''}</td><td><span class="badge ${b.tier&&b.tier.includes('免费')?'badge-ok':b.tier&&b.tier.includes('付费')?'badge-err':'badge-off'}">${b.tier||''}</span></td><td>${b.protocol||''}</td><td>${caps}</td><td style="font-size:11px">${b.model}</td><td style="font-size:10px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(b.url||'').replace(/"/g,'&quot;')}">${urlShort}</td><td><span class="badge ${stCls}">${stTxt}</span></td><td><button onclick="testBackend('${b.name}')">测试</button> <button onclick="toggleBackend('${b.name}')">${b.enabled?'禁用':'启用'}</button> <button class="danger" onclick="deleteBackend('${b.name}')">删除</button></td></tr>`;
     }
   }catch(e){console.error('backends error',e)}
 }
@@ -1450,10 +1482,19 @@ async function addBackend(){
   let key=document.getElementById('nb-key').value.trim();
   let model=document.getElementById('nb-model').value.trim();
   let fmt=document.getElementById('nb-fmt').value;
+  let tier=document.getElementById('nb-tier').value;
+  let auth=document.getElementById('nb-auth').value.trim();
+  let capsRaw=document.getElementById('nb-caps').value.trim();
+  let caps=capsRaw?capsRaw.split(',').map(s=>s.trim()).filter(s=>s):[];
   if(!name||!url){alert('名称和URL必填');return}
-  let r=await fetch('/admin/api/backends',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,url,key,model:model||name,fmt})});
-  if(r.ok){document.getElementById('nb-name').value='';document.getElementById('nb-url').value='';document.getElementById('nb-key').value='';document.getElementById('nb-model').value='';loadBackends()}
-  else{let e=await r.json();alert(e.detail||'添加失败')}
+  let r=await fetch('/admin/api/backends',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,url,key,model:model||name,fmt,tier,auth,caps})});
+  let d=await r.json();
+  if(r.ok){
+    document.getElementById('nb-name').value='';document.getElementById('nb-url').value='';document.getElementById('nb-key').value='';document.getElementById('nb-model').value='';document.getElementById('nb-auth').value='';document.getElementById('nb-caps').value='';
+    loadBackends();
+    if(d.test){alert(d.test.ok?`✅ 添加成功\n测试延迟: ${d.test.latency_ms}ms\n响应: ${d.test.response_preview||''}`:`⚠️ 添加成功但测试失败\n错误: ${d.test.error||''}`)}
+    else{alert(d.message||'添加成功')}
+  }else{alert(d.detail||'添加失败')}
 }
 async function deleteBackend(name){
   if(!confirm('确定删除后端 '+name+' ?'))return;
