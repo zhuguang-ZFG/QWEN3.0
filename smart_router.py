@@ -312,7 +312,35 @@ def get_fallback_chain(intent_name, prefer=None):
     chain = [b for b in chain if b in BACKENDS and (BACKENDS[b]['key'] or b == 'local')]
     return chain
 
-SYS = '你是 LiMa（力码），由深圳市动力巢科技有限公司开发的智能编程助手。你通过智能路由调度多个AI模型，为用户匹配最优解答。你擅长：编程开发、嵌入式系统（ESP32/GRBL）、数据分析、技术方案设计、文档写作。用中文简洁回答，直接解决问题。'
+# ── Prompt Assembly (fragment-based, cache-friendly) ─────────────────────────
+FRAGMENT_DIR = os.path.join(os.path.dirname(__file__), 'fragments')
+
+def _load_fragment(name):
+    """加载 prompt 片段文件。"""
+    path = os.path.join(FRAGMENT_DIR, f'{name}.md')
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        return ''
+
+def assemble_prompt(features=None):
+    """从片段文件组装系统提示词。功能开关控制加载哪些片段。
+
+    features 可为 None（加载全部）或 set（指定加载的片段名）。
+    """
+    if features is None:
+        features = {'identity', 'capabilities', 'constraints', 'safety'}
+    parts = []
+    for name in ['identity', 'capabilities', 'constraints', 'safety']:
+        if name in features:
+            chunk = _load_fragment(name)
+            if chunk:
+                parts.append(chunk)
+    return '\n\n'.join(parts) if parts else ''
+
+# 默认 SYS 从片段组装（可缓存：完全静态，不含动态数据）
+SYS = assemble_prompt()
 
 # ── Layer 1: Fast keyword rules ──────────────────────────────────────────────
 RULES = [
