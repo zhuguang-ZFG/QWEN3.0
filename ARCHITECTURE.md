@@ -1205,3 +1205,53 @@ distill_queue/
 - 识别请求来自哪个 IDE
 - 理解 IDE 的工具调用模式
 - 新增 IDE 版本时自动适配
+
+## 16. 外部远程接入（cc-switch 集成）
+
+### 16.1 接入方式
+
+red V1flash 提供 OpenAI 兼容接口，cc-switch 直接配置即可：
+
+```
+cc-switch → 添加供应商 → red V1-Flash
+  Base URL: http://localhost:8080/v1  （本地）
+  Base URL: https://xxx.ngrok-free.app/v1  （远程）
+  Model: red-v1flash
+  API Key: 任意值（本地无需）
+```
+
+### 16.2 远程访问方案
+
+**Cloudflare Tunnel（免费）：**
+```bash
+cloudflared tunnel --url http://localhost:8080
+```
+
+**ngrok（免费）：**
+```bash
+ngrok http 8080
+# 获取 URL：curl -s http://localhost:4040/api/tunnels
+```
+
+**frp（国内推荐，需要云服务器中转）：**
+```bash
+# 云服务器启动 frps
+# 本地启动 frpc，配置 [web] type=http local_port=8080
+```
+
+### 16.3 启动脚本
+
+Windows 一键启动（`start_tunnel.bat`）：
+```
+1. 启动 server.py（8080端口）
+2. 启动 ngrok 隧道
+3. 获取公网 URL
+4. 粘贴到远程 cc-switch 的 Base URL 配置
+```
+
+### 16.4 cc-switch 预设配置
+
+已在 `cc-switch/src/config/universalProviderPresets.ts` 中添加 `red V1-Flash` 预设：
+- providerType: newapi（OpenAI 兼容）
+- 启用应用：Claude、Codex
+- 模型名：red-v1flash（统一对外品牌）
