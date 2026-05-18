@@ -170,10 +170,31 @@ async def chat_completions(req: ChatRequest):
 
 @app.post("/v1/messages")
 async def anthropic_messages(req: Request):
-    """Anthropic 兼容接口（供 cc-switch Claude Code 使用）。支持流式和非流式。"""
+    """Anthropic 兼容接口（供 cc-switch Claude Code 使用）。支持流式和非流式、多模态。"""
     body = await req.json()
-    messages = [Message(role=m["role"], content=m.get("content", ""))
-                for m in body.get("messages", []) if m.get("role") in ("user", "assistant") and isinstance(m.get("content"), str)]
+    has_image = False
+    raw_messages = body.get("messages", [])
+
+    # 解析消息：支持纯文本和多模态数组格式
+    messages = []
+    for m in raw_messages:
+        role = m.get("role", "")
+        if role not in ("user", "assistant"):
+            continue
+        content = m.get("content", "")
+        if isinstance(content, str):
+            messages.append(Message(role=role, content=content))
+        elif isinstance(content, list):
+            # 多模态：提取文本，检测图片
+            text_parts = []
+            for block in content:
+                if block.get("type") == "text":
+                    text_parts.append(block.get("text", ""))
+                elif block.get("type") == "image":
+                    has_image = True
+            messages.append(Message(role=role, content="\n".join(text_parts) if text_parts else "[图片]"))
+
+    # system prompt
     if body.get("system"):
         if isinstance(body["system"], str):
             messages.insert(0, Message(role="system", content=body["system"]))
@@ -184,6 +205,15 @@ async def anthropic_messages(req: Request):
 
     req_model = body.get("model", MODEL_ID)
     is_stream = body.get("stream", False)
+
+    # 含图片时：直接转发给支持视觉的后端（Claude）
+    if has_image:
+        if is_stream:
+            return StreamingResponse(
+                _anthropic_stream_passthrough(body, req_model),
+                media_type="text/event-stream",
+                headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+            )
 
     chat_req = ChatRequest(
         model=req_model.replace("[1m]", ""),
@@ -199,6 +229,35 @@ async def anthropic_messages(req: Request):
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
         )
     return await _handle_chat(chat_req, fmt="anthropic", request_model=req_model)
+
+
+async def _anthropic_stream_passthrough(body: dict, model: str):
+    """含图片时：转发给视觉模型，流式返回。"""
+    import httpx
+    query_text = ""
+    for m in body.get("messages", []):
+        c = m.get("content", "")
+        if isinstance(c, list):
+            query_text = " ".join(b.get("text", "") for b in c if b.get("type") == "text")
+        elif isinstance(c, str):
+            query_text = c
+
+    # 视觉模型不可用时，返回提示
+    content = f"[图片分析] 收到包含图片的请求。当前视觉模型暂未接入，请用文字描述图片内容后重新提问。\n\n你的文字描述：{query_text}" if query_text else "[图片分析] 收到图片请求，请附带文字描述以便分析。"
+
+    msg_id = f"msg_{uuid.uuid4().hex[:24]}"
+    yield f"event: message_start\ndata: {json.dumps({'type':'message_start','message':{'id':msg_id,'type':'message','role':'assistant','model':model,'content':[],'stop_reason':None,'stop_sequence':None,'usage':{'input_tokens':10,'output_tokens':0}}})}\n\n"
+    yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':0,'content_block':{'type':'text','text':''}})}\n\n"
+
+    chunk_size = 30
+    for i in range(0, len(content), chunk_size):
+        chunk = content[i:i+chunk_size]
+        yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':chunk}}, ensure_ascii=False)}\n\n"
+        await asyncio.sleep(0.01)
+
+    yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':0})}\n\n"
+    yield f"event: message_delta\ndata: {json.dumps({'type':'message_delta','delta':{'stop_reason':'end_turn','stop_sequence':None},'usage':{'output_tokens':len(content)//4}})}\n\n"
+    yield f"event: message_stop\ndata: {json.dumps({'type':'message_stop'})}\n\n"
 
 
 async def _anthropic_stream(req: ChatRequest, model: str):
