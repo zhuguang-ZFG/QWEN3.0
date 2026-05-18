@@ -311,3 +311,157 @@ def detect_vision_request(messages):
 | 智能路由 | ✅ 20+后端 | ❌ 单模型 | ❌ 单模型 | ❌ |
 
 **核心差异化: AI + 硬件闭环（写字机/绘图机/激光雕刻机）**
+
+---
+
+## 九、语音实时交互
+
+### 9.1 确定方案
+
+```
+麦克风 → WebSocket → Whisper STT → LiMa Router → TTS → 流式播放
+```
+
+### 9.2 用户体验
+
+```
+用户按住语音按钮 → 实时录音
+    ↓ 松开
+音频流 → WebSocket → 服务端 Whisper 识别
+    ↓ 识别完成
+文字 → LiMa 路由 → AI 回复
+    ↓ 流式返回
+文字边生成边 TTS → 流式音频播放（不等全部生成完）
+```
+
+### 9.3 技术架构
+
+```
+┌──────────────┐     WebSocket      ┌────────────────────────┐
+│  浏览器前端   │ ←──────────────→   │  Voice Gateway (FastAPI)│
+│  - 录音       │     音频流/文字     │  port 8091             │
+│  - 播放       │                    │                        │
+└──────────────┘                    ├────────────────────────┤
+                                    │  STT: Whisper / FunASR  │
+                                    │  TTS: Edge-TTS          │
+                                    │  LLM: LiMa Router :8090 │
+                                    └────────────────────────┘
+```
+
+### 9.4 STT (语音转文字)
+
+| 方案 | 延迟 | 中文质量 | 成本 | 推荐 |
+|------|------|----------|------|------|
+| SiliconFlow Whisper | 1-2s | 极高 | 免费额度 | ★ 首选 |
+| Groq Whisper | <1s | 高 | 免费 | 备选 |
+| FunASR 自建 | <1s | 极高 | 免费(需GPU) | 长期方案 |
+
+### 9.5 TTS (文字转语音)
+
+| 方案 | 延迟 | 音质 | 成本 | 推荐 |
+|------|------|------|------|------|
+| Edge-TTS | <500ms | 极高 | 免费 | ★ 首选 |
+| ChatTTS | 1-2s | 高(情感) | 免费自建 | 进阶方案 |
+| Fish-Speech | <1s | 极高 | 免费 | 备选 |
+
+### 9.6 实现细节
+
+**Voice Gateway 服务 (Python FastAPI + WebSocket):**
+
+```python
+# voice_gateway.py 核心逻辑
+@app.websocket("/ws/voice")
+async def voice_chat(ws: WebSocket):
+    await ws.accept()
+    while True:
+        # 1. 接收音频 (opus/webm)
+        audio = await ws.receive_bytes()
+
+        # 2. STT: 音频 → 文字
+        text = await whisper_transcribe(audio)
+        await ws.send_json({"type": "transcript", "text": text})
+
+        # 3. LLM: 文字 → AI回复 (流式)
+        async for chunk in lima_stream(text):
+            await ws.send_json({"type": "text", "content": chunk})
+
+            # 4. TTS: 每句话生成语音并推送
+            if is_sentence_end(chunk):
+                audio_bytes = await edge_tts_generate(chunk)
+                await ws.send_bytes(audio_bytes)
+
+        await ws.send_json({"type": "done"})
+```
+
+**前端 JS 注入 (通过 nginx sub_filter):**
+
+```javascript
+// 核心: 录音 → WebSocket → 播放
+const ws = new WebSocket("wss://chat.donglicao.com/ws/voice");
+const recorder = new MediaRecorder(stream, {mimeType: "audio/webm"});
+
+recorder.ondataavailable = (e) => ws.send(e.data);
+ws.onmessage = (e) => {
+    if (e.data instanceof Blob) playAudio(e.data);
+    else handleText(JSON.parse(e.data));
+};
+```
+
+### 9.7 部署方式
+
+```bash
+# voice_gateway.py 作为独立 systemd 服务
+[Unit]
+Description=LiMa Voice Gateway
+After=lima-router.service
+
+[Service]
+ExecStart=/usr/local/bin/python3.10 /opt/lima-voice/voice_gateway.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Nginx 代理 WebSocket:
+```nginx
+location /ws/voice {
+    proxy_pass http://127.0.0.1:8091;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+}
+```
+
+### 9.8 Sprint 计划 (1.5周)
+
+| 步骤 | 工作量 | 内容 |
+|------|--------|------|
+| 1 | 3h | voice_gateway.py 框架 (WebSocket + STT + TTS) |
+| 2 | 2h | 接入 SiliconFlow Whisper / Edge-TTS |
+| 3 | 2h | 连接 LiMa Router 流式调用 |
+| 4 | 4h | 前端语音录制 + 播放组件注入 |
+| 5 | 2h | 句子边界检测 + 流式 TTS 优化 |
+| 6 | 2h | 部署 + 测试 |
+
+### 9.9 GitHub 参考
+
+- [rany2/edge-tts](https://github.com/rany2/edge-tts) — 免费微软 TTS
+- [2noise/ChatTTS](https://github.com/2noise/ChatTTS) — 开源情感 TTS
+- [modelscope/FunASR](https://github.com/modelscope/FunASR) — 阿里开源 ASR
+- [openai/whisper](https://github.com/openai/whisper) — 语音识别
+- [fishaudio/fish-speech](https://github.com/fishaudio/fish-speech) — 开源 TTS
+
+---
+
+## 十、更新后的总路线图
+
+| Sprint | 功能 | 周期 | 成本 |
+|--------|------|------|------|
+| 1 | 深度思考模式 | 1周 | ¥0 |
+| 2 | AI 生图 | 1周 | ¥0 |
+| 3 | 拍题答疑 (Vision) | 1周 | ¥0 |
+| 4 | 语音实时交互 | 1.5周 | ¥0 |
+
+**总计: 4.5 周交付全部 4 个新功能，零成本运营。**
