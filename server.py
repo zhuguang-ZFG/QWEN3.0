@@ -106,9 +106,9 @@ def extract_query(messages: list[Message]) -> str:
 import re as _re
 _INSTANT_REPLIES = [
     (_re.compile(r'你是什么|什么模型|who are you|what model|what are you|哪个模型', _re.IGNORECASE),
-     "我是 red V1flash，由深圳市动力巢科技有限公司训练的智能路由编排模型。我能自动分析你的问题，从 22 个 AI 后端中选择最合适的模型来回答，实现 1+N 远大于 N 的效果。"),
+     "我是 red V1flash，由深圳市动力巢科技有限公司训练的AI模型。擅长编程开发、数据分析、技术方案设计、文档写作等领域，有什么可以帮你的？"),
     (_re.compile(r'^(hi|hello|hey|你好|嗨)[\s!！.。?？]*$', _re.IGNORECASE),
-     "你好！我是 red V1flash，深圳市动力巢科技有限公司的智能路由编排模型。直接提问即可，我会自动选择最佳模型为你解答。"),
+     "你好！我是 red V1flash，有什么可以帮你的？"),
 ]
 
 def _try_instant_reply(query: str) -> str | None:
