@@ -102,6 +102,23 @@ def extract_query(messages: list[Message]) -> str:
     return messages[-1].content if messages else ""
 
 
+# ── 快速直答（不调用任何后端，0ms）──────────────────────────────────────────
+import re as _re
+_INSTANT_REPLIES = [
+    (_re.compile(r'你是什么|什么模型|who are you|what model|what are you', _re.IGNORECASE),
+     "我是 red V1flash 智能路由编排器，基于 22 个 AI 后端（含 DeepSeek、Qwen、LongCat、Claude 等）的智能调度系统。根据问题类型自动选择最佳模型回答。"),
+    (_re.compile(r'^(hi|hello|hey|你好|嗨)[\s!！.。?？]*$', _re.IGNORECASE),
+     "你好！我是 red V1flash，CNC/嵌入式/编程领域的 AI 助手。请直接提问，我会自动选择最合适的模型为你解答。"),
+]
+
+def _try_instant_reply(query: str) -> str | None:
+    """检查是否可以直接回答（不调用后端）。"""
+    for pattern, reply in _INSTANT_REPLIES:
+        if pattern.search(query.strip()):
+            return reply
+    return None
+
+
 def extract_system_prompt(messages: list[Message]) -> str | None:
     """提取 system prompt（如果存在）。"""
     for msg in messages:
@@ -187,15 +204,19 @@ async def anthropic_messages(req: Request):
 async def _anthropic_stream(req: ChatRequest, model: str):
     """Anthropic SSE 流式响应。"""
     query = extract_query(req.messages)
-    intent = smart_router.analyze(query)
-    use_orch = needs_orchestration(query, intent)
 
-    if use_orch:
-        result = await asyncio.to_thread(orchestrate, query)
+    # 快速直答：元问题/问候，不调用后端（0ms）
+    instant = _try_instant_reply(query)
+    if instant:
+        content = instant
     else:
-        result = await asyncio.to_thread(smart_router.route, query)
-
-    content = result.get("answer", "")
+        intent = smart_router.analyze(query)
+        use_orch = needs_orchestration(query, intent)
+        if use_orch:
+            result = await asyncio.to_thread(orchestrate, query)
+        else:
+            result = await asyncio.to_thread(smart_router.route, query)
+        content = result.get("answer", "")
     msg_id = f"msg_{uuid.uuid4().hex[:24]}"
 
     # message_start

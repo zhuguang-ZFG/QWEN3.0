@@ -102,6 +102,7 @@ PUBLIC_MODEL_NAME = os.environ.get('PUBLIC_MODEL_NAME', 'red V1flash')
 # 路由策略：免费模型优先，按层级榨取，付费模型最后兜底
 # L0=本地零成本 | L1=LongCat/中国移动免费无限 | L2=Nvidia免费额度 | L3=OpenRouter免费额度 | L4=付费兜底
 ROUTE = {
+    'trivial':        'nvidia_phi4',       # L2: 最快模型（1-2秒），简单问候/元问题
     'cnc_trouble':    'longcat_thinking',  # L1: LongCat推理（免费，故障诊断）
     'grbl_config':    'local',             # L0: 本地直答，零成本
     'gcode_help':     'local',             # L0: 本地直答，零成本
@@ -200,6 +201,11 @@ def cb_status():
 # ── Fallback Chains ──────────────────────────────────────────────────────────
 # 降级顺序严格按层级：L1免费无限 -> L2Nvidia免费额度 -> L3OpenRouter免费额度 -> L4付费兜底
 FALLBACK_CHAINS = {
+    'trivial': [
+        'nvidia_phi4',        # L2: 最快（1-2秒）
+        'nvidia_llama4',      # L2: 快速备选
+        'longcat_lite',       # L1: 免费兜底
+    ],
     'cnc_trouble': [
         'longcat_thinking',   # L1: LongCat推理（免费）
         'longcat',            # L1: LongCat最强（免费）
@@ -297,6 +303,10 @@ SYS = 'CNC/embedded expert. Detailed Chinese answers with params, code, steps. N
 # ── Layer 1: Fast keyword rules ──────────────────────────────────────────────
 RULES = [
     # (pattern, intent, confidence)
+    # ── 快速直答（trivial，走最快模型）──
+    (r'你是什么|什么模型|who are you|what model|你好|hello|hi$|hey$', 'trivial', 0.95),
+    (r'^.{1,5}$', 'trivial', 0.90),  # 5字以内的超短问题
+    # ── CNC/嵌入式领域 ──
     (r'\$\d+|步数.*mm|steps.*mm|steps_per_mm', 'grbl_config', 0.95),
     (r'归零|homing|\$22|\$23|\$24|\$25|\$26|\$27', 'grbl_config', 0.95),
     (r'G0|G1|G2|G3|G28|G38|G54|G92|M3|M5|M8|圆弧|插补|进给', 'gcode_help', 0.90),
