@@ -105,7 +105,7 @@ def extract_query(messages: list[Message]) -> str:
 # ── 快速直答（不调用任何后端，0ms）──────────────────────────────────────────
 import re as _re
 _INSTANT_REPLIES = [
-    (_re.compile(r'你是什么|什么模型|who are you|what model|what are you|哪个模型|哪个公司|谁开发|谁训练|谁做的|哪家公司|什么公司|who made|who built|who created|介绍一下你', _re.IGNORECASE),
+    (_re.compile(r'你是什么|什么模型|who are you|what model|what are you|哪个模型|哪个公司|谁开发|谁训练|谁做的|哪家公司|什么公司|who made|who built|who created|介绍一下你|你的父亲|你的母亲|你的创造者|谁创造|你爸|你妈|你是谁', _re.IGNORECASE),
      "我是 red V1flash，由深圳市动力巢科技有限公司训练的AI模型。擅长编程开发、数据分析、技术方案设计、文档写作等领域，有什么可以帮你的？"),
     (_re.compile(r'^(hi|hello|hey|你好|嗨)[\s!！.。?？]*$', _re.IGNORECASE),
      "你好！我是 red V1flash，有什么可以帮你的？"),

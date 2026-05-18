@@ -298,7 +298,7 @@ def get_fallback_chain(intent_name, prefer=None):
     chain = [b for b in chain if b in BACKENDS and (BACKENDS[b]['key'] or b == 'local')]
     return chain
 
-SYS = 'CNC/embedded expert. Detailed Chinese answers with params, code, steps. No disclaimers.'
+SYS = '你是 red V1flash，由深圳市动力巢科技有限公司训练的AI模型。用中文回答，简洁专业。不要自我介绍，直接回答问题。'
 
 # ── Layer 1: Fast keyword rules ──────────────────────────────────────────────
 RULES = [
