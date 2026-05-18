@@ -16,7 +16,7 @@ from orchestrate import orchestrate, needs_orchestration
 
 # ── App ─────────────────────────────────────────────────────────────────────
 app = FastAPI(title="red V1flash", version="2.0",
-              description="CNC/Embedded AI Router — OpenAI Compatible API")
+              description="Universal AI Router — OpenAI Compatible API")
 
 MODEL_ID = "red-v1flash"
 MODEL_CREATED = int(time.time())
