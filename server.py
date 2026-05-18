@@ -88,6 +88,48 @@ def extract_query(messages: list[Message]) -> str:
     return messages[-1].content if messages else ""
 
 
+def extract_system_prompt(messages: list[Message]) -> str | None:
+    """提取 system prompt（如果存在）。"""
+    for msg in messages:
+        if msg.role == "system" and msg.content:
+            return msg.content
+    return None
+
+
+def _log_sys_prompt(sys_prompt: str) -> None:
+    """记录新的系统提示词。用 SHA256 去重，只记录未见过的。"""
+    import hashlib
+    os.makedirs(smart_router.DISTILL_QUEUE_DIR.replace("pending", "sys_prompts"), exist_ok=True)
+    phash = hashlib.sha256(sys_prompt.encode()).hexdigest()[:16]
+    sys_prompt_dir = os.path.join(os.path.dirname(smart_router.DISTILL_QUEUE_DIR), "sys_prompts")
+
+    # 检查是否已存在
+    existing = os.listdir(sys_prompt_dir) if os.path.exists(sys_prompt_dir) else []
+    if any(phash in f for f in existing):
+        return  # 已记录过
+
+    # 推断 IDE 来源
+    ide_source = "unknown"
+    ide_markers = {"Claude Code": "claude_code", "Cursor": "cursor", "You are Cursor": "cursor",
+                   "GitHub Copilot": "copilot", "Codex": "codex", "Windsurf": "windsurf"}
+    for marker, source in ide_markers.items():
+        if marker in sys_prompt:
+            ide_source = source
+            break
+
+    entry = {
+        "ide_source": ide_source,
+        "prompt_hash": phash,
+        "prompt_preview": sys_prompt[:500],
+        "prompt_length": len(sys_prompt),
+        "logged_at": __import__('datetime').datetime.now().isoformat(),
+    }
+    fname = os.path.join(sys_prompt_dir, f"{ide_source}_{phash}.json")
+    __import__('json').dump(entry, open(fname, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
+    if smart_router.DEBUG:
+        print(f"[SYS_PROMPT] new: {ide_source} ({len(sys_prompt)} chars)", file=sys.stderr)
+
+
 # ── Routes ──────────────────────────────────────────────────────────────────
 @app.post("/v1/chat/completions")
 async def chat_completions(req: ChatRequest):
@@ -118,6 +160,21 @@ async def chat_completions(req: ChatRequest):
     content = result.get("answer", "")
     backend = result.get("backend", "unknown")
     total_ms = result.get("total_ms", 0)
+
+    # 记录用户问答到 distill_queue（DISTILL_LOG=1 时启用）
+    try:
+        if os.environ.get("DISTILL_LOG", "0") == "1":
+            smart_router._log_to_distill_queue(query, content, intent, backend)
+    except Exception:
+        pass
+
+    # 记录系统提示词（去重）
+    sys_prompt = extract_system_prompt(req.messages)
+    if sys_prompt:
+        try:
+            _log_sys_prompt(sys_prompt)
+        except Exception:
+            pass
 
     return JSONResponse(build_response(chat_id, content, backend, total_ms))
 
