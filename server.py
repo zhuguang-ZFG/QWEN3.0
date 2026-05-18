@@ -515,18 +515,31 @@ async def anthropic_messages(req: Request):
             return StreamingResponse(_instant_stream(), media_type="text/event-stream", headers={"Cache-Control": "no-cache"})
         return JSONResponse(resp)
 
-    # ── 工具调用检测（只有非预设直答的请求才走这里）──────────────────────────
+    # ── 工具调用检测（只有对话中已有工具交互时才走工具后端）──────────────────
     if body.get("tools"):
-        is_stream = body.get("stream", False)
-        if is_stream:
-            return StreamingResponse(
-                _tool_call_stream(body),
-                media_type="text/event-stream",
-                headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
-            )
-        else:
-            result = await _tool_call_forward(body)
-            return JSONResponse(result)
+        # 检查对话历史中是否有 tool_use 或 tool_result（说明正在进行工具调用流程）
+        has_tool_interaction = False
+        for msg in raw_messages:
+            if isinstance(msg, dict):
+                content = msg.get("content", "")
+                if isinstance(content, list):
+                    for block in content:
+                        if isinstance(block, dict) and block.get("type") in ("tool_use", "tool_result"):
+                            has_tool_interaction = True
+                            break
+            if has_tool_interaction:
+                break
+        if has_tool_interaction:
+            is_stream = body.get("stream", False)
+            if is_stream:
+                return StreamingResponse(
+                    _tool_call_stream(body),
+                    media_type="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+                )
+            else:
+                result = await _tool_call_forward(body)
+                return JSONResponse(result)
 
     has_image = False
 
