@@ -1182,3 +1182,26 @@ L4 付费（最后兜底）：deepseek_pro, claude
   本地模型不确定时 → 先试免费模型
   → 质量不够 → 升级到付费模型
 ```
+
+### 15.6 系统提示词自助学习（server.py）
+
+接入 Cursor/Claude Code 后，`server.py` 自动提取并记录每次请求中的 system prompt：
+
+**存储结构：**
+```
+distill_queue/
+├── pending/          ← 用户问答日志（含 quality_score）
+└── sys_prompts/      ← 系统提示词日志（去重）
+    ├── claude_code_a8f3be12.json
+    ├── cursor_v2_1b97dc45.json
+    └── ...
+```
+
+**去重机制：** 对 system prompt 全文做 SHA256，相同 prompt 只存一次。每个 IDE 版本的 system prompt 只记录首次出现。
+
+**IDE 来源自动识别：** 通过 prompt 内容中的关键字自动标记（`Claude Code` → `claude_code`，`Cursor` → `cursor`，`GitHub Copilot` → `copilot` 等）。
+
+**训练价值：** 收集的 system prompt 包含各 IDE 的工具列表、能力边界、请求格式。路由器学习这些可以：
+- 识别请求来自哪个 IDE
+- 理解 IDE 的工具调用模式
+- 新增 IDE 版本时自动适配
