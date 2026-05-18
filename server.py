@@ -773,7 +773,7 @@ async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", i
         backend_used = "instant"
         intent_used = "instant"
     else:
-        intent_used = smart_router.analyze(query)
+        intent_used = smart_router.analyze(query, system_prompt=sys_prompt_preview, ide=ide_source)
         intent_name = intent_used.get("intent", "unknown") if isinstance(intent_used, dict) else "unknown"
         complexity = intent_used.get("complexity", 0.5) if isinstance(intent_used, dict) else 0.5
         use_orch = needs_orchestration(query, intent_used)
@@ -878,7 +878,7 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
         return JSONResponse(build_response(chat_id, instant, "instant", duration_ms))
 
     # 判断是否需要编排模式
-    intent = smart_router.analyze(query)
+    intent = smart_router.analyze(query, system_prompt=sys_prompt_preview, ide=ide_source)
     use_orchestration = needs_orchestration(query, intent)
 
     if req.stream:

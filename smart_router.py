@@ -514,12 +514,12 @@ def model_classify(query):
         return {'intent': 'unknown', 'complexity': 0.5, 'needs_code': False,
                 'domain_keywords': [], 'cnc_subdomain': 'general', 'source': 'fallback'}
 
-def analyze(query):
+def analyze(query, system_prompt="", ide="unknown"):
     """Three-layer intent analysis: model_route (R12) -> rules -> LM Studio model.
     Round 12 模型优先做路由决策，正则规则作为快速 fallback。
     """
     # Layer 0: Round 12 模型路由决策（主路径）
-    model_decision = model_route(query)
+    model_decision = model_route(query, system_prompt=system_prompt, ide=ide)
     if model_decision:
         intent_name = model_decision.get('intent', 'unknown')
         return {
@@ -746,13 +746,13 @@ def call_api(name, msgs, mt=1024):
         return '服务暂时不可用，请稍后重试'
 
 # ── Main router ──────────────────────────────────────────────────────────────
-def route(query, prefer=None):
+def route(query, prefer=None, system_prompt="", ide="unknown"):
     """Route a query: analyze intent -> expand -> call best backend."""
     t0 = time.time()
     result = {'query': query}
 
     # Intent analysis (two-layer)
-    intent = analyze(query)
+    intent = analyze(query, system_prompt=system_prompt, ide=ide)
     result['intent'] = intent
     result['classify_ms'] = int((time.time() - t0) * 1000)
 
