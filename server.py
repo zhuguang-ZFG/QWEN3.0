@@ -34,6 +34,104 @@ _stats = {
 # 后端启用/禁用状态
 _backend_enabled = {}
 
+# ── Fallback 架构 ─────────────────────────────────────────────────────────────
+# 后端层级映射
+BACKEND_TIERS = {
+    "L1_free": ["longcat_lite", "longcat_chat", "longcat", "longcat_thinking", "longcat_omni", "chinamobile"],
+    "L2_nvidia": ["nvidia_qwen_coder", "nvidia_nemotron", "nvidia_phi4", "nvidia_llama4", "nvidia_llama70b", "nvidia_mistral"],
+    "L2_openrouter": ["or_deepseek_r1", "or_qwen3_235b", "or_llama70b", "or_nemotron", "or_qwen3_30b"],
+    "L3_paid": ["deepseek_flash", "deepseek_pro", "deepseek_flash_1m", "deepseek_pro_1m", "claude"],
+}
+
+
+def _get_same_tier_backends(current_backend: str) -> list:
+    """获取同层级的其他后端（排除当前的）。"""
+    for tier, backends in BACKEND_TIERS.items():
+        if current_backend in backends:
+            return [b for b in backends if b != current_backend]
+    return []
+
+
+def _get_upgrade_chain(current_backend: str) -> list:
+    """获取升级链：当前层级之上的所有后端。"""
+    tiers = list(BACKEND_TIERS.keys())
+    current_tier = None
+    for tier, backends in BACKEND_TIERS.items():
+        if current_backend in backends:
+            current_tier = tier
+            break
+    if not current_tier:
+        return ["longcat_chat"]  # 默认 fallback
+    tier_idx = tiers.index(current_tier)
+    upgrade_backends = []
+    for tier in tiers[tier_idx + 1:]:
+        upgrade_backends.extend(BACKEND_TIERS[tier][:2])  # 每层取前2个
+    return upgrade_backends
+
+
+def _default_route(query: str, ide: str = "unknown") -> str:
+    """当路由模型输出无效时，用简单规则选后端。"""
+    query_len = len(query)
+    # 短问题用快速后端
+    if query_len < 50:
+        return "longcat_lite"
+    # 代码相关关键词
+    code_keywords = ["代码", "code", "函数", "function", "bug", "error", "def ", "class ", "import "]
+    if any(kw in query.lower() for kw in code_keywords):
+        return "nvidia_qwen_coder"
+    # 长问题用通用后端
+    if query_len > 200:
+        return "longcat"
+    # 默认
+    return "longcat_chat"
+
+
+def _quality_check(response_text: str, complexity: float, backend: str) -> bool:
+    """检查回答质量，返回 False 表示需要重试。"""
+    if not response_text:
+        return False
+    # 回答太短
+    if len(response_text) < 30 and complexity > 0.3:
+        return False
+    # 包含错误标记
+    if response_text.startswith("[ERR]") or "暂时不可用" in response_text:
+        return False
+    # 包含不确定标记（简单问题不应该回答不了）
+    uncertain_phrases = ["I cannot", "我无法", "抱歉，我不能"]
+    if any(phrase in response_text for phrase in uncertain_phrases):
+        if complexity < 0.5:
+            return False
+    return True
+
+
+def _honest_failure_response(chat_id: str, fmt: str = "openai", request_model: str = None) -> dict:
+    """所有后端都失败时的诚实回答。"""
+    content = "当前所有服务暂时不可用，请稍后重试。如果问题持续，请联系管理员。"
+    if fmt == "anthropic":
+        return build_anthropic_response(chat_id, content, "fallback_exhausted", request_model or MODEL_ID)
+    return build_response(chat_id, content, "fallback_exhausted", 0)
+
+
+async def _try_backend(backend_name: str, query: str, max_tokens: int = 1024) -> dict | None:
+    """尝试调用一个后端，失败返回 None。返回 smart_router.route() 兼容的 dict。"""
+    if backend_name not in smart_router.BACKENDS:
+        return None
+    if not _backend_enabled.get(backend_name, True):
+        return None
+    if not smart_router.cb_allow(backend_name):
+        return None
+    try:
+        msgs = [{"role": "user", "content": query}]
+        result = await asyncio.wait_for(
+            asyncio.to_thread(smart_router.call_api, backend_name, msgs, max_tokens),
+            timeout=35.0
+        )
+        if result is None or (isinstance(result, str) and (result.startswith("[ERR]") or "暂时不可用" in result)):
+            return None
+        return {"answer": result, "backend": backend_name, "total_ms": 0}
+    except (asyncio.TimeoutError, Exception):
+        return None
+
 
 @functools.lru_cache(maxsize=256)
 def _get_ip_location(ip: str) -> str:
@@ -643,7 +741,7 @@ async def _anthropic_stream_passthrough(body: dict, model: str):
 
 
 async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", ide_source: str = "", sys_prompt_preview: str = ""):
-    """Anthropic SSE 流式响应。"""
+    """Anthropic SSE 流式响应（带 fallback）。"""
     query = extract_query(req.messages)
     t0 = time.time()
 
@@ -655,6 +753,8 @@ async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", i
         intent_used = "instant"
     else:
         intent_used = smart_router.analyze(query)
+        intent_name = intent_used.get("intent", "unknown") if isinstance(intent_used, dict) else "unknown"
+        complexity = intent_used.get("complexity", 0.5) if isinstance(intent_used, dict) else 0.5
         use_orch = needs_orchestration(query, intent_used)
         if use_orch:
             result = await asyncio.to_thread(orchestrate, query)
@@ -663,8 +763,39 @@ async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", i
         content = result.get("answer", "")
         backend_used = result.get("backend", "unknown")
 
+        # ── Fallback 层：质量检查失败时尝试降级/升级 ──
+        if not _quality_check(content, complexity, backend_used):
+            fallback_backend = _default_route(query, ide_source) if backend_used == "unknown" else backend_used
+            # 同层降级
+            same_tier = _get_same_tier_backends(fallback_backend)
+            fallback_found = False
+            for alt in same_tier:
+                alt_result = await _try_backend(alt, query, req.max_tokens or 4096)
+                if alt_result and _quality_check(alt_result["answer"], complexity, alt):
+                    content = alt_result["answer"]
+                    backend_used = alt
+                    intent_name = f"fallback_same_tier_{intent_name}"
+                    fallback_found = True
+                    break
+            # 跨层升级
+            if not fallback_found:
+                upgrade_chain = _get_upgrade_chain(fallback_backend)
+                for upgraded in upgrade_chain:
+                    up_result = await _try_backend(upgraded, query, req.max_tokens or 4096)
+                    if up_result and _quality_check(up_result["answer"], complexity, upgraded):
+                        content = up_result["answer"]
+                        backend_used = upgraded
+                        intent_name = f"fallback_upgrade_{intent_name}"
+                        fallback_found = True
+                        break
+            # 全部失败
+            if not fallback_found and not content:
+                content = "当前所有服务暂时不可用，请稍后重试。如果问题持续，请联系管理员。"
+                backend_used = "fallback_exhausted"
+
     duration_ms = int((time.time() - t0) * 1000)
-    _record_request(query, backend_used, intent_used, duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
+    record_intent = intent_used if isinstance(intent_used, str) else (intent_used.get("intent", "unknown") if isinstance(intent_used, dict) else "unknown")
+    _record_request(query, backend_used, record_intent, duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
 
     # 在回答末尾标注后端来源
     content += f"\n\n---\n`[red V1flash → {backend_used}]`"
@@ -701,7 +832,7 @@ async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", i
             pass
     try:
         if os.environ.get("DISTILL_LOG", "0") == "1":
-            smart_router._log_to_distill_queue(query, content, intent_used, backend_used)
+            smart_router._log_to_distill_queue(query, content, record_intent, backend_used)
     except Exception:
         pass
 
@@ -734,7 +865,7 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
         )
 
-    # 非流式：直接调用
+    # 非流式：直接调用（带 fallback）
     if use_orchestration:
         result = await asyncio.to_thread(orchestrate, query)
     else:
@@ -743,15 +874,52 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
     content = result.get("answer", "")
     backend = result.get("backend", "unknown")
     total_ms = result.get("total_ms", 0)
+    intent_name = intent.get("intent", "unknown") if isinstance(intent, dict) else "unknown"
+    complexity = intent.get("complexity", 0.5) if isinstance(intent, dict) else 0.5
+
+    # ── Fallback 层：质量检查 + 同层降级 + 跨层升级 ──
+    if not _quality_check(content, complexity, backend):
+        fallback_intent = intent_name if intent_name != "unknown" else "unknown"
+        fallback_backend = _default_route(query, ide_source) if backend == "unknown" else backend
+
+        # 同层降级：找同层级的其他后端
+        same_tier = _get_same_tier_backends(fallback_backend)
+        for alt in same_tier:
+            alt_result = await _try_backend(alt, query, req.max_tokens or 1024)
+            if alt_result and _quality_check(alt_result["answer"], complexity, alt):
+                content = alt_result["answer"]
+                backend = alt
+                _record_request(query, backend, f"fallback_same_tier_{fallback_intent}", int((time.time() - t0) * 1000), True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
+                if fmt == "anthropic":
+                    return JSONResponse(build_anthropic_response(chat_id, content, backend, request_model or MODEL_ID))
+                return JSONResponse(build_response(chat_id, content, backend, int((time.time() - t0) * 1000)))
+
+        # 跨层升级：逐级升级
+        upgrade_chain = _get_upgrade_chain(fallback_backend)
+        for upgraded in upgrade_chain:
+            up_result = await _try_backend(upgraded, query, req.max_tokens or 1024)
+            if up_result and _quality_check(up_result["answer"], complexity, upgraded):
+                content = up_result["answer"]
+                backend = upgraded
+                _record_request(query, backend, f"fallback_upgrade_{fallback_intent}", int((time.time() - t0) * 1000), True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
+                if fmt == "anthropic":
+                    return JSONResponse(build_anthropic_response(chat_id, content, backend, request_model or MODEL_ID))
+                return JSONResponse(build_response(chat_id, content, backend, int((time.time() - t0) * 1000)))
+
+        # 全部失败：诚实告知
+        duration_ms = int((time.time() - t0) * 1000)
+        _record_request(query, "fallback_exhausted", f"fallback_exhausted_{fallback_intent}", duration_ms, False, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
+        return JSONResponse(_honest_failure_response(chat_id, fmt, request_model))
+
     duration_ms = int((time.time() - t0) * 1000)
 
     # 记录统计
-    _record_request(query, backend, intent, duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
+    _record_request(query, backend, intent_name, duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
 
     # 记录用户问答到 distill_queue（DISTILL_LOG=1 时启用）
     try:
         if os.environ.get("DISTILL_LOG", "0") == "1":
-            smart_router._log_to_distill_queue(query, content, intent, backend)
+            smart_router._log_to_distill_queue(query, content, intent_name, backend)
     except Exception:
         pass
 
