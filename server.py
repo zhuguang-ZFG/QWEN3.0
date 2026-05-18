@@ -769,14 +769,23 @@ async def admin_backends():
         vendor = "未知"
         if "longcat" in url: vendor = "LongCat"
         elif "nvidia" in url or "integrate.api.nvidia" in url: vendor = "英伟达 NVIDIA"
-        elif "openrouter" in url: vendor = "OpenRouter (免费)"
+        elif "openrouter" in url: vendor = "OpenRouter"
         elif "deepseek" in url: vendor = "DeepSeek"
         elif "chinamobile" in url: vendor = "中国移动"
-        elif "right.codes" in url: vendor = "Claude (付费)"
+        elif "right.codes" in url: vendor = "Claude"
         elif "localhost" in url or "127.0.0.1" in url: vendor = "本地模型"
+        # 自动检测层级
+        tier = "L4 付费"
+        if "localhost" in url or "127.0.0.1" in url: tier = "L0 本地"
+        elif "longcat" in url or "chinamobile" in url: tier = "L1 免费无限"
+        elif "nvidia" in url: tier = "L2 免费额度"
+        elif "openrouter" in url: tier = "L3 免费限量"
+        elif "deepseek" in url: tier = "L4 付费"
+        elif "right.codes" in url: tier = "L4 付费"
         backends.append({
             "name": name,
             "vendor": vendor,
+            "tier": tier,
             "url": url,
             "model": cfg.get("model", ""),
             "fmt": cfg.get("fmt", ""),
@@ -948,7 +957,7 @@ ADMIN_BODY = """<body>
       <button onclick="addBackend()">添加</button>
     </div>
   </div>
-  <div class="card"><h2>后端列表</h2><table><thead><tr><th>名称</th><th>供应商</th><th>模型</th><th>URL</th><th>状态</th><th>熔断</th><th>调用</th><th>错误率</th><th>操作</th></tr></thead><tbody id="t-be-list"></tbody></table></div>
+  <div class="card"><h2>后端列表</h2><table><thead><tr><th>名称</th><th>供应商</th><th>层级</th><th>模型</th><th>URL</th><th>状态</th><th>熔断</th><th>调用</th><th>错误率</th><th>操作</th></tr></thead><tbody id="t-be-list"></tbody></table></div>
 </div>
 
 <div id="panel-rules" class="panel">
@@ -1015,7 +1024,7 @@ async function loadBackends(){
       let stCls=b.enabled?'badge-ok':'badge-off';
       let stTxt=b.enabled?'启用':'禁用';
       let cbCls=b.state==='open'?'badge-err':'badge-ok';
-      tb.innerHTML+=`<tr><td>${b.name}</td><td>${b.vendor||''}</td><td>${b.model}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;font-size:11px">${b.url}</td><td><span class="badge ${stCls}">${stTxt}</span></td><td><span class="badge ${cbCls}">${b.state||'closed'}</span></td><td>${b.total_calls}</td><td>${b.error_rate}</td><td><button onclick="toggleBackend('${b.name}')">${b.enabled?'禁用':'启用'}</button> <button class="danger" onclick="deleteBackend('${b.name}')">删除</button></td></tr>`;
+      tb.innerHTML+=`<tr><td>${b.name}</td><td>${b.vendor||''}</td><td><span class="badge ${b.tier&&b.tier.includes('免费')?'badge-ok':b.tier&&b.tier.includes('付费')?'badge-err':'badge-off'}">${b.tier||''}</span></td><td>${b.model}</td><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;font-size:11px">${b.url}</td><td><span class="badge ${stCls}">${stTxt}</span></td><td><span class="badge ${cbCls}">${b.state||'closed'}</span></td><td>${b.total_calls}</td><td>${b.error_rate}</td><td><button onclick="toggleBackend('${b.name}')">${b.enabled?'禁用':'启用'}</button> <button class="danger" onclick="deleteBackend('${b.name}')">删除</button></td></tr>`;
     }
   }catch(e){console.error('backends error',e)}
 }
