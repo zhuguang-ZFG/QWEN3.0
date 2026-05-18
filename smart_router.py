@@ -71,6 +71,27 @@ BACKENDS = {
     'chinamobile': {'url': 'https://maas.gd.chinamobile.com:36007/ai/uifm/open/v1/chat/completions',
                     'key': os.environ.get('CHINAMOBILE_API_KEY', ''),
                     'model': 'minimax-m25', 'fmt': 'openai'},
+    # OpenRouter 免费模型（20次/分钟，200次/天，不稳定需熔断保护）
+    'or_deepseek_r1':  {'url': 'https://openrouter.ai/api/v1/chat/completions',
+                        'key': os.environ.get('OPENROUTER_API_KEY', ''),
+                        'model': 'deepseek/deepseek-v4-flash:free', 'fmt': 'openai',
+                        'timeout': 60},  # 免费模型响应慢，超时60秒
+    'or_qwen3_235b':   {'url': 'https://openrouter.ai/api/v1/chat/completions',
+                        'key': os.environ.get('OPENROUTER_API_KEY', ''),
+                        'model': 'qwen/qwen3-coder:free', 'fmt': 'openai',
+                        'timeout': 60},
+    'or_llama70b':     {'url': 'https://openrouter.ai/api/v1/chat/completions',
+                        'key': os.environ.get('OPENROUTER_API_KEY', ''),
+                        'model': 'meta-llama/llama-3.3-70b-instruct:free', 'fmt': 'openai',
+                        'timeout': 45},
+    'or_nemotron':     {'url': 'https://openrouter.ai/api/v1/chat/completions',
+                        'key': os.environ.get('OPENROUTER_API_KEY', ''),
+                        'model': 'nvidia/nemotron-3-super-120b-a12b:free', 'fmt': 'openai',
+                        'timeout': 60},
+    'or_qwen3_30b':    {'url': 'https://openrouter.ai/api/v1/chat/completions',
+                        'key': os.environ.get('OPENROUTER_API_KEY', ''),
+                        'model': 'qwen/qwen3-next-80b-a3b-instruct:free', 'fmt': 'openai',
+                        'timeout': 30},
     'local':   {'url': LM_URL, 'key': '', 'model': 'local-model', 'fmt': 'openai', 'auth': 'bearer'},
 }
 
@@ -177,15 +198,15 @@ def cb_status():
 # ── Fallback Chains ──────────────────────────────────────────────────────────
 # 每个意图的降级顺序：主力 -> 备用1 -> 备用2 -> 最终兜底
 FALLBACK_CHAINS = {
-    'cnc_trouble':    ['deepseek_pro',      'nvidia_nemotron',  'claude',        'longcat'],
-    'grbl_config':    ['local',             'nvidia_llama4',    'longcat_lite'],
-    'gcode_help':     ['local',             'nvidia_llama4',    'longcat_lite'],
-    'embedded_dev':   ['nvidia_nemotron',   'deepseek_pro',     'claude',        'longcat_thinking'],
-    'code_generation':['nvidia_qwen_coder', 'deepseek_flash',   'nvidia_llama70b','longcat_chat'],
-    'architecture':   ['claude',            'deepseek_pro',     'nvidia_nemotron','longcat'],
-    'general_cnc':    ['nvidia_llama4',     'longcat_lite',     'nvidia_llama70b', 'chinamobile'],
-    'complex_theory': ['nvidia_nemotron',   'deepseek_pro',     'claude',        'longcat_thinking'],
-    'unknown':        ['nvidia_llama70b',   'longcat_chat',     'nvidia_llama4', 'chinamobile', 'longcat'],
+    'cnc_trouble':    ['deepseek_pro', 'or_deepseek_r1', 'nvidia_nemotron', 'or_nemotron', 'claude', 'longcat'],
+    'grbl_config':    ['local', 'nvidia_llama4', 'or_llama70b', 'longcat_lite'],
+    'gcode_help':     ['local', 'nvidia_llama4', 'or_llama70b', 'longcat_lite'],
+    'embedded_dev':   ['nvidia_nemotron', 'or_nemotron', 'deepseek_pro', 'or_deepseek_r1', 'claude', 'longcat_thinking'],
+    'code_generation':['nvidia_qwen_coder', 'or_qwen3_235b', 'deepseek_flash', 'or_llama70b', 'nvidia_llama70b', 'longcat_chat'],
+    'architecture':   ['claude', 'deepseek_pro', 'or_deepseek_r1', 'nvidia_nemotron', 'longcat'],
+    'general_cnc':    ['nvidia_llama4', 'or_llama70b', 'or_qwen3_30b', 'longcat_lite', 'nvidia_llama70b', 'chinamobile'],
+    'complex_theory': ['nvidia_nemotron', 'or_deepseek_r1', 'deepseek_pro', 'claude', 'longcat_thinking'],
+    'unknown':        ['nvidia_llama70b', 'or_llama70b', 'or_qwen3_30b', 'longcat_chat', 'nvidia_llama4', 'chinamobile', 'longcat'],
 }
 
 def get_fallback_chain(intent_name, prefer=None):
@@ -320,6 +341,9 @@ CLEAN_PATTERNS = [
     (re.compile(r'openai', re.IGNORECASE), ''),
     (re.compile(r'minimax[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
     (re.compile(r'MiniMax[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
+    (re.compile(r'deepseek[\w\-\.\/\:]*r1[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
+    (re.compile(r'qwen[\w\-\.\/\:]*235[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
+    (re.compile(r'openrouter[\w\-\.\/]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
 ]
 
 def clean_response(text, backend_name=''):
@@ -456,7 +480,8 @@ def call_api(name, msgs, mt=1024):
              'Authorization': f"Bearer {b['key']}"}
     try:
         r = urllib.request.Request(b['url'], data=p, headers=h)
-        with urllib.request.urlopen(r, timeout=60) as resp:
+        _timeout = b.get('timeout', 60)
+        with urllib.request.urlopen(r, timeout=_timeout) as resp:
             d = json.loads(resp.read().decode())
         if b['fmt'] == 'anthropic':
             answer = d['content'][0].get('text', json.dumps(d, ensure_ascii=False))

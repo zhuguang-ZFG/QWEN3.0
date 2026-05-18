@@ -15,6 +15,12 @@ DAILY_LIMITS = {
     "longcat":            300,
     "longcat_thinking":   200,
     "longcat_chat":       300,
+    # OpenRouter 免费模型（每日200次，所有 or_* 后端共享同一个 key）
+    "or_deepseek_r1":      40,   # 200次/天 ÷ 5个模型，保守分配
+    "or_qwen3_235b":       40,
+    "or_llama70b":         60,   # 通用模型多分配一些
+    "or_nemotron":         30,
+    "or_qwen3_30b":        30,
 }
 
 # 超限时的免费替代后端
@@ -27,6 +33,11 @@ _FALLBACK_MAP = {
     "longcat":           "nvidia_llama4",
     "longcat_thinking":  "nvidia_llama4",
     "longcat_chat":      "nvidia_llama4",
+    "or_deepseek_r1":    "nvidia_nemotron",
+    "or_qwen3_235b":     "nvidia_qwen_coder",
+    "or_llama70b":       "nvidia_llama70b",
+    "or_nemotron":       "nvidia_nemotron",
+    "or_qwen3_30b":      "nvidia_llama4",
 }
 
 
