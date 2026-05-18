@@ -1203,38 +1203,40 @@ async def admin_logs():
         return list(reversed(_stats["recent_logs"][-10:]))
 
 
-@app.get("/admin/api/rules")
-async def admin_get_rules():
-    """返回预设直答规则。"""
-    rules = []
-    for i, (pattern, reply) in enumerate(_INSTANT_REPLIES):
-        rules.append({"id": i, "pattern": pattern.pattern, "reply": reply})
-    return rules
+@app.get("/admin/api/model-status")
+async def admin_model_status():
+    """返回模型和自动训练状态。"""
+    fallback_log = FALLBACK_LOG
+    log_count = 0
+    recent_logs = []
+    if os.path.exists(fallback_log):
+        lines = open(fallback_log, encoding='utf-8').readlines()
+        log_count = len(lines)
+        for line in lines[-50:]:
+            try:
+                recent_logs.append(json.loads(line.strip()))
+            except Exception:
+                pass
+    return {
+        "model": "Round 12 (Qwen3-1.7B)",
+        "accuracy": "89.7%",
+        "data_count": 3190,
+        "fallback_log_count": log_count,
+        "threshold": 100,
+        "recent_fallbacks": recent_logs,
+    }
 
 
-@app.post("/admin/api/rules")
-async def admin_add_rule(req: Request):
-    """添加预设直答规则。"""
-    body = await req.json()
-    pattern_str = body.get("pattern", "").strip()
-    reply = body.get("reply", "").strip()
-    if not pattern_str or not reply:
-        raise HTTPException(400, "pattern and reply required")
-    try:
-        compiled = _re.compile(pattern_str, _re.IGNORECASE)
-    except _re.error as e:
-        raise HTTPException(400, f"invalid regex: {e}")
-    _INSTANT_REPLIES.append((compiled, reply))
-    return {"ok": True, "id": len(_INSTANT_REPLIES) - 1}
+@app.post("/admin/api/retrain")
+async def admin_trigger_retrain():
+    """手动触发自动训练。"""
+    import subprocess
+    result = subprocess.run(
+        [sys.executable, "auto_retrain.py", "--force"],
+        capture_output=True, text=True, cwd="D:/GIT"
+    )
+    return {"status": "triggered", "output": result.stdout[-500:] if result.stdout else result.stderr[-500:]}
 
-
-@app.delete("/admin/api/rules/{rule_id}")
-async def admin_delete_rule(rule_id: int):
-    """删除预设直答规则。"""
-    if rule_id < 0 or rule_id >= len(_INSTANT_REPLIES):
-        raise HTTPException(404, "rule not found")
-    _INSTANT_REPLIES.pop(rule_id)
-    return {"ok": True}
 
 
 # ── Admin HTML ─────────────────────────────────────────────────────────────────
@@ -1287,7 +1289,7 @@ ADMIN_BODY = """<body>
 <div class="tabs">
   <div class="tab active" onclick="switchTab('stats')">实时指标</div>
   <div class="tab" onclick="switchTab('backends')">后端管理</div>
-  <div class="tab" onclick="switchTab('rules')">直答规则</div>
+  <div class="tab" onclick="switchTab('model')">模型 & Fallback</div>
 </div>
 
 <div id="panel-stats" class="panel active">
@@ -1321,16 +1323,34 @@ ADMIN_BODY = """<body>
   <div class="card"><h2>后端列表</h2><table><thead><tr><th>名称</th><th>供应商</th><th>层级</th><th>协议</th><th>能力</th><th>模型</th><th>状态</th><th>熔断</th><th>调用</th><th>操作</th></tr></thead><tbody id="t-be-list"></tbody></table></div>
 </div>
 
-<div id="panel-rules" class="panel">
-  <div class="card" style="margin-bottom:16px">
-    <h2>添加直答规则</h2>
-    <div class="form-row">
-      <input id="nr-pattern" placeholder="正则表达式" style="flex:2">
-      <input id="nr-reply" placeholder="回复内容" style="flex:3">
-      <button onclick="addRule()">添加</button>
+<div id="panel-model" class="panel">
+  <div class="grid">
+    <div class="card">
+      <h2>路由模型状态</h2>
+      <table>
+        <tr><td>当前模型</td><td id="m-model">-</td></tr>
+        <tr><td>准确率</td><td id="m-accuracy">-</td></tr>
+        <tr><td>数据量</td><td id="m-data">-</td></tr>
+        <tr><td>Fallback 率</td><td id="m-fallback-rate">-</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h2>自动训练状态</h2>
+      <table>
+        <tr><td>Fallback 日志</td><td id="m-log-count">0 / 100</td></tr>
+        <tr><td>下次训练触发</td><td id="m-next-train">日志满100条</td></tr>
+        <tr><td>上次训练</td><td id="m-last-train">-</td></tr>
+      </table>
+      <button onclick="triggerRetrain()" style="margin-top:10px">手动触发训练</button>
     </div>
   </div>
-  <div class="card"><h2>当前规则</h2><table><thead><tr><th>#</th><th>匹配模式</th><th>回复</th><th>操作</th></tr></thead><tbody id="t-rules"></tbody></table></div>
+  <div class="card" style="margin-top:16px">
+    <h2>Fallback 日志（最近50条）</h2>
+    <table>
+      <thead><tr><th>时间</th><th>查询</th><th>原后端</th><th>Fallback到</th><th>IDE</th><th>意图</th></tr></thead>
+      <tbody id="t-fallback-logs"></tbody>
+    </table>
+  </div>
 </div>"""
 
 ADMIN_JS = """<script>
@@ -1398,14 +1418,31 @@ async function loadBackends(){
     }
   }catch(e){console.error('backends error',e)}
 }
-async function loadRules(){
+async function loadModelStatus(){
   try{
-    let r=await fetch('/admin/api/rules');let d=await r.json();
-    let tb=document.getElementById('t-rules');tb.innerHTML='';
-    for(let rule of d){
-      tb.innerHTML+=`<tr><td>${rule.id}</td><td style="max-width:300px;overflow:hidden;text-overflow:ellipsis">${rule.pattern}</td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis">${rule.reply}</td><td><button class="danger" onclick="deleteRule(${rule.id})">删除</button></td></tr>`;
+    let r=await fetch('/admin/api/model-status');let d=await r.json();
+    document.getElementById('m-model').textContent=d.model||'-';
+    document.getElementById('m-accuracy').textContent=d.accuracy||'-';
+    document.getElementById('m-data').textContent=(d.data_count||0)+' 条';
+    let fbRate=d.fallback_log_count>0?Math.round(d.fallback_log_count/Math.max(1,d.data_count)*100)+'%':'-';
+    document.getElementById('m-fallback-rate').textContent=fbRate;
+    document.getElementById('m-log-count').textContent=d.fallback_log_count+' / '+d.threshold;
+    document.getElementById('m-next-train').textContent=d.fallback_log_count>=d.threshold?'已就绪，可触发':'日志满'+d.threshold+'条';
+    document.getElementById('m-last-train').textContent=d.model||'-';
+    let tb=document.getElementById('t-fallback-logs');tb.innerHTML='';
+    for(let log of (d.recent_fallbacks||[])){
+      tb.innerHTML+=`<tr><td class="log-time">${log.timestamp||''}</td><td class="log-query">${(log.query||'').substring(0,60)}</td><td>${log.original_backend||''}</td><td class="log-backend">${log.fallback_backend||''}</td><td>${log.ide||''}</td><td>${log.intent||''}</td></tr>`;
     }
-  }catch(e){console.error('rules error',e)}
+  }catch(e){console.error('model-status error',e)}
+}
+async function triggerRetrain(){
+  if(!confirm('确定手动触发训练？'))return;
+  try{
+    let r=await fetch('/admin/api/retrain',{method:'POST'});
+    let d=await r.json();
+    alert('训练触发: '+d.status+'\\n'+((d.output||'').substring(0,300)));
+    loadModelStatus();
+  }catch(e){alert('触发失败: '+e)}
 }
 async function addBackend(){
   let name=document.getElementById('nb-name').value.trim();
@@ -1435,19 +1472,7 @@ async function testBackend(name){
   }catch(e){alert('测试失败: '+e)}
   btn.disabled=false;btn.textContent='测试';loadBackends();
 }
-async function addRule(){
-  let pattern=document.getElementById('nr-pattern').value.trim();
-  let reply=document.getElementById('nr-reply').value.trim();
-  if(!pattern||!reply){alert('模式和回复必填');return}
-  let r=await fetch('/admin/api/rules',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pattern,reply})});
-  if(r.ok){document.getElementById('nr-pattern').value='';document.getElementById('nr-reply').value='';loadRules()}
-  else{let e=await r.json();alert(e.detail||'添加失败')}
-}
-async function deleteRule(id){
-  if(!confirm('确定删除规则 #'+id+' ?'))return;
-  await fetch('/admin/api/rules/'+id,{method:'DELETE'});loadRules();
-}
-function refreshAll(){loadStats();loadLogs();loadBackends();loadRules()}
+function refreshAll(){loadStats();loadLogs();loadBackends();loadModelStatus()}
 refreshAll();
 setInterval(refreshAll,5000);
 </script>
