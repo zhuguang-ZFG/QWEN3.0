@@ -230,6 +230,7 @@ FALLBACK_CHAINS = {
         'longcat_lite',       # L1: 免费兜底
     ],
     'cnc_trouble': [
+        'unclose_hermes',     # L1: UncloseAI（免费无限，1.4s）
         'longcat_thinking',   # L1: LongCat推理（免费）
         'longcat',            # L1: LongCat最强（免费）
         'chinamobile',        # L1: 中国移动（免费）
@@ -241,6 +242,7 @@ FALLBACK_CHAINS = {
     ],
     'grbl_config': [
         'local',              # L0: 本地直答
+        'unclose_hermes',     # L1: UncloseAI（免费无限，1.4s）
         'longcat_lite',       # L1: LongCat（免费）
         'chinamobile',        # L1: 中国移动（免费）
         'nvidia_llama4',      # L2: Nvidia（免费额度）
@@ -249,6 +251,7 @@ FALLBACK_CHAINS = {
     ],
     'gcode_help': [
         'local',              # L0: 本地直答
+        'unclose_hermes',     # L1: UncloseAI（免费无限，1.4s）
         'longcat_lite',       # L1: LongCat（免费）
         'chinamobile',        # L1: 中国移动（免费）
         'nvidia_llama4',      # L2: Nvidia（免费额度）
@@ -256,6 +259,7 @@ FALLBACK_CHAINS = {
         'deepseek_flash',     # L4: 付费兜底
     ],
     'embedded_dev': [
+        'unclose_hermes',     # L1: UncloseAI（免费无限，1.4s）
         'nvidia_nemotron',    # L2: Nvidia嵌入式（免费额度）
         'longcat_thinking',   # L1: LongCat推理（免费）
         'longcat',            # L1: LongCat最强（免费）
@@ -1027,8 +1031,8 @@ def call_api(name, msgs, mt=1024, ide="unknown"):
             answer = d['content'][0].get('text', json.dumps(d, ensure_ascii=False))
         else:
             msg = d['choices'][0]['message']
-            # 推理模型（如 minimax-m25）content 可能为 None，回退到 reasoning 字段
-            answer = msg.get('content') or msg.get('reasoning') or json.dumps(d, ensure_ascii=False)
+            # 推理模型（如 minimax-m25, Qwen3）content 可能为 None，回退到 reasoning_content 字段
+            answer = msg.get('content') or msg.get('reasoning_content') or msg.get('reasoning') or json.dumps(d, ensure_ascii=False)
         cb_record(name, True, int((time.time() - _t0) * 1000))
         return clean_response(answer, name)
     except Exception as e:
@@ -1080,6 +1084,9 @@ def _build_request_body(name, msgs, mt=1024, ide="unknown", stream=False):
                 'messages': [{'role': 'system', 'content': sys_prompt}] + msgs}
         if stream:
             body['stream'] = True
+        # Qwen thinking mode: disable for unclose_qwen to get content directly
+        if name == 'unclose_qwen':
+            body['chat_template_kwargs'] = {'enable_thinking': False}
         p = json.dumps(body).encode()
         h = {'Content-Type': 'application/json',
              'Authorization': f"Bearer {b['key']}"}
