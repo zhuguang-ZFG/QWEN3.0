@@ -398,6 +398,7 @@ FALLBACK_CHAINS = {
         'deepseek_flash',     # L4: 付费兜底
     ],
     'vision': [
+        'cf_vision',          # Cloudflare Llama Vision 11B（867ms，最快，原生端点）
         'mistral_pixtral',    # Mistral Pixtral Large（796ms，高质量视觉）
         'github_gpt4o',       # GPT-4o（4.6s，最强视觉）
         'google_flash',       # Gemini 2.5 Flash（1.5s，快速视觉）
@@ -1075,6 +1076,33 @@ def qa_check(text, intent=None, backend=None):
     return text, issues
 
 # ── API backend calls ────────────────────────────────────────────────────────
+def _call_cf_vision(msgs, mt, _t0):
+    """Cloudflare Vision 原生端点调用（OpenAI-compat 不支持图片格式）。"""
+    cf_token = os.environ.get('CLOUDFLARE_TOKEN', '')
+    cf_account = os.environ.get('CLOUDFLARE_ACCOUNT_ID', '')
+    if not cf_token or not cf_account:
+        return None
+    url = f"https://api.cloudflare.com/client/v4/accounts/{cf_account}/ai/run/@cf/meta/llama-3.2-11b-vision-instruct"
+    body = json.dumps({'messages': msgs, 'max_tokens': mt}).encode()
+    h = {'Content-Type': 'application/json',
+         'Authorization': f'Bearer {cf_token}',
+         'User-Agent': 'LiMa/2.0'}
+    try:
+        r = urllib.request.Request(url, data=body, headers=h)
+        with urllib.request.urlopen(r, timeout=15) as resp:
+            d = json.loads(resp.read().decode())
+        answer = d.get('result', {}).get('response', '')
+        if answer:
+            cb_record('cf_vision', True, int((time.time() - _t0) * 1000))
+            return clean_response(answer, 'cf_vision')
+        return None
+    except Exception as e:
+        if DEBUG:
+            print(f'[DEBUG] cf_vision error: {e}', file=sys.stderr)
+        cb_record('cf_vision', False)
+        return None
+
+
 def call_api(name, msgs, mt=1024, ide="unknown"):
     """Call an external API backend."""
     # 熔断检查
@@ -1088,6 +1116,11 @@ def call_api(name, msgs, mt=1024, ide="unknown"):
         cb_record(name, False)
         return f'[ERR] Backend {name} unavailable (no key)'
     auth_style = b.get('auth', 'x-api-key')
+
+    # Cloudflare Vision 特殊处理：使用原生 /ai/run/ 端点
+    if name == 'cf_vision' and _has_vision_content(msgs):
+        return _call_cf_vision(msgs, mt, _t0)
+
     if b['fmt'] == 'anthropic':
         # no_system 后端（如 Omni）：不传 system，content 用 list 格式
         if b.get('no_system'):
