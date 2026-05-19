@@ -1358,31 +1358,27 @@ async def _real_stream_chunks(backend_name: str, msgs: list, max_tokens: int = 4
     """Bridge sync call_api_stream() to async generator.
     Runs the sync generator in a thread, pushes chunks through a queue,
     yields text chunks asynchronously.
-
-    Falls back to non-streaming call_api() if backend doesn't support streaming.
     """
-    import queue, threading
+    import queue as queue_mod
 
-    q: queue.Queue = queue.Queue()
-    first_chunk_arrived = False
-    stream_error = None
+    q: queue_mod.Queue = queue_mod.Queue()
+    cancel_event = threading.Event()
 
     def _run():
-        nonlocal first_chunk_arrived, stream_error
         try:
             for chunk in smart_router.call_api_stream(backend_name, msgs, max_tokens, ide):
-                if not first_chunk_arrived:
-                    first_chunk_arrived = True
+                if cancel_event.is_set():
+                    return
                 q.put(('chunk', chunk))
-        except Exception as e:
-            stream_error = str(e)
+        except Exception:
+            pass
         finally:
             q.put(('done', None))
 
     thread = threading.Thread(target=_run, daemon=True)
     thread.start()
 
-    # Wait up to 3s for first chunk; if none, assume streaming not supported → fallback
+    first_chunk_arrived = False
     timeout = 3.0
     start = time.time()
 
@@ -1392,31 +1388,32 @@ async def _real_stream_chunks(backend_name: str, msgs: list, max_tokens: int = 4
             break
         try:
             typ, val = q.get(timeout=min(remaining, 0.5))
-        except queue.Empty:
+        except queue_mod.Empty:
             continue
         if typ == 'done':
             if not first_chunk_arrived:
-                # No chunks at all — fallback to non-streaming
                 result = await asyncio.to_thread(smart_router.call_api, backend_name, msgs, max_tokens, ide)
                 if result and not str(result).startswith('[ERR]'):
                     yield str(result)
                 return
             return
         if typ == 'chunk':
+            first_chunk_arrived = True
             yield val
 
-    # If we get here, first chunk hasn't arrived in time → fallback
     if not first_chunk_arrived:
-        # Signal thread to stop
-        q.put(('done', None))
+        cancel_event.set()
         result = await asyncio.to_thread(smart_router.call_api, backend_name, msgs, max_tokens, ide)
         if result and not str(result).startswith('[ERR]'):
             yield str(result)
         return
 
-    # Continue consuming remaining chunks
+    # Continue consuming remaining chunks (with timeout to prevent hang)
     while True:
-        typ, val = await asyncio.to_thread(q.get)
+        try:
+            typ, val = await asyncio.to_thread(q.get, timeout=30)
+        except queue_mod.Empty:
+            break
         if typ == 'done':
             break
         if typ == 'chunk':
@@ -1430,66 +1427,54 @@ async def _speculative_stream_chunks(query: str, msgs: list, max_tokens: int = 4
 
     Yields (backend_name, text_chunk) tuples.
     """
-    # Predict fast backend and start streaming immediately
     predicted = smart_router.predict_fast_backend(query)
     predicted_msgs = msgs if msgs else [{"role": "user", "content": query}]
 
-    # Start routing in background
     route_task = asyncio.create_task(
         asyncio.to_thread(smart_router.select_backend, query, system_prompt="", ide=ide, messages=msgs)
     )
 
-    # Start streaming from predicted backend
-    chunks_used = 0
     actual_backend = None
     actual_msgs = None
-    stream_task = None
+    prediction_wrong = False
 
-    async for chunk in _real_stream_chunks(predicted, predicted_msgs, max_tokens, ide):
-        chunks_used += 1
-        # Check if routing completed
-        if route_task.done() and actual_backend is None:
+    try:
+        async for chunk in _real_stream_chunks(predicted, predicted_msgs, max_tokens, ide):
+            # Check if routing completed mid-stream
+            if route_task.done() and actual_backend is None:
+                try:
+                    actual_backend, actual_msgs = route_task.result()
+                except Exception as e:
+                    print(f'[SPEC] route_task failed: {e}', file=__import__("sys").stderr)
+                    actual_backend = predicted
+                    actual_msgs = predicted_msgs
+
+                if actual_backend != predicted:
+                    prediction_wrong = True
+                    break
+            yield (actual_backend or predicted, chunk)
+
+        # Stream exhausted naturally — prediction was correct (or routing not done yet)
+        if not prediction_wrong:
+            if actual_backend is None:
+                try:
+                    actual_backend, actual_msgs = await route_task
+                except Exception:
+                    actual_backend = predicted
+                    actual_msgs = predicted_msgs
+            return
+
+        # Prediction wrong — switch to actual backend
+        async for chunk in _real_stream_chunks(actual_backend, actual_msgs, max_tokens, ide):
+            yield (actual_backend, chunk)
+
+    finally:
+        if not route_task.done():
+            route_task.cancel()
             try:
-                actual_backend, actual_msgs = route_task.result()
-            except Exception:
-                actual_backend = predicted
-                actual_msgs = predicted_msgs
-
-            if actual_backend == predicted:
-                # Prediction correct! Continue streaming.
-                yield (actual_backend, chunk)
-            else:
-                # Prediction wrong — switch to correct backend.
-                # Yield what we got so far (user sees something), then restart.
-                # Actually, better to discard and restart from correct backend.
-                # The user will see a brief pause then the right answer.
-                break
-        else:
-            yield (predicted, chunk)
-
-    # If routing hasn't completed yet, wait for it
-    if actual_backend is None:
-        try:
-            actual_backend, actual_msgs = await route_task
-        except Exception:
-            actual_backend = predicted
-            actual_msgs = predicted_msgs
-
-    if actual_backend == predicted:
-        # Prediction was correct, continue consuming remaining chunks
-        if stream_task is None:
-            async for chunk in _real_stream_chunks(predicted, predicted_msgs, max_tokens, ide):
-                # Skip chunks we already yielded (if any)
-                yield (actual_backend, chunk)
-        return
-
-    # Prediction wrong — switch to actual backend
-    if chunks_used > 0:
-        # Yield a brief transition indicator
-        yield (actual_backend, f"\n[{predicted} → {actual_backend}]\n")
-
-    async for chunk in _real_stream_chunks(actual_backend, actual_msgs, max_tokens, ide):
-        yield (actual_backend, chunk)
+                await route_task
+            except (asyncio.CancelledError, Exception):
+                pass
 
 
 async def _stream_response(chat_id: str, query: str, use_orchestration: bool, ide_source: str = "", sys_prompt_preview: str = "", use_thinking: bool = False, messages: list = None, prefer: str = None):
