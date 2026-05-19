@@ -237,8 +237,18 @@ podman run --name one-api -d \
 
 ### 仍需直连 fallback 的渠道
 
-| 渠道 | 原因 | 直连状态 |
+| 渠道 | 原因 | 修复方式 |
 |------|------|----------|
-| siliconflow | Key 余额不足 | ✅ (smart_router 降级) |
-| chinamobile | Key/IP 被封 | ✅ (smart_router 降级) |
-| tencent | 特殊认证格式 | ✅ (smart_router 降级) |
+| siliconflow | 免费额度耗尽 (balance=0) | 充值或换号 |
+| tencent | key 格式 `ak-...` 被拒绝 (401) | 重新获取 API Key |
+
+---
+
+## 八、path_proxy 完整端口表
+
+| 端口 | 上游 | 功能 |
+|------|------|------|
+| 8901 | zhipu | 路径重写 /v1→/v4 |
+| 8902 | github | 去掉 /v1 前缀 |
+| 8903 | aliyun | 注入 enable_thinking=false |
+| 8904 | chinamobile | 响应改写 reasoning→content |

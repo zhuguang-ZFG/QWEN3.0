@@ -10,7 +10,11 @@ ROUTES = {
     8901: ("https://open.bigmodel.cn/api/paas/v4/chat/completions", "open.bigmodel.cn"),
     8902: ("https://models.inference.ai.azure.com/chat/completions", "models.inference.ai.azure.com"),
     8903: ("https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions", "dashscope.aliyuncs.com"),
+    8904: ("https://maas.gd.chinamobile.com:36007/ai/uifm/open/v1/chat/completions", "maas.gd.chinamobile.com"),
 }
+
+# Ports that need response rewriting (reasoning -> content)
+REWRITE_RESPONSE_PORTS = {8904}
 
 ctx = ssl.create_default_context()
 
@@ -49,6 +53,9 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
         try:
             resp = urllib.request.urlopen(req, timeout=30, context=ctx)
             resp_body = resp.read()
+            # Rewrite response for reasoning models (content:null -> use reasoning)
+            if port in REWRITE_RESPONSE_PORTS:
+                resp_body = self._rewrite_reasoning(resp_body)
             self.send_response(resp.status)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(resp_body)))
@@ -82,6 +89,20 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
             data += self.rfile.read(chunk_size)
             self.rfile.readline()
         return data
+
+    def _rewrite_reasoning(self, resp_body):
+        """Rewrite reasoning model response: move reasoning to content if content is null"""
+        try:
+            obj = json.loads(resp_body)
+            for choice in obj.get("choices", []):
+                msg = choice.get("message", {})
+                if msg.get("content") is None:
+                    reasoning = msg.get("reasoning", "") or msg.get("reasoning_content", "")
+                    if reasoning:
+                        msg["content"] = reasoning
+            return json.dumps(obj).encode()
+        except (json.JSONDecodeError, ValueError):
+            return resp_body
 
     def do_GET(self):
         body = b"path-proxy ok"
