@@ -110,6 +110,19 @@ BACKENDS = {
     'unclose_qwen':    {'url': 'https://qwen.ai.unturf.com/v1/chat/completions',
                         'key': 'none', 'model': 'Qwen3.6-27B-UD-Q4_K_XL.gguf',
                         'fmt': 'openai', 'timeout': 30},
+    # Groq 免费推理（极速，1000 req/5min，需 Key）
+    'groq_llama70b':   {'url': 'https://api.groq.com/openai/v1/chat/completions',
+                        'key': os.environ.get('GROQ_API_KEY', ''),
+                        'model': 'llama-3.3-70b-versatile', 'fmt': 'openai', 'timeout': 15},
+    'groq_gptoss':     {'url': 'https://api.groq.com/openai/v1/chat/completions',
+                        'key': os.environ.get('GROQ_API_KEY', ''),
+                        'model': 'openai/gpt-oss-120b', 'fmt': 'openai', 'timeout': 15},
+    'groq_qwen32b':    {'url': 'https://api.groq.com/openai/v1/chat/completions',
+                        'key': os.environ.get('GROQ_API_KEY', ''),
+                        'model': 'qwen/qwen3-32b', 'fmt': 'openai', 'timeout': 15},
+    'groq_llama4':     {'url': 'https://api.groq.com/openai/v1/chat/completions',
+                        'key': os.environ.get('GROQ_API_KEY', ''),
+                        'model': 'meta-llama/llama-4-scout-17b-16e-instruct', 'fmt': 'openai', 'timeout': 15},
     'local':   {'url': LM_URL, 'key': '', 'model': 'local-model', 'fmt': 'openai', 'auth': 'bearer'},
 }
 
@@ -224,12 +237,14 @@ def cb_status():
 # 降级顺序严格按层级：L1免费无限 -> L2Nvidia免费额度 -> L3OpenRouter免费额度 -> L4付费兜底
 FALLBACK_CHAINS = {
     'trivial': [
+        'groq_llama4',        # L0.5: Groq极速（376ms）
         'unclose_hermes',     # L1: UncloseAI（免费无限，1.2s）
         'nvidia_phi4',        # L2: 最快（1-2秒）
         'nvidia_llama4',      # L2: 快速备选
         'longcat_lite',       # L1: 免费兜底
     ],
     'cnc_trouble': [
+        'groq_llama70b',      # L0.5: Groq 70B极速（694ms）
         'unclose_hermes',     # L1: UncloseAI（免费无限，1.4s）
         'longcat_thinking',   # L1: LongCat推理（免费）
         'longcat',            # L1: LongCat最强（免费）
@@ -269,8 +284,10 @@ FALLBACK_CHAINS = {
         'claude',             # L4: 付费最终兜底
     ],
     'code_generation': [
+        'groq_gptoss',        # L0.5: Groq GPT-OSS 120B极速（520ms，代码强）
         'nvidia_qwen_coder',  # L2: Qwen Coder 480B（免费额度，代码最强）
         'unclose_qwen',       # L1: UncloseAI Qwen3 27B（免费无限，3s）
+        'groq_qwen32b',       # L0.5: Groq Qwen3 32B（447ms）
         'or_qwen3_coder',      # L3: OpenRouter Qwen3（免费额度）
         'longcat_chat',       # L1: LongCat（免费）
         'nvidia_llama70b',    # L2: Nvidia（免费额度）
@@ -278,6 +295,8 @@ FALLBACK_CHAINS = {
         'deepseek_flash',     # L4: 付费兜底
     ],
     'architecture': [
+        'groq_gptoss',        # L0.5: Groq GPT-OSS 120B极速（520ms）
+        'groq_llama70b',      # L0.5: Groq 70B（694ms）
         'longcat',            # L1: LongCat最强（免费）
         'longcat_thinking',   # L1: LongCat推理（免费）
         'nvidia_nemotron',    # L2: Nvidia（免费额度）
@@ -286,6 +305,7 @@ FALLBACK_CHAINS = {
         'claude',             # L4: 付费最终兜底
     ],
     'general_cnc': [
+        'groq_llama4',        # L0.5: Groq Llama4极速（376ms）
         'unclose_hermes',     # L1: UncloseAI（免费无限，1.2s）
         'longcat_lite',       # L1: LongCat快速（免费）
         'chinamobile',        # L1: 中国移动（免费）
@@ -323,7 +343,7 @@ FALLBACK_CHAINS = {
 
 def get_fallback_chain(intent_name, prefer=None):
     """获取意图对应的降级链，过滤掉没有 key 的后端。"""
-    chain = list(FALLBACK_CHAINS.get(intent_name, ['unclose_hermes', 'nvidia_llama70b', 'longcat', 'claude']))
+    chain = list(FALLBACK_CHAINS.get(intent_name, ['groq_llama70b', 'unclose_hermes', 'nvidia_llama70b', 'longcat', 'claude']))
     # 如果有偏好后端，插到最前面
     if prefer and prefer in BACKENDS and prefer not in chain:
         chain.insert(0, prefer)
@@ -367,8 +387,8 @@ def predict_fast_backend(query: str) -> str:
         if pattern.search(query):
             if backend in BACKENDS and BACKENDS[backend].get('key'):
                 return backend
-    # 默认：unclose_hermes 最快（1.2s），作为投机首选
-    return 'unclose_hermes'
+    # 默认：Groq 最快（376-694ms），作为投机首选
+    return 'groq_llama4'
 
 # ── Prompt Assembly (fragment-based, cache-friendly) ─────────────────────────
 FRAGMENT_DIR = os.path.join(os.path.dirname(__file__), 'fragments')
@@ -1021,7 +1041,8 @@ def call_api(name, msgs, mt=1024, ide="unknown"):
         p = json.dumps({'model': b['model'], 'max_tokens': mt,
                         'messages': [{'role': 'system', 'content': sys_prompt}] + msgs}).encode()
         h = {'Content-Type': 'application/json',
-             'Authorization': f"Bearer {b['key']}"}
+             'Authorization': f"Bearer {b['key']}",
+             'User-Agent': 'LiMa/2.0'}
     try:
         r = urllib.request.Request(b['url'], data=p, headers=h)
         _timeout = b.get('timeout', 60)
@@ -1089,7 +1110,8 @@ def _build_request_body(name, msgs, mt=1024, ide="unknown", stream=False):
             body['chat_template_kwargs'] = {'enable_thinking': False}
         p = json.dumps(body).encode()
         h = {'Content-Type': 'application/json',
-             'Authorization': f"Bearer {b['key']}"}
+             'Authorization': f"Bearer {b['key']}",
+             'User-Agent': 'LiMa/2.0'}
 
     return p, h, b['fmt'], b.get('timeout', 60)
 
