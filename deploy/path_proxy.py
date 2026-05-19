@@ -35,11 +35,14 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length", 0))
         te = self.headers.get("Transfer-Encoding", "")
         if length > 0:
+            if length > 10 * 1024 * 1024:
+                self.send_error(413)
+                return
             body = self.rfile.read(length)
         elif "chunked" in te.lower():
             body = self._read_chunked()
         else:
-            body = self.rfile.read()
+            body = b""
         if port == 8903 and body:
             try:
                 obj = json.loads(body)
@@ -113,13 +116,19 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
 
     def _read_chunked(self):
         data = b""
-        while True:
+        max_size = 10 * 1024 * 1024
+        for _ in range(10000):
             line = self.rfile.readline().strip()
             if not line:
                 break
-            chunk_size = int(line, 16)
+            try:
+                chunk_size = int(line, 16)
+            except ValueError:
+                break
             if chunk_size == 0:
                 self.rfile.readline()
+                break
+            if len(data) + chunk_size > max_size:
                 break
             data += self.rfile.read(chunk_size)
             self.rfile.readline()

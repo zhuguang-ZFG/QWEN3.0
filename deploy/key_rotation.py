@@ -14,10 +14,12 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 GITHUB_RAW = "https://raw.githubusercontent.com/alistaitsacle/free-llm-api-keys/main/README.md"
 PEKPIK_BASE = "https://aiapiv2.pekpik.com/v1"
 FREETHEAI_BASE = "https://api.freetheai.xyz/v1"
-FREETHEAI_KEY = "sta_b36ec902e88c79ced726ed7e69305aefd624076bcf8625a0"
+FREETHEAI_KEY = os.environ.get("FREETHEAI_KEY", "")
 STATE_FILE = "/opt/lima-router/key_pool.json"
 PROXY_URL = os.environ.get("PROXY_URL", "http://127.0.0.1:7897")
 LISTEN_PORT = 8909
+
+_lock = threading.Lock()
 
 state = {
     "pekpik_keys": [],
@@ -38,14 +40,20 @@ def get_proxy_opener():
     return urllib.request.build_opener(handler)
 
 def save_state():
-    with open(STATE_FILE, "w") as f:
-        json.dump(state, f, indent=2)
+    tmp = STATE_FILE + ".tmp"
+    with _lock:
+        with open(tmp, "w") as f:
+            json.dump(state, f, indent=2)
+        os.replace(tmp, STATE_FILE)
 
 def load_state():
     global state
-    if os.path.exists(STATE_FILE):
-        with open(STATE_FILE) as f:
-            state.update(json.load(f))
+    try:
+        if os.path.exists(STATE_FILE):
+            with open(STATE_FILE) as f:
+                state.update(json.load(f))
+    except (json.JSONDecodeError, ValueError):
+        pass
 
 def scrape_keys():
     log("Scraping keys from GitHub...")
@@ -152,7 +160,7 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
     def log_message(self, *a): pass
 
 def run_api():
-    srv = http.server.HTTPServer(("0.0.0.0", LISTEN_PORT), APIHandler)
+    srv = http.server.HTTPServer(("127.0.0.1", LISTEN_PORT), APIHandler)
     srv.serve_forever()
 
 def main():
