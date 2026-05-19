@@ -1,6 +1,7 @@
 # LiMa 免费 AI 后端资源总览
 
-> 最后更新：2026-05-19
+> 最后更新：2026-05-20
+> 后端总数：74 个 / 21 个供应商
 
 ## 后端层级体系
 
@@ -12,7 +13,7 @@ L3   免费额度层 — OpenRouter (20 RPM / 200 RPD)
 L4   付费兜底 — DeepSeek / Claude
 ```
 
-## 已集成后端 (43 个, 10 个供应商)
+## 已集成后端 (74 个, 21 个供应商)
 
 ### L0.5 极速层
 
@@ -122,18 +123,21 @@ cf_vision (867ms) → mistral_pixtral (796ms) → github_gpt4o (4.6s) → google
 
 ## 供应商汇总
 
-| 供应商 | 模型数 | 最快延迟 | 限制 | 多模态 |
+| 供应商 | 后端数 | 最快延迟 | 限制 | 多模态 |
 |--------|--------|----------|------|--------|
-| Groq | 4 | 376ms | 1000 req/5min | ❌ |
-| Mistral | 4 | 586ms | 免费额度 | ✅ Pixtral |
+| 国内直连 | 11 | <100ms | 无限 | ✅ 部分 |
+| Groq | 6 | 376ms | 1000 req/5min | ❌ |
+| GitHub | 8 | 2.1s | 20000 req/min | ✅ GPT-4o |
+| NVIDIA | 6 | 8-12s | 免费额度 | ❌ |
+| OpenRouter | 10 | 10-60s | 20 RPM | ❌ |
+| Cerebras | 3 | 432ms | 5 req/min | ❌ |
+| Mistral | 6 | 586ms | 免费额度 | ✅ Pixtral |
 | Cloudflare | 5 | 835ms | 10k neurons/day | ✅ Vision |
-| Google | 2 | 1.1s | 15 RPM | ✅ |
-| Cerebras | 2 | 432ms | 5 req/min | ❌ |
-| GitHub | 3 | 2.1s | 20000 req/min | ✅ GPT-4o |
+| Google | 4 | 1.1s | 15 RPM | ✅ |
+| LongCat | 5 | 5-8s | 免费 | ❌ |
 | UncloseAI | 2 | 1.4s | 无限 | ❌ |
-| Nvidia | 6 | 8-12s | 免费额度 | ❌ |
-| OpenRouter | 5 | 10-60s | 20 RPM | ❌ |
-| LongCat/其他 | 10 | 5-8s | 免费 | ❌ |
+| DeepSeek | 2 | <500ms | 付费 | ❌ |
+| 其他 | 6 | 1-3s | 免费 | ❌ |
 
 ## 调研过但未集成
 

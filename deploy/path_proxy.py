@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Lightweight path-rewrite proxy for one-api
-Listens on :8901 (zhipu) and :8902 (github)
+Listens on :8901-8908 (zhipu/github/aliyun/chinamobile/google/baidu/volcengine/longcat)
 Rewrites /v1/chat/completions to the correct upstream path"""
 import http.server, urllib.request, ssl, json, sys, threading
 
@@ -11,10 +11,15 @@ ROUTES = {
     8902: ("https://models.inference.ai.azure.com/chat/completions", "models.inference.ai.azure.com"),
     8903: ("https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions", "dashscope.aliyuncs.com"),
     8904: ("https://maas.gd.chinamobile.com:36007/ai/uifm/open/v1/chat/completions", "maas.gd.chinamobile.com"),
+    8905: ("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", "generativelanguage.googleapis.com"),
+    8906: ("https://qianfan.baidubce.com/v2/chat/completions", "qianfan.baidubce.com"),
+    8907: ("https://ark.cn-beijing.volces.com/api/v3/chat/completions", "ark.cn-beijing.volces.com"),
+    8908: ("https://api.longcat.chat/openai/v1/chat/completions", "api.longcat.chat"),
 }
 
-# Ports that need response rewriting (reasoning -> content)
 REWRITE_RESPONSE_PORTS = {8904}
+PROXY_PORTS = {8905}
+PROXY_URL = "http://127.0.0.1:7897"
 
 ctx = ssl.create_default_context()
 
@@ -27,7 +32,6 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
         if not upstream_url:
             self.send_error(404)
             return
-        # Handle both Content-Length and chunked transfer
         length = int(self.headers.get("Content-Length", 0))
         te = self.headers.get("Transfer-Encoding", "")
         if length > 0:
@@ -36,7 +40,6 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
             body = self._read_chunked()
         else:
             body = self.rfile.read()
-        # Inject enable_thinking=false for aliyun (port 8903)
         if port == 8903 and body:
             try:
                 obj = json.loads(body)
@@ -45,17 +48,37 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
             except (json.JSONDecodeError, ValueError):
                 pass
         auth = self.headers.get("Authorization", "")
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": auth,
-        }
+        headers = {"Content-Type": "application/json", "Authorization": auth}
+        # LongCat-Omni: convert OpenAI→Anthropic format
+        if port == 8908 and body:
+            try:
+                obj = json.loads(body)
+                if "Omni" in obj.get("model", ""):
+                    upstream_url = "https://api.longcat.chat/anthropic/v1/messages"
+                    msgs = [m for m in obj.get("messages", []) if m.get("role") != "system"]
+                    anth_msgs = [{"role": m["role"], "content": [{"type": "text", "text": m["content"] if isinstance(m["content"], str) else str(m["content"])}]} for m in msgs]
+                    body = json.dumps({"model": obj["model"], "messages": anth_msgs, "max_tokens": obj.get("max_tokens", 1024)}).encode()
+                    headers["anthropic-version"] = "2023-06-01"
+                    self._omni_convert = True
+                else:
+                    self._omni_convert = False
+            except (json.JSONDecodeError, ValueError):
+                self._omni_convert = False
+        else:
+            self._omni_convert = False
         req = urllib.request.Request(upstream_url, data=body, headers=headers)
         try:
-            resp = urllib.request.urlopen(req, timeout=30, context=ctx)
+            if port in PROXY_PORTS:
+                proxy_handler = urllib.request.ProxyHandler({"https": PROXY_URL, "http": PROXY_URL})
+                opener = urllib.request.build_opener(proxy_handler)
+                resp = opener.open(req, timeout=30)
+            else:
+                resp = urllib.request.urlopen(req, timeout=30, context=ctx)
             resp_body = resp.read()
-            # Rewrite response for reasoning models (content:null -> use reasoning)
             if port in REWRITE_RESPONSE_PORTS:
                 resp_body = self._rewrite_reasoning(resp_body)
+            if getattr(self, '_omni_convert', False):
+                resp_body = self._anthropic_to_openai(resp_body)
             self.send_response(resp.status)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(resp_body)))
@@ -76,6 +99,18 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(err)
 
+    def _anthropic_to_openai(self, resp_body):
+        try:
+            obj = json.loads(resp_body)
+            content = ""
+            for block in obj.get("content", []):
+                if block.get("type") == "text":
+                    content += block.get("text", "")
+            openai_resp = {"id": obj.get("id", ""), "object": "chat.completion", "model": obj.get("model", ""), "choices": [{"index": 0, "message": {"role": "assistant", "content": content}, "finish_reason": "stop"}], "usage": {"prompt_tokens": obj.get("usage", {}).get("input_tokens", 0), "completion_tokens": obj.get("usage", {}).get("output_tokens", 0), "total_tokens": obj.get("usage", {}).get("input_tokens", 0) + obj.get("usage", {}).get("output_tokens", 0)}}
+            return json.dumps(openai_resp).encode()
+        except (json.JSONDecodeError, ValueError, KeyError):
+            return resp_body
+
     def _read_chunked(self):
         data = b""
         while True:
@@ -91,7 +126,6 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
         return data
 
     def _rewrite_reasoning(self, resp_body):
-        """Rewrite reasoning model response: move reasoning to content if content is null"""
         try:
             obj = json.loads(resp_body)
             for choice in obj.get("choices", []):

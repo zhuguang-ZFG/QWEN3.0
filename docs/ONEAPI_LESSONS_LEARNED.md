@@ -252,3 +252,111 @@ podman run --name one-api -d \
 | 8902 | github | 去掉 /v1 前缀 |
 | 8903 | aliyun | 注入 enable_thinking=false |
 | 8904 | chinamobile | 响应改写 reasoning→content |
+| 8905 | google | frp 代理 + 路径处理 |
+| 8906 | baidu | 特殊认证 (bce-v3) |
+| 8907 | volcengine | 模型名映射 |
+| 8908 | longcat | Anthropic 格式转换 |
+
+---
+
+## 九、新增教训 (2026-05-20)
+
+### 1. NO_PROXY 必须包含内网代理地址
+
+**问题：** one-api 容器配置了 HTTP_PROXY，但 path_proxy 请求仍被代理拦截
+
+**原因：** NO_PROXY 未包含 path_proxy 地址 (10.88.0.1)
+
+**正确配置：**
+```bash
+podman run --name one-api -d \
+  -e HTTP_PROXY=http://host.containers.internal:7897 \
+  -e HTTPS_PROXY=http://host.containers.internal:7897 \
+  -e NO_PROXY=localhost,127.0.0.1,10.88.0.1,*.chinamobile.com,*.aliyun.com \
+  ...
+```
+
+**验证方法：** 
+```bash
+curl -v http://10.88.0.1:8901/v1/chat/completions
+# 应该直连，不走代理
+```
+
+---
+
+### 2. LongCat 404 bug — API 端点变更
+
+**问题：** LongCat 渠道返回 404，直连也失败
+
+**原因：** LongCat 更新了 API 端点，旧端点已下线
+
+**症状：**
+```
+HTTP 404 Not Found
+{
+  "error": {
+    "message": "Endpoint not found",
+    "type": "invalid_request_error"
+  }
+}
+```
+
+**解决方案：**
+1. 检查 LongCat 官方文档获取最新端点
+2. 更新 one-api 渠道的 base_url
+3. 或改用直连 fallback（更稳定）
+
+**教训：** 免费 API 端点容易变更，应该优先使用直连 fallback，one-api 作为备选。
+
+---
+
+### 3. 模型名匹配 — 厂商命名不统一
+
+**问题：** one-api 渠道配置了模型名，但请求仍返回 503 "无可用渠道"
+
+**原因：** 模型名不匹配。例如：
+- 用户请求: `gpt-4o`
+- 渠道注册: `gpt-4o-2024-05-13`
+- 结果: 不匹配，返回 503
+
+**正确做法：**
+```python
+# one-api 渠道的 models 字段应包含所有可能的模型名
+models = [
+  "gpt-4o",
+  "gpt-4o-2024-05-13",
+  "gpt-4o-mini",
+  "gpt-4o-mini-2024-07-18"
+]
+```
+
+**验证方法：**
+```bash
+# 查看 one-api 渠道的 models 字段
+curl http://47.112.162.80:3001/api/channel/1 \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+```
+
+---
+
+### 4. Chunked Transfer 支持 — Python 代理必须处理
+
+**问题：** path_proxy 收到 one-api 的请求，但无法读取 body
+
+**原因：** one-api 使用 chunked transfer encoding，Content-Length=0
+
+**正确处理：**
+```python
+# 检查 Transfer-Encoding 而非 Content-Length
+if request.headers.get('Transfer-Encoding') == 'chunked':
+    body = await request.body()  # 自动处理 chunked
+else:
+    body = await request.body()
+```
+
+**验证方法：**
+```bash
+curl -v -X POST http://10.88.0.1:8901/v1/chat/completions \
+  -H "Transfer-Encoding: chunked" \
+  -d '{"model":"gpt-4o","messages":[...]}'
+```
