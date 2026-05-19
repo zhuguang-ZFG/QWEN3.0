@@ -147,6 +147,19 @@ BACKENDS = {
     'google_flash':      {'url': 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
                           'key': os.environ.get('GOOGLE_AI_KEY', ''),
                           'model': 'gemini-2.5-flash', 'fmt': 'openai', 'timeout': 20},
+    # Cloudflare Workers AI（37 模型，OpenAI 兼容，免费 10k neurons/day）
+    'cf_llama70b':       {'url': f"https://api.cloudflare.com/client/v4/accounts/{os.environ.get('CLOUDFLARE_ACCOUNT_ID', '')}/ai/v1/chat/completions",
+                          'key': os.environ.get('CLOUDFLARE_TOKEN', ''),
+                          'model': '@cf/meta/llama-3.3-70b-instruct-fp8-fast', 'fmt': 'openai', 'timeout': 15},
+    'cf_llama4':         {'url': f"https://api.cloudflare.com/client/v4/accounts/{os.environ.get('CLOUDFLARE_ACCOUNT_ID', '')}/ai/v1/chat/completions",
+                          'key': os.environ.get('CLOUDFLARE_TOKEN', ''),
+                          'model': '@cf/meta/llama-4-scout-17b-16e-instruct', 'fmt': 'openai', 'timeout': 15},
+    'cf_qwen_coder':     {'url': f"https://api.cloudflare.com/client/v4/accounts/{os.environ.get('CLOUDFLARE_ACCOUNT_ID', '')}/ai/v1/chat/completions",
+                          'key': os.environ.get('CLOUDFLARE_TOKEN', ''),
+                          'model': '@cf/qwen/qwen2.5-coder-32b-instruct', 'fmt': 'openai', 'timeout': 15},
+    'cf_mistral':        {'url': f"https://api.cloudflare.com/client/v4/accounts/{os.environ.get('CLOUDFLARE_ACCOUNT_ID', '')}/ai/v1/chat/completions",
+                          'key': os.environ.get('CLOUDFLARE_TOKEN', ''),
+                          'model': '@cf/mistralai/mistral-small-3.1-24b-instruct', 'fmt': 'openai', 'timeout': 15},
     'local':   {'url': LM_URL, 'key': '', 'model': 'local-model', 'fmt': 'openai', 'auth': 'bearer'},
 }
 
