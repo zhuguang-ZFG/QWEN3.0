@@ -233,6 +233,46 @@ BACKENDS = {
                           'key': os.environ.get('MISTRAL_API_KEY', ''),
                           'model': 'pixtral-large-latest', 'fmt': 'openai', 'timeout': 20},
     'local':   {'url': LM_URL, 'key': '', 'model': 'local-model', 'fmt': 'openai', 'auth': 'bearer'},
+    # ── 国内直连厂商（无需翻墙，低延迟）──────────────────────────────────────
+    # 智谱 AI (GLM) — GLM-4.7-Flash 200K, 永久免费, 30 QPS
+    'zhipu_flash':     {'url': 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+                        'key': os.environ.get('ZHIPU_API_KEY', ''),
+                        'model': 'glm-4-flash', 'fmt': 'openai', 'timeout': 10},
+    'zhipu_flash7':    {'url': 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+                        'key': os.environ.get('ZHIPU_API_KEY', ''),
+                        'model': 'glm-4.7-flash', 'fmt': 'openai', 'timeout': 10},
+    # 硅基流动 (SiliconFlow) — 1000 RPM, <100ms, 永久免费
+    'silicon_qwen8b':  {'url': 'https://api.siliconflow.cn/v1/chat/completions',
+                        'key': os.environ.get('SILICONFLOW_API_KEY', ''),
+                        'model': 'Qwen/Qwen3-8B', 'fmt': 'openai', 'timeout': 10},
+    'silicon_glm9b':   {'url': 'https://api.siliconflow.cn/v1/chat/completions',
+                        'key': os.environ.get('SILICONFLOW_API_KEY', ''),
+                        'model': 'THUDM/glm-4-9b-chat', 'fmt': 'openai', 'timeout': 10},
+    'silicon_deepseek':{'url': 'https://api.siliconflow.cn/v1/chat/completions',
+                        'key': os.environ.get('SILICONFLOW_API_KEY', ''),
+                        'model': 'deepseek-ai/DeepSeek-R1-Distill-Qwen-7B', 'fmt': 'openai', 'timeout': 15},
+    # 百度千帆 (ERNIE) — 永久免费不限量, 50 QPS
+    'baidu_ernie':     {'url': 'https://qianfan.baidubce.com/v2/chat/completions',
+                        'key': os.environ.get('BAIDU_API_KEY', ''),
+                        'model': 'ernie-3.5-8k', 'fmt': 'openai', 'auth': 'bearer', 'timeout': 10},
+    'baidu_speed':     {'url': 'https://qianfan.baidubce.com/v2/chat/completions',
+                        'key': os.environ.get('BAIDU_API_KEY', ''),
+                        'model': 'ernie-speed-8k', 'fmt': 'openai', 'auth': 'bearer', 'timeout': 8},
+    # 火山引擎/豆包 — 每天200万Token
+    'volcengine_doubao':{'url': 'https://ark.cn-beijing.volces.com/api/v3/chat/completions',
+                         'key': os.environ.get('VOLCENGINE_API_KEY', ''),
+                         'model': 'doubao-1-5-pro-256k', 'fmt': 'openai', 'timeout': 15},
+    # 阿里云百炼 (DashScope) — 每模型100万Token, OpenAI兼容
+    'aliyun_qwen3':    {'url': 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+                        'key': os.environ.get('ALIYUN_API_KEY', ''),
+                        'model': 'qwen3-8b', 'fmt': 'openai', 'timeout': 10},
+    'aliyun_coder':    {'url': 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+                        'key': os.environ.get('ALIYUN_API_KEY', ''),
+                        'model': 'qwen-3-coder-plus', 'fmt': 'openai', 'timeout': 15},
+    # 腾讯混元 — 100万Token
+    'tencent_hunyuan': {'url': 'https://api.hunyuan.cloud.tencent.com/v1/chat/completions',
+                        'key': os.environ.get('TENCENT_API_KEY', ''),
+                        'model': 'hunyuan-lite', 'fmt': 'openai', 'timeout': 10},
     # ── 零 Key 端点（无需注册，无限额度）──
     'chat_ubi':        {'url': 'https://ch.at/v1/chat/completions',
                         'key': 'none', 'model': 'gpt-3', 'fmt': 'openai', 'timeout': 20},
@@ -369,7 +409,10 @@ def cb_status():
 FALLBACK_CHAINS = {
     'trivial': [
         'groq_llama4',        # L0.5: Groq极速（376ms）
+        'silicon_qwen8b',     # L0: 硅基流动（<100ms，国内直连）
+        'baidu_speed',        # L0: 百度ERNIE-Speed（永久免费，50QPS）
         'chat_ubi',           # L0: ch.at 零Key（2.8s，最佳通用对话）
+        'zhipu_flash',        # L0: 智谱GLM-4-Flash（永久免费，30QPS）
         'unclose_hermes',     # L1: UncloseAI（免费无限，1.2s）
         'nvidia_phi4',        # L2: 最快（1-2秒）
         'nvidia_llama4',      # L2: 快速备选
@@ -483,9 +526,13 @@ FALLBACK_CHAINS = {
         'claude',             # L4: 付费最终兜底
     ],
     'unknown': [
+        'silicon_qwen8b',     # L0: 硅基流动（<100ms，国内直连）
+        'zhipu_flash7',       # L0: 智谱GLM-4.7-Flash（200K，永久免费）
         'chat_ubi',           # L0: ch.at 零Key（2.8s，最佳通用对话）
+        'baidu_ernie',        # L0: 百度ERNIE（永久免费不限量）
         'longcat_chat',       # L1: LongCat通用（免费）
         'chinamobile',        # L1: 中国移动（免费）
+        'volcengine_doubao',  # L0: 火山豆包（每天200万Token）
         'nvidia_llama70b',    # L2: Nvidia通用（免费额度）
         'or_llama70b',        # L3: OpenRouter通用（免费额度）
         'or_qwen3_80b',       # L3: OpenRouter快速（免费额度）
