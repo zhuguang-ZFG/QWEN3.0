@@ -140,6 +140,13 @@ BACKENDS = {
     'github_llama70b':   {'url': 'https://models.inference.ai.azure.com/chat/completions',
                           'key': os.environ.get('GITHUB_TOKEN', ''),
                           'model': 'Llama-3.3-70B-Instruct', 'fmt': 'openai', 'timeout': 15},
+    # Google Gemini 免费推理（OpenAI 兼容端点，需 Key）
+    'google_flash_lite': {'url': 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+                          'key': os.environ.get('GOOGLE_AI_KEY', ''),
+                          'model': 'gemini-3.1-flash-lite', 'fmt': 'openai', 'timeout': 15},
+    'google_flash':      {'url': 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+                          'key': os.environ.get('GOOGLE_AI_KEY', ''),
+                          'model': 'gemini-2.5-flash', 'fmt': 'openai', 'timeout': 20},
     'local':   {'url': LM_URL, 'key': '', 'model': 'local-model', 'fmt': 'openai', 'auth': 'bearer'},
 }
 
@@ -291,7 +298,9 @@ FALLBACK_CHAINS = {
         'deepseek_flash',     # L4: 付费兜底
     ],
     'embedded_dev': [
+        'groq_llama70b',      # L0.5: Groq 70B极速
         'unclose_hermes',     # L1: UncloseAI（免费无限，1.4s）
+        'google_flash_lite',  # L0.5: Gemini 3.1 Flash Lite（1.1s）
         'nvidia_nemotron',    # L2: Nvidia嵌入式（免费额度）
         'longcat_thinking',   # L1: LongCat推理（免费）
         'longcat',            # L1: LongCat最强（免费）
