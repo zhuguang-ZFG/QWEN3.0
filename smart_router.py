@@ -222,6 +222,9 @@ def _get_opener(name):
         return urllib.request.build_opener(proxy)
     return None
 
+# ── Circuit Breaker ──────────────────────────────────────────────────────────
+import threading
+
 _cb_lock = threading.Lock()
 _cb_state = {}  # backend_name -> state dict
 
