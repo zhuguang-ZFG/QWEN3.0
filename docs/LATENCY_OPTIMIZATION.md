@@ -166,6 +166,13 @@ def _cached_analyze(query_hash):
 | 冷启动延迟 | 1-5s | 0ms | ✅ |
 | 双重 API 调用 | 108s (route+stream) | ~2s (select_backend only) | ✅ |
 | 真流式透传 | 假流式 (按句) | 真流式 (逐 token) | ✅ |
-| - [ ] 流式请求首 token 时间 < 2s（当前 8-10s，瓶颈在 slow backend） | | | |
-| - [ ] 同 tier 后端自动选最快 | | | |
-| - [ ] 路由命中率 > 70% 时投机调用有效 | | | |
+| 同 tier 延迟排序 | 固定顺序 | 实时延迟优先 | ✅ |
+| 投机并行调用 | 串行 (route→stream) | 并行 (predict+stream) | ✅ |
+
+### 待改进 (P2)
+
+| 指标 | 当前值 | 目标 |
+|------|--------|------|
+| 首 token 时间 | 8-10s | < 2s (需更快后端) |
+| 路由模型推理 | fallback 无模型 | vLLM 50-100ms |
+| 路由决策缓存 | 无 | LRU 512 条 |
