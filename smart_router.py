@@ -123,6 +123,13 @@ BACKENDS = {
     'groq_llama4':     {'url': 'https://api.groq.com/openai/v1/chat/completions',
                         'key': os.environ.get('GROQ_API_KEY', ''),
                         'model': 'meta-llama/llama-4-scout-17b-16e-instruct', 'fmt': 'openai', 'timeout': 15},
+    # Cerebras 免费推理（超大模型，5 req/min，需 Key）
+    'cerebras_qwen235b': {'url': 'https://api.cerebras.ai/v1/chat/completions',
+                          'key': os.environ.get('CEREBRAS_API_KEY', ''),
+                          'model': 'qwen-3-235b-a22b-instruct-2507', 'fmt': 'openai', 'timeout': 30},
+    'cerebras_llama8b':  {'url': 'https://api.cerebras.ai/v1/chat/completions',
+                          'key': os.environ.get('CEREBRAS_API_KEY', ''),
+                          'model': 'llama3.1-8b', 'fmt': 'openai', 'timeout': 15},
     'local':   {'url': LM_URL, 'key': '', 'model': 'local-model', 'fmt': 'openai', 'auth': 'bearer'},
 }
 
@@ -297,6 +304,7 @@ FALLBACK_CHAINS = {
     'architecture': [
         'groq_gptoss',        # L0.5: Groq GPT-OSS 120B极速（520ms）
         'groq_llama70b',      # L0.5: Groq 70B（694ms）
+        'cerebras_qwen235b',  # L0.5: Cerebras Qwen 235B（1.9s，最强免费）
         'longcat',            # L1: LongCat最强（免费）
         'longcat_thinking',   # L1: LongCat推理（免费）
         'nvidia_nemotron',    # L2: Nvidia（免费额度）
