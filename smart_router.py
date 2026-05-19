@@ -307,7 +307,69 @@ ROUTE = {
     'unknown':        'longcat_chat',      # L1: LongCat免费，通用
 }
 
-# ── GFW Proxy (反向 frp 隧道，本地翻墙代理) ──────────────────────────────────
+# ── one-api 渠道管理层 ────────────────────────────────────────────────────────
+ONEAPI_BASE = os.environ.get('ONEAPI_BASE', 'http://127.0.0.1:3001/v1')
+ONEAPI_ENABLED = os.environ.get('ONEAPI_ENABLED', 'true').lower() == 'true'
+
+ONEAPI_GROUP_TOKENS = {
+    'trivial':  os.environ.get('ONEAPI_TOKEN_TRIVIAL', 'sk-vBFKwKQQc25ZsyjS4e2e731dAa0849A99b24C0E699306524'),
+    'code':     os.environ.get('ONEAPI_TOKEN_CODE', 'sk-gRdwgABKbsh86GHy2a57B037886d42B3962062B231C1B927'),
+    'general':  os.environ.get('ONEAPI_TOKEN_GENERAL', 'sk-NuNQ9qQODmXTligw3bDbDaAfF0F14d3bAb0cA3C5Ba1d72D1'),
+    'thinking': os.environ.get('ONEAPI_TOKEN_THINKING', 'sk-EDtJRpl7dPP3WjHh94B4DaFc6bAc4405A8E8D753A3A023C5'),
+    'vision':   os.environ.get('ONEAPI_TOKEN_VISION', 'sk-s2JvrAODlre79v3V8417A8FbA87b48D88dBd25BeFc7a557d'),
+}
+
+INTENT_TO_GROUP = {
+    'trivial': 'trivial',
+    'code_generation': 'code',
+    'tool_task': 'code',
+    'thinking': 'thinking',
+    'architecture': 'thinking',
+    'cnc_trouble': 'thinking',
+    'vision': 'vision',
+    'image_gen': 'general',
+    'general_cnc': 'general',
+    'grbl_config': 'general',
+    'gcode_help': 'general',
+    'embedded_dev': 'general',
+    'unknown': 'general',
+}
+
+ONEAPI_GROUP_MODELS = {
+    'trivial': 'glm-4-flash',
+    'code': 'codestral-latest',
+    'general': 'glm-4.7-flash',
+    'thinking': 'gpt-5',
+    'vision': 'gpt-4o',
+}
+
+def call_oneapi(group, msgs, mt=1024, model_override=None):
+    """通过 one-api 调用指定分组的后端。one-api 自动负载均衡和故障转移。"""
+    token = ONEAPI_GROUP_TOKENS.get(group)
+    if not token:
+        return None
+    model = model_override or ONEAPI_GROUP_MODELS.get(group, 'glm-4-flash')
+    body = json.dumps({
+        'model': model,
+        'max_tokens': mt,
+        'messages': [{'role': 'system', 'content': SYS}] + msgs,
+    }).encode()
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {token}',
+    }
+    try:
+        req = urllib.request.Request(
+            f'{ONEAPI_BASE}/chat/completions', data=body, headers=headers)
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            d = json.loads(resp.read().decode())
+        msg = d['choices'][0]['message']
+        answer = msg.get('content') or msg.get('reasoning_content') or ''
+        return answer
+    except Exception as e:
+        if DEBUG:
+            print(f'[ONEAPI] {group}/{model} error: {e}', file=sys.stderr)
+        return None
 GFW_PROXY_URL = os.environ.get('GFW_PROXY', 'http://127.0.0.1:7897')
 GFW_BACKENDS = {'google_flash', 'google_flash_lite', 'google_gemini3', 'google_gemma4',
                 'mistral_large', 'mistral_small', 'mistral_medium',
@@ -1627,6 +1689,25 @@ def route(query, prefer=None, system_prompt="", ide="unknown", messages=None):
                 result['total_ms'] = int((time.time() - t0) * 1000)
                 return result
 
+    # ── one-api 优先路由（负载均衡 + 额度追踪 + 自动故障转移）──
+    if ONEAPI_ENABLED:
+        group = INTENT_TO_GROUP.get(intent_name, 'general')
+        expanded_q = expand(query, intent)
+        if messages and len(messages) > 1:
+            api_msgs = [m for m in messages if m.get('role') in ('user', 'assistant')]
+        else:
+            api_msgs = [{'role': 'user', 'content': expanded_q}]
+
+        oneapi_answer = call_oneapi(group, api_msgs, mt=1024)
+        if oneapi_answer:
+            result['backend'] = f'oneapi/{group}'
+            result['answer'] = clean_response(oneapi_answer, f'oneapi_{group}')
+            result['total_ms'] = int((time.time() - t0) * 1000)
+            return result
+        if DEBUG:
+            print(f'[ROUTE] one-api failed for group={group}, falling back to direct', file=sys.stderr)
+
+    # ── 直连 fallback（one-api 不可用时的降级路径）──
     fallback_chain = get_fallback_chain(intent_name, prefer=effective_prefer)
     backend = fallback_chain[0] if fallback_chain else 'longcat'
     result['backend'] = backend
