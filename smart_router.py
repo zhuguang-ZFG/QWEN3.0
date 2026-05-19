@@ -130,6 +130,16 @@ BACKENDS = {
     'cerebras_llama8b':  {'url': 'https://api.cerebras.ai/v1/chat/completions',
                           'key': os.environ.get('CEREBRAS_API_KEY', ''),
                           'model': 'llama3.1-8b', 'fmt': 'openai', 'timeout': 15},
+    # GitHub Models 免费推理（20000 req/min，极宽松，需 GitHub Token）
+    'github_gpt4o':      {'url': 'https://models.inference.ai.azure.com/chat/completions',
+                          'key': os.environ.get('GITHUB_TOKEN', ''),
+                          'model': 'gpt-4o', 'fmt': 'openai', 'timeout': 15},
+    'github_gpt4o_mini': {'url': 'https://models.inference.ai.azure.com/chat/completions',
+                          'key': os.environ.get('GITHUB_TOKEN', ''),
+                          'model': 'gpt-4o-mini', 'fmt': 'openai', 'timeout': 15},
+    'github_llama70b':   {'url': 'https://models.inference.ai.azure.com/chat/completions',
+                          'key': os.environ.get('GITHUB_TOKEN', ''),
+                          'model': 'Llama-3.3-70B-Instruct', 'fmt': 'openai', 'timeout': 15},
     'local':   {'url': LM_URL, 'key': '', 'model': 'local-model', 'fmt': 'openai', 'auth': 'bearer'},
 }
 
@@ -295,6 +305,7 @@ FALLBACK_CHAINS = {
         'nvidia_qwen_coder',  # L2: Qwen Coder 480B（免费额度，代码最强）
         'unclose_qwen',       # L1: UncloseAI Qwen3 27B（免费无限，3s）
         'groq_qwen32b',       # L0.5: Groq Qwen3 32B（447ms）
+        'github_gpt4o_mini',  # L0.5: GitHub GPT-4o-mini（3s，高质量）
         'or_qwen3_coder',      # L3: OpenRouter Qwen3（免费额度）
         'longcat_chat',       # L1: LongCat（免费）
         'nvidia_llama70b',    # L2: Nvidia（免费额度）
@@ -305,6 +316,7 @@ FALLBACK_CHAINS = {
         'groq_gptoss',        # L0.5: Groq GPT-OSS 120B极速（520ms）
         'groq_llama70b',      # L0.5: Groq 70B（694ms）
         'cerebras_qwen235b',  # L0.5: Cerebras Qwen 235B（1.9s，最强免费）
+        'github_gpt4o',       # L0.5: GitHub GPT-4o（2.2s，最强通用）
         'longcat',            # L1: LongCat最强（免费）
         'longcat_thinking',   # L1: LongCat推理（免费）
         'nvidia_nemotron',    # L2: Nvidia（免费额度）
