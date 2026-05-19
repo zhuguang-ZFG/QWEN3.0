@@ -63,13 +63,20 @@ IDE_BACKENDS = [
 ]
 ```
 
-### 2.4 预设直答规则
+### 2.4 预设直答：全部取消
 
-| 请求来源 | 是否走 instant reply |
-|----------|---------------------|
-| /v1/messages (Anthropic) | ❌ 永远跳过 |
-| /v1/chat/completions + IDE UA | ❌ 永远跳过 |
-| /v1/chat/completions 普通 | ✅ 保留 |
+~~原方案：IDE 跳过，普通聊天保留~~
+
+**新决定：全部取消 `_try_instant_reply`。**
+
+原因：
+- 有快速模型（Groq 376ms / Cerebras），不需要预设回复
+- 预设回复容易误触发（"学习这个项目" → 图片分析）
+- 模型回复更自然、更准确
+- 减少维护成本（不用维护正则匹配规则）
+
+实现：直接删除 `_INSTANT_REPLIES` 列表和 `_try_instant_reply()` 函数，
+以及所有调用它的地方。
 
 ### 2.5 熔断器调优
 
