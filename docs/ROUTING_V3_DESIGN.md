@@ -313,6 +313,131 @@ def should_escalate(response):
   └─ Few-shot 示例库
 ```
 
+## 七、Anthropic API 兼容层（让 Claude Code 发送完整上下文）
+
+### 7.1 问题
+
+Claude Code 通过 OpenAI 兼容端点连接时：
+- 不发送 system prompt（IDE 检测失效）
+- 不启用工具链（Read/Write/Bash 不工作）
+- 不发送项目上下文（打开的文件、git status）
+- 只是一个简单聊天框，模型无法访问本地文件
+
+结果：模型只能说"请提供文件内容"，完全无用。
+
+### 7.2 解决方案
+
+伪装成 Anthropic API，Claude Code 以为连的是 Claude：
+
+```
+用户配置:
+  ANTHROPIC_BASE_URL="http://47.112.162.80:8080"
+  ANTHROPIC_API_KEY="lima-test"
+
+Claude Code:
+  → 发送完整 system prompt (8000+ tokens)
+  → 包含工具定义、项目上下文、环境信息
+  → /v1/messages (Anthropic 格式)
+  → 启用工具调用 (Read/Write/Edit/Bash)
+
+LiMa Server:
+  → 接收 Anthropic 格式
+  → 提取有用上下文 (项目信息/环境/git)
+  → IDE 检测: 100% Claude Code
+  → Skills 注入
+  → 转换 OpenAI 格式 → 路由到最强免费模型
+  → 响应转回 Anthropic 格式 → 返回
+```
+
+### 7.3 请求格式转换 (Anthropic → OpenAI)
+
+```json
+// Anthropic 输入
+{"model":"claude-sonnet-4-20250514",
+ "system":"You are Claude Code...(8000 tok)",
+ "messages":[{"role":"user","content":"写一个快排"}],
+ "max_tokens":4096, "tools":[...], "stream":true}
+
+// 转为 OpenAI
+{"model":"lima-1.3",
+ "messages":[
+   {"role":"system","content":"提取的上下文 + Skills"},
+   {"role":"user","content":"写一个快排"}],
+ "max_tokens":4096, "stream":true}
+```
+
+### 7.4 响应格式转换 (OpenAI → Anthropic)
+
+非流式：
+```json
+{"id":"msg_xxx","type":"message","role":"assistant",
+ "content":[{"type":"text","text":"代码..."}],
+ "model":"claude-sonnet-4-20250514",
+ "stop_reason":"end_turn",
+ "usage":{"input_tokens":100,"output_tokens":50}}
+```
+
+流式 SSE：
+```
+event: message_start
+data: {"type":"message_start","message":{...}}
+
+event: content_block_start
+data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"..."}}
+
+event: content_block_stop
+data: {"type":"content_block_stop","index":0}
+
+event: message_delta
+data: {"type":"message_delta","delta":{"stop_reason":"end_turn"}}
+
+event: message_stop
+data: {"type":"message_stop"}
+```
+
+### 7.5 System Prompt 处理
+
+Claude Code system prompt (~8000 tok) 包含：
+- 工具定义 (Read/Write/Edit/Bash 等) → 丢弃
+- 行为规则 (安全/格式/风格) → 丢弃
+- 项目上下文 (CLAUDE.md) → 提取
+- 环境信息 (OS/shell/git) → 提取
+
+```python
+def extract_useful_context(system: str) -> str:
+    """提取有用信息，压缩到 2000 tokens"""
+    parts = []
+    # CLAUDE.md 项目规则
+    if "CLAUDE.md" in system:
+        parts.append(between(system, "CLAUDE.md", "---"))
+    # 环境信息
+    if "Platform:" in system:
+        parts.append(extract_env(system))
+    # git status
+    if "gitStatus:" in system:
+        parts.append(extract_git(system))
+    return "\n".join(parts)[:2000]
+```
+
+### 7.6 工具调用策略
+
+**不模拟工具调用。** 后端模型不理解 Claude 工具格式。
+
+当模型返回纯文本时，Claude Code 会显示给用户但不执行工具。
+"自动模式"不工作，但"对话模式"完全可用 —
+用户获得：完整项目上下文 + 高质量代码建议。
+
+### 7.7 实现步骤
+
+1. 完善 /v1/messages 请求解析
+2. system prompt 上下文提取
+3. Anthropic → OpenAI 请求转换
+4. OpenAI → Anthropic 响应转换 (含流式)
+5. 测试 Claude Code 连接
+
 ## 四、Skills 注入机制（减少幻觉 + 增强代码能力）
 
 ### 4.1 核心思路
