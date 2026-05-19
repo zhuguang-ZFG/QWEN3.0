@@ -210,8 +210,17 @@ ROUTE = {
     'unknown':        'longcat_chat',      # L1: LongCat免费，通用
 }
 
-# ── Circuit Breaker ──────────────────────────────────────────────────────────
-import threading
+# ── GFW Proxy (反向 frp 隧道，本地翻墙代理) ──────────────────────────────────
+GFW_PROXY_URL = os.environ.get('GFW_PROXY', 'http://127.0.0.1:7897')
+GFW_BACKENDS = {'google_flash', 'google_flash_lite', 'mistral_small', 'mistral_medium',
+                'mistral_codestral', 'mistral_pixtral'}
+
+def _get_opener(name):
+    """被墙后端使用代理 opener，其他直连。"""
+    if name in GFW_BACKENDS:
+        proxy = urllib.request.ProxyHandler({'http': GFW_PROXY_URL, 'https': GFW_PROXY_URL})
+        return urllib.request.build_opener(proxy)
+    return None
 
 _cb_lock = threading.Lock()
 _cb_state = {}  # backend_name -> state dict
@@ -1199,8 +1208,13 @@ def call_api(name, msgs, mt=1024, ide="unknown"):
     try:
         r = urllib.request.Request(b['url'], data=p, headers=h)
         _timeout = b.get('timeout', 60)
-        with urllib.request.urlopen(r, timeout=_timeout) as resp:
-            d = json.loads(resp.read().decode())
+        opener = _get_opener(name)
+        if opener:
+            with opener.open(r, timeout=_timeout) as resp:
+                d = json.loads(resp.read().decode())
+        else:
+            with urllib.request.urlopen(r, timeout=_timeout) as resp:
+                d = json.loads(resp.read().decode())
         if b['fmt'] == 'anthropic':
             answer = d['content'][0].get('text', json.dumps(d, ensure_ascii=False))
         else:
