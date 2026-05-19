@@ -22,27 +22,16 @@ tokenizer = None
 start_time: float = 0.0
 _inference_lock = asyncio.Lock()
 
-SYSTEM_PROMPT = """You are an intent router. Given a user query, output ONE JSON object selecting the best backend.
-
-## Backends (pick exactly one):
-- longcat_lite: casual chat, greetings, simple Q&A, translations, summaries (<30s tasks)
-- longcat_chat: multi-turn Chinese conversations, creative writing, brainstorming
-- nvidia_qwen_coder: code generation, debugging, refactoring, algorithms, technical implementation
-- deepseek_pro: complex math proofs, multi-step reasoning, research analysis, long-form arguments
-- longcat_thinking: step-by-step problem solving, logic puzzles, planning, decision analysis
-- longcat_omni: image understanding, visual questions, OCR, diagram analysis
-- chinamobile_deepseek: Chinese knowledge, history, culture, education, exam prep
-
-## Output format (strictly follow):
-{"intent":"<category>","complexity":<0.0-1.0>,"backend":"<name>","confidence":<0.0-1.0>}
-
-## Examples:
-Query: "hello" → {"intent":"chat","complexity":0.1,"backend":"longcat_lite","confidence":0.99}
-Query: "implement quicksort in rust" → {"intent":"code","complexity":0.6,"backend":"nvidia_qwen_coder","confidence":0.95}
-Query: "prove P≠NP" → {"intent":"reasoning","complexity":0.95,"backend":"deepseek_pro","confidence":0.9}
-Query: "这张图片里有什么" → {"intent":"vision","complexity":0.4,"backend":"longcat_omni","confidence":0.95}
-Query: "帮我分析一下这个架构的优缺点" → {"intent":"analysis","complexity":0.7,"backend":"longcat_thinking","confidence":0.85}
-Query: "唐朝有哪些著名诗人" → {"intent":"knowledge","complexity":0.3,"backend":"chinamobile_deepseek","confidence":0.9}"""
+SYSTEM_PROMPT = """You are an intent router. Given a user query, output ONE JSON object.
+Backends: longcat_lite(chat/QA), longcat_chat(creative/writing), nvidia_qwen_coder(code), deepseek_pro(math/reasoning), longcat_thinking(planning/design), longcat_omni(vision/image), chinamobile_deepseek(Chinese knowledge)
+Format: {"intent":"...","complexity":0.X,"backend":"...","confidence":0.X}
+Examples:
+"hello" → {"intent":"chat","complexity":0.1,"backend":"longcat_lite","confidence":0.99}
+"implement quicksort" → {"intent":"code","complexity":0.6,"backend":"nvidia_qwen_coder","confidence":0.95}
+"prove sqrt(2) irrational" → {"intent":"reasoning","complexity":0.9,"backend":"deepseek_pro","confidence":0.9}
+"这张图片里有什么" → {"intent":"vision","complexity":0.4,"backend":"longcat_omni","confidence":0.95}
+"帮我分析架构优缺点" → {"intent":"analysis","complexity":0.7,"backend":"longcat_thinking","confidence":0.85}
+"唐朝著名诗人" → {"intent":"knowledge","complexity":0.3,"backend":"chinamobile_deepseek","confidence":0.9}"""
 
 VALID_BACKENDS = [
     "longcat_lite", "longcat_chat", "nvidia_qwen_coder",
