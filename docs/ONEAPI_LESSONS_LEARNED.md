@@ -177,4 +177,68 @@ smart_router.py (意图分类 <5ms)
         └── GFW 代理: google, mistral, cloudflare
 ```
 
-**设计原则：** one-api 是增强层（负载均衡 + 监控），不是必须层。直连 fallback 保证 100% 可用性。
+---
+
+## 六、路径代理方案（解决非标准路径厂商）
+
+### 问题
+
+one-api type=8 固定追加 `/v1/chat/completions`，以下厂商路径不兼容：
+- zhipu: `/api/paas/v4/chat/completions`
+- github: `/chat/completions` (无 /v1)
+- aliyun: 需要注入 `enable_thinking=false` 参数
+
+### 解决方案：Python 路径代理 (path_proxy.py)
+
+```
+one-api → http://10.88.0.1:8901/v1/chat/completions
+  ↓ path_proxy.py (路径重写 + 参数注入)
+zhipu:  → https://open.bigmodel.cn/api/paas/v4/chat/completions
+github: → https://models.inference.ai.azure.com/chat/completions
+aliyun: → https://dashscope.aliyuncs.com/...  + enable_thinking=false
+```
+
+### 关键坑点
+
+1. **容器内 localhost ≠ 宿主机** — 用 `10.88.0.1`（容器网关）
+2. **NO_PROXY 必须包含代理地址** — 否则 one-api 的 HTTP_PROXY 会拦截内网请求
+3. **Go HTTP 客户端用 chunked transfer** — Python 代理必须支持 chunked 读取
+4. **Content-Length=0 不代表无 body** — 检查 Transfer-Encoding: chunked
+
+### 部署命令
+
+```bash
+# 启动路径代理
+cd /opt/lima-router && nohup python3.10 path_proxy.py > /var/log/path_proxy.log 2>&1 &
+
+# one-api 容器必须包含 NO_PROXY=10.88.0.1
+podman run --name one-api -d \
+  -e NO_PROXY=localhost,127.0.0.1,10.88.0.1,... \
+  ...
+```
+
+---
+
+## 七、最终验证结果 (2026-05-20 03:20)
+
+### 通过 one-api 的渠道 (9/12 测试通过)
+
+| 渠道 | 延迟 | 方式 |
+|------|------|------|
+| zhipu | 650ms | path_proxy :8901 |
+| github | 2406ms | path_proxy :8902 |
+| aliyun | 396ms | path_proxy :8903 + enable_thinking |
+| deepseek | 614ms | type=8 直连 |
+| groq | 476ms | type=8 + GFW 代理 |
+| cerebras | 692ms | type=8 + GFW 代理 |
+| chat-ubi | 1496ms | type=8 直连 |
+| pollinations | 786ms | type=8 直连 |
+| llm7 | 1254ms | type=8 直连 |
+
+### 仍需直连 fallback 的渠道
+
+| 渠道 | 原因 | 直连状态 |
+|------|------|----------|
+| siliconflow | Key 余额不足 | ✅ (smart_router 降级) |
+| chinamobile | Key/IP 被封 | ✅ (smart_router 降级) |
+| tencent | 特殊认证格式 | ✅ (smart_router 降级) |
