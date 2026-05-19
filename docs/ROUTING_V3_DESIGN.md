@@ -103,3 +103,88 @@ LiMa Router 对应实现：
 - 集成 Together AI (P1)
 - 集成 Cohere (P2)
 
+## 四、Skills 注入机制（减少幻觉 + 增强代码能力）
+
+### 4.1 核心思路
+
+当检测到用户在进行编程工作（IDE 来源 或 代码特征），在转发请求前动态注入
+编程 skills 到 system prompt 中。这相当于给模型加了"专业知识库"：
+
+```
+用户请求 → IDE/语言检测 → 选择 skills 集 → 注入 system prompt → 转发模型
+```
+
+### 4.2 Skills 分层
+
+| 层级 | 触发条件 | 注入内容 |
+|------|----------|----------|
+| L0 通用编程 | 任何 IDE 来源 | 错误处理、安全编码、类型安全 |
+| L1 语言专用 | 检测到 .py/.ts/.go 等 | 语言最佳实践、惯用写法 |
+| L2 框架专用 | 检测到 React/Django 等 | 框架约定、组件模式 |
+| L3 项目专用 | 检测到 CLAUDE.md/cursorrules | 项目自定义规则 |
+
+### 4.3 通用编程 Skills (L0)
+
+检测到编程场景时始终注入：
+
+```
+- 优先写安全代码：参数化查询、输入验证、正确的错误处理
+- 不要吞掉异常，不要用空 catch
+- 函数保持单一职责，不超过 50 行
+- 变量命名要有语义，不用 a/b/tmp
+- 不要生成占位符代码（TODO/FIXME），要写完整实现
+- 不要编造不存在的 API/库/函数（减少幻觉的关键）
+- 如果不确定某个 API 是否存在，明确说明而不是猜测
+```
+
+### 4.4 语言专用 Skills (L1)
+
+| 语言 | Skills 要点 |
+|------|-------------|
+| Python | type hints, f-string, pathlib, dataclass, 不用 bare except |
+| TypeScript | strict mode, const 优先, async/await, 不用 any |
+| Go | error wrapping, defer, context propagation, 不用 panic |
+| Rust | ownership, Result<T,E>, 不用 unwrap in production |
+
+### 4.5 IDE 感知 Skills (L3)
+
+| IDE | 额外注入 |
+|-----|----------|
+| Cursor | "输出代码时使用 edit markers 格式" |
+| Claude Code | "可以使用工具调用，优先 Read/Edit/Bash" |
+| Aider | "使用 SEARCH/REPLACE 格式输出修改" |
+| Cline | "使用 XML 工具调用格式" |
+
+### 4.6 实现方式
+
+在 smart_router.py 的请求处理中：
+
+```python
+def inject_skills(messages, ide_source, language):
+    """检测到编程场景时注入 skills"""
+    skills = []
+    
+    # L0: 通用编程 skills
+    if ide_source or language:
+        skills.append(CODING_SKILLS_L0)
+    
+    # L1: 语言专用
+    if language in LANGUAGE_SKILLS:
+        skills.append(LANGUAGE_SKILLS[language])
+    
+    # 注入方式：追加到 system prompt 末尾
+    if skills and messages and messages[0].get("role") == "system":
+        messages[0]["content"] += "\n\n" + "\n".join(skills)
+    elif skills:
+        messages.insert(0, {"role": "system", "content": "\n".join(skills)})
+    
+    return messages
+```
+
+### 4.7 关键原则
+
+1. **不要过度注入** — skills 总长度控制在 200 tokens 以内，不占用用户上下文
+2. **减少幻觉的核心** — 明确告诉模型"不要编造不存在的 API"
+3. **IDE 格式适配** — 不同 IDE 期望不同的输出格式，注入对应格式指令
+4. **可配置** — skills 存储在独立文件中，方便更新不需要改代码
+
