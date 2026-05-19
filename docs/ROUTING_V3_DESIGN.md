@@ -103,6 +103,91 @@ LiMa Router 对应实现：
 - 集成 Together AI (P1)
 - 集成 Cohere (P2)
 
+### Phase 5: 动态排名 + 消除死模型
+- 同层轮转替代固定优先级
+- 实时 score 计算 (成功率 × 0.4 + 速度 × 0.3 + 质量 × 0.3)
+- 健康检查 + 金丝雀流量
+
+## 五、动态排名机制（消除"死模型"问题）
+
+### 5.1 问题描述
+
+当前 fallback 链是严格优先级：
+```
+Groq → Cerebras → GitHub → ... → NagaAI → FreeTheAI → Pollinations
+```
+
+如果顶部模型永远稳定，底部模型永远不会被调用。导致：
+- 不知道后备模型是否还活着
+- 无法积累质量数据
+- 免费额度浪费
+- 真正需要时可能已经挂了
+
+### 5.2 解决方案：同层轮转 + 动态评分
+
+#### 层级定义（同层内轮转，不固定顺序）
+
+```
+T0 超快层 (目标 <500ms):  Groq, Cerebras
+T1 快速层 (目标 <2s):     GitHub, Cloudflare, Mistral, NagaAI
+T2 标准层 (目标 <5s):     DeepSeek, Zhipu, Aliyun, LongCat, Volcengine
+T3 慢速层 (目标 <15s):    FreeTheAI, OpenRouter, Google
+T4 兜底层 (无限制):       Pollinations, LLM7, Chat.ubi
+```
+
+同层内随机选择（加权随机，权重 = score），而不是固定顺序。
+
+#### 动态评分公式
+
+```python
+score = success_rate * 0.4 + speed_score * 0.3 + quality_score * 0.3
+
+# success_rate: 最近 100 次请求的成功率 (0-1)
+# speed_score: 1 / (avg_latency_ms / tier_target_ms), capped at 1
+# quality_score: 基于简单启发式 (0-1):
+#   - 响应非空: +0.3
+#   - 含代码块: +0.3 (如果是代码请求)
+#   - 长度合理 (>50 chars): +0.2
+#   - 无错误标志 ("sorry", "I cannot"): +0.2
+```
+
+#### 冷启动 + 探索
+
+- 新加入的后端初始 score = 0.5（中间值）
+- 每 50 个请求强制 1 个发到最低 score 后端（探索）
+- score 使用指数滑动平均，最近的请求权重更大
+
+### 5.3 健康检查（后台，不影响用户）
+
+```
+每 5 分钟:
+  对所有后端发 ping 请求 ("hi", max_tokens=1)
+  更新 is_alive 状态
+  连续 3 次失败 → 标记为 dead，从路由池移除
+  恢复后自动重新加入（score = 0.3 低权重起步）
+```
+
+### 5.4 指标记录
+
+每个请求记录：
+- backend_name
+- latency_ms
+- success (bool)
+- quality_score
+- ide_source (如果检测到)
+- intent (路由分类结果)
+
+存储在 `/opt/lima-router/metrics.jsonl`，滑动窗口保留最近 10000 条。
+
+### 5.5 预期效果
+
+| 指标 | 当前 | 改进后 |
+|------|------|--------|
+| 后端利用率 | ~30% (多数从不被调用) | ~90% (同层轮转) |
+| 故障发现时间 | 不确定（可能永远不知道） | <5 分钟（健康检查） |
+| 路由准确性 | 固定规则 | 数据驱动，自动优化 |
+| 模型质量对比 | 无数据 | 有实时对比数据 |
+
 ## 四、Skills 注入机制（减少幻觉 + 增强代码能力）
 
 ### 4.1 核心思路
