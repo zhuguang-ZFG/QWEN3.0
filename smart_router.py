@@ -178,6 +178,8 @@ BACKENDS = {
                           'model': 'pixtral-large-latest', 'fmt': 'openai', 'timeout': 20},
     'local':   {'url': LM_URL, 'key': '', 'model': 'local-model', 'fmt': 'openai', 'auth': 'bearer'},
     # ── 零 Key 端点（无需注册，无限额度）──
+    'chat_ubi':        {'url': 'https://ch.at/v1/chat/completions',
+                        'key': 'none', 'model': 'gpt-3', 'fmt': 'openai', 'timeout': 20},
     'llm7':            {'url': 'https://api.llm7.io/v1/chat/completions',
                         'key': 'none', 'model': 'auto', 'fmt': 'openai', 'timeout': 20},
     'pollinations':    {'url': 'https://text.pollinations.ai/openai',
@@ -297,6 +299,7 @@ def cb_status():
 FALLBACK_CHAINS = {
     'trivial': [
         'groq_llama4',        # L0.5: Groq极速（376ms）
+        'chat_ubi',           # L0: ch.at 零Key（2.8s，最佳通用对话）
         'unclose_hermes',     # L1: UncloseAI（免费无限，1.2s）
         'nvidia_phi4',        # L2: 最快（1-2秒）
         'nvidia_llama4',      # L2: 快速备选
@@ -399,6 +402,7 @@ FALLBACK_CHAINS = {
         'claude',             # L4: 付费最终兜底
     ],
     'unknown': [
+        'chat_ubi',           # L0: ch.at 零Key（2.8s，最佳通用对话）
         'longcat_chat',       # L1: LongCat通用（免费）
         'chinamobile',        # L1: 中国移动（免费）
         'nvidia_llama70b',    # L2: Nvidia通用（免费额度）
