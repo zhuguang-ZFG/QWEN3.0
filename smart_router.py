@@ -205,6 +205,7 @@ ROUTE = {
     'architecture':   'longcat',           # L1: LongCat免费，综合最强
     'general_cnc':    'longcat_lite',      # L1: LongCat免费，快速
     'tool_task':      'llm7',             # L0: DevToolBox/LLM7 工具型任务
+    'image_gen':      'pollinations',     # L0: Pollinations 图片生成
     'complex_theory': 'longcat_thinking',  # L1: LongCat免费推理
     'thinking':       'or_deepseek_r1',    # L3: Deep Thinking Mode（深度推理）
     'unknown':        'longcat_chat',      # L1: LongCat免费，通用
@@ -213,7 +214,7 @@ ROUTE = {
 # ── GFW Proxy (反向 frp 隧道，本地翻墙代理) ──────────────────────────────────
 GFW_PROXY_URL = os.environ.get('GFW_PROXY', 'http://127.0.0.1:7897')
 GFW_BACKENDS = {'google_flash', 'google_flash_lite', 'mistral_small', 'mistral_medium',
-                'mistral_codestral', 'mistral_pixtral'}
+                'mistral_codestral', 'mistral_pixtral', 'devtoolbox'}
 
 def _get_opener(name):
     """被墙后端使用代理 opener，其他直连。"""
@@ -604,6 +605,9 @@ RULES = [
     (r'修复.*代码|fix.*code|debug.*this|帮我改.*bug', 'tool_task', 0.80),
     (r'JSON.*Schema|生成.*schema|转换.*JSON', 'tool_task', 0.85),
     (r'翻译.*代码|convert.*to.*python|改写.*成', 'tool_task', 0.80),
+    # ── 图片生成 ──
+    (r'画一[个张只幅]|画.*图|生成.*图片|draw|generate.*image|create.*image|画.*picture', 'image_gen', 0.92),
+    (r'图片.*生成|AI.*画|AI.*绘|文生图|text.to.image|帮我画|给我画', 'image_gen', 0.90),
     (r'FOC|PID|闭环|编码器|伺服|变频器|VFD', 'complex_theory', 0.85),
     (r'PCB|雕刻|激光|切割|主轴|转速|RPM', 'general_cnc', 0.80),
 ]
@@ -1232,6 +1236,74 @@ def call_api(name, msgs, mt=1024, ide="unknown"):
         return '服务暂时不可用，请稍后重试'
 
 
+# ── DevToolBox API (工具型端点，非 OpenAI 兼容) ──────────────────────────────
+DTB_BASE = 'https://devtoolbox-api.devtoolbox-api.workers.dev/ai'
+DTB_ENDPOINTS = {
+    'sql': {'field': 'description', 'result_key': 'sql'},
+    'regex': {'field': 'description', 'result_key': 'regex'},
+    'fix-code': {'field': 'code', 'result_key': 'fix'},
+    'explain-code': {'field': 'code', 'result_key': 'explanation'},
+    'json-schema': {'field': 'json', 'result_key': 'result'},
+    'summarize': {'field': 'text', 'result_key': 'result'},
+}
+
+def call_devtoolbox(task_type, input_text):
+    """调用 DevToolBox 工具型 API。返回结果文本或 None。"""
+    ep = DTB_ENDPOINTS.get(task_type)
+    if not ep:
+        return None
+    try:
+        payload = json.dumps({ep['field']: input_text}).encode()
+        req = urllib.request.Request(
+            f'{DTB_BASE}/{task_type}', data=payload,
+            headers={'Content-Type': 'application/json', 'User-Agent': 'LiMa/2.0'})
+        opener = _get_opener('devtoolbox')
+        if opener:
+            resp = opener.open(req, timeout=15)
+        else:
+            resp = urllib.request.urlopen(req, timeout=15)
+        data = json.loads(resp.read().decode())
+        return data.get(ep['result_key']) or data.get('result') or json.dumps(data, ensure_ascii=False)
+    except Exception as e:
+        if DEBUG:
+            print(f'[DTB] {task_type} error: {e}', file=sys.stderr)
+        return None
+
+
+def _detect_tool_type(query):
+    """检测 tool_task 的具体工具类型，用于路由到 DevToolBox 对应端点。"""
+    q = query.lower()
+    if re.search(r'sql|查询|select|insert|update|delete.*from|数据库', q):
+        return 'sql'
+    if re.search(r'正则|regex|pattern|匹配模式', q):
+        return 'regex'
+    if re.search(r'修复|fix|debug|改.*bug|纠错', q):
+        return 'fix-code'
+    if re.search(r'解释.*代码|explain.*code|这段代码', q):
+        return 'explain-code'
+    if re.search(r'json.*schema|schema', q, re.IGNORECASE):
+        return 'json-schema'
+    if re.search(r'摘要|总结|summarize|概括', q):
+        return 'summarize'
+    return None
+
+
+# ── Pollinations Image Generation ────────────────────────────────────────────
+def generate_image(prompt, width=512, height=512):
+    """调用 Pollinations 图片生成 API，返回图片 URL。"""
+    from urllib.parse import quote
+    encoded = quote(prompt)
+    url = f'https://image.pollinations.ai/prompt/{encoded}?width={width}&height={height}&nologo=true'
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': 'LiMa/2.0'})
+        resp = urllib.request.urlopen(req, timeout=30)
+        if resp.status == 200:
+            return url
+    except Exception:
+        pass
+    return url
+
+
 # ── Streaming API Call ─────────────────────────────────────────────────────────
 def _build_request_body(name, msgs, mt=1024, ide="unknown", stream=False):
     """Build request body and headers for a backend call.
@@ -1420,6 +1492,26 @@ def route(query, prefer=None, system_prompt="", ide="unknown", messages=None):
     # 多模态检测：如果消息包含图片，强制使用 vision chain
     if _has_vision_content(messages):
         intent_name = 'vision'
+
+    # ── 图片生成：直接返回 Pollinations URL ──
+    if intent_name == 'image_gen':
+        img_url = generate_image(query)
+        result['backend'] = 'pollinations_image'
+        result['answer'] = f'![生成的图片]({img_url})\n\n图片已生成，点击上方链接查看。'
+        result['total_ms'] = int((time.time() - t0) * 1000)
+        return result
+
+    # ── 工具型任务：优先 DevToolBox，失败再走 fallback chain ──
+    if intent_name == 'tool_task':
+        dtb_type = _detect_tool_type(query)
+        if dtb_type:
+            dtb_result = call_devtoolbox(dtb_type, query)
+            if dtb_result:
+                result['backend'] = f'devtoolbox_{dtb_type}'
+                result['answer'] = dtb_result
+                result['total_ms'] = int((time.time() - t0) * 1000)
+                return result
+
     fallback_chain = get_fallback_chain(intent_name, prefer=effective_prefer)
     backend = fallback_chain[0] if fallback_chain else 'longcat'
     result['backend'] = backend
