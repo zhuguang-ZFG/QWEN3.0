@@ -362,6 +362,7 @@ FALLBACK_CHAINS = {
     ],
     'code_generation': [
         'groq_gptoss',        # L0.5: Groq GPT-OSS 120B极速（520ms，代码强）
+        'mistral_codestral',  # L0.5: Mistral Codestral（586ms，S级代码，10亿token/月）
         'nvidia_qwen_coder',  # L2: Qwen Coder 480B（免费额度，代码最强）
         'unclose_qwen',       # L1: UncloseAI Qwen3 27B（免费无限，3s）
         'groq_qwen32b',       # L0.5: Groq Qwen3 32B（447ms）
