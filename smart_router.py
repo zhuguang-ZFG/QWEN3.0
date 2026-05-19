@@ -657,52 +657,80 @@ def model_classify(query):
         return {'intent': 'unknown', 'complexity': 0.5, 'needs_code': False,
                 'domain_keywords': [], 'cnc_subdomain': 'general', 'source': 'fallback'}
 
-def analyze(query, system_prompt="", ide="unknown"):
-    """Three-layer intent analysis: model_route (R12) -> rules -> LM Studio model.
-    Round 12 模型优先做路由决策，正则规则作为快速 fallback。
+def analyze(query, system_prompt="", ide="unknown", mode="fast"):
+    """智能路由分析：本地模型服务优先，LLM API 分类备用。
+    永远走智能路由，不降级到规则引擎。
     """
-    # Layer 0: Round 12 模型路由决策（主路径）
-    model_decision = model_route(query, system_prompt=system_prompt, ide=ide)
-    if model_decision:
-        intent_name = model_decision.get('intent', 'unknown')
-        return {
-            'intent': intent_name,
-            'complexity': model_decision.get('complexity', 0.5),
-            'needs_code': model_decision.get('needs_code', False),
-            'domain_keywords': model_decision.get('domain_keywords', []),
-            'cnc_subdomain': model_decision.get('cnc_subdomain', 'general'),
-            'source': 'model_r12',
-            'confidence': model_decision.get('confidence', 0.85),
-            'backend_hint': model_decision.get('backend'),
-        }
-
-    # Layer 1: 正则规则 fallback（模型不可用时，0ms）
-    result = rule_classify(query)
+    # Layer 0: 调用本地路由模型服务（通过 frp 隧道）
+    result = _call_local_router_service(query, mode, ide, system_prompt)
     if result:
         return result
 
-    # Layer 1.1: 信号字典加权评分（V2，0ms）
+    # Layer 1: 本地不可用 → 调免费 LLM API 做智能分类
+    result = _call_llm_classifier(query, mode, ide)
+    if result:
+        return result
+
+    # Layer 2: 极端情况（所有智能路由都失败）→ 仍尝试信号分类
     signal_result = signal_classify(query)
     if signal_result:
+        signal_result['source'] = 'signal_degraded'
         return signal_result
 
-    # Layer 1.5: 本地 Qwen3 路由模型旧路径（50-100ms GPU, 首次加载 ~10s）
-    local_decision = _local_route_decision(query)
-    if local_decision:
-        intent_name = local_decision.get('intent', 'unknown')
-        return {
-            'intent': intent_name,
-            'complexity': local_decision.get('complexity', 0.5),
-            'needs_code': local_decision.get('needs_code', False),
-            'domain_keywords': local_decision.get('domain_keywords', []),
-            'cnc_subdomain': local_decision.get('cnc_subdomain', 'general'),
-            'source': 'local_qwen3',
-            'confidence': local_decision.get('confidence', 0.75),
-            'backend_hint': local_decision.get('backend'),
-        }
+    return {'intent': 'unknown', 'complexity': 0.5, 'needs_code': False,
+            'domain_keywords': [], 'cnc_subdomain': 'general', 'source': 'degraded'}
 
-    # Layer 2: LM Studio 模型分类（需要 LM Studio 运行）
-    return model_classify(query)
+
+def _call_local_router_service(query, mode="fast", ide="unknown", system_prompt=""):
+    """调用本地路由模型服务（frp 隧道 127.0.0.1:9090），2s 超时。"""
+    import urllib.request, urllib.error
+    try:
+        payload = json.dumps({
+            'query': query[:500],
+            'mode': mode,
+            'ide': ide,
+            'system_prompt': (system_prompt or '')[:200]
+        }).encode()
+        req = urllib.request.Request(
+            'http://127.0.0.1:9090/route',
+            data=payload,
+            headers={'Content-Type': 'application/json'},
+            method='POST'
+        )
+        resp = urllib.request.urlopen(req, timeout=2.5)
+        data = json.loads(resp.read().decode())
+        if data.get('intent'):
+            data['source'] = 'local_model'
+            return data
+    except Exception:
+        pass
+    return None
+
+
+def _call_llm_classifier(query, mode="fast", ide="unknown"):
+    """用免费 LLM API 做智能分类（本地模型不可用时的备用）。"""
+    classify_prompt = f'''You are an intent classifier. Output ONLY valid JSON.
+Backends: longcat_lite(fast chat), nvidia_qwen_coder(code), deepseek_pro(complex reasoning), longcat_thinking(deep think), longcat_omni(vision), chinamobile_deepseek(chinese)
+User mode: {mode}
+Query: "{query[:300]}"
+Output JSON with: intent, complexity(0-1), backend, confidence(0-1)'''
+
+    try:
+        resp = call_api('longcat_lite', [
+            {'role': 'system', 'content': 'Intent classifier. Output ONLY valid JSON.'},
+            {'role': 'user', 'content': classify_prompt}
+        ], mt=100)
+        if resp and not resp.startswith('[ERR]'):
+            match = re.search(r'\{[^{}]*\}', resp)
+            if match:
+                data = json.loads(match.group())
+            data['source'] = 'llm_classifier'
+            if 'complexity' not in data:
+                data['complexity'] = 0.5
+            return data
+    except Exception:
+        pass
+    return None
 
 # ── Prompt expansion ─────────────────────────────────────────────────────────
 _EXPAND_TEMPLATES = {}
@@ -746,21 +774,30 @@ def expand(query, intent):
 CLEAN_PATTERNS = [
     (re.compile(r'claude[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
     (re.compile(r'longcat[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
-    (re.compile(r'deepseek[\w\-\.\[\]]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
+    (re.compile(r'deepseek[\w\-\.\[\]\/\:]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
     (re.compile(r'gpt-?4[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
+    (re.compile(r'gpt-?3[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
+    (re.compile(r'chatgpt[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
     (re.compile(r'nvidia[\w\-\.\/]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
     (re.compile(r'nemotron[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
     (re.compile(r'llama[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
     (re.compile(r'mistral[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
     (re.compile(r'qwen[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
     (re.compile(r'\bphi-?4[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
-    (re.compile(r'anthropic', re.IGNORECASE), ''),
-    (re.compile(r'openai', re.IGNORECASE), ''),
+    (re.compile(r'\b(I am |I\'m |made by |created by |developed by )?(anthropic|openai)\b', re.IGNORECASE), ''),
     (re.compile(r'minimax[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
     (re.compile(r'MiniMax[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
     (re.compile(r'deepseek[\w\-\.\/\:]*r1[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
     (re.compile(r'qwen[\w\-\.\/\:]*235[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
     (re.compile(r'openrouter[\w\-\.\/]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
+    (re.compile(r'redcode[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
+    (re.compile(r'gemini[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
+    (re.compile(r'gemma[\w\-\.]*', re.IGNORECASE), PUBLIC_MODEL_NAME),
+    (re.compile(r'\bmeta[\s\-]ai\b', re.IGNORECASE), ''),
+    (re.compile(r'我是(?:由)?(?:Anthropic|OpenAI|Google|Meta|DeepSeek|阿里|百度|字节)(?:开发|训练|创建|制作)', re.IGNORECASE), f'我是{PUBLIC_MODEL_NAME}'),
+    (re.compile(r'作为(?:一个)?(?:AI语言模型|大语言模型|人工智能助手|AI助手)', re.IGNORECASE), f'作为{PUBLIC_MODEL_NAME}'),
+    (re.compile(r"I(?:'m| am) (?:an AI (?:language )?model|a large language model|Claude|GPT|Gemini|DeepSeek)", re.IGNORECASE), f'I am {PUBLIC_MODEL_NAME}'),
+    (re.compile(r'(?:trained|developed|created|made|built) by (?:Anthropic|OpenAI|Google|Meta|DeepSeek|Alibaba)', re.IGNORECASE), f'developed by DongLiCao'),
 ]
 
 def clean_response(text, backend_name=''):
@@ -949,8 +986,10 @@ def _ide_routing_hint(ide, system_prompt, query):
     return None
 
 # ── Main router ──────────────────────────────────────────────────────────────
-def route(query, prefer=None, system_prompt="", ide="unknown"):
-    """Route a query: analyze intent -> expand -> call best backend."""
+def route(query, prefer=None, system_prompt="", ide="unknown", messages=None):
+    """Route a query: analyze intent -> expand -> call best backend.
+    messages: 完整对话历史 (list of dicts)，传递给后端保持上下文。
+    """
     t0 = time.time()
     result = {'query': query}
 
@@ -961,7 +1000,9 @@ def route(query, prefer=None, system_prompt="", ide="unknown"):
 
     # IDE 元数据增强路由偏好
     ide_prefer = _ide_routing_hint(ide, system_prompt, query)
-    effective_prefer = prefer or ide_prefer
+    # 优先使用路由模型推荐的 backend，其次 IDE 偏好，最后调用者指定
+    model_backend = intent.get('backend')
+    effective_prefer = prefer or model_backend or ide_prefer
 
     # 获取降级链
     intent_name = intent.get('intent', 'unknown')
@@ -975,6 +1016,13 @@ def route(query, prefer=None, system_prompt="", ide="unknown"):
     used_backend = backend
     expanded_q = expand(query, intent)
     tried_backends = set()
+
+    # 构建发送给后端的消息：优先使用完整对话历史
+    if messages and len(messages) > 1:
+        api_msgs = [m for m in messages if m.get('role') in ('user', 'assistant')]
+    else:
+        api_msgs = [{'role': 'user', 'content': expanded_q}]
+
     for attempt_backend in fallback_chain:
         tried_backends.add(attempt_backend)
         if attempt_backend == 'local':
@@ -988,7 +1036,7 @@ def route(query, prefer=None, system_prompt="", ide="unknown"):
                 break
             continue
 
-        ans = call_api(attempt_backend, [{'role': 'user', 'content': expanded_q}], ide=ide)
+        ans = call_api(attempt_backend, api_msgs, ide=ide)
         if ans is not None and not ans.startswith('[ERR]') and '暂时不可用' not in ans:
             answer = ans
             used_backend = attempt_backend
@@ -1014,9 +1062,9 @@ def route(query, prefer=None, system_prompt="", ide="unknown"):
         remaining = [b for b in fallback_chain if b not in tried_backends and b != 'local']
         if remaining:
             retry_backend = remaining[0]
-            retry_ans = call_api(retry_backend, [{'role': 'user', 'content': expanded_q}], ide=ide)
+            retry_ans = call_api(retry_backend, api_msgs, ide=ide)
             if retry_ans and not retry_ans.startswith('[ERR]') and '暂时不可用' not in retry_ans:
-                retry_clean = clean_response(retry_ans, retry_backend)
+                retry_clean = retry_ans
                 retry_answer, retry_issues = qa_check(retry_clean, intent=intent, backend=retry_backend)
                 if 'low_quality' not in retry_issues:
                     result['answer'] = retry_answer
@@ -1028,18 +1076,18 @@ def route(query, prefer=None, system_prompt="", ide="unknown"):
 
     # 不确定性检测：自动升级到更强模型
     if detect_uncertainty(result['answer']) and used_backend not in ('claude', 'deepseek_pro'):
-        upgraded = call_api('deepseek_pro', [{'role': 'user', 'content': query}])
+        upgraded = call_api('deepseek_pro', api_msgs)
         if upgraded and not upgraded.startswith('[ERR]') and '暂时不可用' not in upgraded and not detect_uncertainty(upgraded):
             result['answer'] = clean_response(upgraded, 'deepseek_pro')
             result['upgraded'] = True
 
     # 截断检测：自动续写（用实际成功的后端）
     if 'truncated' in issues and used_backend != 'local':
-        continuation = call_api(used_backend, [
-            {'role': 'user', 'content': query},
+        cont_msgs = list(api_msgs) + [
             {'role': 'assistant', 'content': result['answer']},
             {'role': 'user', 'content': '请继续完成上面的回答。'},
-        ], mt=512)
+        ]
+        continuation = call_api(used_backend, cont_msgs, mt=512)
         if continuation and not continuation.startswith('[ERR]'):
             result['answer'] = result['answer'] + '\n' + clean_response(continuation, used_backend)
 

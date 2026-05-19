@@ -3,7 +3,7 @@
 支持流式/非流式 ChatCompletion，兼容 OpenAI API 格式。
 """
 import sys, os, json, time, uuid, asyncio, threading, functools
-from typing import Optional
+from typing import Optional, Union
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI, Request, HTTPException
@@ -161,7 +161,7 @@ def _get_ip_location(ip: str) -> str:
         return "本地"
     try:
         import urllib.request
-        resp = urllib.request.urlopen(f"http://ip-api.com/json/{ip}?fields=country,city&lang=zh-CN", timeout=3)
+        resp = urllib.request.urlopen(f"http://ip-api.com/json/{ip}?fields=country,city&lang=zh-CN", timeout=0.5)
         data = json.loads(resp.read().decode())
         return f"{data.get('country', '')} {data.get('city', '')}"
     except Exception:
@@ -221,7 +221,7 @@ def _record_request(query: str, backend: str, intent: str, duration_ms: int, suc
 # ── Pydantic Models ─────────────────────────────────────────────────────────
 class Message(BaseModel):
     role: str
-    content: str
+    content: Union[str, list] = ""
 
 
 class ChatRequest(BaseModel):
@@ -297,6 +297,11 @@ def extract_query(messages: list[Message]) -> str:
         if msg.role == "user":
             return msg.content
     return messages[-1].content if messages else ""
+
+
+def messages_to_dicts(messages: list[Message]) -> list[dict]:
+    """将 Pydantic Message 列表转为 dict 列表，用于传递完整上下文。"""
+    return [{'role': m.role, 'content': m.content} for m in messages if m.role in ('user', 'assistant')]
 
 
 # ── Deep Thinking Mode Helper ─────────────────────────────────────────────────
@@ -488,7 +493,8 @@ def _log_sys_prompt(sys_prompt: str) -> None:
         "logged_at": __import__('datetime').datetime.now().isoformat(),
     }
     fname = os.path.join(sys_prompt_dir, f"{ide_source}_{phash}.json")
-    __import__('json').dump(entry, open(fname, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
+    with open(fname, 'w', encoding='utf-8') as _f:
+        __import__('json').dump(entry, _f, ensure_ascii=False, indent=2)
     if smart_router.DEBUG:
         print(f"[SYS_PROMPT] new: {ide_source} ({len(sys_prompt)} chars)", file=sys.stderr)
 
@@ -1068,14 +1074,15 @@ async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", i
             if use_orch:
                 result = await asyncio.to_thread(orchestrate, query)
             else:
-                result = await asyncio.to_thread(smart_router.route, query, system_prompt=sys_prompt_preview, ide=ide_source)
+                result = await asyncio.to_thread(smart_router.route, query, system_prompt=sys_prompt_preview, ide=ide_source, messages=messages_to_dicts(req.messages))
             content = result.get("answer", "")
             backend_used = result.get("backend", "unknown")
 
             # ── Fallback 层：质量检查失败时尝试降级/升级 ──
+            intent_name = intent_used.get("intent", "unknown") if isinstance(intent_used, dict) else "unknown"
+            complexity = intent_used.get("complexity", 0.5) if isinstance(intent_used, dict) else 0.5
             if not _quality_check(content, complexity, backend_used):
                 fallback_backend = _default_route(query, ide_source) if backend_used == "unknown" else backend_used
-                # 同层降级
                 same_tier = _get_same_tier_backends(fallback_backend)
                 fallback_found = False
                 for alt in same_tier:
@@ -1083,11 +1090,8 @@ async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", i
                     if alt_result and _quality_check(alt_result["answer"], complexity, alt):
                         content = alt_result["answer"]
                         backend_used = alt
-                        intent_name = f"fallback_same_tier_{intent_name}"
-                        _record_fallback(query, fallback_backend, alt, intent_name, ide_source)
                         fallback_found = True
                         break
-                # 跨层升级
                 if not fallback_found:
                     upgrade_chain = _get_upgrade_chain(fallback_backend)
                     for upgraded in upgrade_chain:
@@ -1095,18 +1099,20 @@ async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", i
                         if up_result and _quality_check(up_result["answer"], complexity, upgraded):
                             content = up_result["answer"]
                             backend_used = upgraded
-                            intent_name = f"fallback_upgrade_{intent_name}"
-                            _record_fallback(query, fallback_backend, upgraded, intent_name, ide_source)
                             fallback_found = True
                             break
-                # 全部失败
                 if not fallback_found and not content:
-                    content = "当前所有服务暂时不可用，请稍后重试。如果问题持续，请联系管理员。"
+                    content = "当前所有服务暂时不可用，请稍后重试。"
                     backend_used = "fallback_exhausted"
 
     duration_ms = int((time.time() - t0) * 1000)
     record_intent = intent_used if isinstance(intent_used, str) else (intent_used.get("intent", "unknown") if isinstance(intent_used, dict) else "unknown")
     _record_request(query, backend_used, record_intent, duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
+
+    # 空响应保护：确保 content 非空
+    if not content or not content.strip():
+        content = "抱歉，当前服务繁忙，请稍后重试。"
+        backend_used = backend_used or "empty_response"
 
     # 在回答末尾标注后端来源
     content += f"\n\n---\n`[LiMa → {backend_used}]`"
@@ -1156,6 +1162,16 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
     chat_id = make_chat_id()
     t0 = time.time()
 
+    # ── Mode-based routing preference ─────────────────────────────────────
+    prefer = None
+    if req.model == "fast":
+        prefer = "longcat_lite"
+    elif req.model == "expert":
+        prefer = "deepseek_pro"
+        req.thinking = True
+    elif req.model == "vision":
+        prefer = None  # vision handled by existing detection
+
     # ── Image generation intent detection ──────────────────────────────────
     is_image, image_prompt = smart_router.detect_image_intent(query)
     if is_image:
@@ -1196,11 +1212,11 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
 
     # 判断是否需要编排模式
     intent = smart_router.analyze(query, system_prompt=sys_prompt_preview, ide=ide_source)
-    use_orchestration = needs_orchestration(query, intent)
+    use_orchestration = needs_orchestration(query, intent) if not prefer else False
 
     if req.stream:
         return StreamingResponse(
-            _stream_response(chat_id, query, use_orchestration, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview, use_thinking=use_thinking),
+            _stream_response(chat_id, query, use_orchestration, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview, use_thinking=use_thinking, messages=messages_to_dicts(req.messages), prefer=prefer),
             media_type="text/event-stream",
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
         )
@@ -1209,7 +1225,7 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
     if use_orchestration:
         result = await asyncio.to_thread(orchestrate, query)
     else:
-        result = await asyncio.to_thread(smart_router.route, query)
+        result = await asyncio.to_thread(smart_router.route, query, system_prompt=sys_prompt_preview, ide=ide_source, messages=messages_to_dicts(req.messages), prefer=prefer)
 
     content = result.get("answer", "")
     backend = result.get("backend", "unknown")
@@ -1278,7 +1294,7 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
     return JSONResponse(build_response(chat_id, content, backend, total_ms))
 
 
-async def _stream_response(chat_id: str, query: str, use_orchestration: bool, ide_source: str = "", sys_prompt_preview: str = "", use_thinking: bool = False):
+async def _stream_response(chat_id: str, query: str, use_orchestration: bool, ide_source: str = "", sys_prompt_preview: str = "", use_thinking: bool = False, messages: list = None, prefer: str = None):
     """SSE 流式生成器：逐句输出。"""
     # ── Image generation intent detection ──────────────────────────────────
     is_image, image_prompt = smart_router.detect_image_intent(query)
@@ -1301,14 +1317,18 @@ async def _stream_response(chat_id: str, query: str, use_orchestration: bool, id
             if use_orchestration:
                 result = await asyncio.to_thread(orchestrate, query)
             else:
-                result = await asyncio.to_thread(smart_router.route, query, system_prompt=sys_prompt_preview, ide=ide_source)
+                result = await asyncio.to_thread(smart_router.route, query, system_prompt=sys_prompt_preview, ide=ide_source, messages=messages, prefer=prefer)
             content = result.get("answer", "") if isinstance(result, dict) else str(result)
     elif use_orchestration:
         result = await asyncio.to_thread(orchestrate, query)
         content = result.get("answer", "") if isinstance(result, dict) else str(result)
     else:
-        result = await asyncio.to_thread(smart_router.route, query, system_prompt=sys_prompt_preview, ide=ide_source)
+        result = await asyncio.to_thread(smart_router.route, query, system_prompt=sys_prompt_preview, ide=ide_source, messages=messages, prefer=prefer)
         content = result.get("answer", "") if isinstance(result, dict) else str(result)
+
+    # 空响应保护
+    if not content or not content.strip():
+        content = "抱歉，当前服务繁忙，请稍后重试。"
 
     # 模拟流式：按句子分割输出
     sentences = _split_sentences(content)
@@ -1572,7 +1592,8 @@ async def admin_model_status():
     log_count = 0
     recent_logs = []
     if os.path.exists(fallback_log):
-        lines = open(fallback_log, encoding='utf-8').readlines()
+        with open(fallback_log, encoding='utf-8') as _f:
+            lines = _f.readlines()
         log_count = len(lines)
         for line in lines[-50:]:
             try:
