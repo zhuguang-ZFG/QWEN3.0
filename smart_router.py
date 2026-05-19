@@ -381,6 +381,11 @@ FALLBACK_CHAINS = {
         'longcat',            # L1: LongCat最强（免费，最终免费兜底）
         'deepseek_flash',     # L4: 付费兜底
     ],
+    'vision': [
+        'github_gpt4o',       # GPT-4o（4.6s，最强视觉）
+        'google_flash',       # Gemini 2.5 Flash（1.5s，快速视觉）
+        'google_flash_lite',  # Gemini 3.1 Flash Lite（11s，兜底）
+    ],
 }
 
 def get_fallback_chain(intent_name, prefer=None):
@@ -419,6 +424,19 @@ _FAST_PREDICT_RULES = [
     (re.compile(r'数学|计算|solve|equation|公式|推理', re.IGNORECASE), 'longcat_thinking'),
     (re.compile(r'图片|图像|画|logo|image|draw|picture', re.IGNORECASE), 'longcat_omni'),
 ]
+
+
+def _has_vision_content(messages):
+    """检测消息中是否包含图片（image_url 类型 content）。"""
+    if not messages:
+        return False
+    for msg in messages:
+        content = msg.get('content')
+        if isinstance(content, list):
+            for part in content:
+                if isinstance(part, dict) and part.get('type') == 'image_url':
+                    return True
+    return False
 
 
 def predict_fast_backend(query: str) -> str:
@@ -1255,6 +1273,9 @@ def select_backend(query, prefer=None, system_prompt="", ide="unknown", messages
     model_backend = intent.get('backend')
     effective_prefer = prefer or model_backend or ide_prefer
     intent_name = intent.get('intent', 'unknown')
+    # 多模态检测：如果消息包含图片，强制使用 vision chain
+    if _has_vision_content(messages):
+        intent_name = 'vision'
     fallback_chain = get_fallback_chain_sorted(intent_name, prefer=effective_prefer)
     backend = fallback_chain[0] if fallback_chain else 'longcat_chat'
 
@@ -1286,6 +1307,9 @@ def route(query, prefer=None, system_prompt="", ide="unknown", messages=None):
 
     # 获取降级链
     intent_name = intent.get('intent', 'unknown')
+    # 多模态检测：如果消息包含图片，强制使用 vision chain
+    if _has_vision_content(messages):
+        intent_name = 'vision'
     fallback_chain = get_fallback_chain(intent_name, prefer=effective_prefer)
     backend = fallback_chain[0] if fallback_chain else 'longcat'
     result['backend'] = backend
@@ -1298,7 +1322,10 @@ def route(query, prefer=None, system_prompt="", ide="unknown", messages=None):
     tried_backends = set()
 
     # 构建发送给后端的消息：优先使用完整对话历史
-    if messages and len(messages) > 1:
+    if _has_vision_content(messages):
+        # 视觉消息：直接透传原始 messages（保留 image_url）
+        api_msgs = [m for m in messages if m.get('role') in ('user', 'assistant')]
+    elif messages and len(messages) > 1:
         api_msgs = [m for m in messages if m.get('role') in ('user', 'assistant')]
     else:
         api_msgs = [{'role': 'user', 'content': expanded_q}]
