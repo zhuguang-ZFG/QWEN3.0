@@ -320,6 +320,44 @@ def get_fallback_chain(intent_name, prefer=None):
     chain = [b for b in chain if b in BACKENDS and (BACKENDS[b]['key'] or b == 'local')]
     return chain
 
+
+def get_fallback_chain_sorted(intent_name, prefer=None):
+    """获取降级链并按实时延迟排序——同优先级内快的优先。"""
+    chain = get_fallback_chain(intent_name, prefer=prefer)
+    # 按延迟排序：有数据的按延迟，没数据的排最前（探索优先）
+    def _latency_sort_key(name):
+        s = cb_status().get(name)
+        if s and s['total_calls'] >= 3:
+            return s.get('avg_latency_ms', 9999)
+        return 0  # 新后端优先尝试
+    chain.sort(key=_latency_sort_key)
+    return chain
+
+
+# ── Fast Backend Predictor ────────────────────────────────────────────────────
+# 投机调用：在路由分析完成前，基于关键词快速预测最可能的后端
+_FAST_PREDICT_RULES = [
+    (re.compile(r'代码|code|函数|function|bug|error|def\s|class\s|import\s|写.*程序|编程', re.IGNORECASE), 'nvidia_qwen_coder'),
+    (re.compile(r'翻译|translate|解释|定义|what is|who is|how to|explain', re.IGNORECASE), 'longcat_chat'),
+    (re.compile(r'设计|架构|architect|system design|重构|refactor', re.IGNORECASE), 'longcat'),
+    (re.compile(r'数学|计算|solve|equation|公式|推理', re.IGNORECASE), 'longcat_thinking'),
+    (re.compile(r'图片|图像|画|logo|image|draw|picture', re.IGNORECASE), 'longcat_omni'),
+]
+
+
+def predict_fast_backend(query: str) -> str:
+    """快速预测最可能的后端（<1ms，基于正则）。
+    用于投机调用：路由分析的同时先发请求到预测后端。
+    """
+    for pattern, backend in _FAST_PREDICT_RULES:
+        if pattern.search(query):
+            if backend in BACKENDS and BACKENDS[backend].get('key'):
+                return backend
+    # 默认：简单问题用 lite，复杂问题用 chat
+    if len(query) < 100:
+        return 'longcat_lite'
+    return 'longcat_chat'
+
 # ── Prompt Assembly (fragment-based, cache-friendly) ─────────────────────────
 FRAGMENT_DIR = os.path.join(os.path.dirname(__file__), 'fragments')
 
@@ -540,6 +578,33 @@ def _load_local_router():
     except Exception as e:
         _local_model_failed = True
         print(f'[ROUTER] Failed to load local model: {e}', file=sys.stderr)
+
+
+def warmup_router_model():
+    """启动时预热本地路由模型，避免首次请求冷启动延迟。
+    加载模型到内存 + 跑一次 dummy 推理预热 CUDA kernel。
+    """
+    global _local_model, _local_tokenizer, _local_model_failed
+    try:
+        _load_local_router()
+        if _local_model is not None and _local_tokenizer is not None:
+            # Dummy inference 预热 CUDA kernel / CPU 缓存
+            import torch
+            dummy = "warmup"
+            messages = [
+                {"role": "system", "content": "你是LiMa智能路由决策器。"},
+                {"role": "user", "content": dummy}
+            ]
+            text = _local_tokenizer.apply_chat_template(
+                messages, tokenize=False, add_generation_prompt=True)
+            inputs = _local_tokenizer(text, return_tensors="pt").to(_local_model.device)
+            with torch.no_grad():
+                _local_model.generate(**inputs, max_new_tokens=2, do_sample=False)
+            print('[ROUTER] Warmup complete — model ready', file=sys.stderr)
+        else:
+            print('[ROUTER] Warmup skipped — model not available', file=sys.stderr)
+    except Exception as e:
+        print(f'[ROUTER] Warmup failed (non-fatal): {e}', file=sys.stderr)
 
 
 def _local_route_decision(query: str) -> dict | None:
@@ -963,6 +1028,124 @@ def call_api(name, msgs, mt=1024, ide="unknown"):
         cb_record(name, False)
         return '服务暂时不可用，请稍后重试'
 
+
+# ── Streaming API Call ─────────────────────────────────────────────────────────
+def _build_request_body(name, msgs, mt=1024, ide="unknown", stream=False):
+    """Build request body and headers for a backend call.
+    Returns (body_bytes, headers_dict, fmt, timeout_seconds).
+    Used by both call_api() and call_api_stream().
+    """
+    b = BACKENDS.get(name)
+    if not b:
+        return None, None, None, 60
+    auth_style = b.get('auth', 'x-api-key')
+
+    if b['fmt'] == 'anthropic':
+        if b.get('no_system'):
+            omni_msgs = [
+                {'role': m['role'],
+                 'content': [{'type': 'text', 'text': m['content']}]
+                             if isinstance(m['content'], str) else m['content']}
+                for m in msgs
+            ]
+            body = {'model': b['model'], 'max_tokens': mt, 'messages': omni_msgs}
+        else:
+            sys_prompt = SYS
+            if ide and ide not in ("unknown", "未知"):
+                sys_prompt += f"\n\n[环境] 用户正在 {ide} 中使用你。该IDE具备文件读写、终端执行、代码搜索等工具能力。请正常回应用户的文件操作请求，不要说'无法访问本地文件'。"
+            body = {'model': b['model'], 'max_tokens': mt, 'system': sys_prompt, 'messages': msgs}
+        if stream:
+            body['stream'] = True
+        p = json.dumps(body).encode()
+        if auth_style == 'bearer':
+            h = {'Content-Type': 'application/json',
+                 'Authorization': f"Bearer {b['key']}",
+                 'anthropic-version': '2023-06-01'}
+        else:
+            h = {'Content-Type': 'application/json',
+                 'x-api-key': b['key'], 'anthropic-version': '2023-06-01'}
+    else:
+        sys_prompt = SYS
+        if ide and ide not in ("unknown", "未知"):
+            sys_prompt += f"\n\n[环境] 用户正在 {ide} 中使用你。该IDE具备文件读写、终端执行、代码搜索等工具能力。请正常回应用户的文件操作请求，不要说'无法访问本地文件'。"
+        body = {'model': b['model'], 'max_tokens': mt,
+                'messages': [{'role': 'system', 'content': sys_prompt}] + msgs}
+        if stream:
+            body['stream'] = True
+        p = json.dumps(body).encode()
+        h = {'Content-Type': 'application/json',
+             'Authorization': f"Bearer {b['key']}"}
+
+    return p, h, b['fmt'], b.get('timeout', 60)
+
+
+def call_api_stream(name, msgs, mt=1024, ide="unknown"):
+    """Stream response chunks from a backend. Synchronous generator.
+    Yields text chunks (str) as they arrive from the backend SSE stream.
+    """
+    if not cb_allow(name):
+        if DEBUG:
+            print(f'[CB] {name}: blocked by circuit breaker (stream)', file=sys.stderr)
+        yield '服务暂时不可用，请稍后重试'
+        return
+    b = BACKENDS.get(name)
+    if not b or not b['key']:
+        yield f'[ERR] Backend {name} unavailable (no key)'
+        return
+
+    p, h, fmt, timeout = _build_request_body(name, msgs, mt, ide, stream=True)
+    if p is None:
+        yield f'[ERR] Backend {name} not found'
+        return
+
+    _t0 = time.time()
+    buffer = b""
+    try:
+        r = urllib.request.Request(b['url'], data=p, headers=h)
+        with urllib.request.urlopen(r, timeout=timeout) as resp:
+            while True:
+                chunk = resp.read(4096)
+                if not chunk:
+                    break
+                buffer += chunk
+                # Process complete lines from buffer
+                while b'\n' in buffer:
+                    line_end = buffer.index(b'\n')
+                    line = buffer[:line_end].decode('utf-8', errors='replace').strip()
+                    buffer = buffer[line_end + 1:]
+                    if not line:
+                        continue
+                    if fmt == 'openai':
+                        if line.startswith('data: '):
+                            data_str = line[6:]
+                            if data_str == '[DONE]':
+                                break
+                            try:
+                                data = json.loads(data_str)
+                                content = data['choices'][0]['delta'].get('content', '')
+                                if content:
+                                    yield content
+                            except (json.JSONDecodeError, KeyError, IndexError):
+                                pass
+                    else:  # anthropic
+                        if line.startswith('data: '):
+                            try:
+                                data = json.loads(line[6:])
+                                if data.get('type') == 'content_block_delta':
+                                    delta = data.get('delta', {})
+                                    if delta.get('type') == 'text_delta':
+                                        text = delta.get('text', '')
+                                        if text:
+                                            yield text
+                            except json.JSONDecodeError:
+                                pass
+        cb_record(name, True, int((time.time() - _t0) * 1000))
+    except Exception as e:
+        if DEBUG:
+            print(f'[STREAM] {name} error: {e}', file=sys.stderr)
+        cb_record(name, False)
+        yield '服务暂时不可用，请稍后重试'
+
 # ── IDE metadata routing hints ──────────────────────────────────────────────
 def _ide_routing_hint(ide, system_prompt, query):
     """根据 IDE 元数据推断最优后端偏好。"""
@@ -986,6 +1169,24 @@ def _ide_routing_hint(ide, system_prompt, query):
     return None
 
 # ── Main router ──────────────────────────────────────────────────────────────
+def select_backend(query, prefer=None, system_prompt="", ide="unknown", messages=None):
+    """Select best backend WITHOUT making API call. Returns (backend, api_msgs)."""
+    intent = analyze(query, system_prompt=system_prompt, ide=ide)
+    ide_prefer = _ide_routing_hint(ide, system_prompt, query)
+    model_backend = intent.get('backend')
+    effective_prefer = prefer or model_backend or ide_prefer
+    intent_name = intent.get('intent', 'unknown')
+    fallback_chain = get_fallback_chain_sorted(intent_name, prefer=effective_prefer)
+    backend = fallback_chain[0] if fallback_chain else 'longcat_chat'
+
+    expanded_q = expand(query, intent)
+    if messages and len(messages) > 1:
+        api_msgs = [m for m in messages if m.get('role') in ('user', 'assistant')]
+    else:
+        api_msgs = [{'role': 'user', 'content': expanded_q}]
+    return backend, api_msgs
+
+
 def route(query, prefer=None, system_prompt="", ide="unknown", messages=None):
     """Route a query: analyze intent -> expand -> call best backend.
     messages: 完整对话历史 (list of dicts)，传递给后端保持上下文。

@@ -1025,7 +1025,7 @@ async def _anthropic_stream_passthrough(body: dict, model: str):
 
 
 async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", ide_source: str = "", sys_prompt_preview: str = ""):
-    """Anthropic SSE 流式响应（带 fallback）。"""
+    """Anthropic SSE 流式响应（真流式透传 + fallback）。"""
     query = extract_query(req.messages)
     t0 = time.time()
 
@@ -1037,7 +1037,6 @@ async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", i
         backend_used = "pollinations"
         duration_ms = int((time.time() - t0) * 1000)
         _record_request(query, backend_used, "image_generation", duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
-        # Stream the image response
         msg_id = f"msg_{uuid.uuid4().hex[:24]}"
         yield f"event: message_start\ndata: {json.dumps({'type':'message_start','message':{'id':msg_id,'type':'message','role':'assistant','model':model,'content':[],'stop_reason':None,'stop_sequence':None,'usage':{'input_tokens':10,'output_tokens':0}}})}\n\n"
         yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':0,'content_block':{'type':'text','text':''}})}\n\n"
@@ -1053,94 +1052,154 @@ async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", i
         content = instant
         backend_used = "instant"
         intent_used = "instant"
-    else:
-        # ── Deep Thinking Mode Detection ──
-        use_thinking = getattr(req, 'thinking', False) or smart_router.detect_thinking_intent(query)
-        thinking_handled = False
-        if use_thinking:
-            thinking_result = await _thinking_route(query, req.max_tokens or 4096, ide_source)
-            if thinking_result:
-                content = thinking_result["answer"]
-                backend_used = thinking_result["backend"]
-                intent_used = "thinking"
-                thinking_handled = True
+        duration_ms = int((time.time() - t0) * 1000)
+        _record_request(query, backend_used, intent_used, duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
+        content += f"\n\n---\n`[LiMa → {backend_used}]`"
+        msg_id = f"msg_{uuid.uuid4().hex[:24]}"
+        yield f"event: message_start\ndata: {json.dumps({'type':'message_start','message':{'id':msg_id,'type':'message','role':'assistant','model':model,'content':[],'stop_reason':None,'stop_sequence':None,'usage':{'input_tokens':10,'output_tokens':0}}})}\n\n"
+        yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':0,'content_block':{'type':'text','text':''}})}\n\n"
+        yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':content}}, ensure_ascii=False)}\n\n"
+        yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':0})}\n\n"
+        yield f"event: message_delta\ndata: {json.dumps({'type':'message_delta','delta':{'stop_reason':'end_turn','stop_sequence':None},'usage':{'output_tokens':len(content)//4}})}\n\n"
+        yield f"event: message_stop\ndata: {json.dumps({'type':'message_stop'})}\n\n"
+        return
 
-        if not thinking_handled:
-            # Normal routing path (original logic)
-            intent_used = smart_router.analyze(query, system_prompt=sys_prompt_preview, ide=ide_source)
-            intent_name = intent_used.get("intent", "unknown") if isinstance(intent_used, dict) else "unknown"
-            complexity = intent_used.get("complexity", 0.5) if isinstance(intent_used, dict) else 0.5
-            use_orch = needs_orchestration(query, intent_used)
-            if use_orch:
-                result = await asyncio.to_thread(orchestrate, query)
-            else:
-                result = await asyncio.to_thread(smart_router.route, query, system_prompt=sys_prompt_preview, ide=ide_source, messages=messages_to_dicts(req.messages))
+    # ── Deep Thinking Mode Detection ────────────────────────────────────────
+    use_thinking = getattr(req, 'thinking', False) or smart_router.detect_thinking_intent(query)
+    thinking_handled = False
+    if use_thinking:
+        thinking_result = await _thinking_route(query, req.max_tokens or 4096, ide_source)
+        if thinking_result:
+            content = thinking_result["answer"]
+            backend_used = thinking_result["backend"]
+            intent_used = "thinking"
+            thinking_handled = True
+
+    if not thinking_handled:
+        # ── Normal routing: do route first, then REAL STREAM ──────────────
+        intent_used = smart_router.analyze(query, system_prompt=sys_prompt_preview, ide=ide_source)
+        use_orch = needs_orchestration(query, intent_used)
+        intent_name = intent_used.get("intent", "unknown") if isinstance(intent_used, dict) else "unknown"
+        complexity = intent_used.get("complexity", 0.5) if isinstance(intent_used, dict) else 0.5
+
+        if use_orch:
+            # Orchestration: keep fake stream (multi-step pipeline)
+            result = await asyncio.to_thread(orchestrate, query)
             content = result.get("answer", "")
-            backend_used = result.get("backend", "unknown")
+            backend_used = result.get("backend", "orchestrator")
+            thinking_handled = False  # use fake stream path below
+        else:
+            # SPECULATIVE STREAMING: predict backend + stream in parallel with routing
+            msg_id = f"msg_{uuid.uuid4().hex[:24]}"
+            total_text = ""
 
-            # ── Fallback 层：质量检查失败时尝试降级/升级 ──
-            intent_name = intent_used.get("intent", "unknown") if isinstance(intent_used, dict) else "unknown"
-            complexity = intent_used.get("complexity", 0.5) if isinstance(intent_used, dict) else 0.5
-            if not _quality_check(content, complexity, backend_used):
-                fallback_backend = _default_route(query, ide_source) if backend_used == "unknown" else backend_used
-                same_tier = _get_same_tier_backends(fallback_backend)
-                fallback_found = False
-                for alt in same_tier:
-                    alt_result = await _try_backend(alt, query, req.max_tokens or 4096)
-                    if alt_result and _quality_check(alt_result["answer"], complexity, alt):
-                        content = alt_result["answer"]
-                        backend_used = alt
+            # Emit message_start
+            yield f"event: message_start\ndata: {json.dumps({'type':'message_start','message':{'id':msg_id,'type':'message','role':'assistant','model':model,'content':[],'stop_reason':None,'stop_sequence':None,'usage':{'input_tokens':10,'output_tokens':0}}})}\n\n"
+            yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':0,'content_block':{'type':'text','text':''}})}\n\n"
+
+            streamed_any = False
+            async for backend_used, chunk in _speculative_stream_chunks(query, messages_to_dicts(req.messages), req.max_tokens or 4096, ide_source):
+                streamed_any = True
+                total_text += chunk
+                yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':chunk}}, ensure_ascii=False)}\n\n"
+
+            if not streamed_any:
+                # Fallback: non-streaming
+                fb_backend = smart_router.predict_fast_backend(query)
+                fb_msgs = [{"role": "user", "content": query}]
+                fb = await asyncio.to_thread(smart_router.call_api, fb_backend, fb_msgs, req.max_tokens or 4096, ide_source)
+                backend_used = fb_backend
+                fallback_text = str(fb) if fb and not str(fb).startswith('[ERR]') else None
+                if fallback_text:
+                    total_text = fallback_text
+                    chunk_size = 30
+                    for i in range(0, len(fallback_text), chunk_size):
+                        chunk = fallback_text[i:i+chunk_size]
+                        yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':chunk}}, ensure_ascii=False)}\n\n"
+                        await asyncio.sleep(0.01)
+                else:
+                    total_text = "抱歉，当前服务繁忙，请稍后重试。"
+                    yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':total_text}}, ensure_ascii=False)}\n\n"
+
+            # Footer
+            footer = f"\n\n---\n`[LiMa → {backend_used}]`"
+            total_text += footer
+            yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':footer}}, ensure_ascii=False)}\n\n"
+
+            # End events
+            yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':0})}\n\n"
+            yield f"event: message_delta\ndata: {json.dumps({'type':'message_delta','delta':{'stop_reason':'end_turn','stop_sequence':None},'usage':{'output_tokens':len(total_text)//4}})}\n\n"
+            yield f"event: message_stop\ndata: {json.dumps({'type':'message_stop'})}\n\n"
+
+            duration_ms = int((time.time() - t0) * 1000)
+            record_intent = intent_used if isinstance(intent_used, str) else intent_name
+            _record_request(query, backend_used, record_intent, duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
+
+            # Logging
+            sys_prompt = extract_system_prompt(req.messages)
+            if sys_prompt:
+                try:
+                    _log_sys_prompt(sys_prompt)
+                except Exception:
+                    pass
+            try:
+                if os.environ.get("DISTILL_LOG", "0") == "1":
+                    smart_router._log_to_distill_queue(query, total_text, record_intent, backend_used)
+            except Exception:
+                pass
+            return
+
+        # ── Fake stream path: thinking mode, orchestration, or fallback ────
+        # quality check + fallback for non-streaming content
+        if not _quality_check(content, complexity, backend_used):
+            fallback_backend = _default_route(query, ide_source) if backend_used == "unknown" else backend_used
+            same_tier = _get_same_tier_backends(fallback_backend)
+            fallback_found = False
+            for alt in same_tier:
+                alt_result = await _try_backend(alt, query, req.max_tokens or 4096)
+                if alt_result and _quality_check(alt_result["answer"], complexity, alt):
+                    content = alt_result["answer"]
+                    backend_used = alt
+                    fallback_found = True
+                    break
+            if not fallback_found:
+                upgrade_chain = _get_upgrade_chain(fallback_backend)
+                for upgraded in upgrade_chain:
+                    up_result = await _try_backend(upgraded, query, req.max_tokens or 4096)
+                    if up_result and _quality_check(up_result["answer"], complexity, upgraded):
+                        content = up_result["answer"]
+                        backend_used = upgraded
                         fallback_found = True
                         break
-                if not fallback_found:
-                    upgrade_chain = _get_upgrade_chain(fallback_backend)
-                    for upgraded in upgrade_chain:
-                        up_result = await _try_backend(upgraded, query, req.max_tokens or 4096)
-                        if up_result and _quality_check(up_result["answer"], complexity, upgraded):
-                            content = up_result["answer"]
-                            backend_used = upgraded
-                            fallback_found = True
-                            break
-                if not fallback_found and not content:
-                    content = "当前所有服务暂时不可用，请稍后重试。"
-                    backend_used = "fallback_exhausted"
+            if not fallback_found and not content:
+                content = "当前所有服务暂时不可用，请稍后重试。"
+                backend_used = "fallback_exhausted"
 
+    # ── Build fake stream for thinking/orchestration/fallback ───────────────
     duration_ms = int((time.time() - t0) * 1000)
     record_intent = intent_used if isinstance(intent_used, str) else (intent_used.get("intent", "unknown") if isinstance(intent_used, dict) else "unknown")
     _record_request(query, backend_used, record_intent, duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
 
-    # 空响应保护：确保 content 非空
     if not content or not content.strip():
         content = "抱歉，当前服务繁忙，请稍后重试。"
         backend_used = backend_used or "empty_response"
 
-    # 在回答末尾标注后端来源
     content += f"\n\n---\n`[LiMa → {backend_used}]`"
     msg_id = f"msg_{uuid.uuid4().hex[:24]}"
 
-    # message_start
     yield f"event: message_start\ndata: {json.dumps({'type':'message_start','message':{'id':msg_id,'type':'message','role':'assistant','model':model,'content':[],'stop_reason':None,'stop_sequence':None,'usage':{'input_tokens':10,'output_tokens':0}}})}\n\n"
-
-    # content_block_start
     yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':0,'content_block':{'type':'text','text':''}})}\n\n"
 
-    # content_block_delta - 分块发送
     chunk_size = 20
     for i in range(0, len(content), chunk_size):
         chunk = content[i:i+chunk_size]
         yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':chunk}}, ensure_ascii=False)}\n\n"
         await asyncio.sleep(0.01)
 
-    # content_block_stop
     yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':0})}\n\n"
-
-    # message_delta
     yield f"event: message_delta\ndata: {json.dumps({'type':'message_delta','delta':{'stop_reason':'end_turn','stop_sequence':None},'usage':{'output_tokens':len(content)//4}})}\n\n"
-
-    # message_stop
     yield f"event: message_stop\ndata: {json.dumps({'type':'message_stop'})}\n\n"
 
-    # 记录日志
     sys_prompt = extract_system_prompt(req.messages)
     if sys_prompt:
         try:
@@ -1294,8 +1353,147 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
     return JSONResponse(build_response(chat_id, content, backend, total_ms))
 
 
+# ── Real Streaming Bridge ─────────────────────────────────────────────────────
+async def _real_stream_chunks(backend_name: str, msgs: list, max_tokens: int = 4096, ide: str = "unknown"):
+    """Bridge sync call_api_stream() to async generator.
+    Runs the sync generator in a thread, pushes chunks through a queue,
+    yields text chunks asynchronously.
+
+    Falls back to non-streaming call_api() if backend doesn't support streaming.
+    """
+    import queue, threading
+
+    q: queue.Queue = queue.Queue()
+    first_chunk_arrived = False
+    stream_error = None
+
+    def _run():
+        nonlocal first_chunk_arrived, stream_error
+        try:
+            for chunk in smart_router.call_api_stream(backend_name, msgs, max_tokens, ide):
+                if not first_chunk_arrived:
+                    first_chunk_arrived = True
+                q.put(('chunk', chunk))
+        except Exception as e:
+            stream_error = str(e)
+        finally:
+            q.put(('done', None))
+
+    thread = threading.Thread(target=_run, daemon=True)
+    thread.start()
+
+    # Wait up to 3s for first chunk; if none, assume streaming not supported → fallback
+    timeout = 3.0
+    start = time.time()
+
+    while True:
+        remaining = timeout - (time.time() - start)
+        if remaining <= 0:
+            break
+        try:
+            typ, val = q.get(timeout=min(remaining, 0.5))
+        except queue.Empty:
+            continue
+        if typ == 'done':
+            if not first_chunk_arrived:
+                # No chunks at all — fallback to non-streaming
+                result = await asyncio.to_thread(smart_router.call_api, backend_name, msgs, max_tokens, ide)
+                if result and not str(result).startswith('[ERR]'):
+                    yield str(result)
+                return
+            return
+        if typ == 'chunk':
+            yield val
+
+    # If we get here, first chunk hasn't arrived in time → fallback
+    if not first_chunk_arrived:
+        # Signal thread to stop
+        q.put(('done', None))
+        result = await asyncio.to_thread(smart_router.call_api, backend_name, msgs, max_tokens, ide)
+        if result and not str(result).startswith('[ERR]'):
+            yield str(result)
+        return
+
+    # Continue consuming remaining chunks
+    while True:
+        typ, val = await asyncio.to_thread(q.get)
+        if typ == 'done':
+            break
+        if typ == 'chunk':
+            yield val
+
+
+# ── Speculative Streaming ─────────────────────────────────────────────────────
+async def _speculative_stream_chunks(query: str, msgs: list, max_tokens: int = 4096, ide: str = "unknown"):
+    """Speculative streaming: predict backend and start streaming immediately,
+    while routing runs in parallel. If prediction is wrong, switch to correct backend.
+
+    Yields (backend_name, text_chunk) tuples.
+    """
+    # Predict fast backend and start streaming immediately
+    predicted = smart_router.predict_fast_backend(query)
+    predicted_msgs = msgs if msgs else [{"role": "user", "content": query}]
+
+    # Start routing in background
+    route_task = asyncio.create_task(
+        asyncio.to_thread(smart_router.select_backend, query, system_prompt="", ide=ide, messages=msgs)
+    )
+
+    # Start streaming from predicted backend
+    chunks_used = 0
+    actual_backend = None
+    actual_msgs = None
+    stream_task = None
+
+    async for chunk in _real_stream_chunks(predicted, predicted_msgs, max_tokens, ide):
+        chunks_used += 1
+        # Check if routing completed
+        if route_task.done() and actual_backend is None:
+            try:
+                actual_backend, actual_msgs = route_task.result()
+            except Exception:
+                actual_backend = predicted
+                actual_msgs = predicted_msgs
+
+            if actual_backend == predicted:
+                # Prediction correct! Continue streaming.
+                yield (actual_backend, chunk)
+            else:
+                # Prediction wrong — switch to correct backend.
+                # Yield what we got so far (user sees something), then restart.
+                # Actually, better to discard and restart from correct backend.
+                # The user will see a brief pause then the right answer.
+                break
+        else:
+            yield (predicted, chunk)
+
+    # If routing hasn't completed yet, wait for it
+    if actual_backend is None:
+        try:
+            actual_backend, actual_msgs = await route_task
+        except Exception:
+            actual_backend = predicted
+            actual_msgs = predicted_msgs
+
+    if actual_backend == predicted:
+        # Prediction was correct, continue consuming remaining chunks
+        if stream_task is None:
+            async for chunk in _real_stream_chunks(predicted, predicted_msgs, max_tokens, ide):
+                # Skip chunks we already yielded (if any)
+                yield (actual_backend, chunk)
+        return
+
+    # Prediction wrong — switch to actual backend
+    if chunks_used > 0:
+        # Yield a brief transition indicator
+        yield (actual_backend, f"\n[{predicted} → {actual_backend}]\n")
+
+    async for chunk in _real_stream_chunks(actual_backend, actual_msgs, max_tokens, ide):
+        yield (actual_backend, chunk)
+
+
 async def _stream_response(chat_id: str, query: str, use_orchestration: bool, ide_source: str = "", sys_prompt_preview: str = "", use_thinking: bool = False, messages: list = None, prefer: str = None):
-    """SSE 流式生成器：逐句输出。"""
+    """SSE 流式生成器：真流式透传后端 SSE 流。"""
     # ── Image generation intent detection ──────────────────────────────────
     is_image, image_prompt = smart_router.detect_image_intent(query)
     if is_image:
@@ -1306,37 +1504,61 @@ async def _stream_response(chat_id: str, query: str, use_orchestration: bool, id
         yield "data: [DONE]\n\n"
         return
 
+    # ── Thinking mode: uses special backends, keep fake stream for now ─────
     if use_thinking:
         thinking_result = await _thinking_route(query, 4096, ide_source)
         if thinking_result:
             content = thinking_result.get("answer", "")
-            # Wrap thinking content with <think> tags for frontend parsing
             content = f"<think>\n{content}\n</think>"
         else:
-            # Fallback to normal routing
             if use_orchestration:
                 result = await asyncio.to_thread(orchestrate, query)
             else:
                 result = await asyncio.to_thread(smart_router.route, query, system_prompt=sys_prompt_preview, ide=ide_source, messages=messages, prefer=prefer)
             content = result.get("answer", "") if isinstance(result, dict) else str(result)
-    elif use_orchestration:
+        if not content or not content.strip():
+            content = "抱歉，当前服务繁忙，请稍后重试。"
+        sentences = _split_sentences(content)
+        for sentence in sentences:
+            yield build_stream_chunk(chat_id, sentence)
+            await asyncio.sleep(0.02)
+        yield build_stream_chunk(chat_id, "", finish=True)
+        yield "data: [DONE]\n\n"
+        return
+
+    # ── Orchestration mode: keep fake stream (multi-step pipeline) ─────────
+    if use_orchestration:
         result = await asyncio.to_thread(orchestrate, query)
         content = result.get("answer", "") if isinstance(result, dict) else str(result)
-    else:
-        result = await asyncio.to_thread(smart_router.route, query, system_prompt=sys_prompt_preview, ide=ide_source, messages=messages, prefer=prefer)
-        content = result.get("answer", "") if isinstance(result, dict) else str(result)
+        if not content or not content.strip():
+            content = "抱歉，当前服务繁忙，请稍后重试。"
+        sentences = _split_sentences(content)
+        for sentence in sentences:
+            yield build_stream_chunk(chat_id, sentence)
+            await asyncio.sleep(0.02)
+        yield build_stream_chunk(chat_id, "", finish=True)
+        yield "data: [DONE]\n\n"
+        return
 
-    # 空响应保护
-    if not content or not content.strip():
-        content = "抱歉，当前服务繁忙，请稍后重试。"
+    # ── SPECULATIVE STREAMING: predict + stream in parallel with routing ──
+    streamed_any = False
+    async for backend, chunk in _speculative_stream_chunks(query, messages, 4096, ide_source):
+        streamed_any = True
+        yield build_stream_chunk(chat_id, chunk)
 
-    # 模拟流式：按句子分割输出
-    sentences = _split_sentences(content)
-    for sentence in sentences:
-        yield build_stream_chunk(chat_id, sentence)
-        await asyncio.sleep(0.02)
+    if not streamed_any:
+        # All streaming failed, try non-streaming fallback
+        fallback_backend = smart_router.predict_fast_backend(query)
+        fallback_msgs = [{"role": "user", "content": query}]
+        fallback_result = await asyncio.to_thread(smart_router.call_api, fallback_backend, fallback_msgs, 4096, ide_source)
+        content = str(fallback_result) if fallback_result else "抱歉，当前服务繁忙，请稍后重试。"
+        if content.startswith('[ERR]'):
+            content = "抱歉，当前服务繁忙，请稍后重试。"
+        sentences = _split_sentences(content)
+        for sentence in sentences:
+            yield build_stream_chunk(chat_id, sentence)
+            await asyncio.sleep(0.02)
 
-    # 结束标记
     yield build_stream_chunk(chat_id, "", finish=True)
     yield "data: [DONE]\n\n"
 
@@ -1888,4 +2110,6 @@ async def admin_page():
 
 # ── Startup ─────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
+    print('[LiMa] Warming up router model...', file=sys.stderr)
+    smart_router.warmup_router_model()
     uvicorn.run(app, host="0.0.0.0", port=8080)
