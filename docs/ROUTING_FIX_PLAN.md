@@ -1,149 +1,229 @@
-# 路由修复方案 — 解决 Claude Code 接入的根本问题
+# 路由重新设计方案 — 三层架构
 
-> 2026-05-20 问题总结 + 修复设计
+> 2026-05-20 完整重设计（替代原有 fallback 链逻辑）
 
-## 一、当前问题
+## 一、当前问题（为什么要重设计）
 
-### 1.1 问题清单
+| 问题 | 根因 | 影响 |
+|------|------|------|
+| 预设直答误触发 | 正则匹配用户内容 | Claude Code 收到无关回复 |
+| 路由到 chat_ubi | 单一 fallback 链末端是弱后端 | 回复质量极差 |
+| 多后端熔断 | 熔断器太激进(3次) | 可用后端骤减 |
+| IDE 无差异化 | 所有请求走同一逻辑 | IDE 用户体验差 |
+| 死模型 | 固定优先级 | 底部后端从不被调用 |
+| 职责混乱 | 逻辑散落两个文件 | 难以维护和理解 |
 
-| # | 问题 | 根因 | 影响 |
-|---|------|------|------|
-| 1 | 预设直答误触发 | `_try_instant_reply` 对所有请求生效，包括 IDE | Claude Code 收到"支持图片分析"等无关回复 |
-| 2 | 路由到 chat_ubi | fallback 链末端是 chat_ubi，强后端熔断后 fallback 到它 | 回复质量极差 |
-| 3 | 多后端熔断 | Groq/Silicon/Mistral 等返回 403/401 触发熔断器 | 可用后端骤减 |
-| 4 | IDE 请求无差异化 | Anthropic 格式和普通聊天走同一路由逻辑 | IDE 用户体验差 |
-| 5 | 无后端健康感知 | 不知道哪些后端当前可用 | 盲目尝试已挂的后端 |
-
-### 1.2 请求流程（当前，有问题的）
-
-```
-Claude Code 请求 → /v1/messages
-  → _try_instant_reply() → 误匹配 → 返回预设回复 ❌
-  → 或: smart_router.route()
-    → 尝试 groq (熔断) → silicon (熔断) → mistral (熔断)
-    → ... 全部失败 ...
-    → fallback 到 chat_ubi ❌
-```
-
-## 二、修复设计
-
-### 2.1 核心原则
-
-1. **IDE 请求和普通聊天是两条完全不同的路径**
-2. **IDE 请求永远不走预设直答**
-3. **IDE 请求永远不走弱后端 (chat_ubi/pollinations)**
-4. **后端选择基于实时健康状态，不是固定顺序**
-
-### 2.2 新请求流程
+## 二、新架构：三层分离
 
 ```
-请求进入
-  ├─ 判断来源:
-  │   ├─ /v1/messages (Anthropic格式) → IDE 路径
-  │   ├─ /v1/chat/completions + IDE UA → IDE 路径
-  │   └─ /v1/chat/completions 普通 → Chat 路径
-  │
-  ├─ IDE 路径:
-  │   ├─ 跳过 _try_instant_reply ✅
-  │   ├─ 提取 system prompt 上下文
-  │   ├─ Skills 注入
-  │   └─ 路由到 IDE_BACKENDS (强后端池) ✅
-### 2.3 IDE 后端池（强后端，不含 chat_ubi）
+┌───────────────────────────────────────────────┐
+│ Layer 1: 请求分类器 (Request Classifier)       │
+│   输入: 路径 + UA + body                       │
+│   输出: request_type + language + complexity   │
+│   耗时: <1ms (纯本地计算)                      │
+└───────────────────┬───────────────────────────┘
+                    ▼
+┌───────────────────────────────────────────────┐
+│ Layer 2: 后端选择器 (Backend Selector)         │
+│   输入: request_type + health_map             │
+│   逻辑: 从对应 Pool 选健康后端(同层随机)       │
+│   输出: [backend1, backend2, ...] 有序列表     │
+│   耗时: <1ms                                   │
+└───────────────────┬───────────────────────────┘
+                    ▼
+┌───────────────────────────────────────────────┐
+│ Layer 3: 执行器 (Executor)                     │
+│   逻辑: Skills注入 → 模型专属prompt → 调用     │
+│   失败: 换下一个后端重试                       │
+│   全失败: 诚实告知"暂时不可用"                 │
+│   耗时: 取决于后端(300ms-5s)                   │
+└───────────────────────────────────────────────┘
+```
+
+## 三、Layer 1: 请求分类器
+
+### 3.1 分类逻辑（看元数据，不看内容）
 
 ```python
-IDE_BACKENDS = [
-    'longcat_chat',       # LongCat 通用对话（稳定）
-    'longcat_lite',       # LongCat 快速（轻量）
-    'deepseek_flash',     # DeepSeek（代码强）
-    'naga_llama70b',      # NagaAI Llama-70B（免费）
-    'naga_gpt41mini',     # NagaAI GPT-4.1-mini（免费）
-    'freetheai_ds',       # FreeTheAI DeepSeek-V4
-    'unclose_hermes',     # UncloseAI Hermes
-    # 永远不包含: chat_ubi, pollinations
-]
+def classify_request(path: str, headers: dict, body: dict) -> dict:
+    """分类请求，不依赖正则匹配内容"""
+    # 1. 请求格式判断
+    if path.startswith("/v1/messages"):
+        request_type = "ide"
+    elif "claude-code" in headers.get("user-agent", "").lower():
+        request_type = "ide"
+    elif "cursor" in headers.get("user-agent", "").lower():
+        request_type = "ide"
+    elif has_image_blocks(body):
+        request_type = "vision"
+    elif is_image_gen_intent(body):
+        request_type = "image"
+    else:
+        request_type = "chat"
+
+    # 2. 语言检测（用于 Skills 注入）
+    language = detect_language(body.get("messages", []))
+
+    # 3. 复杂度估算
+    total_tokens = estimate_tokens(body)
+    complexity = "high" if total_tokens > 4000 else "low"
+
+    return {
+        "type": request_type,
+        "language": language,
+        "complexity": complexity,
+    }
 ```
 
-### 2.4 预设直答：全部取消
+### 3.2 不再有预设直答
 
-~~原方案：IDE 跳过，普通聊天保留~~
+删除 `_try_instant_reply()` 和 `_INSTANT_REPLIES`。
+所有请求走真实模型。有快速模型(Groq 376ms)兜底。
 
-**新决定：全部取消 `_try_instant_reply`。**
+## 四、Layer 2: 后端池（Pool）+ 健康感知选择
 
-原因：
-- 有快速模型（Groq 376ms / Cerebras），不需要预设回复
-- 预设回复容易误触发（"学习这个项目" → 图片分析）
-- 模型回复更自然、更准确
-- 减少维护成本（不用维护正则匹配规则）
+### 4.1 后端池定义
 
-实现：直接删除 `_INSTANT_REPLIES` 列表和 `_try_instant_reply()` 函数，
-以及所有调用它的地方。
+```python
+POOLS = {
+    "ide": {
+        "strong": ["longcat_chat", "deepseek_flash", "naga_llama70b"],
+        "medium": ["naga_gpt41mini", "freetheai_ds", "unclose_hermes"],
+        "floor":  ["longcat_lite"],
+        # 永远不含: chat_ubi, pollinations
+    },
+    "chat": {
+        "strong": ["longcat_chat", "deepseek_flash"],
+        "medium": ["naga_llama70b", "unclose_hermes", "freetheai_ds"],
+        "floor":  ["chat_ubi", "pollinations"],
+    },
+    "vision": {
+        "strong": ["longcat_omni"],
+        "floor":  ["pollinations"],
+    },
+    "image": {
+        "strong": ["pollinations"],
+    },
+}
+```
 
-### 2.5 熔断器调优
+### 4.2 选择逻辑
 
-| 参数 | 当前值 | 新值 | 原因 |
-|------|--------|------|------|
-| 失败阈值 | 3 次 | 5 次 | 减少误熔断 |
+```python
+def select_backends(request_type: str, health_map: dict) -> list:
+    """从对应 Pool 选健康后端，同层随机"""
+    pool = POOLS[request_type]
+    result = []
+    for tier in ["strong", "medium", "floor"]:
+        candidates = pool.get(tier, [])
+        healthy = [b for b in candidates if health_map.get(b) != "dead"]
+        random.shuffle(healthy)  # 同层随机，消除死模型
+        result.extend(healthy)
+    return result
+```
+
+### 4.3 关键设计决策
+
+| 决策 | 原因 |
+|------|------|
+| IDE floor 是 longcat_lite 不是 chat_ubi | IDE 用户永远不该收到垃圾回复 |
+| 同层随机 | 避免固定优先级导致底部后端从不被调用 |
+| 只选非 dead 后端 | 不浪费时间尝试已知挂掉的后端 |
+| 全部失败返回诚实错误 | 不降级到不可接受的质量 |
+
+## 五、Layer 3: 执行器
+
+### 5.1 执行流程
+
+```python
+def execute(backends: list, messages: list, context: dict) -> str:
+    # 1. Skills 注入
+    if context["type"] == "ide" or context["language"]:
+        messages = inject_skills(messages, context["language"])
+
+    # 2. 按顺序尝试后端
+    for backend in backends:
+        # 模型专属 prompt 调整
+        final_msgs = apply_model_hints(messages, backend)
+        response = call_backend(backend, final_msgs)
+
+        # 质量检查
+        if response and len(response.strip()) > 10:
+            update_health(backend, success=True)
+            return response
+        else:
+            update_health(backend, success=False)
+
+    # 3. 全部失败
+    return "当前服务暂时不可用，请稍后重试。"
+```
+
+### 5.2 Skills 注入（零延迟）
+
+```python
+def inject_skills(messages, language):
+    skills = CODING_SKILLS_L0  # 通用编程规范
+    if language in LANG_SKILLS:
+        skills += LANG_SKILLS[language]
+    # 追加到 system prompt
+    if messages[0]["role"] == "system":
+        messages[0]["content"] += "\n" + skills
+    else:
+        messages.insert(0, {"role": "system", "content": skills})
+    return messages
+```
+
+## 六、健康检查（后台线程）
+
+```python
+health_map = {}  # backend_name -> "healthy" | "degraded" | "dead"
+
+def health_check_loop():
+    """每 30 秒 ping 所有后端"""
+    while True:
+        for backend in ALL_BACKENDS:
+            try:
+                call_backend(backend, [{"role":"user","content":"hi"}],
+                           max_tokens=1, timeout=8)
+                health_map[backend] = "healthy"
+            except:
+                if health_map.get(backend) == "degraded":
+                    health_map[backend] = "dead"  # 连续2次失败
+                else:
+                    health_map[backend] = "degraded"
+        time.sleep(30)
+```
+
+## 七、熔断器调优
+
+| 参数 | 旧值 | 新值 | 原因 |
+|------|------|------|------|
+| 失败阈值 | 3 | 5 | 减少误熔断 |
 | 恢复超时 | 60s | 30s | 更快恢复 |
-| half-open 成功阈值 | 2 次 | 1 次 | 更快关闭熔断 |
+| half-open 成功阈值 | 2 | 1 | 更快关闭 |
 
-## 三、实现清单
+## 八、验证标准
 
-### 3.1 server.py 修改
+| 测试 | 预期 |
+|------|------|
+| Anthropic + "什么？？" | 走真实模型，不返回预设 |
+| Anthropic + "学习这个项目" | 走真实模型，不返回图片分析 |
+| Anthropic + 代码请求 | 路由到 strong 池 |
+| 后端全熔断 | IDE 返回诚实错误，不走 chat_ubi |
+| 普通聊天 | 走 chat 池，chat_ubi 可作兜底 |
+| 同一请求多次 | 同层内不同后端被选中（随机） |
 
-```python
-# 1. /v1/messages 入口：跳过 instant reply
-@app.post("/v1/messages")
-async def anthropic_messages(req: Request):
-    ...
-    # 删除: instant = _try_instant_reply(last_user_query)
-    # IDE 请求永远不走预设直答
-
-# 2. _handle_chat: IDE 请求强制用 IDE_BACKENDS
-async def _handle_chat(...):
-    if fmt == "anthropic" or ide_source in IDE_SOURCES:
-        prefer = None  # 不指定单个，用 IDE 专用链
-        use_ide_chain = True
-    ...
-
-# 3. 路由调用时传入 use_ide_chain
-    if use_ide_chain:
-        result = smart_router.route(query, ..., 
-            fallback_chain=IDE_BACKENDS)
-```
-
-### 3.2 smart_router.py 修改
-
-```python
-# 1. route() 支持自定义 fallback_chain 参数
-def route(query, prefer=None, ..., fallback_chain=None):
-    chain = fallback_chain or FALLBACK_CHAINS.get(intent_name, DEFAULT_CHAIN)
-    ...
-
-# 2. 熔断器参数调优
-CB_FAILURE_THRESHOLD = 5
-CB_RECOVERY_TIMEOUT = 30
-CB_SUCCESS_THRESHOLD = 1
-```
-
-## 四、验证标准
-
-修复后必须通过以下测试：
-
-| 测试 | 预期结果 |
-|------|----------|
-| Anthropic 格式 + "什么？？" | 不返回预设直答，走真实模型 |
-| Anthropic 格式 + "学习这个项目" | 不返回图片分析，走真实模型 |
-| Anthropic 格式 + 代码请求 | 路由到 longcat/deepseek，不走 chat_ubi |
-| 普通聊天 + "你好" | 仍然走 instant reply（保留） |
-| 后端熔断后 | IDE 请求在 IDE_BACKENDS 内 fallback，不穿透到 chat_ubi |
-
-## 五、实施顺序
+## 九、实施步骤
 
 ```
-Step 1: /v1/messages 跳过 _try_instant_reply
-Step 2: 定义 IDE_BACKENDS 池
-Step 3: _handle_chat 区分 IDE/Chat 路径
-Step 4: route() 支持自定义 fallback_chain
-Step 5: 熔断器参数调优
-Step 6: 重启验证
+Step 1: 删除 _try_instant_reply + _INSTANT_REPLIES (5min)
+Step 2: 新建 classify_request() (10min)
+Step 3: 定义 POOLS 字典 (5min)
+Step 4: 新建 select_backends() + health_map (15min)
+Step 5: 修改 _handle_chat 用新三层逻辑 (20min)
+Step 6: 启动后台健康检查线程 (15min)
+Step 7: 熔断器参数调优 (5min)
+Step 8: 重启 + 验证全部测试通过 (10min)
 ```
+
+总计约 1.5 小时。
