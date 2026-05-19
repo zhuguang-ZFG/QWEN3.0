@@ -99,8 +99,8 @@ L4   付费兜底 — DeepSeek / Claude
 |--------|------|----------|------|
 | ~~P0~~ | ~~注册 Groq 免费 Key~~ | ~~70B 模型 + 极速推理~~ | ✅ 已集成 |
 | ~~P0~~ | ~~注册 Cerebras 免费 Key~~ | ~~235B 模型（最强免费）~~ | ✅ 已集成 |
-| P1 | 注册 GitHub Models | GPT-4o 免费访问 | 待执行 |
-| P2 | 测试 sixfinger-api | 无需 Key 的备选 | 待执行 |
+| ~~P1~~ | ~~注册 GitHub Models~~ | ~~GPT-4o 免费访问~~ | ✅ 已集成 |
+| ~~P2~~ | ~~测试 sixfinger-api~~ | ~~无需 Key 的备选~~ | ❌ 已下线 (404) |
 | P3 | 自建 gpt4free | 66k stars 但维护成本高 | 待评估 |
 | P3 | 注册 FreeTheAI Discord Key | 16k 模型 + 图片生成 | 待执行 |
 
