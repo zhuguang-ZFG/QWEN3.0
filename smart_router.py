@@ -103,6 +103,13 @@ BACKENDS = {
                         'key': os.environ.get('OPENROUTER_API_KEY', ''),
                         'model': 'qwen/qwen3-next-80b-a3b-instruct:free', 'fmt': 'openai',
                         'timeout': 30},
+    # UncloseAI 免费后端（无需 API Key，无限额度）
+    'unclose_hermes':  {'url': 'https://hermes.ai.unturf.com/v1/chat/completions',
+                        'key': 'none', 'model': 'adamo1139/Hermes-3-Llama-3.1-8B-FP8-Dynamic',
+                        'fmt': 'openai', 'timeout': 15},
+    'unclose_qwen':    {'url': 'https://qwen.ai.unturf.com/v1/chat/completions',
+                        'key': 'none', 'model': 'Qwen3.6-27B-UD-Q4_K_XL.gguf',
+                        'fmt': 'openai', 'timeout': 30},
     'local':   {'url': LM_URL, 'key': '', 'model': 'local-model', 'fmt': 'openai', 'auth': 'bearer'},
 }
 
@@ -217,6 +224,7 @@ def cb_status():
 # 降级顺序严格按层级：L1免费无限 -> L2Nvidia免费额度 -> L3OpenRouter免费额度 -> L4付费兜底
 FALLBACK_CHAINS = {
     'trivial': [
+        'unclose_hermes',     # L1: UncloseAI（免费无限，1.2s）
         'nvidia_phi4',        # L2: 最快（1-2秒）
         'nvidia_llama4',      # L2: 快速备选
         'longcat_lite',       # L1: 免费兜底
@@ -258,6 +266,7 @@ FALLBACK_CHAINS = {
     ],
     'code_generation': [
         'nvidia_qwen_coder',  # L2: Qwen Coder 480B（免费额度，代码最强）
+        'unclose_qwen',       # L1: UncloseAI Qwen3 27B（免费无限，3s）
         'or_qwen3_coder',      # L3: OpenRouter Qwen3（免费额度）
         'longcat_chat',       # L1: LongCat（免费）
         'nvidia_llama70b',    # L2: Nvidia（免费额度）
@@ -273,6 +282,7 @@ FALLBACK_CHAINS = {
         'claude',             # L4: 付费最终兜底
     ],
     'general_cnc': [
+        'unclose_hermes',     # L1: UncloseAI（免费无限，1.2s）
         'longcat_lite',       # L1: LongCat快速（免费）
         'chinamobile',        # L1: 中国移动（免费）
         'nvidia_llama4',      # L2: Nvidia快速（免费额度）
@@ -309,7 +319,7 @@ FALLBACK_CHAINS = {
 
 def get_fallback_chain(intent_name, prefer=None):
     """获取意图对应的降级链，过滤掉没有 key 的后端。"""
-    chain = list(FALLBACK_CHAINS.get(intent_name, ['nvidia_llama70b', 'longcat', 'claude']))
+    chain = list(FALLBACK_CHAINS.get(intent_name, ['unclose_hermes', 'nvidia_llama70b', 'longcat', 'claude']))
     # 如果有偏好后端，插到最前面
     if prefer and prefer in BACKENDS and prefer not in chain:
         chain.insert(0, prefer)
@@ -353,10 +363,8 @@ def predict_fast_backend(query: str) -> str:
         if pattern.search(query):
             if backend in BACKENDS and BACKENDS[backend].get('key'):
                 return backend
-    # 默认：简单问题用 lite，复杂问题用 chat
-    if len(query) < 100:
-        return 'longcat_lite'
-    return 'longcat_chat'
+    # 默认：unclose_hermes 最快（1.2s），作为投机首选
+    return 'unclose_hermes'
 
 # ── Prompt Assembly (fragment-based, cache-friendly) ─────────────────────────
 FRAGMENT_DIR = os.path.join(os.path.dirname(__file__), 'fragments')
