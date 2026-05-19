@@ -312,11 +312,11 @@ ONEAPI_BASE = os.environ.get('ONEAPI_BASE', 'http://127.0.0.1:3001/v1')
 ONEAPI_ENABLED = os.environ.get('ONEAPI_ENABLED', 'true').lower() == 'true'
 
 ONEAPI_GROUP_TOKENS = {
-    'trivial':  os.environ.get('ONEAPI_TOKEN_TRIVIAL', 'sk-vBFKwKQQc25ZsyjS4e2e731dAa0849A99b24C0E699306524'),
-    'code':     os.environ.get('ONEAPI_TOKEN_CODE', 'sk-gRdwgABKbsh86GHy2a57B037886d42B3962062B231C1B927'),
-    'general':  os.environ.get('ONEAPI_TOKEN_GENERAL', 'sk-NuNQ9qQODmXTligw3bDbDaAfF0F14d3bAb0cA3C5Ba1d72D1'),
-    'thinking': os.environ.get('ONEAPI_TOKEN_THINKING', 'sk-EDtJRpl7dPP3WjHh94B4DaFc6bAc4405A8E8D753A3A023C5'),
-    'vision':   os.environ.get('ONEAPI_TOKEN_VISION', 'sk-s2JvrAODlre79v3V8417A8FbA87b48D88dBd25BeFc7a557d'),
+    'trivial':  os.environ.get('ONEAPI_TOKEN_TRIVIAL', 'sk-jutfJuQ8xmWHTn2h87B2C5661a1e497cAb6f5b8d0b396e2b'),
+    'code':     os.environ.get('ONEAPI_TOKEN_CODE', 'sk-jutfJuQ8xmWHTn2h87B2C5661a1e497cAb6f5b8d0b396e2b'),
+    'general':  os.environ.get('ONEAPI_TOKEN_GENERAL', 'sk-jutfJuQ8xmWHTn2h87B2C5661a1e497cAb6f5b8d0b396e2b'),
+    'thinking': os.environ.get('ONEAPI_TOKEN_THINKING', 'sk-jutfJuQ8xmWHTn2h87B2C5661a1e497cAb6f5b8d0b396e2b'),
+    'vision':   os.environ.get('ONEAPI_TOKEN_VISION', 'sk-jutfJuQ8xmWHTn2h87B2C5661a1e497cAb6f5b8d0b396e2b'),
 }
 
 INTENT_TO_GROUP = {
