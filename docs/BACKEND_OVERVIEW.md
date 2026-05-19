@@ -93,6 +93,17 @@ L4   付费兜底 — DeepSeek / Claude
 | Pollinations / llm7.io / g4f.dev | Cloudflare 403 拦截 |
 | FreeTheAI | 待 Discord Key（方案已写） |
 
+## 待办事项
+
+| 优先级 | 行动 | 预期收益 | 状态 |
+|--------|------|----------|------|
+| ~~P0~~ | ~~注册 Groq 免费 Key~~ | ~~70B 模型 + 极速推理~~ | ✅ 已集成 |
+| ~~P0~~ | ~~注册 Cerebras 免费 Key~~ | ~~235B 模型（最强免费）~~ | ✅ 已集成 |
+| P1 | 注册 GitHub Models | GPT-4o 免费访问 | 待执行 |
+| P2 | 测试 sixfinger-api | 无需 Key 的备选 | 待执行 |
+| P3 | 自建 gpt4free | 66k stars 但维护成本高 | 待评估 |
+| P3 | 注册 FreeTheAI Discord Key | 16k 模型 + 图片生成 | 待执行 |
+
 ## 路由策略
 
 投机调用默认: `groq_llama4` (376ms)
