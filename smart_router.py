@@ -86,7 +86,7 @@ BACKENDS = {
     'or_deepseek_r1':  {'url': 'https://openrouter.ai/api/v1/chat/completions',
                         'key': os.environ.get('OPENROUTER_API_KEY', ''),
                         'model': 'deepseek/deepseek-v4-flash:free', 'fmt': 'openai',
-                        'timeout': 60},  # 免费模型响应慢，超时60秒
+                        'timeout': 60},
     'or_qwen3_coder':  {'url': 'https://openrouter.ai/api/v1/chat/completions',
                         'key': os.environ.get('OPENROUTER_API_KEY', ''),
                         'model': 'qwen/qwen3-coder:free', 'fmt': 'openai',
@@ -103,6 +103,26 @@ BACKENDS = {
                         'key': os.environ.get('OPENROUTER_API_KEY', ''),
                         'model': 'qwen/qwen3-next-80b-a3b-instruct:free', 'fmt': 'openai',
                         'timeout': 30},
+    'or_nemotron120b': {'url': 'https://openrouter.ai/api/v1/chat/completions',
+                        'key': os.environ.get('OPENROUTER_API_KEY', ''),
+                        'model': 'nvidia/nemotron-3-super-120b-a12b:free', 'fmt': 'openai',
+                        'timeout': 60},
+    'or_gptoss_120b':  {'url': 'https://openrouter.ai/api/v1/chat/completions',
+                        'key': os.environ.get('OPENROUTER_API_KEY', ''),
+                        'model': 'openai/gpt-oss-120b:free', 'fmt': 'openai',
+                        'timeout': 60},
+    'or_glm45':        {'url': 'https://openrouter.ai/api/v1/chat/completions',
+                        'key': os.environ.get('OPENROUTER_API_KEY', ''),
+                        'model': 'z-ai/glm-4.5-air:free', 'fmt': 'openai',
+                        'timeout': 30},
+    'or_minimax':      {'url': 'https://openrouter.ai/api/v1/chat/completions',
+                        'key': os.environ.get('OPENROUTER_API_KEY', ''),
+                        'model': 'minimax/minimax-m2.5:free', 'fmt': 'openai',
+                        'timeout': 30},
+    'or_gemma4':       {'url': 'https://openrouter.ai/api/v1/chat/completions',
+                        'key': os.environ.get('OPENROUTER_API_KEY', ''),
+                        'model': 'google/gemma-4-31b-it:free', 'fmt': 'openai',
+                        'timeout': 30},
     # UncloseAI 免费后端（无需 API Key，无限额度）
     'unclose_hermes':  {'url': 'https://hermes.ai.unturf.com/v1/chat/completions',
                         'key': 'none', 'model': 'adamo1139/Hermes-3-Llama-3.1-8B-FP8-Dynamic',
@@ -117,19 +137,28 @@ BACKENDS = {
     'groq_gptoss':     {'url': 'https://api.groq.com/openai/v1/chat/completions',
                         'key': os.environ.get('GROQ_API_KEY', ''),
                         'model': 'openai/gpt-oss-120b', 'fmt': 'openai', 'timeout': 15},
+    'groq_gptoss_20b': {'url': 'https://api.groq.com/openai/v1/chat/completions',
+                        'key': os.environ.get('GROQ_API_KEY', ''),
+                        'model': 'openai/gpt-oss-20b', 'fmt': 'openai', 'timeout': 10},
     'groq_qwen32b':    {'url': 'https://api.groq.com/openai/v1/chat/completions',
                         'key': os.environ.get('GROQ_API_KEY', ''),
                         'model': 'qwen/qwen3-32b', 'fmt': 'openai', 'timeout': 15},
     'groq_llama4':     {'url': 'https://api.groq.com/openai/v1/chat/completions',
                         'key': os.environ.get('GROQ_API_KEY', ''),
                         'model': 'meta-llama/llama-4-scout-17b-16e-instruct', 'fmt': 'openai', 'timeout': 15},
-    # Cerebras 免费推理（超大模型，5 req/min，需 Key）
+    'groq_llama8b':    {'url': 'https://api.groq.com/openai/v1/chat/completions',
+                        'key': os.environ.get('GROQ_API_KEY', ''),
+                        'model': 'llama-3.1-8b-instant', 'fmt': 'openai', 'timeout': 10},
+    # Cerebras 免费推理（超大模型，极速，需 Key）
     'cerebras_qwen235b': {'url': 'https://api.cerebras.ai/v1/chat/completions',
                           'key': os.environ.get('CEREBRAS_API_KEY', ''),
                           'model': 'qwen-3-235b-a22b-instruct-2507', 'fmt': 'openai', 'timeout': 30},
     'cerebras_llama8b':  {'url': 'https://api.cerebras.ai/v1/chat/completions',
                           'key': os.environ.get('CEREBRAS_API_KEY', ''),
                           'model': 'llama3.1-8b', 'fmt': 'openai', 'timeout': 15},
+    'cerebras_gptoss':   {'url': 'https://api.cerebras.ai/v1/chat/completions',
+                          'key': os.environ.get('CEREBRAS_API_KEY', ''),
+                          'model': 'gpt-oss-120b', 'fmt': 'openai', 'timeout': 20},
     # GitHub Models 免费推理（20000 req/min，极宽松，需 GitHub Token）
     'github_gpt4o':      {'url': 'https://models.inference.ai.azure.com/chat/completions',
                           'key': os.environ.get('GITHUB_TOKEN', ''),
@@ -137,9 +166,24 @@ BACKENDS = {
     'github_gpt4o_mini': {'url': 'https://models.inference.ai.azure.com/chat/completions',
                           'key': os.environ.get('GITHUB_TOKEN', ''),
                           'model': 'gpt-4o-mini', 'fmt': 'openai', 'timeout': 15},
+    'github_gpt5':       {'url': 'https://models.inference.ai.azure.com/chat/completions',
+                          'key': os.environ.get('GITHUB_TOKEN', ''),
+                          'model': 'gpt-5', 'fmt': 'openai', 'timeout': 30},
+    'github_o3_mini':    {'url': 'https://models.inference.ai.azure.com/chat/completions',
+                          'key': os.environ.get('GITHUB_TOKEN', ''),
+                          'model': 'o3-mini', 'fmt': 'openai', 'timeout': 30},
+    'github_o4_mini':    {'url': 'https://models.inference.ai.azure.com/chat/completions',
+                          'key': os.environ.get('GITHUB_TOKEN', ''),
+                          'model': 'o4-mini', 'fmt': 'openai', 'timeout': 30},
+    'github_deepseek_r1':{'url': 'https://models.inference.ai.azure.com/chat/completions',
+                          'key': os.environ.get('GITHUB_TOKEN', ''),
+                          'model': 'DeepSeek-R1', 'fmt': 'openai', 'timeout': 60},
     'github_llama70b':   {'url': 'https://models.inference.ai.azure.com/chat/completions',
                           'key': os.environ.get('GITHUB_TOKEN', ''),
                           'model': 'Llama-3.3-70B-Instruct', 'fmt': 'openai', 'timeout': 15},
+    'github_codestral':  {'url': 'https://models.inference.ai.azure.com/chat/completions',
+                          'key': os.environ.get('GITHUB_TOKEN', ''),
+                          'model': 'Codestral-2501', 'fmt': 'openai', 'timeout': 15},
     # Google Gemini 免费推理（OpenAI 兼容端点，需 Key）
     'google_flash_lite': {'url': 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
                           'key': os.environ.get('GOOGLE_AI_KEY', ''),
@@ -147,6 +191,12 @@ BACKENDS = {
     'google_flash':      {'url': 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
                           'key': os.environ.get('GOOGLE_AI_KEY', ''),
                           'model': 'gemini-2.5-flash', 'fmt': 'openai', 'timeout': 20},
+    'google_gemini3':    {'url': 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+                          'key': os.environ.get('GOOGLE_AI_KEY', ''),
+                          'model': 'gemini-3-flash', 'fmt': 'openai', 'timeout': 20},
+    'google_gemma4':     {'url': 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+                          'key': os.environ.get('GOOGLE_AI_KEY', ''),
+                          'model': 'gemma-3-27b-it', 'fmt': 'openai', 'timeout': 15},
     # Cloudflare Workers AI（37 模型，OpenAI 兼容，免费 10k neurons/day）
     'cf_llama70b':       {'url': f"https://api.cloudflare.com/client/v4/accounts/{os.environ.get('CLOUDFLARE_ACCOUNT_ID', '')}/ai/v1/chat/completions",
                           'key': os.environ.get('CLOUDFLARE_TOKEN', ''),
@@ -163,16 +213,22 @@ BACKENDS = {
     'cf_vision':         {'url': f"https://api.cloudflare.com/client/v4/accounts/{os.environ.get('CLOUDFLARE_ACCOUNT_ID', '')}/ai/v1/chat/completions",
                           'key': os.environ.get('CLOUDFLARE_TOKEN', ''),
                           'model': '@cf/meta/llama-3.2-11b-vision-instruct', 'fmt': 'openai', 'timeout': 15},
-    # Mistral 免费额度（OpenAI 兼容，需 Key）
+    # Mistral 免费额度（OpenAI 兼容，需 Key）— 10亿token/月
+    'mistral_large':     {'url': 'https://api.mistral.ai/v1/chat/completions',
+                          'key': os.environ.get('MISTRAL_API_KEY', ''),
+                          'model': 'mistral-large-latest', 'fmt': 'openai', 'timeout': 20},
     'mistral_small':     {'url': 'https://api.mistral.ai/v1/chat/completions',
                           'key': os.environ.get('MISTRAL_API_KEY', ''),
                           'model': 'mistral-small-latest', 'fmt': 'openai', 'timeout': 15},
     'mistral_medium':    {'url': 'https://api.mistral.ai/v1/chat/completions',
                           'key': os.environ.get('MISTRAL_API_KEY', ''),
                           'model': 'mistral-medium-latest', 'fmt': 'openai', 'timeout': 15},
-    'mistral_codestral': {'url': 'https://api.mistral.ai/v1/chat/completions',
+    'mistral_codestral': {'url': 'https://codestral.mistral.ai/v1/chat/completions',
                           'key': os.environ.get('MISTRAL_API_KEY', ''),
                           'model': 'codestral-latest', 'fmt': 'openai', 'timeout': 15},
+    'mistral_devstral':  {'url': 'https://api.mistral.ai/v1/chat/completions',
+                          'key': os.environ.get('MISTRAL_API_KEY', ''),
+                          'model': 'devstral-small-latest', 'fmt': 'openai', 'timeout': 20},
     'mistral_pixtral':   {'url': 'https://api.mistral.ai/v1/chat/completions',
                           'key': os.environ.get('MISTRAL_API_KEY', ''),
                           'model': 'pixtral-large-latest', 'fmt': 'openai', 'timeout': 20},
@@ -213,8 +269,9 @@ ROUTE = {
 
 # ── GFW Proxy (反向 frp 隧道，本地翻墙代理) ──────────────────────────────────
 GFW_PROXY_URL = os.environ.get('GFW_PROXY', 'http://127.0.0.1:7897')
-GFW_BACKENDS = {'google_flash', 'google_flash_lite', 'mistral_small', 'mistral_medium',
-                'mistral_codestral', 'mistral_pixtral', 'devtoolbox'}
+GFW_BACKENDS = {'google_flash', 'google_flash_lite', 'google_gemini3', 'google_gemma4',
+                'mistral_large', 'mistral_small', 'mistral_medium',
+                'mistral_codestral', 'mistral_devstral', 'mistral_pixtral', 'devtoolbox'}
 
 def _get_opener(name):
     """被墙后端使用代理 opener，其他直连。"""
@@ -363,11 +420,14 @@ FALLBACK_CHAINS = {
     'code_generation': [
         'groq_gptoss',        # L0.5: Groq GPT-OSS 120B极速（520ms，代码强）
         'mistral_codestral',  # L0.5: Mistral Codestral（586ms，S级代码，10亿token/月）
+        'mistral_devstral',   # L0.5: Mistral Devstral（agent coding，最新）
         'nvidia_qwen_coder',  # L2: Qwen Coder 480B（免费额度，代码最强）
+        'github_codestral',   # L0.5: GitHub Codestral（免费）
         'unclose_qwen',       # L1: UncloseAI Qwen3 27B（免费无限，3s）
         'groq_qwen32b',       # L0.5: Groq Qwen3 32B（447ms）
         'github_gpt4o_mini',  # L0.5: GitHub GPT-4o-mini（3s，高质量）
-        'or_qwen3_coder',      # L3: OpenRouter Qwen3（免费额度）
+        'or_qwen3_coder',     # L3: OpenRouter Qwen3（免费额度）
+        'cerebras_gptoss',    # L0.5: Cerebras GPT-OSS 120B（极速）
         'llm7',               # L0: 零Key自动路由
         'longcat_chat',       # L1: LongCat（免费）
         'nvidia_llama70b',    # L2: Nvidia（免费额度）
@@ -376,10 +436,14 @@ FALLBACK_CHAINS = {
         'deepseek_flash',     # L4: 付费兜底
     ],
     'architecture': [
+        'github_gpt5',        # L0.5: GitHub GPT-5（最强综合推理）
+        'mistral_large',      # L0.5: Mistral Large（旗舰，10亿token/月）
         'groq_gptoss',        # L0.5: Groq GPT-OSS 120B极速（520ms）
         'groq_llama70b',      # L0.5: Groq 70B（694ms）
         'cerebras_qwen235b',  # L0.5: Cerebras Qwen 235B（1.9s，最强免费）
         'github_gpt4o',       # L0.5: GitHub GPT-4o（2.2s，最强通用）
+        'google_gemini3',     # L0.5: Gemini 3 Flash（1M上下文）
+        'or_nemotron120b',    # L3: OpenRouter Nemotron 120B（免费）
         'longcat',            # L1: LongCat最强（免费）
         'longcat_thinking',   # L1: LongCat推理（免费）
         'nvidia_nemotron',    # L2: Nvidia（免费额度）
@@ -410,7 +474,10 @@ FALLBACK_CHAINS = {
     ],
     'thinking': [
         'or_deepseek_r1',     # L3: DeepSeek R1（深度推理首选）
+        'github_deepseek_r1', # L0.5: GitHub DeepSeek R1（免费）
+        'github_o3_mini',     # L0.5: GitHub o3-mini（推理强）
         'longcat_thinking',   # L1: LongCat推理（免费）
+        'mistral_large',      # L0.5: Mistral Large（旗舰，10亿token/月）
         'deepseek_pro',       # L4: DeepSeek Pro（付费兜底）
         'longcat',            # L1: LongCat最强（免费）
         'claude',             # L4: 付费最终兜底
