@@ -177,6 +177,11 @@ BACKENDS = {
                           'key': os.environ.get('MISTRAL_API_KEY', ''),
                           'model': 'pixtral-large-latest', 'fmt': 'openai', 'timeout': 20},
     'local':   {'url': LM_URL, 'key': '', 'model': 'local-model', 'fmt': 'openai', 'auth': 'bearer'},
+    # ── 零 Key 端点（无需注册，无限额度）──
+    'llm7':            {'url': 'https://api.llm7.io/v1/chat/completions',
+                        'key': 'none', 'model': 'auto', 'fmt': 'openai', 'timeout': 20},
+    'pollinations':    {'url': 'https://text.pollinations.ai/openai',
+                        'key': 'none', 'model': 'openai', 'fmt': 'openai', 'timeout': 30},
 }
 
 # 对外暴露的统一模型名（用户永远看不到真实模型名）
@@ -197,6 +202,7 @@ ROUTE = {
     'code_generation':'nvidia_qwen_coder', # L2: Nvidia免费额度，代码最强
     'architecture':   'longcat',           # L1: LongCat免费，综合最强
     'general_cnc':    'longcat_lite',      # L1: LongCat免费，快速
+    'tool_task':      'llm7',             # L0: DevToolBox/LLM7 工具型任务
     'complex_theory': 'longcat_thinking',  # L1: LongCat免费推理
     'thinking':       'or_deepseek_r1',    # L3: Deep Thinking Mode（深度推理）
     'unknown':        'longcat_chat',      # L1: LongCat免费，通用
@@ -345,9 +351,11 @@ FALLBACK_CHAINS = {
         'groq_qwen32b',       # L0.5: Groq Qwen3 32B（447ms）
         'github_gpt4o_mini',  # L0.5: GitHub GPT-4o-mini（3s，高质量）
         'or_qwen3_coder',      # L3: OpenRouter Qwen3（免费额度）
+        'llm7',               # L0: 零Key自动路由
         'longcat_chat',       # L1: LongCat（免费）
         'nvidia_llama70b',    # L2: Nvidia（免费额度）
         'or_llama70b',        # L3: OpenRouter（免费额度）
+        'pollinations',       # L0: 零Key终极兜底
         'deepseek_flash',     # L4: 付费兜底
     ],
     'architecture': [
@@ -369,7 +377,9 @@ FALLBACK_CHAINS = {
         'chinamobile',        # L1: 中国移动（免费）
         'nvidia_llama4',      # L2: Nvidia快速（免费额度）
         'or_qwen3_80b',       # L3: OpenRouter快速（免费额度）
+        'llm7',               # L0: 零Key自动路由
         'or_llama70b',        # L3: OpenRouter通用（免费额度）
+        'pollinations',       # L0: 零Key终极兜底
         'deepseek_flash',     # L4: 付费兜底
     ],
     'complex_theory': [
@@ -394,7 +404,9 @@ FALLBACK_CHAINS = {
         'nvidia_llama70b',    # L2: Nvidia通用（免费额度）
         'or_llama70b',        # L3: OpenRouter通用（免费额度）
         'or_qwen3_80b',       # L3: OpenRouter快速（免费额度）
+        'llm7',               # L0: 零Key自动路由（2.7s）
         'longcat',            # L1: LongCat最强（免费，最终免费兜底）
+        'pollinations',       # L0: 零Key终极兜底（4.2s，无限）
         'deepseek_flash',     # L4: 付费兜底
     ],
     'vision': [
@@ -403,6 +415,13 @@ FALLBACK_CHAINS = {
         'github_gpt4o',       # GPT-4o（4.6s，最强视觉）
         'google_flash',       # Gemini 2.5 Flash（1.5s，快速视觉）
         'google_flash_lite',  # Gemini 3.1 Flash Lite（11s，兜底）
+    ],
+    'tool_task': [
+        'llm7',               # L0: 零Key自动路由（2.7s，工具型首选）
+        'groq_gptoss',        # L0.5: Groq GPT-OSS 120B（520ms，代码强）
+        'nvidia_qwen_coder',  # L2: Qwen Coder 480B（代码最强）
+        'pollinations',       # L0: 零Key终极兜底
+        'deepseek_flash',     # L4: 付费兜底
     ],
 }
 
@@ -563,6 +582,12 @@ RULES = [
     (r'STM32|HAL|CubeMX|定时器|中断|DMA|寄存器', 'embedded_dev', 0.85),
     (r'写.*代码|生成.*代码|实现.*函数|代码示例', 'code_generation', 0.85),
     (r'架构|设计|方案|选型|对比|哪个好', 'architecture', 0.80),
+    # ── 工具型任务（DevToolBox 专精）──
+    (r'写.*SQL|生成.*SQL|查询.*语句|SELECT|INSERT|UPDATE|DELETE.*FROM', 'tool_task', 0.90),
+    (r'正则|regex|匹配.*模式|pattern', 'tool_task', 0.85),
+    (r'修复.*代码|fix.*code|debug.*this|帮我改.*bug', 'tool_task', 0.80),
+    (r'JSON.*Schema|生成.*schema|转换.*JSON', 'tool_task', 0.85),
+    (r'翻译.*代码|convert.*to.*python|改写.*成', 'tool_task', 0.80),
     (r'FOC|PID|闭环|编码器|伺服|变频器|VFD', 'complex_theory', 0.85),
     (r'PCB|雕刻|激光|切割|主轴|转速|RPM', 'general_cnc', 0.80),
 ]
