@@ -160,6 +160,22 @@ BACKENDS = {
     'cf_mistral':        {'url': f"https://api.cloudflare.com/client/v4/accounts/{os.environ.get('CLOUDFLARE_ACCOUNT_ID', '')}/ai/v1/chat/completions",
                           'key': os.environ.get('CLOUDFLARE_TOKEN', ''),
                           'model': '@cf/mistralai/mistral-small-3.1-24b-instruct', 'fmt': 'openai', 'timeout': 15},
+    'cf_vision':         {'url': f"https://api.cloudflare.com/client/v4/accounts/{os.environ.get('CLOUDFLARE_ACCOUNT_ID', '')}/ai/v1/chat/completions",
+                          'key': os.environ.get('CLOUDFLARE_TOKEN', ''),
+                          'model': '@cf/meta/llama-3.2-11b-vision-instruct', 'fmt': 'openai', 'timeout': 15},
+    # Mistral 免费额度（OpenAI 兼容，需 Key）
+    'mistral_small':     {'url': 'https://api.mistral.ai/v1/chat/completions',
+                          'key': os.environ.get('MISTRAL_API_KEY', ''),
+                          'model': 'mistral-small-latest', 'fmt': 'openai', 'timeout': 15},
+    'mistral_medium':    {'url': 'https://api.mistral.ai/v1/chat/completions',
+                          'key': os.environ.get('MISTRAL_API_KEY', ''),
+                          'model': 'mistral-medium-latest', 'fmt': 'openai', 'timeout': 15},
+    'mistral_codestral': {'url': 'https://api.mistral.ai/v1/chat/completions',
+                          'key': os.environ.get('MISTRAL_API_KEY', ''),
+                          'model': 'codestral-latest', 'fmt': 'openai', 'timeout': 15},
+    'mistral_pixtral':   {'url': 'https://api.mistral.ai/v1/chat/completions',
+                          'key': os.environ.get('MISTRAL_API_KEY', ''),
+                          'model': 'pixtral-large-latest', 'fmt': 'openai', 'timeout': 20},
     'local':   {'url': LM_URL, 'key': '', 'model': 'local-model', 'fmt': 'openai', 'auth': 'bearer'},
 }
 
@@ -382,6 +398,7 @@ FALLBACK_CHAINS = {
         'deepseek_flash',     # L4: 付费兜底
     ],
     'vision': [
+        'mistral_pixtral',    # Mistral Pixtral Large（796ms，高质量视觉）
         'github_gpt4o',       # GPT-4o（4.6s，最强视觉）
         'google_flash',       # Gemini 2.5 Flash（1.5s，快速视觉）
         'google_flash_lite',  # Gemini 3.1 Flash Lite（11s，兜底）
