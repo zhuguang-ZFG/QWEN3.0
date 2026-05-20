@@ -1,7 +1,7 @@
 # LiMa AI 项目状态
 
-> 更新时间: 2026-05-20 15:00
-> 阶段: V3/V4 编码完成，16模块就绪，待部署
+> 更新时间: 2026-05-20 17:00
+> 阶段: 17模块就绪 + Code Review 修复 + smart_router瘦身，待部署
 
 ---
 
@@ -58,7 +58,13 @@ skills/
 ### server.py 清理
 
 - 删除 _INSTANT_REPLIES + _try_instant_reply（预设直答绕过路由）
-- 2100→2027行（尚需继续拆分streaming/thinking等深层耦合部分）
+- 2100→2027行（streaming/thinking 深层耦合部分已提取到 streaming.py）
+
+### smart_router.py 瘦身
+
+- 删除365行死代码（2309→1944行）
+- 删除: model_route/_run_local_inference/model_classify/pressure_test/cli/mcp 等
+- 添加迁移注释标注已提取代码段
 
 ---
 
@@ -94,6 +100,18 @@ skills/
 | codex-cli-deep-dive.md | Codex CLI逆向(Goals系统, 线程树) |
 | cursor-auto-mode-deep-dive.md | Cursor逆向(642 tok极简, 万物皆文件) |
 
+### Code Review 修复 (2026-05-20)
+
+| 模块 | 问题 | 修复 |
+|------|------|------|
+| streaming.py | 异常静默吞掉(HIGH) | 异常放入队列 |
+| streaming.py | 线程未join双请求竞争(HIGH) | thread.join(1s) |
+| streaming.py | 队列未清空内存泄漏(HIGH) | _drain_queue() |
+| routing_engine.py | 直连保底异常静默(HIGH) | 记录health_tracker |
+| routing_engine.py | exhausted时fallback_used=True(HIGH) | 排除exhausted |
+| skills_injector.py | frontmatter---碰撞(HIGH) | 改用\n--- |
+| smart_router.py | 365行死代码(HIGH) | 已删除 |
+
 ---
 
 ## 当前项目结构
@@ -101,7 +119,7 @@ skills/
 ```
 D:/GIT/
 ├── server.py              2027行  FastAPI入口（待继续拆分）
-├── smart_router.py        2276行  旧路由引擎（待清理重复代码）
+├── smart_router.py        1944行  旧路由引擎（已删365行死代码）
 ├── routing_engine.py      226行  五层统一路由 ✅
 ├── router_v3.py           225行  三层路由+P2C ✅
 ├── v3_integration.py      111行  V3入口+fallback ✅
