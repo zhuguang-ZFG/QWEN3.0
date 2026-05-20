@@ -1,6 +1,11 @@
 """vision_handler.py — Vision (Photo-to-Answer) detection, format conversion, routing, and streaming. Extracted from server.py + smart_router.py."""
-import json, time, asyncio, sys
-import smart_router
+import json, time, asyncio, sys, os
+
+import health_tracker
+from http_caller import clean_response, BackendError
+from backends import BACKENDS
+
+DEBUG = os.environ.get('LIMA_DEBUG', '') == '1'
 
 MODEL_ID = "lima-1.3"
 VISION_BACKENDS = ['longcat_omni', 'or_deepseek_r1']
@@ -70,9 +75,9 @@ def convert_openai_vision_to_anthropic(messages: list) -> list:
 async def _vision_route(messages: list, max_tokens: int = 4096, ide: str = "unknown") -> dict | None:
     """Route vision requests to a multimodal backend. Returns result dict or None."""
     for backend_name in VISION_BACKENDS:
-        if backend_name not in smart_router.BACKENDS: continue
-        if not smart_router.BACKENDS[backend_name].get('key'): continue
-        if not smart_router.cb_allow(backend_name): continue
+        if backend_name not in BACKENDS: continue
+        if not BACKENDS[backend_name].get('key'): continue
+        if health_tracker.is_cooled_down(backend_name): continue
         try:
             result = await asyncio.wait_for(
                 asyncio.to_thread(_call_vision_backend, backend_name, messages, max_tokens, ide),
@@ -80,14 +85,15 @@ async def _vision_route(messages: list, max_tokens: int = 4096, ide: str = "unkn
             if result and not (isinstance(result, str) and (result.startswith("[ERR]") or "暂时不可用" in result)):
                 return {"answer": result, "backend": backend_name}
         except (asyncio.TimeoutError, Exception) as e:
-            if smart_router.DEBUG: print(f"[VISION] {backend_name} failed: {e}", file=sys.stderr)
+            if DEBUG: print(f"[VISION] {backend_name} failed: {e}", file=sys.stderr)
+            health_tracker.record_failure(backend_name, error_code=None)
             continue
     return None
 
 def _call_vision_backend(backend_name: str, messages: list, max_tokens: int, ide: str) -> str | None:
     """Call a vision-capable backend with image content."""
     import urllib.request as _ur
-    b = smart_router.BACKENDS[backend_name]
+    b = BACKENDS[backend_name]
     fmt = b.get('fmt', 'openai')
     auth_style = b.get('auth', 'x-api-key')
     if fmt == 'anthropic':
@@ -121,11 +127,11 @@ def _call_vision_backend(backend_name: str, messages: list, max_tokens: int, ide
             d = json.loads(resp.read().decode())
         if fmt == 'anthropic': answer = d['content'][0].get('text', '')
         else: answer = d['choices'][0]['message'].get('content', '')
-        smart_router.cb_record(backend_name, True)
-        return smart_router.clean_response(answer, backend_name)
+        health_tracker.record_success(backend_name, 0)
+        return clean_response(answer, backend_name)
     except Exception as e:
-        if smart_router.DEBUG: print(f'[VISION] {backend_name} call error: {e}', file=sys.stderr)
-        smart_router.cb_record(backend_name, False)
+        if DEBUG: print(f'[VISION] {backend_name} call error: {e}', file=sys.stderr)
+        health_tracker.record_failure(backend_name, error_code=None)
         return None
 
 async def _stream_vision_response(chat_id: str, content: str):

@@ -15,6 +15,7 @@ import router_v3
 import health_tracker
 import sticky_session
 import skills_injector as skills_mod
+import semantic_cache
 from response_builder import build_response, build_anthropic_response, make_chat_id
 
 MAX_FALLBACKS = 5
@@ -177,9 +178,18 @@ def route(query: str, messages: list[dict], *,
           fmt: str = "openai", ide_source: str = "",
           model: str = "", max_tokens: int = 4096,
           system_prompt: str = "", headers: dict = None,
-          call_fn: Callable = None) -> RouteResult:
+          call_fn: Callable = None,
+          cache_enabled: bool = True) -> RouteResult:
     """统一路由入口。call_fn(backend, messages, max_tokens) -> str"""
     t0 = time.time()
+
+    # 缓存检查 (仅 temperature=0 的确定性请求)
+    if cache_enabled:
+        cached = semantic_cache.get(model or "default", messages)
+        if cached:
+            ms = int((time.time() - t0) * 1000)
+            return RouteResult(backend="cache", answer=cached,
+                               request_type="cache_hit", ms=ms)
 
     req_type = classify(query, messages, fmt=fmt, ide_source=ide_source,
                         system_prompt=system_prompt, headers=headers)
@@ -201,6 +211,8 @@ def route(query: str, messages: list[dict], *,
         final_backend, answer, _ = execute(backends, call_fn, messages_injected, max_tokens)
         if final_backend != "exhausted":
             sticky_session.pin_backend(sticky_key, final_backend)
+            if cache_enabled and answer:
+                semantic_cache.put(model or "default", messages, 0, answer)
     else:
         final_backend, answer = backends[0] if backends else "none", ""
 

@@ -7,6 +7,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import smart_router
+import health_tracker
+import http_caller
+import routing_engine
+from backends import BACKENDS
 
 # ── 配置 ────────────────────────────────────────────────────────────────────
 MAX_CONCURRENT = 3          # 最大并发子任务数
@@ -140,24 +144,28 @@ def execute_subtasks(subtasks: list[dict]) -> list[dict]:
         hint = subtask.get("backend_hint", "")
 
         # 如果有后端提示且可用，直接调用
-        if hint and hint in smart_router.BACKENDS and smart_router.cb_allow(hint):
-            answer = smart_router.call_api(
-                hint, [{"role": "user", "content": task_query}]
-            )
-            if answer and not answer.startswith("[ERR]"):
+        if hint and hint in BACKENDS and not health_tracker.is_cooled_down(hint):
+            try:
+                answer = http_caller.call_api(
+                    hint, [{"role": "user", "content": task_query}])
                 return {
                     "task": task_query,
                     "answer": answer,
                     "backend": hint,
                     "ms": int((time.time() - t0) * 1000)
                 }
+            except Exception:
+                pass
 
         # 否则走完整路由
-        result = smart_router.route(task_query)
+        def _call_fn(backend, msgs, mt):
+            return http_caller.call_api(backend, msgs, mt)
+        r = routing_engine.route(task_query,
+            [{"role": "user", "content": task_query}], call_fn=_call_fn)
         return {
             "task": task_query,
-            "answer": result.get("answer", ""),
-            "backend": result.get("backend", "unknown"),
+            "answer": r.answer,
+            "backend": r.backend,
             "ms": int((time.time() - t0) * 1000)
         }
 
@@ -210,9 +218,12 @@ def synthesize(query: str, results: list[dict]) -> str:
 
     # 优先用 longcat，失败则用本地模型
     msgs = [{"role": "user", "content": prompt}]
-    answer = smart_router.call_api("longcat_chat", msgs, mt=SYNTHESIZE_MAX_TOKENS)
-    if answer and "[ERR]" not in answer and "暂时不可用" not in answer:
-        return answer
+    try:
+        answer = http_caller.call_api("longcat_chat", msgs, mt=SYNTHESIZE_MAX_TOKENS)
+        if answer and "暂时不可用" not in answer:
+            return answer
+    except Exception:
+        pass
 
     # 回退到本地模型
     answer = smart_router.call_local(msgs, mt=SYNTHESIZE_MAX_TOKENS, t=0.5)
@@ -245,14 +256,22 @@ def orchestrate(query: str) -> dict:
 
     # 再次确认是否需要编排（防止外部直接调用）
     if not needs_orchestration(query, intent):
-        return smart_router.route(query)
+        def _call_fn(backend, msgs, mt):
+            return http_caller.call_api(backend, msgs, mt)
+        r = routing_engine.route(query, [{"role": "user", "content": query}],
+                                 call_fn=_call_fn)
+        return {"answer": r.answer, "backend": r.backend, "total_ms": r.ms}
 
     # 拆解
     subtasks = decompose(query)
 
     # 如果拆解失败（只有1个且等于原查询），直接路由
     if len(subtasks) == 1 and subtasks[0]["task"] == query:
-        return smart_router.route(query)
+        def _call_fn(backend, msgs, mt):
+            return http_caller.call_api(backend, msgs, mt)
+        r = routing_engine.route(query, [{"role": "user", "content": query}],
+                                 call_fn=_call_fn)
+        return {"answer": r.answer, "backend": r.backend, "total_ms": r.ms}
 
     # 并发执行
     results = execute_subtasks(subtasks)

@@ -14,9 +14,66 @@ import uvicorn
 import smart_router
 from orchestrate import orchestrate, needs_orchestration
 
+# ── V3 路由引擎（灰度切换） ──────────────────────────────────────────────────
+USE_V3 = os.environ.get("LIMA_V3", "1") == "1"
+if USE_V3:
+    import routing_engine
+    import http_caller
+    import streaming as streaming_mod
+
+    def _v3_route(query, messages, system_prompt="", ide="", max_tokens=4096, **_kw):
+        """V3 路由适配器：返回与 smart_router.route() 兼容的 dict。"""
+        def _call_fn(backend, msgs, mt):
+            return http_caller.call_api(backend, msgs, mt,
+                                        system_prompt=system_prompt, ide=ide)
+        result = routing_engine.route(
+            query, messages, fmt="openai", ide_source=ide,
+            system_prompt=system_prompt, max_tokens=max_tokens,
+            call_fn=_call_fn)
+        return {"answer": result.answer, "backend": result.backend,
+                "total_ms": result.ms, "fallback_used": result.fallback_used}
+
+    def _v3_predict(query):
+        """V3 快速预测：从 ide 池取第一个健康后端。"""
+        import health_tracker as ht
+        hmap = ht.get_health_map()
+        backends = routing_engine.select("ide", hmap)
+        return backends[0] if backends else "longcat_chat"
+
+    def _v3_select(query, system_prompt, ide, messages):
+        """V3 完整路由选择：返回 (backend, messages) 元组。"""
+        import health_tracker as ht
+        hmap = ht.get_health_map()
+        backends = routing_engine.select("ide", hmap)
+        return (backends[0] if backends else "longcat_chat", messages)
+
+    def _v3_call_stream(backend, messages, max_tokens, ide):
+        """V3 流式调用适配器。"""
+        return http_caller.call_api_stream(
+            backend, messages, max_tokens, system_prompt="", ide=ide)
+
+    def _v3_call_api(backend, messages, max_tokens, ide):
+        """V3 非流式调用适配器。"""
+        return http_caller.call_api(
+            backend, messages, max_tokens, system_prompt="", ide=ide)
+
 # ── App ─────────────────────────────────────────────────────────────────────
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(application):
+    """FastAPI lifespan: 启动/关闭时执行。"""
+    if USE_V3:
+        import probe_loop
+        probe_loop.start(probe_fn=http_caller.probe)
+    yield
+    if USE_V3:
+        import probe_loop
+        probe_loop.stop()
+
 app = FastAPI(title="LiMa", version="1.3",
-              description="LiMa（力码）— 智能编程助手 API，OpenAI 兼容")
+              description="LiMa（力码）— 智能编程助手 API，OpenAI 兼容",
+              lifespan=lifespan)
 
 MODEL_ID = "lima-1.3"
 MODEL_CREATED = int(time.time())
@@ -1041,9 +1098,19 @@ async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", i
 
             if not streamed_any:
                 # Fallback: non-streaming
-                fb_backend = smart_router.predict_fast_backend(query)
-                fb_msgs = [{"role": "user", "content": query}]
-                fb = await asyncio.to_thread(smart_router.call_api, fb_backend, fb_msgs, req.max_tokens or 4096, ide_source)
+                if USE_V3:
+                    fb_backend = _v3_predict(query)
+                    fb_msgs = [{"role": "user", "content": query}]
+                    try:
+                        fb = await asyncio.to_thread(
+                            http_caller.call_api, fb_backend, fb_msgs,
+                            req.max_tokens or 4096, system_prompt="", ide=ide_source)
+                    except Exception:
+                        fb = None
+                else:
+                    fb_backend = smart_router.predict_fast_backend(query)
+                    fb_msgs = [{"role": "user", "content": query}]
+                    fb = await asyncio.to_thread(smart_router.call_api, fb_backend, fb_msgs, req.max_tokens or 4096, ide_source)
                 backend_used = fb_backend
                 fallback_text = str(fb) if fb and not str(fb).startswith('[ERR]') else None
                 if fallback_text:
@@ -1210,6 +1277,11 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
     # 非流式：直接调用（带 fallback）
     if use_orchestration:
         result = await asyncio.to_thread(orchestrate, query)
+    elif USE_V3:
+        result = await asyncio.to_thread(_v3_route, query,
+            messages_to_dicts(req.messages),
+            system_prompt=sys_prompt_preview, ide=ide_source,
+            max_tokens=req.max_tokens or 4096)
     else:
         result = await asyncio.to_thread(smart_router.route, query, system_prompt=sys_prompt_preview, ide=ide_source, messages=messages_to_dicts(req.messages), prefer=prefer)
 
@@ -1286,6 +1358,15 @@ async def _real_stream_chunks(backend_name: str, msgs: list, max_tokens: int = 4
     Runs the sync generator in a thread, pushes chunks through a queue,
     yields text chunks asynchronously.
     """
+    if USE_V3:
+        async for chunk in streaming_mod.bridge_stream(
+            backend_name, msgs, max_tokens, ide,
+            call_stream_fn=_v3_call_stream,
+            call_fn=_v3_call_api,
+        ):
+            yield chunk
+        return
+
     import queue as queue_mod
 
     q: queue_mod.Queue = queue_mod.Queue()
@@ -1354,6 +1435,16 @@ async def _speculative_stream_chunks(query: str, msgs: list, max_tokens: int = 4
 
     Yields (backend_name, text_chunk) tuples.
     """
+    if USE_V3:
+        async for item in streaming_mod.speculative_stream(
+            query, msgs, max_tokens, ide,
+            predict_fn=_v3_predict,
+            select_fn=_v3_select,
+            call_stream_fn=_v3_call_stream,
+            call_fn=_v3_call_api,
+        ):
+            yield item
+        return
     predicted = smart_router.predict_fast_backend(query)
     predicted_msgs = msgs if msgs else [{"role": "user", "content": query}]
 
@@ -1425,6 +1516,10 @@ async def _stream_response(chat_id: str, query: str, use_orchestration: bool, id
         else:
             if use_orchestration:
                 result = await asyncio.to_thread(orchestrate, query)
+            elif USE_V3:
+                result = await asyncio.to_thread(_v3_route, query, messages,
+                    system_prompt=sys_prompt_preview, ide=ide_source,
+                    max_tokens=4096)
             else:
                 result = await asyncio.to_thread(smart_router.route, query, system_prompt=sys_prompt_preview, ide=ide_source, messages=messages, prefer=prefer)
             content = result.get("answer", "") if isinstance(result, dict) else str(result)
@@ -1460,9 +1555,19 @@ async def _stream_response(chat_id: str, query: str, use_orchestration: bool, id
 
     if not streamed_any:
         # All streaming failed, try non-streaming fallback
-        fallback_backend = smart_router.predict_fast_backend(query)
-        fallback_msgs = [{"role": "user", "content": query}]
-        fallback_result = await asyncio.to_thread(smart_router.call_api, fallback_backend, fallback_msgs, 4096, ide_source)
+        if USE_V3:
+            fallback_backend = _v3_predict(query)
+            fallback_msgs = [{"role": "user", "content": query}]
+            try:
+                fallback_result = await asyncio.to_thread(
+                    http_caller.call_api, fallback_backend, fallback_msgs,
+                    4096, system_prompt="", ide=ide_source)
+            except Exception:
+                fallback_result = None
+        else:
+            fallback_backend = smart_router.predict_fast_backend(query)
+            fallback_msgs = [{"role": "user", "content": query}]
+            fallback_result = await asyncio.to_thread(smart_router.call_api, fallback_backend, fallback_msgs, 4096, ide_source)
         content = str(fallback_result) if fallback_result else "抱歉，当前服务繁忙，请稍后重试。"
         if content.startswith('[ERR]'):
             content = "抱歉，当前服务繁忙，请稍后重试。"
