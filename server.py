@@ -59,10 +59,10 @@ def _v3_call_stream(backend, messages, max_tokens, ide):
     return http_caller.call_api_stream(
         backend, messages, max_tokens, system_prompt="", ide=ide)
 
-    def _v3_call_api(backend, messages, max_tokens, ide):
-        """V3 非流式调用适配器。"""
-        return http_caller.call_api(
-            backend, messages, max_tokens, system_prompt="", ide=ide)
+def _v3_call_api(backend, messages, max_tokens, ide):
+    """V3 非流式调用适配器。"""
+    return http_caller.call_api(
+        backend, messages, max_tokens, system_prompt="", ide=ide)
 
 def _fake_stream(text: str, chunk_size: int = 30):
     """将完整文本拆为 chunk 模拟流式输出。已清洗的文本直接拆。"""
