@@ -727,3 +727,86 @@ Step 7: 可选: 竞速模式
 | 每请求建连开销 | 50-200ms | ~0ms (连接池复用) |
 | 内存占用/请求 | ~8MB (线程栈) | ~几KB (协程) |
 | CPU 利用率 | 低(大量等待IO) | 高效(事件循环) |
+
+### 14.10 百万级并发架构（分布式）
+
+单机 async 能到 200+ 并发，但百万级需要分布式：
+
+```
+                    ┌─────────────────┐
+                    │   Nginx / SLB   │  ← 百万连接入口
+                    │  (负载均衡)      │
+                    └────────┬────────┘
+                             │
+              ┌──────────────┼──────────────┐
+              ▼              ▼              ▼
+        ┌──────────┐  ┌──────────┐  ┌──────────┐
+        │ Worker 1 │  │ Worker 2 │  │ Worker N │  ← 无状态应用节点
+        │ (uvicorn │  │ (uvicorn │  │ (uvicorn │
+        │  async)  │  │  async)  │  │  async)  │
+        └────┬─────┘  └────┬─────┘  └────┬─────┘
+             │              │              │
+             └──────────────┼──────────────┘
+                            ▼
+                    ┌───────────────┐
+                    │     Redis     │  ← 共享状态
+                    │ health_map    │
+                    │ cooldown_cache│
+                    │ rate_limits   │
+                    └───────────────┘
+                            │
+              ┌─────────────┼─────────────┐
+              ▼             ▼             ▼
+        [后端池 A]    [后端池 B]    [后端池 C]
+        Groq/Cerebras  DeepSeek     NagaAI/FreeTheAI
+```
+
+#### 关键组件
+
+| 组件 | 作用 | 技术选型 |
+|------|------|----------|
+| 入口负载均衡 | 百万连接分发 | Nginx (C10M) / 阿里云 SLB |
+| 应用节点 | 请求处理 | uvicorn + httpx async，水平扩展 |
+| 共享状态 | health_map / cooldown / 统计 | Redis (单实例够用) |
+| 请求队列 | 削峰填谷 | Redis Stream / RabbitMQ (可选) |
+| 连接池 | 复用后端连接 | httpx 每节点独立连接池 |
+
+#### 无状态设计原则
+
+```python
+# 所有状态存 Redis，应用节点无状态
+import redis.asyncio as redis
+
+_redis = redis.Redis(host="127.0.0.1", port=6379)
+
+async def get_health(backend) -> str:
+    return await _redis.get(f"health:{backend}") or "healthy"
+
+async def set_cooldown(backend, ttl=5):
+    await _redis.setex(f"cooldown:{backend}", ttl, "1")
+
+async def is_cooled_down(backend) -> bool:
+    return await _redis.exists(f"cooldown:{backend}")
+```
+
+#### 扩容路径
+
+```
+阶段 1 (当前): 单机 async → 200 QPS
+阶段 2: 单机多 worker (uvicorn --workers 4) → 800 QPS
+阶段 3: 多机 + Nginx → 5000 QPS
+阶段 4: 多机 + Redis + SLB → 50000 QPS
+阶段 5: 多机 + 消息队列 + 自动扩缩 → 100万+ QPS
+```
+
+#### 现实约束
+
+| 层级 | 瓶颈 | 解法 |
+|------|------|------|
+| 我们的服务器 | 单机 ~200 QPS | 多 worker / 多机 |
+| 免费后端 rate limit | Groq 40RPM, Mistral 10RPM | 多 key 轮转 / 更多供应商 |
+| 后端总吞吐 | 所有免费后端加起来 ~500 RPM | 加入付费后端 / 本地模型 |
+| 网络带宽 | 阿里云 5Mbps 出口 | 升级带宽 / CDN |
+
+**结论：百万级并发的瓶颈不在我们的路由层，而在后端供应商的 rate limit。**
+路由层做好水平扩展准备（无状态 + Redis），后端容量通过加供应商/加 key/加本地模型来扩。
