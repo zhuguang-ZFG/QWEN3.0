@@ -438,6 +438,99 @@ def extract_useful_context(system: str) -> str:
 4. OpenAI → Anthropic 响应转换 (含流式)
 5. 测试 Claude Code 连接
 
+## 八、多 IDE 支持矩阵
+
+### 8.1 各 IDE 接入方式
+
+| IDE | 连接格式 | 端点 | 发送 system prompt | IDE 检测方式 | 接入配置 |
+|-----|----------|------|-------------------|-------------|----------|
+| Claude Code | Anthropic | /v1/messages | ✅ 完整 8000 tok | 路径 + 指纹 | ANTHROPIC_BASE_URL |
+| Cursor | OpenAI | /v1/chat/completions | ✅ 含 "You are Cursor" | system prompt 指纹 | Settings → API Key + Base URL |
+| Codex | OpenAI | /v1/chat/completions | ✅ 含 "Codex" | system prompt 指纹 | OPENAI_API_KEY + BASE_URL |
+| Cline | OpenAI | /v1/chat/completions | ✅ 含 XML 工具格式 | system prompt 指纹 | 插件设置 |
+| Continue | OpenAI | /v1/chat/completions | ✅ 含 "Continue" | system prompt 指纹 | config.json |
+| Aider | OpenAI | /v1/chat/completions | ✅ 含 "SEARCH/REPLACE" | system prompt 指纹 | --openai-api-base |
+| Copilot | 私有协议 | — | ❌ 不开放 | — | 不支持 |
+
+### 8.2 接入配置示例
+
+**Cursor:**
+```
+Settings → Models → OpenAI API Key
+  API Key: lima-test
+  Base URL: http://47.112.162.80:8080/v1
+```
+
+**Codex CLI:**
+```bash
+export OPENAI_API_KEY="lima-test"
+export OPENAI_BASE_URL="http://47.112.162.80:8080/v1"
+codex
+```
+
+**Claude Code:**
+```bash
+export ANTHROPIC_BASE_URL="http://47.112.162.80:8080"
+export ANTHROPIC_API_KEY="lima-test"
+claude
+```
+
+**Aider:**
+```bash
+aider --openai-api-key lima-test \
+      --openai-api-base http://47.112.162.80:8080/v1
+```
+
+**Continue (config.json):**
+```json
+{
+  "models": [{
+    "provider": "openai",
+    "model": "lima-1.3",
+    "apiKey": "lima-test",
+    "apiBase": "http://47.112.162.80:8080/v1"
+  }]
+}
+```
+
+### 8.3 IDE 检测指纹库
+
+```python
+_IDE_FINGERPRINTS = {
+    "cursor": ["intelligent programmer", "Cursor", "You are Cursor"],
+    "claude_code": ["CLAUDE.md", "Claude Code", "EnterPlanMode"],
+    "codex": ["Codex", "codex"],
+    "aider": ["SEARCH/REPLACE", "RepoMap", "aider"],
+    "cline": ["<environment_details>", "Cline"],
+    "continue": ["Continue is an open-source", "continue.dev"],
+    "copilot": ["GitHub Copilot"],
+}
+```
+
+### 8.4 IDE 差异化路由
+
+| IDE | 特点 | 路由策略 |
+|-----|------|----------|
+| Claude Code | 工具调用密集，需要代码生成 | 强代码模型优先 |
+| Cursor | Tab 补全 + Chat，需要快速响应 | 快速模型优先(Groq/Cerebras) |
+| Codex | 命令行交互，单次请求 | 通用强模型 |
+| Aider | 大量代码编辑，需要精确 diff | 代码专精模型(DeepSeek/Codestral) |
+| Cline | 自动化流程，多轮对话 | 稳定模型优先(LongCat) |
+
+### 8.5 格式兼容总结
+
+```
+/v1/chat/completions (OpenAI 格式):
+  → Cursor, Codex, Cline, Continue, Aider 直接可用
+  → 无需格式转换
+  → IDE 检测通过 system prompt 指纹
+
+/v1/messages (Anthropic 格式):
+  → Claude Code 专用
+  → 需要 Anthropic ↔ OpenAI 格式转换
+  → IDE 检测通过路径 + 指纹
+```
+
 ## 四、Skills 注入机制（减少幻觉 + 增强代码能力）
 
 ### 4.1 核心思路
