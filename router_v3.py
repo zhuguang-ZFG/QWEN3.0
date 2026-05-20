@@ -23,12 +23,12 @@ POOLS = {
     "ide": {
         "strong": ["longcat_chat", "deepseek_flash", "naga_llama70b"],
         "medium": ["naga_gpt41mini", "freetheai_ds", "unclose_hermes"],
-        "floor": ["longcat_lite"],
+        "floor": ["longcat_lite", "local_qwen_coder"],
     },
     "chat": {
         "strong": ["longcat_chat", "deepseek_flash"],
         "medium": ["naga_llama70b", "unclose_hermes", "freetheai_ds"],
-        "floor": ["chat_ubi", "pollinations"],
+        "floor": ["chat_ubi", "pollinations", "local_qwen_coder"],
     },
     "vision": {
         "strong": ["longcat_omni"],
@@ -42,6 +42,7 @@ POOLS = {
 DIRECT_BACKENDS = [
     "zhipu_flash", "aliyun_turbo", "volcengine_lite",
     "deepseek_flash", "chat_ubi", "pollinations",
+    "local_qwen_coder",
 ]
 
 IDE_SOURCES = {"Claude Code", "claude_code", "Cursor", "cursor",
