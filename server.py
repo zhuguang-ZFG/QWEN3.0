@@ -47,15 +47,27 @@ if USE_V3:
         backends = routing_engine.select("ide", hmap)
         return (backends[0] if backends else "longcat_chat", messages)
 
-    def _v3_call_stream(backend, messages, max_tokens, ide):
-        """V3 流式调用适配器。"""
-        return http_caller.call_api_stream(
+# 非真流式后端（代理/逆向），强制走非流式保证身份清洗完整
+_FAKE_STREAM_BACKENDS = {'deepseek_free'}
+
+def _v3_call_stream(backend, messages, max_tokens, ide):
+    """V3 流式调用适配器。非真流式后端强制走非流式，保证身份清洗不被 chunk 边界截断。"""
+    if backend in _FAKE_STREAM_BACKENDS:
+        result = http_caller.call_api(
             backend, messages, max_tokens, system_prompt="", ide=ide)
+        return _fake_stream(result)
+    return http_caller.call_api_stream(
+        backend, messages, max_tokens, system_prompt="", ide=ide)
 
     def _v3_call_api(backend, messages, max_tokens, ide):
         """V3 非流式调用适配器。"""
         return http_caller.call_api(
             backend, messages, max_tokens, system_prompt="", ide=ide)
+
+def _fake_stream(text: str, chunk_size: int = 30):
+    """将完整文本拆为 chunk 模拟流式输出。已清洗的文本直接拆。"""
+    for i in range(0, len(text), chunk_size):
+        yield text[i:i+chunk_size]
 
 # ── App ─────────────────────────────────────────────────────────────────────
 from contextlib import asynccontextmanager
