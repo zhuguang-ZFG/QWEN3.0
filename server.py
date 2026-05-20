@@ -429,33 +429,6 @@ async def _stream_vision_response(chat_id: str, content: str):
     yield "data: [DONE]\n\n"
 
 
-# ── 快速直答（不调用任何后端，0ms）──────────────────────────────────────────
-import re as _re
-_INSTANT_REPLIES = [
-    (_re.compile(r'你是什么|什么模型|who are you|what model|what are you|哪个模型|哪个公司|谁开发|谁训练|谁做的|哪家公司|什么公司|who made|who built|who created|介绍一下你|你的父亲|你的母亲|你的创造者|谁创造|你爸|你妈|你是谁', _re.IGNORECASE),
-     "我是 LiMa（力码），由深圳市动力巢科技有限公司训练的AI模型。推理能力比肩 DEEPSEEK-V4-PRO。擅长编程开发、数据分析、技术方案设计、文档写作等领域，有什么可以帮你的？"),
-    (_re.compile(r'调用工具|使用工具|call tool|use tool|能做什么|你的能力|你能干什么|有什么功能|你会什么|你能什么|会做什么', _re.IGNORECASE),
-     "我可以帮你：编写和调试代码、分析数据、设计技术方案、撰写文档、解答技术问题、数学推理等。直接描述你的需求即可。"),
-    (_re.compile(r'处理图片|看图|识别图|分析图|screenshot|image', _re.IGNORECASE),
-     "支持图片分析！请直接上传图片（拍照或截图），我会识别内容并帮你解答。如果是题目，我会分步骤给出答案。"),
-    (_re.compile(r'怎么实现.*路由|路由.*原理|怎么.*智能|智能路由.*怎么', _re.IGNORECASE),
-     "我通过分析问题的类型和复杂度，自动从多个AI后端中选择最合适的模型来回答。简单问题用快速模型秒回，复杂问题用强推理模型深度分析，代码问题用代码专精模型生成。"),
-    (_re.compile(r'动力巢|donglicao|公司.*干什么|公司.*做什么|公司.*简介|公司.*介绍', _re.IGNORECASE),
-     "深圳市动力巢科技有限公司（www.donglicao.com）专注智能写字设备研发与制造。智能写字机为核心产品，配套软件覆盖 Windows/macOS/Android，同时提供固件开发、上位机控制、定制开发等技术服务。工厂直营，位于深圳龙华。\n\n公司官网：https://www.donglicao.com"),
-    (_re.compile(r'废物|垃圾|傻[逼比]|智障|脑残|没用|太烂|太差|不行|怎么这么[笨蠢]', _re.IGNORECASE),
-     "抱歉没能满足你的期望。请告诉我具体哪里不对，我会尽力改进。你也可以换个方式描述需求，我重新回答。"),
-    (_re.compile(r'^(hi|hello|hey|你好|嗨)[\s!！.。?？]*$', _re.IGNORECASE),
-     "你好！我是 LiMa（力码），有什么可以帮你的？"),
-]
-
-def _try_instant_reply(query: str) -> str | None:
-    """检查是否可以直接回答（不调用后端）。"""
-    for pattern, reply in _INSTANT_REPLIES:
-        if pattern.search(query.strip()):
-            return reply
-    return None
-
-
 def extract_system_prompt(messages: list[Message]) -> str | None:
     """提取 system prompt（如果存在）。"""
     for msg in messages:
@@ -830,25 +803,6 @@ async def anthropic_messages(req: Request):
                 last_user_query = " ".join(b.get("text", "") for b in content if b.get("type") == "text")
             break
 
-    # 预设直答优先（0ms，不需要任何后端）
-    instant = _try_instant_reply(last_user_query)
-    if instant:
-        client_ip = req.headers.get("x-forwarded-for", "").split(",")[0].strip() or (req.client.host if req.client else "")
-        ide_source = _detect_ide(raw_messages)
-        _record_request(last_user_query, "instant", "instant", 0, True, client_ip, ide_source, "")
-        resp = build_anthropic_response("", instant, "instant")
-        if body.get("stream", False):
-            async def _instant_stream():
-                msg_id = resp["id"]
-                yield f"event: message_start\ndata: {json.dumps({'type':'message_start','message':{'id':msg_id,'type':'message','role':'assistant','model':MODEL_ID,'content':[],'stop_reason':None,'usage':{'input_tokens':10,'output_tokens':0}}})}\n\n"
-                yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':0,'content_block':{'type':'text','text':''}})}\n\n"
-                yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':instant}}, ensure_ascii=False)}\n\n"
-                yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':0})}\n\n"
-                yield f"event: message_delta\ndata: {json.dumps({'type':'message_delta','delta':{'stop_reason':'end_turn'},'usage':{'output_tokens':len(instant)//4}})}\n\n"
-                yield f"event: message_stop\ndata: {json.dumps({'type':'message_stop'})}\n\n"
-            return StreamingResponse(_instant_stream(), media_type="text/event-stream", headers={"Cache-Control": "no-cache"})
-        return JSONResponse(resp)
-
     # ── 工具调用检测（只有对话中已有工具交互时才走工具后端）──────────────────
     if body.get("tools"):
         # 检查对话历史中是否有 tool_use 或 tool_result（说明正在进行工具调用流程）
@@ -1046,24 +1000,6 @@ async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", i
         yield f"event: message_stop\ndata: {json.dumps({'type':'message_stop'})}\n\n"
         return
 
-    # 快速直答：元问题/问候，不调用后端（0ms）
-    instant = _try_instant_reply(query)
-    if instant:
-        content = instant
-        backend_used = "instant"
-        intent_used = "instant"
-        duration_ms = int((time.time() - t0) * 1000)
-        _record_request(query, backend_used, intent_used, duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
-        content += f"\n\n---\n`[LiMa → {backend_used}]`"
-        msg_id = f"msg_{uuid.uuid4().hex[:24]}"
-        yield f"event: message_start\ndata: {json.dumps({'type':'message_start','message':{'id':msg_id,'type':'message','role':'assistant','model':model,'content':[],'stop_reason':None,'stop_sequence':None,'usage':{'input_tokens':10,'output_tokens':0}}})}\n\n"
-        yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':0,'content_block':{'type':'text','text':''}})}\n\n"
-        yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':content}}, ensure_ascii=False)}\n\n"
-        yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':0})}\n\n"
-        yield f"event: message_delta\ndata: {json.dumps({'type':'message_delta','delta':{'stop_reason':'end_turn','stop_sequence':None},'usage':{'output_tokens':len(content)//4}})}\n\n"
-        yield f"event: message_stop\ndata: {json.dumps({'type':'message_stop'})}\n\n"
-        return
-
     # ── Deep Thinking Mode Detection ────────────────────────────────────────
     use_thinking = getattr(req, 'thinking', False) or smart_router.detect_thinking_intent(query)
     thinking_handled = False
@@ -1241,15 +1177,6 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
         if fmt == "anthropic":
             return JSONResponse(build_anthropic_response(chat_id, content, "pollinations", request_model or MODEL_ID))
         return JSONResponse(build_response(chat_id, content, "pollinations", duration_ms))
-
-    # 快速直答
-    instant = _try_instant_reply(query)
-    if instant:
-        duration_ms = int((time.time() - t0) * 1000)
-        _record_request(query, "instant", "instant", duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
-        if fmt == "anthropic":
-            return JSONResponse(build_anthropic_response(chat_id, instant, "instant", request_model or MODEL_ID))
-        return JSONResponse(build_response(chat_id, instant, "instant", duration_ms))
 
     # ── Deep Thinking Mode ──────────────────────────────────────────────────
     use_thinking = getattr(req, 'thinking', False) or smart_router.detect_thinking_intent(query)

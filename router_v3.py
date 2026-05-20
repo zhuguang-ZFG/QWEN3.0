@@ -28,7 +28,7 @@ POOLS = {
     "chat": {
         "strong": ["longcat_chat", "deepseek_flash"],
         "medium": ["naga_llama70b", "unclose_hermes", "freetheai_ds"],
-        "floor": ["chat_ubi", "pollinations", "local_qwen_coder"],
+        "floor": ["chat_ubi", "llm7", "pollinations", "local_qwen_coder"],
     },
     "vision": {
         "strong": ["longcat_omni"],
@@ -40,8 +40,8 @@ POOLS = {
 }
 
 DIRECT_BACKENDS = [
-    "zhipu_flash", "aliyun_turbo", "volcengine_lite",
-    "deepseek_flash", "chat_ubi", "pollinations",
+    "zhipu_flash", "zhipu_flash7", "aliyun_turbo", "volcengine_lite",
+    "deepseek_flash", "silicon_qwen8b", "chat_ubi", "llm7", "pollinations",
     "local_qwen_coder",
 ]
 
@@ -190,6 +190,14 @@ _LANG_KEYWORDS = {
     "rust": ["rust", "cargo", "borrow"],
     "java": ["java", "spring", "maven", "gradle"],
 }
+
+
+def detect_ide_from_system_prompt(text: str) -> str:
+    """公开接口：从 system prompt 检测 IDE 来源"""
+    for ide, markers in _IDE_FINGERPRINTS.items():
+        if any(m in text for m in markers):
+            return ide
+    return ""
 
 
 def get_skills_to_inject(ide_source: str, system_prompt: str,

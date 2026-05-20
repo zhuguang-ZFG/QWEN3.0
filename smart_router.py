@@ -280,6 +280,21 @@ BACKENDS = {
                         'key': 'none', 'model': 'auto', 'fmt': 'openai', 'timeout': 20},
     'pollinations':    {'url': 'https://text.pollinations.ai/openai',
                         'key': 'none', 'model': 'openai', 'fmt': 'openai', 'timeout': 30},
+    # ── NagaAI 免费 (Discord 注册, 13 模型, ng-* key) ──
+    'naga_llama70b':   {'url': 'https://api.naga.ai/v1/chat/completions',
+                        'key': os.environ.get('NAGA_API_KEY', ''),
+                        'model': 'llama-3.3-70b', 'fmt': 'openai', 'timeout': 20},
+    'naga_gpt41mini':  {'url': 'https://api.naga.ai/v1/chat/completions',
+                        'key': os.environ.get('NAGA_API_KEY', ''),
+                        'model': 'gpt-4.1-mini', 'fmt': 'openai', 'timeout': 20},
+    # ── FreeTheAi (Discord 注册, 16000+ 模型, sta_* key) ──
+    'freetheai_ds':    {'url': 'https://api.freetheai.xyz/v1/chat/completions',
+                        'key': os.environ.get('FREETHEAI_API_KEY', ''),
+                        'model': 'yng/gemini-3-1-pro', 'fmt': 'openai', 'timeout': 20},
+    # ── ZukiJourney (Discord 注册, Mistral 系列, zu-* key) ──
+    'zuki_codestral':  {'url': 'https://zukijourney.com/v1/chat/completions',
+                        'key': os.environ.get('ZUKI_API_KEY', ''),
+                        'model': 'codestral-latest', 'fmt': 'openai', 'timeout': 20},
 }
 
 # 对外暴露的统一模型名（用户永远看不到真实模型名）

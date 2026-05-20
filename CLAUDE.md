@@ -36,15 +36,30 @@
 ## 项目结构
 
 ```
-/opt/lima-router/          ← 服务器部署目录
-├── server.py              ← 主入口 (FastAPI)
-├── smart_router.py        ← 旧路由引擎 (逐步替换)
-├── router_v3.py           ← V3 三层路由核心
-├── health_tracker.py      ← 健康追踪
-├── sticky_session.py      ← 会话亲和
-├── key_rotation.py        ← Key 轮转
-├── path_proxy.py          ← 路径代理
-└── key_pool.json          ← Key 池配置
+D:/GIT/
+├── server.py              2027行  FastAPI入口（待拆分）
+├── smart_router.py        2276行  旧路由引擎（待清理）
+├── routing_engine.py      226行  五层统一路由 ✅
+├── router_v3.py           225行  三层路由+P2C ✅
+├── v3_integration.py      111行  V3入口+fallback ✅
+├── health_tracker.py      119行  被动追踪 ✅
+├── sticky_session.py       60行  会话亲和 ✅
+├── key_pool.py            142行  SWRR轮转 ✅
+├── semantic_cache.py      103行  缓存 ✅
+├── probe_loop.py           80行  主动探活 ✅
+├── skills_injector.py     205行  智能补缺 ✅
+├── response_builder.py     92行  响应格式 ✅
+├── fallback_chain.py       69行  降级链 ✅
+├── stats_collector.py     147行  统计收集 ✅
+├── vision_handler.py      138行  视觉路由 ✅
+├── tool_handler.py        145行  工具转发 ✅
+├── backends.py            109行  77后端配置 ✅
+├── deploy_v3.py            91行  一键部署 ✅
+├── patch_server_v3.py     135行  服务器patch ✅
+├── orchestrate.py              多步编排
+├── voice_gateway.py            WebSocket语音
+├── skills/                     6个skill文件
+└── docs/                       19份设计文档
 ```
 
 ## 开发流程
@@ -68,6 +83,11 @@
 
 ## 关键设计文档
 
-- `docs/ROUTING_V3_DESIGN.md` — 功能设计 (8模块)
+- `docs/ROUTING_V3_DESIGN.md` — V3 功能设计 (8模块)
 - `docs/ROUTING_FIX_PLAN.md` — 实现方案 (14模块)
+- `docs/SKILLS_INJECTION_DESIGN.md` — Skills智能补缺 (双模式)
+- `docs/LOCAL_MODEL_DESIGN.md` — 本地模型部署设计
+- `docs/IDE_CONTEXT_PATTERNS.md` — IDE逆向分析 (Claude/Cursor/Codex)
+- `docs/SERVER_REFACTOR_PLAN.md` — 服务器拆分设计 (4 Phase)
+- `docs/ROUTING_ENGINE_DESIGN.md` — 五层统一路由设计
 - `STATUS.md` — 项目状态追踪
