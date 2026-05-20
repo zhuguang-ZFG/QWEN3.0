@@ -465,7 +465,96 @@ def select_backends(request_type: str) -> list:
 
 ## 十二、源码分析关键发现
 
-### 12.1 LiteLLM Router — 冷却期机制（最值得借鉴）
+### 12.0 第二批源码分析（Olla/OmniRoute/GPT-Load/One Balance/LunarGate）
+
+#### Olla — Sticky Sessions（解决上下文丢失）
+
+```python
+# 核心：对话前缀 hash → 粘在同一后端
+def compute_sticky_key(model, messages_json, prefix_bytes=512):
+    prefix = messages_json[:prefix_bytes].encode()
+    h = hashlib.blake2b(prefix, digest_size=8).hexdigest()
+    return f"{model}:{h}"
+
+# 流程：查缓存 → 命中且健康 → 直接路由 → 未命中 → 正常选路 → 写入缓存
+# TTL 5分钟滑动续期（每次命中刷新过期时间）
+# 后端死亡时 repin（删旧key，重新选路写入新key）
+```
+
+#### Olla — Circuit Breaker 参数
+
+| 参数 | 值 | 含义 |
+|------|-----|------|
+| FailureThreshold | 5 | 连续 5 次失败 → Open |
+| SuccessThreshold | 2 | Half-Open 成功 2 次 → Closed |
+| OpenDuration | 60s | Open 持续 60s 后转 Half-Open |
+| HalfOpenRequests | 3 | Half-Open 最多放行 3 个探测 |
+
+Half-Open 单次失败立即重回 Open（防级联）。
+
+#### OmniRoute — P2C (Power of Two Choices) 算法
+
+```python
+# 比纯随机更好的负载均衡：随机选2个，取更健康的
+def p2c_select(targets, get_score):
+    i, j = random.sample(range(len(targets)), 2)
+    return targets[i] if get_score(targets[i]) >= get_score(targets[j]) else targets[j]
+
+# 健康分 = 成功率/100 + 1/log10(延迟+10) - 熔断惩罚
+```
+
+#### OmniRoute — Semantic Cache（精确匹配，非向量）
+
+```python
+# key = SHA-256(model + messages + temperature + top_p)
+# 仅缓存 temperature=0 的请求（确定性输出）
+# 两级存储：LRU内存(100条/4MB) + SQLite持久化
+def cache_key(model, messages, temperature=0):
+    payload = json.dumps({"model": model, "messages": messages,
+                          "temperature": temperature}, sort_keys=True)
+    return hashlib.sha256(payload.encode()).hexdigest()
+```
+
+#### OmniRoute — 三层 Fallback 隔离
+
+| 层级 | 粒度 | 失败影响范围 |
+|------|------|-------------|
+| Provider Circuit Breaker | 供应商级 | 整个供应商暂停 |
+| Connection Cooldown | 账号级 | 单个 key 冷却 |
+| Model Lockout | 模型级 | 单个模型锁定 |
+
+关键：一个 key 429 不会导致整个供应商被封。
+
+#### GPT-Load — SWRR 权重轮转（和 Nginx 一致）
+
+```python
+# Smooth Weighted Round-Robin
+# 每轮: currentWeight += weight, 选最大者, 然后 -= totalWeight
+items = [{"name": "A", "weight": 5, "current": 0},
+         {"name": "B", "weight": 3, "current": 0}]
+```
+
+#### GPT-Load — Key 池管理
+
+- 分组 Key 管理：每个 group 维护 active_keys 列表
+- 轮换：RPOPLPUSH 语义（尾部取出推回头部）
+- 拉黑：failure_count 达阈值 → 移出 active list
+- 恢复：后台线程每 5 分钟扫描，验证通过推回 active
+
+#### One Balance — 分级冷却
+
+```python
+# 分钟级冷却：解析 Retry-After header
+# 天级冷却：连续 N 次 429 → 冷却到次日 0 点
+# 永久拉黑：401/403 → status='blocked'，不自动恢复
+```
+
+#### LunarGate — Circuit Breaker
+
+直接用 `pybreaker` 库（Go 版用 `sony/gobreaker`），不需要自研。
+参数：5 次连续失败触发，30s Open，3 次 Half-Open 探测。
+
+### 12.1 第一批源码分析（LiteLLM/RouteLLM/Portkey）
 
 **核心设计：用 Cache TTL 代替定时器**
 
@@ -596,16 +685,23 @@ default: "fallback-target"
 
 ## 十三、对我们设计的修正
 
-基于源码分析，修正原方案：
+基于两批源码分析（8个项目），修正原方案：
 
-| 原设计 | 修正为 | 原因 |
+| 原设计 | 修正为 | 来源 |
 |--------|--------|------|
-| 冷却时间 30s | **5s** | LiteLLM 默认 5s，足够让限流恢复 |
-| 连续 5 次失败 → dead | **失败率>50% 且请求≥5** | 统计触发比固定次数更合理 |
-| 400 错误 → suspicious | **不冷却** | 400 是调用方问题，不是后端问题 |
-| 固定优先级选后端 | **延迟滑动窗口 + buffer 随机** | 自动选最快的，防止热点 |
-| 自己实现熔断器 | **用 TTL cache 代替** | 更简单，到期自动恢复 |
-| max retries 无限制 | **max_fallbacks=5** | 防止递归爆炸 |
+| 冷却时间 30s | **5s** | LiteLLM 默认 5s |
+| 连续 5 次失败 → dead | **失败率>50% 且请求≥5** | LiteLLM 统计触发 |
+| 400 错误 → suspicious | **不冷却** | LiteLLM (调用方问题) |
+| 固定优先级选后端 | **P2C + 延迟滑动窗口** | OmniRoute + LiteLLM |
+| 自己实现熔断器 | **用 pybreaker 库** | LunarGate (包装 gobreaker) |
+| max retries 无限制 | **max_fallbacks=5** | LiteLLM |
+| 多轮对话路由到不同后端 | **Sticky Sessions (prefix_hash)** | Olla |
+| 纯随机选后端 | **P2C (随机2选1更健康的)** | OmniRoute |
+| 无缓存 | **Semantic Cache (SHA-256精确匹配)** | OmniRoute |
+| Key 管理简单 | **SWRR权重轮转 + 分级冷却 + 自动恢复** | GPT-Load + One Balance |
+| 一个 key 429 封整个供应商 | **三层隔离 (供应商/账号/模型)** | OmniRoute |
+| 改配置要重启 | **watchdog 文件监听热重载** | LunarGate |
+| 429 统一处理 | **解析 Retry-After header + 分钟/天级区分** | One Balance |
 
 ## 十四、并发支持
 
