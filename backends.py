@@ -105,7 +105,7 @@ BACKENDS = {
     'ovh_llama70b': {'url': 'https://llama-3-3-70b-instruct.endpoints.ai.cloud.ovh.net/v1/chat/completions', 'key': 'none', 'model': 'Llama-3.3-70B-Instruct', 'fmt': 'openai', 'timeout': 30},
     'ovh_deepseek': {'url': 'https://deepseek-r1-distill-qwen-32b.endpoints.ai.cloud.ovh.net/v1/chat/completions', 'key': 'none', 'model': 'DeepSeek-R1-Distill-Qwen-32B', 'fmt': 'openai', 'timeout': 45},
     # ── 新增: Cohere (Command A 111B, Mamba+Transformer 自研架构) ──
-    'cohere_command': {'url': 'https://api.cohere.com/v2/chat', 'key': os.environ.get('COHERE_API_KEY', ''), 'model': 'command-a-03-2025', 'fmt': 'openai', 'timeout': 30},
+    'cohere_command': {'url': 'https://api.cohere.com/v1/chat/completions', 'key': os.environ.get('COHERE_API_KEY', ''), 'model': 'command-a-03-2025', 'fmt': 'openai', 'timeout': 30},
     # ── 新增: SambaNova Cloud (芯片级加速推理) ──
     'sambanova_llama4': {'url': 'https://api.sambanova.ai/v1/chat/completions', 'key': os.environ.get('SAMBANOVA_API_KEY', ''), 'model': 'Meta-Llama-4-Maverick-17B-128E-Instruct', 'fmt': 'openai', 'timeout': 20},
     'sambanova_ds_v3': {'url': 'https://api.sambanova.ai/v1/chat/completions', 'key': os.environ.get('SAMBANOVA_API_KEY', ''), 'model': 'DeepSeek-V3.2', 'fmt': 'openai', 'timeout': 30},
