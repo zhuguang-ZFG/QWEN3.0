@@ -1,8 +1,24 @@
 #!/usr/bin/env python3
-"""LiMa Smart Router
-Two-layer routing: fast rules (80%) + local model (20% ambiguous)
-Local model: intent analysis + prompt expansion
-External APIs: Claude (complex), LongCat (code/general), local (simple CNC)
+"""LiMa Smart Router (LEGACY — 逐步迁移到新模块)
+
+迁移状态:
+  BACKENDS 字典       → backends.py         (已提取，此处保留供 server.py 兼容)
+  detect_vision_request → vision_handler.py  (已提取)
+  convert_openai_vision_to_anthropic → vision_handler.py (已提取)
+  路由逻辑             → routing_engine.py   (V4 五层路由)
+  响应构建             → response_builder.py (已提取)
+  Fallback             → fallback_chain.py   (已提取)
+  统计收集             → stats_collector.py  (已提取)
+  Tool Call            → tool_handler.py     (已提取)
+  Skills 注入          → skills_injector.py  (已提取)
+
+仍在 smart_router.py 保留(server.py 直接依赖):
+  - call_api / call_api_stream
+  - 熔断器 (cb_allow/cb_record/cb_status)
+  - analyze / route / select_backend
+  - thinking/vision/image 检测
+  - clean_response / qa_check
+  - 本地模型路由
 """
 import json, os, sys, re, time, urllib.request
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
@@ -31,6 +47,7 @@ def _startup_check():
 # ── Config ──────────────────────────────────────────────────────────────────
 LM_URL = 'http://localhost:1234/v1/chat/completions'
 
+# ═══ BACKENDS 定义 (已提取 → backends.py) ═══════════════════════════════════════
 BACKENDS = {
     'claude':  {'url': 'https://right.codes/claude-aws/v1/messages',
                 'key': os.environ.get('CLAUDE_API_KEY', ''),
@@ -2103,6 +2120,7 @@ VISION_BACKENDS = ['longcat_omni', 'or_deepseek_r1']
 VISION_SYSTEM_PROMPT = "你是一位耐心的老师。用户上传了一道题目的图片。请：1. 识别题目内容 2. 分步骤解答 3. 给出最终答案。如果是选择题，明确指出正确选项。"
 
 
+# ═══ Vision 检测/转换 (已提取 → vision_handler.py) ══════════════════════════════
 def detect_vision_request(messages: list) -> bool:
     """Detect if any message contains image content (OpenAI vision format).
     OpenAI vision format: content is a list with {"type": "image_url", ...} blocks.
