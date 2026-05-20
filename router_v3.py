@@ -19,24 +19,24 @@ from typing import Optional
 
 # ─── 后端池定义 ───────────────────────────────────────────────────────────────
 
+# NOTE: groq/cerebras keys expired 2026-05-20, moved to medium until renewed
 POOLS = {
     "ide": {
-        "strong": ["groq_llama70b", "cerebras_gptoss", "zhipu_flash", "longcat_chat",
-                   "deepseek_free", "mistral_large",
+        "strong": ["zhipu_flash", "longcat_chat", "deepseek_free", "mistral_large",
                    "opencode_stealth", "fireworks_llama405b"],
-        "medium": ["groq_qwen32b", "groq_gptoss_20b", "cerebras_qwen235b", "mistral_devstral",
-                   "aliyun_qwen3", "nvidia_qwen_coder",
+        "medium": ["groq_llama70b", "cerebras_gptoss", "groq_qwen32b", "groq_gptoss_20b",
+                   "cerebras_qwen235b", "mistral_devstral", "aliyun_qwen3", "nvidia_qwen_coder",
                    "opencode_ds_flash", "opencode_qwen", "opencode_nemotron", "opencode_minimax",
                    "sambanova_llama4", "cohere_command",
                    "deepinfra_llama4", "deepinfra_qwen235b"],
         "floor": ["longcat_lite", "google_flash", "ovh_llama70b", "ovh_deepseek"],
     },
     "chat": {
-        "strong": ["groq_llama70b", "cerebras_gptoss", "zhipu_flash", "longcat_chat",
-                   "deepseek_free",
+        "strong": ["zhipu_flash", "longcat_chat", "deepseek_free",
                    "opencode_stealth", "fireworks_llama405b"],
-        "medium": ["groq_qwen32b", "mistral_large", "nvidia_qwen_coder",
-                   "sambanova_llama4", "cohere_command", "deepinfra_llama4", "deepinfra_qwen235b"],
+        "medium": ["groq_llama70b", "cerebras_gptoss", "groq_qwen32b", "mistral_large",
+                   "nvidia_qwen_coder", "sambanova_llama4", "cohere_command",
+                   "deepinfra_llama4", "deepinfra_qwen235b"],
         "floor": ["longcat_lite", "google_flash", "ovh_llama70b", "ovh_deepseek"],
     },
     "vision": {
