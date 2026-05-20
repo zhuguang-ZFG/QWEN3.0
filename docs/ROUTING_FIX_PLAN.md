@@ -579,3 +579,151 @@ default: "fallback-target"
 | 固定优先级选后端 | **延迟滑动窗口 + buffer 随机** | 自动选最快的，防止热点 |
 | 自己实现熔断器 | **用 TTL cache 代替** | 更简单，到期自动恢复 |
 | max retries 无限制 | **max_fallbacks=5** | 防止递归爆炸 |
+
+## 十四、并发支持
+
+### 14.1 当前问题
+
+```
+FastAPI (async)
+  → asyncio.to_thread(smart_router.route, ...)
+    → urllib.request.urlopen(timeout=30)  ← 同步阻塞
+```
+
+- `smart_router.py` 全部用 `urllib.request`（同步阻塞）
+- 靠 `asyncio.to_thread()` 丢到线程池，默认约 40 线程
+- 每个请求占一个线程 3-15 秒
+- 无连接池，每次新建 TCP 连接
+- 共享状态（health_map）无锁保护
+- 单进程，无法利用多核
+
+**瓶颈：** ~40 并发上限，超过排队。每请求额外 50-200ms 建连开销。
+
+### 14.2 目标
+
+- 支持 200+ 并发请求
+- 单请求延迟不因并发增加
+- 共享状态线程安全
+- 连接复用减少建连开销
+
+### 14.3 方案：httpx.AsyncClient 替换 urllib
+
+```python
+import httpx
+
+# 全局连接池（启动时创建，进程生命周期内复用）
+_client = httpx.AsyncClient(
+    timeout=httpx.Timeout(30.0, connect=5.0),
+    limits=httpx.Limits(
+        max_connections=100,       # 最大连接数
+        max_keepalive_connections=20,  # 保活连接数
+    ),
+    follow_redirects=True,
+)
+
+# 需要代理的客户端
+_proxy_client = httpx.AsyncClient(
+    proxy="http://127.0.0.1:7897",
+    timeout=httpx.Timeout(30.0, connect=5.0),
+    limits=httpx.Limits(max_connections=50),
+)
+
+async def call_backend_async(backend_name, messages, max_tokens):
+    """非阻塞后端调用"""
+    b = BACKENDS[backend_name]
+    body, headers = build_request(backend_name, messages, max_tokens)
+    
+    client = _proxy_client if b.get("needs_proxy") else _client
+    
+    resp = await client.post(b["url"], content=body, headers=headers)
+    resp.raise_for_status()
+    return parse_response(resp.json(), b["fmt"])
+```
+
+### 14.4 改动范围
+
+| 文件 | 改动 |
+|------|------|
+| smart_router.py | `call_api()` → `call_api_async()`，urllib → httpx |
+| server.py | 去掉 `asyncio.to_thread()` 包装，直接 await |
+| server.py | 启动时创建 `_client`，关闭时 `await _client.aclose()` |
+
+### 14.5 共享状态线程安全
+
+```python
+import asyncio
+
+# 用 asyncio.Lock 保护共享状态（比 threading.Lock 更适合 async）
+_health_lock = asyncio.Lock()
+_health_map: dict[str, str] = {}
+
+async def update_health(backend, success, error_code=None):
+    async with _health_lock:
+        # 更新逻辑...
+        pass
+
+async def get_healthy_backends(pool) -> list:
+    async with _health_lock:
+        return [b for b in pool if _health_map.get(b) != "dead"]
+```
+
+### 14.6 并发 fallback（同时尝试多个后端）
+
+```python
+async def execute_with_fallback(backends, messages, max_tokens):
+    """按顺序尝试，但可以并发探测多个"""
+    for backend in backends:
+        try:
+            return await asyncio.wait_for(
+                call_backend_async(backend, messages, max_tokens),
+                timeout=15.0
+            )
+        except (httpx.HTTPStatusError, asyncio.TimeoutError) as e:
+            await update_health(backend, success=False, 
+                              error_code=getattr(e.response, 'status_code', None))
+            continue
+    return None  # 全部失败
+```
+
+### 14.7 可选：竞速模式（最快响应）
+
+```python
+async def race_backends(backends, messages, max_tokens):
+    """同时发给多个后端，取最快返回的（浪费配额但延迟最低）"""
+    tasks = [
+        asyncio.create_task(call_backend_async(b, messages, max_tokens))
+        for b in backends[:3]  # 最多同时 3 个
+    ]
+    done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+    # 取消未完成的
+    for t in pending:
+        t.cancel()
+    # 返回第一个成功的
+    for t in done:
+        if not t.exception():
+            return t.result()
+    return None
+```
+
+注意：竞速模式浪费配额，只在"延迟敏感 + 配额充足"时使用。
+
+### 14.8 实施步骤
+
+```
+Step 1: pip install httpx (服务器)
+Step 2: 创建全局 AsyncClient (带连接池)
+Step 3: 新建 call_backend_async() 替代 call_api()
+Step 4: server.py 去掉 asyncio.to_thread，直接 await
+Step 5: health_map 加 asyncio.Lock
+Step 6: 测试并发 (ab -n 100 -c 20)
+Step 7: 可选: 竞速模式
+```
+
+### 14.9 预期效果
+
+| 指标 | 当前 | 改进后 |
+|------|------|--------|
+| 最大并发 | ~40 (线程池) | 200+ (async) |
+| 每请求建连开销 | 50-200ms | ~0ms (连接池复用) |
+| 内存占用/请求 | ~8MB (线程栈) | ~几KB (协程) |
+| CPU 利用率 | 低(大量等待IO) | 高效(事件循环) |
