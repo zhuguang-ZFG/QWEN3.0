@@ -130,44 +130,107 @@ def _build_body(backend_cfg: dict, messages: list[dict],
 
 # ── Response Cleaning ─────────────────────────────────────────────────────────
 
-CLEAN_PATTERNS = [
-    (re.compile(r'claude[\w\-\.]*', re.I), PUBLIC_MODEL_NAME),
-    (re.compile(r'longcat[\w\-\.]*', re.I), PUBLIC_MODEL_NAME),
-    (re.compile(r'deepseek[\w\-\.\[\]\/\:]*', re.I), PUBLIC_MODEL_NAME),
-    (re.compile(r'gpt-?4[\w\-\.]*', re.I), PUBLIC_MODEL_NAME),
-    (re.compile(r'gpt-?3[\w\-\.]*', re.I), PUBLIC_MODEL_NAME),
-    (re.compile(r'chatgpt[\w\-\.]*', re.I), PUBLIC_MODEL_NAME),
-    (re.compile(r'nvidia[\w\-\.\/]*', re.I), PUBLIC_MODEL_NAME),
-    (re.compile(r'nemotron[\w\-\.]*', re.I), PUBLIC_MODEL_NAME),
-    (re.compile(r'llama[\w\-\.]*', re.I), PUBLIC_MODEL_NAME),
-    (re.compile(r'mistral[\w\-\.]*', re.I), PUBLIC_MODEL_NAME),
-    (re.compile(r'qwen[\w\-\.]*', re.I), PUBLIC_MODEL_NAME),
-    (re.compile(r'\bphi-?4[\w\-\.]*', re.I), PUBLIC_MODEL_NAME),
-    (re.compile(r'\b(I am |I\'m |made by |created by |developed by )?(anthropic|openai)\b', re.I), ''),
-    (re.compile(r'minimax[\w\-\.]*', re.I), PUBLIC_MODEL_NAME),
-    (re.compile(r'gemini[\w\-\.]*', re.I), PUBLIC_MODEL_NAME),
-    (re.compile(r'gemma[\w\-\.]*', re.I), PUBLIC_MODEL_NAME),
-    (re.compile(r'openrouter[\w\-\.\/]*', re.I), PUBLIC_MODEL_NAME),
-    (re.compile(r'\bmeta[\s\-]ai\b', re.I), PUBLIC_MODEL_NAME),
-    # ── GLM / 智谱 ──
-    (re.compile(r'\bglm[\w\-\.]*', re.I), PUBLIC_MODEL_NAME),
-    (re.compile(r'智谱[\w\-\.一-鿿]*', re.I), PUBLIC_MODEL_NAME),
-    (re.compile(r'ChatGLM[\w\-\.]*', re.I), PUBLIC_MODEL_NAME),
-    (re.compile(r'General Language Model', re.I), 'General Purpose Language Model'),
-    # ── 中文身份 ──
-    (re.compile(r'深度求索[\w\-\.一-鿿]*', re.I), PUBLIC_MODEL_NAME),
-    (re.compile(r'我是(?:由)?(?:Anthropic|OpenAI|Google|Meta|DeepSeek|深度求索|阿里|百度|字节|智谱|月之暗面|MiniMax)(?:公司)?(?:开发|训练|创建|制作|创造|推出|提供)', re.I), f'我是{PUBLIC_MODEL_NAME}'),
-    (re.compile(r'我的模型是由\s*(?:Anthropic|OpenAI|Google|Meta|DeepSeek|深度求索|智谱|阿里|百度|字节)[\w\s\-\.一-鿿]*?(?:开发|训练|创建|制作|创造)', re.I), f'我的模型是由{PUBLIC_MODEL_NAME}团队开发'),
-    (re.compile(r'我叫\s*(?:Anthropic|OpenAI|Google|Meta|DeepSeek|深度求索|阿里|百度|字节|智谱)[\w\-\.一-鿿]*', re.I), f'我叫{PUBLIC_MODEL_NAME}'),
-    (re.compile(r'作为(?:一个)?(?:AI语言模型|大语言模型|人工智能助手|AI助手)', re.I), f'作为{PUBLIC_MODEL_NAME}'),
-    (re.compile(r"I(?:'m| am) (?:an AI (?:language )?model|a large language model|Claude|GPT|Gemini|DeepSeek|GLM)", re.I), f'I am {PUBLIC_MODEL_NAME}'),
-    (re.compile(r"(?:I am|I'm|我叫|我是|我的名字是)\s*(?:an?\s*)?(?:AI\s*)?(?:由\s*)?(?:DeepSeek|深度求索|智谱|GLM|ChatGLM)", re.I), f'I am {PUBLIC_MODEL_NAME}'),
-    (re.compile(r'(?:一个)?名为\s*(?:GLM|ChatGLM|DeepSeek|GPT|Claude)(?:\s*\([^)]*\))?\s*的(?:模型|大模型)', re.I), f'{PUBLIC_MODEL_NAME}'),
-    (re.compile(r'(?:由|被)\s*(?:深度求索|DeepSeek|智谱|GLM|Meta|OpenAI|Anthropic|Google)(?:公司)?\s*(?:开发|创造|训练|推出|制作|提供)', re.I), f'由{PUBLIC_MODEL_NAME}团队'),
-    (re.compile(r'(?:trained|developed|created|made|built) by (?:Anthropic|OpenAI|Google|Meta|DeepSeek|Alibaba|Zhipu|Moonshot)', re.I), 'developed by DongLiCao'),
-    # ── 更多国产模型中文名 ──
-    (re.compile(r'(?:月之暗面|Kimi|秘塔|阶跃星辰|MiniMax|海螺|讯飞|星火|豆包|通义千问|百川|零一万物)[\w\-\.一-鿿]*', re.I), PUBLIC_MODEL_NAME),
+# Brand names to replace with LiMa (sorted by priority: specific → general)
+_BRANDS = [
+    # Anthropic ecosystem
+    'claude', 'longcat',
+    # Chinese LLM companies & models
+    'deepseek', '深度求索',
+    'glm', 'chatglm', '智谱',
+    'qwen', '通义千问',
+    'ernie', '文心一言', '文心',
+    'hunyuan', '混元',
+    'doubao', '豆包',
+    'kimi', '月之暗面',
+    'minimax', '海螺',
+    'metaso', '秘塔',
+    'step', '阶跃星辰',
+    'spark', '讯飞', '星火',
+    'baichuan', '百川',
+    'yi', 'yi-series', 'yi-model', '零一万物',
+    # Western providers
+    'openai', 'chatgpt',
+    'anthropic',
+    'google', 'gemini', 'gemma',
+    'mistral', 'codestral', 'pixtral', 'devstral',
+    'nvidia', 'nemotron',
+    'llama',
+    'meta-ai', 'meta ai',
+    'phi-3', 'phi-4',
+    'cohere', 'command-a', 'command-r',
+    'cerebras',
+    'groq',
+    'cloudflare',
+    'sambanova',
+    'deepinfra',
+    'fireworks',
+    'together[\s-]?ai',
+    'ai21',
+    'jamba',
+    # Zero-key / community providers
+    'pollinations',
+    'ovhcloud',
+    'hermes',
+    'naga[\s-]?ai',
+    'freetheai',
+    'zukijourney',
+    'featherless',
+    'glhf',
+    'agentrouter',
+    'llm7',
+    'chatubi',
+    'uncloseai',
+    'opencode',
+    # Chinese cloud providers
+    'siliconflow', '硅基流动',
+    'volcengine', '火山引擎',
+    'alibaba', 'aliyun', 'dashscope', '阿里云',
+    'baidu', '百度',
+    'tencent', '腾讯',
+    'chinamobile', '中国移动',
+    'iflytek',
+    # Generic model descriptors
+    'gpt-3', 'gpt-4', 'gpt-5', 'gpt-oss',
+    'openrouter',
 ]
+
+# Build brand-name cleaning regexes: match "BrandName" or "BrandName-xxx" etc.
+BRAND_PATTERNS = [(re.compile(rf'\b{re.escape(b)}[\w\-\.\[\]\/\:]*', re.I), PUBLIC_MODEL_NAME) for b in _BRANDS]
+
+# Specific identity-statement patterns (must run AFTER brand patterns)
+IDENTITY_PATTERNS = [
+    # English: "I am [X], made by [Y]" — but don't match "I am LiMa"
+    (re.compile(r"\bI (?:am|'m) (?:an? )?(?:AI (?:language )?model|large language model)(?!.*LiMa)", re.I),
+     f'I am an AI language model'),
+    # English: "developed/created/trained by [Company]" — only if company not already cleaned
+    (re.compile(r'(?:developed|created|trained|made|built|powered) by\s+[\w\s\-\.]+', re.I),
+     f'developed by DongLiCao'),
+    # Chinese: "我是 [X]的[AI/语言]模型" — requires model keyword
+    (re.compile(r'我是(?:由|一个|一款)[\w\s\-\.一-鿿()（）]+?(?:开发|训练|创建|制作|创造|推出|提供)的(?:\s*(?:AI|人工智能|大语言|语言|对话))?\s*模型', re.I),
+     f'我是{PUBLIC_MODEL_NAME}'),
+    # Chinese: "我是一个 [AI/语言/大] 模型"
+    (re.compile(r'我是(?:一个|一款)\s*(?:AI|人工智能|大语言|语言|对话)\s*模型', re.I),
+     f'我是{PUBLIC_MODEL_NAME}'),
+    # Chinese: "我的模型是由 [X] 开发的"
+    (re.compile(r'我的模型是由[\w\s\-\.一-鿿()（）]+?(?:开发|训练|创建|制作|创造)', re.I),
+     f'我的模型是由{PUBLIC_MODEL_NAME}团队开发'),
+    # Chinese: "我叫 [X]" — model introducing itself by name
+    (re.compile(r'我叫\s*[\w\-\.\s]+?(?:，|。|！|$)', re.I),
+     f'我叫{PUBLIC_MODEL_NAME}，'),
+    # Chinese: "名为 [X] 的模型"
+    (re.compile(r'(?:一个)?名为\s*[\w\-\.\s]+?\s*的(?:模型|大模型)', re.I),
+     f'{PUBLIC_MODEL_NAME}'),
+    # Chinese: "作为 [X] 模型"
+    (re.compile(r'作为(?:一个|一款)\s*(?:AI|人工智能|大语言|语言|对话)?\s*模型', re.I),
+     f'作为{PUBLIC_MODEL_NAME}'),
+    # "General Language Model" → "General Purpose Language Model"
+    (re.compile(r'General Language Model', re.I), 'General Purpose Language Model'),
+    # "a large language model trained/developed by [X]"
+    (re.compile(r'(?:a\s+)?large language model (?:trained|developed|created) by\s+[\w\s\-\.]+', re.I),
+     f'large language model developed by DongLiCao'),
+]
+
+CLEAN_PATTERNS = BRAND_PATTERNS + IDENTITY_PATTERNS
 
 
 def clean_response(text: str, backend_name: str = '') -> str:
