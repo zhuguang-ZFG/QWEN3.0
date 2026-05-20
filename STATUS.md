@@ -19,7 +19,7 @@
 | semantic_cache.py | 103 | SHA-256精确匹配+LRU | ✅ |
 | probe_loop.py | 80 | 主动探活后台线程 | ✅ |
 | skills_injector.py | 205 | 智能补缺(双模式:目录/补缺) | ✅ 23/23 |
-| routing_engine.py | 226 | 五层统一路由(classify→select→inject→execute→respond) | ✅ 16/16 |
+| streaming.py | 158 | 纯流式核心(bridge+speculative) | ✅ 5/5 |
 
 ### Phase 1 提取模块
 
