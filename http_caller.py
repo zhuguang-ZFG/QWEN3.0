@@ -195,15 +195,14 @@ _BRANDS = [
 ]
 
 # Build brand-name cleaning regexes.
-# NOTE: \b doesn't work with Chinese chars (they're all \W in Python re).
-# For ASCII brands, \b prevents false matches (e.g. "claude" in "claudette").
-# For CJK brands, we rely on the literal string match — the risk is negligible.
+# ASCII brands: \bBrandName[\w\-.]*  (word boundary + word-char suffix)
+# CJK brands: literal match only, NO greedy suffix (would eat following verbs)
 def _build_brand_re(brand: str) -> re.Pattern:
     escaped = re.escape(brand)
-    # Use \b only for ASCII-starting brands
     if brand[0].isascii():
         return re.compile(rf'\b{escaped}[\w\-\.\[\]\/\:]*', re.I)
-    return re.compile(rf'{escaped}[\w\-\.一-鿿\/\:]*', re.I)
+    # CJK: match brand name literally, don't extend into surrounding text
+    return re.compile(rf'{escaped}', re.I)
 
 BRAND_PATTERNS = [(_build_brand_re(b), PUBLIC_MODEL_NAME) for b in _BRANDS]
 
