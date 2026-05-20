@@ -552,6 +552,7 @@ TOOL_BACKEND_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 ANTHROPIC_NATIVE_BACKENDS = ['longcat_chat', 'longcat', 'longcat_lite', 'longcat_thinking', 'longcat_omni']
 
 TOOL_TIER1_BACKENDS = [
+    'deepseek_free',
     'zhipu_flash', 'aliyun_qwen3',
     'groq_gptoss_20b', 'groq_qwen32b', 'groq_llama70b',
     'cerebras_gptoss', 'cerebras_qwen235b',
