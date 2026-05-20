@@ -1,15 +1,68 @@
 # LiMa AI 项目状态
 
-> 更新时间: 2026-05-20 17:00
-> 阶段: 17模块就绪 + Code Review 修复 + smart_router瘦身，待部署
+> 更新时间: 2026-05-21
+> 阶段: V3 路由引擎已集成 (Phase 1-3 完成)，待生产部署
 
 ---
 
-## 本次会话完成 (2026-05-20)
+## V3 集成完成 (2026-05-21)
+
+### Phase 1: HTTP 调用层提取
+
+| 文件 | 行数 | 功能 |
+|------|------|------|
+| http_caller.py | 290 | 统一HTTP调用(call_api/call_api_stream/probe/clean_response) |
+| test_http_caller.py | 26 tests | 全覆盖测试 |
+
+- 从 smart_router 提取，使用 health_tracker 替代旧熔断器
+- 修复: 流式路径未走 GFW 代理的 bug
+- 修复: 同步路径资源泄漏 (Code Review HIGH)
+- 修复: 流式 buffer 无限增长 (Code Review HIGH)
+- 删除 backends.py 中废弃的 ROUTE 字典
+
+### Phase 2: server.py 接入 routing_engine
+
+- `LIMA_V3=1/0` 环境变量灰度开关(默认开启)
+- 非流式路径: routing_engine.route() + http_caller.call_api
+- 流式路径: streaming.speculative_stream() + http_caller.call_api_stream
+- 保留 smart_router 作为 LIMA_V3=0 的完整回退
+- probe_loop 在 FastAPI lifespan 中自动启动
+
+### Phase 3: 辅助模块接入
+
+- vision_handler.py: 脱离 smart_router 依赖 → http_caller + health_tracker
+- orchestrate.py: 路由调用切换到 routing_engine + http_caller
+- routing_engine.py: 接入 semantic_cache (缓存检查+写入)
+- probe_loop: 通过 lifespan 自动启动/停止
+
+### 冒烟测试结果
+
+| 测试路径 | 结果 |
+|----------|------|
+| GET /health | ✅ |
+| POST /v1/chat/completions (非流式) | ✅ 后端 longcat_chat, 1311ms |
+| POST /v1/chat/completions (流式) | ✅ SSE chunks 正确 |
+| POST /v1/messages (Anthropic 非流式) | ✅ |
+| 中文流式 (UTF-8 文件发送) | ✅ |
+
+> 注意: Windows bash 环境中 curl -d 内联中文会被 GBK 编码，导致 500。
+> 这是测试环境问题，非代码 bug。生产环境(Linux)和真实 IDE 客户端不受影响。
+
+---
+
+## 待完成（按优先级）
+
+1. **部署 V3 到生产** — 上传新模块到 47.112.162.80 + 重启
+2. **端到端测试** — 真实 IDE (Claude Code/Cursor) 连接验证
+3. **Phase 4 清理** — 删除 v3_integration.py + smart_router 瘦身至 <500行
+4. **流式 fallback 增强** — 流式路径从 2 次 fallback 扩展到 5 次（与非流式对齐）
+5. **systemd 自启** — lima-router 服务配置
+
+---
+
+## 历史记录 (2026-05-20)
 
 ### V3 模块（全部编码+测试通过）
-
-| 文件 | 行数 | 功能 | 测试 |
 |------|------|------|------|
 | router_v3.py | 225 | 三层路由(分类/后端池/P2C) | ✅ 4/4 |
 | health_tracker.py | 119 | 被动追踪+TTL冷却+批量熔断 | ✅ |
