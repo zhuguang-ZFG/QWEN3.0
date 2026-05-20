@@ -583,9 +583,9 @@ def _anthropic_native_forward_sync(body: dict) -> dict:
     from http_caller import call_raw, BackendError
     from backends import BACKENDS
 
-    # ── 估算 token 量，大请求直接跳过 Tier 1 ──
+    # ── 估算 token 量，超大请求跳过 Tier 1 避免超时 ──
     body_size = len(json.dumps(body, ensure_ascii=False))
-    skip_tier1 = body_size > 30000
+    skip_tier1 = body_size > 100000  # 100KB+, Claude Code ~30-40KB now passes
 
     # ── 第一梯队：OpenAI 格式后端（需格式转换）──
     openai_tools = _convert_tools_anthropic_to_openai(body.get("tools", []))
@@ -651,9 +651,9 @@ async def _anthropic_native_stream(body: dict):
     from backends import BACKENDS
     import health_tracker as _ht
 
-    # ── 估算 token 量，大请求直接跳过 Tier 1 ──
+    # ── 估算 token 量，超大请求跳过 Tier 1 避免超时 ──
     body_size = len(json.dumps(body, ensure_ascii=False))
-    skip_tier1 = body_size > 30000
+    skip_tier1 = body_size > 100000  # 100KB+, Claude Code ~30-40KB now passes
 
     # ── 第一梯队：OpenAI 格式（非流式获取，模拟 Anthropic SSE 输出）──
     openai_tools = _convert_tools_anthropic_to_openai(body.get("tools", []))
