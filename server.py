@@ -549,7 +549,7 @@ TOOL_BACKEND_URL = "https://openrouter.ai/api/v1/chat/completions"
 TOOL_BACKEND_MODEL = "deepseek/deepseek-v4-flash:free"
 TOOL_BACKEND_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 
-ANTHROPIC_NATIVE_BACKENDS = ['longcat_chat', 'longcat', 'longcat_lite', 'longcat_thinking', 'longcat_omni']
+ANTHROPIC_NATIVE_BACKENDS = ['longcat_chat', 'longcat', 'deepseek_free', 'longcat_lite', 'longcat_thinking', 'longcat_omni']
 
 TOOL_TIER1_BACKENDS = [
     'deepseek_free',
