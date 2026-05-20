@@ -90,7 +90,7 @@ def _extract_system(body: dict) -> str:
     system = body.get("system", "")
     if isinstance(system, list):
         return " ".join(b.get("text", "") for b in system if b.get("type") == "text")
-    if isinstance(system, str):
+    if isinstance(system, str) and system:
         return system
     msgs = body.get("messages", [])
     for m in msgs:
