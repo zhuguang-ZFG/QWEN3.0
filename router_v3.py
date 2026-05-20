@@ -22,7 +22,8 @@ from typing import Optional
 POOLS = {
     "ide": {
         "strong": ["longcat_chat", "longcat", "cf_qwen_coder", "cf_llama70b", "cf_kimi_k26",
-                   "groq_llama70b", "cerebras_gptoss", "zhipu_flash", "deepseek_free", "mistral_large",
+                   "mistral_large", "mistral_small",
+                   "groq_llama70b", "cerebras_gptoss", "zhipu_flash", "deepseek_free",
                    "opencode_stealth", "fireworks_llama405b"],
         "medium": ["cf_llama4", "cf_gptoss_120b", "cf_qwen3_30b", "cf_glm47", "cf_deepseek_r1",
                    "cf_qwq", "cf_mistral", "cf_gemma4", "cf_nemotron",
