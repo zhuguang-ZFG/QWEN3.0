@@ -379,7 +379,7 @@ def call_api_stream(backend: str, messages: list[dict], max_tokens: int = 4096,
                         break
                     text = _parse_sse_chunk(data_str, fmt)
                     if text:
-                        yield text
+                        yield clean_response(text, backend)
 
         latency_ms = int((time.time() - t0) * 1000)
         health_tracker.record_success(backend, latency_ms)
