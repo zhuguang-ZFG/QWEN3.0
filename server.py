@@ -1750,23 +1750,20 @@ async def _stream_response(chat_id: str, query: str, use_orchestration: bool, id
         yield build_stream_chunk(chat_id, chunk)
 
     if not streamed_any:
-        # All streaming failed, try non-streaming fallback
-        if USE_V3:
-            fallback_backend = _v3_predict(query)
-            fallback_msgs = [{"role": "user", "content": query}]
-            try:
-                fallback_result = await asyncio.to_thread(
-                    http_caller.call_api, fallback_backend, fallback_msgs,
-                    4096, system_prompt="", ide=ide_source)
-            except Exception:
-                fallback_result = None
-        else:
-            fallback_backend = smart_router.predict_fast_backend(query)
-            fallback_msgs = [{"role": "user", "content": query}]
-            fallback_result = await asyncio.to_thread(smart_router.call_api, fallback_backend, fallback_msgs, 4096, ide_source)
-        content = str(fallback_result) if fallback_result else "抱歉，当前服务繁忙，请稍后重试。"
-        if content.startswith('[ERR]'):
-            content = "抱歉，当前服务繁忙，请稍后重试。"
+        # All streaming failed, use routing_engine (has force-try logic)
+        try:
+            backends = routing_engine.select(
+                "chat" if not ide_source else "ide",
+                health_tracker.get_health_map())
+            backend, answer, _ = await asyncio.to_thread(
+                routing_engine.execute, backends,
+                lambda b, m, t: http_caller.call_api(b, m, t),
+                messages, 4096)
+            content = answer if answer else ""
+        except Exception:
+            content = ""
+        if not content or content.startswith('[ERR]'):
+            content = "抱歉，当前服务繁忙，请稍后重试。如果持续出现，请联系管理员。"
         sentences = _split_sentences(content)
         for sentence in sentences:
             yield build_stream_chunk(chat_id, sentence)
