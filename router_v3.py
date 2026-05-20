@@ -43,9 +43,6 @@ POOLS = {
                    "sambanova_llama4", "cohere_command", "deepinfra_llama4", "deepinfra_qwen235b"],
         "floor": ["longcat_lite", "google_flash", "ovh_llama70b", "ovh_deepseek"],
     },
-                   "deepinfra_llama4", "deepinfra_qwen235b"],
-        "floor": ["longcat_lite", "google_flash", "ovh_llama70b", "ovh_deepseek"],
-    },
     "vision": {
         "strong": ["longcat_omni"],
         "floor": ["pollinations"],
