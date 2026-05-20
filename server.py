@@ -14,6 +14,21 @@ import uvicorn
 import smart_router
 from orchestrate import orchestrate, needs_orchestration
 
+
+def _last_resort_call(messages: list) -> str:
+    """Nuclear fallback: direct Cloudflare call, bypasses all routing/health logic."""
+    import urllib.request
+    url = f"https://api.cloudflare.com/client/v4/accounts/{os.environ.get('CLOUDFLARE_ACCOUNT_ID', '3e8dfc378deaf1a6f39fda85ceaca32b')}/ai/v1/chat/completions"
+    token = os.environ.get('CLOUDFLARE_TOKEN', 'cfut_de3IJemNLIVZMm6MCoWN7WUnbDIa8k1LoURbvjBc09dd9840')
+    body = json.dumps({"model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast", "messages": messages[-5:], "max_tokens": 4096}).encode()
+    req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"})
+    try:
+        resp = urllib.request.urlopen(req, timeout=30)
+        data = json.loads(resp.read().decode())
+        return data.get("choices", [{}])[0].get("message", {}).get("content", "")
+    except Exception:
+        return ""
+
 # ── V3 路由引擎（灰度切换） ──────────────────────────────────────────────────
 USE_V3 = os.environ.get("LIMA_V3", "1") == "1"
 if USE_V3:
@@ -1317,7 +1332,7 @@ async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", i
                         yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':chunk}}, ensure_ascii=False)}\n\n"
                         await asyncio.sleep(0.01)
                 else:
-                    total_text = "抱歉，当前服务繁忙，请稍后重试。"
+                    total_text = _last_resort_call(messages_to_dicts(req.messages)) or "系统维护中，请稍后重试。"
                     yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':total_text}}, ensure_ascii=False)}\n\n"
 
             # Footer
@@ -1380,7 +1395,7 @@ async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", i
     _record_request(query, backend_used, record_intent, duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
 
     if not content or not content.strip():
-        content = "抱歉，当前服务繁忙，请稍后重试。"
+        content = _last_resort_call(messages_to_dicts(req.messages)) or "系统维护中，请稍后重试。"
         backend_used = backend_used or "empty_response"
 
     content += f"\n\n---\n`[LiMa → {backend_used}]`"
@@ -1720,7 +1735,7 @@ async def _stream_response(chat_id: str, query: str, use_orchestration: bool, id
                 result = await asyncio.to_thread(smart_router.route, query, system_prompt=sys_prompt_preview, ide=ide_source, messages=messages, prefer=prefer)
             content = result.get("answer", "") if isinstance(result, dict) else str(result)
         if not content or not content.strip():
-            content = "抱歉，当前服务繁忙，请稍后重试。"
+            content = _last_resort_call(messages) or "系统维护中，请稍后重试。"
         sentences = _split_sentences(content)
         for sentence in sentences:
             yield build_stream_chunk(chat_id, sentence)
@@ -1734,7 +1749,7 @@ async def _stream_response(chat_id: str, query: str, use_orchestration: bool, id
         result = await asyncio.to_thread(orchestrate, query)
         content = result.get("answer", "") if isinstance(result, dict) else str(result)
         if not content or not content.strip():
-            content = "抱歉，当前服务繁忙，请稍后重试。"
+            content = _last_resort_call(messages) or "系统维护中，请稍后重试。"
         sentences = _split_sentences(content)
         for sentence in sentences:
             yield build_stream_chunk(chat_id, sentence)
@@ -1763,7 +1778,7 @@ async def _stream_response(chat_id: str, query: str, use_orchestration: bool, id
         except Exception:
             content = ""
         if not content or content.startswith('[ERR]'):
-            content = "抱歉，当前服务繁忙，请稍后重试。如果持续出现，请联系管理员。"
+            content = _last_resort_call(messages) or "系统维护中，请稍后重试。"
         sentences = _split_sentences(content)
         for sentence in sentences:
             yield build_stream_chunk(chat_id, sentence)
