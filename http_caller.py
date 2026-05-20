@@ -194,8 +194,18 @@ _BRANDS = [
     'openrouter',
 ]
 
-# Build brand-name cleaning regexes: match "BrandName" or "BrandName-xxx" etc.
-BRAND_PATTERNS = [(re.compile(rf'\b{re.escape(b)}[\w\-\.\[\]\/\:]*', re.I), PUBLIC_MODEL_NAME) for b in _BRANDS]
+# Build brand-name cleaning regexes.
+# NOTE: \b doesn't work with Chinese chars (they're all \W in Python re).
+# For ASCII brands, \b prevents false matches (e.g. "claude" in "claudette").
+# For CJK brands, we rely on the literal string match — the risk is negligible.
+def _build_brand_re(brand: str) -> re.Pattern:
+    escaped = re.escape(brand)
+    # Use \b only for ASCII-starting brands
+    if brand[0].isascii():
+        return re.compile(rf'\b{escaped}[\w\-\.\[\]\/\:]*', re.I)
+    return re.compile(rf'{escaped}[\w\-\.一-鿿\/\:]*', re.I)
+
+BRAND_PATTERNS = [(_build_brand_re(b), PUBLIC_MODEL_NAME) for b in _BRANDS]
 
 # Specific identity-statement patterns (must run AFTER brand patterns)
 IDENTITY_PATTERNS = [
