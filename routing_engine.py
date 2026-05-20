@@ -109,11 +109,13 @@ def execute(backends: list[str],
     """按序尝试后端，失败则 fallback。返回 (backend, answer, error_count)"""
     t0 = time.time()
     errors = 0
+    tried_any = False
 
     for backend in backends[:MAX_FALLBACKS]:
         if health_tracker.is_cooled_down(backend):
             errors += 1
             continue
+        tried_any = True
         try:
             answer = call_fn(backend, messages, max_tokens)
             if answer and len(answer.strip()) > 5:
@@ -127,6 +129,18 @@ def execute(backends: list[str],
             code = _extract_code(e)
             health_tracker.record_failure(backend, error_code=code)
             errors += 1
+
+    # 全部冷却时强制试前3个，绝不空手而归
+    if not tried_any:
+        health_tracker.detect_and_reset_mass_failure()
+        for backend in backends[:3]:
+            try:
+                answer = call_fn(backend, messages, max_tokens)
+                if answer and len(answer.strip()) > 5:
+                    health_tracker.record_success(backend, (time.time() - t0) * 1000)
+                    return backend, answer, errors
+            except Exception:
+                errors += 1
 
     # 批量熔断检测 + 直连保底
     if health_tracker.detect_and_reset_mass_failure():
