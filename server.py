@@ -540,7 +540,7 @@ TOOL_BACKEND_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 ANTHROPIC_NATIVE_BACKENDS = ['longcat_chat', 'longcat', 'longcat_lite', 'longcat_thinking', 'longcat_omni']
 
 TOOL_TIER1_BACKENDS = [
-    'zhipu_flash',
+    'zhipu_flash', 'aliyun_qwen3',
     'groq_gptoss_20b', 'groq_qwen32b', 'groq_llama70b',
     'cerebras_gptoss', 'cerebras_qwen235b',
     'mistral_devstral', 'mistral_pixtral', 'mistral_large', 'mistral_small',
@@ -589,9 +589,12 @@ def _anthropic_native_forward_sync(body: dict) -> dict:
         if not name:
             break
         b = BACKENDS[name]
-        payload = json.dumps({"model": b["model"], "messages": openai_msgs,
+        req_body = {"model": b["model"], "messages": openai_msgs,
             "tools": openai_tools, "max_tokens": body.get("max_tokens", 4096),
-            "tool_choice": "auto"}, ensure_ascii=False).encode()
+            "tool_choice": "auto"}
+        if name.startswith("aliyun"):
+            req_body["enable_thinking"] = False
+        payload = json.dumps(req_body, ensure_ascii=False).encode()
         try:
             data = call_raw(name, payload)
             return _convert_response_openai_to_anthropic(data, b["model"])

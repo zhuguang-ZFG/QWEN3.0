@@ -83,8 +83,16 @@ BACKENDS = {
     'pollinations': {'url': 'https://text.pollinations.ai/openai', 'key': 'none', 'model': 'openai', 'fmt': 'openai', 'timeout': 30},
     'naga_llama70b': {'url': 'https://api.naga.ai/v1/chat/completions', 'key': os.environ.get('NAGA_API_KEY', ''), 'model': 'llama-3.3-70b', 'fmt': 'openai', 'timeout': 20},
     'naga_gpt41mini': {'url': 'https://api.naga.ai/v1/chat/completions', 'key': os.environ.get('NAGA_API_KEY', ''), 'model': 'gpt-4.1-mini', 'fmt': 'openai', 'timeout': 20},
+    'naga_glm45': {'url': 'https://api.naga.ai/v1/chat/completions', 'key': os.environ.get('NAGA_API_KEY', ''), 'model': 'glm-4.5-air', 'fmt': 'openai', 'timeout': 20},
+    'naga_llama4': {'url': 'https://api.naga.ai/v1/chat/completions', 'key': os.environ.get('NAGA_API_KEY', ''), 'model': 'llama-4-scout', 'fmt': 'openai', 'timeout': 20},
     'freetheai_ds': {'url': 'https://api.freetheai.xyz/v1/chat/completions', 'key': os.environ.get('FREETHEAI_API_KEY', ''), 'model': 'yng/gemini-3-1-pro', 'fmt': 'openai', 'timeout': 20},
+    'freetheai_gpt41': {'url': 'https://api.freetheai.xyz/v1/chat/completions', 'key': os.environ.get('FREETHEAI_API_KEY', ''), 'model': 'bbl/gpt-4.1', 'fmt': 'openai', 'timeout': 20},
+    'freetheai_swe': {'url': 'https://api.freetheai.xyz/v1/chat/completions', 'key': os.environ.get('FREETHEAI_API_KEY', ''), 'model': 'wsf/swe-1.6', 'fmt': 'openai', 'timeout': 20},
     'zuki_codestral': {'url': 'https://zukijourney.com/v1/chat/completions', 'key': os.environ.get('ZUKI_API_KEY', ''), 'model': 'codestral-latest', 'fmt': 'openai', 'timeout': 20},
+    'zuki_mistral_small': {'url': 'https://zukijourney.com/v1/chat/completions', 'key': os.environ.get('ZUKI_API_KEY', ''), 'model': 'mistral-small-latest', 'fmt': 'openai', 'timeout': 20},
+    'featherless': {'url': 'https://api.featherless.ai/v1/chat/completions', 'key': os.environ.get('FEATHERLESS_API_KEY', ''), 'model': 'Qwen/Qwen3-32B', 'fmt': 'openai', 'timeout': 20},
+    'glhf': {'url': 'https://glhf.chat/api/openai/v1/chat/completions', 'key': os.environ.get('GLHF_API_KEY', ''), 'model': 'hf:Qwen/Qwen3-32B', 'fmt': 'openai', 'timeout': 20},
+    'agentrouter': {'url': 'https://agentrouter.org/v1/chat/completions', 'key': os.environ.get('AGENTROUTER_API_KEY', ''), 'model': 'qwen/qwen3-32b', 'fmt': 'openai', 'timeout': 20},
 }
 
 PUBLIC_MODEL_NAME = os.environ.get('PUBLIC_MODEL_NAME', 'LiMa')
