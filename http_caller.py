@@ -256,9 +256,6 @@ def clean_response(text: str, backend_name: str = '') -> str:
 def call_api(backend: str, messages: list[dict], max_tokens: int = 4096,
              *, system_prompt: str = "", ide: str = "") -> str:
     """同步调用后端，返回清洗后的文本。失败抛 BackendError。"""
-    if health_tracker.is_cooled_down(backend):
-        raise BackendError(f'{backend} is cooled down', status_code=503)
-
     cfg = BACKENDS.get(backend)
     if not cfg or not cfg.get('key'):
         raise BackendError(f'{backend} unavailable (no key)', status_code=404)
@@ -292,8 +289,6 @@ def call_api(backend: str, messages: list[dict], max_tokens: int = 4096,
 
 def call_raw(backend: str, payload: bytes) -> dict:
     """发送预构建 payload 到后端，返回原始 JSON。用于 tool call 转发。"""
-    if health_tracker.is_cooled_down(backend):
-        raise BackendError(f'{backend} cooled down', status_code=503)
     cfg = BACKENDS.get(backend)
     if not cfg or not cfg.get('key'):
         raise BackendError(f'{backend} unavailable', status_code=404)
@@ -352,9 +347,6 @@ def _extract_code(e: Exception) -> Optional[int]:
 def call_api_stream(backend: str, messages: list[dict], max_tokens: int = 4096,
                     *, system_prompt: str = "", ide: str = "") -> Generator[str, None, None]:
     """流式调用后端，yield 文本 chunk。失败抛 BackendError。"""
-    if health_tracker.is_cooled_down(backend):
-        raise BackendError(f'{backend} is cooled down', status_code=503)
-
     cfg = BACKENDS.get(backend)
     if not cfg or not cfg.get('key'):
         raise BackendError(f'{backend} unavailable (no key)', status_code=404)
