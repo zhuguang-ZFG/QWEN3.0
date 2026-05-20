@@ -148,11 +148,25 @@ CLEAN_PATTERNS = [
     (re.compile(r'gemini[\w\-\.]*', re.I), PUBLIC_MODEL_NAME),
     (re.compile(r'gemma[\w\-\.]*', re.I), PUBLIC_MODEL_NAME),
     (re.compile(r'openrouter[\w\-\.\/]*', re.I), PUBLIC_MODEL_NAME),
-    (re.compile(r'\bmeta[\s\-]ai\b', re.I), ''),
-    (re.compile(r'我是(?:由)?(?:Anthropic|OpenAI|Google|Meta|DeepSeek|阿里|百度|字节)(?:开发|训练|创建|制作)', re.I), f'我是{PUBLIC_MODEL_NAME}'),
+    (re.compile(r'\bmeta[\s\-]ai\b', re.I), PUBLIC_MODEL_NAME),
+    # ── GLM / 智谱 ──
+    (re.compile(r'\bglm[\w\-\.]*', re.I), PUBLIC_MODEL_NAME),
+    (re.compile(r'智谱[\w\-\.一-鿿]*', re.I), PUBLIC_MODEL_NAME),
+    (re.compile(r'ChatGLM[\w\-\.]*', re.I), PUBLIC_MODEL_NAME),
+    (re.compile(r'General Language Model', re.I), 'General Purpose Language Model'),
+    # ── 中文身份 ──
+    (re.compile(r'深度求索[\w\-\.一-鿿]*', re.I), PUBLIC_MODEL_NAME),
+    (re.compile(r'我是(?:由)?(?:Anthropic|OpenAI|Google|Meta|DeepSeek|深度求索|阿里|百度|字节|智谱|月之暗面|MiniMax)(?:公司)?(?:开发|训练|创建|制作|创造|推出|提供)', re.I), f'我是{PUBLIC_MODEL_NAME}'),
+    (re.compile(r'我的模型是由\s*(?:Anthropic|OpenAI|Google|Meta|DeepSeek|深度求索|智谱|阿里|百度|字节)[\w\s\-\.一-鿿]*?(?:开发|训练|创建|制作|创造)', re.I), f'我的模型是由{PUBLIC_MODEL_NAME}团队开发'),
+    (re.compile(r'我叫\s*(?:Anthropic|OpenAI|Google|Meta|DeepSeek|深度求索|阿里|百度|字节|智谱)[\w\-\.一-鿿]*', re.I), f'我叫{PUBLIC_MODEL_NAME}'),
     (re.compile(r'作为(?:一个)?(?:AI语言模型|大语言模型|人工智能助手|AI助手)', re.I), f'作为{PUBLIC_MODEL_NAME}'),
-    (re.compile(r"I(?:'m| am) (?:an AI (?:language )?model|a large language model|Claude|GPT|Gemini|DeepSeek)", re.I), f'I am {PUBLIC_MODEL_NAME}'),
-    (re.compile(r'(?:trained|developed|created|made|built) by (?:Anthropic|OpenAI|Google|Meta|DeepSeek|Alibaba)', re.I), 'developed by DongLiCao'),
+    (re.compile(r"I(?:'m| am) (?:an AI (?:language )?model|a large language model|Claude|GPT|Gemini|DeepSeek|GLM)", re.I), f'I am {PUBLIC_MODEL_NAME}'),
+    (re.compile(r"(?:I am|I'm|我叫|我是|我的名字是)\s*(?:an?\s*)?(?:AI\s*)?(?:由\s*)?(?:DeepSeek|深度求索|智谱|GLM|ChatGLM)", re.I), f'I am {PUBLIC_MODEL_NAME}'),
+    (re.compile(r'(?:一个)?名为\s*(?:GLM|ChatGLM|DeepSeek|GPT|Claude)(?:\s*\([^)]*\))?\s*的(?:模型|大模型)', re.I), f'{PUBLIC_MODEL_NAME}'),
+    (re.compile(r'(?:由|被)\s*(?:深度求索|DeepSeek|智谱|GLM|Meta|OpenAI|Anthropic|Google)(?:公司)?\s*(?:开发|创造|训练|推出|制作|提供)', re.I), f'由{PUBLIC_MODEL_NAME}团队'),
+    (re.compile(r'(?:trained|developed|created|made|built) by (?:Anthropic|OpenAI|Google|Meta|DeepSeek|Alibaba|Zhipu|Moonshot)', re.I), 'developed by DongLiCao'),
+    # ── 更多国产模型中文名 ──
+    (re.compile(r'(?:月之暗面|Kimi|秘塔|阶跃星辰|MiniMax|海螺|讯飞|星火|豆包|通义千问|百川|零一万物)[\w\-\.一-鿿]*', re.I), PUBLIC_MODEL_NAME),
 ]
 
 
