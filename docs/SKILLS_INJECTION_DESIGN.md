@@ -47,8 +47,9 @@ When AI decides a skill is relevant:
 每条 skill 是一个独立单元，有：
 - `id`: 唯一标识
 - `content`: 注入的文本
-- `detect_keywords`: 检测是否已存在的关键词列表
+- `detect_keywords`: 检测是否已存在的关键词列表（OR 逻辑）
 - `category`: 分类 (lang/style/safety/project)
+- `priority`: 优先级 (1-5, 1最高)
 
 ```python
 SKILLS_CATALOG = [
@@ -57,29 +58,13 @@ SKILLS_CATALOG = [
         "content": "Follow PEP 8 style guide for Python code.",
         "detect_keywords": ["pep 8", "pep8", "python style"],
         "category": "lang",
+        "priority": 3,
     },
-    {
-        "id": "python_type_hints",
-        "content": "Use type hints for function signatures.",
-        "detect_keywords": ["type hint", "typing", "-> ", ": str"],
-        "category": "lang",
-    },
-    {
-        "id": "no_hallucination",
-        "content": "If unsure, say so. Do not make up information.",
-        "detect_keywords": ["hallucin", "make up", "不确定就说"],
-        "category": "safety",
-    },
-    {
-        "id": "error_handling",
-        "content": "Handle errors explicitly, never silently swallow exceptions.",
-        "detect_keywords": ["error handling", "exception", "try/except"],
-        "category": "style",
-    },
+    ...
 ]
 ```
 
-### 2.2 检测逻辑
+### 2.2 检测逻辑（参考 rules-generator 的两阶段匹配）
 
 ```python
 def detect_missing_skills(system_prompt: str, skills: list) -> list:
@@ -87,6 +72,7 @@ def detect_missing_skills(system_prompt: str, skills: list) -> list:
     prompt_lower = system_prompt.lower()
     missing = []
     for skill in skills:
+        # 字面量匹配: 任一关键词命中 = 已覆盖
         already_present = any(
             kw.lower() in prompt_lower
             for kw in skill["detect_keywords"]
@@ -96,7 +82,7 @@ def detect_missing_skills(system_prompt: str, skills: list) -> list:
     return missing
 ```
 
-### 2.3 注入方式
+### 2.3 注入方式（参考 fabric 的 system message 组合）
 
 不追加到用户的 system prompt 末尾（会破坏结构），
 而是作为独立的 system message 插入：
@@ -119,6 +105,22 @@ def inject_skills(messages: list, missing_skills: list) -> list:
         return [messages[0], skills_msg] + messages[1:]
     else:
         return [skills_msg] + messages
+```
+
+### 2.4 长内容处理（参考 rules-generator 的指针系统）
+
+```python
+MAX_SKILL_TOKENS = 200  # 单条 skill 最大 token 数
+MAX_TOTAL_SKILLS = 5    # 最多注入 5 条
+
+def truncate_or_pointer(skill: dict) -> dict:
+    """超长 skill 只注入描述 + 指针"""
+    if len(skill["content"]) > MAX_SKILL_TOKENS * 4:  # 粗估 1 token ≈ 4 chars
+        return {
+            **skill,
+            "content": f"[Skill: {skill['id']}] {skill['content'][:100]}..."
+        }
+    return skill
 ```
 
 ## 三、Skills 目录设计
