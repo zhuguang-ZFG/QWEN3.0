@@ -11,6 +11,7 @@ Layer 3: 执行器 (execute)
 - 全部失败返回诚实错误，不降级到不可接受质量
 """
 
+import math
 import random
 import hashlib
 import json
@@ -128,8 +129,10 @@ def select_backends(req_type: str, health_map: dict, proxy_healthy: bool = True)
     if not result:
         result = [b for b in DIRECT_BACKENDS if health_map.get(b, "healthy") != "dead"]
 
+    # 极端保底：只加非 dead 的
     if not result:
-        result = ["chat_ubi", "pollinations"]
+        result = [b for b in ["chat_ubi", "pollinations"]
+                  if health_map.get(b, "healthy") != "dead"]
 
     return result[:MAX_FALLBACKS]
 
@@ -157,7 +160,6 @@ def detect_mass_failure(health_map: dict) -> bool:
 
 def compute_health_score(backend: str, health_map: dict, latency_map: dict) -> float:
     """P2C 健康分: 成功率 + 延迟倒数 - 熔断惩罚"""
-    import math
     state = health_map.get(backend, "healthy")
     if state == "dead":
         return -1.0

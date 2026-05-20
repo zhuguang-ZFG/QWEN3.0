@@ -92,7 +92,7 @@ async def handle_request_v3(
                 pass
 
     ms = int((time.time() - t0) * 1000)
-    return {"answer": "", "backend": "exhausted", "ms": ms}
+    return {"answer": "", "backend": "exhausted", "ms": ms, "error": last_error}
 
 
 def _extract_code(e: Exception) -> Optional[int]:

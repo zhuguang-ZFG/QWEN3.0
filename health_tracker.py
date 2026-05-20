@@ -62,7 +62,7 @@ def record_success(backend: str, latency_ms: float):
     with _lock:
         _health_map[backend] = "healthy"
         _failure_counts[backend] = 0
-        _request_counts[backend] = _request_counts.get(backend, 0) + 1
+        _request_counts[backend] = 0
         window = _latency_windows.setdefault(backend, [])
         if len(window) >= LATENCY_WINDOW_SIZE:
             window.pop(0)
@@ -82,7 +82,7 @@ def record_failure(backend: str, error_code: Optional[int] = None):
 
         if error_code == 429:
             _health_map[backend] = "degraded"
-            set_cooldown(backend, COOLDOWN_TTL)
+            _cooldown_cache[backend] = time.monotonic() + COOLDOWN_TTL
             return
 
         if error_code in (401, 403):
