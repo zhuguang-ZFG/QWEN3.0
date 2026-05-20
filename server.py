@@ -635,10 +635,9 @@ def _anthropic_native_forward_sync(body: dict) -> dict:
 
 async def _anthropic_native_stream(body: dict):
     """分层 tool 流式路由：第一梯队 OpenAI(快) → 第二梯队 LongCat(兜底)。"""
-    import urllib.request as _ur
-    import health_tracker as _ht
+    from http_caller import call_raw, BackendError
     from backends import BACKENDS
-    from http_caller import GFW_BACKENDS, GFW_PROXY_URL, GFW_USER_AGENT
+    import health_tracker as _ht
 
     # ── 第一梯队：OpenAI 格式（非流式获取，模拟 Anthropic SSE 输出）──
     openai_tools = _convert_tools_anthropic_to_openai(body.get("tools", []))
@@ -653,28 +652,19 @@ async def _anthropic_native_stream(body: dict):
         if not name:
             break
         b = BACKENDS[name]
-        payload = json.dumps({"model": b["model"], "messages": openai_msgs,
+        req_body = {"model": b["model"], "messages": openai_msgs,
             "tools": openai_tools, "max_tokens": body.get("max_tokens", 4096),
-            "tool_choice": "auto"}, ensure_ascii=False).encode()
-        headers = {"Content-Type": "application/json",
-                   "Authorization": f"Bearer {b['key']}"}
-        if name in GFW_BACKENDS:
-            headers["User-Agent"] = GFW_USER_AGENT
-            proxy = _ur.ProxyHandler({"http": GFW_PROXY_URL, "https": GFW_PROXY_URL})
-            opener = _ur.build_opener(proxy)
-        else:
-            opener = _ur.build_opener()
+            "tool_choice": "auto"}
+        if name.startswith("aliyun"):
+            req_body["enable_thinking"] = False
+        payload = json.dumps(req_body, ensure_ascii=False).encode()
         try:
-            req = _ur.Request(b["url"], data=payload, headers=headers)
-            with opener.open(req, timeout=15) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-            _ht.record_success(name, 0)
-            result = _convert_response_openai_to_anthropic(data)
+            data = await asyncio.to_thread(call_raw, name, payload)
+            result = _convert_response_openai_to_anthropic(data, b["model"])
             for chunk in _simulate_anthropic_sse(result):
                 yield chunk
             return
-        except Exception:
-            _ht.record_failure(name, error_code=None)
+        except (BackendError, Exception):
             continue
 
     # ── 第二梯队：LongCat Anthropic 原生流式 ──

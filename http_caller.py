@@ -37,6 +37,9 @@ GFW_BACKENDS = {
     'or_minimax', 'or_gemma4',
     'github_gpt4o', 'github_gpt4o_mini', 'github_gpt5', 'github_o3_mini',
     'github_o4_mini', 'github_deepseek_r1', 'github_llama70b', 'github_codestral',
+    'naga_llama70b', 'naga_gpt41mini', 'naga_glm45', 'naga_llama4',
+    'featherless', 'glhf', 'agentrouter',
+    'zuki_codestral', 'zuki_mistral_small',
 }
 GFW_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
 
@@ -218,6 +221,9 @@ def call_raw(backend: str, payload: bytes) -> dict:
     except Exception as e:
         health_tracker.record_failure(backend, error_code=_extract_code(e))
         raise BackendError(str(e), status_code=_extract_code(e)) from e
+
+
+def _extract_answer(data: dict, fmt: str) -> str:
     """从 API 响应中提取文本内容。"""
     if fmt == 'anthropic':
         for block in data.get('content', []):

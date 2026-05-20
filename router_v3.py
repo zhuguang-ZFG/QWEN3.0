@@ -21,14 +21,14 @@ from typing import Optional
 
 POOLS = {
     "ide": {
-        "strong": ["longcat_chat", "deepseek_flash", "naga_llama70b"],
-        "medium": ["naga_gpt41mini", "freetheai_ds", "unclose_hermes"],
-        "floor": ["longcat_lite", "local_qwen_coder"],
+        "strong": ["groq_llama70b", "cerebras_gptoss", "groq_qwen32b", "zhipu_flash", "mistral_large"],
+        "medium": ["groq_gptoss_20b", "cerebras_qwen235b", "mistral_devstral", "aliyun_qwen3", "longcat_chat"],
+        "floor": ["longcat_lite", "google_flash"],
     },
     "chat": {
-        "strong": ["longcat_chat", "deepseek_flash"],
-        "medium": ["naga_llama70b", "unclose_hermes", "freetheai_ds"],
-        "floor": ["chat_ubi", "llm7", "pollinations", "local_qwen_coder"],
+        "strong": ["groq_llama70b", "cerebras_gptoss", "zhipu_flash"],
+        "medium": ["groq_qwen32b", "mistral_large", "longcat_chat"],
+        "floor": ["longcat_lite", "google_flash"],
     },
     "vision": {
         "strong": ["longcat_omni"],
