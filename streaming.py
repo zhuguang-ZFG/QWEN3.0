@@ -18,6 +18,17 @@ PredictFn = Callable[[str], str]
 SelectFn = Callable[[str, str, str, list], tuple[str, list]]
 
 
+# ─── 辅助 ────────────────────────────────────────────────────────────────────
+
+def _drain_queue(q: queue_mod.Queue):
+    """清空队列防止内存泄漏"""
+    while not q.empty():
+        try:
+            q.get_nowait()
+        except queue_mod.Empty:
+            break
+
+
 # ─── 同步流→异步桥接 ─────────────────────────────────────────────────────────
 
 async def bridge_stream(
@@ -39,8 +50,8 @@ async def bridge_stream(
                 if cancel.is_set():
                     return
                 q.put(('chunk', chunk))
-        except Exception:
-            pass
+        except Exception as e:
+            q.put(('error', e))
         finally:
             q.put(('done', None))
 
@@ -61,6 +72,7 @@ async def bridge_stream(
         if typ == 'done':
             if not first:
                 cancel.set()
+                thread.join(timeout=1.0)
                 try:
                     result = await asyncio.to_thread(
                         call_fn, backend, messages, max_tokens, ide)
@@ -70,12 +82,16 @@ async def bridge_stream(
                     pass
                 return
             return
+        if typ == 'error':
+            break
         if typ == 'chunk':
             first = True
             yield val
 
     if not first:
         cancel.set()
+        thread.join(timeout=1.0)
+        _drain_queue(q)
         try:
             result = await asyncio.to_thread(
                 call_fn, backend, messages, max_tokens, ide)

@@ -40,7 +40,7 @@ def _parse_frontmatter(text: str) -> tuple[dict, str]:
     """解析 --- ... --- frontmatter，返回 (meta, body)"""
     if not text.startswith("---"):
         return {}, text
-    end = text.find("---", 3)
+    end = text.find("\n---", 3)
     if end == -1:
         return {}, text
     meta = {}
@@ -102,7 +102,10 @@ def detect_missing_skills(system_prompt: str, skills: list[dict]) -> list[dict]:
 
 def _covered(skill: dict, prompt_lower: str) -> bool:
     """检查 skill 是否已被 system prompt 覆盖"""
-    for kw in skill.get("detect_keywords", []):
+    keywords = skill.get("detect_keywords", [])
+    if not keywords:
+        return False
+    for kw in keywords:
         if kw.lower() in prompt_lower:
             return True
     return False

@@ -136,8 +136,9 @@ def execute(backends: list[str],
                 answer = call_fn(b, messages, max_tokens)
                 if answer and len(answer.strip()) > 5:
                     return b, answer, errors
-            except Exception:
-                pass
+            except Exception as e:
+                health_tracker.record_failure(b, error_code=_extract_code(e))
+                errors += 1
 
     return "exhausted", "", errors
 
@@ -207,7 +208,7 @@ def route(query: str, messages: list[dict], *,
     return RouteResult(
         backend=final_backend, answer=answer,
         request_type=req_type, ms=ms,
-        fallback_used=(len(backends) > 1 and final_backend != backends[0]),
+        fallback_used=(final_backend not in ("exhausted", "none") and final_backend != backends[0]),
         skills_injected=injected_ids,
     )
 
