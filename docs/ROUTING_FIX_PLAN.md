@@ -175,23 +175,107 @@ def inject_skills(messages, language):
 
 ## 六、健康检查（后台线程）
 
-```python
-health_map = {}  # backend_name -> "healthy" | "degraded" | "dead"
+### 6.1 双轨设计：被动追踪 + 主动探活
 
-def health_check_loop():
-    """每 30 秒 ping 所有后端"""
+```
+真实请求流量 ───→ 被动追踪 ───→ health_map 实时更新
+                                       ↑
+后台探活线程 ───→ 主动探针 ───→ 只对 dead/suspicious 后端
+```
+
+### 6.2 健康状态定义
+
+| 状态 | 权重 | 含义 | 探活间隔 |
+|------|------|------|----------|
+| healthy | 1.0 | 正常工作 | 不探活(靠真实流量) |
+| degraded | 0.5 | 偶尔失败/慢 | 不探活(还有真实流量) |
+| suspicious | 0.0 | 疑似key失效 | 5 分钟 |
+| dead | 0.0 | 确认不可用 | 15 分钟 |
+
+### 6.3 被动追踪（零成本，每次请求自动更新）
+
+```python
+consecutive_failures = {}  # backend -> int
+
+def update_health(backend, success, error_code=None):
+    """每次真实请求后自动调用"""
+    if success:
+        health_map[backend] = "healthy"
+        consecutive_failures[backend] = 0
+        return
+
+    consecutive_failures[backend] = consecutive_failures.get(backend, 0) + 1
+    n = consecutive_failures[backend]
+
+    if error_code == 429:
+        health_map[backend] = "degraded"  # 限流≠死，服务是活的
+    elif error_code in (401, 403):
+        health_map[backend] = "suspicious"  # 可能key废了，待确认
+    elif n >= 5:
+        health_map[backend] = "dead"
+    else:
+        health_map[backend] = "degraded"
+```
+
+### 6.4 主动探活（低频，只探 dead/suspicious）
+
+```python
+def probe_loop():
+    """后台线程：只对非 healthy 后端发探针"""
     while True:
-        for backend in ALL_BACKENDS:
+        for backend, state in health_map.items():
+            if state == "healthy" or state == "degraded":
+                continue  # 有真实流量，不需要探活
+            interval = 300 if state == "suspicious" else 900
+            if time_since_last_probe(backend) < interval:
+                continue
+            # 最小化探针：max_tokens=1
             try:
-                call_backend(backend, [{"role":"user","content":"hi"}],
-                           max_tokens=1, timeout=8)
+                call_backend(backend,
+                    [{"role": "user", "content": "1"}],
+                    max_tokens=1, timeout=8)
                 health_map[backend] = "healthy"
-            except:
-                if health_map.get(backend) == "degraded":
-                    health_map[backend] = "dead"  # 连续2次失败
-                else:
-                    health_map[backend] = "degraded"
-        time.sleep(30)
+                log(f"[PROBE] {backend} recovered!")
+            except HTTPError as e:
+                if e.code == 429:
+                    health_map[backend] = "degraded"  # 限流=活着
+                # 否则保持 dead/suspicious
+        time.sleep(60)  # 主循环每分钟跑一次
+```
+
+### 6.5 错误分级表
+
+| HTTP 错误 | 含义 | 标记为 | 恢复策略 |
+|-----------|------|--------|----------|
+| 超时 | 网络/后端慢 | degraded | 下次降权但不排除 |
+| 429 | 限流 | degraded | 等60s自动恢复 |
+| 401 | key无效 | suspicious | 探针确认key是否废了 |
+| 403 | 被封/地区限制 | suspicious | 探针用代理重试 |
+| 500 | 后端内部错误 | degraded | 多数是临时的 |
+| 连接拒绝 | 完全挂了 | dead | 15min探活 |
+
+### 6.6 select_backends 集成健康状态
+
+```python
+def select_backends(request_type: str) -> list:
+    pool = POOLS[request_type]
+    result = []
+    for tier in ["strong", "medium", "floor"]:
+        candidates = pool.get(tier, [])
+        # 只选 healthy + degraded(降权)
+        usable = []
+        for b in candidates:
+            state = health_map.get(b, "healthy")
+            if state == "healthy":
+                usable.append((b, 1.0))
+            elif state == "degraded":
+                usable.append((b, 0.5))
+            # suspicious/dead 不选
+        # 加权随机排序
+        random.shuffle(usable)
+        usable.sort(key=lambda x: -x[1])  # 健康的优先
+        result.extend([b for b, _ in usable])
+    return result
 ```
 
 ## 七、熔断器调优
