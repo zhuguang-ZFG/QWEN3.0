@@ -180,13 +180,45 @@ def semantic_cache_key(model: str, messages: list, temperature: float = 0) -> st
 
 # ─── Skills 注入判断 ─────────────────────────────────────────────────────────
 
-SKILLS_THRESHOLD = 500  # system prompt 超过此长度则不注入
+STRONG_BACKENDS = {"longcat_chat", "deepseek_flash", "deepseek_pro", "naga_gpt41mini"}
 
-def should_inject_skills(ide_source: str, system_prompt: str) -> bool:
-    """判断是否需要注入 Skills。IDE 有自己的 system prompt 时不注入。"""
-    if ide_source in IDE_SOURCES:
-        return False
-    if len(system_prompt) > SKILLS_THRESHOLD:
-        return False
-    return True
+_LANG_KEYWORDS = {
+    "python": ["python", "pip", "django", "flask", "fastapi", "pep"],
+    "javascript": ["javascript", "typescript", "react", "vue", "node", "npm"],
+    "go": ["golang", " go ", "goroutine", "go mod"],
+    "rust": ["rust", "cargo", "borrow"],
+    "java": ["java", "spring", "maven", "gradle"],
+}
+
+
+def get_skills_to_inject(ide_source: str, system_prompt: str,
+                         backend: str, detected_lang: str = "") -> dict:
+    """
+    智能判断需要注入哪些 Skills 层级。
+    返回 {"L0": bool, "L1": bool, "L2": bool, "L3": bool}
+    """
+    result = {"L0": False, "L1": False, "L2": False, "L3": False}
+    is_ide = ide_source in IDE_SOURCES
+    is_strong = backend in STRONG_BACKENDS
+    sys_lower = system_prompt.lower()
+
+    # L0: 通用编程规范 — 只有无 system prompt 的普通聊天才注入
+    if not is_ide and len(system_prompt) < 100:
+        result["L0"] = True
+
+    # L1: 语言专属规则 — 检测 system prompt 是否已覆盖该语言
+    if detected_lang:
+        keywords = _LANG_KEYWORDS.get(detected_lang, [])
+        already_covered = any(kw in sys_lower for kw in keywords)
+        if not already_covered:
+            result["L1"] = True
+
+    # L2: 项目专属上下文 — 永远注入（IDE 不知道我们的项目约定）
+    result["L2"] = True
+
+    # L3: 模型专属提示 — 弱模型才注入
+    if not is_strong:
+        result["L3"] = True
+
+    return result
 
