@@ -97,8 +97,13 @@ def test_extract_answer_openai_reasoning_fallback():
 
 
 def test_extract_answer_anthropic():
-    data = {'content': [{'text': 'bonjour'}]}
+    data = {'content': [{'type': 'text', 'text': 'bonjour'}]}
     assert _extract_answer(data, 'anthropic') == 'bonjour'
+
+
+def test_extract_answer_anthropic_thinking():
+    data = {'content': [{'type': 'thinking', 'thinking': 'let me think...'}]}
+    assert _extract_answer(data, 'anthropic') == 'let me think...'
 
 
 # ── _extract_code ─────────────────────────────────────────────────────────────

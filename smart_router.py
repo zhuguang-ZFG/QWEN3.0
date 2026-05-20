@@ -1319,7 +1319,7 @@ def call_api(name, msgs, mt=1024, ide="unknown"):
             with urllib.request.urlopen(r, timeout=_timeout) as resp:
                 d = json.loads(resp.read().decode())
         if b['fmt'] == 'anthropic':
-            answer = d['content'][0].get('text', json.dumps(d, ensure_ascii=False))
+            answer = d['content'][0].get('text', '') or d['content'][0].get('thinking', '') or json.dumps(d, ensure_ascii=False)
         else:
             msg = d['choices'][0]['message']
             # 推理模型（如 minimax-m25, Qwen3）content 可能为 None，回退到 reasoning_content 字段

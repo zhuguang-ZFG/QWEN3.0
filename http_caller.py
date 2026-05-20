@@ -186,7 +186,12 @@ def call_api(backend: str, messages: list[dict], max_tokens: int = 4096,
 def _extract_answer(data: dict, fmt: str) -> str:
     """从 API 响应中提取文本内容。"""
     if fmt == 'anthropic':
-        return data['content'][0].get('text', json.dumps(data, ensure_ascii=False))
+        for block in data.get('content', []):
+            if block.get('type') == 'text':
+                return block.get('text', '')
+            if block.get('type') == 'thinking':
+                return block.get('thinking', '')
+        return json.dumps(data, ensure_ascii=False)
     msg = data['choices'][0]['message']
     return (msg.get('content') or msg.get('reasoning_content')
             or msg.get('reasoning') or json.dumps(data, ensure_ascii=False))
