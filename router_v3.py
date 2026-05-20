@@ -177,3 +177,16 @@ def semantic_cache_key(model: str, messages: list, temperature: float = 0) -> st
     payload = json.dumps({"model": model, "messages": messages}, sort_keys=True)
     return hashlib.sha256(payload.encode()).hexdigest()
 
+
+# ─── Skills 注入判断 ─────────────────────────────────────────────────────────
+
+SKILLS_THRESHOLD = 500  # system prompt 超过此长度则不注入
+
+def should_inject_skills(ide_source: str, system_prompt: str) -> bool:
+    """判断是否需要注入 Skills。IDE 有自己的 system prompt 时不注入。"""
+    if ide_source in IDE_SOURCES:
+        return False
+    if len(system_prompt) > SKILLS_THRESHOLD:
+        return False
+    return True
+
