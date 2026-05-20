@@ -1,31 +1,73 @@
 # LiMa AI 项目状态
 
-> 更新时间: 2026-05-19 03:18
-> 会话时长: ~8 小时
-> 阶段: 5 个多模态 Sprint 完成，部分问题待修复
+> 更新时间: 2026-05-20 08:30
+> 阶段: V3 路由重设计完成文档，准备编码实现
 
 ---
 
-## 已完成
+## 本次会话完成 (2026-05-20)
+
+### V3 路由重设计（文档完成，待编码）
+
+| 模块 | 文档 | 编码 |
+|------|------|------|
+| IDE 识别 (指纹+UA) | ✅ | ⚠️ 已部署但有问题 |
+| Skills 注入 | ✅ | ⚠️ 已部署但路由问题导致未生效 |
+| Anthropic API 兼容层 | ✅ | ⚠️ 端点已有，格式转换待完善 |
+| 三层路由架构 | ✅ | ❌ 待实现 |
+| 后端池 + 健康感知 | ✅ | ❌ 待实现 |
+| 被动追踪 + 主动探活 | ✅ | ❌ 待实现 |
+| 删除预设直答 | ✅ | ❌ 待实现 |
+| 并发支持 (httpx async) | ✅ | ❌ 待实现 |
+| 多 IDE 支持 (Cursor/Codex/Cline/Aider) | ✅ | ❌ 待实现 |
+| 百万级分布式架构 | ✅ | ❌ 长期目标 |
+
+### 已部署到服务器（有问题待修复）
+
+| 改动 | 状态 | 问题 |
+|------|------|------|
+| Phase 1: IDE 识别 + Skills 注入 | 已部署 | 路由仍走 chat_ubi |
+| User-Agent 检测 Claude Code | 已部署 | Claude Code UA 未确认 |
+| Anthropic 格式强制走 longcat_chat | 已部署 | 预设直答仍会误触发 |
+| 防火墙开放 8080 端口 | ✅ | 安全组已开 |
+
+### 设计文档
+
+| 文档 | 内容 |
+|------|------|
+| docs/ROUTING_V3_DESIGN.md | 8模块: IDE识别/双层路由/代码路由/Skills/动态排名/代码增强/Anthropic兼容/多IDE |
+| docs/ROUTING_FIX_PLAN.md | 14模块: 三层架构/后端池/健康检查/熔断器/并发/百万级/源码分析 |
+
+### 参考项目已 clone
+
+| 项目 | 路径 | 参考点 |
+|------|------|--------|
+| LiteLLM | D:/GIT/litellm-ref | 冷却期TTL/延迟路由/fallback |
+| RouteLLM | D:/GIT/routellm-ref | 强弱分层/阈值校准 |
+| Portkey | D:/GIT/portkey-ref | 条件路由/Hooks/重试 |
+
+---
+
+## 之前已完成
 
 ### 5 个多模态功能 (Sprint 1-5)
 
-| Sprint | 功能 | 状态 | 验证 |
-|--------|------|------|------|
-| 1 | 深度思考模式 | ✅ | thinking 参数路由到 DeepSeek R1 / LongCat Thinking |
-| 2 | AI 生图 | ✅ | Pollinations.ai 免费接口 + /v1/images/generations |
-| 3 | 拍题答疑 (Vision) | ✅ | 图片检测 + OpenAI→Anthropic 格式转换 |
-| 4 | 语音实时交互 | ✅ | voice_gateway.py (WebSocket + Whisper + Edge-TTS) |
-| 5 | 动画头像视频通话 | ✅ | voice-call.html (SVG 口型同步) |
+| Sprint | 功能 | 状态 |
+|--------|------|------|
+| 1 | 深度思考模式 | ✅ |
+| 2 | AI 生图 | ✅ |
+| 3 | 拍题答疑 (Vision) | ✅ |
+| 4 | 语音实时交互 | ✅ |
+| 5 | 动画头像视频通话 | ✅ |
 
 ### 平台部署
 
-| 服务 | 域名 | 状态 |
-|------|------|------|
+| 服务 | 域名/端口 | 状态 |
+|------|-----------|------|
 | 品牌官网 | www.donglicao.com | ✅ |
 | API 控制台 | api.donglicao.com | ✅ (new-api) |
-| 免费聊天 | chat.donglicao.com | ⚠️ 工具栏待验证 |
-| 云端路由 | systemd lima-router (8090) | ✅ |
+| LiMa 路由 API | 47.112.162.80:8080 | ✅ (外网可访问) |
+| one-api | 47.112.162.80:3001 | ✅ (16渠道) |
 | 语音网关 | systemd lima-voice (8091) | ✅ |
 | 监控 | cron health_check.sh | ✅ |
 
@@ -59,32 +101,23 @@
 
 ---
 
-## 待修复
-
-### 高优先级
+## 待修复（高优先级）
 
 | 问题 | 根因 | 状态 |
 |------|------|------|
-| chat 上下文丢失 | route() 只传最后一条消息给后端 | 🔧 修复中 |
-| chat 偶尔空响应 | streaming 路径对非即时回复处理不完善 | 🔧 修复中 |
-| UI 工具栏不显示 | 浏览器 Service Worker 缓存旧页面 | ⏸️ 需用户在关闭窗口前先清缓存 (F12→Application→Service Workers→Unregister→Ctrl+Shift+R) |
-| 模型身份泄露 | 某些后端忽略 system prompt，暴露真实模型名 | ⚠️ 已加固 clean_patterns |
+| 预设直答误触发 | _try_instant_reply 正则匹配 | ❌ 待删除 |
+| IDE 请求路由到 chat_ubi | 单一 fallback 链 + 多后端熔断 | ❌ 待重设计 |
+| 多后端 403/401 | Groq/Silicon/Mistral key 或限流 | ⚠️ 需排查 |
+| Claude Code 无上下文 | OpenAI 模式不发 system prompt | ⚠️ 需 Anthropic 兼容层 |
+| 并发瓶颈 ~40 QPS | urllib 同步阻塞 + 线程池 | ❌ 待换 httpx async |
 
-### 中优先级
-
-| 问题 | 状态 |
-|------|------|
-| 模型名 "redcode-v1.2" 残留 | ⚠️ clean_response 已处理 |
-| GitHub/NextChat 品牌残留 | ⚠️ CSS sub_filter 注入，需清缓存 |
-| one-api 旧二进制未完全删除 | 可清理 |
-
-### 低优先级
+## 待修复（中优先级）
 
 | 问题 | 状态 |
 |------|------|
-| R15 训练未启动 | 数据已准备 (2082条) |
-| 支付集成 | 文档完成，代码未启动 |
-| 充值付费 | 文档完成，代码未启动 |
+| chat 上下文丢失 | 🔧 修复中 |
+| 模型身份泄露 | ⚠️ 已加固 clean_patterns |
+| UI 工具栏不显示 | ⏸️ 需清缓存 |
 
 ---
 
