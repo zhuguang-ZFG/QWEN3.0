@@ -127,7 +127,8 @@ def execute(backends: list[str],
                 errors += 1
         except Exception as e:
             code = _extract_code(e)
-            health_tracker.record_failure(backend, error_code=code)
+            if code != 503:
+                health_tracker.record_failure(backend, error_code=code)
             errors += 1
 
     # 全部冷却时强制试前3个，绝不空手而归
