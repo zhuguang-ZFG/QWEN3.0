@@ -432,6 +432,150 @@ def select_backends(request_type: str) -> list:
 |------|------|--------|
 | LiteLLM | github.com/BerriAI/litellm | Router健康检查+fallback+格式转换 |
 | RouteLLM | github.com/lm-sys/RouteLLM | 强/弱模型分流策略 |
-| Portkey Gateway | github.com/Portkey-AI/gateway | 语义缓存+重试策略 |
+| Portkey Gateway | github.com/Portkey-AI/gateway | 条件路由+重试策略 |
 | One-API | github.com/songquanpeng/one-api | 多渠道负载均衡(已在用) |
 | Helicone | github.com/Helicone/helicone | 指标记录+可观测性 |
+
+## 十二、源码分析关键发现
+
+### 12.1 LiteLLM Router — 冷却期机制（最值得借鉴）
+
+**核心设计：用 Cache TTL 代替定时器**
+
+```python
+# 冷却期 = 往 Cache 写一条带 TTL 的记录，到期自动解除
+cache.set_cache(
+    key="deployment:{model_id}:cooldown",
+    value={"exception": error, "status_code": 429, "timestamp": now},
+    ttl=cooldown_time,  # 默认 5 秒
+)
+# 路由时检查：key 存在 = 冷却中，跳过
+```
+
+**触发条件（不是所有错误都冷却）：**
+
+| 错误码 | 是否冷却 | 原因 |
+|--------|----------|------|
+| 429 | ✅ 冷却 | 限流 |
+| 401/404/408 | ✅ 冷却 | 认证/不存在/超时 |
+| 400 | ❌ 不冷却 | 请求格式错误是调用方问题 |
+| 5xx | ✅ 冷却 | 后端内部错误 |
+| 失败率>50% 且请求≥5 | ✅ 冷却 | 统计触发 |
+
+**默认参数：**
+```python
+DEFAULT_COOLDOWN_TIME_SECONDS = 5   # 冷却 5 秒（不是 60 秒！）
+DEFAULT_FAILURE_THRESHOLD_PERCENT = 0.5
+DEFAULT_FAILURE_THRESHOLD_MINIMUM_REQUESTS = 5
+```
+
+**可直接借鉴：**
+- 用 dict + timestamp 代替 Redis，TTL 到期自动恢复
+- 冷却时间只有 5 秒（我们之前设 60 秒太长了）
+- 400 不冷却（是我们的 bug，不是后端的问题）
+- 单后端组提高阈值（避免唯一后端被误杀）
+
+### 12.2 LiteLLM — 延迟路由策略
+
+```python
+# 滑动窗口 10 条 + 失败惩罚 1000s + buffer 随机化
+latency_window = [...]  # 最近 10 次延迟
+# 失败时写入 1000s 惩罚
+latency_window.append(1000.0)
+# 选择时：最低延迟 + buffer 范围内随机选
+buffer = 0.2 * lowest_latency
+valid = [d for d in sorted if d.latency <= lowest + buffer]
+chosen = random.choice(valid)
+```
+
+**可直接借鉴：**
+- 失败惩罚 1000s 简洁有效
+- buffer 随机化防止流量集中到单一后端
+- 滑动窗口 10 条，不需要复杂的统计
+
+### 12.3 LiteLLM — Fallback 链
+
+```python
+# 递归深度控制，默认 max_fallbacks=5
+if fallback_depth >= max_fallbacks:
+    raise original_exception
+for mg in fallback_model_group:
+    if mg == original_model_group:
+        continue  # 跳过原始组
+    try:
+        response = await router.async_function_with_fallbacks(...)
+        return response
+    except:
+        continue
+```
+
+**可直接借鉴：**
+- `max_fallbacks=5` 防止无限递归
+- 跳过原始失败的组
+
+### 12.4 RouteLLM — 分层路由（极简设计）
+
+```python
+# 所有策略只需实现一个方法
+class Router:
+    def calculate_strong_win_rate(self, prompt) -> float:
+        """返回 0~1，强模型胜率预测"""
+        ...
+    
+    def route(self, prompt, threshold):
+        if self.calculate_strong_win_rate(prompt) >= threshold:
+            return strong_model
+        else:
+            return weak_model
+```
+
+**阈值校准：** 用分位数从真实流量反推
+```python
+# 希望 30% 请求走强模型 → 取胜率分布的 70% 分位数
+threshold = data.quantile(q=1 - strong_model_pct)
+```
+
+**可直接借鉴：**
+- 统一抽象接口：新策略只需实现 `calculate_strong_win_rate`
+- 阈值不是拍脑袋，从流量数据反推
+- 模型名编码路由参数：`router-bert-0.7`
+
+### 12.5 Portkey — 条件路由 + Hooks
+
+**条件路由：MongoDB 查询语法**
+```typescript
+conditions: [
+  { query: {"metadata.env": {$eq: "prod"}}, then: "gpt4-target" },
+  { query: {"params.model": {$regex: "claude"}}, then: "anthropic-target" }
+],
+default: "fallback-target"
+```
+
+**Hooks 系统：GUARDRAIL + MUTATOR**
+- GUARDRAIL: 检查请求/响应，可 deny 拦截
+- MUTATOR: 修改请求/响应内容（= 我们的 Skills 注入）
+
+**Retry：**
+- 支持读取 provider 的 `retry-after` header
+- 全局上限 `MAX_RETRY_LIMIT_MS`
+- `onStatusCodes` 白名单触发（比硬编码 5xx 更灵活）
+
+**熔断器：** Portkey 开源版无内置实现（依赖云端服务），不参考。
+
+**可直接借鉴：**
+- `onStatusCodes` 白名单触发 fallback
+- MUTATOR hook = Skills 注入的设计模式
+- `retry-after` header 支持（429 时后端告诉你等多久）
+
+## 十三、对我们设计的修正
+
+基于源码分析，修正原方案：
+
+| 原设计 | 修正为 | 原因 |
+|--------|--------|------|
+| 冷却时间 30s | **5s** | LiteLLM 默认 5s，足够让限流恢复 |
+| 连续 5 次失败 → dead | **失败率>50% 且请求≥5** | 统计触发比固定次数更合理 |
+| 400 错误 → suspicious | **不冷却** | 400 是调用方问题，不是后端问题 |
+| 固定优先级选后端 | **延迟滑动窗口 + buffer 随机** | 自动选最快的，防止热点 |
+| 自己实现熔断器 | **用 TTL cache 代替** | 更简单，到期自动恢复 |
+| max retries 无限制 | **max_fallbacks=5** | 防止递归爆炸 |
