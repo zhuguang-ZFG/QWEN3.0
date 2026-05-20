@@ -311,3 +311,127 @@ Step 8: 重启 + 验证全部测试通过 (10min)
 ```
 
 总计约 1.5 小时。
+
+## 十、永不"不可用"保证
+
+### 10.1 问题
+
+80+ 后端、24 供应商，不可能全部同时挂。
+如果出现"不可用"，一定是我们自己的问题（代理挂了/熔断级联/代码bug）。
+
+### 10.2 真正导致"全部失败"的原因
+
+| 原因 | 本质 | 解法 |
+|------|------|------|
+| 代理(7897)挂了 | 需代理的后端全连不上 | 检测代理状态，切直连后端 |
+| 熔断器级联 | 3次失败就熔断，连锁反应 | 提高阈值 + 批量熔断检测 |
+| DNS 故障 | 域名解析失败 | 缓存 DNS / IP 直连 |
+| 服务器出口被封 | 阿里云 IP 被封 | 走代理绕过 |
+| 代码 bug | patch 破坏请求格式 | 冒烟测试 |
+
+### 10.3 批量熔断检测
+
+```python
+def detect_mass_failure():
+    """超过 50% 后端同时 dead = 我们自己的问题"""
+    dead_count = sum(1 for s in health_map.values() if s == "dead")
+    total = len(health_map)
+    if dead_count > total * 0.5:
+        log("[ALERT] 批量熔断！可能是代理/网络问题")
+        reset_all_circuit_breakers()
+        switch_to_direct_backends()  # 只用不需要代理的后端
+        return True
+    return False
+```
+
+### 10.4 三级保底机制
+
+```
+正常路径:
+  IDE: strong池 → medium池 → floor池(longcat_lite)
+  Chat: strong池 → medium池 → floor池(chat_ubi)
+
+异常路径 (批量熔断触发):
+  → 重置熔断器
+  → 切换到"无代理后端池":
+    zhipu(国内直连) / aliyun(国内直连) / volcengine(国内直连)
+
+极端路径 (连国内直连都挂了):
+  → chat_ubi (零key零代理零限制，永远能用)
+  → pollinations (零key零限制)
+
+永远不返回"不可用"。
+```
+
+### 10.5 无代理后端池（国内直连，不依赖代理）
+
+```python
+DIRECT_BACKENDS = [
+    'zhipu_flash',      # 智谱 (国内直连)
+    'aliyun_turbo',     # 阿里云 (国内直连)
+    'volcengine_lite',  # 火山引擎 (国内直连)
+    'deepseek_flash',   # DeepSeek (国内直连)
+    'chat_ubi',         # ch.at (零依赖)
+    'pollinations',     # Pollinations (零依赖)
+]
+```
+
+### 10.6 代理健康检测
+
+```python
+_proxy_healthy = True
+
+def check_proxy():
+    """每 60s 检测代理是否可用"""
+    global _proxy_healthy
+    try:
+        # 用最轻量的请求测试代理
+        opener = urllib.request.build_opener(
+            urllib.request.ProxyHandler({"https": PROXY_URL}))
+        opener.open("https://httpbin.org/status/200", timeout=5)
+        _proxy_healthy = True
+    except:
+        _proxy_healthy = False
+        log("[ALERT] 代理不可用，切换到直连模式")
+```
+
+### 10.7 select_backends 最终版（集成所有保障）
+
+```python
+def select_backends(request_type: str) -> list:
+    pool = POOLS[request_type]
+    result = []
+
+    # 正常选择：从池中选健康后端
+    for tier in ["strong", "medium", "floor"]:
+        candidates = pool.get(tier, [])
+        # 如果代理不可用，过滤掉需要代理的后端
+        if not _proxy_healthy:
+            candidates = [b for b in candidates if b in DIRECT_BACKENDS]
+        usable = [b for b in candidates
+                  if health_map.get(b, "healthy") in ("healthy", "degraded")]
+        random.shuffle(usable)
+        result.extend(usable)
+
+    # 保底：如果正常池全空，用无代理后端
+    if not result:
+        detect_mass_failure()  # 触发批量熔断检测
+        result = [b for b in DIRECT_BACKENDS
+                  if health_map.get(b, "healthy") != "dead"]
+
+    # 极端保底：如果连直连都空，强制加 chat_ubi
+    if not result:
+        result = ["chat_ubi", "pollinations"]
+
+    return result
+```
+
+## 十一、参考项目
+
+| 项目 | 地址 | 参考点 |
+|------|------|--------|
+| LiteLLM | github.com/BerriAI/litellm | Router健康检查+fallback+格式转换 |
+| RouteLLM | github.com/lm-sys/RouteLLM | 强/弱模型分流策略 |
+| Portkey Gateway | github.com/Portkey-AI/gateway | 语义缓存+重试策略 |
+| One-API | github.com/songquanpeng/one-api | 多渠道负载均衡(已在用) |
+| Helicone | github.com/Helicone/helicone | 指标记录+可观测性 |
