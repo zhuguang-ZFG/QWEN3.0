@@ -29,7 +29,16 @@ GFW_BACKENDS = {
     'google_flash', 'google_flash_lite', 'google_gemini3', 'google_gemma4',
     'mistral_large', 'mistral_small', 'mistral_medium',
     'mistral_codestral', 'mistral_devstral', 'mistral_pixtral',
+    'groq_llama70b', 'groq_gptoss', 'groq_gptoss_20b',
+    'groq_qwen32b', 'groq_llama4', 'groq_llama8b',
+    'cerebras_qwen235b', 'cerebras_llama8b', 'cerebras_gptoss',
+    'or_deepseek_r1', 'or_qwen3_coder', 'or_llama70b', 'or_nemotron',
+    'or_qwen3_80b', 'or_nemotron120b', 'or_gptoss_120b', 'or_glm45',
+    'or_minimax', 'or_gemma4',
+    'github_gpt4o', 'github_gpt4o_mini', 'github_gpt5', 'github_o3_mini',
+    'github_o4_mini', 'github_deepseek_r1', 'github_llama70b', 'github_codestral',
 }
+GFW_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
 
 
 class BackendError(Exception):
@@ -45,7 +54,9 @@ def _get_opener(name: str):
     if name in GFW_BACKENDS:
         proxy = urllib.request.ProxyHandler({
             'http': GFW_PROXY_URL, 'https': GFW_PROXY_URL})
-        return urllib.request.build_opener(proxy)
+        opener = urllib.request.build_opener(proxy)
+        opener.addheaders = [('User-Agent', GFW_USER_AGENT)]
+        return opener
     return None
 
 
@@ -183,7 +194,30 @@ def call_api(backend: str, messages: list[dict], max_tokens: int = 4096,
         raise BackendError(str(e), status_code=_extract_code(e)) from e
 
 
-def _extract_answer(data: dict, fmt: str) -> str:
+def call_raw(backend: str, payload: bytes) -> dict:
+    """发送预构建 payload 到后端，返回原始 JSON。用于 tool call 转发。"""
+    if health_tracker.is_cooled_down(backend):
+        raise BackendError(f'{backend} cooled down', status_code=503)
+    cfg = BACKENDS.get(backend)
+    if not cfg or not cfg.get('key'):
+        raise BackendError(f'{backend} unavailable', status_code=404)
+    t0 = time.time()
+    headers = {'Content-Type': 'application/json',
+               'Authorization': f"Bearer {cfg['key']}"}
+    try:
+        req = urllib.request.Request(cfg['url'], data=payload, headers=headers)
+        opener = _get_opener(backend)
+        open_fn = opener.open if opener else urllib.request.urlopen
+        with open_fn(req, timeout=cfg.get('timeout', 30)) as resp:
+            data = json.loads(resp.read().decode())
+        latency_ms = int((time.time() - t0) * 1000)
+        health_tracker.record_success(backend, latency_ms)
+        return data
+    except BackendError:
+        raise
+    except Exception as e:
+        health_tracker.record_failure(backend, error_code=_extract_code(e))
+        raise BackendError(str(e), status_code=_extract_code(e)) from e
     """从 API 响应中提取文本内容。"""
     if fmt == 'anthropic':
         for block in data.get('content', []):

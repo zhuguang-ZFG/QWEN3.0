@@ -537,65 +537,162 @@ TOOL_BACKEND_URL = "https://openrouter.ai/api/v1/chat/completions"
 TOOL_BACKEND_MODEL = "deepseek/deepseek-v4-flash:free"
 TOOL_BACKEND_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 
-ANTHROPIC_NATIVE_BACKENDS = ['longcat_chat', 'longcat', 'longcat_lite', 'deepseek_pro', 'deepseek_flash', 'claude']
+ANTHROPIC_NATIVE_BACKENDS = ['longcat_chat', 'longcat', 'longcat_lite', 'longcat_thinking', 'longcat_omni']
+
+TOOL_TIER1_BACKENDS = [
+    'zhipu_flash',
+    'groq_gptoss_20b', 'groq_qwen32b', 'groq_llama70b',
+    'cerebras_gptoss', 'cerebras_qwen235b',
+    'mistral_devstral', 'mistral_pixtral', 'mistral_large', 'mistral_small',
+    'groq_llama8b', 'groq_llama4',
+    'google_flash_lite', 'google_flash',
+    'github_gpt4o',
+]
+
+
+def _pick_tool_backend(tier: list):
+    """P2C: 从候选列表中随机取2个，选延迟低的。"""
+    import random
+    import health_tracker as _ht
+    from backends import BACKENDS
+    candidates = [n for n in tier
+                  if BACKENDS.get(n, {}).get('key') and not _ht.is_cooled_down(n)]
+    if not candidates:
+        return None
+    if len(candidates) == 1:
+        return candidates[0]
+    lat_map = _ht.get_latency_map()
+    a, b = random.sample(candidates, 2)
+    return a if lat_map.get(a, 9999) <= lat_map.get(b, 9999) else b
 
 
 async def _anthropic_native_forward(body: dict) -> dict:
-    """直接转发 Anthropic 请求体到原生后端（保留 tools）。"""
-    import urllib.request as _ur
-    import health_tracker as _ht
+    """分层 tool 路由：第一梯队 OpenAI 格式(快) → 第二梯队 LongCat 原生(兜底)。"""
+    return await asyncio.to_thread(_anthropic_native_forward_sync, body)
+
+
+def _anthropic_native_forward_sync(body: dict) -> dict:
+    """同步版本，在线程池中执行。使用 http_caller.call_raw() 确保代理正常工作。"""
+    from http_caller import call_raw, BackendError
     from backends import BACKENDS
 
-    for name in ANTHROPIC_NATIVE_BACKENDS:
-        b = BACKENDS.get(name)
-        if not b or not b.get('key') or _ht.is_cooled_down(name):
-            continue
-        fwd = dict(body)
-        fwd['model'] = b['model']
-        payload = json.dumps(fwd, ensure_ascii=False).encode()
-        auth = b.get('auth', 'x-api-key')
-        headers = {'Content-Type': 'application/json', 'anthropic-version': '2023-06-01'}
-        if auth == 'bearer':
-            headers['Authorization'] = f"Bearer {b['key']}"
-        else:
-            headers['x-api-key'] = b['key']
+    # ── 第一梯队：OpenAI 格式后端（需格式转换）──
+    openai_tools = _convert_tools_anthropic_to_openai(body.get("tools", []))
+    openai_msgs = _convert_messages_anthropic_to_openai(body.get("messages", []))
+    if body.get("system"):
+        sys_text = body["system"] if isinstance(body["system"], str) else " ".join(
+            b.get("text", "") for b in body["system"] if b.get("type") == "text")
+        openai_msgs.insert(0, {"role": "system", "content": sys_text})
+
+    for _attempt in range(3):
+        name = _pick_tool_backend(TOOL_TIER1_BACKENDS)
+        if not name:
+            break
+        b = BACKENDS[name]
+        payload = json.dumps({"model": b["model"], "messages": openai_msgs,
+            "tools": openai_tools, "max_tokens": body.get("max_tokens", 4096),
+            "tool_choice": "auto"}, ensure_ascii=False).encode()
         try:
-            req = _ur.Request(b['url'], data=payload, headers=headers)
-            with _ur.urlopen(req, timeout=120) as resp:
-                data = json.loads(resp.read().decode('utf-8'))
+            data = call_raw(name, payload)
+            return _convert_response_openai_to_anthropic(data, b["model"])
+        except BackendError:
+            continue
+
+    # ── 第二梯队：LongCat Anthropic 原生（兜底）──
+    for _attempt in range(2):
+        name = _pick_tool_backend(ANTHROPIC_NATIVE_BACKENDS)
+        if not name:
+            break
+        b = BACKENDS[name]
+        fwd = dict(body)
+        fwd["model"] = b["model"]
+        payload = json.dumps(fwd, ensure_ascii=False).encode()
+        try:
+            import urllib.request as _ur
+            headers = {"Content-Type": "application/json",
+                       "anthropic-version": "2023-06-01"}
+            if b.get("auth") == "bearer":
+                headers["Authorization"] = f"Bearer {b['key']}"
+            else:
+                headers["x-api-key"] = b["key"]
+            req = _ur.Request(b["url"], data=payload, headers=headers)
+            with _ur.urlopen(req, timeout=60) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            import health_tracker as _ht
             _ht.record_success(name, 0)
             return data
-        except Exception as e:
+        except Exception:
+            import health_tracker as _ht
             _ht.record_failure(name, error_code=None)
             continue
 
     return {"type": "error", "error": {"type": "api_error",
-            "message": "All Anthropic backends exhausted"}}
+            "message": "All tool backends exhausted"}}
 
 
 async def _anthropic_native_stream(body: dict):
-    """直接流式转发 Anthropic 请求体到原生后端（保留 tools）。"""
+    """分层 tool 流式路由：第一梯队 OpenAI(快) → 第二梯队 LongCat(兜底)。"""
     import urllib.request as _ur
     import health_tracker as _ht
     from backends import BACKENDS
+    from http_caller import GFW_BACKENDS, GFW_PROXY_URL, GFW_USER_AGENT
 
-    for name in ANTHROPIC_NATIVE_BACKENDS:
-        b = BACKENDS.get(name)
-        if not b or not b.get('key') or _ht.is_cooled_down(name):
-            continue
-        fwd = dict(body)
-        fwd['model'] = b['model']
-        fwd['stream'] = True
-        payload = json.dumps(fwd, ensure_ascii=False).encode()
-        auth = b.get('auth', 'x-api-key')
-        headers = {'Content-Type': 'application/json', 'anthropic-version': '2023-06-01'}
-        if auth == 'bearer':
-            headers['Authorization'] = f"Bearer {b['key']}"
+    # ── 第一梯队：OpenAI 格式（非流式获取，模拟 Anthropic SSE 输出）──
+    openai_tools = _convert_tools_anthropic_to_openai(body.get("tools", []))
+    openai_msgs = _convert_messages_anthropic_to_openai(body.get("messages", []))
+    if body.get("system"):
+        sys_text = body["system"] if isinstance(body["system"], str) else " ".join(
+            b.get("text", "") for b in body["system"] if b.get("type") == "text")
+        openai_msgs.insert(0, {"role": "system", "content": sys_text})
+
+    for _attempt in range(3):
+        name = _pick_tool_backend(TOOL_TIER1_BACKENDS)
+        if not name:
+            break
+        b = BACKENDS[name]
+        payload = json.dumps({"model": b["model"], "messages": openai_msgs,
+            "tools": openai_tools, "max_tokens": body.get("max_tokens", 4096),
+            "tool_choice": "auto"}, ensure_ascii=False).encode()
+        headers = {"Content-Type": "application/json",
+                   "Authorization": f"Bearer {b['key']}"}
+        if name in GFW_BACKENDS:
+            headers["User-Agent"] = GFW_USER_AGENT
+            proxy = _ur.ProxyHandler({"http": GFW_PROXY_URL, "https": GFW_PROXY_URL})
+            opener = _ur.build_opener(proxy)
         else:
-            headers['x-api-key'] = b['key']
+            opener = _ur.build_opener()
         try:
-            req = _ur.Request(b['url'], data=payload, headers=headers)
-            resp = _ur.urlopen(req, timeout=120)
+            req = _ur.Request(b["url"], data=payload, headers=headers)
+            with opener.open(req, timeout=15) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            _ht.record_success(name, 0)
+            result = _convert_response_openai_to_anthropic(data)
+            for chunk in _simulate_anthropic_sse(result):
+                yield chunk
+            return
+        except Exception:
+            _ht.record_failure(name, error_code=None)
+            continue
+
+    # ── 第二梯队：LongCat Anthropic 原生流式 ──
+    for _attempt in range(2):
+        name = _pick_tool_backend(ANTHROPIC_NATIVE_BACKENDS)
+        if not name:
+            break
+        b = BACKENDS[name]
+        fwd = dict(body)
+        fwd["model"] = b["model"]
+        fwd["stream"] = True
+        payload = json.dumps(fwd, ensure_ascii=False).encode()
+        headers = {"Content-Type": "application/json",
+                   "anthropic-version": "2023-06-01"}
+        if b.get("auth") == "bearer":
+            headers["Authorization"] = f"Bearer {b['key']}"
+        else:
+            headers["x-api-key"] = b["key"]
+        try:
+            req = _ur.Request(b["url"], data=payload, headers=headers)
+            resp = _ur.urlopen(req, timeout=60)
             _ht.record_success(name, 0)
             buf = b''
             while True:
@@ -613,9 +710,30 @@ async def _anthropic_native_stream(body: dict):
             resp.close()
             return
         except Exception:
-            health_tracker.record_failure(name, error_code=None)
+            _ht.record_failure(name, error_code=None)
             continue
     yield 'event: error\ndata: {"type":"error","error":{"message":"All backends exhausted"}}\n\n'
+
+
+def _simulate_anthropic_sse(result: dict):
+    """把完整的 Anthropic 响应转为 SSE 事件流。"""
+    msg_id = result.get("id", "msg_" + uuid.uuid4().hex[:12])
+    model = result.get("model", "lima-1.3")
+    yield f"event: message_start\ndata: {json.dumps({'type':'message_start','message':{'id':msg_id,'type':'message','role':'assistant','model':model,'content':[],'stop_reason':None,'usage':{'input_tokens':0,'output_tokens':0}}})}\n\n"
+    for i, block in enumerate(result.get("content", [])):
+        if block.get("type") == "text":
+            yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':i,'content_block':{'type':'text','text':''}})}\n\n"
+            text = block.get("text", "")
+            for j in range(0, len(text), 40):
+                yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':i,'delta':{'type':'text_delta','text':text[j:j+40]}}, ensure_ascii=False)}\n\n"
+            yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':i})}\n\n"
+        elif block.get("type") == "tool_use":
+            yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':i,'content_block':{'type':'tool_use','id':block['id'],'name':block['name']}})}\n\n"
+            yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':i,'delta':{'type':'input_json_delta','partial_json':json.dumps(block.get('input',{}), ensure_ascii=False)}})}\n\n"
+            yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':i})}\n\n"
+    stop_reason = result.get("stop_reason", "end_turn")
+    yield f"event: message_delta\ndata: {json.dumps({'type':'message_delta','delta':{'stop_reason':stop_reason},'usage':result.get('usage',{})})}\n\n"
+    yield f"event: message_stop\ndata: {json.dumps({'type':'message_stop'})}\n\n"
 
 
 def _convert_tools_anthropic_to_openai(tools: list) -> list:
