@@ -21,6 +21,7 @@ FILES_TO_DEPLOY = [
     "health_tracker.py",
     "sticky_session.py",
     "v3_integration.py",
+    "patch_server_v3.py",
 ]
 
 
@@ -48,6 +49,13 @@ def main():
         sftp.put(local, remote)
         print(f"  Uploaded: {f}")
     print("[3/5] Files deployed")
+
+    # 3.5 Run patch script on server
+    stdin, stdout, stderr = ssh.exec_command(
+        f"cd {REMOTE_DIR} && /usr/local/bin/python3.10 patch_server_v3.py"
+    )
+    patch_out = stdout.read().decode("utf-8", errors="replace")
+    print(f"  Patch output:\n{patch_out}")
 
     # 4. Restart server
     ssh.exec_command('pkill -9 -f "python3.10 server.py"')
