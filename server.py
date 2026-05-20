@@ -537,6 +537,86 @@ TOOL_BACKEND_URL = "https://openrouter.ai/api/v1/chat/completions"
 TOOL_BACKEND_MODEL = "deepseek/deepseek-v4-flash:free"
 TOOL_BACKEND_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 
+ANTHROPIC_NATIVE_BACKENDS = ['longcat_chat', 'longcat', 'longcat_lite', 'deepseek_pro', 'deepseek_flash', 'claude']
+
+
+async def _anthropic_native_forward(body: dict) -> dict:
+    """直接转发 Anthropic 请求体到原生后端（保留 tools）。"""
+    import urllib.request as _ur
+    import health_tracker as _ht
+    from backends import BACKENDS
+
+    for name in ANTHROPIC_NATIVE_BACKENDS:
+        b = BACKENDS.get(name)
+        if not b or not b.get('key') or _ht.is_cooled_down(name):
+            continue
+        fwd = dict(body)
+        fwd['model'] = b['model']
+        payload = json.dumps(fwd, ensure_ascii=False).encode()
+        auth = b.get('auth', 'x-api-key')
+        headers = {'Content-Type': 'application/json', 'anthropic-version': '2023-06-01'}
+        if auth == 'bearer':
+            headers['Authorization'] = f"Bearer {b['key']}"
+        else:
+            headers['x-api-key'] = b['key']
+        try:
+            req = _ur.Request(b['url'], data=payload, headers=headers)
+            with _ur.urlopen(req, timeout=120) as resp:
+                data = json.loads(resp.read().decode('utf-8'))
+            _ht.record_success(name, 0)
+            return data
+        except Exception as e:
+            _ht.record_failure(name, error_code=None)
+            continue
+
+    return {"type": "error", "error": {"type": "api_error",
+            "message": "All Anthropic backends exhausted"}}
+
+
+async def _anthropic_native_stream(body: dict):
+    """直接流式转发 Anthropic 请求体到原生后端（保留 tools）。"""
+    import urllib.request as _ur
+    import health_tracker as _ht
+    from backends import BACKENDS
+
+    for name in ANTHROPIC_NATIVE_BACKENDS:
+        b = BACKENDS.get(name)
+        if not b or not b.get('key') or _ht.is_cooled_down(name):
+            continue
+        fwd = dict(body)
+        fwd['model'] = b['model']
+        fwd['stream'] = True
+        payload = json.dumps(fwd, ensure_ascii=False).encode()
+        auth = b.get('auth', 'x-api-key')
+        headers = {'Content-Type': 'application/json', 'anthropic-version': '2023-06-01'}
+        if auth == 'bearer':
+            headers['Authorization'] = f"Bearer {b['key']}"
+        else:
+            headers['x-api-key'] = b['key']
+        try:
+            req = _ur.Request(b['url'], data=payload, headers=headers)
+            resp = _ur.urlopen(req, timeout=120)
+            _ht.record_success(name, 0)
+            buf = b''
+            while True:
+                chunk = resp.read(4096)
+                if not chunk:
+                    break
+                buf += chunk
+                while b'\n' in buf:
+                    line, buf = buf.split(b'\n', 1)
+                    decoded = line.decode('utf-8', errors='replace').strip()
+                    if decoded:
+                        yield decoded + '\n\n'
+            if buf.strip():
+                yield buf.decode('utf-8', errors='replace').strip() + '\n\n'
+            resp.close()
+            return
+        except Exception:
+            health_tracker.record_failure(name, error_code=None)
+            continue
+    yield 'event: error\ndata: {"type":"error","error":{"message":"All backends exhausted"}}\n\n'
+
 
 def _convert_tools_anthropic_to_openai(tools: list) -> list:
     """Anthropic tools format -> OpenAI tools format."""
@@ -860,31 +940,18 @@ async def anthropic_messages(req: Request):
                 last_user_query = " ".join(b.get("text", "") for b in content if b.get("type") == "text")
             break
 
-    # ── 工具调用检测（只有对话中已有工具交互时才走工具后端）──────────────────
+    # ── 工具调用检测：有 tools 定义就直接转发给 Anthropic 后端 ─────────────────
     if body.get("tools"):
-        # 检查对话历史中是否有 tool_use 或 tool_result（说明正在进行工具调用流程）
-        has_tool_interaction = False
-        for msg in raw_messages:
-            if isinstance(msg, dict):
-                content = msg.get("content", "")
-                if isinstance(content, list):
-                    for block in content:
-                        if isinstance(block, dict) and block.get("type") in ("tool_use", "tool_result"):
-                            has_tool_interaction = True
-                            break
-            if has_tool_interaction:
-                break
-        if has_tool_interaction:
-            is_stream = body.get("stream", False)
-            if is_stream:
-                return StreamingResponse(
-                    _tool_call_stream(body),
-                    media_type="text/event-stream",
-                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
-                )
-            else:
-                result = await _tool_call_forward(body)
-                return JSONResponse(result)
+        is_stream = body.get("stream", False)
+        if is_stream:
+            return StreamingResponse(
+                _anthropic_native_stream(body),
+                media_type="text/event-stream",
+                headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+            )
+        else:
+            result = await _anthropic_native_forward(body)
+            return JSONResponse(result)
 
     has_image = False
 
@@ -1599,20 +1666,13 @@ def _split_sentences(text: str) -> list[str]:
 @app.get("/v1/models")
 async def list_models():
     """返回模型列表，让 IDE 识别可用模型。"""
-    return {
-        "object": "list",
-        "data": [
-            {
-                "id": MODEL_ID,
-                "object": "model",
-                "created": MODEL_CREATED,
-                "owned_by": "donglicao",
-                "permission": [],
-                "root": MODEL_ID,
-                "parent": None
-            }
-        ]
-    }
+    models = [
+        {"id": "claude-sonnet-4-6", "object": "model", "created": MODEL_CREATED, "owned_by": "anthropic"},
+        {"id": "claude-opus-4-7", "object": "model", "created": MODEL_CREATED, "owned_by": "anthropic"},
+        {"id": "claude-haiku-4-5-20251001", "object": "model", "created": MODEL_CREATED, "owned_by": "anthropic"},
+        {"id": MODEL_ID, "object": "model", "created": MODEL_CREATED, "owned_by": "donglicao"},
+    ]
+    return {"object": "list", "data": models}
 
 
 @app.get("/health")
