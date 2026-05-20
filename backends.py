@@ -93,6 +93,25 @@ BACKENDS = {
     'featherless': {'url': 'https://api.featherless.ai/v1/chat/completions', 'key': os.environ.get('FEATHERLESS_API_KEY', ''), 'model': 'Qwen/Qwen3-32B', 'fmt': 'openai', 'timeout': 20},
     'glhf': {'url': 'https://glhf.chat/api/openai/v1/chat/completions', 'key': os.environ.get('GLHF_API_KEY', ''), 'model': 'hf:Qwen/Qwen3-32B', 'fmt': 'openai', 'timeout': 20},
     'agentrouter': {'url': 'https://agentrouter.org/v1/chat/completions', 'key': os.environ.get('AGENTROUTER_API_KEY', ''), 'model': 'qwen/qwen3-32b', 'fmt': 'openai', 'timeout': 20},
+    # ── 新增: OpenCode Zen (零Key零注册, Big Pickle Stealth 72% SWE-bench) ──
+    'opencode_stealth': {'url': 'https://opencode.ai/zen/v1/chat/completions', 'key': 'none', 'model': 'big-pickle', 'fmt': 'openai', 'timeout': 45},
+    'opencode_ds_flash': {'url': 'https://opencode.ai/zen/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-flash-free', 'fmt': 'openai', 'timeout': 30},
+    'opencode_qwen': {'url': 'https://opencode.ai/zen/v1/chat/completions', 'key': 'none', 'model': 'qwen3.6-plus-free', 'fmt': 'openai', 'timeout': 30},
+    'opencode_nemotron': {'url': 'https://opencode.ai/zen/v1/chat/completions', 'key': 'none', 'model': 'nemotron-3-super-free', 'fmt': 'openai', 'timeout': 30},
+    'opencode_minimax': {'url': 'https://opencode.ai/zen/v1/chat/completions', 'key': 'none', 'model': 'minimax-m2.5-free', 'fmt': 'openai', 'timeout': 30},
+    # ── 新增: Fireworks AI (Llama 3.1 405B 独家, 最大开源模型) ──
+    'fireworks_llama405b': {'url': 'https://api.fireworks.ai/inference/v1/chat/completions', 'key': os.environ.get('FIREWORKS_API_KEY', ''), 'model': 'accounts/fireworks/models/llama-v3p1-405b-instruct', 'fmt': 'openai', 'timeout': 45},
+    # ── 新增: OVHcloud (欧洲直连, 零注册, 40+模型, 待服务器验证可达性) ──
+    'ovh_llama70b': {'url': 'https://llama-3-3-70b-instruct.endpoints.ai.cloud.ovh.net/v1/chat/completions', 'key': 'none', 'model': 'Llama-3.3-70B-Instruct', 'fmt': 'openai', 'timeout': 30},
+    'ovh_deepseek': {'url': 'https://deepseek-r1-distill-qwen-32b.endpoints.ai.cloud.ovh.net/v1/chat/completions', 'key': 'none', 'model': 'DeepSeek-R1-Distill-Qwen-32B', 'fmt': 'openai', 'timeout': 45},
+    # ── 新增: Cohere (Command A 111B, Mamba+Transformer 自研架构) ──
+    'cohere_command': {'url': 'https://api.cohere.com/v2/chat', 'key': os.environ.get('COHERE_API_KEY', ''), 'model': 'command-a-03-2025', 'fmt': 'openai', 'timeout': 30},
+    # ── 新增: SambaNova Cloud (芯片级加速推理) ──
+    'sambanova_llama4': {'url': 'https://api.sambanova.ai/v1/chat/completions', 'key': os.environ.get('SAMBANOVA_API_KEY', ''), 'model': 'Meta-Llama-4-Maverick-17B-128E-Instruct', 'fmt': 'openai', 'timeout': 20},
+    'sambanova_ds_v3': {'url': 'https://api.sambanova.ai/v1/chat/completions', 'key': os.environ.get('SAMBANOVA_API_KEY', ''), 'model': 'DeepSeek-V3.2', 'fmt': 'openai', 'timeout': 30},
+    # ── 新增: DeepInfra (200并发, 高吞吐) ──
+    'deepinfra_llama4': {'url': 'https://api.deepinfra.com/v1/openai/chat/completions', 'key': os.environ.get('DEEPINFRA_API_KEY', ''), 'model': 'meta-llama/Llama-4-Maverick-17B-128E-Instruct', 'fmt': 'openai', 'timeout': 20},
+    'deepinfra_qwen235b': {'url': 'https://api.deepinfra.com/v1/openai/chat/completions', 'key': os.environ.get('DEEPINFRA_API_KEY', ''), 'model': 'Qwen/Qwen3-235B-A22B-Instruct', 'fmt': 'openai', 'timeout': 30},
 }
 
 PUBLIC_MODEL_NAME = os.environ.get('PUBLIC_MODEL_NAME', 'LiMa')
@@ -145,6 +164,12 @@ def detect_vendor(url: str) -> str:
     if 'ch.at' in u: return 'ChatUbi'
     if 'llm7.io' in u: return 'LLM7'
     if 'pollinations' in u: return 'Pollinations'
+    if 'opencode.ai' in u: return 'OpenCode Zen'
+    if 'fireworks.ai' in u: return 'Fireworks AI'
+    if 'ovh.net' in u: return 'OVHcloud'
+    if 'cohere.com' in u: return 'Cohere'
+    if 'sambanova.ai' in u: return 'SambaNova'
+    if 'deepinfra.com' in u: return 'DeepInfra'
     return 'Unknown'
 
 def detect_tier(url: str, name: str = "") -> str:
@@ -154,6 +179,9 @@ def detect_tier(url: str, name: str = "") -> str:
     if 'nvidia' in u: return 'L2 Free Quota'
     if 'openrouter' in u: return 'L3 Free Limited'
     if 'deepseek.com' in u or 'right.codes' in u: return 'L4 Paid'
+    if 'opencode.ai' in u or 'ovh.net' in u: return 'L1 Free Unlimited'
+    if 'fireworks.ai' in u or 'sambanova.ai' in u or 'deepinfra.com' in u: return 'L3 Free Limited'
+    if 'cohere.com' in u: return 'L2 Free Quota'
     return 'L3 Free Limited'
 
 def detect_protocol(fmt: str) -> str:
@@ -163,7 +191,8 @@ def detect_caps(name: str, cfg: dict = None) -> list:
     if cfg and cfg.get("caps"):
         return cfg["caps"]
     caps = []
-    if name in ('claude', 'or_deepseek_r1', 'or_qwen3_coder', 'deepseek_pro', 'deepseek_flash'):
+    if name in ('claude', 'or_deepseek_r1', 'or_qwen3_coder', 'deepseek_pro', 'deepseek_flash',
+                'opencode_stealth', 'fireworks_llama405b', 'deepinfra_llama4', 'deepinfra_qwen235b'):
         caps.append('tool_calls')
     if name in ('claude', 'longcat_omni'):
         caps.append('vision')

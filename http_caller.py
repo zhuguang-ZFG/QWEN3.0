@@ -40,6 +40,13 @@ GFW_BACKENDS = {
     'naga_llama70b', 'naga_gpt41mini', 'naga_glm45', 'naga_llama4',
     'featherless', 'glhf', 'agentrouter',
     'zuki_codestral', 'zuki_mistral_small',
+    'opencode_stealth', 'opencode_ds_flash', 'opencode_qwen',
+    'opencode_nemotron', 'opencode_minimax',
+    'fireworks_llama405b',
+    'cohere_command',
+    'sambanova_llama4', 'sambanova_ds_v3',
+    'deepinfra_llama4', 'deepinfra_qwen235b',
+    'ovh_llama70b', 'ovh_deepseek',
 }
 GFW_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
 

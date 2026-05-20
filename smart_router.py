@@ -312,6 +312,37 @@ BACKENDS = {
     'zuki_codestral':  {'url': 'https://zukijourney.com/v1/chat/completions',
                         'key': os.environ.get('ZUKI_API_KEY', ''),
                         'model': 'codestral-latest', 'fmt': 'openai', 'timeout': 20},
+    # ── OpenCode Zen (零Key零注册, Big Pickle Stealth 72% SWE-bench) ──
+    'opencode_stealth': {'url': 'https://opencode.ai/zen/v1/chat/completions',
+                        'key': 'none', 'model': 'big-pickle', 'fmt': 'openai', 'timeout': 45},
+    'opencode_ds_flash': {'url': 'https://opencode.ai/zen/v1/chat/completions',
+                        'key': 'none', 'model': 'deepseek-v4-flash-free', 'fmt': 'openai', 'timeout': 30},
+    'opencode_qwen':    {'url': 'https://opencode.ai/zen/v1/chat/completions',
+                        'key': 'none', 'model': 'qwen3.6-plus-free', 'fmt': 'openai', 'timeout': 30},
+    'opencode_nemotron': {'url': 'https://opencode.ai/zen/v1/chat/completions',
+                        'key': 'none', 'model': 'nemotron-3-super-free', 'fmt': 'openai', 'timeout': 30},
+    # ── Fireworks AI (Llama 3.1 405B 独家) ──
+    'fireworks_llama405b': {'url': 'https://api.fireworks.ai/inference/v1/chat/completions',
+                        'key': os.environ.get('FIREWORKS_API_KEY', ''),
+                        'model': 'accounts/fireworks/models/llama-v3p1-405b-instruct', 'fmt': 'openai', 'timeout': 45},
+    # ── OVHcloud (欧洲直连, 零注册) ──
+    'ovh_llama70b':    {'url': 'https://llama-3-3-70b-instruct.endpoints.ai.cloud.ovh.net/v1/chat/completions',
+                        'key': 'none', 'model': 'Llama-3.3-70B-Instruct', 'fmt': 'openai', 'timeout': 30},
+    # ── Cohere (Command A 111B, Mamba+Transformer) ──
+    'cohere_command':  {'url': 'https://api.cohere.com/v2/chat',
+                        'key': os.environ.get('COHERE_API_KEY', ''),
+                        'model': 'command-a-03-2025', 'fmt': 'openai', 'timeout': 30},
+    # ── SambaNova Cloud (芯片级加速) ──
+    'sambanova_llama4': {'url': 'https://api.sambanova.ai/v1/chat/completions',
+                        'key': os.environ.get('SAMBANOVA_API_KEY', ''),
+                        'model': 'Meta-Llama-4-Maverick-17B-128E-Instruct', 'fmt': 'openai', 'timeout': 20},
+    # ── DeepInfra (200并发, 高吞吐) ──
+    'deepinfra_llama4': {'url': 'https://api.deepinfra.com/v1/openai/chat/completions',
+                        'key': os.environ.get('DEEPINFRA_API_KEY', ''),
+                        'model': 'meta-llama/Llama-4-Maverick-17B-128E-Instruct', 'fmt': 'openai', 'timeout': 20},
+    'deepinfra_qwen235b': {'url': 'https://api.deepinfra.com/v1/openai/chat/completions',
+                        'key': os.environ.get('DEEPINFRA_API_KEY', ''),
+                        'model': 'Qwen/Qwen3-235B-A22B-Instruct', 'fmt': 'openai', 'timeout': 30},
 }
 
 # 对外暴露的统一模型名（用户永远看不到真实模型名）

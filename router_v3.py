@@ -21,14 +21,20 @@ from typing import Optional
 
 POOLS = {
     "ide": {
-        "strong": ["groq_llama70b", "cerebras_gptoss", "groq_qwen32b", "zhipu_flash", "mistral_large"],
-        "medium": ["groq_gptoss_20b", "cerebras_qwen235b", "mistral_devstral", "aliyun_qwen3", "longcat_chat"],
-        "floor": ["longcat_lite", "google_flash"],
+        "strong": ["groq_llama70b", "cerebras_gptoss", "groq_qwen32b", "zhipu_flash", "mistral_large",
+                   "opencode_stealth", "fireworks_llama405b"],
+        "medium": ["groq_gptoss_20b", "cerebras_qwen235b", "mistral_devstral", "aliyun_qwen3", "longcat_chat",
+                   "opencode_ds_flash", "opencode_qwen", "opencode_nemotron", "opencode_minimax",
+                   "sambanova_llama4", "cohere_command",
+                   "deepinfra_llama4", "deepinfra_qwen235b"],
+        "floor": ["longcat_lite", "google_flash", "ovh_llama70b", "ovh_deepseek"],
     },
     "chat": {
-        "strong": ["groq_llama70b", "cerebras_gptoss", "zhipu_flash"],
-        "medium": ["groq_qwen32b", "mistral_large", "longcat_chat"],
-        "floor": ["longcat_lite", "google_flash"],
+        "strong": ["groq_llama70b", "cerebras_gptoss", "zhipu_flash",
+                   "opencode_stealth", "fireworks_llama405b"],
+        "medium": ["groq_qwen32b", "mistral_large", "longcat_chat",
+                   "sambanova_llama4", "cohere_command", "deepinfra_llama4", "deepinfra_qwen235b"],
+        "floor": ["longcat_lite", "google_flash", "ovh_llama70b", "ovh_deepseek"],
     },
     "vision": {
         "strong": ["longcat_omni"],
@@ -181,7 +187,8 @@ def semantic_cache_key(model: str, messages: list, temperature: float = 0) -> st
 
 # ─── Skills 注入判断 ─────────────────────────────────────────────────────────
 
-STRONG_BACKENDS = {"longcat_chat", "deepseek_flash", "deepseek_pro", "naga_gpt41mini"}
+STRONG_BACKENDS = {"longcat_chat", "deepseek_flash", "deepseek_pro", "naga_gpt41mini",
+                  "opencode_stealth", "fireworks_llama405b", "deepinfra_llama4"}
 
 _LANG_KEYWORDS = {
     "python": ["python", "pip", "django", "flask", "fastapi", "pep"],
