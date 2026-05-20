@@ -564,19 +564,13 @@ TOOL_TIER1_BACKENDS = [
 
 
 def _pick_tool_backend(tier: list):
-    """P2C: 从候选列表中随机取2个，选延迟低的。"""
-    import random
+    """从候选列表中按声明顺序选第一个健康后端（不用P2C，工具调用质量优先）。"""
     import health_tracker as _ht
     from backends import BACKENDS
-    candidates = [n for n in tier
-                  if BACKENDS.get(n, {}).get('key') and not _ht.is_cooled_down(n)]
-    if not candidates:
-        return None
-    if len(candidates) == 1:
-        return candidates[0]
-    lat_map = _ht.get_latency_map()
-    a, b = random.sample(candidates, 2)
-    return a if lat_map.get(a, 9999) <= lat_map.get(b, 9999) else b
+    for n in tier:
+        if BACKENDS.get(n, {}).get('key') and not _ht.is_cooled_down(n):
+            return n
+    return None
 
 
 async def _anthropic_native_forward(body: dict) -> dict:
