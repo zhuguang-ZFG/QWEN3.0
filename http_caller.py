@@ -324,10 +324,14 @@ def _extract_answer(data: dict, fmt: str) -> str:
                 return block.get('text', '')
             if block.get('type') == 'thinking':
                 return block.get('thinking', '')
-        return json.dumps(data, ensure_ascii=False)
+        # Fallback: try reasoning content
+        for block in data.get('content', []):
+            if block.get('type') == 'thinking':
+                return block.get('thinking', '')
+        return ''
     msg = data['choices'][0]['message']
     return (msg.get('content') or msg.get('reasoning_content')
-            or msg.get('reasoning') or json.dumps(data, ensure_ascii=False))
+            or msg.get('reasoning') or '')
 
 
 def _extract_code(e: Exception) -> Optional[int]:
