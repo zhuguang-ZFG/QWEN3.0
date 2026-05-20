@@ -21,7 +21,7 @@ from typing import Optional
 
 POOLS = {
     "ide": {
-        "strong": ["groq_llama70b", "cerebras_gptoss", "groq_qwen32b", "zhipu_flash", "mistral_large",
+        "strong": ["deepseek_free", "groq_llama70b", "cerebras_gptoss", "groq_qwen32b", "zhipu_flash", "mistral_large",
                    "opencode_stealth", "fireworks_llama405b"],
         "medium": ["groq_gptoss_20b", "cerebras_qwen235b", "mistral_devstral", "aliyun_qwen3", "longcat_chat",
                    "opencode_ds_flash", "opencode_qwen", "opencode_nemotron", "opencode_minimax",
@@ -30,7 +30,7 @@ POOLS = {
         "floor": ["longcat_lite", "google_flash", "ovh_llama70b", "ovh_deepseek"],
     },
     "chat": {
-        "strong": ["groq_llama70b", "cerebras_gptoss", "zhipu_flash",
+        "strong": ["deepseek_free", "groq_llama70b", "cerebras_gptoss", "zhipu_flash",
                    "opencode_stealth", "fireworks_llama405b"],
         "medium": ["groq_qwen32b", "mistral_large", "longcat_chat",
                    "sambanova_llama4", "cohere_command", "deepinfra_llama4", "deepinfra_qwen235b"],
@@ -48,7 +48,7 @@ POOLS = {
 DIRECT_BACKENDS = [
     "zhipu_flash", "zhipu_flash7", "aliyun_turbo", "volcengine_lite",
     "deepseek_flash", "silicon_qwen8b", "chat_ubi", "llm7", "pollinations",
-    "local_qwen_coder",
+    "deepseek_free", "local_qwen_coder",
 ]
 
 IDE_SOURCES = {"Claude Code", "claude_code", "Cursor", "cursor",
@@ -130,7 +130,7 @@ def select_backends(req_type: str, health_map: dict, proxy_healthy: bool = True)
         if not proxy_healthy:
             candidates = [b for b in candidates if b in DIRECT_BACKENDS]
         usable = [b for b in candidates if health_map.get(b, "healthy") != "dead"]
-        random.shuffle(usable)
+        # Keep declared order as priority (no shuffle)
         result.extend(usable)
 
     if not result:
@@ -188,7 +188,7 @@ def semantic_cache_key(model: str, messages: list, temperature: float = 0) -> st
 # ─── Skills 注入判断 ─────────────────────────────────────────────────────────
 
 STRONG_BACKENDS = {"longcat_chat", "deepseek_flash", "deepseek_pro", "naga_gpt41mini",
-                  "opencode_stealth", "fireworks_llama405b", "deepinfra_llama4"}
+                  "opencode_stealth", "fireworks_llama405b", "deepinfra_llama4", "deepseek_free"}
 
 _LANG_KEYWORDS = {
     "python": ["python", "pip", "django", "flask", "fastapi", "pep"],

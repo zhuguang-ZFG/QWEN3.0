@@ -112,6 +112,7 @@ BACKENDS = {
     # ── 新增: DeepInfra (200并发, 高吞吐) ──
     'deepinfra_llama4': {'url': 'https://api.deepinfra.com/v1/openai/chat/completions', 'key': os.environ.get('DEEPINFRA_API_KEY', ''), 'model': 'meta-llama/Llama-4-Maverick-17B-128E-Instruct', 'fmt': 'openai', 'timeout': 20},
     'deepinfra_qwen235b': {'url': 'https://api.deepinfra.com/v1/openai/chat/completions', 'key': os.environ.get('DEEPINFRA_API_KEY', ''), 'model': 'Qwen/Qwen3-235B-A22B-Instruct', 'fmt': 'openai', 'timeout': 30},
+    'deepseek_free': {'url': 'http://127.0.0.1:8000/v1/chat/completions', 'key': 'none', 'model': 'deepseek-chat', 'fmt': 'openai', 'timeout': 60},
 }
 
 PUBLIC_MODEL_NAME = os.environ.get('PUBLIC_MODEL_NAME', 'LiMa')

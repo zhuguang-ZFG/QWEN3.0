@@ -343,6 +343,7 @@ BACKENDS = {
     'deepinfra_qwen235b': {'url': 'https://api.deepinfra.com/v1/openai/chat/completions',
                         'key': os.environ.get('DEEPINFRA_API_KEY', ''),
                         'model': 'Qwen/Qwen3-235B-A22B-Instruct', 'fmt': 'openai', 'timeout': 30},
+    'deepseek_free': {'url': 'http://127.0.0.1:8000/v1/chat/completions', 'key': 'none', 'model': 'deepseek-chat', 'fmt': 'openai', 'timeout': 60},
 }
 
 # 对外暴露的统一模型名（用户永远看不到真实模型名）
