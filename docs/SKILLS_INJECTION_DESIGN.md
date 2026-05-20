@@ -2,6 +2,31 @@
 
 > 日期: 2026-05-20
 > 原则: 检测具体每条 skill 是否已存在，只补缺的
+> 参考: Cursor Auto Mode 逆向分析 + fabric patterns
+
+## 零、Cursor 的做法（核心参考）
+
+Cursor 的 Skills 系统：
+- System prompt 极简（642 tokens）
+- Skills 只列目录名（每个 ~2 tokens）
+- AI 自己决定何时加载哪个 skill
+- 加载时调用 `fetch_rules("skill-name")` 拉取完整内容
+- 节省 80%+ tokens
+
+```
+System Prompt:  "Available skills: deploy-checklist, db-migration..."
+When AI decides a skill is relevant:
+  → calls fetch_rules("skill-name")
+  → full SKILL.md content loaded
+```
+
+**我们的场景不同：** 免费弱模型没有 tool calling 能力，不能自主拉取。
+所以需要**双模式**：
+
+| 后端能力 | 策略 | 参考 |
+|---------|------|------|
+| 强模型 (能 tool call) | Cursor 模式 — 列目录，让模型自己拉取 | Cursor |
+| 弱模型 (无 tool call) | 智能补缺 — 检测缺失，预注入最少量 | 我们的设计 |
 
 ## 一、问题
 
@@ -130,8 +155,92 @@ def inject_skills(messages: list, missing_skills: list) -> list:
 
 ## 五、实现步骤
 
-1. 定义 SKILLS_CATALOG（每条 skill 独立）
+1. 定义 SKILLS_CATALOG（每条 skill 独立文件，如 Cursor 的 .mdc）
 2. 实现 detect_missing_skills（逐条关键词检测）
 3. 实现 inject_skills（独立 system message，不修改原有）
 4. 集成到 v3_integration.py 的执行流程
 5. 测试：验证不重复注入
+
+## 六、双模式架构（基于 Cursor 逆向分析）
+
+### 6.1 模式 A: 目录模式（强模型）
+
+学 Cursor：system prompt 只列 skill 名称目录，让模型自己决定加载。
+
+```python
+# 强模型（有 tool calling 能力）
+skills_directory = "Available skills: " + ", ".join(s["id"] for s in SKILLS_CATALOG)
+# 注入到 system prompt 末尾，只占 ~50 tokens
+# 模型需要时通过 tool call 拉取完整内容
+```
+
+适用: longcat_chat, deepseek_flash, naga_gpt41mini 等强模型
+
+### 6.2 模式 B: 补缺模式（弱模型）
+
+弱模型无法自主拉取，需要预注入：
+
+```python
+# 弱模型（无 tool calling）
+missing = detect_missing_skills(system_prompt, relevant_skills)
+# 只注入缺失的，最多 5 条，不超过 200 tokens
+inject_skills(messages, missing[:5])
+```
+
+适用: chat_ubi, pollinations, unclose_hermes 等弱模型
+
+### 6.3 模式切换逻辑
+
+```python
+STRONG_MODELS_WITH_TOOLS = {"longcat_chat", "deepseek_flash", "naga_gpt41mini"}
+
+def apply_skills(backend: str, messages: list, system_prompt: str) -> list:
+    if backend in STRONG_MODELS_WITH_TOOLS:
+        # 模式 A: 只列目录
+        return inject_skills_directory(messages)
+    else:
+        # 模式 B: 智能补缺
+        missing = detect_missing_skills(system_prompt, get_relevant_skills())
+        return inject_skills(messages, missing[:5])
+```
+
+### 6.4 Cursor 的关键设计启示
+
+| Cursor 做法 | 我们的借鉴 |
+|------------|-----------|
+| 642 token 极简 system prompt | 不塞满，留空间给代码上下文 |
+| Skills 只列目录名 | 强模型用目录模式 |
+| Rules 按 glob 匹配注入 | Skills 按语言/场景匹配 |
+| alwaysApply vs 条件注入 | safety 类 always，lang 类条件 |
+| "万物皆文件" 按需加载 | Skills 存为独立 .md 文件 |
+
+### 6.5 Skills 文件组织
+
+```
+skills/
+├── safety/
+│   ├── no_hallucination.md
+│   └── honest_uncertainty.md
+├── lang/
+│   ├── python_pep8.md
+│   ├── go_error_handling.md
+│   └── js_async_patterns.md
+├── style/
+│   ├── concise_response.md
+│   └── code_comments.md
+└── project/
+    └── lima_conventions.md
+```
+
+每个 .md 文件格式：
+```yaml
+---
+id: python_pep8
+category: lang
+detect_keywords: ["pep 8", "pep8", "python style guide"]
+always_apply: false
+globs: ["*.py"]
+priority: 3
+---
+Follow PEP 8 style guide. Use snake_case for functions and variables.
+```
