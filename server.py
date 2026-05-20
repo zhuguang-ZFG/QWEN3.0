@@ -576,6 +576,10 @@ def _anthropic_native_forward_sync(body: dict) -> dict:
     from http_caller import call_raw, BackendError
     from backends import BACKENDS
 
+    # ── 估算 token 量，大请求直接跳过 Tier 1 ──
+    body_size = len(json.dumps(body, ensure_ascii=False))
+    skip_tier1 = body_size > 30000
+
     # ── 第一梯队：OpenAI 格式后端（需格式转换）──
     openai_tools = _convert_tools_anthropic_to_openai(body.get("tools", []))
     openai_msgs = _convert_messages_anthropic_to_openai(body.get("messages", []))
@@ -584,22 +588,23 @@ def _anthropic_native_forward_sync(body: dict) -> dict:
             b.get("text", "") for b in body["system"] if b.get("type") == "text")
         openai_msgs.insert(0, {"role": "system", "content": sys_text})
 
-    for _attempt in range(3):
-        name = _pick_tool_backend(TOOL_TIER1_BACKENDS)
-        if not name:
-            break
-        b = BACKENDS[name]
-        req_body = {"model": b["model"], "messages": openai_msgs,
-            "tools": openai_tools, "max_tokens": body.get("max_tokens", 4096),
-            "tool_choice": "auto"}
-        if name.startswith("aliyun"):
-            req_body["enable_thinking"] = False
-        payload = json.dumps(req_body, ensure_ascii=False).encode()
-        try:
-            data = call_raw(name, payload)
-            return _convert_response_openai_to_anthropic(data, b["model"])
-        except BackendError:
-            continue
+    if not skip_tier1:
+        for _attempt in range(3):
+            name = _pick_tool_backend(TOOL_TIER1_BACKENDS)
+            if not name:
+                break
+            b = BACKENDS[name]
+            req_body = {"model": b["model"], "messages": openai_msgs,
+                "tools": openai_tools, "max_tokens": body.get("max_tokens", 4096),
+                "tool_choice": "auto"}
+            if name.startswith("aliyun"):
+                req_body["enable_thinking"] = False
+            payload = json.dumps(req_body, ensure_ascii=False).encode()
+            try:
+                data = call_raw(name, payload)
+                return _convert_response_openai_to_anthropic(data, b["model"])
+            except BackendError:
+                continue
 
     # ── 第二梯队：LongCat Anthropic 原生（兜底）──
     for _attempt in range(2):
@@ -639,6 +644,10 @@ async def _anthropic_native_stream(body: dict):
     from backends import BACKENDS
     import health_tracker as _ht
 
+    # ── 估算 token 量，大请求直接跳过 Tier 1 ──
+    body_size = len(json.dumps(body, ensure_ascii=False))
+    skip_tier1 = body_size > 30000
+
     # ── 第一梯队：OpenAI 格式（非流式获取，模拟 Anthropic SSE 输出）──
     openai_tools = _convert_tools_anthropic_to_openai(body.get("tools", []))
     openai_msgs = _convert_messages_anthropic_to_openai(body.get("messages", []))
@@ -647,27 +656,29 @@ async def _anthropic_native_stream(body: dict):
             b.get("text", "") for b in body["system"] if b.get("type") == "text")
         openai_msgs.insert(0, {"role": "system", "content": sys_text})
 
-    for _attempt in range(3):
-        name = _pick_tool_backend(TOOL_TIER1_BACKENDS)
-        if not name:
-            break
-        b = BACKENDS[name]
-        req_body = {"model": b["model"], "messages": openai_msgs,
-            "tools": openai_tools, "max_tokens": body.get("max_tokens", 4096),
-            "tool_choice": "auto"}
-        if name.startswith("aliyun"):
-            req_body["enable_thinking"] = False
-        payload = json.dumps(req_body, ensure_ascii=False).encode()
-        try:
-            data = await asyncio.to_thread(call_raw, name, payload)
-            result = _convert_response_openai_to_anthropic(data, b["model"])
-            for chunk in _simulate_anthropic_sse(result):
-                yield chunk
-            return
-        except (BackendError, Exception):
-            continue
+    if not skip_tier1:
+        for _attempt in range(3):
+            name = _pick_tool_backend(TOOL_TIER1_BACKENDS)
+            if not name:
+                break
+            b = BACKENDS[name]
+            req_body = {"model": b["model"], "messages": openai_msgs,
+                "tools": openai_tools, "max_tokens": body.get("max_tokens", 4096),
+                "tool_choice": "auto"}
+            if name.startswith("aliyun"):
+                req_body["enable_thinking"] = False
+            payload = json.dumps(req_body, ensure_ascii=False).encode()
+            try:
+                data = await asyncio.to_thread(call_raw, name, payload)
+                result = _convert_response_openai_to_anthropic(data, b["model"])
+                for chunk in _simulate_anthropic_sse(result):
+                    yield chunk
+                return
+            except (BackendError, Exception):
+                continue
 
     # ── 第二梯队：LongCat Anthropic 原生流式 ──
+    import urllib.request as _ur
     for _attempt in range(2):
         name = _pick_tool_backend(ANTHROPIC_NATIVE_BACKENDS)
         if not name:
