@@ -1,0 +1,163 @@
+"""
+LiMa Streaming — 纯流式核心，依赖注入解耦
+从 server.py 提取: _real_stream_chunks + _speculative_stream_chunks
+
+依赖注入: 所有外部调用(call_api/call_stream/predict/select)由调用者注入
+"""
+
+import asyncio
+import time
+import threading
+import queue as queue_mod
+from typing import AsyncIterator, Callable, Iterator, Optional
+
+# 注入函数签名
+CallStreamFn = Callable[[str, list, int, str], Iterator[str]]
+CallApiFn = Callable[[str, list, int, str], str]
+PredictFn = Callable[[str], str]
+SelectFn = Callable[[str, str, str, list], tuple[str, list]]
+
+
+# ─── 同步流→异步桥接 ─────────────────────────────────────────────────────────
+
+async def bridge_stream(
+    backend: str, messages: list, max_tokens: int, ide: str,
+    call_stream_fn: CallStreamFn,
+    call_fn: CallApiFn,
+    first_chunk_timeout: float = 3.0,
+) -> AsyncIterator[str]:
+    """同步流→异步桥接。无chunk时 fallback 到非流式。
+
+    Yields: text chunks (str)
+    """
+    q: queue_mod.Queue = queue_mod.Queue()
+    cancel = threading.Event()
+
+    def _run():
+        try:
+            for chunk in call_stream_fn(backend, messages, max_tokens, ide):
+                if cancel.is_set():
+                    return
+                q.put(('chunk', chunk))
+        except Exception:
+            pass
+        finally:
+            q.put(('done', None))
+
+    thread = threading.Thread(target=_run, daemon=True)
+    thread.start()
+
+    first = False
+    start = time.time()
+
+    while True:
+        remaining = first_chunk_timeout - (time.time() - start)
+        if remaining <= 0:
+            break
+        try:
+            typ, val = q.get(timeout=min(remaining, 0.5))
+        except queue_mod.Empty:
+            continue
+        if typ == 'done':
+            if not first:
+                cancel.set()
+                try:
+                    result = await asyncio.to_thread(
+                        call_fn, backend, messages, max_tokens, ide)
+                    if result and not str(result).startswith('[ERR]'):
+                        yield str(result)
+                except Exception:
+                    pass
+                return
+            return
+        if typ == 'chunk':
+            first = True
+            yield val
+
+    if not first:
+        cancel.set()
+        try:
+            result = await asyncio.to_thread(
+                call_fn, backend, messages, max_tokens, ide)
+            if result and not str(result).startswith('[ERR]'):
+                yield str(result)
+        except Exception:
+            pass
+        return
+
+    # 继续消费剩余 chunk (带超时防卡死)
+    while True:
+        try:
+            typ, val = await asyncio.to_thread(q.get, timeout=30)
+        except queue_mod.Empty:
+            break
+        if typ == 'done':
+            break
+        if typ == 'chunk':
+            yield val
+
+
+# ─── 预测流式 ────────────────────────────────────────────────────────────────
+
+async def speculative_stream(
+    query: str, messages: list, max_tokens: int, ide: str,
+    predict_fn: PredictFn,
+    select_fn: SelectFn,
+    call_stream_fn: CallStreamFn,
+    call_fn: CallApiFn,
+) -> AsyncIterator[tuple[str, str]]:
+    """预测后端立即流式传输，同时路由在后台验证。
+    预测正确→无缝流；预测错误→切换后端。
+
+    Yields: (backend_name, text_chunk) tuples
+    """
+    predicted = predict_fn(query)
+    predicted_msgs = messages if messages else [{"role": "user", "content": query}]
+
+    route_task = asyncio.create_task(
+        asyncio.to_thread(select_fn, query, "", ide, messages)
+    )
+
+    actual_backend = predicted
+    actual_msgs = predicted_msgs
+    switched = False
+
+    try:
+        async for chunk in bridge_stream(
+            predicted, predicted_msgs, max_tokens, ide,
+            call_stream_fn, call_fn,
+        ):
+            if route_task.done() and not switched:
+                try:
+                    actual_backend, actual_msgs = route_task.result()
+                except Exception:
+                    actual_backend = predicted
+                    actual_msgs = predicted_msgs
+
+                if actual_backend != predicted:
+                    switched = True
+                    break
+            yield (actual_backend, chunk)
+
+        if not switched:
+            if not route_task.done():
+                try:
+                    actual_backend, actual_msgs = await route_task
+                except Exception:
+                    pass
+            return
+
+        # 预测错误→切换到实际后端重新流
+        async for chunk in bridge_stream(
+            actual_backend, actual_msgs, max_tokens, ide,
+            call_stream_fn, call_fn,
+        ):
+            yield (actual_backend, chunk)
+
+    finally:
+        if not route_task.done():
+            route_task.cancel()
+            try:
+                await route_task
+            except (asyncio.CancelledError, Exception):
+                pass
