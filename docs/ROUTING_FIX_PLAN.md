@@ -428,13 +428,40 @@ def select_backends(request_type: str) -> list:
 
 ## 十一、参考项目
 
-| 项目 | 地址 | 参考点 |
-|------|------|--------|
-| LiteLLM | github.com/BerriAI/litellm | Router健康检查+fallback+格式转换 |
-| RouteLLM | github.com/lm-sys/RouteLLM | 强/弱模型分流策略 |
-| Portkey Gateway | github.com/Portkey-AI/gateway | 条件路由+重试策略 |
-| One-API | github.com/songquanpeng/one-api | 多渠道负载均衡(已在用) |
-| Helicone | github.com/Helicone/helicone | 指标记录+可观测性 |
+### 11.1 直接对标项目（最值得参考）
+
+| 项目 | 语言 | Stars | 核心参考点 |
+|------|------|-------|-----------|
+| **Olla** github.com/thushan/olla | Rust/Go | - | Sticky Sessions(KV-cache亲和), lock-free stats, circuit breaker |
+| **LunarGate** github.com/lunargate-ai/gateway | Go | - | Weighted+Conditional路由, Circuit Breaker, YAML热重载 |
+| **OmniRoute** github.com/diegosouzapw/OmniRoute | TypeScript | - | 6种路由策略, Combo Fallback, Semantic Cache, 健康仪表盘 |
+
+### 11.2 架构级参考
+
+| 项目 | 语言 | Stars | 核心参考点 |
+|------|------|-------|-----------|
+| **LiteLLM** github.com/BerriAI/litellm | Python | 47.6k | 3种Fallback类型, Cooldown TTL, 指数退避+抖动 |
+| **RouteLLM** github.com/lm-sys/RouteLLM | Python | 4.9k | 复杂度阈值路由, 4种路由器, 成本-质量权衡 |
+| **Portkey** github.com/Portkey-AI/gateway | TypeScript | 11.8k | 条件路由, Hooks(MUTATOR), onStatusCodes白名单 |
+
+### 11.3 Key 管理 & 免费池参考
+
+| 项目 | 语言 | Stars | 核心参考点 |
+|------|------|-------|-----------|
+| **GPT-Load** github.com/tbphp/gpt-load | Go+Vue3 | 5.5k | 分组Key池+自动轮换+故障拉黑恢复, 权重负载均衡 |
+| **One Balance** github.com/glidea/one-balance | CF Workers | - | 分钟级vs天级配额冷却, 403永久拉黑Key |
+
+### 11.4 痛点 → 参考映射
+
+| LiMa 痛点 | 首选参考 | 次选参考 |
+|-----------|---------|---------|
+| 上下文丢失(多轮对话) | **Olla** Sticky Sessions | LiteLLM 同模型多Provider fallback |
+| 偶发空响应(流式Bug) | **LiteLLM** Cooldown+重试 | Olla 健康检查+熔断 |
+| 免费Key过期/限流 | **One Balance** 分级冷却 | GPT-Load Key池自动拉黑恢复 |
+| 路由策略单一 | **OmniRoute** 6种策略 | RouteLLM 复杂度阈值 |
+| 强模型浪费 | **RouteLLM** 成本-质量权衡 | OmniRoute Cost Optimized |
+| Key管理弱 | **GPT-Load** 分组+权重+热重载 | One Balance 过期自动刷新 |
+| 改配置要重启 | **LunarGate** YAML热重载 | GPT-Load 热重载 |
 
 ## 十二、源码分析关键发现
 

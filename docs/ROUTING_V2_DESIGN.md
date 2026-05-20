@@ -1,3 +1,11 @@
+# ⚠️ DEPRECATED — 已被 V3 取代
+
+> 本文档已过时。新设计见：
+> - `docs/ROUTING_V3_DESIGN.md` — 功能设计（8模块）
+> - `docs/ROUTING_FIX_PLAN.md` — 实现方案（14模块）
+
+---
+
 # LiMa 路由 V2 设计方案：去本地模型化
 
 ## 背景
