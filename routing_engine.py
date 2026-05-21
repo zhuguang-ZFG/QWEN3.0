@@ -277,6 +277,22 @@ def route(query: str, messages: list[dict], *,
     scenario = classify_scenario(query, messages,
                                  ide_source=ide_source, request_type=req_type)
 
+    # ── Code Orchestrator: 编程场景走强模型带动弱模型 pipeline ──
+    if scenario == "coding" and not ide_source and call_fn:
+        try:
+            import code_orchestrator
+            orch_result = code_orchestrator.handle(
+                query, messages, call_fn, max_tokens)
+            if orch_result.get("answer"):
+                ms = int((time.time() - t0) * 1000)
+                return RouteResult(
+                    backend=orch_result["backend"],
+                    answer=orch_result["answer"],
+                    request_type=f"code_{orch_result['tier']}",
+                    ms=ms, scenario=scenario)
+        except Exception:
+            pass  # fallback to normal routing
+
     sticky_key = sticky_session.compute_key(
         model or "default",
         json.dumps(messages, ensure_ascii=False))
