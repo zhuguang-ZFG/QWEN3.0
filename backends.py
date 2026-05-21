@@ -182,7 +182,7 @@ BACKENDS = {
     # ── Kimi (moonshot.cn, 本地代理, K2.6 模型, 3 种模式) ──
     'kimi': {'url': 'http://localhost:4504/v1/chat/completions', 'key': 'none', 'model': 'kimi', 'fmt': 'openai', 'timeout': 30},
     'kimi_thinking': {'url': 'http://localhost:4504/v1/chat/completions', 'key': 'none', 'model': 'kimi-thinking', 'fmt': 'openai', 'timeout': 45},
-    'kimi_search': {'url': 'http://localhost:4504/v1/chat/completions', 'key': 'none', 'model': 'kimi-search', 'fmt': 'openai', 'timeout': 30},
+    'kimi_search': {'url': 'http://localhost:4504/v1/chat/completions', 'key': 'none', 'model': 'kimi-search', 'fmt': 'openai', 'timeout': 60},
 }
 
 PUBLIC_MODEL_NAME = os.environ.get('PUBLIC_MODEL_NAME', 'LiMa')

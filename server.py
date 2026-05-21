@@ -1827,6 +1827,7 @@ def _split_sentences(text: str) -> list[str]:
 async def list_models():
     """返回模型列表，让 IDE 识别可用模型。"""
     models = [
+        {"id": "claude-opus-4-7", "object": "model", "created": MODEL_CREATED, "owned_by": "anthropic"},
         {"id": "claude-sonnet-4", "object": "model", "created": MODEL_CREATED, "owned_by": "anthropic"},
         {"id": "claude-haiku-4", "object": "model", "created": MODEL_CREATED, "owned_by": "anthropic"},
         {"id": "gpt-5.4", "object": "model", "created": MODEL_CREATED, "owned_by": "openai"},

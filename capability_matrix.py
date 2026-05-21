@@ -99,6 +99,11 @@ _DEFAULT_MATRIX = {
     "scnet_qwen235b": {"code": 9, "debug": 8, "chinese": 9, "english": 8, "reasoning": 8, "speed": 7},
     "scnet_ds_flash": {"code": 9, "debug": 8, "chinese": 9, "english": 8, "reasoning": 8, "speed": 8},
     "scnet_ds_pro": {"code": 10, "debug": 9, "chinese": 9, "english": 9, "reasoning": 9, "speed": 5},
+
+    # Kimi (月之暗面, K2.6)
+    "kimi": {"code": 8, "debug": 7, "chinese": 10, "english": 7, "reasoning": 7, "speed": 7},
+    "kimi_thinking": {"code": 9, "debug": 8, "chinese": 10, "english": 8, "reasoning": 9, "speed": 5},
+    "kimi_search": {"code": 7, "debug": 6, "chinese": 10, "english": 7, "reasoning": 7, "speed": 4},
 }
 
 # ── 加载评测结果覆盖 ─────────────────────────────────────────────────────────
