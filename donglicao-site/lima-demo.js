@@ -120,9 +120,27 @@
   `;
 
   // --- Insert into page ---
-  const anchor = document.querySelector('[id="stats"], [id="pricing"], [id="roadmap"]');
-  if (anchor) anchor.parentNode.insertBefore(section, anchor);
-  else document.body.appendChild(section);
+  function tryInsert() {
+    if (document.getElementById('lima-demo')) return;
+    var wrapper = document.querySelector('.overflow-hidden');
+    if (wrapper) {
+      wrapper.appendChild(section);
+    } else {
+      var firstDiv = document.querySelector('body > div');
+      if (firstDiv) firstDiv.appendChild(section);
+      else document.body.appendChild(section);
+    }
+    setTimeout(function() {
+      var cards = section.querySelectorAll('.lima-card');
+      cards.forEach(function(c) { c.classList.add('lima-visible'); });
+    }, 300);
+  }
+
+  if (document.readyState === 'complete') {
+    setTimeout(tryInsert, 1000);
+  } else {
+    window.addEventListener('load', function() { setTimeout(tryInsert, 1000); });
+  }
 
   // --- Intersection Observer ---
   const observer = new IntersectionObserver(function(entries) {
