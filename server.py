@@ -1465,11 +1465,14 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
 
     # ── Mode-based routing preference ─────────────────────────────────────
     prefer = None
-    if req.model == "fast":
+    if req.model in ("fast", "lima"):
         prefer = "longcat_lite"
-    elif req.model == "expert":
+    elif req.model in ("expert", "lima-thinking"):
         prefer = "scnet_ds_pro"
         req.thinking = True
+    elif req.model in ("code", "lima-code"):
+        prefer = None  # handled by classify_scenario → code pool
+        ide_source = ide_source or "chat_code_mode"
     elif req.model == "vision":
         prefer = None  # vision handled by existing detection
 
