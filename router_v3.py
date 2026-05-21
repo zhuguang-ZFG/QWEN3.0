@@ -175,49 +175,8 @@ def p2c_select(backends: list, score_fn) -> Optional[str]:
     return backends[i] if si >= sj else backends[j]
 
 
-# ─── Layer 3: 执行辅助 ───────────────────────────────────────────────────────
 
-def detect_mass_failure(health_map: dict) -> bool:
-    """超过 50% 后端 dead = 我们自己的问题（代理/网络）"""
-    if not health_map:
-        return False
-    dead = sum(1 for s in health_map.values() if s == "dead")
-    return dead > len(health_map) * 0.5
-
-
-def compute_health_score(backend: str, health_map: dict, latency_map: dict) -> float:
-    """P2C 健康分: 成功率 + 延迟倒数 - 熔断惩罚"""
-    state = health_map.get(backend, "healthy")
-    if state == "dead":
-        return -1.0
-    latency = latency_map.get(backend, 1000)
-    score = 1.0 / math.log10(latency + 10)
-    if state == "degraded":
-        score *= 0.5
-    return score
-
-
-def semantic_cache_key(model: str, messages: list, temperature: float = 0) -> str:
-    """精确匹配缓存 key (仅 temperature=0 时有效)"""
-    if temperature != 0:
-        return ""
-    payload = json.dumps({"model": model, "messages": messages}, sort_keys=True)
-    return hashlib.sha256(payload.encode()).hexdigest()
-
-
-# ─── Skills 注入判断 ─────────────────────────────────────────────────────────
-
-STRONG_BACKENDS = {"longcat_chat", "naga_gpt41mini",
-                  "opencode_stealth", "fireworks_llama405b", "deepinfra_llama4", "deepseek_free"}
-
-_LANG_KEYWORDS = {
-    "python": ["python", "pip", "django", "flask", "fastapi", "pep"],
-    "javascript": ["javascript", "typescript", "react", "vue", "node", "npm"],
-    "go": ["golang", " go ", "goroutine", "go mod"],
-    "rust": ["rust", "cargo", "borrow"],
-    "java": ["java", "spring", "maven", "gradle"],
-}
-
+# ─── Layer 3: IDE 检测 ─────────────────────────────────────────────────────
 
 def detect_ide_from_system_prompt(text: str) -> str:
     """公开接口：从 system prompt 检测 IDE 来源"""
@@ -225,36 +184,4 @@ def detect_ide_from_system_prompt(text: str) -> str:
         if any(m in text for m in markers):
             return ide
     return ""
-
-
-def get_skills_to_inject(ide_source: str, system_prompt: str,
-                         backend: str, detected_lang: str = "") -> dict:
-    """
-    智能判断需要注入哪些 Skills 层级。
-    返回 {"L0": bool, "L1": bool, "L2": bool, "L3": bool}
-    """
-    result = {"L0": False, "L1": False, "L2": False, "L3": False}
-    is_ide = ide_source in IDE_SOURCES
-    is_strong = backend in STRONG_BACKENDS
-    sys_lower = system_prompt.lower()
-
-    # L0: 通用编程规范 — 只有无 system prompt 的普通聊天才注入
-    if not is_ide and len(system_prompt) < 100:
-        result["L0"] = True
-
-    # L1: 语言专属规则 — 检测 system prompt 是否已覆盖该语言
-    if detected_lang:
-        keywords = _LANG_KEYWORDS.get(detected_lang, [])
-        already_covered = any(kw in sys_lower for kw in keywords)
-        if not already_covered:
-            result["L1"] = True
-
-    # L2: 项目专属上下文 — 永远注入（IDE 不知道我们的项目约定）
-    result["L2"] = True
-
-    # L3: 模型专属提示 — 弱模型才注入
-    if not is_strong:
-        result["L3"] = True
-
-    return result
 
