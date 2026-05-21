@@ -1862,6 +1862,15 @@ async def health():
     return {"status": "ok", "version": "2.0", "model": MODEL_ID}
 
 
+@app.get("/api/live-key")
+async def live_key():
+    """返回 Gemini Live API key（供视频通话前端使用）。"""
+    key = os.environ.get("GOOGLE_AI_KEY", "")
+    if not key:
+        raise HTTPException(status_code=503, detail="Gemini key not configured")
+    return {"key": key, "model": "models/gemini-2.0-flash-live-001"}
+
+
 @app.get("/v1/status")
 async def router_status():
     """路由器状态：熔断器、后端列表、路由表。"""
