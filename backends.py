@@ -149,8 +149,18 @@ BACKENDS = {
     'stock_news': {'url': 'https://stock.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'stockai/news', 'fmt': 'openai', 'timeout': 30},
     'stock_mistral': {'url': 'https://stock.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'mistral/mistral-small', 'fmt': 'openai', 'timeout': 30},
     # ── TheOldLLM v2 (本地代理 + 自动 Token 刷新, 免费) ──
+    'oldllm_gpt54': {'url': 'https://llm.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'gpt-5.4', 'fmt': 'openai', 'timeout': 45},
+    'oldllm_gpt53': {'url': 'https://llm.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'gpt-5.3', 'fmt': 'openai', 'timeout': 45},
     'oldllm_gpt52': {'url': 'https://llm.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'gpt-5.2', 'fmt': 'openai', 'timeout': 45},
     'oldllm_gpt51': {'url': 'https://llm.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'gpt-5.1', 'fmt': 'openai', 'timeout': 45},
+    'oldllm_gpt5': {'url': 'https://llm.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'gpt-5', 'fmt': 'openai', 'timeout': 45},
+    'oldllm_gpt5_mini': {'url': 'https://llm.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'gpt-5-mini', 'fmt': 'openai', 'timeout': 30},
+    'oldllm_gpt41': {'url': 'https://llm.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'gpt-4.1', 'fmt': 'openai', 'timeout': 45},
+    'oldllm_gpt41_mini': {'url': 'https://llm.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'gpt-4.1-mini', 'fmt': 'openai', 'timeout': 30},
+    'oldllm_gpt41_nano': {'url': 'https://llm.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'gpt-4.1-nano', 'fmt': 'openai', 'timeout': 20},
+    'oldllm_gpt4': {'url': 'https://llm.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'gpt-4', 'fmt': 'openai', 'timeout': 45},
+    'oldllm_o1': {'url': 'https://llm.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'o1', 'fmt': 'openai', 'timeout': 60},
+    'oldllm_o4_mini': {'url': 'https://llm.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'o4-mini', 'fmt': 'openai', 'timeout': 45},
     # ── Cloudflare Workers AI (免费 10K neurons/天, 大模型推理) ──
     'cfai_llama70b': {'url': 'https://ai.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'llama-3.3-70b', 'fmt': 'openai', 'timeout': 30},
     'cfai_llama4': {'url': 'https://ai.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'llama-4-scout', 'fmt': 'openai', 'timeout': 30},
@@ -159,6 +169,11 @@ BACKENDS = {
     # ── 本地 Ollama 新增模型 ──
     'local_qwen3': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'qwen3:8b', 'fmt': 'openai', 'timeout': 30},
     'local_phi4': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'phi4:14b', 'fmt': 'openai', 'timeout': 45},
+    # ── g4f (PollinationsAI, 免费, 本地 port 4503) ──
+    'g4f_openai': {'url': 'http://localhost:4503/v1/chat/completions', 'key': 'none', 'model': 'openai', 'fmt': 'openai', 'timeout': 30, 'extra_body': {'provider': 'PollinationsAI'}},
+    'g4f_deepseek': {'url': 'http://localhost:4503/v1/chat/completions', 'key': 'none', 'model': 'deepseek', 'fmt': 'openai', 'timeout': 30, 'extra_body': {'provider': 'PollinationsAI'}},
+    'g4f_qwen_coder': {'url': 'http://localhost:4503/v1/chat/completions', 'key': 'none', 'model': 'qwen-coder', 'fmt': 'openai', 'timeout': 30, 'extra_body': {'provider': 'PollinationsAI'}},
+    'g4f_llama': {'url': 'http://localhost:4503/v1/chat/completions', 'key': 'none', 'model': 'llama', 'fmt': 'openai', 'timeout': 30, 'extra_body': {'provider': 'PollinationsAI'}},
 }
 
 PUBLIC_MODEL_NAME = os.environ.get('PUBLIC_MODEL_NAME', 'LiMa')

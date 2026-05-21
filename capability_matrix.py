@@ -80,6 +80,20 @@ _DEFAULT_MATRIX = {
     "stock_qwen3_coder": {"code": 9, "debug": 8, "chinese": 7, "english": 7, "reasoning": 7, "speed": 6},
     "stock_news": {"code": 3, "debug": 2, "chinese": 5, "english": 7, "reasoning": 4, "speed": 7},
     "stock_mistral": {"code": 6, "debug": 5, "chinese": 4, "english": 7, "reasoning": 5, "speed": 7},
+
+    # TheOldLLM
+    "oldllm_gpt54": {"code": 10, "debug": 9, "chinese": 8, "english": 10, "reasoning": 9, "speed": 5},
+    "oldllm_gpt53": {"code": 10, "debug": 9, "chinese": 8, "english": 10, "reasoning": 9, "speed": 5},
+    "oldllm_gpt52": {"code": 10, "debug": 9, "chinese": 8, "english": 10, "reasoning": 9, "speed": 5},
+    "oldllm_gpt51": {"code": 9, "debug": 9, "chinese": 8, "english": 10, "reasoning": 9, "speed": 5},
+    "oldllm_gpt5": {"code": 9, "debug": 8, "chinese": 8, "english": 10, "reasoning": 8, "speed": 5},
+    "oldllm_gpt5_mini": {"code": 8, "debug": 7, "chinese": 7, "english": 9, "reasoning": 7, "speed": 7},
+    "oldllm_gpt41": {"code": 9, "debug": 8, "chinese": 7, "english": 9, "reasoning": 8, "speed": 6},
+    "oldllm_gpt41_mini": {"code": 8, "debug": 7, "chinese": 7, "english": 9, "reasoning": 7, "speed": 7},
+    "oldllm_gpt41_nano": {"code": 6, "debug": 5, "chinese": 5, "english": 8, "reasoning": 5, "speed": 9},
+    "oldllm_gpt4": {"code": 8, "debug": 8, "chinese": 7, "english": 9, "reasoning": 8, "speed": 5},
+    "oldllm_o1": {"code": 9, "debug": 9, "chinese": 7, "english": 9, "reasoning": 10, "speed": 3},
+    "oldllm_o4_mini": {"code": 9, "debug": 8, "chinese": 7, "english": 9, "reasoning": 9, "speed": 6},
 }
 
 # ── 加载评测结果覆盖 ─────────────────────────────────────────────────────────
