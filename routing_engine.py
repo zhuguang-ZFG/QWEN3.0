@@ -30,6 +30,7 @@ class RouteResult:
     backend: str = ""
     answer: str = ""
     request_type: str = "chat"
+    scenario: str = ""
     ms: int = 0
     fallback_used: bool = False
     skills_injected: list = field(default_factory=list)
@@ -62,6 +63,37 @@ def classify(query: str, messages: list[dict], *,
     return "chat"
 
 
+def classify_scenario(query: str, messages: list[dict], *,
+                      ide_source: str = "", request_type: str = "") -> str:
+    """判断场景: coding / chat。决定走质量路径还是速度路径。"""
+    if request_type == "ide":
+        return "coding"
+    if ide_source and ide_source.lower() in ("claude code", "cursor", "aider", "cline", "codex"):
+        return "coding"
+
+    last_content = ""
+    if messages:
+        last = messages[-1]
+        last_content = last.get("content", "") if isinstance(last, dict) else ""
+        if isinstance(last_content, list):
+            last_content = " ".join(
+                b.get("text", "") for b in last_content if isinstance(b, dict))
+
+    text = last_content or query
+
+    if "```" in text:
+        return "coding"
+    if any(kw in text for kw in ("Traceback", "Error:", "TypeError", "SyntaxError")):
+        return "coding"
+
+    code_signals = ("def ", "class ", "import ", "function ", "const ", "async ",
+                    "return ", "if __name__", "from ", "export ")
+    if sum(1 for s in code_signals if s in text) >= 2:
+        return "coding"
+
+    return "chat"
+
+
 def _has_image_blocks(messages: list[dict]) -> bool:
     for m in messages:
         content = m.get("content", []) if isinstance(m, dict) else []
@@ -75,9 +107,15 @@ def _has_image_blocks(messages: list[dict]) -> bool:
 # ─── Layer 2: 选择 ───────────────────────────────────────────────────────────
 
 def select(request_type: str, health_map: dict,
-           sticky_key: str = None) -> list[str]:
+           sticky_key: str = None, scenario: str = "") -> list[str]:
     """从对应池选健康后端，按健康评分排序，过滤预算耗尽，sticky 优先"""
-    result = router_v3.select_backends(request_type, health_map)
+    pool_key = request_type
+    if request_type == "chat" and scenario == "coding":
+        pool_key = "code"
+    elif request_type == "chat" and scenario == "chat":
+        pool_key = "chat_fast"
+
+    result = router_v3.select_backends(pool_key, health_map)
 
     # 过滤预算耗尽的后端
     result = [b for b in result if budget_manager.is_budget_available(b)]
@@ -236,12 +274,15 @@ def route(query: str, messages: list[dict], *,
     req_type = classify(query, messages, fmt=fmt, ide_source=ide_source,
                         system_prompt=system_prompt, headers=headers)
 
+    scenario = classify_scenario(query, messages,
+                                 ide_source=ide_source, request_type=req_type)
+
     sticky_key = sticky_session.compute_key(
         model or "default",
         json.dumps(messages, ensure_ascii=False))
 
     hmap = health_tracker.get_health_map()
-    backends = select(req_type, hmap, sticky_key=sticky_key)
+    backends = select(req_type, hmap, sticky_key=sticky_key, scenario=scenario)
 
     messages_injected = inject_skills(
         messages, backend=backends[0] if backends else "",
@@ -291,7 +332,7 @@ def route(query: str, messages: list[dict], *,
     ms = int((time.time() - t0) * 1000)
     return RouteResult(
         backend=final_backend, answer=answer,
-        request_type=req_type, ms=ms,
+        request_type=req_type, scenario=scenario, ms=ms,
         fallback_used=(final_backend not in ("exhausted", "none") and final_backend != backends[0]),
         skills_injected=injected_ids,
     )

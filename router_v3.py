@@ -63,6 +63,26 @@ POOLS = {
     "image": {
         "strong": ["pollinations"],
     },
+    "code": {
+        "strong": ["cf_qwen_coder", "mistral_codestral", "mistral_devstral",
+                   "nvidia_qwen_coder", "or_qwen3_coder",
+                   "longcat_thinking", "longcat_chat", "cf_llama70b"],
+        "medium": ["groq_llama70b", "cerebras_qwen235b", "cf_deepseek_r1",
+                   "cf_qwq", "deepinfra_qwen235b", "sambanova_ds_v3",
+                   "opencode_ds_flash", "opencode_qwen", "opencode_nemotron",
+                   "github_codestral", "github_gpt4o"],
+        "floor": ["groq_gptoss", "cerebras_gptoss", "longcat_lite",
+                  "local_coder14b", "local_reasoning"],
+    },
+    "chat_fast": {
+        "strong": ["groq_llama70b", "groq_qwen32b", "cerebras_gptoss",
+                   "longcat_lite", "cf_llama70b", "cf_kimi_k26"],
+        "medium": ["longcat_chat", "cf_qwen3_30b", "cf_gemma4",
+                   "groq_gptoss", "groq_llama4",
+                   "google_flash", "google_flash_lite"],
+        "floor": ["ovh_llama70b", "ovh_deepseek", "pollinations_openai",
+                  "local_fast", "local_chat"],
+    },
 }
 
 DIRECT_BACKENDS = [

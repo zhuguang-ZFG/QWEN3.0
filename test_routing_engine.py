@@ -64,14 +64,17 @@ def test_select_ide_excludes_floor():
 
 
 def test_select_chat_includes_floor():
-    """Chat 请求当 strong+medium 不足时包含 floor"""
+    """Chat 请求当 strong+medium 全死时 fallback 到 floor"""
     hmap = make_healthy_map()
-    # 把 medium 层全标死，floor 才会出现
-    hmap["naga_llama70b"] = "dead"
-    hmap["unclose_hermes"] = "dead"
-    hmap["freetheai_ds"] = "dead"
+    # 把 chat pool 的 strong + medium 全标死
+    import router_v3
+    pool = router_v3.POOLS["chat"]
+    for b in pool.get("strong", []) + pool.get("medium", []):
+        hmap[b] = "dead"
     backends = re_.select("chat", hmap)
-    has_floor = any(b in backends for b in ["chat_ubi", "llm7", "pollinations"])
+    # 应该包含 floor 层后端
+    floor_backends = set(pool.get("floor", []))
+    has_floor = any(b in floor_backends for b in backends)
     assert has_floor
 
 
@@ -111,10 +114,8 @@ def test_inject_skills_strong_backend_directory_mode():
 # ── execute ──────────────────────────────────────────────────────────────────
 
 def fake_call_fn(backend, messages, max_tokens=4096):
-    """模拟后端调用：longcat_chat 成功，其他失败"""
-    if backend == "longcat_chat":
-        return "Hello, I am LiMa."
-    raise Exception("simulated failure")
+    """模拟后端调用：所有后端成功（测试路由逻辑，非后端行为）"""
+    return f"Hello from {backend}, I am LiMa."
 
 
 def fake_call_fn_all_fail(backend, messages, max_tokens=4096):
@@ -161,10 +162,11 @@ def test_route_e2e_chat():
         messages=[{"role": "user", "content": "write a python sort function"}],
         fmt="openai", call_fn=fake_call_fn,
     )
-    assert result.backend in ("longcat_chat", "deepseek_flash", "exhausted")
+    assert result.backend != "exhausted"
     assert result.request_type == "chat"
     assert result.ms >= 0
     assert isinstance(result.answer, str)
+    assert len(result.answer) > 0
 
 
 def test_route_e2e_ide_no_floor():
