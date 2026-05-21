@@ -1,54 +1,68 @@
-# 编程模型塔：强模型带动弱模型 — 闭环实现方案
+# 编程模型塔 V2：容错+自愈+学习 — 完整闭环方案
 
-> 创建: 2026-05-22
-> 目标: 让用户编程体验接近 Opus 4.7，实际 90% 由免费模型执行
-> 原则: 强模型的智慧常驻（规范注入+模板匹配），仅在质量不达标时实时调用
-
----
-
-## 执行步骤（每步闭环）
-
-### Step 1: 编程规范注入 (skills/code_guide.md)
-- 强模型预生成的编程规范，注入每个 coding 请求的 system prompt
-- 覆盖: 代码风格、安全、边界处理、测试、命名
-- 闭环标准: 注入后弱模型输出质量可观测提升
-
-### Step 2: 意图模板库 (intent_templates.py)
-- 50+ 常见编程意图的增强模板
-- 匹配到模板 → 零成本增强 prompt
-- 未匹配 → 调强模型实时增强
-- 闭环标准: 模板命中率 >60%
-
-### Step 3: 质量门 (quality_gate.py)
-- 纯规则验证，不调模型:
-  - 代码语法检查 (AST)
-  - 长度合理性
-  - 拒绝回答检测
-  - 重复/空洞检测
-  - 代码/文字比例
-- 闭环标准: 能拦截 80% 的低质量回复
-
-### Step 4: 修复路径 (repair)
-- Quality Gate 不通过时调强模型修复
-- 输入: 原始意图 + 弱模型尝试 + 失败原因
-- 强模型只修补，不重写
-- 闭环标准: 修复后通过 Quality Gate
-
-### Step 5: code_orchestrator.py 主模块
-- 串联 Step 1-4 的完整 pipeline
-- 分层: simple(直出) / standard(生成+验证) / complex(规划+执行+审查)
-- 闭环标准: 87+ 测试通过，端到端可用
-
-### Step 6: 接入 routing_engine.py
-- classify_scenario()="coding" 时走 orchestrator
-- 闭环标准: 生产部署，API 测试通过
+> 更新: 2026-05-22
+> 目标: 用 10 个 70 分模型协作，产出 95 分结果（接近 Opus 4.7）
+> 核心: 强模型智慧常驻 + 多维验证 + 惩罚机制 + 修复熔断 + 延迟预算
 
 ---
 
-## 后端角色分配
+## V1 已完成（基础 pipeline）
 
-| 角色 | 后端 | 调用时机 |
-|------|------|---------|
-| Fast | groq_gptoss, cerebras_gptoss, longcat_lite | Simple 层直出 |
-| Coder | cf_qwen_coder, mistral_codestral, groq_llama70b | Standard 层执行 |
-| Strong | cf_deepseek_r1, github_gpt4o, sambanova_ds_v3 | 意图增强 + 修复 |
+- [x] Step 1: 编程规范注入 (skills/code/guide.md)
+- [x] Step 2: 意图模板库 (intent_templates.py, 20+ 模板)
+- [x] Step 3: 基础质量门 (quality_gate.py)
+- [x] Step 4: 修复路径 (_repair)
+- [x] Step 5: code_orchestrator.py 主模块
+- [x] Step 6: 接入 routing_engine.py + 生产部署
+
+---
+
+## V2 升级项（容错+自愈+学习）
+
+### Step 7: 后端信誉分系统 (backend_reputation.py)
+- 每个后端维护 0-100 信誉分
+- 质量门通过 → +2 分，失败 → -10 分
+- 连续 3 次失败 → 冷却 30 分钟
+- 选后端时按信誉分排序（不是固定顺序）
+- 闭环标准: 低质量后端自动被降级
+
+### Step 8: 多维质量门升级 (quality_gate.py 扩展)
+- Dim 1: 基础质量（已有）
+- Dim 2: 指令遵从（类型注解/测试/完整性）
+- Dim 3: 安全检测（SQL注入/XSS/硬编码密钥）
+- Dim 4: 现代性检查（废弃API/旧语法）
+- Dim 5: 完整性（import完整/无TODO占位）
+- 输出: 0-100 评分（≥70 通过）
+- 闭环标准: 能拦截安全漏洞和不完整代码
+
+### Step 9: 修复熔断 + 策略切换
+- 最多 2 次修复尝试
+- 第 1 次: 定向修复（告诉 Strong 哪里错）
+- 第 2 次: 换模型从零重写（不基于 bad_answer）
+- 2 次都失败 → 返回所有尝试中最优的
+- 每次修复换不同 Strong 后端
+- 闭环标准: 不会无限循环
+
+### Step 10: 延迟预算机制
+- simple: 5s, standard: 12s, complex: 30s
+- 超时前必须返回（宁可有瑕疵不可空）
+- 各阶段按比例分配预算
+- 闭环标准: 用户永远不会等超过 30s
+
+### Step 11: 强模型也验证
+- Strong 输出同样过质量门
+- Strong 失败 → 换另一个 Strong
+- 所有 Strong 都失败 → 降级到 Coder 最优结果
+- 闭环标准: 不盲信任何模型
+
+### Step 12: 反馈闭环接入
+- quality_gate 结果 → 更新 backend_reputation
+- 记录 (backend, task_type, score) 三元组
+- 按 task_type 维度选最优后端
+- 闭环标准: 系统越用越准
+
+---
+
+## 执行顺序
+
+Step 7 → 8 → 9 → 10 → 11 → 12 → 全量测试 → 部署

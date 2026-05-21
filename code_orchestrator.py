@@ -1,6 +1,7 @@
 """
-code_orchestrator.py — 编程模型塔：强模型带动弱模型
-Pipeline: Intent Amplify → Guided Execute → Quality Gate → Repair
+code_orchestrator.py — 编程模型塔 V2：容错+自愈+学习
+Pipeline: Intent Amplify → Guided Execute → Quality Gate → Repair (with circuit breaker)
+Features: 信誉分排序、延迟预算、修复熔断、强模型也验证、反馈闭环
 """
 import os
 import re
@@ -8,9 +9,14 @@ import time
 
 import intent_templates
 import quality_gate
+import backend_reputation
 
 GUIDE_PATH = os.path.join(os.path.dirname(__file__), "skills", "code", "guide.md")
 _guide_cache = None
+
+# ── Latency Budget ───────────────────────────────────────────────────────────
+LATENCY_BUDGET = {"simple": 5.0, "standard": 12.0, "complex": 30.0}
+MAX_REPAIR_ATTEMPTS = 2
 
 
 def _load_guide() -> str:
@@ -68,29 +74,41 @@ POOLS = {
 # ── Main Pipeline ────────────────────────────────────────────────────────────
 
 def handle(query: str, messages: list, call_fn, max_tokens: int = 4096) -> dict:
-    """编程模型塔主入口。返回 {answer, backend, tier, repaired}"""
+    """编程模型塔主入口。返回 {answer, backend, tier, repaired, score}"""
     tier = classify_code_tier(query, messages)
     guide = _load_guide()
+    budget = LATENCY_BUDGET[tier]
+    t0 = time.time()
 
     # Phase 1: Intent Amplification
     enhanced_query = intent_templates.amplify_intent(query)
-
-    # Build system prompt with coding guide
     system = guide if guide else ""
 
-    # Phase 2: Execute based on tier
+    # Phase 2: Execute based on tier (with latency budget)
     if tier == "simple":
-        return _execute_simple(enhanced_query, messages, call_fn, system, max_tokens)
+        result = _execute_simple(enhanced_query, messages, call_fn, system, max_tokens, t0, budget)
     elif tier == "standard":
-        return _execute_standard(enhanced_query, messages, call_fn, system, max_tokens)
+        result = _execute_standard(enhanced_query, messages, call_fn, system, max_tokens, t0, budget)
     else:
-        return _execute_complex(enhanced_query, messages, call_fn, system, max_tokens)
+        result = _execute_complex(enhanced_query, messages, call_fn, system, max_tokens, t0, budget)
+
+    # Phase 3: Feedback loop — update reputation
+    if result.get("backend") and result["backend"] != "exhausted":
+        passed = result.get("score", 70) >= 70
+        backend_reputation.record(result["backend"], passed, f"code_{tier}")
+
+    return result
 
 
-def _try_backends(pool_name: str, messages: list, call_fn,
-                  system: str, max_tokens: int) -> tuple[str, str]:
-    """尝试池中后端，返回 (backend, answer)。全失败返回 ('', '')。"""
-    for backend in POOLS.get(pool_name, []):
+def _try_backends_ranked(pool_name: str, messages: list, call_fn,
+                         system: str, max_tokens: int,
+                         t0: float, deadline: float) -> tuple[str, str]:
+    """按信誉分排序尝试后端，超时返回空。"""
+    pool = POOLS.get(pool_name, [])
+    ranked = backend_reputation.sort_by_reputation(pool)
+    for backend in ranked:
+        if time.time() - t0 > deadline:
+            break
         try:
             msgs = messages.copy()
             if system:
@@ -103,73 +121,118 @@ def _try_backends(pool_name: str, messages: list, call_fn,
     return "", ""
 
 
-def _execute_simple(query: str, messages: list, call_fn,
-                    system: str, max_tokens: int) -> dict:
+def _execute_simple(query, messages, call_fn, system, max_tokens, t0, budget):
     """Simple 层：Fast 模型直出，不验证。"""
-    msgs = [{"role": "user", "content": query}]
-    if len(messages) > 1:
-        msgs = messages[:-1] + [{"role": "user", "content": query}]
-    backend, answer = _try_backends("fast", msgs, call_fn, system, max_tokens)
+    msgs = _build_msgs(query, messages)
+    backend, answer = _try_backends_ranked("fast", msgs, call_fn, system, max_tokens, t0, budget)
     if not answer:
-        backend, answer = _try_backends("coder", msgs, call_fn, system, max_tokens)
-    return {"answer": answer, "backend": backend, "tier": "simple", "repaired": False}
+        backend, answer = _try_backends_ranked("coder", msgs, call_fn, system, max_tokens, t0, budget)
+    return {"answer": answer, "backend": backend, "tier": "simple",
+            "repaired": False, "score": 80 if answer else 0}
 
 
-def _execute_standard(query: str, messages: list, call_fn,
-                      system: str, max_tokens: int) -> dict:
-    """Standard 层：Coder 生成 + Quality Gate + 可能修复。"""
-    msgs = [{"role": "user", "content": query}]
-    if len(messages) > 1:
-        msgs = messages[:-1] + [{"role": "user", "content": query}]
-    backend, answer = _try_backends("coder", msgs, call_fn, system, max_tokens)
+def _execute_standard(query, messages, call_fn, system, max_tokens, t0, budget):
+    """Standard 层：Coder + Quality Gate + 修复熔断。"""
+    msgs = _build_msgs(query, messages)
+    backend, answer = _try_backends_ranked("coder", msgs, call_fn, system, max_tokens, t0, budget * 0.5)
     if not answer:
-        return {"answer": "", "backend": "exhausted", "tier": "standard", "repaired": False}
+        return {"answer": "", "backend": "exhausted", "tier": "standard",
+                "repaired": False, "score": 0}
 
-    # Quality Gate
     gate = quality_gate.check(answer, query)
     if gate["passed"]:
-        return {"answer": answer, "backend": backend, "tier": "standard", "repaired": False}
+        backend_reputation.record(backend, True, "code_standard")
+        return {"answer": answer, "backend": backend, "tier": "standard",
+                "repaired": False, "score": gate["score"]}
 
-    # Repair: 调强模型修复
-    repaired = _repair(query, answer, gate["reasons"], msgs, call_fn, system, max_tokens)
+    # 质量不达标 → 修复熔断机制
+    backend_reputation.record(backend, False, "code_standard")
+    remaining = budget - (time.time() - t0)
+    if remaining < 3.0:
+        return {"answer": answer, "backend": backend, "tier": "standard",
+                "repaired": False, "score": gate["score"]}
+
+    repaired = _repair_with_breaker(query, answer, gate["reasons"],
+                                     msgs, call_fn, system, max_tokens, t0, budget)
     if repaired:
-        return {"answer": repaired[1], "backend": repaired[0], "tier": "standard", "repaired": True}
+        return {"answer": repaired[1], "backend": repaired[0], "tier": "standard",
+                "repaired": True, "score": repaired[2]}
 
-    # 修复失败，返回原始答案（总比没有好）
-    return {"answer": answer, "backend": backend, "tier": "standard", "repaired": False}
+    return {"answer": answer, "backend": backend, "tier": "standard",
+            "repaired": False, "score": gate["score"]}
 
 
-def _execute_complex(query: str, messages: list, call_fn,
-                     system: str, max_tokens: int) -> dict:
-    """Complex 层：Strong 规划 + Coder 执行 + Strong 审查。"""
-    msgs = [{"role": "user", "content": query}]
-    if len(messages) > 1:
-        msgs = messages[:-1] + [{"role": "user", "content": query}]
+def _execute_complex(query, messages, call_fn, system, max_tokens, t0, budget):
+    """Complex 层：Strong 模型优先，也过质量门。"""
+    msgs = _build_msgs(query, messages)
 
-    # 复杂任务直接用 Strong 模型（质量优先）
-    backend, answer = _try_backends("strong", msgs, call_fn, system, max_tokens)
+    # Strong 模型也验证（Step 11）
+    backend, answer = _try_backends_ranked("strong", msgs, call_fn, system, max_tokens, t0, budget * 0.7)
     if answer:
         gate = quality_gate.check(answer, query)
         if gate["passed"]:
-            return {"answer": answer, "backend": backend, "tier": "complex", "repaired": False}
+            backend_reputation.record(backend, True, "code_complex")
+            return {"answer": answer, "backend": backend, "tier": "complex",
+                    "repaired": False, "score": gate["score"]}
+        else:
+            backend_reputation.record(backend, False, "code_complex")
 
-    # Strong 失败或质量不达标，降级到 Coder
-    backend, answer = _try_backends("coder", msgs, call_fn, system, max_tokens)
+    # Strong 失败 → Coder fallback
+    remaining = budget - (time.time() - t0)
+    if remaining > 3.0:
+        backend, answer = _try_backends_ranked("coder", msgs, call_fn, system, max_tokens, t0, budget)
+        if answer:
+            return {"answer": answer, "backend": backend, "tier": "complex",
+                    "repaired": False, "score": quality_gate.check(answer, query)["score"]}
+
     return {"answer": answer or "", "backend": backend or "exhausted",
-            "tier": "complex", "repaired": False}
+            "tier": "complex", "repaired": False, "score": 0}
 
 
-def _repair(query: str, bad_answer: str, reasons: list,
-            messages: list, call_fn, system: str, max_tokens: int) -> tuple:
-    """调强模型修复低质量回复。返回 (backend, answer) 或 None。"""
-    repair_prompt = (
-        f"以下代码回复存在问题: {', '.join(reasons)}\n\n"
-        f"原始问题: {query}\n\n"
-        f"有问题的回复:\n{bad_answer[:2000]}\n\n"
-        f"请修复上述问题，直接给出正确的完整回复。"
-    )
-    repair_msgs = messages[:-1] + [{"role": "user", "content": repair_prompt}]
-    backend, answer = _try_backends("strong", repair_msgs, call_fn, system, max_tokens)
-    if answer and len(answer.strip()) > 10:
-        return backend, answer
+def _repair_with_breaker(query, bad_answer, reasons, messages,
+                          call_fn, system, max_tokens, t0, budget):
+    """修复熔断：最多 2 次，每次换后端，策略切换。"""
+    strong_pool = POOLS["strong"][:]
+
+    for attempt in range(MAX_REPAIR_ATTEMPTS):
+        remaining = budget - (time.time() - t0)
+        if remaining < 2.0 or not strong_pool:
+            break
+
+        backend_to_use = strong_pool.pop(0)
+
+        if attempt == 0:
+            # 策略 1: 定向修复
+            repair_prompt = (
+                f"以下代码回复存在问题: {', '.join(reasons)}\n\n"
+                f"原始问题: {query}\n\n"
+                f"有问题的回复:\n{bad_answer[:1500]}\n\n"
+                f"请修复上述问题，直接给出正确的完整代码回复。"
+            )
+        else:
+            # 策略 2: 从零重写（不基于 bad_answer）
+            repair_prompt = query
+
+        repair_msgs = [{"role": "user", "content": repair_prompt}]
+        try:
+            msgs = repair_msgs.copy()
+            if system:
+                msgs.insert(0, {"role": "system", "content": system})
+            answer = call_fn(backend_to_use, msgs, max_tokens)
+            if answer and len(answer.strip()) > 10:
+                gate = quality_gate.check(answer, query)
+                if gate["passed"]:
+                    backend_reputation.record(backend_to_use, True, "code_repair")
+                    return (backend_to_use, answer, gate["score"])
+                backend_reputation.record(backend_to_use, False, "code_repair")
+        except Exception:
+            continue
+
     return None
+
+
+def _build_msgs(query, messages):
+    """构建消息列表，用增强后的 query 替换最后一条用户消息。"""
+    if len(messages) > 1:
+        return messages[:-1] + [{"role": "user", "content": query}]
+    return [{"role": "user", "content": query}]
