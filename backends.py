@@ -33,7 +33,7 @@ BACKENDS = {
     'or_minimax': {'url': 'https://openrouter.ai/api/v1/chat/completions', 'key': os.environ.get('OPENROUTER_API_KEY', ''), 'model': 'minimax/minimax-m2.5:free', 'fmt': 'openai', 'timeout': 30},
     'or_gemma4': {'url': 'https://openrouter.ai/api/v1/chat/completions', 'key': os.environ.get('OPENROUTER_API_KEY', ''), 'model': 'google/gemma-4-31b-it:free', 'fmt': 'openai', 'timeout': 30},
     'unclose_hermes': {'url': 'https://hermes.ai.unturf.com/v1/chat/completions', 'key': 'none', 'model': 'adamo1139/Hermes-3-Llama-3.1-8B-FP8-Dynamic', 'fmt': 'openai', 'timeout': 15},
-    'unclose_qwen': {'url': 'https://qwen.ai.unturf.com/v1/chat/completions', 'key': 'none', 'model': 'Qwen3.6-27B-UD-Q4_K_XL.gguf', 'fmt': 'openai', 'timeout': 30},
+    'unclose_qwen': {'url': 'https://qwen.ai.unturf.com/v1/chat/completions', 'key': 'none', 'model': 'Qwen3.6-27B-UD-Q4_K_XL.gguf', 'fmt': 'openai', 'timeout': 30, 'extra_body': {'chat_template_kwargs': {'enable_thinking': False}}},
     'groq_llama70b': {'url': 'https://api.groq.com/openai/v1/chat/completions', 'key': os.environ.get('GROQ_API_KEY', ''), 'model': 'llama-3.3-70b-versatile', 'fmt': 'openai', 'timeout': 15},
     'groq_gptoss': {'url': 'https://api.groq.com/openai/v1/chat/completions', 'key': os.environ.get('GROQ_API_KEY', ''), 'model': 'openai/gpt-oss-120b', 'fmt': 'openai', 'timeout': 15},
     'groq_gptoss_20b': {'url': 'https://api.groq.com/openai/v1/chat/completions', 'key': os.environ.get('GROQ_API_KEY', ''), 'model': 'openai/gpt-oss-20b', 'fmt': 'openai', 'timeout': 10},

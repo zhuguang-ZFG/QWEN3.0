@@ -121,8 +121,11 @@ def _build_body(backend_cfg: dict, messages: list[dict],
         body = {'model': model, 'max_tokens': max_tokens,
                 'messages': [{'role': 'system', 'content': sys_text}]
                 + messages}
-        if backend_cfg.get('name') == 'unclose_qwen':
-            body['chat_template_kwargs'] = {'enable_thinking': False}
+
+    # 通用参数注入：从后端配置的 extra_body 字段合并
+    extra = backend_cfg.get('extra_body')
+    if extra and isinstance(extra, dict):
+        body.update(extra)
 
     if stream:
         body['stream'] = True
