@@ -176,11 +176,13 @@ AFFINITY = {
         "cf_qwen3_30b", "cf_gemma4", "ovh_llama70b",
         "groq_qwen32b", "nvidia_nemotron", "nvidia_llama70b",
         "sambanova_llama4", "deepinfra_llama4",
+        "groq_llama4", "groq_gptoss", "google_flash_lite", "google_gemma4", "github_gpt4o_mini",
     ],
     "code": [
         "nvidia_qwen_coder", "cf_qwen_coder", "deepseek_flash",
         "opencode_stealth", "mistral_devstral", "deepseek_pro",
         "groq_llama70b", "cerebras_gptoss",
+        "github_codestral", "or_qwen3_coder", "mistral_codestral",
     ],
     "complex_premium": [
         "longcat", "longcat_thinking", "deepseek_pro",

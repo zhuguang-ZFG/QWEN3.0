@@ -294,3 +294,87 @@ def get_backend_status(backend: str) -> dict:
             "empty_count": q.empty_count if q else 0,
             "error_msg_count": q.error_msg_count if q else 0,
         }
+
+
+# ── P2-A: 响应质量评分 + 动态降权 ────────────────────────────────────────────
+
+_REFUSAL_PATTERNS = [
+    "i cannot", "i can't", "i apologize", "i'm sorry but i",
+    "as an ai", "i'm not able to", "i don't have the ability",
+    "无法为你", "抱歉，我无法", "作为AI", "我没有能力",
+]
+
+_quality_penalties: dict[str, float] = {}
+_QUALITY_PENALTY_DURATION = 1800  # 30 分钟降权
+
+
+def score_response_quality(response: str, query: str = "",
+                           expect_code: bool = False) -> float:
+    """
+    评估单次响应质量，返回 0.0-1.0。
+    规则评分（不需要 LLM judge）：
+    - 长度合理性
+    - 拒绝检测
+    - 截断检测
+    - 循环检测
+    - 代码期望匹配
+    """
+    if not response or not response.strip():
+        return 0.0
+
+    score = 1.0
+    text = response.strip()
+    text_lower = text.lower()
+
+    # 拒绝检测：包含拒绝模式 → 降分
+    for pat in _REFUSAL_PATTERNS:
+        if pat in text_lower:
+            score -= 0.4
+            break
+
+    # 截断检测：末尾无标点且长度>100 → 可能被截断
+    if len(text) > 100 and text[-1] not in '.!?。！？\n```':
+        last_line = text.split('\n')[-1]
+        if len(last_line) > 20 and last_line[-1] not in '.!?。！？}])':
+            score -= 0.2
+
+    # 循环检测：相同短语重复 3+ 次
+    words = text.split()
+    if len(words) > 30:
+        chunks = [' '.join(words[i:i+5]) for i in range(0, len(words)-5, 5)]
+        from collections import Counter
+        chunk_counts = Counter(chunks)
+        if chunk_counts and chunk_counts.most_common(1)[0][1] >= 3:
+            score -= 0.5
+
+    # 代码期望：问代码问题但回答没有代码块
+    if expect_code and '```' not in text and 'def ' not in text and 'function' not in text:
+        score -= 0.3
+
+    # 过短回答（问题>30字但回答<20字）
+    if len(query) > 30 and len(text) < 20:
+        score -= 0.3
+
+    return max(0.0, min(1.0, score))
+
+
+def record_quality_score(backend: str, quality: float):
+    """记录质量分数，连续低质量触发降权。"""
+    with _lock:
+        q = _quality_states.setdefault(backend, QualityState())
+        q.total_requests += 1
+
+        if quality < 0.4:
+            q.error_msg_count += 1
+            if q.error_msg_count >= 3:
+                _quality_penalties[backend] = time.monotonic() + _QUALITY_PENALTY_DURATION
+        else:
+            q.error_msg_count = max(0, q.error_msg_count - 1)
+
+
+def get_quality_penalty(backend: str) -> float:
+    """返回质量降权因子 0-1。1.0=无降权，0.3=被降权。"""
+    deadline = _quality_penalties.get(backend, 0)
+    if deadline and time.monotonic() < deadline:
+        return 0.3
+    return 1.0

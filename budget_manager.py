@@ -44,6 +44,29 @@ BACKEND_BUDGETS: dict[str, BudgetConfig] = {
     "or_qwen3_80b": BudgetConfig(daily_limit=500, warn_at=0.7),
     "or_nemotron120b": BudgetConfig(daily_limit=500, warn_at=0.7),
 
+    # GitHub Models 免费: 保守
+    "github_gpt4o": BudgetConfig(daily_limit=500, warn_at=0.7),
+    "github_gpt4o_mini": BudgetConfig(daily_limit=500, warn_at=0.7),
+    "github_llama70b": BudgetConfig(daily_limit=500, warn_at=0.7),
+    "github_codestral": BudgetConfig(daily_limit=500, warn_at=0.7),
+
+    # Google 免费: 宽松
+    "google_flash_lite": BudgetConfig(daily_limit=1000, warn_at=0.8),
+    "google_gemini3": BudgetConfig(daily_limit=1000, warn_at=0.8),
+    "google_gemma4": BudgetConfig(daily_limit=1000, warn_at=0.8),
+
+    # Groq 免费: 宽松
+    "groq_llama4": BudgetConfig(daily_limit=1000, warn_at=0.8),
+    "groq_gptoss": BudgetConfig(daily_limit=1000, warn_at=0.8),
+
+    # SambaNova 免费: 保守
+    "sambanova_ds_v3": BudgetConfig(daily_limit=500, warn_at=0.7),
+
+    # Mistral 免费: 中等
+    "mistral_small": BudgetConfig(daily_limit=800, warn_at=0.8),
+    "mistral_medium": BudgetConfig(daily_limit=800, warn_at=0.8),
+    "mistral_codestral": BudgetConfig(daily_limit=800, warn_at=0.8),
+
     # 中国移动: 保守
     "chinamobile": BudgetConfig(daily_limit=500, warn_at=0.7),
 
