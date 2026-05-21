@@ -10,10 +10,10 @@ const fs = require('fs');
 const PORT = 4504;
 const SESSION_FILE = 'D:/ollama_server/kimi_session.json';
 const MODELS = {
-  "kimi": "k2d6",
-  "kimi-thinking": "k2d6-thinking",
-  "kimi-agent": "k2d6-agent",
-  "kimi-agent-ultra": "k2d6-agent-ultra"
+  "kimi": {thinking: false, search: false},
+  "kimi-thinking": {thinking: true, search: false},
+  "kimi-search": {thinking: false, search: true},
+  "kimi-thinking-search": {thinking: true, search: true}
 };
 
 function getToken() {
@@ -59,7 +59,7 @@ const server = http.createServer(async (req, res) => {
     req.on('end', async () => {
       try {
         const parsed = JSON.parse(body);
-        const modelKey = MODELS[parsed.model] || "k2d6";
+        const modelCfg = MODELS[parsed.model] || MODELS["kimi"];
         const msgs = parsed.messages || [];
         const question = msgs.filter(m => m.role === "user").pop()?.content || "";
         const token = getToken();
@@ -69,7 +69,7 @@ const server = http.createServer(async (req, res) => {
         if (!chat.id) { res.writeHead(500); res.end(JSON.stringify({error:'create chat failed', detail: chat})); return; }
 
         const msgRes = await kimiPost(`/api/chat/${chat.id}/completion/stream`,
-          {messages:[{role:'user',content:question}], refs:[], use_search:false}, token);
+          {messages:[{role:'user',content:question}], refs:[], use_search:modelCfg.search, use_thinking:modelCfg.thinking}, token);
         let content = '';
         for (const line of msgRes.body.split('\n')) {
           if (line.startsWith('data: ')) {
