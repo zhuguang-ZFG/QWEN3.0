@@ -169,11 +169,12 @@ BACKENDS = {
     # ── 本地 Ollama 新增模型 ──
     'local_qwen3': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'qwen3:8b', 'fmt': 'openai', 'timeout': 30},
     'local_phi4': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'phi4:14b', 'fmt': 'openai', 'timeout': 45},
-    # ── g4f (PollinationsAI, 免费, 本地 port 4503) ──
-    'g4f_openai': {'url': 'http://localhost:4503/v1/chat/completions', 'key': 'none', 'model': 'openai', 'fmt': 'openai', 'timeout': 30, 'extra_body': {'provider': 'PollinationsAI'}},
-    'g4f_deepseek': {'url': 'http://localhost:4503/v1/chat/completions', 'key': 'none', 'model': 'deepseek', 'fmt': 'openai', 'timeout': 30, 'extra_body': {'provider': 'PollinationsAI'}},
-    'g4f_qwen_coder': {'url': 'http://localhost:4503/v1/chat/completions', 'key': 'none', 'model': 'qwen-coder', 'fmt': 'openai', 'timeout': 30, 'extra_body': {'provider': 'PollinationsAI'}},
-    'g4f_llama': {'url': 'http://localhost:4503/v1/chat/completions', 'key': 'none', 'model': 'llama', 'fmt': 'openai', 'timeout': 30, 'extra_body': {'provider': 'PollinationsAI'}},
+    'local_mistral': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'mistral', 'fmt': 'openai', 'timeout': 30},
+    # ── PollinationsAI (免费, 直连, 无需 g4f 中间层) ──
+    'pollinations_openai': {'url': 'https://text.pollinations.ai/openai/chat/completions', 'key': 'none', 'model': 'openai', 'fmt': 'openai', 'timeout': 30},
+    'pollinations_openai_large': {'url': 'https://text.pollinations.ai/openai/chat/completions', 'key': 'none', 'model': 'openai-large', 'fmt': 'openai', 'timeout': 45},
+    'pollinations_deepseek': {'url': 'https://text.pollinations.ai/openai/chat/completions', 'key': 'none', 'model': 'deepseek', 'fmt': 'openai', 'timeout': 30},
+    'pollinations_qwen_coder': {'url': 'https://text.pollinations.ai/openai/chat/completions', 'key': 'none', 'model': 'qwen-coder', 'fmt': 'openai', 'timeout': 30},
 }
 
 PUBLIC_MODEL_NAME = os.environ.get('PUBLIC_MODEL_NAME', 'LiMa')
