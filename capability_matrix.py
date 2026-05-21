@@ -94,6 +94,13 @@ _DEFAULT_MATRIX = {
     "oldllm_gpt4": {"code": 8, "debug": 8, "chinese": 7, "english": 9, "reasoning": 8, "speed": 5},
     "oldllm_o1": {"code": 9, "debug": 9, "chinese": 7, "english": 9, "reasoning": 10, "speed": 3},
     "oldllm_o4_mini": {"code": 9, "debug": 8, "chinese": 7, "english": 9, "reasoning": 9, "speed": 6},
+
+    # 国家超算互联网平台 (scnet.cn)
+    "scnet_qwen30b": {"code": 8, "debug": 7, "chinese": 9, "english": 7, "reasoning": 7, "speed": 8},
+    "scnet_minimax": {"code": 7, "debug": 6, "chinese": 8, "english": 7, "reasoning": 7, "speed": 5},
+    "scnet_qwen235b": {"code": 9, "debug": 8, "chinese": 9, "english": 8, "reasoning": 8, "speed": 7},
+    "scnet_ds_flash": {"code": 9, "debug": 8, "chinese": 9, "english": 8, "reasoning": 8, "speed": 8},
+    "scnet_ds_pro": {"code": 10, "debug": 9, "chinese": 9, "english": 9, "reasoning": 9, "speed": 5},
 }
 
 # ── 加载评测结果覆盖 ─────────────────────────────────────────────────────────

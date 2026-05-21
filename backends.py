@@ -175,6 +175,12 @@ BACKENDS = {
     'pollinations_openai_large': {'url': 'https://text.pollinations.ai/openai/chat/completions', 'key': 'none', 'model': 'openai-large', 'fmt': 'openai', 'timeout': 45},
     'pollinations_deepseek': {'url': 'https://text.pollinations.ai/openai/chat/completions', 'key': 'none', 'model': 'deepseek', 'fmt': 'openai', 'timeout': 30},
     'pollinations_qwen_coder': {'url': 'https://text.pollinations.ai/openai/chat/completions', 'key': 'none', 'model': 'qwen-coder', 'fmt': 'openai', 'timeout': 30},
+    # ── 国家超算互联网平台 (scnet.cn, 免费 5 模型, 无需 Key/登录) ──
+    'scnet_qwen30b': {'url': 'https://scnet.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'qwen3-30b', 'fmt': 'openai', 'timeout': 30},
+    'scnet_minimax': {'url': 'https://scnet.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'minimax-m2.5', 'fmt': 'openai', 'timeout': 30},
+    'scnet_qwen235b': {'url': 'https://scnet.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'qwen3-235b', 'fmt': 'openai', 'timeout': 45},
+    'scnet_ds_flash': {'url': 'https://scnet.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-flash', 'fmt': 'openai', 'timeout': 30},
+    'scnet_ds_pro': {'url': 'https://scnet.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-pro', 'fmt': 'openai', 'timeout': 45},
 }
 
 PUBLIC_MODEL_NAME = os.environ.get('PUBLIC_MODEL_NAME', 'LiMa')
