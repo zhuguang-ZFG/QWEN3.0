@@ -58,12 +58,15 @@ def speculative_call(
     try:
         for fut in as_completed(futures, timeout=timeout_sec):
             backend = futures[fut]
-            answer = fut.result()
+            try:
+                answer = fut.result(timeout=0.1)
+            except Exception:
+                continue
             if answer and len(answer.strip()) >= MIN_VALID_LENGTH:
                 winner_backend = backend
                 winner_answer = answer
                 break
-    except TimeoutError:
+    except (TimeoutError, Exception):
         pass
 
     # 取消未完成的 futures（best effort，不阻塞）
