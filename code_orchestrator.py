@@ -12,22 +12,70 @@ import quality_gate
 import backend_reputation
 
 GUIDE_PATH = os.path.join(os.path.dirname(__file__), "skills", "code", "guide.md")
-_guide_cache = None
+LANG_GUIDES = {
+    "python": os.path.join(os.path.dirname(__file__), "skills", "code", "python.md"),
+    "javascript": os.path.join(os.path.dirname(__file__), "skills", "code", "javascript.md"),
+    "rust": os.path.join(os.path.dirname(__file__), "skills", "code", "rust.md"),
+}
+_guide_cache: dict[str, str] = {}
+
+# ── Language Detection ────────────────────────────────────────────────────────
+
+_LANG_SIGNALS = {
+    "python": [r"\bdef \w+\(", r"\bimport \w+", r"\.py\b", r"\bpip\b", r"\basync def\b"],
+    "javascript": [r"\bconst \w+", r"\brequire\(", r"\.js\b", r"\bnpm\b", r"\.tsx?\b"],
+    "rust": [r"\bfn \w+\(", r"\blet mut\b", r"\.rs\b", r"\bcargo\b", r"\bimpl\b"],
+    "go": [r"\bfunc \w+\(", r"\bpackage \w+", r"\.go\b", r"\bgo mod\b"],
+}
+
+
+def detect_language(query: str, messages: list = None) -> str:
+    text = query
+    if messages:
+        text = " ".join(m.get("content", "") for m in messages[-3:]
+                        if isinstance(m.get("content"), str))
+    scores = {}
+    for lang, patterns in _LANG_SIGNALS.items():
+        scores[lang] = sum(1 for p in patterns if re.search(p, text, re.I))
+    best = max(scores, key=scores.get) if scores else "general"
+    return best if scores.get(best, 0) >= 2 else "general"
+
+
+def _load_guide(language: str = "general") -> str:
+    if language in _guide_cache:
+        return _guide_cache[language]
+    path = LANG_GUIDES.get(language, GUIDE_PATH)
+    try:
+        with open(path, encoding="utf-8") as f:
+            content = f.read()
+    except FileNotFoundError:
+        try:
+            with open(GUIDE_PATH, encoding="utf-8") as f:
+                content = f.read()
+        except FileNotFoundError:
+            content = ""
+    _guide_cache[language] = content
+    return content
+
+
+# ── Error Context Extraction ─────────────────────────────────────────────────
+
+def extract_error_context(query: str) -> str:
+    patterns = [
+        (r"(Traceback[\s\S]{0,500}?(?:Error|Exception):.*?)(?=\n\n|\Z)", "Python"),
+        (r"(error\[E\d+\]:.*?)(?=\n\n|\Z)", "Rust"),
+        (r"(at .*?:\d+:\d+[\s\S]{0,200})", "JavaScript"),
+        (r"((?:TypeError|ReferenceError|SyntaxError):.*?)(?=\n|\Z)", "Generic"),
+    ]
+    for pattern, lang_hint in patterns:
+        m = re.search(pattern, query, re.M)
+        if m:
+            return f"\n[{lang_hint}错误上下文] {m.group(1)[:500]}"
+    return ""
 
 # ── Latency Budget ───────────────────────────────────────────────────────────
 LATENCY_BUDGET = {"simple": 5.0, "standard": 12.0, "complex": 30.0}
 MAX_REPAIR_ATTEMPTS = 2
-
-
-def _load_guide() -> str:
-    global _guide_cache
-    if _guide_cache is None:
-        try:
-            with open(GUIDE_PATH, encoding="utf-8") as f:
-                _guide_cache = f.read()
-        except FileNotFoundError:
-            _guide_cache = ""
-    return _guide_cache
 
 
 # ── Tier Classification ──────────────────────────────────────────────────────
@@ -76,12 +124,19 @@ POOLS = {
 def handle(query: str, messages: list, call_fn, max_tokens: int = 4096) -> dict:
     """编程模型塔主入口。返回 {answer, backend, tier, repaired, score}"""
     tier = classify_code_tier(query, messages)
-    guide = _load_guide()
     budget = LATENCY_BUDGET[tier]
     t0 = time.time()
 
-    # Phase 1: Intent Amplification
+    # Phase 0: Context Engineering — 语言检测 + 精准规范注入
+    language = detect_language(query, messages)
+    guide = _load_guide(language)
+
+    # Phase 1: Intent Amplification + 错误上下文提取
     enhanced_query = intent_templates.amplify_intent(query)
+    error_ctx = extract_error_context(query)
+    if error_ctx:
+        enhanced_query += error_ctx
+
     system = guide if guide else ""
 
     # Phase 2: Execute based on tier (with latency budget)
