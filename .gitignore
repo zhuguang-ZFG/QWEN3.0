@@ -46,6 +46,8 @@ anti_hallucination_full.json
 
 # === 临时文件 ===
 _temp_*.py
+_stream_test.py
+_tcf2.py
 _upstream_check/
 *.log
 logs/
