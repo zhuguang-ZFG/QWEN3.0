@@ -246,7 +246,7 @@ def route(query: str, messages: list[dict], *,
         complexity = speculative.classify_complexity(query, messages)
 
         if complexity == "simple" and req_type in ("ide", "chat"):
-            # 简单问题：并行投机执行（3个快速后端竞速）
+            # 简单问题：并行投机执行（5个快速后端竞速）
             affinity_backends = speculative.get_affinity_backends("simple")
             spec_candidates = [b for b in affinity_backends
                                if not health_tracker.is_cooled_down(b)
@@ -254,7 +254,8 @@ def route(query: str, messages: list[dict], *,
             if len(spec_candidates) >= 2:
                 try:
                     final_backend, answer, _ = speculative.speculative_call(
-                        spec_candidates, call_fn, messages_injected, max_tokens)
+                        spec_candidates, call_fn, messages_injected, max_tokens,
+                        max_parallel=5)
                 except RuntimeError:
                     final_backend, answer, _ = execute(backends, call_fn, messages_injected, max_tokens)
             else:

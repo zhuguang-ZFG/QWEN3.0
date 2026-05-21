@@ -134,23 +134,31 @@ AFFINITY = {
     "simple_fast": [
         "longcat_lite", "longcat_chat", "google_flash",
         "groq_llama70b", "cerebras_gptoss", "cf_llama70b",
+        "cf_qwen3_30b", "cf_gemma4", "ovh_llama70b",
+        "groq_qwen32b", "nvidia_nemotron", "nvidia_llama70b",
+        "sambanova_llama4", "deepinfra_llama4",
     ],
     "code": [
         "nvidia_qwen_coder", "cf_qwen_coder", "deepseek_flash",
         "opencode_stealth", "mistral_devstral", "deepseek_pro",
+        "groq_llama70b", "cerebras_gptoss",
     ],
     "complex_premium": [
         "longcat", "longcat_thinking", "deepseek_pro",
-        "fireworks_llama405b", "cf_kimi_k26",
+        "fireworks_llama405b", "cf_kimi_k26", "mistral_large",
+        "nvidia_qwen_coder", "deepseek_flash",
     ],
 }
 
 
 def get_affinity_backends(complexity: str) -> list[str]:
-    """根据复杂度返回亲和后端列表。"""
+    """根据复杂度返回亲和后端列表（带随机轮转避免集中）。"""
+    import random
     if complexity == "simple":
-        return AFFINITY["simple_fast"]
+        pool = list(AFFINITY["simple_fast"])
     elif complexity == "code":
-        return AFFINITY["code"]
+        pool = list(AFFINITY["code"])
     else:
-        return AFFINITY["complex_premium"]
+        pool = list(AFFINITY["complex_premium"])
+    random.shuffle(pool)
+    return pool
