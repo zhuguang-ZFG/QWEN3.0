@@ -141,6 +141,9 @@ def call_api(backend: str, messages: list[dict], max_tokens: int = 4096,
     if not cfg or not cfg.get('key'):
         raise BackendError(f'{backend} unavailable (no key)', status_code=404)
 
+    if health_tracker.is_cooled_down(backend):
+        raise BackendError(f'{backend} is cooled down', status_code=503)
+
     t0 = time.time()
     headers = _build_headers(cfg)
     body = _build_body(cfg, messages, max_tokens, system_prompt, ide)

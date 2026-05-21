@@ -83,7 +83,8 @@ _BRANDS = [
 def _build_brand_re(brand: str) -> re.Pattern:
     escaped = re.escape(brand)
     if brand[0].isascii():
-        return re.compile(rf'\b{escaped}[\w\-\.\[\]\/\:]*', re.I)
+        # Use ASCII-only boundary and suffix to avoid eating CJK characters
+        return re.compile(rf'(?<![a-zA-Z0-9_]){escaped}[a-zA-Z0-9_\-\.\[\]\/\:]*', re.I)
     # CJK: match brand name literally, don't extend into surrounding text
     return re.compile(rf'{escaped}', re.I)
 

@@ -204,8 +204,11 @@ def test_call_api_success_openai(mock_urlopen, mock_ht):
 @patch('http_caller.health_tracker')
 def test_call_api_cooled_down(mock_ht):
     mock_ht.is_cooled_down.return_value = True
-    with pytest.raises(BackendError) as exc_info:
-        call_api('any_backend', [{'role': 'user', 'content': 'hi'}])
+    with patch.dict(http_caller.BACKENDS, {'any_backend': {
+        'url': 'http://x', 'key': 'sk-test', 'model': 'm', 'fmt': 'openai'
+    }}):
+        with pytest.raises(BackendError) as exc_info:
+            call_api('any_backend', [{'role': 'user', 'content': 'hi'}])
     assert exc_info.value.status_code == 503
 
 
