@@ -128,12 +128,18 @@ BACKENDS = {
     'local_general': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'gemma3:12b', 'fmt': 'openai', 'timeout': 30},
     'local_fast': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'qwen2.5-coder:1.5b', 'fmt': 'openai', 'timeout': 10},
     'local_chat': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'qwen2.5:0.5b', 'fmt': 'openai', 'timeout': 5},
-    # ── DuckDuckGo-AI (CF Worker, 免费 GPT-4o-mini/Claude-Haiku/Llama-70B/o3-mini) ──
-    'ddg_gpt4o_mini': {'url': 'https://ddg.zhuguang.ccwu.cc/v1/chat/completions', 'key': os.environ.get('DDG_API_KEY', 'lima-ddg-2026'), 'model': 'gpt-4o-mini', 'fmt': 'openai', 'timeout': 30},
-    'ddg_claude_haiku': {'url': 'https://ddg.zhuguang.ccwu.cc/v1/chat/completions', 'key': os.environ.get('DDG_API_KEY', 'lima-ddg-2026'), 'model': 'claude-3-haiku-20240307', 'fmt': 'openai', 'timeout': 30},
-    'ddg_llama70b': {'url': 'https://ddg.zhuguang.ccwu.cc/v1/chat/completions', 'key': os.environ.get('DDG_API_KEY', 'lima-ddg-2026'), 'model': 'meta-llama/Llama-3.3-70B-Instruct-Turbo', 'fmt': 'openai', 'timeout': 30},
-    'ddg_o3_mini': {'url': 'https://ddg.zhuguang.ccwu.cc/v1/chat/completions', 'key': os.environ.get('DDG_API_KEY', 'lima-ddg-2026'), 'model': 'o3-mini', 'fmt': 'openai', 'timeout': 45},
-    'ddg_mistral': {'url': 'https://ddg.zhuguang.ccwu.cc/v1/chat/completions', 'key': os.environ.get('DDG_API_KEY', 'lima-ddg-2026'), 'model': 'mistralai/Mistral-Small-24B-Instruct-2501', 'fmt': 'openai', 'timeout': 20},
+    # ── DuckDuckGo-AI (本地 duckai, 通过代理访问 DDG, 免费 GPT-4o-mini/Claude-Haiku/Llama-4/o3-mini) ──
+    'ddg_gpt4o_mini': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'gpt-4o-mini', 'fmt': 'openai', 'timeout': 30},
+    'ddg_claude_haiku': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'claude-3-5-haiku-latest', 'fmt': 'openai', 'timeout': 30},
+    'ddg_llama4': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'meta-llama/Llama-4-Scout-17B-16E-Instruct', 'fmt': 'openai', 'timeout': 30},
+    'ddg_o3_mini': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'o3-mini', 'fmt': 'openai', 'timeout': 45},
+    'ddg_mistral': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'mistralai/Mistral-Small-24B-Instruct-2501', 'fmt': 'openai', 'timeout': 20},
+    # ── lza6 系列 CF Workers (逆向网页 AI, 免费) ──
+    'tele_reason': {'url': 'https://tele.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'teleprompt-reason', 'fmt': 'openai', 'timeout': 30},
+    'tele_standard': {'url': 'https://tele.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'teleprompt-standard', 'fmt': 'openai', 'timeout': 30},
+    'tele_apps': {'url': 'https://tele.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'teleprompt-apps', 'fmt': 'openai', 'timeout': 30},
+    'assist_brainstorm': {'url': 'https://assist.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'brainstorm-tool', 'fmt': 'openai', 'timeout': 30},
+    'vision_joycaption': {'url': 'https://vision.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'joy-caption-beta', 'fmt': 'openai', 'timeout': 30, 'caps': ['vision']},
 }
 
 PUBLIC_MODEL_NAME = os.environ.get('PUBLIC_MODEL_NAME', 'LiMa')
@@ -171,6 +177,7 @@ def detect_vendor(url: str) -> str:
     if 'right.codes' in u: return 'Claude (AWS)'
     if 'localhost' in u or '127.0.0.1' in u or 'trycloudflare.com' in u: return 'Local (Ollama)'
     if 'ddg.zhuguang' in u: return 'DuckDuckGo AI'
+    if 'tele.zhuguang' in u or 'assist.zhuguang' in u or 'vision.zhuguang' in u: return 'lza6 Workers'
     if 'groq.com' in u: return 'Groq'
     if 'cerebras' in u: return 'Cerebras'
     if 'models.inference.ai.azure.com' in u: return 'GitHub Models'
