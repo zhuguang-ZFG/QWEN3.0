@@ -193,13 +193,23 @@ AFFINITY = {
 
 
 def get_affinity_backends(complexity: str) -> list[str]:
-    """根据复杂度返回亲和后端列表（带随机轮转避免集中）。"""
+    """根据复杂度返回亲和后端列表（能力矩阵驱动 + 随机轮转）。"""
     import random
-    if complexity == "simple":
-        pool = list(AFFINITY["simple_fast"])
-    elif complexity == "code":
-        pool = list(AFFINITY["code"])
-    else:
-        pool = list(AFFINITY["complex_premium"])
+    try:
+        import capability_matrix
+        intent = {
+            "simple": "english",
+            "code": "code",
+            "complex": "reasoning",
+        }.get(complexity, "english")
+        pool = capability_matrix.select_backends(intent, top_n=12)
+    except Exception:
+        # Fallback to static AFFINITY if capability_matrix fails
+        if complexity == "simple":
+            pool = list(AFFINITY["simple_fast"])
+        elif complexity == "code":
+            pool = list(AFFINITY["code"])
+        else:
+            pool = list(AFFINITY["complex_premium"])
     random.shuffle(pool)
     return pool
