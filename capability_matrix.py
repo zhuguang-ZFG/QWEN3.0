@@ -69,6 +69,17 @@ _DEFAULT_MATRIX = {
     "tele_apps": {"code": 7, "debug": 6, "chinese": 5, "english": 7, "reasoning": 5, "speed": 7},
     "assist_brainstorm": {"code": 5, "debug": 4, "chinese": 5, "english": 7, "reasoning": 6, "speed": 6},
     "vision_joycaption": {"code": 2, "debug": 2, "chinese": 3, "english": 6, "reasoning": 3, "speed": 5},
+
+    # StockAI
+    "stock_gpt4o_mini": {"code": 8, "debug": 7, "chinese": 7, "english": 9, "reasoning": 7, "speed": 7},
+    "stock_gemini_flash": {"code": 8, "debug": 7, "chinese": 7, "english": 8, "reasoning": 7, "speed": 8},
+    "stock_deepseek": {"code": 9, "debug": 8, "chinese": 9, "english": 8, "reasoning": 8, "speed": 6},
+    "stock_llama4": {"code": 7, "debug": 6, "chinese": 5, "english": 8, "reasoning": 7, "speed": 7},
+    "stock_kimi_k2": {"code": 8, "debug": 7, "chinese": 9, "english": 7, "reasoning": 8, "speed": 6},
+    "stock_glm46": {"code": 7, "debug": 6, "chinese": 9, "english": 7, "reasoning": 6, "speed": 7},
+    "stock_qwen3_coder": {"code": 9, "debug": 8, "chinese": 7, "english": 7, "reasoning": 7, "speed": 6},
+    "stock_news": {"code": 3, "debug": 2, "chinese": 5, "english": 7, "reasoning": 4, "speed": 7},
+    "stock_mistral": {"code": 6, "debug": 5, "chinese": 4, "english": 7, "reasoning": 5, "speed": 7},
 }
 
 # ── 加载评测结果覆盖 ─────────────────────────────────────────────────────────

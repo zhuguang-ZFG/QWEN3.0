@@ -146,9 +146,19 @@ BACKENDS = {
     'stock_kimi_k2': {'url': 'https://stock.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'moonshotai/kimi-k2', 'fmt': 'openai', 'timeout': 30},
     'stock_glm46': {'url': 'https://stock.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'z-ai/glm-4.6', 'fmt': 'openai', 'timeout': 30},
     'stock_qwen3_coder': {'url': 'https://stock.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'qwen/qwen3-coder', 'fmt': 'openai', 'timeout': 30},
+    'stock_news': {'url': 'https://stock.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'stockai/news', 'fmt': 'openai', 'timeout': 30},
+    'stock_mistral': {'url': 'https://stock.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'mistral/mistral-small', 'fmt': 'openai', 'timeout': 30},
     # ── TheOldLLM v2 (本地代理 + 自动 Token 刷新, 免费) ──
     'oldllm_gpt52': {'url': 'https://llm.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'gpt-5.2', 'fmt': 'openai', 'timeout': 45},
     'oldllm_gpt51': {'url': 'https://llm.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'gpt-5.1', 'fmt': 'openai', 'timeout': 45},
+    # ── Cloudflare Workers AI (免费 10K neurons/天, 大模型推理) ──
+    'cfai_llama70b': {'url': 'https://ai.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'llama-3.3-70b', 'fmt': 'openai', 'timeout': 30},
+    'cfai_llama4': {'url': 'https://ai.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'llama-4-scout', 'fmt': 'openai', 'timeout': 30},
+    'cfai_qwen_coder': {'url': 'https://ai.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'qwen2.5-coder-32b', 'fmt': 'openai', 'timeout': 30},
+    'cfai_deepseek_r1': {'url': 'https://ai.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'deepseek-r1-32b', 'fmt': 'openai', 'timeout': 45},
+    # ── 本地 Ollama 新增模型 ──
+    'local_qwen3': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'qwen3:8b', 'fmt': 'openai', 'timeout': 30},
+    'local_phi4': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'phi4:14b', 'fmt': 'openai', 'timeout': 45},
 }
 
 PUBLIC_MODEL_NAME = os.environ.get('PUBLIC_MODEL_NAME', 'LiMa')
