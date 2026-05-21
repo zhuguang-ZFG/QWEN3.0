@@ -7,6 +7,10 @@ import time
 import hashlib
 import functools
 import threading
+import pathlib
+import re
+
+_BASE = pathlib.Path(__file__).parent
 
 # ── 统计 ─────────────────────────────────────────────────────────────────────
 
@@ -24,6 +28,9 @@ def record_request(query: str, backend: str, intent: str, duration_ms: int,
                    success: bool = True, client_ip: str = "",
                    ide_source: str = "", sys_prompt_preview: str = ""):
     """记录一次请求到统计数据。"""
+    # IP 地理查询在锁外执行，避免阻塞其他请求记录
+    country = _get_ip_location(client_ip) if client_ip else ""
+
     with _stats_lock:
         _stats["total_requests"] += 1
         if backend not in _stats["backend_calls"]:
@@ -37,7 +44,7 @@ def record_request(query: str, backend: str, intent: str, duration_ms: int,
             "time": time.strftime("%H:%M:%S"), "query": query[:80],
             "backend": backend, "intent": intent, "ms": duration_ms,
             "success": success, "ip": client_ip,
-            "country": _get_ip_location(client_ip) if client_ip else "",
+            "country": country,
             "ide": ide_source,
             "sys_prompt": sys_prompt_preview[:100] if sys_prompt_preview else "",
         })
@@ -56,10 +63,12 @@ def get_stats() -> dict:
         }
 
 
-@functools.lru_cache(maxsize=256)
+@functools.lru_cache(maxsize=1024)
 def _get_ip_location(ip: str) -> str:
     if ip in ("127.0.0.1", "localhost", "::1", ""):
         return "本地"
+    if not re.match(r'^[\d.:a-fA-F]+$', ip):
+        return "未知"
     try:
         import urllib.request
         resp = urllib.request.urlopen(
@@ -70,7 +79,6 @@ def _get_ip_location(ip: str) -> str:
     except Exception:
         return "未知"
 
-import functools
 
 # ── IDE 检测 ─────────────────────────────────────────────────────────────────
 
@@ -102,11 +110,13 @@ def extract_system_prompt(messages: list) -> str | None:
     return None
 
 
-def log_sys_prompt(sys_prompt: str, distill_queue_dir: str = "D:/GIT/data/pending"):
+def log_sys_prompt(sys_prompt: str, distill_queue_dir: str = None):
     import datetime
-    os.makedirs(distill_queue_dir.replace("pending", "sys_prompts"), exist_ok=True)
+    if distill_queue_dir is None:
+        distill_queue_dir = str(_BASE / "data" / "pending")
+    sys_prompt_dir = str(_BASE / "data" / "sys_prompts")
+    os.makedirs(sys_prompt_dir, exist_ok=True)
     phash = hashlib.sha256(sys_prompt.encode()).hexdigest()[:16]
-    sys_prompt_dir = os.path.join(os.path.dirname(distill_queue_dir), "sys_prompts")
     existing = os.listdir(sys_prompt_dir) if os.path.exists(sys_prompt_dir) else []
     if any(phash in f for f in existing):
         return
@@ -122,7 +132,6 @@ def log_sys_prompt(sys_prompt: str, distill_queue_dir: str = "D:/GIT/data/pendin
         "prompt_preview": sys_prompt[:500], "prompt_length": len(sys_prompt),
         "logged_at": datetime.datetime.now().isoformat(),
     }
-    os.makedirs(sys_prompt_dir, exist_ok=True)
     fname = os.path.join(sys_prompt_dir, f"{ide_source}_{phash}.json")
     with open(fname, 'w', encoding='utf-8') as f:
         json.dump(entry, f, ensure_ascii=False, indent=2)
@@ -130,10 +139,12 @@ def log_sys_prompt(sys_prompt: str, distill_queue_dir: str = "D:/GIT/data/pendin
 
 # ── Fallback 日志 ────────────────────────────────────────────────────────────
 
-FALLBACK_LOG = "D:/GIT/data/fallback_log.jsonl"
+FALLBACK_LOG = str(_BASE / "data" / "fallback_log.jsonl")
+
 
 def record_fallback(query: str, original_backend: str, fallback_backend: str,
                     intent: str, ide: str):
+    import logging
     try:
         os.makedirs(os.path.dirname(FALLBACK_LOG), exist_ok=True)
         entry = {
@@ -143,5 +154,5 @@ def record_fallback(query: str, original_backend: str, fallback_backend: str,
         }
         with open(FALLBACK_LOG, 'a', encoding='utf-8') as f:
             f.write(json.dumps(entry, ensure_ascii=False) + '\n')
-    except Exception:
-        pass
+    except Exception as e:
+        logging.warning(f"[FALLBACK_LOG] write failed: {e}")

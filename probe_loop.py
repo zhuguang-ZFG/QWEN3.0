@@ -22,35 +22,34 @@ PROBE_INTERVAL_SUSPICIOUS = 300   # 5 min
 PROBE_INTERVAL_DEAD = 900         # 15 min
 LOOP_SLEEP = 60                   # 主循环每分钟跑一次
 
-_last_probe: dict[str, float] = {}
-_running = False
+_stop_event = threading.Event()
 _thread: Optional[threading.Thread] = None
+_probe_lock = threading.Lock()
+_last_probe: dict[str, float] = {}
 
 
 def start(probe_fn: Callable[[str], bool]):
     """启动探活线程。probe_fn(backend) -> True=成功, False=失败"""
-    global _running, _thread
-    if _running:
+    global _thread
+    if _thread and _thread.is_alive():
         return
-    _running = True
+    _stop_event.clear()
     _thread = threading.Thread(target=_loop, args=(probe_fn,), daemon=True)
     _thread.start()
     logger.info("Probe loop started")
 
 
 def stop():
-    global _running
-    _running = False
+    _stop_event.set()
 
 
 def _loop(probe_fn: Callable[[str], bool]):
-    global _running
-    while _running:
+    while not _stop_event.is_set():
         try:
             _probe_cycle(probe_fn)
         except Exception as e:
             logger.error(f"Probe cycle error: {e}")
-        time.sleep(LOOP_SLEEP)
+        _stop_event.wait(timeout=LOOP_SLEEP)
 
 
 def _probe_cycle(probe_fn: Callable[[str], bool]):
@@ -62,16 +61,17 @@ def _probe_cycle(probe_fn: Callable[[str], bool]):
             continue
 
         interval = PROBE_INTERVAL_SUSPICIOUS if state == "suspicious" else PROBE_INTERVAL_DEAD
-        last = _last_probe.get(backend, 0)
-        if now - last < interval:
-            continue
+        with _probe_lock:
+            last = _last_probe.get(backend, 0)
+            if now - last < interval:
+                continue
+            _last_probe[backend] = now
 
-        _last_probe[backend] = now
         success = False
         try:
             success = probe_fn(backend)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"[PROBE] {backend} probe_fn raised: {type(e).__name__}: {e}")
 
         if success:
             health_tracker.record_success(backend, 0)

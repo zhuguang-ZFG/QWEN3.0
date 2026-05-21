@@ -21,6 +21,7 @@ from typing import Generator, Optional
 
 import health_tracker
 from backends import BACKENDS, PUBLIC_MODEL_NAME
+from response_cleaner import clean_response, _clean_brand_only, _is_backend_error, CLEAN_PATTERNS
 
 DEBUG = os.environ.get('LIMA_DEBUG', '') == '1'
 
@@ -128,129 +129,6 @@ def _build_body(backend_cfg: dict, messages: list[dict],
     return json.dumps(body).encode()
 
 
-# ── Response Cleaning ─────────────────────────────────────────────────────────
-
-# Brand names to replace with LiMa (sorted by priority: specific → general)
-_BRANDS = [
-    # Anthropic ecosystem
-    'claude', 'longcat',
-    # Chinese LLM companies & models
-    'deepseek', '深度求索',
-    'glm', 'chatglm', '智谱',
-    'qwen', '通义千问',
-    'ernie', '文心一言', '文心',
-    'hunyuan', '混元',
-    'doubao', '豆包',
-    'kimi', '月之暗面',
-    'minimax', '海螺',
-    'metaso', '秘塔',
-    'step', '阶跃星辰',
-    'spark', '讯飞', '星火',
-    'baichuan', '百川',
-    'yi', 'yi-series', 'yi-model', '零一万物',
-    # Western providers
-    'openai', 'chatgpt',
-    'anthropic',
-    'google', 'gemini', 'gemma',
-    'mistral', 'codestral', 'pixtral', 'devstral',
-    'nvidia', 'nemotron',
-    'llama',
-    'meta-ai', 'meta ai',
-    'phi-3', 'phi-4',
-    'cohere', 'command-a', 'command-r',
-    'cerebras',
-    'groq',
-    'cloudflare',
-    'sambanova',
-    'deepinfra',
-    'fireworks',
-    'together[\s-]?ai',
-    'ai21',
-    'jamba',
-    # Zero-key / community providers
-    'pollinations',
-    'ovhcloud',
-    'hermes',
-    'naga[\s-]?ai',
-    'freetheai',
-    'zukijourney',
-    'featherless',
-    'glhf',
-    'agentrouter',
-    'llm7',
-    'chatubi',
-    'uncloseai',
-    'opencode',
-    # Chinese cloud providers
-    'siliconflow', '硅基流动',
-    'volcengine', '火山引擎',
-    'alibaba', 'aliyun', 'dashscope', '阿里云',
-    'baidu', '百度',
-    'tencent', '腾讯',
-    'chinamobile', '中国移动',
-    'iflytek',
-    # Generic model descriptors
-    'gpt-3', 'gpt-4', 'gpt-5', 'gpt-oss',
-    'openrouter',
-]
-
-# Build brand-name cleaning regexes.
-# ASCII brands: \bBrandName[\w\-.]*  (word boundary + word-char suffix)
-# CJK brands: literal match only, NO greedy suffix (would eat following verbs)
-def _build_brand_re(brand: str) -> re.Pattern:
-    escaped = re.escape(brand)
-    if brand[0].isascii():
-        return re.compile(rf'\b{escaped}[\w\-\.\[\]\/\:]*', re.I)
-    # CJK: match brand name literally, don't extend into surrounding text
-    return re.compile(rf'{escaped}', re.I)
-
-BRAND_PATTERNS = [(_build_brand_re(b), PUBLIC_MODEL_NAME) for b in _BRANDS]
-
-# Specific identity-statement patterns (must run AFTER brand patterns)
-IDENTITY_PATTERNS = [
-    # English: "I am [X], made by [Y]" — but don't match "I am LiMa"
-    (re.compile(r"\bI (?:am|'m) (?:an? )?(?:AI (?:language )?model|large language model)(?!.*LiMa)", re.I),
-     f'I am an AI language model'),
-    # English: "developed/created/trained by [Company]" — only if company not already cleaned
-    (re.compile(r'(?:developed|created|trained|made|built|powered) by\s+[\w\s\-\.]+', re.I),
-     f'developed by DongLiCao'),
-    # Chinese: "我是 [X]的[AI/语言]模型" — requires model keyword
-    (re.compile(r'我是(?:由|一个|一款)[\w\s\-\.一-鿿()（）]+?(?:开发|训练|创建|制作|创造|推出|提供)的(?:\s*(?:AI|人工智能|大语言|语言|对话))?\s*模型', re.I),
-     f'我是{PUBLIC_MODEL_NAME}'),
-    # Chinese: "我是一个 [AI/语言/大] 模型"
-    (re.compile(r'我是(?:一个|一款)\s*(?:AI|人工智能|大语言|语言|对话)\s*模型', re.I),
-     f'我是{PUBLIC_MODEL_NAME}'),
-    # Chinese: "我的模型是由 [X] 开发的"
-    (re.compile(r'我的模型是由[\w\s\-\.一-鿿()（）]+?(?:开发|训练|创建|制作|创造)', re.I),
-     f'我的模型是由{PUBLIC_MODEL_NAME}团队开发'),
-    # Chinese: "我叫 [X]" — model introducing itself by name
-    (re.compile(r'我叫\s*[\w\-\.\s]+?(?:，|。|！|$)', re.I),
-     f'我叫{PUBLIC_MODEL_NAME}，'),
-    # Chinese: "名为 [X] 的模型"
-    (re.compile(r'(?:一个)?名为\s*[\w\-\.\s]+?\s*的(?:模型|大模型)', re.I),
-     f'{PUBLIC_MODEL_NAME}'),
-    # Chinese: "作为 [X] 模型"
-    (re.compile(r'作为(?:一个|一款)\s*(?:AI|人工智能|大语言|语言|对话)?\s*模型', re.I),
-     f'作为{PUBLIC_MODEL_NAME}'),
-    # "General Language Model" → "General Purpose Language Model"
-    (re.compile(r'General Language Model', re.I), 'General Purpose Language Model'),
-    # "a large language model trained/developed by [X]"
-    (re.compile(r'(?:a\s+)?large language model (?:trained|developed|created) by\s+[\w\s\-\.]+', re.I),
-     f'large language model developed by DongLiCao'),
-]
-
-CLEAN_PATTERNS = BRAND_PATTERNS + IDENTITY_PATTERNS
-
-
-def clean_response(text: str, backend_name: str = '') -> str:
-    """清洗响应：隐藏底层模型/供应商信息。"""
-    if not text or '[ERR]' in text[:15]:
-        return ''
-    for pattern, repl in CLEAN_PATTERNS:
-        text = pattern.sub(repl, text)
-    return text
-
-
 # ── Synchronous API Call ──────────────────────────────────────────────────────
 
 def call_api(backend: str, messages: list[dict], max_tokens: int = 4096,
@@ -274,9 +152,19 @@ def call_api(backend: str, messages: list[dict], max_tokens: int = 4096,
 
         d = json.loads(resp_data.decode())
         answer = _extract_answer(d, cfg['fmt'])
+
+        if _is_backend_error(answer):
+            health_tracker.record_failure(backend, error_code=429)
+            raise BackendError(
+                f'{backend} returned error response: {answer[:60]}',
+                status_code=429)
+
         latency_ms = int((time.time() - t0) * 1000)
         health_tracker.record_success(backend, latency_ms)
-        return clean_response(answer, backend)
+        cleaned = clean_response(answer, backend)
+        health_tracker.record_response_quality(
+            backend, len(cleaned) if cleaned else 0)
+        return cleaned
 
     except BackendError:
         raise
@@ -346,7 +234,9 @@ def _extract_code(e: Exception) -> Optional[int]:
 
 def call_api_stream(backend: str, messages: list[dict], max_tokens: int = 4096,
                     *, system_prompt: str = "", ide: str = "") -> Generator[str, None, None]:
-    """流式调用后端，yield 文本 chunk。失败抛 BackendError。"""
+    """流式调用后端，yield 文本 chunk。失败抛 BackendError。
+    短响应会被缓冲检测：如果整条回复是后端错误消息，抛异常触发fallback。
+    """
     cfg = BACKENDS.get(backend)
     if not cfg or not cfg.get('key'):
         raise BackendError(f'{backend} unavailable (no key)', status_code=404)
@@ -365,8 +255,13 @@ def call_api_stream(backend: str, messages: list[dict], max_tokens: int = 4096,
 
         buffer = bytearray()
         max_buffer = 1 * 1024 * 1024  # 1 MB guard
+        pending_chunks = []
+        total_text = ""
+        flushed = False
+        done = False
+
         with resp:
-            while True:
+            while not done:
                 chunk = resp.read(4096)
                 if not chunk:
                     break
@@ -381,13 +276,46 @@ def call_api_stream(backend: str, messages: list[dict], max_tokens: int = 4096,
                         continue
                     data_str = line[6:]
                     if data_str == '[DONE]':
+                        done = True
                         break
                     text = _parse_sse_chunk(data_str, fmt)
                     if text:
-                        yield clean_response(text, backend)
+                        total_text += text
+                        if flushed:
+                            yield _clean_brand_only(text, backend)
+                        else:
+                            pending_chunks.append(text)
+                            if len(total_text) > 200:
+                                if _is_backend_error(total_text):
+                                    health_tracker.record_failure(backend, error_code=429)
+                                    raise BackendError(
+                                        f'{backend} error: {total_text[:60]}',
+                                        status_code=429)
+                                for pc in pending_chunks:
+                                    cleaned = clean_response(pc, backend)
+                                    if cleaned:
+                                        yield cleaned
+                                pending_chunks = []
+                                flushed = True
+
+        if not flushed:
+            if not total_text:
+                health_tracker.record_failure(backend, error_code=502)
+                raise BackendError(f'{backend} returned empty stream', status_code=502)
+            if _is_backend_error(total_text):
+                health_tracker.record_failure(backend, error_code=429)
+                raise BackendError(
+                    f'{backend} returned error: {total_text[:60]}',
+                    status_code=429)
+            for pc in pending_chunks:
+                cleaned = clean_response(pc, backend)
+                if cleaned:
+                    yield cleaned
 
         latency_ms = int((time.time() - t0) * 1000)
         health_tracker.record_success(backend, latency_ms)
+        health_tracker.record_response_quality(
+            backend, len(total_text) if total_text else 0)
 
     except BackendError:
         raise

@@ -90,7 +90,10 @@ async def bridge_stream(
 
     if not first:
         cancel.set()
-        thread.join(timeout=1.0)
+        thread.join(timeout=2.0)
+        if thread.is_alive():
+            import logging
+            logging.warning(f"[STREAM] {backend} worker thread still alive after cancel+join")
         _drain_queue(q)
         try:
             result = await asyncio.to_thread(

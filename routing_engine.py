@@ -8,12 +8,14 @@ LiMa Routing Engine — 统一路由入口
 
 import json
 import time
+import random
 from dataclasses import dataclass, field
 from typing import Callable, Optional
 
 import router_v3
 import health_tracker
 import sticky_session
+import budget_manager
 import skills_injector as skills_mod
 import semantic_cache
 from response_builder import build_response, build_anthropic_response, make_chat_id
@@ -72,8 +74,20 @@ def _has_image_blocks(messages: list[dict]) -> bool:
 
 def select(request_type: str, health_map: dict,
            sticky_key: str = None) -> list[str]:
-    """从对应池选健康后端，sticky 优先"""
+    """从对应池选健康后端，按健康评分排序，过滤预算耗尽，sticky 优先"""
     result = router_v3.select_backends(request_type, health_map)
+
+    # 过滤预算耗尽的后端
+    result = [b for b in result if budget_manager.is_budget_available(b)]
+
+    # 按健康评分排序（高分优先，带随机扰动避免羊群效应）
+    # 预算接近耗尽的后端降权
+    scores = health_tracker.get_scores()
+    if scores:
+        result.sort(key=lambda b: -(
+            scores.get(b, 50) * budget_manager.get_budget_priority(b)
+            + random.uniform(0, 8)
+        ))
 
     if sticky_key:
         pinned = sticky_session.get_pinned_backend(sticky_key)
@@ -121,6 +135,7 @@ def execute(backends: list[str],
             if answer and len(answer.strip()) > 5:
                 latency_ms = (time.time() - t0) * 1000
                 health_tracker.record_success(backend, latency_ms)
+                budget_manager.record_usage(backend)
                 return backend, answer, errors
             else:
                 health_tracker.record_failure(backend, error_code=None)
@@ -140,7 +155,10 @@ def execute(backends: list[str],
                 if answer and len(answer.strip()) > 5:
                     health_tracker.record_success(backend, (time.time() - t0) * 1000)
                     return backend, answer, errors
-            except Exception:
+            except Exception as e:
+                import logging
+                logging.warning(f"[EXECUTE] force-try {backend} failed: {type(e).__name__}: {e}")
+                health_tracker.record_failure(backend, error_code=_extract_code(e))
                 errors += 1
 
     # 批量熔断检测 + 直连保底

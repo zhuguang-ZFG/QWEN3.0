@@ -81,12 +81,12 @@ def _split_sentences(text: str) -> list[str]:
     if not text:
         return [""]
     chunks = []
-    current = ""
+    buf = []
     for char in text:
-        current += char
-        if char in ("。", "！", "？", "\n", ".", "!", "?") and len(current) > 5:
-            chunks.append(current)
-            current = ""
-    if current:
-        chunks.append(current)
+        buf.append(char)
+        if char in ("。", "！", "？", "\n", ".", "!", "?") and len(buf) > 5:
+            chunks.append("".join(buf))
+            buf = []
+    if buf:
+        chunks.append("".join(buf))
     return chunks if chunks else [text]

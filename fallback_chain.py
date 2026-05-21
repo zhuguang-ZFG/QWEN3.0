@@ -1,9 +1,9 @@
 """fallback_chain.py — Fallback 降级链 + 质量检查
 从 server.py 提取，管理后端失败后的同级降级和跨级升级。
 """
-import time
-import asyncio
-from typing import Optional
+import pathlib
+
+_BASE = pathlib.Path(__file__).parent
 
 # ── 后端层级映射 ─────────────────────────────────────────────────────────────
 
@@ -13,7 +13,7 @@ BACKEND_TIERS = {
     "L3_paid": ["deepseek_flash", "deepseek_pro", "claude"],
 }
 
-FALLBACK_LOG = "D:/GIT/data/fallback_log.jsonl"
+FALLBACK_LOG = str(_BASE / "data" / "fallback_log.jsonl")
 
 
 def get_same_tier_backends(current_backend: str) -> list[str]:

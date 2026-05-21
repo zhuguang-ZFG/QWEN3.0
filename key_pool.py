@@ -15,8 +15,6 @@ import threading
 from typing import Optional
 from dataclasses import dataclass, field
 
-_lock = threading.Lock()
-
 MINUTE_COOLDOWN = 60
 DAY_COOLDOWN_HOUR = 24 * 3600
 CONSECUTIVE_429_THRESHOLD = 5
@@ -37,6 +35,7 @@ class KeyPool:
 
     def __init__(self, provider: str, keys: list[dict]):
         self.provider = provider
+        self._lock = threading.Lock()
         self.entries: list[KeyEntry] = []
         for k in keys:
             self.entries.append(KeyEntry(
@@ -46,12 +45,11 @@ class KeyPool:
 
     def select(self) -> Optional[str]:
         """SWRR 选择一个可用 key"""
-        with _lock:
+        with self._lock:
             now = time.monotonic()
             active = [e for e in self.entries
                       if e.status == "active" or
                       (e.status == "cooled" and now > e.cool_until)]
-            # 恢复冷却结束的 key
             for e in active:
                 if e.status == "cooled":
                     e.status = "active"
@@ -71,14 +69,14 @@ class KeyPool:
 
     def report_success(self, key: str):
         """请求成功"""
-        with _lock:
+        with self._lock:
             e = self._find(key)
             if e:
                 e.consecutive_429 = 0
 
     def report_failure(self, key: str, error_code: int, retry_after: int = 0):
         """请求失败，根据错误码决定冷却策略"""
-        with _lock:
+        with self._lock:
             e = self._find(key)
             if not e:
                 return
@@ -98,7 +96,7 @@ class KeyPool:
                     e.cool_until = time.monotonic() + ttl
 
     def get_active_count(self) -> int:
-        with _lock:
+        with self._lock:
             now = time.monotonic()
             return sum(1 for e in self.entries
                        if e.status == "active" or
