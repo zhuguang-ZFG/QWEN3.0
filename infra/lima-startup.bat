@@ -57,4 +57,13 @@ if errorlevel 1 (
     echo [%date% %time%] Kimi proxy already running >> D:\ollama_server\startup.log
 )
 
+:: 6. SCNet Large Context proxy (node, port 4505)
+netstat -ano | find "4505" | find "LISTENING" > nul
+if errorlevel 1 (
+    start /min "" cmd /c "node D:\ollama_server\scnet_large_proxy.js > D:\ollama_server\scnet_large.log 2>&1"
+    echo [%date% %time%] SCNet Large proxy started >> D:\ollama_server\startup.log
+) else (
+    echo [%date% %time%] SCNet Large proxy already running >> D:\ollama_server\startup.log
+)
+
 echo [%date% %time%] All services started. >> D:\ollama_server\startup.log
