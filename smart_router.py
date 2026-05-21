@@ -1,24 +1,27 @@
 #!/usr/bin/env python3
-"""LiMa Smart Router (LEGACY — 逐步迁移到新模块)
+"""LiMa Smart Router — 精简版 (V3 迁移后保留的核心模块)
 
-迁移状态:
-  BACKENDS 字典       → backends.py         (已提取，此处保留供 server.py 兼容)
-  detect_vision_request → vision_handler.py  (已提取)
-  convert_openai_vision_to_anthropic → vision_handler.py (已提取)
-  路由逻辑             → routing_engine.py   (V4 五层路由)
-  响应构建             → response_builder.py (已提取)
-  Fallback             → fallback_chain.py   (已提取)
-  统计收集             → stats_collector.py  (已提取)
-  Tool Call            → tool_handler.py     (已提取)
-  Skills 注入          → skills_injector.py  (已提取)
+已迁移到独立模块:
+  路由逻辑             → routing_engine.py   (V3 五层路由，LIMA_V3=1 默认启用)
+  Fallback             → fallback_chain.py
+  响应构建             → response_builder.py
+  统计收集             → stats_collector.py
+  Tool Call            → tool_handler.py
+  Skills 注入          → skills_injector.py
+  Vision               → vision_handler.py
 
-仍在 smart_router.py 保留(server.py 直接依赖):
-  - call_api / call_api_stream
-  - 熔断器 (cb_allow/cb_record/cb_status)
-  - analyze / route / select_backend
-  - thinking/vision/image 检测
-  - clean_response / qa_check
-  - 本地模型路由
+此文件保留 (server.py / orchestrate.py 直接依赖):
+  - BACKENDS dict
+  - call_api / call_api_stream / call_local
+  - 熔断器 (cb_allow / cb_record / cb_status)
+  - analyze + 分类器栈 (rule_classify / signal_classify / _enhanced_classify)
+  - detect_thinking_intent / get_thinking_backend / THINKING_BACKENDS
+  - detect_image_intent / detect_vision_request / convert_openai_vision_to_anthropic
+  - clean_response / CLEAN_PATTERNS
+  - warmup_router_model / _load_local_router
+  - SYS / assemble_prompt
+  - DISTILL_QUEUE_DIR / _log_to_distill_queue
+  - DEBUG / PUBLIC_MODEL_NAME / ROUTE
 """
 import json, os, sys, re, time, urllib.request
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
@@ -32,17 +35,6 @@ _local_tokenizer = None
 _local_model_failed = False  # 标记模型加载是否失败过，避免重复尝试
 
 DEBUG = os.environ.get('LIMA_DEBUG', '') == '1'
-
-# ── Startup validation ─────────────────────────────────────────────────────
-def _startup_check():
-    configured = [k for k, v in BACKENDS.items() if v.get('key')]
-    unconfigured = [k for k, v in BACKENDS.items() if not v.get('key') and k != 'local']
-    if configured:
-        print(f'[LiMa] {len(configured)} backends configured: {", ".join(configured[:5])}{"..." if len(configured) > 5 else ""}', file=sys.stderr)
-    if unconfigured and DEBUG:
-        print(f'[LiMa] {len(unconfigured)} backends missing keys: {", ".join(unconfigured[:5])}', file=sys.stderr)
-    if not configured:
-        print('[LiMa] WARNING: No backends have API keys configured!', file=sys.stderr)
 
 # ── Config ──────────────────────────────────────────────────────────────────
 LM_URL = 'http://localhost:1234/v1/chat/completions'
@@ -341,9 +333,6 @@ BACKENDS = {
 # 对外暴露的统一模型名（用户永远看不到真实模型名）
 PUBLIC_MODEL_NAME = os.environ.get('PUBLIC_MODEL_NAME', 'LiMa')
 
-# 启动时校验后端配置
-_startup_check()
-
 # Intent -> backend
 # 路由策略：免费模型优先，按层级榨取，付费模型最后兜底
 # L0=本地零成本 | L1=LongCat/中国移动免费无限 | L2=Nvidia免费额度 | L3=OpenRouter免费额度 | L4=付费兜底
@@ -363,69 +352,6 @@ ROUTE = {
     'unknown':        'longcat_chat',      # L1: LongCat免费，通用
 }
 
-# ── one-api 渠道管理层 ────────────────────────────────────────────────────────
-ONEAPI_BASE = os.environ.get('ONEAPI_BASE', 'http://127.0.0.1:3001/v1')
-ONEAPI_ENABLED = os.environ.get('ONEAPI_ENABLED', 'true').lower() == 'true'
-
-ONEAPI_GROUP_TOKENS = {
-    'trivial':  os.environ.get('ONEAPI_TOKEN_TRIVIAL', 'sk-jutfJuQ8xmWHTn2h87B2C5661a1e497cAb6f5b8d0b396e2b'),
-    'code':     os.environ.get('ONEAPI_TOKEN_CODE', 'sk-jutfJuQ8xmWHTn2h87B2C5661a1e497cAb6f5b8d0b396e2b'),
-    'general':  os.environ.get('ONEAPI_TOKEN_GENERAL', 'sk-jutfJuQ8xmWHTn2h87B2C5661a1e497cAb6f5b8d0b396e2b'),
-    'thinking': os.environ.get('ONEAPI_TOKEN_THINKING', 'sk-jutfJuQ8xmWHTn2h87B2C5661a1e497cAb6f5b8d0b396e2b'),
-    'vision':   os.environ.get('ONEAPI_TOKEN_VISION', 'sk-jutfJuQ8xmWHTn2h87B2C5661a1e497cAb6f5b8d0b396e2b'),
-}
-
-INTENT_TO_GROUP = {
-    'trivial': 'trivial',
-    'code_generation': 'code',
-    'tool_task': 'code',
-    'thinking': 'thinking',
-    'architecture': 'thinking',
-    'cnc_trouble': 'thinking',
-    'vision': 'vision',
-    'image_gen': 'general',
-    'general_cnc': 'general',
-    'grbl_config': 'general',
-    'gcode_help': 'general',
-    'embedded_dev': 'general',
-    'unknown': 'general',
-}
-
-ONEAPI_GROUP_MODELS = {
-    'trivial': 'glm-4-flash',
-    'code': 'codestral-latest',
-    'general': 'glm-4.7-flash',
-    'thinking': 'gpt-5',
-    'vision': 'gpt-4o',
-}
-
-def call_oneapi(group, msgs, mt=1024, model_override=None):
-    """通过 one-api 调用指定分组的后端。one-api 自动负载均衡和故障转移。"""
-    token = ONEAPI_GROUP_TOKENS.get(group)
-    if not token:
-        return None
-    model = model_override or ONEAPI_GROUP_MODELS.get(group, 'glm-4-flash')
-    body = json.dumps({
-        'model': model,
-        'max_tokens': mt,
-        'messages': [{'role': 'system', 'content': SYS}] + msgs,
-    }).encode()
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'Bearer {token}',
-    }
-    try:
-        req = urllib.request.Request(
-            f'{ONEAPI_BASE}/chat/completions', data=body, headers=headers)
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            d = json.loads(resp.read().decode())
-        msg = d['choices'][0]['message']
-        answer = msg.get('content') or msg.get('reasoning_content') or ''
-        return answer
-    except Exception as e:
-        if DEBUG:
-            print(f'[ONEAPI] {group}/{model} error: {e}', file=sys.stderr)
-        return None
 GFW_PROXY_URL = os.environ.get('GFW_PROXY', 'http://127.0.0.1:7897')
 GFW_BACKENDS = {'google_flash', 'google_flash_lite', 'google_gemini3', 'google_gemma4',
                 'mistral_large', 'mistral_small', 'mistral_medium',
@@ -522,204 +448,7 @@ def cb_status():
             }
     return result
 
-# ── Fallback Chains ──────────────────────────────────────────────────────────
-# 降级顺序严格按层级：L1免费无限 -> L2Nvidia免费额度 -> L3OpenRouter免费额度 -> L4付费兜底
-FALLBACK_CHAINS = {
-    'trivial': [
-        'groq_llama4',        # L0.5: Groq极速（376ms）
-        'silicon_qwen8b',     # L0: 硅基流动（<100ms，国内直连）
-        'baidu_speed',        # L0: 百度ERNIE-Speed（永久免费，50QPS）
-        'chat_ubi',           # L0: ch.at 零Key（2.8s，最佳通用对话）
-        'zhipu_flash',        # L0: 智谱GLM-4-Flash（永久免费，30QPS）
-        'unclose_hermes',     # L1: UncloseAI（免费无限，1.2s）
-        'nvidia_phi4',        # L2: 最快（1-2秒）
-        'nvidia_llama4',      # L2: 快速备选
-        'longcat_lite',       # L1: 免费兜底
-    ],
-    'cnc_trouble': [
-        'groq_llama70b',      # L0.5: Groq 70B极速（694ms）
-        'unclose_hermes',     # L1: UncloseAI（免费无限，1.4s）
-        'longcat_thinking',   # L1: LongCat推理（免费）
-        'longcat',            # L1: LongCat最强（免费）
-        'chinamobile',        # L1: 中国移动（免费）
-        'nvidia_nemotron',    # L2: Nvidia推理（免费额度）
-        'or_nemotron',        # L3: OpenRouter Nemotron（免费额度）
-        'or_deepseek_r1',     # L3: OpenRouter DeepSeek（免费额度）
-    ],
-    'grbl_config': [
-        'local',              # L0: 本地直答
-        'unclose_hermes',     # L1: UncloseAI（免费无限，1.4s）
-        'longcat_lite',       # L1: LongCat（免费）
-        'chinamobile',        # L1: 中国移动（免费）
-        'nvidia_llama4',      # L2: Nvidia（免费额度）
-        'or_llama70b',        # L3: OpenRouter（免费额度）
-    ],
-    'gcode_help': [
-        'local',              # L0: 本地直答
-        'unclose_hermes',     # L1: UncloseAI（免费无限，1.4s）
-        'longcat_lite',       # L1: LongCat（免费）
-        'chinamobile',        # L1: 中国移动（免费）
-        'nvidia_llama4',      # L2: Nvidia（免费额度）
-        'or_llama70b',        # L3: OpenRouter（免费额度）
-    ],
-    'embedded_dev': [
-        'groq_llama70b',      # L0.5: Groq 70B极速
-        'unclose_hermes',     # L1: UncloseAI（免费无限，1.4s）
-        'google_flash_lite',  # L0.5: Gemini 3.1 Flash Lite（1.1s）
-        'nvidia_nemotron',    # L2: Nvidia嵌入式（免费额度）
-        'longcat_thinking',   # L1: LongCat推理（免费）
-        'longcat',            # L1: LongCat最强（免费）
-        'or_nemotron',        # L3: OpenRouter Nemotron（免费额度）
-        'or_deepseek_r1',     # L3: OpenRouter DeepSeek（免费额度）
-    ],
-    'code_generation': [
-        'groq_gptoss',        # L0.5: Groq GPT-OSS 120B极速（520ms，代码强）
-        'mistral_codestral',  # L0.5: Mistral Codestral（586ms，S级代码，10亿token/月）
-        'mistral_devstral',   # L0.5: Mistral Devstral（agent coding，最新）
-        'nvidia_qwen_coder',  # L2: Qwen Coder 480B（免费额度，代码最强）
-        'github_codestral',   # L0.5: GitHub Codestral（免费）
-        'unclose_qwen',       # L1: UncloseAI Qwen3 27B（免费无限，3s）
-        'groq_qwen32b',       # L0.5: Groq Qwen3 32B（447ms）
-        'github_gpt4o_mini',  # L0.5: GitHub GPT-4o-mini（3s，高质量）
-        'or_qwen3_coder',     # L3: OpenRouter Qwen3（免费额度）
-        'cerebras_gptoss',    # L0.5: Cerebras GPT-OSS 120B（极速）
-        'llm7',               # L0: 零Key自动路由
-        'longcat_chat',       # L1: LongCat（免费）
-        'nvidia_llama70b',    # L2: Nvidia（免费额度）
-        'or_llama70b',        # L3: OpenRouter（免费额度）
-        'pollinations',       # L0: 零Key终极兜底
-    ],
-    'architecture': [
-        'github_gpt5',        # L0.5: GitHub GPT-5（最强综合推理）
-        'mistral_large',      # L0.5: Mistral Large（旗舰，10亿token/月）
-        'groq_gptoss',        # L0.5: Groq GPT-OSS 120B极速（520ms）
-        'groq_llama70b',      # L0.5: Groq 70B（694ms）
-        'cerebras_qwen235b',  # L0.5: Cerebras Qwen 235B（1.9s，最强免费）
-        'github_gpt4o',       # L0.5: GitHub GPT-4o（2.2s，最强通用）
-        'google_gemini3',     # L0.5: Gemini 3 Flash（1M上下文）
-        'or_nemotron120b',    # L3: OpenRouter Nemotron 120B（免费）
-        'longcat',            # L1: LongCat最强（免费）
-        'longcat_thinking',   # L1: LongCat推理（免费）
-        'nvidia_nemotron',    # L2: Nvidia（免费额度）
-        'or_deepseek_r1',     # L3: OpenRouter DeepSeek（免费额度）
-    ],
-    'general_cnc': [
-        'groq_llama4',        # L0.5: Groq Llama4极速（376ms）
-        'unclose_hermes',     # L1: UncloseAI（免费无限，1.2s）
-        'longcat_lite',       # L1: LongCat快速（免费）
-        'chinamobile',        # L1: 中国移动（免费）
-        'nvidia_llama4',      # L2: Nvidia快速（免费额度）
-        'or_qwen3_80b',       # L3: OpenRouter快速（免费额度）
-        'llm7',               # L0: 零Key自动路由
-        'or_llama70b',        # L3: OpenRouter通用（免费额度）
-        'pollinations',       # L0: 零Key终极兜底
-    ],
-    'complex_theory': [
-        'longcat_thinking',   # L1: LongCat推理（免费）
-        'longcat',            # L1: LongCat最强（免费）
-        'nvidia_nemotron',    # L2: Nvidia推理（免费额度）
-        'or_nemotron',        # L3: OpenRouter Nemotron（免费额度）
-        'or_deepseek_r1',     # L3: OpenRouter DeepSeek（免费额度）
-    ],
-    'thinking': [
-        'or_deepseek_r1',     # L3: DeepSeek R1（深度推理首选）
-        'github_deepseek_r1', # L0.5: GitHub DeepSeek R1（免费）
-        'github_o3_mini',     # L0.5: GitHub o3-mini（推理强）
-        'longcat_thinking',   # L1: LongCat推理（免费）
-        'mistral_large',      # L0.5: Mistral Large（旗舰，10亿token/月）
-        'longcat',            # L1: LongCat最强（免费）
-    ],
-    'unknown': [
-        'silicon_qwen8b',     # L0: 硅基流动（<100ms，国内直连）
-        'zhipu_flash7',       # L0: 智谱GLM-4.7-Flash（200K，永久免费）
-        'chat_ubi',           # L0: ch.at 零Key（2.8s，最佳通用对话）
-        'baidu_ernie',        # L0: 百度ERNIE（永久免费不限量）
-        'longcat_chat',       # L1: LongCat通用（免费）
-        'chinamobile',        # L1: 中国移动（免费）
-        'volcengine_doubao',  # L0: 火山豆包（每天200万Token）
-        'nvidia_llama70b',    # L2: Nvidia通用（免费额度）
-        'or_llama70b',        # L3: OpenRouter通用（免费额度）
-        'or_qwen3_80b',       # L3: OpenRouter快速（免费额度）
-        'llm7',               # L0: 零Key自动路由（2.7s）
-        'longcat',            # L1: LongCat最强（免费，最终免费兜底）
-        'pollinations',       # L0: 零Key终极兜底（4.2s，无限）
-    ],
-    'vision': [
-        'cf_vision',          # Cloudflare Llama Vision 11B（867ms，最快，原生端点）
-        'mistral_pixtral',    # Mistral Pixtral Large（796ms，高质量视觉）
-        'github_gpt4o',       # GPT-4o（4.6s，最强视觉）
-        'google_flash',       # Gemini 2.5 Flash（1.5s，快速视觉）
-        'google_flash_lite',  # Gemini 3.1 Flash Lite（11s，兜底）
-    ],
-    'tool_task': [
-        'llm7',               # L0: 零Key自动路由（2.7s，工具型首选）
-        'groq_gptoss',        # L0.5: Groq GPT-OSS 120B（520ms，代码强）
-        'nvidia_qwen_coder',  # L2: Qwen Coder 480B（代码最强）
-        'pollinations',       # L0: 零Key终极兜底
-    ],
-}
 
-def get_fallback_chain(intent_name, prefer=None):
-    """获取意图对应的降级链，过滤掉没有 key 的后端。"""
-    chain = list(FALLBACK_CHAINS.get(intent_name, ['groq_llama70b', 'unclose_hermes', 'nvidia_llama70b', 'longcat']))
-    # 如果有偏好后端，插到最前面
-    if prefer and prefer in BACKENDS and prefer not in chain:
-        chain.insert(0, prefer)
-    elif prefer and prefer in chain:
-        chain.remove(prefer)
-        chain.insert(0, prefer)
-    # 过滤掉没有 key 的后端
-    chain = [b for b in chain if b in BACKENDS and (BACKENDS[b]['key'] or b == 'local')]
-    return chain
-
-
-def get_fallback_chain_sorted(intent_name, prefer=None):
-    """获取降级链并按实时延迟排序——同优先级内快的优先。"""
-    chain = get_fallback_chain(intent_name, prefer=prefer)
-    # 按延迟排序：有数据的按延迟，没数据的排最前（探索优先）
-    def _latency_sort_key(name):
-        s = cb_status().get(name)
-        if s and s['total_calls'] >= 3:
-            return s.get('avg_latency_ms', 9999)
-        return 0  # 新后端优先尝试
-    chain.sort(key=_latency_sort_key)
-    return chain
-
-
-# ── Fast Backend Predictor ────────────────────────────────────────────────────
-# 投机调用：在路由分析完成前，基于关键词快速预测最可能的后端
-_FAST_PREDICT_RULES = [
-    (re.compile(r'代码|code|函数|function|bug|error|def\s|class\s|import\s|写.*程序|编程', re.IGNORECASE), 'nvidia_qwen_coder'),
-    (re.compile(r'翻译|translate|解释|定义|what is|who is|how to|explain', re.IGNORECASE), 'longcat_chat'),
-    (re.compile(r'设计|架构|architect|system design|重构|refactor', re.IGNORECASE), 'longcat'),
-    (re.compile(r'数学|计算|solve|equation|公式|推理', re.IGNORECASE), 'longcat_thinking'),
-    (re.compile(r'图片|图像|画|logo|image|draw|picture', re.IGNORECASE), 'longcat_omni'),
-]
-
-
-def _has_vision_content(messages):
-    """检测消息中是否包含图片（image_url 类型 content）。"""
-    if not messages:
-        return False
-    for msg in messages:
-        content = msg.get('content')
-        if isinstance(content, list):
-            for part in content:
-                if isinstance(part, dict) and part.get('type') == 'image_url':
-                    return True
-    return False
-
-
-def predict_fast_backend(query: str) -> str:
-    """快速预测最可能的后端（<1ms，基于正则）。
-    用于投机调用：路由分析的同时先发请求到预测后端。
-    """
-    for pattern, backend in _FAST_PREDICT_RULES:
-        if pattern.search(query):
-            if backend in BACKENDS and BACKENDS[backend].get('key'):
-                return backend
-    # 默认：Groq 最快（376-694ms），作为投机首选
-    return 'groq_llama4'
 
 # ── Prompt Assembly (fragment-based, cache-friendly) ─────────────────────────
 FRAGMENT_DIR = os.path.join(os.path.dirname(__file__), 'fragments')
@@ -1070,43 +799,6 @@ def analyze(query, system_prompt="", ide="unknown", mode="fast"):
             'domain_keywords': [], 'cnc_subdomain': 'general',
             'source': 'default_fallback', 'confidence': 0.5}
 
-# ── Prompt expansion ─────────────────────────────────────────────────────────
-_EXPAND_TEMPLATES = {}
-_TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), 'templates')
-
-def _load_template(intent_name):
-    """按需加载 expand 模板，带缓存。"""
-    if intent_name in _EXPAND_TEMPLATES:
-        return _EXPAND_TEMPLATES[intent_name]
-    mapping = {
-        'code_generation': 'expand_code.txt',
-        'code_review': 'expand_code.txt',
-        'debugging': 'expand_debug.txt',
-        'explanation': 'expand_explain.txt',
-        'hardware': 'expand_hardware.txt',
-        'cnc_operation': 'expand_hardware.txt',
-        'grbl_config': 'expand_hardware.txt',
-    }
-    fname = mapping.get(intent_name, 'expand_default.txt')
-    path = os.path.join(_TEMPLATE_DIR, fname)
-    try:
-        with open(path, 'r', encoding='utf-8') as f:
-            tpl = f.read().strip()
-    except FileNotFoundError:
-        tpl = "Rewrite this query into a detailed technical question.\nUnder 300 chars. Chinese. Output ONLY the expanded question."
-    _EXPAND_TEMPLATES[intent_name] = tpl
-    return tpl
-
-def expand(query, intent):
-    """Expand short query into detailed prompt using intent-specific template."""
-    intent_name = intent.get('intent', 'unknown') if isinstance(intent, dict) else str(intent)
-    template = _load_template(intent_name)
-    prompt = f"{template}\n\nQuery: {query}\nExpanded:"
-    resp = call_local([{'role': 'user', 'content': prompt}], mt=200, t=0.3)
-    stripped = resp.strip()
-    if not stripped or stripped.startswith('[LOCAL_ERR]') or stripped.startswith('{'):
-        return query
-    return stripped
 
 # ── Response cleaning ────────────────────────────────────────────────────────
 CLEAN_PATTERNS = [
@@ -1146,97 +838,6 @@ def clean_response(text, backend_name=''):
         text = pattern.sub(repl, text)
     return text
 
-# ── Quality Assurance Layer ──────────────────────────────────────────────────
-# GRBL 参数合理范围（防止 AI 编造错误参数值）
-GRBL_PARAM_RANGES = {
-    '$0': (1, 255),       '$1': (0, 255),       '$2': (0, 7),
-    '$3': (0, 7),         '$4': (0, 1),          '$5': (0, 1),
-    '$6': (0, 1),         '$10': (0, 255),       '$11': (0.0, 10.0),
-    '$12': (0.0, 1.0),    '$13': (0, 1),         '$20': (0, 1),
-    '$21': (0, 1),        '$22': (0, 1),         '$23': (0, 7),
-    '$24': (1.0, 10000.0),'$25': (1.0, 100000.0),'$26': (0, 255),
-    '$27': (0.0, 100.0),  '$30': (1, 100000),    '$31': (0, 100000),
-    '$32': (0, 1),
-    '$100': (1.0, 10000.0), '$101': (1.0, 10000.0), '$102': (1.0, 10000.0),
-    '$110': (1.0, 100000.0),'$111': (1.0, 100000.0),'$112': (1.0, 100000.0),
-    '$120': (1.0, 100000.0),'$121': (1.0, 100000.0),'$122': (1.0, 100000.0),
-    '$130': (0.0, 100000.0),'$131': (0.0, 100000.0),'$132': (0.0, 100000.0),
-}
-
-# 不确定性信号词
-UNCERTAINTY_SIGNALS = [
-    '我不确定', '可能是', '大概', '也许', '不太清楚', '不确定',
-    '需要更多信息', '取决于具体情况', '可能需要', '建议测试',
-    'not sure', 'might be', 'possibly', 'uncertain',
-]
-
-# 免责声明模式（清洗掉）
-DISCLAIMER_PATTERNS = [
-    re.compile(r'作为AI.*?[。\n]', re.DOTALL),
-    re.compile(r'我无法保证.*?[。\n]', re.DOTALL),
-    re.compile(r'建议咨询专业.*?[。\n]', re.DOTALL),
-    re.compile(r'请注意.*?安全.*?[。\n]', re.DOTALL),
-    re.compile(r'以上仅供参考.*?[。\n]', re.DOTALL),
-    re.compile(r'作为.*?语言模型.*?[。\n]', re.DOTALL),
-]
-
-def validate_grbl_params(text):
-    """检测回答里的 GRBL 参数值是否在合理范围内，返回警告列表。"""
-    warnings = []
-    for match in re.finditer(r'(\$\d+)\s*[=:]\s*([\d.]+)', text):
-        param = match.group(1)
-        try:
-            value = float(match.group(2))
-        except ValueError:
-            continue
-        if param in GRBL_PARAM_RANGES:
-            lo, hi = GRBL_PARAM_RANGES[param]
-            if not (lo <= value <= hi):
-                warnings.append(f'{param}={value} 超出合理范围 [{lo}, {hi}]')
-    return warnings
-
-def is_truncated(text):
-    """检测回答是否被截断。"""
-    if not text or len(text) < 20:
-        return True
-    if text.count('```') % 2 != 0:
-        return True
-    stripped = text.rstrip()
-    if stripped and stripped[-1] not in '。！？.!?\n）)】]':
-        if len(stripped) > 100 and stripped[-1].isalnum():
-            return True
-    return False
-
-def detect_uncertainty(text):
-    """检测回答是否包含不确定性信号。"""
-    if not text:
-        return False
-    return any(s in text for s in UNCERTAINTY_SIGNALS)
-
-def remove_disclaimers(text):
-    """清洗掉常见的 AI 免责声明。"""
-    if not text:
-        return text or ''
-    for pattern in DISCLAIMER_PATTERNS:
-        text = pattern.sub('', text)
-    return text.strip()
-
-def qa_check(text, intent=None, backend=None):
-    """质量检查：验证参数范围、检测截断、清洗免责声明。
-    返回 (checked_text, issues) 其中 issues 是问题列表。
-    """
-    issues = []
-    text = remove_disclaimers(text)
-    if is_truncated(text):
-        issues.append('truncated')
-    if len(text.strip()) < 20 and backend != 'local':
-        issues.append('low_quality')
-    if intent and intent.get('cnc_subdomain') == 'grbl':
-        param_warnings = validate_grbl_params(text)
-        if param_warnings:
-            issues.append('param_warning')
-            text += '\n\n⚠️ 参数提示：' + '；'.join(param_warnings) + '，请结合实际硬件验证。'
-    return text, issues
 
 # ── API backend calls ────────────────────────────────────────────────────────
 def _call_cf_vision(msgs, mt, _t0):
@@ -1404,73 +1005,6 @@ def _call_scnet_chunked(name, msgs, mt, _t0):
         return '服务暂时不可用，请稍后重试'
 
 
-# ── DevToolBox API (工具型端点，非 OpenAI 兼容) ──────────────────────────────
-DTB_BASE = 'https://devtoolbox-api.devtoolbox-api.workers.dev/ai'
-DTB_ENDPOINTS = {
-    'sql': {'field': 'description', 'result_key': 'sql'},
-    'regex': {'field': 'description', 'result_key': 'regex'},
-    'fix-code': {'field': 'code', 'result_key': 'fix'},
-    'explain-code': {'field': 'code', 'result_key': 'explanation'},
-    'json-schema': {'field': 'json', 'result_key': 'result'},
-    'summarize': {'field': 'text', 'result_key': 'result'},
-}
-
-def call_devtoolbox(task_type, input_text):
-    """调用 DevToolBox 工具型 API。返回结果文本或 None。"""
-    ep = DTB_ENDPOINTS.get(task_type)
-    if not ep:
-        return None
-    try:
-        payload = json.dumps({ep['field']: input_text}).encode()
-        req = urllib.request.Request(
-            f'{DTB_BASE}/{task_type}', data=payload,
-            headers={'Content-Type': 'application/json', 'User-Agent': 'LiMa/2.0'})
-        opener = _get_opener('devtoolbox')
-        if opener:
-            resp = opener.open(req, timeout=15)
-        else:
-            resp = urllib.request.urlopen(req, timeout=15)
-        data = json.loads(resp.read().decode())
-        return data.get(ep['result_key']) or data.get('result') or json.dumps(data, ensure_ascii=False)
-    except Exception as e:
-        if DEBUG:
-            print(f'[DTB] {task_type} error: {e}', file=sys.stderr)
-        return None
-
-
-def _detect_tool_type(query):
-    """检测 tool_task 的具体工具类型，用于路由到 DevToolBox 对应端点。"""
-    q = query.lower()
-    if re.search(r'sql|查询|select|insert|update|delete.*from|数据库', q):
-        return 'sql'
-    if re.search(r'正则|regex|pattern|匹配模式', q):
-        return 'regex'
-    if re.search(r'修复|fix|debug|改.*bug|纠错', q):
-        return 'fix-code'
-    if re.search(r'解释.*代码|explain.*code|这段代码', q):
-        return 'explain-code'
-    if re.search(r'json.*schema|schema', q, re.IGNORECASE):
-        return 'json-schema'
-    if re.search(r'摘要|总结|summarize|概括', q):
-        return 'summarize'
-    return None
-
-
-# ── Pollinations Image Generation ────────────────────────────────────────────
-def generate_image(prompt, width=512, height=512):
-    """调用 Pollinations 图片生成 API，返回图片 URL。"""
-    from urllib.parse import quote
-    encoded = quote(prompt)
-    url = f'https://image.pollinations.ai/prompt/{encoded}?width={width}&height={height}&nologo=true'
-    try:
-        req = urllib.request.Request(url, headers={'User-Agent': 'LiMa/2.0'})
-        resp = urllib.request.urlopen(req, timeout=30)
-        if resp.status == 200:
-            return url
-    except Exception:
-        pass
-    return url
-
 
 # ── Streaming API Call ─────────────────────────────────────────────────────────
 def _build_request_body(name, msgs, mt=1024, ide="unknown", stream=False):
@@ -1593,204 +1127,6 @@ def call_api_stream(name, msgs, mt=1024, ide="unknown"):
         cb_record(name, False)
         yield '服务暂时不可用，请稍后重试'
 
-# ── IDE metadata routing hints ──────────────────────────────────────────────
-def _ide_routing_hint(ide, system_prompt, query):
-    """根据 IDE 元数据推断最优后端偏好。"""
-    sp_lower = system_prompt.lower() if system_prompt else ''
-    q_lower = query.lower()
-
-    # Rust/Go 项目偏好长上下文模型（强类型推理）
-    if any(ext in sp_lower for ext in ['.rs', 'rust', 'cargo']):
-        return 'longcat_thinking'
-    if any(ext in sp_lower for ext in ['.go', 'golang', 'go.mod']):
-        return 'longcat_thinking'
-
-    # 嵌入式/硬件项目偏好长上下文模型
-    if any(kw in q_lower for kw in ['esp32', 'stm32', 'arduino', 'grbl', 'firmware']):
-        return 'longcat'
-
-    # Cursor 用户通常需要快速响应
-    if ide == 'cursor':
-        return 'groq_llama70b'
-
-    return None
-
-# ── Main router ──────────────────────────────────────────────────────────────
-def select_backend(query, prefer=None, system_prompt="", ide="unknown", messages=None):
-    """Select best backend WITHOUT making API call. Returns (backend, api_msgs)."""
-    intent = analyze(query, system_prompt=system_prompt, ide=ide)
-    ide_prefer = _ide_routing_hint(ide, system_prompt, query)
-    model_backend = intent.get('backend')
-    effective_prefer = prefer or model_backend or ide_prefer
-    intent_name = intent.get('intent', 'unknown')
-    # 多模态检测：如果消息包含图片，强制使用 vision chain
-    if _has_vision_content(messages):
-        intent_name = 'vision'
-    fallback_chain = get_fallback_chain_sorted(intent_name, prefer=effective_prefer)
-    backend = fallback_chain[0] if fallback_chain else 'longcat_chat'
-
-    expanded_q = expand(query, intent)
-    if messages and len(messages) > 1:
-        api_msgs = [m for m in messages if m.get('role') in ('user', 'assistant')]
-    else:
-        api_msgs = [{'role': 'user', 'content': expanded_q}]
-    return backend, api_msgs
-
-
-def route(query, prefer=None, system_prompt="", ide="unknown", messages=None):
-    """Route a query: analyze intent -> expand -> call best backend.
-    messages: 完整对话历史 (list of dicts)，传递给后端保持上下文。
-    """
-    t0 = time.time()
-    result = {'query': query}
-
-    # Intent analysis (two-layer)
-    intent = analyze(query, system_prompt=system_prompt, ide=ide)
-    result['intent'] = intent
-    result['classify_ms'] = int((time.time() - t0) * 1000)
-
-    # IDE 元数据增强路由偏好
-    ide_prefer = _ide_routing_hint(ide, system_prompt, query)
-    # 优先使用路由模型推荐的 backend，其次 IDE 偏好，最后调用者指定
-    model_backend = intent.get('backend')
-    effective_prefer = prefer or model_backend or ide_prefer
-
-    # 获取降级链
-    intent_name = intent.get('intent', 'unknown')
-    # 多模态检测：如果消息包含图片，强制使用 vision chain
-    if _has_vision_content(messages):
-        intent_name = 'vision'
-
-    # ── 图片生成：直接返回 Pollinations URL ──
-    if intent_name == 'image_gen':
-        img_url = generate_image(query)
-        result['backend'] = 'pollinations_image'
-        result['answer'] = f'![生成的图片]({img_url})\n\n图片已生成，点击上方链接查看。'
-        result['total_ms'] = int((time.time() - t0) * 1000)
-        return result
-
-    # ── 工具型任务：优先 DevToolBox，失败再走 fallback chain ──
-    if intent_name == 'tool_task':
-        dtb_type = _detect_tool_type(query)
-        if dtb_type:
-            dtb_result = call_devtoolbox(dtb_type, query)
-            if dtb_result:
-                result['backend'] = f'devtoolbox_{dtb_type}'
-                result['answer'] = dtb_result
-                result['total_ms'] = int((time.time() - t0) * 1000)
-                return result
-
-    # ── one-api 优先路由（负载均衡 + 额度追踪 + 自动故障转移）──
-    if ONEAPI_ENABLED:
-        group = INTENT_TO_GROUP.get(intent_name, 'general')
-        expanded_q = expand(query, intent)
-        if messages and len(messages) > 1:
-            api_msgs = [m for m in messages if m.get('role') in ('user', 'assistant')]
-        else:
-            api_msgs = [{'role': 'user', 'content': expanded_q}]
-
-        oneapi_answer = call_oneapi(group, api_msgs, mt=1024)
-        if oneapi_answer:
-            result['backend'] = f'oneapi/{group}'
-            result['answer'] = clean_response(oneapi_answer, f'oneapi_{group}')
-            result['total_ms'] = int((time.time() - t0) * 1000)
-            return result
-        if DEBUG:
-            print(f'[ROUTE] one-api failed for group={group}, falling back to direct', file=sys.stderr)
-
-    # ── 直连 fallback（one-api 不可用时的降级路径）──
-    fallback_chain = get_fallback_chain(intent_name, prefer=effective_prefer)
-    backend = fallback_chain[0] if fallback_chain else 'longcat'
-    result['backend'] = backend
-    result['fallback_chain'] = fallback_chain
-
-    # 尝试降级链中的每个后端
-    answer = None
-    used_backend = backend
-    expanded_q = expand(query, intent)
-    tried_backends = set()
-
-    # 构建发送给后端的消息：优先使用完整对话历史
-    if _has_vision_content(messages):
-        # 视觉消息：直接透传原始 messages（保留 image_url）
-        api_msgs = [m for m in messages if m.get('role') in ('user', 'assistant')]
-    elif messages and len(messages) > 1:
-        api_msgs = [m for m in messages if m.get('role') in ('user', 'assistant')]
-    else:
-        api_msgs = [{'role': 'user', 'content': expanded_q}]
-
-    for attempt_backend in fallback_chain:
-        tried_backends.add(attempt_backend)
-        if attempt_backend == 'local':
-            ans = call_local([
-                {'role': 'system', 'content': SYS},
-                {'role': 'user', 'content': query},
-            ], mt=800)
-            if ans and not ans.startswith('[LOCAL_ERR]'):
-                answer = ans
-                used_backend = 'local'
-                break
-            continue
-
-        ans = call_api(attempt_backend, api_msgs, ide=ide)
-        if ans is not None and not ans.startswith('[ERR]') and '暂时不可用' not in ans:
-            answer = ans
-            used_backend = attempt_backend
-            if attempt_backend != backend and DEBUG:
-                print(f'[FALLBACK] {backend} -> {attempt_backend}', file=sys.stderr)
-            break
-
-    if answer is None:
-        answer = '服务暂时不可用，请稍后重试'
-
-    result['expanded'] = expanded_q
-    result['backend'] = used_backend
-    result['answer'] = answer
-
-    result['total_ms'] = int((time.time() - t0) * 1000)
-
-    # 质量检查
-    answer, issues = qa_check(result['answer'], intent=intent, backend=used_backend)
-    result['answer'] = answer
-
-    # 质量不达标时尝试下一个 fallback（仅重试一次）
-    if issues and 'low_quality' in issues:
-        remaining = [b for b in fallback_chain if b not in tried_backends and b != 'local']
-        if remaining:
-            retry_backend = remaining[0]
-            retry_ans = call_api(retry_backend, api_msgs, ide=ide)
-            if retry_ans and not retry_ans.startswith('[ERR]') and '暂时不可用' not in retry_ans:
-                retry_clean = retry_ans
-                retry_answer, retry_issues = qa_check(retry_clean, intent=intent, backend=retry_backend)
-                if 'low_quality' not in retry_issues:
-                    result['answer'] = retry_answer
-                    used_backend = retry_backend
-                    result['backend'] = used_backend
-                    result['quality_retry'] = True
-                    if DEBUG:
-                        print(f'[QUALITY_RETRY] {result.get("backend")} -> {retry_backend}', file=sys.stderr)
-
-    # 不确定性检测：自动升级到更强模型
-    if detect_uncertainty(result['answer']) and used_backend not in ('longcat', 'longcat_thinking', 'or_deepseek_r1'):
-        upgraded = call_api('longcat_thinking', api_msgs)
-        if upgraded and not upgraded.startswith('[ERR]') and '暂时不可用' not in upgraded and not detect_uncertainty(upgraded):
-            result['answer'] = clean_response(upgraded, 'longcat_thinking')
-            result['upgraded'] = True
-
-    # 截断检测：自动续写（用实际成功的后端）
-    if 'truncated' in issues and used_backend != 'local':
-        cont_msgs = list(api_msgs) + [
-            {'role': 'assistant', 'content': result['answer']},
-            {'role': 'user', 'content': '请继续完成上面的回答。'},
-        ]
-        continuation = call_api(used_backend, cont_msgs, mt=512)
-        if continuation and not continuation.startswith('[ERR]'):
-            result['answer'] = result['answer'] + '\n' + clean_response(continuation, used_backend)
-
-    # 写入蒸馏队列（失败不影响主流程）
-    _log_to_distill_queue(query, result.get('answer', ''), intent, result.get('backend', ''))
-
-    return result
 
 # ── Distill Queue Logger ─────────────────────────────────────────────────────
 DISTILL_QUEUE_DIR = os.path.join(os.path.dirname(__file__), 'data', 'distill_queue', 'pending')
