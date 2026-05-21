@@ -37,29 +37,55 @@
 
 ```
 D:/GIT/
-├── server.py              2027行  FastAPI入口（待拆分）
-├── smart_router.py        2276行  旧路由引擎（待清理）
+├── server.py              2027行  FastAPI入口（待继续拆分，目标<800行）
+├── smart_router.py        1944行  旧路由引擎（待瘦身至<500行）
+│
+│  ── V3 路由核心（已接入 server.py）──
 ├── routing_engine.py      226行  五层统一路由 ✅
 ├── router_v3.py           225行  三层路由+P2C ✅
-├── v3_integration.py      111行  V3入口+fallback ✅
-├── health_tracker.py      119行  被动追踪 ✅
+├── http_caller.py         290行  统一HTTP调用 ✅
+├── streaming.py           158行  投机流式 ✅
+├── health_tracker.py      119行  指数退避+质量追踪 ✅
 ├── sticky_session.py       60行  会话亲和 ✅
 ├── key_pool.py            142行  SWRR轮转 ✅
-├── semantic_cache.py      103行  缓存 ✅
+├── semantic_cache.py      103行  SHA-256缓存 ✅
 ├── probe_loop.py           80行  主动探活 ✅
 ├── skills_injector.py     205行  智能补缺 ✅
+├── budget_manager.py       —行  预算管理 ✅
+├── identity_guard.py       —行  身份拦截 ✅
+├── speculative.py          —行  投机并行 ✅
+│
+│  ── 辅助模块 ──
 ├── response_builder.py     92行  响应格式 ✅
-├── fallback_chain.py       69行  降级链 ✅
-├── stats_collector.py     147行  统计收集 ✅
 ├── vision_handler.py      138行  视觉路由 ✅
-├── tool_handler.py        145行  工具转发 ✅
-├── backends.py            109行  77后端配置 ✅
-├── deploy_v3.py            91行  一键部署 ✅
-├── patch_server_v3.py     135行  服务器patch ✅
-├── orchestrate.py              多步编排
-├── voice_gateway.py            WebSocket语音
-├── skills/                     6个skill文件
-└── docs/                       19份设计文档
+├── tool_handler.py        145行  工具转发（_record_request桩未注入）
+├── backends.py            109行  117后端配置 ✅
+├── orchestrate.py          —行  多步编排（仍依赖smart_router）
+├── voice_gateway.py        —行  WebSocket语音（独立运行）
+│
+│  ── 待清理/决策 ──
+├── v3_integration.py      111行  ❌ 待删除（被routing_engine覆盖）
+├── fallback_chain.py       69行  ❌ 死代码（4函数零调用）
+├── stats_collector.py     147行  ❌ 死代码（未import）
+├── quota_tracker.py        —行  ❌ 死代码（与budget_manager重叠）
+├── health_probe.py         —行  ❌ 死代码（与probe_loop重叠）
+│
+│  ── 部署 ──
+├── deploy_v3.py            91行  ⚠️ 含明文密码，待修复
+├── patch_server_v3.py     135行  服务器patch
+│
+│  ── 测试 ──
+├── test_http_caller.py     27 tests ✅
+├── test_skills_injector.py 23 tests ✅
+├── test_routing_engine.py  16 tests ✅
+├── test_v3.py              5 tests ✅
+├── test_streaming.py       ⚠️ 非pytest格式
+│
+│  ── 资源 ──
+├── skills/                 6个skill文件
+├── fragments/              4个prompt片段
+├── docs/                   38份设计文档
+└── QWEN3.0/                4份逆向分析文档
 ```
 
 ## 开发流程
@@ -83,11 +109,20 @@ D:/GIT/
 
 ## 关键设计文档
 
-- `docs/ROUTING_V3_DESIGN.md` — V3 功能设计 (8模块)
-- `docs/ROUTING_FIX_PLAN.md` — 实现方案 (14模块)
-- `docs/SKILLS_INJECTION_DESIGN.md` — Skills智能补缺 (双模式)
-- `docs/LOCAL_MODEL_DESIGN.md` — 本地模型部署设计
-- `docs/IDE_CONTEXT_PATTERNS.md` — IDE逆向分析 (Claude/Cursor/Codex)
-- `docs/SERVER_REFACTOR_PLAN.md` — 服务器拆分设计 (4 Phase)
-- `docs/ROUTING_ENGINE_DESIGN.md` — 五层统一路由设计
-- `STATUS.md` — 项目状态追踪
+| 文档 | 内容 | 实现状态 |
+|------|------|----------|
+| `docs/ROUTING_V3_DESIGN.md` | V3 功能设计 (8模块) | ✅ 已实现 |
+| `docs/ROUTING_FIX_PLAN.md` | 14模块实现方案 | ✅ Phase 1-3 完成 |
+| `docs/ROUTING_ENGINE_DESIGN.md` | 五层统一路由设计 | ✅ 已实现 |
+| `docs/SKILLS_INJECTION_DESIGN.md` | Skills智能补缺 | ✅ 已实现 |
+| `docs/BACKEND_STABILITY_DESIGN.md` | 指数退避+质量追踪 | ✅ 已实现 |
+| `docs/V3_MIGRATION_PLAN.md` | 迁移4阶段 | ⚠️ Phase 4 未执行 |
+| `docs/STREAMING_REFACTOR_PLAN.md` | 流式拆分 | ⚠️ 部分完成 |
+| `docs/DUAL_TRACK_ROUTING_PLAN.md` | 编程/聊天双轨 | ❌ 未实现 |
+| `docs/PLATFORM_FIX_PLAN.md` | 开放平台修复 | ❌ P0未修 |
+| `docs/LATENCY_OPTIMIZATION.md` | 延迟优化 | ⚠️ P0-P1完成, P2未开始 |
+| `docs/CLAUDE_CODE_BREAKTHROUGH.md` | Prompt工程5步 | ⚠️ 仅Step1完成 |
+| `docs/PAYMENT_DESIGN.md` | 支付网关 | ❌ 阻塞(需企业资质) |
+| `docs/LOCAL_MODEL_DESIGN.md` | 本地模型 | ⚠️ 实现偏移(Ollama) |
+| `STATUS.md` | 项目状态追踪 | — |
+| `docs/EXECUTION_PLAN.md` | 执行计划(本文档) | 📋 当前 |

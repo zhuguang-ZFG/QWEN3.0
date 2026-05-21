@@ -1,232 +1,129 @@
 # LiMa AI 项目状态
 
-> 更新时间: 2026-05-21
-> 阶段: V3 路由引擎已集成 (Phase 1-3 完成)，待生产部署
+> 更新时间: 2026-05-21 (全量审计后)
+> 阶段: V3 本地就绪，生产未部署，多项设计未闭环
 
 ---
 
-## V3 集成完成 (2026-05-21)
+## 当前架构状态
 
-### Phase 1: HTTP 调用层提取
+### V3 路由引擎（Phase 1-3 完成，Phase 4 未执行）
 
-| 文件 | 行数 | 功能 |
+| 模块 | 行数 | 状态 | 接入情况 |
+|------|------|------|----------|
+| routing_engine.py | 226 | ✅ 完成 | server.py 已接入 (LIMA_V3=1) |
+| router_v3.py | 225 | ✅ 完成 | routing_engine 内部使用 |
+| http_caller.py | 290 | ✅ 完成 | 统一 HTTP 调用层 |
+| health_tracker.py | 119 | ✅ 完成 | 指数退避+质量追踪已实现 |
+| streaming.py | 158 | ✅ 完成 | speculative_stream 已接入 |
+| skills_injector.py | 205 | ✅ 完成 | 23/23 测试通过 |
+| sticky_session.py | 60 | ✅ 完成 | routing_engine 内部使用 |
+| key_pool.py | 142 | ✅ 完成 | http_caller 内部使用 |
+| semantic_cache.py | 103 | ✅ 完成 | routing_engine 已接入 |
+| probe_loop.py | 80 | ✅ 完成 | FastAPI lifespan 自动启动 |
+| response_builder.py | 92 | ✅ 完成 | server.py 使用 |
+| vision_handler.py | 138 | ✅ 完成 | 脱离 smart_router 依赖 |
+| tool_handler.py | 145 | ✅ 完成 | _record_request 桩未注入 |
+| backends.py | 109 | ✅ 完成 | 117 后端配置 |
+| budget_manager.py | — | ✅ 完成 | routing_engine 已接入 |
+| identity_guard.py | — | ✅ 完成 | routing_engine 已接入 |
+| speculative.py | — | ✅ 完成 | 投机并行执行 |
+
+### 未接入的孤立模块
+
+| 模块 | 状态 | 问题 |
 |------|------|------|
-| http_caller.py | 290 | 统一HTTP调用(call_api/call_api_stream/probe/clean_response) |
-| test_http_caller.py | 26 tests | 全覆盖测试 |
+| fallback_chain.py | ❌ 死代码 | 4个公开函数零调用点 |
+| stats_collector.py | ❌ 死代码 | 完整实现但 server.py 未 import |
+| quota_tracker.py | ❌ 死代码 | 与 budget_manager 功能重叠 |
+| health_probe.py | ❌ 死代码 | 与 probe_loop.py 重叠，未启动 |
+| v3_integration.py | ❌ 待删除 | 被 routing_engine.py 完全覆盖 |
 
-- 从 smart_router 提取，使用 health_tracker 替代旧熔断器
-- 修复: 流式路径未走 GFW 代理的 bug
-- 修复: 同步路径资源泄漏 (Code Review HIGH)
-- 修复: 流式 buffer 无限增长 (Code Review HIGH)
-- 删除 backends.py 中废弃的 ROUTE 字典
+### 遗留依赖（smart_router 退役阻塞）
 
-### Phase 2: server.py 接入 routing_engine
-
-- `LIMA_V3=1/0` 环境变量灰度开关(默认开启)
-- 非流式路径: routing_engine.route() + http_caller.call_api
-- 流式路径: streaming.speculative_stream() + http_caller.call_api_stream
-- 保留 smart_router 作为 LIMA_V3=0 的完整回退
-- probe_loop 在 FastAPI lifespan 中自动启动
-
-### Phase 3: 辅助模块接入
-
-- vision_handler.py: 脱离 smart_router 依赖 → http_caller + health_tracker
-- orchestrate.py: 路由调用切换到 routing_engine + http_caller
-- routing_engine.py: 接入 semantic_cache (缓存检查+写入)
-- probe_loop: 通过 lifespan 自动启动/停止
-
-### 冒烟测试结果
-
-| 测试路径 | 结果 |
-|----------|------|
-| GET /health | ✅ |
-| POST /v1/chat/completions (非流式) | ✅ 后端 longcat_chat, 1311ms |
-| POST /v1/chat/completions (流式) | ✅ SSE chunks 正确 |
-| POST /v1/messages (Anthropic 非流式) | ✅ |
-| 中文流式 (UTF-8 文件发送) | ✅ |
-
-> 注意: Windows bash 环境中 curl -d 内联中文会被 GBK 编码，导致 500。
-> 这是测试环境问题，非代码 bug。生产环境(Linux)和真实 IDE 客户端不受影响。
+| 文件 | smart_router 依赖 | 迁移难度 |
+|------|-------------------|----------|
+| server.py | 24 个属性（常量+函数） | HIGH |
+| orchestrate.py | analyze/call_api/route | MEDIUM |
 
 ---
 
-## 待完成（按优先级）
+## 安全隐患
 
-1. **部署 V3 到生产** — 上传新模块到 47.112.162.80 + 重启
-2. **端到端测试** — 真实 IDE (Claude Code/Cursor) 连接验证
-3. **Phase 4 清理** — 删除 v3_integration.py + smart_router 瘦身至 <500行
-4. **流式 fallback 增强** — 流式路径从 2 次 fallback 扩展到 5 次（与非流式对齐）
-5. **systemd 自启** — lima-router 服务配置
-
----
-
-## 历史记录 (2026-05-20)
-
-### V3 模块（全部编码+测试通过）
-|------|------|------|------|
-| router_v3.py | 225 | 三层路由(分类/后端池/P2C) | ✅ 4/4 |
-| health_tracker.py | 119 | 被动追踪+TTL冷却+批量熔断 | ✅ |
-| sticky_session.py | 60 | 会话亲和(prefix_hash) | ✅ |
-| v3_integration.py | 111 | 统一入口+fallback | ✅ |
-| key_pool.py | 142 | SWRR权重轮转+分级冷却 | ✅ |
-| semantic_cache.py | 103 | SHA-256精确匹配+LRU | ✅ |
-| probe_loop.py | 80 | 主动探活后台线程 | ✅ |
-| skills_injector.py | 205 | 智能补缺(双模式:目录/补缺) | ✅ 23/23 |
-| streaming.py | 158 | 纯流式核心(bridge+speculative) | ✅ 5/5 |
-
-### Phase 1 提取模块
-
-| 文件 | 行数 | 来源 | 功能 |
-|------|------|------|------|
-| response_builder.py | 92 | server.py | OpenAI/Anthropic 双格式构建 |
-| fallback_chain.py | 69 | server.py | 降级链+质量检查 |
-| stats_collector.py | 147 | server.py | 统计收集+Prompt去重记录 |
-| vision_handler.py | 138 | server+smart | 视觉请求检测+格式转换+路由 |
-| tool_handler.py | 145 | server.py | Tool Call转发+Anthropic↔OpenAI转换 |
-| backends.py | 109 | smart_router | 77后端配置+元数据 |
-
-### Skills 文件
-
-```
-skills/
-├── safety/
-│   ├── no_hallucination.md
-│   └── honest_uncertainty.md
-├── lang/
-│   ├── python_pep8.md
-│   └── go_error_handling.md
-├── style/
-│   └── concise_response.md
-└── project/
-    └── lima_conventions.md
-```
-
-### 后端扩展
-
-- 新增零Key端点: LLM7.io, Pollinations(text)
-- 新增社区免费: NagaAI(gpt-4.1-mini), FreeTheAi(16000+模型), ZukiJourney(codestral)
-- 14个官方API Key全量配置: Groq/Cerebras/Google/Cloudflare/Mistral/SiliconFlow/智谱/百度/腾讯/火山/阿里/OpenRouter/NVIDIA/LongCat
-- 77个后端注册在 backends.py
-
-### server.py 清理
-
-- 删除 _INSTANT_REPLIES + _try_instant_reply（预设直答绕过路由）
-- 2100→2027行（streaming/thinking 深层耦合部分已提取到 streaming.py）
-
-### smart_router.py 瘦身
-
-- 删除365行死代码（2309→1944行）
-- 删除: model_route/_run_local_inference/model_classify/pressure_test/cli/mcp 等
-- 添加迁移注释标注已提取代码段
-
----
-
-## 设计文档（19份）
-
-| 文档 | 内容 |
-|------|------|
-| docs/ROUTING_V3_DESIGN.md | V3 8模块功能设计 |
-| docs/ROUTING_FIX_PLAN.md | 14模块实现方案+源码分析 |
-| docs/SKILLS_INJECTION_DESIGN.md | Skills智能补缺双模式设计 |
-| docs/LOCAL_MODEL_DESIGN.md | 本地模型部署设计 |
-| docs/IDE_CONTEXT_PATTERNS.md | IDE逆向分析(Claude/Cursor/Codex) |
-| docs/SERVER_REFACTOR_PLAN.md | 服务器4 Phase拆分设计 |
-| docs/ROUTING_ENGINE_DESIGN.md | 五层统一路由引擎设计 |
-| docs/TECHNICAL_ARCHITECTURE.md | 技术架构 |
-| docs/CONTEXT_ENGINEERING.md | 上下文工程 |
-| docs/ANTI_FORGETTING_STRATEGY.md | 反遗忘策略 |
-| docs/ROUTER_CLASSIFIER_V2.md | 路由分类器V2 |
-| docs/MULTIMODAL_FEATURES_PLAN.md | 多模态功能计划 |
-| docs/MULTIMODAL_INTEGRATION.md | 多模态集成 |
-| docs/DEVELOPMENT_PLAN_v2.md | 开发计划V2 |
-| docs/ai-coding-tools-context-patterns.md | AI编码工具上下文模式 |
-| docs/claude-code-context-construction.md | Claude Code上下文构建 |
-| docs/codex-context-construction.md | Codex上下文构建 |
-| docs/copilot-chat-context-construction.md | Copilot Chat上下文构建 |
-
-### 参考文档（QWEN3.0/）
-
-| 文件 | 内容 |
-|------|------|
-| free-ai-api-汇总.md | 200+免费API渠道+实测结果 |
-| claude-code-deep-dive.md | Claude Code逆向(~8000 tok, 1435 skills) |
-| codex-cli-deep-dive.md | Codex CLI逆向(Goals系统, 线程树) |
-| cursor-auto-mode-deep-dive.md | Cursor逆向(642 tok极简, 万物皆文件) |
-
-### Code Review 修复 (2026-05-20)
-
-| 模块 | 问题 | 修复 |
+| 问题 | 位置 | 状态 |
 |------|------|------|
-| streaming.py | 异常静默吞掉(HIGH) | 异常放入队列 |
-| streaming.py | 线程未join双请求竞争(HIGH) | thread.join(1s) |
-| streaming.py | 队列未清空内存泄漏(HIGH) | _drain_queue() |
-| routing_engine.py | 直连保底异常静默(HIGH) | 记录health_tracker |
-| routing_engine.py | exhausted时fallback_used=True(HIGH) | 排除exhausted |
-| skills_injector.py | frontmatter---碰撞(HIGH) | 改用\n--- |
-| smart_router.py | 365行死代码(HIGH) | 已删除 |
+| 生产密码明文 `PASS = "zhuguang110!"` | deploy_v3.py:16 | ❌ 未修复 |
+| 密码暴露在文档中 | docs/PLATFORM_FIX_PLAN.md:24 | ❌ 未修复 |
+| 无任何限流保护 | server.py 全局 | ❌ rate_limiter.py 不存在 |
 
 ---
 
-## 当前项目结构
+## 工程基础设施
 
-```
-D:/GIT/
-├── server.py              2027行  FastAPI入口（待继续拆分）
-├── smart_router.py        1944行  旧路由引擎（已删365行死代码）
-├── routing_engine.py      226行  五层统一路由 ✅
-├── router_v3.py           225行  三层路由+P2C ✅
-├── v3_integration.py      111行  V3入口+fallback ✅
-├── health_tracker.py      119行  被动追踪 ✅
-├── sticky_session.py       60行  会话亲和 ✅
-├── key_pool.py            142行  SWRR轮转 ✅
-├── semantic_cache.py      103行  SHA-256缓存 ✅
-├── probe_loop.py           80行  主动探活 ✅
-├── skills_injector.py     205行  智能补缺 ✅
-├── response_builder.py     92行  响应格式 ✅
-├── fallback_chain.py       69行  降级链 ✅
-├── stats_collector.py     147行  统计收集 ✅
-├── vision_handler.py      138行  视觉路由 ✅
-├── tool_handler.py        145行  工具转发 ✅
-├── backends.py            109行  77后端配置 ✅
-├── deploy_v3.py            91行  一键部署 ✅
-├── patch_server_v3.py     135行  服务器patch ✅
-├── orchestrate.py              多步编排
-├── quota_tracker.py            配额追踪
-├── voice_gateway.py            WebSocket语音
-├── test_v3.py                  V3测试(4/5)
-├── test_skills_injector.py     Skills测试(23/23)
-├── test_routing_engine.py      路由测试(16/16)
-├── skills/                     6个skill文件
-├── docs/                       19份设计文档
-└── QWEN3.0/                    4份逆向分析文档
-```
-
-**16个独立模块，总计 ~1,740行，平均 ~125行，最大 226行**
-
----
-
-## 已部署到服务器（47.112.162.80）
-
-| 改动 | 状态 |
+| 项目 | 状态 |
 |------|------|
-| server.py + smart_router.py | 运行中（旧版） |
-| V3 模块 | 未部署 |
-| 防火墙 8080 | ✅ 安全组已开 |
+| 服务器依赖清单 (requirements_server.txt) | ❌ 不存在 |
+| .env.example 完整性 | ⚠️ 缺 LONGCAT_URL/LONGCAT_MODEL/GPT_API_KEY |
+| CI/CD | ❌ 无 |
+| 测试覆盖率工具 | ❌ 无 coverage 配置 |
+| 主要模块测试 | ❌ server/smart_router/orchestrate/speculative/identity_guard 零测试 |
 
 ---
 
-## 待完成（按优先级）
+## 设计文档实现状态
 
-1. **部署 V3** — python deploy_v3.py 上传新模块+patch+重启
-2. **端到端测试** — 真实IDE(Claude Code/Cursor)连接验证
-3. **server.py 继续拆分** — streaming/thinking 深层耦合部分
-4. **smart_router.py 瘦身** — 删除已提取到其他模块的重复代码
-5. **systemd 自启** — lima-router 服务配置
+| 设计文档 | 核心功能 | 实现状态 |
+|----------|----------|----------|
+| BACKEND_STABILITY_DESIGN.md | 指数退避 + 质量追踪 | ✅ 已实现 |
+| BACKEND_STABILITY_DESIGN.md | 预算管理 | ✅ 已实现 (budget_manager.py) |
+| CLAUDE_CODE_BREAKTHROUGH.md | fragments/ + assemble_prompt | ✅ Step 1 完成 |
+| CLAUDE_CODE_BREAKTHROUGH.md | prompt缓存/双模式/SafetyMonitor | ❌ Steps 2-6 未实现 |
+| DUAL_TRACK_ROUTING_PLAN.md | classify_scenario + 双池 | ❌ 完全未实现 |
+| PLATFORM_FIX_PLAN.md | 三层限流 | ❌ 完全未实现 |
+| PAYMENT_DESIGN.md | 支付网关 | ❌ 阻塞（需企业资质） |
+| STREAMING_REFACTOR_PLAN.md | 流式完全提取 | ⚠️ 部分完成 |
+| V3_MIGRATION_PLAN.md Phase 4 | 清理+安全 | ❌ 未执行 |
+| LOCAL_MODEL_DESIGN.md | 本地模型 | ⚠️ 实现偏移(Ollama替代LM Studio) |
+| LATENCY_OPTIMIZATION.md P2 | vLLM + 路由缓存 | ❌ 未开始 |
+
+---
+
+## 生产环境
+
+| 项目 | 状态 |
+|------|------|
+| V3 模块部署 | ❌ 服务器仍跑旧版 |
+| 开放平台 Channel 端口 | ❌ 8090→8080 未修，平台不可用 |
+| systemd 自启 | ❌ 未配置 |
+| 数据库备份 | ❌ 无 cron |
+| NextChat (chat.donglicao.com) | ❌ 未部署 |
+| DNS chat A 记录 | ❌ 未添加 |
 
 ---
 
 ## Git 状态
 
-- 最新提交: 7a385ac feat: 本地模型集成
-- 当前未提交: 16个新/改文件 + 测试 + 文档 + 后端扩展
-- 分支: master
+| 项目 | 状态 |
+|------|------|
+| 63 个 training data 文件 staged 为 deleted | ⚠️ 未 commit |
+| 未跟踪文件散落 | ⚠️ _stream_test.py, _tcf2.py 等 |
+| 当前分支 master vs 主分支 main | ⚠️ 未合并 |
+| 断裂引用 train_router_model.py → context_feature_extractor | ❌ 运行即崩 |
+
+---
+
+## 后端总览
+
+117 个后端，24 供应商。主力: LongCat(5), Groq(6), NVIDIA(6), OpenRouter(10), TheOldLLM(12), SCNet(5), CF Workers AI(4)。
+
+---
+
+## 测试覆盖
+
+| 测试文件 | 测试数 | 覆盖模块 |
+|----------|--------|----------|
+| test_http_caller.py | 27 | http_caller |
+| test_skills_injector.py | 23 | skills_injector |
+| test_routing_engine.py | 16 | routing_engine |
+| test_v3.py | 5 | router_v3 |
+| test_streaming.py | 0 | ⚠️ 非 pytest 格式，模块级 HTTP 调用 |

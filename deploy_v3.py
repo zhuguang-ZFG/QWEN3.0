@@ -13,7 +13,9 @@ import os
 
 SERVER = "47.112.162.80"
 USER = "root"
-PASS = "zhuguang110!"
+PASS = os.environ.get("LIMA_DEPLOY_PASS")
+if not PASS:
+    sys.exit("ERROR: set LIMA_DEPLOY_PASS environment variable")
 REMOTE_DIR = "/opt/lima-router"
 
 FILES_TO_DEPLOY = [

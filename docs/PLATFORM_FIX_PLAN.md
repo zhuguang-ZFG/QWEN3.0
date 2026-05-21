@@ -16,7 +16,7 @@ api.donglicao.com 基于 New API (Calcium-Ion/new-api) 搭建，作为商业化 
                    → 117 个 AI 后端
 ```
 
-- 服务器: 47.112.162.80 (root / zhuguang110!)
+- 服务器: 47.112.162.80 (root / <见 .env LIMA_DEPLOY_PASS>)
 - New API: /opt/new-api/ (Go 二进制 + SQLite)
 - Lima Router: /opt/lima-router/ (systemd: lima-router)
 - Nginx 配置: /etc/nginx/conf.d/donglicao.conf
@@ -122,11 +122,11 @@ curl -s -X POST https://api.donglicao.com/v1/chat/completions \
 
 #### Step 2.1: 重置 root 密码
 ```bash
-# 生成 bcrypt hash (密码: zhuguang110!)
-NEW_HASH=$(python3 -c "import bcrypt;print(bcrypt.hashpw(b'zhuguang110!',bcrypt.gensalt()).decode())")
+# 生成 bcrypt hash (密码见 .env LIMA_DEPLOY_PASS)
+NEW_HASH=$(python3 -c "import bcrypt;print(bcrypt.hashpw(b'$LIMA_DEPLOY_PASS',bcrypt.gensalt()).decode())")
 sqlite3 /opt/new-api/one-api.db "UPDATE users SET password='$NEW_HASH' WHERE username='root';"
 ```
-验证: 浏览器登录 api.donglicao.com，用 root / zhuguang110!
+验证: 浏览器登录 api.donglicao.com
 
 #### Step 2.2: 设置首页内容
 ```sql
