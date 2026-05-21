@@ -1047,6 +1047,15 @@ async def chat_completions(request: Request):
     # Support explicit thinking flag from request body
     client_ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "")
     ide_source = _detect_ide(raw_messages)
+
+    # Rate limiting (skip for IDE clients)
+    if not ide_source:
+        import rate_limiter
+        if not rate_limiter.check_rate_limit(client_ip):
+            return JSONResponse(
+                status_code=429,
+                content={"error": {"message": "Rate limit exceeded. Try again later.", "type": "rate_limit_error"}})
+
     sys_prompt_preview = ""
     for m in raw_messages:
         if isinstance(m, dict) and m.get("role") == "system":
