@@ -37,7 +37,8 @@ POOLS = {
                    "groq_llama4", "groq_gptoss", "or_qwen3_coder",
                    "mistral_codestral", "sambanova_ds_v3"],
         "floor": ["longcat_lite", "google_flash", "ovh_llama70b", "ovh_deepseek",
-                  "google_flash_lite", "google_gemma4"],
+                  "google_flash_lite", "google_gemma4",
+                  "local_coder14b", "local_reasoning", "local_general"],
     },
     "chat": {
         "strong": ["longcat_chat", "longcat", "cf_qwen_coder", "cf_llama70b", "cf_kimi_k26",
@@ -52,7 +53,8 @@ POOLS = {
                    "groq_llama4", "groq_gptoss", "or_llama70b", "or_nemotron",
                    "or_qwen3_80b", "mistral_small", "sambanova_ds_v3"],
         "floor": ["longcat_lite", "google_flash", "ovh_llama70b", "ovh_deepseek",
-                  "google_flash_lite", "google_gemma4"],
+                  "google_flash_lite", "google_gemma4",
+                  "local_fast", "local_chat", "local_general"],
     },
     "vision": {
         "strong": ["longcat_omni"],
@@ -66,7 +68,7 @@ POOLS = {
 DIRECT_BACKENDS = [
     "zhipu_flash", "zhipu_flash7", "aliyun_turbo", "volcengine_lite",
     "deepseek_flash", "silicon_qwen8b", "chat_ubi", "llm7", "pollinations",
-    "deepseek_free", "local_qwen_coder",
+    "deepseek_free", "local_coder14b", "local_reasoning", "local_general", "local_fast", "local_chat",
 ]
 
 IDE_SOURCES = {"Claude Code", "claude_code", "Cursor", "cursor",

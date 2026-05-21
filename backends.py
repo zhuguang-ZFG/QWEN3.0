@@ -122,6 +122,18 @@ BACKENDS = {
     'deepinfra_llama4': {'url': 'https://api.deepinfra.com/v1/openai/chat/completions', 'key': os.environ.get('DEEPINFRA_API_KEY', ''), 'model': 'meta-llama/Llama-4-Maverick-17B-128E-Instruct', 'fmt': 'openai', 'timeout': 20},
     'deepinfra_qwen235b': {'url': 'https://api.deepinfra.com/v1/openai/chat/completions', 'key': os.environ.get('DEEPINFRA_API_KEY', ''), 'model': 'Qwen/Qwen3-235B-A22B-Instruct', 'fmt': 'openai', 'timeout': 30},
     'deepseek_free': {'url': 'http://127.0.0.1:8000/v1/chat/completions', 'key': 'none', 'model': 'deepseek-chat', 'fmt': 'openai', 'timeout': 60},
+    # ── 本地 Ollama (RTX 5060 Ti 16GB, Cloudflare Tunnel 暴露) ──
+    'local_coder14b': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'qwen2.5-coder:14b', 'fmt': 'openai', 'timeout': 30, 'caps': ['tool_calls']},
+    'local_reasoning': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'deepseek-r1:7b', 'fmt': 'openai', 'timeout': 45, 'caps': ['deep_reasoning']},
+    'local_general': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'gemma3:12b', 'fmt': 'openai', 'timeout': 30},
+    'local_fast': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'qwen2.5-coder:1.5b', 'fmt': 'openai', 'timeout': 10},
+    'local_chat': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'qwen2.5:0.5b', 'fmt': 'openai', 'timeout': 5},
+    # ── DuckDuckGo-AI (CF Worker, 免费 GPT-4o-mini/Claude-Haiku/Llama-70B/o3-mini) ──
+    'ddg_gpt4o_mini': {'url': 'https://ddg.zhuguang.ccwu.cc/v1/chat/completions', 'key': os.environ.get('DDG_API_KEY', 'lima-ddg-2026'), 'model': 'gpt-4o-mini', 'fmt': 'openai', 'timeout': 30},
+    'ddg_claude_haiku': {'url': 'https://ddg.zhuguang.ccwu.cc/v1/chat/completions', 'key': os.environ.get('DDG_API_KEY', 'lima-ddg-2026'), 'model': 'claude-3-haiku-20240307', 'fmt': 'openai', 'timeout': 30},
+    'ddg_llama70b': {'url': 'https://ddg.zhuguang.ccwu.cc/v1/chat/completions', 'key': os.environ.get('DDG_API_KEY', 'lima-ddg-2026'), 'model': 'meta-llama/Llama-3.3-70B-Instruct-Turbo', 'fmt': 'openai', 'timeout': 30},
+    'ddg_o3_mini': {'url': 'https://ddg.zhuguang.ccwu.cc/v1/chat/completions', 'key': os.environ.get('DDG_API_KEY', 'lima-ddg-2026'), 'model': 'o3-mini', 'fmt': 'openai', 'timeout': 45},
+    'ddg_mistral': {'url': 'https://ddg.zhuguang.ccwu.cc/v1/chat/completions', 'key': os.environ.get('DDG_API_KEY', 'lima-ddg-2026'), 'model': 'mistralai/Mistral-Small-24B-Instruct-2501', 'fmt': 'openai', 'timeout': 20},
 }
 
 PUBLIC_MODEL_NAME = os.environ.get('PUBLIC_MODEL_NAME', 'LiMa')
@@ -157,7 +169,8 @@ def detect_vendor(url: str) -> str:
     if 'deepseek' in u: return 'DeepSeek'
     if 'chinamobile' in u: return 'China Mobile'
     if 'right.codes' in u: return 'Claude (AWS)'
-    if 'localhost' in u or '127.0.0.1' in u: return 'Local'
+    if 'localhost' in u or '127.0.0.1' in u or 'trycloudflare.com' in u: return 'Local (Ollama)'
+    if 'ddg.zhuguang' in u: return 'DuckDuckGo AI'
     if 'groq.com' in u: return 'Groq'
     if 'cerebras' in u: return 'Cerebras'
     if 'models.inference.ai.azure.com' in u: return 'GitHub Models'
@@ -184,7 +197,7 @@ def detect_vendor(url: str) -> str:
 
 def detect_tier(url: str, name: str = "") -> str:
     u = url.lower()
-    if 'localhost' in u or '127.0.0.1' in u: return 'L0 Local'
+    if 'localhost' in u or '127.0.0.1' in u or 'trycloudflare.com' in u: return 'L0 Local'
     if 'longcat' in u or 'chinamobile' in u: return 'L1 Free Unlimited'
     if 'nvidia' in u: return 'L2 Free Quota'
     if 'openrouter' in u: return 'L3 Free Limited'
@@ -202,7 +215,8 @@ def detect_caps(name: str, cfg: dict = None) -> list:
         return cfg["caps"]
     caps = []
     if name in ('claude', 'or_deepseek_r1', 'or_qwen3_coder', 'deepseek_pro', 'deepseek_flash',
-                'opencode_stealth', 'fireworks_llama405b', 'deepinfra_llama4', 'deepinfra_qwen235b'):
+                'opencode_stealth', 'fireworks_llama405b', 'deepinfra_llama4', 'deepinfra_qwen235b',
+                'local_coder14b'):
         caps.append('tool_calls')
     if name in ('claude', 'longcat_omni'):
         caps.append('vision')
