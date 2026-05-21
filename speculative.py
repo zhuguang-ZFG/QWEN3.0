@@ -31,12 +31,14 @@ def speculative_call(
     messages: list[dict],
     max_tokens: int = 4096,
     max_parallel: int = 3,
+    timeout_sec: float = 3.0,
 ) -> tuple[str, str, float]:
     """
     并行调用多个后端，返回第一个有效响应。
+    timeout_sec: 硬超时，超过则立即返回已有最佳结果或抛异常。
 
     Returns: (backend_name, answer, latency_ms)
-    Raises: RuntimeError if all backends fail
+    Raises: RuntimeError if all backends fail within timeout
     """
     candidates = backends[:max_parallel]
     if not candidates:
@@ -49,12 +51,12 @@ def speculative_call(
         fut = _executor.submit(_safe_call, call_fn, backend, messages, max_tokens)
         futures[fut] = backend
 
-    # 谁先返回有效响应就用谁，取消其余
+    # 谁先返回有效响应就用谁，硬超时保护
     winner_backend = ""
     winner_answer = ""
 
     try:
-        for fut in as_completed(futures, timeout=30):
+        for fut in as_completed(futures, timeout=timeout_sec):
             backend = futures[fut]
             answer = fut.result()
             if answer and len(answer.strip()) >= MIN_VALID_LENGTH:
@@ -81,12 +83,46 @@ def speculative_call(
 
 
 def _safe_call(call_fn, backend: str, messages: list[dict], max_tokens: int) -> str:
-    """单个后端调用，异常返回空字符串。"""
+    """单个后端调用，异常返回空字符串。记录延迟供学习。"""
+    t0 = time.time()
     try:
-        return call_fn(backend, messages, max_tokens)
+        result = call_fn(backend, messages, max_tokens)
+        latency = (time.time() - t0) * 1000
+        _record_latency(backend, latency)
+        return result
     except Exception as e:
+        latency = (time.time() - t0) * 1000
         health_tracker.record_failure(backend, error_code=getattr(e, 'status_code', 500))
+        _record_latency(backend, latency + _SLOW_THRESHOLD_MS)
         return ""
+
+
+# ── 延迟学习 — 自动排除慢后端 ────────────────────────────────────────────────
+
+_latency_lock = threading.Lock()
+_latency_history: dict[str, list[float]] = {}
+_LATENCY_WINDOW = 10
+_SLOW_THRESHOLD_MS = 4000
+
+
+def _record_latency(backend: str, latency_ms: float):
+    """记录后端实际响应延迟。"""
+    with _latency_lock:
+        if backend not in _latency_history:
+            _latency_history[backend] = []
+        _latency_history[backend].append(latency_ms)
+        if len(_latency_history[backend]) > _LATENCY_WINDOW:
+            _latency_history[backend] = _latency_history[backend][-_LATENCY_WINDOW:]
+
+
+def is_historically_fast(backend: str) -> bool:
+    """后端历史平均延迟是否在阈值内。无历史数据默认允许。"""
+    with _latency_lock:
+        history = _latency_history.get(backend)
+        if not history or len(history) < 3:
+            return True
+        avg = sum(history) / len(history)
+        return avg < _SLOW_THRESHOLD_MS
 
 
 # ── 查询复杂度判断 ───────────────────────────────────────────────────────────
