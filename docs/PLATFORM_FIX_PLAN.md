@@ -174,6 +174,90 @@ UPDATE options SET value='60' WHERE key='global_api_rate_limit';
 -- 每分钟 60 次请求上限
 ```
 
+#### Step 2.5: 三层限流方案（防滥用核心）
+
+**问题**: 当前所有入口完全无限流，用户可无限刷量消耗免费后端配额。
+
+**暴露面分析:**
+| 入口 | 当前限流 | 风险 |
+|------|----------|------|
+| chat.donglicao.com（免费聊天页） | ❌ 无 | 直接打 lima-router:8080 |
+| api.donglicao.com（开放平台 API） | ❌ 无 | New API 无 rate limit |
+| lima-router /v1/chat/completions | ❌ 无 | 核心 API 无 IP 限流 |
+
+**三层防御方案:**
+
+##### Layer 1: Nginx 层（全局兜底，防 DDoS）
+修改 `/etc/nginx/conf.d/chat.donglicao.com.conf`:
+```nginx
+# 在 http 块或 server 块外定义限流区
+limit_req_zone $binary_remote_addr zone=chat_limit:10m rate=10r/m;
+limit_req_zone $binary_remote_addr zone=api_limit:10m rate=30r/m;
+
+server {
+    # chat.donglicao.com — 免费聊天页
+    location /v1/chat/completions {
+        limit_req zone=chat_limit burst=5 nodelay;
+        limit_req_status 429;
+        proxy_pass http://127.0.0.1:8080;
+    }
+}
+```
+效果: 每 IP 每分钟最多 10 次聊天请求，突发允许 5 次。
+
+##### Layer 2: Lima-Router 层（应用级 IP 限流）
+新增 `rate_limiter.py`:
+```python
+import time
+from collections import defaultdict
+
+_requests: dict[str, list[float]] = defaultdict(list)
+WINDOW = 60  # 秒
+MAX_PER_WINDOW = 20  # 每 IP 每分钟
+
+def check_rate_limit(ip: str) -> bool:
+    """返回 True 表示允许，False 表示超限。"""
+    now = time.time()
+    _requests[ip] = [t for t in _requests[ip] if now - t < WINDOW]
+    if len(_requests[ip]) >= MAX_PER_WINDOW:
+        return False
+    _requests[ip].append(now)
+    return True
+```
+在 server.py 的 `/v1/chat/completions` 入口加:
+```python
+from rate_limiter import check_rate_limit
+
+@app.post("/v1/chat/completions")
+async def chat_completions(request: Request, ...):
+    client_ip = request.headers.get("X-Real-IP", request.client.host)
+    if not check_rate_limit(client_ip):
+        return JSONResponse(status_code=429, content={
+            "error": {"message": "Rate limit exceeded. Max 20 requests/min.", "type": "rate_limit_error"}
+        })
+    # ... 正常处理
+```
+
+##### Layer 3: New API 层（用户级配额限流）
+```sql
+-- api.donglicao.com 的 New API 配置
+UPDATE options SET value='60' WHERE key='global_api_rate_limit';
+-- 每用户每分钟 60 次
+```
+效果: 注册用户按 quota 扣费 + 每分钟 60 次上限。
+
+**限流参数汇总:**
+| 层 | 对象 | 限制 | 超限响应 |
+|----|------|------|----------|
+| Nginx | 每 IP | 10 req/min (chat), 30 req/min (api) | 429 |
+| Lima-Router | 每 IP | 20 req/min | 429 JSON |
+| New API | 每用户 | 60 req/min + quota 扣费 | 429 |
+
+**实施顺序:**
+1. 先加 Nginx 层（最快生效，改配置 reload 即可）
+2. 再加 Lima-Router 层（需要写代码 + 部署）
+3. 最后配 New API 层（改数据库即可）
+
 #### Step 2.5: 配置 Turnstile 验证码（防注册机器人）
 需要 Cloudflare Turnstile site key + secret key:
 ```sql
