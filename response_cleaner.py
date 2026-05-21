@@ -183,14 +183,19 @@ def _is_backend_error(text: str) -> bool:
 
 
 def clean_response(text: str, backend_name: str = '') -> str:
-    """清洗响应：隐藏底层模型/供应商信息。"""
+    """清洗响应：隐藏底层模型/供应商信息，剥离思维链。"""
     if not text or '[ERR]' in text[:15]:
         return ''
     if _is_backend_error(text):
         return ''
+    # Strip <think>...</think> blocks (some backends expose reasoning)
+    text = re.sub(r'<think>[\s\S]*?</think>\s*', '', text)
+    # Strip unclosed <think> at start (partial thinking leak)
+    if text.startswith('<think>'):
+        text = ''
     for pattern, repl in CLEAN_PATTERNS:
         text = pattern.sub(repl, text)
-    return text
+    return text.strip()
 
 
 def _clean_brand_only(text: str, backend_name: str = '') -> str:
