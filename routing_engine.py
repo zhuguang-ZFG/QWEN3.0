@@ -16,6 +16,7 @@ import router_v3
 import health_tracker
 import sticky_session
 import budget_manager
+import speculative
 import skills_injector as skills_mod
 import semantic_cache
 from response_builder import build_response, build_anthropic_response, make_chat_id
@@ -241,7 +242,35 @@ def route(query: str, messages: list[dict], *,
     injected_ids = _get_injected_ids(messages, messages_injected)
 
     if call_fn:
-        final_backend, answer, _ = execute(backends, call_fn, messages_injected, max_tokens)
+        # 根据复杂度选择执行策略
+        complexity = speculative.classify_complexity(query, messages)
+
+        if complexity == "simple" and req_type in ("ide", "chat"):
+            # 简单问题：并行投机执行（3个快速后端竞速）
+            affinity_backends = speculative.get_affinity_backends("simple")
+            spec_candidates = [b for b in affinity_backends
+                               if not health_tracker.is_cooled_down(b)
+                               and budget_manager.is_budget_available(b)]
+            if len(spec_candidates) >= 2:
+                try:
+                    final_backend, answer, _ = speculative.speculative_call(
+                        spec_candidates, call_fn, messages_injected, max_tokens)
+                except RuntimeError:
+                    final_backend, answer, _ = execute(backends, call_fn, messages_injected, max_tokens)
+            else:
+                final_backend, answer, _ = execute(backends, call_fn, messages_injected, max_tokens)
+        elif complexity == "code":
+            # 代码问题：优先走代码专用后端
+            code_backends = speculative.get_affinity_backends("code")
+            code_available = [b for b in code_backends
+                              if not health_tracker.is_cooled_down(b)
+                              and budget_manager.is_budget_available(b)]
+            merged = code_available + [b for b in backends if b not in code_available]
+            final_backend, answer, _ = execute(merged, call_fn, messages_injected, max_tokens)
+        else:
+            # 复杂问题 / vision：走 premium 后端，顺序执行
+            final_backend, answer, _ = execute(backends, call_fn, messages_injected, max_tokens)
+
         if final_backend != "exhausted":
             sticky_session.pin_backend(sticky_key, final_backend)
             if cache_enabled and answer:
