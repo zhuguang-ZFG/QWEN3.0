@@ -2,7 +2,7 @@
 
 ## 概览
 
-本次会话聚焦**后端扩展与稳定性修复**，新增 34 个后端（从 ~78 扩展到 ~112），修复多个关键服务的连接问题，并建立了 TheOldLLM 的自动 Token 刷新机制。
+本次会话聚焦**后端扩展与稳定性修复**，新增 39 个后端（从 ~78 扩展到 ~117），修复多个关键服务的连接问题，并建立了 TheOldLLM 的自动 Token 刷新机制。
 
 ---
 
@@ -99,6 +99,19 @@ gpt-4.1, gpt-4.1-mini, gpt-4.1-nano, gpt-4, o1, o4-mini
 
 ---
 
+### 国家超算互联网平台 (scnet.cn) — 5 个 ✅
+| 后端 | 模型 | 延迟 |
+|------|------|------|
+| scnet_qwen30b | qwen3-30b | 1.1s |
+| scnet_minimax | minimax-m2.5 | 4.7s |
+| scnet_qwen235b | qwen3-235b | 1.4s |
+| scnet_ds_flash | deepseek-v4-flash | 1.0s |
+| scnet_ds_pro | deepseek-v4-pro | 3.7s |
+
+特点：国家超算互联网平台免费开放，无需 API Key，无需登录，通过 `scnet.zhuguang.ccwu.cc` CF Worker 代理访问。
+
+---
+
 ## 五、g4f/PollinationsAI 稳定性分析
 
 ### 发现
@@ -127,8 +140,9 @@ gpt-4.1, gpt-4.1-mini, gpt-4.1-nano, gpt-4, o1, o4-mini
 
 | 文件 | 变更 |
 |------|------|
-| `backends.py` | 新增 34 个后端定义，g4f→PollinationsAI 直连 |
+| `backends.py` | 新增 39 个后端定义，g4f→PollinationsAI 直连 |
 | `capability_matrix.py` | 新增 StockAI(9) + TheOldLLM(12) 能力评分 |
+| `capability_matrix.py` | 新增 scnet(5) 能力评分 |
 | `health_probe.py` | 新建：主动健康探针模块 |
 | `D:\duckai\src\duckai.ts` | 修复 reasoningEffort + 模型 ID |
 | `D:\ollama_server\lima-oldllm-v2.js` | Worker 重写：MODEL_MAP + 403 自动刷新 |
@@ -154,8 +168,9 @@ gpt-4.1, gpt-4.1-mini, gpt-4.1-nano, gpt-4, o1, o4-mini
 | TheOldLLM | 12 | ✅ 全修复 |
 | CF Workers AI | 4 | ✅ |
 | PollinationsAI | 4 | ✅ 直连 |
+| 国家超算互联网 (scnet) | 5 | ✅ |
 | 本地 Ollama | 7 | ✅ |
 | lza6 Workers | 5 | ✅ |
 | 其他 | ~30+ | ✅ |
 
-**总计：~112 个后端**
+**总计：~117 个后端**
