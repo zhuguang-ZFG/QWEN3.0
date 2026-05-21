@@ -17,6 +17,7 @@ import health_tracker
 import sticky_session
 import budget_manager
 import speculative
+import identity_guard
 import skills_injector as skills_mod
 import semantic_cache
 from response_builder import build_response, build_anthropic_response, make_chat_id
@@ -224,6 +225,13 @@ def route(query: str, messages: list[dict], *,
             ms = int((time.time() - t0) * 1000)
             return RouteResult(backend="cache", answer=cached,
                                request_type="cache_hit", ms=ms)
+
+    # 身份/能力问题拦截（不走后端，不消耗配额）
+    identity_answer = identity_guard.detect_identity_question(query)
+    if identity_answer:
+        ms = int((time.time() - t0) * 1000)
+        return RouteResult(backend="identity_guard", answer=identity_answer,
+                           request_type="identity", ms=ms)
 
     req_type = classify(query, messages, fmt=fmt, ide_source=ide_source,
                         system_prompt=system_prompt, headers=headers)
