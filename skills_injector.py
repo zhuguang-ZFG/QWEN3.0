@@ -21,8 +21,8 @@ TOKEN_BUDGET = 200
 CHARS_PER_TOKEN = 4
 
 STRONG_MODELS = {"longcat_chat", "longcat_thinking", "longcat",
-                 "deepseek_flash", "deepseek_pro", "naga_gpt41mini",
-                 "claude", "or_deepseek_r1", "nvidia_qwen_coder",
+                 "naga_gpt41mini",
+                 "or_deepseek_r1", "nvidia_qwen_coder",
                  "opencode_stealth", "fireworks_llama405b", "deepinfra_llama4", "deepseek_free"}
 
 IDE_COVERAGE = {

@@ -7,14 +7,11 @@ LM_URL = 'http://localhost:1234/v1/chat/completions'
 
 # -- Backend Registry (78 providers) --
 BACKENDS = {
-    'claude': {'url': 'https://right.codes/claude-aws/v1/messages', 'key': os.environ.get('CLAUDE_API_KEY', ''), 'model': 'claude-sonnet-4-6', 'fmt': 'anthropic', 'auth': 'x-api-key'},
     'longcat_lite': {'url': 'https://api.longcat.chat/anthropic/v1/messages', 'key': os.environ.get('LONGCAT_API_KEY', ''), 'model': 'LongCat-Flash-Lite', 'fmt': 'anthropic', 'auth': 'bearer'},
     'longcat_chat': {'url': 'https://api.longcat.chat/anthropic/v1/messages', 'key': os.environ.get('LONGCAT_API_KEY', ''), 'model': 'LongCat-Flash-Chat', 'fmt': 'anthropic', 'auth': 'bearer'},
     'longcat_thinking': {'url': 'https://api.longcat.chat/anthropic/v1/messages', 'key': os.environ.get('LONGCAT_API_KEY', ''), 'model': 'LongCat-Flash-Thinking-2601', 'fmt': 'anthropic', 'auth': 'bearer'},
     'longcat_omni': {'url': 'https://api.longcat.chat/anthropic/v1/messages', 'key': os.environ.get('LONGCAT_API_KEY', ''), 'model': 'LongCat-Flash-Omni-2603', 'fmt': 'anthropic', 'auth': 'bearer', 'no_system': True},
     'longcat': {'url': 'https://api.longcat.chat/anthropic/v1/messages', 'key': os.environ.get('LONGCAT_API_KEY', ''), 'model': 'LongCat-2.0-Preview', 'fmt': 'anthropic', 'auth': 'bearer'},
-    'deepseek_pro': {'url': 'https://api.deepseek.com/anthropic/v1/messages', 'key': os.environ.get('DEEPSEEK_API_KEY', ''), 'model': 'deepseek-v4-pro', 'fmt': 'anthropic'},
-    'deepseek_flash': {'url': 'https://api.deepseek.com/anthropic/v1/messages', 'key': os.environ.get('DEEPSEEK_API_KEY', ''), 'model': 'deepseek-v4-flash', 'fmt': 'anthropic'},
     'nvidia_nemotron': {'url': 'https://integrate.api.nvidia.com/v1/chat/completions', 'key': os.environ.get('NVIDIA_API_KEY', ''), 'model': 'nvidia/llama-3.3-nemotron-super-49b-v1', 'fmt': 'openai'},
     'nvidia_llama70b': {'url': 'https://integrate.api.nvidia.com/v1/chat/completions', 'key': os.environ.get('NVIDIA_API_KEY', ''), 'model': 'meta/llama-3.3-70b-instruct', 'fmt': 'openai'},
     'nvidia_qwen_coder': {'url': 'https://integrate.api.nvidia.com/v1/chat/completions', 'key': os.environ.get('NVIDIA_API_KEY', ''), 'model': 'qwen/qwen3-coder-480b-a35b-instruct', 'fmt': 'openai'},
@@ -181,12 +178,14 @@ BACKENDS = {
     'scnet_qwen235b': {'url': 'https://scnet.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'qwen3-235b', 'fmt': 'openai', 'timeout': 45},
     'scnet_ds_flash': {'url': 'https://scnet.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-flash', 'fmt': 'openai', 'timeout': 30},
     'scnet_ds_pro': {'url': 'https://scnet.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-pro', 'fmt': 'openai', 'timeout': 45},
+    # ── Kimi (moonshot.cn, 登录后免费, K2 模型) ──
+    'kimi': {'url': 'https://kimi.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'kimi', 'fmt': 'openai', 'timeout': 30},
 }
 
 PUBLIC_MODEL_NAME = os.environ.get('PUBLIC_MODEL_NAME', 'LiMa')
 
 # Thinking-capable backends in priority order
-THINKING_BACKENDS = ["or_deepseek_r1", "longcat_thinking", "deepseek_pro"]
+THINKING_BACKENDS = ["or_deepseek_r1", "longcat_thinking"]
 
 # Vision-capable backends
 VISION_BACKENDS = ["longcat_omni", "or_deepseek_r1"]
@@ -215,7 +214,6 @@ def detect_vendor(url: str) -> str:
     if 'openrouter' in u: return 'OpenRouter'
     if 'deepseek' in u: return 'DeepSeek'
     if 'chinamobile' in u: return 'China Mobile'
-    if 'right.codes' in u: return 'Claude (AWS)'
     if 'localhost' in u or '127.0.0.1' in u or 'trycloudflare.com' in u: return 'Local (Ollama)'
     if 'ddg.zhuguang' in u: return 'DuckDuckGo AI'
     if 'tele.zhuguang' in u or 'assist.zhuguang' in u or 'vision.zhuguang' in u: return 'lza6 Workers'
@@ -251,7 +249,7 @@ def detect_tier(url: str, name: str = "") -> str:
     if 'longcat' in u or 'chinamobile' in u: return 'L1 Free Unlimited'
     if 'nvidia' in u: return 'L2 Free Quota'
     if 'openrouter' in u: return 'L3 Free Limited'
-    if 'deepseek.com' in u or 'right.codes' in u: return 'L4 Paid'
+    if 'deepseek.com' in u: return 'L4 Paid'
     if 'opencode.ai' in u or 'ovh.net' in u: return 'L1 Free Unlimited'
     if 'fireworks.ai' in u or 'sambanova.ai' in u or 'deepinfra.com' in u: return 'L3 Free Limited'
     if 'cohere.com' in u: return 'L2 Free Quota'
@@ -264,11 +262,11 @@ def detect_caps(name: str, cfg: dict = None) -> list:
     if cfg and cfg.get("caps"):
         return cfg["caps"]
     caps = []
-    if name in ('claude', 'or_deepseek_r1', 'or_qwen3_coder', 'deepseek_pro', 'deepseek_flash',
+    if name in ('or_deepseek_r1', 'or_qwen3_coder',
                 'opencode_stealth', 'fireworks_llama405b', 'deepinfra_llama4', 'deepinfra_qwen235b',
                 'local_coder14b'):
         caps.append('tool_calls')
-    if name in ('claude', 'longcat_omni'):
+    if name in ('longcat_omni',):
         caps.append('vision')
     if 'thinking' in name or 'r1' in name:
         caps.append('deep_reasoning')

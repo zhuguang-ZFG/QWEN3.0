@@ -10,7 +10,7 @@ _BASE = pathlib.Path(__file__).parent
 BACKEND_TIERS = {
     "L1_free": ["longcat_lite", "longcat_chat", "longcat", "longcat_thinking", "longcat_omni"],
     "L2_nvidia": ["nvidia_qwen_coder", "nvidia_nemotron", "nvidia_llama70b"],
-    "L3_paid": ["deepseek_flash", "deepseek_pro", "claude"],
+    "L3_paid": [],
 }
 
 FALLBACK_LOG = str(_BASE / "data" / "fallback_log.jsonl")

@@ -77,7 +77,7 @@ def patch_routing_preference(content):
         '    if req.model == "fast":\n'
         '        prefer = "longcat_lite"\n'
         '    elif req.model == "expert":\n'
-        '        prefer = "deepseek_pro"\n'
+        '        prefer = "scnet_ds_pro"\n'
         "        req.thinking = True\n"
         '    elif req.model == "vision":\n'
         "        prefer = None  # vision handled by existing detection"
@@ -90,13 +90,10 @@ def patch_routing_preference(content):
         '    if req.model == "fast":\n'
         '        prefer = "longcat_lite"\n'
         '    elif req.model == "expert":\n'
-        '        prefer = "deepseek_pro"\n'
+        '        prefer = "scnet_ds_pro"\n'
         "        req.thinking = True"
     )
     if old in content:
-        content = content.replace(old, new)
-        print("  [routing] Replaced with V3 logic")
-    else:
         print("  [routing] Exact match failed, trying line-by-line")
         # Fallback: find by marker and replace block
         lines = content.split("\n")

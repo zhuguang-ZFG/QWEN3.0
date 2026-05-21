@@ -7,9 +7,6 @@ USAGE_FILE = "D:/GIT/data/usage.json"
 
 # 每日硬限制（超出自动降级到免费后端）
 DAILY_LIMITS = {
-    "deepseek_pro":       200,
-    "claude":              50,
-    "deepseek_flash":     500,
     "longcat":            300,
     "longcat_thinking":   200,
     "longcat_chat":       300,
@@ -23,9 +20,6 @@ DAILY_LIMITS = {
 
 # 超限时的免费替代后端
 _FALLBACK_MAP = {
-    "deepseek_pro":      "nvidia_nemotron",
-    "claude":            "nvidia_nemotron",
-    "deepseek_flash":    "nvidia_llama70b",
     "longcat":           "nvidia_llama4",
     "longcat_thinking":  "nvidia_llama4",
     "longcat_chat":      "nvidia_llama4",

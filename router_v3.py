@@ -67,7 +67,7 @@ POOLS = {
 
 DIRECT_BACKENDS = [
     "zhipu_flash", "zhipu_flash7", "aliyun_turbo", "volcengine_lite",
-    "deepseek_flash", "silicon_qwen8b", "chat_ubi", "llm7", "pollinations",
+    "silicon_qwen8b", "chat_ubi", "llm7", "pollinations",
     "deepseek_free", "local_coder14b", "local_reasoning", "local_general", "local_fast", "local_chat",
 ]
 
@@ -207,7 +207,7 @@ def semantic_cache_key(model: str, messages: list, temperature: float = 0) -> st
 
 # ─── Skills 注入判断 ─────────────────────────────────────────────────────────
 
-STRONG_BACKENDS = {"longcat_chat", "deepseek_flash", "deepseek_pro", "naga_gpt41mini",
+STRONG_BACKENDS = {"longcat_chat", "naga_gpt41mini",
                   "opencode_stealth", "fireworks_llama405b", "deepinfra_llama4", "deepseek_free"}
 
 _LANG_KEYWORDS = {

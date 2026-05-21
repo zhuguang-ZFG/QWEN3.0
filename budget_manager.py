@@ -70,10 +70,6 @@ BACKEND_BUDGETS: dict[str, BudgetConfig] = {
     # 中国移动: 保守
     "chinamobile": BudgetConfig(daily_limit=500, warn_at=0.7),
 
-    # DeepSeek 付费: 宽松
-    "deepseek_pro": BudgetConfig(daily_limit=5000, warn_at=0.9),
-    "deepseek_flash": BudgetConfig(daily_limit=5000, warn_at=0.9),
-
     # 逆向代理: 最保守
     "deepseek_free": BudgetConfig(daily_limit=200, warn_at=0.6),
 }

@@ -150,7 +150,7 @@ BACKEND_TIERS = {
     "L1_free": ["longcat_lite", "longcat_chat", "longcat", "longcat_thinking", "longcat_omni", "chinamobile"],
     "L2_nvidia": ["nvidia_qwen_coder", "nvidia_nemotron", "nvidia_phi4", "nvidia_llama4", "nvidia_llama70b", "nvidia_mistral"],
     "L2_openrouter": ["or_deepseek_r1", "or_qwen3_coder", "or_llama70b", "or_nemotron", "or_qwen3_80b"],
-    "L3_paid": ["deepseek_flash", "deepseek_pro", "claude"],
+    "L3_paid": [],
 }
 
 
@@ -1459,7 +1459,7 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
     if req.model == "fast":
         prefer = "longcat_lite"
     elif req.model == "expert":
-        prefer = "deepseek_pro"
+        prefer = "scnet_ds_pro"
         req.thinking = True
     elif req.model == "vision":
         prefer = None  # vision handled by existing detection
@@ -1827,9 +1827,15 @@ def _split_sentences(text: str) -> list[str]:
 async def list_models():
     """返回模型列表，让 IDE 识别可用模型。"""
     models = [
-        {"id": "claude-sonnet-4-6", "object": "model", "created": MODEL_CREATED, "owned_by": "anthropic"},
-        {"id": "claude-opus-4-7", "object": "model", "created": MODEL_CREATED, "owned_by": "anthropic"},
-        {"id": "claude-haiku-4-5-20251001", "object": "model", "created": MODEL_CREATED, "owned_by": "anthropic"},
+        {"id": "gpt-5.4", "object": "model", "created": MODEL_CREATED, "owned_by": "openai"},
+        {"id": "gpt-4.1", "object": "model", "created": MODEL_CREATED, "owned_by": "openai"},
+        {"id": "o1", "object": "model", "created": MODEL_CREATED, "owned_by": "openai"},
+        {"id": "o4-mini", "object": "model", "created": MODEL_CREATED, "owned_by": "openai"},
+        {"id": "deepseek-v4-pro", "object": "model", "created": MODEL_CREATED, "owned_by": "deepseek"},
+        {"id": "deepseek-v4-flash", "object": "model", "created": MODEL_CREATED, "owned_by": "deepseek"},
+        {"id": "qwen3-coder", "object": "model", "created": MODEL_CREATED, "owned_by": "qwen"},
+        {"id": "gemini-2.0-flash", "object": "model", "created": MODEL_CREATED, "owned_by": "google"},
+        {"id": "llama-3.3-70b", "object": "model", "created": MODEL_CREATED, "owned_by": "meta"},
         {"id": MODEL_ID, "object": "model", "created": MODEL_CREATED, "owned_by": "donglicao"},
     ]
     return {"object": "list", "data": models}

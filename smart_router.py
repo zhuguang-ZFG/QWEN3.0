@@ -48,10 +48,8 @@ def _startup_check():
 LM_URL = 'http://localhost:1234/v1/chat/completions'
 
 # ═══ BACKENDS 定义 (已提取 → backends.py) ═══════════════════════════════════════
+# NOTE: 'claude', 'deepseek_pro', 'deepseek_flash' removed from registry
 BACKENDS = {
-    'claude':  {'url': 'https://right.codes/claude-aws/v1/messages',
-                'key': os.environ.get('CLAUDE_API_KEY', ''),
-                'model': 'claude-sonnet-4-6', 'fmt': 'anthropic', 'auth': 'x-api-key'},
     # LongCat 系列 - 按复杂度分层（使用 /anthropic/v1/messages 路径 + Bearer 认证）
     'longcat_lite':     {'url': 'https://api.longcat.chat/anthropic/v1/messages',
                          'key': os.environ.get('LONGCAT_API_KEY', ''),
@@ -69,13 +67,7 @@ BACKENDS = {
     'longcat':          {'url': 'https://api.longcat.chat/anthropic/v1/messages',
                          'key': os.environ.get('LONGCAT_API_KEY', ''),
                          'model': 'LongCat-2.0-Preview', 'fmt': 'anthropic', 'auth': 'bearer'},
-    # DeepSeek 系列
-    'deepseek_pro':    {'url': 'https://api.deepseek.com/anthropic/v1/messages',
-                        'key': os.environ.get('DEEPSEEK_API_KEY', ''),
-                        'model': 'deepseek-v4-pro', 'fmt': 'anthropic'},
-    'deepseek_flash':  {'url': 'https://api.deepseek.com/anthropic/v1/messages',
-                        'key': os.environ.get('DEEPSEEK_API_KEY', ''),
-                        'model': 'deepseek-v4-flash', 'fmt': 'anthropic'},
+    # DeepSeek 系列 (removed: deepseek_pro, deepseek_flash)
     # Nvidia NIM 系列 - 免费额度，OpenAI 兼容
     'nvidia_nemotron':  {'url': 'https://integrate.api.nvidia.com/v1/chat/completions',
                          'key': os.environ.get('NVIDIA_API_KEY', ''),
@@ -553,8 +545,6 @@ FALLBACK_CHAINS = {
         'nvidia_nemotron',    # L2: Nvidia推理（免费额度）
         'or_nemotron',        # L3: OpenRouter Nemotron（免费额度）
         'or_deepseek_r1',     # L3: OpenRouter DeepSeek（免费额度）
-        'deepseek_pro',       # L4: 付费兜底
-        'claude',             # L4: 付费最终兜底
     ],
     'grbl_config': [
         'local',              # L0: 本地直答
@@ -563,7 +553,6 @@ FALLBACK_CHAINS = {
         'chinamobile',        # L1: 中国移动（免费）
         'nvidia_llama4',      # L2: Nvidia（免费额度）
         'or_llama70b',        # L3: OpenRouter（免费额度）
-        'deepseek_flash',     # L4: 付费兜底
     ],
     'gcode_help': [
         'local',              # L0: 本地直答
@@ -572,7 +561,6 @@ FALLBACK_CHAINS = {
         'chinamobile',        # L1: 中国移动（免费）
         'nvidia_llama4',      # L2: Nvidia（免费额度）
         'or_llama70b',        # L3: OpenRouter（免费额度）
-        'deepseek_flash',     # L4: 付费兜底
     ],
     'embedded_dev': [
         'groq_llama70b',      # L0.5: Groq 70B极速
@@ -583,8 +571,6 @@ FALLBACK_CHAINS = {
         'longcat',            # L1: LongCat最强（免费）
         'or_nemotron',        # L3: OpenRouter Nemotron（免费额度）
         'or_deepseek_r1',     # L3: OpenRouter DeepSeek（免费额度）
-        'deepseek_pro',       # L4: 付费兜底
-        'claude',             # L4: 付费最终兜底
     ],
     'code_generation': [
         'groq_gptoss',        # L0.5: Groq GPT-OSS 120B极速（520ms，代码强）
@@ -602,7 +588,6 @@ FALLBACK_CHAINS = {
         'nvidia_llama70b',    # L2: Nvidia（免费额度）
         'or_llama70b',        # L3: OpenRouter（免费额度）
         'pollinations',       # L0: 零Key终极兜底
-        'deepseek_flash',     # L4: 付费兜底
     ],
     'architecture': [
         'github_gpt5',        # L0.5: GitHub GPT-5（最强综合推理）
@@ -617,8 +602,6 @@ FALLBACK_CHAINS = {
         'longcat_thinking',   # L1: LongCat推理（免费）
         'nvidia_nemotron',    # L2: Nvidia（免费额度）
         'or_deepseek_r1',     # L3: OpenRouter DeepSeek（免费额度）
-        'deepseek_pro',       # L4: 付费兜底
-        'claude',             # L4: 付费最终兜底
     ],
     'general_cnc': [
         'groq_llama4',        # L0.5: Groq Llama4极速（376ms）
@@ -630,7 +613,6 @@ FALLBACK_CHAINS = {
         'llm7',               # L0: 零Key自动路由
         'or_llama70b',        # L3: OpenRouter通用（免费额度）
         'pollinations',       # L0: 零Key终极兜底
-        'deepseek_flash',     # L4: 付费兜底
     ],
     'complex_theory': [
         'longcat_thinking',   # L1: LongCat推理（免费）
@@ -638,8 +620,6 @@ FALLBACK_CHAINS = {
         'nvidia_nemotron',    # L2: Nvidia推理（免费额度）
         'or_nemotron',        # L3: OpenRouter Nemotron（免费额度）
         'or_deepseek_r1',     # L3: OpenRouter DeepSeek（免费额度）
-        'deepseek_pro',       # L4: 付费兜底
-        'claude',             # L4: 付费最终兜底
     ],
     'thinking': [
         'or_deepseek_r1',     # L3: DeepSeek R1（深度推理首选）
@@ -647,9 +627,7 @@ FALLBACK_CHAINS = {
         'github_o3_mini',     # L0.5: GitHub o3-mini（推理强）
         'longcat_thinking',   # L1: LongCat推理（免费）
         'mistral_large',      # L0.5: Mistral Large（旗舰，10亿token/月）
-        'deepseek_pro',       # L4: DeepSeek Pro（付费兜底）
         'longcat',            # L1: LongCat最强（免费）
-        'claude',             # L4: 付费最终兜底
     ],
     'unknown': [
         'silicon_qwen8b',     # L0: 硅基流动（<100ms，国内直连）
@@ -665,7 +643,6 @@ FALLBACK_CHAINS = {
         'llm7',               # L0: 零Key自动路由（2.7s）
         'longcat',            # L1: LongCat最强（免费，最终免费兜底）
         'pollinations',       # L0: 零Key终极兜底（4.2s，无限）
-        'deepseek_flash',     # L4: 付费兜底
     ],
     'vision': [
         'cf_vision',          # Cloudflare Llama Vision 11B（867ms，最快，原生端点）
@@ -679,13 +656,12 @@ FALLBACK_CHAINS = {
         'groq_gptoss',        # L0.5: Groq GPT-OSS 120B（520ms，代码强）
         'nvidia_qwen_coder',  # L2: Qwen Coder 480B（代码最强）
         'pollinations',       # L0: 零Key终极兜底
-        'deepseek_flash',     # L4: 付费兜底
     ],
 }
 
 def get_fallback_chain(intent_name, prefer=None):
     """获取意图对应的降级链，过滤掉没有 key 的后端。"""
-    chain = list(FALLBACK_CHAINS.get(intent_name, ['groq_llama70b', 'unclose_hermes', 'nvidia_llama70b', 'longcat', 'claude']))
+    chain = list(FALLBACK_CHAINS.get(intent_name, ['groq_llama70b', 'unclose_hermes', 'nvidia_llama70b', 'longcat']))
     # 如果有偏好后端，插到最前面
     if prefer and prefer in BACKENDS and prefer not in chain:
         chain.insert(0, prefer)
@@ -796,7 +772,7 @@ _THINKING_PATTERNS = [
 ]
 
 # Thinking-capable backends in priority order
-THINKING_BACKENDS = ['or_deepseek_r1', 'longcat_thinking', 'deepseek_pro']
+THINKING_BACKENDS = ['or_deepseek_r1', 'longcat_thinking']
 
 
 def detect_thinking_intent(query: str) -> bool:
@@ -814,7 +790,7 @@ def detect_thinking_intent(query: str) -> bool:
 
 def get_thinking_backend() -> str:
     """Get the best available thinking-capable backend.
-    Priority: or_deepseek_r1 > longcat_thinking > deepseek_pro > fallback.
+    Priority: or_deepseek_r1 > longcat_thinking > fallback.
     """
     for name in THINKING_BACKENDS:
         if name in BACKENDS and BACKENDS[name].get('key') and cb_allow(name):
@@ -1623,11 +1599,11 @@ def _ide_routing_hint(ide, system_prompt, query):
     sp_lower = system_prompt.lower() if system_prompt else ''
     q_lower = query.lower()
 
-    # Rust/Go 项目偏好 Claude（强类型推理）
+    # Rust/Go 项目偏好长上下文模型（强类型推理）
     if any(ext in sp_lower for ext in ['.rs', 'rust', 'cargo']):
-        return 'claude'
+        return 'longcat_thinking'
     if any(ext in sp_lower for ext in ['.go', 'golang', 'go.mod']):
-        return 'claude'
+        return 'longcat_thinking'
 
     # 嵌入式/硬件项目偏好长上下文模型
     if any(kw in q_lower for kw in ['esp32', 'stm32', 'arduino', 'grbl', 'firmware']):
@@ -1635,7 +1611,7 @@ def _ide_routing_hint(ide, system_prompt, query):
 
     # Cursor 用户通常需要快速响应
     if ide == 'cursor':
-        return 'deepseek_flash'
+        return 'groq_llama70b'
 
     return None
 
@@ -1778,7 +1754,7 @@ def route(query, prefer=None, system_prompt="", ide="unknown", messages=None):
     result['answer'] = answer
 
     # 质量不达标时尝试下一个 fallback（仅重试一次）
-    if issues and 'low_quality' in issues and used_backend != 'claude':
+    if issues and 'low_quality' in issues:
         remaining = [b for b in fallback_chain if b not in tried_backends and b != 'local']
         if remaining:
             retry_backend = remaining[0]
@@ -1795,10 +1771,10 @@ def route(query, prefer=None, system_prompt="", ide="unknown", messages=None):
                         print(f'[QUALITY_RETRY] {result.get("backend")} -> {retry_backend}', file=sys.stderr)
 
     # 不确定性检测：自动升级到更强模型
-    if detect_uncertainty(result['answer']) and used_backend not in ('claude', 'deepseek_pro'):
-        upgraded = call_api('deepseek_pro', api_msgs)
+    if detect_uncertainty(result['answer']) and used_backend not in ('longcat', 'longcat_thinking', 'or_deepseek_r1'):
+        upgraded = call_api('longcat_thinking', api_msgs)
         if upgraded and not upgraded.startswith('[ERR]') and '暂时不可用' not in upgraded and not detect_uncertainty(upgraded):
-            result['answer'] = clean_response(upgraded, 'deepseek_pro')
+            result['answer'] = clean_response(upgraded, 'longcat_thinking')
             result['upgraded'] = True
 
     # 截断检测：自动续写（用实际成功的后端）

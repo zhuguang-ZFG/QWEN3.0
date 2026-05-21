@@ -27,8 +27,6 @@ _DEFAULT_MATRIX = {
     "mistral_devstral": {"code": 8, "debug": 7, "chinese": 3, "english": 8, "reasoning": 5, "speed": 7},
     "or_qwen3_coder": {"code": 9, "debug": 8, "chinese": 7, "english": 7, "reasoning": 6, "speed": 5},
     "opencode_stealth": {"code": 8, "debug": 7, "chinese": 5, "english": 7, "reasoning": 6, "speed": 6},
-    "deepseek_flash": {"code": 9, "debug": 9, "chinese": 9, "english": 8, "reasoning": 8, "speed": 7},
-    "deepseek_pro": {"code": 10, "debug": 10, "chinese": 10, "english": 9, "reasoning": 9, "speed": 5},
 
     # 快速通用后端
     "groq_llama70b": {"code": 7, "debug": 6, "chinese": 4, "english": 8, "reasoning": 6, "speed": 9},
