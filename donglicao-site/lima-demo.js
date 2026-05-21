@@ -240,11 +240,10 @@
     appendMsg(text, true);
     chatInput.value = '';
     chatBtn.disabled = true;
-    fetch('https://api.donglicao.com/v1/chat/completions', {
+    fetch('/api/demo', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer sk-lima-demo-2024'
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         model: 'lima',
