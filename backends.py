@@ -128,18 +128,27 @@ BACKENDS = {
     'local_general': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'gemma3:12b', 'fmt': 'openai', 'timeout': 30},
     'local_fast': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'qwen2.5-coder:1.5b', 'fmt': 'openai', 'timeout': 10},
     'local_chat': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'qwen2.5:0.5b', 'fmt': 'openai', 'timeout': 5},
-    # ── DuckDuckGo-AI (本地 duckai, 通过代理访问 DDG, 免费 GPT-4o-mini/Claude-Haiku/Llama-4/o3-mini) ──
+    # ── DuckDuckGo-AI (本地 duckai, 免费, 仅 3 个模型验证可用) ──
     'ddg_gpt4o_mini': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'gpt-4o-mini', 'fmt': 'openai', 'timeout': 30},
-    'ddg_claude_haiku': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'claude-3-5-haiku-latest', 'fmt': 'openai', 'timeout': 30},
     'ddg_llama4': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'meta-llama/Llama-4-Scout-17B-16E-Instruct', 'fmt': 'openai', 'timeout': 30},
-    'ddg_o3_mini': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'o3-mini', 'fmt': 'openai', 'timeout': 45},
-    'ddg_mistral': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'mistralai/Mistral-Small-24B-Instruct-2501', 'fmt': 'openai', 'timeout': 20},
+    'ddg_mistral': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'mistral-small-2603', 'fmt': 'openai', 'timeout': 20},
     # ── lza6 系列 CF Workers (逆向网页 AI, 免费) ──
     'tele_reason': {'url': 'https://tele.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'teleprompt-reason', 'fmt': 'openai', 'timeout': 30},
     'tele_standard': {'url': 'https://tele.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'teleprompt-standard', 'fmt': 'openai', 'timeout': 30},
     'tele_apps': {'url': 'https://tele.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'teleprompt-apps', 'fmt': 'openai', 'timeout': 30},
     'assist_brainstorm': {'url': 'https://assist.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'brainstorm-tool', 'fmt': 'openai', 'timeout': 30},
     'vision_joycaption': {'url': 'https://vision.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'joy-caption-beta', 'fmt': 'openai', 'timeout': 30, 'caps': ['vision']},
+    # ── StockAI (CF Worker, 9 模型, 免费) ──
+    'stock_gpt4o_mini': {'url': 'https://stock.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'openai/gpt-4o-mini', 'fmt': 'openai', 'timeout': 30},
+    'stock_gemini_flash': {'url': 'https://stock.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'google/gemini-2.0-flash', 'fmt': 'openai', 'timeout': 30},
+    'stock_deepseek': {'url': 'https://stock.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'deepseek/deepseek-chat-v3.1', 'fmt': 'openai', 'timeout': 30},
+    'stock_llama4': {'url': 'https://stock.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'meta/llama-4-scout', 'fmt': 'openai', 'timeout': 30},
+    'stock_kimi_k2': {'url': 'https://stock.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'moonshotai/kimi-k2', 'fmt': 'openai', 'timeout': 30},
+    'stock_glm46': {'url': 'https://stock.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'z-ai/glm-4.6', 'fmt': 'openai', 'timeout': 30},
+    'stock_qwen3_coder': {'url': 'https://stock.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'qwen/qwen3-coder', 'fmt': 'openai', 'timeout': 30},
+    # ── TheOldLLM v2 (本地代理 + 自动 Token 刷新, 免费) ──
+    'oldllm_gpt52': {'url': 'https://llm.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'gpt-5.2', 'fmt': 'openai', 'timeout': 45},
+    'oldllm_gpt51': {'url': 'https://llm.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'gpt-5.1', 'fmt': 'openai', 'timeout': 45},
 }
 
 PUBLIC_MODEL_NAME = os.environ.get('PUBLIC_MODEL_NAME', 'LiMa')
@@ -178,6 +187,8 @@ def detect_vendor(url: str) -> str:
     if 'localhost' in u or '127.0.0.1' in u or 'trycloudflare.com' in u: return 'Local (Ollama)'
     if 'ddg.zhuguang' in u: return 'DuckDuckGo AI'
     if 'tele.zhuguang' in u or 'assist.zhuguang' in u or 'vision.zhuguang' in u: return 'lza6 Workers'
+    if 'stock.zhuguang' in u: return 'StockAI'
+    if 'llm.zhuguang' in u: return 'TheOldLLM'
     if 'groq.com' in u: return 'Groq'
     if 'cerebras' in u: return 'Cerebras'
     if 'models.inference.ai.azure.com' in u: return 'GitHub Models'
