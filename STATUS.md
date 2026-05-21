@@ -92,12 +92,36 @@
 
 | 项目 | 状态 |
 |------|------|
-| V3 模块部署 | ❌ 服务器仍跑旧版 |
-| 开放平台 Channel 端口 | ❌ 8090→8080 未修，平台不可用 |
-| systemd 自启 | ❌ 未配置 |
+| V3 模块部署 | ✅ 2026-05-22 已部署 (19模块+6skills+4fragments) |
+| 开放平台 Channel 端口 | ✅ 已修复 (两个channel→localhost:8080) |
+| systemd unit | ✅ 已写入 /etc/systemd/system/lima-router.service (未enable) |
+| root 密码 | ✅ 已重置 (bcrypt) |
+| 品牌修复 | ✅ SystemName/Footer/docs_link |
+| NextChat 容器 | ✅ 已清理释放内存（冗余，自研前端已覆盖） |
 | 数据库备份 | ❌ 无 cron |
-| NextChat (chat.donglicao.com) | ❌ 未部署 |
-| DNS chat A 记录 | ❌ 未添加 |
+
+## chat.donglicao.com 功能状态
+
+| 功能 | 后端 | 前端 | 状态 |
+|------|------|------|------|
+| 文字聊天 | ✅ lima-router V3 | ✅ 自研 SPA (app.js) | ✅ 可用 |
+| 图片上传（视觉） | ✅ vision_handler.py | ✅ app.js handleImageUpload | ✅ 可用 |
+| 实时语音通话 | ✅ voice_gateway.py:8091 (Whisper STT + Edge-TTS) | ✅ voice-call.html (WebSocket) | ✅ 可用 |
+| 生图 | ⚠️ smart_router detect_image_intent + Pollinations | ❌ 前端无触发入口 | ❌ 未接入 |
+| 代码高亮 | — | ✅ highlight.js | ✅ 可用 |
+| Markdown 渲染 | — | ✅ marked.js | ✅ 可用 |
+| LaTeX 公式 | — | ✅ KaTeX | ✅ 可用 |
+| 对话历史 | — | ✅ localStorage | ✅ 可用 |
+| 多模型切换 | ❌ 前端固定 lima-1.3 | ❌ 无 UI | ❌ 未实现 |
+| 流式输出 | ✅ SSE | ✅ EventSource | ✅ 可用 |
+
+### 待完善（需专项计划）
+
+1. **生图功能接入** — 后端已有 Pollinations 能力，前端需加触发按钮 + 图片渲染
+2. **多模型选择** — 前端加模型下拉，支持用户选 thinking/code/fast 等模式
+3. **对话导出** — 导出为 Markdown/JSON
+4. **移动端优化** — 当前 responsive 但未针对移动深度优化
+5. **暗色/亮色主题切换** — 当前仅暗色
 
 ---
 
