@@ -48,4 +48,13 @@ if errorlevel 1 (
     echo [%date% %time%] g4f already running >> D:\ollama_server\startup.log
 )
 
+:: 5. Kimi proxy (node, port 4504)
+netstat -ano | find "4504" | find "LISTENING" > nul
+if errorlevel 1 (
+    start /min "" cmd /c "node D:\ollama_server\kimi_proxy.js > D:\ollama_server\kimi_proxy.log 2>&1"
+    echo [%date% %time%] Kimi proxy started >> D:\ollama_server\startup.log
+) else (
+    echo [%date% %time%] Kimi proxy already running >> D:\ollama_server\startup.log
+)
+
 echo [%date% %time%] All services started. >> D:\ollama_server\startup.log
