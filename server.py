@@ -447,6 +447,8 @@ def _elapsed_ms(started_at: float) -> int:
 
 def _record_request(query: str, backend: str, intent: str, duration_ms: int, success: bool = True, client_ip: str = "", ide_source: str = "", sys_prompt_preview: str = ""):
     """记录一次请求到统计数据。"""
+    country = _get_ip_location(client_ip) if client_ip else ""
+
     with _stats_lock:
         _stats["total_requests"] += 1
         if backend not in _stats["backend_calls"]:
@@ -464,7 +466,7 @@ def _record_request(query: str, backend: str, intent: str, duration_ms: int, suc
             "ms": duration_ms,
             "success": success,
             "ip": client_ip,
-            "country": _get_ip_location(client_ip) if client_ip else "",
+            "country": country,
             "ide": ide_source,
             "sys_prompt": sys_prompt_preview[:100] if sys_prompt_preview else "",
         }
