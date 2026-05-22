@@ -61,9 +61,9 @@ class RoutingWeights:
         w = self._weights.setdefault(
             key, BackendWeight(backend=backend, scenario=scenario)
         )
-        w.successes += 1
-        # GRPO advantage estimation (OpenClaw-RL pattern)
+        # GRPO: calculate baseline BEFORE recording this event
         baseline = self._scenario_baseline(scenario)
+        w.successes += 1
         advantage = 1.0 - baseline
         lr = 0.08
         delta = max(-0.15, min(0.15, advantage * lr))
@@ -76,9 +76,9 @@ class RoutingWeights:
         w = self._weights.setdefault(
             key, BackendWeight(backend=backend, scenario=scenario)
         )
-        w.failures += 1
-        # GRPO advantage estimation (OpenClaw-RL pattern)
+        # GRPO: calculate baseline BEFORE recording this event
         baseline = self._scenario_baseline(scenario)
+        w.failures += 1
         advantage = 0.0 - baseline
         lr = 0.08
         delta = max(-0.15, min(0.15, advantage * lr))

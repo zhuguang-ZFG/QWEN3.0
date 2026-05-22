@@ -395,6 +395,11 @@ ADMIN_BODY = """<body>
 </div>"""
 
 ADMIN_JS = """<script>
+const _authHeaders={'Authorization':'Bearer '+_ADMIN_TOKEN};
+function authFetch(url,opts={}){
+  opts.headers=Object.assign({},_authHeaders,opts.headers||{});
+  return fetch(url,opts);
+}
 function switchTab(name){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
@@ -409,7 +414,7 @@ function fmtUptime(s){
 }
 async function loadStats(){
   try{
-    let r=await fetch('/admin/api/stats');let d=await r.json();
+    let r=await authFetch('/admin/api/stats');let d=await r.json();
     document.getElementById('s-total').textContent=d.total_requests;
     document.getElementById('s-avg-ms').textContent=d.avg_response_ms+'ms';
     document.getElementById('s-uptime').textContent=fmtUptime(d.uptime_seconds);
@@ -439,7 +444,7 @@ async function loadStats(){
 async function loadLogs(){
   function esc(s){return s?s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):''}
   try{
-    let r=await fetch('/admin/api/logs');let d=await r.json();
+    let r=await authFetch('/admin/api/logs');let d=await r.json();
     let tl=document.getElementById('t-logs');tl.innerHTML='';
     for(let log of d){
       let cls=log.success?'badge-ok':'badge-err';
@@ -449,7 +454,7 @@ async function loadLogs(){
 }
 async function loadBackends(){
   try{
-    let r=await fetch('/admin/api/backends');let d=await r.json();
+    let r=await authFetch('/admin/api/backends');let d=await r.json();
     let tb=document.getElementById('t-be-list');tb.innerHTML='';
     for(let b of d){
       let stCls=b.enabled?'badge-ok':'badge-off';
@@ -463,7 +468,7 @@ async function loadBackends(){
 }
 async function loadModelStatus(){
   try{
-    let r=await fetch('/admin/api/model-status');let d=await r.json();
+    let r=await authFetch('/admin/api/model-status');let d=await r.json();
     document.getElementById('m-model').textContent=d.model||'-';
     document.getElementById('m-accuracy').textContent=d.accuracy||'-';
     document.getElementById('m-data').textContent=(d.data_count||0)+' 条';
@@ -481,7 +486,7 @@ async function loadModelStatus(){
 async function triggerRetrain(){
   if(!confirm('确定手动触发训练？'))return;
   try{
-    let r=await fetch('/admin/api/retrain',{method:'POST'});
+    let r=await authFetch('/admin/api/retrain',{method:'POST'});
     let d=await r.json();
     alert('训练触发: '+d.status+'\\n'+((d.output||'').substring(0,300)));
     loadModelStatus();
@@ -498,7 +503,7 @@ async function addBackend(){
   let capsRaw=document.getElementById('nb-caps').value.trim();
   let caps=capsRaw?capsRaw.split(',').map(s=>s.trim()).filter(s=>s):[];
   if(!name||!url){alert('名称和URL必填');return}
-  let r=await fetch('/admin/api/backends',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,url,key,model:model||name,fmt,tier,auth,caps})});
+  let r=await authFetch('/admin/api/backends',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,url,key,model:model||name,fmt,tier,auth,caps})});
   let d=await r.json();
   if(r.ok){
     document.getElementById('nb-name').value='';document.getElementById('nb-url').value='';document.getElementById('nb-key').value='';document.getElementById('nb-model').value='';document.getElementById('nb-auth').value='';document.getElementById('nb-caps').value='';
@@ -509,15 +514,15 @@ async function addBackend(){
 }
 async function deleteBackend(name){
   if(!confirm('确定删除后端 '+name+' ?'))return;
-  await fetch('/admin/api/backends/'+name,{method:'DELETE'});loadBackends();
+  await authFetch('/admin/api/backends/'+name,{method:'DELETE'});loadBackends();
 }
 async function toggleBackend(name){
-  await fetch('/admin/api/backends/'+name+'/toggle',{method:'POST'});loadBackends();
+  await authFetch('/admin/api/backends/'+name+'/toggle',{method:'POST'});loadBackends();
 }
 async function testBackend(name){
   let btn=event.target;btn.disabled=true;btn.textContent='测试中...';
   try{
-    let r=await fetch('/admin/api/backends/'+name+'/test',{method:'POST'});
+    let r=await authFetch('/admin/api/backends/'+name+'/test',{method:'POST'});
     let d=await r.json();
     if(d.ok){alert(`✅ ${name} 可用\\n延迟: ${d.latency_ms}ms\\n响应: ${d.response_preview||''}`)}
     else{alert(`❌ ${name} 不可用\\n延迟: ${d.latency_ms}ms\\n错误: ${d.error||''}`)}
@@ -533,6 +538,17 @@ setInterval(refreshAll,5000);
 
 
 @router.get("", response_class=HTMLResponse)
-async def admin_page():
-    """管理后台 Web UI。"""
-    return HTMLResponse(ADMIN_HTML + ADMIN_BODY + ADMIN_JS)
+async def admin_page(token: str = ""):
+    """管理后台 Web UI。需要 ?token=<LIMA_ADMIN_TOKEN> 访问。"""
+    if not _ADMIN_TOKEN:
+        raise HTTPException(503, "LIMA_ADMIN_TOKEN not configured")
+    if token != _ADMIN_TOKEN:
+        return HTMLResponse(
+            "<h2>Admin Login</h2>"
+            '<form method="get"><input name="token" placeholder="Admin Token" type="password">'
+            '<button type="submit">Login</button></form>',
+            status_code=401,
+        )
+    # Inject token into JS so all API calls include Authorization header
+    token_js = f'<script>const _ADMIN_TOKEN="{token}";</script>'
+    return HTMLResponse(ADMIN_HTML + token_js + ADMIN_BODY + ADMIN_JS)

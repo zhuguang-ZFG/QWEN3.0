@@ -44,10 +44,16 @@ def test_grpo_failure_penalty_proportional():
 
 def test_grpo_clipped_delta():
     """Delta is clipped to [-0.15, +0.15]."""
-    rw = RoutingWeights()
+    import tempfile as _tf
+    os.environ["LIMA_WEIGHTS_PATH"] = _tf.mktemp(suffix=".json")
+    from importlib import reload
+    import context_pipeline.routing_weights as _rw_mod
+    reload(_rw_mod)
+    rw = _rw_mod.RoutingWeights()
     rw.record_success("x", "coding")
     w = rw.get_weight("x", "coding")
-    assert w <= 1.15
+    # Fresh instance: baseline=0.5, advantage=0.5, delta=0.04
+    assert 1.0 < w <= 1.15
 
 
 # === Phase 27: Concurrency Pool ===

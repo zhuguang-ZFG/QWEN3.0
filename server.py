@@ -1945,6 +1945,17 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
 
     duration_ms = int((time.time() - t0) * 1000)
 
+    # ── Integration: Session Memory (Phase P1) — save to SQLite ───────────
+    try:
+        from session_memory.store import save_memory
+        import hashlib
+        _session_id = hashlib.md5((client_ip or "anon").encode()).hexdigest()[:12]
+        save_memory(_session_id, "user", query[:100])
+        if content:
+            save_memory(_session_id, "assistant", content[:100])
+    except (ImportError, Exception):
+        pass
+
     # 记录统计
     _record_request(query, backend, intent_name, duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
 

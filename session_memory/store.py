@@ -23,7 +23,9 @@ class MemoryEntry:
     embedding: list[float]
 
 
-_DB_PATH = os.environ.get("LIMA_SESSION_DB", "/tmp/lima_sessions.db")
+import tempfile
+
+_DB_PATH = os.environ.get("LIMA_SESSION_DB", os.path.join(tempfile.gettempdir(), "lima_sessions.db"))
 
 
 def _get_conn() -> sqlite3.Connection:
