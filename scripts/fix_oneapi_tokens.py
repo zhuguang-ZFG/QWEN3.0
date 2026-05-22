@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 """Fix one-api token groups - assign each token to its correct group"""
-import urllib.request, json, http.cookiejar, sys
+import urllib.request, json, http.cookiejar, sys, os
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 BASE = "http://localhost:3001"
+def require_env(name: str) -> str:
+    value = os.environ.get(name, "")
+    if not value:
+        raise RuntimeError(f"{name} is required")
+    return value
+
 cj = http.cookiejar.CookieJar()
 opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
 
@@ -25,7 +31,7 @@ def api_put(path, data):
     return json.loads(opener.open(req).read().decode())
 
 # Login
-api_post("/api/user/login", {"username": "root", "password": "123456"})
+api_post("/api/user/login", {"username": "root", "password": require_env("ONEAPI_ADMIN_PASSWORD")})
 print("Logged in.")
 
 # Get all tokens
