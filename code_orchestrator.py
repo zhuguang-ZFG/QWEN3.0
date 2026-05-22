@@ -1,11 +1,12 @@
 """
-code_orchestrator.py — 编程模型塔 V2：容错+自愈+学习
-Pipeline: Intent Amplify → Guided Execute → Quality Gate → Repair (with circuit breaker)
-Features: 信誉分排序、延迟预算、修复熔断、强模型也验证、反馈闭环
+code_orchestrator.py — 编程模型塔 V3：上下文工程+容错+自愈+学习
+Pipeline: Context Engineering → Intent Amplify → Guided Execute → Quality Gate → Repair
+Features: 语言检测、精准注入、信誉分、延迟预算、修复熔断、反馈闭环、监控统计
 """
 import os
 import re
 import time
+from collections import defaultdict
 
 import intent_templates
 import quality_gate
@@ -291,3 +292,65 @@ def _build_msgs(query, messages):
     if len(messages) > 1:
         return messages[:-1] + [{"role": "user", "content": query}]
     return [{"role": "user", "content": query}]
+
+
+# ── Streaming 前置增强器 (方案C: 零延迟，不调模型) ────────────────────────────
+
+# 监控计数器
+_stats = defaultdict(int)
+
+
+def enhance_context(query: str, messages: list, scenario: str = "") -> dict:
+    """前置增强器：零延迟，用于 streaming 路径。
+    返回 {system_prompt, enhanced_messages, backend_pool, language, tier}
+    """
+    if scenario != "coding":
+        return {"system_prompt": "", "enhanced_messages": messages,
+                "backend_pool": [], "language": "general", "tier": "none"}
+
+    _stats["total_enhance"] += 1
+
+    # 1. 语言检测
+    language = detect_language(query, messages)
+    _stats[f"lang_{language}"] += 1
+
+    # 2. 精准规范注入
+    guide = _load_guide(language)
+
+    # 3. 意图增强
+    enhanced_query = intent_templates.amplify_intent(query)
+    error_ctx = extract_error_context(query)
+    if error_ctx:
+        enhanced_query += error_ctx
+
+    # 4. 按信誉分选最优后端池
+    tier = classify_code_tier(query, messages)
+    _stats[f"tier_{tier}"] += 1
+    pool_name = {"simple": "fast", "standard": "coder", "complex": "strong"}[tier]
+    ranked_pool = backend_reputation.sort_by_reputation(POOLS[pool_name])
+
+    # 5. 构建增强后的 messages
+    enhanced_msgs = messages.copy()
+    if enhanced_query != query and messages:
+        enhanced_msgs = messages[:-1] + [{"role": "user", "content": enhanced_query}]
+
+    return {
+        "system_prompt": guide,
+        "enhanced_messages": enhanced_msgs,
+        "backend_pool": ranked_pool,
+        "language": language,
+        "tier": tier,
+    }
+
+
+def record_streaming_quality(backend: str, response_text: str, query: str):
+    """后置评估器：streaming 完成后异步调用，更新信誉分。"""
+    _stats["total_post_eval"] += 1
+    gate = quality_gate.check(response_text, query)
+    backend_reputation.record(backend, gate["passed"], "stream")
+    _stats[f"gate_{'pass' if gate['passed'] else 'fail'}"] += 1
+
+
+def get_stats() -> dict:
+    """返回监控统计。"""
+    return dict(_stats)

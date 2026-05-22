@@ -170,14 +170,14 @@ def test_route_e2e_chat():
 
 
 def test_route_e2e_ide_no_floor():
-    """IDE 请求不路由到 floor"""
+    """IDE 请求走 code orchestrator"""
     result = re_.route(
         query="refactor this",
         messages=[{"role": "user", "content": "refactor this"}],
         fmt="anthropic", ide_source="Claude Code",
         call_fn=fake_call_fn,
     )
-    assert result.request_type == "ide"
+    assert result.request_type.startswith("code_")
     # IDE 结果不应来自 floor 后端
     assert result.backend not in ("chat_ubi", "llm7", "pollinations",
                                    "local_qwen_coder", "exhausted")

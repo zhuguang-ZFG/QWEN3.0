@@ -278,7 +278,7 @@ def route(query: str, messages: list[dict], *,
                                  ide_source=ide_source, request_type=req_type)
 
     # ── Code Orchestrator: 编程场景走强模型带动弱模型 pipeline ──
-    if scenario == "coding" and not ide_source and call_fn:
+    if scenario == "coding" and call_fn:
         try:
             import code_orchestrator
             orch_result = code_orchestrator.handle(

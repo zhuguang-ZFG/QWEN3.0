@@ -71,13 +71,32 @@ if USE_V3:
 _FAKE_STREAM_BACKENDS = {'deepseek_free'}
 
 def _v3_call_stream(backend, messages, max_tokens, ide):
-    """V3 流式调用适配器。非真流式后端强制走非流式，保证身份清洗不被 chunk 边界截断。"""
+    """V3 流式调用适配器。注入上下文增强 + 非真流式后端强制走非流式。"""
+    # 方案C: 前置增强器 — 零延迟注入编程规范
+    sys_prompt = ""
+    try:
+        import code_orchestrator
+        from routing_engine import classify_scenario
+        query = ""
+        for m in reversed(messages):
+            if m.get("role") == "user" and isinstance(m.get("content"), str):
+                query = m["content"]
+                break
+        if query:
+            scenario = classify_scenario(query, messages, ide_source=ide, request_type="ide" if ide else "chat")
+            if scenario == "coding":
+                ctx = code_orchestrator.enhance_context(query, messages, scenario)
+                sys_prompt = ctx.get("system_prompt", "")
+                messages = ctx.get("enhanced_messages", messages)
+    except Exception:
+        pass
+
     if backend in _FAKE_STREAM_BACKENDS:
         result = http_caller.call_api(
-            backend, messages, max_tokens, system_prompt="", ide=ide)
+            backend, messages, max_tokens, system_prompt=sys_prompt, ide=ide)
         return _fake_stream(result)
     return http_caller.call_api_stream(
-        backend, messages, max_tokens, system_prompt="", ide=ide)
+        backend, messages, max_tokens, system_prompt=sys_prompt, ide=ide)
 
 def _v3_call_api(backend, messages, max_tokens, ide):
     """V3 非流式调用适配器。"""
