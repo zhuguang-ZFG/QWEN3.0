@@ -99,10 +99,13 @@ def _build_body(backend_cfg: dict, messages: list[dict],
 
     sys_text = system_prompt
     if ide and ide not in ("unknown", "未知"):
-        ide_safe = ide.replace('\n', ' ').replace('\r', ' ')[:64]
-        sys_text += (f"\n\n[环境] 用户正在 {ide_safe} 中使用你。"
-                     "该IDE具备文件读写、终端执行、代码搜索等工具能力。"
-                     "请正常回应用户的文件操作请求，不要说'无法访问本地文件'。")
+        from prompt_engineering.layers import compose_system_prompt
+        scenario = "coding" if fmt != "anthropic" or ide else "chat"
+        sys_text = compose_system_prompt(
+            ide=ide,
+            scenario=scenario,
+            code_context=system_prompt if system_prompt else "",
+        )
 
     if fmt == 'anthropic':
         if backend_cfg.get('no_system'):
