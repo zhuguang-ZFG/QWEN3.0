@@ -5,8 +5,12 @@ from .index_store import CodeSymbol, FileRecord
 
 
 def scan_python_file(path: Path) -> FileRecord:
-    source = path.read_text(encoding="utf-8")
-    tree = ast.parse(source, filename=str(path))
+    try:
+        source = path.read_text(encoding="utf-8")
+        tree = ast.parse(source, filename=str(path))
+    except (UnicodeDecodeError, SyntaxError, OSError):
+        return FileRecord(path=str(path), mtime=0.0)
+
     symbols: list[CodeSymbol] = []
     imports: list[tuple[str, int]] = []
 

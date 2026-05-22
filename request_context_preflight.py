@@ -41,7 +41,7 @@ def enhance_messages(
     return [{"role": "system", "content": context}] + list(messages)
 
 
-def maybe_enhance_messages(messages: list[dict], *, index) -> list[dict]:
+def maybe_enhance_messages(messages: list[dict], *, index: InMemoryCodeIndex | None) -> list[dict]:
     if os.environ.get("LIMA_CONTEXT_PREFLIGHT", "0") != "1":
         return messages
     if index is None:

@@ -2,6 +2,7 @@
 
 import json
 import os
+import urllib.error
 import urllib.request
 
 
@@ -12,7 +13,7 @@ def get_embeddings(
     api_url: str = "",
     api_key: str = "",
 ) -> list[list[float]]:
-    """Get embeddings from Jina AI (via LiMa endpoint or direct)."""
+    """Get embeddings from Jina AI. Returns empty list on failure."""
     if not texts:
         return []
 
@@ -36,7 +37,6 @@ def get_embeddings(
         "User-Agent": "LiMa/1.3",
     }
 
-    # Use GFW proxy if configured
     gfw_proxy = os.environ.get("GFW_PROXY", "")
     if gfw_proxy:
         handler = urllib.request.ProxyHandler({"https": gfw_proxy})
@@ -45,7 +45,9 @@ def get_embeddings(
         opener = urllib.request.build_opener()
 
     req = urllib.request.Request(url, data=body, headers=headers)
-    resp = opener.open(req, timeout=15)
-    data = json.loads(resp.read())
-
-    return [item["embedding"] for item in data.get("data", [])]
+    try:
+        resp = opener.open(req, timeout=15)
+        data = json.loads(resp.read())
+        return [item["embedding"] for item in data.get("data", [])]
+    except (urllib.error.URLError, OSError, json.JSONDecodeError, KeyError):
+        return []

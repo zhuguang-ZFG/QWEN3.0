@@ -2167,6 +2167,13 @@ def _split_sentences(text: str) -> list[str]:
 @app.post("/v1/embeddings")
 async def embeddings(request: Request):
     """OpenAI-compatible embeddings endpoint, proxied to Jina AI."""
+    from access_guard import configured_api_keys, _extract_token
+    auth = request.headers.get("authorization", "")
+    token = _extract_token(auth)
+    keys = configured_api_keys()
+    if keys and token not in keys:
+        return JSONResponse({"error": "Unauthorized"}, status_code=401)
+
     body = await request.json()
     inp = body.get("input", [])
     if isinstance(inp, str):
@@ -2179,9 +2186,13 @@ async def embeddings(request: Request):
         return JSONResponse({"error": "JINA_API_KEY not configured"}, status_code=503)
 
     import urllib.request as _ur
-    gfw_proxy = os.environ.get("GFW_PROXY", "http://127.0.0.1:7897")
-    proxy = _ur.ProxyHandler({"https": gfw_proxy, "http": gfw_proxy})
-    opener = _ur.build_opener(proxy)
+    import urllib.error as _ue
+    gfw_proxy = os.environ.get("GFW_PROXY", "")
+    if gfw_proxy:
+        proxy = _ur.ProxyHandler({"https": gfw_proxy, "http": gfw_proxy})
+        opener = _ur.build_opener(proxy)
+    else:
+        opener = _ur.build_opener()
     payload = json.dumps({"model": model, "input": inp, "dimensions": dimensions}).encode()
     req = _ur.Request("https://api.jina.ai/v1/embeddings", data=payload, headers={
         "Authorization": f"Bearer {jina_key}",
@@ -2192,7 +2203,7 @@ async def embeddings(request: Request):
         resp = opener.open(req, timeout=15)
         data = json.loads(resp.read())
         return JSONResponse(data)
-    except Exception as e:
+    except (_ue.URLError, OSError, json.JSONDecodeError) as e:
         return JSONResponse({"error": str(e)[:100]}, status_code=502)
 
 
