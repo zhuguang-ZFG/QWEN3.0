@@ -69,7 +69,7 @@ if USE_V3:
                     return pool[0]
         except Exception:
             pass
-        backends = routing_engine.select("chat", hmap)
+        backends = routing_engine.select("chat", hmap, scenario="chat")
         return backends[0] if backends else "longcat_chat"
 
     def _v3_select(query, system_prompt, ide, messages):
@@ -88,7 +88,7 @@ if USE_V3:
                     return (pool[0], messages)
         except Exception:
             pass
-        backends = routing_engine.select("chat", hmap)
+        backends = routing_engine.select("chat", hmap, scenario="chat")
         return (backends[0] if backends else "longcat_chat", messages)
 
 # 非真流式后端（代理/逆向），强制走非流式保证身份清洗完整
