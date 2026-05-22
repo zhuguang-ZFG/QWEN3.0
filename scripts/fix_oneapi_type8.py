@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
+import os
 """Fix: change channels back to type=8 (Custom) which only appends /chat/completions"""
 import urllib.request, json, http.cookiejar, sys, time, os
 
@@ -79,7 +80,7 @@ for ch in all_channels:
 
 # Test
 print("\n=== Testing (type=8) ===")
-TOKEN = "sk-jutfJuQ8xmWHTn2h87B2C5661a1e497cAb6f5b8d0b396e2b"
+TOKEN = os.environ.get("ONEAPI_ACCESS_TOKEN", "")
 tests = [
     ("glm-4-flash", "zhipu"),
     ("qwen3-8b", "aliyun"),

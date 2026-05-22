@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
+import os
 """Point zhipu channel to echo server, send request, read echo log"""
 import urllib.request, json, http.cookiejar, sys, os, time
 
@@ -54,7 +55,7 @@ open("/tmp/echo.log", "w").close()
 time.sleep(0.5)
 
 # Send request through one-api
-TOKEN = "sk-jutfJuQ8xmWHTn2h87B2C5661a1e497cAb6f5b8d0b396e2b"
+TOKEN = os.environ.get("ONEAPI_ACCESS_TOKEN", "")
 body = json.dumps({
     "model": "glm-4-flash",
     "messages": [{"role": "user", "content": "hi"}],

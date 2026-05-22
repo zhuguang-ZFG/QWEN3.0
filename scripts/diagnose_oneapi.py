@@ -1,6 +1,7 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
+import os
 """Diagnose each one-api channel individually"""
-import urllib.request, json, http.cookiejar, sys, time
+import urllib.request, json, http.cookiejar, sys, time, os
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -20,7 +21,7 @@ def api_get(path):
 
 api_post("/api/user/login", {"username": "root", "password": "123456"})
 
-TOKEN = "sk-jutfJuQ8xmWHTn2h87B2C5661a1e497cAb6f5b8d0b396e2b"
+TOKEN = os.environ.get("ONEAPI_ACCESS_TOKEN", "")
 
 # Get all channels and their first model
 channels = []

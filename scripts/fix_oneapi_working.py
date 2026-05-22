@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
+import os
 """Fix one-api: correct base_urls for the 5 working channels"""
 import urllib.request, json, http.cookiejar, sys, os, time
 
@@ -63,7 +64,7 @@ for ch in all_channels:
 
 # Test the fixed channels
 print("\n=== Testing ===")
-TOKEN = "sk-jutfJuQ8xmWHTn2h87B2C5661a1e497cAb6f5b8d0b396e2b"
+TOKEN = os.environ.get("ONEAPI_ACCESS_TOKEN", "")
 tests = [
     ("microsoft/phi-4-mini-instruct", "nvidia"),
     ("deepseek-chat", "deepseek"),

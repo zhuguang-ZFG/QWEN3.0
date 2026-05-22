@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
+import os
 """
 Final one-api channel fix based on verified behavior:
 - type=8 (Custom) appends /v1/chat/completions to base_url
@@ -106,7 +107,7 @@ print("\nFixed: " + str(fixed) + "/" + str(len(all_channels)))
 
 # Test all channels
 print("\n=== Testing all channels ===")
-TOKEN = "sk-jutfJuQ8xmWHTn2h87B2C5661a1e497cAb6f5b8d0b396e2b"
+TOKEN = os.environ.get("ONEAPI_ACCESS_TOKEN", "")
 tests = [
     ("Qwen/Qwen3-8B", "siliconflow"),
     ("llama-3.1-8b-instant", "groq"),

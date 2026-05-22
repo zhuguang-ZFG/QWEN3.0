@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
+import os
 """Fix remaining 6 channels with specific issues"""
 import urllib.request, json, http.cookiejar, sys, os, time
 
@@ -92,7 +93,7 @@ time.sleep(1)
 
 # Test all
 print("\n=== Testing ===")
-TOKEN = "sk-jutfJuQ8xmWHTn2h87B2C5661a1e497cAb6f5b8d0b396e2b"
+TOKEN = os.environ.get("ONEAPI_ACCESS_TOKEN", "")
 tests = [
     ("deepseek-chat", "deepseek"),
     ("gpt-4o-mini", "github"),

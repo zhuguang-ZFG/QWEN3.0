@@ -1,11 +1,12 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
+import os
 """Test one-api end-to-end from cloud server"""
 import urllib.request, json, sys, time
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 BASE = "http://127.0.0.1:3001/v1"
-TOKEN = "sk-vBFKwKQQc25ZsyjS4e2e731dAa0849A99b24C0E699306524"
+TOKEN = os.environ.get("ONEAPI_ACCESS_TOKEN", "")
 
 body = json.dumps({
     "model": "glm-4-flash",

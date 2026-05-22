@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
+import os
 """Test: find the correct base_url format for one-api type=8
 Since type=8 appends /v1/chat/completions, we need base_url WITHOUT /v1
 For zhipu: correct URL is /api/paas/v4/chat/completions
@@ -40,7 +41,7 @@ for page in range(5):
         break
     all_channels.extend(data)
 
-TOKEN = "sk-jutfJuQ8xmWHTn2h87B2C5661a1e497cAb6f5b8d0b396e2b"
+TOKEN = os.environ.get("ONEAPI_ACCESS_TOKEN", "")
 
 # Since type=8 appends /v1/chat/completions, for providers that use /v1:
 # base_url should be the root (without /v1)

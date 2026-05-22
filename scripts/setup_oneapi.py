@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """批量配置 one-api 渠道和分组 tokens"""
-import urllib.request, json, http.cookiejar, sys
+import urllib.request, json, http.cookiejar, sys, os
 
 BASE = "http://localhost:3001"
 cj = http.cookiejar.CookieJar()
@@ -23,7 +23,7 @@ channels = [
     ("zhipu", 1, "b1507e110d3c493ebcc7fa819e8515a3.5I7IiGIFJ4tJYhbR",
      "https://open.bigmodel.cn/api/paas/v4",
      "glm-4-flash,glm-4.7-flash", "trivial,general", 100),
-    ("siliconflow", 1, "sk-owrkbtvlwvzxcgpoehnminlrszmjyksuqarusjhlnnaormop",
+    ("siliconflow", 1, os.environ.get("SILICONFLOW_API_KEY", ""),
      "https://api.siliconflow.cn/v1",
      "Qwen/Qwen3-8B,THUDM/glm-4-9b-chat,deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
      "trivial,general,thinking", 100),
@@ -33,7 +33,7 @@ channels = [
     ("volcengine", 1, "ark-70b27768-13f2-4641-b57b-ffdb22e51633-d15d1",
      "https://ark.cn-beijing.volces.com/api/v3",
      "doubao-1-5-pro-256k", "general,thinking", 80),
-    ("aliyun", 1, "sk-c5173b8fece54c5bb81ad92b75a3e193",
+    ("aliyun", 1, os.environ.get("ALIYUN_API_KEY", ""),
      "https://dashscope.aliyuncs.com/compatible-mode/v1",
      "qwen3-8b,qwen-3-coder-plus", "general,code", 80),
     ("tencent", 1, "ak-20260501-da4f353b8eaeb218dd80d89b2a1ef9f5",
@@ -110,7 +110,6 @@ channels = [
 ]
 
 # 从云端 .env 读取实际 Key 替换 placeholder
-import os
 KEY_MAP = {
     "GROQ_KEY_PLACEHOLDER": os.environ.get("GROQ_API_KEY", ""),
     "MISTRAL_KEY_PLACEHOLDER": os.environ.get("MISTRAL_API_KEY", ""),
@@ -171,8 +170,7 @@ for g in groups_list:
     try:
         r = api("POST", "/api/token/", body)
         if r.get("success"):
-            key = r["data"]["key"]
-            print(f"  {g}: sk-{key}")
+            print(f"  {g}: token created")
         else:
             print(f"  {g}: FAIL -> {r.get('message', '')}")
     except Exception as e:

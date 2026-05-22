@@ -1,6 +1,7 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
+import os
 """Fix one-api: register groups in system config, then fix tokens"""
-import urllib.request, json, http.cookiejar, sys
+import urllib.request, json, http.cookiejar, sys, os
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -63,7 +64,7 @@ for t in tokens.get("data", []):
 
 # Step 4: Test call with trivial token
 print("\n=== Step 3: Test Call ===")
-TOKEN = "sk-vBFKwKQQc25ZsyjS4e2e731dAa0849A99b24C0E699306524"
+TOKEN = os.environ.get("ONEAPI_ACCESS_TOKEN", "")
 body = json.dumps({
     "model": "glm-4-flash",
     "messages": [{"role": "user", "content": "say hi"}],

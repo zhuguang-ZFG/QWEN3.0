@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
+import os
 """Final test: zhipu/github via Python path proxy through one-api"""
 import urllib.request, json, http.cookiejar, sys, os, time
 
@@ -72,7 +73,7 @@ for port, key, model, name in [
 
 # Step 3: Test through one-api (channels already point to 10.88.0.1)
 print("\n=== Through one-api ===")
-TOKEN = "sk-jutfJuQ8xmWHTn2h87B2C5661a1e497cAb6f5b8d0b396e2b"
+TOKEN = os.environ.get("ONEAPI_ACCESS_TOKEN", "")
 for model, name in [("glm-4-flash", "zhipu"), ("gpt-4o-mini", "github")]:
     body = json.dumps({"model": model, "messages": [{"role": "user", "content": "hi"}], "max_tokens": 5}).encode()
     req = urllib.request.Request(BASE + "/v1/chat/completions", data=body,

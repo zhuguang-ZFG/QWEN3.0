@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
+import os
 """Fix: one-api container can't reach host's localhost, use host.containers.internal"""
 import urllib.request, json, http.cookiejar, sys, os, time
 
@@ -69,7 +70,7 @@ time.sleep(1)
 
 # Test
 print("\n=== Testing through one-api ===")
-TOKEN = "sk-jutfJuQ8xmWHTn2h87B2C5661a1e497cAb6f5b8d0b396e2b"
+TOKEN = os.environ.get("ONEAPI_ACCESS_TOKEN", "")
 tests = [
     ("glm-4-flash", "zhipu"),
     ("gpt-4o-mini", "github"),

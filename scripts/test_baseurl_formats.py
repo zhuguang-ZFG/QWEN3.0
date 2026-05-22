@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
+import os
 """Test: try base_url WITHOUT /v1 for type=1 channels
 Theory: type=1 (OpenAI) appends /v1/chat/completions to base_url
 So base_url should be the root domain without /v1"""
@@ -43,7 +44,7 @@ for page in range(5):
         break
     all_channels.extend(data)
 
-TOKEN = "sk-jutfJuQ8xmWHTn2h87B2C5661a1e497cAb6f5b8d0b396e2b"
+TOKEN = os.environ.get("ONEAPI_ACCESS_TOKEN", "")
 
 # Test different base_url formats for zhipu
 zhipu_ch = None

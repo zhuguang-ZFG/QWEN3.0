@@ -1,6 +1,7 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
+import os
 """Fix one-api channels batch 1: fix base_urls and types"""
-import urllib.request, json, http.cookiejar, sys, time
+import urllib.request, json, http.cookiejar, sys, time, os
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -86,7 +87,7 @@ print("\nFixed: " + str(fixed) + " channels")
 
 # Test the fixed channels
 print("\n=== Testing fixed channels ===")
-TOKEN = "sk-jutfJuQ8xmWHTn2h87B2C5661a1e497cAb6f5b8d0b396e2b"
+TOKEN = os.environ.get("ONEAPI_ACCESS_TOKEN", "")
 tests = [
     ("glm-4-flash", "zhipu"),
     ("Qwen/Qwen3-8B", "siliconflow"),

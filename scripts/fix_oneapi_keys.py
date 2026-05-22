@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
+import os
 """Re-populate all one-api channel keys (they were wiped by PUT updates)"""
 import urllib.request, json, http.cookiejar, sys, time, os
 
@@ -86,7 +87,7 @@ print("\nFixed: " + str(fixed) + ", Skipped: " + str(skipped))
 
 # Quick test
 print("\n=== Quick Test ===")
-TOKEN = "sk-jutfJuQ8xmWHTn2h87B2C5661a1e497cAb6f5b8d0b396e2b"
+TOKEN = os.environ.get("ONEAPI_ACCESS_TOKEN", "")
 tests = [
     ("glm-4-flash", "zhipu"),
     ("llama-3.3-70b-versatile", "groq"),
