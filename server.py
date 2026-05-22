@@ -1788,7 +1788,8 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
     # ── Integration: Guardrails (Phase 19) ────────────────────────────────
     try:
         from context_pipeline.guardrails import run_input_guardrails, GuardrailSeverity
-        guard_result = run_input_guardrails(req.messages)
+        raw_messages = [{"role": m.role, "content": m.content} if hasattr(m, 'role') else m for m in req.messages]
+        guard_result = run_input_guardrails(raw_messages)
         if not guard_result.passed and guard_result.severity == GuardrailSeverity.BLOCK:
             raise HTTPException(status_code=422, detail=f"Input blocked: {guard_result.violations}")
     except ImportError:
