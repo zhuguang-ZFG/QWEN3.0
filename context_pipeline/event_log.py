@@ -5,8 +5,10 @@ Based on Google ADK Event-based Session pattern:
 - Events are stored in-memory with optional persistence
 - Supports replay, analysis, and debugging
 - Enables observability without external monitoring tools
+- Uses contextvars for async-safe request scoping
 """
 
+import contextvars
 import time
 from dataclasses import dataclass, field
 from enum import Enum
@@ -85,16 +87,22 @@ class EventLog:
         self._events.clear()
 
 
-# Global request-scoped event log
-_request_log = EventLog()
+# Async-safe request-scoped event log using contextvars
+_request_log_var: contextvars.ContextVar[EventLog] = contextvars.ContextVar(
+    "request_log", default=None
+)
 
 
 def get_request_log() -> EventLog:
-    return _request_log
+    log = _request_log_var.get(None)
+    if log is None:
+        log = EventLog()
+        _request_log_var.set(log)
+    return log
 
 
 def new_request_log() -> EventLog:
     """Create a fresh event log for a new request lifecycle."""
-    global _request_log
-    _request_log = EventLog()
-    return _request_log
+    log = EventLog()
+    _request_log_var.set(log)
+    return log
