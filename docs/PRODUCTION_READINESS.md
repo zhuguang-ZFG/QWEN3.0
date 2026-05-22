@@ -190,3 +190,36 @@
 ## 七、与 Cursor Auto 的最终对齐
 
 
+
+
+---
+
+## 八、验证结果 (2026-05-22 执行)
+
+### call_fn 对接: PASS
+
+
+
+### 后端池名: PASS (11/11)
+
+| Pool | Backend | 验证 |
+|------|---------|------|
+| fast | groq_gptoss | backends.py:35 |
+| fast | cerebras_gptoss | backends.py:42 |
+| fast | groq_llama4 | backends.py:38 |
+| fast | longcat_lite | backends.py:10 |
+| coder | cf_qwen_coder | backends.py:57 |
+| coder | mistral_codestral | backends.py:72 |
+| coder | nvidia_qwen_coder | backends.py:17 |
+| coder | groq_llama70b | backends.py:34 |
+| strong | cf_deepseek_r1 | backends.py:62 |
+| strong | github_gpt4o | backends.py:43 |
+| strong | sambanova_ds_v3 | backends.py:117 |
+
+### Streaming 路径: BLOCKED
+
+
+
+### 下一步执行项
+
+
