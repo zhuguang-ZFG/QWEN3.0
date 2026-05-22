@@ -1,0 +1,102 @@
+[
+  {
+    "id": "duck_ai",
+    "url": "https://duck.ai/chat",
+    "probe_status": "ok",
+    "reverse_status": "already_reversed_local",
+    "admission_status": "admitted_late_fallback",
+    "route_allowed": true,
+    "private_code_allowed": false,
+    "reason": "local adapter and route admission evidence exist"
+  },
+  {
+    "id": "heck_ai",
+    "url": "https://heck.ai/zh",
+    "probe_status": "ok",
+    "reverse_status": "adapter_draft_exists",
+    "admission_status": "adapter_draft_pending",
+    "route_allowed": false,
+    "private_code_allowed": false,
+    "reason": "adapter draft exists but model smoke is not admitted"
+  },
+  {
+    "id": "hix_chat",
+    "url": "https://hix.ai/a/chat",
+    "probe_status": "ok",
+    "reverse_status": "not_reversed_page_only",
+    "admission_status": "sandbox_only",
+    "route_allowed": false,
+    "private_code_allowed": false,
+    "reason": "reachable page-only candidate; no hot-path adapter"
+  },
+  {
+    "id": "gpt_chat",
+    "url": "https://gpt.chat",
+    "probe_status": "ok",
+    "reverse_status": "not_reversed_page_only",
+    "admission_status": "sandbox_only",
+    "route_allowed": false,
+    "private_code_allowed": false,
+    "reason": "reachable page-only candidate; no hot-path adapter"
+  },
+  {
+    "id": "deep_seek_mirror",
+    "url": "https://deep-seek.com",
+    "probe_status": "ok",
+    "reverse_status": "not_reversed_page_only",
+    "admission_status": "sandbox_only",
+    "route_allowed": false,
+    "private_code_allowed": false,
+    "reason": "reachable page-only candidate; no hot-path adapter"
+  },
+  {
+    "id": "plai_chat",
+    "url": "https://plai.chat",
+    "probe_status": "ok",
+    "reverse_status": "not_reversed_page_only",
+    "admission_status": "sandbox_only",
+    "route_allowed": false,
+    "private_code_allowed": false,
+    "reason": "reachable page-only candidate; no hot-path adapter"
+  },
+  {
+    "id": "deep_seek_ai",
+    "url": "https://deep-seek.ai/",
+    "probe_status": "ok",
+    "reverse_status": "not_reversed_page_only",
+    "admission_status": "sandbox_only",
+    "route_allowed": false,
+    "private_code_allowed": false,
+    "reason": "reachable page-only candidate; no hot-path adapter"
+  },
+  {
+    "id": "glm_ai_chat",
+    "url": "https://glm-ai.chat/",
+    "probe_status": "ok",
+    "reverse_status": "not_reversed_page_only",
+    "admission_status": "sandbox_only",
+    "route_allowed": false,
+    "private_code_allowed": false,
+    "reason": "reachable page-only candidate; no hot-path adapter"
+  },
+  {
+    "id": "instantseek",
+    "url": "https://instantseek.org/",
+    "probe_status": "unknown_error",
+    "reverse_status": "not_reversed_page_only",
+    "admission_status": "sandbox_only",
+    "route_allowed": false,
+    "private_code_allowed": false,
+    "reason": "reachable page-only candidate; no hot-path adapter"
+  },
+  {
+    "id": "chat_gpt_org",
+    "url": "https://chat-gpt.org/",
+    "probe_status": "ok",
+    "reverse_status": "not_reversed_page_only",
+    "admission_status": "sandbox_only",
+    "route_allowed": false,
+    "private_code_allowed": false,
+    "reason": "reachable page-only candidate; no hot-path adapter"
+  }
+]

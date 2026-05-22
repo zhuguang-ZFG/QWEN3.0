@@ -7,7 +7,9 @@
     "private_code_allowed": false,
     "reverse_status": "already_reversed_local",
     "local_adapter": "D:/duckai",
-    "note": "Do not spend new reverse-engineering time here; fix LiMa integration and tunnel instead."
+    "admission_passed": true,
+    "admitted_models": ["ddg_gpt4o_mini", "ddg_gpt5_mini"],
+    "note": "Already reversed locally; admitted only as late fallback until tunnel/stability evidence improves."
   },
   {
     "id": "heck_ai",
@@ -47,6 +49,38 @@
     "id": "plai_chat",
     "url": "https://plai.chat",
     "trust": "low-medium",
+    "enabled": false,
+    "private_code_allowed": false,
+    "reverse_status": "not_reversed_page_only"
+  },
+  {
+    "id": "deep_seek_ai",
+    "url": "https://deep-seek.ai/",
+    "trust": "low",
+    "enabled": false,
+    "private_code_allowed": false,
+    "reverse_status": "not_reversed_page_only"
+  },
+  {
+    "id": "glm_ai_chat",
+    "url": "https://glm-ai.chat/",
+    "trust": "low",
+    "enabled": false,
+    "private_code_allowed": false,
+    "reverse_status": "not_reversed_page_only"
+  },
+  {
+    "id": "instantseek",
+    "url": "https://instantseek.org/",
+    "trust": "low",
+    "enabled": false,
+    "private_code_allowed": false,
+    "reverse_status": "not_reversed_page_only"
+  },
+  {
+    "id": "chat_gpt_org",
+    "url": "https://chat-gpt.org/",
+    "trust": "low",
     "enabled": false,
     "private_code_allowed": false,
     "reverse_status": "not_reversed_page_only"

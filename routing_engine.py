@@ -16,6 +16,7 @@ import router_v3
 import health_tracker
 import sticky_session
 import budget_manager
+import route_scorer
 import speculative
 import identity_guard
 import skills_injector as skills_mod
@@ -132,9 +133,24 @@ def select(request_type: str, health_map: dict,
             + random.uniform(0, 8)
         ))
 
+    result = [b for b in result if not health_tracker.is_cooled_down(b)]
+    states = {b: health_tracker.get_backend_state(b) for b in result}
+    result = [
+        b for b in result
+        if route_scorer.is_selectable(b, request_type, states.get(b))
+    ]
+    result = route_scorer.rank_backends(
+        result, request_type, scenario,
+        health_scores=health_tracker.get_scores(),
+        states=states,
+        latency_map=health_tracker.get_latency_map())
+
     if sticky_key:
         pinned = sticky_session.get_pinned_backend(sticky_key)
-        if pinned and health_map.get(pinned, "healthy") != "dead":
+        if (pinned and health_map.get(pinned, "healthy") != "dead"
+                and route_scorer.is_selectable(
+                    pinned, request_type,
+                    health_tracker.get_backend_state(pinned))):
             result = _prioritize(pinned, result)
 
     return result[:MAX_FALLBACKS]

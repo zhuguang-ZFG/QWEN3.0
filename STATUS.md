@@ -164,7 +164,7 @@ Latest local reverse AI inventory:
 - DuckAI public tunnel `https://ddg.zhuguang.ccwu.cc/v1/models` currently returns Cloudflare 1033, so local `4500` is the known-good path.
 - SCNet-large local proxy `4505` is working; Kimi local `4504` is running but chat returns `chat.anonymous_usage_exceeded`; TheOldLLM local `4502` exposes models but chat timed out.
 - HeckAI has an existing worker draft in `D:\ollama_server\heckai-worker.js`; HIX Chat, GPT.chat, Deep-seek mirror, and PLAI.chat remain page-only candidates.
-- Next execution plan: `docs/superpowers/plans/2026-05-22-local-reverse-ai-integration.md`.
+- Completed execution record: `docs/superpowers/plans/2026-05-22-local-reverse-ai-integration.md`.
 
 Latest local reverse integration increment:
 
@@ -239,3 +239,32 @@ Latest token-safe local proxy routing increment:
 - Final verification:
   - `D:\GIT\venv\Scripts\python.exe -m py_compile server.py runtime_topology.py router_v3.py code_orchestrator.py test_routing_engine.py`: passed.
   - `D:\GIT\venv\Scripts\python.exe -m pytest test_routing_engine.py test_http_caller.py tests\test_coding_eval.py tests\test_lima_context.py -q --ignore=active_model`: `73 passed`.
+
+Latest open-phase completion:
+
+- Completed the remaining `task_plan.md` phases:
+  - Phase 5 IDE/agent verification.
+  - Phase 10 free web AI expansion.
+  - Phase 11 stability + free routing optimization.
+- New routing module: `route_scorer.py`.
+  - Scores quality, stability, latency, remaining quota, and task fit.
+  - Keeps stable order as tie-breaker.
+  - Excludes unproven web adapters from IDE routes.
+  - Skips terminal `auth_expired`, `manual_refresh_required`, and `quota_exhausted` states.
+- Free web AI admission:
+  - Probe command: `D:\GIT\venv\Scripts\python.exe scripts\probe_free_web_ai.py --timeout 20`.
+  - Admission command: `D:\GIT\venv\Scripts\python.exe scripts\build_free_web_ai_admission.py`.
+  - Evidence files: `data/free_web_ai_probe_results.json`, `data/free_web_ai_admission.json`, `docs/FREE_WEB_AI_ADMISSION.md`.
+  - Result: DuckAI admitted only as late fallback; HeckAI remains adapter-draft pending; all page-only candidates remain sandbox-only with private code disabled.
+- IDE/agent verification:
+  - Public OpenAI-compatible smoke returned exact `phase-complete-ok`, backend `scnet_ds_flash`.
+  - Public Anthropic-compatible `/v1/messages` smoke returned exact `ide-agent-complete`.
+  - Real Claude Code CLI returned exact `claude-cli-ok` using `ANTHROPIC_BASE_URL=https://chat.donglicao.com`, `ANTHROPIC_API_KEY=lima-local`, and `--model lima-1.3`.
+- VPS deployment:
+  - Backup: `/opt/lima-router/backups/complete-open-phases-20260522_214621`.
+  - Uploaded runtime files: `route_scorer.py`, `routing_engine.py`, `budget_manager.py`.
+  - Remote compile passed, `lima-router` restarted, `/health` returned 200.
+  - FRP `http://47.112.162.80:8088/health` returned 200.
+- Final verification:
+  - `D:\GIT\venv\Scripts\python.exe -m py_compile route_scorer.py free_web_ai_admission.py scripts\build_free_web_ai_admission.py routing_engine.py budget_manager.py test_routing_engine.py tests\test_route_scorer.py tests\test_free_web_ai_admission.py`: passed.
+  - `D:\GIT\venv\Scripts\python.exe -m pytest test_routing_engine.py test_http_caller.py tests\test_coding_eval.py tests\test_lima_context.py tests\test_free_web_ai_probe.py tests\test_free_web_ai_admission.py tests\test_route_scorer.py -q --ignore=active_model`: `86 passed`.

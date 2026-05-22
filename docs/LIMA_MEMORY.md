@@ -433,3 +433,52 @@ Final verification:
 - Public OpenAI-compatible smoke returned exact `topology-ok` with backend `longcat_chat`.
 - Public Anthropic `/v1/messages` smoke returned exact `ide-ok`.
 - FRP health `http://47.112.162.80:8088/health` returned 200.
+
+## 2026-05-22 Open Phase Completion
+
+Closed the final three `task_plan.md` in-progress phases.
+
+IDE/agent verification:
+
+- `docs/IDE_AGENT_VERIFICATION.md` is the durable verification record.
+- Public OpenAI-compatible IDE smoke returned exact `phase-complete-ok` with backend `scnet_ds_flash`.
+- Public Anthropic-compatible `/v1/messages` smoke returned exact `ide-agent-complete`.
+- Real Claude Code CLI command returned exact `claude-cli-ok`:
+
+```powershell
+$env:ANTHROPIC_API_KEY='lima-local'
+$env:ANTHROPIC_BASE_URL='https://chat.donglicao.com'
+claude --bare --model lima-1.3 --max-budget-usd 5 -p "Return exactly: claude-cli-ok"
+```
+
+Free web AI admission:
+
+- Candidate registry now includes DuckAI, HeckAI, HIX, GPT.chat, DeepSeek mirrors, PLAI, GLM-AI, InstantSeek, and chat-gpt.org.
+- Harmless probe output: `data/free_web_ai_probe_results.json`.
+- Admission output: `data/free_web_ai_admission.json` and `docs/FREE_WEB_AI_ADMISSION.md`.
+- DuckAI is admitted only as a late fallback from existing local reverse + coding admission evidence.
+- HeckAI stays `adapter_draft_pending`.
+- Page-only candidates stay `sandbox_only`; private code remains disabled.
+
+Stability and routing optimization:
+
+- Added `route_scorer.py` with effective score:
+  - quality 45%;
+  - stability 25%;
+  - latency 15%;
+  - remaining quota 10%;
+  - task fit 5%.
+- `routing_engine.select()` now filters exhausted budget, cooled-down backends, terminal auth/quota/manual-refresh states, and unproven web adapters for IDE routes.
+- `budget_manager.py` exposes `get_remaining_quota_score()`.
+
+Deployment:
+
+- VPS backup: `/opt/lima-router/backups/complete-open-phases-20260522_214621`.
+- Uploaded `route_scorer.py`, `routing_engine.py`, and `budget_manager.py`.
+- Remote compile passed, `lima-router` restarted, and VPS-local `/health` returned 200.
+
+Verification:
+
+- Local compile passed for touched runtime/test files.
+- Focused suite returned `86 passed`.
+- Public OpenAI-compatible smoke, Anthropic-compatible smoke, Claude Code CLI smoke, and FRP health all passed.

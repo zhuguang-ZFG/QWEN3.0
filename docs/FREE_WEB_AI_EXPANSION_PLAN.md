@@ -1,7 +1,7 @@
 # Free Web AI Expansion Plan
 
 > Date: 2026-05-22
-> Status: Active next-phase plan
+> Status: Complete
 > Scope: no-login or low-friction web AI sources, backend stability, and free-backend routing efficiency.
 
 ## Goal
@@ -112,9 +112,9 @@ effective_score =
 - Create: `docs/free-web-ai-candidates.md`
 - Create: `data/free_web_ai_candidates.json`
 
-- [ ] Record Duck.ai, HeckAI, Blackbox AI, You.com/Perplexity-style, and any newly discovered no-login candidates.
-- [ ] For each candidate, record URL, access style, auth requirement, known models, rate-limit evidence, and risk class.
-- [ ] Keep private-code routing disabled for all candidates by default.
+- [x] Record Duck.ai, HeckAI, HIX, GPT.chat, DeepSeek mirrors, PLAI, GLM-AI, InstantSeek, and chat-gpt.org candidates.
+- [x] For each candidate, record URL, access style, auth requirement, known models/evidence, and risk class.
+- [x] Keep private-code routing disabled for all candidates by default.
 
 ### Task 2: Sandbox Probe Harness
 
@@ -122,9 +122,9 @@ effective_score =
 - Create: `scripts/probe_free_web_ai.py`
 - Create: `tests/test_free_web_ai_probe.py`
 
-- [ ] Add a CLI that sends harmless probes only.
-- [ ] Normalize responses into `ok`, `rate_limited`, `quota_exhausted`, `auth_expired`, `blocked`, `timeout`, or `unknown_error`.
-- [ ] Write JSON output under `data/free_web_ai_probe_results.json`.
+- [x] Add a CLI that sends harmless probes only.
+- [x] Normalize responses into `ok`, `rate_limited`, `quota_exhausted`, `auth_expired`, `blocked`, `timeout`, or `unknown_error`.
+- [x] Write JSON output under `data/free_web_ai_probe_results.json`.
 
 ### Task 3: Stability State
 
@@ -133,9 +133,9 @@ effective_score =
 - Modify: `probe_loop.py`
 - Modify: `test_routing_engine.py`
 
-- [ ] Add backend state fields for auth/quota/manual-refresh conditions.
-- [ ] Add cooldown behavior for 429 and known quota messages.
-- [ ] Add regression tests for Kimi anonymous quota and SCNet/HTTP timeout cooldown.
+- [x] Add backend state fields for auth/quota/manual-refresh conditions.
+- [x] Add cooldown behavior for 429 and known quota messages.
+- [x] Add regression tests for Kimi anonymous quota and SCNet/HTTP timeout cooldown.
 
 ### Task 4: Quota-Aware Routing
 
@@ -144,9 +144,9 @@ effective_score =
 - Modify: `router_v3.py`
 - Modify: `budget_manager.py`
 
-- [ ] Add task-fit and remaining-quota signals to route selection.
-- [ ] Prefer free backends for simple requests while preserving stronger capacity for complex coding.
-- [ ] Keep web candidates out of Claude Code tool routes until structured output is proven.
+- [x] Add task-fit and remaining-quota signals to route selection.
+- [x] Prefer healthy free backends for simple requests while preserving stronger capacity for complex coding.
+- [x] Keep web candidates out of Claude Code/IDE routes until structured output is proven.
 
 ### Task 5: Closed-Loop Verification
 
@@ -155,12 +155,12 @@ effective_score =
 - Update: `docs/LIMA_MEMORY.md`
 - Update: `docs/FREE_MODEL_ROUTING_STATUS.md`
 
-- [ ] Run local pytest for changed routing/stability modules.
-- [ ] Run local harmless probes.
-- [ ] Deploy only after local tests pass.
-- [ ] Smoke `http://47.112.162.80:8088/health`, `/v1/models`, and `/v1/chat/completions`.
-- [ ] Record exact winners, failures, and cooldown decisions in docs.
+- [x] Run local pytest for changed routing/stability modules.
+- [x] Run local harmless probes.
+- [x] Deploy only after local tests pass.
+- [x] Smoke `http://47.112.162.80:8088/health`, `/v1/messages`, and `/v1/chat/completions`.
+- [x] Record exact winners, failures, and cooldown decisions in docs.
 
 ## Current Decision
 
-Do not add new no-login web AI sources directly to first-tier coding. First use `docs/LOCAL_REVERSE_AI_STATUS.md` to stabilize already-reversed local assets, then promote only candidates with measured stability and clear failure handling.
+Do not add new no-login web AI sources directly to first-tier coding. `docs/FREE_WEB_AI_ADMISSION.md` is now the admission source of truth: DuckAI is admitted only as late fallback from existing local reverse evidence; page-only candidates remain sandbox-only.

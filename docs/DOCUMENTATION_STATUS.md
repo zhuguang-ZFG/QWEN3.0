@@ -12,13 +12,16 @@
 | `docs/PERSONAL_CODING_ASSISTANT_PLAN.md` | Active | Product direction and backend tier strategy. |
 | `docs/FREE_MODEL_ROUTING_STATUS.md` | Active | SCNet/Kimi/free-model evidence and route policy. |
 | `docs/LOCAL_PROXY_RUNTIME_STATUS.md` | Active | Windows proxy, LiMa API, and FRP closure. |
-| `docs/FREE_WEB_AI_EXPANSION_PLAN.md` | Active | Next phase: no-login web AI, stability, and free routing efficiency. |
+| `docs/FREE_WEB_AI_EXPANSION_PLAN.md` | Active record | Completed no-login web AI candidate, stability, and free routing efficiency plan. |
+| `docs/FREE_WEB_AI_ADMISSION.md` | Active evidence | No-login web AI probe and admission decision record. |
+| `docs/IDE_AGENT_VERIFICATION.md` | Active evidence | OpenAI-compatible, Anthropic-compatible, and real Claude Code CLI endpoint verification. |
 | `docs/CLOUDFLARE_MODEL_INVENTORY.md` | Active | Cloudflare direct/Worker model inventory, routing policy, and adapter boundaries. |
 | `docs/CLOUDFLARE_WORKER_QUICK_EVAL.md` | Active evidence | Worker quick coding eval for `cfai_qwen_coder`, `cfai_deepseek_r1`, and `cfai_mistral`. |
 | `docs/EXECUTION_PLAN.md` | Active | Current phase tracker for documentation/GitHub snapshot and next implementation order. |
 | `docs/superpowers/plans/2026-05-22-cloudflare-workers-ai-routing.md` | Active record | Completed Cloudflare text/code routing implementation plan. |
 | `docs/superpowers/plans/2026-05-22-token-safe-local-proxy-routing.md` | Active record | Completed token-safe refresh, topology-aware local proxy routing, and exact-output quality hotfix plan. |
-| `docs/superpowers/plans/2026-05-22-free-web-ai-stability-routing.md` | Active plan | Step-by-step implementation plan for candidate registry, probes, stability, and quota-aware routing. |
+| `docs/superpowers/plans/2026-05-22-free-web-ai-stability-routing.md` | Active record | Completed candidate registry, probes, stability, and quota-aware routing plan. |
+| `docs/superpowers/plans/2026-05-22-complete-open-phases.md` | Active record | Completed closeout plan for IDE verification, free web AI admission, and routing optimization. |
 | `docs/superpowers/plans/2026-05-22-free-model-first-tier-eval.md` | Active record | Completed SCNet/Kimi first-tier evaluation plan. |
 | `docs/superpowers/plans/2026-05-22-personal-coding-assistant-eval.md` | Active record | Completed coding backend evaluation plan. |
 

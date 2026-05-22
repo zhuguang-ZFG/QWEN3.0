@@ -16,13 +16,13 @@ Turn the existing LiMa router into a private coding assistant that ranks coding 
 | 2. Direction reset | Complete | Commercial code/docs are removed and personal coding assistant plan is active. |
 | 3. Coding backend evaluation | Complete | Repeatable coding fixtures and backend score output exist. |
 | 4. Personal routing tiers | Complete | Fast, primary, strong, and fallback coding tiers are configured from evidence. |
-| 5. IDE/agent verification | In progress | At least one real coding client uses the private endpoint successfully. |
+| 5. IDE/agent verification | Complete | Claude Code CLI, OpenAI-compatible IDE smoke, and Anthropic-compatible IDE smoke use the private endpoint successfully. |
 | 6. Context preflight | Complete | Coding and Anthropic tool routes receive a compact request-local context digest. |
 | 7. Free model routing refresh | Complete | VPS-working SCNet/Kimi-family free models are documented and active where safe. |
 | 8. SCNet/Kimi first-tier eval | Complete | Direct SCNet models promoted; Kimi remains fallback/inactive until fixed. |
 | 9. Local proxy + FRP closure | Complete | VPS `8088` reaches Windows LiMa `8080`; public health/models/chat smokes pass. |
-| 10. Free web AI expansion | In progress | Candidate registry and reachability probe exist; model admission still pending. |
-| 11. Stability + free routing optimization | In progress | Failure-state classification exists; quota-aware routing still pending. |
+| 10. Free web AI expansion | Complete | Candidate registry, harmless probes, and admission decisions exist; unsafe page-only candidates remain sandboxed. |
+| 11. Stability + free routing optimization | Complete | Failure-state classification, terminal-state filtering, unproven web-adapter exclusion, and quota-aware scoring are implemented and deployed. |
 | 12. Local reverse AI inventory | Complete | Already-reversed adapters are separated from page-only candidates and documented. |
 | 13. Local reverse AI integration fixes | Complete | DuckAI no-system path is implemented, DuckAI/SCNet-large evals are recorded, Kimi and OldLLM are gated by current failures. |
 | 14. Cloudflare routing deployment | Complete | Direct and Worker Cloudflare coding capacity are routed, deployed, and smoke-tested on VPS. |
@@ -76,11 +76,11 @@ Turn the existing LiMa router into a private coding assistant that ranks coding 
   - Windows `4504` Kimi proxy is running, but chat returns `chat.anonymous_usage_exceeded`.
   - `frpc.exe` registers `redcode-api`.
   - After opening VPS `8088/tcp`, `http://47.112.162.80:8088/health`, `/v1/models`, and `/v1/chat/completions` returned HTTP 200.
-- Added next-phase docs for no-login web AI expansion, stability, and free routing optimization.
+- Completed no-login web AI expansion, stability, and free routing optimization docs and implementation.
 - Added sandbox candidate registry and probe harness for no-login web AI candidates.
 - Added backend failure-state classification for auth/quota/rate-limit/session/timeout cases.
 - Local reverse AI inventory now records that DuckAI, SCNet-large, Kimi, TheOldLLM, g4f, HeckAI draft, and page-only candidates are different states and should not be handled as one bucket.
-- `docs/superpowers/plans/2026-05-22-local-reverse-ai-integration.md` is the next execution plan.
+- `docs/superpowers/plans/2026-05-22-local-reverse-ai-integration.md` is a completed execution record.
 - DuckAI `no_system` integration is implemented; six DuckAI models are registered and only admitted as late fallback.
 - DuckAI route admission passed for `ddg_gpt4o_mini` and `ddg_gpt5_mini`; SCNet-large local eval passed for both local proxy models.
 - Cloudflare routing deployment backup: `/opt/lima-router/backups/cloudflare-routing-20260522_210441`.
@@ -98,15 +98,21 @@ Turn the existing LiMa router into a private coding assistant that ranks coding 
   - `server.py` exact-output quality gate hotfix prevents false `fallback_exhausted` on short direct-answer prompts.
   - Final local verification returned `73 passed`.
   - Public `/v1/chat/completions` returned exact `topology-ok`; public `/v1/messages` returned exact `ide-ok`; FRP `8088` health returned 200.
+- Open phase completion:
+  - `docs/IDE_AGENT_VERIFICATION.md` records OpenAI-compatible, Anthropic-compatible, and real Claude Code CLI verification.
+  - `docs/FREE_WEB_AI_ADMISSION.md` and `data/free_web_ai_admission.json` record no-login web AI admission decisions.
+  - `route_scorer.py` adds deterministic quality/stability/latency/quota/task-fit scoring.
+  - `routing_engine.py` skips cooled-down terminal auth/quota/manual-refresh states and excludes unproven web adapters from IDE routes.
+  - Local verification returned `86 passed`.
+  - VPS backup: `/opt/lima-router/backups/complete-open-phases-20260522_214621`.
+  - Public `/v1/chat/completions` returned exact `phase-complete-ok`; public `/v1/messages` returned exact `ide-agent-complete`; Claude Code CLI returned exact `claude-cli-ok`.
 
 ## Next Risks To Close
 
 - More backends should be re-evaluated as keys, rate limits, and local socket policy failures are fixed.
 - A private access policy for IDE/agent use needs to stay simple and explicit.
-- A real IDE/agent against the private endpoint still needs hands-on validation; current verification is API-level smoke plus Claude Code-compatible tool smoke.
 - If Kimi local or SCNet-large proxy models are needed, verify them through the Windows LiMa `8080` path or the VPS `8088` FRP path, not VPS `localhost:4504/4505`.
-- No-login web AI candidates must stay in sandbox until request shape, rate limits, and failure classes are understood.
-- Current no-login web AI probe result is page reachability only, not proof that a candidate is usable as a model backend.
+- Page-only no-login web AI candidates remain sandbox-only until a real adapter and model-level smoke exist.
 - Token refresh scripts are now safer to run, but refresh itself still needs a controlled pass with environment variables set and manual login/session state verified.
 
 ## Errors Encountered

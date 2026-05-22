@@ -4,7 +4,7 @@
     "url": "https://duck.ai/chat",
     "status": "ok",
     "http_status": 200,
-    "latency_ms": 251,
+    "latency_ms": 266,
     "private_code_allowed": false,
     "probe_prompt": "Say OK only."
   },
@@ -13,7 +13,7 @@
     "url": "https://heck.ai/zh",
     "status": "ok",
     "http_status": 200,
-    "latency_ms": 11060,
+    "latency_ms": 5811,
     "private_code_allowed": false,
     "probe_prompt": "Say OK only."
   },
@@ -22,7 +22,7 @@
     "url": "https://hix.ai/a/chat",
     "status": "ok",
     "http_status": 200,
-    "latency_ms": 1325,
+    "latency_ms": 811,
     "private_code_allowed": false,
     "probe_prompt": "Say OK only."
   },
@@ -31,7 +31,7 @@
     "url": "https://gpt.chat",
     "status": "ok",
     "http_status": 200,
-    "latency_ms": 3544,
+    "latency_ms": 1676,
     "private_code_allowed": false,
     "probe_prompt": "Say OK only."
   },
@@ -40,7 +40,7 @@
     "url": "https://deep-seek.com",
     "status": "ok",
     "http_status": 200,
-    "latency_ms": 1121,
+    "latency_ms": 962,
     "private_code_allowed": false,
     "probe_prompt": "Say OK only."
   },
@@ -49,7 +49,43 @@
     "url": "https://plai.chat",
     "status": "ok",
     "http_status": 200,
-    "latency_ms": 1252,
+    "latency_ms": 1160,
+    "private_code_allowed": false,
+    "probe_prompt": "Say OK only."
+  },
+  {
+    "id": "deep_seek_ai",
+    "url": "https://deep-seek.ai/",
+    "status": "ok",
+    "http_status": 200,
+    "latency_ms": 12393,
+    "private_code_allowed": false,
+    "probe_prompt": "Say OK only."
+  },
+  {
+    "id": "glm_ai_chat",
+    "url": "https://glm-ai.chat/",
+    "status": "ok",
+    "http_status": 200,
+    "latency_ms": 1459,
+    "private_code_allowed": false,
+    "probe_prompt": "Say OK only."
+  },
+  {
+    "id": "instantseek",
+    "url": "https://instantseek.org/",
+    "status": "unknown_error",
+    "http_status": null,
+    "latency_ms": 3362,
+    "private_code_allowed": false,
+    "probe_prompt": "Say OK only."
+  },
+  {
+    "id": "chat_gpt_org",
+    "url": "https://chat-gpt.org/",
+    "status": "ok",
+    "http_status": 200,
+    "latency_ms": 6297,
     "private_code_allowed": false,
     "probe_prompt": "Say OK only."
   }

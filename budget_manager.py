@@ -121,6 +121,10 @@ def get_budget_priority(backend: str) -> float:
     return max(0.0, 1.0 - ratio)
 
 
+def get_remaining_quota_score(backend: str) -> float:
+    return get_budget_priority(backend)
+
+
 def get_budget_status(backend: str) -> str:
     """返回: 'normal' | 'warning' | 'exhausted'"""
     cfg = BACKEND_BUDGETS.get(backend)
@@ -153,3 +157,14 @@ def get_all_budgets() -> dict[str, dict]:
                 "status": get_budget_status(backend),
             }
         return result
+
+
+def reset_for_tests():
+    with _lock:
+        _usage.clear()
+
+
+def set_usage_for_tests(backend: str, used: int):
+    with _lock:
+        _check_reset()
+        _usage[backend] = used

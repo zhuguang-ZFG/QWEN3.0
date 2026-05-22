@@ -162,7 +162,7 @@ Expected: all tests pass.
 - Modify: `router_v3.py`
 - Modify: `budget_manager.py`
 
-- [ ] **Step 1: Add scoring tests**
+- [x] **Step 1: Add scoring tests**
 
 Add tests proving:
 
@@ -172,7 +172,7 @@ manual_refresh_required backend is skipped
 tool-call route excludes unproven web adapters
 ```
 
-- [ ] **Step 2: Implement effective score**
+- [x] **Step 2: Implement effective score**
 
 Use this formula:
 
@@ -185,7 +185,7 @@ effective_score =
   + task_fit_score * 0.05
 ```
 
-- [ ] **Step 3: Verify focused tests**
+- [x] **Step 3: Verify focused tests**
 
 Run:
 
@@ -203,7 +203,7 @@ Expected: all tests pass.
 - Update: `docs/FREE_MODEL_ROUTING_STATUS.md`
 - Update: `docs/free-web-ai-candidates.md`
 
-- [ ] **Step 1: Run local verification**
+- [x] **Step 1: Run local verification**
 
 Run:
 
@@ -213,7 +213,7 @@ D:\GIT\venv\Scripts\python.exe -m pytest -q test_routing_engine.py test_rate_lim
 
 Expected: all tests pass.
 
-- [ ] **Step 2: Run public FRP smoke**
+- [x] **Step 2: Run public FRP smoke**
 
 Run:
 
@@ -223,7 +223,7 @@ curl.exe --noproxy "*" -sS --max-time 15 http://47.112.162.80:8088/health
 
 Expected: response contains `"status":"ok"`.
 
-- [ ] **Step 3: Update memory docs**
+- [x] **Step 3: Update memory docs**
 
 Record:
 
@@ -236,7 +236,7 @@ route policy changes
 verification command outputs
 ```
 
-- [ ] **Step 4: Commit and push**
+- [x] **Step 4: Commit and push**
 
 Run:
 
