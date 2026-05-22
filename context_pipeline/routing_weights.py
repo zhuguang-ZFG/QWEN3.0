@@ -59,7 +59,12 @@ class RoutingWeights:
             key, BackendWeight(backend=backend, scenario=scenario)
         )
         w.successes += 1
-        w.weight = min(2.0, w.weight + 0.05)
+        # GRPO advantage estimation (OpenClaw-RL pattern)
+        baseline = self._scenario_baseline(scenario)
+        advantage = 1.0 - baseline
+        lr = 0.08
+        delta = max(-0.15, min(0.15, advantage * lr))
+        w.weight = min(2.0, max(0.1, w.weight + delta))
         w.last_updated = time.time()
         self._save()
 
@@ -69,9 +74,22 @@ class RoutingWeights:
             key, BackendWeight(backend=backend, scenario=scenario)
         )
         w.failures += 1
-        w.weight = max(0.1, w.weight - 0.1)
+        # GRPO advantage estimation (OpenClaw-RL pattern)
+        baseline = self._scenario_baseline(scenario)
+        advantage = 0.0 - baseline
+        lr = 0.08
+        delta = max(-0.15, min(0.15, advantage * lr))
+        w.weight = min(2.0, max(0.1, w.weight + delta))
         w.last_updated = time.time()
         self._save()
+
+    def _scenario_baseline(self, scenario: str) -> float:
+        """Average success rate across all backends for this scenario."""
+        rates = []
+        for key, w in self._weights.items():
+            if key.endswith(f":{scenario}"):
+                rates.append(w.success_rate)
+        return sum(rates) / len(rates) if rates else 0.5
 
     def rank_backends(self, backends: list[str], scenario: str) -> list[str]:
         """Rank backends by learned weight for a given scenario."""

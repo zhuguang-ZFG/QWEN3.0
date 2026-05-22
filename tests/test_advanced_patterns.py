@@ -78,11 +78,11 @@ def test_skill_recall_miss():
 
 
 def test_skill_expiry():
-    import time
     store = SkillStore()
     messages = [{"role": "user", "content": "test expiry"}]
     skill = store.crystallize(messages, "chat", "groq", 2, 200)
-    skill.last_used = time.time() - 80 * 3600  # 80 hours ago (> 72h TTL)
+    # Phase 28: EMA decay — weight below 0.1 means expired
+    skill.weight = 0.05
     assert skill.is_expired is True
     assert store.recall(messages, "chat") is None
 

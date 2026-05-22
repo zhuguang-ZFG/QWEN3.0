@@ -24,12 +24,20 @@ class RoutingSkill:
     created_at: float
     last_used: float
     use_count: int = 0
-    ttl_hours: float = 72.0
+    weight: float = 1.0  # Cognee EMA feedback weight
+    alpha: float = 0.1
 
     @property
     def is_expired(self) -> bool:
-        age_hours = (time.time() - self.last_used) / 3600
-        return age_hours > self.ttl_hours
+        return self.weight < 0.1
+
+    def on_success(self) -> None:
+        """EMA weight growth on successful reuse."""
+        self.weight = min(3.0, self.weight * (1 + self.alpha * 0.5))
+
+    def on_failure(self) -> None:
+        """EMA weight decay on failure."""
+        self.weight *= (1 - self.alpha)
 
 
 class SkillStore:
@@ -72,6 +80,7 @@ class SkillStore:
         if skill and not skill.is_expired:
             skill.last_used = time.time()
             skill.use_count += 1
+            skill.on_success()
             return skill
         if skill and skill.is_expired:
             del self._skills[key]
