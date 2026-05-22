@@ -12,7 +12,7 @@
 | Coding routing | Active | `code_orchestrator.py`, `routing_engine.py`, and `router_v3.py` route coding traffic by evidence-backed tiers. |
 | Cloudflare AI routing | Active | Direct `cf_*` and Worker `cfai_*` text/code models are documented and routed; Worker qwen/deepseek quick eval passed. |
 | IDE context preflight | Deployed | `lima_context.py` injects request-local context into coding and Anthropic tool paths. |
-| Claude Code tool path | Deployed | `/v1/messages` tool smoke returned `tool_use` after speed and context changes. |
+| Claude Code tool path | Hardened | `/v1/messages` now guards malformed HTTP 200 tool-backend responses; real Claude Code large-file `Read` loop passed after deploy. |
 | VPS safety baseline | Retained | HTTPS, headers, internal port blocking, backup practices. |
 
 ## Latest Routing Facts
@@ -112,6 +112,19 @@ Latest free-model routing deployment:
 - VPS `/health`: 200.
 - Public coding smoke: 200 in 4585ms.
 - Public Anthropic tool smoke: 200 in 672ms with `stop_reason=tool_use`.
+
+Latest Claude Code protocol hardening:
+
+- Root cause class: some OpenAI-compatible free tool backends can return HTTP 200 with an empty or non-standard `choices[0].message`; older LiMa conversion could turn that into an Anthropic message with empty `content`.
+- Fix: `server.py` now guarantees `_convert_response_openai_to_anthropic()` returns a valid Anthropic message with at least one content block, normalizes list-style text content, handles malformed `choices`, and emits `input: {}` in streaming `tool_use` block starts.
+- Regression tests: `tests/test_anthropic_tool_protocol.py`.
+- Local verification: `py_compile server.py`; focused suite returned `90 passed, 5 skipped`.
+- VPS backup: `/opt/lima-router/backups/claude-tool-protocol-20260522_220037`.
+- VPS deployment: remote compile passed, `lima-router` restarted active, VPS-local `/health` returned 200.
+- Public verification:
+  - `https://chat.donglicao.com/v1/messages` returned exact `deployed-msg-ok`.
+  - Real Claude Code CLI `Read D:\GIT\server.py` returned exact `deployed-read-ok` with a two-turn tool loop and about 108k input tokens.
+  - FRP health `http://47.112.162.80:8088/health` returned 200.
 
 Latest SCNet/Kimi first-tier eval:
 

@@ -132,3 +132,37 @@ Claude Code 请求 (带 tools)
 2. 集成测试：从服务器 localhost 发带 tools 的请求
 3. 端到端：Claude Code 执行 read_file / bash 等 tool call
 4. 性能：响应时间从 28s 降到 <10s
+
+## 2026-05-22 Claude Code malformed HTTP 200 hardening
+
+### Symptom
+
+Claude Code can finish the local `Read` tool and then fail the next API turn with:
+
+```text
+API returned an empty or malformed response (HTTP 200)
+```
+
+Minimal and large-file `Read` loops against `https://chat.donglicao.com/v1/messages`
+currently pass, so the failure is not a total protocol outage. The likely trigger is
+an upstream free tool backend returning an OpenAI-compatible response with an empty
+or non-standard `choices[0].message`, which LiMa previously converted into an
+Anthropic HTTP 200 response with an empty `content` array.
+
+### Fix Plan
+
+1. Keep tool routing multi-backend and do not disable free backends globally.
+2. Make `_convert_response_openai_to_anthropic()` total for malformed upstream
+   responses: it must always return a valid Anthropic message object with at
+   least one content block.
+3. Preserve valid `tool_calls` as Anthropic `tool_use` blocks.
+4. Emit `input: {}` in streaming `tool_use` block starts, matching common
+   Anthropic SSE bridge implementations.
+5. Add regression tests for empty OpenAI messages, malformed choices, text-list
+   content normalization, and tool-use SSE shape.
+
+### Verification
+
+- Unit tests must prove bad upstream responses no longer produce empty Anthropic
+  content.
+- Real Claude CLI smoke must include a two-turn `Read` loop against a large file.

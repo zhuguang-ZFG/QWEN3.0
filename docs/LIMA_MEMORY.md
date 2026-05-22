@@ -482,3 +482,45 @@ Verification:
 - Local compile passed for touched runtime/test files.
 - Focused suite returned `86 passed`.
 - Public OpenAI-compatible smoke, Anthropic-compatible smoke, Claude Code CLI smoke, and FRP health all passed.
+
+## 2026-05-22 Claude Code Tool Protocol Hardening
+
+User-reported symptom:
+
+- Claude Code connected to LiMa completed a local `Read` tool, then failed the next API turn with `API returned an empty or malformed response (HTTP 200)`.
+- Repeating `继续` hit the same error in the same Claude Code session.
+
+Diagnosis:
+
+- Basic public `/v1/messages` and simple Claude CLI requests were healthy.
+- Minimal real Claude Code `Read D:\GIT\routing_engine.py` tool loop passed.
+- Large real Claude Code `Read D:\GIT\server.py` tool loop also passed before the fix, so this was not a total tool-protocol outage.
+- The uncovered root-cause class was upstream response shape drift: a free OpenAI-compatible tool backend can return HTTP 200 with empty or malformed `choices[0].message`; the old converter could produce Anthropic HTTP 200 with an empty `content` array.
+
+Fix:
+
+- Added `tests/test_anthropic_tool_protocol.py` to cover:
+  - empty OpenAI assistant message;
+  - malformed `choices`;
+  - list-style text content normalization;
+  - streaming `tool_use` start block shape.
+- Updated `server.py` so `_convert_response_openai_to_anthropic()` always returns a valid Anthropic message with at least one content block.
+- Preserved valid OpenAI `tool_calls` as Anthropic `tool_use`.
+- Added `input: {}` to simulated Anthropic SSE `tool_use` content block starts.
+- Updated `docs/CLAUDE_CODE_TOOL_ROUTING.md` with the failure mode and verification plan.
+
+Verification:
+
+- RED: new protocol tests initially failed 4/4 against the old conversion behavior.
+- GREEN: `tests/test_anthropic_tool_protocol.py` passed 4/4.
+- Local compile: `D:\GIT\venv\Scripts\python.exe -m py_compile server.py`.
+- Focused suite: `90 passed, 5 skipped`.
+- VPS backup: `/opt/lima-router/backups/claude-tool-protocol-20260522_220037`.
+- VPS remote compile passed; `lima-router` restarted active; VPS-local `/health` returned 200.
+- Public `/v1/messages` smoke returned exact `deployed-msg-ok`.
+- Real Claude Code CLI large-file tool loop returned exact `deployed-read-ok`.
+- FRP `http://47.112.162.80:8088/health` returned 200.
+
+Operational lesson:
+
+- If Claude Code reports malformed HTTP 200 after a tool result, inspect the Anthropic conversion boundary before assuming FRP, nginx, or Claude CLI config is broken.

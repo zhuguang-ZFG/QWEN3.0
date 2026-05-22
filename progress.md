@@ -221,3 +221,21 @@
   - `docs/SCNET_LARGE_ROUTE_EVAL.md`
   - `scnet_large_ds_flash` and `scnet_large_ds_pro`: both 3/3.
 - Reproduced TheOldLLM local `4502` 30s chat timeout and left it late until refresh/log safety plus upstream diagnosis are closed.
+
+## 2026-05-22 Claude Code LiMa Tool-Loop Incident
+
+- Reproduced healthy baseline:
+  - Claude CLI simple prompt returned `claude-cli-ok`.
+  - Claude CLI `Read D:\GIT\routing_engine.py` returned `read-loop-ok`.
+  - Claude CLI stream-json `Read D:\GIT\server.py` returned `read-server-ok`.
+- Identified unguarded protocol boundary in `server.py`: empty or malformed OpenAI-style upstream tool responses could become Anthropic HTTP 200 responses with empty `content`.
+- Added failing regression tests in `tests/test_anthropic_tool_protocol.py`; initial run failed 4/4.
+- Hardened `_convert_response_openai_to_anthropic()` and simulated Anthropic SSE `tool_use` block starts.
+- Verification:
+  - `tests/test_anthropic_tool_protocol.py`: `4 passed`.
+  - Focused suite: `90 passed, 5 skipped`.
+  - VPS backup: `/opt/lima-router/backups/claude-tool-protocol-20260522_220037`.
+  - VPS health: 200.
+  - Public `/v1/messages`: exact `deployed-msg-ok`.
+  - Real Claude CLI large-file `Read`: exact `deployed-read-ok`.
+  - FRP health: 200.
