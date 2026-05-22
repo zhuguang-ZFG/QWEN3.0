@@ -67,12 +67,12 @@ if USE_V3:
                 if pool:
                     return pool[0]
             else:
-                # 非编程：只用已验证不会生成代码的后端
                 chat_only = ["longcat_chat", "longcat_lite", "groq_llama70b",
                              "cf_llama70b", "deepseek_free", "zhipu_flash"]
                 for b in chat_only:
-                    if ht.is_healthy(b, hmap):
+                    if not ht.is_cooled_down(b):
                         return b
+                return "longcat_chat"
         except Exception:
             pass
         backends = routing_engine.select("chat", hmap, scenario="chat")
