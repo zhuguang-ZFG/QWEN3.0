@@ -67,9 +67,8 @@ if USE_V3:
                 if pool:
                     return pool[0]
             else:
-                chat_only = ["groq_llama70b", "cf_llama70b",
-                             "deepseek_free", "zhipu_flash",
-                             "longcat_lite", "longcat_chat"]
+                chat_only = ["deepseek_free", "zhipu_flash", "cf_llama70b",
+                             "groq_llama70b", "longcat_lite", "longcat_chat"]
                 for b in chat_only:
                     if not ht.is_cooled_down(b):
                         return b
@@ -96,9 +95,8 @@ if USE_V3:
                 if pool:
                     return (pool[0], messages)
             else:
-                chat_only = ["groq_llama70b", "cf_llama70b",
-                             "deepseek_free", "zhipu_flash",
-                             "longcat_lite", "longcat_chat"]
+                chat_only = ["deepseek_free", "zhipu_flash", "cf_llama70b",
+                             "groq_llama70b", "longcat_lite", "longcat_chat"]
                 for b in chat_only:
                     if not ht.is_cooled_down(b):
                         return (b, messages)
