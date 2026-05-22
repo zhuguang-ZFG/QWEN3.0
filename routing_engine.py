@@ -128,12 +128,33 @@ def select(request_type: str, health_map: dict,
     # 预算接近耗尽的后端降权
     scores = health_tracker.get_scores()
     if scores:
+        # ── Integration: Routing Weights (Phase 15) ───────────────────────
+        try:
+            from context_pipeline.routing_weights import get_routing_weights
+            rw = get_routing_weights()
+            for b in result:
+                w = rw.get_weight(b, scenario or request_type)
+                scores[b] = scores.get(b, 50) * w
+        except ImportError:
+            pass
+
         result.sort(key=lambda b: -(
             scores.get(b, 50) * budget_manager.get_budget_priority(b)
             + random.uniform(0, 8)
         ))
 
     result = [b for b in result if not health_tracker.is_cooled_down(b)]
+
+    # ── Integration: Evolution Strategy (Phase 18) ────────────────────────
+    try:
+        from context_pipeline.signal_extraction import extract_signals, recommend_strategy_from_signals
+        from context_pipeline.evolution import apply_strategy_to_backends
+        from context_pipeline.event_log import get_request_log
+        signals = extract_signals(get_request_log())
+        strategy = recommend_strategy_from_signals(signals, backends_available=len(result))
+        result = apply_strategy_to_backends(result, strategy, proven_backends=result[:2])
+    except ImportError:
+        pass
     states = {b: health_tracker.get_backend_state(b) for b in result}
     result = [
         b for b in result
@@ -291,6 +312,17 @@ def route(query: str, messages: list[dict], *,
         return RouteResult(backend="identity_guard", answer=identity_answer,
                            request_type="identity", ms=ms)
 
+    # ── Integration: Skill Store recall (Phase 17) ────────────────────────
+    try:
+        from context_pipeline.skill_store import get_skill_store
+        _skill = get_skill_store().recall(messages, "")
+        if _skill:
+            ms = int((time.time() - t0) * 1000)
+            return RouteResult(backend=_skill.backend, answer="",
+                               request_type="skill_recall", ms=ms)
+    except ImportError:
+        _skill = None
+
     req_type = classify(query, messages, fmt=fmt, ide_source=ide_source,
                         system_prompt=system_prompt, headers=headers)
 
@@ -366,6 +398,29 @@ def route(query: str, messages: list[dict], *,
         final_backend, answer = backends[0] if backends else "none", ""
 
     ms = int((time.time() - t0) * 1000)
+
+    # ── Integration: Response Pipeline + Signal Extraction (Phase 9/15/17/20) ──
+    try:
+        from context_pipeline.response_processors import build_default_response_pipeline
+        from context_pipeline.response_pipeline import ResponseContext
+        resp_ctx = build_default_response_pipeline().process(ResponseContext(
+            backend=final_backend, response_text=answer or "",
+            latency_ms=ms, status_code=200 if answer else 500,
+        ))
+        # Phase 15: Update routing weights based on success/failure
+        from context_pipeline.routing_weights import get_routing_weights
+        rw = get_routing_weights()
+        if resp_ctx.quality_ok and final_backend not in ("exhausted", "none", "cache"):
+            rw.record_success(final_backend, scenario)
+        elif final_backend not in ("exhausted", "none", "cache"):
+            rw.record_failure(final_backend, scenario)
+        # Phase 17: Crystallize successful routing as skill
+        if resp_ctx.quality_ok and answer and final_backend not in ("exhausted", "none", "cache"):
+            from context_pipeline.skill_store import get_skill_store
+            get_skill_store().crystallize(messages, scenario, final_backend, 0, ms)
+    except ImportError:
+        pass
+
     return RouteResult(
         backend=final_backend, answer=answer,
         request_type=req_type, scenario=scenario, ms=ms,

@@ -1785,8 +1785,25 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
     if not query.strip():
         raise HTTPException(status_code=400, detail="Empty query")
 
+    # ── Integration: Guardrails (Phase 19) ────────────────────────────────
+    try:
+        from context_pipeline.guardrails import run_input_guardrails, GuardrailSeverity
+        guard_result = run_input_guardrails(req.messages)
+        if not guard_result.passed and guard_result.severity == GuardrailSeverity.BLOCK:
+            raise HTTPException(status_code=422, detail=f"Input blocked: {guard_result.violations}")
+    except ImportError:
+        pass
+
     chat_id = make_chat_id()
     t0 = time.time()
+
+    # ── Integration: Tracing (Phase 22) ───────────────────────────────────
+    try:
+        from context_pipeline.tracing import new_trace
+        trace = new_trace()
+        trace.start_span("handle_chat", chat_id=chat_id, ide=ide_source)
+    except ImportError:
+        trace = None
 
     # ── Mode-based routing preference ─────────────────────────────────────
     prefer = None
