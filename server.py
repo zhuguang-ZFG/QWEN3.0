@@ -54,17 +54,41 @@ if USE_V3:
                 "total_ms": result.ms, "fallback_used": result.fallback_used}
 
     def _v3_predict(query):
-        """V3 快速预测：从 ide 池取第一个健康后端。"""
+        """V3 快速预测：根据场景选择后端池。"""
         import health_tracker as ht
         hmap = ht.get_health_map()
-        backends = routing_engine.select("ide", hmap)
+        # 编程场景用 orchestrator 信誉排序，其他用通用池
+        try:
+            from routing_engine import classify_scenario
+            scenario = classify_scenario(query, [], request_type="")
+            if scenario == "coding":
+                import code_orchestrator
+                pool = code_orchestrator.backend_reputation.sort_by_reputation(
+                    code_orchestrator.POOLS["coder"])
+                if pool:
+                    return pool[0]
+        except Exception:
+            pass
+        backends = routing_engine.select("chat", hmap)
         return backends[0] if backends else "longcat_chat"
 
     def _v3_select(query, system_prompt, ide, messages):
-        """V3 完整路由选择：返回 (backend, messages) 元组。"""
+        """V3 完整路由选择：根据场景选后端。"""
         import health_tracker as ht
         hmap = ht.get_health_map()
-        backends = routing_engine.select("ide", hmap)
+        try:
+            from routing_engine import classify_scenario
+            scenario = classify_scenario(query, messages,
+                                         ide_source=ide, request_type="ide" if ide else "chat")
+            if scenario == "coding":
+                import code_orchestrator
+                pool = code_orchestrator.backend_reputation.sort_by_reputation(
+                    code_orchestrator.POOLS["coder"])
+                if pool:
+                    return (pool[0], messages)
+        except Exception:
+            pass
+        backends = routing_engine.select("chat", hmap)
         return (backends[0] if backends else "longcat_chat", messages)
 
 # 非真流式后端（代理/逆向），强制走非流式保证身份清洗完整
