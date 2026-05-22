@@ -133,6 +133,17 @@
 - VPS route-order smoke confirmed coding selection starts with `scnet_ds_flash`, `scnet_qwen235b`, `scnet_qwen30b`, `scnet_ds_pro`, then `github_gpt4o`.
 - Public coding smoke returned 200 in 3347ms.
 
+## Latest Cloudflare Routing Deployment
+
+- 2026-05-22 Cloudflare routing deploy uploaded `backends.py`, `router_v3.py`, and `code_orchestrator.py` to `/opt/lima-router`.
+- Rollback source: `/opt/lima-router/backups/cloudflare-routing-20260522_210441`.
+- Remote compile passed for `server.py`, `routing_engine.py`, `backends.py`, `router_v3.py`, and `code_orchestrator.py`.
+- `lima-router` restarted and VPS-local `/health` returned 200.
+- VPS route-order probe confirmed the default code selection window includes `cf_qwen_coder` and `cfai_qwen_coder`.
+- VPS direct account Cloudflare smoke returned `cf-direct-ok` through `cf_qwen_coder`.
+- VPS Worker Cloudflare smoke returned `cfai-ok` through `cfai_qwen_coder`.
+- Public primary `/v1/models` and `/v1/chat/completions` returned 200 after deployment.
+
 ## Production Safety Changes Retained
 
 - Backed up `/etc/nginx/conf.d/chat.donglicao.com.conf` and `/etc/nginx/conf.d/donglicao.conf` with `commercial-audit` timestamp suffixes.

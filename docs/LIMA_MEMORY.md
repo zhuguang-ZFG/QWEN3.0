@@ -344,3 +344,35 @@ Verification commands:
 Guardrail:
 
 - Dashboard models that are embeddings, image, speech, rerank, or classification should not be added to chat routing. Add dedicated adapters first.
+
+## 2026-05-22 Cloudflare Routing VPS Deployment
+
+Deployed the Cloudflare routing increment to VPS after local verification.
+
+Deployment details:
+
+- Backup: `/opt/lima-router/backups/cloudflare-routing-20260522_210441`.
+- Uploaded: `backends.py`, `router_v3.py`, `code_orchestrator.py`.
+- Remote compile passed for `server.py`, `routing_engine.py`, `backends.py`, `router_v3.py`, and `code_orchestrator.py`.
+- `lima-router` restarted successfully.
+- VPS-local `/health` returned 200.
+
+Post-deploy probes:
+
+- `router_v3.select_backends("code", {})` on VPS returned:
+  `scnet_ds_flash`, `scnet_qwen235b`, `scnet_qwen30b`, `scnet_ds_pro`, `github_gpt4o`, `github_gpt4o_mini`, `cf_qwen_coder`, `cfai_qwen_coder`.
+- VPS direct account Cloudflare smoke: `cf_qwen_coder` returned `cf-direct-ok`.
+- VPS Worker Cloudflare smoke: `cfai_qwen_coder` returned `cfai-ok`.
+- Public `https://chat.donglicao.com/v1/models` returned 200.
+- Public `https://chat.donglicao.com/v1/chat/completions` returned 200 with backend `groq_gptoss_20b` in 601ms.
+- FRP `http://47.112.162.80:8088/health` still returned 200.
+
+Rollback:
+
+```bash
+cd /opt/lima-router
+cp -p backups/cloudflare-routing-20260522_210441/backends.py .
+cp -p backups/cloudflare-routing-20260522_210441/router_v3.py .
+cp -p backups/cloudflare-routing-20260522_210441/code_orchestrator.py .
+systemctl restart lima-router
+```

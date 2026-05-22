@@ -40,6 +40,8 @@ Verified on 2026-05-22:
 
 - `/v1/models` returns the Worker model list.
 - `qwen2.5-coder-32b` completion returned `cfai-ok`.
+- VPS deployed runtime direct call to `cf_qwen_coder` returned `cf-direct-ok`.
+- VPS deployed runtime Worker call to `cfai_qwen_coder` returned `cfai-ok`.
 
 | Backend | Worker model | Current role |
 |---|---|---|
@@ -73,3 +75,5 @@ The Cloudflare dashboard includes more than chat models. LiMa should split them 
 ## Current Blocker
 
 The current local shell does not expose `CLOUDFLARE_ACCOUNT_ID` or `CLOUDFLARE_TOKEN`, so direct account API smoke tests cannot run from this process without injecting those environment variables. Do not print token values when testing.
+
+Production note: the deployed VPS runtime can call direct `cf_qwen_coder` successfully. Treat local-shell environment absence as a local test limitation, not a production outage.

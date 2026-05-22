@@ -188,3 +188,17 @@ Latest Cloudflare Workers AI routing increment:
   - `cfai_mistral`: 0/1, Worker returned HTTP 500; keep registered but do not treat as admitted coding capacity.
 - Direct account Cloudflare smoke was not run in this shell because `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_TOKEN` were not set.
 - Verification: `py_compile` passed for touched Python files; `pytest test_routing_engine.py --ignore=active_model` passed `25 passed`; focused suite passed `38 passed`.
+
+Latest Cloudflare routing VPS deployment:
+
+- Backup: `/opt/lima-router/backups/cloudflare-routing-20260522_210441`.
+- Uploaded runtime files: `backends.py`, `router_v3.py`, `code_orchestrator.py`.
+- Remote compile passed for `server.py`, `routing_engine.py`, `backends.py`, `router_v3.py`, and `code_orchestrator.py`.
+- `lima-router` restarted and VPS-local `/health` returned 200.
+- VPS route probe: `router_v3.select_backends("code", {})` includes `cf_qwen_coder` and `cfai_qwen_coder`.
+- VPS direct Cloudflare smoke: `cf_qwen_coder` returned `cf-direct-ok`.
+- VPS Worker Cloudflare smoke: `cfai_qwen_coder` returned `cfai-ok`.
+- Public primary smoke:
+  - `https://chat.donglicao.com/v1/models`: 200.
+  - `https://chat.donglicao.com/v1/chat/completions`: 200 with backend `groq_gptoss_20b` in 601ms.
+- FRP health path remained healthy: `http://47.112.162.80:8088/health` returned 200.

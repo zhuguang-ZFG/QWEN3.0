@@ -25,7 +25,8 @@ Turn the existing LiMa router into a private coding assistant that ranks coding 
 | 11. Stability + free routing optimization | In progress | Failure-state classification exists; quota-aware routing still pending. |
 | 12. Local reverse AI inventory | Complete | Already-reversed adapters are separated from page-only candidates and documented. |
 | 13. Local reverse AI integration fixes | Complete | DuckAI no-system path is implemented, DuckAI/SCNet-large evals are recorded, Kimi and OldLLM are gated by current failures. |
-| 14. Token-safe refresh and topology-aware proxy promotion | Planned | Redact refresh logs/secrets and promote Windows-only proxy winners without breaking VPS routing. |
+| 14. Cloudflare routing deployment | Complete | Direct and Worker Cloudflare coding capacity are routed, deployed, and smoke-tested on VPS. |
+| 15. Token-safe refresh and topology-aware proxy promotion | Planned | Redact refresh logs/secrets and promote Windows-only proxy winners without breaking VPS routing. |
 
 ## Current Evidence
 
@@ -82,6 +83,10 @@ Turn the existing LiMa router into a private coding assistant that ranks coding 
 - `docs/superpowers/plans/2026-05-22-local-reverse-ai-integration.md` is the next execution plan.
 - DuckAI `no_system` integration is implemented; six DuckAI models are registered and only admitted as late fallback.
 - DuckAI route admission passed for `ddg_gpt4o_mini` and `ddg_gpt5_mini`; SCNet-large local eval passed for both local proxy models.
+- Cloudflare routing deployment backup: `/opt/lima-router/backups/cloudflare-routing-20260522_210441`.
+- VPS code route selection now includes `cf_qwen_coder` and `cfai_qwen_coder` inside the default fallback window.
+- VPS direct Cloudflare smoke returned `cf-direct-ok`; VPS Worker Cloudflare smoke returned `cfai-ok`.
+- Public primary `/v1/models` and `/v1/chat/completions` returned 200 after the Cloudflare deployment.
 
 ## Next Risks To Close
 
