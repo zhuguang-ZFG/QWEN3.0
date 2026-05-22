@@ -441,6 +441,10 @@ def _detect_ide(messages: list) -> str:
     return ""
 
 
+def _elapsed_ms(started_at: float) -> int:
+    return max(0, int((time.time() - started_at) * 1000))
+
+
 def _record_request(query: str, backend: str, intent: str, duration_ms: int, success: bool = True, client_ip: str = "", ide_source: str = "", sys_prompt_preview: str = ""):
     """记录一次请求到统计数据。"""
     with _stats_lock:
@@ -1377,6 +1381,7 @@ async def chat_completions(request: Request):
 @app.post("/v1/messages", dependencies=[Depends(require_private_api_key)])
 async def anthropic_messages(req: Request):
     """Anthropic 兼容接口（供 cc-switch Claude Code 使用）。支持流式和非流式、多模态。"""
+    request_started_at = time.time()
     body = await req.json()
 
     # ── 提取用户查询，先检查预设直答 ──────────────────────────────────────────
@@ -1483,8 +1488,8 @@ async def anthropic_messages(req: Request):
         if vision_result:
             content_text = vision_result["answer"]
             backend_used = vision_result["backend"]
-            duration_ms = int((time.time() - time.time()) * 1000)
-            _record_request(last_user_query or "[vision]", backend_used, "vision", 0, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
+            duration_ms = _elapsed_ms(request_started_at)
+            _record_request(last_user_query or "[vision]", backend_used, "vision", duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
             if is_stream:
                 async def _vision_anthropic_stream():
                     msg_id = f"msg_{uuid.uuid4().hex[:24]}"
