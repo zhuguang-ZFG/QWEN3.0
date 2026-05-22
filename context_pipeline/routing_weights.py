@@ -1,0 +1,121 @@
+"""Routing weights — Solvita-inspired experience-driven weight learning.
+
+Backend routing weights that learn from success/failure history:
+- Each backend has a weight per scenario (coding/chat/vision)
+- Success → weight increases
+- Failure → weight decreases
+- Weights influence backend selection priority
+- No LLM retraining needed — pure statistical learning
+"""
+
+import json
+import os
+import time
+from dataclasses import dataclass, field, asdict
+from pathlib import Path
+
+
+WEIGHTS_PATH = Path(os.environ.get("LIMA_WEIGHTS_PATH", "/tmp/lima_routing_weights.json"))
+
+
+@dataclass
+class BackendWeight:
+    """Weight record for a single backend+scenario combination."""
+
+    backend: str
+    scenario: str
+    weight: float = 1.0
+    successes: int = 0
+    failures: int = 0
+    last_updated: float = 0.0
+
+    @property
+    def success_rate(self) -> float:
+        total = self.successes + self.failures
+        if total == 0:
+            return 0.5
+        return self.successes / total
+
+
+class RoutingWeights:
+    """Experience-driven routing weight manager."""
+
+    def __init__(self) -> None:
+        self._weights: dict[str, BackendWeight] = {}
+        self._load()
+
+    def _key(self, backend: str, scenario: str) -> str:
+        return f"{backend}:{scenario}"
+
+    def get_weight(self, backend: str, scenario: str) -> float:
+        key = self._key(backend, scenario)
+        if key in self._weights:
+            return self._weights[key].weight
+        return 1.0
+
+    def record_success(self, backend: str, scenario: str) -> None:
+        key = self._key(backend, scenario)
+        w = self._weights.setdefault(
+            key, BackendWeight(backend=backend, scenario=scenario)
+        )
+        w.successes += 1
+        w.weight = min(2.0, w.weight + 0.05)
+        w.last_updated = time.time()
+        self._save()
+
+    def record_failure(self, backend: str, scenario: str) -> None:
+        key = self._key(backend, scenario)
+        w = self._weights.setdefault(
+            key, BackendWeight(backend=backend, scenario=scenario)
+        )
+        w.failures += 1
+        w.weight = max(0.1, w.weight - 0.1)
+        w.last_updated = time.time()
+        self._save()
+
+    def rank_backends(self, backends: list[str], scenario: str) -> list[str]:
+        """Rank backends by learned weight for a given scenario."""
+        scored = []
+        for b in backends:
+            w = self.get_weight(b, scenario)
+            scored.append((w, b))
+        scored.sort(key=lambda x: -x[0])
+        return [b for _, b in scored]
+
+    def get_stats(self, backend: str, scenario: str) -> dict:
+        """Get stats for a backend+scenario combination."""
+        key = self._key(backend, scenario)
+        if key not in self._weights:
+            return {"weight": 1.0, "successes": 0, "failures": 0, "success_rate": 0.5}
+        w = self._weights[key]
+        return {
+            "weight": w.weight,
+            "successes": w.successes,
+            "failures": w.failures,
+            "success_rate": w.success_rate,
+        }
+
+    def _load(self) -> None:
+        if WEIGHTS_PATH.exists():
+            try:
+                data = json.loads(WEIGHTS_PATH.read_text(encoding="utf-8"))
+                for key, d in data.items():
+                    self._weights[key] = BackendWeight(**d)
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+    def _save(self) -> None:
+        WEIGHTS_PATH.parent.mkdir(parents=True, exist_ok=True)
+        data = {k: asdict(v) for k, v in self._weights.items()}
+        WEIGHTS_PATH.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+
+
+# Singleton instance
+_instance: RoutingWeights | None = None
+
+
+def get_routing_weights() -> RoutingWeights:
+    global _instance
+    if _instance is None:
+        _instance = RoutingWeights()
+    return _instance
