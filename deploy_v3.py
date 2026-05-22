@@ -23,6 +23,15 @@ FILES_TO_DEPLOY = [
     "sticky_session.py",
     "v3_integration.py",
     "patch_server_v3.py",
+    "server.py",
+    "routing_engine.py",
+]
+
+# Phase 7-25 module directories to deploy
+DIRS_TO_DEPLOY = [
+    "context_pipeline",
+    "session_memory",
+    "user_identity",
 ]
 
 
@@ -63,6 +72,22 @@ def main():
         remote = f"{REMOTE_DIR}/{f}"
         sftp.put(local, remote)
         print(f"  Uploaded: {f}")
+
+    # 3.1 Upload Phase 7-25 module directories
+    base_dir = os.path.dirname(__file__)
+    for d in DIRS_TO_DEPLOY:
+        local_dir = os.path.join(base_dir, d)
+        if not os.path.isdir(local_dir):
+            continue
+        remote_dir = f"{REMOTE_DIR}/{d}"
+        try:
+            sftp.mkdir(remote_dir)
+        except IOError:
+            pass
+        for fname in os.listdir(local_dir):
+            if fname.endswith(".py"):
+                sftp.put(os.path.join(local_dir, fname), f"{remote_dir}/{fname}")
+                print(f"  Uploaded: {d}/{fname}")
     print("[3/5] Files deployed")
 
     # 3.5 Run patch script on server
