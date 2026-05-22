@@ -329,6 +329,25 @@ def route(query: str, messages: list[dict], *,
     scenario = classify_scenario(query, messages,
                                  ide_source=ide_source, request_type=req_type)
 
+    # ── Integration: Entity Extraction (Phase 23) ─────────────────────────
+    _extracted_entities = []
+    try:
+        from context_pipeline.entity_extraction import extract_entities
+        raw_msgs = [{"role": m.get("role", ""), "content": m.get("content", "")} if isinstance(m, dict) else {"role": getattr(m, "role", ""), "content": getattr(m, "content", "")} for m in messages]
+        _entities = extract_entities(raw_msgs)
+        _extracted_entities = _entities.to_query_terms()
+    except ImportError:
+        pass
+
+    # ── Integration: Complexity Assessment (Phase 14) ─────────────────────
+    try:
+        from context_pipeline.complexity import assess_complexity, decide_topology
+        raw_msgs = [{"role": m.get("role", ""), "content": m.get("content", "")} if isinstance(m, dict) else {"role": getattr(m, "role", ""), "content": getattr(m, "content", "")} for m in messages]
+        _complexity_score = assess_complexity(raw_msgs, ide_source=ide_source)
+        _topology = decide_topology(_complexity_score)
+    except ImportError:
+        _topology = None
+
     # ── Code Orchestrator: 编程场景走强模型带动弱模型 pipeline ──
     if scenario == "coding" and call_fn:
         try:
@@ -399,6 +418,24 @@ def route(query: str, messages: list[dict], *,
         final_backend, answer = backends[0] if backends else "none", ""
 
     ms = int((time.time() - t0) * 1000)
+
+    # ── Integration: Narrative Casting (Phase 12) — on fallback ────────────
+    _fallback_used = (final_backend not in ("exhausted", "none") and backends and final_backend != backends[0])
+    if _fallback_used and answer:
+        try:
+            from context_pipeline.narrative import reframe_for_handoff
+            reframe_for_handoff(messages_injected, backends[0], final_backend)
+        except (ImportError, Exception):
+            pass
+
+    # ── Integration: Hierarchical Memory L1 (Phase 16) ────────────────────
+    try:
+        from context_pipeline.hierarchical_memory import get_hierarchical_memory
+        hmem = get_hierarchical_memory()
+        hmem.update_performance(final_backend, ms, bool(answer))
+        hmem.set_global_fact(f"last_scenario:{scenario}", final_backend)
+    except ImportError:
+        pass
 
     # ── Integration: Response Pipeline + Signal Extraction (Phase 9/15/17/20) ──
     try:

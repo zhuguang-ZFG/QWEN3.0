@@ -1807,6 +1807,26 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
     except ImportError:
         trace = None
 
+    # ── Integration: Token Budget (Phase 21) ──────────────────────────────
+    try:
+        from context_pipeline.token_budget import check_budget, estimate_request_tokens
+        raw_msgs = [{"role": m.role, "content": m.content} if hasattr(m, 'role') else m for m in req.messages]
+        budget_status = check_budget(raw_msgs, sys_prompt_preview or "", "coding" if ide_source else "chat")
+        if not budget_status["within_budget"] and budget_status["action"] == "truncate_context":
+            if len(req.messages) > 10:
+                req.messages = req.messages[:3] + req.messages[-7:]
+    except ImportError:
+        pass
+
+    # ── Integration: User Identity (Phase 7) ──────────────────────────────
+    try:
+        from user_identity.adapter import adapt_system_prompt
+        _adapted = adapt_system_prompt(sys_prompt_preview or "", client_ip)
+        if _adapted != sys_prompt_preview:
+            sys_prompt_preview = _adapted
+    except ImportError:
+        pass
+
     # ── Mode-based routing preference ─────────────────────────────────────
     prefer = None
     if req.model in ("fast", "lima"):
