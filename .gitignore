@@ -52,6 +52,12 @@ _upstream_check/
 *.log
 logs/
 
+# One-off local deploy probes may contain operator credentials.
+deploy_test_*.py
+deploy_r*_test.py
+run_remote_test.py
+upload_r*.py
+
 # === 系统 ===
 .DS_Store
 Thumbs.db
