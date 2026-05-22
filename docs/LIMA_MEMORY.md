@@ -33,6 +33,41 @@ Paused or removed direction:
 
 Public direct access to internal ports `3000`, `3001`, `3003`, `8080`, and `8091` is blocked. nginx remains the external boundary.
 
+## Client Configuration
+
+Use these for real IDE or terminal-agent validation:
+
+```text
+Primary base URL: https://chat.donglicao.com/v1
+FRP base URL:     http://47.112.162.80:8088/v1
+API key:          lima-local
+Model:            lima-1.3
+```
+
+Do not use `api.donglicao.com` with `lima-local`; that host is still the New API gateway and returns `401 Invalid token` unless a real New API token is used.
+
+## Local Proxy And FRP Closure
+
+Current closed loop:
+
+```text
+IDE/client
+  -> http://47.112.162.80:8088/v1
+  -> VPS frps 8088
+  -> Windows frpc redcode-api
+  -> Windows LiMa API 127.0.0.1:8080
+  -> Windows local providers on 4504/4505 when selected
+```
+
+Verified facts:
+
+- `frpc.exe` registers `redcode-api` successfully.
+- VPS `8088/tcp` is open in `firewalld`.
+- `http://47.112.162.80:8088/health`, `/v1/models`, and `/v1/chat/completions` returned HTTP 200.
+- `D:\GIT\local_router_start.bat` now starts `server.py` on Windows port `8080` and starts FRP if needed.
+- Windows `4505` SCNet-large proxy is running and chat-compatible.
+- Windows `4504` Kimi proxy is running, but chat currently fails with anonymous quota exhaustion.
+
 ## Active Runtime Files
 
 | File | Responsibility |
@@ -56,7 +91,7 @@ Broad smoke:
 
 Full three-case fixture winners:
 
-- `scnet_large_ds_flash` passed locally, but VPS proxy `4505` is currently down, so it is not first in production pools.
+- `scnet_large_ds_flash` passed locally; Windows local proxy `4505` is running. The earlier VPS `localhost:4505` failure was the wrong health check for the local-proxy architecture.
 - `github_gpt4o`
 - `github_gpt4o_mini`
 - `or_gptoss_120b`
@@ -82,9 +117,9 @@ These four passed the three-case production VPS coding fixture on 2026-05-22. Cu
 Slow or inactive:
 
 - `scnet_minimax` timed out in VPS smoke.
-- `scnet_large_ds_flash` and `scnet_large_ds_pro` require local proxy `4505`, currently refused on VPS.
+- `scnet_large_ds_flash` and `scnet_large_ds_pro` require Windows local proxy `4505`; it is running and OpenAI-compatible locally.
 - `cf_kimi_k26` works but failed strict JSON/code-only fixtures, so it is fallback capacity.
-- `kimi`, `kimi_thinking`, and `kimi_search` require local proxy `4504`, currently refused on VPS.
+- `kimi`, `kimi_thinking`, and `kimi_search` require Windows local proxy `4504`; the port is running, but current chat calls fail with Kimi anonymous quota/login-state exhaustion.
 - `stock_kimi_k2` returned invalid JSON/empty response in smoke.
 
 See `docs/FREE_MODEL_ROUTING_STATUS.md` for the detailed table.
@@ -166,16 +201,33 @@ Latest SCNet first-tier deployment:
 - VPS route order: `scnet_ds_flash`, `scnet_qwen235b`, `scnet_qwen30b`, `scnet_ds_pro`, `github_gpt4o`.
 - Public coding smoke: 200 in 3347ms.
 
+Latest documentation/FRP verification:
+
+- `git diff --check` passed with line-ending warnings only.
+- Core suite passed with `pytest --ignore=active_model`: `66 passed, 5 skipped`.
+- Plain pytest collection currently fails because `D:\GIT\active_model` is a stale junction to `C:\Users\Administrator\AppData\Local\Temp\tmpejcswwyo\fake_adapter`.
+- Public FRP smoke passed:
+  - `http://47.112.162.80:8088/health`: 200.
+  - `http://47.112.162.80:8088/v1/models`: 200.
+  - `http://47.112.162.80:8088/v1/chat/completions`: 200.
+
 ## Current Risks
 
-- Some registered backends require local proxy services that are not running on the VPS.
-- Kimi free models are not all usable yet; only CF Kimi is currently reachable.
-- SCNet direct models are usable, but coding quality still needs full fixture evaluation from the VPS.
+- Some registered backends require Windows local proxy services, so VPS `localhost` is not a valid health signal for them.
+- Kimi free models are not all usable yet; CF Kimi is reachable, while local Kimi needs session re-login.
+- SCNet direct models passed the first production VPS coding fixture set; keep monitoring real IDE latency and fallback quality.
+- Free web AI expansion can add capacity, but candidates must stay sandboxed until rate limits, auth state, and failure classes are understood.
 - The repo contains many local reference directories and temporary scripts; do not stage them blindly.
 - `server.py` is still large and should be split later, but not during routing experiments.
 
-## Next Task Waiting State
+## Next Phase
 
 User asked to finish this documentation/GitHub upload first, then wait for the next instruction.
 
-Do not start the next feature without user direction.
+Prepared next-phase priorities:
+
+1. Find more no-login web AI candidates, starting with Duck.ai and HeckAI-like sources.
+2. Improve backend stability with token/session refresh detection, quota handling, and rate-limit cooldown.
+3. Optimize routing so free backends are used efficiently by task fit, remaining quota, latency, and quality.
+
+Do not start implementation without user direction.

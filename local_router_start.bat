@@ -1,16 +1,29 @@
 @echo off
-title LiMa Local Router + FRP
+title LiMa API Router + FRP
 cd /d D:\GIT
 
-echo [%date% %time%] Starting LiMa Local Router...
-start /b "" "D:\GIT\venv\Scripts\python.exe" "D:\GIT\local_router.py"
+set LOG=D:\ollama_server\local_router.log
+set PYTHON=D:\GIT\venv\Scripts\python.exe
+set APP=D:\GIT\server.py
 
-timeout /t 10 /nobreak >nul
+echo [%date% %time%] Starting LiMa API Router... >> %LOG%
+netstat -ano | find "8080" | find "LISTENING" >nul
+if errorlevel 1 (
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "D:\ollama_server\start-lima-api.ps1"
+) else (
+    echo [%date% %time%] LiMa API Router already listening on 8080. >> %LOG%
+)
 
-echo [%date% %time%] Starting FRP tunnel...
-start /b "" "D:\GIT\frp\frpc.exe" -c "D:\GIT\frp\frpc.toml"
+ping 127.0.0.1 -n 11 >nul
 
-echo [%date% %time%] All services started.
-echo   Local Router: http://localhost:8090/health
-echo   FRP tunnel: local:8090 -^> cloud:9090
-pause
+echo [%date% %time%] Starting FRP tunnel... >> %LOG%
+tasklist /FI "IMAGENAME eq frpc.exe" | find "frpc.exe" >nul
+if errorlevel 1 (
+    start /min "" "D:\GIT\frp\frpc.exe" -c "D:\GIT\frp\frpc.toml"
+) else (
+    echo [%date% %time%] FRP already running. >> %LOG%
+)
+
+echo [%date% %time%] All services checked. >> %LOG%
+echo   Local API: http://localhost:8080/health
+echo   FRP tunnel: local:8080 -^> cloud:8088

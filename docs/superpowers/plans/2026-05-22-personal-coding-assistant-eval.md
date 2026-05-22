@@ -141,7 +141,7 @@ Evidence used:
 - Partial fallback tier: several Mistral variants and `github_codestral` passed code review/Python but failed strict JSON formatting.
 - Failure classes included unauthorized keys, rate limits, cooldown, WinError 10013 socket blocks, provider 5xx, and timeouts.
 - Follow-up VPS free-model smoke found direct SCNet models working: `scnet_ds_flash`, `scnet_ds_pro`, `scnet_qwen235b`, and `scnet_qwen30b`.
-- The same VPS smoke found local proxy models down: `scnet_large_ds_flash`/`scnet_large_ds_pro` refused port `4505`; local `kimi*` refused port `4504`.
+- The same VPS smoke incorrectly checked VPS `localhost` for Windows local proxy models. Corrected diagnosis: Windows `4505` SCNet-large is running and chat-compatible; Windows `4504` Kimi is running but blocked by Kimi anonymous quota/login state.
 - `cf_kimi_k26` is reachable but slow, so it is fallback/chat capacity rather than primary coding capacity.
 
 Preliminary tier map:

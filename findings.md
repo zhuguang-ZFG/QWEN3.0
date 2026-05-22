@@ -69,15 +69,18 @@
 | ID | Area | Evidence | Next Action |
 |---|---|---|---|
 | FREE-001 | SCNet direct models | VPS smoke passed for `scnet_ds_flash` (2904ms), `scnet_ds_pro` (26496ms), `scnet_qwen235b` (2110ms), and `scnet_qwen30b` (1727ms). | Use these as active free fallback capacity; keep `scnet_ds_pro` deep because it is slow. |
-| FREE-002 | SCNet local large proxy | `scnet_large_ds_flash` and `scnet_large_ds_pro` returned connection refused on VPS local proxy `4505`. | Keep registered but late until proxy service is running. |
+| FREE-002 | SCNet local large proxy | `scnet_large_ds_flash` and `scnet_large_ds_pro` returned connection refused on VPS `localhost:4505`, but that was the wrong health signal. Windows `4505` is running and chat-compatible. | Keep registered; re-run fixtures through Windows `8080` or VPS `8088` FRP path before promotion. |
 | FREE-003 | SCNet minimax | `scnet_minimax` timed out after ~30s. | Do not include in default active pools. |
 | FREE-004 | Kimi CF | `cf_kimi_k26` returned successfully but took ~9987ms and did not obey the tiny smoke prompt tightly. | Keep as chat/fallback capacity, not low-latency coding primary. |
-| FREE-005 | Kimi local/stock | local `kimi`, `kimi_thinking`, `kimi_search` refused port `4504`; `stock_kimi_k2` returned invalid response. | Keep registered but inactive until proxy/format issues are fixed. |
+| FREE-005 | Kimi local/stock | Windows `4504` is running, but chat returns `chat.anonymous_usage_exceeded`; `stock_kimi_k2` returned invalid response. | Mark local Kimi as manual-refresh/quota-exhausted instead of hot-path retrying it. |
 | FREE-006 | Route update | `code_orchestrator.py` and `router_v3.py` now include VPS-working SCNet direct models in active pools. | Re-run coding fixtures from VPS if these become candidates for primary coding. |
 | FREE-007 | Deploy behavior | `systemctl restart lima-router` can hang while uvicorn waits for existing `/v1/messages` connections to close. | If restart sticks in `deactivating`, use `systemctl kill -s SIGKILL lima-router`, `systemctl reset-failed lima-router`, then `systemctl start lima-router`. |
 | FREE-008 | SCNet first-tier eval | VPS three-case coding eval passed for `scnet_ds_flash` (3/3, 3330ms avg), `scnet_qwen235b` (3/3, 4004ms avg), `scnet_qwen30b` (3/3, 2713ms avg), and `scnet_ds_pro` (3/3, 4571ms avg). | Promote these direct SCNet models into coding first tier. |
 | FREE-009 | Kimi first-tier eval | `cf_kimi_k26` passed only 1/3 fixtures with 7844ms avg; local Kimi proxy models refused port `4504`; `stock_kimi_k2` returned invalid response. | Keep Kimi out of first tier until proxy/format issues are fixed. |
 | FREE-010 | SCNet first-tier deployment | VPS route order now starts `scnet_ds_flash`, `scnet_qwen235b`, `scnet_qwen30b`, `scnet_ds_pro`, `github_gpt4o`; public coding smoke returned 200 in 3347ms. | Keep monitoring real IDE latency and fallback behavior. |
+| FREE-011 | FRP closure | `frpc.exe` registers `redcode-api`; VPS `8088` reaches Windows LiMa `8080`; public `/health`, `/v1/models`, and `/v1/chat/completions` return 200. | Treat `http://47.112.162.80:8088/v1` as the direct validation path for local-router and Windows proxy behavior. |
+| FREE-012 | Free web AI expansion | Duck.ai and HeckAI-style no-login web AI sources can add capacity, but undocumented web protocols and rate limits are fragile. | Add a candidate registry and sandbox probe harness before any routing integration. |
+| FREE-013 | Routing efficiency | Static ordering wastes free quota and can retry known-bad sessions. | Add token/session state, quota cooldown, and quality/latency/quota/task-fit scoring. |
 
 ## Latest Deployment Verification
 

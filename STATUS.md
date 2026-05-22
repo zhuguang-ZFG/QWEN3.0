@@ -17,7 +17,7 @@
 ## Latest Routing Facts
 
 - Full coding fixture passers include `github_gpt4o`, `github_gpt4o_mini`, and `or_gptoss_120b`.
-- `scnet_large_ds_flash` passed local coding fixtures, but its VPS local proxy `4505` is currently not running; it is now late fallback instead of production-first.
+- `scnet_large_ds_flash` passed local coding fixtures. Its proxy is Windows-local on `D:\ollama_server:4505`; VPS `localhost:4505` is the wrong health signal for the current FRP architecture.
 - Fast coding capacity includes `cerebras_gptoss`, `groq_gptoss`, `mistral_small`, and simple-case `groq_gptoss_20b`.
 - Working VPS free SCNet direct models are now active fallback capacity:
   - `scnet_ds_flash`
@@ -26,8 +26,25 @@
   - `scnet_qwen30b`
 - Kimi is only partially live:
   - `cf_kimi_k26` works but is slow.
-  - local `kimi`, `kimi_thinking`, and `kimi_search` need VPS proxy `4504`.
+  - local `kimi`, `kimi_thinking`, and `kimi_search` run behind Windows-local port `4504`, but current chat calls fail with `chat.anonymous_usage_exceeded`.
   - `stock_kimi_k2` did not return a valid smoke response.
+
+## Public Endpoint State
+
+| Endpoint | Status | Intended Use |
+|---|---|---|
+| `https://chat.donglicao.com/v1` | Working private HTTPS path | Real IDE/agent clients when HTTPS is preferred. |
+| `http://47.112.162.80:8088/v1` | Working FRP path to Windows local router | Direct validation of local-router plus Windows proxy backends. |
+| `https://api.donglicao.com/v1` | New API gateway retained | Requires a real New API token; `lima-local` is not valid there. |
+
+Known IDE config:
+
+```text
+Base URL: https://chat.donglicao.com/v1
+Alt URL:  http://47.112.162.80:8088/v1
+API key:  lima-local
+Model:    lima-1.3
+```
 
 See `docs/FREE_MODEL_ROUTING_STATUS.md` and `docs/LIMA_MEMORY.md`.
 
@@ -41,6 +58,19 @@ See `docs/FREE_MODEL_ROUTING_STATUS.md` and `docs/LIMA_MEMORY.md`.
 | `lima-router` | systemd service, localhost `8080` |
 | New API | localhost `3003` |
 | Voice gateway | localhost `8091`, not main product direction |
+
+## Windows FRP Topology
+
+The FRP path is closed and should be treated as production-relevant for local free web/proxy backends:
+
+```text
+IDE/client
+  -> http://47.112.162.80:8088/v1
+  -> VPS frps 8088
+  -> Windows frpc redcode-api
+  -> Windows LiMa API 127.0.0.1:8080
+  -> Windows local providers on 4504/4505 when selected
+```
 
 ## Active Code
 
@@ -85,12 +115,30 @@ Latest SCNet/Kimi first-tier eval:
 - Backup: `/opt/lima-router/backups/scnet-first-tier-20260522_190032`.
 - Public coding smoke: 200 in 3347ms.
 
+Latest documentation/FRP verification:
+
+- `git diff --check`: passed, with line-ending warnings only.
+- `pytest --ignore=active_model`: `66 passed, 5 skipped` for the core routing/HTTP/streaming/eval/context suite.
+- `http://47.112.162.80:8088/health`: 200.
+- `http://47.112.162.80:8088/v1/models`: 200 with `lima-local`.
+- `http://47.112.162.80:8088/v1/chat/completions`: 200, routed through LiMa.
+- Caveat: `D:\GIT\active_model` is a stale junction to a deleted temp directory, so plain pytest collection fails unless ignored or the junction is cleaned.
+
 ## Paused Or Removed
 
 - Payment and commercial platform docs.
 - Billing/quota/training experiments not needed for the current personal assistant direction.
 - Large reference repos and one-off debug scripts stay local unless explicitly curated.
 
-## Next Waiting Point
+## Current Roadmap
 
-The repo documentation, memory, and GitHub snapshot should be updated first. After that, wait for the user's next task.
+1. Expand no-login web AI candidates conservatively: DuckAI first, then HeckAI-like sites in sandbox only after legal/technical validation.
+2. Improve backend stability: token/session refresh detection, 429 cooldown, daily quota accounting, and provider-specific circuit breaking.
+3. Optimize free-backend routing: quota-aware weighted routing, latency buckets, backend quality score decay, and cheap-first/simple-task policy.
+
+Source-of-truth docs for the next phase:
+
+- `docs/FREE_WEB_AI_EXPANSION_PLAN.md`
+- `docs/superpowers/plans/2026-05-22-free-web-ai-stability-routing.md`
+- `docs/DOCUMENTATION_STATUS.md`
+- `docs/LIMA_MEMORY.md`

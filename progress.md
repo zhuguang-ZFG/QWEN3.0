@@ -133,3 +133,31 @@
 - Remote compile passed; `lima-router` restarted cleanly; VPS `/health` returned 200.
 - VPS route order smoke confirmed coding selection starts with `scnet_ds_flash`, `scnet_qwen235b`, `scnet_qwen30b`, `scnet_ds_pro`, then `github_gpt4o`.
 - Public coding smoke returned 200 in 3347ms.
+
+## 2026-05-22 Local Proxy And FRP Closure
+
+- Corrected the earlier proxy diagnosis: Kimi and SCNet-large are Windows-local services, not VPS-local services.
+- Updated `local_router_start.bat` so it starts `D:\GIT\server.py` on Windows port `8080` and then starts `frpc.exe` if needed.
+- Verified Windows `4505` SCNet-large models and chat completion locally.
+- Verified Windows `4504` Kimi models locally; chat currently fails with `chat.anonymous_usage_exceeded`, so Kimi needs session refresh.
+- Verified `frpc.exe` registers `redcode-api`.
+- After VPS `8088/tcp` was opened, verified public FRP path:
+  - `http://47.112.162.80:8088/health`: 200.
+  - `http://47.112.162.80:8088/v1/models`: 200.
+  - `http://47.112.162.80:8088/v1/chat/completions`: 200.
+- Added `docs/LOCAL_PROXY_RUNTIME_STATUS.md`.
+
+## 2026-05-22 Documentation And Next Roadmap
+
+- Updated source-of-truth docs for the personal coding assistant direction.
+- Added `docs/DOCUMENTATION_STATUS.md` to mark active docs versus historical commercial/open-platform docs.
+- Added `docs/FREE_WEB_AI_EXPANSION_PLAN.md` for the next phase:
+  - find more no-login web AI candidates like DuckAI and HeckAI;
+  - improve token/session refresh, rate limiting, and quota handling;
+  - optimize routing so free backends are selected by quality, health, latency, quota, and task fit.
+- Added `docs/superpowers/plans/2026-05-22-free-web-ai-stability-routing.md` as the executable Superpowers implementation plan.
+- Verification:
+  - `git diff --check` passed with line-ending warnings only.
+  - Core suite passed with `pytest --ignore=active_model`: `66 passed, 5 skipped`.
+  - Plain pytest collection is blocked by stale junction `D:\GIT\active_model`.
+  - Public FRP health/models/chat smokes on `http://47.112.162.80:8088` returned 200.

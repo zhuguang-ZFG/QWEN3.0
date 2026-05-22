@@ -20,6 +20,9 @@ Turn the existing LiMa router into a private coding assistant that ranks coding 
 | 6. Context preflight | Complete | Coding and Anthropic tool routes receive a compact request-local context digest. |
 | 7. Free model routing refresh | Complete | VPS-working SCNet/Kimi-family free models are documented and active where safe. |
 | 8. SCNet/Kimi first-tier eval | Complete | Direct SCNet models promoted; Kimi remains fallback/inactive until fixed. |
+| 9. Local proxy + FRP closure | Complete | VPS `8088` reaches Windows LiMa `8080`; public health/models/chat smokes pass. |
+| 10. Free web AI expansion | Planned | DuckAI/HeckAI-like candidates are researched, sandboxed, and routed only after validation. |
+| 11. Stability + free routing optimization | Planned | Token refresh, quota handling, cooldown, and quota-aware routing are implemented. |
 
 ## Current Evidence
 
@@ -51,7 +54,7 @@ Turn the existing LiMa router into a private coding assistant that ranks coding 
 - VPS-local `/health` returned 200 after the context-preflight restart.
 - Final public Anthropic `/v1/messages` tool smoke returned 200 in 600ms with `stop_reason=tool_use`.
 - VPS free-model smoke passed for `scnet_ds_flash`, `scnet_ds_pro`, `scnet_qwen235b`, `scnet_qwen30b`, and `cf_kimi_k26`.
-- `scnet_large_*` and local `kimi*` proxy models are registered but not production-live because VPS ports `4505` and `4504` refused connections.
+- `scnet_large_*` and local `kimi*` proxy models are Windows-local services. The earlier VPS `localhost:4505/4504` checks were the wrong health signal for the FRP architecture.
 - `docs/FREE_MODEL_ROUTING_STATUS.md` records the free-model status table.
 - `docs/LIMA_MEMORY.md` records the detailed durable memory for future sessions.
 - Free-model routing deployment backup: `/opt/lima-router/backups/free-model-routing-20260522_184556`.
@@ -63,13 +66,21 @@ Turn the existing LiMa router into a private coding assistant that ranks coding 
 - SCNet first-tier deployment backup: `/opt/lima-router/backups/scnet-first-tier-20260522_190032`.
 - Post-deploy route-order smoke confirmed coding starts with `scnet_ds_flash`, `scnet_qwen235b`, `scnet_qwen30b`, `scnet_ds_pro`, then `github_gpt4o`.
 - Post-deploy public coding smoke returned 200 in 3347ms.
+- Windows local proxy closure:
+  - `D:\GIT\local_router_start.bat` now starts `server.py` on port `8080` and starts FRP.
+  - Windows `4505` SCNet-large proxy is running and chat-compatible.
+  - Windows `4504` Kimi proxy is running, but chat returns `chat.anonymous_usage_exceeded`.
+  - `frpc.exe` registers `redcode-api`.
+  - After opening VPS `8088/tcp`, `http://47.112.162.80:8088/health`, `/v1/models`, and `/v1/chat/completions` returned HTTP 200.
+- Added next-phase docs for no-login web AI expansion, stability, and free routing optimization.
 
 ## Next Risks To Close
 
 - More backends should be re-evaluated as keys, rate limits, and local socket policy failures are fixed.
 - A private access policy for IDE/agent use needs to stay simple and explicit.
 - A real IDE/agent against the private endpoint still needs hands-on validation; current verification is API-level smoke plus Claude Code-compatible tool smoke.
-- If Kimi local or SCNet-large proxy models are needed, first deploy and verify the `4504`/`4505` proxy services on the VPS.
+- If Kimi local or SCNet-large proxy models are needed, verify them through the Windows LiMa `8080` path or the VPS `8088` FRP path, not VPS `localhost:4504/4505`.
+- No-login web AI candidates must stay in sandbox until request shape, rate limits, and failure classes are understood.
 
 ## Errors Encountered
 

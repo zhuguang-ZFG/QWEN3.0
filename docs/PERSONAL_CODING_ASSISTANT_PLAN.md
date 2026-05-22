@@ -68,7 +68,7 @@ The first real task is to identify coding-capable backends with evidence instead
 | `primary_coder` | `scnet_ds_flash`, `scnet_qwen235b`, `scnet_qwen30b`, `scnet_ds_pro`, `github_gpt4o` | Direct SCNet models passed production VPS fixtures and now lead coding pools. |
 | `strong_coder` | `scnet_ds_flash`, `scnet_qwen235b`, `scnet_ds_pro`, `scnet_qwen30b`, `github_gpt4o`, `or_gptoss_120b` | SCNet first-tier winners plus previous deep reasoning winners. |
 | `fallback_coder` | `mistral_small`, `mistral_pixtral`, `mistral_large`, `mistral_devstral`, `github_codestral`, `scnet_qwen30b`, `cf_kimi_k26` | Useful fallback capacity; CF Kimi is reachable but slow. |
-| `disabled_or_late` | `scnet_large_ds_flash`, `scnet_large_ds_pro`, `scnet_minimax`, local `kimi*`, `stock_kimi_k2`, unauthorized/rate-limited providers | Local proxy down, timeout, invalid response, or auth/rate failures. |
+| `disabled_or_late` | `scnet_large_ds_flash`, `scnet_large_ds_pro`, `scnet_minimax`, local `kimi*`, `stock_kimi_k2`, unauthorized/rate-limited providers | SCNet-large local proxy is running but needs route-path fixture rerun; Kimi local proxy needs re-login; others timeout, invalid response, or auth/rate failures. |
 
 ### Free model activation
 
@@ -76,7 +76,7 @@ VPS smoke confirmed that not all registered free models are production-live. The
 
 - Use VPS-working direct SCNet models as first-tier coding capacity: `scnet_ds_flash`, `scnet_ds_pro`, `scnet_qwen235b`, `scnet_qwen30b`.
 - Keep `cf_kimi_k26` active for chat/fallback, not low-latency coding default.
-- Keep local proxy Kimi and SCNet-large models registered but late until VPS ports `4504` and `4505` are running.
+- Keep SCNet-large local proxy models registered and ready for route-path eval through Windows `8080`; keep local Kimi late until its session is refreshed.
 - Do not put `scnet_minimax` or `stock_kimi_k2` into default pools until their smoke failures are fixed.
 
 Detailed evidence: `docs/FREE_MODEL_ROUTING_STATUS.md` and `data/free_model_first_tier_eval.json`.
@@ -164,6 +164,24 @@ Simplify future VPS work:
 - No billing tables.
 - No commercial dashboard endpoints.
 - No deploy gates tied to quota or admin commercial stats.
+
+## Next Phase: Free Web AI And Stability
+
+The next direction is to expand capacity without sacrificing the coding experience.
+
+| Workstream | Goal | First Artifact |
+|---|---|---|
+| No-login web AI discovery | Find DuckAI/HeckAI-style sources that can be probed safely. | `docs/FREE_WEB_AI_EXPANSION_PLAN.md` |
+| Backend stability | Normalize token/session expiry, quota exhaustion, rate limits, and provider cooldown. | Stability tests around `health_tracker.py` and `probe_loop.py`. |
+| Free routing efficiency | Spend free backends on the right requests instead of static ordering only. | Quota/quality/latency scoring in `routing_engine.py` and `router_v3.py`. |
+
+Rules:
+
+- New web AI candidates start in sandbox only.
+- Do not send private code to untrusted web candidates until they pass admission checks.
+- Treat Duck.ai as first candidate because it has the strongest current confidence signal.
+- Treat HeckAI-style mirrors as research candidates until request shape, rate limits, and ToS risk are clear.
+- Study 9Router and OmniRoute for routing patterns, but do not replace LiMa's current router wholesale.
 
 ## Definition Of Done
 
