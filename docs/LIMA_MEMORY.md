@@ -376,3 +376,60 @@ cp -p backups/cloudflare-routing-20260522_210441/router_v3.py .
 cp -p backups/cloudflare-routing-20260522_210441/code_orchestrator.py .
 systemctl restart lima-router
 ```
+
+## 2026-05-22 Token-Safe Local Proxy Routing Increment
+
+Phase 15 started with two concrete root causes:
+
+- Kimi/TheOldLLM local refresh helpers in `D:\ollama_server` printed or returned token material.
+- Windows-only proxy backends depended on `localhost:4500/4504/4505` but routing had no explicit runtime topology guard.
+
+Repo changes:
+
+- Added `runtime_topology.py`.
+- `router_v3.select_backends` now filters local-only backends through `runtime_topology.filter_backends`.
+- `code_orchestrator._try_backends_ranked` filters its pool before trying candidates.
+- Local-only backends stay available when a local port is reachable, an explicit tunnel URL override is set, or `LIMA_ENABLE_LOCAL_PROXIES` / `LIMA_RUNTIME_LOCAL_PROXIES` is truthy.
+
+Local runtime changes under `D:\ollama_server`:
+
+- Added `secret_redactor.js`.
+- Removed hardcoded Cloudflare API token fallback from Kimi and TheOldLLM refresh scripts.
+- Removed hardcoded TheOldLLM request token from `oldllm_proxy.js`.
+- Replaced token/request-body/localStorage logging with redacted status logs.
+- Changed `token_refresh_server.js` `/refresh` responses to report token presence instead of returning token values.
+
+Guardrails:
+
+- Refresh scripts were not run in this pass after redaction; a later manual refresh still needs suitable environment variables and login/session state.
+- `D:\ollama_server` scripts are local runtime assets and were changed in-place, not committed to the LiMa repo.
+
+Verification:
+
+- `D:\GIT\venv\Scripts\python.exe -m py_compile runtime_topology.py router_v3.py code_orchestrator.py test_routing_engine.py`.
+- `D:\GIT\venv\Scripts\python.exe -m pytest test_routing_engine.py test_http_caller.py tests\test_coding_eval.py tests\test_lima_context.py -q --ignore=active_model` -> `70 passed`.
+- `node --check` passed for the edited local JavaScript scripts.
+- Redactor behavior check replaced Bearer, CF API, TheOldLLM request, and tenant token samples with `[REDACTED]`.
+
+VPS deployment:
+
+- Topology guard backup: `/opt/lima-router/backups/topology-guard-20260522_211850`.
+- Short-answer hotfix backup: `/opt/lima-router/backups/short-answer-hotfix-20260522_212816`.
+- Exact-output quality backup: `/opt/lima-router/backups/exact-output-quality-20260522_212959`.
+- Uploaded `runtime_topology.py`, `router_v3.py`, `code_orchestrator.py`, and later `server.py`.
+- Remote compile passed; `lima-router` restarted; `/health` returned 200.
+
+Production issue found during verification:
+
+- Public `https://chat.donglicao.com/v1/chat/completions` initially returned HTTP 200 with `system_fingerprint=router_fallback_exhausted` for `Return exactly: topology-ok`.
+- Direct backend calls and `routing_engine.route` worked, so credentials and topology guard were not the root cause.
+- Root cause was `server.py` quality gating: short exact answers under 30 chars were rejected when complexity was above `0.3`, and later long non-matching exact-output answers could pass by length alone.
+- Fix: `_quality_check` now receives the user query, allows explicit short exact-output answers, and rejects non-matching answers when the expected direct answer can be parsed.
+
+Final verification:
+
+- Local compile passed for `server.py`, `runtime_topology.py`, `router_v3.py`, `code_orchestrator.py`, and `test_routing_engine.py`.
+- Focused local suite returned `73 passed`.
+- Public OpenAI-compatible smoke returned exact `topology-ok` with backend `longcat_chat`.
+- Public Anthropic `/v1/messages` smoke returned exact `ide-ok`.
+- FRP health `http://47.112.162.80:8088/health` returned 200.

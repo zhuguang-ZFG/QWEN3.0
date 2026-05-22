@@ -144,6 +144,28 @@
 - VPS Worker Cloudflare smoke returned `cfai-ok` through `cfai_qwen_coder`.
 - Public primary `/v1/models` and `/v1/chat/completions` returned 200 after deployment.
 
+## Latest Token-Safe Local Proxy Routing Increment
+
+- Added `runtime_topology.py` so local-only backends are active only when local proxies are explicitly enabled, a tunnel override exists, or the expected local port is reachable.
+- `router_v3.py` and `code_orchestrator.py` now filter local-only backends before selection/execution.
+- Added tests proving `scnet_large_ds_flash` is blocked when local proxy topology is unavailable and allowed when explicitly enabled.
+- `D:\ollama_server` refresh scripts were redacted in-place:
+  - `secret_redactor.js` added.
+  - Kimi/TheOldLLM refresh scripts no longer rely on hardcoded Cloudflare API token fallbacks.
+  - TheOldLLM proxy no longer embeds a request token literal.
+  - Refresh server no longer returns raw token values.
+- Verification: Python compile passed, focused suite returned `70 passed`, Node syntax checks passed, and redactor sample check passed.
+- Refresh was intentionally not executed during this pass.
+- VPS deployment backups:
+  - `/opt/lima-router/backups/topology-guard-20260522_211850`
+  - `/opt/lima-router/backups/short-answer-hotfix-20260522_212816`
+  - `/opt/lima-router/backups/exact-output-quality-20260522_212959`
+- Production verification exposed a server-level quality gate bug: exact short answers were rejected as low quality, causing false `fallback_exhausted`.
+- `server.py` now uses query-aware exact-output checks:
+  - short exact-output answers such as `topology-ok` are allowed;
+  - non-matching long answers to `Return exactly: ...` are rejected.
+- Final verification: local compile passed, focused suite returned `73 passed`, public `/v1/chat/completions` returned exact `topology-ok`, public `/v1/messages` returned exact `ide-ok`, and FRP `8088` health returned 200.
+
 ## Production Safety Changes Retained
 
 - Backed up `/etc/nginx/conf.d/chat.donglicao.com.conf` and `/etc/nginx/conf.d/donglicao.conf` with `commercial-audit` timestamp suffixes.

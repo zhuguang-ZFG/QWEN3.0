@@ -17,6 +17,8 @@ import hashlib
 import json
 from typing import Optional
 
+import runtime_topology
+
 # ─── 后端池定义 ───────────────────────────────────────────────────────────────
 
 POOLS = {
@@ -194,11 +196,13 @@ def select_backends(req_type: str, health_map: dict, proxy_healthy: bool = True)
         if not proxy_healthy:
             candidates = [b for b in candidates if b in DIRECT_BACKENDS]
         usable = [b for b in candidates if health_map.get(b, "healthy") != "dead"]
+        usable = runtime_topology.filter_backends(usable)
         # Keep declared order as priority (no shuffle)
         result.extend(usable)
 
     if not result:
         result = [b for b in DIRECT_BACKENDS if health_map.get(b, "healthy") != "dead"]
+        result = runtime_topology.filter_backends(result)
 
     # 极端保底：只加非 dead 的
     if not result:

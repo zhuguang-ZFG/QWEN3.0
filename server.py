@@ -277,15 +277,82 @@ def _default_route(query: str, ide: str = "unknown") -> str:
     return "longcat_chat"
 
 
-def _quality_check(response_text: str, complexity: float, backend: str) -> bool:
+EXACT_OUTPUT_MARKERS = (
+    "return exactly",
+    "respond exactly",
+    "output exactly",
+    "print exactly",
+    "exactly:",
+    "only return",
+    "only output",
+    "只返回",
+    "只输出",
+    "仅返回",
+    "仅输出",
+)
+
+
+def _allows_short_direct_answer(query: str, response_text: str) -> bool:
+    if not query or not response_text:
+        return False
+    lowered = query.lower()
+    if not any(marker in lowered for marker in EXACT_OUTPUT_MARKERS):
+        return False
+    return 1 <= len(response_text.strip()) <= 120
+
+
+def _strip_direct_answer(value: str) -> str:
+    return value.strip().strip("\"'`“”‘’")
+
+
+def _expected_direct_answer(query: str) -> str:
+    if not query:
+        return ""
+    lowered = query.lower()
+    for marker in (
+        "return exactly",
+        "respond exactly",
+        "output exactly",
+        "print exactly",
+        "only return",
+        "only output",
+    ):
+        idx = lowered.rfind(marker)
+        if idx < 0:
+            continue
+        rest = query[idx + len(marker):].strip()
+        if not rest or rest[0] not in (":", "："):
+            continue
+        candidate = _strip_direct_answer(rest[1:])
+        if candidate and "\n" not in candidate and len(candidate) <= 120:
+            return candidate
+    for marker in ("只返回", "只输出", "仅返回", "仅输出"):
+        idx = query.rfind(marker)
+        if idx < 0:
+            continue
+        rest = query[idx + len(marker):].strip()
+        if rest.startswith((':', '：')):
+            rest = rest[1:].strip()
+        candidate = _strip_direct_answer(rest)
+        if candidate and "\n" not in candidate and len(candidate) <= 120:
+            return candidate
+    return ""
+
+
+def _quality_check(response_text: str, complexity: float, backend: str,
+                   query: str = "") -> bool:
     """检查回答质量，返回 False 表示需要重试。"""
     if not response_text:
-        return False
-    if len(response_text) < 30 and complexity > 0.3:
         return False
     if response_text.startswith("[ERR]"):
         return False
     if http_caller._is_backend_error(response_text):
+        return False
+    expected = _expected_direct_answer(query)
+    if expected and response_text.strip() != expected:
+        return False
+    if (len(response_text) < 30 and complexity > 0.3
+            and not _allows_short_direct_answer(query, response_text)):
         return False
     uncertain_phrases = ["I cannot", "我无法", "抱歉，我不能"]
     if any(phrase in response_text for phrase in uncertain_phrases):
@@ -1514,13 +1581,13 @@ async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", i
 
         # ── Fake stream path: thinking mode, orchestration, or fallback ────
         # quality check + fallback for non-streaming content
-        if not _quality_check(content, complexity, backend_used):
+        if not _quality_check(content, complexity, backend_used, query=query):
             fallback_backend = _default_route(query, ide_source) if backend_used == "unknown" else backend_used
             same_tier = _get_same_tier_backends(fallback_backend)
             fallback_found = False
             for alt in same_tier:
                 alt_result = await _try_backend(alt, query, req.max_tokens or 4096)
-                if alt_result and _quality_check(alt_result["answer"], complexity, alt):
+                if alt_result and _quality_check(alt_result["answer"], complexity, alt, query=query):
                     content = alt_result["answer"]
                     backend_used = alt
                     fallback_found = True
@@ -1529,7 +1596,7 @@ async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", i
                 upgrade_chain = _get_upgrade_chain(fallback_backend)
                 for upgraded in upgrade_chain:
                     up_result = await _try_backend(upgraded, query, req.max_tokens or 4096)
-                    if up_result and _quality_check(up_result["answer"], complexity, upgraded):
+                    if up_result and _quality_check(up_result["answer"], complexity, upgraded, query=query):
                         content = up_result["answer"]
                         backend_used = upgraded
                         fallback_found = True
@@ -1655,7 +1722,7 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
     complexity = intent.get("complexity", 0.5) if isinstance(intent, dict) else 0.5
 
     # ── Fallback 层：质量检查 + 同层降级 + 跨层升级 ──
-    if not _quality_check(content, complexity, backend):
+    if not _quality_check(content, complexity, backend, query=query):
         fallback_intent = intent_name if intent_name != "unknown" else "unknown"
         fallback_backend = _default_route(query, ide_source) if backend == "unknown" else backend
 
@@ -1663,7 +1730,7 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
         same_tier = _get_same_tier_backends(fallback_backend)
         for alt in same_tier:
             alt_result = await _try_backend(alt, query, req.max_tokens or 1024)
-            if alt_result and _quality_check(alt_result["answer"], complexity, alt):
+            if alt_result and _quality_check(alt_result["answer"], complexity, alt, query=query):
                 content = alt_result["answer"]
                 backend = alt
                 _record_fallback(query, fallback_backend, alt, f"fallback_same_tier_{fallback_intent}", ide_source)
@@ -1676,7 +1743,7 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
         upgrade_chain = _get_upgrade_chain(fallback_backend)
         for upgraded in upgrade_chain:
             up_result = await _try_backend(upgraded, query, req.max_tokens or 1024)
-            if up_result and _quality_check(up_result["answer"], complexity, upgraded):
+            if up_result and _quality_check(up_result["answer"], complexity, upgraded, query=query):
                 content = up_result["answer"]
                 backend = upgraded
                 _record_fallback(query, fallback_backend, upgraded, f"fallback_upgrade_{fallback_intent}", ide_source)

@@ -11,6 +11,7 @@ from collections import defaultdict
 import intent_templates
 import quality_gate
 import backend_reputation
+import runtime_topology
 from lima_context import build_context_digest
 
 GUIDE_PATH = os.path.join(os.path.dirname(__file__), "skills", "code", "guide.md")
@@ -184,7 +185,7 @@ def _try_backends_ranked(pool_name: str, messages: list, call_fn,
                          system: str, max_tokens: int,
                          t0: float, deadline: float) -> tuple[str, str]:
     """按信誉分排序尝试后端，超时返回空。"""
-    pool = POOLS.get(pool_name, [])
+    pool = runtime_topology.filter_backends(POOLS.get(pool_name, []))
     ranked = backend_reputation.sort_by_reputation(pool)
     for backend in ranked:
         if time.time() - t0 > deadline:

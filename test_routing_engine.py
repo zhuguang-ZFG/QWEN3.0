@@ -157,6 +157,78 @@ def test_cloudflare_code_backends_enter_default_selection_window():
     assert "cfai_qwen_coder" in selected
 
 
+def test_local_proxy_backends_require_local_topology(monkeypatch):
+    import runtime_topology
+
+    monkeypatch.delenv("LIMA_ENABLE_LOCAL_PROXIES", raising=False)
+    monkeypatch.delenv("LIMA_RUNTIME_LOCAL_PROXIES", raising=False)
+    monkeypatch.delenv("SCNET_LARGE_TUNNEL_URL", raising=False)
+    monkeypatch.setattr(runtime_topology, "local_port_open", lambda port: False)
+
+    assert not runtime_topology.backend_available("scnet_large_ds_flash")
+    assert runtime_topology.backend_available("scnet_ds_flash")
+
+
+def test_local_proxy_backends_can_be_enabled_explicitly(monkeypatch):
+    import runtime_topology
+
+    monkeypatch.setenv("LIMA_ENABLE_LOCAL_PROXIES", "1")
+    monkeypatch.setattr(runtime_topology, "local_port_open", lambda port: False)
+
+    assert runtime_topology.backend_available("scnet_large_ds_flash")
+
+
+def test_code_orchestrator_filters_unreachable_local_proxy(monkeypatch):
+    import code_orchestrator
+    import runtime_topology
+
+    monkeypatch.setattr(runtime_topology, "backend_available",
+                        lambda name: name != "scnet_large_ds_flash")
+    tried = []
+
+    def call_fn(backend, messages, max_tokens):
+        tried.append(backend)
+        return "usable response"
+
+    monkeypatch.setitem(code_orchestrator.POOLS, "test", [
+        "scnet_large_ds_flash", "cf_qwen_coder"
+    ])
+
+    backend, answer = code_orchestrator._try_backends_ranked(
+        "test", [{"role": "user", "content": "hi"}], call_fn,
+        "", 32, 0.0, 10**12)
+
+    assert backend == "cf_qwen_coder"
+    assert answer == "usable response"
+    assert tried == ["cf_qwen_coder"]
+
+
+def test_quality_check_allows_requested_exact_short_answer():
+    import server
+
+    assert server._quality_check(
+        "topology-ok", 0.5, "scnet_ds_flash",
+        query="Return exactly: topology-ok")
+
+
+def test_quality_check_still_rejects_unrequested_short_answer():
+    import server
+
+    assert not server._quality_check(
+        "ok", 0.7, "scnet_ds_flash",
+        query="Explain the architecture tradeoffs in detail")
+
+
+def test_quality_check_rejects_non_matching_exact_answer():
+    import server
+
+    assert not server._quality_check(
+        "However, I need more information.",
+        0.5,
+        "groq_llama8b",
+        query="Return exactly: topology-ok")
+
+
 def test_tool_backend_iteration_tries_distinct_fast_candidates():
     import server
 

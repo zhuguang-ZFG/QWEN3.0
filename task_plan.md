@@ -26,7 +26,7 @@ Turn the existing LiMa router into a private coding assistant that ranks coding 
 | 12. Local reverse AI inventory | Complete | Already-reversed adapters are separated from page-only candidates and documented. |
 | 13. Local reverse AI integration fixes | Complete | DuckAI no-system path is implemented, DuckAI/SCNet-large evals are recorded, Kimi and OldLLM are gated by current failures. |
 | 14. Cloudflare routing deployment | Complete | Direct and Worker Cloudflare coding capacity are routed, deployed, and smoke-tested on VPS. |
-| 15. Token-safe refresh and topology-aware proxy promotion | Planned | Redact refresh logs/secrets and promote Windows-only proxy winners without breaking VPS routing. |
+| 15. Token-safe refresh and topology-aware proxy promotion | Complete | Redaction, topology guard, VPS deployment, exact-output quality hotfix, and public IDE/API smokes pass. |
 
 ## Current Evidence
 
@@ -87,6 +87,17 @@ Turn the existing LiMa router into a private coding assistant that ranks coding 
 - VPS code route selection now includes `cf_qwen_coder` and `cfai_qwen_coder` inside the default fallback window.
 - VPS direct Cloudflare smoke returned `cf-direct-ok`; VPS Worker Cloudflare smoke returned `cfai-ok`.
 - Public primary `/v1/models` and `/v1/chat/completions` returned 200 after the Cloudflare deployment.
+- Token-safe local proxy routing increment:
+  - `runtime_topology.py` added.
+  - `router_v3.py` and `code_orchestrator.py` now filter local-only proxy backends.
+  - `D:\ollama_server` refresh scripts were redacted in-place and no longer return raw token values.
+  - VPS deployment backups:
+    - `/opt/lima-router/backups/topology-guard-20260522_211850`
+    - `/opt/lima-router/backups/short-answer-hotfix-20260522_212816`
+    - `/opt/lima-router/backups/exact-output-quality-20260522_212959`
+  - `server.py` exact-output quality gate hotfix prevents false `fallback_exhausted` on short direct-answer prompts.
+  - Final local verification returned `73 passed`.
+  - Public `/v1/chat/completions` returned exact `topology-ok`; public `/v1/messages` returned exact `ide-ok`; FRP `8088` health returned 200.
 
 ## Next Risks To Close
 
@@ -96,6 +107,7 @@ Turn the existing LiMa router into a private coding assistant that ranks coding 
 - If Kimi local or SCNet-large proxy models are needed, verify them through the Windows LiMa `8080` path or the VPS `8088` FRP path, not VPS `localhost:4504/4505`.
 - No-login web AI candidates must stay in sandbox until request shape, rate limits, and failure classes are understood.
 - Current no-login web AI probe result is page reachability only, not proof that a candidate is usable as a model backend.
+- Token refresh scripts are now safer to run, but refresh itself still needs a controlled pass with environment variables set and manual login/session state verified.
 
 ## Errors Encountered
 
@@ -109,3 +121,4 @@ Turn the existing LiMa router into a private coding assistant that ranks coding 
 | 2026-05-22 | Initial context-preflight integration test failed because `enhance_context` did not inject the digest yet. | Added digest injection and verified `tests/test_lima_context.py` passed. |
 | 2026-05-22 | Some registered free models were not actually production-live. | Ran VPS smoke and moved only working SCNet direct models into active fallback pools. |
 | 2026-05-22 | `systemctl restart lima-router` hung while uvicorn waited for open connections. | Killed the stuck service process, reset failed state, started service, and verified `/health` plus public smokes. |
+| 2026-05-22 | Public `/v1/chat/completions` returned `router_fallback_exhausted` for `Return exactly: topology-ok` even though direct backends worked. | Made `server.py` quality checks query-aware for exact-output prompts; verified exact OpenAI and Anthropic public smokes. |

@@ -202,3 +202,40 @@ Latest Cloudflare routing VPS deployment:
   - `https://chat.donglicao.com/v1/models`: 200.
   - `https://chat.donglicao.com/v1/chat/completions`: 200 with backend `groq_gptoss_20b` in 601ms.
 - FRP health path remained healthy: `http://47.112.162.80:8088/health` returned 200.
+
+Latest token-safe local proxy routing increment:
+
+- New plan: `docs/superpowers/plans/2026-05-22-token-safe-local-proxy-routing.md`.
+- Added `runtime_topology.py` to keep Windows-local proxy backends out of routing unless:
+  - the backend is not local-only;
+  - `LIMA_ENABLE_LOCAL_PROXIES` or `LIMA_RUNTIME_LOCAL_PROXIES` is set;
+  - a tunnel URL override is set; or
+  - the expected local port is reachable.
+- `router_v3.py` now filters selected candidates through the topology guard.
+- `code_orchestrator.py` now filters coding pools before trying backends.
+- Local refresh scripts under `D:\ollama_server` were redacted in-place:
+  - `secret_redactor.js` added.
+  - Kimi/TheOldLLM refresh logs no longer print raw tokens.
+  - Cloudflare API tokens are read from environment variables instead of hardcoded constants.
+  - `token_refresh_server.js` no longer returns raw tokens from `/refresh`.
+- Refresh scripts were not executed in this pass; only syntax/redaction behavior was verified.
+- Verification:
+  - `py_compile`: passed for `runtime_topology.py`, `router_v3.py`, `code_orchestrator.py`, `test_routing_engine.py`.
+  - Focused suite: `70 passed`.
+  - Node syntax checks: passed for edited local scripts.
+  - Redactor behavior check: passed.
+- VPS deployment:
+  - Topology guard backup: `/opt/lima-router/backups/topology-guard-20260522_211850`.
+  - Short-answer hotfix backup: `/opt/lima-router/backups/short-answer-hotfix-20260522_212816`.
+  - Exact-output quality backup: `/opt/lima-router/backups/exact-output-quality-20260522_212959`.
+  - Uploaded runtime files: `server.py`, `runtime_topology.py`, `router_v3.py`, and `code_orchestrator.py`.
+  - Remote compile passed and `lima-router` restarted with `/health` returning 200.
+- Public verification:
+  - `https://chat.donglicao.com/v1/models`: 200.
+  - `https://chat.donglicao.com/v1/chat/completions`: 200 with exact content `topology-ok`, backend `longcat_chat`.
+  - `https://chat.donglicao.com/v1/messages`: 200 with exact content `ide-ok`.
+  - `http://47.112.162.80:8088/health`: 200.
+- Server quality gate now treats explicit exact-output prompts as exact-match checks, preventing short valid answers from being misclassified as `fallback_exhausted` and preventing long non-matching answers from passing.
+- Final verification:
+  - `D:\GIT\venv\Scripts\python.exe -m py_compile server.py runtime_topology.py router_v3.py code_orchestrator.py test_routing_engine.py`: passed.
+  - `D:\GIT\venv\Scripts\python.exe -m pytest test_routing_engine.py test_http_caller.py tests\test_coding_eval.py tests\test_lima_context.py -q --ignore=active_model`: `73 passed`.
