@@ -2,7 +2,12 @@
 """LiMa 零 Key 端点集成测试
 验证 ch.at / DevToolBox / Pollinations / LLM7.io 可用性
 运行: python tests/test_zerokey_endpoints.py
+
+NOTE: 这是手工 smoke 测试，不应被 pytest 自动收集。
 """
+import pytest
+pytestmark = pytest.mark.skip(reason="Manual smoke test — requires external network access")
+
 import urllib.request, json, time, sys
 
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
