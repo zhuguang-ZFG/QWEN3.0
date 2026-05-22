@@ -339,6 +339,19 @@ def route(query: str, messages: list[dict], *,
     except ImportError:
         pass
 
+    # ── Integration: Graph Retrieval + Reranking (Phase 24/25) ────────────
+    try:
+        from context_pipeline.code_scanner import get_code_graph
+        from context_pipeline.graph_retrieval import dual_layer_search, RetrievalResult
+        from context_pipeline.reranking import rerank_results
+        if _extracted_entities:
+            _graph = get_code_graph()
+            _vector_results = [RetrievalResult(path=e, score=0.7, source="vector") for e in _extracted_entities[:5]]
+            _merged = dual_layer_search(_extracted_entities, _vector_results, _graph, max_results=8)
+            _reranked = rerank_results(_merged, _extracted_entities, top_k=5)
+    except ImportError:
+        pass
+
     # ── Integration: Complexity Assessment (Phase 14) ─────────────────────
     try:
         from context_pipeline.complexity import assess_complexity, decide_topology
