@@ -117,6 +117,8 @@ def _v3_call_stream(backend, messages, max_tokens, ide):
                 ctx = code_orchestrator.enhance_context(query, messages, scenario)
                 sys_prompt = ctx.get("system_prompt", "")
                 messages = ctx.get("enhanced_messages", messages)
+            else:
+                sys_prompt = "Answer directly and concisely. Do not write code unless explicitly asked."
     except Exception:
         pass
 
