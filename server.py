@@ -160,7 +160,8 @@ def _v3_call_api(backend, messages, max_tokens, ide):
                 ctx = code_orchestrator.enhance_context(query, messages, scenario)
                 sys_prompt = ctx.get("system_prompt", "")
             else:
-                sys_prompt = "Answer directly and concisely. Do not write code unless explicitly asked."
+                no_code = "Answer the question directly in plain text. Do not generate code, functions, or programming examples unless the user explicitly asks for code."
+                messages = [{"role": "system", "content": no_code}] + list(messages)
     except Exception:
         pass
     return http_caller.call_api(
