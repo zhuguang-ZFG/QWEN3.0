@@ -76,10 +76,12 @@ if USE_V3:
         """V3 完整路由选择：根据场景选后端。"""
         import health_tracker as ht
         hmap = ht.get_health_map()
+        is_ide = bool(ide and ide not in ("unknown", ""))
         try:
             from routing_engine import classify_scenario
             scenario = classify_scenario(query, messages,
-                                         ide_source=ide, request_type="ide" if ide else "chat")
+                                         ide_source=ide if is_ide else "",
+                                         request_type="ide" if is_ide else "chat")
             if scenario == "coding":
                 import code_orchestrator
                 pool = code_orchestrator.backend_reputation.sort_by_reputation(
@@ -107,7 +109,10 @@ def _v3_call_stream(backend, messages, max_tokens, ide):
                 query = m["content"]
                 break
         if query:
-            scenario = classify_scenario(query, messages, ide_source=ide, request_type="ide" if ide else "chat")
+            is_ide = bool(ide and ide not in ("unknown", ""))
+            scenario = classify_scenario(query, messages,
+                                         ide_source=ide if is_ide else "",
+                                         request_type="ide" if is_ide else "chat")
             if scenario == "coding":
                 ctx = code_orchestrator.enhance_context(query, messages, scenario)
                 sys_prompt = ctx.get("system_prompt", "")
