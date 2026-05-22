@@ -53,10 +53,15 @@ _upstream_check/
 logs/
 
 # One-off local deploy probes may contain operator credentials.
-deploy_test_*.py
-deploy_r*_test.py
-run_remote_test.py
-upload_r*.py
+/deploy_test_*.py
+/deploy_r*_test.py
+/run_remote_test.py
+/upload_r*.py
+/debug_routing*.py
+/run_debug*.py
+/run_r*_test.py
+/stress*_runner.py
+/net/auto_deploy.py
 
 # === 系统 ===
 .DS_Store
