@@ -14,8 +14,7 @@ import os
 SERVER = "47.112.162.80"
 USER = "root"
 PASS = os.environ.get("LIMA_DEPLOY_PASS")
-if not PASS:
-    sys.exit("ERROR: set LIMA_DEPLOY_PASS environment variable")
+KEY_PATH = os.environ.get("LIMA_DEPLOY_KEY_PATH")
 REMOTE_DIR = "/opt/lima-router"
 
 FILES_TO_DEPLOY = [
@@ -27,14 +26,25 @@ FILES_TO_DEPLOY = [
 ]
 
 
+def _preflight() -> None:
+    if not PASS and not KEY_PATH:
+        sys.exit("ERROR: set LIMA_DEPLOY_PASS or LIMA_DEPLOY_KEY_PATH")
+
+
 def main():
+    _preflight()
     print("=== LiMa V3 Deploy ===")
     print(f"Target: {SERVER}:{REMOTE_DIR}")
 
     # 1. Connect
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(SERVER, username=USER, password=PASS)
+    connect_args = {"username": USER}
+    if KEY_PATH:
+        connect_args["key_filename"] = KEY_PATH
+    else:
+        connect_args["password"] = PASS
+    ssh.connect(SERVER, **connect_args)
     sftp = ssh.open_sftp()
     print("[1/5] Connected")
 
@@ -43,6 +53,9 @@ def main():
     backup = f"{REMOTE_DIR}/server.py.bak.{ts}"
     ssh.exec_command(f"cp {REMOTE_DIR}/server.py {backup}")
     print(f"[2/5] Backup: {backup}")
+    print("Rollback:")
+    print(f"  cp {backup} {REMOTE_DIR}/server.py")
+    print("  systemctl restart lima-router")
 
     # 3. Upload V3 modules
     for f in FILES_TO_DEPLOY:

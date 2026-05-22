@@ -1,6 +1,7 @@
 # LiMa 执行计划
 
 > 创建: 2026-05-21
+> 状态: 历史计划，已被 `docs/PERSONAL_CODING_ASSISTANT_PLAN.md` 取代；其中开放平台和商业化 Sprint 不再作为当前方向。
 > 原则: Superpowers — 自主推进，并行执行，先交付再完善
 > 前置: 全量审计完成，所有未闭环项已识别
 
@@ -11,10 +12,10 @@
 ```
 Sprint 0 (30min)  安全修复 + Git清理 + 基础设施
 Sprint 1 (1h)     死代码清理 + Phase 4 收尾
-Sprint 2 (30min)  生产部署 V3 + 开放平台 P0
+Sprint 2 (30min)  生产部署 V3 + 私用 API 验证
 Sprint 3 (2-3h)   双轨路由实现
 Sprint 4 (2h)     限流 + 稳定性接入
-Sprint 5 (半天)   开放平台 P1 + NextChat
+Sprint 5 (半天)   个人编码助手评测闭环
 ```
 
 ---
@@ -37,9 +38,7 @@ if not PASS:
 
 ### 0.2 文档脱敏
 
-**文件**: `docs/PLATFORM_FIX_PLAN.md`
-
-将所有明文密码替换为 `<见 .env>`
+旧开放平台商业化文档已删除。当前敏感信息处理按个人编码助手方向继续，详见 `docs/PERSONAL_CODING_ASSISTANT_PLAN.md`。
 
 ### 0.3 创建 requirements_server.txt
 

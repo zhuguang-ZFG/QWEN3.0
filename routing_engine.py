@@ -51,7 +51,7 @@ def classify(query: str, messages: list[dict], *,
         return "ide"
 
     ua = headers.get("user-agent", "").lower()
-    if any(x in ua for x in ["claude-code", "cursor", "aider", "codex", "cline"]):
+    if any(x in ua for x in ["claude-code", "cursor", "aider", "codex", "cline", "continue", "vscode"]):
         return "ide"
 
     if system_prompt and router_v3.detect_ide_from_system_prompt(system_prompt):
@@ -68,7 +68,10 @@ def classify_scenario(query: str, messages: list[dict], *,
     """判断场景: coding / chat。决定走质量路径还是速度路径。"""
     if request_type == "ide":
         return "coding"
-    if ide_source and ide_source.lower() in ("claude code", "cursor", "aider", "cline", "codex"):
+    if ide_source and ide_source.lower() in (
+        "claude code", "cursor", "aider", "cline", "codex",
+        "continue", "vscode", "vs code",
+    ):
         return "coding"
 
     last_content = ""

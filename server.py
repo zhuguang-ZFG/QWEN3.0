@@ -660,14 +660,12 @@ TOOL_BACKEND_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 ANTHROPIC_NATIVE_BACKENDS = ['longcat_chat', 'longcat', 'deepseek_free', 'longcat_lite', 'longcat_thinking', 'longcat_omni']
 
 TOOL_TIER1_BACKENDS = [
-    'deepseek_free',
-    'zhipu_flash', 'aliyun_qwen3',
-    'groq_gptoss_20b', 'groq_qwen32b', 'groq_llama70b',
-    'cerebras_gptoss', 'cerebras_qwen235b',
-    'mistral_devstral', 'mistral_pixtral', 'mistral_large', 'mistral_small',
-    'groq_llama8b', 'groq_llama4',
-    'google_flash_lite', 'google_flash',
-    'github_gpt4o',
+    # Claude Code sends tools on most real requests. Keep this list short and
+    # front-load low-latency OpenAI-compatible backends that handle tool_calls.
+    'groq_gptoss_20b', 'cerebras_gptoss', 'groq_gptoss',
+    'github_gpt4o_mini', 'github_gpt4o',
+    'mistral_small', 'mistral_devstral', 'mistral_large',
+    'scnet_large_ds_flash',
 ]
 
 
@@ -679,6 +677,15 @@ def _pick_tool_backend(tier: list):
         if BACKENDS.get(n, {}).get('key') and not _ht.is_cooled_down(n):
             return n
     return None
+
+
+def _iter_tool_backends(tier: list):
+    """Yield configured, non-cooled tool backends once per request."""
+    import health_tracker as _ht
+    from backends import BACKENDS
+    for n in tier:
+        if BACKENDS.get(n, {}).get('key') and not _ht.is_cooled_down(n):
+            yield n
 
 
 async def _anthropic_native_forward(body: dict) -> dict:
@@ -698,16 +705,10 @@ def _anthropic_native_forward_sync(body: dict) -> dict:
     # ── 第一梯队：OpenAI 格式后端（需格式转换）──
     openai_tools = _convert_tools_anthropic_to_openai(body.get("tools", []))
     openai_msgs = _convert_messages_anthropic_to_openai(body.get("messages", []))
-    if body.get("system"):
-        sys_text = body["system"] if isinstance(body["system"], str) else " ".join(
-            b.get("text", "") for b in body["system"] if b.get("type") == "text")
-        openai_msgs.insert(0, {"role": "system", "content": sys_text})
+    _inject_anthropic_context_preflight(openai_msgs, body)
 
     if not skip_tier1:
-        for _attempt in range(3):
-            name = _pick_tool_backend(TOOL_TIER1_BACKENDS)
-            if not name:
-                break
+        for name in _iter_tool_backends(TOOL_TIER1_BACKENDS):
             b = BACKENDS[name]
             req_body = {"model": b["model"], "messages": openai_msgs,
                 "tools": openai_tools, "max_tokens": body.get("max_tokens", 4096),
@@ -767,16 +768,10 @@ async def _anthropic_native_stream(body: dict):
     # ── 第一梯队：OpenAI 格式（非流式获取，模拟 Anthropic SSE 输出）──
     openai_tools = _convert_tools_anthropic_to_openai(body.get("tools", []))
     openai_msgs = _convert_messages_anthropic_to_openai(body.get("messages", []))
-    if body.get("system"):
-        sys_text = body["system"] if isinstance(body["system"], str) else " ".join(
-            b.get("text", "") for b in body["system"] if b.get("type") == "text")
-        openai_msgs.insert(0, {"role": "system", "content": sys_text})
+    _inject_anthropic_context_preflight(openai_msgs, body)
 
     if not skip_tier1:
-        for _attempt in range(3):
-            name = _pick_tool_backend(TOOL_TIER1_BACKENDS)
-            if not name:
-                break
+        for name in _iter_tool_backends(TOOL_TIER1_BACKENDS):
             b = BACKENDS[name]
             req_body = {"model": b["model"], "messages": openai_msgs,
                 "tools": openai_tools, "max_tokens": body.get("max_tokens", 4096),
@@ -931,6 +926,51 @@ def _convert_messages_anthropic_to_openai(messages: list) -> list:
                     "content": "\n".join(text_parts)
                 })
     return openai_msgs
+
+
+def _anthropic_system_text(body: dict) -> str:
+    system = body.get("system", "")
+    if isinstance(system, str):
+        return system
+    if isinstance(system, list):
+        return " ".join(
+            block.get("text", "") for block in system
+            if isinstance(block, dict) and block.get("type") == "text"
+        )
+    return ""
+
+
+def _last_openai_user_text(messages: list) -> str:
+    for message in reversed(messages):
+        if message.get("role") == "user" and isinstance(message.get("content"), str):
+            return message["content"]
+    return ""
+
+
+def _inject_anthropic_context_preflight(openai_msgs: list, body: dict) -> None:
+    """Add request-local coding context to Claude Code tool requests."""
+    sys_text = _anthropic_system_text(body)
+    query = _last_openai_user_text(openai_msgs)
+    try:
+        from lima_context import build_context_digest
+        digest = build_context_digest(
+            query,
+            openai_msgs,
+            system_prompt=sys_text,
+            ide_source="Claude Code",
+        )
+    except Exception:
+        digest = ""
+
+    combined = sys_text
+    if digest:
+        combined = f"{sys_text.rstrip()}\n\n{digest}".strip()
+    if not combined:
+        return
+    if openai_msgs and openai_msgs[0].get("role") == "system":
+        openai_msgs[0]["content"] = combined
+    else:
+        openai_msgs.insert(0, {"role": "system", "content": combined})
 
 
 def _convert_response_openai_to_anthropic(openai_response: dict, model: str) -> dict:

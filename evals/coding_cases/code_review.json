@@ -1,0 +1,10 @@
+{
+  "id": "code_review",
+  "name": "Concise code review",
+  "prompt": "Review this function and identify the most important bug. Be concise and do not rewrite unrelated code.\\n\\n```python\\ndef average(nums):\\n    total = 0\\n    for n in nums:\\n        total += n\\n    return total / len(nums)\\n```",
+  "required_patterns": ["empty|zero|len\\(nums\\)|division"],
+  "forbidden_patterns": ["complete rewrite", "unrelated", "payment", "billing"],
+  "min_chars": 40,
+  "max_tokens": 256,
+  "tags": ["review", "python"]
+}

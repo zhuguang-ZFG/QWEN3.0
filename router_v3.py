@@ -22,6 +22,7 @@ from typing import Optional
 POOLS = {
     "ide": {
         "strong": ["longcat_chat", "longcat", "cf_qwen_coder", "cf_llama70b", "cf_kimi_k26",
+                   "scnet_qwen235b", "scnet_ds_flash",
                    "mistral_large", "mistral_small",
                    "groq_llama70b", "cerebras_gptoss", "zhipu_flash", "deepseek_free",
                    "opencode_stealth", "fireworks_llama405b",
@@ -29,6 +30,7 @@ POOLS = {
         "medium": ["cf_llama4", "cf_gptoss_120b", "cf_qwen3_30b", "cf_glm47", "cf_deepseek_r1",
                    "cf_qwq", "cf_mistral", "cf_gemma4", "cf_nemotron",
                    "groq_qwen32b", "groq_gptoss_20b", "cerebras_qwen235b", "mistral_devstral",
+                   "scnet_qwen30b", "scnet_ds_pro",
                    "aliyun_qwen3", "nvidia_qwen_coder",
                    "opencode_ds_flash", "opencode_qwen", "opencode_nemotron", "opencode_minimax",
                    "sambanova_llama4", "cohere_command",
@@ -42,12 +44,14 @@ POOLS = {
     },
     "chat": {
         "strong": ["longcat_chat", "longcat", "cf_qwen_coder", "cf_llama70b", "cf_kimi_k26",
+                   "scnet_qwen235b", "scnet_ds_flash",
                    "groq_llama70b", "cerebras_gptoss", "zhipu_flash", "deepseek_free",
                    "opencode_stealth", "fireworks_llama405b",
                    "github_gpt4o", "mistral_medium"],
         "medium": ["cf_llama4", "cf_gptoss_120b", "cf_qwen3_30b", "cf_glm47", "cf_deepseek_r1",
                    "cf_qwq", "cf_mistral", "cf_gemma4", "cf_nemotron",
                    "groq_qwen32b", "mistral_large", "nvidia_qwen_coder",
+                   "scnet_qwen30b", "scnet_ds_pro",
                    "sambanova_llama4", "cohere_command", "deepinfra_llama4", "deepinfra_qwen235b",
                    "github_gpt4o_mini", "github_llama70b", "google_gemini3",
                    "groq_llama4", "groq_gptoss", "or_llama70b", "or_nemotron",
@@ -64,18 +68,20 @@ POOLS = {
         "strong": ["pollinations"],
     },
     "code": {
-        "strong": ["cf_qwen_coder", "mistral_codestral", "mistral_devstral",
-                   "nvidia_qwen_coder", "or_qwen3_coder",
-                   "longcat_thinking", "longcat_chat", "cf_llama70b"],
-        "medium": ["groq_llama70b", "cerebras_qwen235b", "cf_deepseek_r1",
-                   "cf_qwq", "deepinfra_qwen235b", "sambanova_ds_v3",
-                   "opencode_ds_flash", "opencode_qwen", "opencode_nemotron",
-                   "github_codestral", "github_gpt4o"],
-        "floor": ["groq_gptoss", "cerebras_gptoss", "longcat_lite",
-                  "local_coder14b", "local_reasoning"],
+        "strong": ["github_gpt4o", "github_gpt4o_mini", "or_gptoss_120b",
+                   "scnet_qwen235b", "scnet_ds_flash", "scnet_ds_pro",
+                   "github_codestral", "mistral_large", "mistral_devstral",
+                   "mistral_pixtral", "cf_kimi_k26", "scnet_large_ds_flash"],
+        "medium": ["cerebras_gptoss", "groq_gptoss", "mistral_small",
+                   "mistral_medium", "groq_gptoss_20b", "scnet_qwen30b",
+                   "scnet_large_ds_flash", "github_gpt4o", "github_codestral"],
+        "floor": ["mistral_devstral", "mistral_large", "cerebras_gptoss",
+                  "groq_gptoss", "longcat_lite", "local_coder14b",
+                  "local_reasoning"],
     },
     "chat_fast": {
         "strong": ["groq_llama70b", "groq_qwen32b", "cerebras_gptoss",
+                   "scnet_qwen30b", "scnet_ds_flash", "scnet_qwen235b",
                    "longcat_lite", "cf_llama70b", "cf_kimi_k26"],
         "medium": ["longcat_chat", "cf_qwen3_30b", "cf_gemma4",
                    "groq_gptoss", "groq_llama4",
@@ -92,7 +98,8 @@ DIRECT_BACKENDS = [
 ]
 
 IDE_SOURCES = {"Claude Code", "claude_code", "Cursor", "cursor",
-               "Codex", "codex", "Aider", "aider", "Cline", "cline"}
+               "Codex", "codex", "Aider", "aider", "Cline", "cline",
+               "Continue", "continue", "VS Code", "vscode", "vs code"}
 
 _IDE_FINGERPRINTS = {
     "cursor": ["intelligent programmer", "You are Cursor"],
@@ -116,7 +123,7 @@ def classify_request(path: str, headers: dict, body: dict) -> dict:
         req_type = "ide"
     else:
         ua = headers.get("user-agent", "").lower()
-        if any(x in ua for x in ["claude-code", "cursor", "aider", "codex"]):
+        if any(x in ua for x in ["claude-code", "cursor", "aider", "codex", "cline", "continue", "vscode"]):
             req_type = "ide"
 
     if req_type != "ide":
@@ -204,4 +211,3 @@ def detect_ide_from_system_prompt(text: str) -> str:
         if any(m in text for m in markers):
             return ide
     return ""
-

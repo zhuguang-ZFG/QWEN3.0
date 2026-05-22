@@ -24,6 +24,12 @@ def test_classify_ide_from_ua():
     assert r == "ide"
 
 
+def test_classify_continue_from_ua():
+    r = re_.classify("help", [], fmt="openai",
+                     headers={"user-agent": "Continue/1.0 vscode"})
+    assert r == "ide"
+
+
 def test_classify_ide_from_system_prompt_fingerprint():
     r = re_.classify("fix bug", [], fmt="openai", ide_source="",
                      system_prompt="You are Cursor, an AI coding assistant. Use <user_query> tags.")
@@ -93,6 +99,66 @@ def test_select_sticky_priority():
 
 
 # ── inject skills ───────────────────────────────────────────────────────────
+
+def test_code_pools_prioritize_eval_winners():
+    import code_orchestrator
+    import router_v3
+
+    assert code_orchestrator.POOLS["fast"][:3] == [
+        "cerebras_gptoss", "groq_gptoss", "mistral_small"
+    ]
+    assert code_orchestrator.POOLS["coder"][:2] == [
+        "github_gpt4o", "github_gpt4o_mini"
+    ]
+    assert router_v3.POOLS["code"]["strong"][:3] == [
+        "github_gpt4o", "github_gpt4o_mini", "or_gptoss_120b"
+    ]
+
+
+def test_vps_working_free_models_are_in_active_pools():
+    import code_orchestrator
+    import router_v3
+
+    free_scnet = {"scnet_ds_flash", "scnet_qwen235b", "scnet_qwen30b"}
+
+    assert free_scnet.issubset(set(code_orchestrator.POOLS["coder"]))
+    assert {"scnet_ds_flash", "scnet_qwen235b"}.issubset(
+        set(router_v3.POOLS["code"]["strong"])
+    )
+    assert free_scnet.issubset(set(router_v3.POOLS["chat_fast"]["strong"]))
+    assert "cf_kimi_k26" in router_v3.POOLS["chat_fast"]["strong"]
+
+
+def test_tool_backend_iteration_tries_distinct_fast_candidates():
+    import server
+
+    backends = list(server._iter_tool_backends(server.TOOL_TIER1_BACKENDS))
+
+    assert backends[:3] == ["groq_gptoss_20b", "cerebras_gptoss", "groq_gptoss"]
+    assert len(backends) == len(set(backends))
+
+
+def test_anthropic_tool_route_injects_context_preflight():
+    import server
+
+    body = {
+        "system": "You are Claude Code.",
+        "messages": [
+            {
+                "role": "user",
+                "content": "Fix D:\\GIT\\server.py\nTypeError: bad operand",
+            }
+        ],
+    }
+    messages = server._convert_messages_anthropic_to_openai(body["messages"])
+
+    server._inject_anthropic_context_preflight(messages, body)
+
+    assert messages[0]["role"] == "system"
+    assert "You are Claude Code." in messages[0]["content"]
+    assert "LiMa context preflight" in messages[0]["content"]
+    assert "D:\\GIT\\server.py" in messages[0]["content"]
+
 
 def test_inject_skills_calls_skills_injector():
     """验证 skills 注入被调用且不抛异常"""

@@ -11,6 +11,7 @@ from collections import defaultdict
 import intent_templates
 import quality_gate
 import backend_reputation
+from lima_context import build_context_digest
 
 GUIDE_PATH = os.path.join(os.path.dirname(__file__), "skills", "code", "guide.md")
 LANG_GUIDES = {
@@ -114,9 +115,22 @@ def classify_code_tier(query: str, messages: list = None) -> str:
 # ── Backend Pools ────────────────────────────────────────────────────────────
 
 POOLS = {
-    "fast": ["groq_gptoss", "cerebras_gptoss", "groq_llama4", "longcat_lite"],
-    "coder": ["cf_qwen_coder", "mistral_codestral", "nvidia_qwen_coder", "groq_llama70b"],
-    "strong": ["cf_deepseek_r1", "github_gpt4o", "sambanova_ds_v3"],
+    # 2026-05-22 broad coding eval + VPS free-model smoke.
+    # Keep VPS-working free SCNet models in late fallback slots; local proxy
+    # variants stay last because ports 4504/4505 may not be running on the VPS.
+    "fast": ["cerebras_gptoss", "groq_gptoss", "mistral_small",
+             "groq_gptoss_20b", "scnet_qwen30b", "scnet_ds_flash",
+             "scnet_qwen235b"],
+    "coder": ["github_gpt4o", "github_gpt4o_mini", "cerebras_gptoss",
+              "groq_gptoss", "mistral_small", "scnet_ds_flash",
+              "scnet_qwen235b", "scnet_qwen30b", "mistral_pixtral",
+              "mistral_large", "mistral_devstral", "github_codestral",
+              "or_gptoss_120b", "cf_kimi_k26", "scnet_large_ds_flash"],
+    "strong": ["github_gpt4o", "github_gpt4o_mini", "or_gptoss_120b",
+               "scnet_qwen235b", "scnet_ds_flash", "scnet_ds_pro",
+               "github_codestral", "mistral_large", "mistral_devstral",
+               "mistral_pixtral", "cf_kimi_k26", "scnet_large_ds_flash",
+               "scnet_large_ds_pro"],
 }
 
 
@@ -131,6 +145,9 @@ def handle(query: str, messages: list, call_fn, max_tokens: int = 4096) -> dict:
     # Phase 0: Context Engineering — 语言检测 + 精准规范注入
     language = detect_language(query, messages)
     guide = _load_guide(language)
+    context_digest = build_context_digest(query, messages, system_prompt=guide)
+    if context_digest:
+        guide = f"{guide.rstrip()}\n\n{context_digest}\n"
 
     # Phase 1: Intent Amplification + 错误上下文提取
     enhanced_query = intent_templates.amplify_intent(query)
@@ -316,6 +333,9 @@ def enhance_context(query: str, messages: list, scenario: str = "") -> dict:
 
     # 2. 精准规范注入
     guide = _load_guide(language)
+    context_digest = build_context_digest(query, messages, system_prompt=guide)
+    if context_digest:
+        guide = f"{guide.rstrip()}\n\n{context_digest}\n"
 
     # 3. 意图增强
     enhanced_query = intent_templates.amplify_intent(query)
