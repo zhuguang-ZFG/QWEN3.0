@@ -119,7 +119,9 @@ DIRECT_BACKENDS = [
 
 IDE_SOURCES = {"Claude Code", "claude_code", "Cursor", "cursor",
                "Codex", "codex", "Aider", "aider", "Cline", "cline",
-               "Continue", "continue", "VS Code", "vscode", "vs code"}
+               "Continue", "continue", "VS Code", "vscode", "vs code",
+               "Kiro", "kiro", "Zed", "zed", "Trae", "trae",
+               "Windsurf", "windsurf", "Copilot", "copilot"}
 
 _IDE_FINGERPRINTS = {
     "cursor": ["intelligent programmer", "You are Cursor"],
@@ -128,6 +130,11 @@ _IDE_FINGERPRINTS = {
     "aider": ["SEARCH/REPLACE", "RepoMap"],
     "cline": ["<environment_details>", "Cline"],
     "continue": ["Continue is an open-source", "continue.dev"],
+    "kiro": ["Kiro", "kiro"],
+    "zed": ["Zed", "zed-editor", "You are an AI assistant in Zed"],
+    "trae": ["Trae", "trae"],
+    "windsurf": ["Windsurf", "Codeium"],
+    "copilot": ["GitHub Copilot", "Copilot"],
 }
 
 MAX_FALLBACKS = 8
@@ -143,7 +150,7 @@ def classify_request(path: str, headers: dict, body: dict) -> dict:
         req_type = "ide"
     else:
         ua = headers.get("user-agent", "").lower()
-        if any(x in ua for x in ["claude-code", "cursor", "aider", "codex", "cline", "continue", "vscode"]):
+        if any(x in ua for x in ["claude-code", "cursor", "aider", "codex", "cline", "continue", "vscode", "kiro", "zed", "trae", "windsurf", "copilot"]):
             req_type = "ide"
 
     if req_type != "ide":

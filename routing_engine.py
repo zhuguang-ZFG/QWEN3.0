@@ -52,7 +52,7 @@ def classify(query: str, messages: list[dict], *,
         return "ide"
 
     ua = headers.get("user-agent", "").lower()
-    if any(x in ua for x in ["claude-code", "cursor", "aider", "codex", "cline", "continue", "vscode"]):
+    if any(x in ua for x in ["claude-code", "cursor", "aider", "codex", "cline", "continue", "vscode", "kiro", "zed", "trae", "windsurf", "copilot"]):
         return "ide"
 
     if system_prompt and router_v3.detect_ide_from_system_prompt(system_prompt):
@@ -141,7 +141,7 @@ def select(request_type: str, health_map: dict,
     ]
     result = route_scorer.rank_backends(
         result, request_type, scenario,
-        health_scores=health_tracker.get_scores(),
+        health_scores=scores,
         states=states,
         latency_map=health_tracker.get_latency_map())
 
@@ -190,9 +190,10 @@ def execute(backends: list[str],
             continue
         tried_any = True
         try:
+            t_backend = time.time()
             answer = call_fn(backend, messages, max_tokens)
             if answer and len(answer.strip()) > 5:
-                latency_ms = (time.time() - t0) * 1000
+                latency_ms = (time.time() - t_backend) * 1000
                 health_tracker.record_success(backend, latency_ms)
                 budget_manager.record_usage(backend)
                 return backend, answer, errors
@@ -309,8 +310,8 @@ def route(query: str, messages: list[dict], *,
                     answer=orch_result["answer"],
                     request_type=f"code_{orch_result['tier']}",
                     ms=ms, scenario=scenario)
-        except Exception:
-            pass  # fallback to normal routing
+        except Exception as e:
+            log.warning(f"[ORCH] code_orchestrator failed: {type(e).__name__}: {e}")
 
     sticky_key = sticky_session.compute_key(
         model or "default",
