@@ -150,3 +150,13 @@ Latest free web AI sandbox state:
 - Reachability probe found 6/6 candidate pages return HTTP 200.
 - Important boundary: this is page reachability only, not model-backend admission.
 - Current branch verification: `72 passed, 5 skipped` with `pytest --ignore=active_model`; JSON registry/results validate; FRP `/health` returned 200.
+
+Latest local reverse AI inventory:
+
+- Added `docs/LOCAL_REVERSE_AI_STATUS.md` and `data/local_reverse_ai_inventory.json`.
+- DuckAI is already reverse-engineered locally in `D:\duckai` and runs on `4500`; `/v1/models` and user-only chat pass.
+- DuckAI integration blocker is LiMa request format: `http_caller.py` prepends an empty OpenAI `system` message, and DuckAI returns upstream 400 for that shape.
+- DuckAI public tunnel `https://ddg.zhuguang.ccwu.cc/v1/models` currently returns Cloudflare 1033, so local `4500` is the known-good path.
+- SCNet-large local proxy `4505` is working; Kimi local `4504` is running but chat returns `chat.anonymous_usage_exceeded`; TheOldLLM local `4502` exposes models but chat timed out.
+- HeckAI has an existing worker draft in `D:\ollama_server\heckai-worker.js`; HIX Chat, GPT.chat, Deep-seek mirror, and PLAI.chat remain page-only candidates.
+- Next execution plan: `docs/superpowers/plans/2026-05-22-local-reverse-ai-integration.md`.

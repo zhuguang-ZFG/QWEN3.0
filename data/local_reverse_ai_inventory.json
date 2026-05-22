@@ -1,0 +1,102 @@
+[
+  {
+    "id": "duck_ai",
+    "provider": "DuckAI / DuckDuckGo AI",
+    "status": "already_reversed_integration_broken",
+    "local_path": "D:/duckai",
+    "port": 4500,
+    "lima_backends": ["ddg_gpt4o_mini", "ddg_llama4", "ddg_mistral"],
+    "smoke": "models_ok_user_chat_ok_system_message_fails",
+    "next_action": "add OpenAI no_system handling, add missing models, repair public tunnel"
+  },
+  {
+    "id": "scnet_large",
+    "provider": "SCNet local large-context proxy",
+    "status": "already_reversed_local_ok",
+    "local_path": "D:/ollama_server/scnet_large_proxy.js",
+    "port": 4505,
+    "lima_backends": ["scnet_large_ds_flash", "scnet_large_ds_pro"],
+    "smoke": "models_ok_chat_ok",
+    "next_action": "run coding fixture through Windows 8080 or public FRP 8088"
+  },
+  {
+    "id": "kimi_local",
+    "provider": "Kimi local proxy",
+    "status": "already_proxied_manual_refresh_required",
+    "local_path": "D:/ollama_server/kimi_proxy.js",
+    "port": 4504,
+    "lima_backends": ["kimi", "kimi_thinking", "kimi_search"],
+    "smoke": "models_ok_chat_anonymous_usage_exceeded",
+    "next_action": "refresh login/session and keep out of hot path until chat passes"
+  },
+  {
+    "id": "theoldllm",
+    "provider": "TheOldLLM",
+    "status": "already_reversed_unhealthy",
+    "local_path": "D:/ollama_server/oldllm_proxy.js",
+    "port": 4502,
+    "lima_backends": ["oldllm_gpt54", "oldllm_gpt53", "oldllm_gpt52", "oldllm_gpt51", "oldllm_gpt5", "oldllm_gpt5_mini", "oldllm_gpt41", "oldllm_gpt41_mini", "oldllm_gpt41_nano", "oldllm_gpt4", "oldllm_o1", "oldllm_o4_mini"],
+    "smoke": "models_ok_local_chat_timeout",
+    "next_action": "diagnose token/upstream timeout without exposing token values"
+  },
+  {
+    "id": "heck_ai",
+    "provider": "HeckAI",
+    "status": "adapter_draft_not_registered",
+    "local_path": "D:/ollama_server/heckai-worker.js",
+    "port": null,
+    "lima_backends": [],
+    "smoke": "page_reachable_worker_draft_exists",
+    "next_action": "sandbox deploy/smoke existing worker draft before new reverse work"
+  },
+  {
+    "id": "g4f_local",
+    "provider": "g4f wrapper",
+    "status": "generic_proxy_running_provider_mapping_needed",
+    "local_path": "D:/ollama_server/g4f_server.py",
+    "port": 4503,
+    "lima_backends": [],
+    "smoke": "models_ok_default_chat_ok_specific_pollinations_mapping_failed",
+    "next_action": "explicitly map provider/model pairs before route use"
+  },
+  {
+    "id": "hix_chat",
+    "provider": "HIX Chat",
+    "status": "not_reversed_page_only",
+    "local_path": null,
+    "port": null,
+    "lima_backends": [],
+    "smoke": "page_reachable_only",
+    "next_action": "defer until existing reverse integrations are stable"
+  },
+  {
+    "id": "gpt_chat",
+    "provider": "GPT.chat",
+    "status": "not_reversed_page_only",
+    "local_path": null,
+    "port": null,
+    "lima_backends": [],
+    "smoke": "page_reachable_only",
+    "next_action": "low-trust harmless probes only"
+  },
+  {
+    "id": "deep_seek_mirror",
+    "provider": "Deep-seek mirror",
+    "status": "not_reversed_page_only",
+    "local_path": null,
+    "port": null,
+    "lima_backends": [],
+    "smoke": "page_reachable_only",
+    "next_action": "verify provenance before adapter work"
+  },
+  {
+    "id": "plai_chat",
+    "provider": "PLAI.chat",
+    "status": "not_reversed_page_only",
+    "local_path": null,
+    "port": null,
+    "lima_backends": [],
+    "smoke": "page_reachable_only",
+    "next_action": "inspect protocol and limits later"
+  }
+]

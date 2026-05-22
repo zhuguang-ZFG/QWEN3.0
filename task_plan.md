@@ -23,6 +23,8 @@ Turn the existing LiMa router into a private coding assistant that ranks coding 
 | 9. Local proxy + FRP closure | Complete | VPS `8088` reaches Windows LiMa `8080`; public health/models/chat smokes pass. |
 | 10. Free web AI expansion | In progress | Candidate registry and reachability probe exist; model admission still pending. |
 | 11. Stability + free routing optimization | In progress | Failure-state classification exists; quota-aware routing still pending. |
+| 12. Local reverse AI inventory | Complete | Already-reversed adapters are separated from page-only candidates and documented. |
+| 13. Local reverse AI integration fixes | Planned | DuckAI no-system path, Kimi refresh gate, SCNet-large route eval, and OldLLM timeout diagnosis have an execution plan. |
 
 ## Current Evidence
 
@@ -75,6 +77,8 @@ Turn the existing LiMa router into a private coding assistant that ranks coding 
 - Added next-phase docs for no-login web AI expansion, stability, and free routing optimization.
 - Added sandbox candidate registry and probe harness for no-login web AI candidates.
 - Added backend failure-state classification for auth/quota/rate-limit/session/timeout cases.
+- Local reverse AI inventory now records that DuckAI, SCNet-large, Kimi, TheOldLLM, g4f, HeckAI draft, and page-only candidates are different states and should not be handled as one bucket.
+- `docs/superpowers/plans/2026-05-22-local-reverse-ai-integration.md` is the next execution plan.
 
 ## Next Risks To Close
 

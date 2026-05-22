@@ -83,6 +83,10 @@
 | FREE-013 | Routing efficiency | Static ordering wastes free quota and can retry known-bad sessions. | Add token/session state, quota cooldown, and quality/latency/quota/task-fit scoring. |
 | FREE-014 | Candidate reachability | Duck.ai, HeckAI, HIX Chat, GPT.chat, deep-seek mirror, and PLAI.chat pages returned HTTP 200 in the first harmless reachability probe. | Treat this as page reachability only; next step is protocol/request-shape discovery with harmless prompts. |
 | FREE-015 | Backend failure state | `health_tracker.py` can now classify manual refresh, quota exhausted, rate limited, auth expired, timeout, and provider error states. | Use these states in Task 4 route scoring/skipping. |
+| FREE-016 | DuckAI reverse state | `D:\duckai` already reverse-engineers DuckAI and local `4500` passes `/v1/models` plus user-only chat. | Stop treating DuckAI as net-new research; fix LiMa request format and tunnel. |
+| FREE-017 | DuckAI LiMa blocker | Local DuckAI fails with upstream 400 when the request contains an empty OpenAI `system` message; `http_caller.py` currently prepends one for OpenAI backends. | Add provider-specific `no_system` request construction and tests. |
+| FREE-018 | Existing adapter drafts | `D:\ollama_server\heckai-worker.js` and `umint_proxy.js` already exist. | Smoke existing drafts before doing new browser reverse work. |
+| FREE-019 | Page-only candidates | HIX Chat, GPT.chat, Deep-seek mirror, and PLAI.chat have reachability only, no local API adapter. | Keep out of routing and defer until already-reversed assets are stable. |
 
 ## Latest Deployment Verification
 

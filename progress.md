@@ -186,3 +186,19 @@
   - JSON registry/results validation passed.
   - Probe dry-run listed six candidates.
   - FRP `/health` returned 200.
+
+## 2026-05-22 Local Reverse AI Inventory
+
+- Audited local ports/processes:
+  - `4500` DuckAI, `4502` TheOldLLM, `4503` g4f, `4504` Kimi, `4505` SCNet-large, `8080` LiMa, `11434` Ollama.
+- Verified DuckAI is already reversed in `D:\duckai`; `/v1/models` and user-only chat pass locally.
+- Reproduced DuckAI LiMa-format blocker: empty OpenAI `system` message causes upstream 400.
+- Verified SCNet-large `4505` models and chat pass locally.
+- Verified Kimi `4504` models pass but chat returns `chat.anonymous_usage_exceeded`.
+- Verified TheOldLLM `4502` models pass but local chat timed out after 30 seconds.
+- Verified g4f `4503` default chat works, while one explicit PollinationsAI model mapping failed.
+- Recorded inventory in:
+  - `docs/LOCAL_REVERSE_AI_STATUS.md`
+  - `data/local_reverse_ai_inventory.json`
+  - `docs/superpowers/plans/2026-05-22-local-reverse-ai-integration.md`
+- Updated candidate docs so DuckAI is no longer treated as net-new reverse work and HeckAI is marked as an existing adapter draft.

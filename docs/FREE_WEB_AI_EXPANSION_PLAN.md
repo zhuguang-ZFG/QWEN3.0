@@ -14,8 +14,8 @@ Current references checked on 2026-05-22:
 
 | Source | Evidence | LiMa Decision |
 |---|---|---|
-| Duck.ai / DuckDuckGo AI Chat | `https://duck.ai/chat` returns 200; DuckDuckGo help pages describe Duck.ai as private access to third-party AI chat models, anonymized by DuckDuckGo. | Highest-confidence first candidate. Build a sandbox probe before routing. |
-| HeckAI | `https://heck.ai/zh` returns 200 and its pages advertise free chat without account registration. | Candidate only. Needs request-shape capture, ToS check, rate-limit characterization, and sandbox probe. |
+| Duck.ai / DuckDuckGo AI Chat | `https://duck.ai/chat` returns 200; local `D:\duckai` already implements DuckAI OpenAI-compatible reverse bridge on `4500`. | Not net-new research. Fix LiMa request format, model registration, and public tunnel before routing. |
+| HeckAI | `https://heck.ai/zh` returns 200 and `D:\ollama_server\heckai-worker.js` already contains a worker draft targeting HeckAI's upstream. | Adapter draft exists. Smoke the draft before new browser capture. |
 | HIX Chat | Search result/page advertises free no-login AI chat with web access. | Candidate only; likely product-marketing surface, validate limits carefully. |
 | GPT.chat / ChatGPTFree-style sites | Multiple sites advertise no-login ChatGPT-like access. | Low-trust candidate class. Only harmless probes; never send private code until provenance and retention are known. |
 | Deep-seek.com | Search result/page advertises free AI chat with no signup/no limits. | Candidate only; name can be confused with official DeepSeek, so treat as untrusted mirror until verified. |
@@ -28,8 +28,8 @@ Web candidates still need stricter validation before implementation:
 
 | Candidate | Why It Is Interesting | Risk |
 |---|---|---|
-| Duck.ai | No-login web UX, credible privacy posture, multiple model choices. | Undocumented web protocol may change. |
-| HeckAI | Similar no-login web AI surface. | Unknown limits, anti-bot behavior, and response stability. |
+| Duck.ai | Already local, exposes six models, credible privacy posture. | LiMa currently sends a `system` message that DuckAI rejects; public tunnel currently returns 1033. |
+| HeckAI | Existing worker draft can shorten integration. | Unknown limits, anti-bot behavior, and response stability. |
 | Blackbox AI | Coding-focused web AI surface. | Login/rate limits may vary; higher ToS and anti-bot risk. |
 | You.com / Perplexity-style answer engines | Search-grounded answers can help research/code questions. | Often optimized for search answers, not deterministic coding; API may require auth. |
 | Other no-signup chat mirrors | Adds cheap fallback capacity if stable. | High breakage and abuse risk; never route private code until vetted. |
@@ -163,4 +163,4 @@ effective_score =
 
 ## Current Decision
 
-Do not add new no-login web AI sources directly to first-tier coding. First build the registry and probe harness, then promote only candidates with measured stability and clear failure handling.
+Do not add new no-login web AI sources directly to first-tier coding. First use `docs/LOCAL_REVERSE_AI_STATUS.md` to stabilize already-reversed local assets, then promote only candidates with measured stability and clear failure handling.

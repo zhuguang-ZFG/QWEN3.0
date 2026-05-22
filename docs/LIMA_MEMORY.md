@@ -249,3 +249,29 @@ Implementation started after user said to continue:
 Next implementation item:
 
 - Task 4 quota-aware routing, after current branch is verified and committed.
+
+## 2026-05-22 Local Reverse AI Inventory
+
+User corrected the earlier assumption that Duck.ai still needed reverse engineering. Local audit confirmed:
+
+- `D:\duckai` is an existing DuckAI OpenAI-compatible reverse bridge.
+- Port `4500` is listening with `bun run src/server.ts`.
+- DuckAI `/v1/models` exposes `gpt-4o-mini`, `gpt-5-mini`, `claude-haiku-4-5`, `meta-llama/Llama-4-Scout-17B-16E-Instruct`, `mistral-small-2603`, and `tinfoil/gpt-oss-120b`.
+- DuckAI user-only chat returns HTTP 200 locally.
+- DuckAI fails when LiMa/OpenAI format includes an empty `system` message; current `http_caller.py` prepends that message for every OpenAI backend.
+- `ddg.zhuguang.ccwu.cc` currently returns Cloudflare 1033, so the public tunnel is not healthy.
+
+Other local reverse/proxy state:
+
+- `4505` SCNet-large is running and chat-compatible.
+- `4504` Kimi is running and exposes models, but chat returns `chat.anonymous_usage_exceeded`.
+- `4502` TheOldLLM exposes models, but local chat timed out in the latest smoke.
+- `4503` g4f wrapper is running; default chat works, but provider/model mapping is fragile.
+- `D:\ollama_server\heckai-worker.js` exists, so HeckAI is an adapter-draft task, not a blank reverse task.
+- HIX Chat, GPT.chat, Deep-seek mirror, and PLAI.chat are still page-only candidates.
+
+New source-of-truth docs:
+
+- `docs/LOCAL_REVERSE_AI_STATUS.md`
+- `data/local_reverse_ai_inventory.json`
+- `docs/superpowers/plans/2026-05-22-local-reverse-ai-integration.md`
