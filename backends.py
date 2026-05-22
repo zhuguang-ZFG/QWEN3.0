@@ -12,6 +12,9 @@ BACKENDS = {
     'longcat_thinking': {'url': 'https://api.longcat.chat/anthropic/v1/messages', 'key': os.environ.get('LONGCAT_API_KEY', ''), 'model': 'LongCat-Flash-Thinking-2601', 'fmt': 'anthropic', 'auth': 'bearer'},
     'longcat_omni': {'url': 'https://api.longcat.chat/anthropic/v1/messages', 'key': os.environ.get('LONGCAT_API_KEY', ''), 'model': 'LongCat-Flash-Omni-2603', 'fmt': 'anthropic', 'auth': 'bearer', 'no_system': True},
     'longcat': {'url': 'https://api.longcat.chat/anthropic/v1/messages', 'key': os.environ.get('LONGCAT_API_KEY', ''), 'model': 'LongCat-2.0-Preview', 'fmt': 'anthropic', 'auth': 'bearer'},
+    'longcat_web': {'url': 'http://localhost:4506/v1/chat/completions', 'key': 'local', 'model': 'longcat-web', 'fmt': 'openai', 'timeout': 60},
+    'longcat_web_think': {'url': 'http://localhost:4506/v1/chat/completions', 'key': 'local', 'model': 'longcat-web-think', 'fmt': 'openai', 'timeout': 120},
+    'longcat_web_research': {'url': 'http://localhost:4506/v1/chat/completions', 'key': 'local', 'model': 'longcat-web-research', 'fmt': 'openai', 'timeout': 180},
     'nvidia_nemotron': {'url': 'https://integrate.api.nvidia.com/v1/chat/completions', 'key': os.environ.get('NVIDIA_API_KEY', ''), 'model': 'nvidia/llama-3.3-nemotron-super-49b-v1', 'fmt': 'openai'},
     'nvidia_llama70b': {'url': 'https://integrate.api.nvidia.com/v1/chat/completions', 'key': os.environ.get('NVIDIA_API_KEY', ''), 'model': 'meta/llama-3.3-70b-instruct', 'fmt': 'openai'},
     'nvidia_qwen_coder': {'url': 'https://integrate.api.nvidia.com/v1/chat/completions', 'key': os.environ.get('NVIDIA_API_KEY', ''), 'model': 'qwen/qwen3-coder-480b-a35b-instruct', 'fmt': 'openai'},
@@ -110,8 +113,11 @@ BACKENDS = {
     # ── 新增: OVHcloud (欧洲直连, 零注册, 40+模型, 待服务器验证可达性) ──
     'ovh_llama70b': {'url': 'https://llama-3-3-70b-instruct.endpoints.ai.cloud.ovh.net/v1/chat/completions', 'key': 'none', 'model': 'Llama-3.3-70B-Instruct', 'fmt': 'openai', 'timeout': 30},
     'ovh_deepseek': {'url': 'https://deepseek-r1-distill-qwen-32b.endpoints.ai.cloud.ovh.net/v1/chat/completions', 'key': 'none', 'model': 'DeepSeek-R1-Distill-Qwen-32B', 'fmt': 'openai', 'timeout': 45},
-    # ── 新增: Cohere (Command A 111B, Mamba+Transformer 自研架构) ──
-    'cohere_command': {'url': 'https://api.cohere.com/v1/chat/completions', 'key': os.environ.get('COHERE_API_KEY', ''), 'model': 'command-a-03-2025', 'fmt': 'openai', 'timeout': 30},
+    # ── Cohere (Command A 系列, 自研 Mamba+Transformer 架构) ──
+    'cohere_command': {'url': 'https://api.cohere.com/compatibility/v1/chat/completions', 'key': os.environ.get('COHERE_API_KEY', ''), 'model': 'command-a-03-2025', 'fmt': 'openai', 'timeout': 30},
+    'cohere_command_plus': {'url': 'https://api.cohere.com/compatibility/v1/chat/completions', 'key': os.environ.get('COHERE_API_KEY', ''), 'model': 'command-a-plus-05-2026', 'fmt': 'openai', 'timeout': 30},
+    'cohere_reasoning': {'url': 'https://api.cohere.com/compatibility/v1/chat/completions', 'key': os.environ.get('COHERE_API_KEY', ''), 'model': 'command-a-reasoning-08-2025', 'fmt': 'openai', 'timeout': 45},
+    'cohere_vision': {'url': 'https://api.cohere.com/compatibility/v1/chat/completions', 'key': os.environ.get('COHERE_API_KEY', ''), 'model': 'command-a-vision-07-2025', 'fmt': 'openai', 'timeout': 30},
     # ── 新增: SambaNova Cloud (芯片级加速推理) ──
     'sambanova_llama4': {'url': 'https://api.sambanova.ai/v1/chat/completions', 'key': os.environ.get('SAMBANOVA_API_KEY', ''), 'model': 'Meta-Llama-4-Maverick-17B-128E-Instruct', 'fmt': 'openai', 'timeout': 20},
     'sambanova_ds_v3': {'url': 'https://api.sambanova.ai/v1/chat/completions', 'key': os.environ.get('SAMBANOVA_API_KEY', ''), 'model': 'DeepSeek-V3.2', 'fmt': 'openai', 'timeout': 30},
@@ -195,7 +201,7 @@ BACKENDS = {
 PUBLIC_MODEL_NAME = os.environ.get('PUBLIC_MODEL_NAME', 'LiMa')
 
 # Thinking-capable backends in priority order
-THINKING_BACKENDS = ["or_deepseek_r1", "longcat_thinking"]
+THINKING_BACKENDS = ["or_deepseek_r1", "longcat_thinking", "longcat_web_think"]
 
 # Vision-capable backends
 VISION_BACKENDS = ["longcat_omni", "or_deepseek_r1"]

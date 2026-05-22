@@ -50,7 +50,7 @@ POOLS = {
     },
     "chat": {
         "strong": ["scnet_qwen30b", "scnet_ds_flash", "scnet_qwen235b",
-                   "scnet_ds_pro", "longcat_chat", "longcat",
+                   "scnet_ds_pro", "longcat_chat", "longcat", "longcat_web",
                    "cf_qwen_coder", "cfai_qwen_coder", "cf_llama70b",
                    "cfai_llama70b", "cf_kimi_k26",
                    "groq_llama70b", "cerebras_gptoss", "zhipu_flash", "deepseek_free",
@@ -60,7 +60,7 @@ POOLS = {
                    "cfai_deepseek_r1",
                    "cf_qwq", "cf_mistral", "cf_gemma4", "cf_nemotron",
                    "groq_qwen32b", "mistral_large", "nvidia_qwen_coder",
-                   "sambanova_llama4", "cohere_command", "deepinfra_llama4", "deepinfra_qwen235b",
+                   "sambanova_llama4", "cohere_command", "cohere_command_plus", "deepinfra_llama4", "deepinfra_qwen235b",
                    "github_gpt4o_mini", "github_llama70b", "google_gemini3",
                    "groq_llama4", "groq_gptoss", "or_llama70b", "or_nemotron",
                    "or_qwen3_80b", "mistral_small", "sambanova_ds_v3"],
@@ -72,6 +72,7 @@ POOLS = {
     },
     "vision": {
         "strong": ["longcat_omni"],
+        "medium": ["cohere_vision", "cf_kimi_k26", "github_gpt4o"],
         "floor": ["pollinations"],
     },
     "image": {
@@ -88,7 +89,7 @@ POOLS = {
         "medium": ["cfai_llama70b", "cfai_llama4",
                    "cerebras_gptoss", "groq_gptoss", "mistral_small",
                    "mistral_medium", "groq_gptoss_20b",
-                   "scnet_large_ds_flash", "github_gpt4o", "github_codestral"],
+                   "github_gpt4o", "github_codestral"],
         "floor": ["mistral_devstral", "mistral_large", "cerebras_gptoss",
                   "groq_gptoss", "longcat_lite", "local_coder14b",
                   "local_reasoning",
@@ -210,18 +211,6 @@ def select_backends(req_type: str, health_map: dict, proxy_healthy: bool = True)
                   if health_map.get(b, "healthy") != "dead"]
 
     return result[:MAX_FALLBACKS]
-
-
-def p2c_select(backends: list, score_fn) -> Optional[str]:
-    """Power of Two Choices: 随机选2个，取更健康的"""
-    if not backends:
-        return None
-    if len(backends) == 1:
-        return backends[0]
-    i, j = random.sample(range(len(backends)), 2)
-    si, sj = score_fn(backends[i]), score_fn(backends[j])
-    return backends[i] if si >= sj else backends[j]
-
 
 
 # ─── Layer 3: IDE 检测 ─────────────────────────────────────────────────────

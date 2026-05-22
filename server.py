@@ -2,7 +2,7 @@
 让 Cursor、Claude Code、VS Code Copilot 等 AI IDE 直接接入。
 支持流式/非流式 ChatCompletion，兼容 OpenAI API 格式。
 """
-import sys, os, json, time, uuid, asyncio, threading, functools
+import sys, os, json, time, uuid, asyncio, threading, functools, logging
 from typing import Optional, Union
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -74,8 +74,8 @@ if USE_V3:
                     if not ht.is_cooled_down(b):
                         return b
                 return "groq_llama70b"
-        except Exception:
-            pass
+        except Exception as e:
+            logging.warning(f"[V3_SELECT] classify/context failed: {type(e).__name__}: {e}")
         backends = routing_engine.select("chat", hmap, scenario="chat")
         return backends[0] if backends else "longcat_chat"
 
@@ -102,8 +102,8 @@ if USE_V3:
                     if not ht.is_cooled_down(b):
                         return (b, messages)
                 return ("groq_llama70b", messages)
-        except Exception:
-            pass
+        except Exception as e:
+            logging.warning(f"[V3_STREAM] classify/context failed: {type(e).__name__}: {e}")
         backends = routing_engine.select("chat", hmap, scenario="chat")
         return (backends[0] if backends else "longcat_chat", messages)
 
@@ -132,8 +132,8 @@ def _v3_call_stream(backend, messages, max_tokens, ide):
                 messages = ctx.get("enhanced_messages", messages)
             else:
                 sys_prompt = "Answer the question directly in plain text. Do not generate code, functions, or programming examples unless the user explicitly asks for code."
-    except Exception:
-        pass
+    except Exception as e:
+        logging.warning(f"[V3_CALL_STREAM] context enhance failed: {type(e).__name__}: {e}")
 
     if backend in _FAKE_STREAM_BACKENDS:
         result = http_caller.call_api(
@@ -161,8 +161,8 @@ def _v3_call_api(backend, messages, max_tokens, ide):
             else:
                 no_code = "Answer the question directly in plain text. Do not generate code, functions, or programming examples unless the user explicitly asks for code."
                 messages = [{"role": "system", "content": no_code}] + list(messages)
-    except Exception:
-        pass
+    except Exception as e:
+        logging.warning(f"[V3_CALL_API] context enhance failed: {type(e).__name__}: {e}")
     return http_caller.call_api(
         backend, messages, max_tokens, system_prompt=sys_prompt, ide=ide)
 
@@ -188,6 +188,19 @@ async def lifespan(application):
 app = FastAPI(title="LiMa", version="1.3",
               description="LiMa（力码）— 智能编程助手 API，OpenAI 兼容",
               lifespan=lifespan)
+
+MAX_BODY_SIZE = 2 * 1024 * 1024  # 2MB (coding assistant 上下文可能较大)
+
+@app.middleware("http")
+async def limit_body_size(request: Request, call_next):
+    content_length = request.headers.get("content-length")
+    if content_length:
+        try:
+            if int(content_length) > MAX_BODY_SIZE:
+                return JSONResponse(status_code=413, content={"error": {"message": "Request body too large"}})
+        except ValueError:
+            return JSONResponse(status_code=400, content={"error": {"message": "Invalid Content-Length"}})
+    return await call_next(request)
 
 MODEL_ID = "lima-1.3"
 MODEL_CREATED = int(time.time())
@@ -397,14 +410,16 @@ async def _try_backend(
     except asyncio.TimeoutError:
         smart_router.cb_record(backend_name, False)
         return None
-    except Exception:
+    except Exception as e:
+        logging.debug(f"[TRY_BACKEND] {backend_name}: {type(e).__name__}: {e}")
         smart_router.cb_record(backend_name, False)
         return None
 
 
 @functools.lru_cache(maxsize=256)
+@functools.lru_cache(maxsize=256)
 def _get_ip_location(ip: str) -> str:
-    """查询 IP 地理位置（缓存结果）。"""
+    """查询 IP 地理位置（缓存结果）。非阻塞：在线程池中执行。"""
     if ip in ("127.0.0.1", "localhost", "::1", ""):
         return "本地"
     import re
@@ -417,6 +432,19 @@ def _get_ip_location(ip: str) -> str:
         return f"{data.get('country', '')} {data.get('city', '')}"
     except Exception:
         return "未知"
+
+
+TRUSTED_PROXIES = {"127.0.0.1", "::1", "10.0.0.1"}
+
+
+def _client_ip(request: Request) -> str:
+    """统一 IP 提取：可信代理后用 XFF，否则用 direct IP。"""
+    direct = request.client.host if request.client else ""
+    if direct in TRUSTED_PROXIES:
+        xff = request.headers.get("x-forwarded-for", "")
+        if xff:
+            return xff.split(",")[0].strip()
+    return direct
 
 
 def _detect_ide(messages: list) -> str:
@@ -1329,16 +1357,16 @@ async def chat_completions(request: Request):
     body = await request.json()
     raw_messages = body.get("messages", [])
     # Support explicit thinking flag from request body
-    client_ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "")
+    client_ip = _client_ip(request)
     ide_source = _detect_ide(raw_messages)
 
-    # Rate limiting (skip for IDE clients)
-    if not ide_source:
-        import rate_limiter
-        if not rate_limiter.check_rate_limit(client_ip):
-            return JSONResponse(
-                status_code=429,
-                content={"error": {"message": "Rate limit exceeded. Try again later.", "type": "rate_limit_error"}})
+    # Rate limiting (IDE clients get higher quota, not exempt)
+    import rate_limiter
+    rate_limit_multiplier = 5 if ide_source else 1
+    if not rate_limiter.check_rate_limit(client_ip, multiplier=rate_limit_multiplier):
+        return JSONResponse(
+            status_code=429,
+            content={"error": {"message": "Rate limit exceeded. Try again later.", "type": "rate_limit_error"}})
 
     sys_prompt_preview = ""
     for m in raw_messages:
@@ -2132,6 +2160,40 @@ def _split_sentences(text: str) -> list[str]:
     if current:
         chunks.append(current)
     return chunks if chunks else [text]
+
+
+# ─── Embeddings 端点 (Jina AI) ────────────────────────────────────────────────
+
+@app.post("/v1/embeddings")
+async def embeddings(request: Request):
+    """OpenAI-compatible embeddings endpoint, proxied to Jina AI."""
+    body = await request.json()
+    inp = body.get("input", [])
+    if isinstance(inp, str):
+        inp = [inp]
+    model = body.get("model", "jina-embeddings-v3")
+    dimensions = body.get("dimensions", 256)
+
+    jina_key = os.environ.get("JINA_API_KEY", "")
+    if not jina_key:
+        return JSONResponse({"error": "JINA_API_KEY not configured"}, status_code=503)
+
+    import urllib.request as _ur
+    gfw_proxy = os.environ.get("GFW_PROXY", "http://127.0.0.1:7897")
+    proxy = _ur.ProxyHandler({"https": gfw_proxy, "http": gfw_proxy})
+    opener = _ur.build_opener(proxy)
+    payload = json.dumps({"model": model, "input": inp, "dimensions": dimensions}).encode()
+    req = _ur.Request("https://api.jina.ai/v1/embeddings", data=payload, headers={
+        "Authorization": f"Bearer {jina_key}",
+        "Content-Type": "application/json",
+        "User-Agent": "LiMa/1.3",
+    })
+    try:
+        resp = opener.open(req, timeout=15)
+        data = json.loads(resp.read())
+        return JSONResponse(data)
+    except Exception as e:
+        return JSONResponse({"error": str(e)[:100]}, status_code=502)
 
 
 @app.get("/v1/models")

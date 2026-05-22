@@ -44,7 +44,7 @@ GFW_BACKENDS = {
     'opencode_stealth', 'opencode_ds_flash', 'opencode_qwen',
     'opencode_nemotron', 'opencode_minimax',
     'fireworks_llama405b',
-    'cohere_command',
+    'cohere_command', 'cohere_command_plus', 'cohere_reasoning', 'cohere_vision',
     'sambanova_llama4', 'sambanova_ds_v3',
     'deepinfra_llama4', 'deepinfra_qwen235b',
     'ovh_llama70b', 'ovh_deepseek',
@@ -226,12 +226,13 @@ def call_raw(backend: str, payload: bytes) -> dict:
 def _extract_answer(data: dict, fmt: str) -> str:
     """从 API 响应中提取文本内容。"""
     if fmt == 'anthropic':
+        text_content = ''
         for block in data.get('content', []):
             if block.get('type') == 'text':
-                return block.get('text', '')
-            if block.get('type') == 'thinking':
-                return block.get('thinking', '')
-        # Fallback: try reasoning content
+                text_content = block.get('text', '')
+                break
+        if text_content:
+            return text_content
         for block in data.get('content', []):
             if block.get('type') == 'thinking':
                 return block.get('thinking', '')
@@ -264,6 +265,8 @@ def call_api_stream(backend: str, messages: list[dict], max_tokens: int = 4096,
     cfg = BACKENDS.get(backend)
     if not cfg or not cfg.get('key'):
         raise BackendError(f'{backend} unavailable (no key)', status_code=404)
+    if health_tracker.is_cooled_down(backend):
+        raise BackendError(f'{backend} is cooling down', status_code=503)
 
     headers = _build_headers(cfg)
     body = _build_body(cfg, messages, max_tokens, system_prompt, ide, stream=True)
@@ -317,10 +320,10 @@ def call_api_stream(backend: str, messages: list[dict], max_tokens: int = 4096,
                                     raise BackendError(
                                         f'{backend} error: {total_text[:60]}',
                                         status_code=429)
-                                for pc in pending_chunks:
-                                    cleaned = clean_response(pc, backend)
-                                    if cleaned:
-                                        yield cleaned
+                                buffered = "".join(pending_chunks)
+                                cleaned = clean_response(buffered, backend)
+                                if cleaned:
+                                    yield cleaned
                                 pending_chunks = []
                                 flushed = True
 
