@@ -21,11 +21,11 @@ The remaining literal `- [ ]` matches are only in the boilerplate instruction li
 | `2026-05-22-token-safe-local-proxy-routing.md` | Closed | `runtime_topology.py`, topology tests, token redaction notes in `STATUS.md`, VPS deployment records, git commit `904f32d`. | Refresh scripts were intentionally not executed; only syntax and redaction behavior were verified. |
 | `2026-05-22-free-web-ai-stability-routing.md` | Closed | `route_scorer.py`, admission reports, `STATUS.md`, and `task_plan.md` phase 11. | Page-only web AI candidates remain sandbox-only by policy. |
 | `2026-05-22-complete-open-phases.md` | Closed | `task_plan.md` phases 5, 10, 11 complete; public OpenAI, Anthropic, and real Claude Code CLI smokes recorded. | Commit/push evidence exists in git history on `codex/free-web-ai-probe`. |
-| `2026-05-22-p0-router-hardening.md` | Local closed | Local verification: `112 passed`; `STATUS.md` latest local P0 hardening section. | Not deployed to VPS and not committed in this pass; deployment was a non-goal unless explicitly requested. |
+| `2026-05-22-p0-router-hardening.md` | Closed | Local verification: `112 passed`; VPS deployment backup `/opt/lima-router/backups/p0-router-hardening-20260522_230407`; public OpenAI and Anthropic smokes passed. | `health_tracker.py` was also synced after deployment to repair stale VPS runtime dependency. |
 
 ## Non-Goals And Deferred Risks
 
-- P0 private-access hardening is local-only until the user asks for a VPS deployment pass.
+- P0 private-access hardening has been deployed to VPS after explicit user approval.
 - Kimi local proxy still returns `chat.anonymous_usage_exceeded`; it remains `manual_refresh_required`.
 - TheOldLLM local proxy still times out on chat; more refresh/upstream diagnosis is needed before promotion.
 - Page-only no-login web AI candidates remain sandbox-only until a real adapter and model-level smoke exist.
@@ -35,4 +35,4 @@ The remaining literal `- [ ]` matches are only in the boilerplate instruction li
 
 ## Current Accuracy Judgment
 
-The main `task_plan.md` project phases are complete. Historical Superpowers execution plans are now checkbox-reconciled. The only partial closure is the current P0 hardening increment, which is complete locally but not production-deployed or committed.
+The main `task_plan.md` project phases are complete. Historical Superpowers execution plans are checkbox-reconciled. The P0 hardening increment is now production-deployed and smoke-verified.

@@ -527,7 +527,7 @@ Operational lesson:
 
 ## 2026-05-22 Local P0 Router Hardening And Plan Closure
 
-This increment was local-only. It was not deployed to VPS unless a later deployment pass explicitly does so.
+This increment was first closed locally, then deployed to VPS after explicit user approval.
 
 P0 hardening changes:
 
@@ -550,6 +550,27 @@ Verification:
 - `test_streaming.py`: `5 passed`.
 - Core regression suite with P0 tests: `112 passed`.
 
+VPS deployment:
+
+- GitHub push: commit `c4515d3` on branch `codex/free-web-ai-probe`.
+- P0 runtime backup: `/opt/lima-router/backups/p0-router-hardening-20260522_230407`.
+- Uploaded runtime files: `server.py`, `access_guard.py`, and `routes/admin.py`.
+- Remote `.env` backup is inside the P0 backup directory; `LIMA_API_KEY` was added because neither `LIMA_API_KEY` nor `LIMA_API_KEYS` was configured and the new guard fails closed.
+- Remote compile passed for `server.py`, `access_guard.py`, and `routes/admin.py`.
+- `lima-router` restarted and became active.
+- First smoke immediately after restart hit a transient `Connection refused` before uvicorn was listening; follow-up status showed the service active and listening on `0.0.0.0:8080`.
+- Public no-auth `/v1/chat/completions` returned 401 as expected.
+
+Deployment follow-up fix:
+
+- Public authorized `/v1/chat/completions` and `/v1/messages` initially returned 500.
+- Root cause: VPS had a stale `health_tracker.py`; `routing_engine.py` called `health_tracker.get_backend_state()`, but the remote module did not have that function.
+- Health tracker sync backup: `/opt/lima-router/backups/health-tracker-sync-20260522_230937`.
+- Uploaded `health_tracker.py`, remote compile passed for `health_tracker.py`, `routing_engine.py`, `server.py`, `access_guard.py`, and `routes/admin.py`, then restarted `lima-router`.
+- Public authorized `/v1/chat/completions` returned exact `p0-deploy-ok` with backend `router_longcat_chat`.
+- Public authorized `/v1/messages` returned exact `p0-msg-ok` with `stop_reason=end_turn`.
+- FRP `http://47.112.162.80:8088/health` still returned 200.
+
 Plan closure整理:
 
 - Added `docs/superpowers/PLAN_CLOSURE_STATUS.md`.
@@ -559,7 +580,7 @@ Plan closure整理:
   - `2026-05-22-free-model-first-tier-eval.md`
 - All real task checkboxes in `docs/superpowers/plans/*.md` are now reconciled. Remaining literal `- [ ]` matches are boilerplate syntax examples.
 - Main `task_plan.md` phases are complete.
-- Current P0 hardening is local closed only, not production closed, because VPS deployment was a non-goal in this pass.
+- Current P0 hardening is now production closed after the explicit VPS deployment pass.
 
 Deferred risks and non-goals:
 

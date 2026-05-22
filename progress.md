@@ -289,4 +289,28 @@
 - Current judgment:
   - Main `task_plan.md` phases are complete.
   - Historical Superpowers execution plans are checkbox-reconciled.
-  - P0 router hardening is local closed only; it has not been deployed to VPS or committed in this pass.
+  - P0 router hardening was local closed at this point; it was deployed in the later explicit VPS deployment pass.
+
+## 2026-05-22 P0 Router Hardening VPS Deployment
+
+- Pushed commit `c4515d3` to `origin/codex/free-web-ai-probe`.
+- Deployed P0 runtime files to VPS after explicit user approval:
+  - `server.py`
+  - `access_guard.py`
+  - `routes/admin.py`
+- Backup: `/opt/lima-router/backups/p0-router-hardening-20260522_230407`.
+- Remote `.env` did not have `LIMA_API_KEY` or `LIMA_API_KEYS`; added `LIMA_API_KEY` so the fail-closed private guard would not break authorized IDE/API clients.
+- Remote compile passed for `server.py`, `access_guard.py`, and `routes/admin.py`.
+- `lima-router` restarted active.
+- First smoke immediately after restart hit a short connection-refused window before uvicorn listened; follow-up service status showed the process active and listening on `0.0.0.0:8080`.
+- Public authorized OpenAI and Anthropic smokes initially returned 500.
+- Root cause: VPS `health_tracker.py` was stale and lacked `get_backend_state()`, while current `routing_engine.py` calls it.
+- Synced `health_tracker.py`:
+  - Backup: `/opt/lima-router/backups/health-tracker-sync-20260522_230937`.
+  - Remote compile passed for `health_tracker.py`, `routing_engine.py`, `server.py`, `access_guard.py`, and `routes/admin.py`.
+  - `lima-router` restarted active.
+- Final smoke:
+  - Public `/v1/chat/completions` without auth returned 401.
+  - Public `/v1/chat/completions` with auth returned exact `p0-deploy-ok`.
+  - Public `/v1/messages` with auth returned exact `p0-msg-ok`.
+  - FRP `http://47.112.162.80:8088/health` returned 200.

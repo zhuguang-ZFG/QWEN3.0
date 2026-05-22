@@ -282,7 +282,7 @@ Latest open-phase completion:
   - `D:\GIT\venv\Scripts\python.exe -m py_compile route_scorer.py free_web_ai_admission.py scripts\build_free_web_ai_admission.py routing_engine.py budget_manager.py test_routing_engine.py tests\test_route_scorer.py tests\test_free_web_ai_admission.py`: passed.
   - `D:\GIT\venv\Scripts\python.exe -m pytest test_routing_engine.py test_http_caller.py tests\test_coding_eval.py tests\test_lima_context.py tests\test_free_web_ai_probe.py tests\test_free_web_ai_admission.py tests\test_route_scorer.py -q --ignore=active_model`: `86 passed`.
 
-Latest local P0 router hardening:
+Latest P0 router hardening:
 
 - New plan: `docs/superpowers/plans/2026-05-22-p0-router-hardening.md`.
 - Added `access_guard.py` for private API key enforcement using `LIMA_API_KEY` and/or comma-separated `LIMA_API_KEYS`.
@@ -300,11 +300,24 @@ Latest local P0 router hardening:
   - `tests\test_stream_footer.py`: `2 passed`.
   - `test_streaming.py`: `5 passed`.
   - Core suite with the new tests: `112 passed`.
-- Deployment note: this hardening is local only in the current workspace; it has not been deployed to VPS in this pass.
+- VPS deployment:
+  - GitHub commit pushed: `c4515d3`.
+  - P0 runtime backup: `/opt/lima-router/backups/p0-router-hardening-20260522_230407`.
+  - Uploaded `server.py`, `access_guard.py`, and `routes/admin.py`.
+  - Added remote `LIMA_API_KEY` config because the new guard fails closed and no private key was configured.
+  - Remote compile passed and `lima-router` restarted active.
+  - Initial smoke immediately after restart hit a transient connection-refused window before uvicorn listened.
+  - Authorized public endpoints then returned 500 because VPS `health_tracker.py` was stale and lacked `get_backend_state()`.
+  - Health tracker sync backup: `/opt/lima-router/backups/health-tracker-sync-20260522_230937`.
+  - Uploaded `health_tracker.py`; remote compile passed for `health_tracker.py`, `routing_engine.py`, `server.py`, `access_guard.py`, and `routes/admin.py`; `lima-router` restarted active.
+  - Public `/v1/chat/completions` without auth returned 401.
+  - Public `/v1/chat/completions` with auth returned exact `p0-deploy-ok`, backend `router_longcat_chat`.
+  - Public `/v1/messages` with auth returned exact `p0-msg-ok`.
+  - FRP `/health` returned 200.
 
 Latest Superpowers plan closure review:
 
 - Added `docs/superpowers/PLAN_CLOSURE_STATUS.md`.
 - Reconciled historical Superpowers plan checkboxes; remaining literal `- [ ]` matches are boilerplate syntax examples, not open task items.
 - Main `task_plan.md` phases remain complete.
-- Current P0 hardening is classified as local closed, not production closed, because VPS deployment was not requested in this pass.
+- Current P0 hardening is classified as production closed after the explicit VPS deployment pass.

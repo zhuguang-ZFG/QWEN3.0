@@ -24,7 +24,7 @@
 
 - No commercial billing, user signup, paid quota, or dashboard work.
 - No MAB routing, plugin architecture, semantic embedding model, or YAML routing rewrite in this increment.
-- No VPS deployment in this pass unless explicitly requested after local verification.
+- No VPS deployment in this pass unless explicitly requested after local verification. The user later explicitly requested deployment, so a separate deployment pass was executed after local verification.
 
 ### Implementation Tasks
 
@@ -54,6 +54,23 @@ D:\GIT\venv\Scripts\python.exe -m pytest test_routing_engine.py test_http_caller
 ```
 
 Latest local result after streaming-test cleanup: `112 passed`; the previous 5 skipped async streaming tests now execute through `asyncio.run()`.
+
+### Deployment Evidence
+
+- GitHub push: commit `c4515d3` to `origin/codex/free-web-ai-probe`.
+- P0 runtime backup: `/opt/lima-router/backups/p0-router-hardening-20260522_230407`.
+- Uploaded runtime files: `server.py`, `access_guard.py`, and `routes/admin.py`.
+- Added `LIMA_API_KEY` to remote `.env` because no private API key was configured and the new guard fails closed.
+- Remote compile passed for `server.py`, `access_guard.py`, and `routes/admin.py`.
+- Synced stale remote `health_tracker.py` after authorized endpoints returned 500:
+  - Backup: `/opt/lima-router/backups/health-tracker-sync-20260522_230937`.
+  - Root cause: remote `health_tracker.py` lacked `get_backend_state()` required by `routing_engine.py`.
+  - Remote compile passed for `health_tracker.py`, `routing_engine.py`, `server.py`, `access_guard.py`, and `routes/admin.py`.
+- Public smoke:
+  - `/v1/chat/completions` without auth returned 401.
+  - `/v1/chat/completions` with auth returned exact `p0-deploy-ok`.
+  - `/v1/messages` with auth returned exact `p0-msg-ok`.
+  - FRP `/health` returned 200.
 
 ### Rollback
 
