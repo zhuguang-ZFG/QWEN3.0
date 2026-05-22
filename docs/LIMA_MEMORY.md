@@ -623,3 +623,10 @@ Verification evidence:
 - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_vision_routing.py tests\test_request_stats.py -q --ignore=active_model`: `5 passed`.
 - Core suite: `117 passed`.
 - `git -C D:\GIT grep -n "sk-" -- scripts`: no output, expected exit 1 for no matches.
+
+Follow-up security correction:
+
+- A final whole-round review found the first tracked-script scrub was too narrow because it only checked `sk-` token shapes.
+- Commit `e231a5e` removed the remaining tracked OneAPI/admin/provider credential literals from `scripts/*.py` and replaced them with environment-variable reads.
+- Final sanitized checks found no tracked script hardcoded credential literals, and `D:\GIT\venv\Scripts\python.exe -m compileall -q scripts` passed.
+- Treat any credentials that existed in repository history as exposed and rotate them. Never paste token values into docs, commits, or chat.

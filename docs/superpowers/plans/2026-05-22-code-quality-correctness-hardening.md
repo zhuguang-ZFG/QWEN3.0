@@ -376,7 +376,7 @@ git -C D:\GIT add .gitignore
 git -C D:\GIT commit -m "chore: ignore one-off deploy probes"
 ```
 
-Task 4 follow-up note: the safety review expanded beyond ignore rules. Tracked `scripts/` files were scrubbed so hardcoded `sk-` token literals are read from environment variables instead.
+Task 4 follow-up note: the safety review expanded beyond ignore rules. Tracked `scripts/` files were scrubbed so hardcoded token and credential literals, including non-`sk` OneAPI/admin/provider values, are read from environment variables instead. Previously exposed credentials still require rotation outside Git.
 
 ### Task 5: 回填质量报告结论与验证证据
 

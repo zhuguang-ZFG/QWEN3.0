@@ -340,3 +340,10 @@
   - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_vision_routing.py tests\test_request_stats.py -q --ignore=active_model`: `5 passed`.
   - Core suite: `117 passed`.
   - `git -C D:\GIT grep -n "sk-" -- scripts`: no output, expected for no matches.
+
+Follow-up after final review:
+
+- Final reviewer found that the initial script scrub only covered `sk-` token shapes and missed non-`sk` OneAPI/admin/provider credential literals in tracked `scripts/`.
+- Commit `e231a5e chore: remove remaining script credentials` moved those remaining tracked script credentials to environment-variable reads.
+- Sanitized broader tracked-script scans passed without hardcoded credential literals, and `D:\GIT\venv\Scripts\python.exe -m compileall -q scripts` passed.
+- Credentials that appeared in history still require rotation outside Git.

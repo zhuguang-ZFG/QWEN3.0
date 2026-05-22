@@ -335,3 +335,10 @@ Latest code-quality hardening evidence:
 - Security note: previously exposed tokens should be rotated. Do not copy token values into docs, commits, or chat.
 - Deployment policy: this round is local-only unless the user explicitly requests deployment later.
 - Local verification: `py_compile smart_router.py server.py` passed; focused quality tests passed `5 passed`; core suite passed `117 passed`; `git grep -n "sk-" -- scripts` produced no matches.
+
+Latest code-quality hardening security follow-up:
+
+- Final review found that clearing only `sk-` literals was too narrow: tracked `scripts/` still had non-`sk` OneAPI/admin/provider credential literals.
+- Commit `e231a5e` replaced the remaining tracked script credentials with environment-variable reads, including OneAPI admin password and provider keys.
+- Sanitized tracked-script scans now report no hardcoded credential literals in `scripts/`; `compileall -q scripts` passed.
+- Previously exposed credentials still need rotation outside the repository. No credential values were copied into project docs.
