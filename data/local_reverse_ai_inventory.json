@@ -2,22 +2,22 @@
   {
     "id": "duck_ai",
     "provider": "DuckAI / DuckDuckGo AI",
-    "status": "already_reversed_integration_broken",
+    "status": "already_reversed_late_fallback_admitted",
     "local_path": "D:/duckai",
     "port": 4500,
-    "lima_backends": ["ddg_gpt4o_mini", "ddg_llama4", "ddg_mistral"],
-    "smoke": "models_ok_user_chat_ok_system_message_fails",
-    "next_action": "add OpenAI no_system handling, add missing models, repair public tunnel"
+    "lima_backends": ["ddg_gpt4o_mini", "ddg_gpt5_mini", "ddg_claude_haiku_45", "ddg_llama4", "ddg_mistral", "ddg_tinfoil_gptoss_120b"],
+    "smoke": "models_ok_user_chat_ok_no_system_fixed_ddg_gpt4o_mini_and_gpt5_mini_pass_3_of_3",
+    "next_action": "keep admitted DuckAI models late; repair public tunnel before VPS use"
   },
   {
     "id": "scnet_large",
     "provider": "SCNet local large-context proxy",
-    "status": "already_reversed_local_ok",
+    "status": "already_reversed_route_eval_passed",
     "local_path": "D:/ollama_server/scnet_large_proxy.js",
     "port": 4505,
     "lima_backends": ["scnet_large_ds_flash", "scnet_large_ds_pro"],
-    "smoke": "models_ok_chat_ok",
-    "next_action": "run coding fixture through Windows 8080 or public FRP 8088"
+    "smoke": "models_ok_chat_ok_route_eval_3_of_3_for_flash_and_pro",
+    "next_action": "promote only behind a local-proxy topology guard; avoid VPS localhost failure"
   },
   {
     "id": "kimi_local",
@@ -27,7 +27,7 @@
     "port": 4504,
     "lima_backends": ["kimi", "kimi_thinking", "kimi_search"],
     "smoke": "models_ok_chat_anonymous_usage_exceeded",
-    "next_action": "refresh login/session and keep out of hot path until chat passes"
+    "next_action": "refresh login/session after redacting token output; keep out of hot path until chat passes"
   },
   {
     "id": "theoldllm",
@@ -37,7 +37,7 @@
     "port": 4502,
     "lima_backends": ["oldllm_gpt54", "oldllm_gpt53", "oldllm_gpt52", "oldllm_gpt51", "oldllm_gpt5", "oldllm_gpt5_mini", "oldllm_gpt41", "oldllm_gpt41_mini", "oldllm_gpt41_nano", "oldllm_gpt4", "oldllm_o1", "oldllm_o4_mini"],
     "smoke": "models_ok_local_chat_timeout",
-    "next_action": "diagnose token/upstream timeout without exposing token values"
+    "next_action": "redact refresh logs and diagnose upstream timeout before any hot-path use"
   },
   {
     "id": "heck_ai",

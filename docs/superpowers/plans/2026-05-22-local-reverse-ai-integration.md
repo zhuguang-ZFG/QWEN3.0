@@ -30,7 +30,7 @@
 - Modify: `test_http_caller.py`
 - Update: `docs/LOCAL_REVERSE_AI_STATUS.md`
 
-- [ ] **Step 1: Write a failing test for OpenAI no-system backends**
+- [x] **Step 1: Write a failing test for OpenAI no-system backends**
 
 Add a test that builds a body for an OpenAI backend with `no_system=True` and asserts the first message is the user message, not an empty system message.
 
@@ -42,11 +42,11 @@ D:\GIT\venv\Scripts\python.exe -m pytest -q test_http_caller.py
 
 Expected before implementation: the new assertion fails because `_build_body` prepends `role=system`.
 
-- [ ] **Step 2: Implement the `no_system` OpenAI branch**
+- [x] **Step 2: Implement the `no_system` OpenAI branch**
 
 Change `_build_body` so OpenAI-format backends with `backend_cfg.get("no_system")` omit the synthetic system message. If `system_prompt` or IDE context exists, prepend it to the first user message as text instead of using `role=system`.
 
-- [ ] **Step 3: Mark DuckAI backends as no-system and add missing models**
+- [x] **Step 3: Mark DuckAI backends as no-system and add missing models**
 
 In `backends.py`, set `no_system: True` for existing `ddg_*` backends and add:
 
@@ -58,7 +58,7 @@ In `backends.py`, set `no_system: True` for existing `ddg_*` backends and add:
 
 Use models from local `/v1/models`: `gpt-5-mini`, `claude-haiku-4-5`, and `tinfoil/gpt-oss-120b`.
 
-- [ ] **Step 4: Verify locally**
+- [x] **Step 4: Verify locally**
 
 Run:
 
@@ -77,11 +77,11 @@ Expected: tests pass; DuckAI local chat returns HTTP 200.
 - Update: `docs/FREE_MODEL_ROUTING_STATUS.md`
 - Update: `docs/LOCAL_REVERSE_AI_STATUS.md`
 
-- [ ] **Step 1: Keep DuckAI late until route-path fixture passes**
+- [x] **Step 1: Keep DuckAI late until route-path fixture passes**
 
 Add DuckAI models only to a late free fallback pool, not first-tier coding.
 
-- [ ] **Step 2: Run a focused coding fixture through LiMa**
+- [x] **Step 2: Run a focused coding fixture through LiMa**
 
 Run:
 
@@ -91,7 +91,7 @@ D:\GIT\venv\Scripts\python.exe scripts\eval_coding_backends.py --backends ddg_gp
 
 Expected: record pass count, latency, and failure class. Do not promote any DuckAI model that fails formatting or times out.
 
-- [ ] **Step 3: Update route decision docs**
+- [x] **Step 3: Update route decision docs**
 
 Record exact winners and failures in `docs/LOCAL_REVERSE_AI_STATUS.md` and `docs/FREE_MODEL_ROUTING_STATUS.md`.
 
@@ -103,7 +103,7 @@ Record exact winners and failures in `docs/LOCAL_REVERSE_AI_STATUS.md` and `docs
 - Modify if needed: `health_tracker.py`
 - Update: `docs/LOCAL_REVERSE_AI_STATUS.md`
 
-- [ ] **Step 1: Confirm current failure class**
+- [x] **Step 1: Confirm current failure class**
 
 Run:
 
@@ -113,11 +113,13 @@ curl.exe --noproxy "*" -sS --max-time 35 http://127.0.0.1:4504/v1/chat/completio
 
 Expected current failure: `chat.anonymous_usage_exceeded`.
 
-- [ ] **Step 2: Refresh session only if the local browser/login state is available**
+- [x] **Step 2: Refresh session only if the local browser/login state is available**
+
+Decision: the current refresh script/log path can expose token fragments and update a CF Worker secret. Do not run it in this pass; redact the script/log output first, then refresh manually.
 
 Run the existing refresh script manually, then repeat the chat smoke. If manual login is required, document that state and keep Kimi inactive.
 
-- [ ] **Step 3: Keep failed Kimi out of hot-path retries**
+- [x] **Step 3: Keep failed Kimi out of hot-path retries**
 
 Verify `health_tracker` classifies the failure as `manual_refresh_required` or `quota_exhausted`.
 
@@ -128,7 +130,7 @@ Verify `health_tracker` classifies the failure as `manual_refresh_required` or `
 - Update: `docs/FREE_MODEL_ROUTING_STATUS.md`
 - Update: `docs/LOCAL_REVERSE_AI_STATUS.md`
 
-- [ ] **Step 1: Verify local proxy still passes**
+- [x] **Step 1: Verify local proxy still passes**
 
 Run:
 
@@ -138,11 +140,13 @@ curl.exe --noproxy "*" -sS --max-time 35 http://127.0.0.1:4505/v1/chat/completio
 
 Expected: HTTP 200 OpenAI-compatible response.
 
-- [ ] **Step 2: Evaluate through LiMa route path**
+- [x] **Step 2: Evaluate through LiMa route path**
 
 Run the coding fixture against `scnet_large_ds_flash` and `scnet_large_ds_pro` through the Windows LiMa router or public FRP path.
 
-- [ ] **Step 3: Decide promotion**
+- [x] **Step 3: Decide promotion**
+
+Decision: `scnet_large_ds_flash` and `scnet_large_ds_pro` passed 3/3, but promotion must wait for a local-proxy topology guard so a VPS process does not try `localhost:4505`.
 
 Promote only if route-path fixture quality and latency beat current direct SCNet first-tier models.
 
@@ -154,15 +158,17 @@ Promote only if route-path fixture quality and latency beat current direct SCNet
 - Inspect: `D:\ollama_server\token_refresh_server.js`
 - Update: `docs/LOCAL_REVERSE_AI_STATUS.md`
 
-- [ ] **Step 1: Reproduce timeout**
+- [x] **Step 1: Reproduce timeout**
 
 Run local `4502` chat with a 30 second timeout and record whether it times out, returns auth failure, or returns content.
 
-- [ ] **Step 2: Check refresh helper**
+- [x] **Step 2: Check refresh helper**
+
+Decision: refresh helper processes are running, but current logs expose token fragments. Redaction is required before more active refresh work.
 
 Confirm whether the refresh helper can obtain a current token without exposing token values in logs or docs.
 
-- [ ] **Step 3: Keep oldllm late**
+- [x] **Step 3: Keep oldllm late**
 
 Do not place TheOldLLM in coding hot path until local chat and public worker chat both pass.
 
@@ -173,14 +179,14 @@ Do not place TheOldLLM in coding hot path until local chat and public worker cha
 - Modify: `data/free_web_ai_candidates.json`
 - Update: `docs/FREE_WEB_AI_EXPANSION_PLAN.md`
 
-- [ ] **Step 1: Remove DuckAI from net-new research**
+- [x] **Step 1: Remove DuckAI from net-new research**
 
 Keep DuckAI in the registry only as `already_reversed_local`; do not spend new reverse-engineering time on it.
 
-- [ ] **Step 2: Promote HeckAI from page-only to adapter-draft**
+- [x] **Step 2: Promote HeckAI from page-only to adapter-draft**
 
 Record that `D:\ollama_server\heckai-worker.js` exists and must be smoked before any new capture work.
 
-- [ ] **Step 3: Keep HIX/GPT.chat/Deep-seek/PLAI page-only**
+- [x] **Step 3: Keep HIX/GPT.chat/Deep-seek/PLAI page-only**
 
 Do not build adapters until Task 1-5 are closed.

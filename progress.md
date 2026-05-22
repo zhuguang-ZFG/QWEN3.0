@@ -202,3 +202,22 @@
   - `data/local_reverse_ai_inventory.json`
   - `docs/superpowers/plans/2026-05-22-local-reverse-ai-integration.md`
 - Updated candidate docs so DuckAI is no longer treated as net-new reverse work and HeckAI is marked as an existing adapter draft.
+
+## 2026-05-22 Local Reverse AI Integration
+
+- Added RED/GREEN coverage for OpenAI `no_system` body construction.
+- Updated `http_caller.py` so DuckAI-style OpenAI backends omit `role=system` and preserve non-empty system/IDE context in the first user message.
+- Marked DuckAI backends `no_system` and registered the three missing local DuckAI models.
+- Kept DuckAI models late in `router_v3.py` and `code_orchestrator.py` fallback order.
+- Ran DuckAI local coding admission with dedicated output:
+  - `data/ddg_route_admission_eval.json`
+  - `docs/DDG_ROUTE_ADMISSION.md`
+  - `ddg_gpt4o_mini` and `ddg_gpt5_mini`: 3/3.
+  - `ddg_claude_haiku_45`: strict JSON failure.
+  - `ddg_tinfoil_gptoss_120b`: upstream 500/cooldown.
+- Confirmed Kimi chat still returns `chat.anonymous_usage_exceeded` and health state is `manual_refresh_required`.
+- Ran SCNet-large local route eval with dedicated output:
+  - `data/scnet_large_route_eval.json`
+  - `docs/SCNET_LARGE_ROUTE_EVAL.md`
+  - `scnet_large_ds_flash` and `scnet_large_ds_pro`: both 3/3.
+- Reproduced TheOldLLM local `4502` 30s chat timeout and left it late until refresh/log safety plus upstream diagnosis are closed.

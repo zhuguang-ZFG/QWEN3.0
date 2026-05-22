@@ -49,6 +49,35 @@ def test_build_body_openai_basic():
     assert body['messages'][1] == msgs[0]
 
 
+def test_build_body_openai_no_system_omits_system_message():
+    cfg = {
+        'fmt': 'openai', 'model': 'gpt-4o-mini',
+        'key': 'none', 'no_system': True,
+    }
+    msgs = [{'role': 'user', 'content': 'hello'}]
+    raw = _build_body(cfg, msgs, 256)
+    body = json.loads(raw)
+    assert body['model'] == 'gpt-4o-mini'
+    assert body['max_tokens'] == 256
+    assert body['messages'] == msgs
+    assert all(m['role'] != 'system' for m in body['messages'])
+
+
+def test_build_body_openai_no_system_merges_prompt_into_first_user_message():
+    cfg = {
+        'fmt': 'openai', 'model': 'gpt-4o-mini',
+        'key': 'none', 'no_system': True,
+    }
+    msgs = [{'role': 'user', 'content': 'hello'}]
+    raw = _build_body(cfg, msgs, 256, system_prompt='Base.', ide='Cursor')
+    body = json.loads(raw)
+    assert body['messages'][0]['role'] == 'user'
+    assert 'Base.' in body['messages'][0]['content']
+    assert 'Cursor' in body['messages'][0]['content']
+    assert 'hello' in body['messages'][0]['content']
+    assert all(m['role'] != 'system' for m in body['messages'])
+
+
 def test_build_body_anthropic_with_system():
     cfg = {'fmt': 'anthropic', 'model': 'claude-3', 'key': 'k'}
     msgs = [{'role': 'user', 'content': 'hi'}]

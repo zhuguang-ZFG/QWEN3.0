@@ -21,8 +21,8 @@ VPS eval date: 2026-05-22.
 | `scnet_ds_pro` | 3/3 | 91 | 4571ms | First tier, behind faster SCNet models |
 | `cf_kimi_k26` | 1/3 | 48 | 7844ms | Fallback only |
 | `scnet_minimax` | 0/3 | 0 | 10145ms | Inactive, timeout |
-| `scnet_large_ds_flash` | local OK | 100 | ~1s direct | Windows local proxy `4505` verified; eligible after route-path eval |
-| `scnet_large_ds_pro` | local models OK | pending | pending | Windows local proxy `4505` verified; needs full fixture rerun |
+| `scnet_large_ds_flash` | 3/3 local route eval | 100 | 987ms | Strong local/FRP candidate; promote only with local-proxy topology guard |
+| `scnet_large_ds_pro` | 3/3 local route eval | 100 | 3899ms | Strong local/FRP candidate, slower than flash |
 | `stock_kimi_k2` | 0/3 | 0 | 525ms | Inactive, invalid response |
 | `kimi` | auth/quota fail | 0 | 0ms | Port `4504` runs, but chat returns `chat.anonymous_usage_exceeded` |
 | `kimi_thinking` | auth/quota fail | 0 | 0ms | Port `4504` runs, blocked by Kimi login state |
@@ -41,8 +41,8 @@ Smoke prompt: `Say OK only.`
 | `scnet_qwen235b` | OK | 2110ms | Active free fallback for coding/chat. |
 | `scnet_qwen30b` | OK | 1727ms | Active fast/chat fallback. |
 | `scnet_minimax` | Timeout | 30742ms | Registered, not active in default pools. |
-| `scnet_large_ds_flash` | Local OK | ~1s | Registered; Windows local proxy `4505` is running and chat-completion compatible. |
-| `scnet_large_ds_pro` | Local models OK | pending | Registered; Windows local proxy `4505` is running. |
+| `scnet_large_ds_flash` | Local route eval OK | 987ms avg | Registered; Windows local proxy `4505` is coding-fixture compatible. |
+| `scnet_large_ds_pro` | Local route eval OK | 3899ms avg | Registered; strong but slower than `flash`. |
 | `cf_kimi_k26` | OK | 9987ms | Active chat fallback; coding fallback only after stronger models. |
 | `stock_kimi_k2` | Invalid response | 2070ms | Registered, not active in default pools. |
 | `kimi` | Auth/quota fail | 0ms | Registered; Windows local proxy `4504` runs, but Kimi session needs re-login. |
@@ -56,6 +56,17 @@ Smoke prompt: `Say OK only.`
 | `code_orchestrator.py` | Promoted `scnet_ds_flash`, `scnet_qwen235b`, `scnet_qwen30b`, and `scnet_ds_pro` into first-tier coding pools. |
 | `router_v3.py` | Promoted VPS-working SCNet direct models to the front of IDE/chat/code/chat_fast pools. |
 | `test_routing_engine.py` | Added regression coverage for SCNet first-tier ordering and Kimi fallback placement. |
+
+## DuckAI Local Admission Evidence
+
+Local eval date: 2026-05-22. Command output is recorded in `data/ddg_route_admission_eval.json` and `docs/DDG_ROUTE_ADMISSION.md`.
+
+| Backend | Passes | Avg Score | Avg Latency | Decision |
+|---|---:|---:|---:|---|
+| `ddg_gpt4o_mini` | 3/3 | 100 | 3022ms | Late local fallback; not first tier. |
+| `ddg_gpt5_mini` | 3/3 | 100 | 3626ms | Late local fallback; not first tier. |
+| `ddg_claude_haiku_45` | 2/3 | 58 | 2358ms | Chat-like fallback only; failed strict JSON output. |
+| `ddg_tinfoil_gptoss_120b` | 0/3 | 0 | 89ms | Inactive; upstream 500 and cooldown. |
 
 ## Deployment Evidence
 
@@ -83,6 +94,8 @@ Smoke prompt: `Say OK only.`
 - `cf_kimi_k26` is usable but slow and verbose, so it is kept for fallback instead of first-tier IDE coding.
 - Local proxy models must be verified through the Windows LiMa router path, not by checking VPS `localhost:4504/4505`.
 - Kimi local failures should be treated as `manual_refresh_required` or `quota_exhausted`, not retried repeatedly in the hot path.
+- DuckAI `ddg_gpt4o_mini` and `ddg_gpt5_mini` are admitted only as late local fallback until the public tunnel is repaired and longer stability runs pass.
+- SCNet-large is strong on the Windows local route, but must not be promoted on a VPS process that cannot reach Windows `localhost:4505`.
 - Future no-login web AI adapters must stay out of first-tier coding until they pass the admission rules in `docs/FREE_WEB_AI_EXPANSION_PLAN.md`.
 - `health_tracker.record_failure` now accepts `error_text`, classifies Kimi anonymous quota/session failures, and stores a backend state for later route skipping/scoring.
 

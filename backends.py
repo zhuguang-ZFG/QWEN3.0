@@ -126,9 +126,12 @@ BACKENDS = {
     'local_fast': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'qwen2.5-coder:1.5b', 'fmt': 'openai', 'timeout': 10},
     'local_chat': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'qwen2.5:0.5b', 'fmt': 'openai', 'timeout': 5},
     # ── DuckDuckGo-AI (本地 duckai, 免费, 仅 3 个模型验证可用) ──
-    'ddg_gpt4o_mini': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'gpt-4o-mini', 'fmt': 'openai', 'timeout': 30},
-    'ddg_llama4': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'meta-llama/Llama-4-Scout-17B-16E-Instruct', 'fmt': 'openai', 'timeout': 30},
-    'ddg_mistral': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'mistral-small-2603', 'fmt': 'openai', 'timeout': 20},
+    'ddg_gpt4o_mini': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'gpt-4o-mini', 'fmt': 'openai', 'timeout': 30, 'no_system': True},
+    'ddg_gpt5_mini': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'gpt-5-mini', 'fmt': 'openai', 'timeout': 30, 'no_system': True},
+    'ddg_claude_haiku_45': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'claude-haiku-4-5', 'fmt': 'openai', 'timeout': 30, 'no_system': True},
+    'ddg_llama4': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'meta-llama/Llama-4-Scout-17B-16E-Instruct', 'fmt': 'openai', 'timeout': 30, 'no_system': True},
+    'ddg_mistral': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'mistral-small-2603', 'fmt': 'openai', 'timeout': 20, 'no_system': True},
+    'ddg_tinfoil_gptoss_120b': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'tinfoil/gpt-oss-120b', 'fmt': 'openai', 'timeout': 45, 'no_system': True},
     # ── lza6 系列 CF Workers (逆向网页 AI, 免费) ──
     'tele_reason': {'url': 'https://tele.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'teleprompt-reason', 'fmt': 'openai', 'timeout': 30},
     'tele_standard': {'url': 'https://tele.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'teleprompt-standard', 'fmt': 'openai', 'timeout': 30},

@@ -1,0 +1,124 @@
+[
+  {
+    "backend": "ddg_gpt4o_mini",
+    "case_id": "code_review",
+    "score": 100,
+    "latency_ms": 2151,
+    "ok": true,
+    "notes": [],
+    "response_preview": "The most important bug in the function is that it does not handle the case when **`nums`** is empty. Attempting to divide by **`len(nums)`** when **`nums`** is an empty list will result in a **`ZeroDivisionError`**."
+  },
+  {
+    "backend": "ddg_gpt4o_mini",
+    "case_id": "json_tool_output",
+    "score": 100,
+    "latency_ms": 3962,
+    "ok": true,
+    "notes": [],
+    "response_preview": "{ \"action\": \"update\", \"files\": [\"router_v3.py\"], \"reason\": \"prefer coding backends for IDE requests\" }"
+  },
+  {
+    "backend": "ddg_gpt4o_mini",
+    "case_id": "python_bugfix",
+    "score": 100,
+    "latency_ms": 2953,
+    "ok": true,
+    "notes": [],
+    "response_preview": "```python def last_item(items): return items[len(items) - 1] ```"
+  },
+  {
+    "backend": "ddg_gpt5_mini",
+    "case_id": "code_review",
+    "score": 100,
+    "latency_ms": 2329,
+    "ok": true,
+    "notes": [],
+    "response_preview": "The function will raise a ZeroDivisionError when called with an empty list (len(nums) == 0). Add a guard to handle empty input (e.g., return 0 or raise a clearer exception) before dividing."
+  },
+  {
+    "backend": "ddg_gpt5_mini",
+    "case_id": "json_tool_output",
+    "score": 100,
+    "latency_ms": 7118,
+    "ok": true,
+    "notes": [],
+    "response_preview": "{\"action\":\"modify_file\",\"files\":[{\"path\":\"router_v3.py\",\"content\":\"from typing import Optional\\n\\n# Assume existing imports and code above...\\n\\n# Map request types to preferred coding backends for IDE-related requests\\n_PREFERRED_CODING_BACKENDS = [\\\"codegen-v2\\\", \\\"codex-2\\\", \\"
+  },
+  {
+    "backend": "ddg_gpt5_mini",
+    "case_id": "python_bugfix",
+    "score": 100,
+    "latency_ms": 1431,
+    "ok": true,
+    "notes": [],
+    "response_preview": "```python def last_item(items): return items[-1] if items else None ```"
+  },
+  {
+    "backend": "ddg_claude_haiku_45",
+    "case_id": "code_review",
+    "score": 100,
+    "latency_ms": 2819,
+    "ok": true,
+    "notes": [],
+    "response_preview": "The most important bug is that **the function will crash with a `ZeroDivisionError` if an empty list is passed to it**. When `nums` is empty, `len(nums)` equals 0, causing division by zero on the return statement. To fix this specific issue: ```python def average(nums): if not nu"
+  },
+  {
+    "backend": "ddg_claude_haiku_45",
+    "case_id": "json_tool_output",
+    "score": 0,
+    "latency_ms": 2306,
+    "ok": false,
+    "notes": [
+      "missing pattern: \\\"action\\\"",
+      "missing pattern: \\\"files\\\"",
+      "missing pattern: \\\"reason\\\"",
+      "forbidden pattern: I would",
+      "json parse failed"
+    ],
+    "response_preview": "I cannot complete this task as requested. I don't have access to your filesystem, repositories, or files. The tools available to me are limited to web search and document reading from URLs. To assist you, I would need: 1. The full path or URL to `router_v3.py` 2. Details about wh"
+  },
+  {
+    "backend": "ddg_claude_haiku_45",
+    "case_id": "python_bugfix",
+    "score": 75,
+    "latency_ms": 1949,
+    "ok": true,
+    "notes": [
+      "forbidden pattern: IndexError"
+    ],
+    "response_preview": "```python def last_item(items): return items[len(items) - 1] ``` The issue is that list indexing in Python is zero-based, so the last item is at index `len(items) - 1`, not `len(items)`. Using `len(items)` would cause an `IndexError` because it's beyond the valid range of indices"
+  },
+  {
+    "backend": "ddg_tinfoil_gptoss_120b",
+    "case_id": "code_review",
+    "score": 0,
+    "latency_ms": 267,
+    "ok": false,
+    "notes": [
+      "call failed: BackendError: HTTP Error 500: Internal Server Error"
+    ],
+    "response_preview": ""
+  },
+  {
+    "backend": "ddg_tinfoil_gptoss_120b",
+    "case_id": "json_tool_output",
+    "score": 0,
+    "latency_ms": 0,
+    "ok": false,
+    "notes": [
+      "call failed: BackendError: ddg_tinfoil_gptoss_120b is cooled down"
+    ],
+    "response_preview": ""
+  },
+  {
+    "backend": "ddg_tinfoil_gptoss_120b",
+    "case_id": "python_bugfix",
+    "score": 0,
+    "latency_ms": 0,
+    "ok": false,
+    "notes": [
+      "call failed: BackendError: ddg_tinfoil_gptoss_120b is cooled down"
+    ],
+    "response_preview": ""
+  }
+]

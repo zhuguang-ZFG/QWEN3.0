@@ -7,7 +7,7 @@ Important correction: DuckAI is already reverse-engineered locally under `D:\duc
 
 | ID | URL | Access | Trust | Current State | Next Check |
 |---|---|---|---|---|---|
-| duck_ai | https://duck.ai/chat | no-login web | medium-high | already reversed locally; `4500` models/chat OK; LiMa system-message format fails | fix LiMa `no_system` request path; add missing models; repair public tunnel |
+| duck_ai | https://duck.ai/chat | no-login web | medium-high | already reversed locally; `4500` models/chat OK; LiMa `no_system` path fixed; `gpt4o-mini` and `gpt5-mini` passed local coding admission | repair public tunnel; keep late fallback until stability run |
 | heck_ai | https://heck.ai/zh | no-login web | medium | page reachable; existing worker draft in `D:\ollama_server\heckai-worker.js` | smoke existing draft before new capture; latency risk |
 | hix_chat | https://hix.ai/a/chat | no-login web | low-medium | reachable: 200, 1325ms; not reversed | check limits and data policy later |
 | gpt_chat | https://gpt.chat | no-login web | low | reachable: 200, 3544ms; not reversed | harmless probe only |

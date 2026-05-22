@@ -40,7 +40,9 @@ POOLS = {
                    "mistral_codestral", "sambanova_ds_v3"],
         "floor": ["longcat_lite", "google_flash", "ovh_llama70b", "ovh_deepseek",
                   "google_flash_lite", "google_gemma4",
-                  "local_coder14b", "local_reasoning", "local_general"],
+                  "local_coder14b", "local_reasoning", "local_general",
+                  "ddg_gpt4o_mini", "ddg_gpt5_mini",
+                  "ddg_claude_haiku_45", "ddg_tinfoil_gptoss_120b"],
     },
     "chat": {
         "strong": ["scnet_qwen30b", "scnet_ds_flash", "scnet_qwen235b",
@@ -58,7 +60,9 @@ POOLS = {
                    "or_qwen3_80b", "mistral_small", "sambanova_ds_v3"],
         "floor": ["longcat_lite", "google_flash", "ovh_llama70b", "ovh_deepseek",
                   "google_flash_lite", "google_gemma4",
-                  "local_fast", "local_chat", "local_general"],
+                  "local_fast", "local_chat", "local_general",
+                  "ddg_gpt4o_mini", "ddg_gpt5_mini",
+                  "ddg_claude_haiku_45", "ddg_tinfoil_gptoss_120b"],
     },
     "vision": {
         "strong": ["longcat_omni"],
@@ -78,7 +82,9 @@ POOLS = {
                    "scnet_large_ds_flash", "github_gpt4o", "github_codestral"],
         "floor": ["mistral_devstral", "mistral_large", "cerebras_gptoss",
                   "groq_gptoss", "longcat_lite", "local_coder14b",
-                  "local_reasoning"],
+                  "local_reasoning",
+                  "ddg_gpt4o_mini", "ddg_gpt5_mini",
+                  "ddg_claude_haiku_45", "ddg_tinfoil_gptoss_120b"],
     },
     "chat_fast": {
         "strong": ["scnet_qwen30b", "scnet_ds_flash", "scnet_qwen235b",
@@ -88,7 +94,8 @@ POOLS = {
                    "groq_gptoss", "groq_llama4",
                    "google_flash", "google_flash_lite"],
         "floor": ["ovh_llama70b", "ovh_deepseek", "pollinations_openai",
-                  "local_fast", "local_chat"],
+                  "local_fast", "local_chat",
+                  "ddg_gpt4o_mini", "ddg_gpt5_mini"],
     },
 }
 

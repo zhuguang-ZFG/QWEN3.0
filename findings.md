@@ -87,6 +87,10 @@
 | FREE-017 | DuckAI LiMa blocker | Local DuckAI fails with upstream 400 when the request contains an empty OpenAI `system` message; `http_caller.py` currently prepends one for OpenAI backends. | Add provider-specific `no_system` request construction and tests. |
 | FREE-018 | Existing adapter drafts | `D:\ollama_server\heckai-worker.js` and `umint_proxy.js` already exist. | Smoke existing drafts before doing new browser reverse work. |
 | FREE-019 | Page-only candidates | HIX Chat, GPT.chat, Deep-seek mirror, and PLAI.chat have reachability only, no local API adapter. | Keep out of routing and defer until already-reversed assets are stable. |
+| FREE-020 | DuckAI no-system fix | DuckAI accepts LiMa calls once OpenAI `no_system` omits the synthetic system role and preserves context in the user message. | Keep provider flag covered by `test_http_caller.py`. |
+| FREE-021 | DuckAI admission | Local three-case eval passed 3/3 for `ddg_gpt4o_mini` and `ddg_gpt5_mini`; Haiku failed strict JSON; Tinfoil GPT-OSS returned 500/cooldown. | Keep winners late fallback until tunnel and stability work close. |
+| FREE-022 | SCNet-large local eval | Both `scnet_large_ds_flash` and `scnet_large_ds_pro` passed 3/3 locally; flash averaged 987ms. | Add a topology-aware promotion path instead of making VPS try Windows-local `4505`. |
+| FREE-023 | Refresh log safety | Kimi/TheOldLLM refresh scripts/logs can emit token fragments while Kimi still needs manual refresh and OldLLM still times out. | Redact refresh output before active token refresh work. |
 
 ## Latest Deployment Verification
 

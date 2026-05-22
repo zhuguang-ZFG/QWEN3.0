@@ -24,7 +24,8 @@ Turn the existing LiMa router into a private coding assistant that ranks coding 
 | 10. Free web AI expansion | In progress | Candidate registry and reachability probe exist; model admission still pending. |
 | 11. Stability + free routing optimization | In progress | Failure-state classification exists; quota-aware routing still pending. |
 | 12. Local reverse AI inventory | Complete | Already-reversed adapters are separated from page-only candidates and documented. |
-| 13. Local reverse AI integration fixes | Planned | DuckAI no-system path, Kimi refresh gate, SCNet-large route eval, and OldLLM timeout diagnosis have an execution plan. |
+| 13. Local reverse AI integration fixes | Complete | DuckAI no-system path is implemented, DuckAI/SCNet-large evals are recorded, Kimi and OldLLM are gated by current failures. |
+| 14. Token-safe refresh and topology-aware proxy promotion | Planned | Redact refresh logs/secrets and promote Windows-only proxy winners without breaking VPS routing. |
 
 ## Current Evidence
 
@@ -79,6 +80,8 @@ Turn the existing LiMa router into a private coding assistant that ranks coding 
 - Added backend failure-state classification for auth/quota/rate-limit/session/timeout cases.
 - Local reverse AI inventory now records that DuckAI, SCNet-large, Kimi, TheOldLLM, g4f, HeckAI draft, and page-only candidates are different states and should not be handled as one bucket.
 - `docs/superpowers/plans/2026-05-22-local-reverse-ai-integration.md` is the next execution plan.
+- DuckAI `no_system` integration is implemented; six DuckAI models are registered and only admitted as late fallback.
+- DuckAI route admission passed for `ddg_gpt4o_mini` and `ddg_gpt5_mini`; SCNet-large local eval passed for both local proxy models.
 
 ## Next Risks To Close
 

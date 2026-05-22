@@ -160,3 +160,12 @@ Latest local reverse AI inventory:
 - SCNet-large local proxy `4505` is working; Kimi local `4504` is running but chat returns `chat.anonymous_usage_exceeded`; TheOldLLM local `4502` exposes models but chat timed out.
 - HeckAI has an existing worker draft in `D:\ollama_server\heckai-worker.js`; HIX Chat, GPT.chat, Deep-seek mirror, and PLAI.chat remain page-only candidates.
 - Next execution plan: `docs/superpowers/plans/2026-05-22-local-reverse-ai-integration.md`.
+
+Latest local reverse integration increment:
+
+- `http_caller.py` now supports OpenAI `no_system` backends and merges system/IDE text into the first user message when needed.
+- DuckAI registrations now cover all six locally exposed models; DuckAI models are only late fallback in routing pools.
+- DuckAI local admission: `ddg_gpt4o_mini` and `ddg_gpt5_mini` passed 3/3 coding fixtures; `ddg_claude_haiku_45` failed strict JSON; `ddg_tinfoil_gptoss_120b` returned upstream 500/cooldown.
+- SCNet-large local eval now passes 3/3 for both `scnet_large_ds_flash` and `scnet_large_ds_pro`; promotion remains topology-aware because VPS `localhost:4505` is not Windows.
+- Kimi `4504` still returns `chat.anonymous_usage_exceeded`, classified as `manual_refresh_required`.
+- TheOldLLM `4502` still times out on chat after 30s; its current refresh/log path needs token-output redaction before more refresh work.

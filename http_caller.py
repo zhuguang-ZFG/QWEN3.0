@@ -118,9 +118,24 @@ def _build_body(backend_cfg: dict, messages: list[dict],
             body = {'model': model, 'max_tokens': max_tokens,
                     'system': sys_text, 'messages': messages}
     else:
-        body = {'model': model, 'max_tokens': max_tokens,
-                'messages': [{'role': 'system', 'content': sys_text}]
-                + messages}
+        if backend_cfg.get('no_system'):
+            outgoing = [dict(m) for m in messages]
+            if sys_text and outgoing:
+                for msg in outgoing:
+                    if msg.get('role') == 'user':
+                        content = msg.get('content', '')
+                        if isinstance(content, str):
+                            msg['content'] = f"{sys_text}\n\n{content}"
+                        elif isinstance(content, list):
+                            msg['content'] = (
+                                [{'type': 'text', 'text': sys_text}] + content)
+                        break
+            body = {'model': model, 'max_tokens': max_tokens,
+                    'messages': outgoing}
+        else:
+            body = {'model': model, 'max_tokens': max_tokens,
+                    'messages': [{'role': 'system', 'content': sys_text}]
+                    + messages}
 
     # 通用参数注入：从后端配置的 extra_body 字段合并
     extra = backend_cfg.get('extra_body')

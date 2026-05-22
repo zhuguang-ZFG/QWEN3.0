@@ -275,3 +275,31 @@ New source-of-truth docs:
 - `docs/LOCAL_REVERSE_AI_STATUS.md`
 - `data/local_reverse_ai_inventory.json`
 - `docs/superpowers/plans/2026-05-22-local-reverse-ai-integration.md`
+
+## 2026-05-22 DuckAI And SCNet-Large Admission Increment
+
+Implemented after the local reverse inventory:
+
+- `http_caller._build_body` now honors `no_system` for OpenAI backends. It omits the synthetic system role and merges non-empty system/IDE context into the first user message.
+- Existing DuckAI backends are marked `no_system`.
+- DuckAI registrations now include `ddg_gpt5_mini`, `ddg_claude_haiku_45`, and `ddg_tinfoil_gptoss_120b`.
+- Router pools keep DuckAI at late fallback only; it is not promoted over SCNet first-tier backends.
+
+Local DuckAI three-case coding admission with `DDG_TUNNEL_URL=http://localhost:4500`:
+
+- `ddg_gpt4o_mini`: 3/3, avg score 100, avg latency 3022ms.
+- `ddg_gpt5_mini`: 3/3, avg score 100, avg latency 3626ms.
+- `ddg_claude_haiku_45`: 2/3, failed strict JSON tool-output fixture.
+- `ddg_tinfoil_gptoss_120b`: failed with upstream 500 then cooldown.
+
+SCNet-large local route eval:
+
+- `scnet_large_ds_flash`: 3/3, avg score 100, avg latency 987ms.
+- `scnet_large_ds_pro`: 3/3, avg score 100, avg latency 3899ms.
+- This makes SCNet-large a strong Windows-local/FRP candidate, but a topology guard is required before any VPS-first promotion because VPS `localhost:4505` is not the Windows proxy.
+
+Kimi and TheOldLLM guardrails:
+
+- Kimi still returns `chat.anonymous_usage_exceeded`; `health_tracker` maps it to `manual_refresh_required`.
+- The current Kimi/TheOldLLM refresh/log path can expose token fragments, so redact that output before active refresh runs.
+- TheOldLLM local `4502` chat still timed out after 30 seconds in this pass.
