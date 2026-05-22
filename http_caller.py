@@ -107,6 +107,14 @@ def _build_body(backend_cfg: dict, messages: list[dict],
             code_context=system_prompt if system_prompt else "",
         )
 
+    # ── Integration: Cache Optimization (Phase P2) — stable prefix first ──
+    try:
+        from context_pipeline.cache import optimize_for_prefix_cache
+        if sys_text and messages:
+            sys_text, messages = optimize_for_prefix_cache(sys_text, messages)
+    except (ImportError, Exception):
+        pass
+
     if fmt == 'anthropic':
         if backend_cfg.get('no_system'):
             omni_msgs = [
@@ -161,6 +169,25 @@ def call_api(backend: str, messages: list[dict], max_tokens: int = 4096,
 
     if health_tracker.is_cooled_down(backend):
         raise BackendError(f'{backend} is cooled down', status_code=503)
+
+    # ── Integration: Concurrency Pool (Phase 27) ──────────────────────────
+    _pool_key = None
+    try:
+        from context_pipeline.concurrency_pool import ConcurrencyPool
+        _pool_key = cfg.get('key', '')
+    except ImportError:
+        pass
+
+    # ── Integration: Artifact Handle (Phase P5) — large context → handle ──
+    try:
+        from context_pipeline.artifact import should_use_handle, create_handle
+        for i, msg in enumerate(messages):
+            if isinstance(msg, dict) and msg.get("role") == "user":
+                content = msg.get("content", "")
+                if isinstance(content, str) and should_use_handle(content):
+                    messages[i] = {**msg, "content": create_handle(content)}
+    except ImportError:
+        pass
 
     t0 = time.time()
     headers = _build_headers(cfg)

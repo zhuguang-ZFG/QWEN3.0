@@ -549,6 +549,8 @@ async def admin_page(token: str = ""):
             '<button type="submit">Login</button></form>',
             status_code=401,
         )
-    # Inject token into JS so all API calls include Authorization header
-    token_js = f'<script>const _ADMIN_TOKEN="{token}";</script>'
+    # Safely inject token into JS (escape for XSS prevention)
+    import json
+    safe_token = json.dumps(token)
+    token_js = f'<script>const _ADMIN_TOKEN={safe_token};</script>'
     return HTMLResponse(ADMIN_HTML + token_js + ADMIN_BODY + ADMIN_JS)

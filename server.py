@@ -1953,6 +1953,10 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
         save_memory(_session_id, "user", query[:100])
         if content:
             save_memory(_session_id, "assistant", content[:100])
+        # ── Integration: AI Compactor (Phase 8) — compress if over threshold
+        from session_memory.compactor import needs_compaction, compact_session
+        if needs_compaction(_session_id):
+            compact_session(_session_id)
     except (ImportError, Exception):
         pass
 

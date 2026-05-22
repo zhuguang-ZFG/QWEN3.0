@@ -1,10 +1,9 @@
 import time
 
 
-def audit_event(tool: str, ok: bool, reason: str = "") -> dict:
+def audit_event(event_type: str, **kwargs) -> dict:
     return {
         "time": int(time.time()),
-        "tool": tool,
-        "ok": ok,
-        "reason": reason,
+        "event": event_type,
+        **kwargs,
     }

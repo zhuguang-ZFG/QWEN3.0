@@ -1,4 +1,6 @@
 import subprocess
+import shlex
+import json
 import httpx
 from typing import Any, Callable
 
@@ -26,7 +28,7 @@ class ToolExecutor:
 
         kind: "shell" | "http" | "python"
         target:
-          - shell: command template (use {arg} placeholders)
+          - shell: command as list template (use {arg} placeholders)
           - http: URL template
           - python: a callable(args: dict) -> Any
         """
@@ -35,39 +37,55 @@ class ToolExecutor:
     def execute(self, name: str, args: dict) -> dict:
         tool = self._registry.get(name)
         if not tool:
+            audit_event("execute_rejected", tool=name, reason="not_registered")
             return {"ok": False, "error": "tool_not_registered"}
 
         if tool.requires_secret and not self._secrets.has(name.upper() + "_KEY"):
+            audit_event("execute_rejected", tool=name, reason="missing_secret")
             return {"ok": False, "error": "missing_secret", "tool": tool.name}
 
         handler = self._handlers.get(name)
         if not handler:
+            audit_event("execute_rejected", tool=name, reason="no_handler")
             return {"ok": False, "error": "no_handler_registered", "tool": tool.name}
 
         kind = handler["kind"]
         target = handler["target"]
 
+
         try:
+            audit_event("execute_start", tool=name, kind=kind, args_keys=list(args.keys()))
             if kind == "shell":
-                return self._exec_shell(name, target, args)
+                result = self._exec_shell(name, target, args)
             elif kind == "http":
-                return self._exec_http(name, target, args)
+                result = self._exec_http(name, target, args)
             elif kind == "python":
-                return self._exec_python(name, target, args)
+                result = self._exec_python(name, target, args)
             else:
-                return {"ok": False, "error": f"unknown_kind: {kind}", "tool": name}
+                result = {"ok": False, "error": f"unknown_kind: {kind}", "tool": name}
+            audit_event("execute_done", tool=name, ok=result.get("ok", False))
+            return result
         except Exception as exc:
+            audit_event("execute_error", tool=name, error=str(exc)[:200])
             return {"ok": False, "error": str(exc)[:500], "tool": name}
 
     def _exec_shell(self, name: str, template: str, args: dict) -> dict:
-        """Run a shell command. Template placeholders filled from args."""
-        cmd = template.format(**args)
+        """Run a shell command safely — no shell=True, args passed as list."""
+        import re
+        _SAFE_ARG = re.compile(r'^[\w\-./=:@]+$')
+        sanitized = {}
+        for k, v in args.items():
+            v_str = str(v)
+            if not _SAFE_ARG.match(v_str):
+                return {"ok": False, "error": f"unsafe_arg: {k}", "tool": name}
+            sanitized[k] = v_str
+        cmd_str = template.format(**sanitized)
+        cmd_list = shlex.split(cmd_str)
         result = subprocess.run(
-            cmd, shell=True, capture_output=True, text=True, timeout=30
+            cmd_list, shell=False, capture_output=True, text=True, timeout=30
         )
-        ok = result.returncode == 0
         return {
-            "ok": ok,
+            "ok": result.returncode == 0,
             "tool": name,
             "stdout": result.stdout[:4000],
             "stderr": result.stderr[:2000],
@@ -75,11 +93,12 @@ class ToolExecutor:
         }
 
     def _exec_http(self, name: str, url_template: str, args: dict) -> dict:
-        """Make an HTTP POST to the target URL with args as JSON body."""
-        url = url_template.format(**args)
-        method = args.pop("_method", "POST").upper()
+        """Make an HTTP request. Does not mutate caller's args dict."""
+        args_copy = dict(args)
+        method = args_copy.pop("_method", "POST").upper()
+        url = url_template.format(**args_copy)
         with httpx.Client(timeout=30) as client:
-            resp = client.request(method, url, json=args)
+            resp = client.request(method, url, json=args_copy)
         return {
             "ok": resp.status_code < 400,
             "tool": name,
@@ -89,5 +108,5 @@ class ToolExecutor:
 
     def _exec_python(self, name: str, fn: Callable, args: dict) -> dict:
         """Call a Python function with args dict."""
-        result = fn(args)
+        result = fn(dict(args))
         return {"ok": True, "tool": name, "result": result}
