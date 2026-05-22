@@ -24,7 +24,12 @@ def test_has_vision_content_delegates_to_detect_vision_request():
 
 
 def test_call_api_routes_cf_vision_with_image_content(monkeypatch):
+    def unexpected_urlopen(*_args, **_kwargs):
+        raise AssertionError("unexpected network access")
+
     monkeypatch.setattr(smart_router, "cb_allow", lambda _name: True)
+    monkeypatch.setattr(smart_router, "cb_record", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(smart_router.urllib.request, "urlopen", unexpected_urlopen)
     monkeypatch.setitem(
         smart_router.BACKENDS,
         "cf_vision",
