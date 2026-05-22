@@ -132,9 +132,7 @@ def _v3_call_stream(backend, messages, max_tokens, ide):
                 sys_prompt = ctx.get("system_prompt", "")
                 messages = ctx.get("enhanced_messages", messages)
             else:
-                # 直接注入 messages 而非依赖 system_prompt 参数（某些后端忽略它）
-                no_code = "Answer the question directly in plain text. Do not generate code, functions, or programming examples unless the user explicitly asks for code."
-                messages = [{"role": "system", "content": no_code}] + list(messages)
+                sys_prompt = "Answer the question directly in plain text. Do not generate code, functions, or programming examples unless the user explicitly asks for code."
     except Exception:
         pass
 
