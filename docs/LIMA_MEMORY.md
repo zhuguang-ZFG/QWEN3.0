@@ -1,6 +1,6 @@
 # LiMa Memory
 
-> Updated: 2026-05-22
+> Updated: 2026-05-23
 > Purpose: durable working memory for future LiMa coding-assistant sessions.
 
 ## Current Direction
@@ -588,3 +588,38 @@ Deferred risks and non-goals:
 - TheOldLLM local proxy still times out on chat.
 - Page-only no-login web AI candidates remain sandbox-only.
 - Local refresh scripts under `D:\ollama_server` were redacted and syntax-checked, but refresh execution itself remains deferred.
+
+## 2026-05-23 Code Quality Hardening Closure
+
+The code-quality report was treated as candidate audit input, not as a source of truth. This round accepted only items that were rechecked and fixed locally:
+
+- `smart_router._has_vision_content` had been called from the `cf_vision` path without a live helper. The image route now delegates to the existing vision detector, and `tests/test_vision_routing.py` protects the network/circuit-breaker boundary.
+- Anthropic vision request stats now use the real request start time. `tests/test_request_stats.py` covers the helper and the `/v1/messages` image branch, preventing a future `0` duration write.
+- `_record_request()` no longer performs IP location lookup while holding `_stats_lock`; only the stats update remains locked.
+- Local one-off deploy/debug/run/stress probes are root-ignored, and tracked `scripts/` files no longer contain hardcoded `sk-` token literals.
+
+Rejected or outdated report findings:
+
+- Admin API routes are guarded after P0 hardening; the HTML admin shell is a separate surface.
+- Current `deploy_v3.py` does not contain a plaintext deploy password; it reads `LIMA_DEPLOY_PASS` or uses a key path.
+- The old `test_streaming.py` issue is stale because P0 made those checks run and pass.
+
+Deferred architecture work:
+
+- Split `server.py`.
+- Make `BACKENDS` single-source.
+- Deduplicate response-builder logic.
+- Migrate `smart_router.cb_*` state into `health_tracker`.
+
+Security and deployment notes:
+
+- Any previously exposed tokens should be rotated; token values must never be copied into docs, commits, or chat.
+- This closure was local-only. Do not deploy this round unless the user explicitly asks for a later deployment.
+
+Verification evidence:
+
+- `git -C D:\GIT diff --check`: no whitespace errors; emitted CRLF warnings for unrelated dirty tracked files.
+- `D:\GIT\venv\Scripts\python.exe -m py_compile smart_router.py server.py`: passed.
+- `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_vision_routing.py tests\test_request_stats.py -q --ignore=active_model`: `5 passed`.
+- Core suite: `117 passed`.
+- `git -C D:\GIT grep -n "sk-" -- scripts`: no output, expected exit 1 for no matches.

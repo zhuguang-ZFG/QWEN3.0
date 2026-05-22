@@ -314,3 +314,29 @@
   - Public `/v1/chat/completions` with auth returned exact `p0-deploy-ok`.
   - Public `/v1/messages` with auth returned exact `p0-msg-ok`.
   - FRP `http://47.112.162.80:8088/health` returned 200.
+
+## 2026-05-23 Code Quality Hardening Evidence Closure
+
+- Closed Task 5 of `docs/superpowers/plans/2026-05-22-code-quality-correctness-hardening.md` as a documentation and evidence-only pass.
+- Accepted/fixed findings:
+  - `smart_router._has_vision_content` was disconnected; the `cf_vision` image path is restored and covered by `tests/test_vision_routing.py`.
+  - Anthropic vision stats now measure duration from the real request start; `tests/test_request_stats.py` covers the helper and `/v1/messages` image branch.
+  - `_record_request()` performs IP location lookup outside `_stats_lock`, while stats writes stay inside the lock.
+  - Local one-off deploy/debug/run/stress probes are protected by root-anchored `.gitignore`; tracked `scripts/` hardcoded `sk-` literals were replaced by environment reads.
+- Rejected/outdated findings:
+  - Admin API routes are not unauthenticated after P0; HTML admin shell review remains separate.
+  - Current `deploy_v3.py` uses `LIMA_DEPLOY_PASS` or key path, not a plaintext deploy password.
+  - The old `test_streaming.py` issue is stale because P0 executed and passed it.
+- Deferred follow-ups:
+  - Split `server.py`.
+  - Establish a `BACKENDS` single source.
+  - Deduplicate response-builder logic.
+  - Migrate `smart_router.cb_*` state into `health_tracker`.
+- Security note: any previously exposed tokens should be rotated; no token values were copied into docs.
+- Deployment policy: this round is local-only unless the user explicitly requests deploy later.
+- Verification:
+  - `git -C D:\GIT diff --check`: passed without whitespace errors; warning-only CRLF notices appeared for unrelated dirty files `backends.py`, `budget_manager.py`, `capability_matrix.py`, and `router_v3.py`.
+  - `D:\GIT\venv\Scripts\python.exe -m py_compile smart_router.py server.py`: passed.
+  - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_vision_routing.py tests\test_request_stats.py -q --ignore=active_model`: `5 passed`.
+  - Core suite: `117 passed`.
+  - `git -C D:\GIT grep -n "sk-" -- scripts`: no output, expected for no matches.

@@ -1,6 +1,6 @@
 # LiMa Status
 
-> Updated: 2026-05-22
+> Updated: 2026-05-23
 > Active direction: private personal coding assistant.
 
 ## Current Summary
@@ -321,3 +321,17 @@ Latest Superpowers plan closure review:
 - Reconciled historical Superpowers plan checkboxes; remaining literal `- [ ]` matches are boilerplate syntax examples, not open task items.
 - Main `task_plan.md` phases remain complete.
 - Current P0 hardening is classified as production closed after the explicit VPS deployment pass.
+
+Latest code-quality hardening evidence:
+
+- Accepted/fixed: `smart_router._has_vision_content` was disconnected, so the `cf_vision` image path is restored through the existing vision detector. `tests/test_vision_routing.py` now guards both image routing and circuit-breaker/network state.
+- Accepted/fixed: Anthropic vision duration is calculated from the real request start. `tests/test_request_stats.py` covers both `_elapsed_ms()` and the `/v1/messages` image branch so duration is not written as `0` again.
+- Accepted/fixed: `_record_request()` now performs IP location lookup before acquiring `_stats_lock`; statistics mutation remains inside the lock.
+- Accepted/fixed: root-anchored `.gitignore` rules cover local one-off deploy/debug/run/stress probes, and tracked `scripts/` hardcoded `sk-` token literals were replaced with environment variable reads.
+- Rejected/outdated: "admin routes unauthenticated" is not true for the current post-P0 API routes; the HTML admin shell is separate follow-up scope.
+- Rejected/outdated: "deploy_v3.py contains plaintext password" is not true for the current file; it uses `LIMA_DEPLOY_PASS` or a key path.
+- Rejected/outdated: the old `test_streaming.py` issue is stale; P0 already made the tests execute and pass.
+- Deferred: `server.py` split, `BACKENDS` single source of truth, response-builder deduplication, and migration from `smart_router.cb_*` to `health_tracker`.
+- Security note: previously exposed tokens should be rotated. Do not copy token values into docs, commits, or chat.
+- Deployment policy: this round is local-only unless the user explicitly requests deployment later.
+- Local verification: `py_compile smart_router.py server.py` passed; focused quality tests passed `5 passed`; core suite passed `117 passed`; `git grep -n "sk-" -- scripts` produced no matches.
