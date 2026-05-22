@@ -112,3 +112,24 @@
 - VPS `/health` returned 200 after recovery.
 - Public coding smoke returned 200 in 4585ms.
 - Public Anthropic tool smoke returned 200 in 672ms with `stop_reason=tool_use`.
+
+## 2026-05-22 SCNet/Kimi First-Tier Eval
+
+- Created `docs/superpowers/plans/2026-05-22-free-model-first-tier-eval.md`.
+- Ran a VPS-side three-case coding fixture against SCNet and Kimi-family candidates.
+- SCNet direct first-tier winners:
+  - `scnet_ds_flash`: 3/3, avg score 100, avg latency 3330ms.
+  - `scnet_qwen235b`: 3/3, avg score 100, avg latency 4004ms.
+  - `scnet_qwen30b`: 3/3, avg score 91, avg latency 2713ms.
+  - `scnet_ds_pro`: 3/3, avg score 91, avg latency 4571ms.
+- Kimi did not meet first-tier criteria:
+  - `cf_kimi_k26`: 1/3, avg score 48, avg latency 7844ms.
+  - local `kimi`, `kimi_thinking`, `kimi_search`: VPS proxy `4504` refused connections.
+  - `stock_kimi_k2`: invalid response.
+- Updated `code_orchestrator.py` and `router_v3.py` to move direct SCNet winners into coding first tier.
+- Added `data/free_model_first_tier_eval.json` with the summary evidence.
+- Local verification passed after routing change: `71 passed in 0.59s`.
+- Deployed `code_orchestrator.py` and `router_v3.py` to VPS with backup at `/opt/lima-router/backups/scnet-first-tier-20260522_190032`.
+- Remote compile passed; `lima-router` restarted cleanly; VPS `/health` returned 200.
+- VPS route order smoke confirmed coding selection starts with `scnet_ds_flash`, `scnet_qwen235b`, `scnet_qwen30b`, `scnet_ds_pro`, then `github_gpt4o`.
+- Public coding smoke returned 200 in 3347ms.

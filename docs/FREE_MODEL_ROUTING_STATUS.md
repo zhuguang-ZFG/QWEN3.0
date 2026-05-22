@@ -5,9 +5,30 @@
 
 ## Current Answer
 
-Not every registered free model should be used as a primary backend.
+SCNet direct models are strong enough to enter the first-tier coding route.
 
-LiMa now keeps the working free models in active routing pools, but only promotes the ones that passed VPS smoke into normal fallback order. Free models that require local browser/proxy services stay registered in `backends.py`, but are not treated as dependable primary capacity until those services are running on the VPS.
+LiMa now promotes the VPS-working direct SCNet models into the first tier for coding. Kimi-family models do not currently meet first-tier criteria: CF Kimi is reachable but too verbose/slow for strict coding fixtures, and local Kimi proxy models are not running on the VPS.
+
+## First-Tier Fixture Evidence
+
+VPS eval date: 2026-05-22.
+
+| Backend | Passes | Avg Score | Avg Latency | Decision |
+|---|---:|---:|---:|---|
+| `scnet_ds_flash` | 3/3 | 100 | 3330ms | First tier |
+| `scnet_qwen235b` | 3/3 | 100 | 4004ms | First tier |
+| `scnet_qwen30b` | 3/3 | 91 | 2713ms | First tier |
+| `scnet_ds_pro` | 3/3 | 91 | 4571ms | First tier, behind faster SCNet models |
+| `cf_kimi_k26` | 1/3 | 48 | 7844ms | Fallback only |
+| `scnet_minimax` | 0/3 | 0 | 10145ms | Inactive, timeout |
+| `scnet_large_ds_flash` | 0/3 | 0 | 0ms | Inactive until proxy `4505` runs |
+| `scnet_large_ds_pro` | 0/3 | 0 | 0ms | Inactive until proxy `4505` runs |
+| `stock_kimi_k2` | 0/3 | 0 | 525ms | Inactive, invalid response |
+| `kimi` | 0/3 | 0 | 0ms | Inactive until proxy `4504` runs |
+| `kimi_thinking` | 0/3 | 0 | 0ms | Inactive until proxy `4504` runs |
+| `kimi_search` | 0/3 | 0 | 0ms | Inactive until proxy `4504` runs |
+
+Raw summary: `data/free_model_first_tier_eval.json`.
 
 ## VPS Smoke Evidence
 
@@ -32,9 +53,9 @@ Smoke prompt: `Say OK only.`
 
 | File | Update |
 |---|---|
-| `code_orchestrator.py` | Added VPS-working SCNet models to coding pools after proven coding winners; moved local-proxy SCNet variants to late fallback. |
-| `router_v3.py` | Added VPS-working SCNet models to IDE/chat/code/chat_fast pools; kept `cf_kimi_k26` active but not primary for coding. |
-| `test_routing_engine.py` | Added regression coverage that active pools include VPS-working free SCNet models and CF Kimi. |
+| `code_orchestrator.py` | Promoted `scnet_ds_flash`, `scnet_qwen235b`, `scnet_qwen30b`, and `scnet_ds_pro` into first-tier coding pools. |
+| `router_v3.py` | Promoted VPS-working SCNet direct models to the front of IDE/chat/code/chat_fast pools. |
+| `test_routing_engine.py` | Added regression coverage for SCNet first-tier ordering and Kimi fallback placement. |
 
 ## Deployment Evidence
 
@@ -45,12 +66,21 @@ Smoke prompt: `Say OK only.`
 - Public coding smoke returned 200 in 4585ms.
 - Public Anthropic tool smoke returned 200 in 672ms with `stop_reason=tool_use`.
 
+## First-Tier Deployment Evidence
+
+- Local tests after first-tier promotion: `71 passed in 0.59s`.
+- VPS backup: `/opt/lima-router/backups/scnet-first-tier-20260522_190032`.
+- Remote compile passed for `server.py`, `routing_engine.py`, `code_orchestrator.py`, and `router_v3.py`.
+- VPS local `/health` returned 200 after restart.
+- VPS route-order smoke confirmed coding selection starts with `scnet_ds_flash`, `scnet_qwen235b`, `scnet_qwen30b`, `scnet_ds_pro`, then `github_gpt4o`.
+- Public coding smoke returned 200 in 3347ms.
+
 ## Policy
 
-- Coding primary remains evidence-driven: GitHub, Cerebras, Groq, and Mistral winners stay ahead where they passed the full coding fixture.
-- Free SCNet direct models are now used as fallback capacity because they work from the VPS.
-- `scnet_ds_pro` is usable but slow, so it belongs in strong/deep fallback only.
-- `cf_kimi_k26` is usable but slow and verbose, so it is kept for chat/fallback instead of low-latency IDE default.
+- Coding primary remains evidence-driven: SCNet direct models now lead because they passed production VPS fixtures.
+- `scnet_ds_flash`, `scnet_qwen235b`, and `scnet_qwen30b` are first-tier coding candidates.
+- `scnet_ds_pro` is also first-tier eligible, but ordered after faster SCNet models due to latency/format variance.
+- `cf_kimi_k26` is usable but slow and verbose, so it is kept for fallback instead of first-tier IDE coding.
 - Local proxy models are not considered live until the corresponding VPS proxy service is verified.
 
 ## Next Verification

@@ -70,18 +70,20 @@ Fast usable coding tier:
 
 ## Free Model Status
 
-VPS-working SCNet direct models:
+VPS first-tier SCNet direct models:
 
 - `scnet_ds_flash`
 - `scnet_ds_pro`
 - `scnet_qwen235b`
 - `scnet_qwen30b`
 
+These four passed the three-case production VPS coding fixture on 2026-05-22. Current route policy puts them at the front of coding pools, with `scnet_ds_pro` after the faster SCNet models.
+
 Slow or inactive:
 
 - `scnet_minimax` timed out in VPS smoke.
 - `scnet_large_ds_flash` and `scnet_large_ds_pro` require local proxy `4505`, currently refused on VPS.
-- `cf_kimi_k26` works but is slow, so it is chat/fallback capacity.
+- `cf_kimi_k26` works but failed strict JSON/code-only fixtures, so it is fallback capacity.
 - `kimi`, `kimi_thinking`, and `kimi_search` require local proxy `4504`, currently refused on VPS.
 - `stock_kimi_k2` returned invalid JSON/empty response in smoke.
 
@@ -156,6 +158,13 @@ Latest free-model routing deployment:
 - VPS `/health`: 200.
 - Public coding smoke: 200 in 4585ms.
 - Public Anthropic tool smoke: 200 in 672ms with `stop_reason=tool_use`.
+
+Latest SCNet first-tier deployment:
+
+- Backup: `/opt/lima-router/backups/scnet-first-tier-20260522_190032`.
+- Local tests: `71 passed in 0.59s`.
+- VPS route order: `scnet_ds_flash`, `scnet_qwen235b`, `scnet_qwen30b`, `scnet_ds_pro`, `github_gpt4o`.
+- Public coding smoke: 200 in 3347ms.
 
 ## Current Risks
 

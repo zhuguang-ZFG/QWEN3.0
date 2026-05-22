@@ -64,9 +64,9 @@ The first real task is to identify coding-capable backends with evidence instead
 
 | Tier | Backend | Evidence |
 |---|---|---|
-| `fast_coder` | `cerebras_gptoss`, `groq_gptoss`, `mistral_small` | Fastest acceptable full-fixture results: 80+ average score under 800ms average latency. |
-| `primary_coder` | `github_gpt4o`, `github_gpt4o_mini`, `cerebras_gptoss`, `groq_gptoss` | Best current production balance after moving VPS-down local SCNet proxy models out of first position. |
-| `strong_coder` | `github_gpt4o`, `github_gpt4o_mini`, `or_gptoss_120b`, `scnet_qwen235b`, `scnet_ds_flash`, `scnet_ds_pro` | Full fixture winners first; VPS-working free SCNet models as strong fallback. |
+| `fast_coder` | `scnet_qwen30b`, `scnet_ds_flash`, `scnet_qwen235b`, `cerebras_gptoss`, `groq_gptoss` | SCNet direct models passed VPS first-tier eval; Cerebras/Groq stay as fast alternatives. |
+| `primary_coder` | `scnet_ds_flash`, `scnet_qwen235b`, `scnet_qwen30b`, `scnet_ds_pro`, `github_gpt4o` | Direct SCNet models passed production VPS fixtures and now lead coding pools. |
+| `strong_coder` | `scnet_ds_flash`, `scnet_qwen235b`, `scnet_ds_pro`, `scnet_qwen30b`, `github_gpt4o`, `or_gptoss_120b` | SCNet first-tier winners plus previous deep reasoning winners. |
 | `fallback_coder` | `mistral_small`, `mistral_pixtral`, `mistral_large`, `mistral_devstral`, `github_codestral`, `scnet_qwen30b`, `cf_kimi_k26` | Useful fallback capacity; CF Kimi is reachable but slow. |
 | `disabled_or_late` | `scnet_large_ds_flash`, `scnet_large_ds_pro`, `scnet_minimax`, local `kimi*`, `stock_kimi_k2`, unauthorized/rate-limited providers | Local proxy down, timeout, invalid response, or auth/rate failures. |
 
@@ -74,12 +74,12 @@ The first real task is to identify coding-capable backends with evidence instead
 
 VPS smoke confirmed that not all registered free models are production-live. The current routing policy is:
 
-- Use VPS-working direct SCNet models: `scnet_ds_flash`, `scnet_ds_pro`, `scnet_qwen235b`, `scnet_qwen30b`.
+- Use VPS-working direct SCNet models as first-tier coding capacity: `scnet_ds_flash`, `scnet_ds_pro`, `scnet_qwen235b`, `scnet_qwen30b`.
 - Keep `cf_kimi_k26` active for chat/fallback, not low-latency coding default.
 - Keep local proxy Kimi and SCNet-large models registered but late until VPS ports `4504` and `4505` are running.
 - Do not put `scnet_minimax` or `stock_kimi_k2` into default pools until their smoke failures are fixed.
 
-Detailed evidence: `docs/FREE_MODEL_ROUTING_STATUS.md`.
+Detailed evidence: `docs/FREE_MODEL_ROUTING_STATUS.md` and `data/free_model_first_tier_eval.json`.
 
 ### Candidate tiers
 

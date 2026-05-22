@@ -105,13 +105,13 @@ def test_code_pools_prioritize_eval_winners():
     import router_v3
 
     assert code_orchestrator.POOLS["fast"][:3] == [
-        "cerebras_gptoss", "groq_gptoss", "mistral_small"
+        "scnet_qwen30b", "scnet_ds_flash", "scnet_qwen235b"
     ]
-    assert code_orchestrator.POOLS["coder"][:2] == [
-        "github_gpt4o", "github_gpt4o_mini"
+    assert code_orchestrator.POOLS["coder"][:4] == [
+        "scnet_ds_flash", "scnet_qwen235b", "scnet_qwen30b", "scnet_ds_pro"
     ]
-    assert router_v3.POOLS["code"]["strong"][:3] == [
-        "github_gpt4o", "github_gpt4o_mini", "or_gptoss_120b"
+    assert router_v3.POOLS["code"]["strong"][:4] == [
+        "scnet_ds_flash", "scnet_qwen235b", "scnet_qwen30b", "scnet_ds_pro"
     ]
 
 
@@ -122,9 +122,9 @@ def test_vps_working_free_models_are_in_active_pools():
     free_scnet = {"scnet_ds_flash", "scnet_qwen235b", "scnet_qwen30b"}
 
     assert free_scnet.issubset(set(code_orchestrator.POOLS["coder"]))
-    assert {"scnet_ds_flash", "scnet_qwen235b"}.issubset(
-        set(router_v3.POOLS["code"]["strong"])
-    )
+    assert router_v3.POOLS["code"]["strong"][:3] == [
+        "scnet_ds_flash", "scnet_qwen235b", "scnet_qwen30b"
+    ]
     assert free_scnet.issubset(set(router_v3.POOLS["chat_fast"]["strong"]))
     assert "cf_kimi_k26" in router_v3.POOLS["chat_fast"]["strong"]
 

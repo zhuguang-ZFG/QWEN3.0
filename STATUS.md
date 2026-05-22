@@ -78,6 +78,13 @@ Latest free-model routing deployment:
 - Public coding smoke: 200 in 4585ms.
 - Public Anthropic tool smoke: 200 in 672ms with `stop_reason=tool_use`.
 
+Latest SCNet/Kimi first-tier eval:
+
+- Promoted to first-tier coding: `scnet_ds_flash`, `scnet_qwen235b`, `scnet_qwen30b`, `scnet_ds_pro`.
+- Not promoted: `cf_kimi_k26`, `stock_kimi_k2`, local `kimi*`, `scnet_large_*`, `scnet_minimax`.
+- Backup: `/opt/lima-router/backups/scnet-first-tier-20260522_190032`.
+- Public coding smoke: 200 in 3347ms.
+
 ## Paused Or Removed
 
 - Payment and commercial platform docs.

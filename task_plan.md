@@ -19,6 +19,7 @@ Turn the existing LiMa router into a private coding assistant that ranks coding 
 | 5. IDE/agent verification | In progress | At least one real coding client uses the private endpoint successfully. |
 | 6. Context preflight | Complete | Coding and Anthropic tool routes receive a compact request-local context digest. |
 | 7. Free model routing refresh | Complete | VPS-working SCNet/Kimi-family free models are documented and active where safe. |
+| 8. SCNet/Kimi first-tier eval | Complete | Direct SCNet models promoted; Kimi remains fallback/inactive until fixed. |
 
 ## Current Evidence
 
@@ -56,6 +57,12 @@ Turn the existing LiMa router into a private coding assistant that ranks coding 
 - Free-model routing deployment backup: `/opt/lima-router/backups/free-model-routing-20260522_184556`.
 - Post-deploy public coding smoke returned 200 in 4585ms.
 - Post-deploy public Anthropic tool smoke returned 200 in 672ms with `stop_reason=tool_use`.
+- VPS first-tier eval found direct SCNet winners: `scnet_ds_flash`, `scnet_qwen235b`, `scnet_qwen30b`, and `scnet_ds_pro`.
+- Kimi did not qualify for first tier in the same eval; CF Kimi passed 1/3 and local Kimi proxy models were unreachable.
+- `code_orchestrator.py` and `router_v3.py` now put direct SCNet winners at the front of coding pools.
+- SCNet first-tier deployment backup: `/opt/lima-router/backups/scnet-first-tier-20260522_190032`.
+- Post-deploy route-order smoke confirmed coding starts with `scnet_ds_flash`, `scnet_qwen235b`, `scnet_qwen30b`, `scnet_ds_pro`, then `github_gpt4o`.
+- Post-deploy public coding smoke returned 200 in 3347ms.
 
 ## Next Risks To Close
 

@@ -75,6 +75,9 @@
 | FREE-005 | Kimi local/stock | local `kimi`, `kimi_thinking`, `kimi_search` refused port `4504`; `stock_kimi_k2` returned invalid response. | Keep registered but inactive until proxy/format issues are fixed. |
 | FREE-006 | Route update | `code_orchestrator.py` and `router_v3.py` now include VPS-working SCNet direct models in active pools. | Re-run coding fixtures from VPS if these become candidates for primary coding. |
 | FREE-007 | Deploy behavior | `systemctl restart lima-router` can hang while uvicorn waits for existing `/v1/messages` connections to close. | If restart sticks in `deactivating`, use `systemctl kill -s SIGKILL lima-router`, `systemctl reset-failed lima-router`, then `systemctl start lima-router`. |
+| FREE-008 | SCNet first-tier eval | VPS three-case coding eval passed for `scnet_ds_flash` (3/3, 3330ms avg), `scnet_qwen235b` (3/3, 4004ms avg), `scnet_qwen30b` (3/3, 2713ms avg), and `scnet_ds_pro` (3/3, 4571ms avg). | Promote these direct SCNet models into coding first tier. |
+| FREE-009 | Kimi first-tier eval | `cf_kimi_k26` passed only 1/3 fixtures with 7844ms avg; local Kimi proxy models refused port `4504`; `stock_kimi_k2` returned invalid response. | Keep Kimi out of first tier until proxy/format issues are fixed. |
+| FREE-010 | SCNet first-tier deployment | VPS route order now starts `scnet_ds_flash`, `scnet_qwen235b`, `scnet_qwen30b`, `scnet_ds_pro`, `github_gpt4o`; public coding smoke returned 200 in 3347ms. | Keep monitoring real IDE latency and fallback behavior. |
 
 ## Latest Deployment Verification
 
@@ -106,6 +109,16 @@
 - VPS-local `/health` returned 200.
 - Public coding smoke returned 200 in 4585ms.
 - Public Anthropic tool smoke returned 200 in 672ms with `stop_reason=tool_use`.
+
+## Latest SCNet First-Tier Deployment
+
+- 2026-05-22 SCNet first-tier deploy uploaded `code_orchestrator.py` and `router_v3.py` to `/opt/lima-router`.
+- Rollback source: `/opt/lima-router/backups/scnet-first-tier-20260522_190032`.
+- Local verification before deployment returned `71 passed in 0.59s`.
+- Remote compile passed for `server.py`, `routing_engine.py`, `code_orchestrator.py`, and `router_v3.py`.
+- `lima-router` restarted cleanly and VPS-local `/health` returned 200.
+- VPS route-order smoke confirmed coding selection starts with `scnet_ds_flash`, `scnet_qwen235b`, `scnet_qwen30b`, `scnet_ds_pro`, then `github_gpt4o`.
+- Public coding smoke returned 200 in 3347ms.
 
 ## Production Safety Changes Retained
 

@@ -115,22 +115,22 @@ def classify_code_tier(query: str, messages: list = None) -> str:
 # ── Backend Pools ────────────────────────────────────────────────────────────
 
 POOLS = {
-    # 2026-05-22 broad coding eval + VPS free-model smoke.
-    # Keep VPS-working free SCNet models in late fallback slots; local proxy
-    # variants stay last because ports 4504/4505 may not be running on the VPS.
-    "fast": ["cerebras_gptoss", "groq_gptoss", "mistral_small",
-             "groq_gptoss_20b", "scnet_qwen30b", "scnet_ds_flash",
-             "scnet_qwen235b"],
-    "coder": ["github_gpt4o", "github_gpt4o_mini", "cerebras_gptoss",
-              "groq_gptoss", "mistral_small", "scnet_ds_flash",
-              "scnet_qwen235b", "scnet_qwen30b", "mistral_pixtral",
-              "mistral_large", "mistral_devstral", "github_codestral",
-              "or_gptoss_120b", "cf_kimi_k26", "scnet_large_ds_flash"],
-    "strong": ["github_gpt4o", "github_gpt4o_mini", "or_gptoss_120b",
-               "scnet_qwen235b", "scnet_ds_flash", "scnet_ds_pro",
-               "github_codestral", "mistral_large", "mistral_devstral",
-               "mistral_pixtral", "cf_kimi_k26", "scnet_large_ds_flash",
-               "scnet_large_ds_pro"],
+    # 2026-05-22 VPS first-tier eval: direct SCNet models passed coding
+    # fixtures from production. Kimi did not pass first-tier criteria yet.
+    "fast": ["scnet_qwen30b", "scnet_ds_flash", "scnet_qwen235b",
+             "cerebras_gptoss", "groq_gptoss", "mistral_small",
+             "groq_gptoss_20b"],
+    "coder": ["scnet_ds_flash", "scnet_qwen235b", "scnet_qwen30b",
+              "scnet_ds_pro", "github_gpt4o", "github_gpt4o_mini",
+              "cerebras_gptoss", "groq_gptoss", "mistral_small",
+              "mistral_pixtral", "mistral_large", "mistral_devstral",
+              "github_codestral", "or_gptoss_120b", "cf_kimi_k26",
+              "scnet_large_ds_flash"],
+    "strong": ["scnet_ds_flash", "scnet_qwen235b", "scnet_ds_pro",
+               "scnet_qwen30b", "github_gpt4o", "github_gpt4o_mini",
+               "or_gptoss_120b", "github_codestral", "mistral_large",
+               "mistral_devstral", "mistral_pixtral", "cf_kimi_k26",
+               "scnet_large_ds_flash", "scnet_large_ds_pro"],
 }
 
 
