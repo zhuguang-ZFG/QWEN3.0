@@ -343,7 +343,8 @@ def route(query: str, messages: list[dict], *,
                     request_type=f"code_{orch_result['tier']}",
                     ms=ms, scenario=scenario)
         except Exception as e:
-            log.warning(f"[ORCH] code_orchestrator failed: {type(e).__name__}: {e}")
+            import logging as _logging
+            _logging.warning(f"[ORCH] code_orchestrator failed: {type(e).__name__}: {e}")
 
     sticky_key = sticky_session.compute_key(
         model or "default",

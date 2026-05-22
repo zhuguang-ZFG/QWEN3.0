@@ -1337,7 +1337,8 @@ async def image_generations(request: Request):
         raise HTTPException(status_code=400, detail="Empty prompt")
 
     # Detect if Chinese and enhance prompt
-    has_chinese = bool(_re.search(r'[一-鿿]', prompt))
+    import re as _re_local
+    has_chinese = bool(_re_local.search(r'[一-鿿]', prompt))
     if has_chinese:
         prompt = f"high quality, detailed, {prompt}"
 

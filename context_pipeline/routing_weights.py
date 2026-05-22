@@ -15,7 +15,10 @@ from dataclasses import dataclass, field, asdict
 from pathlib import Path
 
 
-WEIGHTS_PATH = Path(os.environ.get("LIMA_WEIGHTS_PATH", "/tmp/lima_routing_weights.json"))
+import tempfile
+
+_default_path = os.path.join(tempfile.gettempdir(), "lima_routing_weights.json")
+WEIGHTS_PATH = Path(os.environ.get("LIMA_WEIGHTS_PATH", _default_path))
 
 
 @dataclass
