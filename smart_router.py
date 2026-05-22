@@ -1239,6 +1239,11 @@ def detect_vision_request(messages: list) -> bool:
     return False
 
 
+def _has_vision_content(messages: list) -> bool:
+    """Return True when OpenAI-format messages contain image blocks."""
+    return detect_vision_request(messages)
+
+
 def convert_openai_vision_to_anthropic(messages: list) -> list:
     """Convert OpenAI vision format messages to Anthropic format.
     OpenAI: {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,..."}}
