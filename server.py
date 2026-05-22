@@ -67,12 +67,13 @@ if USE_V3:
                 if pool:
                     return pool[0]
             else:
-                chat_only = ["longcat_chat", "longcat_lite", "groq_llama70b",
-                             "cf_llama70b", "deepseek_free", "zhipu_flash"]
+                chat_only = ["groq_llama70b", "cf_llama70b",
+                             "deepseek_free", "zhipu_flash",
+                             "longcat_lite", "longcat_chat"]
                 for b in chat_only:
                     if not ht.is_cooled_down(b):
                         return b
-                return "longcat_chat"
+                return "groq_llama70b"
         except Exception:
             pass
         backends = routing_engine.select("chat", hmap, scenario="chat")
@@ -95,12 +96,13 @@ if USE_V3:
                 if pool:
                     return (pool[0], messages)
             else:
-                chat_only = ["longcat_chat", "longcat_lite", "groq_llama70b",
-                             "cf_llama70b", "deepseek_free", "zhipu_flash"]
+                chat_only = ["groq_llama70b", "cf_llama70b",
+                             "deepseek_free", "zhipu_flash",
+                             "longcat_lite", "longcat_chat"]
                 for b in chat_only:
                     if not ht.is_cooled_down(b):
                         return (b, messages)
-                return ("longcat_chat", messages)
+                return ("groq_llama70b", messages)
         except Exception:
             pass
         backends = routing_engine.select("chat", hmap, scenario="chat")
