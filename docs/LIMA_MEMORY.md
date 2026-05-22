@@ -524,3 +524,46 @@ Verification:
 Operational lesson:
 
 - If Claude Code reports malformed HTTP 200 after a tool result, inspect the Anthropic conversion boundary before assuming FRP, nginx, or Claude CLI config is broken.
+
+## 2026-05-22 Local P0 Router Hardening And Plan Closure
+
+This increment was local-only. It was not deployed to VPS unless a later deployment pass explicitly does so.
+
+P0 hardening changes:
+
+- Added `access_guard.py` to enforce private API access through `LIMA_API_KEY` and comma-separated `LIMA_API_KEYS`.
+- Protected local `/v1/chat/completions`, `/v1/messages`, `/api/live-key`, `/v1/status`, and `/v1/images/generations`.
+- Kept `/health` and `/v1/models` public for uptime checks and IDE model discovery.
+- Changed admin routes to fail closed with 503 when `LIMA_ADMIN_TOKEN` is not configured.
+- Preserved full multi-turn `messages` during fallback backend retries by extending `_try_backend()`.
+- Changed ordinary chat IDE detection to return an empty string instead of a truthy unknown marker.
+- Capped image generation dimensions at `2048x2048`.
+- Removed client-visible Anthropic streaming backend footers like `[LiMa -> backend]`; backend selection stays internal request evidence only.
+- Reworked `test_streaming.py` so async generator checks run through `asyncio.run()` instead of being skipped without `pytest-asyncio`.
+
+Verification:
+
+- `D:\GIT\venv\Scripts\python.exe -m py_compile access_guard.py server.py routes\admin.py` passed.
+- `tests/test_access_guard.py` and `tests/test_fallback_context.py`: `6 passed`.
+- `tests/test_ide_detection.py` and `tests/test_image_endpoint_guard.py`: `4 passed`.
+- `tests/test_stream_footer.py`: `2 passed`.
+- `test_streaming.py`: `5 passed`.
+- Core regression suite with P0 tests: `112 passed`.
+
+Plan closure整理:
+
+- Added `docs/superpowers/PLAN_CLOSURE_STATUS.md`.
+- Reconciled historical Superpowers plan checkboxes:
+  - `2026-05-22-cloudflare-workers-ai-routing.md`
+  - `2026-05-22-token-safe-local-proxy-routing.md`
+  - `2026-05-22-free-model-first-tier-eval.md`
+- All real task checkboxes in `docs/superpowers/plans/*.md` are now reconciled. Remaining literal `- [ ]` matches are boilerplate syntax examples.
+- Main `task_plan.md` phases are complete.
+- Current P0 hardening is local closed only, not production closed, because VPS deployment was a non-goal in this pass.
+
+Deferred risks and non-goals:
+
+- Kimi local proxy still returns `chat.anonymous_usage_exceeded` and remains `manual_refresh_required`.
+- TheOldLLM local proxy still times out on chat.
+- Page-only no-login web AI candidates remain sandbox-only.
+- Local refresh scripts under `D:\ollama_server` were redacted and syntax-checked, but refresh execution itself remains deferred.

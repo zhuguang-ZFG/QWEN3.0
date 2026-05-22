@@ -34,7 +34,10 @@ _ADMIN_TOKEN = os.environ.get("LIMA_ADMIN_TOKEN", "")
 async def _verify_admin(authorization: str = Header(default="")) -> None:
     """管理接口认证。需设置 LIMA_ADMIN_TOKEN 环境变量。"""
     if not _ADMIN_TOKEN:
-        return
+        raise HTTPException(
+            status_code=503,
+            detail="LiMa admin token is not configured.",
+        )
     if authorization != f"Bearer {_ADMIN_TOKEN}" and authorization != _ADMIN_TOKEN:
         raise HTTPException(status_code=401, detail="Unauthorized")
 

@@ -281,3 +281,30 @@ Latest open-phase completion:
 - Final verification:
   - `D:\GIT\venv\Scripts\python.exe -m py_compile route_scorer.py free_web_ai_admission.py scripts\build_free_web_ai_admission.py routing_engine.py budget_manager.py test_routing_engine.py tests\test_route_scorer.py tests\test_free_web_ai_admission.py`: passed.
   - `D:\GIT\venv\Scripts\python.exe -m pytest test_routing_engine.py test_http_caller.py tests\test_coding_eval.py tests\test_lima_context.py tests\test_free_web_ai_probe.py tests\test_free_web_ai_admission.py tests\test_route_scorer.py -q --ignore=active_model`: `86 passed`.
+
+Latest local P0 router hardening:
+
+- New plan: `docs/superpowers/plans/2026-05-22-p0-router-hardening.md`.
+- Added `access_guard.py` for private API key enforcement using `LIMA_API_KEY` and/or comma-separated `LIMA_API_KEYS`.
+- `/v1/chat/completions`, `/v1/messages`, `/api/live-key`, and `/v1/status` now require the private key locally.
+- `/v1/images/generations` also requires the private key locally, and image dimensions are capped at 2048x2048.
+- `/health` and `/v1/models` remain open for health checks and IDE model discovery.
+- Admin routes now fail closed when `LIMA_ADMIN_TOKEN` is not configured.
+- `_try_backend()` now accepts full fallback `messages`, so same-tier and upgrade retries do not lose multi-turn context.
+- `_detect_ide()` now returns an empty string for ordinary chat instead of a truthy unknown marker, so non-IDE requests are no longer misclassified as IDE.
+- Anthropic streaming responses no longer append the visible ``[LiMa -> backend]`` footer; backend selection remains internal request evidence only.
+- `test_streaming.py` no longer depends on an unconfigured `pytest-asyncio` plugin; the five async streaming regression checks now execute through `asyncio.run()`.
+- Local verification:
+  - `D:\GIT\venv\Scripts\python.exe -m py_compile access_guard.py server.py routes\admin.py`: passed.
+  - Focused P0 tests passed for access guard, fallback context, IDE detection, and image endpoint guard.
+  - `tests\test_stream_footer.py`: `2 passed`.
+  - `test_streaming.py`: `5 passed`.
+  - Core suite with the new tests: `112 passed`.
+- Deployment note: this hardening is local only in the current workspace; it has not been deployed to VPS in this pass.
+
+Latest Superpowers plan closure review:
+
+- Added `docs/superpowers/PLAN_CLOSURE_STATUS.md`.
+- Reconciled historical Superpowers plan checkboxes; remaining literal `- [ ]` matches are boilerplate syntax examples, not open task items.
+- Main `task_plan.md` phases remain complete.
+- Current P0 hardening is classified as local closed, not production closed, because VPS deployment was not requested in this pass.

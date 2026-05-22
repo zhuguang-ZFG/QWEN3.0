@@ -104,7 +104,6 @@ If code changes are made, backup changed runtime files on VPS, upload, compile, 
 
 ## Closure
 
-- [ ] Update `docs/FREE_MODEL_ROUTING_STATUS.md` with the fixture table.
 - [x] Update `docs/FREE_MODEL_ROUTING_STATUS.md` with the fixture table.
 - [x] Update `docs/LIMA_MEMORY.md` with first-tier decision.
 - [x] Update `task_plan.md`, `findings.md`, and `progress.md`.

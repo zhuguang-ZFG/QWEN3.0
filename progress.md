@@ -239,3 +239,54 @@
   - Public `/v1/messages`: exact `deployed-msg-ok`.
   - Real Claude CLI large-file `Read`: exact `deployed-read-ok`.
   - FRP health: 200.
+
+## 2026-05-22 P0 Router Hardening
+
+- Created `docs/superpowers/plans/2026-05-22-p0-router-hardening.md` before code changes.
+- Added RED tests:
+  - `tests/test_access_guard.py` for private key parsing, missing-auth rejection, configured-key acceptance, unconfigured fail-closed behavior, and admin fail-closed behavior.
+  - `tests/test_fallback_context.py` for preserving full messages during fallback backend retries.
+- Verified RED: focused run failed because `access_guard` did not exist yet.
+- Implemented `access_guard.py`:
+  - Reads `LIMA_API_KEY`.
+  - Reads comma-separated `LIMA_API_KEYS`.
+  - Accepts either `Authorization: Bearer <key>` or raw `Authorization: <key>`.
+  - Fails closed with 503 if no private key is configured.
+  - Returns 401 for missing or invalid authorization.
+- Wired the guard into `server.py` for:
+  - `/v1/chat/completions`
+  - `/v1/messages`
+  - `/api/live-key`
+  - `/v1/status`
+- Kept `/health` and `/v1/models` unauthenticated for smoke checks and IDE model discovery.
+- Changed `routes/admin.py` so missing `LIMA_ADMIN_TOKEN` returns 503 instead of allowing admin access.
+- Updated `_try_backend()` to accept full `messages` and changed same-tier plus upgrade fallback call sites to pass `messages_to_dicts(req.messages)`.
+- Fixed `_detect_ide()` so ordinary chat messages return an empty string instead of a truthy unknown marker.
+- Added `tests/test_ide_detection.py` to prevent ordinary requests from being treated as IDE traffic.
+- Protected `/v1/images/generations` with the same private API key guard.
+- Added `tests/test_image_endpoint_guard.py` and capped image dimensions at 2048x2048.
+- Added `tests/test_stream_footer.py` with RED/GREEN coverage for Anthropic speculative and fake stream paths.
+- Removed client-visible backend footers from Anthropic streaming responses; backend names stay available to internal request logging.
+- Reworked `test_streaming.py` so its async generator checks run via `asyncio.run()` instead of being skipped when `pytest-asyncio` is not installed/configured.
+- Verification:
+  - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_access_guard.py tests\test_fallback_context.py -q --ignore=active_model`: `6 passed`.
+  - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_ide_detection.py tests\test_image_endpoint_guard.py -q --ignore=active_model`: `4 passed`.
+  - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_stream_footer.py -q --ignore=active_model`: `2 passed`.
+  - `D:\GIT\venv\Scripts\python.exe -m pytest test_streaming.py -q --ignore=active_model`: `5 passed`.
+  - `D:\GIT\venv\Scripts\python.exe -m py_compile access_guard.py server.py routes\admin.py`: passed.
+  - `D:\GIT\venv\Scripts\python.exe -m py_compile test_streaming.py`: passed.
+  - Core suite with new tests: `112 passed`.
+- Caveat:
+  - This increment is local only and has not been deployed to VPS.
+
+## 2026-05-22 Superpowers Plan Closure Review
+
+- Reconciled historical Superpowers plan checkboxes:
+  - `2026-05-22-cloudflare-workers-ai-routing.md`
+  - `2026-05-22-token-safe-local-proxy-routing.md`
+  - `2026-05-22-free-model-first-tier-eval.md`
+- Added `docs/superpowers/PLAN_CLOSURE_STATUS.md` to classify each plan as closed, local closed, non-goal, or deferred risk.
+- Current judgment:
+  - Main `task_plan.md` phases are complete.
+  - Historical Superpowers execution plans are checkbox-reconciled.
+  - P0 router hardening is local closed only; it has not been deployed to VPS or committed in this pass.

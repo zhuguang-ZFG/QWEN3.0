@@ -39,7 +39,7 @@
 - Modify: `code_orchestrator.py`
 - Modify: `test_routing_engine.py`
 
-- [ ] **Step 1: Add failing route tests**
+- [x] **Step 1: Add failing route tests**
 
 Add tests that call:
 
@@ -57,7 +57,7 @@ with patch.dict(os.environ, {"LIMA_ENABLE_LOCAL_PROXIES": "1"}):
     assert runtime_topology.backend_available("scnet_large_ds_flash")
 ```
 
-- [ ] **Step 2: Implement `runtime_topology.py`**
+- [x] **Step 2: Implement `runtime_topology.py`**
 
 Expose:
 
@@ -85,7 +85,7 @@ Availability is true when:
 - the backend has a tunnel URL env override, such as `DDG_TUNNEL_URL`, `OLLAMA_TUNNEL_URL`; or
 - its expected local port accepts a short TCP connection.
 
-- [ ] **Step 3: Wire topology filter**
+- [x] **Step 3: Wire topology filter**
 
 Use `runtime_topology.filter_backends` in:
 
@@ -101,7 +101,7 @@ Use `runtime_topology.filter_backends` in:
 - Modify: `D:\ollama_server\token_refresh_server.js`
 - Modify: `D:\ollama_server\oldllm_proxy.js`
 
-- [ ] **Step 1: Add redactor helper**
+- [x] **Step 1: Add redactor helper**
 
 Create:
 
@@ -122,7 +122,7 @@ function safeLog(...args) {
 module.exports = { redactSecret, safeLog };
 ```
 
-- [ ] **Step 2: Remove hardcoded Cloudflare tokens**
+- [x] **Step 2: Remove hardcoded Cloudflare tokens**
 
 In Kimi and TheOldLLM refresh scripts, read Cloudflare token from environment variables only:
 
@@ -131,11 +131,11 @@ const CF_TOKEN = process.env.CLOUDFLARE_API_TOKEN || process.env.CF_API_TOKEN;
 if (!CF_TOKEN) throw new Error('Set CLOUDFLARE_API_TOKEN or CF_API_TOKEN');
 ```
 
-- [ ] **Step 3: Redact all token logs**
+- [x] **Step 3: Redact all token logs**
 
 Replace logs that include token, Authorization, X-Request-Token, post body, localStorage, or errors that may include request headers with `safeLog`.
 
-- [ ] **Step 4: Stop refresh server from returning raw tokens**
+- [x] **Step 4: Stop refresh server from returning raw tokens**
 
 `GET /refresh` should return:
 
@@ -150,7 +150,7 @@ not the token itself.
 **Files:**
 - No new runtime files.
 
-- [ ] **Step 1: Python verification**
+- [x] **Step 1: Python verification**
 
 Run:
 
@@ -161,7 +161,7 @@ D:\GIT\venv\Scripts\python.exe -m pytest test_routing_engine.py tests\test_lima_
 
 Expected: all selected tests pass.
 
-- [ ] **Step 2: JavaScript syntax verification**
+- [x] **Step 2: JavaScript syntax verification**
 
 Run:
 
@@ -175,11 +175,11 @@ node --check D:\ollama_server\oldllm_proxy.js
 
 Expected: all syntax checks pass.
 
-- [ ] **Step 3: Redactor behavior check**
+- [x] **Step 3: Redactor behavior check**
 
 Run a small Node command importing `secret_redactor.js` and assert test values are redacted.
 
-- [ ] **Step 4: No refresh execution**
+- [x] **Step 4: No refresh execution**
 
 Do not run Kimi/TheOldLLM refresh scripts in this implementation pass. Only syntax and redaction behavior are verified.
 
@@ -191,18 +191,18 @@ Do not run Kimi/TheOldLLM refresh scripts in this implementation pass. Only synt
 
 During VPS verification, public `/v1/chat/completions` returned `fallback_exhausted` for `Return exactly: topology-ok` even though direct backend calls and `routing_engine.route` succeeded. Root cause: the server-level quality gate rejected short but explicitly requested exact-output answers (`len(response) < 30` with complexity above `0.3`), then the fallback chain retried another short-answer backend and exhausted.
 
-- [ ] **Step 1: Add regression coverage**
+- [x] **Step 1: Add regression coverage**
 
 Assert that `_quality_check("topology-ok", 0.5, ..., query="Return exactly: topology-ok")` passes while unrelated short responses to complex prompts still fail.
 
-- [ ] **Step 2: Implement exact-output short-answer handling**
+- [x] **Step 2: Implement exact-output short-answer handling**
 
 Keep backend-error and `[ERR]` rejection first. Add small helpers that:
 
 - allow short answers only when the prompt explicitly requests exact/direct output, such as `return exactly`, `respond exactly`, `output exactly`, `只返回`, or `只输出`;
 - reject non-matching answers when the prompt has a parseable expected answer such as `Return exactly: topology-ok`.
 
-- [ ] **Step 3: Wire query context into quality checks**
+- [x] **Step 3: Wire query context into quality checks**
 
 Pass the current `query` into non-streaming and fake-stream fallback quality checks so the gate can distinguish intentional short answers from low-quality truncation.
 
@@ -214,7 +214,7 @@ Pass the current `query` into non-streaming and fake-stream fallback quality che
 - Modify: `findings.md`
 - Modify: `task_plan.md`
 
-- [ ] **Step 1: Record what changed**
+- [x] **Step 1: Record what changed**
 
 Document:
 
@@ -223,6 +223,16 @@ Document:
 - refresh scripts were not executed
 - local runtime files under `D:\ollama_server` were changed but not committed
 
-- [ ] **Step 2: Commit repo changes**
+- [x] **Step 2: Commit repo changes**
 
 Commit only repo files. Do not stage unrelated untracked directories.
+
+## Closure Status
+
+Closed. Execution evidence is recorded in `STATUS.md` under "Latest token-safe local proxy routing increment"; git history includes `904f32d fix: guard local proxy routing and exact answers`.
+
+Decisions and non-goals:
+
+- Kimi/TheOldLLM refresh scripts were not executed in this pass by design; only syntax and redaction behavior were verified.
+- Local runtime files under `D:\ollama_server` are runtime assets and were intentionally not committed as repo source.
+- Local-only proxy backends are topology-gated; promotion still depends on runtime reachability or explicit enable/tunnel configuration.

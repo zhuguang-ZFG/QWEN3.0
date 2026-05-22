@@ -8,9 +8,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI, Request, HTTPException, Depends, Header
 from fastapi.responses import StreamingResponse, JSONResponse, HTMLResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 import uvicorn
 
+from access_guard import require_private_api_key
 import smart_router
 from orchestrate import orchestrate, needs_orchestration
 
@@ -369,7 +370,13 @@ def _honest_failure_response(chat_id: str, fmt: str = "openai", request_model: s
     return build_response(chat_id, content, "fallback_exhausted", 0)
 
 
-async def _try_backend(backend_name: str, query: str, max_tokens: int = 1024) -> dict | None:
+async def _try_backend(
+    backend_name: str,
+    query: str,
+    max_tokens: int = 1024,
+    *,
+    messages: list[dict] | None = None,
+) -> dict | None:
     """尝试调用一个后端，失败返回 None。返回 smart_router.route() 兼容的 dict。"""
     if backend_name not in smart_router.BACKENDS:
         return None
@@ -378,7 +385,7 @@ async def _try_backend(backend_name: str, query: str, max_tokens: int = 1024) ->
     if not smart_router.cb_allow(backend_name):
         return None
     try:
-        msgs = [{"role": "user", "content": query}]
+        msgs = messages if messages else [{"role": "user", "content": query}]
         result = await asyncio.wait_for(
             asyncio.to_thread(smart_router.call_api, backend_name, msgs, max_tokens),
             timeout=35.0
@@ -431,7 +438,7 @@ def _detect_ide(messages: list) -> str:
                 return "Continue"
             if "Cline" in content:
                 return "Cline"
-    return "未知"
+    return ""
 
 
 def _record_request(query: str, backend: str, intent: str, duration_ms: int, success: bool = True, client_ip: str = "", ide_source: str = "", sys_prompt_preview: str = ""):
@@ -1257,6 +1264,14 @@ class ImageRequest(BaseModel):
     size: str = Field(default="1024x1024", pattern=r"^\d{1,4}x\d{1,4}$")
     n: int = Field(default=1, ge=1, le=10)
 
+    @field_validator("size")
+    @classmethod
+    def reject_oversized_dimensions(cls, value: str) -> str:
+        width, height = (int(part) for part in value.split("x"))
+        if width > 2048 or height > 2048:
+            raise ValueError("image dimensions must be at most 2048")
+        return value
+
 
 def _build_pollinations_url(prompt: str, size: str = "1024x1024") -> str:
     """Build Pollinations.ai image URL from prompt and size."""
@@ -1267,7 +1282,10 @@ def _build_pollinations_url(prompt: str, size: str = "1024x1024") -> str:
     return f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true"
 
 
-@app.post("/v1/images/generations")
+@app.post(
+    "/v1/images/generations",
+    dependencies=[Depends(require_private_api_key)],
+)
 async def image_generations(request: Request):
     """OpenAI-compatible image generation endpoint using Pollinations.ai."""
     body = await request.json()
@@ -1296,7 +1314,10 @@ async def image_generations(request: Request):
 
 
 # ── Routes ──────────────────────────────────────────────────────────────────
-@app.post("/v1/chat/completions")
+@app.post(
+    "/v1/chat/completions",
+    dependencies=[Depends(require_private_api_key)],
+)
 async def chat_completions(request: Request):
     """OpenAI 兼容接口。"""
     body = await request.json()
@@ -1353,7 +1374,7 @@ async def chat_completions(request: Request):
     return await _handle_chat(req, fmt="openai", client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
 
 
-@app.post("/v1/messages")
+@app.post("/v1/messages", dependencies=[Depends(require_private_api_key)])
 async def anthropic_messages(req: Request):
     """Anthropic 兼容接口（供 cc-switch Claude Code 使用）。支持流式和非流式、多模态。"""
     body = await req.json()
@@ -1620,11 +1641,6 @@ async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", i
                     total_text = _last_resort_call(messages_to_dicts(req.messages)) or "系统维护中，请稍后重试。"
                     yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':total_text}}, ensure_ascii=False)}\n\n"
 
-            # Footer
-            footer = f"\n\n---\n`[LiMa → {backend_used}]`"
-            total_text += footer
-            yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':footer}}, ensure_ascii=False)}\n\n"
-
             # End events
             yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':0})}\n\n"
             yield f"event: message_delta\ndata: {json.dumps({'type':'message_delta','delta':{'stop_reason':'end_turn','stop_sequence':None},'usage':{'output_tokens':len(total_text)//4}})}\n\n"
@@ -1655,7 +1671,12 @@ async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", i
             same_tier = _get_same_tier_backends(fallback_backend)
             fallback_found = False
             for alt in same_tier:
-                alt_result = await _try_backend(alt, query, req.max_tokens or 4096)
+                alt_result = await _try_backend(
+                    alt,
+                    query,
+                    req.max_tokens or 4096,
+                    messages=messages_to_dicts(req.messages),
+                )
                 if alt_result and _quality_check(alt_result["answer"], complexity, alt, query=query):
                     content = alt_result["answer"]
                     backend_used = alt
@@ -1664,7 +1685,12 @@ async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", i
             if not fallback_found:
                 upgrade_chain = _get_upgrade_chain(fallback_backend)
                 for upgraded in upgrade_chain:
-                    up_result = await _try_backend(upgraded, query, req.max_tokens or 4096)
+                    up_result = await _try_backend(
+                        upgraded,
+                        query,
+                        req.max_tokens or 4096,
+                        messages=messages_to_dicts(req.messages),
+                    )
                     if up_result and _quality_check(up_result["answer"], complexity, upgraded, query=query):
                         content = up_result["answer"]
                         backend_used = upgraded
@@ -1683,7 +1709,6 @@ async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", i
         content = _last_resort_call(messages_to_dicts(req.messages)) or "系统维护中，请稍后重试。"
         backend_used = backend_used or "empty_response"
 
-    content += f"\n\n---\n`[LiMa → {backend_used}]`"
     msg_id = f"msg_{uuid.uuid4().hex[:24]}"
 
     yield f"event: message_start\ndata: {json.dumps({'type':'message_start','message':{'id':msg_id,'type':'message','role':'assistant','model':model,'content':[],'stop_reason':None,'stop_sequence':None,'usage':{'input_tokens':10,'output_tokens':0}}})}\n\n"
@@ -1798,7 +1823,12 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
         # 同层降级：找同层级的其他后端
         same_tier = _get_same_tier_backends(fallback_backend)
         for alt in same_tier:
-            alt_result = await _try_backend(alt, query, req.max_tokens or 1024)
+            alt_result = await _try_backend(
+                alt,
+                query,
+                req.max_tokens or 1024,
+                messages=messages_to_dicts(req.messages),
+            )
             if alt_result and _quality_check(alt_result["answer"], complexity, alt, query=query):
                 content = alt_result["answer"]
                 backend = alt
@@ -1811,7 +1841,12 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
         # 跨层升级：逐级升级
         upgrade_chain = _get_upgrade_chain(fallback_backend)
         for upgraded in upgrade_chain:
-            up_result = await _try_backend(upgraded, query, req.max_tokens or 1024)
+            up_result = await _try_backend(
+                upgraded,
+                query,
+                req.max_tokens or 1024,
+                messages=messages_to_dicts(req.messages),
+            )
             if up_result and _quality_check(up_result["answer"], complexity, upgraded, query=query):
                 content = up_result["answer"]
                 backend = upgraded
@@ -2119,7 +2154,7 @@ async def health():
     return {"status": "ok", "version": "2.0", "model": MODEL_ID}
 
 
-@app.get("/api/live-key")
+@app.get("/api/live-key", dependencies=[Depends(require_private_api_key)])
 async def live_key():
     """返回 Gemini Live API key（供视频通话前端使用）。"""
     key = os.environ.get("GOOGLE_AI_KEY", "")
@@ -2128,7 +2163,7 @@ async def live_key():
     return {"key": key, "model": "models/gemini-2.0-flash-live-001"}
 
 
-@app.get("/v1/status")
+@app.get("/v1/status", dependencies=[Depends(require_private_api_key)])
 async def router_status():
     """路由器状态：熔断器、后端列表、路由表。"""
     return {

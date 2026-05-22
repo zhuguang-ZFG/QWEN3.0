@@ -32,7 +32,7 @@
 **Files:**
 - Create: `docs/CLOUDFLARE_MODEL_INVENTORY.md`
 
-- [ ] **Step 1: Write inventory doc**
+- [x] **Step 1: Write inventory doc**
 
 Record three buckets:
 
@@ -69,7 +69,7 @@ Text/code chat models may enter `router_v3` and `code_orchestrator` pools.
 Non-chat models need separate adapters.
 ```
 
-- [ ] **Step 2: Verify doc exists**
+- [x] **Step 2: Verify doc exists**
 
 Run: `Test-Path docs\CLOUDFLARE_MODEL_INVENTORY.md`
 Expected: `True`
@@ -79,7 +79,7 @@ Expected: `True`
 **Files:**
 - Modify: `backends.py`
 
-- [ ] **Step 1: Add `cfai_mistral`**
+- [x] **Step 1: Add `cfai_mistral`**
 
 Insert next to other `cfai_*` entries:
 
@@ -87,7 +87,7 @@ Insert next to other `cfai_*` entries:
 'cfai_mistral': {'url': 'https://ai.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'mistral-small-3.1', 'fmt': 'openai', 'timeout': 30},
 ```
 
-- [ ] **Step 2: Compile backend registry**
+- [x] **Step 2: Compile backend registry**
 
 Run: `D:\GIT\venv\Scripts\python.exe -m py_compile backends.py`
 Expected: exit code 0.
@@ -98,7 +98,7 @@ Expected: exit code 0.
 - Modify: `router_v3.py`
 - Modify: `code_orchestrator.py`
 
-- [ ] **Step 1: Keep SCNet first**
+- [x] **Step 1: Keep SCNet first**
 
 Do not change these prefixes:
 
@@ -111,7 +111,7 @@ code_orchestrator.POOLS["coder"][:4] == [
 ]
 ```
 
-- [ ] **Step 2: Add Cloudflare after existing first-tier winners**
+- [x] **Step 2: Add Cloudflare after existing first-tier winners**
 
 Add these models to coding pools after SCNet/GitHub fast winners and before weak floor fallbacks:
 
@@ -128,7 +128,7 @@ Add these models to coding pools after SCNet/GitHub fast winners and before weak
 ]
 ```
 
-- [ ] **Step 3: Add Worker fallback capacity to chat pools**
+- [x] **Step 3: Add Worker fallback capacity to chat pools**
 
 Add `cfai_qwen_coder`, `cfai_deepseek_r1`, `cfai_llama70b`, and `cfai_llama4` to `ide`, `chat`, and `chat_fast` medium/floor-equivalent sections where direct `cf_*` models already exist.
 
@@ -139,7 +139,7 @@ Execution adjustment: `cfai_mistral` stayed registered but was removed from acti
 **Files:**
 - Modify: `test_routing_engine.py`
 
-- [ ] **Step 1: Add assertions**
+- [x] **Step 1: Add assertions**
 
 Add a test that verifies:
 
@@ -157,7 +157,7 @@ assert cloudflare_code.issubset(set(code_orchestrator.POOLS["coder"]))
 assert "cfai_mistral" in BACKENDS
 ```
 
-- [ ] **Step 2: Run focused test**
+- [x] **Step 2: Run focused test**
 
 Run: `D:\GIT\venv\Scripts\python.exe -m pytest test_routing_engine.py -q`
 Expected: all tests pass.
@@ -168,7 +168,7 @@ Expected: all tests pass.
 - Modify: `STATUS.md`
 - Modify: `docs/LIMA_MEMORY.md`
 
-- [ ] **Step 1: Verify live Worker model list**
+- [x] **Step 1: Verify live Worker model list**
 
 Run:
 
@@ -178,7 +178,7 @@ Invoke-RestMethod -Uri 'https://ai.zhuguang.ccwu.cc/v1/models' -TimeoutSec 20
 
 Expected: includes `qwen2.5-coder-32b` and `mistral-small-3.1`.
 
-- [ ] **Step 2: Verify one live Worker completion**
+- [x] **Step 2: Verify one live Worker completion**
 
 Run:
 
@@ -189,7 +189,7 @@ Invoke-RestMethod -Uri 'https://ai.zhuguang.ccwu.cc/v1/chat/completions' -Method
 
 Expected: response content is `cfai-ok`.
 
-- [ ] **Step 3: Update docs**
+- [x] **Step 3: Update docs**
 
 Record that the public Worker path is verified and that direct account API smoke is blocked in the current shell because Cloudflare env vars are not set.
 
@@ -198,7 +198,7 @@ Record that the public Worker path is verified and that direct account API smoke
 **Files:**
 - No new files.
 
-- [ ] **Step 1: Compile touched Python files**
+- [x] **Step 1: Compile touched Python files**
 
 Run:
 
@@ -208,7 +208,7 @@ D:\GIT\venv\Scripts\python.exe -m py_compile backends.py router_v3.py code_orche
 
 Expected: exit code 0.
 
-- [ ] **Step 2: Run focused core tests**
+- [x] **Step 2: Run focused core tests**
 
 Run:
 
@@ -218,7 +218,16 @@ D:\GIT\venv\Scripts\python.exe -m pytest test_routing_engine.py tests\test_codin
 
 Expected: all selected tests pass.
 
-- [ ] **Step 3: Inspect diff**
+- [x] **Step 3: Inspect diff**
 
 Run: `git diff -- backends.py router_v3.py code_orchestrator.py test_routing_engine.py docs/CLOUDFLARE_MODEL_INVENTORY.md STATUS.md docs/LIMA_MEMORY.md`
 Expected: only Cloudflare routing, inventory, and status updates.
+
+## Closure Status
+
+Closed. Execution evidence is recorded in `STATUS.md` under "Latest Cloudflare Workers AI routing increment" and "Latest Cloudflare routing VPS deployment".
+
+Decisions and non-goals:
+
+- `cfai_mistral` is registered because the Worker exposes it, but it is not treated as admitted coding capacity because quick eval returned HTTP 500.
+- Direct account Cloudflare smoke from the local shell was blocked by missing `CLOUDFLARE_ACCOUNT_ID` / `CLOUDFLARE_TOKEN`; later VPS direct smoke for `cf_qwen_coder` returned `cf-direct-ok`.
