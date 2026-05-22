@@ -23,12 +23,14 @@ POOLS = {
     "ide": {
         "strong": ["scnet_ds_flash", "scnet_qwen235b", "scnet_qwen30b",
                    "scnet_ds_pro", "longcat_chat", "longcat",
-                   "cf_qwen_coder", "cf_llama70b", "cf_kimi_k26",
+                   "cf_qwen_coder", "cfai_qwen_coder", "cf_llama70b",
+                   "cfai_llama70b", "cf_kimi_k26",
                    "mistral_large", "mistral_small",
                    "groq_llama70b", "cerebras_gptoss", "zhipu_flash", "deepseek_free",
                    "opencode_stealth", "fireworks_llama405b",
                    "github_gpt4o", "github_codestral"],
-        "medium": ["cf_llama4", "cf_gptoss_120b", "cf_qwen3_30b", "cf_glm47", "cf_deepseek_r1",
+        "medium": ["cf_llama4", "cfai_llama4", "cf_gptoss_120b", "cf_qwen3_30b", "cf_glm47", "cf_deepseek_r1",
+                   "cfai_deepseek_r1",
                    "cf_qwq", "cf_mistral", "cf_gemma4", "cf_nemotron",
                    "groq_qwen32b", "groq_gptoss_20b", "cerebras_qwen235b", "mistral_devstral",
                    "aliyun_qwen3", "nvidia_qwen_coder",
@@ -47,11 +49,13 @@ POOLS = {
     "chat": {
         "strong": ["scnet_qwen30b", "scnet_ds_flash", "scnet_qwen235b",
                    "scnet_ds_pro", "longcat_chat", "longcat",
-                   "cf_qwen_coder", "cf_llama70b", "cf_kimi_k26",
+                   "cf_qwen_coder", "cfai_qwen_coder", "cf_llama70b",
+                   "cfai_llama70b", "cf_kimi_k26",
                    "groq_llama70b", "cerebras_gptoss", "zhipu_flash", "deepseek_free",
                    "opencode_stealth", "fireworks_llama405b",
                    "github_gpt4o", "mistral_medium"],
-        "medium": ["cf_llama4", "cf_gptoss_120b", "cf_qwen3_30b", "cf_glm47", "cf_deepseek_r1",
+        "medium": ["cf_llama4", "cfai_llama4", "cf_gptoss_120b", "cf_qwen3_30b", "cf_glm47", "cf_deepseek_r1",
+                   "cfai_deepseek_r1",
                    "cf_qwq", "cf_mistral", "cf_gemma4", "cf_nemotron",
                    "groq_qwen32b", "mistral_large", "nvidia_qwen_coder",
                    "sambanova_llama4", "cohere_command", "deepinfra_llama4", "deepinfra_qwen235b",
@@ -74,10 +78,13 @@ POOLS = {
     "code": {
         "strong": ["scnet_ds_flash", "scnet_qwen235b", "scnet_qwen30b",
                    "scnet_ds_pro", "github_gpt4o", "github_gpt4o_mini",
-                   "or_gptoss_120b",
-                   "github_codestral", "mistral_large", "mistral_devstral",
-                   "mistral_pixtral", "cf_kimi_k26", "scnet_large_ds_flash"],
-        "medium": ["cerebras_gptoss", "groq_gptoss", "mistral_small",
+                   "cf_qwen_coder", "cfai_qwen_coder", "or_gptoss_120b",
+                   "cf_gptoss_120b", "cf_deepseek_r1", "cf_qwen3_30b",
+                   "cfai_deepseek_r1", "github_codestral", "mistral_large",
+                   "mistral_devstral", "mistral_pixtral", "cf_kimi_k26",
+                   "scnet_large_ds_flash"],
+        "medium": ["cfai_llama70b", "cfai_llama4",
+                   "cerebras_gptoss", "groq_gptoss", "mistral_small",
                    "mistral_medium", "groq_gptoss_20b",
                    "scnet_large_ds_flash", "github_gpt4o", "github_codestral"],
         "floor": ["mistral_devstral", "mistral_large", "cerebras_gptoss",
@@ -89,8 +96,10 @@ POOLS = {
     "chat_fast": {
         "strong": ["scnet_qwen30b", "scnet_ds_flash", "scnet_qwen235b",
                    "groq_llama70b", "groq_qwen32b", "cerebras_gptoss",
-                   "longcat_lite", "cf_llama70b", "cf_kimi_k26"],
-        "medium": ["longcat_chat", "cf_qwen3_30b", "cf_gemma4",
+                   "longcat_lite", "cf_llama70b", "cfai_llama70b",
+                   "cf_kimi_k26"],
+        "medium": ["longcat_chat", "cf_qwen3_30b", "cfai_qwen_coder",
+                   "cfai_llama4", "cf_gemma4",
                    "groq_gptoss", "groq_llama4",
                    "google_flash", "google_flash_lite"],
         "floor": ["ovh_llama70b", "ovh_deepseek", "pollinations_openai",
@@ -118,7 +127,7 @@ _IDE_FINGERPRINTS = {
     "continue": ["Continue is an open-source", "continue.dev"],
 }
 
-MAX_FALLBACKS = 5
+MAX_FALLBACKS = 8
 
 
 # ─── Layer 1: 请求分类器 ─────────────────────────────────────────────────────

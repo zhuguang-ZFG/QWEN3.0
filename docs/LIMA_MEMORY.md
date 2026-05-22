@@ -103,6 +103,13 @@ Fast usable coding tier:
 - `mistral_small`
 - `groq_gptoss_20b` for simpler cases and tool path speed.
 
+Cloudflare coding capacity:
+
+- Direct `cf_*` account API models are registered in `backends.py`; they require `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_TOKEN`.
+- Worker `cfai_*` models use `https://ai.zhuguang.ccwu.cc/v1/chat/completions` and do not expose account credentials to LiMa clients.
+- `cf_qwen_coder` and `cfai_qwen_coder` now enter the default `router_v3` code fallback window after SCNet/GitHub winners.
+- `code_orchestrator.POOLS["coder"]` now includes `cf_qwen_coder`, `cfai_qwen_coder`, `cf_gptoss_120b`, `cf_deepseek_r1`, `cf_qwen3_30b`, and `cfai_deepseek_r1`.
+
 ## Free Model Status
 
 VPS first-tier SCNet direct models:
@@ -303,3 +310,37 @@ Kimi and TheOldLLM guardrails:
 - Kimi still returns `chat.anonymous_usage_exceeded`; `health_tracker` maps it to `manual_refresh_required`.
 - The current Kimi/TheOldLLM refresh/log path can expose token fragments, so redact that output before active refresh runs.
 - TheOldLLM local `4502` chat still timed out after 30 seconds in this pass.
+
+## 2026-05-22 Cloudflare Workers AI Routing Increment
+
+User asked whether the Cloudflare dashboard models are used and then approved implementation.
+
+What changed:
+
+- Added `docs/CLOUDFLARE_MODEL_INVENTORY.md`.
+- Added `cfai_mistral` for Worker model `mistral-small-3.1`.
+- Added Cloudflare code-capable backends to `router_v3.py` and `code_orchestrator.py`.
+- Raised `router_v3.MAX_FALLBACKS` from 5 to 8 because a pool entry outside the selection window is not active capacity.
+- Added route assertions in `test_routing_engine.py`.
+- Generated `docs/CLOUDFLARE_WORKER_QUICK_EVAL.md` and `data/cloudflare_worker_quick_eval.json`.
+
+Verified facts:
+
+- `https://ai.zhuguang.ccwu.cc/v1/models` returns `llama-3.3-70b`, `llama-4-scout`, `qwen2.5-coder-32b`, `deepseek-r1-32b`, and `mistral-small-3.1`.
+- Worker completion with `qwen2.5-coder-32b` returned exactly `cfai-ok`.
+- One-case coding eval:
+  - `cfai_qwen_coder`: 1/1, 2166ms.
+  - `cfai_deepseek_r1`: 1/1, 6919ms.
+  - `cfai_mistral`: 0/1, HTTP 500 from Worker.
+- `router_v3.select_backends("code", {})` now includes `cf_qwen_coder` and `cfai_qwen_coder` in the default selection window.
+- Current shell has no `CLOUDFLARE_ACCOUNT_ID` or `CLOUDFLARE_TOKEN`, so direct account API smoke remains pending.
+
+Verification commands:
+
+- `D:\GIT\venv\Scripts\python.exe -m py_compile backends.py router_v3.py code_orchestrator.py test_routing_engine.py`
+- `D:\GIT\venv\Scripts\python.exe -m pytest test_routing_engine.py -q --ignore=active_model` -> `25 passed`.
+- `D:\GIT\venv\Scripts\python.exe -m pytest test_routing_engine.py tests\test_coding_eval.py tests\test_lima_context.py -q --ignore=active_model` -> `38 passed`.
+
+Guardrail:
+
+- Dashboard models that are embeddings, image, speech, rerank, or classification should not be added to chat routing. Add dedicated adapters first.

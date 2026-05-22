@@ -129,6 +129,34 @@ def test_vps_working_free_models_are_in_active_pools():
     assert "cf_kimi_k26" in router_v3.POOLS["chat_fast"]["strong"]
 
 
+def test_cloudflare_code_capacity_is_active():
+    import code_orchestrator
+    import router_v3
+    from backends import BACKENDS
+
+    cloudflare_code = {
+        "cf_qwen_coder",
+        "cfai_qwen_coder",
+        "cf_gptoss_120b",
+        "cf_deepseek_r1",
+        "cf_qwen3_30b",
+        "cfai_deepseek_r1",
+    }
+
+    assert cloudflare_code.issubset(set(router_v3.POOLS["code"]["strong"]))
+    assert cloudflare_code.issubset(set(code_orchestrator.POOLS["coder"]))
+    assert "cfai_mistral" in BACKENDS
+
+
+def test_cloudflare_code_backends_enter_default_selection_window():
+    import router_v3
+
+    selected = router_v3.select_backends("code", {})
+
+    assert "cf_qwen_coder" in selected
+    assert "cfai_qwen_coder" in selected
+
+
 def test_tool_backend_iteration_tries_distinct_fast_candidates():
     import server
 

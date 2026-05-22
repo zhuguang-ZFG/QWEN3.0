@@ -166,6 +166,7 @@ BACKENDS = {
     'cfai_llama4': {'url': 'https://ai.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'llama-4-scout', 'fmt': 'openai', 'timeout': 30},
     'cfai_qwen_coder': {'url': 'https://ai.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'qwen2.5-coder-32b', 'fmt': 'openai', 'timeout': 30},
     'cfai_deepseek_r1': {'url': 'https://ai.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'deepseek-r1-32b', 'fmt': 'openai', 'timeout': 45},
+    'cfai_mistral': {'url': 'https://ai.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'mistral-small-3.1', 'fmt': 'openai', 'timeout': 30},
     # ── 本地 Ollama 新增模型 ──
     'local_qwen3': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'qwen3:8b', 'fmt': 'openai', 'timeout': 30},
     'local_phi4': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'phi4:14b', 'fmt': 'openai', 'timeout': 45},

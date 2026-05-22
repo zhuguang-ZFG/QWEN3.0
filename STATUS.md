@@ -10,6 +10,7 @@
 | Product direction | Active | Commercial work paused; `docs/PERSONAL_CODING_ASSISTANT_PLAN.md` is the current plan. |
 | Coding backend eval | Complete for first pass | 85-candidate smoke, 16-candidate full fixture set, ranking docs and JSON results exist. |
 | Coding routing | Active | `code_orchestrator.py`, `routing_engine.py`, and `router_v3.py` route coding traffic by evidence-backed tiers. |
+| Cloudflare AI routing | Active | Direct `cf_*` and Worker `cfai_*` text/code models are documented and routed; Worker qwen/deepseek quick eval passed. |
 | IDE context preflight | Deployed | `lima_context.py` injects request-local context into coding and Anthropic tool paths. |
 | Claude Code tool path | Deployed | `/v1/messages` tool smoke returned `tool_use` after speed and context changes. |
 | VPS safety baseline | Retained | HTTPS, headers, internal port blocking, backup practices. |
@@ -28,6 +29,10 @@
   - `cf_kimi_k26` works but is slow.
   - local `kimi`, `kimi_thinking`, and `kimi_search` run behind Windows-local port `4504`, but current chat calls fail with `chat.anonymous_usage_exceeded`.
   - `stock_kimi_k2` did not return a valid smoke response.
+- Cloudflare AI now has two active routes:
+  - Direct account API `cf_*` models remain registered for `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_TOKEN`.
+  - Worker wrapper `https://ai.zhuguang.ccwu.cc/v1` exposes `cfai_llama70b`, `cfai_llama4`, `cfai_qwen_coder`, `cfai_deepseek_r1`, and `cfai_mistral`.
+  - `cf_qwen_coder` and `cfai_qwen_coder` now enter the default code selection window after SCNet/GitHub winners.
 
 ## Public Endpoint State
 
@@ -169,3 +174,17 @@ Latest local reverse integration increment:
 - SCNet-large local eval now passes 3/3 for both `scnet_large_ds_flash` and `scnet_large_ds_pro`; promotion remains topology-aware because VPS `localhost:4505` is not Windows.
 - Kimi `4504` still returns `chat.anonymous_usage_exceeded`, classified as `manual_refresh_required`.
 - TheOldLLM `4502` still times out on chat after 30s; its current refresh/log path needs token-output redaction before more refresh work.
+
+Latest Cloudflare Workers AI routing increment:
+
+- New inventory doc: `docs/CLOUDFLARE_MODEL_INVENTORY.md`.
+- New quick eval report: `docs/CLOUDFLARE_WORKER_QUICK_EVAL.md`.
+- Added `cfai_mistral` to `backends.py` because the Worker already exposes `mistral-small-3.1`.
+- Raised `router_v3.MAX_FALLBACKS` from 5 to 8 so more strong backends can actually enter the default fallback window.
+- `router_v3.select_backends("code", {})` now returns Cloudflare code capacity in the default window: `cf_qwen_coder` and `cfai_qwen_coder`.
+- Worker quick eval:
+  - `cfai_qwen_coder`: 1/1, 2166ms.
+  - `cfai_deepseek_r1`: 1/1, 6919ms.
+  - `cfai_mistral`: 0/1, Worker returned HTTP 500; keep registered but do not treat as admitted coding capacity.
+- Direct account Cloudflare smoke was not run in this shell because `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_TOKEN` were not set.
+- Verification: `py_compile` passed for touched Python files; `pytest test_routing_engine.py --ignore=active_model` passed `25 passed`; focused suite passed `38 passed`.
