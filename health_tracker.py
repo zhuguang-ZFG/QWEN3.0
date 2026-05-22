@@ -1,4 +1,4 @@
-"""
+﻿"""
 LiMa Health Tracker v2 — 指数退避 + 响应质量追踪 + 健康评分
 
 升级自 v1 (固定 5s cooldown):
@@ -38,6 +38,8 @@ class CooldownState:
     current_cooldown: float = BASE_COOLDOWN
     cooldown_until: float = 0.0
     last_error_code: Optional[int] = None
+    state: str = "ok"
+    last_error_class: Optional[str] = None
 
 
 @dataclass
@@ -68,6 +70,27 @@ def _calc_cooldown(failures: int, error_code: Optional[int] = None) -> float:
     base = COOLDOWN_429_BASE if error_code == 429 else BASE_COOLDOWN
     cooldown = base * (BACKOFF_FACTOR ** (failures - 1))
     return min(cooldown, MAX_COOLDOWN)
+
+
+def classify_failure(error_code: Optional[int] = None, error_text: str = "") -> str:
+    lowered = (error_text or "").lower()
+    if "anonymous_usage_exceeded" in lowered:
+        return "manual_refresh_required"
+    if error_code in (401, 403) or any(
+        marker in lowered for marker in ("unauthorized", "forbidden", "invalid token")
+    ):
+        return "auth_expired"
+    if error_code == 429 or any(
+        marker in lowered for marker in ("too many requests", "rate limit")
+    ):
+        return "rate_limited"
+    if any(marker in lowered for marker in ("quota", "usage exhausted", "limit exceeded")):
+        return "quota_exhausted"
+    if any(marker in lowered for marker in ("timeout", "timed out")):
+        return "timeout"
+    if error_code is not None and 500 <= error_code <= 599:
+        return "provider_error"
+    return "unknown_error"
 
 
 # ─── 公开接口（兼容 v1）────────────────────────────────────────────────────────
@@ -108,6 +131,24 @@ def get_cooldown_remaining(backend: str) -> float:
         return max(0, state.cooldown_until - time.monotonic())
 
 
+def get_backend_state(backend: str) -> dict:
+    with _lock:
+        state = _cooldown_states.get(backend)
+        if not state:
+            return {
+                "state": "ok",
+                "cooldown_until": 0.0,
+                "last_error_class": None,
+                "last_error_code": None,
+            }
+        return {
+            "state": state.state,
+            "cooldown_until": state.cooldown_until,
+            "last_error_class": state.last_error_class,
+            "last_error_code": state.last_error_code,
+        }
+
+
 def get_latency_map() -> dict:
     with _lock:
         result = {}
@@ -132,6 +173,8 @@ def record_success(backend: str, latency_ms: float):
             state.consecutive_failures = 0
             state.current_cooldown = BASE_COOLDOWN
             state.cooldown_until = 0.0
+            state.state = "ok"
+            state.last_error_class = None
 
         # 记录质量
         q = _quality_states.setdefault(backend, QualityState())
@@ -141,31 +184,37 @@ def record_success(backend: str, latency_ms: float):
         q.total_requests += 1
 
 
-def record_failure(backend: str, error_code: Optional[int] = None):
-    """真实请求失败后调用。指数退避 + 更新健康状态。"""
+def record_failure(backend: str, error_code: Optional[int] = None,
+                   error_text: str = ""):
+    """Record a backend failure and classify auth/quota/rate-limit state."""
     with _lock:
         if error_code == 400:
             return
 
-        # 更新退避状态
         state = _cooldown_states.setdefault(backend, CooldownState())
+        error_class = classify_failure(error_code, error_text)
         state.consecutive_failures += 1
         state.last_error_code = error_code
-        state.current_cooldown = _calc_cooldown(
-            state.consecutive_failures, error_code)
+        state.state = error_class
+        state.last_error_class = error_class
+        if error_class in ("auth_expired", "manual_refresh_required", "quota_exhausted"):
+            state.current_cooldown = COOLDOWN_AUTH_FIXED
+        elif error_class == "rate_limited":
+            state.current_cooldown = _calc_cooldown(state.consecutive_failures, 429)
+        else:
+            state.current_cooldown = _calc_cooldown(
+                state.consecutive_failures, error_code)
         state.cooldown_until = time.monotonic() + state.current_cooldown
 
-        # 更新质量状态
         q = _quality_states.setdefault(backend, QualityState())
         q.last_failure = time.monotonic()
         q.total_requests += 1
         q.latencies.append(LATENCY_PENALTY)
 
-        # 更新健康状态
-        if error_code in (401, 403):
+        if error_class in ("auth_expired", "manual_refresh_required"):
             _health_map[backend] = "suspicious"
             return
-        if error_code == 429:
+        if error_class in ("rate_limited", "quota_exhausted"):
             _health_map[backend] = "degraded"
             return
 

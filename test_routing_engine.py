@@ -247,3 +247,43 @@ def test_route_e2e_ide_no_floor():
     # IDE 结果不应来自 floor 后端
     assert result.backend not in ("chat_ubi", "llm7", "pollinations",
                                    "local_qwen_coder", "exhausted")
+
+
+def test_health_tracker_maps_manual_refresh_and_quota_state():
+    import health_tracker
+
+    health_tracker.record_failure(
+        "unit_kimi_quota",
+        error_code=500,
+        error_text="chat.anonymous_usage_exceeded",
+    )
+    health_tracker.record_failure(
+        "unit_daily_quota",
+        error_code=200,
+        error_text="daily quota exhausted",
+    )
+
+    kimi_state = health_tracker.get_backend_state("unit_kimi_quota")
+    quota_state = health_tracker.get_backend_state("unit_daily_quota")
+
+    assert kimi_state["state"] == "manual_refresh_required"
+    assert kimi_state["last_error_class"] == "manual_refresh_required"
+    assert quota_state["state"] == "quota_exhausted"
+    assert quota_state["last_error_class"] == "quota_exhausted"
+
+
+def test_health_tracker_maps_rate_limited_auth_and_timeout_state():
+    import health_tracker
+
+    health_tracker.record_failure("unit_rate_limit", error_code=429)
+    health_tracker.record_failure("unit_auth_expired", error_code=401)
+    health_tracker.record_failure(
+        "unit_timeout",
+        error_code=None,
+        error_text="request timeout after 30s",
+    )
+
+    assert health_tracker.get_backend_state("unit_rate_limit")["state"] == "rate_limited"
+    assert health_tracker.get_backend_state("unit_auth_expired")["state"] == "auth_expired"
+    assert health_tracker.get_backend_state("unit_timeout")["state"] == "timeout"
+    assert health_tracker.is_cooled_down("unit_rate_limit")

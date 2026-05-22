@@ -230,4 +230,22 @@ Prepared next-phase priorities:
 2. Improve backend stability with token/session refresh detection, quota handling, and rate-limit cooldown.
 3. Optimize routing so free backends are used efficiently by task fit, remaining quota, latency, and quality.
 
-Do not start implementation without user direction.
+Implementation started after user said to continue:
+
+- Created branch `codex/free-web-ai-probe`.
+- Added `data/free_web_ai_candidates.json`.
+- Added `docs/free-web-ai-candidates.md`.
+- Added `scripts/probe_free_web_ai.py`.
+- Added `tests/test_free_web_ai_probe.py`.
+- Probe command found all six candidate pages reachable with HTTP 200, but this is not yet model admission.
+- Added backend failure classes in `health_tracker.py`: `manual_refresh_required`, `quota_exhausted`, `rate_limited`, `auth_expired`, `timeout`, `provider_error`, `unknown_error`.
+- `http_caller.py` now passes error text into `health_tracker.record_failure`, so Kimi anonymous quota errors can be classified instead of retried blindly.
+- Verification after this increment:
+  - `pytest --ignore=active_model`: `72 passed, 5 skipped`.
+  - `json.tool` passed for `data/free_web_ai_candidates.json` and `data/free_web_ai_probe_results.json`.
+  - `scripts/probe_free_web_ai.py --dry-run` listed six candidates.
+  - `http://47.112.162.80:8088/health` returned 200.
+
+Next implementation item:
+
+- Task 4 quota-aware routing, after current branch is verified and committed.

@@ -132,9 +132,9 @@ Latest documentation/FRP verification:
 
 ## Current Roadmap
 
-1. Expand no-login web AI candidates conservatively: DuckAI first, then HeckAI-like sites in sandbox only after legal/technical validation.
-2. Improve backend stability: token/session refresh detection, 429 cooldown, daily quota accounting, and provider-specific circuit breaking.
-3. Optimize free-backend routing: quota-aware weighted routing, latency buckets, backend quality score decay, and cheap-first/simple-task policy.
+1. Expand no-login web AI candidates conservatively: sandbox registry and reachability probe now exist; DuckAI is the first high-confidence candidate.
+2. Improve backend stability: `health_tracker.py` now classifies token/session/quota/rate-limit/timeout failure states.
+3. Optimize free-backend routing next: quota-aware weighted routing, latency buckets, backend quality score decay, and cheap-first/simple-task policy.
 
 Source-of-truth docs for the next phase:
 
@@ -142,3 +142,11 @@ Source-of-truth docs for the next phase:
 - `docs/superpowers/plans/2026-05-22-free-web-ai-stability-routing.md`
 - `docs/DOCUMENTATION_STATUS.md`
 - `docs/LIMA_MEMORY.md`
+
+Latest free web AI sandbox state:
+
+- Registry: `data/free_web_ai_candidates.json`.
+- Probe results: `data/free_web_ai_probe_results.json`.
+- Reachability probe found 6/6 candidate pages return HTTP 200.
+- Important boundary: this is page reachability only, not model-backend admission.
+- Current branch verification: `72 passed, 5 skipped` with `pytest --ignore=active_model`; JSON registry/results validate; FRP `/health` returned 200.

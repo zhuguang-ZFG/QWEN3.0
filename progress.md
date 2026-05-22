@@ -161,3 +161,28 @@
   - Core suite passed with `pytest --ignore=active_model`: `66 passed, 5 skipped`.
   - Plain pytest collection is blocked by stale junction `D:\GIT\active_model`.
   - Public FRP health/models/chat smokes on `http://47.112.162.80:8088` returned 200.
+
+## 2026-05-22 Free Web AI Sandbox Probe
+
+- Created branch `codex/free-web-ai-probe`.
+- Added candidate registry:
+  - `data/free_web_ai_candidates.json`
+  - `docs/free-web-ai-candidates.md`
+- Added sandbox probe harness:
+  - `scripts/probe_free_web_ai.py`
+  - `tests/test_free_web_ai_probe.py`
+- TDD verification:
+  - RED: `tests/test_free_web_ai_probe.py` failed with missing `scripts.probe_free_web_ai`.
+  - GREEN: `4 passed in 0.05s`.
+- Reachability probe:
+  - Command: `D:\GIT\venv\Scripts\python.exe scripts\probe_free_web_ai.py --timeout 20`.
+  - Output: `data/free_web_ai_probe_results.json`.
+  - Result: 6/6 candidate pages returned HTTP 200.
+- Added failure-state classification to `health_tracker.py`.
+- Updated `http_caller.py` so backend error text reaches `health_tracker.record_failure`.
+- Focused verification passed: `6 passed in 0.07s` for new probe tests plus health-state tests.
+- Full branch verification passed:
+  - `72 passed, 5 skipped` with `pytest --ignore=active_model`.
+  - JSON registry/results validation passed.
+  - Probe dry-run listed six candidates.
+  - FRP `/health` returned 200.

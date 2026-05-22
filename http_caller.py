@@ -160,7 +160,8 @@ def call_api(backend: str, messages: list[dict], max_tokens: int = 4096,
         answer = _extract_answer(d, cfg['fmt'])
 
         if _is_backend_error(answer):
-            health_tracker.record_failure(backend, error_code=429)
+            health_tracker.record_failure(
+                backend, error_code=429, error_text=answer)
             raise BackendError(
                 f'{backend} returned error response: {answer[:60]}',
                 status_code=429)
@@ -175,7 +176,8 @@ def call_api(backend: str, messages: list[dict], max_tokens: int = 4096,
     except BackendError:
         raise
     except Exception as e:
-        health_tracker.record_failure(backend, error_code=_extract_code(e))
+        health_tracker.record_failure(
+            backend, error_code=_extract_code(e), error_text=str(e))
         if DEBUG:
             print(f'[HTTP] {backend} error: {e}', file=sys.stderr)
         raise BackendError(str(e), status_code=_extract_code(e)) from e
@@ -201,7 +203,8 @@ def call_raw(backend: str, payload: bytes) -> dict:
     except BackendError:
         raise
     except Exception as e:
-        health_tracker.record_failure(backend, error_code=_extract_code(e))
+        health_tracker.record_failure(
+            backend, error_code=_extract_code(e), error_text=str(e))
         raise BackendError(str(e), status_code=_extract_code(e)) from e
 
 
@@ -293,7 +296,9 @@ def call_api_stream(backend: str, messages: list[dict], max_tokens: int = 4096,
                             pending_chunks.append(text)
                             if len(total_text) > 200:
                                 if _is_backend_error(total_text):
-                                    health_tracker.record_failure(backend, error_code=429)
+                                    health_tracker.record_failure(
+                                        backend, error_code=429,
+                                        error_text=total_text)
                                     raise BackendError(
                                         f'{backend} error: {total_text[:60]}',
                                         status_code=429)
@@ -306,10 +311,12 @@ def call_api_stream(backend: str, messages: list[dict], max_tokens: int = 4096,
 
         if not flushed:
             if not total_text:
-                health_tracker.record_failure(backend, error_code=502)
+                health_tracker.record_failure(
+                    backend, error_code=502, error_text="empty stream")
                 raise BackendError(f'{backend} returned empty stream', status_code=502)
             if _is_backend_error(total_text):
-                health_tracker.record_failure(backend, error_code=429)
+                health_tracker.record_failure(
+                    backend, error_code=429, error_text=total_text)
                 raise BackendError(
                     f'{backend} returned error: {total_text[:60]}',
                     status_code=429)
@@ -326,7 +333,8 @@ def call_api_stream(backend: str, messages: list[dict], max_tokens: int = 4096,
     except BackendError:
         raise
     except Exception as e:
-        health_tracker.record_failure(backend, error_code=_extract_code(e))
+        health_tracker.record_failure(
+            backend, error_code=_extract_code(e), error_text=str(e))
         if DEBUG:
             print(f'[STREAM] {backend} error: {e}', file=sys.stderr)
         raise BackendError(str(e), status_code=_extract_code(e)) from e

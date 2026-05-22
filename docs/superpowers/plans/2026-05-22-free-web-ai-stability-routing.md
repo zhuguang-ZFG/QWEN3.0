@@ -31,7 +31,7 @@
 - Create: `docs/free-web-ai-candidates.md`
 - Create: `data/free_web_ai_candidates.json`
 
-- [ ] **Step 1: Write candidate registry docs**
+- [x] **Step 1: Write candidate registry docs**
 
 Create `docs/free-web-ai-candidates.md` with this table structure:
 
@@ -50,7 +50,7 @@ Create `docs/free-web-ai-candidates.md` with this table structure:
 | plai_chat | https://plai.chat | no-login web | low-medium | research | inspect model list and limits |
 ```
 
-- [ ] **Step 2: Write JSON registry**
+- [x] **Step 2: Write JSON registry**
 
 Create `data/free_web_ai_candidates.json`:
 
@@ -65,7 +65,7 @@ Create `data/free_web_ai_candidates.json`:
 ]
 ```
 
-- [ ] **Step 3: Verify JSON loads**
+- [x] **Step 3: Verify JSON loads**
 
 Run:
 
@@ -81,7 +81,7 @@ Expected: pretty-printed JSON and exit code 0.
 - Create: `scripts/probe_free_web_ai.py`
 - Create: `tests/test_free_web_ai_probe.py`
 
-- [ ] **Step 1: Write tests for error normalization**
+- [x] **Step 1: Write tests for error normalization**
 
 Run:
 
@@ -91,7 +91,7 @@ D:\GIT\venv\Scripts\python.exe -m pytest -q tests\test_free_web_ai_probe.py
 
 Expected before implementation: import failure for `scripts.probe_free_web_ai`.
 
-- [ ] **Step 2: Implement harmless probe CLI**
+- [x] **Step 2: Implement harmless probe CLI**
 
 Required signatures:
 
@@ -107,7 +107,7 @@ Probe prompt:
 Say OK only.
 ```
 
-- [ ] **Step 3: Verify probe tests**
+- [x] **Step 3: Verify probe tests**
 
 Run:
 
@@ -124,7 +124,7 @@ Expected: all tests pass.
 - Modify: `probe_loop.py`
 - Modify: `test_routing_engine.py`
 
-- [ ] **Step 1: Add tests for quota/auth state**
+- [x] **Step 1: Add tests for quota/auth state**
 
 Add cases for:
 
@@ -135,7 +135,7 @@ HTTP 429 -> rate_limited
 timeout -> cooldown
 ```
 
-- [ ] **Step 2: Implement state mapping**
+- [x] **Step 2: Implement state mapping**
 
 Add backend state fields:
 
@@ -145,7 +145,7 @@ cooldown_until: unix timestamp
 last_error_class: string
 ```
 
-- [ ] **Step 3: Verify routing tests**
+- [x] **Step 3: Verify routing tests**
 
 Run:
 

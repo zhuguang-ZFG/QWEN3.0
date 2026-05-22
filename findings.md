@@ -81,6 +81,8 @@
 | FREE-011 | FRP closure | `frpc.exe` registers `redcode-api`; VPS `8088` reaches Windows LiMa `8080`; public `/health`, `/v1/models`, and `/v1/chat/completions` return 200. | Treat `http://47.112.162.80:8088/v1` as the direct validation path for local-router and Windows proxy behavior. |
 | FREE-012 | Free web AI expansion | Duck.ai and HeckAI-style no-login web AI sources can add capacity, but undocumented web protocols and rate limits are fragile. | Add a candidate registry and sandbox probe harness before any routing integration. |
 | FREE-013 | Routing efficiency | Static ordering wastes free quota and can retry known-bad sessions. | Add token/session state, quota cooldown, and quality/latency/quota/task-fit scoring. |
+| FREE-014 | Candidate reachability | Duck.ai, HeckAI, HIX Chat, GPT.chat, deep-seek mirror, and PLAI.chat pages returned HTTP 200 in the first harmless reachability probe. | Treat this as page reachability only; next step is protocol/request-shape discovery with harmless prompts. |
+| FREE-015 | Backend failure state | `health_tracker.py` can now classify manual refresh, quota exhausted, rate limited, auth expired, timeout, and provider error states. | Use these states in Task 4 route scoring/skipping. |
 
 ## Latest Deployment Verification
 

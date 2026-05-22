@@ -21,8 +21,8 @@ Turn the existing LiMa router into a private coding assistant that ranks coding 
 | 7. Free model routing refresh | Complete | VPS-working SCNet/Kimi-family free models are documented and active where safe. |
 | 8. SCNet/Kimi first-tier eval | Complete | Direct SCNet models promoted; Kimi remains fallback/inactive until fixed. |
 | 9. Local proxy + FRP closure | Complete | VPS `8088` reaches Windows LiMa `8080`; public health/models/chat smokes pass. |
-| 10. Free web AI expansion | Planned | DuckAI/HeckAI-like candidates are researched, sandboxed, and routed only after validation. |
-| 11. Stability + free routing optimization | Planned | Token refresh, quota handling, cooldown, and quota-aware routing are implemented. |
+| 10. Free web AI expansion | In progress | Candidate registry and reachability probe exist; model admission still pending. |
+| 11. Stability + free routing optimization | In progress | Failure-state classification exists; quota-aware routing still pending. |
 
 ## Current Evidence
 
@@ -73,6 +73,8 @@ Turn the existing LiMa router into a private coding assistant that ranks coding 
   - `frpc.exe` registers `redcode-api`.
   - After opening VPS `8088/tcp`, `http://47.112.162.80:8088/health`, `/v1/models`, and `/v1/chat/completions` returned HTTP 200.
 - Added next-phase docs for no-login web AI expansion, stability, and free routing optimization.
+- Added sandbox candidate registry and probe harness for no-login web AI candidates.
+- Added backend failure-state classification for auth/quota/rate-limit/session/timeout cases.
 
 ## Next Risks To Close
 
@@ -81,6 +83,7 @@ Turn the existing LiMa router into a private coding assistant that ranks coding 
 - A real IDE/agent against the private endpoint still needs hands-on validation; current verification is API-level smoke plus Claude Code-compatible tool smoke.
 - If Kimi local or SCNet-large proxy models are needed, verify them through the Windows LiMa `8080` path or the VPS `8088` FRP path, not VPS `localhost:4504/4505`.
 - No-login web AI candidates must stay in sandbox until request shape, rate limits, and failure classes are understood.
+- Current no-login web AI probe result is page reachability only, not proof that a candidate is usable as a model backend.
 
 ## Errors Encountered
 

@@ -1,0 +1,44 @@
+[
+  {
+    "id": "duck_ai",
+    "url": "https://duck.ai/chat",
+    "trust": "medium-high",
+    "enabled": false,
+    "private_code_allowed": false
+  },
+  {
+    "id": "heck_ai",
+    "url": "https://heck.ai/zh",
+    "trust": "medium",
+    "enabled": false,
+    "private_code_allowed": false
+  },
+  {
+    "id": "hix_chat",
+    "url": "https://hix.ai/a/chat",
+    "trust": "low-medium",
+    "enabled": false,
+    "private_code_allowed": false
+  },
+  {
+    "id": "gpt_chat",
+    "url": "https://gpt.chat",
+    "trust": "low",
+    "enabled": false,
+    "private_code_allowed": false
+  },
+  {
+    "id": "deep_seek_mirror",
+    "url": "https://deep-seek.com",
+    "trust": "low",
+    "enabled": false,
+    "private_code_allowed": false
+  },
+  {
+    "id": "plai_chat",
+    "url": "https://plai.chat",
+    "trust": "low-medium",
+    "enabled": false,
+    "private_code_allowed": false
+  }
+]

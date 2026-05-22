@@ -84,6 +84,7 @@ Smoke prompt: `Say OK only.`
 - Local proxy models must be verified through the Windows LiMa router path, not by checking VPS `localhost:4504/4505`.
 - Kimi local failures should be treated as `manual_refresh_required` or `quota_exhausted`, not retried repeatedly in the hot path.
 - Future no-login web AI adapters must stay out of first-tier coding until they pass the admission rules in `docs/FREE_WEB_AI_EXPANSION_PLAN.md`.
+- `health_tracker.record_failure` now accepts `error_text`, classifies Kimi anonymous quota/session failures, and stores a backend state for later route skipping/scoring.
 
 ## Next Verification
 

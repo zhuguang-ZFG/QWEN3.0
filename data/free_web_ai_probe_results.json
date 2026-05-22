@@ -1,0 +1,56 @@
+[
+  {
+    "id": "duck_ai",
+    "url": "https://duck.ai/chat",
+    "status": "ok",
+    "http_status": 200,
+    "latency_ms": 251,
+    "private_code_allowed": false,
+    "probe_prompt": "Say OK only."
+  },
+  {
+    "id": "heck_ai",
+    "url": "https://heck.ai/zh",
+    "status": "ok",
+    "http_status": 200,
+    "latency_ms": 11060,
+    "private_code_allowed": false,
+    "probe_prompt": "Say OK only."
+  },
+  {
+    "id": "hix_chat",
+    "url": "https://hix.ai/a/chat",
+    "status": "ok",
+    "http_status": 200,
+    "latency_ms": 1325,
+    "private_code_allowed": false,
+    "probe_prompt": "Say OK only."
+  },
+  {
+    "id": "gpt_chat",
+    "url": "https://gpt.chat",
+    "status": "ok",
+    "http_status": 200,
+    "latency_ms": 3544,
+    "private_code_allowed": false,
+    "probe_prompt": "Say OK only."
+  },
+  {
+    "id": "deep_seek_mirror",
+    "url": "https://deep-seek.com",
+    "status": "ok",
+    "http_status": 200,
+    "latency_ms": 1121,
+    "private_code_allowed": false,
+    "probe_prompt": "Say OK only."
+  },
+  {
+    "id": "plai_chat",
+    "url": "https://plai.chat",
+    "status": "ok",
+    "http_status": 200,
+    "latency_ms": 1252,
+    "private_code_allowed": false,
+    "probe_prompt": "Say OK only."
+  }
+]
