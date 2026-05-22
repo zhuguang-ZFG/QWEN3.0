@@ -98,7 +98,6 @@ _FAKE_STREAM_BACKENDS = {'deepseek_free'}
 
 def _v3_call_stream(backend, messages, max_tokens, ide):
     """V3 流式调用适配器。注入上下文增强 + 非真流式后端强制走非流式。"""
-    # 方案C: 前置增强器 — 零延迟注入编程规范
     sys_prompt = ""
     try:
         import code_orchestrator
@@ -118,7 +117,9 @@ def _v3_call_stream(backend, messages, max_tokens, ide):
                 sys_prompt = ctx.get("system_prompt", "")
                 messages = ctx.get("enhanced_messages", messages)
             else:
-                sys_prompt = "Answer directly and concisely. Do not write code unless explicitly asked."
+                # 直接注入 messages 而非依赖 system_prompt 参数（某些后端忽略它）
+                no_code = "Answer the question directly in plain text. Do not generate code, functions, or programming examples unless the user explicitly asks for code."
+                messages = [{"role": "system", "content": no_code}] + list(messages)
     except Exception:
         pass
 
@@ -130,9 +131,27 @@ def _v3_call_stream(backend, messages, max_tokens, ide):
         backend, messages, max_tokens, system_prompt=sys_prompt, ide=ide)
 
 def _v3_call_api(backend, messages, max_tokens, ide):
-    """V3 非流式调用适配器。"""
+    """V3 非流式调用适配器。含场景检测 + 反向约束。"""
+    sys_prompt = ""
+    try:
+        from routing_engine import classify_scenario
+        query = next((m["content"] for m in reversed(messages)
+                      if m.get("role") == "user" and isinstance(m.get("content"), str)), "")
+        if query:
+            is_ide = bool(ide and ide not in ("unknown", ""))
+            scenario = classify_scenario(query, messages,
+                                         ide_source=ide if is_ide else "",
+                                         request_type="ide" if is_ide else "chat")
+            if scenario == "coding":
+                import code_orchestrator
+                ctx = code_orchestrator.enhance_context(query, messages, scenario)
+                sys_prompt = ctx.get("system_prompt", "")
+            else:
+                sys_prompt = "Answer directly and concisely. Do not write code unless explicitly asked."
+    except Exception:
+        pass
     return http_caller.call_api(
-        backend, messages, max_tokens, system_prompt="", ide=ide)
+        backend, messages, max_tokens, system_prompt=sys_prompt, ide=ide)
 
 def _fake_stream(text: str, chunk_size: int = 30):
     """将完整文本拆为 chunk 模拟流式输出。已清洗的文本直接拆。"""
