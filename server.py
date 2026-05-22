@@ -94,6 +94,13 @@ if USE_V3:
                     code_orchestrator.POOLS["coder"])
                 if pool:
                     return (pool[0], messages)
+            else:
+                chat_only = ["longcat_chat", "longcat_lite", "groq_llama70b",
+                             "cf_llama70b", "deepseek_free", "zhipu_flash"]
+                for b in chat_only:
+                    if not ht.is_cooled_down(b):
+                        return (b, messages)
+                return ("longcat_chat", messages)
         except Exception:
             pass
         backends = routing_engine.select("chat", hmap, scenario="chat")
