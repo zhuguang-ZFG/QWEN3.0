@@ -650,3 +650,16 @@ Follow-up after final review:
 - Verification:
   - `npm.cmd test -- src/tests/lima-worker-control.test.ts src/tests/lima-commands.test.ts src/tests/lima-command-runner.test.ts`: `400 passed, 6 skipped`.
   - `npm.cmd run check`: passed.
+
+## 2026-05-23 Autonomous Worker v0.2 Task 7
+
+- Implemented LiMa Code audit viewing.
+- Added `src/lima/audit-reader.ts` to read `.lima-code/audit.jsonl`, normalize `timestamp` and `created_at`, sort newest first, and format a compact summary.
+- Added `/lima audit [--last <n>]` command parsing and runner output.
+- Red-green evidence:
+  - Audit reader tests first failed because `audit-reader.ts` did not exist.
+  - Command tests first failed because `/lima audit` was not parsed.
+  - Runner test first failed because audit commands returned usage text instead of audit entries.
+- Verification:
+  - `npm.cmd test -- src/tests/lima-audit-reader.test.ts src/tests/lima-commands.test.ts src/tests/lima-command-runner.test.ts`: `405 passed, 6 skipped`.
+  - `npm.cmd run check`: passed.

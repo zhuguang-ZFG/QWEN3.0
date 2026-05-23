@@ -1083,7 +1083,7 @@ git commit -m "feat: add lima worker stop control"
 - Modify: `D:\GIT\deepcode-cli\src\tests\lima-commands.test.ts`
 - Modify: `D:\GIT\deepcode-cli\src\tests\lima-command-runner.test.ts`
 
-- [ ] **Step 1: Write failing audit reader tests**
+- [x] **Step 1: Write failing audit reader tests**
 
 Create `D:\GIT\deepcode-cli\src\tests\lima-audit-reader.test.ts`:
 
@@ -1120,7 +1120,7 @@ test("formatAuditSummary includes status and task id", () => {
 });
 ```
 
-- [ ] **Step 2: Implement audit reader**
+- [x] **Step 2: Implement audit reader**
 
 Create `D:\GIT\deepcode-cli\src\lima\audit-reader.ts`:
 
@@ -1168,7 +1168,7 @@ function safeParse(line: string): LiMaAuditSummaryEntry | null {
 }
 ```
 
-- [ ] **Step 3: Add `/lima audit` command**
+- [x] **Step 3: Add `/lima audit` command**
 
 Modify `D:\GIT\deepcode-cli\src\lima\commands.ts`:
 
@@ -1195,7 +1195,7 @@ if (parsed.command.kind === "audit") {
 }
 ```
 
-- [ ] **Step 4: Run audit tests**
+- [x] **Step 4: Run audit tests**
 
 Run:
 
@@ -1205,7 +1205,7 @@ npm.cmd test -- src/tests/lima-audit-reader.test.ts src/tests/lima-commands.test
 
 Expected: selected tests pass.
 
-- [ ] **Step 5: Commit Task 7**
+- [x] **Step 5: Commit Task 7**
 
 ```bash
 git add src/lima/audit-reader.ts src/lima/commands.ts src/lima/command-runner.ts src/tests/lima-audit-reader.test.ts src/tests/lima-commands.test.ts src/tests/lima-command-runner.test.ts
