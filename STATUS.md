@@ -189,6 +189,18 @@ Latest documentation/FRP verification:
 - Billing/quota/training experiments not needed for the current personal assistant direction.
 - Large reference repos and one-off debug scripts stay local unless explicitly curated.
 
+## Latest Code Quality Review
+
+- Review closeout doc: `docs/superpowers/plans/2026-05-23-code-quality-review-closeout.md`.
+- Scope: local review only; no production deployment was performed.
+- Local compile passed for the main reviewed runtime files: `server.py`, `routing_engine.py`, `router_v3.py`, `http_caller.py`, `code_orchestrator.py`, `routes/agent_tasks.py`, `routes/admin.py`, `routes/telegram.py`, and `tool_gateway/executor.py`.
+- P0 implementation pass restored the route-test baseline, blocked active lease overwrite in agent task claim, and removed admin-token exposure from query-string login plus page JavaScript.
+- Focused verification: `python -m pytest tests\test_agent_task_routes.py tests\test_agent_task_contract.py tests\test_access_guard.py -q --ignore=active_model` returned `40 passed`.
+- Continued code review pass fixed the remaining full-suite failures and the mojibake image prompt detector.
+- Current local verification: `python -m pytest -q --ignore=active_model` returned `354 passed, 8 skipped`; tracked Python `py_compile` passed for 215 files.
+- Remaining warnings: FastAPI `on_event` deprecation in `routes/telegram.py` and Telegram notify coroutine warnings in tests.
+- Current P1 follow-ups: decide `/v1/models` auth policy, collapse duplicated backend capability config, and keep only one retrieval injection path.
+
 ## Current Roadmap
 
 1. Expand no-login web AI candidates conservatively: sandbox registry and reachability probe now exist; DuckAI is the first high-confidence candidate.

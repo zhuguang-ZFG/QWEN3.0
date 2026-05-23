@@ -109,8 +109,17 @@ Turn the existing LiMa router into a private coding assistant that ranks coding 
 
 ## Next Risks To Close
 
+- Code quality review closeout on 2026-05-23 added `docs/superpowers/plans/2026-05-23-code-quality-review-closeout.md`. P0 implementation status:
+  1. Route-test collection restored for the current SQLite-backed task store.
+  2. `/agent/tasks/{task_id}/claim` now rejects active running leases and allows expired lease reclaim.
+  3. Admin HTML no longer supports query-token login or raw-token JavaScript injection; login uses a signed HttpOnly Secure session cookie.
+- Full local pytest collection now reaches execution but still reports 8 failures outside this slice: request stats, stream footer, and Telegram bot tests.
+- Continued code review pass closed those 8 failures. Current local suite: `354 passed, 8 skipped`.
+- Remaining non-failing cleanup: migrate `routes/telegram.py` startup from deprecated `on_event`, remove Telegram notify coroutine warnings, and continue hot-path file decomposition.
 - More backends should be re-evaluated as keys, rate limits, and local socket policy failures are fixed.
 - A private access policy for IDE/agent use needs to stay simple and explicit.
+- `/v1/models` remains an explicit private-boundary decision: keep open only if IDE discovery requires it; otherwise apply `require_private_api_key`.
+- Backend capability lists and retrieval injection paths need consolidation after P0 fixes are green.
 - If Kimi local or SCNet-large proxy models are needed, verify them through the Windows LiMa `8080` path or the VPS `8088` FRP path, not VPS `localhost:4504/4505`.
 - Page-only no-login web AI candidates remain sandbox-only until a real adapter and model-level smoke exist.
 - Token refresh scripts are now safer to run, but refresh itself still needs a controlled pass with environment variables set and manual login/session state verified.

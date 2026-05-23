@@ -688,3 +688,56 @@ Verification note:
 
 - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_agent_task_contract.py tests\test_agent_task_routes.py tests\test_agent_evolution.py -q --ignore=active_model` currently fails in `tests/test_agent_evolution.py::test_candidate_eval_passed_no_manual_flag_cannot_promote`.
 - That failure is tied to the pre-existing dirty `agent_evolution/promote.py` worktree change and was not modified in this task.
+
+## 2026-05-23 Code Quality Review Closeout
+
+- Added `docs/superpowers/plans/2026-05-23-code-quality-review-closeout.md` as the durable Superpowers-style record for the review findings.
+- Classified the current highest-priority issues as:
+  - P0: full pytest collection is broken because `tests/test_agent_task_routes.py` imports stale `_events/_tasks` symbols.
+  - P0: agent task claim can overwrite an active running worker lease.
+  - P0: admin UI still exposes the long-lived admin token through query-token login and JavaScript injection.
+  - P1: `/v1/models` auth policy needs an explicit decision.
+  - P1: backend capability config and retrieval injection have duplication/drift.
+  - P2: large hot-path files and dirty worktree hygiene remain maintenance risks.
+- No production deployment was performed for this review pass.
+- Verification evidence:
+  - `python -m py_compile server.py routing_engine.py router_v3.py http_caller.py code_orchestrator.py routes\agent_tasks.py routes\admin.py routes\telegram.py tool_gateway\executor.py`: passed.
+  - `python -m pytest -q --ignore=active_model`: failed during collection with `ImportError: cannot import name '_events' from 'routes.agent_tasks'`.
+
+## 2026-05-23 Code Quality P0 Implementation Pass
+
+- Restored the agent task route tests to the current SQLite-backed task store by adding `_reset_for_tests()` and removing stale `_events/_tasks` imports.
+- Hardened `/agent/tasks/{task_id}/claim`:
+  - active `claimed` or `running` leases now return 409 instead of being overwritten;
+  - expired leases can be reclaimed by another worker;
+  - claim updates task state and claim events under the store lock.
+- Hardened the admin HTML shell:
+  - `?token=` no longer authenticates;
+  - login sets a signed HttpOnly Secure session cookie derived from `LIMA_ADMIN_TOKEN`;
+  - rendered admin HTML no longer injects the raw admin token or `const _ADMIN_TOKEN`.
+- Verification:
+  - `python -m pytest tests\test_agent_task_routes.py tests\test_agent_task_contract.py tests\test_access_guard.py -q --ignore=active_model`: `40 passed`.
+  - `python -m py_compile routes\agent_tasks.py routes\admin.py tests\test_agent_task_routes.py tests\test_access_guard.py`: passed.
+  - `git diff --check` for the touched files: passed, with line-ending warnings only.
+  - `python -m pytest -q --ignore=active_model`: collection now succeeds; result is `345 passed, 8 failed, 8 skipped`.
+- Remaining full-suite failures are outside this P0 slice: request stats lock expectation, stream footer tests expecting removed server helpers/behavior, and Telegram bot env/mock tests.
+- No production deployment was performed.
+
+## 2026-05-23 Continued Code Review Pass
+
+- Continued review over tracked LiMa Python code and tests, excluding untracked reference repositories and local experiments.
+- Fixed the remaining full-suite failures from the previous pass:
+  - request stats tests now patch `routes.request_tracking`, the actual owner of request tracking state;
+  - stream footer tests now patch `routes.anthropic_stream`, the actual owner of Anthropic streaming;
+  - `telegram_bot.py` reads `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, and `GFW_PROXY` at call time instead of freezing them at import time.
+- Rewrote `routes/images.py` to remove mojibake and use explicit `[\u4e00-\u9fff]` Chinese prompt detection.
+- Added image endpoint regression coverage proving Chinese prompts receive the quality prefix in the generated Pollinations URL.
+- Broad tracked-Python compile verification passed for 215 files.
+- Verification:
+  - `python -m pytest tests\test_image_endpoint_guard.py tests\test_request_stats.py tests\test_stream_footer.py tests\test_telegram_bot.py -q --ignore=active_model`: `20 passed`.
+  - `python -m pytest -q --ignore=active_model`: `354 passed, 8 skipped`.
+- Remaining non-failing cleanup:
+  - `routes/telegram.py` uses deprecated FastAPI startup event wiring.
+  - Telegram notify tests produce coroutine-not-awaited warnings when fire-and-forget is mocked.
+  - Hot-path files remain oversized relative to the 300-line project target.
+- No production deployment was performed.

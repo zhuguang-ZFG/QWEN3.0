@@ -1,9 +1,10 @@
-"""routes/images.py — Image generation via Pollinations.ai."""
-import time
+"""Image generation via Pollinations.ai."""
+
 import re
+import time
 import urllib.parse
 
-from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, field_validator
 
@@ -33,7 +34,10 @@ def build_pollinations_url(prompt: str, size: str = "1024x1024") -> str:
     width = int(parts[0]) if len(parts) == 2 else 1024
     height = int(parts[1]) if len(parts) == 2 else 1024
     encoded_prompt = urllib.parse.quote(prompt)
-    return f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true"
+    return (
+        f"https://image.pollinations.ai/prompt/{encoded_prompt}"
+        f"?width={width}&height={height}&nologo=true"
+    )
 
 
 _record_request_fn = None
@@ -53,20 +57,29 @@ async def image_generations(request: Request):
     if not prompt:
         raise HTTPException(status_code=400, detail="Empty prompt")
 
-    has_chinese = bool(re.search(r'[一-鿿]', prompt))
-    if has_chinese:
+    if re.search(r"[\u4e00-\u9fff]", prompt):
         prompt = f"high quality, detailed, {prompt}"
 
-    urls = []
-    for _ in range(img_req.n):
-        url = build_pollinations_url(prompt, img_req.size)
-        urls.append({"url": url})
+    urls = [
+        {"url": build_pollinations_url(prompt, img_req.size)}
+        for _ in range(img_req.n)
+    ]
 
-    client_ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "")
+    client_ip = (
+        request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or (request.client.host if request.client else "")
+    )
     if _record_request_fn:
-        _record_request_fn(img_req.prompt[:80], "pollinations", "image_generation", 0, True, client_ip=client_ip)
+        _record_request_fn(
+            img_req.prompt[:80],
+            "pollinations",
+            "image_generation",
+            0,
+            True,
+            client_ip=client_ip,
+        )
 
     return JSONResponse({
         "created": int(time.time()),
-        "data": urls
+        "data": urls,
     })

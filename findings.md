@@ -241,3 +241,37 @@ Latest local verification:
 | LIMACODE-009 | First fork changes | Added `docs/lima.md`, `docs/lima_zh_CN.md`, and README links for LiMa provider configuration and safe first-run guidance. | Next step is dependency install and sandbox smoke. |
 | LIMACODE-010 | Rebrand | User-facing name is now LiMa Code and the promoted command is `lima-code`. `.deepcode` storage and `DEEPCODE_*` env vars remain legacy-compatible. | Add a tested `.lima-code` / `LIMA_CODE_*` migration in a later slice. |
 | LIMACODE-011 | Native config | `.lima-code` settings and `LIMA_CODE_*` env vars are now native and preferred; `.deepcode` and `DEEPCODE_*` remain fallback-compatible. | Next slice can move session/log/storage paths after deciding migration behavior. |
+
+## 2026-05-23 Code Quality Review Findings
+
+Source record: `docs/superpowers/plans/2026-05-23-code-quality-review-closeout.md`.
+
+| ID | Area | Evidence | Next Action |
+|---|---|---|---|
+| CQ-001 | Test baseline | `python -m pytest -q --ignore=active_model` currently fails during collection because `tests/test_agent_task_routes.py` imports removed `_events` and `_tasks` symbols from `routes.agent_tasks`. | Restore the route-test contract against the current `_TaskStore` implementation or add a test reset helper. |
+| CQ-002 | Agent task concurrency | `/agent/tasks/{task_id}/claim` can reclaim `running` tasks and overwrite worker lease metadata. | Make claim atomic and reject active running leases with 409. |
+| CQ-003 | Admin security | `routes/admin.py` still supports `?token=` and injects `_ADMIN_TOKEN` into browser JavaScript. | Move admin UI to HttpOnly Secure session cookies and stop exposing the long-lived admin token to JS/query strings. |
+| CQ-004 | Private API boundary | `/v1/models` is unauthenticated while chat/message endpoints require the private API key. | Decide whether IDE discovery requires an open model list; otherwise apply the same private guard. |
+| CQ-005 | Config drift | `backends.py` defines `THINKING_BACKENDS` twice and the later definition drops `longcat_web_think`. | Collapse capability lists to one source and add a regression test. |
+| CQ-006 | Retrieval duplication | `routing_engine.py` has inline retrieval injection and an overlapping `inject_retrieval_context()` helper. | Keep one retrieval injection path and test trace output. |
+| CQ-007 | File-size pressure | `smart_router.py`, `server.py`, `routing_engine.py`, and `http_caller.py` exceed the 300-line project target. | Continue decomposition after P0 safety/test fixes are green. |
+| CQ-008 | Repository hygiene | `git status --short` shows many untracked reference repos, scripts, local data, and generated files. | Tighten ignore rules and use a commit checklist before production commits. |
+
+## 2026-05-23 Code Quality Review Implementation Follow-Up
+
+| ID | Status | Evidence | Remaining Work |
+|---|---|---|---|
+| CQ-001 | Closed for collection | `tests/test_agent_task_routes.py` now uses `_reset_for_tests()` against `_TaskStore`; full pytest collection reaches execution. | Full suite still has 8 non-collection failures outside the route-test contract. |
+| CQ-002 | Closed for active lease overwrite | Focused tests prove an active running lease returns 409 and an expired lease can be reclaimed. | Consider DB-level conditional update if multi-process workers are introduced. |
+| CQ-003 | Closed for token exposure | Focused tests prove `?token=` does not authenticate and the rendered admin page does not contain the configured admin token. | Consider adding CSRF protection before exposing mutating admin UI actions beyond the private operator path. |
+
+## 2026-05-23 Continued Code Review Findings
+
+| ID | Status | Evidence | Remaining Work |
+|---|---|---|---|
+| CQ-009 | Closed | Full pytest failures after CQ-001 were stale test boundaries around extracted modules and import-time Telegram config. `python -m pytest -q --ignore=active_model` now returns `354 passed, 8 skipped`. | Keep extracted module tests patching the owning module, not `server.py` compatibility aliases. |
+| CQ-010 | Closed | `telegram_bot.py` now reads bot token, chat ID, and proxy from environment at call time, so import order no longer breaks tests or runtime reconfiguration. | None for this slice. |
+| CQ-011 | Closed | `routes/images.py` had mojibake Chinese detection; it now uses `[\u4e00-\u9fff]` and has a regression test for Chinese prompt quality prefixing. | None for this slice. |
+| CQ-012 | Open | Broad scan still shows `routes/telegram.py` uses deprecated FastAPI `@router.on_event("startup")`. | Move Telegram startup to app lifespan or include it in the existing FastAPI lifespan wiring. |
+| CQ-013 | Open | Telegram notification tests still emit coroutine-not-awaited warnings when `_fire_and_forget` is mocked after coroutine creation. | Change notification hooks to pass a coroutine factory or close unsubmitted coroutines in tests. |
+| CQ-014 | Open | Several tracked runtime files remain over the 300-line target: `smart_router.py`, `server.py`, `routes/admin.py`, `routing_engine.py`, `http_caller.py`, and `health_tracker.py`. | Continue gradual extraction only after tests stay green. |
