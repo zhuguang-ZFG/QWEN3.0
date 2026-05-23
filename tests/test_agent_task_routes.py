@@ -123,6 +123,72 @@ class TestTaskEndpoints:
             for event in events_resp.json()["events"]
         )
 
+    def test_claim_task_assigns_worker_and_lease(self):
+        task_id = client.post("/agent/tasks", json={
+            "repo": "D:/GIT/deepcode-cli",
+            "goal": "review diff",
+            "allowed_tools": ["git_diff"],
+            "mode": "review",
+        }, headers=HEADERS).json()["task_id"]
+
+        resp = client.post(
+            f"/agent/tasks/{task_id}/claim",
+            json={"worker_id": "worker-local", "lease_sec": 60},
+            headers=HEADERS,
+        )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["task"]["worker_id"] == "worker-local"
+        assert data["task"]["lease_expires_at"] > 0
+        assert data["status"] == "running"
+
+    def test_cancel_task_marks_control_flag(self):
+        task_id = client.post("/agent/tasks", json={
+            "repo": "D:/GIT/deepcode-cli",
+            "goal": "test cancel",
+            "allowed_tools": ["git_diff"],
+            "mode": "review",
+        }, headers=HEADERS).json()["task_id"]
+
+        resp = client.post(f"/agent/tasks/{task_id}/cancel", headers=HEADERS)
+        assert resp.status_code == 200
+
+        control = client.get(f"/agent/tasks/{task_id}/control", headers=HEADERS)
+        assert control.status_code == 200
+        assert control.json()["cancel_requested"] is True
+        assert control.json()["status"] == "cancel_requested"
+
+    def test_review_gate_promotes_only_approved_successful_task(self):
+        task_id = client.post("/agent/tasks", json={
+            "repo": "D:/GIT/deepcode-cli",
+            "goal": "safe patch",
+            "allowed_tools": ["git_diff"],
+            "mode": "review",
+        }, headers=HEADERS).json()["task_id"]
+
+        result = {
+            "task_id": task_id,
+            "status": "needs_review",
+            "summary": "reviewed",
+            "changed_files": [],
+            "test_commands": [],
+            "test_results": [],
+            "diff_preview": "",
+            "artifacts": [],
+            "risks": [],
+            "next_action": "approve",
+        }
+        client.post(f"/agent/tasks/{task_id}/result", json=result, headers=HEADERS)
+
+        review = client.post(
+            f"/agent/tasks/{task_id}/review",
+            json={"decision": "approved", "reviewer": "human"},
+            headers=HEADERS,
+        )
+        assert review.status_code == 200
+        assert review.json()["status"] == "approved"
+
     def test_invalid_mode_rejected(self):
         resp = client.post("/agent/tasks", json={
             "repo": "D:/GIT", "goal": "test", "mode": "destroy",

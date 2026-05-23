@@ -54,7 +54,19 @@ class TaskCreateBody(BaseModel):
 class TaskResultBody(BaseModel):
     task_id: str
     status: Literal[
-        "accepted", "running", "succeeded", "failed", "blocked", "needs_review"
+        "accepted",
+        "claimed",
+        "running",
+        "needs_review",
+        "approved",
+        "rejected",
+        "applied",
+        "succeeded",
+        "failed",
+        "blocked",
+        "cancel_requested",
+        "cancelled",
+        "quarantined",
     ]
     summary: str
     changed_files: list[str] = Field(default_factory=list)
@@ -66,9 +78,27 @@ class TaskResultBody(BaseModel):
     next_action: str = ""
 
 
+class ClaimBody(BaseModel):
+    worker_id: str
+    lease_sec: int = Field(default=300, ge=1, le=3600)
+
+
+class ReviewBody(BaseModel):
+    decision: Literal["approved", "rejected"]
+    reviewer: str = "human"
+    note: str = ""
+
+
 class PromoteBody(BaseModel):
     eval_passed: bool = False
     manual_flag: bool = False
+
+
+def _append_event(task_id: str, event: dict) -> None:
+    event = {"ts": time.time(), **event}
+    _events.setdefault(task_id, []).append(event)
+    if task_id in _tasks:
+        _tasks[task_id].setdefault("events", []).append(event)
 
 
 def _task_envelope(task: dict) -> dict:
@@ -105,7 +135,8 @@ async def create_task(body: TaskCreateBody):
         "request": asdict(req), "status": "accepted",
         "created_at": time.time(), "events": [],
     }
-    _events[task_id] = [{"type": "created", "ts": time.time()}]
+    _events[task_id] = []
+    _append_event(task_id, {"type": "created"})
     return {"task_id": task_id, "status": "accepted"}
 
 
@@ -134,6 +165,56 @@ async def get_task(task_id: str):
     return _task_envelope(_tasks[task_id])
 
 
+@router.post("/tasks/{task_id}/claim", dependencies=[Depends(_require_admin)])
+async def claim_task(task_id: str, body: ClaimBody):
+    """Claim a task for one worker lease. Does NOT execute it."""
+    if task_id not in _tasks:
+        raise HTTPException(404, "Task not found")
+    task = _tasks[task_id]
+    if task["status"] not in ("accepted", "claimed", "running"):
+        raise HTTPException(409, f"Task cannot be claimed from {task['status']}")
+    now = time.time()
+    request = dict(task["request"])
+    request["worker_id"] = body.worker_id
+    request["lease_expires_at"] = now + body.lease_sec
+    request["cancel_requested"] = False
+    task["request"] = request
+    task["status"] = "running"
+    task["updated_at"] = now
+    _append_event(task_id, {"type": "claimed", "worker_id": body.worker_id})
+    return _task_envelope(task)
+
+
+@router.post("/tasks/{task_id}/cancel", dependencies=[Depends(_require_admin)])
+async def cancel_task(task_id: str):
+    """Request cancellation for a running worker task."""
+    if task_id not in _tasks:
+        raise HTTPException(404, "Task not found")
+    task = _tasks[task_id]
+    request = dict(task["request"])
+    request["cancel_requested"] = True
+    task["request"] = request
+    task["status"] = "cancel_requested"
+    task["updated_at"] = time.time()
+    _append_event(task_id, {"type": "cancel_requested"})
+    return {"task_id": task_id, "status": "cancel_requested"}
+
+
+@router.get("/tasks/{task_id}/control", dependencies=[Depends(_require_admin)])
+async def get_task_control(task_id: str):
+    """Return worker control flags without exposing result payloads."""
+    if task_id not in _tasks:
+        raise HTTPException(404, "Task not found")
+    task = _tasks[task_id]
+    request = task["request"]
+    return {
+        "task_id": task_id,
+        "status": task["status"],
+        "cancel_requested": bool(request.get("cancel_requested", False)),
+        "lease_expires_at": float(request.get("lease_expires_at", 0.0)),
+    }
+
+
 @router.post("/tasks/{task_id}/result", dependencies=[Depends(_require_admin)])
 async def submit_task_result(task_id: str, body: TaskResultBody):
     """Accept a worker result and update task status."""
@@ -150,12 +231,32 @@ async def submit_task_result(task_id: str, body: TaskResultBody):
     _tasks[task_id]["status"] = result.status
     _tasks[task_id]["result"] = asdict(result)
     _tasks[task_id]["updated_at"] = now
-    _events[task_id].append({
+    _append_event(task_id, {
         "type": "result_submitted",
         "status": result.status,
-        "ts": now,
     })
     return {"accepted": True, "task_id": task_id, "status": result.status}
+
+
+@router.post("/tasks/{task_id}/review", dependencies=[Depends(_require_admin)])
+async def review_task(task_id: str, body: ReviewBody):
+    """Human review gate for worker results."""
+    if task_id not in _tasks:
+        raise HTTPException(404, "Task not found")
+    task = _tasks[task_id]
+    if "result" not in task:
+        raise HTTPException(409, "Task has no worker result to review")
+    if task["status"] != "needs_review":
+        raise HTTPException(409, f"Task cannot be reviewed from {task['status']}")
+    task["status"] = body.decision
+    task["updated_at"] = time.time()
+    _append_event(task_id, {
+        "type": "reviewed",
+        "decision": body.decision,
+        "reviewer": body.reviewer,
+        "note": body.note,
+    })
+    return {"task_id": task_id, "status": body.decision}
 
 
 @router.get("/tasks/{task_id}/events", dependencies=[Depends(_require_admin)])

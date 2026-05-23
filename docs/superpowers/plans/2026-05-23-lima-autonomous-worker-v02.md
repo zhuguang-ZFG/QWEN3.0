@@ -312,7 +312,7 @@ git commit -m "feat: align lima task lifecycle types"
 - Modify: `agent_evolution/candidates.py`
 - Modify: `tests/test_agent_evolution.py`
 
-- [ ] **Step 1: Write failing route lifecycle tests**
+- [x] **Step 1: Write failing route lifecycle tests**
 
 Add tests to `tests/test_agent_task_routes.py`:
 
@@ -384,7 +384,7 @@ def test_review_gate_promotes_only_approved_successful_task(self):
     assert review.json()["status"] == "approved"
 ```
 
-- [ ] **Step 2: Run failing route tests**
+- [x] **Step 2: Run failing route tests**
 
 Run:
 
@@ -394,7 +394,7 @@ D:\GIT\venv\Scripts\python.exe -m pytest tests\test_agent_task_routes.py -q
 
 Expected: fails because `/claim`, `/cancel`, `/control`, and `/review` do not exist yet.
 
-- [ ] **Step 3: Add request bodies and helpers**
+- [x] **Step 3: Add request bodies and helpers**
 
 Update `routes/agent_tasks.py`:
 
@@ -417,7 +417,7 @@ def _append_event(task_id: str, event: dict) -> None:
         _tasks[task_id].setdefault("events", []).append(event)
 ```
 
-- [ ] **Step 4: Implement claim endpoint**
+- [x] **Step 4: Implement claim endpoint**
 
 Add to `routes/agent_tasks.py`:
 
@@ -441,7 +441,7 @@ async def claim_task(task_id: str, body: ClaimBody):
     return _task_envelope(task)
 ```
 
-- [ ] **Step 5: Implement cancel and control endpoints**
+- [x] **Step 5: Implement cancel and control endpoints**
 
 Add to `routes/agent_tasks.py`:
 
@@ -473,7 +473,7 @@ async def get_task_control(task_id: str):
     }
 ```
 
-- [ ] **Step 6: Implement review gate**
+- [x] **Step 6: Implement review gate**
 
 Add to `routes/agent_tasks.py`:
 
@@ -498,7 +498,7 @@ async def review_task(task_id: str, body: ReviewBody):
     return {"task_id": task_id, "status": body.decision}
 ```
 
-- [ ] **Step 7: Run route tests**
+- [x] **Step 7: Run route tests**
 
 Run:
 
@@ -508,7 +508,7 @@ D:\GIT\venv\Scripts\python.exe -m pytest tests\test_agent_task_routes.py tests\t
 
 Expected: selected tests pass.
 
-- [ ] **Step 8: Commit Task 2**
+- [x] **Step 8: Commit Task 2**
 
 ```bash
 git add routes/agent_tasks.py tests/test_agent_task_routes.py agent_evolution/candidates.py tests/test_agent_evolution.py

@@ -579,3 +579,17 @@ Follow-up after final review:
   - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_agent_task_contract.py -q --ignore=active_model`: `14 passed`.
   - `npm.cmd test -- src/tests/lima-agent-task-types.test.ts`: `380 passed, 6 skipped`.
   - `npm.cmd run check`: passed.
+
+## 2026-05-23 Autonomous Worker v0.2 Task 2
+
+- Implemented Server-side lifecycle gates for agent tasks.
+- Added `/agent/tasks/{task_id}/claim` to assign `worker_id`, lease expiry, and transition the task to `running`.
+- Added `/agent/tasks/{task_id}/cancel` and `/agent/tasks/{task_id}/control` so workers can observe cancellation state.
+- Added `/agent/tasks/{task_id}/review` as the human review gate from `needs_review` to `approved` or `rejected`.
+- Task result body validation now accepts the full lifecycle status set from the shared contract.
+- `_append_event()` now keeps task envelopes and event streams aligned.
+- Red-green evidence:
+  - Route tests first failed with 404 for missing `claim`, `cancel`, and `review` endpoints.
+- Verification:
+  - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_agent_task_routes.py tests\test_agent_evolution.py -q --ignore=active_model`: `19 passed`.
+  - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_agent_task_contract.py -q --ignore=active_model`: `14 passed`.
