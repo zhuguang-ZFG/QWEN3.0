@@ -151,6 +151,13 @@ Next work items:
    - Add `/lima docs` and `/lima docs-update` slash commands for worker-local dev docs.
    - Require final worker summaries to state changed files, tests run, remaining risks, and review status.
    - Keep this behind repo allowlist, runtime budget, stop marker, audit, and failure quarantine controls.
+6. Add `LiMa Policy Guidelines Engine v0.1` inspired by Parlant after hooks and skill activation exist:
+   - Define condition-action guidelines for task policy, role activation, tool permission, and review gates.
+   - Support guideline dependencies and exclusions so incompatible modes cannot activate together.
+   - Map journeys to LiMa task lifecycle states such as `accepted`, `claimed`, `running`, `needs_review`, `approved`, `rejected`, and `applied`.
+   - Activate tools only when observations match the task policy, not by default.
+   - Record explainability traces: why a guideline, skill, role, or tool was activated.
+   - Borrow Parlant's control ideas only; do not import the full customer-facing agent framework unless a later design proves it is worth the weight.
 
 ## Errors Encountered
 

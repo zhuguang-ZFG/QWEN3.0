@@ -553,3 +553,15 @@ Follow-up after final review:
   - `/lima docs` and `/lima docs-update` commands.
   - Final worker summaries that explicitly list changed files, tests run, remaining risks, and review status.
 - This is a todo only; no runtime code was changed.
+
+## 2026-05-23 Parlant Policy Guidelines Todo
+
+- Recorded `LiMa Policy Guidelines Engine v0.1` as a future item in `task_plan.md`.
+- Source reference: `emcie-co/parlant`.
+- Intended use after hooks and skill auto-activation:
+  - Condition-action guidelines for task policy, role activation, tool permission, and review gates.
+  - Dependencies and exclusions between guidelines so incompatible modes cannot activate together.
+  - Journey-style mapping to LiMa task lifecycle states.
+  - Tool activation only when observations match task policy.
+  - Explainability traces for why a guideline, skill, role, or tool was activated.
+- This is a todo only; no runtime code was changed.
