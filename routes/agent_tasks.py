@@ -11,10 +11,10 @@ from dataclasses import asdict
 
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Header
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from pydantic import BaseModel, Field
 
-from agent_contracts.task_contract import AgentTaskRequest
+from agent_contracts.task_contract import AgentTaskRequest, AgentTaskResult
 from agent_evolution.candidates import get_candidate_store
 from agent_evolution.promote import promote_candidate
 
@@ -45,15 +45,44 @@ class TaskCreateBody(BaseModel):
     repo: str
     branch: str = "main"
     goal: str
-    constraints: list[str] = []
-    allowed_tools: list[str] = []
+    constraints: list[str] = Field(default_factory=list)
+    allowed_tools: list[str] = Field(default_factory=list)
     max_runtime_sec: int = 300
     mode: Literal["plan", "patch", "test", "review"] = "patch"
+
+
+class TaskResultBody(BaseModel):
+    task_id: str
+    status: Literal[
+        "accepted", "running", "succeeded", "failed", "blocked", "needs_review"
+    ]
+    summary: str
+    changed_files: list[str] = Field(default_factory=list)
+    test_commands: list[str] = Field(default_factory=list)
+    test_results: list[dict] = Field(default_factory=list)
+    diff_preview: str = ""
+    artifacts: list[str] = Field(default_factory=list)
+    risks: list[str] = Field(default_factory=list)
+    next_action: str = ""
 
 
 class PromoteBody(BaseModel):
     eval_passed: bool = False
     manual_flag: bool = False
+
+
+def _task_envelope(task: dict) -> dict:
+    envelope = {
+        "task": task["request"],
+        "status": task["status"],
+        "created_at": task["created_at"],
+        "events": task.get("events", []),
+    }
+    if "updated_at" in task:
+        envelope["updated_at"] = task["updated_at"]
+    if "result" in task:
+        envelope["result"] = task["result"]
+    return envelope
 
 
 @router.post("/tasks", dependencies=[Depends(_require_admin)])
@@ -80,12 +109,53 @@ async def create_task(body: TaskCreateBody):
     return {"task_id": task_id, "status": "accepted"}
 
 
+@router.get("/tasks", dependencies=[Depends(_require_admin)])
+async def list_tasks(
+    status: str = Query(default="accepted"),
+    limit: int = Query(default=1, ge=1, le=100),
+):
+    """List tasks for worker polling."""
+    matches = [
+        task for task in _tasks.values()
+        if not status or task.get("status") == status
+    ]
+    matches.sort(key=lambda task: task.get("created_at", 0))
+    return {
+        "tasks": [task["request"] for task in matches[:limit]],
+        "count": len(matches[:limit]),
+    }
+
+
 @router.get("/tasks/{task_id}", dependencies=[Depends(_require_admin)])
 async def get_task(task_id: str):
     """Get task status and details."""
     if task_id not in _tasks:
         raise HTTPException(404, "Task not found")
-    return _tasks[task_id]
+    return _task_envelope(_tasks[task_id])
+
+
+@router.post("/tasks/{task_id}/result", dependencies=[Depends(_require_admin)])
+async def submit_task_result(task_id: str, body: TaskResultBody):
+    """Accept a worker result and update task status."""
+    if task_id not in _tasks:
+        raise HTTPException(404, "Task not found")
+    if body.task_id != task_id:
+        raise HTTPException(422, "task_id in path and body must match")
+    result = AgentTaskResult(**body.model_dump())
+    try:
+        result.validate()
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    now = time.time()
+    _tasks[task_id]["status"] = result.status
+    _tasks[task_id]["result"] = asdict(result)
+    _tasks[task_id]["updated_at"] = now
+    _events[task_id].append({
+        "type": "result_submitted",
+        "status": result.status,
+        "ts": now,
+    })
+    return {"accepted": True, "task_id": task_id, "status": result.status}
 
 
 @router.get("/tasks/{task_id}/events", dependencies=[Depends(_require_admin)])
