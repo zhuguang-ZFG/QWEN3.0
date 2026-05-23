@@ -294,6 +294,39 @@ class TestTaskEndpoints:
         assert review.status_code == 200
         assert review.json()["status"] == "approved"
 
+    def test_apply_task_review_helper_uses_decision_strings(self):
+        from routes.agent_tasks import apply_task_review
+
+        task_id = client.post("/agent/tasks", json={
+            "repo": "D:/GIT/deepcode-cli",
+            "goal": "callback review",
+            "allowed_tools": ["git_diff"],
+            "mode": "review",
+        }, headers=HEADERS).json()["task_id"]
+        client.post(f"/agent/tasks/{task_id}/result", json={
+            "task_id": task_id,
+            "status": "needs_review",
+            "summary": "ready",
+            "changed_files": [],
+            "test_commands": [],
+            "test_results": [],
+            "diff_preview": "",
+            "artifacts": [],
+            "risks": [],
+            "next_action": "approve",
+        }, headers=HEADERS)
+
+        reviewed = apply_task_review(task_id, "approved", reviewer="telegram")
+
+        assert reviewed == {"task_id": task_id, "status": "approved"}
+        events = client.get(
+            f"/agent/tasks/{task_id}/events", headers=HEADERS
+        ).json()["events"]
+        assert any(
+            e["type"] == "reviewed" and e["reviewer"] == "telegram"
+            for e in events
+        )
+
     def test_quarantine_task_updates_status_and_events(self):
         task_id = client.post("/agent/tasks", json={
             "repo": "D:/GIT/deepcode-cli",

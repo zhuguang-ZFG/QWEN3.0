@@ -205,6 +205,34 @@ def _task_audit_item(task: dict) -> dict:
         "next_action": result.get("next_action", ""),
     }
 
+
+def apply_task_review(
+    task_id: str,
+    decision: str,
+    reviewer: str = "human",
+    note: str = "",
+) -> dict:
+    if not _store.contains(task_id):
+        raise KeyError("Task not found")
+    if decision not in ("approved", "rejected"):
+        raise ValueError("decision must be approved or rejected")
+    task = _store.get(task_id)
+    if "result" not in task:
+        raise RuntimeError("Task has no worker result to review")
+    if task["status"] != "needs_review":
+        raise RuntimeError(f"Task cannot be reviewed from {task['status']}")
+    task["status"] = decision
+    task["updated_at"] = time.time()
+    _store.update(task_id)
+    _store.append_event(task_id, {
+        "type": "reviewed",
+        "decision": decision,
+        "reviewer": reviewer,
+        "note": note,
+    })
+    return {"task_id": task_id, "status": decision}
+
+
 @router.post("/tasks", dependencies=[Depends(_require_admin)])
 async def create_task(body: TaskCreateBody):
     task_id = str(uuid.uuid4())[:8]
@@ -313,19 +341,19 @@ async def submit_task_result(task_id: str, body: TaskResultBody):
 
 @router.post("/tasks/{task_id}/review", dependencies=[Depends(_require_admin)])
 async def review_task(task_id: str, body: ReviewBody):
-    if not _store.contains(task_id):
+    try:
+        return apply_task_review(
+            task_id,
+            body.decision,
+            reviewer=body.reviewer,
+            note=body.note,
+        )
+    except KeyError:
         raise HTTPException(404, "Task not found")
-    task = _store.get(task_id)
-    if "result" not in task:
-        raise HTTPException(409, "Task has no worker result to review")
-    if task["status"] != "needs_review":
-        raise HTTPException(409, f"Task cannot be reviewed from {task['status']}")
-    task["status"] = body.decision
-    task["updated_at"] = time.time()
-    _store.update(task_id)
-    _store.append_event(task_id, {"type": "reviewed", "decision": body.decision,
-                                  "reviewer": body.reviewer, "note": body.note})
-    return {"task_id": task_id, "status": body.decision}
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    except RuntimeError as e:
+        raise HTTPException(409, str(e))
 
 @router.post("/tasks/{task_id}/quarantine", dependencies=[Depends(_require_admin)])
 async def quarantine_task(task_id: str):

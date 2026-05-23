@@ -30,6 +30,18 @@ def is_authorized(chat_id: int | str) -> bool:
     return str(chat_id) == _chat_id()
 
 
+def parse_approval_callback(data: str) -> dict:
+    if not data or ":" not in data:
+        return {"ok": False, "error": "Invalid callback payload"}
+    action, task_id = data.split(":", 1)
+    task_id = task_id.strip()
+    if action == "approve" and task_id:
+        return {"ok": True, "decision": "approved", "task_id": task_id}
+    if action == "reject" and task_id:
+        return {"ok": True, "decision": "rejected", "task_id": task_id}
+    return {"ok": False, "error": "Unsupported callback payload"}
+
+
 async def _api_call(method: str, data: dict) -> dict | None:
     url = _BASE_URL.format(token=_bot_token(), method=method)
     try:
