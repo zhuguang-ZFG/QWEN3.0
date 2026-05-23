@@ -793,7 +793,7 @@ git commit -m "feat: add lima worker session budget"
 - Modify: `routes/agent_tasks.py`
 - Modify: `tests/test_agent_task_routes.py`
 
-- [ ] **Step 1: Write failing quarantine tests**
+- [x] **Step 1: Write failing quarantine tests**
 
 Create `D:\GIT\deepcode-cli\src\tests\lima-failure-quarantine.test.ts`:
 
@@ -822,7 +822,7 @@ test("failure quarantine triggers at threshold", () => {
 });
 ```
 
-- [ ] **Step 2: Implement quarantine helper**
+- [x] **Step 2: Implement quarantine helper**
 
 Create `D:\GIT\deepcode-cli\src\lima\failure-quarantine.ts`:
 
@@ -886,7 +886,7 @@ function writeState(projectRoot: string, state: QuarantineState): void {
 }
 ```
 
-- [ ] **Step 3: Add Server quarantine endpoint**
+- [x] **Step 3: Add Server quarantine endpoint**
 
 Add to `routes/agent_tasks.py`:
 
@@ -902,7 +902,7 @@ async def quarantine_task(task_id: str):
     return {"task_id": task_id, "status": "quarantined"}
 ```
 
-- [ ] **Step 4: Wire worker failure path**
+- [x] **Step 4: Wire worker failure path**
 
 Modify `D:\GIT\deepcode-cli\src\lima\command-runner.ts` so failed fetch/submit/task execution records a local failure. If threshold is reached, call `client.quarantineTask(task.task_id)` and stop the loop with a clear message:
 
@@ -918,7 +918,7 @@ if (quarantine.quarantine && "quarantineTask" in client) {
 }
 ```
 
-- [ ] **Step 5: Run quarantine tests**
+- [x] **Step 5: Run quarantine tests**
 
 Run:
 
@@ -929,7 +929,7 @@ D:\GIT\venv\Scripts\python.exe -m pytest tests\test_agent_task_routes.py -q
 
 Expected: selected tests pass.
 
-- [ ] **Step 6: Commit Task 5**
+- [x] **Step 6: Commit Task 5**
 
 Server:
 

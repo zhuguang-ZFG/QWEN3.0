@@ -618,3 +618,21 @@ Follow-up after final review:
 - Verification:
   - `npm.cmd test -- src/tests/lima-worker-budget.test.ts src/tests/lima-commands.test.ts src/tests/lima-command-runner.test.ts`: `391 passed, 6 skipped`.
   - `npm.cmd run check`: passed.
+
+## 2026-05-23 Autonomous Worker v0.2 Task 5
+
+- Implemented repeated-failure quarantine for LiMa Code worker tasks.
+- Added `.lima-code/quarantine.json` state management through `src/lima/failure-quarantine.ts`.
+- Added `LiMaAgentTaskClient.quarantineTask()` for `POST /agent/tasks/{task_id}/quarantine`.
+- Wired worker loop failures so a task reaching 3 recorded failures is reported to Server as `quarantined`.
+- Added Server `/agent/tasks/{task_id}/quarantine` endpoint and event emission.
+- Red-green evidence:
+  - Server route test first failed with `404` for the missing quarantine endpoint.
+  - LiMa Code client test first failed because `quarantineTask` did not exist.
+  - LiMa Code quarantine tests first failed because `failure-quarantine.ts` did not exist.
+  - Worker loop test first failed because repeated failures were not quarantined.
+- Verification:
+  - `npm.cmd test -- src/tests/lima-failure-quarantine.test.ts src/tests/lima-agent-task-client.test.ts src/tests/lima-command-runner.test.ts`: `395 passed, 6 skipped`.
+  - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_agent_task_routes.py -q --ignore=active_model`: `15 passed`.
+  - `npm.cmd run check`: passed.
+  - `D:\GIT\venv\Scripts\python.exe -m py_compile routes\agent_tasks.py`: passed.
