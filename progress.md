@@ -593,3 +593,14 @@ Follow-up after final review:
 - Verification:
   - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_agent_task_routes.py tests\test_agent_evolution.py -q --ignore=active_model`: `19 passed`.
   - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_agent_task_contract.py -q --ignore=active_model`: `14 passed`.
+
+## 2026-05-23 Autonomous Worker v0.2 Task 3
+
+- Implemented explicit LiMa Code repository allowlisting.
+- Added `src/lima/repo-allowlist.ts` so the current workspace is allowed by default and sibling repositories require explicit `allowedRepos` configuration.
+- Wired `workspace-guard.ts` to use the allowlist while preserving existing `allowedRoots` compatibility.
+- Red-green evidence:
+  - `npm.cmd test -- src/tests/lima-repo-allowlist.test.ts` first failed because `repo-allowlist.ts` did not exist.
+- Verification:
+  - `npm.cmd test -- src/tests/lima-repo-allowlist.test.ts src/tests/lima-workspace-guard.test.ts`: `385 passed, 6 skipped`.
+  - `npm.cmd run check`: passed.

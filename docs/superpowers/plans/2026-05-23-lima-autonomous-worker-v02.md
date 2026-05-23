@@ -526,7 +526,7 @@ git commit -m "feat: add agent task lifecycle gates"
 - Modify: `D:\GIT\deepcode-cli\src\lima\workspace-guard.ts`
 - Modify: `D:\GIT\deepcode-cli\src\tests\lima-workspace-guard.test.ts`
 
-- [ ] **Step 1: Write failing allowlist tests**
+- [x] **Step 1: Write failing allowlist tests**
 
 Create `D:\GIT\deepcode-cli\src\tests\lima-repo-allowlist.test.ts`:
 
@@ -564,7 +564,7 @@ test("isRepoAllowed accepts configured additional repos", () => {
 });
 ```
 
-- [ ] **Step 2: Run failing allowlist tests**
+- [x] **Step 2: Run failing allowlist tests**
 
 Run:
 
@@ -574,7 +574,7 @@ npm.cmd test -- src/tests/lima-repo-allowlist.test.ts
 
 Expected: fails because `repo-allowlist.ts` does not exist.
 
-- [ ] **Step 3: Implement allowlist helper**
+- [x] **Step 3: Implement allowlist helper**
 
 Create `D:\GIT\deepcode-cli\src\lima\repo-allowlist.ts`:
 
@@ -609,7 +609,7 @@ function isInsideOrSame(candidate: string, root: string): boolean {
 }
 ```
 
-- [ ] **Step 4: Wire allowlist into workspace guard**
+- [x] **Step 4: Wire allowlist into workspace guard**
 
 Modify `D:\GIT\deepcode-cli\src\lima\workspace-guard.ts`:
 
@@ -642,7 +642,7 @@ export function resolveLiMaTaskRepo(repo: string, config: LiMaWorkspaceGuardConf
 }
 ```
 
-- [ ] **Step 5: Run allowlist tests**
+- [x] **Step 5: Run allowlist tests**
 
 Run:
 
@@ -652,7 +652,7 @@ npm.cmd test -- src/tests/lima-repo-allowlist.test.ts src/tests/lima-workspace-g
 
 Expected: selected tests pass.
 
-- [ ] **Step 6: Commit Task 3**
+- [x] **Step 6: Commit Task 3**
 
 ```bash
 git add src/lima/repo-allowlist.ts src/lima/workspace-guard.ts src/tests/lima-repo-allowlist.test.ts src/tests/lima-workspace-guard.test.ts
