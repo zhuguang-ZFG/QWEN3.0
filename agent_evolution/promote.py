@@ -4,7 +4,7 @@ from agent_evolution.candidates import CandidateSkill, CandidateStore
 
 
 def can_activate(candidate: CandidateSkill) -> bool:
-    """A candidate can activate only if eval passed AND promoted."""
+    """A candidate can activate only after eval and manual promotion."""
     return candidate.eval_passed and candidate.promoted
 
 
