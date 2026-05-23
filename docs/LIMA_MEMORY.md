@@ -673,6 +673,7 @@ LiMa Code now has a real local command runner for the Server task path:
 - `/lima review` runs guarded local review mode over the current git diff.
 - `/lima task <task_id>` fetches a protected LiMa Server task, runs the guarded local task runner, writes local audit evidence, and submits the structured result back to Server.
 - `/lima next` claims one pending `accepted` LiMa Server task, runs it locally, writes audit evidence, and submits the structured result back to Server.
+- `/lima work --once` and `/lima work --loop --max-tasks <n>` provide bounded worker execution; loop mode rejects unbounded runs.
 
 Important boundary:
 
@@ -710,3 +711,20 @@ Single-claim follow-up:
   - LiMa worker targeted tests: `52 passed`.
   - `npm.cmd run check`: passed.
   - Full LiMa Code suite: `371 passed, 7 skipped`.
+
+Bounded-loop follow-up:
+
+- Added `/lima work --once` and `/lima work --loop --max-tasks <n>`.
+- Loop mode requires `--max-tasks`, caps it at 100, and stops on no pending task, max count, failure, or UI abort.
+- UI Ctrl+C/Esc now aborts active LiMa worker commands with an `AbortController`.
+- Public smoke used a temporary empty directory to avoid sending local repository diff content:
+  - Server tasks `3428f2b5` and `ae549d08`.
+  - `/lima work --loop --max-tasks 2 --interval-ms 1`.
+  - Both results were `needs_review`.
+  - Both event streams returned `created,result_submitted`.
+  - `changedFileCount=0`.
+- Verification:
+  - Parser/runner tests: `19 passed`.
+  - LiMa worker targeted tests: `58 passed`.
+  - `npm.cmd run check`: passed.
+  - Full LiMa Code suite: `377 passed, 7 skipped`.

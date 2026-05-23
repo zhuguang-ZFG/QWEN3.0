@@ -492,3 +492,28 @@ Follow-up after final review:
   - LiMa worker targeted tests: `52 passed`.
   - `npm.cmd run check`: passed.
   - Full LiMa Code suite: `371 passed, 7 skipped`.
+
+## 2026-05-23 LiMa Code Bounded Worker Loop
+
+- Added `/lima work --once` and `/lima work --loop --max-tasks <n>`.
+- Loop mode requires `--max-tasks` and caps it at 100 to avoid uncontrolled background execution.
+- Defaults:
+  - `--interval-ms`: `5000`
+  - `--backoff-ms`: `30000`
+- Loop stops when:
+  - no pending task exists;
+  - `maxTasks` is reached;
+  - a task/fetch/submit failure occurs;
+  - UI abort signal fires.
+- Wired UI Ctrl+C/Esc to abort active LiMa worker commands through `AbortController`.
+- Public smoke was intentionally run against a temporary empty directory instead of the real repo to avoid uploading local diff content:
+  - Created Server tasks `3428f2b5` and `ae549d08`.
+  - Ran `/lima work --loop --max-tasks 2 --interval-ms 1`.
+  - Both tasks submitted `needs_review`.
+  - Both event streams returned `created,result_submitted`.
+  - `changedFileCount=0`.
+- Verification:
+  - Parser/runner tests: `19 passed`.
+  - LiMa worker targeted tests: `58 passed`.
+  - `npm.cmd run check`: passed.
+  - Full LiMa Code suite: `377 passed, 7 skipped`.
