@@ -670,7 +670,7 @@ git commit -m "feat: require explicit lima repo allowlist"
 - Modify: `D:\GIT\deepcode-cli\src\lima\command-runner.ts`
 - Modify: `D:\GIT\deepcode-cli\src\tests\lima-command-runner.test.ts`
 
-- [ ] **Step 1: Write failing budget tests**
+- [x] **Step 1: Write failing budget tests**
 
 Create `D:\GIT\deepcode-cli\src\tests\lima-worker-budget.test.ts`:
 
@@ -704,7 +704,7 @@ test("worker budget stops at max minutes", () => {
 });
 ```
 
-- [ ] **Step 2: Implement budget helper**
+- [x] **Step 2: Implement budget helper**
 
 Create `D:\GIT\deepcode-cli\src\lima\worker-budget.ts`:
 
@@ -740,7 +740,7 @@ export function createWorkerBudget(config: LiMaWorkerBudgetConfig) {
 }
 ```
 
-- [ ] **Step 3: Wire budget into worker loop**
+- [x] **Step 3: Wire budget into worker loop**
 
 Modify `D:\GIT\deepcode-cli\src\lima\command-runner.ts`:
 
@@ -762,7 +762,7 @@ while (true) {
 }
 ```
 
-- [ ] **Step 4: Run budget tests**
+- [x] **Step 4: Run budget tests**
 
 Run:
 
@@ -772,7 +772,7 @@ npm.cmd test -- src/tests/lima-worker-budget.test.ts src/tests/lima-command-runn
 
 Expected: selected tests pass.
 
-- [ ] **Step 5: Commit Task 4**
+- [x] **Step 5: Commit Task 4**
 
 ```bash
 git add src/lima/worker-budget.ts src/lima/command-runner.ts src/tests/lima-worker-budget.test.ts src/tests/lima-command-runner.test.ts

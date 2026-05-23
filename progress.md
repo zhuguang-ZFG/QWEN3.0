@@ -604,3 +604,17 @@ Follow-up after final review:
 - Verification:
   - `npm.cmd test -- src/tests/lima-repo-allowlist.test.ts src/tests/lima-workspace-guard.test.ts`: `385 passed, 6 skipped`.
   - `npm.cmd run check`: passed.
+
+## 2026-05-23 Autonomous Worker v0.2 Task 4
+
+- Implemented LiMa Code worker-session budgets.
+- Added `src/lima/worker-budget.ts` to stop worker loops by max task count or max elapsed minutes.
+- Added `/lima work --max-minutes <n>` parsing with a default 60-minute session budget.
+- Wired the work loop to check budget before fetching the next task and to report the budget stop reason.
+- Red-green evidence:
+  - Budget tests first failed because `worker-budget.ts` did not exist.
+  - Command tests first failed because `/lima work` did not carry `maxMinutes`.
+  - Work-loop test first failed because the loop processed a second task after the time budget was exceeded.
+- Verification:
+  - `npm.cmd test -- src/tests/lima-worker-budget.test.ts src/tests/lima-commands.test.ts src/tests/lima-command-runner.test.ts`: `391 passed, 6 skipped`.
+  - `npm.cmd run check`: passed.
