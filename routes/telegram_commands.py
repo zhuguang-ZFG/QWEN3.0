@@ -179,6 +179,19 @@ async def cmd_tasks(chat_id: str) -> None:
         await telegram_bot.send_message(f"Error: {e}", chat_id=chat_id)
 
 
+async def cmd_cache(chat_id: str) -> None:
+    import semantic_cache
+    s = semantic_cache.stats()
+    text = (
+        f"Cache stats:\n"
+        f"Memory: {s['size']} / {s['max_size']}\n"
+        f"DB: {s['db_size']} entries\n"
+        f"Hits: {s['hits']} | Misses: {s['misses']}\n"
+        f"Hit rate: {s['hit_rate']}"
+    )
+    await telegram_bot.send_message(text, chat_id=chat_id)
+
+
 async def probe_backends() -> None:
     hmap = health_tracker.get_health_map()
     backends = list(hmap.keys())

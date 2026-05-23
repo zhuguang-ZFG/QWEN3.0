@@ -1,25 +1,29 @@
 """
-LiMa Semantic Cache — 精确匹配缓存 (非向量相似度)
+LiMa Semantic Cache — SHA-256 精确匹配 + SQLite 持久化
 参考: OmniRoute (SHA-256 + LRU + temperature=0)
 
 设计:
 - key = SHA-256(model + messages + temperature)
 - 仅缓存 temperature=0 的请求 (确定性输出)
-- 两级存储: LRU 内存 (可配容量) + 可选持久化
+- 两级存储: LRU 内存热缓存 + SQLite 持久化冷缓存
 - 命中则零延迟返回，不消耗后端配额
+- 重启后自动从 SQLite 恢复热缓存
 """
 
-import time
 import hashlib
 import json
+import os
+import sqlite3
 import threading
+import time
 from collections import OrderedDict
 from typing import Optional
 
 _lock = threading.Lock()
 
-DEFAULT_MAX_SIZE = 200
-DEFAULT_TTL = 3600  # 1 小时过期
+DEFAULT_MAX_SIZE = 500
+DEFAULT_TTL = 86400  # 24 小时
+_DB_PATH = os.environ.get("LIMA_CACHE_DB", "data/semantic_cache.db")
 
 
 class SemanticCache:
@@ -29,28 +33,58 @@ class SemanticCache:
         self._ttl = ttl
         self._hits = 0
         self._misses = 0
+        self._db = self._init_db()
+        self._load_from_db()
+
+    def _init_db(self) -> sqlite3.Connection:
+        os.makedirs(os.path.dirname(_DB_PATH) or ".", exist_ok=True)
+        conn = sqlite3.connect(_DB_PATH, check_same_thread=False)
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS cache "
+            "(key TEXT PRIMARY KEY, value TEXT, created_at REAL)"
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_created ON cache(created_at)")
+        conn.commit()
+        return conn
+
+    def _load_from_db(self) -> None:
+        now = time.time()
+        cutoff = now - self._ttl
+        rows = self._db.execute(
+            "SELECT key, value, created_at FROM cache "
+            "WHERE created_at > ? ORDER BY created_at DESC LIMIT ?",
+            (cutoff, self._max_size),
+        ).fetchall()
+        for key, value, created_at in reversed(rows):
+            expire_at = created_at + self._ttl
+            self._store[key] = (value, expire_at)
 
     def make_key(self, model: str, messages: list, temperature: float = 0) -> str:
-        """生成缓存 key。非 temperature=0 返回空字符串(不缓存)"""
         if temperature != 0:
             return ""
         payload = json.dumps(
             {"model": model, "messages": messages, "temperature": temperature},
-            sort_keys=True, ensure_ascii=False
+            sort_keys=True, ensure_ascii=False,
         )
         return hashlib.sha256(payload.encode()).hexdigest()
 
     def get(self, key: str) -> Optional[str]:
-        """查缓存，命中返回响应文本，未命中返回 None"""
         if not key:
             return None
         with _lock:
             entry = self._store.get(key)
             if entry is None:
+                row = self._db.execute(
+                    "SELECT value, created_at FROM cache WHERE key = ?", (key,)
+                ).fetchone()
+                if row and (time.time() - row[1]) < self._ttl:
+                    self._store[key] = (row[0], row[1] + self._ttl)
+                    self._hits += 1
+                    return row[0]
                 self._misses += 1
                 return None
             value, expire_at = entry
-            if time.monotonic() > expire_at:
+            if time.time() > expire_at:
                 del self._store[key]
                 self._misses += 1
                 return None
@@ -59,25 +93,33 @@ class SemanticCache:
             return value
 
     def put(self, key: str, value: str):
-        """写入缓存"""
         if not key:
             return
         with _lock:
+            now = time.time()
             if key in self._store:
                 self._store.move_to_end(key)
-                self._store[key] = (value, time.monotonic() + self._ttl)
             else:
                 if len(self._store) >= self._max_size:
                     self._store.popitem(last=False)
-                self._store[key] = (value, time.monotonic() + self._ttl)
+            self._store[key] = (value, now + self._ttl)
+            try:
+                self._db.execute(
+                    "INSERT OR REPLACE INTO cache (key, value, created_at) VALUES (?, ?, ?)",
+                    (key, value, now),
+                )
+                self._db.commit()
+            except Exception:
+                pass
 
     def stats(self) -> dict:
-        """缓存统计"""
         with _lock:
             total = self._hits + self._misses
             rate = (self._hits / total * 100) if total > 0 else 0
+            db_size = self._db.execute("SELECT COUNT(*) FROM cache").fetchone()[0]
             return {
                 "size": len(self._store),
+                "db_size": db_size,
                 "max_size": self._max_size,
                 "hits": self._hits,
                 "misses": self._misses,

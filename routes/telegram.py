@@ -15,7 +15,7 @@ import budget_manager
 import telegram_bot
 from routes.telegram_commands import (
     cmd_chat, cmd_clear, cmd_code, cmd_top, cmd_uptime,
-    cmd_eval, cmd_task, cmd_tasks, start_probe_loop,
+    cmd_eval, cmd_task, cmd_tasks, cmd_cache, start_probe_loop,
 )
 
 logger = logging.getLogger(__name__)
@@ -156,6 +156,8 @@ async def _dispatch_command(chat_id: str, text: str) -> None:
         await cmd_task(chat_id, arg)
     elif cmd == "/tasks":
         await cmd_tasks(chat_id)
+    elif cmd == "/cache":
+        await cmd_cache(chat_id)
     elif cmd == "/logs":
         await _cmd_logs(chat_id, arg.strip())
     elif cmd == "/restart":
