@@ -185,6 +185,26 @@ def _task_envelope(task: dict) -> dict:
         envelope["result"] = task["result"]
     return envelope
 
+
+def _task_audit_item(task: dict) -> dict:
+    request = task.get("request", {})
+    result = task.get("result", {})
+    return {
+        "task_id": request.get("task_id", ""),
+        "status": task.get("status", ""),
+        "mode": request.get("mode", ""),
+        "repo": request.get("repo", ""),
+        "goal": request.get("goal", ""),
+        "worker_id": request.get("worker_id", ""),
+        "created_at": task.get("created_at", 0),
+        "updated_at": task.get("updated_at", task.get("created_at", 0)),
+        "event_count": len(task.get("events", [])),
+        "changed_files": result.get("changed_files", []),
+        "test_commands": result.get("test_commands", []),
+        "risks": result.get("risks", []),
+        "next_action": result.get("next_action", ""),
+    }
+
 @router.post("/tasks", dependencies=[Depends(_require_admin)])
 async def create_task(body: TaskCreateBody):
     task_id = str(uuid.uuid4())[:8]
@@ -211,6 +231,18 @@ async def list_tasks(status: str = Query(default="accepted"),
     matches = [t for t in _store.values() if not status or t.get("status") == status]
     matches.sort(key=lambda t: t.get("created_at", 0))
     return {"tasks": [t["request"] for t in matches[:limit]], "count": len(matches[:limit])}
+
+
+@router.get("/audit", dependencies=[Depends(_require_admin)])
+async def agent_audit(limit: int = Query(default=20, ge=1, le=100)):
+    tasks = list(_store.values())
+    tasks.sort(
+        key=lambda t: t.get("updated_at", t.get("created_at", 0)),
+        reverse=True,
+    )
+    items = [_task_audit_item(task) for task in tasks[:limit]]
+    return {"tasks": items, "count": len(items)}
+
 
 @router.get("/tasks/{task_id}", dependencies=[Depends(_require_admin)])
 async def get_task(task_id: str):

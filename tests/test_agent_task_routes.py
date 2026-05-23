@@ -146,6 +146,39 @@ class TestTaskEndpoints:
             for event in events_resp.json()["events"]
         )
 
+    def test_agent_audit_summary_returns_recent_task_events(self):
+        task_id = client.post("/agent/tasks", json={
+            "repo": "D:/GIT/deepcode-cli",
+            "goal": "audit smoke",
+            "allowed_tools": ["git_diff"],
+            "mode": "review",
+        }, headers=HEADERS).json()["task_id"]
+
+        result = {
+            "task_id": task_id,
+            "status": "needs_review",
+            "summary": "ready for review",
+            "changed_files": ["README.md"],
+            "test_commands": [],
+            "test_results": [],
+            "diff_preview": "diff --git a/README.md b/README.md",
+            "artifacts": [],
+            "risks": ["manual review required"],
+            "next_action": "approve or reject",
+        }
+        client.post(f"/agent/tasks/{task_id}/result", json=result, headers=HEADERS)
+
+        resp = client.get("/agent/audit?limit=5", headers=HEADERS)
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["count"] >= 1
+        item = next(item for item in data["tasks"] if item["task_id"] == task_id)
+        assert item["status"] == "needs_review"
+        assert item["event_count"] >= 2
+        assert item["changed_files"] == ["README.md"]
+        assert "diff_preview" not in item
+
     def test_claim_task_assigns_worker_and_lease(self):
         task_id = client.post("/agent/tasks", json={
             "repo": "D:/GIT/deepcode-cli",
