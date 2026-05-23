@@ -663,3 +663,38 @@ Follow-up security correction:
 - Commit `e231a5e` removed the remaining tracked OneAPI/admin/provider credential literals from `scripts/*.py` and replaced them with environment-variable reads.
 - Final sanitized checks found no tracked script hardcoded credential literals, and `D:\GIT\venv\Scripts\python.exe -m compileall -q scripts` passed.
 - Treat any credentials that existed in repository history as exposed and rotate them. Never paste token values into docs, commits, or chat.
+
+## 2026-05-23 LiMa Code Worker Command Runner
+
+LiMa Code now has a real local command runner for the Server task path:
+
+- `/lima connect` reports whether Server URL/API key configuration exists without printing the key.
+- `/lima status` reports local project and Server configuration state.
+- `/lima review` runs guarded local review mode over the current git diff.
+- `/lima task <task_id>` fetches a protected LiMa Server task, runs the guarded local task runner, writes local audit evidence, and submits the structured result back to Server.
+
+Important boundary:
+
+- Server still does not execute shell commands.
+- LiMa Code executes only inside the guarded local workspace.
+- `plan` and `review` are read-only.
+- `patch` requires explicit `patch_files` and `write`.
+- `test` requires explicit test commands and the `test` tool.
+- Local audit output lives under `.lima-code/audit.jsonl`; `.lima-code/` is ignored by Git because it may contain local runtime state or credentials.
+
+Evidence:
+
+- Added `D:\GIT\deepcode-cli\src\lima\command-runner.ts`.
+- Added `D:\GIT\deepcode-cli\src\tests\lima-command-runner.test.ts`.
+- Wired `D:\GIT\deepcode-cli\src\ui\PromptInput.tsx` and `D:\GIT\deepcode-cli\src\ui\App.tsx` so `/lima task <id>` is handled locally instead of going to chat.
+- Fixed Windows Bash timeout cleanup in `D:\GIT\deepcode-cli\src\tools\bash-handler.ts`; timeout now waits for process close after killing the process tree and ignores post-timeout output.
+- Public end-to-end smoke:
+  - Created Server task `4d6c02b3`.
+  - Ran LiMa Code `/lima task 4d6c02b3` against `https://chat.donglicao.com`.
+  - Worker submitted `needs_review` with changed files `src/ui/App.tsx` and `src/ui/PromptInput.tsx`.
+  - Server detail confirmed `hasResult=true`; events endpoint returned `created,result_submitted`.
+- Verification:
+  - LiMa targeted tests: `41 passed`.
+  - Tool handler tests: `22 passed`.
+  - `npm.cmd run check`: passed.
+  - Full LiMa Code suite: `368 passed, 7 skipped`.

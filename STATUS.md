@@ -15,6 +15,7 @@
 | Claude Code tool path | Hardened | `/v1/messages` now guards malformed HTTP 200 tool-backend responses; real Claude Code large-file `Read` loop passed after deploy. |
 | VPS safety baseline | Retained | HTTPS, headers, internal port blocking, backup practices. |
 | Agent Evolution | Phase 0-5 complete | Quality gates, worker contract, roles, eval harness, evolution loop, and server APIs all implemented and tested (103 tests). |
+| LiMa Code worker | Active smoke path | `/lima task <id>` now fetches a Server task, runs the guarded local runner, writes local audit evidence, and submits the result back to Server. |
 
 ## 2026-05-23 Calibrated Status
 
@@ -36,6 +37,13 @@ Current module reality:
 | Tool Gateway | Executor now uses `shell=False`, argument validation, copied HTTP args, and audit events. |
 | Admin UI auth | API calls use `authFetch` and JS token injection is JSON-escaped. The HTML login still uses `?token=...`, so a cookie/session design remains a later hardening step. |
 | Concurrency Pool | Implemented and tested as `context_pipeline.concurrency_pool.ConcurrencyPool`; it has not replaced `key_pool.py` or provider key scheduling. |
+
+LiMa Code worker reality:
+
+- `D:\GIT\deepcode-cli` now has a local `/lima` command runner.
+- `/lima task <id>` is handled locally instead of being sent to the model as a chat prompt.
+- Public end-to-end smoke created Server task `4d6c02b3`, ran read-only review mode over `D:\GIT\deepcode-cli`, submitted `needs_review`, and confirmed Server events `created,result_submitted`.
+- LiMa Code full verification after the command-runner slice: `368 passed, 7 skipped`.
 
 Reference architecture conclusion:
 

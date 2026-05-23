@@ -453,3 +453,25 @@ Follow-up after final review:
 - **Phase 4: Evolution Loop** — CandidateSkill extraction + dual-gate promotion (5 tests).
 - **Phase 5: Server APIs** — 5 protected endpoints under `/agent/` (8 tests).
 - **Total: 103 tests passing.** Server never executes shell; evolution is eval-gated + manually promoted.
+
+## 2026-05-23 LiMa Code Worker Command Runner
+
+- Added a real local command runner for LiMa Code:
+  - `/lima connect` reports local Server configuration without exposing keys.
+  - `/lima status` reports project and Server configuration state.
+  - `/lima review` runs guarded local review mode over the current git diff.
+  - `/lima task <task_id>` fetches a LiMa Server task, runs the guarded local task runner, writes local audit evidence, and submits the structured result back to Server.
+- Wired the UI path so `/lima task <id>` is handled locally instead of being sent to the model as a chat prompt.
+- Added `src/tests/lima-command-runner.test.ts`.
+- Fixed Windows Bash timeout cleanup: after killing the process tree, LiMa Code now waits for process close before returning, preventing temp workspace `EPERM` cleanup failures while still ignoring post-timeout output.
+- Added `.lima-code/` to LiMa Code `.gitignore` because local audit/settings data may contain sensitive runtime state.
+- Public end-to-end smoke:
+  - Created LiMa Server task `4d6c02b3` through `https://chat.donglicao.com/agent/tasks`.
+  - Ran LiMa Code `/lima task 4d6c02b3` locally against `D:\GIT\deepcode-cli`.
+  - Worker returned `needs_review`, listed `src/ui/App.tsx` and `src/ui/PromptInput.tsx`, and submitted the result.
+  - Server detail confirmed `hasResult=true`; events endpoint returned `created,result_submitted`.
+- Verification:
+  - LiMa targeted tests: `41 passed`.
+  - Tool handler regression tests: `22 passed`.
+  - `npm.cmd run check`: passed.
+  - Full LiMa Code suite: `368 passed, 7 skipped`.
