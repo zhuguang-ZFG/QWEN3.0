@@ -136,6 +136,9 @@ _BACKEND_ERROR_MARKERS = [
     '系统维护',
     'rate limit', 'too many requests', 'service unavailable',
     'server is busy', 'try again later', 'overloaded',
+    '[mimo cookie', '[mimo http', '[mimo error',
+    '[longcat cookie', '[longcat http', '[longcat error',
+    'cookie expired', 'cookie invalid',
 ]
 
 _ERROR_CONTEXT_PREFIXES = [
@@ -182,6 +185,23 @@ def _is_backend_error(text: str) -> bool:
     return any(text_lower.startswith(p) for p in _ERROR_CONTEXT_PREFIXES)
 
 
+def _looks_like_self_identity(text: str) -> bool:
+    if not text:
+        return False
+    lowered = text.lower()
+    return bool(
+        re.search(
+            r"\b(i\s+am|i'm|my\s+model|as\s+an?\s+(?:ai\s+)?(?:language\s+)?model)\b",
+            lowered,
+        )
+        or (
+            re.search(r"\b(?:made|built|created|developed|trained|powered)\s+by\b", lowered)
+            and re.search(r"\b(i\s+am|i'm|model|assistant)\b", lowered)
+        )
+        or any(marker in text for marker in ("我是", "我叫", "我的模型", "作为"))
+    )
+
+
 def clean_response(text: str, backend_name: str = '') -> str:
     """清洗响应：隐藏底层模型/供应商信息，剥离思维链。"""
     if not text or '[ERR]' in text[:15]:
@@ -193,8 +213,12 @@ def clean_response(text: str, backend_name: str = '') -> str:
     # Strip unclosed <think> at start (partial thinking leak)
     if text.startswith('<think>'):
         text = ''
-    for pattern, repl in CLEAN_PATTERNS:
-        text = pattern.sub(repl, text)
+    if _looks_like_self_identity(text):
+        for pattern, repl in CLEAN_PATTERNS:
+            text = pattern.sub(repl, text)
+    # 后置身份泄露过滤
+        from identity_guard import filter_identity_leak
+        text = filter_identity_leak(text)
     return text.strip()
 
 
@@ -202,6 +226,8 @@ def _clean_brand_only(text: str, backend_name: str = '') -> str:
     """仅做品牌名替换，不做错误检测。用于流式 flush 后的逐 chunk 清洗。"""
     if not text:
         return ''
+    if not _looks_like_self_identity(text):
+        return text
     for pattern, repl in CLEAN_PATTERNS:
         text = pattern.sub(repl, text)
     return text

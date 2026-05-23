@@ -418,3 +418,14 @@ Latest global code-quality hardening:
 - Retrieval injection, server prompt-context staging, and Telegram startup/notify warning paths were simplified behind tested helpers.
 - Local verification is green: compileall passed; full pytest returned `391 passed, 8 skipped`; `git diff --check` passed with CRLF warnings only.
 - No VPS deployment was performed in this round.
+
+Latest global code-quality follow-up:
+
+- The post-hardening P1 blockers are closed locally.
+- Full pytest is green again after updating prompt tests to the new LiMa联网智能助手 wording.
+- `mimo_web*` are no longer in default IDE/chat pools while their admission remains `sandbox_only` and `private_code_allowed=False`.
+- Core `routing_engine.route()` no longer depends on local untracked FC/tool modules for ordinary requests.
+- `session_memory/prompt_recall.py` is now tracked, so prompt-time memory recall is deployable with `server_context.py`.
+- Response cleaning now preserves third-party factual statements about other AI products while still cleaning first-person model identity leaks.
+- Local verification: compileall passed; full pytest returned `393 passed, 8 skipped`.
+- No VPS deployment was performed.

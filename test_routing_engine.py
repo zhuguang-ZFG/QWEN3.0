@@ -5,6 +5,7 @@ test_routing_engine.py — 测试统一路由引擎
 import pytest
 import sys
 import os
+import builtins
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -187,6 +188,33 @@ def test_web_reverse_default_routes_have_explicit_admission_policy():
                 "code_medium_candidate",
                 "code_floor_candidate",
             }
+
+
+def test_default_routes_exclude_sandbox_only_web_reverse_backends():
+    import router_v3
+    from backends import BACKENDS
+
+    default_pool_names = {
+        name
+        for pool_name, groups in router_v3.POOLS.items()
+        if pool_name in {"ide", "chat", "chat_fast", "code"}
+        for names in groups.values()
+        for name in names
+    }
+    offenders = [
+        name
+        for name in sorted(default_pool_names)
+        if BACKENDS.get(name, {}).get("admission") == "sandbox_only"
+        and BACKENDS.get(name, {}).get("private_code_allowed") is False
+        and (
+            "localhost:450" in BACKENDS.get(name, {}).get("url", "")
+            or name.endswith("_web")
+            or name.endswith("_web_flash")
+            or name.endswith("_web_think")
+        )
+    ]
+
+    assert offenders == []
 
 
 def test_local_proxy_backends_require_local_topology(monkeypatch):
@@ -529,6 +557,34 @@ def test_route_uses_shared_retrieval_injection(monkeypatch):
     assert result.answer == "ok done"
     assert result.retrieval_context == "[retrieval]"
     assert calls["count"] == 1
+
+
+def test_route_does_not_import_fc_caller_for_regular_requests(monkeypatch):
+    imports = []
+    original_import = builtins.__import__
+
+    def tracking_import(name, *args, **kwargs):
+        if name == "fc_caller":
+            imports.append(name)
+            raise ModuleNotFoundError(name)
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", tracking_import)
+    monkeypatch.setattr(re_, "select", lambda *a, **kw: ["unit_backend"])
+    monkeypatch.setattr(re_, "classify_scenario", lambda *a, **kw: "chat")
+    monkeypatch.setattr(re_, "inject_retrieval_context", lambda messages: (messages, ""))
+    monkeypatch.setattr(re_.health_tracker, "get_health_map", lambda: {})
+
+    result = re_.route(
+        query="translate this Python string handling question",
+        messages=[{"role": "user", "content": "translate this Python string handling question"}],
+        fmt="openai",
+        call_fn=lambda backend, messages, max_tokens: "regular route answer",
+        cache_enabled=False,
+    )
+
+    assert result.answer == "regular route answer"
+    assert imports == []
 
 
 def test_empty_backends_no_indexerror(monkeypatch):

@@ -899,3 +899,17 @@ Verification note:
   - `D:\GIT\venv\Scripts\python.exe -m pytest -q --ignore=active_model`: `391 passed, 8 skipped`.
   - `git diff --check`: passed with CRLF warnings only.
 - No production deployment was performed.
+
+## 2026-05-23 Global Code Quality Follow-up P1
+
+- Closed the remaining P1 blockers from the post-hardening review:
+  - updated prompt tests for the new LiMa chat identity wording;
+  - removed `mimo_web*` from default IDE/chat route pools while retaining sandbox-only backend metadata;
+  - removed the untracked `fc_caller` dependency from the core `routing_engine.route()` path by restoring the committed route implementation and adding a regression test;
+  - tracked `session_memory/prompt_recall.py` and added a repo-manifest regression;
+  - narrowed response identity cleaning so normal third-party facts such as OpenAI/ChatGPT history are preserved.
+- Verification:
+  - Focused follow-up suite: `37 passed`.
+  - `compileall` over runtime, routes, tools, scripts, and tests: passed.
+  - Full pytest: `393 passed, 8 skipped`.
+- No production deployment was performed.

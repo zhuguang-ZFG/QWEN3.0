@@ -23,7 +23,7 @@ def test_build_role_layer_coding_with_ide():
 
 def test_build_role_layer_chat():
     role = build_role_layer("", "chat")
-    assert "技术顾问" in role
+    assert "联网能力" in role
 
 
 def test_build_role_layer_vision():
@@ -33,7 +33,7 @@ def test_build_role_layer_vision():
 
 def test_build_role_layer_unknown_scenario_falls_back_to_chat():
     role = build_role_layer("", "unknown_scenario")
-    assert "技术顾问" in role
+    assert "联网能力" in role
 
 
 def test_build_skill_layer_coding():
@@ -84,7 +84,7 @@ def test_compose_system_prompt_coding_with_ide_and_context():
 
 def test_compose_system_prompt_chat_no_context():
     prompt = compose_system_prompt(ide="", scenario="chat", code_context="")
-    assert "技术顾问" in prompt
+    assert "联网能力" in prompt
     assert "技术问答" in prompt
     assert "质量门控" in prompt
     assert "[上下文]" not in prompt

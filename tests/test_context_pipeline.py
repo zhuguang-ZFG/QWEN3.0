@@ -140,5 +140,5 @@ def test_default_pipeline_chat_scenario():
 
     assert ctx.ide == ""
     assert ctx.scenario == "chat"
-    assert "技术顾问" in ctx.system_prompt
+    assert "联网能力" in ctx.system_prompt
     assert "技术问答" in ctx.system_prompt

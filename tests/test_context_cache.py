@@ -21,7 +21,7 @@ def test_compute_stable_prefix_different_for_different_scenarios():
     chat = compute_stable_prefix("Cursor", "chat")
     assert coding != chat
     assert "编程助手" in coding
-    assert "技术顾问" in chat
+    assert "联网能力" in chat
 
 
 def test_compute_prefix_hash_consistent():

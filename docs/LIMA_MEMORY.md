@@ -843,3 +843,23 @@ Verification:
 - `git diff --check` passed with CRLF warnings only.
 
 Deployment: not performed. Treat this as a local hardening closeout until a separate deployment plan is approved.
+
+## 2026-05-23 Global Code Quality Follow-up P1
+
+Follow-up plan: `docs/superpowers/plans/2026-05-23-global-code-quality-followup-p1.md`.
+
+Closed deployment blockers:
+
+- Prompt tests now assert the current LiMa chat identity wording instead of the older `技术顾问` label.
+- `mimo_web`, `mimo_web_think`, and `mimo_web_flash` are removed from default `ide`/`chat` pools until cookie/auth blockers are resolved and a fresh synthetic eval justifies promotion.
+- Core `routing_engine.route()` is guarded by regression coverage proving it does not import `fc_caller` for ordinary requests.
+- `session_memory/prompt_recall.py` is tracked and covered by a repo manifest test.
+- Identity filtering now applies to first-person model self-identification, not normal third-party facts.
+
+Verification:
+
+- Focused follow-up suite passed: `37 passed`.
+- Compileall passed.
+- Full pytest passed: `393 passed, 8 skipped`.
+
+Deployment: not performed.
