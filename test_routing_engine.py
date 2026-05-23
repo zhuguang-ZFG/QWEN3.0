@@ -157,6 +157,38 @@ def test_cloudflare_code_backends_enter_default_selection_window():
     assert "cfai_qwen_coder" in selected
 
 
+def test_web_reverse_default_routes_have_explicit_admission_policy():
+    import router_v3
+    from backends import BACKENDS
+
+    default_pool_names = {
+        name
+        for groups in router_v3.POOLS.values()
+        for names in groups.values()
+        for name in names
+    }
+    web_reverse = {
+        name for name, cfg in BACKENDS.items()
+        if "localhost:450" in cfg.get("url", "") or name.endswith("_web")
+    }
+    routed = default_pool_names.intersection(web_reverse)
+
+    assert routed
+    for name in routed:
+        cfg = BACKENDS[name]
+        assert cfg.get("admission") in {
+            "code_medium_candidate",
+            "code_floor_candidate",
+            "sandbox_only",
+            "disabled_provider_error",
+        }
+        if cfg.get("private_code_allowed") is True:
+            assert cfg.get("admission") in {
+                "code_medium_candidate",
+                "code_floor_candidate",
+            }
+
+
 def test_local_proxy_backends_require_local_topology(monkeypatch):
     import runtime_topology
 
@@ -326,7 +358,7 @@ def test_route_e2e_chat():
     result = re_.route(
         query="write a python sort function",
         messages=[{"role": "user", "content": "write a python sort function"}],
-        fmt="openai", call_fn=fake_call_fn,
+        fmt="openai", call_fn=fake_call_fn, cache_enabled=False,
     )
     assert result.backend != "exhausted"
     assert result.request_type == "chat"
@@ -341,7 +373,7 @@ def test_route_e2e_ide_no_floor():
         query="refactor this",
         messages=[{"role": "user", "content": "refactor this"}],
         fmt="anthropic", ide_source="Claude Code",
-        call_fn=fake_call_fn,
+        call_fn=fake_call_fn, cache_enabled=False,
     )
     assert result.request_type.startswith("code_")
     # IDE 结果不应来自 floor 后端
@@ -470,6 +502,35 @@ def test_inject_retrieval_context_empty_messages():
 
 # ── Phase 0 regression tests ─────────────────────────────────────────────────
 
+def test_route_uses_shared_retrieval_injection(monkeypatch):
+    calls = {"count": 0}
+
+    def fake_inject(messages):
+        calls["count"] += 1
+        return [{"role": "system", "content": "[retrieval]"}] + list(messages), "[retrieval]"
+
+    monkeypatch.setattr(re_, "inject_retrieval_context", fake_inject)
+    monkeypatch.setattr(re_, "classify_scenario", lambda *a, **kw: "chat")
+    monkeypatch.setattr(re_, "select", lambda *a, **kw: ["unit_backend"])
+    monkeypatch.setattr(re_.health_tracker, "get_health_map", lambda: {})
+
+    def call_fn(backend, messages, max_tokens):
+        assert backend == "unit_backend"
+        assert messages[0]["content"] == "[retrieval]"
+        return "ok done"
+
+    result = re_.route(
+        "hello",
+        [{"role": "user", "content": "hello"}],
+        call_fn=call_fn,
+        cache_enabled=False,
+    )
+
+    assert result.answer == "ok done"
+    assert result.retrieval_context == "[retrieval]"
+    assert calls["count"] == 1
+
+
 def test_empty_backends_no_indexerror(monkeypatch):
     """P1: select() returns [] but speculative succeeds — no IndexError."""
     monkeypatch.setattr(re_, "select", lambda *a, **kw: [])
@@ -480,7 +541,7 @@ def test_empty_backends_no_indexerror(monkeypatch):
     result = re_.route(
         query="hello",
         messages=[{"role": "user", "content": "hello"}],
-        fmt="openai", call_fn=fake_call_fn,
+        fmt="openai", call_fn=fake_call_fn, cache_enabled=False,
     )
     assert result.backend == "exhausted"
     assert result.fallback_used is False
@@ -498,7 +559,7 @@ def test_skill_store_recall_uses_real_scenario(monkeypatch):
     result = re_.route(
         query="write a python sort function",
         messages=msgs,
-        fmt="openai", call_fn=fake_call_fn,
+        fmt="openai", call_fn=fake_call_fn, cache_enabled=False,
     )
     assert result.answer != ""
     assert result.backend != "exhausted"

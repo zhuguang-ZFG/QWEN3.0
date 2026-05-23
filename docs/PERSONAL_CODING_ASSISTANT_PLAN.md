@@ -177,7 +177,7 @@ The next direction is to expand capacity without sacrificing the coding experien
 
 Rules:
 
-- New web AI candidates start in sandbox only.
+- New web AI candidates start in sandbox only. A web-reverse backend may enter default IDE/coding pools only after synthetic three-case eval, explicit `admission` metadata, and an explicit `private_code_allowed` decision in `backends.py`.
 - Do not send private code to untrusted web candidates until they pass admission checks.
 - Treat Duck.ai as first candidate because it has the strongest current confidence signal.
 - Treat HeckAI-style mirrors as research candidates until request shape, rate limits, and ToS risk are clear.
@@ -197,10 +197,9 @@ The personal coding assistant direction is closed when:
 ## Next Steps
 
 1. Inject graph/code retrieval results into prompts with trace evidence.
-2. Add a lightweight always-on memory daemon and inbox ingestion outside the hot path.
-3. Extend Session Memory into typed memories for project facts, code facts, ops events, tests, routing lessons, and reference patterns.
-4. Add `lima-mcp` tools for repo search, memory search, retrieval traces, and `ask_lima` after local retrieval/memory traces prove useful.
-5. Re-run backend evals when keys, rate limits, or local socket policy improve.
+2. Continue hardening prompt-time memory recall now that it is a first-class `server.py` stage with trace/meta evidence.
+3. Add `lima-mcp` tools for repo search, memory search, retrieval traces, and `ask_lima` after local retrieval/memory traces prove useful.
+4. Re-run backend evals when keys, rate limits, or local socket policy improve.
 
 ## 2026-05-23 Reference Architecture Update
 
@@ -214,7 +213,7 @@ Two external projects were reviewed against LiMa's current code state:
 Current LiMa has many primitives already, but the next useful step is depth rather than more modules:
 
 - Graph retrieval should feed prompt context, not only compute reranked candidates.
-- Session Memory should gain typed memory and async consolidation, not just raw turn summaries.
+- Session Memory now has typed memory, a server-lifespan daemon for inbox ingestion/consolidation outside the hot path, and prompt-time recall before routing.
 - The request path should expose retrieval/memory traces for debugging.
 
 Detailed evaluation: `docs/REFERENCE_PROJECT_EVALUATION.md`.

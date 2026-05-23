@@ -12,9 +12,9 @@ BACKENDS = {
     'longcat_thinking': {'url': 'https://api.longcat.chat/anthropic/v1/messages', 'key': os.environ.get('LONGCAT_API_KEY', ''), 'model': 'LongCat-Flash-Thinking-2601', 'fmt': 'anthropic', 'auth': 'bearer'},
     'longcat_omni': {'url': 'https://api.longcat.chat/anthropic/v1/messages', 'key': os.environ.get('LONGCAT_API_KEY', ''), 'model': 'LongCat-Flash-Omni-2603', 'fmt': 'anthropic', 'auth': 'bearer', 'no_system': True},
     'longcat': {'url': 'https://api.longcat.chat/anthropic/v1/messages', 'key': os.environ.get('LONGCAT_API_KEY', ''), 'model': 'LongCat-2.0-Preview', 'fmt': 'anthropic', 'auth': 'bearer'},
-    'longcat_web': {'url': 'http://localhost:4506/v1/chat/completions', 'key': 'local', 'model': 'longcat-web', 'fmt': 'openai', 'timeout': 60},
-    'longcat_web_think': {'url': 'http://localhost:4506/v1/chat/completions', 'key': 'local', 'model': 'longcat-web-think', 'fmt': 'openai', 'timeout': 120},
-    'longcat_web_research': {'url': 'http://localhost:4506/v1/chat/completions', 'key': 'local', 'model': 'longcat-web-research', 'fmt': 'openai', 'timeout': 180},
+    'longcat_web': {'url': 'http://localhost:4506/v1/chat/completions', 'key': 'local', 'model': 'longcat-web', 'fmt': 'openai', 'timeout': 60, 'force_stream_param': True, 'admission': 'code_floor_candidate', 'private_code_allowed': True},
+    'longcat_web_think': {'url': 'http://localhost:4506/v1/chat/completions', 'key': 'local', 'model': 'longcat-web-think', 'fmt': 'openai', 'timeout': 120, 'force_stream_param': True},
+    'longcat_web_research': {'url': 'http://localhost:4506/v1/chat/completions', 'key': 'local', 'model': 'longcat-web-research', 'fmt': 'openai', 'timeout': 180, 'force_stream_param': True},
     'nvidia_nemotron': {'url': 'https://integrate.api.nvidia.com/v1/chat/completions', 'key': os.environ.get('NVIDIA_API_KEY', ''), 'model': 'nvidia/llama-3.3-nemotron-super-49b-v1', 'fmt': 'openai'},
     'nvidia_llama70b': {'url': 'https://integrate.api.nvidia.com/v1/chat/completions', 'key': os.environ.get('NVIDIA_API_KEY', ''), 'model': 'meta/llama-3.3-70b-instruct', 'fmt': 'openai'},
     'nvidia_qwen_coder': {'url': 'https://integrate.api.nvidia.com/v1/chat/completions', 'key': os.environ.get('NVIDIA_API_KEY', ''), 'model': 'qwen/qwen3-coder-480b-a35b-instruct', 'fmt': 'openai'},
@@ -193,8 +193,15 @@ BACKENDS = {
     'kimi': {'url': 'http://localhost:4504/v1/chat/completions', 'key': 'none', 'model': 'kimi', 'fmt': 'openai', 'timeout': 30},
     'kimi_thinking': {'url': 'http://localhost:4504/v1/chat/completions', 'key': 'none', 'model': 'kimi-thinking', 'fmt': 'openai', 'timeout': 45},
     'kimi_search': {'url': 'http://localhost:4504/v1/chat/completions', 'key': 'none', 'model': 'kimi-search', 'fmt': 'openai', 'timeout': 60},
+    # ── MiMo 小米 (本地代理 port 4507, 网页逆向) ──
+    'mimo_web': {'url': 'http://localhost:4507/v1/chat/completions', 'key': 'none', 'model': 'mimo-web', 'fmt': 'openai', 'timeout': 60, 'force_stream_param': True, 'admission': 'sandbox_only', 'private_code_allowed': False},
+    'mimo_web_think': {'url': 'http://localhost:4507/v1/chat/completions', 'key': 'none', 'model': 'mimo-web-think', 'fmt': 'openai', 'timeout': 120, 'force_stream_param': True, 'admission': 'sandbox_only', 'private_code_allowed': False},
+    'mimo_web_flash': {'url': 'http://localhost:4507/v1/chat/completions', 'key': 'none', 'model': 'mimo-web-flash', 'fmt': 'openai', 'timeout': 30, 'force_stream_param': True, 'admission': 'sandbox_only', 'private_code_allowed': False},
+    # ── MiMo TTS (官方API, 限时免费) ──
+    'mimo_tts': {'url': 'https://api.xiaomimimo.com/v1/chat/completions', 'key': os.environ.get('MIMO_TTS_KEY', ''), 'model': 'mimo-v2.5-tts', 'fmt': 'openai', 'timeout': 30},
+    'mimo_tts_v2': {'url': 'https://api.xiaomimimo.com/v1/chat/completions', 'key': os.environ.get('MIMO_TTS_KEY', ''), 'model': 'mimo-v2-tts', 'fmt': 'openai', 'timeout': 30},
     # ── SCNet 大上下文 (本地代理, 文件上传突破 5 万字符限制, 需登录) ──
-    'scnet_large_ds_flash': {'url': 'http://localhost:4505/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-flash', 'fmt': 'openai', 'timeout': 60},
+    'scnet_large_ds_flash': {'url': 'http://localhost:4505/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-flash', 'fmt': 'openai', 'timeout': 60, 'admission': 'code_medium_candidate', 'private_code_allowed': True},
     'scnet_large_ds_pro': {'url': 'http://localhost:4505/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-pro', 'fmt': 'openai', 'timeout': 90},
 }
 

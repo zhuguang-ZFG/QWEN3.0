@@ -16,6 +16,7 @@ import telegram_bot
 from routes.telegram_commands import (
     cmd_chat, cmd_clear, cmd_code, cmd_top, cmd_uptime,
     cmd_eval, cmd_task, cmd_tasks, cmd_cache, cmd_stop, start_probe_loop,
+    cmd_voice, cmd_voicechat, start_broadcast_loop,
 )
 
 logger = logging.getLogger(__name__)
@@ -23,6 +24,44 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/telegram")
 
 _WEBHOOK_SECRET = os.environ.get("TELEGRAM_WEBHOOK_SECRET", "")
+_voicechat_enabled: dict[str, bool] = {}
+
+
+async def _handle_voice_message(chat_id: str, voice: dict) -> None:
+    """STT: 用户发语音 → 转文字 → 当作文字消息处理。"""
+    try:
+        import stt
+        file_id = voice.get("file_id", "")
+        text = await stt.voice_to_text(file_id)
+        if not text:
+            await telegram_bot.send_message("(语音识别失败)", chat_id=chat_id)
+            return
+        await telegram_bot.send_message(f"🎤 {text}", chat_id=chat_id)
+        await cmd_chat(chat_id, text)
+    except Exception as e:
+        logger.exception("Voice STT failed")
+        await telegram_bot.send_message(f"Voice error: {e}", chat_id=chat_id)
+
+
+async def _send_voicechat_reply(chat_id: str, user_text: str) -> None:
+    """voicechat 模式：对最后一条 AI 回复生成语音。"""
+    try:
+        from routes.telegram_commands import _get_history
+        history = _get_history(chat_id)
+        if not history:
+            return
+        last_msg = history[-1]
+        if last_msg.get("role") != "assistant":
+            return
+        reply_text = last_msg.get("content", "")[:500]
+        if not reply_text:
+            return
+        import mimo_tts
+        ogg = await mimo_tts.tts_ogg(reply_text)
+        if ogg:
+            await telegram_bot.send_voice(ogg, chat_id=chat_id)
+    except Exception as e:
+        logger.warning(f"Voicechat TTS failed: {e}")
 
 
 def _get_webhook_secret() -> str:
@@ -160,6 +199,10 @@ async def _dispatch_command(chat_id: str, text: str) -> None:
         await cmd_stop(chat_id, arg.strip())
     elif cmd == "/cache":
         await cmd_cache(chat_id)
+    elif cmd == "/voice":
+        await cmd_voice(chat_id, arg)
+    elif cmd == "/voicechat":
+        await cmd_voicechat(chat_id, arg)
     elif cmd == "/logs":
         await _cmd_logs(chat_id, arg.strip())
     elif cmd == "/restart":
@@ -167,7 +210,7 @@ async def _dispatch_command(chat_id: str, text: str) -> None:
     elif cmd == "/start":
         await telegram_bot.send_message(
             "LiMa Bot ready.\n/status /health /budget /top /uptime\n"
-            "/chat /clear /code /eval\n/logs /restart /task /tasks",
+            "/chat /clear /code /eval /voice\n/logs /restart /task /tasks",
             chat_id=chat_id,
         )
     else:
@@ -231,7 +274,14 @@ async def webhook(request: Request):
     elif message and message.get("text"):
         chat_id = str(message["chat"]["id"])
         if telegram_bot.is_authorized(chat_id):
-            await cmd_chat(chat_id, message["text"])
+            text = message["text"]
+            await cmd_chat(chat_id, text)
+            if _voicechat_enabled.get(chat_id):
+                await _send_voicechat_reply(chat_id, text)
+    elif message and message.get("voice"):
+        chat_id = str(message["chat"]["id"])
+        if telegram_bot.is_authorized(chat_id):
+            await _handle_voice_message(chat_id, message["voice"])
     elif callback_query:
         cb_chat_id = str(callback_query.get("message", {}).get("chat", {}).get("id", ""))
         if not telegram_bot.is_authorized(cb_chat_id):
@@ -255,6 +305,7 @@ async def setup_webhook(body: SetupBody):
 
 _DIGEST_HOUR = int(os.environ.get("TELEGRAM_DIGEST_HOUR", "9"))
 _last_digest_day: str = ""
+_startup_started = False
 
 
 async def _send_daily_digest() -> None:
@@ -289,8 +340,11 @@ async def _digest_loop() -> None:
                 logger.exception("Daily digest failed")
 
 
-@router.on_event("startup")
-async def _start_digest_task():
-    if telegram_bot.is_configured():
-        asyncio.create_task(_digest_loop())
-        await start_probe_loop()
+async def start_telegram_webhook() -> None:
+    global _startup_started
+    if _startup_started or not telegram_bot.is_configured():
+        return
+    _startup_started = True
+    asyncio.create_task(_digest_loop())
+    await start_probe_loop()
+    await start_broadcast_loop()

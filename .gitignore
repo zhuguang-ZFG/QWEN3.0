@@ -61,6 +61,7 @@ logs/
 /run_debug*.py
 /run_r*_test.py
 /stress*_runner.py
+/mimo_tts.py
 /net/auto_deploy.py
 
 # === 系统 ===

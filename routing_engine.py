@@ -328,59 +328,11 @@ def route(query: str, messages: list[dict], *,
         pass
 
     # ── Integration: Entity Extraction (Phase 23) ─────────────────────────
-    _extracted_entities = []
-    try:
-        from context_pipeline.entity_extraction import extract_entities
-        raw_msgs = [{"role": m.get("role", ""), "content": m.get("content", "")} if isinstance(m, dict) else {"role": getattr(m, "role", ""), "content": getattr(m, "content", "")} for m in messages]
-        _entities = extract_entities(raw_msgs)
-        _extracted_entities = _entities.to_query_terms()
-    except ImportError:
-        pass
+    messages, _retrieval_text = inject_retrieval_context(messages)
 
     # ── Integration: Graph Retrieval + Reranking (Phase 24/25) ────────────
-    _reranked = []
-    try:
-        from context_pipeline.code_scanner import get_code_graph
-        from context_pipeline.graph_retrieval import dual_layer_search, RetrievalResult
-        from context_pipeline.reranking import rerank_results, format_for_injection
-        if _extracted_entities:
-            _graph = get_code_graph()
-            _vector_results = [RetrievalResult(path=e, score=0.7, source="vector") for e in _extracted_entities[:5]]
-            _merged = dual_layer_search(_extracted_entities, _vector_results, _graph, max_results=8)
-            _reranked = rerank_results(_merged, _extracted_entities, top_k=5)
-    except ImportError:
-        pass
 
     # ── Integration: Retrieval Injection (Phase 26) ──────────────────────
-    _retrieval_text = ""
-    if _reranked:
-        try:
-            from context_pipeline.reranking import format_for_injection
-            _retrieval_text = format_for_injection(_reranked)
-            if _retrieval_text:
-                retrieval_msg = {"role": "system", "content": _retrieval_text}
-                messages = list(messages)
-                if messages and messages[0].get("role") == "system":
-                    messages.insert(1, retrieval_msg)
-                else:
-                    messages.insert(0, retrieval_msg)
-            # Record retrieval trace
-            from context_pipeline.retrieval_trace import record_trace, RetrievalTrace
-            record_trace(RetrievalTrace(
-                query_entities=_extracted_entities,
-                candidates_searched=len(_merged) if "_merged" in dir() else 0,
-                reranked_results=[
-                    {"path": r.path, "score": round(r.score, 2), "source": r.source}
-                    for r in _reranked
-                ],
-                injected_text=_retrieval_text,
-                injected_chars=len(_retrieval_text),
-                scenario=scenario,
-                request_type=req_type,
-            ))
-        except ImportError:
-            pass
-
     # ── Integration: Complexity Assessment (Phase 14) ─────────────────────
     try:
         from context_pipeline.complexity import assess_complexity, decide_topology

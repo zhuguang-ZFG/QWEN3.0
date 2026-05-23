@@ -80,6 +80,7 @@ class TestTelegramNotify:
             with patch.object(telegram_notify, "_fire_and_forget") as mock_ff:
                 telegram_notify.notify_health_change("test_be", "healthy", "dead")
                 mock_ff.assert_called_once()
+                assert mock_ff.call_args.args[0] is telegram_bot.send_alert
 
     def test_notify_health_rate_limited(self):
         telegram_notify._health_last_notified.clear()
@@ -95,6 +96,7 @@ class TestTelegramNotify:
             with patch.object(telegram_notify, "_fire_and_forget") as mock_ff:
                 telegram_notify.notify_health_change("x", "healthy", "degraded")
                 mock_ff.assert_called_once()
+                assert mock_ff.call_args.args[0] is telegram_bot.send_alert
 
     def test_notify_health_degraded_from_degraded_ignored(self):
         with patch.object(telegram_bot, "is_configured", return_value=True):
@@ -106,7 +108,12 @@ class TestTelegramNotify:
         with patch.object(telegram_bot, "is_configured", return_value=True):
             with patch.object(telegram_notify, "_fire_and_forget") as mock_ff:
                 telegram_notify.notify_task_ready("t1", "Fix", ["a.py"])
-                mock_ff.assert_called_once()
+                mock_ff.assert_called_once_with(
+                    telegram_bot.send_approval,
+                    "t1",
+                    "Fix",
+                    ["a.py"],
+                )
 
     def test_not_configured_skips(self):
         with patch.object(telegram_bot, "is_configured", return_value=False):

@@ -8,10 +8,13 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from routes.admin import router as admin_router
+from routes.admin_agent_audit import router as admin_agent_audit_router
+import routes.admin_auth as admin_auth
 from routes.agent_tasks import _reset_for_tests, router as agent_router
 
 app = FastAPI()
 app.include_router(admin_router)
+app.include_router(admin_agent_audit_router)
 app.include_router(agent_router)
 client = TestClient(app)
 HEADERS = {"Authorization": "Bearer test-admin-token"}
@@ -41,3 +44,30 @@ def test_admin_agent_audit_returns_agent_tasks():
     assert data["count"] == 1
     assert data["tasks"][0]["task_id"] == task_id
     assert data["tasks"][0]["status"] == "accepted"
+
+
+def test_admin_agent_audit_auth_uses_runtime_env_after_prior_admin_import(monkeypatch):
+    import routes.admin as admin_routes
+
+    monkeypatch.setattr(admin_auth, "_ADMIN_TOKEN", "")
+    monkeypatch.setenv("LIMA_ADMIN_TOKEN", "runtime-admin-token")
+
+    app = FastAPI()
+    app.include_router(admin_routes.router)
+    app.include_router(admin_agent_audit_router)
+    app.include_router(agent_router)
+    local_client = TestClient(app)
+
+    local_client.post("/agent/tasks", json={
+        "repo": "D:/GIT/deepcode-cli",
+        "goal": "runtime admin token",
+        "allowed_tools": ["git_diff"],
+        "mode": "review",
+    }, headers={"Authorization": "Bearer runtime-admin-token"})
+
+    resp = local_client.get(
+        "/admin/api/agent-audit",
+        headers={"Authorization": "Bearer runtime-admin-token"},
+    )
+
+    assert resp.status_code == 200

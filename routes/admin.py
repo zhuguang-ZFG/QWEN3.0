@@ -3,15 +3,19 @@ import os
 import sys
 import json
 import time
-import hashlib
-import hmac
-import secrets
 import threading
 import subprocess
-from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Request, Response
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 import smart_router
+from routes.admin_auth import (
+    SESSION_COOKIE,
+    admin_session_value,
+    get_admin_token,
+    is_valid_admin_session,
+    verify_admin,
+)
 
 # Shared state injected from server.py at import time.
 # server.py calls: routes.admin.inject_state(_stats, _stats_lock, _backend_enabled)
@@ -31,45 +35,10 @@ def inject_state(stats: dict, stats_lock: threading.Lock, backend_enabled: dict)
 
 router = APIRouter(prefix="/admin")
 
-_ADMIN_TOKEN = os.environ.get("LIMA_ADMIN_TOKEN", "")
-_SESSION_COOKIE = "lima_admin_session"
-
-
-def _admin_session_value() -> str:
-    return hmac.new(
-        _ADMIN_TOKEN.encode("utf-8"),
-        b"lima-admin-session",
-        hashlib.sha256,
-    ).hexdigest()
-
-
-def _is_valid_admin_session(value: str) -> bool:
-    return bool(
-        _ADMIN_TOKEN
-        and value
-        and secrets.compare_digest(value, _admin_session_value())
-    )
-
-
-async def _verify_admin(
-    authorization: str = Header(default=""),
-    lima_admin_session: str = Cookie(default=""),
-) -> None:
-    """管理接口认证。需设置 LIMA_ADMIN_TOKEN 环境变量。"""
-    if not _ADMIN_TOKEN:
-        raise HTTPException(
-            status_code=503,
-            detail="LiMa admin token is not configured.",
-        )
-    if _is_valid_admin_session(lima_admin_session):
-        return
-    if authorization != f"Bearer {_ADMIN_TOKEN}" and authorization != _ADMIN_TOKEN:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-
 
 # ── Stats / Logs ───────────────────────────────────────────────────────────────
 
-@router.get("/api/stats", dependencies=[Depends(_verify_admin)])
+@router.get("/api/stats", dependencies=[Depends(verify_admin)])
 async def admin_stats():
     """返回实时统计数据。"""
     with _stats_lock:
@@ -99,14 +68,14 @@ async def admin_stats():
         }
 
 
-@router.get("/api/logs", dependencies=[Depends(_verify_admin)])
+@router.get("/api/logs", dependencies=[Depends(verify_admin)])
 async def admin_logs():
     """返回最近请求日志。"""
     with _stats_lock:
         return list(reversed(_stats["recent_logs"][-10:]))
 
 
-@router.get("/api/retrieval-traces", dependencies=[Depends(_verify_admin)])
+@router.get("/api/retrieval-traces", dependencies=[Depends(verify_admin)])
 async def admin_retrieval_traces():
     """返回最近的 retrieval injection 追踪记录。"""
     try:
@@ -116,22 +85,9 @@ async def admin_retrieval_traces():
         return []
 
 
-@router.get("/api/agent-audit", dependencies=[Depends(_verify_admin)])
-async def admin_agent_audit(limit: int = 20):
-    from routes.agent_tasks import _store, _task_audit_item
-    safe_limit = max(1, min(int(limit), 100))
-    tasks = list(_store.values())
-    tasks.sort(
-        key=lambda t: t.get("updated_at", t.get("created_at", 0)),
-        reverse=True,
-    )
-    items = [_task_audit_item(task) for task in tasks[:safe_limit]]
-    return {"tasks": items, "count": len(items)}
-
-
 # ── Backends ───────────────────────────────────────────────────────────────────
 
-@router.get("/api/backends", dependencies=[Depends(_verify_admin)])
+@router.get("/api/backends", dependencies=[Depends(verify_admin)])
 async def admin_backends():
     """返回后端列表和状态。"""
     cb = smart_router.cb_status()
@@ -225,7 +181,7 @@ def _test_backend_sync(name: str) -> dict:
         return {"ok": False, "latency_ms": elapsed, "error": str(e)[:200]}
 
 
-@router.post("/api/backends", dependencies=[Depends(_verify_admin)])
+@router.post("/api/backends", dependencies=[Depends(verify_admin)])
 async def admin_add_backend(req: Request):
     """添加新后端。"""
     body = await req.json()
@@ -257,7 +213,7 @@ async def admin_add_backend(req: Request):
         return {"ok": True, "message": f"backend '{name}' added but DISABLED (test failed: {e})", "enabled": False}
 
 
-@router.delete("/api/backends/{name}", dependencies=[Depends(_verify_admin)])
+@router.delete("/api/backends/{name}", dependencies=[Depends(verify_admin)])
 async def admin_delete_backend(name: str):
     """删除后端。"""
     if name not in smart_router.BACKENDS:
@@ -267,7 +223,7 @@ async def admin_delete_backend(name: str):
     return {"ok": True, "message": f"backend '{name}' deleted"}
 
 
-@router.post("/api/backends/{name}/toggle", dependencies=[Depends(_verify_admin)])
+@router.post("/api/backends/{name}/toggle", dependencies=[Depends(verify_admin)])
 async def admin_toggle_backend(name: str):
     """启用/禁用后端。"""
     if name not in smart_router.BACKENDS:
@@ -277,7 +233,7 @@ async def admin_toggle_backend(name: str):
     return {"ok": True, "enabled": not current}
 
 
-@router.post("/api/backends/{name}/test", dependencies=[Depends(_verify_admin)])
+@router.post("/api/backends/{name}/test", dependencies=[Depends(verify_admin)])
 async def admin_test_backend(name: str):
     """测试后端可用性：发送简单请求验证连通性。"""
     if name not in smart_router.BACKENDS:
@@ -287,7 +243,7 @@ async def admin_test_backend(name: str):
 
 # ── Model status / retrain ─────────────────────────────────────────────────────
 
-@router.get("/api/model-status", dependencies=[Depends(_verify_admin)])
+@router.get("/api/model-status", dependencies=[Depends(verify_admin)])
 async def admin_model_status():
     """返回模型和自动训练状态。"""
     fallback_log = FALLBACK_LOG
@@ -312,7 +268,7 @@ async def admin_model_status():
     }
 
 
-@router.post("/api/retrain", dependencies=[Depends(_verify_admin)])
+@router.post("/api/retrain", dependencies=[Depends(verify_admin)])
 async def admin_trigger_retrain():
     """手动触发自动训练。"""
     result = subprocess.run(
@@ -611,9 +567,9 @@ async def admin_page(
     lima_admin_session: str = Cookie(default=""),
 ):
     """管理后台 Web UI。仅支持 HttpOnly session cookie 访问。"""
-    if not _ADMIN_TOKEN:
+    if not get_admin_token():
         raise HTTPException(503, "LIMA_ADMIN_TOKEN not configured")
-    authenticated = _is_valid_admin_session(lima_admin_session)
+    authenticated = is_valid_admin_session(lima_admin_session)
     if not authenticated:
         return HTMLResponse(
             "<h2>Admin Login</h2>"
@@ -630,7 +586,8 @@ async def admin_login(request: Request):
     """POST 登录，设置 httponly cookie。"""
     form = await request.form()
     token = form.get("token", "")
-    if token != _ADMIN_TOKEN:
+    token_expected = get_admin_token()
+    if token != token_expected:
         return HTMLResponse(
             "<h2>Admin Login</h2><p style='color:red'>Token 错误</p>"
             '<form method="post" action="/admin/login">'
@@ -640,8 +597,8 @@ async def admin_login(request: Request):
         )
     response = RedirectResponse("/admin", status_code=303)
     response.set_cookie(
-        _SESSION_COOKIE,
-        _admin_session_value(),
+        SESSION_COOKIE,
+        admin_session_value(),
         httponly=True, secure=True, samesite="strict", max_age=86400,
     )
     return response
@@ -651,5 +608,5 @@ async def admin_login(request: Request):
 async def admin_logout():
     """清除 cookie 并跳转登录页。"""
     response = RedirectResponse("/admin", status_code=303)
-    response.delete_cookie(_SESSION_COOKIE, secure=True, samesite="strict")
+    response.delete_cookie(SESSION_COOKIE, secure=True, samesite="strict")
     return response

@@ -794,3 +794,108 @@ Verification note:
 - Environment note:
   - `D:\GIT\venv\Scripts\python.exe -m pytest ...` still fails before collection because the venv lacks `pytest_asyncio`; system `python` was used for meaningful test evidence.
 - No production deployment was performed.
+
+## 2026-05-23 Web-Reverse Model Admission Batch
+
+- Added a dedicated web-reverse/local-proxy admission path instead of directly promoting every web adapter into hot IDE routes.
+- Added `web_reverse_eval.py`:
+  - discovers registered web-reverse candidates from `data/local_reverse_ai_inventory.json` plus registry-only `localhost:45xx` web proxies;
+  - uses synthetic public coding prompts only;
+  - writes evidence-backed route promotion recommendations;
+  - requires a full three-case batch before emitting route-candidate recommendations.
+- Added `scripts/eval_web_reverse_models.py` with dry-run, explicit backend selection, JSON/Markdown outputs, and `--timeout-cap` for broad smoke batches.
+- Added `tests/test_web_reverse_eval.py`.
+- Full 29-backend smoke used only the public `public_python_bugfix` fixture:
+  - passing: `scnet_large_ds_flash`, `scnet_large_ds_pro`, `kimi`, `kimi_thinking`, `kimi_search`, `longcat_web`, `longcat_web_research`;
+  - DDG returned HTTP 530;
+  - OldLLM returned HTTP 502;
+  - `longcat_web_think` returned malformed/non-code output for the public Python fixture;
+  - MiMo web is now correctly classified as cookie/auth failure, not JSON adapter failure.
+- Phase 2 three-case eval:
+  - `scnet_large_ds_flash`: `code_medium_candidate`, 3/3, avg 2363ms;
+  - `scnet_large_ds_pro`: `code_medium_candidate`, 3/3, avg 3986ms;
+  - `kimi`, `kimi_thinking`, `kimi_search`: `code_floor_candidate`, 2/3 each, failing strict JSON tool output;
+  - `longcat_web`: `code_floor_candidate`, 2/3, failing strict JSON tool output;
+  - `longcat_web_research`: not a coding route candidate in the current fixture set.
+- Evidence files:
+  - `data/web_reverse_model_smoke.json`
+  - `docs/WEB_REVERSE_MODEL_SMOKE.md`
+  - `data/web_reverse_model_eval.json`
+  - `docs/WEB_REVERSE_MODEL_EVAL.md`
+- Verification:
+  - `D:\GIT\venv\Scripts\python.exe -m py_compile web_reverse_eval.py scripts\eval_web_reverse_models.py`: passed.
+  - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_web_reverse_eval.py -q --ignore=active_model`: `9 passed`.
+  - `D:\GIT\venv\Scripts\python.exe scripts\eval_web_reverse_models.py --dry-run --timeout-cap 15`: listed 29 candidates without network calls.
+- Environment note: installed missing `pytest-asyncio` into the local venv so the repo's existing `tests/conftest.py` can load.
+- No production deployment was performed.
+
+## 2026-05-23 Web-Reverse Non-JSON Adapter Fix
+
+- Root cause:
+  - LongCat/MiMo web proxies default `/v1/chat/completions` to `stream=True`.
+  - LiMa non-stream `http_caller.call_api()` omitted `stream:false`, so these proxies returned SSE.
+  - `call_api()` then tried to parse the SSE body as JSON and raised `Expecting value`.
+- Fix:
+  - Added `force_stream_param` support in `http_caller._build_body()`.
+  - Set `force_stream_param: True` for `longcat_web`, `longcat_web_think`, `longcat_web_research`, `mimo_web`, `mimo_web_think`, and `mimo_web_flash`.
+  - Added web-proxy control error markers to `response_cleaner`.
+  - Added ASCII control-error strings in local `mimo_web_proxy.py` and `longcat_web_proxy.py` for future clean reports after proxy restart.
+  - Added regression coverage in `test_http_caller.py` and `tests/test_web_reverse_eval.py`.
+- Verification:
+  - `D:\GIT\venv\Scripts\python.exe -m py_compile http_caller.py backends.py response_cleaner.py web_reverse_eval.py scripts\eval_web_reverse_models.py test_http_caller.py tests\test_web_reverse_eval.py mimo_web_proxy.py longcat_web_proxy.py`: passed.
+  - `D:\GIT\venv\Scripts\python.exe -m pytest test_http_caller.py tests\test_web_reverse_eval.py -q --ignore=active_model`: `42 passed`.
+  - `D:\GIT\venv\Scripts\python.exe scripts\eval_web_reverse_models.py --max-cases 1 --timeout-cap 12 ...`: refreshed 29-candidate smoke.
+  - `D:\GIT\venv\Scripts\python.exe scripts\eval_web_reverse_models.py --backends scnet_large_ds_flash,scnet_large_ds_pro,kimi,kimi_thinking,kimi_search,longcat_web,longcat_web_research ...`: refreshed phase 2 eval.
+- Current conclusion:
+  - LongCat non-stream adapter path is fixed; `longcat_web` is now a `code_floor_candidate`.
+  - MiMo adapter path is fixed enough to classify the real blocker: expired local cookie. Refresh/restart MiMo proxy before retesting.
+- No production deployment was performed.
+
+## 2026-05-23 Memory Daemon Closeout
+
+- Closed the gap where documentation described Session Memory as request-path-only:
+  - `server.py` already starts `session_memory.daemon` during FastAPI lifespan.
+  - This round added lifecycle state, idempotent start, async stop/cancel, status reporting, dynamic env config, and a single-cycle runner.
+- Added `scripts/memory_daemon_ctl.py`:
+  - `status` prints daemon config/status as JSON.
+  - `run-once` ingests `LIMA_MEMORY_INBOX` and consolidates sessions once outside `/v1/chat/completions`.
+- Added tests proving:
+  - inbox ingestion archives processed files and writes typed memories;
+  - consolidation can run through `run_once(ingest=False, consolidate=True)` without a request;
+  - `start_daemon()` is idempotent and `stop_daemon()` cancels the tracked task;
+  - CLI `status` and `run-once` output JSON.
+- Updated `STATUS.md`, `docs/LIMA_MEMORY.md`, and `docs/PERSONAL_CODING_ASSISTANT_PLAN.md`.
+- Remaining memory work after this daemon closeout was prompt-time recall; that is closed in the next section.
+- No VPS deployment was performed in this local closeout.
+
+## 2026-05-23 Prompt-Time Memory Recall
+
+- Added `session_memory/prompt_recall.py` as the server-facing recall integration layer.
+- `server.py` now runs prompt-time memory recall after trace creation and before token budget checks, user-identity adaptation, `smart_router.analyze()`, non-streaming `v3_route()`, OpenAI streaming, and fallback retry messages.
+- The post-response SQLite write now uses the same header-derived memory session id when prompt recall is active, so future recall reads the same session that successful responses write.
+- Trace/response evidence is metadata-only:
+  - trace span: `prompt_memory_recall`;
+  - OpenAI response meta: `x_lima_meta.memory_recall`;
+  - recalled memory text is not copied into trace metadata.
+- Added `tests/test_prompt_memory_recall.py`.
+- Verification:
+  - `D:\GIT\venv\Scripts\python.exe -m py_compile session_memory\prompt_recall.py server.py tests\test_prompt_memory_recall.py`: passed.
+  - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_prompt_memory_recall.py tests\test_session_memory.py tests\test_compactor.py tests\test_typed_memory.py -q --ignore=active_model`: `34 passed`.
+  - Extended server regression with Anthropic protocol, fallback context, and streaming tests: `44 passed`.
+  - `git diff --check`: passed with CRLF warnings only.
+- No production deployment was performed.
+
+## 2026-05-23 Global Code Quality Hardening
+
+- Fixed admin auth import-order determinism by moving current-token decisions to runtime lookup and then extracting admin auth helpers.
+- Removed hardcoded runtime secret literals from active runtime files and quarantined local-only MiMo TTS/debug script risk.
+- Made web-reverse admission explicit in backend metadata and docs.
+- Consolidated `routing_engine.route()` retrieval injection onto the shared `inject_retrieval_context()` path.
+- Split admin agent audit into `routes/admin_agent_audit.py`.
+- Extracted server prompt-context staging into `server_context.py`.
+- Replaced Telegram router startup `on_event` with explicit lifespan startup and removed Telegram notify coroutine-not-awaited warnings.
+- Verification:
+  - `D:\GIT\venv\Scripts\python.exe -m compileall -q server.py routing_engine.py router_v3.py http_caller.py backends.py response_cleaner.py context_pipeline session_memory routes tool_gateway scripts tests`: passed.
+  - `D:\GIT\venv\Scripts\python.exe -m pytest -q --ignore=active_model`: `391 passed, 8 skipped`.
+  - `git diff --check`: passed with CRLF warnings only.
+- No production deployment was performed.

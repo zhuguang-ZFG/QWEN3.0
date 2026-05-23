@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 import access_guard
 import routes.admin as admin_routes
+import routes.admin_auth as admin_auth
 
 
 def test_configured_api_keys_accepts_primary_and_list(monkeypatch):
@@ -50,16 +51,18 @@ def test_private_api_key_fails_closed_when_unconfigured(monkeypatch):
 
 
 def test_admin_auth_fails_closed_without_configured_token(monkeypatch):
-    monkeypatch.setattr(admin_routes, "_ADMIN_TOKEN", "")
+    monkeypatch.setattr(admin_auth, "_ADMIN_TOKEN", "")
+    monkeypatch.delenv("LIMA_ADMIN_TOKEN", raising=False)
 
     with pytest.raises(HTTPException) as exc:
-        asyncio.run(admin_routes._verify_admin(""))
+        asyncio.run(admin_auth.verify_admin(""))
 
     assert exc.value.status_code == 503
 
 
 def test_admin_page_rejects_query_token_login(monkeypatch):
-    monkeypatch.setattr(admin_routes, "_ADMIN_TOKEN", "secret-admin-token")
+    monkeypatch.setattr(admin_auth, "_ADMIN_TOKEN", "secret-admin-token")
+    monkeypatch.delenv("LIMA_ADMIN_TOKEN", raising=False)
     app = FastAPI()
     app.include_router(admin_routes.router)
     client = TestClient(app, base_url="https://testserver")
@@ -70,7 +73,8 @@ def test_admin_page_rejects_query_token_login(monkeypatch):
 
 
 def test_admin_page_does_not_render_admin_token_after_cookie_login(monkeypatch):
-    monkeypatch.setattr(admin_routes, "_ADMIN_TOKEN", "secret-admin-token")
+    monkeypatch.setattr(admin_auth, "_ADMIN_TOKEN", "secret-admin-token")
+    monkeypatch.delenv("LIMA_ADMIN_TOKEN", raising=False)
     app = FastAPI()
     app.include_router(admin_routes.router)
     client = TestClient(app, base_url="https://testserver")

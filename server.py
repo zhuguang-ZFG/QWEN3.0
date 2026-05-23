@@ -77,12 +77,17 @@ async def lifespan(application):
         await start_daemon()
     except ImportError:
         pass
+    try:
+        from routes.telegram import start_telegram_webhook
+        await start_telegram_webhook()
+    except ImportError:
+        pass
     yield
     import probe_loop
     probe_loop.stop()
     try:
         from session_memory.daemon import stop_daemon
-        stop_daemon()
+        await stop_daemon()
     except ImportError:
         pass
 
@@ -151,6 +156,7 @@ from response_builder import (
     make_chat_id, build_response, build_stream_chunk,
     build_anthropic_response, extract_query, messages_to_dicts,
 )
+from server_context import build_prompt_context, messages_with_system_context
 
 
 # ── Deep Thinking Mode Helper ─────────────────────────────────────────────────
@@ -197,6 +203,12 @@ def extract_system_prompt(messages: list[Message]) -> str | None:
         if msg.role == "system" and msg.content:
             return msg.content
     return None
+
+
+def _attach_memory_recall_meta(response: dict, memory_meta: dict) -> dict:
+    if memory_meta.get("checked") and isinstance(response, dict):
+        response.setdefault("x_lima_meta", {})["memory_recall"] = memory_meta
+    return response
 
 
 def _log_sys_prompt(sys_prompt: str) -> None:
@@ -314,7 +326,14 @@ async def chat_completions(request: Request):
     req = ChatRequest(**body)
     if body.get("thinking", False):
         req.thinking = True
-    return await _handle_chat(req, fmt="openai", client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
+    return await _handle_chat(
+        req,
+        fmt="openai",
+        client_ip=client_ip,
+        ide_source=ide_source,
+        sys_prompt_preview=sys_prompt_preview,
+        request_headers=dict(request.headers),
+    )
 
 
 @app.post("/v1/messages", dependencies=[Depends(require_private_api_key)])
@@ -476,7 +495,15 @@ async def anthropic_messages(req: Request):
             media_type="text/event-stream",
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
         )
-    return await _handle_chat(chat_req, fmt="anthropic", request_model=req_model, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
+    return await _handle_chat(
+        chat_req,
+        fmt="anthropic",
+        request_model=req_model,
+        client_ip=client_ip,
+        ide_source=ide_source,
+        sys_prompt_preview=sys_prompt_preview,
+        request_headers=dict(req.headers),
+    )
 
 
 # ── Anthropic streaming (extracted to routes/anthropic_stream.py) ────────────
@@ -494,7 +521,7 @@ _inject_anthropic_stream_deps(
 )
 
 
-async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str = None, client_ip: str = "", ide_source: str = "", sys_prompt_preview: str = ""):
+async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str = None, client_ip: str = "", ide_source: str = "", sys_prompt_preview: str = "", request_headers: dict | None = None):
     query = extract_query(req.messages)
     if not query.strip():
         raise HTTPException(status_code=400, detail="Empty query")
@@ -520,14 +547,30 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
     except ImportError:
         trace = None
 
+    prompt_ctx = build_prompt_context(
+        req,
+        system_prompt=extract_system_prompt(req.messages) or sys_prompt_preview or "",
+        request_headers=request_headers,
+        client_ip=client_ip,
+        ide_source=ide_source,
+        trace=trace,
+    )
+    request_messages = prompt_ctx.request_messages
+    prompt_context_messages = prompt_ctx.prompt_context_messages
+    sys_prompt_preview = prompt_ctx.system_prompt
+    memory_recall_meta = prompt_ctx.memory_recall_meta
+    memory_session_id = prompt_ctx.memory_session_id
+
     # ── Integration: Token Budget (Phase 21) ──────────────────────────────
     try:
         from context_pipeline.token_budget import check_budget, estimate_request_tokens
-        raw_msgs = [{"role": m.role, "content": m.content} if hasattr(m, 'role') else m for m in req.messages]
-        budget_status = check_budget(raw_msgs, sys_prompt_preview or "", "coding" if ide_source else "chat")
+        budget_status = check_budget(request_messages, sys_prompt_preview or "", "coding" if ide_source else "chat")
         if not budget_status["within_budget"] and budget_status["action"] == "truncate_context":
             if len(req.messages) > 10:
                 req.messages = req.messages[:3] + req.messages[-7:]
+                request_messages = messages_to_dicts(req.messages)
+                prompt_context_messages = messages_with_system_context(
+                    request_messages, sys_prompt_preview)
     except ImportError:
         pass
 
@@ -537,6 +580,8 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
         _adapted = adapt_system_prompt(sys_prompt_preview or "", client_ip)
         if _adapted != sys_prompt_preview:
             sys_prompt_preview = _adapted
+            prompt_context_messages = messages_with_system_context(
+                request_messages, sys_prompt_preview)
     except ImportError:
         pass
 
@@ -579,7 +624,7 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
             resp = build_response(chat_id, content, backend, duration_ms)
             resp["choices"][0]["message"]["thinking"] = True
             resp["x_lima_meta"]["thinking_mode"] = True
-            return JSONResponse(resp)
+            return JSONResponse(_attach_memory_recall_meta(resp, memory_recall_meta))
         # Thinking backends all failed, fall through to normal routing
 
     # 判断是否需要编排模式
@@ -588,7 +633,7 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
 
     if req.stream:
         return StreamingResponse(
-            _stream_response(chat_id, query, use_orchestration, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview, use_thinking=use_thinking, messages=messages_to_dicts(req.messages), prefer=prefer),
+            _stream_response(chat_id, query, use_orchestration, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview, use_thinking=use_thinking, messages=prompt_context_messages, prefer=prefer),
             media_type="text/event-stream",
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
         )
@@ -598,7 +643,7 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
         result = await asyncio.to_thread(orchestrate, query)
     else:
         result = await asyncio.to_thread(v3_route, query,
-            messages_to_dicts(req.messages),
+            request_messages,
             system_prompt=sys_prompt_preview, ide=ide_source,
             max_tokens=req.max_tokens or 4096)
 
@@ -620,7 +665,7 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
                 alt,
                 query,
                 req.max_tokens or 1024,
-                messages=messages_to_dicts(req.messages),
+                messages=prompt_context_messages,
             )
             if alt_result and quality_check(alt_result["answer"], complexity, alt, query=query):
                 content = alt_result["answer"]
@@ -629,7 +674,10 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
                 _record_request(query, backend, f"fallback_same_tier_{fallback_intent}", int((time.time() - t0) * 1000), True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
                 if fmt == "anthropic":
                     return JSONResponse(build_anthropic_response(chat_id, content, backend, request_model or MODEL_ID))
-                return JSONResponse(build_response(chat_id, content, backend, int((time.time() - t0) * 1000)))
+                return JSONResponse(_attach_memory_recall_meta(
+                    build_response(chat_id, content, backend, int((time.time() - t0) * 1000)),
+                    memory_recall_meta,
+                ))
 
         # 跨层升级：逐级升级
         upgrade_chain = get_upgrade_chain(fallback_backend)
@@ -638,7 +686,7 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
                 upgraded,
                 query,
                 req.max_tokens or 1024,
-                messages=messages_to_dicts(req.messages),
+                messages=prompt_context_messages,
             )
             if up_result and quality_check(up_result["answer"], complexity, upgraded, query=query):
                 content = up_result["answer"]
@@ -647,7 +695,10 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
                 _record_request(query, backend, f"fallback_upgrade_{fallback_intent}", int((time.time() - t0) * 1000), True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
                 if fmt == "anthropic":
                     return JSONResponse(build_anthropic_response(chat_id, content, backend, request_model or MODEL_ID))
-                return JSONResponse(build_response(chat_id, content, backend, int((time.time() - t0) * 1000)))
+                return JSONResponse(_attach_memory_recall_meta(
+                    build_response(chat_id, content, backend, int((time.time() - t0) * 1000)),
+                    memory_recall_meta,
+                ))
 
         # 全部失败：诚实告知
         duration_ms = int((time.time() - t0) * 1000)
@@ -660,7 +711,7 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
     try:
         from session_memory.store import save_memory
         import hashlib
-        _session_id = hashlib.md5((client_ip or "anon").encode()).hexdigest()[:12]
+        _session_id = memory_session_id or hashlib.md5((client_ip or "anon").encode()).hexdigest()[:12]
         save_memory(_session_id, "user", query[:100])
         if content:
             save_memory(_session_id, "assistant", content[:100])
@@ -691,7 +742,10 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
 
     if fmt == "anthropic":
         return JSONResponse(build_anthropic_response(chat_id, content, backend, request_model or MODEL_ID))
-    return JSONResponse(build_response(chat_id, content, backend, total_ms))
+    return JSONResponse(_attach_memory_recall_meta(
+        build_response(chat_id, content, backend, total_ms),
+        memory_recall_meta,
+    ))
 
 
 # ── Streaming handlers (extracted to routes/stream_handlers.py) ───────────────
@@ -848,9 +902,11 @@ async def router_status():
 
 # ── Admin routes (extracted to routes/admin.py) ────────────────────────────────
 from routes.admin import router as admin_router
+from routes.admin_agent_audit import router as admin_agent_audit_router
 import routes.admin as _admin_mod
 _admin_mod.inject_state(_stats, _stats_lock, _backend_enabled)
 app.include_router(admin_router)
+app.include_router(admin_agent_audit_router)
 
 import routes.quality_gate as _qg_mod
 _qg_mod.inject_state(_backend_enabled)

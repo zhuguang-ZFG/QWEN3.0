@@ -18,6 +18,8 @@
 | LiMa Code worker | Active smoke path | `/lima task <id>` now fetches a Server task, runs the guarded local runner, writes local audit evidence, and submits the result back to Server. |
 | Agent control plane v0.3 | Implemented locally | Adds audit summary API, admin task audit panel, Telegram callback parsing, approved-task candidate extraction, and dry-run Server/Worker contract smoke. |
 | Real-machine worker smoke v0.4 | Implemented locally | Adds Server worker preflight, smoke-task factory, CLI smoke creator, and runbook tied to LiMa Code `/lima doctor`. |
+| Web-reverse model admission | Complete for first batch | 29 registered web-reverse/local-proxy backends smoked with synthetic prompts; SCNet large is `code_medium_candidate`, Kimi local is `code_floor_candidate`. |
+| Memory daemon + prompt recall | Implemented locally | Server lifespan starts `session_memory.daemon`; `scripts/memory_daemon_ctl.py` can inspect status/run one cycle; `server.py` now runs prompt-time memory recall before routing. |
 | Autonomous worker lifecycle | Planned | `docs/superpowers/plans/2026-05-23-lima-autonomous-worker-v02.md` defines stop control, failure quarantine, repo allowlist, runtime budget, audit command, and real-repo smoke before daemon mode. |
 
 ## 2026-05-23 Calibrated Status
@@ -33,8 +35,8 @@ Current module reality:
 
 | Area | Current state |
 |---|---|
-| Session Memory | `server.py` writes successful user/assistant turns to SQLite and triggers compaction when the session crosses the threshold. Prompt-time recall exists in `session_memory.processor`, but it is not the primary `server.py` hot path yet. |
-| AI Compactor | Triggered from the successful chat path through `needs_compaction()` / `compact_session()`. It is synchronous defensive integration, not an always-on daemon yet. |
+| Session Memory | `server.py` writes successful user/assistant turns to SQLite and now runs `session_memory.prompt_recall.apply_prompt_memory_recall()` before budget checks, identity adaptation, routing analysis, `v3_route`, OpenAI streaming, and fallback retry messages. |
+| Memory daemon / compaction | `server.py` lifespan starts `session_memory.daemon`; daemon runs inbox ingestion and consolidation outside `/v1/chat/completions`. `scripts/memory_daemon_ctl.py status|run-once` provides local verification. |
 | Graph Retrieval | Entity extraction, code graph retrieval, reranking, and tests exist. `routing_engine.py` currently computes `_reranked`, but formatted retrieval context is not yet injected into prompts. |
 | Default context pipeline | `context_pipeline.factory.build_default_pipeline()` is implemented and tested, but `server.py` still uses explicit integration blocks rather than this factory as the single request pipeline. |
 | Tool Gateway | Executor now uses `shell=False`, argument validation, copied HTTP args, and audit events. |
@@ -70,8 +72,17 @@ Reference architecture conclusion:
   - `scnet_qwen30b`
 - Kimi is only partially live:
   - `cf_kimi_k26` works but is slow.
-  - local `kimi`, `kimi_thinking`, and `kimi_search` run behind Windows-local port `4504`, but current chat calls fail with `chat.anonymous_usage_exceeded`.
+  - local `kimi`, `kimi_thinking`, and `kimi_search` run behind Windows-local port `4504`; the 2026-05-23 web-reverse admission batch passed coding/review but failed strict JSON tool output, so they are `code_floor_candidate`.
   - `stock_kimi_k2` did not return a valid smoke response.
+- Web-reverse/local-proxy admission evidence:
+  - `scnet_large_ds_flash` and `scnet_large_ds_pro`: 3/3, `code_medium_candidate`.
+  - `kimi`, `kimi_thinking`, `kimi_search`: 2/3, `code_floor_candidate`.
+  - `longcat_web`: 2/3, `code_floor_candidate`.
+  - `longcat_web_research`: not a coding route candidate in current fixtures.
+  - DDG: HTTP 530 during smoke.
+  - OldLLM: HTTP 502 during smoke.
+  - MiMo web: local cookie/auth expired; no longer a JSON adapter failure.
+  - Adapter fix: `longcat_web*` and `mimo_web*` now force `stream:false` for non-stream calls.
 - Cloudflare AI now has two active routes:
   - Direct account API `cf_*` models remain registered for `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_TOKEN`.
   - Worker wrapper `https://ai.zhuguang.ccwu.cc/v1` exposes `cfai_llama70b`, `cfai_llama4`, `cfai_qwen_coder`, `cfai_deepseek_r1`, and `cfai_mistral`.
@@ -397,3 +408,13 @@ Latest code-quality hardening security follow-up:
 - Commit `e231a5e` replaced the remaining tracked script credentials with environment-variable reads, including OneAPI admin password and provider keys.
 - Sanitized tracked-script scans now report no hardcoded credential literals in `scripts/`; `compileall -q scripts` passed.
 - Previously exposed credentials still need rotation outside the repository. No credential values were copied into project docs.
+
+Latest global code-quality hardening:
+
+- Completed `docs/superpowers/plans/2026-05-23-global-code-quality-review-plan.md` locally.
+- Admin auth import-order failure is fixed and admin auth/audit code is split into focused modules.
+- Runtime secret hygiene now has regression coverage for active runtime files.
+- Web-reverse admission policy is explicit in backend metadata and documentation.
+- Retrieval injection, server prompt-context staging, and Telegram startup/notify warning paths were simplified behind tested helpers.
+- Local verification is green: compileall passed; full pytest returned `391 passed, 8 skipped`; `git diff --check` passed with CRLF warnings only.
+- No VPS deployment was performed in this round.

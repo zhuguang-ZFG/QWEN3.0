@@ -238,9 +238,11 @@ Latest local status check:
 
 Current integration truth:
 
-- Session Memory is now in the successful chat path as SQLite write plus compaction trigger.
-- Session Memory recall exists as a processor, but it is not yet a first-class prompt-time stage in `server.py`.
-- AI Compactor can run when the session threshold is crossed, but LiMa does not yet have an always-on memory daemon.
+- Session Memory is now in the successful chat path as SQLite write.
+- Prompt-time Session Memory recall is now a first-class `server.py` stage: `session_memory.prompt_recall.apply_prompt_memory_recall()` runs before token budget checks, identity adaptation, routing analysis, non-streaming `v3_route`, OpenAI streaming, and fallback retry messages.
+- Recall evidence is intentionally metadata-only: OpenAI-compatible responses include `x_lima_meta.memory_recall`, and request traces include a `prompt_memory_recall` span without leaking recalled memory content.
+- `server.py` lifespan starts `session_memory.daemon`, so inbox ingestion and consolidation can run outside `/v1/chat/completions`.
+- `scripts/memory_daemon_ctl.py status|run-once` provides a local ops entry point for checking daemon config and running one safe cycle.
 - Graph retrieval and reranking exist, but `_reranked` is currently computed without becoming injected prompt context.
 - `context_pipeline.factory.build_default_pipeline()` is tested, but `server.py` still uses explicit integration blocks.
 - Tool Gateway has been hardened with `shell=False`, simple safe-argument validation, copied HTTP args, and audit events.
@@ -256,9 +258,8 @@ Reference project conclusions:
 Recommended next architecture move:
 
 1. Convert graph/code retrieval results into formatted prompt context with trace evidence.
-2. Add a lightweight memory inbox and daemon outside the request path.
-3. Extend Session Memory from raw summaries into typed facts: `user_pref`, `project_fact`, `code_fact`, `ops_event`, `test_result`, `routing_lesson`, `security_lesson`, and `reference_pattern`.
-4. Add MCP tools only after retrieval and memory traces are useful locally.
+2. Add typed-memory ranking and admin-visible memory IDs for recall debugging.
+3. Add MCP tools only after retrieval and memory traces are useful locally.
 
 ## Next Phase
 
@@ -788,3 +789,57 @@ LiMa Server v0.4 should make real-machine worker testing repeatable:
 - `docs/LIMA_REAL_MACHINE_SMOKE.md` is the runbook.
 
 Boundary preserved: Server still never executes shell, never mutates repositories, and never auto-deploys.
+
+## 2026-05-23 Web-Reverse Model Admission
+
+LiMa now has a dedicated safe admission batch for web-reverse/local-proxy models:
+
+- Plan: `docs/superpowers/plans/2026-05-23-web-reverse-model-admission.md`.
+- Tooling: `web_reverse_eval.py` and `scripts/eval_web_reverse_models.py`.
+- Safety rule: synthetic public prompts only; no private code, local paths, secrets, or live user repository context.
+- Broad smoke covered 29 registered web-reverse/local-proxy backends.
+- Phase 2 eval conclusion:
+  - `scnet_large_ds_flash` and `scnet_large_ds_pro` are `code_medium_candidate` from 3/3 passing fixtures.
+  - `kimi`, `kimi_thinking`, and `kimi_search` are `code_floor_candidate`; they pass coding/review but fail strict JSON tool output.
+  - `longcat_web` is `code_floor_candidate`; it passes coding/review but fails strict JSON tool output.
+  - `longcat_web_research` is not a coding route candidate in the current fixture set.
+  - DDG is currently blocked by HTTP 530.
+  - OldLLM is currently blocked by HTTP 502.
+  - MiMo web is currently blocked by expired local cookie/auth state.
+- Evidence:
+  - `docs/WEB_REVERSE_MODEL_SMOKE.md`
+  - `docs/WEB_REVERSE_MODEL_EVAL.md`
+  - `data/web_reverse_model_smoke.json`
+  - `data/web_reverse_model_eval.json`
+
+Routing decision: strong web-reverse models can be promoted based on these reports, but the eval tool itself never edits `router_v3.py` or promotes routes automatically.
+
+Adapter fix:
+
+- `http_caller._build_body()` supports `force_stream_param`.
+- `longcat_web*` and `mimo_web*` send `stream:false` for non-stream calls, avoiding SSE-as-JSON parse failures.
+- Web-proxy control messages are treated as backend errors, so expired cookies become auth/quota evidence instead of low-quality model answers.
+
+## 2026-05-23 Global Code Quality Hardening
+
+Plan executed locally: `docs/superpowers/plans/2026-05-23-global-code-quality-review-plan.md`.
+
+Closed items:
+
+- Admin auth no longer depends on import-time `LIMA_ADMIN_TOKEN` capture for current auth decisions.
+- `routes/admin_auth.py` owns admin token/session verification.
+- `routes/admin_agent_audit.py` owns the agent audit API.
+- Active runtime secret literals in `backends.py`/local MiMo TTS path were removed or quarantined with tests.
+- Web-reverse admission metadata now records which local web adapters are private-code allowed and which remain sandbox-only.
+- `routing_engine.route()` uses shared retrieval injection.
+- `server_context.py` owns prompt context staging and prompt-time memory recall setup.
+- `routes.telegram.start_telegram_webhook()` is called from FastAPI lifespan instead of deprecated router `on_event`.
+- `telegram_notify` now passes async callables into fire-and-forget scheduling, avoiding coroutine leaks in tests.
+
+Verification:
+
+- `compileall` over runtime, routes, tools, scripts, and tests passed.
+- Full pytest passed: `391 passed, 8 skipped`.
+- `git diff --check` passed with CRLF warnings only.
+
+Deployment: not performed. Treat this as a local hardening closeout until a separate deployment plan is approved.
