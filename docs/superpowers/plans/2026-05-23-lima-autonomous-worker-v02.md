@@ -958,7 +958,7 @@ git commit -m "feat: quarantine repeated lima worker failures"
 - Modify: `D:\GIT\deepcode-cli\src\tests\lima-commands.test.ts`
 - Modify: `D:\GIT\deepcode-cli\src\tests\lima-command-runner.test.ts`
 
-- [ ] **Step 1: Write failing command tests**
+- [x] **Step 1: Write failing command tests**
 
 Add to `D:\GIT\deepcode-cli\src\tests\lima-commands.test.ts`:
 
@@ -975,7 +975,7 @@ test("parseLiMaCommand parses daemon lifecycle commands", () => {
 });
 ```
 
-- [ ] **Step 2: Implement stop marker helper**
+- [x] **Step 2: Implement stop marker helper**
 
 Create `D:\GIT\deepcode-cli\src\lima\worker-control.ts`:
 
@@ -1015,7 +1015,7 @@ function stopMarkerPath(projectRoot: string): string {
 }
 ```
 
-- [ ] **Step 3: Parse daemon commands**
+- [x] **Step 3: Parse daemon commands**
 
 Modify `D:\GIT\deepcode-cli\src\lima\commands.ts`:
 
@@ -1033,7 +1033,7 @@ if (subcommand === "daemon") {
 }
 ```
 
-- [ ] **Step 4: Check stop marker inside loop**
+- [x] **Step 4: Check stop marker inside loop**
 
 Modify `D:\GIT\deepcode-cli\src\lima\command-runner.ts`:
 
@@ -1053,7 +1053,7 @@ if (stop.stop) {
 }
 ```
 
-- [ ] **Step 5: Run worker control tests**
+- [x] **Step 5: Run worker control tests**
 
 Run:
 
@@ -1063,7 +1063,7 @@ npm.cmd test -- src/tests/lima-worker-control.test.ts src/tests/lima-commands.te
 
 Expected: selected tests pass.
 
-- [ ] **Step 6: Commit Task 6**
+- [x] **Step 6: Commit Task 6**
 
 ```bash
 git add src/lima/worker-control.ts src/lima/commands.ts src/lima/command-runner.ts src/tests/lima-worker-control.test.ts src/tests/lima-commands.test.ts src/tests/lima-command-runner.test.ts

@@ -636,3 +636,17 @@ Follow-up after final review:
   - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_agent_task_routes.py -q --ignore=active_model`: `15 passed`.
   - `npm.cmd run check`: passed.
   - `D:\GIT\venv\Scripts\python.exe -m py_compile routes\agent_tasks.py`: passed.
+
+## 2026-05-23 Autonomous Worker v0.2 Task 6
+
+- Implemented LiMa Code worker stop control.
+- Added `.lima-code/worker.stop.json` marker helpers in `src/lima/worker-control.ts`.
+- Added `/lima daemon status` and `/lima daemon stop` commands.
+- Wired the work loop to stop before fetching another task when the stop marker is present.
+- Red-green evidence:
+  - Command tests first failed because `/lima daemon` was not parsed.
+  - Worker-control tests first failed because `worker-control.ts` did not exist.
+  - Work-loop test first failed because `fetchPendingTask` still ran even with a stop marker.
+- Verification:
+  - `npm.cmd test -- src/tests/lima-worker-control.test.ts src/tests/lima-commands.test.ts src/tests/lima-command-runner.test.ts`: `400 passed, 6 skipped`.
+  - `npm.cmd run check`: passed.
