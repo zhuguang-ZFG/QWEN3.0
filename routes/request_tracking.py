@@ -2,6 +2,7 @@
 
 从 server.py 提取。通过 inject_state() 注入共享状态。
 """
+import logging
 import os
 import json
 import time
@@ -10,11 +11,14 @@ import threading
 
 from fastapi import Request
 
+log = logging.getLogger(__name__)
+
 # ── Shared state (injected from server.py) ────────────────────────────────────
 _stats: dict = {}
 _stats_lock: threading.Lock = threading.Lock()
 
-FALLBACK_LOG = "D:/GIT/data/fallback_log.jsonl"
+_DATA_DIR = os.environ.get("LIMA_DATA_DIR", os.path.join(os.path.dirname(__file__), "..", "data"))
+FALLBACK_LOG = os.path.join(_DATA_DIR, "fallback_log.jsonl")
 TRUSTED_PROXIES = {"127.0.0.1", "::1", "10.0.0.1"}
 
 
@@ -39,8 +43,8 @@ def record_fallback(query, original_backend, fallback_backend, intent, ide):
         }
         with open(FALLBACK_LOG, 'a', encoding='utf-8') as f:
             f.write(json.dumps(entry, ensure_ascii=False) + '\n')
-    except Exception:
-        pass
+    except Exception as e:
+        log.warning(f"[FALLBACK_LOG] write failed: {e}")
 
 
 @functools.lru_cache(maxsize=256)

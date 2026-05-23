@@ -216,8 +216,9 @@ async def admin_add_backend(req: Request):
     try:
         test_result = _test_backend_sync(name)
         return {"ok": True, "message": f"backend '{name}' added", "test": test_result}
-    except Exception:
-        return {"ok": True, "message": f"backend '{name}' added (test skipped)"}
+    except Exception as e:
+        _backend_enabled[name] = False
+        return {"ok": True, "message": f"backend '{name}' added but DISABLED (test failed: {e})", "enabled": False}
 
 
 @router.delete("/api/backends/{name}", dependencies=[Depends(_verify_admin)])

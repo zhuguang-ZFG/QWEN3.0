@@ -55,8 +55,8 @@ def v3_select(query, system_prompt, ide, messages):
     # Retrieval injection for streaming path
     try:
         messages, _ = routing_engine.inject_retrieval_context(messages)
-    except Exception:
-        pass
+    except Exception as e:
+        logging.warning(f"[V3_SELECT] retrieval injection failed: {type(e).__name__}: {e}")
 
     try:
         from routing_engine import classify_scenario
