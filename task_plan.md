@@ -144,6 +144,13 @@ Next work items:
    - Include explicit constraints and non-goals.
    - Use a fixed structure: `Context`, `Task`, `Constraints`, `Verify`, `Output`.
    - Apply this first to `/agent/tasks`, LiMa Code worker prompts, role prompts, and candidate skill extraction.
+5. Add `LiMa Code Hooks + Skill Auto-Activation v0.1` after autonomous worker v0.2 lifecycle controls are implemented:
+   - Add a `skill-rules.json`-style rules file for prompt/path/content-based skill activation.
+   - Add post-task, post-edit, and stop checkpoints that record touched files, tests run, failures, and review requirements.
+   - Add `.lima-code/dev/active/<task>/plan.md`, `context.md`, and `tasks.md` for long-running worker context.
+   - Add `/lima docs` and `/lima docs-update` slash commands for worker-local dev docs.
+   - Require final worker summaries to state changed files, tests run, remaining risks, and review status.
+   - Keep this behind repo allowlist, runtime budget, stop marker, audit, and failure quarantine controls.
 
 ## Errors Encountered
 

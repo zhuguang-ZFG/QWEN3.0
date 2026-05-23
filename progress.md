@@ -541,3 +541,15 @@ Follow-up after final review:
   - Reduce prompt drift during candidate skill extraction and evolution review.
 - Source reference: Reddit PromptEngineering KERNEL framework post shared by the user.
 - This is a todo only; no runtime code was changed.
+
+## 2026-05-23 Claude Code Infrastructure Todo
+
+- Recorded `LiMa Code Hooks + Skill Auto-Activation v0.1` as a future item in `task_plan.md`.
+- Source reference: the Claude Code infrastructure tips thread and `diet103/claude-code-infrastructure-showcase`.
+- Intended use after autonomous worker v0.2 lifecycle controls:
+  - Skill auto-activation rules based on prompt, file path, and content patterns.
+  - Post-task, post-edit, and stop checkpoints for touched files, tests, failures, and review gates.
+  - Worker-local dev docs under `.lima-code/dev/active/<task>/plan.md`, `context.md`, and `tasks.md`.
+  - `/lima docs` and `/lima docs-update` commands.
+  - Final worker summaries that explicitly list changed files, tests run, remaining risks, and review status.
+- This is a todo only; no runtime code was changed.
