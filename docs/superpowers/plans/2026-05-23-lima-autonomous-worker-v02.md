@@ -95,7 +95,7 @@ Docs:
 - Modify: `D:\GIT\deepcode-cli\src\lima\agent-task-types.ts`
 - Modify: `D:\GIT\deepcode-cli\src\tests\lima-agent-task-types.test.ts`
 
-- [ ] **Step 1: Write failing Server contract tests**
+- [x] **Step 1: Write failing Server contract tests**
 
 Add tests to `tests/test_agent_task_contract.py`:
 
@@ -142,7 +142,7 @@ def test_agent_task_request_accepts_worker_lifecycle_metadata():
     assert req.worker_id == "worker-local"
 ```
 
-- [ ] **Step 2: Run failing Server tests**
+- [x] **Step 2: Run failing Server tests**
 
 Run:
 
@@ -152,7 +152,7 @@ D:\GIT\venv\Scripts\python.exe -m pytest tests\test_agent_task_contract.py -q
 
 Expected: fails because lifecycle statuses and metadata fields do not exist yet.
 
-- [ ] **Step 3: Extend Python task contract**
+- [x] **Step 3: Extend Python task contract**
 
 Update `agent_contracts/task_contract.py`:
 
@@ -206,7 +206,7 @@ class AgentTaskRequest:
             raise ValueError("failure_count must not be negative")
 ```
 
-- [ ] **Step 4: Write failing LiMa Code contract tests**
+- [x] **Step 4: Write failing LiMa Code contract tests**
 
 Add to `D:\GIT\deepcode-cli\src\tests\lima-agent-task-types.test.ts`:
 
@@ -239,7 +239,7 @@ test("validateLiMaAgentTaskResult accepts lifecycle statuses", () => {
 });
 ```
 
-- [ ] **Step 5: Extend TypeScript task contract**
+- [x] **Step 5: Extend TypeScript task contract**
 
 Update `D:\GIT\deepcode-cli\src\lima\agent-task-types.ts` with matching optional fields and statuses:
 
@@ -276,7 +276,7 @@ export type LiMaAgentTaskRequest = {
 };
 ```
 
-- [ ] **Step 6: Run contract tests**
+- [x] **Step 6: Run contract tests**
 
 Run:
 
@@ -287,7 +287,7 @@ npm.cmd test -- src/tests/lima-agent-task-types.test.ts
 
 Expected: all selected contract tests pass.
 
-- [ ] **Step 7: Commit Task 1**
+- [x] **Step 7: Commit Task 1**
 
 ```bash
 git add agent_contracts/task_contract.py tests/test_agent_task_contract.py

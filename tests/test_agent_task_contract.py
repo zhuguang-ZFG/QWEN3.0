@@ -54,6 +54,29 @@ class TestAgentTaskRequest:
         for attr in ("task_id", "repo", "branch", "goal", "mode"):
             assert hasattr(req, attr)
 
+    def test_accepts_worker_lifecycle_metadata(self):
+        req = self._valid_request(
+            repo="D:/GIT/deepcode-cli",
+            goal="review diff",
+            allowed_tools=["git_diff"],
+            max_runtime_sec=300,
+            mode="review",
+            worker_id="worker-local",
+            lease_expires_at=123.0,
+            cancel_requested=False,
+            failure_count=0,
+        )
+        req.validate()
+        assert req.worker_id == "worker-local"
+        assert req.lease_expires_at == 123.0
+        assert req.cancel_requested is False
+        assert req.failure_count == 0
+
+    def test_negative_failure_count_raises(self):
+        req = self._valid_request(failure_count=-1)
+        with pytest.raises(ValueError, match="failure_count"):
+            req.validate()
+
 
 class TestAgentTaskResult:
     """Tests for AgentTaskResult dataclass."""
@@ -73,15 +96,17 @@ class TestAgentTaskResult:
 
     def test_all_statuses_are_valid(self):
         for status in (
-            "accepted", "running", "succeeded",
-            "failed", "blocked", "needs_review",
+            "accepted", "claimed", "running", "needs_review",
+            "approved", "rejected", "applied", "succeeded",
+            "failed", "blocked", "cancel_requested",
+            "cancelled", "quarantined",
         ):
             res = self._valid_result(status=status)
             res.validate()
 
     def test_invalid_status_raises(self):
         res = self._valid_result()
-        res.status = "cancelled"
+        res.status = "done"
         with pytest.raises(ValueError, match="Invalid status"):
             res.validate()
 

@@ -565,3 +565,17 @@ Follow-up after final review:
   - Tool activation only when observations match task policy.
   - Explainability traces for why a guideline, skill, role, or tool was activated.
 - This is a todo only; no runtime code was changed.
+
+## 2026-05-23 Autonomous Worker v0.2 Task 1
+
+- Implemented the shared agent task lifecycle contract on Server and LiMa Code.
+- Server `AgentTaskResult` now accepts lifecycle statuses: `claimed`, `approved`, `rejected`, `applied`, `cancel_requested`, `cancelled`, and `quarantined`.
+- Server `AgentTaskRequest` now carries worker lifecycle metadata: `worker_id`, `lease_expires_at`, `cancel_requested`, and `failure_count`.
+- LiMa Code TypeScript validation accepts the same statuses and optional metadata.
+- Red-green evidence:
+  - Server contract tests first failed on missing lifecycle metadata/statuses.
+  - LiMa Code contract tests first failed on stripped metadata and missing statuses.
+- Verification:
+  - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_agent_task_contract.py -q --ignore=active_model`: `14 passed`.
+  - `npm.cmd test -- src/tests/lima-agent-task-types.test.ts`: `380 passed, 6 skipped`.
+  - `npm.cmd run check`: passed.

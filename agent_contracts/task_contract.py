@@ -7,7 +7,19 @@ from typing import Literal
 
 VALID_MODES = ("plan", "patch", "test", "review")
 VALID_STATUSES = (
-    "accepted", "running", "succeeded", "failed", "blocked", "needs_review"
+    "accepted",
+    "claimed",
+    "running",
+    "needs_review",
+    "approved",
+    "rejected",
+    "applied",
+    "succeeded",
+    "failed",
+    "blocked",
+    "cancel_requested",
+    "cancelled",
+    "quarantined",
 )
 
 
@@ -23,6 +35,10 @@ class AgentTaskRequest:
     allowed_tools: list[str] = field(default_factory=list)
     max_runtime_sec: int = 300
     mode: Literal["plan", "patch", "test", "review"] = "patch"
+    worker_id: str = ""
+    lease_expires_at: float = 0.0
+    cancel_requested: bool = False
+    failure_count: int = 0
 
     def validate(self) -> None:
         """Raise ValueError if any field is invalid."""
@@ -40,6 +56,8 @@ class AgentTaskRequest:
             raise ValueError("goal must not be empty")
         if self.max_runtime_sec <= 0:
             raise ValueError("max_runtime_sec must be positive")
+        if self.failure_count < 0:
+            raise ValueError("failure_count must not be negative")
 
 
 @dataclass
