@@ -3,6 +3,7 @@ from fastapi.routing import APIRoute
 from pydantic import ValidationError
 
 import server
+from routes.images import ImageRequest
 from access_guard import require_private_api_key
 
 
@@ -23,4 +24,4 @@ def test_image_generation_requires_private_api_key_dependency():
 
 def test_image_request_rejects_oversized_dimensions():
     with pytest.raises(ValidationError):
-        server.ImageRequest(prompt="red circle", size="4096x4096")
+        ImageRequest(prompt="red circle", size="4096x4096")

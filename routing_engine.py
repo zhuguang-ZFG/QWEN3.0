@@ -35,6 +35,7 @@ class RouteResult:
     ms: int = 0
     fallback_used: bool = False
     skills_injected: list = field(default_factory=list)
+    retrieval_context: str = ""
 
 
 # ─── Layer 1: 分类 ───────────────────────────────────────────────────────────
@@ -340,10 +341,11 @@ def route(query: str, messages: list[dict], *,
         pass
 
     # ── Integration: Graph Retrieval + Reranking (Phase 24/25) ────────────
+    _reranked = []
     try:
         from context_pipeline.code_scanner import get_code_graph
         from context_pipeline.graph_retrieval import dual_layer_search, RetrievalResult
-        from context_pipeline.reranking import rerank_results
+        from context_pipeline.reranking import rerank_results, format_for_injection
         if _extracted_entities:
             _graph = get_code_graph()
             _vector_results = [RetrievalResult(path=e, score=0.7, source="vector") for e in _extracted_entities[:5]]
@@ -351,6 +353,36 @@ def route(query: str, messages: list[dict], *,
             _reranked = rerank_results(_merged, _extracted_entities, top_k=5)
     except ImportError:
         pass
+
+    # ── Integration: Retrieval Injection (Phase 26) ──────────────────────
+    _retrieval_text = ""
+    if _reranked:
+        try:
+            from context_pipeline.reranking import format_for_injection
+            _retrieval_text = format_for_injection(_reranked)
+            if _retrieval_text:
+                retrieval_msg = {"role": "system", "content": _retrieval_text}
+                messages = list(messages)
+                if messages and messages[0].get("role") == "system":
+                    messages.insert(1, retrieval_msg)
+                else:
+                    messages.insert(0, retrieval_msg)
+            # Record retrieval trace
+            from context_pipeline.retrieval_trace import record_trace, RetrievalTrace
+            record_trace(RetrievalTrace(
+                query_entities=_extracted_entities,
+                candidates_searched=len(_merged) if "_merged" in dir() else 0,
+                reranked_results=[
+                    {"path": r.path, "score": round(r.score, 2), "source": r.source}
+                    for r in _reranked
+                ],
+                injected_text=_retrieval_text,
+                injected_chars=len(_retrieval_text),
+                scenario=scenario,
+                request_type=req_type,
+            ))
+        except ImportError:
+            pass
 
     # ── Integration: Complexity Assessment (Phase 14) ─────────────────────
     try:
@@ -373,7 +405,8 @@ def route(query: str, messages: list[dict], *,
                     backend=orch_result["backend"],
                     answer=orch_result["answer"],
                     request_type=f"code_{orch_result['tier']}",
-                    ms=ms, scenario=scenario)
+                    ms=ms, scenario=scenario,
+                    retrieval_context=_retrieval_text)
         except Exception as e:
             import logging as _logging
             _logging.warning(f"[ORCH] code_orchestrator failed: {type(e).__name__}: {e}")
@@ -477,6 +510,7 @@ def route(query: str, messages: list[dict], *,
         request_type=req_type, scenario=scenario, ms=ms,
         fallback_used=(final_backend not in ("exhausted", "none") and final_backend != backends[0]),
         skills_injected=injected_ids,
+        retrieval_context=_retrieval_text,
     )
 
 
@@ -492,3 +526,63 @@ def _get_injected_ids(original: list[dict], modified: list[dict]) -> list[str]:
                 return ["dir:" + n.strip() for n in names.split(",") if n.strip()]
     extra = len(modified) - len(original)
     return [f"injected_{extra}_skills"] if extra > 0 else []
+
+
+def inject_retrieval_context(messages: list[dict]) -> tuple[list[dict], str]:
+    """Extract entities, run graph retrieval, and inject formatted context into messages.
+
+    Returns (messages_with_context, retrieval_text).
+    Safe to call from any path — returns original messages unchanged on failure.
+    """
+    try:
+        from context_pipeline.entity_extraction import extract_entities
+        from context_pipeline.code_scanner import get_code_graph
+        from context_pipeline.graph_retrieval import dual_layer_search, RetrievalResult
+        from context_pipeline.reranking import rerank_results, format_for_injection
+    except ImportError:
+        return messages, ""
+
+    try:
+        raw_msgs = [
+            {"role": m.get("role", ""), "content": m.get("content", "")}
+            if isinstance(m, dict) else
+            {"role": getattr(m, "role", ""), "content": getattr(m, "content", "")}
+            for m in messages
+        ]
+        entities = extract_entities(raw_msgs)
+        terms = entities.to_query_terms()
+        if not terms:
+            return messages, ""
+
+        graph = get_code_graph()
+        vector_results = [RetrievalResult(path=e, score=0.7, source="vector") for e in terms[:5]]
+        merged = dual_layer_search(terms, vector_results, graph, max_results=8)
+        reranked = rerank_results(merged, terms, top_k=5)
+        if not reranked:
+            return messages, ""
+
+        text = format_for_injection(reranked)
+        if not text:
+            return messages, ""
+
+        retrieval_msg = {"role": "system", "content": text}
+        result = list(messages)
+        if result and result[0].get("role") == "system":
+            result.insert(1, retrieval_msg)
+        else:
+            result.insert(0, retrieval_msg)
+
+        from context_pipeline.retrieval_trace import record_trace, RetrievalTrace
+        record_trace(RetrievalTrace(
+            query_entities=terms,
+            candidates_searched=len(merged),
+            reranked_results=[
+                {"path": r.path, "score": round(r.score, 2), "source": r.source}
+                for r in reranked
+            ],
+            injected_text=text,
+            injected_chars=len(text),
+        ))
+        return result, text
+    except Exception:
+        return messages, ""

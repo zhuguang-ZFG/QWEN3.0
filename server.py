@@ -14,6 +14,16 @@ import uvicorn
 from access_guard import require_private_api_key
 import smart_router
 from orchestrate import orchestrate, needs_orchestration
+from converters.anthropic_format import (
+    convert_tools_anthropic_to_openai as _convert_tools_anthropic_to_openai,
+    convert_messages_anthropic_to_openai as _convert_messages_anthropic_to_openai,
+    anthropic_system_text as _anthropic_system_text,
+    last_openai_user_text as _last_openai_user_text,
+    inject_anthropic_context_preflight as _inject_anthropic_context_preflight,
+    anthropic_text_fallback as _anthropic_text_fallback,
+    normalize_openai_text as _normalize_openai_text,
+    convert_response_openai_to_anthropic as _convert_response_openai_to_anthropic,
+)
 
 
 def _last_resort_call(messages: list) -> str:
@@ -84,6 +94,13 @@ if USE_V3:
         import health_tracker as ht
         hmap = ht.get_health_map()
         is_ide = bool(ide and ide not in ("unknown", ""))
+
+        # Retrieval injection for streaming path
+        try:
+            messages, _ = routing_engine.inject_retrieval_context(messages)
+        except Exception:
+            pass
+
         try:
             from routing_engine import classify_scenario
             scenario = classify_scenario(query, messages,
@@ -180,10 +197,20 @@ async def lifespan(application):
     if USE_V3:
         import probe_loop
         probe_loop.start(probe_fn=http_caller.probe)
+    try:
+        from session_memory.daemon import start_daemon
+        await start_daemon()
+    except ImportError:
+        pass
     yield
     if USE_V3:
         import probe_loop
         probe_loop.stop()
+    try:
+        from session_memory.daemon import stop_daemon
+        stop_daemon()
+    except ImportError:
+        pass
 
 app = FastAPI(title="LiMa", version="1.3",
               description="LiMa（力码）— 智能编程助手 API，OpenAI 兼容",
@@ -765,595 +792,26 @@ def _log_sys_prompt(sys_prompt: str) -> None:
         print(f"[SYS_PROMPT] new: {ide_source} ({len(sys_prompt)} chars)", file=sys.stderr)
 
 
-# ── Tool Call Forwarding (DeepSeek R1 via OpenRouter) ─────────────────────────
-import httpx as _httpx
+# ── Tool Call Forwarding (extracted to routes/tool_forward.py) ─────────────────
 import urllib.parse as _urllib_parse
-
-TOOL_BACKEND_URL = "https://openrouter.ai/api/v1/chat/completions"
-TOOL_BACKEND_MODEL = "deepseek/deepseek-v4-flash:free"
-TOOL_BACKEND_KEY = os.environ.get("OPENROUTER_API_KEY", "")
-
-ANTHROPIC_NATIVE_BACKENDS = ['longcat_chat', 'longcat', 'deepseek_free', 'longcat_lite', 'longcat_thinking', 'longcat_omni']
-
-TOOL_TIER1_BACKENDS = [
-    # Claude Code sends tools on most real requests. Keep this list short and
-    # front-load low-latency OpenAI-compatible backends that handle tool_calls.
-    'groq_gptoss_20b', 'cerebras_gptoss', 'groq_gptoss',
-    'github_gpt4o_mini', 'github_gpt4o',
-    'mistral_small', 'mistral_devstral', 'mistral_large',
-    'scnet_large_ds_flash',
-]
-
-
-def _pick_tool_backend(tier: list):
-    """从候选列表中按声明顺序选第一个健康后端（不用P2C，工具调用质量优先）。"""
-    import health_tracker as _ht
-    from backends import BACKENDS
-    for n in tier:
-        if BACKENDS.get(n, {}).get('key') and not _ht.is_cooled_down(n):
-            return n
-    return None
-
-
-def _iter_tool_backends(tier: list):
-    """Yield configured, non-cooled tool backends once per request."""
-    import health_tracker as _ht
-    from backends import BACKENDS
-    for n in tier:
-        if BACKENDS.get(n, {}).get('key') and not _ht.is_cooled_down(n):
-            yield n
-
-
-async def _anthropic_native_forward(body: dict) -> dict:
-    """分层 tool 路由：第一梯队 OpenAI 格式(快) → 第二梯队 LongCat 原生(兜底)。"""
-    return await asyncio.to_thread(_anthropic_native_forward_sync, body)
-
-
-def _anthropic_native_forward_sync(body: dict) -> dict:
-    """同步版本，在线程池中执行。使用 http_caller.call_raw() 确保代理正常工作。"""
-    from http_caller import call_raw, BackendError
-    from backends import BACKENDS
-
-    # ── 估算 token 量，超大请求跳过 Tier 1 避免超时 ──
-    body_size = len(json.dumps(body, ensure_ascii=False))
-    skip_tier1 = body_size > 100000  # 100KB+, Claude Code ~30-40KB now passes
-
-    # ── 第一梯队：OpenAI 格式后端（需格式转换）──
-    openai_tools = _convert_tools_anthropic_to_openai(body.get("tools", []))
-    openai_msgs = _convert_messages_anthropic_to_openai(body.get("messages", []))
-    _inject_anthropic_context_preflight(openai_msgs, body)
-
-    if not skip_tier1:
-        for name in _iter_tool_backends(TOOL_TIER1_BACKENDS):
-            b = BACKENDS[name]
-            req_body = {"model": b["model"], "messages": openai_msgs,
-                "tools": openai_tools, "max_tokens": body.get("max_tokens", 4096),
-                "tool_choice": "auto"}
-            if name.startswith("aliyun"):
-                req_body["enable_thinking"] = False
-            payload = json.dumps(req_body, ensure_ascii=False).encode()
-            try:
-                data = call_raw(name, payload)
-                return _convert_response_openai_to_anthropic(data, b["model"])
-            except BackendError:
-                continue
-
-    # ── 第二梯队：LongCat Anthropic 原生（兜底）──
-    for _attempt in range(2):
-        name = _pick_tool_backend(ANTHROPIC_NATIVE_BACKENDS)
-        if not name:
-            break
-        b = BACKENDS[name]
-        fwd = dict(body)
-        fwd["model"] = b["model"]
-        payload = json.dumps(fwd, ensure_ascii=False).encode()
-        try:
-            import urllib.request as _ur
-            headers = {"Content-Type": "application/json",
-                       "anthropic-version": "2023-06-01"}
-            if b.get("auth") == "bearer":
-                headers["Authorization"] = f"Bearer {b['key']}"
-            else:
-                headers["x-api-key"] = b["key"]
-            req = _ur.Request(b["url"], data=payload, headers=headers)
-            with _ur.urlopen(req, timeout=60) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-            import health_tracker as _ht
-            _ht.record_success(name, 0)
-            return data
-        except Exception as e:
-            import health_tracker as _ht
-            code = getattr(e, 'code', None) or getattr(e, 'status', None) or 500
-            _ht.record_failure(name, error_code=code)
-            continue
-
-    return {"type": "error", "error": {"type": "api_error",
-            "message": "All tool backends exhausted"}}
-
-
-async def _anthropic_native_stream(body: dict):
-    """分层 tool 流式路由：第一梯队 OpenAI(快) → 第二梯队 LongCat(兜底)。"""
-    from http_caller import call_raw, BackendError
-    from backends import BACKENDS
-    import health_tracker as _ht
-
-    # ── 估算 token 量，超大请求跳过 Tier 1 避免超时 ──
-    body_size = len(json.dumps(body, ensure_ascii=False))
-    skip_tier1 = body_size > 100000  # 100KB+, Claude Code ~30-40KB now passes
-
-    # ── 第一梯队：OpenAI 格式（非流式获取，模拟 Anthropic SSE 输出）──
-    openai_tools = _convert_tools_anthropic_to_openai(body.get("tools", []))
-    openai_msgs = _convert_messages_anthropic_to_openai(body.get("messages", []))
-    _inject_anthropic_context_preflight(openai_msgs, body)
-
-    if not skip_tier1:
-        for name in _iter_tool_backends(TOOL_TIER1_BACKENDS):
-            b = BACKENDS[name]
-            req_body = {"model": b["model"], "messages": openai_msgs,
-                "tools": openai_tools, "max_tokens": body.get("max_tokens", 4096),
-                "tool_choice": "auto"}
-            if name.startswith("aliyun"):
-                req_body["enable_thinking"] = False
-            payload = json.dumps(req_body, ensure_ascii=False).encode()
-            try:
-                data = await asyncio.to_thread(call_raw, name, payload)
-                result = _convert_response_openai_to_anthropic(data, b["model"])
-                for chunk in _simulate_anthropic_sse(result):
-                    yield chunk
-                return
-            except BackendError as e:
-                import health_tracker as _ht
-                _ht.record_failure(name, error_code=e.status_code)
-                continue
-            except Exception as e:
-                import health_tracker as _ht
-                code = getattr(e, 'code', None) or getattr(e, 'status', None) or 500
-                _ht.record_failure(name, error_code=code)
-                continue
-
-    # ── 第二梯队：LongCat Anthropic 原生流式 ──
-    import urllib.request as _ur
-    for _attempt in range(2):
-        name = _pick_tool_backend(ANTHROPIC_NATIVE_BACKENDS)
-        if not name:
-            break
-        b = BACKENDS[name]
-        fwd = dict(body)
-        fwd["model"] = b["model"]
-        fwd["stream"] = True
-        payload = json.dumps(fwd, ensure_ascii=False).encode()
-        headers = {"Content-Type": "application/json",
-                   "anthropic-version": "2023-06-01"}
-        if b.get("auth") == "bearer":
-            headers["Authorization"] = f"Bearer {b['key']}"
-        else:
-            headers["x-api-key"] = b["key"]
-        try:
-            req = _ur.Request(b["url"], data=payload, headers=headers)
-            resp = _ur.urlopen(req, timeout=60)
-            _ht.record_success(name, 0)
-            buf = b''
-            while True:
-                chunk = resp.read(4096)
-                if not chunk:
-                    break
-                buf += chunk
-                while b'\n' in buf:
-                    line, buf = buf.split(b'\n', 1)
-                    decoded = line.decode('utf-8', errors='replace').strip()
-                    if decoded:
-                        yield decoded + '\n\n'
-            if buf.strip():
-                yield buf.decode('utf-8', errors='replace').strip() + '\n\n'
-            resp.close()
-            return
-        except Exception:
-            _ht.record_failure(name, error_code=None)
-            continue
-    yield 'event: error\ndata: {"type":"error","error":{"message":"All backends exhausted"}}\n\n'
-
-
-def _simulate_anthropic_sse(result: dict):
-    """把完整的 Anthropic 响应转为 SSE 事件流。"""
-    msg_id = result.get("id", "msg_" + uuid.uuid4().hex[:12])
-    model = result.get("model", "lima-1.3")
-    yield f"event: message_start\ndata: {json.dumps({'type':'message_start','message':{'id':msg_id,'type':'message','role':'assistant','model':model,'content':[],'stop_reason':None,'usage':{'input_tokens':0,'output_tokens':0}}})}\n\n"
-    for i, block in enumerate(result.get("content", [])):
-        if block.get("type") == "text":
-            yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':i,'content_block':{'type':'text','text':''}})}\n\n"
-            text = block.get("text", "")
-            for j in range(0, len(text), 40):
-                yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':i,'delta':{'type':'text_delta','text':text[j:j+40]}}, ensure_ascii=False)}\n\n"
-            yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':i})}\n\n"
-        elif block.get("type") == "tool_use":
-            yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':i,'content_block':{'type':'tool_use','id':block['id'],'name':block['name'],'input':{}}})}\n\n"
-            yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':i,'delta':{'type':'input_json_delta','partial_json':json.dumps(block.get('input',{}), ensure_ascii=False)}})}\n\n"
-            yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':i})}\n\n"
-    stop_reason = result.get("stop_reason", "end_turn")
-    yield f"event: message_delta\ndata: {json.dumps({'type':'message_delta','delta':{'stop_reason':stop_reason},'usage':result.get('usage',{})})}\n\n"
-    yield f"event: message_stop\ndata: {json.dumps({'type':'message_stop'})}\n\n"
-
-
-def _convert_tools_anthropic_to_openai(tools: list) -> list:
-    """Anthropic tools format -> OpenAI tools format."""
-    openai_tools = []
-    for tool in tools:
-        openai_tools.append({
-            "type": "function",
-            "function": {
-                "name": tool["name"],
-                "description": tool.get("description", ""),
-                "parameters": tool.get("input_schema", {})
-            }
-        })
-    return openai_tools
-
-
-def _convert_messages_anthropic_to_openai(messages: list) -> list:
-    """Anthropic messages -> OpenAI messages (handles tool_use and tool_result)."""
-    openai_msgs = []
-    for msg in messages:
-        role = msg.get("role", "user")
-        content = msg.get("content", "")
-        if isinstance(content, str):
-            openai_msgs.append({"role": role, "content": content})
-        elif isinstance(content, list):
-            text_parts = []
-            tool_calls = []
-            tool_results = []
-            for block in content:
-                btype = block.get("type", "")
-                if btype == "text":
-                    text_parts.append(block.get("text", ""))
-                elif btype == "tool_use":
-                    tool_calls.append({
-                        "id": block["id"],
-                        "type": "function",
-                        "function": {
-                            "name": block["name"],
-                            "arguments": json.dumps(block.get("input", {}))
-                        }
-                    })
-                elif btype == "tool_result":
-                    # Extract text content from tool_result
-                    tr_content = block.get("content", "")
-                    if isinstance(tr_content, list):
-                        tr_content = "\n".join(
-                            b.get("text", "") for b in tr_content
-                            if b.get("type") == "text"
-                        )
-                    tool_results.append({
-                        "role": "tool",
-                        "tool_call_id": block.get("tool_use_id", ""),
-                        "content": str(tr_content)
-                    })
-            if tool_calls:
-                openai_msgs.append({
-                    "role": "assistant",
-                    "content": "\n".join(text_parts) if text_parts else None,
-                    "tool_calls": tool_calls
-                })
-            elif tool_results:
-                for tr in tool_results:
-                    openai_msgs.append(tr)
-            else:
-                openai_msgs.append({
-                    "role": role,
-                    "content": "\n".join(text_parts)
-                })
-    return openai_msgs
-
-
-def _anthropic_system_text(body: dict) -> str:
-    system = body.get("system", "")
-    if isinstance(system, str):
-        return system
-    if isinstance(system, list):
-        return " ".join(
-            block.get("text", "") for block in system
-            if isinstance(block, dict) and block.get("type") == "text"
-        )
-    return ""
-
-
-def _last_openai_user_text(messages: list) -> str:
-    for message in reversed(messages):
-        if message.get("role") == "user" and isinstance(message.get("content"), str):
-            return message["content"]
-    return ""
-
-
-def _inject_anthropic_context_preflight(openai_msgs: list, body: dict) -> None:
-    """Add request-local coding context to Claude Code tool requests."""
-    sys_text = _anthropic_system_text(body)
-    query = _last_openai_user_text(openai_msgs)
-    try:
-        from lima_context import build_context_digest
-        digest = build_context_digest(
-            query,
-            openai_msgs,
-            system_prompt=sys_text,
-            ide_source="Claude Code",
-        )
-    except Exception:
-        digest = ""
-
-    combined = sys_text
-    if digest:
-        combined = f"{sys_text.rstrip()}\n\n{digest}".strip()
-    if not combined:
-        return
-    if openai_msgs and openai_msgs[0].get("role") == "system":
-        openai_msgs[0]["content"] = combined
-    else:
-        openai_msgs.insert(0, {"role": "system", "content": combined})
-
-
-def _anthropic_text_fallback(model: str, usage: dict = None,
-                             detail: str = "") -> dict:
-    text = "Tool backend returned an empty or malformed response; please retry."
-    if detail:
-        text = f"{text} ({detail[:160]})"
-    usage = usage or {}
-    return {
-        "id": f"msg_{uuid.uuid4().hex[:24]}",
-        "type": "message",
-        "role": "assistant",
-        "model": model,
-        "content": [{"type": "text", "text": text}],
-        "stop_reason": "end_turn",
-        "stop_sequence": None,
-        "usage": {
-            "input_tokens": usage.get("prompt_tokens", 0),
-            "output_tokens": usage.get("completion_tokens", 0)
-        },
-    }
-
-
-def _normalize_openai_text(content) -> str:
-    if isinstance(content, str):
-        return content
-    if content is None:
-        return ""
-    if isinstance(content, list):
-        parts = []
-        for item in content:
-            if isinstance(item, str):
-                parts.append(item)
-            elif isinstance(item, dict):
-                if item.get("type") == "text":
-                    parts.append(str(item.get("text", "")))
-                elif isinstance(item.get("content"), str):
-                    parts.append(item["content"])
-            else:
-                parts.append(str(item))
-        return "".join(parts)
-    return str(content)
-
-
-def _convert_response_openai_to_anthropic(openai_response: dict, model: str) -> dict:
-    """OpenAI response -> Anthropic response (handles tool_calls)."""
-    usage = openai_response.get("usage", {}) if isinstance(openai_response, dict) else {}
-    if not isinstance(openai_response, dict):
-        return _anthropic_text_fallback(model, usage, "non-object response")
-    if openai_response.get("error"):
-        err = openai_response["error"]
-        detail = err.get("message", str(err)) if isinstance(err, dict) else str(err)
-        return _anthropic_text_fallback(model, usage, detail)
-
-    choices = openai_response.get("choices")
-    if not isinstance(choices, list) or not choices:
-        return _anthropic_text_fallback(model, usage, "missing choices")
-    choice = choices[0] if isinstance(choices[0], dict) else {}
-    message = choice.get("message") or choice.get("delta") or {}
-    if not isinstance(message, dict):
-        return _anthropic_text_fallback(model, usage, "missing message")
-
-    content = []
-    text = _normalize_openai_text(message.get("content"))
-    if text:
-        content.append({"type": "text", "text": text})
-    for tc in message.get("tool_calls") or []:
-        if not isinstance(tc, dict):
-            continue
-        fn = tc.get("function") or {}
-        if not isinstance(fn, dict) or not fn.get("name"):
-            continue
-        args_value = fn.get("arguments", "{}")
-        if isinstance(args_value, dict):
-            args = args_value
-        else:
-            try:
-                args = json.loads(args_value or "{}")
-            except (json.JSONDecodeError, TypeError):
-                args = {}
-        content.append({
-            "type": "tool_use",
-            "id": tc.get("id", f"toolu_{uuid.uuid4().hex[:24]}"),
-            "name": fn["name"],
-            "input": args
-        })
-
-    if not content:
-        return _anthropic_text_fallback(model, usage)
-    has_tool_use = any(block.get("type") == "tool_use" for block in content)
-    finish_reason = choice.get("finish_reason")
-    stop_reason = "tool_use" if has_tool_use else (
-        "max_tokens" if finish_reason == "length" else "end_turn"
-    )
-    return {
-        "id": f"msg_{uuid.uuid4().hex[:24]}",
-        "type": "message",
-        "role": "assistant",
-        "model": model,
-        "content": content,
-        "stop_reason": stop_reason,
-        "stop_sequence": None,
-        "usage": {
-            "input_tokens": usage.get("prompt_tokens", 0),
-            "output_tokens": usage.get("completion_tokens", 0)
-        },
-    }
-
-
-async def _tool_call_forward(body: dict) -> dict:
-    """Forward tool call request to DeepSeek R1 via OpenRouter."""
-    openai_tools = _convert_tools_anthropic_to_openai(body["tools"])
-    openai_messages = _convert_messages_anthropic_to_openai(body["messages"])
-
-    # Add system prompt
-    if body.get("system"):
-        if isinstance(body["system"], str):
-            sys_text = body["system"]
-        else:
-            sys_text = " ".join(
-                b.get("text", "") for b in body["system"]
-                if b.get("type") == "text"
-            )
-        openai_messages.insert(0, {"role": "system", "content": sys_text})
-
-    payload = {
-        "model": TOOL_BACKEND_MODEL,
-        "messages": openai_messages,
-        "tools": openai_tools,
-        "max_tokens": body.get("max_tokens", 4096),
-    }
-
-    t0 = time.time()
-    try:
-        async with _httpx.AsyncClient(timeout=120) as client:
-            resp = await client.post(
-                TOOL_BACKEND_URL,
-                headers={
-                    "Authorization": f"Bearer {TOOL_BACKEND_KEY}",
-                    "Content-Type": "application/json",
-                },
-                json=payload,
-            )
-            openai_resp = resp.json()
-    except Exception as e:
-        # Fallback: return error as text
-        return {
-            "id": f"msg_{uuid.uuid4().hex[:24]}",
-            "type": "message",
-            "role": "assistant",
-            "model": body.get("model", MODEL_ID),
-            "content": [{"type": "text", "text": f"[Tool backend error: {e}]"}],
-            "stop_reason": "end_turn",
-            "stop_sequence": None,
-            "usage": {"input_tokens": 0, "output_tokens": 0},
-        }
-
-    duration_ms = int((time.time() - t0) * 1000)
-    _record_request("tool_call", TOOL_BACKEND_MODEL, "tool_use", duration_ms, True)
-
-    # Check for API error
-    if "error" in openai_resp:
-        err_msg = openai_resp["error"].get("message", str(openai_resp["error"]))
-        return {
-            "id": f"msg_{uuid.uuid4().hex[:24]}",
-            "type": "message",
-            "role": "assistant",
-            "model": body.get("model", MODEL_ID),
-            "content": [{"type": "text", "text": f"[Tool backend error: {err_msg}]"}],
-            "stop_reason": "end_turn",
-            "stop_sequence": None,
-            "usage": {"input_tokens": 0, "output_tokens": 0},
-        }
-
-    return _convert_response_openai_to_anthropic(
-        openai_resp, body.get("model", MODEL_ID)
-    )
-
-
-async def _tool_call_stream(body: dict):
-    """Tool call streaming response (waits for full response, then simulates SSE)."""
-    result = await _tool_call_forward(body)
-
-    msg_id = result["id"]
-    model = result["model"]
-
-    # message_start
-    yield f"event: message_start\ndata: {json.dumps({'type':'message_start','message':{'id':msg_id,'type':'message','role':'assistant','model':model,'content':[],'stop_reason':None,'stop_sequence':None,'usage':{'input_tokens':0,'output_tokens':0}}})}\n\n"
-
-    for i, block in enumerate(result.get("content", [])):
-        if block["type"] == "text":
-            yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':i,'content_block':{'type':'text','text':''}})}\n\n"
-            # Send text in chunks for smoother streaming
-            text = block["text"]
-            chunk_size = 40
-            for j in range(0, len(text), chunk_size):
-                chunk = text[j:j+chunk_size]
-                yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':i,'delta':{'type':'text_delta','text':chunk}}, ensure_ascii=False)}\n\n"
-                await asyncio.sleep(0.01)
-            yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':i})}\n\n"
-        elif block["type"] == "tool_use":
-            yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':i,'content_block':{'type':'tool_use','id':block['id'],'name':block['name'],'input':{}}})}\n\n"
-            input_json = json.dumps(block["input"], ensure_ascii=False)
-            yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':i,'delta':{'type':'input_json_delta','partial_json':input_json}})}\n\n"
-            yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':i})}\n\n"
-
-    stop_reason = result.get("stop_reason", "end_turn")
-    usage = result.get("usage", {"input_tokens": 0, "output_tokens": 0})
-    yield f"event: message_delta\ndata: {json.dumps({'type':'message_delta','delta':{'stop_reason':stop_reason,'stop_sequence':None},'usage':usage})}\n\n"
-    yield f"event: message_stop\ndata: {json.dumps({'type':'message_stop'})}\n\n"
-
-
-# ── Image Generation (Pollinations.ai) ────────────────────────────────────────
-class ImageRequest(BaseModel):
-    prompt: str
-    model: str = "lima-image"
-    size: str = Field(default="1024x1024", pattern=r"^\d{1,4}x\d{1,4}$")
-    n: int = Field(default=1, ge=1, le=10)
-
-    @field_validator("size")
-    @classmethod
-    def reject_oversized_dimensions(cls, value: str) -> str:
-        width, height = (int(part) for part in value.split("x"))
-        if width > 2048 or height > 2048:
-            raise ValueError("image dimensions must be at most 2048")
-        return value
-
-
-def _build_pollinations_url(prompt: str, size: str = "1024x1024") -> str:
-    """Build Pollinations.ai image URL from prompt and size."""
-    parts = size.split("x")
-    width = int(parts[0]) if len(parts) == 2 else 1024
-    height = int(parts[1]) if len(parts) == 2 else 1024
-    encoded_prompt = _urllib_parse.quote(prompt)
-    return f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true"
-
-
-@app.post(
-    "/v1/images/generations",
-    dependencies=[Depends(require_private_api_key)],
-)
-async def image_generations(request: Request):
-    """OpenAI-compatible image generation endpoint using Pollinations.ai."""
-    body = await request.json()
-    img_req = ImageRequest(**body)
-    prompt = img_req.prompt.strip()
-    if not prompt:
-        raise HTTPException(status_code=400, detail="Empty prompt")
-
-    # Detect if Chinese and enhance prompt
-    import re as _re_local
-    has_chinese = bool(_re_local.search(r'[一-鿿]', prompt))
-    if has_chinese:
-        prompt = f"high quality, detailed, {prompt}"
-
-    urls = []
-    for _ in range(img_req.n):
-        url = _build_pollinations_url(prompt, img_req.size)
-        urls.append({"url": url})
-
-    client_ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "")
-    _record_request(img_req.prompt[:80], "pollinations", "image_generation", 0, True, client_ip=client_ip)
-
-    return JSONResponse({
-        "created": int(time.time()),
-        "data": urls
-    })
+import routes.tool_forward as _tool_fwd
+_tool_fwd.inject_state(_record_request, MODEL_ID)
+_anthropic_native_forward = _tool_fwd.anthropic_native_forward
+_anthropic_native_stream = _tool_fwd.anthropic_native_stream
+_simulate_anthropic_sse = _tool_fwd.simulate_anthropic_sse
+_tool_call_forward = _tool_fwd.tool_call_forward
+_tool_call_stream = _tool_fwd.tool_call_stream
+_pick_tool_backend = _tool_fwd.pick_tool_backend
+_iter_tool_backends = _tool_fwd.iter_tool_backends
+TOOL_TIER1_BACKENDS = _tool_fwd.TOOL_TIER1_BACKENDS
+ANTHROPIC_NATIVE_BACKENDS = _tool_fwd.ANTHROPIC_NATIVE_BACKENDS
+
+
+# ── Image Generation (extracted to routes/images.py) ──────────────────────────
+from routes.images import router as images_router, build_pollinations_url as _build_pollinations_url
+import routes.images as _images_mod
+_images_mod.inject_record_request(_record_request)
+app.include_router(images_router)
 
 
 # ── Routes ──────────────────────────────────────────────────────────────────
@@ -2224,49 +1682,9 @@ def _split_sentences(text: str) -> list[str]:
     return chunks if chunks else [text]
 
 
-# ─── Embeddings 端点 (Jina AI) ────────────────────────────────────────────────
-
-@app.post("/v1/embeddings")
-async def embeddings(request: Request):
-    """OpenAI-compatible embeddings endpoint, proxied to Jina AI."""
-    from access_guard import configured_api_keys, _extract_token
-    auth = request.headers.get("authorization", "")
-    token = _extract_token(auth)
-    keys = configured_api_keys()
-    if keys and token not in keys:
-        return JSONResponse({"error": "Unauthorized"}, status_code=401)
-
-    body = await request.json()
-    inp = body.get("input", [])
-    if isinstance(inp, str):
-        inp = [inp]
-    model = body.get("model", "jina-embeddings-v3")
-    dimensions = body.get("dimensions", 256)
-
-    jina_key = os.environ.get("JINA_API_KEY", "")
-    if not jina_key:
-        return JSONResponse({"error": "JINA_API_KEY not configured"}, status_code=503)
-
-    import urllib.request as _ur
-    import urllib.error as _ue
-    gfw_proxy = os.environ.get("GFW_PROXY", "")
-    if gfw_proxy:
-        proxy = _ur.ProxyHandler({"https": gfw_proxy, "http": gfw_proxy})
-        opener = _ur.build_opener(proxy)
-    else:
-        opener = _ur.build_opener()
-    payload = json.dumps({"model": model, "input": inp, "dimensions": dimensions}).encode()
-    req = _ur.Request("https://api.jina.ai/v1/embeddings", data=payload, headers={
-        "Authorization": f"Bearer {jina_key}",
-        "Content-Type": "application/json",
-        "User-Agent": "LiMa/1.3",
-    })
-    try:
-        resp = opener.open(req, timeout=15)
-        data = json.loads(resp.read())
-        return JSONResponse(data)
-    except (_ue.URLError, OSError, json.JSONDecodeError) as e:
-        return JSONResponse({"error": str(e)[:100]}, status_code=502)
+# ─── Embeddings 端点 (extracted to routes/embeddings.py) ──────────────────────
+from routes.embeddings import router as embeddings_router
+app.include_router(embeddings_router)
 
 
 @app.get("/v1/models")
@@ -2321,6 +1739,13 @@ from routes.admin import router as admin_router
 import routes.admin as _admin_mod
 _admin_mod.inject_state(_stats, _stats_lock, _backend_enabled)
 app.include_router(admin_router)
+
+# ── MCP tools (knowledge/memory access for IDE clients) ───────────────────────
+try:
+    from lima_mcp.server import router as mcp_router
+    app.include_router(mcp_router)
+except ImportError:
+    pass
 
 
 # ── Startup ─────────────────────────────────────────────────────────────────

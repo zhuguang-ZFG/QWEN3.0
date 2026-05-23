@@ -81,6 +81,16 @@ async def admin_logs():
         return list(reversed(_stats["recent_logs"][-10:]))
 
 
+@router.get("/api/retrieval-traces", dependencies=[Depends(_verify_admin)])
+async def admin_retrieval_traces():
+    """返回最近的 retrieval injection 追踪记录。"""
+    try:
+        from context_pipeline.retrieval_trace import get_recent_traces
+        return get_recent_traces(limit=20)
+    except ImportError:
+        return []
+
+
 # ── Backends ───────────────────────────────────────────────────────────────────
 
 @router.get("/api/backends", dependencies=[Depends(_verify_admin)])

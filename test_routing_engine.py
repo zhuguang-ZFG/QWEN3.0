@@ -387,3 +387,82 @@ def test_health_tracker_maps_rate_limited_auth_and_timeout_state():
     assert health_tracker.get_backend_state("unit_auth_expired")["state"] == "auth_expired"
     assert health_tracker.get_backend_state("unit_timeout")["state"] == "timeout"
     assert health_tracker.is_cooled_down("unit_rate_limit")
+
+
+# ── retrieval injection ─────────────────────────────────────────────────────
+
+def test_retrieval_injection_inserts_context_into_messages():
+    """验证 graph retrieval 结果被格式化并注入 messages"""
+    from context_pipeline.graph_retrieval import RetrievalResult
+    from context_pipeline.reranking import format_for_injection, rerank_results
+
+    results = [
+        RetrievalResult(path="routing_engine.py", score=0.9, source="both",
+                        snippet="def route(query", relations=["imports:health_tracker"]),
+        RetrievalResult(path="http_caller.py", score=0.7, source="vector",
+                        snippet="def call_api("),
+    ]
+    reranked = rerank_results(results, ["routing_engine", "http_caller"], top_k=5)
+    text = format_for_injection(reranked)
+
+    assert "[代码上下文]" in text
+    assert "routing_engine.py" in text
+    assert "[VG]" in text
+    assert "[V]" in text
+
+
+def test_retrieval_injection_empty_results_returns_empty():
+    from context_pipeline.reranking import format_for_injection
+    assert format_for_injection([]) == ""
+
+
+def test_route_result_has_retrieval_context_field():
+    r = re_.RouteResult(backend="test", retrieval_context="[代码上下文]\n[VG] foo.py")
+    assert r.retrieval_context == "[代码上下文]\n[VG] foo.py"
+
+
+def test_retrieval_trace_records_and_retrieves():
+    from context_pipeline.retrieval_trace import (
+        record_trace, get_recent_traces, RetrievalTrace
+    )
+    record_trace(RetrievalTrace(
+        query_entities=["routing_engine", "health_tracker"],
+        candidates_searched=8,
+        reranked_results=[
+            {"path": "routing_engine.py", "score": 1.2, "source": "both"},
+        ],
+        injected_text="[代码上下文]\n[VG] routing_engine.py",
+        injected_chars=35,
+        scenario="coding",
+        request_type="ide",
+    ))
+    traces = get_recent_traces(limit=5)
+    assert len(traces) >= 1
+    latest = traces[0]
+    assert latest["scenario"] == "coding"
+    assert latest["candidates_searched"] == 8
+    assert "routing_engine" in latest["query_entities"]
+
+
+def test_inject_retrieval_context_function():
+    """验证 inject_retrieval_context 可复用函数正确注入上下文"""
+    msgs = [
+        {"role": "system", "content": "You are a coding assistant."},
+        {"role": "user", "content": "Fix routing_engine.py health_tracker bug"},
+    ]
+    result_msgs, text = re_.inject_retrieval_context(msgs)
+    # Should inject after first system message
+    if text:
+        assert len(result_msgs) > len(msgs)
+        assert result_msgs[1]["role"] == "system"
+        assert "[代码上下文]" in result_msgs[1]["content"]
+    else:
+        # If no entities extracted, messages unchanged
+        assert result_msgs == msgs
+
+
+def test_inject_retrieval_context_empty_messages():
+    """空消息列表不崩溃"""
+    result_msgs, text = re_.inject_retrieval_context([])
+    assert result_msgs == []
+    assert text == ""

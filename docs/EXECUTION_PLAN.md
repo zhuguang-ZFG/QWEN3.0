@@ -1,6 +1,6 @@
 # LiMa Execution Plan
 
-> Updated: 2026-05-22
+> Updated: 2026-05-23
 > Status: current plan for the private personal coding assistant direction
 > Supersedes: older commercial/open-platform sprint plans
 
@@ -36,23 +36,27 @@ Paused work:
 | 2. Coding backend evaluation | Complete | Repeatable coding fixtures and backend ranking exist. |
 | 3. SCNet/Kimi first-tier evaluation | Complete | Direct SCNet promoted; Kimi kept fallback/inactive until fixed. |
 | 4. Local proxy + FRP closure | Complete | VPS `8088` reaches Windows `8080`; public health/models/chat smokes pass. |
-| 5. Documentation/GitHub snapshot | In progress | Status, memory, plans, and GitHub reflect latest reality. |
-| 6. Free web AI expansion | Next | More no-login web AI candidates are found and sandbox-probed. |
-| 7. Stability improvements | Next | Token/session refresh, quota detection, and rate-limit cooldown are implemented. |
-| 8. Free routing optimization | Next | Free backends are selected by quality, health, latency, quota, and task fit. |
+| 5. Documentation/GitHub snapshot | Complete | Status, memory, plans, and reference evaluation reflect latest local reality. |
+| 6. Knowledge retrieval injection | Complete | Graph/code retrieval results injected into prompts; retrieval trace recorded; admin endpoint exposed. |
+| 7. Always-on typed memory | Complete | 10 typed memory kinds, inbox ingestion daemon, background consolidation, wired into server lifespan. |
+| 8. MCP knowledge/memory tools | Complete | `/mcp/tools/list` and `/mcp/tools/call` expose search_repo, search_memory, get_retrieval_trace. |
+| 9. Dead code cleanup + streaming unification | Next | Remove dead modules; wire streaming path through routing_engine for retrieval/skills injection. |
+| 10. server.py decomposition | Next | Split server.py from 2300+ lines toward <800 target; extract route handlers into focused modules. |
 
 ## Next Implementation Order
 
-1. Create a candidate registry for Duck.ai, HeckAI-like sites, and other no-login web AI surfaces.
-2. Build a sandbox probe harness that sends harmless prompts and normalizes failure classes.
-3. Add backend state for `auth_expired`, `quota_exhausted`, `anonymous_usage_exceeded`, `captcha_required`, and `manual_refresh_required`.
-4. Add quota-aware routing so free backends are used aggressively for simple work but protected for valuable coding requests.
-5. Run local tests, deploy once, smoke public endpoints, and update `STATUS.md` plus `docs/LIMA_MEMORY.md`.
+1. Delete confirmed dead code: `stats_collector.py`, verify and remove any other zero-caller modules.
+2. Wire streaming path through `routing_engine.route()` so retrieval injection and skills injection apply to streaming requests.
+3. Begin `server.py` decomposition: extract chat/completions handler, Anthropic handler, and streaming handler into `routes/` modules.
+4. Consolidate `BACKENDS` to single source (eliminate `smart_router.BACKENDS` duplication).
+5. Wire `key_pool.py` into `http_caller.py` for multi-key providers.
+6. Run local tests, deploy only when requested, smoke public endpoints.
 
 ## Verification Commands
 
 ```powershell
 python -m pytest -q test_routing_engine.py test_rate_limiter.py test_http_caller.py test_streaming.py tests/test_coding_eval.py tests/test_lima_context.py
+python -m pytest -q tests .\test_routing_engine.py .\test_rate_limiter.py .\test_http_caller.py .\test_dual_track.py .\test_code_orchestrator.py .\test_streaming.py .\test_skills_injector.py --ignore=active_model
 curl.exe --noproxy "*" -sS --max-time 15 http://47.112.162.80:8088/health
 curl.exe --noproxy "*" -sS --max-time 15 http://47.112.162.80:8088/v1/models -H "Authorization: Bearer lima-local"
 ```
@@ -68,3 +72,4 @@ Chat smoke should use JSON serialization from Python or a known-good client to a
 - `docs/FREE_MODEL_ROUTING_STATUS.md`
 - `docs/LOCAL_PROXY_RUNTIME_STATUS.md`
 - `docs/FREE_WEB_AI_EXPANSION_PLAN.md`
+- `docs/REFERENCE_PROJECT_EVALUATION.md`

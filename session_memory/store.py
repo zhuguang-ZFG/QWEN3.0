@@ -30,6 +30,7 @@ _DB_PATH = os.environ.get("LIMA_SESSION_DB", os.path.join(tempfile.gettempdir(),
 
 def _get_conn() -> sqlite3.Connection:
     conn = sqlite3.connect(_DB_PATH)
+    conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("""
         CREATE TABLE IF NOT EXISTS memories (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,13 +39,23 @@ def _get_conn() -> sqlite3.Connection:
             role TEXT NOT NULL,
             summary TEXT NOT NULL,
             detail TEXT DEFAULT '',
-            embedding TEXT DEFAULT '[]'
+            embedding TEXT DEFAULT '[]',
+            memory_type TEXT DEFAULT 'exchange'
         )
     """)
     conn.execute("""
         CREATE INDEX IF NOT EXISTS idx_session
         ON memories(session_id, timestamp DESC)
     """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_memory_type
+        ON memories(memory_type, timestamp DESC)
+    """)
+    # Migration: add memory_type column to existing DBs
+    try:
+        conn.execute("SELECT memory_type FROM memories LIMIT 1")
+    except sqlite3.OperationalError:
+        conn.execute("ALTER TABLE memories ADD COLUMN memory_type TEXT DEFAULT 'exchange'")
     conn.commit()
     return conn
 
@@ -55,14 +66,15 @@ def save_memory(
     summary: str,
     detail: str = "",
     embedding: list[float] | None = None,
+    memory_type: str = "exchange",
 ) -> int:
     """Save a memory entry. Returns the entry ID."""
     conn = _get_conn()
     cur = conn.execute(
-        "INSERT INTO memories (session_id, timestamp, role, summary, detail, embedding) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO memories (session_id, timestamp, role, summary, detail, embedding, memory_type) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
         (session_id, time.time(), role, summary, detail,
-         json.dumps(embedding or [])),
+         json.dumps(embedding or []), memory_type),
     )
     conn.commit()
     entry_id = cur.lastrowid
@@ -167,3 +179,57 @@ def clear_session(session_id: str) -> int:
     deleted = cur.rowcount
     conn.close()
     return deleted
+
+
+# ── Typed Memory API ─────────────────────────────────────────────────────────
+
+MEMORY_TYPES = (
+    "exchange", "compacted", "project_fact", "code_fact",
+    "ops_event", "test_result", "routing_lesson",
+    "security_lesson", "reference_pattern", "user_pref",
+)
+
+
+def save_typed_memory(
+    memory_type: str,
+    summary: str,
+    detail: str = "",
+    session_id: str = "_global",
+) -> int:
+    """Save a typed memory (not tied to a single exchange)."""
+    return save_memory(
+        session_id=session_id,
+        role="system",
+        summary=summary,
+        detail=detail,
+        memory_type=memory_type,
+    )
+
+
+def query_by_type(
+    memory_type: str, limit: int = 10, session_id: str | None = None
+) -> list[MemoryEntry]:
+    """Query memories by type, optionally scoped to a session."""
+    conn = _get_conn()
+    if session_id:
+        rows = conn.execute(
+            "SELECT id, session_id, timestamp, role, summary, detail, embedding "
+            "FROM memories WHERE memory_type = ? AND session_id = ? "
+            "ORDER BY timestamp DESC LIMIT ?",
+            (memory_type, session_id, limit),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT id, session_id, timestamp, role, summary, detail, embedding "
+            "FROM memories WHERE memory_type = ? "
+            "ORDER BY timestamp DESC LIMIT ?",
+            (memory_type, limit),
+        ).fetchall()
+    conn.close()
+    return [
+        MemoryEntry(
+            id=r[0], session_id=r[1], timestamp=r[2], role=r[3],
+            summary=r[4], detail=r[5], embedding=json.loads(r[6]),
+        )
+        for r in rows
+    ]
