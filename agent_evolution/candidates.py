@@ -56,6 +56,24 @@ def extract_candidate(
     )
 
 
+def extract_candidate_from_task_evidence(
+    task_id: str,
+    goal: str,
+    result: dict,
+) -> CandidateSkill:
+    changed_files = list(result.get("changed_files", []))
+    test_commands = list(result.get("test_commands", []))
+    summary = str(result.get("summary", ""))
+    risks = " ".join(str(item) for item in result.get("risks", []))
+    trigger = " ".join(part for part in [goal, summary, risks] if part).strip()
+    return extract_candidate(
+        task_id=task_id,
+        failure_reason=trigger or "approved_task_evidence",
+        commands=test_commands,
+        files=changed_files,
+    )
+
+
 class CandidateStore:
     """Persistent store for candidate skills (JSON-backed)."""
 

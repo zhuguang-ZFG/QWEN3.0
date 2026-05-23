@@ -230,6 +230,27 @@ def apply_task_review(
         "reviewer": reviewer,
         "note": note,
     })
+    if decision == "approved":
+        try:
+            from agent_evolution.candidates import (
+                extract_candidate_from_task_evidence,
+                get_candidate_store,
+            )
+            candidate = extract_candidate_from_task_evidence(
+                task_id=task_id,
+                goal=task.get("request", {}).get("goal", ""),
+                result=task.get("result", {}),
+            )
+            get_candidate_store().add(candidate)
+            _store.append_event(task_id, {
+                "type": "candidate_created",
+                "skill_id": candidate.skill_id,
+            })
+        except Exception as exc:
+            _store.append_event(task_id, {
+                "type": "candidate_create_failed",
+                "error": str(exc)[:200],
+            })
     return {"task_id": task_id, "status": decision}
 
 

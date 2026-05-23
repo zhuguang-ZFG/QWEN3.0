@@ -327,6 +327,44 @@ class TestTaskEndpoints:
             for e in events
         )
 
+    def test_approved_successful_task_creates_candidate_skill(self):
+        task_id = client.post("/agent/tasks", json={
+            "repo": "D:/GIT/deepcode-cli",
+            "goal": "learn notifier pattern",
+            "allowed_tools": ["git_diff"],
+            "mode": "review",
+        }, headers=HEADERS).json()["task_id"]
+        client.post(f"/agent/tasks/{task_id}/result", json={
+            "task_id": task_id,
+            "status": "needs_review",
+            "summary": "notifier pattern worked",
+            "changed_files": ["src/lima/telegram-notifier.ts"],
+            "test_commands": ["npm.cmd test -- src/tests/lima-telegram-notifier.test.ts"],
+            "test_results": [{
+                "command": "npm.cmd test -- src/tests/lima-telegram-notifier.test.ts",
+                "exit_code": 0,
+            }],
+            "diff_preview": "",
+            "artifacts": [],
+            "risks": [],
+            "next_action": "approve",
+        }, headers=HEADERS)
+
+        review = client.post(
+            f"/agent/tasks/{task_id}/review",
+            json={"decision": "approved", "reviewer": "human"},
+            headers=HEADERS,
+        )
+
+        assert review.status_code == 200
+        candidates = client.get(
+            "/agent/skills/candidates", headers=HEADERS
+        ).json()["candidates"]
+        assert any(
+            c["source_task_id"] == task_id and c["active"] is False
+            for c in candidates
+        )
+
     def test_quarantine_task_updates_status_and_events(self):
         task_id = client.post("/agent/tasks", json={
             "repo": "D:/GIT/deepcode-cli",
