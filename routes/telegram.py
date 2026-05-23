@@ -15,7 +15,7 @@ import budget_manager
 import telegram_bot
 from routes.telegram_commands import (
     cmd_chat, cmd_clear, cmd_code, cmd_top, cmd_uptime,
-    cmd_eval, cmd_task, cmd_tasks, cmd_cache, start_probe_loop,
+    cmd_eval, cmd_task, cmd_tasks, cmd_cache, cmd_stop, start_probe_loop,
 )
 
 logger = logging.getLogger(__name__)
@@ -156,6 +156,8 @@ async def _dispatch_command(chat_id: str, text: str) -> None:
         await cmd_task(chat_id, arg)
     elif cmd == "/tasks":
         await cmd_tasks(chat_id)
+    elif cmd == "/stop":
+        await cmd_stop(chat_id, arg.strip())
     elif cmd == "/cache":
         await cmd_cache(chat_id)
     elif cmd == "/logs":
@@ -181,15 +183,15 @@ async def _handle_callback(callback_query: dict) -> None:
         import httpx
         try:
             admin = os.environ.get("LIMA_ADMIN_TOKEN", "")
+            decision = "approved" if action == "approve" else "rejected"
             async with httpx.AsyncClient(timeout=10) as c:
                 r = await c.post(
                     f"http://127.0.0.1:8080/agent/tasks/{task_id}/review",
                     headers={"Authorization": f"Bearer {admin}"},
-                    json={"approved": action == "approve"},
+                    json={"decision": decision, "reviewer": "telegram"},
                 )
                 if r.status_code == 200:
-                    result_text = "approved" if action == "approve" else "rejected"
-                    await telegram_bot.answer_callback(cb_id, f"Task {task_id} {result_text}")
+                    await telegram_bot.answer_callback(cb_id, f"Task {task_id} {decision}")
                 else:
                     await telegram_bot.answer_callback(cb_id, f"Review failed: {r.status_code}")
         except Exception as e:

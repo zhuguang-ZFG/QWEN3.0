@@ -98,7 +98,7 @@ class WorkerDaemon:
         resp = await self._client.post(
             f"{SERVER_URL}/agent/tasks/{task_id}/claim",
             headers=self._headers,
-            json={"worker_id": WORKER_ID, "lease_seconds": lease_sec},
+            json={"worker_id": WORKER_ID, "lease_sec": lease_sec},
         )
         return resp.status_code == 200
 

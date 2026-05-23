@@ -8,8 +8,8 @@ const fs = require('fs');
 const { execSync } = require('child_process');
 
 const SESSION_FILE = 'D:/ollama_server/kimi_session.json';
-const CF_TOKEN = 'cfut_t3gYSHnANVMmiY13rKsDS908wFFVpbzRzljqIu8mffb419ee';
-const CF_ACCOUNT = '3e8dfc378deaf1a6f39fda85ceaca32b';
+const CF_TOKEN = process.env.CLOUDFLARE_API_TOKEN || '';
+const CF_ACCOUNT = process.env.CLOUDFLARE_ACCOUNT_ID || '3e8dfc378deaf1a6f39fda85ceaca32b';
 const WORKER_NAME = 'kimi';
 
 async function refreshToken() {

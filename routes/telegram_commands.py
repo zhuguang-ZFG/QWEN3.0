@@ -192,6 +192,25 @@ async def cmd_cache(chat_id: str) -> None:
     await telegram_bot.send_message(text, chat_id=chat_id)
 
 
+async def cmd_stop(chat_id: str, task_id: str) -> None:
+    if not task_id:
+        await telegram_bot.send_message("Usage: /stop <task_id>", chat_id=chat_id)
+        return
+    try:
+        async with httpx.AsyncClient(timeout=10) as c:
+            admin = os.environ.get("LIMA_ADMIN_TOKEN", "")
+            r = await c.post(
+                f"http://127.0.0.1:8080/agent/tasks/{task_id}/cancel",
+                headers={"Authorization": f"Bearer {admin}"},
+            )
+            if r.status_code == 200:
+                await telegram_bot.send_message(f"Task `{task_id}` cancelled.", chat_id=chat_id)
+            else:
+                await telegram_bot.send_message(f"Cancel failed: {r.status_code} {r.text[:80]}", chat_id=chat_id)
+    except Exception as e:
+        await telegram_bot.send_message(f"Error: {e}", chat_id=chat_id)
+
+
 async def probe_backends() -> None:
     hmap = health_tracker.get_health_map()
     backends = list(hmap.keys())
