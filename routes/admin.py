@@ -3,10 +3,12 @@ import os
 import sys
 import json
 import time
+import hashlib
+import secrets
 import threading
 import subprocess
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Request, Response
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 import smart_router
 
@@ -548,19 +550,53 @@ setInterval(refreshAll,5000);
 
 
 @router.get("", response_class=HTMLResponse)
-async def admin_page(token: str = ""):
-    """管理后台 Web UI。需要 ?token=<LIMA_ADMIN_TOKEN> 访问。"""
+async def admin_page(
+    token: str = "",
+    lima_admin: str = Cookie(default=""),
+):
+    """管理后台 Web UI。支持 cookie 或 ?token= 访问。"""
     if not _ADMIN_TOKEN:
         raise HTTPException(503, "LIMA_ADMIN_TOKEN not configured")
-    if token != _ADMIN_TOKEN:
+    authenticated = (
+        lima_admin == _ADMIN_TOKEN or token == _ADMIN_TOKEN
+    )
+    if not authenticated:
         return HTMLResponse(
             "<h2>Admin Login</h2>"
-            '<form method="get"><input name="token" placeholder="Admin Token" type="password">'
+            '<form method="post" action="/admin/login">'
+            '<input name="token" placeholder="Admin Token" type="password">'
             '<button type="submit">Login</button></form>',
             status_code=401,
         )
-    # Safely inject token into JS (escape for XSS prevention)
-    import json
-    safe_token = json.dumps(token)
+    safe_token = json.dumps(_ADMIN_TOKEN)
     token_js = f'<script>const _ADMIN_TOKEN={safe_token};</script>'
     return HTMLResponse(ADMIN_HTML + token_js + ADMIN_BODY + ADMIN_JS)
+
+
+@router.post("/login")
+async def admin_login(request: Request):
+    """POST 登录，设置 httponly cookie。"""
+    form = await request.form()
+    token = form.get("token", "")
+    if token != _ADMIN_TOKEN:
+        return HTMLResponse(
+            "<h2>Admin Login</h2><p style='color:red'>Token 错误</p>"
+            '<form method="post" action="/admin/login">'
+            '<input name="token" placeholder="Admin Token" type="password">'
+            '<button type="submit">Login</button></form>',
+            status_code=401,
+        )
+    response = RedirectResponse("/admin", status_code=303)
+    response.set_cookie(
+        "lima_admin", token,
+        httponly=True, samesite="strict", max_age=86400,
+    )
+    return response
+
+
+@router.get("/logout")
+async def admin_logout():
+    """清除 cookie 并跳转登录页。"""
+    response = RedirectResponse("/admin", status_code=303)
+    response.delete_cookie("lima_admin")
+    return response

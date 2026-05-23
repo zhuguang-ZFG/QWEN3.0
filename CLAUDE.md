@@ -37,17 +37,16 @@
 
 ```
 D:/GIT/
-├── server.py              2027行  FastAPI入口（待继续拆分，目标<800行）
-├── smart_router.py        1944行  旧路由引擎（待瘦身至<500行）
+├── server.py              884行   FastAPI入口（已拆分，V3永久启用）
+├── smart_router.py        ~950行  旧路由引擎（BACKENDS已去重，仅剩分类/熔断/调用）
 │
 │  ── V3 路由核心（已接入 server.py）──
-├── routing_engine.py      226行  五层统一路由 ✅
+├── routing_engine.py      585行  五层统一路由 ✅
 ├── router_v3.py           225行  三层路由+P2C ✅
 ├── http_caller.py         290行  统一HTTP调用 ✅
 ├── streaming.py           158行  投机流式 ✅
-├── health_tracker.py      119行  指数退避+质量追踪 ✅
+├── health_tracker.py      432行  指数退避+质量追踪 ✅
 ├── sticky_session.py       60行  会话亲和 ✅
-├── key_pool.py            142行  SWRR轮转 ✅
 ├── semantic_cache.py      103行  SHA-256缓存 ✅
 ├── probe_loop.py           80行  主动探活 ✅
 ├── skills_injector.py     205行  智能补缺 ✅
@@ -55,20 +54,35 @@ D:/GIT/
 ├── identity_guard.py       —行  身份拦截 ✅
 ├── speculative.py          —行  投机并行 ✅
 │
+│  ── 从 server.py 提取的模块 ──
+├── routes/v3_adapters.py      150行  V3路由适配器 ✅
+├── routes/quality_gate.py     207行  质量检查+fallback ✅
+├── routes/stream_handlers.py   37行  流式桥接 ✅
+├── routes/anthropic_stream.py 256行  Anthropic SSE流式 ✅
+├── routes/request_tracking.py 136行  请求追踪/统计 ✅
+│
 │  ── 辅助模块 ──
-├── response_builder.py     92行  响应格式 ✅
-├── vision_handler.py      138行  视觉路由 ✅
-├── tool_handler.py        145行  工具转发（_record_request桩未注入）
-├── backends.py            109行  117后端配置 ✅
-├── orchestrate.py          —行  多步编排（仍依赖smart_router）
-├── voice_gateway.py        —行  WebSocket语音（独立运行）
+├── response_builder.py    119行  响应格式 ✅
+├── vision_handler.py      144行  视觉路由 ✅
+├── tool_handler.py        145行  工具转发
+├── backends.py            170+行 170后端配置 ✅
+├── orchestrate.py          —行  多步编排
+├── worker_daemon.py       210行  自主Worker守护进程 ✅
+│
+│  ── Agent Evolution ──
+├── agent_evolution/candidates.py  107行  候选Skill（JSON持久化）✅
+├── agent_evolution/promote.py      32行  晋升门控 ✅
+├── agent_contracts/task_contract.py —行  任务生命周期契约 ✅
+├── agent_roles/roles.py            68行  7角色定义 ✅
+│
+│  ── 自动化基础设施 ──
+├── infra/auto_refresh_tokens.py    —行  Playwright自动刷新(Kimi+LongCat) ✅
+├── infra/lima-startup.bat          —行  开机自启(4代理+主服务) ✅
 │
 │  ── 待清理/决策 ──
 ├── v3_integration.py      111行  ❌ 待删除（被routing_engine覆盖）
 ├── fallback_chain.py       69行  ❌ 死代码（4函数零调用）
 ├── stats_collector.py     147行  ❌ 死代码（未import）
-├── quota_tracker.py        —行  ❌ 死代码（与budget_manager重叠）
-├── health_probe.py         —行  ❌ 死代码（与probe_loop重叠）
 │
 │  ── 部署 ──
 ├── deploy_v3.py            91行  ⚠️ 含明文密码，待修复
@@ -79,7 +93,6 @@ D:/GIT/
 ├── test_skills_injector.py 23 tests ✅
 ├── test_routing_engine.py  16 tests ✅
 ├── test_v3.py              5 tests ✅
-├── test_streaming.py       ⚠️ 非pytest格式
 │
 │  ── 资源 ──
 ├── skills/                 6个skill文件

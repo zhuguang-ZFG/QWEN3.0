@@ -74,6 +74,33 @@ def build_anthropic_response(msg_id: str, content: str, backend: str, model: str
     }
 
 
+# ── 消息提取 ─────────────────────────────────────────────────────────────────────
+
+def extract_query(messages) -> str:
+    """从 messages 列表提取最后一条 user 消息作为 query。
+    接受 Pydantic Message 列表或 dict 列表。
+    """
+    for msg in reversed(messages):
+        role = msg.role if hasattr(msg, 'role') else msg.get('role', '')
+        content = msg.content if hasattr(msg, 'content') else msg.get('content', '')
+        if role == "user":
+            return content
+    if messages:
+        last = messages[-1]
+        return last.content if hasattr(last, 'content') else last.get('content', '')
+    return ""
+
+
+def messages_to_dicts(messages) -> list[dict]:
+    """将 Pydantic Message 列表转为 dict 列表，用于传递完整上下文。"""
+    return [
+        {'role': m.role if hasattr(m, 'role') else m.get('role', ''),
+         'content': m.content if hasattr(m, 'content') else m.get('content', '')}
+        for m in messages
+        if (m.role if hasattr(m, 'role') else m.get('role', '')) in ('user', 'assistant')
+    ]
+
+
 # ── 文本分割 ─────────────────────────────────────────────────────────────────────
 
 def _split_sentences(text: str) -> list[str]:

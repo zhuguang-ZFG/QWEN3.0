@@ -14,6 +14,10 @@ import uvicorn
 from access_guard import require_private_api_key
 import smart_router
 from orchestrate import orchestrate, needs_orchestration
+from vision_handler import (
+    _vision_route, _stream_vision_response,
+    detect_vision_request, convert_openai_vision_to_anthropic,
+)
 from converters.anthropic_format import (
     convert_tools_anthropic_to_openai as _convert_tools_anthropic_to_openai,
     convert_messages_anthropic_to_openai as _convert_messages_anthropic_to_openai,
@@ -44,149 +48,21 @@ def _last_resort_call(messages: list) -> str:
         logging.warning(f"[LAST_RESORT] Cloudflare fallback failed: {type(e).__name__}")
         return ""
 
-# ── V3 路由引擎（灰度切换） ──────────────────────────────────────────────────
-USE_V3 = os.environ.get("LIMA_V3", "1") == "1"
-if USE_V3:
-    import routing_engine
-    import http_caller
-    import health_tracker
-    import streaming as streaming_mod
-
-    def _v3_route(query, messages, system_prompt="", ide="", max_tokens=4096, **_kw):
-        """V3 路由适配器：返回与 smart_router.route() 兼容的 dict。"""
-        def _call_fn(backend, msgs, mt):
-            return http_caller.call_api(backend, msgs, mt,
-                                        system_prompt=system_prompt, ide=ide)
-        result = routing_engine.route(
-            query, messages, fmt="openai", ide_source=ide,
-            system_prompt=system_prompt, max_tokens=max_tokens,
-            call_fn=_call_fn)
-        return {"answer": result.answer, "backend": result.backend,
-                "total_ms": result.ms, "fallback_used": result.fallback_used}
-
-    def _v3_predict(query):
-        """V3 快速预测：根据场景选择后端池。"""
-        import health_tracker as ht
-        hmap = ht.get_health_map()
-        try:
-            from routing_engine import classify_scenario
-            scenario = classify_scenario(query, [], request_type="")
-            if scenario == "coding":
-                import code_orchestrator
-                pool = code_orchestrator.backend_reputation.sort_by_reputation(
-                    code_orchestrator.POOLS["coder"])
-                if pool:
-                    return pool[0]
-            else:
-                chat_only = ["deepseek_free", "zhipu_flash", "cf_llama70b",
-                             "groq_llama70b", "longcat_lite", "longcat_chat"]
-                for b in chat_only:
-                    if not ht.is_cooled_down(b):
-                        return b
-                return "groq_llama70b"
-        except Exception as e:
-            logging.warning(f"[V3_SELECT] classify/context failed: {type(e).__name__}: {e}")
-        backends = routing_engine.select("chat", hmap, scenario="chat")
-        return backends[0] if backends else "longcat_chat"
-
-    def _v3_select(query, system_prompt, ide, messages):
-        """V3 完整路由选择：根据场景选后端。"""
-        import health_tracker as ht
-        hmap = ht.get_health_map()
-        is_ide = bool(ide and ide not in ("unknown", ""))
-
-        # Retrieval injection for streaming path
-        try:
-            messages, _ = routing_engine.inject_retrieval_context(messages)
-        except Exception:
-            pass
-
-        try:
-            from routing_engine import classify_scenario
-            scenario = classify_scenario(query, messages,
-                                         ide_source=ide if is_ide else "",
-                                         request_type="ide" if is_ide else "chat")
-            if scenario == "coding":
-                import code_orchestrator
-                pool = code_orchestrator.backend_reputation.sort_by_reputation(
-                    code_orchestrator.POOLS["coder"])
-                if pool:
-                    return (pool[0], messages)
-            else:
-                chat_only = ["deepseek_free", "zhipu_flash", "cf_llama70b",
-                             "groq_llama70b", "longcat_lite", "longcat_chat"]
-                for b in chat_only:
-                    if not ht.is_cooled_down(b):
-                        return (b, messages)
-                return ("groq_llama70b", messages)
-        except Exception as e:
-            logging.warning(f"[V3_STREAM] classify/context failed: {type(e).__name__}: {e}")
-        backends = routing_engine.select("chat", hmap, scenario="chat")
-        return (backends[0] if backends else "longcat_chat", messages)
-
-# 非真流式后端（代理/逆向），强制走非流式保证身份清洗完整
-_FAKE_STREAM_BACKENDS = {'deepseek_free'}
-
-def _v3_call_stream(backend, messages, max_tokens, ide):
-    """V3 流式调用适配器。注入上下文增强 + 非真流式后端强制走非流式。"""
-    sys_prompt = ""
-    try:
-        import code_orchestrator
-        from routing_engine import classify_scenario
-        query = ""
-        for m in reversed(messages):
-            if m.get("role") == "user" and isinstance(m.get("content"), str):
-                query = m["content"]
-                break
-        if query:
-            is_ide = bool(ide and ide not in ("unknown", ""))
-            scenario = classify_scenario(query, messages,
-                                         ide_source=ide if is_ide else "",
-                                         request_type="ide" if is_ide else "chat")
-            if scenario == "coding":
-                ctx = code_orchestrator.enhance_context(query, messages, scenario)
-                sys_prompt = ctx.get("system_prompt", "")
-                messages = ctx.get("enhanced_messages", messages)
-            else:
-                sys_prompt = "Answer the question directly in plain text. Do not generate code, functions, or programming examples unless the user explicitly asks for code."
-    except Exception as e:
-        logging.warning(f"[V3_CALL_STREAM] context enhance failed: {type(e).__name__}: {e}")
-
-    if backend in _FAKE_STREAM_BACKENDS:
-        result = http_caller.call_api(
-            backend, messages, max_tokens, system_prompt=sys_prompt, ide=ide)
-        return _fake_stream(result)
-    return http_caller.call_api_stream(
-        backend, messages, max_tokens, system_prompt=sys_prompt, ide=ide)
-
-def _v3_call_api(backend, messages, max_tokens, ide):
-    """V3 非流式调用适配器。含场景检测 + 反向约束。"""
-    sys_prompt = ""
-    try:
-        from routing_engine import classify_scenario
-        query = next((m["content"] for m in reversed(messages)
-                      if m.get("role") == "user" and isinstance(m.get("content"), str)), "")
-        if query:
-            is_ide = bool(ide and ide not in ("unknown", ""))
-            scenario = classify_scenario(query, messages,
-                                         ide_source=ide if is_ide else "",
-                                         request_type="ide" if is_ide else "chat")
-            if scenario == "coding":
-                import code_orchestrator
-                ctx = code_orchestrator.enhance_context(query, messages, scenario)
-                sys_prompt = ctx.get("system_prompt", "")
-            else:
-                no_code = "Answer the question directly in plain text. Do not generate code, functions, or programming examples unless the user explicitly asks for code."
-                messages = [{"role": "system", "content": no_code}] + list(messages)
-    except Exception as e:
-        logging.warning(f"[V3_CALL_API] context enhance failed: {type(e).__name__}: {e}")
-    return http_caller.call_api(
-        backend, messages, max_tokens, system_prompt=sys_prompt, ide=ide)
-
-def _fake_stream(text: str, chunk_size: int = 30):
-    """将完整文本拆为 chunk 模拟流式输出。已清洗的文本直接拆。"""
-    for i in range(0, len(text), chunk_size):
-        yield text[i:i+chunk_size]
+# ── V3 路由引擎 ──────────────────────────────────────────────────────────────
+import routing_engine
+import http_caller
+import health_tracker
+import streaming as streaming_mod
+from routes.v3_adapters import (
+    v3_route, v3_predict, v3_select, v3_call_stream, v3_call_api, fake_stream,
+    FAKE_STREAM_BACKENDS,
+)
+from routes.quality_gate import (
+    quality_check, allows_short_direct_answer, expected_direct_answer,
+    get_same_tier_backends, get_upgrade_chain, default_route,
+    try_backend, honest_failure_response,
+    BACKEND_TIERS, EXACT_OUTPUT_MARKERS,
+)
 
 # ── App ─────────────────────────────────────────────────────────────────────
 from contextlib import asynccontextmanager
@@ -194,18 +70,16 @@ from contextlib import asynccontextmanager
 @asynccontextmanager
 async def lifespan(application):
     """FastAPI lifespan: 启动/关闭时执行。"""
-    if USE_V3:
-        import probe_loop
-        probe_loop.start(probe_fn=http_caller.probe)
+    import probe_loop
+    probe_loop.start(probe_fn=http_caller.probe)
     try:
         from session_memory.daemon import start_daemon
         await start_daemon()
     except ImportError:
         pass
     yield
-    if USE_V3:
-        import probe_loop
-        probe_loop.stop()
+    import probe_loop
+    probe_loop.stop()
     try:
         from session_memory.daemon import stop_daemon
         stop_daemon()
@@ -245,297 +119,16 @@ _stats = {
 # 后端启用/禁用状态
 _backend_enabled = {}
 
-# ── Fallback 日志（供自动训练闭环使用）────────────────────────────────────────
-FALLBACK_LOG = "D:/GIT/data/fallback_log.jsonl"
-
-
-def _record_fallback(query, original_backend, fallback_backend, intent, ide):
-    """记录 fallback 事件到日志文件，供 auto_retrain 自动训练使用。"""
-    try:
-        os.makedirs(os.path.dirname(FALLBACK_LOG), exist_ok=True)
-        entry = {
-            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-            "query": query[:300],
-            "original_backend": original_backend,
-            "fallback_backend": fallback_backend,
-            "intent": intent,
-            "ide": ide,
-        }
-        with open(FALLBACK_LOG, 'a', encoding='utf-8') as f:
-            f.write(json.dumps(entry, ensure_ascii=False) + '\n')
-    except Exception:
-        pass
-
-# ── Fallback 架构 ─────────────────────────────────────────────────────────────
-# 后端层级映射
-BACKEND_TIERS = {
-    "L1_free": ["longcat_lite", "longcat_chat", "longcat", "longcat_thinking", "longcat_omni", "chinamobile"],
-    "L2_nvidia": ["nvidia_qwen_coder", "nvidia_nemotron", "nvidia_phi4", "nvidia_llama4", "nvidia_llama70b", "nvidia_mistral"],
-    "L2_openrouter": ["or_deepseek_r1", "or_qwen3_coder", "or_llama70b", "or_nemotron", "or_qwen3_80b"],
-    "L3_paid": [],
-}
-
-
-def _get_same_tier_backends(current_backend: str) -> list:
-    """获取同层级的其他后端（排除当前的）。"""
-    for tier, backends in BACKEND_TIERS.items():
-        if current_backend in backends:
-            return [b for b in backends if b != current_backend]
-    return []
-
-
-def _get_upgrade_chain(current_backend: str) -> list:
-    """获取升级链：当前层级之上的所有后端。"""
-    tiers = list(BACKEND_TIERS.keys())
-    current_tier = None
-    for tier, backends in BACKEND_TIERS.items():
-        if current_backend in backends:
-            current_tier = tier
-            break
-    if not current_tier:
-        return ["longcat_chat"]  # 默认 fallback
-    tier_idx = tiers.index(current_tier)
-    upgrade_backends = []
-    for tier in tiers[tier_idx + 1:]:
-        upgrade_backends.extend(BACKEND_TIERS[tier][:2])  # 每层取前2个
-    return upgrade_backends
-
-
-def _default_route(query: str, ide: str = "unknown") -> str:
-    """当路由模型输出无效时，用简单规则选后端。"""
-    query_len = len(query)
-    # 短问题用快速后端
-    if query_len < 50:
-        return "longcat_lite"
-    # 代码相关关键词
-    code_keywords = ["代码", "code", "函数", "function", "bug", "error", "def ", "class ", "import "]
-    if any(kw in query.lower() for kw in code_keywords):
-        return "nvidia_qwen_coder"
-    # 长问题用通用后端
-    if query_len > 200:
-        return "longcat"
-    # 默认
-    return "longcat_chat"
-
-
-EXACT_OUTPUT_MARKERS = (
-    "return exactly",
-    "respond exactly",
-    "output exactly",
-    "print exactly",
-    "exactly:",
-    "only return",
-    "only output",
-    "只返回",
-    "只输出",
-    "仅返回",
-    "仅输出",
-)
-
-
-def _allows_short_direct_answer(query: str, response_text: str) -> bool:
-    if not query or not response_text:
-        return False
-    lowered = query.lower()
-    if not any(marker in lowered for marker in EXACT_OUTPUT_MARKERS):
-        return False
-    return 1 <= len(response_text.strip()) <= 120
-
-
-def _strip_direct_answer(value: str) -> str:
-    return value.strip().strip("\"'`“”‘’")
-
-
-def _expected_direct_answer(query: str) -> str:
-    if not query:
-        return ""
-    lowered = query.lower()
-    for marker in (
-        "return exactly",
-        "respond exactly",
-        "output exactly",
-        "print exactly",
-        "only return",
-        "only output",
-    ):
-        idx = lowered.rfind(marker)
-        if idx < 0:
-            continue
-        rest = query[idx + len(marker):].strip()
-        if not rest or rest[0] not in (":", "："):
-            continue
-        candidate = _strip_direct_answer(rest[1:])
-        if candidate and "\n" not in candidate and len(candidate) <= 120:
-            return candidate
-    for marker in ("只返回", "只输出", "仅返回", "仅输出"):
-        idx = query.rfind(marker)
-        if idx < 0:
-            continue
-        rest = query[idx + len(marker):].strip()
-        if rest.startswith((':', '：')):
-            rest = rest[1:].strip()
-        candidate = _strip_direct_answer(rest)
-        if candidate and "\n" not in candidate and len(candidate) <= 120:
-            return candidate
-    return ""
-
-
-def _quality_check(response_text: str, complexity: float, backend: str,
-                   query: str = "") -> bool:
-    """检查回答质量，返回 False 表示需要重试。"""
-    if not response_text:
-        return False
-    if response_text.startswith("[ERR]"):
-        return False
-    if http_caller._is_backend_error(response_text):
-        return False
-    expected = _expected_direct_answer(query)
-    if expected and response_text.strip() != expected:
-        return False
-    if (len(response_text) < 30 and complexity > 0.3
-            and not _allows_short_direct_answer(query, response_text)):
-        return False
-    uncertain_phrases = ["I cannot", "我无法", "抱歉，我不能"]
-    if any(phrase in response_text for phrase in uncertain_phrases):
-        if complexity < 0.5:
-            return False
-    return True
-
-
-def _honest_failure_response(chat_id: str, fmt: str = "openai", request_model: str = None) -> dict:
-    """所有后端都失败时的诚实回答。"""
-    content = "当前所有服务暂时不可用，请稍后重试。如果问题持续，请联系管理员。"
-    if fmt == "anthropic":
-        return build_anthropic_response(chat_id, content, "fallback_exhausted", request_model or MODEL_ID)
-    return build_response(chat_id, content, "fallback_exhausted", 0)
-
-
-async def _try_backend(
-    backend_name: str,
-    query: str,
-    max_tokens: int = 1024,
-    *,
-    messages: list[dict] | None = None,
-) -> dict | None:
-    """尝试调用一个后端，失败返回 None。返回 smart_router.route() 兼容的 dict。"""
-    if backend_name not in smart_router.BACKENDS:
-        return None
-    if not _backend_enabled.get(backend_name, True):
-        return None
-    if not smart_router.cb_allow(backend_name):
-        return None
-    try:
-        msgs = messages if messages else [{"role": "user", "content": query}]
-        result = await asyncio.wait_for(
-            asyncio.to_thread(smart_router.call_api, backend_name, msgs, max_tokens),
-            timeout=35.0
-        )
-        if result is None or (isinstance(result, str) and (result.startswith("[ERR]") or "暂时不可用" in result)):
-            smart_router.cb_record(backend_name, False)
-            return None
-        return {"answer": result, "backend": backend_name, "total_ms": 0}
-    except asyncio.TimeoutError:
-        smart_router.cb_record(backend_name, False)
-        return None
-    except Exception as e:
-        logging.debug(f"[TRY_BACKEND] {backend_name}: {type(e).__name__}: {e}")
-        smart_router.cb_record(backend_name, False)
-        return None
-
-
-@functools.lru_cache(maxsize=256)
-@functools.lru_cache(maxsize=256)
-def _get_ip_location(ip: str) -> str:
-    """查询 IP 地理位置（缓存结果）。非阻塞：在线程池中执行。"""
-    if ip in ("127.0.0.1", "localhost", "::1", ""):
-        return "本地"
-    import re
-    if not re.match(r'^[\d.:a-fA-F]+$', ip):
-        return "未知"
-    try:
-        import urllib.request
-        resp = urllib.request.urlopen(f"http://ip-api.com/json/{ip}?fields=country,city&lang=zh-CN", timeout=0.5)
-        data = json.loads(resp.read().decode())
-        return f"{data.get('country', '')} {data.get('city', '')}"
-    except Exception:
-        return "未知"
-
-
-TRUSTED_PROXIES = {"127.0.0.1", "::1", "10.0.0.1"}
-
-
-def _client_ip(request: Request) -> str:
-    """统一 IP 提取：可信代理后用 XFF，否则用 direct IP。"""
-    direct = request.client.host if request.client else ""
-    if direct in TRUSTED_PROXIES:
-        xff = request.headers.get("x-forwarded-for", "")
-        if xff:
-            return xff.split(",")[0].strip()
-    return direct
-
-
-def _detect_ide(messages: list) -> str:
-    """从消息中检测 IDE 来源。"""
-    for msg in messages:
-        content = msg.get("content", "") if isinstance(msg, dict) else ""
-        if isinstance(content, str):
-            if "Claude Code" in content or "claude-code" in content:
-                return "Claude Code"
-            if "Cursor" in content or "You are Cursor" in content:
-                return "Cursor"
-            if "GitHub Copilot" in content or "Copilot" in content:
-                return "GitHub Copilot"
-            if "Windsurf" in content or "Codeium" in content:
-                return "Windsurf"
-            if "Kiro" in content or "kiro" in content:
-                return "Kiro"
-            if "Zed" in content or "zed-editor" in content:
-                return "Zed"
-            if "Trae" in content or "trae" in content:
-                return "Trae"
-            if "Codex" in content:
-                return "Codex"
-            if "Continue" in content or "continue.dev" in content:
-                return "Continue"
-            if "Cline" in content or "<environment_details>" in content:
-                return "Cline"
-            if "Aider" in content or "SEARCH/REPLACE" in content:
-                return "Aider"
-    return ""
-
-
-def _elapsed_ms(started_at: float) -> int:
-    return max(0, int((time.time() - started_at) * 1000))
-
-
-def _record_request(query: str, backend: str, intent: str, duration_ms: int, success: bool = True, client_ip: str = "", ide_source: str = "", sys_prompt_preview: str = ""):
-    """记录一次请求到统计数据。"""
-    country = _get_ip_location(client_ip) if client_ip else ""
-
-    with _stats_lock:
-        _stats["total_requests"] += 1
-        if backend not in _stats["backend_calls"]:
-            _stats["backend_calls"][backend] = {"count": 0, "success": 0, "total_ms": 0}
-        _stats["backend_calls"][backend]["count"] += 1
-        if success:
-            _stats["backend_calls"][backend]["success"] += 1
-        _stats["backend_calls"][backend]["total_ms"] += duration_ms
-        _stats["intent_distribution"][intent] = _stats["intent_distribution"].get(intent, 0) + 1
-        log_entry = {
-            "time": time.strftime("%H:%M:%S"),
-            "query": query[:80],
-            "backend": backend,
-            "intent": intent,
-            "ms": duration_ms,
-            "success": success,
-            "ip": client_ip,
-            "country": country,
-            "ide": ide_source,
-            "sys_prompt": sys_prompt_preview[:100] if sys_prompt_preview else "",
-        }
-        _stats["recent_logs"].append(log_entry)
-        if len(_stats["recent_logs"]) > 100:
-            _stats["recent_logs"] = _stats["recent_logs"][-100:]
+# ── Request Tracking (extracted to routes/request_tracking.py) ────────────────
+import routes.request_tracking as _rt_mod
+_rt_mod.inject_state(_stats, _stats_lock)
+_record_fallback = _rt_mod.record_fallback
+_record_request = _rt_mod.record_request
+_get_ip_location = _rt_mod.get_ip_location
+_client_ip = _rt_mod.client_ip
+_detect_ide = _rt_mod.detect_ide
+_elapsed_ms = _rt_mod.elapsed_ms
+FALLBACK_LOG = _rt_mod.FALLBACK_LOG
 
 
 # ── Pydantic Models ─────────────────────────────────────────────────────────
@@ -553,75 +146,11 @@ class ChatRequest(BaseModel):
     thinking: Optional[bool] = False
 
 
-# ── Helpers ─────────────────────────────────────────────────────────────────
-def make_chat_id() -> str:
-    return f"chatcmpl-{uuid.uuid4().hex[:24]}"
-
-
-def build_response(chat_id: str, content: str, backend: str, total_ms: int) -> dict:
-    """构建 OpenAI ChatCompletion 非流式响应格式。"""
-    return {
-        "id": chat_id,
-        "object": "chat.completion",
-        "created": int(time.time()),
-        "model": MODEL_ID,
-        "choices": [{
-            "index": 0,
-            "message": {"role": "assistant", "content": content},
-            "finish_reason": "stop"
-        }],
-        "usage": {
-            "prompt_tokens": 0,
-            "completion_tokens": 0,
-            "total_tokens": 0
-        },
-        "system_fingerprint": f"router_{backend}",
-        "x_lima_meta": {"backend": backend, "total_ms": total_ms}
-    }
-
-
-def build_stream_chunk(chat_id: str, content: str, finish: bool = False) -> str:
-    """构建 SSE 流式 chunk。"""
-    delta = {} if finish else {"content": content}
-    chunk = {
-        "id": chat_id,
-        "object": "chat.completion.chunk",
-        "created": int(time.time()),
-        "model": MODEL_ID,
-        "choices": [{
-            "index": 0,
-            "delta": delta if not finish else {},
-            "finish_reason": "stop" if finish else None
-        }]
-    }
-    return f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
-
-
-def build_anthropic_response(msg_id: str, content: str, backend: str, model: str = MODEL_ID) -> dict:
-    """构建 Anthropic Messages API 响应格式。"""
-    return {
-        "id": f"msg_{uuid.uuid4().hex[:24]}",
-        "type": "message",
-        "role": "assistant",
-        "model": model,
-        "content": [{"type": "text", "text": content}],
-        "stop_reason": "end_turn",
-        "stop_sequence": None,
-        "usage": {"input_tokens": 10, "output_tokens": len(content) // 4},
-    }
-
-
-def extract_query(messages: list[Message]) -> str:
-    """从 messages 列表提取最后一条 user 消息作为 query。"""
-    for msg in reversed(messages):
-        if msg.role == "user":
-            return msg.content
-    return messages[-1].content if messages else ""
-
-
-def messages_to_dicts(messages: list[Message]) -> list[dict]:
-    """将 Pydantic Message 列表转为 dict 列表，用于传递完整上下文。"""
-    return [{'role': m.role, 'content': m.content} for m in messages if m.role in ('user', 'assistant')]
+# ── Helpers (imported from response_builder.py) ────────────────────────────────
+from response_builder import (
+    make_chat_id, build_response, build_stream_chunk,
+    build_anthropic_response, extract_query, messages_to_dicts,
+)
 
 
 # ── Deep Thinking Mode Helper ─────────────────────────────────────────────────
@@ -659,94 +188,7 @@ async def _thinking_route(query: str, max_tokens: int = 4096, ide: str = "unknow
     return None
 
 
-# ── Vision (Photo-to-Answer) Mode Helper ─────────────────────────────────────
-async def _vision_route(messages: list, max_tokens: int = 4096, ide: str = "unknown") -> dict | None:
-    """Route vision requests to a multimodal backend. Returns result dict or None."""
-    for backend_name in smart_router.VISION_BACKENDS:
-        if backend_name not in smart_router.BACKENDS:
-            continue
-        if not smart_router.BACKENDS[backend_name].get('key'):
-            continue
-        if not smart_router.cb_allow(backend_name):
-            continue
-        try:
-            result = await asyncio.wait_for(
-                asyncio.to_thread(_call_vision_backend, backend_name, messages, max_tokens, ide),
-                timeout=60.0
-            )
-            if result and not (isinstance(result, str) and (result.startswith("[ERR]") or "暂时不可用" in result)):
-                return {"answer": result, "backend": backend_name}
-        except (asyncio.TimeoutError, Exception) as e:
-            if smart_router.DEBUG:
-                print(f"[VISION] {backend_name} failed: {e}", file=sys.stderr)
-            continue
-    return None
-
-
-def _call_vision_backend(backend_name: str, messages: list, max_tokens: int, ide: str) -> str | None:
-    """Call a vision-capable backend with image content."""
-    import urllib.request as _ur
-    b = smart_router.BACKENDS[backend_name]
-    fmt = b.get('fmt', 'openai')
-    auth_style = b.get('auth', 'x-api-key')
-
-    if fmt == 'anthropic':
-        # Convert OpenAI vision format to Anthropic format
-        anthropic_msgs = smart_router.convert_openai_vision_to_anthropic(messages)
-
-        if b.get('no_system'):
-            # For no_system backends (like longcat_omni): inject system prompt as first user message
-            system_text_block = {"type": "text", "text": smart_router.VISION_SYSTEM_PROMPT}
-            if anthropic_msgs and anthropic_msgs[0]["role"] == "user":
-                anthropic_msgs[0]["content"].insert(0, system_text_block)
-            else:
-                anthropic_msgs.insert(0, {"role": "user", "content": [system_text_block]})
-            body = {'model': b['model'], 'max_tokens': max_tokens, 'messages': anthropic_msgs}
-        else:
-            body = {'model': b['model'], 'max_tokens': max_tokens,
-                    'system': smart_router.VISION_SYSTEM_PROMPT, 'messages': anthropic_msgs}
-
-        p = json.dumps(body).encode()
-        if auth_style == 'bearer':
-            h = {'Content-Type': 'application/json',
-                 'Authorization': f"Bearer {b['key']}",
-                 'anthropic-version': '2023-06-01'}
-        else:
-            h = {'Content-Type': 'application/json',
-                 'x-api-key': b['key'], 'anthropic-version': '2023-06-01'}
-    else:
-        # OpenAI format: pass messages through with vision system prompt
-        openai_msgs = [{'role': 'system', 'content': smart_router.VISION_SYSTEM_PROMPT}] + messages
-        body = {'model': b['model'], 'max_tokens': max_tokens, 'messages': openai_msgs}
-        p = json.dumps(body).encode()
-        h = {'Content-Type': 'application/json', 'Authorization': f"Bearer {b['key']}"}
-
-    try:
-        req = _ur.Request(b['url'], data=p, headers=h)
-        _timeout = b.get('timeout', 60)
-        with _ur.urlopen(req, timeout=_timeout) as resp:
-            d = json.loads(resp.read().decode())
-        if fmt == 'anthropic':
-            answer = d['content'][0].get('text', '')
-        else:
-            answer = d['choices'][0]['message'].get('content', '')
-        smart_router.cb_record(backend_name, True)
-        return smart_router.clean_response(answer, backend_name)
-    except Exception as e:
-        if smart_router.DEBUG:
-            print(f'[VISION] {backend_name} call error: {e}', file=sys.stderr)
-        smart_router.cb_record(backend_name, False)
-        return None
-
-
-async def _stream_vision_response(chat_id: str, content: str):
-    """Stream a vision response in OpenAI SSE format."""
-    sentences = _split_sentences(content)
-    for sentence in sentences:
-        yield build_stream_chunk(chat_id, sentence)
-        await asyncio.sleep(0.02)
-    yield build_stream_chunk(chat_id, "", finish=True)
-    yield "data: [DONE]\n\n"
+# ── Vision routing now in vision_handler.py ──────────────────────────────────
 
 
 def extract_system_prompt(messages: list[Message]) -> str | None:
@@ -842,7 +284,7 @@ async def chat_completions(request: Request):
             break
 
     # ── Vision detection on raw messages (before Pydantic parsing) ────────
-    if smart_router.detect_vision_request(raw_messages):
+    if detect_vision_request(raw_messages):
         chat_id = make_chat_id()
         t0 = time.time()
         # Extract text query for logging
@@ -1037,217 +479,19 @@ async def anthropic_messages(req: Request):
     return await _handle_chat(chat_req, fmt="anthropic", request_model=req_model, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
 
 
-async def _anthropic_stream_passthrough(body: dict, model: str):
-    """含图片时：转发给视觉模型，流式返回。"""
-    import httpx
-    query_text = ""
-    for m in body.get("messages", []):
-        c = m.get("content", "")
-        if isinstance(c, list):
-            query_text = " ".join(b.get("text", "") for b in c if b.get("type") == "text")
-        elif isinstance(c, str):
-            query_text = c
-
-    # 视觉模型不可用时，返回提示
-    content = f"[图片分析] 收到包含图片的请求。当前视觉模型暂未接入，请用文字描述图片内容后重新提问。\n\n你的文字描述：{query_text}" if query_text else "[图片分析] 收到图片请求，请附带文字描述以便分析。"
-
-    msg_id = f"msg_{uuid.uuid4().hex[:24]}"
-    yield f"event: message_start\ndata: {json.dumps({'type':'message_start','message':{'id':msg_id,'type':'message','role':'assistant','model':model,'content':[],'stop_reason':None,'stop_sequence':None,'usage':{'input_tokens':10,'output_tokens':0}}})}\n\n"
-    yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':0,'content_block':{'type':'text','text':''}})}\n\n"
-
-    chunk_size = 30
-    for i in range(0, len(content), chunk_size):
-        chunk = content[i:i+chunk_size]
-        yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':chunk}}, ensure_ascii=False)}\n\n"
-        await asyncio.sleep(0.01)
-
-    yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':0})}\n\n"
-    yield f"event: message_delta\ndata: {json.dumps({'type':'message_delta','delta':{'stop_reason':'end_turn','stop_sequence':None},'usage':{'output_tokens':len(content)//4}})}\n\n"
-    yield f"event: message_stop\ndata: {json.dumps({'type':'message_stop'})}\n\n"
-
-
-async def _anthropic_stream(req: ChatRequest, model: str, client_ip: str = "", ide_source: str = "", sys_prompt_preview: str = ""):
-    """Anthropic SSE 流式响应（真流式透传 + fallback）。"""
-    query = extract_query(req.messages)
-    t0 = time.time()
-
-    # ── Image generation intent detection ──────────────────────────────────
-    is_image, image_prompt = smart_router.detect_image_intent(query)
-    if is_image:
-        image_url = _build_pollinations_url(image_prompt, "1024x1024")
-        content = f"![image]({image_url})\n\n已为您生成图片，点击查看。"
-        backend_used = "pollinations"
-        duration_ms = int((time.time() - t0) * 1000)
-        _record_request(query, backend_used, "image_generation", duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
-        msg_id = f"msg_{uuid.uuid4().hex[:24]}"
-        yield f"event: message_start\ndata: {json.dumps({'type':'message_start','message':{'id':msg_id,'type':'message','role':'assistant','model':model,'content':[],'stop_reason':None,'stop_sequence':None,'usage':{'input_tokens':10,'output_tokens':0}}})}\n\n"
-        yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':0,'content_block':{'type':'text','text':''}})}\n\n"
-        yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':content}}, ensure_ascii=False)}\n\n"
-        yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':0})}\n\n"
-        yield f"event: message_delta\ndata: {json.dumps({'type':'message_delta','delta':{'stop_reason':'end_turn','stop_sequence':None},'usage':{'output_tokens':len(content)//4}})}\n\n"
-        yield f"event: message_stop\ndata: {json.dumps({'type':'message_stop'})}\n\n"
-        return
-
-    # ── Deep Thinking Mode Detection ────────────────────────────────────────
-    use_thinking = getattr(req, 'thinking', False) or smart_router.detect_thinking_intent(query)
-    thinking_handled = False
-    if use_thinking:
-        thinking_result = await _thinking_route(query, req.max_tokens or 4096, ide_source)
-        if thinking_result:
-            content = thinking_result["answer"]
-            backend_used = thinking_result["backend"]
-            intent_used = "thinking"
-            thinking_handled = True
-
-    if not thinking_handled:
-        # ── Normal routing: do route first, then REAL STREAM ──────────────
-        intent_used = smart_router.analyze(query, system_prompt=sys_prompt_preview, ide=ide_source)
-        use_orch = needs_orchestration(query, intent_used)
-        intent_name = intent_used.get("intent", "unknown") if isinstance(intent_used, dict) else "unknown"
-        complexity = intent_used.get("complexity", 0.5) if isinstance(intent_used, dict) else 0.5
-
-        if use_orch:
-            # Orchestration: keep fake stream (multi-step pipeline)
-            result = await asyncio.to_thread(orchestrate, query)
-            content = result.get("answer", "")
-            backend_used = result.get("backend", "orchestrator")
-            thinking_handled = False  # use fake stream path below
-        else:
-            # SPECULATIVE STREAMING: predict backend + stream in parallel with routing
-            msg_id = f"msg_{uuid.uuid4().hex[:24]}"
-            total_text = ""
-
-            # Emit message_start
-            yield f"event: message_start\ndata: {json.dumps({'type':'message_start','message':{'id':msg_id,'type':'message','role':'assistant','model':model,'content':[],'stop_reason':None,'stop_sequence':None,'usage':{'input_tokens':10,'output_tokens':0}}})}\n\n"
-            yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':0,'content_block':{'type':'text','text':''}})}\n\n"
-
-            streamed_any = False
-            async for backend_used, chunk in _speculative_stream_chunks(query, messages_to_dicts(req.messages), req.max_tokens or 4096, ide_source):
-                streamed_any = True
-                total_text += chunk
-                yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':chunk}}, ensure_ascii=False)}\n\n"
-
-            if not streamed_any:
-                # Fallback: use routing_engine with full fallback chain
-                try:
-                    backends = routing_engine.select(
-                        "ide" if ide_source else "chat",
-                        health_tracker.get_health_map())
-                    fb_backend, fb_answer, _ = await asyncio.to_thread(
-                        routing_engine.execute, backends,
-                        lambda b, m, t: http_caller.call_api(b, m, t,
-                            system_prompt=sys_prompt_preview, ide=ide_source),
-                        messages_to_dicts(req.messages), req.max_tokens or 4096)
-                    fallback_text = fb_answer if fb_answer and fb_backend != "exhausted" else None
-                except Exception:
-                    fallback_text = None
-                    fb_backend = "fallback_error"
-                backend_used = fb_backend if fallback_text else "last_resort"
-                if fallback_text:
-                    total_text = fallback_text
-                    chunk_size = 30
-                    for i in range(0, len(fallback_text), chunk_size):
-                        chunk = fallback_text[i:i+chunk_size]
-                        yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':chunk}}, ensure_ascii=False)}\n\n"
-                        await asyncio.sleep(0.01)
-                else:
-                    total_text = _last_resort_call(messages_to_dicts(req.messages)) or "系统维护中，请稍后重试。"
-                    yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':total_text}}, ensure_ascii=False)}\n\n"
-
-            # End events
-            yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':0})}\n\n"
-            yield f"event: message_delta\ndata: {json.dumps({'type':'message_delta','delta':{'stop_reason':'end_turn','stop_sequence':None},'usage':{'output_tokens':len(total_text)//4}})}\n\n"
-            yield f"event: message_stop\ndata: {json.dumps({'type':'message_stop'})}\n\n"
-
-            duration_ms = int((time.time() - t0) * 1000)
-            record_intent = intent_used if isinstance(intent_used, str) else intent_name
-            _record_request(query, backend_used, record_intent, duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
-
-            # Logging
-            sys_prompt = extract_system_prompt(req.messages)
-            if sys_prompt:
-                try:
-                    _log_sys_prompt(sys_prompt)
-                except Exception:
-                    pass
-            try:
-                if os.environ.get("DISTILL_LOG", "0") == "1":
-                    smart_router._log_to_distill_queue(query, total_text, record_intent, backend_used)
-            except Exception:
-                pass
-            return
-
-        # ── Fake stream path: thinking mode, orchestration, or fallback ────
-        # quality check + fallback for non-streaming content
-        if not _quality_check(content, complexity, backend_used, query=query):
-            fallback_backend = _default_route(query, ide_source) if backend_used == "unknown" else backend_used
-            same_tier = _get_same_tier_backends(fallback_backend)
-            fallback_found = False
-            for alt in same_tier:
-                alt_result = await _try_backend(
-                    alt,
-                    query,
-                    req.max_tokens or 4096,
-                    messages=messages_to_dicts(req.messages),
-                )
-                if alt_result and _quality_check(alt_result["answer"], complexity, alt, query=query):
-                    content = alt_result["answer"]
-                    backend_used = alt
-                    fallback_found = True
-                    break
-            if not fallback_found:
-                upgrade_chain = _get_upgrade_chain(fallback_backend)
-                for upgraded in upgrade_chain:
-                    up_result = await _try_backend(
-                        upgraded,
-                        query,
-                        req.max_tokens or 4096,
-                        messages=messages_to_dicts(req.messages),
-                    )
-                    if up_result and _quality_check(up_result["answer"], complexity, upgraded, query=query):
-                        content = up_result["answer"]
-                        backend_used = upgraded
-                        fallback_found = True
-                        break
-            if not fallback_found and not content:
-                content = "当前所有服务暂时不可用，请稍后重试。"
-                backend_used = "fallback_exhausted"
-
-    # ── Build fake stream for thinking/orchestration/fallback ───────────────
-    duration_ms = int((time.time() - t0) * 1000)
-    record_intent = intent_used if isinstance(intent_used, str) else (intent_used.get("intent", "unknown") if isinstance(intent_used, dict) else "unknown")
-    _record_request(query, backend_used, record_intent, duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
-
-    if not content or not content.strip():
-        content = _last_resort_call(messages_to_dicts(req.messages)) or "系统维护中，请稍后重试。"
-        backend_used = backend_used or "empty_response"
-
-    msg_id = f"msg_{uuid.uuid4().hex[:24]}"
-
-    yield f"event: message_start\ndata: {json.dumps({'type':'message_start','message':{'id':msg_id,'type':'message','role':'assistant','model':model,'content':[],'stop_reason':None,'stop_sequence':None,'usage':{'input_tokens':10,'output_tokens':0}}})}\n\n"
-    yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':0,'content_block':{'type':'text','text':''}})}\n\n"
-
-    chunk_size = 20
-    for i in range(0, len(content), chunk_size):
-        chunk = content[i:i+chunk_size]
-        yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':chunk}}, ensure_ascii=False)}\n\n"
-        await asyncio.sleep(0.01)
-
-    yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':0})}\n\n"
-    yield f"event: message_delta\ndata: {json.dumps({'type':'message_delta','delta':{'stop_reason':'end_turn','stop_sequence':None},'usage':{'output_tokens':len(content)//4}})}\n\n"
-    yield f"event: message_stop\ndata: {json.dumps({'type':'message_stop'})}\n\n"
-
-    sys_prompt = extract_system_prompt(req.messages)
-    if sys_prompt:
-        try:
-            _log_sys_prompt(sys_prompt)
-        except Exception:
-            pass
-    try:
-        if os.environ.get("DISTILL_LOG", "0") == "1":
-            smart_router._log_to_distill_queue(query, content, record_intent, backend_used)
-    except Exception:
-        pass
+# ── Anthropic streaming (extracted to routes/anthropic_stream.py) ────────────
+from routes.anthropic_stream import (
+    anthropic_stream as _anthropic_stream,
+    anthropic_stream_passthrough as _anthropic_stream_passthrough,
+    inject_deps as _inject_anthropic_stream_deps,
+)
+_inject_anthropic_stream_deps(
+    last_resort_call=_last_resort_call,
+    thinking_route=_thinking_route,
+    record_request=_record_request,
+    extract_system_prompt=extract_system_prompt,
+    log_sys_prompt=_log_sys_prompt,
+)
 
 
 async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str = None, client_ip: str = "", ide_source: str = "", sys_prompt_preview: str = ""):
@@ -1352,13 +596,11 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
     # 非流式：直接调用（带 fallback）
     if use_orchestration:
         result = await asyncio.to_thread(orchestrate, query)
-    elif USE_V3:
-        result = await asyncio.to_thread(_v3_route, query,
+    else:
+        result = await asyncio.to_thread(v3_route, query,
             messages_to_dicts(req.messages),
             system_prompt=sys_prompt_preview, ide=ide_source,
             max_tokens=req.max_tokens or 4096)
-    else:
-        result = await asyncio.to_thread(smart_router.route, query, system_prompt=sys_prompt_preview, ide=ide_source, messages=messages_to_dicts(req.messages), prefer=prefer)
 
     content = result.get("answer", "")
     backend = result.get("backend", "unknown")
@@ -1367,20 +609,20 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
     complexity = intent.get("complexity", 0.5) if isinstance(intent, dict) else 0.5
 
     # ── Fallback 层：质量检查 + 同层降级 + 跨层升级 ──
-    if not _quality_check(content, complexity, backend, query=query):
+    if not quality_check(content, complexity, backend, query=query):
         fallback_intent = intent_name if intent_name != "unknown" else "unknown"
-        fallback_backend = _default_route(query, ide_source) if backend == "unknown" else backend
+        fallback_backend = default_route(query, ide_source) if backend == "unknown" else backend
 
         # 同层降级：找同层级的其他后端
-        same_tier = _get_same_tier_backends(fallback_backend)
+        same_tier = get_same_tier_backends(fallback_backend)
         for alt in same_tier:
-            alt_result = await _try_backend(
+            alt_result = await try_backend(
                 alt,
                 query,
                 req.max_tokens or 1024,
                 messages=messages_to_dicts(req.messages),
             )
-            if alt_result and _quality_check(alt_result["answer"], complexity, alt, query=query):
+            if alt_result and quality_check(alt_result["answer"], complexity, alt, query=query):
                 content = alt_result["answer"]
                 backend = alt
                 _record_fallback(query, fallback_backend, alt, f"fallback_same_tier_{fallback_intent}", ide_source)
@@ -1390,15 +632,15 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
                 return JSONResponse(build_response(chat_id, content, backend, int((time.time() - t0) * 1000)))
 
         # 跨层升级：逐级升级
-        upgrade_chain = _get_upgrade_chain(fallback_backend)
+        upgrade_chain = get_upgrade_chain(fallback_backend)
         for upgraded in upgrade_chain:
-            up_result = await _try_backend(
+            up_result = await try_backend(
                 upgraded,
                 query,
                 req.max_tokens or 1024,
                 messages=messages_to_dicts(req.messages),
             )
-            if up_result and _quality_check(up_result["answer"], complexity, upgraded, query=query):
+            if up_result and quality_check(up_result["answer"], complexity, upgraded, query=query):
                 content = up_result["answer"]
                 backend = upgraded
                 _record_fallback(query, fallback_backend, upgraded, f"fallback_upgrade_{fallback_intent}", ide_source)
@@ -1410,7 +652,7 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
         # 全部失败：诚实告知
         duration_ms = int((time.time() - t0) * 1000)
         _record_request(query, "fallback_exhausted", f"fallback_exhausted_{fallback_intent}", duration_ms, False, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
-        return JSONResponse(_honest_failure_response(chat_id, fmt, request_model))
+        return JSONResponse(honest_failure_response(chat_id, fmt, request_model))
 
     duration_ms = int((time.time() - t0) * 1000)
 
@@ -1452,147 +694,8 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
     return JSONResponse(build_response(chat_id, content, backend, total_ms))
 
 
-# ── Real Streaming Bridge ─────────────────────────────────────────────────────
-async def _real_stream_chunks(backend_name: str, msgs: list, max_tokens: int = 4096, ide: str = "unknown"):
-    """Bridge sync call_api_stream() to async generator.
-    Runs the sync generator in a thread, pushes chunks through a queue,
-    yields text chunks asynchronously.
-    """
-    if USE_V3:
-        async for chunk in streaming_mod.bridge_stream(
-            backend_name, msgs, max_tokens, ide,
-            call_stream_fn=_v3_call_stream,
-            call_fn=_v3_call_api,
-        ):
-            yield chunk
-        return
-
-    import queue as queue_mod
-
-    q: queue_mod.Queue = queue_mod.Queue()
-    cancel_event = threading.Event()
-
-    def _run():
-        try:
-            for chunk in smart_router.call_api_stream(backend_name, msgs, max_tokens, ide):
-                if cancel_event.is_set():
-                    return
-                q.put(('chunk', chunk))
-        except Exception as e:
-            q.put(('error', e))
-        finally:
-            q.put(('done', None))
-
-    thread = threading.Thread(target=_run, daemon=True)
-    thread.start()
-
-    first_chunk_arrived = False
-    timeout = 3.0
-    start = time.time()
-
-    while True:
-        remaining = timeout - (time.time() - start)
-        if remaining <= 0:
-            break
-        try:
-            typ, val = q.get(timeout=min(remaining, 0.5))
-        except queue_mod.Empty:
-            continue
-        if typ == 'done':
-            if not first_chunk_arrived:
-                result = await asyncio.to_thread(smart_router.call_api, backend_name, msgs, max_tokens, ide)
-                if result and not str(result).startswith('[ERR]'):
-                    yield str(result)
-                return
-            return
-        if typ == 'chunk':
-            first_chunk_arrived = True
-            yield val
-
-    if not first_chunk_arrived:
-        cancel_event.set()
-        result = await asyncio.to_thread(smart_router.call_api, backend_name, msgs, max_tokens, ide)
-        if result and not str(result).startswith('[ERR]'):
-            yield str(result)
-        return
-
-    # Continue consuming remaining chunks (with timeout to prevent hang)
-    while True:
-        try:
-            typ, val = await asyncio.to_thread(q.get, timeout=30)
-        except queue_mod.Empty:
-            break
-        if typ == 'done':
-            break
-        if typ == 'chunk':
-            yield val
-
-
-# ── Speculative Streaming ─────────────────────────────────────────────────────
-async def _speculative_stream_chunks(query: str, msgs: list, max_tokens: int = 4096, ide: str = "unknown"):
-    """Speculative streaming: predict backend and start streaming immediately,
-    while routing runs in parallel. If prediction is wrong, switch to correct backend.
-
-    Yields (backend_name, text_chunk) tuples.
-    """
-    if USE_V3:
-        async for item in streaming_mod.speculative_stream(
-            query, msgs, max_tokens, ide,
-            predict_fn=_v3_predict,
-            select_fn=_v3_select,
-            call_stream_fn=_v3_call_stream,
-            call_fn=_v3_call_api,
-        ):
-            yield item
-        return
-    predicted = smart_router.predict_fast_backend(query)
-    predicted_msgs = msgs if msgs else [{"role": "user", "content": query}]
-
-    route_task = asyncio.create_task(
-        asyncio.to_thread(smart_router.select_backend, query, system_prompt="", ide=ide, messages=msgs)
-    )
-
-    actual_backend = None
-    actual_msgs = None
-    prediction_wrong = False
-
-    try:
-        async for chunk in _real_stream_chunks(predicted, predicted_msgs, max_tokens, ide):
-            # Check if routing completed mid-stream
-            if route_task.done() and actual_backend is None:
-                try:
-                    actual_backend, actual_msgs = route_task.result()
-                except Exception as e:
-                    print(f'[SPEC] route_task failed: {e}', file=__import__("sys").stderr)
-                    actual_backend = predicted
-                    actual_msgs = predicted_msgs
-
-                if actual_backend != predicted:
-                    prediction_wrong = True
-                    break
-            yield (actual_backend or predicted, chunk)
-
-        # Stream exhausted naturally — prediction was correct (or routing not done yet)
-        if not prediction_wrong:
-            if actual_backend is None:
-                try:
-                    actual_backend, actual_msgs = await route_task
-                except Exception:
-                    actual_backend = predicted
-                    actual_msgs = predicted_msgs
-            return
-
-        # Prediction wrong — switch to actual backend
-        async for chunk in _real_stream_chunks(actual_backend, actual_msgs, max_tokens, ide):
-            yield (actual_backend, chunk)
-
-    finally:
-        if not route_task.done():
-            route_task.cancel()
-            try:
-                await route_task
-            except (asyncio.CancelledError, Exception):
-                pass
+# ── Streaming handlers (extracted to routes/stream_handlers.py) ───────────────
+from routes.stream_handlers import real_stream_chunks, speculative_stream_chunks
 
 
 async def _stream_response(chat_id: str, query: str, use_orchestration: bool, ide_source: str = "", sys_prompt_preview: str = "", use_thinking: bool = False, messages: list = None, prefer: str = None):
@@ -1616,12 +719,10 @@ async def _stream_response(chat_id: str, query: str, use_orchestration: bool, id
         else:
             if use_orchestration:
                 result = await asyncio.to_thread(orchestrate, query)
-            elif USE_V3:
-                result = await asyncio.to_thread(_v3_route, query, messages,
+            else:
+                result = await asyncio.to_thread(v3_route, query, messages,
                     system_prompt=sys_prompt_preview, ide=ide_source,
                     max_tokens=4096)
-            else:
-                result = await asyncio.to_thread(smart_router.route, query, system_prompt=sys_prompt_preview, ide=ide_source, messages=messages, prefer=prefer)
             content = result.get("answer", "") if isinstance(result, dict) else str(result)
         if not content or not content.strip():
             content = _last_resort_call(messages) or "系统维护中，请稍后重试。"
@@ -1649,7 +750,7 @@ async def _stream_response(chat_id: str, query: str, use_orchestration: bool, id
 
     # ── SPECULATIVE STREAMING: predict + stream in parallel with routing ──
     streamed_any = False
-    async for backend, chunk in _speculative_stream_chunks(query, messages, 4096, ide_source):
+    async for backend, chunk in speculative_stream_chunks(query, messages, 4096, ide_source):
         streamed_any = True
         yield build_stream_chunk(chat_id, chunk)
 
@@ -1751,6 +852,9 @@ import routes.admin as _admin_mod
 _admin_mod.inject_state(_stats, _stats_lock, _backend_enabled)
 app.include_router(admin_router)
 
+import routes.quality_gate as _qg_mod
+_qg_mod.inject_state(_backend_enabled)
+
 # ── MCP tools (knowledge/memory access for IDE clients) ───────────────────────
 try:
     from lima_mcp.server import router as mcp_router
@@ -1762,6 +866,13 @@ except ImportError:
 try:
     from routes.agent_tasks import router as agent_tasks_router
     app.include_router(agent_tasks_router)
+except ImportError:
+    pass
+
+# ── Telegram Bot webhook ─────────────────────────────────────────────────────
+try:
+    from routes.telegram import router as telegram_router
+    app.include_router(telegram_router)
 except ImportError:
     pass
 

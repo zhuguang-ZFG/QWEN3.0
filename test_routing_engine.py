@@ -204,25 +204,25 @@ def test_code_orchestrator_filters_unreachable_local_proxy(monkeypatch):
 
 
 def test_quality_check_allows_requested_exact_short_answer():
-    import server
+    from routes.quality_gate import quality_check
 
-    assert server._quality_check(
+    assert quality_check(
         "topology-ok", 0.5, "scnet_ds_flash",
         query="Return exactly: topology-ok")
 
 
 def test_quality_check_still_rejects_unrequested_short_answer():
-    import server
+    from routes.quality_gate import quality_check
 
-    assert not server._quality_check(
+    assert not quality_check(
         "ok", 0.7, "scnet_ds_flash",
         query="Explain the architecture tradeoffs in detail")
 
 
 def test_quality_check_rejects_non_matching_exact_answer():
-    import server
+    from routes.quality_gate import quality_check
 
-    assert not server._quality_check(
+    assert not quality_check(
         "However, I need more information.",
         0.5,
         "groq_llama8b",

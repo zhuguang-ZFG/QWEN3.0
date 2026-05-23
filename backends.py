@@ -300,3 +300,6 @@ def startup_check():
 
 # Auto-run check on import
 startup_check()
+
+# ── Thinking-capable backends (priority order) ──
+THINKING_BACKENDS = ['or_deepseek_r1', 'longcat_thinking']

@@ -1,9 +1,17 @@
 """Candidate skill extraction and storage."""
 
 import hashlib
+import json
+import os
 import threading
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
+from pathlib import Path
+
+_PERSIST_DIR = Path(os.environ.get(
+    "LIMA_DATA_DIR", os.path.join(os.path.dirname(__file__), "..", "data")
+))
+_PERSIST_FILE = _PERSIST_DIR / "candidate_store.json"
 
 
 @dataclass
@@ -49,15 +57,36 @@ def extract_candidate(
 
 
 class CandidateStore:
-    """In-memory store for candidate skills."""
+    """Persistent store for candidate skills (JSON-backed)."""
 
-    def __init__(self) -> None:
+    def __init__(self, persist_path: Path | None = None) -> None:
+        self._path = persist_path or _PERSIST_FILE
         self._store: dict[str, CandidateSkill] = {}
         self._lock = threading.Lock()
+        self._load()
+
+    def _load(self) -> None:
+        if not self._path.exists():
+            return
+        try:
+            data = json.loads(self._path.read_text(encoding="utf-8"))
+            for item in data:
+                self._store[item["skill_id"]] = CandidateSkill(**item)
+        except (json.JSONDecodeError, KeyError, TypeError):
+            pass
+
+    def _save(self) -> None:
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        payload = [asdict(c) for c in self._store.values()]
+        self._path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
 
     def add(self, candidate: CandidateSkill) -> None:
         with self._lock:
             self._store[candidate.skill_id] = candidate
+            self._save()
 
     def get(self, skill_id: str) -> CandidateSkill | None:
         with self._lock:

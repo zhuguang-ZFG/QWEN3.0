@@ -1,13 +1,14 @@
 import asyncio
 
 import server
+import routes.quality_gate as quality_gate
 
 
 def test_try_backend_forwards_full_messages(monkeypatch):
     captured = {}
 
     monkeypatch.setitem(server.smart_router.BACKENDS, "unit_backend", {"key": "x"})
-    monkeypatch.setitem(server._backend_enabled, "unit_backend", True)
+    monkeypatch.setitem(quality_gate._backend_enabled, "unit_backend", True)
     monkeypatch.setattr(server.smart_router, "cb_allow", lambda name: True)
     monkeypatch.setattr(server.smart_router, "cb_record", lambda *args, **kwargs: None)
 
@@ -27,7 +28,7 @@ def test_try_backend_forwards_full_messages(monkeypatch):
     ]
 
     result = asyncio.run(
-        server._try_backend(
+        quality_gate.try_backend(
             "unit_backend",
             "latest turn",
             321,

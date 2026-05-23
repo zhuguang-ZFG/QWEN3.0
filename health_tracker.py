@@ -221,10 +221,18 @@ def record_failure(backend: str, error_code: Optional[int] = None,
             return
 
         n_fail = state.consecutive_failures
+        old_health = _health_map.get(backend, "healthy")
         if n_fail >= FAILURE_THRESHOLD_MIN_REQUESTS:
             _health_map[backend] = "dead"
         else:
             _health_map[backend] = "degraded"
+        new_health = _health_map[backend]
+        if old_health != new_health:
+            try:
+                from telegram_notify import notify_health_change
+                notify_health_change(backend, old_health, new_health)
+            except Exception:
+                pass
 
 
 def record_response_quality(backend: str, response_length: int,
