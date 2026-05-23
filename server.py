@@ -823,7 +823,7 @@ async def list_models():
 @app.get("/health")
 async def health():
     """健康检查端点。"""
-    return {"status": "ok", "version": "2.0", "model": MODEL_ID}
+    return {"status": "ok", "version": "2.0", "model": MODEL_ID, "modules": _loaded_modules}
 
 
 @app.get("/api/live-key", dependencies=[Depends(require_private_api_key)])
@@ -856,25 +856,32 @@ import routes.quality_gate as _qg_mod
 _qg_mod.inject_state(_backend_enabled)
 
 # ── MCP tools (knowledge/memory access for IDE clients) ───────────────────────
+_loaded_modules = {}
 try:
     from lima_mcp.server import router as mcp_router
     app.include_router(mcp_router)
-except ImportError:
-    pass
+    _loaded_modules["mcp"] = True
+except ImportError as e:
+    logging.warning(f"[STARTUP] MCP module not loaded: {e}")
+    _loaded_modules["mcp"] = False
 
 # ── Agent task management APIs ───────────────────────────────────────────────
 try:
     from routes.agent_tasks import router as agent_tasks_router
     app.include_router(agent_tasks_router)
-except ImportError:
-    pass
+    _loaded_modules["agent_tasks"] = True
+except ImportError as e:
+    logging.warning(f"[STARTUP] agent_tasks module not loaded: {e}")
+    _loaded_modules["agent_tasks"] = False
 
 # ── Telegram Bot webhook ─────────────────────────────────────────────────────
 try:
     from routes.telegram import router as telegram_router
     app.include_router(telegram_router)
-except ImportError:
-    pass
+    _loaded_modules["telegram"] = True
+except ImportError as e:
+    logging.warning(f"[STARTUP] telegram module not loaded: {e}")
+    _loaded_modules["telegram"] = False
 
 
 # ── Startup ─────────────────────────────────────────────────────────────────
