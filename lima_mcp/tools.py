@@ -25,7 +25,15 @@ def handle_tool_call(name: str, arguments: dict) -> dict:
     try:
         return handler(arguments)
     except Exception as e:
-        return {"error": f"{type(e).__name__}: {e}"}
+        return {"ok": False, "error": "tool_failed", "error_code": "tool_failed", "detail": str(e)[:200]}
+
+
+def _bounded_int(value, *, default: int, minimum: int, maximum: int) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return default
+    return max(minimum, min(maximum, parsed))
 
 
 def _search_repo(args: dict) -> dict:
@@ -119,7 +127,7 @@ def _dev_search_docs(args: dict) -> dict:
         args.get("query", ""),
         args.get("domains") or None,
         adapter=_dev_adapter(),
-        max_results=int(args.get("max_results", 5)),
+        max_results=_bounded_int(args.get("max_results"), default=5, minimum=1, maximum=10),
     )
 
 
@@ -131,7 +139,7 @@ def _dev_search_error(args: dict) -> dict:
         language=args.get("language", ""),
         framework=args.get("framework", ""),
         adapter=_dev_adapter(),
-        max_results=int(args.get("max_results", 5)),
+        max_results=_bounded_int(args.get("max_results"), default=5, minimum=1, maximum=10),
     )
 
 
@@ -141,7 +149,7 @@ def _dev_read_url(args: dict) -> dict:
     return read_url(
         args.get("url", ""),
         adapter=_dev_adapter(),
-        max_chars=int(args.get("max_chars", 6000)),
+        max_chars=_bounded_int(args.get("max_chars"), default=6000, minimum=1000, maximum=12000),
     )
 
 
@@ -153,7 +161,7 @@ def _dev_fetch_github_file(args: dict) -> dict:
         args.get("path", ""),
         args.get("ref", "main"),
         adapter=_dev_adapter(),
-        max_chars=int(args.get("max_chars", 8000)),
+        max_chars=_bounded_int(args.get("max_chars"), default=8000, minimum=1000, maximum=12000),
     )
 
 
@@ -162,5 +170,5 @@ def _dev_summarize_sources(args: dict) -> dict:
 
     return summarize_sources(
         args.get("sources", []),
-        max_chars=int(args.get("max_chars", 3000)),
+        max_chars=_bounded_int(args.get("max_chars"), default=3000, minimum=1000, maximum=12000),
     )

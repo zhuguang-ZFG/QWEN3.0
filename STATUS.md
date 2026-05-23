@@ -435,3 +435,11 @@ Latest LiMa Code dev-search tools:
 - LiMa Code has read-only dev-search tools through MCP: `dev_search_docs`, `dev_search_error`, `dev_read_url`, `dev_fetch_github_file`, and `dev_summarize_sources`.
 - The tools redact error/search input, block private URL targets, and remain outside default chat routing.
 - Local verification: `compileall` passed; focused dev-search/tool/MCP suite returned `28 passed`; full pytest returned `405 passed, 8 skipped`.
+
+Latest dev-search review follow-up:
+
+- SSRF protection now blocks obfuscated loopback/private/link-local/metadata targets such as IPv6 loopback, decimal IPv4, and hex IPv4 forms; TinyFish fetch and dev-read share the same guard.
+- Chinese dev-search triggers now include common LiMa Code phrasing for docs lookup, URL reading, and error fixing.
+- MCP dev-search handlers clamp numeric arguments with stable defaults instead of returning raw `ValueError` details.
+- Telegram FC/TTS integrations are optional local modules; missing untracked modules no longer break deployable command paths.
+- Local verification: `compileall` passed; focused dev-search/MCP/TinyFish/Telegram suite returned `44 passed`; full pytest returned `411 passed, 8 skipped`.

@@ -34,6 +34,16 @@ DEV_SEARCH_MARKERS = (
     "runtimeerror",
     "importerror",
     "how to fix",
+    "查一下",
+    "查下",
+    "官方文档",
+    "怎么用",
+    "怎么修",
+    "报错",
+    "异常",
+    "读取",
+    "打开链接",
+    "看一下",
 )
 
 

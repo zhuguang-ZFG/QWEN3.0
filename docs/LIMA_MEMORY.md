@@ -872,3 +872,12 @@ Deployment: not performed.
 - URL reads reject non-HTTP schemes and private/loopback targets.
 - These tools are not part of default chat routing and must not send private repository contents to external search.
 - Local verification: `compileall` passed; focused dev-search/tool/MCP suite returned `28 passed`; full pytest returned `405 passed, 8 skipped`.
+
+## 2026-05-23 Dev Search Review Follow-up
+
+- `search_gateway.safety.is_public_http_url()` now uses `ipaddress` parsing and blocks non-global IP literals, including IPv6 loopback, metadata/link-local addresses, and decimal/hex IPv4 loopback variants.
+- `search_gateway.tinyfish_transport._is_safe_url()` reuses the shared URL safety function instead of maintaining a second string-prefix guard.
+- Dev-search intent detection covers common Chinese prompts such as `查一下`, `官方文档`, `怎么修`, `报错`, `读取`, and `打开链接`.
+- MCP dev-search numeric arguments are bounded with defaults instead of surfacing raw `ValueError` strings.
+- Telegram FC/TTS modules remain local optional integrations; missing `fc_caller` or `mimo_tts` now falls back to normal chat or a stable voice-backend-unavailable message instead of hard failing deployment paths.
+- Local verification: focused dev-search/MCP/TinyFish/Telegram suite returned `44 passed`; full pytest returned `411 passed, 8 skipped`.

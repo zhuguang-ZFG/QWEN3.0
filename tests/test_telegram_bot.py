@@ -12,6 +12,7 @@ os.environ.setdefault("TELEGRAM_CHAT_ID", "987654321")
 
 import telegram_bot
 import telegram_notify
+import routes.telegram_commands as telegram_commands
 
 
 class TestTelegramBot:
@@ -120,3 +121,40 @@ class TestTelegramNotify:
             with patch.object(telegram_notify, "_fire_and_forget") as mock_ff:
                 telegram_notify.notify_health_change("x", "healthy", "dead")
                 mock_ff.assert_not_called()
+
+
+class TestTelegramOptionalLocalTools:
+    @pytest.mark.asyncio
+    async def test_cmd_chat_falls_back_when_fc_caller_is_unavailable(self, monkeypatch):
+        sent = []
+
+        async def fake_send_message(text, chat_id=None, **_kwargs):
+            sent.append((text, chat_id))
+            return True
+
+        monkeypatch.setattr(telegram_commands, "_optional_import", lambda _name: None)
+        monkeypatch.setattr(telegram_commands.telegram_bot, "send_message", fake_send_message)
+        monkeypatch.setattr(
+            telegram_commands.routing_engine,
+            "route",
+            lambda **_kwargs: {"answer": "fallback answer"},
+        )
+
+        await telegram_commands.cmd_chat("chat-1", "天气怎么样")
+
+        assert sent[-1] == ("fallback answer", "chat-1")
+
+    @pytest.mark.asyncio
+    async def test_cmd_voice_reports_missing_tts_backend(self, monkeypatch):
+        sent = []
+
+        async def fake_send_message(text, chat_id=None, **_kwargs):
+            sent.append((text, chat_id))
+            return True
+
+        monkeypatch.setattr(telegram_commands, "_optional_import", lambda _name: None)
+        monkeypatch.setattr(telegram_commands.telegram_bot, "send_message", fake_send_message)
+
+        await telegram_commands.cmd_voice("chat-1", "hello")
+
+        assert sent[-1] == ("Voice backend not available", "chat-1")

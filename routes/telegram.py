@@ -56,7 +56,10 @@ async def _send_voicechat_reply(chat_id: str, user_text: str) -> None:
         reply_text = last_msg.get("content", "")[:500]
         if not reply_text:
             return
-        import mimo_tts
+        from routes.telegram_commands import _optional_import
+        mimo_tts = _optional_import("mimo_tts")
+        if mimo_tts is None:
+            return
         ogg = await mimo_tts.tts_ogg(reply_text)
         if ogg:
             await telegram_bot.send_voice(ogg, chat_id=chat_id)

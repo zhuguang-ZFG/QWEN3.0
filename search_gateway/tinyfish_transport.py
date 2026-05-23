@@ -2,33 +2,18 @@
 
 import json
 import os
-import re
 import urllib.error
 import urllib.parse
 import urllib.request
 
-from .safety import redact_sensitive_query
+from .safety import is_public_http_url, redact_sensitive_query
 
 SEARCH_URL = "https://api.search.tinyfish.ai"
 FETCH_URL = "https://api.fetch.tinyfish.ai"
 
-_PRIVATE_HOST_RE = re.compile(
-    r"^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|0\.)"
-)
-
-
 def _is_safe_url(url: str) -> bool:
     """Reject private/loopback URLs to prevent SSRF."""
-    try:
-        parsed = urllib.parse.urlparse(url)
-    except ValueError:
-        return False
-    if parsed.scheme not in ("http", "https"):
-        return False
-    host = parsed.hostname or ""
-    if _PRIVATE_HOST_RE.match(host):
-        return False
-    return True
+    return is_public_http_url(url)
 
 
 def _opener():

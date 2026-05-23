@@ -1,5 +1,6 @@
 import re
 import urllib.parse
+import ipaddress
 
 _TOKEN_RE = re.compile(
     r"(sk-[A-Za-z0-9_-]{12,}"
@@ -23,19 +24,36 @@ def redact_sensitive_query(query: str) -> str:
     return query
 
 
-_PRIVATE_HOST_PREFIXES = (
+_BLOCKED_HOSTNAMES = (
     "localhost",
-    "127.",
-    "10.",
-    "192.168.",
-    "169.254.",
-    "0.",
+    "metadata",
+    "metadata.google.internal",
 )
 
 
 def sanitize_error_text(text: str, *, max_chars: int = 2000) -> str:
     redacted = redact_sensitive_query((text or "")[:5000])
     return redacted[:max_chars]
+
+
+def _parse_ip_literal(host: str) -> ipaddress.IPv4Address | ipaddress.IPv6Address | None:
+    try:
+        return ipaddress.ip_address(host)
+    except ValueError:
+        pass
+
+    try:
+        if host.startswith(("0x", "0X")):
+            value = int(host, 16)
+        elif host.isdigit():
+            value = int(host, 10)
+        else:
+            return None
+        if 0 <= value <= 0xFFFFFFFF:
+            return ipaddress.IPv4Address(value)
+    except ValueError:
+        return None
+    return None
 
 
 def is_public_http_url(url: str) -> bool:
@@ -48,10 +66,10 @@ def is_public_http_url(url: str) -> bool:
     host = (parsed.hostname or "").lower()
     if not host:
         return False
-    if host.startswith(_PRIVATE_HOST_PREFIXES):
+    if host in _BLOCKED_HOSTNAMES or host.endswith(".localhost"):
         return False
-    if host.startswith("172."):
-        parts = host.split(".")
-        if len(parts) >= 2 and parts[1].isdigit() and 16 <= int(parts[1]) <= 31:
+    ip = _parse_ip_literal(host)
+    if ip is not None:
+        if not ip.is_global:
             return False
     return True

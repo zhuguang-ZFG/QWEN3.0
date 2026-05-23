@@ -1,6 +1,7 @@
 """Extended Telegram command handlers and background tasks for LiMa."""
 
 import asyncio
+import importlib
 import logging
 import os
 import random
@@ -28,6 +29,14 @@ def _get_history(chat_id: str) -> deque:
     return _chat_histories[chat_id]
 
 
+def _optional_import(module_name: str):
+    try:
+        return importlib.import_module(module_name)
+    except ImportError:
+        logger.warning("%s is not available; optional Telegram feature disabled", module_name)
+        return None
+
+
 async def cmd_chat(chat_id: str, message: str) -> None:
     if not message:
         await telegram_bot.send_message("Usage: /chat <message>", chat_id=chat_id)
@@ -35,6 +44,17 @@ async def cmd_chat(chat_id: str, message: str) -> None:
     history = _get_history(chat_id)
     history.append({"role": "user", "content": message})
     try:
+        if _needs_tools(message):
+            fc_caller = _optional_import("fc_caller")
+            if fc_caller is not None:
+                result = await fc_caller.chat_with_tools(list(history))
+                answer = result.get("answer", "")
+                tools_used = result.get("tools_used", [])
+                if answer:
+                    history.append({"role": "assistant", "content": answer})
+                    suffix = f"\n\n🔧 {', '.join(tools_used)}" if tools_used else ""
+                    await telegram_bot.send_message((answer + suffix) or "(empty)", chat_id=chat_id)
+                    return
         result = routing_engine.route(
             query=message, messages=list(history), call_fn=http_caller.call_api,
         )
@@ -45,6 +65,38 @@ async def cmd_chat(chat_id: str, message: str) -> None:
     except Exception as e:
         logger.exception("cmd_chat failed")
         await telegram_bot.send_message(f"Error: {e}", chat_id=chat_id)
+
+
+_TOOL_KEYWORDS = [
+    "天气", "气温", "下雨", "AQI", "空气",
+    "热搜", "热榜", "微博", "知乎", "百度",
+    "汇率", "美元", "欧元", "日元", "换算",
+    "金价", "黄金", "油价",
+    "股票", "股价", "茅台", "比特币", "BTC", "ETH",
+    "快递", "物流", "单号",
+    "翻译", "translate",
+    "新闻", "头条",
+    "节假日", "放假", "上班",
+    "IP", "归属地",
+    "菜谱", "怎么做", "做法",
+    "火车", "高铁", "车次",
+    "星座", "运势",
+    "农历", "黄历", "宜忌",
+    "二维码", "QR",
+    "短链", "缩短",
+    "域名", "ICP", "备案",
+    "计算", "等于多少",
+    "时区", "几点",
+    "BMI", "体重",
+    "历史上的今天",
+    "成语",
+]
+
+
+def _needs_tools(message: str) -> bool:
+    """判断消息是否需要调用工具（关键词匹配）。"""
+    msg_lower = message.lower()
+    return any(kw.lower() in msg_lower for kw in _TOOL_KEYWORDS)
 
 
 async def cmd_clear(chat_id: str) -> None:
@@ -249,3 +301,88 @@ async def start_probe_loop() -> None:
                 logger.exception("Probe loop error")
 
     _probe_task = asyncio.create_task(_loop())
+
+
+_broadcast_task: asyncio.Task | None = None
+
+
+async def daily_broadcast() -> None:
+    """每天早上 8:30 播报系统状态。"""
+    mimo_tts = _optional_import("mimo_tts")
+    hmap = health_tracker.get_health_map()
+    healthy = sum(1 for v in hmap.values() if v == "healthy")
+    dead = sum(1 for v in hmap.values() if v == "dead")
+    total = len(hmap)
+
+    text = (
+        f"早上好！LiMa 系统播报：\n"
+        f"后端状态：{healthy}/{total} 健康，{dead} 离线。\n"
+        f"运行时间：{int((time.time() - _boot_time) / 3600)} 小时。"
+    )
+    await telegram_bot.send_message(text)
+    if mimo_tts is not None:
+        ogg = await mimo_tts.tts_ogg(text)
+        if ogg:
+            await telegram_bot.send_voice(ogg, caption="Daily Broadcast")
+
+
+async def start_broadcast_loop() -> None:
+    """启动定时播报循环（每天 08:30）。"""
+    global _broadcast_task
+    if _broadcast_task is not None:
+        return
+
+    async def _loop() -> None:
+        while True:
+            import datetime
+            now = datetime.datetime.now()
+            target = now.replace(hour=8, minute=30, second=0, microsecond=0)
+            if now >= target:
+                target += datetime.timedelta(days=1)
+            wait_secs = (target - now).total_seconds()
+            await asyncio.sleep(wait_secs)
+            try:
+                await daily_broadcast()
+            except Exception:
+                logger.exception("Broadcast error")
+
+    _broadcast_task = asyncio.create_task(_loop())
+
+
+async def cmd_voice(chat_id: str, message: str) -> None:
+    """将文本转为语音发送到 Telegram。"""
+    if not message:
+        await telegram_bot.send_message("Usage: /voice <text>", chat_id=chat_id)
+        return
+    await telegram_bot.send_message("Generating voice...", chat_id=chat_id)
+    try:
+        mimo_tts = _optional_import("mimo_tts")
+        if mimo_tts is None:
+            await telegram_bot.send_message("Voice backend not available", chat_id=chat_id)
+            return
+        ogg = await mimo_tts.tts_ogg(message)
+        if not ogg:
+            await telegram_bot.send_message("TTS failed (no audio returned)", chat_id=chat_id)
+            return
+        ok = await telegram_bot.send_voice(ogg, chat_id=chat_id, caption=message[:100])
+        if not ok:
+            await telegram_bot.send_message("Failed to send voice message", chat_id=chat_id)
+    except Exception as e:
+        logger.exception("cmd_voice failed")
+        await telegram_bot.send_message(f"Voice error: {e}", chat_id=chat_id)
+
+
+async def cmd_voicechat(chat_id: str, arg: str) -> None:
+    """切换 voicechat 模式：回复同时带语音。"""
+    from routes.telegram import _voicechat_enabled
+    current = _voicechat_enabled.get(chat_id, False)
+    if arg.lower() in ("on", "1", "true"):
+        _voicechat_enabled[chat_id] = True
+        await telegram_bot.send_message("Voicechat ON — replies will include voice", chat_id=chat_id)
+    elif arg.lower() in ("off", "0", "false"):
+        _voicechat_enabled[chat_id] = False
+        await telegram_bot.send_message("Voicechat OFF", chat_id=chat_id)
+    else:
+        _voicechat_enabled[chat_id] = not current
+        state = "ON" if not current else "OFF"
+        await telegram_bot.send_message(f"Voicechat {state}", chat_id=chat_id)
