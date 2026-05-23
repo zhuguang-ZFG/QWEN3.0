@@ -877,6 +877,7 @@ Deployment: not performed.
 
 - `search_gateway.safety.is_public_http_url()` now uses `ipaddress` parsing and blocks non-global IP literals, including IPv6 loopback, metadata/link-local addresses, and decimal/hex IPv4 loopback variants.
 - The URL guard normalizes trailing-dot hostnames before hostname checks, so `localhost.` is blocked before TinyFish or dev-read fetches.
+- Hostnames are resolved with `socket.getaddrinfo()` before fetch; every resolved address must be `ipaddress.ip_address(addr).is_global`, so loopback-resolving domains such as `localtest.me` are blocked.
 - `search_gateway.tinyfish_transport._is_safe_url()` reuses the shared URL safety function instead of maintaining a second string-prefix guard.
 - Dev-search intent detection covers common Chinese prompts such as `查一下`, `官方文档`, `怎么修`, `报错`, `读取`, and `打开链接`.
 - MCP dev-search numeric arguments are bounded with defaults instead of surfacing raw `ValueError` strings.

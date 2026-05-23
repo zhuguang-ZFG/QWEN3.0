@@ -1,6 +1,7 @@
 import re
 import urllib.parse
 import ipaddress
+import socket
 
 _TOKEN_RE = re.compile(
     r"(sk-[A-Za-z0-9_-]{12,}"
@@ -56,12 +57,36 @@ def _parse_ip_literal(host: str) -> ipaddress.IPv4Address | ipaddress.IPv6Addres
     return None
 
 
+def _hostname_resolves_to_global_ips(host: str, port: int) -> bool:
+    try:
+        infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+    except OSError:
+        return False
+    if not infos:
+        return False
+    for info in infos:
+        sockaddr = info[4]
+        if not sockaddr:
+            return False
+        try:
+            resolved = ipaddress.ip_address(sockaddr[0])
+        except ValueError:
+            return False
+        if not resolved.is_global:
+            return False
+    return True
+
+
 def is_public_http_url(url: str) -> bool:
     try:
         parsed = urllib.parse.urlparse(url)
     except ValueError:
         return False
     if parsed.scheme not in ("http", "https"):
+        return False
+    try:
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    except ValueError:
         return False
     host = (parsed.hostname or "").lower().rstrip(".")
     if not host:
@@ -72,4 +97,5 @@ def is_public_http_url(url: str) -> bool:
     if ip is not None:
         if not ip.is_global:
             return False
-    return True
+        return True
+    return _hostname_resolves_to_global_ips(host, port)

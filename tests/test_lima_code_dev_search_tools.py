@@ -1,3 +1,8 @@
+import socket
+
+import pytest
+
+import search_gateway.safety as safety
 from search_gateway.safety import is_public_http_url, sanitize_error_text
 from search_gateway.policy import should_dev_search
 from search_gateway.dev_tools import (
@@ -10,6 +15,17 @@ from search_gateway.dev_tools import (
 )
 from lima_mcp import TOOL_DEFINITIONS
 from lima_mcp.tools import handle_tool_call
+
+
+@pytest.fixture(autouse=True)
+def deterministic_dns(monkeypatch):
+    def fake_getaddrinfo(host, port, *args, **kwargs):
+        normalized = host.lower().rstrip(".")
+        if normalized == "localtest.me":
+            return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", port))]
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", port))]
+
+    monkeypatch.setattr(safety.socket, "getaddrinfo", fake_getaddrinfo)
 
 
 def test_sanitize_error_text_redacts_tokens_paths_and_limits_length():
@@ -41,6 +57,7 @@ def test_is_public_http_url_blocks_obfuscated_loopback_and_metadata_targets():
     assert is_public_http_url("http://169.254.169.254/latest/meta-data/") is False
     assert is_public_http_url("http://[fd00::1]/admin") is False
     assert is_public_http_url("http://localhost./admin") is False
+    assert is_public_http_url("http://localtest.me/admin") is False
 
 
 def test_should_dev_search_detects_programming_docs_errors_and_urls():

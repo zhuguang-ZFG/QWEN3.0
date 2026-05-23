@@ -4,7 +4,7 @@
 
 Close the review findings after LiMa Code dev-search:
 
-- Harden public URL checks against IPv6 loopback, private/link-local ranges, metadata hosts, integer/hex IPv4 spellings, and trailing-dot localhost hostnames.
+- Harden public URL checks against IPv6 loopback, private/link-local ranges, metadata hosts, integer/hex IPv4 spellings, trailing-dot localhost hostnames, and hostnames that resolve to non-global IPs.
 - Reuse the same URL safety check from TinyFish fetch transport and dev-read tools.
 - Add Chinese dev-search intent markers for common LiMa Code prompts.
 - Clamp MCP numeric arguments instead of returning raw `ValueError` strings.
