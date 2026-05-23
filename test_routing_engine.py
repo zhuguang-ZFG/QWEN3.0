@@ -466,3 +466,39 @@ def test_inject_retrieval_context_empty_messages():
     result_msgs, text = re_.inject_retrieval_context([])
     assert result_msgs == []
     assert text == ""
+
+
+# ── Phase 0 regression tests ─────────────────────────────────────────────────
+
+def test_empty_backends_no_indexerror(monkeypatch):
+    """P1: select() returns [] but speculative succeeds — no IndexError."""
+    monkeypatch.setattr(re_, "select", lambda *a, **kw: [])
+
+    import speculative
+    monkeypatch.setattr(speculative, "classify_complexity", lambda *a: "complex")
+
+    result = re_.route(
+        query="hello",
+        messages=[{"role": "user", "content": "hello"}],
+        fmt="openai", call_fn=fake_call_fn,
+    )
+    assert result.backend == "exhausted"
+    assert result.fallback_used is False
+
+
+def test_skill_store_recall_uses_real_scenario(monkeypatch):
+    """P2: Skill recall uses computed scenario, not empty string."""
+    from context_pipeline.skill_store import get_skill_store
+    store = get_skill_store()
+    store._skills.clear()
+
+    msgs = [{"role": "user", "content": "write a python sort function"}]
+    store.crystallize(msgs, "coding", "scnet_ds_flash", 0, 50)
+
+    result = re_.route(
+        query="write a python sort function",
+        messages=msgs,
+        fmt="openai", call_fn=fake_call_fn,
+    )
+    assert result.answer != ""
+    assert result.backend != "exhausted"

@@ -8,12 +8,11 @@ and periodically consolidates old memories into durable insights.
 import asyncio
 import json
 import os
+import re
 import time
 import logging
 
-from session_memory.store import (
-    save_typed_memory, query_by_type, count_memories, MEMORY_TYPES,
-)
+from session_memory.store import save_typed_memory
 
 logger = logging.getLogger(__name__)
 
@@ -92,10 +91,15 @@ def _extract_facts(fname: str, content: str) -> list[tuple[str, str]]:
                 for item in data[:20]:
                     if isinstance(item, dict) and "summary" in item:
                         mt = item.get("type", "project_fact")
-                        facts.append((mt, item["summary"][:200]))
+                        text = item["summary"][:200]
+                        if _sanitize_text(text) is None:
+                            continue
+                        facts.append((mt, text))
             elif isinstance(data, dict) and "summary" in data:
                 mt = data.get("type", "project_fact")
-                facts.append((mt, data["summary"][:200]))
+                text = data["summary"][:200]
+                if _sanitize_text(text) is not None:
+                    facts.append((mt, text))
         except json.JSONDecodeError:
             pass
         return facts
@@ -105,12 +109,33 @@ def _extract_facts(fname: str, content: str) -> list[tuple[str, str]]:
         line = line.strip()
         if line.startswith("- ") and len(line) > 5:
             summary = line[2:].strip()[:200]
+            if _sanitize_text(summary) is None:
+                continue
             mem_type = _classify_line(summary)
             facts.append((mem_type, summary))
             if len(facts) >= 20:
                 break
 
     return facts
+
+
+_SECRET_PATTERNS = re.compile(
+    r'(sk-[a-zA-Z0-9]{20,}|sk-ant-[a-zA-Z0-9\-]{20,}|'
+    r'ghp_[a-zA-Z0-9]{36,}|xai-[a-zA-Z0-9]{20,}|'
+    r'AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z\-_]{35}|'
+    r'eyJ[a-zA-Z0-9_\-]+\.[a-zA-Z0-9_\-]+\.[a-zA-Z0-9_\-]+|'
+    r'Bearer\s+[a-zA-Z0-9._\-/+=]{20,}|'
+    r'(?:key|token|secret|password|apikey|api_key)\s*[=:]\s*\S{16,})',
+    re.IGNORECASE
+)
+
+
+def _sanitize_text(text: str) -> str | None:
+    """Redact or reject text containing secrets."""
+    if _SECRET_PATTERNS.search(text):
+        logger.warning("[MemoryDaemon] secret pattern detected, skipping fact")
+        return None
+    return text
 
 
 def _classify_line(text: str) -> str:

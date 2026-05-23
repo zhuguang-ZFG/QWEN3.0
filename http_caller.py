@@ -201,7 +201,7 @@ def call_api(backend: str, messages: list[dict], max_tokens: int = 4096,
         with open_fn(req, timeout=timeout) as resp:
             resp_data = resp.read()
 
-        d = json.loads(resp_data.decode())
+        d = json.loads(resp_data.decode('utf-8', errors='replace'))
         answer = _extract_answer(d, cfg['fmt'])
 
         if _is_backend_error(answer):
@@ -241,7 +241,7 @@ def call_raw(backend: str, payload: bytes) -> dict:
         opener = _get_opener(backend)
         open_fn = opener.open if opener else urllib.request.urlopen
         with open_fn(req, timeout=cfg.get('timeout', 30)) as resp:
-            data = json.loads(resp.read().decode())
+            data = json.loads(resp.read().decode('utf-8', errors='replace'))
         latency_ms = int((time.time() - t0) * 1000)
         health_tracker.record_success(backend, latency_ms)
         return data

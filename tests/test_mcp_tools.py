@@ -40,3 +40,42 @@ def test_get_retrieval_trace_returns_list():
     result = handle_tool_call("get_retrieval_trace", {"limit": 5})
     assert "traces" in result
     assert isinstance(result["traces"], list)
+
+
+# ── Phase 0: MCP fail-closed regression ──────────────────────────────────────
+
+def test_mcp_verify_rejects_when_no_token_configured(monkeypatch):
+    """P1: MCP must fail-closed when no token is configured."""
+    monkeypatch.setenv("LIMA_API_KEY", "")
+    monkeypatch.setenv("LIMA_MCP_TOKEN", "")
+    # Re-import to pick up patched env
+    import importlib
+    import lima_mcp.server as mcp_srv
+    monkeypatch.setattr(mcp_srv, "_MCP_TOKEN", "")
+
+    import asyncio
+    from fastapi import HTTPException
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(mcp_srv._verify_mcp_access(""))
+    assert exc_info.value.status_code == 503
+
+
+def test_mcp_verify_rejects_wrong_bearer(monkeypatch):
+    """Wrong bearer token returns 401."""
+    import lima_mcp.server as mcp_srv
+    monkeypatch.setattr(mcp_srv, "_MCP_TOKEN", "correct-token")
+
+    import asyncio
+    from fastapi import HTTPException
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(mcp_srv._verify_mcp_access("Bearer wrong-token"))
+    assert exc_info.value.status_code == 401
+
+
+def test_mcp_verify_passes_correct_bearer(monkeypatch):
+    """Correct bearer token passes without exception."""
+    import lima_mcp.server as mcp_srv
+    monkeypatch.setattr(mcp_srv, "_MCP_TOKEN", "correct-token")
+
+    import asyncio
+    asyncio.run(mcp_srv._verify_mcp_access("Bearer correct-token"))

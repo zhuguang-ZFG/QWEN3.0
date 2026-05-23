@@ -1,4 +1,4 @@
-﻿"""
+"""
 LiMa Health Tracker v2 — 指数退避 + 响应质量追踪 + 健康评分
 
 升级自 v1 (固定 5s cooldown):
@@ -180,7 +180,7 @@ def record_success(backend: str, latency_ms: float):
         q = _quality_states.setdefault(backend, QualityState())
         q.latencies.append(latency_ms)
         q.last_success = time.monotonic()
-        q.empty_count = 0
+        q.empty_count = max(0, q.empty_count - 1)
         q.total_requests += 1
 
 
@@ -189,6 +189,8 @@ def record_failure(backend: str, error_code: Optional[int] = None,
     """Record a backend failure and classify auth/quota/rate-limit state."""
     with _lock:
         if error_code == 400:
+            state = _cooldown_states.setdefault(backend, CooldownState())
+            state.bad_request_count = getattr(state, 'bad_request_count', 0) + 1
             return
 
         state = _cooldown_states.setdefault(backend, CooldownState())
@@ -423,7 +425,8 @@ def record_quality_score(backend: str, quality: float):
 
 def get_quality_penalty(backend: str) -> float:
     """返回质量降权因子 0-1。1.0=无降权，0.3=被降权。"""
-    deadline = _quality_penalties.get(backend, 0)
+    with _lock:
+        deadline = _quality_penalties.get(backend, 0)
     if deadline and time.monotonic() < deadline:
         return 0.3
     return 1.0

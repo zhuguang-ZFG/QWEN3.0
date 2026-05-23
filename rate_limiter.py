@@ -11,11 +11,12 @@ MAX_PER_WINDOW = 20
 _requests: dict[str, list[float]] = defaultdict(list)
 
 
-def check_rate_limit(ip: str) -> bool:
-    """返回 True 表示允许，False 表示超限。"""
+def check_rate_limit(ip: str, multiplier: int = 1) -> bool:
+    """返回 True 表示允许，False 表示超限。multiplier 用于 IDE 客户端提高配额。"""
     now = time.time()
     _requests[ip] = [t for t in _requests[ip] if now - t < WINDOW]
-    if len(_requests[ip]) >= MAX_PER_WINDOW:
+    limit = MAX_PER_WINDOW * multiplier
+    if len(_requests[ip]) >= limit:
         return False
     _requests[ip].append(now)
     return True

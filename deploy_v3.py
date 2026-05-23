@@ -21,10 +21,12 @@ FILES_TO_DEPLOY = [
     "router_v3.py",
     "health_tracker.py",
     "sticky_session.py",
-    "v3_integration.py",
     "patch_server_v3.py",
     "server.py",
     "routing_engine.py",
+    "rate_limiter.py",
+    "budget_manager.py",
+    "capability_matrix.py",
 ]
 
 # Phase 7-25 module directories to deploy
@@ -32,6 +34,13 @@ DIRS_TO_DEPLOY = [
     "context_pipeline",
     "session_memory",
     "user_identity",
+    "lima_mcp",
+    "routes",
+    "agent_contracts",
+    "agent_roles",
+    "agent_eval",
+    "agent_evolution",
+    "converters",
 ]
 
 

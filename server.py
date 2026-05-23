@@ -881,6 +881,17 @@ async def anthropic_messages(req: Request):
     request_started_at = time.time()
     body = await req.json()
 
+    # ── Rate limiting (consistent with OpenAI endpoint) ───────────────────
+    client_ip = _client_ip(req)
+    import rate_limiter
+    ua = req.headers.get("user-agent", "")
+    is_ide_client = any(k in ua.lower() for k in ("claude-code", "continue", "cursor", "copilot"))
+    rate_limit_multiplier = 5 if is_ide_client else 1
+    if not rate_limiter.check_rate_limit(client_ip, multiplier=rate_limit_multiplier):
+        return JSONResponse(
+            status_code=429,
+            content={"type": "error", "error": {"type": "rate_limit_error", "message": "Rate limit exceeded. Try again later."}})
+
     # ── 提取用户查询，先检查预设直答 ──────────────────────────────────────────
     raw_messages = body.get("messages", [])
     last_user_query = ""
@@ -1744,6 +1755,13 @@ app.include_router(admin_router)
 try:
     from lima_mcp.server import router as mcp_router
     app.include_router(mcp_router)
+except ImportError:
+    pass
+
+# ── Agent task management APIs ───────────────────────────────────────────────
+try:
+    from routes.agent_tasks import router as agent_tasks_router
+    app.include_router(agent_tasks_router)
 except ImportError:
     pass
 

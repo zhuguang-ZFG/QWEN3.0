@@ -14,6 +14,34 @@
 | IDE context preflight | Deployed | `lima_context.py` injects request-local context into coding and Anthropic tool paths. |
 | Claude Code tool path | Hardened | `/v1/messages` now guards malformed HTTP 200 tool-backend responses; real Claude Code large-file `Read` loop passed after deploy. |
 | VPS safety baseline | Retained | HTTPS, headers, internal port blocking, backup practices. |
+| Agent Evolution | Phase 0-5 complete | Quality gates, worker contract, roles, eval harness, evolution loop, and server APIs all implemented and tested (103 tests). |
+
+## 2026-05-23 Calibrated Status
+
+Latest local source state:
+
+- Branch: `codex/free-web-ai-probe`.
+- Latest checked commit: `8b86228` (`fix: security hardening + integrate final 4 modules`).
+- LiMa target suite: `382 passed, 8 skipped`.
+- This is not a plain full-repo pytest result; unrestricted collection can enter local reference repositories.
+
+Current module reality:
+
+| Area | Current state |
+|---|---|
+| Session Memory | `server.py` writes successful user/assistant turns to SQLite and triggers compaction when the session crosses the threshold. Prompt-time recall exists in `session_memory.processor`, but it is not the primary `server.py` hot path yet. |
+| AI Compactor | Triggered from the successful chat path through `needs_compaction()` / `compact_session()`. It is synchronous defensive integration, not an always-on daemon yet. |
+| Graph Retrieval | Entity extraction, code graph retrieval, reranking, and tests exist. `routing_engine.py` currently computes `_reranked`, but formatted retrieval context is not yet injected into prompts. |
+| Default context pipeline | `context_pipeline.factory.build_default_pipeline()` is implemented and tested, but `server.py` still uses explicit integration blocks rather than this factory as the single request pipeline. |
+| Tool Gateway | Executor now uses `shell=False`, argument validation, copied HTTP args, and audit events. |
+| Admin UI auth | API calls use `authFetch` and JS token injection is JSON-escaped. The HTML login still uses `?token=...`, so a cookie/session design remains a later hardening step. |
+| Concurrency Pool | Implemented and tested as `context_pipeline.concurrency_pool.ConcurrencyPool`; it has not replaced `key_pool.py` or provider key scheduling. |
+
+Reference architecture conclusion:
+
+- `docs/REFERENCE_PROJECT_EVALUATION.md` is the current comparison of OpenRAG and Google Cloud always-on-memory-agent.
+- OpenRAG is useful for knowledge ingestion, retrieval traces, and MCP knowledge tools.
+- always-on-memory-agent is more directly useful for LiMa's next memory step: background inbox ingestion, typed memory, and consolidation.
 
 ## Latest Routing Facts
 

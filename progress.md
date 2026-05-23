@@ -1,4 +1,4 @@
-# Personal Coding Assistant Progress
+﻿# Personal Coding Assistant Progress
 
 > Created: 2026-05-22
 
@@ -347,3 +347,109 @@ Follow-up after final review:
 - Commit `e231a5e chore: remove remaining script credentials` moved those remaining tracked script credentials to environment-variable reads.
 - Sanitized broader tracked-script scans passed without hardcoded credential literals, and `D:\GIT\venv\Scripts\python.exe -m compileall -q scripts` passed.
 - Credentials that appeared in history still require rotation outside Git.
+
+## 2026-05-23 Documentation Calibration And Reference Review
+
+- Re-read the LiMa active code and source-of-truth docs after the latest hardening commits.
+- Confirmed current branch `codex/free-web-ai-probe` and latest checked commit `8b86228`.
+- Re-ran the LiMa target test suite:
+  - `python -m pytest -q tests .\test_routing_engine.py .\test_rate_limiter.py .\test_http_caller.py .\test_dual_track.py .\test_code_orchestrator.py .\test_streaming.py .\test_skills_injector.py --ignore=active_model`
+  - Result: `382 passed, 8 skipped`.
+- Calibrated module status:
+  - Session Memory writes and compaction trigger are in the successful chat path.
+  - Session Memory recall processor exists but is not the main `server.py` prompt-time path.
+  - Graph retrieval/reranking is computed but not yet injected into prompt context.
+  - Tool Gateway executor is hardened with `shell=False`, audit events, and copied HTTP args.
+  - Admin UI auth is improved, but query-token login remains a later hardening target.
+  - `ConcurrencyPool` exists and is tested, but key scheduling has not been replaced.
+- Reviewed external references:
+  - OpenRAG is valuable for knowledge ingestion, retrieval traceability, MCP knowledge tools, and document parsing patterns.
+  - Google Cloud always-on-memory-agent is the stronger near-term reference for LiMa's memory daemon and consolidation layer.
+- Added `docs/REFERENCE_PROJECT_EVALUATION.md`.
+- Updated active docs to point the next architecture step toward retrieval injection plus always-on typed memory rather than adding another large platform.
+
+## 2026-05-23 Agent Autonomy Plan
+
+- Created `docs/superpowers/plans/2026-05-23-agent-autonomy-evolution.md` as the Superpowers implementation plan for gated LiMa autonomy.
+- The plan evaluates OpenAI Agents SDK, Google ADK, GenericAgent, EvoMap Evolver, and Agency Agents against LiMa's current private coding-assistant architecture.
+- Recommended sequence:
+  - Retrieval and typed memory evidence before agents.
+  - Agent workbench ledger before autonomous loops.
+  - Five-agent local loop before any large persona library.
+  - Skill/gene memory only after successful validated tasks.
+  - GitHub/VPS operations behind explicit approval gates.
+- Updated `docs/DOCUMENTATION_STATUS.md` to point to the new active plan.
+- Added agent-reference findings to `findings.md`.
+- No runtime code was changed in this pass.
+
+## 2026-05-23 TechSpar Mastery Loop Plan
+
+- Reviewed TechSpar as a reference for LiMa's evidence-driven improvement loop.
+- Created `docs/superpowers/plans/2026-05-23-techspar-mastery-loop.md`.
+- Positioned TechSpar as a mastery/profile/scheduling reference, not an agent runtime framework.
+- Recommended a future `mastery_loop/` layer:
+  - event adapters;
+  - scoring;
+  - weak-point extraction;
+  - SQLite profile store;
+  - SM-2-inspired review scheduling;
+  - planner/tester recommendations;
+  - admin trace.
+- Updated `docs/DOCUMENTATION_STATUS.md` and `findings.md`.
+- No runtime code was changed in this pass.
+
+## 2026-05-23 LiMa Code Fork Start
+
+- Owner forked LiMa Code to `https://github.com/zhuguang-ZFG/deepcode-cli.git`.
+- Created `docs/superpowers/plans/2026-05-23-lima-code-vibe-coding.md`.
+- Updated `docs/DOCUMENTATION_STATUS.md` and `findings.md`.
+- First attempted network reachability to the fork failed from the sandboxed command environment with inability to connect to `github.com:443`; next step is to retry clone with approved network access.
+- Retried with approved network access and cloned the fork into `D:\GIT\deepcode-cli`.
+- Read LiMa Code `AGENTS.md`, `package.json`, README, configuration docs, provider settings, OpenAI client setup, tool executor, and bash handler.
+- Confirmed LiMa Code is TypeScript/npm, OpenAI-compatible through `MODEL`, `BASE_URL`, and `API_KEY`, and has real local tool execution through `bash`.
+- Added first LiMa Code fork changes:
+  - `D:\GIT\deepcode-cli\docs\lima.md`
+  - `D:\GIT\deepcode-cli\docs\lima_zh_CN.md`
+  - README links in `README-en.md`, `README.md`, and `README-zh_CN.md`.
+- LiMa Code validation:
+  - `git -C D:\GIT\deepcode-cli diff --check`: passed.
+  - Secret-shape scan over the new LiMa docs: no matches.
+- Did not install npm dependencies or run `npm test` yet because this first change is documentation/config guidance only.
+- No LiMa runtime code was changed in this pass.
+
+## 2026-05-23 LiMa Code Rebrand Slice
+
+- Renamed the active Superpowers plan to `docs/superpowers/plans/2026-05-23-lima-code-vibe-coding.md`.
+- Rebranded the fork's user-facing product surface to LiMa Code:
+  - npm package name: `lima-code`;
+  - CLI bin: `lima-code`;
+  - CLI help, TTY errors, update prompt, welcome screen, slash-command exit text, system prompt identity, MCP client name, and checkpoint author.
+- Updated README and docs to promote `lima-code`.
+- Kept `.deepcode` paths and `DEEPCODE_*` environment variables as a legacy compatibility layer for this first slice.
+- No LiMa runtime code or VPS files were changed.
+
+## 2026-05-23 LiMa Code Native Config Slice
+
+- Added native LiMa Code config support in the fork:
+  - `~/.lima-code/settings.json` and `<project>/.lima-code/settings.json` are preferred.
+  - Legacy `~/.deepcode/settings.json` and `<project>/.deepcode/settings.json` remain readable fallbacks.
+  - `LIMA_CODE_*` environment variables are preferred over legacy `DEEPCODE_*` variables.
+  - `DEEPCODE_*` remains a fallback for old local profiles.
+  - Model-selection writes create `.lima-code` settings by default, but update an existing project `.deepcode/settings.json` when that is the only project config.
+- Updated CLI help, API-key error text, WebSearch config error text, README files, LiMa provider docs, MCP docs, notification docs, and configuration docs to promote `.lima-code` / `LIMA_CODE_*`.
+- Added regression tests:
+  - `D:\GIT\deepcode-cli\src\tests\app-settings-paths.test.ts`
+  - expanded `D:\GIT\deepcode-cli\src\tests\settings-and-notify.test.ts`
+  - updated `D:\GIT\deepcode-cli\src\tests\web-search-handler.test.ts`
+- No LiMa runtime code or VPS files were changed.
+
+## 2026-05-23 Agent Evolution Implementation
+
+- Executed `docs/superpowers/plans/2026-05-23-lima-server-agent-evolution.md` (6 phases).
+- **Phase 0: Quality Gates** — Fixed 7 review findings (P1/P2/P3), added typed memory validation, 60 regression tests.
+- **Phase 1: Worker Contract** — `agent_contracts/task_contract.py` with AgentTaskRequest/Result schemas (12 tests).
+- **Phase 2: Agent Role Layer** — 7 roles with permission gating, only `coder` can modify code (12 tests).
+- **Phase 3: Evaluation Harness** — TaskScore, EvalResult, can_auto_promote() gate (6 tests).
+- **Phase 4: Evolution Loop** — CandidateSkill extraction + dual-gate promotion (5 tests).
+- **Phase 5: Server APIs** — 5 protected endpoints under `/agent/` (8 tests).
+- **Total: 103 tests passing.** Server never executes shell; evolution is eval-gated + manually promoted.

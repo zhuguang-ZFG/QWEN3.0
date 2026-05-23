@@ -451,8 +451,8 @@ async function loadStats(){
     }
   }catch(e){console.error('stats error',e)}
 }
+function esc(s){return s?s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):''}
 async function loadLogs(){
-  function esc(s){return s?s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):''}
   try{
     let r=await authFetch('/admin/api/logs');let d=await r.json();
     let tl=document.getElementById('t-logs');tl.innerHTML='';

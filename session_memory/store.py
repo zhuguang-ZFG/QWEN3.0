@@ -23,12 +23,14 @@ class MemoryEntry:
     embedding: list[float]
 
 
-import tempfile
 
-_DB_PATH = os.environ.get("LIMA_SESSION_DB", os.path.join(tempfile.gettempdir(), "lima_sessions.db"))
+_DEFAULT_DB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+_DB_PATH = os.environ.get("LIMA_SESSION_DB", os.path.join(_DEFAULT_DB_DIR, "lima_sessions.db"))
 
 
 def _get_conn() -> sqlite3.Connection:
+    if not os.environ.get("LIMA_SESSION_DB"):
+        os.makedirs(_DEFAULT_DB_DIR, exist_ok=True)
     conn = sqlite3.connect(_DB_PATH)
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("""
@@ -197,6 +199,9 @@ def save_typed_memory(
     session_id: str = "_global",
 ) -> int:
     """Save a typed memory (not tied to a single exchange)."""
+    if memory_type not in MEMORY_TYPES:
+        detail = f"[original_type={memory_type}] {detail}".strip()
+        memory_type = "project_fact"
     return save_memory(
         session_id=session_id,
         role="system",

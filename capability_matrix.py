@@ -40,6 +40,9 @@ _DEFAULT_MATRIX = {
     "longcat_chat": {"code": 7, "debug": 6, "chinese": 8, "english": 7, "reasoning": 6, "speed": 7},
     "longcat": {"code": 8, "debug": 7, "chinese": 9, "english": 8, "reasoning": 7, "speed": 6},
     "longcat_thinking": {"code": 9, "debug": 8, "chinese": 9, "english": 8, "reasoning": 9, "speed": 4},
+    "longcat_web": {"code": 7, "debug": 6, "chinese": 8, "english": 7, "reasoning": 6, "speed": 5},
+    "longcat_web_think": {"code": 8, "debug": 7, "chinese": 9, "english": 8, "reasoning": 8, "speed": 3},
+    "longcat_web_research": {"code": 7, "debug": 6, "chinese": 9, "english": 8, "reasoning": 8, "speed": 2},
 
     # Cloudflare 系列
     "cf_llama70b": {"code": 7, "debug": 6, "chinese": 4, "english": 8, "reasoning": 6, "speed": 7},

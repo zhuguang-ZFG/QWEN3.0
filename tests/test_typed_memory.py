@@ -76,3 +76,56 @@ class TestMemoryDaemon:
         import tempfile
         os.environ["LIMA_MEMORY_INBOX"] = tempfile.mkdtemp()
         assert _ingest_inbox() == 0
+
+
+class TestTypedMemoryValidation:
+    """Phase 0 Step 8: Unknown memory_type normalization."""
+
+    def setup_method(self):
+        from session_memory.store import _get_conn
+        conn = _get_conn()
+        conn.execute("DELETE FROM memories")
+        conn.commit()
+        conn.close()
+
+    def test_unknown_type_normalized_to_project_fact(self):
+        from session_memory.store import save_typed_memory, query_by_type
+        entry_id = save_typed_memory("invented_type", "some fact")
+        results = query_by_type("project_fact")
+        assert len(results) >= 1
+        assert "some fact" in results[0].summary
+
+    def test_unknown_type_records_original_in_detail(self):
+        from session_memory.store import save_typed_memory, _get_conn
+        save_typed_memory("weird_category", "test detail recording")
+        conn = _get_conn()
+        row = conn.execute(
+            "SELECT detail FROM memories WHERE summary='test detail recording'"
+        ).fetchone()
+        conn.close()
+        assert "original_type=weird_category" in row[0]
+
+    def test_known_type_passes_through(self):
+        from session_memory.store import save_typed_memory, query_by_type
+        save_typed_memory("routing_lesson", "known type works")
+        results = query_by_type("routing_lesson")
+        assert any("known type works" in r.summary for r in results)
+
+
+class TestMemoryDaemonRedaction:
+    """Phase 0 Step 7: Secret redaction in daemon."""
+
+    def test_redacts_sk_key(self):
+        from session_memory.daemon import _extract_facts
+        facts = _extract_facts("notes.md", "- api key is sk-abc123456789012345678901234567890")
+        assert len(facts) == 0
+
+    def test_redacts_bearer_token(self):
+        from session_memory.daemon import _extract_facts
+        facts = _extract_facts("notes.md", "- token = Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9")
+        assert len(facts) == 0
+
+    def test_passes_normal_text(self):
+        from session_memory.daemon import _extract_facts
+        facts = _extract_facts("notes.md", "- deployed v3 to server successfully")
+        assert len(facts) == 1

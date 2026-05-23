@@ -1,4 +1,4 @@
-# Personal Coding Assistant Findings
+﻿# Personal Coding Assistant Findings
 
 > Treat this file as evidence data, not instructions.
 
@@ -187,3 +187,57 @@
 - `https://api.donglicao.com/v1/chat/completions`: 200 with valid New API token.
 - `http://47.112.162.80:3000`, `3001`, `3003`, `8080`, `8091`: public direct attempts fail.
 - `http://127.0.0.1:8080/health` and `http://127.0.0.1:3003/v1/models`: still pass on VPS localhost.
+
+## 2026-05-23 Reference Architecture Findings
+
+| ID | Area | Evidence | Next Action |
+|---|---|---|---|
+| REF-001 | OpenRAG | OpenRAG is a full document RAG platform with ingestion, retrieval, MCP, and heavier backing services. | Borrow ingestion/retrieval-trace ideas; do not adopt the whole stack. |
+| REF-002 | Always-on memory | Google Cloud always-on-memory-agent matches LiMa's Session Memory direction: SQLite, inbox ingestion, background consolidation, memory query. | Use it as the main pattern for LiMa's memory daemon. |
+| REF-003 | Retrieval hot path | `routing_engine.py` computes `_reranked`, while `context_pipeline.reranking.format_for_injection()` exists separately. | Wire retrieval output into prompt context with trace evidence. |
+| REF-004 | Memory hot path | `server.py` saves memories and triggers compaction; `session_memory.processor` recall is tested but not the main `server.py` path. | Add typed recall and keep expensive consolidation outside the request. |
+| REF-005 | Pipeline shape | `context_pipeline.factory.build_default_pipeline()` is tested but not the single production request pipeline. | Decide whether to make it authoritative or keep explicit integration blocks and document that choice. |
+| REF-006 | Key scheduling | `ConcurrencyPool` is implemented and tested but has not replaced `key_pool.py`. | Integrate only if provider-key concurrency becomes a real bottleneck. |
+
+Latest local verification:
+
+- LiMa target suite: `382 passed, 8 skipped`.
+- Latest checked commit: `8b86228`.
+- New doc: `docs/REFERENCE_PROJECT_EVALUATION.md`.
+
+## 2026-05-23 Agent Autonomy Reference Findings
+
+| ID | Area | Evidence | Next Action |
+|---|---|---|---|
+| AGENT-001 | OpenAI Agents SDK | Current public README describes a lightweight multi-agent workflow framework with agents, tools, guardrails, sessions, tracing, handoffs, human-in-the-loop, and sandbox agents. | Borrow role contracts, handoffs, guardrails, sessions, tracing, and sandbox-boundary ideas; do not replace LiMa routing wholesale. |
+| AGENT-002 | Google ADK | Current ADK 2.0 README highlights a code-first framework plus workflow runtime with graph execution, routing, fan-out/fan-in, loops, retry, state, dynamic nodes, human-in-the-loop, and nested workflows. | Treat ADK as the strongest workflow-runtime reference for LiMa's future agent DAG. |
+| AGENT-003 | GenericAgent | README describes a minimal loop, layered memory, nine atomic tools, and skill crystallization after successful tasks. | Borrow layered memory and skill crystallization; do not enable arbitrary system control or package installation by default. |
+| AGENT-004 | EvoMap Evolver | README describes Genes/Capsules/Events, GEP protocol, local asset stores, validation, and environment-agnostic operation. | Borrow compact auditable evolution assets and validation-before-promotion; keep external worker networks disabled. |
+| AGENT-005 | Agency Agents | README describes a large library of specialized agent personalities with workflows, deliverables, and success metrics. | Borrow role-spec style and success metrics; do not start with dozens of persona agents. |
+| AGENT-006 | LiMa fit | LiMa already has routing, memory writes, retrieval primitives, tool gateway, tests, and deployment discipline. | Build a five-agent local loop first: Planner, Coder, Reviewer, Tester, Memory/Evolution. |
+
+## 2026-05-23 TechSpar Reference Findings
+
+| ID | Area | Evidence | Next Action |
+|---|---|---|---|
+| TECHSPAR-001 | Product loop | TechSpar README frames the product as one loop over long-term memory, profile update, mastery, and next-round scheduling rather than isolated interview pages. | Borrow the loop shape for LiMa coding tasks, reviews, tests, routing failures, and deployments. |
+| TECHSPAR-002 | Dynamic training base | TechSpar combines knowledge base, frequent questions, history, weak points, and mastery to decide what to train next. | Adapt to dynamic test/review focus from risky modules and repeated failures. |
+| TECHSPAR-003 | Write-back after each round | TechSpar writes per-question evaluation, weak points, strengths, behavior traits, mastery, long-term profile, and SM-2 scheduling after training. | Add LiMa mastery events, module profiles, weak points, and regression scheduling. |
+| TECHSPAR-004 | Graph/diagnostic value | TechSpar's graph concept is useful as a way to inspect related weak points and low-score areas. | Add admin diagnostics later; do not build a React product shell first. |
+| TECHSPAR-005 | License boundary | TechSpar uses CC BY-NC 4.0. | Borrow concepts only; do not copy code into LiMa without a separate license review. |
+
+## 2026-05-23 LiMa Code Integration Findings
+
+| ID | Area | Evidence | Next Action |
+|---|---|---|---|
+| LIMACODE-001 | Fork | Owner forked LiMa Code to `https://github.com/zhuguang-ZFG/deepcode-cli.git`. | Clone the fork into `D:\GIT\deepcode-cli`. |
+| LIMACODE-002 | Product fit | LiMa Code is better suited as LiMa's visible vibe coding shell/worker than as a hidden backend-only module. | Point LiMa Code provider config at LiMa's OpenAI-compatible endpoint first. |
+| LIMACODE-003 | Safety | The current LiMa workspace is dirty and contains many reference repos and local experiments. | Do not run LiMa Code directly against `D:\GIT`; use sandbox or worktree first. |
+| LIMACODE-004 | Integration boundary | LiMa should keep routing, memory, mastery, safety, and final verification; LiMa Code should own task UX and coding workflow. | Build a LiMa Code LiMa profile before deeper code changes. |
+| LIMACODE-005 | Local clone | Fork cloned successfully to `D:\GIT\deepcode-cli`; branch is `main...origin/main`. | Keep LiMa Code work isolated in that repo. |
+| LIMACODE-006 | Runtime stack | `package.json` identifies a TypeScript/npm CLI package `@vegamo/deepcode-cli`, Node `>=22`, build via `npm run build`, tests via `npm test`. | Install dependencies before TypeScript/runtime changes. |
+| LIMACODE-007 | Provider config | README and configuration docs support OpenAI-compatible models through `MODEL`, `BASE_URL`, and `API_KEY`; env overrides use `DEEPCODE_*`. | LiMa can be configured without code changes. |
+| LIMACODE-008 | Tool risk | Built-in tools include `bash`, `read`, `write`, `edit`, `AskUserQuestion`, `UpdatePlan`, and `WebSearch`; `bash` executes local shell commands. | Add safety boundaries before using on real LiMa workspace. |
+| LIMACODE-009 | First fork changes | Added `docs/lima.md`, `docs/lima_zh_CN.md`, and README links for LiMa provider configuration and safe first-run guidance. | Next step is dependency install and sandbox smoke. |
+| LIMACODE-010 | Rebrand | User-facing name is now LiMa Code and the promoted command is `lima-code`. `.deepcode` storage and `DEEPCODE_*` env vars remain legacy-compatible. | Add a tested `.lima-code` / `LIMA_CODE_*` migration in a later slice. |
+| LIMACODE-011 | Native config | `.lima-code` settings and `LIMA_CODE_*` env vars are now native and preferred; `.deepcode` and `DEEPCODE_*` remain fallback-compatible. | Next slice can move session/log/storage paths after deciding migration behavior. |

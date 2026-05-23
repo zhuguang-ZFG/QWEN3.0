@@ -10,14 +10,13 @@ from context_pipeline.ensemble import (
 )
 
 
-@pytest.mark.asyncio
-async def test_ensemble_race_returns_fastest_success():
+def test_ensemble_race_returns_fastest_success():
     async def mock_call(backend: str) -> dict:
         delays = {"fast": 0.01, "medium": 0.05, "slow": 0.1}
         await asyncio.sleep(delays.get(backend, 0.05))
         return {"backend": backend, "content": f"response from {backend}"}
 
-    result = await ensemble_race(["slow", "fast", "medium"], mock_call)
+    result = asyncio.run(ensemble_race(["slow", "fast", "medium"], mock_call))
 
     assert result.winner_backend == "fast"
     assert result.response["backend"] == "fast"
@@ -25,37 +24,35 @@ async def test_ensemble_race_returns_fastest_success():
     assert result.candidates_tried == 3
 
 
-@pytest.mark.asyncio
-async def test_ensemble_race_skips_failed_backends():
+def test_ensemble_race_skips_failed_backends():
     async def mock_call(backend: str) -> dict:
         if backend == "broken":
             raise ConnectionError("backend down")
         await asyncio.sleep(0.01)
         return {"content": "ok"}
 
-    result = await ensemble_race(["broken", "working"], mock_call)
+    result = asyncio.run(ensemble_race(["broken", "working"], mock_call))
 
     assert result.winner_backend == "working"
     assert result.candidates_succeeded >= 1
 
 
-@pytest.mark.asyncio
-async def test_ensemble_race_all_fail():
+def test_ensemble_race_all_fail():
     async def mock_call(backend: str) -> dict:
         raise ConnectionError("all down")
 
-    result = await ensemble_race(["a", "b"], mock_call, timeout_ms=1000)
+    result = asyncio.run(
+        ensemble_race(["a", "b"], mock_call, timeout_ms=1000))
 
     assert result.winner_backend == ""
     assert "error" in result.response
 
 
-@pytest.mark.asyncio
-async def test_ensemble_race_empty_backends():
+def test_ensemble_race_empty_backends():
     async def noop(b):
         return {}
 
-    result = await ensemble_race([], noop)
+    result = asyncio.run(ensemble_race([], noop))
     assert result.winner_backend == ""
     assert result.candidates_tried == 0
 

@@ -27,6 +27,9 @@ BACKEND_BUDGETS: dict[str, BudgetConfig] = {
     "longcat": BudgetConfig(daily_limit=2000),
     "longcat_thinking": BudgetConfig(daily_limit=1500),
     "longcat_omni": BudgetConfig(daily_limit=1500),
+    "longcat_web": BudgetConfig(daily_limit=500),
+    "longcat_web_think": BudgetConfig(daily_limit=300),
+    "longcat_web_research": BudgetConfig(daily_limit=200),
 
     # NVIDIA 免费: 中等
     "nvidia_nemotron": BudgetConfig(daily_limit=1000),
@@ -86,8 +89,8 @@ def _check_reset():
     global _reset_day
     today = int(time.time()) // 86400
     if today != _reset_day:
-        _reset_day = today
         _usage.clear()
+        _reset_day = today
 
 
 # ── 公开接口 ─────────────────────────────────────────────────────────────────

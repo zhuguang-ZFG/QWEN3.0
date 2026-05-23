@@ -22,11 +22,16 @@ router = APIRouter(prefix="/mcp")
 _MCP_TOKEN = os.environ.get("LIMA_API_KEY", os.environ.get("LIMA_MCP_TOKEN", ""))
 
 
+def _get_mcp_token() -> str:
+    return os.environ.get("LIMA_API_KEY", os.environ.get("LIMA_MCP_TOKEN", "")) or _MCP_TOKEN
+
+
 async def _verify_mcp_access(authorization: str = Header(default="")) -> None:
-    if not _MCP_TOKEN:
-        return
+    token_expected = _get_mcp_token()
+    if not token_expected:
+        raise HTTPException(status_code=503, detail="MCP token not configured")
     token = authorization.replace("Bearer ", "").strip()
-    if token != _MCP_TOKEN:
+    if token != token_expected:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
 

@@ -313,22 +313,19 @@ def route(query: str, messages: list[dict], *,
         return RouteResult(backend="identity_guard", answer=identity_answer,
                            request_type="identity", ms=ms)
 
-    # ── Integration: Skill Store recall (Phase 17) ────────────────────────
-    try:
-        from context_pipeline.skill_store import get_skill_store
-        _skill = get_skill_store().recall(messages, "")
-        if _skill:
-            ms = int((time.time() - t0) * 1000)
-            return RouteResult(backend=_skill.backend, answer="",
-                               request_type="skill_recall", ms=ms)
-    except ImportError:
-        _skill = None
-
     req_type = classify(query, messages, fmt=fmt, ide_source=ide_source,
                         system_prompt=system_prompt, headers=headers)
 
     scenario = classify_scenario(query, messages,
                                  ide_source=ide_source, request_type=req_type)
+
+    # ── Integration: Skill Store recall (Phase 17) ────────────────────────
+    _skill = None
+    try:
+        from context_pipeline.skill_store import get_skill_store
+        _skill = get_skill_store().recall(messages, scenario)
+    except ImportError:
+        pass
 
     # ── Integration: Entity Extraction (Phase 23) ─────────────────────────
     _extracted_entities = []
@@ -508,7 +505,7 @@ def route(query: str, messages: list[dict], *,
     return RouteResult(
         backend=final_backend, answer=answer,
         request_type=req_type, scenario=scenario, ms=ms,
-        fallback_used=(final_backend not in ("exhausted", "none") and final_backend != backends[0]),
+        fallback_used=(final_backend not in ("exhausted", "none") and backends and final_backend != backends[0]),
         skills_injected=injected_ids,
         retrieval_context=_retrieval_text,
     )
