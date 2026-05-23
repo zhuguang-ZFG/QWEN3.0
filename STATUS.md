@@ -16,6 +16,7 @@
 | VPS safety baseline | Retained | HTTPS, headers, internal port blocking, backup practices. |
 | Agent Evolution | Phase 0-5 complete | Quality gates, worker contract, roles, eval harness, evolution loop, and server APIs all implemented and tested (103 tests). |
 | LiMa Code worker | Active smoke path | `/lima task <id>` now fetches a Server task, runs the guarded local runner, writes local audit evidence, and submits the result back to Server. |
+| Agent control plane v0.3 | Implemented locally | Adds audit summary API, admin task audit panel, Telegram callback parsing, approved-task candidate extraction, and dry-run Server/Worker contract smoke. |
 | Autonomous worker lifecycle | Planned | `docs/superpowers/plans/2026-05-23-lima-autonomous-worker-v02.md` defines stop control, failure quarantine, repo allowlist, runtime budget, audit command, and real-repo smoke before daemon mode. |
 
 ## 2026-05-23 Calibrated Status

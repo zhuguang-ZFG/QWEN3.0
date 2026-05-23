@@ -741,3 +741,31 @@ Verification note:
   - Telegram notify tests produce coroutine-not-awaited warnings when fire-and-forget is mocked.
   - Hot-path files remain oversized relative to the 300-line project target.
 - No production deployment was performed.
+
+## 2026-05-23 LiMa Server Control Plane v0.3
+
+- Implemented the Server control-plane v0.3 plan locally.
+- Agent task contract:
+  - `AgentTaskResult.status` annotation now covers every `VALID_STATUSES` lifecycle value.
+- Agent audit:
+  - Added `/agent/audit` with bounded task summaries and no `diff_preview`.
+  - Added protected `/admin/api/agent-audit`.
+  - Added a minimal Agent Tasks audit panel to the admin HTML shell.
+- Telegram review preparation:
+  - Added `telegram_bot.parse_approval_callback()` for `approve:<task_id>` and `reject:<task_id>`.
+  - Added `routes.agent_tasks.apply_task_review()` and made the HTTP review route use it.
+- Candidate evolution:
+  - Added candidate extraction from approved task evidence.
+  - Approved `needs_review` results now create inactive candidate skills and record candidate creation events.
+  - Promotion remains gated by eval pass plus manual flag.
+- Contract smoke:
+  - Added `scripts/smoke_agent_task_contract.py --dry-run`.
+  - The script builds and validates matching Server task/result payloads without contacting a live Server.
+- Verification:
+  - `python -m py_compile agent_contracts\task_contract.py routes\agent_tasks.py routes\admin.py telegram_bot.py agent_evolution\candidates.py scripts\smoke_agent_task_contract.py`: passed.
+  - `python -m pytest tests\test_agent_task_contract.py tests\test_agent_task_routes.py tests\test_agent_evolution.py tests\test_telegram_bot.py tests\test_admin_agent_audit.py tests\test_agent_task_smoke_script.py -q --ignore=active_model`: `60 passed, 3 warnings`.
+  - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_agent_task_contract.py -q --ignore=active_model`: failed before collection because the venv lacks `pytest_asyncio`.
+- Remaining warning cleanup:
+  - Telegram notify tests still emit coroutine-not-awaited warnings when `_fire_and_forget` is mocked.
+  - `routes/telegram.py` still uses FastAPI deprecated startup event wiring.
+- No production deployment was performed.

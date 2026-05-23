@@ -765,3 +765,15 @@ Evidence:
 - LiMa Code worker tests: `407 passed, 6 skipped`.
 - LiMa Code `npm.cmd run check`: passed.
 - VPS public smoke remains pending until this Server contract is deployed and verified against a temporary repo.
+
+## 2026-05-23 LiMa Server Control Plane v0.3
+
+LiMa Server remains the orchestrator and audit source. This phase added:
+
+- durable agent task audit summaries,
+- a minimal admin audit view,
+- Telegram approval callback parsing and review helper alignment,
+- inactive candidate-skill creation from approved task evidence,
+- a dry-run Server/Worker contract smoke script.
+
+Boundary preserved: Server does not execute shell commands, does not auto-deploy, and does not auto-promote skills without eval evidence and manual approval.
