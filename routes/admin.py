@@ -1,4 +1,4 @@
-"""routes/admin.py — LiMa 管理接口"""
+﻿"""routes/admin.py — LiMa 管理接口"""
 import os
 import sys
 import json
@@ -114,6 +114,19 @@ async def admin_retrieval_traces():
         return get_recent_traces(limit=20)
     except ImportError:
         return []
+
+
+@router.get("/api/agent-audit", dependencies=[Depends(_verify_admin)])
+async def admin_agent_audit(limit: int = 20):
+    from routes.agent_tasks import _store, _task_audit_item
+    safe_limit = max(1, min(int(limit), 100))
+    tasks = list(_store.values())
+    tasks.sort(
+        key=lambda t: t.get("updated_at", t.get("created_at", 0)),
+        reverse=True,
+    )
+    items = [_task_audit_item(task) for task in tasks[:safe_limit]]
+    return {"tasks": items, "count": len(items)}
 
 
 # ── Backends ───────────────────────────────────────────────────────────────────
@@ -360,6 +373,7 @@ ADMIN_BODY = """<body>
   <div class="tab active" onclick="switchTab('stats')">实时指标</div>
   <div class="tab" onclick="switchTab('backends')">后端管理</div>
   <div class="tab" onclick="switchTab('model')">模型 & Fallback</div>
+  <div class="tab" onclick="switchTab('agents')">Agent Tasks</div>
 </div>
 
 <div id="panel-stats" class="panel active">
@@ -426,6 +440,16 @@ ADMIN_BODY = """<body>
     <table>
       <thead><tr><th>时间</th><th>查询</th><th>原后端</th><th>Fallback到</th><th>IDE</th><th>意图</th></tr></thead>
       <tbody id="t-fallback-logs"></tbody>
+    </table>
+  </div>
+</div>
+
+<div id="panel-agents" class="panel">
+  <div class="card">
+    <h2>Agent Task Audit</h2>
+    <table>
+      <thead><tr><th>Task</th><th>Status</th><th>Mode</th><th>Repo</th><th>Goal</th><th>Events</th><th>Next</th></tr></thead>
+      <tbody id="t-agent-audit"></tbody>
     </table>
   </div>
 </div>"""
@@ -565,7 +589,16 @@ async function testBackend(name){
   }catch(e){alert('测试失败: '+e)}
   btn.disabled=false;btn.textContent='测试';loadBackends();
 }
-function refreshAll(){loadStats();loadLogs();loadBackends();loadModelStatus()}
+async function loadAgentAudit(){
+  try{
+    let r=await authFetch('/admin/api/agent-audit?limit=20');let d=await r.json();
+    let tb=document.getElementById('t-agent-audit');if(!tb)return;tb.innerHTML='';
+    for(let task of (d.tasks||[])){
+      tb.innerHTML+=`<tr><td>${esc(task.task_id)}</td><td>${esc(task.status)}</td><td>${esc(task.mode)}</td><td>${esc(task.repo)}</td><td>${esc(task.goal)}</td><td>${task.event_count}</td><td>${esc(task.next_action||'')}</td></tr>`;
+    }
+  }catch(e){console.error('agent audit error',e)}
+}
+function refreshAll(){loadStats();loadLogs();loadBackends();loadModelStatus();loadAgentAudit()}
 refreshAll();
 setInterval(refreshAll,5000);
 </script>
