@@ -143,7 +143,14 @@ async def cmd_task(chat_id: str, goal: str) -> None:
             r = await c.post(
                 "http://127.0.0.1:8080/agent/tasks",
                 headers={"Authorization": f"Bearer {admin}"},
-                json={"repo": ".", "goal": goal, "mode": "patch"},
+                json={
+                    "repo": ".",
+                    "branch": "main",
+                    "goal": goal,
+                    "mode": "patch",
+                    "allowed_tools": ["read", "write", "git_diff", "test"],
+                    "test_commands": ["python -m pytest -x -q"],
+                },
             )
             data = r.json()
             await telegram_bot.send_message(

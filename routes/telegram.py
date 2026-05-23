@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import os
+import re
 import subprocess
 import time
 
@@ -83,6 +84,19 @@ async def _cmd_chat(chat_id: str, message: str) -> None:
     await cmd_chat(chat_id, message)
 
 
+_REDACT_PATTERNS = [
+    (re.compile(r'(sk-|ak_|gho_|Bearer\s+)[A-Za-z0-9_\-]{8,}'), r'\1***REDACTED***'),
+    (re.compile(r'(key|token|password|secret)=[^\s&]+', re.IGNORECASE), r'\1=***'),
+    (re.compile(r'https?://[^\s]*[?&](key|token)=[^\s&]+'), '[URL_REDACTED]'),
+]
+
+
+def _redact_logs(text: str) -> str:
+    for pattern, replacement in _REDACT_PATTERNS:
+        text = pattern.sub(replacement, text)
+    return text
+
+
 async def _cmd_logs(chat_id: str, arg: str) -> None:
     n = int(arg) if arg.isdigit() else 10
     n = min(n, 30)
@@ -93,6 +107,7 @@ async def _cmd_logs(chat_id: str, arg: str) -> None:
             capture_output=True, text=True, timeout=15,
         )
         text = result.stdout.strip() or "No logs"
+        text = _redact_logs(text)
         if len(text) > 3500:
             text = text[-3500:]
         await telegram_bot.send_message(f"```\n{text}\n```", chat_id=chat_id)
@@ -161,13 +176,22 @@ async def _handle_callback(callback_query: dict) -> None:
 
     if data.startswith("approve:") or data.startswith("reject:"):
         action, task_id = data.split(":", 1)
-        from routes.agent_tasks import _tasks
-        if task_id not in _tasks:
-            await telegram_bot.answer_callback(cb_id, "Task not found")
-            return
-        new_status = "approved" if action == "approve" else "rejected"
-        _tasks[task_id]["status"] = new_status
-        await telegram_bot.answer_callback(cb_id, f"Task {task_id} {new_status}")
+        import httpx
+        try:
+            admin = os.environ.get("LIMA_ADMIN_TOKEN", "")
+            async with httpx.AsyncClient(timeout=10) as c:
+                r = await c.post(
+                    f"http://127.0.0.1:8080/agent/tasks/{task_id}/review",
+                    headers={"Authorization": f"Bearer {admin}"},
+                    json={"approved": action == "approve"},
+                )
+                if r.status_code == 200:
+                    result_text = "approved" if action == "approve" else "rejected"
+                    await telegram_bot.answer_callback(cb_id, f"Task {task_id} {result_text}")
+                else:
+                    await telegram_bot.answer_callback(cb_id, f"Review failed: {r.status_code}")
+        except Exception as e:
+            await telegram_bot.answer_callback(cb_id, f"Error: {e}")
     elif data == "restart:confirm":
         await telegram_bot.answer_callback(cb_id, "Restarting...")
         subprocess.Popen(
@@ -205,6 +229,10 @@ async def webhook(request: Request):
         if telegram_bot.is_authorized(chat_id):
             await cmd_chat(chat_id, message["text"])
     elif callback_query:
+        cb_chat_id = str(callback_query.get("message", {}).get("chat", {}).get("id", ""))
+        if not telegram_bot.is_authorized(cb_chat_id):
+            logger.warning("Unauthorized callback from chat_id: %s", cb_chat_id)
+            return {"ok": True}
         await _handle_callback(callback_query)
 
     return {"ok": True}
