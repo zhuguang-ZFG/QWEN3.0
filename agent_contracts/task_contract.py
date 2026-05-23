@@ -1,7 +1,5 @@
 """Task contract dataclasses for agent worker communication."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -77,7 +75,19 @@ class AgentTaskResult:
 
     task_id: str
     status: Literal[
-        "accepted", "running", "succeeded", "failed", "blocked", "needs_review"
+        "accepted",
+        "claimed",
+        "running",
+        "needs_review",
+        "approved",
+        "rejected",
+        "applied",
+        "succeeded",
+        "failed",
+        "blocked",
+        "cancel_requested",
+        "cancelled",
+        "quarantined",
     ]
     summary: str
     changed_files: list[str] = field(default_factory=list)

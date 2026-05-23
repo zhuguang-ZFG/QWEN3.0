@@ -2,7 +2,11 @@
 
 import pytest
 
-from agent_contracts.task_contract import AgentTaskRequest, AgentTaskResult
+from agent_contracts.task_contract import (
+    AgentTaskRequest,
+    AgentTaskResult,
+    VALID_STATUSES,
+)
 
 
 class TestAgentTaskRequest:
@@ -115,6 +119,14 @@ class TestAgentTaskResult:
         ):
             res = self._valid_result(status=status)
             res.validate()
+
+    def test_agent_task_result_status_annotation_matches_valid_statuses(self):
+        from typing import get_args
+
+        status_type = AgentTaskResult.__dataclass_fields__["status"].type
+        literal_values = set(get_args(status_type))
+
+        assert literal_values == set(VALID_STATUSES)
 
     def test_invalid_status_raises(self):
         res = self._valid_result()
