@@ -769,3 +769,28 @@ Verification note:
   - Telegram notify tests still emit coroutine-not-awaited warnings when `_fire_and_forget` is mocked.
   - `routes/telegram.py` still uses FastAPI deprecated startup event wiring.
 - No production deployment was performed.
+
+## 2026-05-23 LiMa Real-Machine Worker Smoke v0.4
+
+- Implemented the Server-side real-machine worker smoke plan locally.
+- Added `/agent/worker/preflight`:
+  - requires admin auth;
+  - returns readiness, contract version, task counts, latest task id, and feature flags;
+  - does not expose admin token values.
+- Added `/agent/worker/smoke-task`:
+  - default task is read-only `review` mode with `allowed_tools=["git_diff"]`;
+  - `patch_readme` task is explicit, bounded to `README.md`, and runs only `node --version`;
+  - Server still only creates task records and does not execute shell or mutate repositories.
+- Added `scripts/create_lima_smoke_task.py`:
+  - `--dry-run` prints only `/agent/worker/smoke-task` payload shape;
+  - live mode reads `LIMA_CODE_SERVER_URL` and `LIMA_CODE_API_KEY` or CLI args;
+  - output never prints API keys.
+- Added `docs/LIMA_REAL_MACHINE_SMOKE.md` with `/lima doctor` as the first LiMa Code step.
+- Verification:
+  - `python -m pytest tests\test_agent_task_routes.py -q --ignore=active_model`: `24 passed`.
+  - `python -m pytest tests\test_lima_smoke_task_script.py -q --ignore=active_model`: `2 passed`.
+  - `python -m py_compile routes\agent_tasks.py tests\test_agent_task_routes.py scripts\create_lima_smoke_task.py tests\test_lima_smoke_task_script.py`: passed.
+  - `Select-String -Path docs\LIMA_REAL_MACHINE_SMOKE.md -Pattern "zhuguang110|sk-|Bearer |token="`: no matches.
+- Environment note:
+  - `D:\GIT\venv\Scripts\python.exe -m pytest ...` still fails before collection because the venv lacks `pytest_asyncio`; system `python` was used for meaningful test evidence.
+- No production deployment was performed.

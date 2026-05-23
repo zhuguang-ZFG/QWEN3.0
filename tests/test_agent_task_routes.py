@@ -179,6 +179,64 @@ class TestTaskEndpoints:
         assert item["changed_files"] == ["README.md"]
         assert "diff_preview" not in item
 
+    def test_worker_preflight_reports_control_plane_readiness(self):
+        task_id = client.post("/agent/tasks", json={
+            "repo": "D:/GIT/deepcode-cli",
+            "goal": "preflight visible task",
+            "allowed_tools": ["git_diff"],
+            "mode": "review",
+        }, headers=HEADERS).json()["task_id"]
+
+        resp = client.get("/agent/worker/preflight", headers=HEADERS)
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["ready"] is True
+        assert data["contract_version"] == "agent-task-v1"
+        assert data["counts"]["accepted"] >= 1
+        assert "running" in data["counts"]
+        assert data["latest_task_id"] == task_id
+        assert data["features"]["claim"] is True
+        assert data["features"]["cancel"] is True
+        assert data["features"]["review"] is True
+        assert data["features"]["quarantine"] is True
+        assert "admin_token" not in str(data).lower()
+
+    def test_create_worker_smoke_task_defaults_to_read_only_review(self):
+        resp = client.post("/agent/worker/smoke-task", json={
+            "repo": "D:/GIT/deepcode-cli",
+        }, headers=HEADERS)
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "accepted"
+        task = client.get(
+            f"/agent/tasks/{data['task_id']}", headers=HEADERS
+        ).json()["task"]
+        assert task["repo"] == "D:/GIT/deepcode-cli"
+        assert task["mode"] == "review"
+        assert task["allowed_tools"] == ["git_diff"]
+        assert task["max_runtime_sec"] == 120
+        assert task["patch_files"] == []
+        assert task["test_commands"] == []
+
+    def test_create_worker_smoke_task_can_create_patch_test_task(self):
+        resp = client.post("/agent/worker/smoke-task", json={
+            "repo": "D:/GIT/deepcode-cli",
+            "kind": "patch_readme",
+        }, headers=HEADERS)
+
+        assert resp.status_code == 200
+        task_id = resp.json()["task_id"]
+        task = client.get(f"/agent/tasks/{task_id}", headers=HEADERS).json()["task"]
+        assert task["mode"] == "patch"
+        assert task["allowed_tools"] == ["write", "git_diff", "test"]
+        assert task["patch_files"] == [{
+            "file_path": "README.md",
+            "content": "# LiMa Code Smoke\n",
+        }]
+        assert task["test_commands"] == ["node --version"]
+
     def test_claim_task_assigns_worker_and_lease(self):
         task_id = client.post("/agent/tasks", json={
             "repo": "D:/GIT/deepcode-cli",

@@ -777,3 +777,14 @@ LiMa Server remains the orchestrator and audit source. This phase added:
 - a dry-run Server/Worker contract smoke script.
 
 Boundary preserved: Server does not execute shell commands, does not auto-deploy, and does not auto-promote skills without eval evidence and manual approval.
+
+## 2026-05-23 LiMa Real-Machine Worker Smoke v0.4
+
+LiMa Server v0.4 should make real-machine worker testing repeatable:
+
+- `/agent/worker/preflight` reports Server task-control readiness without secrets.
+- `/agent/worker/smoke-task` creates bounded read-only or disposable patch smoke tasks.
+- `scripts/create_lima_smoke_task.py` creates smoke tasks and prints the exact LiMa Code commands to run.
+- `docs/LIMA_REAL_MACHINE_SMOKE.md` is the runbook.
+
+Boundary preserved: Server still never executes shell, never mutates repositories, and never auto-deploys.

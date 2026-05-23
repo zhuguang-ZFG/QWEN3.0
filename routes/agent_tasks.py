@@ -148,6 +148,13 @@ class TaskCreateBody(BaseModel):
     patch_files: list[dict] = Field(default_factory=list)
     test_commands: list[str] = Field(default_factory=list)
 
+
+class WorkerSmokeTaskBody(BaseModel):
+    repo: str
+    branch: str = "main"
+    kind: Literal["review", "patch_readme"] = "review"
+
+
 class TaskResultBody(BaseModel):
     task_id: str
     status: Literal["accepted", "claimed", "running", "needs_review", "approved",
@@ -206,6 +213,30 @@ def _task_audit_item(task: dict) -> dict:
     }
 
 
+def _task_counts() -> dict[str, int]:
+    counts = {
+        "accepted": 0,
+        "running": 0,
+        "needs_review": 0,
+        "approved": 0,
+        "failed": 0,
+        "quarantined": 0,
+    }
+    for task in _store.values():
+        status = task.get("status", "")
+        if status in counts:
+            counts[status] += 1
+    return counts
+
+
+def _latest_task_id() -> str:
+    tasks = list(_store.values())
+    if not tasks:
+        return ""
+    latest = max(tasks, key=lambda t: t.get("updated_at", t.get("created_at", 0)))
+    return latest.get("request", {}).get("task_id", "")
+
+
 def apply_task_review(
     task_id: str,
     decision: str,
@@ -254,8 +285,7 @@ def apply_task_review(
     return {"task_id": task_id, "status": decision}
 
 
-@router.post("/tasks", dependencies=[Depends(_require_admin)])
-async def create_task(body: TaskCreateBody):
+def _create_task_from_body(body: TaskCreateBody) -> dict:
     task_id = str(uuid.uuid4())[:8]
     while _store.contains(task_id):
         task_id = str(uuid.uuid4())[:8]
@@ -274,6 +304,11 @@ async def create_task(body: TaskCreateBody):
     _store.append_event(task_id, {"type": "created"})
     return {"task_id": task_id, "status": "accepted"}
 
+
+@router.post("/tasks", dependencies=[Depends(_require_admin)])
+async def create_task(body: TaskCreateBody):
+    return _create_task_from_body(body)
+
 @router.get("/tasks", dependencies=[Depends(_require_admin)])
 async def list_tasks(status: str = Query(default="accepted"),
                      limit: int = Query(default=1, ge=1, le=100)):
@@ -291,6 +326,75 @@ async def agent_audit(limit: int = Query(default=20, ge=1, le=100)):
     )
     items = [_task_audit_item(task) for task in tasks[:limit]]
     return {"tasks": items, "count": len(items)}
+
+
+@router.get("/worker/preflight", dependencies=[Depends(_require_admin)])
+async def worker_preflight():
+    return {
+        "ready": True,
+        "contract_version": "agent-task-v1",
+        "server_time": time.time(),
+        "counts": _task_counts(),
+        "latest_task_id": _latest_task_id(),
+        "features": {
+            "create": True,
+            "list": True,
+            "claim": True,
+            "cancel": True,
+            "control": True,
+            "result": True,
+            "review": True,
+            "quarantine": True,
+            "audit": True,
+            "smoke_task": True,
+        },
+    }
+
+
+@router.post("/worker/smoke-task", dependencies=[Depends(_require_admin)])
+async def create_worker_smoke_task(body: WorkerSmokeTaskBody):
+    if body.kind == "patch_readme":
+        task = TaskCreateBody(
+            repo=body.repo,
+            branch=body.branch,
+            goal=(
+                "LiMa Code real-machine patch smoke: replace README with a "
+                "harmless marker and run node --version."
+            ),
+            constraints=[
+                "Smoke task only.",
+                "Do not commit.",
+                "Do not deploy.",
+                "Return needs_review after patch and test evidence.",
+            ],
+            allowed_tools=["write", "git_diff", "test"],
+            max_runtime_sec=120,
+            mode="patch",
+            patch_files=[{
+                "file_path": "README.md",
+                "content": "# LiMa Code Smoke\n",
+            }],
+            test_commands=["node --version"],
+        )
+    else:
+        task = TaskCreateBody(
+            repo=body.repo,
+            branch=body.branch,
+            goal=(
+                "LiMa Code real-machine read-only smoke: review current git "
+                "diff and report evidence."
+            ),
+            constraints=[
+                "Read-only smoke task.",
+                "Do not edit files.",
+                "Do not commit.",
+                "Return needs_review with changed_files empty unless local diff already exists.",
+            ],
+            allowed_tools=["git_diff"],
+            max_runtime_sec=120,
+            mode="review",
+        )
+    return _create_task_from_body(task)
 
 
 @router.get("/tasks/{task_id}", dependencies=[Depends(_require_admin)])
