@@ -227,6 +227,39 @@ Latest documentation/FRP verification:
 - The repo contains many local reference directories and temporary scripts; do not stage them blindly.
 - `server.py` is still large and should be split later, but not during routing experiments.
 
+## 2026-05-23 Codebase Calibration
+
+Latest local status check:
+
+- Branch: `codex/free-web-ai-probe`.
+- Latest checked commit: `8b86228`.
+- LiMa target-suite verification: `382 passed, 8 skipped`.
+- Do not describe this as unrestricted full-repo pytest; this workspace contains many unrelated local reference repositories and generated trees.
+
+Current integration truth:
+
+- Session Memory is now in the successful chat path as SQLite write plus compaction trigger.
+- Session Memory recall exists as a processor, but it is not yet a first-class prompt-time stage in `server.py`.
+- AI Compactor can run when the session threshold is crossed, but LiMa does not yet have an always-on memory daemon.
+- Graph retrieval and reranking exist, but `_reranked` is currently computed without becoming injected prompt context.
+- `context_pipeline.factory.build_default_pipeline()` is tested, but `server.py` still uses explicit integration blocks.
+- Tool Gateway has been hardened with `shell=False`, simple safe-argument validation, copied HTTP args, and audit events.
+- Admin UI API calls use bearer auth and safe JS token escaping; query-token login remains a later hardening target.
+- ConcurrencyPool is implemented and tested but not yet wired into provider key scheduling.
+
+Reference project conclusions:
+
+- OpenRAG is a good reference for ingestion, retrieval traceability, MCP knowledge tools, and mature document parsing. It should not replace LiMa's router or be copied wholesale.
+- Google Cloud always-on-memory-agent is a stronger reference for LiMa's next memory step: background inbox ingestion, typed memories, consolidation, and source-backed recall.
+- New detailed reference evaluation: `docs/REFERENCE_PROJECT_EVALUATION.md`.
+
+Recommended next architecture move:
+
+1. Convert graph/code retrieval results into formatted prompt context with trace evidence.
+2. Add a lightweight memory inbox and daemon outside the request path.
+3. Extend Session Memory from raw summaries into typed facts: `user_pref`, `project_fact`, `code_fact`, `ops_event`, `test_result`, `routing_lesson`, `security_lesson`, and `reference_pattern`.
+4. Add MCP tools only after retrieval and memory traces are useful locally.
+
 ## Next Phase
 
 User asked to finish this documentation/GitHub upload first, then wait for the next instruction.

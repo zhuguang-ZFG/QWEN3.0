@@ -1,6 +1,6 @@
-# Documentation Status
+﻿# Documentation Status
 
-> Updated: 2026-05-22
+> Updated: 2026-05-23
 > Purpose: prevent old commercial-platform plans from being mistaken for the active LiMa direction.
 
 ## Current Source Of Truth
@@ -18,6 +18,10 @@
 | `docs/CLOUDFLARE_MODEL_INVENTORY.md` | Active | Cloudflare direct/Worker model inventory, routing policy, and adapter boundaries. |
 | `docs/CLOUDFLARE_WORKER_QUICK_EVAL.md` | Active evidence | Worker quick coding eval for `cfai_qwen_coder`, `cfai_deepseek_r1`, and `cfai_mistral`. |
 | `docs/EXECUTION_PLAN.md` | Active | Current phase tracker for documentation/GitHub snapshot and next implementation order. |
+| `docs/REFERENCE_PROJECT_EVALUATION.md` | Active | Current evaluation of OpenRAG and Google Cloud always-on-memory-agent against LiMa's real code state. |
+| `docs/superpowers/plans/2026-05-23-agent-autonomy-evolution.md` | Active plan | Superpowers implementation plan for gated multi-agent autonomy, skill/gene evolution, and GitHub/VPS approval boundaries. |
+| `docs/superpowers/plans/2026-05-23-techspar-mastery-loop.md` | Active plan | TechSpar-inspired plan for LiMa module mastery, weak-point extraction, review scheduling, and evidence-driven self-improvement. |
+| `docs/superpowers/plans/2026-05-23-lima-code-vibe-coding.md` | Active plan | LiMa Code fork integration plan for using LiMa as model router and LiMa Code as vibe coding worker/UI. |
 | `docs/superpowers/plans/2026-05-22-cloudflare-workers-ai-routing.md` | Active record | Completed Cloudflare text/code routing implementation plan. |
 | `docs/superpowers/plans/2026-05-22-token-safe-local-proxy-routing.md` | Active record | Completed token-safe refresh, topology-aware local proxy routing, and exact-output quality hotfix plan. |
 | `docs/superpowers/plans/2026-05-22-free-web-ai-stability-routing.md` | Active record | Completed candidate registry, probes, stability, and quota-aware routing plan. |
@@ -46,3 +50,4 @@ These files are retained as reference, but they are not the current execution di
 3. When a runtime fact changes, update `STATUS.md` and `docs/LIMA_MEMORY.md` in the same session.
 4. For free web AI expansion, use `docs/FREE_WEB_AI_EXPANSION_PLAN.md` before writing adapters.
 5. Stage only relevant files. The repo contains many local reference directories and temporary experiments.
+6. When reporting tests, distinguish LiMa target-suite results from unrestricted full-repo pytest collection.

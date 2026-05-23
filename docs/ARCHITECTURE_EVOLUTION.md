@@ -1,5 +1,7 @@
 # LiMa 架构进化文档 — 多项目深度集成记录
 
+> 2026-05-23 calibration: this document records architectural evolution and reference ideas. Current truth: Session Memory writes, compaction, and typed memory daemon are in the hot path; graph retrieval/reranking is computed AND injected into prompts via `inject_retrieval_context()`; MCP tools expose search_repo/search_memory/get_retrieval_trace; `build_default_pipeline()` is tested but not the main `server.py` request pipeline; `ConcurrencyPool` is implemented but has not replaced `key_pool.py`. See `docs/REFERENCE_PROJECT_EVALUATION.md` for the latest assessment.
+
 > 本文档记录 LiMa 从"API 路由器"升级为"上下文感知自进化智能编码后端"的完整过程，
 > 包括所有参考项目、论文、实施阶段和架构决策。
 
@@ -278,5 +280,4 @@ HTTP Request
 
 *文档生成时间: 2026-05-22*
 *分支: codex/free-web-ai-probe*
-*最终回归: 308 passed, 0 failed*
-
+*历史回归: 308 passed, 0 failed; 2026-05-23 最新 LiMa target-suite 为 382 passed, 8 skipped*

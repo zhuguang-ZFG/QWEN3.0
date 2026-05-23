@@ -196,7 +196,25 @@ The personal coding assistant direction is closed when:
 
 ## Next Steps
 
-1. Validate the deployed endpoint from a real IDE or terminal-agent session.
-2. Tune Claude Code/Cursor/Continue client-side config for lower latency and smaller request context.
-3. Add per-session goal tracking only after context preflight proves useful in real coding work.
-4. Re-run backend evals when keys/rate limits/local socket policy improve.
+1. Inject graph/code retrieval results into prompts with trace evidence.
+2. Add a lightweight always-on memory daemon and inbox ingestion outside the hot path.
+3. Extend Session Memory into typed memories for project facts, code facts, ops events, tests, routing lessons, and reference patterns.
+4. Add `lima-mcp` tools for repo search, memory search, retrieval traces, and `ask_lima` after local retrieval/memory traces prove useful.
+5. Re-run backend evals when keys, rate limits, or local socket policy improve.
+
+## 2026-05-23 Reference Architecture Update
+
+Two external projects were reviewed against LiMa's current code state:
+
+| Project | Value To LiMa | Decision |
+|---|---|---|
+| OpenRAG (`langflow-ai/openrag`) | Knowledge ingestion, retrieval observability, MCP knowledge access, mature document parsing patterns. | Borrow patterns; do not adopt the full platform or OpenSearch/Langflow stack yet. |
+| Google Cloud always-on-memory-agent | Background memory ingestion, SQLite-first store, periodic consolidation, memory citations. | Use as the stronger reference for LiMa's next memory layer. |
+
+Current LiMa has many primitives already, but the next useful step is depth rather than more modules:
+
+- Graph retrieval should feed prompt context, not only compute reranked candidates.
+- Session Memory should gain typed memory and async consolidation, not just raw turn summaries.
+- The request path should expose retrieval/memory traces for debugging.
+
+Detailed evaluation: `docs/REFERENCE_PROJECT_EVALUATION.md`.
