@@ -663,3 +663,28 @@ Follow-up after final review:
 - Verification:
   - `npm.cmd test -- src/tests/lima-audit-reader.test.ts src/tests/lima-commands.test.ts src/tests/lima-command-runner.test.ts`: `405 passed, 6 skipped`.
   - `npm.cmd run check`: passed.
+
+## 2026-05-23 Autonomous Worker v0.2 Task 8
+
+- Added a real temporary git repository smoke test for LiMa Code patch mode.
+- Patch mode now runs explicit `test_commands` after applying `patch_files` when the task allows the `test` tool.
+- The submitted result now includes changed files, diff preview, test commands, and test results for patch-plus-test tasks.
+- Closed an end-to-end contract gap found during smoke work:
+  - Server `AgentTaskRequest` accepts `patch_files` and `test_commands`.
+  - Server `/agent/tasks` preserves those fields in fetched task envelopes.
+  - LiMa Code request validation preserves those fields instead of stripping them.
+- Red-green evidence:
+  - The local smoke first failed because patch mode submitted no test evidence.
+  - Server contract tests first failed on missing `patch_files` support.
+  - LiMa Code validation tests first failed because `patch_files` were stripped.
+- Verification:
+  - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_agent_task_contract.py tests\test_agent_task_routes.py -q --ignore=active_model`: `31 passed`.
+  - `npm.cmd test -- src/tests/lima-agent-task-types.test.ts src/tests/lima-command-runner.test.ts`: `407 passed, 6 skipped`.
+  - `npm.cmd run check`: passed.
+  - `D:\GIT\venv\Scripts\python.exe -m py_compile agent_contracts\task_contract.py routes\agent_tasks.py`: passed.
+- VPS public smoke is still pending until this Server contract update is deployed. Do not treat patch-plus-test as live-verified until the VPS task endpoint returns `patch_files` and LiMa Code submits one passing `test_results` entry from a temporary repo.
+
+Verification note:
+
+- `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_agent_task_contract.py tests\test_agent_task_routes.py tests\test_agent_evolution.py -q --ignore=active_model` currently fails in `tests/test_agent_evolution.py::test_candidate_eval_passed_no_manual_flag_cannot_promote`.
+- That failure is tied to the pre-existing dirty `agent_evolution/promote.py` worktree change and was not modified in this task.

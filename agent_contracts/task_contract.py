@@ -39,6 +39,8 @@ class AgentTaskRequest:
     lease_expires_at: float = 0.0
     cancel_requested: bool = False
     failure_count: int = 0
+    patch_files: list[dict] = field(default_factory=list)
+    test_commands: list[str] = field(default_factory=list)
 
     def validate(self) -> None:
         """Raise ValueError if any field is invalid."""
@@ -58,6 +60,15 @@ class AgentTaskRequest:
             raise ValueError("max_runtime_sec must be positive")
         if self.failure_count < 0:
             raise ValueError("failure_count must not be negative")
+        for patch_file in self.patch_files:
+            if not isinstance(patch_file, dict):
+                raise ValueError("patch_files entries must be objects")
+            if not patch_file.get("file_path"):
+                raise ValueError("patch_files entries must include file_path")
+            if "content" not in patch_file:
+                raise ValueError("patch_files entries must include content")
+        if any(not command for command in self.test_commands):
+            raise ValueError("test_commands entries must not be empty")
 
 
 @dataclass

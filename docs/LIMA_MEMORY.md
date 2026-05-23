@@ -743,3 +743,25 @@ LiMa should continue toward the GenericAgent/Evolver/agency-agents direction, bu
 Plan document:
 
 - `docs/superpowers/plans/2026-05-23-lima-autonomous-worker-v02.md`
+
+## 2026-05-23 Autonomous Worker v0.2 Task 8
+
+LiMa Code patch mode now supports the real patch-plus-test worker path locally:
+
+- A task may carry explicit `patch_files` and `test_commands`.
+- Patch mode applies only explicit files inside the guarded repo.
+- If `test_commands` are present, the task must also allow the `test` tool.
+- Results include changed files, diff preview, test commands, and test results.
+
+Important contract decision:
+
+- Server `AgentTaskRequest` and `/agent/tasks` now preserve `patch_files` and `test_commands`.
+- LiMa Code validation also preserves those fields, so fetched Server tasks can drive real patch/test execution.
+- This keeps Server as policy/audit broker only; Server still does not execute shell or mutate repositories.
+
+Evidence:
+
+- Server task contract and route tests: `31 passed`.
+- LiMa Code worker tests: `407 passed, 6 skipped`.
+- LiMa Code `npm.cmd run check`: passed.
+- VPS public smoke remains pending until this Server contract is deployed and verified against a temporary repo.

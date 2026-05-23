@@ -49,6 +49,8 @@ class TaskCreateBody(BaseModel):
     allowed_tools: list[str] = Field(default_factory=list)
     max_runtime_sec: int = 300
     mode: Literal["plan", "patch", "test", "review"] = "patch"
+    patch_files: list[dict] = Field(default_factory=list)
+    test_commands: list[str] = Field(default_factory=list)
 
 
 class TaskResultBody(BaseModel):
@@ -126,6 +128,8 @@ async def create_task(body: TaskCreateBody):
         goal=body.goal, constraints=body.constraints,
         allowed_tools=body.allowed_tools,
         max_runtime_sec=body.max_runtime_sec, mode=body.mode,
+        patch_files=body.patch_files,
+        test_commands=body.test_commands,
     )
     try:
         req.validate()
@@ -235,6 +239,12 @@ async def submit_task_result(task_id: str, body: TaskResultBody):
         "type": "result_submitted",
         "status": result.status,
     })
+    if result.status == "needs_review":
+        try:
+            from telegram_notify import notify_task_ready
+            notify_task_ready(task_id, body.summary, body.changed_files)
+        except Exception:
+            pass
     return {"accepted": True, "task_id": task_id, "status": result.status}
 
 

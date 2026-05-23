@@ -1218,20 +1218,29 @@ git commit -m "feat: add lima audit command"
 
 **Files:**
 
+- Modify: `agent_contracts/task_contract.py`
+- Modify: `routes/agent_tasks.py`
+- Modify: `tests/test_agent_task_contract.py`
+- Modify: `tests/test_agent_task_routes.py`
+- Modify: `D:\GIT\deepcode-cli\src\lima\agent-task-types.ts`
+- Modify: `D:\GIT\deepcode-cli\src\lima\task-runner.ts`
+- Modify: `D:\GIT\deepcode-cli\src\tests\lima-agent-task-types.test.ts`
 - Modify: `D:\GIT\deepcode-cli\src\tests\lima-command-runner.test.ts`
 - Modify: `D:\GIT\deepcode-cli\docs\lima-mcp-worker-plan.md`
 - Modify: `progress.md`
 - Modify: `docs/LIMA_MEMORY.md`
 
-- [ ] **Step 1: Add temp git repo smoke test**
+- [x] **Step 1: Add temp git repo smoke test**
 
 Add to `D:\GIT\deepcode-cli\src\tests\lima-command-runner.test.ts`:
 
 ```ts
 test("executeLiMaCommand can patch and test a temporary real repo", async () => {
   const repo = fs.mkdtempSync(path.join(os.tmpdir(), "lima-real-repo-"));
-  fs.writeFileSync(path.join(repo, "package.json"), JSON.stringify({ scripts: { test: "node test.js" } }), "utf8");
+  fs.writeFileSync(path.join(repo, "README.md"), "# Before\n", "utf8");
   fs.writeFileSync(path.join(repo, "test.js"), "console.log('ok')\n", "utf8");
+  execFileSync("git", ["init"], { cwd: repo });
+  execFileSync("git", ["add", "README.md"], { cwd: repo });
 
   const task: LiMaTaskRunnerRequest = {
     task_id: "real-repo",
@@ -1242,8 +1251,8 @@ test("executeLiMaCommand can patch and test a temporary real repo", async () => 
     allowed_tools: ["write", "git_diff", "test"],
     max_runtime_sec: 30,
     mode: "patch",
-    patch_files: [{ path: "README.md", content: "# Smoke\n" }],
-    test_commands: ["npm test"],
+    patch_files: [{ file_path: "README.md", content: "# Smoke\n" }],
+    test_commands: ["node test.js"],
   };
 
   const submitted: LiMaAgentTaskResult[] = [];
@@ -1264,10 +1273,12 @@ test("executeLiMaCommand can patch and test a temporary real repo", async () => 
   assert.equal(response.ok, true);
   assert.equal(submitted.length, 1);
   assert.deepEqual(submitted[0]?.changed_files, ["README.md"]);
+  assert.deepEqual(submitted[0]?.test_commands, ["node test.js"]);
+  assert.equal(submitted[0]?.test_results[0]?.exit_code, 0);
 });
 ```
 
-- [ ] **Step 2: Run real repo smoke test**
+- [x] **Step 2: Run real repo smoke test**
 
 Run:
 
@@ -1276,6 +1287,24 @@ npm.cmd test -- src/tests/lima-command-runner.test.ts
 ```
 
 Expected: command runner tests pass and the temp repo smoke submits one result.
+
+Actual local evidence:
+
+- Red: the smoke first failed because patch mode submitted no `test_commands` or `test_results`.
+- Green: `npm.cmd test -- src/tests/lima-command-runner.test.ts`: `406 passed, 6 skipped`.
+- Implementation: patch mode now runs explicit test commands when `allowed_tools` includes `test`, and submits changed files, diff preview, test commands, and test results together.
+
+- [x] **Step 2.5: Preserve patch/test payload through Server and LiMa Code contracts**
+
+Reason: the local runner smoke exposed a real end-to-end contract gap. `routes.agent_tasks.TaskCreateBody` did not accept `patch_files` or `test_commands`, and LiMa Code validation stripped those fields from fetched Server tasks.
+
+Evidence:
+
+- Red Server tests failed because `AgentTaskRequest` rejected `patch_files`, and created tasks did not return `patch_files`.
+- Red LiMa Code test failed because `validateLiMaAgentTaskRequest()` stripped `patch_files`.
+- Green Server tests: `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_agent_task_contract.py tests\test_agent_task_routes.py -q --ignore=active_model`: `31 passed`.
+- Green LiMa Code tests: `npm.cmd test -- src/tests/lima-agent-task-types.test.ts src/tests/lima-command-runner.test.ts`: `407 passed, 6 skipped`.
+- `npm.cmd run check`: passed.
 
 - [ ] **Step 3: Perform public safe smoke**
 
@@ -1308,7 +1337,9 @@ changed_files includes README.md
 test_results includes one passing command
 ```
 
-- [ ] **Step 4: Update docs with smoke evidence**
+Current status: pending deployment of the new Server task payload contract to VPS. Do not record this as complete until the live Server returns `patch_files` and `test_commands` in `/agent/tasks/{task_id}` and LiMa Code submits a result containing passing `test_results`.
+
+- [x] **Step 4: Update docs with smoke evidence**
 
 Append exact evidence to:
 
@@ -1316,7 +1347,7 @@ Append exact evidence to:
 - `docs/LIMA_MEMORY.md`
 - `D:\GIT\deepcode-cli\docs\lima-mcp-worker-plan.md`
 
-- [ ] **Step 5: Commit Task 8**
+- [x] **Step 5: Commit Task 8**
 
 LiMa Code:
 

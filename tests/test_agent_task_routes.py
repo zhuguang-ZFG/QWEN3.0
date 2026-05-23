@@ -74,6 +74,27 @@ class TestTaskEndpoints:
         assert data["task"]["allowed_tools"] == ["read", "mcp"]
         assert data["status"] == "accepted"
 
+    def test_create_task_preserves_patch_files_and_test_commands(self):
+        resp = client.post("/agent/tasks", json={
+            "repo": "D:/GIT/deepcode-cli",
+            "goal": "patch smoke",
+            "mode": "patch",
+            "allowed_tools": ["write", "git_diff", "test"],
+            "patch_files": [{"file_path": "README.md", "content": "# Smoke\n"}],
+            "test_commands": ["node test.js"],
+        }, headers=HEADERS)
+        assert resp.status_code == 200
+        task_id = resp.json()["task_id"]
+
+        resp = client.get(f"/agent/tasks/{task_id}", headers=HEADERS)
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["task"]["patch_files"] == [
+            {"file_path": "README.md", "content": "# Smoke\n"}
+        ]
+        assert data["task"]["test_commands"] == ["node test.js"]
+
     def test_list_tasks_filters_status_and_limit_for_worker_polling(self):
         first = client.post("/agent/tasks", json={
             "repo": "D:/GIT", "goal": "first accepted",

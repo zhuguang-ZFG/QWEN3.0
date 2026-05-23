@@ -77,6 +77,18 @@ class TestAgentTaskRequest:
         with pytest.raises(ValueError, match="failure_count"):
             req.validate()
 
+    def test_accepts_patch_files_and_test_commands(self):
+        req = self._valid_request(
+            allowed_tools=["write", "git_diff", "test"],
+            patch_files=[{"file_path": "README.md", "content": "# Smoke\n"}],
+            test_commands=["node test.js"],
+        )
+        req.validate()
+        assert req.patch_files == [
+            {"file_path": "README.md", "content": "# Smoke\n"}
+        ]
+        assert req.test_commands == ["node test.js"]
+
 
 class TestAgentTaskResult:
     """Tests for AgentTaskResult dataclass."""
