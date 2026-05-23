@@ -4,6 +4,7 @@ import sys
 import json
 import time
 import hashlib
+import hmac
 import secrets
 import threading
 import subprocess
@@ -31,15 +32,37 @@ def inject_state(stats: dict, stats_lock: threading.Lock, backend_enabled: dict)
 router = APIRouter(prefix="/admin")
 
 _ADMIN_TOKEN = os.environ.get("LIMA_ADMIN_TOKEN", "")
+_SESSION_COOKIE = "lima_admin_session"
 
 
-async def _verify_admin(authorization: str = Header(default="")) -> None:
+def _admin_session_value() -> str:
+    return hmac.new(
+        _ADMIN_TOKEN.encode("utf-8"),
+        b"lima-admin-session",
+        hashlib.sha256,
+    ).hexdigest()
+
+
+def _is_valid_admin_session(value: str) -> bool:
+    return bool(
+        _ADMIN_TOKEN
+        and value
+        and secrets.compare_digest(value, _admin_session_value())
+    )
+
+
+async def _verify_admin(
+    authorization: str = Header(default=""),
+    lima_admin_session: str = Cookie(default=""),
+) -> None:
     """管理接口认证。需设置 LIMA_ADMIN_TOKEN 环境变量。"""
     if not _ADMIN_TOKEN:
         raise HTTPException(
             status_code=503,
             detail="LiMa admin token is not configured.",
         )
+    if _is_valid_admin_session(lima_admin_session):
+        return
     if authorization != f"Bearer {_ADMIN_TOKEN}" and authorization != _ADMIN_TOKEN:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
@@ -408,9 +431,9 @@ ADMIN_BODY = """<body>
 </div>"""
 
 ADMIN_JS = """<script>
-const _authHeaders={'Authorization':'Bearer '+_ADMIN_TOKEN};
 function authFetch(url,opts={}){
-  opts.headers=Object.assign({},_authHeaders,opts.headers||{});
+  opts.headers=Object.assign({},opts.headers||{});
+  opts.credentials='same-origin';
   return fetch(url,opts);
 }
 function switchTab(name){
@@ -552,15 +575,12 @@ setInterval(refreshAll,5000);
 
 @router.get("", response_class=HTMLResponse)
 async def admin_page(
-    token: str = "",
-    lima_admin: str = Cookie(default=""),
+    lima_admin_session: str = Cookie(default=""),
 ):
-    """管理后台 Web UI。支持 cookie 或 ?token= 访问。"""
+    """管理后台 Web UI。仅支持 HttpOnly session cookie 访问。"""
     if not _ADMIN_TOKEN:
         raise HTTPException(503, "LIMA_ADMIN_TOKEN not configured")
-    authenticated = (
-        lima_admin == _ADMIN_TOKEN or token == _ADMIN_TOKEN
-    )
+    authenticated = _is_valid_admin_session(lima_admin_session)
     if not authenticated:
         return HTMLResponse(
             "<h2>Admin Login</h2>"
@@ -569,9 +589,7 @@ async def admin_page(
             '<button type="submit">Login</button></form>',
             status_code=401,
         )
-    safe_token = json.dumps(_ADMIN_TOKEN)
-    token_js = f'<script>const _ADMIN_TOKEN={safe_token};</script>'
-    return HTMLResponse(ADMIN_HTML + token_js + ADMIN_BODY + ADMIN_JS)
+    return HTMLResponse(ADMIN_HTML + ADMIN_BODY + ADMIN_JS)
 
 
 @router.post("/login")
@@ -589,8 +607,9 @@ async def admin_login(request: Request):
         )
     response = RedirectResponse("/admin", status_code=303)
     response.set_cookie(
-        "lima_admin", token,
-        httponly=True, samesite="strict", max_age=86400,
+        _SESSION_COOKIE,
+        _admin_session_value(),
+        httponly=True, secure=True, samesite="strict", max_age=86400,
     )
     return response
 
@@ -599,5 +618,5 @@ async def admin_login(request: Request):
 async def admin_logout():
     """清除 cookie 并跳转登录页。"""
     response = RedirectResponse("/admin", status_code=303)
-    response.delete_cookie("lima_admin")
+    response.delete_cookie(_SESSION_COOKIE, secure=True, samesite="strict")
     return response

@@ -1,5 +1,6 @@
 import pytest
 from fastapi.routing import APIRoute
+from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
 import server
@@ -25,3 +26,18 @@ def test_image_generation_requires_private_api_key_dependency():
 def test_image_request_rejects_oversized_dimensions():
     with pytest.raises(ValidationError):
         ImageRequest(prompt="red circle", size="4096x4096")
+
+
+def test_chinese_image_prompt_gets_quality_prefix(monkeypatch):
+    monkeypatch.setenv("LIMA_API_KEY", "test-key")
+    client = TestClient(server.app)
+
+    response = client.post(
+        "/v1/images/generations",
+        headers={"Authorization": "Bearer test-key"},
+        json={"prompt": "一只猫", "size": "512x512"},
+    )
+
+    assert response.status_code == 200
+    url = response.json()["data"][0]["url"]
+    assert "high%20quality%2C%20detailed%2C%20" in url

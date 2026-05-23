@@ -88,13 +88,53 @@ class _TaskStore:
                 "INSERT INTO events (task_id,event,ts) VALUES(?,?,?)",
                 (task_id, json.dumps(event, ensure_ascii=False), ts))
             self._conn.commit()
+    def claim(self, task_id: str, worker_id: str, lease_sec: int) -> dict:
+        now = time.time()
+        with _lock:
+            task = self._cache[task_id]
+            request = dict(task["request"])
+            lease_expires_at = float(request.get("lease_expires_at") or 0.0)
+            if task["status"] not in ("accepted", "claimed", "running"):
+                raise ValueError(f"Task cannot be claimed from {task['status']}")
+            if task["status"] in ("claimed", "running") and lease_expires_at > now:
+                raise RuntimeError("Task already has an active lease")
+            request.update(
+                worker_id=worker_id,
+                lease_expires_at=now + lease_sec,
+                cancel_requested=False,
+            )
+            task["request"] = request
+            task["status"] = "running"
+            task["updated_at"] = now
+            self._conn.execute(
+                "UPDATE tasks SET request=?, status=?, updated_at=? WHERE task_id=?",
+                (json.dumps(request, ensure_ascii=False), "running", now, task_id),
+            )
+            event = {"type": "claimed", "worker_id": worker_id}
+            task.setdefault("events", []).append({"ts": now, **event})
+            self._conn.execute(
+                "INSERT INTO events (task_id,event,ts) VALUES(?,?,?)",
+                (task_id, json.dumps(event, ensure_ascii=False), now),
+            )
+            self._conn.commit()
+            return task
     def get_events(self, task_id: str) -> list[dict]:
         return self._cache.get(task_id, {}).get("events", [])
     def has_events(self, task_id: str) -> bool:
         return task_id in self._cache
+    def clear_for_tests(self) -> None:
+        with _lock:
+            self._conn.execute("DELETE FROM events")
+            self._conn.execute("DELETE FROM tasks")
+            self._conn.commit()
+            self._cache.clear()
 
 
 _store = _TaskStore(_DB_PATH)
+
+
+def _reset_for_tests() -> None:
+    _store.clear_for_tests()
 
 # --- Pydantic models ---
 class TaskCreateBody(BaseModel):
@@ -182,18 +222,12 @@ async def get_task(task_id: str):
 async def claim_task(task_id: str, body: ClaimBody):
     if not _store.contains(task_id):
         raise HTTPException(404, "Task not found")
-    task = _store.get(task_id)
-    if task["status"] not in ("accepted", "claimed", "running"):
-        raise HTTPException(409, f"Task cannot be claimed from {task['status']}")
-    now = time.time()
-    request = dict(task["request"])
-    request.update(worker_id=body.worker_id, lease_expires_at=now + body.lease_sec,
-                   cancel_requested=False)
-    task["request"] = request
-    task["status"] = "running"
-    task["updated_at"] = now
-    _store.update(task_id)
-    _store.append_event(task_id, {"type": "claimed", "worker_id": body.worker_id})
+    try:
+        task = _store.claim(task_id, body.worker_id, body.lease_sec)
+    except ValueError as e:
+        raise HTTPException(409, str(e))
+    except RuntimeError as e:
+        raise HTTPException(409, str(e))
     return _task_envelope(task)
 
 @router.post("/tasks/{task_id}/cancel", dependencies=[Depends(_require_admin)])

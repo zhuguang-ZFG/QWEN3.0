@@ -2,6 +2,8 @@ import asyncio
 
 import pytest
 from fastapi import HTTPException
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
 import access_guard
 import routes.admin as admin_routes
@@ -54,3 +56,34 @@ def test_admin_auth_fails_closed_without_configured_token(monkeypatch):
         asyncio.run(admin_routes._verify_admin(""))
 
     assert exc.value.status_code == 503
+
+
+def test_admin_page_rejects_query_token_login(monkeypatch):
+    monkeypatch.setattr(admin_routes, "_ADMIN_TOKEN", "secret-admin-token")
+    app = FastAPI()
+    app.include_router(admin_routes.router)
+    client = TestClient(app, base_url="https://testserver")
+
+    response = client.get("/admin?token=secret-admin-token")
+
+    assert response.status_code == 401
+
+
+def test_admin_page_does_not_render_admin_token_after_cookie_login(monkeypatch):
+    monkeypatch.setattr(admin_routes, "_ADMIN_TOKEN", "secret-admin-token")
+    app = FastAPI()
+    app.include_router(admin_routes.router)
+    client = TestClient(app, base_url="https://testserver")
+
+    login = client.post(
+        "/admin/login",
+        data={"token": "secret-admin-token"},
+        follow_redirects=False,
+    )
+    assert login.status_code == 303
+
+    response = client.get("/admin")
+
+    assert response.status_code == 200
+    assert "secret-admin-token" not in response.text
+    assert "const _ADMIN_TOKEN" not in response.text

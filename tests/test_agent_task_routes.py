@@ -1,6 +1,7 @@
 """Tests for agent task API routes."""
 import os
 import sys
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -10,7 +11,7 @@ os.environ["LIMA_ADMIN_TOKEN"] = "test-admin-token"
 from fastapi.testclient import TestClient
 from fastapi import FastAPI
 
-from routes.agent_tasks import _events, _tasks, router
+from routes.agent_tasks import _reset_for_tests, _store, router
 
 app = FastAPI()
 app.include_router(router)
@@ -21,8 +22,7 @@ HEADERS = {"Authorization": "Bearer test-admin-token"}
 
 class TestTaskEndpoints:
     def setup_method(self):
-        _tasks.clear()
-        _events.clear()
+        _reset_for_tests()
 
     def test_create_task_success(self):
         resp = client.post("/agent/tasks", json={
@@ -102,7 +102,9 @@ class TestTaskEndpoints:
         second = client.post("/agent/tasks", json={
             "repo": "D:/GIT", "goal": "second accepted",
         }, headers=HEADERS).json()["task_id"]
-        _tasks[first]["status"] = "running"
+        task = _store.get(first)
+        task["status"] = "running"
+        _store.update(first)
 
         resp = client.get("/agent/tasks?status=accepted&limit=1", headers=HEADERS)
 
@@ -163,6 +165,55 @@ class TestTaskEndpoints:
         assert data["task"]["worker_id"] == "worker-local"
         assert data["task"]["lease_expires_at"] > 0
         assert data["status"] == "running"
+
+    def test_claim_task_rejects_active_running_lease(self):
+        task_id = client.post("/agent/tasks", json={
+            "repo": "D:/GIT/deepcode-cli",
+            "goal": "review diff",
+            "allowed_tools": ["git_diff"],
+            "mode": "review",
+        }, headers=HEADERS).json()["task_id"]
+        first = client.post(
+            f"/agent/tasks/{task_id}/claim",
+            json={"worker_id": "worker-a", "lease_sec": 300},
+            headers=HEADERS,
+        )
+        assert first.status_code == 200
+
+        second = client.post(
+            f"/agent/tasks/{task_id}/claim",
+            json={"worker_id": "worker-b", "lease_sec": 300},
+            headers=HEADERS,
+        )
+
+        assert second.status_code == 409
+        task = client.get(f"/agent/tasks/{task_id}", headers=HEADERS).json()
+        assert task["task"]["worker_id"] == "worker-a"
+
+    def test_claim_task_allows_expired_running_lease(self):
+        task_id = client.post("/agent/tasks", json={
+            "repo": "D:/GIT/deepcode-cli",
+            "goal": "review diff",
+            "allowed_tools": ["git_diff"],
+            "mode": "review",
+        }, headers=HEADERS).json()["task_id"]
+        client.post(
+            f"/agent/tasks/{task_id}/claim",
+            json={"worker_id": "worker-a", "lease_sec": 1},
+            headers=HEADERS,
+        )
+        task = _store.get(task_id)
+        task["request"]["lease_expires_at"] = time.time() - 1
+        _store.update(task_id)
+
+        second = client.post(
+            f"/agent/tasks/{task_id}/claim",
+            json={"worker_id": "worker-b", "lease_sec": 300},
+            headers=HEADERS,
+        )
+
+        assert second.status_code == 200
+        assert second.json()["task"]["worker_id"] == "worker-b"
 
     def test_cancel_task_marks_control_flag(self):
         task_id = client.post("/agent/tasks", json={

@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 import server
+import routes.request_tracking as request_tracking
 
 
 def test_elapsed_ms_clamps_and_reports_real_duration(monkeypatch):
@@ -18,9 +19,9 @@ def test_record_request_looks_up_country_before_stats_lock(monkeypatch):
         observed_locks.append(server._stats_lock.locked())
         return "test-country"
 
-    monkeypatch.setattr(server, "_get_ip_location", record_location)
+    monkeypatch.setattr(request_tracking, "get_ip_location", record_location)
     monkeypatch.setattr(
-        server,
+        request_tracking,
         "_stats",
         {
             "total_requests": 0,
@@ -39,7 +40,7 @@ def test_record_request_looks_up_country_before_stats_lock(monkeypatch):
     )
 
     assert observed_locks == [False]
-    assert server._stats["recent_logs"][-1]["country"] == "test-country"
+    assert request_tracking._stats["recent_logs"][-1]["country"] == "test-country"
 
 
 def test_anthropic_vision_records_real_duration(monkeypatch):
