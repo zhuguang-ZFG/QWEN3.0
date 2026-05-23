@@ -9,11 +9,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def test_tool_definitions_structure():
     from lima_mcp import TOOL_DEFINITIONS
-    assert len(TOOL_DEFINITIONS) == 3
     names = [t["name"] for t in TOOL_DEFINITIONS]
     assert "search_repo" in names
     assert "search_memory" in names
     assert "get_retrieval_trace" in names
+    assert "dev_search_docs" in names
 
 
 def test_handle_unknown_tool():

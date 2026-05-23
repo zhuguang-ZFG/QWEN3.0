@@ -1,6 +1,6 @@
 from tool_gateway.auth import SecretStore
 from tool_gateway.executor import ToolExecutor
-from tool_gateway.registry import ToolDefinition, ToolRegistry
+from tool_gateway.registry import ToolDefinition, ToolRegistry, build_default_registry
 
 
 def test_tool_registry_searches_by_intent():
@@ -34,3 +34,14 @@ def test_executor_rejects_unregistered_tool():
 
     assert result["ok"] is False
     assert result["error"] == "tool_not_registered"
+
+
+def test_default_registry_includes_lima_code_dev_search_tools():
+    registry = build_default_registry()
+
+    matches = registry.search("programming docs error url")
+    names = {tool.name for tool in matches}
+
+    assert "dev_search_docs" in names
+    assert "dev_search_error" in names
+    assert "dev_read_url" in names

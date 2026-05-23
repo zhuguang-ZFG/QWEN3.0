@@ -29,3 +29,33 @@ class ToolRegistry:
                 scored.append((score, tool))
         scored.sort(key=lambda item: (-item[0], item[1].name))
         return [tool for _score, tool in scored[:limit]]
+
+
+def build_default_registry() -> ToolRegistry:
+    registry = ToolRegistry()
+    registry.register(ToolDefinition(
+        name="dev_search_docs",
+        description="Search public programming documentation for LiMa Code.",
+        tags=("programming", "docs", "search", "readonly", "lima-code"),
+    ))
+    registry.register(ToolDefinition(
+        name="dev_search_error",
+        description="Search public sources for sanitized programming errors.",
+        tags=("programming", "error", "traceback", "debug", "readonly", "lima-code"),
+    ))
+    registry.register(ToolDefinition(
+        name="dev_read_url",
+        description="Read a public HTTP or HTTPS URL for LiMa Code.",
+        tags=("url", "docs", "fetch", "readonly", "lima-code"),
+    ))
+    registry.register(ToolDefinition(
+        name="dev_fetch_github_file",
+        description="Fetch a public GitHub file for reference.",
+        tags=("github", "source", "reference", "readonly", "lima-code"),
+    ))
+    registry.register(ToolDefinition(
+        name="dev_summarize_sources",
+        description="Summarize source dictionaries into prompt evidence.",
+        tags=("evidence", "summary", "sources", "lima-code"),
+    ))
+    return registry

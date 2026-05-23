@@ -51,4 +51,69 @@ TOOL_DEFINITIONS = [
             },
         },
     },
+    {
+        "name": "dev_search_docs",
+        "description": "Search public programming documentation and return source-grounded results.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string"},
+                "domains": {"type": "array", "items": {"type": "string"}},
+                "max_results": {"type": "integer"},
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "dev_search_error",
+        "description": "Search public sources for a sanitized programming error or stack trace.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "error_text": {"type": "string"},
+                "language": {"type": "string"},
+                "framework": {"type": "string"},
+                "max_results": {"type": "integer"},
+            },
+            "required": ["error_text"],
+        },
+    },
+    {
+        "name": "dev_read_url",
+        "description": "Read a public HTTP(S) URL and return extracted text.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "url": {"type": "string"},
+                "max_chars": {"type": "integer"},
+            },
+            "required": ["url"],
+        },
+    },
+    {
+        "name": "dev_fetch_github_file",
+        "description": "Fetch a public GitHub file through raw.githubusercontent.com.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "repo": {"type": "string"},
+                "path": {"type": "string"},
+                "ref": {"type": "string"},
+                "max_chars": {"type": "integer"},
+            },
+            "required": ["repo", "path"],
+        },
+    },
+    {
+        "name": "dev_summarize_sources",
+        "description": "Turn source dictionaries into a compact evidence block for LiMa Code.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "sources": {"type": "array", "items": {"type": "object"}},
+                "max_chars": {"type": "integer"},
+            },
+            "required": ["sources"],
+        },
+    },
 ]

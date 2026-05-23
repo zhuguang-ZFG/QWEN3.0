@@ -429,3 +429,9 @@ Latest global code-quality follow-up:
 - Response cleaning now preserves third-party factual statements about other AI products while still cleaning first-person model identity leaks.
 - Local verification: compileall passed; full pytest returned `393 passed, 8 skipped`.
 - No VPS deployment was performed.
+
+Latest LiMa Code dev-search tools:
+
+- LiMa Code has read-only dev-search tools through MCP: `dev_search_docs`, `dev_search_error`, `dev_read_url`, `dev_fetch_github_file`, and `dev_summarize_sources`.
+- The tools redact error/search input, block private URL targets, and remain outside default chat routing.
+- Local verification: `compileall` passed; focused dev-search/tool/MCP suite returned `28 passed`; full pytest returned `405 passed, 8 skipped`.

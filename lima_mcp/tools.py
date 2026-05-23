@@ -13,6 +13,11 @@ def handle_tool_call(name: str, arguments: dict) -> dict:
         "search_repo": _search_repo,
         "search_memory": _search_memory,
         "get_retrieval_trace": _get_retrieval_trace,
+        "dev_search_docs": _dev_search_docs,
+        "dev_search_error": _dev_search_error,
+        "dev_read_url": _dev_read_url,
+        "dev_fetch_github_file": _dev_fetch_github_file,
+        "dev_summarize_sources": _dev_summarize_sources,
     }
     handler = handlers.get(name)
     if not handler:
@@ -98,3 +103,64 @@ def _get_retrieval_trace(args: dict) -> dict:
 
     traces = get_recent_traces(limit=limit)
     return {"traces": traces, "count": len(traces)}
+
+
+def _dev_adapter():
+    from search_gateway.anysearch_adapter import AnySearchAdapter
+    from search_gateway.tinyfish_transport import tinyfish_transport
+
+    return AnySearchAdapter(tinyfish_transport)
+
+
+def _dev_search_docs(args: dict) -> dict:
+    from search_gateway.dev_tools import search_docs
+
+    return search_docs(
+        args.get("query", ""),
+        args.get("domains") or None,
+        adapter=_dev_adapter(),
+        max_results=int(args.get("max_results", 5)),
+    )
+
+
+def _dev_search_error(args: dict) -> dict:
+    from search_gateway.dev_tools import search_error
+
+    return search_error(
+        args.get("error_text", ""),
+        language=args.get("language", ""),
+        framework=args.get("framework", ""),
+        adapter=_dev_adapter(),
+        max_results=int(args.get("max_results", 5)),
+    )
+
+
+def _dev_read_url(args: dict) -> dict:
+    from search_gateway.dev_tools import read_url
+
+    return read_url(
+        args.get("url", ""),
+        adapter=_dev_adapter(),
+        max_chars=int(args.get("max_chars", 6000)),
+    )
+
+
+def _dev_fetch_github_file(args: dict) -> dict:
+    from search_gateway.dev_tools import fetch_github_file
+
+    return fetch_github_file(
+        args.get("repo", ""),
+        args.get("path", ""),
+        args.get("ref", "main"),
+        adapter=_dev_adapter(),
+        max_chars=int(args.get("max_chars", 8000)),
+    )
+
+
+def _dev_summarize_sources(args: dict) -> dict:
+    from search_gateway.dev_tools import summarize_sources
+
+    return summarize_sources(
+        args.get("sources", []),
+        max_chars=int(args.get("max_chars", 3000)),
+    )

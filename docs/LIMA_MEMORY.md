@@ -863,3 +863,12 @@ Verification:
 - Full pytest passed: `393 passed, 8 skipped`.
 
 Deployment: not performed.
+
+## 2026-05-23 LiMa Code Dev Search Tools v0.1
+
+- LiMa Code dev-search tools are explicit, read-only, and MCP-exposed.
+- Tools added: `dev_search_docs`, `dev_search_error`, `dev_read_url`, `dev_fetch_github_file`, `dev_summarize_sources`.
+- External search input is redacted before transport: API-token patterns, Windows paths, and private IPs are removed.
+- URL reads reject non-HTTP schemes and private/loopback targets.
+- These tools are not part of default chat routing and must not send private repository contents to external search.
+- Local verification: `compileall` passed; focused dev-search/tool/MCP suite returned `28 passed`; full pytest returned `405 passed, 8 skipped`.
