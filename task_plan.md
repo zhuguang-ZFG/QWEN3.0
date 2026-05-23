@@ -115,6 +115,28 @@ Turn the existing LiMa router into a private coding assistant that ranks coding 
 - Page-only no-login web AI candidates remain sandbox-only until a real adapter and model-level smoke exist.
 - Token refresh scripts are now safer to run, but refresh itself still needs a controlled pass with environment variables set and manual login/session state verified.
 
+## 2026-05-23 Reference Project Reassessment
+
+User requested a full codebase status calibration, documentation update, and renewed review of OpenRAG plus Google Cloud always-on-memory-agent.
+
+Current outcome:
+
+- Latest checked commit: `8b86228`.
+- LiMa target-suite verification: `382 passed, 8 skipped`.
+- New source-of-truth evaluation doc: `docs/REFERENCE_PROJECT_EVALUATION.md`.
+
+Decision:
+
+- OpenRAG is a useful reference for knowledge ingestion, retrieval traces, MCP knowledge tools, and document parsing.
+- OpenRAG should not be copied wholesale; OpenSearch/Langflow/Next.js are too heavy for the current personal VPS backend.
+- always-on-memory-agent is the stronger near-term reference because LiMa already has Session Memory and needs background consolidation.
+
+Next work items:
+
+1. Continue server.py decomposition: extract chat/completions and Anthropic handlers into routes/ modules.
+2. Consolidate BACKENDS to single source (eliminate smart_router.BACKENDS duplication).
+3. Wire key_pool.py into http_caller.py for multi-key providers.
+
 ## Errors Encountered
 
 | Time | Error | Resolution |

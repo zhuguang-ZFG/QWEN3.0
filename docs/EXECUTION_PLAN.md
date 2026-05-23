@@ -40,17 +40,15 @@ Paused work:
 | 6. Knowledge retrieval injection | Complete | Graph/code retrieval results injected into prompts; retrieval trace recorded; admin endpoint exposed. |
 | 7. Always-on typed memory | Complete | 10 typed memory kinds, inbox ingestion daemon, background consolidation, wired into server lifespan. |
 | 8. MCP knowledge/memory tools | Complete | `/mcp/tools/list` and `/mcp/tools/call` expose search_repo, search_memory, get_retrieval_trace. |
-| 9. Dead code cleanup + streaming unification | Next | Remove dead modules; wire streaming path through routing_engine for retrieval/skills injection. |
-| 10. server.py decomposition | Next | Split server.py from 2300+ lines toward <800 target; extract route handlers into focused modules. |
+| 9. Dead code cleanup + streaming unification | Complete | stats_collector.py deleted; streaming path wired through inject_retrieval_context. |
+| 10. server.py decomposition | In Progress | server.py reduced from 2340 to 1755 lines; 4 modules extracted. Chat/Anthropic handlers remain. |
 
 ## Next Implementation Order
 
-1. Delete confirmed dead code: `stats_collector.py`, verify and remove any other zero-caller modules.
-2. Wire streaming path through `routing_engine.route()` so retrieval injection and skills injection apply to streaming requests.
-3. Begin `server.py` decomposition: extract chat/completions handler, Anthropic handler, and streaming handler into `routes/` modules.
-4. Consolidate `BACKENDS` to single source (eliminate `smart_router.BACKENDS` duplication).
-5. Wire `key_pool.py` into `http_caller.py` for multi-key providers.
-6. Run local tests, deploy only when requested, smoke public endpoints.
+1. Continue `server.py` decomposition: extract chat/completions handler, Anthropic handler into `routes/` modules.
+2. Consolidate `BACKENDS` to single source (eliminate `smart_router.BACKENDS` duplication).
+3. Wire `key_pool.py` into `http_caller.py` for multi-key providers.
+4. Run local tests, deploy only when requested, smoke public endpoints.
 
 ## Verification Commands
 
