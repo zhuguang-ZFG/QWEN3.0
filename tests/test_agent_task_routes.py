@@ -189,6 +189,26 @@ class TestTaskEndpoints:
         assert review.status_code == 200
         assert review.json()["status"] == "approved"
 
+    def test_quarantine_task_updates_status_and_events(self):
+        task_id = client.post("/agent/tasks", json={
+            "repo": "D:/GIT/deepcode-cli",
+            "goal": "bad task",
+            "allowed_tools": ["git_diff"],
+            "mode": "review",
+        }, headers=HEADERS).json()["task_id"]
+
+        resp = client.post(f"/agent/tasks/{task_id}/quarantine", headers=HEADERS)
+
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "quarantined"
+        task_resp = client.get(f"/agent/tasks/{task_id}", headers=HEADERS)
+        assert task_resp.json()["status"] == "quarantined"
+        events_resp = client.get(f"/agent/tasks/{task_id}/events", headers=HEADERS)
+        assert any(
+            event["type"] == "quarantined"
+            for event in events_resp.json()["events"]
+        )
+
     def test_invalid_mode_rejected(self):
         resp = client.post("/agent/tasks", json={
             "repo": "D:/GIT", "goal": "test", "mode": "destroy",

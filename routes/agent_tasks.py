@@ -259,6 +259,18 @@ async def review_task(task_id: str, body: ReviewBody):
     return {"task_id": task_id, "status": body.decision}
 
 
+@router.post("/tasks/{task_id}/quarantine", dependencies=[Depends(_require_admin)])
+async def quarantine_task(task_id: str):
+    """Mark a repeatedly failing task as quarantined."""
+    if task_id not in _tasks:
+        raise HTTPException(404, "Task not found")
+    task = _tasks[task_id]
+    task["status"] = "quarantined"
+    task["updated_at"] = time.time()
+    _append_event(task_id, {"type": "quarantined"})
+    return {"task_id": task_id, "status": "quarantined"}
+
+
 @router.get("/tasks/{task_id}/events", dependencies=[Depends(_require_admin)])
 async def get_task_events(task_id: str):
     """Get task event stream."""
