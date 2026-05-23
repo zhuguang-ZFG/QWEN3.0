@@ -672,6 +672,7 @@ LiMa Code now has a real local command runner for the Server task path:
 - `/lima status` reports local project and Server configuration state.
 - `/lima review` runs guarded local review mode over the current git diff.
 - `/lima task <task_id>` fetches a protected LiMa Server task, runs the guarded local task runner, writes local audit evidence, and submits the structured result back to Server.
+- `/lima next` claims one pending `accepted` LiMa Server task, runs it locally, writes audit evidence, and submits the structured result back to Server.
 
 Important boundary:
 
@@ -698,3 +699,14 @@ Evidence:
   - Tool handler tests: `22 passed`.
   - `npm.cmd run check`: passed.
   - Full LiMa Code suite: `368 passed, 7 skipped`.
+
+Single-claim follow-up:
+
+- Added `/lima next` as a one-task worker command.
+- It intentionally claims only one task per run; do not turn it into a daemon without explicit backoff, stop, and audit controls.
+- Public smoke created Server task `eb9410e1`, ran `/lima next`, submitted `needs_review`, and confirmed Server events `created,result_submitted`.
+- Verification after this slice:
+  - Parser/runner tests: `13 passed`.
+  - LiMa worker targeted tests: `52 passed`.
+  - `npm.cmd run check`: passed.
+  - Full LiMa Code suite: `371 passed, 7 skipped`.

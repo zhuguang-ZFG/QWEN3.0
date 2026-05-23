@@ -42,8 +42,10 @@ LiMa Code worker reality:
 
 - `D:\GIT\deepcode-cli` now has a local `/lima` command runner.
 - `/lima task <id>` is handled locally instead of being sent to the model as a chat prompt.
+- `/lima next` claims one pending `accepted` Server task, runs it locally, and submits the result.
 - Public end-to-end smoke created Server task `4d6c02b3`, ran read-only review mode over `D:\GIT\deepcode-cli`, submitted `needs_review`, and confirmed Server events `created,result_submitted`.
-- LiMa Code full verification after the command-runner slice: `368 passed, 7 skipped`.
+- Public single-claim smoke created Server task `eb9410e1`, ran `/lima next`, submitted `needs_review`, and confirmed Server events `created,result_submitted`.
+- LiMa Code full verification after the single-claim slice: `371 passed, 7 skipped`.
 
 Reference architecture conclusion:
 

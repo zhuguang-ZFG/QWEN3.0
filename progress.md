@@ -475,3 +475,20 @@ Follow-up after final review:
   - Tool handler regression tests: `22 passed`.
   - `npm.cmd run check`: passed.
   - Full LiMa Code suite: `368 passed, 7 skipped`.
+
+## 2026-05-23 LiMa Code Single-Claim Worker
+
+- Added `/lima next` to LiMa Code.
+- `/lima next` claims the first pending `accepted` LiMa Server task through `GET /agent/tasks?status=accepted&limit=1`, runs it through the guarded local task runner, writes local audit evidence, and submits the result.
+- If no pending task exists, it exits cleanly with a no-task message.
+- Kept this as a single-task command; a daemon/poll loop remains a later explicit phase with backoff and stop controls.
+- Public end-to-end smoke:
+  - Created Server task `eb9410e1`.
+  - Ran LiMa Code `/lima next` against `https://chat.donglicao.com`.
+  - Worker returned `needs_review` and submitted the result.
+  - Server detail confirmed `hasResult=true`; events endpoint returned `created,result_submitted`.
+- Verification:
+  - Parser/runner tests: `13 passed`.
+  - LiMa worker targeted tests: `52 passed`.
+  - `npm.cmd run check`: passed.
+  - Full LiMa Code suite: `371 passed, 7 skipped`.
