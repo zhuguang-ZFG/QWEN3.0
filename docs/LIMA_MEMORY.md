@@ -728,3 +728,18 @@ Bounded-loop follow-up:
   - LiMa worker targeted tests: `58 passed`.
   - `npm.cmd run check`: passed.
   - Full LiMa Code suite: `377 passed, 7 skipped`.
+
+## 2026-05-23 Autonomous Worker v0.2 Design Direction
+
+LiMa should continue toward the GenericAgent/Evolver/agency-agents direction, but as controlled autonomy rather than unconstrained self-evolution.
+
+- GenericAgent-style skill growth maps to inactive candidate skills extracted from repeated successful coding tasks.
+- Evolver-style evolution maps to evidence-gated promotion with regression tests and manual approval.
+- agency-agents-style role decomposition maps to a compact coding role set, not a large simulated company.
+- Server remains the orchestrator, lifecycle gate, and audit source.
+- LiMa Code remains the local executor and may touch only allowlisted repositories.
+- Before real daemon mode, implement stop control, claim leases, cancellation/control polling, repo allowlist, worker budgets, failure quarantine, audit viewing, and a safe real-repo patch/test smoke.
+
+Plan document:
+
+- `docs/superpowers/plans/2026-05-23-lima-autonomous-worker-v02.md`
