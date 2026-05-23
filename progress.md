@@ -531,3 +531,13 @@ Follow-up after final review:
   - LiMa Code repo allowlist, worker budget, failure quarantine, stop marker, and audit command.
   - Safe temporary real-repo smoke for patch plus test plus result submission.
 - This is design-only; no runtime code was changed in this entry.
+
+## 2026-05-23 KERNEL Prompt Contract Todo
+
+- Recorded KERNEL as a future `LiMa Task Prompt Contract v0.1` item in `task_plan.md`.
+- Intended use:
+  - Normalize Server-created agent tasks with `Context`, `Task`, `Constraints`, `Verify`, and `Output`.
+  - Keep LiMa Code worker tasks single-purpose and easy to verify.
+  - Reduce prompt drift during candidate skill extraction and evolution review.
+- Source reference: Reddit PromptEngineering KERNEL framework post shared by the user.
+- This is a todo only; no runtime code was changed.

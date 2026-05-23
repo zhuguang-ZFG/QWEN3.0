@@ -136,6 +136,14 @@ Next work items:
 1. Continue server.py decomposition: extract chat/completions and Anthropic handlers into routes/ modules.
 2. Consolidate BACKENDS to single source (eliminate smart_router.BACKENDS duplication).
 3. Wire key_pool.py into http_caller.py for multi-key providers.
+4. Add `LiMa Task Prompt Contract v0.1` using the KERNEL pattern as a task-authoring rule:
+   - Keep task goal simple and single-purpose.
+   - Make success criteria easy to verify.
+   - Avoid time-sensitive wording unless a concrete date/source is provided.
+   - Keep each task narrow enough for one worker loop.
+   - Include explicit constraints and non-goals.
+   - Use a fixed structure: `Context`, `Task`, `Constraints`, `Verify`, `Output`.
+   - Apply this first to `/agent/tasks`, LiMa Code worker prompts, role prompts, and candidate skill extraction.
 
 ## Errors Encountered
 
