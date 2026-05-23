@@ -438,8 +438,8 @@ Latest LiMa Code dev-search tools:
 
 Latest dev-search review follow-up:
 
-- SSRF protection now blocks obfuscated loopback/private/link-local/metadata targets such as IPv6 loopback, decimal IPv4, and hex IPv4 forms; TinyFish fetch and dev-read share the same guard.
+- SSRF protection now blocks obfuscated loopback/private/link-local/metadata targets such as IPv6 loopback, decimal IPv4, hex IPv4, and trailing-dot `localhost.` forms; TinyFish fetch and dev-read share the same guard.
 - Chinese dev-search triggers now include common LiMa Code phrasing for docs lookup, URL reading, and error fixing.
 - MCP dev-search handlers clamp numeric arguments with stable defaults instead of returning raw `ValueError` details.
-- Telegram FC/TTS integrations are optional local modules; missing untracked modules no longer break deployable command paths.
+- Telegram FC/TTS integrations are optional local modules; missing untracked modules no longer break deployable command paths, but they are not a complete deployable feature until tracked replacements exist.
 - Local verification: `compileall` passed; focused dev-search/MCP/TinyFish/Telegram suite returned `44 passed`; full pytest returned `411 passed, 8 skipped`.

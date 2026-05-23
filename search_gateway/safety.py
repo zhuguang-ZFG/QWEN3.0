@@ -63,7 +63,7 @@ def is_public_http_url(url: str) -> bool:
         return False
     if parsed.scheme not in ("http", "https"):
         return False
-    host = (parsed.hostname or "").lower()
+    host = (parsed.hostname or "").lower().rstrip(".")
     if not host:
         return False
     if host in _BLOCKED_HOSTNAMES or host.endswith(".localhost"):

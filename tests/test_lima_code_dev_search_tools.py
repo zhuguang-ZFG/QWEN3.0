@@ -40,6 +40,7 @@ def test_is_public_http_url_blocks_obfuscated_loopback_and_metadata_targets():
     assert is_public_http_url("http://2130706433/admin") is False
     assert is_public_http_url("http://169.254.169.254/latest/meta-data/") is False
     assert is_public_http_url("http://[fd00::1]/admin") is False
+    assert is_public_http_url("http://localhost./admin") is False
 
 
 def test_should_dev_search_detects_programming_docs_errors_and_urls():
