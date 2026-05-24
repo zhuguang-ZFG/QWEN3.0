@@ -548,3 +548,14 @@ Latest external capability radar MCP batch:
   boundary, audit event, timeout, and failure mode.
 - OpenMontage remains AGPL concept-only; TrendRadar remains GPL concept-only;
   TUNA is an operational mirror reference, not a code dependency.
+
+Latest AI engineering competency map:
+
+- Added `docs/reference/AI_ENGINEERING_COMPETENCY_MAP_2026.md` to map the 12
+  production AI engineering concepts to LiMa gates.
+- The map covers prompt engineering, RAG, vector search, agents/tools,
+  reasoning, memory, streaming/async, inference optimization, FinOps,
+  fine-tuning, LLM eval, and MLOps/deployment.
+- Policy retained: expand LiMa by measurable engineering controls, not
+  prompt-only claims; fine-tuning remains gated behind eval data, privacy,
+  retention, and rollback readiness.

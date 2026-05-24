@@ -27,6 +27,7 @@
 | `docs/superpowers/plans/2026-05-24-lima-direct-device-gateway.md` | Active plan | Direct U8-to-LiMa Device Gateway plan; current code supports single-process multi-device concurrency with memory store, while VPS HA requires a shared store and WebSocket ownership strategy. |
 | `docs/superpowers/plans/2026-05-24-xiaozhi-server-deprecation-removal.md` | Active plan | Gated deprecation, migration, quarantine, and eventual removal plan for Xiaozhi server runtime. |
 | `docs/reference/HARDWARE_COMPANION_REFERENCES.md` | Active boundary | External voice/display/OCR/TTS/robotics/world-model companion hardware references admitted for later LiMa Device Gateway roadmap work. |
+| `docs/reference/AI_ENGINEERING_COMPETENCY_MAP_2026.md` | Active boundary | Maps the 12 production AI engineering concepts to LiMa gates for prompts, RAG, vectors, agents/tools, reasoning, memory, streaming, inference, FinOps, fine-tuning, evals, and MLOps. |
 | `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md` | Active boundary | User-provided external reference projects mapped to LiMa capabilities, target repos, license boundaries, and priorities; expanded with successive reference batches. |
 | `docs/reference/MCP_CONNECTOR_CATALOG.md` | Active boundary | Candidate MCP connector catalog and least-privilege enablement policy for LiMa Server and LiMa Code; records Skills-vs-MCP separation and default-off connector rules. |
 | `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md` | Active plan | Staged adoption plan for external code-intelligence, memory, agent, governance, sandbox, research, OCR/TTS, persona, and hardware-companion capabilities. |
@@ -68,3 +69,4 @@ These files are retained as reference, but they are not the current execution di
 8. Treat `deepcode-cli` as the tracked LiMa Code submodule; update `docs/LIMACODE_MANAGEMENT.md`, `STATUS.md`, `docs/LIMA_MEMORY.md`, and `progress.md` when its pinned revision or Server/Worker contract changes.
 9. Treat `esp32S_XYZ` as the tracked downstream hardware/product submodule; update `docs/ESP32S_XYZ_MANAGEMENT.md`, `STATUS.md`, `docs/LIMA_MEMORY.md`, and `progress.md` when its pinned revision or LiMa backend contract changes.
 10. Treat MCP connectors as authority-bearing access paths, not simple prompts. Check `docs/reference/MCP_CONNECTOR_CATALOG.md` before enabling any new MCP server.
+11. Treat `docs/reference/AI_ENGINEERING_COMPETENCY_MAP_2026.md` as the baseline production-AI checklist before expanding model, agent, memory, eval, cost, or deployment features.

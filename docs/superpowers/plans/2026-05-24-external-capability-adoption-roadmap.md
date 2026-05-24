@@ -62,6 +62,10 @@ Primary source inventory:
    servers are authority-bearing connectors. A skill may recommend a tool, but
    it may not grant access to GitHub, shell, browser, database, cloud, billing,
    email, Slack, hardware, or deployment by itself.
+8. Use `docs/reference/AI_ENGINEERING_COMPETENCY_MAP_2026.md` as the
+   production-AI baseline: prompt engineering, RAG, vectors, tools, reasoning,
+   memory, streaming, inference, FinOps, fine-tuning, evals, and MLOps must
+   map to concrete LiMa gates before expansion.
 
 ## Phase 0 - Reference Governance
 

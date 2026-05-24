@@ -1331,3 +1331,30 @@ Verification note:
   - New MCP connectors are default-off and require task need, owner, allowlist,
     credential boundary, audit event, timeout, and failure mode.
   - No runtime dependency was added and no external source code was copied.
+
+## 2026-05-24 AI Engineering Competency Map
+
+- User shared a 2026 AI engineer interview / production AI map covering 12
+  concepts:
+  - prompt engineering;
+  - RAG;
+  - vector embeddings and vector databases;
+  - agentic AI and tool calling;
+  - reasoning;
+  - memory management;
+  - streaming and async;
+  - inference optimization;
+  - token and cost management / FinOps;
+  - fine-tuning / PEFT;
+  - LLM eval;
+  - MLOps and production deployment.
+- Added `docs/reference/AI_ENGINEERING_COMPETENCY_MAP_2026.md` to map each
+  concept to LiMa current state and next gates.
+- Updated:
+  - `docs/DOCUMENTATION_STATUS.md`;
+  - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
+  - `STATUS.md`;
+  - `docs/LIMA_MEMORY.md`.
+- Boundary retained:
+  - this is a production engineering checklist, not a runtime dependency;
+  - no code changes, no model changes, and no deployment changes were made.

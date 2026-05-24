@@ -1304,3 +1304,23 @@ Deployment: not performed.
   - Official MCP reference servers are protocol/API examples, not
     production-ready services; LiMa must wrap or replace them before production
     use.
+
+## 2026-05-24 AI Engineering Competency Map
+
+- User provided a 2026 AI engineer interview / production AI map with 12 core
+  concepts:
+  prompt engineering, RAG, vector embeddings/databases, agents/tool calling,
+  reasoning, memory management, streaming/async, inference optimization,
+  token/cost management, fine-tuning/PEFT, LLM eval, and MLOps/deployment.
+- Added `docs/reference/AI_ENGINEERING_COMPETENCY_MAP_2026.md`.
+- Updated `docs/DOCUMENTATION_STATUS.md`,
+  `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`,
+  `STATUS.md`, and `progress.md`.
+- Durable interpretation:
+  - This is a production checklist, not only an interview note.
+  - Each concept maps to a concrete LiMa gate: prompt contracts, retrieval
+    evidence, graph/vector index boundary, tool risk metadata, reasoning
+    budgets, typed memory, async observability, route cost/latency reporting,
+    budget envelopes, fine-tuning gates, eval registry, and deployment/drift
+    monitoring.
+  - LiMa should prefer measurable engineering controls over prompt-only claims.
