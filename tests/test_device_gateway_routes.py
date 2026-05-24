@@ -10,6 +10,7 @@ from routes.device_gateway import _reset_for_tests, router
 
 def setup_function():
     os.environ["LIMA_DEVICE_TOKENS"] = "dev-1=test-device-token"
+    os.environ["LIMA_API_KEY"] = "test-private-token"
     _reset_for_tests()
 
 
@@ -24,6 +25,8 @@ def test_server_registers_device_gateway_routes():
     ws_paths = {route.path for route in server.app.routes if isinstance(route, APIWebSocketRoute)}
 
     assert "/device/v1/health" in http_paths
+    assert "/device/v1/events" in http_paths
+    assert "/device/v1/tasks" in http_paths
     assert "/device/v1/ws" in ws_paths
 
 
@@ -35,6 +38,54 @@ def test_device_gateway_health_reports_protocol_and_auth_state():
     assert data["status"] == "ok"
     assert data["protocol"] == "lima-device-v1"
     assert data["auth_configured"] is True
+
+
+def test_events_endpoint_records_motion_event_with_private_auth():
+    response = _client().post(
+        "/device/v1/events",
+        headers={"Authorization": "Bearer test-private-token"},
+        json={
+            "type": "motion_event",
+            "device_id": "dev-1",
+            "task_id": "task-http-1",
+            "phase": "progress",
+            "progress": {"percent": 50},
+            "request_id": "req-events",
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["type"] == "motion_event_ack"
+    assert data["task_id"] == "task-http-1"
+    assert data["phase"] == "progress"
+    assert data["request_id"] == "req-events"
+
+
+def test_events_endpoint_requires_private_auth():
+    response = _client().post(
+        "/device/v1/events",
+        headers={"Authorization": "Bearer wrong"},
+        json={"type": "motion_event", "device_id": "dev-1", "task_id": "task-1", "phase": "done"},
+    )
+
+    assert response.status_code == 401
+
+
+def test_tasks_endpoint_creates_queued_motion_task_without_active_session():
+    response = _client().post(
+        "/device/v1/tasks",
+        headers={"Authorization": "Bearer test-private-token"},
+        json={"device_id": "dev-1", "text": "画一个星星", "request_id": "req-task"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "queued"
+    assert data["sent"] is False
+    assert data["task"]["type"] == "motion_task"
+    assert data["task"]["capability"] == "run_path"
+    assert data["task"]["request_id"] == "req-task"
 
 
 def test_fake_u8_hello_heartbeat_transcript_motion_event_loop():
@@ -112,4 +163,3 @@ def test_websocket_rejects_invalid_device_token():
         "message": "device token is invalid",
         "request_id": "req-auth",
     }
-

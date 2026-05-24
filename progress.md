@@ -1153,10 +1153,11 @@ Verification note:
   - `server.py` router registration.
 - Added tests for protocol validation, deterministic command mapping, bounded
   fake `run_path` projection, `/device/v1/health`, `/device/v1/ws`, fake U8
-  hello/heartbeat/transcript/motion_event loop, and stable error envelopes.
+  hello/heartbeat/transcript/motion_event loop, private HTTP event ingest,
+  private debug task creation, and stable error envelopes.
 - Verification:
   - `D:\GIT\venv\Scripts\python.exe -m py_compile server.py routes\device_gateway.py device_gateway\protocol.py device_gateway\auth.py device_gateway\sessions.py device_gateway\tasks.py device_gateway\intent.py device_gateway\safety.py`: passed.
-  - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_device_gateway_protocol.py tests\test_device_gateway_routes.py -q --ignore=active_model`: 12 passed.
+  - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_device_gateway_protocol.py tests\test_device_gateway_routes.py -q --ignore=active_model`: 15 passed.
   - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_system_endpoints.py tests\test_chat_endpoints.py tests\test_agent_task_routes.py -q --ignore=active_model`: 31 passed.
 
 ## 2026-05-24 esp32S_XYZ Fake LiMa U8 Client

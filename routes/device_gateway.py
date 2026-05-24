@@ -3,8 +3,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse
 
+from access_guard import require_private_api_key
 from device_gateway.auth import token_configured, validate_device_token
 from device_gateway.protocol import (
     PROTOCOL_VERSION,
@@ -28,6 +30,56 @@ async def device_gateway_health() -> dict[str, Any]:
         "active_sessions": registry.count(),
         "auth_configured": token_configured(),
     }
+
+
+@router.post("/events", dependencies=[Depends(require_private_api_key)])
+async def device_gateway_events(request: Request) -> JSONResponse:
+    body = await request.json()
+    try:
+        message = validate_uplink(body)
+    except ProtocolError as exc:
+        return JSONResponse(status_code=400, content=error_frame(exc))
+
+    msg_type = message["type"]
+    device_id = message.get("device_id", "")
+    if msg_type == "motion_event":
+        summary = record_motion_event(message)
+        return JSONResponse(ack_frame("motion_event_ack", device_id, **summary, request_id=message.get("request_id")))
+    if msg_type == "device_info":
+        return JSONResponse(ack_frame("device_info_ack", device_id, request_id=message.get("request_id")))
+    if msg_type == "self_check":
+        return JSONResponse(
+            ack_frame("self_check_ack", device_id, status=message.get("status", "unknown"), request_id=message.get("request_id"))
+        )
+    return JSONResponse(status_code=400, content=error_frame(ProtocolError("E_UNSUPPORTED_TYPE", "event type is not supported", message.get("request_id"))))
+
+
+@router.post("/tasks", dependencies=[Depends(require_private_api_key)])
+async def device_gateway_tasks(request: Request) -> JSONResponse:
+    body = await request.json()
+    if not isinstance(body, dict):
+        return JSONResponse(status_code=400, content=error_frame(ProtocolError("E_INVALID_MESSAGE", "message must be a JSON object")))
+    device_id = body.get("device_id")
+    text = body.get("text")
+    request_id = body.get("request_id")
+    if not isinstance(device_id, str) or not device_id.strip():
+        return JSONResponse(
+            status_code=400,
+            content=error_frame(ProtocolError("E_INVALID_MESSAGE", "device_id must be a non-empty string", request_id if isinstance(request_id, str) else None)),
+        )
+    if not isinstance(text, str) or not text.strip():
+        return JSONResponse(
+            status_code=400,
+            content=error_frame(ProtocolError("E_INVALID_MESSAGE", "text must be a non-empty string", request_id if isinstance(request_id, str) else None)),
+        )
+
+    task = create_task_from_transcript(device_id.strip(), text.strip(), request_id=request_id if isinstance(request_id, str) else None)
+    session = registry.get(device_id.strip())
+    sent = False
+    if session is not None:
+        await session.websocket.send_json(task)
+        sent = True
+    return JSONResponse({"status": "sent" if sent else "queued", "sent": sent, "task": task})
 
 
 def _extract_ws_token(websocket: WebSocket) -> str:
@@ -129,4 +181,3 @@ async def device_ws(websocket: WebSocket) -> None:
 def _reset_for_tests() -> None:
     registry.clear()
     reset_tasks_for_tests()
-

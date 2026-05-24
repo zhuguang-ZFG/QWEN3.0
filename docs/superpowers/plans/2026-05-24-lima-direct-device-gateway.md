@@ -383,10 +383,13 @@ Implemented in the main LiMa repo:
 - `device_gateway/tasks.py`: deterministic transcript-to-`run_path`
   `motion_task` projection for fake U8 tests.
 - `routes/device_gateway.py`: `/device/v1/health` and `/device/v1/ws`.
+- `routes/device_gateway.py`: private HTTP fallback/debug routes
+  `/device/v1/events` and `/device/v1/tasks`.
 - `server.py`: registers the device gateway router.
 - `tests/test_device_gateway_protocol.py` and
   `tests/test_device_gateway_routes.py`: fake U8 hello, heartbeat, transcript,
-  bounded `motion_task`, and `motion_event` ack coverage.
+  bounded `motion_task`, `motion_event` ack coverage, private HTTP event ingest,
+  and private debug task creation.
 
 Compatibility notes:
 
@@ -397,6 +400,25 @@ Compatibility notes:
   `failed`, `cancelled`, `rejected`, and `stopped`.
 - This is not yet a real U8 firmware or hardware release. Real-device claims
   still require U8 direct firmware mode and U8/U1 safety smoke.
+
+### 2026-05-24 HTTP Fallback / Debug Slice
+
+Implemented in the main LiMa repo:
+
+- `POST /device/v1/events`: private HTTP fallback for `motion_event`,
+  `device_info`, and `self_check` uplink tests.
+- `POST /device/v1/tasks`: private debug transcript-to-`motion_task` injection.
+  If a WebSocket session is active, the task is sent immediately; otherwise it
+  is returned as queued test evidence.
+
+Verification:
+
+```powershell
+cd D:\GIT
+D:\GIT\venv\Scripts\python.exe -m pytest tests\test_device_gateway_protocol.py tests\test_device_gateway_routes.py -q --ignore=active_model
+```
+
+Result: 15 passed.
 
 ### 2026-05-24 Product Fake LiMa U8 Slice
 
