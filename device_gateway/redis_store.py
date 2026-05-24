@@ -54,6 +54,7 @@ class RedisDeviceTaskStore:
         }
 
     def enqueue_pending_task(self, device_id: str, task: dict[str, Any]) -> int:
+        task["_enqueued_at"] = self._redis.time()[0]
         queue_depth = int(self._redis.rpush(self._queue_key(device_id), self._encode(task)))
         state = self._read_task_state(task["task_id"]) or {"task": task, "status": "created", "events": []}
         state["task"] = deepcopy(task)
@@ -62,24 +63,41 @@ class RedisDeviceTaskStore:
         return queue_depth
 
     def pop_pending_tasks(self, device_id: str, limit: int = 16) -> list[dict[str, Any]]:
-        raw_tasks = self._lpop_many(self._queue_key(device_id), limit)
+        """Atomically move tasks from pending to processing queue using LMOVE.
+
+        Tasks are moved to a processing queue. Call ack_processing() after
+        the device confirms receipt, or let recover_stale_processing() re-queue
+        orphaned tasks after a timeout.
+        """
+        raw_tasks = self._lmove_many(
+            self._queue_key(device_id),
+            self._processing_key(device_id),
+            limit,
+        )
         tasks = [self._decode(item) for item in raw_tasks]
+        processing_started_at = self._redis.time()[0] if tasks else 0
         for task in tasks:
-            state = self._read_task_state(task["task_id"]) or {"task": task, "status": "queued", "events": []}
+            state = self._read_task_state(task["task_id"]) or {
+                "task": task, "status": "queued", "events": [],
+            }
             state["task"] = deepcopy(task)
             state["status"] = "dispatching"
+            state["processing_started_at"] = processing_started_at
             self._write_task_state(task["task_id"], state)
         return tasks
 
     def requeue_pending_tasks(self, device_id: str, tasks: list[dict[str, Any]]) -> int:
         if not tasks:
             return self.pending_count(device_id)
+        for task in tasks:
+            self._remove_processing_task(device_id, task["task_id"])
         encoded = [self._encode(task) for task in reversed(tasks)]
         queue_depth = int(self._redis.lpush(self._queue_key(device_id), *encoded))
         for task in tasks:
             state = self._read_task_state(task["task_id"]) or {"task": task, "status": "created", "events": []}
             state["task"] = deepcopy(task)
             state["status"] = "queued"
+            state.pop("processing_started_at", None)
             self._write_task_state(task["task_id"], state)
         return queue_depth
 
@@ -100,8 +118,79 @@ class RedisDeviceTaskStore:
     def _key(self, suffix: str) -> str:
         return f"{self._prefix}:{suffix}"
 
+    def ack_processing(self, device_id: str, task_id: str) -> bool:
+        """Remove a task from the processing queue after device ack."""
+        removed = self._remove_processing_task(device_id, task_id)
+        if removed:
+            state = self._read_task_state(task_id)
+            if state:
+                state.pop("processing_started_at", None)
+                self._write_task_state(task_id, state)
+        return removed
+
+    def recover_stale_processing(self, device_id: str, timeout_sec: float = 120.0) -> int:
+        """Re-queue tasks stuck in processing queue for longer than timeout_sec.
+
+        Returns count of tasks re-queued. Call periodically from a background
+        task or health check to recover from process crashes.
+        """
+        proc_key = self._processing_key(device_id)
+        pending_key = self._queue_key(device_id)
+        now = self._redis.time()[0]  # Redis server time in seconds
+        count = 0
+        # Peek all processing items
+        items = self._redis.lrange(proc_key, 0, -1)
+        for item in items:
+            try:
+                data = self._decode(item)
+                task_id = data.get("task_id", "")
+                state = self._read_task_state(task_id)
+                processing_started_at = 0
+                if state:
+                    processing_started_at = float(state.get("processing_started_at") or 0)
+                processing_started_at = processing_started_at or float(data.get("_processing_at") or data.get("_enqueued_at") or 0)
+                if processing_started_at > 0 and now - processing_started_at > timeout_sec:
+                    # Atomically move from processing back to pending
+                    removed = self._redis.lrem(proc_key, 0, item)
+                    if removed:
+                        self._redis.lpush(pending_key, item)
+                        if state:
+                            state["status"] = "queued"
+                            state.pop("processing_started_at", None)
+                            self._write_task_state(task_id, state)
+                        count += 1
+            except Exception:
+                continue
+        return count
+
     def _queue_key(self, device_id: str) -> str:
         return self._key(f"pending:{device_id}")
+
+    def _processing_key(self, device_id: str) -> str:
+        return self._key(f"processing:{device_id}")
+
+    def _lmove_many(self, src: str, dst: str, limit: int) -> list[str]:
+        """Atomically move items from src list to dst list using LMOVE."""
+        results = []
+        for _ in range(limit):
+            item = self._redis.lmove(src, dst, "LEFT", "LEFT")
+            if item is None:
+                break
+            if isinstance(item, bytes):
+                item = item.decode("utf-8")
+            results.append(item)
+        return results
+
+    def _remove_processing_task(self, device_id: str, task_id: str) -> bool:
+        key = self._processing_key(device_id)
+        for item in self._redis.lrange(key, 0, -1):
+            try:
+                data = self._decode(item)
+            except Exception:
+                continue
+            if data.get("task_id") == task_id:
+                return bool(self._redis.lrem(key, 1, item))
+        return False
 
     def _read_task_state(self, task_id: str) -> dict[str, Any] | None:
         raw = self._redis.hget(self._key("tasks"), task_id)

@@ -27,7 +27,7 @@
 | External capability radar | Expanded | Added successive reference batches across search, governance, agent SDKs, harness engineering, IDE/design UX, browser automation, code graphs, OCR/TTS, robotics, and world-model research; all are concept/reference inputs until license, security, privacy, and safety gates pass. |
 | LiMa Code repository management | Tracked | `deepcode-cli` is pinned as a Git submodule and governed by `docs/LIMACODE_MANAGEMENT.md`. |
 | esp32S_XYZ product backend | Tracked and fake-U8 integrated | `esp32S_XYZ` is pinned as a Git submodule at `78a62c9`; LiMa is the planned AI/backend control plane, and the product repo now includes `tools/fake_lima_u8` for the LiMa `/device/v1/ws` fake-device loop. |
-| LiMa Device Gateway | Public Redis HA smoke path deployed | `/device/v1/*` supports multi-device concurrency, best-effort requeue for synchronous send failures and unacknowledged disconnects, and Redis-backed task queues/pub-sub session-owner notification for multi-process delivery; `chat.donglicao.com/device/v1/*` is exposed behind per-device token auth. Postgres remains deferred for audit/history, not realtime WebSocket delivery. |
+| LiMa Device Gateway | Public Redis HA smoke path deployed | `/device/v1/*` supports multi-device concurrency, Redis pending-to-processing task delivery with motion-event ack cleanup, stale processing recovery hooks, publish-failure degradation, and Redis pub/sub session-owner notification for multi-process delivery; `chat.donglicao.com/device/v1/*` is exposed behind per-device token auth. Postgres remains deferred for audit/history, not realtime WebSocket delivery. |
 
 ## 2026-05-25 LiMa Server, LiMa Code, And ESP32 Joint Debug
 
@@ -42,13 +42,15 @@
 
 - Added a Redis-backed Device Gateway task store for shared task ids, task snapshots, motion events, and per-device pending queues.
 - Added a Redis-capable task notifier so tasks created in one router process can wake the process that owns the device WebSocket.
+- Hardened the Redis queue semantics after review: pending tasks are atomically moved to per-device processing queues, motion events ack processing entries, stale processing tasks can be recovered by processing age, notifier callback failures no longer kill the listener, and publish failures degrade to queued responses instead of HTTP 500.
+- `requirements_server.txt` now includes the Python `redis` package for reproducible HA deployments.
 - HA mode is default-off and enabled with `LIMA_DEVICE_TASK_STORE=redis`, `LIMA_DEVICE_SESSION_BUS=redis`, and `LIMA_DEVICE_REDIS_URL`.
 - Postgres remains a later audit/history store, not part of the realtime WebSocket delivery path.
 - VPS Redis HA deployment is active:
   - code backup: `/opt/lima-router/backups/codex-device-ha-20260525_015208`;
   - env backup: `/root/secure-service-backups/lima-router.env.codex-device-ha-20260525_015208`;
   - Redis config backup: `/root/secure-service-backups/redis.conf.codex-device-ha-20260525_015305`.
-- Verification passed: focused Device Gateway suite `31 passed`; public fake U8 loop completed over `wss://chat.donglicao.com/device/v1/ws`; temporary two-process test delivered a task created on `127.0.0.1:18080` to the main public WebSocket session via Redis pub/sub; online distribution smoke passed `12/12` with device backend `redis` and public `6379` guard.
+- Verification passed: focused Device Gateway suite initially `31 passed`, then `35 passed` after reliable-queue review fixes; agent/device subset `49 passed`; public fake U8 loop completed over `wss://chat.donglicao.com/device/v1/ws`; temporary two-process test delivered a task created on `127.0.0.1:18080` to the main public WebSocket session via Redis pub/sub; online distribution smoke passed `12/12` with device backend `redis` and public `6379` guard.
 - Redis is bound to loopback and VPS self-check reports public `47.112.162.80:6379` blocked while `127.0.0.1:6379` remains reachable.
 
 ## 2026-05-24 Deployment And Closure Update

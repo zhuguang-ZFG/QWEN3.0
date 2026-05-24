@@ -2709,3 +2709,53 @@ Verification note:
 - Verified temporary two-process routing: WebSocket on the public main router received a task created by a private temp router on `127.0.0.1:18080` through Redis notification.
 - Verified Redis safety posture: Redis listens on loopback, `redis-cli PING` works on `127.0.0.1`, and VPS self-public check reports `47.112.162.80:6379` blocked.
 - Updated online distribution smoke to include public `6379`; latest run passed `12/12` with exact token `ha_redis_guarded_ok`.
+
+## 2026-05-25 Device Gateway Reliable Queue Review Fixes
+
+- Reviewed the Redis HA findings fixes and found two remaining reliability gaps:
+  - `ack_processing()` was not called by HTTP or WebSocket `motion_event`
+    handlers;
+  - the first ack implementation attempted to `LREM` a synthetic JSON payload,
+    which did not match the full task payload stored in the processing queue.
+- Added failing regression tests first, then fixed the implementation:
+  - Redis pending tasks now move to per-device processing queues with `LMOVE`;
+  - task state records `processing_started_at` at dispatch time;
+  - `ack_processing()` scans processing payloads by `task_id` and removes the
+    real queue item;
+  - `recover_stale_processing()` uses processing age rather than pending age;
+  - requeue removes matching processing entries before pushing back to pending;
+  - HTTP and WebSocket `motion_event` paths ack processing entries after
+    recording motion events.
+- Kept the review hardening from the prior fix pass:
+  - `requirements_server.txt` includes `redis>=5.0`;
+  - notifier listener/callback exceptions are logged and isolated;
+  - task publish failures degrade to queued responses rather than HTTP 500.
+- Verification:
+  - `python -m pytest tests/test_device_gateway_redis_store.py::test_redis_store_ack_processing_removes_full_processing_task_payload tests/test_device_gateway_redis_store.py::test_redis_store_recovers_by_processing_age_not_pending_age -q --ignore=active_model`:
+    2 passed.
+  - `python -m pytest tests/test_device_gateway_routes.py::test_events_endpoint_acks_processing_task_after_motion_event tests/test_device_gateway_routes.py::test_websocket_motion_event_acks_processing_task -q --ignore=active_model`:
+    2 passed.
+  - `python -m py_compile device_gateway\redis_store.py device_gateway\store.py device_gateway\tasks.py device_gateway\notifier.py routes\device_gateway.py server_lifespan.py`:
+    passed.
+  - `python -m pytest tests/test_device_gateway_protocol.py tests/test_device_gateway_routes.py tests/test_device_gateway_store.py tests/test_device_gateway_concurrency.py tests/test_device_gateway_redis_store.py -q --ignore=active_model`:
+    35 passed.
+  - `python -m pytest tests/test_agent_task_routes.py tests/test_device_gateway_routes.py tests/test_lima_smoke_task_script.py tests/test_device_gateway_redis_store.py -q --ignore=active_model`:
+    49 passed.
+
+## 2026-05-25 Reference Capability Implementation Roadmap
+
+- Added `docs/superpowers/plans/2026-05-25-reference-capability-implementation-roadmap.md`.
+- The roadmap turns the admitted external-reference learning into LiMa-native
+  execution phases:
+  - Device Gateway HA reliability closure;
+  - reference implementation ledger;
+  - code intelligence and retrieval;
+  - memory and mastery;
+  - agent/tool governance;
+  - MCP access plane;
+  - eval, observability, and cost;
+  - LiMa Code workflow UX;
+  - ESP32/hardware companion expansion.
+- Updated `docs/DOCUMENTATION_STATUS.md` so future sessions can find this as
+  the active execution roadmap instead of mistaking the broader capability
+  radar for completed implementation.

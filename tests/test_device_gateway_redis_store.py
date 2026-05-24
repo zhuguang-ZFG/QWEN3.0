@@ -8,6 +8,7 @@ class _FakeRedis:
         self.values = {}
         self.hashes = {}
         self.lists = {}
+        self.now = 1000.0
 
     def incr(self, key):
         self.values[key] = int(self.values.get(key, 0)) + 1
@@ -55,6 +56,29 @@ class _FakeRedis:
             if key.startswith(prefix):
                 yield key
 
+    def lmove(self, src_key, dst_key, src_pos="RIGHT", dest_pos="LEFT"):
+        lst = self.lists.get(src_key, [])
+        if not lst:
+            return None
+        item = lst.pop(-1) if src_pos == "RIGHT" else lst.pop(0)
+        self.lists.setdefault(dst_key, []).insert(0 if dest_pos == "LEFT" else len(self.lists[dst_key]), item)
+        return item
+
+    def lrem(self, key, count, value):
+        lst = self.lists.get(key, [])
+        removed = 0
+        while value in lst and removed < (count if count > 0 else len(lst)):
+            lst.remove(value)
+            removed += 1
+        return removed
+
+    def lrange(self, key, start, end):
+        lst = self.lists.get(key, [])
+        return lst[start:end if end >= 0 else None]
+
+    def time(self):
+        return [self.now, 0]
+
     def delete(self, *keys):
         for key in keys:
             self.values.pop(key, None)
@@ -101,3 +125,36 @@ def test_redis_store_preserves_task_state_queue_order_and_events():
     assert snapshot["status"] == "done"
     assert snapshot["events"][0]["phase"] == "done"
     assert json.loads(client.hashes["test:device:tasks"][first["task_id"]])["status"] == "done"
+
+
+def test_redis_store_ack_processing_removes_full_processing_task_payload():
+    client = _FakeRedis()
+    store = RedisDeviceTaskStore("redis://unused", client=client, key_prefix="test:device")
+    task = _task(store.next_task_id())
+
+    store.create_task_state(task)
+    store.enqueue_pending_task("dev-1", task)
+    assert store.pop_pending_tasks("dev-1", limit=1)[0]["task_id"] == task["task_id"]
+
+    assert client.lists["test:device:processing:dev-1"]
+    assert store.ack_processing("dev-1", task["task_id"]) is True
+    assert client.lists["test:device:processing:dev-1"] == []
+
+
+def test_redis_store_recovers_by_processing_age_not_pending_age():
+    client = _FakeRedis()
+    store = RedisDeviceTaskStore("redis://unused", client=client, key_prefix="test:device")
+    task = _task(store.next_task_id())
+
+    store.create_task_state(task)
+    store.enqueue_pending_task("dev-1", task)
+    client.now += 300
+    assert store.pop_pending_tasks("dev-1", limit=1)[0]["task_id"] == task["task_id"]
+
+    assert store.recover_stale_processing("dev-1", timeout_sec=120) == 0
+    assert store.pending_count("dev-1") == 0
+
+    client.now += 121
+    assert store.recover_stale_processing("dev-1", timeout_sec=120) == 1
+    assert store.pending_count("dev-1") == 1
+    assert client.lists["test:device:processing:dev-1"] == []

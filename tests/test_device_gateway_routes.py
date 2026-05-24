@@ -256,6 +256,51 @@ async def test_task_available_notification_drains_shared_queue_to_local_session(
     assert task_snapshot(task["task_id"])["status"] == "dispatched"
 
 
+def test_events_endpoint_acks_processing_task_after_motion_event(monkeypatch):
+    acked = []
+
+    def fake_ack_processing(device_id: str, task_id: str) -> bool:
+        acked.append((device_id, task_id))
+        return True
+
+    monkeypatch.setattr("routes.device_gateway.ack_processing_task", fake_ack_processing)
+
+    response = _client().post(
+        "/device/v1/events",
+        headers={"Authorization": "Bearer test-private-token"},
+        json={"type": "motion_event", "device_id": "dev-1", "task_id": "task-http-1", "phase": "done"},
+    )
+
+    assert response.status_code == 200
+    assert acked == [("dev-1", "task-http-1")]
+
+
+def test_websocket_motion_event_acks_processing_task(monkeypatch):
+    acked = []
+
+    def fake_ack_processing(device_id: str, task_id: str) -> bool:
+        acked.append((device_id, task_id))
+        return True
+
+    monkeypatch.setattr("routes.device_gateway.ack_processing_task", fake_ack_processing)
+
+    client = _client()
+    with client.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
+        ws.send_json(
+            {
+                "type": "hello",
+                "protocol": "lima-device-v1",
+                "device_id": "dev-1",
+                "capabilities": [],
+            }
+        )
+        assert ws.receive_json()["type"] == "hello_ack"
+        ws.send_json({"type": "motion_event", "device_id": "dev-1", "task_id": "task-ws-1", "phase": "done"})
+        assert ws.receive_json()["type"] == "motion_event_ack"
+
+    assert acked == [("dev-1", "task-ws-1")]
+
+
 def test_tasks_endpoint_keeps_device_queues_independent():
     client = _client()
     for device_id in ("dev-1", "dev-2", "dev-1"):

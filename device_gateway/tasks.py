@@ -113,5 +113,13 @@ def mark_task_dispatched(task_id: str) -> None:
     store_mod.task_store.mark_task_dispatched(task_id)
 
 
+def ack_processing_task(device_id: str, task_id: str) -> bool:
+    return store_mod.task_store.ack_processing(device_id, task_id)
+
+
+def recover_stale_processing(device_id: str, timeout_sec: float = 120.0) -> int:
+    return store_mod.task_store.recover_stale_processing(device_id, timeout_sec=timeout_sec)
+
+
 def pending_count(device_id: str | None = None) -> int:
     return store_mod.task_store.pending_count(device_id)

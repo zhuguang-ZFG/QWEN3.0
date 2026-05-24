@@ -81,13 +81,31 @@ class RedisDeviceTaskNotifier:
 
     async def _listen(self, callback: TaskAvailableCallback) -> None:
         assert self._pubsub is not None
+        self._alive = True
         while True:
-            message = await self._pubsub.get_message(ignore_subscribe_messages=True, timeout=None)
+            try:
+                message = await self._pubsub.get_message(ignore_subscribe_messages=True, timeout=30.0)
+            except asyncio.TimeoutError:
+                continue
+            except Exception as exc:
+                _log("notifier_listen_error", str(exc))
+                await asyncio.sleep(1)
+                continue
+
             if not message or message.get("type") != "message":
                 continue
             device_id = _device_id_from_message(message.get("data"))
             if device_id:
-                await callback(device_id)
+                try:
+                    await callback(device_id)
+                except Exception as exc:
+                    _log("notifier_callback_error", str(exc))
+
+    @property
+    def listener_alive(self) -> bool:
+        if self._task is None or self._task.done():
+            return False
+        return getattr(self, "_alive", False)
 
 
 def _device_id_from_message(data: Any) -> str:
@@ -103,14 +121,22 @@ def _device_id_from_message(data: Any) -> str:
     return device_id.strip() if isinstance(device_id, str) else ""
 
 
+def _log(event: str, detail: str) -> None:
+    import logging
+    logging.getLogger("device_gateway.notifier").warning("%s: %s", event, detail[:200])
+
+
 task_notifier: DeviceTaskNotifier = LocalDeviceTaskNotifier()
 
 
 def notifier_health() -> dict[str, Any]:
-    return {
+    result = {
         "backend": getattr(task_notifier, "backend_name", task_notifier.__class__.__name__),
         "shared_across_processes": bool(getattr(task_notifier, "shared_across_processes", False)),
     }
+    if hasattr(task_notifier, "listener_alive"):
+        result["listener_alive"] = task_notifier.listener_alive  # type: ignore[union-attr]
+    return result
 
 
 async def publish_task_available(device_id: str) -> None:

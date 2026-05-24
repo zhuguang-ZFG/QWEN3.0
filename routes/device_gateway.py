@@ -26,6 +26,7 @@ from device_gateway.notifier import (
     stop_task_notifier,
 )
 from device_gateway.tasks import (
+    ack_processing_task,
     create_task_from_transcript,
     enqueue_pending_task,
     mark_task_dispatched,
@@ -64,6 +65,7 @@ async def device_gateway_events(request: Request) -> JSONResponse:
     device_id = message.get("device_id", "")
     if msg_type == "motion_event":
         summary = record_motion_event(message)
+        ack_processing_task(device_id, message["task_id"])
         return JSONResponse(ack_frame("motion_event_ack", device_id, **summary, request_id=message.get("request_id")))
     if msg_type == "device_info":
         return JSONResponse(ack_frame("device_info_ack", device_id, request_id=message.get("request_id")))
@@ -104,7 +106,14 @@ async def device_gateway_tasks(request: Request) -> JSONResponse:
             queue_depth = pending_count(device_id.strip())
     else:
         queue_depth = enqueue_pending_task(device_id.strip(), task)
-        await publish_task_available(device_id.strip())
+        try:
+            await publish_task_available(device_id.strip())
+        except Exception:
+            import logging
+            logging.getLogger("device_gateway").warning(
+                "publish_task_available failed device=%s task=%s",
+                device_id.strip(), task.get("task_id", ""),
+            )
     return JSONResponse({"status": "sent" if sent else "queued", "sent": sent, "queue_depth": queue_depth, "task": task})
 
 
@@ -158,9 +167,15 @@ async def _drain_pending_tasks(session: DeviceSession) -> bool:
 
 
 async def _notify_local_session_task_available(device_id: str) -> None:
-    session = registry.get(device_id)
-    if session is not None:
-        await _drain_pending_tasks(session)
+    try:
+        session = registry.get(device_id)
+        if session is not None:
+            await _drain_pending_tasks(session)
+    except Exception:
+        import logging
+        logging.getLogger("device_gateway").exception(
+            "_notify_local_session_task_available failed device=%s", device_id
+        )
 
 
 async def start_device_gateway_runtime() -> None:
@@ -250,6 +265,7 @@ async def device_ws(websocket: WebSocket) -> None:
                     return
             elif msg_type == "motion_event":
                 summary = record_motion_event(message)
+                ack_processing_task(device_id, message["task_id"])
                 session = registry.get(device_id)
                 if session is not None:
                     session.mark_task_acknowledged(message["task_id"])

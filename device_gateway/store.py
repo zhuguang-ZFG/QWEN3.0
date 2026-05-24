@@ -45,6 +45,12 @@ class DeviceTaskStore(Protocol):
     def mark_task_dispatched(self, task_id: str) -> None:
         ...
 
+    def ack_processing(self, device_id: str, task_id: str) -> bool:
+        ...
+
+    def recover_stale_processing(self, device_id: str, timeout_sec: float = 120.0) -> int:
+        ...
+
     def pending_count(self, device_id: str | None = None) -> int:
         ...
 
@@ -130,6 +136,12 @@ class InMemoryDeviceTaskStore:
             state = self._tasks.get(task_id)
             if state:
                 state["status"] = "dispatched"
+
+    def ack_processing(self, device_id: str, task_id: str) -> bool:
+        return False
+
+    def recover_stale_processing(self, device_id: str, timeout_sec: float = 120.0) -> int:
+        return 0
 
     def pending_count(self, device_id: str | None = None) -> int:
         with self._lock:
