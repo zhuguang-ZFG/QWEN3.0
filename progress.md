@@ -1256,3 +1256,20 @@ Verification note:
   - no runtime dependency added;
   - no source code copied;
   - no hardware or model claim expanded beyond documented gates.
+
+## 2026-05-24 Sub-Agent Versus Agent Team Rule
+
+- User shared and approved a coordination principle:
+  - do not add agents because a task is complex;
+  - choose the collaboration mode based on context boundaries and coordination
+    needs.
+- Updated:
+  - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
+  - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
+  - `docs/LIMA_MEMORY.md`;
+  - `progress.md`.
+- New LiMa default:
+  - owner agent plus isolated sub-agents for separable research/review/test
+    slices;
+  - Agent Teams only after shared state, real-time communication, event log,
+    ownership, conflict policy, and approval gates are designed.

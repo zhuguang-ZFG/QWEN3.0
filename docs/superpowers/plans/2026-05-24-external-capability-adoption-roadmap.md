@@ -39,6 +39,9 @@ Primary source inventory:
 4. Keep the first implementation slices small and orthogonal.
 5. Do not let research/agent frameworks bypass LiMa's provider key custody,
    device safety, VPS governance, or human approval gates.
+6. Default to isolated sub-agents for cleanly separable work; use Agent Teams
+   only when the task requires shared state, real-time communication, and
+   long-lived coordination.
 
 ## Phase 0 - Reference Governance
 
@@ -142,6 +145,12 @@ References:
 Main repo plan:
 
 - Keep LiMa's existing gated autonomy model as the control plane.
+- Preserve one clear owner agent for tasks with shared deep context; delegate
+  only cleanly separable research, review, test, or verification slices to
+  sub-agents.
+- Treat Agent Teams as an explicit architecture upgrade, not a default role
+  split. They require a shared task/event layer, ownership map, conflict policy,
+  audit trail, and stop/approval gate.
 - Add role templates only as data, not as unrestricted autonomous workers.
 - Add issue/plan hygiene checks that recommend stale-item closure, never close
   automatically without a recorded approval rule.
@@ -162,6 +171,8 @@ LiMa Code plan:
 Exit criteria:
 
 - Agent roles have ownership boundaries and allowed actions.
+- Sub-agent delegation rules are documented and default-on for isolated work.
+- Agent Team use requires shared-state and conflict-resolution evidence.
 - Work queue items have status, evidence, and rollback notes.
 - No agent can deploy, push, or touch hardware without explicit gate metadata.
 

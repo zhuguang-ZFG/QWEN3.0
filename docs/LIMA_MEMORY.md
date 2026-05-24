@@ -1236,3 +1236,16 @@ Deployment: not performed.
     license/security/privacy/safety reviews;
   - keep writing-machine direct control as the first hardware target before
     OCR, TTS, world-model, robotics, or companion-device expansion.
+
+## 2026-05-24 Sub-Agent Versus Agent Team Rule
+
+- User approved adding the Sub-Agent vs Agent Team coordination principle to
+  LiMa governance.
+- Rule:
+  - default to one owner agent plus isolated sub-agents for cleanly separable
+    research, review, test, and verification work;
+  - keep deeply shared implementation context inside one owner agent;
+  - use Agent Teams only when real-time communication, shared task state, and
+    long-lived coordination are required.
+- Agent Teams now require an explicit shared-state model, ownership map, audit
+  trail, conflict policy, and stop/approval gate before implementation.
