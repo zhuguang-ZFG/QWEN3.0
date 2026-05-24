@@ -1512,3 +1512,32 @@ Deployment: not performed.
     cloud-control MCP, and video downloading remain default-off;
   - Qwen3-TTS voice clone/custom voice requires model/API terms, consent,
     voice safety, serving budget, latency tests, and audio retention policy.
+
+## 2026-05-24 External Capability Radar RuView Addendum
+
+- User provided `https://github.com/ruvnet/RuView.git`.
+- Current-source check:
+  - `ruvnet/RuView`: MIT; README describes beta WiFi CSI spatial sensing with
+    ESP32-S3/C6-style nodes, presence, breathing/heart-rate trends,
+    activity/fall signals, room mapping, Home Assistant/Matter integration,
+    edge modules, witness logs, and Claude/Codex workflow plugins.
+  - README limitations matter for LiMa: ESP32-C3/original ESP32 are not
+    supported, single-node spatial resolution is limited, camera-free pose
+    accuracy is limited, and some training/evaluation phases remain pending.
+- Updated:
+  - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
+  - `docs/reference/HARDWARE_COMPANION_REFERENCES.md`;
+  - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
+  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
+  - `STATUS.md`;
+  - `docs/LIMA_MEMORY.md`.
+- Boundary retained:
+  - no runtime dependency added;
+  - RuView is a later ambient-perception and hardware-workflow reference, not
+    part of the first writing-machine control loop;
+  - people sensing, through-wall sensing, vital-sign trends, fall/distress
+    detection, room mapping, Home Assistant/Matter automation, and
+    security/medical outputs require consent, privacy/legal review, calibrated
+    hardware evidence, false-positive policy, data-retention controls, and
+    human review before any LiMa adapter.

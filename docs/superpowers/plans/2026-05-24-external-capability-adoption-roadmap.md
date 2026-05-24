@@ -50,6 +50,13 @@ web-routine discovery. Cookie/social access, cloud-control MCP, closed-API
 extraction, video downloading, messaging bots, and voice cloning remain
 default-off behind explicit gates.
 
+The RuView addendum adds a WiFi CSI / ESP32 ambient-perception reference.
+It belongs to the later hardware-companion lane, not the first writing-machine
+control loop. People sensing, through-wall sensing, vital signs, fall/distress,
+room mapping, Home Assistant/Matter automation, and security/medical uses stay
+default-off until consent, privacy/legal, hardware-calibration, false-positive,
+retention, and real-device validation gates exist.
+
 Primary source inventory:
 
 - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`
@@ -560,6 +567,7 @@ References:
 - awesome-persona-distill-skills
 - WeClone
 - ElatoAI
+- RuView
 - PersonaPlex
 - pocket-tts
 - VoxCPM
@@ -589,6 +597,13 @@ Main repo plan:
   design, voice clone, DashScope API, vLLM-Omni, fine-tuning, and evaluation
   reference only after model/API terms, explicit consent, latency/GPU, audio
   retention, and voice-cloning safety gates are documented.
+- Evaluate RuView as an ESP32/WiFi CSI ambient-perception reference for later
+  companion devices: CSI firmware posture, edge sensing, Home Assistant/Matter
+  bridge ideas, witness logs, and hardware workflow plugins are useful, but
+  presence, vital-sign trends, falls, distress, through-wall, room mapping,
+  security, and medical interpretations require consent, privacy/legal review,
+  calibrated hardware evidence, false-positive policy, data retention, and
+  non-medical advisory labeling before any LiMa adapter.
 - Keep GR00T-WholeBodyControl and nano-world-model in the research/simulation
   lane. They may inspire robotics safety layering, simulation, and planning
   gates, but they must not bypass the writing-machine `run_path` allowlist or
@@ -660,7 +675,7 @@ Documentation-only changes:
 ```powershell
 cd D:\GIT
 git diff --check -- docs\reference\EXTERNAL_CAPABILITY_RADAR_2026-05-24.md docs\superpowers\plans\2026-05-24-external-capability-adoption-roadmap.md
-rg -n "External Capability|MCP|TUNA|OpenRAG|RuVector|Agent-Reach|Qwen3-TTS|VidBee|cc-connect|bluebox|Google MCP|generative-ai|OpenMontage|open-lovable|VoxCPM|Hermes|gstack|agent-cli|Sirchmunk|Hyperbrowser|MiroFish|OpenClaw-RL|Feishu|claude-code-prompts|last30days|LightRAG|AutoResearchClaw|OpenCode|vibe-coding-cn|TrendRadar|Pyrefly|CubeSandbox|ElatoAI|WeClone|Graph" docs
+rg -n "External Capability|MCP|TUNA|OpenRAG|RuVector|RuView|Agent-Reach|Qwen3-TTS|VidBee|cc-connect|bluebox|Google MCP|generative-ai|OpenMontage|open-lovable|VoxCPM|Hermes|gstack|agent-cli|Sirchmunk|Hyperbrowser|MiroFish|OpenClaw-RL|Feishu|claude-code-prompts|last30days|LightRAG|AutoResearchClaw|OpenCode|vibe-coding-cn|TrendRadar|Pyrefly|CubeSandbox|ElatoAI|WeClone|Graph" docs
 ```
 
 Implementation phases must add focused tests for the touched module and avoid

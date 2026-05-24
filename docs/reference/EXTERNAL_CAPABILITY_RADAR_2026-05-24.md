@@ -26,7 +26,7 @@
 | Search, research, trends, and knowledge products | AnySearch Skill, last30days skill, Agent-Reach, Claude use cases, ml-intern, AutoResearchClaw, OpenRAG, Sirchmunk, Google Cloud generative-ai samples, OmniScientist, Feynman, TrendRadar, HF Viewer, Youdao Baoku, Feishu enterprise AI programming handbook, VidBee, bluebox, Flipbook, OpenMontage, Algebrica, GLM-OCR | Research agents, trend monitors, product use-case taxonomy, model inspection, search extraction, document-to-brief/PPT/mind-map/video, OCR, visual browsing, enterprise AI coding methodology, media ingestion |
 | Infrastructure mirrors and dependency resilience | Tsinghua Open Source Mirror (TUNA) | VPS and China-network dependency install acceleration, fallback mirrors, reproducible bootstrap documentation |
 | Persona, style, and companion behavior | awesome-persona-distill-skills, WeClone, Feynman, ElatoAI, PersonaPlex, pocket-tts, VoxCPM, Qwen3-TTS | User style modeling, companion UX, voice/display persona boundaries |
-| Hardware, robotics, and world models | ElatoAI, PersonaPlex, oh-my-pi, GR00T-WholeBodyControl, OpenClaw-RL, MiroFish, pocket-tts, VoxCPM, nano-world-model, ESP32 display references already tracked separately | Device Gateway voice/display/companion expansion after writing-machine gates, simulation/evaluation before real hardware |
+| Hardware, robotics, and world models | ElatoAI, RuView, PersonaPlex, oh-my-pi, GR00T-WholeBodyControl, OpenClaw-RL, MiroFish, pocket-tts, VoxCPM, nano-world-model, ESP32 display references already tracked separately | Device Gateway voice/display/perception/companion expansion after writing-machine gates, simulation/evaluation before real hardware |
 
 ## Source Evaluation
 
@@ -67,6 +67,7 @@
 | `wong2/awesome-mcp-servers` | Curated community list of MCP servers. | MIT | Discovery input for the candidate catalog; do not install by default. | Main, LiMa Code |
 | TurboMCP | Online MCP runtime reference. | Website/service, no license reviewed | Concept-only for hosted/online MCP experiments; no production use without account, data-flow, and security review. | Main |
 | `akdeb/ElatoAI` | ESP32 realtime voice AI with secure WebSockets for toys, companions, and devices. | No standard license in API metadata | Already admitted as voice/device-companion reference; no runtime dependency. | esp32S_XYZ, Main |
+| `ruvnet/RuView` | WiFi CSI spatial-sensing platform for ESP32-S3/C6-style nodes, presence, contactless breathing/heart-rate trends, activity/fall signals, room mapping, Home Assistant/Matter integration, edge modules, witness logs, and Claude/Codex workflow plugins. | MIT; README marks beta software and notes hardware, single-node, pose-accuracy, and pending evaluation limitations | Reference for later privacy-first ambient perception, ESP32 CSI firmware shape, hardware witness/evidence discipline, and companion-device integration. No people sensing, vital-sign, fall, medical, security, or through-wall feature may be enabled without consent, jurisdiction, model, hardware-validation, false-positive, retention, and safety gates. | Main, esp32S_XYZ |
 | `NVIDIA/personaplex` | Realtime full-duplex speech-to-speech conversational model with text persona prompting and audio voice conditioning. | Code MIT; model weights require NVIDIA Open Model License review | Borrow realtime voice/persona architecture for later companion-device speech loops; do not adopt model weights without a separate license, GPU, safety, and privacy review. | Main, esp32S_XYZ |
 | `anysearch-ai/anysearch-skill` | Unified realtime search skill for AI agents: web search, vertical search, batch search, and page extraction. | No standard license in API metadata | Borrow skill boundary and search-result evidence shape for LiMa research tasks; do not install until license/security review. | Main, LiMa Code |
 | `Panniantong/Agent-Reach` | Scaffolding that gives agents web/page reading, YouTube subtitles/search, RSS, GitHub, semantic web search via MCP, Twitter/X, Reddit, Bilibili, Xiaohongshu, Douyin, LinkedIn, WeChat, Weibo, V2EX, Xueqiu, podcast transcription, doctor checks, and local cookie storage. | MIT | Reference for opt-in internet reach skill packs and connector health checks. Do not install broadly; social/cookie/proxy/shell setup requires consent, platform-term review, account isolation, secret custody, and audit. | LiMa Code, Main |
@@ -193,6 +194,9 @@
 ### P2 - Product And Companion Later
 
 - ElatoAI for voice/companion device work after writing-machine direct control.
+- RuView for later ESP32/WiFi CSI ambient perception research only after
+  explicit consent, privacy/legal review, hardware calibration evidence,
+  false-positive policy, data-retention rules, and medical/security disclaimers.
 - PersonaPlex for realtime speech-to-speech persona and voice-conditioning
   research after LiMa has explicit privacy, safety, and compute gates.
 - pocket-tts for local/offline TTS experiments after voice-license, consent,

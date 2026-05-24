@@ -19,6 +19,7 @@ families only after the writing-machine control loop is verified.
 | Reference | Class | Borrow | Boundary |
 |---|---|---|---|
 | `https://github.com/akdeb/ElatoAI.git` | Voice AI / ESP32 companion device | ESP32-to-cloud WebSocket device shape, realtime audio posture, device lifecycle ideas | Do not copy code or assume its voice stack controls motion hardware. LiMa still needs deterministic task, safety, and telemetry layers. |
+| `https://github.com/ruvnet/RuView.git` | WiFi CSI / ambient perception / ESP32 spatial sensing | ESP32-S3/C6 CSI capture posture, edge sensing workflow, Home Assistant/Matter bridge ideas, witness/evidence logs, and Codex/Claude hardware workflow plugin shape | Treat as later perception research only. People sensing, through-wall claims, vital-sign trends, fall/distress signals, room occupancy, and security/medical outputs require explicit consent, privacy/legal review, hardware calibration, false-positive policy, retention controls, and real-device validation before any LiMa adapter. |
 | `https://github.com/NVIDIA/personaplex.git` | Realtime speech/persona companion model | Full-duplex speech-to-speech interaction, text persona prompting, and audio voice-conditioning shape for future companion devices | Treat as a model and interaction reference only. Model weights need separate NVIDIA Open Model License, compute, privacy, and safety review before use. |
 | `https://github.com/kyutai-labs/pocket-tts.git` | Local/offline TTS provider candidate | CPU-friendly TTS for future voice confirmations and companion speech without a hosted API dependency | Treat as a backend/provider experiment only. Review voice/model licenses, consent, latency, CPU budget, and audio retention before enabling. |
 | `https://github.com/OpenBMB/VoxCPM.git` | Multilingual TTS / voice design / controllable cloning provider candidate | Apache-2.0 TTS reference with multilingual speech generation, voice design, controllable voice cloning, streaming, and high-quality audio output | Treat as a backend/provider experiment only. Voice cloning requires explicit consent, model/weight review, GPU or serving budget, latency tests, and audio retention policy before enabling. |
@@ -53,12 +54,18 @@ families only after the writing-machine control loop is verified.
    - `display_task` or `ui_state` message family;
    - text/image/status payloads;
    - low-bandwidth update and offline fallback rules.
-4. Companion-device orchestration:
+4. Ambient perception extension:
+   - optional ESP32/WiFi CSI sensing experiments such as RuView only after
+     explicit consent, privacy/legal review, hardware calibration,
+     false-positive policy, retention controls, and real-device evidence;
+   - keep presence, vitals, fall/distress, through-wall, room mapping, and
+     security/medical outputs as advisory signals until separately validated.
+5. Companion-device orchestration:
    - combine motion, voice, and display as separate capabilities under one
      Device Gateway contract;
    - keep each actuator/display class behind its own allowlist and safety
      policy.
-5. Perception and simulation research:
+6. Perception and simulation research:
    - OCR/camera observations only after camera hardware, privacy, and provider
      terms are reviewed;
    - world-model or robotics-controller references remain research inputs until
@@ -69,7 +76,8 @@ families only after the writing-machine control loop is verified.
 
 - Do not expand Phase 1 of the LiMa Device Gateway beyond text-only fake U8
   protocol and bounded motion-task proof.
-- Do not make ElatoAI or the transparent-TV reference a runtime dependency.
+- Do not make ElatoAI, RuView, or the transparent-TV reference a runtime
+  dependency.
 - Do not claim LiMa can operate arbitrary smart hardware until a specific
   adapter, protocol schema, tests, and safety gates exist for that hardware
   class.

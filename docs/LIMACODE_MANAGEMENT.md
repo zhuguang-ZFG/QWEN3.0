@@ -200,6 +200,12 @@ runtime dependencies:
   hosting patterns. Cloud, Workspace, database, Maps, DevTools, security, and
   storage connectors remain default-off behind IAM, billing, data, and audit
   gates.
+- `ruvnet/RuView`: MIT reference for ESP32/WiFi CSI sensing workflows,
+  hardware witness logs, Home Assistant/Matter bridge ideas, and Codex/Claude
+  hardware workflow plugin shape. Do not install the plugin or enable people,
+  vital-sign, fall, through-wall, security, or medical sensing without explicit
+  consent, privacy/legal review, calibrated hardware evidence, retention rules,
+  and approval gates.
 
 Any adoption must preserve LiMa Server's backend admission, provider key
 custody, repo allowlist, audit, review gates, and push/deploy approval rules.

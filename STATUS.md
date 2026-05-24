@@ -631,3 +631,17 @@ Latest external capability radar RAG/MCP/media batch:
 - Qwen3-TTS is Apache-2.0 source and strengthens the later voice/TTS roadmap;
   voice clone and custom voice remain behind model/API terms, explicit consent,
   latency/GPU, audio-retention, and safety gates.
+
+Latest external capability radar hardware perception addendum:
+
+- Added `ruvnet/RuView` to the external capability radar, hardware companion
+  references, LiMa Code management notes, autonomy borrowing notes, roadmap,
+  memory, and progress logs.
+- RuView is MIT and is useful as a later ESP32/WiFi CSI ambient-perception
+  reference: CSI firmware posture, edge sensing, Home Assistant/Matter bridge
+  ideas, witness/evidence logs, and Codex/Claude workflow plugins.
+- It is not a current runtime dependency and does not change the first
+  writing-machine target. People sensing, through-wall sensing, vital-sign
+  trends, fall/distress detection, room mapping, and security/medical outputs
+  remain default-off behind consent, privacy/legal review, calibrated hardware
+  evidence, false-positive policy, retention controls, and human review.

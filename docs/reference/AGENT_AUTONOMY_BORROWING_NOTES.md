@@ -72,6 +72,9 @@
   servers, with Cloud Run hosting as a deployment reference.
 - RuVector-style adaptive vector/graph memory and audit/branching vocabulary,
   but only after benchmarked retrieval quality and drift behavior.
+- RuView-style hardware witness logs, ADR-backed firmware claims,
+  edge-sensing workflow plugins, and Home Assistant/Matter integration posture
+  as evidence and UX references for later device work.
 
 ## Coordination Rule
 
@@ -129,6 +132,10 @@
   without a documented target policy and anti-abuse review.
 - Treating RuVector-style self-learning memory as authoritative before
   benchmarks, regression tests, and drift monitors prove it improves LiMa.
+- Enabling RuView-style WiFi CSI people sensing, through-wall sensing,
+  vital-sign trends, fall/distress detection, room mapping, or security/medical
+  automations without consent, privacy/legal review, calibrated hardware
+  evidence, false-positive policy, retention controls, and human review.
 - Copying Feishu-hosted methodology text or structure without reuse rights.
 - Copying AGPL swarm/simulation systems or allowing prediction reports to
   trigger real production, finance, messaging, or hardware actions.
