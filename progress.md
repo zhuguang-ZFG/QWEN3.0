@@ -2024,3 +2024,33 @@ Verification note:
     66 passed after adjacent streaming/observability verification.
   - `python -m pytest -q --ignore=active_model`:
     718 passed, 8 skipped.
+
+## 2026-05-24 M10 Data Workbench
+
+- Reviewed and closed M10:
+  - `data_workbench.policy` defines local-only ingestion policy, accepted file
+    extensions, dataset size limits, retention bounds, `PrivacyClass`,
+    `ArtifactKind`, schema-key redaction, and text redaction;
+  - `data_workbench.manifest` defines `ArtifactManifest` with provenance,
+    source URL, retrieval date, summary, local file path, evidence refs,
+    privacy class, retention, tags, schema keys, and generated-by metadata;
+  - manifest storage uses JSONL for append-only local records;
+  - `tests/test_data_workbench.py` covers policy, retention, schema/text
+    redaction, manifest defaults, expiry, save/load/filter/count, and enum
+    stability.
+- Review fixes applied:
+  - manifest storage now resolves `LIMA_ARTIFACT_MANIFEST` at each operation,
+    not only at module import time;
+  - tests use temp manifest stores and artifact roots to avoid writing default
+    JSONL files into repo `data/`;
+  - artifact `file_path` values are normalized under `LIMA_ARTIFACT_ROOT` and
+    path escapes are rejected;
+  - title, source URL, evidence refs, schema keys, tags, and generated-by fields
+    are redacted before serialization.
+- Scope decisions:
+  - `last30days-skill` is not part of M10; keep it as a future Research Radar
+    reference;
+  - `MiniMind` is not part of M10; keep it as future Local Model Lab material.
+- Verification:
+  - `python -m pytest tests/test_data_workbench.py -q --ignore=active_model`:
+    25 passed after M10 review fixes.

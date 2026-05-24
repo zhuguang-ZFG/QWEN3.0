@@ -741,6 +741,25 @@ Exit criteria:
 
 - LiMa can safely plan data/research workflows before executing them.
 
+Current M10 closure notes:
+
+- M10 completed on 2026-05-24 with no new runtime dependency.
+- Added `data_workbench.policy` with accepted extensions, size limits,
+  retention bounds, privacy classes, artifact kinds, schema-key redaction, text
+  redaction, and artifact-root path normalization.
+- Added `data_workbench.manifest` with `ArtifactManifest` JSONL storage,
+  retention expiry, evidence refs, privacy class, schema keys, and worker
+  provenance.
+- Codex review fixed import-time manifest path capture so
+  `LIMA_ARTIFACT_MANIFEST` is resolved at each store operation.
+- Codex review constrained artifact `file_path` values to `LIMA_ARTIFACT_ROOT`
+  and redacts source/title/evidence/schema/generated-by metadata.
+- Codex review moved tests to temp manifest stores to avoid repo `data/`
+  pollution.
+- `last30days-skill` stays out of M10 and is tracked as a future Research Radar
+  reference. `MiniMind` stays out of M10 and is tracked as future Local Model
+  Lab material.
+
 ## Milestone 11 - DevOps, Deployment, And Terminal UX
 
 References:
