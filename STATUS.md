@@ -1,6 +1,6 @@
 # LiMa Status
 
-> Updated: 2026-05-24
+> Updated: 2026-05-25
 > Active direction: private personal coding assistant.
 
 ## Current Summary
@@ -27,7 +27,16 @@
 | External capability radar | Expanded | Added successive reference batches across search, governance, agent SDKs, harness engineering, IDE/design UX, browser automation, code graphs, OCR/TTS, robotics, and world-model research; all are concept/reference inputs until license, security, privacy, and safety gates pass. |
 | LiMa Code repository management | Tracked | `deepcode-cli` is pinned as a Git submodule and governed by `docs/LIMACODE_MANAGEMENT.md`. |
 | esp32S_XYZ product backend | Tracked and fake-U8 integrated | `esp32S_XYZ` is pinned as a Git submodule at `78a62c9`; LiMa is the planned AI/backend control plane, and the product repo now includes `tools/fake_lima_u8` for the LiMa `/device/v1/ws` fake-device loop. |
-| LiMa Device Gateway | HA-ready boundary in progress | `/device/v1/*` supports single-process multi-device concurrency, best-effort requeue for synchronous send failures and unacknowledged disconnects, and task-store replacement tests; current default store is memory-only, so multi-process/VPS HA still requires Redis/Postgres plus sticky WebSocket routing or a session-owner broker. |
+| LiMa Device Gateway | Public single-node smoke path deployed | `/device/v1/*` supports single-process multi-device concurrency, best-effort requeue for synchronous send failures and unacknowledged disconnects, and task-store replacement tests; `chat.donglicao.com/device/v1/*` is exposed behind per-device token auth. Current default store is memory-only, so multi-process/VPS HA still requires Redis/Postgres plus sticky WebSocket routing or a session-owner broker. |
+
+## 2026-05-25 LiMa Server, LiMa Code, And ESP32 Joint Debug
+
+- Server to LiMa Code public worker path was verified through `chat.donglicao.com`: smoke task `92820005` was fetched by `D:\GIT\deepcode-cli`, completed as `needs_review`, and submitted back to Server.
+- Local Windows LiMa router was restarted from current `D:\GIT\server.py`; `/health` now reports `device_gateway=true` and `/device/v1/health` returns `status=ok`.
+- Local esp32 fake U8 WebSocket loop passed against `ws://127.0.0.1:8080/device/v1/ws`: hello, heartbeat, transcript-to-motion-task, progress, and done acknowledgements all completed.
+- Public device gateway nginx route is deployed through `https://chat.donglicao.com/device/v1/*` with per-device token auth and memory-only single-node task store recorded as the current limitation.
+- VPS nginx config backup: `/root/secure-service-backups/chat.donglicao.com.conf.codex-device-20260525_013718`.
+- Public verification passed: `scripts/smoke_online_distributions.py --api-key lima-local --chat-exact device_gateway_https_ok` returned `11/11`, and `tools/fake_lima_u8/app.py` completed the full `wss://chat.donglicao.com/device/v1/ws` loop for `dev-joint-1`.
 
 ## 2026-05-24 Deployment And Closure Update
 

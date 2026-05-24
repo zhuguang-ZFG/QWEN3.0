@@ -1,5 +1,12 @@
 # LiMa Memory
 
+## 2026-05-25 Joint Debug Memory
+
+- Three-project joint debug covered LiMa Server (`D:\GIT`), LiMa Code (`D:\GIT\deepcode-cli`), and ESP32/U8 tooling (`D:\GIT\esp32S_XYZ`).
+- Root cause for local fake U8 WebSocket failure was a stale Windows router process on port `8080`; it did not load `routes.device_gateway`, so `/device/v1/health` returned `404`.
+- After restarting the router from current `D:\GIT\server.py` and injecting a test `LIMA_DEVICE_TOKENS` entry for the spawned process, local fake U8 completed the full hello, heartbeat, motion task, and motion event acknowledgement loop.
+- Public `https://chat.donglicao.com/device/v1/health` originally returned the chat HTML because nginx had no `/device/` location. The tracked VPS nginx snapshot now includes `/device/v1/ws` WebSocket proxying and `/device/` HTTP proxying to the router.
+
 > Updated: 2026-05-24
 > Purpose: durable working memory for future LiMa coding-assistant sessions.
 

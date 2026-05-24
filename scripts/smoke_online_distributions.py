@@ -57,6 +57,25 @@ def _check_models(base_url: str, api_key: str) -> bool:
         return False
 
 
+def _check_device_health(chat_root: str) -> bool:
+    try:
+        status, body, elapsed_ms = _request("GET", chat_root.rstrip("/") + "/device/v1/health")
+        data = json.loads(body)
+        store = data.get("task_store", {})
+        ok = (
+            status == 200
+            and data.get("status") == "ok"
+            and data.get("protocol") == "lima-device-v1"
+            and isinstance(store, dict)
+        )
+        backend = store.get("backend") if isinstance(store, dict) else "unknown"
+        print(f"{'OK' if ok else 'FAIL'} device gateway health: HTTP {status} {elapsed_ms}ms backend={backend}")
+        return ok
+    except Exception as exc:
+        print(f"FAIL device gateway health: {type(exc).__name__}: {str(exc)[:120]}")
+        return False
+
+
 def _check_exact_chat(base_url: str, api_key: str, token: str) -> bool:
     payload = {
         "model": "lima-1.3",
@@ -113,6 +132,7 @@ def main() -> int:
         _check_http("open platform", args.open_platform_root),
         _check_http("chat interface", args.chat_root),
         _check_http("chat health", args.chat_root.rstrip("/") + "/health"),
+        _check_device_health(args.chat_root),
         _check_http("frp health", args.frp_root.rstrip("/") + "/health"),
         _check_models(args.chat_base, args.api_key),
     ]

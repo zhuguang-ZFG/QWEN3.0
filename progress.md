@@ -2687,3 +2687,11 @@ Verification note:
     passed.
   - `python -m pytest -q --ignore=active_model`:
     1147 passed, 8 skipped.
+## 2026-05-25 Joint Debug: Server, LiMa Code, ESP32
+
+- Verified Server to LiMa Code worker contract via public task `92820005`; worker submitted `needs_review` back to Server.
+- Restarted stale local Windows router on port `8080`; current process reports `device_gateway=true`.
+- Verified local ESP32 fake U8 WebSocket loop against `/device/v1/ws`; all expected acknowledgement frames returned.
+- Added tracked public device gateway nginx route and smoke expectation updates; deployment keeps per-device auth configured and records memory-only single-node mode until HA storage/routing is added.
+- Deployed VPS nginx `/device/` proxy with backup `/root/secure-service-backups/chat.donglicao.com.conf.codex-device-20260525_013718`.
+- Verified public device gateway: `https://chat.donglicao.com/device/v1/health` returns JSON, fake U8 completed the `wss://chat.donglicao.com/device/v1/ws` loop, and online distribution smoke passed `11/11`.
