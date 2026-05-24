@@ -6,7 +6,13 @@ import pytest
 import server
 from device_gateway.sessions import DeviceSession, registry
 from device_gateway.tasks import create_task_from_transcript, enqueue_pending_task, pop_pending_tasks, task_snapshot
-from routes.device_gateway import _dispatch_task_to_session, _drain_pending_tasks, _reset_for_tests, router
+from routes.device_gateway import (
+    _dispatch_task_to_session,
+    _drain_pending_tasks,
+    _notify_local_session_task_available,
+    _reset_for_tests,
+    router,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -92,6 +98,25 @@ def test_tasks_endpoint_creates_queued_motion_task_without_active_session():
     assert data["task"]["type"] == "motion_task"
     assert data["task"]["capability"] == "run_path"
     assert data["task"]["request_id"] == "req-task"
+
+
+def test_tasks_endpoint_publishes_task_available_when_session_is_not_local(monkeypatch):
+    published = []
+
+    async def fake_publish(device_id: str) -> None:
+        published.append(device_id)
+
+    monkeypatch.setattr("routes.device_gateway.publish_task_available", fake_publish)
+
+    response = _client().post(
+        "/device/v1/tasks",
+        headers={"Authorization": "Bearer test-private-token"},
+        json={"device_id": "dev-1", "text": "notify remote owner", "request_id": "req-notify"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "queued"
+    assert published == ["dev-1"]
 
 
 def test_tasks_endpoint_flushes_queued_task_when_device_connects():
@@ -216,6 +241,19 @@ async def test_hello_pending_drain_failure_requeues_inflight_prefix_and_unsent_s
     redelivered = pop_pending_tasks("dev-1", limit=10)
     assert [task["task_id"] for task in redelivered] == [task["task_id"] for task in tasks]
     assert registry.get("dev-1") is None
+
+
+async def test_task_available_notification_drains_shared_queue_to_local_session():
+    task = create_task_from_transcript("dev-1", "remote queued task")
+    enqueue_pending_task("dev-1", task)
+    websocket = _FailAfterWebSocket(fail_after=99)
+    session = DeviceSession(device_id="dev-1", websocket=websocket)
+    registry.register(session)
+
+    await _notify_local_session_task_available("dev-1")
+
+    assert [payload["task_id"] for payload in websocket.sent] == [task["task_id"]]
+    assert task_snapshot(task["task_id"])["status"] == "dispatched"
 
 
 def test_tasks_endpoint_keeps_device_queues_independent():

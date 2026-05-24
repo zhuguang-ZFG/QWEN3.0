@@ -9,6 +9,7 @@ from __future__ import annotations
 from collections import deque
 from copy import deepcopy
 import itertools
+import os
 import threading
 from typing import Any, Protocol
 
@@ -150,3 +151,17 @@ def task_store_health() -> dict[str, Any]:
 def set_task_store_for_tests(store: DeviceTaskStore) -> None:
     global task_store
     task_store = store
+
+
+def configure_task_store_from_env() -> None:
+    global task_store
+    backend = os.environ.get("LIMA_DEVICE_TASK_STORE", "").strip().lower()
+    redis_url = os.environ.get("LIMA_DEVICE_REDIS_URL", "").strip()
+    if backend == "redis" or (backend == "" and redis_url):
+        if not redis_url:
+            raise RuntimeError("LIMA_DEVICE_REDIS_URL is required when LIMA_DEVICE_TASK_STORE=redis")
+        from .redis_store import RedisDeviceTaskStore
+
+        task_store = RedisDeviceTaskStore(redis_url)
+    else:
+        task_store = InMemoryDeviceTaskStore()

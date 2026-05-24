@@ -2695,3 +2695,16 @@ Verification note:
 - Added tracked public device gateway nginx route and smoke expectation updates; deployment keeps per-device auth configured and records memory-only single-node mode until HA storage/routing is added.
 - Deployed VPS nginx `/device/` proxy with backup `/root/secure-service-backups/chat.donglicao.com.conf.codex-device-20260525_013718`.
 - Verified public device gateway: `https://chat.donglicao.com/device/v1/health` returns JSON, fake U8 completed the `wss://chat.donglicao.com/device/v1/ws` loop, and online distribution smoke passed `11/11`.
+
+## 2026-05-25 Device Gateway Redis HA Slice
+
+- Implemented default-off Redis task store for Device Gateway multi-process mode.
+- Implemented task-available notification bus so HTTP task producers can wake the process that owns the target device WebSocket.
+- Recorded HA runtime switches in the sanitized `lima-router.service` snapshot and online distribution docs.
+- Kept Postgres out of the realtime path; it remains a later audit/history store after protocol stabilization.
+- Deployed Redis HA mode on VPS with backups:
+  - `/opt/lima-router/backups/codex-device-ha-20260525_015208`;
+  - `/root/secure-service-backups/lima-router.env.codex-device-ha-20260525_015208`;
+  - `/root/secure-service-backups/redis.conf.codex-device-ha-20260525_015305`.
+- Verified temporary two-process routing: WebSocket on the public main router received a task created by a private temp router on `127.0.0.1:18080` through Redis notification.
+- Verified Redis safety posture: Redis listens on loopback, `redis-cli PING` works on `127.0.0.1`, and VPS self-public check reports `47.112.162.80:6379` blocked.

@@ -55,6 +55,12 @@ python -m pytest tests/test_agent_task_routes.py tests/test_agent_task_contract.
 python -m pytest tests/test_device_gateway_protocol.py tests/test_device_gateway_routes.py tests/test_device_gateway_store.py tests/test_device_gateway_concurrency.py -q --ignore=active_model
 ```
 
+Redis HA store slice:
+
+```powershell
+python -m pytest tests/test_device_gateway_redis_store.py tests/test_device_gateway_routes.py -q --ignore=active_model
+```
+
 ### Streaming
 
 ```powershell

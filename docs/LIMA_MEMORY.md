@@ -6,6 +6,8 @@
 - Root cause for local fake U8 WebSocket failure was a stale Windows router process on port `8080`; it did not load `routes.device_gateway`, so `/device/v1/health` returned `404`.
 - After restarting the router from current `D:\GIT\server.py` and injecting a test `LIMA_DEVICE_TOKENS` entry for the spawned process, local fake U8 completed the full hello, heartbeat, motion task, and motion event acknowledgement loop.
 - Public `https://chat.donglicao.com/device/v1/health` originally returned the chat HTML because nginx had no `/device/` location. The tracked VPS nginx snapshot now includes `/device/v1/ws` WebSocket proxying and `/device/` HTTP proxying to the router.
+- Redis HA mode for Device Gateway is default-off. Enable with `LIMA_DEVICE_TASK_STORE=redis`, `LIMA_DEVICE_SESSION_BUS=redis`, and `LIMA_DEVICE_REDIS_URL`; this shares task queues and publishes task-available notifications so the process with the local WebSocket session can drain remote-created tasks.
+- On 2026-05-25 VPS Redis HA was enabled for Device Gateway. Redis must remain loopback-only; public `6379` is part of online distribution guard checks.
 
 > Updated: 2026-05-24
 > Purpose: durable working memory for future LiMa coding-assistant sessions.

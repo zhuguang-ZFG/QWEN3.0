@@ -27,7 +27,7 @@
 | External capability radar | Expanded | Added successive reference batches across search, governance, agent SDKs, harness engineering, IDE/design UX, browser automation, code graphs, OCR/TTS, robotics, and world-model research; all are concept/reference inputs until license, security, privacy, and safety gates pass. |
 | LiMa Code repository management | Tracked | `deepcode-cli` is pinned as a Git submodule and governed by `docs/LIMACODE_MANAGEMENT.md`. |
 | esp32S_XYZ product backend | Tracked and fake-U8 integrated | `esp32S_XYZ` is pinned as a Git submodule at `78a62c9`; LiMa is the planned AI/backend control plane, and the product repo now includes `tools/fake_lima_u8` for the LiMa `/device/v1/ws` fake-device loop. |
-| LiMa Device Gateway | Public single-node smoke path deployed | `/device/v1/*` supports single-process multi-device concurrency, best-effort requeue for synchronous send failures and unacknowledged disconnects, and task-store replacement tests; `chat.donglicao.com/device/v1/*` is exposed behind per-device token auth. Current default store is memory-only, so multi-process/VPS HA still requires Redis/Postgres plus sticky WebSocket routing or a session-owner broker. |
+| LiMa Device Gateway | Public smoke path plus Redis HA slice | `/device/v1/*` supports single-process multi-device concurrency, best-effort requeue for synchronous send failures and unacknowledged disconnects, and task-store replacement tests; `chat.donglicao.com/device/v1/*` is exposed behind per-device token auth. Default store remains memory-only, while Redis HA mode adds shared task queues and pub/sub session-owner notification for multi-process delivery. |
 
 ## 2026-05-25 LiMa Server, LiMa Code, And ESP32 Joint Debug
 
@@ -37,6 +37,19 @@
 - Public device gateway nginx route is deployed through `https://chat.donglicao.com/device/v1/*` with per-device token auth and memory-only single-node task store recorded as the current limitation.
 - VPS nginx config backup: `/root/secure-service-backups/chat.donglicao.com.conf.codex-device-20260525_013718`.
 - Public verification passed: `scripts/smoke_online_distributions.py --api-key lima-local --chat-exact device_gateway_https_ok` returned `11/11`, and `tools/fake_lima_u8/app.py` completed the full `wss://chat.donglicao.com/device/v1/ws` loop for `dev-joint-1`.
+
+## 2026-05-25 Device Gateway Redis HA Slice
+
+- Added a Redis-backed Device Gateway task store for shared task ids, task snapshots, motion events, and per-device pending queues.
+- Added a Redis-capable task notifier so tasks created in one router process can wake the process that owns the device WebSocket.
+- HA mode is default-off and enabled with `LIMA_DEVICE_TASK_STORE=redis`, `LIMA_DEVICE_SESSION_BUS=redis`, and `LIMA_DEVICE_REDIS_URL`.
+- Postgres remains a later audit/history store, not part of the realtime WebSocket delivery path.
+- VPS Redis HA deployment is active:
+  - code backup: `/opt/lima-router/backups/codex-device-ha-20260525_015208`;
+  - env backup: `/root/secure-service-backups/lima-router.env.codex-device-ha-20260525_015208`;
+  - Redis config backup: `/root/secure-service-backups/redis.conf.codex-device-ha-20260525_015305`.
+- Verification passed: focused Device Gateway suite `31 passed`; public fake U8 loop completed over `wss://chat.donglicao.com/device/v1/ws`; temporary two-process test delivered a task created on `127.0.0.1:18080` to the main public WebSocket session via Redis pub/sub; online distribution smoke passed `11/11` with device backend `redis`.
+- Redis is bound to loopback and VPS self-check reports public `47.112.162.80:6379` blocked while `127.0.0.1:6379` remains reachable.
 
 ## 2026-05-24 Deployment And Closure Update
 

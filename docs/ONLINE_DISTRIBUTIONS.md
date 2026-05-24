@@ -27,19 +27,19 @@ Do not commit secrets, cert private keys, provider tokens, database dumps, gener
 | FRP endpoint | `http://47.112.162.80:8088` | VPS `frps` maps to Windows LiMa API `127.0.0.1:8080` | `docs/LOCAL_PROXY_RUNTIME_STATUS.md`, `frp/frpc.toml` when tracked | Public validation path for Windows local-router and local proxy providers | Operational smoke path, not the preferred HTTPS IDE endpoint. |
 | LiMa router | local service, public through nginx/FRP | `lima-router.service`, working dir `/opt/lima-router`, port `8080` | `infra/vps/systemd/lima-router.service`; runtime source in repo | Core FastAPI router | Secrets must live in `/opt/lima-router/.env`, not service unit files. |
 | Voice gateway | public only through chat nginx websocket path | `lima-voice.service`, working dir `/opt/lima-voice`, port `8091` | `infra/vps/systemd/lima-voice.service`; `voice_gateway_deploy.sh`/voice files when used | Voice websocket gateway | Secrets must live in `/opt/lima-voice/.env`, not service unit files. |
-| LiMa Device Gateway | `https://chat.donglicao.com/device/v1/*` | nginx proxies `/device/v1/health`, `/device/v1/tasks`, `/device/v1/events`, and WebSocket `/device/v1/ws` to `127.0.0.1:8080`; current task store is memory-only single-node mode | `routes/device_gateway.py`, `device_gateway/*`, `infra/vps/nginx/chat.donglicao.com.conf`, `docs/superpowers/plans/2026-05-24-lima-direct-device-gateway.md` | Direct U8/ESP32 device backend | Public behind per-device token auth. Keep HA/shared-store rollout gated until Redis/Postgres plus sticky WebSocket routing or a session-owner broker is deployed. |
+| LiMa Device Gateway | `https://chat.donglicao.com/device/v1/*` | nginx proxies `/device/v1/health`, `/device/v1/tasks`, `/device/v1/events`, and WebSocket `/device/v1/ws` to `127.0.0.1:8080`; default mode is memory-only single-node, Redis mode shares task queues and pub/sub task notifications across workers | `routes/device_gateway.py`, `device_gateway/*`, `infra/vps/nginx/chat.donglicao.com.conf`, `docs/superpowers/plans/2026-05-24-lima-direct-device-gateway.md`, `docs/superpowers/plans/2026-05-25-lima-device-gateway-ha.md` | Direct U8/ESP32 device backend | Public behind per-device token auth. Redis HA mode is available for multi-process task delivery; Postgres remains a later audit/history store. |
 
 ## Edge Policy
 
 - Public HTTPS goes through nginx on ports `80` and `443`.
 - FRP public validation uses port `8088`.
-- Direct public access to internal service ports such as `8080`, `3003`, and `8091` must remain blocked by firewall/cloud security group even if services bind `0.0.0.0`.
+- Direct public access to internal service ports such as `8080`, `3003`, `8091`, and `6379` must remain blocked by firewall/cloud security group even if services bind `0.0.0.0`.
 - `api.donglicao.com` branding filters are a compatibility layer over New API, not a license to revive public commercial platform work.
 - `chat.donglicao.com/v1` is the primary IDE/agent base URL.
-- `/device/v1/*` is public through `chat.donglicao.com` only, requires
-  per-device token auth, and currently uses memory-only single-node mode.
-  HA/shared-store rollout remains gated until Redis/Postgres plus sticky
-  WebSocket routing or a session-owner broker is deployed.
+- `/device/v1/*` is public through `chat.donglicao.com` only and requires
+  per-device token auth. Default mode is memory-only single-node. Redis HA mode
+  uses shared queues plus pub/sub task notifications so the process that owns a
+  local WebSocket session can drain tasks created by another process.
 
 ## Secret Policy
 
@@ -57,8 +57,9 @@ Do not commit secrets, cert private keys, provider tokens, database dumps, gener
 - `systemctl cat` snapshots no longer contain provider key lines.
 - Service-unit secret backups were moved to `/root/secure-service-backups` with mode `600`.
 - Latest public health check: `https://chat.donglicao.com/health` returned `status=ok`.
-- Latest device gateway health check: `https://chat.donglicao.com/device/v1/health` returned `status=ok` with memory-only task store.
-- Latest post-migration smoke used `scripts/smoke_online_distributions.py --api-key lima-local --chat-exact device_gateway_https_ok` and passed `11/11`.
+- Latest device gateway health check: `https://chat.donglicao.com/device/v1/health` returned `status=ok` with Redis task store and Redis session bus.
+- Latest post-migration smoke used `scripts/smoke_online_distributions.py --api-key lima-local --chat-exact ha_redis_final_ok` and passed before the Redis port guard was added; the smoke script now also checks public `6379`.
+- Redis HA code path is controlled by `LIMA_DEVICE_TASK_STORE`, `LIMA_DEVICE_SESSION_BUS`, and `LIMA_DEVICE_REDIS_URL`; VPS production is currently enabled with Redis on loopback only.
 
 ## Change Checklist
 

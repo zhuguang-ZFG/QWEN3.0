@@ -23,6 +23,12 @@ async def lifespan(application):
     except ImportError:
         pass
     try:
+        from routes.device_gateway import start_device_gateway_runtime
+
+        await start_device_gateway_runtime()
+    except ImportError:
+        pass
+    try:
         yield
     finally:
         probe_loop.stop()
@@ -30,5 +36,11 @@ async def lifespan(application):
             from session_memory.daemon import stop_daemon
 
             await stop_daemon()
+        except ImportError:
+            pass
+        try:
+            from routes.device_gateway import stop_device_gateway_runtime
+
+            await stop_device_gateway_runtime()
         except ImportError:
             pass

@@ -17,7 +17,14 @@ from device_gateway.protocol import (
     validate_uplink,
 )
 from device_gateway.sessions import DeviceSession, registry
-from device_gateway.store import task_store_health
+from device_gateway.store import configure_task_store_from_env, task_store_health
+from device_gateway.notifier import (
+    configure_notifier_from_env,
+    notifier_health,
+    publish_task_available,
+    start_task_notifier,
+    stop_task_notifier,
+)
 from device_gateway.tasks import (
     create_task_from_transcript,
     enqueue_pending_task,
@@ -40,6 +47,7 @@ async def device_gateway_health() -> dict[str, Any]:
         "active_sessions": registry.count(),
         "pending_tasks": pending_count(),
         "task_store": task_store_health(),
+        "session_bus": notifier_health(),
         "auth_configured": token_configured(),
     }
 
@@ -96,6 +104,7 @@ async def device_gateway_tasks(request: Request) -> JSONResponse:
             queue_depth = pending_count(device_id.strip())
     else:
         queue_depth = enqueue_pending_task(device_id.strip(), task)
+        await publish_task_available(device_id.strip())
     return JSONResponse({"status": "sent" if sent else "queued", "sent": sent, "queue_depth": queue_depth, "task": task})
 
 
@@ -146,6 +155,22 @@ async def _drain_pending_tasks(session: DeviceSession) -> bool:
                 return False
             session.mark_task_dispatched(pending_task)
             mark_task_dispatched(pending_task["task_id"])
+
+
+async def _notify_local_session_task_available(device_id: str) -> None:
+    session = registry.get(device_id)
+    if session is not None:
+        await _drain_pending_tasks(session)
+
+
+async def start_device_gateway_runtime() -> None:
+    configure_task_store_from_env()
+    configure_notifier_from_env()
+    await start_task_notifier(_notify_local_session_task_available)
+
+
+async def stop_device_gateway_runtime() -> None:
+    await stop_task_notifier()
 
 
 @router.websocket("/ws")

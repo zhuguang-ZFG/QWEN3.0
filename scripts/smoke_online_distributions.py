@@ -139,7 +139,7 @@ def main() -> int:
     if args.chat_exact:
         checks.append(_check_exact_chat(args.chat_base, args.api_key, args.chat_exact))
     if not args.skip_port_guard:
-        for port in (8080, 3003, 8091):
+        for port in (8080, 3003, 8091, 6379):
             checks.append(_check_internal_port_guarded(args.public_host, port))
 
     passed = sum(1 for item in checks if item)
