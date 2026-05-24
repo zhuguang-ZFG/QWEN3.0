@@ -1093,3 +1093,9 @@ Verification note:
 - Registered `esp32S_XYZ` as the main repository's tracked downstream product submodule.
 - Added `docs/ESP32S_XYZ_MANAGEMENT.md` as the governance record for LiMa backend ownership, product repository boundaries, submodule pointer updates, verification, and hardware-release safety rules.
 - Recorded `esp32S_XYZ` as a first-class LiMa-managed product distribution in `STATUS.md`, `docs/DOCUMENTATION_STATUS.md`, and `docs/LIMA_MEMORY.md`.
+
+## 2026-05-24 esp32S_XYZ Optimization Authorization
+
+- Confirmed `D:\GIT\esp32S_XYZ` is a clean local clone of `https://github.com/zhuguang-ZFG/esp32S_XYZ.git` on `main...origin/main`.
+- Recorded user authorization for LiMa to perform deep optimization and necessary refactoring in the product repository.
+- Added `docs/ESP32S_XYZ_OPTIMIZATION_ROADMAP.md` and expanded `docs/ESP32S_XYZ_MANAGEMENT.md` with refactor authority, cross-repo order, and gated-release safeguards.

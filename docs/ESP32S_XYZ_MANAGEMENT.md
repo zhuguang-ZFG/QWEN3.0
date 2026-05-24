@@ -12,6 +12,11 @@ The main LiMa repository manages it through the `esp32S_XYZ` submodule because
 LiMa will serve as the AI/backend control plane for the product, but the device
 project must keep its own source history and release flow.
 
+LiMa is also authorized to perform deep optimization and evidence-backed
+refactoring inside the product repository when that is the right way to improve
+backend integration, reliability, testability, or hardware-release readiness.
+The optimization process is tracked in `docs/ESP32S_XYZ_OPTIMIZATION_ROADMAP.md`.
+
 ## Boundary
 
 LiMa owns:
@@ -59,6 +64,24 @@ Use a contract-first integration:
    update the main LiMa submodule pointer plus matching LiMa docs/tests.
 5. Do not copy provider credentials, device secrets, VPS passwords, cert
    private keys, or production API keys between repositories.
+
+## Refactor Authority
+
+LiMa may modify `D:\GIT\esp32S_XYZ` directly when working on this product.
+Allowed work includes:
+
+- code-quality fixes and test hardening;
+- manager API, Xiaozhi server, mobile/web, fake-device, schema, and ops
+  refactors;
+- product-side adapters for LiMa-hosted AI, voice, image/vector, safety,
+  telemetry, and task orchestration;
+- documentation, runbook, and CI improvements;
+- submodule pointer updates in the main LiMa repository after the product repo
+  change is committed and pushed.
+
+Gated work still requires explicit release evidence: production VPS changes,
+OTA behavior changes, provisioning behavior changes, hardware motion execution,
+secret rotation, cert/key handling, and any destructive hardware action.
 
 ## Verification
 

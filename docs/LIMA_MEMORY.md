@@ -1058,3 +1058,5 @@ Deployment: not performed.
   - LiMa owns AI/model routing, memory, safety policy, backend health, VPS endpoints, provider-key custody, and cross-repo compatibility evidence.
   - `esp32S_XYZ` owns firmware, Edge-A/B/C/D schemas, Xiaozhi/manager services, hardware validation, OTA/provisioning/self-check flows, monitoring, and fake-device tools.
   - Integration is contract-first; when chat/LLM, image/vector generation, voice/ASR/TTS, safety, OTA, telemetry, monitoring, or task orchestration changes across both repos, push the product repo first, then advance the main-repo submodule pointer and record verification.
+- User explicitly authorized LiMa to clone/use the product repository and perform deep optimization or necessary refactoring inside `zhuguang-ZFG/esp32S_XYZ.git`.
+- `docs/ESP32S_XYZ_OPTIMIZATION_ROADMAP.md` records the execution order: reproduce baseline, map contracts, rank refactor targets, implement low-risk consolidation, add LiMa adapters where needed, then prepare hardware-gated release evidence.

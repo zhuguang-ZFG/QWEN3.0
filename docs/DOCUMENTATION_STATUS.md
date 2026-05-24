@@ -23,6 +23,7 @@
 | `docs/OPS_ENTRYPOINTS.md` | Compatibility record | Original FreeDomain-inspired ops-entrypoint plan file; points to `docs/ONLINE_DISTRIBUTIONS.md` as the expanded source of truth. |
 | `docs/LIMACODE_MANAGEMENT.md` | Active | Source of truth for LiMa Code submodule governance, pinned revision updates, and cross-repo verification. |
 | `docs/ESP32S_XYZ_MANAGEMENT.md` | Active | Source of truth for esp32S_XYZ submodule governance, LiMa backend boundaries, and cross-repo product verification. |
+| `docs/ESP32S_XYZ_OPTIMIZATION_ROADMAP.md` | Active | Optimization and refactor mandate for LiMa-led esp32S_XYZ improvement work. |
 | `docs/superpowers/plans/2026-05-23-agent-autonomy-evolution.md` | Active plan | Superpowers implementation plan for gated multi-agent autonomy, skill/gene evolution, and GitHub/VPS approval boundaries. |
 | `docs/superpowers/plans/2026-05-23-techspar-mastery-loop.md` | Active record | Implemented TechSpar-inspired local mastery loop for module mastery, weak-point extraction, review scheduling, recommendations, and promotion evidence gates. |
 | `docs/reference/TECHSPAR_BORROWING_NOTES.md` | Active boundary | Concept-borrowing record and license boundary for the local mastery loop. |

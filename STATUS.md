@@ -25,7 +25,7 @@
 | Online distributions | Tracked | Official website, open platform, chat interface, FRP path, nginx snapshots, systemd snapshots, and smoke script are recorded in `docs/ONLINE_DISTRIBUTIONS.md`, `infra/vps/`, and `scripts/smoke_online_distributions.py`. |
 | Reference migration compatibility | Closed | Original planned import/doc paths `code_context.retriever` and `docs/OPS_ENTRYPOINTS.md` are present as compatibility facades. |
 | LiMa Code repository management | Tracked | `deepcode-cli` is pinned as a Git submodule and governed by `docs/LIMACODE_MANAGEMENT.md`. |
-| esp32S_XYZ product backend | Tracked | `esp32S_XYZ` is pinned as a Git submodule; LiMa is the planned AI/backend control plane, governed by `docs/ESP32S_XYZ_MANAGEMENT.md`. |
+| esp32S_XYZ product backend | Tracked and authorized | `esp32S_XYZ` is pinned as a Git submodule; LiMa is the planned AI/backend control plane and may perform evidence-backed deep optimization/refactoring, governed by `docs/ESP32S_XYZ_MANAGEMENT.md` and `docs/ESP32S_XYZ_OPTIMIZATION_ROADMAP.md`. |
 
 ## 2026-05-24 Deployment And Closure Update
 
