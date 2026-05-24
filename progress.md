@@ -355,13 +355,13 @@ Follow-up after final review:
 - Re-ran the LiMa target test suite:
   - `python -m pytest -q tests .\test_routing_engine.py .\test_rate_limiter.py .\test_http_caller.py .\test_dual_track.py .\test_code_orchestrator.py .\test_streaming.py .\test_skills_injector.py --ignore=active_model`
   - Result: `382 passed, 8 skipped`.
-- Calibrated module status:
+- Calibrated module status at that time, superseded by later 2026-05-24 closure records:
   - Session Memory writes and compaction trigger are in the successful chat path.
   - Session Memory recall processor exists but is not the main `server.py` prompt-time path.
-  - Graph retrieval/reranking is computed but not yet injected into prompt context.
+  - Graph retrieval/reranking was still compute-only at that time; later 2026-05-24 work closed this gap through `inject_retrieval_context()`.
   - Tool Gateway executor is hardened with `shell=False`, audit events, and copied HTTP args.
   - Admin UI auth is improved, but query-token login remains a later hardening target.
-  - `ConcurrencyPool` exists and is tested, but key scheduling has not been replaced.
+  - `ConcurrencyPool` existed and was tested, but key scheduling had not been replaced at that time; later 2026-05-24 work wired `key_pool.py` into `http_caller.py`.
 - Reviewed external references:
   - OpenRAG is valuable for knowledge ingestion, retrieval traceability, MCP knowledge tools, and document parsing patterns.
   - Google Cloud always-on-memory-agent is the stronger near-term reference for LiMa's memory daemon and consolidation layer.
@@ -712,7 +712,7 @@ Verification note:
   - expired leases can be reclaimed by another worker;
   - claim updates task state and claim events under the store lock.
 - Hardened the admin HTML shell:
-  - `?token=` no longer authenticates;
+  - query-token URLs no longer authenticate;
   - login sets a signed HttpOnly Secure session cookie derived from `LIMA_ADMIN_TOKEN`;
   - rendered admin HTML no longer injects the raw admin token or `const _ADMIN_TOKEN`.
 - Verification:
@@ -790,7 +790,7 @@ Verification note:
   - `python -m pytest tests\test_agent_task_routes.py -q --ignore=active_model`: `24 passed`.
   - `python -m pytest tests\test_lima_smoke_task_script.py -q --ignore=active_model`: `2 passed`.
   - `python -m py_compile routes\agent_tasks.py tests\test_agent_task_routes.py scripts\create_lima_smoke_task.py tests\test_lima_smoke_task_script.py`: passed.
-  - `Select-String -Path docs\LIMA_REAL_MACHINE_SMOKE.md -Pattern "zhuguang110|sk-|Bearer |token="`: no matches.
+  - `Select-String -Path docs\LIMA_REAL_MACHINE_SMOKE.md -Pattern "zhuguang110|sk-|Bearer |query-token"`: no matches.
 - Environment note:
   - `D:\GIT\venv\Scripts\python.exe -m pytest ...` still fails before collection because the venv lacks `pytest_asyncio`; system `python` was used for meaningful test evidence.
 - No production deployment was performed.
@@ -1007,3 +1007,31 @@ Verification note:
   - HTTPS chat returned exact `endpoints_closed_https_ok`;
   - FRP chat returned exact `endpoints_closed_frp_ok`;
   - `/agent/worker/preflight` returned `ready=true`, `contract_version=agent-task-v1`.
+
+## 2026-05-24 TechSpar Mastery Loop Closure
+
+- Implemented the TechSpar-inspired local evidence loop:
+  - `mastery_loop/models.py` defines mastery events, module mastery, weak points, review schedules, and recommendations.
+  - `mastery_loop/profile_store.py` stores sanitized evidence in SQLite and redacts secret-like text before persistence.
+  - `mastery_loop/event_adapter.py`, `weak_point_extractor.py`, `scorer.py`, `scheduler.py`, `recommender.py`, and `trace.py` convert tests/reviews/routes/tools/deploys into scores, weak points, schedules, and recommendation traces.
+- Wired agent skill promotion to evidence:
+  - `CandidateSkill` now stores `mastery_evidence_refs`.
+  - `promote_candidate()` requires eval pass, manual approval, and non-empty mastery evidence refs before activation.
+  - `/agent/skills/{skill_id}/promote` enforces the same gate.
+  - Successful promotion is persisted back to the JSON candidate store.
+- Added reference-boundary docs:
+  - `docs/reference/TECHSPAR_BORROWING_NOTES.md`.
+  - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`.
+  - `docs/reference/POTPIE_COMPOSIO_BORROWING_NOTES.md` now also records AnySearch and FreeDomain boundaries.
+- Updated status docs so stale claims no longer describe retrieval as compute-only or the TechSpar loop as only future work.
+- Focused verification:
+  - `D:\GIT\venv\Scripts\python.exe -m py_compile mastery_loop\*.py agent_evolution\candidates.py agent_evolution\promote.py routes\agent_tasks.py`: passed.
+  - `D:\GIT\venv\Scripts\python.exe -m pytest tests/test_mastery_loop.py tests/test_agent_evolution.py tests/test_agent_task_routes.py -q --ignore=active_model`: `40 passed`.
+  - Expanded runtime regression over backend registry, key pool, endpoint, agent route, access, prompt-memory, routing, request-stats, vision, secret hygiene, mastery, and evolution tests: `144 passed`.
+  - Focused docs/reference secret scan: no matches.
+  - `git diff --check` on touched files: no whitespace errors; Git reported expected LF-to-CRLF working-copy warnings only.
+- Remaining items are intentionally gated policy surfaces, not unimplemented migration tasks:
+  - always-on worker daemon;
+  - Kimi/TheOldLLM/MiMo/page-only promotion;
+  - refresh execution;
+  - mastery admin UI exposure and hot-path planner/routing influence.

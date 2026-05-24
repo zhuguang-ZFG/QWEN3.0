@@ -451,6 +451,9 @@ class TestTaskEndpoints:
 
 
 class TestSkillEndpoints:
+    def setup_method(self):
+        _reset_for_tests()
+
     def test_list_candidates_empty(self):
         resp = client.get("/agent/skills/candidates", headers=HEADERS)
         assert resp.status_code == 200
@@ -467,3 +470,87 @@ class TestSkillEndpoints:
             "eval_passed": True, "manual_flag": True,
         })
         assert resp.status_code in (401, 422)
+
+    def test_promote_candidate_requires_mastery_evidence(self):
+        task_id = client.post("/agent/tasks", json={
+            "repo": "D:/GIT/deepcode-cli",
+            "goal": "learn safe promotion gate",
+            "allowed_tools": ["git_diff"],
+            "mode": "review",
+        }, headers=HEADERS).json()["task_id"]
+        client.post(f"/agent/tasks/{task_id}/result", json={
+            "task_id": task_id,
+            "status": "needs_review",
+            "summary": "candidate evidence created",
+            "changed_files": ["src/lima/gate.ts"],
+            "test_commands": ["npm.cmd test -- src/tests/lima-gate.test.ts"],
+            "test_results": [{
+                "command": "npm.cmd test -- src/tests/lima-gate.test.ts",
+                "exit_code": 0,
+            }],
+            "diff_preview": "",
+            "artifacts": [],
+            "risks": [],
+            "next_action": "approve",
+        }, headers=HEADERS)
+        client.post(
+            f"/agent/tasks/{task_id}/review",
+            json={"decision": "approved", "reviewer": "human"},
+            headers=HEADERS,
+        )
+        candidate = client.get(
+            "/agent/skills/candidates", headers=HEADERS
+        ).json()["candidates"][0]
+
+        resp = client.post(
+            f"/agent/skills/{candidate['skill_id']}/promote",
+            json={"eval_passed": True, "manual_flag": True},
+            headers=HEADERS,
+        )
+
+        assert resp.status_code == 400
+        assert "mastery evidence" in resp.json()["detail"]
+
+    def test_promote_candidate_accepts_mastery_evidence(self):
+        task_id = client.post("/agent/tasks", json={
+            "repo": "D:/GIT/deepcode-cli",
+            "goal": "learn verified promotion gate",
+            "allowed_tools": ["git_diff"],
+            "mode": "review",
+        }, headers=HEADERS).json()["task_id"]
+        client.post(f"/agent/tasks/{task_id}/result", json={
+            "task_id": task_id,
+            "status": "needs_review",
+            "summary": "candidate evidence created",
+            "changed_files": ["src/lima/gate.ts"],
+            "test_commands": ["npm.cmd test -- src/tests/lima-gate.test.ts"],
+            "test_results": [{
+                "command": "npm.cmd test -- src/tests/lima-gate.test.ts",
+                "exit_code": 0,
+            }],
+            "diff_preview": "",
+            "artifacts": [],
+            "risks": [],
+            "next_action": "approve",
+        }, headers=HEADERS)
+        client.post(
+            f"/agent/tasks/{task_id}/review",
+            json={"decision": "approved", "reviewer": "human"},
+            headers=HEADERS,
+        )
+        candidate = client.get(
+            "/agent/skills/candidates", headers=HEADERS
+        ).json()["candidates"][0]
+
+        resp = client.post(
+            f"/agent/skills/{candidate['skill_id']}/promote",
+            json={
+                "eval_passed": True,
+                "manual_flag": True,
+                "mastery_evidence_refs": ["mastery://event/promotion-gate"],
+            },
+            headers=HEADERS,
+        )
+
+        assert resp.status_code == 200
+        assert resp.json() == {"promoted": True, "skill_id": candidate["skill_id"]}

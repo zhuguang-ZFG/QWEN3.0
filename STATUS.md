@@ -21,6 +21,7 @@
 | Web-reverse model admission | Complete for first batch | 29 registered web-reverse/local-proxy backends smoked with synthetic prompts; SCNet large is `code_medium_candidate`, Kimi local is `code_floor_candidate`. |
 | Memory daemon + prompt recall | Implemented locally | Server lifespan starts `session_memory.daemon`; `scripts/memory_daemon_ctl.py` can inspect status/run one cycle; `server.py` now runs prompt-time memory recall before routing. |
 | Autonomous worker lifecycle | Partially implemented | LiMa Code has bounded `/lima work` loops, stop marker, failure quarantine, repo allowlist, audit, and runtime budget. Always-on daemon mode remains a later gated step. |
+| Mastery loop | Implemented locally | `mastery_loop/` stores evidence-backed module mastery, weak points, schedules, and recommendations; agent skill promotion now requires mastery evidence refs. |
 
 ## 2026-05-24 Deployment And Closure Update
 
@@ -75,8 +76,9 @@
 Current known remaining planning items:
 
 1. No active architecture backlog remains from the requested backend config, key-pool, endpoint, or `server.py` route-decomposition items.
-2. Kimi, TheOldLLM, MiMo web, and page-only web AI candidates remain intentionally gated until refreshed and model-level smokes pass.
-3. Always-on worker daemon mode remains intentionally gated behind explicit repo allowlist, runtime budget, stop marker, audit, failure quarantine, and manual production approval.
+2. TechSpar-inspired mastery loop Phase 0-5 and the agent-evolution promotion gate are implemented locally; admin UI exposure and hot-path behavior changes remain intentionally gated.
+3. Kimi, TheOldLLM, MiMo web, and page-only web AI candidates remain intentionally gated until refreshed and model-level smokes pass.
+4. Always-on worker daemon mode remains intentionally gated behind explicit repo allowlist, runtime budget, stop marker, audit, failure quarantine, and manual production approval.
 
 ## 2026-05-23 Calibrated Status
 
@@ -93,11 +95,11 @@ Current module reality:
 |---|---|
 | Session Memory | `server.py` writes successful user/assistant turns to SQLite and now runs `session_memory.prompt_recall.apply_prompt_memory_recall()` before budget checks, identity adaptation, routing analysis, `v3_route`, OpenAI streaming, and fallback retry messages. |
 | Memory daemon / compaction | `server.py` lifespan starts `session_memory.daemon`; daemon runs inbox ingestion and consolidation outside `/v1/chat/completions`. `scripts/memory_daemon_ctl.py status|run-once` provides local verification. |
-| Graph Retrieval | Entity extraction, code graph retrieval, reranking, and tests exist. `routing_engine.py` currently computes `_reranked`, but formatted retrieval context is not yet injected into prompts. |
+| Graph Retrieval | Entity extraction, code graph retrieval, reranking, prompt injection, retrieval trace, and MCP/admin trace access are implemented and tested through the shared `inject_retrieval_context()` path. |
 | Default context pipeline | `context_pipeline.factory.build_default_pipeline()` is implemented and tested, but `server.py` still uses explicit integration blocks rather than this factory as the single request pipeline. |
 | Tool Gateway | Executor now uses `shell=False`, argument validation, copied HTTP args, and audit events. |
-| Admin UI auth | API calls use `authFetch` and JS token injection is JSON-escaped. The HTML login still uses `?token=...`, so a cookie/session design remains a later hardening step. |
-| Concurrency Pool | Implemented and tested as `context_pipeline.concurrency_pool.ConcurrencyPool`; it has not replaced `key_pool.py` or provider key scheduling. |
+| Admin UI auth | API calls use `authFetch` and JS token injection is JSON-escaped. The HTML login still uses a query-token parameter, so a cookie/session design remains a later hardening step. |
+| Concurrency Pool / Key Pool | `context_pipeline.concurrency_pool.ConcurrencyPool` remains a separate tested primitive; active provider key scheduling is handled by `key_pool.py` with HTTP caller integration and redacted telemetry. |
 
 LiMa Code worker reality:
 
@@ -115,6 +117,7 @@ Reference architecture conclusion:
 - `docs/REFERENCE_PROJECT_EVALUATION.md` is the current comparison of OpenRAG and Google Cloud always-on-memory-agent.
 - OpenRAG is useful for knowledge ingestion, retrieval traces, and MCP knowledge tools.
 - always-on-memory-agent is more directly useful for LiMa's next memory step: background inbox ingestion, typed memory, and consolidation.
+- TechSpar is implemented as the local `mastery_loop/` evidence layer: module mastery, weak points, review scheduling, recommendations, and promotion evidence gates.
 
 ## Latest Routing Facts
 

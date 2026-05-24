@@ -27,6 +27,12 @@ def test_candidate_without_eval_cannot_activate():
 
 def test_candidate_with_failed_eval_cannot_activate():
     c = _make_candidate(eval_passed=False, promoted=True)
+    c.mastery_evidence_refs = ["mastery://event"]
+    assert can_activate(c) is False
+
+
+def test_candidate_without_mastery_evidence_cannot_activate():
+    c = _make_candidate(eval_passed=True, promoted=True)
     assert can_activate(c) is False
 
 
@@ -34,7 +40,22 @@ def test_candidate_eval_passed_no_manual_flag_cannot_promote():
     store = CandidateStore()
     c = _make_candidate()
     store.add(c)
-    result = promote_candidate(store, "abc123", eval_passed=True, manual_flag=False)
+    result = promote_candidate(
+        store,
+        "abc123",
+        eval_passed=True,
+        manual_flag=False,
+        mastery_evidence_refs=["mastery://event"],
+    )
+    assert result is False
+    assert c.promoted is False
+
+
+def test_candidate_eval_passed_and_manual_flag_without_mastery_evidence_cannot_promote():
+    store = CandidateStore()
+    c = _make_candidate()
+    store.add(c)
+    result = promote_candidate(store, "abc123", eval_passed=True, manual_flag=True)
     assert result is False
     assert c.promoted is False
 
@@ -43,12 +64,40 @@ def test_candidate_eval_passed_and_manual_flag_promotes():
     store = CandidateStore()
     c = _make_candidate()
     store.add(c)
-    result = promote_candidate(store, "abc123", eval_passed=True, manual_flag=True)
+    result = promote_candidate(
+        store,
+        "abc123",
+        eval_passed=True,
+        manual_flag=True,
+        mastery_evidence_refs=["mastery://event"],
+    )
     assert result is True
     assert c.active is True
     assert c.promoted is True
     assert c.eval_passed is True
+    assert c.mastery_evidence_refs == ["mastery://event"]
     assert can_activate(c) is True
+
+
+def test_candidate_promotion_persists_mastery_evidence(tmp_path):
+    persist_path = tmp_path / "candidates.json"
+    store = CandidateStore(persist_path=persist_path)
+    c = _make_candidate()
+    store.add(c)
+
+    result = promote_candidate(
+        store,
+        "abc123",
+        eval_passed=True,
+        manual_flag=True,
+        mastery_evidence_refs=["mastery://event"],
+    )
+
+    reloaded = CandidateStore(persist_path=persist_path).get("abc123")
+    assert result is True
+    assert reloaded is not None
+    assert reloaded.promoted is True
+    assert reloaded.mastery_evidence_refs == ["mastery://event"]
 
 
 def test_extract_candidate_creates_inactive():

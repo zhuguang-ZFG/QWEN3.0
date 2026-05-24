@@ -1,4 +1,4 @@
-# Potpie / Composio Borrowing Notes
+# Potpie / Composio / AnySearch / FreeDomain Borrowing Notes
 
 ## Potpie
 
@@ -27,9 +27,36 @@ Do not borrow directly:
 - 1000+ tool ecosystem.
 - OAuth-heavy multi-tenant flows.
 
+## AnySearch
+
+Borrow:
+- Explicit search policy before external search.
+- Domain-scoped and batch search adapter boundary.
+- URL extraction behind a safety guard.
+- Optional API key handling with injectable transport for tests.
+
+Do not borrow directly:
+- External search as a default step for ordinary chat or code requests.
+- Sending private repository paths, tokens, prompts, or local IPs to an external transport.
+- A hard dependency on any single hosted search provider.
+
+## FreeDomain
+
+Borrow:
+- Public endpoint inventory.
+- Domain ownership and health-path documentation.
+- Misconfiguration checks before publishing endpoints.
+
+Do not borrow directly:
+- Public domain registration workflows.
+- A multi-tenant hosting product.
+- Any feature that expands LiMa beyond the private coding assistant direction.
+
 ## LiMa Decision
 
 Build a small local version first:
 - code_context for repo-aware prompts.
 - tool_gateway for a small whitelisted local tool set.
+- search_gateway for opt-in dev search with redaction and safe URL checks.
+- ops_entrypoint for endpoint inventory and public smoke checks.
 - No production deploy until local tests and manual smoke pass.

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` for implementation phases, `superpowers:verification-before-completion` before marking a phase done, and `safety-guard` before any autonomous runner, tool execution, GitHub operation, VPS deployment, or data migration.
 >
-> **Current policy:** This is a plan document only. Do not change runtime code until the owner starts a specific implementation phase.
+> **Current status:** Implementation has started and the local Phase 0-5 slice is complete: `mastery_loop/` contains typed records, SQLite-backed storage, event adapters, scoring, weak-point extraction, review scheduling, recommendations, and traces. Phase 7's promotion gate is also wired: agent skill promotion requires mastery evidence. Admin UI exposure and hot-path planner/routing influence remain gated future work.
 
 **Goal:** Borrow TechSpar's continuous training loop idea and adapt it into LiMa's coding-agent improvement loop: every coding task, review, test failure, deployment event, and routing lesson should update a durable project/module capability profile that influences future planning, retrieval, testing, and self-improvement.
 
@@ -169,10 +169,10 @@ ReviewSchedule
 
 **Steps:**
 
-- [ ] Record TechSpar concepts borrowed for LiMa: long-term profile, weak-point extraction, mastery update, review scheduling, dynamic next-round focus.
-- [ ] Record rejected areas: interview UI, voice stack, resume/JD business logic, user-facing React product shell.
-- [ ] Record license boundary: concept borrowing only because TechSpar uses CC BY-NC 4.0.
-- [ ] Run a docs secret scan:
+- [x] Record TechSpar concepts borrowed for LiMa: long-term profile, weak-point extraction, mastery update, review scheduling, dynamic next-round focus.
+- [x] Record rejected areas: interview UI, voice stack, resume/JD business logic, user-facing React product shell.
+- [x] Record license boundary: concept borrowing only because TechSpar uses CC BY-NC 4.0.
+- [x] Run a docs secret scan:
 
 ```powershell
 rg -n "sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9_]{20,}|password\s*=|token\s*=" D:\GIT\docs\reference\TECHSPAR_BORROWING_NOTES.md D:\GIT\docs\superpowers\plans\2026-05-23-techspar-mastery-loop.md
@@ -183,13 +183,15 @@ rg -n "sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9_]{20,}|password\s*=|token\s*="
 - TechSpar is documented as a mastery-loop reference, not an agent runtime dependency.
 - No credential-like strings appear in the new docs.
 
+**Status:** Complete in `docs/reference/TECHSPAR_BORROWING_NOTES.md`.
+
 ---
 
 ## Phase 1: Mastery Store Skeleton
 
 **Purpose:** Add the durable profile store before using it in routing or agents.
 
-**Create module later:**
+**Implemented module:**
 
 ```text
 mastery_loop/
@@ -217,13 +219,15 @@ mastery_loop/
 - LiMa can record profile and weak-point data locally.
 - Existing target suite still passes.
 
+**Status:** Complete in `mastery_loop/models.py` and `mastery_loop/profile_store.py`.
+
 ---
 
 ## Phase 2: Event Adapters
 
 **Purpose:** Convert existing LiMa evidence into normalized mastery events.
 
-**Create module later:**
+**Implemented module:**
 
 ```text
 mastery_loop/
@@ -250,13 +254,15 @@ mastery_loop/
 
 - Existing runtime evidence can feed the mastery store without changing hot-path behavior.
 
+**Status:** Complete in `mastery_loop/event_adapter.py`.
+
 ---
 
 ## Phase 3: Scoring And Weak-Point Extraction
 
 **Purpose:** Turn raw events into useful signals.
 
-**Create module later:**
+**Implemented modules:**
 
 ```text
 mastery_loop/
@@ -284,13 +290,15 @@ mastery_loop/
 
 - LiMa can explain "this module is risky because..." from local evidence.
 
+**Status:** Complete in `mastery_loop/scorer.py` and `mastery_loop/weak_point_extractor.py`.
+
 ---
 
 ## Phase 4: SM-2-Inspired Review Scheduler
 
 **Purpose:** Borrow TechSpar's review scheduling idea for code quality.
 
-**Create module later:**
+**Implemented module:**
 
 ```text
 mastery_loop/
@@ -315,13 +323,15 @@ mastery_loop/
 
 - LiMa can list due regression/review targets.
 
+**Status:** Complete in `mastery_loop/scheduler.py`.
+
 ---
 
 ## Phase 5: Planner And Tester Recommendations
 
 **Purpose:** Make mastery data influence agent behavior safely.
 
-**Create module later:**
+**Implemented modules:**
 
 ```text
 mastery_loop/
@@ -354,6 +364,8 @@ mastery_loop/
 
 - LiMa planning becomes evidence-weighted without forcing automatic code changes.
 
+**Status:** Complete in `mastery_loop/recommender.py` and `mastery_loop/trace.py`.
+
 ---
 
 ## Phase 6: Admin Trace And Weak-Point View
@@ -379,6 +391,8 @@ mastery_loop/
 
 - Owner can see what LiMa thinks is risky and why.
 
+**Status:** Deferred and gated. The local recommendation/trace layer exists; broad admin UI exposure requires private admin guard hardening and focused tests.
+
 ---
 
 ## Phase 7: Close The Learning Loop
@@ -401,6 +415,8 @@ mastery_loop/
 **Exit criteria:**
 
 - LiMa can improve its workflow from evidence, not vibes.
+
+**Status:** Promotion gate is wired in `agent_evolution.promote_candidate()` and `/agent/skills/{skill_id}/promote`: eval pass, manual approval, and non-empty mastery evidence refs are required. Automatic event writes from promotion remain future gated work.
 
 ---
 

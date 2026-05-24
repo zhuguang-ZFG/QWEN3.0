@@ -21,8 +21,8 @@ async def _require_admin(authorization: str = Header(default="")) -> None:
     token_expected = _get_admin_token()
     if not token_expected:
         raise HTTPException(503, "LIMA_ADMIN_TOKEN not configured")
-    token = authorization.replace("Bearer ", "").strip()
-    if token != token_expected:
+    presented = authorization.replace("Bearer ", "").strip()
+    if presented != token_expected:
         raise HTTPException(401, "Unauthorized")
 
 class _TaskStore:
@@ -135,6 +135,7 @@ _store = _TaskStore(_DB_PATH)
 
 def _reset_for_tests() -> None:
     _store.clear_for_tests()
+    get_candidate_store().clear_for_tests()
 
 # --- Pydantic models ---
 class TaskCreateBody(BaseModel):
@@ -181,6 +182,7 @@ class ReviewBody(BaseModel):
 class PromoteBody(BaseModel):
     eval_passed: bool = False
     manual_flag: bool = False
+    mastery_evidence_refs: list[str] = Field(default_factory=list)
 
 # --- Helpers ---
 def _task_envelope(task: dict) -> dict:
@@ -505,7 +507,13 @@ async def list_skill_candidates():
 @router.post("/skills/{skill_id}/promote", dependencies=[Depends(_require_admin)])
 async def promote_skill(skill_id: str, body: PromoteBody):
     store = get_candidate_store()
-    success = promote_candidate(store, skill_id, body.eval_passed, body.manual_flag)
+    success = promote_candidate(
+        store,
+        skill_id,
+        body.eval_passed,
+        body.manual_flag,
+        body.mastery_evidence_refs,
+    )
     if not success:
-        raise HTTPException(400, "Promotion failed: eval must pass and manual flag required")
+        raise HTTPException(400, "Promotion failed: eval, manual flag, and mastery evidence are required")
     return {"promoted": True, "skill_id": skill_id}

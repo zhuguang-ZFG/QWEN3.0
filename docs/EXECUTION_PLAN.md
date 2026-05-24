@@ -42,6 +42,7 @@ Paused work:
 | 8. MCP knowledge/memory tools | Complete | `/mcp/tools/list` and `/mcp/tools/call` expose search_repo, search_memory, get_retrieval_trace. |
 | 9. Dead code cleanup + streaming unification | Complete | stats_collector.py deleted; streaming path wired through inject_retrieval_context. |
 | 10. server.py decomposition | Complete for current architecture pass | server.py is reduced to app setup plus core runtime helpers; chat, Anthropic, system, lifespan, models, request helpers, streaming helpers, admin, images, embeddings, and worker routes are extracted. |
+| 11. TechSpar-inspired mastery loop | Complete locally | `mastery_loop/` records sanitized evidence, module mastery, weak points, review schedules, recommendations, and traces; skill promotion requires mastery evidence. |
 
 ## 2026-05-24 Runtime Closure
 
@@ -63,6 +64,11 @@ Paused work:
   - `key_pool.pool_snapshot()` exposes redacted active/cooled/blocked telemetry for provider pools.
   - Verification passed: endpoint/key-pool focused suite `62 passed`; expanded runtime regression `128 passed`; remote compile/import passed.
   - Public smokes passed: HTTPS exact `endpoints_closed_https_ok`; FRP exact `endpoints_closed_frp_ok`; worker preflight `ready=true`.
+- Mastery-loop closure is implemented locally:
+  - `mastery_loop/` contains typed models, SQLite-backed storage, event adapters, scoring, weak-point extraction, scheduling, recommendations, and traces.
+  - `agent_evolution.promote_candidate()` requires eval pass, manual approval, and non-empty mastery evidence refs.
+  - `/agent/skills/{skill_id}/promote` enforces the same evidence gate.
+  - Focused regression currently covers mastery storage/adapters/scoring/recommendations and route-level promotion behavior.
 - FRP `8088` is closed-loop again after hardening local Windows router startup:
   - local `8080` chat returned exact `lima-final-local-ok`;
   - public FRP `8088` chat returned exact `lima-final-frp-ok`;
@@ -72,7 +78,8 @@ Paused work:
 
 1. Keep always-on worker daemon mode gated behind repo allowlist, runtime budget, stop marker, audit, failure quarantine, and manual production approval.
 2. Keep gated web/local candidates out of normal routing until refresh and model-level smoke evidence exists.
-3. Run local tests, deploy only when requested, smoke public endpoints.
+3. Keep mastery-loop admin UI exposure and hot-path planner/routing influence gated until private admin views and focused safety tests exist.
+4. Run local tests, deploy only when requested, smoke public endpoints.
 
 ## Verification Commands
 
@@ -95,3 +102,5 @@ Chat smoke should use JSON serialization from Python or a known-good client to a
 - `docs/LOCAL_PROXY_RUNTIME_STATUS.md`
 - `docs/FREE_WEB_AI_EXPANSION_PLAN.md`
 - `docs/REFERENCE_PROJECT_EVALUATION.md`
+- `docs/reference/TECHSPAR_BORROWING_NOTES.md`
+- `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`

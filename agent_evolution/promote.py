@@ -5,7 +5,7 @@ from agent_evolution.candidates import CandidateSkill, CandidateStore
 
 def can_activate(candidate: CandidateSkill) -> bool:
     """A candidate can activate only after eval and manual promotion."""
-    return candidate.eval_passed and candidate.promoted
+    return candidate.eval_passed and candidate.promoted and bool(candidate.mastery_evidence_refs)
 
 
 def promote_candidate(
@@ -13,6 +13,7 @@ def promote_candidate(
     skill_id: str,
     eval_passed: bool,
     manual_flag: bool,
+    mastery_evidence_refs: list[str] | None = None,
 ) -> bool:
     """Promote a candidate through the gate.
 
@@ -26,7 +27,12 @@ def promote_candidate(
         return False
     if not manual_flag:
         return False
+    evidence_refs = [ref for ref in (mastery_evidence_refs or []) if ref]
+    if not evidence_refs:
+        return False
     candidate.eval_passed = True
+    candidate.mastery_evidence_refs = evidence_refs
     candidate.active = True
     candidate.promoted = True
+    store.update(candidate)
     return True

@@ -1,6 +1,6 @@
 ﻿# Documentation Status
 
-> Updated: 2026-05-23
+> Updated: 2026-05-24
 > Purpose: prevent old commercial-platform plans from being mistaken for the active LiMa direction.
 
 ## Current Source Of Truth
@@ -18,9 +18,11 @@
 | `docs/CLOUDFLARE_MODEL_INVENTORY.md` | Active | Cloudflare direct/Worker model inventory, routing policy, and adapter boundaries. |
 | `docs/CLOUDFLARE_WORKER_QUICK_EVAL.md` | Active evidence | Worker quick coding eval for `cfai_qwen_coder`, `cfai_deepseek_r1`, and `cfai_mistral`. |
 | `docs/EXECUTION_PLAN.md` | Active | Current phase tracker for documentation/GitHub snapshot and next implementation order. |
-| `docs/REFERENCE_PROJECT_EVALUATION.md` | Active | Current evaluation of OpenRAG and Google Cloud always-on-memory-agent against LiMa's real code state. |
+| `docs/REFERENCE_PROJECT_EVALUATION.md` | Active | Current evaluation of OpenRAG, Google Cloud always-on-memory-agent, TechSpar, and autonomy references against LiMa's real code state. |
 | `docs/superpowers/plans/2026-05-23-agent-autonomy-evolution.md` | Active plan | Superpowers implementation plan for gated multi-agent autonomy, skill/gene evolution, and GitHub/VPS approval boundaries. |
-| `docs/superpowers/plans/2026-05-23-techspar-mastery-loop.md` | Active plan | TechSpar-inspired plan for LiMa module mastery, weak-point extraction, review scheduling, and evidence-driven self-improvement. |
+| `docs/superpowers/plans/2026-05-23-techspar-mastery-loop.md` | Active record | Implemented TechSpar-inspired local mastery loop for module mastery, weak-point extraction, review scheduling, recommendations, and promotion evidence gates. |
+| `docs/reference/TECHSPAR_BORROWING_NOTES.md` | Active boundary | Concept-borrowing record and license boundary for the local mastery loop. |
+| `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md` | Active boundary | Concept-borrowing record for gated autonomy, role separation, and evidence-based promotion. |
 | `docs/superpowers/plans/2026-05-23-lima-code-vibe-coding.md` | Active plan | LiMa Code fork integration plan for using LiMa as model router and LiMa Code as vibe coding worker/UI. |
 | `docs/superpowers/plans/2026-05-22-cloudflare-workers-ai-routing.md` | Active record | Completed Cloudflare text/code routing implementation plan. |
 | `docs/superpowers/plans/2026-05-22-token-safe-local-proxy-routing.md` | Active record | Completed token-safe refresh, topology-aware local proxy routing, and exact-output quality hotfix plan. |

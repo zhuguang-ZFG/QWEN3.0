@@ -5,7 +5,7 @@ import json
 import os
 import threading
 import time
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from pathlib import Path
 
 _PERSIST_DIR = Path(os.environ.get(
@@ -27,6 +27,7 @@ class CandidateSkill:
     active: bool = False
     eval_passed: bool = False
     promoted: bool = False
+    mastery_evidence_refs: list[str] = field(default_factory=list)
 
 
 def extract_candidate(
@@ -106,6 +107,13 @@ class CandidateStore:
             self._store[candidate.skill_id] = candidate
             self._save()
 
+    def update(self, candidate: CandidateSkill) -> None:
+        with self._lock:
+            if candidate.skill_id not in self._store:
+                raise KeyError(candidate.skill_id)
+            self._store[candidate.skill_id] = candidate
+            self._save()
+
     def get(self, skill_id: str) -> CandidateSkill | None:
         with self._lock:
             return self._store.get(skill_id)
@@ -113,6 +121,11 @@ class CandidateStore:
     def list_pending(self) -> list[CandidateSkill]:
         with self._lock:
             return [c for c in self._store.values() if not c.promoted]
+
+    def clear_for_tests(self) -> None:
+        with self._lock:
+            self._store.clear()
+            self._save()
 
 
 _global_store: CandidateStore | None = None

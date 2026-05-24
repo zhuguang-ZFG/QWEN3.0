@@ -1,6 +1,6 @@
 # LiMa Memory
 
-> Updated: 2026-05-23
+> Updated: 2026-05-24
 > Purpose: durable working memory for future LiMa coding-assistant sessions.
 
 ## Current Direction
@@ -81,6 +81,8 @@ Verified facts:
 | `health_tracker.py` | Backend health and cooldown. |
 | `budget_manager.py` | Backend budget availability and priority. |
 | `backends.py` | Backend inventory. |
+| `mastery_loop/` | Evidence-backed module mastery, weak-point extraction, review scheduling, and recommendations. |
+| `agent_evolution/` | Candidate skill extraction plus gated promotion requiring eval, manual approval, and mastery evidence. |
 
 ## Coding Backend Evidence
 
@@ -243,23 +245,25 @@ Current integration truth:
 - Recall evidence is intentionally metadata-only: OpenAI-compatible responses include `x_lima_meta.memory_recall`, and request traces include a `prompt_memory_recall` span without leaking recalled memory content.
 - `server.py` lifespan starts `session_memory.daemon`, so inbox ingestion and consolidation can run outside `/v1/chat/completions`.
 - `scripts/memory_daemon_ctl.py status|run-once` provides a local ops entry point for checking daemon config and running one safe cycle.
-- Graph retrieval and reranking exist, but `_reranked` is currently computed without becoming injected prompt context.
+- Graph retrieval and reranking are injected through the shared `inject_retrieval_context()` path with trace evidence.
 - `context_pipeline.factory.build_default_pipeline()` is tested, but `server.py` still uses explicit integration blocks.
 - Tool Gateway has been hardened with `shell=False`, simple safe-argument validation, copied HTTP args, and audit events.
 - Admin UI API calls use bearer auth and safe JS token escaping; query-token login remains a later hardening target.
-- ConcurrencyPool is implemented and tested but not yet wired into provider key scheduling.
+- `key_pool.py` is wired into `http_caller.py` for provider key scheduling and exposes redacted telemetry; `ConcurrencyPool` remains a separate tested primitive rather than replacing key scheduling.
 
 Reference project conclusions:
 
 - OpenRAG is a good reference for ingestion, retrieval traceability, MCP knowledge tools, and mature document parsing. It should not replace LiMa's router or be copied wholesale.
 - Google Cloud always-on-memory-agent is a stronger reference for LiMa's next memory step: background inbox ingestion, typed memories, consolidation, and source-backed recall.
+- TechSpar is now borrowed as a local mastery loop, not a runtime dependency: `mastery_loop/` records mastery events, weak points, review schedules, and recommendations without changing hot-path routing.
 - New detailed reference evaluation: `docs/REFERENCE_PROJECT_EVALUATION.md`.
 
-Recommended next architecture move:
+Current architecture closure:
 
-1. Convert graph/code retrieval results into formatted prompt context with trace evidence.
-2. Add typed-memory ranking and admin-visible memory IDs for recall debugging.
-3. Add MCP tools only after retrieval and memory traces are useful locally.
+1. Graph/code retrieval prompt injection and trace evidence are implemented.
+2. Typed memory daemon, prompt-time recall, and MCP memory/retrieval tools are implemented.
+3. Backend config, `key_pool.py` integration, endpoint extraction, and the TechSpar-inspired mastery loop are implemented.
+4. Remaining non-closed items are policy-gated rather than missing implementation: always-on worker daemon, Kimi/TheOldLLM/MiMo/page-only candidate promotion, and refresh execution.
 
 ## Next Phase
 
@@ -337,13 +341,11 @@ FRP/local-router closure:
   - `http://47.112.162.80:8088/v1/chat/completions` returned exact `request_utils_frp_ok` after the chat request helper extraction deployment.
   - Process state: one Windows `server.py` router process and one `frpc.exe` process.
 
-Known remaining planning items after this closure:
+Known remaining gated items after this closure:
 
-1. Continue `server.py` decomposition. App lifecycle is now extracted to `server_lifespan.py`, chat request models are extracted to `chat_models.py`, and shared request-body helpers are extracted to `chat_request_utils.py`; next low-risk extractions should target request handlers rather than changing routing policy.
-2. Consolidate backend configuration into one source, including capability lists and remaining `smart_router` compatibility surfaces.
-3. Wire `key_pool.py` into `http_caller.py` for multi-key providers.
-4. Keep Kimi local, TheOldLLM, MiMo web, and page-only web AI candidates gated until refresh plus model-level smoke evidence exists.
-5. Keep always-on worker daemon mode behind explicit repo allowlist, runtime budget, stop marker, audit, failure quarantine, and manual production gates.
+1. Keep Kimi local, TheOldLLM, MiMo web, and page-only web AI candidates gated until refresh plus model-level smoke evidence exists.
+2. Keep always-on worker daemon mode behind explicit repo allowlist, runtime budget, stop marker, audit, failure quarantine, and manual production gates.
+3. Keep mastery-loop admin exposure and any hot-path planner/routing influence behind private admin guards and follow-up tests.
 
 ## 2026-05-22 Local Reverse AI Inventory
 

@@ -14,7 +14,7 @@ Several 2026-05-23/2026-05-24 plan files still contain unchecked implementation-
 - `docs/LIMA_MEMORY.md`
 - `progress.md`
 
-The current runtime truth is: VPS Server/Worker APIs are deployed, LiMa Code completed a public real-machine worker smoke, FRP `8088` chat is healthy again after local router startup hardening, `server.py` route decomposition is closed for this architecture pass, backend capability registry plus `key_pool.py` integration are deployed, and redacted key-pool telemetry is implemented.
+The current runtime truth is: VPS Server/Worker APIs are deployed, LiMa Code completed a public real-machine worker smoke, FRP `8088` chat is healthy again after local router startup hardening, `server.py` route decomposition is closed for this architecture pass, backend capability registry plus `key_pool.py` integration are deployed, redacted key-pool telemetry is implemented, and the TechSpar-inspired mastery loop is implemented locally.
 
 ## Plan Status
 
@@ -34,6 +34,7 @@ The current runtime truth is: VPS Server/Worker APIs are deployed, LiMa Code com
 | `2026-05-23-lima-server-control-plane-v03-for-ai-worker.md` | Implemented locally and deployed as part of later sync | Admin audit, Telegram review helpers, candidate extraction, and contract smoke evidence are recorded in `STATUS.md` and `docs/LIMA_MEMORY.md`. | VPS worker APIs were deployed on 2026-05-24. |
 | `2026-05-23-lima-real-machine-worker-v04.md` | Deployed and smoke-verified | Live task `cfcd3f2b` was created, executed by LiMa Code, submitted as `needs_review`, and confirmed with events `created,result_submitted`. | This supersedes the earlier "No production deployment was performed" note. |
 | `2026-05-23-lima-autonomous-worker-v02.md` | Partially implemented | Bounded work loops, stop marker, failure quarantine, repo allowlist, audit, and runtime budget exist in LiMa Code. | Always-on daemon mode remains deferred and gated. |
+| `2026-05-23-techspar-mastery-loop.md` | Implemented locally | `mastery_loop/` has typed records, SQLite store, event adapters, scoring, weak-point extraction, review scheduling, recommendations, and traces; skill promotion requires mastery evidence. | Admin UI exposure and hot-path planner/routing influence remain deferred and gated. |
 | `2026-05-24-tool-dispatcher-clean-split.md` | Closed locally and deployed as runtime files | Split `lima_fc_tools` runtime files were part of the 2026-05-24 VPS sync; focused tests and full pytest evidence are in `STATUS.md`. | Telegram FC/TTS remains outside ordinary routing by policy. |
 
 ## Non-Goals And Deferred Risks
@@ -48,7 +49,8 @@ The current runtime truth is: VPS Server/Worker APIs are deployed, LiMa Code com
 - `server.py` route decomposition, backend configuration consolidation, `key_pool.py` integration, and key-pool telemetry are closed by the 2026-05-24 endpoint/key-pool closure deploy.
 - Kimi local proxy, TheOldLLM, MiMo web, and page-only web AI candidates remain gated until refresh and model-level smoke evidence exists.
 - Always-on worker daemon mode remains deferred behind repo allowlist, runtime budget, stop marker, audit, failure quarantine, and manual production approval.
+- Mastery-loop admin exposure and automatic planner/routing influence remain deferred until private admin views and focused safety tests exist.
 
 ## Current Accuracy Judgment
 
-The main `task_plan.md` project phases are complete. 2026-05-22 Superpowers execution plans are checkbox-reconciled. Later plan files may still contain draft checkboxes, but current runtime status is calibrated in `STATUS.md`, `docs/EXECUTION_PLAN.md`, `docs/LIMA_MEMORY.md`, and `progress.md`; latest VPS evidence includes backup `/opt/lima-router/backups/endpoints-keypool-closed-20260524-123145`, HTTPS exact `endpoints_closed_https_ok`, FRP exact `endpoints_closed_frp_ok`, and worker preflight `ready=true`.
+The main `task_plan.md` project phases are complete. 2026-05-22 Superpowers execution plans are checkbox-reconciled. Later plan files may still contain draft checkboxes, but current runtime status is calibrated in `STATUS.md`, `docs/EXECUTION_PLAN.md`, `docs/LIMA_MEMORY.md`, and `progress.md`; latest VPS evidence includes backup `/opt/lima-router/backups/endpoints-keypool-closed-20260524-123145`, HTTPS exact `endpoints_closed_https_ok`, FRP exact `endpoints_closed_frp_ok`, and worker preflight `ready=true`. The remaining reference-project work is intentionally gated policy work, not an unimplemented migration plan.

@@ -1,7 +1,7 @@
 # LiMa Reference Project Evaluation
 
-> Updated: 2026-05-23
-> Scope: OpenRAG and Google Cloud always-on-memory-agent, evaluated against the current LiMa private coding assistant backend.
+> Updated: 2026-05-24
+> Scope: OpenRAG, Google Cloud always-on-memory-agent, TechSpar, and autonomy references evaluated against the current LiMa private coding assistant backend.
 
 ## Current LiMa Baseline
 
@@ -25,17 +25,19 @@ Current implemented capabilities:
 - Request-local context preflight for coding and Anthropic tool paths.
 - Session Memory SQLite write path plus compaction trigger after successful responses.
 - Tool Gateway registry/executor/audit with `shell=False` command execution and simple argument validation.
-- AST scanner, code graph retrieval, reranking, and code-context primitives.
+- AST scanner, code graph retrieval, reranking, prompt injection, trace evidence, and code-context primitives.
 - Routing weights, event log, tracing, guardrails, response pipeline, entity extraction, reflection, ensemble, artifact handles, concurrency pool, and hierarchical memory modules.
+- `mastery_loop/` typed records, SQLite store, event adapters, scoring, weak-point extraction, review scheduling, recommendations, and traces.
+- Agent skill promotion now requires eval pass, manual approval, and mastery evidence references.
 
 Important calibration:
 
 - Some modules are fully in the hot path.
 - Some modules are present and tested but not yet driving production behavior.
-- Graph retrieval currently computes `_reranked` in `routing_engine.py`, but does not yet inject formatted retrieval context into prompts.
+- Graph retrieval now injects formatted context through `inject_retrieval_context()` and records trace evidence.
 - `context_pipeline.factory.build_default_pipeline()` is covered by tests, but the default pipeline is not the main `server.py` request path.
 - `session_memory.processor.session_memory_processor()` can inject memories, but `server.py` currently performs direct memory writes and compaction checks rather than running the processor as the main request context stage.
-- `ConcurrencyPool` is implemented and tested, but has not replaced `key_pool.py` or backend key scheduling.
+- `ConcurrencyPool` is implemented and tested as a separate primitive; active provider key scheduling is handled by `key_pool.py` through `http_caller.py` with redacted telemetry.
 
 Latest local LiMa target-suite verification:
 
@@ -158,11 +160,57 @@ Near-term priority:
 2. Recall only small cited memory summaries into prompts.
 3. Keep long consolidation async and auditable.
 
+## TechSpar
+
+Source:
+
+- `https://github.com/AnnaSuSu/TechSpar`
+
+TechSpar is useful to LiMa as a concept reference for a continuous improvement loop: event evidence changes a durable profile, the profile exposes weak points, and the next review/test round becomes more targeted. It is not used as a runtime dependency.
+
+### Useful Ideas
+
+| TechSpar idea | LiMa adaptation |
+|---|---|
+| Shared long-term mastery profile | `mastery_loop.ModuleMastery` tracks project/module stability, test confidence, and risk. |
+| Weak-point extraction | `mastery_loop.weak_point_extractor` converts failures and findings into recurring weak points. |
+| Per-task scoring | `mastery_loop.scorer` updates module stability from test, review, deploy, route, tool, and agent evidence. |
+| SM-2 review scheduling | `mastery_loop.scheduler` schedules follow-up regression/review checks for risky targets. |
+| Dynamic next-round focus | `mastery_loop.recommender` returns test/review recommendations with trace evidence. |
+
+### What Not To Copy
+
+- Do not copy TechSpar code, UI, prompts, schemas, or assets without a separate license review.
+- Do not add interview UI, voice, resume, or JD workflows to LiMa.
+- Do not let mastery data automatically mutate production or bypass human review.
+
+### Current LiMa Implementation
+
+`mastery_loop/` is implemented locally and covered by focused tests. It records sanitized evidence references rather than raw secrets or full prompt payloads. The loop currently informs recommendations and promotion gates; it does not change hot-path routing.
+
+## Agent Autonomy References
+
+Borrowed autonomy concepts are implemented only behind gates:
+
+- Role separation for planner/coder/reviewer/tester/memory responsibilities.
+- Server task APIs plus LiMa Code bounded worker loops.
+- Candidate skill extraction after approved task evidence.
+- Promotion gate requiring eval pass, manual approval, and mastery evidence.
+
+Rejected or deferred:
+
+- Unbounded shell access.
+- Always-on production mutation.
+- External worker pools.
+- Default dynamic package installation.
+- Production deploys or GitHub pushes without explicit user approval.
+
 ## Updated Ranking
 
 | Project | Reference value | Reason |
 |---|---:|---|
 | Google Cloud always-on-memory-agent | 8.5/10 | Directly matches LiMa's next step: long-term memory, consolidation, inbox ingestion, and evidence-backed recall. |
+| TechSpar | 8/10 | Strong fit for local mastery profiles, weak-point recurrence, review scheduling, and evidence-backed next-work recommendations. |
 | OpenRAG | 7/10 | Strong reference for knowledge ingestion, retrieval observability, and MCP knowledge access; too heavy to copy wholesale. |
 
 ## Recommended Next Architecture Step
@@ -185,10 +233,19 @@ This is the bridge between OpenRAG and always-on-memory-agent:
 - always-on-memory-agent contributes the background consolidation and durable memory pattern.
 - LiMa keeps its own router, backend health model, coding tiers, and private-agent API surface.
 
-## Implementation Order
+## Implementation Status
 
-1. Fix current retrieval hot-path gap: inject formatted graph/code retrieval results, not just compute `_reranked`.
-2. Add retrieval trace data to responses or admin diagnostics.
-3. Harden prompt-time typed memory recall now that it is a first-class `server.py` stage, including typed-memory ranking and admin-visible memory IDs.
-4. Add `lima-mcp` tools for `search_repo`, `search_memory`, `get_retrieval_trace`, and `ask_lima`.
-5. Only after these prove useful, evaluate Docling and a heavier search backend.
+Completed locally or deployed:
+
+1. Graph/code retrieval prompt injection and trace evidence.
+2. Typed-memory daemon, prompt-time recall, and MCP memory/retrieval tools.
+3. Backend config consolidation, `key_pool.py` integration, endpoint extraction, and key-pool telemetry.
+4. TechSpar-inspired local mastery loop.
+5. Agent-evolution promotion gate requiring mastery evidence.
+
+Intentionally gated:
+
+1. Always-on worker daemon mode.
+2. Kimi, TheOldLLM, MiMo web, and page-only web AI promotion.
+3. Refresh execution for token/session-based local proxies.
+4. Mastery-loop admin UI exposure and any automatic hot-path planner/routing influence.
