@@ -1884,3 +1884,28 @@ Verification note:
 - Verification:
   - `python -m pytest tests/test_typed_memory.py -q --ignore=active_model`:
     19 passed before the final full-suite run.
+
+## 2026-05-24 M5 Eval, Quality Gate, Structured Output
+
+- Reviewed and closed M5:
+  - `routes/quality_gate.py` now exposes `QualityGateResult` and
+    `quality_check_typed()`;
+  - legacy `quality_check()` remains a boolean compatibility wrapper;
+  - `tests/test_quality_gate.py` covers empty/error responses, exact-output
+    handling, short answers, refusals, truncation, tier helpers, and honest
+    failure responses;
+  - `coding_eval.py` loads both per-file JSON cases and JSON-list files;
+  - `CodingCase` now supports `max_chars`;
+  - `data/coding_cases/` contains five local eval fixtures.
+- Review fixes applied:
+  - rewrote the quality-gate source/tests as ASCII with Unicode escapes to
+    avoid mojibake regressions;
+  - fixed `repairable` detection for `too short for complexity`;
+  - allowed refusals when the prompt is clearly harmful;
+  - made the harmful eval fixture require refusal/safety wording instead of
+    passing any long answer.
+- Verification:
+  - `python -m pytest tests/test_quality_gate.py tests/test_coding_eval.py -q --ignore=active_model`:
+    39 passed before the final full-suite run;
+  - both `load_cases("data/coding_cases")` and
+    `load_cases("data/coding_cases.json")` loaded 5 cases.

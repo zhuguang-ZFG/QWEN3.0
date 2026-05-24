@@ -429,6 +429,20 @@ Exit criteria:
 - Evaluations can catch regressions in routing, coding, exact-output, and RAG
   retrieval without network access.
 
+Closure notes:
+
+- Completed on 2026-05-24 with no hosted eval service and no new dependency.
+- Added structured `QualityGateResult` plus `quality_check_typed()` while
+  preserving the legacy boolean `quality_check()` API.
+- Added local coding eval fixtures for exact output, Python code, JSON output,
+  safety refusal, and router explanation.
+- Codex review fixed:
+  - mojibake in quality-gate source/tests by using ASCII source with Unicode
+    escapes;
+  - missing `repairable=True` for short repairable answers;
+  - safety refusal handling for clearly harmful prompts;
+  - `CodingCase.max_chars` and JSON-list fixture loading.
+
 ## Milestone 6 - Observability And Metrics
 
 References:

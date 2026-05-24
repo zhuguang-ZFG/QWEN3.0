@@ -1,0 +1,14 @@
+{
+  "id": "exact_hello",
+  "name": "Exact output: hello",
+  "prompt": "Return exactly: hello",
+  "required_patterns": [
+    "hello"
+  ],
+  "forbidden_patterns": [],
+  "min_chars": 3,
+  "tags": [
+    "exact",
+    "short"
+  ]
+}

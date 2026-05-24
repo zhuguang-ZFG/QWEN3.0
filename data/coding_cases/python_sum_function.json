@@ -1,0 +1,18 @@
+{
+  "id": "python_sum_function",
+  "name": "Generate sum function",
+  "prompt": "Write a Python function called my_sum that takes a list of ints and returns the sum.",
+  "required_patterns": [
+    "def my_sum",
+    "return"
+  ],
+  "forbidden_patterns": [],
+  "required_json_keys": [],
+  "python_must_compile": true,
+  "min_chars": 30,
+  "max_tokens": 256,
+  "tags": [
+    "code",
+    "python"
+  ]
+}

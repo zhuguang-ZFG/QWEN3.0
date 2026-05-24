@@ -36,6 +36,7 @@ class CodingCase:
     forbidden_patterns: list[str] = field(default_factory=list)
     required_json_keys: list[str] = field(default_factory=list)
     min_chars: int = 20
+    max_chars: int = 0
     max_tokens: int = 512
     python_must_compile: bool = False
     tags: list[str] = field(default_factory=list)
@@ -55,9 +56,13 @@ class EvalResult:
 def load_cases(case_dir: str | Path) -> list[CodingCase]:
     root = Path(case_dir)
     cases: list[CodingCase] = []
-    for path in sorted(root.glob("*.json")):
+    paths = [root] if root.is_file() else sorted(root.glob("*.json"))
+    for path in paths:
         data = json.loads(path.read_text(encoding="utf-8"))
-        cases.append(CodingCase(**data))
+        if isinstance(data, list):
+            cases.extend(CodingCase(**item) for item in data)
+        else:
+            cases.append(CodingCase(**data))
     if not cases:
         raise ValueError(f"no coding cases found in {root}")
     return cases
@@ -92,6 +97,9 @@ def grade_response(text: str, case: CodingCase) -> tuple[int, list[str]]:
     if len(response.strip()) < case.min_chars:
         score -= 25
         notes.append(f"too short: {len(response.strip())} chars")
+    if case.max_chars and len(response.strip()) > case.max_chars:
+        score -= 10
+        notes.append(f"too long: {len(response.strip())} chars")
 
     for pattern in case.required_patterns:
         if not re.search(pattern, response, flags=re.IGNORECASE | re.MULTILINE):

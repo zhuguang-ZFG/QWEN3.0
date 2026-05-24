@@ -34,6 +34,30 @@ def test_load_cases_reads_json_files(tmp_path):
     assert cases[0].required_patterns == ["def add"]
 
 
+def test_load_cases_reads_json_list_file(tmp_path):
+    case_path = tmp_path / "cases.json"
+    case_path.write_text(
+        json.dumps(
+            [
+                {
+                    "id": "sample",
+                    "name": "Sample",
+                    "prompt": "Return code",
+                    "required_patterns": ["def add"],
+                    "max_chars": 80,
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    cases = load_cases(case_path)
+
+    assert len(cases) == 1
+    assert cases[0].id == "sample"
+    assert cases[0].max_chars == 80
+
+
 def test_grade_response_rewards_required_patterns_and_python_compile():
     case = CodingCase(
         id="bugfix",
@@ -82,6 +106,21 @@ def test_grade_response_can_require_json_object():
 
     assert score == 100
     assert notes == []
+
+
+def test_grade_response_penalizes_max_chars():
+    case = CodingCase(
+        id="short",
+        name="Short",
+        prompt="Keep it short",
+        min_chars=1,
+        max_chars=5,
+    )
+
+    score, notes = grade_response("this is too long", case)
+
+    assert score < 100
+    assert any(note.startswith("too long") for note in notes)
 
 
 def test_candidate_backends_prefers_code_like_configured_backends():

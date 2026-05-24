@@ -1,0 +1,23 @@
+{
+  "id": "json_response",
+  "name": "JSON object with name and version",
+  "prompt": "Return a JSON object with keys 'name' and 'version'. Only the JSON, no explanation.",
+  "required_patterns": [
+    "{",
+    "}"
+  ],
+  "forbidden_patterns": [
+    "sorry",
+    "I cannot",
+    "explanation"
+  ],
+  "required_json_keys": [
+    "name",
+    "version"
+  ],
+  "min_chars": 10,
+  "tags": [
+    "json",
+    "structured"
+  ]
+}
