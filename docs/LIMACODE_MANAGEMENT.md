@@ -71,6 +71,18 @@ creation, audit expectations, model routing policy, and deployment records.
 Always-on worker behavior remains gated by repo allowlist, worker budget, stop
 marker, local audit, failure quarantine, and manual production approval.
 
+MCP connector use follows `docs/reference/MCP_CONNECTOR_CATALOG.md`:
+
+- Default to read-only tools and task-scoped enablement.
+- Do not keep broad MCP schemas resident in every coding session.
+- Keep API keys, cookies, database credentials, cloud tokens, and browser
+  session secrets out of model-visible context.
+- Require approval before any MCP tool can write GitHub state, mutate files,
+  run shell commands, change databases, deploy services, send messages, spend
+  money, or touch hardware.
+- Prefer LiMa-owned dev-search tools for docs/error/source lookup before adding
+  external search or extraction connectors.
+
 ## External Workflow References
 
 These external projects are admitted as LiMa Code workflow references, not as
@@ -97,6 +109,18 @@ runtime dependencies:
 - `Lum1104/Understand-Anything` and `zilliztech/claude-context`: semantic code
   search, graph context, and MCP packaging ideas for local coding sessions.
 - `aattaran/deepclaude`: Anthropic-compatible backend-swap UX reference only.
+- Official MCP Registry, `modelcontextprotocol/servers`, and
+  `wong2/awesome-mcp-servers`: discovery inputs for a reviewed MCP connector
+  catalog; not a default install bundle.
+- Context7, Tavily, Firecrawl, GitHub MCP, Playwright MCP, Filesystem, Git,
+  Memory, Sequential Thinking, Postgres, and Magic MCP remain candidate
+  connectors behind the catalog. Each needs a per-task allowlist, credential
+  boundary, and audit path before LiMa Code can use it.
+- `calesthio/OpenMontage`: AGPL concept-only reference for agentic media
+  pipeline staging, artifact quality gates, provider boundaries, and
+  skill/tool catalog structure.
+- TUNA mirror service: operational reference for China-network dependency
+  bootstrap and fallback mirror documentation, not a code dependency.
 
 Any adoption must preserve LiMa Server's backend admission, provider key
 custody, repo allowlist, audit, review gates, and push/deploy approval rules.

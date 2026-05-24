@@ -1272,3 +1272,35 @@ Deployment: not performed.
   - OpenAI Agents SDK, Google ADK, GenericAgent, and related frameworks are
     references for guardrails, sessions, tracing, eval/deploy separation, and
     gated self-evolution, not replacements for LiMa's control plane.
+
+## 2026-05-24 External Capability Radar MCP Batch
+
+- User provided TUNA mirror, TrendRadar again, OpenMontage, and a Claude MCP
+  service guide with a 30-service taxonomy.
+- Updated source-of-truth documents:
+  - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
+  - `docs/reference/MCP_CONNECTOR_CATALOG.md`;
+  - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
+  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
+  - `docs/superpowers/plans/2026-05-23-lima-code-dev-search-tools.md`;
+  - `docs/DOCUMENTATION_STATUS.md`;
+  - `STATUS.md`;
+  - `progress.md`.
+- New durable rule:
+  - Skills teach LiMa how to work; MCP connectors grant places to act.
+  - MCP tools are default-off and must have task need, owner, allowlist,
+    credential boundary, audit event, timeout, and failure mode before use.
+  - Foundation connectors are evaluated first; business, payment, CRM,
+    cloud/deploy, scraping, voice, and media connectors require separate
+    privacy/security/legal/blast-radius review.
+- Source interpretation:
+  - TUNA is an operational mirror/reference for China/VPS dependency
+    resilience, not a code dependency.
+  - TrendRadar remains GPL concept-only for trend monitoring, AI brief, MCP,
+    and alert routing ideas.
+  - OpenMontage remains AGPL concept-only for media pipeline, artifact staging,
+    provider boundaries, and skill/tool catalog ideas.
+  - Official MCP reference servers are protocol/API examples, not
+    production-ready services; LiMa must wrap or replace them before production
+    use.

@@ -20,9 +20,11 @@
 | Static analysis and code intelligence | Pyrefly, GitNexus, code-review-graph, graphify, gitreverse, Understand-Anything, claude-context | Main repo quality gates, LiMa Code context, review and repository understanding |
 | Memory and agent knowledge | stash, hindsight, gbrain, rowboat | Durable memory, episode/fact separation, learning loops, agent state |
 | Agent orchestration, skills, and workflow | OpenAI Agents SDK, Google ADK, GenericAgent, Evolver, open-agents, Symphony, PraisonAI, agency-agents, goclaw, oh-my-codex, oh-my-pi, clawsweeper, agent-skills, mattpocock skills, HeavySkill, learn-harness-engineering, vibe-vibe | Controlled multi-agent work, hooks, review queues, issue/PR triage, skill packaging, harness engineering, work-run isolation |
+| MCP access plane and tool connectors | Official MCP Registry, modelcontextprotocol reference servers, awesome-mcp-servers, TurboMCP, GitHub/Playwright/Sentry/Semgrep/CircleCI/Postgres/Supabase/Neo4j/Qdrant/Tinybird/AWS/Cloudflare/Grafana/Railway/Render/Notion/Slack/Gmail/Jira/Asana/Stripe/HubSpot/Firecrawl/Browserbase/Bright Data/Apify/Memory/Sequential Thinking/Context7/Figma/ElevenLabs MCP references | Permissioned tool access, connector catalog, deployment gates, audit, and least-privilege MCP enablement |
 | Governance, secure execution, and browser work | Microsoft Agent Governance Toolkit, CubeSandbox, browser-harness, CloakBrowser | Safer worker execution, browser task verification, VPS/local isolation, governance policy |
 | IDE, terminal, design, and workspace UX | Warp, Pascal Editor, ClaudePrism, Open Design | LiMa Code terminal UX, local design workspace, scientific writing workspace, 3D/design editor patterns |
-| Search, research, trends, and knowledge products | AnySearch Skill, ml-intern, OmniScientist, Feynman, TrendRadar, HF Viewer, Youdao Baoku, Flipbook, Algebrica, GLM-OCR | Research agents, trend monitors, model inspection, search extraction, document-to-brief/PPT/mind-map, OCR, visual browsing |
+| Search, research, trends, and knowledge products | AnySearch Skill, ml-intern, OmniScientist, Feynman, TrendRadar, HF Viewer, Youdao Baoku, Flipbook, OpenMontage, Algebrica, GLM-OCR | Research agents, trend monitors, model inspection, search extraction, document-to-brief/PPT/mind-map/video, OCR, visual browsing |
+| Infrastructure mirrors and dependency resilience | Tsinghua Open Source Mirror (TUNA) | VPS and China-network dependency install acceleration, fallback mirrors, reproducible bootstrap documentation |
 | Persona, style, and companion behavior | awesome-persona-distill-skills, WeClone, Feynman, ElatoAI, PersonaPlex, pocket-tts | User style modeling, companion UX, voice/display persona boundaries |
 | Hardware, robotics, and world models | ElatoAI, PersonaPlex, oh-my-pi, GR00T-WholeBodyControl, pocket-tts, nano-world-model, ESP32 display references already tracked separately | Device Gateway voice/display/companion expansion after writing-machine gates |
 
@@ -43,7 +45,13 @@
 | `nexu-io/open-design` | Local-first open-source Claude Design alternative with many coding-agent CLIs and design systems. | Apache-2.0 | Reference for design-workbench UX, BYOK agent routing, and composable design skills; keep external CLI execution behind LiMa allowlists. | LiMa Code, Main |
 | `walkinglabs/learn-harness-engineering` | Multilingual harness-engineering learning material. | No standard license in API metadata | Documentation/reference input for LiMa harness engineering vocabulary and onboarding; do not copy content without license review. | Main, LiMa Code |
 | `flipbook.page` | Infinite visual browser generated on demand. | Website, no repo/license reviewed | Concept-only reference for visual exploration UI and generated artifact browsing. | Main, LiMa Code |
-| `sansan0/TrendRadar` | AI-driven trend/public-opinion monitor with RSS, platform aggregation, alerts, and MCP. | GPL-3.0 | Concept-only unless isolated; borrow trend monitor shape and alert taxonomy. | Main |
+| `sansan0/TrendRadar` | AI-driven trend/public-opinion monitor with RSS, multi-platform aggregation, AI briefs, MCP server, and WeChat/Feishu/DingTalk/Telegram/email/ntfy/Bark/Slack/Webhook-style alerts. | GPL-3.0 | Concept-only unless isolated; borrow trend monitor shape, source taxonomy, alert routing, and AI brief workflow. | Main |
+| `calesthio/OpenMontage` | Agentic video production system with pipelines, tools, provider docs, and agent guide. | AGPL-3.0 | Concept-only for media-generation workflow shape, artifact pipeline staging, and skill/tool catalog design; no code copy. | Main, LiMa Code |
+| `https://mirrors.tuna.tsinghua.edu.cn/` | Tsinghua Open Source Mirror for common package ecosystems and release artifacts. | Website/service | Operational reference for China/VPS bootstrap reliability and documented mirror fallbacks; not a code dependency. | Main, LiMa Code, esp32S_XYZ |
+| `modelcontextprotocol/servers` | Official MCP reference implementations for Filesystem, Git, Memory, Sequential Thinking, Fetch, Time, and SDK examples. | Repository metadata has no single SPDX assertion; individual packages require review | Use as protocol/API reference only. The README states these are educational reference implementations, not production-ready services. | Main, LiMa Code |
+| Official MCP Registry | Published MCP server registry. | Website/service | Source for candidate discovery only; every server still needs LiMa-specific permission, secret, network, and audit review. | Main, LiMa Code |
+| `wong2/awesome-mcp-servers` | Curated community list of MCP servers. | MIT | Discovery input for the candidate catalog; do not install by default. | Main, LiMa Code |
+| TurboMCP | Online MCP runtime reference. | Website/service, no license reviewed | Concept-only for hosted/online MCP experiments; no production use without account, data-flow, and security review. | Main |
 | `akdeb/ElatoAI` | ESP32 realtime voice AI with secure WebSockets for toys, companions, and devices. | No standard license in API metadata | Already admitted as voice/device-companion reference; no runtime dependency. | esp32S_XYZ, Main |
 | `NVIDIA/personaplex` | Realtime full-duplex speech-to-speech conversational model with text persona prompting and audio voice conditioning. | Code MIT; model weights require NVIDIA Open Model License review | Borrow realtime voice/persona architecture for later companion-device speech loops; do not adopt model weights without a separate license, GPU, safety, and privacy review. | Main, esp32S_XYZ |
 | `anysearch-ai/anysearch-skill` | Unified realtime search skill for AI agents: web search, vertical search, batch search, and page extraction. | No standard license in API metadata | Borrow skill boundary and search-result evidence shape for LiMa research tasks; do not install until license/security review. | Main, LiMa Code |
@@ -106,6 +114,9 @@
 - CubeSandbox external-sandbox evaluation, without vendoring code.
 - AnySearch-style opt-in search skill boundary for research tasks, using
   LiMa's redaction and source allowlist rules.
+- TUNA mirror documentation for deterministic installs on China/VPS networks.
+- MCP access catalog design: foundation connectors first, stack connectors
+  second, business/data/media connectors only when a task requires them.
 
 ### P1 - Useful After P0 Interfaces Exist
 
@@ -119,6 +130,9 @@
   structured-knowledge, and OCR/document-loop references.
 - HF Viewer as a model-inspection UX reference.
 - TrendRadar as alert/trend-monitor reference, with GPL isolation.
+- OpenMontage as AGPL concept-only media workflow reference.
+- Official MCP Registry and community MCP lists as discovery inputs for a
+  reviewed, least-privilege connector catalog.
 - CloakBrowser as an isolated browser-runtime candidate only after terms,
   privacy, and anti-abuse review.
 

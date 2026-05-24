@@ -26,6 +26,13 @@
   sub-agents for cleanly separable research, review, test, and verification
   work; upgrade to an Agent Team only when the task needs shared state, real-time
   communication, and long-lived coordination.
+- MCP connector taxonomy from the user-provided guide: Skills define methods;
+  MCP servers grant authority to act. LiMa uses that distinction to keep
+  permissions, credentials, and audit outside prompt-only skill packs.
+- Sequential Thinking MCP-style explicit reasoning flows for difficult tasks,
+  only when the workflow is visible and auditable.
+- Memory MCP-style knowledge graph memory as a reference shape; LiMa's active
+  memory remains typed, evidence-gated, and secret-redacted.
 
 ## Coordination Rule
 
@@ -49,6 +56,11 @@
 - Hidden autonomous model/provider swaps outside LiMa's routing registry.
 - Skill packs that can change tool permissions, deployment behavior, or
   hardware access without explicit review.
+- MCP servers enabled by hype list, broad default install, or generic "30
+  must-have" bundles instead of task need, owner, least privilege, and audit.
+- Hidden Sequential Thinking traces as a default chain-of-thought mechanism.
+- External Memory MCP stores as the source of truth without LiMa promotion,
+  retention, and redaction gates.
 - Direct dependency on GPL self-evolution systems; use only concept notes unless
   a separate legal review approves isolation.
 - Multi-agent role sprawl where coordination overhead is larger than the task.

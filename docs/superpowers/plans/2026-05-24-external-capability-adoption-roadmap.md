@@ -24,9 +24,19 @@ Google ADK, GenericAgent, and EvoMap/evolver. Duplicate stash, clawsweeper, and
 agency-agents entries update the existing rows instead of creating separate
 runtime plans.
 
+The newest 2026-05-24 batch adds Tsinghua Open Source Mirror (TUNA),
+TrendRadar again, OpenMontage, and a Claude MCP service guide. TrendRadar
+strengthens the existing trend-monitor row. OpenMontage is AGPL and remains a
+concept-only media workflow reference. The MCP guide is treated as a useful
+taxonomy, but LiMa will not install a "30 MCP services" bundle by default.
+MCP connectors give an agent permissioned places to act; Skills teach how to
+think and execute. LiMa needs both, but each MCP server must be allowed,
+scoped, audited, and tied to a real workflow before use.
+
 Primary source inventory:
 
 - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`
+- `docs/reference/MCP_CONNECTOR_CATALOG.md`
 - `docs/reference/HARDWARE_COMPANION_REFERENCES.md`
 
 ## Repository Targets
@@ -34,7 +44,7 @@ Primary source inventory:
 | Target | Role | External capability fit |
 |---|---|---|
 | Main LiMa repo | Model routing, memory, agent control plane, VPS surfaces, Device Gateway | Type checks, code graph, memory learning, agent orchestration, sandboxing, trend/research loops |
-| `deepcode-cli` | Local coding worker, tool execution, MCP client, terminal UX | Code graph context, hooks, HUD/workflow UX, browser harness, terminal/design workspace references, repo-to-spec extraction |
+| `deepcode-cli` | Local coding worker, tool execution, MCP client, terminal UX | Code graph context, hooks, HUD/workflow UX, browser harness, terminal/design workspace references, repo-to-spec extraction, reviewed MCP connector catalog |
 | `esp32S_XYZ` | Hardware product, firmware, fake devices, schemas, U8/U1 control | ElatoAI-style voice/device session ideas, display/companion route after writing-machine gates |
 
 ## Adoption Principles
@@ -48,6 +58,10 @@ Primary source inventory:
 6. Default to isolated sub-agents for cleanly separable work; use Agent Teams
    only when the task requires shared state, real-time communication, and
    long-lived coordination.
+7. Separate Skills from MCP: Skills are reviewable methods and prompts; MCP
+   servers are authority-bearing connectors. A skill may recommend a tool, but
+   it may not grant access to GitHub, shell, browser, database, cloud, billing,
+   email, Slack, hardware, or deployment by itself.
 
 ## Phase 0 - Reference Governance
 
@@ -201,6 +215,55 @@ Exit criteria:
 - Work queue items have status, evidence, and rollback notes.
 - No agent can deploy, push, or touch hardware without explicit gate metadata.
 
+## Phase 3.25 - MCP Access Plane And Connector Catalog
+
+References:
+
+- Official MCP Registry
+- `modelcontextprotocol/servers`
+- `wong2/awesome-mcp-servers`
+- TurboMCP
+- The user-provided MCP guide and its service taxonomy
+
+Main repo plan:
+
+- Maintain a LiMa-owned MCP candidate catalog with category, owner,
+  permission class, credential needs, network/data exposure, default status,
+  audit requirements, and production readiness.
+- Treat official reference servers as protocol examples. The official reference
+  repository says they demonstrate MCP features and SDK usage and are not
+  production-ready by default, so LiMa must wrap or replace them with its own
+  safeguards before production use.
+- Start with foundation connectors only: Filesystem, Git, Memory, Sequential
+  Thinking, Time, and Context7-style docs lookup. Even these remain scoped to
+  allowlisted workspaces and redacted logs.
+- Add stack connectors only when a project has a live need and a clear owner:
+  GitHub, Playwright/browser verification, Sentry, Semgrep, CI, databases,
+  Qdrant/vector memory, Cloudflare/AWS/Grafana/Railway/Render, and deployment
+  tools.
+- Keep productivity/business connectors off by default: Notion, Slack, Gmail,
+  Jira/Asana, Stripe, HubSpot, Figma, ElevenLabs, and similar services require
+  separate account, privacy, approval, and blast-radius review.
+- Keep web scraping/data extraction connectors off by default: Firecrawl,
+  Browserbase, Bright Data, and Apify require target-site policy, rate-limit,
+  privacy, and anti-abuse review.
+
+LiMa Code plan:
+
+- Expose only the MCP tools needed for a local coding task. Prefer small
+  read-only tools first, such as docs lookup, repo search, error lookup, and
+  browser verification.
+- Show MCP tool provenance in local audit records so a task transcript can
+  explain which external connector acted and why.
+
+Exit criteria:
+
+- MCP catalog exists as data or documentation before new connectors are added.
+- Each enabled connector has an allowlist, credential boundary, audit event,
+  timeout, and failure mode.
+- Default local coding sessions do not receive unrelated business, billing,
+  communication, cloud, database, or media MCP tools.
+
 ## Phase 3.5 - Local Workspace, Terminal, Design, And Writing UX
 
 References:
@@ -279,6 +342,7 @@ References:
 - TrendRadar
 - Youdao Baoku
 - Flipbook
+- OpenMontage
 - Algebrica
 - GLM-OCR
 
@@ -295,6 +359,9 @@ Main repo plan:
   model/API terms, and resource budgets are reviewed.
 - Treat Algebrica as a non-commercial structured-knowledge/content reference,
   not as copyable training or runtime content.
+- Treat OpenMontage as AGPL concept-only: borrow artifact pipeline, provider
+  boundary, and media workflow staging ideas without copying code or making it
+  a runtime dependency.
 
 LiMa Code plan:
 
@@ -373,7 +440,10 @@ Recommended first slice after this plan is accepted:
    chat UI.
 5. Add governance metadata fields to agent tasks before expanding autonomous
    work loops.
-6. Defer agent-runtime and hardware-companion implementation until these
+6. Add the MCP candidate catalog and foundation connector policy before
+   enabling more tools in LiMa Code sessions.
+7. Document TUNA mirror fallbacks for VPS/China-network dependency bootstrap.
+8. Defer agent-runtime and hardware-companion implementation until these
    foundations are stable.
 
 ## Verification
@@ -383,7 +453,7 @@ Documentation-only changes:
 ```powershell
 cd D:\GIT
 git diff --check -- docs\reference\EXTERNAL_CAPABILITY_RADAR_2026-05-24.md docs\superpowers\plans\2026-05-24-external-capability-adoption-roadmap.md
-rg -n "External Capability|Pyrefly|CubeSandbox|ElatoAI|WeClone|Graph" docs
+rg -n "External Capability|MCP|TUNA|OpenMontage|TrendRadar|Pyrefly|CubeSandbox|ElatoAI|WeClone|Graph" docs
 ```
 
 Implementation phases must add focused tests for the touched module and avoid

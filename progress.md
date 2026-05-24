@@ -1298,3 +1298,36 @@ Verification note:
   - no source code copied;
   - no runtime dependency added;
   - GPL/AGPL references are concept-only until separate legal review.
+
+## 2026-05-24 External Capability Radar MCP Batch
+
+- User provided TUNA mirror, repeated TrendRadar, OpenMontage, and a Claude MCP
+  service guide/taxonomy.
+- Current-source checks:
+  - TUNA mirror site returned 200 and is treated as an operational mirror
+    reference for dependency bootstrap resilience.
+  - `calesthio/OpenMontage` GitHub metadata reports AGPL-3.0 and describes an
+    agentic video production system; it is concept-only for media/artifact
+    pipeline design.
+  - `sansan0/TrendRadar` remains GPL-3.0 and already existed in the radar; its
+    row was strengthened with MCP, multi-platform aggregation, AI brief, and
+    alert-routing details.
+  - Official MCP Registry returned 200.
+  - `modelcontextprotocol/servers` README describes the repository as
+    reference/educational implementations rather than production-ready
+    services.
+- Updated:
+  - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
+  - `docs/reference/MCP_CONNECTOR_CATALOG.md`;
+  - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
+  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
+  - `docs/superpowers/plans/2026-05-23-lima-code-dev-search-tools.md`;
+  - `docs/DOCUMENTATION_STATUS.md`;
+  - `STATUS.md`;
+  - `docs/LIMA_MEMORY.md`.
+- Policy retained:
+  - Skills are methods; MCP connectors are authority-bearing access paths.
+  - New MCP connectors are default-off and require task need, owner, allowlist,
+    credential boundary, audit event, timeout, and failure mode.
+  - No runtime dependency was added and no external source code was copied.

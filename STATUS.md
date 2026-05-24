@@ -535,3 +535,16 @@ Latest Telegram FC/TTS repo admission:
 - `mimo_tts.py` reads `MIMO_TTS_KEY` from the environment at call time and returns `None` without opening HTTP when the key is missing.
 - Clean split plan and evidence: `docs/superpowers/plans/2026-05-24-tool-dispatcher-clean-split.md`.
 - Local verification: focused Telegram/local-tool/security suite returned `23 passed`; ruff passed for the split tool files; full pytest returned `418 passed, 8 skipped`.
+
+Latest external capability radar MCP batch:
+
+- Added TUNA mirror, OpenMontage, repeated TrendRadar details, and the
+  user-provided MCP guide to the external capability radar and adoption
+  roadmap.
+- Added `docs/reference/MCP_CONNECTOR_CATALOG.md` as the source of truth for
+  candidate MCP connectors and least-privilege enablement.
+- Policy retained: Skills teach workflow; MCP connectors grant authority. MCP
+  tools are default-off unless a task has need, owner, allowlist, credential
+  boundary, audit event, timeout, and failure mode.
+- OpenMontage remains AGPL concept-only; TrendRadar remains GPL concept-only;
+  TUNA is an operational mirror reference, not a code dependency.

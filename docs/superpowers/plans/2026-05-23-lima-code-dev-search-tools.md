@@ -46,6 +46,24 @@ Out of scope for v0.1:
 - Sending private repository contents to external search.
 - Making ordinary `/v1/chat/completions` always search the web.
 
+## External MCP Mapping
+
+The current LiMa-owned tools are the default boundary. External MCP connectors
+may improve coverage later, but they should map back to these tool intents
+rather than bypassing them:
+
+| External reference | LiMa-owned boundary | Rule |
+|---|---|---|
+| Context7-style docs lookup | `dev_search_docs` | Prefer versioned official docs. Do not send private source or secrets. |
+| Tavily search/extract/map/crawl | `dev_search_docs`, `dev_search_error`, `dev_summarize_sources` | Candidate only after privacy, quota, cache, and citation policy review. |
+| Firecrawl extraction | `dev_read_url`, `dev_summarize_sources` | Per-package license review required because Firecrawl license signals vary across server/SDK/runtime packages. |
+| Playwright MCP | Browser verification plan, not dev-search v0.1 | Use for long-state UI exploration; prefer CLI/skill checks for simple browser claims to reduce token load. |
+| GitHub MCP | `dev_fetch_github_file` and future repo evidence tools | Read first; issue/PR/write actions require approval gates. |
+
+External MCP tools must not make ordinary chat always-search, bypass SSRF
+guards, expose API keys to model context, or auto-edit code from fetched
+content.
+
 ## File Structure
 
 - Create `search_gateway/dev_tools.py`

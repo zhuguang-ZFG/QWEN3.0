@@ -28,6 +28,7 @@
 | `docs/superpowers/plans/2026-05-24-xiaozhi-server-deprecation-removal.md` | Active plan | Gated deprecation, migration, quarantine, and eventual removal plan for Xiaozhi server runtime. |
 | `docs/reference/HARDWARE_COMPANION_REFERENCES.md` | Active boundary | External voice/display/OCR/TTS/robotics/world-model companion hardware references admitted for later LiMa Device Gateway roadmap work. |
 | `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md` | Active boundary | User-provided external reference projects mapped to LiMa capabilities, target repos, license boundaries, and priorities; expanded with successive reference batches. |
+| `docs/reference/MCP_CONNECTOR_CATALOG.md` | Active boundary | Candidate MCP connector catalog and least-privilege enablement policy for LiMa Server and LiMa Code; records Skills-vs-MCP separation and default-off connector rules. |
 | `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md` | Active plan | Staged adoption plan for external code-intelligence, memory, agent, governance, sandbox, research, OCR/TTS, persona, and hardware-companion capabilities. |
 | `docs/superpowers/plans/2026-05-23-agent-autonomy-evolution.md` | Active plan | Superpowers implementation plan for gated multi-agent autonomy, skill/gene evolution, and GitHub/VPS approval boundaries. |
 | `docs/superpowers/plans/2026-05-23-techspar-mastery-loop.md` | Active record | Implemented TechSpar-inspired local mastery loop for module mastery, weak-point extraction, review scheduling, recommendations, and promotion evidence gates. |
@@ -66,3 +67,4 @@ These files are retained as reference, but they are not the current execution di
 7. Treat VPS public surfaces as tracked LiMa distributions; update `docs/ONLINE_DISTRIBUTIONS.md`, `infra/vps/`, `STATUS.md`, `docs/LIMA_MEMORY.md`, and `progress.md` when they change.
 8. Treat `deepcode-cli` as the tracked LiMa Code submodule; update `docs/LIMACODE_MANAGEMENT.md`, `STATUS.md`, `docs/LIMA_MEMORY.md`, and `progress.md` when its pinned revision or Server/Worker contract changes.
 9. Treat `esp32S_XYZ` as the tracked downstream hardware/product submodule; update `docs/ESP32S_XYZ_MANAGEMENT.md`, `STATUS.md`, `docs/LIMA_MEMORY.md`, and `progress.md` when its pinned revision or LiMa backend contract changes.
+10. Treat MCP connectors as authority-bearing access paths, not simple prompts. Check `docs/reference/MCP_CONNECTOR_CATALOG.md` before enabling any new MCP server.
