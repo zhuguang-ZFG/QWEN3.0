@@ -3,6 +3,33 @@
 > Created: 2026-05-22
 > Scope: private coding assistant use of LiMa, chat.donglicao.com, and api.donglicao.com.
 > Rule: prioritize evidence from coding tasks over public-platform complexity.
+>
+> ## Implementation Plan (2026-05-24)
+>
+> Source: `docs/superpowers/plans/2026-05-24-lima-implementation-review-plan.md`
+> Mode: user implements, Codex reviews. 1 slice = 1 commit.
+>
+> | M# | Name | Status | Started |
+> |----|------|--------|---------|
+> | M0 | Baseline & Review Harness | in_progress | 2026-05-24 |
+> | M1 | Router, Backend Registry, Key Pool | pending | — |
+> | M2 | Async & Concurrency | pending | — |
+> | M3 | Context Graph, AST, Reranking | pending | — |
+> | M4 | Memory Taxonomy & Redaction | pending | — |
+> | M5 | Eval, Quality Gate, Structured Output | pending | — |
+> | M6 | Observability & Metrics | pending | — |
+> | M7 | Worker Governance, Tool Gateway, MCP, A2A | pending | — |
+> | M8 | Sandbox Evaluation | pending | — |
+> | M9 | Streaming & Progress Events | pending | — |
+> | M10 | Data Workbench | pending | — |
+> | M11 | DevOps, Deployment, Terminal UX | pending | — |
+> | M12 | Hardware Companion | pending | — |
+>
+> ### Error Log
+>
+> | # | Milestone | Error | Attempt | Resolution |
+> |---|-----------|-------|---------|------------|
+> | — | — | — | — | — |
 
 ## Goal
 

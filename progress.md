@@ -2,6 +2,15 @@
 
 > Created: 2026-05-22
 
+## 2026-05-24 M0 Baseline & Review Harness
+
+- Created `docs/DEVELOPER_CHECKLIST.md` with area-specific test commands.
+- Created `docs/REVIEW_PACKET_TEMPLATE.md` for standardized slice reviews.
+- Updated `task_plan.md` with 13-milestone implementation tracking table.
+- Recorded 31 untracked out-of-scope files.
+- Test baseline: 2 known pre-existing failures in `test_routing_engine.py`.
+- M0 exit criteria met: a human can open one doc and know how to submit a slice.
+
 ## 2026-05-22 Website Baseline
 
 - Started persistent plan for closing chat/open-platform website issues.

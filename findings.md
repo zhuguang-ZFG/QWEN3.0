@@ -15,6 +15,14 @@
 - nginx routes chat `/ws/voice` to `127.0.0.1:8091`.
 - nginx routes open platform to `127.0.0.1:3003`.
 
+## M0 Implementation (2026-05-24)
+
+- Created `docs/DEVELOPER_CHECKLIST.md` — test commands for all 12 areas
+- Created `docs/REVIEW_PACKET_TEMPLATE.md` — standard slice review packet
+- Updated `task_plan.md` with 13-milestone tracking table
+- Recorded 31 untracked files as out-of-scope
+- Test baseline: all area-specific commands documented; 2 known pre-existing failures in test_routing_engine.py
+
 ## Verified Working
 
 - Chat homepage returns 200.
