@@ -2613,3 +2613,46 @@ Verification note:
     passed.
   - `python -m pytest -q --ignore=active_model`:
     1084 passed, 8 skipped.
+
+## 2026-05-25 M28-M33 Tool Gateway And Operator Hardening Closeout
+
+- Reviewed and closed M28-M33:
+  - M28 wires a tool gateway adapter into `AgentRuntime`, including shell,
+    HTTP, and run-tests routing when a gateway is present;
+  - M29 adds operator approval sessions with evidence formatting;
+  - M30 adds feature flags and env allowlists for shell, network, and
+    workspace-write gates;
+  - M31 adds a bounded workspace sandbox with dry-run preview and rollback;
+  - M32 adds domain allowlist and rate-limit network policy checks;
+  - M33 adds cross-module release hardening tests.
+- Review fixes applied:
+  - all new files and tests were cleaned to ASCII;
+  - gateway audit events now use stable event names and preserve task/worker
+    context on blocked and allowed paths;
+  - `RUN_TESTS` routes through the gateway when one is configured;
+  - gateway policy blocks dangerous `allowed_tools` even after approval;
+  - no-op/fake gateway results are successful simulations, while blocked
+    executors return blocked step results;
+  - approval sessions redact command, goal, evidence, and operator-facing
+    fields in formatted and serialized output;
+  - feature flags now require `dry_run=False`, explicit env flags, and parsed
+    allowlists before any real execution class is considered allowed;
+  - workspace paths use bounded `commonpath` checks and reject path escape even
+    during dry-run preview;
+  - network domain matching is exact-or-subdomain only, so suffix confusion such
+    as `badexample.com` no longer matches `example.com`;
+  - contract redaction no longer mistakes normal ids like `task-1` for `sk-`
+    secrets, while still redacting real-looking `sk-...` tokens.
+- Verification:
+  - `python -m pytest tests/test_tool_gateway_adapter.py tests/test_operator_features.py -q --ignore=active_model`:
+    45 passed after review fixes.
+  - `python -m pytest tests/test_agent_runtime.py tests/test_agent_store.py tests/test_agent_orchestrator.py tests/test_approval_gate.py tests/test_e2e_release.py tests/test_tool_gateway_adapter.py tests/test_operator_features.py -q --ignore=active_model`:
+    223 passed after review fixes.
+  - `python -m py_compile agent_runtime/contract.py agent_runtime/executor.py agent_runtime/tool_gateway_adapter.py agent_runtime/approval_session.py agent_runtime/feature_flags.py agent_runtime/workspace_sandbox.py agent_runtime/network_policy.py tests/test_tool_gateway_adapter.py tests/test_operator_features.py`:
+    passed.
+  - `rg -n "[^\\x00-\\x7F]" agent_runtime/contract.py agent_runtime/executor.py agent_runtime/tool_gateway_adapter.py agent_runtime/approval_session.py agent_runtime/feature_flags.py agent_runtime/workspace_sandbox.py agent_runtime/network_policy.py tests/test_tool_gateway_adapter.py tests/test_operator_features.py`:
+    no matches.
+  - `git diff --check -- agent_runtime/contract.py agent_runtime/executor.py agent_runtime/__init__.py agent_runtime/tool_gateway_adapter.py agent_runtime/approval_session.py agent_runtime/feature_flags.py agent_runtime/workspace_sandbox.py agent_runtime/network_policy.py tests/test_tool_gateway_adapter.py tests/test_operator_features.py`:
+    passed.
+  - `python -m pytest -q --ignore=active_model`:
+    1129 passed, 8 skipped.

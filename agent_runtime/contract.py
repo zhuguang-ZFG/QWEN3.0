@@ -7,6 +7,7 @@ passwords, or raw secret-bearing prompts.
 from __future__ import annotations
 
 import time
+import re
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
@@ -22,9 +23,9 @@ _SECRET_MARKERS = (
     "credential",
     "password",
     "secret",
-    "sk-",
     "token=",
 )
+_SECRET_TOKEN_RE = re.compile(r"(^|[^a-zA-Z0-9])sk-[a-zA-Z0-9_-]{6,}")
 
 
 class AgentRunStatus(str, Enum):
@@ -214,6 +215,8 @@ def redact(text: object) -> str:
     lowered = value.lower()
     if any(marker in lowered for marker in _SECRET_MARKERS):
         return _REDACTED
+    if _SECRET_TOKEN_RE.search(value):
+        return _REDACTED
     return value
 
 
@@ -236,7 +239,9 @@ def redact_value(value: Any) -> Any:
 
 def _looks_secret_key(key: str) -> bool:
     lowered = key.lower()
-    return any(marker.strip(" =") in lowered for marker in _SECRET_MARKERS)
+    if any(marker.strip(" =") in lowered for marker in _SECRET_MARKERS):
+        return True
+    return bool(_SECRET_TOKEN_RE.search(key))
 
 
 def _parse_enum(enum_type: type[Enum], value: Any, fallback: Any) -> Any:

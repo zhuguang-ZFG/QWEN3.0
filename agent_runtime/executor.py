@@ -23,6 +23,7 @@ from agent_runtime.planner import plan_task
 from agent_runtime.tool_policy import check_step_policy
 from agent_runtime.store import AgentRunStore
 from agent_runtime.approval import ApprovalGate
+from agent_runtime.tool_gateway_adapter import ToolExecutionGateway
 
 
 @dataclass
@@ -37,11 +38,13 @@ class AgentRuntime:
 
     def __init__(self, dry_run: bool = True, hooks: RuntimeHooks | None = None,
                  store: AgentRunStore | None = None,
-                 approval_gate: ApprovalGate | None = None) -> None:
+                 approval_gate: ApprovalGate | None = None,
+                 tool_gateway: ToolExecutionGateway | None = None) -> None:
         self.dry_run = dry_run
         self.hooks = hooks or RuntimeHooks()
         self.store = store
         self.approval_gate = approval_gate
+        self.tool_gateway = tool_gateway
         self._audit_log: list[str] = []
 
     def plan(self, task: AgentTask) -> AgentTask:
@@ -117,13 +120,11 @@ class AgentRuntime:
         elif step.kind == StepKind.RETRIEVE_CONTEXT:
             result = self._handle_retrieve_context(step)
         elif step.kind == StepKind.RUN_TESTS:
-            result = self._handle_run_tests(step)
+            result = self._handle_run_tests(step, task_id, worker_id)
         elif step.kind == StepKind.REVIEW:
             result = self._handle_review(step)
-        elif step.kind == StepKind.SHELL_COMMAND:
-            result = self._blocked(step, "shell_command blocked by runtime")
-        elif step.kind == StepKind.HTTP_CALL:
-            result = self._blocked(step, "http_call blocked by runtime")
+        elif step.kind in (StepKind.SHELL_COMMAND, StepKind.HTTP_CALL):
+            result = self._handle_dangerous(step, task_id, worker_id)
         else:
             result = StepResult(
                 step_id=step.step_id,
@@ -169,7 +170,14 @@ class AgentRuntime:
             evidence=["retrieve_context_hook"],
         )
 
-    def _handle_run_tests(self, step: AgentStep) -> StepResult:
+    def _handle_run_tests(
+        self,
+        step: AgentStep,
+        task_id: str = "",
+        worker_id: str = "",
+    ) -> StepResult:
+        if self.tool_gateway:
+            return self.tool_gateway.execute(step, task_id, worker_id)
         proposed_command = step.command or "pytest"
         if not self.dry_run:
             return self._blocked(step, "run_tests execution requires explicit shell gate")
@@ -194,6 +202,13 @@ class AgentRuntime:
             output="\n".join(checklist),
             evidence=["review_checklist"],
         )
+
+    def _handle_dangerous(self, step: AgentStep, task_id: str = "",
+                           worker_id: str = "") -> StepResult:
+        """Route dangerous steps through tool gateway when connected."""
+        if self.tool_gateway:
+            return self.tool_gateway.execute(step, task_id, worker_id)
+        return self._blocked(step, f"{step.kind.value} blocked by runtime")
 
     def _blocked(self, step: AgentStep, reason: str) -> StepResult:
         return StepResult(
