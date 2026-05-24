@@ -46,6 +46,7 @@ Paused work:
 ## 2026-05-24 Runtime Closure
 
 - VPS deployment of Server worker preflight/smoke-task APIs is complete.
+- `server_lifespan.py` is deployed on VPS after backup `/opt/lima-router/backups/lifespan-extract-20260524_111647`.
 - `D:\GIT\deepcode-cli` completed public task `cfcd3f2b` through the deployed Server and submitted `needs_review`.
 - FRP `8088` is closed-loop again after hardening local Windows router startup:
   - local `8080` chat returned exact `lima-final-local-ok`;

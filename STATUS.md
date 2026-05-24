@@ -25,13 +25,15 @@
 ## 2026-05-24 Deployment And Closure Update
 
 - VPS main router is deployed from branch `codex/free-web-ai-probe`.
-- Latest pushed commit: `fdea227` (`fix: preserve local router api key`).
+- Latest pushed commit: `f88690f` (`chore: calibrate plans and extract lifespan`).
 - VPS backups from the Server/Worker sync:
   - `/opt/lima-router/backups/agent-worker-sync-20260524_104836`
   - `/opt/lima-router/backups/runtime-deps-sync-20260524_105115`
+  - `/opt/lima-router/backups/lifespan-extract-20260524_111647`
 - VPS `lima-router` restarted active; `/health` reports modules `mcp`, `agent_tasks`, and `telegram`.
 - Public HTTPS smoke passed:
   - `https://chat.donglicao.com/v1/chat/completions` returned exact `lima-postdeploy-ok`.
+  - after the lifespan extraction deploy, `https://chat.donglicao.com/v1/chat/completions` returned exact `lima-lifespan-deploy-ok`.
   - `/agent/worker/preflight` returned `contract_version=agent-task-v1`.
 - Real Server/Worker smoke passed:
   - Server task `cfcd3f2b` was created by `/agent/worker/smoke-task`.
@@ -44,6 +46,7 @@
   - `local_router_start.bat` now defaults `LIMA_API_KEY`/`LIMA_API_KEYS` to `lima-local` when neither is set.
   - `http://127.0.0.1:8080/v1/chat/completions` returned exact `lima-final-local-ok`.
   - `http://47.112.162.80:8088/v1/chat/completions` returned exact `lima-final-frp-ok`.
+  - after the lifespan extraction deploy, `http://47.112.162.80:8088/v1/chat/completions` returned exact `lima-lifespan-frp-ok`.
 
 Current known remaining planning items:
 

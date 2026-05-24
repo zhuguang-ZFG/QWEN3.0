@@ -298,16 +298,18 @@ The main LiMa Server and `D:\GIT\deepcode-cli` now have a public end-to-end work
 Deployment evidence:
 
 - Main branch in use: `codex/free-web-ai-probe`.
-- Latest pushed commit after local-router startup hardening: `fdea227` (`fix: preserve local router api key`).
+- Latest pushed commit after plan calibration and lifespan extraction: `f88690f` (`chore: calibrate plans and extract lifespan`).
 - VPS runtime backups:
   - `/opt/lima-router/backups/agent-worker-sync-20260524_104836`
   - `/opt/lima-router/backups/runtime-deps-sync-20260524_105115`
+  - `/opt/lima-router/backups/lifespan-extract-20260524_111647`
 - Remote compile and `import server` passed before restart.
 - `systemctl restart lima-router` completed; VPS-local `/health` reports `modules.mcp=true`, `modules.agent_tasks=true`, and `modules.telegram=true`.
 
 Public smoke evidence:
 
 - HTTPS chat: `https://chat.donglicao.com/v1/chat/completions` returned exact `lima-postdeploy-ok`.
+- HTTPS chat after lifespan extraction: `https://chat.donglicao.com/v1/chat/completions` returned exact `lima-lifespan-deploy-ok`.
 - Worker preflight: `/agent/worker/preflight` returned `ready=true`, `contract_version=agent-task-v1`, and `smoke_task=true`.
 - Real-machine worker task:
   - Server task id: `cfcd3f2b`.
@@ -323,6 +325,7 @@ FRP/local-router closure:
 - Final smokes:
   - `http://127.0.0.1:8080/v1/chat/completions` returned exact `lima-final-local-ok`.
   - `http://47.112.162.80:8088/v1/chat/completions` returned exact `lima-final-frp-ok`.
+  - `http://47.112.162.80:8088/v1/chat/completions` returned exact `lima-lifespan-frp-ok` after the lifespan extraction deployment.
   - Process state: one Windows `server.py` router process and one `frpc.exe` process.
 
 Known remaining planning items after this closure:
