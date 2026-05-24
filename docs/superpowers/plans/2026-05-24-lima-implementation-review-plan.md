@@ -456,19 +456,25 @@ Exit criteria:
 References:
 
 - OpenAI Agents SDK, Google ADK, Agent Governance Toolkit, MCP Python SDK, A2A,
-  gstack, Symphony.
+  gstack, Symphony, AgentConductor, Solvita, RecursiveMAS, Qoder.
 
 Implementation slices:
 
 1. Agent task risk metadata:
    - Add fields such as `risk_class`, `allowed_tools`, `requires_approval`,
      `evidence_refs`, `rollback_owner`, `network_policy`, and `data_policy`.
+   - Use AgentConductor as a design pressure: start with the smallest useful
+     workflow and expand agent roles only when task difficulty, risk, or eval
+     evidence justifies the extra coordination/token cost.
 
 2. Tool gateway permission model:
    - Define tool authority classes:
      `read_only`, `write_workspace`, `network_read`, `network_write`,
      `database_read`, `database_write`, `browser`, `deployment`, `hardware`.
    - Default to no authority unless a task grants it.
+   - Use RecursiveMAS as a communication-efficiency reminder: prefer compact
+     typed envelopes, artifact ids, and evidence refs over verbose
+     agent-to-agent prose.
 
 3. MCP compatibility plan:
    - Add read-only MCP-style tool metadata compatibility first.
@@ -477,6 +483,15 @@ Implementation slices:
 4. A2A contract research:
    - Map current LiMa Server to LiMa Code task contract to A2A-like fields.
    - No protocol replacement until schema parity exists.
+   - Use Solvita-style roles only as opt-in task modes: planner, solver,
+     oracle/reviewer, and hacker/adversarial tester. Store lessons as
+     evidence-weighted mastery events, not raw self-editing memory.
+
+5. Real software engineering workflow:
+   - Use Qoder-style product lessons for repository understanding,
+     decomposition, verification, and long-horizon coding work.
+   - Keep closed product/model claims as references only until LiMa-owned
+     benchmarks prove value.
 
 Likely files:
 

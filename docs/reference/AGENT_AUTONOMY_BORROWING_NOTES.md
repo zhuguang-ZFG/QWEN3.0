@@ -40,6 +40,18 @@
   review, engineering review, design review, QA/browser testing, security
   audit, release/deploy checks, safety guard commands, cross-model review, and
   memory sync.
+- AgentConductor-style dynamic collaboration topology: choose the smallest
+  useful workflow for simple tasks and expand only when difficulty/eval signals
+  justify extra agents and token cost.
+- Solvita-style competitive-programming loop: separate planning, solving,
+  oracle/review, and hacking/adversarial-test roles, then store successes and
+  failures as evidence-weighted experience rather than raw memory.
+- RecursiveMAS-style communication-efficiency pressure: avoid verbose
+  agent-to-agent natural-language handoffs when a compact typed artifact,
+  summary, vector id, trace id, or evidence bundle can carry the state.
+- Qoder-style real-software-engineering posture: optimize for repository
+  understanding, task decomposition, verification, and long-horizon project
+  work instead of single-snippet code generation.
 - Nunchi agent-cli-style deterministic orchestration with explicit risk states,
   reconciliation, scheduled reflection, MCP tool surfaces, and HTTP/SSE
   observability, with trading behavior excluded.
@@ -152,6 +164,11 @@
 - Multi-agent role sprawl where coordination overhead is larger than the task.
 - Agent Teams without a shared task layer, event log, conflict policy, and
   explicit owner.
+- Treating paper benchmark numbers or product claims as LiMa facts before the
+  original paper/source, benchmark setup, and reproducibility boundary are
+  reviewed.
+- Implementing latent-space agent communication without model/runtime support,
+  observability, and debuggable fallback artifacts.
 
 ## LiMa Implementation
 

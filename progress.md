@@ -1792,3 +1792,32 @@ Verification note:
 - Verification:
   - `python -m py_compile streaming.py speculative.py routes/v3_adapters.py routes/stream_handlers.py test_streaming.py`: passed.
   - `python -m pytest test_streaming.py test_routing_engine.py test_http_caller.py -q --ignore=active_model`: 108 passed.
+
+## 2026-05-24 Multi-Agent Coding Paper Radar
+
+- User shared a multi-agent collaborative programming paper/practice summary:
+  AgentConductor, Solvita, RecursiveMAS, and Qoder.
+- Current-source calibration:
+  - AgentConductor is treated as a dynamic-topology multi-agent programming
+    reference: expand agent collaboration only when task difficulty justifies
+    cost.
+  - Solvita is treated as a competitive-programming evolution-loop reference:
+    planner/solver/oracle/hacker-style roles plus evidence-weighted experience
+    updates.
+  - RecursiveMAS is treated as a communication-efficiency reference: reduce
+    verbose agent handoffs with compact state/artifact/evidence exchange.
+  - Qoder is treated as an agentic coding product/practice reference for
+    repository understanding, decomposition, verification, and long-horizon
+    software engineering.
+- Updated:
+  - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
+  - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
+  - `docs/superpowers/plans/2026-05-24-lima-implementation-review-plan.md`;
+  - `progress.md`.
+- Boundary retained:
+  - no runtime dependency added;
+  - no external code copied;
+  - paper/product benchmark numbers remain untrusted until original sources,
+    benchmark setup, and reproducibility are reviewed;
+  - latent-space agent communication remains concept-only until LiMa has
+    model/runtime support and debuggable fallback artifacts.
