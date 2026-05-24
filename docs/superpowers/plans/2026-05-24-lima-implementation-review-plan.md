@@ -493,6 +493,17 @@ Exit criteria:
 - LiMa has stable internal telemetry names and redaction rules before adding
   hosted observability.
 
+Current M6 closure notes:
+
+- M6-S1/S2/S4 completed on 2026-05-24 with no new runtime dependency.
+- Added `observability.events.LiMaEvent` plus factory helpers.
+- Added `observability.metrics` in-memory aggregation and snapshot helpers.
+- Added `docs/OBSERVABILITY_EVENTS.md`.
+- Codex review fixed event-object redaction so metadata and key-pool details
+  cannot keep raw prompt/key/cookie-like values.
+- M6-S3 remains pending: wire `http_caller.py`, `routing_engine.py`,
+  `routes/quality_gate.py`, `key_pool.py`, and `budget_manager.py`.
+
 ## Milestone 7 - Worker Governance, Tool Gateway, MCP, And A2A
 
 References:

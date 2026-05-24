@@ -17,7 +17,7 @@
 > | M3 | Context Graph, AST, Reranking | complete | 2026-05-24 |
 > | M4 | Memory Taxonomy & Redaction | complete | 2026-05-24 |
 > | M5 | Eval, Quality Gate, Structured Output | complete | 2026-05-24 |
-> | M6 | Observability & Metrics | pending | - |
+> | M6 | Observability & Metrics | partial | 2026-05-24 |
 > | M7 | Worker Governance, Tool Gateway, MCP, A2A | pending | - |
 > | M8 | Sandbox Evaluation | pending | - |
 > | M9 | Streaming & Progress Events | pending | - |
@@ -36,6 +36,7 @@
 > | 5 | M3-S4 | `evaluate_queries()` used zip-style pairing and silently ignored expected queries when the retrieved-results list was shorter. | Added a missing-retrieval regression. | Evaluation now enumerates every query and treats missing retrieved rows as empty misses. |
 > | 6 | M4-S3 | `save_memory()` used `sanitize_for_memory(text) or text`, so critical sanitizer rejections such as SSH private keys could fall back to raw secret storage. Promotion evidence also entered memory detail and audit logs without shared redaction. | Added regressions for private-key save and promotion evidence redaction. | Storage now uses `_sanitize_storage_text()` and never falls back to raw text after a sanitizer rejection; promotion evidence is sanitized before detail/audit writes. |
 > | 7 | M5 | `routes/quality_gate.py` and the new quality tests contained mojibake strings that made exact-output markers fragile and briefly broke compilation during review. `repairable` also failed to recognize `too short for complexity`, and the harmful-refusal eval case could pass without a refusal. | Rewrote the quality-gate module and tests as ASCII source with Unicode escapes, added repairable/safety-refusal regressions, and extended coding eval fixtures. | Quality gate now compiles cleanly, safety refusals for harmful prompts can pass, `max_chars` and JSON-list fixtures are supported, and the harmful fixture requires refusal/safety wording. |
+> | 8 | M6-S1/S2/S4 | `LiMaEvent.metadata` and `key_pool_event(details=...)` could hold raw prompt/key/cookie-like values even though snapshots did not expose metadata. | Added regressions for sensitive metadata keys and token-like details. | Event construction now sanitizes route reason, labels, and metadata recursively before any event can be recorded or logged. |
 
 ## Goal
 

@@ -1909,3 +1909,27 @@ Verification note:
     39 passed before the final full-suite run;
   - both `load_cases("data/coding_cases")` and
     `load_cases("data/coding_cases.json")` loaded 5 cases.
+
+## 2026-05-24 M6 Observability Events And Metrics
+
+- Reviewed and partially closed M6:
+  - `observability.events` defines `LiMaEvent` and event factories for request
+    lifecycle, backend calls/errors, route decisions, quality results,
+    key-pool events, and token usage;
+  - `observability.metrics` provides local in-memory aggregation with no
+    exporter, network, or third-party dependency;
+  - `docs/OBSERVABILITY_EVENTS.md` documents event shape, redaction, snapshot
+    fields, and the remaining M6-S3 wiring boundary;
+  - `tests/test_observability.py` covers event creation, session hashing,
+    metrics snapshots, ranking helpers, reset isolation, token accumulation,
+    and redaction guarantees.
+- Review fixes applied:
+  - `LiMaEvent` now sanitizes metadata recursively at construction time;
+  - sensitive metadata keys such as prompt/key/token/cookie/body are replaced
+    with `[REDACTED]`;
+  - token-like `key_pool_event(details=...)` strings are redacted before any
+    event object can be recorded or logged;
+  - observability files were normalized to ASCII source to avoid mojibake.
+- Verification:
+  - `python -m pytest tests/test_observability.py -q --ignore=active_model`:
+    31 passed before the final full-suite run.
