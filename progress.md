@@ -2,6 +2,34 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 Reference Capability Implementation Closeout
+
+- Completed Phase 1-8 of the reference capability implementation roadmap at
+  `docs/superpowers/plans/2026-05-25-reference-capability-implementation-roadmap.md`.
+- Phase 1: Normalized Reference Implementation Ledger with `blocked` status and
+  explicit gated-item tracking.
+- Phase 2: Consolidated retrieval injection to single authoritative path
+  (`routing_engine.inject_retrieval_context()`); added index protocol,
+  reranker protocol with fixture support, static-analysis lane, and
+  source-quality scoring to retrieval traces.
+- Phase 3: Normalized memory taxonomy; added recall source IDs to admin
+  traces; added export/delete admin gate (`LIMA_MEMORY_ADMIN=1`);
+  secret-bearing promotion evidence is rejected instead of redacted; mastery
+  loop explicitly quarantined from hot-path routing.
+- Phase 4: Added `RiskClass` enum and `rollback_owner` to `ToolDefinition`;
+  dangerous tools fail closed at construction when risk_class or
+  rollback_owner is missing; MCP provenance recorded in audit events; worker
+  summary contract with required fields for LiMa Code task submissions.
+- Phase 5: Created MCP access plane with connector policies, per-connector
+  owner/allowlist/credential/timeout/audit, and foundation-vs-gated split.
+- Phase 6: Added unified eval registry (`eval_registry.py`) linking
+  model/route/fixture/score/promotion with JSONL persistence.
+- Phase 8: Added protocol family schemas with per-family allowlists; only
+  `motion` active, six families gated.
+- Verification: `1193 passed, 8 skipped`; `git diff --check` passed;
+  secret scan clean.
+- No VPS deployment performed (no runtime behavior changed).
+
 ## 2026-05-25 Productivity Infrastructure Review
 
 - Added the project-wide productivity/productization constraint to
@@ -49,6 +77,16 @@
 - Confirmed previous open-platform token test succeeded:
   - New API DB found at `/opt/new-api/one-api.db`.
   - Enabled channels point to `http://localhost:8080`.
+
+## Next Milestone: P0.1 ESP32 Motion Executor Contract
+
+- Plan: `docs/superpowers/plans/2026-05-25-p0.1-esp32-motion-executor-contract.md`
+- Five slices: Server error codes → Device Gateway path validation → ESP32
+  default board fail-loud → Zhuguang board failure hardening → VPS deployment
+  and smoke.
+- Exit: missing-path or unsupported-capability motion task is visible as a
+  structured failure event in Server task state within one smoke run.
+- Waiting for owner to implement first slice.
   - Enabled tokens exist.
   - Local and public model/chat requests returned 200.
 - Ran broader production audit for static assets, TLS/security headers, logs, backup, firewall exposure, and UI encoding.
