@@ -145,6 +145,35 @@ runtime dependencies:
   copy page content into LiMa without review.
 - TUNA mirror service: operational reference for China-network dependency
   bootstrap and fallback mirror documentation, not a code dependency.
+- `modelscope/sirchmunk`: Apache-2.0 reference for raw-file/indexless search,
+  evidence sampling, streaming search logs, self-evolving knowledge clusters,
+  and local/remote path allowlists. Use as a search architecture input, not as
+  a replacement for LiMa memory or graph APIs.
+- `hyperbrowserai/hyperbrowser-app-examples`: browser automation and data
+  extraction app reference. Keep API keys, scraping targets, privacy, target
+  terms, and anti-abuse policy behind explicit review.
+- `garrytan/gstack`: MIT reference for stage-gated LiMa Code workflows:
+  office-hours/planning, review, browser QA, security audit, release, safety
+  guard commands, cross-model second opinion, and memory sync. Do not install
+  the full skill stack by default or introduce broad role sprawl.
+- `Nunchi-trade/agent-cli`: MIT reference for agent skills, MCP surfaces,
+  deterministic orchestrators, risk states, reconciliation, HTTP/SSE
+  observability, and REFLECT-style scheduled review. Trading and financial
+  automation remain out of scope and blocked.
+- `Gen-Verse/OpenClaw-RL`: Apache-2.0 research reference for feedback-to-eval/
+  training loops. Live self-training from private LiMa sessions is blocked
+  until consent, privacy, eval, rollback, model-storage, and cost gates exist.
+- `666ghj/MiroFish`: AGPL concept-only reference for swarm simulation and
+  scenario/prediction UX; no code copy and no prediction-driven actions.
+- `https://hermes-agent.nousresearch.com/`: official Hermes Agent site used as
+  a capability benchmark for server-resident agents, scheduled automations,
+  persistent memory, generated skills, isolated subagents, sandboxing, browser
+  control, and messaging surfaces. Site license claims require source-level
+  verification before code reliance.
+- Feishu `2026 企业级AI编程实践手册`: methodology background for context
+  engineering, specs, rules, skills, MCP, and enterprise AI coding process.
+  No text or document structure should be reused without license/permission
+  review.
 
 Any adoption must preserve LiMa Server's backend admission, provider key
 custody, repo allowlist, audit, review gates, and push/deploy approval rules.

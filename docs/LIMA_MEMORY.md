@@ -1411,3 +1411,50 @@ Deployment: not performed.
     selected with ownership, sandbox, and approval metadata;
   - autonomous paper/research output requires HITL, evidence, budget, and
     anti-fabrication gates.
+
+## 2026-05-24 External Capability Radar Browser Search RL Batch
+
+- User provided Hyperbrowser examples, a Feishu wiki handbook, Sirchmunk,
+  MiroFish, OpenClaw-RL, gstack, Nunchi agent-cli, and the Hermes Agent site.
+- Current-source checks:
+  - `hyperbrowserai/hyperbrowser-app-examples`: README says MIT and describes
+    browser automation, scraping/data extraction, production web apps, and API
+    key requirements; GitHub API earlier returned no SPDX assertion, so keep
+    license review explicit before dependency use.
+  - Feishu wiki page returned HTTP 200 and exposed title
+    `2026 企业级AI编程实践手册`; it is methodology background for context
+    engineering, specs, rules, skills, MCP, and enterprise AI coding, with no
+    observed reuse license.
+  - `modelscope/sirchmunk`: Apache-2.0; README describes raw-data/indexless
+    search, knowledge clustering, Monte Carlo evidence sampling,
+    self-evolving knowledge clusters, real-time chat, API/SSE, and MCP.
+  - `666ghj/MiroFish`: AGPL-3.0; swarm/prediction simulation concept only.
+  - `Gen-Verse/OpenClaw-RL`: Apache-2.0; fully asynchronous RL loop for
+    training personalized agents from natural-language feedback.
+  - `garrytan/gstack`: MIT; workflow stack for planning, review, QA/browser
+    testing, security, release/deploy, safety guards, cross-model review,
+    gbrain setup, and multi-host skill installation.
+  - `Nunchi-trade/agent-cli`: MIT; autonomous trading CLI with agent skills,
+    MCP server, deterministic orchestrator, risk states, reconciliation,
+    REFLECT review loop, HTTP/SSE surfaces, and testnet/mainnet split.
+  - Hermes Agent site returned HTTP 200 and claims open-source/MIT status for
+    a server-resident agent with persistent memory, generated skills,
+    scheduled automations, isolated subagents, sandbox backends, browser/web
+    control, and messaging surfaces; source license remains unverified.
+- Updated:
+  - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
+  - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
+  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
+  - `docs/reference/MCP_CONNECTOR_CATALOG.md`;
+  - `STATUS.md`;
+  - `docs/LIMA_MEMORY.md`.
+- Boundary retained:
+  - no runtime dependency was added;
+  - no external code, prompt, or Feishu document text was copied;
+  - browser automation is gated by API-key custody, target-site terms,
+    privacy, rate limits, and anti-abuse review;
+  - AGPL/no-reuse-license sources remain concept/background only;
+  - trading/finance automation is blocked;
+  - live self-training from private LiMa sessions is blocked until consent,
+    privacy, eval, rollback, model-storage, compute, and cost gates exist.

@@ -59,12 +59,15 @@ tool set needed for the current task.
 | Notion, Slack, Gmail, Jira, Asana MCP | candidate | Off | Account connectors require consent, workspace scope, outbound-message approval, and audit. |
 | Stripe, HubSpot MCP | blocked | Off | Payment/CRM actions are out of current private coding-assistant scope. |
 | Firecrawl MCP | candidate | Off | Useful for web extraction; license signals across Firecrawl packages must be reviewed per package before use. |
+| Hyperbrowser-style browser automation | concept | Off | Browser app/extraction reference only. Any adapter requires API-key custody, target-site terms, privacy review, rate limits, and anti-abuse policy. |
 | Browserbase, Bright Data, Apify MCP | concept | Off | Scraping/browser-scale tools require target-site policy, rate-limit, privacy, and anti-abuse review. |
 | Figma MCP | concept | Off | Design read/import only until a UI workflow exists; no automatic code landing. |
 | ElevenLabs MCP | concept | Off | Voice generation requires consent, voice license, storage, and cost controls. |
 | Tavily MCP | candidate | Off | Search/extract/map/crawl candidate behind privacy, quota, cache, and citation policy. |
 | Magic MCP | concept | Off | UI-generation workflow reference; generated code must go through LiMa Code review and tests. |
 | last30days-style skill connectors | concept | Off | Time-bounded social/source search can inform research tasks only with BYO-key consent, platform-term review, attribution, and privacy boundaries. |
+| Sirchmunk-style raw-file search MCP | concept | Off | Useful for local/remote raw-data search and streaming evidence logs; requires path allowlists, secret redaction, cache retention, and audit before use. |
+| Nunchi agent-cli MCP | blocked | Off | Trading/finance tooling is not part of LiMa's coding/hardware scope. Borrow MCP-surface shape only; do not enable financial actions. |
 
 ## Discovery Sources
 

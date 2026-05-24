@@ -33,6 +33,14 @@ MCP connectors give an agent permissioned places to act; Skills teach how to
 think and execute. LiMa needs both, but each MCP server must be allowed,
 scoped, audited, and tied to a real workflow before use.
 
+The follow-up 2026-05-24 batch adds Hyperbrowser examples, the Feishu
+`2026 企业级AI编程实践手册`, Sirchmunk, MiroFish, OpenClaw-RL, gstack,
+Nunchi `agent-cli`, and the official Hermes Agent site. This batch strengthens
+browser automation, raw-data search, enterprise AI engineering methodology,
+feedback/eval loops, skill-stack workflow design, and long-running agent
+benchmarking. Financial/trading automation, AGPL simulation code, browser
+scraping, and live self-training remain off by default.
+
 Primary source inventory:
 
 - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`
@@ -91,6 +99,7 @@ References:
 
 - Pyrefly
 - LightRAG
+- Sirchmunk
 - code-review-graph
 - graphify
 - GitNexus
@@ -108,6 +117,11 @@ Main repo plan:
 - Borrow LightRAG concepts for graph/vector retrieval, multimodal parsing,
   chunking strategy selection, role-specific model separation, and retrieval
   trace evidence without making LightRAG a required runtime dependency.
+- Borrow Sirchmunk concepts for raw-file/indexless search, Monte Carlo
+  evidence sampling, streaming search logs, self-evolving knowledge clusters,
+  local DuckDB-style persistence, and local/remote allowed-path boundaries.
+  Do not let it replace LiMa's memory or graph APIs until privacy, path
+  allowlist, cache-retention, and rebuild policies are implemented.
 - Add repo-to-spec extraction as a read-only tool for onboarding external repos
   and product submodules.
 - Evaluate semantic/MCP code-search packaging from claude-context and
@@ -178,8 +192,12 @@ References:
 - HeavySkill
 - learn-harness-engineering
 - Hermes Agent Orange Book
+- Hermes Agent official site
 - AutoResearchClaw
+- OpenClaw-RL
 - claude-code-prompts
+- gstack
+- Nunchi agent-cli
 - deepclaude
 
 Main repo plan:
@@ -211,6 +229,24 @@ Main repo plan:
   instructions, verification prompts, memory prompts, and coordinator prompts.
 - Treat Hermes Agent Orange Book as CC BY-NC-SA concept-only input for learning
   loops, memory layering, skill evolution, and self-improving agent boundaries.
+- Treat the Hermes Agent official site as a capability benchmark for a
+  server-resident agent with persistent memory, generated skills, scheduled
+  automations, isolated subagents, sandbox backends, browser/web control, and
+  multi-platform messaging. Its site claims MIT/open-source status, but
+  LiMa must verify source repository/license before code-level reuse.
+- Borrow OpenClaw-RL only as a future research reference for converting
+  natural-language feedback into evaluated training signals. Live training
+  from private chats, task transcripts, browser sessions, or hardware actions
+  is blocked until consent, privacy, eval, rollback, model-storage, compute,
+  and cost gates exist.
+- Borrow gstack as a workflow-stack reference for plan/review/QA/security/ship
+  sequencing, browser QA artifacts, safety commands, cross-model review, and
+  memory sync. Do not import it wholesale, auto-install broad skills, or split
+  work into role sprawl when one owner context is better.
+- Borrow Nunchi `agent-cli` patterns for deterministic orchestrators, risk
+  states, reconciliation, MCP tool surfaces, HTTP/SSE observability, and
+  scheduled reflection loops. Its trading/finance behavior is out of scope and
+  remains blocked from LiMa runtime behavior.
 - Treat goclaw as concept-only until license review; borrow only its
   multi-tenant isolation, layered security, and native concurrency posture.
 - Borrow awesome-codex-subagents for Codex-native metadata/category structure,
@@ -299,6 +335,7 @@ References:
 - HF Viewer
 - OpenCode
 - open-lovable
+- gstack
 - vibe-coding-cn
 
 Main repo plan:
@@ -323,6 +360,9 @@ LiMa Code plan:
   generated code must stay behind review and tests.
 - Borrow OpenCode's terminal UI, package-manager installation, desktop beta,
   localization, and coding-agent ergonomics for LiMa Code packaging.
+- Borrow gstack's slash-command ergonomics, stage handoffs, QA/browser
+  verification, release checklist, and careful/freeze/guard safety vocabulary
+  as opt-in LiMa Code workflow patterns.
 - Borrow vibe-coding-cn's Chinese planning-first onboarding, prompt/skill
   catalog organization, and AI-pair-programming education material shape.
 
@@ -338,8 +378,10 @@ References:
 
 - CubeSandbox
 - browser-harness
+- Hyperbrowser examples
 - Microsoft Agent Governance Toolkit
 - CloakBrowser
+- gstack browser/QA patterns
 
 Main repo plan:
 
@@ -347,6 +389,13 @@ Main repo plan:
   worker execution and untrusted repo experiments.
 - Add a browser-harness-inspired verification layer for official website, open
   platform, chat UI, and local web tools.
+- Use Hyperbrowser examples as a product reference for browser-automation apps,
+  extraction flows, and production-style browser task artifacts. Hyperbrowser
+  API keys, scraping targets, target-site terms, privacy, and anti-abuse
+  posture must be reviewed before any adapter is enabled.
+- Use gstack browser/QA patterns as an auditability reference: screenshots,
+  headed handoff, tab isolation, scoped tokens, and prompt-injection defenses
+  are design inputs, not default dependencies.
 - Add governance metadata inspired by Microsoft Agent Governance Toolkit:
   risk class, allowed actions, human-approval requirement, evidence refs, and
   rollback owner for each autonomous work item.
@@ -376,7 +425,9 @@ References:
 - last30days skill
 - Claude use cases
 - AutoResearchClaw
+- Sirchmunk
 - TrendRadar
+- Feishu enterprise AI programming handbook
 - Youdao Baoku
 - Flipbook
 - OpenMontage
@@ -400,6 +451,13 @@ Main repo plan:
   workflow examples; do not scrape or copy page content without review.
 - Use AutoResearchClaw as a research pipeline reference, not as a default
   autonomous paper generator.
+- Use Sirchmunk as a reference for local raw-data research and evidence
+  sampling, especially where vector indexing is too costly or stale. Searches
+  over private paths must be allowlisted, logged, and redacted.
+- Use the Feishu enterprise AI programming handbook as background methodology
+  for context engineering, specs, rules, skills, MCP, and enterprise AI coding
+  process. No text or structure should be copied without a license/permission
+  review.
 - Use GLM-OCR as a document/OCR provider reference after file-ingestion privacy,
   model/API terms, and resource budgets are reviewed.
 - Treat Algebrica as a non-commercial structured-knowledge/content reference,
@@ -437,6 +495,8 @@ References:
 - Youdao Baoku
 - GR00T-WholeBodyControl
 - nano-world-model
+- MiroFish
+- OpenClaw-RL
 
 Main repo plan:
 
@@ -455,6 +515,12 @@ Main repo plan:
   lane. They may inspire robotics safety layering, simulation, and planning
   gates, but they must not bypass the writing-machine `run_path` allowlist or
   real-hardware smoke gates.
+- Keep MiroFish in the AGPL concept-only lane for swarm simulation, prediction
+  reports, agent personality/state modeling, and scenario exploration. Its
+  outputs must never directly trigger financial, hardware, deployment, or user
+  messaging actions.
+- Keep OpenClaw-RL in the research lane for offline eval/training experiments,
+  not as a production self-learning loop.
 - Extend the Device Gateway only after writing-machine direct control passes
   fake U8 and real U8/U1 gates.
 
@@ -498,9 +564,12 @@ Recommended first slice after this plan is accepted:
    before adopting external prompt libraries.
 9. Add a LiMa research-task/eval registry before adopting autonomous research
    pipelines or social-source search skills.
-10. Defer voice cloning, site reconstruction, agent-runtime, autonomous paper
-   generation, social-source search, and hardware-companion implementation
-   until these foundations are stable.
+10. Add raw-file/indexless search and browser-automation references as
+   adapter-planned items only after path allowlists, privacy logs, and
+   source/target policy gates exist.
+11. Defer voice cloning, site reconstruction, agent-runtime, autonomous paper
+   generation, social-source search, trading automation, live self-training,
+   and hardware-companion implementation until these foundations are stable.
 
 ## Verification
 
@@ -509,7 +578,7 @@ Documentation-only changes:
 ```powershell
 cd D:\GIT
 git diff --check -- docs\reference\EXTERNAL_CAPABILITY_RADAR_2026-05-24.md docs\superpowers\plans\2026-05-24-external-capability-adoption-roadmap.md
-rg -n "External Capability|MCP|TUNA|OpenMontage|open-lovable|VoxCPM|Hermes|claude-code-prompts|last30days|LightRAG|AutoResearchClaw|OpenCode|vibe-coding-cn|TrendRadar|Pyrefly|CubeSandbox|ElatoAI|WeClone|Graph" docs
+rg -n "External Capability|MCP|TUNA|OpenMontage|open-lovable|VoxCPM|Hermes|gstack|agent-cli|Sirchmunk|Hyperbrowser|MiroFish|OpenClaw-RL|Feishu|claude-code-prompts|last30days|LightRAG|AutoResearchClaw|OpenCode|vibe-coding-cn|TrendRadar|Pyrefly|CubeSandbox|ElatoAI|WeClone|Graph" docs
 ```
 
 Implementation phases must add focused tests for the touched module and avoid

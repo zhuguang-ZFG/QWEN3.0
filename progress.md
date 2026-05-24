@@ -1426,3 +1426,62 @@ Verification note:
   - social/source research, broad subagent catalogs, autonomous research
     pipelines, and coding-agent workflow references remain gated by privacy,
     ownership, evidence, budget, sandbox, and approval rules.
+
+## 2026-05-24 External Capability Radar Browser Search RL Batch
+
+- User provided:
+  - `hyperbrowserai/hyperbrowser-app-examples`;
+  - Feishu wiki `2026 企业级AI编程实践手册`;
+  - `modelscope/sirchmunk`;
+  - `666ghj/MiroFish`;
+  - `Gen-Verse/OpenClaw-RL`;
+  - `garrytan/gstack`;
+  - `Nunchi-trade/agent-cli`;
+  - `https://hermes-agent.nousresearch.com/`.
+- Current-source checks:
+  - Hyperbrowser examples README says MIT and describes browser automation,
+    scraping/data extraction, production web apps, deployment patterns, and
+    required Hyperbrowser API keys; GitHub API earlier returned no SPDX
+    assertion, so license review stays explicit before dependency use.
+  - Feishu page returned HTTP 200 and exposed the title
+    `2026 企业级AI编程实践手册`; visible headings cover context engineering,
+    specs, rules, skills, MCP, agents, and enterprise AI coding methodology.
+    No reuse license was observed.
+  - `modelscope/sirchmunk`: Apache-2.0; README describes raw-data/indexless
+    retrieval, knowledge clustering, Monte Carlo evidence sampling,
+    self-evolving knowledge clusters, real-time chat, API/SSE, DuckDB-style
+    persistence, allowed-path hardening, and MCP support.
+  - `666ghj/MiroFish`: AGPL-3.0; swarm-intelligence/prediction simulation
+    concept only.
+  - `Gen-Verse/OpenClaw-RL`: Apache-2.0; fully async RL loop for training
+    personalized agents from natural-language feedback across terminal, GUI,
+    SWE, and tool-call settings.
+  - `garrytan/gstack`: MIT; workflow stack for plan/review/QA/browser testing,
+    security review, release/deploy, safety guard commands, cross-model
+    review, gbrain setup, and multi-host skill installation.
+  - `Nunchi-trade/agent-cli`: MIT; autonomous trading CLI with agent skills,
+    MCP server, deterministic orchestrator, risk states, reconciliation,
+    REFLECT review loop, HTTP/SSE surfaces, and testnet/mainnet split.
+  - Hermes Agent site returned HTTP 200 and claims open-source/MIT status for
+    server-resident autonomous agent behavior, persistent memory, generated
+    skills, scheduled automations, isolated subagents, sandbox backends,
+    browser/web control, and messaging surfaces; source repo/license remains
+    unverified.
+- Updated:
+  - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
+  - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
+  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
+  - `docs/reference/MCP_CONNECTOR_CATALOG.md`;
+  - `STATUS.md`;
+  - `docs/LIMA_MEMORY.md`;
+  - `progress.md`.
+- Boundary retained:
+  - no runtime dependency added;
+  - no external code, prompt, or Feishu document text copied;
+  - browser automation remains gated by API-key custody, target-site terms,
+    privacy, rate limits, and anti-abuse review;
+  - AGPL/no-reuse-license sources remain concept/background only;
+  - trading/finance automation is blocked;
+  - live self-training from private sessions is blocked until consent, privacy,
+    eval, rollback, model-storage, compute, and cost gates exist.

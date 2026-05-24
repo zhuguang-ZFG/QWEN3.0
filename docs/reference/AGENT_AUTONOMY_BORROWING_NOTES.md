@@ -31,6 +31,18 @@
 - AutoResearchClaw-style staged research pipeline with HITL modes,
   anti-fabrication claim checks, benchmark manifests, budget guardrails, and
   cross-run learning.
+- OpenClaw-RL-style separation of asynchronous serving, rollout, judging, and
+  training loops, used only as a future offline evaluation/training reference.
+- Hermes Agent official-site capability benchmark: server-resident agent,
+  persistent memory, generated skills, scheduled automations, isolated
+  subagents, sandbox backends, browser/web control, and messaging surfaces.
+- gstack-style stage-gated software factory: product interrogation, plan
+  review, engineering review, design review, QA/browser testing, security
+  audit, release/deploy checks, safety guard commands, cross-model review, and
+  memory sync.
+- Nunchi agent-cli-style deterministic orchestration with explicit risk states,
+  reconciliation, scheduled reflection, MCP tool surfaces, and HTTP/SSE
+  observability, with trading behavior excluded.
 - last30days-style time-bounded research skills that rank sources by observed
   engagement and synthesize grounded briefs.
 - oh-my-pi-style local IDE/tool harness ergonomics for LiMa Code.
@@ -43,6 +55,8 @@
 - MCP connector taxonomy from the user-provided guide: Skills define methods;
   MCP servers grant authority to act. LiMa uses that distinction to keep
   permissions, credentials, and audit outside prompt-only skill packs.
+- Feishu enterprise AI programming methodology: context engineering, specs,
+  rules, skills, MCP, and process discipline as background concepts only.
 - Sequential Thinking MCP-style explicit reasoning flows for difficult tasks,
   only when the workflow is visible and auditable.
 - Memory MCP-style knowledge graph memory as a reference shape; LiMa's active
@@ -84,8 +98,19 @@
 - Letting autonomous research systems generate papers, claims, citations, or
   public artifacts without human review, evidence checks, budget controls, and
   rollback.
+- Letting RL/self-training systems consume private chats, task transcripts,
+  browser sessions, or hardware traces without consent, privacy review, eval
+  baselines, rollback, model-storage policy, and cost limits.
 - Searching social platforms through user sessions or API keys without consent,
   platform-term review, privacy boundaries, and attribution rules.
+- Letting browser automation examples become default scraping/extraction tools
+  without target-site terms, rate-limit, privacy, credential, and anti-abuse
+  review.
+- Copying Feishu-hosted methodology text or structure without reuse rights.
+- Copying AGPL swarm/simulation systems or allowing prediction reports to
+  trigger real production, finance, messaging, or hardware actions.
+- Financial/trading automation inside LiMa runtime. Nunchi agent-cli is an
+  architecture reference only.
 - Direct dependency on GPL self-evolution systems; use only concept notes unless
   a separate legal review approves isolation.
 - Multi-agent role sprawl where coordination overhead is larger than the task.

@@ -590,3 +590,23 @@ Latest external capability radar research/subagent batch:
 - OpenCode and vibe-coding-cn are MIT references for LiMa Code packaging,
   terminal/desktop UX, localization, Chinese onboarding, and planning-first
   vibe-coding workflow.
+
+Latest external capability radar browser/search/RL batch:
+
+- Added Hyperbrowser examples, Feishu `2026 企业级AI编程实践手册`,
+  Sirchmunk, MiroFish, OpenClaw-RL, gstack, Nunchi agent-cli, and the official
+  Hermes Agent site to the external capability radar and adoption roadmap.
+- Sirchmunk is Apache-2.0 and strengthens raw-file/indexless search,
+  evidence sampling, streaming search logs, self-evolving knowledge clusters,
+  and path-allowlist planning.
+- gstack is MIT and strengthens LiMa Code's stage-gated plan/review/QA/
+  security/ship workflow, browser QA artifacts, safety guard commands, and
+  cross-model second-opinion planning.
+- OpenClaw-RL is Apache-2.0 and remains a future offline feedback/eval/
+  training reference; live self-training is blocked until consent, privacy,
+  eval, rollback, model-storage, compute, and cost gates exist.
+- Hyperbrowser browser automation, Feishu methodology, Hermes Agent official
+  site, MiroFish, and Nunchi agent-cli are admitted only as bounded references:
+  scraping/API-key work is gated, Feishu has no observed reuse license,
+  Hermes site license claims need source verification, MiroFish is AGPL
+  concept-only, and trading/finance automation is blocked.
