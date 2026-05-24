@@ -881,6 +881,18 @@ Deployment: not performed.
 - `search_gateway.tinyfish_transport._is_safe_url()` reuses the shared URL safety function instead of maintaining a second string-prefix guard.
 - Dev-search intent detection covers common Chinese prompts such as `查一下`, `官方文档`, `怎么修`, `报错`, `读取`, and `打开链接`.
 - MCP dev-search numeric arguments are bounded with defaults instead of surfacing raw `ValueError` strings.
-- Telegram FC/TTS modules remain local optional integrations; missing `fc_caller` or `mimo_tts` now falls back to normal chat or a stable voice-backend-unavailable message instead of hard failing deployment paths.
-- Telegram FC/TTS is not considered a fully deployable feature until tracked replacements exist for the local-only `fc_caller`, `tool_dispatcher`, and ignored `mimo_tts` prototype modules.
+- Telegram FC/TTS modules remain optional integrations, but `fc_caller.py`, `tool_dispatcher.py`, and `mimo_tts.py` are now tracked runtime files instead of local-only prototypes.
+- Telegram FC/TTS is still outside ordinary routing. `GNEWS_API_KEY` and `MIMO_TTS_KEY` are environment-only; missing keys return stable local failures without opening network connections.
 - Local verification: focused dev-search/MCP/TinyFish/Telegram suite returned `44 passed`; full pytest returned `411 passed, 8 skipped`.
+
+## 2026-05-23 Telegram FC/TTS Repo Admission
+
+- Plan and evidence: `docs/superpowers/plans/2026-05-23-telegram-fc-tts-repo-admission.md`.
+- `mimo_tts.py` is no longer ignored by `.gitignore`.
+- `tool_dispatcher.py` is now a small compatibility facade backed by focused `lima_fc_tools` modules.
+- `lima_fc_tools` preserves the same 71 exported tool names while keeping tool schema text ASCII-only and each runtime file under 300 lines.
+- The split information-tools module deduplicates tool schemas by function name and loads GNews credentials from `GNEWS_API_KEY`.
+- `mimo_tts.tts()` checks `MIMO_TTS_KEY` at call time and returns `None` before constructing an HTTP client when missing.
+- Secret hygiene now scans `fc_caller.py`, `tool_dispatcher.py`, `mimo_tts.py`, and `lima_fc_tools/*.py`.
+- Clean split plan and evidence: `docs/superpowers/plans/2026-05-24-tool-dispatcher-clean-split.md`.
+- Local verification: focused local-tool/security/Telegram suite returned `23 passed`; ruff passed for the split tool files; full pytest returned `418 passed, 8 skipped`.

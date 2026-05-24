@@ -4,8 +4,9 @@ import pytest
 from unittest.mock import patch, MagicMock
 
 import http_caller
+from backends import BACKENDS
 from http_caller import (
-    BackendError, call_api, call_api_stream, probe,
+    BackendError, call_api,
     clean_response, _build_headers, _build_body,
     _extract_answer, _extract_code, _parse_sse_chunk, _get_opener,
 )
@@ -104,6 +105,31 @@ def test_build_body_stream_flag():
     assert body['stream'] is True
 
 
+def test_build_body_can_force_explicit_non_stream_flag():
+    cfg = {
+        'fmt': 'openai',
+        'model': 'mimo-web',
+        'key': 'none',
+        'force_stream_param': True,
+    }
+    msgs = [{'role': 'user', 'content': 'hi'}]
+    raw = _build_body(cfg, msgs, 1024, stream=False)
+    body = json.loads(raw)
+    assert body['stream'] is False
+
+
+def test_default_streaming_web_proxies_force_non_stream_flag():
+    for name in (
+        'longcat_web',
+        'longcat_web_think',
+        'longcat_web_research',
+        'mimo_web',
+        'mimo_web_think',
+        'mimo_web_flash',
+    ):
+        assert BACKENDS[name]['force_stream_param'] is True
+
+
 def test_build_body_ide_env_injection():
     cfg = {'fmt': 'openai', 'model': 'gpt-4', 'key': 'k'}
     msgs = [{'role': 'user', 'content': 'hi'}]
@@ -184,6 +210,13 @@ def test_clean_response_hides_model_names():
 def test_clean_response_empty():
     assert clean_response('') == ''
     assert clean_response('[ERR] something') == ''
+
+
+def test_clean_response_treats_web_proxy_control_errors_as_backend_errors():
+    assert clean_response('[MiMo Cookie expired]') == ''
+    assert clean_response('[MiMo HTTP 401]') == ''
+    assert clean_response('[LongCat Cookie expired]') == ''
+    assert clean_response('[LongCat HTTP 502]') == ''
 
 
 def test_clean_response_chinese_identity():

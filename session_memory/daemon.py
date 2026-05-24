@@ -16,49 +16,118 @@ from session_memory.store import save_typed_memory
 
 logger = logging.getLogger(__name__)
 
-INBOX_DIR = os.environ.get(
-    "LIMA_MEMORY_INBOX", os.path.join(os.path.dirname(__file__), "..", "data", "memory_inbox")
+DEFAULT_INBOX_DIR = os.path.join(
+    os.path.dirname(__file__), "..", "data", "memory_inbox"
 )
-CONSOLIDATION_INTERVAL = int(os.environ.get("LIMA_MEMORY_CONSOLIDATION_INTERVAL", "300"))
 CONSOLIDATION_THRESHOLD = 20
 
 _running = False
+_daemon_task: asyncio.Task | None = None
+_stats = {
+    "cycles": 0,
+    "last_cycle_at": None,
+    "last_ingested": 0,
+    "last_consolidated": 0,
+    "last_error": "",
+}
 
 
-async def start_daemon() -> None:
+def _inbox_dir() -> str:
+    return os.environ.get("LIMA_MEMORY_INBOX", DEFAULT_INBOX_DIR)
+
+
+def _interval_seconds() -> int:
+    raw = os.environ.get("LIMA_MEMORY_CONSOLIDATION_INTERVAL", "300")
+    try:
+        return max(1, int(raw))
+    except ValueError:
+        return 300
+
+
+async def start_daemon() -> dict:
     """Start the memory daemon as a background task."""
-    global _running
-    if _running:
-        return
+    global _running, _daemon_task
+    if _running and _daemon_task and not _daemon_task.done():
+        return {"started": False, **daemon_status()}
     _running = True
-    logger.info("[MemoryDaemon] started, inbox=%s, interval=%ds", INBOX_DIR, CONSOLIDATION_INTERVAL)
-    asyncio.create_task(_daemon_loop())
+    logger.info(
+        "[MemoryDaemon] started, inbox=%s, interval=%ds",
+        _inbox_dir(),
+        _interval_seconds(),
+    )
+    _daemon_task = asyncio.create_task(_daemon_loop())
+    return {"started": True, **daemon_status()}
 
 
 async def _daemon_loop() -> None:
-    global _running
     while _running:
-        try:
-            _ingest_inbox()
-            _consolidate_if_needed()
-        except Exception as e:
-            logger.warning("[MemoryDaemon] cycle error: %s", e)
-        await asyncio.sleep(CONSOLIDATION_INTERVAL)
+        run_once()
+        await asyncio.sleep(_interval_seconds())
 
 
-def stop_daemon() -> None:
-    global _running
+async def stop_daemon() -> dict:
+    global _running, _daemon_task
     _running = False
+    task = _daemon_task
+    if task and not task.done():
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+    _daemon_task = None
+    return daemon_status()
 
 
-def _ingest_inbox() -> int:
+def daemon_status() -> dict:
+    task_alive = bool(_daemon_task and not _daemon_task.done())
+    return {
+        "running": _running,
+        "task_alive": task_alive,
+        "inbox_dir": _inbox_dir(),
+        "interval_seconds": _interval_seconds(),
+        **_stats,
+    }
+
+
+def run_once(*, ingest: bool = True, consolidate: bool = True) -> dict:
+    """Run one daemon cycle outside the request path."""
+    ingested = 0
+    consolidated = 0
+    error = ""
+    try:
+        if ingest:
+            ingested = _ingest_inbox()
+        if consolidate:
+            consolidated = _consolidate_if_needed()
+    except Exception as e:
+        error = str(e)
+        logger.warning("[MemoryDaemon] cycle error: %s", e)
+
+    _stats.update({
+        "cycles": int(_stats["cycles"]) + 1,
+        "last_cycle_at": time.time(),
+        "last_ingested": ingested,
+        "last_consolidated": consolidated,
+        "last_error": error,
+    })
+    return {
+        "ingested": ingested,
+        "consolidated": consolidated,
+        "error": error,
+        "status": daemon_status(),
+    }
+
+
+def _ingest_inbox(inbox_dir: str | None = None) -> int:
     """Scan inbox dir for .md/.json files, extract typed memories, archive processed."""
-    if not os.path.isdir(INBOX_DIR):
+    inbox = inbox_dir or _inbox_dir()
+    if not os.path.isdir(inbox):
         return 0
 
     ingested = 0
-    for fname in os.listdir(INBOX_DIR):
-        fpath = os.path.join(INBOX_DIR, fname)
+    for fname in os.listdir(inbox):
+        fpath = os.path.join(inbox, fname)
         if not os.path.isfile(fpath):
             continue
         if not fname.endswith((".md", ".json", ".txt")):
@@ -166,9 +235,10 @@ def _archive_file(fpath: str) -> None:
     os.replace(fpath, dest)
 
 
-def _consolidate_if_needed() -> None:
+def _consolidate_if_needed() -> int:
     """Consolidate old memories when threshold is exceeded."""
     conn = None
+    consolidated = 0
     try:
         from session_memory.store import _get_conn
         conn = _get_conn()
@@ -180,15 +250,17 @@ def _consolidate_if_needed() -> None:
                 "SELECT COUNT(*) FROM memories WHERE session_id = ?", (sid,)
             ).fetchone()[0]
             if count > CONSOLIDATION_THRESHOLD:
-                _consolidate_session(conn, sid)
+                if _consolidate_session(conn, sid):
+                    consolidated += 1
     except Exception as e:
         logger.warning("[MemoryDaemon] consolidation error: %s", e)
     finally:
         if conn:
             conn.close()
+    return consolidated
 
 
-def _consolidate_session(conn, session_id: str) -> None:
+def _consolidate_session(conn, session_id: str) -> bool:
     """Merge oldest exchange memories into a single compacted entry."""
     oldest = conn.execute(
         "SELECT id, summary FROM memories "
@@ -197,7 +269,7 @@ def _consolidate_session(conn, session_id: str) -> None:
         (session_id,),
     ).fetchall()
     if len(oldest) < 5:
-        return
+        return False
 
     ids = [r[0] for r in oldest]
     summaries = [r[1] for r in oldest]
@@ -213,3 +285,4 @@ def _consolidate_session(conn, session_id: str) -> None:
     conn.execute(f"DELETE FROM memories WHERE id IN ({placeholders})", ids)
     conn.commit()
     logger.info("[MemoryDaemon] consolidated %d memories for session %s", len(ids), session_id[:8])
+    return True

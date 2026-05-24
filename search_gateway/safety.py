@@ -27,8 +27,15 @@ def redact_sensitive_query(query: str) -> str:
 
 _BLOCKED_HOSTNAMES = (
     "localhost",
+    "localhost.localdomain",
     "metadata",
     "metadata.google.internal",
+    "localtest.me",
+    "lvh.me",
+)
+
+_PROXY_FAKE_IP_NETWORKS = (
+    ipaddress.ip_network("198.18.0.0/15"),
 )
 
 
@@ -72,6 +79,8 @@ def _hostname_resolves_to_global_ips(host: str, port: int) -> bool:
             resolved = ipaddress.ip_address(sockaddr[0])
         except ValueError:
             return False
+        if any(resolved in network for network in _PROXY_FAKE_IP_NETWORKS):
+            continue
         if not resolved.is_global:
             return False
     return True

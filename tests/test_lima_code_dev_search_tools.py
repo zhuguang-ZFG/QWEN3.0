@@ -23,6 +23,8 @@ def deterministic_dns(monkeypatch):
         normalized = host.lower().rstrip(".")
         if normalized == "localtest.me":
             return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", port))]
+        if normalized == "docs.python.org":
+            return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("198.18.0.243", port))]
         return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", port))]
 
     monkeypatch.setattr(safety.socket, "getaddrinfo", fake_getaddrinfo)
@@ -58,6 +60,10 @@ def test_is_public_http_url_blocks_obfuscated_loopback_and_metadata_targets():
     assert is_public_http_url("http://[fd00::1]/admin") is False
     assert is_public_http_url("http://localhost./admin") is False
     assert is_public_http_url("http://localtest.me/admin") is False
+
+
+def test_is_public_http_url_allows_proxy_fake_ip_for_normal_hostname():
+    assert is_public_http_url("https://docs.python.org/3/") is True
 
 
 def test_should_dev_search_detects_programming_docs_errors_and_urls():

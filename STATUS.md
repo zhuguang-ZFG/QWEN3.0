@@ -441,5 +441,16 @@ Latest dev-search review follow-up:
 - SSRF protection now blocks obfuscated loopback/private/link-local/metadata targets such as IPv6 loopback, decimal IPv4, hex IPv4, trailing-dot `localhost.`, and domains that resolve to non-global IPs; TinyFish fetch and dev-read share the same guard.
 - Chinese dev-search triggers now include common LiMa Code phrasing for docs lookup, URL reading, and error fixing.
 - MCP dev-search handlers clamp numeric arguments with stable defaults instead of returning raw `ValueError` details.
-- Telegram FC/TTS integrations are optional local modules; missing untracked modules no longer break deployable command paths, but they are not a complete deployable feature until tracked replacements exist.
+- Telegram FC/TTS helper modules are now admitted as tracked optional runtime files: `fc_caller.py`, `tool_dispatcher.py`, and `mimo_tts.py`. They remain outside ordinary routing; missing credentials degrade without network calls.
 - Local verification: `compileall` passed; focused dev-search/MCP/TinyFish/Telegram suite returned `44 passed`; full pytest returned `411 passed, 8 skipped`.
+
+Latest Telegram FC/TTS repo admission:
+
+- Plan and evidence: `docs/superpowers/plans/2026-05-23-telegram-fc-tts-repo-admission.md`.
+- `mimo_tts.py` is no longer ignored by `.gitignore`.
+- `tool_dispatcher.py` is now a small compatibility facade backed by focused `lima_fc_tools` modules.
+- `lima_fc_tools` modules keep the same 71 exported tool names, use ASCII schema text, and stay under 300 lines per runtime file.
+- `tool_dispatcher.py` no longer exports duplicate tool names and reads `GNEWS_API_KEY` from the environment through the split information-tools module.
+- `mimo_tts.py` reads `MIMO_TTS_KEY` from the environment at call time and returns `None` without opening HTTP when the key is missing.
+- Clean split plan and evidence: `docs/superpowers/plans/2026-05-24-tool-dispatcher-clean-split.md`.
+- Local verification: focused Telegram/local-tool/security suite returned `23 passed`; ruff passed for the split tool files; full pytest returned `418 passed, 8 skipped`.

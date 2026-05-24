@@ -154,10 +154,9 @@ Suggested memory kinds:
 
 Near-term priority:
 
-1. Add an inbox and daemon that runs outside the request path.
-2. Ingest `STATUS.md`, `docs/LIMA_MEMORY.md`, `findings.md`, `progress.md`, and eval JSON as source-backed memories.
-3. Recall only small cited memory summaries into prompts.
-4. Keep long consolidation async and auditable.
+1. Feed selected docs/reports into `data/memory_inbox/` as source-backed memories.
+2. Recall only small cited memory summaries into prompts.
+3. Keep long consolidation async and auditable.
 
 ## Updated Ranking
 
@@ -190,7 +189,6 @@ This is the bridge between OpenRAG and always-on-memory-agent:
 
 1. Fix current retrieval hot-path gap: inject formatted graph/code retrieval results, not just compute `_reranked`.
 2. Add retrieval trace data to responses or admin diagnostics.
-3. Add `session_memory` typed memory schema and inbox ingestion.
-4. Add a small daemon for periodic consolidation.
-5. Add `lima-mcp` tools for `search_repo`, `search_memory`, `get_retrieval_trace`, and `ask_lima`.
-6. Only after these prove useful, evaluate Docling and a heavier search backend.
+3. Harden prompt-time typed memory recall now that it is a first-class `server.py` stage, including typed-memory ranking and admin-visible memory IDs.
+4. Add `lima-mcp` tools for `search_repo`, `search_memory`, `get_retrieval_trace`, and `ask_lima`.
+5. Only after these prove useful, evaluate Docling and a heavier search backend.

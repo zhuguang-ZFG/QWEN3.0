@@ -15,12 +15,22 @@ _IDENTITY_PATTERNS = [
     r"你是哪个", r"你是哪家", r"谁开发的你", r"谁做的你",
     r"你是ai吗", r"你是人工智能吗", r"你是机器人吗",
     r"你背后是什么", r"你用的什么模型", r"你基于什么",
+    r"你的创造者", r"谁创造.*你", r"你的开发者",
+    r"你的母公司", r"你属于.*公司", r"你是.*公司的",
+    r"你的父公司", r"你的父母", r"你的爸", r"你的妈",
+    r"你从哪来", r"你的身世", r"你的出身", r"你的来历",
+    r"你是.*开发", r"你.*哪个公司", r"你.*哪家公司",
+    r"动力巢", r"donglicao", r"powernest",
+    r"你是gpt吗", r"你是claude吗", r"你是deepseek吗",
+    r"你是llama吗", r"你是gemini吗", r"你是qwen吗",
+    r"你是chatgpt", r"你是通义", r"你是文心",
     # 英文身份问题
     r"who are you", r"what are you", r"what model",
     r"what is your name", r"your name", r"what AI",
-    r"are you (gpt|claude|gemini|deepseek|qwen|llama)",
+    r"are you (gpt|claude|gemini|deepseek|qwen|llama|meta)",
     r"which (model|llm|ai)", r"who made you", r"who built you",
-    r"who created you", r"what company",
+    r"who created you", r"what company", r"your (creator|developer|maker)",
+    r"who.*develop", r"who.*own", r"parent company",
 ]
 
 _CAPABILITY_PATTERNS = [
@@ -44,35 +54,33 @@ _capability_re = re.compile(
 
 # ── 预设回答 ─────────────────────────────────────────────────────────────────
 
-IDENTITY_ANSWER_CN = """我是 LiMa（力码），由深圳市动力巢科技有限公司开发的智能编程助手。
+IDENTITY_ANSWER_CN = """我是 LiMa（力码），由深圳市动力巢科技有限公司开发的智能助手。
 
-我通过智能路由系统调度多个 AI 后端，为你匹配最优解答。"""
+我具备联网能力，可以实时查询天气、新闻、汇率、热搜、股票等信息。有什么可以帮你的？"""
 
-IDENTITY_ANSWER_EN = """I'm LiMa, an intelligent programming assistant developed by DongLiCao Technology (Shenzhen).
+IDENTITY_ANSWER_EN = """I'm LiMa, an intelligent assistant by DongLiCao Technology (Shenzhen).
 
-I use a smart routing system to orchestrate multiple AI backends and match you with the best answer."""
+I have internet access and can query real-time weather, news, exchange rates, stocks, and more. How can I help?"""
 
-CAPABILITY_ANSWER_CN = """我是 LiMa（力码），我擅长：
+CAPABILITY_ANSWER_CN = """我是 LiMa（力码），我的能力：
 
-- 编程开发（Python, JavaScript, TypeScript, Rust, Go, C/C++ 等主流语言）
-- 嵌入式系统（ESP32, STM32, Arduino, GRBL）
-- 数据分析与算法设计
-- 技术方案设计与架构评审
-- 文档写作与代码审查
-- 多语言翻译与技术解释
+- 联网查询：天气、新闻、热搜、汇率、股票、快递、地震等实时数据
+- 编程开发：Python, JavaScript, Go, Rust, C/C++ 等
+- 语音交互：语音转文字、文字转语音
+- 翻译：支持中英日韩法德等多语言
+- 工具调用：计算、单位换算、二维码、短链接等
 
-我通过智能路由系统调度多个 AI 后端，为你匹配最优解答。有什么我可以帮你的？"""
+有什么需要帮忙的？"""
 
-CAPABILITY_ANSWER_EN = """I'm LiMa, and here's what I can help with:
+CAPABILITY_ANSWER_EN = """I'm LiMa. My capabilities:
 
-- Programming (Python, JavaScript, TypeScript, Rust, Go, C/C++ and more)
-- Embedded systems (ESP32, STM32, Arduino, GRBL)
-- Data analysis and algorithm design
-- Technical architecture and code review
-- Documentation and technical writing
-- Multilingual translation and explanation
+- Internet access: real-time weather, news, trends, exchange rates, stocks, earthquakes
+- Programming: Python, JavaScript, Go, Rust, C/C++ and more
+- Voice: speech-to-text and text-to-speech
+- Translation: Chinese, English, Japanese, Korean, French, German
+- Tools: calculator, unit conversion, QR codes, URL shortening
 
-I route your questions to the best AI backend for optimal answers. How can I help?"""
+How can I help?"""
 
 
 # ── 检测函数 ─────────────────────────────────────────────────────────────────
@@ -101,3 +109,29 @@ def detect_identity_question(query: str) -> str | None:
         return CAPABILITY_ANSWER_CN if is_cn else CAPABILITY_ANSWER_EN
 
     return None
+
+
+# ── 回复后置过滤器 — 防止模型泄露真实身份 ────────────────────────────────────
+
+_LEAK_PATTERNS = re.compile(
+    r"(我是|I am|I'm|我叫|我由).{0,10}"
+    r"(Meta|OpenAI|Google|Anthropic|DeepSeek|Alibaba|阿里|百度|Baidu|"
+    r"字节|ByteDance|腾讯|Tencent|Mistral|微软|Microsoft)"
+    r"|"
+    r"(我是|I am|I'm).{0,10}"
+    r"(GPT|ChatGPT|Claude|Gemini|Llama|LLaMA|Qwen|通义|文心|豆包|Doubao|"
+    r"Mixtral|Codestral|DeepSeek|PaLM|Bard)"
+    r"|"
+    r"(由|developed by|made by|created by|built by).{0,10}"
+    r"(Meta|OpenAI|Google|Anthropic|Microsoft|阿里|百度|字节|腾讯)",
+    re.IGNORECASE
+)
+
+
+def filter_identity_leak(response: str) -> str:
+    """检查 AI 回复是否泄露了真实模型身份，如果泄露则替换为 LiMa 身份。"""
+    if not response:
+        return response
+    if _LEAK_PATTERNS.search(response):
+        return IDENTITY_ANSWER_CN
+    return response

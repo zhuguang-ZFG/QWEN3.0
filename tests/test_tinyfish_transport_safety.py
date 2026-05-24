@@ -12,6 +12,8 @@ def deterministic_dns(monkeypatch):
         normalized = host.lower().rstrip(".")
         if normalized == "localtest.me":
             return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", port))]
+        if normalized == "docs.python.org":
+            return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("198.18.0.243", port))]
         return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", port))]
 
     monkeypatch.setattr(safety.socket, "getaddrinfo", fake_getaddrinfo)

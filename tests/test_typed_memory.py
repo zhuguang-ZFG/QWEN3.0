@@ -1,7 +1,6 @@
 """Tests for typed memory and memory daemon."""
 import os
 import sys
-import json
 import tempfile
 import pytest
 
@@ -77,6 +76,75 @@ class TestMemoryDaemon:
         os.environ["LIMA_MEMORY_INBOX"] = tempfile.mkdtemp()
         assert _ingest_inbox() == 0
 
+    def test_run_once_ingests_env_inbox_and_archives_file(self, tmp_path):
+        from session_memory.daemon import run_once
+        from session_memory.store import query_by_type
+
+        os.environ["LIMA_MEMORY_INBOX"] = str(tmp_path)
+        note = tmp_path / "ops.md"
+        note.write_text("- deployed memory daemon outside request path\n", encoding="utf-8")
+
+        result = run_once(consolidate=False)
+
+        assert result["ingested"] == 1
+        assert result["consolidated"] == 0
+        assert (tmp_path / ".processed" / "ops.md").exists()
+        memories = query_by_type("ops_event")
+        assert any("memory daemon" in entry.summary for entry in memories)
+
+    def test_run_once_consolidates_without_request_path(self):
+        from session_memory.daemon import run_once
+        from session_memory.store import count_memories, save_memory
+
+        session_id = "daemon-consolidate"
+        for i in range(25):
+            save_memory(session_id, "exchange", f"daemon memory {i}")
+
+        before = count_memories(session_id)
+        result = run_once(ingest=False, consolidate=True)
+        after = count_memories(session_id)
+
+        assert result["consolidated"] >= 1
+        assert after < before
+
+    def test_daemon_status_uses_current_env_config(self, tmp_path):
+        from session_memory.daemon import daemon_status
+
+        os.environ["LIMA_MEMORY_INBOX"] = str(tmp_path)
+        os.environ["LIMA_MEMORY_CONSOLIDATION_INTERVAL"] = "7"
+
+        status = daemon_status()
+
+        assert status["inbox_dir"] == str(tmp_path)
+        assert status["interval_seconds"] == 7
+        assert "running" in status
+
+    @pytest.mark.asyncio
+    async def test_start_daemon_is_idempotent_and_stop_cancels_task(self, monkeypatch):
+        import asyncio
+        import session_memory.daemon as daemon
+
+        await daemon.stop_daemon()
+
+        async def fake_loop():
+            while daemon.daemon_status()["running"]:
+                await asyncio.sleep(0.01)
+
+        monkeypatch.setattr(daemon, "_daemon_loop", fake_loop)
+
+        first = await daemon.start_daemon()
+        second = await daemon.start_daemon()
+        running = daemon.daemon_status()
+        await daemon.stop_daemon()
+        stopped = daemon.daemon_status()
+
+        assert first["started"] is True
+        assert second["started"] is False
+        assert running["running"] is True
+        assert running["task_alive"] is True
+        assert stopped["running"] is False
+        assert stopped["task_alive"] is False
+
 
 class TestTypedMemoryValidation:
     """Phase 0 Step 8: Unknown memory_type normalization."""
@@ -90,7 +158,7 @@ class TestTypedMemoryValidation:
 
     def test_unknown_type_normalized_to_project_fact(self):
         from session_memory.store import save_typed_memory, query_by_type
-        entry_id = save_typed_memory("invented_type", "some fact")
+        save_typed_memory("invented_type", "some fact")
         results = query_by_type("project_fact")
         assert len(results) >= 1
         assert "some fact" in results[0].summary

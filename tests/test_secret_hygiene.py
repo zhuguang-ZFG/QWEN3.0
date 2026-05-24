@@ -6,10 +6,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 RUNTIME_FILES = [
     ROOT / "backends.py",
+    ROOT / "fc_caller.py",
     ROOT / "mimo_tts.py",
     ROOT / "server.py",
     ROOT / "http_caller.py",
-]
+    ROOT / "tool_dispatcher.py",
+] + sorted((ROOT / "lima_fc_tools").glob("*.py"))
 
 
 SECRET_PATTERNS = [

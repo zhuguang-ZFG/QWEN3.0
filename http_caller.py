@@ -13,15 +13,14 @@ LiMa HTTP Caller — 统一后端调用层
 
 import json
 import os
-import re
 import sys
 import time
 import urllib.request
 from typing import Generator, Optional
 
 import health_tracker
-from backends import BACKENDS, PUBLIC_MODEL_NAME
-from response_cleaner import clean_response, _clean_brand_only, _is_backend_error, CLEAN_PATTERNS
+from backends import BACKENDS
+from response_cleaner import clean_response, _clean_brand_only, _is_backend_error
 
 DEBUG = os.environ.get('LIMA_DEBUG', '') == '1'
 
@@ -153,8 +152,8 @@ def _build_body(backend_cfg: dict, messages: list[dict],
     if extra and isinstance(extra, dict):
         body.update(extra)
 
-    if stream:
-        body['stream'] = True
+    if stream or backend_cfg.get('force_stream_param'):
+        body['stream'] = bool(stream)
     return json.dumps(body).encode()
 
 
@@ -171,13 +170,6 @@ def call_api(backend: str, messages: list[dict], max_tokens: int = 4096,
         raise BackendError(f'{backend} is cooled down', status_code=503)
 
     # ── Integration: Concurrency Pool (Phase 27) ──────────────────────────
-    _pool_key = None
-    try:
-        from context_pipeline.concurrency_pool import ConcurrencyPool
-        _pool_key = cfg.get('key', '')
-    except ImportError:
-        pass
-
     # ── Integration: Artifact Handle (Phase P5) — large context → handle ──
     try:
         from context_pipeline.artifact import should_use_handle, create_handle
@@ -279,9 +271,12 @@ def _extract_code(e: Exception) -> Optional[int]:
         if isinstance(val, int):
             return val
     s = str(e)
-    if '429' in s: return 429
-    if '401' in s: return 401
-    if '403' in s: return 403
+    if '429' in s:
+        return 429
+    if '401' in s:
+        return 401
+    if '403' in s:
+        return 403
     return None
 
 

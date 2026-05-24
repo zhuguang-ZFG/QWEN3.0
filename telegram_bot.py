@@ -63,12 +63,22 @@ async def send_message(
     if not is_configured():
         return False
     target = chat_id or _chat_id()
+    if len(text) > 4000:
+        text = text[:3997] + "..."
     result = await _api_call("sendMessage", {
         "chat_id": target,
         "text": text,
         "parse_mode": parse_mode,
     })
-    return result is not None and result.get("ok", False)
+    if result is not None and result.get("ok", False):
+        return True
+    if parse_mode and parse_mode != "":
+        result = await _api_call("sendMessage", {
+            "chat_id": target,
+            "text": text,
+        })
+        return result is not None and result.get("ok", False)
+    return False
 
 
 async def send_approval(
@@ -111,3 +121,24 @@ async def answer_callback(callback_query_id: str, text: str) -> bool:
         "text": text,
     })
     return result is not None and result.get("ok", False)
+
+
+async def send_voice(audio_bytes: bytes, chat_id: str = "", caption: str = "") -> bool:
+    """发送 OGG Opus 语音消息到 Telegram。"""
+    if not is_configured():
+        return False
+    target = chat_id or _chat_id()
+    url = _BASE_URL.format(token=_bot_token(), method="sendVoice")
+    data = {"chat_id": target}
+    if caption:
+        data["caption"] = caption
+    files = {"voice": ("voice.ogg", audio_bytes, "audio/ogg")}
+    try:
+        async with httpx.AsyncClient(proxy=_gfw_proxy(), timeout=30.0) as client:
+            resp = await client.post(url, data=data, files=files)
+            resp.raise_for_status()
+            result = resp.json()
+            return result.get("ok", False)
+    except Exception as e:
+        logger.warning("Telegram sendVoice failed: %s", e)
+        return False
