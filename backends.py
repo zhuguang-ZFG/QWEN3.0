@@ -211,7 +211,72 @@ PUBLIC_MODEL_NAME = os.environ.get('PUBLIC_MODEL_NAME', 'LiMa')
 THINKING_BACKENDS = ["or_deepseek_r1", "longcat_thinking", "longcat_web_think"]
 
 # Vision-capable backends
-VISION_BACKENDS = ["longcat_omni", "or_deepseek_r1"]
+VISION_BACKENDS = [
+    "longcat_omni", "or_deepseek_r1", "vision_joycaption", "cohere_vision",
+    "github_gpt4o", "scnet_qwen72b", "cf_llava", "cohere_command_a_vision",
+]
+
+# Backends that should use the configured outbound proxy.
+GFW_BACKENDS = frozenset({
+    'google_flash', 'google_flash_lite', 'google_gemini3', 'google_gemma4',
+    'mistral_large', 'mistral_small', 'mistral_medium',
+    'mistral_codestral', 'mistral_devstral', 'mistral_pixtral',
+    'groq_llama70b', 'groq_gptoss', 'groq_gptoss_20b',
+    'groq_qwen32b', 'groq_llama4', 'groq_llama8b',
+    'cerebras_qwen235b', 'cerebras_llama8b', 'cerebras_gptoss',
+    'or_deepseek_r1', 'or_qwen3_coder', 'or_llama70b', 'or_nemotron',
+    'or_qwen3_80b', 'or_nemotron120b', 'or_gptoss_120b', 'or_glm45',
+    'or_minimax', 'or_gemma4',
+    'github_gpt4o', 'github_gpt4o_mini', 'github_gpt5', 'github_o3_mini',
+    'github_o4_mini', 'github_deepseek_r1', 'github_llama70b', 'github_codestral',
+    'naga_llama70b', 'naga_gpt41mini', 'naga_glm45', 'naga_llama4',
+    'featherless', 'glhf', 'agentrouter',
+    'zuki_codestral', 'zuki_mistral_small',
+    'opencode_stealth', 'opencode_ds_flash', 'opencode_qwen',
+    'opencode_nemotron', 'opencode_minimax',
+    'fireworks_llama405b',
+    'cohere_command', 'cohere_command_plus', 'cohere_reasoning', 'cohere_vision',
+    'sambanova_llama4', 'sambanova_ds_v3',
+    'deepinfra_llama4', 'deepinfra_qwen235b',
+    'ovh_llama70b', 'ovh_deepseek',
+})
+
+WEAK_BACKENDS = frozenset({'chat_ubi', 'pollinations', 'llm7'})
+
+KEY_POOL_PREFIXES = {
+    'groq_': 'groq',
+    'or_': 'openrouter',
+    'github_': 'github',
+    'mistral_': 'mistral',
+    'cerebras_': 'cerebras',
+    'google_': 'google',
+    'cf_': 'cloudflare',
+    'nvidia_': 'nvidia',
+    'zhipu_': 'zhipu',
+    'silicon_': 'siliconflow',
+    'baidu_': 'baidu',
+    'volcengine_': 'volcengine',
+    'aliyun_': 'aliyun',
+    'tencent_': 'tencent',
+    'naga_': 'naga',
+    'zuki_': 'zuki',
+    'cohere_': 'cohere',
+    'sambanova_': 'sambanova',
+    'deepinfra_': 'deepinfra',
+    'fireworks_': 'fireworks',
+}
+
+CODE_CAPABLE_BACKENDS = frozenset({
+    'scnet_qwen72b', 'scnet_deepseek', 'scnet_qwen32b',
+    'scnet_ds_flash', 'scnet_qwen235b', 'scnet_qwen30b', 'scnet_ds_pro',
+    'scnet_large_ds_flash', 'scnet_large_ds_pro',
+    'github_gpt4o', 'github_gpt4o_mini', 'github_codestral',
+    'cf_qwen_coder', 'cfai_qwen_coder', 'or_qwen3_coder', 'or_gptoss_120b',
+    'cf_gptoss_120b', 'cf_deepseek_r1', 'cf_qwen3_30b', 'cfai_deepseek_r1',
+    'mistral_large', 'mistral_devstral', 'mistral_pixtral', 'mistral_codestral',
+    'cerebras_gptoss', 'groq_gptoss', 'groq_gptoss_20b',
+    'deepinfra_qwen235b', 'local_coder14b',
+})
 VISION_SYSTEM_PROMPT = "你是一位耐心的老师。用户上传了一道题目的图片。请：1. 识别题目内容 2. 分步骤解答 3. 给出最终答案。如果是选择题，明确指出正确选项。"
 
 # Known IDE sources (used for routing hints and statistics)
@@ -285,17 +350,45 @@ def detect_caps(name: str, cfg: dict = None) -> list:
     if cfg and cfg.get("caps"):
         return cfg["caps"]
     caps = []
+    if name in CODE_CAPABLE_BACKENDS or "coder" in name or "codestral" in name:
+        caps.append('code')
     if name in ('or_deepseek_r1', 'or_qwen3_coder',
                 'opencode_stealth', 'fireworks_llama405b', 'deepinfra_llama4', 'deepinfra_qwen235b',
                 'local_coder14b'):
         caps.append('tool_calls')
-    if name in ('longcat_omni',):
+    if name in VISION_BACKENDS:
         caps.append('vision')
     if 'thinking' in name or 'r1' in name:
         caps.append('deep_reasoning')
     if not caps:
         caps.append('text_only')
     return caps
+
+
+def backend_has_capability(name: str, capability: str, cfg: dict = None) -> bool:
+    """Return whether a backend has a normalized capability."""
+    return capability in detect_caps(name, cfg or BACKENDS.get(name, {}))
+
+
+def is_weak_backend(name: str) -> bool:
+    return name in WEAK_BACKENDS
+
+
+def first_backend_with_capability(names: list[str], capability: str) -> str:
+    for name in names:
+        if backend_has_capability(name, capability):
+            return name
+    return ""
+
+
+def infer_key_pool_provider(name: str, cfg: dict = None) -> str:
+    cfg = cfg or BACKENDS.get(name, {})
+    if cfg.get("key_pool"):
+        return cfg["key_pool"]
+    for prefix, provider in KEY_POOL_PREFIXES.items():
+        if name.startswith(prefix):
+            return provider
+    return ""
 
 # -- Startup validation --
 def startup_check():
@@ -309,4 +402,3 @@ def startup_check():
 startup_check()
 
 # ── Thinking-capable backends (priority order) ──
-THINKING_BACKENDS = ['or_deepseek_r1', 'longcat_thinking']

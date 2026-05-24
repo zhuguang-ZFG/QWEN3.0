@@ -41,7 +41,7 @@ LM_URL = 'http://localhost:1234/v1/chat/completions'
 
 
 # ═══ BACKENDS (canonical source: backends.py) ═══════════════════════════════════
-from backends import BACKENDS, THINKING_BACKENDS
+from backends import BACKENDS, GFW_BACKENDS, THINKING_BACKENDS
 
 # 对外暴露的统一模型名（用户永远看不到真实模型名）
 PUBLIC_MODEL_NAME = os.environ.get('PUBLIC_MODEL_NAME', 'LiMa')
@@ -66,10 +66,6 @@ ROUTE = {
 }
 
 GFW_PROXY_URL = os.environ.get('GFW_PROXY', 'http://127.0.0.1:7897')
-GFW_BACKENDS = {'google_flash', 'google_flash_lite', 'google_gemini3', 'google_gemma4',
-                'mistral_large', 'mistral_small', 'mistral_medium',
-                'mistral_codestral', 'mistral_devstral', 'mistral_pixtral', 'devtoolbox'}
-
 def _get_opener(name):
     """被墙后端使用代理 opener，其他直连。"""
     if name in GFW_BACKENDS:

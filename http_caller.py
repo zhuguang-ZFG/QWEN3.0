@@ -19,35 +19,13 @@ import urllib.request
 from typing import Generator, Optional
 
 import health_tracker
-from backends import BACKENDS
+import key_pool
+from backends import BACKENDS, GFW_BACKENDS, infer_key_pool_provider
 from response_cleaner import clean_response, _clean_brand_only, _is_backend_error
 
 DEBUG = os.environ.get('LIMA_DEBUG', '') == '1'
 
 GFW_PROXY_URL = os.environ.get('GFW_PROXY', 'http://127.0.0.1:7897')
-GFW_BACKENDS = {
-    'google_flash', 'google_flash_lite', 'google_gemini3', 'google_gemma4',
-    'mistral_large', 'mistral_small', 'mistral_medium',
-    'mistral_codestral', 'mistral_devstral', 'mistral_pixtral',
-    'groq_llama70b', 'groq_gptoss', 'groq_gptoss_20b',
-    'groq_qwen32b', 'groq_llama4', 'groq_llama8b',
-    'cerebras_qwen235b', 'cerebras_llama8b', 'cerebras_gptoss',
-    'or_deepseek_r1', 'or_qwen3_coder', 'or_llama70b', 'or_nemotron',
-    'or_qwen3_80b', 'or_nemotron120b', 'or_gptoss_120b', 'or_glm45',
-    'or_minimax', 'or_gemma4',
-    'github_gpt4o', 'github_gpt4o_mini', 'github_gpt5', 'github_o3_mini',
-    'github_o4_mini', 'github_deepseek_r1', 'github_llama70b', 'github_codestral',
-    'naga_llama70b', 'naga_gpt41mini', 'naga_glm45', 'naga_llama4',
-    'featherless', 'glhf', 'agentrouter',
-    'zuki_codestral', 'zuki_mistral_small',
-    'opencode_stealth', 'opencode_ds_flash', 'opencode_qwen',
-    'opencode_nemotron', 'opencode_minimax',
-    'fireworks_llama405b',
-    'cohere_command', 'cohere_command_plus', 'cohere_reasoning', 'cohere_vision',
-    'sambanova_llama4', 'sambanova_ds_v3',
-    'deepinfra_llama4', 'deepinfra_qwen235b',
-    'ovh_llama70b', 'ovh_deepseek',
-}
 GFW_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
 
 
@@ -70,11 +48,11 @@ def _get_opener(name: str):
     return None
 
 
-def _build_headers(backend_cfg: dict) -> dict:
+def _build_headers(backend_cfg: dict, key: str = None) -> dict:
     """构建认证头。"""
     fmt = backend_cfg['fmt']
     auth_style = backend_cfg.get('auth', 'x-api-key')
-    key = backend_cfg['key']
+    key = backend_cfg['key'] if key is None else key
 
     if fmt == 'anthropic':
         if auth_style == 'bearer':
@@ -87,6 +65,53 @@ def _build_headers(backend_cfg: dict) -> dict:
     return {'Content-Type': 'application/json',
             'Authorization': f'Bearer {key}',
             'User-Agent': 'LiMa/2.0'}
+
+
+def _key_pool_provider(backend: str, backend_cfg: dict) -> str:
+    return infer_key_pool_provider(backend, backend_cfg)
+
+
+def _select_key(backend: str, backend_cfg: dict) -> tuple[str, str]:
+    provider = _key_pool_provider(backend, backend_cfg)
+    if provider:
+        key_pool.ensure_env_pool(provider)
+        selected = key_pool.get_key(provider)
+        if selected:
+            return selected, provider
+    return backend_cfg.get('key', ''), provider
+
+
+def _has_key(backend: str, backend_cfg: dict) -> bool:
+    selected, _provider = _select_key(backend, backend_cfg)
+    return bool(selected)
+
+
+def _report_key_result(provider: str, key: str, success: bool,
+                       error_code: int = 0, retry_after: int = 0) -> None:
+    if not provider or not key:
+        return
+    if success:
+        key_pool.report_key_result(provider, key, True)
+    else:
+        key_pool.report_key_result(
+            provider, key, False,
+            error_code=error_code or 0,
+            retry_after=retry_after,
+        )
+
+
+def _extract_retry_after(e: Exception) -> int:
+    headers = getattr(e, 'headers', None)
+    value = None
+    if headers:
+        try:
+            value = headers.get('Retry-After')
+        except AttributeError:
+            value = None
+    try:
+        return int(value) if value else 0
+    except (TypeError, ValueError):
+        return 0
 
 
 def _build_body(backend_cfg: dict, messages: list[dict],
@@ -163,7 +188,10 @@ def call_api(backend: str, messages: list[dict], max_tokens: int = 4096,
              *, system_prompt: str = "", ide: str = "") -> str:
     """同步调用后端，返回清洗后的文本。失败抛 BackendError。"""
     cfg = BACKENDS.get(backend)
-    if not cfg or not cfg.get('key'):
+    if not cfg:
+        raise BackendError(f'{backend} unavailable (no key)', status_code=404)
+    selected_key, key_provider = _select_key(backend, cfg)
+    if not selected_key:
         raise BackendError(f'{backend} unavailable (no key)', status_code=404)
 
     if health_tracker.is_cooled_down(backend):
@@ -182,7 +210,7 @@ def call_api(backend: str, messages: list[dict], max_tokens: int = 4096,
         pass
 
     t0 = time.time()
-    headers = _build_headers(cfg)
+    headers = _build_headers(cfg, key=selected_key)
     body = _build_body(cfg, messages, max_tokens, system_prompt, ide)
     timeout = cfg.get('timeout', 60)
 
@@ -205,29 +233,40 @@ def call_api(backend: str, messages: list[dict], max_tokens: int = 4096,
 
         latency_ms = int((time.time() - t0) * 1000)
         health_tracker.record_success(backend, latency_ms)
+        _report_key_result(key_provider, selected_key, True)
         cleaned = clean_response(answer, backend)
         health_tracker.record_response_quality(
             backend, len(cleaned) if cleaned else 0)
         return cleaned
 
-    except BackendError:
+    except BackendError as e:
+        _report_key_result(
+            key_provider, selected_key, False,
+            error_code=e.status_code or 0, retry_after=0)
         raise
     except Exception as e:
+        error_code = _extract_code(e)
         health_tracker.record_failure(
-            backend, error_code=_extract_code(e), error_text=str(e))
+            backend, error_code=error_code, error_text=str(e))
+        _report_key_result(
+            key_provider, selected_key, False,
+            error_code=error_code or 0, retry_after=_extract_retry_after(e))
         if DEBUG:
             print(f'[HTTP] {backend} error: {e}', file=sys.stderr)
-        raise BackendError(str(e), status_code=_extract_code(e)) from e
+        raise BackendError(str(e), status_code=error_code) from e
 
 
 def call_raw(backend: str, payload: bytes) -> dict:
     """发送预构建 payload 到后端，返回原始 JSON。用于 tool call 转发。"""
     cfg = BACKENDS.get(backend)
-    if not cfg or not cfg.get('key'):
+    if not cfg:
+        raise BackendError(f'{backend} unavailable', status_code=404)
+    selected_key, key_provider = _select_key(backend, cfg)
+    if not selected_key:
         raise BackendError(f'{backend} unavailable', status_code=404)
     t0 = time.time()
     headers = {'Content-Type': 'application/json',
-               'Authorization': f"Bearer {cfg['key']}"}
+               'Authorization': f"Bearer {selected_key}"}
     try:
         req = urllib.request.Request(cfg['url'], data=payload, headers=headers)
         opener = _get_opener(backend)
@@ -236,13 +275,21 @@ def call_raw(backend: str, payload: bytes) -> dict:
             data = json.loads(resp.read().decode('utf-8', errors='replace'))
         latency_ms = int((time.time() - t0) * 1000)
         health_tracker.record_success(backend, latency_ms)
+        _report_key_result(key_provider, selected_key, True)
         return data
-    except BackendError:
+    except BackendError as e:
+        _report_key_result(
+            key_provider, selected_key, False,
+            error_code=e.status_code or 0, retry_after=0)
         raise
     except Exception as e:
+        error_code = _extract_code(e)
         health_tracker.record_failure(
-            backend, error_code=_extract_code(e), error_text=str(e))
-        raise BackendError(str(e), status_code=_extract_code(e)) from e
+            backend, error_code=error_code, error_text=str(e))
+        _report_key_result(
+            key_provider, selected_key, False,
+            error_code=error_code or 0, retry_after=_extract_retry_after(e))
+        raise BackendError(str(e), status_code=error_code) from e
 
 
 def _extract_answer(data: dict, fmt: str) -> str:
@@ -288,12 +335,15 @@ def call_api_stream(backend: str, messages: list[dict], max_tokens: int = 4096,
     短响应会被缓冲检测：如果整条回复是后端错误消息，抛异常触发fallback。
     """
     cfg = BACKENDS.get(backend)
-    if not cfg or not cfg.get('key'):
+    if not cfg:
+        raise BackendError(f'{backend} unavailable (no key)', status_code=404)
+    selected_key, key_provider = _select_key(backend, cfg)
+    if not selected_key:
         raise BackendError(f'{backend} unavailable (no key)', status_code=404)
     if health_tracker.is_cooled_down(backend):
         raise BackendError(f'{backend} is cooling down', status_code=503)
 
-    headers = _build_headers(cfg)
+    headers = _build_headers(cfg, key=selected_key)
     body = _build_body(cfg, messages, max_tokens, system_prompt, ide, stream=True)
     timeout = cfg.get('timeout', 60)
     fmt = cfg['fmt']
@@ -370,17 +420,25 @@ def call_api_stream(backend: str, messages: list[dict], max_tokens: int = 4096,
 
         latency_ms = int((time.time() - t0) * 1000)
         health_tracker.record_success(backend, latency_ms)
+        _report_key_result(key_provider, selected_key, True)
         health_tracker.record_response_quality(
             backend, len(total_text) if total_text else 0)
 
-    except BackendError:
+    except BackendError as e:
+        _report_key_result(
+            key_provider, selected_key, False,
+            error_code=e.status_code or 0, retry_after=0)
         raise
     except Exception as e:
+        error_code = _extract_code(e)
         health_tracker.record_failure(
-            backend, error_code=_extract_code(e), error_text=str(e))
+            backend, error_code=error_code, error_text=str(e))
+        _report_key_result(
+            key_provider, selected_key, False,
+            error_code=error_code or 0, retry_after=_extract_retry_after(e))
         if DEBUG:
             print(f'[STREAM] {backend} error: {e}', file=sys.stderr)
-        raise BackendError(str(e), status_code=_extract_code(e)) from e
+        raise BackendError(str(e), status_code=error_code) from e
 
 
 def _parse_sse_chunk(data_str: str, fmt: str) -> str:

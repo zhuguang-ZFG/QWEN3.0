@@ -12,6 +12,8 @@ LiMa Key Pool — SWRR 权重轮转 + 分级冷却 + 自动拉黑恢复
 
 import time
 import threading
+import os
+import re
 from typing import Optional
 from dataclasses import dataclass, field
 
@@ -114,9 +116,51 @@ class KeyPool:
 _pools: dict[str, KeyPool] = {}
 
 
+def _env_name(provider: str) -> str:
+    safe = re.sub(r"[^A-Za-z0-9]+", "_", provider).strip("_").upper()
+    return f"LIMA_KEY_POOL_{safe}"
+
+
+def _parse_env_keys(raw: str) -> list[dict]:
+    entries = []
+    for item in re.split(r"[\n,;]+", raw):
+        item = item.strip()
+        if not item:
+            continue
+        key, sep, weight_text = item.rpartition(":")
+        if sep and key:
+            try:
+                weight = max(1, int(weight_text))
+            except ValueError:
+                key, weight = item, 1
+        else:
+            key, weight = item, 1
+        entries.append({"key": key, "weight": weight})
+    return entries
+
+
 def register_pool(provider: str, keys: list[dict]):
     """注册一个 provider 的 key 池"""
     _pools[provider] = KeyPool(provider, keys)
+
+
+def register_env_pool(provider: str, env_name: str = "") -> bool:
+    raw = os.environ.get(env_name or _env_name(provider), "")
+    keys = _parse_env_keys(raw)
+    if not keys:
+        return False
+    register_pool(provider, keys)
+    return True
+
+
+def ensure_env_pool(provider: str) -> bool:
+    if provider in _pools:
+        return True
+    return register_env_pool(provider)
+
+
+def clear_pools():
+    _pools.clear()
 
 
 def get_key(provider: str) -> Optional[str]:
@@ -137,4 +181,3 @@ def report_key_result(provider: str, key: str, success: bool,
         pool.report_success(key)
     else:
         pool.report_failure(key, error_code, retry_after)
-

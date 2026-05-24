@@ -4,6 +4,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 
 import http_caller
+import key_pool
 from backends import BACKENDS
 from http_caller import (
     BackendError, call_api,
@@ -330,6 +331,38 @@ def test_call_api_reports_key_pool_failure_with_retry_after(
 
     mock_report_key_result.assert_called_once_with(
         'unit-provider', 'sk-pooled', False, error_code=429, retry_after=7)
+
+
+@patch('http_caller.health_tracker')
+@patch('urllib.request.urlopen')
+def test_call_api_bootstraps_key_pool_from_provider_env(
+    mock_urlopen, mock_ht, monkeypatch,
+):
+    key_pool.clear_pools()
+    monkeypatch.setenv('LIMA_KEY_POOL_GROQ', 'sk-env-1,sk-env-2:2')
+    mock_ht.is_cooled_down.return_value = False
+    resp_data = json.dumps({
+        'choices': [{'message': {'content': 'hello world'}}]
+    }).encode()
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = resp_data
+    mock_resp.__enter__ = lambda s: s
+    mock_resp.__exit__ = MagicMock(return_value=False)
+    mock_urlopen.return_value = mock_resp
+
+    with patch.dict(http_caller.BACKENDS, {
+        'groq_unit': {'url': 'https://api.groq.com/openai/v1/chat/completions',
+                      'key': 'sk-primary', 'model': 'test-model',
+                      'fmt': 'openai', 'timeout': 10}
+    }):
+        call_api('groq_unit', [{'role': 'user', 'content': 'hi'}])
+
+    req = mock_urlopen.call_args.args[0]
+    assert req.get_header('Authorization') in {
+        'Bearer sk-env-1',
+        'Bearer sk-env-2',
+    }
+    key_pool.clear_pools()
 
 
 @patch('http_caller.health_tracker')
