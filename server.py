@@ -11,6 +11,7 @@ import uvicorn
 
 from access_guard import require_private_api_key
 from chat_models import ChatRequest, Message, extract_system_prompt
+from chat_request_utils import extract_last_user_text, extract_system_preview
 import smart_router
 from orchestrate import orchestrate, needs_orchestration
 from vision_handler import (
@@ -240,26 +241,14 @@ async def chat_completions(request: Request):
             status_code=429,
             content={"error": {"message": "Rate limit exceeded. Try again later.", "type": "rate_limit_error"}})
 
-    sys_prompt_preview = ""
-    for m in raw_messages:
-        if isinstance(m, dict) and m.get("role") == "system":
-            sys_prompt_preview = (m.get("content", "") if isinstance(m.get("content"), str) else "")[:200]
-            break
+    sys_prompt_preview = extract_system_preview(raw_messages)
 
     # ── Vision detection on raw messages (before Pydantic parsing) ────────
     if detect_vision_request(raw_messages):
         chat_id = make_chat_id()
         t0 = time.time()
         # Extract text query for logging
-        query_text = ""
-        for m in reversed(raw_messages):
-            if m.get("role") == "user":
-                c = m.get("content", "")
-                if isinstance(c, str):
-                    query_text = c
-                elif isinstance(c, list):
-                    query_text = " ".join(b.get("text", "") for b in c if isinstance(b, dict) and b.get("type") == "text")
-                break
+        query_text = extract_last_user_text(raw_messages)
         vision_result = await _vision_route(raw_messages, body.get("max_tokens", 4096), ide_source)
         if vision_result:
             content = vision_result["answer"]
@@ -306,15 +295,7 @@ async def anthropic_messages(req: Request):
 
     # ── 提取用户查询，先检查预设直答 ──────────────────────────────────────────
     raw_messages = body.get("messages", [])
-    last_user_query = ""
-    for msg in reversed(raw_messages):
-        if isinstance(msg, dict) and msg.get("role") == "user":
-            content = msg.get("content", "")
-            if isinstance(content, str):
-                last_user_query = content
-            elif isinstance(content, list):
-                last_user_query = " ".join(b.get("text", "") for b in content if b.get("type") == "text")
-            break
+    last_user_query = extract_last_user_text(raw_messages)
 
     # ── 工具调用检测：有 tools 定义就直接转发给 Anthropic 后端 ─────────────────
     if body.get("tools"):
@@ -365,16 +346,7 @@ async def anthropic_messages(req: Request):
     # 用户追踪信息
     client_ip = req.headers.get("x-forwarded-for", "").split(",")[0].strip() or (req.client.host if req.client else "")
     ide_source = _detect_ide(raw_messages)
-    sys_prompt_preview = ""
-    for m in raw_messages:
-        if isinstance(m, dict) and m.get("role") == "system":
-            sys_prompt_preview = (m.get("content", "") if isinstance(m.get("content"), str) else "")[:200]
-            break
-    if not sys_prompt_preview and body.get("system"):
-        if isinstance(body["system"], str):
-            sys_prompt_preview = body["system"][:200]
-        elif isinstance(body["system"], list):
-            sys_prompt_preview = " ".join(b.get("text", "") for b in body["system"] if b.get("type") == "text")[:200]
+    sys_prompt_preview = extract_system_preview(raw_messages, system=body.get("system"))
 
     # 含图片时：路由给视觉模型处理
     if has_image:
