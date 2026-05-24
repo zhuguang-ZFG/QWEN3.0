@@ -1121,3 +1121,18 @@ Verification note:
   roadmap, documentation status, and durable memory to keep writing-machine
   direct control as the first target while admitting voice/display/companion
   devices as post-gate roadmap inputs.
+
+## 2026-05-24 External Capability Radar And Adoption Roadmap
+
+- User provided 26 external references for improving the main repo and
+  subrepos.
+- Added `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md` with
+  capability groups, target repos, license signals, and priority candidates.
+- Added
+  `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`
+  with staged adoption across code intelligence, memory, agent orchestration,
+  sandbox/browser verification, research/trend products, persona/style, and
+  hardware companions.
+- Updated `docs/DOCUMENTATION_STATUS.md` and `docs/LIMA_MEMORY.md`.
+- Current policy: concept-first, no automatic dependency adoption, and no code
+  copy from GPL/AGPL/missing-license sources without a separate review gate.

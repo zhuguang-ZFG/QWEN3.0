@@ -1092,3 +1092,19 @@ Deployment: not performed.
   - ElatoAI is admitted as a voice AI / ESP32 companion-device reference for secure WebSocket-style sessions and realtime audio posture;
   - the ESP32 TFT transparent-TV build is admitted as a display / companion-screen reference for status, prompt, avatar, and ambient visual output;
   - neither reference is a current runtime dependency or a replacement for LiMa's deterministic task, safety, schema, telemetry, and fake-device gates.
+
+## 2026-05-24 External Capability Radar
+
+- User provided a broad reference list including Pyrefly, ml-intern, GitNexus, stash, ClawSweeper, Flipbook, TrendRadar, ElatoAI, CubeSandbox, browser-harness, Youdao Baoku, gbrain, rowboat, persona skill lists, code-review-graph, open-agents, WeClone, graphify, hindsight, Feynman, goclaw, gitreverse, PraisonAI, oh-my-codex, agency-agents, and OmniScientist.
+- Source inventory: `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`.
+- Adoption roadmap: `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`.
+- Policy:
+  - use these projects as capability references, not automatic dependencies;
+  - no code copy from GPL, AGPL, missing-license, or unreviewed sources;
+  - map each accepted idea to a LiMa-owned interface, tests, docs, and rollback path.
+- First recommended adoption slice:
+  - focused Pyrefly evaluation for stable Python modules;
+  - code graph interface in `code_context`;
+  - typed memory categories inspired by stash/hindsight;
+  - browser verification route for online distributions;
+  - defer agent-runtime and hardware-companion implementation until foundations are stable.

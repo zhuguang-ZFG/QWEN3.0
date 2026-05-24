@@ -27,6 +27,8 @@
 | `docs/superpowers/plans/2026-05-24-lima-direct-device-gateway.md` | Active plan | Direct U8-to-LiMa Device Gateway plan for removing Xiaozhi server runtime dependency. |
 | `docs/superpowers/plans/2026-05-24-xiaozhi-server-deprecation-removal.md` | Active plan | Gated deprecation, migration, quarantine, and eventual removal plan for Xiaozhi server runtime. |
 | `docs/reference/HARDWARE_COMPANION_REFERENCES.md` | Active boundary | External voice/display/companion hardware references admitted for later LiMa Device Gateway roadmap work. |
+| `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md` | Active boundary | User-provided external reference projects mapped to LiMa capabilities, target repos, license boundaries, and priorities. |
+| `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md` | Active plan | Staged adoption plan for external code-intelligence, memory, agent, sandbox, research, persona, and hardware-companion capabilities. |
 | `docs/superpowers/plans/2026-05-23-agent-autonomy-evolution.md` | Active plan | Superpowers implementation plan for gated multi-agent autonomy, skill/gene evolution, and GitHub/VPS approval boundaries. |
 | `docs/superpowers/plans/2026-05-23-techspar-mastery-loop.md` | Active record | Implemented TechSpar-inspired local mastery loop for module mastery, weak-point extraction, review scheduling, recommendations, and promotion evidence gates. |
 | `docs/reference/TECHSPAR_BORROWING_NOTES.md` | Active boundary | Concept-borrowing record and license boundary for the local mastery loop. |
