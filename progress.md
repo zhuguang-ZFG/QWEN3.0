@@ -980,3 +980,30 @@ Verification note:
   - HTTPS chat returned exact `backend_registry_https_ok`;
   - FRP chat returned exact `backend_registry_frp_ok`;
   - `/agent/worker/preflight` returned `ready=true`, `contract_version=agent-task-v1`.
+
+## 2026-05-24 Endpoint And Key-Pool Telemetry Closure Deploy
+
+- Closed the remaining concrete architecture items:
+  - extracted OpenAI and Anthropic HTTP adapters into `routes/chat_endpoints.py`;
+  - extracted models, health, live-key, and status endpoints into `routes/system_endpoints.py`;
+  - retained `server.chat_completions`, `server.anthropic_messages`, and system endpoint aliases for compatibility;
+  - reduced `server.py` to app setup plus core runtime helpers, with no direct business endpoint decorators;
+  - added `key_pool.pool_snapshot()` with redacted key IDs and active/cooled/blocked status telemetry.
+- Added regression coverage:
+  - `tests/test_chat_endpoints.py`;
+  - `tests/test_system_endpoints.py`;
+  - `tests/test_key_pool.py`.
+- Verification:
+  - endpoint/key-pool focused regression: `62 passed`;
+  - expanded runtime/admission/security regression: `128 passed`;
+  - local `py_compile` passed for `server.py`, the extracted endpoint modules, and backend/key-pool runtime files.
+- VPS deployment:
+  - runtime commit `d10ed57`;
+  - backup `/opt/lima-router/backups/endpoints-keypool-closed-20260524-123145`;
+  - remote `py_compile` and import smoke passed;
+  - `systemctl restart lima-router` returned active.
+- Public smokes:
+  - `/health` returned `status=ok`;
+  - HTTPS chat returned exact `endpoints_closed_https_ok`;
+  - FRP chat returned exact `endpoints_closed_frp_ok`;
+  - `/agent/worker/preflight` returned `ready=true`, `contract_version=agent-task-v1`.

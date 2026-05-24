@@ -41,7 +41,7 @@ Paused work:
 | 7. Always-on typed memory | Complete | 10 typed memory kinds, inbox ingestion daemon, background consolidation, wired into server lifespan. |
 | 8. MCP knowledge/memory tools | Complete | `/mcp/tools/list` and `/mcp/tools/call` expose search_repo, search_memory, get_retrieval_trace. |
 | 9. Dead code cleanup + streaming unification | Complete | stats_collector.py deleted; streaming path wired through inject_retrieval_context. |
-| 10. server.py decomposition | In Progress | server.py reduced from 2340 to 870 lines; 7 modules extracted, including `server_lifespan.py`, `chat_models.py`, and `chat_request_utils.py`. Chat/Anthropic handlers remain. |
+| 10. server.py decomposition | Complete for current architecture pass | server.py is reduced to app setup plus core runtime helpers; chat, Anthropic, system, lifespan, models, request helpers, streaming helpers, admin, images, embeddings, and worker routes are extracted. |
 
 ## 2026-05-24 Runtime Closure
 
@@ -57,6 +57,12 @@ Paused work:
   - `http_caller.py` uses `key_pool.py` for provider key selection, env bootstrap via `LIMA_KEY_POOL_<PROVIDER>`, and success/failure feedback.
   - Verification passed: focused registry/key-pool suite `58 passed`; expanded runtime regression `110 passed`; secret/request/vision/free-web admission suite `10 passed`; remote compile/import passed.
   - Public smokes passed: HTTPS exact `backend_registry_https_ok`; FRP exact `backend_registry_frp_ok`; worker preflight `ready=true`.
+- Endpoint/key-pool closure is deployed on VPS after backup `/opt/lima-router/backups/endpoints-keypool-closed-20260524-123145`.
+  - `routes/chat_endpoints.py` owns OpenAI and Anthropic HTTP endpoint parsing.
+  - `routes/system_endpoints.py` owns models, health, live-key, and status endpoints.
+  - `key_pool.pool_snapshot()` exposes redacted active/cooled/blocked telemetry for provider pools.
+  - Verification passed: endpoint/key-pool focused suite `62 passed`; expanded runtime regression `128 passed`; remote compile/import passed.
+  - Public smokes passed: HTTPS exact `endpoints_closed_https_ok`; FRP exact `endpoints_closed_frp_ok`; worker preflight `ready=true`.
 - FRP `8088` is closed-loop again after hardening local Windows router startup:
   - local `8080` chat returned exact `lima-final-local-ok`;
   - public FRP `8088` chat returned exact `lima-final-frp-ok`;
@@ -64,11 +70,9 @@ Paused work:
 
 ## Next Implementation Order
 
-1. Continue `server.py` decomposition: extract chat/completions handler and Anthropic handler into `routes/` modules in small slices.
-2. Keep always-on worker daemon mode gated behind repo allowlist, runtime budget, stop marker, audit, failure quarantine, and manual production approval.
-3. Keep gated web/local candidates out of normal routing until refresh and model-level smoke evidence exists.
-4. Add deeper key-pool telemetry/concurrency tuning later only if provider load requires it.
-5. Run local tests, deploy only when requested, smoke public endpoints.
+1. Keep always-on worker daemon mode gated behind repo allowlist, runtime budget, stop marker, audit, failure quarantine, and manual production approval.
+2. Keep gated web/local candidates out of normal routing until refresh and model-level smoke evidence exists.
+3. Run local tests, deploy only when requested, smoke public endpoints.
 
 ## Verification Commands
 

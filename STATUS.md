@@ -25,7 +25,7 @@
 ## 2026-05-24 Deployment And Closure Update
 
 - VPS main router is deployed from branch `codex/free-web-ai-probe`.
-- Latest deployed runtime commit: `659f484` (`refactor: centralize backend capabilities and key pools`).
+- Latest deployed runtime commit: `d10ed57` (`refactor: extract chat endpoints and key pool telemetry`).
 - VPS backups from the Server/Worker sync:
   - `/opt/lima-router/backups/agent-worker-sync-20260524_104836`
   - `/opt/lima-router/backups/runtime-deps-sync-20260524_105115`
@@ -33,6 +33,7 @@
   - `/opt/lima-router/backups/chat-models-extract-20260524_113220`
   - `/opt/lima-router/backups/chat-request-utils-20260524_114403`
   - `/opt/lima-router/backups/backend-registry-keypool-20260524-120642`
+  - `/opt/lima-router/backups/endpoints-keypool-closed-20260524-123145`
 - VPS `lima-router` restarted active; `/health` reports modules `mcp`, `agent_tasks`, and `telegram`.
 - Public HTTPS smoke passed:
   - `https://chat.donglicao.com/v1/chat/completions` returned exact `lima-postdeploy-ok`.
@@ -40,6 +41,7 @@
   - after the chat model extraction deploy, `https://chat.donglicao.com/v1/chat/completions` returned exact `deploy_https_ok_1134`.
   - after the chat request helper extraction deploy, `https://chat.donglicao.com/v1/chat/completions` returned exact `request_utils_https_ok`.
   - after the backend registry/key-pool deploy, `https://chat.donglicao.com/v1/chat/completions` returned exact `backend_registry_https_ok`.
+  - after the endpoint/key-pool closure deploy, `https://chat.donglicao.com/v1/chat/completions` returned exact `endpoints_closed_https_ok`.
   - `/agent/worker/preflight` returned `contract_version=agent-task-v1`.
   - after the chat model extraction deploy, `/agent/worker/preflight` returned `ready=true`, `contract_version=agent-task-v1`, latest task `cfcd3f2b`.
   - after the backend registry/key-pool deploy, `/agent/worker/preflight` returned `ready=true`, `contract_version=agent-task-v1`.
@@ -57,18 +59,24 @@
   - after the lifespan extraction deploy, `http://47.112.162.80:8088/v1/chat/completions` returned exact `lima-lifespan-frp-ok`.
   - after the chat model extraction deploy, `http://47.112.162.80:8088/v1/chat/completions` returned exact `lima-chat-models-frp-ok`.
   - after the chat request helper extraction deploy, `http://47.112.162.80:8088/v1/chat/completions` returned exact `request_utils_frp_ok`.
+  - after the endpoint/key-pool closure deploy, `http://47.112.162.80:8088/v1/chat/completions` returned exact `endpoints_closed_frp_ok`.
 - Backend registry/key-pool closure:
   - `backends.py` now owns shared proxy/capability sets and helper predicates used by `smart_router.py` and `context_pipeline/reflection.py`.
   - `http_caller.py` now selects provider keys through `key_pool.py`, bootstraps pools from `LIMA_KEY_POOL_<PROVIDER>`, and reports success/failure back to the pool.
   - Local verification passed: focused registry/key-pool suite `58 passed`; expanded runtime regression `110 passed`; secret/request/vision/free-web admission suite `10 passed`; local and remote `py_compile` passed.
   - Public FRP chat after deploy returned exact `backend_registry_frp_ok`.
+- Endpoint/key-pool closure:
+  - `routes/chat_endpoints.py` owns `/v1/chat/completions` and `/v1/messages` HTTP parsing, rate limiting, vision short-circuiting, and protocol wrapping.
+  - `routes/system_endpoints.py` owns `/v1/models`, `/health`, `/api/live-key`, and `/v1/status`.
+  - `server.py` is reduced to app setup plus core runtime helpers; it no longer declares direct business endpoint decorators.
+  - `key_pool.pool_snapshot()` now gives redacted active/cooled/blocked provider telemetry without exposing raw keys.
+  - Local verification passed: endpoint/key-pool focused suite `62 passed`; expanded runtime regression `128 passed`; remote `py_compile` and import smoke passed.
 
 Current known remaining planning items:
 
-1. Continue `server.py` decomposition, with chat/completions and Anthropic handlers as the next major extraction targets; chat request models are now in `chat_models.py`, and request-body text/preview helpers are now in `chat_request_utils.py`.
-2. Keep Kimi, TheOldLLM, MiMo web, and page-only web AI candidates gated until refreshed and model-level smokes pass.
-3. Keep always-on worker daemon mode behind explicit repo allowlist, runtime budget, stop marker, audit, failure quarantine, and manual production gates.
-4. Optional future routing hardening: add deeper key-pool telemetry/concurrency policy only after real multi-key provider load needs it.
+1. No active architecture backlog remains from the requested backend config, key-pool, endpoint, or `server.py` route-decomposition items.
+2. Kimi, TheOldLLM, MiMo web, and page-only web AI candidates remain intentionally gated until refreshed and model-level smokes pass.
+3. Always-on worker daemon mode remains intentionally gated behind explicit repo allowlist, runtime budget, stop marker, audit, failure quarantine, and manual production approval.
 
 ## 2026-05-23 Calibrated Status
 

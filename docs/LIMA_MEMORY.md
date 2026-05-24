@@ -982,3 +982,28 @@ Deployment: not performed.
   - `https://chat.donglicao.com/v1/chat/completions` returned exact `backend_registry_https_ok`;
   - `http://47.112.162.80:8088/v1/chat/completions` returned exact `backend_registry_frp_ok`;
   - `/agent/worker/preflight` returned `ready=true`, `contract_version=agent-task-v1`.
+
+## 2026-05-24 Endpoint And Key-Pool Telemetry Closure
+
+- The active `server.py` decomposition plan is closed for the current architecture pass:
+  - `routes/chat_endpoints.py` owns `/v1/chat/completions` and `/v1/messages`;
+  - `routes/system_endpoints.py` owns `/v1/models`, `/health`, `/api/live-key`, and `/v1/status`;
+  - `server.py` re-exports endpoint callables for compatibility while retaining core runtime orchestration.
+- `key_pool.pool_snapshot()` provides operational telemetry without exposing raw provider keys:
+  - hashed/suffix key IDs;
+  - total, active, cooled, and blocked counts;
+  - per-key weight, cooldown remaining seconds, and consecutive 429 count.
+- Local verification:
+  - endpoint/key-pool focused regression: `62 passed`;
+  - expanded runtime/admission/security regression: `128 passed`;
+  - local `py_compile` passed.
+- VPS deployment:
+  - runtime commit `d10ed57`;
+  - backup `/opt/lima-router/backups/endpoints-keypool-closed-20260524-123145`;
+  - remote `py_compile` and import smoke passed;
+  - `lima-router` restarted active.
+- Public smoke evidence:
+  - `https://chat.donglicao.com/health` returned `status=ok`;
+  - `https://chat.donglicao.com/v1/chat/completions` returned exact `endpoints_closed_https_ok`;
+  - `http://47.112.162.80:8088/v1/chat/completions` returned exact `endpoints_closed_frp_ok`;
+  - `/agent/worker/preflight` returned `ready=true`, `contract_version=agent-task-v1`.
