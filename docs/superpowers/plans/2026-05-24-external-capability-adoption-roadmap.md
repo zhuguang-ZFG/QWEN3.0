@@ -204,6 +204,7 @@ References:
 - awesome-persona-distill-skills
 - WeClone
 - ElatoAI
+- PersonaPlex
 - Feynman
 - Flipbook
 - Youdao Baoku
@@ -214,6 +215,8 @@ Main repo plan:
   boundaries.
 - Keep AI-twin ideas concept-only because AGPL/privacy risks require separate
   review.
+- Evaluate realtime speech-to-speech persona models only behind explicit
+  model-license, GPU/latency, privacy, safety, and opt-in recording gates.
 - Extend the Device Gateway only after writing-machine direct control passes
   fake U8 and real U8/U1 gates.
 
@@ -222,6 +225,8 @@ Main repo plan:
 - Finish writing-machine control first.
 - Add voice and display device classes as separate protocol families:
   `audio_stream`, `speech`, `display_task`, `ui_state`.
+- Keep realtime persona speech as a backend model capability, not as firmware
+  logic.
 - Keep motion, voice, and display on separate allowlists.
 
 Exit criteria:
@@ -229,6 +234,8 @@ Exit criteria:
 - Writing-machine direct mode is verified before companion devices.
 - Each new hardware class has schema, fake-device tests, and safety rules.
 - No persona training data is stored without an explicit retention policy.
+- No realtime persona model is enabled without a reviewed model license,
+  opt-in consent, and resource budget.
 
 ## First Implementation Slice
 
@@ -258,4 +265,3 @@ rg -n "External Capability|Pyrefly|CubeSandbox|ElatoAI|WeClone|Graph" docs
 Implementation phases must add focused tests for the touched module and avoid
 requiring network access in default CI unless the phase explicitly introduces a
 network-gated smoke.
-

@@ -1095,7 +1095,7 @@ Deployment: not performed.
 
 ## 2026-05-24 External Capability Radar
 
-- User provided a broad reference list including Pyrefly, ml-intern, GitNexus, stash, ClawSweeper, Flipbook, TrendRadar, ElatoAI, CubeSandbox, browser-harness, Youdao Baoku, gbrain, rowboat, persona skill lists, code-review-graph, open-agents, WeClone, graphify, hindsight, Feynman, goclaw, gitreverse, PraisonAI, oh-my-codex, agency-agents, and OmniScientist.
+- User provided a broad reference list including Pyrefly, ml-intern, GitNexus, stash, ClawSweeper, Flipbook, TrendRadar, ElatoAI, PersonaPlex, CubeSandbox, browser-harness, Youdao Baoku, gbrain, rowboat, persona skill lists, code-review-graph, open-agents, WeClone, graphify, hindsight, Feynman, goclaw, gitreverse, PraisonAI, oh-my-codex, agency-agents, and OmniScientist.
 - Source inventory: `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`.
 - Adoption roadmap: `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`.
 - Policy:
@@ -1108,3 +1108,7 @@ Deployment: not performed.
   - typed memory categories inspired by stash/hindsight;
   - browser verification route for online distributions;
   - defer agent-runtime and hardware-companion implementation until foundations are stable.
+- PersonaPlex is admitted as a later realtime speech-to-speech persona and
+  voice-conditioning reference. It must not become a runtime dependency without
+  a model-license review, opt-in privacy policy, safety review, and resource
+  budget.

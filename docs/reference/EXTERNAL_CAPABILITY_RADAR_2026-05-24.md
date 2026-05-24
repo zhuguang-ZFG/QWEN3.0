@@ -22,8 +22,8 @@
 | Agent orchestration and workflow | open-agents, PraisonAI, agency-agents, goclaw, oh-my-codex, clawsweeper | Controlled multi-agent work, hooks, review queues, issue/PR triage |
 | Secure execution and browser work | CubeSandbox, browser-harness | Safer worker execution, browser task verification, VPS/local isolation |
 | Research, trends, and knowledge products | ml-intern, OmniScientist, Feynman, TrendRadar, Youdao Baoku, Flipbook | Research agents, trend monitors, document-to-brief/PPT/mind-map, visual browsing |
-| Persona, style, and companion behavior | awesome-persona-distill-skills, WeClone, Feynman, ElatoAI | User style modeling, companion UX, voice/display persona boundaries |
-| Hardware and device companions | ElatoAI, ESP32 display references already tracked separately | Device Gateway voice/display/companion expansion after writing-machine gates |
+| Persona, style, and companion behavior | awesome-persona-distill-skills, WeClone, Feynman, ElatoAI, PersonaPlex | User style modeling, companion UX, voice/display persona boundaries |
+| Hardware and device companions | ElatoAI, PersonaPlex, ESP32 display references already tracked separately | Device Gateway voice/display/companion expansion after writing-machine gates |
 
 ## Source Evaluation
 
@@ -37,6 +37,7 @@
 | `flipbook.page` | Infinite visual browser generated on demand. | Website, no repo/license reviewed | Concept-only reference for visual exploration UI and generated artifact browsing. | Main, LiMa Code |
 | `sansan0/TrendRadar` | AI-driven trend/public-opinion monitor with RSS, platform aggregation, alerts, and MCP. | GPL-3.0 | Concept-only unless isolated; borrow trend monitor shape and alert taxonomy. | Main |
 | `akdeb/ElatoAI` | ESP32 realtime voice AI with secure WebSockets for toys, companions, and devices. | No standard license in API metadata | Already admitted as voice/device-companion reference; no runtime dependency. | esp32S_XYZ, Main |
+| `NVIDIA/personaplex` | Realtime full-duplex speech-to-speech conversational model with text persona prompting and audio voice conditioning. | Code MIT; model weights require NVIDIA Open Model License review | Borrow realtime voice/persona architecture for later companion-device speech loops; do not adopt model weights without a separate license, GPU, safety, and privacy review. | Main, esp32S_XYZ |
 | `TencentCloud/CubeSandbox` | Fast, concurrent, hardware-isolated sandbox service for AI agents, E2B-compatible. | No standard license in API metadata | Evaluate as external deployment component for worker isolation; do not vendor before review. | Main, LiMa Code |
 | `browser-use/browser-harness` | Self-healing browser harness for LLM tasks. | MIT | Borrow browser verification pattern for online distributions and local UI tests. | Main, LiMa Code |
 | `baoku.youdao.com` | Upload PDF/PPT/papers, AI summaries, PPT, mind maps, podcast, infographics, document QA. | Website, no repo/license reviewed | Product reference for document-to-knowledge workflows and report generation UX. | Main |
@@ -78,8 +79,9 @@
 ### P2 - Product And Companion Later
 
 - ElatoAI for voice/companion device work after writing-machine direct control.
+- PersonaPlex for realtime speech-to-speech persona and voice-conditioning
+  research after LiMa has explicit privacy, safety, and compute gates.
 - Youdao Baoku for document-to-brief/PPT/mind-map product workflows.
 - Flipbook for visual generated browsing.
 - Persona skill collections and WeClone-style AI twin ideas, with strict privacy
   and AGPL boundaries.
-

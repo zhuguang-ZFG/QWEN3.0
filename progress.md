@@ -1124,7 +1124,7 @@ Verification note:
 
 ## 2026-05-24 External Capability Radar And Adoption Roadmap
 
-- User provided 26 external references for improving the main repo and
+- User provided 27 external references for improving the main repo and
   subrepos.
 - Added `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md` with
   capability groups, target repos, license signals, and priority candidates.
@@ -1136,3 +1136,6 @@ Verification note:
 - Updated `docs/DOCUMENTATION_STATUS.md` and `docs/LIMA_MEMORY.md`.
 - Current policy: concept-first, no automatic dependency adoption, and no code
   copy from GPL/AGPL/missing-license sources without a separate review gate.
+- Added `NVIDIA/personaplex` to the persona, voice, and companion-device
+  reference track as a realtime full-duplex speech/persona model candidate,
+  gated by model license, privacy, safety, compute, and opt-in requirements.
