@@ -291,6 +291,48 @@ Next implementation item:
 
 - Task 4 quota-aware routing, after current branch is verified and committed.
 
+## 2026-05-24 VPS + FRP + LiMa Code Worker Closure
+
+The main LiMa Server and `D:\GIT\deepcode-cli` now have a public end-to-end worker smoke on the deployed VPS path.
+
+Deployment evidence:
+
+- Main branch in use: `codex/free-web-ai-probe`.
+- Latest pushed commit after local-router startup hardening: `fdea227` (`fix: preserve local router api key`).
+- VPS runtime backups:
+  - `/opt/lima-router/backups/agent-worker-sync-20260524_104836`
+  - `/opt/lima-router/backups/runtime-deps-sync-20260524_105115`
+- Remote compile and `import server` passed before restart.
+- `systemctl restart lima-router` completed; VPS-local `/health` reports `modules.mcp=true`, `modules.agent_tasks=true`, and `modules.telegram=true`.
+
+Public smoke evidence:
+
+- HTTPS chat: `https://chat.donglicao.com/v1/chat/completions` returned exact `lima-postdeploy-ok`.
+- Worker preflight: `/agent/worker/preflight` returned `ready=true`, `contract_version=agent-task-v1`, and `smoke_task=true`.
+- Real-machine worker task:
+  - Server task id: `cfcd3f2b`.
+  - LiMa Code command: `/lima task cfcd3f2b`.
+  - Result: `needs_review`, summary `No git diff found to review.`
+  - Server events: `created,result_submitted`.
+
+FRP/local-router closure:
+
+- Temporary FRP chat failure was not a tunnel failure. It was the Windows local router process on `127.0.0.1:8080` running without private API key environment after manual restart.
+- `D:\ollama_server\start-lima-api.ps1` now ensures `LIMA_API_KEY` and `LIMA_API_KEYS` are present for the child router process without logging key values.
+- Tracked `local_router_start.bat` now defaults the local private key to `lima-local` when neither `LIMA_API_KEY` nor `LIMA_API_KEYS` is already configured.
+- Final smokes:
+  - `http://127.0.0.1:8080/v1/chat/completions` returned exact `lima-final-local-ok`.
+  - `http://47.112.162.80:8088/v1/chat/completions` returned exact `lima-final-frp-ok`.
+  - Process state: one Windows `server.py` router process and one `frpc.exe` process.
+
+Known remaining planning items after this closure:
+
+1. Continue `server.py` decomposition. App lifecycle is now extracted to `server_lifespan.py`; next low-risk extractions should target request handlers rather than changing routing policy.
+2. Consolidate backend configuration into one source, including capability lists and remaining `smart_router` compatibility surfaces.
+3. Wire `key_pool.py` into `http_caller.py` for multi-key providers.
+4. Keep Kimi local, TheOldLLM, MiMo web, and page-only web AI candidates gated until refresh plus model-level smoke evidence exists.
+5. Keep always-on worker daemon mode behind explicit repo allowlist, runtime budget, stop marker, audit, failure quarantine, and manual production gates.
+
 ## 2026-05-22 Local Reverse AI Inventory
 
 User corrected the earlier assumption that Duck.ai still needed reverse engineering. Local audit confirmed:

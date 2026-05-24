@@ -65,31 +65,7 @@ from routes.quality_gate import (
 )
 
 # ── App ─────────────────────────────────────────────────────────────────────
-from contextlib import asynccontextmanager
-
-@asynccontextmanager
-async def lifespan(application):
-    """FastAPI lifespan: 启动/关闭时执行。"""
-    import probe_loop
-    probe_loop.start(probe_fn=http_caller.probe)
-    try:
-        from session_memory.daemon import start_daemon
-        await start_daemon()
-    except ImportError:
-        pass
-    try:
-        from routes.telegram import start_telegram_webhook
-        await start_telegram_webhook()
-    except ImportError:
-        pass
-    yield
-    import probe_loop
-    probe_loop.stop()
-    try:
-        from session_memory.daemon import stop_daemon
-        await stop_daemon()
-    except ImportError:
-        pass
+from server_lifespan import lifespan
 
 app = FastAPI(title="LiMa", version="1.3",
               description="LiMa（力码）— 智能编程助手 API，OpenAI 兼容",

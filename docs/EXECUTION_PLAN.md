@@ -1,6 +1,6 @@
 # LiMa Execution Plan
 
-> Updated: 2026-05-23
+> Updated: 2026-05-24
 > Status: current plan for the private personal coding assistant direction
 > Supersedes: older commercial/open-platform sprint plans
 
@@ -41,14 +41,24 @@ Paused work:
 | 7. Always-on typed memory | Complete | 10 typed memory kinds, inbox ingestion daemon, background consolidation, wired into server lifespan. |
 | 8. MCP knowledge/memory tools | Complete | `/mcp/tools/list` and `/mcp/tools/call` expose search_repo, search_memory, get_retrieval_trace. |
 | 9. Dead code cleanup + streaming unification | Complete | stats_collector.py deleted; streaming path wired through inject_retrieval_context. |
-| 10. server.py decomposition | In Progress | server.py reduced from 2340 to 1755 lines; 4 modules extracted. Chat/Anthropic handlers remain. |
+| 10. server.py decomposition | In Progress | server.py reduced from 2340 to 834 lines; 5 modules extracted, including `server_lifespan.py`. Chat/Anthropic handlers remain. |
+
+## 2026-05-24 Runtime Closure
+
+- VPS deployment of Server worker preflight/smoke-task APIs is complete.
+- `D:\GIT\deepcode-cli` completed public task `cfcd3f2b` through the deployed Server and submitted `needs_review`.
+- FRP `8088` is closed-loop again after hardening local Windows router startup:
+  - local `8080` chat returned exact `lima-final-local-ok`;
+  - public FRP `8088` chat returned exact `lima-final-frp-ok`;
+  - `local_router_start.bat` now preserves/defaults the private API key environment for the router process.
 
 ## Next Implementation Order
 
-1. Continue `server.py` decomposition: extract chat/completions handler, Anthropic handler into `routes/` modules.
-2. Consolidate `BACKENDS` to single source (eliminate `smart_router.BACKENDS` duplication).
+1. Continue `server.py` decomposition: extract chat/completions handler and Anthropic handler into `routes/` modules in small slices.
+2. Consolidate backend configuration to a single source, including backend capabilities and remaining `smart_router` compatibility surfaces.
 3. Wire `key_pool.py` into `http_caller.py` for multi-key providers.
-4. Run local tests, deploy only when requested, smoke public endpoints.
+4. Keep always-on worker daemon mode gated behind repo allowlist, runtime budget, stop marker, audit, failure quarantine, and manual production approval.
+5. Run local tests, deploy only when requested, smoke public endpoints.
 
 ## Verification Commands
 

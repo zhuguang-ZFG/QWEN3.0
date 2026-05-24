@@ -1,6 +1,6 @@
 # LiMa Status
 
-> Updated: 2026-05-23
+> Updated: 2026-05-24
 > Active direction: private personal coding assistant.
 
 ## Current Summary
@@ -17,10 +17,41 @@
 | Agent Evolution | Phase 0-5 complete | Quality gates, worker contract, roles, eval harness, evolution loop, and server APIs all implemented and tested (103 tests). |
 | LiMa Code worker | Active smoke path | `/lima task <id>` now fetches a Server task, runs the guarded local runner, writes local audit evidence, and submits the result back to Server. |
 | Agent control plane v0.3 | Implemented locally | Adds audit summary API, admin task audit panel, Telegram callback parsing, approved-task candidate extraction, and dry-run Server/Worker contract smoke. |
-| Real-machine worker smoke v0.4 | Implemented locally | Adds Server worker preflight, smoke-task factory, CLI smoke creator, and runbook tied to LiMa Code `/lima doctor`. |
+| Real-machine worker smoke v0.4 | Deployed and smoke-verified | Server worker preflight and smoke-task factory are live on VPS; LiMa Code completed public task `cfcd3f2b` and submitted `needs_review`. |
 | Web-reverse model admission | Complete for first batch | 29 registered web-reverse/local-proxy backends smoked with synthetic prompts; SCNet large is `code_medium_candidate`, Kimi local is `code_floor_candidate`. |
 | Memory daemon + prompt recall | Implemented locally | Server lifespan starts `session_memory.daemon`; `scripts/memory_daemon_ctl.py` can inspect status/run one cycle; `server.py` now runs prompt-time memory recall before routing. |
-| Autonomous worker lifecycle | Planned | `docs/superpowers/plans/2026-05-23-lima-autonomous-worker-v02.md` defines stop control, failure quarantine, repo allowlist, runtime budget, audit command, and real-repo smoke before daemon mode. |
+| Autonomous worker lifecycle | Partially implemented | LiMa Code has bounded `/lima work` loops, stop marker, failure quarantine, repo allowlist, audit, and runtime budget. Always-on daemon mode remains a later gated step. |
+
+## 2026-05-24 Deployment And Closure Update
+
+- VPS main router is deployed from branch `codex/free-web-ai-probe`.
+- Latest pushed commit: `fdea227` (`fix: preserve local router api key`).
+- VPS backups from the Server/Worker sync:
+  - `/opt/lima-router/backups/agent-worker-sync-20260524_104836`
+  - `/opt/lima-router/backups/runtime-deps-sync-20260524_105115`
+- VPS `lima-router` restarted active; `/health` reports modules `mcp`, `agent_tasks`, and `telegram`.
+- Public HTTPS smoke passed:
+  - `https://chat.donglicao.com/v1/chat/completions` returned exact `lima-postdeploy-ok`.
+  - `/agent/worker/preflight` returned `contract_version=agent-task-v1`.
+- Real Server/Worker smoke passed:
+  - Server task `cfcd3f2b` was created by `/agent/worker/smoke-task`.
+  - `D:\GIT\deepcode-cli` executed `/lima task cfcd3f2b`.
+  - Worker submitted `needs_review`.
+  - Server events are `created,result_submitted`.
+- FRP closure was rechecked after the local Windows router restart:
+  - Root cause of the temporary FRP chat failure was the Windows local router process running without `LIMA_API_KEY`.
+  - `D:\ollama_server\start-lima-api.ps1` now ensures the child router process receives private API key environment.
+  - `local_router_start.bat` now defaults `LIMA_API_KEY`/`LIMA_API_KEYS` to `lima-local` when neither is set.
+  - `http://127.0.0.1:8080/v1/chat/completions` returned exact `lima-final-local-ok`.
+  - `http://47.112.162.80:8088/v1/chat/completions` returned exact `lima-final-frp-ok`.
+
+Current known remaining planning items:
+
+1. Continue `server.py` decomposition, with chat/completions and Anthropic handlers as the next major extraction targets.
+2. Consolidate backend configuration into a single source and remove remaining capability/list duplication.
+3. Wire `key_pool.py` into `http_caller.py` for multi-key providers.
+4. Keep Kimi, TheOldLLM, MiMo web, and page-only web AI candidates gated until refreshed and model-level smokes pass.
+5. Keep always-on worker daemon mode behind explicit repo allowlist, runtime budget, stop marker, audit, failure quarantine, and manual production gates.
 
 ## 2026-05-23 Calibrated Status
 
@@ -142,6 +173,7 @@ IDE/client
 | `lima_context.py` | Context preflight |
 | `http_caller.py` | Backend HTTP transport |
 | `backends.py` | Backend inventory |
+| `server_lifespan.py` | FastAPI background startup/shutdown orchestration |
 
 ## Verification Record
 
