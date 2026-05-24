@@ -26,7 +26,7 @@ This keeps the boundary explicit:
 Current pinned revision:
 
 ```text
-278a5f7 feat: add lima worker diagnostics
+03bd626 feat(lima): add local workflow stage commands
 ```
 
 ## Update Rules
@@ -64,6 +64,11 @@ target repository is allowlisted.
 
 Latest Server/Worker evidence:
 
+- LiMa Code verification for `03bd626` passed `npm.cmd run check`,
+  `npm.cmd test` (`430 passed, 6 skipped`), and `git diff --check`.
+- Local workflow stage commands `/lima plan`, `/lima test [--cmd <command>]`,
+  and `/lima ship` run through the guarded local task runner, write audit
+  evidence, and do not submit to Server.
 - Public task `92820005` was fetched by `D:\GIT\deepcode-cli`, completed as
   `needs_review`, and submitted back to LiMa Server.
 - `/agent/worker/preflight` remains `ready=true` after Device Gateway Redis HA

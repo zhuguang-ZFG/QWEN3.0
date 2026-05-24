@@ -222,7 +222,7 @@ vibe-coding-cn, agent-skills.
 - Modify: `docs/LIMACODE_MANAGEMENT.md`
 - Test: LiMa Code npm tests and Server/Worker contract tests
 
-- [ ] Add opt-in stage commands for plan, review, test, and ship workflows.
+- [x] Add opt-in stage commands for plan, review, test, and ship workflows.
 - [ ] Add review-context prefetch that explains why each file was selected.
 - [ ] Keep logs plain-text compatible and audit-safe.
 - [ ] Keep external CLI discovery allowlisted and opt-in.
