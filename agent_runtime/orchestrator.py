@@ -455,3 +455,124 @@ def _safe_float(value: object) -> float:
         return float(value)
     except (TypeError, ValueError):
         return 0.0
+
+
+@dataclass
+class WorkerRecord:
+    worker_id: str
+    registered_at: float = field(default_factory=time.time)
+    last_heartbeat: float = field(default_factory=time.time)
+    status: str = "idle"
+    active_lease_id: str = ""
+
+
+class WorkerGovernor:
+    """Worker lifecycle management wired to the task queue."""
+
+    def __init__(self, queue: AgentRunQueue,
+                 heartbeat_timeout: float = 300.0) -> None:
+        self.queue = queue
+        self.heartbeat_timeout = heartbeat_timeout
+        self._workers: dict[str, WorkerRecord] = {}
+
+    def register(self, worker_id: str) -> WorkerRecord:
+        existing = self._workers.get(worker_id)
+        if existing:
+            if existing.status != "quarantined":
+                existing.last_heartbeat = time.time()
+                if existing.status == "offline":
+                    existing.status = "idle"
+            return existing
+
+        w = WorkerRecord(worker_id=worker_id)
+        self._workers[worker_id] = w
+        _emit("worker_registered", {"worker_id": worker_id})
+        return w
+
+    def heartbeat(self, worker_id: str) -> WorkerRecord | None:
+        w = self._workers.get(worker_id)
+        if not w:
+            return None
+        if w.status == "quarantined":
+            return w
+        w.last_heartbeat = time.time()
+        if w.status == "offline":
+            w.status = "idle"
+        return w
+
+    def claim_for_worker(self, worker_id: str, request_id: str,
+                          lease_sec: float = 300.0) -> AgentRunLease | None:
+        w = self._workers.get(worker_id)
+        if not w or w.status in ("quarantined", "offline"):
+            return None
+        if w.status == "busy" and w.active_lease_id:
+            return None
+        if time.time() - w.last_heartbeat > self.heartbeat_timeout:
+            w.status = "offline"
+            self._release(w)
+            return None
+        lease = self.queue.claim(request_id, worker_id, lease_sec=lease_sec)
+        if lease:
+            w.status = "busy"
+            w.active_lease_id = request_id
+        return lease
+
+    def release_worker(self, worker_id: str) -> bool:
+        w = self._workers.get(worker_id)
+        if not w:
+            return False
+        self._release(w)
+        return True
+
+    def quarantine(self, worker_id: str) -> bool:
+        w = self._workers.get(worker_id)
+        if not w:
+            return False
+        w.status = "quarantined"
+        self._release(w)
+        _emit("worker_quarantined", {"worker_id": worker_id})
+        return True
+
+    def mark_idle(self, worker_id: str) -> bool:
+        w = self._workers.get(worker_id)
+        if not w:
+            return False
+        if w.status in ("quarantined", "offline"):
+            return False
+        w.status = "idle"
+        w.active_lease_id = ""
+        return True
+
+    def mark_stale_offline(self) -> int:
+        count = 0
+        now = time.time()
+        for w in self._workers.values():
+            if w.status in ("idle", "busy") and \
+               now - w.last_heartbeat > self.heartbeat_timeout:
+                w.status = "offline"
+                self._release(w)
+                count += 1
+        return count
+
+    def get(self, worker_id: str) -> WorkerRecord | None:
+        return self._workers.get(worker_id)
+
+    def stats(self) -> dict:
+        counts: dict[str, int] = {}
+        for w in self._workers.values():
+            counts[w.status] = counts.get(w.status, 0) + 1
+        return {
+            "total": len(self._workers),
+            "by_status": dict(sorted(counts.items())),
+            "heartbeat_timeout": self.heartbeat_timeout,
+        }
+
+    def _release(self, w: WorkerRecord) -> None:
+        if w.active_lease_id:
+            self.queue._leases.pop(w.active_lease_id, None)
+            req = self.queue._requests.get(w.active_lease_id)
+            if req and req.status == QueueStatus.CLAIMED:
+                req.status = QueueStatus.PENDING
+            w.active_lease_id = ""
+        if w.status not in ("quarantined", "offline"):
+            w.status = "idle"

@@ -7,6 +7,8 @@ from agent_runtime import (
     AgentRunQueue,
     AgentRunRequest,
     QueueStatus,
+    WorkerGovernor,
+    WorkerRecord,
 )
 from agent_runtime.contract import (
     AgentRunResult,
@@ -451,8 +453,156 @@ def test_full_cycle_save_run_recover(tmp_path, monkeypatch):
     result = q2.store.get_result("t1")
     assert result is not None
     assert result.ok is True
-
     assert req.task_id == "t1"
+
+
+def test_worker_register_and_heartbeat():
+    q = AgentRunQueue()
+    gov = WorkerGovernor(q)
+    gov.register("w1")
+    assert gov.heartbeat("w1") is not None
+    assert gov.get("w1").status == "idle"
+
+
+def test_worker_claim_for_worker():
+    q = AgentRunQueue()
+    gov = WorkerGovernor(q)
+    gov.register("w1")
+    req = q.submit(AgentTask(task_id="t1", goal="test"))
+    lease = gov.claim_for_worker("w1", req.request_id)
+    assert lease is not None
+    assert gov.get("w1").status == "busy"
+
+
+def test_worker_exported_from_package():
+    assert WorkerGovernor is not None
+    assert WorkerRecord is not None
+
+
+def test_busy_worker_cannot_claim_second_request():
+    q = AgentRunQueue()
+    gov = WorkerGovernor(q)
+    gov.register("w1")
+    first = q.submit(AgentTask(task_id="t1", goal="one"))
+    second = q.submit(AgentTask(task_id="t2", goal="two"))
+
+    assert gov.claim_for_worker("w1", first.request_id) is not None
+    assert gov.claim_for_worker("w1", second.request_id) is None
+    assert any(req.request_id == second.request_id for req in q.list_pending())
+
+
+def test_worker_quarantined_cannot_claim():
+    q = AgentRunQueue()
+    gov = WorkerGovernor(q)
+    gov.register("w1")
+    gov.quarantine("w1")
+    req = q.submit(AgentTask(task_id="t1", goal="test"))
+    assert gov.claim_for_worker("w1", req.request_id) is None
+
+
+def test_stale_worker_marked_offline():
+    q = AgentRunQueue()
+    gov = WorkerGovernor(q, heartbeat_timeout=0.001)
+    gov.register("w1")
+    gov.heartbeat("w1")
+    time.sleep(0.01)
+    count = gov.mark_stale_offline()
+    assert count >= 1
+    assert gov.get("w1").status == "offline"
+
+
+def test_offline_worker_released_lease():
+    q = AgentRunQueue()
+    gov = WorkerGovernor(q, heartbeat_timeout=999)
+    gov.register("w1")
+    req = q.submit(AgentTask(task_id="t1", goal="test"))
+    gov.claim_for_worker("w1", req.request_id)
+    # Simulate worker going stale: set heartbeat way back
+    gov.get("w1").last_heartbeat = 0
+    gov.mark_stale_offline()
+    assert gov.get("w1").status == "offline"
+    # The request should be released back to pending
+    pending = q.list_pending()
+    assert any(r.task_id == "t1" for r in pending)
+
+
+def test_heartbeat_reactivates_offline():
+    q = AgentRunQueue()
+    gov = WorkerGovernor(q)
+    gov.register("w1")
+    gov.get("w1").status = "offline"
+    gov.heartbeat("w1")
+    assert gov.get("w1").status == "idle"
+
+
+def test_register_does_not_clear_quarantine():
+    q = AgentRunQueue()
+    gov = WorkerGovernor(q)
+    gov.register("w1")
+    gov.quarantine("w1")
+
+    record = gov.register("w1")
+
+    assert record.status == "quarantined"
+
+
+def test_release_worker_clears_lease():
+    q = AgentRunQueue()
+    gov = WorkerGovernor(q)
+    gov.register("w1")
+    req = q.submit(AgentTask(task_id="t1", goal="test"))
+    gov.claim_for_worker("w1", req.request_id)
+    gov.release_worker("w1")
+    assert gov.get("w1").active_lease_id == ""
+    assert gov.get("w1").status == "idle"
+
+
+def test_mark_idle():
+    q = AgentRunQueue()
+    gov = WorkerGovernor(q)
+    gov.register("w1")
+    req = q.submit(AgentTask(task_id="t1", goal="test"))
+    gov.claim_for_worker("w1", req.request_id)
+    gov.mark_idle("w1")
+    assert gov.get("w1").status == "idle"
+
+
+def test_mark_idle_does_not_reactivate_offline_or_quarantined():
+    q = AgentRunQueue()
+    gov = WorkerGovernor(q)
+    gov.register("offline")
+    gov.register("quarantined")
+    gov.get("offline").status = "offline"
+    gov.quarantine("quarantined")
+
+    assert gov.mark_idle("offline") is False
+    assert gov.mark_idle("quarantined") is False
+    assert gov.get("offline").status == "offline"
+    assert gov.get("quarantined").status == "quarantined"
+
+
+def test_worker_stats():
+    q = AgentRunQueue()
+    gov = WorkerGovernor(q)
+    gov.register("w1")
+    gov.register("w2")
+    gov.quarantine("w2")
+    s = gov.stats()
+    assert s["total"] == 2
+    assert s["by_status"].get("idle", 0) >= 1
+    assert s["by_status"].get("quarantined", 0) >= 1
+
+
+def test_worker_unknown_heartbeat():
+    q = AgentRunQueue()
+    gov = WorkerGovernor(q)
+    assert gov.heartbeat("nonexistent") is None
+
+
+def test_worker_unknown_quarantine():
+    q = AgentRunQueue()
+    gov = WorkerGovernor(q)
+    assert gov.quarantine("nonexistent") is False
 
 
 def test_save_state_redacts_secret_like_fields(tmp_path, monkeypatch):

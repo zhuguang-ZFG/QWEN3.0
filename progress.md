@@ -2490,3 +2490,31 @@ Verification note:
     no matches.
   - `python -m pytest -q --ignore=active_model`:
     1010 passed, 8 skipped.
+
+## 2026-05-24 M21 Worker Heartbeat Governance Closeout
+
+- Reviewed and closed M21:
+  - `agent_runtime.orchestrator` now includes `WorkerRecord` and
+    `WorkerGovernor` for worker registration, heartbeat, claim, release,
+    quarantine, idle marking, stale-offline marking, and stats;
+  - worker claims are wired through the existing local queue lease model;
+  - `agent_runtime.__init__` exports the worker governance types.
+- Review fixes applied:
+  - busy workers with an active lease can no longer claim a second request;
+  - re-registering an existing quarantined worker no longer clears quarantine;
+  - `mark_idle()` no longer reactivates offline or quarantined workers;
+  - stale workers still release their lease and move owned requests back to
+    pending without changing quarantined/offline state;
+  - M21 source/test files were cleaned to ASCII comments and imports were moved
+    to the test module top.
+- Verification:
+  - `python -m pytest tests/test_agent_orchestrator.py -q --ignore=active_model`:
+    54 passed after review fixes.
+  - `python -m pytest tests/test_agent_orchestrator.py tests/test_agent_store.py tests/test_agent_runtime.py -q --ignore=active_model`:
+    119 passed after review fixes.
+  - `python -m py_compile agent_runtime/orchestrator.py agent_runtime/__init__.py tests/test_agent_orchestrator.py`:
+    passed.
+  - `rg -n "[^\\x00-\\x7F]" agent_runtime/orchestrator.py agent_runtime/__init__.py tests/test_agent_orchestrator.py tests/test_agent_store.py tests/test_agent_runtime.py`:
+    no matches.
+  - `python -m pytest -q --ignore=active_model`:
+    1025 passed, 8 skipped.

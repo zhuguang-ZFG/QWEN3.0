@@ -22,6 +22,8 @@ from agent_runtime.orchestrator import (
     AgentRunQueue,
     AgentRunRequest,
     QueueStatus,
+    WorkerGovernor,
+    WorkerRecord,
 )
 from agent_runtime.planner import plan_task
 from agent_runtime.resume import (
@@ -65,6 +67,8 @@ __all__ = [
     "RuntimeHooks",
     "StepKind",
     "StepResult",
+    "WorkerGovernor",
+    "WorkerRecord",
     "build_resume_state",
     "check_step_policy",
     "compact_jsonl",
