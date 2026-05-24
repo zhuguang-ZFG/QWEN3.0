@@ -1,4 +1,14 @@
-"""LiMa mastery loop primitives."""
+"""LiMa mastery loop: offline module-quality analysis and review scheduling.
+
+CRITICAL: This is an offline/background analysis system. Its outputs
+(recommendations, weak points, scores) must NOT be used in the hot-path
+routing decisions (server.py, routing_engine.py). Promotion evidence
+gates in agent_evolution consume mastery data, but the agent evolution
+path is also offline (not in the request-response hot path).
+
+Hot-path routing decisions must only use health_tracker, route_scorer,
+and budget_manager, never mastery_loop scores.
+"""
 from .event_adapter import (
     from_deploy_smoke,
     from_pytest_output,

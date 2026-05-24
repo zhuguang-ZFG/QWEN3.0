@@ -57,7 +57,14 @@ def scenario_classification_processor(ctx: RequestContext) -> RequestContext:
 
 
 def code_context_processor(ctx: RequestContext) -> RequestContext:
-    """Stage 3: Inject relevant code context via semantic search."""
+    """Stage 3: Inject relevant code context via semantic search.
+
+    QUARANTINED: routing_engine.inject_retrieval_context() is the single
+    authoritative retrieval injection path (entity extraction + graph retrieval
+    + reranking). This processor remains behind LIMA_CONTEXT_PREFLIGHT=1 as a
+    controlled comparison lane during migration. Remove this path after the
+    unified retrieval path has proven stable across coding scenarios.
+    """
     if ctx.scenario != "coding":
         return ctx
 

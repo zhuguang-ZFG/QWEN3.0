@@ -15,12 +15,14 @@ class PromptMemoryRecallResult:
     session_id: str = ""
     prompt_chars_added: int = 0
     headers: dict = field(default_factory=dict)
+    recalled_memory_ids: list[int] = field(default_factory=list)
 
     def meta(self) -> dict:
         return {
             "checked": True,
             "applied": self.applied,
             "prompt_chars_added": self.prompt_chars_added,
+            "recalled_memory_ids": self.recalled_memory_ids,
         }
 
 
@@ -93,6 +95,7 @@ def apply_prompt_memory_recall(
         recalled_prompt = ctx.system_prompt or ""
         added = max(0, len(recalled_prompt) - len(base_prompt))
         applied = recalled_prompt != base_prompt
+        recalled_ids = getattr(ctx, "recalled_memory_ids", [])
 
         result = PromptMemoryRecallResult(
             system_prompt=recalled_prompt,
@@ -100,6 +103,7 @@ def apply_prompt_memory_recall(
             session_id=session_id,
             prompt_chars_added=added,
             headers=memory_headers,
+            recalled_memory_ids=recalled_ids,
         )
         if span is not None:
             _update_span_metadata(span, result.meta())

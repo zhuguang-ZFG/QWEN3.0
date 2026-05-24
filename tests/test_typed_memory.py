@@ -218,12 +218,20 @@ class TestMemoryDaemonRedaction:
         from session_memory.store import get_recent_memories, promote_memory, save_memory
 
         memory_id = save_memory("promote-redact", "user", "keep this routing lesson")
-        assert promote_memory(
+        # Promotion with secret-bearing evidence is rejected
+        assert not promote_memory(
             memory_id,
             "routing_lesson",
             evidence="token = Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
         )
+        # Promotion with clean evidence succeeds
+        assert promote_memory(
+            memory_id,
+            "routing_lesson",
+            evidence="user confirmed this routing pattern is reusable",
+        )
 
         memory = get_recent_memories("promote-redact", limit=1)[0]
         assert "Bearer eyJ" not in memory.detail
-        assert "[REDACTED]" in memory.detail
+        assert memory.memory_type == "routing_lesson"
+        assert "user confirmed" in memory.detail

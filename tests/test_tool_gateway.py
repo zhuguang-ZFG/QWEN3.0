@@ -3,7 +3,7 @@ import pytest
 from tool_gateway.auth import SecretStore
 from tool_gateway.executor import ToolExecutor
 from tool_gateway.registry import (
-    ToolDefinition, ToolRegistry, AuthorityClass,
+    ToolDefinition, ToolRegistry, AuthorityClass, RiskClass,
     DANGEROUS_AUTHORITIES, requires_approval, build_default_registry,
 )
 from tool_gateway.audit import (
@@ -95,7 +95,8 @@ def test_tool_definition_authority_defaults():
 
 def test_tool_definition_dangerous_authority_auto_requires_approval():
     t = ToolDefinition(
-        name="deploy", description="deploy", authority=AuthorityClass.DEPLOYMENT
+        name="deploy", description="deploy", authority=AuthorityClass.DEPLOYMENT,
+        risk_class=RiskClass.HIGH, rollback_owner="admin",
     )
     assert t.requires_approval is True
 
@@ -116,6 +117,7 @@ def test_executor_rejects_approval_required():
     r.register(ToolDefinition(
         name="dangerous_deploy", description="deploy",
         authority=AuthorityClass.DEPLOYMENT,
+        risk_class=RiskClass.HIGH, rollback_owner="admin",
         requires_approval=True,
     ))
     exc = ToolExecutor(r)
@@ -130,12 +132,30 @@ def test_executor_rejects_dangerous_authority_without_explicit_flag():
     r.register(ToolDefinition(
         name="shell_tool", description="shell",
         authority=AuthorityClass.SHELL_EXEC,
+        risk_class=RiskClass.HIGH, rollback_owner="admin",
     ))
     exc = ToolExecutor(r)
     exc.register_handler("shell_tool", kind="python", target=lambda a: "done")
     result = exc.execute("shell_tool", {})
     assert result["ok"] is False
     assert result["error"] == "tool_requires_approval"
+
+
+def test_dangerous_tool_fails_closed_without_risk_class():
+    with pytest.raises(ValueError, match="risk_class"):
+        ToolDefinition(
+            name="bad_tool", description="no risk class",
+            authority=AuthorityClass.DEPLOYMENT,
+        )
+
+
+def test_dangerous_tool_fails_closed_without_rollback_owner():
+    with pytest.raises(ValueError, match="rollback_owner"):
+        ToolDefinition(
+            name="bad_tool", description="no owner",
+            authority=AuthorityClass.SHELL_EXEC,
+            risk_class=RiskClass.HIGH,
+        )
 
 
 def test_executor_rejects_too_many_args():

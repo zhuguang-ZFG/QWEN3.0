@@ -71,7 +71,8 @@ class ToolExecutor:
 
         handler = self._handlers.get(name)
         if not handler:
-            audit_event("execute_rejected", tool=name, reason="no_handler")
+            audit_event("execute_rejected", tool=name, reason="no_handler",
+                       provenance=getattr(tool, "provenance", "unknown"))
             return {"ok": False, "error": "no_handler_registered", "tool": tool.name}
 
         kind = handler["kind"]

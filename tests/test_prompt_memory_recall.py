@@ -43,6 +43,7 @@ def test_server_context_builds_prompt_messages_without_memory(monkeypatch):
         "checked": True,
         "applied": False,
         "prompt_chars_added": 0,
+        "recalled_memory_ids": [],
     }
 
 

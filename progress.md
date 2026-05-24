@@ -2781,3 +2781,38 @@ Verification note:
     modules such as `backends.py`, `key_pool.py`, `context_pipeline/*`,
     `session_memory/*`, `agent_runtime/*`, `tool_gateway/*`, `lima_mcp/*`,
     `sandbox/provider.py`, `data_workbench/*`, and `provider_automation/*`.
+
+## 2026-05-25 Reference Capability Phase 2-6/8 Closure Review
+
+- Reviewed the Phase 2-8 implementation pass and closed remaining P1/P2 gaps:
+  - added tests for previously untested runtime surfaces:
+    `lima_mcp/access_plane.py`, `eval_registry.py`,
+    `device_gateway/protocol_families.py`, and
+    `agent_runtime/summary_constraints.py`;
+  - fixed `eval_registry.py` default storage from `D:\data` to repo-local
+    `data/eval_registry.jsonl`;
+  - fixed eval query limiting so `latest_promoted(limit=1)` returns the latest
+    promoted entry instead of the oldest matching entry;
+  - hardened worker summary validation so invalid review states and scalar list
+    fields are rejected;
+  - made `LocalReranker.rerank()` return scored copies instead of mutating input
+    candidates and accumulating score drift;
+  - normalized protocol-family keys to string values while accepting
+    `ProtocolFamily` enum inputs.
+- Updated `docs/REFERENCE_IMPLEMENTATION_LEDGER.md` and the reference
+  capability roadmap with concrete implementation files and test evidence for
+  worker summary governance, MCP access plane, eval registry, and Device
+  Gateway protocol families.
+- Verification:
+  - `python -m pytest tests/test_eval_registry.py tests/test_worker_summary_constraints.py tests/test_mcp_access_plane.py tests/test_device_gateway_protocol_families.py -q --ignore=active_model`:
+    15 passed.
+  - `python -m pytest tests/test_reranker_protocol.py -q --ignore=active_model`:
+    7 passed after the non-mutating reranker fix.
+  - `python -m pytest tests/test_index_protocol.py tests/test_reranker_protocol.py tests/test_static_analysis.py tests/test_mcp_access_plane.py tests/test_eval_registry.py tests/test_device_gateway_protocol_families.py tests/test_worker_summary_constraints.py tests/test_prompt_memory_recall.py tests/test_typed_memory.py tests/test_tool_gateway.py -q --ignore=active_model`:
+    84 passed.
+  - `python -m py_compile ...` over touched Python modules:
+    passed.
+  - `git diff --check`:
+    passed.
+  - `python -m pytest -q --ignore=active_model`:
+    1190 passed, 8 skipped.

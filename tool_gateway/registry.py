@@ -13,9 +13,21 @@ class AuthorityClass(str, Enum):
     HARDWARE = "hardware"
 
 
+class RiskClass(str, Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
 DANGEROUS_AUTHORITIES = frozenset({
     AuthorityClass.DEPLOYMENT, AuthorityClass.HARDWARE,
     AuthorityClass.NETWORK_WRITE, AuthorityClass.SHELL_EXEC,
+})
+
+GATED_ACTIONS = frozenset({
+    "deploy", "push", "gh_pr_create", "gh_pr_merge",
+    "cloud_api", "db_migration", "hardware_command",
 })
 
 
@@ -30,10 +42,13 @@ class ToolDefinition:
     description: str
     tags: tuple[str, ...] = ()
     authority: AuthorityClass = AuthorityClass.READ_ONLY
+    risk_class: RiskClass = RiskClass.LOW
     requires_secret: bool = False
     requires_approval: bool = False
     max_args: int = 10
     timeout_sec: float = 30.0
+    rollback_owner: str = ""
+    provenance: str = ""  # "mcp:connector_name" | "builtin" | "custom:..."
 
     def __post_init__(self) -> None:
         authority = self.authority
@@ -42,6 +57,20 @@ class ToolDefinition:
             object.__setattr__(self, "authority", authority)
         if requires_approval(authority) and not self.requires_approval:
             object.__setattr__(self, "requires_approval", True)
+        # Fail closed: dangerous authorities MUST have risk_class + rollback_owner
+        if authority in DANGEROUS_AUTHORITIES:
+            if self.risk_class == RiskClass.LOW:
+                raise ValueError(
+                    f"Tool '{self.name}' has authority={authority.value} but "
+                    f"risk_class is LOW. Dangerous tools must declare risk_class "
+                    f"explicitly (MEDIUM/HIGH/CRITICAL)."
+                )
+            if not self.rollback_owner:
+                raise ValueError(
+                    f"Tool '{self.name}' has authority={authority.value} but "
+                    f"no rollback_owner. Dangerous tools must declare a "
+                    f"rollback_owner for accountability."
+                )
 
 
 class ToolRegistry:

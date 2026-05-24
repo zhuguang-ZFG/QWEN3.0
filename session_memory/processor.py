@@ -20,7 +20,11 @@ def _session_id_from_headers(headers: dict) -> str:
 
 
 def session_memory_processor(ctx: RequestContext) -> RequestContext:
-    """Pipeline processor: inject relevant session memories into context."""
+    """Pipeline processor: inject relevant session memories into context.
+
+    Returns ctx with system_prompt augmented and recalled_memory_ids set
+    on the context so callers can attach source citations to admin traces.
+    """
     if os.environ.get("LIMA_SESSION_MEMORY", "0") != "1":
         return ctx
 
@@ -39,9 +43,11 @@ def session_memory_processor(ctx: RequestContext) -> RequestContext:
     if not memories:
         memories = get_recent_memories(session_id, limit=2)
 
+    recalled_ids: list[int] = []
     if memories:
         lines = ["[会话记忆]"]
         for m in memories:
+            recalled_ids.append(m.id)
             lines.append(f"- [{m.role}] {m.summary}")
         memory_text = "\n".join(lines)[:600]
 
@@ -50,6 +56,7 @@ def session_memory_processor(ctx: RequestContext) -> RequestContext:
         else:
             ctx.system_prompt = memory_text
 
+    ctx.recalled_memory_ids = recalled_ids
     return ctx
 
 

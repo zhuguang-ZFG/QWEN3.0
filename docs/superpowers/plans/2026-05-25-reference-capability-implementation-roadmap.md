@@ -115,15 +115,15 @@ Sirchmunk, claude-context, graphify, code-review-graph.
 - Test: `tests/test_context_pipeline*.py`
 - Docs: `docs/reference/REFERENCE_IMPLEMENTATION_LEDGER.md`
 
-- [ ] Confirm the single authoritative retrieval injection path and remove or
+- [x] Confirm the single authoritative retrieval injection path and remove or
   quarantine duplicate prompt-context paths.
-- [ ] Add a LiMa-owned graph/vector index protocol with in-memory fixtures.
-- [ ] Add a reranker interface that can run with deterministic local fixtures
+- [x] Add a LiMa-owned graph/vector index protocol with in-memory fixtures.
+- [x] Add a reranker interface that can run with deterministic local fixtures
   before any hosted or model-backed reranker is admitted.
-- [ ] Add source-quality scoring fields to retrieval traces.
-- [ ] Add a narrow optional type/static-analysis lane for stable Python modules
+- [x] Add source-quality scoring fields to retrieval traces.
+- [x] Add a narrow optional type/static-analysis lane for stable Python modules
   before expanding to the repo.
-- [ ] Verify retrieval fixture tests and record selected files/chunks plus why
+- [x] Verify retrieval fixture tests and record selected files/chunks plus why
   they were injected.
 
 ## Phase 3 - Memory And Mastery
@@ -139,15 +139,15 @@ Zep, TechSpar, RuVector.
 - Docs: `docs/REFERENCE_PROJECT_EVALUATION.md`
 - Docs: `docs/reference/REFERENCE_IMPLEMENTATION_LEDGER.md`
 
-- [ ] Normalize memory kinds: `user_pref`, `project_fact`, `code_fact`,
+- [x] Normalize memory kinds: `user_pref`, `project_fact`, `code_fact`,
   `ops_event`, `test_result`, `routing_lesson`, `security_lesson`, and
   `reference_pattern`.
-- [ ] Add memory source ids/citations to recall outputs used by admin traces
+- [x] Add memory source ids/citations to recall outputs used by admin traces
   and worker preflight.
-- [ ] Add export/delete/redaction gates for durable memory records.
-- [ ] Keep mastery recommendations out of automatic hot-path routing until
+- [x] Add export/delete/redaction gates for durable memory records.
+- [x] Keep mastery recommendations out of automatic hot-path routing until
   eval and rollback gates exist.
-- [ ] Verify secret-like strings are rejected or redacted before promotion.
+- [x] Verify secret-like strings are rejected or redacted before promotion.
 
 ## Phase 4 - Agent And Tool Governance
 
@@ -162,14 +162,15 @@ Toolkit, gstack, OpenAI Symphony, agent-skills, mattpocock skills.
 - Modify: `deepcode-cli` worker/task files after submodule plan approval
 - Test: `tests/test_agent*.py`
 - Test: `tests/test_tool_gateway*.py`
+- Test: `tests/test_worker_summary_constraints.py`
 
-- [ ] Add risk class, allowed actions, approval requirement, evidence refs,
+- [x] Add risk class, allowed actions, approval requirement, evidence refs,
   and rollback owner to agent task/tool metadata.
-- [ ] Fail closed when dangerous tool classes lack explicit approval metadata.
-- [ ] Record tool/MCP provenance in audit events.
-- [ ] Require LiMa Code worker summaries to report changed files, tests,
+- [x] Fail closed when dangerous tool classes lack explicit approval metadata.
+- [x] Record tool/MCP provenance in audit events.
+- [x] Require LiMa Code worker summaries to report changed files, tests,
   remaining risks, and review status.
-- [ ] Keep deploy, push, GitHub write, cloud, database migration, and hardware
+- [x] Keep deploy, push, GitHub write, cloud, database migration, and hardware
   actions behind explicit gate metadata.
 
 ## Phase 5 - MCP Access Plane
@@ -179,15 +180,15 @@ MCP, awesome-mcp-servers, Agent-Reach, cc-connect, bluebox, RuVector MCP.
 
 **Files:**
 - Modify: `docs/reference/MCP_CONNECTOR_CATALOG.md`
-- Modify: LiMa MCP/dev-search files after connector-specific plan approval
-- Test: connector-specific read-only tests
+- Create: `lima_mcp/access_plane.py`
+- Test: `tests/test_mcp_access_plane.py`
 
-- [ ] Keep LiMa dev-search MCP tools active and read-only by default.
-- [ ] Promote only foundation candidates first: filesystem read, git read,
+- [x] Keep LiMa dev-search MCP tools active and read-only by default.
+- [x] Promote only foundation candidates first: filesystem read, git read,
   docs lookup, time, and memory/query surfaces.
-- [ ] Require owner, allowlist, credential boundary, timeout, audit event, and
+- [x] Require owner, allowlist, credential boundary, timeout, audit event, and
   failure mode before enabling any connector.
-- [ ] Keep business, billing, messaging, cloud-control, scraping, media, voice,
+- [x] Keep business, billing, messaging, cloud-control, scraping, media, voice,
   and database-write connectors off by default.
 
 ## Phase 6 - Eval, Observability, And Cost
@@ -196,19 +197,19 @@ MCP, awesome-mcp-servers, Agent-Reach, cc-connect, bluebox, RuVector MCP.
 Prometheus, Portkey, LiteLLM.
 
 **Files:**
-- Create or modify: eval registry files after schema review
+- Create: `eval_registry.py`
 - Modify: `routing_engine.py`
 - Modify: `health_tracker*`
 - Modify: `probe_loop.py`
 - Modify: worker telemetry files
-- Test: route/eval/telemetry tests
+- Test: `tests/test_eval_registry.py`
 
-- [ ] Add a unified eval registry linking model, route, fixture, score,
+- [x] Add a unified eval registry linking model, route, fixture, score,
   promotion decision, and evidence.
-- [ ] Define route-level cost, latency, cache, cooldown, and failure-state
+- [x] Define route-level cost, latency, cache, cooldown, and failure-state
   metric names before adding exporters.
-- [ ] Add per-task budget envelopes for LiMa Code worker runs.
-- [ ] Keep hosted tracing/eval services disabled until data residency,
+- [x] Add per-task budget envelopes for LiMa Code worker runs.
+- [x] Keep hosted tracing/eval services disabled until data residency,
   redaction, self-hosting, and license gates pass.
 
 ## Phase 7 - LiMa Code UX And Workflow
@@ -235,19 +236,21 @@ GLM-OCR, GR00T, nano-world-model, OpenClaw-RL.
 
 **Files:**
 - Modify: `device_gateway/*`
+- Create: `device_gateway/protocol_families.py`
 - Modify: `routes/device_gateway.py`
 - Modify: `esp32S_XYZ` after submodule plan approval
 - Test: fake-device and real-device gated smokes
+- Test: `tests/test_device_gateway_protocol_families.py`
 - Docs: `docs/ESP32S_XYZ_MANAGEMENT.md`
 - Docs: `docs/reference/HARDWARE_COMPANION_REFERENCES.md`
 
-- [ ] Finish writing-machine fake U8 and real U8/U1 safety evidence before
+- [x] Finish writing-machine fake U8 and real U8/U1 safety evidence before
   adding new protocol families.
-- [ ] Add separate schemas only after approval: `display_task`,
+- [x] Add separate schemas only after approval: `display_task`,
   `audio_stream`, `speech`, `ocr_result`, and `vision_observation`.
-- [ ] Keep motion, voice, display, OCR, camera, and perception on separate
+- [x] Keep motion, voice, display, OCR, camera, and perception on separate
   allowlists.
-- [ ] Keep voice cloning, vital-sign sensing, fall/distress detection,
+- [x] Keep voice cloning, vital-sign sensing, fall/distress detection,
   through-wall sensing, and persona training disabled until consent, privacy,
   model-license, retention, false-positive, and hardware-validation gates pass.
 

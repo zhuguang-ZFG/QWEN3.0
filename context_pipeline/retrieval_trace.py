@@ -22,6 +22,10 @@ class RetrievalTrace:
     backend: str = ""
     scenario: str = ""
     request_type: str = ""
+    # Source-quality scoring
+    source_quality_score: float = 0.0
+    retrieval_precision: float = 0.0
+    injection_useful: bool = False
 
     def to_dict(self) -> dict:
         return {
@@ -34,6 +38,9 @@ class RetrievalTrace:
             "backend": self.backend,
             "scenario": self.scenario,
             "request_type": self.request_type,
+            "source_quality_score": self.source_quality_score,
+            "retrieval_precision": self.retrieval_precision,
+            "injection_useful": self.injection_useful,
         }
 
 
