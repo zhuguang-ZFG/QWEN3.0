@@ -619,6 +619,10 @@ health = _system_endpoints_mod.health
 live_key = _system_endpoints_mod.live_key
 router_status = _system_endpoints_mod.router_status
 
+from routes.device_gateway import router as device_gateway_router
+app.include_router(device_gateway_router)
+_loaded_modules["device_gateway"] = True
+
 try:
     from lima_mcp.server import router as mcp_router
     app.include_router(mcp_router)

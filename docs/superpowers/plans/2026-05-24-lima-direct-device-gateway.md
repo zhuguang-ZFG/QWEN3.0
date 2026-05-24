@@ -1,7 +1,7 @@
 # LiMa Direct Device Gateway Plan
 
 **Date:** 2026-05-24
-**Status:** planned
+**Status:** phase 1 implemented; text-only fake U8 loop implemented
 **Scope:** replace the Xiaozhi server runtime dependency for `esp32S_XYZ` with
 a LiMa-native U8 device protocol and gateway.
 
@@ -365,3 +365,35 @@ Build Phase 1 and the text-only part of Phase 2 first:
 
 This proves the LiMa-native device route without touching real firmware or real
 hardware.
+
+## Implementation Progress
+
+### 2026-05-24 Phase 1 / Text Fake U8 Slice
+
+Implemented in the main LiMa repo:
+
+- `device_gateway/protocol.py`: protocol version, uplink validation, stable
+  error frames, `hello_ack`, and ack helpers.
+- `device_gateway/auth.py`: per-device token parsing from `LIMA_DEVICE_TOKENS`.
+- `device_gateway/sessions.py`: in-memory active WebSocket session registry.
+- `device_gateway/intent.py`: deterministic `write_text`, `draw_generated`,
+  `home`, `pause`, `resume`, `stop`, and `get_device_info` command mapping.
+- `device_gateway/safety.py`: conservative workspace, feed, point-count, and
+  path validation.
+- `device_gateway/tasks.py`: deterministic transcript-to-`run_path`
+  `motion_task` projection for fake U8 tests.
+- `routes/device_gateway.py`: `/device/v1/health` and `/device/v1/ws`.
+- `server.py`: registers the device gateway router.
+- `tests/test_device_gateway_protocol.py` and
+  `tests/test_device_gateway_routes.py`: fake U8 hello, heartbeat, transcript,
+  bounded `motion_task`, and `motion_event` ack coverage.
+
+Compatibility notes:
+
+- Device authentication is independent from LiMa private/provider API keys.
+- Uplink `motion_event` accepts both LiMa `device_id` and esp32S_XYZ-style
+  `session_id` compatibility.
+- Supported phases include `accepted`, `queued`, `running`, `progress`, `done`,
+  `failed`, `cancelled`, `rejected`, and `stopped`.
+- This is not yet a real U8 firmware or hardware release. Real-device claims
+  still require U8 direct firmware mode and U8/U1 safety smoke.

@@ -1112,3 +1112,33 @@ Deployment: not performed.
   voice-conditioning reference. It must not become a runtime dependency without
   a model-license review, opt-in privacy policy, safety review, and resource
   budget.
+
+## 2026-05-24 LiMa Device Gateway Implementation Slice
+
+- Implemented the first LiMa Device Gateway code slice in the main repo:
+  - `/device/v1/health`;
+  - `/device/v1/ws`;
+  - `hello`, `heartbeat`, stable protocol errors;
+  - deterministic transcript mapping for `写你好` / `画一个星星`;
+  - bounded fake `run_path` `motion_task`;
+  - `motion_event` acknowledgement and in-memory task state.
+- New modules:
+  - `device_gateway/protocol.py`;
+  - `device_gateway/auth.py`;
+  - `device_gateway/sessions.py`;
+  - `device_gateway/intent.py`;
+  - `device_gateway/safety.py`;
+  - `device_gateway/tasks.py`;
+  - `routes/device_gateway.py`.
+- Device auth uses `LIMA_DEVICE_TOKENS` in `device_id=token` format and stays
+  separate from LiMa private/provider API keys.
+- Verification passed:
+  - `python -m py_compile server.py routes\device_gateway.py device_gateway\*.py`;
+  - `pytest tests\test_device_gateway_protocol.py tests\test_device_gateway_routes.py -q --ignore=active_model`: 12 passed;
+  - `pytest tests\test_system_endpoints.py tests\test_chat_endpoints.py tests\test_agent_task_routes.py -q --ignore=active_model`: 31 passed.
+- Remaining implementation gates:
+  - U8 firmware direct client;
+  - product-repo fake LiMa U8 client;
+  - real U8/U1 safety smoke;
+  - audio/TTS extension;
+  - Xiaozhi runtime quarantine/removal after parity.

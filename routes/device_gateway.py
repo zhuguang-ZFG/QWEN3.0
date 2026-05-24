@@ -1,0 +1,132 @@
+"""LiMa direct device gateway routes."""
+from __future__ import annotations
+
+from typing import Any
+
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+
+from device_gateway.auth import token_configured, validate_device_token
+from device_gateway.protocol import (
+    PROTOCOL_VERSION,
+    ProtocolError,
+    ack_frame,
+    error_frame,
+    hello_ack,
+    validate_uplink,
+)
+from device_gateway.sessions import DeviceSession, registry
+from device_gateway.tasks import create_task_from_transcript, record_motion_event, reset_tasks_for_tests
+
+router = APIRouter(prefix="/device/v1")
+
+
+@router.get("/health")
+async def device_gateway_health() -> dict[str, Any]:
+    return {
+        "status": "ok",
+        "protocol": PROTOCOL_VERSION,
+        "active_sessions": registry.count(),
+        "auth_configured": token_configured(),
+    }
+
+
+def _extract_ws_token(websocket: WebSocket) -> str:
+    authorization = websocket.headers.get("authorization", "")
+    if authorization.lower().startswith("bearer "):
+        return authorization[7:].strip()
+    if authorization.strip():
+        return authorization.strip()
+    return websocket.query_params.get("token", "").strip()
+
+
+async def _send_error(websocket: WebSocket, error: ProtocolError | Exception, request_id: str | None = None) -> None:
+    await websocket.send_json(error_frame(error, request_id=request_id))
+
+
+@router.websocket("/ws")
+async def device_ws(websocket: WebSocket) -> None:
+    await websocket.accept()
+    device_id: str | None = None
+    authenticated = False
+    try:
+        while True:
+            raw = await websocket.receive_json()
+            try:
+                message = validate_uplink(raw)
+            except ProtocolError as exc:
+                await _send_error(websocket, exc)
+                continue
+
+            msg_type = message["type"]
+            request_id = message.get("request_id")
+
+            if msg_type == "hello":
+                device_id = message["device_id"]
+                if not validate_device_token(device_id, _extract_ws_token(websocket)):
+                    await _send_error(
+                        websocket,
+                        ProtocolError("E_UNAUTHORIZED_DEVICE", "device token is invalid", request_id),
+                    )
+                    await websocket.close(code=1008)
+                    return
+                authenticated = True
+                previous = registry.register(
+                    DeviceSession(
+                        device_id=device_id,
+                        websocket=websocket,
+                        fw_rev=message.get("fw_rev", ""),
+                        capabilities=message.get("capabilities", []),
+                    )
+                )
+                if previous and previous.websocket is not websocket:
+                    try:
+                        await previous.websocket.close(code=1012)
+                    except Exception:
+                        pass
+                await websocket.send_json(hello_ack(device_id))
+                continue
+
+            if not authenticated or not device_id:
+                await _send_error(
+                    websocket,
+                    ProtocolError("E_HELLO_REQUIRED", "hello must be sent before other messages", request_id),
+                )
+                continue
+
+            if message["device_id"] != device_id:
+                await _send_error(
+                    websocket,
+                    ProtocolError("E_DEVICE_MISMATCH", "message device_id does not match session", request_id),
+                )
+                continue
+
+            if msg_type == "heartbeat":
+                session = registry.get(device_id)
+                if session:
+                    session.last_uptime_ms = message["uptime_ms"]
+                await websocket.send_json(
+                    ack_frame("heartbeat_ack", device_id, uptime_ms=message["uptime_ms"], request_id=request_id)
+                )
+            elif msg_type == "transcript":
+                task = create_task_from_transcript(device_id, message["text"], request_id=request_id)
+                await websocket.send_json(task)
+            elif msg_type == "motion_event":
+                summary = record_motion_event(message)
+                await websocket.send_json(ack_frame("motion_event_ack", device_id, **summary, request_id=request_id))
+            elif msg_type == "device_info":
+                await websocket.send_json(ack_frame("device_info_ack", device_id, request_id=request_id))
+            elif msg_type == "self_check":
+                await websocket.send_json(
+                    ack_frame("self_check_ack", device_id, status=message.get("status", "unknown"), request_id=request_id)
+                )
+    except WebSocketDisconnect:
+        pass
+    finally:
+        if device_id:
+            registry.unregister(device_id, websocket)
+
+
+def _reset_for_tests() -> None:
+    registry.clear()
+    reset_tasks_for_tests()
+

@@ -1139,3 +1139,22 @@ Verification note:
 - Added `NVIDIA/personaplex` to the persona, voice, and companion-device
   reference track as a realtime full-duplex speech/persona model candidate,
   gated by model license, privacy, safety, compute, and opt-in requirements.
+
+## 2026-05-24 LiMa Device Gateway Implementation Slice
+
+- Implemented the first code slice for LiMa-native device routing:
+  - `device_gateway/protocol.py`;
+  - `device_gateway/auth.py`;
+  - `device_gateway/sessions.py`;
+  - `device_gateway/intent.py`;
+  - `device_gateway/safety.py`;
+  - `device_gateway/tasks.py`;
+  - `routes/device_gateway.py`;
+  - `server.py` router registration.
+- Added tests for protocol validation, deterministic command mapping, bounded
+  fake `run_path` projection, `/device/v1/health`, `/device/v1/ws`, fake U8
+  hello/heartbeat/transcript/motion_event loop, and stable error envelopes.
+- Verification:
+  - `D:\GIT\venv\Scripts\python.exe -m py_compile server.py routes\device_gateway.py device_gateway\protocol.py device_gateway\auth.py device_gateway\sessions.py device_gateway\tasks.py device_gateway\intent.py device_gateway\safety.py`: passed.
+  - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_device_gateway_protocol.py tests\test_device_gateway_routes.py -q --ignore=active_model`: 12 passed.
+  - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_system_endpoints.py tests\test_chat_endpoints.py tests\test_agent_task_routes.py -q --ignore=active_model`: 31 passed.
