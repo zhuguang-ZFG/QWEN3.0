@@ -2,6 +2,24 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 Productivity Infrastructure Review
+
+- Added the project-wide productivity/productization constraint to
+  `AGENTS.md`.
+- Added `docs/superpowers/plans/2026-05-25-productivity-infrastructure-review.md`
+  as the active P0 roadmap for LiMa Server, LiMa Code, and ESP32 infrastructure
+  strengthening.
+- Key review conclusion:
+  - LiMa has enough interfaces and reference-derived scaffolding for now;
+  - the urgent work is observable execution closure, real Device Gateway
+    path/text generation, LiMa Code review artifacts, and outcome-driven
+    prompt/routing/memory feedback;
+  - UI/visual/multimodal polish should follow only after the writing-machine
+    and coding-worker loops can produce real work reliably.
+- Updated `STATUS.md`, `docs/DOCUMENTATION_STATUS.md`, and `findings.md` so
+  future sessions treat this as active product direction rather than a side
+  note.
+
 ## 2026-05-25 LiMa Code Phase 7 Workflow Slice
 
 - Advanced the `deepcode-cli` submodule from `278a5f7` to `ca51967`.

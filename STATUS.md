@@ -9,6 +9,7 @@
 |---|---|---|
 | Product direction | Active | Commercial work paused; `docs/PERSONAL_CODING_ASSISTANT_PLAN.md` is the current plan. |
 | Project operating constraint | Active | `AGENTS.md` records that the agent may proactively deploy to the LiMa VPS for validation and multi-end joint debugging when it accelerates real production usefulness, with backups, scoped diffs, smoke checks, and rollback evidence. |
+| Productivity/productization constraint | Active | `AGENTS.md` and `docs/superpowers/plans/2026-05-25-productivity-infrastructure-review.md` require all LiMa work to serve real productivity, productization, and LiMa's own distinctive character; execution closure beats decorative features. |
 | Coding backend eval | Complete for first pass | 85-candidate smoke, 16-candidate full fixture set, ranking docs and JSON results exist. |
 | Coding routing | Active | `code_orchestrator.py`, `routing_engine.py`, and `router_v3.py` route coding traffic by evidence-backed tiers. |
 | Cloudflare AI routing | Active | Direct `cf_*` and Worker `cfai_*` text/code models are documented and routed; Worker qwen/deepseek quick eval passed. |
@@ -39,6 +40,23 @@
 - Public device gateway nginx route is deployed through `https://chat.donglicao.com/device/v1/*` with per-device token auth. This was first verified in memory-only mode and superseded by the Redis HA deployment below.
 - VPS nginx config backup: `/root/secure-service-backups/chat.donglicao.com.conf.codex-device-20260525_013718`.
 - Public verification passed: initial `device_gateway_https_ok` returned `11/11`, and `tools/fake_lima_u8/app.py` completed the full `wss://chat.donglicao.com/device/v1/ws` loop for `dev-joint-1`. Latest Redis HA public verification is recorded below.
+
+## 2026-05-25 Productivity Infrastructure Review
+
+- Added the global rule that all LiMa work must serve real productivity,
+  productization, and LiMa's own distinctive character.
+- Reviewed LiMa Server, LiMa Code, and ESP32 across the production path rather
+  than feature count. Highest-value weak spots are:
+  - ESP32 motion tasks need universal structured failure events and no silent
+    no-op default behavior;
+  - Device Gateway `write_text`/`draw_generated` still need a real
+    text/vector/path pipeline instead of placeholder geometry;
+  - LiMa Code stage commands need artifact bundles and model-backed planning to
+    become a true plan/patch/test/ship workflow;
+  - observability, memory, prompts, and routing need a single outcome feedback
+    loop tied to request/task/device ids.
+- New active plan:
+  `docs/superpowers/plans/2026-05-25-productivity-infrastructure-review.md`.
 
 ## 2026-05-25 Device Gateway Redis HA Slice
 

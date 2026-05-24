@@ -2,6 +2,19 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-05-25 Productivity Infrastructure Findings
+
+| ID | Area | Evidence | Next Action |
+|---|---|---|---|
+| PROD-001 | Global constraint | `AGENTS.md` now states that all work must serve real productivity, productization, and LiMa's own distinctive character. | Use this as the filter for every plan/review: useful execution beats decorative features. |
+| PROD-002 | ESP32 silent no-op risk | `esp32S_XYZ/firmware/u8-xiaozhi/main/boards/common/board.cc` default `HandleMotionTaskJson()` ignores the task. | Make unsupported board behavior emit structured failure events instead of doing nothing. |
+| PROD-003 | ESP32 failure telemetry | The zhuguang U8 handler returns without a motion failure event when `run_path` has no path payload and only logs unsupported capability. | Add `E_MISSING_PATH` and `E_UNSUPPORTED_CAPABILITY` events plus fake-U8/real-device smoke coverage. |
+| PROD-004 | Device task intelligence | `device_gateway/tasks.py` currently maps `write_text` to a rectangle path and `draw_generated` to a hardcoded star. | Build a deterministic text/SVG/path pipeline with preview and replay before adding more protocol families. |
+| PROD-005 | Intent parsing | `device_gateway/intent.py` is deterministic and falls back unknown text to `write_text`. | Add a gated validated planner or grammar+LLM hybrid with explicit rejected-command reasons. |
+| PROD-006 | LiMa Code workflow depth | `deepcode-cli/src/lima/task-runner.ts` plan mode echoes constraints; stage commands do not yet create full review packets. | Add context/plan/test/diff/risk/ship artifact bundles and model-backed planning before broad autonomy. |
+| PROD-007 | Observability access | `observability/metrics.py` has snapshots, but `routes/system_endpoints.py` exposes health/status without a focused operator metrics endpoint. | Add authenticated ops metrics and correlation by request_id/task_id/device_id/session_id. |
+| PROD-008 | Learning loop | Memory, eval, routing, and prompt components exist but are not yet one outcome-driven feedback loop. | Promote verified task outcomes into memory/prompt/routing eval candidates with rollback evidence. |
+
 ## Production Topology
 
 - VPS: `47.112.162.80`

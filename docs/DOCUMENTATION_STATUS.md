@@ -34,6 +34,7 @@
 | `docs/reference/MCP_CONNECTOR_CATALOG.md` | Active boundary | Candidate MCP connector catalog and least-privilege enablement policy for LiMa Server and LiMa Code; records Skills-vs-MCP separation and default-off connector rules. |
 | `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md` | Active plan | Staged adoption plan for external code-intelligence, memory, agent, governance, sandbox, research, OCR/TTS, persona, and hardware-companion capabilities. |
 | `docs/superpowers/plans/2026-05-25-reference-capability-implementation-roadmap.md` | Active execution roadmap | Implementation tracker that turns admitted reference ideas into LiMa-native testable slices; Device Gateway reliable-queue closure is complete and later phases remain gated. |
+| `docs/superpowers/plans/2026-05-25-productivity-infrastructure-review.md` | Active P0 roadmap | Three-project LiMa Server, LiMa Code, and ESP32 infrastructure review focused on real productivity, productization, and execution closure. |
 | `docs/superpowers/plans/2026-05-23-agent-autonomy-evolution.md` | Active plan | Superpowers implementation plan for gated multi-agent autonomy, skill/gene evolution, and GitHub/VPS approval boundaries. |
 | `docs/superpowers/plans/2026-05-23-techspar-mastery-loop.md` | Active record | Implemented TechSpar-inspired local mastery loop for module mastery, weak-point extraction, review scheduling, recommendations, and promotion evidence gates. |
 | `docs/reference/TECHSPAR_BORROWING_NOTES.md` | Active boundary | Concept-borrowing record and license boundary for the local mastery loop. |
@@ -74,3 +75,4 @@ These files are retained as reference, but they are not the current execution di
 10. Treat MCP connectors as authority-bearing access paths, not simple prompts. Check `docs/reference/MCP_CONNECTOR_CATALOG.md` before enabling any new MCP server.
 11. Treat `docs/reference/AI_ENGINEERING_COMPETENCY_MAP_2026.md` as the baseline production-AI checklist before expanding model, agent, memory, eval, cost, or deployment features.
 12. Device Gateway production state is Redis HA on VPS; update `docs/superpowers/plans/2026-05-25-lima-device-gateway-ha.md` and `scripts/smoke_online_distributions.py` when changing Redis, worker count, or public port guards.
+13. Treat productivity and productization as the global decision filter. Prefer fixes that improve real coding or hardware execution loops over decorative features, speculative integrations, or broad rewrites.

@@ -20,6 +20,13 @@
   the guarded local task runner, write audit evidence, do not submit to Server,
   and were verified with `npm.cmd run check`, `npm.cmd test` (`431 passed, 6
   skipped`), and `git diff --check`.
+- On 2026-05-25 the project-wide operating constraint was expanded: every
+  LiMa action must serve real productivity, productization, and LiMa's own
+  distinctive character. The active three-project review is
+  `docs/superpowers/plans/2026-05-25-productivity-infrastructure-review.md`.
+  Highest priority is observable ESP32 execution, real Device Gateway
+  text/vector/path generation, LiMa Code artifact bundles, and a unified
+  prompt/routing/memory outcome loop.
 
 > Updated: 2026-05-25
 > Purpose: durable working memory for future LiMa coding-assistant sessions.
