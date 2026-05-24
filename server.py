@@ -3,15 +3,14 @@
 支持流式/非流式 ChatCompletion，兼容 OpenAI API 格式。
 """
 import sys, os, json, time, uuid, asyncio, threading, functools, logging
-from typing import Optional, Union
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI, Request, HTTPException, Depends, Header
 from fastapi.responses import StreamingResponse, JSONResponse, HTMLResponse
-from pydantic import BaseModel, Field, field_validator
 import uvicorn
 
 from access_guard import require_private_api_key
+from chat_models import ChatRequest, Message, extract_system_prompt
 import smart_router
 from orchestrate import orchestrate, needs_orchestration
 from vision_handler import (
@@ -111,22 +110,6 @@ _detect_ide = _rt_mod.detect_ide
 _elapsed_ms = _rt_mod.elapsed_ms
 FALLBACK_LOG = _rt_mod.FALLBACK_LOG
 
-
-# ── Pydantic Models ─────────────────────────────────────────────────────────
-class Message(BaseModel):
-    role: str
-    content: Union[str, list] = ""
-
-
-class ChatRequest(BaseModel):
-    model: str = MODEL_ID
-    messages: list[Message]
-    stream: bool = False
-    max_tokens: Optional[int] = Field(default=1024, alias="max_tokens")
-    temperature: Optional[float] = 0.7
-    thinking: Optional[bool] = False
-
-
 # ── Helpers (imported from response_builder.py) ────────────────────────────────
 from response_builder import (
     make_chat_id, build_response, build_stream_chunk,
@@ -171,14 +154,6 @@ async def _thinking_route(query: str, max_tokens: int = 4096, ide: str = "unknow
 
 
 # ── Vision routing now in vision_handler.py ──────────────────────────────────
-
-
-def extract_system_prompt(messages: list[Message]) -> str | None:
-    """提取 system prompt（如果存在）。"""
-    for msg in messages:
-        if msg.role == "system" and msg.content:
-            return msg.content
-    return None
 
 
 def _attach_memory_recall_meta(response: dict, memory_meta: dict) -> dict:
