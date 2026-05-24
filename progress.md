@@ -1105,3 +1105,9 @@ Verification note:
 - User selected the long-term clean path: U8 firmware directly speaks a LiMa custom protocol and no longer depends on Xiaozhi server at runtime.
 - Decided LiMa needs a new Device Gateway route layer (`/device/v1/*`) while continuing to reuse the existing model routing/provider stack.
 - Added `docs/superpowers/plans/2026-05-24-lima-direct-device-gateway.md` with phased cross-repo implementation, protocol v1 message shapes, safety gates, and verification matrix.
+
+## 2026-05-24 Xiaozhi Server Deprecation Plan
+
+- User agreed to plan retirement of Xiaozhi server code after LiMa Direct Device Gateway replaces the runtime path.
+- Added `docs/superpowers/plans/2026-05-24-xiaozhi-server-deprecation-removal.md`.
+- Plan policy: mark as legacy first, build migration inventory, port useful behavior to LiMa direct route, verify fake U8 and real U8/U1 safety gates, then quarantine or delete and advance the main submodule pointer.

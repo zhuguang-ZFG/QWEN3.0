@@ -1072,3 +1072,13 @@ Deployment: not performed.
 - Model, ASR, TTS, image/vector, and LLM selection remain in the existing LiMa routing/provider stack.
 - Source of truth: `docs/superpowers/plans/2026-05-24-lima-direct-device-gateway.md`.
 - First implementation slice should prove a text-only fake U8 loop before firmware or hardware changes: `hello`, `heartbeat`, transcript, deterministic `写你好` / `画一个星星`, bounded `motion_task`, and `motion_event` progress/done.
+
+## 2026-05-24 Xiaozhi Server Deprecation Plan
+
+- User agreed that Xiaozhi server can be retired, but not physically deleted until LiMa Direct Device Gateway reaches parity and hardware safety gates pass.
+- Source of truth: `docs/superpowers/plans/2026-05-24-xiaozhi-server-deprecation-removal.md`.
+- Current policy:
+  - mark `xiaozhi-server` as legacy migration reference first;
+  - inventory each runtime responsibility and map it to a LiMa replacement or explicit rejection;
+  - port deterministic intent, motion downlink, event uplink, device info, and self-check behavior;
+  - quarantine or delete `xiaozhi-server` only after fake U8, U8 firmware direct mode, and real U8/U1 safety smoke are recorded.

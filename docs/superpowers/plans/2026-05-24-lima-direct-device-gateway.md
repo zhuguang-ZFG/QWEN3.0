@@ -267,6 +267,9 @@ Product repo:
 - Make LiMa direct mode the default runtime path.
 - Keep migration docs for the old Xiaozhi path only if useful.
 - Remove or quarantine Xiaozhi runtime config from production instructions.
+- Follow `docs/superpowers/plans/2026-05-24-xiaozhi-server-deprecation-removal.md`
+  for the gated deprecation, migration inventory, quarantine, and removal
+  sequence.
 
 Main repo:
 

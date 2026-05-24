@@ -48,6 +48,8 @@ The first deep pass should be evidence-first:
 
 Direct U8-to-LiMa work is tracked separately in
 `docs/superpowers/plans/2026-05-24-lima-direct-device-gateway.md`.
+Xiaozhi server runtime retirement is tracked in
+`docs/superpowers/plans/2026-05-24-xiaozhi-server-deprecation-removal.md`.
 
 ## Likely Focus Areas
 
