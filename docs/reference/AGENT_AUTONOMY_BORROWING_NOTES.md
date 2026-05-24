@@ -43,6 +43,13 @@
 - Nunchi agent-cli-style deterministic orchestration with explicit risk states,
   reconciliation, scheduled reflection, MCP tool surfaces, and HTTP/SSE
   observability, with trading behavior excluded.
+- Google Cloud generative-ai sample structure for Gemini/Agent Platform,
+  Agent Search, RAG/grounding, function/tool calling, vision, and audio demos.
+- Agent-Reach-style channel scaffolding and doctor checks for practical
+  internet reach, with each upstream tool kept replaceable and gated.
+- cc-connect-style messaging bridge, web admin, lifecycle hooks, skill page,
+  provider management, mobile chat surfaces, and cron UX as distribution
+  references.
 - last30days-style time-bounded research skills that rank sources by observed
   engagement and synthesize grounded briefs.
 - oh-my-pi-style local IDE/tool harness ergonomics for LiMa Code.
@@ -61,6 +68,10 @@
   only when the workflow is visible and auditable.
 - Memory MCP-style knowledge graph memory as a reference shape; LiMa's active
   memory remains typed, evidence-gated, and secret-redacted.
+- Google MCP-style cataloging of managed remote MCP servers and open-source MCP
+  servers, with Cloud Run hosting as a deployment reference.
+- RuVector-style adaptive vector/graph memory and audit/branching vocabulary,
+  but only after benchmarked retrieval quality and drift behavior.
 
 ## Coordination Rule
 
@@ -106,6 +117,18 @@
 - Letting browser automation examples become default scraping/extraction tools
   without target-site terms, rate-limit, privacy, credential, and anti-abuse
   review.
+- Enabling Google Cloud, Workspace, database, Maps, DevTools, or security MCP
+  connectors without least-privilege IAM, billing/cost caps, data-residency
+  review, audit, and rollback owner.
+- Installing Agent-Reach-style social/cookie/proxy tools without explicit user
+  consent, account isolation, platform-term review, and redacted credential
+  storage.
+- Allowing cc-connect-style messaging bridges to send outbound messages,
+  execute shell/admin commands, or run cron jobs without approval and audit.
+- Using bluebox-style closed-API or website reverse-engineering on targets
+  without a documented target policy and anti-abuse review.
+- Treating RuVector-style self-learning memory as authoritative before
+  benchmarks, regression tests, and drift monitors prove it improves LiMa.
 - Copying Feishu-hosted methodology text or structure without reuse rights.
 - Copying AGPL swarm/simulation systems or allowing prediction reports to
   trigger real production, finance, messaging, or hardware actions.

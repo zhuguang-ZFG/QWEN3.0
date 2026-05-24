@@ -41,6 +41,15 @@ feedback/eval loops, skill-stack workflow design, and long-running agent
 benchmarking. Financial/trading automation, AGPL simulation code, browser
 scraping, and live self-training remain off by default.
 
+The next 2026-05-24 batch adds OpenRAG, Google Cloud generative-ai samples,
+RuVector, Agent-Reach, Qwen3-TTS, VidBee, cc-connect, bluebox, and Google MCP.
+This batch strengthens RAG ingestion/observability, Google managed-agent/MCP
+catalog awareness, adaptive vector-memory research, internet-reach scaffolds,
+multilingual streaming TTS, media-ingestion UX, messaging bridges, and
+web-routine discovery. Cookie/social access, cloud-control MCP, closed-API
+extraction, video downloading, messaging bots, and voice cloning remain
+default-off behind explicit gates.
+
 Primary source inventory:
 
 - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`
@@ -98,8 +107,11 @@ Exit criteria:
 References:
 
 - Pyrefly
+- OpenRAG
 - LightRAG
 - Sirchmunk
+- RuVector
+- Google Cloud generative-ai samples
 - code-review-graph
 - graphify
 - GitNexus
@@ -117,11 +129,19 @@ Main repo plan:
 - Borrow LightRAG concepts for graph/vector retrieval, multimodal parsing,
   chunking strategy selection, role-specific model separation, and retrieval
   trace evidence without making LightRAG a required runtime dependency.
+- Borrow OpenRAG concepts for document ingestion, Docling-style parsing,
+  retrieval traces, reranking, Langflow workflow-builder ergonomics, and
+  OpenSearch-scale patterns. Do not require the full platform to run LiMa.
 - Borrow Sirchmunk concepts for raw-file/indexless search, Monte Carlo
   evidence sampling, streaming search logs, self-evolving knowledge clusters,
   local DuckDB-style persistence, and local/remote allowed-path boundaries.
   Do not let it replace LiMa's memory or graph APIs until privacy, path
   allowlist, cache-retention, and rebuild policies are implemented.
+- Borrow RuVector concepts for adaptive vector/graph memory, hybrid search,
+  audit chains, branchable data, PostgreSQL integration, and WASM/local
+  retrieval only after LiMa-owned benchmarks validate quality and latency.
+- Borrow Google Cloud generative-ai samples for RAG/grounding notebooks and
+  managed-search examples, not as a mandatory Google Cloud runtime.
 - Add repo-to-spec extraction as a read-only tool for onboarding external repos
   and product submodules.
 - Evaluate semantic/MCP code-search packaging from claude-context and
@@ -148,6 +168,7 @@ References:
 - hindsight
 - gbrain
 - rowboat
+- RuVector
 
 Main repo plan:
 
@@ -157,6 +178,8 @@ Main repo plan:
   operational knowledge.
 - Expose a small internal memory query API for routing, worker preflight, and
   research tasks.
+- Keep self-learning vector memory experiments behind promotion evidence and
+  regression tests so retrieval quality can improve without silent drift.
 
 LiMa Code plan:
 
@@ -198,6 +221,7 @@ References:
 - claude-code-prompts
 - gstack
 - Nunchi agent-cli
+- Google Cloud generative-ai samples
 - deepclaude
 
 Main repo plan:
@@ -247,6 +271,9 @@ Main repo plan:
   states, reconciliation, MCP tool surfaces, HTTP/SSE observability, and
   scheduled reflection loops. Its trading/finance behavior is out of scope and
   remains blocked from LiMa runtime behavior.
+- Borrow Google Cloud generative-ai sample organization for agent demos,
+  grounding, function/tool calling, and managed-agent examples while keeping
+  LiMa's provider registry and key custody authoritative.
 - Treat goclaw as concept-only until license review; borrow only its
   multi-tenant isolation, layered security, and native concurrency posture.
 - Borrow awesome-codex-subagents for Codex-native metadata/category structure,
@@ -281,9 +308,14 @@ References:
 
 - Official MCP Registry
 - `modelcontextprotocol/servers`
+- `google/mcp`
 - `wong2/awesome-mcp-servers`
 - TurboMCP
 - The user-provided MCP guide and its service taxonomy
+- Agent-Reach
+- cc-connect
+- RuVector MCP
+- bluebox
 
 Main repo plan:
 
@@ -307,6 +339,19 @@ Main repo plan:
 - Keep web scraping/data extraction connectors off by default: Firecrawl,
   Browserbase, Bright Data, and Apify require target-site policy, rate-limit,
   privacy, and anti-abuse review.
+- Treat Google MCP as a catalog and deployment reference for managed remote
+  Google connectors and open-source Google MCP servers. Cloud, Workspace,
+  database, Maps, DevTools, security, and storage access require IAM scope,
+  cost controls, audit, data-residency review, and rollback owner.
+- Treat Agent-Reach as an opt-in internet-reach scaffold. Cookie-backed social
+  connectors, proxy setup, shell-installed upstream tools, and posting actions
+  require explicit consent, account isolation, platform-term review, and
+  credential redaction.
+- Treat cc-connect as a messaging bridge reference. Personal messaging,
+  group-chat, cron, voice/image, and outbound-message flows require admin
+  allowlists, credential custody, approval gates, and audit logs.
+- Treat bluebox as a closed-API/routine-discovery reference only. It must not
+  reverse engineer or scrape targets without a documented target policy.
 
 LiMa Code plan:
 
@@ -336,6 +381,7 @@ References:
 - OpenCode
 - open-lovable
 - gstack
+- cc-connect
 - vibe-coding-cn
 
 Main repo plan:
@@ -363,6 +409,9 @@ LiMa Code plan:
 - Borrow gstack's slash-command ergonomics, stage handoffs, QA/browser
   verification, release checklist, and careful/freeze/guard safety vocabulary
   as opt-in LiMa Code workflow patterns.
+- Borrow cc-connect's web admin UI, provider/project management, lifecycle
+  hooks, skills page, and mobile messaging UX as references for LiMa's online
+  distributions; keep messaging actions approval-gated.
 - Borrow vibe-coding-cn's Chinese planning-first onboarding, prompt/skill
   catalog organization, and AI-pair-programming education material shape.
 
@@ -379,6 +428,8 @@ References:
 - CubeSandbox
 - browser-harness
 - Hyperbrowser examples
+- bluebox
+- Agent-Reach
 - Microsoft Agent Governance Toolkit
 - CloakBrowser
 - gstack browser/QA patterns
@@ -393,6 +444,12 @@ Main repo plan:
   extraction flows, and production-style browser task artifacts. Hyperbrowser
   API keys, scraping targets, target-site terms, privacy, and anti-abuse
   posture must be reviewed before any adapter is enabled.
+- Use bluebox as a reference for routine discovery, parallel endpoint
+  execution, browser fallback, and session context replay only after target
+  policy and anti-abuse checks are documented.
+- Use Agent-Reach as a catalog of practical web/social/video/RSS access
+  patterns, but keep login-cookie and posting-capable channels disabled unless
+  the user explicitly configures a bounded account.
 - Use gstack browser/QA patterns as an auditability reference: screenshots,
   headed handoff, tab isolation, scoped tokens, and prompt-injection defenses
   are design inputs, not default dependencies.
@@ -425,13 +482,18 @@ References:
 - last30days skill
 - Claude use cases
 - AutoResearchClaw
+- OpenRAG
 - Sirchmunk
+- Google Cloud generative-ai samples
+- Agent-Reach
 - TrendRadar
 - Feishu enterprise AI programming handbook
 - Youdao Baoku
 - Flipbook
 - OpenMontage
 - open-lovable
+- VidBee
+- bluebox
 - Algebrica
 - GLM-OCR
 
@@ -444,6 +506,8 @@ Main repo plan:
   ingestion boundaries are reviewed.
 - Use AnySearch as a search-skill boundary reference for opt-in web search,
   batch search, vertical search, and full-page extraction with redaction.
+- Use OpenRAG as a reference for knowledge upload, parsing, retrieval
+  observability, reranking, chat UI, and workflow construction.
 - Use last30days as a reference for time-bounded, engagement-scored research
   across social/community/market sources. It requires BYO-key consent, source
   session privacy, platform-term review, attribution, and rate limits.
@@ -454,6 +518,15 @@ Main repo plan:
 - Use Sirchmunk as a reference for local raw-data research and evidence
   sampling, especially where vector indexing is too costly or stale. Searches
   over private paths must be allowlisted, logged, and redacted.
+- Use Google Cloud generative-ai samples as cloud-agent/RAG/grounding examples
+  only; production use must still pass provider, key, cost, and data-flow
+  review.
+- Use Agent-Reach for practical internet-reach patterns, but social search,
+  cookies, proxy, and write/post actions require separate gates.
+- Use VidBee as a media-ingestion and API/SSE progress reference after
+  copyright, target-site terms, storage, and user-consent review.
+- Use bluebox as a routine-discovery and web-data-extraction reference behind
+  target policy and anti-abuse gates.
 - Use the Feishu enterprise AI programming handbook as background methodology
   for context engineering, specs, rules, skills, MCP, and enterprise AI coding
   process. No text or structure should be copied without a license/permission
@@ -490,6 +563,7 @@ References:
 - PersonaPlex
 - pocket-tts
 - VoxCPM
+- Qwen3-TTS
 - Feynman
 - Flipbook
 - Youdao Baoku
@@ -511,6 +585,10 @@ Main repo plan:
 - Evaluate VoxCPM as a multilingual TTS, voice design, and controllable voice
   cloning candidate only after model/weight review, GPU or serving budget,
   latency tests, explicit consent, and audio retention policy.
+- Evaluate Qwen3-TTS as a multilingual streaming TTS, custom voice, voice
+  design, voice clone, DashScope API, vLLM-Omni, fine-tuning, and evaluation
+  reference only after model/API terms, explicit consent, latency/GPU, audio
+  retention, and voice-cloning safety gates are documented.
 - Keep GR00T-WholeBodyControl and nano-world-model in the research/simulation
   lane. They may inspire robotics safety layering, simulation, and planning
   gates, but they must not bypass the writing-machine `run_path` allowlist or
@@ -567,9 +645,13 @@ Recommended first slice after this plan is accepted:
 10. Add raw-file/indexless search and browser-automation references as
    adapter-planned items only after path allowlists, privacy logs, and
    source/target policy gates exist.
-11. Defer voice cloning, site reconstruction, agent-runtime, autonomous paper
-   generation, social-source search, trading automation, live self-training,
-   and hardware-companion implementation until these foundations are stable.
+11. Add connector-catalog entries for Google MCP, Agent-Reach, cc-connect,
+   bluebox, RuVector MCP, and media-ingestion references before any runtime
+   connector work.
+12. Defer voice cloning, site reconstruction, agent-runtime, autonomous paper
+   generation, social-source search, trading automation, closed-API
+   extraction, video downloading, messaging bots, live self-training, and
+   hardware-companion implementation until these foundations are stable.
 
 ## Verification
 
@@ -578,7 +660,7 @@ Documentation-only changes:
 ```powershell
 cd D:\GIT
 git diff --check -- docs\reference\EXTERNAL_CAPABILITY_RADAR_2026-05-24.md docs\superpowers\plans\2026-05-24-external-capability-adoption-roadmap.md
-rg -n "External Capability|MCP|TUNA|OpenMontage|open-lovable|VoxCPM|Hermes|gstack|agent-cli|Sirchmunk|Hyperbrowser|MiroFish|OpenClaw-RL|Feishu|claude-code-prompts|last30days|LightRAG|AutoResearchClaw|OpenCode|vibe-coding-cn|TrendRadar|Pyrefly|CubeSandbox|ElatoAI|WeClone|Graph" docs
+rg -n "External Capability|MCP|TUNA|OpenRAG|RuVector|Agent-Reach|Qwen3-TTS|VidBee|cc-connect|bluebox|Google MCP|generative-ai|OpenMontage|open-lovable|VoxCPM|Hermes|gstack|agent-cli|Sirchmunk|Hyperbrowser|MiroFish|OpenClaw-RL|Feishu|claude-code-prompts|last30days|LightRAG|AutoResearchClaw|OpenCode|vibe-coding-cn|TrendRadar|Pyrefly|CubeSandbox|ElatoAI|WeClone|Graph" docs
 ```
 
 Implementation phases must add focused tests for the touched module and avoid

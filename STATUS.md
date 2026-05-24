@@ -610,3 +610,24 @@ Latest external capability radar browser/search/RL batch:
   scraping/API-key work is gated, Feishu has no observed reuse license,
   Hermes site license claims need source verification, MiroFish is AGPL
   concept-only, and trading/finance automation is blocked.
+
+Latest external capability radar RAG/MCP/media batch:
+
+- Added OpenRAG, Google Cloud generative-ai samples, RuVector, Agent-Reach,
+  Qwen3-TTS, VidBee, cc-connect, bluebox, and Google MCP to the external
+  capability radar, roadmap, MCP catalog, LiMa Code management notes, hardware
+  companion references, and memory/progress logs.
+- OpenRAG and Google Cloud generative-ai strengthen RAG ingestion,
+  retrieval observability, grounding, managed-search, and sample/eval
+  organization without making Langflow/OpenSearch or Google Cloud mandatory.
+- RuVector is MIT and remains a benchmark-gated adaptive vector/graph memory
+  reference; it cannot replace LiMa retrieval or storage without quality,
+  latency, retention, and drift evidence.
+- Agent-Reach, cc-connect, bluebox, Google MCP, and VidBee are admitted as
+  default-off connector/media references. Cookie/social/proxy, messaging,
+  closed-API extraction, cloud-resource MCP, and video downloading all require
+  explicit account, credential, platform-term, cost, anti-abuse, and audit
+  gates.
+- Qwen3-TTS is Apache-2.0 source and strengthens the later voice/TTS roadmap;
+  voice clone and custom voice remain behind model/API terms, explicit consent,
+  latency/GPU, audio-retention, and safety gates.

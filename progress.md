@@ -1485,3 +1485,67 @@ Verification note:
   - trading/finance automation is blocked;
   - live self-training from private sessions is blocked until consent, privacy,
     eval, rollback, model-storage, compute, and cost gates exist.
+
+## 2026-05-24 External Capability Radar RAG MCP Media Batch
+
+- User provided:
+  - `langflow-ai/openrag`;
+  - `GoogleCloudPlatform/generative-ai`;
+  - `ruvnet/RuVector`;
+  - `Panniantong/Agent-Reach`;
+  - `QwenLM/Qwen3-TTS`;
+  - `nexmoe/VidBee`;
+  - `chenhg5/cc-connect`;
+  - `VectorlyApp/bluebox`;
+  - `google/mcp`.
+- Current-source checks:
+  - `langflow-ai/openrag`: Apache-2.0; README describes intelligent
+    agent-powered document search, Langflow ingestion/retrieval workflows,
+    OpenSearch, Docling, reranking, multi-agent coordination, and chat UI.
+  - `GoogleCloudPlatform/generative-ai`: Apache-2.0; README describes Gemini,
+    Agent Platform, Agent Search, RAG/grounding, vision, audio, setup, and
+    sample applications/notebooks.
+  - `ruvnet/RuVector`: MIT; README describes self-learning vector memory,
+    hybrid sparse/dense retrieval, Graph RAG, PostgreSQL/pgvector posture,
+    local/WASM runtime, MCP server, audit chains, and branchable data.
+  - `Panniantong/Agent-Reach`: MIT; README describes internet-reach
+    scaffolding for web, YouTube, RSS, GitHub, semantic web search via MCP,
+    social/video/community channels, local cookie storage, `doctor`, safe
+    mode, and replaceable upstream tools.
+  - `QwenLM/Qwen3-TTS`: Apache-2.0 source; README describes multilingual TTS,
+    custom voice, voice design, 3-second voice clone, natural-language voice
+    control, streaming/non-streaming generation, DashScope API, vLLM-Omni,
+    fine-tuning, and evaluation.
+  - `nexmoe/VidBee`: MIT; README describes Electron/yt-dlp video/audio
+    downloader UX, RSS auto-download, queue/progress management, Fastify API,
+    oRPC, SSE events, web client, and Docker deployment.
+  - `chenhg5/cc-connect`: README badge says MIT, but raw license fetch failed;
+    README describes local-agent messaging bridges, web admin UI, hooks,
+    skills, provider management, WeChat, Weibo, Feishu/Lark, Telegram, Slack,
+    Discord, voice/images, cron jobs, and 10+ AI agent integrations.
+  - `VectorlyApp/bluebox`: Apache-2.0; README describes indexing undocumented
+    APIs, web-data extraction behind UI interactions, natural-language routine
+    selection, parallel routine execution, live AI-browser fallback, and
+    session context replay.
+  - `google/mcp`: Apache-2.0; README lists Google managed remote MCP servers,
+    open-source MCP servers, Cloud Run hosting guidance, and ADK examples; it
+    also states the repo is not an officially supported Google product.
+- Updated:
+  - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
+  - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
+  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
+  - `docs/reference/MCP_CONNECTOR_CATALOG.md`;
+  - `docs/reference/HARDWARE_COMPANION_REFERENCES.md`;
+  - `STATUS.md`;
+  - `docs/LIMA_MEMORY.md`;
+  - `progress.md`.
+- Boundary retained:
+  - no runtime dependency added;
+  - no external code or prompt text copied;
+  - OpenRAG/Google/RuVector remain references until LiMa-owned interfaces and
+    benchmarks exist;
+  - social/cookie/proxy tools, messaging bridges, closed-API extraction,
+    cloud-control MCP, and video downloading remain default-off;
+  - Qwen3-TTS voice clone/custom voice stays behind model/API terms, consent,
+    voice safety, latency/GPU budget, and audio-retention gates.

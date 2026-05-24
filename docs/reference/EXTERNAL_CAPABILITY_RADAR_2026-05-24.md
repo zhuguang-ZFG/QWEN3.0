@@ -17,15 +17,15 @@
 
 | Group | References | LiMa target |
 |---|---|---|
-| Static analysis, RAG, and code intelligence | Pyrefly, LightRAG, Sirchmunk, GitNexus, code-review-graph, graphify, gitreverse, Understand-Anything, claude-context | Main repo quality gates, LiMa Code context, graph/vector/indexless retrieval, review and repository understanding |
-| Memory and agent knowledge | stash, hindsight, gbrain, rowboat | Durable memory, episode/fact separation, learning loops, agent state |
-| Agent orchestration, skills, and workflow | OpenAI Agents SDK, Google ADK, GenericAgent, Evolver, Hermes Agent, Hermes Agent Orange Book, AutoResearchClaw, OpenClaw-RL, gstack, agent-cli, awesome-codex-subagents, open-agents, Symphony, PraisonAI, agency-agents, goclaw, oh-my-codex, oh-my-pi, clawsweeper, agent-skills, last30days skill, mattpocock skills, HeavySkill, learn-harness-engineering, claude-code-prompts, vibe-vibe, vibe-coding-cn | Controlled multi-agent work, hooks, review queues, issue/PR triage, skill packaging, harness engineering, work-run isolation, feedback/eval loops |
-| MCP access plane and tool connectors | Official MCP Registry, modelcontextprotocol reference servers, awesome-mcp-servers, TurboMCP, GitHub/Playwright/Sentry/Semgrep/CircleCI/Postgres/Supabase/Neo4j/Qdrant/Tinybird/AWS/Cloudflare/Grafana/Railway/Render/Notion/Slack/Gmail/Jira/Asana/Stripe/HubSpot/Firecrawl/Browserbase/Bright Data/Apify/Memory/Sequential Thinking/Context7/Figma/ElevenLabs MCP references | Permissioned tool access, connector catalog, deployment gates, audit, and least-privilege MCP enablement |
-| Governance, secure execution, and browser work | Microsoft Agent Governance Toolkit, CubeSandbox, browser-harness, CloakBrowser, Hyperbrowser examples, gstack browser/QA patterns | Safer worker execution, browser task verification, VPS/local isolation, governance policy, browser task artifacts |
-| IDE, terminal, design, and workspace UX | Warp, Pascal Editor, ClaudePrism, Open Design, OpenCode, open-lovable, vibe-coding-cn | LiMa Code terminal UX, local design workspace, website-to-app workflows, scientific writing workspace, 3D/design editor patterns |
-| Search, research, trends, and knowledge products | AnySearch Skill, last30days skill, Claude use cases, ml-intern, AutoResearchClaw, Sirchmunk, OmniScientist, Feynman, TrendRadar, HF Viewer, Youdao Baoku, Feishu 2026 enterprise AI programming handbook, Flipbook, OpenMontage, Algebrica, GLM-OCR | Research agents, trend monitors, product use-case taxonomy, model inspection, search extraction, document-to-brief/PPT/mind-map/video, OCR, visual browsing, enterprise AI coding methodology |
+| Static analysis, RAG, and code intelligence | Pyrefly, OpenRAG, LightRAG, Sirchmunk, RuVector, Google Cloud generative-ai samples, GitNexus, code-review-graph, graphify, gitreverse, Understand-Anything, claude-context | Main repo quality gates, LiMa Code context, graph/vector/indexless retrieval, review and repository understanding |
+| Memory and agent knowledge | stash, hindsight, gbrain, rowboat, RuVector | Durable memory, episode/fact separation, learning loops, agent state, adaptive retrieval memory |
+| Agent orchestration, skills, and workflow | OpenAI Agents SDK, Google ADK, Google Cloud generative-ai samples, GenericAgent, Evolver, Hermes Agent, Hermes Agent Orange Book, AutoResearchClaw, OpenClaw-RL, gstack, agent-cli, cc-connect, Agent-Reach, awesome-codex-subagents, open-agents, Symphony, PraisonAI, agency-agents, goclaw, oh-my-codex, oh-my-pi, clawsweeper, agent-skills, last30days skill, mattpocock skills, HeavySkill, learn-harness-engineering, claude-code-prompts, vibe-vibe, vibe-coding-cn | Controlled multi-agent work, hooks, review queues, issue/PR triage, skill packaging, harness engineering, work-run isolation, feedback/eval loops, messaging bridges |
+| MCP access plane and tool connectors | Google MCP, Official MCP Registry, modelcontextprotocol reference servers, awesome-mcp-servers, TurboMCP, Agent-Reach, cc-connect, RuVector MCP, bluebox, GitHub/Playwright/Sentry/Semgrep/CircleCI/Postgres/Supabase/Neo4j/Qdrant/Tinybird/AWS/Cloudflare/Grafana/Railway/Render/Notion/Slack/Gmail/Jira/Asana/Stripe/HubSpot/Firecrawl/Browserbase/Bright Data/Apify/Memory/Sequential Thinking/Context7/Figma/ElevenLabs MCP references | Permissioned tool access, connector catalog, deployment gates, audit, and least-privilege MCP enablement |
+| Governance, secure execution, and browser work | Microsoft Agent Governance Toolkit, CubeSandbox, browser-harness, CloakBrowser, Hyperbrowser examples, bluebox, Agent-Reach, gstack browser/QA patterns | Safer worker execution, browser task verification, VPS/local isolation, governance policy, browser task artifacts |
+| IDE, terminal, design, and workspace UX | Warp, Pascal Editor, ClaudePrism, Open Design, OpenCode, open-lovable, cc-connect, vibe-coding-cn | LiMa Code terminal UX, local design workspace, website-to-app workflows, scientific writing workspace, messaging/admin bridge UX, 3D/design editor patterns |
+| Search, research, trends, and knowledge products | AnySearch Skill, last30days skill, Agent-Reach, Claude use cases, ml-intern, AutoResearchClaw, OpenRAG, Sirchmunk, Google Cloud generative-ai samples, OmniScientist, Feynman, TrendRadar, HF Viewer, Youdao Baoku, Feishu enterprise AI programming handbook, VidBee, bluebox, Flipbook, OpenMontage, Algebrica, GLM-OCR | Research agents, trend monitors, product use-case taxonomy, model inspection, search extraction, document-to-brief/PPT/mind-map/video, OCR, visual browsing, enterprise AI coding methodology, media ingestion |
 | Infrastructure mirrors and dependency resilience | Tsinghua Open Source Mirror (TUNA) | VPS and China-network dependency install acceleration, fallback mirrors, reproducible bootstrap documentation |
-| Persona, style, and companion behavior | awesome-persona-distill-skills, WeClone, Feynman, ElatoAI, PersonaPlex, pocket-tts, VoxCPM | User style modeling, companion UX, voice/display persona boundaries |
+| Persona, style, and companion behavior | awesome-persona-distill-skills, WeClone, Feynman, ElatoAI, PersonaPlex, pocket-tts, VoxCPM, Qwen3-TTS | User style modeling, companion UX, voice/display persona boundaries |
 | Hardware, robotics, and world models | ElatoAI, PersonaPlex, oh-my-pi, GR00T-WholeBodyControl, OpenClaw-RL, MiroFish, pocket-tts, VoxCPM, nano-world-model, ESP32 display references already tracked separately | Device Gateway voice/display/companion expansion after writing-machine gates, simulation/evaluation before real hardware |
 
 ## Source Evaluation
@@ -33,8 +33,11 @@
 | Source | Observed capability | License signal | Borrow for LiMa | Target repo |
 |---|---|---|---|---|
 | `facebook/pyrefly` | Fast Python type checker and language server with gradual adoption tools. | MIT | Add optional focused type-check lane for stable Python modules before expanding to the whole repo. | Main, LiMa Code |
+| `langflow-ai/openrag` | Comprehensive RAG platform for document upload, parsing, retrieval workflows, reranking, multi-agent coordination, chat UI, Langflow workflow builder, OpenSearch, and Docling ingestion. | Apache-2.0 | Existing reference strengthened: borrow ingestion, retrieval observability, workflow-builder, reranking, and MCP/knowledge-tool ideas; do not replace LiMa router or require the full OpenSearch/Langflow stack. | Main, LiMa Code |
 | `HKUDS/LightRAG` | Simple and fast retrieval-augmented generation with graph/RAG storage, multimodal parsing, chunking strategies, and role-specific LLM configuration. | MIT | Strengthen LiMa's graph/vector retrieval roadmap, retrieval trace discipline, multimodal ingestion boundary, and role-specific extraction/query/VLM separation. | Main, LiMa Code |
 | `modelscope/sirchmunk` | Agentic search over raw data with indexless retrieval, knowledge clustering, Monte Carlo evidence sampling, self-evolving knowledge clusters, real-time chat, API/SSE, DuckDB persistence, and MCP support. | Apache-2.0 | Reference for raw-file search, evidence sampling, live knowledge evolution, local/remote path allowlists, streaming search logs, and low-infrastructure retrieval. Do not replace LiMa memory/RAG until interfaces and privacy gates exist. | Main, LiMa Code |
+| `GoogleCloudPlatform/generative-ai` | Google Cloud generative AI notebooks, samples, and apps for Gemini, Agent Platform, Agent Search, RAG/grounding, vision, audio, and setup workflows. | Apache-2.0 | Reference for cloud agent/RAG/grounding sample structure, eval notebooks, and managed-search patterns. Do not make GCP a default dependency or bypass LiMa provider/key custody. | Main, LiMa Code |
+| `ruvnet/RuVector` | Self-learning vector memory and agentic operating system claiming hybrid sparse/dense search, Graph RAG, PostgreSQL/pgvector replacement path, WASM/browser runtime, MCP server, audit chains, and adaptive learning. | MIT | Concept/reference for adaptive vector memory, graph retrieval, local/WASM deployment, audit, and branchable data. Treat ambitious performance/learning claims as unverified until benchmarked against LiMa data. | Main, LiMa Code |
 | `huggingface/ml-intern` | ML engineering agent that researches papers/docs/datasets and ships ML code. | Apache-2.0 | Borrow research-to-implementation loop for model evaluation, benchmark, and ML adapter tasks. | Main |
 | `abhigyanpatwari/GitNexus` | Browser-side code knowledge graph and Graph RAG exploration. | No standard license in API metadata | Concept-only reference for local repository graph browsing and zero-server code exploration. | Main, LiMa Code |
 | `alash3al/stash` | Persistent agent memory with episodes, facts, working context, Postgres, and MCP. | Apache-2.0 | Borrow memory taxonomy and MCP memory interface ideas for LiMa memory storage. | Main, LiMa Code |
@@ -52,25 +55,30 @@
 | `sansan0/TrendRadar` | AI-driven trend/public-opinion monitor with RSS, multi-platform aggregation, AI briefs, MCP server, and WeChat/Feishu/DingTalk/Telegram/email/ntfy/Bark/Slack/Webhook-style alerts. | GPL-3.0 | Concept-only unless isolated; borrow trend monitor shape, source taxonomy, alert routing, and AI brief workflow. | Main |
 | `calesthio/OpenMontage` | Agentic video production system with pipelines, tools, provider docs, and agent guide. | AGPL-3.0 | Concept-only for media-generation workflow shape, artifact pipeline staging, and skill/tool catalog design; no code copy. | Main, LiMa Code |
 | `OpenBMB/VoxCPM` | Tokenizer-free multilingual TTS with voice design, controllable voice cloning, streaming, and 48kHz output. | Apache-2.0 | Candidate reference for later LiMa voice confirmation/companion speech, but voice cloning requires consent, model/weight review, GPU/latency budget, and audio retention policy. | Main, esp32S_XYZ |
+| `QwenLM/Qwen3-TTS` | Qwen TTS family with multilingual speech generation, custom voice, voice design, 3-second voice clone, natural-language voice control, streaming/non-streaming generation, DashScope API, vLLM-Omni examples, fine-tuning, and evaluation notes. | Apache-2.0 source; model/API terms require separate review | Strong later TTS/voice-design candidate behind consent, model/weight/API terms, GPU/latency, audio retention, and voice-cloning safety gates. | Main, esp32S_XYZ |
 | `firecrawl/open-lovable` | Chat-to-React app builder that clones/recreates websites using Firecrawl and sandbox providers. | MIT | Reference for LiMa Code website-to-app/design reconstruction workflow; keep scraping, API keys, sandbox execution, and generated code behind opt-in review/tests. | LiMa Code, Main |
 | `alchaincyf/hermes-agent-orange-book` | Practical guide to Hermes Agent, covering learning loop, three-layer memory, Skills, tools, and multi-agent scenarios. | CC BY-NC-SA 4.0 content | Concept-only/non-commercial guide reference for self-improving agent boundaries, memory layering, and skill evolution vocabulary. | Main, LiMa Code |
 | `repowise-dev/claude-code-prompts` | Independently authored prompt templates for coding agents: system, tool, agent, memory, and coordinator prompts. | MIT | Reference for LiMa Code prompt-contract shape, tool-specific instructions, verification prompts, memory prompts, and delegation boundaries. | LiMa Code, Main |
 | `claude.com/resources/use-cases` | Official Claude use-case library organized around practical personal, professional, and cowork workflows. | Website/service | Product taxonomy reference for LiMa examples, onboarding, workflow templates, and user-facing scenario grouping; no scraping or copy without review. | Main, LiMa Code |
 | `https://mirrors.tuna.tsinghua.edu.cn/` | Tsinghua Open Source Mirror for common package ecosystems and release artifacts. | Website/service | Operational reference for China/VPS bootstrap reliability and documented mirror fallbacks; not a code dependency. | Main, LiMa Code, esp32S_XYZ |
 | `modelcontextprotocol/servers` | Official MCP reference implementations for Filesystem, Git, Memory, Sequential Thinking, Fetch, Time, and SDK examples. | Repository metadata has no single SPDX assertion; individual packages require review | Use as protocol/API reference only. The README states these are educational reference implementations, not production-ready services. | Main, LiMa Code |
+| `google/mcp` | Google's MCP repository listing managed remote Google MCP servers, open-source Google MCP servers, Cloud Run hosting guidance, and ADK examples. | Apache-2.0; README says not an officially supported Google product | Use as Google MCP catalog/deployment reference only. Google Cloud, Workspace, database, Maps, DevTools, and cloud-resource connectors remain default-off behind account, IAM, cost, audit, and data-exposure gates. | Main, LiMa Code |
 | Official MCP Registry | Published MCP server registry. | Website/service | Source for candidate discovery only; every server still needs LiMa-specific permission, secret, network, and audit review. | Main, LiMa Code |
 | `wong2/awesome-mcp-servers` | Curated community list of MCP servers. | MIT | Discovery input for the candidate catalog; do not install by default. | Main, LiMa Code |
 | TurboMCP | Online MCP runtime reference. | Website/service, no license reviewed | Concept-only for hosted/online MCP experiments; no production use without account, data-flow, and security review. | Main |
 | `akdeb/ElatoAI` | ESP32 realtime voice AI with secure WebSockets for toys, companions, and devices. | No standard license in API metadata | Already admitted as voice/device-companion reference; no runtime dependency. | esp32S_XYZ, Main |
 | `NVIDIA/personaplex` | Realtime full-duplex speech-to-speech conversational model with text persona prompting and audio voice conditioning. | Code MIT; model weights require NVIDIA Open Model License review | Borrow realtime voice/persona architecture for later companion-device speech loops; do not adopt model weights without a separate license, GPU, safety, and privacy review. | Main, esp32S_XYZ |
 | `anysearch-ai/anysearch-skill` | Unified realtime search skill for AI agents: web search, vertical search, batch search, and page extraction. | No standard license in API metadata | Borrow skill boundary and search-result evidence shape for LiMa research tasks; do not install until license/security review. | Main, LiMa Code |
+| `Panniantong/Agent-Reach` | Scaffolding that gives agents web/page reading, YouTube subtitles/search, RSS, GitHub, semantic web search via MCP, Twitter/X, Reddit, Bilibili, Xiaohongshu, Douyin, LinkedIn, WeChat, Weibo, V2EX, Xueqiu, podcast transcription, doctor checks, and local cookie storage. | MIT | Reference for opt-in internet reach skill packs and connector health checks. Do not install broadly; social/cookie/proxy/shell setup requires consent, platform-term review, account isolation, secret custody, and audit. | LiMa Code, Main |
 | `TencentCloud/CubeSandbox` | Fast, concurrent, hardware-isolated sandbox service for AI agents, E2B-compatible. | No standard license in API metadata | Evaluate as external deployment component for worker isolation; do not vendor before review. | Main, LiMa Code |
 | `browser-use/browser-harness` | Self-healing browser harness for LLM tasks. | MIT | Borrow browser verification pattern for online distributions and local UI tests. | Main, LiMa Code |
 | `CloakHQ/CloakBrowser` | Browser automation/runtime package distributed through PyPI, npm, and Docker. | MIT | Evaluate as a controlled browser runtime candidate for LiMa UI/web verification, with anti-detection/ToS risks reviewed before use. | Main, LiMa Code |
 | `hyperbrowserai/hyperbrowser-app-examples` | Production-style web apps built around browser automation, scraping, data extraction, and deployment patterns. | README says MIT; GitHub API returned no SPDX assertion during review | Reference for browser task app patterns and extraction UX. Keep API keys, scraping, target-site terms, privacy, and anti-abuse controls behind review; do not install by default. | Main, LiMa Code |
+| `VectorlyApp/bluebox` | Agent for indexing undocumented APIs, extracting web data behind UI interactions, mapping natural language requests to web routines, executing routines in parallel, falling back to an AI browser, and replaying successful session context. | Apache-2.0 | Reference for routine discovery, web-extraction context replay, and parallel extraction. Closed API/reverse-engineering work is default-off behind target-site terms, privacy, and anti-abuse review. | Main, LiMa Code |
 | `baoku.youdao.com` | Upload PDF/PPT/papers, AI summaries, PPT, mind maps, podcast, infographics, document QA. | Website, no repo/license reviewed | Product reference for document-to-knowledge workflows and report generation UX. | Main |
 | `garrytan/gbrain` | Opinionated agent brain built around OpenClaw/Hermes style workflows. | MIT | Borrow agent brain packaging, role memory, and opinionated workflow ideas after review. | Main, LiMa Code |
 | `garrytan/gstack` | Opinionated AI software-factory skill stack with planning, CEO/eng/design review, QA/browser testing, security review, release/deploy, guard/freeze/careful safety commands, cross-agent browser pairing, gbrain setup, and multi-host skill install paths. | MIT | Strong LiMa Code workflow reference for stage-gated build/review/test/ship, browser QA artifacts, safety guard commands, cross-model second opinion, memory sync, and skill packaging. Do not install wholesale or enable role sprawl by default. | LiMa Code, Main |
+| `chenhg5/cc-connect` | Bridge from local AI agents to messaging platforms with web admin UI, lifecycle hooks, skill management, provider management, personal WeChat, Weibo DM, Feishu/Lark, Telegram, Slack, Discord, voice/image handling, cron jobs, and 10+ agent support. | README badge says MIT; raw license fetch failed during review | Reference for LiMa online distribution control plane, messaging bridge, lifecycle hooks, and mobile chat UX. Messaging connectors stay off by default and require admin allowlists, credential custody, user consent, outbound approval, and audit. | Main, LiMa Code |
 | `rowboatlabs/rowboat` | Open-source AI coworker with memory. | Apache-2.0 | Borrow coworker/session memory patterns and user-facing task continuity. | Main, LiMa Code |
 | `xixu-me/awesome-persona-distill-skills` | Curated agent skills for persona, relationships, scenes, and methodology. | CC0-1.0 | Borrow skill taxonomy for persona/style modules and companion UX. | Main, LiMa Code |
 | `addyosmani/agent-skills` | Production-grade engineering skills and slash-command workflows for AI coding agents. | MIT | Strong candidate for LiMa Code skill packaging, command lifecycle, and quality-gate vocabulary. | LiMa Code, Main |
@@ -107,6 +115,7 @@
 | `kyutai-labs/pocket-tts` | CPU-friendly lightweight TTS package/model for local text-to-speech. | MIT-style license text in raw scan; model card still needs review | Strong candidate for later offline/local TTS experiments behind opt-in model, latency, and resource gates. | Main, esp32S_XYZ |
 | `antoniolupetti/algebrica` | Structured mathematics knowledge base with Markdown/LaTeX/SVG and semantic JSON. | CC BY-NC 4.0 content license | Concept-only/non-commercial content reference for structured knowledge products and equation-rich document UX. | Main |
 | `zai-org/GLM-OCR` | Multimodal OCR model for complex document understanding and layout recognition. | Apache-2.0 | Evaluate as OCR/document-understanding reference after document ingestion boundaries and model/API terms are reviewed. | Main |
+| `nexmoe/VidBee` | Modern video/audio downloader with Electron UI, yt-dlp engine, 1000+ site support, RSS auto-download, configurable output containers, shared downloader core, Fastify API, oRPC, SSE events, web app, and Docker deployment. | MIT | Reference for media ingestion UX, queue/progress management, RSS-triggered media workflows, and API/SSE task events. Downloading remains gated by copyright, target-site terms, storage, and user consent. | Main, LiMa Code |
 | `simchowitzlabpublic/nano-world-model` | Minimal diffusion-forcing video world-model training/evaluation pipeline. | MIT | Research reference for future simulation/world-model experiments; not needed for current writing-machine control. | Main |
 | `666ghj/MiroFish` | Universal swarm-intelligence/prediction simulation engine with many agents, personalities, long-term memory, behavioral logic, high-fidelity parallel digital-world framing, and prediction reports. | AGPL-3.0 | Concept-only for simulation, scenario exploration, and swarm/world-model vocabulary. Predictions must never drive finance, hardware, or production actions without evidence, HITL, and safety gates. | Main |
 | `Nunchi-trade/agent-cli` | Autonomous trading CLI with agent skills, MCP server, APEX multi-slot orchestrator, Guard trailing stops, Radar/Pulse scanners, REFLECT review loop, HTTP/SSE surfaces, risk guardian, reconciliation, and testnet/mainnet split. | MIT | Borrow deterministic orchestrator, risk-state, reconciliation, reflection, MCP-surface, and scheduled review patterns only. Trading/finance execution remains blocked and must not be copied into LiMa product behavior. | Main, LiMa Code |
@@ -119,9 +128,13 @@
 - Pyrefly optional type checks for selected Python runtime modules.
 - LightRAG-style graph/vector retrieval, multimodal parsing boundary, and
   role-specific extraction/query/VLM separation.
+- OpenRAG ingestion/retrieval-observability and Google Cloud RAG/grounding
+  samples as reference patterns, without adopting their full platform stacks.
 - Sirchmunk-style raw-file/indexless search, evidence sampling, streaming logs,
   and self-evolving knowledge clusters behind LiMa-owned privacy and path
   allowlists.
+- RuVector-style adaptive vector/graph memory only after benchmark and
+  correctness checks against LiMa data.
 - Code-review graph / graphify / GitNexus / Understand-Anything /
   claude-context-style code context graph, starting with existing
   `code_context` and `lima_mcp` boundaries.
@@ -148,6 +161,9 @@
 - TUNA mirror documentation for deterministic installs on China/VPS networks.
 - MCP access catalog design: foundation connectors first, stack connectors
   second, business/data/media connectors only when a task requires them.
+- Google MCP, Agent-Reach, cc-connect, and bluebox as connector-catalog inputs,
+  all default-off with account, credential, cost, platform-term, and audit
+  gates.
 
 ### P1 - Useful After P0 Interfaces Exist
 
@@ -169,6 +185,8 @@
 - OpenMontage as AGPL concept-only media workflow reference.
 - Official MCP Registry and community MCP lists as discovery inputs for a
   reviewed, least-privilege connector catalog.
+- Google MCP as a managed/open-source Google connector catalog and Cloud Run
+  hosting reference, not a default cloud-control plane.
 - CloakBrowser as an isolated browser-runtime candidate only after terms,
   privacy, and anti-abuse review.
 
@@ -181,6 +199,9 @@
   CPU/latency, and retention reviews.
 - VoxCPM for multilingual TTS, voice design, and controllable cloning research
   after consent, voice-license, GPU/latency, privacy, and retention gates.
+- Qwen3-TTS for multilingual streaming TTS, custom voice, voice design, and
+  voice cloning only after model/API terms, explicit consent, latency/GPU, and
+  audio-retention gates.
 - GLM-OCR for camera/document perception after file-ingestion privacy and
   hardware evidence gates.
 - GR00T-WholeBodyControl and nano-world-model as robotics/simulation research
@@ -191,6 +212,8 @@
   self-training path.
 - Evolver as a GPL concept-only self-evolution reference.
 - Youdao Baoku for document-to-brief/PPT/mind-map product workflows.
+- VidBee for media ingestion, queue/progress UX, RSS-triggered media tasks, and
+  API/SSE task-event patterns after copyright and target-site review.
 - Flipbook for visual generated browsing.
 - vibe-vibe for LiMa Code onboarding and user education material shape.
 - Persona skill collections and WeClone-style AI twin ideas, with strict privacy

@@ -35,6 +35,7 @@ tool set needed for the current task.
 | Sequential Thinking MCP | concept | Off | Use only as an explicit, auditable hard-task workflow; never hidden default reasoning. |
 | Time MCP | candidate | Off | Low-risk utility after logging and timezone behavior are stable. |
 | Context7-style docs lookup | candidate | Off | Preferred for versioned library docs; no secrets or private source sent in queries. |
+| Google Developer Knowledge MCP | candidate | Off | Useful for Google developer docs lookup; no private code, credentials, or cloud-resource mutations in queries. |
 
 ## Coding And Stack Connectors
 
@@ -51,6 +52,9 @@ tool set needed for the current task.
 | Qdrant MCP | concept | Off | Candidate for vector memory only after retention, privacy, and rebuild policy are defined. |
 | Tinybird MCP | concept | Off | Analytics reference only; no business data connector without privacy review. |
 | AWS, Cloudflare, Grafana, Railway, Render MCP | candidate | Off | Cloud/deploy/observability tools require environment allowlist, approval, and rollback owner. |
+| Google MCP managed remote servers | candidate | Off | BigQuery, Cloud SQL, AlloyDB, Spanner, Firestore, GCE, GKE, Cloud Run, Storage, Maps, Chronicle, and related Google services require IAM scope, billing/cost caps, data-residency review, audit, timeout, and rollback owner. |
+| Google open-source MCP servers | candidate | Off | Workspace, Firebase, Cloud Run, Analytics, gcloud, GCS, GKE, Security, Chrome DevTools, and genmedia connectors require per-server license/security review and least-privilege credentials. |
+| RuVector MCP | concept | Off | Adaptive vector/graph memory reference only until LiMa benchmarks quality, latency, data migration, retention, and drift behavior. |
 
 ## Productivity, Business, Data, And Media
 
@@ -60,6 +64,10 @@ tool set needed for the current task.
 | Stripe, HubSpot MCP | blocked | Off | Payment/CRM actions are out of current private coding-assistant scope. |
 | Firecrawl MCP | candidate | Off | Useful for web extraction; license signals across Firecrawl packages must be reviewed per package before use. |
 | Hyperbrowser-style browser automation | concept | Off | Browser app/extraction reference only. Any adapter requires API-key custody, target-site terms, privacy review, rate limits, and anti-abuse policy. |
+| Agent-Reach connectors | concept | Off | Internet-reach scaffold for web, video, RSS, GitHub, and social sources. Cookie/social/proxy/shell-installed tools and posting actions require consent, account isolation, platform-term review, and redacted credential storage. |
+| cc-connect messaging bridge | concept | Off | Messaging bridge reference for Feishu/Lark, WeChat, Telegram, Slack, Discord, Weibo, voice/images, cron, hooks, and mobile chat UX. Outbound messaging and shell/admin commands require explicit approval and audit. |
+| bluebox web-routine extraction | concept | Off | Routine discovery and closed-API extraction reference; requires target-site policy, anti-abuse review, API-key custody, and evidence logs before evaluation. |
+| VidBee-style media ingestion | concept | Off | Video/audio/RSS downloader and progress-event reference only; copyright, target terms, storage, and consent gates are mandatory. |
 | Browserbase, Bright Data, Apify MCP | concept | Off | Scraping/browser-scale tools require target-site policy, rate-limit, privacy, and anti-abuse review. |
 | Figma MCP | concept | Off | Design read/import only until a UI workflow exists; no automatic code landing. |
 | ElevenLabs MCP | concept | Off | Voice generation requires consent, voice license, storage, and cost controls. |
@@ -73,6 +81,7 @@ tool set needed for the current task.
 
 - Official MCP Registry: `https://registry.modelcontextprotocol.io/`
 - Official reference servers: `https://github.com/modelcontextprotocol/servers`
+- Google MCP catalog: `https://github.com/google/mcp`
 - Community list: `https://github.com/wong2/awesome-mcp-servers`
 - Online runtime reference: `https://turbomcp.ai/`
 

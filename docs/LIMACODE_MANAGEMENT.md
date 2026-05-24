@@ -174,6 +174,32 @@ runtime dependencies:
   engineering, specs, rules, skills, MCP, and enterprise AI coding process.
   No text or document structure should be reused without license/permission
   review.
+- `langflow-ai/openrag`: Apache-2.0 reference for document ingestion,
+  Docling-style parsing, retrieval observability, reranking, chat UI, and
+  Langflow/OpenSearch workflow shape. Do not adopt the full platform as a
+  LiMa Code dependency.
+- `GoogleCloudPlatform/generative-ai`: Apache-2.0 reference for Gemini,
+  Agent Platform, Agent Search, RAG/grounding, vision, audio, and setup
+  samples. Google Cloud usage remains optional and provider-gated.
+- `ruvnet/RuVector`: MIT reference for adaptive vector/graph memory,
+  PostgreSQL integration, local/WASM retrieval, MCP, branchable data, and audit
+  chains. Claims must be benchmarked before any LiMa storage change.
+- `Panniantong/Agent-Reach`: MIT reference for internet-reach scaffolding,
+  channel health checks, and practical web/video/RSS/social/GitHub connectors.
+  Cookie/social/proxy/shell setup remains explicit opt-in.
+- `chenhg5/cc-connect`: README badge says MIT, but raw license fetch failed in
+  this review. Use as a messaging/admin bridge UX reference only; messaging
+  actions require allowlists, credential custody, approval, and audit.
+- `VectorlyApp/bluebox`: Apache-2.0 reference for web-routine discovery,
+  parallel extraction, browser fallback, and context replay. Closed-API or
+  reverse-engineering behavior is default-off behind target policy.
+- `nexmoe/VidBee`: MIT reference for media-ingestion UX, yt-dlp/ffmpeg task
+  queues, RSS auto-download, API/SSE events, and Docker/web packaging. Respect
+  copyright, target-site terms, storage, and consent gates.
+- `google/mcp`: Apache-2.0 reference for Google MCP catalog and Cloud Run
+  hosting patterns. Cloud, Workspace, database, Maps, DevTools, security, and
+  storage connectors remain default-off behind IAM, billing, data, and audit
+  gates.
 
 Any adoption must preserve LiMa Server's backend admission, provider key
 custody, repo allowlist, audit, review gates, and push/deploy approval rules.
