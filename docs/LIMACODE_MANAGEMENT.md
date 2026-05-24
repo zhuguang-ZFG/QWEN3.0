@@ -26,7 +26,7 @@ This keeps the boundary explicit:
 Current pinned revision:
 
 ```text
-03bd626 feat(lima): add local workflow stage commands
+ca51967 fix(lima): avoid duplicate local test commands
 ```
 
 ## Update Rules
@@ -64,8 +64,8 @@ target repository is allowlisted.
 
 Latest Server/Worker evidence:
 
-- LiMa Code verification for `03bd626` passed `npm.cmd run check`,
-  `npm.cmd test` (`430 passed, 6 skipped`), and `git diff --check`.
+- LiMa Code verification for `ca51967` passed `npm.cmd run check`,
+  `npm.cmd test` (`431 passed, 6 skipped`), and `git diff --check`.
 - Local workflow stage commands `/lima plan`, `/lima test [--cmd <command>]`,
   and `/lima ship` run through the guarded local task runner, write audit
   evidence, and do not submit to Server.

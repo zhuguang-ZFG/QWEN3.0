@@ -4,7 +4,7 @@
 
 ## 2026-05-25 LiMa Code Phase 7 Workflow Slice
 
-- Advanced the `deepcode-cli` submodule from `278a5f7` to `03bd626`.
+- Advanced the `deepcode-cli` submodule from `278a5f7` to `ca51967`.
 - Added local LiMa Code workflow stage commands:
   - `/lima plan` creates a local read-only planning task.
   - `/lima test [--cmd <command>]` runs a guarded local verification task and defaults to `npm test`.
@@ -12,7 +12,7 @@
 - Kept the commands local-only: they use the guarded task runner, write local audit evidence, and do not submit results to LiMa Server.
 - Verification in `D:\GIT\deepcode-cli`:
   - `npm.cmd run check` passed.
-  - `npm.cmd test` passed with `430 passed, 6 skipped`.
+  - `npm.cmd test` passed with `431 passed, 6 skipped`.
   - `git diff --check` passed.
 
 ## 2026-05-24 M0 Baseline & Review Harness

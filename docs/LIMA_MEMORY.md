@@ -15,10 +15,10 @@
 - Redis HA mode for Device Gateway is default-off. Enable with `LIMA_DEVICE_TASK_STORE=redis`, `LIMA_DEVICE_SESSION_BUS=redis`, and `LIMA_DEVICE_REDIS_URL`; this shares task queues and publishes task-available notifications so the process with the local WebSocket session can drain remote-created tasks.
 - On 2026-05-25 VPS Redis HA was enabled for Device Gateway. Redis must remain loopback-only; public `6379` is part of online distribution guard checks.
 - On 2026-05-25 LiMa Code Phase 7 first workflow slice advanced
-  `deepcode-cli` to `03bd626`, adding local `/lima plan`,
+  `deepcode-cli` to `ca51967`, adding local `/lima plan`,
   `/lima test [--cmd <command>]`, and `/lima ship` commands. These run through
   the guarded local task runner, write audit evidence, do not submit to Server,
-  and were verified with `npm.cmd run check`, `npm.cmd test` (`430 passed, 6
+  and were verified with `npm.cmd run check`, `npm.cmd test` (`431 passed, 6
   skipped`), and `git diff --check`.
 
 > Updated: 2026-05-25
