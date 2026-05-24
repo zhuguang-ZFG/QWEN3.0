@@ -1996,3 +1996,31 @@ Verification note:
 - Verification:
   - `python -m pytest tests/test_sandbox_provider.py -q --ignore=active_model`:
     23 passed after M8 review fixes.
+
+## 2026-05-24 M9 Streaming And Progress Events
+
+- Reviewed and closed M9:
+  - `streaming_events.py` defines `StreamEventType` and `StreamEvent`;
+  - factory helpers cover token, tool_start, tool_delta, tool_end, warning,
+    error, done, and audit_ref;
+  - `to_sse()` emits generic SSE frames and `to_openai_chunk()` emits
+    OpenAI-compatible token/done chunks;
+  - `format_sse_done()` provides the terminal `[DONE]` frame;
+  - `tests/test_streaming_events.py` covers event names, factory data,
+    serialization, OpenAI chunks, done frames, audit refs, defaults, and full
+    chunk sequences.
+- Review fixes applied:
+  - `StreamEvent.__post_init__()` now normalizes string event names into
+    `StreamEventType` values;
+  - non-token event data is recursively redacted before serialization, covering
+    tool inputs/outputs and warning/error text;
+  - token event text is intentionally preserved as user-visible model output;
+  - added regressions for redacted tool output/input, redacted error messages,
+    direct string event construction, and token text preservation.
+- Verification:
+  - `python -m pytest tests/test_streaming_events.py -q --ignore=active_model`:
+    24 passed after M9 review fixes.
+  - `python -m pytest tests/test_streaming_events.py test_streaming.py tests/test_observability.py -q --ignore=active_model`:
+    66 passed after adjacent streaming/observability verification.
+  - `python -m pytest -q --ignore=active_model`:
+    718 passed, 8 skipped.

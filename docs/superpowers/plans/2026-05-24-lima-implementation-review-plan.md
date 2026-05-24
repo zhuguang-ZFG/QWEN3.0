@@ -687,6 +687,20 @@ Exit criteria:
 
 - Streaming is observable, bounded, and compatible with future UI/task progress.
 
+Current M9 closure notes:
+
+- M9 completed on 2026-05-24 with no new runtime dependency.
+- Added `streaming_events.StreamEventType` and `StreamEvent` for token,
+  tool_start, tool_delta, tool_end, warning, error, done, and audit_ref events.
+- Added factory helpers plus generic SSE serialization, OpenAI-compatible
+  token/done chunks, and `[DONE]` formatting.
+- Codex review added event-name normalization for direct string construction.
+- Codex review added recursive redaction for non-token event data, including
+  tool input/output and warning/error fields. Token events intentionally
+  preserve text payloads because they are user-visible model output.
+- No route, frontend, worker, or `sse-starlette` production integration is
+  enabled in this slice.
+
 ## Milestone 10 - Data Workbench And Research Artifacts
 
 References:
