@@ -14,7 +14,7 @@ Several 2026-05-23/2026-05-24 plan files still contain unchecked implementation-
 - `docs/LIMA_MEMORY.md`
 - `progress.md`
 
-The current runtime truth is: VPS Server/Worker APIs are deployed, LiMa Code completed a public real-machine worker smoke, FRP `8088` chat is healthy again after local router startup hardening, and the latest `server.py` decomposition slices (`chat_models.py` and `chat_request_utils.py`) are deployed and smoke-verified.
+The current runtime truth is: VPS Server/Worker APIs are deployed, LiMa Code completed a public real-machine worker smoke, FRP `8088` chat is healthy again after local router startup hardening, the latest `server.py` decomposition slices (`chat_models.py` and `chat_request_utils.py`) are deployed and smoke-verified, and backend capability registry plus `key_pool.py` integration are deployed.
 
 ## Plan Status
 
@@ -45,10 +45,10 @@ The current runtime truth is: VPS Server/Worker APIs are deployed, LiMa Code com
 - Local refresh scripts under `D:\ollama_server` were redacted and syntax-checked, but refresh execution itself was intentionally deferred.
 - Direct Cloudflare account smokes require `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_TOKEN`; missing local env vars were documented rather than treated as route failure.
 - The current workspace still has unrelated untracked files; future commits should stage only curated LiMa files.
-- `server.py` decomposition remains active after extracting lifespan, chat request models, and shared request-body helpers; backend configuration consolidation and `key_pool.py` integration remain the active architecture backlog.
+- `server.py` decomposition remains active after extracting lifespan, chat request models, and shared request-body helpers; backend configuration consolidation and `key_pool.py` integration are closed by the 2026-05-24 backend registry/key-pool deploy.
 - Kimi local proxy, TheOldLLM, MiMo web, and page-only web AI candidates remain gated until refresh and model-level smoke evidence exists.
 - Always-on worker daemon mode remains deferred behind repo allowlist, runtime budget, stop marker, audit, failure quarantine, and manual production approval.
 
 ## Current Accuracy Judgment
 
-The main `task_plan.md` project phases are complete. 2026-05-22 Superpowers execution plans are checkbox-reconciled. Later plan files may still contain draft checkboxes, but current runtime status is calibrated in `STATUS.md`, `docs/EXECUTION_PLAN.md`, `docs/LIMA_MEMORY.md`, and `progress.md`; latest VPS evidence includes backup `/opt/lima-router/backups/chat-request-utils-20260524_114403`, HTTPS exact `request_utils_https_ok`, FRP exact `request_utils_frp_ok`, and worker preflight `ready=true`.
+The main `task_plan.md` project phases are complete. 2026-05-22 Superpowers execution plans are checkbox-reconciled. Later plan files may still contain draft checkboxes, but current runtime status is calibrated in `STATUS.md`, `docs/EXECUTION_PLAN.md`, `docs/LIMA_MEMORY.md`, and `progress.md`; latest VPS evidence includes backup `/opt/lima-router/backups/backend-registry-keypool-20260524-120642`, HTTPS exact `backend_registry_https_ok`, FRP exact `backend_registry_frp_ok`, and worker preflight `ready=true`.

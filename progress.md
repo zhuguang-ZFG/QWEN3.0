@@ -955,3 +955,28 @@ Verification note:
   - HTTPS chat returned exact `request_utils_https_ok`;
   - FRP chat returned exact `request_utils_frp_ok`;
   - `/agent/worker/preflight` returned `ready=true`, latest task `cfcd3f2b`.
+
+## 2026-05-24 Backend Registry And Key-Pool Deploy
+
+- Closed the backend config/key-pool architecture backlog:
+  - `backends.py` now owns shared proxy/capability sets and helper predicates.
+  - `smart_router.py` uses `backends.GFW_BACKENDS` instead of a local duplicate.
+  - `context_pipeline/reflection.py` uses the shared backend capability helpers instead of stale local sets.
+  - `http_caller.py` now selects provider keys through `key_pool.py` and reports success/failure back to the pool.
+  - `key_pool.py` can bootstrap provider pools from `LIMA_KEY_POOL_<PROVIDER>` with comma, semicolon, or newline separated keys and optional weights.
+- Verification:
+  - `python -m pytest tests/test_backend_registry.py test_http_caller.py tests/test_reflection.py tests/test_phase26_28.py -q --ignore=active_model`: `58 passed`.
+  - `python -m py_compile backends.py smart_router.py http_caller.py key_pool.py context_pipeline/reflection.py server.py`: passed.
+  - Expanded runtime regression: `110 passed`.
+  - Secret/request/vision/free-web admission suite: `10 passed`.
+- VPS deployment:
+  - runtime commit `659f484` deployed;
+  - backup `/opt/lima-router/backups/backend-registry-keypool-20260524-120642`;
+  - uploaded `backends.py`, `smart_router.py`, `http_caller.py`, `key_pool.py`, and `context_pipeline/reflection.py`;
+  - remote `py_compile` and `import server; import backends; import http_caller; import key_pool; import smart_router` passed;
+  - `systemctl restart lima-router` returned active.
+- Public smokes:
+  - `/health` returned `status=ok`;
+  - HTTPS chat returned exact `backend_registry_https_ok`;
+  - FRP chat returned exact `backend_registry_frp_ok`;
+  - `/agent/worker/preflight` returned `ready=true`, `contract_version=agent-task-v1`.

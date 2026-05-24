@@ -25,21 +25,24 @@
 ## 2026-05-24 Deployment And Closure Update
 
 - VPS main router is deployed from branch `codex/free-web-ai-probe`.
-- Latest deployed runtime commit: `4e7d4a7` (`refactor: extract chat request helpers`).
+- Latest deployed runtime commit: `659f484` (`refactor: centralize backend capabilities and key pools`).
 - VPS backups from the Server/Worker sync:
   - `/opt/lima-router/backups/agent-worker-sync-20260524_104836`
   - `/opt/lima-router/backups/runtime-deps-sync-20260524_105115`
   - `/opt/lima-router/backups/lifespan-extract-20260524_111647`
   - `/opt/lima-router/backups/chat-models-extract-20260524_113220`
   - `/opt/lima-router/backups/chat-request-utils-20260524_114403`
+  - `/opt/lima-router/backups/backend-registry-keypool-20260524-120642`
 - VPS `lima-router` restarted active; `/health` reports modules `mcp`, `agent_tasks`, and `telegram`.
 - Public HTTPS smoke passed:
   - `https://chat.donglicao.com/v1/chat/completions` returned exact `lima-postdeploy-ok`.
   - after the lifespan extraction deploy, `https://chat.donglicao.com/v1/chat/completions` returned exact `lima-lifespan-deploy-ok`.
   - after the chat model extraction deploy, `https://chat.donglicao.com/v1/chat/completions` returned exact `deploy_https_ok_1134`.
   - after the chat request helper extraction deploy, `https://chat.donglicao.com/v1/chat/completions` returned exact `request_utils_https_ok`.
+  - after the backend registry/key-pool deploy, `https://chat.donglicao.com/v1/chat/completions` returned exact `backend_registry_https_ok`.
   - `/agent/worker/preflight` returned `contract_version=agent-task-v1`.
   - after the chat model extraction deploy, `/agent/worker/preflight` returned `ready=true`, `contract_version=agent-task-v1`, latest task `cfcd3f2b`.
+  - after the backend registry/key-pool deploy, `/agent/worker/preflight` returned `ready=true`, `contract_version=agent-task-v1`.
 - Real Server/Worker smoke passed:
   - Server task `cfcd3f2b` was created by `/agent/worker/smoke-task`.
   - `D:\GIT\deepcode-cli` executed `/lima task cfcd3f2b`.
@@ -54,14 +57,18 @@
   - after the lifespan extraction deploy, `http://47.112.162.80:8088/v1/chat/completions` returned exact `lima-lifespan-frp-ok`.
   - after the chat model extraction deploy, `http://47.112.162.80:8088/v1/chat/completions` returned exact `lima-chat-models-frp-ok`.
   - after the chat request helper extraction deploy, `http://47.112.162.80:8088/v1/chat/completions` returned exact `request_utils_frp_ok`.
+- Backend registry/key-pool closure:
+  - `backends.py` now owns shared proxy/capability sets and helper predicates used by `smart_router.py` and `context_pipeline/reflection.py`.
+  - `http_caller.py` now selects provider keys through `key_pool.py`, bootstraps pools from `LIMA_KEY_POOL_<PROVIDER>`, and reports success/failure back to the pool.
+  - Local verification passed: focused registry/key-pool suite `58 passed`; expanded runtime regression `110 passed`; secret/request/vision/free-web admission suite `10 passed`; local and remote `py_compile` passed.
+  - Public FRP chat after deploy returned exact `backend_registry_frp_ok`.
 
 Current known remaining planning items:
 
 1. Continue `server.py` decomposition, with chat/completions and Anthropic handlers as the next major extraction targets; chat request models are now in `chat_models.py`, and request-body text/preview helpers are now in `chat_request_utils.py`.
-2. Consolidate backend configuration into a single source and remove remaining capability/list duplication.
-3. Wire `key_pool.py` into `http_caller.py` for multi-key providers.
-4. Keep Kimi, TheOldLLM, MiMo web, and page-only web AI candidates gated until refreshed and model-level smokes pass.
-5. Keep always-on worker daemon mode behind explicit repo allowlist, runtime budget, stop marker, audit, failure quarantine, and manual production gates.
+2. Keep Kimi, TheOldLLM, MiMo web, and page-only web AI candidates gated until refreshed and model-level smokes pass.
+3. Keep always-on worker daemon mode behind explicit repo allowlist, runtime budget, stop marker, audit, failure quarantine, and manual production gates.
+4. Optional future routing hardening: add deeper key-pool telemetry/concurrency policy only after real multi-key provider load needs it.
 
 ## 2026-05-23 Calibrated Status
 

@@ -52,6 +52,11 @@ Paused work:
 - `D:\GIT\deepcode-cli` completed public task `cfcd3f2b` through the deployed Server and submitted `needs_review`.
 - Post-extraction checks passed: local focused regression `40 passed`; remote compile/import passed; HTTPS chat returned exact `deploy_https_ok_1134`; FRP chat returned exact `lima-chat-models-frp-ok`; worker preflight returned `ready=true`.
 - Post-request-helper checks passed: local focused regression `45 passed`; remote compile/import passed; HTTPS chat returned exact `request_utils_https_ok`; FRP chat returned exact `request_utils_frp_ok`; worker preflight returned `ready=true`.
+- Backend registry/key-pool closure is deployed on VPS after backup `/opt/lima-router/backups/backend-registry-keypool-20260524-120642`.
+  - `backends.py` is the shared source for proxy/capability sets used by `smart_router.py` and reflection routing.
+  - `http_caller.py` uses `key_pool.py` for provider key selection, env bootstrap via `LIMA_KEY_POOL_<PROVIDER>`, and success/failure feedback.
+  - Verification passed: focused registry/key-pool suite `58 passed`; expanded runtime regression `110 passed`; secret/request/vision/free-web admission suite `10 passed`; remote compile/import passed.
+  - Public smokes passed: HTTPS exact `backend_registry_https_ok`; FRP exact `backend_registry_frp_ok`; worker preflight `ready=true`.
 - FRP `8088` is closed-loop again after hardening local Windows router startup:
   - local `8080` chat returned exact `lima-final-local-ok`;
   - public FRP `8088` chat returned exact `lima-final-frp-ok`;
@@ -60,9 +65,9 @@ Paused work:
 ## Next Implementation Order
 
 1. Continue `server.py` decomposition: extract chat/completions handler and Anthropic handler into `routes/` modules in small slices.
-2. Consolidate backend configuration to a single source, including backend capabilities and remaining `smart_router` compatibility surfaces.
-3. Wire `key_pool.py` into `http_caller.py` for multi-key providers.
-4. Keep always-on worker daemon mode gated behind repo allowlist, runtime budget, stop marker, audit, failure quarantine, and manual production approval.
+2. Keep always-on worker daemon mode gated behind repo allowlist, runtime budget, stop marker, audit, failure quarantine, and manual production approval.
+3. Keep gated web/local candidates out of normal routing until refresh and model-level smoke evidence exists.
+4. Add deeper key-pool telemetry/concurrency tuning later only if provider load requires it.
 5. Run local tests, deploy only when requested, smoke public endpoints.
 
 ## Verification Commands

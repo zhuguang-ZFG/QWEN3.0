@@ -950,3 +950,35 @@ Deployment: not performed.
 - Secret hygiene now scans `fc_caller.py`, `tool_dispatcher.py`, `mimo_tts.py`, and `lima_fc_tools/*.py`.
 - Clean split plan and evidence: `docs/superpowers/plans/2026-05-24-tool-dispatcher-clean-split.md`.
 - Local verification: focused local-tool/security/Telegram suite returned `23 passed`; ruff passed for the split tool files; full pytest returned `418 passed, 8 skipped`.
+
+## 2026-05-24 Backend Registry And Key-Pool Closure
+
+- `backends.py` is now the shared source for backend capability/proxy sets:
+  - `GFW_BACKENDS`;
+  - `VISION_BACKENDS`;
+  - `WEAK_BACKENDS`;
+  - `CODE_CAPABLE_BACKENDS`;
+  - `KEY_POOL_PREFIXES`.
+- Shared helpers now cover capability checks, weak-backend checks, first backend lookup by capability, and key-pool provider inference.
+- `smart_router.py` and `context_pipeline/reflection.py` no longer keep their own stale capability/proxy tables for the covered paths.
+- `http_caller.py` now integrates with `key_pool.py`:
+  - provider inferred from backend config or backend-name prefix;
+  - pooled key selected for `call_api`, `call_raw`, and `call_api_stream`;
+  - success/failure, including retry-after, reported back to the pool;
+  - selected keys are passed into header construction without mutating backend config.
+- `key_pool.py` supports env bootstrap through `LIMA_KEY_POOL_<PROVIDER>`, using comma, semicolon, or newline separated keys and optional weights such as `sk-a,sk-b:2`.
+- Local verification passed:
+  - focused registry/key-pool/reflection suite: `58 passed`;
+  - expanded runtime regression: `110 passed`;
+  - secret/request/vision/free-web admission suite: `10 passed`;
+  - local `py_compile` passed for the changed runtime files plus `server.py`.
+- VPS deployment:
+  - runtime commit `659f484`;
+  - backup `/opt/lima-router/backups/backend-registry-keypool-20260524-120642`;
+  - remote `py_compile` and import smoke passed;
+  - `lima-router` restarted active.
+- Public smoke evidence:
+  - `https://chat.donglicao.com/health` returned `status=ok`;
+  - `https://chat.donglicao.com/v1/chat/completions` returned exact `backend_registry_https_ok`;
+  - `http://47.112.162.80:8088/v1/chat/completions` returned exact `backend_registry_frp_ok`;
+  - `/agent/worker/preflight` returned `ready=true`, `contract_version=agent-task-v1`.
