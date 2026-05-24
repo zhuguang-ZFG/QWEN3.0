@@ -19,7 +19,7 @@
 > | M5 | Eval, Quality Gate, Structured Output | complete | 2026-05-24 |
 > | M6 | Observability & Metrics | complete | 2026-05-24 |
 > | M7 | Worker Governance, Tool Gateway, MCP, A2A | complete | 2026-05-24 |
-> | M8 | Sandbox Evaluation | pending | - |
+> | M8 | Sandbox Evaluation | complete | 2026-05-24 |
 > | M9 | Streaming & Progress Events | pending | - |
 > | M10 | Data Workbench | pending | - |
 > | M11 | DevOps, Deployment, Terminal UX | pending | - |
@@ -39,6 +39,7 @@
 > | 8 | M6-S1/S2/S4 | `LiMaEvent.metadata` and `key_pool_event(details=...)` could hold raw prompt/key/cookie-like values even though snapshots did not expose metadata. | Added regressions for sensitive metadata keys and token-like details. | Event construction now sanitizes route reason, labels, and metadata recursively before any event can be recorded or logged. |
 > | 9 | M6-S3 | `http_caller.py` emitted `backend_call_event(..., latency_ms=...)` before the event factory accepted `latency_ms`, so successful backend calls failed with `TypeError` and were rewrapped as `BackendError`. The internal `BackendError` branch also skipped backend-error metrics. | Reproduced with `python -m pytest test_http_caller.py tests/test_observability.py -q --ignore=active_model`. | `backend_call_event()` now accepts and stores latency, `BackendError` paths emit backend-error metrics, regression assertions cover both paths, and an unreachable duplicate `_extract_code()` block was removed. |
 > | 10 | M7 | Dangerous authority classes could execute if a tool author forgot to set `requires_approval=True`, and audit/worker SQLite tests wrote default DB files into repo `data/`. | Added regressions for auto approval, executor fail-closed behavior, audit redaction, and temp SQLite storage. | `ToolDefinition` now auto-enables approval for dangerous authorities, executor double-checks dangerous authority and `max_args`, audit events are redacted before memory/SQLite writes, and tests use per-test temp DB paths. |
+> | 11 | M8 | The fake sandbox accepted `shell=True` command strings, allowed upload paths such as `../escape.txt` to resolve outside the sandbox root, and passed the full host environment into subprocesses. | Added cross-platform command tests, a path-escape upload regression, and a host-secret environment regression. | `FakeSandboxProvider` now runs commands with `shell=False` via `shlex.split()`, rejects empty commands, resolves upload paths against the sandbox root, and passes only an environment allowlist plus explicit sandbox env vars. |
 
 ## Goal
 

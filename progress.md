@@ -1972,3 +1972,27 @@ Verification note:
 - Verification:
   - `python -m pytest tests/test_tool_gateway.py tests/test_agent_task_contract.py tests/test_agent_task_routes.py -q --ignore=active_model`:
     67 passed after M7 review fixes.
+
+## 2026-05-24 M8 Sandbox Evaluation
+
+- Reviewed and closed M8:
+  - `sandbox.provider` defines the `SandboxProvider` interface and result
+    dataclasses for create, upload, run, diff, terminate, and liveness checks;
+  - `FakeSandboxProvider` creates disposable temp-directory sandboxes, uploads
+    files, enforces subprocess timeouts, caps stdout/stderr, tracks new files,
+    and cleans up with idempotent terminate;
+  - `tests/fixtures/sandbox/math_utils.py` is a no-secret fixture;
+  - `tests/test_sandbox_provider.py` covers lifecycle, upload/run, failures,
+    timeout, output caps, diff collection, isolation, no-secret assertions,
+    abstract provider behavior, and idempotent cleanup.
+- Review fixes applied:
+  - replaced `shell=True` with `shlex.split()` plus `shell=False` in the fake
+    provider so command strings do not become an accidental shell boundary;
+  - upload paths now resolve against the sandbox root and reject `../` escape;
+  - subprocess environment handling now uses an allowlist plus explicit
+    sandbox env vars, rather than inheriting all host secrets by default;
+  - command tests now use Python invocations instead of shell builtins so they
+    pass consistently on Windows and Linux.
+- Verification:
+  - `python -m pytest tests/test_sandbox_provider.py -q --ignore=active_model`:
+    23 passed after M8 review fixes.

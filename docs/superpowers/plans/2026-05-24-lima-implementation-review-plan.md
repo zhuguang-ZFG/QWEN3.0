@@ -628,6 +628,23 @@ Exit criteria:
 
 - LiMa can evaluate sandbox providers safely without adopting one.
 
+Current M8 closure notes:
+
+- M8 completed on 2026-05-24 with no new runtime dependency.
+- Added `SandboxProvider` plus `SandboxConfig`, `SandboxFile`,
+  `SandboxResult`, and `SandboxCreateResult`.
+- Added `FakeSandboxProvider` using disposable temp directories, subprocess
+  execution, timeout enforcement, output caps, diff collection, and cleanup.
+- Added a no-secret sandbox fixture and provider lifecycle tests.
+- Codex review removed `shell=True` from the fake provider and made command
+  tests cross-platform.
+- Codex review added sandbox-root path resolution so uploads such as
+  `../escape.txt` are rejected.
+- Codex review changed subprocess environment handling to an allowlist plus
+  explicit sandbox env vars, so host secrets are not inherited by default.
+- No E2B/CubeSandbox runtime, network access, persistence, or production
+  worker connection is enabled.
+
 ## Milestone 9 - Streaming And Frontend/API Progress Events
 
 References:
