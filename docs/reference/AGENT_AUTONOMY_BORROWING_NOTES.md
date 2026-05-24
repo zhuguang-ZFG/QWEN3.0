@@ -19,6 +19,13 @@
   and opt-in deep reasoning for hard tasks.
 - mattpocock skills and learn-harness-engineering-style small, composable,
   user-controlled engineering skills and harness practices.
+- repowise claude-code-prompts-style prompt contracts, tool-specific
+  instructions, verification prompts, memory prompts, and delegation boundaries.
+- Hermes Agent Orange Book-style learning loop, memory layering, skill
+  creation, and self-improvement vocabulary as a non-commercial concept
+  reference.
+- goclaw-style multi-tenant isolation, layered security, native concurrency,
+  and agent-team deployment boundaries as concept inputs.
 - oh-my-pi-style local IDE/tool harness ergonomics for LiMa Code.
 - deepclaude-style backend proxy ergonomics as a UX reference only, never as a
   bypass around LiMa provider admission or key custody.
@@ -61,6 +68,10 @@
 - Hidden Sequential Thinking traces as a default chain-of-thought mechanism.
 - External Memory MCP stores as the source of truth without LiMa promotion,
   retention, and redaction gates.
+- Copying non-commercial Hermes Orange Book content into LiMa runtime prompts
+  or product docs without a separate license review.
+- Enabling goclaw-style agent teams before LiMa has shared-state, isolation,
+  conflict, audit, and stop/approval policies.
 - Direct dependency on GPL self-evolution systems; use only concept notes unless
   a separate legal review approves isolation.
 - Multi-agent role sprawl where coordination overhead is larger than the task.

@@ -1358,3 +1358,34 @@ Verification note:
 - Boundary retained:
   - this is a production engineering checklist, not a runtime dependency;
   - no code changes, no model changes, and no deployment changes were made.
+
+## 2026-05-24 External Capability Radar Agent Voice Design Batch
+
+- User provided VoxCPM, open-lovable, Hermes Agent Orange Book, goclaw, and
+  claude-code-prompts.
+- Current-source checks:
+  - `OpenBMB/VoxCPM`: Apache-2.0; VoxCPM2 README describes multilingual TTS,
+    voice design, controllable voice cloning, streaming, and 48kHz output.
+  - `firecrawl/open-lovable`: MIT; README describes website-to-React
+    generation with Firecrawl, model API keys, and Vercel/E2B sandbox options.
+  - `alchaincyf/hermes-agent-orange-book`: README declares CC BY-NC-SA 4.0;
+    concept-only reference for learning loops, layered memory, Skills, and
+    agent orchestration.
+  - `nextlevelbuilder/goclaw`: existing row strengthened with multi-tenant
+    isolation, 5-layer security, native concurrency, and agent-team posture;
+    license remains unreviewed.
+  - `repowise-dev/claude-code-prompts`: MIT; independently authored prompt
+    reference for system/tool/agent/memory/coordinator contracts.
+- Updated:
+  - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
+  - `docs/reference/HARDWARE_COMPANION_REFERENCES.md`;
+  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
+  - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
+  - `STATUS.md`;
+  - `docs/LIMA_MEMORY.md`.
+- Boundary retained:
+  - no runtime dependency or prompt library was added;
+  - no external source or prompt text was copied;
+  - voice cloning and website reconstruction remain explicit opt-in future
+    work behind consent, security, privacy, review, and test gates.

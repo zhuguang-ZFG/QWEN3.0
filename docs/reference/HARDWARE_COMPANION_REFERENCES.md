@@ -21,6 +21,7 @@ families only after the writing-machine control loop is verified.
 | `https://github.com/akdeb/ElatoAI.git` | Voice AI / ESP32 companion device | ESP32-to-cloud WebSocket device shape, realtime audio posture, device lifecycle ideas | Do not copy code or assume its voice stack controls motion hardware. LiMa still needs deterministic task, safety, and telemetry layers. |
 | `https://github.com/NVIDIA/personaplex.git` | Realtime speech/persona companion model | Full-duplex speech-to-speech interaction, text persona prompting, and audio voice-conditioning shape for future companion devices | Treat as a model and interaction reference only. Model weights need separate NVIDIA Open Model License, compute, privacy, and safety review before use. |
 | `https://github.com/kyutai-labs/pocket-tts.git` | Local/offline TTS provider candidate | CPU-friendly TTS for future voice confirmations and companion speech without a hosted API dependency | Treat as a backend/provider experiment only. Review voice/model licenses, consent, latency, CPU budget, and audio retention before enabling. |
+| `https://github.com/OpenBMB/VoxCPM.git` | Multilingual TTS / voice design / controllable cloning provider candidate | Apache-2.0 TTS reference with multilingual speech generation, voice design, controllable voice cloning, streaming, and high-quality audio output | Treat as a backend/provider experiment only. Voice cloning requires explicit consent, model/weight review, GPU or serving budget, latency tests, and audio retention policy before enabling. |
 | `https://did321.github.io/2021/07/28/ESP32-TFT-%E5%88%86%E5%85%89%E6%A3%B1%E9%95%9C%E5%AE%9E%E7%8E%B0%E9%80%8F%E6%98%8E%E5%B0%8F%E7%94%B5%E8%A7%86/` | Display / transparent companion screen | ESP32 + TFT display pattern for visual status, avatar, prompts, and ambient companion output | Treat as display output only. It does not replace writing-machine motion safety, path planning, or actuator control. |
 | `https://github.com/zai-org/GLM-OCR.git` | OCR / document and camera perception | OCR/document understanding for future paper, screen, or device-state observation flows | Keep in LiMa model/tool provider layer. Camera hardware evidence, privacy rules, and model/API terms must pass before device use. |
 | `https://github.com/NVlabs/GR00T-WholeBodyControl.git` | Robotics control research | Safety layering, deployment environment separation, simulation/real-device gates, and controller evidence discipline | Concept-only for LiMa. Do not import humanoid WBC assumptions into writing-machine control; model weights require separate NVIDIA Open Model License review. |
@@ -38,6 +39,8 @@ families only after the writing-machine control loop is verified.
    - direct audio framing;
    - ASR/TTS through LiMa provider routing;
    - optional local/offline TTS experiments such as pocket-tts;
+   - optional multilingual TTS, voice design, or controllable cloning
+     experiments such as VoxCPM after explicit consent and retention gates;
    - optional realtime speech-to-speech persona model evaluation after privacy,
      safety, and compute gates;
    - wake/listen/speak state;

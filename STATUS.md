@@ -559,3 +559,17 @@ Latest AI engineering competency map:
 - Policy retained: expand LiMa by measurable engineering controls, not
   prompt-only claims; fine-tuning remains gated behind eval data, privacy,
   retention, and rollback readiness.
+
+Latest external capability radar agent/voice/design batch:
+
+- Added VoxCPM, open-lovable, Hermes Agent Orange Book, refreshed goclaw, and
+  claude-code-prompts to the external capability radar and roadmap.
+- VoxCPM is Apache-2.0 and is admitted only as a later TTS/voice-design/
+  controllable-cloning provider reference behind consent, model/weight review,
+  serving budget, latency, and audio-retention gates.
+- open-lovable and claude-code-prompts are MIT references for LiMa Code
+  design reconstruction and prompt-contract work; both remain review/test
+  gated and are not runtime dependencies.
+- Hermes Agent Orange Book is CC BY-NC-SA and remains non-commercial
+  concept-only; goclaw still has no reviewed license signal and remains
+  concept-only for isolation/concurrency/security ideas.

@@ -172,6 +172,8 @@ References:
 - mattpocock skills
 - HeavySkill
 - learn-harness-engineering
+- Hermes Agent Orange Book
+- claude-code-prompts
 - deepclaude
 
 Main repo plan:
@@ -199,6 +201,12 @@ Main repo plan:
   patterns; do not make them hidden default reasoning paths.
 - Borrow mattpocock skills and learn-harness-engineering as small, explicit,
   user-controlled skill and harness-engineering references.
+- Borrow claude-code-prompts as a prompt-contract reference for tool-specific
+  instructions, verification prompts, memory prompts, and coordinator prompts.
+- Treat Hermes Agent Orange Book as CC BY-NC-SA concept-only input for learning
+  loops, memory layering, skill evolution, and self-improving agent boundaries.
+- Treat goclaw as concept-only until license review; borrow only its
+  multi-tenant isolation, layered security, and native concurrency posture.
 - Treat deepclaude-style provider swapping as a UX reference only; LiMa must
   keep provider key custody, backend admission, and routing policy in the main
   backend registry.
@@ -277,6 +285,7 @@ References:
 - ClaudePrism
 - Open Design
 - HF Viewer
+- open-lovable
 
 Main repo plan:
 
@@ -295,6 +304,9 @@ LiMa Code plan:
   tools; no Device Gateway or hardware runtime dependency.
 - Borrow ClaudePrism's offline-first scientific writing and reproducible
   artifact posture for research tasks.
+- Borrow open-lovable's website-to-React workflow only as an opt-in design
+  reconstruction reference. Scraping, API keys, sandbox providers, and
+  generated code must stay behind review and tests.
 
 Exit criteria:
 
@@ -347,6 +359,7 @@ References:
 - Youdao Baoku
 - Flipbook
 - OpenMontage
+- open-lovable
 - Algebrica
 - GLM-OCR
 
@@ -366,6 +379,8 @@ Main repo plan:
 - Treat OpenMontage as AGPL concept-only: borrow artifact pipeline, provider
   boundary, and media workflow staging ideas without copying code or making it
   a runtime dependency.
+- Treat open-lovable as a LiMa Code design/productivity workflow reference,
+  not as a default site-scraping path or automatic production code generator.
 
 LiMa Code plan:
 
@@ -388,6 +403,7 @@ References:
 - ElatoAI
 - PersonaPlex
 - pocket-tts
+- VoxCPM
 - Feynman
 - Flipbook
 - Youdao Baoku
@@ -404,6 +420,9 @@ Main repo plan:
   model-license, GPU/latency, privacy, safety, and opt-in recording gates.
 - Evaluate pocket-tts as a local/offline TTS provider candidate for voice
   confirmation after latency, CPU, voice-license, and consent gates pass.
+- Evaluate VoxCPM as a multilingual TTS, voice design, and controllable voice
+  cloning candidate only after model/weight review, GPU or serving budget,
+  latency tests, explicit consent, and audio retention policy.
 - Keep GR00T-WholeBodyControl and nano-world-model in the research/simulation
   lane. They may inspire robotics safety layering, simulation, and planning
   gates, but they must not bypass the writing-machine `run_path` allowlist or
@@ -447,7 +466,10 @@ Recommended first slice after this plan is accepted:
 6. Add the MCP candidate catalog and foundation connector policy before
    enabling more tools in LiMa Code sessions.
 7. Document TUNA mirror fallbacks for VPS/China-network dependency bootstrap.
-8. Defer agent-runtime and hardware-companion implementation until these
+8. Add prompt-contract fixtures for tool instructions and verification prompts
+   before adopting external prompt libraries.
+9. Defer voice cloning, site reconstruction, agent-runtime, and
+   hardware-companion implementation until these
    foundations are stable.
 
 ## Verification
@@ -457,7 +479,7 @@ Documentation-only changes:
 ```powershell
 cd D:\GIT
 git diff --check -- docs\reference\EXTERNAL_CAPABILITY_RADAR_2026-05-24.md docs\superpowers\plans\2026-05-24-external-capability-adoption-roadmap.md
-rg -n "External Capability|MCP|TUNA|OpenMontage|TrendRadar|Pyrefly|CubeSandbox|ElatoAI|WeClone|Graph" docs
+rg -n "External Capability|MCP|TUNA|OpenMontage|open-lovable|VoxCPM|Hermes|claude-code-prompts|TrendRadar|Pyrefly|CubeSandbox|ElatoAI|WeClone|Graph" docs
 ```
 
 Implementation phases must add focused tests for the touched module and avoid

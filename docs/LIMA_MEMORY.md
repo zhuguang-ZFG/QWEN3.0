@@ -1324,3 +1324,42 @@ Deployment: not performed.
     budget envelopes, fine-tuning gates, eval registry, and deployment/drift
     monitoring.
   - LiMa should prefer measurable engineering controls over prompt-only claims.
+
+## 2026-05-24 External Capability Radar Agent Voice Design Batch
+
+- User provided:
+  - `OpenBMB/VoxCPM`;
+  - `firecrawl/open-lovable`;
+  - `alchaincyf/hermes-agent-orange-book`;
+  - `nextlevelbuilder/goclaw`;
+  - `repowise-dev/claude-code-prompts`.
+- Current-source checks:
+  - `OpenBMB/VoxCPM` metadata reports Apache-2.0; README describes VoxCPM2 as
+    tokenizer-free multilingual TTS with voice design, controllable cloning,
+    streaming, and 48kHz output.
+  - `firecrawl/open-lovable` metadata reports MIT; README describes a
+    chat-to-React app builder using Firecrawl, model provider keys, and
+    Vercel/E2B-style sandbox providers.
+  - `alchaincyf/hermes-agent-orange-book` metadata has no SPDX signal, while
+    README declares CC BY-NC-SA 4.0 and covers Hermes Agent learning loop,
+    three-layer memory, Skills, tools, and multi-agent scenarios.
+  - `nextlevelbuilder/goclaw` still has no reviewed license signal; metadata
+    describes multi-tenant isolation, 5-layer security, and native concurrency.
+  - `repowise-dev/claude-code-prompts` metadata reports MIT; README describes
+    independently authored system/tool/agent/memory/coordinator prompts and
+    prompt-engineering patterns.
+- Updated:
+  - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
+  - `docs/reference/HARDWARE_COMPANION_REFERENCES.md`;
+  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
+  - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
+  - `STATUS.md`;
+  - `progress.md`.
+- Boundary retained:
+  - no runtime dependency added;
+  - no source code or prompt text copied;
+  - voice cloning remains behind consent, model/weight, privacy, latency,
+    serving-budget, and audio-retention gates;
+  - website reconstruction remains opt-in and review/test gated;
+  - non-commercial/no-license references are concept-only.

@@ -119,6 +119,15 @@ runtime dependencies:
 - `calesthio/OpenMontage`: AGPL concept-only reference for agentic media
   pipeline staging, artifact quality gates, provider boundaries, and
   skill/tool catalog structure.
+- `firecrawl/open-lovable`: MIT reference for website-to-React reconstruction
+  and sandboxed app generation. Scraping, external API keys, sandbox providers,
+  and generated code must stay opt-in and review/test gated.
+- `repowise-dev/claude-code-prompts`: MIT reference for prompt-contract
+  structure, tool-specific instructions, verification prompts, memory prompts,
+  and coordinator/delegation boundaries.
+- `alchaincyf/hermes-agent-orange-book`: non-commercial guide reference for
+  Hermes-style learning loops, memory layering, skill creation, and tool
+  orchestration vocabulary; do not copy content into runtime prompts.
 - TUNA mirror service: operational reference for China-network dependency
   bootstrap and fallback mirror documentation, not a code dependency.
 
