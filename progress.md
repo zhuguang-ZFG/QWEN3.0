@@ -2580,3 +2580,36 @@ Verification note:
     no matches.
   - `python -m pytest -q --ignore=active_model`:
     1055 passed, 8 skipped.
+
+## 2026-05-25 M24-M27 Execution Boundary Release Gate Closeout
+
+- Reviewed and closed M24-M27:
+  - M24 adds `agent_runtime.tool_exec` with no-op, fake, and blocked shell
+    executors; all remain non-executing and report `executed=False`;
+  - M25 adds `agent_runtime.audit_trail` for local JSONL audit records;
+  - M26 adds operator-facing queue, worker, approval, retry, and status helpers;
+  - M27 adds E2E coverage for submit, claim, run, resume, store, approval
+    blocking, worker quarantine, audit, and CLI surfaces.
+- Review fixes applied:
+  - tool executor output now redacts secret-like commands before display;
+  - fake executor custom outputs are instance-local and no longer leak into
+    later `FakeToolExecutor` instances;
+  - audit trail records now redact all string fields before JSONL persistence;
+  - `get_audit_trail()` now follows explicit path or environment path changes
+    instead of pinning the first global path forever;
+  - CLI pending-approval output redacts approval, step, task, and worker ids;
+  - M24-M27 types and helpers are exported from `agent_runtime.__init__`;
+  - M27 tests were isolated to temp audit paths and cleaned to ASCII.
+- Verification:
+  - `python -m pytest tests/test_e2e_release.py -q --ignore=active_model`:
+    29 passed after review fixes.
+  - `python -m pytest tests/test_e2e_release.py tests/test_agent_store.py tests/test_approval_gate.py tests/test_agent_runtime.py tests/test_agent_orchestrator.py -q --ignore=active_model`:
+    178 passed after review fixes.
+  - `python -m py_compile agent_runtime/tool_exec.py agent_runtime/audit_trail.py agent_runtime/cli.py agent_runtime/__init__.py tests/test_e2e_release.py`:
+    passed.
+  - `rg -n "[^\\x00-\\x7F]" agent_runtime/tool_exec.py agent_runtime/audit_trail.py agent_runtime/cli.py agent_runtime/__init__.py tests/test_e2e_release.py`:
+    no matches.
+  - `git diff --check -- agent_runtime/__init__.py agent_runtime/tool_exec.py agent_runtime/audit_trail.py agent_runtime/cli.py tests/test_e2e_release.py`:
+    passed.
+  - `python -m pytest -q --ignore=active_model`:
+    1084 passed, 8 skipped.

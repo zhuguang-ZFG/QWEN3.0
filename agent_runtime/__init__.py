@@ -54,6 +54,20 @@ from agent_runtime.tool_policy import (
     filter_allowed_steps,
     is_step_allowed,
 )
+from agent_runtime.tool_exec import (
+    FakeToolExecutor,
+    NoopToolExecutor,
+    ShellBlockedExecutor,
+    ToolExecutor,
+    ToolResult,
+    get_executor,
+)
+from agent_runtime.audit_trail import (
+    AuditEntry,
+    AuditTrail,
+    audit_event,
+    get_audit_trail,
+)
 
 __all__ = [
     "AgentRunResult",
@@ -68,15 +82,23 @@ __all__ = [
     "ApprovalGate",
     "ApprovalRequest",
     "ApprovalStatus",
+    "AuditEntry",
+    "AuditTrail",
+    "FakeToolExecutor",
     "InMemoryAgentRunStore",
     "JsonlAgentRunStore",
+    "NoopToolExecutor",
     "QueueStatus",
     "ResumeState",
     "RuntimeHooks",
+    "ShellBlockedExecutor",
     "StepKind",
     "StepResult",
+    "ToolExecutor",
+    "ToolResult",
     "WorkerGovernor",
     "WorkerRecord",
+    "audit_event",
     "build_resume_state",
     "check_step_policy",
     "compact_jsonl",
@@ -91,6 +113,8 @@ __all__ = [
     "find_failed",
     "filter_allowed_steps",
     "format_resume_summary",
+    "get_audit_trail",
+    "get_executor",
     "is_step_allowed",
     "list_recent",
     "make_audit_ref",
