@@ -19,9 +19,10 @@
 |---|---|---|
 | Static analysis and code intelligence | Pyrefly, GitNexus, code-review-graph, graphify, gitreverse, Understand-Anything, claude-context | Main repo quality gates, LiMa Code context, review and repository understanding |
 | Memory and agent knowledge | stash, hindsight, gbrain, rowboat | Durable memory, episode/fact separation, learning loops, agent state |
-| Agent orchestration, skills, and workflow | open-agents, Symphony, PraisonAI, agency-agents, goclaw, oh-my-codex, oh-my-pi, clawsweeper, agent-skills, HeavySkill, vibe-vibe | Controlled multi-agent work, hooks, review queues, issue/PR triage, skill packaging, work-run isolation |
+| Agent orchestration, skills, and workflow | OpenAI Agents SDK, Google ADK, GenericAgent, Evolver, open-agents, Symphony, PraisonAI, agency-agents, goclaw, oh-my-codex, oh-my-pi, clawsweeper, agent-skills, mattpocock skills, HeavySkill, learn-harness-engineering, vibe-vibe | Controlled multi-agent work, hooks, review queues, issue/PR triage, skill packaging, harness engineering, work-run isolation |
 | Governance, secure execution, and browser work | Microsoft Agent Governance Toolkit, CubeSandbox, browser-harness, CloakBrowser | Safer worker execution, browser task verification, VPS/local isolation, governance policy |
-| Search, research, trends, and knowledge products | AnySearch Skill, ml-intern, OmniScientist, Feynman, TrendRadar, Youdao Baoku, Flipbook, Algebrica, GLM-OCR | Research agents, trend monitors, search extraction, document-to-brief/PPT/mind-map, OCR, visual browsing |
+| IDE, terminal, design, and workspace UX | Warp, Pascal Editor, ClaudePrism, Open Design | LiMa Code terminal UX, local design workspace, scientific writing workspace, 3D/design editor patterns |
+| Search, research, trends, and knowledge products | AnySearch Skill, ml-intern, OmniScientist, Feynman, TrendRadar, HF Viewer, Youdao Baoku, Flipbook, Algebrica, GLM-OCR | Research agents, trend monitors, model inspection, search extraction, document-to-brief/PPT/mind-map, OCR, visual browsing |
 | Persona, style, and companion behavior | awesome-persona-distill-skills, WeClone, Feynman, ElatoAI, PersonaPlex, pocket-tts | User style modeling, companion UX, voice/display persona boundaries |
 | Hardware, robotics, and world models | ElatoAI, PersonaPlex, oh-my-pi, GR00T-WholeBodyControl, pocket-tts, nano-world-model, ESP32 display references already tracked separately | Device Gateway voice/display/companion expansion after writing-machine gates |
 
@@ -34,6 +35,13 @@
 | `abhigyanpatwari/GitNexus` | Browser-side code knowledge graph and Graph RAG exploration. | No standard license in API metadata | Concept-only reference for local repository graph browsing and zero-server code exploration. | Main, LiMa Code |
 | `alash3al/stash` | Persistent agent memory with episodes, facts, working context, Postgres, and MCP. | Apache-2.0 | Borrow memory taxonomy and MCP memory interface ideas for LiMa memory storage. | Main, LiMa Code |
 | `openclaw/clawsweeper` | Scheduled issue/PR close recommendations. | MIT | Add future GitHub hygiene job for stale plans, issues, PRs, and close candidates. | Main |
+| `mattpocock/skills` | Small, composable engineering skills for AI coding agents. | MIT | Strong reference for LiMa Code skill shape: small, adaptable, explicit, and engineer-controlled rather than monolithic process ownership. | LiMa Code, Main |
+| `hfviewer.com` | Web product for inspecting and understanding Hugging Face models. | Website, no repo/license reviewed | Product reference for model-card/model-architecture inspection UX; no scraping or data dependency without review. | Main |
+| `warpdotdev/warp` | Agentic development environment and terminal. | AGPL-3.0 | Concept-only for terminal/workspace UX, command blocks, agent panels, and local developer flow; no code copy. | LiMa Code |
+| `pascalorg/editor` | React Three Fiber/WebGPU 3D building editor. | MIT | Reference for future design/canvas/3D workspace patterns; useful for visualization tooling, not current Device Gateway runtime. | Main, LiMa Code |
+| `delibae/claude-prism` | Offline-first scientific writing workspace with LaTeX, Python, and scientific skills. | MIT | Reference for local-first research/writing workspaces, skill packs, and reproducible scientific artifacts. | Main, LiMa Code |
+| `nexu-io/open-design` | Local-first open-source Claude Design alternative with many coding-agent CLIs and design systems. | Apache-2.0 | Reference for design-workbench UX, BYOK agent routing, and composable design skills; keep external CLI execution behind LiMa allowlists. | LiMa Code, Main |
+| `walkinglabs/learn-harness-engineering` | Multilingual harness-engineering learning material. | No standard license in API metadata | Documentation/reference input for LiMa harness engineering vocabulary and onboarding; do not copy content without license review. | Main, LiMa Code |
 | `flipbook.page` | Infinite visual browser generated on demand. | Website, no repo/license reviewed | Concept-only reference for visual exploration UI and generated artifact browsing. | Main, LiMa Code |
 | `sansan0/TrendRadar` | AI-driven trend/public-opinion monitor with RSS, platform aggregation, alerts, and MCP. | GPL-3.0 | Concept-only unless isolated; borrow trend monitor shape and alert taxonomy. | Main |
 | `akdeb/ElatoAI` | ESP32 realtime voice AI with secure WebSockets for toys, companions, and devices. | No standard license in API metadata | Already admitted as voice/device-companion reference; no runtime dependency. | esp32S_XYZ, Main |
@@ -65,6 +73,10 @@
 | `aattaran/deepclaude` | Anthropic-compatible Claude Code backend swap for cheaper DeepSeek/OpenRouter style models. | MIT | Reference for LiMa-compatible local/remote model proxy ergonomics; ensure it never bypasses LiMa key custody or backend admission gates. | LiMa Code, Main |
 | `msitarzewski/agency-agents` | Large library of specialized agent roles and deliverables. | MIT | Borrow role taxonomy for gated sub-agent prompts and review personas. | Main, LiMa Code |
 | `tsinghua-fib-lab/OmniScientist` | AI scientist ecosystem for open-ended scientific discovery. | MIT | Borrow scientific discovery loop for long-running research/evaluation tasks. | Main |
+| `openai/openai-agents-python` | Python Agents SDK with agents, tools, handoffs, guardrails, sessions, tracing, human-in-the-loop, and sandbox agents. | MIT | Strong reference for LiMa agent APIs, guardrails, tracing, handoff semantics, and sandbox-agent boundaries; keep LiMa provider/key custody intact. | Main |
+| `google/adk-python` | Code-first Python Agent Development Kit for building, evaluating, and deploying agents. | Apache-2.0 | Reference for eval/deploy separation, agent app structure, and workflow state boundaries. | Main |
+| `lsdefine/GenericAgent` | Minimal self-evolving autonomous agent framework with compact tool loop and skill growth. | MIT | Borrow self-evolution and minimal-loop ideas only behind LiMa evaluation, mastery evidence, and manual promotion gates. | Main |
+| `EvoMap/evolver` | GEP-powered self-evolving agent system with memory/skill/evolution assets. | GPL-3.0 | Concept-only due GPL; borrow gated evolution vocabulary and evidence discipline, not code. | Main |
 | `microsoft/agent-governance-toolkit` | Agent governance specifications, policy, telemetry, and compliance toolkit. | MIT | Strong reference for LiMa agent risk classification, approval metadata, audit fields, and deployment policy docs. | Main, LiMa Code |
 | `datawhalechina/vibe-vibe` | Chinese Vibe Coding education/tutorial project for non-programmers moving from idea to product. | No license file found in raw scan | Product/onboarding reference for LiMa Code docs and user education, not runtime code. | LiMa Code |
 | `NVlabs/GR00T-WholeBodyControl` | Whole-body control training/evaluation/deployment stack for humanoid robot controllers. | Source Apache-2.0; model weights under NVIDIA Open Model License | Concept-only robotics control reference for future physical-device abstractions; do not mix with writing-machine firmware until hardware safety gates are separate. | Main, esp32S_XYZ |
@@ -86,6 +98,11 @@
 - browser-harness pattern for local/online browser smoke verification.
 - Microsoft Agent Governance Toolkit metadata for risk class, allowed actions,
   approval requirement, and evidence refs.
+- OpenAI Agents SDK / Google ADK concepts for guardrails, sessions, tracing,
+  handoffs, human-in-loop, eval/deploy separation, and workflow state
+  boundaries.
+- mattpocock skills / learn-harness-engineering as skill and harness
+  engineering references.
 - CubeSandbox external-sandbox evaluation, without vendoring code.
 - AnySearch-style opt-in search skill boundary for research tasks, using
   LiMa's redaction and source allowlist rules.
@@ -93,10 +110,14 @@
 ### P1 - Useful After P0 Interfaces Exist
 
 - open-agents, Symphony, PraisonAI, goclaw, agency-agents, oh-my-codex,
-  oh-my-pi, agent-skills, HeavySkill, and deepclaude as inputs to LiMa's gated
-  multi-agent orchestration and LiMa Code worker UX.
+  oh-my-pi, OpenAI Agents SDK, Google ADK, GenericAgent, agent-skills,
+  HeavySkill, and deepclaude as inputs to LiMa's gated multi-agent orchestration
+  and LiMa Code worker UX.
+- Warp, Open Design, Pascal Editor, and ClaudePrism as terminal, design,
+  3D/canvas, and scientific-writing workspace UX references.
 - Feynman, ml-intern, OmniScientist, Algebrica, and GLM-OCR as research,
   structured-knowledge, and OCR/document-loop references.
+- HF Viewer as a model-inspection UX reference.
 - TrendRadar as alert/trend-monitor reference, with GPL isolation.
 - CloakBrowser as an isolated browser-runtime candidate only after terms,
   privacy, and anti-abuse review.
@@ -112,6 +133,7 @@
   hardware evidence gates.
 - GR00T-WholeBodyControl and nano-world-model as robotics/simulation research
   references only, not writing-machine runtime dependencies.
+- Evolver as a GPL concept-only self-evolution reference.
 - Youdao Baoku for document-to-brief/PPT/mind-map product workflows.
 - Flipbook for visual generated browsing.
 - vibe-vibe for LiMa Code onboarding and user education material shape.

@@ -1273,3 +1273,28 @@ Verification note:
     slices;
   - Agent Teams only after shared state, real-time communication, event log,
     ownership, conflict policy, and approval gates are designed.
+
+## 2026-05-24 External Capability Radar Third Batch
+
+- User provided another reference batch:
+  - mattpocock skills, HF Viewer, Warp, Pascal Editor, ClaudePrism, Open
+    Design, learn-harness-engineering, OpenAI Agents SDK, Google ADK,
+    GenericAgent, Evolver, plus duplicate stash, clawsweeper, and agency-agents.
+- Current-source scan:
+  - GitHub API metadata confirmed examples: `mattpocock/skills` MIT,
+    `warpdotdev/warp` AGPL-3.0, `pascalorg/editor` MIT,
+    `delibae/claude-prism` MIT, `nexu-io/open-design` Apache-2.0,
+    `openai/openai-agents-python` MIT, `google/adk-python` Apache-2.0,
+    `lsdefine/GenericAgent` MIT, `EvoMap/evolver` GPL-3.0.
+  - `hfviewer.com` was treated as a website/product reference, not a dependency.
+- Updated:
+  - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
+  - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
+  - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
+  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/LIMA_MEMORY.md`;
+  - `progress.md`.
+- Boundary retained:
+  - no source code copied;
+  - no runtime dependency added;
+  - GPL/AGPL references are concept-only until separate legal review.

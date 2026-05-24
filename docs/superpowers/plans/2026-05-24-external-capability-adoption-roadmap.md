@@ -18,6 +18,12 @@ agent-skills, HeavySkill, Understand-Anything, deepclaude, and claude-context
 to the radar. Duplicate Pyrefly and PersonaPlex entries remain de-duplicated in
 the source inventory.
 
+The later 2026-05-24 batch added mattpocock skills, HF Viewer, Warp, Pascal
+Editor, ClaudePrism, Open Design, learn-harness-engineering, OpenAI Agents SDK,
+Google ADK, GenericAgent, and EvoMap/evolver. Duplicate stash, clawsweeper, and
+agency-agents entries update the existing rows instead of creating separate
+runtime plans.
+
 Primary source inventory:
 
 - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`
@@ -28,7 +34,7 @@ Primary source inventory:
 | Target | Role | External capability fit |
 |---|---|---|
 | Main LiMa repo | Model routing, memory, agent control plane, VPS surfaces, Device Gateway | Type checks, code graph, memory learning, agent orchestration, sandboxing, trend/research loops |
-| `deepcode-cli` | Local coding worker, tool execution, MCP client, terminal UX | Code graph context, hooks, HUD/workflow UX, browser harness, repo-to-spec extraction |
+| `deepcode-cli` | Local coding worker, tool execution, MCP client, terminal UX | Code graph context, hooks, HUD/workflow UX, browser harness, terminal/design workspace references, repo-to-spec extraction |
 | `esp32S_XYZ` | Hardware product, firmware, fake devices, schemas, U8/U1 control | ElatoAI-style voice/device session ideas, display/companion route after writing-machine gates |
 
 ## Adoption Principles
@@ -52,6 +58,8 @@ Tasks:
 - Add a per-reference review checklist before any clone becomes a dependency.
 - Define statuses: `concept`, `evaluating`, `adapter-planned`, `implemented`,
   `rejected`, `quarantined`.
+- Track duplicate references by strengthening the existing source row rather
+  than adding a second adoption path.
 
 Exit criteria:
 
@@ -132,6 +140,10 @@ References:
 
 - open-agents
 - OpenAI Symphony
+- OpenAI Agents SDK
+- Google ADK
+- GenericAgent
+- EvoMap/evolver
 - PraisonAI
 - agency-agents
 - goclaw
@@ -139,7 +151,9 @@ References:
 - oh-my-pi
 - clawsweeper
 - agent-skills
+- mattpocock skills
 - HeavySkill
+- learn-harness-engineering
 - deepclaude
 
 Main repo plan:
@@ -156,8 +170,17 @@ Main repo plan:
   automatically without a recorded approval rule.
 - Borrow Symphony-style isolated work runs and proof bundles only behind LiMa's
   existing approval, CI, review, audit, and push gates.
+- Borrow OpenAI Agents SDK and Google ADK concepts for guardrails, tracing,
+  sessions, handoffs, human-in-loop, evaluation, deployment separation, and
+  workflow state boundaries.
+- Borrow GenericAgent self-evolution only behind LiMa's existing mastery,
+  evaluation, manual promotion, and rollback gates.
+- Treat EvoMap/evolver as GPL concept-only: useful vocabulary for
+  evolution-assets and evidence, but no code copy or direct dependency.
 - Borrow agent-skills / HeavySkill only as opt-in workflow prompts or eval
   patterns; do not make them hidden default reasoning paths.
+- Borrow mattpocock skills and learn-harness-engineering as small, explicit,
+  user-controlled skill and harness-engineering references.
 - Treat deepclaude-style provider swapping as a UX reference only; LiMa must
   keep provider key custody, backend admission, and routing policy in the main
   backend registry.
@@ -167,6 +190,8 @@ LiMa Code plan:
 - Evaluate hook/HUD patterns for local worker status, command safety, and
   review checkpoints.
 - Add role-specific prompts only when they map to real project tasks.
+- Keep skill packs reviewable as data. A skill may not change tool permissions,
+  deployment behavior, provider routing, or hardware access by itself.
 
 Exit criteria:
 
@@ -175,6 +200,40 @@ Exit criteria:
 - Agent Team use requires shared-state and conflict-resolution evidence.
 - Work queue items have status, evidence, and rollback notes.
 - No agent can deploy, push, or touch hardware without explicit gate metadata.
+
+## Phase 3.5 - Local Workspace, Terminal, Design, And Writing UX
+
+References:
+
+- Warp
+- Pascal Editor
+- ClaudePrism
+- Open Design
+- HF Viewer
+
+Main repo plan:
+
+- Use HF Viewer as a product reference for model inspection and model-card
+  readability, not as a dependency.
+- Keep design/canvas/3D workspace ideas behind local files and explicit user
+  actions.
+
+LiMa Code plan:
+
+- Borrow Warp-style terminal command-block UX and agent panels only where they
+  improve local auditability and recovery.
+- Borrow Open Design's local-first, BYOK, composable skill workbench ideas
+  without allowing arbitrary external CLI execution.
+- Borrow Pascal Editor's 3D/canvas patterns only for future visualization
+  tools; no Device Gateway or hardware runtime dependency.
+- Borrow ClaudePrism's offline-first scientific writing and reproducible
+  artifact posture for research tasks.
+
+Exit criteria:
+
+- Any UI/workspace feature remains local-first and auditable.
+- External CLI discovery is allowlisted and opt-in.
+- Model/design/document artifacts do not expose private files by default.
 
 ## Phase 4 - Secure Execution And Browser Verification
 

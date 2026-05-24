@@ -82,6 +82,16 @@ runtime dependencies:
   evidence, and board-driven orchestration.
 - `addyosmani/agent-skills`: engineering skill packaging, slash-command
   lifecycle, and explicit quality gates.
+- `mattpocock/skills` and `walkinglabs/learn-harness-engineering`: small,
+  composable, engineer-controlled skills and harness engineering practices.
+- `warpdotdev/warp`: terminal command-block UX, agent panels, and recovery
+  ergonomics; AGPL code remains concept-only unless separately reviewed.
+- `nexu-io/open-design`: local-first design workbench and BYOK agent routing
+  reference; external CLI discovery must stay allowlisted and opt-in.
+- `pascalorg/editor`: 3D/canvas/editor interaction patterns for future
+  visualization tools.
+- `delibae/claude-prism`: offline-first scientific writing workspace and
+  reproducible artifact posture.
 - `wjn1996/HeavySkill`: opt-in heavy reasoning/evaluation pattern for hard
   planning or review tasks after license review.
 - `Lum1104/Understand-Anything` and `zilliztech/claude-context`: semantic code

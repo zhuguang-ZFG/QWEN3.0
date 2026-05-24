@@ -3,7 +3,10 @@
 ## Borrowed Concepts
 
 - OpenAI Agents-style guardrails, tracing, and explicit handoff boundaries.
-- Google ADK-style separation between workflow/task state and production router hot path.
+- OpenAI Agents SDK-style sessions, tracing, handoffs, guardrails,
+  human-in-loop, and sandbox-agent boundaries.
+- Google ADK-style separation between workflow/task state, evaluation,
+  deployment, and the production router hot path.
 - GenericAgent-style layered memory and candidate skill extraction after verified task success.
 - EvoMap-style gated promotion: candidates remain inactive until evaluation, manual approval, and evidence exist.
 - Agency-agents-style role separation: planner, coder, reviewer, tester, and memory/evolution responsibilities stay distinct.
@@ -14,6 +17,8 @@
   behind LiMa's existing Server/Worker approval gates.
 - agent-skills and HeavySkill-style explicit workflow skills, quality gates,
   and opt-in deep reasoning for hard tasks.
+- mattpocock skills and learn-harness-engineering-style small, composable,
+  user-controlled engineering skills and harness practices.
 - oh-my-pi-style local IDE/tool harness ergonomics for LiMa Code.
 - deepclaude-style backend proxy ergonomics as a UX reference only, never as a
   bypass around LiMa provider admission or key custody.
@@ -44,6 +49,8 @@
 - Hidden autonomous model/provider swaps outside LiMa's routing registry.
 - Skill packs that can change tool permissions, deployment behavior, or
   hardware access without explicit review.
+- Direct dependency on GPL self-evolution systems; use only concept notes unless
+  a separate legal review approves isolation.
 - Multi-agent role sprawl where coordination overhead is larger than the task.
 - Agent Teams without a shared task layer, event log, conflict policy, and
   explicit owner.

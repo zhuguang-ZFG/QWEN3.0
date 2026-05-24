@@ -1249,3 +1249,26 @@ Deployment: not performed.
     long-lived coordination are required.
 - Agent Teams now require an explicit shared-state model, ownership map, audit
   trail, conflict policy, and stop/approval gate before implementation.
+
+## 2026-05-24 External Capability Radar Third Batch
+
+- User provided another reference batch:
+  - `mattpocock/skills`, `hfviewer.com`, `warpdotdev/warp`,
+    `pascalorg/editor`, `delibae/claude-prism`, `nexu-io/open-design`,
+    `walkinglabs/learn-harness-engineering`, `openai/openai-agents-python`,
+    `google/adk-python`, `lsdefine/GenericAgent`, and `EvoMap/evolver`;
+  - duplicate references `alash3al/stash`, `openclaw/clawsweeper`, and
+    `msitarzewski/agency-agents` strengthen existing radar entries.
+- Updated documents:
+  - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
+  - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
+  - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
+  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/LIMA_MEMORY.md`;
+  - `progress.md`.
+- Policy retained:
+  - no runtime dependency added;
+  - Warp is AGPL and Evolver is GPL, so they remain concept-only;
+  - OpenAI Agents SDK, Google ADK, GenericAgent, and related frameworks are
+    references for guardrails, sessions, tracing, eval/deploy separation, and
+    gated self-evolution, not replacements for LiMa's control plane.
