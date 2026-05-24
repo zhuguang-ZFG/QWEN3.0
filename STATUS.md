@@ -8,6 +8,7 @@
 | Area | Status | Evidence |
 |---|---|---|
 | Product direction | Active | Commercial work paused; `docs/PERSONAL_CODING_ASSISTANT_PLAN.md` is the current plan. |
+| Project operating constraint | Active | `AGENTS.md` records that the agent may proactively deploy to the LiMa VPS for validation and multi-end joint debugging when it accelerates real production usefulness, with backups, scoped diffs, smoke checks, and rollback evidence. |
 | Coding backend eval | Complete for first pass | 85-candidate smoke, 16-candidate full fixture set, ranking docs and JSON results exist. |
 | Coding routing | Active | `code_orchestrator.py`, `routing_engine.py`, and `router_v3.py` route coding traffic by evidence-backed tiers. |
 | Cloudflare AI routing | Active | Direct `cf_*` and Worker `cfai_*` text/code models are documented and routed; Worker qwen/deepseek quick eval passed. |

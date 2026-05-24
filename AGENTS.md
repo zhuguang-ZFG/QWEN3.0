@@ -57,6 +57,20 @@ LiMa 当前不是商业化开放平台，而是个人编码助手后端。
 - 商业 quota/usage/billing。
 - 客户侧商业 dashboard。
 
+## VPS 主动验证授权
+
+- 用户允许 Agent 在有助于代码验证、条线联调、多端联调或生产路径
+  smoke 时，主动部署到 LiMa VPS。
+- 核心目标是尽快让 LiMa、LiMa Code 和 ESP32/Device Gateway 形成实际生产力；
+  优先交付可运行、可验证、可回滚的切片，而不是长期停留在方案讨论。
+- VPS 验证可以覆盖 LiMa Server、LiMa Code worker、公开 HTTPS 路由、FRP/本地
+  代理路径、Redis/Postgres/WebSocket 会话路由、Device Gateway HA、ESP32 fake
+  或真机 smoke。
+- 涉及生产行为时仍必须保留安全边界：部署前备份，改动范围收敛，重启后跑
+  health/smoke，记录回滚位置、验证结果和残余风险。
+- 不为通过 smoke 而泄露密钥、放宽认证、扩大公网端口、绕过硬件 allowlist，
+  或把未审查的云/数据库/消息/硬件能力默认打开。
+
 ## 当前关键文档
 
 | 文档 | 内容 |
@@ -75,7 +89,7 @@ LiMa 当前不是商业化开放平台，而是个人编码助手后端。
 1. 更新或创建设计/计划文档
 2. 本地编码
 3. 本地测试
-4. 必要时部署到 VPS
+4. 必要时主动部署到 VPS 做代码验证或多端联调
 5. VPS 编译 + restart + health
 6. 公开接口 smoke
 7. 更新 STATUS / memory / progress

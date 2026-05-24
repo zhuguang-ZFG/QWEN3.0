@@ -2828,3 +2828,17 @@ Verification note:
     passed.
   - post-review `python -m pytest -q --ignore=active_model`:
     1193 passed, 8 skipped.
+
+## 2026-05-25 Project Global VPS Verification Constraint
+
+- Added root `AGENTS.md` as the project-level agent operating constraint file.
+- Recorded the user's standing permission for agents to proactively deploy to
+  the LiMa VPS when needed for code validation, multi-end joint debugging, and
+  faster production usefulness.
+- Kept explicit safety requirements:
+  - backup before replacing VPS runtime files;
+  - scoped deployment diffs;
+  - post-restart health/smoke checks;
+  - rollback and residual-risk evidence recorded in project docs;
+  - no secret exposure, auth weakening, public-port widening, or hardware
+    allowlist bypass just to make a smoke pass.
