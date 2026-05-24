@@ -21,6 +21,7 @@
 | `docs/REFERENCE_PROJECT_EVALUATION.md` | Active | Current evaluation of OpenRAG, Google Cloud always-on-memory-agent, TechSpar, and autonomy references against LiMa's real code state. |
 | `docs/ONLINE_DISTRIBUTIONS.md` | Active | Source of truth for VPS-hosted official website, open platform, chat interface, FRP endpoint, nginx edge, and service ownership. |
 | `docs/OPS_ENTRYPOINTS.md` | Compatibility record | Original FreeDomain-inspired ops-entrypoint plan file; points to `docs/ONLINE_DISTRIBUTIONS.md` as the expanded source of truth. |
+| `docs/LIMACODE_MANAGEMENT.md` | Active | Source of truth for LiMa Code submodule governance, pinned revision updates, and cross-repo verification. |
 | `docs/superpowers/plans/2026-05-23-agent-autonomy-evolution.md` | Active plan | Superpowers implementation plan for gated multi-agent autonomy, skill/gene evolution, and GitHub/VPS approval boundaries. |
 | `docs/superpowers/plans/2026-05-23-techspar-mastery-loop.md` | Active record | Implemented TechSpar-inspired local mastery loop for module mastery, weak-point extraction, review scheduling, recommendations, and promotion evidence gates. |
 | `docs/reference/TECHSPAR_BORROWING_NOTES.md` | Active boundary | Concept-borrowing record and license boundary for the local mastery loop. |
@@ -56,3 +57,4 @@ These files are retained as reference, but they are not the current execution di
 5. Stage only relevant files. The repo contains many local reference directories and temporary experiments.
 6. When reporting tests, distinguish LiMa target-suite results from unrestricted full-repo pytest collection.
 7. Treat VPS public surfaces as tracked LiMa distributions; update `docs/ONLINE_DISTRIBUTIONS.md`, `infra/vps/`, `STATUS.md`, `docs/LIMA_MEMORY.md`, and `progress.md` when they change.
+8. Treat `deepcode-cli` as the tracked LiMa Code submodule; update `docs/LIMACODE_MANAGEMENT.md`, `STATUS.md`, `docs/LIMA_MEMORY.md`, and `progress.md` when its pinned revision or Server/Worker contract changes.

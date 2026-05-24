@@ -1037,3 +1037,14 @@ Deployment: not performed.
   - `https://chat.donglicao.com/v1/chat/completions` returned exact `endpoints_closed_https_ok`;
   - `http://47.112.162.80:8088/v1/chat/completions` returned exact `endpoints_closed_frp_ok`;
   - `/agent/worker/preflight` returned `ready=true`, `contract_version=agent-task-v1`.
+
+## 2026-05-24 LiMa Code Main-Repo Management Closure
+
+- `deepcode-cli` is now a first-class main-repo managed component through a Git submodule.
+- Submodule remote: `https://github.com/zhuguang-ZFG/deepcode-cli.git`.
+- Pinned LiMa Code revision: `278a5f7` (`feat: add lima worker diagnostics`).
+- `docs/LIMACODE_MANAGEMENT.md` records ownership boundaries:
+  - LiMa Server owns routing, memory, backend health, task contracts, VPS deployment, and safety gates.
+  - LiMa Code owns terminal coding workflow, local tool execution, MCP client behavior, worker loops, local audit files, and CLI behavior.
+  - The main repo owns the pinned revision, integration records, cross-repo contract checks, and release/deploy evidence.
+- Future LiMa Code changes should be committed and pushed in `deepcode-cli` first, then the main repo should advance only the submodule pointer plus related docs/tests.

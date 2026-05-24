@@ -1081,3 +1081,9 @@ Verification note:
   - added `code_context/retriever.py` as the planned Potpie-inspired retrieval facade over `InMemoryCodeIndex`;
   - added `docs/OPS_ENTRYPOINTS.md` as the original FreeDomain-inspired ops entrypoint document, pointing to the expanded `docs/ONLINE_DISTRIBUTIONS.md` source of truth.
 - Added regression coverage that imports and uses `code_context.retriever.retrieve_relevant_files()`.
+
+## 2026-05-24 LiMa Code Main-Repo Management Closure
+
+- Registered `deepcode-cli` as the main repository's tracked LiMa Code submodule.
+- Added `docs/LIMACODE_MANAGEMENT.md` as the governance record for LiMa Code ownership boundaries, submodule pointer updates, verification, and safety rules.
+- Recorded LiMa Code as a first-class managed LiMa distribution in `STATUS.md` and `docs/DOCUMENTATION_STATUS.md`.

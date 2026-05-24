@@ -1,0 +1,3 @@
+[submodule "deepcode-cli"]
+	path = deepcode-cli
+	url = https://github.com/zhuguang-ZFG/deepcode-cli.git
