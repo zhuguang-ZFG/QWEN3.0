@@ -1176,3 +1176,21 @@ Verification note:
   - `python tools\validate_schemas.py`: `validated=62 passed=62 failed=0`.
 - Main repo advanced the `esp32S_XYZ` submodule pointer to `78a62c9` and added
   `LIMA_DEVICE_TOKENS` to `.env.example`.
+
+## 2026-05-24 Device Gateway Concurrency
+
+- User asked whether LiMa routing supports concurrency and multiple devices /
+  multiple requests at the same time.
+- Implemented explicit concurrency support for the Device Gateway:
+  - locked session registry;
+  - per-session async send lock;
+  - locked task store and task ID generation;
+  - per-device offline task queues;
+  - device `hello` flushes only that device's queued tasks;
+  - `/device/v1/tasks` sends immediately to online devices or records queued
+    state for offline devices;
+  - `/device/v1/health` reports total pending tasks.
+- Added `tests/test_device_gateway_concurrency.py`.
+- Verification:
+  - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_device_gateway_protocol.py tests\test_device_gateway_routes.py tests\test_device_gateway_concurrency.py -q --ignore=active_model`: 19 passed.
+  - `D:\GIT\venv\Scripts\python.exe -m py_compile routes\device_gateway.py device_gateway\sessions.py device_gateway\tasks.py`: passed.

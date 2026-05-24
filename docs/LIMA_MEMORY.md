@@ -1165,3 +1165,23 @@ Deployment: not performed.
   - `python -m unittest tools.fake_device_server.tests.test_app tools.fake_ai.tests.test_app tools.fake_u1.tests.test_app -v`: 31 passed;
   - `python tools\validate_schemas.py`: `validated=62 passed=62 failed=0`.
 - `.env.example` now documents `LIMA_DEVICE_TOKENS` for `/device/v1/ws` device auth.
+
+## 2026-05-24 Device Gateway Concurrency
+
+- The first Device Gateway implementation could be entered concurrently by
+  FastAPI/WebSocket, but its internal in-memory session/task state did not yet
+  have explicit concurrency guards or real offline queue semantics.
+- Implemented concurrency support:
+  - thread-safe session registry;
+  - per-WebSocket-session async send lock;
+  - thread-safe task store;
+  - unique task ID generation under lock;
+  - per-device pending task queues;
+  - `/device/v1/tasks` queues offline tasks and sends immediately to online
+    devices;
+  - successful `hello` flushes pending tasks for that device only;
+  - `/device/v1/health` reports `pending_tasks`.
+- Verification passed:
+  - `pytest tests\test_device_gateway_protocol.py tests\test_device_gateway_routes.py tests\test_device_gateway_concurrency.py -q --ignore=active_model`: 19 passed;
+  - `py_compile` for `routes\device_gateway.py`, `device_gateway\sessions.py`,
+    and `device_gateway\tasks.py`.

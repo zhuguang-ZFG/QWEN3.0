@@ -83,9 +83,51 @@ def test_tasks_endpoint_creates_queued_motion_task_without_active_session():
     data = response.json()
     assert data["status"] == "queued"
     assert data["sent"] is False
+    assert data["queue_depth"] == 1
     assert data["task"]["type"] == "motion_task"
     assert data["task"]["capability"] == "run_path"
     assert data["task"]["request_id"] == "req-task"
+
+
+def test_tasks_endpoint_flushes_queued_task_when_device_connects():
+    client = _client()
+    queued = client.post(
+        "/device/v1/tasks",
+        headers={"Authorization": "Bearer test-private-token"},
+        json={"device_id": "dev-1", "text": "写你好", "request_id": "req-queued"},
+    ).json()
+    assert queued["status"] == "queued"
+
+    with client.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
+        ws.send_json(
+            {
+                "type": "hello",
+                "protocol": "lima-device-v1",
+                "device_id": "dev-1",
+                "fw_rev": "u8-test",
+                "capabilities": ["run_path"],
+            }
+        )
+        assert ws.receive_json()["type"] == "hello_ack"
+        flushed_task = ws.receive_json()
+
+    assert flushed_task["type"] == "motion_task"
+    assert flushed_task["task_id"] == queued["task"]["task_id"]
+    assert flushed_task["request_id"] == "req-queued"
+
+
+def test_tasks_endpoint_keeps_device_queues_independent():
+    client = _client()
+    for device_id in ("dev-1", "dev-2", "dev-1"):
+        response = client.post(
+            "/device/v1/tasks",
+            headers={"Authorization": "Bearer test-private-token"},
+            json={"device_id": device_id, "text": "写你好"},
+        )
+        assert response.status_code == 200
+
+    health = client.get("/device/v1/health").json()
+    assert health["pending_tasks"] == 3
 
 
 def test_fake_u8_hello_heartbeat_transcript_motion_event_loop():

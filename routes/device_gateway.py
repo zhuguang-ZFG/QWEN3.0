@@ -17,7 +17,15 @@ from device_gateway.protocol import (
     validate_uplink,
 )
 from device_gateway.sessions import DeviceSession, registry
-from device_gateway.tasks import create_task_from_transcript, record_motion_event, reset_tasks_for_tests
+from device_gateway.tasks import (
+    create_task_from_transcript,
+    enqueue_pending_task,
+    mark_task_sent,
+    pending_count,
+    pop_pending_tasks,
+    record_motion_event,
+    reset_tasks_for_tests,
+)
 
 router = APIRouter(prefix="/device/v1")
 
@@ -28,6 +36,7 @@ async def device_gateway_health() -> dict[str, Any]:
         "status": "ok",
         "protocol": PROTOCOL_VERSION,
         "active_sessions": registry.count(),
+        "pending_tasks": pending_count(),
         "auth_configured": token_configured(),
     }
 
@@ -77,9 +86,13 @@ async def device_gateway_tasks(request: Request) -> JSONResponse:
     session = registry.get(device_id.strip())
     sent = False
     if session is not None:
-        await session.websocket.send_json(task)
+        await session.send_json(task)
+        mark_task_sent(task["task_id"])
         sent = True
-    return JSONResponse({"status": "sent" if sent else "queued", "sent": sent, "task": task})
+        queue_depth = pending_count(device_id.strip())
+    else:
+        queue_depth = enqueue_pending_task(device_id.strip(), task)
+    return JSONResponse({"status": "sent" if sent else "queued", "sent": sent, "queue_depth": queue_depth, "task": task})
 
 
 def _extract_ws_token(websocket: WebSocket) -> str:
@@ -122,20 +135,22 @@ async def device_ws(websocket: WebSocket) -> None:
                     await websocket.close(code=1008)
                     return
                 authenticated = True
-                previous = registry.register(
-                    DeviceSession(
-                        device_id=device_id,
-                        websocket=websocket,
-                        fw_rev=message.get("fw_rev", ""),
-                        capabilities=message.get("capabilities", []),
-                    )
+                session = DeviceSession(
+                    device_id=device_id,
+                    websocket=websocket,
+                    fw_rev=message.get("fw_rev", ""),
+                    capabilities=message.get("capabilities", []),
                 )
+                previous = registry.register(session)
                 if previous and previous.websocket is not websocket:
                     try:
                         await previous.websocket.close(code=1012)
                     except Exception:
                         pass
-                await websocket.send_json(hello_ack(device_id))
+                await session.send_json(hello_ack(device_id))
+                for pending_task in pop_pending_tasks(device_id):
+                    await session.send_json(pending_task)
+                    mark_task_sent(pending_task["task_id"])
                 continue
 
             if not authenticated or not device_id:
@@ -153,22 +168,31 @@ async def device_ws(websocket: WebSocket) -> None:
                 continue
 
             if msg_type == "heartbeat":
+                registry.update_heartbeat(device_id, message["uptime_ms"])
                 session = registry.get(device_id)
-                if session:
-                    session.last_uptime_ms = message["uptime_ms"]
-                await websocket.send_json(
+                sender = session.send_json if session is not None else websocket.send_json
+                await sender(
                     ack_frame("heartbeat_ack", device_id, uptime_ms=message["uptime_ms"], request_id=request_id)
                 )
             elif msg_type == "transcript":
                 task = create_task_from_transcript(device_id, message["text"], request_id=request_id)
-                await websocket.send_json(task)
+                session = registry.get(device_id)
+                sender = session.send_json if session is not None else websocket.send_json
+                await sender(task)
+                mark_task_sent(task["task_id"])
             elif msg_type == "motion_event":
                 summary = record_motion_event(message)
-                await websocket.send_json(ack_frame("motion_event_ack", device_id, **summary, request_id=request_id))
+                session = registry.get(device_id)
+                sender = session.send_json if session is not None else websocket.send_json
+                await sender(ack_frame("motion_event_ack", device_id, **summary, request_id=request_id))
             elif msg_type == "device_info":
-                await websocket.send_json(ack_frame("device_info_ack", device_id, request_id=request_id))
+                session = registry.get(device_id)
+                sender = session.send_json if session is not None else websocket.send_json
+                await sender(ack_frame("device_info_ack", device_id, request_id=request_id))
             elif msg_type == "self_check":
-                await websocket.send_json(
+                session = registry.get(device_id)
+                sender = session.send_json if session is not None else websocket.send_json
+                await sender(
                     ack_frame("self_check_ack", device_id, status=message.get("status", "unknown"), request_id=request_id)
                 )
     except WebSocketDisconnect:

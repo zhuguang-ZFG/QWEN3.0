@@ -420,6 +420,30 @@ D:\GIT\venv\Scripts\python.exe -m pytest tests\test_device_gateway_protocol.py t
 
 Result: 15 passed.
 
+### 2026-05-24 Concurrency And Multi-Device Slice
+
+Implemented in the main LiMa repo:
+
+- `device_gateway/sessions.py`: thread-safe session registry plus per-session
+  async send lock so concurrent HTTP task injection and WebSocket responses do
+  not write to the same device socket at the same time.
+- `device_gateway/tasks.py`: thread-safe task store, deterministic unique task
+  IDs, per-device pending queues, task sent/queued state updates, and queue
+  counters.
+- `routes/device_gateway.py`: `/device/v1/tasks` now truly queues tasks when a
+  device is offline and flushes that device's pending tasks after successful
+  `hello`.
+- `/device/v1/health` now reports aggregate pending task count.
+
+Verification:
+
+```powershell
+cd D:\GIT
+D:\GIT\venv\Scripts\python.exe -m pytest tests\test_device_gateway_protocol.py tests\test_device_gateway_routes.py tests\test_device_gateway_concurrency.py -q --ignore=active_model
+```
+
+Result: 19 passed.
+
 ### 2026-05-24 Product Fake LiMa U8 Slice
 
 Implemented in `esp32S_XYZ`:
