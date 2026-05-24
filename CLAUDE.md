@@ -139,3 +139,33 @@ D:/GIT/
 | `docs/LOCAL_MODEL_DESIGN.md` | 本地模型 | ⚠️ 实现偏移(Ollama) |
 | `STATUS.md` | 项目状态追踪 | — |
 | `docs/EXECUTION_PLAN.md` | 执行计划(本文档) | 📋 当前 |
+
+## Milestone Collaboration Protocol
+
+This project uses a two-role milestone loop:
+
+1. Owner writes the implementation for the next milestone slice.
+2. Agent reviews the submitted summary and code before any next milestone starts.
+3. Agent fixes review findings when they are small and clearly scoped.
+4. Agent runs focused tests, compile checks, ASCII/secret-safety scans where relevant, `git diff --check`, and the full test suite when production code changed.
+5. Agent updates `progress.md` and `findings.md` with the closeout, including test evidence and any residual risks.
+6. Agent stages only milestone-related files, never unrelated local data or reference repositories.
+7. Agent commits with a concise conventional-style message and pushes the current branch to GitHub.
+8. Only after that push does the agent propose the next milestone plan.
+
+Hard rules for this loop:
+
+- Do not skip the review-closeout step, even if the owner reports tests passed.
+- Do not auto-stage broad directories when the worktree contains unrelated untracked files.
+- Do not upload local databases, fixtures, credentials, reference repos, generated caches, or scratch scripts unless explicitly requested.
+- New network, cloud, provider, shell, deployment, or hardware behavior must be default-off unless explicitly approved.
+- Generated plans and patch plans are review artifacts; they must not auto-edit production routing or deployment files.
+- No completion claim without fresh verification evidence from this session.
+- If a focused test is expanded during review, report the new count and the full-suite count in the closeout.
+
+Default handoff shape:
+
+```text
+User: implements milestone and posts summary.
+Agent: review -> fix -> focused tests -> full tests -> docs/findings -> commit -> push -> next plan.
+```
