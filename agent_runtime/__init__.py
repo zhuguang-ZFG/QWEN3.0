@@ -17,6 +17,12 @@ from agent_runtime.events import (
     make_audit_ref,
 )
 from agent_runtime.executor import AgentRuntime, RuntimeHooks
+from agent_runtime.orchestrator import (
+    AgentRunLease,
+    AgentRunQueue,
+    AgentRunRequest,
+    QueueStatus,
+)
 from agent_runtime.planner import plan_task
 from agent_runtime.resume import (
     ResumeState,
@@ -44,6 +50,9 @@ from agent_runtime.tool_policy import (
 
 __all__ = [
     "AgentRunResult",
+    "AgentRunLease",
+    "AgentRunQueue",
+    "AgentRunRequest",
     "AgentRunStatus",
     "AgentRunStore",
     "AgentRuntime",
@@ -51,6 +60,7 @@ __all__ = [
     "AgentTask",
     "InMemoryAgentRunStore",
     "JsonlAgentRunStore",
+    "QueueStatus",
     "ResumeState",
     "RuntimeHooks",
     "StepKind",

@@ -2421,3 +2421,36 @@ Verification note:
     no matches.
   - `python -m pytest -q --ignore=active_model`:
     971 passed, 8 skipped.
+
+## 2026-05-24 M19 Agent Run Orchestrator Closeout
+
+- Reviewed and closed M19:
+  - `agent_runtime.orchestrator` defines queue requests, leases, queue status,
+    and a local in-memory orchestrator over the M18 store;
+  - lifecycle operations cover submit/list/claim/finish/retry/run-one,
+    lease expiry, stats, and store recovery;
+  - `agent_runtime.__init__` exports the orchestrator types for package users.
+- Review fixes applied:
+  - source/test files were cleaned to ASCII comments and docstrings;
+  - direct `run_one()` now first establishes a local lease so it does not bypass
+    the claim lifecycle;
+  - expired claims can be reclaimed without requiring a separate manual expiry
+    call;
+  - `finish()` rejects mismatched task ids and late terminal overwrites;
+  - finishing a request updates the stored task status as well as the result,
+    preventing completed work from being recovered as pending;
+  - blocked results map to `WAITING_APPROVAL` in the stored task and are not
+    auto-retried;
+  - store recovery skips completed, failed, cancelled, waiting-approval, and
+    latest terminal/blocked result records;
+  - event bridging now uses the safe M17 event helpers and cannot break queue
+    operations if observability/streaming sinks fail.
+- Verification:
+  - `python -m pytest tests/test_agent_orchestrator.py tests/test_agent_store.py tests/test_agent_runtime.py -q --ignore=active_model`:
+    91 passed after review fixes.
+  - `python -m py_compile agent_runtime/orchestrator.py agent_runtime/__init__.py tests/test_agent_orchestrator.py`:
+    passed.
+  - `rg -n "[^\\x00-\\x7F]" agent_runtime tests/test_agent_orchestrator.py tests/test_agent_store.py tests/test_agent_runtime.py`:
+    no matches.
+  - `python -m pytest -q --ignore=active_model`:
+    997 passed, 8 skipped.
