@@ -64,11 +64,12 @@ Paused work:
   - `key_pool.pool_snapshot()` exposes redacted active/cooled/blocked telemetry for provider pools.
   - Verification passed: endpoint/key-pool focused suite `62 passed`; expanded runtime regression `128 passed`; remote compile/import passed.
   - Public smokes passed: HTTPS exact `endpoints_closed_https_ok`; FRP exact `endpoints_closed_frp_ok`; worker preflight `ready=true`.
-- Mastery-loop closure is implemented locally:
+- Mastery-loop closure is deployed on VPS after backup `/opt/lima-router/backups/mastery-loop-20260524-125511`:
   - `mastery_loop/` contains typed models, SQLite-backed storage, event adapters, scoring, weak-point extraction, scheduling, recommendations, and traces.
   - `agent_evolution.promote_candidate()` requires eval pass, manual approval, and non-empty mastery evidence refs.
   - `/agent/skills/{skill_id}/promote` enforces the same evidence gate.
-  - Focused regression currently covers mastery storage/adapters/scoring/recommendations and route-level promotion behavior.
+  - Focused regression covers mastery storage/adapters/scoring/recommendations and route-level promotion behavior.
+  - Remote `py_compile` and import smoke passed; public smokes passed: HTTPS exact `mastery_loop_https_ok`; FRP exact `mastery_loop_frp_ok`; worker preflight `ready=true`.
 - FRP `8088` is closed-loop again after hardening local Windows router startup:
   - local `8080` chat returned exact `lima-final-local-ok`;
   - public FRP `8088` chat returned exact `lima-final-frp-ok`;

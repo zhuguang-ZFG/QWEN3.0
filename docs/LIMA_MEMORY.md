@@ -183,6 +183,7 @@ Recent backups:
 - `/opt/lima-router/backups/context-preflight-20260522_183133`
 - `/opt/lima-router/backups/context-preflight-sync-20260522_183423`
 - `/opt/lima-router/backups/free-model-routing-20260522_184556`
+- `/opt/lima-router/backups/mastery-loop-20260524-125511`
 
 Restart caveat:
 
@@ -202,6 +203,15 @@ Latest free-model routing deployment:
 - VPS `/health`: 200.
 - Public coding smoke: 200 in 4585ms.
 - Public Anthropic tool smoke: 200 in 672ms with `stop_reason=tool_use`.
+
+Latest mastery-loop deployment:
+
+- Runtime commit: `bd0bf04` (`feat: add mastery loop evidence gates`).
+- Remote `py_compile` and import smoke passed for `mastery_loop`, `agent_evolution`, and `routes.agent_tasks`.
+- VPS `/health`: 200 with `agent_tasks=true`.
+- Public HTTPS chat returned exact `mastery_loop_https_ok`.
+- Public FRP chat returned exact `mastery_loop_frp_ok`.
+- Worker preflight returned `ready=true`, `contract_version=agent-task-v1`.
 
 Latest SCNet first-tier deployment:
 

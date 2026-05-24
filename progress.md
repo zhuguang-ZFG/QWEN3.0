@@ -1035,3 +1035,15 @@ Verification note:
   - Kimi/TheOldLLM/MiMo/page-only promotion;
   - refresh execution;
   - mastery admin UI exposure and hot-path planner/routing influence.
+- GitHub:
+  - committed and pushed `bd0bf04` (`feat: add mastery loop evidence gates`) to `origin/codex/free-web-ai-probe`.
+- VPS deployment:
+  - backup `/opt/lima-router/backups/mastery-loop-20260524-125511`;
+  - uploaded `mastery_loop/`, `agent_evolution/candidates.py`, `agent_evolution/promote.py`, and `routes/agent_tasks.py`;
+  - remote `py_compile` and import smoke passed;
+  - `systemctl restart lima-router` returned active.
+- Public smokes after deployment:
+  - `/health` returned `status=ok`;
+  - HTTPS chat returned exact `mastery_loop_https_ok`;
+  - FRP chat returned exact `mastery_loop_frp_ok`;
+  - `/agent/worker/preflight` returned `ready=true`, `contract_version=agent-task-v1`.

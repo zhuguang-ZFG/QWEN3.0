@@ -26,7 +26,7 @@
 ## 2026-05-24 Deployment And Closure Update
 
 - VPS main router is deployed from branch `codex/free-web-ai-probe`.
-- Latest deployed runtime commit: `d10ed57` (`refactor: extract chat endpoints and key pool telemetry`).
+- Latest deployed runtime commit: `bd0bf04` (`feat: add mastery loop evidence gates`).
 - VPS backups from the Server/Worker sync:
   - `/opt/lima-router/backups/agent-worker-sync-20260524_104836`
   - `/opt/lima-router/backups/runtime-deps-sync-20260524_105115`
@@ -35,6 +35,7 @@
   - `/opt/lima-router/backups/chat-request-utils-20260524_114403`
   - `/opt/lima-router/backups/backend-registry-keypool-20260524-120642`
   - `/opt/lima-router/backups/endpoints-keypool-closed-20260524-123145`
+  - `/opt/lima-router/backups/mastery-loop-20260524-125511`
 - VPS `lima-router` restarted active; `/health` reports modules `mcp`, `agent_tasks`, and `telegram`.
 - Public HTTPS smoke passed:
   - `https://chat.donglicao.com/v1/chat/completions` returned exact `lima-postdeploy-ok`.
@@ -43,9 +44,11 @@
   - after the chat request helper extraction deploy, `https://chat.donglicao.com/v1/chat/completions` returned exact `request_utils_https_ok`.
   - after the backend registry/key-pool deploy, `https://chat.donglicao.com/v1/chat/completions` returned exact `backend_registry_https_ok`.
   - after the endpoint/key-pool closure deploy, `https://chat.donglicao.com/v1/chat/completions` returned exact `endpoints_closed_https_ok`.
+  - after the mastery-loop closure deploy, `https://chat.donglicao.com/v1/chat/completions` returned exact `mastery_loop_https_ok`.
   - `/agent/worker/preflight` returned `contract_version=agent-task-v1`.
   - after the chat model extraction deploy, `/agent/worker/preflight` returned `ready=true`, `contract_version=agent-task-v1`, latest task `cfcd3f2b`.
   - after the backend registry/key-pool deploy, `/agent/worker/preflight` returned `ready=true`, `contract_version=agent-task-v1`.
+  - after the mastery-loop closure deploy, `/agent/worker/preflight` returned `ready=true`, `contract_version=agent-task-v1`.
 - Real Server/Worker smoke passed:
   - Server task `cfcd3f2b` was created by `/agent/worker/smoke-task`.
   - `D:\GIT\deepcode-cli` executed `/lima task cfcd3f2b`.
@@ -61,6 +64,7 @@
   - after the chat model extraction deploy, `http://47.112.162.80:8088/v1/chat/completions` returned exact `lima-chat-models-frp-ok`.
   - after the chat request helper extraction deploy, `http://47.112.162.80:8088/v1/chat/completions` returned exact `request_utils_frp_ok`.
   - after the endpoint/key-pool closure deploy, `http://47.112.162.80:8088/v1/chat/completions` returned exact `endpoints_closed_frp_ok`.
+  - after the mastery-loop closure deploy, `http://47.112.162.80:8088/v1/chat/completions` returned exact `mastery_loop_frp_ok`.
 - Backend registry/key-pool closure:
   - `backends.py` now owns shared proxy/capability sets and helper predicates used by `smart_router.py` and `context_pipeline/reflection.py`.
   - `http_caller.py` now selects provider keys through `key_pool.py`, bootstraps pools from `LIMA_KEY_POOL_<PROVIDER>`, and reports success/failure back to the pool.
@@ -72,6 +76,10 @@
   - `server.py` is reduced to app setup plus core runtime helpers; it no longer declares direct business endpoint decorators.
   - `key_pool.pool_snapshot()` now gives redacted active/cooled/blocked provider telemetry without exposing raw keys.
   - Local verification passed: endpoint/key-pool focused suite `62 passed`; expanded runtime regression `128 passed`; remote `py_compile` and import smoke passed.
+- Mastery-loop closure:
+  - `mastery_loop/` is deployed on VPS with typed records, SQLite store, event adapters, scoring, weak-point extraction, scheduling, recommendations, and traces.
+  - `agent_evolution` and `/agent/skills/{skill_id}/promote` require eval pass, manual approval, and mastery evidence refs before activation.
+  - Local verification passed: focused mastery/evolution/route suite `40 passed`; expanded runtime regression `144 passed`; remote `py_compile` and import smoke passed.
 
 Current known remaining planning items:
 
