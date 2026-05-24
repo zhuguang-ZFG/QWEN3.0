@@ -21,14 +21,14 @@
 | `docs/REFERENCE_PROJECT_EVALUATION.md` | Active | Current evaluation of OpenRAG, Google Cloud always-on-memory-agent, TechSpar, and autonomy references against LiMa's real code state. |
 | `docs/ONLINE_DISTRIBUTIONS.md` | Active | Source of truth for VPS-hosted official website, open platform, chat interface, FRP endpoint, nginx edge, and service ownership. |
 | `docs/OPS_ENTRYPOINTS.md` | Compatibility record | Original FreeDomain-inspired ops-entrypoint plan file; points to `docs/ONLINE_DISTRIBUTIONS.md` as the expanded source of truth. |
-| `docs/LIMACODE_MANAGEMENT.md` | Active | Source of truth for LiMa Code submodule governance, pinned revision updates, and cross-repo verification. |
+| `docs/LIMACODE_MANAGEMENT.md` | Active | Source of truth for LiMa Code submodule governance, pinned revision updates, cross-repo verification, and admitted external workflow references. |
 | `docs/ESP32S_XYZ_MANAGEMENT.md` | Active | Source of truth for esp32S_XYZ submodule governance, LiMa backend boundaries, and cross-repo product verification. |
 | `docs/ESP32S_XYZ_OPTIMIZATION_ROADMAP.md` | Active | Optimization and refactor mandate for LiMa-led esp32S_XYZ improvement work. |
 | `docs/superpowers/plans/2026-05-24-lima-direct-device-gateway.md` | Active plan | Direct U8-to-LiMa Device Gateway plan; current code supports single-process multi-device concurrency with memory store, while VPS HA requires a shared store and WebSocket ownership strategy. |
 | `docs/superpowers/plans/2026-05-24-xiaozhi-server-deprecation-removal.md` | Active plan | Gated deprecation, migration, quarantine, and eventual removal plan for Xiaozhi server runtime. |
-| `docs/reference/HARDWARE_COMPANION_REFERENCES.md` | Active boundary | External voice/display/companion hardware references admitted for later LiMa Device Gateway roadmap work. |
-| `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md` | Active boundary | User-provided external reference projects mapped to LiMa capabilities, target repos, license boundaries, and priorities. |
-| `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md` | Active plan | Staged adoption plan for external code-intelligence, memory, agent, sandbox, research, persona, and hardware-companion capabilities. |
+| `docs/reference/HARDWARE_COMPANION_REFERENCES.md` | Active boundary | External voice/display/OCR/TTS/robotics/world-model companion hardware references admitted for later LiMa Device Gateway roadmap work. |
+| `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md` | Active boundary | User-provided external reference projects mapped to LiMa capabilities, target repos, license boundaries, and priorities; expanded with the second reference batch. |
+| `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md` | Active plan | Staged adoption plan for external code-intelligence, memory, agent, governance, sandbox, research, OCR/TTS, persona, and hardware-companion capabilities. |
 | `docs/superpowers/plans/2026-05-23-agent-autonomy-evolution.md` | Active plan | Superpowers implementation plan for gated multi-agent autonomy, skill/gene evolution, and GitHub/VPS approval boundaries. |
 | `docs/superpowers/plans/2026-05-23-techspar-mastery-loop.md` | Active record | Implemented TechSpar-inspired local mastery loop for module mastery, weak-point extraction, review scheduling, recommendations, and promotion evidence gates. |
 | `docs/reference/TECHSPAR_BORROWING_NOTES.md` | Active boundary | Concept-borrowing record and license boundary for the local mastery loop. |

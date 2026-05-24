@@ -70,3 +70,23 @@ creation, audit expectations, model routing policy, and deployment records.
 
 Always-on worker behavior remains gated by repo allowlist, worker budget, stop
 marker, local audit, failure quarantine, and manual production approval.
+
+## External Workflow References
+
+These external projects are admitted as LiMa Code workflow references, not as
+runtime dependencies:
+
+- `can1357/oh-my-pi`: IDE-wired coding-agent UX, LSP/debug/tool harness, status
+  panels, and local worker ergonomics.
+- `openai/symphony`: isolated implementation runs, proof-of-work bundles, CI/PR
+  evidence, and board-driven orchestration.
+- `addyosmani/agent-skills`: engineering skill packaging, slash-command
+  lifecycle, and explicit quality gates.
+- `wjn1996/HeavySkill`: opt-in heavy reasoning/evaluation pattern for hard
+  planning or review tasks after license review.
+- `Lum1104/Understand-Anything` and `zilliztech/claude-context`: semantic code
+  search, graph context, and MCP packaging ideas for local coding sessions.
+- `aattaran/deepclaude`: Anthropic-compatible backend-swap UX reference only.
+
+Any adoption must preserve LiMa Server's backend admission, provider key
+custody, repo allowlist, audit, review gates, and push/deploy approval rules.

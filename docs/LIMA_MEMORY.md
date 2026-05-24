@@ -1214,3 +1214,25 @@ Deployment: not performed.
     the deployment path for VPS HA.
 - Verification passed:
   - `pytest tests\test_device_gateway_protocol.py tests\test_device_gateway_routes.py tests\test_device_gateway_concurrency.py tests\test_device_gateway_store.py -q --ignore=active_model`: 28 passed.
+
+## 2026-05-24 External Capability Radar Expansion
+
+- User provided a second external reference batch including AnySearch Skill,
+  oh-my-pi, Microsoft Agent Governance Toolkit, vibe-vibe, CloakBrowser,
+  GR00T-WholeBodyControl, pocket-tts, OpenAI Symphony, Algebrica, GLM-OCR,
+  nano-world-model, agent-skills, HeavySkill, Understand-Anything,
+  deepclaude, and claude-context.
+- Updated source-of-truth documents:
+  - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
+  - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
+  - `docs/reference/HARDWARE_COMPANION_REFERENCES.md`;
+  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
+  - `docs/reference/POTPIE_COMPOSIO_BORROWING_NOTES.md`.
+- Current policy:
+  - treat all new projects as capability references, not runtime dependencies;
+  - keep no-license, CC BY-NC, GPL/AGPL, model-weight, browser automation,
+    voice/persona, OCR/document, and robotics references behind separate
+    license/security/privacy/safety reviews;
+  - keep writing-machine direct control as the first hardware target before
+    OCR, TTS, world-model, robotics, or companion-device expansion.

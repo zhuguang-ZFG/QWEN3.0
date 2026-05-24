@@ -7,6 +7,16 @@
 - GenericAgent-style layered memory and candidate skill extraction after verified task success.
 - EvoMap-style gated promotion: candidates remain inactive until evaluation, manual approval, and evidence exist.
 - Agency-agents-style role separation: planner, coder, reviewer, tester, and memory/evolution responsibilities stay distinct.
+- Microsoft Agent Governance Toolkit-style governance metadata: risk class,
+  allowed actions, policy trace, human approval requirement, and audit
+  evidence.
+- OpenAI Symphony-style isolated implementation runs and proof bundles, kept
+  behind LiMa's existing Server/Worker approval gates.
+- agent-skills and HeavySkill-style explicit workflow skills, quality gates,
+  and opt-in deep reasoning for hard tasks.
+- oh-my-pi-style local IDE/tool harness ergonomics for LiMa Code.
+- deepclaude-style backend proxy ergonomics as a UX reference only, never as a
+  bypass around LiMa provider admission or key custody.
 
 ## Rejected Concepts
 
@@ -15,6 +25,9 @@
 - External worker pools.
 - Dynamic package installation as a default behavior.
 - Large persona-agent libraries before trace and approval gates are mature.
+- Hidden autonomous model/provider swaps outside LiMa's routing registry.
+- Skill packs that can change tool permissions, deployment behavior, or
+  hardware access without explicit review.
 
 ## LiMa Implementation
 

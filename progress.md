@@ -1228,3 +1228,31 @@ Verification note:
     owner/broker before non-sticky multi-node traffic.
 - Verification:
   - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_device_gateway_protocol.py tests\test_device_gateway_routes.py tests\test_device_gateway_concurrency.py tests\test_device_gateway_store.py -q --ignore=active_model`: 28 passed.
+
+## 2026-05-24 External Capability Radar Expansion
+
+- User provided a second external-reference batch:
+  - AnySearch Skill, oh-my-pi, Microsoft Agent Governance Toolkit, vibe-vibe,
+    CloakBrowser, GR00T-WholeBodyControl, pocket-tts, OpenAI Symphony,
+    Algebrica, GLM-OCR, nano-world-model, agent-skills, HeavySkill,
+    Understand-Anything, deepclaude, and claude-context.
+- Performed current-source scan:
+  - GitHub API metadata succeeded for most original projects and several new
+    projects;
+  - raw README/license fetch filled in projects that hit GitHub API `403`;
+  - confirmed examples: Microsoft Agent Governance Toolkit MIT, OpenAI
+    Symphony Apache-2.0, CloakBrowser MIT, GLM-OCR Apache-2.0, pocket-tts
+    MIT-style license text, GR00T source Apache-2.0 with NVIDIA Open Model
+    License weights, Algebrica CC BY-NC 4.0 content.
+- Updated:
+  - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
+  - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
+  - `docs/reference/HARDWARE_COMPANION_REFERENCES.md`;
+  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
+  - `docs/reference/POTPIE_COMPOSIO_BORROWING_NOTES.md`;
+  - `STATUS.md`, `docs/DOCUMENTATION_STATUS.md`, and `docs/LIMA_MEMORY.md`.
+- Boundary retained:
+  - no runtime dependency added;
+  - no source code copied;
+  - no hardware or model claim expanded beyond documented gates.

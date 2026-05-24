@@ -11,6 +11,13 @@ Use the reference projects as a capability radar for LiMa without turning the
 main repo into a dependency dump. Each borrowed idea must land through a small
 LiMa-native interface, tests, documentation, and a clear license boundary.
 
+The 2026-05-24 expansion added AnySearch Skill, oh-my-pi, Microsoft Agent
+Governance Toolkit, vibe-vibe, CloakBrowser, GR00T-WholeBodyControl,
+pocket-tts, OpenAI Symphony, Algebrica, GLM-OCR, nano-world-model,
+agent-skills, HeavySkill, Understand-Anything, deepclaude, and claude-context
+to the radar. Duplicate Pyrefly and PersonaPlex entries remain de-duplicated in
+the source inventory.
+
 Primary source inventory:
 
 - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`
@@ -58,6 +65,8 @@ References:
 - graphify
 - GitNexus
 - gitreverse
+- Understand-Anything
+- claude-context
 
 Main repo plan:
 
@@ -68,6 +77,9 @@ Main repo plan:
   choosing any backend implementation.
 - Add repo-to-spec extraction as a read-only tool for onboarding external repos
   and product submodules.
+- Evaluate semantic/MCP code-search packaging from claude-context and
+  interactive graph UX from Understand-Anything against LiMa's existing
+  `code_context` boundaries.
 
 LiMa Code plan:
 
@@ -116,11 +128,16 @@ Exit criteria:
 References:
 
 - open-agents
+- OpenAI Symphony
 - PraisonAI
 - agency-agents
 - goclaw
 - oh-my-codex
+- oh-my-pi
 - clawsweeper
+- agent-skills
+- HeavySkill
+- deepclaude
 
 Main repo plan:
 
@@ -128,6 +145,13 @@ Main repo plan:
 - Add role templates only as data, not as unrestricted autonomous workers.
 - Add issue/plan hygiene checks that recommend stale-item closure, never close
   automatically without a recorded approval rule.
+- Borrow Symphony-style isolated work runs and proof bundles only behind LiMa's
+  existing approval, CI, review, audit, and push gates.
+- Borrow agent-skills / HeavySkill only as opt-in workflow prompts or eval
+  patterns; do not make them hidden default reasoning paths.
+- Treat deepclaude-style provider swapping as a UX reference only; LiMa must
+  keep provider key custody, backend admission, and routing policy in the main
+  backend registry.
 
 LiMa Code plan:
 
@@ -147,6 +171,8 @@ References:
 
 - CubeSandbox
 - browser-harness
+- Microsoft Agent Governance Toolkit
+- CloakBrowser
 
 Main repo plan:
 
@@ -154,6 +180,12 @@ Main repo plan:
   worker execution and untrusted repo experiments.
 - Add a browser-harness-inspired verification layer for official website, open
   platform, chat UI, and local web tools.
+- Add governance metadata inspired by Microsoft Agent Governance Toolkit:
+  risk class, allowed actions, human-approval requirement, evidence refs, and
+  rollback owner for each autonomous work item.
+- Evaluate CloakBrowser only in isolated browser-verification experiments.
+  Anti-detection or scraping-like capabilities require terms-of-service,
+  privacy, and target-site policy review before use.
 
 LiMa Code plan:
 
@@ -173,9 +205,12 @@ References:
 - ml-intern
 - OmniScientist
 - Feynman
+- AnySearch Skill
 - TrendRadar
 - Youdao Baoku
 - Flipbook
+- Algebrica
+- GLM-OCR
 
 Main repo plan:
 
@@ -184,6 +219,12 @@ Main repo plan:
 - Add trend-monitor adapters behind provider and source allowlists.
 - Add document-to-brief/PPT/mind-map planning only after local document
   ingestion boundaries are reviewed.
+- Use AnySearch as a search-skill boundary reference for opt-in web search,
+  batch search, vertical search, and full-page extraction with redaction.
+- Use GLM-OCR as a document/OCR provider reference after file-ingestion privacy,
+  model/API terms, and resource budgets are reviewed.
+- Treat Algebrica as a non-commercial structured-knowledge/content reference,
+  not as copyable training or runtime content.
 
 LiMa Code plan:
 
@@ -205,9 +246,12 @@ References:
 - WeClone
 - ElatoAI
 - PersonaPlex
+- pocket-tts
 - Feynman
 - Flipbook
 - Youdao Baoku
+- GR00T-WholeBodyControl
+- nano-world-model
 
 Main repo plan:
 
@@ -217,14 +261,22 @@ Main repo plan:
   review.
 - Evaluate realtime speech-to-speech persona models only behind explicit
   model-license, GPU/latency, privacy, safety, and opt-in recording gates.
+- Evaluate pocket-tts as a local/offline TTS provider candidate for voice
+  confirmation after latency, CPU, voice-license, and consent gates pass.
+- Keep GR00T-WholeBodyControl and nano-world-model in the research/simulation
+  lane. They may inspire robotics safety layering, simulation, and planning
+  gates, but they must not bypass the writing-machine `run_path` allowlist or
+  real-hardware smoke gates.
 - Extend the Device Gateway only after writing-machine direct control passes
   fake U8 and real U8/U1 gates.
 
 `esp32S_XYZ` plan:
 
 - Finish writing-machine control first.
-- Add voice and display device classes as separate protocol families:
-  `audio_stream`, `speech`, `display_task`, `ui_state`.
+- Add voice, display, OCR, and camera/device-perception classes as separate
+  protocol families:
+  `audio_stream`, `speech`, `display_task`, `ui_state`, `ocr_result`,
+  `vision_observation`.
 - Keep realtime persona speech as a backend model capability, not as firmware
   logic.
 - Keep motion, voice, and display on separate allowlists.
@@ -249,7 +301,9 @@ Recommended first slice after this plan is accepted:
    hygiene tests.
 4. Add browser verification plan entries for VPS website, open platform, and
    chat UI.
-5. Defer agent-runtime and hardware-companion implementation until these
+5. Add governance metadata fields to agent tasks before expanding autonomous
+   work loops.
+6. Defer agent-runtime and hardware-companion implementation until these
    foundations are stable.
 
 ## Verification

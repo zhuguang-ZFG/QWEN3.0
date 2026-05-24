@@ -34,11 +34,17 @@ Borrow:
 - Domain-scoped and batch search adapter boundary.
 - URL extraction behind a safety guard.
 - Optional API key handling with injectable transport for tests.
+- Skill-style packaging for search capabilities, while keeping LiMa's
+  redaction and opt-in search policy in control.
 
 Do not borrow directly:
 - External search as a default step for ordinary chat or code requests.
 - Sending private repository paths, tokens, prompts, or local IPs to an external transport.
 - A hard dependency on any single hosted search provider.
+
+Cross-reference:
+- The main external capability inventory is
+  `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`.
 
 ## FreeDomain
 
