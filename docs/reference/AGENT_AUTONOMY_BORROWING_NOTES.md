@@ -75,6 +75,9 @@
 - RuView-style hardware witness logs, ADR-backed firmware claims,
   edge-sensing workflow plugins, and Home Assistant/Matter integration posture
   as evidence and UX references for later device work.
+- quelmap-style local data-analysis workflows: upload-to-table, joins,
+  charts, statistical tests, provider settings, and Python sandbox UX as
+  references for bounded analysis tools.
 
 ## Coordination Rule
 
@@ -136,6 +139,9 @@
   vital-sign trends, fall/distress detection, room mapping, or security/medical
   automations without consent, privacy/legal review, calibrated hardware
   evidence, false-positive policy, retention controls, and human review.
+- Running quelmap-style Python analysis, external database queries, or cloud
+  LLM data/schema analysis without dataset consent, redaction, read-only DB
+  credentials, sandbox limits, retention policy, and approval.
 - Copying Feishu-hosted methodology text or structure without reuse rights.
 - Copying AGPL swarm/simulation systems or allowing prediction reports to
   trigger real production, finance, messaging, or hardware actions.

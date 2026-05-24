@@ -645,3 +645,17 @@ Latest external capability radar hardware perception addendum:
   trends, fall/distress detection, room mapping, and security/medical outputs
   remain default-off behind consent, privacy/legal review, calibrated hardware
   evidence, false-positive policy, retention controls, and human review.
+
+Latest external capability radar local data analysis addendum:
+
+- Added `quelmap-inc/quelmap` to the external capability radar, LiMa Code
+  management notes, autonomy borrowing notes, roadmap, memory, and progress
+  logs.
+- Quelmap is Apache-2.0 and is useful as a local data-analysis assistant
+  reference: CSV/Excel/SQLite upload, table conversion, joins, visualization,
+  statistical tests, Docker Compose packaging, local/Ollama defaults,
+  OpenAI-compatible provider settings, Postgres storage, and Python sandbox UX.
+- It is not a runtime dependency. Dataset contents/schema, generated Python,
+  external database connections, and cloud LLM provider use remain gated by
+  consent, redaction, read-only credentials, sandbox limits, data retention,
+  and audit.

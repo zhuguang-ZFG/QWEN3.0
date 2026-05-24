@@ -1541,3 +1541,31 @@ Deployment: not performed.
     security/medical outputs require consent, privacy/legal review, calibrated
     hardware evidence, false-positive policy, data-retention controls, and
     human review before any LiMa adapter.
+
+## 2026-05-24 External Capability Radar Quelmap Addendum
+
+- User provided `https://github.com/quelmap-inc/quelmap.git`.
+- Current-source check:
+  - `quelmap-inc/quelmap`: Apache-2.0; README describes an open-source local
+    data analysis assistant with data visualization, table joins, statistical
+    tests, unlimited-row/30+ table analysis posture, built-in Python sandbox,
+    Ollama/local LLM defaults, OpenAI-compatible providers, Docker Compose,
+    Postgres storage, and CSV/Excel/SQLite upload support.
+  - README privacy warning matters for LiMa: if a provider such as OpenAI or
+    Groq is configured, dataset schema is sent to that provider. External DB
+    connection strings should use read-only credentials.
+- Updated:
+  - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
+  - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
+  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
+  - `STATUS.md`;
+  - `docs/LIMA_MEMORY.md`.
+- Boundary retained:
+  - no runtime dependency added;
+  - no external code or prompt text copied;
+  - Quelmap is a data-analysis workbench reference, not a default LiMa
+    dependency;
+  - dataset contents/schema, generated Python, external database connections,
+    and cloud LLM provider calls require consent, redaction, read-only
+    credentials, sandbox limits, data retention, and audit.

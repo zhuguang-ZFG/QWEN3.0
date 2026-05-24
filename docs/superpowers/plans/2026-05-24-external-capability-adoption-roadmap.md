@@ -57,6 +57,13 @@ room mapping, Home Assistant/Matter automation, and security/medical uses stay
 default-off until consent, privacy/legal, hardware-calibration, false-positive,
 retention, and real-device validation gates exist.
 
+The quelmap addendum adds a local data-analysis assistant reference. It
+strengthens LiMa's future data workbench lane: upload CSV/Excel/SQLite, convert
+to tables, ask for joins, charts, statistical tests, and Python-backed analysis.
+Dataset contents, dataset schema, Python execution, external database
+connections, and cloud LLM providers remain gated by privacy, read-only,
+sandbox, redaction, retention, and approval controls.
+
 Primary source inventory:
 
 - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`
@@ -389,6 +396,7 @@ References:
 - open-lovable
 - gstack
 - cc-connect
+- quelmap
 - vibe-coding-cn
 
 Main repo plan:
@@ -419,6 +427,10 @@ LiMa Code plan:
 - Borrow cc-connect's web admin UI, provider/project management, lifecycle
   hooks, skills page, and mobile messaging UX as references for LiMa's online
   distributions; keep messaging actions approval-gated.
+- Borrow quelmap's local-first data-analysis UX for table upload, joins,
+  charting, statistical tests, provider settings, and Python sandbox isolation.
+  Cloud LLM use must disclose and gate dataset schema transfer; external DB
+  connections must be read-only and separately approved.
 - Borrow vibe-coding-cn's Chinese planning-first onboarding, prompt/skill
   catalog organization, and AI-pair-programming education material shape.
 
@@ -496,6 +508,7 @@ References:
 - TrendRadar
 - Feishu enterprise AI programming handbook
 - Youdao Baoku
+- quelmap
 - Flipbook
 - OpenMontage
 - open-lovable
@@ -538,6 +551,9 @@ Main repo plan:
   for context engineering, specs, rules, skills, MCP, and enterprise AI coding
   process. No text or structure should be copied without a license/permission
   review.
+- Use quelmap as a data-analysis assistant reference after file-ingestion,
+  Python sandbox, dataset retention, schema redaction, and read-only database
+  policies are explicit.
 - Use GLM-OCR as a document/OCR provider reference after file-ingestion privacy,
   model/API terms, and resource budgets are reviewed.
 - Treat Algebrica as a non-commercial structured-knowledge/content reference,
@@ -675,7 +691,7 @@ Documentation-only changes:
 ```powershell
 cd D:\GIT
 git diff --check -- docs\reference\EXTERNAL_CAPABILITY_RADAR_2026-05-24.md docs\superpowers\plans\2026-05-24-external-capability-adoption-roadmap.md
-rg -n "External Capability|MCP|TUNA|OpenRAG|RuVector|RuView|Agent-Reach|Qwen3-TTS|VidBee|cc-connect|bluebox|Google MCP|generative-ai|OpenMontage|open-lovable|VoxCPM|Hermes|gstack|agent-cli|Sirchmunk|Hyperbrowser|MiroFish|OpenClaw-RL|Feishu|claude-code-prompts|last30days|LightRAG|AutoResearchClaw|OpenCode|vibe-coding-cn|TrendRadar|Pyrefly|CubeSandbox|ElatoAI|WeClone|Graph" docs
+rg -n "External Capability|MCP|TUNA|OpenRAG|RuVector|RuView|quelmap|Agent-Reach|Qwen3-TTS|VidBee|cc-connect|bluebox|Google MCP|generative-ai|OpenMontage|open-lovable|VoxCPM|Hermes|gstack|agent-cli|Sirchmunk|Hyperbrowser|MiroFish|OpenClaw-RL|Feishu|claude-code-prompts|last30days|LightRAG|AutoResearchClaw|OpenCode|vibe-coding-cn|TrendRadar|Pyrefly|CubeSandbox|ElatoAI|WeClone|Graph" docs
 ```
 
 Implementation phases must add focused tests for the touched module and avoid

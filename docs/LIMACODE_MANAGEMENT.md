@@ -206,6 +206,11 @@ runtime dependencies:
   vital-sign, fall, through-wall, security, or medical sensing without explicit
   consent, privacy/legal review, calibrated hardware evidence, retention rules,
   and approval gates.
+- `quelmap-inc/quelmap`: Apache-2.0 reference for local data-analysis
+  workbench UX, table upload, joins, charting, statistical tests, provider
+  settings, and Python sandbox isolation. Dataset contents/schema, external DB
+  connections, generated Python, and cloud LLM calls require consent,
+  redaction, read-only credentials, sandbox limits, retention policy, and audit.
 
 Any adoption must preserve LiMa Server's backend admission, provider key
 custody, repo allowlist, audit, review gates, and push/deploy approval rules.

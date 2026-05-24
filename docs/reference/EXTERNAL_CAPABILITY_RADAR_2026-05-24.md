@@ -22,8 +22,8 @@
 | Agent orchestration, skills, and workflow | OpenAI Agents SDK, Google ADK, Google Cloud generative-ai samples, GenericAgent, Evolver, Hermes Agent, Hermes Agent Orange Book, AutoResearchClaw, OpenClaw-RL, gstack, agent-cli, cc-connect, Agent-Reach, awesome-codex-subagents, open-agents, Symphony, PraisonAI, agency-agents, goclaw, oh-my-codex, oh-my-pi, clawsweeper, agent-skills, last30days skill, mattpocock skills, HeavySkill, learn-harness-engineering, claude-code-prompts, vibe-vibe, vibe-coding-cn | Controlled multi-agent work, hooks, review queues, issue/PR triage, skill packaging, harness engineering, work-run isolation, feedback/eval loops, messaging bridges |
 | MCP access plane and tool connectors | Google MCP, Official MCP Registry, modelcontextprotocol reference servers, awesome-mcp-servers, TurboMCP, Agent-Reach, cc-connect, RuVector MCP, bluebox, GitHub/Playwright/Sentry/Semgrep/CircleCI/Postgres/Supabase/Neo4j/Qdrant/Tinybird/AWS/Cloudflare/Grafana/Railway/Render/Notion/Slack/Gmail/Jira/Asana/Stripe/HubSpot/Firecrawl/Browserbase/Bright Data/Apify/Memory/Sequential Thinking/Context7/Figma/ElevenLabs MCP references | Permissioned tool access, connector catalog, deployment gates, audit, and least-privilege MCP enablement |
 | Governance, secure execution, and browser work | Microsoft Agent Governance Toolkit, CubeSandbox, browser-harness, CloakBrowser, Hyperbrowser examples, bluebox, Agent-Reach, gstack browser/QA patterns | Safer worker execution, browser task verification, VPS/local isolation, governance policy, browser task artifacts |
-| IDE, terminal, design, and workspace UX | Warp, Pascal Editor, ClaudePrism, Open Design, OpenCode, open-lovable, cc-connect, vibe-coding-cn | LiMa Code terminal UX, local design workspace, website-to-app workflows, scientific writing workspace, messaging/admin bridge UX, 3D/design editor patterns |
-| Search, research, trends, and knowledge products | AnySearch Skill, last30days skill, Agent-Reach, Claude use cases, ml-intern, AutoResearchClaw, OpenRAG, Sirchmunk, Google Cloud generative-ai samples, OmniScientist, Feynman, TrendRadar, HF Viewer, Youdao Baoku, Feishu enterprise AI programming handbook, VidBee, bluebox, Flipbook, OpenMontage, Algebrica, GLM-OCR | Research agents, trend monitors, product use-case taxonomy, model inspection, search extraction, document-to-brief/PPT/mind-map/video, OCR, visual browsing, enterprise AI coding methodology, media ingestion |
+| IDE, terminal, design, and workspace UX | Warp, Pascal Editor, ClaudePrism, Open Design, OpenCode, open-lovable, cc-connect, quelmap, vibe-coding-cn | LiMa Code terminal UX, local design/data workspace, website-to-app workflows, scientific writing workspace, messaging/admin bridge UX, 3D/design editor patterns |
+| Search, research, trends, and knowledge products | AnySearch Skill, last30days skill, Agent-Reach, Claude use cases, ml-intern, AutoResearchClaw, OpenRAG, Sirchmunk, Google Cloud generative-ai samples, OmniScientist, Feynman, TrendRadar, HF Viewer, Youdao Baoku, Feishu enterprise AI programming handbook, quelmap, VidBee, bluebox, Flipbook, OpenMontage, Algebrica, GLM-OCR | Research agents, trend monitors, product use-case taxonomy, model inspection, search extraction, document-to-brief/PPT/mind-map/video, local data analysis, OCR, visual browsing, enterprise AI coding methodology, media ingestion |
 | Infrastructure mirrors and dependency resilience | Tsinghua Open Source Mirror (TUNA) | VPS and China-network dependency install acceleration, fallback mirrors, reproducible bootstrap documentation |
 | Persona, style, and companion behavior | awesome-persona-distill-skills, WeClone, Feynman, ElatoAI, PersonaPlex, pocket-tts, VoxCPM, Qwen3-TTS | User style modeling, companion UX, voice/display persona boundaries |
 | Hardware, robotics, and world models | ElatoAI, RuView, PersonaPlex, oh-my-pi, GR00T-WholeBodyControl, OpenClaw-RL, MiroFish, pocket-tts, VoxCPM, nano-world-model, ESP32 display references already tracked separately | Device Gateway voice/display/perception/companion expansion after writing-machine gates, simulation/evaluation before real hardware |
@@ -48,6 +48,7 @@
 | `pascalorg/editor` | React Three Fiber/WebGPU 3D building editor. | MIT | Reference for future design/canvas/3D workspace patterns; useful for visualization tooling, not current Device Gateway runtime. | Main, LiMa Code |
 | `delibae/claude-prism` | Offline-first scientific writing workspace with LaTeX, Python, and scientific skills. | MIT | Reference for local-first research/writing workspaces, skill packs, and reproducible scientific artifacts. | Main, LiMa Code |
 | `nexu-io/open-design` | Local-first open-source Claude Design alternative with many coding-agent CLIs and design systems. | Apache-2.0 | Reference for design-workbench UX, BYOK agent routing, and composable design skills; keep external CLI execution behind LiMa allowlists. | LiMa Code, Main |
+| `quelmap-inc/quelmap` | Open-source local data analysis assistant with table upload, joins, visualization, statistical tests, built-in Python sandbox, Postgres storage, Docker Compose packaging, Ollama/local LLM defaults, OpenAI-compatible provider settings, and CSV/Excel/SQLite upload support. | Apache-2.0 | Reference for LiMa local data-analysis workbench, dataset-to-chart/stat-test flows, Python sandbox UX, and local-model-first defaults. Cloud providers may receive dataset schema; external DB access must be read-only, sandboxed, redacted, and explicitly approved. | Main, LiMa Code |
 | `walkinglabs/learn-harness-engineering` | Multilingual harness-engineering learning material. | No standard license in API metadata | Documentation/reference input for LiMa harness engineering vocabulary and onboarding; do not copy content without license review. | Main, LiMa Code |
 | `mvanhorn/last30days-skill` | AI agent skill that searches Reddit, X, YouTube, HN, Polymarket, GitHub, and web sources, then ranks by engagement and synthesizes a grounded brief. | MIT | Reference for time-bounded research skills, source scoring, social-signal synthesis, and BYO-key/source-session boundaries. | Main, LiMa Code |
 | `flipbook.page` | Infinite visual browser generated on demand. | Website, no repo/license reviewed | Concept-only reference for visual exploration UI and generated artifact browsing. | Main, LiMa Code |
@@ -174,13 +175,16 @@
   OpenClaw-RL, Hermes Agent official site, agent-cli,
   awesome-codex-subagents, and deepclaude as inputs to LiMa's gated
   multi-agent orchestration and LiMa Code worker UX.
-- Warp, OpenCode, Open Design, Pascal Editor, ClaudePrism, open-lovable, and
-  vibe-coding-cn as terminal, design, web-to-app, 3D/canvas, onboarding, and
-  scientific-writing workspace UX references.
+- Warp, OpenCode, Open Design, Pascal Editor, ClaudePrism, open-lovable,
+  quelmap, and vibe-coding-cn as terminal, design, web-to-app, data-analysis,
+  3D/canvas, onboarding, and scientific-writing workspace UX references.
 - Feynman, ml-intern, AutoResearchClaw, OmniScientist, Algebrica, Claude use
-  cases, Feishu enterprise AI programming handbook, and GLM-OCR as research,
-  use-case taxonomy, methodology, structured-knowledge, and OCR/document-loop
-  references.
+  cases, Feishu enterprise AI programming handbook, quelmap, and GLM-OCR as
+  research, use-case taxonomy, methodology, structured-knowledge,
+  data-analysis, and OCR/document-loop references.
+- quelmap as a local data-analysis assistant reference for upload-to-table,
+  joins, charts, statistical tests, and Python sandbox UX, with dataset privacy,
+  schema redaction, external DB read-only, and sandbox execution gates.
 - HF Viewer as a model-inspection UX reference.
 - TrendRadar as alert/trend-monitor reference, with GPL isolation.
 - OpenMontage as AGPL concept-only media workflow reference.
