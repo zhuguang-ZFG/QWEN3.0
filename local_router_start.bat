@@ -6,6 +6,12 @@ set LOG=D:\ollama_server\local_router.log
 set PYTHON=D:\GIT\venv\Scripts\python.exe
 set APP=D:\GIT\server.py
 
+if not defined LIMA_API_KEY if not defined LIMA_API_KEYS (
+    set LIMA_API_KEY=lima-local
+    set LIMA_API_KEYS=lima-local
+)
+if defined LIMA_API_KEY if not defined LIMA_API_KEYS set LIMA_API_KEYS=%LIMA_API_KEY%
+
 echo [%date% %time%] Starting LiMa API Router... >> %LOG%
 netstat -ano | find "8080" | find "LISTENING" >nul
 if errorlevel 1 (
