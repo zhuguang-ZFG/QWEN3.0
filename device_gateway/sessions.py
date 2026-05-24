@@ -15,10 +15,30 @@ class DeviceSession:
     capabilities: list[str] = field(default_factory=list)
     last_uptime_ms: int = 0
     send_lock: asyncio.Lock = field(default_factory=asyncio.Lock, repr=False)
+    inflight_tasks: dict[str, dict[str, Any]] = field(default_factory=dict, repr=False)
+    inflight_lock: threading.RLock = field(default_factory=threading.RLock, repr=False)
 
     async def send_json(self, payload: dict[str, Any]) -> None:
         async with self.send_lock:
             await self.websocket.send_json(payload)
+
+    def mark_task_dispatched(self, task: dict[str, Any]) -> None:
+        with self.inflight_lock:
+            self.inflight_tasks[task["task_id"]] = task
+
+    def mark_task_acknowledged(self, task_id: str) -> None:
+        with self.inflight_lock:
+            self.inflight_tasks.pop(task_id, None)
+
+    def outstanding_tasks(self) -> list[dict[str, Any]]:
+        with self.inflight_lock:
+            return list(self.inflight_tasks.values())
+
+    def take_outstanding_tasks(self) -> list[dict[str, Any]]:
+        with self.inflight_lock:
+            tasks = list(self.inflight_tasks.values())
+            self.inflight_tasks.clear()
+            return tasks
 
 
 class SessionRegistry:

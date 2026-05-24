@@ -27,6 +27,7 @@ Do not commit secrets, cert private keys, provider tokens, database dumps, gener
 | FRP endpoint | `http://47.112.162.80:8088` | VPS `frps` maps to Windows LiMa API `127.0.0.1:8080` | `docs/LOCAL_PROXY_RUNTIME_STATUS.md`, `frp/frpc.toml` when tracked | Public validation path for Windows local-router and local proxy providers | Operational smoke path, not the preferred HTTPS IDE endpoint. |
 | LiMa router | local service, public through nginx/FRP | `lima-router.service`, working dir `/opt/lima-router`, port `8080` | `infra/vps/systemd/lima-router.service`; runtime source in repo | Core FastAPI router | Secrets must live in `/opt/lima-router/.env`, not service unit files. |
 | Voice gateway | public only through chat nginx websocket path | `lima-voice.service`, working dir `/opt/lima-voice`, port `8091` | `infra/vps/systemd/lima-voice.service`; `voice_gateway_deploy.sh`/voice files when used | Voice websocket gateway | Secrets must live in `/opt/lima-voice/.env`, not service unit files. |
+| LiMa Device Gateway | not public yet | Local FastAPI route prefix `/device/v1/*`; no tracked nginx `/device` proxy in the current VPS snapshot | `routes/device_gateway.py`, `device_gateway/*`, `docs/superpowers/plans/2026-05-24-lima-direct-device-gateway.md` | Future direct U8/ESP32 device backend | Do not expose publicly until device auth, shared task store, WebSocket routing policy, and smoke checks are explicitly deployed and recorded. |
 
 ## Edge Policy
 
@@ -35,6 +36,9 @@ Do not commit secrets, cert private keys, provider tokens, database dumps, gener
 - Direct public access to internal service ports such as `8080`, `3003`, and `8091` must remain blocked by firewall/cloud security group even if services bind `0.0.0.0`.
 - `api.donglicao.com` branding filters are a compatibility layer over New API, not a license to revive public commercial platform work.
 - `chat.donglicao.com/v1` is the primary IDE/agent base URL.
+- `/device/v1/*` is a controlled future public surface. When exposed on VPS,
+  add a tracked nginx location, add smoke coverage, and record whether the
+  deployment uses memory-only single-node mode or a shared HA store.
 
 ## Secret Policy
 

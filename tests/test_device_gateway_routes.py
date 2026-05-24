@@ -5,7 +5,9 @@ from fastapi.routing import APIRoute, APIWebSocketRoute
 from fastapi.testclient import TestClient
 
 import server
-from routes.device_gateway import _reset_for_tests, router
+from device_gateway.sessions import DeviceSession, registry
+from device_gateway.tasks import create_task_from_transcript, enqueue_pending_task, pop_pending_tasks, task_snapshot
+from routes.device_gateway import _dispatch_task_to_session, _drain_pending_tasks, _reset_for_tests, router
 
 
 def setup_function():
@@ -38,6 +40,7 @@ def test_device_gateway_health_reports_protocol_and_auth_state():
     assert data["status"] == "ok"
     assert data["protocol"] == "lima-device-v1"
     assert data["auth_configured"] is True
+    assert data["task_store"] == {"backend": "memory", "shared_across_processes": False}
 
 
 def test_events_endpoint_records_motion_event_with_private_auth():
@@ -114,6 +117,103 @@ def test_tasks_endpoint_flushes_queued_task_when_device_connects():
     assert flushed_task["type"] == "motion_task"
     assert flushed_task["task_id"] == queued["task"]["task_id"]
     assert flushed_task["request_id"] == "req-queued"
+
+
+def test_device_hello_drains_more_than_one_pending_batch():
+    client = _client()
+    queued_task_ids = []
+    for index in range(18):
+        queued = client.post(
+            "/device/v1/tasks",
+            headers={"Authorization": "Bearer test-private-token"},
+            json={"device_id": "dev-1", "text": f"write {index}", "request_id": f"req-{index}"},
+        ).json()
+        queued_task_ids.append(queued["task"]["task_id"])
+
+    with client.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
+        ws.send_json(
+            {
+                "type": "hello",
+                "protocol": "lima-device-v1",
+                "device_id": "dev-1",
+                "fw_rev": "u8-test",
+                "capabilities": ["run_path"],
+            }
+        )
+        assert ws.receive_json()["type"] == "hello_ack"
+        flushed_task_ids = [ws.receive_json()["task_id"] for _ in range(18)]
+        for task_id in flushed_task_ids:
+            ws.send_json({"type": "motion_event", "device_id": "dev-1", "task_id": task_id, "phase": "accepted"})
+            assert ws.receive_json()["type"] == "motion_event_ack"
+
+    assert flushed_task_ids == queued_task_ids
+    assert client.get("/device/v1/health").json()["pending_tasks"] == 0
+
+
+class _FailingWebSocket:
+    async def send_json(self, payload):
+        raise RuntimeError("send failed")
+
+
+class _FailAfterWebSocket:
+    def __init__(self, fail_after: int):
+        self.fail_after = fail_after
+        self.sent = []
+
+    async def send_json(self, payload):
+        if len(self.sent) >= self.fail_after:
+            raise RuntimeError("send failed")
+        self.sent.append(payload)
+
+
+def test_tasks_endpoint_requeues_when_active_session_send_fails():
+    client = _client()
+    failing_socket = _FailingWebSocket()
+    registry.register(DeviceSession(device_id="dev-1", websocket=failing_socket))
+
+    response = client.post(
+        "/device/v1/tasks",
+        headers={"Authorization": "Bearer test-private-token"},
+        json={"device_id": "dev-1", "text": "write after failure", "request_id": "req-fail"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "queued"
+    assert data["sent"] is False
+    assert data["queue_depth"] == 1
+    assert registry.get("dev-1") is None
+    assert task_snapshot(data["task"]["task_id"])["status"] == "queued"
+
+
+async def test_dispatch_task_requeues_existing_inflight_and_current_task_on_send_failure():
+    websocket = _FailAfterWebSocket(fail_after=0)
+    session = DeviceSession(device_id="dev-1", websocket=websocket)
+    previous = create_task_from_transcript("dev-1", "previous")
+    current = create_task_from_transcript("dev-1", "current")
+    session.mark_task_dispatched(previous)
+    registry.register(session)
+
+    assert await _dispatch_task_to_session(session, current) is False
+
+    redelivered = pop_pending_tasks("dev-1", limit=10)
+    assert [task["task_id"] for task in redelivered] == [previous["task_id"], current["task_id"]]
+    assert registry.get("dev-1") is None
+
+
+async def test_hello_pending_drain_failure_requeues_inflight_prefix_and_unsent_suffix():
+    tasks = [create_task_from_transcript("dev-1", f"write {index}") for index in range(3)]
+    for task in tasks:
+        enqueue_pending_task("dev-1", task)
+    websocket = _FailAfterWebSocket(fail_after=1)
+    session = DeviceSession(device_id="dev-1", websocket=websocket)
+    registry.register(session)
+
+    assert await _drain_pending_tasks(session) is False
+
+    redelivered = pop_pending_tasks("dev-1", limit=10)
+    assert [task["task_id"] for task in redelivered] == [task["task_id"] for task in tasks]
+    assert registry.get("dev-1") is None
 
 
 def test_tasks_endpoint_keeps_device_queues_independent():

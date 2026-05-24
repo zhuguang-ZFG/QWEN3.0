@@ -1185,3 +1185,32 @@ Deployment: not performed.
   - `pytest tests\test_device_gateway_protocol.py tests\test_device_gateway_routes.py tests\test_device_gateway_concurrency.py -q --ignore=active_model`: 19 passed;
   - `py_compile` for `routes\device_gateway.py`, `device_gateway\sessions.py`,
     and `device_gateway\tasks.py`.
+
+## 2026-05-24 Device Gateway HA Store Boundary
+
+- User clarified the future target includes multi-process, multi-machine, and
+  VPS high availability.
+- Added `device_gateway/store.py` with a `DeviceTaskStore` protocol and default
+  `InMemoryDeviceTaskStore`.
+- Updated `device_gateway/tasks.py` so task helpers dereference the active
+  store at call time, avoiding stale store references when tests or future
+  Redis/Postgres adapters replace the backend.
+- `/device/v1/health` now reports task store metadata:
+  - `backend`;
+  - `shared_across_processes`.
+- Active-session send failures now unregister the broken session and best-effort
+  requeue the task instead of leaving it stranded.
+- Device `hello` drains all pending batches for that device, not only the first
+  16 tasks.
+- Sent motion tasks are tracked as per-session in-flight tasks until a
+  `motion_event` acknowledges them; unacknowledged in-flight tasks are
+  best-effort requeued when the WebSocket disconnects.
+- Added direct store contract tests for event snapshots, FIFO requeue,
+  per-device isolation, and concurrent task IDs.
+- Current state:
+  - one process can handle many concurrent devices and requests;
+  - in-memory store is not a multi-process/multi-node HA store;
+  - Redis/Postgres plus sticky WebSocket routing or a session owner/broker is
+    the deployment path for VPS HA.
+- Verification passed:
+  - `pytest tests\test_device_gateway_protocol.py tests\test_device_gateway_routes.py tests\test_device_gateway_concurrency.py tests\test_device_gateway_store.py -q --ignore=active_model`: 28 passed.

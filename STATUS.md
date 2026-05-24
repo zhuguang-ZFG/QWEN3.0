@@ -26,6 +26,7 @@
 | Reference migration compatibility | Closed | Original planned import/doc paths `code_context.retriever` and `docs/OPS_ENTRYPOINTS.md` are present as compatibility facades. |
 | LiMa Code repository management | Tracked | `deepcode-cli` is pinned as a Git submodule and governed by `docs/LIMACODE_MANAGEMENT.md`. |
 | esp32S_XYZ product backend | Tracked and fake-U8 integrated | `esp32S_XYZ` is pinned as a Git submodule at `78a62c9`; LiMa is the planned AI/backend control plane, and the product repo now includes `tools/fake_lima_u8` for the LiMa `/device/v1/ws` fake-device loop. |
+| LiMa Device Gateway | HA-ready boundary in progress | `/device/v1/*` supports single-process multi-device concurrency, best-effort requeue for synchronous send failures and unacknowledged disconnects, and task-store replacement tests; current default store is memory-only, so multi-process/VPS HA still requires Redis/Postgres plus sticky WebSocket routing or a session-owner broker. |
 
 ## 2026-05-24 Deployment And Closure Update
 

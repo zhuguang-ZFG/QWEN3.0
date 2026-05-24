@@ -428,8 +428,8 @@ Implemented in the main LiMa repo:
   async send lock so concurrent HTTP task injection and WebSocket responses do
   not write to the same device socket at the same time.
 - `device_gateway/tasks.py`: thread-safe task store, deterministic unique task
-  IDs, per-device pending queues, task sent/queued state updates, and queue
-  counters.
+  IDs, per-device pending queues, task dispatched/queued state updates, and
+  queue counters.
 - `routes/device_gateway.py`: `/device/v1/tasks` now truly queues tasks when a
   device is offline and flushes that device's pending tasks after successful
   `hello`.
@@ -443,6 +443,49 @@ D:\GIT\venv\Scripts\python.exe -m pytest tests\test_device_gateway_protocol.py t
 ```
 
 Result: 19 passed.
+
+### 2026-05-24 HA-Ready Store Boundary Slice
+
+Implemented in the main LiMa repo:
+
+- `device_gateway/store.py`: explicit `DeviceTaskStore` protocol and default
+  `InMemoryDeviceTaskStore` for local/dev/test runs.
+- `device_gateway/tasks.py`: task helpers now dereference the currently
+  installed store module at call time, so tests and future Redis/Postgres
+  stores can replace the backing store without stale references.
+- `routes/device_gateway.py`: `/device/v1/health` now reports task-store
+  backend metadata:
+  - `backend`;
+  - `shared_across_processes`.
+- `tests/test_device_gateway_concurrency.py`: regression coverage proves task
+  creation, queue state, and snapshots use a replaced store instance.
+- `tests/test_device_gateway_store.py`: direct store contract coverage for
+  event snapshots, FIFO requeue, per-device isolation, and concurrent task IDs.
+- Task dispatch now tracks per-session in-flight tasks and requeues unsent or
+  unacknowledged tasks after synchronous send failure or disconnect.
+- Device `hello` drains all currently pending task batches instead of stopping
+  after the first 16-task batch.
+- `motion_event` is treated as the first device-side task acknowledgement and
+  clears the task from that session's in-flight table.
+
+Current production meaning:
+
+- In-memory store supports one LiMa process with many concurrent device
+  sessions and requests.
+- Multi-process, multi-machine, or VPS HA deployment must run with either:
+  - sticky WebSocket routing plus a shared task/event store;
+  - or an external session owner/broker design before non-sticky routing.
+- Redis/Postgres can be added behind `DeviceTaskStore` without changing route
+  handlers or device protocol frames.
+
+Verification:
+
+```powershell
+cd D:\GIT
+D:\GIT\venv\Scripts\python.exe -m pytest tests\test_device_gateway_protocol.py tests\test_device_gateway_routes.py tests\test_device_gateway_concurrency.py tests\test_device_gateway_store.py -q --ignore=active_model
+```
+
+Result: 28 passed.
 
 ### 2026-05-24 Product Fake LiMa U8 Slice
 

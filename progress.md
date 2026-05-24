@@ -1194,3 +1194,37 @@ Verification note:
 - Verification:
   - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_device_gateway_protocol.py tests\test_device_gateway_routes.py tests\test_device_gateway_concurrency.py -q --ignore=active_model`: 19 passed.
   - `D:\GIT\venv\Scripts\python.exe -m py_compile routes\device_gateway.py device_gateway\sessions.py device_gateway\tasks.py`: passed.
+
+## 2026-05-24 Device Gateway HA Store Boundary
+
+- User clarified the later target: multi-process, multi-machine, and VPS high
+  availability.
+- Implemented the HA-ready task-store boundary:
+  - added `device_gateway/store.py`;
+  - moved task state, event state, ID generation, and offline queues behind
+    `DeviceTaskStore`;
+  - fixed task helpers to read the active store dynamically so future
+    Redis/Postgres adapters can be installed without route changes;
+  - `/device/v1/health` now exposes task-store backend metadata and whether the
+    active store is shared across processes.
+- Closed the synchronous send-failure gaps found during review:
+  - active WebSocket send failure best-effort requeues the task and unregisters
+    the stale session;
+  - hello flush drains all pending task batches for the device;
+  - requeue preserves FIFO order for unsent tasks.
+- Added per-session in-flight task tracking:
+  - motion tasks remain in the session in-flight table until a `motion_event`
+    acknowledges them;
+  - unacknowledged in-flight tasks are best-effort requeued on WebSocket
+    disconnect.
+- Added regression coverage proving store replacement works and no stale
+  imported store object is used, plus send-failure and large-queue drain
+  behavior.
+- Added direct `DeviceTaskStore` contract coverage for event snapshots, FIFO
+  requeue, per-device isolation, and concurrent task IDs.
+- Current deployment interpretation:
+  - single process supports concurrent multi-device traffic;
+  - HA requires a shared store plus sticky WebSocket routing or a session
+    owner/broker before non-sticky multi-node traffic.
+- Verification:
+  - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_device_gateway_protocol.py tests\test_device_gateway_routes.py tests\test_device_gateway_concurrency.py tests\test_device_gateway_store.py -q --ignore=active_model`: 28 passed.
