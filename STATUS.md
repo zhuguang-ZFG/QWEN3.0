@@ -29,9 +29,9 @@
 | External capability radar | Ledger active | `docs/REFERENCE_IMPLEMENTATION_LEDGER.md` records 63 reference mappings plus 9 blocked gates with implemented/gated/concept/implementing/rejected status; unimplemented capabilities remain behind license, security, privacy, and safety gates. |
 | Reference capability Phase 2-8 | Active with Phase 7 first slice | Code intelligence, memory/mastery, agent/tool governance, MCP access plane, eval registry, LiMa Code stage commands, and hardware protocol-family slices have LiMa-owned interfaces, tests, and ledger evidence; Server local suite passed `1193 passed, 8 skipped`; LiMa Code local suite passed `431 passed, 6 skipped`; VPS baseline deployed at `ad7cab5` with public smoke `12/12`, worker preflight ready, and fake U8 WSS loop passed. |
 | LiMa Code repository management | Tracked | `deepcode-cli` is pinned as a Git submodule at `ca51967` and governed by `docs/LIMACODE_MANAGEMENT.md`. |
-| esp32S_XYZ product backend | Tracked and fake-U8 integrated | `esp32S_XYZ` is pinned as a Git submodule at `78a62c9`; LiMa is the planned AI/backend control plane, and the product repo now includes `tools/fake_lima_u8` for the LiMa `/device/v1/ws` fake-device loop. |
+| esp32S_XYZ product backend | Tracked and fake-U8 integrated | `esp32S_XYZ` is pinned as a Git submodule at `160e526`; LiMa is the planned AI/backend control plane, and the product repo now includes `tools/fake_lima_u8` for the LiMa `/device/v1/ws` fake-device loop. |
 | LiMa Device Gateway | Public Redis HA smoke path deployed | `/device/v1/*` supports multi-device concurrency, Redis pending-to-processing task delivery with motion-event ack cleanup, stale processing recovery hooks, publish-failure degradation, and Redis pub/sub session-owner notification for multi-process delivery; `chat.donglicao.com/device/v1/*` is exposed behind per-device token auth. Postgres remains deferred for audit/history, not realtime WebSocket delivery. |
-| P0.1 ESP32 Motion Executor Contract | Implemented locally | `MotionErrorCode` enum (8 codes), `motion_failure_event()` + `validate_motion_task_lifecycle()` in protocol, `path_validator.py` with capability/path/feed/bounds validation wired into `project_to_motion_task()`, fake-U8 `--test failure` mode, default board `HandleMotionTaskJson()` sends `E_UNSUPPORTED_BOARD`, zhuguang board hardened with failure events on missing capability/missing path/unsupported capability; ESP32 firmware changes ready for toolchain compile; Server suite `1213 passed, 8 skipped`. Plan: `docs/superpowers/plans/2026-05-25-p0.1-esp32-motion-executor-contract.md`. VPS deployment pending owner. |
+| P0.1 ESP32 Motion Executor Contract | Deployed and smoke-verified | `MotionErrorCode` enum (8 codes), normalized motion failure errors, no-queue invalid task handling, `path_validator.py`, fake-U8 `--test failure`, default board `E_UNSUPPORTED_BOARD`, and zhuguang failure events are implemented; review fixes passed `1218 passed, 8 skipped`; VPS backup `/opt/lima-router/backups/p01-motion-contract-20260525_072701/runtime-before.tgz`; public smoke `12/12`; fake-U8 WSS success and failure loops passed. |
 
 ## 2026-05-25 LiMa Server, LiMa Code, And ESP32 Joint Debug
 
@@ -58,6 +58,34 @@
     loop tied to request/task/device ids.
 - New active plan:
   `docs/superpowers/plans/2026-05-25-productivity-infrastructure-review.md`.
+
+## 2026-05-25 P0.1 Motion Contract Deployment
+
+- Review fixed two production gaps before deploy:
+  - firmware-style `error_code`/`error_message` motion events and fake-U8
+    nested `error` events are normalized into one stored `error` object;
+  - tasks that fail Server-side validation are returned as `status=failed` and
+    are not queued or dispatched to devices.
+- Local verification after review fixes:
+  - focused Device Gateway suite: `49 passed`;
+  - full LiMa suite: `1218 passed, 8 skipped`;
+  - touched Python compile passed.
+- VPS deployment:
+  - deployed commit `4a7faed` to `/opt/lima-router`;
+  - runtime backup:
+    `/opt/lima-router/backups/p01-motion-contract-20260525_072701/runtime-before.tgz`;
+  - remote compile used `/usr/local/bin/python3.10` because system `python3`
+    is `3.6.8` while `lima-router.service` runs Python 3.10;
+  - `lima-router` restarted active and `/health` returned `status=ok`.
+- Public verification:
+  - `scripts/smoke_online_distributions.py --api-key lima-local --chat-exact p01_motion_contract_ok` passed `12/12`;
+  - Device Gateway health reported Redis task store/session bus and listener alive;
+  - HTTP firmware-style failure event returned `motion_event_ack` with phase `failed`;
+  - fake-U8 WSS success loop for `dev-joint-1` produced `progress` then `done`;
+  - fake-U8 WSS failure loop for `dev-ha-cross` produced `accepted` then `failed`
+    with `E_MISSING_PATH`.
+- ESP32 submodule advanced to `160e526` to fix fake-U8 compatibility with both
+  `websockets` `extra_headers` and `additional_headers` APIs.
 
 ## 2026-05-25 Device Gateway Redis HA Slice
 

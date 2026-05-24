@@ -2,7 +2,42 @@
 
 > Created: 2026-05-22
 
-## 2026-05-25 P0.1 ESP32 Motion Executor Contract — Implemented
+## 2026-05-25 P0.1 ESP32 Motion Executor Contract — Deployed
+
+- Review fixes applied after the initial implementation summary:
+  - `device_gateway.protocol.validate_motion_event()` now preserves nested
+    `error` and normalizes ESP32 firmware `error_code`/`error_message` into
+    the same stored `error` shape;
+  - `/device/v1/tasks` and WebSocket transcript handling return validation
+    failures without queueing or dispatching invalid tasks;
+  - tests cover firmware-style error preservation, invalid HTTP task
+    non-queueing, and invalid WebSocket transcript non-dispatch.
+- Local verification:
+  - `python -m pytest tests/test_device_gateway_motion_contract.py tests/test_device_gateway_path_validator.py tests/test_device_gateway_routes.py tests/test_device_gateway_store.py tests/test_device_gateway_redis_store.py -q --ignore=active_model`:
+    `49 passed`;
+  - `python -m py_compile device_gateway/protocol.py device_gateway/path_validator.py device_gateway/tasks.py device_gateway/protocol_families.py routes/device_gateway.py`:
+    passed;
+  - full suite: `1218 passed, 8 skipped`.
+- VPS deployment completed:
+  - deployed commit `4a7faed`;
+  - backup:
+    `/opt/lima-router/backups/p01-motion-contract-20260525_072701/runtime-before.tgz`;
+  - remote compile used `/usr/local/bin/python3.10` because system `python3`
+    is 3.6.8, while the systemd service runs Python 3.10;
+  - `lima-router` restarted active and `/health` returned `status=ok`.
+- Public verification:
+  - online distribution smoke passed `12/12` with exact chat token
+    `p01_motion_contract_ok`;
+  - HTTP firmware-style failure event returned `motion_event_ack` for
+    `task-p01-fw-fail-2` with phase `failed`;
+  - fake-U8 WSS success loop on `dev-joint-1` reached `progress` and `done`;
+  - fake-U8 WSS failure loop on `dev-ha-cross` reached `accepted` and `failed`
+    with `E_MISSING_PATH`.
+- ESP32 follow-up:
+  - fake-U8 initially failed against local `websockets==15.0.1` because the API
+    now expects `additional_headers` instead of `extra_headers`;
+  - fixed compatibility in `esp32S_XYZ` commit `160e526` and advanced the parent
+    submodule pointer.
 
 - Slice 1: Server error codes + protocol contract.
   - Added `MotionErrorCode` enum (8 codes: E_UNSUPPORTED_CAPABILITY, E_MISSING_PATH,
@@ -34,12 +69,8 @@
   - Unsupported capability (final else) now emits `E_UNSUPPORTED_CAPABILITY` with
     capability name in reason.
   - All three paths previously logged-and-returned silently.
-- Slice 5: VPS deployment deferred to owner.
-  - Server files uploaded but py_compile blocked by VPS Python <3.7
-    (`from __future__ import annotations`).
-  - Owner will handle: Python version upgrade or annotation removal, deploy,
-    fake-U8 failure smoke, real-device smoke.
-- Full suite: **1213 passed, 8 skipped**.
+- Slice 5: VPS deployment completed by Codex review pass.
+- Initial owner-reported full suite before review fixes: **1213 passed, 8 skipped**.
 
 ## 2026-05-25 Reference Capability Implementation Closeout
 

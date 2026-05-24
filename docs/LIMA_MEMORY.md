@@ -27,6 +27,17 @@
   Highest priority is observable ESP32 execution, real Device Gateway
   text/vector/path generation, LiMa Code artifact bundles, and a unified
   prompt/routing/memory outcome loop.
+- On 2026-05-25 P0.1 ESP32 motion contract was deployed to VPS at commit
+  `4a7faed`. Backup:
+  `/opt/lima-router/backups/p01-motion-contract-20260525_072701/runtime-before.tgz`.
+  Review fixes preserved firmware/fake-U8 motion failure errors and prevented
+  validation-failed tasks from being queued or dispatched. Verification:
+  focused Device Gateway `49 passed`, full suite `1218 passed, 8 skipped`,
+  public online smoke `12/12` with exact `p01_motion_contract_ok`, HTTP
+  firmware-style failure event acked as `failed`, fake-U8 WSS success loop
+  reached `done`, fake-U8 WSS failure loop reached `failed` with
+  `E_MISSING_PATH`. `esp32S_XYZ` advanced to `160e526` for `websockets`
+  header API compatibility.
 
 > Updated: 2026-05-25
 > Purpose: durable working memory for future LiMa coding-assistant sessions.

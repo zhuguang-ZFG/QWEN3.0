@@ -10,8 +10,11 @@
 | P0.1-S2 | Device Gateway path validation | `path_validator.py` with capability/path/feed/bounds validation wired into tasks.project_to_motion_task() | Implemented / 33 focused tests passed |
 | P0.1-S3 | ESP32 default board fail-loud | `board.cc` HandleMotionTaskJson() now emits E_UNSUPPORTED_BOARD; `board.h` SupportsMotionTask() virtual added | Implemented / ready for ESP-IDF compile |
 | P0.1-S4 | Zhuguang board failure hardening | Missing capability, missing path, unsupported capability paths now emit structured failure events via EmitMotionEventError() | Implemented / ready for ESP-IDF compile |
-| P0.1-S5 | VPS deployment | Server files uploaded, py_compile blocked by Python <3.7 `from __future__ import annotations` on VPS | Deferred to owner |
-| P0.1-regression | Full suite | 1213 passed, 8 skipped | Passed |
+| P0.1-S5 | VPS deployment | Service uses `/usr/local/bin/python3.10` even though system `python3` is 3.6.8; deploy backup `/opt/lima-router/backups/p01-motion-contract-20260525_072701/runtime-before.tgz`; public smoke `12/12`; fake-U8 WSS success/failure passed | Closed |
+| P0.1-review-1 | Motion failure error preservation | Server originally dropped nested `error` and firmware `error_code`/`error_message` during `validate_motion_event()` normalization. | Fixed in `4a7faed`; task snapshots now retain normalized `error.code`/`error.reason`. |
+| P0.1-review-2 | Invalid task queueing | Server-side validation failures were marked failed but `/device/v1/tasks` / WebSocket transcript paths could still queue or dispatch them. | Fixed in `4a7faed`; invalid tasks return `status=failed` or `motion_task_failed` without queueing/dispatch. |
+| P0.1-review-3 | fake-U8 WSS compatibility | Local `websockets==15.0.1` uses `additional_headers`, while fake-U8 used old `extra_headers`. | Fixed in esp32S_XYZ `160e526`; tests cover both APIs. |
+| P0.1-regression | Full suite | 1218 passed, 8 skipped after review fixes | Passed |
 
 ## 2026-05-25 Productivity Infrastructure Findings
 
