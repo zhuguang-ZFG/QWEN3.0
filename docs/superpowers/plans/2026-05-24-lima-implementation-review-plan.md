@@ -572,6 +572,20 @@ Exit criteria:
 - Worker/tool permissions are explicit, test-covered, and reviewable before
   sandbox/cloud/MCP expansion.
 
+Current M7 closure notes:
+
+- M7 completed on 2026-05-24 with no new runtime dependency.
+- Added authority classes and default tool metadata to `tool_gateway.registry`.
+- Added executor allowlists plus approval, dangerous-authority, argument-count,
+  and timeout enforcement.
+- Added SQLite-backed tool audit queries and worker governance registry.
+- Codex review fixed dangerous-authority fail-closed behavior so deployment,
+  hardware, network-write, and shell tools require approval even when a tool
+  author omits `requires_approval=True`.
+- Codex review added audit redaction before in-memory and SQLite persistence.
+- Codex review moved audit/worker tests to temp SQLite paths to avoid repo
+  `data/` pollution.
+
 ## Milestone 8 - Sandbox Evaluation Without Production Adoption
 
 References:

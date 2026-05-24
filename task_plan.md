@@ -18,7 +18,7 @@
 > | M4 | Memory Taxonomy & Redaction | complete | 2026-05-24 |
 > | M5 | Eval, Quality Gate, Structured Output | complete | 2026-05-24 |
 > | M6 | Observability & Metrics | complete | 2026-05-24 |
-> | M7 | Worker Governance, Tool Gateway, MCP, A2A | pending | - |
+> | M7 | Worker Governance, Tool Gateway, MCP, A2A | complete | 2026-05-24 |
 > | M8 | Sandbox Evaluation | pending | - |
 > | M9 | Streaming & Progress Events | pending | - |
 > | M10 | Data Workbench | pending | - |
@@ -38,6 +38,7 @@
 > | 7 | M5 | `routes/quality_gate.py` and the new quality tests contained mojibake strings that made exact-output markers fragile and briefly broke compilation during review. `repairable` also failed to recognize `too short for complexity`, and the harmful-refusal eval case could pass without a refusal. | Rewrote the quality-gate module and tests as ASCII source with Unicode escapes, added repairable/safety-refusal regressions, and extended coding eval fixtures. | Quality gate now compiles cleanly, safety refusals for harmful prompts can pass, `max_chars` and JSON-list fixtures are supported, and the harmful fixture requires refusal/safety wording. |
 > | 8 | M6-S1/S2/S4 | `LiMaEvent.metadata` and `key_pool_event(details=...)` could hold raw prompt/key/cookie-like values even though snapshots did not expose metadata. | Added regressions for sensitive metadata keys and token-like details. | Event construction now sanitizes route reason, labels, and metadata recursively before any event can be recorded or logged. |
 > | 9 | M6-S3 | `http_caller.py` emitted `backend_call_event(..., latency_ms=...)` before the event factory accepted `latency_ms`, so successful backend calls failed with `TypeError` and were rewrapped as `BackendError`. The internal `BackendError` branch also skipped backend-error metrics. | Reproduced with `python -m pytest test_http_caller.py tests/test_observability.py -q --ignore=active_model`. | `backend_call_event()` now accepts and stores latency, `BackendError` paths emit backend-error metrics, regression assertions cover both paths, and an unreachable duplicate `_extract_code()` block was removed. |
+> | 10 | M7 | Dangerous authority classes could execute if a tool author forgot to set `requires_approval=True`, and audit/worker SQLite tests wrote default DB files into repo `data/`. | Added regressions for auto approval, executor fail-closed behavior, audit redaction, and temp SQLite storage. | `ToolDefinition` now auto-enables approval for dangerous authorities, executor double-checks dangerous authority and `max_args`, audit events are redacted before memory/SQLite writes, and tests use per-test temp DB paths. |
 
 ## Goal
 

@@ -1945,3 +1945,30 @@ Verification note:
     86 passed after the M6-S3 review fix.
   - `python -m pytest tests/test_budget_manager.py tests/test_key_pool.py tests/test_quality_gate.py tests/test_route_scorer.py test_http_caller.py tests/test_observability.py -q --ignore=active_model`:
     148 passed after hot-path wiring review.
+
+## 2026-05-24 M7 Worker Governance And Tool Gateway
+
+- Reviewed and closed M7:
+  - `tool_gateway.registry` defines `AuthorityClass`, dangerous authority
+    detection, approval defaults, and extended `ToolDefinition` metadata;
+  - `tool_gateway.executor` supports allowed-tool sets and rejects
+    unregistered, not-allowed, approval-required, over-argument, and
+    missing-secret executions before handler dispatch;
+  - `tool_gateway.audit` persists audit events to SQLite and exposes recent,
+    query, count, and reset helpers;
+  - `tool_gateway.governance` persists worker registration, heartbeat,
+    status listing, quarantine, offline marking, and reset helpers;
+  - `tests/test_tool_gateway.py` covers authority defaults, executor gates,
+    audit persistence/redaction, and worker lifecycle.
+- Review fixes applied:
+  - dangerous authorities now fail closed even if a tool author forgets to set
+    `requires_approval=True`;
+  - executor now enforces `max_args` and passes `timeout_sec` into shell/http
+    handlers;
+  - audit events are sanitized recursively before both memory and SQLite
+    persistence;
+  - audit and worker governance tests use temp SQLite files via env vars so
+    repeated test runs do not create default DB files in repo `data/`.
+- Verification:
+  - `python -m pytest tests/test_tool_gateway.py tests/test_agent_task_contract.py tests/test_agent_task_routes.py -q --ignore=active_model`:
+    67 passed after M7 review fixes.
