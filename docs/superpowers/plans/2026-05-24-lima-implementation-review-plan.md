@@ -181,6 +181,10 @@ Implementation slices:
    - Define whether async calls live beside or inside `http_caller.py`.
    - Keep sync API compatibility for existing callers.
    - Add cancellation and timeout semantics before adding new clients.
+   - Status 2026-05-24: M2-S1 keeps async calls beside sync calls in
+     `http_caller.py`, preserves sync public signatures, and adds `httpx`
+     sync/async clients. Cancellation/backpressure work remains for later M2
+     slices.
 
 2. Concurrent request tests:
    - Add tests for multiple simultaneous provider calls with independent
@@ -215,6 +219,17 @@ Exit criteria:
 
 - LiMa can process multiple requests concurrently without shared key/provider
   corruption.
+
+Current M2-S1 review notes:
+
+- `httpx` 0.28.1 is available in the local environment and supports the
+  `proxy=` client argument used for GFW backends.
+- Review fixed key-pool failure reporting so internal `BackendError` status
+  codes are preserved instead of converted to 429.
+- Focused verification after review: `test_http_caller.py` plus
+  `test_routing_engine.py` returned 97 passed.
+- Remaining M2 work: concurrent request tests, timeout/cancellation tests, and
+  per-provider backpressure/resource limits.
 
 ## Milestone 3 - Context Graph, AST, Reranking, And Retrieval Evaluation
 

@@ -1728,3 +1728,32 @@ Verification note:
   - fixed health-change notification ordering in `record_failure()`.
 - Verification:
   - `python -m pytest tests/test_key_pool.py test_http_caller.py tests/test_backend_reputation.py tests/test_budget_manager.py tests/test_health_tracker.py tests/test_backend_registry.py test_routing_engine.py -q --ignore=active_model`: 170 passed.
+
+## 2026-05-24 M2-S1 HTTPX Async Boundary Review
+
+- Reviewed the user implementation that migrated `http_caller.py` from
+  `urllib.request` to `httpx`.
+- Preserved the public sync interfaces:
+  - `call_api()`;
+  - `call_api_stream()`;
+  - `call_raw()`;
+  - `probe()`.
+- Confirmed new async interfaces exist:
+  - `call_api_async()`;
+  - `call_api_stream_async()`;
+  - `call_raw_async()`.
+- Review fix applied:
+  - internal `BackendError` handlers now report `e.status_code` to
+    `key_pool.report_key_result()` instead of hardcoding 429 or 0;
+  - empty streams now preserve their 502 classification for key-pool telemetry.
+- Regression coverage restored/added:
+  - provider backends fall back to static keys when no env pool exists;
+  - configured but exhausted pools fail closed instead of falling back to a
+    static key;
+  - web proxy control errors such as `[LongCat HTTP 502]` clean to empty;
+  - `no_system` OpenAI body construction still keeps IDE context in the first
+    user message;
+  - async chat, raw, and stream calls have smoke coverage.
+- Verification:
+  - `python -m py_compile http_caller.py test_http_caller.py`: passed.
+  - `python -m pytest test_http_caller.py test_routing_engine.py -q --ignore=active_model`: 97 passed.

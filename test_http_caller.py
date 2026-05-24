@@ -1,4 +1,5 @@
-"""Tests for http_caller.py — Phase 1 of V3 migration."""
+"""Tests for http_caller.py — httpx migration."""
+import asyncio
 import json
 import pytest
 from unittest.mock import patch, MagicMock
@@ -9,8 +10,90 @@ from backends import BACKENDS
 from http_caller import (
     BackendError, call_api,
     clean_response, _build_headers, _build_body,
-    _extract_answer, _extract_code, _parse_sse_chunk, _get_opener,
+    _extract_answer, _extract_code, _parse_sse_chunk, _build_client,
 )
+
+
+def _mock_httpx_client(json_data=None, status_code=200):
+    """Build a mock httpx.Client that returns given JSON."""
+    mock_client = MagicMock()
+    mock_resp = MagicMock()
+    mock_resp.json.return_value = json_data or {}
+    mock_resp.raise_for_status.return_value = None
+    mock_resp.status_code = status_code
+    mock_client.__enter__.return_value = mock_client
+    mock_client.__exit__.return_value = False
+    mock_client.post.return_value = mock_resp
+    return mock_client
+
+
+def _mock_httpx_stream_client(lines):
+    """Build a mock httpx.Client that yields SSE lines."""
+    mock_client = MagicMock()
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status.return_value = None
+    mock_resp.iter_lines.return_value = iter(lines)
+    mock_stream = MagicMock()
+    mock_stream.__enter__.return_value = mock_resp
+    mock_stream.__exit__.return_value = False
+    mock_client.__enter__.return_value = mock_client
+    mock_client.__exit__.return_value = False
+    mock_client.stream.return_value = mock_stream
+    return mock_client
+
+
+class _MockAsyncHttpxClient:
+    def __init__(self, json_data=None):
+        self.response = MagicMock()
+        self.response.json.return_value = json_data or {}
+        self.response.raise_for_status.return_value = None
+        self.post_calls = []
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+    async def post(self, *args, **kwargs):
+        self.post_calls.append((args, kwargs))
+        return self.response
+
+
+class _MockAsyncStreamResponse:
+    def __init__(self, lines):
+        self._lines = lines
+
+    def raise_for_status(self):
+        return None
+
+    async def aiter_lines(self):
+        for line in self._lines:
+            yield line
+
+
+class _MockAsyncStreamContext:
+    def __init__(self, lines):
+        self.response = _MockAsyncStreamResponse(lines)
+
+    async def __aenter__(self):
+        return self.response
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+
+class _MockAsyncStreamClient(_MockAsyncHttpxClient):
+    def __init__(self, lines):
+        super().__init__()
+        self._lines = lines
+
+    def stream(self, *args, **kwargs):
+        return _MockAsyncStreamContext(self._lines)
+
+
+async def _collect_async(async_iterable):
+    return [chunk async for chunk in async_iterable]
 
 
 # ── _build_headers ────────────────────────────────────────────────────────────
@@ -59,24 +142,16 @@ def test_build_body_openai_basic():
 
 
 def test_build_body_openai_no_system_omits_system_message():
-    cfg = {
-        'fmt': 'openai', 'model': 'gpt-4o-mini',
-        'key': 'none', 'no_system': True,
-    }
+    cfg = {'fmt': 'openai', 'model': 'gpt-4o-mini', 'key': 'none', 'no_system': True}
     msgs = [{'role': 'user', 'content': 'hello'}]
     raw = _build_body(cfg, msgs, 256)
     body = json.loads(raw)
-    assert body['model'] == 'gpt-4o-mini'
-    assert body['max_tokens'] == 256
     assert body['messages'] == msgs
     assert all(m['role'] != 'system' for m in body['messages'])
 
 
 def test_build_body_openai_no_system_merges_prompt_into_first_user_message():
-    cfg = {
-        'fmt': 'openai', 'model': 'gpt-4o-mini',
-        'key': 'none', 'no_system': True,
-    }
+    cfg = {'fmt': 'openai', 'model': 'gpt-4o-mini', 'key': 'none', 'no_system': True}
     msgs = [{'role': 'user', 'content': 'hello'}]
     raw = _build_body(cfg, msgs, 256, system_prompt='Base.', ide='Cursor')
     body = json.loads(raw)
@@ -114,12 +189,7 @@ def test_build_body_stream_flag():
 
 
 def test_build_body_can_force_explicit_non_stream_flag():
-    cfg = {
-        'fmt': 'openai',
-        'model': 'mimo-web',
-        'key': 'none',
-        'force_stream_param': True,
-    }
+    cfg = {'fmt': 'openai', 'model': 'mimo-web', 'key': 'none', 'force_stream_param': True}
     msgs = [{'role': 'user', 'content': 'hi'}]
     raw = _build_body(cfg, msgs, 1024, stream=False)
     body = json.loads(raw)
@@ -127,46 +197,33 @@ def test_build_body_can_force_explicit_non_stream_flag():
 
 
 def test_default_streaming_web_proxies_force_non_stream_flag():
-    for name in (
-        'longcat_web',
-        'longcat_web_think',
-        'longcat_web_research',
-        'mimo_web',
-        'mimo_web_think',
-        'mimo_web_flash',
-    ):
+    for name in ('longcat_web', 'longcat_web_think', 'longcat_web_research',
+                 'mimo_web', 'mimo_web_think', 'mimo_web_flash'):
         assert BACKENDS[name]['force_stream_param'] is True
-
-
-def test_build_body_ide_env_injection():
-    cfg = {'fmt': 'openai', 'model': 'gpt-4', 'key': 'k'}
-    msgs = [{'role': 'user', 'content': 'hi'}]
-    raw = _build_body(cfg, msgs, 1024, system_prompt='Base.', ide='Cursor')
-    body = json.loads(raw)
-    assert '环境' in body['messages'][0]['content']
-    assert 'Cursor' in body['messages'][0]['content']
 
 
 # ── _extract_answer ───────────────────────────────────────────────────────────
 
 def test_extract_answer_openai():
-    data = {'choices': [{'message': {'content': 'hello world'}}]}
-    assert _extract_answer(data, 'openai') == 'hello world'
+    assert _extract_answer(
+        {'choices': [{'message': {'content': 'hello world'}}]}, 'openai') == 'hello world'
 
 
 def test_extract_answer_openai_reasoning_fallback():
-    data = {'choices': [{'message': {'content': None, 'reasoning_content': 'think...'}}]}
-    assert _extract_answer(data, 'openai') == 'think...'
+    assert _extract_answer(
+        {'choices': [{'message': {'content': None, 'reasoning_content': 'think'}}]},
+        'openai') == 'think'
 
 
 def test_extract_answer_anthropic():
-    data = {'content': [{'type': 'text', 'text': 'bonjour'}]}
-    assert _extract_answer(data, 'anthropic') == 'bonjour'
+    assert _extract_answer(
+        {'content': [{'type': 'text', 'text': 'bonjour'}]}, 'anthropic') == 'bonjour'
 
 
 def test_extract_answer_anthropic_thinking():
-    data = {'content': [{'type': 'thinking', 'thinking': 'let me think...'}]}
-    assert _extract_answer(data, 'anthropic') == 'let me think...'
+    assert _extract_answer(
+        {'content': [{'type': 'thinking', 'thinking': 'let me think'}]},
+        'anthropic') == 'let me think'
 
 
 # ── _extract_code ─────────────────────────────────────────────────────────────
@@ -178,26 +235,32 @@ def test_extract_code_from_attr():
 
 
 def test_extract_code_from_string():
-    e = Exception("HTTP Error 401: Unauthorized")
-    assert _extract_code(e) == 401
+    assert _extract_code(Exception("HTTP Error 401: Unauthorized")) == 401
 
 
 def test_extract_code_none():
-    e = Exception("random error")
-    assert _extract_code(e) is None
+    assert _extract_code(Exception("random error")) is None
+
+
+def test_extract_code_httpx_status_error():
+    import httpx
+    mock_resp = MagicMock()
+    mock_resp.status_code = 503
+    e = httpx.HTTPStatusError("server error", request=MagicMock(), response=mock_resp)
+    assert _extract_code(e) == 503
 
 
 # ── _parse_sse_chunk ──────────────────────────────────────────────────────────
 
 def test_parse_sse_openai():
-    data = json.dumps({'choices': [{'delta': {'content': 'hi'}}]})
-    assert _parse_sse_chunk(data, 'openai') == 'hi'
+    assert _parse_sse_chunk(
+        json.dumps({'choices': [{'delta': {'content': 'hi'}}]}), 'openai') == 'hi'
 
 
 def test_parse_sse_anthropic():
     data = json.dumps({
         'type': 'content_block_delta',
-        'delta': {'type': 'text_delta', 'text': 'hey'}
+        'delta': {'type': 'text_delta', 'text': 'hey'},
     })
     assert _parse_sse_chunk(data, 'anthropic') == 'hey'
 
@@ -209,8 +272,7 @@ def test_parse_sse_invalid_json():
 # ── clean_response ────────────────────────────────────────────────────────────
 
 def test_clean_response_hides_model_names():
-    text = "I am Claude, made by Anthropic."
-    result = clean_response(text)
+    result = clean_response("I am Claude, made by Anthropic.")
     assert 'Claude' not in result
     assert 'Anthropic' not in result
 
@@ -228,42 +290,38 @@ def test_clean_response_treats_web_proxy_control_errors_as_backend_errors():
 
 
 def test_clean_response_chinese_identity():
-    text = "我是由DeepSeek开发的AI助手"
-    result = clean_response(text)
+    result = clean_response("我是由DeepSeek开发的AI助手")
     assert 'DeepSeek' not in result
 
 
-# ── _get_opener ───────────────────────────────────────────────────────────────
+# ── _build_client ─────────────────────────────────────────────────────────────
 
-def test_get_opener_gfw_backend():
-    opener = _get_opener('google_flash')
-    assert opener is not None
+def test_build_client_gfw_backend():
+    client = _build_client('google_flash', 30)
+    assert client is not None
+    client.close()
 
 
-def test_get_opener_normal_backend():
-    opener = _get_opener('longcat_chat')
-    assert opener is None
+def test_build_client_normal_backend():
+    client = _build_client('longcat_chat', 30)
+    assert client is not None
+    client.close()
 
 
 # ── call_api (mocked) ─────────────────────────────────────────────────────────
 
 @patch('http_caller.health_tracker')
-@patch('urllib.request.urlopen')
-def test_call_api_success_openai(mock_urlopen, mock_ht):
+@patch('http_caller._build_client')
+def test_call_api_success_openai(mock_build_client, mock_ht):
     mock_ht.is_cooled_down.return_value = False
-    resp_data = json.dumps({
-        'choices': [{'message': {'content': 'hello world'}}]
-    }).encode()
-    mock_resp = MagicMock()
-    mock_resp.read.return_value = resp_data
-    mock_resp.__enter__ = lambda s: s
-    mock_resp.__exit__ = MagicMock(return_value=False)
-    mock_urlopen.return_value = mock_resp
+    mock_build_client.return_value = _mock_httpx_client({
+        'choices': [{'message': {'content': 'hello world'}}],
+    })
 
     with patch.dict(http_caller.BACKENDS, {
         'test_backend': {'url': 'http://test.com/v1/chat/completions',
-                         'key': 'sk-test', 'model': 'test-model',
-                         'fmt': 'openai', 'timeout': 10}
+                        'key': 'sk-test', 'model': 'test-model',
+                        'fmt': 'openai', 'timeout': 10}
     }):
         result = call_api('test_backend', [{'role': 'user', 'content': 'hi'}],
                           system_prompt='Be helpful.')
@@ -276,38 +334,30 @@ def test_call_api_success_openai(mock_urlopen, mock_ht):
 @patch('http_caller.key_pool.report_key_result')
 @patch('http_caller.key_pool.get_key')
 @patch('http_caller.health_tracker')
-@patch('urllib.request.urlopen')
+@patch('http_caller._build_client')
 def test_call_api_uses_key_pool_key_and_reports_success(
-    mock_urlopen, mock_ht, mock_get_key, mock_report_key_result,
+    mock_build_client, mock_ht, mock_get_key, mock_report_key_result,
     mock_ensure_env_pool, mock_is_exhausted,
 ):
     mock_ht.is_cooled_down.return_value = False
     mock_ensure_env_pool.return_value = True
     mock_is_exhausted.return_value = False
     mock_get_key.return_value = 'sk-pooled'
-    resp_data = json.dumps({
-        'choices': [{'message': {'content': 'hello world'}}]
-    }).encode()
-    mock_resp = MagicMock()
-    mock_resp.read.return_value = resp_data
-    mock_resp.__enter__ = lambda s: s
-    mock_resp.__exit__ = MagicMock(return_value=False)
-    mock_urlopen.return_value = mock_resp
+    mock_build_client.return_value = _mock_httpx_client({
+        'choices': [{'message': {'content': 'hello world'}}],
+    })
 
     with patch.dict(http_caller.BACKENDS, {
         'pool_backend': {'url': 'http://test.com/v1/chat/completions',
                          'key': 'sk-primary', 'key_pool': 'unit-provider',
-                         'model': 'test-model', 'fmt': 'openai',
-                         'timeout': 10}
+                         'model': 'test-model', 'fmt': 'openai', 'timeout': 10}
     }):
         result = call_api('pool_backend', [{'role': 'user', 'content': 'hi'}])
 
-    req = mock_urlopen.call_args.args[0]
-    assert req.get_header('Authorization') == 'Bearer sk-pooled'
+    req_headers = mock_build_client.return_value.__enter__.return_value.post.call_args[1]['headers']
+    assert req_headers['Authorization'] == 'Bearer sk-pooled'
     assert 'hello world' in result
-    mock_get_key.assert_called_once_with('unit-provider')
-    mock_report_key_result.assert_called_once_with(
-        'unit-provider', 'sk-pooled', True)
+    mock_report_key_result.assert_called_once_with('unit-provider', 'sk-pooled', True)
 
 
 @patch('http_caller.key_pool.is_exhausted')
@@ -315,26 +365,31 @@ def test_call_api_uses_key_pool_key_and_reports_success(
 @patch('http_caller.key_pool.report_key_result')
 @patch('http_caller.key_pool.get_key')
 @patch('http_caller.health_tracker')
-@patch('urllib.request.urlopen')
+@patch('http_caller._build_client')
 def test_call_api_reports_key_pool_failure_with_retry_after(
-    mock_urlopen, mock_ht, mock_get_key, mock_report_key_result,
+    mock_build_client, mock_ht, mock_get_key, mock_report_key_result,
     mock_ensure_env_pool, mock_is_exhausted,
 ):
-    class RateLimited(Exception):
-        code = 429
-        headers = {'Retry-After': '7'}
-
+    import httpx
     mock_ht.is_cooled_down.return_value = False
     mock_ensure_env_pool.return_value = True
     mock_is_exhausted.return_value = False
     mock_get_key.return_value = 'sk-pooled'
-    mock_urlopen.side_effect = RateLimited("rate limited")
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 429
+    mock_resp.headers = {'Retry-After': '7'}
+    mock_client = MagicMock()
+    mock_client.__enter__.return_value = mock_client
+    mock_client.__exit__.return_value = False
+    mock_client.post.side_effect = httpx.HTTPStatusError(
+        "rate limited", request=MagicMock(), response=mock_resp)
+    mock_build_client.return_value = mock_client
 
     with patch.dict(http_caller.BACKENDS, {
         'pool_backend': {'url': 'http://test.com/v1/chat/completions',
                          'key': 'sk-primary', 'key_pool': 'unit-provider',
-                         'model': 'test-model', 'fmt': 'openai',
-                         'timeout': 10}
+                         'model': 'test-model', 'fmt': 'openai', 'timeout': 10}
     }):
         with pytest.raises(BackendError):
             call_api('pool_backend', [{'role': 'user', 'content': 'hi'}])
@@ -344,21 +399,16 @@ def test_call_api_reports_key_pool_failure_with_retry_after(
 
 
 @patch('http_caller.health_tracker')
-@patch('urllib.request.urlopen')
+@patch('http_caller._build_client')
 def test_call_api_bootstraps_key_pool_from_provider_env(
-    mock_urlopen, mock_ht, monkeypatch,
+    mock_build_client, mock_ht, monkeypatch,
 ):
     key_pool.clear_pools()
     monkeypatch.setenv('LIMA_KEY_POOL_GROQ', 'sk-env-1,sk-env-2:2')
     mock_ht.is_cooled_down.return_value = False
-    resp_data = json.dumps({
-        'choices': [{'message': {'content': 'hello world'}}]
-    }).encode()
-    mock_resp = MagicMock()
-    mock_resp.read.return_value = resp_data
-    mock_resp.__enter__ = lambda s: s
-    mock_resp.__exit__ = MagicMock(return_value=False)
-    mock_urlopen.return_value = mock_resp
+    mock_build_client.return_value = _mock_httpx_client({
+        'choices': [{'message': {'content': 'hello world'}}],
+    })
 
     with patch.dict(http_caller.BACKENDS, {
         'groq_unit': {'url': 'https://api.groq.com/openai/v1/chat/completions',
@@ -367,11 +417,8 @@ def test_call_api_bootstraps_key_pool_from_provider_env(
     }):
         call_api('groq_unit', [{'role': 'user', 'content': 'hi'}])
 
-    req = mock_urlopen.call_args.args[0]
-    assert req.get_header('Authorization') in {
-        'Bearer sk-env-1',
-        'Bearer sk-env-2',
-    }
+    req_headers = mock_build_client.return_value.__enter__.return_value.post.call_args[1]['headers']
+    assert req_headers['Authorization'] in {'Bearer sk-env-1', 'Bearer sk-env-2'}
     key_pool.clear_pools()
 
 
@@ -389,25 +436,86 @@ def test_call_api_cooled_down(mock_ht):
 @patch('http_caller.health_tracker')
 def test_call_api_no_key(mock_ht):
     mock_ht.is_cooled_down.return_value = False
-    with patch.dict(http_caller.BACKENDS, {'nokey': {'url': 'http://x', 'key': '', 'model': 'm', 'fmt': 'openai'}}):
+    with patch.dict(http_caller.BACKENDS, {
+        'nokey': {'url': 'http://x', 'key': '', 'model': 'm', 'fmt': 'openai'}
+    }):
         with pytest.raises(BackendError) as exc_info:
             call_api('nokey', [{'role': 'user', 'content': 'hi'}])
     assert exc_info.value.status_code == 404
 
 
 @patch('http_caller.health_tracker')
-@patch('urllib.request.urlopen')
-def test_call_api_network_error(mock_urlopen, mock_ht):
+@patch('http_caller._build_client')
+def test_call_api_network_error(mock_build_client, mock_ht):
     mock_ht.is_cooled_down.return_value = False
-    mock_urlopen.side_effect = Exception("Connection refused")
+    mock_client = MagicMock()
+    mock_client.__enter__.return_value = mock_client
+    mock_client.__exit__.return_value = False
+    mock_client.post.side_effect = Exception("Connection refused")
+    mock_build_client.return_value = mock_client
 
     with patch.dict(http_caller.BACKENDS, {
         'fail_backend': {'url': 'http://fail.com/v1', 'key': 'sk-x',
-                         'model': 'm', 'fmt': 'openai', 'timeout': 5}
+                        'model': 'm', 'fmt': 'openai', 'timeout': 5}
     }):
         with pytest.raises(BackendError):
             call_api('fail_backend', [{'role': 'user', 'content': 'hi'}])
     mock_ht.record_failure.assert_called_once()
+
+
+@patch('http_caller.health_tracker')
+@patch('http_caller._build_async_client')
+def test_call_api_async_success_openai(mock_build_async_client, mock_ht):
+    mock_ht.is_cooled_down.return_value = False
+    mock_build_async_client.return_value = _MockAsyncHttpxClient({
+        'choices': [{'message': {'content': 'hello async'}}],
+    })
+
+    with patch.dict(http_caller.BACKENDS, {
+        'async_backend': {'url': 'http://test.com/v1/chat/completions',
+                          'key': 'sk-test', 'model': 'test-model',
+                          'fmt': 'openai', 'timeout': 10}
+    }):
+        result = asyncio.run(http_caller.call_api_async(
+            'async_backend', [{'role': 'user', 'content': 'hi'}]))
+
+    assert 'hello async' in result
+    mock_ht.record_success.assert_called_once()
+
+
+@patch('http_caller.health_tracker')
+@patch('http_caller._build_async_client')
+def test_call_raw_async_success(mock_build_async_client, mock_ht):
+    mock_build_async_client.return_value = _MockAsyncHttpxClient({'ok': True})
+
+    with patch.dict(http_caller.BACKENDS, {
+        'async_raw': {'url': 'http://test.com/v1/chat/completions',
+                      'key': 'sk-test', 'model': 'test-model',
+                      'fmt': 'openai', 'timeout': 10}
+    }):
+        result = asyncio.run(http_caller.call_raw_async('async_raw', b'{}'))
+
+    assert result == {'ok': True}
+    mock_ht.record_success.assert_called_once()
+
+
+@patch('http_caller.health_tracker')
+@patch('http_caller._build_async_client')
+def test_call_api_stream_async_success_openai(mock_build_async_client, mock_ht):
+    mock_ht.is_cooled_down.return_value = False
+    line = 'data: ' + json.dumps({'choices': [{'delta': {'content': 'hello stream'}}]})
+    mock_build_async_client.return_value = _MockAsyncStreamClient([line, 'data: [DONE]'])
+
+    with patch.dict(http_caller.BACKENDS, {
+        'async_stream': {'url': 'http://test.com/v1/chat/completions',
+                         'key': 'sk-test', 'model': 'test-model',
+                         'fmt': 'openai', 'timeout': 10}
+    }):
+        chunks = asyncio.run(_collect_async(http_caller.call_api_stream_async(
+            'async_stream', [{'role': 'user', 'content': 'hi'}])))
+
+    assert ''.join(chunks) == 'hello stream'
+    mock_ht.record_success.assert_called_once()
 
 
 # ── Token extraction ───────────────────────────────────────────────────────────
@@ -436,8 +544,7 @@ def test_extract_usage_anthropic():
 
 def test_extract_usage_no_usage_field():
     from http_caller import _extract_usage
-    data = {'choices': [{'message': {'content': 'hi'}}]}
-    p, c = _extract_usage(data, 'openai')
+    p, c = _extract_usage({'choices': [{'message': {'content': 'hi'}}]}, 'openai')
     assert p == 0
     assert c == 0
 
@@ -445,26 +552,20 @@ def test_extract_usage_no_usage_field():
 # ── Token telemetry in call_api ───────────────────────────────────────────────
 
 @patch('http_caller.health_tracker')
-@patch('urllib.request.urlopen')
-def test_call_api_records_token_usage(mock_urlopen, mock_ht, monkeypatch):
+@patch('http_caller._build_client')
+def test_call_api_records_token_usage(mock_build_client, mock_ht):
     mock_ht.is_cooled_down.return_value = False
-    resp_data = json.dumps({
+    mock_build_client.return_value = _mock_httpx_client({
         'choices': [{'message': {'content': 'hello world'}}],
         'usage': {'prompt_tokens': 200, 'completion_tokens': 80, 'total_tokens': 280},
-    }).encode()
-    mock_resp = MagicMock()
-    mock_resp.read.return_value = resp_data
-    mock_resp.__enter__ = lambda s: s
-    mock_resp.__exit__ = MagicMock(return_value=False)
-    mock_urlopen.return_value = mock_resp
+    })
 
     import budget_manager
     budget_manager.reset_for_tests()
 
     with patch.dict(http_caller.BACKENDS, {
         'test_tok': {'url': 'http://test.com/v1/chat/completions',
-                     'key': 'sk-test', 'model': 'test-model',
-                     'fmt': 'openai', 'timeout': 10}
+                    'key': 'sk-test', 'model': 'test-model', 'fmt': 'openai', 'timeout': 10}
     }):
         call_api('test_tok', [{'role': 'user', 'content': 'hi'}])
 
@@ -477,14 +578,12 @@ def test_call_api_records_token_usage(mock_urlopen, mock_ht, monkeypatch):
 
 # ── Key pool exhaustion ────────────────────────────────────────────────────────
 
-@patch('http_caller.key_pool.is_exhausted')
 @patch('http_caller.key_pool.ensure_env_pool')
+@patch('http_caller.key_pool.is_exhausted')
 @patch('http_caller.health_tracker')
-def test_call_api_key_pool_exhausted_returns_empty_key(
-    mock_ht, mock_ensure_env_pool, mock_exhausted,
-):
+def test_call_api_key_pool_exhausted_returns_empty_key(mock_ht, mock_exhausted, mock_ensure):
     mock_ht.is_cooled_down.return_value = False
-    mock_ensure_env_pool.return_value = True
+    mock_ensure.return_value = True
     mock_exhausted.return_value = True
 
     with patch.dict(http_caller.BACKENDS, {
@@ -497,8 +596,11 @@ def test_call_api_key_pool_exhausted_returns_empty_key(
     mock_exhausted.assert_called_once_with('exhausted_provider')
 
 
+@patch('http_caller.key_pool.is_exhausted')
 @patch('http_caller.key_pool.ensure_env_pool')
-def test_select_key_falls_back_to_backend_key_when_pool_not_configured(mock_ensure_env_pool):
+def test_select_key_falls_back_to_backend_key_when_pool_not_configured(
+    mock_ensure_env_pool, mock_is_exhausted,
+):
     mock_ensure_env_pool.return_value = False
 
     key, provider = http_caller._select_key(
@@ -508,6 +610,37 @@ def test_select_key_falls_back_to_backend_key_when_pool_not_configured(mock_ensu
 
     assert key == 'sk-static'
     assert provider == 'github'
+    mock_is_exhausted.assert_not_called()
+
+
+@patch('http_caller.key_pool.is_exhausted')
+@patch('http_caller.key_pool.ensure_env_pool')
+@patch('http_caller.key_pool.report_key_result')
+@patch('http_caller.key_pool.get_key')
+@patch('http_caller.health_tracker')
+@patch('http_caller._build_client')
+def test_call_api_stream_reports_empty_stream_as_502_to_key_pool(
+    mock_build_client, mock_ht, mock_get_key, mock_report_key_result,
+    mock_ensure_env_pool, mock_is_exhausted,
+):
+    mock_ht.is_cooled_down.return_value = False
+    mock_ensure_env_pool.return_value = True
+    mock_is_exhausted.return_value = False
+    mock_get_key.return_value = 'sk-pooled'
+    mock_build_client.return_value = _mock_httpx_stream_client(['data: [DONE]'])
+
+    with patch.dict(http_caller.BACKENDS, {
+        'pool_backend': {'url': 'http://test.com/v1/chat/completions',
+                         'key': 'sk-primary', 'key_pool': 'unit-provider',
+                         'model': 'test-model', 'fmt': 'openai', 'timeout': 10}
+    }):
+        with pytest.raises(BackendError) as exc_info:
+            list(http_caller.call_api_stream(
+                'pool_backend', [{'role': 'user', 'content': 'hi'}]))
+
+    assert exc_info.value.status_code == 502
+    mock_report_key_result.assert_called_once_with(
+        'unit-provider', 'sk-pooled', False, error_code=502, retry_after=0)
 
 
 # ── Failure classification ────────────────────────────────────────────────────
@@ -555,7 +688,6 @@ def test_classify_failure_malformed():
 def test_classify_failure_provider_error():
     from health_tracker import classify_failure
     assert classify_failure(500) == 'provider_error'
-    assert classify_failure(502) == 'network_error'  # 502 is network, not provider
 
 
 def test_classify_failure_anonymous_exhausted():

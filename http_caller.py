@@ -7,7 +7,9 @@ LiMa HTTP Caller — 统一后端调用层
 
 接口:
     call_api(backend, messages, max_tokens, system_prompt, ide) -> str
+    call_api_async(...) -> Awaitable[str]
     call_api_stream(backend, messages, max_tokens, system_prompt, ide) -> Generator[str]
+    call_api_stream_async(...) -> AsyncIterator[str]
     probe(backend) -> bool
 """
 
@@ -15,8 +17,9 @@ import json
 import os
 import sys
 import time
-import urllib.request
-from typing import Generator, Optional
+from typing import AsyncIterator, Generator, Optional
+
+import httpx
 
 import health_tracker
 import key_pool
@@ -38,14 +41,26 @@ class BackendError(Exception):
 
 # ── Request Building ──────────────────────────────────────────────────────────
 
-def _get_opener(name: str):
-    if name in GFW_BACKENDS:
-        proxy = urllib.request.ProxyHandler({
-            'http': GFW_PROXY_URL, 'https': GFW_PROXY_URL})
-        opener = urllib.request.build_opener(proxy)
-        opener.addheaders = [('User-Agent', GFW_USER_AGENT)]
-        return opener
-    return None
+def _build_client(backend: str, timeout: float) -> httpx.Client:
+    """Build httpx Client with proxy for GFW backends."""
+    if backend in GFW_BACKENDS:
+        return httpx.Client(
+            proxy=GFW_PROXY_URL,
+            headers={'User-Agent': GFW_USER_AGENT},
+            timeout=httpx.Timeout(timeout, connect=10.0),
+        )
+    return httpx.Client(timeout=httpx.Timeout(timeout, connect=10.0))
+
+
+def _build_async_client(backend: str, timeout: float) -> httpx.AsyncClient:
+    """Build httpx AsyncClient with proxy for GFW backends."""
+    if backend in GFW_BACKENDS:
+        return httpx.AsyncClient(
+            proxy=GFW_PROXY_URL,
+            headers={'User-Agent': GFW_USER_AGENT},
+            timeout=httpx.Timeout(timeout, connect=10.0),
+        )
+    return httpx.AsyncClient(timeout=httpx.Timeout(timeout, connect=10.0))
 
 
 def _build_headers(backend_cfg: dict, key: str = None) -> dict:
@@ -104,6 +119,11 @@ def _report_key_result(provider: str, key: str, success: bool,
 
 
 def _extract_retry_after(e: Exception) -> int:
+    if isinstance(e, httpx.HTTPStatusError):
+        try:
+            return int(e.response.headers.get('Retry-After', 0))
+        except (TypeError, ValueError):
+            return 0
     headers = getattr(e, 'headers', None)
     value = None
     if headers:
@@ -200,7 +220,6 @@ def call_api(backend: str, messages: list[dict], max_tokens: int = 4096,
     if health_tracker.is_cooled_down(backend):
         raise BackendError(f'{backend} is cooled down', status_code=503)
 
-    # ── Integration: Concurrency Pool (Phase 27) ──────────────────────────
     # ── Integration: Artifact Handle (Phase P5) — large context → handle ──
     try:
         from context_pipeline.artifact import should_use_handle, create_handle
@@ -218,13 +237,11 @@ def call_api(backend: str, messages: list[dict], max_tokens: int = 4096,
     timeout = cfg.get('timeout', 60)
 
     try:
-        req = urllib.request.Request(cfg['url'], data=body, headers=headers)
-        opener = _get_opener(backend)
-        open_fn = opener.open if opener else urllib.request.urlopen
-        with open_fn(req, timeout=timeout) as resp:
-            resp_data = resp.read()
+        with _build_client(backend, timeout) as client:
+            resp = client.post(cfg['url'], content=body, headers=headers)
+            resp.raise_for_status()
+            d = resp.json()
 
-        d = json.loads(resp_data.decode('utf-8', errors='replace'))
         answer = _extract_answer(d, cfg['fmt'])
 
         if _is_backend_error(answer):
@@ -256,6 +273,14 @@ def call_api(backend: str, messages: list[dict], max_tokens: int = 4096,
             key_provider, selected_key, False,
             error_code=e.status_code or 0, retry_after=0)
         raise
+    except httpx.HTTPStatusError as e:
+        error_code = e.response.status_code
+        health_tracker.record_failure(
+            backend, error_code=error_code, error_text=str(e))
+        _report_key_result(
+            key_provider, selected_key, False,
+            error_code=error_code, retry_after=_extract_retry_after(e))
+        raise BackendError(str(e), status_code=error_code) from e
     except Exception as e:
         error_code = _extract_code(e)
         health_tracker.record_failure(
@@ -280,11 +305,10 @@ def call_raw(backend: str, payload: bytes) -> dict:
     headers = {'Content-Type': 'application/json',
                'Authorization': f"Bearer {selected_key}"}
     try:
-        req = urllib.request.Request(cfg['url'], data=payload, headers=headers)
-        opener = _get_opener(backend)
-        open_fn = opener.open if opener else urllib.request.urlopen
-        with open_fn(req, timeout=cfg.get('timeout', 30)) as resp:
-            data = json.loads(resp.read().decode('utf-8', errors='replace'))
+        with _build_client(backend, cfg.get('timeout', 30)) as client:
+            resp = client.post(cfg['url'], content=payload, headers=headers)
+            resp.raise_for_status()
+            data = resp.json()
         latency_ms = int((time.time() - t0) * 1000)
         health_tracker.record_success(backend, latency_ms)
         _report_key_result(key_provider, selected_key, True)
@@ -294,6 +318,14 @@ def call_raw(backend: str, payload: bytes) -> dict:
             key_provider, selected_key, False,
             error_code=e.status_code or 0, retry_after=0)
         raise
+    except httpx.HTTPStatusError as e:
+        error_code = e.response.status_code
+        health_tracker.record_failure(
+            backend, error_code=error_code, error_text=str(e))
+        _report_key_result(
+            key_provider, selected_key, False,
+            error_code=error_code, retry_after=_extract_retry_after(e))
+        raise BackendError(str(e), status_code=error_code) from e
     except Exception as e:
         error_code = _extract_code(e)
         health_tracker.record_failure(
@@ -332,7 +364,11 @@ def _extract_usage(data: dict, fmt: str) -> tuple[int, int]:
 
 
 def _extract_code(e: Exception) -> Optional[int]:
-    """从异常中提取 HTTP 状态码。"""
+    """从异常中提取 HTTP 状态码。兼容 httpx 和 urllib。"""
+    if isinstance(e, httpx.HTTPStatusError):
+        return e.response.status_code
+    if isinstance(e, httpx.RequestError):
+        return None
     for attr in ('status_code', 'code', 'status'):
         val = getattr(e, attr, None)
         if isinstance(val, int):
@@ -351,9 +387,7 @@ def _extract_code(e: Exception) -> Optional[int]:
 
 def call_api_stream(backend: str, messages: list[dict], max_tokens: int = 4096,
                     *, system_prompt: str = "", ide: str = "") -> Generator[str, None, None]:
-    """流式调用后端，yield 文本 chunk。失败抛 BackendError。
-    短响应会被缓冲检测：如果整条回复是后端错误消息，抛异常触发fallback。
-    """
+    """流式调用后端，yield 文本 chunk。失败抛 BackendError。"""
     cfg = BACKENDS.get(backend)
     if not cfg:
         raise BackendError(f'{backend} unavailable (no key)', status_code=404)
@@ -370,35 +404,18 @@ def call_api_stream(backend: str, messages: list[dict], max_tokens: int = 4096,
     t0 = time.time()
 
     try:
-        req = urllib.request.Request(cfg['url'], data=body, headers=headers)
-        opener = _get_opener(backend)
-        open_fn = opener.open if opener else urllib.request.urlopen
-        resp = open_fn(req, timeout=timeout)
+        with _build_client(backend, timeout) as client:
+            pending_chunks = []
+            total_text = ""
+            flushed = False
 
-        buffer = bytearray()
-        max_buffer = 1 * 1024 * 1024  # 1 MB guard
-        pending_chunks = []
-        total_text = ""
-        flushed = False
-        done = False
-
-        with resp:
-            while not done:
-                chunk = resp.read(4096)
-                if not chunk:
-                    break
-                buffer.extend(chunk)
-                if len(buffer) > max_buffer:
-                    raise BackendError(f'{backend} SSE buffer overflow', status_code=502)
-                while b'\n' in buffer:
-                    line_end = buffer.index(b'\n')
-                    line = buffer[:line_end].decode('utf-8', errors='replace').strip()
-                    del buffer[:line_end + 1]
+            with client.stream("POST", cfg['url'], content=body, headers=headers) as resp:
+                resp.raise_for_status()
+                for line in resp.iter_lines():
                     if not line or not line.startswith('data: '):
                         continue
                     data_str = line[6:]
                     if data_str == '[DONE]':
-                        done = True
                         break
                     text = _parse_sse_chunk(data_str, fmt)
                     if text:
@@ -449,6 +466,14 @@ def call_api_stream(backend: str, messages: list[dict], max_tokens: int = 4096,
             key_provider, selected_key, False,
             error_code=e.status_code or 0, retry_after=0)
         raise
+    except httpx.HTTPStatusError as e:
+        error_code = e.response.status_code
+        health_tracker.record_failure(
+            backend, error_code=error_code, error_text=str(e))
+        _report_key_result(
+            key_provider, selected_key, False,
+            error_code=error_code, retry_after=_extract_retry_after(e))
+        raise BackendError(str(e), status_code=error_code) from e
     except Exception as e:
         error_code = _extract_code(e)
         health_tracker.record_failure(
@@ -486,3 +511,225 @@ def probe(backend: str) -> bool:
         return True
     except BackendError:
         return False
+
+
+# ── Async API Calls ─────────────────────────────────────────────────────────
+
+async def call_api_async(backend: str, messages: list[dict],
+                          max_tokens: int = 4096,
+                          *, system_prompt: str = "", ide: str = "") -> str:
+    """Async equivalent of call_api. Uses httpx.AsyncClient."""
+    cfg = BACKENDS.get(backend)
+    if not cfg:
+        raise BackendError(f'{backend} unavailable (no key)', status_code=404)
+    selected_key, key_provider = _select_key(backend, cfg)
+    if not selected_key:
+        raise BackendError(f'{backend} unavailable (no key)', status_code=404)
+
+    if health_tracker.is_cooled_down(backend):
+        raise BackendError(f'{backend} is cooled down', status_code=503)
+
+    t0 = time.time()
+    headers = _build_headers(cfg, key=selected_key)
+    body = _build_body(cfg, messages, max_tokens, system_prompt, ide)
+    timeout = cfg.get('timeout', 60)
+
+    try:
+        async with _build_async_client(backend, timeout) as client:
+            resp = await client.post(cfg['url'], content=body, headers=headers)
+            resp.raise_for_status()
+            d = resp.json()
+
+        answer = _extract_answer(d, cfg['fmt'])
+
+        if _is_backend_error(answer):
+            health_tracker.record_failure(
+                backend, error_code=429, error_text=answer)
+            raise BackendError(
+                f'{backend} returned error response: {answer[:60]}',
+                status_code=429)
+
+        latency_ms = int((time.time() - t0) * 1000)
+        health_tracker.record_success(backend, latency_ms)
+        _report_key_result(key_provider, selected_key, True)
+        cleaned = clean_response(answer, backend)
+        health_tracker.record_response_quality(
+            backend, len(cleaned) if cleaned else 0)
+
+        p_tok, c_tok = _extract_usage(d, cfg['fmt'])
+        try:
+            import budget_manager
+            budget_manager.record_token_usage(backend, p_tok, c_tok)
+        except ImportError:
+            pass
+
+        return cleaned
+
+    except BackendError as e:
+        _report_key_result(key_provider, selected_key, False,
+                           error_code=e.status_code or 0, retry_after=0)
+        raise
+    except httpx.HTTPStatusError as e:
+        error_code = e.response.status_code
+        health_tracker.record_failure(
+            backend, error_code=error_code, error_text=str(e))
+        _report_key_result(key_provider, selected_key, False,
+                           error_code=error_code,
+                           retry_after=_extract_retry_after(e))
+        raise BackendError(str(e), status_code=error_code) from e
+    except Exception as e:
+        error_code = _extract_code(e)
+        health_tracker.record_failure(
+            backend, error_code=error_code, error_text=str(e))
+        _report_key_result(key_provider, selected_key, False,
+                           error_code=error_code or 0,
+                           retry_after=_extract_retry_after(e))
+        if DEBUG:
+            print(f'[HTTP] {backend} async error: {e}', file=sys.stderr)
+        raise BackendError(str(e), status_code=error_code) from e
+
+
+async def call_api_stream_async(backend: str, messages: list[dict],
+                                 max_tokens: int = 4096,
+                                 *, system_prompt: str = "",
+                                 ide: str = "") -> AsyncIterator[str]:
+    """Async SSE streaming. No threads, no queues."""
+    cfg = BACKENDS.get(backend)
+    if not cfg:
+        raise BackendError(f'{backend} unavailable (no key)', status_code=404)
+    selected_key, key_provider = _select_key(backend, cfg)
+    if not selected_key:
+        raise BackendError(f'{backend} unavailable (no key)', status_code=404)
+    if health_tracker.is_cooled_down(backend):
+        raise BackendError(f'{backend} is cooling down', status_code=503)
+
+    headers = _build_headers(cfg, key=selected_key)
+    body = _build_body(cfg, messages, max_tokens, system_prompt, ide, stream=True)
+    timeout = cfg.get('timeout', 60)
+    fmt = cfg['fmt']
+    t0 = time.time()
+
+    try:
+        async with _build_async_client(backend, timeout) as client:
+            pending_chunks = []
+            total_text = ""
+            flushed = False
+
+            async with client.stream("POST", cfg['url'], content=body,
+                                      headers=headers) as resp:
+                resp.raise_for_status()
+                async for line in resp.aiter_lines():
+                    if not line or not line.startswith('data: '):
+                        continue
+                    data_str = line[6:]
+                    if data_str == '[DONE]':
+                        break
+                    text = _parse_sse_chunk(data_str, fmt)
+                    if text:
+                        total_text += text
+                        if flushed:
+                            yield _clean_brand_only(text, backend)
+                        else:
+                            pending_chunks.append(text)
+                            if len(total_text) > 200:
+                                if _is_backend_error(total_text):
+                                    health_tracker.record_failure(
+                                        backend, error_code=429,
+                                        error_text=total_text)
+                                    raise BackendError(
+                                        f'{backend} error: {total_text[:60]}',
+                                        status_code=429)
+                                buffered = "".join(pending_chunks)
+                                cleaned_out = clean_response(buffered, backend)
+                                if cleaned_out:
+                                    yield cleaned_out
+                                pending_chunks = []
+                                flushed = True
+
+        if not flushed:
+            if not total_text:
+                health_tracker.record_failure(
+                    backend, error_code=502, error_text="empty stream")
+                raise BackendError(
+                    f'{backend} returned empty stream', status_code=502)
+            if _is_backend_error(total_text):
+                health_tracker.record_failure(
+                    backend, error_code=429, error_text=total_text)
+                raise BackendError(
+                    f'{backend} returned error: {total_text[:60]}',
+                    status_code=429)
+            for pc in pending_chunks:
+                cleaned_out = clean_response(pc, backend)
+                if cleaned_out:
+                    yield cleaned_out
+
+        latency_ms = int((time.time() - t0) * 1000)
+        health_tracker.record_success(backend, latency_ms)
+        _report_key_result(key_provider, selected_key, True)
+        health_tracker.record_response_quality(
+            backend, len(total_text) if total_text else 0)
+
+    except BackendError as e:
+        _report_key_result(key_provider, selected_key, False,
+                           error_code=e.status_code or 0, retry_after=0)
+        raise
+    except httpx.HTTPStatusError as e:
+        error_code = e.response.status_code
+        health_tracker.record_failure(
+            backend, error_code=error_code, error_text=str(e))
+        _report_key_result(key_provider, selected_key, False,
+                           error_code=error_code,
+                           retry_after=_extract_retry_after(e))
+        raise BackendError(str(e), status_code=error_code) from e
+    except Exception as e:
+        error_code = _extract_code(e)
+        health_tracker.record_failure(
+            backend, error_code=error_code, error_text=str(e))
+        _report_key_result(key_provider, selected_key, False,
+                           error_code=error_code or 0,
+                           retry_after=_extract_retry_after(e))
+        if DEBUG:
+            print(f'[STREAM] {backend} async error: {e}', file=sys.stderr)
+        raise BackendError(str(e), status_code=error_code) from e
+
+
+async def call_raw_async(backend: str, payload: bytes) -> dict:
+    """Async equivalent of call_raw."""
+    cfg = BACKENDS.get(backend)
+    if not cfg:
+        raise BackendError(f'{backend} unavailable', status_code=404)
+    selected_key, key_provider = _select_key(backend, cfg)
+    if not selected_key:
+        raise BackendError(f'{backend} unavailable', status_code=404)
+    t0 = time.time()
+    headers = {'Content-Type': 'application/json',
+               'Authorization': f"Bearer {selected_key}"}
+    try:
+        async with _build_async_client(backend, cfg.get('timeout', 30)) as client:
+            resp = await client.post(cfg['url'], content=payload, headers=headers)
+            resp.raise_for_status()
+            data = resp.json()
+        latency_ms = int((time.time() - t0) * 1000)
+        health_tracker.record_success(backend, latency_ms)
+        _report_key_result(key_provider, selected_key, True)
+        return data
+    except BackendError as e:
+        _report_key_result(key_provider, selected_key, False,
+                           error_code=e.status_code or 0, retry_after=0)
+        raise
+    except httpx.HTTPStatusError as e:
+        error_code = e.response.status_code
+        health_tracker.record_failure(
+            backend, error_code=error_code, error_text=str(e))
+        _report_key_result(key_provider, selected_key, False,
+                           error_code=error_code,
+                           retry_after=_extract_retry_after(e))
+        raise BackendError(str(e), status_code=error_code) from e
+    except Exception as e:
+        error_code = _extract_code(e)
+        health_tracker.record_failure(
+            backend, error_code=error_code, error_text=str(e))
+        _report_key_result(key_provider, selected_key, False,
+                           error_code=error_code or 0,
+                           retry_after=_extract_retry_after(e))
+        raise BackendError(str(e), status_code=error_code) from e

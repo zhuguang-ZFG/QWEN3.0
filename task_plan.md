@@ -13,7 +13,7 @@
 > |----|------|--------|---------|
 > | M0 | Baseline & Review Harness | complete | 2026-05-24 |
 > | M1 | Router, Backend Registry, Key Pool | complete | 2026-05-24 |
-> | M2 | Async & Concurrency | pending | - |
+> | M2 | Async & Concurrency | in_progress | 2026-05-24 |
 > | M3 | Context Graph, AST, Reranking | pending | - |
 > | M4 | Memory Taxonomy & Redaction | pending | - |
 > | M5 | Eval, Quality Gate, Structured Output | pending | - |
@@ -30,6 +30,7 @@
 > | # | Milestone | Error | Attempt | Resolution |
 > |---|-----------|-------|---------|------------|
 > | 1 | M0 | Device gateway route tests leaked `LIMA_API_KEY` through `os.environ`, causing MCP auth tests to fail in the full suite. | Reproduced with `python -m pytest tests/test_device_gateway_routes.py tests/test_mcp_tools.py -q --ignore=active_model`. | Replaced direct environment mutation with a `monkeypatch` autouse fixture and updated the baseline. |
+> | 2 | M2-S1 | Review found internal `BackendError` paths in `http_caller.py` were reporting key-pool failures as 429 instead of preserving the real status code. | Added an empty-stream regression that fails if a 502 is reported as 429, plus restored key-pool fallback coverage. | `BackendError` handlers now pass `e.status_code`; focused tests cover sync, async, stream, static fallback, and exhausted-pool behavior. |
 
 ## Goal
 
