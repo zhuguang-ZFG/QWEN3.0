@@ -2,21 +2,20 @@
 让 Cursor、Claude Code、VS Code Copilot 等 AI IDE 直接接入。
 支持流式/非流式 ChatCompletion，兼容 OpenAI API 格式。
 """
-import sys, os, json, time, uuid, asyncio, threading, functools, logging
+import sys, os, json, time, asyncio, threading, logging
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from fastapi import FastAPI, Request, HTTPException, Depends, Header
-from fastapi.responses import StreamingResponse, JSONResponse, HTMLResponse
+from fastapi import FastAPI, Request, HTTPException, Depends
+from fastapi.responses import StreamingResponse, JSONResponse
 import uvicorn
 
 from access_guard import require_private_api_key
 from chat_models import ChatRequest, Message, extract_system_prompt
-from chat_request_utils import extract_last_user_text, extract_system_preview
+from chat_request_utils import extract_system_preview
 import smart_router
 from orchestrate import orchestrate, needs_orchestration
 from vision_handler import (
     _vision_route, _stream_vision_response,
-    detect_vision_request, convert_openai_vision_to_anthropic,
 )
 from converters.anthropic_format import (
     convert_tools_anthropic_to_openai as _convert_tools_anthropic_to_openai,
@@ -219,214 +218,6 @@ import routes.images as _images_mod
 _images_mod.inject_record_request(_record_request)
 app.include_router(images_router)
 
-
-# ── Routes ──────────────────────────────────────────────────────────────────
-@app.post(
-    "/v1/chat/completions",
-    dependencies=[Depends(require_private_api_key)],
-)
-async def chat_completions(request: Request):
-    """OpenAI 兼容接口。"""
-    body = await request.json()
-    raw_messages = body.get("messages", [])
-    # Support explicit thinking flag from request body
-    client_ip = _client_ip(request)
-    ide_source = _detect_ide(raw_messages)
-
-    # Rate limiting (IDE clients get higher quota, not exempt)
-    import rate_limiter
-    rate_limit_multiplier = 5 if ide_source else 1
-    if not rate_limiter.check_rate_limit(client_ip, multiplier=rate_limit_multiplier):
-        return JSONResponse(
-            status_code=429,
-            content={"error": {"message": "Rate limit exceeded. Try again later.", "type": "rate_limit_error"}})
-
-    sys_prompt_preview = extract_system_preview(raw_messages)
-
-    # ── Vision detection on raw messages (before Pydantic parsing) ────────
-    if detect_vision_request(raw_messages):
-        chat_id = make_chat_id()
-        t0 = time.time()
-        # Extract text query for logging
-        query_text = extract_last_user_text(raw_messages)
-        vision_result = await _vision_route(raw_messages, body.get("max_tokens", 4096), ide_source)
-        if vision_result:
-            content = vision_result["answer"]
-            backend = vision_result["backend"]
-            duration_ms = int((time.time() - t0) * 1000)
-            _record_request(query_text or "[vision]", backend, "vision", duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
-            if body.get("stream", False):
-                return StreamingResponse(
-                    _stream_vision_response(chat_id, content),
-                    media_type="text/event-stream",
-                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
-                )
-            return JSONResponse(build_response(chat_id, content, backend, duration_ms))
-
-    req = ChatRequest(**body)
-    if body.get("thinking", False):
-        req.thinking = True
-    return await _handle_chat(
-        req,
-        fmt="openai",
-        client_ip=client_ip,
-        ide_source=ide_source,
-        sys_prompt_preview=sys_prompt_preview,
-        request_headers=dict(request.headers),
-    )
-
-
-@app.post("/v1/messages", dependencies=[Depends(require_private_api_key)])
-async def anthropic_messages(req: Request):
-    """Anthropic 兼容接口（供 cc-switch Claude Code 使用）。支持流式和非流式、多模态。"""
-    request_started_at = time.time()
-    body = await req.json()
-
-    # ── Rate limiting (consistent with OpenAI endpoint) ───────────────────
-    client_ip = _client_ip(req)
-    import rate_limiter
-    ua = req.headers.get("user-agent", "")
-    is_ide_client = any(k in ua.lower() for k in ("claude-code", "continue", "cursor", "copilot"))
-    rate_limit_multiplier = 5 if is_ide_client else 1
-    if not rate_limiter.check_rate_limit(client_ip, multiplier=rate_limit_multiplier):
-        return JSONResponse(
-            status_code=429,
-            content={"type": "error", "error": {"type": "rate_limit_error", "message": "Rate limit exceeded. Try again later."}})
-
-    # ── 提取用户查询，先检查预设直答 ──────────────────────────────────────────
-    raw_messages = body.get("messages", [])
-    last_user_query = extract_last_user_text(raw_messages)
-
-    # ── 工具调用检测：有 tools 定义就直接转发给 Anthropic 后端 ─────────────────
-    if body.get("tools"):
-        is_stream = body.get("stream", False)
-        if is_stream:
-            return StreamingResponse(
-                _anthropic_native_stream(body),
-                media_type="text/event-stream",
-                headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
-            )
-        else:
-            result = await _anthropic_native_forward(body)
-            return JSONResponse(result)
-
-    has_image = False
-
-    # 解析消息：支持纯文本和多模态数组格式
-    messages = []
-    for m in raw_messages:
-        role = m.get("role", "")
-        if role not in ("user", "assistant"):
-            continue
-        content = m.get("content", "")
-        if isinstance(content, str):
-            messages.append(Message(role=role, content=content))
-        elif isinstance(content, list):
-            # 多模态：提取文本，检测图片
-            text_parts = []
-            for block in content:
-                if block.get("type") == "text":
-                    text_parts.append(block.get("text", ""))
-                elif block.get("type") == "image":
-                    has_image = True
-            messages.append(Message(role=role, content="\n".join(text_parts) if text_parts else "[图片]"))
-
-    # system prompt
-    if body.get("system"):
-        if isinstance(body["system"], str):
-            messages.insert(0, Message(role="system", content=body["system"]))
-        elif isinstance(body["system"], list):
-            txt = " ".join(b.get("text", "") for b in body["system"] if b.get("type") == "text")
-            if txt:
-                messages.insert(0, Message(role="system", content=txt))
-
-    req_model = body.get("model", MODEL_ID)
-    is_stream = body.get("stream", False)
-
-    # 用户追踪信息
-    client_ip = req.headers.get("x-forwarded-for", "").split(",")[0].strip() or (req.client.host if req.client else "")
-    ide_source = _detect_ide(raw_messages)
-    sys_prompt_preview = extract_system_preview(raw_messages, system=body.get("system"))
-
-    # 含图片时：路由给视觉模型处理
-    if has_image:
-        # Build raw messages for vision routing (preserve image blocks)
-        vision_msgs = []
-        for m in raw_messages:
-            if isinstance(m, dict) and m.get("role") in ("user", "assistant"):
-                content = m.get("content", "")
-                if isinstance(content, list):
-                    # Convert Anthropic image blocks to OpenAI vision format for unified processing
-                    openai_blocks = []
-                    for block in content:
-                        if block.get("type") == "text":
-                            openai_blocks.append({"type": "text", "text": block.get("text", "")})
-                        elif block.get("type") == "image":
-                            source = block.get("source", {})
-                            if source.get("type") == "base64":
-                                media_type = source.get("media_type", "image/jpeg")
-                                data = source.get("data", "")
-                                openai_blocks.append({
-                                    "type": "image_url",
-                                    "image_url": {"url": f"data:{media_type};base64,{data}"}
-                                })
-                        else:
-                            openai_blocks.append(block)
-                    vision_msgs.append({"role": m["role"], "content": openai_blocks})
-                else:
-                    vision_msgs.append({"role": m["role"], "content": content})
-
-        vision_result = await _vision_route(vision_msgs, body.get("max_tokens", 4096), ide_source)
-        if vision_result:
-            content_text = vision_result["answer"]
-            backend_used = vision_result["backend"]
-            duration_ms = _elapsed_ms(request_started_at)
-            _record_request(last_user_query or "[vision]", backend_used, "vision", duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
-            if is_stream:
-                async def _vision_anthropic_stream():
-                    msg_id = f"msg_{uuid.uuid4().hex[:24]}"
-                    yield f"event: message_start\ndata: {json.dumps({'type':'message_start','message':{'id':msg_id,'type':'message','role':'assistant','model':req_model,'content':[],'stop_reason':None,'usage':{'input_tokens':10,'output_tokens':0}}})}\n\n"
-                    yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':0,'content_block':{'type':'text','text':''}})}\n\n"
-                    chunk_size = 30
-                    for i in range(0, len(content_text), chunk_size):
-                        chunk = content_text[i:i+chunk_size]
-                        yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':chunk}}, ensure_ascii=False)}\n\n"
-                        await asyncio.sleep(0.01)
-                    yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':0})}\n\n"
-                    yield f"event: message_delta\ndata: {json.dumps({'type':'message_delta','delta':{'stop_reason':'end_turn','stop_sequence':None},'usage':{'output_tokens':len(content_text)//4}})}\n\n"
-                    yield f"event: message_stop\ndata: {json.dumps({'type':'message_stop'})}\n\n"
-                return StreamingResponse(_vision_anthropic_stream(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
-            return JSONResponse(build_anthropic_response(f"msg_{uuid.uuid4().hex[:24]}", content_text, backend_used, req_model))
-        # If vision routing failed, fall through to the old passthrough behavior
-        if is_stream:
-            return StreamingResponse(
-                _anthropic_stream_passthrough(body, req_model),
-                media_type="text/event-stream",
-                headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
-            )
-
-    chat_req = ChatRequest(
-        model=req_model.replace("[1m]", ""),
-        messages=messages,
-        stream=False,
-        max_tokens=body.get("max_tokens", 4096)
-    )
-
-    if is_stream:
-        return StreamingResponse(
-            _anthropic_stream(chat_req, req_model, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview),
-            media_type="text/event-stream",
-            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
-        )
-    return await _handle_chat(
-        chat_req,
-        fmt="anthropic",
-        request_model=req_model,
-        client_ip=client_ip,
-        ide_source=ide_source,
-        sys_prompt_preview=sys_prompt_preview,
-        request_headers=dict(req.headers),
-    )
 
 
 # ── Anthropic streaming (extracted to routes/anthropic_stream.py) ────────────
@@ -771,56 +562,34 @@ def _split_sentences(text: str) -> list[str]:
     return chunks if chunks else [text]
 
 
+
+# Chat endpoints (extracted to routes/chat_endpoints.py)
+from routes.chat_endpoints import router as chat_endpoints_router
+import routes.chat_endpoints as _chat_endpoints_mod
+_chat_endpoints_mod.inject_deps(
+    model_id=MODEL_ID,
+    client_ip=lambda request: _client_ip(request),
+    detect_ide=lambda messages: _detect_ide(messages),
+    elapsed_ms=lambda started_at: _elapsed_ms(started_at),
+    vision_route=lambda messages, max_tokens=4096, ide="unknown": _vision_route(messages, max_tokens, ide),
+    stream_vision_response=lambda chat_id, content: _stream_vision_response(chat_id, content),
+    record_request=lambda *args, **kwargs: _record_request(*args, **kwargs),
+    anthropic_native_stream=lambda body: _anthropic_native_stream(body),
+    anthropic_native_forward=lambda body: _anthropic_native_forward(body),
+    anthropic_stream=lambda *args, **kwargs: _anthropic_stream(*args, **kwargs),
+    anthropic_stream_passthrough=lambda body, model: _anthropic_stream_passthrough(body, model),
+    handle_chat=lambda *args, **kwargs: _handle_chat(*args, **kwargs),
+)
+app.include_router(chat_endpoints_router)
+chat_completions = _chat_endpoints_mod.chat_completions
+anthropic_messages = _chat_endpoints_mod.anthropic_messages
+
+
 # ─── Embeddings 端点 (extracted to routes/embeddings.py) ──────────────────────
 from routes.embeddings import router as embeddings_router
 app.include_router(embeddings_router)
 
 
-@app.get("/v1/models")
-async def list_models():
-    """返回模型列表，让 IDE 识别可用模型。"""
-    models = [
-        {"id": "claude-opus-4-7", "object": "model", "created": MODEL_CREATED, "owned_by": "anthropic"},
-        {"id": "claude-sonnet-4", "object": "model", "created": MODEL_CREATED, "owned_by": "anthropic"},
-        {"id": "claude-haiku-4", "object": "model", "created": MODEL_CREATED, "owned_by": "anthropic"},
-        {"id": "gpt-5.4", "object": "model", "created": MODEL_CREATED, "owned_by": "openai"},
-        {"id": "gpt-4.1", "object": "model", "created": MODEL_CREATED, "owned_by": "openai"},
-        {"id": "o1", "object": "model", "created": MODEL_CREATED, "owned_by": "openai"},
-        {"id": "o4-mini", "object": "model", "created": MODEL_CREATED, "owned_by": "openai"},
-        {"id": "deepseek-v4-pro", "object": "model", "created": MODEL_CREATED, "owned_by": "deepseek"},
-        {"id": "deepseek-v4-flash", "object": "model", "created": MODEL_CREATED, "owned_by": "deepseek"},
-        {"id": "qwen3-coder", "object": "model", "created": MODEL_CREATED, "owned_by": "qwen"},
-        {"id": "gemini-2.0-flash", "object": "model", "created": MODEL_CREATED, "owned_by": "google"},
-        {"id": "llama-3.3-70b", "object": "model", "created": MODEL_CREATED, "owned_by": "meta"},
-        {"id": MODEL_ID, "object": "model", "created": MODEL_CREATED, "owned_by": "donglicao"},
-    ]
-    return {"object": "list", "data": models}
-
-
-@app.get("/health")
-async def health():
-    """健康检查端点。"""
-    return {"status": "ok", "version": "2.0", "model": MODEL_ID, "modules": _loaded_modules}
-
-
-@app.get("/api/live-key", dependencies=[Depends(require_private_api_key)])
-async def live_key():
-    """返回 Gemini Live API key（供视频通话前端使用）。"""
-    key = os.environ.get("GOOGLE_AI_KEY", "")
-    if not key:
-        raise HTTPException(status_code=503, detail="Gemini key not configured")
-    return {"key": key, "model": "models/gemini-2.0-flash-live-001"}
-
-
-@app.get("/v1/status", dependencies=[Depends(require_private_api_key)])
-async def router_status():
-    """路由器状态：熔断器、后端列表、路由表。"""
-    return {
-        "circuit_breakers": smart_router.cb_status(),
-        "backends": list(smart_router.BACKENDS.keys()),
-        "route_table": smart_router.ROUTE,
-        "public_model": smart_router.PUBLIC_MODEL_NAME
-    }
 
 
 # ── Admin routes (extracted to routes/admin.py) ────────────────────────────────
@@ -836,6 +605,20 @@ _qg_mod.inject_state(_backend_enabled)
 
 # ── MCP tools (knowledge/memory access for IDE clients) ───────────────────────
 _loaded_modules = {}
+
+from routes.system_endpoints import router as system_endpoints_router
+import routes.system_endpoints as _system_endpoints_mod
+_system_endpoints_mod.inject_state(
+    model_id=MODEL_ID,
+    model_created=MODEL_CREATED,
+    loaded_modules=_loaded_modules,
+)
+app.include_router(system_endpoints_router)
+list_models = _system_endpoints_mod.list_models
+health = _system_endpoints_mod.health
+live_key = _system_endpoints_mod.live_key
+router_status = _system_endpoints_mod.router_status
+
 try:
     from lima_mcp.server import router as mcp_router
     app.include_router(mcp_router)

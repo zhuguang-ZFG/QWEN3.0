@@ -14,6 +14,7 @@ import time
 import threading
 import os
 import re
+import hashlib
 from typing import Optional
 from dataclasses import dataclass, field
 
@@ -104,6 +105,32 @@ class KeyPool:
                        if e.status == "active" or
                        (e.status == "cooled" and now > e.cool_until))
 
+    def snapshot(self) -> dict:
+        with self._lock:
+            now = time.monotonic()
+            entries = []
+            counts = {"active": 0, "cooled": 0, "blocked": 0}
+            for e in self.entries:
+                status = e.status
+                if status == "cooled" and now > e.cool_until:
+                    status = "active"
+                counts[status] = counts.get(status, 0) + 1
+                entries.append({
+                    "key_id": _fingerprint_key(e.key),
+                    "weight": e.weight,
+                    "status": status,
+                    "cool_remaining_sec": max(0, int(e.cool_until - now)),
+                    "consecutive_429": e.consecutive_429,
+                })
+            return {
+                "provider": self.provider,
+                "total": len(self.entries),
+                "active": counts.get("active", 0),
+                "cooled": counts.get("cooled", 0),
+                "blocked": counts.get("blocked", 0),
+                "entries": entries,
+            }
+
     def _find(self, key: str) -> Optional[KeyEntry]:
         for e in self.entries:
             if e.key == key:
@@ -114,6 +141,12 @@ class KeyPool:
 # ─── 全局 Key Pool 管理 ─────────────────────────────────────────────────────
 
 _pools: dict[str, KeyPool] = {}
+
+
+def _fingerprint_key(key: str) -> str:
+    digest = hashlib.sha256(key.encode("utf-8")).hexdigest()[:10]
+    suffix = key[-4:] if len(key) >= 4 else key
+    return f"{digest}:{suffix}"
 
 
 def _env_name(provider: str) -> str:
@@ -161,6 +194,25 @@ def ensure_env_pool(provider: str) -> bool:
 
 def clear_pools():
     _pools.clear()
+
+
+def pool_snapshot(provider: str = "") -> dict:
+    if provider:
+        pool = _pools.get(provider)
+        return pool.snapshot() if pool else {
+            "provider": provider,
+            "total": 0,
+            "active": 0,
+            "cooled": 0,
+            "blocked": 0,
+            "entries": [],
+        }
+    return {
+        "providers": {
+            name: pool.snapshot()
+            for name, pool in sorted(_pools.items())
+        }
+    }
 
 
 def get_key(provider: str) -> Optional[str]:
