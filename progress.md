@@ -2275,3 +2275,36 @@ Verification note:
     no matches.
   - `python -m pytest -q --ignore=active_model`:
     854 passed, 8 skipped.
+
+## 2026-05-24 M15 Research Radar Closeout
+
+- Reviewed and closed M15:
+  - `research_radar.source` defines source records, adoption states, license
+    classes, serialization, and copy-permission policy;
+  - `research_radar.catalog` provides in-memory registration, lookup, search,
+    filters, and counts;
+  - `research_radar.seed` captures current LiMa reference sources as structured
+    seed records;
+  - `tests/test_research_radar.py` covers record serialization, validation,
+    search/filter/count behavior, default seeds, and license safety.
+- Review fixes applied:
+  - source records now validate required identity fields and can round-trip
+    through `from_dict()`;
+  - source serialization redacts secret-like URLs, notes, and evidence refs;
+  - duplicate source ids now fail fast instead of silently overwriting
+    provenance;
+  - tag filtering is case-insensitive and search has deterministic tie order;
+  - copy-restricted licenses such as AGPL/GPL/source-available/unknown are
+    flagged as not allowing code copy;
+  - seed metadata for Shadowbroker, last30days, and LEANN now uses the actual
+    reviewed URLs/license posture rather than generic trending URLs;
+  - M15 source/test files were cleaned to ASCII comments and docstrings.
+- Verification:
+  - `python -m pytest tests/test_research_radar.py -q --ignore=active_model`:
+    25 passed after review fixes.
+  - `python -m py_compile research_radar/__init__.py research_radar/source.py research_radar/catalog.py research_radar/seed.py tests/test_research_radar.py`:
+    passed.
+  - `rg -n "[^\\x00-\\x7F]" research_radar tests/test_research_radar.py`:
+    no matches.
+  - `python -m pytest -q --ignore=active_model`:
+    879 passed, 8 skipped.
