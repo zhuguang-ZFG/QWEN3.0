@@ -1757,3 +1757,38 @@ Verification note:
 - Verification:
   - `python -m py_compile http_caller.py test_http_caller.py`: passed.
   - `python -m pytest test_http_caller.py test_routing_engine.py -q --ignore=active_model`: 97 passed.
+
+## 2026-05-24 M2-S2-S3 Async Streaming And Speculative Execution
+
+- Completed M2 async/concurrency slices after review:
+  - `streaming.py` now exposes `bridge_stream_async()` for native async stream
+    bridging without worker threads or queues.
+  - `streaming.speculative_stream()` can use injected async stream/API
+    callables while preserving the legacy sync-callable path.
+  - `routes/v3_adapters.py` exposes `v3_call_stream_async()` and
+    `v3_call_api_async()`.
+  - `routes/stream_handlers.py` exposes `real_stream_chunks_async()` and wires
+    speculative streaming to the async-native callables.
+  - `speculative.py` now has `speculative_call_async()` backed by
+    `asyncio.create_task()` and keeps `speculative_call()` as a sync facade.
+- Review fixes applied:
+  - `bridge_stream_async()` now uses `asyncio.wait_for()` for real first-chunk
+    timeout behavior and closes async generators on timeout/fallback.
+  - async fake-stream adapters use `http_caller.call_api_async()` instead of
+    blocking the event loop with the sync API.
+  - `speculative_call_async()` now waits past invalid fast responses for a
+    valid slower response before cancelling pending tasks.
+  - speculative latency/failure learning was restored so
+    `is_historically_fast()` still has data.
+  - `speculative_call()` now works when called from an already-running event
+    loop by running its coroutine in a compatibility thread.
+- Regression coverage added:
+  - async bridge yields chunks;
+  - async bridge falls back on empty stream;
+  - async bridge first-chunk timeout falls back;
+  - speculative stream uses the async-native path when callables are provided;
+  - speculative async waits past a fast invalid response;
+  - speculative sync facade works inside a running event loop.
+- Verification:
+  - `python -m py_compile streaming.py speculative.py routes/v3_adapters.py routes/stream_handlers.py test_streaming.py`: passed.
+  - `python -m pytest test_streaming.py test_routing_engine.py test_http_caller.py -q --ignore=active_model`: 108 passed.

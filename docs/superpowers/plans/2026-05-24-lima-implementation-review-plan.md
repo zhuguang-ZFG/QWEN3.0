@@ -183,17 +183,22 @@ Implementation slices:
    - Add cancellation and timeout semantics before adding new clients.
    - Status 2026-05-24: M2-S1 keeps async calls beside sync calls in
      `http_caller.py`, preserves sync public signatures, and adds `httpx`
-     sync/async clients. Cancellation/backpressure work remains for later M2
-     slices.
+     sync/async clients.
 
 2. Concurrent request tests:
    - Add tests for multiple simultaneous provider calls with independent
      key-pool decisions.
    - Add timeout and cancellation tests.
+   - Status 2026-05-24: M2-S2/S3 adds async stream timeout tests and
+     speculative async winner/cancellation tests. Provider-key stress tests can
+     be expanded later if key-pool contention becomes observable.
 
 3. Backpressure and resource limits:
    - Add per-provider max concurrency fields if needed.
    - Ensure local models and weak/free backends cannot stampede.
+   - Status 2026-05-24: no new runtime limit fields were added. M2 keeps
+     resource behavior compatible and defers provider-level backpressure until
+     real concurrency evidence justifies it.
 
 Likely files:
 
@@ -228,8 +233,20 @@ Current M2-S1 review notes:
   codes are preserved instead of converted to 429.
 - Focused verification after review: `test_http_caller.py` plus
   `test_routing_engine.py` returned 97 passed.
-- Remaining M2 work: concurrent request tests, timeout/cancellation tests, and
-  per-provider backpressure/resource limits.
+
+Current M2 closure notes:
+
+- `streaming.py` now provides `bridge_stream_async()` and
+  `speculative_stream()` can use async-native stream/API callables.
+- `routes/v3_adapters.py` and `routes/stream_handlers.py` expose async-native
+  stream adapters while keeping legacy sync bridge functions.
+- `speculative.py` now provides `speculative_call_async()` and a sync
+  compatibility facade.
+- Review fixed two behavioral regressions:
+  - first-chunk timeout is enforced before waiting indefinitely for a chunk;
+  - invalid fast speculative responses no longer cancel valid slower responses.
+- Focused verification after M2 review: `test_streaming.py`,
+  `test_routing_engine.py`, and `test_http_caller.py` returned 108 passed.
 
 ## Milestone 3 - Context Graph, AST, Reranking, And Retrieval Evaluation
 

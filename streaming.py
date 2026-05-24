@@ -9,13 +9,17 @@ import asyncio
 import time
 import threading
 import queue as queue_mod
-from typing import AsyncIterator, Callable, Iterator, Optional
+from typing import AsyncIterator, Awaitable, Callable, Iterator, Optional
 
 # 注入函数签名
 CallStreamFn = Callable[[str, list, int, str], Iterator[str]]
 CallApiFn = Callable[[str, list, int, str], str]
 PredictFn = Callable[[str], str]
 SelectFn = Callable[[str, str, str, list], tuple[str, list]]
+
+# Async callable signatures (M2-S2)
+CallStreamAsyncFn = Callable[[str, list, int, str], AsyncIterator[str]]
+CallApiAsyncFn = Callable[[str, list, int, str], Awaitable[str]]
 
 
 # ─── 辅助 ────────────────────────────────────────────────────────────────────
@@ -116,6 +120,53 @@ async def bridge_stream(
             yield val
 
 
+# ─── 原生异步流式 ─────────────────────────────────────────────────────────────
+
+async def bridge_stream_async(
+    backend: str, messages: list, max_tokens: int, ide: str,
+    call_stream_async_fn: CallStreamAsyncFn,
+    call_api_async_fn: CallApiAsyncFn,
+    first_chunk_timeout: float = 3.0,
+    chunk_timeout: float = 30.0,
+) -> AsyncIterator[str]:
+    """Direct async streaming. No threads, no queues.
+
+    Yields text chunks. On empty stream, falls back to call_api_async_fn.
+    """
+    total_text = ""
+    stream = call_stream_async_fn(backend, messages, max_tokens, ide)
+
+    try:
+        while True:
+            timeout = first_chunk_timeout if not total_text else chunk_timeout
+            try:
+                chunk = await asyncio.wait_for(stream.__anext__(), timeout=timeout)
+            except StopAsyncIteration:
+                break
+            except asyncio.TimeoutError:
+                break
+            total_text += chunk
+            yield chunk
+    except Exception:
+        if not total_text:
+            total_text = ""
+    finally:
+        aclose = getattr(stream, "aclose", None)
+        if aclose:
+            try:
+                await aclose()
+            except Exception:
+                pass
+
+    if not total_text:
+        try:
+            result = await call_api_async_fn(backend, messages, max_tokens, ide)
+            if result and not str(result).startswith('[ERR]'):
+                yield str(result)
+        except Exception:
+            pass
+
+
 # ─── 预测流式 ────────────────────────────────────────────────────────────────
 
 async def speculative_stream(
@@ -124,11 +175,15 @@ async def speculative_stream(
     select_fn: SelectFn,
     call_stream_fn: CallStreamFn,
     call_fn: CallApiFn,
+    *,
+    call_stream_async_fn: CallStreamAsyncFn | None = None,
+    call_api_async_fn: CallApiAsyncFn | None = None,
 ) -> AsyncIterator[tuple[str, str]]:
     """预测后端立即流式传输，同时路由在后台验证。
     预测正确→无缝流；预测错误→切换后端。
 
-    Yields: (backend_name, text_chunk) tuples
+    When async callables are provided (M2-S2), uses native async streaming
+    without threads.
     """
     predicted = predict_fn(query)
     predicted_msgs = messages if messages else [{"role": "user", "content": query}]
@@ -141,11 +196,22 @@ async def speculative_stream(
     actual_msgs = predicted_msgs
     switched = False
 
+    # Choose async-native path when callables are available
+    if call_stream_async_fn and call_api_async_fn:
+        _streamer = lambda b, m: bridge_stream_async(
+            b, m, max_tokens, ide,
+            call_stream_async_fn=call_stream_async_fn,
+            call_api_async_fn=call_api_async_fn,
+        )
+    else:
+        _streamer = lambda b, m: bridge_stream(
+            b, m, max_tokens, ide,
+            call_stream_fn=call_stream_fn,
+            call_fn=call_fn,
+        )
+
     try:
-        async for chunk in bridge_stream(
-            predicted, predicted_msgs, max_tokens, ide,
-            call_stream_fn, call_fn,
-        ):
+        async for chunk in _streamer(predicted, predicted_msgs):
             if route_task.done() and not switched:
                 try:
                     actual_backend, actual_msgs = route_task.result()
@@ -166,11 +232,7 @@ async def speculative_stream(
                     pass
             return
 
-        # 预测错误→切换到实际后端重新流
-        async for chunk in bridge_stream(
-            actual_backend, actual_msgs, max_tokens, ide,
-            call_stream_fn, call_fn,
-        ):
+        async for chunk in _streamer(actual_backend, actual_msgs):
             yield (actual_backend, chunk)
 
     finally:

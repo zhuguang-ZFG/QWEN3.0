@@ -148,3 +148,66 @@ def fake_stream(text: str, chunk_size: int = 30):
     """将完整文本拆为 chunk 模拟流式输出。已清洗的文本直接拆。"""
     for i in range(0, len(text), chunk_size):
         yield text[i:i+chunk_size]
+
+
+# ── Async adapters (M2-S2) ─────────────────────────────────────────────────
+
+async def v3_call_stream_async(backend, messages, max_tokens, ide):
+    """Async streaming adapter. Falls back to non-stream for fake-stream backends."""
+    sys_prompt = ""
+    try:
+        import code_orchestrator
+        from routing_engine import classify_scenario
+        query = ""
+        for m in reversed(messages):
+            if m.get("role") == "user" and isinstance(m.get("content"), str):
+                query = m["content"]
+                break
+        if query:
+            is_ide = bool(ide and ide not in ("unknown", ""))
+            scenario = classify_scenario(query, messages,
+                                         ide_source=ide if is_ide else "",
+                                         request_type="ide" if is_ide else "chat")
+            if scenario == "coding":
+                ctx = code_orchestrator.enhance_context(query, messages, scenario)
+                sys_prompt = ctx.get("system_prompt", "")
+                messages = ctx.get("enhanced_messages", messages)
+            else:
+                sys_prompt = "Answer the question directly in plain text. Do not generate code, functions, or programming examples unless the user explicitly asks for code."
+    except Exception as e:
+        logging.warning(f"[V3_CALL_STREAM_ASYNC] context enhance: {type(e).__name__}: {e}")
+
+    if backend in FAKE_STREAM_BACKENDS:
+        result = await http_caller.call_api_async(
+            backend, messages, max_tokens, system_prompt=sys_prompt, ide=ide)
+        for chunk in fake_stream(result):
+            yield chunk
+        return
+    async for chunk in http_caller.call_api_stream_async(
+        backend, messages, max_tokens, system_prompt=sys_prompt, ide=ide):
+        yield chunk
+
+
+async def v3_call_api_async(backend, messages, max_tokens, ide):
+    """Async non-streaming adapter."""
+    sys_prompt = ""
+    try:
+        from routing_engine import classify_scenario
+        query = next((m["content"] for m in reversed(messages)
+                      if m.get("role") == "user" and isinstance(m.get("content"), str)), "")
+        if query:
+            is_ide = bool(ide and ide not in ("unknown", ""))
+            scenario = classify_scenario(query, messages,
+                                         ide_source=ide if is_ide else "",
+                                         request_type="ide" if is_ide else "chat")
+            if scenario == "coding":
+                import code_orchestrator
+                ctx = code_orchestrator.enhance_context(query, messages, scenario)
+                sys_prompt = ctx.get("system_prompt", "")
+            else:
+                no_code = "Answer the question directly in plain text. Do not generate code, functions, or programming examples unless the user explicitly asks for code."
+                messages = [{"role": "system", "content": no_code}] + list(messages)
+    except Exception as e:
+        logging.warning(f"[V3_CALL_API_ASYNC] context enhance: {type(e).__name__}: {e}")
+    return await http_caller.call_api_async(
+        backend, messages, max_tokens, system_prompt=sys_prompt, ide=ide)

@@ -8,18 +8,16 @@ LiMa Speculative Execution — 并行投机调用
 """
 
 import time
+import asyncio
 import threading
 import logging
+import queue as queue_mod
 from typing import Callable, Optional
-from concurrent.futures import ThreadPoolExecutor, as_completed, Future
 
 import health_tracker
 import budget_manager
 
 logger = logging.getLogger("speculative")
-
-# 并行执行器（复用线程池，避免频繁创建线程）
-_executor = ThreadPoolExecutor(max_workers=6, thread_name_prefix="spec")
 
 # 最小有效响应长度
 MIN_VALID_LENGTH = 10
@@ -33,9 +31,61 @@ def speculative_call(
     max_parallel: int = 3,
     timeout_sec: float = 3.0,
 ) -> tuple[str, str, float]:
+    """并行调用多个后端，返回第一个有效响应。
+
+    Uses asyncio internally via speculative_call_async,
+    wrapping call_fn with asyncio.to_thread.
+
+    Returns: (backend_name, answer, latency_ms)
+    Raises: RuntimeError if all backends fail within timeout
     """
-    并行调用多个后端，返回第一个有效响应。
-    timeout_sec: 硬超时，超过则立即返回已有最佳结果或抛异常。
+    async def _wrap_sync(b: str, m: list[dict], mt: int) -> str:
+        return await asyncio.to_thread(call_fn, b, m, mt)
+
+    try:
+        return _run_coro_sync(speculative_call_async(
+            backends, _wrap_sync, messages, max_tokens,
+            max_parallel=max_parallel, timeout_sec=timeout_sec,
+        ))
+    except RuntimeError:
+        raise
+    except Exception as e:
+        raise RuntimeError(f"Speculative execution failed: {e}") from e
+
+
+def _run_coro_sync(coro):
+    """Run a coroutine for the sync facade, even if called inside an event loop."""
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+
+    result_q: queue_mod.Queue = queue_mod.Queue(maxsize=1)
+
+    def _runner():
+        try:
+            result_q.put((True, asyncio.run(coro)))
+        except Exception as exc:
+            result_q.put((False, exc))
+
+    thread = threading.Thread(target=_runner, daemon=True)
+    thread.start()
+    thread.join()
+    ok, value = result_q.get()
+    if ok:
+        return value
+    raise value
+
+
+async def speculative_call_async(
+    backends: list[str],
+    async_call_fn: Callable[[str, list[dict], int], object],
+    messages: list[dict],
+    max_tokens: int = 4096,
+    max_parallel: int = 3,
+    timeout_sec: float = 3.0,
+) -> tuple[str, str, float]:
+    """Async-native speculative execution using asyncio.create_task.
 
     Returns: (backend_name, answer, latency_ms)
     Raises: RuntimeError if all backends fail within timeout
@@ -45,34 +95,59 @@ def speculative_call(
         raise RuntimeError("No backends available for speculative execution")
 
     t0 = time.time()
-    futures: dict[Future, str] = {}
+    tasks: dict[asyncio.Task, str] = {}
+
+    async def _worker(backend: str) -> str:
+        backend_t0 = time.time()
+        try:
+            result = await async_call_fn(backend, messages, max_tokens)
+            latency = (time.time() - backend_t0) * 1000
+            _record_latency(backend, latency)
+            if isinstance(result, str):
+                return result
+            return ""
+        except Exception as e:
+            latency = (time.time() - backend_t0) * 1000
+            health_tracker.record_failure(
+                backend, error_code=getattr(e, 'status_code', 500))
+            _record_latency(backend, latency + _SLOW_THRESHOLD_MS)
+            logger.debug(f"[SPEC_ASYNC] {backend} failed: {type(e).__name__}")
+            return ""
 
     for backend in candidates:
-        fut = _executor.submit(_safe_call, call_fn, backend, messages, max_tokens)
-        futures[fut] = backend
+        tasks[asyncio.create_task(_worker(backend))] = backend
 
-    # 谁先返回有效响应就用谁，硬超时保护
     winner_backend = ""
     winner_answer = ""
-
+    pending = set(tasks.keys())
+    deadline = time.monotonic() + timeout_sec
     try:
-        for fut in as_completed(futures, timeout=timeout_sec):
-            backend = futures[fut]
-            try:
-                answer = fut.result(timeout=0.1)
-            except Exception:
-                continue
-            if answer and len(answer.strip()) >= MIN_VALID_LENGTH:
-                winner_backend = backend
-                winner_answer = answer
+        while pending and not winner_backend:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
                 break
-    except (TimeoutError, Exception):
-        pass
+            done, pending = await asyncio.wait(
+                pending, timeout=remaining,
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+            if not done:
+                break
+            for task in done:
+                try:
+                    answer = task.result()
+                except Exception:
+                    continue
+                if answer and len(answer.strip()) >= MIN_VALID_LENGTH:
+                    winner_backend = tasks[task]
+                    winner_answer = answer
+                    break
 
-    # 取消未完成的 futures（best effort，不阻塞）
-    for fut in futures:
-        if not fut.done():
-            fut.cancel()
+        if pending:
+            for task in pending:
+                task.cancel()
+            await asyncio.gather(*pending, return_exceptions=True)
+    except Exception:
+        pass
 
     if not winner_backend:
         raise RuntimeError("All speculative backends failed or returned empty")
@@ -83,21 +158,6 @@ def speculative_call(
     logger.info(f"[SPEC] winner={winner_backend} latency={latency_ms:.0f}ms "
                 f"(tried {len(candidates)} backends)")
     return winner_backend, winner_answer, latency_ms
-
-
-def _safe_call(call_fn, backend: str, messages: list[dict], max_tokens: int) -> str:
-    """单个后端调用，异常返回空字符串。记录延迟供学习。"""
-    t0 = time.time()
-    try:
-        result = call_fn(backend, messages, max_tokens)
-        latency = (time.time() - t0) * 1000
-        _record_latency(backend, latency)
-        return result
-    except Exception as e:
-        latency = (time.time() - t0) * 1000
-        health_tracker.record_failure(backend, error_code=getattr(e, 'status_code', 500))
-        _record_latency(backend, latency + _SLOW_THRESHOLD_MS)
-        return ""
 
 
 # ── 延迟学习 — 自动排除慢后端 ────────────────────────────────────────────────
