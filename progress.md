@@ -2308,3 +2308,43 @@ Verification note:
     no matches.
   - `python -m pytest -q --ignore=active_model`:
     879 passed, 8 skipped.
+
+## 2026-05-24 M16 Local Retrieval Index Lab Closeout
+
+- Reviewed and closed M16:
+  - `local_retrieval.manifest` defines metadata-only index manifests,
+    documents, chunks, backend kinds, hashes, and redaction helpers;
+  - `local_retrieval.chunking` defines the chunker ABC, deterministic
+    `SimpleTextChunker`, and `CodeAwareChunker` boundary;
+  - `local_retrieval.index` defines the local retrieval index ABC, retrieval
+    hits, and a zero-dependency in-memory token index;
+  - `local_retrieval.eval_bridge` connects local search results to M3
+    retrieval eval metrics;
+  - `local_retrieval.leann_adapter` keeps LEANN behind an explicit optional
+    boundary and environment gate.
+- Review fixes applied:
+  - manifest round-trips now preserve chunk records and evidence/config fields
+    safely while still avoiding full text storage;
+  - metadata keys and values are both redacted for secret-like markers;
+  - chunk metadata now carries source path and chunk index so search hits and
+    manifests can point back to documents;
+  - search hits now return the correct document path and per-hit snippet rather
+    than empty paths or the last chunk snippet;
+  - retrieval search now handles empty queries and non-positive `top_k`
+    deterministically;
+  - hit serialization redacts secret-like chunk ids, paths, reasons, and
+    snippets;
+  - eval bridge tests now assert real recall/hit-rate/MRR using expected chunk
+    ids instead of only checking result types;
+  - LEANN config now has a lightweight `to_dict()` and still performs no heavy
+    imports unless `LIMA_ENABLE_LEANN=1`;
+  - M16 source/test files were cleaned to ASCII comments and docstrings.
+- Verification:
+  - `python -m pytest tests/test_local_retrieval.py -q --ignore=active_model`:
+    27 passed after review fixes.
+  - `python -m py_compile local_retrieval/__init__.py local_retrieval/manifest.py local_retrieval/chunking.py local_retrieval/index.py local_retrieval/eval_bridge.py local_retrieval/leann_adapter.py tests/test_local_retrieval.py`:
+    passed.
+  - `rg -n "[^\\x00-\\x7F]" local_retrieval tests/test_local_retrieval.py`:
+    no matches.
+  - `python -m pytest -q --ignore=active_model`:
+    906 passed, 8 skipped.
