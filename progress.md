@@ -933,3 +933,25 @@ Verification note:
   - HTTPS chat returned exact `deploy_https_ok_1134`;
   - FRP chat returned exact `lima-chat-models-frp-ok`;
   - `/agent/worker/preflight` returned `ready=true`, latest task `cfcd3f2b`.
+
+## 2026-05-24 Chat Request Helper Extraction Deploy
+
+- Added regression contract `tests/test_chat_request_utils.py`.
+- Extracted shared request-body helpers into `chat_request_utils.py`:
+  - `extract_system_preview()` handles OpenAI `system` messages and Anthropic `system` strings/text blocks.
+  - `extract_last_user_text()` handles string content and text blocks while ignoring image blocks.
+- Replaced duplicate helper loops in the OpenAI `/v1/chat/completions` and Anthropic `/v1/messages` handlers without changing routing policy.
+- Verification:
+  - `python -m py_compile server.py chat_request_utils.py chat_models.py server_lifespan.py`: passed.
+  - `python -m pytest tests/test_chat_models.py tests/test_prompt_memory_recall.py tests/test_stream_footer.py tests/test_access_guard.py tests/test_anthropic_tool_protocol.py tests/test_vision_routing.py -q --ignore=active_model`: `22 passed`.
+  - `python -m pytest tests/test_agent_task_routes.py tests/test_access_guard.py tests/test_prompt_memory_recall.py tests/test_stream_footer.py tests/test_chat_models.py tests/test_chat_request_utils.py -q --ignore=active_model`: `45 passed`.
+- VPS deployment:
+  - backup `/opt/lima-router/backups/chat-request-utils-20260524_114403`;
+  - uploaded `server.py` and `chat_request_utils.py`;
+  - remote `py_compile` and `import server; import chat_request_utils` passed;
+  - `systemctl restart lima-router` returned active.
+- Public smokes:
+  - `/health` returned `status=ok`;
+  - HTTPS chat returned exact `request_utils_https_ok`;
+  - FRP chat returned exact `request_utils_frp_ok`;
+  - `/agent/worker/preflight` returned `ready=true`, latest task `cfcd3f2b`.
