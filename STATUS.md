@@ -22,6 +22,7 @@
 | Memory daemon + prompt recall | Implemented locally | Server lifespan starts `session_memory.daemon`; `scripts/memory_daemon_ctl.py` can inspect status/run one cycle; `server.py` now runs prompt-time memory recall before routing. |
 | Autonomous worker lifecycle | Partially implemented | LiMa Code has bounded `/lima work` loops, stop marker, failure quarantine, repo allowlist, audit, and runtime budget. Always-on daemon mode remains a later gated step. |
 | Mastery loop | Implemented locally | `mastery_loop/` stores evidence-backed module mastery, weak points, schedules, and recommendations; agent skill promotion now requires mastery evidence refs. |
+| Online distributions | Tracked | Official website, open platform, chat interface, FRP path, nginx snapshots, systemd snapshots, and smoke script are recorded in `docs/ONLINE_DISTRIBUTIONS.md`, `infra/vps/`, and `scripts/smoke_online_distributions.py`. |
 
 ## 2026-05-24 Deployment And Closure Update
 
@@ -37,6 +38,13 @@
   - `/opt/lima-router/backups/endpoints-keypool-closed-20260524-123145`
   - `/opt/lima-router/backups/mastery-loop-20260524-125511`
 - VPS `lima-router` restarted active; `/health` reports modules `mcp`, `agent_tasks`, and `telegram`.
+- VPS online distribution governance:
+  - `docs/ONLINE_DISTRIBUTIONS.md` now treats the official website, open platform, chat interface, FRP path, nginx edge, and supporting public services as LiMa distributions.
+  - `infra/vps/nginx/` stores sanitized nginx snapshots for `www.donglicao.com`, `api.donglicao.com`, and `chat.donglicao.com`.
+  - `infra/vps/systemd/` stores sanitized `lima-router.service` and `lima-voice.service` snapshots.
+  - `scripts/smoke_online_distributions.py` provides repeatable public smoke checks.
+  - Provider-key-like environment lines were removed from VPS systemd unit files and moved to root-readable env files; root-only backups live under `/root/secure-service-backups`.
+  - Online distribution smoke passed: official website, open platform, chat UI, chat health, FRP health, chat models, exact chat, and internal-port guard checks returned `10/10`.
 - Public HTTPS smoke passed:
   - `https://chat.donglicao.com/v1/chat/completions` returned exact `lima-postdeploy-ok`.
   - after the lifespan extraction deploy, `https://chat.donglicao.com/v1/chat/completions` returned exact `lima-lifespan-deploy-ok`.

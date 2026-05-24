@@ -33,6 +33,14 @@ Paused or removed direction:
 
 Public direct access to internal ports `3000`, `3001`, `3003`, `8080`, and `8091` is blocked. nginx remains the external boundary.
 
+Online distribution control:
+
+- The official website, open platform, chat interface, FRP path, nginx edge, and public service wiring belong to this LiMa repo.
+- Source of truth: `docs/ONLINE_DISTRIBUTIONS.md`.
+- Sanitized VPS config snapshots: `infra/vps/nginx/` and `infra/vps/systemd/`.
+- Public smoke command: `python scripts/smoke_online_distributions.py`.
+- VPS systemd units must not contain provider keys or tokens; secrets belong in root-readable env files.
+
 ## Client Configuration
 
 Use these for real IDE or terminal-agent validation:
@@ -212,6 +220,16 @@ Latest mastery-loop deployment:
 - Public HTTPS chat returned exact `mastery_loop_https_ok`.
 - Public FRP chat returned exact `mastery_loop_frp_ok`.
 - Worker preflight returned `ready=true`, `contract_version=agent-task-v1`.
+
+Latest online-distribution governance update:
+
+- Added `docs/ONLINE_DISTRIBUTIONS.md`.
+- Added sanitized nginx snapshots for `chat.donglicao.com`, `api.donglicao.com`, and `www.donglicao.com`.
+- Added sanitized systemd snapshots for `lima-router.service` and `lima-voice.service`.
+- Added `scripts/smoke_online_distributions.py`.
+- Migrated provider-key-like environment lines out of VPS systemd unit files into root-readable env files.
+- Moved service-unit secret migration backups to `/root/secure-service-backups` with mode `600`.
+- `python scripts/smoke_online_distributions.py --chat-exact distribution_control_ok` passed `10/10`.
 
 Latest SCNet first-tier deployment:
 

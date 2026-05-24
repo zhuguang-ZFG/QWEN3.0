@@ -1047,3 +1047,30 @@ Verification note:
   - HTTPS chat returned exact `mastery_loop_https_ok`;
   - FRP chat returned exact `mastery_loop_frp_ok`;
   - `/agent/worker/preflight` returned `ready=true`, `contract_version=agent-task-v1`.
+
+## 2026-05-24 Online Distribution Governance
+
+- User clarified that the VPS official website, open platform, and chat interface are LiMa distributions and must be controlled and recorded in the main repo/GitHub.
+- Added distribution source of truth:
+  - `docs/ONLINE_DISTRIBUTIONS.md`.
+  - `infra/vps/nginx/chat.donglicao.com.conf`.
+  - `infra/vps/nginx/api.donglicao.com.conf`.
+  - `infra/vps/nginx/www.donglicao.com.conf`.
+  - `infra/vps/systemd/lima-router.service`.
+  - `infra/vps/systemd/lima-voice.service`.
+  - `scripts/smoke_online_distributions.py`.
+- Recorded active online surfaces:
+  - official website: `https://www.donglicao.com` and `https://donglicao.com`;
+  - chat/API: `https://chat.donglicao.com`;
+  - open platform: `https://api.donglicao.com`;
+  - FRP validation path: `http://47.112.162.80:8088`.
+- Found and closed VPS service-file secret hygiene issue:
+  - provider-key-like environment lines were present in `lima-router.service` and `lima-voice.service`;
+  - migrated them into `/opt/lima-router/.env` and `/opt/lima-voice/.env`;
+  - added `EnvironmentFile=/opt/lima-voice/.env`;
+  - moved secret migration backups to `/root/secure-service-backups` with mode `600`;
+  - `lima-router` and `lima-voice` restarted active;
+  - `systemctl cat` no longer reports key/token/secret-like service lines.
+- Verification:
+  - `D:\GIT\venv\Scripts\python.exe -m py_compile scripts\smoke_online_distributions.py`: passed.
+  - `D:\GIT\venv\Scripts\python.exe scripts\smoke_online_distributions.py --chat-exact distribution_control_ok`: `10/10 checks passed`.
