@@ -14,7 +14,7 @@
 > | M0 | Baseline & Review Harness | complete | 2026-05-24 |
 > | M1 | Router, Backend Registry, Key Pool | complete | 2026-05-24 |
 > | M2 | Async & Concurrency | complete | 2026-05-24 |
-> | M3 | Context Graph, AST, Reranking | pending | - |
+> | M3 | Context Graph, AST, Reranking | complete | 2026-05-24 |
 > | M4 | Memory Taxonomy & Redaction | pending | - |
 > | M5 | Eval, Quality Gate, Structured Output | pending | - |
 > | M6 | Observability & Metrics | pending | - |
@@ -32,6 +32,8 @@
 > | 1 | M0 | Device gateway route tests leaked `LIMA_API_KEY` through `os.environ`, causing MCP auth tests to fail in the full suite. | Reproduced with `python -m pytest tests/test_device_gateway_routes.py tests/test_mcp_tools.py -q --ignore=active_model`. | Replaced direct environment mutation with a `monkeypatch` autouse fixture and updated the baseline. |
 > | 2 | M2-S1 | Review found internal `BackendError` paths in `http_caller.py` were reporting key-pool failures as 429 instead of preserving the real status code. | Added an empty-stream regression that fails if a 502 is reported as 429, plus restored key-pool fallback coverage. | `BackendError` handlers now pass `e.status_code`; focused tests cover sync, async, stream, static fallback, and exhausted-pool behavior. |
 > | 3 | M2-S3 | Async speculative execution returned failure when the fastest completed task produced an invalid short answer, because pending slower tasks were cancelled immediately. | Added a regression where `fast_bad` returns first and `slow_good` returns a valid response later. | `speculative_call_async()` now loops through completed tasks until a valid winner or timeout, then cancels and awaits pending tasks. |
+> | 4 | M3-S2 | `StdlibAstExtractor.extract_relations()` required the caller to include a root package key such as `sample_repo`, so `from sample_repo.module_b import helper` missed relations when only `module_b` was mapped. | Added a leaf-module import regression. | Import resolution now checks full module name, root package, and leaf module before dropping the relation. |
+> | 5 | M3-S4 | `evaluate_queries()` used zip-style pairing and silently ignored expected queries when the retrieved-results list was shorter. | Added a missing-retrieval regression. | Evaluation now enumerates every query and treats missing retrieved rows as empty misses. |
 
 ## Goal
 

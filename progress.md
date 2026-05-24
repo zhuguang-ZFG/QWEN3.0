@@ -1821,3 +1821,44 @@ Verification note:
     benchmark setup, and reproducibility are reviewed;
   - latent-space agent communication remains concept-only until LiMa has
     model/runtime support and debuggable fallback artifacts.
+
+## 2026-05-24 Provider Model Automation Plan
+
+- Created `docs/PROVIDER_MODEL_AUTOMATION_PLAN.md`.
+- Recorded the OpenRouter Elephant Alpha decision:
+  - `openrouter/elephant-alpha` exists in OpenRouter page/endpoint metadata;
+  - it was not present in anonymous `/api/v1/models` verification;
+  - endpoint metadata returned zero endpoints;
+  - prompts/completions may be logged;
+  - LiMa has no backend entry for it.
+- Decision:
+  - keep Elephant Alpha as watchlist/sandbox evidence only;
+  - do not route private code to it;
+  - do not let provider catalogs directly mutate `backends.py`.
+- Planned automation:
+  - provider catalog snapshots and diffs;
+  - separate admission state machine;
+  - harmless smoke and eval before routing;
+  - draining/retired states for removed or failing free models;
+  - operator report and rollback snapshots.
+
+## 2026-05-24 M3 Context Graph, AST, Reranking, Retrieval Eval
+
+- Reviewed and closed M3:
+  - `code_context/graph_index.py` defines `GraphIndex` and
+    `InMemoryGraphIndex`;
+  - `code_context/ast_adapter.py` defines the AST extractor boundary and a
+    Python stdlib implementation;
+  - `context_pipeline/retrieval_eval.py` adds recall, precision@k, hit rate,
+    MRR, query evaluation, and summary formatting;
+  - fixture files under `tests/fixtures/sample_repo/` cover imports, classes,
+    methods, and functions;
+  - tests cover graph traversal, AST extraction, deterministic reranking, and
+    retrieval metrics.
+- Review fixes applied:
+  - `extract_relations()` now resolves import targets by full module, root
+    package, or leaf module;
+  - `evaluate_queries()` now counts missing retrieved rows as misses instead
+    of silently dropping queries.
+- Verification:
+  - focused M3 tests returned 46 passed before the final full-suite run.

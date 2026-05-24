@@ -305,6 +305,22 @@ Exit criteria:
 - Graph/index/rerank interfaces exist and are tested without external runtime
   dependencies.
 
+Closure notes:
+
+- Completed on 2026-05-24 with no new runtime dependency.
+- Added `code_context.graph_index.GraphIndex` and the default
+  `InMemoryGraphIndex`.
+- Added `code_context.ast_adapter.AstExtractor` and Python stdlib AST
+  extraction while keeping tree-sitter as a future gated adapter.
+- Added `context_pipeline.retrieval_eval` metrics for recall, precision@k, hit
+  rate, MRR, per-query evaluation, and summary output.
+- Added fixture-backed tests for graph traversal, AST extraction, reranking,
+  and retrieval metrics.
+- Codex review fixed two edge cases:
+  - import relations now resolve full, root, and leaf module names from
+    `module_map`;
+  - missing retrieval result rows count as misses instead of being skipped.
+
 ## Milestone 4 - Memory Taxonomy, Promotion, Deletion, And Redaction
 
 References:
