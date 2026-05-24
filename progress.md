@@ -2348,3 +2348,40 @@ Verification note:
     no matches.
   - `python -m pytest -q --ignore=active_model`:
     906 passed, 8 skipped.
+
+## 2026-05-24 M17 Agent Task Runtime Closeout
+
+- Reviewed and closed M17:
+  - `agent_runtime.contract` defines typed task, step, step-result, and
+    run-result schemas with run/step enums and sanitized serialization;
+  - `agent_runtime.planner` provides deterministic keyword-based step planning
+    without LLM calls;
+  - `agent_runtime.executor` provides a dry-run-first runtime with safe
+    summarize, retrieve, run-tests proposal, review, and blocked shell/http
+    paths;
+  - `agent_runtime.events` bridges task/step lifecycle events to streaming and
+    observability with safe fallback;
+  - `agent_runtime.tool_policy` enforces allowlists and dangerous step/tool
+    blocking before execution.
+- Review fixes applied:
+  - contracts now support `from_dict()` round trips and recursive redaction for
+    command, metadata, audit refs, errors, evidence, and blocked reasons;
+  - runtime now checks tool policy before every step handler;
+  - dangerous step kinds such as shell and HTTP are fail-closed even when
+    allowed tools are present;
+  - `run_tests` remains dry-run/proposal-only and accepts the `pytest` alias
+    without executing shell;
+  - event fallback strings and observability payloads now redact secret-like
+    task ids, goals, warning messages, audit refs, and blocked reasons;
+  - audit refs/log entries are sanitized before returning run results;
+  - `filter_allowed_steps()` no longer mutates the original step objects;
+  - M17 source/test files were cleaned to ASCII comments and docstrings.
+- Verification:
+  - `python -m pytest tests/test_agent_runtime.py -q --ignore=active_model`:
+    33 passed after review fixes.
+  - `python -m py_compile agent_runtime/__init__.py agent_runtime/contract.py agent_runtime/planner.py agent_runtime/executor.py agent_runtime/events.py agent_runtime/tool_policy.py tests/test_agent_runtime.py`:
+    passed.
+  - `rg -n "[^\\x00-\\x7F]" agent_runtime tests/test_agent_runtime.py`:
+    no matches.
+  - `python -m pytest -q --ignore=active_model`:
+    939 passed, 8 skipped.
