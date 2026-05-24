@@ -21,6 +21,7 @@ from agent_runtime.contract import (
 )
 from agent_runtime.planner import plan_task
 from agent_runtime.tool_policy import check_step_policy
+from agent_runtime.store import AgentRunStore
 
 
 @dataclass
@@ -33,9 +34,11 @@ class RuntimeHooks:
 class AgentRuntime:
     """Safe agent task executor. Default dry-run, no shell, no network."""
 
-    def __init__(self, dry_run: bool = True, hooks: RuntimeHooks | None = None) -> None:
+    def __init__(self, dry_run: bool = True, hooks: RuntimeHooks | None = None,
+                 store: AgentRunStore | None = None) -> None:
         self.dry_run = dry_run
         self.hooks = hooks or RuntimeHooks()
+        self.store = store
         self._audit_log: list[str] = []
 
     def plan(self, task: AgentTask) -> AgentTask:
@@ -49,6 +52,9 @@ class AgentRuntime:
             task = self.plan(task)
 
         task.status = AgentRunStatus.RUNNING
+        if self.store:
+            self.store.save_task(task)
+
         started_at = time.time()
         step_results: list[StepResult] = []
 
@@ -63,13 +69,19 @@ class AgentRuntime:
             task.status = AgentRunStatus.COMPLETED
 
         self._audit("run_complete", task.task_id, f"status={task.status.value}")
-        return AgentRunResult(
+        if self.store:
+            self.store.save_task(task)
+
+        result = AgentRunResult(
             task_id=task.task_id,
             status=task.status,
             steps=step_results,
             total_ms=(time.time() - started_at) * 1000,
             audit_refs=list(self._audit_log),
         )
+        if self.store:
+            self.store.save_result(result)
+        return result
 
     def run_step(self, step: AgentStep) -> StepResult:
         started_at = time.time()

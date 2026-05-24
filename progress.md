@@ -2385,3 +2385,39 @@ Verification note:
     no matches.
   - `python -m pytest -q --ignore=active_model`:
     939 passed, 8 skipped.
+
+## 2026-05-24 M18 Agent Runtime Persistence Closeout
+
+- Reviewed and closed M18:
+  - `agent_runtime.store` defines sanitized in-memory and JSONL task/result
+    stores, query helpers, retention cleanup, compaction, and test reset
+    helpers;
+  - `agent_runtime.resume` reconstructs resume state from stored task/result
+    pairs and formats sanitized operator summaries;
+  - `agent_runtime.executor` now optionally saves task/result records while
+    preserving the M17 dry-run, no-shell, no-network default.
+- Review fixes applied:
+  - JSONL reads now return the latest task/result record instead of stale
+    append-order records;
+  - JSONL task listing deduplicates by task id before status filtering and
+    compaction keeps only the latest task/result pair;
+  - runtime persistence saves the final task status after execution, so query
+    helpers no longer see stale `running` tasks;
+  - in-memory and JSONL stores both sanitize saved tasks/results before
+    returning or persisting them;
+  - `find_blocked()` now inspects stored step results rather than planned shell
+    steps;
+  - completed clean tasks are not marked resumable, while failed or blocked
+    runs are resumable with specific next actions;
+  - `ResumeState.to_dict()` and formatted summaries redact secret-like task ids,
+    step ids, and notes;
+  - M18 source/test files were cleaned to ASCII comments and docstrings.
+- Verification:
+  - `python -m pytest tests/test_agent_store.py tests/test_agent_runtime.py -q --ignore=active_model`:
+    65 passed after review fixes.
+  - `python -m py_compile agent_runtime/store.py agent_runtime/resume.py agent_runtime/executor.py agent_runtime/__init__.py tests/test_agent_store.py`:
+    passed.
+  - `rg -n "[^\\x00-\\x7F]" agent_runtime tests/test_agent_store.py tests/test_agent_runtime.py`:
+    no matches.
+  - `python -m pytest -q --ignore=active_model`:
+    971 passed, 8 skipped.
