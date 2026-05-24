@@ -2842,3 +2842,44 @@ Verification note:
   - rollback and residual-risk evidence recorded in project docs;
   - no secret exposure, auth weakening, public-port widening, or hardware
     allowlist bypass just to make a smoke pass.
+
+## 2026-05-25 Reference Capability VPS Baseline Deploy
+
+- Deployed local `HEAD` (`ad7cab5`) to VPS `/opt/lima-router` using a local
+  `git archive` tarball uploaded to `/tmp/lima-router-20260525_031146.tar`.
+- The remote runtime is not a git worktree, so deployment was archive-overlay
+  rather than `git pull`.
+- Backup and rollback evidence:
+  - backup: `/opt/lima-router/backups/codex-baseline-20260525_031146/runtime-before.tgz`;
+  - rollback: extract that tarball back into `/opt/lima-router` and restart
+    `lima-router`.
+- Remote compile passed for:
+  - `server.py`, `server_lifespan.py`, `routing_engine.py`, `router_v3.py`,
+    `code_orchestrator.py`, `http_caller.py`;
+  - `routes/device_gateway.py`, `routes/agent_tasks.py`;
+  - `device_gateway/redis_store.py`, `device_gateway/protocol_families.py`;
+  - `lima_mcp/access_plane.py`, `eval_registry.py`,
+    `agent_runtime/summary_constraints.py`;
+  - `context_pipeline/reranker_protocol.py`,
+    `context_pipeline/static_analysis.py`, `session_memory/store.py`;
+  - `tool_gateway/registry.py`, `tool_gateway/executor.py`.
+- Restart and VPS-local checks:
+  - `systemctl restart lima-router` completed;
+  - `systemctl is-active lima-router`: `active`;
+  - `http://127.0.0.1:8080/health`: `status=ok` with modules
+    `device_gateway`, `mcp`, `agent_tasks`, and `telegram` true;
+  - `http://127.0.0.1:8080/device/v1/health`: Redis task store and Redis
+    session bus, listener alive;
+  - authenticated `/agent/worker/preflight`: `ready=true`,
+    `contract_version=agent-task-v1`, latest task `92820005`.
+- Public verification:
+  - `python scripts/smoke_online_distributions.py --api-key lima-local --chat-exact baseline_ad7cab5_ok`:
+    `12/12 checks passed`;
+  - exact chat returned `baseline_ad7cab5_ok`;
+  - Device Gateway health reported Redis backend;
+  - FRP health passed;
+  - public direct access to `8080`, `3003`, `8091`, and `6379` stayed blocked;
+  - default fake-U8 token was rejected with `E_UNAUTHORIZED_DEVICE`;
+  - public fake U8 WSS loop with configured device token returned
+    `hello_ack`, `heartbeat_ack`, `motion_task`, `motion_event_ack`,
+    `motion_event_ack`.

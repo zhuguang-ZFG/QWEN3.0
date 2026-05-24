@@ -26,7 +26,7 @@
 | Online distributions | Tracked | Official website, open platform, chat interface, FRP path, nginx snapshots, systemd snapshots, and smoke script are recorded in `docs/ONLINE_DISTRIBUTIONS.md`, `infra/vps/`, and `scripts/smoke_online_distributions.py`. |
 | Reference migration compatibility | Closed | Original planned import/doc paths `code_context.retriever` and `docs/OPS_ENTRYPOINTS.md` are present as compatibility facades. |
 | External capability radar | Ledger active | `docs/REFERENCE_IMPLEMENTATION_LEDGER.md` records 63 reference mappings plus 9 blocked gates with implemented/gated/concept/implementing/rejected status; unimplemented capabilities remain behind license, security, privacy, and safety gates. |
-| Reference capability Phase 2-6/8 | Reviewed locally | Code intelligence, memory/mastery, agent/tool governance, MCP access plane, eval registry, and hardware protocol-family slices have LiMa-owned interfaces, tests, and ledger evidence; full local suite passed `1193 passed, 8 skipped`. Phase 7 UX workflow items remain tracked in the roadmap until a LiMa Code submodule implementation slice is approved. |
+| Reference capability Phase 2-6/8 | Deployed and reviewed | Code intelligence, memory/mastery, agent/tool governance, MCP access plane, eval registry, and hardware protocol-family slices have LiMa-owned interfaces, tests, and ledger evidence; local suite passed `1193 passed, 8 skipped`; VPS baseline deployed at `ad7cab5` with public smoke `12/12`, worker preflight ready, and fake U8 WSS loop passed. Phase 7 UX workflow items remain tracked in the roadmap until a LiMa Code submodule implementation slice is approved. |
 | LiMa Code repository management | Tracked | `deepcode-cli` is pinned as a Git submodule and governed by `docs/LIMACODE_MANAGEMENT.md`. |
 | esp32S_XYZ product backend | Tracked and fake-U8 integrated | `esp32S_XYZ` is pinned as a Git submodule at `78a62c9`; LiMa is the planned AI/backend control plane, and the product repo now includes `tools/fake_lima_u8` for the LiMa `/device/v1/ws` fake-device loop. |
 | LiMa Device Gateway | Public Redis HA smoke path deployed | `/device/v1/*` supports multi-device concurrency, Redis pending-to-processing task delivery with motion-event ack cleanup, stale processing recovery hooks, publish-failure degradation, and Redis pub/sub session-owner notification for multi-process delivery; `chat.donglicao.com/device/v1/*` is exposed behind per-device token auth. Postgres remains deferred for audit/history, not realtime WebSocket delivery. |
@@ -55,10 +55,20 @@
 - Verification passed: focused Device Gateway suite initially `31 passed`, then `35 passed` after reliable-queue review fixes; agent/device subset `49 passed`; public fake U8 loop completed over `wss://chat.donglicao.com/device/v1/ws`; temporary two-process test delivered a task created on `127.0.0.1:18080` to the main public WebSocket session via Redis pub/sub; online distribution smoke passed `12/12` with device backend `redis` and public `6379` guard.
 - Redis is bound to loopback and VPS self-check reports public `47.112.162.80:6379` blocked while `127.0.0.1:6379` remains reachable.
 
+## 2026-05-25 Reference Capability VPS Baseline
+
+- VPS `/opt/lima-router` was updated from local `git archive HEAD` at commit `ad7cab5`.
+- Runtime backup: `/opt/lima-router/backups/codex-baseline-20260525_031146/runtime-before.tgz`.
+- Remote compile passed for core router, agent, MCP, memory, eval, tool gateway, Device Gateway, and context pipeline modules.
+- `lima-router` restarted active; VPS-local `/health` returned `status=ok` with `device_gateway`, `mcp`, `agent_tasks`, and `telegram` modules true.
+- Public online distribution smoke passed `12/12` with exact chat token `baseline_ad7cab5_ok`, Redis Device Gateway health, FRP health, models, and public internal-port guards including `6379`.
+- Authenticated `/agent/worker/preflight` returned `ready=true`, `contract_version=agent-task-v1`, latest task `92820005`.
+- Public fake U8 loop over `wss://chat.donglicao.com/device/v1/ws` completed: `hello_ack`, `heartbeat_ack`, `motion_task`, and two `motion_event_ack` frames.
+
 ## 2026-05-24 Deployment And Closure Update
 
 - VPS main router is deployed from branch `codex/free-web-ai-probe`.
-- Latest deployed runtime commit: `bd0bf04` (`feat: add mastery loop evidence gates`).
+- Latest deployed runtime commit: `ad7cab5` (`docs: add vps verification operating constraint`).
 - VPS backups from the Server/Worker sync:
   - `/opt/lima-router/backups/agent-worker-sync-20260524_104836`
   - `/opt/lima-router/backups/runtime-deps-sync-20260524_105115`

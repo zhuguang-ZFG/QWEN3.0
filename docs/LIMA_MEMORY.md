@@ -2,6 +2,12 @@
 
 ## 2026-05-25 Joint Debug Memory
 
+- 2026-05-25 VPS baseline deploy updated `/opt/lima-router` to local `HEAD`
+  `ad7cab5`. Backup:
+  `/opt/lima-router/backups/codex-baseline-20260525_031146/runtime-before.tgz`.
+  Remote compile, `lima-router` restart, local health, public online smoke
+  `12/12`, authenticated worker preflight, and public fake U8 WSS loop all
+  passed. Exact chat token: `baseline_ad7cab5_ok`.
 - Three-project joint debug covered LiMa Server (`D:\GIT`), LiMa Code (`D:\GIT\deepcode-cli`), and ESP32/U8 tooling (`D:\GIT\esp32S_XYZ`).
 - Root cause for local fake U8 WebSocket failure was a stale Windows router process on port `8080`; it did not load `routes.device_gateway`, so `/device/v1/health` returned `404`.
 - After restarting the router from current `D:\GIT\server.py` and injecting a test `LIMA_DEVICE_TOKENS` entry for the spawned process, local fake U8 completed the full hello, heartbeat, motion task, and motion event acknowledgement loop.
