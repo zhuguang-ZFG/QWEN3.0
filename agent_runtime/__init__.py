@@ -8,6 +8,11 @@ from agent_runtime.contract import (
     StepKind,
     StepResult,
 )
+from agent_runtime.approval import (
+    ApprovalGate,
+    ApprovalRequest,
+    ApprovalStatus,
+)
 from agent_runtime.events import (
     emit_step_result,
     emit_step_start,
@@ -60,6 +65,9 @@ __all__ = [
     "AgentRuntime",
     "AgentStep",
     "AgentTask",
+    "ApprovalGate",
+    "ApprovalRequest",
+    "ApprovalStatus",
     "InMemoryAgentRunStore",
     "JsonlAgentRunStore",
     "QueueStatus",

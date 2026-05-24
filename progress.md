@@ -2518,3 +2518,35 @@ Verification note:
     no matches.
   - `python -m pytest -q --ignore=active_model`:
     1025 passed, 8 skipped.
+
+## 2026-05-25 M22 Approval Gate Closeout
+
+- Reviewed and closed M22:
+  - `agent_runtime.approval` defines approval statuses, approval requests, and
+    an approval gate for dry-run blocking and non-dry-run approval requests;
+  - approval checks remain non-executing and only return allow/block decisions;
+  - `agent_runtime.__init__` exports the approval gate types.
+- Review fixes applied:
+  - source/test files were cleaned to ASCII comments and docstrings;
+  - approval request serialization redacts task ids, worker ids, goals,
+    commands, reasons, and secret-like identifiers;
+  - approval reuse now matches the exact step/task/worker/kind/command surface
+    rather than only `step_id`;
+  - repeated pending, denied, or expired checks no longer create duplicate
+    approval requests;
+  - expired pending or approved requests fail closed and become `expired`;
+  - denied and approved requests are no longer mutable through opposite
+    decisions;
+  - audit event emission is redacted and cannot break approval operations if an
+    event sink fails.
+- Verification:
+  - `python -m pytest tests/test_approval_gate.py -q --ignore=active_model`:
+    23 passed after review fixes.
+  - `python -m pytest tests/test_approval_gate.py tests/test_agent_orchestrator.py tests/test_agent_runtime.py -q --ignore=active_model`:
+    110 passed after review fixes.
+  - `python -m py_compile agent_runtime/approval.py agent_runtime/__init__.py tests/test_approval_gate.py`:
+    passed.
+  - `rg -n "[^\\x00-\\x7F]" agent_runtime/approval.py agent_runtime/__init__.py tests/test_approval_gate.py tests/test_agent_orchestrator.py tests/test_agent_runtime.py`:
+    no matches.
+  - `python -m pytest -q --ignore=active_model`:
+    1048 passed, 8 skipped.
