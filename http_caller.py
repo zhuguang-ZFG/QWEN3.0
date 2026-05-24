@@ -74,10 +74,13 @@ def _key_pool_provider(backend: str, backend_cfg: dict) -> str:
 def _select_key(backend: str, backend_cfg: dict) -> tuple[str, str]:
     provider = _key_pool_provider(backend, backend_cfg)
     if provider:
-        key_pool.ensure_env_pool(provider)
-        selected = key_pool.get_key(provider)
-        if selected:
-            return selected, provider
+        pool_configured = key_pool.ensure_env_pool(provider)
+        if pool_configured:
+            if key_pool.is_exhausted(provider):
+                return '', provider
+            selected = key_pool.get_key(provider)
+            if selected:
+                return selected, provider
     return backend_cfg.get('key', ''), provider
 
 
@@ -237,6 +240,15 @@ def call_api(backend: str, messages: list[dict], max_tokens: int = 4096,
         cleaned = clean_response(answer, backend)
         health_tracker.record_response_quality(
             backend, len(cleaned) if cleaned else 0)
+
+        # Token telemetry
+        p_tok, c_tok = _extract_usage(d, cfg['fmt'])
+        try:
+            import budget_manager
+            budget_manager.record_token_usage(backend, p_tok, c_tok)
+        except ImportError:
+            pass
+
         return cleaned
 
     except BackendError as e:
@@ -309,6 +321,14 @@ def _extract_answer(data: dict, fmt: str) -> str:
     msg = data['choices'][0]['message']
     return (msg.get('content') or msg.get('reasoning_content')
             or msg.get('reasoning') or '')
+
+
+def _extract_usage(data: dict, fmt: str) -> tuple[int, int]:
+    """从 API 响应提取 token 用量（best-effort）。"""
+    usage = data.get('usage', {})
+    if fmt == 'anthropic':
+        return usage.get('input_tokens', 0), usage.get('output_tokens', 0)
+    return usage.get('prompt_tokens', 0), usage.get('completion_tokens', 0)
 
 
 def _extract_code(e: Exception) -> Optional[int]:

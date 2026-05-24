@@ -162,9 +162,95 @@ def get_all_budgets() -> dict[str, dict]:
         return result
 
 
+# ── Cost class ──────────────────────────────────────────────────────────────────
+
+# free = never block or count against quota
+# limited = counted, warn_at 80%, block at 100%
+# paid = never block (pay-as-you-go), just track
+COST_CLASS: dict[str, str] = {}
+
+# Local / free-tier backends
+_LOCAL_BACKENDS = {
+    "local_coder14b", "local_reasoning", "local_general",
+    "local_fast", "local_chat", "local_qwen3", "local_phi4", "local_mistral",
+    "deepseek_free",
+}
+_FREE_BACKENDS = {
+    "chat_ubi", "llm7", "pollinations", "pollinations_openai",
+    "pollinations_openai_large", "pollinations_deepseek", "pollinations_qwen_coder",
+    "scnet_qwen30b", "scnet_qwen235b", "scnet_ds_flash", "scnet_ds_pro",
+    "scnet_minimax",
+    "opencode_stealth", "opencode_ds_flash", "opencode_qwen",
+    "opencode_nemotron", "opencode_minimax",
+    "ovh_llama70b", "ovh_deepseek",
+    "cfai_llama70b", "cfai_llama4", "cfai_qwen_coder",
+    "cfai_deepseek_r1", "cfai_mistral",
+    "tele_reason", "tele_standard", "tele_apps",
+    "assist_brainstorm", "vision_joycaption",
+    "stock_gpt4o_mini", "stock_gemini_flash", "stock_deepseek",
+    "stock_llama4", "stock_kimi_k2", "stock_glm46",
+    "stock_qwen3_coder", "stock_news", "stock_mistral",
+    "oldllm_gpt54", "oldllm_gpt53", "oldllm_gpt52", "oldllm_gpt51",
+    "oldllm_gpt5", "oldllm_gpt5_mini", "oldllm_gpt41", "oldllm_gpt41_mini",
+    "oldllm_gpt41_nano", "oldllm_gpt4", "oldllm_o1", "oldllm_o4_mini",
+}
+
+
+def _build_cost_class():
+    for b in _LOCAL_BACKENDS:
+        COST_CLASS[b] = "free"
+    for b in _FREE_BACKENDS:
+        COST_CLASS.setdefault(b, "free")
+
+
+_build_cost_class()
+
+
+def get_cost_class(backend: str) -> str:
+    """free | limited | paid. Unknown backends default to 'paid' (conservative)."""
+    return COST_CLASS.get(backend, "limited")
+
+
+def should_track_cost(backend: str) -> bool:
+    """Free/local backends never block on cost. Limited backends do."""
+    return get_cost_class(backend) != "free"
+
+
+# ── Token telemetry ─────────────────────────────────────────────────────────────
+
+_token_lock = threading.Lock()
+_token_usage: dict[str, dict] = {}
+
+
+def record_token_usage(backend: str, prompt_tokens: int = 0,
+                        completion_tokens: int = 0):
+    """Best-effort token tracking from API response.usage."""
+    if prompt_tokens <= 0 and completion_tokens <= 0:
+        return
+    if not should_track_cost(backend):
+        return
+    with _token_lock:
+        entry = _token_usage.setdefault(backend, {
+            "prompt": 0, "completion": 0, "requests": 0,
+        })
+        entry["prompt"] += prompt_tokens
+        entry["completion"] += completion_tokens
+        entry["requests"] += 1
+
+
+def get_token_usage(backend: str = "") -> dict:
+    """Return token telemetry. Pass empty string for all backends."""
+    with _token_lock:
+        if backend:
+            return dict(_token_usage.get(backend, {"prompt": 0, "completion": 0, "requests": 0}))
+        return {k: dict(v) for k, v in _token_usage.items()}
+
+
 def reset_for_tests():
     with _lock:
         _usage.clear()
+    with _token_lock:
+        _token_usage.clear()
 
 
 def set_usage_for_tests(backend: str, used: int):

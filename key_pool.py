@@ -233,3 +233,15 @@ def report_key_result(provider: str, key: str, success: bool,
         pool.report_success(key)
     else:
         pool.report_failure(key, error_code, retry_after)
+
+
+def is_exhausted(provider: str) -> bool:
+    """All keys for this provider are blocked or cooled."""
+    pool = _pools.get(provider)
+    if not pool:
+        return True
+    return pool.get_active_count() == 0
+
+
+def provider_snapshot(provider: str) -> dict:
+    return pool_snapshot(provider)

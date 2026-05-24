@@ -1709,3 +1709,22 @@ Verification note:
 - Verification:
   - `python -m pytest tests/test_reflection.py tests/test_backend_registry.py test_routing_engine.py test_http_caller.py -q --ignore=active_model`: 118 passed.
   - `python -m pytest -q --ignore=active_model`: 507 passed, 8 skipped.
+
+## 2026-05-24 M1-S2-S4 Key Pool, Failure Classes, Cost Telemetry
+
+- Completed the remaining M1 slices:
+  - `key_pool.py` now exposes exhaustion/snapshot helpers;
+  - `http_caller.py` selects provider pool keys when a pool exists and falls
+    back to static backend keys when no pool is configured;
+  - provider pools that exist but are fully blocked/cooled now fail closed;
+  - `health_tracker.py` classifies auth, quota, rate-limit, network,
+    malformed, timeout, provider, and manual-refresh failures;
+  - classified failures now feed `backend_reputation.py` with weighted
+    penalties;
+  - `budget_manager.py` records best-effort token telemetry for non-free
+    backends while keeping free/local backends non-blocking.
+- Review fix applied:
+  - preserved static-key fallback for provider backends without an env key pool;
+  - fixed health-change notification ordering in `record_failure()`.
+- Verification:
+  - `python -m pytest tests/test_key_pool.py test_http_caller.py tests/test_backend_reputation.py tests/test_budget_manager.py tests/test_health_tracker.py tests/test_backend_registry.py test_routing_engine.py -q --ignore=active_model`: 170 passed.

@@ -271,14 +271,19 @@ def test_call_api_success_openai(mock_urlopen, mock_ht):
     mock_ht.record_success.assert_called_once()
 
 
+@patch('http_caller.key_pool.is_exhausted')
+@patch('http_caller.key_pool.ensure_env_pool')
 @patch('http_caller.key_pool.report_key_result')
 @patch('http_caller.key_pool.get_key')
 @patch('http_caller.health_tracker')
 @patch('urllib.request.urlopen')
 def test_call_api_uses_key_pool_key_and_reports_success(
     mock_urlopen, mock_ht, mock_get_key, mock_report_key_result,
+    mock_ensure_env_pool, mock_is_exhausted,
 ):
     mock_ht.is_cooled_down.return_value = False
+    mock_ensure_env_pool.return_value = True
+    mock_is_exhausted.return_value = False
     mock_get_key.return_value = 'sk-pooled'
     resp_data = json.dumps({
         'choices': [{'message': {'content': 'hello world'}}]
@@ -305,18 +310,23 @@ def test_call_api_uses_key_pool_key_and_reports_success(
         'unit-provider', 'sk-pooled', True)
 
 
+@patch('http_caller.key_pool.is_exhausted')
+@patch('http_caller.key_pool.ensure_env_pool')
 @patch('http_caller.key_pool.report_key_result')
 @patch('http_caller.key_pool.get_key')
 @patch('http_caller.health_tracker')
 @patch('urllib.request.urlopen')
 def test_call_api_reports_key_pool_failure_with_retry_after(
     mock_urlopen, mock_ht, mock_get_key, mock_report_key_result,
+    mock_ensure_env_pool, mock_is_exhausted,
 ):
     class RateLimited(Exception):
         code = 429
         headers = {'Retry-After': '7'}
 
     mock_ht.is_cooled_down.return_value = False
+    mock_ensure_env_pool.return_value = True
+    mock_is_exhausted.return_value = False
     mock_get_key.return_value = 'sk-pooled'
     mock_urlopen.side_effect = RateLimited("rate limited")
 
@@ -398,3 +408,156 @@ def test_call_api_network_error(mock_urlopen, mock_ht):
         with pytest.raises(BackendError):
             call_api('fail_backend', [{'role': 'user', 'content': 'hi'}])
     mock_ht.record_failure.assert_called_once()
+
+
+# ── Token extraction ───────────────────────────────────────────────────────────
+
+def test_extract_usage_openai():
+    from http_caller import _extract_usage
+    data = {
+        'choices': [{'message': {'content': 'hello'}}],
+        'usage': {'prompt_tokens': 150, 'completion_tokens': 50, 'total_tokens': 200},
+    }
+    p, c = _extract_usage(data, 'openai')
+    assert p == 150
+    assert c == 50
+
+
+def test_extract_usage_anthropic():
+    from http_caller import _extract_usage
+    data = {
+        'content': [{'type': 'text', 'text': 'hi'}],
+        'usage': {'input_tokens': 100, 'output_tokens': 30},
+    }
+    p, c = _extract_usage(data, 'anthropic')
+    assert p == 100
+    assert c == 30
+
+
+def test_extract_usage_no_usage_field():
+    from http_caller import _extract_usage
+    data = {'choices': [{'message': {'content': 'hi'}}]}
+    p, c = _extract_usage(data, 'openai')
+    assert p == 0
+    assert c == 0
+
+
+# ── Token telemetry in call_api ───────────────────────────────────────────────
+
+@patch('http_caller.health_tracker')
+@patch('urllib.request.urlopen')
+def test_call_api_records_token_usage(mock_urlopen, mock_ht, monkeypatch):
+    mock_ht.is_cooled_down.return_value = False
+    resp_data = json.dumps({
+        'choices': [{'message': {'content': 'hello world'}}],
+        'usage': {'prompt_tokens': 200, 'completion_tokens': 80, 'total_tokens': 280},
+    }).encode()
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = resp_data
+    mock_resp.__enter__ = lambda s: s
+    mock_resp.__exit__ = MagicMock(return_value=False)
+    mock_urlopen.return_value = mock_resp
+
+    import budget_manager
+    budget_manager.reset_for_tests()
+
+    with patch.dict(http_caller.BACKENDS, {
+        'test_tok': {'url': 'http://test.com/v1/chat/completions',
+                     'key': 'sk-test', 'model': 'test-model',
+                     'fmt': 'openai', 'timeout': 10}
+    }):
+        call_api('test_tok', [{'role': 'user', 'content': 'hi'}])
+
+    usage = budget_manager.get_token_usage('test_tok')
+    assert usage['prompt'] == 200
+    assert usage['completion'] == 80
+    assert usage['requests'] == 1
+    budget_manager.reset_for_tests()
+
+
+# ── Key pool exhaustion ────────────────────────────────────────────────────────
+
+@patch('http_caller.key_pool.is_exhausted')
+@patch('http_caller.key_pool.ensure_env_pool')
+@patch('http_caller.health_tracker')
+def test_call_api_key_pool_exhausted_returns_empty_key(
+    mock_ht, mock_ensure_env_pool, mock_exhausted,
+):
+    mock_ht.is_cooled_down.return_value = False
+    mock_ensure_env_pool.return_value = True
+    mock_exhausted.return_value = True
+
+    with patch.dict(http_caller.BACKENDS, {
+        'pooled': {'url': 'http://test.com/v1', 'key': 'sk-default',
+                   'model': 'm', 'fmt': 'openai', 'key_pool': 'exhausted_provider'}
+    }):
+        with pytest.raises(BackendError) as exc_info:
+            call_api('pooled', [{'role': 'user', 'content': 'hi'}])
+    assert exc_info.value.status_code == 404
+    mock_exhausted.assert_called_once_with('exhausted_provider')
+
+
+@patch('http_caller.key_pool.ensure_env_pool')
+def test_select_key_falls_back_to_backend_key_when_pool_not_configured(mock_ensure_env_pool):
+    mock_ensure_env_pool.return_value = False
+
+    key, provider = http_caller._select_key(
+        'github_gpt4o',
+        {'key': 'sk-static', 'fmt': 'openai'},
+    )
+
+    assert key == 'sk-static'
+    assert provider == 'github'
+
+
+# ── Failure classification ────────────────────────────────────────────────────
+
+def test_classify_failure_auth():
+    from health_tracker import classify_failure
+    assert classify_failure(401) == 'auth_expired'
+    assert classify_failure(403) == 'auth_expired'
+    assert classify_failure(None, 'unauthorized request') == 'auth_expired'
+
+
+def test_classify_failure_rate_limit():
+    from health_tracker import classify_failure
+    assert classify_failure(429) == 'rate_limited'
+    assert classify_failure(None, 'too many requests') == 'rate_limited'
+
+
+def test_classify_failure_quota():
+    from health_tracker import classify_failure
+    assert classify_failure(None, 'quota exceeded') == 'quota_exhausted'
+    assert classify_failure(None, 'insufficient_quota') == 'quota_exhausted'
+
+
+def test_classify_failure_network():
+    from health_tracker import classify_failure
+    assert classify_failure(None, 'connection refused') == 'network_error'
+    assert classify_failure(None, 'connection reset') == 'network_error'
+    assert classify_failure(None, 'connection timed out') == 'network_error'
+    assert classify_failure(None, 'read timed out') == 'network_error'
+    assert classify_failure(502) == 'network_error'
+    assert classify_failure(503) == 'network_error'
+
+
+def test_classify_failure_timeout():
+    from health_tracker import classify_failure
+    assert classify_failure(None, 'request timeout after 30s') == 'timeout'
+
+
+def test_classify_failure_malformed():
+    from health_tracker import classify_failure
+    assert classify_failure(400) == 'malformed_response'
+    assert classify_failure(None, 'JSONDecodeError at line 1') == 'malformed_response'
+
+
+def test_classify_failure_provider_error():
+    from health_tracker import classify_failure
+    assert classify_failure(500) == 'provider_error'
+    assert classify_failure(502) == 'network_error'  # 502 is network, not provider
+
+
+def test_classify_failure_anonymous_exhausted():
+    from health_tracker import classify_failure
+    assert classify_failure(None, 'chat.anonymous_usage_exceeded') == 'manual_refresh_required'

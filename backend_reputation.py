@@ -1,6 +1,6 @@
 """
 backend_reputation.py — 后端信誉分系统
-根据质量门结果动态调整后端优先级，低质量后端自动降级
+根据质量门结果和失败分类动态调整后端优先级，低质量后端自动降级。
 """
 import time
 from collections import defaultdict
@@ -20,6 +20,19 @@ COOLDOWN_DURATION = 1800  # 30 minutes
 HISTORY_WINDOW = 600  # 10 minutes for consecutive fail detection
 MAX_HISTORY = 100
 
+# Per-error-class penalty weights (multiplier on PENALTY)
+FAILURE_CLASS_PENALTY = {
+    "auth_expired": 5.0,          # 立即降级
+    "manual_refresh_required": 5.0,
+    "quota_exhausted": 5.0,
+    "rate_limited": 1.5,          # 较重惩罚
+    "network_error": 0.3,         # 网络波动，轻罚
+    "malformed_response": 0.5,    # 格式问题，中等
+    "provider_error": 1.0,        # 默认惩罚
+    "unknown_error": 0.8,
+    "timeout": 0.3,               # 老分类兼容
+}
+
 
 def record(backend: str, passed: bool, task_type: str = "code"):
     """记录质量门结果，更新信誉分"""
@@ -30,7 +43,6 @@ def record(backend: str, passed: bool, task_type: str = "code"):
         score = min(100, score + REWARD)
     else:
         score = max(0, score - PENALTY)
-        # 检测连续失败 → 冷却
         recent = [h for h in _history[backend]
                   if h[0] > now - HISTORY_WINDOW and not h[1]]
         if len(recent) + 1 >= CONSECUTIVE_FAIL_THRESHOLD:
@@ -38,7 +50,23 @@ def record(backend: str, passed: bool, task_type: str = "code"):
 
     _scores[backend] = score
     _history[backend].append((now, passed, task_type))
-    # 裁剪历史
+    if len(_history[backend]) > MAX_HISTORY:
+        _history[backend] = _history[backend][-MAX_HISTORY:]
+
+
+def record_failure_class(backend: str, error_class: str, task_type: str = "routing"):
+    """Record a classified failure with weighted penalty."""
+    multiplier = FAILURE_CLASS_PENALTY.get(error_class, 1.0)
+    now = time.time()
+    score = _scores.get(backend, INITIAL_SCORE)
+    penalty = PENALTY * multiplier
+    score = max(0, score - penalty)
+
+    if multiplier >= 5.0:
+        _cooldowns[backend] = now + COOLDOWN_DURATION
+
+    _scores[backend] = score
+    _history[backend].append((now, False, f"{task_type}:{error_class}"))
     if len(_history[backend]) > MAX_HISTORY:
         _history[backend] = _history[backend][-MAX_HISTORY:]
 

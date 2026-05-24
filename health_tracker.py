@@ -74,20 +74,46 @@ def _calc_cooldown(failures: int, error_code: Optional[int] = None) -> float:
 
 def classify_failure(error_code: Optional[int] = None, error_text: str = "") -> str:
     lowered = (error_text or "").lower()
+    # Auth / session issues
     if "anonymous_usage_exceeded" in lowered:
         return "manual_refresh_required"
     if error_code in (401, 403) or any(
-        marker in lowered for marker in ("unauthorized", "forbidden", "invalid token")
+        marker in lowered for marker in ("unauthorized", "forbidden", "invalid token",
+                                          "invalid api key", "not authenticated")
     ):
         return "auth_expired"
+    # Rate limit / quota
     if error_code == 429 or any(
-        marker in lowered for marker in ("too many requests", "rate limit")
+        marker in lowered for marker in ("too many requests", "rate limit",
+                                          "rate exceeded", "slow down")
     ):
         return "rate_limited"
-    if any(marker in lowered for marker in ("quota", "usage exhausted", "limit exceeded")):
+    if any(marker in lowered for marker in ("quota", "usage exhausted", "limit exceeded",
+                                             "billing", "insufficient_quota")
+    ):
         return "quota_exhausted"
-    if any(marker in lowered for marker in ("timeout", "timed out")):
+    # Network / connectivity
+    if any(marker in lowered for marker in (
+        "connection refused", "connection reset", "connection aborted",
+        "name or service not known", "no route to host",
+        "connection timed out", "timed out", "read timed out",
+        "could not resolve host", "temporary failure in name resolution",
+        "network is unreachable", "connectionerror", "remote end closed",
+    )) or error_code in (502, 503, 504):
+        return "network_error"
+    if any(marker in lowered for marker in ("timeout", "timed out")) and error_code != 408:
+        if "read timed" in lowered or "connect timed" in lowered or "connection timed" in lowered:
+            return "network_error"
         return "timeout"
+    # Malformed / unexpected response
+    if any(marker in lowered for marker in (
+        "jsondecodeerror", "expecting value", "unterminated string",
+        "unexpected token", "invalid json", "syntax error",
+        "expected", "malformed", "parse error",
+    )):
+        return "malformed_response"
+    if error_code == 400:
+        return "malformed_response"
     if error_code is not None and 500 <= error_code <= 599:
         return "provider_error"
     return "unknown_error"
@@ -213,19 +239,18 @@ def record_failure(backend: str, error_code: Optional[int] = None,
         q.total_requests += 1
         q.latencies.append(LATENCY_PENALTY)
 
+        old_health = _health_map.get(backend, "healthy")
         if error_class in ("auth_expired", "manual_refresh_required"):
             _health_map[backend] = "suspicious"
-            return
-        if error_class in ("rate_limited", "quota_exhausted"):
+        elif error_class in ("rate_limited", "quota_exhausted"):
             _health_map[backend] = "degraded"
-            return
-
-        n_fail = state.consecutive_failures
-        old_health = _health_map.get(backend, "healthy")
-        if n_fail >= FAILURE_THRESHOLD_MIN_REQUESTS:
-            _health_map[backend] = "dead"
         else:
-            _health_map[backend] = "degraded"
+            n_fail = state.consecutive_failures
+            if n_fail >= FAILURE_THRESHOLD_MIN_REQUESTS:
+                _health_map[backend] = "dead"
+            else:
+                _health_map[backend] = "degraded"
+
         new_health = _health_map[backend]
         if old_health != new_health:
             try:
@@ -233,6 +258,12 @@ def record_failure(backend: str, error_code: Optional[int] = None,
                 notify_health_change(backend, old_health, new_health)
             except Exception:
                 pass
+        # Feed classified failure into reputation system
+        try:
+            import backend_reputation
+            backend_reputation.record_failure_class(backend, error_class)
+        except (ImportError, Exception):
+            pass
 
 
 def record_response_quality(backend: str, response_length: int,
