@@ -84,12 +84,14 @@ def backend_call_event(
     backend: str,
     route_reason: str = "",
     session_id: str = "",
+    latency_ms: float = 0.0,
 ) -> LiMaEvent:
     return LiMaEvent(
         event_type="backend_call",
         request_id=request_id,
         backend=backend,
         route_reason=route_reason,
+        latency_ms=latency_ms,
         session_id_hash=_hash_session(session_id),
     )
 

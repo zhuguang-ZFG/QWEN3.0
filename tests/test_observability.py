@@ -59,10 +59,13 @@ def test_request_end_event_failure():
 
 
 def test_backend_call_event():
-    e = backend_call_event("req1", "scnet_ds_flash", "coding_pool", session_id="s1")
+    e = backend_call_event(
+        "req1", "scnet_ds_flash", "coding_pool", session_id="s1", latency_ms=42.5
+    )
     assert e.event_type == "backend_call"
     assert e.backend == "scnet_ds_flash"
     assert e.route_reason == "coding_pool"
+    assert e.latency_ms == 42.5
     assert e.session_id_hash != "s1"
 
 

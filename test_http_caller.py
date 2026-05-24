@@ -464,6 +464,32 @@ def test_call_api_network_error(mock_build_client, mock_ht):
 
 
 @patch('http_caller.health_tracker')
+@patch('http_caller._build_client')
+def test_call_api_backend_error_emits_observability(mock_build_client, mock_ht):
+    from observability.metrics import get_metrics_snapshot, reset_metrics
+
+    reset_metrics()
+    mock_ht.is_cooled_down.return_value = False
+    mock_build_client.return_value = _mock_httpx_client({
+        'choices': [{'message': {'content': 'rate limit'}}],
+    })
+
+    with patch.dict(http_caller.BACKENDS, {
+        'err_backend': {'url': 'http://test.com/v1/chat/completions',
+                        'key': 'sk-test', 'model': 'test-model',
+                        'fmt': 'openai', 'timeout': 10}
+    }):
+        with pytest.raises(BackendError) as exc_info:
+            call_api('err_backend', [{'role': 'user', 'content': 'hi'}])
+
+    snapshot = get_metrics_snapshot()
+    assert exc_info.value.status_code == 429
+    assert snapshot["event_type_counts"]["backend_error"] == 1
+    assert snapshot["backends"]["err_backend"]["failure"] == 1
+    reset_metrics()
+
+
+@patch('http_caller.health_tracker')
 @patch('http_caller._build_async_client')
 def test_call_api_async_success_openai(mock_build_async_client, mock_ht):
     mock_ht.is_cooled_down.return_value = False

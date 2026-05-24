@@ -250,13 +250,18 @@ def quality_check_typed(
         reason.startswith("too short") or reason == "possibly truncated"
         for reason in reasons
     )
-    return QualityGateResult(
-        passed=passed,
-        score=max(0.0, score),
-        reasons=reasons,
-        repairable=repairable,
-        severity=severity,
+    result = QualityGateResult(
+        passed=passed, score=max(0.0, score), reasons=reasons,
+        repairable=repairable, severity=severity,
     )
+    # Emit quality_result_event to observability (M6-S3)
+    try:
+        from observability.metrics import record as _obs_record
+        from observability.events import quality_result_event
+        _obs_record(quality_result_event("", backend, result.score, result.passed))
+    except ImportError:
+        pass
+    return result
 
 
 def _allows_safety_refusal(query: str) -> bool:

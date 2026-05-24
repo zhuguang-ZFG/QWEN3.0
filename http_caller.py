@@ -266,12 +266,21 @@ def call_api(backend: str, messages: list[dict], max_tokens: int = 4096,
         except ImportError:
             pass
 
+        # Emit backend_call_event to observability (M6-S3)
+        try:
+            from observability.metrics import record as _obs_record
+            from observability.events import backend_call_event
+            _obs_record(backend_call_event("", backend, "", latency_ms=latency_ms))
+        except ImportError:
+            pass
+
         return cleaned
 
     except BackendError as e:
         _report_key_result(
             key_provider, selected_key, False,
             error_code=e.status_code or 0, retry_after=0)
+        _emit_backend_error(backend, e.status_code, str(e))
         raise
     except httpx.HTTPStatusError as e:
         error_code = e.response.status_code
@@ -280,6 +289,7 @@ def call_api(backend: str, messages: list[dict], max_tokens: int = 4096,
         _report_key_result(
             key_provider, selected_key, False,
             error_code=error_code, retry_after=_extract_retry_after(e))
+        _emit_backend_error(backend, error_code, str(e))
         raise BackendError(str(e), status_code=error_code) from e
     except Exception as e:
         error_code = _extract_code(e)
@@ -288,6 +298,7 @@ def call_api(backend: str, messages: list[dict], max_tokens: int = 4096,
         _report_key_result(
             key_provider, selected_key, False,
             error_code=error_code or 0, retry_after=_extract_retry_after(e))
+        _emit_backend_error(backend, error_code, str(e))
         if DEBUG:
             print(f'[HTTP] {backend} error: {e}', file=sys.stderr)
         raise BackendError(str(e), status_code=error_code) from e
@@ -361,6 +372,17 @@ def _extract_usage(data: dict, fmt: str) -> tuple[int, int]:
     if fmt == 'anthropic':
         return usage.get('input_tokens', 0), usage.get('output_tokens', 0)
     return usage.get('prompt_tokens', 0), usage.get('completion_tokens', 0)
+
+
+def _emit_backend_error(backend: str, error_code: int | None, error_text: str) -> None:
+    try:
+        from observability.metrics import record as _obs_record
+        from observability.events import backend_error_event
+        from health_tracker import classify_failure
+        fc = classify_failure(error_code, error_text)
+        _obs_record(backend_error_event("", backend, fc))
+    except ImportError:
+        pass
 
 
 def _extract_code(e: Exception) -> Optional[int]:

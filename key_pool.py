@@ -234,6 +234,15 @@ def report_key_result(provider: str, key: str, success: bool,
     else:
         pool.report_failure(key, error_code, retry_after)
 
+    # Emit key_pool_event to observability (M6-S3)
+    try:
+        from observability.metrics import record as _obs_record
+        from observability.events import key_pool_event
+        event_name = "success" if success else f"failure_{error_code}"
+        _obs_record(key_pool_event(provider, event_name))
+    except ImportError:
+        pass
+
 
 def is_exhausted(provider: str) -> bool:
     """All keys for this provider are blocked or cooled."""

@@ -237,6 +237,15 @@ def record_token_usage(backend: str, prompt_tokens: int = 0,
         entry["completion"] += completion_tokens
         entry["requests"] += 1
 
+    # Emit token_usage_event to observability (M6-S3)
+    try:
+        from observability.metrics import record as _obs_record
+        from observability.events import token_usage_event
+        _obs_record(token_usage_event(backend, prompt_tokens, completion_tokens,
+                                       get_cost_class(backend)))
+    except ImportError:
+        pass
+
 
 def get_token_usage(backend: str = "") -> dict:
     """Return token telemetry. Pass empty string for all backends."""

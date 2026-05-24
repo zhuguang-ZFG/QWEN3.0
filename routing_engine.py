@@ -454,6 +454,18 @@ def route(query: str, messages: list[dict], *,
     except ImportError:
         pass
 
+    # Emit route_decision_event to observability (M6-S3)
+    try:
+        from observability.metrics import record as _obs_record
+        from observability.events import route_decision_event
+        _obs_record(route_decision_event(
+            "", final_backend,
+            f"{req_type}/{scenario}" + ("/fallback" if (final_backend not in ("exhausted", "none") and backends and final_backend != backends[0]) else ""),
+            candidates=backends if backends else [],
+        ))
+    except ImportError:
+        pass
+
     return RouteResult(
         backend=final_backend, answer=answer,
         request_type=req_type, scenario=scenario, ms=ms,

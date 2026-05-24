@@ -1912,14 +1912,14 @@ Verification note:
 
 ## 2026-05-24 M6 Observability Events And Metrics
 
-- Reviewed and partially closed M6:
+- Reviewed and closed M6:
   - `observability.events` defines `LiMaEvent` and event factories for request
     lifecycle, backend calls/errors, route decisions, quality results,
     key-pool events, and token usage;
   - `observability.metrics` provides local in-memory aggregation with no
     exporter, network, or third-party dependency;
   - `docs/OBSERVABILITY_EVENTS.md` documents event shape, redaction, snapshot
-    fields, and the remaining M6-S3 wiring boundary;
+    fields, and completed hot-path wiring;
   - `tests/test_observability.py` covers event creation, session hashing,
     metrics snapshots, ranking helpers, reset isolation, token accumulation,
     and redaction guarantees.
@@ -1929,7 +1929,19 @@ Verification note:
     with `[REDACTED]`;
   - token-like `key_pool_event(details=...)` strings are redacted before any
     event object can be recorded or logged;
-  - observability files were normalized to ASCII source to avoid mojibake.
+  - observability files were normalized to ASCII source to avoid mojibake;
+  - M6-S3 wires token usage, quality result, key-pool result, backend
+    call/error, and route decision events into the existing hot paths;
+  - `backend_call_event()` now accepts and stores `latency_ms`, fixing the
+    review-found regression where successful `call_api()` calls failed while
+    emitting telemetry;
+  - `BackendError` paths inside `call_api()` now also emit backend-error
+    metrics instead of only httpx/general exception paths;
+  - removed an unreachable duplicate block from `http_caller._extract_code()`.
 - Verification:
   - `python -m pytest tests/test_observability.py -q --ignore=active_model`:
     31 passed before the final full-suite run.
+  - `python -m pytest test_http_caller.py tests/test_observability.py -q --ignore=active_model`:
+    86 passed after the M6-S3 review fix.
+  - `python -m pytest tests/test_budget_manager.py tests/test_key_pool.py tests/test_quality_gate.py tests/test_route_scorer.py test_http_caller.py tests/test_observability.py -q --ignore=active_model`:
+    148 passed after hot-path wiring review.

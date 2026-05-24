@@ -75,8 +75,8 @@ Convenience queries:
 
 ## Current Boundary
 
-M6-S1/S2/S4 define the event model, local metrics sink, report, and tests.
-M6-S3 is still pending and should wire hot paths gradually:
+M6 defines the event model, local metrics sink, report, tests, and hot-path
+wiring for:
 
 - `http_caller.py`
 - `routing_engine.py`
