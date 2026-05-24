@@ -94,6 +94,7 @@
 | Google ADK | concept | - | Multi-agent patterns noted | - |
 | Agent Governance Toolkit | implemented | tool_gateway/registry.py, agent_runtime/summary_constraints.py | AuthorityClass (8 levels), dangerous flag, risk class, rollback owner, worker summary contract | tests/test_tool_gateway.py, tests/test_worker_summary_constraints.py |
 | gstack | implemented | agent_runtime/approval.py | Stage-gated approval, human-in-the-loop | tests/test_approval_gate.py (17 tests) |
+| XianyuAutoAgent | concept | agent_channels/ (planned), session_memory/, observability/, device_gateway/ | Concept-only execution notes for channel connector, session state, intent router, manual takeover, WebSocket health, prompt profiles, and audit | docs/reference/XIANYU_AUTO_AGENT_EXECUTION_NOTES.md |
 | Symphony | concept | - | - | - |
 | A2A | concept | - | Task contract reflects A2A fields | - |
 | MCP Python SDK | gated | lima_mcp/, lima_mcp/access_plane.py | 8 dev tools, Bearer auth, read-only default, connector owner/allowlist/credential/timeout/audit policy | tests/test_mcp_access_plane.py |
@@ -162,7 +163,7 @@ Items that cannot proceed due to external dependency, legal, privacy, or cost ga
 | Hosted observability (LangFuse/Prometheus) | Privacy: telemetry data leaves VPS | Data residency, redaction, self-hosting eval |
 | Vector DB (external) | Complexity: too heavy for personal VPS | Prove SQLite/FTS insufficient first |
 | Voice cloning (VoxCPM/Qwen3-TTS) | Consent + privacy + model license | Explicit consent, retention, false-positive policy |
-| Messaging bridges (Telegram/cc-connect) | Platform terms + anti-abuse | Cookie/social/proxy account gates |
+| Messaging bridges (Telegram/cc-connect/XianyuAutoAgent-style connectors) | Platform terms + anti-abuse | Cookie/social/proxy account gates, owner, credential boundary, rate limit, outbound approval, audit, stop switch |
 | Browser scraping (Hyperbrowser) | Platform terms + scraping policy | Explicit account/credential/cost/anti-abuse gates |
 | Hardware companion expansion | Safety + consent | U8 smoke complete, per-protocol-family allowlists |
 
@@ -174,7 +175,7 @@ Items that cannot proceed due to external dependency, legal, privacy, or cost ga
 |--------|-------|
 | implemented | 25 |
 | gated | 7 |
-| concept | 29 |
+| concept | 30 |
 | implementing | 1 |
 | evaluating | 0 |
 | rejected | 1 |

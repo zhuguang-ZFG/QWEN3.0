@@ -2,6 +2,23 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 XianyuAutoAgent Reference Execution Notes
+
+- Reviewed `shaxiu/XianyuAutoAgent` at revision `77b1e4c`.
+- Decision: medium-high reference value as a vertical always-on business agent,
+  but concept-only for LiMa because the project is GPL-3.0 and its useful
+  platform layer depends on cookies/private protocol behavior.
+- Added `docs/reference/XIANYU_AUTO_AGENT_EXECUTION_NOTES.md`.
+- The execution notes translate the reference into LiMa-owned slices:
+  channel connector boundary, session state, intent router, expert agents,
+  manual takeover, WebSocket health, prompt profiles, audit events, ops metrics,
+  and gated messaging connectors.
+- Updated `docs/REFERENCE_IMPLEMENTATION_LEDGER.md` and
+  `docs/DOCUMENTATION_STATUS.md` so future sessions can find the reference and
+  remember not to copy code or prompts.
+- Priority retained: P0.2 real Device Gateway path/text/SVG execution remains
+  ahead of WeChat or social-channel connector work.
+
 ## 2026-05-25 P0.1 ESP32 Motion Executor Contract — Deployed
 
 - Review fixes applied after the initial implementation summary:

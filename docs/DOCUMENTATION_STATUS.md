@@ -39,6 +39,7 @@
 | `docs/superpowers/plans/2026-05-23-techspar-mastery-loop.md` | Active record | Implemented TechSpar-inspired local mastery loop for module mastery, weak-point extraction, review scheduling, recommendations, and promotion evidence gates. |
 | `docs/reference/TECHSPAR_BORROWING_NOTES.md` | Active boundary | Concept-borrowing record and license boundary for the local mastery loop. |
 | `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md` | Active boundary | Concept-borrowing record for gated autonomy, role separation, and evidence-based promotion. |
+| `docs/reference/XIANYU_AUTO_AGENT_EXECUTION_NOTES.md` | Active boundary | Concept-only execution plan for XianyuAutoAgent-style channel agents: connector boundary, session state, expert routing, manual takeover, WebSocket health, prompt profiles, and audit gates. |
 | `docs/superpowers/plans/2026-05-23-lima-code-vibe-coding.md` | Active plan | LiMa Code fork integration plan for using LiMa as model router and LiMa Code as vibe coding worker/UI. |
 | `docs/superpowers/plans/2026-05-22-cloudflare-workers-ai-routing.md` | Active record | Completed Cloudflare text/code routing implementation plan. |
 | `docs/superpowers/plans/2026-05-22-token-safe-local-proxy-routing.md` | Active record | Completed token-safe refresh, topology-aware local proxy routing, and exact-output quality hotfix plan. |

@@ -2,6 +2,16 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-05-25 XianyuAutoAgent Reference Findings
+
+| ID | Area | Evidence | Next Action |
+|---|---|---|---|
+| XAA-001 | Reference value | `XianyuAgent.py` shows rules-plus-LLM intent routing and specialist agents; `context_manager.py` stores chat history and counters; `main.py` manages WebSocket heartbeat, reconnect, token refresh, ACK, and manual takeover. | Borrow the production shape through LiMa-owned interfaces only. |
+| XAA-002 | License boundary | The observed repository license is GPL-3.0. | Do not copy source, prompts, protocol handlers, or request shapes into LiMa. |
+| XAA-003 | Platform boundary | The connector path uses cookies and private platform protocol details. | Keep WeChat/social connectors default-off behind owner, credential, platform-term, rate-limit, audit, and stop-switch gates. |
+| XAA-004 | LiMa adaptation | The useful LiMa shape is `ChannelConnector -> SessionStore -> IntentRouter -> ExpertAgent -> HumanTakeover -> AuditLog -> TaskQueue`. | Start with a fake connector and productive flows before adding real messaging bridges. |
+| XAA-005 | Priority | Messaging bridges are less urgent than observable hardware and coding execution. | Keep P0.2 real Device Gateway path/text/SVG pipeline ahead of WeChat/Xianyu-style connector work. |
+
 ## 2026-05-25 P0.1 ESP32 Motion Executor Contract — Implementation Closeout
 
 | ID | Area | Evidence | Status |

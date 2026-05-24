@@ -2,6 +2,13 @@
 
 ## 2026-05-25 Joint Debug Memory
 
+- On 2026-05-25 `shaxiu/XianyuAutoAgent` was reviewed as a reference at
+  revision `77b1e4c`. It is useful as a concept source for channel connector
+  boundaries, session state, expert intent routing, manual takeover,
+  WebSocket/heartbeat recovery, prompt profiles, and audit events. It must not
+  be copied or vendored into LiMa because the observed license is GPL-3.0 and
+  the platform layer depends on cookie/private-protocol behavior. Execution
+  notes live in `docs/reference/XIANYU_AUTO_AGENT_EXECUTION_NOTES.md`.
 - 2026-05-25 VPS baseline deploy updated `/opt/lima-router` to local `HEAD`
   `ad7cab5`. Backup:
   `/opt/lima-router/backups/codex-baseline-20260525_031146/runtime-before.tgz`.
