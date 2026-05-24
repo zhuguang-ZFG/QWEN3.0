@@ -5,7 +5,7 @@ import pytest
 
 import server
 from device_gateway.sessions import DeviceSession, registry
-from device_gateway.tasks import create_task_from_transcript, enqueue_pending_task, pop_pending_tasks, task_snapshot
+from device_gateway.tasks import create_task_from_transcript, enqueue_pending_task, pending_count, pop_pending_tasks, task_snapshot
 from routes.device_gateway import (
     _dispatch_task_to_session,
     _drain_pending_tasks,
@@ -73,6 +73,30 @@ def test_events_endpoint_records_motion_event_with_private_auth():
     assert data["request_id"] == "req-events"
 
 
+def test_events_endpoint_preserves_firmware_failure_error():
+    client = _client()
+    response = client.post(
+        "/device/v1/events",
+        headers={"Authorization": "Bearer test-private-token"},
+        json={
+            "type": "motion_event",
+            "device_id": "dev-1",
+            "task_id": "task-fw-fail",
+            "phase": "failed",
+            "error_code": "E_UNSUPPORTED_BOARD",
+            "error_message": "board does not support motion tasks",
+        },
+    )
+
+    assert response.status_code == 200
+    snapshot = task_snapshot("task-fw-fail")
+    assert snapshot["status"] == "failed"
+    assert snapshot["events"][0]["error"] == {
+        "code": "E_UNSUPPORTED_BOARD",
+        "reason": "board does not support motion tasks",
+    }
+
+
 def test_events_endpoint_requires_private_auth():
     response = _client().post(
         "/device/v1/events",
@@ -98,6 +122,33 @@ def test_tasks_endpoint_creates_queued_motion_task_without_active_session():
     assert data["task"]["type"] == "motion_task"
     assert data["task"]["capability"] == "run_path"
     assert data["task"]["request_id"] == "req-task"
+
+
+def test_tasks_endpoint_does_not_queue_validation_failed_task(monkeypatch):
+    def fake_create_task_from_transcript(device_id: str, text: str, request_id: str | None = None) -> dict:
+        return {
+            "type": "motion_task",
+            "task_id": "task-invalid",
+            "device_id": device_id,
+            "capability": "run_path",
+            "params": {},
+            "error": {"code": "E_UNSUPPORTED_CAPABILITY", "reason": "unsupported"},
+        }
+
+    monkeypatch.setattr("routes.device_gateway.create_task_from_transcript", fake_create_task_from_transcript)
+
+    response = _client().post(
+        "/device/v1/tasks",
+        headers={"Authorization": "Bearer test-private-token"},
+        json={"device_id": "dev-1", "text": "invalid", "request_id": "req-invalid"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "failed"
+    assert data["sent"] is False
+    assert data["queue_depth"] == 0
+    assert data["task"]["error"]["code"] == "E_UNSUPPORTED_CAPABILITY"
 
 
 def test_tasks_endpoint_publishes_task_available_when_session_is_not_local(monkeypatch):
@@ -354,6 +405,39 @@ def test_fake_u8_hello_heartbeat_transcript_motion_event_loop():
         assert event_ack["type"] == "motion_event_ack"
         assert event_ack["task_id"] == motion_task["task_id"]
         assert event_ack["phase"] == "progress"
+
+
+def test_websocket_transcript_failed_task_is_not_dispatched(monkeypatch):
+    def fake_create_task_from_transcript(device_id: str, text: str, request_id: str | None = None) -> dict:
+        return {
+            "type": "motion_task",
+            "task_id": "task-ws-invalid",
+            "device_id": device_id,
+            "capability": "run_path",
+            "params": {},
+            "error": {"code": "E_BAD_PARAMS", "reason": "bad params"},
+        }
+
+    monkeypatch.setattr("routes.device_gateway.create_task_from_transcript", fake_create_task_from_transcript)
+
+    client = _client()
+    with client.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
+        ws.send_json(
+            {
+                "type": "hello",
+                "protocol": "lima-device-v1",
+                "device_id": "dev-1",
+                "capabilities": ["run_path"],
+            }
+        )
+        assert ws.receive_json()["type"] == "hello_ack"
+        ws.send_json({"type": "transcript", "device_id": "dev-1", "text": "bad", "request_id": "req-bad"})
+        failed = ws.receive_json()
+
+    assert failed["type"] == "motion_task_failed"
+    assert failed["task_id"] == "task-ws-invalid"
+    assert failed["error"]["code"] == "E_BAD_PARAMS"
+    assert pending_count("dev-1") == 0
 
 
 def test_websocket_returns_stable_error_before_hello():

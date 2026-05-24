@@ -96,6 +96,8 @@ async def device_gateway_tasks(request: Request) -> JSONResponse:
         )
 
     task = create_task_from_transcript(device_id.strip(), text.strip(), request_id=request_id if isinstance(request_id, str) else None)
+    if task.get("error"):
+        return JSONResponse({"status": "failed", "sent": False, "queue_depth": pending_count(device_id.strip()), "task": task})
     session = registry.get(device_id.strip())
     sent = False
     if session is not None:
@@ -256,6 +258,9 @@ async def device_ws(websocket: WebSocket) -> None:
                 )
             elif msg_type == "transcript":
                 task = create_task_from_transcript(device_id, message["text"], request_id=request_id)
+                if task.get("error"):
+                    await websocket.send_json(ack_frame("motion_task_failed", device_id, task_id=task["task_id"], error=task["error"], request_id=request_id))
+                    continue
                 session = registry.get(device_id)
                 if session is not None:
                     if not await _dispatch_task_to_session(session, task):

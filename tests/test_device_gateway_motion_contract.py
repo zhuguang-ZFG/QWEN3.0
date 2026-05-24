@@ -1,6 +1,7 @@
 """Tests for device_gateway protocol — motion error codes and lifecycle validation."""
 from device_gateway.protocol import (
     motion_failure_event,
+    validate_motion_event,
     validate_motion_task_lifecycle,
     TERMINAL_MOTION_PHASES,
 )
@@ -22,6 +23,34 @@ def test_motion_failure_event_builds_standards_frame():
 def test_motion_failure_event_defaults_reason_to_error_code():
     frame = motion_failure_event("dev-1", "task-001", MotionErrorCode.E_UNSUPPORTED_CAPABILITY)
     assert frame["error"]["reason"] == "E_UNSUPPORTED_CAPABILITY"
+
+
+def test_validate_motion_event_preserves_nested_error():
+    event = validate_motion_event({
+        "type": "motion_event",
+        "device_id": "dev-1",
+        "task_id": "task-001",
+        "phase": "failed",
+        "error": {"code": "E_MISSING_PATH", "reason": "path missing"},
+    })
+
+    assert event["error"] == {"code": "E_MISSING_PATH", "reason": "path missing"}
+
+
+def test_validate_motion_event_normalizes_firmware_error_fields():
+    event = validate_motion_event({
+        "type": "motion_event",
+        "device_id": "dev-1",
+        "task_id": "task-001",
+        "phase": "failed",
+        "error_code": "E_UNSUPPORTED_BOARD",
+        "error_message": "board does not support motion tasks",
+    })
+
+    assert event["error"] == {
+        "code": "E_UNSUPPORTED_BOARD",
+        "reason": "board does not support motion tasks",
+    }
 
 
 def test_validate_motion_task_lifecycle_empty_events():

@@ -122,7 +122,7 @@ def validate_motion_event(message: dict[str, Any]) -> dict[str, Any]:
         progress = {}
     if not isinstance(progress, dict):
         raise ProtocolError("E_INVALID_MESSAGE", "progress must be an object", request_id)
-    return {
+    normalized = {
         "type": "motion_event",
         "device_id": device_id,
         "session_id": message.get("session_id"),
@@ -131,6 +131,10 @@ def validate_motion_event(message: dict[str, Any]) -> dict[str, Any]:
         "progress": progress,
         "request_id": request_id,
     }
+    error = _motion_event_error(message)
+    if error:
+        normalized["error"] = error
+    return normalized
 
 
 def validate_device_info(message: dict[str, Any]) -> dict[str, Any]:
@@ -219,6 +223,26 @@ def motion_failure_event(
     if request_id:
         frame["request_id"] = request_id
     return frame
+
+
+def _motion_event_error(message: dict[str, Any]) -> dict[str, str] | None:
+    raw_error = message.get("error")
+    if isinstance(raw_error, dict):
+        code = raw_error.get("code")
+        reason = raw_error.get("reason")
+        if isinstance(code, str) and code.strip():
+            return {
+                "code": code.strip()[:80],
+                "reason": str(reason or code).strip()[:240],
+            }
+    code = message.get("error_code")
+    if isinstance(code, str) and code.strip():
+        reason = message.get("error_message")
+        return {
+            "code": code.strip()[:80],
+            "reason": str(reason or code).strip()[:240],
+        }
+    return None
 
 
 def validate_motion_task_lifecycle(events: list[dict[str, Any]]) -> dict[str, Any]:
