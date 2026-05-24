@@ -6,6 +6,7 @@ import time
 
 from agent_runtime import (
     AgentRunStore,
+    ApprovalGate,
     InMemoryAgentRunStore,
     JsonlAgentRunStore,
     ResumeState,
@@ -19,11 +20,7 @@ from agent_runtime.contract import (
     StepResult,
 )
 from agent_runtime.executor import AgentRuntime
-from agent_runtime.resume import (
-    build_resume_state,
-    format_resume_summary,
-    resume_task,
-)
+from agent_runtime.resume import build_resume_state, format_resume_summary, resume_task
 from agent_runtime.store import (
     compact_jsonl,
     count_by_status,
@@ -324,6 +321,79 @@ def test_runtime_stores_blocked_result():
 
     assert result is not None
     assert any(step.blocked for step in result.steps)
+
+
+def test_runtime_with_approval_gate_blocks_shell():
+    gate = ApprovalGate(dry_run=True)
+    rt = AgentRuntime(approval_gate=gate)
+    step = AgentStep(step_id="s1", kind=StepKind.SHELL_COMMAND, goal="deploy")
+    result = rt.run_step(step)
+    assert result.blocked is True
+    assert "shell" in result.blocked_reason.lower()
+
+
+def test_runtime_with_approval_gate_allows_safe():
+    gate = ApprovalGate(dry_run=True)
+    rt = AgentRuntime(approval_gate=gate)
+    step = AgentStep(step_id="s1", kind=StepKind.SUMMARIZE, goal="summarize")
+    result = rt.run_step(step)
+    assert result.ok is True
+    assert not result.blocked
+
+
+def test_runtime_without_approval_gate_unchanged():
+    rt = AgentRuntime()
+    step = AgentStep(step_id="s1", kind=StepKind.SUMMARIZE, goal="test")
+    result = rt.run_step(step)
+    assert result.ok is True
+
+
+def test_runtime_approval_checked_before_execution():
+    gate = ApprovalGate(dry_run=False)
+    rt = AgentRuntime(approval_gate=gate)
+    step = AgentStep(step_id="s1", kind=StepKind.SHELL_COMMAND, goal="test")
+    result = rt.run_step(step)
+    assert result.blocked is True
+    assert "approval required" in result.blocked_reason.lower()
+    assert len(gate.get_pending()) == 1
+
+
+def test_runtime_approved_allows_exact_task_step_surface():
+    gate = ApprovalGate(dry_run=False)
+    step = AgentStep(step_id="s1", kind=StepKind.RUN_TESTS, goal="run tests")
+    gate.check_step(step, task_id="task-1")
+    gate.approve(gate.get_pending()[0].approval_id)
+    rt = AgentRuntime(approval_gate=gate)
+    result = rt.run_step(step, task_id="task-1")
+    assert result.ok is True
+    assert not result.blocked
+
+
+def test_runtime_approval_does_not_cross_task_ids():
+    gate = ApprovalGate(dry_run=False)
+    step = AgentStep(step_id="s1", kind=StepKind.RUN_TESTS, goal="run tests")
+    gate.check_step(step, task_id="approved-task")
+    gate.approve(gate.get_pending()[0].approval_id)
+    runtime = AgentRuntime(approval_gate=gate)
+
+    result = runtime.run_step(step, task_id="other-task")
+
+    assert result.blocked is True
+    assert "approval required" in result.blocked_reason.lower()
+
+
+def test_runtime_run_passes_task_id_to_approval_gate():
+    gate = ApprovalGate(dry_run=False)
+    step = AgentStep(step_id="s1", kind=StepKind.RUN_TESTS, goal="run tests")
+    gate.check_step(step, task_id="task-1")
+    gate.approve(gate.get_pending()[0].approval_id)
+    runtime = AgentRuntime(approval_gate=gate)
+    task = AgentTask(task_id="task-1", goal="run tests", steps=[step])
+
+    result = runtime.run(task)
+
+    assert result.ok is True
+    assert result.steps[0].blocked is False
 
 
 def test_list_recent():

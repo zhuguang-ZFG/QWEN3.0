@@ -22,6 +22,7 @@ from agent_runtime.contract import (
 from agent_runtime.planner import plan_task
 from agent_runtime.tool_policy import check_step_policy
 from agent_runtime.store import AgentRunStore
+from agent_runtime.approval import ApprovalGate
 
 
 @dataclass
@@ -35,10 +36,12 @@ class AgentRuntime:
     """Safe agent task executor. Default dry-run, no shell, no network."""
 
     def __init__(self, dry_run: bool = True, hooks: RuntimeHooks | None = None,
-                 store: AgentRunStore | None = None) -> None:
+                 store: AgentRunStore | None = None,
+                 approval_gate: ApprovalGate | None = None) -> None:
         self.dry_run = dry_run
         self.hooks = hooks or RuntimeHooks()
         self.store = store
+        self.approval_gate = approval_gate
         self._audit_log: list[str] = []
 
     def plan(self, task: AgentTask) -> AgentTask:
@@ -59,7 +62,7 @@ class AgentRuntime:
         step_results: list[StepResult] = []
 
         for step in task.steps:
-            result = self.run_step(step)
+            result = self.run_step(step, task_id=task.task_id)
             step_results.append(result)
             if not result.ok and not result.blocked:
                 task.status = AgentRunStatus.FAILED
@@ -83,8 +86,25 @@ class AgentRuntime:
             self.store.save_result(result)
         return result
 
-    def run_step(self, step: AgentStep) -> StepResult:
+    def run_step(
+        self,
+        step: AgentStep,
+        task_id: str = "",
+        worker_id: str = "",
+    ) -> StepResult:
         started_at = time.time()
+
+        if self.approval_gate:
+            approval_result = self.approval_gate.check_step(
+                step,
+                task_id=task_id,
+                worker_id=worker_id,
+            )
+            if approval_result is not None:
+                approval_result.duration_ms = (time.time() - started_at) * 1000
+                self._audit("step_approval_blocked", step.step_id,
+                           approval_result.blocked_reason)
+                return approval_result
 
         policy_result = check_step_policy(step)
         if policy_result is not None:

@@ -2550,3 +2550,33 @@ Verification note:
     no matches.
   - `python -m pytest -q --ignore=active_model`:
     1048 passed, 8 skipped.
+
+## 2026-05-25 M23 Runtime Approval Gate Wiring Closeout
+
+- Reviewed and closed M23:
+  - `agent_runtime.executor.AgentRuntime` now accepts an optional
+    `approval_gate`;
+  - `run_step()` checks approval before tool policy and handlers;
+  - `run()` passes the task id into `run_step()` so approvals are scoped to the
+    task being executed.
+- Review fixes applied:
+  - `run_step()` now accepts optional `task_id` and `worker_id` arguments and
+    forwards both to `ApprovalGate.check_step()`;
+  - approvals no longer cross task ids when runtime calls steps directly;
+  - `run()` uses the task id during approval checks so exact M22 approval
+    matching remains effective in full task execution;
+  - approval still precedes tool policy, and tool policy/runtime handlers remain
+    the second safety layer after approval;
+  - M23 source/test additions were cleaned to ASCII comments and top-level
+    imports.
+- Verification:
+  - `python -m pytest tests/test_agent_store.py -q --ignore=active_model`:
+    39 passed after review fixes.
+  - `python -m pytest tests/test_agent_store.py tests/test_approval_gate.py tests/test_agent_runtime.py -q --ignore=active_model`:
+    95 passed after review fixes.
+  - `python -m py_compile agent_runtime/executor.py tests/test_agent_store.py`:
+    passed.
+  - `rg -n "[^\\x00-\\x7F]" agent_runtime/executor.py tests/test_agent_store.py tests/test_approval_gate.py tests/test_agent_runtime.py`:
+    no matches.
+  - `python -m pytest -q --ignore=active_model`:
+    1055 passed, 8 skipped.
