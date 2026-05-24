@@ -43,6 +43,8 @@ milestones or sub-milestones without renumbering the existing plan.
 | Multi-agent coding papers: AgentConductor, Solvita, RecursiveMAS, Qoder | User-provided summary recorded in progress | N6 Multi-Agent Coding Modes | Concept only until benchmarked |
 | OpenRouter Elephant Alpha and volatile free-model lists | Prior verification summarized in `findings.md` as CQ-028 | N1 Provider Model Automation | Watchlist until probe passes |
 | IDrive e2 S3-compatible 10GB free storage | User-provided service note | N5 Artifact Backup | Optional private archive only |
+| `BigBodyCobain/Shadowbroker` | Cloned to `D:/GIT/shadowbroker-ref` and statically reviewed | N2/N3 security and connector governance | Pattern only; AGPL-3.0 code is not copied |
+| `yichuan-w/LEANN` | Cloned to `D:/GIT/leann-ref` and statically reviewed | N7 Local Retrieval Index Lab | MIT; evaluate behind optional adapter |
 
 ## Cross-Cutting Adoption Rules
 
@@ -59,6 +61,11 @@ milestones or sub-milestones without renumbering the existing plan.
    it appears in a remote catalog.
 7. Any external article or web post must be stored as a source artifact with
    retrieval date before it becomes evidence in docs or code comments.
+8. AGPL-3.0 references, including Shadowbroker, are design/test references
+   only unless a separate license review explicitly approves reuse.
+9. Retrieval/index references with heavy ML dependencies must start as
+   optional adapters and fixtures; do not add torch, sentence-transformers, or
+   native ANN backends to the base LiMa runtime.
 
 ## Recommended Execution Order
 
@@ -71,6 +78,7 @@ milestones or sub-milestones without renumbering the existing plan.
 | 4 | N5 Artifact Backup | Useful once research/model snapshots produce artifacts | Small-medium |
 | 5 | N4 Local Model Lab | MiniMind needs stronger data/eval isolation before code | Medium-large |
 | 6 | N6 Multi-Agent Coding Modes | Needs eval, worker governance, and operator shell signals first | Large |
+| 7 | N7 Local Retrieval Index Lab | Builds on M3 after provider/research basics are stable | Medium-large |
 
 ## N1 - Provider Model Automation
 
@@ -256,6 +264,7 @@ product references. It should use M10 manifests and avoid account/cookie risk.
 - `zhihu-api`
 - Juejin article
 - WeChat article
+- `BigBodyCobain/Shadowbroker`
 - Existing `data_workbench` manifest/policy
 - Existing research notes in `progress.md`
 
@@ -381,6 +390,40 @@ Exit criteria:
 
 - New references become reviewable work items, not loose notes.
 
+### Slice N2-S6: External Feed Governance Template
+
+Use Shadowbroker as a static design reference for high-risk external data
+feeds, not as copied code.
+
+Patterns to borrow:
+
+- per-source attribution records similar to `DATA-ATTRIBUTION.md`;
+- connector status objects that state configured/manual/background/local modes;
+- operator-supplied API key boundaries for paid sources such as Shodan;
+- default-off gates for sensitive or politically/commercially risky fetchers;
+- explicit rate limits, cache TTLs, and user-agent attribution;
+- SSRF regression tests for redirect chains and non-HTTP schemes;
+- privacy claim tables that separate public, obfuscated, experimental, and
+  not-yet-wired capabilities.
+
+Out of scope:
+
+- OSINT surveillance layers, CCTV, radio, SIGINT, or device-search features as
+  LiMa product features;
+- mesh, wormhole, governance, Tor, or radio transports;
+- any direct source-code reuse from the AGPL-3.0 repository.
+
+Likely files:
+
+- `research_radar/source_policy.py`
+- `tests/test_research_source_policy.py`
+- `docs/RESEARCH_RADAR_PLAN.md`
+
+Exit criteria:
+
+- Every LiMa research/provider connector can declare attribution, default-off
+  status, credential custody, rate limit, SSRF posture, and retention policy.
+
 ## N3 - Operator Shell Inspired By ECC
 
 ### Goal
@@ -396,6 +439,10 @@ native and focused on its router/worker/service surface.
 - `D:/GIT/ecc-ref/scripts/platform-audit.js`
 - `D:/GIT/ecc-ref/scripts/observability-readiness.js`
 - `D:/GIT/ecc-ref/scripts/operator-readiness-dashboard.js`
+- `D:/GIT/shadowbroker-ref/backend/tests/test_5c_auth_log_redaction.py`
+- `D:/GIT/shadowbroker-ref/backend/tests/test_openclaw_hmac_body_binding.py`
+- `D:/GIT/shadowbroker-ref/backend/tests/test_cctv_redirect_ssrf.py`
+- `D:/GIT/shadowbroker-ref/backend/tests/test_third_party_fetchers_opt_in.py`
 
 ### Slice N3-S1: LiMa Status Contract
 
@@ -699,6 +746,121 @@ Exit criteria:
 
 - IDrive e2 can be tested manually without becoming required infrastructure.
 
+## N7 - Local Retrieval Index Lab With LEANN
+
+### Goal
+
+Evaluate LEANN-style local semantic indexes for LiMa's context retrieval path
+without adding heavy ML/runtime dependencies to the default server. This is a
+follow-up to M3 graph/AST/retrieval work, not a replacement for N1 provider
+automation.
+
+### Key References
+
+- `D:/GIT/leann-ref`
+- M3 graph index, AST adapter, reranking, and retrieval evaluation fixtures
+- M10 artifact manifests and retention policy
+- M7 tool authority and optional adapter gates
+
+### Slice N7-S1: Source And License Review
+
+Record LEANN as a source reference.
+
+Findings to preserve:
+
+- MIT license;
+- Python monorepo with `leann-core`, HNSW, IVF, optional DiskANN, MCP server,
+  AST chunking, hybrid search, and incremental build tests;
+- heavy optional dependencies: torch, sentence-transformers, transformers,
+  native ANN packages, PDF tooling, and optional embedding servers;
+- indexes live under `.leann/` plus a global registry by default, which LiMa
+  must redirect under an explicit artifact/index root.
+
+Exit criteria:
+
+- A short review doc exists before any runtime integration.
+
+### Slice N7-S2: LiMa Retrieval Adapter Interface
+
+Define a narrow adapter contract before picking an implementation.
+
+Likely files:
+
+- `context_pipeline/index_adapter.py`
+- `tests/test_context_index_adapter.py`
+- `docs/LOCAL_RETRIEVAL_INDEX_PLAN.md`
+
+Interface:
+
+- `build_index(source_id, files, options) -> IndexBuildResult`
+- `search(index_id, query, top_k, filters) -> list[RetrievalHit]`
+- `sync_index(index_id, changed_files) -> IndexSyncResult`
+- `list_indexes() -> list[IndexInfo]`
+- `delete_index(index_id) -> bool`
+
+Rules:
+
+- local fake adapter first;
+- no network;
+- no global home-directory writes;
+- path root constrained under a LiMa index/artifact directory;
+- every hit carries source path, score, snippet, and evidence metadata.
+
+Exit criteria:
+
+- LiMa can test retrieval-index behavior without LEANN installed.
+
+### Slice N7-S3: Chunking And Incremental Sync Evaluation
+
+Compare LiMa M3 AST extraction with LEANN's AST-aware chunking and incremental
+file synchronization patterns.
+
+Tests:
+
+- changed file detection avoids false positives on mtime-only changes;
+- removed files are represented;
+- large/unsupported files fall back safely;
+- Python function/class boundaries survive chunking;
+- metadata filters can restrict search scope.
+
+Exit criteria:
+
+- We know whether to extend LiMa's stdlib AST path or adopt an optional
+  external chunking adapter.
+
+### Slice N7-S4: Hybrid Search Scoring Prototype
+
+Prototype a LiMa-owned hybrid search scorer before bringing in a backend.
+
+Inputs:
+
+- graph/rerank score;
+- exact term/BM25-like score;
+- semantic score when available;
+- recency/source filters;
+- file-path/entity overlap.
+
+Exit criteria:
+
+- M3 retrieval eval can compare graph-only, keyword-only, and hybrid results.
+
+### Slice N7-S5: Optional LEANN Adapter Spike
+
+Only after S1-S4:
+
+- env-gated;
+- optional dependency only;
+- subprocess/MCP boundary preferred over importing heavy runtime into server;
+- index root forced under LiMa artifact/index directory;
+- no automatic indexing of home directories, browser history, chats, or
+  private exports;
+- all generated indexes get M10 manifests and retention labels.
+
+Exit criteria:
+
+- LEANN can be tested as a local optional retrieval provider without becoming
+  required production infrastructure.
+
 ## N6 - Multi-Agent Coding Modes
 
 ### Goal
@@ -851,6 +1013,18 @@ implementation details:
 6. ECC:
    - extract operator-shell patterns only;
    - do not copy installer/plugin machinery into LiMa.
+7. Shadowbroker:
+   - record AGPL-3.0 license and static-only review status;
+   - extract source-attribution, default-off connector, SSRF, HMAC binding,
+     log-redaction, and privacy-claim-test patterns;
+   - keep CCTV, radio, Shodan/device-search, Tor, mesh, and governance features
+     out of LiMa unless a later explicit product decision says otherwise.
+8. LEANN:
+   - record MIT license and static-only review status;
+   - extract low-storage vector index, AST chunking, hybrid search, incremental
+     sync, and MCP search patterns;
+   - keep torch/sentence-transformers/native ANN dependencies optional and out
+     of LiMa's base runtime until an adapter spike passes eval.
 
 ## Definition Of Ready For Any Lane
 
@@ -877,32 +1051,30 @@ A slice is done only when:
 - Codex review has checked security, redaction, path handling, and import-time
   env capture risks.
 
-## Suggested First Follow-Up After M11
+## Suggested Follow-Up After M13
 
-Start with **N1 Provider Model Automation**.
+**N1 Provider Model Automation** has now landed as M13.
 
-Reason:
+Closed scope:
 
-- It directly addresses real operational pain: free models disappear and new
-  free models appear without warning.
-- It keeps risky models such as Elephant Alpha on a watchlist until live probe
-  evidence exists.
-- It reuses existing LiMa modules: backend registry, key pool, budget,
-  reputation, quality gate, observability, and eval fixtures.
-- It can land in small, testable slices without changing production routing.
+- provider catalog snapshots and deltas;
+- fixture/live-gated OpenRouter parsing;
+- five-level safe probe harness;
+- redacted change reports;
+- patch-plan-only route admission.
 
-Recommended first commit:
+Recommended next lane:
 
-1. Add provider catalog snapshot dataclasses.
-2. Add fixture-based OpenRouter catalog parser.
-3. Add delta report tests.
-4. Add docs explaining that catalog presence is not route admission.
+1. Start **N2 Research Radar** if the priority is better reference/source
+   intake and provenance.
+2. Start **N7 Local Retrieval Index Lab With LEANN** if the priority is
+   cheaper local code/document retrieval.
+3. Start the production wiring slice for M13 only after deciding the operator
+   review workflow for patch plans.
 
-Recommended second commit:
+Do not skip:
 
-1. Add harmless probe harness.
-2. Add admission statuses.
-3. Add watchlist/sandbox/candidate/routing-enabled tests.
-4. Add a report command or function.
-
-Only after those two commits should LiMa propose changes to `backends.py`.
+- live provider fetch remains default-off;
+- catalog presence still does not imply routeability;
+- `routing_enabled` remains a manual decision;
+- generated patch plans must be reviewed before `backends.py` changes.

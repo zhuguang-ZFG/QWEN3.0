@@ -2146,3 +2146,132 @@ Verification note:
     55 passed.
   - `python -m pytest -q --ignore=active_model`:
     798 passed, 8 skipped.
+
+## 2026-05-24 LEANN Reference Review
+
+- Cloned `yichuan-w/LEANN` to `D:/GIT/leann-ref` and performed a static-only
+  review.
+- Findings:
+  - repository is MIT licensed;
+  - core idea is a low-storage local vector index using selective embedding
+    recomputation, graph pruning, AST-aware code chunking, hybrid search,
+    incremental file sync, and an MCP search server;
+  - useful LiMa patterns are retrieval adapter interfaces, index manifests,
+    chunking/sync tests, hybrid search scoring, and optional MCP/subprocess
+    boundaries;
+  - runtime dependency surface is heavy (`torch`, `sentence-transformers`,
+    `transformers`, PDF tooling, native ANN backends), so it should not enter
+    LiMa's base server dependency set.
+- Plan placement:
+  - added `N7 Local Retrieval Index Lab With LEANN` to
+    `docs/superpowers/plans/2026-05-24-recent-reference-next-steps.md`;
+  - keep N1 Provider Model Automation as the next recommended execution lane;
+  - LEANN should be evaluated later through an optional adapter and M3/M10
+    retrieval/artifact gates.
+
+## 2026-05-24 M13-S1 Provider Catalog Snapshot
+
+- Reviewed and closed M13-S1:
+  - `provider_automation.catalog` defines provider model entries, snapshots,
+    deltas, admission status, probe levels, routeability helpers, JSON
+    serialization, and deterministic delta computation;
+  - `provider_automation.__init__` exports the catalog contract;
+  - `tests/test_provider_automation.py` covers defaults, routeability,
+    redacted serialization, unknown-field handling, snapshot validation,
+    deterministic added/removed order, changed fields, provider mismatch
+    rejection, and the catalog-presence-not-routeable invariant.
+- Review fixes applied:
+  - different-provider snapshots now fail fast instead of treating same model
+    ids from different providers as unchanged;
+  - catalog entries now carry `admission_status` and `highest_probe_level`
+    so discovery state cannot be confused with route admission;
+  - serialized raw metadata, evidence refs, and source evidence are redacted
+    for token/key-like values;
+  - capability ordering no longer creates false positive changes;
+  - new S1 source/test files were cleaned to ASCII comments and docstrings.
+- Historical S1 scope note:
+  - `provider_automation/openrouter.py`, `provider_automation/probe.py`, and
+    `provider_automation/report.py` were present in the working tree before
+    S2-S5 review; this is superseded by the M13 closeout record below.
+- Verification:
+  - `python -m pytest tests/test_provider_automation.py -q --ignore=active_model`:
+    18 passed after review fixes.
+  - `python -m py_compile provider_automation/catalog.py provider_automation/__init__.py`:
+    passed.
+  - `python -m pytest -q --ignore=active_model`:
+    816 passed, 8 skipped.
+
+## 2026-05-24 M13 Provider Model Automation Closeout
+
+- Reviewed and closed M13-S2 through M13-S5:
+  - `provider_automation.openrouter` parses fixture/live OpenRouter catalogs,
+    keeps live fetch behind the runtime `LIMA_OPENROUTER_LIVE_FETCH=1` gate,
+    defaults unknown endpoint counts to zero, and puts Elephant/stealth/no-endpoint
+    entries on the watchlist;
+  - `provider_automation.probe` defines the five-level metadata, completion,
+    stream, coding, and quality probe harness, with probe results limited to
+    rejected/watchlist/sandbox/candidate states and never self-promoting to
+    route-enabled;
+  - `provider_automation.report` builds redacted change reports for added,
+    removed, changed, impacted, watchlist, and manual-review model sets;
+  - `provider_automation.admission` produces patch plans only, requiring
+    candidate status for additions and cool-disabling removed routed models
+    instead of deleting them blindly.
+- Review fixes applied:
+  - live fetch gating is checked at call time rather than captured at import;
+  - endpoint-less or privacy-risky free models are not treated as passing
+    metadata probes;
+  - `ProbeResult` rejects `ROUTING_ENABLED`, preserving the human review
+    boundary;
+  - report/admission output redacts provider text, model ids, reasons, and
+    generated evidence;
+  - S2-S5 behavior now has regression tests in `tests/test_provider_automation.py`;
+  - new provider automation source/test files were cleaned to ASCII comments
+    and docstrings.
+- Verification:
+  - `python -m pytest tests/test_provider_automation.py -q --ignore=active_model`:
+    30 passed.
+  - `python -m py_compile provider_automation/catalog.py provider_automation/__init__.py provider_automation/openrouter.py provider_automation/probe.py provider_automation/report.py provider_automation/admission.py`:
+    passed.
+  - `rg -n "[^\\x00-\\x7F]" provider_automation tests/test_provider_automation.py`:
+    no matches.
+  - `git diff --check -- provider_automation tests/test_provider_automation.py progress.md findings.md docs/superpowers/plans/2026-05-24-recent-reference-next-steps.md`:
+    passed.
+  - `python -m pytest -q --ignore=active_model`:
+    828 passed, 8 skipped.
+
+## 2026-05-24 M14 Provider Automation Operations Closeout
+
+- Reviewed and closed M14:
+  - `provider_automation.snapshot_store` persists provider snapshots, loads
+    latest snapshots, counts/lists snapshots, and prunes old files;
+  - `provider_automation.runner` batches metadata/smoke/stream/coding/quality
+    probes with injected callables;
+  - `provider_automation.review` builds a human review bundle from delta,
+    probe, impact, and patch-plan evidence;
+  - `provider_automation.impact` performs dry-run routing/pool/billing/privacy
+    impact analysis without modifying registry files.
+- Review fixes applied:
+  - snapshot provider names are sanitized before entering filenames, preventing
+    path traversal or arbitrary snapshot paths;
+  - same-second snapshot saves no longer overwrite earlier snapshots;
+  - `reset_snapshots()` with no provider now clears all snapshot files for test
+    and local cleanup;
+  - requested probe levels without configured callables now produce watchlist
+    evidence instead of silently passing as metadata-only;
+  - highest passed probe level now uses explicit probe ordering rather than
+    lexicographic enum string comparison;
+  - batch probe, impact, and review markdown output now redacts secret-like
+    model ids, privacy notes, and injected error/report text;
+  - removed models found only through routing pools now still raise
+    cool/disable warnings;
+  - M14 source/test files were cleaned to ASCII comments and docstrings.
+- Verification:
+  - `python -m pytest tests/test_provider_automation.py -q --ignore=active_model`:
+    56 passed after review fixes.
+  - `python -m py_compile provider_automation/snapshot_store.py provider_automation/runner.py provider_automation/review.py provider_automation/impact.py tests/test_provider_automation.py`:
+    passed.
+  - `rg -n "[^\\x00-\\x7F]" provider_automation tests/test_provider_automation.py`:
+    no matches.
+  - `python -m pytest -q --ignore=active_model`:
+    854 passed, 8 skipped.
