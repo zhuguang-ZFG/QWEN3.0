@@ -22,7 +22,7 @@
 > | M8 | Sandbox Evaluation | complete | 2026-05-24 |
 > | M9 | Streaming & Progress Events | complete | 2026-05-24 |
 > | M10 | Data Workbench | complete | 2026-05-24 |
-> | M11 | DevOps, Deployment, Terminal UX | pending | - |
+> | M11 | DevOps, Deployment, Terminal UX | complete | 2026-05-24 |
 > | M12 | Hardware Companion | pending | - |
 >
 > ### Error Log
@@ -42,6 +42,7 @@
 > | 11 | M8 | The fake sandbox accepted `shell=True` command strings, allowed upload paths such as `../escape.txt` to resolve outside the sandbox root, and passed the full host environment into subprocesses. | Added cross-platform command tests, a path-escape upload regression, and a host-secret environment regression. | `FakeSandboxProvider` now runs commands with `shell=False` via `shlex.split()`, rejects empty commands, resolves upload paths against the sandbox root, and passes only an environment allowlist plus explicit sandbox env vars. |
 > | 12 | M9 | Non-token stream events serialized tool output, tool input schema, warning, and error fields without shared redaction. Manually constructed `StreamEvent(event="token")` also failed at serialization because `event` was a raw string. | Added regressions for tool output/input redaction, error redaction, string event normalization, and token text preservation. | `StreamEvent.__post_init__()` now normalizes event names and recursively redacts non-token event data while leaving token payloads intact for user-visible model text. |
 > | 13 | M10 | Artifact manifest storage resolved `LIMA_ARTIFACT_MANIFEST` only at import time, so tests or callers changing env paths could still write to the default repo `data/` store. Manifest metadata also accepted path escapes and secret-like source/title/evidence/schema fields. | Added temp-store isolation, runtime env-path, metadata redaction, and file-path escape regressions. | Manifest storage now resolves env at call time, file paths are constrained to `LIMA_ARTIFACT_ROOT`, schema keys and metadata are redacted, and tests use temp stores. |
+> | 14 | M11 | Deployment smoke commands included a hardcoded bearer example, CLI status output did not redact arbitrary row values, and batch SEARCH/REPLACE edits could silently skip missing/non-unique blocks. | Added regressions for placeholder bearer usage, status redaction/unknown-status normalization, and strict batch edit failures. | Smoke commands now use `$LIMA_API_KEY`, status rows redact secret-like values, unknown statuses fall back to warning, and `apply_edits()` raises instead of applying partial edits. |
 
 ## Goal
 

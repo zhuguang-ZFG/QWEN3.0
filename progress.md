@@ -2054,3 +2054,49 @@ Verification note:
 - Verification:
   - `python -m pytest tests/test_data_workbench.py -q --ignore=active_model`:
     25 passed after M10 review fixes.
+
+## 2026-05-24 Recent Reference Next Steps
+
+- Added `docs/superpowers/plans/2026-05-24-recent-reference-next-steps.md`.
+- The document keeps current M11 unchanged and queues recent references into
+  executable follow-up lanes:
+  - N1 Provider Model Automation for volatile free models and Elephant Alpha
+    watchlist/probe/admission flow;
+  - N2 Research Radar for last30days, Zhihu, Juejin, WeChat, and source-backed
+    trend/research artifacts;
+  - N3 Operator Shell inspired by ECC doctor/status/smoke/repair/readiness
+    patterns;
+  - N4 Local Model Lab for MiniMind-style isolated local training/eval;
+  - N5 Artifact Backup for private S3-compatible storage such as IDrive e2;
+  - N6 Multi-Agent Coding Modes for AgentConductor, Solvita, RecursiveMAS, and
+    Qoder-inspired workflows.
+- Decision: finish and review active M11 first; use this document as the source
+  for the next batch instead of changing the current coding lane midstream.
+
+## 2026-05-24 M11 DevOps Deployment Terminal UX
+
+- Reviewed and closed M11:
+  - `deployment.inventory` defines typed deployment inventory, five service
+    entries, rollback steps, smoke commands, and markdown export;
+  - `cli_status.py` defines `StatusRow`, `StatusTable`, text/JSON formatting,
+    and router/memory/key-pool collectors;
+  - `edit_protocol.py` defines SEARCH/REPLACE edit blocks, parser, preview,
+    formatter, single-block validation, and strict batch application;
+  - `tests/test_devops_cli.py` covers deployment inventory, status formatting,
+    collector smoke paths, edit parsing, edit validation, and batch edits.
+- Review fixes applied:
+  - deployment smoke commands now use the `$LIMA_API_KEY` placeholder instead
+    of a hardcoded bearer example;
+  - status rows redact secret-like values before text/JSON formatting;
+  - unknown status values normalize to `warn` rather than raising at render
+    time;
+  - `apply_edits()` now raises on missing or non-unique SEARCH blocks instead
+    of silently applying a partial edit set;
+  - new M11 source/test files were cleaned to ASCII comments and docstrings.
+- Verification:
+  - `python -m pytest tests/test_devops_cli.py -q --ignore=active_model`:
+    28 passed after review fixes.
+  - `python -m pytest tests/test_devops_cli.py tests/test_observability.py tests/test_tool_gateway.py tests/test_data_workbench.py -q --ignore=active_model`:
+    109 passed.
+  - `python -m pytest -q --ignore=active_model`:
+    771 passed, 8 skipped.

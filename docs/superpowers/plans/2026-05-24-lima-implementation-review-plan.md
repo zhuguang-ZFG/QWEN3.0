@@ -805,6 +805,25 @@ Exit criteria:
 
 - VPS and CLI work become easier to operate without reducing auditability.
 
+Current M11 closure notes:
+
+- M11 completed on 2026-05-24 with no new runtime dependency.
+- Added `deployment.inventory` with typed service inventory, rollback steps,
+  smoke commands, and markdown export.
+- Added `cli_status.py` with status rows/tables, text and JSON formatting, and
+  router, memory, and key-pool collectors.
+- Added `edit_protocol.py` with SEARCH/REPLACE block parsing, formatting,
+  preview, uniqueness checks, and strict batch application.
+- Codex review fixed hardcoded bearer-token smoke examples by switching to
+  `$LIMA_API_KEY`.
+- Codex review added redaction for CLI status values/details and normalized
+  unknown statuses to warnings.
+- Codex review made `apply_edits()` fail loudly on missing or non-unique blocks
+  instead of silently applying partial edits.
+- Verification after review: `tests/test_devops_cli.py` returned 28 passed,
+  related DevOps/observability/tool/data tests returned 109 passed, and the
+  full suite returned 771 passed, 8 skipped.
+
 ## Milestone 12 - Hardware Companion Later Lane
 
 References:
