@@ -18,6 +18,7 @@ import json
 from typing import Optional
 
 import runtime_topology
+from backends import IDE_SOURCES
 
 # ─── 后端池定义 ───────────────────────────────────────────────────────────────
 
@@ -112,16 +113,10 @@ POOLS = {
 }
 
 DIRECT_BACKENDS = [
-    "zhipu_flash", "zhipu_flash7", "aliyun_turbo", "volcengine_lite",
+    "zhipu_flash", "zhipu_flash7",
     "silicon_qwen8b", "chat_ubi", "llm7", "pollinations",
     "deepseek_free", "local_coder14b", "local_reasoning", "local_general", "local_fast", "local_chat",
 ]
-
-IDE_SOURCES = {"Claude Code", "claude_code", "Cursor", "cursor",
-               "Codex", "codex", "Aider", "aider", "Cline", "cline",
-               "Continue", "continue", "VS Code", "vscode", "vs code",
-               "Kiro", "kiro", "Zed", "zed", "Trae", "trae",
-               "Windsurf", "windsurf", "Copilot", "copilot"}
 
 _IDE_FINGERPRINTS = {
     "cursor": ["intelligent programmer", "You are Cursor"],

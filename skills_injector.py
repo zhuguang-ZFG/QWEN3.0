@@ -14,16 +14,13 @@ import re
 import glob as glob_mod
 from typing import Optional
 
+from backends import STRONG_MODELS
+
 # ─── 常量 ─────────────────────────────────────────────────────────────────────
 
 MAX_SKILLS = 5
 TOKEN_BUDGET = 200
 CHARS_PER_TOKEN = 4
-
-STRONG_MODELS = {"longcat_chat", "longcat_thinking", "longcat",
-                 "naga_gpt41mini",
-                 "or_deepseek_r1", "nvidia_qwen_coder",
-                 "opencode_stealth", "fireworks_llama405b", "deepinfra_llama4", "deepseek_free"}
 
 IDE_COVERAGE = {
     # IDE → set of categories already well-covered by built-in system prompt

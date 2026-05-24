@@ -3,13 +3,13 @@ from context_pipeline.reflection import reflect_on_routing, ReflectionResult
 
 def test_reflection_no_correction_for_strong_coding_backend():
     result = reflect_on_routing(
-        backend="scnet_qwen72b",
+        backend="scnet_ds_pro",
         scenario="coding",
         ide="Cursor",
-        available_backends=["scnet_qwen72b", "chat_ubi"],
+        available_backends=["scnet_ds_pro", "chat_ubi"],
     )
     assert not result.was_corrected
-    assert result.corrected_backend == "scnet_qwen72b"
+    assert result.corrected_backend == "scnet_ds_pro"
 
 
 def test_reflection_corrects_weak_backend_for_ide_coding():
@@ -17,10 +17,10 @@ def test_reflection_corrects_weak_backend_for_ide_coding():
         backend="chat_ubi",
         scenario="coding",
         ide="Cursor",
-        available_backends=["chat_ubi", "scnet_qwen72b", "pollinations"],
+        available_backends=["chat_ubi", "scnet_ds_pro", "pollinations"],
     )
     assert result.was_corrected
-    assert result.corrected_backend == "scnet_qwen72b"
+    assert result.corrected_backend == "scnet_ds_pro"
     assert "weak backend" in result.reason
 
 

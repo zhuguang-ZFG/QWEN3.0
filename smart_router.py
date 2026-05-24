@@ -41,7 +41,7 @@ LM_URL = 'http://localhost:1234/v1/chat/completions'
 
 
 # ═══ BACKENDS (canonical source: backends.py) ═══════════════════════════════════
-from backends import BACKENDS, GFW_BACKENDS, THINKING_BACKENDS
+from backends import BACKENDS, GFW_BACKENDS, THINKING_BACKENDS, VISION_BACKENDS
 
 # 对外暴露的统一模型名（用户永远看不到真实模型名）
 PUBLIC_MODEL_NAME = os.environ.get('PUBLIC_MODEL_NAME', 'LiMa')
@@ -925,7 +925,6 @@ def _log_to_distill_queue(query: str, answer: str, intent: dict, backend: str) -
             print(f'[DISTILL] log failed: {e}', file=sys.stderr)
 
 # ── Vision (Photo-to-Answer) Detection ────────────────────────────────────────
-VISION_BACKENDS = ['longcat_omni', 'or_deepseek_r1']
 
 VISION_SYSTEM_PROMPT = "你是一位耐心的老师。用户上传了一道题目的图片。请：1. 识别题目内容 2. 分步骤解答 3. 给出最终答案。如果是选择题，明确指出正确选项。"
 

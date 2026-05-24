@@ -290,3 +290,5 @@ Source record: `docs/superpowers/plans/2026-05-23-code-quality-review-closeout.m
 |---|---|---|---|
 | CQ-015 | Closed | `tests/test_device_gateway_routes.py` now uses `monkeypatch` instead of direct `os.environ` mutation, so device-gateway auth setup no longer leaks into MCP tests. | None for this slice. |
 | CQ-016 | Closed | `docs/DEVELOPER_CHECKLIST.md` now records the verified green baseline instead of stale routing failures. | None for this slice. |
+| CQ-017 | Closed | M1-S1 now centralizes `VISION_BACKENDS`, `STRONG_MODELS`, and `IDE_SOURCES` in `backends.py`; duplicate local tables in `vision_handler.py`, `smart_router.py`, `skills_injector.py`, and `router_v3.py` were removed. | Continue M1-S2 by wiring `key_pool.py` into `http_caller.py`. |
+| CQ-018 | Closed | `tests/test_backend_registry.py` now proves routing pools, direct backends, capability lists, GFW backends, weak backends, strong models, and code-capable backends are registered in `BACKENDS`. | None for this slice. |

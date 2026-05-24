@@ -3,12 +3,11 @@ import json, time, asyncio, sys, os
 
 import health_tracker
 from http_caller import clean_response, BackendError
-from backends import BACKENDS
+from backends import BACKENDS, VISION_BACKENDS
 
 DEBUG = os.environ.get('LIMA_DEBUG', '') == '1'
 
 MODEL_ID = "lima-1.3"
-VISION_BACKENDS = ['longcat_omni', 'or_deepseek_r1']
 VISION_SYSTEM_PROMPT = "你是一位耐心的老师。用户上传了一道题目的图片。请：1. 识别题目内容 2. 分步骤解答 3. 给出最终答案。如果是选择题，明确指出正确选项。"
 
 def _split_sentences(text: str) -> list[str]:

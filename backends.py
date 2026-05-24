@@ -210,10 +210,10 @@ PUBLIC_MODEL_NAME = os.environ.get('PUBLIC_MODEL_NAME', 'LiMa')
 # Thinking-capable backends in priority order
 THINKING_BACKENDS = ["or_deepseek_r1", "longcat_thinking", "longcat_web_think"]
 
-# Vision-capable backends
+# Vision-capable backends (must be registered in BACKENDS)
 VISION_BACKENDS = [
     "longcat_omni", "or_deepseek_r1", "vision_joycaption", "cohere_vision",
-    "github_gpt4o", "scnet_qwen72b", "cf_llava", "cohere_command_a_vision",
+    "github_gpt4o",
 ]
 
 # Backends that should use the configured outbound proxy.
@@ -243,6 +243,14 @@ GFW_BACKENDS = frozenset({
 
 WEAK_BACKENDS = frozenset({'chat_ubi', 'pollinations', 'llm7'})
 
+# Models capable of tool calls and directory-mode skill injection
+STRONG_MODELS = frozenset({
+    "longcat_chat", "longcat_thinking", "longcat",
+    "naga_gpt41mini",
+    "or_deepseek_r1", "nvidia_qwen_coder",
+    "opencode_stealth", "fireworks_llama405b", "deepinfra_llama4", "deepseek_free",
+})
+
 KEY_POOL_PREFIXES = {
     'groq_': 'groq',
     'or_': 'openrouter',
@@ -267,7 +275,6 @@ KEY_POOL_PREFIXES = {
 }
 
 CODE_CAPABLE_BACKENDS = frozenset({
-    'scnet_qwen72b', 'scnet_deepseek', 'scnet_qwen32b',
     'scnet_ds_flash', 'scnet_qwen235b', 'scnet_qwen30b', 'scnet_ds_pro',
     'scnet_large_ds_flash', 'scnet_large_ds_pro',
     'github_gpt4o', 'github_gpt4o_mini', 'github_codestral',
@@ -279,8 +286,14 @@ CODE_CAPABLE_BACKENDS = frozenset({
 })
 VISION_SYSTEM_PROMPT = "你是一位耐心的老师。用户上传了一道题目的图片。请：1. 识别题目内容 2. 分步骤解答 3. 给出最终答案。如果是选择题，明确指出正确选项。"
 
-# Known IDE sources (used for routing hints and statistics)
-IDE_SOURCES = {"Claude Code", "Cursor", "GitHub Copilot", "Windsurf", "Codex", "Continue", "Cline"}
+# Known IDE sources (both canonical and lowercased forms for flexible matching).
+# Used by routing_engine.classify() and router_v3.classify_request().
+IDE_SOURCES = {"Claude Code", "claude_code", "Cursor", "cursor",
+               "Codex", "codex", "Aider", "aider", "Cline", "cline",
+               "Continue", "continue", "VS Code", "vscode", "vs code",
+               "Kiro", "kiro", "Zed", "zed", "Trae", "trae",
+               "Windsurf", "windsurf", "Copilot", "copilot",
+               "GitHub Copilot"}
 
 # -- Backend enable/disable state (default: enabled) --
 _backend_enabled: dict[str, bool] = {}

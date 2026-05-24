@@ -1691,3 +1691,21 @@ Verification note:
 - Updated `docs/DEVELOPER_CHECKLIST.md`, `task_plan.md`,
   `docs/REVIEW_PACKET_TEMPLATE.md`, and `findings.md` so M0 reflects the
   verified green baseline and avoids PowerShell mojibake in copied templates.
+
+## 2026-05-24 M1-S1 Backend Registry Single Source
+
+- Completed the first M1 slice:
+  - centralized `VISION_BACKENDS`, `STRONG_MODELS`, and `IDE_SOURCES` in
+    `backends.py`;
+  - removed duplicate local tables from `vision_handler.py`,
+    `smart_router.py`, `skills_injector.py`, and `router_v3.py`;
+  - removed unregistered legacy code-capable backend names from
+    `CODE_CAPABLE_BACKENDS`.
+- Added registry guard tests covering:
+  - routing pools;
+  - direct backends;
+  - vision, thinking, strong, GFW, weak, and code-capable backend lists;
+  - importer identity for the centralized constants.
+- Verification:
+  - `python -m pytest tests/test_reflection.py tests/test_backend_registry.py test_routing_engine.py test_http_caller.py -q --ignore=active_model`: 118 passed.
+  - `python -m pytest -q --ignore=active_model`: 507 passed, 8 skipped.

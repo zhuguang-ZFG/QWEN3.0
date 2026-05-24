@@ -12,7 +12,7 @@
 > | M# | Name | Status | Started |
 > |----|------|--------|---------|
 > | M0 | Baseline & Review Harness | complete | 2026-05-24 |
-> | M1 | Router, Backend Registry, Key Pool | pending | - |
+> | M1 | Router, Backend Registry, Key Pool | in_progress | 2026-05-24 |
 > | M2 | Async & Concurrency | pending | - |
 > | M3 | Context Graph, AST, Reranking | pending | - |
 > | M4 | Memory Taxonomy & Redaction | pending | - |
