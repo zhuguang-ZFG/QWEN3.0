@@ -2073,6 +2073,23 @@ Verification note:
 - Decision: finish and review active M11 first; use this document as the source
   for the next batch instead of changing the current coding lane midstream.
 
+## 2026-05-24 Shadowbroker Reference Review
+
+- Added `BigBodyCobain/Shadowbroker` to the recent-reference plan as a
+  static-only reference.
+- Findings:
+  - repository is AGPL-3.0, so LiMa should not copy source code without a
+    separate license decision;
+  - useful patterns are source attribution, default-off external fetchers,
+    operator-supplied API key boundaries, SSRF redirect tests, HMAC body
+    binding tests, log redaction tests, and privacy-claim honesty tables;
+  - OSINT layers such as CCTV, radio/SIGINT, Shodan device search, Tor, mesh,
+    wormhole, and governance features are not LiMa product scope.
+- Plan placement:
+  - N2 Research Radar gets an external-feed governance template slice;
+  - N3 Operator Shell can borrow diagnostic/security regression ideas;
+  - no runtime dependency or connector is admitted from Shadowbroker.
+
 ## 2026-05-24 M11 DevOps Deployment Terminal UX
 
 - Reviewed and closed M11:
@@ -2100,3 +2117,32 @@ Verification note:
     109 passed.
   - `python -m pytest -q --ignore=active_model`:
     771 passed, 8 skipped.
+
+## 2026-05-24 M12 Hardware Motion Protocol
+
+- Reviewed and closed M12:
+  - `device_gateway.motion` defines typed motion command/event dataclasses,
+    command/event enums, serialization helpers, and command factories;
+  - `device_gateway.fake_device` provides a deterministic virtual writing
+    machine with home, move, pen, stop, and path execution behavior;
+  - `tests/test_device_motion.py` covers command serialization, event
+    serialization, fake device state transitions, workspace limits, bad feed,
+    path-size guards, stop behavior, and safety helpers.
+- Review fixes applied:
+  - fake device now emits `command_ack` for handled commands, so the protocol
+    enum is exercised instead of unused;
+  - workspace clamping now emits `limit_hit`, including z-axis and non-finite
+    coordinate cases;
+  - pen commands now require homing, and stop raises the pen plus marks the
+    fake device stopped;
+  - `run_path` now checks feed bounds and point-count bounds before execution;
+  - new M12 source/test files were cleaned to ASCII comments and docstrings.
+- Verification:
+  - `python -m pytest tests/test_device_motion.py -q --ignore=active_model`:
+    27 passed after review fixes.
+  - `python -m py_compile device_gateway/motion.py device_gateway/fake_device.py`:
+    passed.
+  - `python -m pytest tests/test_device_gateway_protocol.py tests/test_device_gateway_routes.py tests/test_device_gateway_concurrency.py tests/test_device_gateway_store.py tests/test_device_motion.py -q --ignore=active_model`:
+    55 passed.
+  - `python -m pytest -q --ignore=active_model`:
+    798 passed, 8 skipped.
