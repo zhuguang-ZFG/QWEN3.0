@@ -36,6 +36,13 @@ def test_build_headers_openai():
     assert h['User-Agent'] == 'LiMa/2.0'
 
 
+def test_build_headers_can_use_selected_pool_key_without_mutating_config():
+    cfg = {'fmt': 'openai', 'key': 'sk-primary'}
+    h = _build_headers(cfg, key='sk-pooled')
+    assert h['Authorization'] == 'Bearer sk-pooled'
+    assert cfg['key'] == 'sk-primary'
+
+
 # ── _build_body ───────────────────────────────────────────────────────────────
 
 def test_build_body_openai_basic():
@@ -261,6 +268,68 @@ def test_call_api_success_openai(mock_urlopen, mock_ht):
                           system_prompt='Be helpful.')
     assert 'hello world' in result
     mock_ht.record_success.assert_called_once()
+
+
+@patch('http_caller.key_pool.report_key_result')
+@patch('http_caller.key_pool.get_key')
+@patch('http_caller.health_tracker')
+@patch('urllib.request.urlopen')
+def test_call_api_uses_key_pool_key_and_reports_success(
+    mock_urlopen, mock_ht, mock_get_key, mock_report_key_result,
+):
+    mock_ht.is_cooled_down.return_value = False
+    mock_get_key.return_value = 'sk-pooled'
+    resp_data = json.dumps({
+        'choices': [{'message': {'content': 'hello world'}}]
+    }).encode()
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = resp_data
+    mock_resp.__enter__ = lambda s: s
+    mock_resp.__exit__ = MagicMock(return_value=False)
+    mock_urlopen.return_value = mock_resp
+
+    with patch.dict(http_caller.BACKENDS, {
+        'pool_backend': {'url': 'http://test.com/v1/chat/completions',
+                         'key': 'sk-primary', 'key_pool': 'unit-provider',
+                         'model': 'test-model', 'fmt': 'openai',
+                         'timeout': 10}
+    }):
+        result = call_api('pool_backend', [{'role': 'user', 'content': 'hi'}])
+
+    req = mock_urlopen.call_args.args[0]
+    assert req.get_header('Authorization') == 'Bearer sk-pooled'
+    assert 'hello world' in result
+    mock_get_key.assert_called_once_with('unit-provider')
+    mock_report_key_result.assert_called_once_with(
+        'unit-provider', 'sk-pooled', True)
+
+
+@patch('http_caller.key_pool.report_key_result')
+@patch('http_caller.key_pool.get_key')
+@patch('http_caller.health_tracker')
+@patch('urllib.request.urlopen')
+def test_call_api_reports_key_pool_failure_with_retry_after(
+    mock_urlopen, mock_ht, mock_get_key, mock_report_key_result,
+):
+    class RateLimited(Exception):
+        code = 429
+        headers = {'Retry-After': '7'}
+
+    mock_ht.is_cooled_down.return_value = False
+    mock_get_key.return_value = 'sk-pooled'
+    mock_urlopen.side_effect = RateLimited("rate limited")
+
+    with patch.dict(http_caller.BACKENDS, {
+        'pool_backend': {'url': 'http://test.com/v1/chat/completions',
+                         'key': 'sk-primary', 'key_pool': 'unit-provider',
+                         'model': 'test-model', 'fmt': 'openai',
+                         'timeout': 10}
+    }):
+        with pytest.raises(BackendError):
+            call_api('pool_backend', [{'role': 'user', 'content': 'hi'}])
+
+    mock_report_key_result.assert_called_once_with(
+        'unit-provider', 'sk-pooled', False, error_code=429, retry_after=7)
 
 
 @patch('http_caller.health_tracker')
