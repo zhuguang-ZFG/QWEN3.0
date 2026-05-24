@@ -20,6 +20,7 @@
 | `docs/EXECUTION_PLAN.md` | Active | Current phase tracker for documentation/GitHub snapshot and next implementation order. |
 | `docs/REFERENCE_PROJECT_EVALUATION.md` | Active | Current evaluation of OpenRAG, Google Cloud always-on-memory-agent, TechSpar, and autonomy references against LiMa's real code state. |
 | `docs/ONLINE_DISTRIBUTIONS.md` | Active | Source of truth for VPS-hosted official website, open platform, chat interface, FRP endpoint, nginx edge, and service ownership. |
+| `docs/OPS_ENTRYPOINTS.md` | Compatibility record | Original FreeDomain-inspired ops-entrypoint plan file; points to `docs/ONLINE_DISTRIBUTIONS.md` as the expanded source of truth. |
 | `docs/superpowers/plans/2026-05-23-agent-autonomy-evolution.md` | Active plan | Superpowers implementation plan for gated multi-agent autonomy, skill/gene evolution, and GitHub/VPS approval boundaries. |
 | `docs/superpowers/plans/2026-05-23-techspar-mastery-loop.md` | Active record | Implemented TechSpar-inspired local mastery loop for module mastery, weak-point extraction, review scheduling, recommendations, and promotion evidence gates. |
 | `docs/reference/TECHSPAR_BORROWING_NOTES.md` | Active boundary | Concept-borrowing record and license boundary for the local mastery loop. |

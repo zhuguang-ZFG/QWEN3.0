@@ -1074,3 +1074,10 @@ Verification note:
 - Verification:
   - `D:\GIT\venv\Scripts\python.exe -m py_compile scripts\smoke_online_distributions.py`: passed.
   - `D:\GIT\venv\Scripts\python.exe scripts\smoke_online_distributions.py --chat-exact distribution_control_ok`: `10/10 checks passed`.
+
+## 2026-05-24 Reference Migration Compatibility Closure
+
+- Closed the two remaining literal compatibility gaps from the reference migration audit:
+  - added `code_context/retriever.py` as the planned Potpie-inspired retrieval facade over `InMemoryCodeIndex`;
+  - added `docs/OPS_ENTRYPOINTS.md` as the original FreeDomain-inspired ops entrypoint document, pointing to the expanded `docs/ONLINE_DISTRIBUTIONS.md` source of truth.
+- Added regression coverage that imports and uses `code_context.retriever.retrieve_relevant_files()`.

@@ -2,6 +2,7 @@ from pathlib import Path
 
 from code_context.scanner import scan_python_file
 from code_context.index_store import CodeSymbol, InMemoryCodeIndex, _cosine_similarity
+from code_context.retriever import retrieve_relevant_files
 
 
 def test_scan_python_file_extracts_classes_functions_and_imports(tmp_path: Path):
@@ -98,3 +99,17 @@ def test_semantic_search_skips_files_without_embeddings():
 
     assert len(matches) == 1
     assert matches[0].path == "with_emb.py"
+
+
+def test_retriever_facade_preserves_planned_import_boundary():
+    index = InMemoryCodeIndex()
+    index.upsert_file(
+        path="routing_engine.py",
+        symbols=[CodeSymbol(name="select_backend", kind="function", line=10)],
+        imports=[],
+        mtime=1.0,
+    )
+
+    matches = retrieve_relevant_files(index, "select backend")
+
+    assert matches[0].path == "routing_engine.py"

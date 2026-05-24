@@ -23,6 +23,7 @@
 | Autonomous worker lifecycle | Partially implemented | LiMa Code has bounded `/lima work` loops, stop marker, failure quarantine, repo allowlist, audit, and runtime budget. Always-on daemon mode remains a later gated step. |
 | Mastery loop | Implemented locally | `mastery_loop/` stores evidence-backed module mastery, weak points, schedules, and recommendations; agent skill promotion now requires mastery evidence refs. |
 | Online distributions | Tracked | Official website, open platform, chat interface, FRP path, nginx snapshots, systemd snapshots, and smoke script are recorded in `docs/ONLINE_DISTRIBUTIONS.md`, `infra/vps/`, and `scripts/smoke_online_distributions.py`. |
+| Reference migration compatibility | Closed | Original planned import/doc paths `code_context.retriever` and `docs/OPS_ENTRYPOINTS.md` are present as compatibility facades. |
 
 ## 2026-05-24 Deployment And Closure Update
 
