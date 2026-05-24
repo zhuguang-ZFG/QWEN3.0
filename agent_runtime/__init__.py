@@ -99,6 +99,12 @@ from agent_runtime.workspace_sandbox import (
     WorkspaceSandbox,
     WriteResult,
 )
+from agent_runtime.real_executor import (
+    PreflightResult,
+    RealExecutorConfig,
+    RealToolExecutor,
+    preflight_real_execution,
+)
 
 __all__ = [
     "AgentRunResult",
@@ -124,7 +130,10 @@ __all__ = [
     "NetworkPolicy",
     "NoopToolExecutor",
     "PatchRecord",
+    "PreflightResult",
     "QueueStatus",
+    "RealExecutorConfig",
+    "RealToolExecutor",
     "ResumeState",
     "RuntimeHooks",
     "ShellBlockedExecutor",
@@ -170,6 +179,7 @@ __all__ = [
     "open_session",
     "plan_task",
     "preflight_audit_check",
+    "preflight_real_execution",
     "reset_store_for_tests",
     "resume_task",
 ]

@@ -2656,3 +2656,34 @@ Verification note:
     passed.
   - `python -m pytest -q --ignore=active_model`:
     1129 passed, 8 skipped.
+
+## 2026-05-25 M34 Real Executor Disabled Scaffold Closeout
+
+- Reviewed and closed M34:
+  - `agent_runtime.real_executor` adds `RealExecutorConfig`,
+    `PreflightResult`, `preflight_real_execution()`, and `RealToolExecutor`;
+  - the executor remains a scaffold only and always returns `executed=False`.
+- Review fixes applied:
+  - M34 source and tests were cleaned to ASCII;
+  - `RealToolExecutor` now constructs typed `AgentStep` values instead of
+    passing raw strings as step kinds;
+  - workspace preflight checks the requested command/path instead of an empty
+    string;
+  - network and workspace all-gates-passed cases are covered and still return
+    disabled, non-executed results;
+  - audit calls fail closed for caller behavior and catch all sink exceptions;
+  - preflight audit detail includes a redacted command preview;
+  - M34 types and helpers are exported from `agent_runtime.__init__`.
+- Verification:
+  - `python -m pytest tests/test_real_executor.py -q --ignore=active_model`:
+    18 passed after review fixes.
+  - `python -m pytest tests/test_real_executor.py tests/test_tool_gateway_adapter.py tests/test_operator_features.py tests/test_e2e_release.py -q --ignore=active_model`:
+    92 passed after review fixes.
+  - `python -m py_compile agent_runtime/real_executor.py agent_runtime/__init__.py tests/test_real_executor.py`:
+    passed.
+  - `rg -n "[^\\x00-\\x7F]" agent_runtime/real_executor.py agent_runtime/__init__.py tests/test_real_executor.py`:
+    no matches.
+  - `git diff --check -- agent_runtime/real_executor.py agent_runtime/__init__.py tests/test_real_executor.py`:
+    passed.
+  - `python -m pytest -q --ignore=active_model`:
+    1147 passed, 8 skipped.
