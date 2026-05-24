@@ -298,19 +298,23 @@ The main LiMa Server and `D:\GIT\deepcode-cli` now have a public end-to-end work
 Deployment evidence:
 
 - Main branch in use: `codex/free-web-ai-probe`.
-- Latest pushed commit after plan calibration and lifespan extraction: `f88690f` (`chore: calibrate plans and extract lifespan`).
+- Latest deployed runtime commit after chat model extraction: `b3896bd` (`refactor: extract chat request models`).
 - VPS runtime backups:
   - `/opt/lima-router/backups/agent-worker-sync-20260524_104836`
   - `/opt/lima-router/backups/runtime-deps-sync-20260524_105115`
   - `/opt/lima-router/backups/lifespan-extract-20260524_111647`
-- Remote compile and `import server` passed before restart.
+  - `/opt/lima-router/backups/chat-models-extract-20260524_113220`
+- Remote compile and `import server; import chat_models` passed before restart.
 - `systemctl restart lima-router` completed; VPS-local `/health` reports `modules.mcp=true`, `modules.agent_tasks=true`, and `modules.telegram=true`.
+- `chat_models.py` now owns `Message`, `ChatRequest`, and `extract_system_prompt`; `server.py` imports and re-exports them for existing tests and callers.
 
 Public smoke evidence:
 
 - HTTPS chat: `https://chat.donglicao.com/v1/chat/completions` returned exact `lima-postdeploy-ok`.
 - HTTPS chat after lifespan extraction: `https://chat.donglicao.com/v1/chat/completions` returned exact `lima-lifespan-deploy-ok`.
+- HTTPS chat after chat model extraction: `https://chat.donglicao.com/v1/chat/completions` returned exact `deploy_https_ok_1134`.
 - Worker preflight: `/agent/worker/preflight` returned `ready=true`, `contract_version=agent-task-v1`, and `smoke_task=true`.
+- Worker preflight after chat model extraction returned `ready=true`, latest task `cfcd3f2b`.
 - Real-machine worker task:
   - Server task id: `cfcd3f2b`.
   - LiMa Code command: `/lima task cfcd3f2b`.
@@ -326,11 +330,12 @@ FRP/local-router closure:
   - `http://127.0.0.1:8080/v1/chat/completions` returned exact `lima-final-local-ok`.
   - `http://47.112.162.80:8088/v1/chat/completions` returned exact `lima-final-frp-ok`.
   - `http://47.112.162.80:8088/v1/chat/completions` returned exact `lima-lifespan-frp-ok` after the lifespan extraction deployment.
+  - `http://47.112.162.80:8088/v1/chat/completions` returned exact `lima-chat-models-frp-ok` after the chat model extraction deployment.
   - Process state: one Windows `server.py` router process and one `frpc.exe` process.
 
 Known remaining planning items after this closure:
 
-1. Continue `server.py` decomposition. App lifecycle is now extracted to `server_lifespan.py`; next low-risk extractions should target request handlers rather than changing routing policy.
+1. Continue `server.py` decomposition. App lifecycle is now extracted to `server_lifespan.py`, and chat request models are extracted to `chat_models.py`; next low-risk extractions should target request handlers rather than changing routing policy.
 2. Consolidate backend configuration into one source, including capability lists and remaining `smart_router` compatibility surfaces.
 3. Wire `key_pool.py` into `http_caller.py` for multi-key providers.
 4. Keep Kimi local, TheOldLLM, MiMo web, and page-only web AI candidates gated until refresh plus model-level smoke evidence exists.

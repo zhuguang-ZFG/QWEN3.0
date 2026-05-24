@@ -913,3 +913,23 @@ Verification note:
   - `compileall` over runtime, routes, tools, scripts, and tests: passed.
   - Full pytest: `393 passed, 8 skipped`.
 - No production deployment was performed.
+
+## 2026-05-24 Chat Model Extraction Deploy
+
+- Added regression contract `tests/test_chat_models.py`.
+- Extracted `Message`, `ChatRequest`, and `extract_system_prompt` from `server.py` into `chat_models.py`.
+- Preserved `server.Message`, `server.ChatRequest`, and `server.extract_system_prompt` as module-level imports for existing tests and callers.
+- Verification:
+  - `python -m py_compile server.py chat_models.py server_lifespan.py`: passed.
+  - `python -m pytest tests/test_chat_models.py tests/test_prompt_memory_recall.py tests/test_stream_footer.py tests/test_access_guard.py tests/test_anthropic_tool_protocol.py -q --ignore=active_model`: `20 passed`.
+  - `python -m pytest tests/test_agent_task_routes.py tests/test_access_guard.py tests/test_prompt_memory_recall.py tests/test_stream_footer.py tests/test_chat_models.py -q --ignore=active_model`: `40 passed`.
+- VPS deployment:
+  - backup `/opt/lima-router/backups/chat-models-extract-20260524_113220`;
+  - uploaded `server.py` and `chat_models.py`;
+  - remote `py_compile` and `import server; import chat_models` passed;
+  - `systemctl restart lima-router` returned active.
+- Public smokes:
+  - `/health` returned `status=ok`;
+  - HTTPS chat returned exact `deploy_https_ok_1134`;
+  - FRP chat returned exact `lima-chat-models-frp-ok`;
+  - `/agent/worker/preflight` returned `ready=true`, latest task `cfcd3f2b`.

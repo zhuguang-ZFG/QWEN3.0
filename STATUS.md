@@ -25,16 +25,19 @@
 ## 2026-05-24 Deployment And Closure Update
 
 - VPS main router is deployed from branch `codex/free-web-ai-probe`.
-- Latest pushed commit: `f88690f` (`chore: calibrate plans and extract lifespan`).
+- Latest deployed runtime commit: `b3896bd` (`refactor: extract chat request models`).
 - VPS backups from the Server/Worker sync:
   - `/opt/lima-router/backups/agent-worker-sync-20260524_104836`
   - `/opt/lima-router/backups/runtime-deps-sync-20260524_105115`
   - `/opt/lima-router/backups/lifespan-extract-20260524_111647`
+  - `/opt/lima-router/backups/chat-models-extract-20260524_113220`
 - VPS `lima-router` restarted active; `/health` reports modules `mcp`, `agent_tasks`, and `telegram`.
 - Public HTTPS smoke passed:
   - `https://chat.donglicao.com/v1/chat/completions` returned exact `lima-postdeploy-ok`.
   - after the lifespan extraction deploy, `https://chat.donglicao.com/v1/chat/completions` returned exact `lima-lifespan-deploy-ok`.
+  - after the chat model extraction deploy, `https://chat.donglicao.com/v1/chat/completions` returned exact `deploy_https_ok_1134`.
   - `/agent/worker/preflight` returned `contract_version=agent-task-v1`.
+  - after the chat model extraction deploy, `/agent/worker/preflight` returned `ready=true`, `contract_version=agent-task-v1`, latest task `cfcd3f2b`.
 - Real Server/Worker smoke passed:
   - Server task `cfcd3f2b` was created by `/agent/worker/smoke-task`.
   - `D:\GIT\deepcode-cli` executed `/lima task cfcd3f2b`.
@@ -47,10 +50,11 @@
   - `http://127.0.0.1:8080/v1/chat/completions` returned exact `lima-final-local-ok`.
   - `http://47.112.162.80:8088/v1/chat/completions` returned exact `lima-final-frp-ok`.
   - after the lifespan extraction deploy, `http://47.112.162.80:8088/v1/chat/completions` returned exact `lima-lifespan-frp-ok`.
+  - after the chat model extraction deploy, `http://47.112.162.80:8088/v1/chat/completions` returned exact `lima-chat-models-frp-ok`.
 
 Current known remaining planning items:
 
-1. Continue `server.py` decomposition, with chat/completions and Anthropic handlers as the next major extraction targets.
+1. Continue `server.py` decomposition, with chat/completions and Anthropic handlers as the next major extraction targets; chat request models are now in `chat_models.py`.
 2. Consolidate backend configuration into a single source and remove remaining capability/list duplication.
 3. Wire `key_pool.py` into `http_caller.py` for multi-key providers.
 4. Keep Kimi, TheOldLLM, MiMo web, and page-only web AI candidates gated until refreshed and model-level smokes pass.

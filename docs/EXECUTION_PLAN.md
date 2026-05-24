@@ -41,13 +41,15 @@ Paused work:
 | 7. Always-on typed memory | Complete | 10 typed memory kinds, inbox ingestion daemon, background consolidation, wired into server lifespan. |
 | 8. MCP knowledge/memory tools | Complete | `/mcp/tools/list` and `/mcp/tools/call` expose search_repo, search_memory, get_retrieval_trace. |
 | 9. Dead code cleanup + streaming unification | Complete | stats_collector.py deleted; streaming path wired through inject_retrieval_context. |
-| 10. server.py decomposition | In Progress | server.py reduced from 2340 to 834 lines; 5 modules extracted, including `server_lifespan.py`. Chat/Anthropic handlers remain. |
+| 10. server.py decomposition | In Progress | server.py reduced from 2340 to 898 lines; 6 modules extracted, including `server_lifespan.py` and `chat_models.py`. Chat/Anthropic handlers remain. |
 
 ## 2026-05-24 Runtime Closure
 
 - VPS deployment of Server worker preflight/smoke-task APIs is complete.
 - `server_lifespan.py` is deployed on VPS after backup `/opt/lima-router/backups/lifespan-extract-20260524_111647`.
+- `chat_models.py` is deployed on VPS after backup `/opt/lima-router/backups/chat-models-extract-20260524_113220`; `server.py` re-exports `Message`, `ChatRequest`, and `extract_system_prompt` for compatibility.
 - `D:\GIT\deepcode-cli` completed public task `cfcd3f2b` through the deployed Server and submitted `needs_review`.
+- Post-extraction checks passed: local focused regression `40 passed`; remote compile/import passed; HTTPS chat returned exact `deploy_https_ok_1134`; FRP chat returned exact `lima-chat-models-frp-ok`; worker preflight returned `ready=true`.
 - FRP `8088` is closed-loop again after hardening local Windows router startup:
   - local `8080` chat returned exact `lima-final-local-ok`;
   - public FRP `8088` chat returned exact `lima-final-frp-ok`;
