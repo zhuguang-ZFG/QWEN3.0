@@ -19,6 +19,7 @@
 | `docs/CLOUDFLARE_WORKER_QUICK_EVAL.md` | Active evidence | Worker quick coding eval for `cfai_qwen_coder`, `cfai_deepseek_r1`, and `cfai_mistral`. |
 | `docs/EXECUTION_PLAN.md` | Active | Current phase tracker for documentation/GitHub snapshot and next implementation order. |
 | `docs/REFERENCE_PROJECT_EVALUATION.md` | Active | Current evaluation of OpenRAG, Google Cloud always-on-memory-agent, TechSpar, and autonomy references against LiMa's real code state. |
+| `docs/REFERENCE_IMPLEMENTATION_LEDGER.md` | Active implementation ledger | Current reference-to-LiMa implementation status table; distinguishes implemented, gated, concept, evaluating, and rejected reference ideas. |
 | `docs/ONLINE_DISTRIBUTIONS.md` | Active | Source of truth for VPS-hosted official website, open platform, chat interface, FRP endpoint, nginx edge, and service ownership. |
 | `docs/OPS_ENTRYPOINTS.md` | Compatibility record | Original FreeDomain-inspired ops-entrypoint plan file; points to `docs/ONLINE_DISTRIBUTIONS.md` as the expanded source of truth. |
 | `docs/LIMACODE_MANAGEMENT.md` | Active | Source of truth for LiMa Code submodule governance, pinned revision updates, cross-repo verification, and admitted external workflow references. |

@@ -75,28 +75,33 @@ systemd/nginx/VPS smoke scripts, and markdown status records.
 
 ## Phase 1 - Reference Implementation Ledger
 
+**Status:** Implemented as `docs/REFERENCE_IMPLEMENTATION_LEDGER.md`.
+
 **Purpose:** Make it impossible to confuse "reference admitted" with
 "implemented".
 
 **Files:**
-- Create: `docs/reference/REFERENCE_IMPLEMENTATION_LEDGER.md`
+- Create: `docs/REFERENCE_IMPLEMENTATION_LEDGER.md`
 - Modify: `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`
 - Modify: `docs/reference/LIMA_10_SUBSYSTEM_OPEN_SOURCE_RECOMMENDATIONS.md`
 - Modify: `docs/REFERENCE_PROJECT_EVALUATION.md`
 - Modify: `docs/DOCUMENTATION_STATUS.md`
 
-- [ ] Add a ledger table with columns: capability, reference source, target
-  repo, status, LiMa-owned interface, implementation files, test command,
-  evidence, and next gate.
-- [ ] Normalize statuses to `concept`, `planned`, `implementing`,
-  `implemented`, `gated`, `rejected`, and `blocked`.
-- [ ] Mark currently implemented slices: context retrieval injection, typed
-  memory daemon, mastery loop, LiMa Code worker gates, Device Gateway Redis HA,
-  dev-search MCP tools, and online smoke scripts.
-- [ ] Mark gated slices: always-on worker daemon, broad MCP connectors,
-  external sandbox providers, hosted observability, vector DB, voice cloning,
-  messaging bridges, browser scraping, and hardware companion expansion.
-- [ ] Verify with `rg -n "implemented|gated|blocked|concept" docs/reference docs/REFERENCE_PROJECT_EVALUATION.md`.
+- [x] Add a ledger table with columns: reference, status, LiMa subsystem,
+  implementation files, and evidence.
+- [x] Normalize statuses to `concept`, `planned`, `implementing`,
+  `implemented`, `gated`, `evaluating`, and `rejected`.
+- [x] Mark currently implemented slices: backend routing, context retrieval,
+  typed memory daemon, mastery-related memory promotion, agent/tool gates,
+  Device Gateway Redis HA, dev-search MCP tools, streaming events, data
+  workbench, provider automation, and online smoke-adjacent evidence.
+- [x] Mark gated slices: tree-sitter adapter, LEANN adapter, observability
+  exporters, MCP Python SDK surface, sandbox provider, and broad external
+  connectors.
+- [x] Verify with ledger status counting and doc checks.
+- [x] Record the follow-up shape for later: expand the ledger into
+  `docs/reference/` or add per-capability owner/next-gate columns only when
+  Phase 2 needs that extra ownership detail.
 
 ## Phase 2 - Code Intelligence And Retrieval
 

@@ -2759,3 +2759,25 @@ Verification note:
 - Updated `docs/DOCUMENTATION_STATUS.md` so future sessions can find this as
   the active execution roadmap instead of mistaking the broader capability
   radar for completed implementation.
+
+## 2026-05-25 Reference Implementation Ledger Closure
+
+- Added and calibrated `docs/REFERENCE_IMPLEMENTATION_LEDGER.md`.
+- The ledger currently tracks 63 reference mappings:
+  - `implemented`: 25;
+  - `gated`: 7;
+  - `concept`: 28;
+  - `implementing`: 1;
+  - `evaluating`: 1;
+  - `rejected`: 1.
+- Updated the reference-capability implementation roadmap so Phase 1 is marked
+  complete and points to the actual ledger location.
+- Updated `docs/DOCUMENTATION_STATUS.md` and `STATUS.md` to treat the ledger as
+  the active implementation status source for reference-project learning.
+- Verification:
+  - ledger status count parsed successfully from the markdown tables;
+  - non-ASCII arrows/dashes were normalized to ASCII in the ledger;
+  - implementation file spot checks found the main referenced LiMa-owned
+    modules such as `backends.py`, `key_pool.py`, `context_pipeline/*`,
+    `session_memory/*`, `agent_runtime/*`, `tool_gateway/*`, `lima_mcp/*`,
+    `sandbox/provider.py`, `data_workbench/*`, and `provider_automation/*`.
