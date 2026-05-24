@@ -1363,3 +1363,51 @@ Deployment: not performed.
     serving-budget, and audio-retention gates;
   - website reconstruction remains opt-in and review/test gated;
   - non-commercial/no-license references are concept-only.
+
+## 2026-05-24 External Capability Radar Research Subagent Batch
+
+- User provided:
+  - `mvanhorn/last30days-skill`;
+  - `HKUDS/LightRAG`;
+  - `https://claude.com/resources/use-cases`;
+  - `VoltAgent/awesome-codex-subagents`;
+  - `aiming-lab/AutoResearchClaw`;
+  - `anomalyco/opencode`;
+  - `2025Emma/vibe-coding-cn`.
+- Current-source checks:
+  - `last30days-skill`: MIT; README describes an AI agent skill for
+    time-bounded research across Reddit, X, YouTube, HN, Polymarket, GitHub,
+    and web sources, scored by engagement and synthesized into a grounded
+    brief.
+  - `LightRAG`: MIT; README describes simple/fast RAG, multimodal parsing,
+    chunking strategies, role-specific LLM configuration, and OpenSearch
+    storage support.
+  - Claude use cases page returned 200 and is treated as product use-case
+    taxonomy, not a dependency.
+  - `awesome-codex-subagents`: MIT; README describes 136+ Codex-native TOML
+    subagents, storage locations, sandbox defaults, and explicit delegation.
+  - `AutoResearchClaw`: MIT; README describes autonomous/self-evolving
+    research from idea to paper, HITL modes, anti-fabrication checks,
+    benchmark manifests, budget guardrails, and OpenClaw integration.
+  - `opencode`: MIT; README describes an open-source AI coding agent with
+    terminal UI, package-manager installs, desktop beta, and localization.
+  - `vibe-coding-cn`: MIT; README describes a Chinese planning-first Vibe
+    Coding guide/workstation with prompts, skills, multilingual docs, and
+    AI-pair-programming workflow.
+- Updated:
+  - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
+  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
+  - `docs/reference/MCP_CONNECTOR_CATALOG.md`;
+  - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
+  - `STATUS.md`;
+  - `progress.md`.
+- Boundary retained:
+  - no runtime dependency added;
+  - no external source or prompt text copied;
+  - social-source search requires BYO-key consent, platform-term review,
+    attribution, rate limits, and privacy rules;
+  - broad subagent catalogs stay reference-only unless individual subagents are
+    selected with ownership, sandbox, and approval metadata;
+  - autonomous paper/research output requires HITL, evidence, budget, and
+    anti-fabrication gates.

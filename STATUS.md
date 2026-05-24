@@ -573,3 +573,20 @@ Latest external capability radar agent/voice/design batch:
 - Hermes Agent Orange Book is CC BY-NC-SA and remains non-commercial
   concept-only; goclaw still has no reviewed license signal and remains
   concept-only for isolation/concurrency/security ideas.
+
+Latest external capability radar research/subagent batch:
+
+- Added last30days skill, LightRAG, Claude use cases, awesome-codex-subagents,
+  AutoResearchClaw, OpenCode, and vibe-coding-cn to the external capability
+  radar and roadmap.
+- LightRAG is MIT and strengthens LiMa's graph/vector retrieval, multimodal
+  parsing, chunking, and role-specific extraction/query/VLM roadmap.
+- last30days, Claude use cases, and AutoResearchClaw strengthen research,
+  use-case taxonomy, social/source search, HITL, benchmark, anti-fabrication,
+  and budget-control planning.
+- awesome-codex-subagents is MIT but remains a curated reference; LiMa still
+  defaults to one owner agent plus bounded subagents, not broad auto-installed
+  role libraries.
+- OpenCode and vibe-coding-cn are MIT references for LiMa Code packaging,
+  terminal/desktop UX, localization, Chinese onboarding, and planning-first
+  vibe-coding workflow.

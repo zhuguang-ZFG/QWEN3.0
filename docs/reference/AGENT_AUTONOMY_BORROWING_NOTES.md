@@ -26,6 +26,13 @@
   reference.
 - goclaw-style multi-tenant isolation, layered security, native concurrency,
   and agent-team deployment boundaries as concept inputs.
+- awesome-codex-subagents-style Codex-native `.toml` metadata, category
+  organization, sandbox defaults, and explicit delegation prompts.
+- AutoResearchClaw-style staged research pipeline with HITL modes,
+  anti-fabrication claim checks, benchmark manifests, budget guardrails, and
+  cross-run learning.
+- last30days-style time-bounded research skills that rank sources by observed
+  engagement and synthesize grounded briefs.
 - oh-my-pi-style local IDE/tool harness ergonomics for LiMa Code.
 - deepclaude-style backend proxy ergonomics as a UX reference only, never as a
   bypass around LiMa provider admission or key custody.
@@ -72,6 +79,13 @@
   or product docs without a separate license review.
 - Enabling goclaw-style agent teams before LiMa has shared-state, isolation,
   conflict, audit, and stop/approval policies.
+- Installing broad subagent catalogs by default instead of selecting bounded,
+  task-specific subagents with clear ownership.
+- Letting autonomous research systems generate papers, claims, citations, or
+  public artifacts without human review, evidence checks, budget controls, and
+  rollback.
+- Searching social platforms through user sessions or API keys without consent,
+  platform-term review, privacy boundaries, and attribution rules.
 - Direct dependency on GPL self-evolution systems; use only concept notes unless
   a separate legal review approves isolation.
 - Multi-agent role sprawl where coordination overhead is larger than the task.

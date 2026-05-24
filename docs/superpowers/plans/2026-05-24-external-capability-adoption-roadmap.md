@@ -90,6 +90,7 @@ Exit criteria:
 References:
 
 - Pyrefly
+- LightRAG
 - code-review-graph
 - graphify
 - GitNexus
@@ -104,6 +105,9 @@ Main repo plan:
   `code_context/*.py`, and future `device_gateway/*.py`.
 - Extend the current `code_context` layer with a graph-index interface before
   choosing any backend implementation.
+- Borrow LightRAG concepts for graph/vector retrieval, multimodal parsing,
+  chunking strategy selection, role-specific model separation, and retrieval
+  trace evidence without making LightRAG a required runtime dependency.
 - Add repo-to-spec extraction as a read-only tool for onboarding external repos
   and product submodules.
 - Evaluate semantic/MCP code-search packaging from claude-context and
@@ -165,6 +169,7 @@ References:
 - PraisonAI
 - agency-agents
 - goclaw
+- awesome-codex-subagents
 - oh-my-codex
 - oh-my-pi
 - clawsweeper
@@ -173,6 +178,7 @@ References:
 - HeavySkill
 - learn-harness-engineering
 - Hermes Agent Orange Book
+- AutoResearchClaw
 - claude-code-prompts
 - deepclaude
 
@@ -207,6 +213,12 @@ Main repo plan:
   loops, memory layering, skill evolution, and self-improving agent boundaries.
 - Treat goclaw as concept-only until license review; borrow only its
   multi-tenant isolation, layered security, and native concurrency posture.
+- Borrow awesome-codex-subagents for Codex-native metadata/category structure,
+  sandbox defaults, and explicit delegation examples; do not install a broad
+  subagent catalog by default.
+- Borrow AutoResearchClaw for staged research workflows, HITL modes,
+  anti-fabrication checks, benchmark manifests, budget guardrails, and
+  cross-run learning.
 - Treat deepclaude-style provider swapping as a UX reference only; LiMa must
   keep provider key custody, backend admission, and routing policy in the main
   backend registry.
@@ -285,7 +297,9 @@ References:
 - ClaudePrism
 - Open Design
 - HF Viewer
+- OpenCode
 - open-lovable
+- vibe-coding-cn
 
 Main repo plan:
 
@@ -307,6 +321,10 @@ LiMa Code plan:
 - Borrow open-lovable's website-to-React workflow only as an opt-in design
   reconstruction reference. Scraping, API keys, sandbox providers, and
   generated code must stay behind review and tests.
+- Borrow OpenCode's terminal UI, package-manager installation, desktop beta,
+  localization, and coding-agent ergonomics for LiMa Code packaging.
+- Borrow vibe-coding-cn's Chinese planning-first onboarding, prompt/skill
+  catalog organization, and AI-pair-programming education material shape.
 
 Exit criteria:
 
@@ -355,6 +373,9 @@ References:
 - OmniScientist
 - Feynman
 - AnySearch Skill
+- last30days skill
+- Claude use cases
+- AutoResearchClaw
 - TrendRadar
 - Youdao Baoku
 - Flipbook
@@ -372,6 +393,13 @@ Main repo plan:
   ingestion boundaries are reviewed.
 - Use AnySearch as a search-skill boundary reference for opt-in web search,
   batch search, vertical search, and full-page extraction with redaction.
+- Use last30days as a reference for time-bounded, engagement-scored research
+  across social/community/market sources. It requires BYO-key consent, source
+  session privacy, platform-term review, attribution, and rate limits.
+- Use Claude use cases as a product taxonomy reference for onboarding and
+  workflow examples; do not scrape or copy page content without review.
+- Use AutoResearchClaw as a research pipeline reference, not as a default
+  autonomous paper generator.
 - Use GLM-OCR as a document/OCR provider reference after file-ingestion privacy,
   model/API terms, and resource budgets are reviewed.
 - Treat Algebrica as a non-commercial structured-knowledge/content reference,
@@ -468,9 +496,11 @@ Recommended first slice after this plan is accepted:
 7. Document TUNA mirror fallbacks for VPS/China-network dependency bootstrap.
 8. Add prompt-contract fixtures for tool instructions and verification prompts
    before adopting external prompt libraries.
-9. Defer voice cloning, site reconstruction, agent-runtime, and
-   hardware-companion implementation until these
-   foundations are stable.
+9. Add a LiMa research-task/eval registry before adopting autonomous research
+   pipelines or social-source search skills.
+10. Defer voice cloning, site reconstruction, agent-runtime, autonomous paper
+   generation, social-source search, and hardware-companion implementation
+   until these foundations are stable.
 
 ## Verification
 
@@ -479,7 +509,7 @@ Documentation-only changes:
 ```powershell
 cd D:\GIT
 git diff --check -- docs\reference\EXTERNAL_CAPABILITY_RADAR_2026-05-24.md docs\superpowers\plans\2026-05-24-external-capability-adoption-roadmap.md
-rg -n "External Capability|MCP|TUNA|OpenMontage|open-lovable|VoxCPM|Hermes|claude-code-prompts|TrendRadar|Pyrefly|CubeSandbox|ElatoAI|WeClone|Graph" docs
+rg -n "External Capability|MCP|TUNA|OpenMontage|open-lovable|VoxCPM|Hermes|claude-code-prompts|last30days|LightRAG|AutoResearchClaw|OpenCode|vibe-coding-cn|TrendRadar|Pyrefly|CubeSandbox|ElatoAI|WeClone|Graph" docs
 ```
 
 Implementation phases must add focused tests for the touched module and avoid

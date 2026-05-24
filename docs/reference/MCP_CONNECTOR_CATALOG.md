@@ -64,6 +64,7 @@ tool set needed for the current task.
 | ElevenLabs MCP | concept | Off | Voice generation requires consent, voice license, storage, and cost controls. |
 | Tavily MCP | candidate | Off | Search/extract/map/crawl candidate behind privacy, quota, cache, and citation policy. |
 | Magic MCP | concept | Off | UI-generation workflow reference; generated code must go through LiMa Code review and tests. |
+| last30days-style skill connectors | concept | Off | Time-bounded social/source search can inform research tasks only with BYO-key consent, platform-term review, attribution, and privacy boundaries. |
 
 ## Discovery Sources
 

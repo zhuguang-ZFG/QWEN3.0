@@ -1389,3 +1389,40 @@ Verification note:
   - no external source or prompt text was copied;
   - voice cloning and website reconstruction remain explicit opt-in future
     work behind consent, security, privacy, review, and test gates.
+
+## 2026-05-24 External Capability Radar Research Subagent Batch
+
+- User provided last30days skill, LightRAG, Claude use cases,
+  awesome-codex-subagents, AutoResearchClaw, OpenCode, and vibe-coding-cn.
+- Current-source checks:
+  - `mvanhorn/last30days-skill`: MIT; researches recent signals across Reddit,
+    X, YouTube, HN, Polymarket, GitHub, and web sources, ranked by engagement
+    and synthesized into a grounded brief.
+  - `HKUDS/LightRAG`: MIT; simple/fast RAG with graph/RAG posture,
+    multimodal parsing, chunking strategies, role-specific LLM configuration,
+    and storage backend support.
+  - `claude.com/resources/use-cases`: page returned 200 and is treated as a
+    product use-case taxonomy reference.
+  - `VoltAgent/awesome-codex-subagents`: MIT; 136+ Codex-native TOML subagents
+    with categories, storage paths, sandbox defaults, and explicit delegation.
+  - `aiming-lab/AutoResearchClaw`: MIT; autonomous/self-evolving research,
+    HITL modes, ARC-Bench, anti-fabrication checks, budget guardrails, and
+    OpenClaw integration.
+  - `anomalyco/opencode`: MIT; open-source coding agent with terminal UI,
+    installer/package-manager distribution, desktop beta, and localization.
+  - `2025Emma/vibe-coding-cn`: MIT; Chinese planning-first Vibe Coding guide
+    with prompts, skills, multilingual docs, and AI-pair-programming workflow.
+- Updated:
+  - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
+  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
+  - `docs/reference/MCP_CONNECTOR_CATALOG.md`;
+  - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
+  - `STATUS.md`;
+  - `docs/LIMA_MEMORY.md`.
+- Boundary retained:
+  - no runtime dependency was added;
+  - no external source or prompt text was copied;
+  - social/source research, broad subagent catalogs, autonomous research
+    pipelines, and coding-agent workflow references remain gated by privacy,
+    ownership, evidence, budget, sandbox, and approval rules.

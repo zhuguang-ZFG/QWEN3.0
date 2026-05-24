@@ -125,9 +125,24 @@ runtime dependencies:
 - `repowise-dev/claude-code-prompts`: MIT reference for prompt-contract
   structure, tool-specific instructions, verification prompts, memory prompts,
   and coordinator/delegation boundaries.
+- `VoltAgent/awesome-codex-subagents`: MIT reference for Codex-native subagent
+  metadata, category naming, sandbox defaults, and explicit delegation. Do not
+  install broad subagent libraries by default.
+- `anomalyco/opencode`: MIT reference for coding-agent terminal UI, packaging,
+  installer channels, desktop app posture, localization, and workflow
+  ergonomics.
+- `2025Emma/vibe-coding-cn`: MIT Chinese Vibe Coding guide reference for
+  planning-first onboarding, prompt/skill catalog organization, and
+  AI-pair-programming education.
+- `mvanhorn/last30days-skill`: MIT reference for time-bounded research skills
+  and social-source scoring; BYO keys/browser sessions, platform terms,
+  attribution, and privacy boundaries are mandatory before use.
 - `alchaincyf/hermes-agent-orange-book`: non-commercial guide reference for
   Hermes-style learning loops, memory layering, skill creation, and tool
   orchestration vocabulary; do not copy content into runtime prompts.
+- `claude.com/resources/use-cases`: official product use-case taxonomy
+  reference for workflow examples and onboarding categories; do not scrape or
+  copy page content into LiMa without review.
 - TUNA mirror service: operational reference for China-network dependency
   bootstrap and fallback mirror documentation, not a code dependency.
 
