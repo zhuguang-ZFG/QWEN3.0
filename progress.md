@@ -1609,3 +1609,35 @@ Verification note:
   - dataset contents/schema, generated Python, external database connections,
     and cloud LLM provider calls require consent, redaction, read-only
     credentials, sandbox limits, data retention, and audit.
+
+## 2026-05-24 External Capability Radar 10-Subsystem Addendum
+
+- User provided a de-duplicated 10-subsystem open-source recommendation table
+  for LiMa.
+- Added:
+  - `docs/reference/LIMA_10_SUBSYSTEM_OPEN_SOURCE_RECOMMENDATIONS.md`.
+- Updated:
+  - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
+  - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
+  - `STATUS.md`;
+  - `docs/LIMA_MEMORY.md`;
+  - `progress.md`.
+- Current-source checks:
+  - confirmed examples: E2B Apache-2.0, Ollama MIT, vLLM Apache-2.0, Portkey
+    MIT, aiohttp Apache-2.0, Microsoft GraphRAG MIT, LlamaIndex MIT,
+    rerankers Apache-2.0, FastEmbed Apache-2.0, tree-sitter MIT, Mem0
+    Apache-2.0, Letta Apache-2.0, Memobase Apache-2.0, Zep Apache-2.0,
+    Promptfoo MIT, DeepEval Apache-2.0, Ragas Apache-2.0, Instructor MIT,
+    OpenTelemetry Python Apache-2.0, Prometheus Python Apache-2.0, MLflow
+    Apache-2.0, Guardrails AI Apache-2.0, LLM Guard MIT, MCP Python SDK MIT,
+    A2A Apache-2.0, Caddy Apache-2.0, Piku MIT, Nixpacks MIT, Dagger
+    Apache-2.0, Rich MIT, Textual MIT, Aider Apache-2.0.
+  - caveats: LiteLLM and LangFuse have mixed license files or no SPDX in API;
+    Phoenix is Elastic-2.0; Rebuff is archived; Semgrep is LGPL-2.1;
+    Open Interpreter is AGPL-3.0; Sourcegraph Cody and Braintrust supplied
+    paths need current-source confirmation.
+- Boundary retained:
+  - no runtime dependency added;
+  - no external code copied;
+  - the table is an implementation backlog, not a permission expansion or
+    dependency installation plan.

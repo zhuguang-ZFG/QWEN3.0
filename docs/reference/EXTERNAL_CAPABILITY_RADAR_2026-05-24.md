@@ -13,6 +13,14 @@
 - Prefer local adapters, small tests, and reversible integration slices over
   large framework rewrites.
 
+## Related Focused Radars
+
+- `docs/reference/LIMA_10_SUBSYSTEM_OPEN_SOURCE_RECOMMENDATIONS.md` tracks the
+  user's 10-subsystem recommendation set across worker execution, routing,
+  RAG, memory, eval, observability, governance, protocols, DevOps, and terminal
+  UX. It de-duplicates existing entries in this radar and records source-check
+  caveats for mixed-license, archived, and unresolved repositories.
+
 ## Capability Groups
 
 | Group | References | LiMa target |
@@ -27,6 +35,7 @@
 | Infrastructure mirrors and dependency resilience | Tsinghua Open Source Mirror (TUNA) | VPS and China-network dependency install acceleration, fallback mirrors, reproducible bootstrap documentation |
 | Persona, style, and companion behavior | awesome-persona-distill-skills, WeClone, Feynman, ElatoAI, PersonaPlex, pocket-tts, VoxCPM, Qwen3-TTS | User style modeling, companion UX, voice/display persona boundaries |
 | Hardware, robotics, and world models | ElatoAI, RuView, PersonaPlex, oh-my-pi, GR00T-WholeBodyControl, OpenClaw-RL, MiroFish, pocket-tts, VoxCPM, nano-world-model, ESP32 display references already tracked separately | Device Gateway voice/display/perception/companion expansion after writing-machine gates, simulation/evaluation before real hardware |
+| 10-subsystem engineering backlog | E2B, LiteLLM, Portkey, vLLM, GraphRAG, LlamaIndex, rerankers, FastEmbed, tree-sitter, Mem0, Letta, Promptfoo, DeepEval, LangFuse, OpenTelemetry, Prometheus, Guardrails AI, MCP Python SDK, A2A, Caddy, Rich, Aider, and related items tracked in the focused radar | Cross-cutting LiMa implementation backlog; no mass dependency adoption |
 
 ## Source Evaluation
 

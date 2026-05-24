@@ -659,3 +659,18 @@ Latest external capability radar local data analysis addendum:
   external database connections, and cloud LLM provider use remain gated by
   consent, redaction, read-only credentials, sandbox limits, data retention,
   and audit.
+
+Latest external capability radar 10-subsystem addendum:
+
+- Added `docs/reference/LIMA_10_SUBSYSTEM_OPEN_SOURCE_RECOMMENDATIONS.md` as
+  the focused backlog for LiMa's 10 subsystems: coding worker/tool gateway,
+  backend routing, context/RAG, memory, eval/quality, observability,
+  security/governance, streaming/protocols, DevOps, and terminal UX.
+- Existing radar projects such as OpenAI Agents SDK, Google ADK, Symphony,
+  CubeSandbox, gstack, agent-skills, LightRAG, Agent Governance Toolkit,
+  OpenCode, and Aider are de-duplicated and strengthened.
+- New candidates such as E2B, GraphRAG, rerankers, FastEmbed, tree-sitter,
+  Mem0, Letta, Promptfoo, DeepEval, OpenTelemetry, Prometheus, Guardrails AI,
+  MCP Python SDK, A2A, Caddy, Nixpacks, Rich, and Textual are planning inputs
+  only. Mixed-license, archived, unresolved, AGPL/LGPL, and source-available
+  projects are explicitly gated before any dependency adoption.

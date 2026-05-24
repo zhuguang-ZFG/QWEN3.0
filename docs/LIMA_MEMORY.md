@@ -1569,3 +1569,34 @@ Deployment: not performed.
   - dataset contents/schema, generated Python, external database connections,
     and cloud LLM provider calls require consent, redaction, read-only
     credentials, sandbox limits, data retention, and audit.
+
+## 2026-05-24 External Capability Radar 10-Subsystem Addendum
+
+- User provided a de-duplicated 10-subsystem open-source recommendation table
+  for LiMa.
+- Added `docs/reference/LIMA_10_SUBSYSTEM_OPEN_SOURCE_RECOMMENDATIONS.md`.
+- Coverage:
+  - coding Worker and Agent execution;
+  - backend routing and load balancing;
+  - context engineering and RAG;
+  - memory system;
+  - evaluation and quality assurance;
+  - observability and monitoring;
+  - security and governance;
+  - streaming and protocol enhancement;
+  - infrastructure and DevOps;
+  - terminal UI and developer experience.
+- Current-source checks found important caveats:
+  - LiteLLM and LangFuse have mixed license files or no SPDX in GitHub API;
+  - Phoenix is Elastic-2.0;
+  - Rebuff is archived;
+  - Open Interpreter is AGPL-3.0;
+  - Sourcegraph Cody and Braintrust supplied paths need current-source
+    confirmation before reuse.
+- Boundary retained:
+  - no runtime dependency added;
+  - no external code copied;
+  - new projects are planning references until license, security, data-flow,
+    maintenance, adapter-test, and rollback reviews pass;
+  - hosted eval/observability, cloud sandbox, external DB, MCP/A2A, deployment,
+    browser, messaging, and hardware permissions stay default-off.

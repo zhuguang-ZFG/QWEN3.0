@@ -64,9 +64,17 @@ Dataset contents, dataset schema, Python execution, external database
 connections, and cloud LLM providers remain gated by privacy, read-only,
 sandbox, redaction, retention, and approval controls.
 
+The 10-subsystem recommendation addendum is tracked in
+`docs/reference/LIMA_10_SUBSYSTEM_OPEN_SOURCE_RECOMMENDATIONS.md`. It covers
+worker execution, backend routing, RAG/context, memory, eval/quality,
+observability, security/governance, streaming/protocols, DevOps, and terminal
+UX. Several entries strengthen existing radar rows; new candidates remain
+planning inputs only until license, security, data-flow, and adapter tests pass.
+
 Primary source inventory:
 
 - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`
+- `docs/reference/LIMA_10_SUBSYSTEM_OPEN_SOURCE_RECOMMENDATIONS.md`
 - `docs/reference/MCP_CONNECTOR_CATALOG.md`
 - `docs/reference/HARDWARE_COMPANION_REFERENCES.md`
 
@@ -679,7 +687,11 @@ Recommended first slice after this plan is accepted:
 11. Add connector-catalog entries for Google MCP, Agent-Reach, cc-connect,
    bluebox, RuVector MCP, and media-ingestion references before any runtime
    connector work.
-12. Defer voice cloning, site reconstruction, agent-runtime, autonomous paper
+12. Use the 10-subsystem focused radar to open implementation slices in this
+   order: router/fallback telemetry, sandbox fixture, reranker interface,
+   AST extraction prototype, memory taxonomy mapping, eval fixture shape,
+   OpenTelemetry/Prometheus metric naming, and read-only MCP SDK compatibility.
+13. Defer voice cloning, site reconstruction, agent-runtime, autonomous paper
    generation, social-source search, trading automation, closed-API
    extraction, video downloading, messaging bots, live self-training, and
    hardware-companion implementation until these foundations are stable.
@@ -691,7 +703,7 @@ Documentation-only changes:
 ```powershell
 cd D:\GIT
 git diff --check -- docs\reference\EXTERNAL_CAPABILITY_RADAR_2026-05-24.md docs\superpowers\plans\2026-05-24-external-capability-adoption-roadmap.md
-rg -n "External Capability|MCP|TUNA|OpenRAG|RuVector|RuView|quelmap|Agent-Reach|Qwen3-TTS|VidBee|cc-connect|bluebox|Google MCP|generative-ai|OpenMontage|open-lovable|VoxCPM|Hermes|gstack|agent-cli|Sirchmunk|Hyperbrowser|MiroFish|OpenClaw-RL|Feishu|claude-code-prompts|last30days|LightRAG|AutoResearchClaw|OpenCode|vibe-coding-cn|TrendRadar|Pyrefly|CubeSandbox|ElatoAI|WeClone|Graph" docs
+rg -n "External Capability|10 Subsystem|MCP|TUNA|OpenRAG|RuVector|RuView|quelmap|LiteLLM|Portkey|GraphRAG|Mem0|Letta|Promptfoo|OpenTelemetry|Guardrails|A2A|Caddy|Rich|Aider|Agent-Reach|Qwen3-TTS|VidBee|cc-connect|bluebox|Google MCP|generative-ai|OpenMontage|open-lovable|VoxCPM|Hermes|gstack|agent-cli|Sirchmunk|Hyperbrowser|MiroFish|OpenClaw-RL|Feishu|claude-code-prompts|last30days|LightRAG|AutoResearchClaw|OpenCode|vibe-coding-cn|TrendRadar|Pyrefly|CubeSandbox|ElatoAI|WeClone|Graph" docs
 ```
 
 Implementation phases must add focused tests for the touched module and avoid
