@@ -1158,3 +1158,20 @@ Verification note:
   - `D:\GIT\venv\Scripts\python.exe -m py_compile server.py routes\device_gateway.py device_gateway\protocol.py device_gateway\auth.py device_gateway\sessions.py device_gateway\tasks.py device_gateway\intent.py device_gateway\safety.py`: passed.
   - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_device_gateway_protocol.py tests\test_device_gateway_routes.py -q --ignore=active_model`: 12 passed.
   - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_system_endpoints.py tests\test_chat_endpoints.py tests\test_agent_task_routes.py -q --ignore=active_model`: 31 passed.
+
+## 2026-05-24 esp32S_XYZ Fake LiMa U8 Client
+
+- Implemented and pushed product-side fake LiMa U8 client:
+  - product repo: `D:\GIT\esp32S_XYZ`;
+  - commit: `78a62c9 test: add fake lima u8 client`;
+  - remote: `https://github.com/zhuguang-ZFG/esp32S_XYZ.git`.
+- Added `tools/fake_lima_u8/app.py` and unit tests using an in-memory transport
+  so default product CI does not require a WebSocket dependency.
+- Updated `tools/README.md`.
+- Product verification:
+  - `python -m py_compile tools\fake_lima_u8\app.py`: passed;
+  - `python -m unittest tools.fake_lima_u8.tests.test_app -v`: 5 passed;
+  - `python -m unittest tools.fake_device_server.tests.test_app tools.fake_ai.tests.test_app tools.fake_u1.tests.test_app -v`: 31 passed;
+  - `python tools\validate_schemas.py`: `validated=62 passed=62 failed=0`.
+- Main repo advanced the `esp32S_XYZ` submodule pointer to `78a62c9` and added
+  `LIMA_DEVICE_TOKENS` to `.env.example`.

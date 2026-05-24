@@ -46,7 +46,7 @@ LiMa owns:
 Current pinned revision:
 
 ```text
-c6845e0 fix: exclude dead rymcu GitHub link from markdown check
+78a62c9 test: add fake lima u8 client
 ```
 
 ## Integration Model
@@ -98,6 +98,7 @@ python -m unittest discover -s tests -p "test_*.py" -v
 python -m unittest tools.fake_u1.tests.test_app -v
 python -m unittest tools.fake_device_server.tests.test_app -v
 python -m unittest tools.fake_ai.tests.test_app -v
+python -m unittest tools.fake_lima_u8.tests.test_app -v
 python -m unittest tests.ci.test_fake_integration -v
 ```
 
@@ -130,6 +131,25 @@ When this product starts using a LiMa-hosted backend endpoint, record it in:
 - `STATUS.md` for the short operational snapshot;
 - `docs/LIMA_MEMORY.md` for durable cross-session context;
 - `progress.md` for chronological closure evidence.
+
+## LiMa Direct Device Gateway Evidence
+
+The product repo now includes `tools/fake_lima_u8/`, a deterministic fake U8
+client for LiMa `/device/v1/ws`.
+
+Current fake U8 scope:
+
+- sends `hello` with `protocol=lima-device-v1`;
+- sends `heartbeat`;
+- sends text `transcript`;
+- expects a LiMa `motion_task` with `capability=run_path`;
+- emits `motion_event` `progress` and `done`;
+- includes both `device_id` and `session_id` on motion events for compatibility
+  with existing Edge-C conventions.
+
+The CLI imports the optional `websockets` package only when connecting to a
+real LiMa server. Unit tests use an in-memory transport so product CI can verify
+the protocol script without adding a network dependency.
 
 ## Safety Boundary
 

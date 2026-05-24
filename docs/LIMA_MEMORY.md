@@ -1142,3 +1142,24 @@ Deployment: not performed.
   - real U8/U1 safety smoke;
   - audio/TTS extension;
   - Xiaozhi runtime quarantine/removal after parity.
+
+## 2026-05-24 esp32S_XYZ Fake LiMa U8 Client
+
+- Product repo `D:\GIT\esp32S_XYZ` now includes a fake LiMa U8 client:
+  - `tools/fake_lima_u8/app.py`;
+  - `tools/fake_lima_u8/tests/test_app.py`.
+- Product commit pushed to GitHub:
+  - `78a62c9 test: add fake lima u8 client`.
+- Main repo submodule pointer advanced to `78a62c9`.
+- The fake client verifies the product-side script for:
+  - `hello`;
+  - `heartbeat`;
+  - `transcript`;
+  - expected `run_path` `motion_task`;
+  - `motion_event` progress/done.
+- Verification passed:
+  - `python -m py_compile tools\fake_lima_u8\app.py`;
+  - `python -m unittest tools.fake_lima_u8.tests.test_app -v`: 5 passed;
+  - `python -m unittest tools.fake_device_server.tests.test_app tools.fake_ai.tests.test_app tools.fake_u1.tests.test_app -v`: 31 passed;
+  - `python tools\validate_schemas.py`: `validated=62 passed=62 failed=0`.
+- `.env.example` now documents `LIMA_DEVICE_TOKENS` for `/device/v1/ws` device auth.

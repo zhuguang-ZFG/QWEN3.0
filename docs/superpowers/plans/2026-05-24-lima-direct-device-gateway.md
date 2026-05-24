@@ -397,3 +397,34 @@ Compatibility notes:
   `failed`, `cancelled`, `rejected`, and `stopped`.
 - This is not yet a real U8 firmware or hardware release. Real-device claims
   still require U8 direct firmware mode and U8/U1 safety smoke.
+
+### 2026-05-24 Product Fake LiMa U8 Slice
+
+Implemented in `esp32S_XYZ`:
+
+- `tools/fake_lima_u8/app.py`: fake U8 client script for LiMa `/device/v1/ws`.
+- `tools/fake_lima_u8/tests/test_app.py`: in-memory transport tests covering
+  hello, heartbeat, transcript, `motion_task`, and `motion_event` progress/done.
+- `tools/README.md`: fake tool entry point and dependency boundary.
+
+Product revision:
+
+```text
+78a62c9 test: add fake lima u8 client
+```
+
+Verification:
+
+```powershell
+cd D:\GIT\esp32S_XYZ
+python -m py_compile tools\fake_lima_u8\app.py
+python -m unittest tools.fake_lima_u8.tests.test_app -v
+python -m unittest tools.fake_device_server.tests.test_app tools.fake_ai.tests.test_app tools.fake_u1.tests.test_app -v
+python tools\validate_schemas.py
+```
+
+Results:
+
+- fake LiMa U8: 5 passed;
+- existing fake U1/device-server/AI suite: 31 passed;
+- schemas: `validated=62 passed=62 failed=0`.
