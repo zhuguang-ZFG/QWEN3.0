@@ -12,8 +12,8 @@
 ## Files Changed
 
 ```
-path/to/file1.py   — brief description of change
-path/to/file2.py   — brief description of change
+path/to/file1.py   - brief description of change
+path/to/file2.py   - brief description of change
 ```
 
 ## Behavior Change
@@ -27,7 +27,7 @@ What changed and why:
 ### New tests added
 
 ```
-path/to/test_x.py::test_name — what it covers
+path/to/test_x.py::test_name - what it covers
 ```
 
 ### Commands run and results

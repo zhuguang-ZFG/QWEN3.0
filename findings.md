@@ -283,3 +283,10 @@ Source record: `docs/superpowers/plans/2026-05-23-code-quality-review-closeout.m
 | CQ-012 | Open | Broad scan still shows `routes/telegram.py` uses deprecated FastAPI `@router.on_event("startup")`. | Move Telegram startup to app lifespan or include it in the existing FastAPI lifespan wiring. |
 | CQ-013 | Open | Telegram notification tests still emit coroutine-not-awaited warnings when `_fire_and_forget` is mocked after coroutine creation. | Change notification hooks to pass a coroutine factory or close unsubmitted coroutines in tests. |
 | CQ-014 | Open | Several tracked runtime files remain over the 300-line target: `smart_router.py`, `server.py`, `routes/admin.py`, `routing_engine.py`, `http_caller.py`, and `health_tracker.py`. | Continue gradual extraction only after tests stay green. |
+
+## 2026-05-24 M0 Baseline Review Harness Follow-Up
+
+| ID | Status | Evidence | Remaining Work |
+|---|---|---|---|
+| CQ-015 | Closed | `tests/test_device_gateway_routes.py` now uses `monkeypatch` instead of direct `os.environ` mutation, so device-gateway auth setup no longer leaks into MCP tests. | None for this slice. |
+| CQ-016 | Closed | `docs/DEVELOPER_CHECKLIST.md` now records the verified green baseline instead of stale routing failures. | None for this slice. |

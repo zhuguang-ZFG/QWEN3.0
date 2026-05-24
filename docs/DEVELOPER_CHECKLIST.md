@@ -96,9 +96,9 @@ git status --short --branch
 ## Known Baseline (2026-05-24)
 
 - Branch: `codex/free-web-ai-probe`
-- 2 known test failures in `test_routing_engine.py` (pre-existing):
-  - `test_tool_backend_iteration_tries_distinct_fast_candidates`
-  - `test_anthropic_tool_route_injects_context_preflight`
+- `python -m pytest test_routing_engine.py -q --ignore=active_model`: 43 passed.
+- `python -m pytest -q --ignore=active_model`: 476 passed, 8 skipped.
+- No known failing tests in the current baseline.
 
 ## Out-Of-Scope Untracked Files
 

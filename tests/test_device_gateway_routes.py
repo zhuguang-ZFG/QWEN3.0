@@ -1,8 +1,7 @@
-import os
-
 from fastapi import FastAPI
 from fastapi.routing import APIRoute, APIWebSocketRoute
 from fastapi.testclient import TestClient
+import pytest
 
 import server
 from device_gateway.sessions import DeviceSession, registry
@@ -10,9 +9,12 @@ from device_gateway.tasks import create_task_from_transcript, enqueue_pending_ta
 from routes.device_gateway import _dispatch_task_to_session, _drain_pending_tasks, _reset_for_tests, router
 
 
-def setup_function():
-    os.environ["LIMA_DEVICE_TOKENS"] = "dev-1=test-device-token"
-    os.environ["LIMA_API_KEY"] = "test-private-token"
+@pytest.fixture(autouse=True)
+def _device_gateway_test_env(monkeypatch):
+    monkeypatch.setenv("LIMA_DEVICE_TOKENS", "dev-1=test-device-token")
+    monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
+    _reset_for_tests()
+    yield
     _reset_for_tests()
 
 

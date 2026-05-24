@@ -11,25 +11,25 @@
 >
 > | M# | Name | Status | Started |
 > |----|------|--------|---------|
-> | M0 | Baseline & Review Harness | in_progress | 2026-05-24 |
-> | M1 | Router, Backend Registry, Key Pool | pending | — |
-> | M2 | Async & Concurrency | pending | — |
-> | M3 | Context Graph, AST, Reranking | pending | — |
-> | M4 | Memory Taxonomy & Redaction | pending | — |
-> | M5 | Eval, Quality Gate, Structured Output | pending | — |
-> | M6 | Observability & Metrics | pending | — |
-> | M7 | Worker Governance, Tool Gateway, MCP, A2A | pending | — |
-> | M8 | Sandbox Evaluation | pending | — |
-> | M9 | Streaming & Progress Events | pending | — |
-> | M10 | Data Workbench | pending | — |
-> | M11 | DevOps, Deployment, Terminal UX | pending | — |
-> | M12 | Hardware Companion | pending | — |
+> | M0 | Baseline & Review Harness | complete | 2026-05-24 |
+> | M1 | Router, Backend Registry, Key Pool | pending | - |
+> | M2 | Async & Concurrency | pending | - |
+> | M3 | Context Graph, AST, Reranking | pending | - |
+> | M4 | Memory Taxonomy & Redaction | pending | - |
+> | M5 | Eval, Quality Gate, Structured Output | pending | - |
+> | M6 | Observability & Metrics | pending | - |
+> | M7 | Worker Governance, Tool Gateway, MCP, A2A | pending | - |
+> | M8 | Sandbox Evaluation | pending | - |
+> | M9 | Streaming & Progress Events | pending | - |
+> | M10 | Data Workbench | pending | - |
+> | M11 | DevOps, Deployment, Terminal UX | pending | - |
+> | M12 | Hardware Companion | pending | - |
 >
 > ### Error Log
 >
 > | # | Milestone | Error | Attempt | Resolution |
 > |---|-----------|-------|---------|------------|
-> | — | — | — | — | — |
+> | 1 | M0 | Device gateway route tests leaked `LIMA_API_KEY` through `os.environ`, causing MCP auth tests to fail in the full suite. | Reproduced with `python -m pytest tests/test_device_gateway_routes.py tests/test_mcp_tools.py -q --ignore=active_model`. | Replaced direct environment mutation with a `monkeypatch` autouse fixture and updated the baseline. |
 
 ## Goal
 

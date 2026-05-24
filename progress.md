@@ -1678,3 +1678,16 @@ Verification note:
   - documentation-only;
   - no dependency added;
   - no code implementation started in this slice.
+
+## 2026-05-24 M0 Baseline Review Harness Closure
+
+- Re-pulled `codex/free-web-ai-probe` and reviewed commit `85663ca`.
+- Found that the checklist baseline was stale:
+  - `test_routing_engine.py` now passes;
+  - the full suite failure came from `tests/test_device_gateway_routes.py`
+    leaking `LIMA_API_KEY` into later MCP tests.
+- Fixed the test isolation by replacing direct `os.environ` mutation with a
+  `monkeypatch` autouse fixture.
+- Updated `docs/DEVELOPER_CHECKLIST.md`, `task_plan.md`,
+  `docs/REVIEW_PACKET_TEMPLATE.md`, and `findings.md` so M0 reflects the
+  verified green baseline and avoids PowerShell mojibake in copied templates.
