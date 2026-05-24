@@ -1060,3 +1060,15 @@ Deployment: not performed.
   - Integration is contract-first; when chat/LLM, image/vector generation, voice/ASR/TTS, safety, OTA, telemetry, monitoring, or task orchestration changes across both repos, push the product repo first, then advance the main-repo submodule pointer and record verification.
 - User explicitly authorized LiMa to clone/use the product repository and perform deep optimization or necessary refactoring inside `zhuguang-ZFG/esp32S_XYZ.git`.
 - `docs/ESP32S_XYZ_OPTIMIZATION_ROADMAP.md` records the execution order: reproduce baseline, map contracts, rank refactor targets, implement low-risk consolidation, add LiMa adapters where needed, then prepare hardware-gated release evidence.
+
+## 2026-05-24 LiMa Direct Device Gateway Plan
+
+- User selected the long-term clean architecture: modify U8 firmware so the device speaks a LiMa-native protocol directly, with no Xiaozhi server runtime dependency.
+- Main architectural decision: add a LiMa Device Gateway route layer, not another model-routing layer.
+- Planned first routes:
+  - `/device/v1/ws` for U8 WebSocket sessions;
+  - `/device/v1/health` for gateway readiness;
+  - optional private `/device/v1/events` and `/device/v1/tasks` for fallback/test/debug paths.
+- Model, ASR, TTS, image/vector, and LLM selection remain in the existing LiMa routing/provider stack.
+- Source of truth: `docs/superpowers/plans/2026-05-24-lima-direct-device-gateway.md`.
+- First implementation slice should prove a text-only fake U8 loop before firmware or hardware changes: `hello`, `heartbeat`, transcript, deterministic `写你好` / `画一个星星`, bounded `motion_task`, and `motion_event` progress/done.

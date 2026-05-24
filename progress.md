@@ -1099,3 +1099,9 @@ Verification note:
 - Confirmed `D:\GIT\esp32S_XYZ` is a clean local clone of `https://github.com/zhuguang-ZFG/esp32S_XYZ.git` on `main...origin/main`.
 - Recorded user authorization for LiMa to perform deep optimization and necessary refactoring in the product repository.
 - Added `docs/ESP32S_XYZ_OPTIMIZATION_ROADMAP.md` and expanded `docs/ESP32S_XYZ_MANAGEMENT.md` with refactor authority, cross-repo order, and gated-release safeguards.
+
+## 2026-05-24 LiMa Direct Device Gateway Plan
+
+- User selected the long-term clean path: U8 firmware directly speaks a LiMa custom protocol and no longer depends on Xiaozhi server at runtime.
+- Decided LiMa needs a new Device Gateway route layer (`/device/v1/*`) while continuing to reuse the existing model routing/provider stack.
+- Added `docs/superpowers/plans/2026-05-24-lima-direct-device-gateway.md` with phased cross-repo implementation, protocol v1 message shapes, safety gates, and verification matrix.

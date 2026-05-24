@@ -1,0 +1,346 @@
+# LiMa Direct Device Gateway Plan
+
+**Date:** 2026-05-24
+**Status:** planned
+**Scope:** replace the Xiaozhi server runtime dependency for `esp32S_XYZ` with
+a LiMa-native U8 device protocol and gateway.
+
+## Goal
+
+Let the `esp32S_XYZ` U8 firmware connect directly to LiMa and use LiMa as the
+device backend for listening, command understanding, writing, drawing, status,
+and safety-controlled motion. Xiaozhi server code may remain as migration
+reference, but the target runtime must not require `xiaozhi-server`.
+
+The clean target path is:
+
+```text
+U8 AI_MCU
+  <-> LiMa Device Gateway (/device/v1/ws)
+  <-> LiMa backend capabilities
+      - ASR / command understanding / TTS
+      - write_text and draw_generated task creation
+      - image/vector generation and run_path projection
+      - safety validation and task state
+      - device status, self-check, telemetry, OTA planning
+  <-> U1 MOTOR_MCU through existing Edge-D UART JSON
+```
+
+## Core Decision
+
+Create a new LiMa device routing layer, not a new model routing layer.
+
+Device routing owns:
+
+- device authentication;
+- WebSocket sessions;
+- heartbeats and reconnects;
+- message validation;
+- device task state;
+- `motion_task` downlink;
+- `motion_event`, `device_info`, and `self_check` uplink;
+- direct-device safety gates.
+
+Model routing remains in the current LiMa backend registry, `routing_engine`,
+`smart_router`, and provider/key-pool stack. Device Gateway calls those
+capabilities when it needs ASR, command understanding, image/vector generation,
+or TTS.
+
+## Initial Routes
+
+| Route | Protocol | Purpose | First phase |
+|---|---|---|---|
+| `/device/v1/ws` | WebSocket | U8 long-lived device session | Required |
+| `/device/v1/events` | HTTP JSON | Optional fallback for event uplink and fake-device tests | Optional |
+| `/device/v1/tasks` | HTTP JSON | Admin/debug task injection for test rigs | Optional and private |
+| `/device/v1/health` | HTTP JSON | Gateway readiness and protocol version | Required |
+
+First implementation should live inside the existing LiMa FastAPI service. It
+can be split into a separate service only after session volume or isolation
+needs justify it.
+
+## Proposed Main-Repo Modules
+
+```text
+routes/device_gateway.py
+device_gateway/protocol.py
+device_gateway/auth.py
+device_gateway/sessions.py
+device_gateway/tasks.py
+device_gateway/intent.py
+device_gateway/safety.py
+device_gateway/transports.py
+```
+
+Responsibilities:
+
+- `routes/device_gateway.py`: FastAPI route registration and request handling.
+- `protocol.py`: message schemas, protocol version, error envelopes.
+- `auth.py`: device token validation without leaking provider secrets.
+- `sessions.py`: active `device_id` to WebSocket session map.
+- `tasks.py`: task creation, dedupe, state transitions, downlink envelopes.
+- `intent.py`: deterministic and model-assisted command mapping.
+- `safety.py`: device command allowlist, workspace and motion constraints.
+- `transports.py`: abstraction over WebSocket send/receive for unit tests.
+
+## Protocol v1 Messages
+
+Use JSON text frames for control and binary frames only when audio streaming is
+introduced. Keep the first milestone text-only so fake U8/fake U1 can prove the
+motion path before audio complexity enters.
+
+### U8 to LiMa
+
+```json
+{ "type": "hello", "protocol": "lima-device-v1", "device_id": "dev_SN001", "fw_rev": "u8-0.1.0", "capabilities": ["run_path", "audio", "self_check"] }
+```
+
+```json
+{ "type": "heartbeat", "device_id": "dev_SN001", "uptime_ms": 123456 }
+```
+
+```json
+{ "type": "transcript", "device_id": "dev_SN001", "text": "画一个星星", "request_id": "u8-req-001" }
+```
+
+```json
+{ "type": "motion_event", "device_id": "dev_SN001", "task_id": "task-001", "phase": "progress", "progress": { "done_segments": 3, "total_segments": 12, "percent": 25 } }
+```
+
+```json
+{ "type": "device_info", "device_id": "dev_SN001", "model": "esp32S_XYZ", "hw_rev": "P1", "fw_rev": "u1-0.1.0", "workspace_mm": { "x": 100, "y": 100, "z": 20 } }
+```
+
+```json
+{ "type": "self_check", "device_id": "dev_SN001", "status": "passed", "checks": [] }
+```
+
+### LiMa to U8
+
+```json
+{ "type": "hello_ack", "protocol": "lima-device-v1", "server_time": "2026-05-24T00:00:00Z" }
+```
+
+```json
+{ "type": "motion_task", "task_id": "task-001", "capability": "run_path", "source": "voice", "params": { "feed": 900, "path": [] } }
+```
+
+```json
+{ "type": "speech", "state": "text", "text": "任务已提交。" }
+```
+
+```json
+{ "type": "error", "code": "E_INVALID_MESSAGE", "message": "message type is not supported", "request_id": "u8-req-001" }
+```
+
+Audio frame support is a later milestone:
+
+- JSON frame starts an audio stream with codec/sample metadata.
+- Binary frames carry Opus or PCM chunks.
+- JSON frame ends the stream and binds the transcript to a `request_id`.
+
+## Command Mapping
+
+First deterministic commands:
+
+| User command | LiMa task | Notes |
+|---|---|---|
+| `写你好` | `write_text` -> `run_path` | Reuse existing product projection semantics. |
+| `画一个星星` | `draw_generated` -> `run_path` | Start with starter assets or safe SVG generation. |
+| `归零` | `home` | Safety-allowed direct command. |
+| `暂停` | `pause` | Control command only. |
+| `继续` | `resume` | Control command only. |
+| `停止` | `stop` | Control command only. |
+| `设备信息` | `get_device_info` | Query U1/U8 identity and workspace. |
+
+Free-form LLM interpretation can be added only after deterministic command
+coverage and safety rejection tests pass.
+
+## Cross-Repo Work Plan
+
+### Phase 0 - Baseline and Design Lock
+
+- Reproduce current `esp32S_XYZ` fake-device and schema checks.
+- Record current U8/Xiaozhi message dependency points.
+- Add this plan as the source of truth.
+
+Exit criteria:
+
+- Plan committed in main LiMa repo.
+- `esp32S_XYZ` remains unchanged and clean.
+
+### Phase 1 - LiMa Gateway Skeleton
+
+Main repo:
+
+- Add `/device/v1/health`.
+- Add `/device/v1/ws` with `hello`, `heartbeat`, and error handling.
+- Add in-memory session registry keyed by `device_id`.
+- Add protocol unit tests.
+
+No model calls, no motion yet.
+
+Exit criteria:
+
+- Unit tests cover valid hello, duplicate session handling, heartbeat, and bad
+  message errors.
+- Local route import and FastAPI registration pass.
+
+### Phase 2 - Fake U8 Motion Loop
+
+Main repo:
+
+- Add private debug task injection or test-only helper for a connected fake U8.
+- Add deterministic `transcript` -> `write_text` / `draw_generated` mapping.
+- Reuse or port safe `run_path` projection logic where appropriate.
+- Send `motion_task` to fake U8.
+- Accept `motion_event` progress/done.
+
+Product repo:
+
+- Add a fake LiMa U8 client under `tools/` or `tests/` without changing real
+  firmware.
+
+Exit criteria:
+
+- Fake U8 can say `画一个星星`.
+- LiMa sends a `run_path` `motion_task`.
+- Fake U8 returns `progress` and `done`.
+- Tests run without real hardware.
+
+### Phase 3 - U8 Firmware Direct Client
+
+Product repo:
+
+- Add LiMa WebSocket client config for U8.
+- Add `hello`, `heartbeat`, `motion_task`, and `motion_event` handling.
+- Keep Edge-D UART JSON to U1 unchanged.
+- Keep a compile-time fallback to the old Xiaozhi path until direct mode is
+  proven.
+
+Main repo:
+
+- Add compatibility tests for U8 direct protocol messages.
+
+Exit criteria:
+
+- U8 firmware build passes.
+- Fake or emulator U8 direct protocol test passes.
+- No real hardware claim is made yet.
+
+### Phase 4 - Real Device Safety Smoke
+
+Hardware-gated:
+
+- Confirm emergency stop, stop, pause, and home behavior.
+- Run `get_device_info`.
+- Run a very small square or star path.
+- Verify progress and done event return to LiMa.
+
+Exit criteria:
+
+- Real U8/U1 device evidence is recorded.
+- Any hardware limitation is recorded before expanding task scope.
+
+### Phase 5 - Audio and TTS
+
+Main repo:
+
+- Add audio stream framing.
+- Add ASR adapter through existing LiMa routing/provider stack.
+- Add TTS response framing.
+
+Product repo:
+
+- Add U8 direct audio upload and TTS playback path for LiMa direct mode.
+
+Exit criteria:
+
+- Voice command reaches transcript.
+- Transcript drives deterministic command mapping.
+- TTS or text confirmation returns to U8.
+
+### Phase 6 - Remove Xiaozhi Runtime Dependency
+
+Product repo:
+
+- Make LiMa direct mode the default runtime path.
+- Keep migration docs for the old Xiaozhi path only if useful.
+- Remove or quarantine Xiaozhi runtime config from production instructions.
+
+Main repo:
+
+- Record product endpoint ownership in `docs/ONLINE_DISTRIBUTIONS.md` if a VPS
+  route is exposed.
+
+Exit criteria:
+
+- `esp32S_XYZ` can run the target product path without `xiaozhi-server`.
+- Main LiMa submodule pointer is advanced to the verified product commit.
+
+## Safety Gates
+
+Do not claim release readiness until these gates pass:
+
+- device authentication cannot be bypassed;
+- unknown `device_id` cannot claim another active session;
+- malformed messages return stable errors;
+- `run_path` is bounded by workspace, length, feed, point count, and estimated
+  duration;
+- `stop` and `estop` have priority over queued drawing/writing work;
+- real hardware smoke proves small-path motion safely;
+- provider credentials, device secrets, OTA signing keys, and VPS secrets are
+  never committed.
+
+## Verification Matrix
+
+Main LiMa:
+
+```powershell
+cd D:\GIT
+D:\GIT\venv\Scripts\python.exe -m py_compile server.py routes\device_gateway.py
+D:\GIT\venv\Scripts\python.exe -m pytest tests\test_device_gateway*.py -q --ignore=active_model
+```
+
+Product repo:
+
+```powershell
+cd D:\GIT\esp32S_XYZ
+python tools/validate_schemas.py
+python tools/check_gpio.py
+python -m unittest discover -s tests -p "test_*.py" -v
+python -m unittest tools.fake_u1.tests.test_app -v
+python -m unittest tools.fake_device_server.tests.test_app -v
+python -m unittest tools.fake_ai.tests.test_app -v
+```
+
+Firmware build commands must be added after confirming the exact U8 build
+environment on the local machine.
+
+## Open Questions
+
+1. Device authentication format:
+   - shared per-device token;
+   - signed challenge;
+   - or device certificate later.
+2. Whether first direct U8 firmware should support text-only transcript frames
+   before audio streaming.
+3. Whether write/draw projection should live first in LiMa, first in
+   `esp32S_XYZ`, or temporarily in both while contracts stabilize.
+4. Where production device endpoint should live:
+   - `wss://chat.donglicao.com/device/v1/ws`;
+   - or a separate device subdomain later.
+
+## Recommended First Implementation Slice
+
+Build Phase 1 and the text-only part of Phase 2 first:
+
+1. `/device/v1/health`;
+2. `/device/v1/ws`;
+3. `hello` / `heartbeat` / stable errors;
+4. fake U8 transcript frame;
+5. deterministic `写你好` and `画一个星星` mapping;
+6. fake U8 receives a bounded `motion_task`.
+
+This proves the LiMa-native device route without touching real firmware or real
+hardware.

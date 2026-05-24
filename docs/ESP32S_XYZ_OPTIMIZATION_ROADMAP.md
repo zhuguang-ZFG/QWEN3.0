@@ -46,6 +46,9 @@ The first deep pass should be evidence-first:
 | 4 | Add LiMa integration adapters where needed | Product-side adapter(s), main-repo endpoint/tests, and smoke evidence |
 | 5 | Prepare hardware-gated release evidence | Checklist for real U1/U8 device, OTA, provisioning, motion, voice, and monitoring validation |
 
+Direct U8-to-LiMa work is tracked separately in
+`docs/superpowers/plans/2026-05-24-lima-direct-device-gateway.md`.
+
 ## Likely Focus Areas
 
 - Manager API service complexity around tasks, safety, voiceprint, OTA, and
