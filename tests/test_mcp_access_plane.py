@@ -41,5 +41,59 @@ def test_enabled_connector_without_allowlist_is_invalid(monkeypatch):
     assert validate_connector_policy("broken_read") is None
 
 
+def test_enabled_connector_without_audit_events_is_invalid(monkeypatch):
+    from lima_mcp import access_plane
+
+    monkeypatch.setitem(
+        access_plane.FOUNDATION_CONNECTORS,
+        "silent_read",
+        ConnectorPolicy(
+            name="silent_read",
+            status=ConnectorStatus.READ_ONLY,
+            owner="lima-server",
+            allowlist=["read_file"],
+            audit_events=False,
+        ),
+    )
+
+    assert validate_connector_policy("silent_read") is None
+
+
+def test_enabled_connector_with_invalid_failure_mode_is_invalid(monkeypatch):
+    from lima_mcp import access_plane
+
+    monkeypatch.setitem(
+        access_plane.FOUNDATION_CONNECTORS,
+        "unsafe_read",
+        ConnectorPolicy(
+            name="unsafe_read",
+            status=ConnectorStatus.READ_ONLY,
+            owner="lima-server",
+            allowlist=["read_file"],
+            failure_mode="ignore",
+        ),
+    )
+
+    assert validate_connector_policy("unsafe_read") is None
+
+
+def test_enabled_connector_with_invalid_timeout_is_invalid(monkeypatch):
+    from lima_mcp import access_plane
+
+    monkeypatch.setitem(
+        access_plane.FOUNDATION_CONNECTORS,
+        "timeless_read",
+        ConnectorPolicy(
+            name="timeless_read",
+            status=ConnectorStatus.READ_ONLY,
+            owner="lima-server",
+            allowlist=["read_file"],
+            timeout_sec=0,
+        ),
+    )
+
+    assert validate_connector_policy("timeless_read") is None
+
+
 def test_unknown_connector_policy_is_invalid():
     assert validate_connector_policy("missing") is None

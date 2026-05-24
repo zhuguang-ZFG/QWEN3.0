@@ -129,6 +129,8 @@ def family_capabilities(family: str | ProtocolFamily) -> frozenset[str]:
 
 
 def validate_capability(family: str | ProtocolFamily, capability: str) -> bool:
+    if not family_is_active(family):
+        return False
     allowed = family_capabilities(family)
     if not allowed:
         return False

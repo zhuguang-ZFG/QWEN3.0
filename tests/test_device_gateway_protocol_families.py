@@ -25,7 +25,7 @@ def test_motion_capabilities_are_allowed():
 
 def test_gated_family_capabilities_exist_but_family_is_inactive():
     assert "voice_clone" in family_capabilities(ProtocolFamily.SPEECH)
-    assert validate_capability("speech", "voice_clone")
+    assert not validate_capability("speech", "voice_clone")
     assert not family_is_active("speech")
 
 

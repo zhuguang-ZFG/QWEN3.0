@@ -16,6 +16,9 @@ class ConnectorStatus(str, Enum):
     FULL = "full"
 
 
+VALID_FAILURE_MODES = frozenset({"deny", "warn", "allow_degraded"})
+
+
 @dataclass
 class ConnectorPolicy:
     name: str
@@ -136,4 +139,10 @@ def validate_connector_policy(name: str) -> ConnectorPolicy | None:
         return None  # unowned connector is not valid
     if policy.is_enabled() and not policy.allowlist:
         return None  # enabled connector without allowlist is broken
+    if policy.is_enabled() and not policy.audit_events:
+        return None
+    if policy.failure_mode not in VALID_FAILURE_MODES:
+        return None
+    if policy.timeout_sec <= 0:
+        return None
     return policy

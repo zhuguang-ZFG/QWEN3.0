@@ -2799,6 +2799,12 @@ Verification note:
     candidates and accumulating score drift;
   - normalized protocol-family keys to string values while accepting
     `ProtocolFamily` enum inputs.
+- Post-push review hardening:
+  - `validate_capability()` now fails closed for inactive protocol families, so
+    gated `speech.voice_clone` remains discoverable but cannot validate as
+    executable;
+  - MCP connector validation now rejects enabled policies with disabled audit
+    events, invalid failure modes, or non-positive timeouts.
 - Updated `docs/REFERENCE_IMPLEMENTATION_LEDGER.md` and the reference
   capability roadmap with concrete implementation files and test evidence for
   worker summary governance, MCP access plane, eval registry, and Device
@@ -2814,5 +2820,11 @@ Verification note:
     passed.
   - `git diff --check`:
     passed.
-  - `python -m pytest -q --ignore=active_model`:
-    1190 passed, 8 skipped.
+  - post-review `python -m pytest tests/test_device_gateway_protocol_families.py tests/test_mcp_access_plane.py -q --ignore=active_model`:
+    11 passed.
+  - post-review `python -m py_compile lima_mcp\access_plane.py device_gateway\protocol_families.py`:
+    passed.
+  - post-review `git diff --check`:
+    passed.
+  - post-review `python -m pytest -q --ignore=active_model`:
+    1193 passed, 8 skipped.
