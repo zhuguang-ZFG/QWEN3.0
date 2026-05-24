@@ -2,12 +2,23 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-05-25 P0.1 ESP32 Motion Executor Contract — Implementation Closeout
+
+| ID | Area | Evidence | Status |
+|---|---|---|---|
+| P0.1-S1 | Server error codes + protocol | `protocol_families.py` MotionErrorCode (8 codes), `protocol.py` motion_failure_event() + validate_motion_task_lifecycle(), fake-U8 --test failure mode | Implemented / 38 focused tests passed |
+| P0.1-S2 | Device Gateway path validation | `path_validator.py` with capability/path/feed/bounds validation wired into tasks.project_to_motion_task() | Implemented / 33 focused tests passed |
+| P0.1-S3 | ESP32 default board fail-loud | `board.cc` HandleMotionTaskJson() now emits E_UNSUPPORTED_BOARD; `board.h` SupportsMotionTask() virtual added | Implemented / ready for ESP-IDF compile |
+| P0.1-S4 | Zhuguang board failure hardening | Missing capability, missing path, unsupported capability paths now emit structured failure events via EmitMotionEventError() | Implemented / ready for ESP-IDF compile |
+| P0.1-S5 | VPS deployment | Server files uploaded, py_compile blocked by Python <3.7 `from __future__ import annotations` on VPS | Deferred to owner |
+| P0.1-regression | Full suite | 1213 passed, 8 skipped | Passed |
+
 ## 2026-05-25 Productivity Infrastructure Findings
 
 | ID | Area | Evidence | Next Action |
 |---|---|---|---|
 | PROD-001 | Global constraint | `AGENTS.md` now states that all work must serve real productivity, productization, and LiMa's own distinctive character. | Use this as the filter for every plan/review: useful execution beats decorative features. |
-| PROD-002 | ESP32 silent no-op risk | `esp32S_XYZ/firmware/u8-xiaozhi/main/boards/common/board.cc` default `HandleMotionTaskJson()` ignores the task. | Make unsupported board behavior emit structured failure events instead of doing nothing. |
+| PROD-002 | ESP32 silent no-op risk | `esp32S_XYZ/firmware/u8-xiaozhi/main/boards/common/board.cc` default HandleMotionTaskJson() now sends E_UNSUPPORTED_BOARD failure event. | Closed by P0.1-S3. |
 | PROD-003 | ESP32 failure telemetry | The zhuguang U8 handler returns without a motion failure event when `run_path` has no path payload and only logs unsupported capability. | Add `E_MISSING_PATH` and `E_UNSUPPORTED_CAPABILITY` events plus fake-U8/real-device smoke coverage. |
 | PROD-004 | Device task intelligence | `device_gateway/tasks.py` currently maps `write_text` to a rectangle path and `draw_generated` to a hardcoded star. | Build a deterministic text/SVG/path pipeline with preview and replay before adding more protocol families. |
 | PROD-005 | Intent parsing | `device_gateway/intent.py` is deterministic and falls back unknown text to `write_text`. | Add a gated validated planner or grammar+LLM hybrid with explicit rejected-command reasons. |

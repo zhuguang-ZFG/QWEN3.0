@@ -4,6 +4,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
+from device_gateway.protocol_families import MotionErrorCode
+
 PROTOCOL_VERSION = "lima-device-v1"
 SUPPORTED_UPLINK_TYPES = {
     "hello",
@@ -13,6 +15,9 @@ SUPPORTED_UPLINK_TYPES = {
     "device_info",
     "self_check",
 }
+
+REQUIRED_MOTION_LIFECYCLE_PHASES = frozenset({"accepted", "running"})
+TERMINAL_MOTION_PHASES = frozenset({"done", "failed", "cancelled", "rejected", "stopped"})
 
 
 class ProtocolError(ValueError):
@@ -194,3 +199,48 @@ def ack_frame(ack_type: str, device_id: str, **extra: Any) -> dict[str, Any]:
     frame = {"type": ack_type, "device_id": device_id, "server_time": now_iso()}
     frame.update(extra)
     return frame
+
+
+def motion_failure_event(
+    device_id: str,
+    task_id: str,
+    error_code: MotionErrorCode,
+    reason: str = "",
+    request_id: str | None = None,
+) -> dict[str, Any]:
+    """Build a standards-compliant motion failure event frame."""
+    frame: dict[str, Any] = {
+        "type": "motion_event",
+        "device_id": device_id,
+        "task_id": task_id,
+        "phase": "failed",
+        "error": {"code": error_code.value, "reason": reason or error_code.value},
+    }
+    if request_id:
+        frame["request_id"] = request_id
+    return frame
+
+
+def validate_motion_task_lifecycle(events: list[dict[str, Any]]) -> dict[str, Any]:
+    """Check that a motion task event sequence is well-formed.
+
+    Returns {"ok": True, "terminal_phase": "done"} or
+            {"ok": False, "reason": "...", "missing_phase": "..."}
+    """
+    if not events:
+        return {"ok": False, "reason": "no events recorded", "missing_phase": "accepted"}
+    phases = [e.get("phase", "") for e in events]
+    terminal = next((p for p in phases if p in TERMINAL_MOTION_PHASES), None)
+    if terminal is None:
+        return {"ok": False, "reason": "no terminal phase reached", "missing_phase": "done|failed"}
+    if terminal == "failed":
+        error = None
+        for e in reversed(events):
+            err = e.get("error") if isinstance(e, dict) else None
+            if isinstance(err, dict) and err.get("code"):
+                error = err
+                break
+        if error is None:
+            return {"ok": False, "reason": "failed event missing error code"}
+        return {"ok": True, "terminal_phase": "failed", "error": error}
+    return {"ok": True, "terminal_phase": terminal}

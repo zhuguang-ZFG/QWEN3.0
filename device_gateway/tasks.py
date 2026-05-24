@@ -4,7 +4,8 @@ from __future__ import annotations
 from typing import Any
 
 from .intent import resolve_voice_task
-from .safety import DEFAULT_FEED, safe_point, validate_run_path_params
+from .safety import DEFAULT_FEED, safe_point
+from .path_validator import validate_capability_params, validate_run_path_params
 from . import store as store_mod
 from .store import DeviceTaskStore, InMemoryDeviceTaskStore
 
@@ -69,7 +70,24 @@ def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_i
         }
     else:
         run_params = {"feed": DEFAULT_FEED, "path": [safe_point(0, 0, 0)], "source_capability": capability}
-    run_params = validate_run_path_params(run_params)
+
+    sanitized, error = validate_capability_params(capability, run_params)
+    if error:
+        task_id = _next_task_id()
+        task = {
+            "type": "motion_task",
+            "task_id": task_id,
+            "device_id": device_id,
+            "capability": "run_path",
+            "source": voice_task.get("source", "voice"),
+            "params": {},
+            "error": {"code": error, "reason": f"validation failed: {error}"},
+        }
+        if request_id:
+            task["request_id"] = request_id
+        store_mod.task_store.create_task_state(task, status="failed")
+        return task
+
     task_id = _next_task_id()
     task = {
         "type": "motion_task",
@@ -77,7 +95,7 @@ def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_i
         "device_id": device_id,
         "capability": "run_path",
         "source": voice_task.get("source", "voice"),
-        "params": run_params,
+        "params": sanitized,
     }
     if request_id:
         task["request_id"] = request_id

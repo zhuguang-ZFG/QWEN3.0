@@ -23,6 +23,17 @@ class ProtocolFamily(str, Enum):
     PERCEPTION = "perception"
 
 
+class MotionErrorCode(str, Enum):
+    E_UNSUPPORTED_CAPABILITY = "E_UNSUPPORTED_CAPABILITY"
+    E_MISSING_PATH = "E_MISSING_PATH"
+    E_BAD_PARAMS = "E_BAD_PARAMS"
+    E_U1_UNAVAILABLE = "E_U1_UNAVAILABLE"
+    E_DEVICE_UPDATING = "E_DEVICE_UPDATING"
+    E_EXECUTION_FAILED = "E_EXECUTION_FAILED"
+    E_UNSUPPORTED_BOARD = "E_UNSUPPORTED_BOARD"
+    E_TIMEOUT = "E_TIMEOUT"
+
+
 FAMILY_ALLOWLISTS: dict[str, frozenset[str]] = {
     ProtocolFamily.MOTION.value: frozenset({"run_path", "write_text", "draw_generated"}),
     ProtocolFamily.DISPLAY.value: frozenset({"show_image", "show_text", "clear_screen"}),

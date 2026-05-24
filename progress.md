@@ -2,6 +2,45 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 P0.1 ESP32 Motion Executor Contract — Implemented
+
+- Slice 1: Server error codes + protocol contract.
+  - Added `MotionErrorCode` enum (8 codes: E_UNSUPPORTED_CAPABILITY, E_MISSING_PATH,
+    E_BAD_PARAMS, E_U1_UNAVAILABLE, E_DEVICE_UPDATING, E_EXECUTION_FAILED,
+    E_UNSUPPORTED_BOARD, E_TIMEOUT) to `device_gateway/protocol_families.py`.
+  - Added `motion_failure_event()` builder and `validate_motion_task_lifecycle()`
+    to `device_gateway/protocol.py`.
+  - Extended fake-U8 (`esp32S_XYZ/tools/fake_lima_u8/app.py`) with `--test failure`
+    and `--fail-with <code>` CLI flags plus `run_fake_u8_failure_script()`.
+  - Tests: `tests/test_device_gateway_motion_contract.py` (9 tests).
+  - Focused suite: 38 passed.
+- Slice 2: Device Gateway path validation.
+  - Created `device_gateway/path_validator.py` with `validate_run_path_params()`
+    and `validate_capability_params()` — checks path bounds, feed limits, point
+    counts, capability-to-required-field mapping.
+  - Wired validation into `tasks.project_to_motion_task()`: invalid tasks now
+    return `E_MISSING_PATH` / `E_BAD_PARAMS` / `E_UNSUPPORTED_CAPABILITY` at
+    creation time with status "failed".
+  - Tests: `tests/test_device_gateway_path_validator.py` (11 tests).
+  - Focused suite: 33 passed.
+- Slice 3: ESP32 default board fail-loud.
+  - `board.cc`: Replaced empty `HandleMotionTaskJson()` with implementation that
+    sends `failed` + `E_UNSUPPORTED_BOARD` via `Application::SendMotionEvent()`.
+  - `board.h`: Added `virtual bool SupportsMotionTask() { return false; }`.
+  - `dlc_motor_control_p1_ai_board.cc`: Added `SupportsMotionTask() override { return true; }`.
+- Slice 4: Zhuguang board failure hardening.
+  - Missing capability field now emits `E_UNSUPPORTED_CAPABILITY` before return.
+  - Missing path/path_json now emits `E_MISSING_PATH` before return.
+  - Unsupported capability (final else) now emits `E_UNSUPPORTED_CAPABILITY` with
+    capability name in reason.
+  - All three paths previously logged-and-returned silently.
+- Slice 5: VPS deployment deferred to owner.
+  - Server files uploaded but py_compile blocked by VPS Python <3.7
+    (`from __future__ import annotations`).
+  - Owner will handle: Python version upgrade or annotation removal, deploy,
+    fake-U8 failure smoke, real-device smoke.
+- Full suite: **1213 passed, 8 skipped**.
+
 ## 2026-05-25 Reference Capability Implementation Closeout
 
 - Completed Phase 1-8 of the reference capability implementation roadmap at
