@@ -2454,3 +2454,39 @@ Verification note:
     no matches.
   - `python -m pytest -q --ignore=active_model`:
     997 passed, 8 skipped.
+
+## 2026-05-24 M20 Durable Orchestrator State Closeout
+
+- Reviewed and closed M20:
+  - `agent_runtime.orchestrator` now persists queue requests and leases to
+    JSONL state records;
+  - `load_state()` restores requests, restores valid leases, releases claimed
+    requests without valid leases, expires downtime leases, and then recovers
+    unfinished tasks from the M18 store;
+  - helpers cover state path selection, JSON encoding/decoding, bad-record
+    tolerance, state cleanup, and save-plus-snapshot.
+- Review fixes applied:
+  - queue state writes are now atomic through a temporary file and support
+    filename-only `LIMA_QUEUE_STATE` paths;
+  - persisted request goals, task ids, request ids, and worker ids are redacted
+    before writing state;
+  - `load_state()` returns the actual number of newly restored or recovered
+    requests instead of the number of state lines read;
+  - missing state files now still recover pending tasks from the run store;
+  - bad JSON lines, non-dict records, bad numeric fields, and unknown statuses
+    degrade safely to skipped/default values;
+  - claimed requests without a valid lease restore to pending, while valid
+    leases still block duplicate claims after restart;
+  - idempotent repeated loads no longer duplicate requests or inflate counts;
+  - M20 source/test files were cleaned to ASCII comments and docstrings.
+- Verification:
+  - `python -m pytest tests/test_agent_orchestrator.py -q --ignore=active_model`:
+    39 passed after review fixes.
+  - `python -m pytest tests/test_agent_orchestrator.py tests/test_agent_store.py tests/test_agent_runtime.py -q --ignore=active_model`:
+    104 passed after review fixes.
+  - `python -m py_compile agent_runtime/orchestrator.py tests/test_agent_orchestrator.py`:
+    passed.
+  - `rg -n "[^\\x00-\\x7F]" agent_runtime/orchestrator.py tests/test_agent_orchestrator.py tests/test_agent_store.py tests/test_agent_runtime.py`:
+    no matches.
+  - `python -m pytest -q --ignore=active_model`:
+    1010 passed, 8 skipped.

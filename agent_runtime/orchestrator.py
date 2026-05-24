@@ -8,6 +8,8 @@ workspace writes.
 
 from __future__ import annotations
 
+import json as _json
+import os
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -18,6 +20,7 @@ from agent_runtime.contract import (
     AgentRunResult,
     AgentRunStatus,
     AgentTask,
+    redact,
     redact_value,
 )
 from agent_runtime.executor import AgentRuntime
@@ -239,6 +242,112 @@ class AgentRunQueue:
             count += 1
         return count
 
+    def save_state(self) -> bool:
+        """Persist queue requests and leases as JSONL state records."""
+        try:
+            records = []
+            for req in self._requests.values():
+                records.append(_request_record(req))
+            for lease in self._leases.values():
+                records.append(_lease_record(lease))
+            path = _state_path()
+            state_dir = os.path.dirname(path)
+            if state_dir:
+                os.makedirs(state_dir, exist_ok=True)
+            tmp = path + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                for rec in records:
+                    f.write(_json_dumps(rec) + "\n")
+            os.replace(tmp, path)
+            return True
+        except OSError:
+            return False
+
+    def load_state(self, store: AgentRunStore | None = None) -> int:
+        """Load queue state from persisted JSONL. Returns count of restored requests."""
+        path = _state_path()
+        store = store or self.store
+        loaded = 0
+        if not os.path.exists(path):
+            return self.recover_from_store()
+
+        request_records: list[dict[str, Any]] = []
+        lease_records: list[dict[str, Any]] = []
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                rec = _json_loads(line.strip())
+                if not rec:
+                    continue
+                record_type = rec.get("_type", "")
+                if record_type == "queue_request":
+                    request_records.append(rec)
+                elif record_type == "queue_lease":
+                    lease_records.append(rec)
+
+        for rec in request_records:
+            if self._restore_request(rec, store):
+                loaded += 1
+        for rec in lease_records:
+            self._restore_lease(rec)
+
+        self._release_claims_without_leases()
+        self.expire_leases()
+        loaded += self.recover_from_store()
+        return loaded
+
+    def _restore_request(self, rec: dict, store: AgentRunStore) -> bool:
+        rid = str(rec.get("request_id", ""))
+        if not rid or rid in self._requests:
+            return False
+        task_id = str(rec.get("task_id", ""))
+        task = store.get_task(task_id)
+        safe_priority = _safe_int(rec.get("priority", 0))
+        safe_created_at = _safe_float(rec.get("created_at", time.time()))
+        req = AgentRunRequest(
+            request_id=rid,
+            task=task,
+            task_id=task_id,
+            goal=str(rec.get("goal", "")),
+            priority=safe_priority,
+            created_at=safe_created_at,
+        )
+        req.status = _parse_queue_status(rec.get("status", "pending"))
+        self._requests[rid] = req
+        return True
+
+    def _restore_lease(self, rec: dict) -> None:
+        rid = str(rec.get("request_id", ""))
+        if not rid or rid in self._leases or rid not in self._requests:
+            return
+        lease = AgentRunLease(
+            request_id=rid,
+            worker_id=str(rec.get("worker_id", "unknown")),
+            claimed_at=_safe_float(rec.get("claimed_at", 0)),
+            expires_at=_safe_float(rec.get("expires_at", 0)),
+            lease_sec=_safe_float(rec.get("lease_sec", 300)),
+        )
+        if not lease.is_expired:
+            self._leases[rid] = lease
+            if self._requests[rid].status == QueueStatus.PENDING:
+                self._requests[rid].status = QueueStatus.CLAIMED
+
+    def _release_claims_without_leases(self) -> None:
+        for request_id, req in self._requests.items():
+            if req.status == QueueStatus.CLAIMED and request_id not in self._leases:
+                req.status = QueueStatus.PENDING
+
+    def clear_state_file(self) -> None:
+        """Remove the persisted state file. For test cleanup."""
+        try:
+            os.remove(_state_path())
+        except OSError:
+            pass
+
+    def save_and_snapshot(self) -> dict:
+        """Save state and return a snapshot for debugging."""
+        self.save_state()
+        return self.stats()
+
 
 def _queue_status_for_result(result: AgentRunResult) -> QueueStatus:
     if any(step.blocked for step in result.steps):
@@ -280,3 +389,69 @@ def _emit(event: str, data: dict[str, Any]) -> None:
         _safe_stream(event, safe_data)
     except Exception:
         pass
+
+
+def _state_path() -> str:
+    return os.environ.get(
+        "LIMA_QUEUE_STATE",
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                     "data", "queue_state.jsonl"),
+    )
+
+
+def _json_dumps(obj: dict) -> str:
+    return _json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
+
+
+def _json_loads(text: str) -> dict[str, Any]:
+    if not text:
+        return {}
+    try:
+        value = _json.loads(text)
+    except _json.JSONDecodeError:
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
+def _request_record(req: AgentRunRequest) -> dict[str, Any]:
+    return {
+        "_type": "queue_request",
+        "request_id": redact(req.request_id),
+        "task_id": redact(req.task_id),
+        "goal": redact(req.goal),
+        "priority": req.priority,
+        "created_at": req.created_at,
+        "status": req.status.value,
+    }
+
+
+def _lease_record(lease: AgentRunLease) -> dict[str, Any]:
+    return {
+        "_type": "queue_lease",
+        "request_id": redact(lease.request_id),
+        "worker_id": redact(lease.worker_id),
+        "claimed_at": lease.claimed_at,
+        "expires_at": lease.expires_at,
+        "lease_sec": lease.lease_sec,
+    }
+
+
+def _parse_queue_status(value: object) -> QueueStatus:
+    try:
+        return QueueStatus(str(value))
+    except ValueError:
+        return QueueStatus.PENDING
+
+
+def _safe_int(value: object) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _safe_float(value: object) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0

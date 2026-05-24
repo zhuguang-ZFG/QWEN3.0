@@ -336,5 +336,201 @@ def test_event_bridge_never_raises(monkeypatch):
     queue = AgentRunQueue()
 
     req = queue.submit(AgentTask(task_id="t1", goal="review"))
+    assert req is not None  # should not crash even when event sink fails
+
+
+def test_save_and_load_state_preserves_requests(tmp_path, monkeypatch):
+    state_path = tmp_path / "q_state.jsonl"
+    monkeypatch.setenv("LIMA_QUEUE_STATE", str(state_path))
+    q1 = AgentRunQueue()
+    q1.submit(AgentTask(task_id="t1", goal="review"))
+
+    assert q1.save_state() is True
+    assert state_path.exists()
+
+    q2 = AgentRunQueue(store=q1.store)
+    loaded = q2.load_state()
+
+    assert loaded == 1
+    assert [req.task_id for req in q2.list_pending()] == ["t1"]
+
+
+def test_save_and_load_state_preserves_leases(tmp_path, monkeypatch):
+    monkeypatch.setenv("LIMA_QUEUE_STATE", str(tmp_path / "q_state.jsonl"))
+    q1 = AgentRunQueue()
+    req = q1.submit(AgentTask(task_id="t1", goal="test"))
+    q1.claim(req.request_id, "worker-1")
+    q1.save_state()
+
+    q2 = AgentRunQueue(store=q1.store)
+    q2.load_state()
+
+    assert q2.stats()["active_leases"] == 1
+
+
+def test_lease_survives_save_load_cycle(tmp_path, monkeypatch):
+    monkeypatch.setenv("LIMA_QUEUE_STATE", str(tmp_path / "q_state.jsonl"))
+    q1 = AgentRunQueue()
+    req = q1.submit(AgentTask(task_id="t1", goal="test"))
+    q1.claim(req.request_id, "worker-1", lease_sec=300)
+    q1.save_state()
+
+    q2 = AgentRunQueue(store=q1.store)
+    q2.load_state()
+    lease2 = q2.claim(req.request_id, "worker-2")
+
+    assert lease2 is None
+
+
+def test_expired_lease_after_load_allows_claim(tmp_path, monkeypatch):
+    monkeypatch.setenv("LIMA_QUEUE_STATE", str(tmp_path / "q_state.jsonl"))
+    q1 = AgentRunQueue()
+    req = q1.submit(AgentTask(task_id="t1", goal="test"))
+    # Short lease that will expire
+    req_id = req.request_id
+    q1._leases[req_id] = AgentRunLease(request_id=req_id, worker_id="w1", lease_sec=0.001)
+    q1._requests[req_id].status = QueueStatus.CLAIMED
+    q1.save_state()
+    time.sleep(0.01)
+
+    q2 = AgentRunQueue(store=q1.store)
+    q2.load_state()
+    lease = q2.claim(req_id, "worker-2")
+    assert lease is not None
+
+
+def test_save_and_snapshot(tmp_path, monkeypatch):
+    monkeypatch.setenv("LIMA_QUEUE_STATE", str(tmp_path / "q_state.jsonl"))
+    q = AgentRunQueue()
+    q.submit(AgentTask(task_id="t1", goal="test"))
+    snap = q.save_and_snapshot()
+    assert snap["total"] == 1
+
+
+def test_clear_state_file(tmp_path, monkeypatch):
+    monkeypatch.setenv("LIMA_QUEUE_STATE", str(tmp_path / "q_state.jsonl"))
+    q = AgentRunQueue()
+    q.submit(AgentTask(task_id="t1", goal="test"))
+    q.save_state()
+    assert (tmp_path / "q_state.jsonl").exists()
+    q.clear_state_file()
+
+    assert not (tmp_path / "q_state.jsonl").exists()
+
+    q2 = AgentRunQueue(store=q.store)
+    assert q2.load_state() == 1
+    assert [req.task_id for req in q2.list_pending()] == ["t1"]
+
+
+def test_load_state_idempotent(tmp_path, monkeypatch):
+    monkeypatch.setenv("LIMA_QUEUE_STATE", str(tmp_path / "q_state.jsonl"))
+    q1 = AgentRunQueue()
+    q1.submit(AgentTask(task_id="t1", goal="test"))
+    q1.save_state()
+
+    q2 = AgentRunQueue(store=q1.store)
+    first = q2.load_state()
+    second = q2.load_state()
+
+    assert first == 1
+    assert second == 0
+    assert q2.stats()["total"] == 1
+
+
+def test_full_cycle_save_run_recover(tmp_path, monkeypatch):
+    monkeypatch.setenv("LIMA_QUEUE_STATE", str(tmp_path / "q_state.jsonl"))
+    q1 = AgentRunQueue()
+    req = q1.submit(AgentTask(task_id="t1", goal="review the code"))
+    q1.run_one(req.request_id)
+    q1.save_state()
+
+    q2 = AgentRunQueue(store=q1.store)
+    q2.load_state()
+    # Task should be completed, not re-queued
+    assert len(q2.list_pending()) == 0
+    result = q2.store.get_result("t1")
+    assert result is not None
+    assert result.ok is True
 
     assert req.task_id == "t1"
+
+
+def test_save_state_redacts_secret_like_fields(tmp_path, monkeypatch):
+    state_path = tmp_path / "q_state.jsonl"
+    monkeypatch.setenv("LIMA_QUEUE_STATE", str(state_path))
+    queue = AgentRunQueue()
+    req = queue.submit(AgentTask(
+        task_id="task-1",
+        goal="use api_key=sk-secret",
+    ))
+    queue.claim(req.request_id, "worker-token=secret")
+
+    assert queue.save_state() is True
+    raw = state_path.read_text(encoding="utf-8")
+
+    assert "api_key" not in raw
+    assert "sk-secret" not in raw
+    assert "worker-token=secret" not in raw
+    assert "[REDACTED]" in raw
+
+
+def test_load_state_ignores_bad_lines_and_bad_numbers(tmp_path, monkeypatch):
+    state_path = tmp_path / "q_state.jsonl"
+    monkeypatch.setenv("LIMA_QUEUE_STATE", str(state_path))
+    state_path.write_text(
+        "\n".join([
+            "not json",
+            '{"_type":"queue_request","request_id":"r1","task_id":"t1",'
+            '"goal":"ok","priority":"bad","created_at":"bad","status":"bad"}',
+            "[]",
+        ]),
+        encoding="utf-8",
+    )
+
+    queue = AgentRunQueue()
+    loaded = queue.load_state()
+    req = queue.list_pending()[0]
+
+    assert loaded == 1
+    assert req.request_id == "r1"
+    assert req.priority == 0
+    assert req.created_at == 0.0
+
+
+def test_claimed_state_without_valid_lease_restores_pending(tmp_path, monkeypatch):
+    state_path = tmp_path / "q_state.jsonl"
+    monkeypatch.setenv("LIMA_QUEUE_STATE", str(state_path))
+    state_path.write_text(
+        '{"_type":"queue_request","request_id":"r1","task_id":"t1",'
+        '"goal":"ok","priority":0,"created_at":1,"status":"claimed"}\n',
+        encoding="utf-8",
+    )
+
+    queue = AgentRunQueue()
+
+    assert queue.load_state() == 1
+    assert queue.list_pending()[0].request_id == "r1"
+
+
+def test_save_state_supports_filename_without_directory(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("LIMA_QUEUE_STATE", "queue_state.jsonl")
+    queue = AgentRunQueue()
+    queue.submit(AgentTask(task_id="t1", goal="test"))
+
+    assert queue.save_state() is True
+    assert (tmp_path / "queue_state.jsonl").exists()
+
+
+def test_load_state_without_file_recovers_pending_store_tasks(tmp_path, monkeypatch):
+    monkeypatch.setenv("LIMA_QUEUE_STATE", str(tmp_path / "missing.jsonl"))
+    store = InMemoryAgentRunStore()
+    store.save_task(AgentTask(
+        task_id="orphan",
+        goal="recover me",
+        status=AgentRunStatus.PENDING,
+    ))
+    queue = AgentRunQueue(store=store)
+
+    assert queue.load_state() == 1
+    assert [req.task_id for req in queue.list_pending()] == ["orphan"]
