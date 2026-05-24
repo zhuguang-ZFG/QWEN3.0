@@ -1087,3 +1087,9 @@ Verification note:
 - Registered `deepcode-cli` as the main repository's tracked LiMa Code submodule.
 - Added `docs/LIMACODE_MANAGEMENT.md` as the governance record for LiMa Code ownership boundaries, submodule pointer updates, verification, and safety rules.
 - Recorded LiMa Code as a first-class managed LiMa distribution in `STATUS.md` and `docs/DOCUMENTATION_STATUS.md`.
+
+## 2026-05-24 esp32S_XYZ Backend Management Closure
+
+- Registered `esp32S_XYZ` as the main repository's tracked downstream product submodule.
+- Added `docs/ESP32S_XYZ_MANAGEMENT.md` as the governance record for LiMa backend ownership, product repository boundaries, submodule pointer updates, verification, and hardware-release safety rules.
+- Recorded `esp32S_XYZ` as a first-class LiMa-managed product distribution in `STATUS.md`, `docs/DOCUMENTATION_STATUS.md`, and `docs/LIMA_MEMORY.md`.

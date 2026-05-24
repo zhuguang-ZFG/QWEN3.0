@@ -1048,3 +1048,13 @@ Deployment: not performed.
   - LiMa Code owns terminal coding workflow, local tool execution, MCP client behavior, worker loops, local audit files, and CLI behavior.
   - The main repo owns the pinned revision, integration records, cross-repo contract checks, and release/deploy evidence.
 - Future LiMa Code changes should be committed and pushed in `deepcode-cli` first, then the main repo should advance only the submodule pointer plus related docs/tests.
+
+## 2026-05-24 esp32S_XYZ Backend Management Closure
+
+- `esp32S_XYZ` is now a first-class downstream LiMa product distribution through a Git submodule.
+- Submodule remote: `https://github.com/zhuguang-ZFG/esp32S_XYZ.git`.
+- Pinned product revision: `c6845e0` (`fix: exclude dead rymcu GitHub link from markdown check`).
+- `docs/ESP32S_XYZ_MANAGEMENT.md` records the backend boundary:
+  - LiMa owns AI/model routing, memory, safety policy, backend health, VPS endpoints, provider-key custody, and cross-repo compatibility evidence.
+  - `esp32S_XYZ` owns firmware, Edge-A/B/C/D schemas, Xiaozhi/manager services, hardware validation, OTA/provisioning/self-check flows, monitoring, and fake-device tools.
+  - Integration is contract-first; when chat/LLM, image/vector generation, voice/ASR/TTS, safety, OTA, telemetry, monitoring, or task orchestration changes across both repos, push the product repo first, then advance the main-repo submodule pointer and record verification.
