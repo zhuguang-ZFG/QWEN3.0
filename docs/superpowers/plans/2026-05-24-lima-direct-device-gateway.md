@@ -1,7 +1,7 @@
 # LiMa Direct Device Gateway Plan
 
 **Date:** 2026-05-24
-**Status:** phase 1 implemented; text-only fake U8 loop implemented
+**Status:** public route deployed; Redis HA task routing deployed; real hardware still gated
 **Scope:** replace the Xiaozhi server runtime dependency for `esp32S_XYZ` with
 a LiMa-native U8 device protocol and gateway.
 
@@ -517,3 +517,29 @@ Results:
 - fake LiMa U8: 5 passed;
 - existing fake U1/device-server/AI suite: 31 passed;
 - schemas: `validated=62 passed=62 failed=0`.
+
+### 2026-05-25 Public Route And Redis HA Slice
+
+Implemented in the main LiMa repo and deployed on VPS:
+
+- `https://chat.donglicao.com/device/v1/*` is public through nginx and guarded
+  by per-device tokens.
+- `device_gateway/redis_store.py` provides Redis-backed task IDs, task
+  snapshots, motion events, and per-device pending queues.
+- `device_gateway/notifier.py` provides Redis pub/sub task-available
+  notifications so the router process that owns a local WebSocket session can
+  drain tasks created by another process.
+- VPS production health reports Redis task store and Redis session bus.
+- Redis is bound to loopback and public `6379` is part of the online
+  distribution port-guard smoke.
+
+Verification:
+
+- focused Device Gateway suite: `31 passed`;
+- agent-task plus Device Gateway subset: `45 passed`;
+- public fake U8 WebSocket loop passed;
+- cross-process temp-router smoke passed;
+- online distribution smoke: `12/12`.
+
+Detailed evidence lives in
+`docs/superpowers/plans/2026-05-25-lima-device-gateway-ha.md`.

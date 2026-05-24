@@ -1,6 +1,6 @@
 # LiMa Reference Project Evaluation
 
-> Updated: 2026-05-24
+> Updated: 2026-05-25
 > Scope: OpenRAG, Google Cloud always-on-memory-agent, TechSpar, and autonomy references evaluated against the current LiMa private coding assistant backend.
 
 ## Current LiMa Baseline
@@ -29,6 +29,8 @@ Current implemented capabilities:
 - Routing weights, event log, tracing, guardrails, response pipeline, entity extraction, reflection, ensemble, artifact handles, concurrency pool, and hierarchical memory modules.
 - `mastery_loop/` typed records, SQLite store, event adapters, scoring, weak-point extraction, review scheduling, recommendations, and traces.
 - Agent skill promotion now requires eval pass, manual approval, and mastery evidence references.
+- Public LiMa Device Gateway is deployed through `chat.donglicao.com/device/v1/*`
+  with Redis-backed task queues and Redis pub/sub session-owner notification.
 
 Important calibration:
 

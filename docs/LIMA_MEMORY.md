@@ -9,7 +9,7 @@
 - Redis HA mode for Device Gateway is default-off. Enable with `LIMA_DEVICE_TASK_STORE=redis`, `LIMA_DEVICE_SESSION_BUS=redis`, and `LIMA_DEVICE_REDIS_URL`; this shares task queues and publishes task-available notifications so the process with the local WebSocket session can drain remote-created tasks.
 - On 2026-05-25 VPS Redis HA was enabled for Device Gateway. Redis must remain loopback-only; public `6379` is part of online distribution guard checks.
 
-> Updated: 2026-05-24
+> Updated: 2026-05-25
 > Purpose: durable working memory for future LiMa coding-assistant sessions.
 
 ## Current Direction
@@ -238,7 +238,7 @@ Latest online-distribution governance update:
 - Added `scripts/smoke_online_distributions.py`.
 - Migrated provider-key-like environment lines out of VPS systemd unit files into root-readable env files.
 - Moved service-unit secret migration backups to `/root/secure-service-backups` with mode `600`.
-- `python scripts/smoke_online_distributions.py --chat-exact distribution_control_ok` passed `10/10`.
+- Historical `python scripts/smoke_online_distributions.py --chat-exact distribution_control_ok` passed `10/10`; latest online distribution smoke is `12/12` after Device Gateway Redis HA and public `6379` guard.
 
 Latest SCNet first-tier deployment:
 

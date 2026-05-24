@@ -1,6 +1,6 @@
 ﻿# Documentation Status
 
-> Updated: 2026-05-24
+> Updated: 2026-05-25
 > Purpose: prevent old commercial-platform plans from being mistaken for the active LiMa direction.
 
 ## Current Source Of Truth
@@ -24,7 +24,8 @@
 | `docs/LIMACODE_MANAGEMENT.md` | Active | Source of truth for LiMa Code submodule governance, pinned revision updates, cross-repo verification, and admitted external workflow references. |
 | `docs/ESP32S_XYZ_MANAGEMENT.md` | Active | Source of truth for esp32S_XYZ submodule governance, LiMa backend boundaries, and cross-repo product verification. |
 | `docs/ESP32S_XYZ_OPTIMIZATION_ROADMAP.md` | Active | Optimization and refactor mandate for LiMa-led esp32S_XYZ improvement work. |
-| `docs/superpowers/plans/2026-05-24-lima-direct-device-gateway.md` | Active plan | Direct U8-to-LiMa Device Gateway plan; current code supports single-process multi-device concurrency with memory store, while VPS HA requires a shared store and WebSocket ownership strategy. |
+| `docs/superpowers/plans/2026-05-24-lima-direct-device-gateway.md` | Active plan | Direct U8-to-LiMa Device Gateway plan; public route is deployed and now uses Redis-backed task queues plus pub/sub session-owner notification on VPS. |
+| `docs/superpowers/plans/2026-05-25-lima-device-gateway-ha.md` | Active deployment record | Redis HA design and evidence for multi-process Device Gateway delivery; Postgres remains deferred for audit/history. |
 | `docs/superpowers/plans/2026-05-24-xiaozhi-server-deprecation-removal.md` | Active plan | Gated deprecation, migration, quarantine, and eventual removal plan for Xiaozhi server runtime. |
 | `docs/reference/HARDWARE_COMPANION_REFERENCES.md` | Active boundary | External voice/display/OCR/TTS/robotics/world-model companion hardware references admitted for later LiMa Device Gateway roadmap work. |
 | `docs/reference/AI_ENGINEERING_COMPETENCY_MAP_2026.md` | Active boundary | Maps the 12 production AI engineering concepts to LiMa gates for prompts, RAG, vectors, agents/tools, reasoning, memory, streaming, inference, FinOps, fine-tuning, evals, and MLOps. |
@@ -70,3 +71,4 @@ These files are retained as reference, but they are not the current execution di
 9. Treat `esp32S_XYZ` as the tracked downstream hardware/product submodule; update `docs/ESP32S_XYZ_MANAGEMENT.md`, `STATUS.md`, `docs/LIMA_MEMORY.md`, and `progress.md` when its pinned revision or LiMa backend contract changes.
 10. Treat MCP connectors as authority-bearing access paths, not simple prompts. Check `docs/reference/MCP_CONNECTOR_CATALOG.md` before enabling any new MCP server.
 11. Treat `docs/reference/AI_ENGINEERING_COMPETENCY_MAP_2026.md` as the baseline production-AI checklist before expanding model, agent, memory, eval, cost, or deployment features.
+12. Device Gateway production state is Redis HA on VPS; update `docs/superpowers/plans/2026-05-25-lima-device-gateway-ha.md` and `scripts/smoke_online_distributions.py` when changing Redis, worker count, or public port guards.

@@ -1,6 +1,6 @@
 # Superpowers Plan Closure Status
 
-> Updated: 2026-05-24
+> Updated: 2026-05-25
 > Scope: execution plans under `docs/superpowers/plans/`.
 
 ## Summary
@@ -14,7 +14,7 @@ Several 2026-05-23/2026-05-24 plan files still contain unchecked implementation-
 - `docs/LIMA_MEMORY.md`
 - `progress.md`
 
-The current runtime truth is: VPS Server/Worker APIs are deployed, LiMa Code completed a public real-machine worker smoke, FRP `8088` chat is healthy again after local router startup hardening, `server.py` route decomposition is closed for this architecture pass, backend capability registry plus `key_pool.py` integration are deployed, redacted key-pool telemetry is implemented, and the TechSpar-inspired mastery loop is implemented locally.
+The current runtime truth is: VPS Server/Worker APIs are deployed, LiMa Code completed a public real-machine worker smoke, FRP `8088` chat is healthy again after local router startup hardening, `server.py` route decomposition is closed for this architecture pass, backend capability registry plus `key_pool.py` integration are deployed, redacted key-pool telemetry is implemented, the TechSpar-inspired mastery loop is implemented locally, and the public LiMa Device Gateway is deployed with Redis HA task routing.
 
 ## Plan Status
 
@@ -36,6 +36,8 @@ The current runtime truth is: VPS Server/Worker APIs are deployed, LiMa Code com
 | `2026-05-23-lima-autonomous-worker-v02.md` | Partially implemented | Bounded work loops, stop marker, failure quarantine, repo allowlist, audit, and runtime budget exist in LiMa Code. | Always-on daemon mode remains deferred and gated. |
 | `2026-05-23-techspar-mastery-loop.md` | Implemented and deployed | `mastery_loop/` has typed records, SQLite store, event adapters, scoring, weak-point extraction, review scheduling, recommendations, and traces; skill promotion requires mastery evidence. VPS backup `/opt/lima-router/backups/mastery-loop-20260524-125511`; HTTPS/FRP/preflight smokes passed. | Admin UI exposure and hot-path planner/routing influence remain deferred and gated. |
 | `2026-05-24-tool-dispatcher-clean-split.md` | Closed locally and deployed as runtime files | Split `lima_fc_tools` runtime files were part of the 2026-05-24 VPS sync; focused tests and full pytest evidence are in `STATUS.md`. | Telegram FC/TTS remains outside ordinary routing by policy. |
+| `2026-05-24-lima-direct-device-gateway.md` | Public route deployed; Redis HA follow-up deployed | Public `/device/v1/*` route, fake U8 local/public smokes, Redis task store/session bus, cross-process temp-router smoke, and `12/12` online distribution smoke are recorded in `STATUS.md`, `docs/LIMA_MEMORY.md`, and `progress.md`. | Real U8 firmware and real hardware motion remain gated. |
+| `2026-05-25-lima-device-gateway-ha.md` | Implemented and deployed | Redis service, Python Redis client, HA env vars, loopback Redis binding, public `6379` guard, cross-process delivery smoke, and focused tests are recorded in the plan and status docs. | Main service worker-count increase remains a separate rollout switch. |
 
 ## Non-Goals And Deferred Risks
 
@@ -53,4 +55,4 @@ The current runtime truth is: VPS Server/Worker APIs are deployed, LiMa Code com
 
 ## Current Accuracy Judgment
 
-The main `task_plan.md` project phases are complete. 2026-05-22 Superpowers execution plans are checkbox-reconciled. Later plan files may still contain draft checkboxes, but current runtime status is calibrated in `STATUS.md`, `docs/EXECUTION_PLAN.md`, `docs/LIMA_MEMORY.md`, and `progress.md`; latest VPS evidence includes backup `/opt/lima-router/backups/mastery-loop-20260524-125511`, HTTPS exact `mastery_loop_https_ok`, FRP exact `mastery_loop_frp_ok`, and worker preflight `ready=true`. The remaining reference-project work is intentionally gated policy work, not an unimplemented migration plan.
+The main `task_plan.md` project phases are complete. 2026-05-22 Superpowers execution plans are checkbox-reconciled. Later plan files may still contain draft checkboxes, but current runtime status is calibrated in `STATUS.md`, `docs/EXECUTION_PLAN.md`, `docs/LIMA_MEMORY.md`, and `progress.md`; latest VPS evidence includes Device Gateway Redis HA backup `/opt/lima-router/backups/codex-device-ha-20260525_015208`, online distribution smoke `12/12`, and worker preflight `ready=true`. The remaining reference-project work is intentionally gated policy work, not an unimplemented migration plan.

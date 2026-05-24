@@ -27,16 +27,16 @@
 | External capability radar | Expanded | Added successive reference batches across search, governance, agent SDKs, harness engineering, IDE/design UX, browser automation, code graphs, OCR/TTS, robotics, and world-model research; all are concept/reference inputs until license, security, privacy, and safety gates pass. |
 | LiMa Code repository management | Tracked | `deepcode-cli` is pinned as a Git submodule and governed by `docs/LIMACODE_MANAGEMENT.md`. |
 | esp32S_XYZ product backend | Tracked and fake-U8 integrated | `esp32S_XYZ` is pinned as a Git submodule at `78a62c9`; LiMa is the planned AI/backend control plane, and the product repo now includes `tools/fake_lima_u8` for the LiMa `/device/v1/ws` fake-device loop. |
-| LiMa Device Gateway | Public smoke path plus Redis HA slice | `/device/v1/*` supports single-process multi-device concurrency, best-effort requeue for synchronous send failures and unacknowledged disconnects, and task-store replacement tests; `chat.donglicao.com/device/v1/*` is exposed behind per-device token auth. Default store remains memory-only, while Redis HA mode adds shared task queues and pub/sub session-owner notification for multi-process delivery. |
+| LiMa Device Gateway | Public Redis HA smoke path deployed | `/device/v1/*` supports multi-device concurrency, best-effort requeue for synchronous send failures and unacknowledged disconnects, and Redis-backed task queues/pub-sub session-owner notification for multi-process delivery; `chat.donglicao.com/device/v1/*` is exposed behind per-device token auth. Postgres remains deferred for audit/history, not realtime WebSocket delivery. |
 
 ## 2026-05-25 LiMa Server, LiMa Code, And ESP32 Joint Debug
 
 - Server to LiMa Code public worker path was verified through `chat.donglicao.com`: smoke task `92820005` was fetched by `D:\GIT\deepcode-cli`, completed as `needs_review`, and submitted back to Server.
 - Local Windows LiMa router was restarted from current `D:\GIT\server.py`; `/health` now reports `device_gateway=true` and `/device/v1/health` returns `status=ok`.
 - Local esp32 fake U8 WebSocket loop passed against `ws://127.0.0.1:8080/device/v1/ws`: hello, heartbeat, transcript-to-motion-task, progress, and done acknowledgements all completed.
-- Public device gateway nginx route is deployed through `https://chat.donglicao.com/device/v1/*` with per-device token auth and memory-only single-node task store recorded as the current limitation.
+- Public device gateway nginx route is deployed through `https://chat.donglicao.com/device/v1/*` with per-device token auth. This was first verified in memory-only mode and superseded by the Redis HA deployment below.
 - VPS nginx config backup: `/root/secure-service-backups/chat.donglicao.com.conf.codex-device-20260525_013718`.
-- Public verification passed: `scripts/smoke_online_distributions.py --api-key lima-local --chat-exact device_gateway_https_ok` returned `11/11`, and `tools/fake_lima_u8/app.py` completed the full `wss://chat.donglicao.com/device/v1/ws` loop for `dev-joint-1`.
+- Public verification passed: initial `device_gateway_https_ok` returned `11/11`, and `tools/fake_lima_u8/app.py` completed the full `wss://chat.donglicao.com/device/v1/ws` loop for `dev-joint-1`. Latest Redis HA public verification is recorded below.
 
 ## 2026-05-25 Device Gateway Redis HA Slice
 
@@ -48,7 +48,7 @@
   - code backup: `/opt/lima-router/backups/codex-device-ha-20260525_015208`;
   - env backup: `/root/secure-service-backups/lima-router.env.codex-device-ha-20260525_015208`;
   - Redis config backup: `/root/secure-service-backups/redis.conf.codex-device-ha-20260525_015305`.
-- Verification passed: focused Device Gateway suite `31 passed`; public fake U8 loop completed over `wss://chat.donglicao.com/device/v1/ws`; temporary two-process test delivered a task created on `127.0.0.1:18080` to the main public WebSocket session via Redis pub/sub; online distribution smoke passed `11/11` with device backend `redis`.
+- Verification passed: focused Device Gateway suite `31 passed`; public fake U8 loop completed over `wss://chat.donglicao.com/device/v1/ws`; temporary two-process test delivered a task created on `127.0.0.1:18080` to the main public WebSocket session via Redis pub/sub; online distribution smoke passed `12/12` with device backend `redis` and public `6379` guard.
 - Redis is bound to loopback and VPS self-check reports public `47.112.162.80:6379` blocked while `127.0.0.1:6379` remains reachable.
 
 ## 2026-05-24 Deployment And Closure Update
@@ -71,7 +71,7 @@
   - `infra/vps/systemd/` stores sanitized `lima-router.service` and `lima-voice.service` snapshots.
   - `scripts/smoke_online_distributions.py` provides repeatable public smoke checks.
   - Provider-key-like environment lines were removed from VPS systemd unit files and moved to root-readable env files; root-only backups live under `/root/secure-service-backups`.
-  - Online distribution smoke passed: official website, open platform, chat UI, chat health, FRP health, chat models, exact chat, and internal-port guard checks returned `10/10`.
+  - Historical online distribution smoke passed: official website, open platform, chat UI, chat health, FRP health, chat models, exact chat, and internal-port guard checks returned `10/10`. Latest smoke is `12/12` after Device Gateway Redis HA and public `6379` guard.
 - Public HTTPS smoke passed:
   - `https://chat.donglicao.com/v1/chat/completions` returned exact `lima-postdeploy-ok`.
   - after the lifespan extraction deploy, `https://chat.donglicao.com/v1/chat/completions` returned exact `lima-lifespan-deploy-ok`.

@@ -1,6 +1,6 @@
 # esp32S_XYZ Optimization Roadmap
 
-> Updated: 2026-05-24
+> Updated: 2026-05-25
 
 ## Mandate
 
@@ -48,6 +48,8 @@ The first deep pass should be evidence-first:
 
 Direct U8-to-LiMa work is tracked separately in
 `docs/superpowers/plans/2026-05-24-lima-direct-device-gateway.md`.
+Redis HA deployment evidence is tracked in
+`docs/superpowers/plans/2026-05-25-lima-device-gateway-ha.md`.
 Xiaozhi server runtime retirement is tracked in
 `docs/superpowers/plans/2026-05-24-xiaozhi-server-deprecation-removal.md`.
 Voice, display, and companion-device hardware references are tracked in

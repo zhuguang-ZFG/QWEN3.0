@@ -1,6 +1,6 @@
 # Hardware Companion References
 
-> Updated: 2026-05-24
+> Updated: 2026-05-25
 > Purpose: keep external hardware references in the LiMa roadmap without
 > confusing them with the first writing-machine implementation target.
 
@@ -10,6 +10,10 @@ LiMa's first direct hardware target remains `esp32S_XYZ`: U8 connects to the
 LiMa Device Gateway, receives bounded `motion_task` commands, controls U1
 through the existing Edge-D UART JSON contract, and returns `motion_event`
 state.
+
+The backend side of that first target is now public through
+`chat.donglicao.com/device/v1/*` with Redis HA task routing. Real U8 firmware
+mode and physical U8/U1 motion evidence remain gated release work.
 
 Voice, display, and companion-device references are admitted as later hardware
 families only after the writing-machine control loop is verified.
@@ -74,8 +78,9 @@ families only after the writing-machine control loop is verified.
 
 ## Non-Goals For The Current Slice
 
-- Do not expand Phase 1 of the LiMa Device Gateway beyond text-only fake U8
-  protocol and bounded motion-task proof.
+- Do not treat public Redis HA fake-U8 success as real hardware release
+  evidence; U8 firmware direct mode and physical U8/U1 safety smoke are still
+  required.
 - Do not make ElatoAI, RuView, or the transparent-TV reference a runtime
   dependency.
 - Do not claim LiMa can operate arbitrary smart hardware until a specific

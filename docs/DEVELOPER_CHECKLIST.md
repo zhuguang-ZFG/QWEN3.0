@@ -99,11 +99,14 @@ git diff --check
 git status --short --branch
 ```
 
-## Known Baseline (2026-05-24)
+## Known Baseline (2026-05-25)
 
 - Branch: `codex/free-web-ai-probe`
 - `python -m pytest test_routing_engine.py -q --ignore=active_model`: 43 passed.
 - `python -m pytest -q --ignore=active_model`: 476 passed, 8 skipped.
+- Device Gateway focused suite after Redis HA: `31 passed`.
+- Agent-task plus Device Gateway smoke subset after Redis HA: `45 passed`.
+- Online distribution smoke after Redis HA and public `6379` guard: `12/12`.
 - No known failing tests in the current baseline.
 
 ## Out-Of-Scope Untracked Files

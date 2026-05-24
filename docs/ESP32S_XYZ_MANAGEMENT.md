@@ -1,6 +1,6 @@
 # esp32S_XYZ Management
 
-> Updated: 2026-05-24
+> Updated: 2026-05-25
 
 ## Purpose
 
@@ -150,6 +150,15 @@ Current fake U8 scope:
 The CLI imports the optional `websockets` package only when connecting to a
 real LiMa server. Unit tests use an in-memory transport so product CI can verify
 the protocol script without adding a network dependency.
+
+Latest LiMa backend evidence:
+
+- `https://chat.donglicao.com/device/v1/health` reports Redis-backed task store
+  and Redis session bus.
+- Public fake U8 smoke completed against
+  `wss://chat.donglicao.com/device/v1/ws`.
+- Cross-process delivery was verified by creating a task on a private temp
+  router while the device WebSocket stayed connected to the public main router.
 
 ## Safety Boundary
 

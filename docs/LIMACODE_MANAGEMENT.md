@@ -1,6 +1,6 @@
 # LiMa Code Management
 
-> Updated: 2026-05-24
+> Updated: 2026-05-25
 
 ## Purpose
 
@@ -61,6 +61,13 @@ D:\GIT\venv\Scripts\python.exe -m pytest tests\test_agent_task_routes.py tests\t
 For live-worker changes, run the documented smoke path in
 `docs/LIMA_REAL_MACHINE_SMOKE.md` only after the local checks pass and the
 target repository is allowlisted.
+
+Latest Server/Worker evidence:
+
+- Public task `92820005` was fetched by `D:\GIT\deepcode-cli`, completed as
+  `needs_review`, and submitted back to LiMa Server.
+- `/agent/worker/preflight` remains `ready=true` after Device Gateway Redis HA
+  deployment.
 
 ## Safety Boundary
 

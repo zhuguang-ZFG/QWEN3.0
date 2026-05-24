@@ -72,8 +72,7 @@ mode is enabled.
 - Redis config backup:
   `/root/secure-service-backups/redis.conf.codex-device-ha-20260525_015305`.
 - Focused Device Gateway suite: `31 passed`.
-- Online distribution smoke: `11/11` before the Redis port guard was added;
-  the smoke script now includes public `6379`.
+- Online distribution smoke: `12/12` including public `6379` guard.
 - Cross-process smoke: a task created by a private temp router on
   `127.0.0.1:18080` was delivered to the public WebSocket session through Redis
   pub/sub.

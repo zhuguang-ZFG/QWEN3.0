@@ -1,6 +1,6 @@
 # LiMa Execution Plan
 
-> Updated: 2026-05-24
+> Updated: 2026-05-25
 > Status: current plan for the private personal coding assistant direction
 > Supersedes: older commercial/open-platform sprint plans
 
@@ -27,6 +27,7 @@ Paused work:
 | SCNet-large local proxy | Windows `D:\ollama_server` port `4505` is running and must be tested through the Windows local-router path. |
 | Kimi local proxy | Windows port `4504` runs, but chat currently fails with anonymous quota exhaustion and needs session refresh. |
 | New API | `api.donglicao.com` is retained, but requires real New API tokens and is not the active private IDE path. |
+| Device Gateway | `https://chat.donglicao.com/device/v1/*` is public behind per-device auth; VPS uses Redis task queues and Redis pub/sub session-owner notification for multi-process delivery. |
 
 ## Active Phases
 
@@ -43,6 +44,7 @@ Paused work:
 | 9. Dead code cleanup + streaming unification | Complete | stats_collector.py deleted; streaming path wired through inject_retrieval_context. |
 | 10. server.py decomposition | Complete for current architecture pass | server.py is reduced to app setup plus core runtime helpers; chat, Anthropic, system, lifespan, models, request helpers, streaming helpers, admin, images, embeddings, and worker routes are extracted. |
 | 11. TechSpar-inspired mastery loop | Complete locally | `mastery_loop/` records sanitized evidence, module mastery, weak points, review schedules, recommendations, and traces; skill promotion requires mastery evidence. |
+| 12. Device Gateway public + Redis HA | Complete for current VPS topology | `/device/v1/*` is public through chat nginx; Redis-backed task store/session bus are deployed; cross-process temporary-router smoke and fake U8 public smoke passed. |
 
 ## 2026-05-24 Runtime Closure
 
@@ -74,6 +76,14 @@ Paused work:
   - local `8080` chat returned exact `lima-final-local-ok`;
   - public FRP `8088` chat returned exact `lima-final-frp-ok`;
   - `local_router_start.bat` now preserves/defaults the private API key environment for the router process.
+
+## 2026-05-25 Device Gateway Public And Redis HA Closure
+
+- Public `/device/v1/*` is exposed through `chat.donglicao.com` and guarded by per-device tokens.
+- VPS Device Gateway health reports `task_store.backend=redis` and `session_bus.backend=redis`.
+- Redis is bound to loopback; public `6379` is included in online distribution port-guard smoke.
+- Cross-process proof: a private temp router on `127.0.0.1:18080` created a task delivered to the public main WebSocket session through Redis pub/sub.
+- Verification passed: focused Device Gateway suite `31 passed`; expanded agent/device subset `45 passed`; online distribution smoke `12/12`.
 
 ## Next Implementation Order
 
