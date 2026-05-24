@@ -1641,3 +1641,31 @@ Verification note:
   - no external code copied;
   - the table is an implementation backlog, not a permission expansion or
     dependency installation plan.
+
+## 2026-05-24 Implementation Review Plan
+
+- User requested a detailed implementation plan from recent learning and set
+  the division of labor: user codes, Codex reviews.
+- Added:
+  - `docs/superpowers/plans/2026-05-24-lima-implementation-review-plan.md`.
+- The plan covers:
+  - router/backend/key-pool/cost telemetry;
+  - async and concurrency safety;
+  - context graph, AST, reranking, and retrieval evaluation;
+  - memory taxonomy, promotion, deletion, and redaction;
+  - evaluation, quality gate, and structured output;
+  - observability and metrics;
+  - worker governance, tool gateway, MCP, and A2A;
+  - sandbox evaluation without production adoption;
+  - streaming and task progress;
+  - data workbench and research artifacts;
+  - DevOps, deployment, terminal UX;
+  - later hardware companion lane.
+- Verification expectation:
+  - each future code slice should include changed files, behavior summary,
+    tests, command output, dependency/network/credential changes, and rollback
+    notes for Codex review.
+- Boundary retained:
+  - documentation-only;
+  - no dependency added;
+  - no code implementation started in this slice.

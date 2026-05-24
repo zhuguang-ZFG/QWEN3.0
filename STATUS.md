@@ -674,3 +674,16 @@ Latest external capability radar 10-subsystem addendum:
   MCP Python SDK, A2A, Caddy, Nixpacks, Rich, and Textual are planning inputs
   only. Mixed-license, archived, unresolved, AGPL/LGPL, and source-available
   projects are explicitly gated before any dependency adoption.
+
+Latest implementation/review planning addendum:
+
+- Added `docs/superpowers/plans/2026-05-24-lima-implementation-review-plan.md`
+  to convert recent learning into a developer-executes/Codex-reviews
+  implementation plan.
+- The plan orders work across router/key-pool telemetry, async/concurrency,
+  context graph/reranking, memory taxonomy, eval/quality gates, observability,
+  worker governance/MCP/A2A, sandbox evaluation, streaming, data workbench,
+  DevOps/terminal UX, and later hardware companion expansion.
+- Review ownership is explicit: the user implements one slice at a time; Codex
+  reviews for bugs, regressions, tests, security, data leakage, permission
+  expansion, architecture fit, and release readiness.

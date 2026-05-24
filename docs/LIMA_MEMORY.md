@@ -1600,3 +1600,27 @@ Deployment: not performed.
     maintenance, adapter-test, and rollback reviews pass;
   - hosted eval/observability, cloud sandbox, external DB, MCP/A2A, deployment,
     browser, messaging, and hardware permissions stay default-off.
+
+## 2026-05-24 Implementation Review Plan
+
+- User asked to list recent learning as a detailed implementation plan, with
+  the user completing coding and Codex performing code review.
+- Added:
+  - `docs/superpowers/plans/2026-05-24-lima-implementation-review-plan.md`.
+- Plan shape:
+  - collaboration contract: user implements one slice at a time; Codex reviews
+    findings first and verifies tests;
+  - global rules: no dependency dump, no framework rewrite, no permission
+    expansion, no private data export by default;
+  - milestones: review harness, router/key-pool telemetry, async/concurrency,
+    context graph/reranking, memory taxonomy, eval/quality, observability,
+    worker governance/MCP/A2A, sandbox evaluation, streaming, data workbench,
+    DevOps/terminal UX, and hardware companion later lane;
+  - each milestone includes likely files, tests, Codex review focus, and exit
+    criteria.
+- Boundary retained:
+  - documentation-only change;
+  - no runtime dependency added;
+  - no external code copied;
+  - implementation remains future work to be coded by the user and reviewed by
+    Codex.
