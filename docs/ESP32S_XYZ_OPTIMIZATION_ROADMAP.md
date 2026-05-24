@@ -50,6 +50,9 @@ Direct U8-to-LiMa work is tracked separately in
 `docs/superpowers/plans/2026-05-24-lima-direct-device-gateway.md`.
 Xiaozhi server runtime retirement is tracked in
 `docs/superpowers/plans/2026-05-24-xiaozhi-server-deprecation-removal.md`.
+Voice, display, and companion-device hardware references are tracked in
+`docs/reference/HARDWARE_COMPANION_REFERENCES.md`; they are admitted as
+post-writing-machine roadmap inputs, not as current runtime dependencies.
 
 ## Likely Focus Areas
 
@@ -62,6 +65,22 @@ Xiaozhi server runtime retirement is tracked in
 - Monitoring and runbooks for product-facing LiMa backend endpoints.
 - Secret hygiene, especially provider keys, device secrets, OTA signing keys,
   and VPS deployment credentials.
+
+## Post-Writing-Machine Hardware Families
+
+After U8 direct mode, bounded `motion_task`, `motion_event`, and real-device
+safety smoke are verified, LiMa may extend the same Device Gateway pattern to:
+
+- voice AI companion devices: direct audio framing, ASR/TTS routing, and
+  listen/speak state;
+- display companions: text/image/status frames for ESP32 TFT-style companion
+  screens;
+- combined companion devices: separate capability allowlists for motion, voice,
+  display, telemetry, OTA, and self-check.
+
+These families must not bypass the writing-machine gates. Each new hardware
+class needs its own schema, fake-device harness, safety policy, verification
+matrix, and deployment record before being considered supported.
 
 ## Verification Baseline
 

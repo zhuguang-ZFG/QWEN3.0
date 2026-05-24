@@ -59,6 +59,24 @@ First implementation should live inside the existing LiMa FastAPI service. It
 can be split into a separate service only after session volume or isolation
 needs justify it.
 
+## Future Hardware Reference Track
+
+The first implementation target stays the writing machine path. External
+references for voice, display, and companion hardware are tracked separately in
+`docs/reference/HARDWARE_COMPANION_REFERENCES.md` so they inform later hardware
+families without expanding the initial safety-critical scope.
+
+Admitted follow-on classes:
+
+- voice AI / ESP32 companion devices, using ElatoAI as a design reference for
+  secure WebSocket-style device sessions and realtime audio posture;
+- display / transparent companion screens, using the ESP32 TFT transparent-TV
+  build as a design reference for visual status, prompt, avatar, or ambient
+  companion output;
+- multi-capability companion devices that combine motion, voice, and display
+  only after each capability has its own schema, adapter, tests, and safety
+  gates.
+
 ## Proposed Main-Repo Modules
 
 ```text

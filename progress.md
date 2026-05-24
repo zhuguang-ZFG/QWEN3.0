@@ -1111,3 +1111,13 @@ Verification note:
 - User agreed to plan retirement of Xiaozhi server code after LiMa Direct Device Gateway replaces the runtime path.
 - Added `docs/superpowers/plans/2026-05-24-xiaozhi-server-deprecation-removal.md`.
 - Plan policy: mark as legacy first, build migration inventory, port useful behavior to LiMa direct route, verify fake U8 and real U8/U1 safety gates, then quarantine or delete and advance the main submodule pointer.
+
+## 2026-05-24 Voice Display Companion Hardware References
+
+- User requested that ElatoAI and the ESP32 TFT transparent-TV article be
+  included in the later LiMa voice/display/companion hardware route.
+- Added `docs/reference/HARDWARE_COMPANION_REFERENCES.md`.
+- Updated the LiMa Direct Device Gateway plan, `esp32S_XYZ` optimization
+  roadmap, documentation status, and durable memory to keep writing-machine
+  direct control as the first target while admitting voice/display/companion
+  devices as post-gate roadmap inputs.

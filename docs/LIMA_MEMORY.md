@@ -1082,3 +1082,13 @@ Deployment: not performed.
   - inventory each runtime responsibility and map it to a LiMa replacement or explicit rejection;
   - port deterministic intent, motion downlink, event uplink, device info, and self-check behavior;
   - quarantine or delete `xiaozhi-server` only after fake U8, U8 firmware direct mode, and real U8/U1 safety smoke are recorded.
+
+## 2026-05-24 Voice Display Companion Hardware References
+
+- User asked to include ElatoAI and the ESP32 TFT transparent-TV article in the future LiMa hardware route.
+- Source of truth: `docs/reference/HARDWARE_COMPANION_REFERENCES.md`.
+- Roadmap placement:
+  - writing-machine direct control remains the first target;
+  - ElatoAI is admitted as a voice AI / ESP32 companion-device reference for secure WebSocket-style sessions and realtime audio posture;
+  - the ESP32 TFT transparent-TV build is admitted as a display / companion-screen reference for status, prompt, avatar, and ambient visual output;
+  - neither reference is a current runtime dependency or a replacement for LiMa's deterministic task, safety, schema, telemetry, and fake-device gates.
