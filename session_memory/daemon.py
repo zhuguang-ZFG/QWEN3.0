@@ -1,4 +1,4 @@
-"""Memory daemon — background inbox ingestion and periodic consolidation.
+"""Memory daemon - background inbox ingestion and periodic consolidation.
 
 Runs as an asyncio background task, not in the request hot path.
 Ingests files from data/memory_inbox/, extracts typed facts,
@@ -161,14 +161,16 @@ def _extract_facts(fname: str, content: str) -> list[tuple[str, str]]:
                     if isinstance(item, dict) and "summary" in item:
                         mt = item.get("type", "project_fact")
                         text = item["summary"][:200]
-                        if _sanitize_text(text) is None:
+                        sanitized = _sanitize_text(text)
+                        if sanitized is None:
                             continue
-                        facts.append((mt, text))
+                        facts.append((mt, sanitized))
             elif isinstance(data, dict) and "summary" in data:
                 mt = data.get("type", "project_fact")
                 text = data["summary"][:200]
-                if _sanitize_text(text) is not None:
-                    facts.append((mt, text))
+                sanitized = _sanitize_text(text)
+                if sanitized is not None:
+                    facts.append((mt, sanitized))
         except json.JSONDecodeError:
             pass
         return facts
@@ -178,10 +180,11 @@ def _extract_facts(fname: str, content: str) -> list[tuple[str, str]]:
         line = line.strip()
         if line.startswith("- ") and len(line) > 5:
             summary = line[2:].strip()[:200]
-            if _sanitize_text(summary) is None:
+            sanitized = _sanitize_text(summary)
+            if sanitized is None:
                 continue
-            mem_type = _classify_line(summary)
-            facts.append((mem_type, summary))
+            mem_type = _classify_line(sanitized)
+            facts.append((mem_type, sanitized))
             if len(facts) >= 20:
                 break
 
@@ -200,11 +203,15 @@ _SECRET_PATTERNS = re.compile(
 
 
 def _sanitize_text(text: str) -> str | None:
-    """Redact or reject text containing secrets."""
-    if _SECRET_PATTERNS.search(text):
-        logger.warning("[MemoryDaemon] secret pattern detected, skipping fact")
-        return None
-    return text
+    """Redact or reject text containing secrets. Delegates to shared redact module."""
+    try:
+        from session_memory.redact import sanitize_for_memory
+        return sanitize_for_memory(text)
+    except ImportError:
+        if _SECRET_PATTERNS.search(text):
+            logger.warning("[MemoryDaemon] secret pattern detected, skipping fact")
+            return None
+        return text
 
 
 def _classify_line(text: str) -> str:

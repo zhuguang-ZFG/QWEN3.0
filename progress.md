@@ -1862,3 +1862,25 @@ Verification note:
     of silently dropping queries.
 - Verification:
   - focused M3 tests returned 46 passed before the final full-suite run.
+
+## 2026-05-24 M4 Memory Taxonomy, Promotion, Deletion, Redaction
+
+- Reviewed and closed M4:
+  - `MemoryEntry` now carries `memory_type`;
+  - memory SELECT paths return `memory_type` instead of silently falling back
+    to `exchange`;
+  - `session_memory.redact` centralizes secret detection and redaction;
+  - daemon ingestion stores sanitized facts, not the original text;
+  - memory promotion records evidence and JSONL audit entries;
+  - delete/export helpers exist for single memory, type, age, session, and
+    type-scoped export.
+- Review fixes applied:
+  - `save_memory()` no longer falls back to the raw input when
+    `sanitize_for_memory()` rejects critical content such as private keys;
+  - promotion evidence is sanitized before being written to memory detail and
+    the promotion audit log;
+  - redaction tests now assert concrete redaction behavior instead of
+    tautological `len(facts) >= 0` checks.
+- Verification:
+  - `python -m pytest tests/test_typed_memory.py -q --ignore=active_model`:
+    19 passed before the final full-suite run.

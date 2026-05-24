@@ -369,6 +369,18 @@ Exit criteria:
 - Memory is typed, auditable, redactable, and reversible enough for later
   vector/graph experiments.
 
+Closure notes:
+
+- Completed on 2026-05-24 with no new runtime dependency.
+- Added `MemoryEntry.memory_type` and fixed memory SELECT paths to preserve
+  typed memory results.
+- Added reusable `session_memory.redact` helpers for request-time and daemon
+  memory writes.
+- Added promotion, JSONL audit, deletion, and JSON export helpers.
+- Codex review fixed two security-test gaps:
+  - sanitizer rejection no longer falls back to raw memory storage;
+  - promotion evidence is redacted before detail and audit persistence.
+
 ## Milestone 5 - Evaluation, Quality Gate, And Structured Output
 
 References:

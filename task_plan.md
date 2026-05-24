@@ -15,7 +15,7 @@
 > | M1 | Router, Backend Registry, Key Pool | complete | 2026-05-24 |
 > | M2 | Async & Concurrency | complete | 2026-05-24 |
 > | M3 | Context Graph, AST, Reranking | complete | 2026-05-24 |
-> | M4 | Memory Taxonomy & Redaction | pending | - |
+> | M4 | Memory Taxonomy & Redaction | complete | 2026-05-24 |
 > | M5 | Eval, Quality Gate, Structured Output | pending | - |
 > | M6 | Observability & Metrics | pending | - |
 > | M7 | Worker Governance, Tool Gateway, MCP, A2A | pending | - |
@@ -34,6 +34,7 @@
 > | 3 | M2-S3 | Async speculative execution returned failure when the fastest completed task produced an invalid short answer, because pending slower tasks were cancelled immediately. | Added a regression where `fast_bad` returns first and `slow_good` returns a valid response later. | `speculative_call_async()` now loops through completed tasks until a valid winner or timeout, then cancels and awaits pending tasks. |
 > | 4 | M3-S2 | `StdlibAstExtractor.extract_relations()` required the caller to include a root package key such as `sample_repo`, so `from sample_repo.module_b import helper` missed relations when only `module_b` was mapped. | Added a leaf-module import regression. | Import resolution now checks full module name, root package, and leaf module before dropping the relation. |
 > | 5 | M3-S4 | `evaluate_queries()` used zip-style pairing and silently ignored expected queries when the retrieved-results list was shorter. | Added a missing-retrieval regression. | Evaluation now enumerates every query and treats missing retrieved rows as empty misses. |
+> | 6 | M4-S3 | `save_memory()` used `sanitize_for_memory(text) or text`, so critical sanitizer rejections such as SSH private keys could fall back to raw secret storage. Promotion evidence also entered memory detail and audit logs without shared redaction. | Added regressions for private-key save and promotion evidence redaction. | Storage now uses `_sanitize_storage_text()` and never falls back to raw text after a sanitizer rejection; promotion evidence is sanitized before detail/audit writes. |
 
 ## Goal
 

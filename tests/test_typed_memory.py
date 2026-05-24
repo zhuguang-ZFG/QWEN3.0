@@ -186,14 +186,44 @@ class TestMemoryDaemonRedaction:
     def test_redacts_sk_key(self):
         from session_memory.daemon import _extract_facts
         facts = _extract_facts("notes.md", "- api key is sk-abc123456789012345678901234567890")
-        assert len(facts) == 0
+        assert len(facts) == 1
+        assert "[REDACTED]" in facts[0][1]
+        assert "sk-abc12345" not in facts[0][1]
 
     def test_redacts_bearer_token(self):
         from session_memory.daemon import _extract_facts
         facts = _extract_facts("notes.md", "- token = Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9")
-        assert len(facts) == 0
+        assert len(facts) == 1
+        assert "[REDACTED]" in facts[0][1]
+        assert "Bearer eyJ" not in facts[0][1]
 
     def test_passes_normal_text(self):
         from session_memory.daemon import _extract_facts
         facts = _extract_facts("notes.md", "- deployed v3 to server successfully")
         assert len(facts) == 1
+
+    def test_save_memory_never_falls_back_to_raw_private_key(self):
+        from session_memory.store import get_recent_memories, save_memory
+
+        private_key = "-----BEGIN OPENSSH PRIVATE KEY-----\nsecret-body"
+        save_memory("redact-session", "user", private_key, detail=private_key)
+
+        memory = get_recent_memories("redact-session", limit=1)[0]
+        assert "OPENSSH PRIVATE KEY" not in memory.summary
+        assert "OPENSSH PRIVATE KEY" not in memory.detail
+        assert memory.summary == "[REDACTED]"
+        assert memory.detail == "[REDACTED]"
+
+    def test_promote_memory_redacts_evidence_before_storage(self):
+        from session_memory.store import get_recent_memories, promote_memory, save_memory
+
+        memory_id = save_memory("promote-redact", "user", "keep this routing lesson")
+        assert promote_memory(
+            memory_id,
+            "routing_lesson",
+            evidence="token = Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+        )
+
+        memory = get_recent_memories("promote-redact", limit=1)[0]
+        assert "Bearer eyJ" not in memory.detail
+        assert "[REDACTED]" in memory.detail
