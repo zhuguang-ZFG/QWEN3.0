@@ -1,21 +1,54 @@
-"""Deterministic first-slice device command mapping."""
+"""Deterministic device command parser with grammar rules and confidence scoring.
+
+Upgrades the first-slice keyword mapping to a small pattern-based parser
+that extracts structured intents from natural-language commands.
+
+A gated LLM-backed planner (LIMA_DEVICE_LLM_PLANNER=1) can override
+low-confidence parses. Until that gate is opened, unknown commands fall
+back to write_text with an explicit explanation.
+"""
 from __future__ import annotations
 
+import os
+import re
 from typing import Any
+
+# ── Command patterns ─────────────────────────────────────────────────────────
+# Each pattern is (regex, capability, param_map_fn)
+# Patterns are tried in order; first match wins.
+# Groups named (?P<kw>) are extracted into params.
+
+_COMMAND_PATTERNS: list[tuple[re.Pattern, str, dict | None]] = [
+    # Control commands
+    (re.compile(r"^归[零零位]$|^回[零位原点]$|^(?P<kw>home|go\s*home)$", re.I), "home", None),
+    (re.compile(r"^暂停$|^(?P<kw>pause|hold)$", re.I), "pause", None),
+    (re.compile(r"^继续$|^(?P<kw>resume|continue|go\s*on)$", re.I), "resume", None),
+    (re.compile(r"^停止$|^(?P<kw>stop|halt|abort)$", re.I), "stop", None),
+    (re.compile(r"^设备信息$|^(?P<kw>device\s*info|status|info)$", re.I), "get_device_info", None),
+    # Write text
+    (re.compile(r"^写(字?|出?|入?)(?P<text>.{1,40})$"), "write_text", None),
+    (re.compile(r"^(?P<kw>write|draw\s*text|print)\s+(?P<text>.{1,40})$", re.I), "write_text", None),
+    # Draw
+    (re.compile(r"^画(个?|出?|入?)(?P<prompt>.{1,80})$"), "draw_generated", None),
+    (re.compile(r"^(?P<kw>draw|sketch|plot)\s+(?P<prompt>.{1,80})$", re.I), "draw_generated", None),
+    # Explicit path (SVG-style)
+    (re.compile(r"^(?P<kw>path|svg|gcode)\s+(?P<prompt>.{1,200})$", re.I), "draw_generated", None),
+    # Move commands
+    (re.compile(r"^(移动|移动到|移到|go\s*to|move\s*to)\s*x\s*(?P<x>-?\d+)\s*y\s*(?P<y>-?\d+)(\s*z\s*(?P<z>-?\d+))?"), "move_abs", None),
+    (re.compile(r"^move\s+x\s*(?P<dx>-?\d+)\s*y\s*(?P<dy>-?\d+)", re.I), "move_rel", None),
+]
+
+# ── Public API ───────────────────────────────────────────────────────────────
 
 
 def resolve_direct_device_command(text: str) -> dict[str, Any] | None:
+    """Legacy direct-command mapping. Kept for backward compatibility."""
     normalized = (text or "").strip().lower()
     control_map = {
-        "归零": "home",
-        "回零": "home",
-        "home": "home",
-        "暂停": "pause",
-        "pause": "pause",
-        "继续": "resume",
-        "resume": "resume",
-        "停止": "stop",
-        "stop": "stop",
+        "归零": "home", "回零": "home", "home": "home",
+        "暂停": "pause", "pause": "pause",
+        "继续": "resume", "resume": "resume",
+        "停止": "stop", "stop": "stop",
         "设备信息": "get_device_info",
     }
     if normalized in control_map:
@@ -23,26 +56,108 @@ def resolve_direct_device_command(text: str) -> dict[str, Any] | None:
     return None
 
 
-def resolve_voice_task(text: str) -> dict[str, Any]:
+def parse_command(text: str) -> dict[str, Any]:
+    """Parse a voice/text command into a structured intent.
+
+    Returns:
+        {"capability": "...", "params": {...}, "source": "voice",
+         "confidence": 0.0–1.0, "explanation": "..."}
+
+    If no pattern matches, returns a low-confidence fallback with an
+    explicit explanation of why the command was rejected.
+    """
     stripped = (text or "").strip()
-    direct = resolve_direct_device_command(stripped)
-    if direct:
-        return direct
-    if stripped.startswith("写") and len(stripped) > 1:
+    if not stripped:
         return {
             "capability": "write_text",
-            "params": {"text": stripped[1:].strip() or stripped},
+            "params": {"text": "hello"},
             "source": "voice",
+            "confidence": 0.0,
+            "explanation": "empty command, falling back to write_text",
         }
-    if stripped.startswith("画") and len(stripped) > 1:
-        return {
-            "capability": "draw_generated",
-            "params": {"prompt": stripped[1:].strip() or stripped},
-            "source": "voice",
-        }
+
+    direct = resolve_direct_device_command(stripped)
+    if direct:
+        direct["confidence"] = 1.0
+        direct["explanation"] = f"exact match: {direct['capability']}"
+        return direct
+
+    for pattern, capability, _param_map in _COMMAND_PATTERNS:
+        m = pattern.match(stripped)
+        if m:
+            params: dict[str, Any] = {}
+            groupdict = m.groupdict()
+            for key in ("text", "prompt", "x", "y", "z", "dx", "dy"):
+                val = groupdict.get(key)
+                if val is not None:
+                    params[key] = val
+            if not params and m.lastgroup:
+                params["text"] = stripped[:40]
+            return {
+                "capability": capability,
+                "params": params,
+                "source": "voice",
+                "confidence": 0.9,
+                "explanation": f"pattern matched: {capability}",
+            }
+
     return {
         "capability": "write_text",
-        "params": {"text": stripped[:40] or "hello"},
+        "params": {"text": stripped[:40]},
         "source": "voice",
+        "confidence": 0.1,
+        "explanation": f"unknown command '{stripped[:40]}', falling back to write_text",
     }
 
+
+def resolve_voice_task(text: str) -> dict[str, Any]:
+    """Resolve voice/text to a motion intent.
+
+    Uses pattern-based parser with optional LLM override for ambiguous
+    commands (gated behind LIMA_DEVICE_LLM_PLANNER=1).
+    """
+    result = parse_command(text)
+
+    if result["confidence"] < 0.5 and os.environ.get("LIMA_DEVICE_LLM_PLANNER", "0") == "1":
+        llm_result = _llm_replan(text, result)
+        if llm_result:
+            return llm_result
+
+    return {
+        "capability": result["capability"],
+        "params": result.get("params", {}),
+        "source": "voice",
+        "explanation": result.get("explanation", ""),
+    }
+
+
+def _llm_replan(text: str, _fallback: dict[str, Any]) -> dict[str, Any] | None:
+    """Gated LLM replanning for ambiguous commands. Returns None if unavailable."""
+    try:
+        import http_caller
+        answer = http_caller.call_api(
+            "longcat_lite",
+            [{"role": "user", "content": (
+                "You are a device command parser for a CNC writing machine. "
+                "Given a user command, output ONLY a JSON object with keys: "
+                "capability (one of: run_path, write_text, draw_generated, "
+                "home, pause, resume, stop, get_device_info), "
+                "params (object with text/prompt/x/y/z as needed). "
+                "If the command doesn't make sense for a CNC machine, set "
+                "capability to 'rejected' and include a 'reason' key.\n\n"
+                f"Command: {text}\n\nJSON:"
+            )}],
+            max_tokens=200,
+        )
+        import json as _json
+        parsed = _json.loads(answer.strip().lstrip("```json").rstrip("```").strip())
+        if isinstance(parsed, dict) and "capability" in parsed:
+            return {
+                "capability": parsed["capability"],
+                "params": parsed.get("params", {}),
+                "source": "llm",
+                "explanation": f"LLM planned: {parsed.get('reason', parsed['capability'])}",
+            }
+    except Exception:
+        pass
+    return None

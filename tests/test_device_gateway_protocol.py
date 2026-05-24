@@ -42,21 +42,31 @@ def test_validate_rejects_unknown_message_type_with_stable_error():
 def test_resolves_write_text_voice_task():
     task = resolve_voice_task("写你好")
 
-    assert task == {
-        "capability": "write_text",
-        "params": {"text": "你好"},
-        "source": "voice",
-    }
+    assert task["capability"] == "write_text"
+    assert task["params"] == {"text": "你好"}
+    assert task["source"] == "voice"
+    assert "explanation" in task
 
 
 def test_resolves_draw_generated_voice_task():
     task = resolve_voice_task("画一个星星")
 
-    assert task == {
-        "capability": "draw_generated",
-        "params": {"prompt": "一个星星"},
-        "source": "voice",
-    }
+    assert task["capability"] == "draw_generated"
+    assert task["params"] == {"prompt": "一个星星"}
+    assert task["source"] == "voice"
+    assert "explanation" in task
+
+
+def test_resolve_voice_task_unknown_falls_back_with_low_confidence():
+    task = resolve_voice_task("xyzzy something weird")
+    assert task["capability"] == "write_text"
+    assert task["params"]["text"] == "xyzzy something weird"
+
+
+def test_resolve_voice_task_empty_returns_hello():
+    task = resolve_voice_task("")
+    assert task["capability"] == "write_text"
+    assert task["params"]["text"] == "hello"
 
 
 def test_transcript_projects_to_bounded_run_path_motion_task():

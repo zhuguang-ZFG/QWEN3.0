@@ -6,6 +6,7 @@ from typing import Any
 from .intent import resolve_voice_task
 from .safety import DEFAULT_FEED, safe_point
 from .path_validator import validate_capability_params, validate_run_path_params
+from .path_pipeline import render_svg_task, render_text_task
 from . import store as store_mod
 from .store import DeviceTaskStore, InMemoryDeviceTaskStore
 
@@ -24,49 +25,39 @@ def _next_task_id() -> str:
     return store_mod.task_store.next_task_id()
 
 
-def _write_text_path(text: str) -> list[dict[str, float]]:
-    width = max(10, min(70, 8 * max(1, len(text))))
-    return [
-        safe_point(10, 10, 0),
-        safe_point(10 + width, 10, 0),
-        safe_point(10 + width, 25, 0),
-        safe_point(10, 25, 0),
-        safe_point(10, 10, 0),
-    ]
-
-
-def _star_path() -> list[dict[str, float]]:
-    return [
-        safe_point(50, 10, 0),
-        safe_point(60, 40, 0),
-        safe_point(90, 40, 0),
-        safe_point(65, 58, 0),
-        safe_point(75, 88, 0),
-        safe_point(50, 70, 0),
-        safe_point(25, 88, 0),
-        safe_point(35, 58, 0),
-        safe_point(10, 40, 0),
-        safe_point(40, 40, 0),
-        safe_point(50, 10, 0),
-    ]
+def _looks_like_svg_path(text: str) -> bool:
+    """Heuristic: does the text look like an SVG path 'd' attribute?"""
+    stripped = text.strip()
+    if not stripped:
+        return False
+    first = stripped[0]
+    return first in "MmLCcQqHhVvZz"
 
 
 def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_id: str | None = None) -> dict[str, Any]:
     capability = voice_task["capability"]
     params = voice_task.get("params", {})
     if capability == "write_text":
+        rendered = render_text_task(str(params.get("text", "")))
         run_params = {
             "feed": DEFAULT_FEED,
-            "path": _write_text_path(str(params.get("text", ""))),
+            "path": rendered["path"],
             "source_capability": "write_text",
             "text": str(params.get("text", ""))[:80],
+            "preview_svg": rendered.get("preview_svg", ""),
         }
     elif capability == "draw_generated":
+        prompt = str(params.get("prompt", ""))[:120]
+        if _looks_like_svg_path(prompt):
+            rendered = render_svg_task(prompt)
+        else:
+            rendered = render_text_task(prompt or "?")
         run_params = {
             "feed": DEFAULT_FEED,
-            "path": _star_path(),
+            "path": rendered["path"],
             "source_capability": "draw_generated",
-            "prompt": str(params.get("prompt", ""))[:120],
+            "prompt": prompt,
+            "preview_svg": rendered.get("preview_svg", ""),
         }
     else:
         run_params = {"feed": DEFAULT_FEED, "path": [safe_point(0, 0, 0)], "source_capability": capability}

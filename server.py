@@ -624,6 +624,14 @@ app.include_router(device_gateway_router)
 _loaded_modules["device_gateway"] = True
 
 try:
+    from routes.ops_metrics import router as ops_metrics_router
+    app.include_router(ops_metrics_router)
+    _loaded_modules["ops_metrics"] = True
+except ImportError as e:
+    logging.warning(f"[STARTUP] ops_metrics module not loaded: {e}")
+    _loaded_modules["ops_metrics"] = False
+
+try:
     from lima_mcp.server import router as mcp_router
     app.include_router(mcp_router)
     _loaded_modules["mcp"] = True
