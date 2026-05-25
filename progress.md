@@ -9,6 +9,7 @@
 - **生产接线**：`routes/channel_gateway` 创建 `ChannelService(wire_integrations=True)`
 - **smoke**：`scripts/smoke_wechat_channel_gateway.py` 增加 auto-guest、/menu、/算、session 步骤
 - **测试**：channel 套件 **90+ passed**；修复 smoke 测试 `inject_deps` 后被 `_reset_deps_for_test` 清掉的问题
+- **VPS**：`python scripts/deploy_channel_gateway.py --smoke` → `channel_smoke_passed`（systemd `lima-router` + `.env` 开关已写入）
 
 ## 2026-05-25 CQ-089: WeChat Channel Public Tools (expanded APIs)
 

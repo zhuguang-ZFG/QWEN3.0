@@ -73,4 +73,10 @@ python -m pytest tests/test_channel_gateway_store.py tests/test_wechat_channel_s
 python -m pytest -q
 ```
 
-VPS: `WECHAT_BRIDGE_ENABLED=1` + fake sidecar smoke; then real QR path when sidecar ready.
+VPS deploy:
+
+```powershell
+python scripts/deploy_channel_gateway.py --smoke
+```
+
+Writes `.env` flags (`WECHAT_BRIDGE_ENABLED`, `LIMA_CHANNEL_TOOLS`, `LIMA_CHANNEL_SESSION`, …) and restarts `lima-router`. Sidecar must use `LIMA_WECHAT_SIDECAR_TOKEN` from VPS `.env` (never log the value). Remote smoke: `scripts/vps_run_channel_smoke.py`.
