@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import threading
 
+from routes.request_tracking import FALLBACK_LOG
+
 _stats: dict = {}
 _stats_lock: threading.Lock = threading.Lock()
 _backend_enabled: dict = {}
-FALLBACK_LOG = "D:/GIT/data/fallback_log.jsonl"
 
 
 def inject_state(stats: dict, stats_lock: threading.Lock, backend_enabled: dict) -> None:

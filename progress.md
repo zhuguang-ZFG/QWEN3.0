@@ -2,6 +2,12 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 Admin Portable Paths (CQ-078)
+
+- `routes/admin_state.py`：`FALLBACK_LOG` 复用 `request_tracking` 的 `LIMA_DATA_DIR` 解析
+- `routes/admin_api.py`：`/api/retrain` 的 `cwd` 改为 repo root（VPS `/opt/lima-router` 可用）
+- 测试：`tests/test_admin_paths.py` 4 项
+
 ## 2026-05-25 Deploy Manifest + P2 Cleanup
 
 - **Deploy 清单**：`deploy_prod_retrieval.py` 补全 routing split（`routing_classifier/selector/executor`, `route_post_process`）+ retrieval stack（`entity_extraction`, `graph_retrieval`, `reranking`）；`--smoke` 选项；SSH 后台启动防阻塞

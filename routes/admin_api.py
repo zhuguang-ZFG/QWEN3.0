@@ -7,6 +7,7 @@ import os
 import subprocess
 import sys
 import time
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
@@ -16,6 +17,7 @@ from routes.admin_backends import describe_backend, test_backend_sync
 from routes.admin_state import FALLBACK_LOG, stats_context
 
 router = APIRouter()
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 @router.get("/api/stats", dependencies=[Depends(verify_admin)])
@@ -176,7 +178,7 @@ async def admin_trigger_retrain():
         [sys.executable, "auto_retrain.py", "--force"],
         capture_output=True,
         text=True,
-        cwd="D:/GIT",
+        cwd=str(REPO_ROOT),
     )
     return {
         "status": "triggered",
