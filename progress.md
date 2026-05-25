@@ -2,6 +2,13 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 CQ-089: WeChat Channel Public Tools (expanded APIs)
+
+- **工具**：`/百科` `/天气` `/搜` `/新闻` `/翻译` `/汇率` `/时间` `/热搜` `/ip` `/读` `/menu`（中英别名）
+- **开关**：`LIMA_CHANNEL_TOOLS=1`（默认关）；搜索优先 `TINYFISH_API_KEY`，否则 DuckDuckGo Instant；读链 TinyFish 或简易 HTML 抽取
+- **配额**：SQLite `channel_tool_usage` 按日计数；主人 `LIMA_CHANNEL_OWNER_TOOL_MULT`（默认 3×）
+- **测试**：`tests/test_channel_tools.py` + channel 套件 **82+ passed**
+
 ## 2026-05-25 CQ-088: WeChat Zero-Friction Guest Bind
 
 - **行为**：扫码/加好友后直接发消息即可聊天；`LIMA_CHANNEL_AUTO_GUEST_BIND=1`（默认）自动创建 guest binding；`/bind <code>` 可选（操作员升级主人）

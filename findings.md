@@ -2,6 +2,15 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-05-25 CQ-089 WeChat Channel Public Tools
+
+| ID | Area | Evidence | Status |
+|---|---|---|---|
+| WX-089-1 | Tool surface | 11 intents + 中英命令别名；`channel_tools` / `public_apis` / `tool_usage` | Implemented |
+| WX-089-2 | Quota | `channel_tool_usage` per hash/tool/day; guest limits + owner mult | Implemented + tests |
+| WX-089-3 | Search/read | `search_gateway` when `TINYFISH_API_KEY`; DDG + simple HTML fallback | Implemented |
+| WX-089-4 | Next | G3 多轮会话、主人简报、VPS `LIMA_CHANNEL_TOOLS=1` smoke | Pending |
+
 ## 2026-05-25 CQ-088 WeChat Channel Zero-Friction Bind
 
 | ID | Area | Evidence | Status |

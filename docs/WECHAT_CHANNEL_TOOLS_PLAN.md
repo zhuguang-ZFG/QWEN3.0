@@ -47,10 +47,12 @@ User scans QR → adds WeChat bot → sends any message (e.g. 你好)
 |-------|----------|------------------------|
 | G0 | Auto-bind, `/help` `/menu` | — |
 | G1 | `/百科` `/天气` | 15 / 10 |
-| G2 | `/搜` | 8 |
+| G2 | `/搜` `/新闻` `/翻译` `/汇率` `/时间` `/热搜` `/ip` | 8 / 5 / 10 / 10 / 30 / 5 / 5 |
 | G3 | Channel multi-turn (6 turns), `/demo` script | — |
-| G4 | `/读 <url>` (SSRF-safe) | 3 |
-| G5 | Owner tools + digest (separate W-track) | — |
+| G4 | `/读 <url>` (SSRF-safe; TinyFish 或简易 HTML 抽取) | 3 |
+| G5 | Owner tools + digest (separate W-track) | 主人配额 × `LIMA_CHANNEL_OWNER_TOOL_MULT`（默认 3） |
+
+**CQ-089 已实现：** `channel_gateway/channel_tools.py` + `public_apis.py` + `tool_usage.py`；`LIMA_CHANNEL_TOOLS=1` 开启。
 
 ## Security
 
@@ -61,8 +63,8 @@ User scans QR → adds WeChat bot → sends any message (e.g. 你好)
 ## Implementation slices
 
 1. **CQ-088 (this slice):** auto guest bind + help copy + tests.
-2. **CQ-089:** `channel_tools` module + wiki/weather.
-3. **CQ-090:** search + URL fetch + quotas.
+2. **CQ-089:** `channel_tools` + 10+ 公开工具 + SQLite 日配额 ✅
+3. **CQ-090:** 访客多轮会话、主人简报、VPS smoke
 
 ## Verification
 

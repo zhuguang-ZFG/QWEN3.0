@@ -13,6 +13,11 @@ from channel_gateway.models import (
     InboundMessage,
     OutboundReply,
 )
+from channel_gateway.channel_tools import (
+    CHANNEL_TOOL_INTENTS,
+    run_channel_tool,
+    tools_help_suffix,
+)
 from channel_gateway.store import ChannelStore
 
 _CMD_ALLOWED_WHEN_PAUSED = frozenset({"resume", "unbind", "help"})
@@ -180,7 +185,17 @@ class ChannelService:
             return OutboundReply(ok=True, reply={"text": self._reset_handler(msg.sender_id)})
 
         if intent == "help":
-            return OutboundReply(ok=True, reply={"text": _HELP_TEXT})
+            return OutboundReply(ok=True, reply={"text": _HELP_TEXT + tools_help_suffix()})
+
+        if intent in CHANNEL_TOOL_INTENTS:
+            text = run_channel_tool(
+                self._store,
+                intent,
+                cmd.args,
+                channel_user_id_raw=msg.sender_id,
+                role=binding.role,
+            )
+            return OutboundReply(ok=True, reply={"text": text})
 
         if intent == "code_task":
             if self._owner_code_task_handler is None:

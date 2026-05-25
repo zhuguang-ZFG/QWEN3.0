@@ -77,6 +77,22 @@ class TestChannelServiceGuestLifecycle:
         assert reply.ok is True
         assert reply.reply["text"] == "[chat] hello world"
 
+    def test_guest_wiki_tool_when_enabled(self, monkeypatch):
+        monkeypatch.setenv("LIMA_CHANNEL_TOOLS", "1")
+        from channel_gateway import channel_tools as ct_mod
+
+        monkeypatch.setattr(
+            ct_mod,
+            "fetch_wiki",
+            lambda q, **kw: {"ok": True, "text": f"stub-wiki:{q}"},
+        )
+        self._bind_user("wx-tool-1")
+        reply = self.svc.handle_message(
+            _inbound(sender="wx-tool-1", text="/百科 测试"),
+        )
+        assert reply.ok is True
+        assert "stub-wiki:测试" in reply.reply["text"]
+
     def test_bound_guest_plain_text_routes_to_chat(self):
         self._bind_user("wx-user-1")
         reply = self.svc.handle_message(_inbound(sender="wx-user-1", text="how are you?"))

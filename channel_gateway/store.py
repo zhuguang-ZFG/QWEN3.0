@@ -93,6 +93,15 @@ class ChannelStore:
             "CREATE INDEX IF NOT EXISTS idx_messages_channel_user"
             " ON channel_messages(channel, channel_user_id_hash)"
         )
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS channel_tool_usage ("
+            " channel_user_id_hash TEXT NOT NULL,"
+            " tool TEXT NOT NULL,"
+            " day TEXT NOT NULL,"
+            " count INTEGER NOT NULL DEFAULT 0,"
+            " PRIMARY KEY (channel_user_id_hash, tool, day)"
+            ")"
+        )
         conn.commit()
 
     # -- ID Hashing ----------------------------------------------------------
@@ -262,6 +271,36 @@ class ChannelStore:
             "SELECT COUNT(*) as cnt FROM channel_bindings WHERE status IN ('active', 'paused')"
         ).fetchone()
         return row["cnt"] if row else 0
+
+    # -- Tool quotas ---------------------------------------------------------
+
+    def consume_tool_quota(
+        self, channel_user_id_hash: str, tool: str, limit: int, *, day: str
+    ) -> tuple[bool, int]:
+        """Increment usage if under limit. Returns (allowed, count_after)."""
+        if limit <= 0:
+            return False, 0
+        with self._lock:
+            conn = self._get_conn()
+            row = conn.execute(
+                "SELECT count FROM channel_tool_usage"
+                " WHERE channel_user_id_hash = ? AND tool = ? AND day = ?",
+                (channel_user_id_hash, tool, day),
+            ).fetchone()
+            current = int(row["count"]) if row else 0
+            if current >= limit:
+                return False, current
+            new_count = current + 1
+            conn.execute(
+                "INSERT INTO channel_tool_usage"
+                " (channel_user_id_hash, tool, day, count)"
+                " VALUES (?, ?, ?, ?)"
+                " ON CONFLICT(channel_user_id_hash, tool, day)"
+                " DO UPDATE SET count = ?",
+                (channel_user_id_hash, tool, day, new_count, new_count),
+            )
+            conn.commit()
+            return True, new_count
 
     # -- Messages ------------------------------------------------------------
 
