@@ -24,7 +24,8 @@ def build_chat_handler(
         import http_caller
 
         def _default_route(query, messages, call_fn):
-            return routing_engine.route(query, messages, call_fn=call_fn)
+            return routing_engine.route(
+                query, messages, call_fn=call_fn, channel_role="guest")
 
         route_fn = _default_route
         call_api_fn = http_caller.call_api
@@ -66,7 +67,8 @@ def build_code_handler(
         import http_caller
 
         def _default_route(query, messages, call_fn):
-            return routing_engine.route(query, messages, call_fn=call_fn)
+            return routing_engine.route(
+                query, messages, call_fn=call_fn, channel_role="guest")
 
         route_fn = _default_route
         call_api_fn = http_caller.call_api

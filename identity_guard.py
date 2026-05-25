@@ -52,7 +52,7 @@ _capability_re = re.compile(
     "|".join(_CAPABILITY_PATTERNS), re.IGNORECASE
 )
 
-# ── 预设回答 ─────────────────────────────────────────────────────────────────
+# ── 预设回答（owner / 默认：完整能力） ───────────────────────────────────────
 
 IDENTITY_ANSWER_CN = """我是 LiMa（力码），由深圳市动力巢科技有限公司开发的智能助手。
 
@@ -82,8 +82,36 @@ CAPABILITY_ANSWER_EN = """I'm LiMa. My capabilities:
 
 How can I help?"""
 
+# ── 访客 / 公开频道：保守能力声明 ───────────────────────────────────────────
 
-# ── 检测函数 ─────────────────────────────────────────────────────────────────
+IDENTITY_ANSWER_GUEST_CN = """我是 LiMa（力码），面向访客的公开体验助手。
+
+本频道提供编程问答、基础说明与演示功能，不包含完整个人后台或私有设备控制。有什么可以帮你的？"""
+
+IDENTITY_ANSWER_GUEST_EN = """I'm LiMa, a public demo assistant for guests.
+
+This channel offers coding Q&A, explanations, and demos. Full owner-only features are not available here. How can I help?"""
+
+CAPABILITY_ANSWER_GUEST_CN = """我是 LiMa（力码），访客频道可用能力：
+
+- 编程问答与代码解释
+- 基础聊天与演示说明
+- 不涉及私有仓库、任务执行或设备控制
+
+如需完整能力，请通过 owner 入口使用。"""
+
+CAPABILITY_ANSWER_GUEST_EN = """I'm LiMa. Guest channel capabilities:
+
+- Coding Q&A and explanations
+- Basic chat and demo guidance
+- No private repo access, task execution, or device control
+
+Use the owner entry for full capabilities."""
+
+# 泄露替换用的短回答（非整段能力清单）
+SHORT_LEAK_REPLACEMENT_CN = "我是 LiMa（力码），由动力巢科技开发的智能助手。"
+SHORT_LEAK_REPLACEMENT_EN = "I'm LiMa, an assistant by DongLiCao Technology."
+
 
 def _is_chinese(text: str) -> bool:
     """判断文本是否主要是中文。"""
@@ -91,7 +119,24 @@ def _is_chinese(text: str) -> bool:
     return cn_chars > len(text) * 0.1
 
 
-def detect_identity_question(query: str) -> str | None:
+def _answers_for_role(channel_role: str) -> tuple[str, str, str, str]:
+    role = (channel_role or "default").lower()
+    if role == "guest":
+        return (
+            IDENTITY_ANSWER_GUEST_CN,
+            IDENTITY_ANSWER_GUEST_EN,
+            CAPABILITY_ANSWER_GUEST_CN,
+            CAPABILITY_ANSWER_GUEST_EN,
+        )
+    return (
+        IDENTITY_ANSWER_CN,
+        IDENTITY_ANSWER_EN,
+        CAPABILITY_ANSWER_CN,
+        CAPABILITY_ANSWER_EN,
+    )
+
+
+def detect_identity_question(query: str, *, channel_role: str = "default") -> str | None:
     """
     检测是否为身份/能力类问题。
     返回: 预设回答字符串，或 None（非身份问题）。
@@ -101,12 +146,13 @@ def detect_identity_question(query: str) -> str | None:
 
     q = query.strip()
     is_cn = _is_chinese(q)
+    id_cn, id_en, cap_cn, cap_en = _answers_for_role(channel_role)
 
     if _identity_re.search(q):
-        return IDENTITY_ANSWER_CN if is_cn else IDENTITY_ANSWER_EN
+        return id_cn if is_cn else id_en
 
     if _capability_re.search(q):
-        return CAPABILITY_ANSWER_CN if is_cn else CAPABILITY_ANSWER_EN
+        return cap_cn if is_cn else cap_en
 
     return None
 
@@ -114,13 +160,13 @@ def detect_identity_question(query: str) -> str | None:
 # ── 回复后置过滤器 — 防止模型泄露真实身份 ────────────────────────────────────
 
 _LEAK_PATTERNS = re.compile(
-    r"(我是|I am|I'm|我叫|我由).{0,10}"
+    r"(我是|I am|I'm|我叫|我由|As|as).{0,16}"
     r"(Meta|OpenAI|Google|Anthropic|DeepSeek|Alibaba|阿里|百度|Baidu|"
-    r"字节|ByteDance|腾讯|Tencent|Mistral|微软|Microsoft)"
+    r"字节|ByteDance|腾讯|Tencent|Mistral|微软|Microsoft|Claude|Gemini|GPT|ChatGPT)"
     r"|"
-    r"(我是|I am|I'm).{0,10}"
+    r"(我是|I am|I'm|As|as).{0,16}"
     r"(GPT|ChatGPT|Claude|Gemini|Llama|LLaMA|Qwen|通义|文心|豆包|Doubao|"
-    r"Mixtral|Codestral|DeepSeek|PaLM|Bard)"
+    r"Mixtral|Codestral|DeepSeek|PaLM|Bard|Kimi|DeepSeek)"
     r"|"
     r"(由|developed by|made by|created by|built by).{0,10}"
     r"(Meta|OpenAI|Google|Anthropic|Microsoft|阿里|百度|字节|腾讯)",
@@ -128,10 +174,22 @@ _LEAK_PATTERNS = re.compile(
 )
 
 
-def filter_identity_leak(response: str) -> str:
-    """检查 AI 回复是否泄露了真实模型身份，如果泄露则替换为 LiMa 身份。"""
+def filter_identity_leak(response: str, *, prefer_language: str | None = None) -> str:
+    """检查 AI 回复是否泄露真实模型身份；优先局部清洗，必要时短句替换。"""
     if not response:
         return response
-    if _LEAK_PATTERNS.search(response):
-        return IDENTITY_ANSWER_CN
-    return response
+    if not _LEAK_PATTERNS.search(response):
+        return response
+
+    from response_cleaner import apply_identity_cleaning
+
+    sanitized = apply_identity_cleaning(response)
+    if sanitized and not _LEAK_PATTERNS.search(sanitized):
+        return sanitized
+
+    lang = prefer_language
+    if not lang:
+        lang = "cn" if _is_chinese(response) else "en"
+    if lang == "cn":
+        return SHORT_LEAK_REPLACEMENT_CN
+    return SHORT_LEAK_REPLACEMENT_EN

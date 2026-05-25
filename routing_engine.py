@@ -21,6 +21,7 @@ import speculative
 import sticky_session
 from context_pipeline.retrieval_injection import inject_retrieval_context
 from response_builder import build_anthropic_response, build_response, make_chat_id
+from response_cleaner import clean_response
 from route_post_process import apply_post_route_integrations
 from routing_classifier import classify, classify_scenario
 from routing_executor import execute
@@ -76,22 +77,26 @@ def route(query: str, messages: list[dict], *,
           model: str = "", max_tokens: int = 4096,
           system_prompt: str = "", headers: dict = None,
           call_fn: Callable = None,
-          cache_enabled: bool = True) -> RouteResult:
+          cache_enabled: bool = True,
+          channel_role: str = "default") -> RouteResult:
     """统一路由入口。call_fn(backend, messages, max_tokens) -> str"""
     t0 = time.time()
 
-    if cache_enabled:
-        cached = semantic_cache.get(model or "default", messages)
-        if cached:
-            ms = int((time.time() - t0) * 1000)
-            return RouteResult(backend="cache", answer=cached,
-                               request_type="cache_hit", ms=ms)
-
-    identity_answer = identity_guard.detect_identity_question(query)
+    identity_answer = identity_guard.detect_identity_question(
+        query, channel_role=channel_role)
     if identity_answer:
         ms = int((time.time() - t0) * 1000)
         return RouteResult(backend="identity_guard", answer=identity_answer,
                            request_type="identity", ms=ms)
+
+    if cache_enabled:
+        cached = semantic_cache.get(model or "default", messages)
+        if cached:
+            cleaned = clean_response(cached, "cache")
+            answer = cleaned if cleaned else cached
+            ms = int((time.time() - t0) * 1000)
+            return RouteResult(backend="cache", answer=answer,
+                               request_type="cache_hit", ms=ms)
 
     req_type = classify(query, messages, fmt=fmt, ide_source=ide_source,
                         system_prompt=system_prompt, headers=headers)
@@ -176,7 +181,8 @@ def route(query: str, messages: list[dict], *,
         if final_backend != "exhausted":
             sticky_session.pin_backend(sticky_key, final_backend)
             if cache_enabled and answer:
-                semantic_cache.put(model or "default", messages, 0, answer)
+                to_cache = clean_response(answer, final_backend) or answer
+                semantic_cache.put(model or "default", messages, 0, to_cache)
     else:
         final_backend, answer = backends[0] if backends else "none", ""
 

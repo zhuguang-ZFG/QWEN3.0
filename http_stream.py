@@ -8,7 +8,7 @@ import time
 from typing import AsyncIterator, Generator
 
 import httpx
-from response_cleaner import _clean_brand_only, _is_backend_error, clean_response
+from response_cleaner import StreamIdentitySanitizer, clean_response, _is_backend_error
 
 from backends import BACKENDS
 from http_errors import BackendError, _extract_code, _extract_retry_after
@@ -53,6 +53,7 @@ def call_api_stream(
             pending_chunks: list[str] = []
             total_text = ""
             flushed = False
+            stream_sanitizer: StreamIdentitySanitizer | None = None
 
             with client.stream("POST", cfg["url"], content=body, headers=headers) as resp:
                 resp.raise_for_status()
@@ -67,7 +68,11 @@ def call_api_stream(
                         continue
                     total_text += text
                     if flushed:
-                        yield _clean_brand_only(text, backend)
+                        if stream_sanitizer is None:
+                            stream_sanitizer = StreamIdentitySanitizer(backend)
+                        cleaned_out = stream_sanitizer.feed(text)
+                        if cleaned_out:
+                            yield cleaned_out
                     else:
                         pending_chunks.append(text)
                         if len(total_text) > 200:
@@ -85,6 +90,12 @@ def call_api_stream(
                                 yield cleaned
                             pending_chunks = []
                             flushed = True
+                            stream_sanitizer = StreamIdentitySanitizer(backend)
+
+        if flushed and stream_sanitizer is not None:
+            tail = stream_sanitizer.flush()
+            if tail:
+                yield tail
 
         if not flushed:
             if not total_text:
@@ -180,6 +191,7 @@ async def call_api_stream_async(
             pending_chunks: list[str] = []
             total_text = ""
             flushed = False
+            stream_sanitizer: StreamIdentitySanitizer | None = None
 
             async with client.stream(
                 "POST", cfg["url"], content=body, headers=headers
@@ -196,7 +208,11 @@ async def call_api_stream_async(
                         continue
                     total_text += text
                     if flushed:
-                        yield _clean_brand_only(text, backend)
+                        if stream_sanitizer is None:
+                            stream_sanitizer = StreamIdentitySanitizer(backend)
+                        cleaned_out = stream_sanitizer.feed(text)
+                        if cleaned_out:
+                            yield cleaned_out
                     else:
                         pending_chunks.append(text)
                         if len(total_text) > 200:
@@ -214,6 +230,12 @@ async def call_api_stream_async(
                                 yield cleaned_out
                             pending_chunks = []
                             flushed = True
+                            stream_sanitizer = StreamIdentitySanitizer(backend)
+
+        if flushed and stream_sanitizer is not None:
+            tail = stream_sanitizer.flush()
+            if tail:
+                yield tail
 
         if not flushed:
             if not total_text:

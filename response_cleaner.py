@@ -123,6 +123,22 @@ IDENTITY_PATTERNS = [
     # "a large language model trained/developed by [X]"
     (re.compile(r'(?:a\s+)?large language model (?:trained|developed|created) by\s+[\w\s\-\.]+', re.I),
      f'large language model developed by DongLiCao'),
+    # English: "As Claude/GPT/Gemini, ..."
+    (re.compile(
+        r'\bAs\s+(?:Claude|Gemini|GPT(?:-[\d\.]+)?|ChatGPT|Qwen|DeepSeek|Llama|Kimi|'
+        r'Codestral|Mistral|Gemma|ERNIE|Doubao|GLM|Meta\s*AI)\b',
+        re.I),
+     f'As {PUBLIC_MODEL_NAME}'),
+    # English: "This is Claude/GPT/..."
+    (re.compile(
+        r'\bThis\s+is\s+(?:Claude|Gemini|GPT(?:-[\d\.]+)?|ChatGPT|Qwen|DeepSeek|Llama|Kimi)\b',
+        re.I),
+     f'This is {PUBLIC_MODEL_NAME}'),
+    # English: "Claude/GPT here"
+    (re.compile(
+        r'\b(?:Claude|Gemini|GPT(?:-[\d\.]+)?|ChatGPT|Qwen|DeepSeek|Llama|Kimi)\s+here\b',
+        re.I),
+     f'{PUBLIC_MODEL_NAME} here'),
 ]
 
 CLEAN_PATTERNS = BRAND_PATTERNS + IDENTITY_PATTERNS
@@ -185,6 +201,12 @@ def _is_backend_error(text: str) -> bool:
     return any(text_lower.startswith(p) for p in _ERROR_CONTEXT_PREFIXES)
 
 
+_KNOWN_MODEL_BRANDS = (
+    r'claude|gemini|gpt(?:-[\d\.]+)?|chatgpt|qwen|deepseek|llama|kimi|codestral|'
+    r'mistral|gemma|ernie|doubao|glm|meta\s*ai|通义|文心|豆包'
+)
+
+
 def _looks_like_self_identity(text: str) -> bool:
     if not text:
         return False
@@ -194,12 +216,61 @@ def _looks_like_self_identity(text: str) -> bool:
             r"\b(i\s+am|i'm|my\s+model|as\s+an?\s+(?:ai\s+)?(?:language\s+)?model)\b",
             lowered,
         )
+        or re.search(rf"\bas\s+(?:an?\s+)?(?:{_KNOWN_MODEL_BRANDS})\b", lowered)
+        or re.search(rf"\bthis\s+is\s+(?:{_KNOWN_MODEL_BRANDS})\b", lowered)
+        or re.search(rf"\b(?:{_KNOWN_MODEL_BRANDS})\s+here\b", lowered)
         or (
             re.search(r"\b(?:made|built|created|developed|trained|powered)\s+by\b", lowered)
             and re.search(r"\b(i\s+am|i'm|model|assistant)\b", lowered)
         )
         or any(marker in text for marker in ("我是", "我叫", "我的模型", "作为"))
     )
+
+
+def apply_identity_cleaning(text: str) -> str:
+    """Apply brand + identity pattern replacements without backend-error stripping."""
+    if not text:
+        return ''
+    cleaned = text
+    for pattern, repl in CLEAN_PATTERNS:
+        cleaned = pattern.sub(repl, cleaned)
+    return cleaned.strip()
+
+
+class StreamIdentitySanitizer:
+    """Hold back trailing bytes so cross-chunk identity leaks can be cleaned."""
+
+    HOLD_BACK = 96
+
+    def __init__(self, backend: str = ""):
+        self._backend = backend
+        self._buffer = ""
+
+    def feed(self, chunk: str) -> str:
+        if not chunk:
+            return ""
+        self._buffer += chunk
+        if len(self._buffer) <= self.HOLD_BACK:
+            return ""
+        emit_raw = self._buffer[:-self.HOLD_BACK]
+        self._buffer = self._buffer[-self.HOLD_BACK:]
+        return self._clean_emit(emit_raw)
+
+    def flush(self) -> str:
+        if not self._buffer:
+            return ""
+        out = self._clean_emit(self._buffer)
+        self._buffer = ""
+        return out
+
+    def _clean_emit(self, text: str) -> str:
+        cleaned = clean_response(text, self._backend)
+        if cleaned:
+            return cleaned
+        if _looks_like_self_identity(text):
+            from identity_guard import filter_identity_leak
+            return filter_identity_leak(apply_identity_cleaning(text))
+        return text
 
 
 def clean_response(text: str, backend_name: str = '') -> str:
@@ -216,18 +287,18 @@ def clean_response(text: str, backend_name: str = '') -> str:
     if _looks_like_self_identity(text):
         for pattern, repl in CLEAN_PATTERNS:
             text = pattern.sub(repl, text)
-    # 后置身份泄露过滤
         from identity_guard import filter_identity_leak
-        text = filter_identity_leak(text)
+        prefer = "cn" if any('一' <= c <= '鿿' for c in text) else "en"
+        text = filter_identity_leak(text, prefer_language=prefer)
     return text.strip()
 
 
 def _clean_brand_only(text: str, backend_name: str = '') -> str:
-    """仅做品牌名替换，不做错误检测。用于流式 flush 后的逐 chunk 清洗。"""
+    """Streaming helper: clean a chunk with identity-aware patterns."""
     if not text:
         return ''
     if not _looks_like_self_identity(text):
         return text
-    for pattern, repl in CLEAN_PATTERNS:
-        text = pattern.sub(repl, text)
-    return text
+    cleaned = apply_identity_cleaning(text)
+    from identity_guard import filter_identity_leak
+    return filter_identity_leak(cleaned)
