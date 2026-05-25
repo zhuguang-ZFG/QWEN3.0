@@ -83,9 +83,17 @@ def test_worktree_has_no_untracked_high_risk_artifacts():
     assert offenders == [], f"untracked high-risk files: {offenders}"
 
 
-def test_deepcode_cli_ignores_runtime_data_dir():
-    gitignore = ROOT / "deepcode-cli" / ".gitignore"
-    text = gitignore.read_text(encoding="utf-8")
+def test_deepcode_cli_runtime_data_ignored_in_root_gitignore():
+    """CI may not checkout the deepcode-cli submodule; root ignore is authoritative."""
+    text = (ROOT / ".gitignore").read_text(encoding="utf-8")
+    assert "deepcode-cli/data/" in text.replace("\\", "/")
+
+
+def test_deepcode_cli_submodule_gitignore_when_present():
+    submodule_gitignore = ROOT / "deepcode-cli" / ".gitignore"
+    if not submodule_gitignore.is_file():
+        return
+    text = submodule_gitignore.read_text(encoding="utf-8")
     assert "data/" in text
 
 
