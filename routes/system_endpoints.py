@@ -24,7 +24,7 @@ def inject_state(*, model_id: str, model_created: int, loaded_modules: dict[str,
     _loaded_modules = loaded_modules
 
 
-@router.get("/v1/models")
+@router.get("/v1/models", dependencies=[Depends(require_private_api_key)])
 async def list_models():
     models = [
         {"id": "claude-opus-4-7", "object": "model", "created": _model_created, "owned_by": "anthropic"},

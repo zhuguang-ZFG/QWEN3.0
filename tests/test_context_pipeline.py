@@ -105,6 +105,24 @@ def test_cache_optimization_puts_stable_content_first():
     assert stable_idx < context_idx
 
 
+def test_code_context_processor_uses_unified_retrieval_text(monkeypatch):
+    monkeypatch.setenv("LIMA_CONTEXT_PREFLIGHT", "1")
+    ctx = RequestContext(
+        scenario="coding",
+        messages=[{"role": "user", "content": "fix routing_engine.py health bug"}],
+    )
+
+    monkeypatch.setattr(
+        "context_pipeline.retrieval_injection.build_retrieval_text",
+        lambda _messages: "[代码上下文]\n[routing_engine.py]",
+    )
+
+    ctx = code_context_processor(ctx)
+
+    assert "[代码上下文]" in ctx.code_context
+    assert "routing_engine.py" in ctx.code_context
+
+
 def test_default_pipeline_processes_full_request():
     pipe = build_default_pipeline()
     ctx = RequestContext(

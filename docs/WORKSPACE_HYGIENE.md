@@ -11,13 +11,14 @@ D:\LIMA-external\
   ops-tools/frp/       FRP 工具（运行中时可暂留 D:\GIT\frp 副本）
   local-runtime/data/  SQLite、deploy tar、本地 smoke JSON
   scratch/             根目录散落脚本与 context-construction 笔记
+  scratch/superpowers-plans/  未纳入 Git 的 superpowers 计划草稿
   archives/            压缩包
   cursor-local/        .claude 本地配置
 ```
 
 ## 保留在仓库内
 
-- LiMa Python 核心、`routes/`、`tests/`、`docs/`（含 superpowers plans）
+- LiMa Python 核心、`routes/`、`tests/`、`docs/`（已 tracked 的 superpowers plans）
 - Git 子模块：`deepcode-cli`、`esp32S_XYZ`
 - Tracked 的 `data/` 评测 JSON 与 `requirements_server.txt`
 - `donglicao-site/`（官网 demo，tracked）

@@ -15,18 +15,18 @@ _RATE_LIMIT_SECONDS = 60
 
 
 def _fire_and_forget(async_fn: Callable[..., Awaitable], *args, **kwargs) -> None:
-    async def runner() -> None:
-        await async_fn(*args, **kwargs)
+    def make_coro() -> Awaitable:
+        return async_fn(*args, **kwargs)
 
     try:
         loop = asyncio.get_event_loop()
         if loop.is_running():
-            loop.create_task(runner())
+            loop.create_task(make_coro())
         else:
-            t = threading.Thread(target=asyncio.run, args=(runner(),), daemon=True)
+            t = threading.Thread(target=asyncio.run, args=(make_coro(),), daemon=True)
             t.start()
     except RuntimeError:
-        t = threading.Thread(target=asyncio.run, args=(runner(),), daemon=True)
+        t = threading.Thread(target=asyncio.run, args=(make_coro(),), daemon=True)
         t.start()
     except Exception:
         logger.exception("_fire_and_forget failed")

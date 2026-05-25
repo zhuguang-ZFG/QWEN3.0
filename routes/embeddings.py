@@ -1,25 +1,20 @@
 """routes/embeddings.py — OpenAI-compatible embeddings proxy (Jina AI)."""
-import os
 import json
-import urllib.request as _ur
+import os
 import urllib.error as _ue
+import urllib.request as _ur
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
+
+from access_guard import require_private_api_key
 
 router = APIRouter()
 
 
-@router.post("/v1/embeddings")
+@router.post("/v1/embeddings", dependencies=[Depends(require_private_api_key)])
 async def embeddings(request: Request):
     """OpenAI-compatible embeddings endpoint, proxied to Jina AI."""
-    from access_guard import configured_api_keys, _extract_token
-    auth = request.headers.get("authorization", "")
-    token = _extract_token(auth)
-    keys = configured_api_keys()
-    if keys and token not in keys:
-        return JSONResponse({"error": "Unauthorized"}, status_code=401)
-
     body = await request.json()
     inp = body.get("input", [])
     if isinstance(inp, str):

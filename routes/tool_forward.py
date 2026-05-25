@@ -49,22 +49,32 @@ def inject_state(record_fn, model_id: str):
     _model_id = model_id
 
 
-def pick_tool_backend(tier: list):
-    """从候选列表中按声明顺序选第一个健康后端。"""
+def _tool_backend_selectable(name: str) -> bool:
+    """Configured, healthy tool backends suitable for IDE tool forwarding."""
     import health_tracker as _ht
     from backends import BACKENDS
+    import route_scorer as _rs
+
+    if not BACKENDS.get(name, {}).get("key"):
+        return False
+    if _ht.is_cooled_down(name):
+        return False
+    state = _ht.get_backend_state(name)
+    return _rs.is_selectable(name, "ide", state)
+
+
+def pick_tool_backend(tier: list):
+    """从候选列表中按声明顺序选第一个健康后端。"""
     for n in tier:
-        if BACKENDS.get(n, {}).get('key') and not _ht.is_cooled_down(n):
+        if _tool_backend_selectable(n):
             return n
     return None
 
 
 def iter_tool_backends(tier: list):
     """Yield configured, non-cooled tool backends once per request."""
-    import health_tracker as _ht
-    from backends import BACKENDS
     for n in tier:
-        if BACKENDS.get(n, {}).get('key') and not _ht.is_cooled_down(n):
+        if _tool_backend_selectable(n):
             yield n
 
 

@@ -257,13 +257,22 @@ async def _handle_callback(callback_query: dict) -> None:
 
 # --- Endpoints ---
 
+def _verify_webhook_secret(secret: str) -> None:
+    """Fail closed when Telegram is configured but webhook auth is missing or wrong."""
+    if not telegram_bot.is_configured():
+        return
+    expected = _get_webhook_secret()
+    if not expected:
+        raise HTTPException(503, "TELEGRAM_WEBHOOK_SECRET not configured")
+    from access_guard import constant_time_equals
+    if not constant_time_equals(secret, expected):
+        raise HTTPException(403, "Forbidden")
+
+
 @router.post("/webhook")
 async def webhook(request: Request):
     secret = request.headers.get("x-telegram-bot-api-secret-token", "")
-    expected = _get_webhook_secret()
-    if expected and secret != expected:
-        logger.warning("Webhook secret mismatch")
-        return {"ok": True}
+    _verify_webhook_secret(secret)
 
     body = await request.json()
     message = body.get("message")

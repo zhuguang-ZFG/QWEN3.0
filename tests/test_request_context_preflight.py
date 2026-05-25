@@ -35,3 +35,21 @@ def test_preflight_disabled_keeps_messages_unchanged(monkeypatch):
     messages = [{"role": "user", "content": "select backend"}]
 
     assert maybe_enhance_messages(messages, index=None) == messages
+
+
+def test_preflight_enabled_delegates_to_unified_injector(monkeypatch):
+    monkeypatch.setenv("LIMA_CONTEXT_PREFLIGHT", "1")
+    messages = [{"role": "user", "content": "fix routing_engine.py"}]
+
+    def fake_inject(msgs):
+        return [{"role": "system", "content": "[代码上下文]"}] + list(msgs), "[代码上下文]"
+
+    monkeypatch.setattr(
+        "context_pipeline.retrieval_injection.inject_retrieval_context",
+        fake_inject,
+    )
+
+    enhanced = maybe_enhance_messages(messages, index=None)
+
+    assert enhanced[0]["content"] == "[代码上下文]"
+    assert enhanced[1:] == messages

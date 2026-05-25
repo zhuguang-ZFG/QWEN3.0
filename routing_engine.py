@@ -21,6 +21,7 @@ import speculative
 import identity_guard
 import skills_injector as skills_mod
 import semantic_cache
+from context_pipeline.retrieval_injection import inject_retrieval_context
 from response_builder import build_response, build_anthropic_response, make_chat_id
 
 MAX_FALLBACKS = 5
@@ -327,12 +328,9 @@ def route(query: str, messages: list[dict], *,
     except ImportError:
         pass
 
-    # ── Integration: Entity Extraction (Phase 23) ─────────────────────────
+    # ── Integration: Entity Extraction + Graph Retrieval (Phase 23-26) ───
     messages, _retrieval_text = inject_retrieval_context(messages)
 
-    # ── Integration: Graph Retrieval + Reranking (Phase 24/25) ────────────
-
-    # ── Integration: Retrieval Injection (Phase 26) ──────────────────────
     # ── Integration: Complexity Assessment (Phase 14) ─────────────────────
     try:
         from context_pipeline.complexity import assess_complexity, decide_topology
@@ -487,63 +485,3 @@ def _get_injected_ids(original: list[dict], modified: list[dict]) -> list[str]:
                 return ["dir:" + n.strip() for n in names.split(",") if n.strip()]
     extra = len(modified) - len(original)
     return [f"injected_{extra}_skills"] if extra > 0 else []
-
-
-def inject_retrieval_context(messages: list[dict]) -> tuple[list[dict], str]:
-    """Extract entities, run graph retrieval, and inject formatted context into messages.
-
-    Returns (messages_with_context, retrieval_text).
-    Safe to call from any path — returns original messages unchanged on failure.
-    """
-    try:
-        from context_pipeline.entity_extraction import extract_entities
-        from context_pipeline.code_scanner import get_code_graph
-        from context_pipeline.graph_retrieval import dual_layer_search, RetrievalResult
-        from context_pipeline.reranking import rerank_results, format_for_injection
-    except ImportError:
-        return messages, ""
-
-    try:
-        raw_msgs = [
-            {"role": m.get("role", ""), "content": m.get("content", "")}
-            if isinstance(m, dict) else
-            {"role": getattr(m, "role", ""), "content": getattr(m, "content", "")}
-            for m in messages
-        ]
-        entities = extract_entities(raw_msgs)
-        terms = entities.to_query_terms()
-        if not terms:
-            return messages, ""
-
-        graph = get_code_graph()
-        vector_results = [RetrievalResult(path=e, score=0.7, source="vector") for e in terms[:5]]
-        merged = dual_layer_search(terms, vector_results, graph, max_results=8)
-        reranked = rerank_results(merged, terms, top_k=5)
-        if not reranked:
-            return messages, ""
-
-        text = format_for_injection(reranked)
-        if not text:
-            return messages, ""
-
-        retrieval_msg = {"role": "system", "content": text}
-        result = list(messages)
-        if result and result[0].get("role") == "system":
-            result.insert(1, retrieval_msg)
-        else:
-            result.insert(0, retrieval_msg)
-
-        from context_pipeline.retrieval_trace import record_trace, RetrievalTrace
-        record_trace(RetrievalTrace(
-            query_entities=terms,
-            candidates_searched=len(merged),
-            reranked_results=[
-                {"path": r.path, "score": round(r.score, 2), "source": r.source}
-                for r in reranked
-            ],
-            injected_text=text,
-            injected_chars=len(text),
-        ))
-        return result, text
-    except Exception:
-        return messages, ""

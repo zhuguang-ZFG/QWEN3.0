@@ -57,13 +57,10 @@ def scenario_classification_processor(ctx: RequestContext) -> RequestContext:
 
 
 def code_context_processor(ctx: RequestContext) -> RequestContext:
-    """Stage 3: Inject relevant code context via semantic search.
+    """Stage 3: Populate code_context from the unified retrieval injector.
 
-    QUARANTINED: routing_engine.inject_retrieval_context() is the single
-    authoritative retrieval injection path (entity extraction + graph retrieval
-    + reranking). This processor remains behind LIMA_CONTEXT_PREFLIGHT=1 as a
-    controlled comparison lane during migration. Remove this path after the
-    unified retrieval path has proven stable across coding scenarios.
+    Uses context_pipeline.retrieval_injection.build_retrieval_text() so the
+    default pipeline lab path does not maintain a separate index search lane.
     """
     if ctx.scenario != "coding":
         return ctx
@@ -71,30 +68,11 @@ def code_context_processor(ctx: RequestContext) -> RequestContext:
     if os.environ.get("LIMA_CONTEXT_PREFLIGHT", "0") != "1":
         return ctx
 
-    from code_context.index_store import InMemoryCodeIndex
+    from context_pipeline.retrieval_injection import build_retrieval_text
 
-    index = _get_shared_index()
-    if index is None:
-        return ctx
-
-    query = ""
-    for msg in reversed(ctx.messages):
-        if msg.get("role") == "user" and isinstance(msg.get("content"), str):
-            query = msg["content"]
-            break
-
-    if not query:
-        return ctx
-
-    matches = index.search(query, limit=3)
-    if matches:
-        lines = []
-        for record in matches:
-            symbols = ", ".join(
-                f"{s.name}:{s.kind}:{s.line}" for s in record.symbols[:8]
-            )
-            lines.append(f"- {record.path} | {symbols}")
-        ctx.code_context = "\n".join(lines)[:1200]
+    text = build_retrieval_text(ctx.messages)
+    if text:
+        ctx.code_context = text[:1200]
 
     return ctx
 
@@ -134,18 +112,3 @@ def cache_optimization_processor(ctx: RequestContext) -> RequestContext:
     ctx.system_prompt = "\n\n".join(stable_parts + variable_parts)
     return ctx
 
-
-# ─── Shared state ────────────────────────────────────────────────────────────
-
-_shared_index = None
-
-
-def _get_shared_index():
-    """Get the shared code index (lazy singleton)."""
-    return _shared_index
-
-
-def set_shared_index(index) -> None:
-    """Set the shared code index (called at server startup)."""
-    global _shared_index
-    _shared_index = index
