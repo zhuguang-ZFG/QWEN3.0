@@ -3177,3 +3177,34 @@ Verification note:
     no real secrets found; matches were test task ids and `agent-task-v1`;
   - full suite:
     `1346 passed, 8 skipped`.
+
+## 2026-05-25 P1.1/P1.2/P1.3 Review Closeout
+
+- Reviewed commit `0509aff`:
+  - P1.1 adds `observability/correlation.py`, authenticated
+    `/v1/ops/correlate` and `/v1/ops/correlate/summary`, and records chat,
+    agent-task, and motion-event touchpoints.
+  - P1.2 adds `session_memory/eval_gate.py` plus authenticated
+    `/v1/ops/eval/revision` and `/v1/ops/eval/approve`.
+  - P1.3 advances `deepcode-cli` to `07f4bdd` with `/lima fix`.
+- Review fixes applied:
+  - `/v1/ops/correlate?id=...` now matches the documented query shape while
+    keeping `request_id`, `task_id`, and `device_id` aliases.
+  - Eval approval records now feed back into `revision_check()`, so an
+    approved candidate can move from `needs_approval` to `promotable` without
+    changing routing automatically.
+  - `approve_candidate()` trims pattern keys, rejects empty/oversized keys,
+    and caps rollback notes before writing typed memory.
+- Verification:
+  - focused P1 tests:
+    `59 passed`;
+  - compile check over touched Python modules:
+    passed;
+  - `git diff --check`:
+    passed;
+  - full suite:
+    `1348 passed, 8 skipped`.
+- Deployment decision:
+  - VPS deploy +联调 is required because the slice changes authenticated ops
+    APIs and hot paths in chat, agent task submission, and Device Gateway
+    motion events.

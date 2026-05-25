@@ -191,11 +191,12 @@ async def ops_correlate_summary() -> JSONResponse:
 
 @router.get("/correlate", dependencies=[Depends(require_private_api_key)])
 async def ops_correlate(
+    id: str = Query(default=""),
     request_id: str = Query(default=""),
     task_id: str = Query(default=""),
     device_id: str = Query(default=""),
 ) -> JSONResponse:
-    target = request_id or task_id or device_id
+    target = id or request_id or task_id or device_id
     if not target:
         return JSONResponse(
             {"error": "Provide one of: request_id, task_id, or device_id"},
