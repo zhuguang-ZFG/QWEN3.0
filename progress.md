@@ -8,7 +8,9 @@
 - **访客**：仅 `https://chat.donglicao.com`；`channel_gateway/invite.py` 只推网页
 - **仓库**：`wechat_bridge/`、Hermes/WCF 脚本与相关测试迁至 `scripts/archive/wechat_retired/`；`docs/WECHAT_RETIRED.md`
 - **部署**：`deploy_channel_gateway.py` 默认 `WECHAT_BRIDGE_ENABLED=0`
-- **VPS（按需）**：`systemctl stop/disable lima-weixin-ilink`
+- **Git**：`c5511fb` on `codex/free-web-ai-probe`（已 push）
+- **测试**：`test_wechat_wave1_ux` + `test_wechat_channel_smoke` + `test_channel_gateway_routes` 共 30 passed（本会话）
+- **VPS**：`deploy_channel_gateway.py` 上传 invite/service；`.env` `WECHAT_BRIDGE_ENABLED=0`；`lima-weixin-ilink` stop+disable；`lima-router` active；`/health` ok
 
 ## 2026-05-25 WCF 小号客服（已并入退役，不再推进）
 

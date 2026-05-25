@@ -18,7 +18,14 @@
 | iLink / Hermes 本机桥 + VPS `lima-weixin-ilink` | `scripts/archive/wechat_retired/` |
 | PC 微信 WCF Hook | `scripts/archive/wechat_retired/` |
 
-运维：VPS 上可 `systemctl stop lima-weixin-ilink` 并 disable（按需释放内存）；`WECHAT_BRIDGE_ENABLED=0`。
+运维（VPS 已执行 2026-05-25）：
+
+```bash
+systemctl stop lima-weixin-ilink
+systemctl disable lima-weixin-ilink
+# .env: WECHAT_BRIDGE_ENABLED=0
+systemctl restart lima-router   # 或由 deploy_channel_gateway.py 完成
+```
 
 ## 仍保留（非微信产品）
 
