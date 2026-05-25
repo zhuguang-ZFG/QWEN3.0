@@ -22,6 +22,7 @@ import identity_guard
 import skills_injector as skills_mod
 import semantic_cache
 from context_pipeline.retrieval_injection import inject_retrieval_context
+from route_post_process import apply_post_route_integrations
 from response_builder import build_response, build_anthropic_response, make_chat_id
 
 MAX_FALLBACKS = 5
@@ -412,57 +413,16 @@ def route(query: str, messages: list[dict], *,
 
     ms = int((time.time() - t0) * 1000)
 
-    # ── Integration: Narrative Casting (Phase 12) — on fallback ────────────
-    _fallback_used = (final_backend not in ("exhausted", "none") and backends and final_backend != backends[0])
-    if _fallback_used and answer:
-        try:
-            from context_pipeline.narrative import reframe_for_handoff
-            reframe_for_handoff(messages_injected, backends[0], final_backend)
-        except (ImportError, Exception):
-            pass
-
-    # ── Integration: Hierarchical Memory L1 (Phase 16) ────────────────────
-    try:
-        from context_pipeline.hierarchical_memory import get_hierarchical_memory
-        hmem = get_hierarchical_memory()
-        hmem.update_performance(final_backend, ms, bool(answer))
-        hmem.set_global_fact(f"last_scenario:{scenario}", final_backend)
-    except ImportError:
-        pass
-
-    # ── Integration: Response Pipeline + Signal Extraction (Phase 9/15/17/20) ──
-    try:
-        from context_pipeline.response_processors import build_default_response_pipeline
-        from context_pipeline.response_pipeline import ResponseContext
-        resp_ctx = build_default_response_pipeline().process(ResponseContext(
-            backend=final_backend, response_text=answer or "",
-            latency_ms=ms, status_code=200 if answer else 500,
-        ))
-        # Phase 15: Update routing weights based on success/failure
-        from context_pipeline.routing_weights import get_routing_weights
-        rw = get_routing_weights()
-        if resp_ctx.quality_ok and final_backend not in ("exhausted", "none", "cache"):
-            rw.record_success(final_backend, scenario)
-        elif final_backend not in ("exhausted", "none", "cache"):
-            rw.record_failure(final_backend, scenario)
-        # Phase 17: Crystallize successful routing as skill
-        if resp_ctx.quality_ok and answer and final_backend not in ("exhausted", "none", "cache"):
-            from context_pipeline.skill_store import get_skill_store
-            get_skill_store().crystallize(messages, scenario, final_backend, 0, ms)
-    except ImportError:
-        pass
-
-    # Emit route_decision_event to observability (M6-S3)
-    try:
-        from observability.metrics import record as _obs_record
-        from observability.events import route_decision_event
-        _obs_record(route_decision_event(
-            "", final_backend,
-            f"{req_type}/{scenario}" + ("/fallback" if (final_backend not in ("exhausted", "none") and backends and final_backend != backends[0]) else ""),
-            candidates=backends if backends else [],
-        ))
-    except ImportError:
-        pass
+    apply_post_route_integrations(
+        final_backend=final_backend,
+        answer=answer or "",
+        backends=backends,
+        messages_injected=messages_injected,
+        messages=messages,
+        req_type=req_type,
+        scenario=scenario,
+        ms=ms,
+    )
 
     return RouteResult(
         backend=final_backend, answer=answer,

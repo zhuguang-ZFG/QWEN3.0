@@ -2,6 +2,17 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 CQ-014 Post-Route Slice Closeout
+
+- Design: `docs/CQ014_POST_ROUTE_SLICE.md`, `docs/REQUEST_PIPELINE_AUTHORITY.md`
+- Extracted post-route integrations from `routing_engine.py` into `route_post_process.py`
+- Replaced silent broad catches with warning logs in post-route path and `http_caller` prefix cache
+- `routing_engine.py` reduced from ~409 to ~372 lines
+- Tests: **1389 passed, 10 skipped** (focused post-route: 2 passed; routing_engine: 45 passed)
+- VPS deploy backup: `/opt/lima-router/backups/cq014-post-route-20260525_134546/runtime-before.tgz`
+- Public smoke: **12/12** with exact chat token `cq014_post_route_ok`
+- Residual: CQ-014 still open for `smart_router.py`, `server.py`, `routes/admin.py`, `http_caller.py`, `health_tracker.py`
+
 ## 2026-05-25 Workspace Hygiene Cleanup
 
 - Created external workspace `D:\LIMA-external\` for reference clones, hardware

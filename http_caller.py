@@ -14,6 +14,7 @@ LiMa HTTP Caller — 统一后端调用层
 """
 
 import json
+import logging
 import os
 import sys
 import time
@@ -25,6 +26,8 @@ import health_tracker
 import key_pool
 from backends import BACKENDS, GFW_BACKENDS, infer_key_pool_provider
 from response_cleaner import clean_response, _clean_brand_only, _is_backend_error
+
+logger = logging.getLogger(__name__)
 
 DEBUG = os.environ.get('LIMA_DEBUG', '') == '1'
 
@@ -159,8 +162,10 @@ def _build_body(backend_cfg: dict, messages: list[dict],
         from context_pipeline.cache import optimize_for_prefix_cache
         if sys_text and messages:
             sys_text, messages = optimize_for_prefix_cache(sys_text, messages)
-    except (ImportError, Exception):
+    except ImportError:
         pass
+    except Exception as exc:
+        logger.warning("prefix cache optimization failed: %s", exc, exc_info=True)
 
     if fmt == 'anthropic':
         if backend_cfg.get('no_system'):
