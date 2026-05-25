@@ -39,22 +39,32 @@ def main() -> None:
     sftp = ssh.open_sftp()
     sftp.put(str(req), f"{REMOTE}/requirements-weixin-ilink.txt")
     sftp.close()
-    print("=== 1. deps (iLink transport only, no Hermes agent/messaging extras) ===")
+    PY = "/usr/bin/python3.11"
+    PIP = f"{PY} -m pip"
+
+    print("=== 1. Python 3.11 (hermes-agent requires >=3.11) ===")
     print(
         _run(
             ssh,
-            f"/usr/local/bin/python3.10 -m pip install -q -r {REMOTE}/requirements-weixin-ilink.txt",
+            "dnf install -y python3.11 python3.11-pip 2>/dev/null || "
+            "yum install -y python3.11 python3.11-pip",
             timeout=300,
         )
     )
+    print(_run(ssh, f"test -x {PY} && {PY} --version"))
 
-    print("=== 2. upload bridge + wechat_bridge ===")
+    print("=== 2. deps (iLink transport only, no [messaging] extras) ===")
+    print(_run(ssh, f"{PIP} install -q -r {REMOTE}/requirements-weixin-ilink.txt", timeout=300))
+
+    print("=== 3. upload bridge + wechat_bridge ===")
     sftp = ssh.open_sftp()
+    _run(ssh, f"mkdir -p {REMOTE}/scripts {REMOTE}/wechat_bridge")
     try:
         sftp.mkdir(f"{REMOTE}/wechat_bridge")
     except OSError:
         pass
     sftp.put(str(bridge), f"{REMOTE}/scripts/hermes_weixin_lima_bridge.py")
+    print(f"  scripts/hermes_weixin_lima_bridge.py")
     for rel in (
         "__init__.py",
         "lima_client.py",
@@ -76,7 +86,7 @@ def main() -> None:
         print(f"  account {f.name}")
     sftp.close()
 
-    print("=== 3. env snippet (merge WEIXIN_* into .env manually if needed) ===")
+    print("=== 4. env snippet ===")
     acc = next((p for p in accounts.glob("*.json") if "context" not in p.name and "sync" not in p.name), None)
     if acc:
         import json
@@ -111,7 +121,7 @@ Environment=LIMA_WEIXIN_VPS=1
 Environment=HERMES_HOME=/root/.hermes
 Environment=PYTHONDONTWRITEBYTECODE=1
 EnvironmentFile=-{REMOTE}/.env
-ExecStart=/usr/local/bin/python3.10 {REMOTE}/scripts/hermes_weixin_ilima_bridge.py
+ExecStart=/usr/bin/python3.11 {REMOTE}/scripts/hermes_weixin_lima_bridge.py
 Restart=on-failure
 RestartSec=15
 MemoryMax=384M
@@ -125,7 +135,7 @@ WantedBy=multi-user.target
         fh.write(unit)
     sftp.close()
 
-    print("=== 4. merge weixin env into .env ===")
+    print("=== 5. merge weixin env into .env ===")
     sftp = ssh.open_sftp()
     sftp.put(
         str(base / "scripts" / "_merge_weixin_ilink_env_remote.py"),
@@ -134,10 +144,10 @@ WantedBy=multi-user.target
     sftp.close()
     print(_run(ssh, f"cd {REMOTE} && python3.10 _merge_weixin_ilink_env.py && rm -f _merge_weixin_ilink_env.py"))
 
-    print("=== 5. stop local duplicate (hint) ===")
+    print("=== 6. stop local duplicate (hint) ===")
     print("Run on Windows: scripts/stop_weixin_lima_ilink.ps1 — only one iLink poller per account")
 
-    print("=== 6. systemd ===")
+    print("=== 7. systemd ===")
     print(_run(ssh, "systemctl daemon-reload && systemctl enable " + SERVICE))
     print(_run(ssh, "systemctl restart " + SERVICE))
     time.sleep(4)
