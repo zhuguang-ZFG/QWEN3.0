@@ -169,6 +169,8 @@ class TaskResultBody(BaseModel):
     artifacts: list[str] = Field(default_factory=list)
     risks: list[str] = Field(default_factory=list)
     next_action: str = ""
+    backend: str = ""
+    latency_ms: int = 0
 
 class ClaimBody(BaseModel):
     worker_id: str
@@ -447,7 +449,7 @@ async def submit_task_result(task_id: str, body: TaskResultBody):
         raise HTTPException(404, "Task not found")
     if body.task_id != task_id:
         raise HTTPException(422, "task_id in path and body must match")
-    result = AgentTaskResult(**body.model_dump())
+    result = AgentTaskResult(**{k: v for k, v in body.model_dump().items() if k not in ("backend", "latency_ms")})
     try:
         result.validate()
     except ValueError as e:
@@ -464,6 +466,17 @@ async def submit_task_result(task_id: str, body: TaskResultBody):
             notify_task_ready(task_id, body.summary, body.changed_files)
         except Exception:
             pass
+    # ── PROD-008: Learning loop — feed task outcome into memory/prompt/routing/eval
+    try:
+        from session_memory.learning_loop import ingest_from_agent_task_result
+        ingest_from_agent_task_result(
+            asdict(result),
+            backend=body.backend,
+            scenario="agent_task",
+            latency_ms=body.latency_ms,
+        )
+    except Exception:
+        pass
     return {"accepted": True, "task_id": task_id, "status": result.status}
 
 @router.post("/tasks/{task_id}/review", dependencies=[Depends(_require_admin)])
