@@ -2,6 +2,15 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 CQ-014 HTTP Caller Slice 8 Closeout
+
+- Design: `docs/CQ014_HTTP_CALLER_SLICE.md`
+- Extracted `http_errors.py`, `http_request_builder.py`, `http_response.py`, `http_stream.py`; `http_caller.py` ~390 lines (was ~763)
+- Tests: **1428 passed, 10 skipped**
+- VPS backup: `/opt/lima-router/backups/cq014-http-caller-20260525_141709/runtime-before.tgz`
+- Public smoke: **12/12** with token `cq014_http_caller_ok`
+- Residual CQ-014: `health_tracker.py`
+
 ## 2026-05-25 CQ-014 Smart Router Slice 7 Closeout
 
 - Design: `docs/CQ014_SMART_ROUTER_SLICE.md` (updated slices 6–7)
