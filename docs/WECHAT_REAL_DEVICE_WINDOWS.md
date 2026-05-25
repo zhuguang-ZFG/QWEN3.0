@@ -30,10 +30,13 @@ pip install wcferry
 
 ### 2. 安装对应版本微信 PC 客户端
 
-本机已安装 **微信 3.9.12.51**（与 wcferry 39.5.2 配套）。安装包：`D:\GIT\data\wechat_install\WeChatSetup-3.9.12.51.exe`。  
-重装：`powershell -ExecutionPolicy Bypass -File D:\GIT\scripts\install_wechat_wcf.ps1`
+安装 **微信 3.9.12.51**（与 wcferry 39.5.2 配套，含 Win11 兼容启动器）：
 
-用**专用小号**登录。
+```powershell
+powershell -ExecutionPolicy Bypass -File D:\GIT\scripts\install_wechat_wcf.ps1
+```
+
+安装包缓存：`D:\GIT\data\wechat_install\WeChatSetup-3.9.12.51.exe`。登录请用桌面 **「微信-LiMa」**，专用小号。
 
 ### 3. SSH 隧道（另开一个 PowerShell，保持运行）
 

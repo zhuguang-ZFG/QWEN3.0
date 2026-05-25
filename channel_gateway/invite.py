@@ -1,4 +1,4 @@
-"""Weixin guest onboarding — honest limits for iLink / ClawBot."""
+"""Weixin guest onboarding — WCF 小号 / 网页 / iLink 限制说明."""
 
 from __future__ import annotations
 
@@ -27,34 +27,36 @@ def _resolve_bot_id(bot_id: str = "") -> str:
 
 
 def invite_text(*, bot_id: str = "", share_url: str = "") -> str:
-    """Tell guests the real path; do not promise WeChat add-friend via /invite link."""
+    """Guest paths: add LiMa 小号 WeChat friend (WCF) or use web; not iLink liteapp."""
     del share_url
     bid = _resolve_bot_id(bot_id)
     web = PRODUCT_SITE
+    wx_id = os.environ.get("LIMA_WECHAT_PUBLIC_ID", "").strip()
     lines = [
         "【LiMa 微信访客说明 — 请转发给朋友】",
         "",
-        "重要（已用服务器日志核实）：",
-        "• 本 VPS 上的 LiMa 机器人目前只收到「管理员微信」的消息，",
-        "  好友扫 /邀请 里的 liteapp 链接后，消息不会进 LiMa，所以不会回复。",
-        "• 原因：微信 ClawBot / iLink 目前是「一个微信号绑定一个后端实例」，",
-        "  没有「分享同一个机器人给多人加好友」的公开能力（不能搜 ID、不能转发名片）。",
-        "",
-        "请朋友这样用 LiMa（推荐）：",
-        f"1. 浏览器打开：{web}",
-        "2. 直接对话，无需加微信好友、无需扫码",
-        "",
-        "若朋友坚持用微信：",
-        "• 可让管理员提供 LiMa 专用小号加好友（PC 微信桥，见 docs/WECHAT_REAL_DEVICE_WINDOWS.md），",
-        "  或使用管理员已绑定的 ClawBot 私聊（仅管理员本人可靠）。",
-        "• 请勿再扫本消息里的 liteapp 添加链接（该链接无效于访客接入）。",
-        "",
-        "管理员自测：",
-        "• 请只在「你已扫码登录的那个 ClawBot 对话」里发消息；",
-        "• 若这里能回复而朋友不能，即符合上述平台限制。",
+        "推荐（微信里像加客服一样用）：",
+        "• 添加 LiMa 专用微信小号为好友，直接私聊发「你好」或「/menu」。",
     ]
+    if wx_id:
+        lines.append(f"  微信号：{wx_id}")
+    else:
+        lines.append("  （微信号由管理员私信提供，见 docs/WECHAT_WCF_XIAOHAO.md）")
+    lines.extend([
+        "• 无需 ClawBot 插件、无需扫机器人二维码。",
+        "",
+        "也可浏览器使用（无需加好友）：",
+        f"• {web}",
+        "",
+        "请勿使用：",
+        "• /邀请 里的 liteapp 加机器人链接（访客消息进不了 LiMa，已实测）。",
+        "• 管理员个人 ClawBot 机器人（仅管理员本人可用）。",
+        "",
+        "管理员运维：",
+        "• 小号需 Windows PC 微信 + WCF 桥常开，见 docs/WECHAT_WCF_XIAOHAO.md",
+    ])
     if bid:
-        lines.append(f"\n（运维）当前机器人：{bid}")
+        lines.append(f"• iLink 机器人（仅管理员）：{bid}")
     lines.extend([
         "",
         f"官网：{BRAND_SITE}",

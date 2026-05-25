@@ -111,7 +111,8 @@ def test_invite_text_points_to_web_not_liteapp(monkeypatch, tmp_path):
     body = invite_text(share_url="https://liteapp.weixin.qq.com/q/x")
     assert "https://liteapp" not in body
     assert "chat.donglicao.com" in body
-    assert "不会进 LiMa" in body or "只收到" in body
+    assert "liteapp" in body or "小号" in body
+    assert "进不了 LiMa" in body or "访客" in body
 
 
 def test_should_not_voice_when_disabled_pref():
