@@ -27,12 +27,18 @@ def _redacted(value: str, max_len: int = 40) -> str:
     return value[:max_len]
 
 
+def _app_stats(request: Request) -> dict[str, Any]:
+    state = getattr(request.app, "state", None)
+    stats = getattr(state, "stats", {}) if state is not None else {}
+    return stats if isinstance(stats, dict) else {}
+
+
 @router.get("/metrics", dependencies=[Depends(require_private_api_key)])
 async def ops_metrics(request: Request) -> JSONResponse:
     now = time.time()
 
     # Request stats (injected from server)
-    stats = getattr(request.app, "state", {}).get("stats", {})
+    stats = _app_stats(request)
     total_requests = int(stats.get("total_requests", 0))
     backend_calls = dict(stats.get("backend_calls", {}))
 

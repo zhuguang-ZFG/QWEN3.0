@@ -18,8 +18,15 @@ def test_motion_capabilities_are_allowed():
         "run_path",
         "write_text",
         "draw_generated",
+        "home",
+        "pause",
+        "resume",
+        "stop",
+        "get_device_info",
     })
     assert validate_capability("motion", "run_path")
+    assert validate_capability("motion", "home")
+    assert validate_capability("motion", "stop")
     assert not validate_capability("motion", "stream_start")
 
 

@@ -12,6 +12,15 @@
 | XAA-004 | LiMa adaptation | The useful LiMa shape is `ChannelConnector -> SessionStore -> IntentRouter -> ExpertAgent -> HumanTakeover -> AuditLog -> TaskQueue`. | Start with a fake connector and productive flows before adding real messaging bridges. |
 | XAA-005 | Priority | Messaging bridges are less urgent than observable hardware and coding execution. | Keep P0.2 real Device Gateway path/text/SVG pipeline ahead of WeChat/Xianyu-style connector work. |
 
+## 2026-05-25 P0.4/P0.5/P0.7 Review Findings
+
+| ID | Area | Evidence | Status |
+|---|---|---|---|
+| P04-review-1 | Preview replay artifact | `create_task_from_transcript("write LiMa")` produced a `preview_svg` truncated to 120 chars by `validate_capability_params()`, so the task record did not contain a complete `</svg>` preview. | Fixed: `preview_svg` is preserved up to 4096 chars; regression test asserts SVG starts with `<svg` and ends with `</svg>`. |
+| P05-review-1 | Control intent execution | `resolve_voice_task("home")` parsed correctly, but `project_to_motion_task()` turned control capabilities into failed `run_path` placeholders with `E_UNSUPPORTED_CAPABILITY`. | Fixed: `home/pause/resume/stop/get_device_info` are motion-family capabilities and create control `motion_task` payloads without path requirements. |
+| P07-review-1 | Ops metrics endpoint crash | `/v1/ops/metrics` used `getattr(request.app, "state", {}).get(...)`; Starlette `State` has no `.get()`, so authenticated requests raised 500. | Fixed: reads `request.app.state.stats` safely; regression test covers authenticated 200 response. |
+| P07-review-2 | Ops metrics empty stats | `server.py` kept `_stats` as a module global but did not expose it on `app.state`, so the new ops endpoint would report zeros even after the crash fix. | Fixed: `app.state.stats = _stats`; regression test asserts Server exposes the live stats object. |
+
 ## 2026-05-25 P0.1 ESP32 Motion Executor Contract — Implementation Closeout
 
 | ID | Area | Evidence | Status |

@@ -10,6 +10,8 @@ from .path_pipeline import render_svg_task, render_text_task
 from . import store as store_mod
 from .store import DeviceTaskStore, InMemoryDeviceTaskStore
 
+CONTROL_CAPABILITIES = frozenset({"home", "pause", "resume", "stop", "get_device_info"})
+
 
 def reset_tasks_for_tests() -> None:
     store_mod.task_store.reset()
@@ -59,6 +61,10 @@ def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_i
             "prompt": prompt,
             "preview_svg": rendered.get("preview_svg", ""),
         }
+    elif capability in CONTROL_CAPABILITIES:
+        run_params = {
+            "source_capability": capability,
+        }
     else:
         run_params = {"feed": DEFAULT_FEED, "path": [safe_point(0, 0, 0)], "source_capability": capability}
 
@@ -69,7 +75,7 @@ def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_i
             "type": "motion_task",
             "task_id": task_id,
             "device_id": device_id,
-            "capability": "run_path",
+            "capability": capability if capability in CONTROL_CAPABILITIES else "run_path",
             "source": voice_task.get("source", "voice"),
             "params": {},
             "error": {"code": error, "reason": f"validation failed: {error}"},
@@ -84,7 +90,7 @@ def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_i
         "type": "motion_task",
         "task_id": task_id,
         "device_id": device_id,
-        "capability": "run_path",
+        "capability": capability if capability in CONTROL_CAPABILITIES else "run_path",
         "source": voice_task.get("source", "voice"),
         "params": sanitized,
     }

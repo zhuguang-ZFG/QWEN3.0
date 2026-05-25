@@ -64,6 +64,29 @@ def test_validate_capability_params_rejects_write_text_without_text():
     assert error == "E_BAD_PARAMS"
 
 
+def test_validate_capability_params_preserves_preview_svg():
+    preview = "<svg>" + ("x" * 300) + "</svg>"
+    params = {
+        "path": [{"x": 0, "y": 0, "z": 0}],
+        "feed": 500,
+        "text": "hello",
+        "preview_svg": preview,
+    }
+
+    sanitized, error = validate_capability_params("write_text", params)
+
+    assert error is None
+    assert sanitized["preview_svg"].endswith("</svg>")
+    assert len(sanitized["preview_svg"]) > 120
+
+
+def test_validate_capability_params_accepts_control_capability_without_path():
+    sanitized, error = validate_capability_params("home", {"source_capability": "home"})
+
+    assert error is None
+    assert sanitized == {"source_capability": "home"}
+
+
 def test_capability_path_map_covers_active_capabilities():
-    for cap in ("run_path", "write_text", "draw_generated"):
+    for cap in ("run_path", "write_text", "draw_generated", "home", "pause", "resume", "stop", "get_device_info"):
         assert cap in CAPABILITY_PATH_MAP

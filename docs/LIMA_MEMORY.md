@@ -2,6 +2,14 @@
 
 ## 2026-05-25 Joint Debug Memory
 
+- On 2026-05-25 review of `e3dbb9b` found and fixed three Device Gateway
+  production gaps: `preview_svg` was truncated by validation and could not be
+  used for replay, parsed control commands such as `home` became failed
+  `run_path` placeholders, and `/v1/ops/metrics` would crash because
+  Starlette `app.state` does not implement `.get()`. Server now preserves
+  complete preview SVGs, admits `home/pause/resume/stop/get_device_info` as
+  motion-family control capabilities, and exposes live `_stats` through
+  `app.state.stats`.
 - On 2026-05-25 `shaxiu/XianyuAutoAgent` was reviewed as a reference at
   revision `77b1e4c`. It is useful as a concept source for channel connector
   boundaries, session state, expert intent routing, manual takeover,

@@ -2,6 +2,27 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 P0.4/P0.5/P0.7 Review Fixes
+
+- Reviewed `e3dbb9b` (`feat(device-gateway): p0.4 path pipeline + p0.5 intent parser + p0.7 ops metrics`).
+- Fixed preview artifact preservation: `preview_svg` is no longer truncated to
+  120 chars during Device Gateway validation, so task snapshots retain a
+  complete operator/replay SVG.
+- Fixed control command projection: `home`, `pause`, `resume`, `stop`, and
+  `get_device_info` are now admitted motion-family capabilities and produce
+  control `motion_task` payloads instead of failed `run_path` placeholders.
+- Fixed `/v1/ops/metrics`: Starlette `app.state` is read correctly, and
+  `server.py` exposes the live `_stats` object through `app.state.stats`.
+- Added regression coverage in `tests/test_device_gateway_path_validator.py`,
+  `tests/test_device_gateway_protocol.py`,
+  `tests/test_device_gateway_protocol_families.py`, and
+  `tests/test_ops_metrics.py`.
+- Verification so far:
+  - focused path/protocol/ops suite: `30 passed`;
+  - device/agent subset: `80 passed`;
+  - touched Python compile passed;
+  - full suite: `1239 passed, 8 skipped`.
+
 ## 2026-05-25 XianyuAutoAgent Reference Execution Notes
 
 - Reviewed `shaxiu/XianyuAutoAgent` at revision `77b1e4c`.

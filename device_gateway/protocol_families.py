@@ -35,7 +35,16 @@ class MotionErrorCode(str, Enum):
 
 
 FAMILY_ALLOWLISTS: dict[str, frozenset[str]] = {
-    ProtocolFamily.MOTION.value: frozenset({"run_path", "write_text", "draw_generated"}),
+    ProtocolFamily.MOTION.value: frozenset({
+        "run_path",
+        "write_text",
+        "draw_generated",
+        "home",
+        "pause",
+        "resume",
+        "stop",
+        "get_device_info",
+    }),
     ProtocolFamily.DISPLAY.value: frozenset({"show_image", "show_text", "clear_screen"}),
     ProtocolFamily.AUDIO.value: frozenset({"play_audio", "stop_audio", "set_volume"}),
     ProtocolFamily.SPEECH.value: frozenset({"tts_speak", "voice_clone"}),
@@ -73,6 +82,11 @@ MOTION_SCHEMAS = [
         "feed": {"type": "int", "required": True},
         "prompt": {"type": "string", "required": True, "max_length": 120},
     }),
+    ProtocolSchema("motion", "home", {}),
+    ProtocolSchema("motion", "pause", {}),
+    ProtocolSchema("motion", "resume", {}),
+    ProtocolSchema("motion", "stop", {}),
+    ProtocolSchema("motion", "get_device_info", {}),
 ]
 
 DISPLAY_SCHEMAS = [

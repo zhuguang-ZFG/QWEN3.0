@@ -82,6 +82,27 @@ def test_transcript_projects_to_bounded_run_path_motion_task():
     assert all(0 <= point["x"] <= 100 and 0 <= point["y"] <= 100 for point in motion_task["params"]["path"])
 
 
+def test_transcript_preserves_preview_svg_for_operator_replay():
+    motion_task = create_task_from_transcript("dev-1", "write LiMa", request_id="req-preview")
+
+    preview = motion_task["params"]["preview_svg"]
+    assert motion_task["params"]["source_capability"] == "write_text"
+    assert preview.startswith("<svg")
+    assert preview.endswith("</svg>")
+    assert "LiMa" in preview
+
+
+def test_transcript_projects_control_command_to_control_motion_task():
+    motion_task = create_task_from_transcript("dev-1", "home", request_id="req-home")
+
+    assert motion_task["type"] == "motion_task"
+    assert motion_task["device_id"] == "dev-1"
+    assert motion_task["capability"] == "home"
+    assert motion_task["request_id"] == "req-home"
+    assert motion_task["params"] == {"source_capability": "home"}
+    assert "error" not in motion_task
+
+
 def test_safety_rejects_out_of_workspace_path():
     with pytest.raises(SafetyError):
         validate_run_path_params({"feed": 900, "path": [{"x": 999, "y": 0, "z": 0}]})

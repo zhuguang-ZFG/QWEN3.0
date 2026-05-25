@@ -18,7 +18,14 @@ CAPABILITY_PATH_MAP: dict[str, frozenset[str]] = {
     "run_path": frozenset({"path", "feed"}),
     "write_text": frozenset({"path", "feed", "text"}),
     "draw_generated": frozenset({"path", "feed", "prompt"}),
+    "home": frozenset(),
+    "pause": frozenset(),
+    "resume": frozenset(),
+    "stop": frozenset(),
+    "get_device_info": frozenset(),
 }
+
+CONTROL_CAPABILITIES = frozenset({"home", "pause", "resume", "stop", "get_device_info"})
 
 
 def validate_run_path_params(params: dict) -> tuple[dict, str | None]:
@@ -69,6 +76,11 @@ def validate_capability_params(
     if required is None:
         return {}, MotionErrorCode.E_UNSUPPORTED_CAPABILITY.value
 
+    if capability in CONTROL_CAPABILITIES:
+        return {
+            "source_capability": str(params.get("source_capability", capability)),
+        }, None
+
     sanitized, error = validate_run_path_params(params)
     if error:
         return {}, error
@@ -81,7 +93,8 @@ def validate_capability_params(
 
     for key, value in params.items():
         if isinstance(value, str):
-            sanitized[key] = value[:120]
+            limit = 4096 if key == "preview_svg" else 120
+            sanitized[key] = value[:limit]
         elif isinstance(value, (int, float)):
             sanitized[key] = value
 

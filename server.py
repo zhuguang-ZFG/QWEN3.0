@@ -95,6 +95,7 @@ _stats = {
     "recent_logs": [],
     "start_time": time.time(),
 }
+app.state.stats = _stats
 
 # 后端启用/禁用状态
 _backend_enabled = {}
