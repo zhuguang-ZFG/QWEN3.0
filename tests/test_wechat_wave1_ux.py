@@ -106,13 +106,14 @@ def test_pack_voice_on_long_inbound_voice():
     assert len(packed["voice_reply_text"]) <= 320
 
 
-def test_invite_text_points_to_web_not_liteapp(monkeypatch, tmp_path):
+def test_invite_text_web_only_retired_wechat(monkeypatch):
     monkeypatch.setenv("WEIXIN_ACCOUNT_ID", "demo@im.bot")
     body = invite_text(share_url="https://liteapp.weixin.qq.com/q/x")
     assert "https://liteapp" not in body
     assert "chat.donglicao.com" in body
-    assert "liteapp" in body or "小号" in body
-    assert "进不了 LiMa" in body or "访客" in body
+    assert "WECHAT_RETIRED" in body or "已停用" in body
+    assert "小号" not in body
+    assert "WCF" not in body
 
 
 def test_should_not_voice_when_disabled_pref():

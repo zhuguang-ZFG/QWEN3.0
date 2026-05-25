@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deploy WeChat channel gateway (CQ-088/089/090) to LiMa VPS."""
+"""Deploy channel gateway (CQ-088/089/090) to LiMa VPS; WeChat bridge off by default."""
 
 from __future__ import annotations
 
@@ -48,7 +48,7 @@ CHANNEL_GATEWAY_FILES = [
 ]
 
 ENV_FLAGS = {
-    "WECHAT_BRIDGE_ENABLED": "1",
+    "WECHAT_BRIDGE_ENABLED": "0",
     "LIMA_CHANNEL_TOOLS": "1",
     "LIMA_CHANNEL_SESSION": "1",
     "LIMA_CHANNEL_AUTO_GUEST_BIND": "1",

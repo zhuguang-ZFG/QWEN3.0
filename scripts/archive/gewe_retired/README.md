@@ -1,7 +1,9 @@
 # GeWe / Gewechat 路线（已退役）
 
 **退役日期：** 2026-05-25  
-**原因：** VPS 自托管 Gewechat（2531）+ LiMa sidecar（9919）依赖 GeWe 设备库，长期不可用；真机微信已改 **iLink + 本机桥**（`scripts/hermes_weixin_lima_bridge.py`）。
+**原因：** VPS 自托管 Gewechat（2531）+ LiMa sidecar（9919）依赖 GeWe 设备库，长期不可用。
+
+**后续 iLink/WCF 也已退役**，见 `scripts/archive/wechat_retired/` 与 `docs/WECHAT_RETIRED.md`。
 
 ## 仍在用的微信入口
 

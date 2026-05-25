@@ -12,7 +12,7 @@ for line in lines:
     data[k.strip()] = v.strip().strip('"').strip("'")
 
 flags = {
-    "WECHAT_BRIDGE_ENABLED": "1",
+    "WECHAT_BRIDGE_ENABLED": "0",
     "LIMA_CHANNEL_TOOLS": "1",
     "LIMA_CHANNEL_SESSION": "1",
     "LIMA_CHANNEL_AUTO_GUEST_BIND": "1",

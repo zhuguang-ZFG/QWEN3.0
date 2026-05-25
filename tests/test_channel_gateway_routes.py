@@ -89,7 +89,7 @@ class TestChannelRoutes:
         }, headers=SIDECAR_HEADERS)
         assert resp.status_code == 200
         assert resp.json()["ok"] is True
-        assert "欢迎使用" in resp.json()["reply"]["text"]
+        assert "你好，我是 LiMa" in resp.json()["reply"]["text"]
 
     def test_wechat_message_duplicate(self):
         msg = {
@@ -144,7 +144,7 @@ class TestChannelRoutes:
             "timestamp": 1,
         }, headers=SIDECAR_HEADERS)
         assert resp.json()["ok"] is True
-        assert "guest" in resp.json()["reply"]["text"].lower()
+        assert "访客" in resp.json()["reply"]["text"]
 
         # 3. Guest chat (plain text)
         resp = client.post("/channel/v1/wechat/message", json={
@@ -185,7 +185,7 @@ class TestChannelRoutes:
             "timestamp": 5,
         }, headers=SIDECAR_HEADERS)
         assert resp.json()["ok"] is False
-        assert "owner" in resp.json()["reply"]["text"].lower()
+        assert "主人" in resp.json()["reply"]["text"]
 
         # 7. Guest rejected for /device
         resp = client.post("/channel/v1/wechat/message", json={
@@ -196,7 +196,7 @@ class TestChannelRoutes:
             "timestamp": 6,
         }, headers=SIDECAR_HEADERS)
         assert resp.json()["ok"] is False
-        assert "owner" in resp.json()["reply"]["text"].lower()
+        assert "主人" in resp.json()["reply"]["text"]
 
         # 8. Health shows 1 bound
         resp = client.get("/channel/v1/wechat/health", headers=SIDECAR_HEADERS)

@@ -2,12 +2,17 @@
 
 > Created: 2026-05-22
 
-## 2026-05-25 WCF 小号客服（暂停，脚本已入库）
+## 2026-05-25 微信通道全部退役
 
-- **决定**：本机 Win11 上 WCF 安装未闭环（WCF `.51` 安装包可落 64 位 exe；官方 x86 常为 `.56`；`wcferry` 需 32 位 `3.9.12.51`）
-- **仓库**：`docs/WECHAT_WCF_XIAOHAO.md` + 安装/兼容脚本（`install_wechat_wcf.ps1`、`fix_wechat_version_low.ps1` 等）；`/invite` 主推小号+网页
-- **生产**：继续 iLink 管理员桥 + `https://chat.donglicao.com` 访客；WCF 路径保留文档供日后 64 位机重装
-- **测试**：`tests/test_wechat_wave1_ux.py` 12 passed（本会话）
+- **决定**：放弃所有微信方案（GeWe、OpenClaw、iLink/Hermes、WCF 小号等）
+- **访客**：仅 `https://chat.donglicao.com`；`channel_gateway/invite.py` 只推网页
+- **仓库**：`wechat_bridge/`、Hermes/WCF 脚本与相关测试迁至 `scripts/archive/wechat_retired/`；`docs/WECHAT_RETIRED.md`
+- **部署**：`deploy_channel_gateway.py` 默认 `WECHAT_BRIDGE_ENABLED=0`
+- **VPS（按需）**：`systemctl stop/disable lima-weixin-ilink`
+
+## 2026-05-25 WCF 小号客服（已并入退役，不再推进）
+
+- 脚本与文档已归档至 `scripts/archive/wechat_retired/`
 
 ## 2026-05-25 OpenClaw Light Deploy Retired
 

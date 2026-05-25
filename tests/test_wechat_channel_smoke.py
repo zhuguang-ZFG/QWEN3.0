@@ -86,7 +86,7 @@ class TestWechatChannelSmoke:
                      "/code-task fix bug", "/memory recent"):
             r = self._msg(f"rej-{cmd[:8]}", "carol", cmd)
             assert not r.json()["ok"], f"{cmd} should be rejected for guest"
-            assert "owner" in r.json()["reply"]["text"].lower()
+            assert "主人" in r.json()["reply"]["text"]
 
     def test_pause_resume_cycle(self):
         self._bind("dave")
@@ -103,12 +103,12 @@ class TestWechatChannelSmoke:
         assert r.json()["ok"]
         r = self._msg("u2", "eve", "hi", 3)
         assert r.json()["ok"]
-        assert "欢迎使用" in r.json()["reply"]["text"]
+        assert "你好，我是 LiMa" in r.json()["reply"]["text"]
 
     def test_scan_and_chat_without_bind_code(self):
         r = self._msg("s1", "stranger", "hello", 1)
         assert r.json()["ok"]
-        assert "欢迎使用" in r.json()["reply"]["text"]
+        assert "你好，我是 LiMa" in r.json()["reply"]["text"]
 
     def test_unbound_user_cannot_chat_when_auto_bind_disabled(self, monkeypatch):
         monkeypatch.setenv("LIMA_CHANNEL_AUTO_GUEST_BIND", "0")

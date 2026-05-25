@@ -54,7 +54,7 @@ _HELP_TEXT = (
     "/help — 本帮助\n"
     "/menu — 联网工具（天气、百科、算式等）\n"
     "/公司 — 动力巢科技与 LiMa 介绍\n"
-    "/邀请 — 如何把机器人推荐给朋友（扫码添加）\n"
+    "/邀请 — 转发网页入口给朋友（见 chat.donglicao.com）\n"
     "/语音 — 语音使用说明\n"
     "/语音回复 on|off — 是否附带语音条回复（需 LIMA_CHANNEL_VOICE_REPLY=1）\n"
     "/文件 — 文件分析说明\n"
