@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import os
+
+_log = logging.getLogger(__name__)
 
 
 def persist_session_memory(
@@ -49,5 +52,5 @@ def maybe_log_distill_queue(*, query: str, content: str, intent, backend: str) -
 
         intent_payload = intent if isinstance(intent, dict) else {"intent": intent}
         smart_router._log_to_distill_queue(query, content, intent_payload, backend)
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("distill queue log skipped: %s", type(exc).__name__)

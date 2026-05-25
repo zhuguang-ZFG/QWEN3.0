@@ -19,7 +19,7 @@
 
 | 顺序 | 条线 | 下一可交付切片 | 门禁 |
 |:---:|---|---|---|
-| P0 | 代码质量 | P0.1 chunked body 413；P0.2 `/api/live-key` 不泄钥 | 本地全量 pytest + 可选 VPS smoke |
+| P0 | 代码质量 | P0.1–P0.3 **已完成**；P1.3 静默 catch 清理进行中 | 本地全量 pytest + 可选 VPS smoke |
 | P1 | 编码后端 | Kimi/SCNet-large 经 Windows:8080 或 FRP:8088 重跑 eval；TheOldLLM 诊断 | 准入 JSON + 路由池不默认提升 |
 | P1 | ESP32 / Device Gateway | PROD-003 真机烧录 + 真机运动 smoke | fake-U8 已通过；需硬件 |
 | P2 | LiMa Code Worker | Prompt Contract v0.1 → Hooks v0.1 | bounded `/lima work` 已有；daemon 仍 gated |
@@ -81,12 +81,13 @@
 
 | ID | 内容 | 状态 |
 |---|---|---|
-| P0.1 | ASGI 层 chunked body 上限 → 413 | 待做 |
-| P0.2 | `/api/live-key` 不返回原始 `GOOGLE_AI_KEY` | 待做 |
-| P0.3 | `deploy/key_rotation.py` 归档或鉴权加固 | 待做 |
-| P1.1 | `semantic_cache.py` 写失败可观测 | 待做 |
-| P1.2 | admin 登录常量时间比较 | 待做 |
-| P1.3+ | 超 300 行：`routes/agent_tasks.py`、`code_orchestrator.py`、`session_memory/store.py`、`router_http.py` | 渐进拆分 |
+| P0.1 | ASGI 层 chunked body 上限 → 413 | **已完成** |
+| P0.2 | `/api/live-key` 不返回原始 `GOOGLE_AI_KEY` | **已完成** |
+| P0.3 | `deploy/key_rotation.py` 归档或鉴权加固 | **已完成** |
+| P1.1 | `semantic_cache.py` 写失败可观测 | **已完成** |
+| P1.2 | admin 登录常量时间比较 | **已完成** |
+| P1.3 | 生产路径 `except: pass` → 日志/计数 | **进行中**（2026-05-26 首批 4 文件） |
+| P2+ | 超 300 行文件渐进拆分 | 待做 |
 
 **完成定义**：P0 三项有回归测试；全量 pytest 通过；`git diff --check` 干净。
 

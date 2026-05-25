@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import base64
+import logging
 import os
 import re
 from typing import Any, List, Optional
+
+_log = logging.getLogger(__name__)
 
 _MAX_BYTES = int(os.environ.get("LIMA_CHANNEL_MEDIA_MAX_BYTES", str(1_500_000)))
 _TEXT_EXTS = frozenset({
@@ -48,8 +51,8 @@ def _stt_audio(
             return text
     except ImportError:
         pass
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.warning("channel mimo_stt failed: %s", type(exc).__name__)
 
     import httpx
 

@@ -66,24 +66,13 @@ async function startCall(){
   statusEl.textContent='正在连接...';
   try{
     const cfg=await getApiConfig();
-    if(!cfg.available||cfg.auth==='server_side_only'){
-      throw new Error('Gemini Live 需服务端代理，不再通过 /api/live-key 下发密钥');
+    if(!cfg.available){
+      throw new Error('Gemini Live 未配置');
     }
-    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:640,height:480},audio:{sampleRate:SAMPLE_RATE_IN,echoCancellation:true,noiseSuppression:true}});
-    videoEl.srcObject=stream;videoEl.style.display='block';placeholder.style.display='none';
-
-    const wsUrl=`wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${cfg.key||''}`;
-    ws=new WebSocket(wsUrl);
-    ws.onopen=()=>{
-      ws.send(JSON.stringify({setup:{model:cfg.model,generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:'Aoede'}}}}}}));
-      statusEl.textContent='已连接 · 正在通话';
-      btnCall.classList.add('active');
-      startAudioCapture();
-      startFrameCapture();
-    };
-    ws.onmessage=e=>{try{handleMessage(JSON.parse(e.data))}catch(err){}};
-    ws.onclose=()=>{statusEl.textContent='连接已断开';endCall()};
-    ws.onerror=()=>{statusEl.textContent='连接失败';endCall()};
+    if(cfg.auth==='server_side_only'){
+      throw new Error('Gemini Live 需 LiMa 服务端 WebSocket 代理（/api/live-key 不再下发密钥）');
+    }
+    throw new Error('浏览器直连 Gemini Live 已停用，等待服务端代理');
   }catch(e){statusEl.textContent='错误: '+e.message}
 }
 

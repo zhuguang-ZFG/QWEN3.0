@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import subprocess
 import sys
@@ -18,6 +19,7 @@ from routes.admin_state import FALLBACK_LOG, stats_context
 
 router = APIRouter()
 REPO_ROOT = Path(__file__).resolve().parent.parent
+_log = logging.getLogger(__name__)
 
 
 @router.get("/api/stats", dependencies=[Depends(verify_admin)])
@@ -160,8 +162,8 @@ async def admin_model_status():
         for line in lines[-50:]:
             try:
                 recent_logs.append(json.loads(line.strip()))
-            except Exception:
-                pass
+            except Exception as exc:
+                _log.debug("skip malformed fallback log line: %s", type(exc).__name__)
     return {
         "model": "Round 12 (Qwen3-1.7B)",
         "accuracy": "89.7%",

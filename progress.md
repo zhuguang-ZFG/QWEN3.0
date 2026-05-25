@@ -2,6 +2,12 @@
 
 > Created: 2026-05-22
 
+## 2026-05-26 代码质量 P1.3（首批）
+
+- **P0 复核**：body limit / live-key / key_rotation / semantic cache / admin login 已在仓库落地（见 `docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md` 状态表）
+- **P1.3**：`channel_gateway/media_inbound.py`、`health_recorder.py`、`routes/chat_post_closeout.py`、`routes/admin_api.py` 静默 `except` 改为可观测日志
+- **前端**：`voice_call_live.html`  fail-closed，不再尝试用 `/api/live-key` 拼 `?key=` URL
+
 ## 2026-05-26 文档清理与四线里程碑
 
 - **新增**：`docs/NEXT_MILESTONES.md`（编码后端 / LiMa Code / ESP32 / 代码质量优先级）

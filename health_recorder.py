@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 import time
 from typing import Optional
+
+_log = logging.getLogger(__name__)
 
 from health_failure_classifier import classify_failure
 from health_state import (
@@ -88,14 +91,24 @@ def record_failure(
                 from telegram_notify import notify_health_change
 
                 notify_health_change(backend, old_health, new_health)
-            except Exception:
-                pass
+            except Exception as exc:
+                _log.warning(
+                    "health telegram notify failed backend=%s: %s",
+                    backend,
+                    type(exc).__name__,
+                )
         try:
             import backend_reputation
 
             backend_reputation.record_failure_class(backend, error_class)
-        except (ImportError, Exception):
+        except ImportError:
             pass
+        except Exception as exc:
+            _log.debug(
+                "backend_reputation record failed backend=%s: %s",
+                backend,
+                type(exc).__name__,
+            )
 
 
 def record_response_quality(

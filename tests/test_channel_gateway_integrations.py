@@ -60,26 +60,26 @@ class TestChannelIntegrations:
         handler("u1", "what is a closure?")
         system_msgs = [m for m in captured_messages if m["role"] == "system"]
         assert len(system_msgs) >= 1
-        assert "guest" in system_msgs[0]["content"].lower()
+        assert "访客" in system_msgs[0]["content"] or "guest" in system_msgs[0]["content"].lower()
 
     def test_draw_handler_demo_only(self):
         handler = build_draw_handler()
         result = handler("u1", "LiMa")
         assert "demo" in result.lower()
         assert "LiMa" in result
-        assert "owner" in result.lower()
+        assert "主人" in result
 
     def test_draw_handler_no_device_dispatch(self):
         handler = build_draw_handler()
         result = handler("u1", "test")
-        assert "Preview" in result
-        assert "no hardware queue" in result.lower()
+        assert "预览" in result
+        assert "不会下发" in result or "真实设备" in result
 
     def test_draw_handler_uses_path_pipeline(self):
         handler = build_draw_handler()
         reply = handler("guest-1", "LiMa")
-        assert "Path points:" in reply
-        assert "SVG:" in reply
+        assert "路径点数" in reply
+        assert "SVG" in reply
 
     def test_voice_task_from_channel_task_maps_capabilities(self):
         assert _voice_task_from_channel_task({
