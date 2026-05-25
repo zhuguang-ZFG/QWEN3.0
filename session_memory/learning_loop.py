@@ -228,10 +228,11 @@ def _test_pass_rate(test_results: list[dict]) -> float:
 
 
 def _maybe_promote_pattern(outcome: TaskOutcome) -> None:
-    """Check if a backend+scenario pattern has enough evidence to promote.
+    """Record a pattern candidate when evidence threshold is met.
 
-    Requires: 3+ successes with same backend+scenario from different tasks.
-    Only records as a reference_pattern — does NOT change routing pools.
+    Patterns are saved as reference_pattern memories. They do NOT
+    auto-change routing. Promotion requires explicit eval gate approval
+    via session_memory.eval_gate.approve_candidate().
     """
     matches = [
         c for c in _EVAL_CANDIDATES
@@ -243,21 +244,22 @@ def _maybe_promote_pattern(outcome: TaskOutcome) -> None:
     if len(matches) >= 3:
         try:
             from session_memory.store import save_typed_memory, query_by_type
-            existing = query_by_type("reference_pattern", limit=5)
-            already_promoted = any(
-                f"promoted:{outcome.backend}:{outcome.scenario}" in (e.summary or "")
+            existing = query_by_type("reference_pattern", limit=10)
+            already_recorded = any(
+                f"candidate:{outcome.backend}:{outcome.scenario}" in (e.summary or "")
                 for e in existing
             )
-            if not already_promoted:
+            if not already_recorded:
                 save_typed_memory(
                     "reference_pattern",
-                    f"promoted:{outcome.backend}:{outcome.scenario} — {len(matches)+1} successes",
+                    f"candidate:{outcome.backend}:{outcome.scenario} — {len(matches)+1} successes",
                     detail=json.dumps({
                         "backend": outcome.backend,
                         "scenario": outcome.scenario,
                         "evidence_count": len(matches) + 1,
                         "latest_task": outcome.task_id,
-                        "promoted_at": time.time(),
+                        "recorded_at": time.time(),
+                        "status": "needs_approval",
                     }, ensure_ascii=False),
                 )
         except ImportError:

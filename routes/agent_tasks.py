@@ -460,6 +460,13 @@ async def submit_task_result(task_id: str, body: TaskResultBody):
     task["updated_at"] = time.time()
     _store.update(task_id)
     _store.append_event(task_id, {"type": "result_submitted", "status": result.status})
+    # ── P1.1: Correlation — record worker task outcome ──────────────────
+    try:
+        from observability.correlation import record_worker_task_correlation
+        worker_id = task.get("request", {}).get("worker_id", "") if isinstance(task.get("request"), dict) else ""
+        record_worker_task_correlation(task_id=task_id, status=result.status, worker_id=worker_id)
+    except ImportError:
+        pass
     if result.status == "needs_review":
         try:
             from telegram_notify import notify_task_ready

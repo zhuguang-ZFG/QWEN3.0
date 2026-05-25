@@ -1,10 +1,9 @@
 """Operator telemetry endpoint — unified view across request, task, and device.
 
-Provides an authenticated `/v1/ops/metrics` endpoint that joins:
-- Recent chat/Anthropic request traces
-- Agent worker task summaries
-- Device Gateway task states and motion event phases
-- Latest error classes per backend and device
+Provides authenticated endpoints:
+- `/v1/ops/metrics` — snapshot across all subsystems
+- `/v1/ops/correlate?id=X` — cross-system trace by request/task/device id
+- `/v1/ops/correlate/summary` — recent correlation overview
 
 All raw prompts, keys, paths, and device tokens are redacted.
 """
@@ -13,7 +12,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse
 
 from access_guard import require_private_api_key
@@ -179,3 +178,85 @@ async def ops_metrics(request: Request) -> JSONResponse:
         "retrieval_traces": retrieval_traces,
         "recent_agent_tasks": recent_tasks,
     })
+
+
+@router.get("/correlate/summary", dependencies=[Depends(require_private_api_key)])
+async def ops_correlate_summary() -> JSONResponse:
+    try:
+        from observability.correlation import correlation_summary
+        return JSONResponse(correlation_summary())
+    except ImportError:
+        return JSONResponse({"error": "correlation module not loaded"}, status_code=503)
+
+
+@router.get("/correlate", dependencies=[Depends(require_private_api_key)])
+async def ops_correlate(
+    request_id: str = Query(default=""),
+    task_id: str = Query(default=""),
+    device_id: str = Query(default=""),
+) -> JSONResponse:
+    target = request_id or task_id or device_id
+    if not target:
+        return JSONResponse(
+            {"error": "Provide one of: request_id, task_id, or device_id"},
+            status_code=400,
+        )
+    try:
+        from observability.correlation import correlate_by_id, correlate_recent
+        matched = correlate_by_id(target)
+        if not matched:
+            recent = correlate_recent(10)
+            return JSONResponse({
+                "target": target,
+                "matched": [],
+                "hint": "no events found for this id",
+                "recent_events": recent,
+            })
+        # Build a trace timeline with cross-references
+        trace: list[dict] = []
+        seen_ids: set[str] = set()
+        for event in matched:
+            trace.append(event)
+            for key in ("request_id", "task_id", "device_id"):
+                eid = event.get(key, "")
+                if eid and eid != target and eid not in seen_ids:
+                    seen_ids.add(eid)
+        # Pull in related events for discovered ids
+        for related_id in list(seen_ids)[:5]:
+            for event in correlate_by_id(related_id, limit=10):
+                if event not in trace:
+                    trace.append(event)
+        trace.sort(key=lambda e: e.get("ts", 0))
+        return JSONResponse({
+            "target": target,
+            "matched_count": len(matched),
+            "related_ids": sorted(seen_ids),
+            "trace": trace,
+        })
+    except ImportError:
+        return JSONResponse({"error": "correlation module not loaded"}, status_code=503)
+
+
+@router.get("/eval/revision", dependencies=[Depends(require_private_api_key)])
+async def ops_eval_revision() -> JSONResponse:
+    """Return all eval candidates with promotion status."""
+    try:
+        from session_memory.eval_gate import revision_check
+        return JSONResponse(revision_check())
+    except ImportError:
+        return JSONResponse({"error": "eval_gate module not loaded"}, status_code=503)
+
+
+@router.post("/eval/approve", dependencies=[Depends(require_private_api_key)])
+async def ops_eval_approve(request: Request) -> JSONResponse:
+    """Manually approve a pattern candidate. Body: {pattern_key, rollback_notes}."""
+    try:
+        body = await request.json()
+        pattern_key = body.get("pattern_key", "")
+        rollback = body.get("rollback_notes", "")
+        if not pattern_key:
+            return JSONResponse({"error": "pattern_key required"}, status_code=400)
+        from session_memory.eval_gate import approve_candidate
+        return JSONResponse(approve_candidate(pattern_key, rollback))
+    except ImportError:
+        return JSONResponse({"error": "eval_gate module not loaded"}, status_code=503)

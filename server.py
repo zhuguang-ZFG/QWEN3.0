@@ -440,6 +440,18 @@ async def _handle_chat(req: ChatRequest, fmt: str = "openai", request_model: str
     # 记录统计
     _record_request(query, backend, intent_name, duration_ms, True, client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
 
+    # ── P1.1: Correlation — record request outcome for ops trace ──────
+    try:
+        from observability.correlation import record_request_correlation
+        record_request_correlation(
+            request_id=chat_id,
+            backend=backend,
+            status="success",
+            latency_ms=duration_ms,
+        )
+    except ImportError:
+        pass
+
     # 记录用户问答到 distill_queue（DISTILL_LOG=1 时启用）
     try:
         if os.environ.get("DISTILL_LOG", "0") == "1":

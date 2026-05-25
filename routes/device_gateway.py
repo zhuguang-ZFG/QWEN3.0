@@ -66,6 +66,27 @@ async def device_gateway_events(request: Request) -> JSONResponse:
     if msg_type == "motion_event":
         summary = record_motion_event(message)
         ack_processing_task(device_id, message["task_id"])
+        # ── P1.1: Correlation — record motion event outcome ─────────
+        try:
+            from observability.correlation import record_motion_event_correlation
+            error_code = ""
+            error_reason = ""
+            err = message.get("error", {}) if isinstance(message.get("error"), dict) else {}
+            if not err:
+                error_code = message.get("error_code", "")
+                error_reason = message.get("error_message", "")
+            else:
+                error_code = err.get("code", "")
+                error_reason = err.get("reason", "")
+            record_motion_event_correlation(
+                task_id=message["task_id"],
+                device_id=device_id,
+                phase=message.get("phase", "unknown"),
+                error_code=error_code,
+                error_reason=error_reason,
+            )
+        except ImportError:
+            pass
         return JSONResponse(ack_frame("motion_event_ack", device_id, **summary, request_id=message.get("request_id")))
     if msg_type == "device_info":
         return JSONResponse(ack_frame("device_info_ack", device_id, request_id=message.get("request_id")))
@@ -271,6 +292,24 @@ async def device_ws(websocket: WebSocket) -> None:
             elif msg_type == "motion_event":
                 summary = record_motion_event(message)
                 ack_processing_task(device_id, message["task_id"])
+                # ── P1.1: Correlation — record motion event ─────────
+                try:
+                    from observability.correlation import record_motion_event_correlation
+                    ec = ""; er = ""
+                    err = message.get("error", {}) if isinstance(message.get("error"), dict) else {}
+                    if not err:
+                        ec = message.get("error_code", "")
+                        er = message.get("error_message", "")
+                    else:
+                        ec = err.get("code", "")
+                        er = err.get("reason", "")
+                    record_motion_event_correlation(
+                        task_id=message["task_id"], device_id=device_id,
+                        phase=message.get("phase", "unknown"),
+                        error_code=ec, error_reason=er,
+                    )
+                except ImportError:
+                    pass
                 session = registry.get(device_id)
                 if session is not None:
                     session.mark_task_acknowledged(message["task_id"])
