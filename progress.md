@@ -2,6 +2,16 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 CQ-014 Server Routes + HTTP Caller Concurrency Closeout
+
+- Design: `docs/CQ014_SERVER_ROUTES_SLICE.md`, `docs/HTTP_CALLER_CONCURRENCY_TESTS.md`
+- Extracted all `app.include_router(...)` wiring to `routes/route_registry.py`
+- Added `tests/test_route_registry.py` and `tests/test_http_caller_concurrency.py`
+- Tests: **1398 passed, 10 skipped** (route registry: 4; http_caller concurrency: 4)
+- VPS deploy backup: `/opt/lima-router/backups/cq014-server-routes-20260525_135802/runtime-before.tgz`
+- Public smoke: **12/12** with exact chat token `cq014_server_routes_ok`
+- Residual: `server.py` still ~611 lines (chat orchestration); CQ-014 open for handler extraction
+
 ## 2026-05-25 CQ-014 Admin UI Slice Closeout
 
 - Design: `docs/CQ014_ADMIN_UI_SLICE.md`

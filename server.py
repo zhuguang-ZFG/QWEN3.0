@@ -99,6 +99,7 @@ app.state.stats = _stats
 
 # 后端启用/禁用状态
 _backend_enabled = {}
+_loaded_modules: dict = {}
 
 # ── Request Tracking (extracted to routes/request_tracking.py) ────────────────
 import routes.request_tracking as _rt_mod
@@ -213,13 +214,8 @@ TOOL_TIER1_BACKENDS = _tool_fwd.TOOL_TIER1_BACKENDS
 ANTHROPIC_NATIVE_BACKENDS = _tool_fwd.ANTHROPIC_NATIVE_BACKENDS
 
 
-# ── Image Generation (extracted to routes/images.py) ──────────────────────────
-from routes.images import router as images_router, build_pollinations_url as _build_pollinations_url
-import routes.images as _images_mod
-_images_mod.inject_record_request(_record_request)
-app.include_router(images_router)
-
-
+# ── Image generation helper (router registered via route_registry) ────────────
+from routes.images import build_pollinations_url as _build_pollinations_url
 
 # ── Anthropic streaming (extracted to routes/anthropic_stream.py) ────────────
 from routes.anthropic_stream import (
@@ -576,109 +572,37 @@ def _split_sentences(text: str) -> list[str]:
 
 
 
-# Chat endpoints (extracted to routes/chat_endpoints.py)
-from routes.chat_endpoints import router as chat_endpoints_router
-import routes.chat_endpoints as _chat_endpoints_mod
-_chat_endpoints_mod.inject_deps(
-    model_id=MODEL_ID,
-    client_ip=lambda request: _client_ip(request),
-    detect_ide=lambda messages: _detect_ide(messages),
-    elapsed_ms=lambda started_at: _elapsed_ms(started_at),
-    vision_route=lambda messages, max_tokens=4096, ide="unknown": _vision_route(messages, max_tokens, ide),
-    stream_vision_response=lambda chat_id, content: _stream_vision_response(chat_id, content),
-    record_request=lambda *args, **kwargs: _record_request(*args, **kwargs),
-    anthropic_native_stream=lambda body: _anthropic_native_stream(body),
-    anthropic_native_forward=lambda body: _anthropic_native_forward(body),
-    anthropic_stream=lambda *args, **kwargs: _anthropic_stream(*args, **kwargs),
-    anthropic_stream_passthrough=lambda body, model: _anthropic_stream_passthrough(body, model),
-    handle_chat=lambda *args, **kwargs: _handle_chat(*args, **kwargs),
+# ── Route registration (extracted to routes/route_registry.py) ───────────────
+from routes.route_registry import RouteRegistryDeps, register_all_routes
+
+_registered = register_all_routes(
+    app,
+    RouteRegistryDeps(
+        model_id=MODEL_ID,
+        model_created=MODEL_CREATED,
+        stats=_stats,
+        stats_lock=_stats_lock,
+        backend_enabled=_backend_enabled,
+        loaded_modules=_loaded_modules,
+        client_ip=lambda request: _client_ip(request),
+        detect_ide=lambda messages: _detect_ide(messages),
+        elapsed_ms=lambda started_at: _elapsed_ms(started_at),
+        vision_route=lambda messages, max_tokens=4096, ide="unknown": _vision_route(messages, max_tokens, ide),
+        stream_vision_response=lambda chat_id, content: _stream_vision_response(chat_id, content),
+        record_request=lambda *args, **kwargs: _record_request(*args, **kwargs),
+        anthropic_native_stream=lambda body: _anthropic_native_stream(body),
+        anthropic_native_forward=lambda body: _anthropic_native_forward(body),
+        anthropic_stream=lambda *args, **kwargs: _anthropic_stream(*args, **kwargs),
+        anthropic_stream_passthrough=lambda body, model: _anthropic_stream_passthrough(body, model),
+        handle_chat=lambda *args, **kwargs: _handle_chat(*args, **kwargs),
+    ),
 )
-app.include_router(chat_endpoints_router)
-chat_completions = _chat_endpoints_mod.chat_completions
-anthropic_messages = _chat_endpoints_mod.anthropic_messages
-
-
-# ─── Embeddings 端点 (extracted to routes/embeddings.py) ──────────────────────
-from routes.embeddings import router as embeddings_router
-app.include_router(embeddings_router)
-
-
-
-
-# ── Admin routes (extracted to routes/admin.py) ────────────────────────────────
-from routes.admin import router as admin_router
-from routes.admin_agent_audit import router as admin_agent_audit_router
-import routes.admin as _admin_mod
-_admin_mod.inject_state(_stats, _stats_lock, _backend_enabled)
-app.include_router(admin_router)
-app.include_router(admin_agent_audit_router)
-
-import routes.quality_gate as _qg_mod
-_qg_mod.inject_state(_backend_enabled)
-
-# ── MCP tools (knowledge/memory access for IDE clients) ───────────────────────
-_loaded_modules = {}
-
-from routes.system_endpoints import router as system_endpoints_router
-import routes.system_endpoints as _system_endpoints_mod
-_system_endpoints_mod.inject_state(
-    model_id=MODEL_ID,
-    model_created=MODEL_CREATED,
-    loaded_modules=_loaded_modules,
-)
-app.include_router(system_endpoints_router)
-list_models = _system_endpoints_mod.list_models
-health = _system_endpoints_mod.health
-live_key = _system_endpoints_mod.live_key
-router_status = _system_endpoints_mod.router_status
-
-from routes.device_gateway import router as device_gateway_router
-app.include_router(device_gateway_router)
-_loaded_modules["device_gateway"] = True
-
-try:
-    from routes.ops_metrics import router as ops_metrics_router
-    app.include_router(ops_metrics_router)
-    _loaded_modules["ops_metrics"] = True
-except ImportError as e:
-    logging.warning(f"[STARTUP] ops_metrics module not loaded: {e}")
-    _loaded_modules["ops_metrics"] = False
-
-try:
-    from lima_mcp.server import router as mcp_router
-    app.include_router(mcp_router)
-    _loaded_modules["mcp"] = True
-except ImportError as e:
-    logging.warning(f"[STARTUP] MCP module not loaded: {e}")
-    _loaded_modules["mcp"] = False
-
-# ── Agent task management APIs ───────────────────────────────────────────────
-try:
-    from routes.agent_tasks import router as agent_tasks_router
-    app.include_router(agent_tasks_router)
-    _loaded_modules["agent_tasks"] = True
-except ImportError as e:
-    logging.warning(f"[STARTUP] agent_tasks module not loaded: {e}")
-    _loaded_modules["agent_tasks"] = False
-
-# ── Telegram Bot webhook ─────────────────────────────────────────────────────
-try:
-    from routes.telegram import router as telegram_router
-    app.include_router(telegram_router)
-    _loaded_modules["telegram"] = True
-except ImportError as e:
-    logging.warning(f"[STARTUP] telegram module not loaded: {e}")
-    _loaded_modules["telegram"] = False
-
-# ── Channel Gateway (WeChat chatbot) ───────────────────────────────────────
-try:
-    from routes.channel_gateway import router as channel_gateway_router
-    app.include_router(channel_gateway_router)
-    _loaded_modules["channel_gateway"] = True
-except ImportError as e:
-    logging.warning(f"[STARTUP] channel_gateway module not loaded: {e}")
-    _loaded_modules["channel_gateway"] = False
-
+chat_completions = _registered.chat_completions
+anthropic_messages = _registered.anthropic_messages
+list_models = _registered.list_models
+health = _registered.health
+live_key = _registered.live_key
+router_status = _registered.router_status
 
 # ── Startup ─────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
