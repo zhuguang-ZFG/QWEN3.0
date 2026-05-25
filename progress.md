@@ -2,6 +2,32 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 Quality Fix Review Closeout
+
+- Fixed ops metrics `recent_agent_tasks` to read from `routes.agent_tasks._store`
+  instead of the nonexistent `_agent_tasks_store.list_recent()`.
+- Hardened auth:
+  - `access_guard.py` requires strict `Bearer` prefix and constant-time key compare;
+  - admin/agent/telegram admin checks share the same helpers;
+  - admin mutating routes now use CSRF Origin/Referer hostname checks.
+- Hardened admin UI:
+  - backend capability badges now use `esc(c)`;
+  - backend action buttons use `escJs(name)`.
+- Hardened eval promotion:
+  - `apply_promotion()` aborts when routing weight writes fail instead of silent pass.
+- Channel gateway:
+  - guest draw handler uses `device_gateway.path_pipeline.render_text_task()`;
+  - owner device queue uses structured `project_to_motion_task()` voice tasks.
+- Tests:
+  - focused quality/auth/channel/ops tests: `48 passed`;
+  - full suite: `1366 passed, 10 skipped`.
+- VPS:
+  - pre-commit archive deploy kept service healthy (`12/12` public smoke);
+  - post-commit redeploy at `62ad977` with backup
+    `/opt/lima-router/backups/quality-fix-20260525_133000/runtime-before.tgz`;
+  - remote compile passed; `lima-router` active;
+  - public online smoke `12/12` with exact token `quality_fix_62ad977_ok`.
+
 ## 2026-05-25 Current P0 Panorama
 
 | ID | Status | Next Gate |

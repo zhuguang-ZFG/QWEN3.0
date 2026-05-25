@@ -21,8 +21,9 @@ async def _require_admin(authorization: str = Header(default="")) -> None:
     token_expected = _get_admin_token()
     if not token_expected:
         raise HTTPException(503, "LIMA_ADMIN_TOKEN not configured")
-    presented = authorization.replace("Bearer ", "").strip()
-    if presented != token_expected:
+    from access_guard import extract_bearer_token, constant_time_equals
+    presented = extract_bearer_token(authorization)
+    if not presented or not constant_time_equals(presented, token_expected):
         raise HTTPException(401, "Unauthorized")
 
 class _TaskStore:

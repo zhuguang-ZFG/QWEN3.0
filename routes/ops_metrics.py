@@ -66,6 +66,34 @@ def _top_backend_details(backend_calls: dict[str, Any], limit: int = 10) -> dict
     return {name: _backend_call_detail(backend_calls[name]) for name in ranked_names}
 
 
+def _recent_agent_tasks(limit: int = 5) -> list[dict[str, Any]]:
+    """Return recent agent tasks from the SQLite-backed store."""
+    try:
+        from routes.agent_tasks import _store
+    except ImportError:
+        return []
+
+    try:
+        tasks = sorted(
+            _store.values(),
+            key=lambda item: item.get("created_at", 0),
+            reverse=True,
+        )[:limit]
+    except (AttributeError, TypeError):
+        return []
+
+    recent: list[dict[str, Any]] = []
+    for task in tasks:
+        request = task.get("request") if isinstance(task.get("request"), dict) else {}
+        recent.append({
+            "task_id": str(request.get("task_id", "")),
+            "status": str(task.get("status", "")),
+            "worker_id": str(task.get("worker_id", "")),
+            "goal": _redacted(str(request.get("goal", "")), 60),
+        })
+    return recent
+
+
 @router.get("/metrics", dependencies=[Depends(require_private_api_key)])
 async def ops_metrics(request: Request) -> JSONResponse:
     now = time.time()
@@ -130,19 +158,7 @@ async def ops_metrics(request: Request) -> JSONResponse:
     except ImportError:
         pass
 
-    # Recent agent task events
-    recent_tasks: list[dict] = []
-    try:
-        from routes.agent_tasks import _agent_tasks_store
-        if _agent_tasks_store:
-            tasks = _agent_tasks_store.list_recent(limit=5)
-            recent_tasks = [
-                {"task_id": t.get("task_id", ""), "status": t.get("status", ""),
-                 "worker_id": t.get("worker_id", ""), "goal": _redacted(t.get("goal", ""), 60)}
-                for t in tasks
-            ]
-    except (ImportError, AttributeError):
-        pass
+    recent_tasks = _recent_agent_tasks(limit=5)
 
     # Backend error summary
     backend_errors: dict[str, dict] = {}

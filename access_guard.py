@@ -1,5 +1,6 @@
 """Private API key guard for LiMa public-compatible endpoints."""
 import os
+import secrets
 
 from fastapi import Header, HTTPException
 
@@ -22,11 +23,18 @@ def is_private_access_configured() -> bool:
     return bool(configured_api_keys())
 
 
-def _extract_token(authorization: str) -> str:
+def extract_bearer_token(authorization: str) -> str:
+    """Extract token from Bearer <token> header. Returns empty string on mismatch."""
     value = (authorization or "").strip()
-    if value.lower().startswith("bearer "):
-        return value[7:].strip()
-    return value
+    prefix = "Bearer "
+    if value.startswith(prefix) and len(value) > len(prefix):
+        return value[len(prefix):].strip()
+    return ""
+
+
+def constant_time_equals(a: str, b: str) -> bool:
+    """Constant-time string comparison using secrets.compare_digest."""
+    return secrets.compare_digest(a.encode("utf-8"), b.encode("utf-8"))
 
 
 def require_private_api_key(authorization: str = Header(default="")) -> None:
@@ -37,5 +45,8 @@ def require_private_api_key(authorization: str = Header(default="")) -> None:
             status_code=503,
             detail="LiMa private API key is not configured.",
         )
-    if _extract_token(authorization) not in keys:
+    token = extract_bearer_token(authorization)
+    if not token:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    if not any(constant_time_equals(token, k) for k in keys):
         raise HTTPException(status_code=401, detail="Unauthorized")

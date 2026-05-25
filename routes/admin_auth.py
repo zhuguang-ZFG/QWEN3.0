@@ -4,8 +4,9 @@ import hashlib
 import hmac
 import os
 import secrets
+from urllib.parse import urlparse
 
-from fastapi import Cookie, Header, HTTPException
+from fastapi import Cookie, Header, HTTPException, Request
 
 
 SESSION_COOKIE = "lima_admin_session"
@@ -46,5 +47,39 @@ async def verify_admin(
         )
     if is_valid_admin_session(lima_admin_session):
         return
-    if authorization != f"Bearer {token_expected}" and authorization != token_expected:
+    # Require strict Bearer token with constant-time comparison
+    from access_guard import extract_bearer_token, constant_time_equals
+    presented = extract_bearer_token(authorization)
+    if not presented or not constant_time_equals(presented, token_expected):
         raise HTTPException(status_code=401, detail="Unauthorized")
+
+
+def _header_hostname(value: str) -> str:
+    if not value:
+        return ""
+    parsed = urlparse(value)
+    return (parsed.hostname or "").lower()
+
+
+async def verify_csrf(
+    request: Request,
+    authorization: str = Header(default=""),
+    origin: str = Header(default=""),
+    referer: str = Header(default=""),
+) -> None:
+    """CSRF guard for mutating admin endpoints.
+
+    Browsers send Origin/Referer on cross-origin requests. We verify:
+    - API clients using Authorization header are exempt (they can't be CSRF'd)
+    - Cookie-only clients must have Origin/Referer hostname matching request host
+    """
+    from access_guard import extract_bearer_token
+    if extract_bearer_token(authorization):
+        return
+    expected = (request.url.hostname or "").lower()
+    if not expected:
+        raise HTTPException(status_code=403, detail="CSRF: cannot determine host")
+    for header_val in (origin, referer):
+        if _header_hostname(header_val) == expected:
+            return
+    raise HTTPException(status_code=403, detail="CSRF: Origin/Referer mismatch")

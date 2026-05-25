@@ -101,25 +101,30 @@ def build_draw_handler() -> Callable[[str, str], str]:
     """Guest draw handler: preview/demo metadata only. No Device Gateway queueing."""
 
     def handler(user_id: str, prompt: str) -> str:
+        safe_text = prompt.strip()[:200]
+        if not safe_text:
+            return "Usage: /draw <prompt>"
         try:
-            from routes.device_gateway import _path_validator
+            from device_gateway.path_pipeline import render_text_task
 
-            # Validate the prompt as if it were a path, but do NOT queue
-            safe_text = prompt.strip()[:200]
-            # Generate preview-safe metadata
+            rendered = render_text_task(safe_text)
+            path = rendered.get("path") or []
+            preview = str(rendered.get("preview_svg", ""))
             lines = [
                 f"Draw demo: '{safe_text}'",
                 "",
-                "Preview (not sent to device):",
-                f"  Text: {safe_text}",
+                "Preview (demo only — no hardware queue):",
+                f"  Path points: {rendered.get('point_count', len(path))}",
                 "  Font: stroke (demo)",
-                "  Bounds: [0, 0, 100, 20] (demo)",
+            ]
+            if preview:
+                lines.append(f"  SVG: {preview[:120]}{'...' if len(preview) > 120 else ''}")
+            lines.extend([
                 "",
                 "This is a demo preview. Real device drawing requires owner access.",
-            ]
+            ])
             return "\n".join(lines)
         except ImportError:
-            safe_text = prompt.strip()[:200]
             return (
                 f"Draw demo: '{safe_text}'\n\n"
                 "Preview not available (path pipeline not loaded).\n"
@@ -202,19 +207,48 @@ def build_owner_device_handler(queue_fn=None) -> Callable:
     return handler
 
 
+def _voice_task_from_channel_task(task: dict) -> dict:
+    capability = task.get("capability", "")
+    if capability == "write_text":
+        return {
+            "capability": "write_text",
+            "params": {"text": str(task.get("text", ""))[:1000]},
+            "source": "channel_gateway",
+        }
+    if capability == "draw_generated":
+        return {
+            "capability": "draw_generated",
+            "params": {"prompt": str(task.get("preview_svg", ""))[:4000]},
+            "source": "channel_gateway",
+        }
+    if capability == "home":
+        return {"capability": "home", "params": {}, "source": "channel_gateway"}
+    return {
+        "capability": "write_text",
+        "params": {"text": str(task.get("text", ""))[:1000]},
+        "source": "channel_gateway",
+    }
+
+
 def _queue_device_task_http(device_id: str, task: dict) -> dict:
     try:
-        from device_gateway.tasks import create_task_from_transcript, enqueue_pending_task
-        text = task.get("text", "")
-        if task.get("capability") == "home":
-            text = "home"
-        elif task.get("capability") == "draw_generated":
-            text = str(task.get("preview_svg", "?"))
-        result = create_task_from_transcript(device_id, text)
-        if not result.get("error"):
-            enqueue_pending_task(device_id, result)
-        return {"status": "queued", "task_id": result.get("task_id", "?"),
-                "capability": result.get("capability", "?")}
+        from device_gateway.tasks import enqueue_pending_task, project_to_motion_task
+
+        voice_task = _voice_task_from_channel_task(task)
+        result = project_to_motion_task(device_id, voice_task)
+        if result.get("error"):
+            return {
+                "status": "failed",
+                "task_id": result.get("task_id", "?"),
+                "capability": result.get("capability", "?"),
+                "error": result.get("error"),
+            }
+        enqueue_pending_task(device_id, result)
+        return {
+            "status": "queued",
+            "task_id": result.get("task_id", "?"),
+            "capability": result.get("capability", "?"),
+        }
     except ImportError:
         return {"status": "device_gateway not loaded"}
 

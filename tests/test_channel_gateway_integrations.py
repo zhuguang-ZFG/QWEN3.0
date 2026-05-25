@@ -11,6 +11,7 @@ from channel_gateway.integrations import (
     build_code_handler,
     build_draw_handler,
     build_owner_rejection_handler,
+    _voice_task_from_channel_task,
 )
 
 
@@ -72,7 +73,28 @@ class TestChannelIntegrations:
         handler = build_draw_handler()
         result = handler("u1", "test")
         assert "Preview" in result
-        assert "sent to device" not in result.lower()
+        assert "no hardware queue" in result.lower()
+
+    def test_draw_handler_uses_path_pipeline(self):
+        handler = build_draw_handler()
+        reply = handler("guest-1", "LiMa")
+        assert "Path points:" in reply
+        assert "SVG:" in reply
+
+    def test_voice_task_from_channel_task_maps_capabilities(self):
+        assert _voice_task_from_channel_task({
+            "capability": "write_text",
+            "text": "hello",
+        })["capability"] == "write_text"
+
+        draw = _voice_task_from_channel_task({
+            "capability": "draw_generated",
+            "preview_svg": "M0 0 L10 10",
+        })
+        assert draw["capability"] == "draw_generated"
+        assert draw["params"]["prompt"] == "M0 0 L10 10"
+
+        assert _voice_task_from_channel_task({"capability": "home"})["capability"] == "home"
 
     def test_owner_rejection_handler(self):
         handler = build_owner_rejection_handler("status")

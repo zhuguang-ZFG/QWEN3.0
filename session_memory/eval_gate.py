@@ -218,30 +218,26 @@ def apply_promotion(pattern_key: str) -> dict[str, Any]:
                 "pattern_key": pattern_key}
 
     before = {}
-    try:
-        from context_pipeline.routing_weights import get_routing_weights
-        rw = get_routing_weights()
-        before = rw.get_stats(candidate.backend, candidate.scenario)
-    except ImportError:
-        pass
-
-    # Promote in routing weights (persisted by RoutingWeights)
+    after = {}
+    rw_applied = False
     if candidate.backend and candidate.scenario:
         try:
             from context_pipeline.routing_weights import get_routing_weights
             rw = get_routing_weights()
+            before = rw.get_stats(candidate.backend, candidate.scenario)
             for _ in range(candidate.pass_count):
                 rw.record_success(candidate.backend, candidate.scenario)
+            after = rw.get_stats(candidate.backend, candidate.scenario)
+            rw_applied = True
         except ImportError:
-            pass
-
-    after = {}
-    try:
-        from context_pipeline.routing_weights import get_routing_weights
-        rw = get_routing_weights()
-        after = rw.get_stats(candidate.backend, candidate.scenario)
-    except ImportError:
-        pass
+            return {"applied": False,
+                    "error": "routing_weights module not available — promotion aborted"}
+        except Exception as exc:
+            return {"applied": False,
+                    "error": f"routing_weights write failed: {type(exc).__name__} — promotion aborted"}
+    else:
+        # No backend+scenario to promote — record-only
+        rw_applied = True
 
     save_typed_memory(
         "reference_pattern",
@@ -254,6 +250,7 @@ def apply_promotion(pattern_key: str) -> dict[str, Any]:
             "promoted_at": time.time(),
             "weight_before": before.get("weight", 1.0),
             "weight_after": after.get("weight", 1.0),
+            "rw_applied": rw_applied,
             "rollback_notes": candidate.rollback_notes,
         }, ensure_ascii=False),
     )
@@ -263,6 +260,7 @@ def apply_promotion(pattern_key: str) -> dict[str, Any]:
         "backend": candidate.backend, "scenario": candidate.scenario,
         "weight_before": before.get("weight", 1.0),
         "weight_after": after.get("weight", 1.0),
+        "rw_applied": rw_applied,
     }
 
 

@@ -32,12 +32,22 @@ def test_private_api_key_rejects_missing_authorization(monkeypatch):
     assert exc.value.status_code == 401
 
 
-def test_private_api_key_accepts_bearer_or_raw_key(monkeypatch):
+def test_private_api_key_requires_bearer_prefix(monkeypatch):
     monkeypatch.setenv("LIMA_API_KEYS", "private-key")
     monkeypatch.delenv("LIMA_API_KEY", raising=False)
 
+    # Bearer prefix is required
     assert access_guard.require_private_api_key("Bearer private-key") is None
-    assert access_guard.require_private_api_key("private-key") is None
+
+    # Raw token without Bearer prefix is rejected
+    with pytest.raises(HTTPException) as exc:
+        access_guard.require_private_api_key("private-key")
+    assert exc.value.status_code == 401
+
+    # Malformed Bearer is rejected
+    with pytest.raises(HTTPException) as exc:
+        access_guard.require_private_api_key("bearer private-key")
+    assert exc.value.status_code == 401
 
 
 def test_private_api_key_fails_closed_when_unconfigured(monkeypatch):

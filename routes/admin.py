@@ -15,6 +15,7 @@ from routes.admin_auth import (
     get_admin_token,
     is_valid_admin_session,
     verify_admin,
+    verify_csrf,
 )
 
 # Shared state injected from server.py at import time.
@@ -181,7 +182,7 @@ def _test_backend_sync(name: str) -> dict:
         return {"ok": False, "latency_ms": elapsed, "error": str(e)[:200]}
 
 
-@router.post("/api/backends", dependencies=[Depends(verify_admin)])
+@router.post("/api/backends", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
 async def admin_add_backend(req: Request):
     """添加新后端。"""
     body = await req.json()
@@ -213,7 +214,7 @@ async def admin_add_backend(req: Request):
         return {"ok": True, "message": f"backend '{name}' added but DISABLED (test failed: {e})", "enabled": False}
 
 
-@router.delete("/api/backends/{name}", dependencies=[Depends(verify_admin)])
+@router.delete("/api/backends/{name}", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
 async def admin_delete_backend(name: str):
     """删除后端。"""
     if name not in smart_router.BACKENDS:
@@ -223,7 +224,7 @@ async def admin_delete_backend(name: str):
     return {"ok": True, "message": f"backend '{name}' deleted"}
 
 
-@router.post("/api/backends/{name}/toggle", dependencies=[Depends(verify_admin)])
+@router.post("/api/backends/{name}/toggle", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
 async def admin_toggle_backend(name: str):
     """启用/禁用后端。"""
     if name not in smart_router.BACKENDS:
@@ -233,7 +234,7 @@ async def admin_toggle_backend(name: str):
     return {"ok": True, "enabled": not current}
 
 
-@router.post("/api/backends/{name}/test", dependencies=[Depends(verify_admin)])
+@router.post("/api/backends/{name}/test", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
 async def admin_test_backend(name: str):
     """测试后端可用性：发送简单请求验证连通性。"""
     if name not in smart_router.BACKENDS:
@@ -268,7 +269,7 @@ async def admin_model_status():
     }
 
 
-@router.post("/api/retrain", dependencies=[Depends(verify_admin)])
+@router.post("/api/retrain", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
 async def admin_trigger_retrain():
     """手动触发自动训练。"""
     result = subprocess.run(
@@ -440,24 +441,25 @@ async function loadStats(){
     for(let[name,info]of Object.entries(d.backend_calls)){
       let rate=info.count>0?Math.round(info.success/info.count*100):0;
       let avg=info.count>0?Math.round(info.total_ms/info.count):0;
-      tb.innerHTML+=`<tr><td>${name}</td><td>${info.count}</td><td><span class="badge ${rate>90?'badge-ok':'badge-err'}">${rate}%</span></td><td>${avg}</td></tr>`;
+      tb.innerHTML+=`<tr><td>${esc(name)}</td><td>${esc(String(info.count))}</td><td><span class="badge ${rate>90?'badge-ok':'badge-err'}">${esc(String(rate))}%</span></td><td>${esc(String(avg))}</td></tr>`;
     }
     let ti=document.getElementById('t-intents');ti.innerHTML='';
     let total=Object.values(d.intent_distribution).reduce((a,b)=>a+b,0)||1;
     let sorted=Object.entries(d.intent_distribution).sort((a,b)=>b[1]-a[1]);
     for(let[intent,count]of sorted){
-      ti.innerHTML+=`<tr><td>${intent}</td><td>${count}</td><td>${Math.round(count/total*100)}%</td></tr>`;
+      ti.innerHTML+=`<tr><td>${esc(intent)}</td><td>${esc(String(count))}</td><td>${esc(String(Math.round(count/total*100)))}%</td></tr>`;
     }
     let tIde=document.getElementById('t-ides');tIde.innerHTML='';
     if(d.ide_distribution){
       let ideSorted=Object.entries(d.ide_distribution).sort((a,b)=>b[1]-a[1]);
       for(let[ide,count]of ideSorted){
-        tIde.innerHTML+=`<tr><td>${ide}</td><td>${count}</td></tr>`;
+        tIde.innerHTML+=`<tr><td>${esc(ide)}</td><td>${esc(String(count))}</td></tr>`;
       }
     }
   }catch(e){console.error('stats error',e)}
 }
 function esc(s){return s?s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):''}
+function escJs(s){return s?s.replace(/\\/g,'\\\\').replace(/'/g,"\\'"):''}
 async function loadLogs(){
   try{
     let r=await authFetch('/admin/api/logs');let d=await r.json();
@@ -476,9 +478,9 @@ async function loadBackends(){
       let stCls=b.enabled?'badge-ok':'badge-off';
       let stTxt=b.enabled?'启用':'禁用';
       let cbCls=b.state==='open'?'badge-err':'badge-ok';
-      let caps=(b.capabilities||[]).map(c=>`<span class="badge ${c.includes('工具')?'badge-ok':c.includes('推理')?'badge-off':''}" style="font-size:10px;margin:1px">${c}</span>`).join('');
+      let caps=(b.capabilities||[]).map(c=>`<span class="badge ${c.includes('工具')?'badge-ok':c.includes('推理')?'badge-off':''}" style="font-size:10px;margin:1px">${esc(c)}</span>`).join('');
       let urlShort=(b.url||'').length>30?b.url.substring(0,30)+'...':(b.url||'');
-      tb.innerHTML+=`<tr><td>${b.name}</td><td>${b.vendor||''}</td><td><span class="badge ${b.tier&&b.tier.includes('免费')?'badge-ok':b.tier&&b.tier.includes('付费')?'badge-err':'badge-off'}">${b.tier||''}</span></td><td>${b.protocol||''}</td><td>${caps}</td><td style="font-size:11px">${b.model}</td><td style="font-size:10px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(b.url||'').replace(/"/g,'&quot;')}">${urlShort}</td><td><span class="badge ${stCls}">${stTxt}</span></td><td><button onclick="testBackend('${b.name}')">测试</button> <button onclick="toggleBackend('${b.name}')">${b.enabled?'禁用':'启用'}</button> <button class="danger" onclick="deleteBackend('${b.name}')">删除</button></td></tr>`;
+      tb.innerHTML+=`<tr><td>${esc(b.name)}</td><td>${esc(b.vendor||'')}</td><td><span class="badge ${b.tier&&b.tier.includes('免费')?'badge-ok':b.tier&&b.tier.includes('付费')?'badge-err':'badge-off'}">${esc(b.tier||'')}</span></td><td>${esc(b.protocol||'')}</td><td>${caps}</td><td style="font-size:11px">${esc(b.model)}</td><td style="font-size:10px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(b.url||'')}">${esc(urlShort)}</td><td><span class="badge ${stCls}">${esc(stTxt)}</span></td><td><button onclick="testBackend('${escJs(b.name)}')">测试</button> <button onclick="toggleBackend('${escJs(b.name)}')">${b.enabled?'禁用':'启用'}</button> <button class="danger" onclick="deleteBackend('${escJs(b.name)}')">删除</button></td></tr>`;
     }
   }catch(e){console.error('backends error',e)}
 }
