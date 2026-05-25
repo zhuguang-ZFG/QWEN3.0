@@ -2,6 +2,17 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 CQ-014 Admin UI Slice Closeout
+
+- Design: `docs/CQ014_ADMIN_UI_SLICE.md`
+- Extracted `ADMIN_HTML`, `ADMIN_BODY`, `ADMIN_JS` from `routes/admin.py` into
+  `routes/admin_ui.py` with `render_admin_dashboard()`
+- `routes/admin.py` now API/auth only (~330 lines); `routes/admin_ui.py` ~292 lines
+- Tests: **1390 passed, 10 skipped** (focused admin UI: 1 passed; admin CSRF/access: 14 passed)
+- VPS deploy backup: `/opt/lima-router/backups/cq014-admin-ui-20260525_135412/runtime-before.tgz`
+- Public smoke: **12/12** with exact chat token `cq014_admin_ui_ok`
+- Residual: CQ-014 still open for `smart_router.py`, `server.py`, `http_caller.py`, `health_tracker.py`
+
 ## 2026-05-25 CQ-014 Post-Route Slice Closeout
 
 - Design: `docs/CQ014_POST_ROUTE_SLICE.md`, `docs/REQUEST_PIPELINE_AUTHORITY.md`
