@@ -167,7 +167,9 @@ Simplify future VPS work:
 
 ## Next Phase: Free Web AI And Stability
 
-The next direction is to expand capacity without sacrificing the coding experience.
+> **Status (2026-05-26):** This phase is **complete** for the first pass. Candidate registry, stability scoring, and quota-aware routing are in production per `docs/EXECUTION_PLAN.md` Phase 10–11 and `task_plan.md` Phase 10–11. Further backend work is **re-eval and gated promotion**, not greenfield expansion. See `docs/NEXT_MILESTONES.md` §编码后端.
+
+The historical direction was to expand capacity without sacrificing the coding experience.
 
 | Workstream | Goal | First Artifact |
 |---|---|---|
@@ -196,10 +198,18 @@ The personal coding assistant direction is closed when:
 
 ## Next Steps
 
-1. Inject graph/code retrieval results into prompts with trace evidence.
-2. Continue hardening prompt-time memory recall now that it is a first-class `server.py` stage with trace/meta evidence.
-3. Add `lima-mcp` tools for repo search, memory search, retrieval traces, and `ask_lima` after local retrieval/memory traces prove useful.
-4. Re-run backend evals when keys, rate limits, or local socket policy improve.
+**Completed (do not re-open without new evidence):**
+
+1. Graph/code retrieval injection + trace — `EXECUTION_PLAN` Phase 6.
+2. Prompt-time memory recall + daemon — Phase 7.
+3. MCP repo/memory/retrieval tools — Phase 8.
+
+**Active next steps** (see `docs/NEXT_MILESTONES.md`):
+
+1. Re-run backend evals when keys, rate limits, or local proxy sessions improve.
+2. LiMa Code: Task Prompt Contract v0.1, then Hooks + skill auto-activation.
+3. Code quality P0: body limit, live-key boundary, legacy deploy scripts.
+4. ESP32: real-device flash and motion smoke after PROD-003.
 
 ## 2026-05-23 Reference Architecture Update
 

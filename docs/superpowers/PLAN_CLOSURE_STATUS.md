@@ -1,6 +1,6 @@
 # Superpowers Plan Closure Status
 
-> Updated: 2026-05-25
+> Updated: 2026-05-26
 > Scope: execution plans under `docs/superpowers/plans/`.
 
 ## Summary
@@ -14,7 +14,9 @@ Several 2026-05-23/2026-05-24 plan files still contain unchecked implementation-
 - `docs/LIMA_MEMORY.md`
 - `progress.md`
 
-The current runtime truth is: VPS Server/Worker APIs are deployed, LiMa Code completed a public real-machine worker smoke, FRP `8088` chat is healthy again after local router startup hardening, `server.py` route decomposition is closed for this architecture pass, backend capability registry plus `key_pool.py` integration are deployed, redacted key-pool telemetry is implemented, the TechSpar-inspired mastery loop is implemented locally, and the public LiMa Device Gateway is deployed with Redis HA task routing.
+The current runtime truth is: VPS Server/Worker APIs are deployed, LiMa Code completed a public real-machine worker smoke, FRP `8088` chat is healthy again after local router startup hardening, `server.py` route decomposition is closed for this architecture pass, backend capability registry plus `key_pool.py` integration are deployed, redacted key-pool telemetry is implemented, the TechSpar-inspired mastery loop is implemented locally, the public LiMa Device Gateway is deployed with Redis HA task routing, and **WeChat product channels are retired** (`docs/WECHAT_RETIRED.md`).
+
+**Open work prioritization:** `docs/NEXT_MILESTONES.md` (four tracks: coding backends, LiMa Code Worker, ESP32/Device Gateway, code quality).
 
 ## Plan Status
 

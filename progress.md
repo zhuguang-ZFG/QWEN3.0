@@ -2,6 +2,12 @@
 
 > Created: 2026-05-22
 
+## 2026-05-26 文档清理与四线里程碑
+
+- **新增**：`docs/NEXT_MILESTONES.md`（编码后端 / LiMa Code / ESP32 / 代码质量优先级）
+- **对齐**：`EXECUTION_PLAN.md`、`PERSONAL_CODING_ASSISTANT_PLAN.md`、`DOCUMENTATION_STATUS.md`、`STATUS.md`、`findings.md`（WX-088/089 Pending → Superseded）、`PLAN_CLOSURE_STATUS.md`
+- **未改**：`task_plan.md`（用户契约；其中 server 拆分/BACKENDS 项已由 EXECUTION_PLAN 标关闭，见 NEXT_MILESTONES 对照表）
+
 ## 2026-05-25 微信通道全部退役
 
 - **决定**：放弃所有微信方案（GeWe、OpenClaw、iLink/Hermes、WCF 小号等）

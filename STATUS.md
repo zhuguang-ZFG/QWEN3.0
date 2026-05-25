@@ -1,6 +1,6 @@
 # LiMa Status
 
-> Updated: 2026-05-25
+> Updated: 2026-05-26
 > Active direction: private personal coding assistant.
 
 ## Current Summary
@@ -34,7 +34,8 @@
 | P0.1 ESP32 Motion Executor Contract | Deployed and smoke-verified | `MotionErrorCode` enum (8 codes), normalized motion failure errors, no-queue invalid task handling, `path_validator.py`, fake-U8 `--test failure`, default board `E_UNSUPPORTED_BOARD`, and zhuguang failure events are implemented; review fixes passed `1218 passed, 8 skipped`; VPS backup `/opt/lima-router/backups/p01-motion-contract-20260525_072701/runtime-before.tgz`; public smoke `12/12`; fake-U8 WSS success and failure loops passed. |
 | P0.4/P0.5/P0.7 Device productivity slice | Deployed and smoke-verified | Real text/SVG/path pipeline, intent parser, and `/v1/ops/metrics` landed in `e3dbb9b`; review fixed preview SVG truncation, control command projection, ops metrics state access, and production-shaped backend call stats. Verification: focused `31 passed`; previous full suite `1239 passed, 8 skipped`; VPS/public smoke `12/12`; public ops metrics HTTP 200; `write LiMa` keeps a complete preview SVG; `home` queues a control task without error. |
 | PROD-008 learning loop | Complete locally | `session_memory/learning_loop.py` ingests LiMa Code task results into memory, prompt profiles, routing feedback, and eval candidates; route/prompt behavior remains evidence-only until an explicit eval gate promotes it. Review verification: focused Channel Gateway + learning loop tests `106 passed`; full suite `1346 passed, 8 skipped`. |
-| WeChat Channel Gateway V1 | Guest-safe locally | `/channel/v1/*` is mounted in `server.py`; sidecar auth requires `Bearer` token; bindings default to guest unless `LIMA_CHANNEL_OWNER_HASHES` matches; guest commands are chat/code explanation/draw preview/demo/about/reset only, while private owner commands are rejected or stubbed. Guest smoke passed 14/14 steps. |
+| Channel Gateway (`/channel`) | Implemented; WeChat product retired | HTTP 契约与 `channel_gateway/` 保留；`WECHAT_BRIDGE_ENABLED=0`。访客入口 **https://chat.donglicao.com**。见 `docs/WECHAT_RETIRED.md`、`docs/NEXT_MILESTONES.md`。 |
+| Next milestones (four tracks) | Active doc | Coding backends, LiMa Code Worker, ESP32/Device Gateway, code quality: `docs/NEXT_MILESTONES.md`. |
 
 ## 2026-05-25 Current P0 Panorama
 
@@ -47,7 +48,9 @@
 | PROD-007 | Ops metrics endpoint deployed and smoke-verified. | Add deeper correlation as incidents expose gaps. |
 | PROD-008 | Learning loop complete locally: task outcomes feed memory, prompt, routing evidence, and eval candidates. | Keep behavior changes behind explicit eval/release gates. |
 
-## 2026-05-25 WeChat Channel Gateway V1 Guest Safety
+## 2026-05-25 Channel Gateway V1 Guest Safety（微信产品通道已退役 2026-05-25）
+
+> **2026-05-26:** 真机微信/iLink/WCF 已放弃。下列为 `/channel` HTTP 契约实现记录；smoke 脚本已归档至 `scripts/archive/wechat_retired/`。
 
 - Added `/channel/v1/bind/start`, `/channel/v1/wechat/message`, and
   `/channel/v1/wechat/health` behind sidecar bearer-token auth.
@@ -64,7 +67,7 @@
     comparison.
 - Verification:
   - focused Channel Gateway + learning loop tests: `106 passed`;
-  - `scripts/smoke_wechat_channel_gateway.py`: 14/14 guest steps passed;
+  - archived smoke `scripts/archive/wechat_retired/scripts/smoke_wechat_channel_gateway.py`: 14/14 guest steps passed (historical);
   - full suite: `1346 passed, 8 skipped`.
 
 ## 2026-05-25 LiMa Server, LiMa Code, And ESP32 Joint Debug

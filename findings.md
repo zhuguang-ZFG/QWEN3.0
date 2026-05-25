@@ -10,7 +10,9 @@
 | WX-RET-2 | VPS | `cleanup_wechat_vps.py`；`find` 无 wechat/weixin 路径；`lima-router` health ok | Closed 2026-05-25 |
 | WX-RET-3 | Local data | 删除 `data/wechat_install/`、`.geweapi_browser_profile/`、登录 QR 缓存；`.gitignore` 加固 | Closed 2026-05-25 |
 
-## 2026-05-25 CQ-090 WeChat Channel G3 + Owner Digest
+## 2026-05-25 CQ-090 Channel Gateway G3 + Owner Digest（微信真机已退役，能力保留于 `/channel`）
+
+> 产品通道：仅网页 `https://chat.donglicao.com`。微信方案见 `docs/WECHAT_RETIRED.md`。
 
 | ID | Area | Evidence | Status |
 |---|---|---|---|
@@ -20,23 +22,23 @@
 | WX-090-4 | Smoke | `smoke_wechat_channel_gateway.py` steps 15–17; test inject_deps order fixed | Passed locally |
 | WX-090-5 | VPS | `scripts/deploy_channel_gateway.py --smoke` on `47.112.162.80`; health/menu/calc/chat_turn passed | Closed 2026-05-25 |
 
-## 2026-05-25 CQ-089 WeChat Channel Public Tools
+## 2026-05-25 CQ-089 Channel Public Tools（历史标签 WeChat，实现为 channel_gateway）
 
 | ID | Area | Evidence | Status |
 |---|---|---|---|
 | WX-089-1 | Tool surface | 11 intents + 中英命令别名；`channel_tools` / `public_apis` / `tool_usage` | Implemented |
 | WX-089-2 | Quota | `channel_tool_usage` per hash/tool/day; guest limits + owner mult | Implemented + tests |
 | WX-089-3 | Search/read | `search_gateway` when `TINYFISH_API_KEY`; DDG + simple HTML fallback | Implemented |
-| WX-089-4 | Next | G3 多轮会话、主人简报、VPS `LIMA_CHANNEL_TOOLS=1` smoke | Pending |
+| WX-089-4 | Next | 已由 CQ-090 覆盖（G3/主人/VPS smoke） | Superseded → Closed 2026-05-25 |
 
-## 2026-05-25 CQ-088 WeChat Channel Zero-Friction Bind
+## 2026-05-25 CQ-088 Channel Zero-Friction Bind（历史标签 WeChat）
 
 | ID | Area | Evidence | Status |
 |---|---|---|---|
 | WX-088-1 | Auto guest bind | `ensure_guest_binding()` + `handle_message` 对 unbound/revoked 非 `/bind` 自动开通；首绑欢迎语 `_WELCOME_GUEST` | Implemented; 75 focused tests passed |
 | WX-088-2 | Env toggle | `LIMA_CHANNEL_AUTO_GUEST_BIND=0` 恢复「需先绑定」；须运行时读 env（非 import 时常量） | Fixed + regression tests |
 | WX-088-3 | Revoked re-entry | `ensure_guest_binding` 对 REVOKED 行 reactivate 而非 INSERT 失败 | Fixed + store test |
-| WX-088-4 | Next slice | 访客公开工具、配额、`search_gateway` 接线见 `docs/WECHAT_CHANNEL_TOOLS_PLAN.md` G1 | Pending |
+| WX-088-4 | Next slice | 已由 CQ-089 覆盖（公开工具/配额/search_gateway） | Superseded → Closed 2026-05-25 |
 
 ## 2026-05-25 XianyuAutoAgent Reference Findings
 

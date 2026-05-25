@@ -1,6 +1,6 @@
 # LiMa Execution Plan
 
-> Updated: 2026-05-25
+> Updated: 2026-05-26
 > Status: current plan for the private personal coding assistant direction
 > Supersedes: older commercial/open-platform sprint plans
 
@@ -87,10 +87,16 @@ Paused work:
 
 ## Next Implementation Order
 
-1. Keep always-on worker daemon mode gated behind repo allowlist, runtime budget, stop marker, audit, failure quarantine, and manual production approval.
-2. Keep gated web/local candidates out of normal routing until refresh and model-level smoke evidence exists.
-3. Keep mastery-loop admin UI exposure and hot-path planner/routing influence gated until private admin views and focused safety tests exist.
-4. Run local tests, deploy only when requested, smoke public endpoints.
+四线优先级见 **`docs/NEXT_MILESTONES.md`**（编码后端 / LiMa Code Worker / ESP32·Device Gateway / 代码质量）。
+
+1. **代码质量 P0** — chunked body 413、`/api/live-key` 不泄钥、`key_rotation` 归档或加固（`docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md`）。
+2. **编码后端** — Kimi/SCNet-large/TheOldLLM refresh + eval；page-only Web AI 保持 sandbox。
+3. **ESP32** — PROD-003 真机烧录与运动 smoke；M12 Hardware Companion 与 `ESP32S_XYZ` 路线图对齐后开。
+4. **LiMa Code** — Task Prompt Contract v0.1 → Hooks v0.1；always-on daemon 仍 gated。
+5. **横切** — mastery admin UI、Postgres 设备审计：各自批准后再做。
+6. Run local tests; deploy only when requested; smoke public endpoints.
+
+**已关闭方向**：微信真机/机器人（`docs/WECHAT_RETIRED.md`）；商业支付/注册。
 
 ## Verification Commands
 

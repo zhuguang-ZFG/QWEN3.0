@@ -1,6 +1,6 @@
 ﻿# Documentation Status
 
-> Updated: 2026-05-25
+> Updated: 2026-05-26
 > Purpose: prevent old commercial-platform plans from being mistaken for the active LiMa direction.
 
 ## Current Source Of Truth
@@ -18,6 +18,9 @@
 | `docs/CLOUDFLARE_MODEL_INVENTORY.md` | Active | Cloudflare direct/Worker model inventory, routing policy, and adapter boundaries. |
 | `docs/CLOUDFLARE_WORKER_QUICK_EVAL.md` | Active evidence | Worker quick coding eval for `cfai_qwen_coder`, `cfai_deepseek_r1`, and `cfai_mistral`. |
 | `docs/EXECUTION_PLAN.md` | Active | Current phase tracker for documentation/GitHub snapshot and next implementation order. |
+| `docs/NEXT_MILESTONES.md` | Active | Four-track priority map: coding backends, LiMa Code Worker, ESP32/Device Gateway, code quality; doc drift reconciliation table. |
+| `docs/WECHAT_RETIRED.md` | Active | WeChat/iLink/WCF/OpenClaw product channels retired; VPS cleanup via `scripts/cleanup_wechat_vps.py`. |
+| `docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md` | Active backlog | P0/P1 code quality slices; pair with `docs/NEXT_MILESTONES.md` §代码质量. |
 | `docs/REFERENCE_PROJECT_EVALUATION.md` | Active | Current evaluation of OpenRAG, Google Cloud always-on-memory-agent, TechSpar, and autonomy references against LiMa's real code state. |
 | `docs/REFERENCE_IMPLEMENTATION_LEDGER.md` | Active implementation ledger | Current reference-to-LiMa implementation status table; distinguishes implemented, gated, concept, evaluating, and rejected reference ideas. |
 | `docs/ONLINE_DISTRIBUTIONS.md` | Active | Source of truth for VPS-hosted official website, open platform, chat interface, FRP endpoint, nginx edge, and service ownership. |
@@ -61,6 +64,8 @@ These files are retained as reference, but they are not the current execution di
 | `docs/GEMINI_LIVE_PLAN.md` | Not part of the current private coding assistant loop. |
 | `docs/ONEAPI_PROGRESS.md` | New API remains deployed, but commercial/open-platform rollout is paused. |
 | `docs/PRODUCTION_READINESS.md` | Useful safety checklist; public commercial readiness is not the target. |
+| `docs/WECHAT_*.md` (stub) + `scripts/archive/wechat_retired/` | Retired | Product WeChat abandoned 2026-05-25; `/channel` API may remain for contract smoke only. |
+| `task_plan.md` § Next work items 1–2 | Superseded | Server decomposition and BACKENDS/key_pool closure recorded in `EXECUTION_PLAN` 2026-05-24. Use items 4–6 or `NEXT_MILESTONES.md`. |
 
 ## Rules For Future Agents
 
@@ -77,3 +82,5 @@ These files are retained as reference, but they are not the current execution di
 11. Treat `docs/reference/AI_ENGINEERING_COMPETENCY_MAP_2026.md` as the baseline production-AI checklist before expanding model, agent, memory, eval, cost, or deployment features.
 12. Device Gateway production state is Redis HA on VPS; update `docs/superpowers/plans/2026-05-25-lima-device-gateway-ha.md` and `scripts/smoke_online_distributions.py` when changing Redis, worker count, or public port guards.
 13. Treat productivity and productization as the global decision filter. Prefer fixes that improve real coding or hardware execution loops over decorative features, speculative integrations, or broad rewrites.
+14. When reconciling "what is left to do", read `docs/NEXT_MILESTONES.md` first; do not treat unchecked boxes in `docs/superpowers/plans/` as open work.
+15. WeChat product goals are closed; do not revive `scripts/archive/wechat_retired/` paths without an explicit user direction change.
