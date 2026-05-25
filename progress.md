@@ -2,6 +2,13 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 Review Fixes (CQ-080)
+
+- **P1** `http_body_limit.py`：ASGI `receive` 累计字节硬截断；JSON API 缺 `Content-Length` 且非 chunked 时 400
+- **P1** `tool_forward`：Tier1 非流式 `BackendError`/异常写入 `record_failure`
+- **P2** `anthropic_format`：user 消息内 `tool_result` + 文本块并存时保留继续指令
+- 测试：`test_http_body_limit.py`、`test_anthropic_format_tools.py`、`test_tool_forward_failures.py`
+
 ## 2026-05-25 CTX-003 VPS Deploy + /v1/messages Smoke
 
 - Deploy: `scripts/deploy_ctx003.py` → file backup `ctx003-20260525_150658/files/`

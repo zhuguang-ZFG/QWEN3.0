@@ -67,6 +67,11 @@ def convert_messages_anthropic_to_openai(messages: list) -> list:
                     "tool_calls": tool_calls
                 })
             elif tool_results:
+                if text_parts:
+                    openai_msgs.append({
+                        "role": role,
+                        "content": "\n".join(text_parts),
+                    })
                 for tr in tool_results:
                     openai_msgs.append(tr)
             else:

@@ -110,7 +110,12 @@ def anthropic_native_forward_sync(body: dict) -> dict:
             try:
                 data = call_raw(name, payload)
                 return convert_response_openai_to_anthropic(data, b["model"])
-            except BackendError:
+            except BackendError as exc:
+                _ht.record_failure(name, error_code=exc.status_code)
+                continue
+            except Exception as exc:
+                code = getattr(exc, "code", None) or getattr(exc, "status", None) or 500
+                _ht.record_failure(name, error_code=code)
                 continue
 
     # Tier 2: LongCat Anthropic native
