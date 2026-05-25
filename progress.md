@@ -2,6 +2,12 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 CTX-003 VPS Deploy + /v1/messages Smoke
+
+- Deploy: `scripts/deploy_ctx003.py` → file backup `ctx003-20260525_150658/files/`
+- Smoke: `scripts/vps_run_messages_smoke.py` → **`ctx003_messages_ok`**
+- Evidence: `preflight_body_ok=True`, `preflight_openai_ok=True`, `messages_status=200`, `stop_reason=tool_use`, `system_chars=340`
+
 ## 2026-05-25 CTX-003 Tool Route Preflight (CQ-079)
 
 - `inject_anthropic_body_preflight`：Tier-2 Anthropic-native tool 请求写入 `body.system`

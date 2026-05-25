@@ -417,5 +417,5 @@ Source record: `docs/superpowers/plans/2026-05-23-code-quality-review-closeout.m
 | CQ-076 | Closed | Prod retrieval wired + VPS deploy/smoke. Trace hit `routing_engine.py`/`health_tracker.py`, 380 injected chars. Token `prod_retrieval_trace_ok`. | None. |
 | CQ-077 | Closed | Deploy manifest expanded (routing split + retrieval stack); `response_cleaner` SyntaxWarning fix; `test_agent_eval` portable path. VPS redeploy smoke **prod_retrieval_trace_ok** (380 chars). | None. |
 | CQ-078 | Closed | Admin portable paths: `FALLBACK_LOG` shares `request_tracking` resolver; `admin_retrain` uses repo root cwd. Tests in `tests/test_admin_paths.py`. | None. |
-| CQ-079 | Closed | CTX-003 tool-route preflight: Tier-2 Anthropic body + `tool_call_forward` aligned with OpenAI tier-1 injection. Tests **1460 passed**. | None. |
+| CQ-079 | Closed | CTX-003 tool-route preflight: Tier-2 Anthropic body + `tool_call_forward` aligned with OpenAI tier-1 injection. VPS smoke **ctx003_messages_ok** (`stop_reason=tool_use`, preflight 340 chars). Tests **1460 passed**. | None. |
 | REF-006 | Closed | GCP `generative-ai` repo assessed in `docs/GCP_GENERATIVE_AI_RESEARCH.md`: reference-only (eval/RAG methodology), no deep port; llmevalkit/agents are GCP-locked demos. Local RAG eval fixture delivered (CQ-067). | Add LiMa routing corpus fixture when retrieval wired to production path. |
