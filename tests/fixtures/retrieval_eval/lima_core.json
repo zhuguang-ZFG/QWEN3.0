@@ -1,0 +1,33 @@
+{
+  "name": "lima_core",
+  "corpus_root": "tests/fixtures/sample_repo",
+  "top_k": 5,
+  "match_by": "basename",
+  "thresholds": {
+    "min_hit_rate": 0.75,
+    "min_mean_recall": 0.5,
+    "min_mean_mrr": 0.25
+  },
+  "queries": [
+    {
+      "query": "Calculator add subtract value class",
+      "expected_paths": ["module_a.py"],
+      "description": "Find Calculator class in module_a"
+    },
+    {
+      "query": "helper_function sum items list",
+      "expected_paths": ["module_b.py"],
+      "description": "Find helper_function utility"
+    },
+    {
+      "query": "reverse string another_helper",
+      "expected_paths": ["module_b.py"],
+      "description": "Find string reversal helper"
+    },
+    {
+      "query": "calculate_sum uses helper_function",
+      "expected_paths": ["module_a.py", "module_b.py"],
+      "description": "Cross-module dependency query"
+    }
+  ]
+}

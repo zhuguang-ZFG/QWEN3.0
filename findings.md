@@ -348,7 +348,7 @@ Source record: `docs/superpowers/plans/2026-05-23-code-quality-review-closeout.m
 | CQ-011 | Closed | `routes/images.py` had mojibake Chinese detection; it now uses `[\u4e00-\u9fff]` and has a regression test for Chinese prompt quality prefixing. | None for this slice. |
 | CQ-012 | Closed | Telegram startup now runs from `server_lifespan.py`; deprecated `@router.on_event("startup")` removed from `routes/telegram.py`. | None for this slice. |
 | CQ-013 | Closed | `telegram_notify._fire_and_forget()` now uses a coroutine factory so mocked notification hooks do not leave un-awaited coroutines. | None for this slice. |
-| CQ-014 | Open | Chat fallback extracted to `routes/chat_fallback.py` (`chat_handler.py` ~315 lines). Oversized: `smart_router.py`, `http_caller.py`, `health_tracker.py`. | Continue CQ-014 on `smart_router.py` then `http_caller.py`. |
+| CQ-014 | Open | Slices 6–7 extracted CB/intent/classifier/prompt/http/image from `smart_router.py` (~228 lines). Oversized: `http_caller.py`, `health_tracker.py`. | Continue CQ-014 on `http_caller.py`. |
 
 ## 2026-05-24 M0 Baseline Review Harness Follow-Up
 
@@ -404,4 +404,7 @@ Source record: `docs/superpowers/plans/2026-05-23-code-quality-review-closeout.m
 | CQ-063 | Closed | CQ-022/023 follow-up adds async parallel and threaded burst tests in `tests/test_http_caller_concurrency.py` (mocked httpx, no live stress harness). | Add provider-level concurrency limits and optional live soak harness later. |
 | CQ-064 | Closed | CQ-014 slice 4 moves `_handle_chat` / streaming to `routes/chat_handler.py`, `routes/chat_stream.py`, `routes/chat_support.py`; `server.py` reduced to ~180 lines. Tests updated in `tests/test_chat_handler.py`. | Optional: trim `chat_handler` orchestration block further. |
 | CQ-065 | Closed | CQ-014 slice 5 extracts non-stream quality fallback to `routes/chat_fallback.py`; `chat_handler.py` ~315 lines. Tests in `tests/test_chat_fallback.py`. | None for this slice. |
-| REF-006 | Closed | GCP `generative-ai` repo assessed in `docs/GCP_GENERATIVE_AI_RESEARCH.md`: reference-only (eval/RAG methodology), no deep port; llmevalkit/agents are GCP-locked demos. | Research Radar citation; optional local RAG eval fixtures inspired by `rag-grounding`. |
+| CQ-066 | Closed | CQ-014 slice 6 extracts `router_circuit_breaker.py`, `router_intent.py`, `router_classifier.py` from `smart_router.py`; re-exports preserve API. Tests: `tests/test_router_circuit_breaker.py`, `tests/test_router_classifier.py`. | Continue HTTP/vision extraction from `smart_router.py`. |
+| CQ-067 | Closed | RAG offline eval fixture: `tests/fixtures/retrieval_eval/lima_core.json`, `context_pipeline/retrieval_eval_runner.py`, gate thresholds (hit_rate/recall/MRR). Tests: `tests/test_retrieval_eval_fixture.py`. | Add production-corpus fixtures; optional graph_relations in fixture schema. |
+| CQ-068 | Closed | CQ-014 slice 7 extracts `router_prompt.py`, `router_http.py`, `router_image.py`; vision helpers deduped to `vision_handler.py`; `clean_response` unified via `response_cleaner.py`. `smart_router.py` ~228 lines. Tests: `tests/test_router_http.py`, `tests/test_router_image.py`. | VPS deploy when credentials available. |
+| REF-006 | Closed | GCP `generative-ai` repo assessed in `docs/GCP_GENERATIVE_AI_RESEARCH.md`: reference-only (eval/RAG methodology), no deep port; llmevalkit/agents are GCP-locked demos. Local RAG eval fixture delivered (CQ-067). | Add LiMa routing corpus fixture when retrieval wired to production path. |

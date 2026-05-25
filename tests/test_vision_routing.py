@@ -1,3 +1,4 @@
+import router_http
 import smart_router
 
 
@@ -27,11 +28,11 @@ def test_call_api_routes_cf_vision_with_image_content(monkeypatch):
     def unexpected_urlopen(*_args, **_kwargs):
         raise AssertionError("unexpected network access")
 
-    monkeypatch.setattr(smart_router, "cb_allow", lambda _name: True)
-    monkeypatch.setattr(smart_router, "cb_record", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr(smart_router.urllib.request, "urlopen", unexpected_urlopen)
+    monkeypatch.setattr(router_http, "cb_allow", lambda _name: True)
+    monkeypatch.setattr(router_http, "cb_record", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(router_http.urllib.request, "urlopen", unexpected_urlopen)
     monkeypatch.setitem(
-        smart_router.BACKENDS,
+        router_http.BACKENDS,
         "cf_vision",
         {
             "key": "test",
@@ -42,7 +43,7 @@ def test_call_api_routes_cf_vision_with_image_content(monkeypatch):
         },
     )
     monkeypatch.setattr(
-        smart_router,
+        router_http,
         "_call_cf_vision",
         lambda _msgs, _mt, _t0: "vision-ok",
     )

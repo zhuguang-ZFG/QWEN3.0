@@ -2,6 +2,24 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 CQ-014 Smart Router Slice 7 Closeout
+
+- Design: `docs/CQ014_SMART_ROUTER_SLICE.md` (updated slices 6–7)
+- Slice 7: `router_prompt.py`, `router_http.py`, `router_image.py`; vision dedup via `vision_handler.py`; `smart_router.py` ~228 lines
+- Slice 6 (prior): `router_circuit_breaker.py`, `router_intent.py`, `router_classifier.py`
+- RAG fixture: `tests/fixtures/retrieval_eval/lima_core.json`, `context_pipeline/retrieval_eval_runner.py`
+- Tests: **1428 passed, 10 skipped** (+27 vs prior closeout)
+- VPS deploy: skipped (no `LIMA_DEPLOY_PASS` / `LIMA_DEPLOY_KEY_PATH` in session)
+- Residual CQ-014: `http_caller.py`, `health_tracker.py`
+
+## 2026-05-25 CQ-014 Smart Router Slice 6 + RAG Offline Eval Fixture
+
+- Design: `docs/CQ014_SMART_ROUTER_SLICE.md`, `docs/RAG_OFFLINE_EVAL_FIXTURE.md`
+- CQ-014 slice 6: extracted `router_circuit_breaker.py`, `router_intent.py`, `router_classifier.py`; `smart_router.py` ~740 lines (was ~1065)
+- RAG fixture: `tests/fixtures/retrieval_eval/lima_core.json` + `context_pipeline/retrieval_eval_runner.py`
+- Tests: **1421 passed, 10 skipped** (+18: router CB/classifier 12, retrieval fixture 6)
+- Residual CQ-014: `smart_router.py` call_api/stream/vision blocks; `http_caller.py`, `health_tracker.py`
+
 ## 2026-05-25 GCP generative-ai Research + CQ-014 Fallback Slice
 
 - Research: `docs/GCP_GENERATIVE_AI_RESEARCH.md` — **reference-only**, no port; llmevalkit/RAG eval patterns for Research Radar
