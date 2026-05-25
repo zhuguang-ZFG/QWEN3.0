@@ -7,9 +7,13 @@ import re
 from typing import Callable, Optional
 
 from channel_gateway.public_apis import (
+    fetch_calc,
     fetch_duckduckgo_instant,
+    fetch_earthquake,
     fetch_exchange,
+    fetch_holiday,
     fetch_ip_info,
+    fetch_stock,
     fetch_time,
     fetch_translate,
     fetch_weather,
@@ -35,6 +39,10 @@ CHANNEL_TOOL_INTENTS = frozenset({
     "time",
     "hot",
     "ip",
+    "calc",
+    "holiday",
+    "stock",
+    "earthquake",
 })
 
 _TOOLS_MENU = (
@@ -48,6 +56,10 @@ _TOOLS_MENU = (
     "/时间 [时区]\n"
     "/热搜 [平台] — 微博/百度等热点\n"
     "/ip <地址>\n"
+    "/算 <表达式> — 安全计算器\n"
+    "/黄历 [日期] — 节假日/调休\n"
+    "/股票 <代码> — 行情摘要\n"
+    "/地震 — 近24h 全球地震简报\n"
     "/读 <https://...> — 安全抓取公开网页\n"
     "配额：访客每日有限次，主人更高；发送 /help 查看基础命令"
 )
@@ -59,7 +71,8 @@ def tools_help_suffix() -> str:
     return (
         "\n--- 联网工具（LIMA_CHANNEL_TOOLS=1）---\n"
         "/menu — 工具菜单\n"
-        "/百科 /天气 /搜 /新闻 /翻译 /汇率 /时间 /热搜 /ip /读"
+        "/百科 /天气 /搜 /新闻 /翻译 /汇率 /时间 /热搜 /ip\n"
+        "/算 /黄历 /股票 /地震 /读"
     )
 
 
@@ -189,6 +202,10 @@ class ChannelToolRunner:
             "time": lambda: fetch_time(args.strip() or "Asia/Shanghai"),
             "hot": lambda: _run_search(f"{args or '微博'} 热搜 今日"),
             "ip": lambda: fetch_ip_info(args),
+            "calc": lambda: fetch_calc(args),
+            "holiday": lambda: fetch_holiday(args),
+            "stock": lambda: fetch_stock(args),
+            "earthquake": lambda: fetch_earthquake(),
         }
         handler = handlers.get(intent)
         if handler is None:

@@ -48,6 +48,14 @@ _GUEST_COMMANDS = {
     "热搜": "hot",
     "hot": "hot",
     "ip": "ip",
+    "算": "calc",
+    "calc": "calc",
+    "黄历": "holiday",
+    "holiday": "holiday",
+    "股票": "stock",
+    "stock": "stock",
+    "地震": "earthquake",
+    "earthquake": "earthquake",
 }
 
 _OWNER_COMMANDS = {
@@ -56,6 +64,10 @@ _OWNER_COMMANDS = {
     "status": "status",
     "artifact": "artifact",
     "memory": "memory",
+    "简报": "digest",
+    "digest": "digest",
+    "github": "github",
+    "gh": "github",
 }
 
 _ALL_COMMANDS = {**_GUEST_COMMANDS, **_OWNER_COMMANDS}

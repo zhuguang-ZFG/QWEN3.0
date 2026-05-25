@@ -102,6 +102,19 @@ class ChannelStore:
             " PRIMARY KEY (channel_user_id_hash, tool, day)"
             ")"
         )
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS channel_chat_turns ("
+            " id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            " channel_user_id_hash TEXT NOT NULL,"
+            " role TEXT NOT NULL,"
+            " content TEXT NOT NULL,"
+            " created_at INTEGER NOT NULL"
+            ")"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_chat_turns_user_time"
+            " ON channel_chat_turns(channel_user_id_hash, created_at)"
+        )
         conn.commit()
 
     # -- ID Hashing ----------------------------------------------------------
@@ -301,6 +314,77 @@ class ChannelStore:
             )
             conn.commit()
             return True, new_count
+
+    # -- Chat session (G3 multi-turn) ----------------------------------------
+
+    def append_chat_turn(
+        self, channel_user_id_hash: str, role: str, content: str
+    ) -> None:
+        with self._lock:
+            conn = self._get_conn()
+            conn.execute(
+                "INSERT INTO channel_chat_turns"
+                " (channel_user_id_hash, role, content, created_at)"
+                " VALUES (?, ?, ?, ?)",
+                (channel_user_id_hash, role, content, int(time.time())),
+            )
+            conn.commit()
+
+    def get_chat_history(
+        self, channel_user_id_hash: str, *, max_messages: int = 12
+    ) -> list[dict[str, str]]:
+        conn = self._get_conn()
+        rows = conn.execute(
+            "SELECT role, content FROM channel_chat_turns"
+            " WHERE channel_user_id_hash = ?"
+            " ORDER BY created_at DESC, id DESC LIMIT ?",
+            (channel_user_id_hash, max_messages),
+        ).fetchall()
+        out: list[dict[str, str]] = []
+        for row in reversed(rows):
+            role = row["role"]
+            if role in ("user", "assistant"):
+                out.append({"role": role, "content": row["content"]})
+        return out
+
+    def trim_chat_history(
+        self, channel_user_id_hash: str, *, max_messages: int = 12
+    ) -> None:
+        with self._lock:
+            conn = self._get_conn()
+            rows = conn.execute(
+                "SELECT id FROM channel_chat_turns"
+                " WHERE channel_user_id_hash = ?"
+                " ORDER BY created_at DESC, id DESC",
+                (channel_user_id_hash,),
+            ).fetchall()
+            if len(rows) <= max_messages:
+                return
+            drop_ids = [r["id"] for r in rows[max_messages:]]
+            placeholders = ",".join("?" * len(drop_ids))
+            conn.execute(
+                f"DELETE FROM channel_chat_turns WHERE id IN ({placeholders})",
+                drop_ids,
+            )
+            conn.commit()
+
+    def clear_chat_history(self, channel_user_id_hash: str) -> None:
+        with self._lock:
+            conn = self._get_conn()
+            conn.execute(
+                "DELETE FROM channel_chat_turns WHERE channel_user_id_hash = ?",
+                (channel_user_id_hash,),
+            )
+            conn.commit()
+
+    def count_chat_turns(self, channel_user_id_hash: str) -> int:
+        conn = self._get_conn()
+        row = conn.execute(
+            "SELECT COUNT(*) AS cnt FROM channel_chat_turns"
+            " WHERE channel_user_id_hash = ?",
+            (channel_user_id_hash,),
+        ).fetchone()
+        return int(row["cnt"]) if row else 0
 
     # -- Messages ------------------------------------------------------------
 

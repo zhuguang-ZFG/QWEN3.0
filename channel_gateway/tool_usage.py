@@ -20,6 +20,10 @@ _GUEST_LIMITS: dict[str, int] = {
     "time": 30,
     "hot": 5,
     "ip": 5,
+    "calc": 30,
+    "holiday": 10,
+    "stock": 8,
+    "earthquake": 5,
 }
 
 _OWNER_MULT = float(os.environ.get("LIMA_CHANNEL_OWNER_TOOL_MULT", "3"))
@@ -54,6 +58,10 @@ def quota_exceeded_message(tool: str, limit: int) -> str:
         "time": "时间",
         "hot": "热搜",
         "ip": "IP 查询",
+        "calc": "计算器",
+        "holiday": "黄历",
+        "stock": "股票",
+        "earthquake": "地震",
     }
     name = labels.get(tool, tool)
     return (

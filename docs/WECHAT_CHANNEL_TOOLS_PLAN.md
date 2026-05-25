@@ -64,7 +64,7 @@ User scans QR → adds WeChat bot → sends any message (e.g. 你好)
 
 1. **CQ-088 (this slice):** auto guest bind + help copy + tests.
 2. **CQ-089:** `channel_tools` + 10+ 公开工具 + SQLite 日配额 ✅
-3. **CQ-090:** 访客多轮会话、主人简报、VPS smoke
+3. **CQ-090:** 访客多轮会话、/算/黄历/股票/地震、主人 `/简报` `/github`、smoke ✅
 
 ## Verification
 

@@ -2,6 +2,14 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 CQ-090: WeChat G3 Session + Extra Tools + Owner Digest
+
+- **新工具**：`/算` `/黄历` `/股票` `/地震`；**G3** `LIMA_CHANNEL_SESSION=1` 保留最近 6 轮（`LIMA_CHANNEL_SESSION_TURNS`）
+- **主人**：`/简报`（天气+任务+后端+记忆摘要）、`/github owner/repo path`
+- **生产接线**：`routes/channel_gateway` 创建 `ChannelService(wire_integrations=True)`
+- **smoke**：`scripts/smoke_wechat_channel_gateway.py` 增加 auto-guest、/menu、/算、session 步骤
+- **测试**：channel 套件 **90+ passed**；修复 smoke 测试 `inject_deps` 后被 `_reset_deps_for_test` 清掉的问题
+
 ## 2026-05-25 CQ-089: WeChat Channel Public Tools (expanded APIs)
 
 - **工具**：`/百科` `/天气` `/搜` `/新闻` `/翻译` `/汇率` `/时间` `/热搜` `/ip` `/读` `/menu`（中英别名）

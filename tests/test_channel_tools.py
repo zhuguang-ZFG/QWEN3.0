@@ -26,12 +26,17 @@ class TestChannelToolCommands:
         assert parse_command("/时间").intent == "time"
         assert parse_command("/热搜 微博").intent == "hot"
         assert parse_command("/ip 8.8.8.8").intent == "ip"
+        assert parse_command("/算 1+1").intent == "calc"
+        assert parse_command("/黄历").intent == "holiday"
+        assert parse_command("/股票 AAPL").intent == "stock"
+        assert parse_command("/地震").intent == "earthquake"
         assert parse_command("/menu").intent == "menu"
 
     def test_all_tool_intents_registered(self):
         for intent in (
             "wiki", "weather", "search", "read_url", "news",
             "translate", "exchange", "time", "hot", "ip", "menu",
+            "calc", "holiday", "stock", "earthquake",
         ):
             assert intent in CHANNEL_TOOL_INTENTS
 
@@ -40,6 +45,13 @@ class TestChannelToolRunner:
     def setup_method(self):
         self.store = ChannelStore(":memory:")
         self.store._create_tables()
+
+    def test_calc_local_no_network(self):
+        text = run_channel_tool(
+            self.store, "calc", "10/4",
+            channel_user_id_raw="u-calc", role="guest",
+        )
+        assert "2.5" in text
 
     def test_wiki_mocked(self, monkeypatch):
         monkeypatch.setattr(

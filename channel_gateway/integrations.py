@@ -10,12 +10,16 @@ V1: All handlers produce public/demo content only.
 """
 
 import os
-from typing import Callable, Optional
+from typing import Callable, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from channel_gateway.chat_session import ChannelChatSession
 
 
 def build_chat_handler(
     route_fn: Optional[Callable] = None,
     call_api_fn: Optional[Callable] = None,
+    session: Optional["ChannelChatSession"] = None,
 ) -> Callable[[str, str], str]:
     """Guest chat handler: routes through LiMa with public persona."""
 
@@ -41,24 +45,36 @@ def build_chat_handler(
                 "Do not mention internal infrastructure, server status, file paths, "
                 "API keys, or private project details."
             )
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": text},
-            ]
+            messages = [{"role": "system", "content": system_prompt}]
+            if session is not None:
+                messages.extend(session.get_messages(user_id))
+            messages.append({"role": "user", "content": text})
             if call_api_fn:
                 result = route_fn(text, messages, call_fn=call_api_fn)
             else:
                 result = route_fn(text, messages)
             answer = getattr(result, "answer", "") if hasattr(result, "answer") else str(result)
-            return answer if answer else "LiMa returned an empty response."
+            reply = answer if answer else "LiMa returned an empty response."
+            if session is not None:
+                session.record_turn(user_id, "user", text)
+                session.record_turn(user_id, "assistant", reply)
+            return reply
         except Exception as e:
             return f"Chat error: {type(e).__name__}"
 
     return handler
 
 
+def build_reset_handler(session: "ChannelChatSession") -> Callable[[str], str]:
+    def handler(user_id: str) -> str:
+        session.clear(user_id)
+        return "已清空本会话上下文（最近对话记录）。"
+    return handler
+
+
 def build_code_handler(
     route_fn: Optional[Callable] = None,
+    session: Optional["ChannelChatSession"] = None,
 ) -> Callable[[str, str], str]:
     """Guest code handler: explanation/suggestion only. No task creation, no repo reads."""
 
@@ -83,16 +99,20 @@ def build_code_handler(
                 "Do NOT create files, execute commands, or access repositories. "
                 "This is a read-only explanation."
             )
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": question},
-            ]
+            messages = [{"role": "system", "content": system_prompt}]
+            if session is not None:
+                messages.extend(session.get_messages(user_id))
+            messages.append({"role": "user", "content": question})
             if call_api_fn:
                 result = route_fn(question, messages, call_fn=call_api_fn)
             else:
                 result = route_fn(question, messages)
             answer = getattr(result, "answer", "") if hasattr(result, "answer") else str(result)
-            return answer if answer else "Could not explain that."
+            reply = answer if answer else "Could not explain that."
+            if session is not None:
+                session.record_turn(user_id, "user", f"/code {question}")
+                session.record_turn(user_id, "assistant", reply)
+            return reply
         except Exception as e:
             return f"Code help error: {type(e).__name__}"
 
@@ -348,3 +368,92 @@ def build_owner_memory_handler() -> Callable:
             return "Session memory store not available."
 
     return handler
+
+
+def build_owner_digest_handler() -> Callable[[str], str]:
+    """Owner /简报 — morning digest (weather, tasks, backends)."""
+
+    def handler(user_id: str) -> str:
+        from channel_gateway.public_apis import fetch_time, fetch_weather
+
+        city = os.environ.get("LIMA_CHANNEL_DIGEST_CITY", "北京")
+        lines = ["LiMa 晨间简报", fetch_time().get("text", "")]
+        w = fetch_weather(city)
+        if w.get("ok"):
+            lines.append(w["text"])
+        else:
+            lines.append(f"天气：{w.get('error', '不可用')}")
+        lines.append(build_owner_status_handler()(user_id))
+        try:
+            from session_memory.store import query_by_type
+
+            entries = query_by_type("routing_lesson", limit=3)
+            if entries:
+                lines.append("近期路由记忆：")
+                for e in entries:
+                    lines.append(f"  · {(e.summary or '')[:60]}")
+        except ImportError:
+            pass
+        return "\n".join(lines)[:4000]
+
+    return handler
+
+
+def build_owner_github_handler() -> Callable[[str, str], str]:
+    """Owner /github <owner/repo> <path> [ref] — fetch public file via search_gateway."""
+
+    def handler(user_id: str, args: str) -> str:
+        parts = args.split()
+        if len(parts) < 2:
+            return "用法：/github owner/repo path/to/file [ref]"
+        repo = parts[0].strip()
+        path = parts[1].strip()
+        ref = parts[2].strip() if len(parts) > 2 else "main"
+        if repo.count("/") != 1:
+            return "仓库格式应为 owner/repo"
+        adapter = None
+        if os.environ.get("TINYFISH_API_KEY", "").strip():
+            from search_gateway.anysearch_adapter import AnySearchAdapter
+            from search_gateway.tinyfish_transport import tinyfish_transport
+
+            adapter = AnySearchAdapter(tinyfish_transport)
+        if adapter is None:
+            from search_gateway.dev_tools import read_url
+
+            raw_url = f"https://raw.githubusercontent.com/{repo}/{ref}/{path.lstrip('/')}"
+            return _format_github_read(
+                read_url(raw_url, adapter=_StubExtractAdapter(), max_chars=6000)
+            )
+        from search_gateway.dev_tools import fetch_github_file
+
+        raw = fetch_github_file(repo, path, ref, adapter=adapter, max_chars=6000)
+        return _format_github_read(raw)
+
+    return handler
+
+
+class _StubExtractAdapter:
+    """Minimal adapter for raw GitHub URLs when TinyFish is off."""
+
+    def extract_url(self, url: str) -> dict:
+        import urllib.request
+
+        from search_gateway.safety import is_public_http_url
+
+        if not is_public_http_url(url):
+            return {"ok": False, "error": "url_blocked"}
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "LiMa-ChannelTools/1.0"})
+            with urllib.request.urlopen(req, timeout=12) as resp:
+                text = resp.read(120_000).decode("utf-8", errors="replace")
+            return {"ok": True, "title": url.split("/")[-1], "text": text}
+        except Exception as exc:
+            return {"ok": False, "error": type(exc).__name__}
+
+
+def _format_github_read(raw: dict) -> str:
+    if not raw.get("ok"):
+        return f"GitHub 读取失败：{raw.get('error', 'unknown')}"
+    title = raw.get("title") or raw.get("path") or "file"
+    body = str(raw.get("text") or "")[:3500]
+    return f"【{title}】\n{body}"

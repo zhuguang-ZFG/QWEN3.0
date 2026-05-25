@@ -55,6 +55,7 @@ def _get_service():
         _service = ChannelService(
             store=_get_store(),
             enabled=_bridge_enabled(),
+            wire_integrations=True,
         )
     else:
         _service._enabled = _bridge_enabled()

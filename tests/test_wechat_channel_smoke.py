@@ -27,13 +27,13 @@ def _make_app():
 
 
 def _reset():
+    _reset_deps_for_test()
     os.environ["LIMA_WECHAT_SIDECAR_TOKEN"] = TOKEN
     os.environ["WECHAT_BRIDGE_ENABLED"] = "1"
     store = ChannelStore(":memory:")
     store._create_tables()
     svc = ChannelService(store=store, enabled=True)
     inject_deps(store=store, service=svc)
-    _reset_deps_for_test()
 
 
 class TestWechatChannelSmoke:
@@ -75,7 +75,7 @@ class TestWechatChannelSmoke:
             ("/draw LiMa", "draw demo"),
             ("/demo", "LiMa Demo"),
             ("/about", "LiMa"),
-            ("/reset", "session cleared"),
+            ("/reset", "已清空"),
         ]:
             r = self._msg(f"cmd-{cmd[:6]}", "bob", text)
             assert r.json()["ok"], f"{cmd} should succeed for guest"

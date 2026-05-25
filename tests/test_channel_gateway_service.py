@@ -13,7 +13,7 @@ from channel_gateway.models import (
     OutboundReply,
 )
 from channel_gateway.store import ChannelStore
-from channel_gateway.service import ChannelService, _HELP_TEXT, _DEMO_TEXT, _ABOUT_TEXT
+from channel_gateway.service import ChannelService, _HELP_TEXT, _ABOUT_TEXT
 
 
 def _make_store():
@@ -76,6 +76,25 @@ class TestChannelServiceGuestLifecycle:
         reply = self.svc.handle_message(_inbound(sender="wx-user-1", text="hello world"))
         assert reply.ok is True
         assert reply.reply["text"] == "[chat] hello world"
+
+    def test_guest_rejected_digest(self):
+        self._bind_user("wx-guest-d")
+        reply = self.svc.handle_message(_inbound(sender="wx-guest-d", text="/简报"))
+        assert reply.ok is False
+        assert "owner" in (reply.reply.get("text") or reply.error or "").lower()
+
+    def test_session_reset_clears_history(self):
+        from channel_gateway.integrations import build_reset_handler
+        from channel_gateway.chat_session import ChannelChatSession
+
+        sess = ChannelChatSession(self.store)
+        sess.record_turn("wx-reset", "user", "one")
+        assert self.store.count_chat_turns(self.store._hash_id("wx-reset")) == 1
+        self._bind_user("wx-reset")
+        self.svc._reset_handler = build_reset_handler(sess)
+        reply = self.svc.handle_message(_inbound(sender="wx-reset", text="/reset"))
+        assert reply.ok is True
+        assert self.store.count_chat_turns(self.store._hash_id("wx-reset")) == 0
 
     def test_guest_wiki_tool_when_enabled(self, monkeypatch):
         monkeypatch.setenv("LIMA_CHANNEL_TOOLS", "1")
@@ -141,7 +160,8 @@ class TestChannelServiceGuestLifecycle:
         self._bind_user("wx-user-1")
         reply = self.svc.handle_message(_inbound(sender="wx-user-1", text="/demo"))
         assert reply.ok is True
-        assert _DEMO_TEXT in reply.reply["text"]
+        assert "LiMa Demo" in reply.reply["text"]
+        assert "/menu" in reply.reply["text"]
 
     def test_about_command_guest(self):
         self._bind_user("wx-user-1")

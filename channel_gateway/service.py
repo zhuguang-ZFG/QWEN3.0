@@ -49,7 +49,8 @@ _HELP_TEXT = (
     "/resume - 恢复\n"
     "/unbind - 解除绑定\n"
     "/help - 帮助\n"
-    "/bind <code> - 可选：操作员码升级/关联账号（主人能力）"
+    "/bind <code> - 可选：操作员码升级/关联账号\n"
+    "主人：/简报 /github owner/repo path /code-task /device /status /memory"
 )
 
 _DEMO_TEXT = (
@@ -69,17 +70,40 @@ _ABOUT_TEXT = (
 )
 
 
+def _demo_text() -> str:
+    lines = [
+        "LiMa Demo - 推荐体验顺序：",
+        "1. 直接发消息（可保留最近几轮上下文）",
+        "2. /code Explain async/await",
+        "3. /draw LiMa",
+        "4. /menu 查看联网工具",
+        "5. /reset 清空会话",
+        "主人：/简报 /github owner/repo path",
+    ]
+    try:
+        from channel_gateway.chat_session import max_turns, session_enabled
+
+        if session_enabled():
+            lines[1] = f"1. 直接发消息（保留最近 {max_turns()} 轮）"
+    except ImportError:
+        pass
+    return "\n".join(lines)
+
+
 class ChannelService:
     """Processes normalized inbound messages from a channel sidecar."""
 
-    def __init__(self, store: ChannelStore, enabled: bool = True):
+    def __init__(
+        self, store: ChannelStore, enabled: bool = True, *, wire_integrations: bool = False
+    ):
         self._store = store
         self._enabled = enabled
+        self._session = None
         # Guest-safe handlers injected for testing
         self._chat_handler = lambda user, msg: f"[chat] {msg}"
         self._code_handler = lambda user, q: f"[code help] {q}"
         self._draw_handler = lambda user, prompt: f"[draw demo] {prompt}"
-        self._demo_handler = lambda user: _DEMO_TEXT
+        self._demo_handler = lambda user: _demo_text()
         self._about_handler = lambda user: _ABOUT_TEXT
         self._reset_handler = lambda user: "[session cleared]"
         # Owner-only handlers — lazily built on first access
@@ -88,6 +112,29 @@ class ChannelService:
         self._owner_status_handler = None
         self._owner_artifact_handler = None
         self._owner_memory_handler = None
+        self._owner_digest_handler = None
+        self._owner_github_handler = None
+        if wire_integrations:
+            self._wire_integrations()
+
+    def _wire_integrations(self) -> None:
+        from channel_gateway.chat_session import ChannelChatSession, session_enabled
+        from channel_gateway.integrations import (
+            build_chat_handler,
+            build_code_handler,
+            build_draw_handler,
+            build_reset_handler,
+        )
+
+        if session_enabled():
+            self._session = ChannelChatSession(self._store)
+            self._chat_handler = build_chat_handler(session=self._session)
+            self._code_handler = build_code_handler(session=self._session)
+            self._reset_handler = build_reset_handler(self._session)
+        else:
+            self._chat_handler = build_chat_handler()
+            self._code_handler = build_code_handler()
+        self._draw_handler = build_draw_handler()
 
     # -- Main Entry ----------------------------------------------------------
 
@@ -240,6 +287,24 @@ class ChannelService:
             return OutboundReply(
                 ok=True,
                 reply={"text": self._owner_memory_handler(msg.sender_id, cmd.args)},
+            )
+
+        if intent == "digest":
+            if self._owner_digest_handler is None:
+                from channel_gateway.integrations import build_owner_digest_handler
+                self._owner_digest_handler = build_owner_digest_handler()
+            return OutboundReply(
+                ok=True,
+                reply={"text": self._owner_digest_handler(msg.sender_id)},
+            )
+
+        if intent == "github":
+            if self._owner_github_handler is None:
+                from channel_gateway.integrations import build_owner_github_handler
+                self._owner_github_handler = build_owner_github_handler()
+            return OutboundReply(
+                ok=True,
+                reply={"text": self._owner_github_handler(msg.sender_id, cmd.args)},
             )
 
         if intent == "unknown":
