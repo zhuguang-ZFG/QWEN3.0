@@ -414,5 +414,5 @@ Source record: `docs/superpowers/plans/2026-05-23-code-quality-review-closeout.m
 | CQ-073 | Closed | CQ-014 slice 11: admin split, routing_engine split, prod RAG fixture. Tests **1432 passed**. VPS deploy + smoke 7/7. | None. |
 | CQ-074 | Closed | Identity hardening: guard-before-cache, As-Claude patterns, stream sanitizer, guest channel role. Tests **1446 passed**. Commit `77d8d8c`. | None. |
 | CQ-075 | Closed | RAG CI gate: `run_all_fixture_gates()`, `lima-ci.yml`, `rag_gate` marker. Tests **1447 passed**. | Monitor CI on push. |
-| CQ-076 | Closed | Prod retrieval wired: `retrieval_corpus` + `production_index` + `scan_files`; server bootstrap split. Tests **1451 passed**; RAG gate 3/3. | Confirm GitHub Actions green when `gh` available. |
+| CQ-076 | Closed | Prod retrieval wired + VPS deploy/smoke. Trace hit `routing_engine.py`/`health_tracker.py`, 380 injected chars. Token `prod_retrieval_trace_ok`. | None. |
 | REF-006 | Closed | GCP `generative-ai` repo assessed in `docs/GCP_GENERATIVE_AI_RESEARCH.md`: reference-only (eval/RAG methodology), no deep port; llmevalkit/agents are GCP-locked demos. Local RAG eval fixture delivered (CQ-067). | Add LiMa routing corpus fixture when retrieval wired to production path. |

@@ -2,6 +2,12 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 VPS Prod Retrieval Deploy + Trace Smoke
+
+- Deploy: `scripts/deploy_prod_retrieval.py` → backup `prod-retrieval-20260525_143719`
+- Smoke: `scripts/vps_run_retrieval_smoke.py` → **prod_retrieval_trace_ok**
+- Evidence: admin trace `injected_chars=380`, entities `[health_tracker.py, routing_engine.py]`
+
 ## 2026-05-25 Post-RAG Milestone: CI Verify + Prod Retrieval + Server Bootstrap
 
 - **CI 验证**：`gh` 不可用；新增 `scripts/run_ci_local.py` 镜像 `lima-ci.yml`；本地 RAG gate 3/3 PASS

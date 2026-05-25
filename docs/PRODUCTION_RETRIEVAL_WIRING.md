@@ -23,4 +23,12 @@
 python -m pytest tests/test_production_retrieval.py tests/test_retrieval_injection.py -q
 python scripts/run_rag_eval_gate.py
 python scripts/run_ci_local.py
+python scripts/deploy_prod_retrieval.py
+python scripts/vps_run_retrieval_smoke.py
 ```
+
+### VPS smoke（2026-05-25）
+
+- Backup: `/opt/lima-router/backups/prod-retrieval-20260525_143719/runtime-before.tgz`
+- Token: `prod_retrieval_trace_ok`
+- Evidence: chat HTTP 200; admin retrieval trace `injected_chars=380`; entities `health_tracker.py`, `routing_engine.py`
