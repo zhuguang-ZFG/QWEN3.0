@@ -3208,3 +3208,23 @@ Verification note:
   - VPS deploy +联调 is required because the slice changes authenticated ops
     APIs and hot paths in chat, agent task submission, and Device Gateway
     motion events.
+- VPS deployment verification:
+  - deployed commit `645a6fc` over `/opt/lima-router`;
+  - remote backup captured at
+    `/opt/lima-router/backups/p1-review-20260525_113033/runtime-before.tgz`;
+  - remote compile check passed for `server.py`, ops routes, agent task routes,
+    device gateway routes, correlation, eval gate, and learning loop modules;
+  - `systemctl restart lima-router` returned `active`;
+  - local VPS `/health` returned status `ok` with `channel_gateway=true`;
+  - authenticated local ops smoke passed for `/v1/ops/metrics`,
+    `/v1/ops/correlate/summary`, `/v1/ops/correlate?id=missing-smoke`, and
+    `/v1/ops/eval/revision`;
+  - public ops smoke passed for correlate summary, documented `id=...`
+    correlate lookup, and eval revision;
+  - `python scripts/smoke_online_distributions.py --api-key lima-local --chat-exact p1_review_ok`:
+    `12/12 checks passed`, exact chat returned `p1_review_ok`, Device Gateway
+    health reported Redis backend, FRP health passed, and public direct access
+    to `8080`, `3003`, `8091`, and `6379` stayed blocked.
+- Rollback note:
+  - restore the backup tarball into `/opt/lima-router` and restart
+    `lima-router` if a production regression appears.
