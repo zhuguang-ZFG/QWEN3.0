@@ -84,10 +84,17 @@ def _load_weixin_account() -> tuple[str, str, str]:
     return account_id, token, base_url
 
 
-def _fetch_vps_sidecar_token() -> str:
+def _sidecar_token() -> str:
+    """VPS uses .env only; dev Windows may SSH-fetch token once."""
     token = os.environ.get("LIMA_WECHAT_SIDECAR_TOKEN", "").strip()
     if token:
         return token
+    if os.environ.get("LIMA_WEIXIN_VPS", "").strip() in ("1", "true", "yes"):
+        raise SystemExit("LIMA_WECHAT_SIDECAR_TOKEN missing in VPS .env")
+    return _fetch_vps_sidecar_token_ssh()
+
+
+def _fetch_vps_sidecar_token_ssh() -> str:
     key = os.environ.get("LIMA_DEPLOY_KEY_PATH", os.path.expanduser("~/.ssh/id_ed25519"))
     server = os.environ.get("LIMA_VPS_HOST", "47.112.162.80")
     remote = os.environ.get("LIMA_REMOTE_DIR", "/opt/lima-router")
@@ -303,7 +310,7 @@ class LimaWeixinBridge:
 
 async def _main() -> None:
     account_id, token, base_url = _load_weixin_account()
-    lima_token = _fetch_vps_sidecar_token()
+    lima_token = _sidecar_token()
     lima_base = os.environ.get("LIMA_CHANNEL_BASE_URL", "http://127.0.0.1:8080")
     bridge = LimaWeixinBridge(
         account_id=account_id,

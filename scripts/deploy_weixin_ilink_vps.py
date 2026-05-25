@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import os
 import sys
+import time
 from pathlib import Path
 
 import paramiko
@@ -34,13 +35,16 @@ def main() -> None:
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(SERVER, username="root", key_filename=KEY, banner_timeout=30, timeout=60)
 
-    print("=== 1. deps (hermes gateway + aiohttp) ===")
+    req = base / "requirements-weixin-ilink.txt"
+    sftp = ssh.open_sftp()
+    sftp.put(str(req), f"{REMOTE}/requirements-weixin-ilink.txt")
+    sftp.close()
+    print("=== 1. deps (iLink transport only, no Hermes agent/messaging extras) ===")
     print(
         _run(
             ssh,
-            '/usr/local/bin/python3.10 -m pip install -q "hermes-agent[messaging]" '
-            "aiohttp cryptography 2>/dev/null || "
-            "/usr/local/bin/python3.10 -m pip install -q aiohttp cryptography",
+            f"/usr/local/bin/python3.10 -m pip install -q -r {REMOTE}/requirements-weixin-ilink.txt",
+            timeout=300,
         )
     )
 
@@ -95,7 +99,7 @@ def main() -> None:
         print(f"  wrote {REMOTE}/data/weixin_ilink.env.snippet — append to .env on VPS")
 
     unit = f"""[Unit]
-Description=LiMa Weixin iLink bridge
+Description=LiMa Weixin iLink bridge (transport only, LiMa /channel brain)
 After=network.target lima-router.service
 Wants=lima-router.service
 
@@ -103,11 +107,15 @@ Wants=lima-router.service
 Type=simple
 WorkingDirectory={REMOTE}
 Environment=LIMA_CHANNEL_BASE_URL=http://127.0.0.1:8080
+Environment=LIMA_WEIXIN_VPS=1
 Environment=HERMES_HOME=/root/.hermes
+Environment=PYTHONDONTWRITEBYTECODE=1
 EnvironmentFile=-{REMOTE}/.env
 ExecStart=/usr/local/bin/python3.10 {REMOTE}/scripts/hermes_weixin_ilima_bridge.py
 Restart=on-failure
-RestartSec=10
+RestartSec=15
+MemoryMax=384M
+CPUQuota=40%
 
 [Install]
 WantedBy=multi-user.target
@@ -117,13 +125,26 @@ WantedBy=multi-user.target
         fh.write(unit)
     sftp.close()
 
-    print("=== 4. systemd ===")
+    print("=== 4. merge weixin env into .env ===")
+    sftp = ssh.open_sftp()
+    sftp.put(
+        str(base / "scripts" / "_merge_weixin_ilink_env_remote.py"),
+        f"{REMOTE}/_merge_weixin_ilink_env.py",
+    )
+    sftp.close()
+    print(_run(ssh, f"cd {REMOTE} && python3.10 _merge_weixin_ilink_env.py && rm -f _merge_weixin_ilink_env.py"))
+
+    print("=== 5. stop local duplicate (hint) ===")
+    print("Run on Windows: scripts/stop_weixin_lima_ilink.ps1 — only one iLink poller per account")
+
+    print("=== 6. systemd ===")
     print(_run(ssh, "systemctl daemon-reload && systemctl enable " + SERVICE))
     print(_run(ssh, "systemctl restart " + SERVICE))
+    time.sleep(4)
     print(_run(ssh, "systemctl is-active " + SERVICE))
-    print(_run(ssh, f"journalctl -u {SERVICE} -n 15 --no-pager"))
+    print(_run(ssh, f"journalctl -u {SERVICE} -n 20 --no-pager"))
     ssh.close()
-    print("done — merge weixin_ilink.env.snippet into /opt/lima-router/.env if token not in .env yet")
+    print("done — VPS iLink bridge only; Hermes gateway/agent not installed")
 
 
 if __name__ == "__main__":

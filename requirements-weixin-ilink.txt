@@ -1,0 +1,4 @@
+# VPS iLink bridge only — NOT full Hermes Agent / messaging extras
+aiohttp>=3.9.0
+cryptography>=41.0.0
+hermes-agent>=0.6.0
