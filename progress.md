@@ -2,6 +2,12 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 VPS Bundle Deploy (post CQ-080/081/082)
+
+- Deploy: `scripts/deploy_vps_bundle.py --no-backup`（VPS 磁盘曾 100%，清理 `backups/` 保留最近 2 项后可用 ~5.6G）
+- Smoke: `prod_retrieval_trace_ok` + `ctx003_messages_ok` + health 8080
+- 上传：security body limit、P3 路由拆分、retrieval、tool preflight 共 30+ 文件
+
 ## 2026-05-25 Repo Hygiene (CQ-082)
 
 - `tests/test_repo_hygiene.py`：禁止 tracked/untracked 高风险后缀（`.db`/`.log`/`.pkl`/`.zip` 等）
