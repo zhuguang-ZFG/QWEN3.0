@@ -277,7 +277,12 @@ async def probe_backends() -> None:
                 health_tracker.record_success(b, 1000.0)
             else:
                 health_tracker.record_failure(b, error_code=500, error_text="probe empty")
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "telegram probe failed backend=%s err=%s",
+                b,
+                type(exc).__name__,
+            )
             health_tracker.record_failure(b, error_code=0, error_text="probe exception")
     new_dead = [
         b for b in sample

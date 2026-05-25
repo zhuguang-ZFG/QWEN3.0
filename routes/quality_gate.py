@@ -9,6 +9,19 @@ from dataclasses import dataclass, field
 import http_caller
 import smart_router
 from response_builder import MODEL_ID, build_anthropic_response, build_response
+from routes.quality_gate_direct import (
+    EXACT_OUTPUT_MARKERS,
+    allows_short_direct_answer,
+    expected_direct_answer,
+)
+from routes.quality_gate_tiers import (
+    BACKEND_TIERS,
+    default_route,
+    get_same_tier_backends,
+    get_upgrade_chain,
+)
+
+_log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -38,148 +51,6 @@ def inject_state(backend_enabled: dict) -> None:
     """Called once from server.py to wire in shared mutable state."""
     global _backend_enabled
     _backend_enabled = backend_enabled
-
-
-BACKEND_TIERS = {
-    "L1_free": [
-        "longcat_lite",
-        "longcat_chat",
-        "longcat",
-        "longcat_thinking",
-        "longcat_omni",
-        "chinamobile",
-    ],
-    "L2_nvidia": [
-        "nvidia_qwen_coder",
-        "nvidia_nemotron",
-        "nvidia_phi4",
-        "nvidia_llama4",
-        "nvidia_llama70b",
-        "nvidia_mistral",
-    ],
-    "L2_openrouter": [
-        "or_deepseek_r1",
-        "or_qwen3_coder",
-        "or_llama70b",
-        "or_nemotron",
-        "or_qwen3_80b",
-    ],
-    "L3_paid": [],
-}
-
-EXACT_OUTPUT_MARKERS = (
-    "return exactly",
-    "respond exactly",
-    "output exactly",
-    "print exactly",
-    "exactly:",
-    "only return",
-    "only output",
-    "\u53ea\u8fd4\u56de",
-    "\u53ea\u8f93\u51fa",
-    "\u4ec5\u8fd4\u56de",
-    "\u4ec5\u8f93\u51fa",
-)
-
-
-def get_same_tier_backends(current_backend: str) -> list:
-    """Return other backends in the same tier."""
-    for _tier, backends in BACKEND_TIERS.items():
-        if current_backend in backends:
-            return [backend for backend in backends if backend != current_backend]
-    return []
-
-
-def get_upgrade_chain(current_backend: str) -> list:
-    """Return backends from higher tiers, preserving tier order."""
-    tiers = list(BACKEND_TIERS.keys())
-    current_tier = None
-    for tier, backends in BACKEND_TIERS.items():
-        if current_backend in backends:
-            current_tier = tier
-            break
-    if not current_tier:
-        return ["longcat_chat"]
-    tier_idx = tiers.index(current_tier)
-    upgrade_backends = []
-    for tier in tiers[tier_idx + 1:]:
-        upgrade_backends.extend(BACKEND_TIERS[tier][:2])
-    return upgrade_backends
-
-
-def default_route(query: str, ide: str = "unknown") -> str:
-    """Fallback route when router output is invalid."""
-    query_len = len(query)
-    if query_len < 50:
-        return "longcat_lite"
-    code_keywords = [
-        "\u4ee3\u7801",
-        "code",
-        "\u51fd\u6570",
-        "function",
-        "bug",
-        "error",
-        "def ",
-        "class ",
-        "import ",
-    ]
-    if any(keyword in query.lower() for keyword in code_keywords):
-        return "nvidia_qwen_coder"
-    if query_len > 200:
-        return "longcat"
-    return "longcat_chat"
-
-
-def allows_short_direct_answer(query: str, response_text: str) -> bool:
-    if not query or not response_text:
-        return False
-    lowered = query.lower()
-    if not any(marker in lowered for marker in EXACT_OUTPUT_MARKERS):
-        return False
-    return 1 <= len(response_text.strip()) <= 120
-
-
-def _strip_direct_answer(value: str) -> str:
-    return value.strip().strip("\"'`\u201c\u201d\u2018\u2019")
-
-
-def expected_direct_answer(query: str) -> str:
-    if not query:
-        return ""
-    lowered = query.lower()
-    for marker in (
-        "return exactly",
-        "respond exactly",
-        "output exactly",
-        "print exactly",
-        "only return",
-        "only output",
-    ):
-        idx = lowered.rfind(marker)
-        if idx < 0:
-            continue
-        rest = query[idx + len(marker):].strip()
-        if not rest or rest[0] not in (":", "\uff1a"):
-            continue
-        candidate = _strip_direct_answer(rest[1:])
-        if candidate and "\n" not in candidate and len(candidate) <= 120:
-            return candidate
-    for marker in (
-        "\u53ea\u8fd4\u56de",
-        "\u53ea\u8f93\u51fa",
-        "\u4ec5\u8fd4\u56de",
-        "\u4ec5\u8f93\u51fa",
-    ):
-        idx = query.rfind(marker)
-        if idx < 0:
-            continue
-        rest = query[idx + len(marker):].strip()
-        if rest.startswith((":", "\uff1a")):
-            rest = rest[1:].strip()
-        candidate = _strip_direct_answer(rest)
-        if candidate and "\n" not in candidate and len(candidate) <= 120:
-            return candidate
-    return ""
 
 
 def quality_check(
@@ -254,13 +125,12 @@ def quality_check_typed(
         passed=passed, score=max(0.0, score), reasons=reasons,
         repairable=repairable, severity=severity,
     )
-    # Emit quality_result_event to observability (M6-S3)
     try:
         from observability.metrics import record as _obs_record
         from observability.events import quality_result_event
         _obs_record(quality_result_event("", backend, result.score, result.passed))
     except ImportError:
-        pass
+        _log.debug("observability metrics unavailable for quality_result_event")
     return result
 
 
@@ -338,7 +208,7 @@ async def try_backend(
         smart_router.cb_record(backend_name, False)
         return None
     except Exception as exc:
-        logging.debug(
+        _log.debug(
             "[TRY_BACKEND] %s: %s: %s",
             backend_name,
             type(exc).__name__,
@@ -346,3 +216,20 @@ async def try_backend(
         )
         smart_router.cb_record(backend_name, False)
         return None
+
+
+__all__ = [
+    "BACKEND_TIERS",
+    "EXACT_OUTPUT_MARKERS",
+    "QualityGateResult",
+    "allows_short_direct_answer",
+    "expected_direct_answer",
+    "default_route",
+    "get_same_tier_backends",
+    "get_upgrade_chain",
+    "honest_failure_response",
+    "inject_state",
+    "quality_check",
+    "quality_check_typed",
+    "try_backend",
+]

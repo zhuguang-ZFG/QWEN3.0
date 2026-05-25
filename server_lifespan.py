@@ -1,9 +1,12 @@
 """FastAPI lifespan orchestration for LiMa Server."""
 
+import logging
 from contextlib import asynccontextmanager
 
 import http_caller
 import probe_loop
+
+_log = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -15,19 +18,19 @@ async def lifespan(application):
 
         await start_daemon()
     except ImportError:
-        pass
+        _log.debug("session_memory.daemon not installed")
     try:
         from routes.telegram import start_telegram_webhook
 
         await start_telegram_webhook()
     except ImportError:
-        pass
+        _log.debug("routes.telegram not installed")
     try:
         from routes.device_gateway import start_device_gateway_runtime
 
         await start_device_gateway_runtime()
     except ImportError:
-        pass
+        _log.debug("routes.device_gateway runtime not installed")
     try:
         yield
     finally:
@@ -37,10 +40,10 @@ async def lifespan(application):
 
             await stop_daemon()
         except ImportError:
-            pass
+            _log.debug("session_memory.daemon stop skipped")
         try:
             from routes.device_gateway import stop_device_gateway_runtime
 
             await stop_device_gateway_runtime()
         except ImportError:
-            pass
+            _log.debug("device_gateway runtime stop skipped")

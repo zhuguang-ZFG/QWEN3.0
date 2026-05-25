@@ -3540,3 +3540,13 @@ Verification note:
   - `git diff --check`: passed.
 - Residual: Gemini Live HTML still needs a server-side proxy; `voice_call_live.html` fails
   closed with a clear message until that proxy exists.
+
+## 2026-05-25 Code Quality Plan P1.3 / P2.1 / P2.3 / P3.1 (CQ-086)
+
+- **P1.3**: Active-path broad catches now log (`chat_handler_dispatch`, `chat_preflight`,
+  `server_lifespan`, `telegram_commands` probe); `quality_gate` observability ImportError → debug.
+- **P2.1**: Split `routes/quality_gate.py` → `quality_gate_tiers.py` (79 lines),
+  `quality_gate_direct.py` (69 lines), core `quality_gate.py` (235 lines); re-exports preserved.
+- **P2.3**: Added `tests/README.md` ownership map (flat layout unchanged).
+- **P3.1**: Trimmed `CLAUDE.md` to contributor guide + `scripts/repo_stats.py` for measured stats.
+- Tests: focused **38 passed**; full suite **1477 passed, 10 skipped**; `git diff --check` passed.

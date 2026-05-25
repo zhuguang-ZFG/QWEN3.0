@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 from dataclasses import dataclass
 from typing import Callable
@@ -19,6 +20,8 @@ from response_builder import (
     make_chat_id,
 )
 from routes.chat_fallback import QualityFallbackRequest, resolve_quality_fallback
+
+_log = logging.getLogger(__name__)
 from routes.chat_post_closeout import (
     maybe_log_distill_queue,
     persist_session_memory,
@@ -295,8 +298,12 @@ async def finalize_success_response(
     if sys_prompt:
         try:
             log_sys_prompt(sys_prompt)
-        except Exception:
-            pass
+        except Exception as exc:
+            _log.warning(
+                "log_sys_prompt failed: %s",
+                type(exc).__name__,
+                exc_info=True,
+            )
 
     if ctx.fmt == "anthropic":
         return JSONResponse(

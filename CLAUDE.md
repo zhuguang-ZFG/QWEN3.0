@@ -1,171 +1,106 @@
 # LiMa 项目开发规范
 
-## Superpowers 原则
+个人编码助手后端（非商业化开放平台）。完整原则见 `AGENTS.md`。
 
-### 1. 文档先行
-- 任何非 trivial 改动，先写设计文档再编码
-- 文档是设计决策的永久记录，代码会变但决策原因不该丢失
-- 参考开源项目时记录具体借鉴了什么，为什么
+## Superpowers 原则（摘要）
 
-### 2. 文件小而专注
-- 单文件不超过 300 行（含注释）
-- 每个文件只做一件事：路由/健康检查/会话管理 分别独立
-- 函数不超过 50 行，超过就拆
-- 不利于维护的大文件必须拆分
+1. **文档先行**：非 trivial 改动先写设计文档（`docs/`）。
+2. **文件小而专注**：单文件目标 ≤300 行；函数目标 ≤50 行。
+3. **本地验证再部署**：本地测试通过后再一次性替换 VPS 文件。
+4. **永不破坏生产**：可回滚；新模块独立文件，确认后再接入主路径。
+5. **参考业界实践**：设计决策尽量有开源参考或实测佐证。
+6. **渐进式替换**：新旧并行，小流量验证后再全量。
 
-### 3. 本地验证再部署
-- 本地完全实现 + 测试通过后，一次性替换服务器文件
-- 不在生产服务器上边改边调
-- 部署前备份，部署后验证
+## 仓库规模（2026-05-25 实测）
 
-### 4. 永不破坏生产
-- 服务器改动必须可回滚
-- 新模块独立文件，不修改核心文件直到确认无误
-- 端口冲突/进程残留等问题在部署脚本里处理
+由 `python scripts/repo_stats.py` 生成（排除 venv/deepcode-cli/esp32S_XYZ 等）：
 
-### 5. 参考业界最佳实践
-- 每个设计决策都应有开源参考佐证
-- clone 参考项目，分析源码，提取核心实现
-- 不重复造轮子（如 pybreaker 代替自研熔断器）
+| 指标 | 值 |
+|------|-----|
+| Python 文件 | 516 |
+| Python 行数 | ~66,842 |
+| `tests/test_*.py` | 135 |
+| `routes/*.py` | 35 文件 / ~6,087 行 |
+| 顶层目录数 | 40 |
 
-### 6. 渐进式替换
-- 新旧系统并行运行，逐步切流
-- 保留旧代码直到新代码完全验证
-- 灰度发布：先 1% 流量验证再全量
+### 关键入口行数
 
-## 项目结构
+| 文件 | 行数 | 备注 |
+|------|-----:|------|
+| `server.py` | 124 | FastAPI 入口 + `BodySizeLimitMiddleware` |
+| `routing_engine.py` | 222 | 五层统一路由 |
+| `smart_router.py` | 228 | 兼容层（分类/熔断/调用） |
+| `http_body_limit.py` | 236 | ASGI body 上限 |
+| `routes/quality_gate.py` | ~230 | 质量门控（已拆 tier/direct 子模块） |
+| `routes/chat_handler_dispatch.py` | ~318 | 非流式分发（待继续拆） |
+| `backends.py` | 417 | 后端配置（待拆 registry） |
+| `routes/agent_tasks.py` | 540 | Agent 任务（待拆） |
+| `session_memory/store.py` | 501 | 会话存储（待拆） |
+| `agent_runtime/orchestrator.py` | 578 | 编排器（待拆） |
+
+> 易漂移的完整清单与 P0/P1/P2 切片见
+> [`docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md`](docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md)。
+
+## 架构速览
 
 ```
-D:/GIT/
-├── server.py              884行   FastAPI入口（已拆分，V3永久启用）
-├── smart_router.py        ~950行  旧路由引擎（BACKENDS已去重，仅剩分类/熔断/调用）
-│
-│  ── V3 路由核心（已接入 server.py）──
-├── routing_engine.py      585行  五层统一路由 ✅
-├── router_v3.py           225行  三层路由+P2C ✅
-├── http_caller.py         290行  统一HTTP调用 ✅
-├── streaming.py           158行  投机流式 ✅
-├── health_tracker.py      432行  指数退避+质量追踪 ✅
-├── sticky_session.py       60行  会话亲和 ✅
-├── semantic_cache.py      103行  SHA-256缓存 ✅
-├── probe_loop.py           80行  主动探活 ✅
-├── skills_injector.py     205行  智能补缺 ✅
-├── budget_manager.py       —行  预算管理 ✅
-├── identity_guard.py       —行  身份拦截 ✅
-├── speculative.py          —行  投机并行 ✅
-│
-│  ── 从 server.py 提取的模块 ──
-├── routes/v3_adapters.py      150行  V3路由适配器 ✅
-├── routes/quality_gate.py     207行  质量检查+fallback ✅
-├── routes/stream_handlers.py   37行  流式桥接 ✅
-├── routes/anthropic_stream.py 256行  Anthropic SSE流式 ✅
-├── routes/request_tracking.py 136行  请求追踪/统计 ✅
-│
-│  ── 辅助模块 ──
-├── response_builder.py    119行  响应格式 ✅
-├── vision_handler.py      144行  视觉路由 ✅
-├── tool_handler.py        145行  工具转发
-├── backends.py            170+行 170后端配置 ✅
-├── orchestrate.py          —行  多步编排
-├── worker_daemon.py       210行  自主Worker守护进程 ✅
-│
-│  ── Agent Evolution ──
-├── agent_evolution/candidates.py  107行  候选Skill（JSON持久化）✅
-├── agent_evolution/promote.py      32行  晋升门控 ✅
-├── agent_contracts/task_contract.py —行  任务生命周期契约 ✅
-├── agent_roles/roles.py            68行  7角色定义 ✅
-│
-│  ── 自动化基础设施 ──
-├── infra/auto_refresh_tokens.py    —行  Playwright自动刷新(Kimi+LongCat) ✅
-├── infra/lima-startup.bat          —行  开机自启(4代理+主服务) ✅
-│
-│  ── 待清理/决策 ──
-├── v3_integration.py      111行  ❌ 待删除（被routing_engine覆盖）
-├── fallback_chain.py       69行  ❌ 死代码（4函数零调用）
-├── stats_collector.py     147行  ❌ 死代码（未import）
-│
-│  ── 部署 ──
-├── deploy_v3.py            91行  ⚠️ 含明文密码，待修复
-├── patch_server_v3.py     135行  服务器patch
-│
-│  ── 测试 ──
-├── test_http_caller.py     27 tests ✅
-├── test_skills_injector.py 23 tests ✅
-├── test_routing_engine.py  16 tests ✅
-├── test_v3.py              5 tests ✅
-│
-│  ── 资源 ──
-├── skills/                 6个skill文件
-├── fragments/              4个prompt片段
-├── docs/                   38份设计文档
-└── QWEN3.0/                4份逆向分析文档
+server.py → routes/route_registry.py
+         → routing_engine / smart_router → http_caller
+         → routes/chat_* / anthropic_* / tool_forward
+         → session_memory / agent_runtime / device_gateway（可选）
 ```
 
 ## 开发流程
 
-```
+```text
 1. 设计文档 (docs/*.md)
-2. 本地编码 (D:/GIT/*.py)
-3. 本地测试 (pytest / curl)
-4. Code Review
-5. 一次性部署到服务器
-6. 验证 (curl + 真实 IDE 测试)
-7. 更新 STATUS.md
+2. 本地编码 (D:/GIT)
+3. pytest
+4. 必要时 VPS bundle 部署 + smoke
+5. 更新 STATUS.md / progress.md / findings.md
+6. 仅 stage 里程碑相关文件后 commit / push
 ```
 
 ## 技术栈
 
 - Python 3.10 + FastAPI + uvicorn
-- httpx.AsyncClient (替换 urllib)
-- pybreaker (熔断器)
-- Redis (未来分布式状态)
+- httpx（逐步替换 `router_http.py` 中 urllib）
+- pybreaker、SQLite（语义缓存/会话记忆）
 
-## 关键设计文档
+## 代码质量红线
 
-| 文档 | 内容 | 实现状态 |
-|------|------|----------|
-| `docs/ROUTING_V3_DESIGN.md` | V3 功能设计 (8模块) | ✅ 已实现 |
-| `docs/ROUTING_FIX_PLAN.md` | 14模块实现方案 | ✅ Phase 1-3 完成 |
-| `docs/ROUTING_ENGINE_DESIGN.md` | 五层统一路由设计 | ✅ 已实现 |
-| `docs/SKILLS_INJECTION_DESIGN.md` | Skills智能补缺 | ✅ 已实现 |
-| `docs/BACKEND_STABILITY_DESIGN.md` | 指数退避+质量追踪 | ✅ 已实现 |
-| `docs/V3_MIGRATION_PLAN.md` | 迁移4阶段 | ⚠️ Phase 4 未执行 |
-| `docs/STREAMING_REFACTOR_PLAN.md` | 流式拆分 | ⚠️ 部分完成 |
-| `docs/DUAL_TRACK_ROUTING_PLAN.md` | 编程/聊天双轨 | ❌ 未实现 |
-| `docs/PLATFORM_FIX_PLAN.md` | 开放平台修复 | ❌ P0未修 |
-| `docs/LATENCY_OPTIMIZATION.md` | 延迟优化 | ⚠️ P0-P1完成, P2未开始 |
-| `docs/CLAUDE_CODE_BREAKTHROUGH.md` | Prompt工程5步 | ⚠️ 仅Step1完成 |
-| `docs/PAYMENT_DESIGN.md` | 支付网关 | ❌ 阻塞(需企业资质) |
-| `docs/LOCAL_MODEL_DESIGN.md` | 本地模型 | ⚠️ 实现偏移(Ollama) |
-| `STATUS.md` | 项目状态追踪 | — |
-| `docs/EXECUTION_PLAN.md` | 执行计划(本文档) | 📋 当前 |
+- 禁止裸 `except Exception: pass`（至少 `logger.warning` + 类型名）
+- 禁止在生产路径硬编码密钥
+- 新模块超过 300 行必须拆分
+- 可选子系统：`ImportError` 时 `logger.debug` 说明未安装，勿静默吞掉未知异常
+
+### 近期已关闭（CQ-085）
+
+- ASGI body 分块上限、`/api/live-key` 不返回原始密钥、`key_rotation` 退役
+- semantic cache 写库失败可观测、admin 登录常量时间比较
+
+### 仍待办（见质量计划）
+
+- 大文件拆分：`agent_tasks`、`orchestrator`、`store`、`backends` 等
+- 路由双轨权威文档：`docs/REQUEST_PIPELINE_AUTHORITY.md`（P2.2）
+- `tests/README.md` 测试归属图（P2.3）
+
+## 关键文档
+
+| 文档 | 内容 |
+|------|------|
+| `STATUS.md` | 项目状态 |
+| `docs/LIMA_MEMORY.md` | 长期记忆 |
+| `docs/PERSONAL_CODING_ASSISTANT_PLAN.md` | 主线计划 |
+| `docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md` | 代码质量 backlog |
+| `findings.md` / `progress.md` | 证据与执行日志 |
+
+## 统计刷新命令
+
+```powershell
+python scripts/repo_stats.py
+```
 
 ## Milestone Collaboration Protocol
 
-This project uses a two-role milestone loop:
-
-1. Owner writes the implementation for the next milestone slice.
-2. Agent reviews the submitted summary and code before any next milestone starts.
-3. Agent fixes review findings when they are small and clearly scoped.
-4. Agent runs focused tests, compile checks, ASCII/secret-safety scans where relevant, `git diff --check`, and the full test suite when production code changed.
-5. Agent updates `progress.md` and `findings.md` with the closeout, including test evidence and any residual risks.
-6. Agent stages only milestone-related files, never unrelated local data or reference repositories.
-7. Agent commits with a concise conventional-style message and pushes the current branch to GitHub.
-8. Only after that push does the agent propose the next milestone plan.
-
-Hard rules for this loop:
-
-- Do not skip the review-closeout step, even if the owner reports tests passed.
-- Do not auto-stage broad directories when the worktree contains unrelated untracked files.
-- Do not upload local databases, fixtures, credentials, reference repos, generated caches, or scratch scripts unless explicitly requested.
-- New network, cloud, provider, shell, deployment, or hardware behavior must be default-off unless explicitly approved.
-- Generated plans and patch plans are review artifacts; they must not auto-edit production routing or deployment files.
-- No completion claim without fresh verification evidence from this session.
-- If a focused test is expanded during review, report the new count and the full-suite count in the closeout.
-
-Default handoff shape:
-
-```text
-User: implements milestone and posts summary.
-Agent: review -> fix -> focused tests -> full tests -> docs/findings -> commit -> push -> next plan.
-```
+见 `AGENTS.md`：Owner 实现 → Agent 审查/修复/全量测试 → 更新 progress/findings → 仅 stage 相关文件 → commit → push → 下一里程碑计划。

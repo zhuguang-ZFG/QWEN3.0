@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 
 from chat_models import ChatRequest, extract_system_prompt
 from response_builder import messages_to_dicts
 from server_context import build_prompt_context, messages_with_system_context
+
+_log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -78,7 +81,7 @@ def prepare_chat_preflight(
     try:
         run_input_guardrails(req)
     except ImportError:
-        pass
+        _log.debug("context_pipeline.guardrails not installed; skipping input guardrails")
 
     prompt_ctx = build_prompt_context(
         req,
@@ -97,14 +100,14 @@ def prepare_chat_preflight(
             req, request_messages, system_prompt, ide_source
         )
     except ImportError:
-        pass
+        _log.debug("token budget module not installed; skipping apply_token_budget")
 
     try:
         system_prompt, prompt_context_messages = adapt_identity_prompt(
             system_prompt, client_ip, request_messages
         )
     except ImportError:
-        pass
+        _log.debug("identity adapter not installed; skipping adapt_identity_prompt")
 
     return ChatPreflightResult(
         request_messages=request_messages,
