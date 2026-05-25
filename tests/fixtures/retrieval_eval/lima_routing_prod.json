@@ -1,0 +1,66 @@
+{
+  "name": "lima_routing_prod",
+  "corpus_root": ".",
+  "corpus_files": [
+    "routing_engine.py",
+    "routing_classifier.py",
+    "routing_selector.py",
+    "routing_executor.py",
+    "http_caller.py",
+    "health_tracker.py",
+    "router_v3.py",
+    "routes/chat_handler.py",
+    "context_pipeline/retrieval_injection.py"
+  ],
+  "top_k": 5,
+  "match_by": "basename",
+  "eval_mode": "dual_layer",
+  "graph_relations": [
+    {"source": "routing_engine.py", "target": "routing_classifier.py", "relation_type": "imports"},
+    {"source": "routing_engine.py", "target": "routing_selector.py", "relation_type": "imports"},
+    {"source": "routing_engine.py", "target": "routing_executor.py", "relation_type": "imports"},
+    {"source": "routing_engine.py", "target": "health_tracker.py", "relation_type": "imports"},
+    {"source": "routing_engine.py", "target": "router_v3.py", "relation_type": "imports"},
+    {"source": "routing_selector.py", "target": "health_tracker.py", "relation_type": "imports"},
+    {"source": "routing_executor.py", "target": "health_tracker.py", "relation_type": "imports"},
+    {"source": "http_caller.py", "target": "health_tracker.py", "relation_type": "imports"},
+    {"source": "routes/chat_handler.py", "target": "routing_engine.py", "relation_type": "calls"}
+  ],
+  "thresholds": {
+    "min_hit_rate": 0.6,
+    "min_mean_recall": 0.4,
+    "min_mean_mrr": 0.2
+  },
+  "queries": [
+    {
+      "query": "classify ide chat vision request type routing engine",
+      "expected_paths": ["routing_classifier.py", "routing_engine.py"],
+      "description": "Find classifier layer in production repo"
+    },
+    {
+      "query": "select backends health scores sticky session budget",
+      "expected_paths": ["routing_selector.py", "routing_engine.py"],
+      "description": "Find backend selection module"
+    },
+    {
+      "query": "execute fallback cooled down record_success record_failure",
+      "expected_paths": ["routing_executor.py", "health_tracker.py"],
+      "description": "Find execution and health tracking"
+    },
+    {
+      "query": "call_api httpx stream async backend response",
+      "expected_paths": ["http_caller.py"],
+      "description": "Find HTTP caller module"
+    },
+    {
+      "query": "inject_retrieval_context messages retrieval pipeline",
+      "expected_paths": ["retrieval_injection.py", "routing_engine.py"],
+      "description": "Find retrieval injection integration"
+    },
+    {
+      "query": "route unified entry classify select execute respond",
+      "expected_paths": ["routing_engine.py", "routing_classifier.py", "routing_selector.py"],
+      "description": "Graph should surface routing stack neighbors"
+    }
+  ]
+}

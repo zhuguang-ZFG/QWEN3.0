@@ -40,6 +40,7 @@ class FixtureSpec:
     queries: list[RetrievalQuery] = field(default_factory=list)
     eval_mode: str = "index"
     graph_relations: list[GraphRelation] = field(default_factory=list)
+    corpus_files: list[str] = field(default_factory=list)
 
 
 def _repo_root() -> Path:
@@ -93,6 +94,7 @@ def load_fixture(path: str | Path) -> FixtureSpec:
         queries=queries,
         eval_mode=data.get("eval_mode", "index"),
         graph_relations=graph_relations,
+        corpus_files=list(data.get("corpus_files", [])),
     )
 
 
@@ -109,10 +111,23 @@ def collect_corpus_files(corpus_root: Path, extensions: tuple[str, ...] = (".py"
     return sorted(files)
 
 
+def resolve_corpus_files(spec: FixtureSpec) -> list[str]:
+    """Resolve fixture corpus: explicit file list or directory walk."""
+    if spec.corpus_files:
+        base = _repo_root()
+        resolved: list[str] = []
+        for rel in spec.corpus_files:
+            path = _resolve_path(rel, base)
+            if path.is_file():
+                resolved.append(str(path))
+        return sorted(resolved)
+    return collect_corpus_files(spec.corpus_root)
+
+
 def build_index_from_fixture(spec: FixtureSpec, max_chars: int = 800) -> InMemoryTokenIndex:
-    """Build a toy token index from fixture corpus_root."""
+    """Build a toy token index from fixture corpus_root or corpus_files."""
     index = InMemoryTokenIndex(index_id=f"fixture-{spec.name}", max_chars=max_chars)
-    paths = collect_corpus_files(spec.corpus_root)
+    paths = resolve_corpus_files(spec)
     index.add_documents(paths)
     return index
 

@@ -12,12 +12,16 @@ from context_pipeline.retrieval_eval_runner import (
     evaluate_fixture_index,
     format_fixture_report,
     load_fixture,
+    resolve_corpus_files,
     run_fixture_eval,
 )
 
 FIXTURE_PATH = Path(__file__).resolve().parent / "fixtures" / "retrieval_eval" / "lima_core.json"
 ROUTING_FIXTURE_PATH = (
     Path(__file__).resolve().parent / "fixtures" / "retrieval_eval" / "lima_routing.json"
+)
+ROUTING_PROD_FIXTURE_PATH = (
+    Path(__file__).resolve().parent / "fixtures" / "retrieval_eval" / "lima_routing_prod.json"
 )
 
 
@@ -105,6 +109,24 @@ def test_lima_routing_fixture_dual_layer_passes_gate():
 
     assert spec.eval_mode == "dual_layer"
     assert len(spec.graph_relations) >= 3
+    assert passed, failures
+    assert summary.hit_rate >= spec.thresholds.min_hit_rate
+
+
+def test_lima_routing_prod_fixture_uses_repo_files():
+    spec = load_fixture(ROUTING_PROD_FIXTURE_PATH)
+
+    assert spec.name == "lima_routing_prod"
+    assert len(spec.corpus_files) >= 5
+    paths = resolve_corpus_files(spec)
+    assert any(path.endswith("routing_engine.py") for path in paths)
+    assert any(path.endswith("http_caller.py") for path in paths)
+
+
+def test_lima_routing_prod_fixture_dual_layer_passes_gate():
+    spec, summary, passed, failures = run_fixture_eval(ROUTING_PROD_FIXTURE_PATH)
+
+    assert spec.eval_mode == "dual_layer"
     assert passed, failures
     assert summary.hit_rate >= spec.thresholds.min_hit_rate
 

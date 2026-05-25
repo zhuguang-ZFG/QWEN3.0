@@ -2,6 +2,16 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 CQ-014 Slice 11: Admin + Routing Engine + Prod RAG Closeout
+
+- Admin slice 11: `admin_state.py`, `admin_backends.py`, `admin_api.py`; `admin.py` ~68 lines (was ~330)
+- Routing slice 11: `routing_classifier.py`, `routing_selector.py`, `routing_executor.py`; `routing_engine.py` ~215 lines (was ~447)
+- Prod RAG: `lima_routing_prod.json` + `corpus_files` in `retrieval_eval_runner.resolve_corpus_files()`
+- Design: `docs/CQ014_ADMIN_SLICE11.md`, `docs/CQ014_ROUTING_ENGINE_SLICE11.md`, `docs/RAG_OFFLINE_EVAL_FIXTURE.md` updated
+- Tests: **1432 passed, 10 skipped** (+2 prod RAG tests)
+- VPS backup: `/opt/lima-router/backups/cq014-slice11-*` (files uploaded + restart)
+- Public smoke: **7/7** (health/models; no exact-chat token this session)
+
 ## 2026-05-25 RAG Routing Fixture + HTTP/Chat Slice 10 Closeout
 
 - RAG: `lima_routing.json` + `routing_corpus/` stubs; `dual_layer` + `graph_relations` in runner

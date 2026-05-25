@@ -77,6 +77,27 @@ print(format_fixture_report(spec, summary, passed, failures))
 
 `retrieval_eval_runner.evaluate_fixture()` 在 `dual_layer` 模式下调用 `graph_retrieval.dual_layer_search` 合并 vector + graph 结果。
 
+### 生产语料（repo 文件列表）
+
+`lima_routing_prod.json` 通过 `corpus_files` 指向仓库内真实模块，避免 walk 整个 repo 引入噪声：
+
+```json
+{
+  "name": "lima_routing_prod",
+  "corpus_root": ".",
+  "corpus_files": [
+    "routing_engine.py",
+    "routing_classifier.py",
+    "http_caller.py",
+    "health_tracker.py"
+  ],
+  "eval_mode": "dual_layer",
+  "graph_relations": [...]
+}
+```
+
+`resolve_corpus_files()` 将相对路径解析为 repo 根目录下的绝对路径；仅索引存在的文件。
+
 ## 验证
 
 ```bash
