@@ -2,6 +2,19 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 Workspace Hygiene Cleanup
+
+- Created external workspace `D:\LIMA-external\` for reference clones, hardware
+  vendor trees, third-party apps, local runtime DB/tar artifacts, scratch scripts,
+  and archives.
+- Moved 60+ unrelated directories off `D:\GIT` (reference-repos, inkscape/bCNC,
+  litellm-ref, llama.cpp, grblapp, etc.).
+- Restored tracked `donglicao-site/` after misclassification.
+- Updated `.gitignore` and added `docs/WORKSPACE_HYGIENE.md`.
+- Remaining in-repo untracked LiMa work: web-reverse eval docs/scripts/tests.
+- Locked at move time: `D:\GIT\frp\frpc.exe`, `data/agent_tasks.db*`,
+  `data/semantic_cache.db` (ignored, migrate after stop).
+
 ## 2026-05-25 Quality Fix Review Closeout
 
 - Fixed ops metrics `recent_agent_tasks` to read from `routes.agent_tasks._store`
