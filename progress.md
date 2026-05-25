@@ -3550,3 +3550,14 @@ Verification note:
 - **P2.3**: Added `tests/README.md` ownership map (flat layout unchanged).
 - **P3.1**: Trimmed `CLAUDE.md` to contributor guide + `scripts/repo_stats.py` for measured stats.
 - Tests: focused **38 passed**; full suite **1477 passed, 10 skipped**; `git diff --check` passed.
+
+## 2026-05-25 Large-File Splits + Pipeline Authority (CQ-087)
+
+- Split four production modules (behavior preserved, facade re-exports):
+  - `routes/agent_tasks` → store (155) / schemas (61) / service (185) / routes (316)
+  - `agent_runtime/orchestrator` → models (53) / io (134) / queue (308) / worker (132) / facade (22)
+  - `session_memory/store` → db (80) / crud (147) / promote (166) / admin (147) / facade (49)
+  - `backends` → registry (207) / constants (92) / facade (135)
+- Expanded `docs/REQUEST_PIPELINE_AUTHORITY.md` with ownership matrix + mermaid flow.
+- Added `tests/test_module_split_imports.py`; fixed ops_metrics store wiring for tests.
+- Full suite: **1481 passed, 10 skipped**.

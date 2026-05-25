@@ -34,9 +34,10 @@
 | `routes/quality_gate.py` | ~230 | 质量门控（已拆 tier/direct 子模块） |
 | `routes/chat_handler_dispatch.py` | ~318 | 非流式分发（待继续拆） |
 | `backends.py` | 417 | 后端配置（待拆 registry） |
-| `routes/agent_tasks.py` | 540 | Agent 任务（待拆） |
-| `session_memory/store.py` | 501 | 会话存储（待拆） |
-| `agent_runtime/orchestrator.py` | 578 | 编排器（待拆） |
+| `routes/agent_tasks.py` | ~316 | Agent 任务路由（已拆 store/service/schemas） |
+| `session_memory/store.py` | facade | 会话存储（已拆 db/crud/promote/admin） |
+| `agent_runtime/orchestrator.py` | facade | 编排器（已拆 queue/worker/models/io） |
+| `backends.py` | ~135 | 后端 facade（registry/constants 已拆） |
 
 > 易漂移的完整清单与 P0/P1/P2 切片见
 > [`docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md`](docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md)。
@@ -81,9 +82,8 @@ server.py → routes/route_registry.py
 
 ### 仍待办（见质量计划）
 
-- 大文件拆分：`agent_tasks`、`orchestrator`、`store`、`backends` 等
-- 路由双轨权威文档：`docs/REQUEST_PIPELINE_AUTHORITY.md`（P2.2）
-- `tests/README.md` 测试归属图（P2.3）
+- 略超 300 行：`orchestrator_queue.py` (~308)、`routes/agent_tasks.py` (~316)
+- 路由双轨：以 `docs/REQUEST_PIPELINE_AUTHORITY.md` 为权威边界
 
 ## 关键文档
 
