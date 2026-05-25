@@ -2,10 +2,32 @@
 
 from dataclasses import dataclass, field
 import logging
+import time
 
 from context_pipeline import RequestContext
 
 log = logging.getLogger(__name__)
+
+# ── In-memory stats (read by /v1/ops/metrics) ──────────────────────────
+
+_RECALL_STATS: dict = {"total_checks": 0, "total_hits": 0, "total_chars_added": 0}
+
+
+def recall_stats() -> dict:
+    total = _RECALL_STATS["total_checks"]
+    return {
+        "total_checks": total,
+        "total_hits": _RECALL_STATS["total_hits"],
+        "hit_rate": round(_RECALL_STATS["total_hits"] / total, 2) if total else 0.0,
+        "avg_chars_added": round(_RECALL_STATS["total_chars_added"] / total) if total else 0,
+    }
+
+
+def _record_recall(applied: bool, chars_added: int) -> None:
+    _RECALL_STATS["total_checks"] += 1
+    if applied:
+        _RECALL_STATS["total_hits"] += 1
+    _RECALL_STATS["total_chars_added"] += chars_added
 
 
 @dataclass
@@ -105,6 +127,7 @@ def apply_prompt_memory_recall(
             headers=memory_headers,
             recalled_memory_ids=recalled_ids,
         )
+        _record_recall(applied, added)
         if span is not None:
             _update_span_metadata(span, result.meta())
         return result

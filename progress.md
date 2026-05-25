@@ -3228,3 +3228,56 @@ Verification note:
 - Rollback note:
   - restore the backup tarball into `/opt/lima-router` and restart
     `lima-router` if a production regression appears.
+
+## 2026-05-25 Eval Apply And Owner Handler Review Closeout
+
+- Reviewed the owner-command and eval-apply follow-up slice:
+  - `/v1/ops/metrics` now reports learning-loop stats for prompt recall,
+    routing weights, and eval gate candidates;
+  - `/v1/ops/eval/apply` applies manually approved eval candidates to routing
+    weights only after explicit approval;
+  - WeChat owner commands now dispatch real handlers for code task, device,
+    status, artifact, and memory.
+- Review fixes applied:
+  - `/code-task` now reuses the formal Agent Task creation path so
+    `request.task_id`, validation, persistence, and `created` events match the
+    LiMa Code worker contract;
+  - `apply_promotion()` is idempotent even when the original `promoted:*`
+    memory is older than the most recent 30 reference memories;
+  - `/v1/ops/eval/apply` returns stable 400 responses for malformed JSON,
+    non-object JSON, and missing `pattern_key`;
+  - P1.4 fake-device tests now assert real preview, failed-task no-queue, and
+    multi-device queue behavior instead of weak smoke-only conditions.
+- Local verification:
+  - targeted regressions:
+    `3 passed`;
+  - focused Channel, Device Gateway, learning, ops, and agent task tests:
+    `95 passed, 2 skipped`;
+  - P1.4 stability loop with `--stability-rounds 20`:
+    `8 passed, 1 skipped`;
+  - compile check over touched Python modules:
+    passed;
+  - `git diff --check`:
+    passed;
+  - full suite:
+    `1359 passed, 10 skipped`.
+- VPS deployment verification:
+  - remote backups:
+    `/opt/lima-router/backups/review-fix-20260525_123901/runtime-before.tgz`
+    and
+    `/opt/lima-router/backups/review-fix-json-20260525_124238/runtime-before.tgz`;
+  - remote compile passed for channel gateway, ops metrics, eval gate, and
+    prompt recall modules;
+  - `systemctl restart lima-router` returned `active`;
+  - VPS-local `/health` returned status `ok` with `channel_gateway=true`;
+  - authenticated local `/v1/ops/metrics` returned the new `learning` block;
+  - authenticated local `/v1/ops/eval/apply` returned 400 for malformed JSON
+    and non-object JSON instead of 500;
+  - public `/v1/ops/eval/revision` returned 200;
+  - `python scripts/smoke_online_distributions.py --api-key lima-local --chat-exact review_fix_ok`:
+    `12/12 checks passed`, exact chat returned `review_fix_ok`, Device Gateway
+    health reported Redis backend, and public direct access to `8080`, `3003`,
+    `8091`, and `6379` stayed blocked.
+- Rollback note:
+  - restore the latest backup tarball into `/opt/lima-router` and restart
+    `lima-router` if the eval/apply or owner-command runtime regresses.

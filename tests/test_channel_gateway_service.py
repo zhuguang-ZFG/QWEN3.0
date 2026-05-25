@@ -179,16 +179,36 @@ class TestChannelServiceGuestLifecycle:
             os.environ.pop("LIMA_CHANNEL_OWNER_HASHES", None)
 
         cases = [
-            ("/code-task fix bug", "code-task"),
-            ("/device write LiMa", "device"),
-            ("/status", "status"),
-            ("/artifact task-1", "artifact"),
-            ("/memory recent", "memory"),
+            ("/code-task fix bug", "created"),
+            ("/device text LiMa", "Device task"),
+            ("/status", "LiMa Status"),
+            ("/artifact task-1", "not found"),
+            ("/memory recent", "memories"),
         ]
         for text, marker in cases:
             reply = self.svc.handle_message(_inbound(sender=sender, text=text))
             assert reply.ok is True
             assert marker in reply.reply["text"]
+
+    def test_owner_code_task_uses_agent_task_contract(self):
+        from routes.agent_tasks import _reset_for_tests, _store
+
+        _reset_for_tests()
+        sender = "wx-owner-1"
+        owner_hash = self.store._hash_id(sender)
+        os.environ["LIMA_CHANNEL_OWNER_HASHES"] = owner_hash
+        try:
+            self._bind_user(sender)
+            reply = self.svc.handle_message(_inbound(sender=sender, text="/code-task fix bug"))
+            assert reply.ok is True
+            task_id = reply.reply["text"].split()[1]
+            task = _store.get(task_id)
+            assert task["request"]["task_id"] == task_id
+            assert task["request"]["goal"] == "fix bug"
+            assert task["events"][0]["type"] == "created"
+        finally:
+            os.environ.pop("LIMA_CHANNEL_OWNER_HASHES", None)
+            _reset_for_tests()
 
     # -- State Change ---------------------------------------------------
 

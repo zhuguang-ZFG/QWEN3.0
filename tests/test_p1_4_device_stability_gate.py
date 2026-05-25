@@ -150,35 +150,37 @@ def test_fake_u8_failure_event_e_unsupported_board():
 def test_http_tasks_endpoint_preview_svg_present():
     """HTTP /device/v1/tasks creates task with preview SVGs for write/draw."""
     c = _client()
-    for text, expected_cap in [("写LiMa", "write_text"), ("画星星", "draw_generated")]:
+    for text, expected_cap in [("写LiMa", "write_text")]:
         resp = c.post("/device/v1/tasks",
                       headers={"Authorization": "Bearer test-private-token"},
                       json={"device_id": "dev-1", "text": text, "request_id": f"req-{expected_cap}"})
         assert resp.status_code == 200
         data = resp.json()
-        if data["status"] == "failed":
-            continue  # draw_generated with non-SVG prompt may fail validation
+        assert data["status"] != "failed", f"{expected_cap} unexpectedly failed: {data}"
         svg = data["task"]["params"].get("preview_svg", "")
         assert svg.startswith("<svg"), f"{expected_cap} preview missing"
         assert svg.endswith("</svg>")
 
 
-def test_http_tasks_endpoint_failed_task_not_queued():
+def test_http_tasks_endpoint_failed_task_not_queued(monkeypatch):
     """Tasks with validation errors return status=failed without queuing."""
+    import device_gateway.tasks as dgt
+
     c = _client()
     before = pending_count("dev-1")
 
-    # "bad" text resolves to write_text which should work, so use an explicit
-    # invalid capability by overriding create_task_from_transcript
+    # Inject validation failure for any params
+    monkeypatch.setattr(
+        dgt, "validate_capability_params",
+        lambda cap, params: ({}, "E_BAD_PARAMS"),
+    )
     resp = c.post("/device/v1/tasks",
                   headers={"Authorization": "Bearer test-private-token"},
-                  json={"device_id": "dev-1", "text": "写LiMa"})
+                  json={"device_id": "dev-1", "text": "anything"})
     assert resp.status_code == 200
     data = resp.json()
-    if data["status"] == "failed":
-        assert pending_count("dev-1") == before
-    else:
-        assert data["status"] in ("queued", "sent")
+    assert data["status"] == "failed", f"expected failed, got {data['status']}"
+    assert pending_count("dev-1") == before, "failed task must not be enqueued"
 
 
 def test_multi_device_independent_queues():
@@ -193,7 +195,8 @@ def test_multi_device_independent_queues():
 
     d1 = pending_count("dev-1")
     d2 = pending_count("dev-2")
-    assert d1 >= 0 and d2 >= 0, f"dev-1={d1} dev-2={d2}"
+    assert d1 >= 1, f"dev-1 should have at least 1 pending task, got {d1}"
+    assert d2 >= 1, f"dev-2 should have at least 1 pending task, got {d2}"
 
 
 def test_websocket_hello_drains_pending():

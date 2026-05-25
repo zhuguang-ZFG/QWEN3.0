@@ -66,12 +66,12 @@ class ChannelService:
         self._demo_handler = lambda user: _DEMO_TEXT
         self._about_handler = lambda user: _ABOUT_TEXT
         self._reset_handler = lambda user: "[session cleared]"
-        # Owner-only handlers (unused in V1 guest mode)
-        self._owner_code_task_handler = lambda user, goal: "[owner only] code-task"
-        self._owner_device_handler = lambda user, cmd: "[owner only] device"
-        self._owner_status_handler = lambda user: "[owner only] status"
-        self._owner_artifact_handler = lambda tid: "[owner only] artifact"
-        self._owner_memory_handler = lambda user, args: "[owner only] memory"
+        # Owner-only handlers — lazily built on first access
+        self._owner_code_task_handler = None
+        self._owner_device_handler = None
+        self._owner_status_handler = None
+        self._owner_artifact_handler = None
+        self._owner_memory_handler = None
 
     # -- Main Entry ----------------------------------------------------------
 
@@ -160,30 +160,45 @@ class ChannelService:
             return OutboundReply(ok=True, reply={"text": _HELP_TEXT})
 
         if intent == "code_task":
+            if self._owner_code_task_handler is None:
+                from channel_gateway.integrations import build_owner_code_task_handler
+                self._owner_code_task_handler = build_owner_code_task_handler()
             return OutboundReply(
                 ok=True,
                 reply={"text": self._owner_code_task_handler(msg.sender_id, cmd.args)},
             )
 
         if intent == "device":
+            if self._owner_device_handler is None:
+                from channel_gateway.integrations import build_owner_device_handler
+                self._owner_device_handler = build_owner_device_handler()
             return OutboundReply(
                 ok=True,
                 reply={"text": self._owner_device_handler(msg.sender_id, cmd.args)},
             )
 
         if intent == "status":
+            if self._owner_status_handler is None:
+                from channel_gateway.integrations import build_owner_status_handler
+                self._owner_status_handler = build_owner_status_handler()
             return OutboundReply(
                 ok=True,
                 reply={"text": self._owner_status_handler(msg.sender_id)},
             )
 
         if intent == "artifact":
+            if self._owner_artifact_handler is None:
+                from channel_gateway.integrations import build_owner_artifact_handler
+                self._owner_artifact_handler = build_owner_artifact_handler()
             return OutboundReply(
                 ok=True,
                 reply={"text": self._owner_artifact_handler(cmd.args)},
             )
 
         if intent == "memory":
+            if self._owner_memory_handler is None:
+                from channel_gateway.integrations import build_owner_memory_handler
+                self._owner_memory_handler = build_owner_memory_handler()
             return OutboundReply(
                 ok=True,
                 reply={"text": self._owner_memory_handler(msg.sender_id, cmd.args)},

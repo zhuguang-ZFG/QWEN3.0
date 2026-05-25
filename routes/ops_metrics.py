@@ -160,6 +160,39 @@ async def ops_metrics(request: Request) -> JSONResponse:
                 "health": health_map.get(backend_name, "unknown"),
             }
 
+    # ── Learning loop stats (PROD-008) ──────────────────────────────────────
+    learning: dict[str, Any] = {}
+    try:
+        from session_memory.prompt_recall import recall_stats
+        learning["prompt_recall"] = recall_stats()
+    except ImportError:
+        pass
+    try:
+        from context_pipeline.routing_weights import get_routing_weights
+        rw = get_routing_weights()
+        weights_data = rw._weights
+        scenarios = sorted(set(w.scenario for w in weights_data.values()))
+        learning["routing_weights"] = {
+            "total_patterns": len(weights_data),
+            "active_backends": len(set(w.backend for w in weights_data.values())),
+            "top_scenarios": scenarios[:10],
+        }
+    except ImportError:
+        pass
+    try:
+        from session_memory.eval_gate import revision_check
+        revision = revision_check()
+        learning["eval_gate"] = {
+            "total_candidates": revision["total"],
+            "promotable": sum(1 for c in revision.get("promotable", []) if c.get("can_promote")),
+            "needs_approval": len(revision.get("needs_approval", [])),
+            "blocked_by_rate": len(revision.get("blocked_by_pass_rate", [])),
+        }
+        promoted = [c for c in revision.get("promotable", []) if c.get("promoted")]
+        learning["eval_gate"]["promoted_active"] = len(promoted)
+    except ImportError:
+        pass
+
     return JSONResponse({
         "timestamp": int(now),
         "uptime_sec": int(now - stats.get("start_time", now)),
@@ -175,6 +208,7 @@ async def ops_metrics(request: Request) -> JSONResponse:
         },
         "device_gateway": device,
         "agent_workers": agent,
+        "learning": learning,
         "retrieval_traces": retrieval_traces,
         "recent_agent_tasks": recent_tasks,
     })
@@ -259,5 +293,24 @@ async def ops_eval_approve(request: Request) -> JSONResponse:
             return JSONResponse({"error": "pattern_key required"}, status_code=400)
         from session_memory.eval_gate import approve_candidate
         return JSONResponse(approve_candidate(pattern_key, rollback))
+    except ImportError:
+        return JSONResponse({"error": "eval_gate module not loaded"}, status_code=503)
+
+
+@router.post("/eval/apply", dependencies=[Depends(require_private_api_key)])
+async def ops_eval_apply(request: Request) -> JSONResponse:
+    """Apply an approved pattern to runtime routing weights. Body: {pattern_key}."""
+    try:
+        try:
+            body = await request.json()
+        except ValueError:
+            return JSONResponse({"error": "valid JSON body required"}, status_code=400)
+        if not isinstance(body, dict):
+            return JSONResponse({"error": "JSON object body required"}, status_code=400)
+        pattern_key = body.get("pattern_key", "")
+        if not isinstance(pattern_key, str) or not pattern_key.strip():
+            return JSONResponse({"error": "pattern_key required"}, status_code=400)
+        from session_memory.eval_gate import apply_promotion
+        return JSONResponse(apply_promotion(pattern_key))
     except ImportError:
         return JSONResponse({"error": "eval_gate module not loaded"}, status_code=503)

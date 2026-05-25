@@ -136,3 +136,179 @@ def build_owner_rejection_handler(command_name: str) -> Callable:
         return f"/{command_name} is owner-only and not available in guest mode."
 
     return handler
+
+
+# ── Owner-only command handlers (V2) ──────────────────────────────────────────
+
+
+def build_owner_code_task_handler() -> Callable:
+    """Owner /code-task <goal> — create an agent task for LiMa Code worker."""
+
+    def handler(user_id: str, goal: str) -> str:
+        if not goal.strip():
+            return "Usage: /code-task <goal description>"
+        try:
+            from routes.agent_tasks import TaskCreateBody, _create_task_from_body
+
+            created = _create_task_from_body(TaskCreateBody(
+                repo="local",
+                branch="main",
+                goal=goal.strip()[:500],
+                constraints=[f"channel_gateway_user={user_id[:80]}"],
+                allowed_tools=[],
+                max_runtime_sec=300,
+                mode="patch",
+            ))
+            task_id = created["task_id"]
+            return (
+                f"Task {task_id} created.\n"
+                f"Goal: {goal.strip()[:200]}\n"
+                f"Run `/lima next` in LiMa Code to claim it."
+            )
+        except ImportError:
+            return "Agent task store not available. Is the server loaded?"
+
+    return handler
+
+
+def build_owner_device_handler(queue_fn=None) -> Callable:
+    """Owner /device <sub-command> — queue a device gateway task."""
+
+    def handler(user_id: str, cmd: str) -> str:
+        if not cmd.strip():
+            return "Usage:\n/device text <content>\n/device draw <svg preview>\n/device home"
+        try:
+            device_id = "wechat-owner"
+            if cmd.startswith("text "):
+                text = cmd[5:].strip()[:1000]
+                task = {"capability": "write_text", "text": text, "font": "stroke"}
+            elif cmd.startswith("draw "):
+                preview = cmd[5:].strip()[:4000]
+                task = {"capability": "draw_generated", "preview_svg": preview}
+            elif cmd.strip() == "home":
+                task = {"capability": "home"}
+            else:
+                return f"Unknown device command: {cmd}\nUsage: text <content> | draw <svg> | home"
+
+            if queue_fn:
+                result = queue_fn(device_id, task)
+            else:
+                result = _queue_device_task_http(device_id, task)
+            status = result.get("status", "unknown") if isinstance(result, dict) else str(result)
+            return f"Device task: {task.get('capability')} → {status}"
+        except Exception as e:
+            return f"Device error: {type(e).__name__}: {e}"
+
+    return handler
+
+
+def _queue_device_task_http(device_id: str, task: dict) -> dict:
+    try:
+        from device_gateway.tasks import create_task_from_transcript, enqueue_pending_task
+        text = task.get("text", "")
+        if task.get("capability") == "home":
+            text = "home"
+        elif task.get("capability") == "draw_generated":
+            text = str(task.get("preview_svg", "?"))
+        result = create_task_from_transcript(device_id, text)
+        if not result.get("error"):
+            enqueue_pending_task(device_id, result)
+        return {"status": "queued", "task_id": result.get("task_id", "?"),
+                "capability": result.get("capability", "?")}
+    except ImportError:
+        return {"status": "device_gateway not loaded"}
+
+
+def build_owner_status_handler() -> Callable:
+    """Owner /status — show recent task, device, and backend health."""
+
+    def handler(user_id: str) -> str:
+        lines = ["LiMa Status\n"]
+        try:
+            from routes.agent_tasks import _store
+            tasks = list(_store.values())
+            tasks.sort(key=lambda t: t.get("created_at", 0), reverse=True)
+            lines.append(f"Tasks: {len(tasks)} total")
+            for t in tasks[:3]:
+                status = t.get("status", "?")
+                goal = str(t.get("request", {}).get("goal", "")) if isinstance(t.get("request"), dict) else "?"
+                lines.append(f"  [{status}] {goal[:60]}")
+        except ImportError:
+            lines.append("Tasks: agent store not loaded")
+        try:
+            from device_gateway.sessions import registry
+            lines.append(f"Device sessions: {registry.count()}")
+        except ImportError:
+            pass
+        try:
+            import health_tracker
+            hm = health_tracker.get_health_map()
+            dead = [b for b, s in hm.items() if s == "dead"]
+            degraded = [b for b, s in hm.items() if s == "degraded"]
+            lines.append(f"Backends: {len(dead)} dead, {len(degraded)} degraded")
+            if dead:
+                lines.append(f"  Dead: {', '.join(dead[:3])}")
+        except ImportError:
+            pass
+        return "\n".join(lines)
+
+    return handler
+
+
+def build_owner_artifact_handler() -> Callable:
+    """Owner /artifact <task_id> — show LiMa Code artifact bundle summary."""
+
+    def handler(task_id: str) -> str:
+        if not task_id.strip():
+            return "Usage: /artifact <task_id>"
+        try:
+            from routes.agent_tasks import _store
+            tid = task_id.strip()
+            if not _store.contains(tid):
+                return f"Task {tid} not found."
+            task = _store.get(tid)
+            result = task.get("result", {})
+            artifacts = result.get("artifacts", []) if isinstance(result, dict) else []
+            files = result.get("changed_files", []) if isinstance(result, dict) else []
+            status = task.get("status", "?")
+            summary = str(result.get("summary", "no summary"))[:200] if isinstance(result, dict) else "no summary"
+            lines = [
+                f"Task {tid}: status={status}",
+                f"Summary: {summary}",
+                f"Artifacts: {', '.join(artifacts) if artifacts else 'none'}",
+                f"Changed files ({len(files)}): {', '.join(files[:10])}",
+            ]
+            return "\n".join(lines)
+        except ImportError:
+            return "Agent task store not available."
+
+    return handler
+
+
+def build_owner_memory_handler() -> Callable:
+    """Owner /memory [type <t>|search <q>|recent] — query session memory."""
+
+    def handler(user_id: str, args: str) -> str:
+        try:
+            from session_memory.store import query_by_type, search_memories_keyword
+            a = args.strip()
+            if a.startswith("type "):
+                mtype = a[5:].strip()
+                entries = query_by_type(mtype, limit=5)
+            elif a.startswith("search "):
+                query = a[7:].strip()
+                entries = search_memories_keyword("_global", query, limit=5)
+            else:
+                entries = query_by_type("routing_lesson", limit=5)
+            if not entries:
+                return "No memories found."
+            lines = ["Recent memories:"]
+            for e in entries:
+                summary = (e.summary or "")[:80]
+                mtype = getattr(e, "memory_type", "?")
+                lines.append(f"  [{mtype}] {summary}")
+            return "\n".join(lines)
+        except ImportError:
+            return "Session memory store not available."
+
+    return handler
