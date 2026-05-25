@@ -104,7 +104,6 @@ sys.exit(0 if code == 0 else 1)
 
 def main() -> None:
     run_smoke = "--smoke" in sys.argv
-    skip_backup = "--no-backup" in sys.argv
     if not os.path.isfile(KEY):
         sys.exit(f"SSH key not found: {KEY}")
 
@@ -113,23 +112,7 @@ def main() -> None:
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(SERVER, username="root", key_filename=KEY, banner_timeout=30, timeout=60)
 
-    ts = time.strftime("%Y%m%d_%H%M%S")
-    backup = f"{REMOTE}/backups/bundle-{ts}"
-    if skip_backup:
-        _log("skipping full backup (--no-backup)")
-    else:
-        _log(f"creating backup {backup} (may take 1-2 min)...")
-        _run(ssh, f"mkdir -p {backup} && tar czf {backup}/runtime-before.tgz -C {REMOTE} . 2>/dev/null")
-        _log(f"backup {backup}")
-    _run(
-        ssh,
-        " && ".join(
-            [
-                f"mkdir -p {backup}/files",
-                *[f"cp {REMOTE}/{rel} {backup}/files/ 2>/dev/null || true" for rel in FILES],
-            ]
-        ),
-    )
+    _log("no VPS backup (rollback via GitHub)")
 
     sftp = ssh.open_sftp()
     for rel in FILES:
@@ -180,7 +163,7 @@ def main() -> None:
         ssh.close()
         sys.exit(1)
 
-    _log(f"Server UP on 8080 (backup {backup})")
+    _log("Server UP on 8080")
     ssh.close()
 
     if run_smoke:

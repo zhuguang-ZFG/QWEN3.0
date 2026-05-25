@@ -2,6 +2,12 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 VPS Backups Cleared + No-Backup Deploy Policy
+
+- 清理 `/opt/lima-router/backups/*`：释放 **~11G**，磁盘约 **17G 可用**（56% 使用）
+- 部署脚本默认**不再**打 tar/file 备份；回滚走 GitHub
+- 新增 `scripts/cleanup_vps_backups.py`
+
 ## 2026-05-25 VPS Bundle Deploy (post CQ-080/081/082)
 
 - Deploy: `scripts/deploy_vps_bundle.py --no-backup`（VPS 磁盘曾 100%，清理 `backups/` 保留最近 2 项后可用 ~5.6G）
