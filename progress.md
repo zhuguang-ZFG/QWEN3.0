@@ -11,6 +11,8 @@
 - **Git**：`c5511fb` on `codex/free-web-ai-probe`（已 push）
 - **测试**：`test_wechat_wave1_ux` + `test_wechat_channel_smoke` + `test_channel_gateway_routes` 共 30 passed（本会话）
 - **VPS**：`deploy_channel_gateway.py` 上传 invite/service；`.env` `WECHAT_BRIDGE_ENABLED=0`；`lima-weixin-ilink` stop+disable；`lima-router` active；`/health` ok
+- **VPS 清理**：`scripts/cleanup_wechat_vps.py` 删除远程 `wechat_bridge/` 与 ilink 残留
+- **仓库卫生**：`.gitignore` 忽略 `data/wechat_install/` 等；删除本地 GeWe/微信安装与登录缓存；微信 superpowers 计划迁至 `scripts/archive/wechat_retired/docs/plans/`
 
 ## 2026-05-25 WCF 小号客服（已并入退役，不再推进）
 

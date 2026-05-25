@@ -21,15 +21,14 @@
 运维（VPS 已执行 2026-05-25）：
 
 ```bash
-systemctl stop lima-weixin-ilink
-systemctl disable lima-weixin-ilink
-# .env: WECHAT_BRIDGE_ENABLED=0
-systemctl restart lima-router   # 或由 deploy_channel_gateway.py 完成
+python scripts/cleanup_wechat_vps.py   # 删 wechat_bridge/、ilink unit、微信 data/脚本残留
 ```
+
+脚本会：`stop/disable lima-weixin-ilink` 与 `lima-wechat-sidecar`、删除 `/opt/lima-router/wechat_bridge/` 等、`.env` 置 `WECHAT_BRIDGE_ENABLED=0`（保留 `LIMA_WECHAT_SIDECAR_TOKEN` 供 `/channel` smoke）。
 
 ## 仍保留（非微信产品）
 
 - **`/channel` HTTP API**：通用 sidecar 契约，仅用于本地 smoke（`wechat_fake_vps_smoke` 已归档）；默认关闭。
 - **`channel_gateway/`**：斜杠命令、会话、黄历等；`/邀请` 只推网页。
 
-历史设计文档见 `docs/WECHAT_*.md`（已作废，仅作记录）。
+历史设计文档见 `docs/WECHAT_*.md`（已作废）；实现计划见 `scripts/archive/wechat_retired/docs/plans/`。

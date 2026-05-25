@@ -131,10 +131,6 @@ def main() -> None:
         sftp.put(str(local), remote)
         _log(f"uploaded {rel}")
 
-    share_json = base / "data" / "weixin_share_qr.json"
-    if share_json.is_file():
-        sftp.put(str(share_json), f"{REMOTE}/data/weixin_share_qr.json")
-        _log("uploaded data/weixin_share_qr.json")
     sftp.close()
 
     _run(ssh, f"mkdir -p {REMOTE}/data")

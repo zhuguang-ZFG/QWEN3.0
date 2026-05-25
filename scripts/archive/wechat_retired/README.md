@@ -5,3 +5,6 @@
 **当前访客入口**：https://chat.donglicao.com
 
 见仓库根 `docs/WECHAT_RETIRED.md`。
+
+- **历史计划**：`docs/plans/`（自 `docs/superpowers/plans/` 迁入）
+- **VPS 清理**：仓库根 `scripts/cleanup_wechat_vps.py`
