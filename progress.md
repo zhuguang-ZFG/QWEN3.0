@@ -2,6 +2,13 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 Repo Hygiene (CQ-082)
+
+- `tests/test_repo_hygiene.py`：禁止 tracked/untracked 高风险后缀（`.db`/`.log`/`.pkl`/`.zip` 等）
+- `deepcode-cli/.gitignore` 增加 `data/`；根 `.gitignore` 增加 `deepcode-cli/data/`、`data/models/*.pkl`
+- `git rm --cached data/models/router_ml_model.pkl`（无代码引用）
+- `scripts/archive/` + `deploy_cq014_slice11.py` 归档；`scripts/README.md` 标明 active 脚本
+
 ## 2026-05-25 CQ-014 Slice 12: P3 Long-Function Split
 
 - `handle_chat` → `routes/chat_handler_dispatch.py`（~63 行入口）

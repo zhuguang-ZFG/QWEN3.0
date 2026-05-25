@@ -67,6 +67,11 @@ LIMA-external/
 data/*.db
 data/*.db-shm
 data/*.db-wal
+data/models/*.pkl
+data/models/*.pt
+data/models/*.pth
+deepcode-cli/data/
+scripts/archive/*.log
 data/deploy-*.tar
 data/candidate_store.json
 data/openrouter_fixture.json
@@ -97,6 +102,7 @@ frp/
 /requirements.txt
 /infra/auto_refresh_tokens.py
 *.zip
+*.pkl
 
 # === 构建产物 ===
 net/new-site/out/
