@@ -3508,3 +3508,35 @@ Verification note:
 - Rollback note:
   - restore the latest backup tarball into `/opt/lima-router` and restart
     `lima-router` if the eval/apply or owner-command runtime regresses.
+
+## 2026-05-25 CLAUDE.md And Code Quality Plan Review
+
+- Reviewed the pending `CLAUDE.md` inventory update against current source
+  counts, hot-path files, and security boundaries.
+- Created `docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md` with:
+  - a correctness review of the `CLAUDE.md` changes;
+  - corrected repository statistics where measured values drifted;
+  - prioritized P0/P1/P2/P3 improvement slices;
+  - per-slice files, implementation steps, verification commands, and VPS
+    gates.
+- Verification evidence reused from this review session:
+  - focused code-quality regressions: `18 passed`;
+  - full suite: `1471 passed, 10 skipped`;
+  - `git diff --check`: passed.
+
+## 2026-05-25 Code Quality Plan P0/P1 Implementation (CQ-085)
+
+- Implemented `docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md` slices P0.1 through P1.2:
+  - **P0.1**: `BodySizeLimitMiddleware` buffers/replays ASGI body before Starlette;
+    chunked oversize returns `413` without delivering full payload to handlers.
+  - **P0.2**: `/api/live-key` returns capability metadata only (no raw `GOOGLE_AI_KEY`).
+  - **P0.3**: `deploy/key_rotation.py` retired; legacy moved to
+    `scripts/archive/key_rotation_legacy.py`.
+  - **P1.1**: `semantic_cache.put()` logs SQLite failures and exposes `db_write_errors`.
+  - **P1.2**: `admin_login` uses `constant_time_equals`.
+- Tests:
+  - focused: `20 passed` (http body, system endpoints, semantic cache, admin csrf, secret hygiene);
+  - full suite: `1477 passed, 10 skipped`;
+  - `git diff --check`: passed.
+- Residual: Gemini Live HTML still needs a server-side proxy; `voice_call_live.html` fails
+  closed with a clear message until that proxy exists.

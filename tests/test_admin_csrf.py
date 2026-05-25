@@ -10,6 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from routes.admin import router as admin_router
 import routes.admin_auth as admin_auth
+import routes.admin as admin_routes
 
 
 def test_csrf_rejects_cross_origin_cookie_request():
@@ -42,6 +43,29 @@ def test_csrf_allows_bearer_authenticated_request():
         origin="https://evil.example.com",
         referer="",
     )) is None
+
+
+def test_admin_login_uses_constant_time_compare(monkeypatch):
+    monkeypatch.setattr(admin_auth, "_ADMIN_TOKEN", "secret-admin-token")
+    monkeypatch.delenv("LIMA_ADMIN_TOKEN", raising=False)
+    calls: list[tuple[str, str]] = []
+
+    def _fake_compare(a: str, b: str) -> bool:
+        calls.append((a, b))
+        return a == b
+
+    monkeypatch.setattr(admin_routes, "constant_time_equals", _fake_compare)
+
+    app = FastAPI()
+    app.include_router(admin_router)
+    client = TestClient(app, base_url="https://testserver")
+    response = client.post(
+        "/admin/login",
+        data={"token": "secret-admin-token"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    assert calls == [("secret-admin-token", "secret-admin-token")]
 
 
 def test_admin_toggle_backend_requires_csrf_for_cookie_session(monkeypatch):

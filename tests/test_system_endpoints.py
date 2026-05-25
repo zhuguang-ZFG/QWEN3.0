@@ -49,6 +49,22 @@ def test_models_accepts_bearer_token(monkeypatch):
     assert response.json()["object"] == "list"
 
 
+def test_live_key_returns_metadata_not_raw_provider_key(monkeypatch):
+    secret = "sk-google-test-secret-do-not-leak"
+    monkeypatch.setenv("GOOGLE_AI_KEY", secret)
+    monkeypatch.setenv("LIMA_API_KEY", "test-key")
+    client = TestClient(server.app)
+    response = client.get(
+        "/api/live-key",
+        headers={"Authorization": "Bearer test-key"},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload.get("available") is True
+    assert "key" not in payload
+    assert secret not in response.text
+
+
 def test_health_uses_shared_loaded_modules():
     server._loaded_modules["unit_test_module"] = True
 

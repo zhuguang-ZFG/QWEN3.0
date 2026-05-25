@@ -66,10 +66,13 @@ async function startCall(){
   statusEl.textContent='正在连接...';
   try{
     const cfg=await getApiConfig();
+    if(!cfg.available||cfg.auth==='server_side_only'){
+      throw new Error('Gemini Live 需服务端代理，不再通过 /api/live-key 下发密钥');
+    }
     stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:640,height:480},audio:{sampleRate:SAMPLE_RATE_IN,echoCancellation:true,noiseSuppression:true}});
     videoEl.srcObject=stream;videoEl.style.display='block';placeholder.style.display='none';
 
-    const wsUrl=`wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${cfg.key}`;
+    const wsUrl=`wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${cfg.key||''}`;
     ws=new WebSocket(wsUrl);
     ws.onopen=()=>{
       ws.send(JSON.stringify({setup:{model:cfg.model,generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:'Aoede'}}}}}}));

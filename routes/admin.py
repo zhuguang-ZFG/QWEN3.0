@@ -13,6 +13,7 @@ from routes.admin_auth import (
     is_valid_admin_session,
 )
 from routes.admin_state import inject_state
+from access_guard import constant_time_equals
 from routes.admin_ui import render_admin_dashboard
 
 router = APIRouter(prefix="/admin")
@@ -40,7 +41,8 @@ async def admin_page(lima_admin_session: str = Cookie(default="")):
 async def admin_login(request: Request):
     form = await request.form()
     token = form.get("token", "")
-    if token != get_admin_token():
+    expected = get_admin_token()
+    if not expected or not constant_time_equals(str(token), expected):
         return HTMLResponse(
             "<h2>Admin Login</h2><p style='color:red'>Token 错误</p>"
             '<form method="post" action="/admin/login">'

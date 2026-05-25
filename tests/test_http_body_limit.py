@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
 
 from http_body_limit import (
+    BodySizeLimitMiddleware,
     enforce_request_body_limit,
     install_body_size_limit,
 )
@@ -87,12 +88,39 @@ def test_require_content_length_for_json_api_without_header():
     assert "Content-Length required" in response.body.decode()
 
 
+def test_chunked_body_over_limit_returns_413_without_full_body():
+    seen: dict[str, int] = {}
+    app = FastAPI()
+    app.add_middleware(BodySizeLimitMiddleware, max_body_size=15)
+
+    @app.post("/v1/messages")
+    async def _messages(request: Request):
+        body = await request.body()
+        seen["len"] = len(body)
+        return {"len": len(body)}
+
+    payload = b'{"messages":[]}' + b"x" * 20
+
+    def _chunks():
+        yield payload[:12]
+        yield payload[12:]
+
+    client = TestClient(app, raise_server_exceptions=False)
+    response = client.post(
+        "/v1/messages",
+        headers={
+            "Content-Type": "application/json",
+            "Transfer-Encoding": "chunked",
+        },
+        content=_chunks(),
+    )
+    assert response.status_code == 413
+    assert seen.get("len", 0) < len(payload)
+
+
 def test_allows_chunked_json_without_content_length_header():
     app = FastAPI()
-
-    @app.middleware("http")
-    async def _limit(request: Request, call_next):
-        return await enforce_request_body_limit(request, call_next, max_size=MAX_BODY_SIZE)
+    app.add_middleware(BodySizeLimitMiddleware, max_body_size=MAX_BODY_SIZE)
 
     @app.post("/v1/messages")
     async def _messages(request: Request):

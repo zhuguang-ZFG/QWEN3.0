@@ -51,10 +51,19 @@ async def health():
 
 @router.get("/api/live-key", dependencies=[Depends(require_private_api_key)])
 async def live_key():
+    """Capability metadata only; raw provider keys stay server-side."""
     key = os.environ.get("GOOGLE_AI_KEY", "")
     if not key:
         raise HTTPException(status_code=503, detail="Gemini key not configured")
-    return {"key": key, "model": "models/gemini-2.0-flash-live-001"}
+    return {
+        "available": True,
+        "model": "models/gemini-2.0-flash-live-001",
+        "auth": "server_side_only",
+        "detail": (
+            "Provider credentials are not exposed via this API; "
+            "use a server-side Gemini Live proxy."
+        ),
+    }
 
 
 @router.get("/v1/status", dependencies=[Depends(require_private_api_key)])

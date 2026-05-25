@@ -12,6 +12,7 @@ LiMa Semantic Cache — SHA-256 精确匹配 + SQLite 持久化
 
 import hashlib
 import json
+import logging
 import os
 import sqlite3
 import threading
@@ -19,6 +20,7 @@ import time
 from collections import OrderedDict
 from typing import Optional
 
+_log = logging.getLogger(__name__)
 _lock = threading.Lock()
 
 DEFAULT_MAX_SIZE = 500
@@ -33,6 +35,7 @@ class SemanticCache:
         self._ttl = ttl
         self._hits = 0
         self._misses = 0
+        self._db_write_errors = 0
         self._db = self._init_db()
         self._load_from_db()
 
@@ -109,8 +112,13 @@ class SemanticCache:
                     (key, value, now),
                 )
                 self._db.commit()
-            except Exception:
-                pass
+            except Exception as exc:
+                self._db_write_errors += 1
+                _log.warning(
+                    "semantic_cache db write failed key_prefix=%s err=%s",
+                    key[:12],
+                    type(exc).__name__,
+                )
 
     def stats(self) -> dict:
         with _lock:
@@ -124,6 +132,7 @@ class SemanticCache:
                 "hits": self._hits,
                 "misses": self._misses,
                 "hit_rate": f"{rate:.1f}%",
+                "db_write_errors": self._db_write_errors,
             }
 
 

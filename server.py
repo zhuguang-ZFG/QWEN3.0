@@ -5,7 +5,7 @@
 import sys, os, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 import uvicorn
 
 from chat_models import ChatRequest, Message, extract_system_prompt
@@ -16,7 +16,7 @@ from vision_handler import (
 from converters.anthropic_format import (
     convert_response_openai_to_anthropic as _convert_response_openai_to_anthropic,
 )
-from http_body_limit import enforce_request_body_limit
+from http_body_limit import BodySizeLimitMiddleware
 from server_bootstrap import (
     MAX_BODY_SIZE,
     MODEL_CREATED,
@@ -30,12 +30,7 @@ app = FastAPI(title="LiMa", version="1.3",
               description="LiMa（力码）— 智能编程助手 API，OpenAI 兼容",
               lifespan=lifespan)
 
-
-@app.middleware("http")
-async def limit_body_size(request: Request, call_next):
-    return await enforce_request_body_limit(
-        request, call_next, max_size=MAX_BODY_SIZE
-    )
+app.add_middleware(BodySizeLimitMiddleware, max_body_size=MAX_BODY_SIZE)
 
 _stats, _stats_lock, _backend_enabled, _loaded_modules = create_runtime_state()
 app.state.stats = _stats
