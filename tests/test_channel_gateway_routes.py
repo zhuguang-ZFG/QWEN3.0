@@ -78,7 +78,7 @@ class TestChannelRoutes:
                 os.environ["LIMA_CHANNEL_ID_SALT"] = old
             _reset_deps_for_test()
 
-    def test_wechat_message_unbound_gets_prompt(self):
+    def test_wechat_message_auto_guest_without_bind_code(self):
         resp = client.post("/channel/v1/wechat/message", json={
             "message_id": "wx-1",
             "sender_id": "test-user",
@@ -88,7 +88,8 @@ class TestChannelRoutes:
             "timestamp": 1770000000,
         }, headers=SIDECAR_HEADERS)
         assert resp.status_code == 200
-        assert resp.json()["ok"] is False
+        assert resp.json()["ok"] is True
+        assert "欢迎使用" in resp.json()["reply"]["text"]
 
     def test_wechat_message_duplicate(self):
         msg = {

@@ -2,6 +2,14 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 CQ-088: WeChat Zero-Friction Guest Bind
+
+- **行为**：扫码/加好友后直接发消息即可聊天；`LIMA_CHANNEL_AUTO_GUEST_BIND=1`（默认）自动创建 guest binding；`/bind <code>` 可选（操作员升级主人）
+- **实现**：`ChannelStore.ensure_guest_binding()`；revoked 后再次发消息自动 reactivate；`service._auto_guest_bind_enabled()` 运行时读 env
+- **文档**：`docs/WECHAT_CHANNEL_TOOLS_PLAN.md`
+- **测试**：channel/wechat 相关 **75 passed**（`test_wechat_channel_smoke`、`test_channel_gateway_*`）
+- **未做**：G1 访客工具（百科/天气/搜）、主人简报；`LIMA_CHANNEL_TOOLS` 仍默认关
+
 ## 2026-05-25 VPS Backups Cleared + No-Backup Deploy Policy
 
 - 清理 `/opt/lima-router/backups/*`：释放 **~11G**，磁盘约 **17G 可用**（56% 使用）

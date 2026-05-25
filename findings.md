@@ -2,6 +2,15 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-05-25 CQ-088 WeChat Channel Zero-Friction Bind
+
+| ID | Area | Evidence | Status |
+|---|---|---|---|
+| WX-088-1 | Auto guest bind | `ensure_guest_binding()` + `handle_message` 对 unbound/revoked 非 `/bind` 自动开通；首绑欢迎语 `_WELCOME_GUEST` | Implemented; 75 focused tests passed |
+| WX-088-2 | Env toggle | `LIMA_CHANNEL_AUTO_GUEST_BIND=0` 恢复「需先绑定」；须运行时读 env（非 import 时常量） | Fixed + regression tests |
+| WX-088-3 | Revoked re-entry | `ensure_guest_binding` 对 REVOKED 行 reactivate 而非 INSERT 失败 | Fixed + store test |
+| WX-088-4 | Next slice | 访客公开工具、配额、`search_gateway` 接线见 `docs/WECHAT_CHANNEL_TOOLS_PLAN.md` G1 | Pending |
+
 ## 2026-05-25 XianyuAutoAgent Reference Findings
 
 | ID | Area | Evidence | Next Action |

@@ -219,3 +219,30 @@ class TestChannelStore:
         )
         binding = legacy.get_binding_by_channel_user("wechat", "legacy-user")
         assert binding.role == BindingRole.GUEST
+
+
+class TestEnsureGuestBinding:
+    def setup_method(self):
+        self.store = ChannelStore(":memory:")
+        self.store._create_tables()
+
+    def test_creates_active_guest_binding(self):
+        binding, created = self.store.ensure_guest_binding("wechat", "wx-new-1")
+        assert created is True
+        assert binding is not None
+        assert binding.status == BindingStatus.ACTIVE
+        assert binding.role == BindingRole.GUEST
+        assert binding.lima_user_id.startswith("wechat_guest_")
+
+    def test_idempotent_when_already_active(self):
+        self.store.ensure_guest_binding("wechat", "wx-same")
+        binding2, created2 = self.store.ensure_guest_binding("wechat", "wx-same")
+        assert created2 is False
+        assert binding2.status == BindingStatus.ACTIVE
+
+    def test_recreates_after_revoked(self):
+        binding, _ = self.store.ensure_guest_binding("wechat", "wx-rev")
+        self.store.set_binding_status(binding.binding_id, BindingStatus.REVOKED)
+        binding2, created2 = self.store.ensure_guest_binding("wechat", "wx-rev")
+        assert created2 is True
+        assert binding2.status == BindingStatus.ACTIVE

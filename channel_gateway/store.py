@@ -153,6 +153,45 @@ class ChannelStore:
 
     # -- Bindings ------------------------------------------------------------
 
+    def ensure_guest_binding(
+        self,
+        channel: str,
+        channel_user_id_raw: str,
+        *,
+        display_name: str = "",
+    ) -> tuple[Optional[ChannelBinding], bool]:
+        """Create or return an active guest binding. Returns (binding, created_new)."""
+        existing = self.get_binding_by_channel_user(channel, channel_user_id_raw)
+        if existing and existing.status in (
+            BindingStatus.ACTIVE,
+            BindingStatus.PAUSED,
+        ):
+            return existing, False
+        if existing and existing.status == BindingStatus.REVOKED:
+            self.set_binding_status(existing.binding_id, BindingStatus.ACTIVE)
+            rebound = self.get_binding_by_channel_user(channel, channel_user_id_raw)
+            return rebound, True
+
+        user_hash = self._hash_id(channel_user_id_raw)
+        binding_id = f"guest_{user_hash[:16]}"
+        lima_user_id = f"wechat_guest_{user_hash[:12]}"
+        ok = self.create_binding(
+            binding_id=binding_id,
+            channel=channel,
+            channel_user_id_raw=channel_user_id_raw,
+            display_name=display_name or channel_user_id_raw[:20],
+            lima_user_id=lima_user_id,
+        )
+        if not ok:
+            existing = self.get_binding_by_channel_user(channel, channel_user_id_raw)
+            if existing and existing.status in (
+                BindingStatus.ACTIVE,
+                BindingStatus.PAUSED,
+            ):
+                return existing, False
+            return None, False
+        return self.get_binding_by_channel_user(channel, channel_user_id_raw), True
+
     def create_binding(
         self,
         binding_id: str,

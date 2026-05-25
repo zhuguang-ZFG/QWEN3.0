@@ -1,4 +1,4 @@
-"""End-to-end smoke tests - V1 guest experience, owner-only rejection."""
+"""End-to-end smoke tests - zero-friction guest bind, owner-only rejection."""
 import os
 import sys
 
@@ -97,19 +97,32 @@ class TestWechatChannelSmoke:
         r = self._msg("p4", "dave", "hi again", 5)
         assert r.json()["ok"]
 
-    def test_unbind_then_rebind(self):
+    def test_unbind_then_auto_guest_on_next_message(self):
         self._bind("eve")
         r = self._msg("u1", "eve", "/unbind", 2)
         assert r.json()["ok"]
         r = self._msg("u2", "eve", "hi", 3)
-        assert not r.json()["ok"]
-        # Rebind with new code
-        self._bind("eve")
-        r = self._msg("u3", "eve", "hi after rebind", 4)
         assert r.json()["ok"]
+        assert "欢迎使用" in r.json()["reply"]["text"]
 
-    def test_unbound_user_cannot_chat(self):
+    def test_scan_and_chat_without_bind_code(self):
         r = self._msg("s1", "stranger", "hello", 1)
+        assert r.json()["ok"]
+        assert "欢迎使用" in r.json()["reply"]["text"]
+
+    def test_unbound_user_cannot_chat_when_auto_bind_disabled(self, monkeypatch):
+        monkeypatch.setenv("LIMA_CHANNEL_AUTO_GUEST_BIND", "0")
+        _reset()
+        self.app = _make_app()
+        self.client = TestClient(self.app)
+        r = self.client.post("/channel/v1/wechat/message", json={
+            "message_id": "s2",
+            "sender_id": "stranger2",
+            "conversation_id": "c1",
+            "conversation_type": "private",
+            "text": "hello",
+            "timestamp": 1,
+        }, headers=HEADERS)
         assert not r.json()["ok"]
 
     def test_health_reflects_bindings(self):

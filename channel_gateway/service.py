@@ -1,8 +1,10 @@
 """Channel Gateway service - dedupe, auth, command dispatch, response building.
 
-V1: guest experience bot. Guests get safe chat/code-help/draw-demo/demo/about/reset.
-Owner-only commands (/code-task /device /status /artifact /memory) are rejected for guests.
+Guests: scan/add-friend then chat (auto guest bind when enabled).
+Owner-only commands (/code-task /device /status /artifact /memory) rejected for guests.
 """
+
+import os
 
 from channel_gateway.commands import parse_command, is_owner_only
 from channel_gateway.models import (
@@ -16,24 +18,33 @@ from channel_gateway.store import ChannelStore
 _CMD_ALLOWED_WHEN_PAUSED = frozenset({"resume", "unbind", "help"})
 _CMD_ALLOWED_WHEN_UNBOUND = frozenset({"bind", "help"})
 
+def _auto_guest_bind_enabled() -> bool:
+    return os.environ.get("LIMA_CHANNEL_AUTO_GUEST_BIND", "1") == "1"
+
+_WELCOME_GUEST = (
+    "欢迎使用 LiMa 微信助手！扫码或加好友后即可使用，无需绑定码。\n"
+    "发送 /help 查看命令，/demo 体验能力。\n"
+)
+
 _OWNER_ONLY_HELP_HINT = (
     "Owner-only commands (/code-task, /device, /status, /artifact, /memory) "
     "are not available for guest users."
 )
 
 _HELP_TEXT = (
-    "LiMa WeChat Assistant (Guest)\n"
-    "/chat <msg> - Chat with LiMa\n"
-    "/code <question> - Code explanation/suggestion\n"
-    "/draw <prompt> - Preview a path demo\n"
-    "/demo - Guided LiMa capability demo\n"
-    "/about - What is LiMa?\n"
-    "/reset - Clear your chat session\n"
-    "/pause - Pause this chat\n"
-    "/resume - Resume this chat\n"
-    "/unbind - Unbind this account\n"
-    "/help - Show this help\n"
-    "/bind <code> - Bind your WeChat to LiMa"
+    "LiMa WeChat Assistant\n"
+    "直接发消息即可聊天，无需绑定码。\n"
+    "/chat <msg> - 与 LiMa 对话\n"
+    "/code <question> - 代码讲解/建议\n"
+    "/draw <prompt> - 路径绘制预览 demo\n"
+    "/demo - 能力导览\n"
+    "/about - 关于 LiMa\n"
+    "/reset - 清空本会话上下文\n"
+    "/pause - 暂停\n"
+    "/resume - 恢复\n"
+    "/unbind - 解除绑定\n"
+    "/help - 帮助\n"
+    "/bind <code> - 可选：操作员码升级/关联账号（主人能力）"
 )
 
 _DEMO_TEXT = (
@@ -93,8 +104,20 @@ class ChannelService:
         cmd = parse_command(msg.text)
         binding = self._store.get_binding_by_channel_user("wechat", msg.sender_id)
 
-        # Auth: unbound / revoked
+        # Auth: unbound / revoked → auto guest bind (zero-friction)
         if binding is None or binding.status == BindingStatus.REVOKED:
+            if _auto_guest_bind_enabled() and cmd.intent != "bind":
+                binding, created = self._store.ensure_guest_binding(
+                    "wechat", msg.sender_id
+                )
+                if binding is None:
+                    return OutboundReply(ok=False, error="Could not create guest binding")
+                reply = self._dispatch(binding, msg, cmd)
+                if created and reply.ok and reply.reply:
+                    text = reply.reply.get("text", "")
+                    if text:
+                        reply.reply["text"] = f"{_WELCOME_GUEST}\n{text}"
+                return reply
             return self._handle_unbound(msg, cmd)
 
         # Auth: paused
@@ -231,7 +254,7 @@ class ChannelService:
             self._store.set_binding_status(binding.binding_id, BindingStatus.REVOKED)
             return OutboundReply(
                 ok=True,
-                reply={"text": "Account unbound. Send /bind <code> to re-bind."},
+                reply={"text": "已解除绑定。直接发消息可再次自动开通访客能力。"},
             )
 
         return OutboundReply(ok=False, error=f"Unknown state change: {cmd.intent}")

@@ -49,8 +49,15 @@ class TestChannelServiceGuestLifecycle:
         self.store = _make_store()
         self.svc = _make_svc(store=self.store)
 
-    def test_unbound_user_gets_bind_prompt(self):
+    def test_unbound_user_auto_guest_bind_on_hello(self):
         reply = self.svc.handle_message(_inbound(text="hello"))
+        assert reply.ok is True
+        assert "欢迎使用" in reply.reply["text"]
+
+    def test_unbound_user_gets_bind_prompt_when_auto_bind_off(self, monkeypatch):
+        monkeypatch.setenv("LIMA_CHANNEL_AUTO_GUEST_BIND", "0")
+        svc = _make_svc(store=self.store)
+        reply = svc.handle_message(_inbound(text="hello"))
         assert reply.ok is False
         assert "bind" in (reply.error or "").lower()
 
@@ -225,7 +232,7 @@ class TestChannelServiceGuestLifecycle:
         self._bind_user("wx-user-1")
         reply = self.svc.handle_message(_inbound(sender="wx-user-1", text="/unbind"))
         assert reply.ok is True
-        assert "unbound" in reply.reply["text"].lower()
+        assert "解除绑定" in reply.reply["text"]
 
     def test_revoked_user_can_rebind(self):
         self._bind_user("wx-user-1")
