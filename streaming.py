@@ -6,10 +6,13 @@ LiMa Streaming — 纯流式核心，依赖注入解耦
 """
 
 import asyncio
+import logging
 import time
 import threading
 import queue as queue_mod
 from typing import AsyncIterator, Awaitable, Callable, Iterator, Optional
+
+_log = logging.getLogger(__name__)
 
 # 注入函数签名
 CallStreamFn = Callable[[str, list, int, str], Iterator[str]]
@@ -82,8 +85,12 @@ async def bridge_stream(
                         call_fn, backend, messages, max_tokens, ide)
                     if result and not str(result).startswith('[ERR]'):
                         yield str(result)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    _log.warning(
+                        "stream fallback call failed backend=%s: %s",
+                        backend,
+                        type(exc).__name__,
+                    )
                 return
             return
         if typ == 'error':
@@ -96,16 +103,22 @@ async def bridge_stream(
         cancel.set()
         thread.join(timeout=2.0)
         if thread.is_alive():
-            import logging
-            logging.warning(f"[STREAM] {backend} worker thread still alive after cancel+join")
+            _log.warning(
+                "[STREAM] %s worker thread still alive after cancel+join",
+                backend,
+            )
         _drain_queue(q)
         try:
             result = await asyncio.to_thread(
                 call_fn, backend, messages, max_tokens, ide)
             if result and not str(result).startswith('[ERR]'):
                 yield str(result)
-        except Exception:
-            pass
+        except Exception as exc:
+            _log.warning(
+                "stream empty fallback call failed backend=%s: %s",
+                backend,
+                type(exc).__name__,
+            )
         return
 
     # 继续消费剩余 chunk (带超时防卡死)
@@ -147,24 +160,37 @@ async def bridge_stream_async(
                 break
             total_text += chunk
             yield chunk
-    except Exception:
+    except Exception as exc:
         if not total_text:
             total_text = ""
+        _log.warning(
+            "async stream read failed backend=%s: %s",
+            backend,
+            type(exc).__name__,
+        )
     finally:
         aclose = getattr(stream, "aclose", None)
         if aclose:
             try:
                 await aclose()
-            except Exception:
-                pass
+            except Exception as exc:
+                _log.debug(
+                    "async stream aclose failed backend=%s: %s",
+                    backend,
+                    type(exc).__name__,
+                )
 
     if not total_text:
         try:
             result = await call_api_async_fn(backend, messages, max_tokens, ide)
             if result and not str(result).startswith('[ERR]'):
                 yield str(result)
-        except Exception:
-            pass
+        except Exception as exc:
+            _log.warning(
+                "async stream fallback call failed backend=%s: %s",
+                backend,
+                type(exc).__name__,
+            )
 
 
 # ─── 预测流式 ────────────────────────────────────────────────────────────────
@@ -215,7 +241,11 @@ async def speculative_stream(
             if route_task.done() and not switched:
                 try:
                     actual_backend, actual_msgs = route_task.result()
-                except Exception:
+                except Exception as exc:
+                    _log.debug(
+                        "speculative route task result failed: %s",
+                        type(exc).__name__,
+                    )
                     actual_backend = predicted
                     actual_msgs = predicted_msgs
 
@@ -228,8 +258,11 @@ async def speculative_stream(
             if not route_task.done():
                 try:
                     actual_backend, actual_msgs = await route_task
-                except Exception:
-                    pass
+                except Exception as exc:
+                    _log.debug(
+                        "speculative route task await failed: %s",
+                        type(exc).__name__,
+                    )
             return
 
         async for chunk in _streamer(actual_backend, actual_msgs):

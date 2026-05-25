@@ -10,6 +10,20 @@
 | MEM-091-2 | `docs/TECHNICAL_ARCHITECTURE.md` | 「当前架构（2026-05-26）」节；历史商业图标注为过时参考 | Closed |
 | MEM-091-3 | Test baseline | 沿用 `57ea35a`：**1530 passed, 10 skipped** | Closed |
 
+## 2026-05-26 CQ-093 Code quality P1.3 batch 3 (agent_runtime + orchestrate)
+
+| ID | Area | Evidence | Status |
+|---|---|---|---|
+| CQ-093-1 | P1.3 logging | `agent_runtime/{real_executor,workspace_sandbox,tool_gateway_adapter,approval,events}`, `orchestrate.py`, `speculative.py`, `router_http.py` | Closed |
+| CQ-093-2 | Tests | full **1530 passed, 10 skipped** | Closed |
+
+## 2026-05-26 CQ-092 Code quality P1.3 batch 2 (streaming + audit)
+
+| ID | Area | Evidence | Status |
+|---|---|---|---|
+| CQ-092-1 | P1.3 logging | `streaming.py`, `anthropic_stream.py`, `chat_post_closeout.persist_session_memory`, `tool_gateway/audit.py`, `feature_flags.py`, `device_gateway/intent.py`, `routes/device_gateway.py` | Closed |
+| CQ-092-2 | Tests | focused 85 passed; full **1530 passed, 10 skipped** | Closed |
+
 ## 2026-05-26 CQ-090 Code quality P1.3 batch + voice fail-closed
 
 | ID | Area | Evidence | Status |

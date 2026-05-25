@@ -14,7 +14,7 @@
 | P0.3 `key_rotation` | **Done** | stub in `deploy/key_rotation.py`; legacy in `scripts/archive/key_rotation_legacy.py` |
 | P1.1 semantic cache | **Done** | `_log.warning` + `db_write_errors`; `tests/test_semantic_cache.py` |
 | P1.2 admin login | **Done** | `constant_time_equals` in `routes/admin.py` |
-| P1.3 silent catches | **In progress** | 2026-05-26: `media_inbound`, `health_recorder`, `chat_post_closeout`, `admin_api` |
+| P1.3 silent catches | **In progress** | batch1–3: streaming/audit/device intent + agent_runtime audit/emit + orchestrate/speculative/router_http |
 | P2+ file split / routing | **Backlog** | see sections below |
 
 ## Current Verification Snapshot

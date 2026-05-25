@@ -146,8 +146,8 @@ async def speculative_call_async(
             for task in pending:
                 task.cancel()
             await asyncio.gather(*pending, return_exceptions=True)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("speculative parallel race failed: %s", type(exc).__name__)
 
     if not winner_backend:
         raise RuntimeError("All speculative backends failed or returned empty")

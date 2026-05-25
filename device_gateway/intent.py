@@ -9,9 +9,12 @@ back to write_text with an explicit explanation.
 """
 from __future__ import annotations
 
+import logging
 import os
 import re
 from typing import Any
+
+_log = logging.getLogger(__name__)
 
 # ── Command patterns ─────────────────────────────────────────────────────────
 # Each pattern is (regex, capability, param_map_fn)
@@ -158,6 +161,6 @@ def _llm_replan(text: str, _fallback: dict[str, Any]) -> dict[str, Any] | None:
                 "source": "llm",
                 "explanation": f"LLM planned: {parsed.get('reason', parsed['capability'])}",
             }
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("device llm planner parse failed: %s", type(exc).__name__)
     return None

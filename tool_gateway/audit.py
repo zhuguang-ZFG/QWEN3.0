@@ -1,10 +1,13 @@
 """Tool gateway audit — event recording with optional SQLite persistence."""
 
 import json
+import logging
 import os
 import sqlite3
 import threading
 import time
+
+_log = logging.getLogger(__name__)
 
 _lock = threading.Lock()
 _events: list[dict] = []
@@ -115,8 +118,12 @@ def _persist_event(event: dict) -> None:
         )
         conn.commit()
         conn.close()
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.warning(
+            "tool audit persist failed event=%s: %s",
+            event.get("event", ""),
+            type(exc).__name__,
+        )
 
 
 # ── Query ───────────────────────────────────────────────────────────────────
@@ -180,5 +187,5 @@ def reset_audit() -> None:
         conn.execute("DELETE FROM audit_events")
         conn.commit()
         conn.close()
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.warning("tool audit reset failed: %s", type(exc).__name__)

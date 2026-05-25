@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sys
 import time
 import urllib.request
+
+_log = logging.getLogger(__name__)
 
 from backends import BACKENDS, GFW_BACKENDS
 from response_cleaner import clean_response
@@ -112,8 +115,8 @@ def _call_scnet_chunked(name, msgs, mt, _t0):
                         cid = data["conversationId"]
                     if data.get("content") and data["content"] != "[done]":
                         reply += data["content"]
-                except Exception:
-                    pass
+                except Exception as exc:
+                    _log.debug("scnet sse line parse skipped: %s", type(exc).__name__)
         return reply.replace("[done]", "").strip(), cid
 
     try:

@@ -6,8 +6,11 @@ Defaults to NoopToolExecutor. Never executes without explicit gating.
 
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass, field
+
+_log = logging.getLogger(__name__)
 
 from agent_runtime.approval import ApprovalGate
 from agent_runtime.contract import AgentStep, StepKind, StepResult, redact
@@ -163,8 +166,12 @@ class ToolExecutionGateway:
                         f"ok={result.ok} blocked={result.blocked}"
                     ),
                 )
-        except Exception:
-            pass
+        except Exception as exc:
+            _log.debug(
+                "tool gateway audit skipped task=%s: %s",
+                task_id,
+                type(exc).__name__,
+            )
 
 
 def build_default_gateway(executor: ToolExecutor | None = None) -> ToolExecutionGateway:

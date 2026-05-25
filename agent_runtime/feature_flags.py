@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
+
+_log = logging.getLogger(__name__)
 
 
 SHELL_ALLOWLIST: frozenset[str] = frozenset({"pytest", "echo", "python", "git"})
@@ -99,8 +102,12 @@ def preflight_audit_check(task_id: str = "", worker_id: str = "") -> dict:
             worker_id=worker_id,
             detail=str(result),
         )
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug(
+            "feature_flag_preflight audit skipped task=%s: %s",
+            task_id,
+            type(exc).__name__,
+        )
     return result
 
 

@@ -7,10 +7,13 @@ would require real authority and only allows an exact approved request.
 
 from __future__ import annotations
 
+import logging
 import time
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum
+
+_log = logging.getLogger(__name__)
 
 from agent_runtime.contract import AgentStep, StepKind, StepResult, redact
 
@@ -223,8 +226,8 @@ class ApprovalGate:
             from agent_runtime.events import _safe_emit
 
             _safe_emit("approval_event", {"message": safe_msg})
-        except Exception:
-            pass
+        except Exception as exc:
+            _log.debug("approval event emit skipped: %s", type(exc).__name__)
 
     def _find_matching(
         self,

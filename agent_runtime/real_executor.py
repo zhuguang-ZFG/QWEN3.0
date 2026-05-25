@@ -7,8 +7,11 @@ when every gate passes.
 
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass, field
+
+_log = logging.getLogger(__name__)
 
 from agent_runtime.contract import AgentStep, StepKind, redact
 from agent_runtime.feature_flags import (
@@ -171,5 +174,5 @@ def _audit_event(event: str, detail: str = "") -> None:
         from agent_runtime.audit_trail import audit_event
 
         audit_event(event, detail=detail)
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("real_executor audit skipped event=%s: %s", event, type(exc).__name__)

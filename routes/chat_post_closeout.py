@@ -26,8 +26,14 @@ def persist_session_memory(
             save_memory(session_id, "assistant", content[:100])
         if needs_compaction(session_id):
             compact_session(session_id)
-    except (ImportError, Exception):
-        pass
+    except ImportError:
+        _log.debug("session_memory not installed; skipping persist_session_memory")
+    except Exception as exc:
+        _log.warning(
+            "persist_session_memory failed: %s",
+            type(exc).__name__,
+            exc_info=True,
+        )
 
 
 def record_chat_observability(*, chat_id: str, backend: str, duration_ms: int) -> None:

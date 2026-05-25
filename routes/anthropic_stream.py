@@ -5,10 +5,13 @@
 - anthropic_stream: 主 Anthropic 流式处理（路由 + fallback + 质量门）
 """
 import json
+import logging
 import time
 import uuid
 import asyncio
 import os
+
+_log = logging.getLogger(__name__)
 
 import smart_router
 import routing_engine
@@ -151,7 +154,12 @@ async def anthropic_stream(req, model: str, client_ip: str = "",
                             system_prompt=sys_prompt_preview, ide=ide_source),
                         messages_to_dicts(req.messages), req.max_tokens or 4096)
                     fallback_text = fb_answer if fb_answer and fb_backend != "exhausted" else None
-                except Exception:
+                except Exception as exc:
+                    _log.warning(
+                        "anthropic stream routing fallback failed: %s",
+                        type(exc).__name__,
+                        exc_info=True,
+                    )
                     fallback_text = None
                     fb_backend = "fallback_error"
                 backend_used = fb_backend if fallback_text else "last_resort"
@@ -247,10 +255,10 @@ def _do_logging(req, query, content, record_intent, backend_used):
     if sys_prompt:
         try:
             _log_sys_prompt(sys_prompt)
-        except Exception:
-            pass
+        except Exception as exc:
+            _log.warning("log_sys_prompt failed: %s", type(exc).__name__)
     try:
         if os.environ.get("DISTILL_LOG", "0") == "1":
             smart_router._log_to_distill_queue(query, content, record_intent, backend_used)
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("distill queue log skipped: %s", type(exc).__name__)

@@ -9,6 +9,18 @@
 - **`STATUS.md` / `findings.md`：** 测试基线 **1530 passed, 10 skipped**；Code quality 行。
 - **Tests：** 文档-only；基线证据 commit `57ea35a`。
 
+## 2026-05-26 代码质量 P1.3（第三批，CQ-093）
+
+- **范围**：`agent_runtime/*` audit/emit 路径 + `orchestrate` / `speculative` / `router_http` 静默 catch
+- **文件**：`real_executor`, `workspace_sandbox`, `tool_gateway_adapter`, `approval`, `events`, `orchestrate.py`, `speculative.py`, `router_http.py`
+- **测试**：全量 **1530 passed, 10 skipped**
+
+## 2026-05-26 代码质量 P1.3（第二批，CQ-092）
+
+- **范围**：生产热路径静默 `except` → 可观测日志（不记录 prompt/token）
+- **文件**：`streaming.py`、`routes/anthropic_stream.py`、`routes/chat_post_closeout.py`（补全 `persist_session_memory`）、`tool_gateway/audit.py`、`agent_runtime/feature_flags.py`、`device_gateway/intent.py`、`routes/device_gateway.py`
+- **测试**：focused 85 passed；全量 **1530 passed, 10 skipped**
+
 ## 2026-05-26 代码质量 P1.3（首批，CQ-090）
 
 - **P0 复核**：body limit / live-key / key_rotation / semantic cache / admin login 已在仓库落地（见 `docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md` 状态表）

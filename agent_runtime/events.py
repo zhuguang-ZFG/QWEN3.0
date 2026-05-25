@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 import time
 import uuid
 from typing import Any
 
 from agent_runtime.contract import AgentRunResult, AgentStep, StepResult, redact, redact_value
+
+_log = logging.getLogger(__name__)
 
 
 def _safe_emit(event_type: str, data: dict[str, Any]) -> None:
@@ -21,8 +24,8 @@ def _safe_emit(event_type: str, data: dict[str, Any]) -> None:
             timestamp=time.time(),
             metadata=safe_data,
         ))
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("agent event emit skipped type=%s: %s", event_type, type(exc).__name__)
 
 
 def _safe_stream(event_type: str, data: dict[str, Any]) -> str | None:

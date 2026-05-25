@@ -1,7 +1,10 @@
 """LiMa direct device gateway routes."""
 from __future__ import annotations
 
+import logging
 from typing import Any
+
+_log = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
@@ -249,8 +252,12 @@ async def device_ws(websocket: WebSocket) -> None:
                 if previous and previous.websocket is not websocket:
                     try:
                         await previous.websocket.close(code=1012)
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        _log.debug(
+                            "close superseded websocket device=%s: %s",
+                            device_id,
+                            type(exc).__name__,
+                        )
                 await session.send_json(hello_ack(device_id))
                 if not await _drain_pending_tasks(session):
                     return

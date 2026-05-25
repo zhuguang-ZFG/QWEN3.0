@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import time
 from dataclasses import dataclass, field
+
+_log = logging.getLogger(__name__)
 
 
 SANDBOX_ROOT_DEFAULT = ".lima-sandbox"
@@ -117,16 +120,16 @@ class WorkspaceSandbox:
                         f"dry_run={self.dry_run}"
                     ),
                 )
-        except Exception:
-            pass
+        except Exception as exc:
+            _log.debug("workspace patch audit skipped: %s", type(exc).__name__)
 
     def _audit_rollback(self, patch: PatchRecord) -> None:
         try:
             from agent_runtime.audit_trail import audit_event
 
             audit_event("workspace_rollback", detail=f"file={patch.file_path}")
-        except Exception:
-            pass
+        except Exception as exc:
+            _log.debug("workspace rollback audit skipped: %s", type(exc).__name__)
 
     def _resolve_target(self, file_path: str) -> str | None:
         target = os.path.abspath(os.path.join(self.root, file_path))

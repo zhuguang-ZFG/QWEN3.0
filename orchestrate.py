@@ -2,8 +2,10 @@
 复杂任务拆解为子任务，每个子任务路由到最强专业模型，合并结果。
 Superpower 原则：编排层让多个模型协作产生超越单模型的效果。
 """
-import sys, os, json, time
+import sys, os, json, time, logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+_log = logging.getLogger(__name__)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import smart_router
@@ -154,8 +156,12 @@ def execute_subtasks(subtasks: list[dict]) -> list[dict]:
                     "backend": hint,
                     "ms": int((time.time() - t0) * 1000)
                 }
-            except Exception:
-                pass
+            except Exception as exc:
+                _log.debug(
+                    "orchestrate hint backend failed hint=%s: %s",
+                    hint,
+                    type(exc).__name__,
+                )
 
         # 否则走完整路由
         def _call_fn(backend, msgs, mt):
@@ -222,8 +228,8 @@ def synthesize(query: str, results: list[dict]) -> str:
         answer = http_caller.call_api("longcat_chat", msgs, mt=SYNTHESIZE_MAX_TOKENS)
         if answer and "暂时不可用" not in answer:
             return answer
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("orchestrate synthesize longcat failed: %s", type(exc).__name__)
 
     # 回退到本地模型
     answer = smart_router.call_local(msgs, mt=SYNTHESIZE_MAX_TOKENS, t=0.5)
