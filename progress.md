@@ -9,7 +9,7 @@
 | PROD-003 | ESP32 firmware compile passed. | Hardware flash and real-device motion smoke. |
 | PROD-004 | Path pipeline complete: stroke font, SVG path parser, path preview, safety bounds. | Keep using fake-U8/VPS smoke before hardware execution. |
 | PROD-005 | Intent parser upgraded: deterministic regex, confidence, rejection reasons, gated LLM replanner. | Add outcome feedback only after P0.8 learning loop. |
-| PROD-006 | LiMa Code artifact bundle remains partial; stage commands exist in submodule. | Build context/plan/test/diff/risk/ship packets before broad autonomy. |
+| PROD-006 | LiMa Code artifact bundle complete. | Use `.lima/artifacts/<task_id>/` bundles as review and learning-loop evidence. |
 | PROD-007 | Ops metrics endpoint deployed and public/private smoke-verified. | Keep adding correlation detail as real incidents expose gaps. |
 | PROD-008 | Learning loop remains architecture-level follow-up. | Promote verified outcomes into memory, prompts, routing, and evals. |
 
@@ -62,6 +62,26 @@
     real-device smoke remain pending;
   - Postgres remains deferred for audit/history and is not required for current
     realtime WebSocket task delivery.
+
+## 2026-05-25 PROD-006 LiMa Code Artifact Bundle
+
+- Advanced LiMa Code to `8e680ea` (`feat(lima): add artifact bundle for plan/test/ship/review commands`).
+- Artifact output location: `.lima/artifacts/<task_id>/`.
+- Command outputs:
+  - `/lima plan`: `plan.md`, `context.json`, `risks.md` with git diff,
+    recent files, `AGENTS.md` rules, existing risks, and suggested slice;
+  - `/lima test`: `tests.json` with command, exit code, duration, stdout, and
+    stderr;
+  - `/lima review`: `review.md`, `diff.patch` with changed files and findings;
+  - `/lima ship`: `ship.md`, `diff.patch` with changed files, test results,
+    residual risks, rollback notes, commit summary, and review checklist.
+- Outcome:
+  - people and LiMa Server can review structured artifacts directly;
+  - terminal scrollback is no longer the only source of execution evidence;
+  - PROD-006 is complete and becomes the evidence source for PROD-008.
+- Verification:
+  - LiMa Code: `0 fail, 6 skipped`;
+  - LiMa Server: `1240 passed, 8 skipped`.
 
 ## 2026-05-25 P0.4/P0.5/P0.7 Review Fixes
 
@@ -229,6 +249,8 @@
   - `npm.cmd run check` passed.
   - `npm.cmd test` passed with `431 passed, 6 skipped`.
   - `git diff --check` passed.
+- Superseded by the PROD-006 artifact bundle at `8e680ea`, which adds
+  structured `.lima/artifacts/<task_id>/` outputs for plan/test/review/ship.
 
 ## 2026-05-24 M0 Baseline & Review Harness
 

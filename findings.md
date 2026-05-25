@@ -44,7 +44,7 @@
 | PROD-003 | ESP32 failure telemetry | `E_MISSING_PATH` / unsupported-capability style failures and firmware compile are now covered; real hardware is not flashed yet. | Hardware flash and real-device smoke coverage. |
 | PROD-004 | Device task intelligence | The text/SVG/path pipeline is implemented with stroke font, SVG parser, preview, and safety limits. | Keep fake-U8/VPS smoke in the release gate and expand fixtures from real operator commands. |
 | PROD-005 | Intent parsing | Deterministic regex parsing, confidence, rejection reasons, and gated LLM replanning are implemented. | Feed accepted/rejected outcomes into the later learning loop. |
-| PROD-006 | LiMa Code workflow depth | `deepcode-cli/src/lima/task-runner.ts` plan mode echoes constraints; stage commands do not yet create full review packets. | Add context/plan/test/diff/risk/ship artifact bundles and model-backed planning before broad autonomy. |
+| PROD-006 | LiMa Code workflow depth | `deepcode-cli` now writes artifact bundles under `.lima/artifacts/<task_id>/` for `/lima plan`, `/lima test`, `/lima review`, and `/lima ship`. | Closed for artifact bundle; use these artifacts as PROD-008 learning-loop evidence before broad autonomy. |
 | PROD-007 | Observability access | Authenticated `/v1/ops/metrics` is deployed and smoke-verified with production-shaped backend stats. | Add deeper request_id/task_id/device_id/session_id correlation as incidents expose gaps. |
 | PROD-008 | Learning loop | Memory, eval, routing, and prompt components exist but are not yet one outcome-driven feedback loop. | Promote verified task outcomes into memory/prompt/routing eval candidates with rollback evidence. |
 

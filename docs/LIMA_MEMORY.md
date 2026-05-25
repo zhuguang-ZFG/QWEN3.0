@@ -5,9 +5,16 @@
 - Current P0 panorama as of 2026-05-25: PROD-003 ESP32 firmware compile has
   passed and the next gate is hardware flashing; PROD-004 path pipeline is
   implemented; PROD-005 intent parser upgrade is implemented; PROD-006 LiMa
-  Code artifact bundle remains partial in the submodule; PROD-007 ops metrics
-  is deployed and smoke-verified; PROD-008 learning loop remains a later
+  Code artifact bundle is complete in the submodule; PROD-007 ops metrics is
+  deployed and smoke-verified; PROD-008 learning loop remains a later
   architecture-level follow-up.
+- On 2026-05-25 LiMa Code advanced to `8e680ea`, adding structured artifact
+  bundles under `.lima/artifacts/<task_id>/`: `/lima plan` writes `plan.md`,
+  `context.json`, and `risks.md`; `/lima test` writes `tests.json`;
+  `/lima review` writes `review.md` and `diff.patch`; `/lima ship` writes
+  `ship.md` and `diff.patch` with test evidence, residual risks, rollback
+  notes, commit summary, and review checklist. Verification: LiMa Code
+  `0 fail, 6 skipped`; LiMa Server `1240 passed, 8 skipped`.
 - On 2026-05-25 the P0.4/P0.5/P0.7 review fixes were deployed to VPS. During
   deploy smoke, `/v1/ops/metrics` returned 500 because production
   `backend_calls` values are `{count, success, total_ms}` dictionaries rather
@@ -52,6 +59,7 @@
   the guarded local task runner, write audit evidence, do not submit to Server,
   and were verified with `npm.cmd run check`, `npm.cmd test` (`431 passed, 6
   skipped`), and `git diff --check`.
+  This was superseded by `8e680ea`, which added the full artifact bundle.
 - On 2026-05-25 the project-wide operating constraint was expanded: every
   LiMa action must serve real productivity, productization, and LiMa's own
   distinctive character. The active three-project review is

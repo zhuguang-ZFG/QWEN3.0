@@ -27,8 +27,8 @@
 | Online distributions | Tracked | Official website, open platform, chat interface, FRP path, nginx snapshots, systemd snapshots, and smoke script are recorded in `docs/ONLINE_DISTRIBUTIONS.md`, `infra/vps/`, and `scripts/smoke_online_distributions.py`. |
 | Reference migration compatibility | Closed | Original planned import/doc paths `code_context.retriever` and `docs/OPS_ENTRYPOINTS.md` are present as compatibility facades. |
 | External capability radar | Ledger active | `docs/REFERENCE_IMPLEMENTATION_LEDGER.md` records 64 reference mappings plus 9 blocked gates with implemented/gated/concept/implementing/rejected status; unimplemented capabilities remain behind license, security, privacy, and safety gates. |
-| Reference capability Phase 2-8 | Active with Phase 7 first slice | Code intelligence, memory/mastery, agent/tool governance, MCP access plane, eval registry, LiMa Code stage commands, and hardware protocol-family slices have LiMa-owned interfaces, tests, and ledger evidence; Server local suite passed `1193 passed, 8 skipped`; LiMa Code local suite passed `431 passed, 6 skipped`; VPS baseline deployed at `ad7cab5` with public smoke `12/12`, worker preflight ready, and fake U8 WSS loop passed. |
-| LiMa Code repository management | Tracked | `deepcode-cli` is pinned as a Git submodule at `ca51967` and governed by `docs/LIMACODE_MANAGEMENT.md`. |
+| Reference capability Phase 2-8 | Active with Phase 7 artifact bundle | Code intelligence, memory/mastery, agent/tool governance, MCP access plane, eval registry, LiMa Code artifact bundles, and hardware protocol-family slices have LiMa-owned interfaces, tests, and ledger evidence; latest Server suite passed `1240 passed, 8 skipped`; latest LiMa Code verification reported `0 fail, 6 skipped`; VPS baseline deployed at `ad7cab5` with public smoke `12/12`, worker preflight ready, and fake U8 WSS loop passed. |
+| LiMa Code repository management | Tracked | `deepcode-cli` is pinned as a Git submodule at `8e680ea` and governed by `docs/LIMACODE_MANAGEMENT.md`. |
 | esp32S_XYZ product backend | Tracked and fake-U8 integrated | `esp32S_XYZ` is pinned as a Git submodule at `160e526`; LiMa is the planned AI/backend control plane, and the product repo now includes `tools/fake_lima_u8` for the LiMa `/device/v1/ws` fake-device loop. |
 | LiMa Device Gateway | Public Redis HA smoke path deployed | `/device/v1/*` supports multi-device concurrency, Redis pending-to-processing task delivery with motion-event ack cleanup, stale processing recovery hooks, publish-failure degradation, and Redis pub/sub session-owner notification for multi-process delivery; `chat.donglicao.com/device/v1/*` is exposed behind per-device token auth. Postgres remains deferred for audit/history, not realtime WebSocket delivery. |
 | P0.1 ESP32 Motion Executor Contract | Deployed and smoke-verified | `MotionErrorCode` enum (8 codes), normalized motion failure errors, no-queue invalid task handling, `path_validator.py`, fake-U8 `--test failure`, default board `E_UNSUPPORTED_BOARD`, and zhuguang failure events are implemented; review fixes passed `1218 passed, 8 skipped`; VPS backup `/opt/lima-router/backups/p01-motion-contract-20260525_072701/runtime-before.tgz`; public smoke `12/12`; fake-U8 WSS success and failure loops passed. |
@@ -41,7 +41,7 @@
 | PROD-003 | ESP32 firmware compile passed. | Hardware flash and real-device motion smoke. |
 | PROD-004 | Path pipeline complete: stroke font, SVG path parser, path preview, safety bounds. | Keep fake-U8/VPS smoke in the release gate. |
 | PROD-005 | Intent parser upgraded with deterministic patterns, confidence, rejection reasons, and gated LLM replanning. | Feed outcomes into P0.8 learning loop later. |
-| PROD-006 | LiMa Code artifact bundle remains partial; stage commands exist in submodule. | Build context/plan/test/diff/risk/ship packets before broader autonomy. |
+| PROD-006 | LiMa Code artifact bundle complete: `/lima plan`, `/lima test`, `/lima review`, and `/lima ship` write reviewable files under `.lima/artifacts/<task_id>/`. | Use artifact bundles as the evidence source for the learning loop and Server review. |
 | PROD-007 | Ops metrics endpoint deployed and smoke-verified. | Add deeper correlation as incidents expose gaps. |
 | PROD-008 | Learning loop remains architecture-level follow-up. | Promote verified task outcomes into memory, prompts, routing, and eval queues. |
 
@@ -156,14 +156,17 @@
 
 ## 2026-05-25 LiMa Code Phase 7 Workflow Slice
 
-- LiMa Code submodule advanced to `ca51967` (`fix(lima): avoid duplicate local test commands`) after the initial stage-command slice `03bd626`.
-- Added local `/lima plan`, `/lima test [--cmd <command>]`, and `/lima ship` commands in `deepcode-cli`.
-- These stage commands run through the local guarded task runner, write audit evidence, and do not submit to LiMa Server.
-- `/lima ship` is constrained as a readiness review and explicitly does not deploy or push.
+- LiMa Code submodule advanced to `8e680ea` (`feat(lima): add artifact bundle for plan/test/ship/review commands`).
+- `/lima plan` writes `plan.md`, `context.json`, and `risks.md`.
+- `/lima test` writes `tests.json` with command, exit code, duration, stdout, and stderr.
+- `/lima review` writes `review.md` and `diff.patch`.
+- `/lima ship` writes `ship.md` and `diff.patch` with changed files, test evidence, residual risks, rollback notes, commit summary, and review checklist.
+- Artifact bundles are stored under `.lima/artifacts/<task_id>/` so people and Server can review structured evidence without reading terminal scrollback.
 - Verification in `D:\GIT\deepcode-cli` passed:
   - `npm.cmd run check`
-  - `npm.cmd test` -> `431 passed, 6 skipped`
+  - LiMa Code suite -> `0 fail, 6 skipped`
   - `git diff --check`
+- LiMa Server verification passed `1240 passed, 8 skipped`.
 
 ## 2026-05-24 Deployment And Closure Update
 

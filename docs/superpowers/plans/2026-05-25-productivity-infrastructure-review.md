@@ -27,7 +27,7 @@ Current P0 status as of 2026-05-25:
 | PROD-003 | ESP32 firmware compile passed; hardware flash is next. |
 | PROD-004 | Path pipeline implemented: stroke font, SVG parser, preview, safety clamps. |
 | PROD-005 | Intent parser upgraded with regex, confidence, rejection reasons, and gated LLM replanning. |
-| PROD-006 | LiMa Code artifact bundle remains partial; stage commands exist in the submodule. |
+| PROD-006 | LiMa Code artifact bundle implemented under `.lima/artifacts/<task_id>/` for plan/test/review/ship. |
 | PROD-007 | Ops metrics endpoint deployed and smoke-verified. |
 | PROD-008 | Learning loop remains architecture-level follow-up. |
 

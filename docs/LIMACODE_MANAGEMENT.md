@@ -26,7 +26,7 @@ This keeps the boundary explicit:
 Current pinned revision:
 
 ```text
-ca51967 fix(lima): avoid duplicate local test commands
+8e680ea feat(lima): add artifact bundle for plan/test/ship/review commands
 ```
 
 ## Update Rules
@@ -64,11 +64,18 @@ target repository is allowlisted.
 
 Latest Server/Worker evidence:
 
-- LiMa Code verification for `ca51967` passed `npm.cmd run check`,
-  `npm.cmd test` (`431 passed, 6 skipped`), and `git diff --check`.
-- Local workflow stage commands `/lima plan`, `/lima test [--cmd <command>]`,
-  and `/lima ship` run through the guarded local task runner, write audit
-  evidence, and do not submit to Server.
+- LiMa Code verification for `8e680ea` passed with `0 fail, 6 skipped`; main
+  LiMa Server verification passed `1240 passed, 8 skipped`.
+- Local workflow stage commands now produce structured artifact bundles under
+  `.lima/artifacts/<task_id>/`:
+  - `/lima plan`: `plan.md`, `context.json`, `risks.md`;
+  - `/lima test`: `tests.json`;
+  - `/lima review`: `review.md`, `diff.patch`;
+  - `/lima ship`: `ship.md`, `diff.patch`.
+- Artifact bundles include git diff context, recent files, `AGENTS.md` rules,
+  risks, suggested slice, test evidence, changed files, rollback notes, commit
+  summary, and review checklist so people and Server can review structured
+  evidence directly.
 - Public task `92820005` was fetched by `D:\GIT\deepcode-cli`, completed as
   `needs_review`, and submitted back to LiMa Server.
 - `/agent/worker/preflight` remains `ready=true` after Device Gateway Redis HA
