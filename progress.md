@@ -2,6 +2,12 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 CTX-003 Tool Route Preflight (CQ-079)
+
+- `inject_anthropic_body_preflight`：Tier-2 Anthropic-native tool 请求写入 `body.system`
+- `tool_call_forward`：与 Tier-1 共用 preflight 注入
+- 测试：`tests/test_anthropic_preflight.py` 5 项 + tier2 payload 断言
+
 ## 2026-05-25 Admin Portable Paths (CQ-078)
 
 - `routes/admin_state.py`：`FALLBACK_LOG` 复用 `request_tracking` 的 `LIMA_DATA_DIR` 解析

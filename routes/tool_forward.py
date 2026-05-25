@@ -19,6 +19,7 @@ import httpx as _httpx
 from converters.anthropic_format import (
     convert_tools_anthropic_to_openai,
     convert_messages_anthropic_to_openai,
+    inject_anthropic_body_preflight,
     inject_anthropic_context_preflight,
     convert_response_openai_to_anthropic,
 )
@@ -95,6 +96,7 @@ def anthropic_native_forward_sync(body: dict) -> dict:
     openai_tools = convert_tools_anthropic_to_openai(body.get("tools", []))
     openai_msgs = convert_messages_anthropic_to_openai(body.get("messages", []))
     inject_anthropic_context_preflight(openai_msgs, body)
+    inject_anthropic_body_preflight(body, openai_msgs)
 
     if not skip_tier1:
         for name in iter_tool_backends(TOOL_TIER1_BACKENDS):
@@ -154,6 +156,7 @@ async def anthropic_native_stream(body: dict):
     openai_tools = convert_tools_anthropic_to_openai(body.get("tools", []))
     openai_msgs = convert_messages_anthropic_to_openai(body.get("messages", []))
     inject_anthropic_context_preflight(openai_msgs, body)
+    inject_anthropic_body_preflight(body, openai_msgs)
 
     if not skip_tier1:
         for name in iter_tool_backends(TOOL_TIER1_BACKENDS):
@@ -245,16 +248,8 @@ async def tool_call_forward(body: dict) -> dict:
     """Forward tool call request via OpenRouter."""
     openai_tools = convert_tools_anthropic_to_openai(body["tools"])
     openai_messages = convert_messages_anthropic_to_openai(body["messages"])
-
-    if body.get("system"):
-        if isinstance(body["system"], str):
-            sys_text = body["system"]
-        else:
-            sys_text = " ".join(
-                b.get("text", "") for b in body["system"]
-                if b.get("type") == "text"
-            )
-        openai_messages.insert(0, {"role": "system", "content": sys_text})
+    inject_anthropic_context_preflight(openai_messages, body)
+    inject_anthropic_body_preflight(body, openai_messages)
 
     payload = {
         "model": TOOL_BACKEND_MODEL,

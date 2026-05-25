@@ -115,7 +115,7 @@
 |---|---|---|---|
 | CTX-001 | Cursor/Codex/Claude Code lesson | The useful shared pattern is compact context engineering, not larger generic prompts. | Keep request-local context digest small and evidence-based. |
 | CTX-002 | VPS boundary | LiMa cannot read the user's local IDE workspace from the VPS. | Only summarize request text, system prompt hints, file paths, tool results, and error signals already sent by the client. |
-| CTX-003 | Claude Code tool route | Claude Code real requests commonly enter `/v1/messages` with tools, bypassing normal coding prompt enrichment. | Inject the same context preflight into Anthropic tool forwarding before OpenAI-compatible backend calls. |
+| CTX-003 | Closed | Claude Code `/v1/messages` tool routes now inject LiMa context preflight for Tier-1 OpenAI msgs and Tier-2 Anthropic-native bodies via `inject_anthropic_body_preflight`. Tests in `tests/test_anthropic_preflight.py`. | None. |
 | CTX-004 | Verification | Local suite returned `70 passed`; public `/v1/messages` tool smoke returned 200 in 489ms with `stop_reason=tool_use`. | Use a real IDE session next to judge subjective coding experience and latency. |
 
 ## Free Model Routing Findings
@@ -417,4 +417,5 @@ Source record: `docs/superpowers/plans/2026-05-23-code-quality-review-closeout.m
 | CQ-076 | Closed | Prod retrieval wired + VPS deploy/smoke. Trace hit `routing_engine.py`/`health_tracker.py`, 380 injected chars. Token `prod_retrieval_trace_ok`. | None. |
 | CQ-077 | Closed | Deploy manifest expanded (routing split + retrieval stack); `response_cleaner` SyntaxWarning fix; `test_agent_eval` portable path. VPS redeploy smoke **prod_retrieval_trace_ok** (380 chars). | None. |
 | CQ-078 | Closed | Admin portable paths: `FALLBACK_LOG` shares `request_tracking` resolver; `admin_retrain` uses repo root cwd. Tests in `tests/test_admin_paths.py`. | None. |
+| CQ-079 | Closed | CTX-003 tool-route preflight: Tier-2 Anthropic body + `tool_call_forward` aligned with OpenAI tier-1 injection. Tests **1460 passed**. | None. |
 | REF-006 | Closed | GCP `generative-ai` repo assessed in `docs/GCP_GENERATIVE_AI_RESEARCH.md`: reference-only (eval/RAG methodology), no deep port; llmevalkit/agents are GCP-locked demos. Local RAG eval fixture delivered (CQ-067). | Add LiMa routing corpus fixture when retrieval wired to production path. |

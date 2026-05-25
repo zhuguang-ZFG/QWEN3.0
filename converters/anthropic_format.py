@@ -96,24 +96,71 @@ def last_openai_user_text(messages: list) -> str:
     return ""
 
 
-def inject_anthropic_context_preflight(openai_msgs: list, body: dict) -> None:
-    """Add request-local coding context to Claude Code tool requests."""
+PREFLIGHT_MARKER = "LiMa context preflight:"
+
+
+def build_lima_context_digest_for_tool_request(
+    body: dict,
+    openai_msgs: list,
+) -> str:
+    """Build the LiMa coding digest for Anthropic tool routes."""
     sys_text = anthropic_system_text(body)
     query = last_openai_user_text(openai_msgs)
     try:
         from lima_context import build_context_digest
-        digest = build_context_digest(
+
+        return build_context_digest(
             query,
             openai_msgs,
             system_prompt=sys_text,
             ide_source="Claude Code",
         )
     except Exception:
-        digest = ""
+        return ""
 
-    combined = sys_text
-    if digest:
-        combined = f"{sys_text.rstrip()}\n\n{digest}".strip()
+
+def _merge_system_with_digest(sys_text: str, digest: str) -> str:
+    if not digest:
+        return sys_text
+    if digest in sys_text:
+        return sys_text
+    if sys_text.strip():
+        return f"{sys_text.rstrip()}\n\n{digest}".strip()
+    return digest
+
+
+def set_anthropic_system(body: dict, combined: str) -> None:
+    """Write merged system text back into an Anthropic request body."""
+    if not combined:
+        return
+    system = body.get("system", "")
+    if isinstance(system, list):
+        blocks = list(system)
+        if blocks and isinstance(blocks[0], dict) and blocks[0].get("type") == "text":
+            blocks[0] = {**blocks[0], "text": combined}
+        else:
+            blocks.insert(0, {"type": "text", "text": combined})
+        body["system"] = blocks
+    else:
+        body["system"] = combined
+
+
+def inject_anthropic_body_preflight(body: dict, openai_msgs: list) -> None:
+    """Inject LiMa context preflight into Anthropic-native tool request bodies."""
+    if PREFLIGHT_MARKER in anthropic_system_text(body):
+        return
+    digest = build_lima_context_digest_for_tool_request(body, openai_msgs)
+    combined = _merge_system_with_digest(anthropic_system_text(body), digest)
+    set_anthropic_system(body, combined)
+
+
+def inject_anthropic_context_preflight(openai_msgs: list, body: dict) -> None:
+    """Add request-local coding context to Claude Code tool requests (OpenAI msgs)."""
+    if openai_msgs and openai_msgs[0].get("role") == "system":
+        if PREFLIGHT_MARKER in str(openai_msgs[0].get("content", "")):
+            return
+    digest = build_lima_context_digest_for_tool_request(body, openai_msgs)
+    combined = _merge_system_with_digest(anthropic_system_text(body), digest)
     if not combined:
         return
     if openai_msgs and openai_msgs[0].get("role") == "system":
