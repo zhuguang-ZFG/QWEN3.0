@@ -2,6 +2,13 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 OpenClaw Light Deploy Retired
+
+- **决定**：放弃 VPS `lima-openclaw`（微信多人 ClawBot 扫码方案）
+- **VPS 清理**：`scripts/cleanup_openclaw_vps.py` — service 已 disable，`:18789` 释放，`lima-weixin-ilink` / `lima-router` 保持 active
+- **仓库**：OpenClaw 脚本与配置迁至 `scripts/archive/openclaw_retired/`
+- **访客主推**：`https://chat.donglicao.com`；微信小号 + WCF 见 `docs/WECHAT_REAL_DEVICE_WINDOWS.md`
+
 ## 2026-05-25 VPS iLink Bridge Live (LiMa subsystem)
 
 - **服务**：`lima-weixin-ilink` active，`python3.11` + `requirements-weixin-ilink.txt`（无 `[messaging]` 全家桶）
