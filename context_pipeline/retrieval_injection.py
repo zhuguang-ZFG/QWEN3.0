@@ -31,6 +31,7 @@ def run_retrieval(messages: list[dict]) -> RetrievalPayload | None:
         from context_pipeline.entity_extraction import extract_entities
         from context_pipeline.code_scanner import get_code_graph
         from context_pipeline.graph_retrieval import dual_layer_search, RetrievalResult
+        from context_pipeline.production_index import search_production_corpus
         from context_pipeline.reranking import rerank_results, format_for_injection
     except ImportError:
         return None
@@ -43,10 +44,13 @@ def run_retrieval(messages: list[dict]) -> RetrievalPayload | None:
             return None
 
         graph = get_code_graph()
-        vector_results = [
-            RetrievalResult(path=term, score=0.7, source="vector")
-            for term in terms[:5]
-        ]
+        query = " ".join(terms)
+        vector_results = search_production_corpus(query, top_k=8)
+        if not vector_results:
+            vector_results = [
+                RetrievalResult(path=term, score=0.7, source="vector")
+                for term in terms[:5]
+            ]
         merged = dual_layer_search(terms, vector_results, graph, max_results=8)
         reranked = rerank_results(merged, terms, top_k=5)
         if not reranked:

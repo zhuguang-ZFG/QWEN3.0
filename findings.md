@@ -413,5 +413,6 @@ Source record: `docs/superpowers/plans/2026-05-23-code-quality-review-closeout.m
 | CQ-072 | Closed | HTTP slice 10: `http_sync.py`/`http_async.py`; `http_caller.py` ~38 lines. Chat slice 10: preflight/post-closeout; `chat_handler.py` ~253 lines. VPS smoke `cq014_rag_http_chat_ok` 12/12. | None. |
 | CQ-073 | Closed | CQ-014 slice 11: admin split, routing_engine split, prod RAG fixture. Tests **1432 passed**. VPS deploy + smoke 7/7. | None. |
 | CQ-074 | Closed | Identity hardening: guard-before-cache, As-Claude patterns, stream sanitizer, guest channel role. Tests **1446 passed**. Commit `77d8d8c`. | None. |
-| CQ-075 | Closed | RAG CI gate: `run_all_fixture_gates()`, `scripts/run_rag_eval_gate.py`, `.github/workflows/lima-ci.yml`, pytest `rag_gate` marker. Tests **1447 passed**; gate 3/3. | Monitor CI on push. |
+| CQ-075 | Closed | RAG CI gate: `run_all_fixture_gates()`, `lima-ci.yml`, `rag_gate` marker. Tests **1447 passed**. | Monitor CI on push. |
+| CQ-076 | Closed | Prod retrieval wired: `retrieval_corpus` + `production_index` + `scan_files`; server bootstrap split. Tests **1451 passed**; RAG gate 3/3. | Confirm GitHub Actions green when `gh` available. |
 | REF-006 | Closed | GCP `generative-ai` repo assessed in `docs/GCP_GENERATIVE_AI_RESEARCH.md`: reference-only (eval/RAG methodology), no deep port; llmevalkit/agents are GCP-locked demos. Local RAG eval fixture delivered (CQ-067). | Add LiMa routing corpus fixture when retrieval wired to production path. |

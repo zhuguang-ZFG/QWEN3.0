@@ -2,7 +2,7 @@
 让 Cursor、Claude Code、VS Code Copilot 等 AI IDE 直接接入。
 支持流式/非流式 ChatCompletion，兼容 OpenAI API 格式。
 """
-import sys, os, json, time, asyncio, threading, logging
+import sys, os, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI, Request
@@ -15,43 +15,21 @@ from vision_handler import (
     _vision_route, _stream_vision_response,
 )
 from converters.anthropic_format import (
-    convert_tools_anthropic_to_openai as _convert_tools_anthropic_to_openai,
-    convert_messages_anthropic_to_openai as _convert_messages_anthropic_to_openai,
-    anthropic_system_text as _anthropic_system_text,
-    last_openai_user_text as _last_openai_user_text,
-    inject_anthropic_context_preflight as _inject_anthropic_context_preflight,
-    anthropic_text_fallback as _anthropic_text_fallback,
-    normalize_openai_text as _normalize_openai_text,
     convert_response_openai_to_anthropic as _convert_response_openai_to_anthropic,
 )
-
-
-def _last_resort_call(messages: list) -> str:
-    """Nuclear fallback: direct Cloudflare call, bypasses all routing/health logic."""
-    import urllib.request, logging
-    account_id = os.environ.get('CLOUDFLARE_ACCOUNT_ID', '')
-    token = os.environ.get('CLOUDFLARE_TOKEN', '')
-    if not account_id or not token:
-        return ""
-    url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1/chat/completions"
-    body = json.dumps({"model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast", "messages": messages[-5:], "max_tokens": 4096}).encode()
-    req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"})
-    try:
-        resp = urllib.request.urlopen(req, timeout=30)
-        data = json.loads(resp.read().decode())
-        return data.get("choices", [{}])[0].get("message", {}).get("content", "")
-    except Exception as e:
-        logging.warning(f"[LAST_RESORT] Cloudflare fallback failed: {type(e).__name__}")
-        return ""
-
-# ── App ─────────────────────────────────────────────────────────────────────
+from server_bootstrap import (
+    MAX_BODY_SIZE,
+    MODEL_CREATED,
+    MODEL_ID,
+    create_runtime_state,
+    last_resort_call as _last_resort_call,
+)
 from server_lifespan import lifespan
 
 app = FastAPI(title="LiMa", version="1.3",
               description="LiMa（力码）— 智能编程助手 API，OpenAI 兼容",
               lifespan=lifespan)
 
-MAX_BODY_SIZE = 2 * 1024 * 1024  # 2MB (coding assistant 上下文可能较大)
 
 @app.middleware("http")
 async def limit_body_size(request: Request, call_next):
@@ -64,25 +42,9 @@ async def limit_body_size(request: Request, call_next):
             return JSONResponse(status_code=400, content={"error": {"message": "Invalid Content-Length"}})
     return await call_next(request)
 
-MODEL_ID = "lima-1.3"
-MODEL_CREATED = int(time.time())
-
-# ── 统计收集器 ─────────────────────────────────────────────────────────────────
-_stats_lock = threading.Lock()
-_stats = {
-    "total_requests": 0,
-    "backend_calls": {},
-    "intent_distribution": {},
-    "recent_logs": [],
-    "start_time": time.time(),
-}
+_stats, _stats_lock, _backend_enabled, _loaded_modules = create_runtime_state()
 app.state.stats = _stats
 
-# 后端启用/禁用状态
-_backend_enabled = {}
-_loaded_modules: dict = {}
-
-# ── Request Tracking (extracted to routes/request_tracking.py) ────────────────
 import routes.request_tracking as _rt_mod
 _rt_mod.inject_state(_stats, _stats_lock)
 _record_fallback = _rt_mod.record_fallback
@@ -93,8 +55,6 @@ _detect_ide = _rt_mod.detect_ide
 _elapsed_ms = _rt_mod.elapsed_ms
 FALLBACK_LOG = _rt_mod.FALLBACK_LOG
 
-# ── Tool Call Forwarding (extracted to routes/tool_forward.py) ─────────────────
-import urllib.parse as _urllib_parse
 import routes.tool_forward as _tool_fwd
 _tool_fwd.inject_state(_record_request, MODEL_ID)
 _anthropic_native_forward = _tool_fwd.anthropic_native_forward
@@ -107,10 +67,8 @@ _iter_tool_backends = _tool_fwd.iter_tool_backends
 TOOL_TIER1_BACKENDS = _tool_fwd.TOOL_TIER1_BACKENDS
 ANTHROPIC_NATIVE_BACKENDS = _tool_fwd.ANTHROPIC_NATIVE_BACKENDS
 
-
 from routes.images import build_pollinations_url as _build_pollinations_url
 
-# ── Chat handler (extracted to routes/chat_handler.py) ───────────────────────
 from routes.chat_handler import handle_chat as _handle_chat, inject_deps as _inject_chat_handler_deps
 from routes.chat_stream import inject_deps as _inject_chat_stream_deps
 from routes.chat_support import log_sys_prompt as _log_sys_prompt, thinking_route as _thinking_route
@@ -126,7 +84,6 @@ _inject_chat_stream_deps(
     build_pollinations_url=_build_pollinations_url,
 )
 
-# ── Anthropic streaming (extracted to routes/anthropic_stream.py) ────────────
 from routes.anthropic_stream import (
     anthropic_stream as _anthropic_stream,
     anthropic_stream_passthrough as _anthropic_stream_passthrough,
@@ -140,8 +97,6 @@ _inject_anthropic_stream_deps(
     log_sys_prompt=_log_sys_prompt,
 )
 
-
-# ── Route registration (extracted to routes/route_registry.py) ───────────────
 from routes.route_registry import RouteRegistryDeps, register_all_routes
 
 _registered = register_all_routes(
@@ -173,7 +128,6 @@ health = _registered.health
 live_key = _registered.live_key
 router_status = _registered.router_status
 
-# ── Startup ─────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     print('[LiMa] Warming up router model...', file=sys.stderr)
     smart_router.warmup_router_model()

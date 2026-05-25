@@ -2,6 +2,15 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 Post-RAG Milestone: CI Verify + Prod Retrieval + Server Bootstrap
+
+- **CI 验证**：`gh` 不可用；新增 `scripts/run_ci_local.py` 镜像 `lima-ci.yml`；本地 RAG gate 3/3 PASS
+- **生产检索接线**：`retrieval_corpus.py` + `production_index.py`；`retrieval_injection` vector 层走 prod index；`code_scanner.scan_files()` 对齐 prod 语料
+- **server 收尾**：`server_bootstrap.py`（fallback/state/constants）；`server.py` ~131 行
+- Design: `docs/PRODUCTION_RETRIEVAL_WIRING.md`
+- `requirements_server.txt` 补 `pybreaker`（CI test job）
+- Tests: **1451 passed, 10 skipped**
+
 ## 2026-05-25 RAG CI Gate Milestone Closeout
 
 - 方向选择：`server.py` 已 ~181 行，CQ-014 达标；本里程碑接 **prod RAG CI gate**

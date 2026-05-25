@@ -20,16 +20,29 @@ def scan_directory(directory: str, graph: CodeGraph | None = None) -> CodeGraph:
         graph = CodeGraph()
 
     py_files = list(Path(directory).glob("*.py"))
+    return scan_files([str(path) for path in py_files], graph=graph)
+
+
+def scan_files(file_paths: list[str], graph: CodeGraph | None = None) -> CodeGraph:
+    """Scan explicit .py files and build a CodeGraph."""
+    if graph is None:
+        graph = CodeGraph()
+
     module_map: dict[str, str] = {}
+    valid_files: list[Path] = []
 
-    for f in py_files:
-        module_map[f.stem] = str(f.name)
+    for raw in file_paths:
+        path = Path(raw)
+        if not path.is_file() or path.suffix != ".py":
+            continue
+        valid_files.append(path)
+        module_map[path.stem] = path.name
 
-    for f in py_files:
+    for path in valid_files:
         try:
-            source = f.read_text(encoding="utf-8", errors="replace")
-            tree = ast.parse(source, filename=str(f))
-            _extract_relations(f.name, tree, module_map, graph)
+            source = path.read_text(encoding="utf-8", errors="replace")
+            tree = ast.parse(source, filename=str(path))
+            _extract_relations(path.name, tree, module_map, graph)
         except (SyntaxError, UnicodeDecodeError):
             continue
 
@@ -70,18 +83,36 @@ def _extract_relations(
 _global_graph: CodeGraph | None = None
 
 
+def reset_code_graph() -> None:
+    """Clear cached graph (for tests)."""
+    global _global_graph
+    _global_graph = None
+
+
 def get_code_graph(directory: str | None = None) -> CodeGraph:
     """Get or build the global code graph."""
     global _global_graph
     if _global_graph is None:
-        scan_dir = directory or os.environ.get("LIMA_CODE_DIR", "/opt/lima-router")
-        _global_graph = scan_directory(scan_dir)
+        from context_pipeline.retrieval_corpus import resolve_production_corpus_paths
+
+        corpus_paths = resolve_production_corpus_paths()
+        if corpus_paths:
+            _global_graph = scan_files(corpus_paths)
+        else:
+            scan_dir = directory or os.environ.get("LIMA_CODE_DIR", "/opt/lima-router")
+            _global_graph = scan_directory(scan_dir)
     return _global_graph
 
 
 def refresh_graph(directory: str | None = None) -> CodeGraph:
     """Force rebuild the code graph."""
     global _global_graph
-    scan_dir = directory or os.environ.get("LIMA_CODE_DIR", "/opt/lima-router")
-    _global_graph = scan_directory(scan_dir)
+    from context_pipeline.retrieval_corpus import resolve_production_corpus_paths
+
+    corpus_paths = resolve_production_corpus_paths()
+    if corpus_paths:
+        _global_graph = scan_files(corpus_paths)
+    else:
+        scan_dir = directory or os.environ.get("LIMA_CODE_DIR", "/opt/lima-router")
+        _global_graph = scan_directory(scan_dir)
     return _global_graph

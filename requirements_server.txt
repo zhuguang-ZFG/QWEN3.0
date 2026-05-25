@@ -8,3 +8,4 @@ python-dotenv>=1.0.0
 paramiko>=3.4.0
 numpy>=1.26.0,<2.3
 redis>=5.0
+pybreaker>=1.0.0
