@@ -2,11 +2,19 @@
 
 > Created: 2026-05-22
 
-## 2026-05-26 代码质量 P1.3（首批）
+## 2026-05-26 项目记忆详细更新（CQ-091）
+
+- **`docs/LIMA_MEMORY.md`：** 顶部 Agent 记忆索引；**2026-05-26 consolidated state**（战略方向、微信退役表、代码质量 P0/P1.3、文档对齐、VPS 快照、四线 backlog、REQUEST_PIPELINE、子模块锚点、运维脚本、常见误判）；Active Runtime Files 增补 `http_body_limit`、`channel_gateway`、cleanup 脚本；PROD-008 表述修正。
+- **`docs/TECHNICAL_ARCHITECTURE.md`：** 当前个人助手架构节 + 历史图说明。
+- **`STATUS.md` / `findings.md`：** 测试基线 **1530 passed, 10 skipped**；Code quality 行。
+- **Tests：** 文档-only；基线证据 commit `57ea35a`。
+
+## 2026-05-26 代码质量 P1.3（首批，CQ-090）
 
 - **P0 复核**：body limit / live-key / key_rotation / semantic cache / admin login 已在仓库落地（见 `docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md` 状态表）
 - **P1.3**：`channel_gateway/media_inbound.py`、`health_recorder.py`、`routes/chat_post_closeout.py`、`routes/admin_api.py` 静默 `except` 改为可观测日志
-- **前端**：`voice_call_live.html`  fail-closed，不再尝试用 `/api/live-key` 拼 `?key=` URL
+- **前端**：`voice_call_live.html` fail-closed，不再尝试用 `/api/live-key` 拼 `?key=` URL
+- **测试**：`pytest -q --ignore=active_model` → **1530 passed, 10 skipped**；Git `57ea35a`
 
 ## 2026-05-26 文档清理与四线里程碑
 

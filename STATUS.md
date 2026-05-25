@@ -2,6 +2,8 @@
 
 > Updated: 2026-05-26
 > Active direction: private personal coding assistant.
+> Tests: **1530 passed, 10 skipped** (`pytest -q --ignore=active_model`, 2026-05-26, commit `57ea35a`)
+> Memory: **`docs/LIMA_MEMORY.md`** — 2026-05-26 consolidated section at top
 
 ## Current Summary
 
@@ -33,8 +35,9 @@
 | LiMa Device Gateway | Public Redis HA smoke path deployed | `/device/v1/*` supports multi-device concurrency, Redis pending-to-processing task delivery with motion-event ack cleanup, stale processing recovery hooks, publish-failure degradation, and Redis pub/sub session-owner notification for multi-process delivery; `chat.donglicao.com/device/v1/*` is exposed behind per-device token auth. Postgres remains deferred for audit/history, not realtime WebSocket delivery. |
 | P0.1 ESP32 Motion Executor Contract | Deployed and smoke-verified | `MotionErrorCode` enum (8 codes), normalized motion failure errors, no-queue invalid task handling, `path_validator.py`, fake-U8 `--test failure`, default board `E_UNSUPPORTED_BOARD`, and zhuguang failure events are implemented; review fixes passed `1218 passed, 8 skipped`; VPS backup `/opt/lima-router/backups/p01-motion-contract-20260525_072701/runtime-before.tgz`; public smoke `12/12`; fake-U8 WSS success and failure loops passed. |
 | P0.4/P0.5/P0.7 Device productivity slice | Deployed and smoke-verified | Real text/SVG/path pipeline, intent parser, and `/v1/ops/metrics` landed in `e3dbb9b`; review fixed preview SVG truncation, control command projection, ops metrics state access, and production-shaped backend call stats. Verification: focused `31 passed`; previous full suite `1239 passed, 8 skipped`; VPS/public smoke `12/12`; public ops metrics HTTP 200; `write LiMa` keeps a complete preview SVG; `home` queues a control task without error. |
-| PROD-008 learning loop | Complete locally | `session_memory/learning_loop.py` ingests LiMa Code task results into memory, prompt profiles, routing feedback, and eval candidates; route/prompt behavior remains evidence-only until an explicit eval gate promotes it. Review verification: focused Channel Gateway + learning loop tests `106 passed`; full suite `1346 passed, 8 skipped`. |
+| PROD-008 learning loop | Complete locally | `session_memory/learning_loop.py` ingests LiMa Code task results into memory, prompt profiles, routing feedback, and eval candidates; route/prompt behavior remains evidence-only until an explicit eval gate promotes it. Review verification: focused Channel Gateway + learning loop tests `106 passed`; full suite **1530 passed, 10 skipped** (2026-05-26). |
 | Channel Gateway (`/channel`) | Implemented; WeChat product retired | HTTP 契约与 `channel_gateway/` 保留；`WECHAT_BRIDGE_ENABLED=0`。访客入口 **https://chat.donglicao.com**。见 `docs/WECHAT_RETIRED.md`、`docs/NEXT_MILESTONES.md`。 |
+| Code quality (P0/P1) | P0 done; P1.3 in progress | Body limit middleware, live-key metadata-only, key_rotation archive, semantic_cache warnings, admin constant-time login; P1.3 silent-except cleanup ongoing — `docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md`. |
 | Next milestones (four tracks) | Active doc | Coding backends, LiMa Code Worker, ESP32/Device Gateway, code quality: `docs/NEXT_MILESTONES.md`. |
 
 ## 2026-05-25 Current P0 Panorama

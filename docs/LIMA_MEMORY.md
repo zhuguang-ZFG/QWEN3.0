@@ -1,13 +1,155 @@
 # LiMa Memory
 
+> **Updated: 2026-05-26**  
+> **Branch:** `codex/free-web-ai-probe`（最近提交至 `57ea35a`）  
+> **权威状态：** `STATUS.md`、`docs/EXECUTION_PLAN.md`、`docs/NEXT_MILESTONES.md`  
+> **本文件：** 跨会话 durable 事实；计划 checkbox 以状态文档为准。
+
+---
+
+## Agent 记忆文件索引（读顺序）
+
+| 文件 | 用途 |
+|------|------|
+| `docs/LIMA_MEMORY.md` | **本文件** — 拓扑、证据、运维、决策原因 |
+| `STATUS.md` | 一页式运行快照与 P0 全景 |
+| `docs/EXECUTION_PLAN.md` | Phase 完成度与全局 Next Order |
+| `docs/NEXT_MILESTONES.md` | 四线优先级：编码后端 / LiMa Code / ESP32 / 代码质量 |
+| `findings.md` | 里程碑证据表（WX/CQ/PROD ID） |
+| `progress.md` | 按日执行日志与测试数字 |
+| `docs/WECHAT_RETIRED.md` | 微信全线退役（产品决策） |
+| `docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md` | 质量 backlog 与 P0 状态表 |
+| `docs/REQUEST_PIPELINE_AUTHORITY.md` | 请求管线权威模块归属 |
+| `docs/WORKSPACE_HYGIENE.md` | 仓库外置与 `.gitignore` 本地垃圾 |
+| `task_plan.md` | 用户契约；M0–M11 complete，**M12 pending**（勿与 EXECUTION_PLAN 冲突项混读） |
+
+---
+
+## 2026-05-26 consolidated state（优先阅读）
+
+### 1. 产品方向（未变）
+
+- LiMa = **私人编码助手后端**，不是商业化开放平台。
+- **主推入口：** `https://chat.donglicao.com`（访客与 IDE 私用）。
+- **暂停：** 支付、公共注册、商业 billing、商业 dashboard、微信真机/机器人全路线。
+
+### 2. 微信通道：已全部退役（2026-05-25）
+
+**决定：** 放弃 GeWe、OpenClaw 扫码、iLink/Hermes 本机桥、WCF 小号、liteapp 访客等一切微信产品方案。
+
+| 层面 | 状态 |
+|------|------|
+| 访客入口 | 仅网页 `https://chat.donglicao.com`；`channel_gateway/invite.py` 只推网页 |
+| 仓库 | `wechat_bridge/`、Hermes/WCF 脚本 → `scripts/archive/wechat_retired/` |
+| 文档 | `docs/WECHAT_RETIRED.md`；stub 见 `docs/WECHAT_*.md` |
+| VPS 服务 | `lima-weixin-ilink`、`lima-wechat-sidecar` unit 已移除；**stop + disable** |
+| VPS 文件 | `scripts/cleanup_wechat_vps.py` 已执行；`find` 无 `wechat`/`weixin` 路径 |
+| 环境 | `/opt/lima-router/.env` → `WECHAT_BRIDGE_ENABLED=0`；保留 `LIMA_WECHAT_SIDECAR_TOKEN` 仅供 `/channel` 契约 smoke |
+| 本地卫生 | 删除 `data/wechat_install/`、`.geweapi_browser_profile/`、登录 QR；`.gitignore` 加固 |
+
+**仍保留（非微信产品）：**
+
+- `routes/channel_gateway.py` + `channel_gateway/`：斜杠命令、G3 会话、公开 API 工具。
+- `/channel/v1/wechat/message` 等路径名保留（sidecar 契约），默认不启用真机桥。
+
+**Git：** `c5511fb` retire · `e09e971` hygiene · `8a7a622` VPS 记录 · `04d192d` 文档对齐。
+
+### 3. 代码质量（2026-05-26 启动）
+
+**计划：** `docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md`
+
+| ID | 内容 | 状态 |
+|----|------|------|
+| P0.1 | `BodySizeLimitMiddleware`（ASGI receive 缓冲 + chunked 413） | **Done** — `server.py` 已挂载 |
+| P0.2 | `/api/live-key` 仅元数据，不返回 `GOOGLE_AI_KEY` | **Done** — `routes/system_endpoints.py` |
+| P0.3 | `deploy/key_rotation.py` 退役 stub；legacy → `scripts/archive/key_rotation_legacy.py` | **Done** |
+| P1.1 | `semantic_cache` 写失败 `warning` + `db_write_errors` | **Done** |
+| P1.2 | admin 登录 `constant_time_equals` | **Done** |
+| P1.3 | 生产路径 `except: pass` → 日志 | **进行中** — 首批：`media_inbound`、`health_recorder`、`chat_post_closeout`、`admin_api` |
+| P2+ | 超 300 行文件拆分、`router_http` 迁移 | Backlog |
+
+**本次提交 `57ea35a`：** P1.3 首批 + `voice_call_live.html` fail-closed（禁止浏览器用 `/api/live-key` 拼 `?key=`）+ `test_channel_gateway_integrations` 中文文案对齐。
+
+**全量测试（2026-05-26）：** `1530 passed, 10 skipped`（`pytest -q --ignore=active_model`）。
+
+### 4. 文档与里程碑对齐（2026-05-26）
+
+- 新增 **`docs/NEXT_MILESTONES.md`**：四线并行优先级 + 文档漂移对照表。
+- 修正 `findings.md` WX-088/089「Pending」→ Superseded（CQ-090 已覆盖）。
+- `PERSONAL_CODING_ASSISTANT_PLAN` Next Steps 1–3 标为已完成（检索/MCP 见 EXECUTION_PLAN Phase 6–8）。
+- `task_plan.md` 中 server 拆分/BACKENDS 合并 → **已由 2026-05-24 Runtime Closure 关闭**（勿重复开工）。
+
+**提交：** `04d192d` docs reconcile milestones.
+
+### 5. VPS 生产快照（`47.112.162.80` / `/opt/lima-router`）
+
+| 项 | 值 |
+|----|-----|
+| 主服务 | `lima-router` **active**，`:8080` `/health` ok |
+| Device Gateway | 公开 `https://chat.donglicao.com/device/v1/*`；Redis task store + session bus（HA 已部署） |
+| Channel 部署 | `deploy_channel_gateway.py` 上传 `channel_gateway/`；`.env` 补丁 |
+| FRP | `8088` → Windows LiMa `8080`（见 `local_router_start.bat`） |
+| 在线 smoke | `scripts/smoke_online_distributions.py` 曾 `12/12` |
+| Worker | LiMa Code 公开任务 `cfcd3f2b` → `needs_review` 已验证 |
+
+**未做 / 延后：** Postgres 设备审计库；Gemini Live 服务端 WebSocket 代理（`/api/live-key` 已 metadata-only）。
+
+### 6. 四线「未完成」摘要（详见 NEXT_MILESTONES）
+
+1. **编码后端：** Kimi `4504` quota/refresh；TheOldLLM 超时；page-only Web AI 仅 sandbox；周期性 `eval_coding_backends.py`。
+2. **LiMa Code：** Task Prompt Contract v0.1 → Hooks v0.1；always-on daemon **gated**；artifact ↔ learning loop 端到端证据。
+3. **ESP32 / Device Gateway：** PROD-003 **真机烧录 + 运动 smoke**；M12 Hardware Companion **pending**；`esp32S_XYZ` 协议缺口（PAUSE/ESTOP 等）。
+4. **代码质量：** P1.3 续扫；P2 拆 `agent_tasks.py` / `session_memory/store.py` 等。
+
+### 7. 请求管线（新代码必读）
+
+权威文档：**`docs/REQUEST_PIPELINE_AUTHORITY.md`**
+
+要点：
+
+- 生产聊天：**`routing_engine.route()`** 选路与执行；**`http_caller`** 统一 HTTP。
+- 边缘：**`BodySizeLimitMiddleware`** + `access_guard` 私有 key。
+- **`context_pipeline.factory`** 仅 lab，非生产 sole pipeline。
+- **`deploy/key_rotation.py`** 已退役。
+
+`server.py` 现为薄入口（~百行级）：注册路由、中间件、lifespan；chat/Anthropic/system 在 `routes/`。
+
+### 8. 子模块与版本锚点
+
+| 子模块 | 路径 | 锚点 / 说明 |
+|--------|------|-------------|
+| LiMa Code | `deepcode-cli/` | `8e680ea` — `/lima plan|test|review|ship` artifact bundle |
+| ESP32 产品 | `esp32S_XYZ/` | `160e526` — fake-U8、固件 compile 已过，**真机 flash pending** |
+| 官网 demo | `donglicao-site/` | tracked；`lima-demo.js` 等 |
+
+### 9. 运维脚本速查
+
+| 脚本 | 作用 |
+|------|------|
+| `scripts/deploy_channel_gateway.py` | 上传 channel + 路由；默认 `WECHAT_BRIDGE_ENABLED=0` |
+| `scripts/cleanup_wechat_vps.py` | VPS 删除微信残留目录与 unit |
+| `scripts/cleanup_gewe_vps.py` | GeWe 栈清理（更早） |
+| `scripts/cleanup_openclaw_vps.py` | OpenClaw 退役 |
+| `scripts/smoke_online_distributions.py` | 公开分发 smoke |
+| `local_router_start.bat` | Windows `8080` + FRP |
+
+### 10. 常见误判（避免重复踩坑）
+
+- VPS `localhost:4504/4505` **不是** SCNet/Kimi 健康信号；本机代理经 **Windows 8080** 或 **FRP 8088**。
+- `docs/superpowers/plans/` 未勾 checkbox **≠** 未完成；看 `PLAN_CLOSURE_STATUS.md`。
+- `/channel` 契约测试名含 wechat **≠** 要恢复微信真机。
+- `TECHNICAL_ARCHITECTURE.md` 含 2026-05-20 商业平台图，**部分过时**；见该文顶部「当前架构」节。
+
+---
+
 ## 2026-05-25 Joint Debug Memory
 
 - Current P0 panorama as of 2026-05-25: PROD-003 ESP32 firmware compile has
   passed and the next gate is hardware flashing; PROD-004 path pipeline is
   implemented; PROD-005 intent parser upgrade is implemented; PROD-006 LiMa
   Code artifact bundle is complete in the submodule; PROD-007 ops metrics is
-  deployed and smoke-verified; PROD-008 learning loop remains a later
-  architecture-level follow-up.
+  deployed and smoke-verified;   PROD-008 learning loop is **complete locally** (see 2026-05-26 section);
+  behavior changes stay behind eval gates.
 - On 2026-05-25 LiMa Code advanced to `8e680ea`, adding structured artifact
   bundles under `.lima/artifacts/<task_id>/`: `/lima plan` writes `plan.md`,
   `context.json`, and `risks.md`; `/lima test` writes `tests.json`;
@@ -79,8 +221,8 @@
   `E_MISSING_PATH`. `esp32S_XYZ` advanced to `160e526` for `websockets`
   header API compatibility.
 
-> Updated: 2026-05-25
-> Purpose: durable working memory for future LiMa coding-assistant sessions.
+> Purpose: durable working memory for future LiMa coding-assistant sessions.  
+> Header date: see top of file.
 
 ## Current Direction
 
@@ -159,7 +301,11 @@ Verified facts:
 
 | File | Responsibility |
 |---|---|
-| `server.py` | Compatibility entry for OpenAI and Anthropic requests. |
+| `server.py` | Thin FastAPI app: middleware (`BodySizeLimitMiddleware`), route registration, lifespan. |
+| `http_body_limit.py` | ASGI body size cap; chunked transfer → 413 when over limit. |
+| `channel_gateway/` | Guest channel commands, tools, session, invite (web-only messaging). |
+| `routes/channel_gateway.py` | `/channel/v1/*` sidecar HTTP (enabled via `WECHAT_BRIDGE_ENABLED`, default off on VPS). |
+| `scripts/cleanup_wechat_vps.py` | One-shot VPS removal of retired WeChat/iLink artifacts. |
 | `routing_engine.py` | Main scenario classification and route execution. |
 | `router_v3.py` | Backend pool definitions and selection. |
 | `code_orchestrator.py` | Coding-specific context engineering, backend tiering, quality gate, and repair. |

@@ -2,6 +2,23 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-05-26 CQ-091 Project memory detailed refresh
+
+| ID | Area | Evidence | Status |
+|---|---|---|---|
+| MEM-091-1 | `docs/LIMA_MEMORY.md` | Agent 记忆索引 + 2026-05-26 consolidated state（微信退役、VPS、P0/P1.3、四线、REQUEST_PIPELINE、脚本表） | Closed |
+| MEM-091-2 | `docs/TECHNICAL_ARCHITECTURE.md` | 「当前架构（2026-05-26）」节；历史商业图标注为过时参考 | Closed |
+| MEM-091-3 | Test baseline | 沿用 `57ea35a`：**1530 passed, 10 skipped** | Closed |
+
+## 2026-05-26 CQ-090 Code quality P1.3 batch + voice fail-closed
+
+| ID | Area | Evidence | Status |
+|---|---|---|---|
+| CQ-090-1 | P1.3 logging | `media_inbound.py`, `health_recorder.py`, `chat_post_closeout.py`, `admin_api.py` | Closed |
+| CQ-090-2 | `voice_call_live.html` | 禁止 `/api/live-key` 拼 WebSocket `?key=` | Closed |
+| CQ-090-3 | Integration tests | `test_channel_gateway_integrations.py` 中文文案对齐 | Closed |
+| CQ-090-4 | Git | `57ea35a` on `codex/free-web-ai-probe` | Closed |
+
 ## 2026-05-25 WeChat channel retired (repo + VPS hygiene)
 
 | ID | Area | Evidence | Status |

@@ -8,7 +8,9 @@
 | Document | Status | Use |
 |---|---|---|
 | `STATUS.md` | Active | Short operational snapshot and public endpoint state. |
-| `docs/LIMA_MEMORY.md` | Active | Durable memory for future coding-assistant sessions. |
+| `docs/LIMA_MEMORY.md` | Active | Durable memory; **read 2026-05-26 consolidated state** at top before older sections. |
+| `docs/TECHNICAL_ARCHITECTURE.md` | Active (split) | Top section = current personal-assistant architecture; lower sections = 2026-05-20 commercial draft (historical). |
+| `docs/REQUEST_PIPELINE_AUTHORITY.md` | Active | Production chat pipeline module ownership (REF-005). |
 | `docs/PERSONAL_CODING_ASSISTANT_PLAN.md` | Active | Product direction and backend tier strategy. |
 | `docs/FREE_MODEL_ROUTING_STATUS.md` | Active | SCNet/Kimi/free-model evidence and route policy. |
 | `docs/LOCAL_PROXY_RUNTIME_STATUS.md` | Active | Windows proxy, LiMa API, and FRP closure. |

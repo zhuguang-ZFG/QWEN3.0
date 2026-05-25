@@ -3,9 +3,84 @@
 > 深圳市动力巢科技有限公司
 > 版本: 3.0 | 更新: 2026-05-20
 
+> **⚠ 阅读说明（2026-05-26）**  
+> 下文「系统架构图」「商业模式」等章节为 **2026-05-20 商业开放平台** 草案，与当前 **私人编码助手** 方向部分不一致。  
+> **当前权威架构** 见：`docs/REQUEST_PIPELINE_AUTHORITY.md`、`routing_engine.py`、`server.py`（薄入口）、`docs/LIMA_MEMORY.md`（2026-05-26 consolidated state）。
+
 ---
 
-## 核心技术栈
+## 当前架构（2026-05-26 · 私人编码助手）
+
+### 定位
+
+- **产品：** 个人编码助手后端（非开放注册 SaaS）。
+- **主入口：** `https://chat.donglicao.com`（访客网页 + IDE `/v1`）。
+- **微信：** 产品已退役；`/channel` HTTP 契约保留，`WECHAT_BRIDGE_ENABLED=0`。
+
+### 请求管线（生产）
+
+```text
+Client → server.py (BodySizeLimitMiddleware, access_guard)
+      → routes/chat_endpoints | anthropic_messages_handler
+      → chat_preflight (guardrails, budget, identity)
+      → routing_engine.route()  ← 权威选路与执行
+      → http_caller → 后端池 (httpx)
+      → route_post_process + identity_guard
+      → chat_post_closeout (memory, metrics, distill queue)
+```
+
+模块归属矩阵：**`docs/REQUEST_PIPELINE_AUTHORITY.md`**
+
+### 路由与后端
+
+| 组件 | 文件 | 说明 |
+|------|------|------|
+| 五层路由 | `routing_engine.py` | 分类、池选、执行、fallback |
+| P2C / sticky | `router_v3.py`, `sticky_session.py` | 负载与亲和 |
+| 健康 | `health_tracker.py` | 退避 + 质量追踪 |
+| 后端注册 | `backends_registry.py` | 170+ 后端；`backends.py` 为兼容 facade |
+| 语义缓存 | `semantic_cache.py` | temperature=0 |
+| Skills | `skills_injector.py` | 弱模型补缺 |
+
+### 并行子系统（非 chat 热路径）
+
+| 子系统 | 路径 | 说明 |
+|--------|------|------|
+| Device Gateway | `device_gateway/` | `/device/v1/*`；Redis 任务队列 + WSS；公开 `chat.donglicao.com/device/v1/*` |
+| Channel Gateway | `channel_gateway/`, `routes/channel_gateway.py` | 斜杠命令、G3 会话、公开 API 工具 |
+| Agent tasks | `routes/agent_tasks.py`, `agent_runtime/` | LiMa Code 任务契约 |
+| Session memory | `session_memory/` | 持久记忆 + learning loop（PROD-008） |
+| LiMa Code | `deepcode-cli/` submodule `8e680ea` | 本地 worker `/lima task` |
+| ESP32 产品 | `esp32S_XYZ/` submodule `160e526` | 固件 + fake-U8；真机 flash pending |
+
+### 部署拓扑（简图）
+
+```text
+                    Internet
+                        │
+          ┌─────────────┴─────────────┐
+          │  VPS 47.112.162.80        │
+          │  nginx → lima-router :8080 │
+          │  Redis (device tasks)      │
+          └─────────────┬─────────────┘
+                        │ FRP :8088
+          ┌─────────────┴─────────────┐
+          │  Windows 本机              │
+          │  :8080 本地代理 + 免费后端   │
+          │  (SCNet/Kimi/LongCat 等)    │
+          └───────────────────────────┘
+```
+
+### 安全基线（2026-05-26）
+
+- `BodySizeLimitMiddleware`：超大 body / chunked 超限 → 413。
+- `/api/live-key`：仅返回元数据，**不**下发 `GOOGLE_AI_KEY`。
+- Admin 登录：`constant_time_equals`。
+- `deploy/key_rotation.py`：退役；legacy 在 `scripts/archive/`。
+
+---
+
+## 核心技术栈（历史文档 · 2026-05-20）
 
 ### 智能路由引擎 (Smart Router)
 
