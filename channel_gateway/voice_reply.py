@@ -8,6 +8,7 @@ import re
 from channel_gateway.models import InboundMessage
 
 _MAX = int(os.environ.get("LIMA_CHANNEL_VOICE_REPLY_MAX_CHARS", "480"))
+_TTS_CAP = min(_MAX, int(os.environ.get("LIMA_CHANNEL_VOICE_TTS_SNIPPET_CHARS", "320")))
 
 
 def voice_reply_globally_enabled() -> bool:
@@ -16,6 +17,36 @@ def voice_reply_globally_enabled() -> bool:
 
 def voice_reply_max_chars() -> int:
     return _MAX
+
+
+def voice_reply_tts_text(msg: InboundMessage, text_out: str) -> str:
+    """Text to synthesize for outbound voice; shorter when user sent voice."""
+    snip = voice_reply_snippet(text_out)
+    if not snip:
+        return ""
+    if not _inbound_was_voice(msg):
+        return snip
+    parts = re.split(r"[。！？\n]", snip)
+    first = (parts[0] if parts else snip).strip() or snip
+    cap = min(_TTS_CAP, 96)
+    if len(first) > cap:
+        first = first[:cap].rstrip()
+    return first
+
+
+def voice_reply_snippet(text: str, *, max_chars: int | None = None) -> str:
+    """Short plain-text slice for TTS (drops footer, URLs, emoji)."""
+    cap = _TTS_CAP if max_chars is None else min(max_chars, _MAX)
+    t = (text or "").strip()
+    for marker in ("——", "---", "___"):
+        if marker in t:
+            t = t.split(marker, 1)[0].strip()
+    t = re.sub(r"https?://\S+", "", t)
+    t = re.sub(r"[\U0001F300-\U0001F9FF\U00002600-\U000027BF]", "", t)
+    t = re.sub(r"\s+", " ", t).strip()
+    if len(t) > cap:
+        t = t[:cap].rstrip()
+    return t
 
 
 def parse_voice_reply_command(text: str) -> str | None:
@@ -49,8 +80,8 @@ def should_attach_voice_reply(
         return False
     if user_pref_on is False:
         return False
-    body = (text_out or "").strip()
-    if not body or len(body) > _MAX:
+    snippet = voice_reply_snippet(text_out or "")
+    if not snippet:
         return False
     if user_pref_on is True:
         return True

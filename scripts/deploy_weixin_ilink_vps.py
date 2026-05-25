@@ -46,8 +46,8 @@ def main() -> None:
     print(
         _run(
             ssh,
-            "dnf install -y python3.11 python3.11-pip 2>/dev/null || "
-            "yum install -y python3.11 python3.11-pip",
+            "dnf install -y python3.11 python3.11-pip python3.11-devel gcc 2>/dev/null || "
+            "yum install -y python3.11 python3.11-pip python3.11-devel gcc",
             timeout=300,
         )
     )
@@ -64,6 +64,10 @@ def main() -> None:
     except OSError:
         pass
     sftp.put(str(bridge), f"{REMOTE}/scripts/hermes_weixin_lima_bridge.py")
+    mimo_tts = base / "mimo_tts.py"
+    if mimo_tts.is_file():
+        sftp.put(str(mimo_tts), f"{REMOTE}/mimo_tts.py")
+        print("  mimo_tts.py")
     qr_login = base / "scripts" / "hermes_weixin_qr_login.py"
     if qr_login.is_file():
         sftp.put(str(qr_login), f"{REMOTE}/scripts/hermes_weixin_qr_login.py")
@@ -77,6 +81,10 @@ def main() -> None:
         "weixin_outbound.py",
         "invite_qr.py",
         "ilink_session.py",
+        "voice_silk.py",
+        "weixin_adapter.py",
+        "context_tokens.py",
+        "weixin_voice_send.py",
     ):
         local = base / "wechat_bridge" / rel
         if local.is_file():
@@ -89,6 +97,11 @@ def main() -> None:
             continue
         sftp.put(str(f), f"{remote_acct}/{f.name}")
         print(f"  account {f.name}")
+    share_json = base / "data" / "weixin_share_qr.json"
+    if share_json.is_file():
+        _run(ssh, f"mkdir -p {REMOTE}/data")
+        sftp.put(str(share_json), f"{REMOTE}/data/weixin_share_qr.json")
+        print("  data/weixin_share_qr.json")
     sftp.close()
 
     print("=== 4. env snippet ===")

@@ -201,6 +201,8 @@ BACKENDS = {
     # ── MiMo TTS (官方API, 限时免费) ──
     'mimo_tts': {'url': 'https://api.xiaomimimo.com/v1/chat/completions', 'key': os.environ.get('MIMO_TTS_KEY', ''), 'model': 'mimo-v2.5-tts', 'fmt': 'openai', 'timeout': 30},
     'mimo_tts_v2': {'url': 'https://api.xiaomimimo.com/v1/chat/completions', 'key': os.environ.get('MIMO_TTS_KEY', ''), 'model': 'mimo-v2-tts', 'fmt': 'openai', 'timeout': 30},
+    # MiMo STT (WeChat/Telegram voice; input_audio via chat/completions, not routing pool)
+    'mimo_stt': {'url': 'https://api.xiaomimimo.com/v1/chat/completions', 'key': os.environ.get('MIMO_TTS_KEY', ''), 'model': 'mimo-v2-omni', 'fmt': 'openai', 'timeout': 45},
     # ── SCNet 大上下文 (本地代理, 文件上传突破 5 万字符限制, 需登录) ──
     'scnet_large_ds_flash': {'url': 'http://localhost:4505/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-flash', 'fmt': 'openai', 'timeout': 60, 'admission': 'code_medium_candidate', 'private_code_allowed': True},
     'scnet_large_ds_pro': {'url': 'http://localhost:4505/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-pro', 'fmt': 'openai', 'timeout': 90},

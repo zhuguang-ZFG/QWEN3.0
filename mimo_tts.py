@@ -15,6 +15,13 @@ DEFAULT_MODEL = "mimo-v2.5-tts"
 GFW_PROXY = os.environ.get("GFW_PROXY", "http://127.0.0.1:7897")
 
 
+def _httpx_proxy() -> str | None:
+    if os.environ.get("LIMA_WEIXIN_VPS", "").strip() in ("1", "true", "yes"):
+        return None
+    p = (os.environ.get("GFW_PROXY") or GFW_PROXY or "").strip()
+    return p or None
+
+
 async def tts(text: str, model: str = DEFAULT_MODEL) -> bytes | None:
     """Convert text to WAV bytes. Return None on failure."""
     api_key = os.environ.get("MIMO_TTS_KEY", API_KEY)
@@ -34,7 +41,7 @@ async def tts(text: str, model: str = DEFAULT_MODEL) -> bytes | None:
         "stream": False,
     }
     try:
-        async with httpx.AsyncClient(proxy=GFW_PROXY, timeout=30.0) as client:
+        async with httpx.AsyncClient(proxy=_httpx_proxy(), timeout=30.0) as client:
             resp = await client.post(
                 f"{API_BASE}/v1/chat/completions", headers=headers, json=body
             )

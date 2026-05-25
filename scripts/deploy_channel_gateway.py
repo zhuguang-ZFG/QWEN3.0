@@ -16,6 +16,7 @@ KEY = os.environ.get("LIMA_DEPLOY_KEY_PATH", os.path.expanduser("~/.ssh/id_ed255
 
 FILES = [
     "mimo_stt.py",
+    "mimo_tts.py",
     "routes/channel_gateway.py",
     "routes/route_registry.py",
     "search_gateway/__init__.py",
@@ -129,6 +130,11 @@ def main() -> None:
             pass
         sftp.put(str(local), remote)
         _log(f"uploaded {rel}")
+
+    share_json = base / "data" / "weixin_share_qr.json"
+    if share_json.is_file():
+        sftp.put(str(share_json), f"{REMOTE}/data/weixin_share_qr.json")
+        _log("uploaded data/weixin_share_qr.json")
     sftp.close()
 
     _run(ssh, f"mkdir -p {REMOTE}/data")

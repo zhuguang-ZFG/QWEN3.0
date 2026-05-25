@@ -5,11 +5,19 @@ from __future__ import annotations
 import os
 
 from channel_gateway.models import InboundMessage
-from channel_gateway.voice_reply import should_attach_voice_reply, voice_reply_max_chars
+from channel_gateway.voice_reply import (
+    should_attach_voice_reply,
+    voice_reply_tts_text,
+)
 
 
 def invite_qr_enabled() -> bool:
     return os.environ.get("LIMA_CHANNEL_INVITE_QR", "1") == "1"
+
+
+def invite_image_enabled() -> bool:
+    """CDN image upload often fails; default text link only."""
+    return os.environ.get("LIMA_CHANNEL_INVITE_QR_IMAGE", "0") == "1"
 
 
 def pack_text_reply(
@@ -25,7 +33,7 @@ def pack_text_reply(
     if msg is not None and should_attach_voice_reply(
         msg, text, user_pref_on=voice_pref_on
     ):
-        plain = (text or "").strip()
-        if plain:
-            out["voice_reply_text"] = plain[: voice_reply_max_chars()]
+        tts = voice_reply_tts_text(msg, text or "")
+        if tts:
+            out["voice_reply_text"] = tts
     return out

@@ -2,6 +2,14 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 VPS iLink Bridge Live (LiMa subsystem)
+
+- **服务**：`lima-weixin-ilink` active，`python3.11` + `requirements-weixin-ilink.txt`（无 `[messaging]` 全家桶）
+- **资源**：systemd `MemoryMax=384M` `CPUQuota=40%`；大脑仍为 `lima-router` :8080
+- **本机**：已 `stop_weixin_lima_ilink.ps1`，避免双实例抢 token
+- **部署**：`deploy_channel_gateway.py`（wave1）+ `deploy_weixin_ilink_vps.py`
+- **提交**：`cd19648` wave1 UX；`04fcb50` slim deps；`b1d1ee0` py3.11 path fix
+
 ## 2026-05-25 GeWe VPS Stack Retired (9919 + 2531)
 
 - **VPS**：`python scripts/cleanup_gewe_vps.py` — stopped `lima-wechat-sidecar`, removed `gewe` Docker, nginx `/gewe/*` unpatch, stripped `GEWECHAT_*` from `.env`（保留 `LIMA_WECHAT_SIDECAR_TOKEN` 供 iLink 桥）

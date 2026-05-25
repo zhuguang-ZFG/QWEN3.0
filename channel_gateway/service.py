@@ -355,7 +355,7 @@ class ChannelService:
             return self._ok_text(
                 _finalize_outbound(invite_text()),
                 msg,
-                send_invite_qr=True,
+                send_invite_qr=False,
             )
 
         if intent == "voice_reply":

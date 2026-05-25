@@ -220,7 +220,17 @@ class LimaWeixinBridge:
 
         log.info("LiMa Weixin bridge account=%s lima=%s", self.account_id, self.lima_base)
 
+        from wechat_bridge.weixin_adapter import clear_live_adapter, ensure_live_adapter
+
         async with aiohttp.ClientSession(trust_env=True, connector=_make_ssl_connector()) as session:
+            ensure_live_adapter(
+                session=session,
+                token=self.token,
+                account_id=self.account_id,
+                base_url=self.base_url,
+                cdn_base_url=cdn_base,
+                extra=extra,
+            )
             keepalive = asyncio.create_task(
                 keepalive_loop(
                     session,
@@ -284,6 +294,10 @@ class LimaWeixinBridge:
                             chat_type, chat_id = _guess_chat_type(message, self.account_id)
                             if chat_type == "group":
                                 continue
+
+                            from wechat_bridge.context_tokens import save_from_message
+
+                            save_from_message(self.account_id, message)
 
                             lima_mid = (
                                 f"ilink-{sender_id}-{message_id or 'noid'}-"
@@ -365,6 +379,7 @@ class LimaWeixinBridge:
                         log.exception("poll error: %s", exc)
                         await asyncio.sleep(5)
             finally:
+                clear_live_adapter(self.token)
                 self._stop.set()
                 keepalive.cancel()
                 try:

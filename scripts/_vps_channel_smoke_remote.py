@@ -1,7 +1,10 @@
 """VPS-side channel smoke (uploaded by vps_run_channel_smoke.py)."""
 import json
 import os
+import time
 import urllib.request
+
+_run = str(int(time.time()))
 
 
 def read_env(name: str) -> str:
@@ -55,7 +58,7 @@ print("health_ok enabled=1")
 _, r1 = post(
     "/channel/v1/wechat/message",
     {
-        "message_id": "vps-smoke-1",
+        "message_id": f"vps-smoke-1-{_run}",
         "sender_id": "vps-stranger-1",
         "conversation_id": "vps-conv-1",
         "conversation_type": "private",
@@ -70,7 +73,7 @@ print("auto_guest_ok")
 _, r2 = post(
     "/channel/v1/wechat/message",
     {
-        "message_id": "vps-smoke-2",
+        "message_id": f"vps-smoke-2-{_run}",
         "sender_id": "vps-stranger-1",
         "conversation_id": "vps-conv-1",
         "conversation_type": "private",
@@ -87,7 +90,7 @@ print("menu_ok")
 _, r3 = post(
     "/channel/v1/wechat/message",
     {
-        "message_id": "vps-smoke-3",
+        "message_id": f"vps-smoke-3-{_run}",
         "sender_id": "vps-stranger-1",
         "conversation_id": "vps-conv-1",
         "conversation_type": "private",
@@ -104,7 +107,7 @@ print("calc_ok")
 _, r4 = post(
     "/channel/v1/wechat/message",
     {
-        "message_id": "vps-smoke-4",
+        "message_id": f"vps-smoke-4-{_run}",
         "sender_id": "vps-stranger-1",
         "conversation_id": "vps-conv-1",
         "conversation_type": "private",

@@ -1,4 +1,5 @@
 """Wave 1: NL tools, voice reply pack, invite QR flag."""
+import json
 import os
 import sys
 
@@ -11,9 +12,12 @@ os.environ["LIMA_CHANNEL_INVITE_QR"] = "1"
 from channel_gateway.keyword_router import normalize_guest_text
 from channel_gateway.nl_tool_router import match_nl_tool
 from channel_gateway.outbound_pack import pack_text_reply
+from channel_gateway.invite import invite_text
 from channel_gateway.voice_reply import (
     parse_voice_reply_command,
     should_attach_voice_reply,
+    voice_reply_snippet,
+    voice_reply_tts_text,
 )
 from channel_gateway.store import ChannelStore
 from channel_gateway.service import ChannelService
@@ -54,6 +58,21 @@ def test_pack_voice_on_inbound_voice():
     assert packed.get("voice_reply_text") == "这是回复"
 
 
+def test_pack_voice_tts_short_on_inbound_voice():
+    msg = InboundMessage(
+        "w1c",
+        "u1",
+        "c1",
+        voice_transcript="你好",
+    )
+    long_answer = "你好呀！我是 LiMa。" + "可以随时问我编程问题。" * 5
+    packed = pack_text_reply(long_answer, msg)
+    tts = packed.get("voice_reply_text") or ""
+    assert tts
+    assert len(tts) <= 96
+    assert "编程问题" not in tts or len(tts) <= 40
+
+
 def test_pack_invite_qr_flag():
     msg = InboundMessage("w2", "u1", "c1", text="/邀请")
     svc = ChannelService(store=ChannelStore(":memory:"), enabled=True)
@@ -62,7 +81,37 @@ def test_pack_invite_qr_flag():
     store.create_binding("b1", "wechat", "u1", "u1", "guest")
     reply = svc.handle_message(msg)
     assert reply.ok
-    assert reply.reply.get("send_invite_qr") is True
+    assert reply.reply.get("send_invite_qr") is not True
+
+
+def test_voice_snippet_strips_footer_and_emoji():
+    long = "你好呀！😊 我是 LiMa。" + "x" * 600 + "\n—— 公司尾注"
+    snip = voice_reply_snippet(long)
+    assert snip
+    assert len(snip) <= 320
+    assert "——" not in snip
+    assert "😊" not in snip
+
+
+def test_pack_voice_on_long_inbound_voice():
+    msg = InboundMessage(
+        message_id="w1b",
+        sender_id="u1",
+        conversation_id="c1",
+        voice_transcript="你好",
+    )
+    long_answer = "你好呀！😊 " + ("助手回复 " * 80) + "\n—— 深圳市动力巢"
+    packed = pack_text_reply(long_answer, msg)
+    assert packed.get("voice_reply_text")
+    assert len(packed["voice_reply_text"]) <= 320
+
+
+def test_invite_text_points_to_web_not_liteapp(monkeypatch, tmp_path):
+    monkeypatch.setenv("WEIXIN_ACCOUNT_ID", "demo@im.bot")
+    body = invite_text(share_url="https://liteapp.weixin.qq.com/q/x")
+    assert "https://liteapp" not in body
+    assert "chat.donglicao.com" in body
+    assert "不会进 LiMa" in body or "只收到" in body
 
 
 def test_should_not_voice_when_disabled_pref():
