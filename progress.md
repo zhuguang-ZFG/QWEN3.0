@@ -3143,3 +3143,37 @@ Verification note:
   - public fake U8 WSS loop with configured device token returned
     `hello_ack`, `heartbeat_ack`, `motion_task`, `motion_event_ack`,
     `motion_event_ack`.
+
+## 2026-05-25 V1 Guest Safety Review Closeout
+
+- Reviewed PROD-008 learning loop commit `b372ccc`:
+  - `/agent/tasks/{task_id}/result` accepts optional backend/latency metadata
+    and feeds sanitized task outcomes into memory, prompt profiles, routing
+    feedback, and eval candidates.
+  - Confirmed the implementation records evidence only; it does not directly
+    mutate route pools or routing weights.
+- Reviewed the new WeChat Channel Gateway V1 guest-safety slice:
+  - new bindings default to `guest`;
+  - `owner` requires `LIMA_CHANNEL_OWNER_HASHES`;
+  - guest commands are limited to chat, code explanation, draw preview, demo,
+    about, reset, pause/resume, unbind, and help;
+  - code-task, device, status, artifact, and memory commands are owner-only;
+  - draw stays at preview metadata and does not enqueue Device Gateway work.
+- Review fixes applied:
+  - owner-only commands now dispatch to explicit owner handler stubs when the
+    binding role is `owner`, instead of falling through to an unhandled intent;
+  - sidecar authorization now requires the `Bearer` scheme and uses constant
+    time comparison.
+- Verification:
+  - focused Channel Gateway + learning loop tests:
+    `106 passed`;
+  - guest smoke script:
+    `GUEST SMOKE PASSED` with 14 steps;
+  - compile check over touched Python modules:
+    passed;
+  - `git diff --check`:
+    passed;
+  - secret scan over touched files:
+    no real secrets found; matches were test task ids and `agent-task-v1`;
+  - full suite:
+    `1346 passed, 8 skipped`.

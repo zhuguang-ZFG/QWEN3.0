@@ -658,6 +658,15 @@ except ImportError as e:
     logging.warning(f"[STARTUP] telegram module not loaded: {e}")
     _loaded_modules["telegram"] = False
 
+# ── Channel Gateway (WeChat chatbot) ───────────────────────────────────────
+try:
+    from routes.channel_gateway import router as channel_gateway_router
+    app.include_router(channel_gateway_router)
+    _loaded_modules["channel_gateway"] = True
+except ImportError as e:
+    logging.warning(f"[STARTUP] channel_gateway module not loaded: {e}")
+    _loaded_modules["channel_gateway"] = False
+
 
 # ── Startup ─────────────────────────────────────────────────────────────────
 if __name__ == "__main__":

@@ -33,6 +33,8 @@
 | LiMa Device Gateway | Public Redis HA smoke path deployed | `/device/v1/*` supports multi-device concurrency, Redis pending-to-processing task delivery with motion-event ack cleanup, stale processing recovery hooks, publish-failure degradation, and Redis pub/sub session-owner notification for multi-process delivery; `chat.donglicao.com/device/v1/*` is exposed behind per-device token auth. Postgres remains deferred for audit/history, not realtime WebSocket delivery. |
 | P0.1 ESP32 Motion Executor Contract | Deployed and smoke-verified | `MotionErrorCode` enum (8 codes), normalized motion failure errors, no-queue invalid task handling, `path_validator.py`, fake-U8 `--test failure`, default board `E_UNSUPPORTED_BOARD`, and zhuguang failure events are implemented; review fixes passed `1218 passed, 8 skipped`; VPS backup `/opt/lima-router/backups/p01-motion-contract-20260525_072701/runtime-before.tgz`; public smoke `12/12`; fake-U8 WSS success and failure loops passed. |
 | P0.4/P0.5/P0.7 Device productivity slice | Deployed and smoke-verified | Real text/SVG/path pipeline, intent parser, and `/v1/ops/metrics` landed in `e3dbb9b`; review fixed preview SVG truncation, control command projection, ops metrics state access, and production-shaped backend call stats. Verification: focused `31 passed`; previous full suite `1239 passed, 8 skipped`; VPS/public smoke `12/12`; public ops metrics HTTP 200; `write LiMa` keeps a complete preview SVG; `home` queues a control task without error. |
+| PROD-008 learning loop | Complete locally | `session_memory/learning_loop.py` ingests LiMa Code task results into memory, prompt profiles, routing feedback, and eval candidates; route/prompt behavior remains evidence-only until an explicit eval gate promotes it. Review verification: focused Channel Gateway + learning loop tests `106 passed`; full suite `1346 passed, 8 skipped`. |
+| WeChat Channel Gateway V1 | Guest-safe locally | `/channel/v1/*` is mounted in `server.py`; sidecar auth requires `Bearer` token; bindings default to guest unless `LIMA_CHANNEL_OWNER_HASHES` matches; guest commands are chat/code explanation/draw preview/demo/about/reset only, while private owner commands are rejected or stubbed. Guest smoke passed 14/14 steps. |
 
 ## 2026-05-25 Current P0 Panorama
 
@@ -43,7 +45,27 @@
 | PROD-005 | Intent parser upgraded with deterministic patterns, confidence, rejection reasons, and gated LLM replanning. | Feed outcomes into P0.8 learning loop later. |
 | PROD-006 | LiMa Code artifact bundle complete: `/lima plan`, `/lima test`, `/lima review`, and `/lima ship` write reviewable files under `.lima/artifacts/<task_id>/`. | Use artifact bundles as the evidence source for the learning loop and Server review. |
 | PROD-007 | Ops metrics endpoint deployed and smoke-verified. | Add deeper correlation as incidents expose gaps. |
-| PROD-008 | Learning loop remains architecture-level follow-up. | Promote verified task outcomes into memory, prompts, routing, and eval queues. |
+| PROD-008 | Learning loop complete locally: task outcomes feed memory, prompt, routing evidence, and eval candidates. | Keep behavior changes behind explicit eval/release gates. |
+
+## 2026-05-25 WeChat Channel Gateway V1 Guest Safety
+
+- Added `/channel/v1/bind/start`, `/channel/v1/wechat/message`, and
+  `/channel/v1/wechat/health` behind sidecar bearer-token auth.
+- New bindings default to `guest`; `owner` requires precomputed
+  `LIMA_CHANNEL_OWNER_HASHES`.
+- Guest commands:
+  `/chat`, `/code`, `/draw`, `/demo`, `/about`, `/reset`, `/pause`, `/resume`,
+  `/unbind`, `/help`, and `/bind`.
+- Owner-only commands:
+  `/code-task`, `/device`, `/status`, `/artifact`, and `/memory`.
+- Review fixes:
+  - owner-only commands now dispatch to explicit owner stubs for owner bindings;
+  - sidecar authorization now requires `Bearer <token>` and uses constant-time
+    comparison.
+- Verification:
+  - focused Channel Gateway + learning loop tests: `106 passed`;
+  - `scripts/smoke_wechat_channel_gateway.py`: 14/14 guest steps passed;
+  - full suite: `1346 passed, 8 skipped`.
 
 ## 2026-05-25 LiMa Server, LiMa Code, And ESP32 Joint Debug
 
