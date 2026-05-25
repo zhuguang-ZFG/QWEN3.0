@@ -13,7 +13,12 @@ from channel_gateway.models import (
     OutboundReply,
 )
 from channel_gateway.store import ChannelStore
-from channel_gateway.service import ChannelService, _HELP_TEXT, _ABOUT_TEXT
+from channel_gateway.service import (
+    ChannelService,
+    _ABOUT_TEXT,
+    _HELP_TEXT,
+    _TIP_FOOTER,
+)
 
 
 def _make_store():
@@ -52,36 +57,40 @@ class TestChannelServiceGuestLifecycle:
     def test_unbound_user_auto_guest_bind_on_hello(self):
         reply = self.svc.handle_message(_inbound(text="hello"))
         assert reply.ok is True
-        assert "欢迎使用" in reply.reply["text"]
+        assert "LiMa" in reply.reply["text"]
+        assert "/menu" in reply.reply["text"]
 
     def test_unbound_user_gets_bind_prompt_when_auto_bind_off(self, monkeypatch):
         monkeypatch.setenv("LIMA_CHANNEL_AUTO_GUEST_BIND", "0")
         svc = _make_svc(store=self.store)
         reply = svc.handle_message(_inbound(text="hello"))
         assert reply.ok is False
-        assert "bind" in (reply.error or "").lower()
+        body = (reply.error or reply.reply.get("text", "")).lower()
+        assert "bind" in body
 
     def test_unbound_user_bind_command_no_code(self):
         reply = self.svc.handle_message(_inbound(text="/bind"))
-        assert "code" in (reply.error or reply.reply.get("text", "")).lower()
+        body = (reply.error or reply.reply.get("text", "")).lower()
+        assert "bind" in body or "码" in (reply.reply.get("text") or "")
 
     def test_bind_flow_defaults_to_guest(self):
         code = self.store.create_binding_code("operator", ttl_seconds=300)
         reply = self.svc.handle_message(_inbound(sender="wx-user-1", text=f"/bind {code}"))
         assert reply.ok is True
-        assert "guest" in reply.reply["text"].lower()
+        assert "访客" in reply.reply["text"] or "guest" in reply.reply["text"].lower()
 
     def test_bound_guest_can_chat(self):
         self._bind_user("wx-user-1")
         reply = self.svc.handle_message(_inbound(sender="wx-user-1", text="hello world"))
         assert reply.ok is True
-        assert reply.reply["text"] == "[chat] hello world"
+        assert "[chat] hello world" in reply.reply["text"]
 
     def test_guest_rejected_digest(self):
         self._bind_user("wx-guest-d")
         reply = self.svc.handle_message(_inbound(sender="wx-guest-d", text="/简报"))
         assert reply.ok is False
-        assert "owner" in (reply.reply.get("text") or reply.error or "").lower()
+        body = reply.reply.get("text") or reply.error or ""
+        assert "owner" in body.lower() or "主人" in body
 
     def test_session_reset_clears_history(self):
         from channel_gateway.integrations import build_reset_handler
@@ -133,7 +142,8 @@ class TestChannelServiceGuestLifecycle:
         self.store.set_binding_status(binding.binding_id, BindingStatus.PAUSED)
         reply = self.svc.handle_message(_inbound(sender="wx-user-1", text="hello"))
         assert reply.ok is False
-        assert "paused" in (reply.error or "").lower()
+        body = reply.error or reply.reply.get("text", "")
+        assert "paused" in body.lower() or "暂停" in body
 
     def test_paused_user_can_resume(self):
         self._bind_user("wx-user-1")
@@ -160,14 +170,16 @@ class TestChannelServiceGuestLifecycle:
         self._bind_user("wx-user-1")
         reply = self.svc.handle_message(_inbound(sender="wx-user-1", text="/demo"))
         assert reply.ok is True
-        assert "LiMa Demo" in reply.reply["text"]
+        assert "体验" in reply.reply["text"] or "Demo" in reply.reply["text"]
         assert "/menu" in reply.reply["text"]
 
     def test_about_command_guest(self):
         self._bind_user("wx-user-1")
         reply = self.svc.handle_message(_inbound(sender="wx-user-1", text="/about"))
         assert reply.ok is True
-        assert "LiMa" in reply.reply["text"]
+        text = reply.reply["text"]
+        assert "LiMa" in text
+        assert "Hermes" in text or "不是 Hermes" in text
 
     def test_reset_command_guest(self):
         self._bind_user("wx-user-1")
@@ -178,7 +190,17 @@ class TestChannelServiceGuestLifecycle:
     def test_help_guest(self):
         reply = self.svc.handle_message(_inbound(text="/help"))
         assert reply.ok is True
-        assert "/chat" in reply.reply["text"]
+        text = reply.reply["text"]
+        assert "/menu" in text or "菜单" in text
+        assert "LiMa" in text
+
+    def test_greeting_fast_path(self):
+        reply = self.svc.handle_message(_inbound(sender="wx-new-1", text="你好"))
+        assert reply.ok is True
+        text = reply.reply["text"]
+        assert "LiMa" in text
+        assert "/menu" in text
+        assert _TIP_FOOTER not in text
 
     # -- Owner-Only Rejection -------------------------------------------
 
@@ -186,31 +208,36 @@ class TestChannelServiceGuestLifecycle:
         self._bind_user("wx-user-1")
         reply = self.svc.handle_message(_inbound(sender="wx-user-1", text="/code-task fix bug"))
         assert reply.ok is False
-        assert "owner" in reply.reply["text"].lower()
+        body = reply.reply["text"].lower()
+        assert "owner" in body or "主人" in reply.reply["text"]
 
     def test_guest_rejected_device(self):
         self._bind_user("wx-user-1")
         reply = self.svc.handle_message(_inbound(sender="wx-user-1", text="/device write LiMa"))
         assert reply.ok is False
-        assert "owner" in reply.reply["text"].lower()
+        body = reply.reply["text"].lower()
+        assert "owner" in body or "主人" in reply.reply["text"]
 
     def test_guest_rejected_status(self):
         self._bind_user("wx-user-1")
         reply = self.svc.handle_message(_inbound(sender="wx-user-1", text="/status"))
         assert reply.ok is False
-        assert "owner" in reply.reply["text"].lower()
+        body = reply.reply["text"].lower()
+        assert "owner" in body or "主人" in reply.reply["text"]
 
     def test_guest_rejected_artifact(self):
         self._bind_user("wx-user-1")
         reply = self.svc.handle_message(_inbound(sender="wx-user-1", text="/artifact abc123"))
         assert reply.ok is False
-        assert "owner" in reply.reply["text"].lower()
+        body = reply.reply["text"].lower()
+        assert "owner" in body or "主人" in reply.reply["text"]
 
     def test_guest_rejected_memory(self):
         self._bind_user("wx-user-1")
         reply = self.svc.handle_message(_inbound(sender="wx-user-1", text="/memory recent"))
         assert reply.ok is False
-        assert "owner" in reply.reply["text"].lower()
+        body = reply.reply["text"].lower()
+        assert "owner" in body or "主人" in reply.reply["text"]
 
     def test_owner_only_commands_dispatch_for_owner(self):
         sender = "wx-owner-1"
@@ -259,7 +286,8 @@ class TestChannelServiceGuestLifecycle:
         self._bind_user("wx-user-1")
         self.svc.handle_message(_inbound(sender="wx-user-1", text="/pause"))
         chat_reply = self.svc.handle_message(_inbound(sender="wx-user-1", text="hello"))
-        assert "paused" in (chat_reply.error or "").lower()
+        body = chat_reply.error or chat_reply.reply.get("text", "")
+        assert "paused" in body.lower() or "暂停" in body
         self.svc.handle_message(_inbound(sender="wx-user-1", text="/resume"))
         chat_reply2 = self.svc.handle_message(_inbound(sender="wx-user-1", text="hello"))
         assert chat_reply2.ok is True
@@ -289,7 +317,8 @@ class TestChannelServiceGuestLifecycle:
         self._bind_user("wx-user-1")
         reply = self.svc.handle_message(_inbound(sender="wx-user-1", text="/foobar"))
         assert reply.ok is False
-        assert "unknown" in (reply.error or reply.reply["text"]).lower()
+        body = (reply.error or reply.reply["text"]).lower()
+        assert "unknown" in body or "未识别" in reply.reply["text"]
 
     def _bind_user(self, sender_id):
         code = self.store.create_binding_code("operator", ttl_seconds=300)

@@ -16,6 +16,17 @@ if TYPE_CHECKING:
     from channel_gateway.chat_session import ChannelChatSession
 
 
+def _friendly_guest_error(exc: BaseException) -> str:
+    name = type(exc).__name__
+    if name in ("TimeoutError", "ReadTimeout", "ConnectTimeout"):
+        return "回复超时，请稍后再试或缩短问题。"
+    if name in ("ConnectionError", "ConnectError", "RemoteDisconnected"):
+        return "暂时连不上模型服务，请稍后再试。"
+    if name in ("HTTPError", "ClientError"):
+        return "上游服务异常，请稍后再试。"
+    return "暂时无法回答，请稍后再试。"
+
+
 def build_chat_handler(
     route_fn: Optional[Callable] = None,
     call_api_fn: Optional[Callable] = None,
@@ -39,11 +50,11 @@ def build_chat_handler(
             return ""
         try:
             system_prompt = (
-                "You are LiMa, a private coding and hardware assistant. "
-                "You are talking to a guest user through WeChat. "
-                "Be helpful, concise, and friendly. "
-                "Do not mention internal infrastructure, server status, file paths, "
-                "API keys, or private project details."
+                "你是 LiMa，深圳市动力巢科技有限公司的智能助手，正在通过微信服务访客。"
+                "用简体中文，简洁、实用、友好。"
+                "不要自称 Hermes；不要透露服务器路径、API 密钥、内部架构。"
+                "若被问公司/产品：动力巢科技，官网 www.donglilicao.com，在线体验 chat.donglicao.com。"
+                "若被问模型：由 LiMa 智能路由多后端作答，聚焦解决用户问题。"
             )
             messages = [{"role": "system", "content": system_prompt}]
             if session is not None:
@@ -54,13 +65,13 @@ def build_chat_handler(
             else:
                 result = route_fn(text, messages)
             answer = getattr(result, "answer", "") if hasattr(result, "answer") else str(result)
-            reply = answer if answer else "LiMa returned an empty response."
+            reply = answer if answer else "暂时没有生成内容，请换个问法或稍后再试。"
             if session is not None:
                 session.record_turn(user_id, "user", text)
                 session.record_turn(user_id, "assistant", reply)
             return reply
         except Exception as e:
-            return f"Chat error: {type(e).__name__}"
+            return _friendly_guest_error(e)
 
     return handler
 
@@ -94,10 +105,9 @@ def build_code_handler(
     def handler(user_id: str, question: str) -> str:
         try:
             system_prompt = (
-                "You are LiMa, a coding assistant. A guest user on WeChat is asking "
-                "a code question. Explain clearly with examples if helpful. "
-                "Do NOT create files, execute commands, or access repositories. "
-                "This is a read-only explanation."
+                "你是 LiMa 编程助手，访客在微信上提问。"
+                "用简体中文讲解，必要时给简短示例。"
+                "只读说明：不创建文件、不执行命令、不访问仓库。"
             )
             messages = [{"role": "system", "content": system_prompt}]
             if session is not None:
@@ -108,13 +118,13 @@ def build_code_handler(
             else:
                 result = route_fn(question, messages)
             answer = getattr(result, "answer", "") if hasattr(result, "answer") else str(result)
-            reply = answer if answer else "Could not explain that."
+            reply = answer if answer else "暂时无法解答该问题，请换个说法。"
             if session is not None:
                 session.record_turn(user_id, "user", f"/code {question}")
                 session.record_turn(user_id, "assistant", reply)
             return reply
         except Exception as e:
-            return f"Code help error: {type(e).__name__}"
+            return _friendly_guest_error(e)
 
     return handler
 
@@ -125,7 +135,7 @@ def build_draw_handler() -> Callable[[str, str], str]:
     def handler(user_id: str, prompt: str) -> str:
         safe_text = prompt.strip()[:200]
         if not safe_text:
-            return "Usage: /draw <prompt>"
+            return "用法：/draw <文字>，例如 /draw LiMa"
         try:
             from device_gateway.path_pipeline import render_text_task
 
@@ -133,24 +143,24 @@ def build_draw_handler() -> Callable[[str, str], str]:
             path = rendered.get("path") or []
             preview = str(rendered.get("preview_svg", ""))
             lines = [
-                f"Draw demo: '{safe_text}'",
+                f"绘图预览：「{safe_text}」",
                 "",
-                "Preview (demo only — no hardware queue):",
-                f"  Path points: {rendered.get('point_count', len(path))}",
-                "  Font: stroke (demo)",
+                "（仅 demo，不会下发到真实设备）",
+                f"  路径点数：{rendered.get('point_count', len(path))}",
+                "  字体：描边 demo",
             ]
             if preview:
-                lines.append(f"  SVG: {preview[:120]}{'...' if len(preview) > 120 else ''}")
+                lines.append(f"  SVG 摘要：{preview[:120]}{'...' if len(preview) > 120 else ''}")
             lines.extend([
                 "",
-                "This is a demo preview. Real device drawing requires owner access.",
+                "真实设备绘制需主人账号（/bind 操作员码）。",
             ])
             return "\n".join(lines)
         except ImportError:
             return (
-                f"Draw demo: '{safe_text}'\n\n"
-                "Preview not available (path pipeline not loaded).\n"
-                "Real device drawing requires owner access."
+                f"绘图预览：「{safe_text}」\n\n"
+                "预览模块未加载。\n"
+                "真实设备绘制需主人账号。"
             )
 
     return handler

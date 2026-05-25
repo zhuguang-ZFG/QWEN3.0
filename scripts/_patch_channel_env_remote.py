@@ -17,6 +17,8 @@ flags = {
     "LIMA_CHANNEL_SESSION": "1",
     "LIMA_CHANNEL_AUTO_GUEST_BIND": "1",
     "LIMA_CHANNEL_DB_PATH": "data/channel_gateway.db",
+    "LIMA_CHANNEL_VOICE_REPLY": "1",
+    "LIMA_CHANNEL_INVITE_QR": "1",
 }
 data.update(flags)
 

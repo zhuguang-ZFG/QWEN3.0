@@ -92,6 +92,7 @@ class WechatMessageRequest(BaseModel):
     conversation_type: str = "private"
     text: str = ""
     timestamp: int = 0
+    attachments: list = []
 
 
 # -- Routes ------------------------------------------------------------------
@@ -123,6 +124,7 @@ async def wechat_message(req: WechatMessageRequest, _=Depends(_require_sidecar))
         conversation_type=req.conversation_type,
         text=req.text,
         timestamp=req.timestamp,
+        attachments=req.attachments or [],
     )
     result = svc.handle_message(msg)
     body = {"ok": result.ok}

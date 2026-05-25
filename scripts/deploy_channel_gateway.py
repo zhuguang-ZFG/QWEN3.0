@@ -15,6 +15,7 @@ REMOTE = "/opt/lima-router"
 KEY = os.environ.get("LIMA_DEPLOY_KEY_PATH", os.path.expanduser("~/.ssh/id_ed25519"))
 
 FILES = [
+    "mimo_stt.py",
     "routes/channel_gateway.py",
     "routes/route_registry.py",
     "search_gateway/__init__.py",
@@ -36,6 +37,13 @@ CHANNEL_GATEWAY_FILES = [
     "public_apis.py",
     "tool_usage.py",
     "chat_session.py",
+    "branding.py",
+    "media_inbound.py",
+    "keyword_router.py",
+    "invite.py",
+    "nl_tool_router.py",
+    "voice_reply.py",
+    "outbound_pack.py",
 ]
 
 ENV_FLAGS = {
@@ -44,6 +52,8 @@ ENV_FLAGS = {
     "LIMA_CHANNEL_SESSION": "1",
     "LIMA_CHANNEL_AUTO_GUEST_BIND": "1",
     "LIMA_CHANNEL_DB_PATH": "data/channel_gateway.db",
+    "LIMA_CHANNEL_VOICE_REPLY": "1",
+    "LIMA_CHANNEL_INVITE_QR": "1",
 }
 
 def _run(ssh: paramiko.SSHClient, cmd: str, timeout: float | None = None) -> str:
