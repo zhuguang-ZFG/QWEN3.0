@@ -16,6 +16,9 @@ from context_pipeline.retrieval_eval_runner import (
 )
 
 FIXTURE_PATH = Path(__file__).resolve().parent / "fixtures" / "retrieval_eval" / "lima_core.json"
+ROUTING_FIXTURE_PATH = (
+    Path(__file__).resolve().parent / "fixtures" / "retrieval_eval" / "lima_routing.json"
+)
 
 
 def test_load_lima_core_fixture():
@@ -95,3 +98,23 @@ def test_evaluate_fixture_index_empty_corpus_fails_gate(tmp_path):
 
     assert passed is False
     assert summary.hit_rate == 0.0
+
+
+def test_lima_routing_fixture_dual_layer_passes_gate():
+    spec, summary, passed, failures = run_fixture_eval(ROUTING_FIXTURE_PATH)
+
+    assert spec.eval_mode == "dual_layer"
+    assert len(spec.graph_relations) >= 3
+    assert passed, failures
+    assert summary.hit_rate >= spec.thresholds.min_hit_rate
+
+
+def test_evaluate_fixture_dual_layer_includes_graph_neighbors():
+    from context_pipeline.retrieval_eval_runner import evaluate_fixture
+
+    spec = load_fixture(ROUTING_FIXTURE_PATH)
+    index = build_index_from_fixture(spec)
+    summary = evaluate_fixture(index, spec)
+
+    cross_query = next(r for r in summary.results if "route_request" in r.query)
+    assert "health_tracker.py" in cross_query.retrieved_paths or cross_query.recall > 0

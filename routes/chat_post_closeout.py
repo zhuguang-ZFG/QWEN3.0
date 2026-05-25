@@ -1,0 +1,53 @@
+"""Post-route closeout for chat handler (CQ-014 slice 10)."""
+
+from __future__ import annotations
+
+import hashlib
+import os
+
+
+def persist_session_memory(
+    *,
+    client_ip: str,
+    memory_session_id: str | None,
+    query: str,
+    content: str,
+) -> None:
+    try:
+        from session_memory.compactor import compact_session, needs_compaction
+        from session_memory.store import save_memory
+
+        session_id = memory_session_id or hashlib.md5((client_ip or "anon").encode()).hexdigest()[:12]
+        save_memory(session_id, "user", query[:100])
+        if content:
+            save_memory(session_id, "assistant", content[:100])
+        if needs_compaction(session_id):
+            compact_session(session_id)
+    except (ImportError, Exception):
+        pass
+
+
+def record_chat_observability(*, chat_id: str, backend: str, duration_ms: int) -> None:
+    try:
+        from observability.correlation import record_request_correlation
+
+        record_request_correlation(
+            request_id=chat_id,
+            backend=backend,
+            status="success",
+            latency_ms=duration_ms,
+        )
+    except ImportError:
+        pass
+
+
+def maybe_log_distill_queue(*, query: str, content: str, intent, backend: str) -> None:
+    if os.environ.get("DISTILL_LOG", "0") != "1":
+        return
+    try:
+        import smart_router
+
+        intent_payload = intent if isinstance(intent, dict) else {"intent": intent}
+        smart_router._log_to_distill_queue(query, content, intent_payload, backend)
+    except Exception:
+        pass

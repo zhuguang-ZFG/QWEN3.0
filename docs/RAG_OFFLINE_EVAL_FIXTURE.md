@@ -60,9 +60,22 @@ print(format_fixture_report(spec, summary, passed, failures))
 
 ## 扩展
 
-1. 新增 fixture JSON（如 `lima_routing.json` 指向真实路由模块语料）
-2. 可选 `graph_relations` 字段对接 `graph_retrieval.dual_layer_search`
+1. `tests/fixtures/retrieval_eval/lima_routing.json` — LiMa 路由语料 + `graph_relations` + `eval_mode: dual_layer`
+2. `tests/fixtures/routing_corpus/` — 路由模块 stub 语料
 3. CI 中将 `test_retrieval_eval_fixture.py` 作为 RAG 回归门禁
+
+### graph_relations 与 dual_layer
+
+```json
+{
+  "eval_mode": "dual_layer",
+  "graph_relations": [
+    {"source": "routing_engine.py", "target": "http_caller.py", "relation_type": "imports"}
+  ]
+}
+```
+
+`retrieval_eval_runner.evaluate_fixture()` 在 `dual_layer` 模式下调用 `graph_retrieval.dual_layer_search` 合并 vector + graph 结果。
 
 ## 验证
 

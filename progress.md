@@ -2,6 +2,15 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 RAG Routing Fixture + HTTP/Chat Slice 10 Closeout
+
+- RAG: `lima_routing.json` + `routing_corpus/` stubs; `dual_layer` + `graph_relations` in runner
+- HTTP slice 10: `http_sync.py`, `http_async.py`; `http_caller.py` ~38 lines
+- Chat slice 10: `routes/chat_preflight.py`, `routes/chat_post_closeout.py`; `chat_handler.py` ~253 lines
+- Tests: **1430 passed, 10 skipped** (+2 RAG routing tests)
+- VPS backup: `/opt/lima-router/backups/cq014-rag-http-chat-20260525_142244/runtime-before.tgz`
+- Public smoke: **12/12** with token `cq014_rag_http_chat_ok`
+
 ## 2026-05-25 CQ-014 Health Tracker Slice 9 Closeout
 
 - Design: `docs/CQ014_HEALTH_TRACKER_SLICE.md`

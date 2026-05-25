@@ -23,7 +23,27 @@ pytest test_http_caller.py tests/test_http_caller_concurrency.py -q
 pytest -q
 ```
 
-## 后续
+## 后续 slice
 
-- `health_tracker.py` 拆分
-- 可选：将 sync/async call 进一步收到 `http_sync.py` / `http_async.py`
+- ~~`health_tracker.py` 拆分~~ ✅ slice 9
+- `http_sync.py` / `http_async.py` ✅ slice 10
+- `routes/chat_preflight.py` / `chat_post_closeout.py` ✅ slice 10
+
+## 验证
+
+```bash
+pytest test_http_caller.py tests/test_http_caller_concurrency.py -q
+pytest -q
+```
+
+## 模块 (slice 8–10)
+
+| 模块 | 文件 |
+|------|------|
+| 错误 | `http_errors.py` |
+| 请求构建 | `http_request_builder.py` |
+| 响应解析 | `http_response.py` |
+| 流式 | `http_stream.py` |
+| 同步调用 | `http_sync.py` |
+| 异步调用 | `http_async.py` |
+| 入口 | `http_caller.py` (~40 行) |

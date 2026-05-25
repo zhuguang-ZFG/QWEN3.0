@@ -24,6 +24,13 @@ class EvalThresholds:
 
 
 @dataclass
+class GraphRelation:
+    source: str
+    target: str
+    relation_type: str = "imports"
+
+
+@dataclass
 class FixtureSpec:
     name: str
     corpus_root: Path
@@ -31,6 +38,8 @@ class FixtureSpec:
     match_by: str
     thresholds: EvalThresholds
     queries: list[RetrievalQuery] = field(default_factory=list)
+    eval_mode: str = "index"
+    graph_relations: list[GraphRelation] = field(default_factory=list)
 
 
 def _repo_root() -> Path:
@@ -66,6 +75,14 @@ def load_fixture(path: str | Path) -> FixtureSpec:
         )
         for item in data.get("queries", [])
     ]
+    graph_relations = [
+        GraphRelation(
+            source=rel["source"],
+            target=rel["target"],
+            relation_type=rel.get("relation_type", rel.get("type", "imports")),
+        )
+        for rel in data.get("graph_relations", [])
+    ]
 
     return FixtureSpec(
         name=data.get("name", fixture_path.stem),
@@ -74,6 +91,8 @@ def load_fixture(path: str | Path) -> FixtureSpec:
         match_by=data.get("match_by", "basename"),
         thresholds=thresholds,
         queries=queries,
+        eval_mode=data.get("eval_mode", "index"),
+        graph_relations=graph_relations,
     )
 
 
@@ -108,12 +127,60 @@ def evaluate_fixture_index(
     index: LocalRetrievalIndex,
     spec: FixtureSpec,
 ) -> EvalSummary:
-    """Run fixture queries against an index and score with retrieval_eval metrics."""
     retrieved: list[list[str]] = []
     for query in spec.queries:
         hits = index.search(query.query, top_k=spec.top_k)
         retrieved.append([_hit_to_match_path(hit, spec.match_by) for hit in hits])
     return evaluate_queries(spec.queries, retrieved, k=spec.top_k)
+
+
+def build_graph_from_fixture(spec: FixtureSpec):
+    from context_pipeline.graph_retrieval import CodeGraph
+
+    graph = CodeGraph()
+    for rel in spec.graph_relations:
+        graph.add_relation(rel.source, rel.target, rel.relation_type)
+    return graph
+
+
+def evaluate_fixture_dual_layer(
+    index: LocalRetrievalIndex,
+    spec: FixtureSpec,
+) -> EvalSummary:
+    from context_pipeline.graph_retrieval import RetrievalResult, dual_layer_search
+
+    graph = build_graph_from_fixture(spec)
+    retrieved: list[list[str]] = []
+    for query in spec.queries:
+        hits = index.search(query.query, top_k=spec.top_k)
+        vector_results = [
+            RetrievalResult(
+                path=_hit_to_match_path(hit, spec.match_by),
+                score=max(hit.score, 0.1),
+                source="vector",
+            )
+            for hit in hits
+        ]
+        seed_entities = [_hit_to_match_path(hit, spec.match_by) for hit in hits[:2]]
+        if not seed_entities and vector_results:
+            seed_entities = [vector_results[0].path]
+        merged = dual_layer_search(
+            seed_entities,
+            vector_results,
+            graph,
+            max_results=spec.top_k,
+        )
+        retrieved.append([result.path for result in merged])
+    return evaluate_queries(spec.queries, retrieved, k=spec.top_k)
+
+
+def evaluate_fixture(
+    index: LocalRetrievalIndex,
+    spec: FixtureSpec,
+) -> EvalSummary:
+    if spec.eval_mode == "dual_layer" and spec.graph_relations:
+        return evaluate_fixture_dual_layer(index, spec)
+    return evaluate_fixture_index(index, spec)
 
 
 def check_thresholds(summary: EvalSummary, thresholds: EvalThresholds) -> tuple[bool, list[str]]:
@@ -138,7 +205,7 @@ def run_fixture_eval(path: str | Path) -> tuple[FixtureSpec, EvalSummary, bool, 
     """Load fixture, build index, evaluate, and gate on thresholds."""
     spec = load_fixture(path)
     index = build_index_from_fixture(spec)
-    summary = evaluate_fixture_index(index, spec)
+    summary = evaluate_fixture(index, spec)
     passed, failures = check_thresholds(summary, spec.thresholds)
     return spec, summary, passed, failures
 
@@ -149,6 +216,7 @@ def format_fixture_report(spec: FixtureSpec, summary: EvalSummary, passed: bool,
         f"Fixture: {spec.name}",
         f"Corpus: {spec.corpus_root}",
         f"Match by: {spec.match_by}",
+        f"Eval mode: {spec.eval_mode}",
         format_summary(summary),
         f"Gate: {'PASS' if passed else 'FAIL'}",
     ]

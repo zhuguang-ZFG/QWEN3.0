@@ -1,9 +1,8 @@
-"""Main chat request handler (CQ-014 slice 4)."""
+"""Main chat request handler (CQ-014 slice 4/10)."""
 
 from __future__ import annotations
 
 import asyncio
-import os
 import time
 from typing import Callable
 
@@ -18,15 +17,22 @@ from response_builder import (
     build_response,
     extract_query,
     make_chat_id,
-    messages_to_dicts,
 )
-from routes.quality_gate import quality_check
-from routes.v3_adapters import v3_route
-from server_context import build_prompt_context, messages_with_system_context
-
-from routes.chat_fallback import QualityFallbackRequest, inject_deps as _inject_chat_fallback_deps, resolve_quality_fallback
+from routes.chat_fallback import (
+    QualityFallbackRequest,
+    inject_deps as _inject_chat_fallback_deps,
+    resolve_quality_fallback,
+)
+from routes.chat_post_closeout import (
+    maybe_log_distill_queue,
+    persist_session_memory,
+    record_chat_observability,
+)
+from routes.chat_preflight import prepare_chat_preflight
 from routes.chat_stream import stream_response
 from routes.chat_support import attach_memory_recall_meta, log_sys_prompt, thinking_route
+from routes.quality_gate import quality_check
+from routes.v3_adapters import v3_route
 
 _model_id = "lima-1.3"
 _record_request: Callable[..., None] | None = None
@@ -66,19 +72,6 @@ async def handle_chat(
     if not query.strip():
         raise HTTPException(status_code=400, detail="Empty query")
 
-    try:
-        from context_pipeline.guardrails import GuardrailSeverity, run_input_guardrails
-
-        raw_messages = [
-            {"role": m.role, "content": m.content} if hasattr(m, "role") else m
-            for m in req.messages
-        ]
-        guard_result = run_input_guardrails(raw_messages)
-        if not guard_result.passed and guard_result.severity == GuardrailSeverity.BLOCK:
-            raise HTTPException(status_code=422, detail=f"Input blocked: {guard_result.violations}")
-    except ImportError:
-        pass
-
     chat_id = make_chat_id()
     t0 = time.time()
 
@@ -90,49 +83,19 @@ async def handle_chat(
     except ImportError:
         trace = None
 
-    prompt_ctx = build_prompt_context(
+    preflight = prepare_chat_preflight(
         req,
-        system_prompt=extract_system_prompt(req.messages) or sys_prompt_preview or "",
-        request_headers=request_headers,
         client_ip=client_ip,
         ide_source=ide_source,
+        sys_prompt_preview=sys_prompt_preview,
+        request_headers=request_headers,
         trace=trace,
     )
-    request_messages = prompt_ctx.request_messages
-    prompt_context_messages = prompt_ctx.prompt_context_messages
-    sys_prompt_preview = prompt_ctx.system_prompt
-    memory_recall_meta = prompt_ctx.memory_recall_meta
-    memory_session_id = prompt_ctx.memory_session_id
-
-    try:
-        from context_pipeline.token_budget import check_budget
-
-        budget_status = check_budget(
-            request_messages,
-            sys_prompt_preview or "",
-            "coding" if ide_source else "chat",
-        )
-        if not budget_status["within_budget"] and budget_status["action"] == "truncate_context":
-            if len(req.messages) > 10:
-                req.messages = req.messages[:3] + req.messages[-7:]
-                request_messages = messages_to_dicts(req.messages)
-                prompt_context_messages = messages_with_system_context(
-                    request_messages, sys_prompt_preview
-                )
-    except ImportError:
-        pass
-
-    try:
-        from user_identity.adapter import adapt_system_prompt
-
-        adapted = adapt_system_prompt(sys_prompt_preview or "", client_ip)
-        if adapted != sys_prompt_preview:
-            sys_prompt_preview = adapted
-            prompt_context_messages = messages_with_system_context(
-                request_messages, sys_prompt_preview
-            )
-    except ImportError:
-        pass
+    request_messages = preflight.request_messages
+    prompt_context_messages = preflight.prompt_context_messages
+    sys_prompt_preview = preflight.system_prompt
+    memory_recall_meta = preflight.memory_recall_meta
+    memory_session_id = preflight.memory_session_id
 
     prefer = None
     if req.model in ("fast", "lima"):
@@ -252,21 +215,12 @@ async def handle_chat(
         )
 
     duration_ms = int((time.time() - t0) * 1000)
-
-    try:
-        from session_memory.compactor import compact_session, needs_compaction
-        from session_memory.store import save_memory
-        import hashlib
-
-        session_id = memory_session_id or hashlib.md5((client_ip or "anon").encode()).hexdigest()[:12]
-        save_memory(session_id, "user", query[:100])
-        if content:
-            save_memory(session_id, "assistant", content[:100])
-        if needs_compaction(session_id):
-            compact_session(session_id)
-    except (ImportError, Exception):
-        pass
-
+    persist_session_memory(
+        client_ip=client_ip,
+        memory_session_id=memory_session_id,
+        query=query,
+        content=content,
+    )
     _record_request(
         query,
         backend,
@@ -277,24 +231,8 @@ async def handle_chat(
         ide_source=ide_source,
         sys_prompt_preview=sys_prompt_preview,
     )
-
-    try:
-        from observability.correlation import record_request_correlation
-
-        record_request_correlation(
-            request_id=chat_id,
-            backend=backend,
-            status="success",
-            latency_ms=duration_ms,
-        )
-    except ImportError:
-        pass
-
-    try:
-        if os.environ.get("DISTILL_LOG", "0") == "1":
-            smart_router._log_to_distill_queue(query, content, intent_name, backend)
-    except Exception:
-        pass
+    record_chat_observability(chat_id=chat_id, backend=backend, duration_ms=duration_ms)
+    maybe_log_distill_queue(query=query, content=content, intent=intent_name, backend=backend)
 
     sys_prompt = extract_system_prompt(req.messages)
     if sys_prompt:
