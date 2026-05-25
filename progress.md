@@ -2,6 +2,13 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 GeWe VPS Stack Retired (9919 + 2531)
+
+- **VPS**：`python scripts/cleanup_gewe_vps.py` — stopped `lima-wechat-sidecar`, removed `gewe` Docker, nginx `/gewe/*` unpatch, stripped `GEWECHAT_*` from `.env`（保留 `LIMA_WECHAT_SIDECAR_TOKEN` 供 iLink 桥）
+- **仓库**：GeWe 脚本迁至 `scripts/archive/gewe_retired/`；删除生产用 `wechat_bridge/{sidecar_server,gewechat_client,callback_handler}.py`
+- **文档**：`docs/WECHAT_CHANNEL_ILINK_ONLY.md`；`WECHAT_SIDECAR_JOINT_DEBUG.md` 标作废
+- **生产微信**：仅 iLink 本机桥 + `/channel`
+
 ## 2026-05-25 CQ-090: WeChat G3 Session + Extra Tools + Owner Digest
 
 - **新工具**：`/算` `/黄历` `/股票` `/地震`；**G3** `LIMA_CHANNEL_SESSION=1` 保留最近 6 轮（`LIMA_CHANNEL_SESSION_TURNS`）
