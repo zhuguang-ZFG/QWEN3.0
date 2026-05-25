@@ -1,4 +1,5 @@
 import importlib
+from pathlib import Path
 
 import eval_registry
 from eval_registry import EvalEntry
@@ -8,10 +9,9 @@ def test_default_registry_path_stays_inside_repo_data(monkeypatch):
     monkeypatch.delenv("LIMA_EVAL_REGISTRY", raising=False)
     module = importlib.reload(eval_registry)
 
-    assert module._EVAL_PATH.endswith("data\\eval_registry.jsonl") or module._EVAL_PATH.endswith(
-        "data/eval_registry.jsonl"
-    )
-    assert "D:\\GIT\\data" in module._EVAL_PATH or "/GIT/data" in module._EVAL_PATH
+    repo_root = Path(module.__file__).resolve().parent
+    expected = repo_root / "data" / "eval_registry.jsonl"
+    assert Path(module._EVAL_PATH).resolve() == expected.resolve()
 
 
 def test_record_query_filter_summary_and_latest_limit(monkeypatch, tmp_path):

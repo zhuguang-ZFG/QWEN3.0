@@ -14,7 +14,7 @@
 - **生产检索接线**：`retrieval_corpus.py` + `production_index.py`；`retrieval_injection` vector 层走 prod index；`code_scanner.scan_files()` 对齐 prod 语料
 - **server 收尾**：`server_bootstrap.py`（fallback/state/constants）；`server.py` ~131 行
 - Design: `docs/PRODUCTION_RETRIEVAL_WIRING.md`
-- `requirements_server.txt` 补 `pybreaker`（CI test job）
+- `requirements_server.txt` 补 `pybreaker`、`python-multipart`（CI test job）
 - Tests: **1451 passed, 10 skipped**
 
 ## 2026-05-25 RAG CI Gate Milestone Closeout
