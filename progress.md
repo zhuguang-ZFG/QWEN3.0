@@ -2,6 +2,13 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 Deploy Manifest + P2 Cleanup
+
+- **Deploy 清单**：`deploy_prod_retrieval.py` 补全 routing split（`routing_classifier/selector/executor`, `route_post_process`）+ retrieval stack（`entity_extraction`, `graph_retrieval`, `reranking`）；`--smoke` 选项；SSH 后台启动防阻塞
+- **小清理**：`response_cleaner.py` 消除 `SyntaxWarning`（together/naga 品牌字面量）；`test_agent_eval.py` 可移植 repo root
+- **VPS smoke**：`prod_retrieval_trace_ok`，`injected_chars=380`，entities `[routing_engine.py, health_tracker.py]`
+- **Backup**：`prod-retrieval-20260525_145133`
+
 ## 2026-05-25 VPS Prod Retrieval Deploy + Trace Smoke
 
 - Deploy: `scripts/deploy_prod_retrieval.py` → backup `prod-retrieval-20260525_143719`

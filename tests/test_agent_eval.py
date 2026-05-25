@@ -1,7 +1,9 @@
 """Tests for agent_eval harness."""
 
 import sys
-sys.path.insert(0, "D:/GIT")
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from agent_eval import (
     TaskScore,
