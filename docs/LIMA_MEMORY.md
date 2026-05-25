@@ -2,6 +2,17 @@
 
 ## 2026-05-25 Joint Debug Memory
 
+- On 2026-05-25 the P0.4/P0.5/P0.7 review fixes were deployed to VPS. During
+  deploy smoke, `/v1/ops/metrics` returned 500 because production
+  `backend_calls` values are `{count, success, total_ms}` dictionaries rather
+  than integers. `routes/ops_metrics.py` now normalizes both shapes and exposes
+  `backend_call_details`; local focused verification returned `31 passed`, VPS
+  local/public ops metrics returned HTTP 200, public online smoke returned
+  `12/12`, `write LiMa` preserved a complete preview SVG, `home` produced a
+  pathless control task, and the temporary `codex-smoke-p04` Redis queues were
+  cleaned. Backups:
+  `/opt/lima-router/backups/p04-review-20260525_080630/runtime-before.tar` and
+  `/opt/lima-router/backups/ops-metrics-fix-20260525_081216/runtime-before.tar`.
 - On 2026-05-25 review of `e3dbb9b` found and fixed three Device Gateway
   production gaps: `preview_svg` was truncated by validation and could not be
   used for replay, parsed control commands such as `home` became failed

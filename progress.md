@@ -2,6 +2,56 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 P0.4/P0.5/P0.7 VPS Deploy And Ops Metrics Fix
+
+- Deployed review-fixed Device Gateway productivity slice to VPS
+  `/opt/lima-router` from local commit `b22b3bd`, then found one production-only
+  `/v1/ops/metrics` failure during authenticated smoke.
+- Root cause: production `server._stats["backend_calls"]` stores backend values
+  as dictionaries such as `{count, success, total_ms}`, while the new ops
+  endpoint sorted them as numeric values and raised `TypeError` on `-dict`.
+- Fix:
+  - `routes/ops_metrics.py` now normalizes backend call counts for both legacy
+    numeric values and production dict values;
+  - response keeps `backend_calls` as compact `backend -> count` for dashboards;
+  - response adds `backend_call_details` with `{count, success, total_ms}` for
+    operator diagnostics.
+- Regression tests:
+  - `tests/test_ops_metrics.py` covers Starlette `app.state.stats`, server
+    state exposure, and production-shaped backend call stats.
+- Local verification:
+  - `python -m pytest tests/test_ops_metrics.py tests/test_device_gateway_path_validator.py tests/test_device_gateway_protocol.py tests/test_device_gateway_protocol_families.py -q`:
+    `31 passed`;
+  - `python -m py_compile routes/ops_metrics.py`: passed.
+- VPS deployment evidence:
+  - full slice backup before archive overlay:
+    `/opt/lima-router/backups/p04-review-20260525_080630/runtime-before.tar`;
+  - ops metrics hotfix backup:
+    `/opt/lima-router/backups/ops-metrics-fix-20260525_081216/runtime-before.tar`;
+  - remote compile used `/usr/local/bin/python3.10`;
+  - `systemctl is-active lima-router`: `active`;
+  - VPS-local `/health`: `status=ok`;
+  - VPS-local `/device/v1/health`: Redis task store, Redis session bus,
+    `listener_alive=true`;
+  - VPS-local `/v1/ops/metrics`: HTTP 200 with `backend_calls` and
+    `backend_call_details`.
+- Public verification:
+  - `python scripts/smoke_online_distributions.py --api-key lima-local --chat-exact p04_review_ok`:
+    `12/12 checks passed`;
+  - public `/v1/ops/metrics` with private bearer auth returned HTTP 200 and
+    live stats;
+  - Device Gateway task smoke for `write LiMa` returned `capability=run_path`
+    with a complete `preview_svg` ending in `</svg>`;
+  - Device Gateway task smoke for `home` returned `capability=home` with no
+    task error;
+  - temporary Redis queues for `codex-smoke-p04` were deleted afterward
+    (`pending_len=0`, `processing_len=0`).
+- Residual risk:
+  - ESP-IDF firmware compile for PROD-003 is still pending until ESP-IDF is
+    available in the verification environment;
+  - Postgres remains deferred for audit/history and is not required for current
+    realtime WebSocket task delivery.
+
 ## 2026-05-25 P0.4/P0.5/P0.7 Review Fixes
 
 - Reviewed `e3dbb9b` (`feat(device-gateway): p0.4 path pipeline + p0.5 intent parser + p0.7 ops metrics`).

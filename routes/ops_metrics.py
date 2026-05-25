@@ -33,6 +33,40 @@ def _app_stats(request: Request) -> dict[str, Any]:
     return stats if isinstance(stats, dict) else {}
 
 
+def _backend_call_count(value: Any) -> int:
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int | float):
+        return int(value)
+    if isinstance(value, dict):
+        count = value.get("count", 0)
+        return int(count) if isinstance(count, int | float) else 0
+    return 0
+
+
+def _backend_call_detail(value: Any) -> dict[str, Any]:
+    if isinstance(value, dict):
+        return {
+            "count": _backend_call_count(value),
+            "success": int(value.get("success", 0)) if isinstance(value.get("success", 0), int | float) else 0,
+            "total_ms": int(value.get("total_ms", 0)) if isinstance(value.get("total_ms", 0), int | float) else 0,
+        }
+    return {"count": _backend_call_count(value), "success": 0, "total_ms": 0}
+
+
+def _top_backend_counts(backend_calls: dict[str, Any], limit: int = 10) -> dict[str, int]:
+    ranked = sorted(
+        ((name, _backend_call_count(value)) for name, value in backend_calls.items()),
+        key=lambda item: -item[1],
+    )
+    return dict(ranked[:limit])
+
+
+def _top_backend_details(backend_calls: dict[str, Any], limit: int = 10) -> dict[str, dict[str, Any]]:
+    ranked_names = list(_top_backend_counts(backend_calls, limit=limit).keys())
+    return {name: _backend_call_detail(backend_calls[name]) for name in ranked_names}
+
+
 @router.get("/metrics", dependencies=[Depends(require_private_api_key)])
 async def ops_metrics(request: Request) -> JSONResponse:
     now = time.time()
@@ -131,7 +165,8 @@ async def ops_metrics(request: Request) -> JSONResponse:
         "timestamp": int(now),
         "uptime_sec": int(now - stats.get("start_time", now)),
         "total_requests": total_requests,
-        "backend_calls": dict(sorted(backend_calls.items(), key=lambda kv: -kv[1])[:10]),
+        "backend_calls": _top_backend_counts(backend_calls),
+        "backend_call_details": _top_backend_details(backend_calls),
         "backends": {
             "total": len(health_map),
             "dead": len(dead_backends),

@@ -32,7 +32,7 @@
 | esp32S_XYZ product backend | Tracked and fake-U8 integrated | `esp32S_XYZ` is pinned as a Git submodule at `160e526`; LiMa is the planned AI/backend control plane, and the product repo now includes `tools/fake_lima_u8` for the LiMa `/device/v1/ws` fake-device loop. |
 | LiMa Device Gateway | Public Redis HA smoke path deployed | `/device/v1/*` supports multi-device concurrency, Redis pending-to-processing task delivery with motion-event ack cleanup, stale processing recovery hooks, publish-failure degradation, and Redis pub/sub session-owner notification for multi-process delivery; `chat.donglicao.com/device/v1/*` is exposed behind per-device token auth. Postgres remains deferred for audit/history, not realtime WebSocket delivery. |
 | P0.1 ESP32 Motion Executor Contract | Deployed and smoke-verified | `MotionErrorCode` enum (8 codes), normalized motion failure errors, no-queue invalid task handling, `path_validator.py`, fake-U8 `--test failure`, default board `E_UNSUPPORTED_BOARD`, and zhuguang failure events are implemented; review fixes passed `1218 passed, 8 skipped`; VPS backup `/opt/lima-router/backups/p01-motion-contract-20260525_072701/runtime-before.tgz`; public smoke `12/12`; fake-U8 WSS success and failure loops passed. |
-| P0.4/P0.5/P0.7 Device productivity slice | Review-fixed locally | Real text/SVG/path pipeline, intent parser, and `/v1/ops/metrics` landed in `e3dbb9b`; review fixed preview SVG truncation, control command projection, and ops metrics state access. Verification: focused `30 passed`, device/agent subset `80 passed`, full suite `1239 passed, 8 skipped`. |
+| P0.4/P0.5/P0.7 Device productivity slice | Deployed and smoke-verified | Real text/SVG/path pipeline, intent parser, and `/v1/ops/metrics` landed in `e3dbb9b`; review fixed preview SVG truncation, control command projection, ops metrics state access, and production-shaped backend call stats. Verification: focused `31 passed`; previous full suite `1239 passed, 8 skipped`; VPS/public smoke `12/12`; public ops metrics HTTP 200; `write LiMa` keeps a complete preview SVG; `home` queues a control task without error. |
 
 ## 2026-05-25 LiMa Server, LiMa Code, And ESP32 Joint Debug
 
@@ -78,6 +78,36 @@
   - remote compile used `/usr/local/bin/python3.10` because system `python3`
     is `3.6.8` while `lima-router.service` runs Python 3.10;
   - `lima-router` restarted active and `/health` returned `status=ok`.
+
+## 2026-05-25 P0.4/P0.5/P0.7 VPS Deployment
+
+- Deployed local commit `b22b3bd` to `/opt/lima-router` for the Device
+  Gateway productivity slice.
+- Backup evidence:
+  - full slice overlay backup:
+    `/opt/lima-router/backups/p04-review-20260525_080630/runtime-before.tar`;
+  - ops metrics hotfix backup:
+    `/opt/lima-router/backups/ops-metrics-fix-20260525_081216/runtime-before.tar`.
+- Production-only issue found and fixed during smoke:
+  - `/v1/ops/metrics` initially returned HTTP 500 because production
+    `backend_calls` values are dictionaries, not numeric counters;
+  - the endpoint now normalizes counts and exposes `backend_call_details`.
+- Verification:
+  - focused local tests: `31 passed`;
+  - remote compile with `/usr/local/bin/python3.10`: passed;
+  - `lima-router` restarted active;
+  - VPS-local `/health` and `/device/v1/health`: HTTP 200;
+  - VPS-local and public `/v1/ops/metrics`: HTTP 200;
+  - public online distribution smoke with exact `p04_review_ok`: `12/12`;
+  - Device Gateway HTTP task smoke: `write LiMa` preserved complete
+    `preview_svg`; `home` returned `capability=home` with no task error.
+- Smoke cleanup:
+  - temporary `codex-smoke-p04` Redis pending/processing queues were deleted.
+- Residual risk:
+  - ESP-IDF firmware compile for PROD-003 remains pending until ESP-IDF is
+    available;
+  - Postgres remains deferred for audit/history, not realtime WebSocket
+    delivery.
 - Public verification:
   - `scripts/smoke_online_distributions.py --api-key lima-local --chat-exact p01_motion_contract_ok` passed `12/12`;
   - Device Gateway health reported Redis task store/session bus and listener alive;

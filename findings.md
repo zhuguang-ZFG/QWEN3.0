@@ -242,6 +242,22 @@
 - `http://47.112.162.80:3000`, `3001`, `3003`, `8080`, `8091`: public direct attempts fail.
 - `http://127.0.0.1:8080/health` and `http://127.0.0.1:3003/v1/models`: still pass on VPS localhost.
 
+## 2026-05-25 P0.4/P0.5/P0.7 Deploy Findings
+
+| ID | Area | Evidence | Resolution |
+|---|---|---|---|
+| PROD-009 | Ops metrics production stats shape | VPS authenticated `/v1/ops/metrics` returned HTTP 500 after deploy. Journal showed `TypeError: bad operand type for unary -: 'dict'` at backend call sorting because production `backend_calls` values are `{count, success, total_ms}` dicts. | `routes/ops_metrics.py` now normalizes numeric and dict stats, keeps compact `backend_calls`, and adds `backend_call_details`. Regression test added; VPS-local and public ops metrics now return HTTP 200. |
+| PROD-010 | Smoke cleanup hygiene | Device Gateway HTTP smoke creates pending Redis tasks when no test device is connected. | Used temporary `device_id=codex-smoke-p04` and deleted its pending/processing queues after verification. |
+
+Latest P0.4/P0.5/P0.7 verification:
+
+- Focused local tests: `31 passed`.
+- Public online distribution smoke: `12/12 checks passed`.
+- Public `/v1/ops/metrics`: HTTP 200 with `backend_calls` and
+  `backend_call_details`.
+- Device task smoke: `write LiMa` preserves a complete `preview_svg`; `home`
+  returns `capability=home` without error.
+
 ## 2026-05-23 Reference Architecture Findings
 
 | ID | Area | Evidence | Next Action |
