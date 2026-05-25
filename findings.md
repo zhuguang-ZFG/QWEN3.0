@@ -27,8 +27,8 @@
 |---|---|---|---|
 | P0.1-S1 | Server error codes + protocol | `protocol_families.py` MotionErrorCode (8 codes), `protocol.py` motion_failure_event() + validate_motion_task_lifecycle(), fake-U8 --test failure mode | Implemented / 38 focused tests passed |
 | P0.1-S2 | Device Gateway path validation | `path_validator.py` with capability/path/feed/bounds validation wired into tasks.project_to_motion_task() | Implemented / 33 focused tests passed |
-| P0.1-S3 | ESP32 default board fail-loud | `board.cc` HandleMotionTaskJson() now emits E_UNSUPPORTED_BOARD; `board.h` SupportsMotionTask() virtual added | Implemented / ready for ESP-IDF compile |
-| P0.1-S4 | Zhuguang board failure hardening | Missing capability, missing path, unsupported capability paths now emit structured failure events via EmitMotionEventError() | Implemented / ready for ESP-IDF compile |
+| P0.1-S3 | ESP32 default board fail-loud | `board.cc` HandleMotionTaskJson() now emits E_UNSUPPORTED_BOARD; `board.h` SupportsMotionTask() virtual added | Implemented / ESP32 firmware compile passed; hardware flash pending |
+| P0.1-S4 | Zhuguang board failure hardening | Missing capability, missing path, unsupported capability paths now emit structured failure events via EmitMotionEventError() | Implemented / ESP32 firmware compile passed; hardware flash pending |
 | P0.1-S5 | VPS deployment | Service uses `/usr/local/bin/python3.10` even though system `python3` is 3.6.8; deploy backup `/opt/lima-router/backups/p01-motion-contract-20260525_072701/runtime-before.tgz`; public smoke `12/12`; fake-U8 WSS success/failure passed | Closed |
 | P0.1-review-1 | Motion failure error preservation | Server originally dropped nested `error` and firmware `error_code`/`error_message` during `validate_motion_event()` normalization. | Fixed in `4a7faed`; task snapshots now retain normalized `error.code`/`error.reason`. |
 | P0.1-review-2 | Invalid task queueing | Server-side validation failures were marked failed but `/device/v1/tasks` / WebSocket transcript paths could still queue or dispatch them. | Fixed in `4a7faed`; invalid tasks return `status=failed` or `motion_task_failed` without queueing/dispatch. |
@@ -41,11 +41,11 @@
 |---|---|---|---|
 | PROD-001 | Global constraint | `AGENTS.md` now states that all work must serve real productivity, productization, and LiMa's own distinctive character. | Use this as the filter for every plan/review: useful execution beats decorative features. |
 | PROD-002 | ESP32 silent no-op risk | `esp32S_XYZ/firmware/u8-xiaozhi/main/boards/common/board.cc` default HandleMotionTaskJson() now sends E_UNSUPPORTED_BOARD failure event. | Closed by P0.1-S3. |
-| PROD-003 | ESP32 failure telemetry | The zhuguang U8 handler returns without a motion failure event when `run_path` has no path payload and only logs unsupported capability. | Add `E_MISSING_PATH` and `E_UNSUPPORTED_CAPABILITY` events plus fake-U8/real-device smoke coverage. |
-| PROD-004 | Device task intelligence | `device_gateway/tasks.py` currently maps `write_text` to a rectangle path and `draw_generated` to a hardcoded star. | Build a deterministic text/SVG/path pipeline with preview and replay before adding more protocol families. |
-| PROD-005 | Intent parsing | `device_gateway/intent.py` is deterministic and falls back unknown text to `write_text`. | Add a gated validated planner or grammar+LLM hybrid with explicit rejected-command reasons. |
+| PROD-003 | ESP32 failure telemetry | `E_MISSING_PATH` / unsupported-capability style failures and firmware compile are now covered; real hardware is not flashed yet. | Hardware flash and real-device smoke coverage. |
+| PROD-004 | Device task intelligence | The text/SVG/path pipeline is implemented with stroke font, SVG parser, preview, and safety limits. | Keep fake-U8/VPS smoke in the release gate and expand fixtures from real operator commands. |
+| PROD-005 | Intent parsing | Deterministic regex parsing, confidence, rejection reasons, and gated LLM replanning are implemented. | Feed accepted/rejected outcomes into the later learning loop. |
 | PROD-006 | LiMa Code workflow depth | `deepcode-cli/src/lima/task-runner.ts` plan mode echoes constraints; stage commands do not yet create full review packets. | Add context/plan/test/diff/risk/ship artifact bundles and model-backed planning before broad autonomy. |
-| PROD-007 | Observability access | `observability/metrics.py` has snapshots, but `routes/system_endpoints.py` exposes health/status without a focused operator metrics endpoint. | Add authenticated ops metrics and correlation by request_id/task_id/device_id/session_id. |
+| PROD-007 | Observability access | Authenticated `/v1/ops/metrics` is deployed and smoke-verified with production-shaped backend stats. | Add deeper request_id/task_id/device_id/session_id correlation as incidents expose gaps. |
 | PROD-008 | Learning loop | Memory, eval, routing, and prompt components exist but are not yet one outcome-driven feedback loop. | Promote verified task outcomes into memory/prompt/routing eval candidates with rollback evidence. |
 
 ## Production Topology

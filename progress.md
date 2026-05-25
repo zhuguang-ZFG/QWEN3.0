@@ -2,6 +2,17 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 Current P0 Panorama
+
+| ID | Status | Next Gate |
+|---|---|---|
+| PROD-003 | ESP32 firmware compile passed. | Hardware flash and real-device motion smoke. |
+| PROD-004 | Path pipeline complete: stroke font, SVG path parser, path preview, safety bounds. | Keep using fake-U8/VPS smoke before hardware execution. |
+| PROD-005 | Intent parser upgraded: deterministic regex, confidence, rejection reasons, gated LLM replanner. | Add outcome feedback only after P0.8 learning loop. |
+| PROD-006 | LiMa Code artifact bundle remains partial; stage commands exist in submodule. | Build context/plan/test/diff/risk/ship packets before broad autonomy. |
+| PROD-007 | Ops metrics endpoint deployed and public/private smoke-verified. | Keep adding correlation detail as real incidents expose gaps. |
+| PROD-008 | Learning loop remains architecture-level follow-up. | Promote verified outcomes into memory, prompts, routing, and evals. |
+
 ## 2026-05-25 P0.4/P0.5/P0.7 VPS Deploy And Ops Metrics Fix
 
 - Deployed review-fixed Device Gateway productivity slice to VPS
@@ -47,8 +58,8 @@
   - temporary Redis queues for `codex-smoke-p04` were deleted afterward
     (`pending_len=0`, `processing_len=0`).
 - Residual risk:
-  - ESP-IDF firmware compile for PROD-003 is still pending until ESP-IDF is
-    available in the verification environment;
+  - PROD-003 ESP32 firmware compile has passed; hardware flashing and
+    real-device smoke remain pending;
   - Postgres remains deferred for audit/history and is not required for current
     realtime WebSocket task delivery.
 

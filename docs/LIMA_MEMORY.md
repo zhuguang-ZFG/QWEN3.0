@@ -2,6 +2,12 @@
 
 ## 2026-05-25 Joint Debug Memory
 
+- Current P0 panorama as of 2026-05-25: PROD-003 ESP32 firmware compile has
+  passed and the next gate is hardware flashing; PROD-004 path pipeline is
+  implemented; PROD-005 intent parser upgrade is implemented; PROD-006 LiMa
+  Code artifact bundle remains partial in the submodule; PROD-007 ops metrics
+  is deployed and smoke-verified; PROD-008 learning loop remains a later
+  architecture-level follow-up.
 - On 2026-05-25 the P0.4/P0.5/P0.7 review fixes were deployed to VPS. During
   deploy smoke, `/v1/ops/metrics` returned 500 because production
   `backend_calls` values are `{count, success, total_ms}` dictionaries rather

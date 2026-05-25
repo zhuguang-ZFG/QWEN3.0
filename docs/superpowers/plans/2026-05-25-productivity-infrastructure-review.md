@@ -20,6 +20,17 @@ plane, LiMa Code worker commands, and fake U8 smoke tests. The remaining
 weakness is not "missing more ideas"; it is the gap between interfaces and a
 daily-use production loop.
 
+Current P0 status as of 2026-05-25:
+
+| ID | Status |
+|---|---|
+| PROD-003 | ESP32 firmware compile passed; hardware flash is next. |
+| PROD-004 | Path pipeline implemented: stroke font, SVG parser, preview, safety clamps. |
+| PROD-005 | Intent parser upgraded with regex, confidence, rejection reasons, and gated LLM replanning. |
+| PROD-006 | LiMa Code artifact bundle remains partial; stage commands exist in the submodule. |
+| PROD-007 | Ops metrics endpoint deployed and smoke-verified. |
+| PROD-008 | Learning loop remains architecture-level follow-up. |
+
 The highest leverage path is:
 
 1. make ESP32 tasks observable, stateful, and hard to silently lose;

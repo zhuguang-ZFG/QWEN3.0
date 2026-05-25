@@ -34,6 +34,17 @@
 | P0.1 ESP32 Motion Executor Contract | Deployed and smoke-verified | `MotionErrorCode` enum (8 codes), normalized motion failure errors, no-queue invalid task handling, `path_validator.py`, fake-U8 `--test failure`, default board `E_UNSUPPORTED_BOARD`, and zhuguang failure events are implemented; review fixes passed `1218 passed, 8 skipped`; VPS backup `/opt/lima-router/backups/p01-motion-contract-20260525_072701/runtime-before.tgz`; public smoke `12/12`; fake-U8 WSS success and failure loops passed. |
 | P0.4/P0.5/P0.7 Device productivity slice | Deployed and smoke-verified | Real text/SVG/path pipeline, intent parser, and `/v1/ops/metrics` landed in `e3dbb9b`; review fixed preview SVG truncation, control command projection, ops metrics state access, and production-shaped backend call stats. Verification: focused `31 passed`; previous full suite `1239 passed, 8 skipped`; VPS/public smoke `12/12`; public ops metrics HTTP 200; `write LiMa` keeps a complete preview SVG; `home` queues a control task without error. |
 
+## 2026-05-25 Current P0 Panorama
+
+| ID | Status | Next Gate |
+|---|---|---|
+| PROD-003 | ESP32 firmware compile passed. | Hardware flash and real-device motion smoke. |
+| PROD-004 | Path pipeline complete: stroke font, SVG path parser, path preview, safety bounds. | Keep fake-U8/VPS smoke in the release gate. |
+| PROD-005 | Intent parser upgraded with deterministic patterns, confidence, rejection reasons, and gated LLM replanning. | Feed outcomes into P0.8 learning loop later. |
+| PROD-006 | LiMa Code artifact bundle remains partial; stage commands exist in submodule. | Build context/plan/test/diff/risk/ship packets before broader autonomy. |
+| PROD-007 | Ops metrics endpoint deployed and smoke-verified. | Add deeper correlation as incidents expose gaps. |
+| PROD-008 | Learning loop remains architecture-level follow-up. | Promote verified task outcomes into memory, prompts, routing, and eval queues. |
+
 ## 2026-05-25 LiMa Server, LiMa Code, And ESP32 Joint Debug
 
 - Server to LiMa Code public worker path was verified through `chat.donglicao.com`: smoke task `92820005` was fetched by `D:\GIT\deepcode-cli`, completed as `needs_review`, and submitted back to Server.
@@ -104,8 +115,8 @@
 - Smoke cleanup:
   - temporary `codex-smoke-p04` Redis pending/processing queues were deleted.
 - Residual risk:
-  - ESP-IDF firmware compile for PROD-003 remains pending until ESP-IDF is
-    available;
+  - PROD-003 ESP32 firmware compile has passed; hardware flashing and
+    real-device smoke remain pending;
   - Postgres remains deferred for audit/history, not realtime WebSocket
     delivery.
 - Public verification:
