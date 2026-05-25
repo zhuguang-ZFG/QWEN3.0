@@ -2,6 +2,15 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 CQ-014 Health Tracker Slice 9 Closeout
+
+- Design: `docs/CQ014_HEALTH_TRACKER_SLICE.md`
+- Extracted `health_failure_classifier.py`, `health_state.py`, `health_recorder.py`, `health_scoring.py`; `health_tracker.py` ~82 lines (was ~472)
+- Tests: **1428 passed, 10 skipped**
+- VPS backup: `/opt/lima-router/backups/cq014-health-tracker-20260525_141942/runtime-before.tgz`
+- Public smoke: **12/12** with token `cq014_health_tracker_ok`
+- **CQ-014 file-size targets complete** for smart_router / http_caller / health_tracker
+
 ## 2026-05-25 CQ-014 HTTP Caller Slice 8 Closeout
 
 - Design: `docs/CQ014_HTTP_CALLER_SLICE.md`
