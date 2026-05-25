@@ -11,13 +11,22 @@
        → VPS lima-router /channel/v1/wechat/message
 ```
 
-## 启动
+## 本机启动（需常开电脑 + SSH 隧道）
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File D:\GIT\scripts\start_weixin_lima_ilink.ps1
 ```
 
-扫码：`python scripts/hermes_weixin_qr_login.py`（或 Hermes 向导）
+## VPS 24h（推荐，不依赖本机）
+
+```powershell
+python scripts/hermes_weixin_qr_login.py   # 本机或 VPS 扫码一次
+python scripts/deploy_weixin_ilink_vps.py  # 同步账户 JSON + systemd lima-weixin-ilink
+```
+
+VPS 上桥直连 `http://127.0.0.1:8080/channel`，**不需要** Hermes `gateway run`（大脑仍是 LiMa）。
+
+扫码：`python scripts/hermes_weixin_qr_login.py`（SSH 无图形界面时会打印 URL/ASCII）
 
 分享加好友：`python scripts/weixin_share_qr.py` → `data/weixin_share_qr.html`
 
