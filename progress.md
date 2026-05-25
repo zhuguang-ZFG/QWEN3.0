@@ -2,6 +2,16 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 CQ-014 Chat Handler Slice Closeout
+
+- Design: `docs/CQ014_CHAT_HANDLER_SLICE.md`
+- Extracted chat execution to `routes/chat_handler.py`, `routes/chat_stream.py`,
+  `routes/chat_support.py`; `server.py` now ~180 lines (app wiring only)
+- Tests: **1401 passed, 10 skipped** (chat handler: 3; prompt memory/stream footer fixes)
+- VPS deploy backup: `/opt/lima-router/backups/cq014-chat-handler-20260525_140226/runtime-before.tgz`
+- Public smoke: **12/12** with exact chat token `cq014_chat_handler_ok`
+- Residual: `routes/chat_handler.py` still ~380 lines (fallback block); CQ-014 open
+
 ## 2026-05-25 CQ-014 Server Routes + HTTP Caller Concurrency Closeout
 
 - Design: `docs/CQ014_SERVER_ROUTES_SLICE.md`, `docs/HTTP_CALLER_CONCURRENCY_TESTS.md`

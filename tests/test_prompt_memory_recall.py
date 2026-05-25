@@ -72,7 +72,9 @@ def test_apply_prompt_memory_recall_injects_memory_and_trace():
 
 
 def test_handle_chat_applies_prompt_memory_before_routing(monkeypatch):
+    import routes.chat_handler as chat_handler
     import server
+    from chat_models import ChatRequest, Message
 
     headers = {"x-forwarded-for": "10.9.0.2", "user-agent": "cursor"}
     sid = _session_id_from_headers(headers)
@@ -92,13 +94,13 @@ def test_handle_chat_applies_prompt_memory_before_routing(monkeypatch):
     monkeypatch.setattr(server.smart_router, "detect_image_intent", lambda query: (False, ""))
     monkeypatch.setattr(server.smart_router, "detect_thinking_intent", lambda query: False)
     monkeypatch.setattr(server.smart_router, "analyze", fake_analyze)
-    monkeypatch.setattr(server, "needs_orchestration", lambda query, intent: False)
-    monkeypatch.setattr(server, "v3_route", fake_v3_route)
-    monkeypatch.setattr(server, "quality_check", lambda *args, **kwargs: True)
-    monkeypatch.setattr(server, "_record_request", lambda *args, **kwargs: None)
+    monkeypatch.setattr(chat_handler, "needs_orchestration", lambda query, intent: False)
+    monkeypatch.setattr(chat_handler, "v3_route", fake_v3_route)
+    monkeypatch.setattr(chat_handler, "quality_check", lambda *args, **kwargs: True)
+    monkeypatch.setattr(chat_handler, "_record_request", lambda *args, **kwargs: None)
 
-    req = server.ChatRequest(
-        messages=[server.Message(role="user", content="routing fix again")],
+    req = ChatRequest(
+        messages=[Message(role="user", content="routing fix again")],
         max_tokens=128,
     )
     response = asyncio.run(
@@ -119,7 +121,9 @@ def test_handle_chat_applies_prompt_memory_before_routing(monkeypatch):
 
 
 def test_handle_chat_writes_and_recalls_same_header_session(monkeypatch):
+    import routes.chat_handler as chat_handler
     import server
+    from chat_models import ChatRequest, Message
 
     headers = {"x-forwarded-for": "10.9.0.3", "user-agent": "cursor"}
     captured_prompts = []
@@ -140,17 +144,17 @@ def test_handle_chat_writes_and_recalls_same_header_session(monkeypatch):
     monkeypatch.setattr(server.smart_router, "detect_image_intent", lambda query: (False, ""))
     monkeypatch.setattr(server.smart_router, "detect_thinking_intent", lambda query: False)
     monkeypatch.setattr(server.smart_router, "analyze", fake_analyze)
-    monkeypatch.setattr(server, "needs_orchestration", lambda query, intent: False)
-    monkeypatch.setattr(server, "v3_route", fake_v3_route)
-    monkeypatch.setattr(server, "quality_check", lambda *args, **kwargs: True)
-    monkeypatch.setattr(server, "_record_request", lambda *args, **kwargs: None)
+    monkeypatch.setattr(chat_handler, "needs_orchestration", lambda query, intent: False)
+    monkeypatch.setattr(chat_handler, "v3_route", fake_v3_route)
+    monkeypatch.setattr(chat_handler, "quality_check", lambda *args, **kwargs: True)
+    monkeypatch.setattr(chat_handler, "_record_request", lambda *args, **kwargs: None)
 
-    first = server.ChatRequest(
-        messages=[server.Message(role="user", content="please remember banana cache")],
+    first = ChatRequest(
+        messages=[Message(role="user", content="please remember banana cache")],
         max_tokens=128,
     )
-    second = server.ChatRequest(
-        messages=[server.Message(role="user", content="what did we discuss?")],
+    second = ChatRequest(
+        messages=[Message(role="user", content="what did we discuss?")],
         max_tokens=128,
     )
 

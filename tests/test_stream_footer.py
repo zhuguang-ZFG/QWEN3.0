@@ -27,8 +27,7 @@ def test_anthropic_speculative_stream_hides_backend_footer(monkeypatch):
         "analyze",
         lambda *_args, **_kwargs: {"intent": "chat", "complexity": 0.1},
     )
-    monkeypatch.setattr(server, "needs_orchestration", lambda *_args, **_kwargs: False)
-    monkeypatch.setattr(server, "_record_request", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(anthropic_stream, "needs_orchestration", lambda *_args, **_kwargs: False)
     monkeypatch.setattr(anthropic_stream, "_record_request", lambda *_args, **_kwargs: None)
 
     async def fake_stream(_query, _messages, _max_tokens, _ide_source):
@@ -50,16 +49,7 @@ def test_anthropic_fake_stream_hides_backend_footer(monkeypatch):
         "analyze",
         lambda *_args, **_kwargs: {"intent": "chat", "complexity": 0.1},
     )
-    monkeypatch.setattr(server, "needs_orchestration", lambda *_args, **_kwargs: True)
     monkeypatch.setattr(anthropic_stream, "needs_orchestration", lambda *_args, **_kwargs: True)
-    monkeypatch.setattr(
-        server,
-        "orchestrate",
-        lambda _query: {
-            "answer": "This public answer is long enough to pass the quality gate.",
-            "backend": "internal_fake_backend",
-        },
-    )
     monkeypatch.setattr(
         anthropic_stream,
         "orchestrate",
@@ -69,7 +59,6 @@ def test_anthropic_fake_stream_hides_backend_footer(monkeypatch):
         },
     )
     monkeypatch.setattr(anthropic_stream, "quality_check", lambda *_args, **_kwargs: True)
-    monkeypatch.setattr(server, "_record_request", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(anthropic_stream, "_record_request", lambda *_args, **_kwargs: None)
 
     body = asyncio.run(_collect_anthropic_stream(_chat_request("plan this task")))

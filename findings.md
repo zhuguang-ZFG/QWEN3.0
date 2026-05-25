@@ -348,7 +348,7 @@ Source record: `docs/superpowers/plans/2026-05-23-code-quality-review-closeout.m
 | CQ-011 | Closed | `routes/images.py` had mojibake Chinese detection; it now uses `[\u4e00-\u9fff]` and has a regression test for Chinese prompt quality prefixing. | None for this slice. |
 | CQ-012 | Closed | Telegram startup now runs from `server_lifespan.py`; deprecated `@router.on_event("startup")` removed from `routes/telegram.py`. | None for this slice. |
 | CQ-013 | Closed | `telegram_notify._fire_and_forget()` now uses a coroutine factory so mocked notification hooks do not leave un-awaited coroutines. | None for this slice. |
-| CQ-014 | Open | Post-route and admin UI extracted; server route registration moved to `routes/route_registry.py` (`server.py` ~611 lines, still above target due to chat orchestration). Oversized: `smart_router.py`, `server.py`, `http_caller.py`, `health_tracker.py`. | Continue CQ-014 on chat handler extraction and `smart_router.py` / `http_caller.py` splits. |
+| CQ-014 | Open | Chat execution extracted to `routes/chat_handler.py`, `routes/chat_stream.py`, `routes/chat_support.py` (`server.py` ~180 lines). Oversized: `routes/chat_handler.py` (~380), `smart_router.py`, `http_caller.py`, `health_tracker.py`. | Split `chat_handler` fallback path; continue `smart_router.py` / `http_caller.py`. |
 
 ## 2026-05-24 M0 Baseline Review Harness Follow-Up
 
@@ -402,3 +402,4 @@ Source record: `docs/superpowers/plans/2026-05-23-code-quality-review-closeout.m
 | CQ-061 | Closed | CQ-014 slice 2 extracts admin dashboard HTML/JS to `routes/admin_ui.py` with `render_admin_dashboard()`. `routes/admin.py` retains API/auth only (~330 lines). Test `tests/test_admin_ui.py` added. | Optional: externalize static assets; split admin API routes if file grows again. |
 | CQ-062 | Closed | CQ-014 slice 3 centralizes router registration in `routes/route_registry.py`; `server.py` re-exports handler aliases. Tests in `tests/test_route_registry.py`. | Extract `_handle_chat` / streaming from `server.py` in a follow-up slice. |
 | CQ-063 | Closed | CQ-022/023 follow-up adds async parallel and threaded burst tests in `tests/test_http_caller_concurrency.py` (mocked httpx, no live stress harness). | Add provider-level concurrency limits and optional live soak harness later. |
+| CQ-064 | Closed | CQ-014 slice 4 moves `_handle_chat` / streaming to `routes/chat_handler.py`, `routes/chat_stream.py`, `routes/chat_support.py`; `server.py` reduced to ~180 lines. Tests updated in `tests/test_chat_handler.py`. | Split fallback block out of `chat_handler.py` to meet 300-line target. |
