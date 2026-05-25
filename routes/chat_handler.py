@@ -20,17 +20,11 @@ from response_builder import (
     make_chat_id,
     messages_to_dicts,
 )
-from routes.quality_gate import (
-    default_route,
-    get_same_tier_backends,
-    get_upgrade_chain,
-    honest_failure_response,
-    quality_check,
-    try_backend,
-)
+from routes.quality_gate import quality_check
 from routes.v3_adapters import v3_route
 from server_context import build_prompt_context, messages_with_system_context
 
+from routes.chat_fallback import QualityFallbackRequest, inject_deps as _inject_chat_fallback_deps, resolve_quality_fallback
 from routes.chat_stream import stream_response
 from routes.chat_support import attach_memory_recall_meta, log_sys_prompt, thinking_route
 
@@ -52,6 +46,11 @@ def inject_deps(
     _record_request = record_request
     _record_fallback = record_fallback
     _build_pollinations_url = build_pollinations_url
+    _inject_chat_fallback_deps(
+        model_id=model_id,
+        record_request=record_request,
+        record_fallback=record_fallback,
+    )
 
 
 async def handle_chat(
@@ -232,89 +231,25 @@ async def handle_chat(
     complexity = intent.get("complexity", 0.5) if isinstance(intent, dict) else 0.5
 
     if not quality_check(content, complexity, backend, query=query):
-        fallback_intent = intent_name if intent_name != "unknown" else "unknown"
-        fallback_backend = default_route(query, ide_source) if backend == "unknown" else backend
-
-        same_tier = get_same_tier_backends(fallback_backend)
-        for alt in same_tier:
-            alt_result = await try_backend(
-                alt,
-                query,
-                req.max_tokens or 1024,
-                messages=prompt_context_messages,
+        return await resolve_quality_fallback(
+            QualityFallbackRequest(
+                chat_id=chat_id,
+                query=query,
+                content=content,
+                backend=backend,
+                complexity=complexity,
+                intent_name=intent_name,
+                fmt=fmt,
+                request_model=request_model,
+                max_tokens=req.max_tokens or 1024,
+                ide_source=ide_source,
+                client_ip=client_ip,
+                sys_prompt_preview=sys_prompt_preview,
+                prompt_context_messages=prompt_context_messages,
+                memory_recall_meta=memory_recall_meta,
+                elapsed_ms=int((time.time() - t0) * 1000),
             )
-            if alt_result and quality_check(alt_result["answer"], complexity, alt, query=query):
-                content = alt_result["answer"]
-                backend = alt
-                _record_fallback(query, fallback_backend, alt, f"fallback_same_tier_{fallback_intent}", ide_source)
-                _record_request(
-                    query,
-                    backend,
-                    f"fallback_same_tier_{fallback_intent}",
-                    int((time.time() - t0) * 1000),
-                    True,
-                    client_ip=client_ip,
-                    ide_source=ide_source,
-                    sys_prompt_preview=sys_prompt_preview,
-                )
-                if fmt == "anthropic":
-                    return JSONResponse(
-                        build_anthropic_response(chat_id, content, backend, request_model or _model_id)
-                    )
-                return JSONResponse(
-                    attach_memory_recall_meta(
-                        build_response(chat_id, content, backend, int((time.time() - t0) * 1000)),
-                        memory_recall_meta,
-                    )
-                )
-
-        upgrade_chain = get_upgrade_chain(fallback_backend)
-        for upgraded in upgrade_chain:
-            up_result = await try_backend(
-                upgraded,
-                query,
-                req.max_tokens or 1024,
-                messages=prompt_context_messages,
-            )
-            if up_result and quality_check(up_result["answer"], complexity, upgraded, query=query):
-                content = up_result["answer"]
-                backend = upgraded
-                _record_fallback(
-                    query, fallback_backend, upgraded, f"fallback_upgrade_{fallback_intent}", ide_source
-                )
-                _record_request(
-                    query,
-                    backend,
-                    f"fallback_upgrade_{fallback_intent}",
-                    int((time.time() - t0) * 1000),
-                    True,
-                    client_ip=client_ip,
-                    ide_source=ide_source,
-                    sys_prompt_preview=sys_prompt_preview,
-                )
-                if fmt == "anthropic":
-                    return JSONResponse(
-                        build_anthropic_response(chat_id, content, backend, request_model or _model_id)
-                    )
-                return JSONResponse(
-                    attach_memory_recall_meta(
-                        build_response(chat_id, content, backend, int((time.time() - t0) * 1000)),
-                        memory_recall_meta,
-                    )
-                )
-
-        duration_ms = int((time.time() - t0) * 1000)
-        _record_request(
-            query,
-            "fallback_exhausted",
-            f"fallback_exhausted_{fallback_intent}",
-            duration_ms,
-            False,
-            client_ip=client_ip,
-            ide_source=ide_source,
-            sys_prompt_preview=sys_prompt_preview,
         )
-        return JSONResponse(honest_failure_response(chat_id, fmt, request_model))
 
     duration_ms = int((time.time() - t0) * 1000)
 

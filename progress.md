@@ -2,6 +2,14 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 GCP generative-ai Research + CQ-014 Fallback Slice
+
+- Research: `docs/GCP_GENERATIVE_AI_RESEARCH.md` — **reference-only**, no port; llmevalkit/RAG eval patterns for Research Radar
+- CQ-014 slice 5: `routes/chat_fallback.py` extracted from `chat_handler.py` (~315 lines)
+- Tests: **1403 passed, 10 skipped** (chat_fallback: 2 new)
+- VPS deploy backup: `/opt/lima-router/backups/cq014-chat-fallback-20260525_140609/runtime-before.tgz`
+- Public smoke: **12/12** with token `cq014_chat_fallback_ok`
+
 ## 2026-05-25 CQ-014 Chat Handler Slice Closeout
 
 - Design: `docs/CQ014_CHAT_HANDLER_SLICE.md`
