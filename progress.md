@@ -2,6 +2,13 @@
 
 > Created: 2026-05-22
 
+## 2026-05-25 CQ-014 Slice 12: P3 Long-Function Split
+
+- `handle_chat` → `routes/chat_handler_dispatch.py`（~63 行入口）
+- `anthropic_messages` → `routes/anthropic_messages_handler.py` + `anthropic_vision_sse.py`（~65 行入口）
+- `anthropic_native_stream` → `routes/tool_forward_stream.py`（薄包装 ~6 行）
+- 保留 `chat_handler` 上 `v3_route`/`quality_check` re-export 供测试 monkeypatch
+
 ## 2026-05-25 Review Fixes (CQ-080)
 
 - **P1** `http_body_limit.py`：ASGI `receive` 累计字节硬截断；JSON API 缺 `Content-Length` 且非 chunked 时 400

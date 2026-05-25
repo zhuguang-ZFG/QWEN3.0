@@ -149,83 +149,27 @@ def anthropic_native_forward_sync(body: dict) -> dict:
             "message": "All tool backends exhausted"}}
 
 
-async def anthropic_native_stream(body: dict):
-    """分层 tool 流式路由：第一梯队 OpenAI(快) → 第二梯队 LongCat(兜底)。"""
-    from http_caller import call_raw, BackendError
+def _stream_deps() -> dict:
     from backends import BACKENDS
     import health_tracker as _ht
 
-    body_size = len(json.dumps(body, ensure_ascii=False))
-    skip_tier1 = body_size > 100000
+    return {
+        "BACKENDS": BACKENDS,
+        "health_tracker": _ht,
+        "iter_tool_backends": iter_tool_backends,
+        "pick_tool_backend": pick_tool_backend,
+        "TOOL_TIER1_BACKENDS": TOOL_TIER1_BACKENDS,
+        "ANTHROPIC_NATIVE_BACKENDS": ANTHROPIC_NATIVE_BACKENDS,
+        "simulate_anthropic_sse": simulate_anthropic_sse,
+    }
 
-    openai_tools = convert_tools_anthropic_to_openai(body.get("tools", []))
-    openai_msgs = convert_messages_anthropic_to_openai(body.get("messages", []))
-    inject_anthropic_context_preflight(openai_msgs, body)
-    inject_anthropic_body_preflight(body, openai_msgs)
 
-    if not skip_tier1:
-        for name in iter_tool_backends(TOOL_TIER1_BACKENDS):
-            b = BACKENDS[name]
-            req_body = {"model": b["model"], "messages": openai_msgs,
-                "tools": openai_tools, "max_tokens": body.get("max_tokens", 4096),
-                "tool_choice": "auto"}
-            if name.startswith("aliyun"):
-                req_body["enable_thinking"] = False
-            payload = json.dumps(req_body, ensure_ascii=False).encode()
-            try:
-                data = await asyncio.to_thread(call_raw, name, payload)
-                result = convert_response_openai_to_anthropic(data, b["model"])
-                for chunk in simulate_anthropic_sse(result):
-                    yield chunk
-                return
-            except BackendError as e:
-                _ht.record_failure(name, error_code=e.status_code)
-                continue
-            except Exception as e:
-                code = getattr(e, 'code', None) or getattr(e, 'status', None) or 500
-                _ht.record_failure(name, error_code=code)
-                continue
+async def anthropic_native_stream(body: dict):
+    """分层 tool 流式路由：第一梯队 OpenAI(快) → 第二梯队 LongCat(兜底)。"""
+    from routes.tool_forward_stream import anthropic_native_stream as _stream
 
-    # Tier 2: LongCat Anthropic native stream
-    import urllib.request as _ur
-    for _attempt in range(2):
-        name = pick_tool_backend(ANTHROPIC_NATIVE_BACKENDS)
-        if not name:
-            break
-        b = BACKENDS[name]
-        fwd = dict(body)
-        fwd["model"] = b["model"]
-        fwd["stream"] = True
-        payload = json.dumps(fwd, ensure_ascii=False).encode()
-        headers = {"Content-Type": "application/json",
-                   "anthropic-version": "2023-06-01"}
-        if b.get("auth") == "bearer":
-            headers["Authorization"] = f"Bearer {b['key']}"
-        else:
-            headers["x-api-key"] = b["key"]
-        try:
-            req = _ur.Request(b["url"], data=payload, headers=headers)
-            resp = _ur.urlopen(req, timeout=60)
-            _ht.record_success(name, 0)
-            buf = b''
-            while True:
-                chunk = resp.read(4096)
-                if not chunk:
-                    break
-                buf += chunk
-                while b'\n' in buf:
-                    line, buf = buf.split(b'\n', 1)
-                    decoded = line.decode('utf-8', errors='replace').strip()
-                    if decoded:
-                        yield decoded + '\n\n'
-            if buf.strip():
-                yield buf.decode('utf-8', errors='replace').strip() + '\n\n'
-            resp.close()
-            return
-        except Exception:
-            _ht.record_failure(name, error_code=None)
-            continue
-    yield 'event: error\ndata: {"type":"error","error":{"message":"All backends exhausted"}}\n\n'
+    async for chunk in _stream(body, _stream_deps()):
+        yield chunk
 
 
 def simulate_anthropic_sse(result: dict):
