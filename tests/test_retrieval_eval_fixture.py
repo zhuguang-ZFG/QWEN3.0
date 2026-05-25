@@ -13,6 +13,7 @@ from context_pipeline.retrieval_eval_runner import (
     format_fixture_report,
     load_fixture,
     resolve_corpus_files,
+    run_all_fixture_gates,
     run_fixture_eval,
 )
 
@@ -43,6 +44,7 @@ def test_collect_corpus_files_sample_repo():
     assert any(path.endswith("module_b.py") for path in files)
 
 
+@pytest.mark.rag_gate
 def test_lima_core_fixture_passes_gate():
     spec, summary, passed, failures = run_fixture_eval(FIXTURE_PATH)
 
@@ -104,6 +106,7 @@ def test_evaluate_fixture_index_empty_corpus_fails_gate(tmp_path):
     assert summary.hit_rate == 0.0
 
 
+@pytest.mark.rag_gate
 def test_lima_routing_fixture_dual_layer_passes_gate():
     spec, summary, passed, failures = run_fixture_eval(ROUTING_FIXTURE_PATH)
 
@@ -123,6 +126,7 @@ def test_lima_routing_prod_fixture_uses_repo_files():
     assert any(path.endswith("http_caller.py") for path in paths)
 
 
+@pytest.mark.rag_gate
 def test_lima_routing_prod_fixture_dual_layer_passes_gate():
     spec, summary, passed, failures = run_fixture_eval(ROUTING_PROD_FIXTURE_PATH)
 
@@ -140,3 +144,17 @@ def test_evaluate_fixture_dual_layer_includes_graph_neighbors():
 
     cross_query = next(r for r in summary.results if "route_request" in r.query)
     assert "health_tracker.py" in cross_query.retrieved_paths or cross_query.recall > 0
+
+
+@pytest.mark.rag_gate
+def test_run_all_fixture_gates_passes_ci_set():
+    all_passed, results = run_all_fixture_gates()
+
+    assert len(results) == 3
+    assert all_passed, [item.failures for item in results if not item.passed]
+    assert all(item.passed for item in results)
+    assert {item.spec.name for item in results} == {
+        "lima_core",
+        "lima_routing",
+        "lima_routing_prod",
+    }

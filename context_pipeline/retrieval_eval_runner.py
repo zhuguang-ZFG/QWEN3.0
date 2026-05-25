@@ -238,3 +238,45 @@ def format_fixture_report(spec: FixtureSpec, summary: EvalSummary, passed: bool,
     if failures:
         lines.extend(f"  - {msg}" for msg in failures)
     return "\n".join(lines)
+
+
+DEFAULT_CI_FIXTURES: tuple[str, ...] = (
+    "tests/fixtures/retrieval_eval/lima_core.json",
+    "tests/fixtures/retrieval_eval/lima_routing.json",
+    "tests/fixtures/retrieval_eval/lima_routing_prod.json",
+)
+
+
+@dataclass
+class GateRunResult:
+    fixture_path: Path
+    spec: FixtureSpec
+    summary: EvalSummary
+    passed: bool
+    failures: list[str]
+    report: str
+
+
+def run_all_fixture_gates(
+    fixtures: list[str | Path] | None = None,
+) -> tuple[bool, list[GateRunResult]]:
+    """Run all CI gate fixtures and return (all_passed, results)."""
+    root = _repo_root()
+    paths = [Path(p) for p in fixtures] if fixtures else [root / rel for rel in DEFAULT_CI_FIXTURES]
+
+    results: list[GateRunResult] = []
+    all_passed = True
+    for path in paths:
+        spec, summary, passed, failures = run_fixture_eval(path)
+        report = format_fixture_report(spec, summary, passed, failures)
+        results.append(GateRunResult(
+            fixture_path=path.resolve(),
+            spec=spec,
+            summary=summary,
+            passed=passed,
+            failures=failures,
+            report=report,
+        ))
+        if not passed:
+            all_passed = False
+    return all_passed, results

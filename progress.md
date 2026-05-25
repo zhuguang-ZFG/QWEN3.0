@@ -2,7 +2,17 @@
 
 > Created: 2026-05-22
 
-## 2026-05-25 CQ-014 Slice 11: Admin + Routing Engine + Prod RAG Closeout
+## 2026-05-25 RAG CI Gate Milestone Closeout
+
+- 方向选择：`server.py` 已 ~181 行，CQ-014 达标；本里程碑接 **prod RAG CI gate**
+- 新增 `run_all_fixture_gates()` + `DEFAULT_CI_FIXTURES`（core/routing/prod 三 fixture）
+- CLI：`scripts/run_rag_eval_gate.py`（exit 0/1）
+- CI：`.github/workflows/lima-ci.yml`（`test` + `rag-gate` jobs）
+- pytest marker：`rag_gate`（4 条 gate 测试）
+- Design: `docs/RAG_CI_GATE.md`
+- Tests: **1447 passed, 10 skipped**; RAG gate **3/3 PASS**
+
+## 2026-05-25 Identity Hardening Closeout
 
 - Admin slice 11: `admin_state.py`, `admin_backends.py`, `admin_api.py`; `admin.py` ~68 lines (was ~330)
 - Routing slice 11: `routing_classifier.py`, `routing_selector.py`, `routing_executor.py`; `routing_engine.py` ~215 lines (was ~447)

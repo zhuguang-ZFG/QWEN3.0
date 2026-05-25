@@ -62,7 +62,7 @@ print(format_fixture_report(spec, summary, passed, failures))
 
 1. `tests/fixtures/retrieval_eval/lima_routing.json` — LiMa 路由语料 + `graph_relations` + `eval_mode: dual_layer`
 2. `tests/fixtures/routing_corpus/` — 路由模块 stub 语料
-3. CI 中将 `test_retrieval_eval_fixture.py` 作为 RAG 回归门禁
+3. CI 中将 `test_retrieval_eval_fixture.py` 作为 RAG 回归门禁 — **已实现**（见 `docs/RAG_CI_GATE.md`）
 
 ### graph_relations 与 dual_layer
 
