@@ -64,6 +64,10 @@ def main() -> None:
     except OSError:
         pass
     sftp.put(str(bridge), f"{REMOTE}/scripts/hermes_weixin_lima_bridge.py")
+    qr_login = base / "scripts" / "hermes_weixin_qr_login.py"
+    if qr_login.is_file():
+        sftp.put(str(qr_login), f"{REMOTE}/scripts/hermes_weixin_qr_login.py")
+        print("  scripts/hermes_weixin_qr_login.py")
     print(f"  scripts/hermes_weixin_lima_bridge.py")
     for rel in (
         "__init__.py",
@@ -72,6 +76,7 @@ def main() -> None:
         "typing_helper.py",
         "weixin_outbound.py",
         "invite_qr.py",
+        "ilink_session.py",
     ):
         local = base / "wechat_bridge" / rel
         if local.is_file():
@@ -100,6 +105,8 @@ def main() -> None:
             "WEIXIN_DM_POLICY=open",
             "WEIXIN_GROUP_POLICY=disabled",
             "LIMA_CHANNEL_BASE_URL=http://127.0.0.1:8080",
+            "LIMA_WEIXIN_AUTO_RELOGIN=1",
+            "LIMA_WEIXIN_KEEPALIVE_MIN=18",
         ]
         patch = "\n".join(lines) + "\n"
         sftp = ssh.open_sftp()

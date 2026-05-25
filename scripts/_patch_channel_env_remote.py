@@ -19,6 +19,8 @@ flags = {
     "LIMA_CHANNEL_DB_PATH": "data/channel_gateway.db",
     "LIMA_CHANNEL_VOICE_REPLY": "1",
     "LIMA_CHANNEL_INVITE_QR": "1",
+    "LIMA_WEIXIN_AUTO_RELOGIN": "1",
+    "LIMA_WEIXIN_KEEPALIVE_MIN": "18",
 }
 data.update(flags)
 

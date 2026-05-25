@@ -69,7 +69,8 @@ python D:\GIT\scripts\weixin_share_qr.py
 
 - 访客在微信里发 `/邀请` 或「邀请」可看到文字说明。
 - **私聊 DM** 最稳；普通微信群消息常收不到。
-- 会话过期 `errcode=-14` 时重新 `hermes gateway setup` 扫码。
+- 会话由 VPS 桥**自动保活**（默认每 18 分钟 `getconfig`）+ **过期自动出码续登**（`LIMA_WEIXIN_AUTO_RELOGIN=1`）。
+- 若微信侧强制失效（`errcode=-14`），查看 `data/weixin_relogin_qr.html` 或 `journalctl -u lima-weixin-ilink` 中的扫码链接，用手机微信确认即可恢复（无需停服务、无需本机）。
 
 ## 与 LiMa `/channel` 的关系
 

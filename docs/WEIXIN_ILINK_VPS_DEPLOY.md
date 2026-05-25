@@ -38,9 +38,16 @@ python3.10 scripts/hermes_weixin_qr_login.py
 
 或本机扫码后只 **拷贝账户 JSON** 到 VPS。
 
-## 会话过期
+## 会话续期（默认自动）
 
-iLink `errcode=-14` 时需重新扫码（本机或 VPS 再跑 qr_login）。
+| 机制 | 环境变量 | 说明 |
+|------|----------|------|
+| 保活 | `LIMA_WEIXIN_KEEPALIVE_MIN=18` | 定期 `getconfig`，降低空闲掉线 |
+| 自动续登 | `LIMA_WEIXIN_AUTO_RELOGIN=1` | `-14` 时自动生成续登二维码并轮询，成功后热更新 token |
+
+续登页：`/opt/lima-router/data/weixin_relogin_qr.html`（也可 `journalctl -u lima-weixin-ilink` 看链接）。
+
+微信侧 token **无法保证永不过期**；目标是过期后**分钟级自助恢复**，不必 SSH 手跑脚本。
 
 ## 注意
 

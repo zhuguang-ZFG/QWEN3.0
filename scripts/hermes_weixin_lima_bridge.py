@@ -64,7 +64,7 @@ def _split_reply(text: str, *, chunk: int = _WX_CHUNK) -> list[str]:
     return numbered
 
 
-def _load_weixin_account() -> tuple[str, str, str]:
+def _load_weixin_account() -> tuple[str, str, str, str]:
     custom = os.environ.get("WEIXIN_ACCOUNT_DIR", "").strip()
     if custom:
         home = Path(custom)
@@ -81,7 +81,8 @@ def _load_weixin_account() -> tuple[str, str, str]:
     base_url = str(data.get("base_url") or "https://ilinkai.weixin.qq.com").strip()
     if not token:
         raise SystemExit(f"Missing token in {path}")
-    return account_id, token, base_url
+    user_id = str(data.get("user_id") or "").strip()
+    return account_id, token, base_url, user_id
 
 
 def _sidecar_token() -> str:
@@ -136,6 +137,45 @@ class LimaWeixinBridge:
         self.lima_base = lima_base.rstrip("/")
         self.lima_token = lima_token
         self._running = True
+        self._user_id = ""
+        self._relogin_task: asyncio.Task | None = None
+        self._stop = asyncio.Event()
+
+    def apply_credentials(
+        self,
+        *,
+        account_id: str,
+        token: str,
+        base_url: str,
+        user_id: str = "",
+    ) -> None:
+        self.account_id = account_id
+        self.token = token
+        self.base_url = base_url.rstrip("/")
+        self._user_id = user_id
+
+    async def _relogin_flow(self, hermes_home: str) -> None:
+        from wechat_bridge.ilink_session import relogin_via_qr
+
+        creds = await relogin_via_qr(hermes_home)
+        if creds:
+            self.apply_credentials(
+                account_id=creds["account_id"],
+                token=creds["token"],
+                base_url=creds["base_url"],
+                user_id=creds.get("user_id", ""),
+            )
+            log.info("credentials reloaded after QR relogin")
+
+    def _schedule_relogin(self, hermes_home: str) -> None:
+        if os.environ.get("LIMA_WEIXIN_AUTO_RELOGIN", "1") != "1":
+            log.error(
+                "session expired; set LIMA_WEIXIN_AUTO_RELOGIN=1 or scan QR manually"
+            )
+            return
+        if self._relogin_task and not self._relogin_task.done():
+            return
+        self._relogin_task = asyncio.create_task(self._relogin_flow(hermes_home))
 
     async def run(self) -> None:
         from gateway.platforms.weixin import (
@@ -150,7 +190,6 @@ class LimaWeixinBridge:
             MAX_CONSECUTIVE_FAILURES,
             RETRY_DELAY_SECONDS,
             BACKOFF_DELAY_SECONDS,
-            SESSION_EXPIRED_ERRCODE,
             send_weixin_direct,
         )
         import aiohttp
@@ -160,11 +199,13 @@ class LimaWeixinBridge:
         if not check_weixin_requirements():
             raise SystemExit("pip install aiohttp cryptography")
 
+        from wechat_bridge.ilink_session import is_session_dead, keepalive_loop
         from wechat_bridge.lima_client import post_wechat_message
         from wechat_bridge.typing_helper import hide_typing, show_typing
         from wechat_bridge.weixin_inbound import collect_weixin_message
 
         hermes_home = str(get_hermes_home())
+        self._stop.clear()
         dedup = MessageDeduplicator(ttl_seconds=300)
         sync_buf = _load_sync_buf(hermes_home, self.account_id)
         timeout_ms = LONG_POLL_TIMEOUT_MS
@@ -180,136 +221,160 @@ class LimaWeixinBridge:
         log.info("LiMa Weixin bridge account=%s lima=%s", self.account_id, self.lima_base)
 
         async with aiohttp.ClientSession(trust_env=True, connector=_make_ssl_connector()) as session:
-            while self._running:
-                try:
-                    response = await _get_updates(
-                        session,
-                        base_url=self.base_url,
-                        token=self.token,
-                        sync_buf=sync_buf,
-                        timeout_ms=timeout_ms,
-                    )
-                    ret = response.get("ret", 0)
-                    errcode = response.get("errcode", 0)
-                    if ret not in {0, None} or errcode not in {0, None}:
-                        if ret == SESSION_EXPIRED_ERRCODE or errcode == SESSION_EXPIRED_ERRCODE:
-                            log.error("Weixin session expired; re-run hermes_weixin_qr_login.py")
-                            await asyncio.sleep(60)
-                            continue
-                        consecutive_failures += 1
-                        await asyncio.sleep(
-                            BACKOFF_DELAY_SECONDS
-                            if consecutive_failures >= MAX_CONSECUTIVE_FAILURES
-                            else RETRY_DELAY_SECONDS
-                        )
-                        continue
-                    consecutive_failures = 0
-                    new_buf = str(response.get("get_updates_buf") or "")
-                    if new_buf:
-                        sync_buf = new_buf
-                        _save_sync_buf(hermes_home, self.account_id, sync_buf)
-
-                    for message in response.get("msgs") or []:
-                        sender_id = str(message.get("from_user_id") or "").strip()
-                        if not sender_id or sender_id == self.account_id:
-                            continue
-                        message_id = str(message.get("message_id") or "").strip()
-                        if message_id and dedup.is_duplicate(message_id):
-                            continue
-                        text, attachments = await collect_weixin_message(
-                            session,
-                            message,
-                            cdn_base_url=cdn_base,
-                        )
-                        if not text and not attachments:
-                            continue
-                        chat_type, chat_id = _guess_chat_type(message, self.account_id)
-                        if chat_type == "group":
-                            continue
-
-                        lima_mid = (
-                            f"ilink-{sender_id}-{message_id or 'noid'}-"
-                            f"{hashlib.sha256(text.encode()).hexdigest()[:12]}-"
-                            f"{time.time_ns()}"
-                        )
-                        log.info(
-                            "inbound from=%s text=%s att=%d",
-                            sender_id[:12],
-                            (text or "")[:40],
-                            len(attachments),
-                        )
-                        chat_id_use = chat_id or sender_id
-                        await show_typing(
+            keepalive = asyncio.create_task(
+                keepalive_loop(
+                    session,
+                    base_url=self.base_url,
+                    token=self.token,
+                    account_id=self.account_id,
+                    user_id=self._user_id,
+                    stop=self._stop,
+                )
+            )
+            try:
+                while self._running:
+                    try:
+                        response = await _get_updates(
                             session,
                             base_url=self.base_url,
                             token=self.token,
-                            chat_id=chat_id_use,
-                            message=message,
+                            sync_buf=sync_buf,
+                            timeout_ms=timeout_ms,
                         )
-                        try:
-                            result = post_wechat_message(
-                                base_url=self.lima_base,
-                                sidecar_token=self.lima_token,
-                                message_id=lima_mid,
-                                sender_id=sender_id,
-                                conversation_id=chat_id or sender_id,
-                                text=text or "",
-                                timestamp=int(time.time()),
-                                attachments=attachments or None,
-                            )
-                            reply = ""
-                            if result.get("ok") and isinstance(result.get("reply"), dict):
-                                reply = str(result["reply"].get("text") or "")
-                            elif result.get("error") == "duplicate message":
-                                log.info("skip duplicate inbound mid=%s", lima_mid[:48])
+                        ret = response.get("ret", 0)
+                        errcode = response.get("errcode", 0)
+                        errmsg = response.get("errmsg")
+                        if ret not in {0, None} or errcode not in {0, None}:
+                            if is_session_dead(ret, errcode, errmsg):
+                                log.warning(
+                                    "iLink session dead (ret=%s errcode=%s); auto QR relogin",
+                                    ret,
+                                    errcode,
+                                )
+                                self._schedule_relogin(hermes_home)
+                                await asyncio.sleep(15)
                                 continue
-                            elif result.get("error"):
-                                reply = _user_facing_error(str(result["error"]))
-                            if not reply:
-                                if result.get("ok"):
-                                    continue
-                                reply = "暂时没有回复，请发送 /help 或稍后再试。"
-                            reply_payload = (
-                                result["reply"]
-                                if isinstance(result.get("reply"), dict)
-                                else {"text": reply}
+                            consecutive_failures += 1
+                            await asyncio.sleep(
+                                BACKOFF_DELAY_SECONDS
+                                if consecutive_failures >= MAX_CONSECUTIVE_FAILURES
+                                else RETRY_DELAY_SECONDS
                             )
-                            if "text" not in reply_payload:
-                                reply_payload["text"] = reply
-                            from wechat_bridge.weixin_outbound import (
-                                deliver_channel_reply,
-                            )
+                            continue
+                        consecutive_failures = 0
+                        new_buf = str(response.get("get_updates_buf") or "")
+                        if new_buf:
+                            sync_buf = new_buf
+                            _save_sync_buf(hermes_home, self.account_id, sync_buf)
 
-                            await deliver_channel_reply(
-                                session=session,
-                                extra=extra,
-                                token=self.token,
-                                chat_id=chat_id_use,
-                                reply=reply_payload,
-                                split_fn=_split_reply,
+                        for message in response.get("msgs") or []:
+                            sender_id = str(message.get("from_user_id") or "").strip()
+                            if not sender_id or sender_id == self.account_id:
+                                continue
+                            message_id = str(message.get("message_id") or "").strip()
+                            if message_id and dedup.is_duplicate(message_id):
+                                continue
+                            text, attachments = await collect_weixin_message(
+                                session,
+                                message,
+                                cdn_base_url=cdn_base,
+                            )
+                            if not text and not attachments:
+                                continue
+                            chat_type, chat_id = _guess_chat_type(message, self.account_id)
+                            if chat_type == "group":
+                                continue
+
+                            lima_mid = (
+                                f"ilink-{sender_id}-{message_id or 'noid'}-"
+                                f"{hashlib.sha256(text.encode()).hexdigest()[:12]}-"
+                                f"{time.time_ns()}"
                             )
                             log.info(
-                                "replied ok=%s qr=%s voice=%s",
-                                result.get("ok"),
-                                bool(reply_payload.get("send_invite_qr")),
-                                bool(reply_payload.get("voice_reply_text")),
+                                "inbound from=%s text=%s att=%d",
+                                sender_id[:12],
+                                (text or "")[:40],
+                                len(attachments),
                             )
-                        finally:
-                            await hide_typing(
+                            chat_id_use = chat_id or sender_id
+                            await show_typing(
                                 session,
                                 base_url=self.base_url,
                                 token=self.token,
                                 chat_id=chat_id_use,
+                                message=message,
                             )
+                            try:
+                                result = post_wechat_message(
+                                    base_url=self.lima_base,
+                                    sidecar_token=self.lima_token,
+                                    message_id=lima_mid,
+                                    sender_id=sender_id,
+                                    conversation_id=chat_id or sender_id,
+                                    text=text or "",
+                                    timestamp=int(time.time()),
+                                    attachments=attachments or None,
+                                )
+                                reply = ""
+                                if result.get("ok") and isinstance(result.get("reply"), dict):
+                                    reply = str(result["reply"].get("text") or "")
+                                elif result.get("error") == "duplicate message":
+                                    log.info("skip duplicate inbound mid=%s", lima_mid[:48])
+                                    continue
+                                elif result.get("error"):
+                                    reply = _user_facing_error(str(result["error"]))
+                                if not reply:
+                                    if result.get("ok"):
+                                        continue
+                                    reply = "暂时没有回复，请发送 /help 或稍后再试。"
+                                reply_payload = (
+                                    result["reply"]
+                                    if isinstance(result.get("reply"), dict)
+                                    else {"text": reply}
+                                )
+                                if "text" not in reply_payload:
+                                    reply_payload["text"] = reply
+                                from wechat_bridge.weixin_outbound import (
+                                    deliver_channel_reply,
+                                )
+
+                                await deliver_channel_reply(
+                                    session=session,
+                                    extra=extra,
+                                    token=self.token,
+                                    chat_id=chat_id_use,
+                                    reply=reply_payload,
+                                    split_fn=_split_reply,
+                                )
+                                log.info(
+                                    "replied ok=%s qr=%s voice=%s",
+                                    result.get("ok"),
+                                    bool(reply_payload.get("send_invite_qr")),
+                                    bool(reply_payload.get("voice_reply_text")),
+                                )
+                            finally:
+                                await hide_typing(
+                                    session,
+                                    base_url=self.base_url,
+                                    token=self.token,
+                                    chat_id=chat_id_use,
+                                )
+                    except asyncio.CancelledError:
+                        break
+                    except Exception as exc:
+                        log.exception("poll error: %s", exc)
+                        await asyncio.sleep(5)
+            finally:
+                self._stop.set()
+                keepalive.cancel()
+                try:
+                    await keepalive
                 except asyncio.CancelledError:
-                    break
-                except Exception as exc:
-                    log.exception("poll error: %s", exc)
-                    await asyncio.sleep(5)
+                    pass
 
 
 async def _main() -> None:
-    account_id, token, base_url = _load_weixin_account()
+    account_id, token, base_url, user_id = _load_weixin_account()
     lima_token = _sidecar_token()
     lima_base = os.environ.get("LIMA_CHANNEL_BASE_URL", "http://127.0.0.1:8080")
     bridge = LimaWeixinBridge(
@@ -319,6 +384,7 @@ async def _main() -> None:
         lima_base=lima_base,
         lima_token=lima_token,
     )
+    bridge._user_id = user_id
     await bridge.run()
 
 
