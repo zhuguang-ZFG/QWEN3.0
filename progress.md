@@ -12,6 +12,12 @@
 - **INF-B operator**：Check `lima-vps-router` Period 5min / Grace 10min / Email ON；`verify_healthcheck_vps_ok`
 - **测试**：translate + healthchecks_io + healthcheck_ping **21 passed**
 
+## 2026-05-26 LC-W-1e `/lima next` E2E
+
+- **Worker**：`verify_lcw1_worker_context.ts` + `smoke_lcw1_lima_next_e2e.py` → 本地 **full smoke_ok** task `f50f8795`，`context.md` 五段齐全
+- **deepcode-cli**：`lifecycle-prompt-contract.test.ts` **1 passed**
+- **VPS**：`deploy_lcw1_e2e_slice.py` → **`deploy_lcw1_e2e_ok`** task `53b3b150`（server_only；VPS 无 tsx）
+
 ## 2026-05-26 P1 SCNet/Kimi eval 重跑
 
 - **命令**：`eval_coding_backends.py` × 11 backends × 3 cases（~6min）

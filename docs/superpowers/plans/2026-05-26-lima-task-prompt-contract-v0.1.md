@@ -102,7 +102,7 @@ Return needs_review with summary JSON: changed_files, tests_run, remaining_risks
 | 2 | LC-W-1b | `routes/agent_tasks.py` schemas + create | API accepts `prompt_contract`; stores in task JSON |
 | 3 | LC-W-1c | `deepcode-cli/src/lima/prompt-contract.ts` | mirror render; task-runner uses rendered block |
 | 4 | LC-W-1d | `tests/test_prompt_contract*.py` + deepcode-cli unit | round-trip legacy + explicit contract |
-| 5 | LC-W-1e | VPS smoke | one `/agent/tasks` create → `/lima next` → worker log shows 5 sections |
+| 5 | LC-W-1e | VPS smoke | one `/agent/tasks` create → `/lima next` → worker log shows 5 sections | **Closed** local+server VPS |
 
 **Order:** 1 → 2 → tests → 3 → 5 (Server-first, then submodule).
 
