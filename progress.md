@@ -2,6 +2,15 @@
 
 > Created: 2026-05-22
 
+> Updated: 2026-05-26
+
+## 2026-05-26 执行主线切换
+
+- **当前优先：** Telegram × GitHub → `docs/superpowers/plans/2026-05-26-telegram-github-maximization.md`
+- **并行 P1：** Cloudflare × Google 免费额度 → `docs/superpowers/plans/2026-05-26-cloudflare-google-maximization.md`
+- **存档待定：** 免费模型自动发现 → `docs/superpowers/plans/2026-05-26-provider-model-automation-full-plan.md`
+- **CQ-GH-001：** 已关闭（`77b6819` docs + `1136a42` fixes）；Telegram 双条 push smoke 已确认
+
 ## 2026-05-26 GitHub Webhook → Telegram（CQ-GH-001）
 
 - **设计**：`docs/GITHUB_WEBHOOK_INTEGRATION.md`；计划 `docs/superpowers/plans/2026-05-26-github-webhook-telegram.md`

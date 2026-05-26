@@ -45,6 +45,9 @@ Paused work:
 | 10. server.py decomposition | Complete for current architecture pass | server.py is reduced to app setup plus core runtime helpers; chat, Anthropic, system, lifespan, models, request helpers, streaming helpers, admin, images, embeddings, and worker routes are extracted. |
 | 11. TechSpar-inspired mastery loop | Complete locally | `mastery_loop/` records sanitized evidence, module mastery, weak points, review schedules, recommendations, and traces; skill promotion requires mastery evidence. |
 | 12. Device Gateway public + Redis HA | Complete for current VPS topology | `/device/v1/*` is public through chat nginx; Redis-backed task store/session bus are deployed; cross-process temporary-router smoke and fake U8 public smoke passed. |
+| 13. Telegram × GitHub operator channel | **Active** | CQ-GH-001 webhook done; TG-GH-2~6 per `docs/superpowers/plans/2026-05-26-telegram-github-maximization.md`. |
+| 14. Cloudflare × Google free-tier maximization | **Active (P1)** | CF-G-0~6 per `docs/superpowers/plans/2026-05-26-cloudflare-google-maximization.md`; parallel after TG-GH-1. |
+| 15. Provider model auto-discovery | **Paused (archived plan)** | `docs/superpowers/plans/2026-05-26-provider-model-automation-full-plan.md`; CF-G-2 merges PA-B. |
 
 ## 2026-05-24 Runtime Closure
 
@@ -87,14 +90,26 @@ Paused work:
 
 ## Next Implementation Order
 
+**当前 P0 主线：** `docs/superpowers/plans/2026-05-26-telegram-github-maximization.md`
+
+1. **TG-GH-1** — frpc/Clash 自启 + Telegram 出站 smoke
+2. **TG-GH-2** — LiMa Code → Telegram 任务生命周期推送（deepcode-cli）
+3. **TG-GH-3** — 统一 Operator 早报（health + GitHub + tasks + **CF/Google 配额**）
+4. **TG-GH-4** — Telegram `/github` `/device` 命令
+
+**并行 P1（免费 API 额度）：** `docs/superpowers/plans/2026-05-26-cloudflare-google-maximization.md`
+
+5. **CF-G-0** — CF/Google 模型 inventory 脚本 + diff 报告（零路由风险）
+6. **CF-G-1** — `budget_manager` 补全 `cf_*` + 配额 Telegram 告警
+7. **CF-G-2/3** — CF 扩容 smoke + Google chat_fast/vision 优化
+
 四线优先级见 **`docs/NEXT_MILESTONES.md`**（编码后端 / LiMa Code Worker / ESP32·Device Gateway / 代码质量）。
 
-1. **代码质量 P0** — chunked body 413、`/api/live-key` 不泄钥、`key_rotation` 归档或加固（`docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md`）。
-2. **编码后端** — Kimi/SCNet-large/TheOldLLM refresh + eval；page-only Web AI 保持 sandbox。
-3. **ESP32** — PROD-003 真机烧录与运动 smoke；M12 Hardware Companion 与 `ESP32S_XYZ` 路线图对齐后开。
-4. **LiMa Code** — Task Prompt Contract v0.1 → Hooks v0.1；always-on daemon 仍 gated。
-5. **横切** — mastery admin UI、Postgres 设备审计：各自批准后再做。
-6. Run local tests; deploy only when requested; smoke public endpoints.
+5. **代码质量 P0** — chunked body 413、`/api/live-key` 不泄钥（进行中）
+6. **编码后端** — Kimi/SCNet-large refresh + eval
+7. **Provider model automation** — 存档计划，TG-GH-3 后再启 PA-A
+8. **ESP32** — PROD-003 真机 smoke
+9. Run local tests; deploy when slice complete; smoke public endpoints.
 
 **已关闭方向**：微信真机/机器人（`docs/WECHAT_RETIRED.md`）；商业支付/注册。
 
@@ -120,4 +135,6 @@ Chat smoke should use JSON serialization from Python or a known-good client to a
 - `docs/FREE_WEB_AI_EXPANSION_PLAN.md`
 - `docs/REFERENCE_PROJECT_EVALUATION.md`
 - `docs/reference/TECHSPAR_BORROWING_NOTES.md`
-- `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`
+- `docs/superpowers/plans/2026-05-26-telegram-github-maximization.md`
+- `docs/superpowers/plans/2026-05-26-provider-model-automation-full-plan.md`
+- `docs/superpowers/plans/2026-05-26-cloudflare-google-maximization.md`
