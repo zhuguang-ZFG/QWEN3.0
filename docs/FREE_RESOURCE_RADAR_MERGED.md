@@ -126,8 +126,8 @@
 |------|--------|------|------|
 | **Filesystem** | 485K+ | `npx @modelcontextprotocol/server-filesystem` | **Partial** `smoke_filesystem_mcp.py`（默认关） |
 | **GitHub** | 398K+ | `npx @modelcontextprotocol/server-github` | **Partial** `smoke_github_mcp.py`（默认关） |
-| **PostgreSQL** | 312K+ | `npx @modelcontextprotocol/server-postgres` | **Backlog** |
-| **Brave Search** | 287K+ | `npx @anthropic-ai/mcp-server-brave-search` | **Partial** 原生 API tier Done；MCP npx 仍 Backlog |
+| **PostgreSQL** | 312K+ | `npx @modelcontextprotocol/server-postgres` | **Partial** `smoke_postgres_mcp.py`（默认关；需 URL） |
+| **Brave Search** | 287K+ | `npx @brave/brave-search-mcp-server` | **Partial** 原生 API tier Done + `smoke_brave_mcp.py`（默认关） |
 | **Fetch** | 241K+ | `npx @modelcontextprotocol/server-fetch` | **Partial** `smoke_fetch_mcp.py`（默认关） |
 | **Context7** | 48K⭐ | `npx @upstash/context7-mcp@latest` | **Done** 文档查询 |
 | **Playwright** | 微软 | `npx @playwright/mcp` | **Partial** smoke `--live` ok；MCP 默认关 |

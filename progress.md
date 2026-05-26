@@ -4,6 +4,12 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 雷达 P2-13：Postgres/Brave MCP + TG /oldllm
+
+- **MCP**：`smoke_postgres_mcp.py`（`LIMA_POSTGRES_MCP=0`）+ `smoke_brave_mcp.py`（官方 `@brave/brave-search-mcp-server`）
+- **文档**：`docs/LC_W_POSTGRES_MCP.md`、`docs/LC_W_BRAVE_MCP.md`
+- **Telegram**：`/oldllm`（models+chat 探针；`/oldllm models` 仅 list）
+
 ## 2026-05-26 雷达 P2-12：GitHub MCP + Trivy + TheOldLLM 诊断
 
 - **MCP**：`scripts/smoke_github_mcp.py`（`LIMA_GITHUB_MCP=0`）+ `docs/LC_W_GITHUB_MCP.md`

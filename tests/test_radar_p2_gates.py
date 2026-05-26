@@ -141,6 +141,34 @@ def test_oldllm_diag_models_only_cli():
     assert "results" in proc.stdout
 
 
+def test_postgres_mcp_smoke_skips_when_disabled():
+    proc = subprocess.run(
+        [sys.executable, "scripts/smoke_postgres_mcp.py"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=30,
+        check=False,
+    )
+    assert proc.returncode == 0
+    assert "skip postgres_mcp" in proc.stdout
+
+
+def test_brave_mcp_smoke_skips_when_disabled():
+    proc = subprocess.run(
+        [sys.executable, "scripts/smoke_brave_mcp.py"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=30,
+        check=False,
+    )
+    assert proc.returncode == 0
+    assert "skip brave_mcp" in proc.stdout
+
+
 def test_pyright_report_only_runs():
     proc = subprocess.run(
         [sys.executable, "scripts/run_pyright.py", "--report-only"],
