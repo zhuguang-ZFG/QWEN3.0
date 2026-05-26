@@ -82,6 +82,22 @@ jobs:
       - name: Container scan (trivy, report-only)
         run: python scripts/run_trivy.py --report-only
 
+      - name: Install syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \
+            | sh -s -- -b /usr/local/bin
+
+      - name: SBOM scan (syft, report-only)
+        run: python scripts/run_syft.py --report-only
+
+      - name: Install grype
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh \
+            | sh -s -- -b /usr/local/bin
+
+      - name: Vulnerability scan (grype, report-only)
+        run: python scripts/run_grype.py --report-only
+
   rag-gate:
     name: RAG offline eval gate
     runs-on: ubuntu-latest

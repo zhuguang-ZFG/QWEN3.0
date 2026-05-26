@@ -42,3 +42,24 @@ async def test_cmd_evalslice_full_mode(monkeypatch):
 
     await mod.cmd_evalslice("chat-1", "full")
     assert calls == [False]
+
+
+async def test_cmd_evalreport_shows_summary(monkeypatch):
+    import routes.telegram_eval_tools as mod
+    from pathlib import Path
+
+    sent: list[str] = []
+
+    async def fake_send(text, **kwargs):
+        sent.append(text)
+
+    monkeypatch.setattr(mod.telegram_bot, "send_message", fake_send)
+    monkeypatch.setattr(
+        mod,
+        "latest_scores_path",
+        lambda data_dir, full=False: Path("data/coding_backend_scores.json"),
+    )
+    monkeypatch.setattr(mod, "summarize_eval_json", lambda path, top_n=5: "Eval 摘要 test")
+
+    await mod.cmd_evalreport("chat-1", "")
+    assert sent and "Eval 摘要 test" in sent[-1]

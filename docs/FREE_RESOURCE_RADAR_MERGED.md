@@ -78,15 +78,15 @@
 |------|---------|------|------|
 | **覆盖率** | coverage.py + pytest-cov | `pytest --cov` | **Done** `run_pytest_ci.py` + `.coveragerc` |
 | **并行测试** | pytest-xdist | `pytest -n auto` | **Done** CI `-n auto` |
-| **属性测试** | Hypothesis | property-based | **Partial** safety + calc 2026-05-26 |
+| **属性测试** | Hypothesis | property-based | **Partial** safety + calc + exchange 2026-05-26 |
 | **死代码** | Vulture + deptry | CLI扫描 | **Partial** scripts + **CI report-only** 2026-05-26 |
 | **复杂度** | Radon | CLI报告 | **Partial** `run_radon.py` + CI report-only 2026-05-26 |
 | **类型检查** | Pyright / basedpyright | 快速CLI | **Partial** `run_pyright.py` + CI report-only 2026-05-26 |
 | **HTTP Mock** | RESPX / pytest-httpx | pytest插件 | **Done** 测试在用 |
 | **安全扫描** | Gitleaks | 提交前扫描密钥 | **Done** `.gitleaks.toml` + `lima-ci.yml` |
 | **依赖审计** | pip-audit + OSV-Scanner | CLI | **Done** `run_pip_audit.py` + `run_osv_scan.py` + CI |
-| **容器扫描** | Trivy / Grype | CLI | **Partial** `run_trivy.py` + CI report-only 2026-05-26 |
-| **SBOM** | ORT / sbom-pilot / Syft | CLI | **Backlog** |
+| **容器扫描** | Trivy / Grype | CLI | **Partial** `run_trivy.py` + `run_grype.py` + CI report-only 2026-05-26 |
+| **SBOM** | ORT / sbom-pilot / Syft | CLI | **Partial** `run_syft.py` + CI report-only 2026-05-26 |
 | **Git Hooks** | betterhook (Rust,30ms) | 单二进制 | **Backlog** |
 | **静默 catch** | logger.warning 替代 pass | CQ P1.3 | **Done** active paths 2026-05-26 |
 
@@ -131,7 +131,7 @@
 | **Fetch** | 241K+ | `npx @modelcontextprotocol/server-fetch` | **Partial** `smoke_fetch_mcp.py`（默认关） |
 | **Context7** | 48K⭐ | `npx @upstash/context7-mcp@latest` | **Done** 文档查询 |
 | **Playwright** | 微软 | `npx @playwright/mcp` | **Partial** smoke `--live` ok；MCP 默认关 |
-| **Firecrawl** | 爬取 | `npx firecrawl-mcp` | **Backlog** |
+| **Firecrawl** | 爬取 | `npx firecrawl-mcp` | **Partial** `smoke_firecrawl_mcp.py`（默认关；需 API key） |
 | **Registry 盘点** | official+Glama | `inventory_mcp_registries.py` | **Done** PE-A-1 merged 904 |
 
 ---

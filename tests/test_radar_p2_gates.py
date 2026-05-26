@@ -169,6 +169,65 @@ def test_brave_mcp_smoke_skips_when_disabled():
     assert "skip brave_mcp" in proc.stdout
 
 
+def test_firecrawl_mcp_smoke_skips_when_disabled():
+    proc = subprocess.run(
+        [sys.executable, "scripts/smoke_firecrawl_mcp.py"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=30,
+        check=False,
+    )
+    assert proc.returncode == 0
+    assert "skip firecrawl_mcp" in proc.stdout
+
+
+def test_syft_report_only_runs_or_skips():
+    proc = subprocess.run(
+        [sys.executable, "scripts/run_syft.py", "--report-only"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=180,
+        check=False,
+    )
+    combined = (proc.stdout + proc.stderr).lower()
+    assert proc.returncode in (0, 2), proc.stdout + proc.stderr
+    assert "syft" in combined
+
+
+def test_grype_report_only_runs_or_skips():
+    proc = subprocess.run(
+        [sys.executable, "scripts/run_grype.py", "--report-only"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=180,
+        check=False,
+    )
+    combined = (proc.stdout + proc.stderr).lower()
+    assert proc.returncode in (0, 2), proc.stdout + proc.stderr
+    assert "grype" in combined
+
+
+def test_eval_report_cli():
+    proc = subprocess.run(
+        [sys.executable, "scripts/run_eval_report.py"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=30,
+        check=False,
+    )
+    assert proc.returncode in (0, 2), proc.stdout + proc.stderr
+    combined = proc.stdout + proc.stderr
+    assert "eval" in combined.lower() or "Eval" in combined
+
+
 def test_pyright_report_only_runs():
     proc = subprocess.run(
         [sys.executable, "scripts/run_pyright.py", "--report-only"],

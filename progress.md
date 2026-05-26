@@ -4,6 +4,18 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 雷达 P2-15：Grype + Eval 报告 + Exchange Hypothesis
+
+- **Grype**：`scripts/run_grype.py --report-only` + CI
+- **Eval 报告**：`scripts/run_eval_report.py`；TG `/evalreport`（`/evalreport full`）
+- **Hypothesis**：`tests/test_exchange_hypothesis.py`
+
+## 2026-05-26 雷达 P2-14：Syft SBOM + Firecrawl MCP + Eval 摘要
+
+- **SBOM**：`scripts/run_syft.py --report-only` + CI
+- **MCP**：`scripts/smoke_firecrawl_mcp.py`（`LIMA_FIRECRAWL_MCP=0`）+ `docs/LC_W_FIRECRAWL_MCP.md`
+- **Eval**：`eval_slice_summary.py`；TG `/evalslice` 完成时附带 top 排名摘要
+
 ## 2026-05-26 雷达 P2-13：Postgres/Brave MCP + TG /oldllm
 
 - **MCP**：`smoke_postgres_mcp.py`（`LIMA_POSTGRES_MCP=0`）+ `smoke_brave_mcp.py`（官方 `@brave/brave-search-mcp-server`）
