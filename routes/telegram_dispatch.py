@@ -1,0 +1,195 @@
+"""Telegram slash-command dispatch (split from routes/telegram.py)."""
+
+from __future__ import annotations
+
+import telegram_bot
+from routes.telegram_commands import (
+    cmd_cache,
+    cmd_chat,
+    cmd_clear,
+    cmd_code,
+    cmd_device,
+    cmd_eval,
+    cmd_github,
+    cmd_stop,
+    cmd_task,
+    cmd_tasks,
+    cmd_top,
+    cmd_uptime,
+    cmd_voice,
+    cmd_voicechat,
+)
+from routes.telegram_codesearch_tools import cmd_codesearch
+from routes.telegram_diag_tools import cmd_oldllm
+from routes.telegram_eval_tools import (
+    cmd_archiveeval,
+    cmd_evaldigest,
+    cmd_evalreport,
+    cmd_evalschedule,
+    cmd_evalslice,
+    cmd_evalstatus,
+    cmd_poolgate,
+)
+from routes.telegram_public_tools import (
+    cmd_hot,
+    cmd_news,
+    cmd_public_tool,
+    cmd_tools,
+)
+from routes.telegram_quick_menu import cmd_help, cmd_menu, expand_command_alias
+
+_PUBLIC_TOOL_COMMANDS: dict[str, str] = {
+    "/weather": "weather",
+    "/wiki": "wiki",
+    "/exchange": "exchange",
+    "/calc": "calc",
+    "/time": "time",
+    "/translate": "translate",
+    "/stock": "stock",
+    "/holiday": "holiday",
+    "/ip": "ip",
+    "/earthquake": "earthquake",
+    "/dict": "dict",
+    "/whois": "whois",
+    "/qr": "qr",
+    "/geocode": "geocode",
+    "/random": "randomuser",
+    "/ssl": "ssl",
+    "/regex": "regex",
+    "/image": "image",
+    "/uuid": "uuid",
+}
+
+
+async def _dispatch_status_health_budget(
+    chat_id: str, cmd: str, arg: str, *, status_fn, health_fn, budget_fn
+) -> bool:
+    if cmd == "/status":
+        await status_fn(chat_id)
+        return True
+    if cmd == "/health":
+        await health_fn(chat_id, arg.strip())
+        return True
+    if cmd == "/budget":
+        await budget_fn(chat_id)
+        return True
+    return False
+
+
+async def _dispatch_operator(chat_id: str, cmd: str, arg: str, *, logs_fn, restart_fn) -> bool:
+    if cmd == "/logs":
+        await logs_fn(chat_id, arg.strip())
+        return True
+    if cmd == "/restart":
+        await restart_fn(chat_id)
+        return True
+    if cmd == "/eval":
+        await cmd_eval(chat_id, arg.strip())
+        return True
+    if cmd == "/evalslice":
+        await cmd_evalslice(chat_id, arg)
+        return True
+    if cmd == "/evalreport":
+        await cmd_evalreport(chat_id, arg)
+        return True
+    if cmd == "/archiveeval":
+        await cmd_archiveeval(chat_id, arg)
+        return True
+    if cmd == "/poolgate":
+        await cmd_poolgate(chat_id, arg)
+        return True
+    if cmd == "/evalschedule":
+        await cmd_evalschedule(chat_id, arg)
+        return True
+    if cmd == "/evalstatus":
+        await cmd_evalstatus(chat_id, arg)
+        return True
+    if cmd == "/evaldigest":
+        await cmd_evaldigest(chat_id, arg)
+        return True
+    if cmd == "/codesearch":
+        await cmd_codesearch(chat_id, arg)
+        return True
+    if cmd == "/oldllm":
+        await cmd_oldllm(chat_id, arg)
+        return True
+    return False
+
+
+async def _dispatch_chat_session(chat_id: str, cmd: str, arg: str) -> bool:
+    mapping = {
+        "/chat": lambda: cmd_chat(chat_id, arg),
+        "/clear": lambda: cmd_clear(chat_id),
+        "/code": lambda: cmd_code(chat_id, arg),
+        "/top": lambda: cmd_top(chat_id),
+        "/uptime": lambda: cmd_uptime(chat_id),
+        "/task": lambda: cmd_task(chat_id, arg),
+        "/tasks": lambda: cmd_tasks(chat_id),
+        "/stop": lambda: cmd_stop(chat_id, arg.strip()),
+        "/cache": lambda: cmd_cache(chat_id),
+        "/voice": lambda: cmd_voice(chat_id, arg),
+        "/voicechat": lambda: cmd_voicechat(chat_id, arg),
+        "/github": lambda: cmd_github(chat_id, arg),
+        "/device": lambda: cmd_device(chat_id, arg),
+        "/news": lambda: cmd_news(chat_id, arg),
+        "/hot": lambda: cmd_hot(chat_id, arg),
+        "/tools": lambda: cmd_tools(chat_id),
+    }
+    handler = mapping.get(cmd)
+    if handler is None:
+        return False
+    await handler()
+    return True
+
+
+async def dispatch_command(
+    chat_id: str,
+    text: str,
+    *,
+    status_fn,
+    health_fn,
+    budget_fn,
+    logs_fn,
+    restart_fn,
+) -> None:
+    """Route a single slash command line to the appropriate handler."""
+    text = expand_command_alias(text)
+    parts = text.strip().split(maxsplit=1)
+    cmd = parts[0].lower().split("@")[0]
+    arg = parts[1] if len(parts) > 1 else ""
+
+    if cmd in ("/help",):
+        await cmd_help(chat_id)
+        return
+    if cmd in ("/menu",):
+        await cmd_menu(chat_id, with_reply_keyboard=True)
+        return
+
+    pub = _PUBLIC_TOOL_COMMANDS.get(cmd)
+    if pub is not None:
+        await cmd_public_tool(chat_id, pub, arg)
+        return
+
+    if await _dispatch_status_health_budget(
+        chat_id, cmd, arg, status_fn=status_fn, health_fn=health_fn, budget_fn=budget_fn
+    ):
+        return
+    if await _dispatch_chat_session(chat_id, cmd, arg):
+        return
+    if await _dispatch_operator(
+        chat_id, cmd, arg, logs_fn=logs_fn, restart_fn=restart_fn
+    ):
+        return
+
+    if cmd == "/start":
+        await telegram_bot.send_message(
+            "LiMa Bot 就绪。\n"
+            "发 /menu 或「菜单」打开快捷按钮；直接打字即可对话。\n"
+            "发 /help 查看分类说明。",
+            chat_id=chat_id,
+            parse_mode="",
+        )
+        await cmd_menu(chat_id, with_reply_keyboard=True)
+        return
+
+    await telegram_bot.send_message("Unknown command", chat_id=chat_id)

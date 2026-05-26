@@ -19,10 +19,6 @@ def _chat_id() -> str:
     return os.getenv("TELEGRAM_CHAT_ID", "")
 
 
-def _gfw_proxy() -> str:
-    return os.getenv("GFW_PROXY", "http://127.0.0.1:7897")
-
-
 def is_configured() -> bool:
     return bool(_bot_token() and _chat_id())
 

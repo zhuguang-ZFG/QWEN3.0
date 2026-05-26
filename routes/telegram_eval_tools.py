@@ -19,6 +19,7 @@ _ROOT = Path(__file__).resolve().parent.parent
 _PLAIN = ""
 
 _eval_busy = False
+_eval_lock = asyncio.Lock()
 
 
 def eval_auto_archive_enabled() -> bool:
@@ -144,19 +145,20 @@ async def _evalslice_worker(chat_id: str, *, quick: bool) -> None:
 
 async def cmd_evalslice(chat_id: str, args: str) -> None:
     global _eval_busy
-    if _eval_busy:
-        await telegram_bot.send_message(
-            "已有 Eval 运行中，请等待上一条完成消息（full 约 3–8 分钟）",
-            chat_id=chat_id,
-            parse_mode=_PLAIN,
-        )
-        return
+    async with _eval_lock:
+        if _eval_busy:
+            await telegram_bot.send_message(
+                "已有 Eval 运行中，请等待上一条完成消息（full 约 3–8 分钟）",
+                chat_id=chat_id,
+                parse_mode=_PLAIN,
+            )
+            return
+        _eval_busy = True
 
     mode = args.strip().lower()
     quick = mode not in ("full", "all", "11")
     label = "quick" if quick else "full-11"
     hint = "（约 3–8 分钟）" if not quick else ""
-    _eval_busy = True
     await telegram_bot.send_message(
         f"Eval slice ({label}) 启动中{hint}…",
         chat_id=chat_id,

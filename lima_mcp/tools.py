@@ -1,10 +1,13 @@
 """MCP tool handlers — execute search_repo, search_memory, get_retrieval_trace."""
 
 from __future__ import annotations
+import logging
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+_log = logging.getLogger(__name__)
 
 
 def handle_tool_call(name: str, arguments: dict) -> dict:
@@ -28,6 +31,7 @@ def handle_tool_call(name: str, arguments: dict) -> dict:
     try:
         return handler(arguments)
     except Exception as e:
+        _log.warning("MCP tool %s failed: %s", name, type(e).__name__, exc_info=True)
         return {"ok": False, "error": "tool_failed", "error_code": "tool_failed", "detail": str(e)[:200]}
 
 

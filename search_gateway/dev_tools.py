@@ -136,7 +136,7 @@ def fetch_github_file(
 ) -> dict:
     safe_repo = repo.strip().strip("/")
     safe_path = path.strip().lstrip("/")
-    safe_ref = urllib.parse.quote(ref.strip() or "main", safe="")
+    safe_ref = urllib.parse.quote(ref.strip() or "main", safe="/")
     if safe_repo.count("/") != 1 or not safe_path:
         return {"ok": False, "tool": "dev_fetch_github_file", "error": "invalid_github_target"}
     raw_url = f"https://raw.githubusercontent.com/{safe_repo}/{safe_ref}/{safe_path}"

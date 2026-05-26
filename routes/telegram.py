@@ -14,36 +14,17 @@ import health_tracker
 import budget_manager
 import telegram_bot
 from routes.telegram_commands import (
-    cmd_chat, cmd_clear, cmd_code, cmd_top, cmd_uptime,
-    cmd_eval, cmd_task, cmd_tasks, cmd_cache, cmd_stop, start_probe_loop,
-    cmd_voice, cmd_voicechat, start_broadcast_loop, _operator_error,
-    cmd_github, cmd_device,
+    cmd_chat,
+    start_probe_loop,
+    start_broadcast_loop,
+    _operator_error,
 )
-from routes.telegram_eval_tools import (
-    cmd_evalslice,
-    cmd_evalreport,
-    cmd_archiveeval,
-    cmd_poolgate,
-    cmd_evalschedule,
-    cmd_evalstatus,
-    cmd_evaldigest,
-)
-from routes.telegram_codesearch_tools import cmd_codesearch
-from routes.telegram_diag_tools import cmd_oldllm
 from routes.telegram_quick_menu import (
-    cmd_help,
-    cmd_menu,
-    expand_command_alias,
     handle_quick_callback,
     resolve_text_shortcut,
     sync_bot_commands,
 )
-from routes.telegram_public_tools import (
-    cmd_hot,
-    cmd_news,
-    cmd_public_tool,
-    cmd_tools,
-)
+from routes.telegram_dispatch import dispatch_command as _dispatch_telegram_command
 
 logger = logging.getLogger(__name__)
 
@@ -211,126 +192,15 @@ async def _dispatch_command_lines(chat_id: str, text: str) -> None:
 
 
 async def _dispatch_command(chat_id: str, text: str) -> None:
-    text = expand_command_alias(text)
-    parts = text.strip().split(maxsplit=1)
-    cmd = parts[0].lower().split("@")[0]
-    arg = parts[1] if len(parts) > 1 else ""
-
-    if cmd in ("/help",):
-        await cmd_help(chat_id)
-    elif cmd in ("/menu",):
-        await cmd_menu(chat_id, with_reply_keyboard=True)
-    elif cmd == "/status":
-        await _cmd_status(chat_id)
-    elif cmd == "/health":
-        await _cmd_health(chat_id, arg.strip())
-    elif cmd == "/budget":
-        await _cmd_budget(chat_id)
-    elif cmd == "/chat":
-        await cmd_chat(chat_id, arg)
-    elif cmd == "/clear":
-        await cmd_clear(chat_id)
-    elif cmd == "/code":
-        await cmd_code(chat_id, arg)
-    elif cmd == "/top":
-        await cmd_top(chat_id)
-    elif cmd == "/uptime":
-        await cmd_uptime(chat_id)
-    elif cmd == "/eval":
-        await cmd_eval(chat_id, arg.strip())
-    elif cmd == "/task":
-        await cmd_task(chat_id, arg)
-    elif cmd == "/tasks":
-        await cmd_tasks(chat_id)
-    elif cmd == "/stop":
-        await cmd_stop(chat_id, arg.strip())
-    elif cmd == "/cache":
-        await cmd_cache(chat_id)
-    elif cmd == "/voice":
-        await cmd_voice(chat_id, arg)
-    elif cmd == "/voicechat":
-        await cmd_voicechat(chat_id, arg)
-    elif cmd == "/logs":
-        await _cmd_logs(chat_id, arg.strip())
-    elif cmd == "/restart":
-        await _cmd_restart(chat_id)
-    elif cmd == "/github":
-        await cmd_github(chat_id, arg)
-    elif cmd == "/device":
-        await cmd_device(chat_id, arg)
-    elif cmd == "/news":
-        await cmd_news(chat_id, arg)
-    elif cmd == "/hot":
-        await cmd_hot(chat_id, arg)
-    elif cmd == "/tools":
-        await cmd_tools(chat_id)
-    elif cmd == "/weather":
-        await cmd_public_tool(chat_id, "weather", arg)
-    elif cmd == "/wiki":
-        await cmd_public_tool(chat_id, "wiki", arg)
-    elif cmd == "/exchange":
-        await cmd_public_tool(chat_id, "exchange", arg)
-    elif cmd == "/calc":
-        await cmd_public_tool(chat_id, "calc", arg)
-    elif cmd == "/time":
-        await cmd_public_tool(chat_id, "time", arg)
-    elif cmd == "/translate":
-        await cmd_public_tool(chat_id, "translate", arg)
-    elif cmd == "/stock":
-        await cmd_public_tool(chat_id, "stock", arg)
-    elif cmd == "/holiday":
-        await cmd_public_tool(chat_id, "holiday", arg)
-    elif cmd == "/ip":
-        await cmd_public_tool(chat_id, "ip", arg)
-    elif cmd == "/earthquake":
-        await cmd_public_tool(chat_id, "earthquake", arg)
-    elif cmd == "/dict":
-        await cmd_public_tool(chat_id, "dict", arg)
-    elif cmd == "/whois":
-        await cmd_public_tool(chat_id, "whois", arg)
-    elif cmd == "/qr":
-        await cmd_public_tool(chat_id, "qr", arg)
-    elif cmd == "/geocode":
-        await cmd_public_tool(chat_id, "geocode", arg)
-    elif cmd == "/random":
-        await cmd_public_tool(chat_id, "randomuser", arg)
-    elif cmd == "/ssl":
-        await cmd_public_tool(chat_id, "ssl", arg)
-    elif cmd == "/regex":
-        await cmd_public_tool(chat_id, "regex", arg)
-    elif cmd == "/image":
-        await cmd_public_tool(chat_id, "image", arg)
-    elif cmd == "/uuid":
-        await cmd_public_tool(chat_id, "uuid", arg)
-    elif cmd == "/evalslice":
-        await cmd_evalslice(chat_id, arg)
-    elif cmd == "/evalreport":
-        await cmd_evalreport(chat_id, arg)
-    elif cmd == "/archiveeval":
-        await cmd_archiveeval(chat_id, arg)
-    elif cmd == "/poolgate":
-        await cmd_poolgate(chat_id, arg)
-    elif cmd == "/evalschedule":
-        await cmd_evalschedule(chat_id, arg)
-    elif cmd == "/evalstatus":
-        await cmd_evalstatus(chat_id, arg)
-    elif cmd == "/evaldigest":
-        await cmd_evaldigest(chat_id, arg)
-    elif cmd == "/codesearch":
-        await cmd_codesearch(chat_id, arg)
-    elif cmd == "/oldllm":
-        await cmd_oldllm(chat_id, arg)
-    elif cmd == "/start":
-        await telegram_bot.send_message(
-            "LiMa Bot 就绪。\n"
-            "发 /menu 或「菜单」打开快捷按钮；直接打字即可对话。\n"
-            "发 /help 查看分类说明。",
-            chat_id=chat_id,
-            parse_mode="",
-        )
-        await cmd_menu(chat_id, with_reply_keyboard=True)
-    else:
-        await telegram_bot.send_message("Unknown command", chat_id=chat_id)
+    await _dispatch_telegram_command(
+        chat_id,
+        text,
+        status_fn=_cmd_status,
+        health_fn=_cmd_health,
+        budget_fn=_cmd_budget,
+        logs_fn=_cmd_logs,
+        restart_fn=_cmd_restart,
+    )
 
 
 def _review_callback_notice(status_code: int, task_id: str, decision: str) -> str:

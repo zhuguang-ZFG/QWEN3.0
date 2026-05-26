@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
-import threading
 from pathlib import Path
-from typing import Awaitable, Callable
 
 import telegram_bot
+from telegram_async import fire_and_forget
 
 _log = logging.getLogger(__name__)
 
@@ -52,17 +50,6 @@ def chunk_text(text: str, *, limit: int = _DEFAULT_CHUNK) -> list[str]:
 def format_archive_message(label: str, body: str) -> str:
     tag = (label or "artifact").strip()[:80]
     return f"[TG-ARCHIVE] {tag}\n{body.strip()}"
-
-
-def _fire_and_forget(coro_fn: Callable[[], Awaitable[None]]) -> None:
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            loop.create_task(coro_fn())
-            return
-    except RuntimeError:
-        pass
-    threading.Thread(target=asyncio.run, args=(coro_fn(),), daemon=True).start()
 
 
 async def archive_text_async(
@@ -109,7 +96,7 @@ def archive_text(
             parse_mode=parse_mode,
         )
 
-    _fire_and_forget(_run)
+    fire_and_forget(_run)
     return True
 
 
@@ -148,5 +135,5 @@ def archive_file(
     async def _run() -> None:
         await archive_file_async(file_path, label, chat_id=chat_id)
 
-    _fire_and_forget(_run)
+    fire_and_forget(_run)
     return True

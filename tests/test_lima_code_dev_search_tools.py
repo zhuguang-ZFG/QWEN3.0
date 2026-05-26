@@ -147,6 +147,16 @@ def test_fetch_github_file_uses_raw_github_url():
     )
 
 
+def test_fetch_github_file_preserves_slash_in_ref():
+    adapter = FakeAdapter()
+
+    fetch_github_file("psf/requests", "README.md", "feature/docs", adapter=adapter)
+
+    assert adapter.calls[0][1] == (
+        "https://raw.githubusercontent.com/psf/requests/feature/docs/README.md"
+    )
+
+
 def test_summarize_sources_builds_compact_evidence_block():
     result = summarize_sources([
         {"title": "A", "url": "https://example.com/a", "snippet": "alpha"},

@@ -4,6 +4,15 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 全量审查 closeout（HIGH + 测试）
+
+- **审查修复**：`_eval_busy` 加 `asyncio.Lock`；`routes/telegram_dispatch.py` 拆分 dispatch；`telegram_async.py` 统一 fire-and-forget；`lima_mcp/tools.py` 工具异常可观测；`fetch_github_file` ref 保留 `/`
+- **CRITICAL**：`telegram_bot.py` 删除重复 `_gfw_proxy()`（4 行）
+- **测试**：`tests/subprocess_helpers.py`（`errors=replace`）修复 Windows GBK 下 `test_radar_p2_gates`；新增 `test_fetch_github_file_preserves_slash_in_ref`
+- **全量 pytest**：**1861 passed**, 10 skipped, ~34s（本 session）
+- **未纳入 commit**：`data/webhook_*`、eval JSON 快照、WeChat 参考目录、`.coverage`、`scripts/smoke_eval_frp_large.py`（运维脚本，可后续单独提交）
+- **残余 MEDIUM**：`public_apis.py` 行数、`periodic_coding_eval` 线程锁、`code_orchestrator_context` defaultdict 等 — 后续切片
+
 ## 2026-05-26 雷达 P2-25：Large eval FRP 拓扑
 
 - **`eval_topology.py`** — local-proxy backend 不可达时走 `LIMA_EVAL_VIA_ROUTER_URL`（VPS 默认 `http://127.0.0.1:8088`）
