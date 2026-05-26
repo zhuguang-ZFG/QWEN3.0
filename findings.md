@@ -5,6 +5,9 @@
 | FL-1-11 | Acceptance | `smoke_five_line_acceptance.py` re-run acceptance_ok sha=22e7b4f | Closed 2026-05-26 |
 | FL-1-12 | Plan | five-line-closeout §4 checklist complete (~95%) | Closed 2026-05-26 |
 
+| OLDLLM-DIAG-1 | Root cause | `diag_oldllm_proxy.py` 2026-05-26: upstream/local `/v1/models` 200 (11–12 models); upstream chat **502** (~0.4s); local `4502` chat **timeout** (15s). Token refresh/upstream gate before promotion. | Open |
+| RADAR-P2-12-1 | Code | GitHub MCP smoke + Trivy report-only CI + oldllm_diag module | Closed 2026-05-26 |
+
 | GH-PUSH-MSG-1 | Code | push Telegram 摘要含 commit message（GH+Gitee） | Closed 2026-05-26 |
 | GH-PUSH-MSG-2 | VPS | deploy_github + deploy_gitee + smoke 200 | Closed 2026-05-26 |
 

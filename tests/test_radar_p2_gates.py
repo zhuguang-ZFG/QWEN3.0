@@ -93,6 +93,54 @@ def test_filesystem_mcp_smoke_skips_when_disabled():
     assert "skip filesystem_mcp" in proc.stdout
 
 
+def test_github_mcp_smoke_skips_when_disabled():
+    proc = subprocess.run(
+        [sys.executable, "scripts/smoke_github_mcp.py"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=30,
+        check=False,
+    )
+    assert proc.returncode == 0
+    assert "skip github_mcp" in proc.stdout
+
+
+def test_trivy_report_only_runs_or_skips():
+    proc = subprocess.run(
+        [sys.executable, "scripts/run_trivy.py", "--report-only"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=180,
+        check=False,
+    )
+    combined = (proc.stdout + proc.stderr).lower()
+    assert proc.returncode in (0, 2), proc.stdout + proc.stderr
+    assert "trivy" in combined
+
+
+def test_oldllm_diag_models_only_cli():
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "scripts/diag_oldllm_proxy.py",
+            "--models-only",
+            "--json",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=60,
+        check=False,
+    )
+    assert proc.returncode in (0, 1, 2), proc.stdout + proc.stderr
+    assert "results" in proc.stdout
+
+
 def test_pyright_report_only_runs():
     proc = subprocess.run(
         [sys.executable, "scripts/run_pyright.py", "--report-only"],

@@ -85,7 +85,7 @@
 | **HTTP Mock** | RESPX / pytest-httpx | pytest插件 | **Done** 测试在用 |
 | **安全扫描** | Gitleaks | 提交前扫描密钥 | **Done** `.gitleaks.toml` + `lima-ci.yml` |
 | **依赖审计** | pip-audit + OSV-Scanner | CLI | **Done** `run_pip_audit.py` + `run_osv_scan.py` + CI |
-| **容器扫描** | Trivy / Grype | CLI | **Backlog** |
+| **容器扫描** | Trivy / Grype | CLI | **Partial** `run_trivy.py` + CI report-only 2026-05-26 |
 | **SBOM** | ORT / sbom-pilot / Syft | CLI | **Backlog** |
 | **Git Hooks** | betterhook (Rust,30ms) | 单二进制 | **Backlog** |
 | **静默 catch** | logger.warning 替代 pass | CQ P1.3 | **Done** active paths 2026-05-26 |
@@ -125,7 +125,7 @@
 | 必装 | 安装量 | 命令 | LiMa |
 |------|--------|------|------|
 | **Filesystem** | 485K+ | `npx @modelcontextprotocol/server-filesystem` | **Partial** `smoke_filesystem_mcp.py`（默认关） |
-| **GitHub** | 398K+ | `npx @modelcontextprotocol/server-github` | **Backlog** |
+| **GitHub** | 398K+ | `npx @modelcontextprotocol/server-github` | **Partial** `smoke_github_mcp.py`（默认关） |
 | **PostgreSQL** | 312K+ | `npx @modelcontextprotocol/server-postgres` | **Backlog** |
 | **Brave Search** | 287K+ | `npx @anthropic-ai/mcp-server-brave-search` | **Partial** 原生 API tier Done；MCP npx 仍 Backlog |
 | **Fetch** | 241K+ | `npx @modelcontextprotocol/server-fetch` | **Partial** `smoke_fetch_mcp.py`（默认关） |

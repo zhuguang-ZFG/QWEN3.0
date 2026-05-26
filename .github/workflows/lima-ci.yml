@@ -74,6 +74,14 @@ jobs:
       - name: Dependency audit (osv-scanner)
         run: python scripts/run_osv_scan.py
 
+      - name: Install trivy
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+            | sh -s -- -b /usr/local/bin v0.63.0
+
+      - name: Container scan (trivy, report-only)
+        run: python scripts/run_trivy.py --report-only
+
   rag-gate:
     name: RAG offline eval gate
     runs-on: ubuntu-latest

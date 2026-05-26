@@ -4,6 +4,12 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 雷达 P2-12：GitHub MCP + Trivy + TheOldLLM 诊断
+
+- **MCP**：`scripts/smoke_github_mcp.py`（`LIMA_GITHUB_MCP=0`）+ `docs/LC_W_GITHUB_MCP.md`
+- **Trivy**：`scripts/run_trivy.py --report-only` + CI
+- **TheOldLLM**：`oldllm_diag.py` + `scripts/diag_oldllm_proxy.py`（models/chat 探针 → findings 证据）
+
 ## 2026-05-26 雷达 P2-11：§十三 SSL/正则/图片 + Filesystem MCP + Hypothesis calc
 
 - **Lookup**：`fetch_ssl` / `fetch_regex_test` / `fetch_image` → channel + Telegram

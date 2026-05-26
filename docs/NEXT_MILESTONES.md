@@ -36,7 +36,7 @@
 **下一切片（建议顺序）**
 
 1. **本地代理 refresh + 重评** — `docs/FREE_MODEL_ROUTING_STATUS.md`、`scripts/eval_coding_backends.py`；经 `local_router_start.bat` → `8080` 或 VPS `8088`，勿用 VPS `localhost:4504/4505` 当健康信号。
-2. **TheOldLLM 超时根因** — 记录到 `findings.md`，未过 eval 不进默认池。
+2. **TheOldLLM 超时根因** — `scripts/diag_oldllm_proxy.py` 已可复现：models 200、upstream chat 502、local 4502 chat timeout；证据见 `findings.md` OLDLLM-DIAG-1；未过 eval 不进默认池。
 3. **周期性重跑** — `periodic_coding_eval.py`（`LIMA_PERIODIC_CODING_EVAL=0` 默认关）；`scripts/run_radar_eval_slice.py --preflight --quick`；经 `local_router_start.bat` → `8080` 或 VPS `8088`。
 4. **路由硬化（小）** — `health_tracker` + `probe_loop` 对 terminal-state 冷却；`/v1/models` 是否收紧私有边界（`task_plan` 风险项，未决产品决策）。
 
