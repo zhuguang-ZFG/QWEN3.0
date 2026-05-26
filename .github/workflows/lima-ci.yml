@@ -128,5 +128,8 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          STATUS="${{ job.status == 'success' && 'passed' || 'FAILED' }}"
-          python scripts/ci_notify.py "CI $STATUS" "LiMa CI on ${{ github.ref_name }}" --status "${{ job.status }}"
+          if [ "${{ job.status }}" = "success" ]; then
+            python scripts/ci_notify.py "CI passed" "LiMa CI on ${GITHUB_REF_NAME}"
+          else
+            python scripts/ci_notify.py "CI FAILED" "LiMa CI on ${GITHUB_REF_NAME}" --status failure
+          fi
