@@ -1,9 +1,50 @@
 # LiMa Memory
 
-> **Updated: 2026-05-26**  
-> **Branch:** `codex/free-web-ai-probe`（最近提交至 `57ea35a`）  
+> **Updated: 2026-05-26（会话交接）**  
+> **Branch:** `codex/free-web-ai-probe` · **HEAD:** `d3c5e47`（已 push）  
 > **权威状态：** `STATUS.md`、`docs/EXECUTION_PLAN.md`、`docs/NEXT_MILESTONES.md`  
 > **本文件：** 跨会话 durable 事实；计划 checkbox 以状态文档为准。
+
+---
+
+## 2026-05-26 会话交接（重开窗口必读）
+
+### Git
+
+- 分支：`codex/free-web-ai-probe`
+- 已 push：`96b8ffc`（/chat 修复）+ `d3c5e47`（本记忆）
+- 近序：`d4604b0` PE 基建 · `36b4c59` TG 流式 · `ef4b536` TG B2B · `96b8ffc` /chat fallback
+
+### 测试
+
+- **1672 passed, 10 skipped**（`pytest -q --ignore=active_model`）
+- deepcode-cli B2B notifier：`dafe70f` on submodule `main`
+
+### Telegram（已手机验收 12:07）
+
+| 能力 | 状态 |
+|------|------|
+| 多命令同行 `/github` + `/device` | ✅ |
+| 纯文字对话（无需 `/chat`） | ✅ FastAPI Depends |
+| 流式 `sendMessageDraft` | 已部署 `TELEGRAM_STREAM_CHAT=1` |
+| 空流 fallback | `routing_engine` + `last_resort`（`96b8ffc`） |
+| B2B Code→Server | 代码✅；BotFather + 真实 username 待 E2E |
+
+**用法：** 直接发文字；或 `/chat 问题`；空 `/chat` 有中文说明。可能穿插 `deepseek_free degraded` 告警，一般不挡回答。
+
+**VPS `.env` 要点：** `TELEGRAM_STREAM_CHAT=1`、`TELEGRAM_B2B_ENABLED=1`、`TELEGRAM_CODE_BOT_USERNAMES=`（改真实）、`OPENOBSERVE_PASSWORD=change-me-local`、`SEARXNG_ENABLED=1`。
+
+**文档：** `docs/TELEGRAM_BOT_DESIGN.md`、`docs/TELEGRAM_B2B_SETUP.md`。
+
+### 生产力基建（同日）
+
+- Netdata loopback · OpenObserve export · codesearch 本机 · SearXNG ghcr（阿里云引擎走 TinyFish fallback）· `DEVICE_PLATFORM_REFERENCE.md`
+
+### 下一刀建议
+
+1. TG-10.0-2 E2E（B2B + 审批）  
+2. TG-10.0-3 inline mode  
+3. PE-A-1 MCP registry  
 
 ---
 
