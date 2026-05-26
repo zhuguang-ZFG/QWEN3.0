@@ -119,8 +119,14 @@ async def _cmd_health(chat_id: str, name: str) -> None:
 
 async def _cmd_budget(chat_id: str) -> None:
     summary = budget_manager.get_usage_summary()
-    lines = [f"{k}: {v}" for k, v in summary.items()]
-    await telegram_bot.send_message("\n".join(lines) or "No usage data", chat_id=chat_id)
+    blocks = []
+    for group, body in summary.items():
+        blocks.append(f"*{group}*\n{body}")
+    await telegram_bot.send_message(
+        "\n\n".join(blocks) or "No usage data",
+        parse_mode="Markdown",
+        chat_id=chat_id,
+    )
 
 
 async def _cmd_chat(chat_id: str, message: str) -> None:
@@ -329,7 +335,7 @@ async def _send_daily_digest() -> None:
     for state in hmap.values():
         counts[state] = counts.get(state, 0) + 1
     summary = budget_manager.get_usage_summary()
-    total_reqs = sum(v for v in summary.values() if isinstance(v, (int, float)))
+    total_reqs = budget_manager.get_total_requests_today()
     text = (
         f"*Daily Digest*\n"
         f"Backends: {counts['healthy']} healthy, {counts['degraded']} degraded, {counts['dead']} dead\n"

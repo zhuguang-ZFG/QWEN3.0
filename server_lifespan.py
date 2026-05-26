@@ -12,6 +12,12 @@ _log = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(application):
     """Start and stop background runtime helpers."""
+    try:
+        from backend_admission_store import apply_startup
+
+        apply_startup()
+    except ImportError:
+        _log.debug("backend_admission_store not installed")
     probe_loop.start(probe_fn=http_caller.probe)
     try:
         from session_memory.daemon import start_daemon

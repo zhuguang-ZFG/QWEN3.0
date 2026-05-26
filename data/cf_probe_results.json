@@ -1,0 +1,35 @@
+[
+  {
+    "model_id": "@cf/defog/sqlcoder-7b-2",
+    "final_status": "rejected",
+    "highest_level": "completion_smoke",
+    "capabilities": [
+      "code"
+    ]
+  },
+  {
+    "model_id": "@cf/meta-llama/llama-2-7b-chat-hf-lora",
+    "final_status": "rejected",
+    "highest_level": "completion_smoke",
+    "capabilities": [
+      "chat"
+    ]
+  },
+  {
+    "model_id": "@cf/moonshotai/kimi-k2.5",
+    "final_status": "rejected",
+    "highest_level": "metadata_only",
+    "capabilities": [
+      "vision"
+    ]
+  },
+  {
+    "model_id": "@cf/unum/uform-gen2-qwen-500m",
+    "final_status": "rejected",
+    "highest_level": "metadata_only",
+    "capabilities": [
+      "chat",
+      "vision"
+    ]
+  }
+]

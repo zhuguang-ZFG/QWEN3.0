@@ -4,6 +4,32 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 CF-G-2 Cloudflare 模型 smoke 扩容
+
+- **计划**：`docs/superpowers/plans/2026-05-26-cloudflare-google-maximization.md` Phase CF-G-2
+- **adapter**：`provider_automation/adapters/cloudflare.py`（inventory → chat 候选 + CF API smoke/coding fixture）
+- **准入 overlay**：`backend_admission_store.py` + `data/backend_admission.json`（默认关，`LIMA_DYNAMIC_ADMISSION=1` 启用）
+- **路由**：`router_v3.select_backends` 将 overlay 注入 medium/floor tier（不进 strong）
+- **watchlist**：`cfai_mistral` 启动时 disable（HTTP 500 证据）
+- **脚本**：`scripts/probe_cf_new_models.py` → `data/cf_probe_results.json` + `docs/CF_PROBE_REPORT.md`
+- **测试**：focused **12 passed**（adapter + overlay）；全量 **1587 passed, 10 skipped**
+- **VPS probe 扩至 50% 尝试**（2026-05-26）：两轮 probe；overlay **16→20**（+4：`cf_microsoft_phi_2`、`@hf/gemma-7b-it`、`@hf/mistral-7b-v0.2`、`@hf/hermes-2-pro`）；剩余 4 候选 **0/4 通过** → **probe 池已耗尽**
+- **覆盖率**：overlay **20/60** 原始未注册基线 = **33%**；静态 `cf_*` **14** + overlay **20** = **34/73** 远程模型 ≈ **47%**；probe 合格池内 **20/~24** ≈ **83%**
+- **VPS probe 扩容**（2026-05-26）：`probe_cf_new_models.py --limit 20 --apply` → **16/20 通过**，overlay **5→16**
+- **新增 overlay 示例**：`cf_meta_llama_3_8b_instruct`、`cf_openai_gpt_oss_20b`、`cf_mistral_mistral_7b_instruct_v0_1` 等 11 个
+- **VPS 验证**（2026-05-26）：`LIMA_DYNAMIC_ADMISSION=1`；5 overlay 已注册；`cfai_mistral` disabled；`cf_qwen_coder` smoke **782ms**；overlay `@cf/aisingapore/gemma-sea-lion-v4-27b-it` **808ms**；`scripts/smoke_cf_admission_overlay_vps.py` **PASS**
+- **热修**：VPS 无 `backends_registry.py`，`apply_startup` 改为 `from backends import BACKENDS`
+- **下一刀**：VPS live probe + smoke；或 CF-G-3 Google 路由优化
+
+## 2026-05-26 CF-G-1 预算与 Telegram 告警
+
+- **计划**：`docs/superpowers/plans/2026-05-26-cloudflare-google-maximization.md` Phase CF-G-1
+- **budget_manager**：14 个 `cf_*` 日限额（800–1200）+ `google_flash`；CF 账户池 **12000**/日 warn **70%**
+- **告警**：`record_usage` 跨 warn/exhausted 阈值 → `telegram_notify.notify_budget_threshold`（5min 限速）
+- **Telegram**：`/budget` 分组显示 Cloudflare + Google；digest 改用 `get_total_requests_today()`
+- **测试**：focused **9 passed**（`tests/test_budget_cf_google.py`）；budget 合计 **23 passed**
+- **下一刀**：CF-G-2 CF 模型 smoke 扩容，或 TG-GH-1 frpc 自启
+
 ## 2026-05-26 CF-G-0 基线盘点（Cloudflare × Google）
 
 - **计划**：`docs/superpowers/plans/2026-05-26-cloudflare-google-maximization.md` Phase CF-G-0

@@ -6,7 +6,10 @@ from typing import Any
 
 
 def registered_backends(prefixes: tuple[str, ...]) -> dict[str, dict[str, str]]:
-    from backends_registry import BACKENDS
+    try:
+        from backends import BACKENDS
+    except ImportError:
+        from backends_registry import BACKENDS
 
     out: dict[str, dict[str, str]] = {}
     for name, cfg in BACKENDS.items():

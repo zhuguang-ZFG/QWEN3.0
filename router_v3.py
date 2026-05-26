@@ -192,10 +192,12 @@ def _has_image_blocks(body: dict) -> bool:
 def select_backends(req_type: str, health_map: dict, proxy_healthy: bool = True) -> list:
     """从对应 Pool 选健康后端，同层随机，P2C 优化"""
     pool = POOLS.get(req_type, POOLS["chat"])
+    overlay_tiers = _overlay_tiers_for_pool(req_type)
     result = []
 
     for tier in ("strong", "medium", "floor"):
-        candidates = pool.get(tier, [])
+        candidates = list(pool.get(tier, []))
+        candidates.extend(overlay_tiers.get(tier, []))
         if not proxy_healthy:
             candidates = [b for b in candidates if b in DIRECT_BACKENDS]
         usable = [b for b in candidates if health_map.get(b, "healthy") != "dead"]
@@ -213,6 +215,18 @@ def select_backends(req_type: str, health_map: dict, proxy_healthy: bool = True)
                   if health_map.get(b, "healthy") != "dead"]
 
     return result[:MAX_FALLBACKS]
+
+
+def _overlay_tiers_for_pool(pool_key: str) -> dict[str, list[str]]:
+    try:
+        from backend_admission_store import get_overlay_backends_by_tier
+    except ImportError:
+        return {"medium": [], "floor": []}
+    grouped = get_overlay_backends_by_tier(pool_key)
+    return {
+        "medium": grouped.get("medium", []) + grouped.get("late_fallback", []),
+        "floor": grouped.get("floor", []),
+    }
 
 
 # ─── Layer 3: IDE 检测 ─────────────────────────────────────────────────────

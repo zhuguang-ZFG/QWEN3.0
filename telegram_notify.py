@@ -70,3 +70,49 @@ def notify_github_event(summary: str) -> None:
         logger.debug("github event skipped: telegram not configured")
         return
     _fire_and_forget(telegram_bot.send_message, summary)
+
+
+_budget_last_notified: dict[str, float] = {}
+_BUDGET_RATE_LIMIT_SECONDS = 300
+
+
+def reset_budget_alerts_for_tests() -> None:
+    _budget_last_notified.clear()
+
+
+def notify_budget_threshold(
+    *,
+    backend: str,
+    level: str,
+    used: int,
+    limit: int,
+    pool_label: str = "",
+) -> None:
+    """Push budget warn/exhausted alerts to Telegram (rate-limited)."""
+    if not telegram_bot.is_configured():
+        return
+
+    key = f"pool:{pool_label}" if pool_label else backend
+    now = time.time()
+    last = _budget_last_notified.get(key, 0.0)
+    if now - last < _BUDGET_RATE_LIMIT_SECONDS:
+        return
+    _budget_last_notified[key] = now
+
+    if pool_label:
+        target = f"CF pool `{pool_label}`"
+    else:
+        target = f"`{backend}`"
+    pct = int(100 * used / limit) if limit else 0
+    if level == "exhausted":
+        alert_level = "critical"
+        headline = "Budget exhausted"
+    elif level == "pool_warning":
+        alert_level = "warning"
+        headline = "CF account pool warning"
+    else:
+        alert_level = "warning"
+        headline = "Budget warning"
+
+    msg = f"{headline}: {target} {used}/{limit} ({pct}%)"
+    _fire_and_forget(telegram_bot.send_alert, alert_level, msg)

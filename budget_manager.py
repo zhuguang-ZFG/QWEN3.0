@@ -77,6 +77,21 @@ BACKEND_BUDGETS: dict[str, BudgetConfig] = {
     "deepseek_free": BudgetConfig(daily_limit=200, warn_at=0.6),
 }
 
+from budget_cf_google import (  # noqa: E402
+    CF_ACCOUNT_DAILY_LIMIT,
+    CF_ACCOUNT_WARN_AT,
+    CF_BACKEND_PREFIX,
+    emit_budget_alerts,
+    emit_cf_pool_alerts,
+    get_cf_pool_status,
+    get_cf_pool_usage,
+    get_total_requests_today,
+    get_usage_summary,
+    register_cf_google_budgets,
+)
+
+register_cf_google_budgets(BACKEND_BUDGETS, BudgetConfig)
+
 # ── 状态管理 ─────────────────────────────────────────────────────────────────
 
 _lock = threading.Lock()
@@ -99,7 +114,12 @@ def record_usage(backend: str):
     """记录一次请求使用。"""
     with _lock:
         _check_reset()
-        _usage[backend] = _usage.get(backend, 0) + 1
+        old_used = _usage.get(backend, 0)
+        _usage[backend] = old_used + 1
+        new_used = old_used + 1
+    emit_budget_alerts(backend, old_used, new_used)
+    if backend.startswith(CF_BACKEND_PREFIX):
+        emit_cf_pool_alerts()
 
 
 def is_budget_available(backend: str) -> bool:
