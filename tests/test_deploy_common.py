@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
-import sys
+import importlib.util
 from pathlib import Path
 from unittest.mock import MagicMock
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-import deploy_common  # noqa: E402
+_scripts = Path(__file__).resolve().parents[1] / "scripts"
+_spec = importlib.util.spec_from_file_location("deploy_common", _scripts / "deploy_common.py")
+assert _spec and _spec.loader
+deploy_common = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(deploy_common)
 
 
 def test_format_deploy_ok():

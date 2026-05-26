@@ -17,7 +17,7 @@
 | FL-1-7-1 | Ops | `/github` phone 11:01 title/body ok | Closed 2026-05-26 |
 | FL-1-7-2 | Bug | multi-line message ignored 2nd command | Closed 2026-05-26 |
 | FL-1-7-3 | Code | `_dispatch_command_lines` + `parse_github_args` first line | Closed 2026-05-26 |
-| FL-1-7-4 | Ops | phone re-test `/github` + `/device` same message | Open |
+| FL-1-7-4 | Ops | phone 11:05 `/github` + `/device` same message ok | Closed 2026-05-26 |
 
 ## 2026-05-26 Five-line closeout slice 1
 

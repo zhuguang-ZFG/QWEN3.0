@@ -10,7 +10,12 @@
 - **修复**：`_dispatch_command_lines` 按行 dispatch；`parse_github_args` 只读首行
 - **测试**：`test_webhook_multiline_commands` + `test_parse_github_args_ignores_extra_lines`；focused **20 passed**；全量 **1645 passed, 10 skipped**（`test_healthcheck_ping` 全量偶发 8 fail，单跑 9 passed — 与本次无关）
 - **VPS**：`deploy_five_line_closeout_ok`（含 `telegram_operator_tools.py`）
-- **待验收**：手机复测两行同发
+- **待验收**：~~手机复测两行同发~~ ✅ **11:05** 同条消息 `/github` + `/device status` 均回复；Device Gateway `status: ok`
+
+## 2026-05-26 CI healthcheck import 修复
+
+- **根因**：`test_deploy_common` 将 `scripts/` 插入 `sys.path[0]`，全量 pytest 收集时 `healthcheck_ping` 误载 `scripts/healthcheck_ping.py`（CLI 包装）→ 8 fail
+- **修复**：`importlib.util` 加载 `deploy_common`，不再污染 `sys.path`
 
 ## 2026-05-26 TG-GH-7 推送翻译 + FL-1-7 手机验收
 
