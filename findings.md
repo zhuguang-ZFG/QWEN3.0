@@ -11,6 +11,10 @@
 | GI-G-2-3 | Ops | Gitee UI WebHook password must match VPS `GITEE_WEBHOOK_SECRET` | Open |
 
 ## 2026-05-26 TG-GH-1 reliability
+
+| ID | Area | Evidence | Status |
+|---|---|---|---|
+| TG-GH-1-1 | VPS smoke | `deploy_reliability_ops.py` → `OK: http://127.0.0.1:7897: @limacode_bot` | Closed 2026-05-26 |
 | TG-GH-1-2 | Ops | `LIMA_HEALTHCHECK_ENABLED` still 0 on VPS (dry-run ok) | Open |
 
 ## 2026-05-26 CQ-099 Code quality P2 long-function splits
