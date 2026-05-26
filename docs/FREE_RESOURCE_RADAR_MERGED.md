@@ -78,7 +78,7 @@
 |------|---------|------|------|
 | **覆盖率** | coverage.py + pytest-cov | `pytest --cov` | **Done** `run_pytest_ci.py` + `.coveragerc` |
 | **并行测试** | pytest-xdist | `pytest -n auto` | **Done** CI `-n auto` |
-| **属性测试** | Hypothesis | property-based | **Partial** `tests/test_safety_hypothesis.py` |
+| **属性测试** | Hypothesis | property-based | **Partial** safety + calc 2026-05-26 |
 | **死代码** | Vulture + deptry | CLI扫描 | **Partial** scripts + **CI report-only** 2026-05-26 |
 | **复杂度** | Radon | CLI报告 | **Partial** `run_radon.py` + CI report-only 2026-05-26 |
 | **类型检查** | Pyright / basedpyright | 快速CLI | **Partial** `run_pyright.py` + CI report-only 2026-05-26 |
@@ -124,7 +124,7 @@
 
 | 必装 | 安装量 | 命令 | LiMa |
 |------|--------|------|------|
-| **Filesystem** | 485K+ | `npx @modelcontextprotocol/server-filesystem` | **Backlog** |
+| **Filesystem** | 485K+ | `npx @modelcontextprotocol/server-filesystem` | **Partial** `smoke_filesystem_mcp.py`（默认关） |
 | **GitHub** | 398K+ | `npx @modelcontextprotocol/server-github` | **Backlog** |
 | **PostgreSQL** | 312K+ | `npx @modelcontextprotocol/server-postgres` | **Backlog** |
 | **Brave Search** | 287K+ | `npx @anthropic-ai/mcp-server-brave-search` | **Partial** 原生 API tier Done；MCP npx 仍 Backlog |
@@ -223,9 +223,9 @@
 | **地理编码** | Nominatim(OSM) | 1req/s | 不需要 | **Done** `/地理` + TG `/geocode` |
 | **WHOIS** | rdap.org | 100次/分 | 不需要 | **Done** `/whois` |
 | **假数据** | randomuser.me | 无限 | 不需要 | **Done** `/假数据` + TG `/random` |
-| **SSL检查** | sslcheck(npm)+WhoisJSON | 无限+1000/月 | 不需要 |
-| **Regex** | Mate.tools Regex API | 60次/分 | 不需要 |
-| **图片** | Unsplash Source | ~50次/时 | 不需要 |
+| **SSL检查** | stdlib ssl | 无限 | 不需要 | **Done** `/ssl` + TG `/ssl` |
+| **Regex** | 本地 re | 无限 | 不需要 | **Done** `/正则` + TG `/regex` |
+| **图片** | picsum.photos | 无限 | 不需要 | **Done** `/图片` + TG `/image` |
 
 ---
 

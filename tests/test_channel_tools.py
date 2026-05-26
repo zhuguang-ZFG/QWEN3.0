@@ -35,6 +35,9 @@ class TestChannelToolCommands:
         assert parse_command("/二维码 hi").intent == "qr"
         assert parse_command("/地理 北京").intent == "geocode"
         assert parse_command("/假数据 demo").intent == "randomuser"
+        assert parse_command("/ssl example.com").intent == "ssl"
+        assert parse_command("/正则 \\d+ x1").intent == "regex"
+        assert parse_command("/图片 cat").intent == "image"
         assert parse_command("/menu").intent == "menu"
 
     def test_all_tool_intents_registered(self):
@@ -42,7 +45,7 @@ class TestChannelToolCommands:
             "wiki", "weather", "search", "read_url", "news",
             "translate", "exchange", "time", "hot", "ip", "menu",
             "calc", "holiday", "stock", "earthquake",
-            "dict", "whois", "qr", "geocode", "randomuser",
+            "dict", "whois", "qr", "geocode", "randomuser", "ssl", "regex", "image",
         ):
             assert intent in CHANNEL_TOOL_INTENTS
 

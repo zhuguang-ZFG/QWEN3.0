@@ -79,6 +79,20 @@ def test_fetch_mcp_smoke_skips_when_disabled():
     assert "skip fetch_mcp" in proc.stdout
 
 
+def test_filesystem_mcp_smoke_skips_when_disabled():
+    proc = subprocess.run(
+        [sys.executable, "scripts/smoke_filesystem_mcp.py"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=30,
+        check=False,
+    )
+    assert proc.returncode == 0
+    assert "skip filesystem_mcp" in proc.stdout
+
+
 def test_pyright_report_only_runs():
     proc = subprocess.run(
         [sys.executable, "scripts/run_pyright.py", "--report-only"],

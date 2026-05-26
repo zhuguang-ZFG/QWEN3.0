@@ -77,6 +77,11 @@ _GUEST_COMMANDS = {
     "randomuser": "randomuser",
     "random": "randomuser",
     "fake": "randomuser",
+    "ssl": "ssl",
+    "正则": "regex",
+    "regex": "regex",
+    "图片": "image",
+    "image": "image",
 }
 
 _OWNER_COMMANDS = {

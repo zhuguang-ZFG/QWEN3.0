@@ -151,6 +151,7 @@
 | RADAR-P2-8 | 周期性 eval + TG §十三 + Playwright live | `periodic_coding_eval.py` + `eval_preflight.py` + TG 工具全量 + `smoke_playwright_mcp --live` | Closed 2026-05-26 |
 | RADAR-P2-9 | §十三 lookup + Radon + TG evalslice | `public_apis_lookup.py` + `run_radon.py` + `/evalslice` | Closed 2026-05-26 |
 | RADAR-P2-10 | full eval + Pyright + randomuser + Fetch MCP | `--full` 11-backend + `run_pyright.py` + `smoke_fetch_mcp.py` | Closed 2026-05-26 |
+| RADAR-P2-11 | SSL/regex/image + Filesystem MCP | `public_apis_lookup` + `smoke_filesystem_mcp.py` + calc Hypothesis | Closed 2026-05-26 |
 
 ## 2026-05-26 TG-GH-2 LiMa Code Telegram
 

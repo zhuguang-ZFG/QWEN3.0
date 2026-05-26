@@ -4,6 +4,13 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 雷达 P2-11：§十三 SSL/正则/图片 + Filesystem MCP + Hypothesis calc
+
+- **Lookup**：`fetch_ssl` / `fetch_regex_test` / `fetch_image` → channel + Telegram
+- **MCP**：`scripts/smoke_filesystem_mcp.py`（`LIMA_FILESYSTEM_MCP=0`）+ `docs/LC_W_FILESYSTEM_MCP.md`
+- **Hypothesis**：`tests/test_calc_hypothesis.py`
+- **测试**：全量 **1762 passed**, 10 skipped
+
 ## 2026-05-26 雷达 P2-10：11-backend eval + Pyright + 假数据 + Fetch MCP
 
 - **Eval full**：`run_radar_eval_slice.py --full`（11 SCNet/Kimi × 3 cases）；TG `/evalslice full`

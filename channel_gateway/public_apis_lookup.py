@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import re
+import socket
+import ssl
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import datetime, timezone
 
 _log = logging.getLogger(__name__)
 
@@ -159,3 +163,83 @@ def fetch_randomuser(seed: str = "") -> dict:
         return {"ok": True, "text": "\n".join(lines)[:1500]}
     except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
         return {"ok": False, "error": f"假数据服务暂不可用：{type(exc).__name__}"}
+
+
+def _normalize_host(raw: str) -> str:
+    host = raw.strip().lower()
+    host = re.sub(r"^https?://", "", host)
+    host = host.split("/")[0].split(":")[0]
+    return host[:253]
+
+
+def fetch_ssl(host: str) -> dict:
+    """Check TLS certificate expiry for a public host (stdlib, no API key)."""
+    name = _normalize_host(host)
+    if not name or not re.match(r"^[a-z0-9.-]+$", name):
+        return {"ok": False, "error": "用法：/ssl example.com"}
+    try:
+        ctx = ssl.create_default_context()
+        with socket.create_connection((name, 443), timeout=_TIMEOUT) as sock:
+            with ctx.wrap_socket(sock, server_hostname=name) as ssock:
+                cert = ssock.getpeercert() or {}
+                cipher = ssock.cipher()
+        not_after = cert.get("notAfter", "")
+        issuer = cert.get("issuer", ())
+        org = ""
+        for item in issuer:
+            if item[0] == "organizationName":
+                org = str(item[1])
+                break
+        expiry = ""
+        if not_after:
+            try:
+                dt = datetime.strptime(not_after, "%b %d %H:%M:%S %Y %Z").replace(
+                    tzinfo=timezone.utc
+                )
+                expiry = dt.strftime("%Y-%m-%d")
+            except ValueError:
+                expiry = not_after
+        lines = [name, f"颁发者：{org or 'unknown'}"]
+        if expiry:
+            lines.append(f"到期：{expiry}")
+        if cipher:
+            lines.append(f"加密：{cipher[0]}")
+        return {"ok": True, "text": "\n".join(lines)[:1500]}
+    except (TimeoutError, OSError, ssl.SSLError) as exc:
+        return {"ok": False, "error": f"SSL 检查失败：{type(exc).__name__}"}
+
+
+def fetch_regex_test(args: str) -> dict:
+    """Local regex match test (no external API)."""
+    raw = args.strip()
+    if not raw:
+        return {"ok": False, "error": "用法：/正则 \\d+ hello123"}
+    parts = raw.split(maxsplit=1)
+    if len(parts) < 2:
+        return {"ok": False, "error": "用法：/正则 <pattern> <text>"}
+    pattern, text = parts[0][:120], parts[1][:500]
+    try:
+        match = re.search(pattern, text)
+    except re.error as exc:
+        return {"ok": False, "error": f"无效正则：{exc}"}
+    if not match:
+        return {"ok": True, "text": f"模式 `{pattern}` 未匹配\n文本：{text[:200]}"}
+    return {
+        "ok": True,
+        "text": (
+            f"匹配：`{match.group(0)[:200]}`\n"
+            f"位置：{match.start()}-{match.end()}\n"
+            f"文本：{text[:200]}"
+        ),
+    }
+
+
+def fetch_image(keyword: str = "") -> dict:
+    """Return a stable placeholder image URL (picsum.photos, no API key)."""
+    kw = re.sub(r"[^\w\u4e00-\u9fff\s\-]", "", (keyword or "lima").strip())[:40] or "lima"
+    seed = hashlib.sha256(kw.encode("utf-8")).hexdigest()[:12]
+    url = f"https://picsum.photos/seed/{seed}/800/600"
+    return {
+        "ok": True,
+        "text": f"图片链接：\n{url}\n关键词：{kw}",
+    }

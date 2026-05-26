@@ -276,6 +276,12 @@ async def _dispatch_command(chat_id: str, text: str) -> None:
         await cmd_public_tool(chat_id, "geocode", arg)
     elif cmd == "/random":
         await cmd_public_tool(chat_id, "randomuser", arg)
+    elif cmd == "/ssl":
+        await cmd_public_tool(chat_id, "ssl", arg)
+    elif cmd == "/regex":
+        await cmd_public_tool(chat_id, "regex", arg)
+    elif cmd == "/image":
+        await cmd_public_tool(chat_id, "image", arg)
     elif cmd == "/evalslice":
         await cmd_evalslice(chat_id, arg)
     elif cmd == "/start":
@@ -284,7 +290,7 @@ async def _dispatch_command(chat_id: str, text: str) -> None:
             "/chat /clear /code /eval /evalslice /voice\n"
             "/github /device status\n"
             "/tools /news /hot /weather /wiki /exchange\n"
-            "/dict /whois /qr /geocode /random\n"
+            "/dict /whois /qr /geocode /random /ssl /regex /image\n"
             "/logs /restart /task /tasks",
             chat_id=chat_id,
         )

@@ -31,6 +31,9 @@ _TOOLS_HELP = (
     "/qr <文本或URL> — 二维码链接\n"
     "/geocode <地点> — 地理编码\n"
     "/random [seed] — 假用户数据\n"
+    "/ssl <域名> — TLS 证书\n"
+    "/regex <pattern> <text> — 正则测试\n"
+    "/image [关键词] — 占位图\n"
     "/tools — 本菜单"
 )
 
@@ -67,8 +70,11 @@ def _run_tool(tool: str, args: str) -> dict:
     from channel_gateway.public_apis_lookup import (
         fetch_dictionary,
         fetch_geocode,
+        fetch_image,
         fetch_qr,
         fetch_randomuser,
+        fetch_regex_test,
+        fetch_ssl,
         fetch_whois,
     )
 
@@ -90,6 +96,9 @@ def _run_tool(tool: str, args: str) -> dict:
         "qr": lambda: fetch_qr(args),
         "geocode": lambda: fetch_geocode(args),
         "randomuser": lambda: fetch_randomuser(args),
+        "ssl": lambda: fetch_ssl(args),
+        "regex": lambda: fetch_regex_test(args),
+        "image": lambda: fetch_image(args),
     }
     handler = handlers.get(tool)
     if handler is None:
