@@ -4,6 +4,42 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 TG-GH-1 + GI-G-0/1 并行 closeout
+
+- **TG-GH-1**：`telegram_outbound.py`、`scripts/smoke_telegram_outbound.py`、`scripts/install_frpc_service.ps1`；`infra/lima-health.bat` 增 frpc 重启；`docs/TELEGRAM_BOT_DESIGN.md` FRP Runbook
+- **GI-G-0**：`docs/GITEE_BASELINE.md`、`gitee_mirror.py`、`scripts/gitee_mirror_status.py`（URL 脱敏）
+- **GI-G-1**：`docs/GITEE_MIRROR_RUNBOOK.md`、`scripts/push_dual_remotes.py` + shell/ps1；`telegram_notify.notify_ops_event`
+- **测试**：focused **15 passed**（`test_telegram_outbound` + `test_gitee_mirror`）
+- **待运维**：Windows 跑 `install_frpc_service.ps1`；VPS cron `smoke_telegram_outbound.py --notify`
+- **VPS deploy**（2026-05-26）：`deploy_reliability_ops.py` → service=active；`smoke_telegram_outbound` **OK** `@limacode_bot` via `7897`
+- **全局约定**：`AGENTS.md` § Agent 自动 Closeout（pytest → VPS smoke → commit → push origin+gitee）
+- **下一刀**：**GI-G-2** `/gitee/webhook` → Telegram
+
+## 2026-05-26 Gitee 利用最大化计划（GI-G-0~5）
+
+- **计划**：`docs/superpowers/plans/2026-05-26-gitee-maximization.md`
+- **定位**：国内镜像 + Webhook 事件 + 模力方舟 AI（可选）+ Pages 备选
+- **现状**：仅 git 双 remote push；无 webhook / 无 `gitee_*` backend
+- **第一刀**：GI-G-0 baseline + mirror runbook（零路由）
+- **核心切片**：GI-G-2 `/gitee/webhook` → Telegram（镜像 CQ-GH-001，含 SHA 去重）
+
+## 2026-05-26 INF-B Healthchecks dead-man（实现）
+
+- **计划**：`docs/superpowers/plans/2026-05-26-infra-tools-integration.md` Phase INF-B
+- **模块**：`healthcheck_ping.py`（pre-check + ping；`LIMA_HEALTHCHECK_ENABLED=0` 默认关）
+- **脚本**：`scripts/healthcheck_ping.py`、`.sh`、`.ps1`、`scripts/vps_router_healthcheck.sh`
+- **Windows**：`infra/lima-health.bat` 第 7 步可选 ping（需 env + `8080/health`）
+- **文档**：`docs/HEALTHCHECKS_SETUP.md`；`.env.example` 增加 `HEALTHCHECK_*`
+- **待运维**：Healthchecks.io 注册 UUID → `.env` → VPS cron / Windows Task 启用
+- **下一刀**：INF-A Infisical 或 TG-GH-1 frpc 自启
+
+## 2026-05-26 基础设施工具接入计划（INF-A/B/C）
+
+- **计划**：`docs/superpowers/plans/2026-05-26-infra-tools-integration.md`
+- **优先**：Infisical → Healthchecks.io → Tailscale（零路由改动，默认关）
+- **暂缓**：Opik/OpenLLMetry、SearXNG、Meilisearch、Unstructured、Inspect AI
+- **第一刀建议**：INF-B Healthchecks（2h）或 INF-A Infisical（密钥集中）
+
 ## 2026-05-26 CF-G-2 Cloudflare 模型 smoke 扩容
 
 - **计划**：`docs/superpowers/plans/2026-05-26-cloudflare-google-maximization.md` Phase CF-G-2

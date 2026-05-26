@@ -10,6 +10,8 @@
 >
 > **Baseline:** CQ-GH-001 已完成（webhook → Telegram）；Telegram 出站 FRP 7897 已修复。
 
+**Gitee 并行计划：** [`2026-05-26-gitee-maximization.md`](2026-05-26-gitee-maximization.md)（GI-G-0~5，次于 TG-GH-1/2）。
+
 ---
 
 ## 1. 战略定位
@@ -91,12 +93,12 @@
 
 **目标：** Telegram 出站不再因 Windows 重启静默失效。
 
-| Task | 文件 | 步骤 |
-|------|------|------|
-| 1.1 | `scripts/install_frpc_service.ps1` 或文档 | Windows 计划任务 / NSSM 自启 `frpc` + Clash 7897 |
-| 1.2 | `scripts/smoke_telegram_outbound.py` | VPS cron：每 6h `getMe` + 失败 Telegram 告警（自指） |
-| 1.3 | `docs/TELEGRAM_BOT_DESIGN.md` | 补充 frpc 运维 Runbook |
-| 1.4 | VPS deploy | 上传 `telegram_bot.py` 若本地有未部署修复 |
+| Task | 文件 | 步骤 | 状态 |
+|------|------|------|------|
+| 1.1 | `scripts/install_frpc_service.ps1` | Windows 计划任务自启 `frpc` | ✅ |
+| 1.2 | `scripts/smoke_telegram_outbound.py` | VPS cron：每 6h `getMe` + `--notify` | ✅ 脚本 |
+| 1.3 | `docs/TELEGRAM_BOT_DESIGN.md` | FRP Runbook + `infra/lima-health.bat` frpc | ✅ |
+| 1.4 | VPS deploy | cron + 计划任务 smoke 证据 | 待运维 |
 
 **验收：**
 - Windows 重启后 10min 内 VPS `curl -x http://127.0.0.1:7897 https://api.telegram.org` 可达

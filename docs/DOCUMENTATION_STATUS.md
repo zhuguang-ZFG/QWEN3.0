@@ -53,7 +53,12 @@
 | `docs/superpowers/plans/2026-05-22-free-model-first-tier-eval.md` | Active record | Completed SCNet/Kimi first-tier evaluation plan. |
 | `docs/superpowers/plans/2026-05-22-personal-coding-assistant-eval.md` | Active record | Completed coding backend evaluation plan. |
 | `docs/superpowers/plans/2026-05-26-telegram-github-maximization.md` | **Active plan (P0)** | Current execution主线：Telegram Operator + GitHub 事件总线；优先于模型自动发现。 |
+| `docs/superpowers/plans/2026-05-26-gitee-maximization.md` | **Active plan (P1)** | Gitee 镜像 + Webhook→Telegram + 模力方舟 AI + Pages；次于 TG-GH-1/2。 |
 | `docs/superpowers/plans/2026-05-26-cloudflare-google-maximization.md` | **Active plan (P1)** | Cloudflare Workers AI + Google Gemini 免费额度盘点、预算、扩容与路由；次于 TG-GH-2。 |
+| `docs/GITEE_BASELINE.md` | Active | GI-G-0 Gitee mirror baseline and event comparison. |
+| `docs/GITEE_MIRROR_RUNBOOK.md` | Active | GI-G-1 dual-remote push runbook. |
+| `docs/HEALTHCHECKS_SETUP.md` | Active | INF-B Healthchecks.io dead-man setup and cron runbook. |
+| `docs/superpowers/plans/2026-05-26-infra-tools-integration.md` | **Active plan (P1)** | Infisical + Healthchecks + Tailscale（零路由）；OpenLLMetry/SearXNG 暂缓。 |
 | `docs/superpowers/plans/2026-05-26-provider-model-automation-full-plan.md` | **Archived plan** | 免费模型发现/验证/准入完整方案；CF-G-2 与 PA-B 合并。 |
 | `docs/GITHUB_WEBHOOK_INTEGRATION.md` | Active | CQ-GH-001 webhook → Telegram；VPS smoke 2026-05-26。 |
 | `docs/PROVIDER_MODEL_AUTOMATION_PLAN.md` | Active policy | 模型发现策略与状态机；实施细节见 archived full plan。 |

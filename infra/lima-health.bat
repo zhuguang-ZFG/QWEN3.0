@@ -64,4 +64,23 @@ if errorlevel 1 (
     echo [%date% %time%] OK: Proxy 7897 >> %LOG%
 )
 
+:: 7. 检查 FRP 隧道 (frpc.exe)
+tasklist /FI "IMAGENAME eq frpc.exe" | find "frpc.exe" >nul 2>&1
+if errorlevel 1 (
+    echo [%date% %time%] WARN: frpc down, restarting... >> %LOG%
+    start /min "" "D:\GIT\frp\frpc.exe" -c "D:\GIT\frp\frpc.toml"
+) else (
+    echo [%date% %time%] OK: frpc >> %LOG%
+)
+
+:: 8. Healthchecks.io dead-man ping (INF-B, optional)
+if /I "%LIMA_HEALTHCHECK_ENABLED%"=="1" (
+    python D:\GIT\scripts\healthcheck_ping.py --env-key HEALTHCHECK_LIMA_WINDOWS_URL --check http://127.0.0.1:8080/health >> %LOG% 2>&1
+    if errorlevel 1 (
+        echo [%date% %time%] WARN: Healthchecks ping failed >> %LOG%
+    ) else (
+        echo [%date% %time%] OK: Healthchecks ping >> %LOG%
+    )
+)
+
 endlocal

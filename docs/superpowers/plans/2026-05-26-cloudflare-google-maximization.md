@@ -86,6 +86,7 @@ Google 账号额外价值:
 | Google 免费 RPM/RPD | 中（4 模型在 floor） | flash_lite 扛 **chat_fast** 流量 | tier 调整 + budget |
 | Google Gemini 新模型 | 未知 | 季度轮询 + Telegram 通知 | Google adapter |
 | CF Pages | 未用 | **官网静态**（国内优于 GitHub Pages） | 见 CF-G-5 |
+| Gitee Pages | 未用 | 国内静态站备选 | 见 [`GI-G-4`](2026-05-26-gitee-maximization.md) |
 | 配额可见性 | Telegram `/budget` 部分 | CF/Google 用量进 **早报** | TG-GH-3 扩展 |
 
 ---

@@ -1,7 +1,7 @@
 # Telegram Bot 集成设计
 
-> Updated: 2026-05-23
-> Status: 已完成 ✅
+> Updated: 2026-05-26
+> Status: 已完成 ✅ | TG-GH-1 FRP Runbook 已补充
 
 ## 目标
 
@@ -84,6 +84,30 @@ Telegram servers → https://chat.donglicao.com/telegram/webhook
 - `notify_health_change(backend, old_state, new_state)`
 - `notify_task_ready(task_id, summary, changed_files)`
 - `notify_error_spike(error_rate, strategy)`
+
+## FRP 出站 Runbook（TG-GH-1）
+
+VPS 经 FRP 使用 Windows Clash `7897` 访问 Telegram。Windows 重启后 frpc 必须自启。
+
+| 组件 | 路径 / 端口 |
+|------|-------------|
+| frpc | `D:\GIT\frp\frpc.exe` + `frpc.toml` |
+| 代理隧道 | VPS `127.0.0.1:7897` → Windows Clash `7897` |
+| API 隧道 | local `8080` → VPS `8088` |
+| 开机 | `local_router_start.bat` |
+| 计划任务 | `LiMa-FRP-Tunnel` ← `scripts/install_frpc_service.ps1` |
+| 巡检 | `infra/lima-health.bat`（含 frpc 重启） |
+
+```powershell
+powershell -ExecutionPolicy Bypass -File D:\GIT\scripts\install_frpc_service.ps1
+Start-ScheduledTask -TaskName LiMa-FRP-Tunnel
+```
+
+VPS cron（每 6h）：
+
+```bash
+python scripts/smoke_telegram_outbound.py --notify
+```
 
 ## 集成点
 

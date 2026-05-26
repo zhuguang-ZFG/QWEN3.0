@@ -6,6 +6,9 @@
 | TG-PROXY-099-2 | Code | `telegram_bot._telegram_proxy_candidates()` proxy→direct fallback | Closed 2026-05-26 |
 | TG-PROXY-099-3 | Ops | `frp/frpc.toml` added `gfw-proxy`; frpc restarted; VPS send smoke ok | Closed 2026-05-26 |
 
+| TG-GH-1-1 | VPS smoke | `deploy_reliability_ops.py` → `OK: http://127.0.0.1:7897: @limacode_bot` | Closed 2026-05-26 |
+| TG-GH-1-2 | Ops | `LIMA_HEALTHCHECK_ENABLED` still 0 on VPS (dry-run ok) | Open |
+
 ## 2026-05-26 CQ-099 Code quality P2 long-function splits
 
 | ID | Area | Evidence | Status |

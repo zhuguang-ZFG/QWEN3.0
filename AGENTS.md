@@ -126,8 +126,36 @@ This project uses a two-role milestone loop:
 4. Agent runs focused tests, compile checks, ASCII/secret-safety scans where relevant, `git diff --check`, and the full test suite when production code changed.
 5. Agent updates `progress.md` and `findings.md` with the closeout, including test evidence and any residual risks.
 6. Agent stages only milestone-related files, never unrelated local data or reference repositories.
-7. Agent commits with a concise conventional-style message and pushes the current branch to GitHub.
+7. Agent commits with a concise conventional-style message and pushes the current branch to **GitHub (`origin`) and Gitee mirror (`gitee` or dual push URL)**.
 8. Only after that push does the agent propose the next milestone plan.
+
+## Agent 自动 Closeout 约定（全局）
+
+当 Owner 或 Agent 完成一个可部署里程碑切片，且用户未禁止自动发布时，Agent **默认执行**：
+
+```text
+1. 本地 pytest（生产代码改动 → 全量；纯文档 → focused）
+2. VPS 部署 + restart + /health + 切片 smoke（`scripts/deploy_*.py`）
+3. 更新 progress.md / findings.md（含 VPS 证据）
+4. git add（仅里程碑相关文件）
+5. git commit
+6. git push origin HEAD && git push gitee HEAD（或 push_dual_remotes.py）
+```
+
+**硬规则：**
+
+- 无 VPS smoke 证据不得声称「已部署」。
+- 不提交 `.env`、token、VPS 密码。
+- 部署前备份；失败则记录 rollback 位置，不 force-push。
+- 新能力默认关（env flag），VPS 上不得擅自打开未审查开关。
+
+**常用脚本：**
+
+| 切片 | 部署 | VPS smoke |
+|------|------|-----------|
+| CF admission | `deploy_cf_admission_overlay.py` | overlay + cf_smoke |
+| TG-GH-1 / INF-B | `deploy_reliability_ops.py` | `smoke_telegram_outbound.py` |
+| GitHub webhook | `deploy_telegram.sh` / 手动 | `smoke_github_webhook_public.py` |
 
 Hard rules for this loop:
 

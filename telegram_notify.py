@@ -72,6 +72,14 @@ def notify_github_event(summary: str) -> None:
     _fire_and_forget(telegram_bot.send_message, summary)
 
 
+def notify_ops_event(summary: str, level: str = "warning") -> None:
+    """Ops/mirror/deploy events (TG-GH-1 / GI-G-1)."""
+    if not telegram_bot.is_configured():
+        logger.debug("ops event skipped: telegram not configured")
+        return
+    _fire_and_forget(telegram_bot.send_alert, level, summary)
+
+
 _budget_last_notified: dict[str, float] = {}
 _BUDGET_RATE_LIMIT_SECONDS = 300
 
