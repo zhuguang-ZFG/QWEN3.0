@@ -221,32 +221,70 @@ async def cmd_learn(chat_id: str, args: str) -> None:
         if action == "approve" and len(sub) > 1:
             candidate_id = sub[1]
 
-            # Mark in outcome_ledger (find the event)
-            from session_memory.outcome_ledger import query
-            related = query(limit=5)
+            # 1. Get candidate details
+            from session_memory.shadow_mode import list_candidates, update_candidate
+            all_candidates = list_candidates(status="proposed") + list_candidates(status="approved")
+            candidate = next((c for c in all_candidates if c["id"] == candidate_id), None)
+
+            if candidate is None:
+                await telegram_bot.send_message(
+                    f"Candidate not found: `{candidate_id[:40]}`",
+                    chat_id=chat_id, parse_mode="Markdown",
+                )
+                return
+
+            # 2. Apply to routing weights
+            weight_msg = ""
+            cat = candidate.get("category", "")
+            summary = candidate.get("summary", "")
+
+            if cat == "routing_weight":
+                try:
+                    from context_pipeline.routing_weights import get_routing_weights
+                    rw = get_routing_weights()
+
+                    # Parse "Boost backend:scenario: X/Y ok" or "Degrade backend:scenario: X/Y ok"
+                    parts = summary.split(":")
+                    if len(parts) >= 2:
+                        backend = parts[0].replace("Boost ", "").replace("Degrade ", "").strip()
+                        scenario = parts[1].split()[0].strip() if len(parts) > 1 else "coding"
+
+                        if "boost" in candidate_id.lower() or "Boost" in summary:
+                            rw.record_success(backend, scenario)
+                            stats = rw.get_stats(backend, scenario)
+                            weight_msg = (
+                                f"Boosted: `{backend}:{scenario}`\n"
+                                f"  weight={stats['weight']:.2f} | "
+                                f"success_rate={stats['success_rate']:.0%} | "
+                                f"total={stats['successes']+stats['failures']}"
+                            )
+                        else:
+                            rw.record_failure(backend, scenario)
+                            stats = rw.get_stats(backend, scenario)
+                            weight_msg = (
+                                f"Degraded: `{backend}:{scenario}`\n"
+                                f"  weight={stats['weight']:.2f} | "
+                                f"success_rate={stats['success_rate']:.0%} | "
+                                f"total={stats['successes']+stats['failures']}"
+                            )
+                except Exception as exc:
+                    weight_msg = f"routing update failed: {type(exc).__name__}"
+
+            # 3. Mark candidate as applied
+            update_candidate(candidate_id, "applied", notes="telegram approval")
+
+            # 4. Mark related outcomes as learned
+            from session_memory.outcome_ledger import mark_learned, query
+            related = query(limit=10)
             for item in related:
                 if candidate_id.startswith(item["event_id"][:20]):
-                    mark_learned(item["event_id"], notes=f"approved via Telegram")
+                    mark_learned(item["event_id"], notes="approved via Telegram")
                     break
-
-            # Update candidate status
-            updated = update_candidate(candidate_id, "approved", notes="telegram approval")
-
-            # Try eval_gate if available
-            gate_msg = ""
-            try:
-                from session_memory.eval_gate import approve_candidate
-                approve_candidate(candidate_id)
-                gate_msg = " | eval_gate approved"
-            except ImportError:
-                gate_msg = " | eval_gate not available"
-            except Exception as exc:
-                gate_msg = f" | eval_gate: {type(exc).__name__}"
 
             await telegram_bot.send_message(
                 f"Approved: `{candidate_id[:50]}`\n"
-                f"Ledger updated: {updated}{gate_msg}\n"
-                f"/learn to review others | /digest for summary",
+                f"{weight_msg}\n"
+                f"/digest for summary | /learn to review others",
                 chat_id=chat_id, parse_mode="Markdown",
             )
             return

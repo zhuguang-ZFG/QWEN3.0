@@ -219,6 +219,37 @@ def format_digest(candidates: list[CandidateImprovement] | None = None) -> str:
     else:
         lines.append("No improvement candidates. System is stable.")
 
+    lines.append("")
+
+    # Show applied candidates
+    try:
+        applied = list_candidates(status="applied")
+        if applied:
+            lines.append("*Recently Applied*")
+            for c in applied[:5]:
+                lines.append(f"  ✅ {c['summary'][:100]}")
+            lines.append("")
+    except Exception:
+        pass
+
+    # Show routing weight effects
+    try:
+        from context_pipeline.routing_weights import get_routing_weights
+        rw = get_routing_weights()
+        lines.append("*Routing Effects*")
+        for scenario in ["coding", "chat"]:
+            stats_items = []
+            for key, w in rw._weights.items():
+                if key.endswith(f":{scenario}") and (w.successes + w.failures) >= 1:
+                    stats_items.append((w.weight, w.success_rate, key.split(":")[0], w.successes + w.failures))
+            stats_items.sort(key=lambda x: -x[0])
+            for weight, rate, backend, total in stats_items[:3]:
+                icon = "\U0001f7e2" if rate >= 0.8 else ("\U0001f7e1" if rate >= 0.5 else "\U0001f534")
+                lines.append(f"  {icon} {backend}:{scenario} w={weight:.2f} rate={rate:.0%} n={total}")
+        lines.append("")
+    except Exception:
+        pass
+
     lines.append("/learn to review  /outcome for ledger  /memstats for memory")
 
     return "\n".join(lines)
