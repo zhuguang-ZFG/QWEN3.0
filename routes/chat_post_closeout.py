@@ -60,3 +60,29 @@ def maybe_log_distill_queue(*, query: str, content: str, intent, backend: str) -
         smart_router._log_to_distill_queue(query, content, intent_payload, backend)
     except Exception as exc:
         _log.debug("distill queue log skipped: %s", type(exc).__name__)
+
+
+def record_capability_evidence(
+    *,
+    request_id: str = "",
+    backend: str = "",
+    fallback_used: bool = False,
+    latency_ms: int = 0,
+    status: str = "ok",
+) -> None:
+    """Record chat/IDE capability evidence. Best-effort."""
+    try:
+        from observability.capability_evidence import record_evidence
+
+        record_evidence(
+            loop="chat_ide",
+            request_id=request_id,
+            entrypoint="/v1/chat/completions",
+            selected_backend=backend,
+            fallback_used=fallback_used,
+            latency_ms=latency_ms,
+            status=status,
+            evidence=["chat_post_closeout"],
+        )
+    except Exception:
+        _log.debug("capability evidence failed", exc_info=True)
