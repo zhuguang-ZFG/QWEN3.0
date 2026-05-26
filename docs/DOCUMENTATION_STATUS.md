@@ -60,8 +60,10 @@
 | `docs/GITEE_BASELINE.md` | Active | GI-G-0 Gitee mirror baseline and event comparison. |
 | `docs/GITEE_WEBHOOK_INTEGRATION.md` | Active | GI-G-2 Gitee WebHook → Telegram + SHA dedupe. |
 | `docs/GITEE_MIRROR_RUNBOOK.md` | Active | GI-G-1 dual-remote push runbook. |
-| `docs/HEALTHCHECKS_SETUP.md` | Active | INF-B Healthchecks.io dead-man setup and cron runbook. |
+| `docs/superpowers/plans/2026-05-26-lima-task-prompt-contract-v0.1.md` | **Active plan (LC-W-1)** | LiMa Code Worker Prompt Contract v0.1 — Context/Task/Constraints/Verify/Output。 |
+| `docs/HEALTHCHECKS_SETUP.md` | Active | INF-B Healthchecks dead-man；login `/accounts/login/`；lima-vps-router live。 |
 | `docs/superpowers/plans/2026-05-26-infra-tools-integration.md` | **Active plan (P1)** | Infisical + Healthchecks + Tailscale（零路由）；SearXNG 见 productivity-enhancement PE-D-1。 |
+| `docs/FREE_RESOURCE_RADAR_MERGED.md` | Active radar | 免费资源索引 + **LiMa 状态列**；执行顺序见 `NEXT_MILESTONES.md`。 |
 | `docs/superpowers/plans/2026-05-26-provider-model-automation-full-plan.md` | **Archived plan** | 免费模型发现/验证/准入完整方案；CF-G-2 与 PA-B 合并。 |
 | `docs/GITHUB_WEBHOOK_INTEGRATION.md` | Active | CQ-GH-001 webhook → Telegram；VPS smoke 2026-05-26。 |
 | `docs/PROVIDER_MODEL_AUTOMATION_PLAN.md` | Active policy | 模型发现策略与状态机；实施细节见 archived full plan。 |

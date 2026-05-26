@@ -9,7 +9,18 @@
 - **GFL-2**：`telegram_push_translate` 默认/ env 剔除 `google_flash_lite`（及 chat_fast/vision 池）；VPS `TELEGRAM_PUSH_TRANSLATE_BACKEND=scnet_qwen30b,cf_llama70b`；`deploy_productivity_slice_ok`
 - **INF-B**：`.github/workflows/lima-vps-deadman.yml` 每 5min 公网 `/health`；`healthchecks_io.py` + `provision_healthchecks.py` + `deploy_healthchecks_vps.py`（VPS cron 待 `HEALTHCHECKS_API_KEY` 或 ping URL 一键 provision）
 - **INF-B VPS live**：`57ea8477-…` ping OK from `47.112.162.80`；cron `/etc/cron.d/lima-router-healthcheck`；Healthchecks **new→up** 2026-05-26 12:52
+- **INF-B operator**：Check `lima-vps-router` Period 5min / Grace 10min / Email ON；`verify_healthcheck_vps_ok`
 - **测试**：translate + healthchecks_io + healthcheck_ping **21 passed**
+
+## 2026-05-26 下一刀 LC-W-1 Prompt Contract v0.1（计划）
+
+- **依据**：`docs/NEXT_MILESTONES.md` §2 LiMa Code Worker 第一切片
+- **设计**：`docs/superpowers/plans/2026-05-26-lima-task-prompt-contract-v0.1.md`
+- **范围**：Server `/agent/tasks` + deepcode-cli worker prompt 统一 `Context/Task/Constraints/Verify/Output`
+
+## 2026-05-26 免费资源雷达 LiMa 状态列
+
+- **文档**：`docs/FREE_RESOURCE_RADAR_MERGED.md` — 图例 + 主线摘要 + 多节 **LiMa 列**；修正 TG inline/微信过时表述
 
 ## 2026-05-26 五线 re-acceptance + P0 closeout 判定
 
