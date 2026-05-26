@@ -1,6 +1,6 @@
 # LiMa Code Management
 
-> Updated: 2026-05-25
+> Updated: 2026-05-26
 
 ## Purpose
 
@@ -26,7 +26,7 @@ This keeps the boundary explicit:
 Current pinned revision:
 
 ```text
-8e680ea feat(lima): add artifact bundle for plan/test/ship/review commands
+7209247 feat(lima): add daemon, Telegram B2B, gated always-on worker
 ```
 
 ## Update Rules
@@ -64,7 +64,7 @@ target repository is allowlisted.
 
 Latest Server/Worker evidence:
 
-- LiMa Code verification for `8e680ea` passed with `0 fail, 6 skipped`; main
+- LiMa Code verification for `7209247` passed with `0 fail, 6 skipped`; main
   LiMa Server verification passed `1240 passed, 8 skipped`.
 - Local workflow stage commands now produce structured artifact bundles under
   `.lima/artifacts/<task_id>/`:

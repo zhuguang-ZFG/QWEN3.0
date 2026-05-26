@@ -109,19 +109,19 @@ async def _mqtt_message_loop() -> None:
         SERVER_SUB_FILTER,
         device_status_topic,
     )
-    from device_gateway.protocol import MESSAGE_VALIDATORS
 
     _log.info("MQTT loop: connecting to %s:%s", _MQTT_BROKER, _MQTT_PORT)
 
-    # For now, log that MQTT transport is in stub mode.
+    # Stub mode: MQTT transport is ready for paho-mqtt integration.
     # Full MQTT integration requires `pip install paho-mqtt` and:
     #   1. Connect to broker with client_id + LWT
     #   2. Subscribe to SERVER_SUB_FILTER ("lima/+/uplink")
-    #   3. On message: parse JSON, validate, route to protocol handlers
-    #   4. Drain downlink queues -> publish to device_downlink_topic()
+    #   3. On message: parse JSON, validate via protocol.validate_uplink()
+    #   4. Route to the same handlers as WebSocket (handle_hello, handle_heartbeat, etc.)
+    #   5. Drain downlink queues -> publish to device_downlink_topic()
     #
     # The topic contract and message format are defined in mqtt_topics.py.
-    # The protocol validators from protocol.py are reused as-is.
+    # Protocol validators from protocol.py are reused as-is.
 
     _log.info(
         "MQTT stub active: topic=%s, broker=%s:%s, lwt=%s/%s",

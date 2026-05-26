@@ -1,7 +1,7 @@
 # LiMa Memory
 
-> **Updated: 2026-05-26（会话交接）**  
-> **Branch:** `codex/free-web-ai-probe` · **HEAD:** `d3c5e47`（已 push）  
+> **Updated: 2026-05-26（P2-35 三切片 closeout）**  
+> **Branch:** `codex/free-web-ai-probe` · **HEAD:** `4077588`（已 push）  
 > **权威状态：** `STATUS.md`、`docs/EXECUTION_PLAN.md`、`docs/NEXT_MILESTONES.md`  
 > **本文件：** 跨会话 durable 事实；计划 checkbox 以状态文档为准。
 
