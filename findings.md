@@ -22,6 +22,10 @@
 | FL-1-6 | Tests | focused 7 passed; full **1631 passed, 10 skipped** | Closed 2026-05-26 |
 | FL-1-7 | Ops | Manual Telegram `/github` `/device` on phone | Open |
 
+| FL-1-8 | GI-G-3 re-probe | 3/3 resource_not_bound (2026-05-26) | Blocked |
+| FL-1-9 | Acceptance smoke | `smoke_five_line_acceptance.py` acceptance_ok | Closed 2026-05-26 |
+| FL-1-10 | Mirror lag fix | dual-push origin + branch resolve | Closed 2026-05-26 |
+
 ## 2026-05-26 CF-G-6 inventory weekly diff
 
 | ID | Area | Evidence | Status |

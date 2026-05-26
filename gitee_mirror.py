@@ -163,6 +163,20 @@ def remote_head_sha(
     return sha[:40], ""
 
 
+def _resolve_branch(repo: str | Path, branch: str, runner: Callable[..., subprocess.CompletedProcess] | None) -> str:
+    if branch and branch != "HEAD":
+        return branch
+    run = runner or subprocess.run
+    proc = run(
+        ["git", "-C", str(repo or Path.cwd()), "rev-parse", "--abbrev-ref", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    name = (proc.stdout or "").strip()
+    return name if proc.returncode == 0 and name and name != "HEAD" else "main"
+
+
 def compare_mirror_heads(
     repo: str | Path = "",
     branch: str = "",
@@ -177,10 +191,14 @@ def compare_mirror_heads(
     github_url = ""
     gitee_url = ""
     for entry in entries:
-        if entry.host_kind == "github" and not github_url:
-            github_url = entry.push_url
-        if entry.host_kind == "gitee" and not gitee_url:
-            gitee_url = entry.push_url
+        for url in (entry.fetch_url, entry.push_url):
+            if not url:
+                continue
+            host = classify_host(url)
+            if host == "github" and not github_url:
+                github_url = url
+            if host == "gitee" and not gitee_url:
+                gitee_url = url
     if not github_url or not gitee_url:
         return {
             "ok": False,
@@ -188,7 +206,7 @@ def compare_mirror_heads(
             "has_github": bool(github_url),
             "has_gitee": bool(gitee_url),
         }
-    ref_branch = branch or "HEAD"
+    ref_branch = _resolve_branch(repo, branch or "HEAD", runner)
     gh_sha, gh_err = remote_head_sha(github_url, ref_branch, runner=runner)
     gt_sha, gt_err = remote_head_sha(gitee_url, ref_branch, runner=runner)
     if gh_err or gt_err:

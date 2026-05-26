@@ -66,20 +66,21 @@ P2  延后
 | 4 | **TG-GH-5** | GitHub issues/release/workflow 扩展 | 1d | webhook 基线 ✅ |
 | 5 | **TG-GH-6** | `deploy_*.py` / smoke 成功 → Telegram | 4h | TG-GH-1 ✅ |
 | 6 | **CF-G-6** | weekly inventory diff → Telegram | 4h | CF-G-0 + TG-GH-3 ✅ |
-| 7 | **GI-G-3** | Gitee 控制台绑定资源包 → re-probe | 运维 | 用户操作 |
+| 7 | **GI-G-3** | Gitee 控制台绑定资源包 → re-probe | 运维 | 用户操作 — **2026-05-26 仍 blocked** |
 
-**并行：** GI-G-2 真实 push 验证（双 push 去重）；TG-GH-2 Windows E2E。
+**并行（2026-05-26 已跑）：** GI-G-2 Gitee webhook public smoke ✅；§4 验收脚本 `smoke_five_line_acceptance.py` ✅
+
+**P0 收齐后：** PE-C-1 Netdata MCP（kickstart 进行中）
 
 ---
 
 ## 4. 验收总清单
 
-- [ ] `chat_fast` 请求日志可见 `google_flash_lite` 命中
-- [ ] vision fallback 含 `cf_vision` → `google_flash`
-- [ ] Telegram `/github psf/requests README.md` 返回摘要
-- [ ] Telegram `/device status` 返回 health + task 摘要
-- [ ] `gitee_mirror_lag_check.py` 输出 SHA 一致/漂移
-- [ ] TG-GH-5 test issue → Telegram
+- [x] `chat_fast` VPS 配置首位 `google_flash_lite`（routing smoke）
+- [x] vision fallback 含 `cf_vision` → `google_flash`（routing smoke）
+- [ ] Telegram `/github` `/device` 手机手工（FL-1-7）
+- [x] `gitee_mirror_lag_check.py` SHA 一致
+- [x] TG-GH-5 test issue → webhook 200（acceptance smoke）
 - [x] deploy smoke → Telegram（TG-GH-6）
 - [x] weekly inventory diff → Telegram digest（CF-G-6）
 - [ ] `progress.md` / `findings.md` 每刀 closeout

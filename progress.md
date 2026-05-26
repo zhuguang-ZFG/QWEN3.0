@@ -4,6 +4,14 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 五线 closeout 验收 + GI-G-3 re-probe + PE-C-1 启动
+
+- **GI-G-3 re-probe**：3/3 仍 `resource_not_bound` — **继续 blocked**（需 Gitee 控制台绑定资源包）
+- **mirror lag 修复**：`compare_mirror_heads` 支持 origin 双 push URL + 自动解析当前分支
+- **验收 smoke**：`scripts/smoke_five_line_acceptance.py` → mirror_lag + routing + github_issue + gitee_webhook **acceptance_ok**
+- **PE-C-1 Netdata**：kickstart 在 VPS 后台下载 GitHub 安装包（慢）；`docs/NETDATA_MCP_RUNBOOK.md` + install/smoke 脚本已备
+- **下一刀**：Netdata 装完 → `smoke_netdata_mcp_vps.py`；FL-1-7 手机试 `/github` `/device`
+
 ## 2026-05-26 CF-G-6 weekly inventory diff → Telegram
 
 - **模块**：`provider_inventory/weekly_diff.py` — 日快照、`find_week_baseline_inventory`（≥7d）、`compute_weekly_diff`、`format_weekly_diff_digest`

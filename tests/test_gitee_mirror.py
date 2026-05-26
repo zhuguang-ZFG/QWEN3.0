@@ -68,3 +68,22 @@ def test_gitee_mirror_status_script_json():
     )
     data = json.loads(proc.stdout)
     assert "remotes" in data
+
+
+def test_compare_mirror_heads_dual_push_origin():
+    """origin fetch=GitHub + second push=Gitee must still find both hosts."""
+    remote_v = (
+        "origin\thttps://github.com/o/r.git (fetch)\n"
+        "origin\thttps://github.com/o/r.git (push)\n"
+        "origin\thttps://gitee.com/o/r.git (push)\n"
+        "gitee\thttps://gitee.com/o/r.git (push)\n"
+    )
+
+    def runner(cmd, **kwargs):
+        if len(cmd) >= 4 and cmd[0] == "git" and cmd[-2:] == ["remote", "-v"]:
+            return subprocess.CompletedProcess(cmd, 0, stdout=remote_v, stderr="")
+        return subprocess.CompletedProcess(cmd, 0, stdout="abc123 refs/heads/main\n", stderr="")
+
+    result = gm.compare_mirror_heads(".", "main", runner=runner)
+    assert result["ok"] is True
+    assert result["in_sync"] is True
