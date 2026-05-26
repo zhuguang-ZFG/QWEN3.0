@@ -4,6 +4,15 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 PE-A-1 weekly cron + Glama pagination
+
+- **增强**：Glama `pageInfo` 分页（50 页/500 条）；official 20 页；VPS 走 `GFW_PROXY` 拉 official registry
+- **Cron**：`/etc/cron.d/lima-mcp-inventory` — 每周日 04:00 UTC
+- **VPS smoke**：`deploy_mcp_inventory_ok` — merged **904**（official 2000 + glama 500 去重）
+- **SafeMCP**：仍为 0（站点 lander 跳转）；暂不阻塞
+- **B2B**：按 Owner 决定暂停，等 Telegram Mode Settings
+- **测试**：+1 pagination test；全量 **1686 passed, 10 skipped**
+
 ## 2026-05-26 TG-10.0-3 inline + PE-A-1 MCP inventory
 
 - **TG-10.0-3**：`telegram_inline.py` — `@bot query` → `routing_engine` → `answerInlineQuery`；Operator 白名单 + 限流

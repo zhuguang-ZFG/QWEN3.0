@@ -41,7 +41,8 @@
 | TG-10.0-3 | Code | inline_query + answerInlineQuery + TELEGRAM_INLINE_ENABLED | Closed 2026-05-26 |
 | TG-10.0-3 | Ops | BotFather Inline Mode + phone @bot smoke | Closed 2026-05-26 |
 | PE-A-1 | Code | inventory_mcp_registries.py + mcp_registry_snapshot | Closed 2026-05-26 |
-| PE-A-1 | Ops | safemcp HTML extract 0 entries (403/network); glama partial | Open |
+| PE-A-1 | Ops | VPS weekly cron `/etc/cron.d/lima-mcp-inventory` Sun 04:00 | Closed 2026-05-26 |
+| PE-A-1 | Ops | safemcp.com lander/empty; Glama+official via GFW_PROXY on VPS | Partial 2026-05-26 |
 
 ## 2026-05-26 Five-line closeout slice 1
 

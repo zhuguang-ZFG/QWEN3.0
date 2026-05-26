@@ -42,8 +42,8 @@
 
 ### 下一刀建议
 
-1. PE-A-1 safemcp/Glama 抓取增强（VPS cron weekly）
-2. B2B BotFather（客户端 rollout 后）
+1. 按 `docs/NEXT_MILESTONES.md` 四线选下一切片（LiMa Code worker / Device Gateway / 代码质量）
+2. B2B / SafeMCP — **暂停**（等 Telegram / 站点可用）
 
 ---
 

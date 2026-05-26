@@ -34,10 +34,44 @@ def test_official_entry_shape():
 
 
 def test_glama_entry_shape():
-    entry = _glama_entry({"slug": "owner/repo", "name": "Repo MCP", "description": "Git tools"})
+    entry = _glama_entry(
+        {
+            "slug": "openproject-mcp",
+            "namespace": "OliverRhyme",
+            "name": "openproject-mcp",
+            "description": "Git tools",
+            "repository": {"url": "https://github.com/OliverRhyme/openproject-mcp"},
+            "url": "https://glama.ai/mcp/servers/wqpopi4akg",
+        }
+    )
     assert entry is not None
     assert entry["source"] == "glama"
     assert "glama.ai" in entry["source_url"]
+    assert entry["repository_url"].startswith("https://")
+
+
+def test_fetch_glama_servers_paginates(monkeypatch):
+    pages = [
+        {
+            "servers": [{"slug": "a", "namespace": "ns", "name": "A", "description": "one"}],
+            "pageInfo": {"hasNextPage": True, "endCursor": "c1"},
+        },
+        {
+            "servers": [{"slug": "b", "namespace": "ns", "name": "B", "description": "two"}],
+            "pageInfo": {"hasNextPage": False, "endCursor": ""},
+        },
+    ]
+
+    def fake_json(url, **kwargs):
+        assert "cursor" in url or pages[0] is pages[0]
+        return pages.pop(0)
+
+    monkeypatch.setattr("provider_inventory.mcp_registries._fetch_json", fake_json)
+    from provider_inventory.mcp_registries import fetch_glama_servers
+
+    block = fetch_glama_servers(page_limit=5)
+    assert block["pages_fetched"] == 2
+    assert len(block["entries"]) == 2
 
 
 def test_merge_deduplicates_by_key():

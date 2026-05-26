@@ -23,10 +23,14 @@ def main() -> int:
         help="JSON output path",
     )
     parser.add_argument("--dry-run", action="store_true", help="Print summary only")
-    parser.add_argument("--page-limit", type=int, default=8)
+    parser.add_argument("--official-pages", type=int, default=20)
+    parser.add_argument("--glama-pages", type=int, default=50)
     args = parser.parse_args()
 
-    snapshot = build_mcp_registry_snapshot(page_limit=max(1, args.page_limit))
+    snapshot = build_mcp_registry_snapshot(
+        official_page_limit=max(1, args.official_pages),
+        glama_page_limit=max(1, args.glama_pages),
+    )
     counts = snapshot.get("counts") or {}
     merged = int(counts.get("merged") or 0)
     if merged < 1:
