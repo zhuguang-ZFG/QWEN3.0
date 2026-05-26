@@ -9,6 +9,7 @@
 - **Full eval**：`run_eval_full_and_report.py` — 本地 8080 live **33/33 runs** → `coding_backend_scores_full_20260526.json`
 - **Top**：scnet_large_ds_flash / scnet_qwen30b / scnet_ds_flash 100分；`stock_kimi_k2`、`scnet_large_ds_pro` 0分（不进默认池）
 - **ntfy**：`scripts/smoke_ntfy.py`（`LIMA_NTFY_SMOKE=0`）+ `docs/LC_W_NTFY_NOTIFY.md`
+- **VPS**：`upload_eval_full_vps.py` — full JSON 已同步；`eval_full_vps_ok` 11 backends / 33 runs
 
 ## 2026-05-26 雷达 P2-16：MCP 盘点 + 安全 bundle + UUID 工具
 
