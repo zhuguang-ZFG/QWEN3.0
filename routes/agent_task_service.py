@@ -12,6 +12,7 @@ from fastapi import HTTPException
 
 from agent_contracts.task_contract import AgentTaskRequest
 from agent_evolution.candidates import get_candidate_store
+from agent_runtime.prompt_contract import contract_to_dict, resolve_prompt_contract
 from routes.agent_task_schemas import TaskCreateBody
 _log = logging.getLogger(__name__)
 
@@ -158,6 +159,19 @@ def create_task_from_body(body: TaskCreateBody) -> dict:
     task_id = str(uuid.uuid4())[:8]
     while store.contains(task_id):
         task_id = str(uuid.uuid4())[:8]
+    explicit_contract = (
+        body.prompt_contract.model_dump() if body.prompt_contract is not None else None
+    )
+    try:
+        resolved_contract = resolve_prompt_contract(
+            goal=body.goal,
+            constraints=body.constraints,
+            test_commands=body.test_commands,
+            mode=body.mode,
+            prompt_contract=explicit_contract,
+        )
+    except ValueError as e:
+        raise HTTPException(422, str(e)) from e
     req = AgentTaskRequest(
         task_id=task_id,
         repo=body.repo,
@@ -169,6 +183,7 @@ def create_task_from_body(body: TaskCreateBody) -> dict:
         mode=body.mode,
         patch_files=body.patch_files,
         test_commands=body.test_commands,
+        prompt_contract=contract_to_dict(resolved_contract),
     )
     try:
         req.validate()

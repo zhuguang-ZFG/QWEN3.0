@@ -15,6 +15,22 @@ def _api_key() -> str:
     return os.environ.get("GOOGLE_AI_KEY", "").strip()
 
 
+def _inventory_proxy() -> str:
+    """Proxy for Google API (same env chain as MCP inventory / http_caller)."""
+    return (
+        os.environ.get("GOOGLE_INVENTORY_PROXY", "").strip()
+        or os.environ.get("GFW_PROXY", "").strip()
+    )
+
+
+def _build_client(*, proxy: str | None = None) -> httpx.Client:
+    resolved = _inventory_proxy() if proxy is None else proxy.strip()
+    kwargs: dict[str, object] = {"timeout": 30.0}
+    if resolved:
+        kwargs["proxy"] = resolved
+    return httpx.Client(**kwargs)
+
+
 def credentials_configured() -> bool:
     return bool(_api_key())
 
@@ -64,7 +80,7 @@ def fetch_google_models(
 
     owns_client = client is None
     if client is None:
-        client = httpx.Client(timeout=30.0)
+        client = _build_client()
     models: list[dict[str, Any]] = []
     page_token = ""
     try:

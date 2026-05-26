@@ -80,7 +80,7 @@
 | CF-G-6-2 | Inventory hook | `run_cf_google_inventory.py` writes `inventory_weekly_diff.json` | Closed 2026-05-26 |
 | CF-G-6-3 | VPS | CF 73 models; diff file on VPS; digest `collecting baseline` | Closed 2026-05-26 |
 | CF-G-6-4 | Smoke | `smoke_weekly_inventory_vps.py` smoke_ok | Closed 2026-05-26 |
-| CF-G-6-5 | Residual | Google fetch on VPS: Network unreachable | Open |
+| CF-G-6-5 | Residual | Google fetch on VPS via `GFW_PROXY` — **35 models** 2026-05-26 | Closed 2026-05-26 |
 
 ## 2026-05-26 TG-GH-6 deploy/smoke notify
 

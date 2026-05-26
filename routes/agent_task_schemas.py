@@ -7,10 +7,19 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
+class PromptContractBody(BaseModel):
+    context: str = ""
+    task: str = ""
+    constraints: list[str] = Field(default_factory=list)
+    verify: list[str] = Field(default_factory=list)
+    output: str = ""
+
+
 class TaskCreateBody(BaseModel):
     repo: str
     branch: str = "main"
     goal: str
+    prompt_contract: PromptContractBody | None = None
     constraints: list[str] = Field(default_factory=list)
     allowed_tools: list[str] = Field(default_factory=list)
     max_runtime_sec: int = 300

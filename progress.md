@@ -12,6 +12,21 @@
 - **INF-B operator**：Check `lima-vps-router` Period 5min / Grace 10min / Email ON；`verify_healthcheck_vps_ok`
 - **测试**：translate + healthchecks_io + healthcheck_ping **21 passed**
 
+## 2026-05-26 CF-G-6 Google inventory VPS proxy fix
+
+- **根因**：`provider_inventory/google.py` 裸连 Google；路由已用 `GFW_PROXY`
+- **修复**：`GOOGLE_INVENTORY_PROXY` / `GFW_PROXY` → httpx proxy（与 MCP inventory 一致）
+- **VPS**：`deploy_run_cf_google_inventory.py` → `google models=35` exit 0
+- **测试**：`tests/test_provider_inventory.py` **12 passed**
+
+## 2026-05-26 LC-W-1 Prompt Contract v0.1（Server + deepcode-cli）
+
+- **模块**：`agent_runtime/prompt_contract.py` — parse / migrate / render 五段式 KERNEL
+- **API**：`POST /agent/tasks` 接受 `prompt_contract`；legacy `goal` 自动迁移并持久化
+- **Worker**：`deepcode-cli/src/lima/prompt-contract.ts`；`artifact-bundle` plan.md 写入 Prompt Contract 块
+- **测试**：`tests/test_prompt_contract.py` + `tests/test_agent_task_routes.py` **37 passed**；deepcode-cli `prompt-contract.test.ts` OK
+- **待做**：LC-W-1e VPS smoke（create → `/lima next` → log 五段）
+
 ## 2026-05-26 下一刀 LC-W-1 Prompt Contract v0.1（计划）
 
 - **依据**：`docs/NEXT_MILESTONES.md` §2 LiMa Code Worker 第一切片

@@ -141,6 +141,64 @@ def test_fetch_google_models_pagination():
     assert client.get.call_count == 2
 
 
+def test_fetch_google_models_uses_gfw_proxy(monkeypatch):
+    client_kwargs: list[dict] = []
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            client_kwargs.append(kwargs)
+
+        def get(self, url, params=None):
+            response = MagicMock()
+            response.raise_for_status = MagicMock()
+            response.json = MagicMock(
+                return_value={
+                    "models": [
+                        {
+                            "name": "models/gemini-2.5-flash",
+                            "displayName": "Gemini Flash",
+                            "supportedGenerationMethods": ["generateContent"],
+                        }
+                    ],
+                }
+            )
+            return response
+
+        def close(self):
+            return None
+
+    monkeypatch.setenv("GFW_PROXY", "http://127.0.0.1:7897")
+    monkeypatch.setattr("provider_inventory.google.httpx.Client", FakeClient)
+
+    inventory = fetch_google_models(api_key="key")
+    assert inventory["model_count"] == 1
+    assert client_kwargs[0]["proxy"] == "http://127.0.0.1:7897"
+
+
+def test_fetch_google_models_prefers_google_inventory_proxy(monkeypatch):
+    client_kwargs: list[dict] = []
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            client_kwargs.append(kwargs)
+
+        def get(self, url, params=None):
+            response = MagicMock()
+            response.raise_for_status = MagicMock()
+            response.json = MagicMock(return_value={"models": []})
+            return response
+
+        def close(self):
+            return None
+
+    monkeypatch.setenv("GFW_PROXY", "http://127.0.0.1:7897")
+    monkeypatch.setenv("GOOGLE_INVENTORY_PROXY", "http://127.0.0.1:8888")
+    monkeypatch.setattr("provider_inventory.google.httpx.Client", FakeClient)
+
+    fetch_google_models(api_key="key")
+    assert client_kwargs[0]["proxy"] == "http://127.0.0.1:8888"
+
+
 def test_format_inventory_report_contains_counts():
     cf_inv = {"provider": "cloudflare", "models": []}
     cf_diff = {

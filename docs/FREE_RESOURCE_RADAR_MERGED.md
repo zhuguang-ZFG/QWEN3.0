@@ -23,7 +23,7 @@
 | 五线 closeout | CF/Google/TG/GitHub/Gitee | **Done** ~95% |
 | 运维 dead-man | Healthchecks.io + GA workflow | **Done** |
 | 生产力 PE-* | Netdata/SearXNG/codesearch/MCP inventory/OpenObserve | **Done**（SafeMCP Partial） |
-| LiMa Code Worker | Prompt Contract v0.1 | **Open**（LC-W-1 计划已写） |
+| LiMa Code Worker | Prompt Contract v0.1 | **Partial** LC-W-1a–1d 本地完成；VPS smoke 待做 |
 | 代码质量 P1.3 | 静默 catch 清理 | **Open** 进行中 |
 | 雷达 P0 | Gitee Go CI / Gitleaks / Gitee 搜索 | **Open** |
 

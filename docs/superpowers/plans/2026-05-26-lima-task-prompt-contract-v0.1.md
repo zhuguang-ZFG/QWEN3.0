@@ -106,12 +106,14 @@ Return needs_review with summary JSON: changed_files, tests_run, remaining_risks
 
 **Order:** 1 → 2 → tests → 3 → 5 (Server-first, then submodule).
 
+**Progress 2026-05-26:** 1a–1d done locally; 1e VPS smoke pending.
+
 ---
 
 ## 7. Acceptance
 
-- [ ] POST `/agent/tasks` with only `goal` → stored task renders 5 sections
-- [ ] POST with full `prompt_contract` → worker prompt matches render golden
+- [x] POST `/agent/tasks` with only `goal` → stored task renders 5 sections
+- [x] POST with full `prompt_contract` → worker prompt matches render golden
 - [ ] Existing smokes (`worker/smoke-task`) unchanged behavior
 - [ ] `progress.md` / `findings.md` closeout with test counts
 

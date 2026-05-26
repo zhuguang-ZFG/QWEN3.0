@@ -39,6 +39,7 @@ class AgentTaskRequest:
     failure_count: int = 0
     patch_files: list[dict] = field(default_factory=list)
     test_commands: list[str] = field(default_factory=list)
+    prompt_contract: dict = field(default_factory=dict)
 
     def validate(self) -> None:
         """Raise ValueError if any field is invalid."""
@@ -67,6 +68,10 @@ class AgentTaskRequest:
                 raise ValueError("patch_files entries must include content")
         if any(not command for command in self.test_commands):
             raise ValueError("test_commands entries must not be empty")
+        if self.prompt_contract:
+            from agent_runtime.prompt_contract import parse_prompt_contract
+
+            parse_prompt_contract(self.prompt_contract)
 
 
 @dataclass

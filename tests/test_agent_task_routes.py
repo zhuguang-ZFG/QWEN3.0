@@ -95,6 +95,45 @@ class TestTaskEndpoints:
         ]
         assert data["task"]["test_commands"] == ["node test.js"]
 
+    def test_create_task_stores_prompt_contract_from_legacy_goal(self):
+        resp = client.post("/agent/tasks", json={
+            "repo": "D:/GIT",
+            "goal": "fix routing bug",
+            "constraints": ["no deploy"],
+            "test_commands": ["pytest -q"],
+            "mode": "patch",
+        }, headers=HEADERS)
+        assert resp.status_code == 200
+        task_id = resp.json()["task_id"]
+
+        resp = client.get(f"/agent/tasks/{task_id}", headers=HEADERS)
+        contract = resp.json()["task"]["prompt_contract"]
+        assert contract["task"] == "fix routing bug"
+        assert contract["constraints"] == ["no deploy"]
+        assert contract["verify"] == ["pytest -q"]
+        assert "needs_review" in contract["output"]
+
+    def test_create_task_accepts_explicit_prompt_contract(self):
+        resp = client.post("/agent/tasks", json={
+            "repo": "D:/GIT",
+            "goal": "legacy goal",
+            "prompt_contract": {
+                "context": "LiMa repo",
+                "task": "wire contract",
+                "constraints": ["small diff"],
+                "verify": ["pytest tests/test_prompt_contract.py -q"],
+                "output": "needs_review with summary JSON",
+            },
+        }, headers=HEADERS)
+        assert resp.status_code == 200
+        task_id = resp.json()["task_id"]
+
+        resp = client.get(f"/agent/tasks/{task_id}", headers=HEADERS)
+        contract = resp.json()["task"]["prompt_contract"]
+        assert contract["context"] == "LiMa repo"
+        assert contract["task"] == "wire contract"
+        assert contract["verify"] == ["pytest tests/test_prompt_contract.py -q"]
+
     def test_list_tasks_filters_status_and_limit_for_worker_polling(self):
         first = client.post("/agent/tasks", json={
             "repo": "D:/GIT", "goal": "first accepted",
@@ -192,7 +231,7 @@ class TestTaskEndpoints:
         assert resp.status_code == 200
         data = resp.json()
         assert data["ready"] is True
-        assert data["contract_version"] == "agent-task-v1"
+        assert data["contract_version"] == "agent-task-v1+prompt-contract-v0.1"
         assert data["counts"]["accepted"] >= 1
         assert "running" in data["counts"]
         assert data["latest_task_id"] == task_id

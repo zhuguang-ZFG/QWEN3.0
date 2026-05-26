@@ -81,7 +81,7 @@ async def agent_audit(limit: int = Query(default=20, ge=1, le=100)):
 async def worker_preflight():
     return {
         "ready": True,
-        "contract_version": "agent-task-v1",
+        "contract_version": "agent-task-v1+prompt-contract-v0.1",
         "server_time": time.time(),
         "counts": task_counts(),
         "latest_task_id": latest_task_id(),
