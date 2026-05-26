@@ -11,7 +11,6 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-import http_caller
 from backends import BACKENDS
 from coding_eval import (
     candidate_backends,
@@ -20,6 +19,7 @@ from coding_eval import (
     write_json_report,
     write_markdown_report,
 )
+from eval_call import make_eval_call_fn
 
 
 def main() -> int:
@@ -56,7 +56,7 @@ def main() -> int:
     if args.dry_run:
         return 0
 
-    results = run_eval(cases, selected, http_caller.call_api)
+    results = run_eval(cases, selected, make_eval_call_fn())
     write_json_report(results, args.json_out)
     write_markdown_report(results, args.md_out)
     print(f"Wrote {args.json_out}")

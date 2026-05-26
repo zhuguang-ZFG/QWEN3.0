@@ -132,6 +132,15 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
         deps.loaded_modules["agent_tasks"] = False
 
     try:
+        from routes.eval_internal import router as eval_internal_router
+
+        app.include_router(eval_internal_router)
+        deps.loaded_modules["eval_internal"] = True
+    except ImportError as exc:
+        logging.warning("[STARTUP] eval_internal module not loaded: %s", exc)
+        deps.loaded_modules["eval_internal"] = False
+
+    try:
         from routes.telegram import router as telegram_router
 
         app.include_router(telegram_router)

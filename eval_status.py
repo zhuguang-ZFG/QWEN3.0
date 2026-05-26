@@ -63,7 +63,7 @@ def large_eval_hint_lines(data_dir: Path | None = None) -> list[str]:
     return [
         "Large/Stock 0 分提示",
         f"· {', '.join(zeros)} avg=0（VPS localhost 可能不可达）",
-        "· full eval 可设 LIMA_EVAL_BASE_URL=FRP/8088 路径",
+        "· full eval 可设 LIMA_EVAL_VIA_ROUTER_URL=http://127.0.0.1:8088（FRP→Windows）",
         f"· 当前 base={eval_base_url()}",
     ]
 
@@ -90,6 +90,9 @@ def build_eval_status(
     lines.append(
         f"preflight={'ok' if ok else 'FAIL'} ({detail}) base={eval_base_url()}"
     )
+    from eval_topology import topology_status_lines
+
+    lines.extend(topology_status_lines())
     lines.extend(eval_file_lines(base))
 
     hint = large_eval_hint_lines(base)

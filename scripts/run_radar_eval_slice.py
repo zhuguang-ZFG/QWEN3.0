@@ -51,6 +51,16 @@ def main() -> int:
             print(f"eval_preflight_fail {detail}", flush=True)
             return 2
         print(f"eval_preflight_ok {detail}", flush=True)
+        try:
+            from eval_topology import eval_via_router_url, topology_status_lines
+
+            url = eval_via_router_url()
+            if url:
+                print(f"eval_topology via_router={url}", flush=True)
+            for line in topology_status_lines():
+                print(f"eval_topology {line}", flush=True)
+        except ImportError:
+            pass
 
     stamp = datetime.now().strftime("%Y%m%d")
     suffix = "_full" if args.full else ""

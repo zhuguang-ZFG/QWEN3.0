@@ -25,7 +25,8 @@
 | RADAR-P2-23-1 | Code | eval_notify + /evalschedule + periodic TG notify | Closed 2026-05-26 |
 | RADAR-P2-24-1 | Code | /evalstatus /evaldigest /codesearch + server_lifespan periodic | Closed 2026-05-26 |
 | RADAR-P2-24-2 | VPS | periodic quick eval 18:56 exit=0; journal `[periodic-coding-eval]` | Closed 2026-05-26 |
-| RADAR-P2-25-1 | Eval | VPS full eval large/stock 0分需 FRP/8088 拓扑 | Open |
+| RADAR-P2-25-1 | Eval | VPS full eval large/stock 0分需 FRP/8088 拓扑 | Closed 2026-05-26 |
+| RADAR-P2-25-2 | Code | eval_topology + /internal/v1/eval/call + LIMA_EVAL_VIA_ROUTER_URL | Closed 2026-05-26 |
 
 | GH-PUSH-MSG-1 | Code | push Telegram 摘要含 commit message（GH+Gitee） | Closed 2026-05-26 |
 | GH-PUSH-MSG-2 | VPS | deploy_github + deploy_gitee + smoke 200 | Closed 2026-05-26 |

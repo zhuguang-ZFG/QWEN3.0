@@ -4,6 +4,16 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 雷达 P2-25：Large eval FRP 拓扑
+
+- **`eval_topology.py`** — local-proxy backend 不可达时走 `LIMA_EVAL_VIA_ROUTER_URL`（VPS 默认 `http://127.0.0.1:8088`）
+- **`routes/eval_internal.py`** — `POST /internal/v1/eval/call` 在 **Windows :8080** 上直连 `http_caller`
+- **`eval_call.py`** — `make_eval_call_fn()` 供 `eval_coding_backends.py` 使用
+- **Env**：`LIMA_EVAL_TOPOLOGY=1`，`LIMA_EVAL_VIA_ROUTER_URL=http://127.0.0.1:8088`
+- **测试** 12 focused passed（topology + internal + status）
+- **部署** `deploy_p2_25_vps.py`；**Windows :8080 需同步重启**（FRP 目标）
+- **VPS smoke**：`scnet_large_ds_flash` 1 case → 经 `:8088` 命中 internal 端点（502=Windows `:4505` 未监听，拓扑链路已通）
+
 ## 2026-05-26 雷达 P2-19…P2-24 closeout（文档 + commit）
 
 - **文档**：`FREE_RESOURCE_RADAR_MERGED.md` P2/TG-S3 v0.4；`TG_FREE_STORAGE_STRATEGY.md` v0.4

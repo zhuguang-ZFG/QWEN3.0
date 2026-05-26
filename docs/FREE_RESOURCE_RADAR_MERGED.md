@@ -27,7 +27,7 @@
 | 代码质量 P1.3 | 静默 catch 清理 | **Done** 2026-05-26（active paths） |
 | 雷达 P0 | Gitleaks / Gitee CI / Gitee 搜索 | **Done** 2026-05-26 |
 | 雷达 P1 | pip-audit + OSV-Scanner + Ruff + pytest-cov/xdist | **Done** 2026-05-26 |
-| 雷达 P2 | Brave + deptry + Playwright + 60s/menu + eval + TG-S3 v0.4 | **Done** P2-18…P2-24 VPS 2026-05-26；large eval 拓扑待 P2-25 |
+| 雷达 P2 | Brave + deptry + Playwright + 60s/menu + eval + TG-S3 v0.4 | **Done** P2-18…P2-25（large eval 拓扑 2026-05-26） |
 
 **雷达 P2 Operator 切片（2026-05-26 closeout）**
 
@@ -40,8 +40,9 @@
 | P2-22 | FRP `:4501`、`eval_quiet`、auto archive env | eval 静默 + 隧道 |
 | P2-23 | `/evalschedule`、周期 quick eval + TG | `LIMA_PERIODIC_CODING_EVAL=1` |
 | P2-24 | `/evalstatus`、`/evaldigest`、`/codesearch` | 运维总览 + codesearch 探针 |
+| P2-25 | `eval_topology.py` + `/internal/v1/eval/call` | VPS full eval large 经 FRP `:8088`→Windows `:8080` |
 
-部署脚本：`deploy_radar_p2_19_vps.py` … `deploy_p2_24_vps.py`。VPS 周期 eval 首次跑通 2026-05-26 18:56 UTC+8。
+部署脚本：`deploy_radar_p2_19_vps.py` … `deploy_p2_25_vps.py`。**P2-25 需 Windows `:8080` 与 VPS 同步代码并重启**（FRP 隧道目标在 Windows）。
 
 ---
 
