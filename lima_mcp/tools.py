@@ -33,6 +33,7 @@ def handle_tool_call(name: str, arguments: dict) -> dict:
         "github_get_issue": _github_get_issue,
         "github_add_issue_comment": _github_add_issue_comment,
         "github_search_issues": _github_search_issues,
+        "github_search_code": _github_search_code,
     }
     handler = handlers.get(name)
     if not handler:
@@ -373,4 +374,14 @@ def _github_search_issues(args: dict) -> dict:
     return search_issues(
         query=args.get("query", ""),
         per_page=_bounded_int(args.get("per_page"), default=10, minimum=1, maximum=20),
+    )
+
+
+def _github_search_code(args: dict) -> dict:
+    from lima_mcp.github_tools import search_code
+
+    return search_code(
+        query=args.get("query", ""),
+        per_page=_bounded_int(args.get("per_page"), default=10, minimum=1, maximum=20),
+        language=args.get("language", ""),
     )

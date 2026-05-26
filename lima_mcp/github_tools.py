@@ -177,3 +177,30 @@ def search_issues(query: str, *, per_page: int = 10) -> dict:
             } for i in items[:per_page]],
         }
     return result
+
+
+def search_code(query: str, *, per_page: int = 10, language: str = "") -> dict:
+    """Search GitHub code across public repositories."""
+    if not _is_configured():
+        return {"ok": False, "error": "GITHUB_TOKEN not configured"}
+    if not query:
+        return {"ok": False, "error": "query is required"}
+
+    q = urllib.parse.quote(query)
+    if language:
+        q += f"+language:{urllib.parse.quote(language)}"
+    params = f"q={q}&per_page={min(per_page, 20)}"
+    result = _api_request("GET", f"/search/code?{params}")
+    if result.get("ok") and result.get("data"):
+        items = result["data"].get("items", [])
+        return {
+            "ok": True,
+            "total_count": result["data"].get("total_count", 0),
+            "results": [{
+                "name": i.get("name", ""),
+                "path": i.get("path", ""),
+                "repo": i.get("repository", {}).get("full_name", ""),
+                "url": i.get("html_url", ""),
+            } for i in items[:per_page]],
+        }
+    return result

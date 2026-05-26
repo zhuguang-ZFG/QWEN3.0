@@ -263,4 +263,17 @@ TOOL_DEFINITIONS = [
             "required": ["query"],
         },
     },
+    {
+        "name": "github_search_code",
+        "description": "Search GitHub code across public repositories. Requires GITHUB_TOKEN.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "GitHub code search query"},
+                "language": {"type": "string", "description": "Filter by language (e.g. python, typescript)"},
+                "per_page": {"type": "integer"},
+            },
+            "required": ["query"],
+        },
+    },
 ]
