@@ -240,40 +240,53 @@ async def dispatch_command(
     parts = text.strip().split(maxsplit=1)
     cmd = parts[0].lower().split("@")[0]
     arg = parts[1] if len(parts) > 1 else ""
+    ok = False
 
-    if cmd in ("/help",):
-        await cmd_help(chat_id)
-        _record_command_outcome(cmd, chat_id, True)
-        return
-    if cmd in ("/menu",):
-        await cmd_menu(chat_id, with_reply_keyboard=True)
-        _record_command_outcome(cmd, chat_id, True)
-        return
+    try:
+        if cmd in ("/help",):
+            await cmd_help(chat_id)
+            ok = True
+            return
+        if cmd in ("/menu",):
+            await cmd_menu(chat_id, with_reply_keyboard=True)
+            ok = True
+            return
 
-    pub = _PUBLIC_TOOL_COMMANDS.get(cmd)
-    if pub is not None:
-        await cmd_public_tool(chat_id, pub, arg)
-        return
+        pub = _PUBLIC_TOOL_COMMANDS.get(cmd)
+        if pub is not None:
+            await cmd_public_tool(chat_id, pub, arg)
+            ok = True
+            return
 
-    if await _dispatch_status_health_budget(
-        chat_id, cmd, arg, status_fn=status_fn, health_fn=health_fn, budget_fn=budget_fn
-    ):
-        return
-    if await _dispatch_chat_session(chat_id, cmd, arg):
-        return
-    if await _dispatch_operator(
-        chat_id, cmd, arg, logs_fn=logs_fn, restart_fn=restart_fn
-    ):
-        return
+        if await _dispatch_status_health_budget(
+            chat_id, cmd, arg, status_fn=status_fn, health_fn=health_fn, budget_fn=budget_fn
+        ):
+            ok = True
+            return
+        if await _dispatch_chat_session(chat_id, cmd, arg):
+            ok = True
+            return
+        if await _dispatch_operator(
+            chat_id, cmd, arg, logs_fn=logs_fn, restart_fn=restart_fn
+        ):
+            ok = True
+            return
 
-    if cmd == "/start":
-        await telegram_bot.send_message(
-            "LiMa Bot 就绪。\n"
-            "发 /menu 或「菜单」打开快捷按钮；直接打字即可对话。\n"
-            "发 /help 查看分类说明。",
-            chat_id=chat_id,
-            parse_mode="",
-        )
+        if cmd == "/start":
+            await telegram_bot.send_message(
+                "LiMa Bot 就绪。\n"
+                "发 /menu 或「菜单」打开快捷按钮；直接打字即可对话。\n"
+                "发 /help 查看分类说明。",
+                chat_id=chat_id,
+                parse_mode="",
+            )
+            await cmd_menu(chat_id, with_reply_keyboard=True)
+            ok = True
+            return
+
+        await telegram_bot.send_message("Unknown command", chat_id=chat_id)
+    finally:
+        _record_command_outcome(cmd, chat_id, ok)
         await cmd_menu(chat_id, with_reply_keyboard=True)
         _record_command_outcome(cmd, chat_id, True)
         return

@@ -1,25 +1,93 @@
-"""Shadow Mode v0.1 — autonomous improvement proposals with human gate.
+"""Shadow Mode v0.2 — persistent improvement proposals with state machine.
 
-Scans unlearned outcomes, detects patterns, proposes changes.
+States: proposed → approved → applied | rejected
 NEVER auto-applies. Every proposal requires:
   1. >= MIN_EVIDENCE successful outcomes
   2. Eval pass (if applicable)
   3. Human approval via /learn approve
   4. Rollback notes
-
-Output: CandidateImprovement objects ready for review.
 """
 
 from __future__ import annotations
 
+import json
 import logging
+import os
+import sqlite3
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 
 _log = logging.getLogger(__name__)
 
-MIN_EVIDENCE = 3       # minimum outcomes before proposing
-MIN_CONFIDENCE = 0.5   # minimum aggregate confidence
+MIN_EVIDENCE = 3
+MIN_CONFIDENCE = 0.5
+
+_DB_PATH = os.environ.get("LIMA_OUTCOME_DB", str(Path(__file__).resolve().parent.parent / "data" / "outcome_ledger.db"))
+
+
+def _get_conn() -> sqlite3.Connection:
+    conn = sqlite3.connect(_DB_PATH)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS candidates (
+            id TEXT PRIMARY KEY,
+            category TEXT NOT NULL,
+            summary TEXT NOT NULL,
+            evidence_ids TEXT DEFAULT '[]',
+            evidence_count INTEGER DEFAULT 0,
+            confidence REAL DEFAULT 0.0,
+            proposed_at REAL NOT NULL,
+            status TEXT DEFAULT 'proposed',
+            rollback_notes TEXT DEFAULT '',
+            applied_at REAL DEFAULT 0,
+            notes TEXT DEFAULT ''
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_candidates_status ON candidates(status, proposed_at DESC)")
+    conn.commit()
+    return conn
+
+
+def save_candidate(c: CandidateImprovement) -> None:
+    conn = _get_conn()
+    conn.execute(
+        "INSERT OR REPLACE INTO candidates (id, category, summary, evidence_ids, evidence_count, confidence, proposed_at, status, rollback_notes) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (c.id, c.category, c.summary, json.dumps(c.evidence_ids), c.evidence_count,
+         c.confidence, c.proposed_at, c.status, c.rollback_notes),
+    )
+    conn.commit()
+    conn.close()
+
+
+def update_candidate(candidate_id: str, status: str, *, notes: str = "") -> bool:
+    conn = _get_conn()
+    applied_at = time.time() if status == "applied" else 0
+    conn.execute(
+        "UPDATE candidates SET status=?, applied_at=?, notes=? WHERE id=?",
+        (status, applied_at, notes[:200], candidate_id),
+    )
+    conn.commit()
+    affected = conn.total_changes
+    conn.close()
+    return affected > 0
+
+
+def list_candidates(*, status: str = "proposed", limit: int = 20) -> list[dict]:
+    conn = _get_conn()
+    rows = conn.execute(
+        "SELECT id, category, summary, evidence_count, confidence, proposed_at, status, rollback_notes, notes "
+        "FROM candidates WHERE status=? ORDER BY confidence DESC LIMIT ?",
+        (status, limit),
+    ).fetchall()
+    conn.close()
+    return [
+        {"id": r[0], "category": r[1], "summary": r[2], "evidence_count": r[3],
+         "confidence": r[4], "proposed_at": r[5], "status": r[6],
+         "rollback_notes": r[7], "notes": r[8]}
+        for r in rows
+    ]
 
 
 @dataclass
@@ -36,19 +104,15 @@ class CandidateImprovement:
 
 
 def scan_for_candidates() -> list[CandidateImprovement]:
-    """Scan outcome ledger for patterns that suggest improvements.
-
-    Returns list of candidates. Does NOT apply anything.
-    """
+    """Scan outcome ledger for patterns, persist new candidates. Returns all proposed."""
     candidates: list[CandidateImprovement] = []
 
     try:
         from session_memory.outcome_ledger import query
 
-        # Look for patterns in recent outcomes
-        outcomes = query(limit=50)
+        outcomes = query(limit=100)
 
-        # Pattern 1: Backend repeatedly succeeds in a scenario
+        # Pattern: Backend+scenario success/failure aggregation
         backend_scene: dict[str, dict] = {}
         for o in outcomes:
             backend = o.get("backend", "")
@@ -63,41 +127,51 @@ def scan_for_candidates() -> list[CandidateImprovement]:
                 backend_scene[key]["success"] += 1
             backend_scene[key]["ids"].append(o["event_id"])
 
+        existing = {c["id"] for c in list_candidates(status="proposed")}
+
         for key, stats in backend_scene.items():
             if stats["total"] >= MIN_EVIDENCE:
                 rate = stats["success"] / stats["total"]
                 if rate >= 0.8:
-                    candidates.append(CandidateImprovement(
-                        id=f"route:{key}:{int(time.time())}",
-                        category="routing_weight",
-                        summary=f"Boost {key}: {stats['success']}/{stats['total']} success",
-                        evidence_ids=stats["ids"][-5:],
-                        evidence_count=stats["total"],
-                        confidence=round(rate, 2),
-                        proposed_at=time.time(),
-                        rollback_notes=f"Set weight back to 1.0 if failure rate exceeds 30%",
-                    ))
+                    cid = f"boost:{key}:{int(time.time() // 3600)}"
+                    if cid not in existing:
+                        c = CandidateImprovement(
+                            id=cid, category="routing_weight",
+                            summary=f"Boost {key}: {stats['success']}/{stats['total']} ok",
+                            evidence_ids=stats["ids"][-5:], evidence_count=stats["total"],
+                            confidence=round(rate, 2), proposed_at=time.time(),
+                            rollback_notes="Set weight back to 1.0 if failure rate exceeds 30%",
+                        )
+                        save_candidate(c)
+                        candidates.append(c)
 
-        # Pattern 2: Repeated failures on same backend+scenario
-        for key, stats in backend_scene.items():
-            if stats["total"] >= 2:
-                rate = stats["success"] / stats["total"]
-                if rate <= 0.3:
-                    candidates.append(CandidateImprovement(
-                        id=f"route:degrade:{key}:{int(time.time())}",
-                        category="routing_weight",
-                        summary=f"Degrade {key}: {stats['success']}/{stats['total']} success",
-                        evidence_ids=stats["ids"][-5:],
-                        evidence_count=stats["total"],
-                        confidence=round(1 - rate, 2),
-                        proposed_at=time.time(),
-                        rollback_notes=f"Restore weight if subsequent 3 outcomes succeed",
-                    ))
+                elif rate <= 0.3:
+                    cid = f"degrade:{key}:{int(time.time() // 3600)}"
+                    if cid not in existing:
+                        c = CandidateImprovement(
+                            id=cid, category="routing_weight",
+                            summary=f"Degrade {key}: {stats['success']}/{stats['total']} ok",
+                            evidence_ids=stats["ids"][-5:], evidence_count=stats["total"],
+                            confidence=round(1 - rate, 2), proposed_at=time.time(),
+                            rollback_notes="Restore weight if subsequent 3 outcomes succeed",
+                        )
+                        save_candidate(c)
+                        candidates.append(c)
 
     except Exception:
         _log.debug("shadow scan failed", exc_info=True)
 
-    return candidates
+    # Return ALL proposed (including previously persisted)
+    all_proposed = list_candidates(status="proposed")
+    return [
+        CandidateImprovement(
+            id=c["id"], category=c["category"], summary=c["summary"],
+            evidence_ids=[], evidence_count=c["evidence_count"],
+            confidence=c["confidence"], proposed_at=c["proposed_at"],
+            status=c["status"], rollback_notes=c.get("rollback_notes", ""),
+        )
+        for c in all_proposed
+    ]
 
 
 def format_digest(candidates: list[CandidateImprovement] | None = None) -> str:

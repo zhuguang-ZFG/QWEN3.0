@@ -396,4 +396,13 @@ TOOL_DEFINITIONS = [
             "required": [],
         },
     },
+    {
+        "name": "outcome_ledger_stats",
+        "description": "Return Outcome Ledger stats: total events by source, unlearned/rejected/applied counts.",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    },
 ]

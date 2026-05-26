@@ -212,52 +212,87 @@ async def cmd_contracts(chat_id: str, args: str) -> None:
 async def cmd_learn(chat_id: str, args: str) -> None:
     """Show/approve learning candidates. Usage: /learn [approve|reject <id>]"""
     try:
-        from session_memory.outcome_ledger import query as ledger_query
+        from session_memory.outcome_ledger import mark_learned, mark_rejected
+        from session_memory.shadow_mode import list_candidates, update_candidate
 
         sub = args.strip().split()
         action = sub[0] if sub else "list"
 
         if action == "approve" and len(sub) > 1:
-            event_id = sub[1]
-            # Mark as learned
+            candidate_id = sub[1]
+
+            # Mark in outcome_ledger (find the event)
+            from session_memory.outcome_ledger import query
+            related = query(limit=5)
+            for item in related:
+                if candidate_id.startswith(item["event_id"][:20]):
+                    mark_learned(item["event_id"], notes=f"approved via Telegram")
+                    break
+
+            # Update candidate status
+            updated = update_candidate(candidate_id, "approved", notes="telegram approval")
+
+            # Try eval_gate if available
+            gate_msg = ""
+            try:
+                from session_memory.eval_gate import approve_candidate
+                approve_candidate(candidate_id)
+                gate_msg = " | eval_gate approved"
+            except ImportError:
+                gate_msg = " | eval_gate not available"
+            except Exception as exc:
+                gate_msg = f" | eval_gate: {type(exc).__name__}"
+
             await telegram_bot.send_message(
-                f"Approved: `{event_id}`\nLearning from this outcome applied.",
+                f"Approved: `{candidate_id[:50]}`\n"
+                f"Ledger updated: {updated}{gate_msg}\n"
+                f"/learn to review others | /digest for summary",
                 chat_id=chat_id, parse_mode="Markdown",
             )
             return
 
         if action == "reject" and len(sub) > 1:
-            event_id = sub[1]
+            candidate_id = sub[1]
+            reason = " ".join(sub[2:]) if len(sub) > 2 else "manual rejection"
+            update_candidate(candidate_id, "rejected", notes=reason[:200])
+
+            # Also mark related outcome as rejected
+            from session_memory.outcome_ledger import query
+            related = query(limit=5)
+            for item in related:
+                if candidate_id.startswith(item["event_id"][:20]):
+                    mark_rejected(item["event_id"], reason=reason[:200])
+                    break
+
             await telegram_bot.send_message(
-                f"Rejected: `{event_id}`",
+                f"Rejected: `{candidate_id[:50]}`",
                 chat_id=chat_id, parse_mode="Markdown",
             )
             return
 
-        # Default: list unlearned outcomes
-        items = ledger_query(limit=10)
-        unlearned = [i for i in items if i.get("tags") and "learned" not in str(i.get("tags"))]
-        if not unlearned:
-            unlearned = items[:5]
+        # Default: list proposed candidates
+        candidates = list_candidates(status="proposed")
+        if not candidates:
+            candidates = list_candidates(status="approved")[:3]
 
-        if not unlearned:
+        if not candidates:
             await telegram_bot.send_message(
-                "No pending learning candidates.\nOutcomes become learnable after they are recorded.",
+                "No pending learning candidates.\n/digest to scan for new patterns.",
                 chat_id=chat_id, parse_mode="",
             )
             return
 
         lines = ["*Learning Candidates*", ""]
-        for item in unlearned[:8]:
-            icon = "✅" if item["outcome"] == "success" else "❌"
-            src = item["source"]
+        for c in candidates[:8]:
+            icon = "\U0001f7e2" if c["confidence"] >= 0.8 else "\U0001f7e1"
             lines.append(
-                f"{icon} [{src}] {item['summary'][:100]}\n"
-                f"  `{item['event_id'][:40]}`"
+                f"{icon} [{c['category']}] {c['summary'][:100]}\n"
+                f"  evidence={c['evidence_count']} conf={c['confidence']} status={c['status']}\n"
+                f"  `/learn approve {c['id'][:40]}`"
             )
             lines.append("")
 
-        lines.append("/learn approve <id> or /learn reject <id>")
+        lines.append("/learn approve <id>  or  /learn reject <id>")
         await telegram_bot.send_message(
             "\n".join(lines)[:4000], chat_id=chat_id, parse_mode="Markdown",
         )

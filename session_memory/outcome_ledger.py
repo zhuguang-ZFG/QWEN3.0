@@ -145,10 +145,63 @@ def stats() -> dict:
         "SELECT scenario, COUNT(*), SUM(CASE WHEN outcome='success' THEN 1 ELSE 0 END) FROM outcomes GROUP BY scenario"
     ).fetchall()
     unlearned = conn.execute("SELECT COUNT(*) FROM outcomes WHERE learned=0").fetchone()[0] or 0
+    rejected = conn.execute("SELECT COUNT(*) FROM outcomes WHERE learned=2").fetchone()[0] or 0
+    applied = conn.execute("SELECT COUNT(*) FROM outcomes WHERE learned=3").fetchone()[0] or 0
     conn.close()
     return {
         "total": total,
         "unlearned": unlearned,
+        "rejected": rejected,
+        "applied": applied,
         "by_source": {r[0]: {"total": r[1], "success": r[2]} for r in by_source},
         "by_scenario": {r[0]: {"total": r[1], "success": r[2]} for r in by_scenario},
     }
+
+
+# ── State machine actions (Hermes pattern: evidence-gated transitions) ──
+# learned: 0=unlearned, 1=learned, 2=rejected, 3=applied
+
+
+def mark_learned(event_id: str, *, notes: str = "") -> bool:
+    """Mark an outcome as learned (learned=1)."""
+    conn = _get_conn()
+    conn.execute(
+        "UPDATE outcomes SET learned=1, details=json_set(details, '$.learn_notes', ?) WHERE event_id=?",
+        (notes[:200], event_id),
+    )
+    conn.commit()
+    affected = conn.total_changes
+    conn.close()
+    if affected:
+        _log.info("outcome marked learned: %s", event_id)
+    return affected > 0
+
+
+def mark_rejected(event_id: str, *, reason: str = "") -> bool:
+    """Mark an outcome as rejected (learned=2)."""
+    conn = _get_conn()
+    conn.execute(
+        "UPDATE outcomes SET learned=2, details=json_set(details, '$.reject_reason', ?) WHERE event_id=?",
+        (reason[:200], event_id),
+    )
+    conn.commit()
+    affected = conn.total_changes
+    conn.close()
+    if affected:
+        _log.info("outcome rejected: %s (%s)", event_id, reason[:80])
+    return affected > 0
+
+
+def mark_applied(event_id: str, *, notes: str = "") -> bool:
+    """Mark an outcome as applied — evidence was used to change routing/prompt."""
+    conn = _get_conn()
+    conn.execute(
+        "UPDATE outcomes SET learned=3, details=json_set(details, '$.apply_notes', ?) WHERE event_id=?",
+        (notes[:200], event_id),
+    )
+    conn.commit()
+    affected = conn.total_changes
+    conn.close()
+    if affected:
+        _log.info("outcome applied: %s", event_id)
+    return affected > 0
