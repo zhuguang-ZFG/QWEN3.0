@@ -49,6 +49,10 @@ def main() -> int:
         except json.JSONDecodeError:
             version = ""
 
+    version_ok = bool(version) and (
+        version.startswith("2.") or version.startswith("v2.")
+    )
+
     ssh.close()
 
     print(f"netdata_service={active}")
@@ -61,7 +65,7 @@ def main() -> int:
         active == "active"
         and info_code == 0
         and cpu_code == 0
-        and version.startswith("2.")
+        and version_ok
     )
     print("smoke_ok" if ok else "smoke_FAILED")
     return 0 if ok else 1

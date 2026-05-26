@@ -4,6 +4,15 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 PE-C-1 Netdata MCP 手动安装完成
+
+- **安装包**：用户本机 `netdata-x86_64-latest.gz.run`（180.9 MB）→ scp `/tmp/` → `--accept -- --disable-telemetry`
+- **版本**：**v2.10.3**；`systemctl active`
+- **Smoke**：`smoke_netdata_mcp_vps.py` → **smoke_ok**（API + CPU chart）
+- **MCP**：`http://127.0.0.1:19999/mcp`（v2.10.3 内置）；key 见 runbook
+- **残余**：19999 当前 `0.0.0.0` 监听 — 建议后续 bind 127.0.0.1 + 防火墙
+- **下一刀**：FL-1-7 手机 Telegram；GI-G-3 资源包
+
 ## 2026-05-26 五线 closeout 验收 + GI-G-3 re-probe + PE-C-1 启动
 
 - **GI-G-3 re-probe**：3/3 仍 `resource_not_bound` — **继续 blocked**（需 Gitee 控制台绑定资源包）

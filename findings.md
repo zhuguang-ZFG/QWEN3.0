@@ -10,6 +10,10 @@
 | GI-G-2-2 | Public smoke | `smoke_gitee_webhook_public.py` local+public 200 | Closed 2026-05-26 |
 | GI-G-2-3 | Ops | Gitee UI WebHook password must match VPS `GITEE_WEBHOOK_SECRET` | Open |
 
+| PE-C-1-1 | Manual install | user upload 180.9MB → VPS v2.10.3 active | Closed 2026-05-26 |
+| PE-C-1-2 | Smoke | `smoke_netdata_mcp_vps.py` smoke_ok | Closed 2026-05-26 |
+| PE-C-1-3 | Ops | 19999 binds 0.0.0.0 — restrict to loopback recommended | Open |
+
 ## 2026-05-26 Five-line closeout slice 1
 
 | ID | Area | Evidence | Status |
