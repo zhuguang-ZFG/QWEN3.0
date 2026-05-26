@@ -9,10 +9,10 @@ import time
 from session_memory.store_db import (
     MEMORY_TYPES,
     MemoryEntry,
-    _DB_PATH,
-    _get_conn,
+    get_db_path,
     _sanitize_storage_text,
 )
+from session_memory import store_db
 from session_memory.store_crud import save_memory
 
 
@@ -39,7 +39,7 @@ def query_by_type(
     memory_type: str, limit: int = 10, session_id: str | None = None
 ) -> list[MemoryEntry]:
     """Query memories by type, optionally scoped to a session."""
-    conn = _get_conn()
+    conn = store_db._get_conn()
     if session_id:
         rows = conn.execute(
             "SELECT id, session_id, timestamp, role, summary, detail, embedding, memory_type "
@@ -93,7 +93,7 @@ def promote_memory(
     if new_type not in MEMORY_TYPES or new_type == "exchange":
         return False
 
-    conn = _get_conn()
+    conn = store_db._get_conn()
     row = conn.execute(
         "SELECT id, session_id, timestamp, role, summary, detail, embedding, memory_type "
         "FROM memories WHERE id = ?", (memory_id,)
@@ -126,7 +126,7 @@ def auto_promote_candidates(session_id: str, limit: int = 50) -> list[int]:
     Returns list of memory IDs that are candidates for promotion.
     Does NOT perform the promotion - caller decides.
     """
-    conn = _get_conn()
+    conn = store_db._get_conn()
     rows = conn.execute(
         "SELECT id, summary FROM memories "
         "WHERE session_id = ? AND memory_type = 'exchange' "
@@ -151,7 +151,7 @@ def _record_promotion_audit(
     evidence: str, auto: bool,
 ) -> None:
     """Record promotion in audit log (lightweight JSONL)."""
-    audit_dir = os.path.dirname(_DB_PATH)
+    audit_dir = os.path.dirname(get_db_path())
     audit_path = os.path.join(audit_dir, "memory_promotions.jsonl")
     try:
         entry = {

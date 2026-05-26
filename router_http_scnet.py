@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import json
-import sys
+import logging
 import time
 import urllib.request
 
 from backends import BACKENDS
 from response_cleaner import clean_response
 from router_circuit_breaker import cb_record
+from router_http_body import UNAVAILABLE_USER_MESSAGE
+
+_log = logging.getLogger(__name__)
 
 SCNET_API = "https://www.scnet.cn/acx/chatbot/v1/chat/completion"
 SCNET_MODELS = {
@@ -22,56 +25,54 @@ SCNET_MODELS = {
 SCNET_CHUNK = 38000
 
 
-def call_scnet_chunked(name: str, msgs, mt, started: float):
-    import logging
+def scnet_send_message(content: str, conv_id: str, model_id: int) -> tuple[str, str]:
+    payload = json.dumps(
+        {
+            "conversationId": conv_id,
+            "content": content,
+            "thinkingEnable": False,
+            "onlineEnable": False,
+            "modelId": model_id,
+            "textFile": [],
+            "imageFile": [],
+            "autoRun": 0,
+            "clusterId": "",
+        }
+    ).encode("utf-8")
+    request = urllib.request.Request(
+        SCNET_API,
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "Origin": "https://www.scnet.cn",
+            "Referer": "https://www.scnet.cn/ui/chatbot/",
+        },
+    )
+    with urllib.request.urlopen(request, timeout=45) as resp:
+        raw = resp.read().decode("utf-8")
+    reply, cid = "", conv_id
+    for line in raw.split("\n"):
+        if line.startswith("data:"):
+            try:
+                data = json.loads(line[5:])
+                if data.get("conversationId"):
+                    cid = data["conversationId"]
+                if data.get("content") and data["content"] != "[done]":
+                    reply += data["content"]
+            except Exception as exc:
+                _log.debug("scnet sse line parse skipped: %s", type(exc).__name__)
+    return reply.replace("[done]", "").strip(), cid
 
-    log = logging.getLogger(__name__)
+
+def call_scnet_chunked(name: str, msgs, mt, started: float):
     backend = BACKENDS.get(name)
     model_name = backend["model"] if backend else "qwen3-30b"
     model_id = SCNET_MODELS.get(model_name, 17)
     full_text = "\n".join(f"[{m['role']}]: {m['content']}" for m in msgs)
 
-    def _send(content, conv_id):
-        payload = json.dumps(
-            {
-                "conversationId": conv_id,
-                "content": content,
-                "thinkingEnable": False,
-                "onlineEnable": False,
-                "modelId": model_id,
-                "textFile": [],
-                "imageFile": [],
-                "autoRun": 0,
-                "clusterId": "",
-            }
-        ).encode("utf-8")
-        request = urllib.request.Request(
-            SCNET_API,
-            data=payload,
-            headers={
-                "Content-Type": "application/json",
-                "Origin": "https://www.scnet.cn",
-                "Referer": "https://www.scnet.cn/ui/chatbot/",
-            },
-        )
-        with urllib.request.urlopen(request, timeout=45) as resp:
-            raw = resp.read().decode("utf-8")
-        reply, cid = "", conv_id
-        for line in raw.split("\n"):
-            if line.startswith("data:"):
-                try:
-                    data = json.loads(line[5:])
-                    if data.get("conversationId"):
-                        cid = data["conversationId"]
-                    if data.get("content") and data["content"] != "[done]":
-                        reply += data["content"]
-                except Exception as exc:
-                    log.debug("scnet sse line parse skipped: %s", type(exc).__name__)
-        return reply.replace("[done]", "").strip(), cid
-
     try:
         if len(full_text) <= SCNET_CHUNK:
-            answer, _ = _send(full_text, "")
+            answer, _ = scnet_send_message(full_text, "", model_id)
         else:
             chunks = [
                 full_text[i : i + SCNET_CHUNK]
@@ -88,10 +89,10 @@ def call_scnet_chunked(name: str, msgs, mt, started: float):
                     )
                 else:
                     message = chunk + "\n\nNow answer based on ALL parts above."
-                answer, conv_id = _send(message, conv_id)
+                answer, conv_id = scnet_send_message(message, conv_id, model_id)
         cb_record(name, True, int((time.time() - started) * 1000))
         return clean_response(answer, name)
     except Exception as exc:
-        print(f"[DEBUG] {name} scnet error: {exc}", file=sys.stderr)
+        _log.warning("%s scnet call failed: %s", name, type(exc).__name__)
         cb_record(name, False)
-        return "服务暂时不可用，请稍后重试"
+        return UNAVAILABLE_USER_MESSAGE

@@ -23,6 +23,10 @@ _probe_task: asyncio.Task | None = None
 _boot_time: float = time.time()
 
 
+def _operator_error(code: str) -> str:
+    return f"Command failed ({code}). Check server logs."
+
+
 def _get_history(chat_id: str) -> deque:
     if chat_id not in _chat_histories:
         _chat_histories[chat_id] = deque(maxlen=10)
@@ -62,9 +66,9 @@ async def cmd_chat(chat_id: str, message: str) -> None:
         if answer:
             history.append({"role": "assistant", "content": answer})
         await telegram_bot.send_message(answer or "(empty response)", chat_id=chat_id)
-    except Exception as e:
+    except Exception:
         logger.exception("cmd_chat failed")
-        await telegram_bot.send_message(f"Error: {e}", chat_id=chat_id)
+        await telegram_bot.send_message(_operator_error("chat"), chat_id=chat_id)
 
 
 _TOOL_KEYWORDS = [
@@ -123,9 +127,9 @@ async def cmd_code(chat_id: str, message: str) -> None:
         await telegram_bot.send_message(text, chat_id=chat_id)
     except ImportError:
         await telegram_bot.send_message("code_orchestrator not available", chat_id=chat_id)
-    except Exception as e:
+    except Exception:
         logger.exception("cmd_code failed")
-        await telegram_bot.send_message(f"Error: {e}", chat_id=chat_id)
+        await telegram_bot.send_message(_operator_error("code"), chat_id=chat_id)
 
 
 async def cmd_top(chat_id: str) -> None:
@@ -146,8 +150,9 @@ async def cmd_top(chat_id: str) -> None:
             f"Connections: {conns}"
         )
         await telegram_bot.send_message(text, chat_id=chat_id)
-    except Exception as e:
-        await telegram_bot.send_message(f"Error: {e}", chat_id=chat_id)
+    except Exception:
+        logger.exception("cmd_top failed")
+        await telegram_bot.send_message(_operator_error("top"), chat_id=chat_id)
 
 
 async def cmd_uptime(chat_id: str) -> None:
@@ -161,8 +166,9 @@ async def cmd_uptime(chat_id: str) -> None:
         h, m = elapsed // 3600, (elapsed % 3600) // 60
         text = f"Uptime: {h}h {m}m\nStarted: {ts_str or 'unknown'}"
         await telegram_bot.send_message(text, chat_id=chat_id)
-    except Exception as e:
-        await telegram_bot.send_message(f"Error: {e}", chat_id=chat_id)
+    except Exception:
+        logger.exception("cmd_uptime failed")
+        await telegram_bot.send_message(_operator_error("uptime"), chat_id=chat_id)
 
 
 async def cmd_eval(chat_id: str, backend: str) -> None:
@@ -181,8 +187,9 @@ async def cmd_eval(chat_id: str, backend: str) -> None:
         else:
             verdict = "FAILED"
         await telegram_bot.send_message(f"`{backend}`: {verdict}", chat_id=chat_id)
-    except Exception as e:
-        await telegram_bot.send_message(f"Error: {e}", chat_id=chat_id)
+    except Exception:
+        logger.exception("cmd_eval failed")
+        await telegram_bot.send_message(_operator_error("eval"), chat_id=chat_id)
 
 
 async def cmd_task(chat_id: str, goal: str) -> None:
@@ -208,8 +215,9 @@ async def cmd_task(chat_id: str, goal: str) -> None:
             await telegram_bot.send_message(
                 f"Task created: `{data.get('task_id', '?')}`", chat_id=chat_id,
             )
-    except Exception as e:
-        await telegram_bot.send_message(f"Error: {e}", chat_id=chat_id)
+    except Exception:
+        logger.exception("cmd_task failed")
+        await telegram_bot.send_message(_operator_error("task"), chat_id=chat_id)
 
 
 async def cmd_tasks(chat_id: str) -> None:
@@ -227,8 +235,9 @@ async def cmd_tasks(chat_id: str) -> None:
                 return
             lines = [f"- `{t.get('task_id','')}` {t.get('goal','')[:40]}" for t in tasks]
             await telegram_bot.send_message("\n".join(lines), chat_id=chat_id)
-    except Exception as e:
-        await telegram_bot.send_message(f"Error: {e}", chat_id=chat_id)
+    except Exception:
+        logger.exception("cmd_tasks failed")
+        await telegram_bot.send_message(_operator_error("tasks"), chat_id=chat_id)
 
 
 async def cmd_cache(chat_id: str) -> None:
@@ -258,9 +267,10 @@ async def cmd_stop(chat_id: str, task_id: str) -> None:
             if r.status_code == 200:
                 await telegram_bot.send_message(f"Task `{task_id}` cancelled.", chat_id=chat_id)
             else:
-                await telegram_bot.send_message(f"Cancel failed: {r.status_code} {r.text[:80]}", chat_id=chat_id)
-    except Exception as e:
-        await telegram_bot.send_message(f"Error: {e}", chat_id=chat_id)
+                await telegram_bot.send_message(_operator_error("stop"), chat_id=chat_id)
+    except Exception:
+        logger.exception("cmd_stop failed")
+        await telegram_bot.send_message(_operator_error("stop"), chat_id=chat_id)
 
 
 async def probe_backends() -> None:
@@ -372,9 +382,9 @@ async def cmd_voice(chat_id: str, message: str) -> None:
         ok = await telegram_bot.send_voice(ogg, chat_id=chat_id, caption=message[:100])
         if not ok:
             await telegram_bot.send_message("Failed to send voice message", chat_id=chat_id)
-    except Exception as e:
+    except Exception:
         logger.exception("cmd_voice failed")
-        await telegram_bot.send_message(f"Voice error: {e}", chat_id=chat_id)
+        await telegram_bot.send_message(_operator_error("voice"), chat_id=chat_id)
 
 
 async def cmd_voicechat(chat_id: str, arg: str) -> None:

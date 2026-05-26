@@ -18,7 +18,7 @@ _log = logging.getLogger(__name__)
 from backends import BACKENDS, GFW_BACKENDS
 from response_cleaner import clean_response
 from router_circuit_breaker import cb_allow, cb_record
-from router_http_body import build_request_body
+from router_http_body import UNAVAILABLE_USER_MESSAGE, build_request_body
 from router_http_scnet import call_scnet_chunked as _call_scnet_chunked
 from router_http_vision import call_cf_vision, has_vision_content
 
@@ -56,7 +56,6 @@ def call_api(name, msgs, mt=1024, ide="unknown"):
     if not backend or not backend["key"]:
         cb_record(name, False)
         return f"[ERR] Backend {name} unavailable (no key)"
-    auth_style = backend.get("auth", "x-api-key")
 
     if name == "cf_vision" and _has_vision_content(msgs):
         return _call_cf_vision(msgs, mt, started)
@@ -64,54 +63,12 @@ def call_api(name, msgs, mt=1024, ide="unknown"):
     if name.startswith("scnet_"):
         return _call_scnet_chunked(name, msgs, mt, started)
 
-    if backend["fmt"] == "anthropic":
-        if backend.get("no_system"):
-            omni_msgs = [
-                {
-                    "role": m["role"],
-                    "content": [{"type": "text", "text": m["content"]}]
-                    if isinstance(m["content"], str)
-                    else m["content"],
-                }
-                for m in msgs
-            ]
-            body = {"model": backend["model"], "max_tokens": mt, "messages": omni_msgs}
-        else:
-            body = {
-                "model": backend["model"],
-                "max_tokens": mt,
-                "system": _ide_system_prompt(ide),
-                "messages": msgs,
-            }
-        payload = json.dumps(body).encode()
-        if auth_style == "bearer":
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {backend['key']}",
-                "anthropic-version": "2023-06-01",
-            }
-        else:
-            headers = {
-                "Content-Type": "application/json",
-                "x-api-key": backend["key"],
-                "anthropic-version": "2023-06-01",
-            }
-    else:
-        payload = json.dumps(
-            {
-                "model": backend["model"],
-                "max_tokens": mt,
-                "messages": [{"role": "system", "content": _ide_system_prompt(ide)}] + msgs,
-            }
-        ).encode()
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {backend['key']}",
-            "User-Agent": "LiMa/2.0",
-        }
+    payload, headers, fmt, timeout = build_request_body(name, msgs, mt, ide, stream=False)
+    if payload is None:
+        cb_record(name, False)
+        return f"[ERR] Backend {name} not found"
     try:
         request = urllib.request.Request(backend["url"], data=payload, headers=headers)
-        timeout = backend.get("timeout", 60)
         opener = _get_opener(name)
         if opener:
             with opener.open(request, timeout=timeout) as resp:
@@ -119,7 +76,7 @@ def call_api(name, msgs, mt=1024, ide="unknown"):
         else:
             with urllib.request.urlopen(request, timeout=timeout) as resp:
                 payload = json.loads(resp.read().decode())
-        if backend["fmt"] == "anthropic":
+        if fmt == "anthropic":
             answer = (
                 payload["content"][0].get("text", "")
                 or payload["content"][0].get("thinking", "")
@@ -136,16 +93,16 @@ def call_api(name, msgs, mt=1024, ide="unknown"):
         cb_record(name, True, int((time.time() - started) * 1000))
         return clean_response(answer, name)
     except Exception as exc:
-        print(f"[DEBUG] {name} error: {exc}", file=sys.stderr)
+        _log.warning("%s call failed: %s", name, type(exc).__name__)
         cb_record(name, False)
-        return "服务暂时不可用，请稍后重试"
+        return UNAVAILABLE_USER_MESSAGE
 
 
 def call_api_stream(name, msgs, mt=1024, ide="unknown"):
     if not cb_allow(name):
         if DEBUG:
             print(f"[CB] {name}: blocked by circuit breaker (stream)", file=sys.stderr)
-        yield "服务暂时不可用，请稍后重试"
+        yield UNAVAILABLE_USER_MESSAGE
         return
     backend = BACKENDS.get(name)
     if not backend or not backend["key"]:
@@ -201,4 +158,4 @@ def call_api_stream(name, msgs, mt=1024, ide="unknown"):
         if DEBUG:
             print(f"[STREAM] {name} error: {exc}", file=sys.stderr)
         cb_record(name, False)
-        yield "服务暂时不可用，请稍后重试"
+        yield UNAVAILABLE_USER_MESSAGE

@@ -42,19 +42,48 @@ def parse_approval_callback(data: str) -> dict:
     return {"ok": False, "error": "Unsupported callback payload"}
 
 
+def _gfw_proxy() -> str:
+    return os.getenv("GFW_PROXY", "http://127.0.0.1:7897")
+
+
+def _telegram_proxy_candidates() -> list[str | None]:
+    """Prefer configured proxy for local dev; fall back to direct on VPS."""
+    if os.getenv("TELEGRAM_NO_PROXY", "").strip().lower() in {"1", "true", "yes"}:
+        return [None]
+    explicit = os.getenv("TELEGRAM_PROXY", "").strip()
+    if explicit:
+        return [explicit, None]
+    gfw = os.getenv("GFW_PROXY", "").strip() or _gfw_proxy()
+    return [gfw, None]
+
+
 async def _api_call(method: str, data: dict) -> dict | None:
     url = _BASE_URL.format(token=_bot_token(), method=method)
-    try:
-        async with httpx.AsyncClient(proxy=_gfw_proxy(), timeout=10.0) as client:
-            resp = await client.post(url, json=data)
-            resp.raise_for_status()
-            return resp.json()
-    except httpx.HTTPError as e:
-        logger.warning("Telegram API %s failed: %s", method, e)
-        return None
-    except Exception as e:
-        logger.warning("Telegram API %s unexpected error: %s", method, e)
-        return None
+    last_error: Exception | None = None
+    for proxy in _telegram_proxy_candidates():
+        try:
+            async with httpx.AsyncClient(proxy=proxy, timeout=10.0) as client:
+                resp = await client.post(url, json=data)
+                resp.raise_for_status()
+                return resp.json()
+        except httpx.HTTPError as exc:
+            last_error = exc
+            if proxy is not None:
+                logger.debug(
+                    "Telegram API %s via proxy failed, trying next transport: %s",
+                    method,
+                    type(exc).__name__,
+                )
+                continue
+            logger.warning("Telegram API %s failed: %s", method, exc)
+            return None
+        except Exception as exc:
+            last_error = exc
+            logger.warning("Telegram API %s unexpected error: %s", method, exc)
+            return None
+    if last_error is not None:
+        logger.warning("Telegram API %s failed after transport attempts: %s", method, last_error)
+    return None
 
 
 async def send_message(
@@ -133,12 +162,20 @@ async def send_voice(audio_bytes: bytes, chat_id: str = "", caption: str = "") -
     if caption:
         data["caption"] = caption
     files = {"voice": ("voice.ogg", audio_bytes, "audio/ogg")}
-    try:
-        async with httpx.AsyncClient(proxy=_gfw_proxy(), timeout=30.0) as client:
-            resp = await client.post(url, data=data, files=files)
-            resp.raise_for_status()
-            result = resp.json()
-            return result.get("ok", False)
-    except Exception as e:
-        logger.warning("Telegram sendVoice failed: %s", e)
-        return False
+    for proxy in _telegram_proxy_candidates():
+        try:
+            async with httpx.AsyncClient(proxy=proxy, timeout=30.0) as client:
+                resp = await client.post(url, data=data, files=files)
+                resp.raise_for_status()
+                result = resp.json()
+                return result.get("ok", False)
+        except Exception as exc:
+            if proxy is not None:
+                logger.debug(
+                    "Telegram sendVoice via proxy failed, trying direct: %s",
+                    type(exc).__name__,
+                )
+                continue
+            logger.warning("Telegram sendVoice failed: %s", exc)
+            return False
+    return False

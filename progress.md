@@ -2,6 +2,41 @@
 
 > Created: 2026-05-22
 
+## 2026-05-26 代码质量 P2 拆分（CQ-099）
+
+- **H1 anthropic_stream**：拆为 `anthropic_stream_sse.py` + `anthropic_stream_branches.py`；facade ~195 行；`inject_deps` → `AnthropicStreamDeps` + `_require_deps()`
+- **H2 device_gateway_ws**：拆为 `device_gateway_ws_handlers.py`；主循环 ~91 行
+- **H4 streaming**：`bridge_stream` 迁至 `streaming_bridge.py`；`streaming.py` facade ~154 行
+- **M1 scnet**：`scnet_send_message()` 模块级函数替代嵌套 `_send()`
+- **L2**：`WebSocketDisconnect` 记录 debug 日志
+- **已关闭（CQ-097）**：H3 `call_api`→`build_request_body`；L1 legacy print→logging；PLACEHOLDER 标记已移除
+- **Deferred**：M2 收窄 `except Exception`；M3 router_http urllib→httpx 迁移
+- **测试**：**1547 passed, 10 skipped**（+2 authority tests）
+
+## 2026-05-26 Telegram 出站修复（TG-PROXY-099）
+
+- **根因**：VPS `GFW_PROXY=127.0.0.1:7897` 无本地代理 → `sendMessage` 全部失败；webhook 入站仍 200
+- **修复**：`telegram_bot._telegram_proxy_candidates()` 代理失败后自动直连；`sendVoice` 同步
+- **验证**：VPS journal 原报 `All connection attempts failed`；部署后待复测
+
+## 2026-05-26 安全/质量审查修复（CQ-098）
+
+- **P1 store_promote**：`get_db_path()` / `set_db_path()` 调用时解析 DB 路径；`store_promote` 经 `store_db._get_conn()` 访问，修复 eval apply 测试隔离
+- **P1 finance_math**：`lima_fc_tools/safe_math.py` AST 求值（长度/深度/指数上限），替换 `eval()`
+- **P1 admin retrain**：异步 job + single-flight lock + `asyncio.wait_for` 超时（默认 600s）
+- **P2 Telegram**：operator 命令失败返回稳定错误码消息，详细异常仅写日志
+- **P2 admin_stats**：复用 `ops_metrics._backend_call_detail` 兼容整数 legacy 计数
+- **P2 debug_routing\***：工作区未找到文件；`.gitignore` 已忽略
+- **测试**：**1544 passed, 10 skipped**（含 `test_eval_apply_is_idempotent_*`、`test_safe_math`、`test_admin_stats`）
+
+## 2026-05-26 代码质量审查修复（CQ-097）
+
+- **HIGH**：`router_http.call_api()` 改为复用 `build_request_body()`，消除与 stream 路径的重复 body 构建
+- **MEDIUM**：`router_http*` legacy 模块 `print(stderr)` → `logging`；统一 `UNAVAILABLE_USER_MESSAGE` 常量
+- **LOW**：移除 `anthropic_stream.py` 中 `PLACEHOLDER_*` 分隔标记
+- **Deferred**：`anthropic_stream()` ~170 行拆分（async generator 状态传递，单独切片）
+- **测试**：+1 `test_call_api_uses_build_request_body`；全量 **1539 passed, 10 skipped**
+
 ## 2026-05-26 CQ-096 拆分代码 VPS 验证（DG-DEPLOY-096）
 
 - **部署**：`scripts/deploy_cq096_split.py` → 7 文件上传 + `systemctl restart lima-router`

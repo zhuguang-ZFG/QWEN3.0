@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
-import sys
 import time
 import urllib.request
 
@@ -12,6 +12,7 @@ from response_cleaner import clean_response
 from router_circuit_breaker import cb_record
 from vision_handler import detect_vision_request
 
+_log = logging.getLogger(__name__)
 DEBUG = os.environ.get("LIMA_DEBUG", "") == "1"
 
 
@@ -45,6 +46,8 @@ def call_cf_vision(msgs, mt, started: float):
         return None
     except Exception as exc:
         if DEBUG:
-            print(f"[DEBUG] cf_vision error: {exc}", file=sys.stderr)
+            _log.debug("cf_vision call failed: %s", type(exc).__name__)
+        else:
+            _log.warning("cf_vision call failed: %s", type(exc).__name__)
         cb_record("cf_vision", False)
         return None

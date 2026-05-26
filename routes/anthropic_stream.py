@@ -1,32 +1,43 @@
-"""routes/anthropic_stream.py — Anthropic Messages API 流式处理器
+"""routes/anthropic_stream.py — Anthropic Messages API streaming facade (CQ-099)."""
 
-从 server.py 提取的 Anthropic SSE 流式生成器:
-- anthropic_stream_passthrough: 图片请求的 passthrough 流式
-- anthropic_stream: 主 Anthropic 流式处理（路由 + fallback + 质量门）
-"""
-import json
+from __future__ import annotations
+
 import logging
-import time
-import uuid
-import asyncio
 import os
+import time
+from dataclasses import dataclass
+from typing import Any, Callable
+
+import smart_router
+from orchestrate import needs_orchestration, orchestrate
+from response_builder import extract_query, messages_to_dicts
+from routes.quality_gate import quality_check
+from routes.stream_handlers import speculative_stream_chunks
+from routes.anthropic_stream_branches import (
+    StreamContext,
+    apply_quality_fallback,
+    resolve_normal_route,
+    resolve_thinking,
+    stream_image_intent,
+    stream_speculative_path,
+)
+from routes.anthropic_stream_sse import stream_text_as_sse
 
 _log = logging.getLogger(__name__)
 
-import smart_router
-import routing_engine
-import http_caller
-import health_tracker
-from orchestrate import orchestrate, needs_orchestration
-from response_builder import extract_query, messages_to_dicts
-from routes.quality_gate import (
-    quality_check, default_route, get_same_tier_backends,
-    get_upgrade_chain, try_backend,
-)
-from routes.stream_handlers import speculative_stream_chunks
-from routes.images import build_pollinations_url
 
-# ── Injected dependencies (set by server.py at import time) ──────────────────
+@dataclass
+class AnthropicStreamDeps:
+    last_resort_call: Callable[..., str]
+    thinking_route: Callable[..., Any]
+    record_request: Callable[..., None]
+    extract_system_prompt: Callable[..., str]
+    log_sys_prompt: Callable[..., None]
+
+
+_deps: AnthropicStreamDeps | None = None
+
+# Back-compat aliases for tests and monkeypatch targets.
 _last_resort_call = None
 _thinking_route = None
 _record_request = None
@@ -34,11 +45,24 @@ _extract_system_prompt = None
 _log_sys_prompt = None
 
 
-def inject_deps(*, last_resort_call, thinking_route, record_request,
-                extract_system_prompt, log_sys_prompt):
+def inject_deps(
+    *,
+    last_resort_call,
+    thinking_route,
+    record_request,
+    extract_system_prompt,
+    log_sys_prompt,
+):
     """Called by server.py to inject functions that live there."""
-    global _last_resort_call, _thinking_route, _record_request
+    global _deps, _last_resort_call, _thinking_route, _record_request
     global _extract_system_prompt, _log_sys_prompt
+    _deps = AnthropicStreamDeps(
+        last_resort_call=last_resort_call,
+        thinking_route=thinking_route,
+        record_request=record_request,
+        extract_system_prompt=extract_system_prompt,
+        log_sys_prompt=log_sys_prompt,
+    )
     _last_resort_call = last_resort_call
     _thinking_route = thinking_route
     _record_request = record_request
@@ -46,15 +70,21 @@ def inject_deps(*, last_resort_call, thinking_route, record_request,
     _log_sys_prompt = log_sys_prompt
 
 
+def _require_deps() -> AnthropicStreamDeps:
+    if _deps is None:
+        raise RuntimeError("anthropic_stream.inject_deps must be called before streaming")
+    return _deps
+
+
 async def anthropic_stream_passthrough(body: dict, model: str):
     """含图片时：转发给视觉模型，流式返回。"""
     query_text = ""
-    for m in body.get("messages", []):
-        c = m.get("content", "")
-        if isinstance(c, list):
-            query_text = " ".join(b.get("text", "") for b in c if b.get("type") == "text")
-        elif isinstance(c, str):
-            query_text = c
+    for message in body.get("messages", []):
+        content = message.get("content", "")
+        if isinstance(content, list):
+            query_text = " ".join(block.get("text", "") for block in content if block.get("type") == "text")
+        elif isinstance(content, str):
+            query_text = content
 
     content = (
         f"[图片分析] 收到包含图片的请求。当前视觉模型暂未接入，"
@@ -62,199 +92,100 @@ async def anthropic_stream_passthrough(body: dict, model: str):
         if query_text
         else "[图片分析] 收到图片请求，请附带文字描述以便分析。"
     )
-
-    msg_id = f"msg_{uuid.uuid4().hex[:24]}"
-    yield f"event: message_start\ndata: {json.dumps({'type':'message_start','message':{'id':msg_id,'type':'message','role':'assistant','model':model,'content':[],'stop_reason':None,'stop_sequence':None,'usage':{'input_tokens':10,'output_tokens':0}}})}\n\n"
-    yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':0,'content_block':{'type':'text','text':''}})}\n\n"
-
-    chunk_size = 30
-    for i in range(0, len(content), chunk_size):
-        chunk = content[i:i+chunk_size]
-        yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':chunk}}, ensure_ascii=False)}\n\n"
-        await asyncio.sleep(0.01)
-
-    yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':0})}\n\n"
-    yield f"event: message_delta\ndata: {json.dumps({'type':'message_delta','delta':{'stop_reason':'end_turn','stop_sequence':None},'usage':{'output_tokens':len(content)//4}})}\n\n"
-    yield f"event: message_stop\ndata: {json.dumps({'type':'message_stop'})}\n\n"
+    async for frame in stream_text_as_sse(content, model, chunk_size=30):
+        yield frame
 
 
-async def anthropic_stream(req, model: str, client_ip: str = "",
-                           ide_source: str = "", sys_prompt_preview: str = ""):
-    """Anthropic SSE 流式响应（真流式透传 + fallback）。"""
+async def anthropic_stream(
+    req,
+    model: str,
+    client_ip: str = "",
+    ide_source: str = "",
+    sys_prompt_preview: str = "",
+):
+    """Anthropic SSE stream orchestrator."""
+    deps = _require_deps()
     query = extract_query(req.messages)
     t0 = time.time()
+    ctx = StreamContext(
+        req=req,
+        model=model,
+        query=query,
+        ide_source=ide_source,
+        sys_prompt_preview=sys_prompt_preview,
+    )
 
-    # ── Image generation intent detection ──────────────────────────────────
-    is_image, image_prompt = smart_router.detect_image_intent(query)
+    is_image, _image_prompt = smart_router.detect_image_intent(query)
     if is_image:
-        image_url = build_pollinations_url(image_prompt, "1024x1024")
-        content = f"![image]({image_url})\n\n已为您生成图片，点击查看。"
-        backend_used = "pollinations"
+        async for frame in stream_image_intent(ctx):
+            yield frame
         duration_ms = int((time.time() - t0) * 1000)
-        _record_request(query, backend_used, "image_generation", duration_ms, True,
-                        client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
-        msg_id = f"msg_{uuid.uuid4().hex[:24]}"
-        yield f"event: message_start\ndata: {json.dumps({'type':'message_start','message':{'id':msg_id,'type':'message','role':'assistant','model':model,'content':[],'stop_reason':None,'stop_sequence':None,'usage':{'input_tokens':10,'output_tokens':0}}})}\n\n"
-        yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':0,'content_block':{'type':'text','text':''}})}\n\n"
-        yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':content}}, ensure_ascii=False)}\n\n"
-        yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':0})}\n\n"
-        yield f"event: message_delta\ndata: {json.dumps({'type':'message_delta','delta':{'stop_reason':'end_turn','stop_sequence':None},'usage':{'output_tokens':len(content)//4}})}\n\n"
-        yield f"event: message_stop\ndata: {json.dumps({'type':'message_stop'})}\n\n"
+        deps.record_request(
+            query,
+            ctx.backend_used,
+            "image_generation",
+            duration_ms,
+            True,
+            client_ip=client_ip,
+            ide_source=ide_source,
+            sys_prompt_preview=sys_prompt_preview,
+        )
         return
 
-    # ── Deep Thinking Mode Detection ────────────────────────────────────────
-    use_thinking = getattr(req, 'thinking', False) or smart_router.detect_thinking_intent(query)
-    thinking_handled = False
-    if use_thinking:
-        thinking_result = await _thinking_route(query, req.max_tokens or 4096, ide_source)
-        if thinking_result:
-            content = thinking_result["answer"]
-            backend_used = thinking_result["backend"]
-            intent_used = "thinking"
-            thinking_handled = True
-
-    if not thinking_handled:
-        # ── Normal routing ─────────────────────────────────────────────────
-        intent_used = smart_router.analyze(query, system_prompt=sys_prompt_preview, ide=ide_source)
-        use_orch = needs_orchestration(query, intent_used)
-        intent_name = intent_used.get("intent", "unknown") if isinstance(intent_used, dict) else "unknown"
-        complexity = intent_used.get("complexity", 0.5) if isinstance(intent_used, dict) else 0.5
-
-        if use_orch:
-            result = await asyncio.to_thread(orchestrate, query)
-            content = result.get("answer", "")
-            backend_used = result.get("backend", "orchestrator")
-            thinking_handled = False  # use fake stream path below
-        else:
-            # SPECULATIVE STREAMING: predict backend + stream in parallel
-            msg_id = f"msg_{uuid.uuid4().hex[:24]}"
-            total_text = ""
-            yield f"event: message_start\ndata: {json.dumps({'type':'message_start','message':{'id':msg_id,'type':'message','role':'assistant','model':model,'content':[],'stop_reason':None,'stop_sequence':None,'usage':{'input_tokens':10,'output_tokens':0}}})}\n\n"
-            yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':0,'content_block':{'type':'text','text':''}})}\n\n"
-# ── PLACEHOLDER_SPECULATIVE_CONT ──
-            streamed_any = False
-            async for backend_used, chunk in speculative_stream_chunks(
-                    query, messages_to_dicts(req.messages), req.max_tokens or 4096, ide_source):
-                streamed_any = True
-                total_text += chunk
-                yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':chunk}}, ensure_ascii=False)}\n\n"
-
-            if streamed_any and not quality_check(total_text, complexity, backend_used, query=query):
-                health_tracker.record_response_quality(backend_used, len(total_text), is_error_msg=True)
-
-            if not streamed_any:
-                # Fallback: use routing_engine with full fallback chain
-                try:
-                    backends = routing_engine.select(
-                        "ide" if ide_source else "chat",
-                        health_tracker.get_health_map())
-                    fb_backend, fb_answer, _ = await asyncio.to_thread(
-                        routing_engine.execute, backends,
-                        lambda b, m, t: http_caller.call_api(b, m, t,
-                            system_prompt=sys_prompt_preview, ide=ide_source),
-                        messages_to_dicts(req.messages), req.max_tokens or 4096)
-                    fallback_text = fb_answer if fb_answer and fb_backend != "exhausted" else None
-                except Exception as exc:
-                    _log.warning(
-                        "anthropic stream routing fallback failed: %s",
-                        type(exc).__name__,
-                        exc_info=True,
-                    )
-                    fallback_text = None
-                    fb_backend = "fallback_error"
-                backend_used = fb_backend if fallback_text else "last_resort"
-                if fallback_text and not quality_check(fallback_text, complexity, fb_backend, query=query):
-                    health_tracker.record_response_quality(fb_backend, len(fallback_text), is_error_msg=True)
-                    fallback_text = None
-                    backend_used = "last_resort"
-                if fallback_text:
-                    total_text = fallback_text
-                    chunk_size = 30
-                    for i in range(0, len(fallback_text), chunk_size):
-                        chunk = fallback_text[i:i+chunk_size]
-                        yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':chunk}}, ensure_ascii=False)}\n\n"
-                        await asyncio.sleep(0.01)
-                else:
-                    total_text = _last_resort_call(messages_to_dicts(req.messages)) or "系统维护中，请稍后重试。"
-                    yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':total_text}}, ensure_ascii=False)}\n\n"
-
-            # End events
-            yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':0})}\n\n"
-            yield f"event: message_delta\ndata: {json.dumps({'type':'message_delta','delta':{'stop_reason':'end_turn','stop_sequence':None},'usage':{'output_tokens':len(total_text)//4}})}\n\n"
-            yield f"event: message_stop\ndata: {json.dumps({'type':'message_stop'})}\n\n"
-
-            duration_ms = int((time.time() - t0) * 1000)
-            record_intent = intent_used if isinstance(intent_used, str) else intent_name
-            _record_request(query, backend_used, record_intent, duration_ms, True,
-                            client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
-            _do_logging(req, query, total_text, record_intent, backend_used)
+    await resolve_thinking(ctx, deps.thinking_route)
+    if not ctx.thinking_handled:
+        await resolve_normal_route(ctx)
+        if ctx.use_speculative:
+            async for frame in stream_speculative_path(ctx, last_resort_call=deps.last_resort_call):
+                yield frame
+            _finalize_request(ctx, query, t0, client_ip, ide_source, sys_prompt_preview, deps)
+            _do_logging(req, query, ctx.content, _record_intent(ctx), ctx.backend_used, deps)
             return
-# ── PLACEHOLDER_FAKE_STREAM ──
-        # ── Fake stream path: thinking mode, orchestration, or fallback ────
-        if not quality_check(content, complexity, backend_used, query=query):
-            fallback_backend = default_route(query, ide_source) if backend_used == "unknown" else backend_used
-            same_tier = get_same_tier_backends(fallback_backend)
-            fallback_found = False
-            for alt in same_tier:
-                alt_result = await try_backend(
-                    alt, query, req.max_tokens or 4096,
-                    messages=messages_to_dicts(req.messages),
-                )
-                if alt_result and quality_check(alt_result["answer"], complexity, alt, query=query):
-                    content = alt_result["answer"]
-                    backend_used = alt
-                    fallback_found = True
-                    break
-            if not fallback_found:
-                upgrade_chain = get_upgrade_chain(fallback_backend)
-                for upgraded in upgrade_chain:
-                    up_result = await try_backend(
-                        upgraded, query, req.max_tokens or 4096,
-                        messages=messages_to_dicts(req.messages),
-                    )
-                    if up_result and quality_check(up_result["answer"], complexity, upgraded, query=query):
-                        content = up_result["answer"]
-                        backend_used = upgraded
-                        fallback_found = True
-                        break
-            if not fallback_found and not content:
-                content = "当前所有服务暂时不可用，请稍后重试。"
-                backend_used = "fallback_exhausted"
+        await apply_quality_fallback(ctx)
 
-    # ── Build fake stream for thinking/orchestration/fallback ─────────────
+    if not ctx.content or not ctx.content.strip():
+        ctx.content = deps.last_resort_call(messages_to_dicts(req.messages)) or "系统维护中，请稍后重试。"
+        ctx.backend_used = ctx.backend_used or "empty_response"
+
+    _finalize_request(ctx, query, t0, client_ip, ide_source, sys_prompt_preview, deps)
+    async for frame in stream_text_as_sse(ctx.content, model, chunk_size=20):
+        yield frame
+    _do_logging(req, query, ctx.content, _record_intent(ctx), ctx.backend_used, deps)
+
+
+def _record_intent(ctx: StreamContext) -> Any:
+    if isinstance(ctx.intent_used, str):
+        return ctx.intent_used
+    return ctx.intent_name
+
+
+def _finalize_request(
+    ctx: StreamContext,
+    query: str,
+    t0: float,
+    client_ip: str,
+    ide_source: str,
+    sys_prompt_preview: str,
+    deps: AnthropicStreamDeps,
+) -> None:
     duration_ms = int((time.time() - t0) * 1000)
-    record_intent = intent_used if isinstance(intent_used, str) else (
-        intent_used.get("intent", "unknown") if isinstance(intent_used, dict) else "unknown")
-    _record_request(query, backend_used, record_intent, duration_ms, True,
-                    client_ip=client_ip, ide_source=ide_source, sys_prompt_preview=sys_prompt_preview)
-
-    if not content or not content.strip():
-        content = _last_resort_call(messages_to_dicts(req.messages)) or "系统维护中，请稍后重试。"
-        backend_used = backend_used or "empty_response"
-
-    msg_id = f"msg_{uuid.uuid4().hex[:24]}"
-    yield f"event: message_start\ndata: {json.dumps({'type':'message_start','message':{'id':msg_id,'type':'message','role':'assistant','model':model,'content':[],'stop_reason':None,'stop_sequence':None,'usage':{'input_tokens':10,'output_tokens':0}}})}\n\n"
-    yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':0,'content_block':{'type':'text','text':''}})}\n\n"
-
-    chunk_size = 20
-    for i in range(0, len(content), chunk_size):
-        chunk = content[i:i+chunk_size]
-        yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':chunk}}, ensure_ascii=False)}\n\n"
-        await asyncio.sleep(0.01)
-
-    yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':0})}\n\n"
-    yield f"event: message_delta\ndata: {json.dumps({'type':'message_delta','delta':{'stop_reason':'end_turn','stop_sequence':None},'usage':{'output_tokens':len(content)//4}})}\n\n"
-    yield f"event: message_stop\ndata: {json.dumps({'type':'message_stop'})}\n\n"
-
-    _do_logging(req, query, content, record_intent, backend_used)
+    deps.record_request(
+        query,
+        ctx.backend_used,
+        _record_intent(ctx),
+        duration_ms,
+        True,
+        client_ip=client_ip,
+        ide_source=ide_source,
+        sys_prompt_preview=sys_prompt_preview,
+    )
 
 
-def _do_logging(req, query, content, record_intent, backend_used):
-    """Shared logging for sys_prompt capture and distill queue."""
-    sys_prompt = _extract_system_prompt(req.messages)
+def _do_logging(req, query, content, record_intent, backend_used, deps: AnthropicStreamDeps):
+    sys_prompt = deps.extract_system_prompt(req.messages)
     if sys_prompt:
         try:
-            _log_sys_prompt(sys_prompt)
+            deps.log_sys_prompt(sys_prompt)
         except Exception as exc:
             _log.warning("log_sys_prompt failed: %s", type(exc).__name__)
     try:

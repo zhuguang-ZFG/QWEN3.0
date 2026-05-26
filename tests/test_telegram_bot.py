@@ -5,6 +5,7 @@ import os
 import time
 from unittest.mock import AsyncMock, patch, MagicMock
 
+import httpx
 import pytest
 
 os.environ.setdefault("TELEGRAM_BOT_TOKEN", "test-token-123")
@@ -25,6 +26,34 @@ class TestTelegramBot:
 
     def test_is_authorized_mismatch(self):
         assert not telegram_bot.is_authorized("111111")
+
+    @pytest.mark.asyncio
+    async def test_api_call_falls_back_to_direct_when_proxy_fails(self, monkeypatch):
+        monkeypatch.setenv("GFW_PROXY", "http://127.0.0.1:9")
+        calls: list[str | None] = []
+
+        class FakeClient:
+            def __init__(self, *, proxy=None, timeout=10.0):
+                calls.append(proxy)
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                return False
+
+            async def post(self, url, json=None):
+                if calls[-1] is not None:
+                    raise httpx.ConnectError("proxy refused", request=MagicMock())
+                response = MagicMock()
+                response.json.return_value = {"ok": True}
+                response.raise_for_status.return_value = None
+                return response
+
+        monkeypatch.setattr(telegram_bot.httpx, "AsyncClient", FakeClient)
+        result = await telegram_bot._api_call("getMe", {})
+        assert result == {"ok": True}
+        assert calls == ["http://127.0.0.1:9", None]
 
     @pytest.mark.asyncio
     async def test_send_message_calls_api(self):

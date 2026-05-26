@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
@@ -16,10 +17,15 @@ import smart_router
 from routes.admin_auth import verify_admin, verify_csrf
 from routes.admin_backends import describe_backend, test_backend_sync
 from routes.admin_state import FALLBACK_LOG, stats_context
+from routes.ops_metrics import _backend_call_detail
 
 router = APIRouter()
 REPO_ROOT = Path(__file__).resolve().parent.parent
 _log = logging.getLogger(__name__)
+
+_RETRAIN_LOCK = asyncio.Lock()
+_RETRAIN_JOBS: dict[str, dict[str, object]] = {}
+_RETRAIN_TIMEOUT_SEC = int(os.environ.get("LIMA_RETRAIN_TIMEOUT_SEC", "600"))
 
 
 @router.get("/api/stats", dependencies=[Depends(verify_admin)])
@@ -28,7 +34,10 @@ async def admin_stats():
     with lock:
         uptime = int(time.time() - stats["start_time"])
         total = stats["total_requests"]
-        backend_calls = dict(stats["backend_calls"])
+        backend_calls = {
+            name: _backend_call_detail(value)
+            for name, value in dict(stats["backend_calls"]).items()
+        }
         avg_ms = 0
         if total > 0:
             total_ms_all = sum(item["total_ms"] for item in backend_calls.values())
@@ -176,13 +185,59 @@ async def admin_model_status():
 
 @router.post("/api/retrain", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
 async def admin_trigger_retrain():
-    result = subprocess.run(
-        [sys.executable, "auto_retrain.py", "--force"],
-        capture_output=True,
-        text=True,
-        cwd=str(REPO_ROOT),
-    )
-    return {
-        "status": "triggered",
-        "output": result.stdout[-500:] if result.stdout else result.stderr[-500:],
-    }
+    async with _RETRAIN_LOCK:
+        for job in _RETRAIN_JOBS.values():
+            if job.get("status") == "running":
+                return {
+                    "status": "already_running",
+                    "job_id": job.get("job_id"),
+                }
+        job_id = f"retrain-{int(time.time())}"
+        _RETRAIN_JOBS[job_id] = {
+            "job_id": job_id,
+            "status": "running",
+            "started_at": time.time(),
+            "output": "",
+        }
+
+    asyncio.create_task(_run_retrain_job(job_id))
+    return {"status": "started", "job_id": job_id}
+
+
+async def _run_retrain_job(job_id: str) -> None:
+    try:
+        result = await asyncio.wait_for(
+            asyncio.to_thread(
+                subprocess.run,
+                [sys.executable, "auto_retrain.py", "--force"],
+                capture_output=True,
+                text=True,
+                cwd=str(REPO_ROOT),
+            ),
+            timeout=_RETRAIN_TIMEOUT_SEC,
+        )
+        output = (result.stdout or result.stderr or "")[-500:]
+        status = "completed" if result.returncode == 0 else "failed"
+        _RETRAIN_JOBS[job_id] = {
+            "job_id": job_id,
+            "status": status,
+            "returncode": result.returncode,
+            "output": output,
+            "finished_at": time.time(),
+        }
+    except asyncio.TimeoutError:
+        _log.warning("admin retrain job timed out: %s", job_id)
+        _RETRAIN_JOBS[job_id] = {
+            "job_id": job_id,
+            "status": "timeout",
+            "output": "",
+            "finished_at": time.time(),
+        }
+    except Exception as exc:
+        _log.warning("admin retrain job failed: %s err=%s", job_id, type(exc).__name__)
+        _RETRAIN_JOBS[job_id] = {
+            "job_id": job_id,
+            "status": "error",
+            "output": "",
+            "finished_at": time.time(),
+        }

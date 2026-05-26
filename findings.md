@@ -2,6 +2,38 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-05-26 CQ-099 Code quality P2 long-function splits
+
+| ID | Area | Evidence | Status |
+|---|---|---|---|
+| CQ-099-1 | H1 anthropic_stream split | `anthropic_stream_sse/branches` + deps guard | Closed 2026-05-26 |
+| CQ-099-2 | H2 device_gateway_ws split | `device_gateway_ws_handlers` per message type | Closed 2026-05-26 |
+| CQ-099-3 | H4 streaming split | `streaming_bridge.py` owns sync bridge loop | Closed 2026-05-26 |
+| CQ-099-4 | M1 scnet | `scnet_send_message()` extracted | Closed 2026-05-26 |
+| CQ-099-5 | Tests | full **1546 passed, 10 skipped** | Closed 2026-05-26 |
+| CQ-099-6 | Deferred | M2 narrow exceptions; M3 httpx migration for legacy router_http | Open |
+
+## 2026-05-26 CQ-098 Security and quality review fixes
+
+| ID | Area | Evidence | Status |
+|---|---|---|---|
+| CQ-098-1 | P1 session memory DB path | `get_db_path()` resolves facade/env at call time; eval apply idempotency test passes | Closed 2026-05-26 |
+| CQ-098-2 | P1 Telegram calculate | `lima_fc_tools/safe_math.py` bounded AST evaluator replaces `eval()` | Closed 2026-05-26 |
+| CQ-098-3 | P1 admin retrain | async job id + lock + timeout via `asyncio.to_thread` | Closed 2026-05-26 |
+| CQ-098-4 | P2 Telegram errors | `_operator_error(code)` generic chat messages | Closed 2026-05-26 |
+| CQ-098-5 | P2 admin stats | `_backend_call_detail` normalization for legacy int counts | Closed 2026-05-26 |
+| CQ-098-6 | Tests | full **1544 passed, 10 skipped** | Closed 2026-05-26 |
+
+## 2026-05-26 CQ-097 Code review fixes (router_http dedup + legacy logging)
+
+| ID | Area | Evidence | Status |
+|---|---|---|---|
+| CQ-097-1 | HIGH dedup | `call_api()` uses `build_request_body(stream=False)` | Closed 2026-05-26 |
+| CQ-097-2 | MEDIUM logging | `router_http` / `router_http_scnet` / `router_http_vision` use `_log` not `print` | Closed 2026-05-26 |
+| CQ-097-3 | LOW constants | `router_http_body.UNAVAILABLE_USER_MESSAGE` shared by sync/stream/scnet | Closed 2026-05-26 |
+| CQ-097-4 | Tests | **1539 passed, 10 skipped** (+1 authority on build_request_body delegation) | Closed 2026-05-26 |
+| CQ-097-5 | Deferred | `anthropic_stream()` function length (~170 lines) — future P2 slice | Open |
+
 ## 2026-05-26 DG-DEPLOY-096 CQ-096 split deployed and verified on VPS
 
 | ID | Area | Evidence | Status |

@@ -1,10 +1,10 @@
 """Telegram Function Calling tools."""
 
-import math
 from datetime import datetime
 
 from .http_client import _get
 from .registry import tool
+from .safe_math import evaluate_math_expression
 
 
 @tool('get_crypto_price', 'Run the get_crypto_price utility.', {'properties': {'coin': {'description': 'Coin identifier.', 'type': 'string'}},
@@ -37,9 +37,8 @@ async def _stock(code: str) -> dict:
  'required': ['expression'],
  'type': 'object'})
 async def _calculate(expression: str) -> dict:
-    safe_ns = {'__builtins__': {}, 'abs': abs, 'round': round, 'min': min, 'max': max, 'sqrt': math.sqrt, 'sin': math.sin, 'cos': math.cos, 'tan': math.tan, 'log': math.log, 'log10': math.log10, 'pi': math.pi, 'e': math.e, 'pow': pow}
     try:
-        result = eval(expression, safe_ns)
+        result = evaluate_math_expression(expression)
         return {'expression': expression, 'result': result}
     except Exception as e:
         return {'error': str(e)}

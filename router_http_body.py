@@ -7,6 +7,8 @@ import json
 from backends import BACKENDS
 from router_prompt import SYS
 
+UNAVAILABLE_USER_MESSAGE = "服务暂时不可用，请稍后重试"
+
 
 def _ide_system_prompt(ide: str) -> str:
     sys_prompt = SYS

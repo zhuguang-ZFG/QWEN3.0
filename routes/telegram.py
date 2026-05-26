@@ -16,7 +16,7 @@ import telegram_bot
 from routes.telegram_commands import (
     cmd_chat, cmd_clear, cmd_code, cmd_top, cmd_uptime,
     cmd_eval, cmd_task, cmd_tasks, cmd_cache, cmd_stop, start_probe_loop,
-    cmd_voice, cmd_voicechat, start_broadcast_loop,
+    cmd_voice, cmd_voicechat, start_broadcast_loop, _operator_error,
 )
 
 logger = logging.getLogger(__name__)
@@ -38,9 +38,9 @@ async def _handle_voice_message(chat_id: str, voice: dict) -> None:
             return
         await telegram_bot.send_message(f"🎤 {text}", chat_id=chat_id)
         await cmd_chat(chat_id, text)
-    except Exception as e:
+    except Exception:
         logger.exception("Voice STT failed")
-        await telegram_bot.send_message(f"Voice error: {e}", chat_id=chat_id)
+        await telegram_bot.send_message(_operator_error("voice_stt"), chat_id=chat_id)
 
 
 async def _send_voicechat_reply(chat_id: str, user_text: str) -> None:
@@ -63,8 +63,8 @@ async def _send_voicechat_reply(chat_id: str, user_text: str) -> None:
         ogg = await mimo_tts.tts_ogg(reply_text)
         if ogg:
             await telegram_bot.send_voice(ogg, chat_id=chat_id)
-    except Exception as e:
-        logger.warning(f"Voicechat TTS failed: {e}")
+    except Exception as exc:
+        logger.warning("Voicechat TTS failed: %s", type(exc).__name__)
 
 
 def _get_webhook_secret() -> str:
@@ -154,11 +154,9 @@ async def _cmd_logs(chat_id: str, arg: str) -> None:
         if len(text) > 3500:
             text = text[-3500:]
         await telegram_bot.send_message(f"```\n{text}\n```", chat_id=chat_id)
-    except Exception as e:
-        await telegram_bot.send_message(f"Error: {e}", chat_id=chat_id)
-
-
-async def _cmd_restart(chat_id: str) -> None:
+    except Exception:
+        logger.exception("cmd_logs failed")
+        await telegram_bot.send_message(_operator_error("logs"), chat_id=chat_id)
     keyboard = {
         "inline_keyboard": [[
             {"text": "Confirm restart", "callback_data": "restart:confirm"},
@@ -241,8 +239,9 @@ async def _handle_callback(callback_query: dict) -> None:
                     await telegram_bot.answer_callback(cb_id, f"Task {task_id} {decision}")
                 else:
                     await telegram_bot.answer_callback(cb_id, f"Review failed: {r.status_code}")
-        except Exception as e:
-            await telegram_bot.answer_callback(cb_id, f"Error: {e}")
+        except Exception:
+            logger.exception("telegram task review callback failed")
+            await telegram_bot.answer_callback(cb_id, _operator_error("task_review"))
     elif data == "restart:confirm":
         await telegram_bot.answer_callback(cb_id, "Restarting...")
         subprocess.Popen(

@@ -22,13 +22,43 @@ class MemoryEntry:
 
 
 _DEFAULT_DB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
-_DB_PATH = os.environ.get("LIMA_SESSION_DB", os.path.join(_DEFAULT_DB_DIR, "lima_sessions.db"))
+_DEFAULT_DB_FILE = os.path.join(_DEFAULT_DB_DIR, "lima_sessions.db")
+_DB_PATH = os.environ.get("LIMA_SESSION_DB", _DEFAULT_DB_FILE)
+
+
+def get_db_path() -> str:
+    """Resolve the active SQLite path at call time (env, facade patch, or module default)."""
+    env_path = os.environ.get("LIMA_SESSION_DB")
+    if env_path:
+        return env_path
+    try:
+        import session_memory.store as store_facade
+
+        facade_path = getattr(store_facade, "_DB_PATH", None)
+        if isinstance(facade_path, str) and facade_path:
+            return facade_path
+    except ImportError:
+        pass
+    return _DB_PATH
+
+
+def set_db_path(path: str) -> None:
+    """Set DB path for runtime/tests; keeps facade and module globals aligned."""
+    global _DB_PATH
+    _DB_PATH = path
+    try:
+        import session_memory.store as store_facade
+
+        store_facade._DB_PATH = path
+    except ImportError:
+        pass
 
 
 def _get_conn() -> sqlite3.Connection:
+    db_path = get_db_path()
     if not os.environ.get("LIMA_SESSION_DB"):
-        os.makedirs(_DEFAULT_DB_DIR, exist_ok=True)
-    conn = sqlite3.connect(_DB_PATH)
+        os.makedirs(os.path.dirname(db_path) or _DEFAULT_DB_DIR, exist_ok=True)
+    conn = sqlite3.connect(db_path)
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("""
         CREATE TABLE IF NOT EXISTS memories (

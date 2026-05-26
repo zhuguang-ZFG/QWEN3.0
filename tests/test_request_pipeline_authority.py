@@ -53,10 +53,28 @@ def test_device_gateway_ws_split_preserves_exports():
     routes = importlib.import_module("routes.device_gateway")
     dispatch = importlib.import_module("routes.device_gateway_dispatch")
     ws = importlib.import_module("routes.device_gateway_ws")
+    handlers = importlib.import_module("routes.device_gateway_ws_handlers")
     for name in ("_dispatch_task_to_session", "_drain_pending_tasks", "router"):
         assert hasattr(routes, name)
     assert hasattr(dispatch, "dispatch_task_to_session")
     assert hasattr(ws, "handle_device_ws")
+    assert hasattr(handlers, "handle_transcript")
+
+
+def test_anthropic_stream_split_preserves_exports():
+    stream = importlib.import_module("routes.anthropic_stream")
+    for submodule in ("routes.anthropic_stream_sse", "routes.anthropic_stream_branches"):
+        importlib.import_module(submodule)
+    assert hasattr(stream, "anthropic_stream")
+    assert hasattr(stream, "inject_deps")
+
+
+def test_streaming_bridge_split_preserves_exports():
+    streaming = importlib.import_module("streaming")
+    bridge = importlib.import_module("streaming_bridge")
+    assert hasattr(streaming, "bridge_stream")
+    assert hasattr(streaming, "speculative_stream")
+    assert hasattr(bridge, "bridge_stream")
 
 
 def test_router_http_legacy_submodules():

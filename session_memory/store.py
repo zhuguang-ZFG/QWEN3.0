@@ -16,7 +16,7 @@ from session_memory.store_crud import (
     search_memories_keyword,
     search_memories_semantic,
 )
-from session_memory.store_db import MemoryEntry, MEMORY_TYPES, _DB_PATH, _get_conn
+from session_memory.store_db import MemoryEntry, MEMORY_TYPES, _DB_PATH, _get_conn, get_db_path, set_db_path
 from session_memory.store_promote import (
     auto_promote_candidates,
     promote_memory,
@@ -29,6 +29,8 @@ __all__ = [
     "MEMORY_TYPES",
     "_DB_PATH",
     "_get_conn",
+    "get_db_path",
+    "set_db_path",
     "auto_promote_candidates",
     "can_delete_memories",
     "can_export_memories",
