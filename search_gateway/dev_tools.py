@@ -114,6 +114,62 @@ def fetch_github_file(
     return read
 
 
+def search_gitee(
+    query: str,
+    *,
+    repo: str | None = None,
+    max_results: int = 5,
+) -> dict:
+    """Search Gitee repositories and scoped issues (mirror-aware)."""
+    from .gitee_tools import search_gitee as _search_gitee
+
+    clean = sanitize_error_text(query, max_chars=200)
+    if not clean:
+        return {"ok": False, "tool": "dev_search_gitee", "error": "empty_query"}
+    raw = _search_gitee(clean, repo=repo, max_results=max_results)
+    if not raw.get("ok"):
+        out: dict = {"ok": False, "tool": "dev_search_gitee", "error": raw.get("error", "search_failed")}
+        if raw.get("skipped"):
+            out["skipped"] = True
+        return out
+    return {
+        "ok": True,
+        "tool": "dev_search_gitee",
+        "repo": raw.get("repo", ""),
+        "results": _normalize_results(raw, source="gitee"),
+    }
+
+
+def fetch_gitee_file(
+    repo: str,
+    path: str,
+    ref: str = "master",
+    *,
+    max_chars: int = 8000,
+) -> dict:
+    """Fetch a file from a Gitee repository via OpenAPI."""
+    from .gitee_tools import fetch_repo_file
+
+    safe_repo = repo.strip().strip("/")
+    safe_path = path.strip().lstrip("/")
+    if safe_repo.count("/") != 1 or not safe_path:
+        return {"ok": False, "tool": "dev_fetch_gitee_file", "error": "invalid_gitee_target"}
+    raw = fetch_repo_file(safe_repo, safe_path, ref=ref or "master", max_chars=max_chars)
+    if not raw.get("ok"):
+        out: dict = {"ok": False, "tool": "dev_fetch_gitee_file", "error": raw.get("error", "fetch_failed")}
+        if raw.get("skipped"):
+            out["skipped"] = True
+        return out
+    return {
+        "ok": True,
+        "tool": "dev_fetch_gitee_file",
+        "repo": safe_repo,
+        "path": safe_path,
+        "ref": ref or "master",
+        "text": str(raw.get("text") or "")[:max_chars],
+    }
+
+
 def summarize_sources(sources: list[dict], *, max_chars: int = 3000) -> dict:
     lines: list[str] = []
     for idx, source in enumerate(sources, start=1):

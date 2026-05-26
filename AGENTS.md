@@ -160,6 +160,7 @@ Owner 明确要求：**里程碑切片完成后 Agent 自动 VPS 部署 + 自动
 | CF admission | `deploy_cf_admission_overlay.py` | overlay + cf_smoke |
 | TG-GH-1 / INF-B | `deploy_reliability_ops.py` | `smoke_telegram_outbound.py` |
 | GitHub webhook | `deploy_telegram.sh` / 手动 | `smoke_github_webhook_public.py` |
+| Gitee MCP | `deploy_gitee_mcp_slice.py` | `smoke_gitee_mcp_tools.py`（先 `provision_gitee_token_vps.py`） |
 
 Hard rules for this loop:
 

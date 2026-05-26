@@ -128,6 +128,7 @@
 | RADAR-P0-1 | Gitleaks | `.gitleaks.toml` + `lima-ci.yml` | Closed 2026-05-26 |
 | RADAR-P0-2 | Gitee Go | `.gitee/workflows/test.yml` 已交付；**不启用**（免费 ~200 分/月，GitHub CI 已覆盖） | Deferred 2026-05-26 |
 | RADAR-P0-3 | Gitee search | `gitee_tools` + git remote oauth2 fallback；live search ok | Closed 2026-05-26 |
+| RADAR-P0-4 | Gitee MCP | `dev_search_gitee` + `dev_fetch_gitee_file`；VPS **`smoke_gitee_mcp_ok`** | Closed 2026-05-26 |
 | LC-W-1e-1 | VPS smoke | `smoke_lcw1_prompt_contract_e2e.py` task `295f45b5` | Closed 2026-05-26 |
 | CF-EVAL-1 | CF probe | 全量未注册候选 4/4 dry-run **0 pass**；overlays 20/30 | Open |
 

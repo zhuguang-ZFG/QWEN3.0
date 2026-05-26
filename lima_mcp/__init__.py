@@ -105,6 +105,33 @@ TOOL_DEFINITIONS = [
         },
     },
     {
+        "name": "dev_search_gitee",
+        "description": "Search Gitee repositories and issues scoped to the LiMa mirror repo.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string"},
+                "repo": {"type": "string", "description": "owner/name override; defaults to GITEE_SEARCH_REPO"},
+                "max_results": {"type": "integer"},
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "dev_fetch_gitee_file",
+        "description": "Fetch a file from a Gitee repository via OpenAPI (mirror read).",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "repo": {"type": "string"},
+                "path": {"type": "string"},
+                "ref": {"type": "string"},
+                "max_chars": {"type": "integer"},
+            },
+            "required": ["repo", "path"],
+        },
+    },
+    {
         "name": "dev_summarize_sources",
         "description": "Turn source dictionaries into a compact evidence block for LiMa Code.",
         "parameters": {

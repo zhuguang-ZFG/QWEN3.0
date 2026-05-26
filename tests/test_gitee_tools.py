@@ -62,7 +62,7 @@ def test_search_repositories_normalizes(monkeypatch):
 def test_search_gitee_merges_repo_and_issue(monkeypatch):
     monkeypatch.setenv("GITEE_TOKEN", "test-token")
 
-    def fake_repo(q, max_results=5):
+    def fake_repo(q, max_results=5, owner=None):
         return {"ok": True, "results": [{"title": "repo", "url": "u", "snippet": "s", "source": "gitee_repo", "repo": "a/b"}]}
 
     def fake_issue(q, repo=None, max_results=5):

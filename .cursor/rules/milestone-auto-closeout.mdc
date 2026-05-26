@@ -1,0 +1,34 @@
+---
+description: 里程碑完成后自动 pytest、VPS 部署、commit、双远端 push（Owner 全局偏好）
+alwaysApply: true
+---
+
+# 里程碑自动 Closeout（全局）
+
+Owner 已授权：**可部署切片完成后默认自动 closeout**，用户说「同意 / 继续 / 下一刀」且未禁止发布时，**无需再逐项请示 commit/push/部署**。
+
+## 默认流程
+
+```text
+1. 本地 pytest（生产代码 → 全量；纯文档 → focused）
+2. VPS 部署 + restart + /health + 切片 smoke（scripts/deploy_*.py）
+3. 更新 progress.md / findings.md（含 VPS 证据）
+4. git add（仅里程碑相关文件）
+5. git commit
+6. git push origin HEAD && git push gitee HEAD
+7. 再提议下一刀
+```
+
+## 硬规则
+
+- 无 VPS smoke 证据不得声称「已部署」。
+- 不提交 `.env`、token、VPS 密码；VPS 凭据用 `provision_*` 脚本写入。
+- 不 stage 无关 untracked（webhook JSON、inventory_snapshots 等）。
+- 部署前备份；Gitee 落后时 rebase，GitHub 用 `--force-with-lease`（非 main）。
+- 新能力 env flag 默认关。
+
+## 用户说「同意」时
+
+若上下文是 closeout / commit / push / 下一刀 → **直接执行** closeout，不要只问「要不要 commit」。
+
+权威细节见仓库根目录 `AGENTS.md` § Agent 自动 Closeout 约定。

@@ -165,6 +165,8 @@ def test_mcp_lists_dev_search_tools():
     assert "dev_search_error" in names
     assert "dev_read_url" in names
     assert "dev_fetch_github_file" in names
+    assert "dev_search_gitee" in names
+    assert "dev_fetch_gitee_file" in names
     assert "dev_summarize_sources" in names
 
 
@@ -224,3 +226,69 @@ def test_build_prompt_evidence_includes_source_urls_and_tool_names():
     assert "dev_search_docs" in evidence["evidence"]
     assert "https://docs.python.org" in evidence["evidence"]
     assert "asyncio runs coroutines" in evidence["evidence"]
+
+
+def test_dev_search_gitee_skips_without_token(monkeypatch):
+    import search_gateway.gitee_tools as gt
+
+    monkeypatch.delenv("GITEE_TOKEN", raising=False)
+    gt._git_remote_token = ""
+    monkeypatch.setattr(gt, "gitee_token_from_git_remotes", lambda *a, **k: "")
+
+    from search_gateway.dev_tools import search_gitee
+
+    result = search_gitee("routing")
+    assert result["ok"] is False
+    assert result["tool"] == "dev_search_gitee"
+    assert result.get("skipped") is True
+
+
+def test_mcp_dev_search_gitee_returns_normalized_results(monkeypatch):
+    import search_gateway.gitee_tools as gt
+
+    monkeypatch.setenv("GITEE_TOKEN", "test-token")
+
+    def fake_search(query, *, repo=None, max_results=5):
+        return {
+            "ok": True,
+            "repo": repo or "zhuguang-cn/QWEN3.0",
+            "results": [
+                {
+                    "title": "issue",
+                    "url": "https://gitee.com/x/issues/1",
+                    "snippet": "routing",
+                    "source": "gitee_issue",
+                    "repo": "zhuguang-cn/QWEN3.0",
+                }
+            ],
+        }
+
+    monkeypatch.setattr(gt, "search_gitee", fake_search)
+
+    result = handle_tool_call("dev_search_gitee", {"query": "routing", "max_results": 3})
+    assert result["ok"] is True
+    assert result["tool"] == "dev_search_gitee"
+    assert result["results"][0]["source"] == "gitee"
+
+
+def test_mcp_dev_fetch_gitee_file(monkeypatch):
+    import search_gateway.gitee_tools as gt
+
+    monkeypatch.setenv("GITEE_TOKEN", "test-token")
+    monkeypatch.setattr(
+        gt,
+        "fetch_repo_file",
+        lambda repo, path, *, ref="master", max_chars=8000: {
+            "ok": True,
+            "text": "hello mirror",
+            "repo": repo,
+            "path": path,
+        },
+    )
+
+    result = handle_tool_call(
+        "dev_fetch_gitee_file",
+        {"repo": "zhuguang-cn/QWEN3.0", "path": "README.md"},
+    )
+    assert result["ok"] is True
+    assert result["text"] == "hello mirror"

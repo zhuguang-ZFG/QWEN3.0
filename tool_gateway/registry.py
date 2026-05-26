@@ -122,6 +122,20 @@ def build_default_registry() -> ToolRegistry:
         authority=AuthorityClass.NETWORK_READ,
     ))
     registry.register(ToolDefinition(
+        name="dev_search_gitee",
+        description="Search Gitee repositories and scoped issues for LiMa Code.",
+        tags=("gitee", "mirror", "search", "readonly", "lima-code"),
+        authority=AuthorityClass.NETWORK_READ,
+        requires_secret=True,
+    ))
+    registry.register(ToolDefinition(
+        name="dev_fetch_gitee_file",
+        description="Fetch a file from a Gitee repository via OpenAPI.",
+        tags=("gitee", "mirror", "source", "readonly", "lima-code"),
+        authority=AuthorityClass.NETWORK_READ,
+        requires_secret=True,
+    ))
+    registry.register(ToolDefinition(
         name="dev_summarize_sources",
         description="Summarize source dictionaries into prompt evidence.",
         tags=("evidence", "summary", "sources", "lima-code"),

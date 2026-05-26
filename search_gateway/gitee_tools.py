@@ -118,17 +118,26 @@ def _normalize_issue_items(items: Any) -> list[dict[str, str]]:
     return out
 
 
-def search_repositories(query: str, *, max_results: int = 5) -> dict[str, Any]:
+def search_repositories(
+    query: str,
+    *,
+    owner: str | None = None,
+    max_results: int = 5,
+) -> dict[str, Any]:
     clean = sanitize_error_text(query, max_chars=200)
     if not clean:
         return {"ok": False, "error": "empty_query"}
     if not credentials_configured():
         return {"ok": False, "error": "gitee_token_missing", "skipped": True}
     try:
-        payload = _request_json(
-            "/search/repositories",
-            {"q": clean, "page": 1, "per_page": max(1, min(max_results, 20))},
-        )
+        params: dict[str, str | int] = {
+            "q": clean,
+            "page": 1,
+            "per_page": max(1, min(max_results, 20)),
+        }
+        if owner:
+            params["owner"] = owner.strip()
+        payload = _request_json("/search/repositories", params)
         return {"ok": True, "results": _normalize_repo_items(payload)}
     except RuntimeError as exc:
         logger.warning("gitee repo search failed err=%s", type(exc).__name__)
@@ -169,7 +178,12 @@ def search_gitee(
 ) -> dict[str, Any]:
     """Search Gitee code context: repo hits + scoped issue hits."""
     target_repo = repo or default_repo()
-    repo_hits = search_repositories(query, max_results=max_results)
+    owner = ""
+    try:
+        owner, _ = _split_repo(target_repo)
+    except ValueError:
+        owner = ""
+    repo_hits = search_repositories(query, owner=owner or None, max_results=max_results)
     issue_hits = search_issues(query, repo=target_repo, max_results=max_results)
     if not repo_hits.get("ok") and not issue_hits.get("ok"):
         err = issue_hits.get("error") or repo_hits.get("error") or "search_failed"

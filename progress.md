@@ -12,6 +12,14 @@
 - **INF-B operator**：Check `lima-vps-router` Period 5min / Grace 10min / Email ON；`verify_healthcheck_vps_ok`
 - **测试**：translate + healthchecks_io + healthcheck_ping **21 passed**
 
+## 2026-05-26 Gitee MCP 接线（雷达 P0+）
+
+- **能力**：`dev_search_gitee` + `dev_fetch_gitee_file` → MCP + `tool_gateway/registry`
+- **实现**：`search_gateway/dev_tools.py` 包装 `gitee_tools`；仓库搜索加 `owner` 过滤
+- **测试**：focused **25 passed**；本地 `smoke_gitee_mcp_tools.py` **ok**
+- **VPS**：`provision_gitee_token_vps.py` + `deploy_gitee_mcp_slice.py` → **`smoke_gitee_mcp_ok`**（`GITEE_TOKEN` 已写入 VPS `.env`）
+- **全局**：`.cursor/rules/milestone-auto-closeout.mdc` + `AGENTS.md` 部署表；Owner 自动 closeout 无需逐项请示
+
 ## 2026-05-26 雷达 P0 续：Gitee token fallback + CF-eval-2
 
 - **Gitee 搜索**：`gitee_mirror.gitee_token_from_git_remotes()` → `search_gateway/gitee_tools.py` 自动 fallback；本机 live `search_gitee('QWEN')` **ok**

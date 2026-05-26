@@ -95,7 +95,7 @@
 | 类别 | 资源 | 免费额度 | LiMa |
 |------|------|---------|------|
 | **国内搜索** | 百度千帆搜索+火山引擎搜索 | 100次/天+500次/月 | **Backlog** |
-| **代码搜索** | Gitee OpenAPI | Token已有 | **Done** `search_gateway/gitee_tools.py` |
+| **代码搜索** | Gitee OpenAPI | Token已有 | **Done** MCP `dev_search_gitee` + `dev_fetch_gitee_file` |
 | **Gitee 代码** | codesearch MCP | 本地索引 | **Done** PE-B-1 |
 | **实时文档** | Context7 MCP (48K⭐) | 免费 | **Done** Agent/IDE 可用 |
 | **网页搜索** | Brave Search MCP | $5免费额度 | **Backlog** |
