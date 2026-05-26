@@ -12,6 +12,8 @@
 | RADAR-P2-15-1 | Code | Grype CI + run_eval_report + TG /evalreport + exchange Hypothesis | Closed 2026-05-26 |
 | RADAR-P2-16-1 | Code | smoke_mcp_gates + run_security_gates + /uuid + time Hypothesis | Closed 2026-05-26 |
 | RADAR-P2-16-2 | VPS | deploy_radar_p2_16 + smoke uuid/evalreport/oldllm import | Closed 2026-05-26 |
+| TG-UUID-1 | Root cause | `/uuid` failed: VPS `public_apis.py` stale (no `fetch_hot_60s`); `_run_tool` import all-or-nothing | Closed 2026-05-26 |
+| TG-UUID-2 | Fix | deploy `public_apis.py` + split lookup/public imports in `telegram_public_tools.py` | Closed 2026-05-26 |
 
 | GH-PUSH-MSG-1 | Code | push Telegram 摘要含 commit message（GH+Gitee） | Closed 2026-05-26 |
 | GH-PUSH-MSG-2 | VPS | deploy_github + deploy_gitee + smoke 200 | Closed 2026-05-26 |

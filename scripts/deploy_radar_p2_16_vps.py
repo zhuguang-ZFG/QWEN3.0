@@ -17,6 +17,7 @@ KEY = os.environ.get("LIMA_DEPLOY_KEY_PATH", os.path.expanduser("~/.ssh/id_ed255
 FILES = [
     "eval_slice_summary.py",
     "oldllm_diag.py",
+    "channel_gateway/public_apis.py",
     "channel_gateway/public_apis_lookup.py",
     "channel_gateway/channel_tools.py",
     "channel_gateway/commands.py",

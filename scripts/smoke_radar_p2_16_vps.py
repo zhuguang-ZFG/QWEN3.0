@@ -16,23 +16,28 @@ KEY = os.environ.get("LIMA_DEPLOY_KEY_PATH", os.path.expanduser("~/.ssh/id_ed255
 _REMOTE_SMOKE = """\
 import sys
 sys.path.insert(0, "/opt/lima-router")
+from routes.telegram_public_tools import _run_tool
+
+u = _run_tool("uuid", "")
+ok_tool = u.get("ok") and "UUID" in u.get("text", "")
 from channel_gateway.public_apis_lookup import fetch_uuid
+u2 = fetch_uuid("2")
+ok_uuid = u2.get("ok") and u2["text"].count("-") >= 8
 from eval_slice_summary import latest_scores_path, summarize_eval_json
 from pathlib import Path
 import routes.telegram_eval_tools as te
 import routes.telegram_diag_tools as td
 
-u = fetch_uuid("2")
-ok_uuid = u.get("ok") and u["text"].count("-") >= 8
 p = latest_scores_path(Path("/opt/lima-router/data"), full=False)
 ok_eval = True
 if p:
     ok_eval = "Eval" in summarize_eval_json(p)
 ok_import = hasattr(te, "cmd_evalreport") and hasattr(td, "cmd_oldllm")
-print("uuid_ok", ok_uuid, u.get("text", "")[:60].replace("\\n", " "))
+print("tool_ok", ok_tool, u.get("text", "")[:60].replace("\\n", " "))
+print("uuid_ok", ok_uuid, u2.get("text", "")[:60].replace("\\n", " "))
 print("eval_ok", ok_eval, p)
 print("import_ok", ok_import)
-print("smoke_ok" if ok_uuid and ok_import else "smoke_FAILED")
+print("smoke_ok" if ok_tool and ok_uuid and ok_import else "smoke_FAILED")
 """
 
 

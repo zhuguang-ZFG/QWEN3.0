@@ -52,7 +52,37 @@ def _parse_exchange_args(args: str) -> tuple[str, str, float]:
     return parts[0], parts[1], amount
 
 
-def _run_tool(tool: str, args: str) -> dict:
+def _run_lookup_tool(tool: str, args: str) -> dict:
+    from channel_gateway.public_apis_lookup import (
+        fetch_dictionary,
+        fetch_geocode,
+        fetch_image,
+        fetch_qr,
+        fetch_randomuser,
+        fetch_regex_test,
+        fetch_ssl,
+        fetch_uuid,
+        fetch_whois,
+    )
+
+    handlers: dict[str, Callable[[], dict]] = {
+        "dict": lambda: fetch_dictionary(args),
+        "whois": lambda: fetch_whois(args),
+        "qr": lambda: fetch_qr(args),
+        "geocode": lambda: fetch_geocode(args),
+        "randomuser": lambda: fetch_randomuser(args),
+        "ssl": lambda: fetch_ssl(args),
+        "regex": lambda: fetch_regex_test(args),
+        "image": lambda: fetch_image(args),
+        "uuid": lambda: fetch_uuid(args),
+    }
+    handler = handlers.get(tool)
+    if handler is None:
+        return {"ok": False, "error": "未知工具"}
+    return handler()
+
+
+def _run_public_tool(tool: str, args: str) -> dict:
     from channel_gateway.public_apis import (
         fetch_calc,
         fetch_earthquake,
@@ -68,18 +98,6 @@ def _run_tool(tool: str, args: str) -> dict:
         fetch_wiki,
     )
 
-    from channel_gateway.public_apis_lookup import (
-        fetch_dictionary,
-        fetch_geocode,
-        fetch_image,
-        fetch_qr,
-        fetch_randomuser,
-        fetch_regex_test,
-        fetch_ssl,
-        fetch_uuid,
-        fetch_whois,
-    )
-
     handlers: dict[str, Callable[[], dict]] = {
         "weather": lambda: fetch_weather(args),
         "wiki": lambda: fetch_wiki(args),
@@ -93,20 +111,28 @@ def _run_tool(tool: str, args: str) -> dict:
         "earthquake": lambda: fetch_earthquake(),
         "hot": lambda: fetch_hot_60s(args or "微博"),
         "news": lambda: fetch_news_60s(),
-        "dict": lambda: fetch_dictionary(args),
-        "whois": lambda: fetch_whois(args),
-        "qr": lambda: fetch_qr(args),
-        "geocode": lambda: fetch_geocode(args),
-        "randomuser": lambda: fetch_randomuser(args),
-        "ssl": lambda: fetch_ssl(args),
-        "regex": lambda: fetch_regex_test(args),
-        "image": lambda: fetch_image(args),
-        "uuid": lambda: fetch_uuid(args),
     }
     handler = handlers.get(tool)
     if handler is None:
         return {"ok": False, "error": "未知工具"}
     return handler()
+
+
+def _run_tool(tool: str, args: str) -> dict:
+    lookup_tools = {
+        "dict",
+        "whois",
+        "qr",
+        "geocode",
+        "randomuser",
+        "ssl",
+        "regex",
+        "image",
+        "uuid",
+    }
+    if tool in lookup_tools:
+        return _run_lookup_tool(tool, args)
+    return _run_public_tool(tool, args)
 
 
 async def _send_tool_result(chat_id: str, result: dict, *, tool: str) -> None:
