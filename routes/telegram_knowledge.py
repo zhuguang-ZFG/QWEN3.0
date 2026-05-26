@@ -160,6 +160,22 @@ async def cmd_outcome(chat_id: str, args: str) -> None:
         )
 
 
+async def cmd_digest(chat_id: str, args: str) -> None:
+    """Generate learning digest with improvement candidates."""
+    try:
+        from session_memory.shadow_mode import scan_for_candidates, format_digest
+
+        candidates = scan_for_candidates()
+        text = format_digest(candidates)
+        await telegram_bot.send_message(
+            text, chat_id=chat_id, parse_mode="Markdown",
+        )
+    except Exception as exc:
+        await telegram_bot.send_message(
+            f"Digest failed: {exc}", chat_id=chat_id, parse_mode="",
+        )
+
+
 async def cmd_learn(chat_id: str, args: str) -> None:
     """Show/approve learning candidates. Usage: /learn [approve|reject <id>]"""
     try:

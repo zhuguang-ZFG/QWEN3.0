@@ -168,6 +168,11 @@ async def _dispatch_operator(chat_id: str, cmd: str, arg: str, *, logs_fn, resta
 
         await cmd_outcome(chat_id, arg)
         return True
+    if cmd == "/digest":
+        from routes.telegram_knowledge import cmd_digest
+
+        await cmd_digest(chat_id, arg)
+        return True
     return False
 
 
