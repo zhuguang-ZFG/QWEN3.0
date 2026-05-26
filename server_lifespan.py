@@ -44,6 +44,18 @@ async def lifespan(application):
     except ImportError:
         _log.debug("routes.device_gateway runtime not installed")
     try:
+        from observability.structured_logging import setup_structured_logging
+
+        setup_structured_logging()
+    except ImportError:
+        _log.debug("observability.structured_logging not installed")
+    try:
+        from device_gateway.mqtt_client import start_mqtt_client
+
+        await start_mqtt_client()
+    except ImportError:
+        _log.debug("device_gateway.mqtt_client not installed")
+    try:
         yield
     finally:
         probe_loop.stop()
@@ -65,3 +77,9 @@ async def lifespan(application):
             await stop_device_gateway_runtime()
         except ImportError:
             _log.debug("device_gateway runtime stop skipped")
+        try:
+            from device_gateway.mqtt_client import stop_mqtt_client
+
+            await stop_mqtt_client()
+        except ImportError:
+            _log.debug("mqtt_client stop skipped")

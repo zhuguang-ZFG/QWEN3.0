@@ -340,3 +340,21 @@ async def ops_eval_apply(request: Request) -> JSONResponse:
         return JSONResponse(apply_promotion(pattern_key))
     except ImportError:
         return JSONResponse({"error": "eval_gate module not loaded"}, status_code=503)
+
+
+@router.get("/metrics/prometheus", dependencies=[Depends(require_private_api_key)])
+def ops_metrics_prometheus(request: Request):
+    """Prometheus / OpenMetrics scrape endpoint (default-off).
+
+    Enable with LIMA_PROMETHEUS_METRICS=1.
+    Requires prometheus_client package installed.
+    """
+    from observability.prometheus_metrics import generate_metrics, is_enabled
+
+    if not is_enabled():
+        return JSONResponse(
+            {"error": "Prometheus metrics disabled. Set LIMA_PROMETHEUS_METRICS=1"},
+            status_code=404,
+        )
+    from fastapi.responses import PlainTextResponse
+    return PlainTextResponse(generate_metrics(), media_type="text/plain; version=0.0.4")
