@@ -9,7 +9,9 @@ import re
 logger = logging.getLogger(__name__)
 
 _CJK_RE = re.compile(r"[\u4e00-\u9fff\u3400-\u4dbf]")
-_DEFAULT_LLM_BACKENDS = ("scnet_qwen30b", "cf_llama70b", "google_flash_lite")
+# Keep push translation off chat_fast / vision pools (GFL-2 RPM isolation).
+_DEFAULT_LLM_BACKENDS = ("scnet_qwen30b", "cf_llama70b")
+_RESERVED_ROUTING_BACKENDS = frozenset({"google_flash_lite", "google_flash", "cf_vision"})
 
 
 def push_translate_enabled() -> bool:
@@ -33,8 +35,11 @@ def push_translate_backends() -> tuple[str, ...]:
     raw = os.environ.get("TELEGRAM_PUSH_TRANSLATE_BACKEND", "").strip()
     if raw:
         parts = tuple(b.strip() for b in raw.split(",") if b.strip())
-        return parts or _DEFAULT_LLM_BACKENDS
-    return _DEFAULT_LLM_BACKENDS
+        candidates = parts or _DEFAULT_LLM_BACKENDS
+    else:
+        candidates = _DEFAULT_LLM_BACKENDS
+    filtered = tuple(b for b in candidates if b not in _RESERVED_ROUTING_BACKENDS)
+    return filtered or _DEFAULT_LLM_BACKENDS
 
 
 _SKIP_TRANSLATE_MARKERS = (

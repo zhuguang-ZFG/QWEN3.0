@@ -73,7 +73,15 @@ if errorlevel 1 (
     echo [%date% %time%] OK: frpc >> %LOG%
 )
 
-:: 8. Healthchecks.io dead-man ping (INF-B, optional)
+:: 9. Public LiMa VPS health (external dead-man pre-check)
+curl -s --max-time 10 https://chat.donglicao.com/health | findstr /I "ok" >nul 2>&1
+if errorlevel 1 (
+    echo [%date% %time%] CRIT: Public VPS health down >> %LOG%
+) else (
+    echo [%date% %time%] OK: Public VPS health >> %LOG%
+)
+
+:: 10. Healthchecks.io dead-man ping (INF-B, optional)
 if /I "%LIMA_HEALTHCHECK_ENABLED%"=="1" (
     python D:\GIT\scripts\healthcheck_ping.py --env-key HEALTHCHECK_LIMA_WINDOWS_URL --check http://127.0.0.1:8080/health >> %LOG% 2>&1
     if errorlevel 1 (

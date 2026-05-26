@@ -6,9 +6,20 @@ import telegram_push_translate as tpt
 
 
 def test_default_llm_backend_order():
-    monkeypatch_backends = tpt.push_translate_backends()
-    assert monkeypatch_backends[0] == "scnet_qwen30b"
-    assert monkeypatch_backends[-1] == "google_flash_lite"
+    backends = tpt.push_translate_backends()
+    assert backends[0] == "scnet_qwen30b"
+    assert "google_flash_lite" not in backends
+    assert backends == ("scnet_qwen30b", "cf_llama70b")
+
+
+def test_push_translate_backend_env_strips_google(monkeypatch):
+    monkeypatch.setenv(
+        "TELEGRAM_PUSH_TRANSLATE_BACKEND",
+        "scnet_qwen30b,cf_llama70b,google_flash_lite",
+    )
+    backends = tpt.push_translate_backends()
+    assert "google_flash_lite" not in backends
+    assert backends == ("scnet_qwen30b", "cf_llama70b")
 
 
 def test_translate_push_disabled(monkeypatch):

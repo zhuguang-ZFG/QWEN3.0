@@ -29,7 +29,7 @@ FILES = [
 ]
 
 ENV_LINES = (
-    "TELEGRAM_PUSH_TRANSLATE_BACKEND=scnet_qwen30b,cf_llama70b,google_flash_lite",
+    "TELEGRAM_PUSH_TRANSLATE_BACKEND=scnet_qwen30b,cf_llama70b",
 )
 
 

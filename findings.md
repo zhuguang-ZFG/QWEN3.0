@@ -29,7 +29,8 @@
 | PE-B-1-1 | Docs | CODESEARCH_MCP_SETUP.md + smoke baseline | Closed 2026-05-26 |
 | PE-B-1-2 | Ops | codesearch binary install + index | Open |
 | GFL-1 | Ops | 11:02 degraded transient; VPS now healthy | Closed 2026-05-26 |
-| GFL-2 | Risk | TG push translate + chat_fast share google_flash_lite RPM | Open |
+| GFL-2 | Risk | TG push translate + chat_fast share google_flash_lite RPM | Closed 2026-05-26 |
+| GFL-2 | Code | translate backends exclude google_flash_lite; VPS env scnet,cf only | Closed 2026-05-26 |
 
 | GFL-2 | Code | push translate backend order scnet first | Closed 2026-05-26 |
 | PE-B-1-2 | Ops | codesearch v1.0.97 index lima-git smoke 3/3 | Closed 2026-05-26 |
@@ -133,7 +134,7 @@
 | ID | Area | Evidence | Status |
 |---|---|---|---|
 | TG-GH-1-1 | VPS smoke | `deploy_reliability_ops.py` → `OK: http://127.0.0.1:7897: @limacode_bot` | Closed 2026-05-26 |
-| TG-GH-1-2 | Ops | `LIMA_HEALTHCHECK_ENABLED` still 0 on VPS (dry-run ok) | Open |
+| TG-GH-1-2 | Ops | GA `lima-vps-deadman.yml` external health + provision_healthchecks.py | Closed 2026-05-26 |
 
 ## 2026-05-26 CQ-099 Code quality P2 long-function splits
 

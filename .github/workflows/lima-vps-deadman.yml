@@ -1,0 +1,31 @@
+name: LiMa VPS dead-man
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  vps-health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check public LiMa health
+        env:
+          HEALTH_URL: https://chat.donglicao.com/health
+          HC_URL: ${{ vars.HEALTHCHECK_LIMA_VPS_URL }}
+        run: |
+          set -euo pipefail
+          if curl -sf --max-time 20 "$HEALTH_URL" | grep -qi '"status"'; then
+            echo "public health ok"
+            if [ -n "${HC_URL:-}" ]; then
+              curl -sf --max-time 15 "${HC_URL}"
+              echo "healthchecks ping ok"
+            fi
+            exit 0
+          fi
+          echo "public health FAILED"
+          if [ -n "${HC_URL:-}" ]; then
+            curl -sf --max-time 15 "${HC_URL}/fail" || true
+          fi
+          exit 1

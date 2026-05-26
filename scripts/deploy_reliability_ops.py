@@ -17,10 +17,13 @@ KEY = os.environ.get("LIMA_DEPLOY_KEY_PATH", os.path.expanduser("~/.ssh/id_ed255
 FILES = [
     "telegram_notify.py",
     "telegram_outbound.py",
+    "telegram_push_translate.py",
     "healthcheck_ping.py",
+    "healthchecks_io.py",
     "scripts/smoke_telegram_outbound.py",
     "scripts/healthcheck_ping.py",
     "scripts/vps_router_healthcheck.sh",
+    "scripts/deploy_healthchecks_vps.py",
     "scripts/gitee_mirror_status.py",
     "gitee_mirror.py",
 ]

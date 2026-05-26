@@ -4,6 +4,12 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 GFL-2 + INF-B dead-man closeout
+
+- **GFL-2**：`telegram_push_translate` 默认/ env 剔除 `google_flash_lite`（及 chat_fast/vision 池）；VPS `TELEGRAM_PUSH_TRANSLATE_BACKEND=scnet_qwen30b,cf_llama70b`；`deploy_productivity_slice_ok`
+- **INF-B**：`.github/workflows/lima-vps-deadman.yml` 每 5min 公网 `/health`；`healthchecks_io.py` + `provision_healthchecks.py` + `deploy_healthchecks_vps.py`（VPS cron 待 `HEALTHCHECKS_API_KEY` 或 ping URL 一键 provision）
+- **测试**：translate + healthchecks_io + healthcheck_ping **21 passed**
+
 ## 2026-05-26 五线 re-acceptance + P0 closeout 判定
 
 - **Acceptance**：`smoke_five_line_acceptance.py` → mirror_lag `22e7b4f` + routing `google_flash_lite` + github_issue 200 + gitee 200 **acceptance_ok**

@@ -6,7 +6,22 @@ Updated: 2026-05-26
 
 Dead-man monitoring: if a cron/Task Scheduler job **stops running**, Healthchecks.io alerts you. This complements Telegram alerts (which fire when code runs but fails).
 
-**Default off:** set `LIMA_HEALTHCHECK_ENABLED=1` only after ping URLs are configured and smoke-tested.
+**Default off on VPS** until `HEALTHCHECK_LIMA_VPS_URL` is set. Enable in one step:
+
+```powershell
+# 1. Add to D:\GIT\.env (pick one):
+#    HEALTHCHECKS_API_KEY=...          # from https://healthchecks.io/accounts/profile/
+#    HEALTHCHECKS_PING_KEY=...          # project ping key + slug auto-provision
+#    HEALTHCHECK_LIMA_VPS_URL=https://hc-ping.com/<uuid>
+
+python scripts/provision_healthchecks.py
+```
+
+This updates local `.env`, syncs GitHub Actions variable `HEALTHCHECK_LIMA_VPS_URL`, installs VPS cron (`/etc/cron.d/lima-router-healthcheck`), sets `LIMA_HEALTHCHECK_ENABLED=1`, and smoke-pings.
+
+**External dead-man (no Healthchecks account required):** `.github/workflows/lima-vps-deadman.yml` curls `https://chat.donglicao.com/health` every 5 minutes from GitHub Actions. Optional: set repo variable `HEALTHCHECK_LIMA_VPS_URL` so the workflow also pings Healthchecks.io on success/fail.
+
+**Default off (legacy):** set `LIMA_HEALTHCHECK_ENABLED=1` only after ping URLs are configured and smoke-tested.
 
 ## Quick Start
 

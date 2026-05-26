@@ -55,7 +55,7 @@ P2  延后
 | | CF-G-1 budget | ✅ | — |
 | | CF-G-3 路由优化 | ✅ | acceptance: `chat_fast google_flash_lite` |
 
-**仍 Open（不挡 Operator 闭环）：** GI-G-3 模力方舟 AI（blocked）；CF-G-6 Google inventory VPS 偶发 unreachable；GFL-2 push 翻译 RPM 争用；TG-GH-2 LiMa Code→TG E2E 手工；TG-GH-1 Healthchecks 未开。
+**仍 Open（不挡 Operator 闭环）：** GI-G-3 模力方舟 AI（blocked）；CF-G-6 Google inventory VPS 偶发 unreachable；TG-GH-2 LiMa Code→TG E2E 手工。
 
 ---
 
