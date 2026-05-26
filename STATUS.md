@@ -1,9 +1,20 @@
 # LiMa Status
 
-> Updated: 2026-05-26
-> Active direction: private personal coding assistant.
-> Tests: **1538 passed, 10 skipped** (`pytest -q --ignore=active_model`, 2026-05-26)
-> Memory: **`docs/LIMA_MEMORY.md`** — 2026-05-26 consolidated section at top
+> Updated: 2026-05-26 (session handoff)
+> Branch: `codex/free-web-ai-probe` @ **96b8ffc** (pushed)
+> Tests: **1672 passed, 10 skipped** (`pytest -q --ignore=active_model`)
+> Memory: **`docs/LIMA_MEMORY.md`** — **§2026-05-26 会话交接** at top
+
+## 2026-05-26 Session Snapshot (Telegram + infra)
+
+| Area | Status |
+|------|--------|
+| Telegram /chat | Phone OK 12:07; stream+fallback deployed; empty /chat hint CN |
+| TG-10.0-1 stream | `sendMessageDraft` + `TELEGRAM_STREAM_CHAT=1` on VPS |
+| TG-10.0-2 B2B | Code+Server wired; BotFather + real usernames pending E2E |
+| OpenObserve | `OPENOBSERVE_ENABLED=1`, password `change-me-local` on volume |
+| SearXNG VPS | ghcr container 8081; CN engine timeout → TinyFish |
+| codesearch | Local v1.0.97 `lima-git` ~39k chunks |
 
 ## Current Summary
 

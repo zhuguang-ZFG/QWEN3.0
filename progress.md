@@ -10,6 +10,7 @@
 - **修复**：`telegram_chat_stream.py` 空流→全量路由→CF last_resort；draft 失败→普通 `sendMessage`；空 `/chat` 中文提示
 - **手机**：12:07 纯文字「用三句话解释 FastAPI Depends」→ 正常长文回复（`deepseek_free` degraded 告警仍可能穿插）
 - **测试**：`tests/test_telegram_chat_stream.py`；VPS `deploy_telegram_chat_fix`
+- **Git：** `96b8ffc` pushed `codex/free-web-ai-probe`
 
 ## 2026-05-26 TG-10.0-2 Bot-to-Bot
 
