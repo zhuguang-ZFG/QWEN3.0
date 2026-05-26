@@ -4,6 +4,20 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 雷达 P2 续：Playwright / Vulture / 60s / eval
+
+- **Playwright MCP**：`docs/LC_W_PLAYWRIGHT_VERIFY.md` + `.lima-code/mcp-playwright.example.json` + `smoke_playwright_mcp.py`（`LIMA_PLAYWRIGHT_MCP=0` 默认关）
+- **Vulture**：`scripts/run_vulture.py --report-only`
+- **60s /menu**：`fetch_hot_60s` / `fetch_news_60s` → `/热搜` `/新闻`（无参）
+- **Eval 切片**：`scripts/run_radar_eval_slice.py --dry-run|--quick`
+- **测试**：+5 cases；全量 **1732 passed**, 10 skipped
+
+## 2026-05-26 雷达 P2：Brave dev-search + deptry
+
+- **Brave Search**：`search_gateway/brave_adapter.py`；dev-search 链路 SearXNG → Brave → TinyFish（`BRAVE_SEARCH_ENABLED=0` 默认关）
+- **deptry**：`scripts/run_deptry.py --report-only`（§四 死代码/依赖扫描第一步）
+- **测试**：`tests/test_search_gateway.py` +3；全量 **1728 passed**, 10 skipped
+
 ## 2026-05-26 雷达 P1 续：OSV / Ruff / cov-xdist / P1.3
 
 - **OSV-Scanner**：`scripts/run_osv_scan.py` + CI 安装 `osv-scanner_linux_amd64`

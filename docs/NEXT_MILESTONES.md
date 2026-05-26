@@ -11,7 +11,7 @@
 | `task_plan.md`「继续拆 server / 合并 BACKENDS」 | `EXECUTION_PLAN` Phase 10、2026-05-24 Runtime Closure：**已关闭** |
 | `PERSONAL_CODING_ASSISTANT_PLAN.md` Next Steps 1–3（检索/MCP） | `EXECUTION_PLAN` Phase 6–8：**已完成** |
 | `findings.md` WX-089-4 / WX-088-4「Pending」 | CQ-090 已关闭；微信产品通道见 `WECHAT_RETIRED.md` |
-| `STATUS.md` WeChat Channel 小节 smoke 路径 | 微信真机已退役；`/channel` 契约保留、`WECHAT_BRIDGE_ENABLED=0` |
+| `NEXT_MILESTONES` P1.3「进行中」 | 雷达 + `findings.md` RADAR-P1-2：**Done** 2026-05-26（active paths + `test_ci_gates.py`） |
 
 ---
 
@@ -19,7 +19,7 @@
 
 | 顺序 | 条线 | 下一可交付切片 | 门禁 |
 |:---:|---|---|---|
-| P0 | 代码质量 | P0.1–P0.3 **已完成**；P1.3 静默 catch 清理进行中 | 本地全量 pytest + 可选 VPS smoke |
+| P0 | 代码质量 | P0.1–P1.3 **已完成**；下一刀 P2+ 大文件拆分或雷达 §四 Backlog | 本地全量 pytest + CI gates |
 | P1 | 编码后端 | Kimi/SCNet-large 经 Windows:8080 或 FRP:8088 重跑 eval；TheOldLLM 诊断 | 准入 JSON + 路由池不默认提升 |
 | P1 | ESP32 / Device Gateway | PROD-003 真机烧录 + 真机运动 smoke | fake-U8 已通过；需硬件 |
 | P2 | LiMa Code Worker | Prompt Contract v0.1 → Hooks v0.1 | bounded `/lima work` 已有；daemon 仍 gated |
@@ -86,7 +86,8 @@
 | P0.3 | `deploy/key_rotation.py` 归档或鉴权加固 | **已完成** |
 | P1.1 | `semantic_cache.py` 写失败可观测 | **已完成** |
 | P1.2 | admin 登录常量时间比较 | **已完成** |
-| P1.3 | 生产路径 `except: pass` → 日志/计数 | **进行中**（2026-05-26 首批 4 文件） |
+| P1.3 | 生产路径 `except: pass` → 日志/计数 | **已完成** 2026-05-26（active paths；`tests/test_ci_gates.py`） |
+| RADAR-P1 | pip-audit + OSV + Ruff + pytest-cov/xdist | **已完成** 2026-05-26（见 `FREE_RESOURCE_RADAR_MERGED.md` §四） |
 | P2+ | 超 300 行文件渐进拆分 | 待做 |
 
 **完成定义**：P0 三项有回归测试；全量 pytest 通过；`git diff --check` 干净。
@@ -111,7 +112,8 @@ python scripts/eval_coding_backends.py
 | `docs/EXECUTION_PLAN.md` | Phase 完成度与全局 Next Order |
 | `docs/superpowers/PLAN_CLOSURE_STATUS.md` | Superpowers 计划开闭状态 |
 | `docs/WECHAT_RETIRED.md` | 微信已放弃 |
-| `docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md` | 质量 P0/P1 |
+| `docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md` | 质量 P0/P1（P1.3 Done） |
+| `docs/FREE_RESOURCE_RADAR_MERGED.md` | 免费资源索引 + LiMa 对齐状态 |
 | `docs/FREE_MODEL_ROUTING_STATUS.md` | 免费模型证据 |
 | `docs/LIMACODE_MANAGEMENT.md` | LiMa Code 子模块 |
 | `docs/ESP32S_XYZ_MANAGEMENT.md` | 硬件子模块 |

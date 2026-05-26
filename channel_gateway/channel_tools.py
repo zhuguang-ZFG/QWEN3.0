@@ -12,7 +12,9 @@ from channel_gateway.public_apis import (
     fetch_earthquake,
     fetch_exchange,
     fetch_holiday,
+    fetch_hot_60s,
     fetch_ip_info,
+    fetch_news_60s,
     fetch_stock,
     fetch_time,
     fetch_translate,
@@ -50,11 +52,11 @@ _TOOLS_MENU = (
     "/百科 <词> — 维基摘要\n"
     "/天气 <城市>\n"
     "/搜 <关键词> — 联网搜索\n"
-    "/新闻 <关键词> — 新闻摘要\n"
+    "/新闻 — 60秒读懂世界（可加关键词走 /搜）\n"
     "/翻译 <文本>\n"
     "/汇率 <源> <目标> [金额]\n"
     "/时间 [时区]\n"
-    "/热搜 [平台] — 微博/百度等热点\n"
+    "/热搜 [平台] — 微博/百度/B站等（60s API）\n"
     "/ip <地址>\n"
     "/算 <表达式> — 安全计算器\n"
     "/黄历 [日期] — 节假日/调休\n"
@@ -195,11 +197,15 @@ class ChannelToolRunner:
             "weather": lambda: fetch_weather(args),
             "search": lambda: _run_search(args),
             "read_url": lambda: _run_read_url(args),
-            "news": lambda: _run_search(f"新闻 {args}".strip() or "今日要闻"),
+            "news": lambda: (
+                fetch_news_60s()
+                if not args.strip()
+                else _run_search(f"新闻 {args}".strip())
+            ),
             "translate": lambda: fetch_translate(args),
             "exchange": lambda: fetch_exchange(*_parse_exchange_args(args)),
             "time": lambda: fetch_time(args.strip() or "Asia/Shanghai"),
-            "hot": lambda: _run_search(f"{args or '微博'} 热搜 今日"),
+            "hot": lambda: fetch_hot_60s(args or "微博"),
             "ip": lambda: fetch_ip_info(args),
             "calc": lambda: fetch_calc(args),
             "holiday": lambda: fetch_holiday(args),

@@ -8,6 +8,13 @@
       "modes": ["patch", "review", "test"]
     },
     {
+      "name": "lima:playwright-verify",
+      "reason": "UI or page changes should use Playwright MCP when LIMA_PLAYWRIGHT_MCP=1.",
+      "keywords": ["playwright", "browser", "screenshot", "e2e", "verify", "ui"],
+      "files": ["routes/*.py", "channel_gateway/*.py", "static/*"],
+      "modes": ["test", "review"]
+    },
+    {
       "name": "lima:telegram-ops-review",
       "reason": "Telegram/webhook changes need secret and callback review.",
       "keywords": ["telegram", "webhook", "bot", "token", "secret"],

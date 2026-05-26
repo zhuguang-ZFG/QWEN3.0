@@ -141,6 +141,12 @@
 | LC-W-3-1 | Gated daemon | `LIMA_CODE_WORKER_DAEMON=1` + `/lima daemon start` idleRetry；cli **40 passed** | Closed 2026-05-26（默认关，需 Operator 开 env） |
 | RADAR-P1-1 | pip-audit | `scripts/run_pip_audit.py` + CI；pin `fastapi<0.136.3`（MAL-2026-4750） | Closed 2026-05-26 |
 | RADAR-P1-2 | OSV + Ruff + cov/xdist + P1.3 | `run_osv_scan.py` / `run_ruff_check.py` / `run_pytest_ci.py`；P1.3 active paths | Closed 2026-05-26 |
+| RADAR-P2-1 | Brave dev-search | `brave_adapter.py` + `_TieredAdapter`；`smoke_brave_search.py` | Partial 2026-05-26 |
+| RADAR-P2-2 | deptry | `scripts/run_deptry.py --report-only` | Partial 2026-05-26 |
+| RADAR-P2-3 | Playwright MCP | `LC_W_PLAYWRIGHT_VERIFY.md` + smoke | Partial 2026-05-26 |
+| RADAR-P2-4 | Vulture | `scripts/run_vulture.py --report-only` | Partial 2026-05-26 |
+| RADAR-P2-5 | 60s /menu | `fetch_hot_60s` / `fetch_news_60s` | Closed 2026-05-26 |
+| RADAR-P2-6 | Eval slice | `run_radar_eval_slice.py` | Partial 2026-05-26 |
 
 ## 2026-05-26 TG-GH-2 LiMa Code Telegram
 

@@ -77,8 +77,30 @@ python scripts/smoke_searxng_vps.py     # 8081 监听 + dev_adapter ok
 - [ ] 429/不可达时 `_FallbackAdapter` 回退 TinyFish
 - [ ] `progress.md` smoke 证据
 
+## Brave Search tier（PE-D-2，可选）
+
+在 SearXNG 与 TinyFish 之间增加 Brave Web Search API（需 API Key，**默认关**）。
+
+```env
+BRAVE_SEARCH_ENABLED=0
+BRAVE_SEARCH_API_KEY=          # 或 BRAVE_API_KEY
+BRAVE_SEARCH_CACHE_TTL=300
+BRAVE_SEARCH_COOLDOWN_SEC=60
+```
+
+链路：`SearXNG（若启用）→ Brave（若启用且有 Key）→ TinyFish`。
+
+```powershell
+python scripts/smoke_brave_search.py   # ENABLED=0 → skip ok
+python scripts/run_deptry.py --report-only
+```
+
+实现：`search_gateway/brave_adapter.py`、`search_gateway/dev_adapter.py`（`_TieredAdapter`）。
+
 ## 参考
 
 - [SearXNG docs](https://docs.searxng.org/)
+- [Brave Search API](https://brave.com/search/api/)
 - `search_gateway/searxng_adapter.py`
+- `search_gateway/brave_adapter.py`
 - `docs/superpowers/plans/2026-05-26-lima-productivity-enhancement.md` — PE-D-1

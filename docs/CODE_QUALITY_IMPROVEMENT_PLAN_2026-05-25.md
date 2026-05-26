@@ -14,7 +14,7 @@
 | P0.3 `key_rotation` | **Done** | stub in `deploy/key_rotation.py`; legacy in `scripts/archive/key_rotation_legacy.py` |
 | P1.1 semantic cache | **Done** | `_log.warning` + `db_write_errors`; `tests/test_semantic_cache.py` |
 | P1.2 admin login | **Done** | `constant_time_equals` in `routes/admin.py` |
-| P1.3 silent catches | **Mostly done** | batch1–4 complete; residual best-effort in archives/submodules out of scope |
+| P1.3 silent catches | **Done** | active paths closed 2026-05-26；archives/submodules 仍 out of scope |
 | P2+ file split / routing | **In progress** | `device_gateway` + `router_http` split done; legacy urllib path documented |
 
 ## Current Verification Snapshot

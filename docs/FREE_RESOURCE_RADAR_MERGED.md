@@ -27,6 +27,7 @@
 | 代码质量 P1.3 | 静默 catch 清理 | **Done** 2026-05-26（active paths） |
 | 雷达 P0 | Gitleaks / Gitee CI / Gitee 搜索 | **Done** 2026-05-26 |
 | 雷达 P1 | pip-audit + OSV-Scanner + Ruff + pytest-cov/xdist | **Done** 2026-05-26 |
+| 雷达 P2 | Brave + deptry + Playwright + 60s/menu + eval | **Partial** 2026-05-26 |
 
 ---
 
@@ -78,7 +79,7 @@
 | **覆盖率** | coverage.py + pytest-cov | `pytest --cov` | **Done** `run_pytest_ci.py` + `.coveragerc` |
 | **并行测试** | pytest-xdist | `pytest -n auto` | **Done** CI `-n auto` |
 | **属性测试** | Hypothesis | property-based | **Backlog** |
-| **死代码** | Vulture + deptry | CLI扫描 | **Backlog** |
+| **死代码** | Vulture + deptry | CLI扫描 | **Partial** `run_deptry.py` + `run_vulture.py` report-only |
 | **复杂度** | Radon | CLI报告 | **Backlog** |
 | **类型检查** | Pyright / basedpyright | 快速CLI | **Backlog** |
 | **HTTP Mock** | RESPX / pytest-httpx | pytest插件 | **Done** 测试在用 |
@@ -99,7 +100,7 @@
 | **代码搜索** | Gitee OpenAPI | Token已有 | **Done** MCP `dev_search_gitee` + `dev_fetch_gitee_file` |
 | **Gitee 代码** | codesearch MCP | 本地索引 | **Done** PE-B-1 |
 | **实时文档** | Context7 MCP (48K⭐) | 免费 | **Done** Agent/IDE 可用 |
-| **网页搜索** | Brave Search MCP | $5免费额度 | **Backlog** |
+| **网页搜索** | Brave Search MCP | $5免费额度 | **Done** `brave_adapter` + dev-search tier（`BRAVE_SEARCH_ENABLED=0` 默认关） |
 | **网页搜索** | SearXNG | 自部署 | **Done** PE-D-1 :8081 |
 | **网页抓取** | Firecrawl+changedetection.io | 500次/月+自部署 | **Backlog** |
 | **语义搜索** | CodeIndexer/demongrep/Octocode | 开源自部署 | **Backlog** LC-W-2 候选 |
@@ -126,10 +127,10 @@
 | **Filesystem** | 485K+ | `npx @modelcontextprotocol/server-filesystem` | **Backlog** |
 | **GitHub** | 398K+ | `npx @modelcontextprotocol/server-github` | **Backlog** |
 | **PostgreSQL** | 312K+ | `npx @modelcontextprotocol/server-postgres` | **Backlog** |
-| **Brave Search** | 287K+ | `npx @anthropic-ai/mcp-server-brave-search` | **Backlog** |
+| **Brave Search** | 287K+ | `npx @anthropic-ai/mcp-server-brave-search` | **Partial** 原生 API tier Done；MCP npx 仍 Backlog |
 | **Fetch** | 241K+ | `npx @modelcontextprotocol/server-fetch` | **Backlog** |
 | **Context7** | 48K⭐ | `npx @upstash/context7-mcp@latest` | **Done** 文档查询 |
-| **Playwright** | 微软 | `npx @playwright/mcp` | **Backlog** LC-W Verify 候选 |
+| **Playwright** | 微软 | `npx @playwright/mcp` | **Partial** `LC_W_PLAYWRIGHT_VERIFY.md` + smoke（默认关） |
 | **Firecrawl** | 爬取 | `npx firecrawl-mcp` | **Backlog** |
 | **Registry 盘点** | official+Glama | `inventory_mcp_registries.py` | **Done** PE-A-1 merged 904 |
 
