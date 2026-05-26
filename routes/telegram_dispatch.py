@@ -138,6 +138,21 @@ async def _dispatch_operator(chat_id: str, cmd: str, arg: str, *, logs_fn, resta
                 pass
         await cmd_ci(chat_id, arg)
         return True
+    if cmd in ("/kb", "/search"):
+        from routes.telegram_knowledge import cmd_kb
+
+        await cmd_kb(chat_id, arg)
+        return True
+    if cmd == "/save":
+        from routes.telegram_knowledge import cmd_save
+
+        await cmd_save(chat_id, arg)
+        return True
+    if cmd == "/memstats":
+        from routes.telegram_knowledge import cmd_memstats
+
+        await cmd_memstats(chat_id, arg)
+        return True
     return False
 
 
