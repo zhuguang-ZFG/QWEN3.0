@@ -91,7 +91,7 @@ def test_session_memory_processor_injects_memories():
     )
     ctx = session_memory_processor(ctx)
 
-    assert "会话记忆" in ctx.system_prompt
+    assert "session memory" in ctx.system_prompt
     assert "routing" in ctx.system_prompt
 
 
