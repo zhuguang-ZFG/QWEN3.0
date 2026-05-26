@@ -38,20 +38,21 @@ P2  延后
 | **Telegram** | TG-GH-1 出站可靠 | ✅ | — |
 | | TG-GH-2 LiMa Code 推送 | ✅ 文档 + submodule | E2E 手工 smoke |
 | | TG-GH-3 统一早报 | ✅ | — |
-| | TG-GH-4 `/github` `/device` | 🔜 本刀 | — |
-| | TG-GH-5 事件加深 | ❌ | — |
+| | TG-GH-4 `/github` `/device` | ✅ | — |
+| | TG-GH-5 事件加深 | ✅ | — |
 | | TG-GH-6 deploy/smoke 推送 | ❌ | — |
 | **GitHub** | CQ-GH-001 webhook | ✅ | — |
-| | TG-GH-5 issues/release/PR | ❌ | — |
+| | TG-GH-5 issues/release/PR | ✅ | — |
 | **Gitee** | GI-G-0/1 镜像 | ✅ | — |
 | | GI-G-2 webhook→TG | ✅ | UI secret 对齐 |
 | | GI-G-3 模力方舟 AI | ⏸ 基础设施 | **resource_not_bound** |
-| | GI-G-5 digest + mirror lag | 🔜 本刀 | — |
+| | GI-G-5 digest + mirror lag | ✅ | — |
 | **Cloudflare** | CF-G-0/1/2 | ✅ | — |
-| | CF-G-3~6 | ❌ / 部分 | — |
+| | CF-G-3 路由 | ✅ | — |
+| | CF-G-6 inventory diff | ❌ | — |
 | **Google** | CF-G-0 inventory | ✅ | — |
 | | CF-G-1 budget | ✅ | — |
-| | CF-G-3 路由优化 | 🔜 本刀 | — |
+| | CF-G-3 路由优化 | ✅ | VPS 待 chat_fast 命中证据 |
 
 ---
 

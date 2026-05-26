@@ -22,6 +22,15 @@
 | FL-1-6 | Tests | focused 7 passed; full **1631 passed, 10 skipped** | Closed 2026-05-26 |
 | FL-1-7 | Ops | Manual Telegram `/github` `/device` on phone | Open |
 
+## 2026-05-26 TG-GH-5 GitHub events
+
+| ID | Area | Evidence | Status |
+|---|---|---|---|
+| TG-GH-5-1 | Format | issues + release + PR merged | Closed 2026-05-26 |
+| TG-GH-5-2 | Auto task | `GITHUB_WEBHOOK_AUTO_TASK=0` default | Closed 2026-05-26 |
+| TG-GH-5-3 | VPS | deploy + setup hook events; public push smoke 200 | Closed 2026-05-26 |
+| TG-GH-5-4 | Tests | github webhook 20 passed; full 1636 | Closed 2026-05-26 |
+
 ## 2026-05-26 GI-G-3 Gitee AI adapter
 
 | ID | Area | Evidence | Status |
