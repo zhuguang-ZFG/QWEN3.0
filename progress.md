@@ -24,8 +24,9 @@
 - **模块**：`agent_runtime/prompt_contract.py` — parse / migrate / render 五段式 KERNEL
 - **API**：`POST /agent/tasks` 接受 `prompt_contract`；legacy `goal` 自动迁移并持久化
 - **Worker**：`deepcode-cli/src/lima/prompt-contract.ts`；`artifact-bundle` plan.md 写入 Prompt Contract 块
-- **测试**：`tests/test_prompt_contract.py` + `tests/test_agent_task_routes.py` **37 passed**；deepcode-cli `prompt-contract.test.ts` OK
-- **待做**：LC-W-1e VPS smoke（create → `/lima next` → log 五段）
+- **VPS**：`deploy_lcw1_cfg6_slice.py` → health ok + `google models=35` + `prompt-contract-v0.1` on VPS
+- **测试**：全量 **1705 passed**, 10 skipped；focused provider+agent **50 passed**
+- **Git**：`1828c0f` → origin + gitee；deepcode-cli `80987e9`
 
 ## 2026-05-26 下一刀 LC-W-1 Prompt Contract v0.1（计划）
 
