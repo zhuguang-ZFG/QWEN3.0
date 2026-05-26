@@ -16,6 +16,34 @@ def _branch_from_ref(ref: str) -> str:
     return ref or "unknown"
 
 
+def _commit_subject(message: str, *, max_len: int = 120) -> str:
+    if not message:
+        return ""
+    line = message.strip().splitlines()[0].strip()
+    if len(line) > max_len:
+        return line[: max_len - 1] + "…"
+    return line
+
+
+def _push_message_lines(commits: list) -> list[str]:
+    if not commits:
+        return []
+    if len(commits) == 1:
+        subj = _commit_subject(str(commits[-1].get("message") or ""))
+        return [subj] if subj else []
+    lines = ["Messages:"]
+    show = commits[-5:]
+    for commit in show:
+        subj = _commit_subject(str(commit.get("message") or ""))
+        if not subj:
+            continue
+        sha = _short_sha(str(commit.get("id") or ""))
+        lines.append(f"• `{sha}` {subj}")
+    if len(commits) > 5:
+        lines.append(f"… +{len(commits) - 5} more")
+    return lines
+
+
 def _repo_name(payload: dict) -> str:
     repo = payload.get("repository") or {}
     return str(
@@ -75,10 +103,12 @@ def _format_push(payload: dict) -> str | None:
         latest = str(payload.get("after") or "")
     sender = payload.get("sender") or {}
     pusher = str(sender.get("name") or sender.get("username") or sender.get("login") or "unknown")
-    return (
-        f"Gitee push `{repo}`@{branch}\n"
-        f"{count} commit(s), latest `{_short_sha(latest)}` by {pusher}"
-    )
+    lines = [
+        f"Gitee push `{repo}`@{branch}",
+        f"{count} commit(s), latest `{_short_sha(latest)}` by {pusher}",
+    ]
+    lines.extend(_push_message_lines(commits))
+    return "\n".join(lines)
 
 
 def _format_tag_push(payload: dict) -> str | None:

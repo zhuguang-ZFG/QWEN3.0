@@ -14,6 +14,34 @@ def _branch_from_ref(ref: str) -> str:
     return ref or "unknown"
 
 
+def _commit_subject(message: str, *, max_len: int = 120) -> str:
+    if not message:
+        return ""
+    line = message.strip().splitlines()[0].strip()
+    if len(line) > max_len:
+        return line[: max_len - 1] + "…"
+    return line
+
+
+def _push_message_lines(commits: list) -> list[str]:
+    if not commits:
+        return []
+    if len(commits) == 1:
+        subj = _commit_subject(str(commits[-1].get("message") or ""))
+        return [subj] if subj else []
+    lines = ["Messages:"]
+    show = commits[-5:]
+    for commit in show:
+        subj = _commit_subject(str(commit.get("message") or ""))
+        if not subj:
+            continue
+        sha = _short_sha(str(commit.get("id") or ""))
+        lines.append(f"• `{sha}` {subj}")
+    if len(commits) > 5:
+        lines.append(f"… +{len(commits) - 5} more")
+    return lines
+
+
 def format_github_event(event: str, payload: dict) -> str | None:
     """Return a one-line summary or None if the event should be ignored."""
     if event == "push":
@@ -41,10 +69,12 @@ def _format_push(payload: dict) -> str | None:
         return None
     latest = str(commits[-1].get("id") or "")
     pusher = str(payload.get("pusher", {}).get("name") or "unknown")
-    return (
-        f"GitHub push `{repo}`@{branch}\n"
-        f"{count} commit(s), latest `{_short_sha(latest)}` by {pusher}"
-    )
+    lines = [
+        f"GitHub push `{repo}`@{branch}",
+        f"{count} commit(s), latest `{_short_sha(latest)}` by {pusher}",
+    ]
+    lines.extend(_push_message_lines(commits))
+    return "\n".join(lines)
 
 
 def extract_github_push_shas(payload: dict) -> list[str]:

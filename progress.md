@@ -4,6 +4,13 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 GH push 通知含 commit message
+
+- **需求**：Telegram GitHub push 摘要增加「推送理由」（commit message 首行）
+- **代码**：`github_webhook/format.py`、`gitee_webhook/format.py` — 单 commit 直接附 message；多 commit 列最近 5 条
+- **测试**：`test_format_push_event*` + gitee 1 case；focused **28 passed**
+- **VPS**：`deploy_github_webhook_ok` + `deploy_gitee_webhook_ok`；`smoke_github_webhook_public` signed_post=200
+
 ## 2026-05-26 PE-A-1 weekly cron + Glama pagination
 
 - **增强**：Glama `pageInfo` 分页（50 页/500 条）；official 20 页；VPS 走 `GFW_PROXY` 拉 official registry

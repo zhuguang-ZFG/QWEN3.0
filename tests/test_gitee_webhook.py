@@ -30,13 +30,19 @@ def test_format_push_event():
         "hook_name": "push_hooks",
         "repository": {"path_with_namespace": "zhuguang-cn/QWEN3.0"},
         "ref": "refs/heads/main",
-        "commits": [{"id": "abc1234567890abcdef1234567890abcdef1234"}],
+        "commits": [
+            {
+                "id": "abc1234567890abcdef1234567890abcdef1234",
+                "message": "feat: mirror sync",
+            }
+        ],
         "sender": {"username": "owner"},
     }
     text = format_gitee_event("Push Hook", payload)
     assert "Gitee push" in text
     assert "QWEN3.0" in text
     assert "abc1234" in text
+    assert "feat: mirror sync" in text
 
 
 def test_format_merge_request():

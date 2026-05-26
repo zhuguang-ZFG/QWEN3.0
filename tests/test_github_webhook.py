@@ -26,13 +26,30 @@ def test_format_push_event():
         "repository": {"full_name": "zhuguang-ZFG/QWEN3.0"},
         "ref": "refs/heads/main",
         "pusher": {"name": "owner"},
-        "commits": [{"id": "abc1234567890"}],
+        "commits": [{"id": "abc1234567890", "message": "docs(tg): inline mode mobile checklist"}],
     }
     text = format_github_event("push", payload)
     assert "QWEN3.0" in text
     assert "main" in text
     assert "abc1234" in text
     assert "owner" in text
+    assert "inline mode mobile checklist" in text
+
+
+def test_format_push_event_multi_commit():
+    payload = {
+        "repository": {"full_name": "owner/repo"},
+        "ref": "refs/heads/dev",
+        "pusher": {"name": "owner"},
+        "commits": [
+            {"id": "aaa1111111111", "message": "fix: routing fallback"},
+            {"id": "bbb2222222222", "message": "test: add webhook cases"},
+        ],
+    }
+    text = format_github_event("push", payload)
+    assert "Messages:" in text
+    assert "`aaa1111` fix: routing fallback" in text
+    assert "`bbb2222` test: add webhook cases" in text
 
 
 def test_format_pull_request_opened():
