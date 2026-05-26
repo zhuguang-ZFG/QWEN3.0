@@ -2,6 +2,27 @@
 
 > Created: 2026-05-22
 
+## 2026-05-26 CQ-096 拆分代码 VPS 验证（DG-DEPLOY-096）
+
+- **部署**：`scripts/deploy_cq096_split.py` → 7 文件上传 + `systemctl restart lima-router`
+- **VPS loopback**：`/health` ok；`/device/v1/health` → `backend=redis`，`listener_alive=True`
+- **公网 smoke**：`scripts/smoke_device_gateway_public.py` → **4/4 passed**
+  - wss：`drained=1`，full fake-u8 loop
+  - tasks：`task_id=task-000015`
+- **本地测试**：`test_device_gateway_routes` + `test_request_pipeline_authority` → **29 passed**
+
+## 2026-05-26 Device Gateway 公网 smoke（DG-SMOKE-096）
+
+- **脚本**：`scripts/smoke_device_gateway_public.py`（health → WSS drain+fake-u8 → tasks → events）
+- **目标**：`https://chat.donglicao.com/device/v1/*`（未部署 CQ-096 拆分，公网仍跑既有代码）
+- **结果**：**4/4 passed**
+  - health：`backend=redis`，`listener_alive=True`，`auth_configured=True`
+  - wss：`drained=0`，frames=`hello_ack,heartbeat_ack,motion_task,motion_event_ack,motion_event_ack`
+  - tasks：`status=queued`，`task_id=task-000013`
+  - events：`motion_event_ack`，`phase=progress`
+- **修复**：WSS 前 drain 积压 `motion_task`（避免 fake-u8 在 heartbeat 阶段收到历史队列任务）
+- **残余**：若 HTTP 先入队再连 WSS 且无 drain，fake-u8 可能因队列积压失败；smoke 顺序已改为 WSS 先于 tasks
+
 ## 2026-05-26 项目记忆详细更新（CQ-091）
 
 - **`docs/LIMA_MEMORY.md`：** 顶部 Agent 记忆索引；**2026-05-26 consolidated state**（战略方向、微信退役表、代码质量 P0/P1.3、文档对齐、VPS 快照、四线 backlog、REQUEST_PIPELINE、子模块锚点、运维脚本、常见误判）；Active Runtime Files 增补 `http_body_limit`、`channel_gateway`、cleanup 脚本；PROD-008 表述修正。

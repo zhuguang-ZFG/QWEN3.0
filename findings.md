@@ -2,6 +2,24 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-05-26 DG-DEPLOY-096 CQ-096 split deployed and verified on VPS
+
+| ID | Area | Evidence | Status |
+|---|---|---|---|
+| DG-DEPLOY-096-1 | Deploy | `scripts/deploy_cq096_split.py` uploaded 7 files; `lima-router` active | Closed 2026-05-26 |
+| DG-DEPLOY-096-2 | Loopback | VPS `curl :8080/device/v1/health` → redis backend, listener alive | Closed 2026-05-26 |
+| DG-DEPLOY-096-3 | Public smoke post-deploy | `smoke_device_gateway_public.py` 4/4 (WSS drained=1 + full loop) | Closed 2026-05-26 |
+| DG-DEPLOY-096-4 | Local tests | device_gateway routes + pipeline authority **29 passed** | Closed 2026-05-26 |
+
+## 2026-05-26 DG-SMOKE-096 Device Gateway public path smoke
+
+| ID | Area | Evidence | Status |
+|---|---|---|---|
+| DG-SMOKE-096-1 | Public health | `GET /device/v1/health` → `status=ok`, `task_store.backend=redis`, `session_bus.listener_alive=True` | Closed 2026-05-26 |
+| DG-SMOKE-096-2 | Public HTTP | `POST /device/v1/tasks` + `/events` with `Bearer lima-local` → queued + motion_event_ack | Closed 2026-05-26 |
+| DG-SMOKE-096-3 | Public WSS | fake-u8 `wss://chat.donglicao.com/device/v1/ws` full hello→motion→done loop; token from VPS `LIMA_DEVICE_TOKENS` | Closed 2026-05-26 |
+| DG-SMOKE-096-4 | Smoke script | `scripts/smoke_device_gateway_public.py` 4/4; drain pending tasks before fake-u8 | Closed 2026-05-26 |
+
 ## 2026-05-26 CQ-091 Project memory detailed refresh
 
 | ID | Area | Evidence | Status |
