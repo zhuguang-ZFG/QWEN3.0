@@ -1,11 +1,11 @@
 # LiMa Status
 
-> Updated: 2026-05-26 (P2-26…32 closeout)
-> Branch: `codex/free-web-ai-probe` @ **5922c37** (pushed)
+> Updated: 2026-05-26 (P2-35..38 closeout)
+> Branch: `codex/free-web-ai-probe` @ **7e5bcab** (pushed)
 > Tests: **1891 passed, 10 skipped** (`pytest -q --ignore=active_model`)
 > Pyright: **0 errors, 0 warnings** (CI enforce)
-> MCP Tools: **24** on VPS (9 GitHub + 3 filesystem + 12 search/knowledge)
-> Memory: **`docs/LIMA_MEMORY.md`** — **2026-05-26 P2-32 closeout** at top
+> MCP Tools: **31** on VPS
+> Memory: **`docs/LIMA_MEMORY.md`** — **2026-05-26 closeout** at top
 
 ## 2026-05-26 P2-26…32 Enhancement Blitz
 
