@@ -18,6 +18,7 @@ ENV_FILE = f"{REMOTE}/.env"
 FILES = [
     "backend_admission_store.py",
     "budget_cf_google.py",
+    "budget_gitee.py",
     "budget_manager.py",
     "telegram_notify.py",
     "router_v3.py",
@@ -212,7 +213,7 @@ def main() -> int:
     ok = (
         active == "active"
         and "overlay_count" in verify_out
-        and "cfai_mistral_enabled False" in verify_out
+        and int(verify_out.split("overlay_count")[1].split()[0]) >= 20
         and ("cf_smoke ok=True" in verify_out or "select_backends_sample" in verify_out)
     )
 

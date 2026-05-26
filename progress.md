@@ -4,6 +4,13 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 CF overlay VPS + Kimi timeout
+
+- **VPS**：`deploy_cf_admission_overlay.py`（补 `budget_gitee.py`）→ **health ok**；`smoke_cf_admission_overlay_ok`
+- **Overlays**：**22** 条；含 completion-only 新增 `cf_defog_sqlcoder_7b_2`、`cf_meta_llama_llama_2_7b_chat_hf_lora`
+- **Env**：`LIMA_DYNAMIC_ADMISSION=1` 已写入 VPS `.env`
+- **Kimi**：`kimi` timeout **30→45**；重评 **3/3**（`data/kimi_eval_timeout45.json`）
+
 ## 2026-05-26 四线顺序 closeout（CF / 全量 eval / 路由池 / TG-GH-2）
 
 ### 1. CF-EVAL-1 completion-only

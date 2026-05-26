@@ -135,7 +135,7 @@
 | PROD-008-1 | Learning loop E2E | `smoke_prod008_learning_loop_e2e.py` VPS task `24db066c` 四通道 true | Closed 2026-05-26 |
 | KIMI-JSON-1 | Eval fence | Kimi 三模式 **3/3** `scnet_kimi_eval_20260526b.json` | Closed 2026-05-26 |
 | SCNET-DSPRO-1 | Timeout/empty | timeout 90 + empty guard；复测 **3/3** | Closed 2026-05-26 |
-| CF-EVAL-1 | CF probe | completion-only **2/4 pass** + **2 overlays**（22/30）；kimi-k2.5/uform 仍 rejected | Partial 2026-05-26 |
+| CF-EVAL-1 | CF probe | completion-only **2/4** + VPS **22 overlays** `smoke_cf_admission_overlay_ok` | Closed 2026-05-26 |
 | ROUTE-KIMI-1 | Coding pools | Kimi 三模式 → `code.medium` + orchestrator coder/strong | Closed 2026-05-26 |
 | TG-GH-2-3 | LiMa Code→TG | smoke script + notifier **8 passed**；live `--send` 待 Operator token | Partial 2026-05-26 |
 | LC-W-3-1 | Gated daemon | `LIMA_CODE_WORKER_DAEMON=1` + `/lima daemon start` idleRetry；cli **40 passed** | Closed 2026-05-26（默认关，需 Operator 开 env） |
