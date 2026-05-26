@@ -5,6 +5,6 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
-exec python3 scripts/healthcheck_ping.py \
+exec /usr/local/bin/python3.10 scripts/healthcheck_ping.py \
   --env-key HEALTHCHECK_LIMA_VPS_URL \
   --check "${LIMA_HEALTH_URL:-http://127.0.0.1:8080/health}"

@@ -130,6 +130,7 @@ def main() -> int:
         print(f"uploaded {rel}")
     sftp.close()
 
+    _run(ssh, f"chmod +x {REMOTE}/scripts/vps_router_healthcheck.sh")
     _upsert_env(ssh, "HEALTHCHECK_LIMA_VPS_URL", resolved)
     _upsert_env(ssh, "LIMA_HEALTHCHECK_ENABLED", "1")
     _install_cron(ssh)
