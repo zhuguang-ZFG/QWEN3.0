@@ -4,6 +4,16 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 TG-GH-5 GitHub 事件加深
+
+- **format**：`issues`（opened/closed/labeled/reopened）、`release`（published）、PR **merged**
+- **auto_task**：`github_webhook/auto_task.py`；`GITHUB_WEBHOOK_AUTO_TASK=0` 默认
+- **activity**：digest 含 issue/release 计数
+- **部署**：`deploy_github_webhook.py` + `setup_github_webhook.py` → hook **630882225** 增 issues/release
+- **VPS smoke**：`smoke_github_webhook_public.py` push **200**
+- **测试**：`test_github_webhook.py` **20 passed**；全量 **1636 passed, 10 skipped**
+- **下一刀**：TG-GH-6 deploy/smoke Telegram 推送
+
 ## 2026-05-26 五线 closeout 第一刀（CF-G-3 + TG-GH-4 + GI-G-5）
 
 - **计划**：`docs/superpowers/plans/2026-05-26-five-line-closeout.md` — 生产力六能力 **后置**

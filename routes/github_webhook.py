@@ -87,4 +87,23 @@ async def github_webhook(request: Request):
     except Exception:
         logger.exception("github webhook telegram notify failed event=%s", event)
 
-    return {"ok": True, "event": event}
+    task_id = None
+    if event == "issues":
+        try:
+            from github_webhook.auto_task import maybe_create_task_from_issue
+
+            task_id = maybe_create_task_from_issue(payload)
+            if task_id:
+                try:
+                    from telegram_notify import notify_github_event
+
+                    notify_github_event(f"Auto-task created: `{task_id}` from GitHub issue")
+                except Exception:
+                    logger.debug("auto_task telegram notify skipped", exc_info=True)
+        except Exception:
+            logger.exception("github auto_task failed event=%s", event)
+
+    result = {"ok": True, "event": event}
+    if task_id:
+        result["task_id"] = task_id
+    return result

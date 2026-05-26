@@ -22,6 +22,10 @@ def format_github_event(event: str, payload: dict) -> str | None:
         return _format_pull_request(payload)
     if event == "workflow_run":
         return _format_workflow_run(payload)
+    if event == "issues":
+        return _format_issue(payload)
+    if event == "release":
+        return _format_release(payload)
     return None
 
 
@@ -87,3 +91,35 @@ def _format_workflow_run(payload: dict) -> str | None:
     branch = str(run.get("head_branch") or "unknown")
     repo = str(payload.get("repository", {}).get("full_name") or "unknown")
     return f"GitHub CI `{repo}` FAILED\nWorkflow: {name} on `{branch}` ({conclusion})"
+
+
+def _format_issue(payload: dict) -> str | None:
+    action = str(payload.get("action") or "")
+    if action not in {"opened", "closed", "labeled", "reopened"}:
+        return None
+    issue = payload.get("issue") or {}
+    number = issue.get("number", "?")
+    title = str(issue.get("title") or "")[:120]
+    repo = str(payload.get("repository", {}).get("full_name") or "unknown")
+    label = payload.get("label") or {}
+    label_name = str(label.get("name") or "") if action == "labeled" else ""
+    suffix = f" label `{label_name}`" if label_name else ""
+    url = str(issue.get("html_url") or "")
+    line = f"GitHub issue `{repo}` #{number} {action}{suffix}\n{title}"
+    if url:
+        line += f"\n{url}"
+    return line
+
+
+def _format_release(payload: dict) -> str | None:
+    if str(payload.get("action") or "") != "published":
+        return None
+    release = payload.get("release") or {}
+    tag = str(release.get("tag_name") or release.get("name") or "?")
+    name = str(release.get("name") or tag)[:80]
+    repo = str(payload.get("repository", {}).get("full_name") or "unknown")
+    url = str(release.get("html_url") or "")
+    line = f"GitHub release `{repo}` {tag}\n{name}"
+    if url:
+        line += f"\n{url}"
+    return line

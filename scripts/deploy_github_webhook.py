@@ -20,9 +20,12 @@ FILES = [
     "github_webhook/__init__.py",
     "github_webhook/verify.py",
     "github_webhook/format.py",
+    "github_webhook/activity.py",
+    "github_webhook/auto_task.py",
     "routes/github_webhook.py",
     "routes/route_registry.py",
     "telegram_notify.py",
+    "webhook_activity_buffer.py",
 ]
 
 ENV_KEYS = {

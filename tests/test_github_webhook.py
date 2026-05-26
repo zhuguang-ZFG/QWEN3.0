@@ -87,6 +87,54 @@ def test_format_unknown_event_returns_none():
     assert format_github_event("ping", {"zen": "x"}) is None
 
 
+def test_format_issue_opened():
+    payload = {
+        "action": "opened",
+        "issue": {
+            "number": 7,
+            "title": "Fix webhook",
+            "html_url": "https://github.com/o/r/issues/7",
+        },
+        "repository": {"full_name": "zhuguang-ZFG/QWEN3.0"},
+    }
+    text = format_github_event("issues", payload)
+    assert "#7" in text
+    assert "opened" in text
+    assert "Fix webhook" in text
+
+
+def test_format_release_published():
+    payload = {
+        "action": "published",
+        "release": {
+            "tag_name": "v1.2.3",
+            "name": "Release 1.2.3",
+            "html_url": "https://github.com/o/r/releases/tag/v1.2.3",
+        },
+        "repository": {"full_name": "zhuguang-ZFG/QWEN3.0"},
+    }
+    text = format_github_event("release", payload)
+    assert "v1.2.3" in text
+    assert "published" not in text or "Release" in text
+
+
+def test_format_pull_request_merged():
+    payload = {
+        "action": "closed",
+        "pull_request": {
+            "number": 9,
+            "title": "Ship feature",
+            "merged": True,
+            "head": {"ref": "feat"},
+            "base": {"ref": "main"},
+        },
+        "repository": {"full_name": "zhuguang-ZFG/QWEN3.0"},
+    }
+    text = format_github_event("pull_request", payload)
+    assert "merged" in text
+    assert "#9" in text
+
+
 # --- verify ---
 
 
@@ -180,3 +228,48 @@ def test_github_webhook_repo_allowlist_ignores(gh_env, monkeypatch):
     assert response.status_code == 200
     assert response.json().get("ignored") is True
     notify.assert_not_called()
+
+
+def test_github_webhook_issue_notifies(gh_env):
+    client = TestClient(server.app)
+    payload = {
+        "action": "opened",
+        "issue": {"number": 3, "title": "Bug", "html_url": "https://github.com/o/r/issues/3"},
+        "repository": {"full_name": "zhuguang-ZFG/QWEN3.0"},
+    }
+    body = json.dumps(payload).encode()
+    with patch("telegram_notify.notify_github_event") as notify:
+        response = client.post(
+            "/github/webhook",
+            content=body,
+            headers={
+                "X-GitHub-Event": "issues",
+                "X-Hub-Signature-256": _sign(body, "gh-secret"),
+            },
+        )
+    assert response.status_code == 200
+    notify.assert_called_once()
+    assert "Bug" in notify.call_args.args[0]
+
+
+def test_github_auto_task_disabled_by_default(gh_env):
+    client = TestClient(server.app)
+    payload = {
+        "action": "opened",
+        "issue": {"number": 1, "title": "Auto", "html_url": "https://github.com/o/r/issues/1"},
+        "repository": {"full_name": "zhuguang-ZFG/QWEN3.0"},
+    }
+    body = json.dumps(payload).encode()
+    with patch("telegram_notify.notify_github_event"):
+        with patch("routes.agent_task_service.create_task_from_body") as create:
+            response = client.post(
+                "/github/webhook",
+                content=body,
+                headers={
+                    "X-GitHub-Event": "issues",
+                    "X-Hub-Signature-256": _sign(body, "gh-secret"),
+                },
+            )
+    assert response.status_code == 200
+    create.assert_not_called()
+    assert "task_id" not in response.json()

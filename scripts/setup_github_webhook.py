@@ -82,7 +82,7 @@ def main() -> int:
     payload = {
         "name": "web",
         "active": True,
-        "events": ["push", "pull_request", "workflow_run"],
+        "events": ["push", "pull_request", "workflow_run", "issues", "release"],
         "config": {
             "url": WEBHOOK_URL,
             "content_type": "json",

@@ -4,12 +4,17 @@ from __future__ import annotations
 
 
 def classify_github_event(event: str, payload: dict) -> tuple[str, str]:
+    repo = str(payload.get("repository", {}).get("full_name") or "")
     if event == "push":
-        return "push", str(payload.get("repository", {}).get("full_name") or "")
+        return "push", repo
     if event == "pull_request":
-        return "pr", str(payload.get("repository", {}).get("full_name") or "")
+        return "pr", repo
+    if event == "issues":
+        return "issue", repo
+    if event == "release":
+        return "release", repo
     if event == "workflow_run":
         run = payload.get("workflow_run") or {}
         if str(run.get("conclusion") or "") not in {"", "success"}:
-            return "ci_fail", str(payload.get("repository", {}).get("full_name") or "")
-    return "other", str(payload.get("repository", {}).get("full_name") or "")
+            return "ci_fail", repo
+    return "other", repo

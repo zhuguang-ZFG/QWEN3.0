@@ -184,10 +184,10 @@ Budget: github_gpt4o 12%
 
 | Task | 文件 |
 |------|------|
-| 5.1 | `github_webhook/format.py` 扩展 |
-| 5.2 | `routes/github_webhook.py` 事件表 |
-| 5.3 | 可选 callback `task_from_issue:<n>` → POST `/agent/tasks`（**默认 off** `GITHUB_WEBHOOK_AUTO_TASK=0`） |
-| 5.4 | GitHub webhook 订阅扩展（`setup_github_webhook.py`） |
+| 5.1 | `github_webhook/format.py` 扩展 | ✅ issues/release/merged |
+| 5.2 | `routes/github_webhook.py` 事件表 | ✅ |
+| 5.3 | 可选 `github_webhook/auto_task.py`（`GITHUB_WEBHOOK_AUTO_TASK=0`） | ✅ |
+| 5.4 | `setup_github_webhook.py` 订阅 issues/release | ✅ hook 630882225 |
 
 **验收：** 开 test issue → Telegram 收到；`AUTO_TASK=0` 时不创建 task
 

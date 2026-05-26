@@ -60,7 +60,7 @@ def record_webhook_event(
 def summarize_last_hours(hours: float = 24.0) -> dict[str, dict[str, int]]:
     cutoff = time.time() - hours * 3600
     totals: dict[str, dict[str, int]] = {
-        "github": {"push": 0, "pr": 0, "ci_fail": 0, "other": 0},
+        "github": {"push": 0, "pr": 0, "ci_fail": 0, "issue": 0, "release": 0, "other": 0},
         "gitee": {"push": 0, "mr": 0, "other": 0},
     }
     for event in _load():
@@ -78,10 +78,16 @@ def format_activity_lines(hours: float = 24.0) -> list[str]:
     lines: list[str] = []
     gh = totals.get("github", {})
     if any(gh.values()):
-        lines.append(
-            f"GitHub {int(hours)}h: {gh.get('push', 0)} push, "
-            f"{gh.get('pr', 0)} PR, {gh.get('ci_fail', 0)} CI fail"
-        )
+        parts = [
+            f"{gh.get('push', 0)} push",
+            f"{gh.get('pr', 0)} PR",
+            f"{gh.get('ci_fail', 0)} CI fail",
+        ]
+        if gh.get("issue"):
+            parts.append(f"{gh.get('issue', 0)} issue")
+        if gh.get("release"):
+            parts.append(f"{gh.get('release', 0)} release")
+        lines.append(f"GitHub {int(hours)}h: {', '.join(parts)}")
     gt = totals.get("gitee", {})
     if any(gt.values()):
         lines.append(
