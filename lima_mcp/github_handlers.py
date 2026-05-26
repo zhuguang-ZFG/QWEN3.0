@@ -171,3 +171,40 @@ def _outcome_ledger_stats(args: dict) -> dict:  # noqa: ARG001
     """Return Outcome Ledger statistics."""
     from session_memory.outcome_ledger import stats as ledger_stats
     return ledger_stats()
+
+
+# ── PR Review handlers ──
+
+
+def _github_get_pull_request(args: dict) -> dict:
+    from lima_mcp.github_tools import get_pull_request
+    return get_pull_request(
+        owner=args.get("owner", ""), repo=args.get("repo", ""),
+        pr_number=_bounded_int(args.get("pr_number"), default=0, minimum=1, maximum=999999),
+    )
+
+
+def _github_get_pr_files(args: dict) -> dict:
+    from lima_mcp.github_tools import get_pull_request_files
+    return get_pull_request_files(
+        owner=args.get("owner", ""), repo=args.get("repo", ""),
+        pr_number=_bounded_int(args.get("pr_number"), default=0, minimum=1, maximum=999999),
+        per_page=_bounded_int(args.get("per_page"), default=20, minimum=1, maximum=50),
+    )
+
+
+def _github_get_pr_diff(args: dict) -> dict:
+    from lima_mcp.github_tools import get_pull_request_diff
+    return get_pull_request_diff(
+        owner=args.get("owner", ""), repo=args.get("repo", ""),
+        pr_number=_bounded_int(args.get("pr_number"), default=0, minimum=1, maximum=999999),
+    )
+
+
+def _github_create_review(args: dict) -> dict:
+    from lima_mcp.github_tools import create_review
+    return create_review(
+        owner=args.get("owner", ""), repo=args.get("repo", ""),
+        pr_number=_bounded_int(args.get("pr_number"), default=0, minimum=1, maximum=999999),
+        body=args.get("body", ""), event=args.get("event", "COMMENT"),
+    )

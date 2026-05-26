@@ -44,6 +44,11 @@ def handle_tool_call(name: str, arguments: dict) -> dict:
         "github_get_combined_status": _github_get_combined_status,
         "github_list_check_runs": _github_list_check_runs,
         "memory_stats": _memory_stats,
+        "outcome_ledger_stats": _outcome_ledger_stats,
+        "github_get_pull_request": _github_get_pull_request,
+        "github_get_pr_files": _github_get_pr_files,
+        "github_get_pr_diff": _github_get_pr_diff,
+        "github_create_review": _github_create_review,
     }
     handler = handlers.get(name)
     if not handler:
@@ -338,4 +343,5 @@ from lima_mcp.github_handlers import (
     _github_list_workflow_runs, _github_get_workflow_run, _github_list_workflow_jobs,
     _github_list_workflow_artifacts, _github_get_combined_status, _github_list_check_runs,
     _memory_stats, _outcome_ledger_stats,
+    _github_get_pull_request, _github_get_pr_files, _github_get_pr_diff, _github_create_review,
 )

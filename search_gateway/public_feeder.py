@@ -268,6 +268,34 @@ def source_mcp_registry_search(query: str, *, limit: int = 5) -> list[dict]:
     return results
 
 
+# ── 知乎 Search ──
+
+def source_zhihu_search(query: str, *, limit: int = 5) -> list[dict]:
+    """Search 知乎 for Chinese-language technical experience. Default-off."""
+    results: list[dict] = []
+    try:
+        encoded = urllib.parse.quote(query[:100])
+        url = f"https://www.zhihu.com/api/v4/search_v3?q={encoded}&type=content&limit={min(limit, 10)}"
+        data = _get_json(url)
+        for item in data.get("data", [])[:limit]:
+            obj = item.get("object", item)
+            obj_type = obj.get("type", item.get("type", "answer"))
+            title = (obj.get("title") or obj.get("question", {}).get("title", ""))[:200]
+            excerpt = (obj.get("excerpt") or obj.get("content", ""))[:400]
+            results.append({
+                "title": title,
+                "url": obj.get("url", f"https://www.zhihu.com/{obj_type}/{obj.get('id', '')}"),
+                "source": "zhihu",
+                "date": time.strftime("%Y-%m-%d", time.gmtime(obj.get("updated_time", obj.get("created_time", 0)))),
+                "summary": excerpt,
+                "confidence": 0.35 if obj.get("voteup_count", 0) > 10 else 0.2,
+                "tags": ["zhihu", "cn", obj_type],
+            })
+    except Exception:
+        _log.debug("zhihu search failed", exc_info=True)
+    return results
+
+
 # ── Unified feeder ──
 
 def feed_experience(
@@ -288,7 +316,7 @@ def feed_experience(
     Returns:
         {results: [...], saved_count: int}
     """
-    sources = sources or ["stackexchange", "github_issues", "osv", "espidf", "mcp_registry"]
+    sources = sources or ["stackexchange", "github_issues", "osv", "espidf", "mcp_registry", "zhihu"]
     all_results: list[dict] = []
 
     for src in sources:
@@ -303,6 +331,8 @@ def feed_experience(
                 items = source_espidf_search(query, limit=limit)
             elif src == "mcp_registry":
                 items = source_mcp_registry_search(query, limit=limit)
+            elif src == "zhihu":
+                items = source_zhihu_search(query, limit=limit)
             else:
                 continue
             all_results.extend(items)
