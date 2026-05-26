@@ -4,6 +4,14 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 PE-C-1 loopback + PE-B-1 runbook + google_flash_lite 诊断
+
+- **PE-C-1 残余**：`bind to = loopback` 在 Netdata v2.10.3 无法解析 → 改为 **`127.0.0.1`**；`bind_netdata_loopback_vps.py` + `recover_netdata_vps.py`
+- **Smoke**：`smoke_netdata_mcp_vps.py` → **smoke_ok**（`127.0.0.1:19999`）；`loopback_bind` 纳入断言
+- **PE-B-1**：`docs/CODESEARCH_MCP_SETUP.md`（upstream flupkede/codesearch）；`smoke_codesearch_local.py` rg/pygrep baseline（codesearch 二进制待装）
+- **google_flash_lite 11:02 degraded**：VPS 诊断 **当前 healthy**；probe ok；metrics degraded=0 — 推断为 **瞬时 rate_limit**（TG 推送翻译 LLM 链命中 `chat_fast.strong[0]`），已自愈
+- **诊断脚本**：`scripts/vps_diag_google_flash_lite.py`
+
 ## 2026-05-26 FL-1-7 多命令 Telegram 修复
 
 - **问题**：同条消息 `/github …` + `/device status` 仅执行首行

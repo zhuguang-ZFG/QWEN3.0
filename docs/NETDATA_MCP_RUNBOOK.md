@@ -21,6 +21,28 @@ LiMa smoke / deploy 脚本
 
 **默认关：** 不暴露 19999 到公网；MCP key 仅 VPS `/var/lib/netdata/` 与 Operator `.env`。
 
+### Loopback 绑定（PE-C-1 残余）
+
+Netdata v2.10.3 **不接受** `bind to = loopback`（会 `getaddrinfo('loopback')` 失败）。应使用：
+
+```ini
+[web]
+    bind to = 127.0.0.1
+```
+
+一键脚本：
+
+```powershell
+python scripts/bind_netdata_loopback_vps.py
+python scripts/smoke_netdata_mcp_vps.py
+```
+
+若 restart 后卡在 `activating`（stale PID）：
+
+```powershell
+python scripts/recover_netdata_vps.py
+```
+
 ## 安装
 
 ```powershell
@@ -92,10 +114,10 @@ curl -s 'http://127.0.0.1:19999/api/v1/data?chart=system.cpu&after=-60&points=1'
 
 ## 验收
 
-- [ ] `systemctl is-active netdata` → `active`
-- [ ] `/api/v1/info` 返回 `version` ≥ 2.6
-- [ ] `scripts/smoke_netdata_mcp_vps.py` → `smoke_ok`
-- [ ] 19999 **未**监听公网（`ss -tlnp` 仅 127.0.0.1 或内网）
+- [x] `systemctl is-active netdata` → `active`
+- [x] `/api/v1/info` 返回 `version` ≥ 2.6
+- [x] `scripts/smoke_netdata_mcp_vps.py` → `smoke_ok`
+- [x] 19999 **未**监听公网（`ss -tlnp` 仅 127.0.0.1）
 
 ## 参考
 

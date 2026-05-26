@@ -36,6 +36,7 @@ def main() -> int:
         timeout=30,
     )
     listen = _run(ssh, "ss -tlnp 2>/dev/null | grep 19999 || true", timeout=15)[1]
+    loopback_ok = "127.0.0.1:19999" in listen and "0.0.0.0:19999" not in listen
     mcp_code, _mcp_body = _run(
         ssh,
         "curl -sf -o /dev/null -w '%{http_code}' http://127.0.0.1:19999/mcp",
@@ -66,7 +67,9 @@ def main() -> int:
         and info_code == 0
         and cpu_code == 0
         and version_ok
+        and loopback_ok
     )
+    print(f"loopback_bind={'ok' if loopback_ok else 'FAIL'}")
     print("smoke_ok" if ok else "smoke_FAILED")
     return 0 if ok else 1
 

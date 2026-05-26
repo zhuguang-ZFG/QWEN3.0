@@ -19,6 +19,12 @@
 | FL-1-7-3 | Code | `_dispatch_command_lines` + `parse_github_args` first line | Closed 2026-05-26 |
 | FL-1-7-4 | Ops | phone 11:05 `/github` + `/device` same message ok | Closed 2026-05-26 |
 
+| PE-C-1-3 | Ops | 19999 bind 127.0.0.1 loopback only | Closed 2026-05-26 |
+| PE-B-1-1 | Docs | CODESEARCH_MCP_SETUP.md + smoke baseline | Closed 2026-05-26 |
+| PE-B-1-2 | Ops | codesearch binary install + index | Open |
+| GFL-1 | Ops | 11:02 degraded transient; VPS now healthy | Closed 2026-05-26 |
+| GFL-2 | Risk | TG push translate + chat_fast share google_flash_lite RPM | Open |
+
 ## 2026-05-26 Five-line closeout slice 1
 
 | ID | Area | Evidence | Status |
