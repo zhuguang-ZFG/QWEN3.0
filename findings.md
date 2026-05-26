@@ -32,7 +32,8 @@
 | PE-C-2-3 | Ops | OPENOBSERVE_ENABLED=1 export + journal ship | Closed 2026-05-26 |
 | PE-F-1 | Docs | DEVICE_PLATFORM_REFERENCE TB/Ditto/LiMa DG | Closed 2026-05-26 |
 | TG-10.0-1 | Code | sendMessageDraft /chat streaming | Closed 2026-05-26 |
-| TG-10.0-1 | Ops | VPS deploy + phone /chat draft验收 | Open |
+| TG-10.0-1 | Ops | phone /chat 纯文字 12:07 验收 ok | Closed 2026-05-26 |
+| TG-10.0-1b | Code | /chat stream empty→route+last_resort fallback | Closed 2026-05-26 |
 | TG-10.0-2 | Code | LIMA_B2B ingress + Code notifier B2B | Closed 2026-05-26 |
 | TG-10.0-2 | Ops | BotFather B2B + real code bot username + E2E | Open |
 

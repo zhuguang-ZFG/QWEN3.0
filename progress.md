@@ -4,6 +4,13 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 TG /chat 空回复修复 + 手机验收
+
+- **根因**：`speculative_stream` 仅打 `deepseek_free` 失败；Telegram 流式路径未回退 `routing_engine` / `last_resort`
+- **修复**：`telegram_chat_stream.py` 空流→全量路由→CF last_resort；draft 失败→普通 `sendMessage`；空 `/chat` 中文提示
+- **手机**：12:07 纯文字「用三句话解释 FastAPI Depends」→ 正常长文回复（`deepseek_free` degraded 告警仍可能穿插）
+- **测试**：`tests/test_telegram_chat_stream.py`；VPS `deploy_telegram_chat_fix`
+
 ## 2026-05-26 TG-10.0-2 Bot-to-Bot
 
 - **Server**：`telegram_b2b.py` 解析 `LIMA_B2B`；`task_needs_review` → `send_approval`；其他 lifecycle → Operator 摘要

@@ -43,7 +43,13 @@ def _optional_import(module_name: str):
 
 async def cmd_chat(chat_id: str, message: str) -> None:
     if not message:
-        await telegram_bot.send_message("Usage: /chat <message>", chat_id=chat_id)
+        await telegram_bot.send_message(
+            "请带上问题，例如：\n"
+            "/chat 解释一下 FastAPI Depends\n\n"
+            "也可以直接发下一条文字（不必再加 /chat），我会当作对话处理。",
+            chat_id=chat_id,
+            parse_mode="",
+        )
         return
     history = _get_history(chat_id)
     history.append({"role": "user", "content": message})
@@ -62,12 +68,18 @@ async def cmd_chat(chat_id: str, message: str) -> None:
         from telegram_draft_stream import stream_chat_enabled
 
         if stream_chat_enabled():
-            from routes.telegram_chat_stream import stream_chat_to_telegram
+            from routes.telegram_chat_stream import (
+                _EMPTY_FALLBACK,
+                stream_chat_to_telegram,
+            )
 
             answer = await stream_chat_to_telegram(chat_id, message, list(history))
-            if answer and answer != "(empty response)":
+            if answer and answer not in ("(empty response)", _EMPTY_FALLBACK):
                 history.append({"role": "assistant", "content": answer})
-            return
+                return
+            if answer == _EMPTY_FALLBACK:
+                await telegram_bot.send_message(answer, chat_id=chat_id, parse_mode="")
+                return
         result = routing_engine.route(
             query=message, messages=list(history), call_fn=http_caller.call_api,
         )
