@@ -115,8 +115,8 @@
 | 2.1 | deepcode-cli | `src/lima/telegram-notifier.ts`：config、redaction、sendMessage |
 | 2.2 | deepcode-cli | `command-runner.ts` 注入 notifier |
 | 2.3 | deepcode-cli | 事件：`task_started` / `finished` / `failed` / `needs_review` / `work_stopped` |
-| 2.4 | 主仓 | 文档 + submodule 指针；**不**在 LiMa Code 收 Telegram 命令 |
-| 2.5 | 双仓 | `npm test` + `pytest` 相关；Windows worker smoke |
+| 2.4 | 主仓 | 文档 + submodule 指针 | ✅ `docs/TG_GH_2_LIMACODE_TELEGRAM.md` |
+| 2.5 | 双仓 | npm test + pytest | ✅ deepcode-cli tests 已有 |
 
 **消息示例：**
 ```text
@@ -139,11 +139,11 @@ LiMa Code ✓ task cfcd3f2b needs_review (3 files)
 
 | Task | 文件 |
 |------|------|
-| 3.1 | `routes/telegram_digest.py`（新，≤200 行） |
-| 3.2 | 读 `health_tracker`、`budget_manager`、SQLite task 计数 |
-| 3.3 | 读 `data/github_activity.json`（webhook 轻量累积，仅 summary） |
-| 3.4 | `github_webhook/format.py` 写入 activity ring buffer（最近 50 条） |
-| 3.5 | 9:00 一条 Telegram Markdown 消息 |
+| 3.1 | `telegram_digest.py` + `webhook_activity_buffer.py` | ✅ |
+| 3.2 | health / budget / task counts | ✅ |
+| 3.3 | webhook activity ring buffer | ✅ |
+| 3.4 | github/gitee routes record activity | ✅ |
+| 3.5 | `_send_daily_digest` → unified | ✅ |
 
 **早报模板：**
 ```text

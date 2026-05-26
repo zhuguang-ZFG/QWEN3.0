@@ -78,7 +78,11 @@ async def github_webhook(request: Request):
 
     try:
         from telegram_notify import notify_github_event
+        from github_webhook.activity import classify_github_event
+        from webhook_activity_buffer import record_webhook_event
 
+        kind, repo = classify_github_event(event, payload)
+        record_webhook_event(source="github", kind=kind, repo=repo)
         notify_github_event(summary)
     except Exception:
         logger.exception("github webhook telegram notify failed event=%s", event)

@@ -93,7 +93,11 @@ async def gitee_webhook(request: Request):
 
     try:
         from telegram_notify import notify_gitee_event
+        from gitee_webhook.activity import classify_gitee_event
+        from webhook_activity_buffer import record_webhook_event
 
+        kind, repo = classify_gitee_event(event, payload)
+        record_webhook_event(source="gitee", kind=kind, repo=repo)
         notify_gitee_event(summary)
     except Exception:
         logger.exception("gitee webhook telegram notify failed event=%s", event)

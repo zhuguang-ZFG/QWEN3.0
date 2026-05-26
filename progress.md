@@ -4,6 +4,17 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 TG-GH-3 统一 Operator 早报
+
+- **实现**：`telegram_digest.py`、`webhook_activity_buffer.py`；`github_webhook/activity.py`、`gitee_webhook/activity.py`
+- **集成**：GitHub/Gitee webhook 写入 activity ring；`routes/telegram._send_daily_digest` → `send_unified_digest()`
+- **内容**：health 计数 + 24h Git 事件 + tasks + CF/Google budget + 当日请求量
+- **部署**：`deploy_telegram_digest.py`；`smoke_telegram_digest_vps.py` build + `--send`
+- **VPS smoke**：digest 构建 OK；Telegram send **True**（Markdown 失败后 plain 回退）
+- **测试**：focused **3 passed**（`test_telegram_digest`）；全量 **1618 passed, 10 skipped**
+- **文档**：`docs/TG_GH_2_LIMACODE_TELEGRAM.md`（TG-GH-2 closeout）；计划表 TG-GH-2/3 标 ✅
+- **下一刀**：GI-G-3 模力方舟 AI 或 CF-G-3 Google 路由；GI-G-5 早报合并（依赖 TG-GH-3 ✅）
+
 ## 2026-05-26 GI-G-2 Gitee Webhook → Telegram
 
 - **实现**：`gitee_webhook/`（verify/format/dedupe）、`routes/gitee_webhook.py`、`notify_gitee_event`

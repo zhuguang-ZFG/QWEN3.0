@@ -330,21 +330,9 @@ _startup_started = False
 
 
 async def _send_daily_digest() -> None:
-    hmap = health_tracker.get_health_map()
-    counts = {"healthy": 0, "degraded": 0, "dead": 0}
-    for state in hmap.values():
-        counts[state] = counts.get(state, 0) + 1
-    summary = budget_manager.get_usage_summary()
-    total_reqs = budget_manager.get_total_requests_today()
-    text = (
-        f"*Daily Digest*\n"
-        f"Backends: {counts['healthy']} healthy, {counts['degraded']} degraded, {counts['dead']} dead\n"
-        f"Requests today: {total_reqs}\n"
-    )
-    dead_list = [b for b, s in hmap.items() if s == "dead"]
-    if dead_list:
-        text += f"Dead: {', '.join(dead_list[:10])}"
-    await telegram_bot.send_message(text)
+    from telegram_digest import send_unified_digest
+
+    await send_unified_digest()
 
 
 async def _digest_loop() -> None:

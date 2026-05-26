@@ -10,6 +10,24 @@
 | GI-G-2-2 | Public smoke | `smoke_gitee_webhook_public.py` local+public 200 | Closed 2026-05-26 |
 | GI-G-2-3 | Ops | Gitee UI WebHook password must match VPS `GITEE_WEBHOOK_SECRET` | Open |
 
+## 2026-05-26 TG-GH-3 unified digest
+
+| ID | Area | Evidence | Status |
+|---|---|---|---|
+| TG-GH-3-1 | Module | `telegram_digest.py` + `webhook_activity_buffer.py` | Closed 2026-05-26 |
+| TG-GH-3-2 | Routes | github/gitee webhook record activity; `_send_daily_digest` unified | Closed 2026-05-26 |
+| TG-GH-3-3 | VPS deploy | `deploy_telegram_digest.py`; service active | Closed 2026-05-26 |
+| TG-GH-3-4 | VPS smoke | `smoke_telegram_digest_vps.py` build OK; `--send` → True | Closed 2026-05-26 |
+| TG-GH-3-5 | Tests | focused 3 passed; full **1618 passed, 10 skipped** | Closed 2026-05-26 |
+
+## 2026-05-26 TG-GH-2 LiMa Code Telegram
+
+| ID | Area | Evidence | Status |
+|---|---|---|---|
+| TG-GH-2-1 | Submodule | deepcode-cli `telegram-notifier.ts` 已有 | Closed 2026-05-26 |
+| TG-GH-2-2 | Docs | `docs/TG_GH_2_LIMACODE_TELEGRAM.md` closeout | Closed 2026-05-26 |
+| TG-GH-2-3 | E2E smoke | Windows worker `/lima task` → Telegram（待手工） | Open |
+
 ## 2026-05-26 TG-GH-1 reliability
 
 | ID | Area | Evidence | Status |
