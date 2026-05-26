@@ -4,14 +4,4 @@
 
 | Backend | Avg Score | Passes | Avg Latency | Notes |
 |---|---:|---:|---:|---|
-| `scnet_large_ds_flash` | 100 | 3/3 | 1199ms | ok |
-| `scnet_qwen30b` | 100 | 3/3 | 1814ms | ok |
-| `scnet_ds_flash` | 100 | 3/3 | 2205ms | ok |
-| `scnet_qwen235b` | 100 | 3/3 | 2388ms | ok |
-| `scnet_large_ds_pro` | 100 | 3/3 | 75046ms | ok |
-| `kimi_thinking` | 80 | 2/3 | 4301ms | json_tool_output: forbidden pattern: ```, json parse failed |
-| `kimi` | 80 | 2/3 | 4534ms | json_tool_output: forbidden pattern: ```, json parse failed |
-| `kimi_search` | 80 | 2/3 | 7126ms | json_tool_output: forbidden pattern: ```, json parse failed |
-| `cf_kimi_k26` | 48 | 1/3 | 6776ms | json_tool_output: missing pattern: \"action\", missing pattern: \"files\"; python_bugfix: forbidden pattern: IndexError, python syntax error: unterminated string literal (detected at line 1) |
-| `stock_kimi_k2` | 0 | 0/3 | 767ms | code_review: call failed: BackendError: Expecting value: line 1 column 1 (char 0); json_tool_output: call failed: BackendError: stock_kimi_k2 is cooled down; python_bugfix: call failed: BackendError: stock_kimi_k2 is cooled down |
-| `scnet_ds_pro` | 0 | 0/3 | 15113ms | code_review: call failed: BackendError: The read operation timed out; json_tool_output: call failed: BackendError: scnet_ds_pro is cooled down; python_bugfix: call failed: BackendError: scnet_ds_pro is cooled down |
+| `scnet_ds_pro` | 100 | 3/3 | 9693ms | ok |

@@ -108,6 +108,27 @@ def test_grade_response_can_require_json_object():
     assert notes == []
 
 
+def test_grade_response_accepts_json_markdown_fence():
+    case = CodingCase(
+        id="json_tool_output",
+        name="JSON",
+        prompt="Return JSON",
+        required_patterns=['\\"action\\"', '\\"files\\"', '\\"reason\\"'],
+        forbidden_patterns=["```", "Here is", "I would"],
+        required_json_keys=["action", "files", "reason"],
+        min_chars=30,
+    )
+    fenced = (
+        '```json {"action":"update","files":["router_v3.py"],'
+        '"reason":"Prefer coding backends for IDE requests"} ```'
+    )
+
+    score, notes = grade_response(fenced, case)
+
+    assert score == 100
+    assert notes == []
+
+
 def test_grade_response_penalizes_max_chars():
     case = CodingCase(
         id="short",

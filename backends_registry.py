@@ -188,7 +188,7 @@ BACKENDS = {
     'scnet_minimax': {'url': 'https://scnet.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'minimax-m2.5', 'fmt': 'openai', 'timeout': 30},
     'scnet_qwen235b': {'url': 'https://scnet.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'qwen3-235b', 'fmt': 'openai', 'timeout': 45},
     'scnet_ds_flash': {'url': 'https://scnet.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-flash', 'fmt': 'openai', 'timeout': 30},
-    'scnet_ds_pro': {'url': 'https://scnet.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-pro', 'fmt': 'openai', 'timeout': 45},
+    'scnet_ds_pro': {'url': 'https://scnet.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-pro', 'fmt': 'openai', 'timeout': 90},
     # ── Kimi (moonshot.cn, 登录后免费, K2 模型) ──
     # ── Kimi (moonshot.cn, 本地代理, K2.6 模型, 3 种模式) ──
     'kimi': {'url': 'http://localhost:4504/v1/chat/completions', 'key': 'none', 'model': 'kimi', 'fmt': 'openai', 'timeout': 30},

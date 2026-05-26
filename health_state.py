@@ -117,6 +117,16 @@ def get_latency_map() -> dict:
         return result
 
 
+def clear_cooldown(backend: str) -> None:
+    with _lock:
+        state = _cooldown_states.get(backend)
+        if not state:
+            return
+        state.cooldown_until = 0.0
+        state.consecutive_failures = 0
+        state.state = "ok"
+
+
 def reset_all_state() -> None:
     with _lock:
         _health_map.clear()

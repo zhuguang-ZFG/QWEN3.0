@@ -54,7 +54,7 @@
 2. **Hooks + Skill Auto-Activation v0.1** — `skill-rules.json` 风格、post-task/post-edit/stop 检查点、`.lima-code/dev/active/<task>/`（第 5 项；依赖 Contract）。
 3. ~~**Artifact → learning loop 接线验证**~~ — **Closed 2026-05-26**：`smoke_prod008_learning_loop_e2e.py` VPS task `24db066c`（memory/prompt/routing/eval 四通道）。
 4. **Owner 命令真接线（独立 slice）** — Channel `/code-task` 等仍为 stub；需 owner-auth + 审计（`findings.md` CQ-054 注记）。
-5. **Always-on daemon** — 仅在人批准后：allowlist + budget + stop + audit + quarantine 全开。
+5. **Always-on daemon** — **LC-W-3 gated slice closed 2026-05-26**：`/lima daemon start` + `LIMA_CODE_WORKER_DAEMON=1`；生产仍默认关，需 Operator 批准后再开 env。
 
 **完成定义**：一条公开 HTTPS 任务可由 LiMa Code 自动跑完并提交，artifact 与 learning 证据可追溯。
 

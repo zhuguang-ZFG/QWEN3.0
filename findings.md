@@ -133,7 +133,10 @@
 | LC-W-1e-2 | Worker E2E | `smoke_lcw1_lima_next_e2e.py` + `context.md` 五段；local `f50f8795` VPS `53b3b150` | Closed 2026-05-26 |
 | LC-W-2-1 | Hooks + skills | `.lima-code/skill-rules.json` + `smoke_lcw2_hooks_e2e.py` task `1422c6e6` | Closed 2026-05-26 |
 | PROD-008-1 | Learning loop E2E | `smoke_prod008_learning_loop_e2e.py` VPS task `24db066c` 四通道 true | Closed 2026-05-26 |
-| CF-EVAL-1 | CF probe | 全量未注册候选 4/4 dry-run **0 pass**；overlays 20/30 | Open |
+| KIMI-JSON-1 | Eval fence | Kimi 三模式 **3/3** `scnet_kimi_eval_20260526b.json` | Closed 2026-05-26 |
+| SCNET-DSPRO-1 | Timeout/empty | timeout 90 + empty guard；复测 **3/3** | Closed 2026-05-26 |
+| CF-EVAL-1 | CF probe | 4 候选 dry-run **0/4 pass**；overlays **20/30**；`cf_eval1_summary.json` | Open（池有候选，门槛未过） |
+| LC-W-3-1 | Gated daemon | `LIMA_CODE_WORKER_DAEMON=1` + `/lima daemon start` idleRetry；cli **40 passed** | Closed 2026-05-26（默认关，需 Operator 开 env） |
 
 ## 2026-05-26 TG-GH-2 LiMa Code Telegram
 

@@ -93,6 +93,11 @@ def grade_response(text: str, case: CodingCase) -> tuple[int, list[str]]:
     notes: list[str] = []
     score = 100
     response = text or ""
+    pattern_text = response
+    if case.required_json_keys:
+        extracted = _extract_json_payload(response)
+        if extracted:
+            pattern_text = extracted
 
     if len(response.strip()) < case.min_chars:
         score -= 25
@@ -102,12 +107,14 @@ def grade_response(text: str, case: CodingCase) -> tuple[int, list[str]]:
         notes.append(f"too long: {len(response.strip())} chars")
 
     for pattern in case.required_patterns:
-        if not re.search(pattern, response, flags=re.IGNORECASE | re.MULTILINE):
+        if not re.search(pattern, pattern_text, flags=re.IGNORECASE | re.MULTILINE):
             score -= 20
             notes.append(f"missing pattern: {pattern}")
 
     for pattern in case.forbidden_patterns:
-        if re.search(pattern, response, flags=re.IGNORECASE | re.MULTILINE):
+        if pattern == "```" and case.required_json_keys:
+            continue
+        if re.search(pattern, pattern_text, flags=re.IGNORECASE | re.MULTILINE):
             score -= 25
             notes.append(f"forbidden pattern: {pattern}")
 
@@ -134,7 +141,7 @@ def _note_penalty(notes: list[str], case: CodingCase) -> int:
 
 
 def _grade_json(response: str, required_keys: list[str], notes: list[str]) -> None:
-    raw = response.strip()
+    raw = _extract_json_payload(response)
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
@@ -146,6 +153,18 @@ def _grade_json(response: str, required_keys: list[str], notes: list[str]) -> No
     for key in required_keys:
         if key not in data:
             notes.append(f"json missing key: {key}")
+
+
+def _extract_json_payload(response: str) -> str:
+    text = response.strip()
+    match = re.search(r"```(?:json)?\s*(.*?)\s*```", text, re.DOTALL | re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+    start = text.find("{")
+    end = text.rfind("}")
+    if start >= 0 and end > start:
+        return text[start : end + 1]
+    return text
 
 
 def _grade_python_compile(response: str, notes: list[str]) -> None:
@@ -166,6 +185,16 @@ def _extract_python_code(response: str) -> str:
     return response.strip()
 
 
+def _clear_eval_cooldown(backend: str) -> None:
+    """Eval runs multiple cases per backend; do not let probe cooldown skew scores."""
+    try:
+        from health_state import clear_cooldown
+
+        clear_cooldown(backend)
+    except ImportError:
+        pass
+
+
 def run_eval(
     cases: list[CodingCase],
     backends: list[str],
@@ -174,6 +203,7 @@ def run_eval(
     results: list[EvalResult] = []
     for backend in backends:
         for case in cases:
+            _clear_eval_cooldown(backend)
             messages = [{"role": "user", "content": case.prompt}]
             started = time.time()
             try:

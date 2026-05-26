@@ -142,6 +142,14 @@ def call_api(
             payload = resp.json()
 
         answer = _extract_answer(payload, cfg["fmt"])
+        if not (answer or "").strip():
+            hc.health_tracker.record_failure(
+                backend, error_code=502, error_text="empty response body"
+            )
+            raise BackendError(
+                f"{backend} returned empty response",
+                status_code=502,
+            )
         if _is_backend_error(answer):
             hc.health_tracker.record_failure(
                 backend, error_code=429, error_text=answer

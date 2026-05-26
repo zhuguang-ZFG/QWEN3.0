@@ -4,6 +4,34 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 P1 eval 验证刀（Kimi 3/3 + scnet_ds_pro 恢复）
+
+- **Kimi JSON 围栏**：`coding_eval._extract_json_payload`；`kimi`/`kimi_thinking`/`kimi_search` **3/3**（`data/scnet_kimi_eval_20260526b.json`）
+- **scnet_ds_pro**：timeout 90 + eval `clear_cooldown` + `http_sync` 空响应 fail-fast；复测 **3/3**（`data/scnet_ds_pro_eval_retry.json`）
+- **含上一批四刀**：LC-W-3 gated daemon（deepcode-cli）、CF-EVAL-1 slice、diag 脚本
+- **pytest**：1718 passed（1 预存 MCP 401）
+
+## 2026-05-26 四刀顺序 closeout（Kimi JSON / scnet_ds_pro / CF-EVAL-1 / LC-W-3）
+
+### 1. Kimi JSON 围栏解析
+- **`coding_eval.py`**：`_extract_json_payload` + JSON case 跳过 `` ``` `` forbid；eval 前 `clear_cooldown`
+- **证据**：`kimi` 重跑 **3/3**（`data/kimi_eval_fence_fix.json`）；`tests/test_coding_eval.py` **11 passed**
+
+### 2. scnet_ds_pro timeout/cooldown
+- **根因**：直连 `deepseek-v4-pro` 读超时 ~45–57s；eval 连跑触发 cooldown 连坐 0/3
+- **修复**：`scnet_ds_pro` timeout **45→90**；`health_state.clear_cooldown` + eval 每 case 清冷却
+- **诊断**：`scripts/diag_scnet_ds_pro.py` — probe_30s fail / probe_90s **ok**（56718ms）
+
+### 3. CF-EVAL-1 续探
+- **`scripts/run_cf_eval1_slice.py`**：inventory 73 models → 剩余 **4** 候选 dry-run **0/4 pass**；overlays **20/30**
+- **产物**：`data/cf_eval1_summary.json`、`docs/CF_PROBE_REPORT.md`（池未空但准入门槛未过）
+
+### 4. LC-W-3+ gated daemon（deepcode-cli）
+- **`/lima daemon start`** 需 `LIMA_CODE_WORKER_DAEMON=1`；`idleRetry` 空队列退避
+- **测试**：deepcode-cli `lima-commands` + `lima-command-runner` **40 passed**
+
+- **全量 pytest**：**1718 passed**, 10 skipped（`test_mcp_verify_passes_correct_bearer` 401 预存）
+
 ## 2026-05-26 PROD-008 Learning Loop E2E
 
 - **Smoke**：`smoke_prod008_learning_loop_e2e.py` — POST task → POST result（backend/latency/artifacts）→ 四通道验证

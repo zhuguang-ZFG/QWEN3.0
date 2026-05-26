@@ -3,7 +3,20 @@
 > Updated: 2026-05-26
 > Scope: SCNet and Kimi-family free or near-free backends in LiMa.
 
-## 2026-05-26 Re-eval (local Windows proxy)
+## 2026-05-26 Re-eval B（JSON 围栏 + scnet_ds_pro timeout）
+
+Command: `scripts/eval_coding_backends.py` — Kimi 三模式 + `scnet_ds_pro`（post-fix）。
+
+| Backend | Passes | Avg Score | Avg Latency | Decision |
+|---|---:|---:|---:|---|
+| `kimi` / `kimi_thinking` / `kimi_search` | **3/3** | 100 | 3–11s | **Coding 候选**（JSON 围栏解析已修复） |
+| `scnet_ds_pro` | **3/3** | 100 | 9–16s（复测；直连偶发空响应→`http_sync` 空体 fail-fast） | 恢复 first-tier 深推理候选（仍慢于 flash） |
+
+Raw: `data/scnet_kimi_eval_20260526b.json`、`data/scnet_ds_pro_eval_retry.json`。
+
+---
+
+## 2026-05-26 Re-eval（local Windows proxy）
 
 Command: `scripts/eval_coding_backends.py` on 11 SCNet/Kimi backends × 3 coding cases.
 
@@ -14,9 +27,9 @@ Command: `scripts/eval_coding_backends.py` on 11 SCNet/Kimi backends × 3 coding
 | `scnet_ds_flash` | 3/3 | 100 | 2205ms | First tier |
 | `scnet_qwen235b` | 3/3 | 100 | 2388ms | First tier |
 | `scnet_large_ds_pro` | 3/3 | 100 | 75046ms | Local deep only (too slow for hot path) |
-| `kimi` / `kimi_thinking` / `kimi_search` | 2/3 | 80 | 4–7s | **Recovered** — `4504` no longer quota-blocked; fails strict JSON (markdown fences) |
+| `kimi` / `kimi_thinking` / `kimi_search` | 2/3 | 80 | 4–7s | **Superseded** —见 Re-eval B **3/3** |
 | `cf_kimi_k26` | 1/3 | 48 | 6776ms | Fallback only |
-| `scnet_ds_pro` | 0/3 | 0 | timeout/cooldown | Inactive this run |
+| `scnet_ds_pro` | 0/3 | 0 | timeout/cooldown | **Superseded** —timeout 90 + 空响应 guard；复测 **3/3** |
 | `stock_kimi_k2` | 0/3 | 0 | invalid/cooldown | Inactive |
 
 Raw: `data/scnet_kimi_eval_20260526.json`, `docs/CODING_BACKEND_RANKING.md`.
