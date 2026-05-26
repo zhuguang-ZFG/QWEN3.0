@@ -113,6 +113,25 @@ async def handle_motion_event(device_id: str, message: dict[str, Any], request_i
         session.mark_task_acknowledged(message["task_id"])
         await session.send_json(ack_frame("motion_event_ack", device_id, **summary, request_id=request_id))
 
+    # Notify Telegram for significant phase changes
+    phase = message.get("phase", "")
+    if phase in ("accepted", "running", "done", "failed"):
+        try:
+            from routes.telegram_cards import send_device_task_card
+            import time as _time
+
+            await send_device_task_card(
+                task_id=str(message.get("task_id", "")),
+                capability=str(message.get("source_capability", message.get("capability", ""))),
+                phase=phase,
+                progress_pct=int(message.get("progress", {}).get("percent", 0)),
+                error_code=str(message.get("error_code", message.get("error", {}).get("code", ""))) if phase == "failed" else "",
+                error_message=str(message.get("error_message", message.get("error", {}).get("message", ""))) if phase == "failed" else "",
+                device_id=device_id,
+            )
+        except Exception:
+            _log.debug("device task card notification failed", exc_info=True)
+
 
 async def handle_device_info(device_id: str, request_id: str | None) -> None:
     session = registry.get(device_id)

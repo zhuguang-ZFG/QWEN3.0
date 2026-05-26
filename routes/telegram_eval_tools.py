@@ -97,44 +97,46 @@ async def _evalslice_worker(chat_id: str, *, quick: bool) -> None:
     label = "quick" if quick else "full-11"
     out = "coding_backend_scores_*.json" if quick else "coding_backend_scores_full_*.json"
     set_eval_quiet(True)
+
+    from routes.telegram_cards import LiveStatusCard
+
+    card = LiveStatusCard(f"Eval {label} Starting", chat_id)
+    card.add(f"Mode: {'Quick 3x3' if quick else 'Full 11-backend'}")
+    msg_id = await card.send()
+    if msg_id is None:
+        msg_id = 0
+
     try:
+        await card.update(msg_id, "run")
         code, log_tail = await asyncio.to_thread(_run_eval_slice, quick=quick)
         if code == 0:
             summary = ""
             path = latest_scores_path(_ROOT / "data", full=not quick)
             if path:
                 try:
-                    summary = "\n\n" + summarize_eval_json(path)
+                    summary = summarize_eval_json(path)
                 except Exception:
                     _log.warning("eval slice summary failed path=%s", path, exc_info=True)
-            await telegram_bot.send_message(
-                f"Eval slice ({label}) 完成。见 data/{out}{summary}",
-                chat_id=chat_id,
-                parse_mode=_PLAIN,
-            )
+            card.add(f"Result: OK ({summary[:200] if summary else 'no summary'})")
+            await card.done(msg_id, ok=True)
             if path and eval_auto_archive_enabled():
                 try:
                     await _archive_eval_to_chat(
-                        chat_id,
-                        path,
-                        full=not quick,
-                        send_doc=not quick,
+                        chat_id, path, full=not quick, send_doc=not quick,
                     )
                 except Exception:
                     _log.warning("eval auto archive failed", exc_info=True)
         else:
-            detail = log_tail or "无输出"
+            detail = log_tail or ""
             if "eval_preflight_fail" in detail:
-                hint = "检查 lima-router /health 与 LIMA_EVAL_BASE_URL"
+                hint = "/health or LIMA_EVAL_BASE_URL issue"
             elif "missing script" in detail:
-                hint = "VPS 缺 eval 脚本，需 deploy eval bundle"
+                hint = "VPS missing eval script"
             else:
-                hint = "见 journalctl -u lima-router 或本机重跑脚本"
-            await telegram_bot.send_message(
-                f"Eval slice ({label}) 失败 exit={code}\n{detail[:500]}\n提示: {hint}",
-                chat_id=chat_id,
-                parse_mode=_PLAIN,
-            )
+                hint = "check journalctl"
+            card.add(f"Error: exit={code} {detail[:200]}")
+            card.add(f"Hint: {hint}")
+            await card.done(msg_id, ok=False)
     except Exception:
         _log.exception("evalslice worker failed")
         await telegram_bot.send_message(_operator_error("evalslice"), chat_id=chat_id)

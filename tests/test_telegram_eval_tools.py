@@ -30,7 +30,17 @@ async def test_cmd_evalslice_reports_success(monkeypatch):
     async def fake_send(text, **kwargs):
         sent.append(text)
 
+    async def fake_send_kb(text, keyboard=None, **kwargs):
+        sent.append(text)
+        return 42  # mock message_id
+
+    async def fake_edit(text, message_id, **kwargs):
+        sent.append(text)
+        return True
+
     monkeypatch.setattr(mod.telegram_bot, "send_message", fake_send)
+    monkeypatch.setattr(mod.telegram_bot, "send_message_with_keyboard", fake_send_kb)
+    monkeypatch.setattr(mod.telegram_bot, "edit_message_text", fake_edit)
     monkeypatch.setattr(mod, "_run_eval_slice", lambda quick=True: (0, "eval_preflight_ok health ok"))
 
     created = await _run_evalslice_tasks(mod, monkeypatch)
@@ -38,8 +48,8 @@ async def test_cmd_evalslice_reports_success(monkeypatch):
     assert created
     await created[0]
 
-    assert any("启动中" in s for s in sent)
-    assert any("完成" in s for s in sent)
+    assert any("Eval" in s for s in sent)
+    assert any("OK" in s for s in sent)
 
 
 async def test_cmd_evalslice_busy_guard(monkeypatch):
