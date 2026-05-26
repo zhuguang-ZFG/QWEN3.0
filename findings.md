@@ -22,6 +22,16 @@
 | FL-1-6 | Tests | focused 7 passed; full **1631 passed, 10 skipped** | Closed 2026-05-26 |
 | FL-1-7 | Ops | Manual Telegram `/github` `/device` on phone | Open |
 
+## 2026-05-26 TG-GH-6 deploy/smoke notify
+
+| ID | Area | Evidence | Status |
+|---|---|---|---|
+| TG-GH-6-1 | Code | `deploy_common` + `notify_ops_telegram` + wire deploy/smoke scripts | Closed 2026-05-26 |
+| TG-GH-6-2 | Import fix | VPS `scripts/` cwd → repo root on `sys.path` | Closed 2026-05-26 |
+| TG-GH-6-3 | VPS deploy | `telegram_notify_deploy=ok notify_ok` | Closed 2026-05-26 |
+| TG-GH-6-4 | VPS smoke | github_webhook + telegram_operator `telegram_notify_smoke=ok` | Closed 2026-05-26 |
+| TG-GH-6-5 | Tests | `test_deploy_common.py` 4 passed | Closed 2026-05-26 |
+
 ## 2026-05-26 TG-GH-5 GitHub events
 
 | ID | Area | Evidence | Status |

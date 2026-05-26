@@ -18,8 +18,10 @@ FILES = [
     "router_v3.py",
     "backends_constants.py",
     "telegram_operator_tools.py",
+    "telegram_notify.py",
     "routes/telegram.py",
     "routes/telegram_commands.py",
+    "scripts/notify_ops_telegram.py",
 ]
 
 
@@ -40,6 +42,7 @@ def main() -> int:
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(SERVER, username="root", key_filename=KEY, timeout=60)
+    _run(ssh, f"mkdir -p {REMOTE}/scripts")
 
     for rel in FILES:
         local = base / rel
@@ -62,9 +65,16 @@ def main() -> int:
     )
     print("chat_fast_strong_0:", verify.strip())
     active = _run(ssh, "systemctl is-active lima-router").strip()
-    ssh.close()
     ok = active == "active" and "google_flash_lite" in verify
     print("deploy_five_line_closeout_ok" if ok else "deploy_five_line_closeout_FAILED")
+    if ok:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import deploy_common
+
+        deploy_common.notify_deploy_success(
+            ssh, "five_line_closeout", service=active, detail=f"chat_fast={verify.strip()}",
+        )
+    ssh.close()
     return 0 if ok else 1
 
 

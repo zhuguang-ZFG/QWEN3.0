@@ -125,11 +125,24 @@ def main() -> int:
 
     ok_post = smoke_signed_post(secret)
     ok_log = smoke_journal(ssh)
-    ssh.close()
+
+    all_ok = ok_post and ok_log
+    if all_ok:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import deploy_common
+
+        deploy_common.notify_smoke_success(
+            ssh,
+            "github_webhook_public",
+            detail=f"signed_post={ok_post} journal={ok_log}",
+        )
 
     ok_push = True
     if args.push:
+        ssh.close()
         ok_push = real_push(Path(__file__).resolve().parent.parent, args.message)
+    else:
+        ssh.close()
 
     print(
         f"summary signed_post={ok_post} journal={ok_log} push={ok_push if args.push else 'skipped'}",

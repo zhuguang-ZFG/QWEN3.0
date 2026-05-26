@@ -17,11 +17,13 @@ KEY = os.environ.get("LIMA_DEPLOY_KEY_PATH", os.path.expanduser("~/.ssh/id_ed255
 FILES = [
     "webhook_activity_buffer.py",
     "telegram_digest.py",
+    "telegram_notify.py",
     "github_webhook/activity.py",
     "gitee_webhook/activity.py",
     "routes/github_webhook.py",
     "routes/gitee_webhook.py",
     "routes/telegram.py",
+    "scripts/notify_ops_telegram.py",
 ]
 
 
@@ -42,6 +44,7 @@ def main() -> int:
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(SERVER, username="root", key_filename=KEY, timeout=60)
+    _run(ssh, f"mkdir -p {REMOTE}/scripts")
 
     for rel in FILES:
         local = base / rel
@@ -66,8 +69,16 @@ def main() -> int:
     )
     print("digest_preview:", verify.replace("\n", " | "))
     active = _run(ssh, "systemctl is-active lima-router").strip()
+    ok = active == "active"
+    if ok:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import deploy_common
+
+        deploy_common.notify_deploy_success(
+            ssh, "telegram_digest", service=active, detail=verify.replace("\n", " | ")[:160],
+        )
     ssh.close()
-    return 0 if active == "active" else 1
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":

@@ -4,6 +4,15 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 TG-GH-6 deploy/smoke → Telegram
+
+- **模块**：`scripts/deploy_common.py`（`LIMA_DEPLOY_NOTIFY=1` 默认）、`scripts/notify_ops_telegram.py`、`telegram_notify.notify_deploy_event` / `notify_smoke_event`
+- **接线**：`deploy_github_webhook` / `deploy_five_line_closeout` / `deploy_gitee_webhook` / `deploy_telegram_digest` 成功 → `notify_deploy_success`；`smoke_github_webhook_public` / `smoke_telegram_operator_vps` 成功 → `notify_smoke_success`
+- **修复**：`notify_ops_telegram.py` 将 repo root 加入 `sys.path`（VPS 从 `scripts/` 运行时 import `telegram_notify`）
+- **VPS**：`deploy_github_webhook.py` → `telegram_notify_deploy=ok`；smoke 两条 → `telegram_notify_smoke=ok`
+- **测试**：`tests/test_deploy_common.py` **4 passed**；全量 **1632 passed, 10 skipped**（8× `test_healthcheck_ping` 网络/环境，与本次无关）
+- **下一刀**：CF-G-6 weekly inventory diff → Telegram；GI-G-3 re-probe（资源包绑定后）
+
 ## 2026-05-26 TG-GH-5 GitHub 事件加深
 
 - **format**：`issues`（opened/closed/labeled/reopened）、`release`（published）、PR **merged**
@@ -12,7 +21,7 @@
 - **部署**：`deploy_github_webhook.py` + `setup_github_webhook.py` → hook **630882225** 增 issues/release
 - **VPS smoke**：`smoke_github_webhook_public.py` push **200**
 - **测试**：`test_github_webhook.py` **20 passed**；全量 **1636 passed, 10 skipped**
-- **下一刀**：TG-GH-6 deploy/smoke Telegram 推送
+- ~~**下一刀**：TG-GH-6 deploy/smoke Telegram 推送~~ → 见 TG-GH-6 条目
 
 ## 2026-05-26 五线 closeout 第一刀（CF-G-3 + TG-GH-4 + GI-G-5）
 

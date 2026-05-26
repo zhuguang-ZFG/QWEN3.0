@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import os
 import sys
+from pathlib import Path
 
 import paramiko
 
@@ -36,12 +37,18 @@ def main() -> int:
     _stdin, stdout, stderr = ssh.exec_command(cmd, timeout=90)
     out = stdout.read().decode("utf-8", errors="replace").strip()
     err = stderr.read().decode("utf-8", errors="replace").strip()
-    ssh.close()
 
     if err:
         print(err, file=sys.stderr)
     print(out)
-    return 0 if "smoke_ok" in out else 1
+    ok = "smoke_ok" in out
+    if ok:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import deploy_common
+
+        deploy_common.notify_smoke_success(ssh, "telegram_operator", detail=out.replace("\n", " | ")[:200])
+    ssh.close()
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":

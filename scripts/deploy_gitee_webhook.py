@@ -26,6 +26,7 @@ FILES = [
     "routes/github_webhook.py",
     "routes/route_registry.py",
     "telegram_notify.py",
+    "scripts/notify_ops_telegram.py",
 ]
 
 ENV_KEYS = {
@@ -92,7 +93,7 @@ def main() -> int:
         _upsert_env(ssh, key, value)
     _upsert_env(ssh, "GITEE_WEBHOOK_SECRET", secret)
 
-    _run(ssh, f"mkdir -p {REMOTE}/gitee_webhook {REMOTE}/routes {REMOTE}/data")
+    _run(ssh, f"mkdir -p {REMOTE}/gitee_webhook {REMOTE}/routes {REMOTE}/data {REMOTE}/scripts")
 
     sftp = ssh.open_sftp()
     for rel in FILES:
@@ -124,6 +125,12 @@ def main() -> int:
     if ok:
         _log("deploy_gitee_webhook_ok")
         _log(f"Configure Gitee UI password = GITEE_WEBHOOK_SECRET (prefix {secret[:12]}...)")
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import deploy_common
+
+        deploy_common.notify_deploy_success(
+            ssh, "gitee_webhook", service=active, health=health,
+        )
     else:
         _log(_run(ssh, "journalctl -u lima-router -n 15 --no-pager"))
 

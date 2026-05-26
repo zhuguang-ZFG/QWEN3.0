@@ -26,6 +26,7 @@ FILES = [
     "routes/route_registry.py",
     "telegram_notify.py",
     "webhook_activity_buffer.py",
+    "scripts/notify_ops_telegram.py",
 ]
 
 ENV_KEYS = {
@@ -109,7 +110,7 @@ def main() -> int:
         _upsert_env(ssh, key, value)
     _upsert_env(ssh, "GITHUB_WEBHOOK_SECRET", secret)
 
-    _run(ssh, f"mkdir -p {REMOTE}/github_webhook {REMOTE}/routes")
+    _run(ssh, f"mkdir -p {REMOTE}/github_webhook {REMOTE}/routes {REMOTE}/scripts")
 
     sftp = ssh.open_sftp()
     for rel in FILES:
@@ -153,6 +154,12 @@ def main() -> int:
     _log("deploy_github_webhook_ok")
     _log("GITHUB_WEBHOOK_SECRET for GitHub UI setup (copy from VPS lima.env if needed)")
     _log(f"secret_prefix={secret[:12]}...")
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import deploy_common
+
+    deploy_common.notify_deploy_success(
+        ssh, "github_webhook", service=active, health=health,
+    )
     ssh.close()
     return 0
 

@@ -87,6 +87,22 @@ def notify_ops_event(summary: str, level: str = "warning") -> None:
     _fire_and_forget(telegram_bot.send_alert, level, summary)
 
 
+def notify_deploy_event(summary: str) -> None:
+    """Deploy script success (TG-GH-6)."""
+    if not telegram_bot.is_configured():
+        logger.debug("deploy notify skipped: telegram not configured")
+        return
+    _fire_and_forget(telegram_bot.send_message, summary)
+
+
+def notify_smoke_event(summary: str) -> None:
+    """Public smoke script success (TG-GH-6)."""
+    if not telegram_bot.is_configured():
+        logger.debug("smoke notify skipped: telegram not configured")
+        return
+    _fire_and_forget(telegram_bot.send_message, summary)
+
+
 _budget_last_notified: dict[str, float] = {}
 _BUDGET_RATE_LIMIT_SECONDS = 300
 

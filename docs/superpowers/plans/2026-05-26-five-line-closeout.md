@@ -40,7 +40,7 @@ P2  延后
 | | TG-GH-3 统一早报 | ✅ | — |
 | | TG-GH-4 `/github` `/device` | ✅ | — |
 | | TG-GH-5 事件加深 | ✅ | — |
-| | TG-GH-6 deploy/smoke 推送 | ❌ | — |
+| | TG-GH-6 deploy/smoke 推送 | ✅ | `LIMA_DEPLOY_NOTIFY=0` 可关 |
 | **GitHub** | CQ-GH-001 webhook | ✅ | — |
 | | TG-GH-5 issues/release/PR | ✅ | — |
 | **Gitee** | GI-G-0/1 镜像 | ✅ | — |
@@ -80,7 +80,7 @@ P2  延后
 - [ ] Telegram `/device status` 返回 health + task 摘要
 - [ ] `gitee_mirror_lag_check.py` 输出 SHA 一致/漂移
 - [ ] TG-GH-5 test issue → Telegram
-- [ ] deploy smoke → Telegram（TG-GH-6）
+- [x] deploy smoke → Telegram（TG-GH-6）
 - [ ] `progress.md` / `findings.md` 每刀 closeout
 
 ---
