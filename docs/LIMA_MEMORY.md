@@ -42,9 +42,8 @@
 
 ### 下一刀建议
 
-1. TG-10.0-3 手机 @bot inline smoke（BotFather Inline Mode）
-2. PE-A-1 safemcp/Glama 抓取增强（VPS cron weekly）
-3. B2B BotFather（客户端 rollout 后）
+1. PE-A-1 safemcp/Glama 抓取增强（VPS cron weekly）
+2. B2B BotFather（客户端 rollout 后）
 
 ---
 

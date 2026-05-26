@@ -11,6 +11,7 @@
 - **PE-A-1**：`scripts/inventory_mcp_registries.py` → `data/mcp_registry_snapshot.json`（merged **486**；official 800；glama 10）
 - **测试**：+11 focused；全量 **1685 passed, 10 skipped**
 - **VPS**：`deploy_telegram_inline_ok`；`/health` 200
+- **手机 12:32**：群聊 `@bot 用一句话解释 FastAPI Depends` → inline 结果正常（`deepseek_free` degraded 告警可忽略）
 
 ## 2026-05-26 TG-10.0-2 HTTP 审批 E2E + 409 回调 UX
 
