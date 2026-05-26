@@ -172,6 +172,102 @@ def source_osv_query(package: str, *, ecosystem: str = "PyPI") -> list[dict]:
     return results
 
 
+# ── ESP-IDF Documentation Search ──
+
+def source_espidf_search(query: str, *, limit: int = 5) -> list[dict]:
+    """Search Espressif ESP-IDF documentation and examples."""
+    results: list[dict] = []
+
+    # DuckDuckGo site-restricted search for ESP-IDF docs
+    try:
+        encoded = urllib.parse.quote(f"{query} site:docs.espressif.com")
+        url = f"https://api.duckduckgo.com/?q={encoded}&format=json&no_html=1"
+        data = _get_json(url)
+        for item in data.get("RelatedTopics", [])[:limit]:
+            if isinstance(item, dict):
+                results.append({
+                    "title": (item.get("Text") or item.get("FirstURL", ""))[:200],
+                    "url": item.get("FirstURL", ""),
+                    "source": "espidf_docs",
+                    "date": "",
+                    "summary": (item.get("Text") or "")[:400],
+                    "confidence": 0.6,
+                    "tags": ["esp32", "espidf", "documentation"],
+                })
+    except Exception:
+        _log.debug("espidf search failed", exc_info=True)
+
+    # Espressif GitHub examples
+    try:
+        token = __import__("os").environ.get("GITHUB_TOKEN", "")
+        if token:
+            q = urllib.parse.quote(f"{query} org:espressif topic:esp32")
+            gh_url = f"https://api.github.com/search/repositories?q={q}&sort=stars&per_page={min(limit, 5)}"
+            headers = {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"}
+            data = _get_json(gh_url, headers=headers)
+            for item in data.get("items", [])[:limit]:
+                results.append({
+                    "title": f"ESP-IDF: {item.get('full_name', '')}"[:200],
+                    "url": item.get("html_url", ""),
+                    "source": "espidf_github",
+                    "date": (item.get("updated_at") or "")[:10],
+                    "summary": (item.get("description") or "")[:400],
+                    "confidence": 0.55,
+                    "tags": ["esp32", "espidf", "example"] + item.get("topics", [])[:3],
+                })
+    except Exception:
+        _log.debug("espidf github search failed", exc_info=True)
+
+    return results
+
+
+# ── MCP Registry Search ──
+
+def source_mcp_registry_search(query: str, *, limit: int = 5) -> list[dict]:
+    """Search MCP registries (PulseMCP, Smithery) for available tools."""
+    results: list[dict] = []
+
+    # PulseMCP API
+    try:
+        encoded = urllib.parse.quote(query[:100])
+        url = f"https://api.pulsemcp.com/v1/packages/search?q={encoded}&limit={min(limit, 5)}"
+        data = _get_json(url)
+        for item in data.get("packages", data.get("results", []))[:limit]:
+            name = item.get("name", item.get("package_name", ""))
+            results.append({
+                "title": f"MCP: {name}"[:200],
+                "url": item.get("homepage", item.get("github_url", "")),
+                "source": "mcp_pulsemcp",
+                "date": item.get("updated_at", "")[:10],
+                "summary": item.get("description", "")[:400],
+                "confidence": 0.4,
+                "tags": ["mcp", "tool", name.lower()] if name else ["mcp"],
+            })
+    except Exception:
+        _log.debug("pulsemcp search failed", exc_info=True)
+
+    # Smithery Registry
+    try:
+        encoded = urllib.parse.quote(query[:100])
+        url = f"https://registry.smithery.ai/api/v1/servers/search?q={encoded}&limit={min(limit, 5)}"
+        data = _get_json(url)
+        for item in data.get("servers", data.get("results", []))[:limit]:
+            name = item.get("name", item.get("slug", ""))
+            results.append({
+                "title": f"MCP: {name}"[:200],
+                "url": item.get("homepage", item.get("url", "")),
+                "source": "mcp_smithery",
+                "date": item.get("updated_at", "")[:10],
+                "summary": item.get("description", "")[:400],
+                "confidence": 0.4,
+                "tags": ["mcp", "tool", name.lower()] if name else ["mcp"],
+            })
+    except Exception:
+        _log.debug("smithery search failed", exc_info=True)
+
+    return results
+
+
 # ── Unified feeder ──
 
 def feed_experience(
@@ -192,7 +288,7 @@ def feed_experience(
     Returns:
         {results: [...], saved_count: int}
     """
-    sources = sources or ["stackexchange", "github_issues"]
+    sources = sources or ["stackexchange", "github_issues", "osv", "espidf", "mcp_registry"]
     all_results: list[dict] = []
 
     for src in sources:
@@ -203,6 +299,10 @@ def feed_experience(
                 items = source_github_issues_search(query, limit=limit)
             elif src == "osv":
                 items = source_osv_query(query)
+            elif src == "espidf":
+                items = source_espidf_search(query, limit=limit)
+            elif src == "mcp_registry":
+                items = source_mcp_registry_search(query, limit=limit)
             else:
                 continue
             all_results.extend(items)
