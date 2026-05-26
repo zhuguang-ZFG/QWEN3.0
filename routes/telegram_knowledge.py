@@ -364,3 +364,56 @@ def _type_emoji(memory_type: str) -> str:
         "test_result": "\U0001f9ea", "ops_event": "\U0001f6a8",
         "exchange": "\U0001f4ac", "compacted": "\U0001f4e6",
     }.get(memory_type, "\U0001f4be")
+
+
+async def cmd_inbox(chat_id: str, args: str) -> None:
+    """Unified inbox: tasks, learning, CI, devices — one view."""
+    lines = ["*LiMa Inbox*", ""]
+    pending = 0
+
+    # Learning candidates
+    try:
+        from session_memory.shadow_mode import list_candidates
+        candidates = list_candidates(status="proposed")
+        if candidates:
+            lines.append(f"*Learn* ({len(candidates)} pending)")
+            for c in candidates[:3]:
+                icon = "\U0001f7e2" if c["confidence"] >= 0.8 else "\U0001f7e1"
+                lines.append(f"  {icon} {c['summary'][:80]}")
+            pending += len(candidates)
+            lines.append("")
+    except Exception:
+        pass
+
+    # Outcome Ledger
+    try:
+        from session_memory.outcome_ledger import stats
+        st = stats()
+        unlearned = st.get("unlearned", 0)
+        if unlearned:
+            lines.append(f"*Outcomes* ({unlearned} unlearned)")
+            lines.append(f"  Total: {st['total']} | Applied: {st.get('applied',0)} | Rejected: {st.get('rejected',0)}")
+            pending += unlearned
+            lines.append("")
+    except Exception:
+        pass
+
+    # Memory
+    try:
+        from session_memory.store_db import memory_stats
+        ms = memory_stats()
+        if ms.get("total"):
+            lines.append(f"*Memory*: {ms['total']} entries, {ms['embedding_pct']}% embeddings")
+            lines.append("")
+    except Exception:
+        pass
+
+    if pending == 0:
+        lines.append("All clear. Nothing needs attention.")
+    else:
+        lines.append(f"*{pending} items need attention*")
+        lines.append("/learn | /digest | /outcome for details")
+
+    await telegram_bot.send_message(
+        "\n".join(lines)[:4000], chat_id=chat_id, parse_mode="Markdown",
+    )

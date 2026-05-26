@@ -93,45 +93,128 @@ async def stop_mqtt_client() -> None:
 
 
 async def _mqtt_message_loop() -> None:
-    """Main MQTT message processing loop.
+    """Main MQTT message processing loop using paho-mqtt.
 
-    This is a stub that uses a simple socket-based approach for Mosquitto
-    compatibility. For production use with full MQTT 3.1.1/5.0 support,
-    install `paho-mqtt` or `gmqtt` and replace this loop.
+    Requires: pip install paho-mqtt
+    The MQTT client runs paho's network loop in a background thread
+    and bridges incoming messages to asyncio via queues.
     """
-    import socket
+    try:
+        import paho.mqtt.client as mqtt
+        import json as _json
+        import time as _time_mod
+    except ImportError:
+        _log.info("paho-mqtt not installed; MQTT transport remains in stub mode")
+        _log.info("Install: pip install paho-mqtt")
+        while True:
+            await asyncio.sleep(3600)
+        return  # unreachable
 
     from device_gateway.mqtt_topics import (
-        BROADCAST_TOPIC,
-        DOWNLINK_QOS,
-        LWT_OFFLINE,
-        LWT_ONLINE,
-        SERVER_SUB_FILTER,
-        device_status_topic,
+        LWT_OFFLINE, LWT_ONLINE, SERVER_SUB_FILTER,
+        device_downlink_topic, device_status_topic, device_uplink_topic,
     )
 
-    _log.info("MQTT loop: connecting to %s:%s", _MQTT_BROKER, _MQTT_PORT)
+    # Bridging: paho (sync) → asyncio
+    message_queue: asyncio.Queue[tuple[str, str, dict]] = asyncio.Queue()
 
-    # Stub mode: MQTT transport is ready for paho-mqtt integration.
-    # Full MQTT integration requires `pip install paho-mqtt` and:
-    #   1. Connect to broker with client_id + LWT
-    #   2. Subscribe to SERVER_SUB_FILTER ("lima/+/uplink")
-    #   3. On message: parse JSON, validate via protocol.validate_uplink()
-    #   4. Route to the same handlers as WebSocket (handle_hello, handle_heartbeat, etc.)
-    #   5. Drain downlink queues -> publish to device_downlink_topic()
-    #
-    # The topic contract and message format are defined in mqtt_topics.py.
-    # Protocol validators from protocol.py are reused as-is.
+    def on_connect(client, userdata, flags, reason_code, properties=None):
+        if reason_code == 0:
+            _log.info("MQTT connected to %s:%s", _MQTT_BROKER, _MQTT_PORT)
+            client.subscribe(SERVER_SUB_FILTER)
+            _log.info("MQTT subscribed: %s", SERVER_SUB_FILTER)
+        else:
+            _log.warning("MQTT connect failed: rc=%s", reason_code)
 
-    _log.info(
-        "MQTT stub active: topic=%s, broker=%s:%s, lwt=%s/%s",
-        SERVER_SUB_FILTER, _MQTT_BROKER, _MQTT_PORT,
-        device_status_topic(_MQTT_CLIENT_ID), LWT_ONLINE,
+    def on_message(client, userdata, msg):
+        try:
+            topic = msg.topic
+            payload = _json.loads(msg.payload.decode("utf-8", errors="replace"))
+            message_queue.put_nowait((topic, "uplink", payload))
+        except Exception:
+            _log.debug("MQTT message parse failed topic=%s", msg.topic, exc_info=True)
+
+    def on_disconnect(client, userdata, flags, reason_code, properties=None):
+        _log.info("MQTT disconnected: rc=%s", reason_code)
+
+    client = mqtt.Client(
+        mqtt.CallbackAPIVersion.VERSION2,
+        client_id=_MQTT_CLIENT_ID,
+    )
+    client.on_connect = on_connect
+    client.on_message = on_message
+    client.on_disconnect = on_disconnect
+
+    # LWT
+    client.will_set(
+        device_status_topic(_MQTT_CLIENT_ID),
+        LWT_OFFLINE, qos=0, retain=True,
     )
 
-    # Keep the task alive
-    while True:
-        await asyncio.sleep(60)
-        connected = len(_mqtt_devices)
-        if connected:
-            _log.debug("MQTT devices connected: %s", connected)
+    # Connect
+    try:
+        client.connect(_MQTT_BROKER, _MQTT_PORT, keepalive=60)
+        client.loop_start()
+        _log.info("MQTT loop started: broker=%s:%s id=%s", _MQTT_BROKER, _MQTT_PORT, _MQTT_CLIENT_ID)
+    except Exception as exc:
+        _log.warning("MQTT connect failed: %s (broker running?)", exc)
+        client.loop_start()
+        _log.info("MQTT will retry connection automatically")
+
+    # Main loop: process incoming messages + drain downlink queues
+    try:
+        while True:
+            try:
+                topic, direction, payload = await asyncio.wait_for(
+                    message_queue.get(), timeout=1.0,
+                )
+                # Parse device_id from topic: lima/{device_id}/uplink
+                parts = topic.split("/")
+                device_id = parts[1] if len(parts) > 1 else ""
+                msg_type = payload.get("type", "")
+
+                if msg_type == "hello" and device_id:
+                    register_mqtt_device(device_id)
+                    from device_gateway.mqtt_topics import device_downlink_topic
+                    ack = {"type": "hello_ack", "protocol": "lima-device-v1",
+                           "device_id": device_id, "server_time": int(_time_mod.time())}
+                    client.publish(
+                        device_downlink_topic(device_id),
+                        _json.dumps(ack), qos=1,
+                    )
+
+                if msg_type == "heartbeat" and device_id:
+                    ack = {"type": "heartbeat_ack", "device_id": device_id,
+                           "server_time": int(_time_mod.time())}
+                    client.publish(
+                        device_downlink_topic(device_id),
+                        _json.dumps(ack), qos=0,
+                    )
+
+                if msg_type == "motion_event" and device_id:
+                    # Forward to the WebSocket handler for ledger/card/ack
+                    try:
+                        from routes.device_gateway_ws_handlers import handle_motion_event
+                        await handle_motion_event(device_id, payload, None)
+                    except Exception:
+                        _log.debug("motion event forward failed", exc_info=True)
+
+            except asyncio.TimeoutError:
+                pass
+
+            # Drain downlink queues
+            for did, queue in list(_mqtt_devices.items()):
+                try:
+                    while True:
+                        msg = queue.get_nowait()
+                        client.publish(
+                            device_downlink_topic(did),
+                            _json.dumps(msg), qos=1,
+                        )
+                except asyncio.QueueEmpty:
+                    pass
+
+    finally:
+        client.loop_stop()
+        client.disconnect()
+        _log.info("MQTT transport stopped")
