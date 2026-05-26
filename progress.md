@@ -4,6 +4,17 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 CF-G-0 基线盘点（Cloudflare × Google）
+
+- **计划**：`docs/superpowers/plans/2026-05-26-cloudflare-google-maximization.md` Phase CF-G-0
+- **实现**：`provider_inventory/`（`cloudflare.py` / `google.py` / `compare.py`）
+- **脚本**：`scripts/inventory_cloudflare_models.py`、`inventory_google_models.py`、`run_cf_google_inventory.py`；VPS 部署 `deploy_run_cf_google_inventory.py`
+- **产出**：`data/cf_model_inventory.json`、`data/google_model_inventory.json`、`docs/CF_GOOGLE_INVENTORY_REPORT.md`
+- **本地 live fetch**（2026-05-26）：CF **73** 远程 / **13** 已注册且在列 / **60** 未注册；Google **35** 远程 / **2** 已注册且在列 / **33** 未注册
+- **修复**：CF search API 的 `id` 为 UUID，diff 改用 `name` 字段 `@cf/...` slug
+- **测试**：focused **7 passed**（`tests/test_provider_inventory.py`）
+- **下一刀**：CF-G-1 预算与 Telegram 告警
+
 ## 2026-05-26 执行主线切换
 
 - **当前优先：** Telegram × GitHub → `docs/superpowers/plans/2026-05-26-telegram-github-maximization.md`
