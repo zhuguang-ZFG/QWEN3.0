@@ -19,6 +19,19 @@ def test_build_unified_digest_includes_git_activity(tmp_path, monkeypatch):
     assert "GitHub 24h: 1 push" in text
     assert "Gitee 24h: 1 push" in text
     assert "Tasks:" in text
+    assert "Inventory 7d:" in text
+
+
+def test_build_unified_digest_inventory_weekly(tmp_path, monkeypatch):
+    monkeypatch.setenv("LIMA_DATA_DIR", str(tmp_path))
+    buf.reset_for_tests()
+    diff_path = tmp_path / "inventory_weekly_diff.json"
+    diff_path.write_text(
+        '{"cloudflare":{"status":"ok","added":["@cf/new/model"],"removed":[]},"google":null}',
+        encoding="utf-8",
+    )
+    text = build_unified_digest_text()
+    assert "@cf/new/model" in text
 
 
 def test_format_activity_empty(tmp_path, monkeypatch):

@@ -49,7 +49,7 @@ P2  延后
 | | GI-G-5 digest + mirror lag | ✅ | — |
 | **Cloudflare** | CF-G-0/1/2 | ✅ | — |
 | | CF-G-3 路由 | ✅ | — |
-| | CF-G-6 inventory diff | ❌ | — |
+| | CF-G-6 inventory diff | ✅ | Google fetch VPS 网络偶发失败 |
 | **Google** | CF-G-0 inventory | ✅ | — |
 | | CF-G-1 budget | ✅ | — |
 | | CF-G-3 路由优化 | ✅ | VPS 待 chat_fast 命中证据 |
@@ -81,6 +81,7 @@ P2  延后
 - [ ] `gitee_mirror_lag_check.py` 输出 SHA 一致/漂移
 - [ ] TG-GH-5 test issue → Telegram
 - [x] deploy smoke → Telegram（TG-GH-6）
+- [x] weekly inventory diff → Telegram digest（CF-G-6）
 - [ ] `progress.md` / `findings.md` 每刀 closeout
 
 ---

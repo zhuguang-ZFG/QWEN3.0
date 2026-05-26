@@ -12,6 +12,13 @@ from provider_inventory.cloudflare import (
     parse_cloudflare_response,
 )
 from provider_inventory.compare import compare_inventory, format_inventory_report
+from provider_inventory.weekly_diff import (
+    compute_weekly_diff,
+    diff_inventories,
+    extract_model_ids,
+    format_weekly_diff_digest,
+    save_daily_snapshot,
+)
 from provider_inventory.google import (
     fetch_google_models,
     normalize_google_item,
@@ -146,3 +153,67 @@ def test_format_inventory_report_contains_counts():
     text = format_inventory_report(cf_inv, cf_diff, None, None)
     assert "Cloudflare Workers AI" in text
     assert "Unregistered remote models" in text
+
+
+def test_weekly_diff_added_removed():
+    old = {
+        "provider": "cloudflare",
+        "models": [{"model_id": "@cf/a/model-one"}],
+    }
+    new = {
+        "provider": "cloudflare",
+        "models": [
+            {"model_id": "@cf/a/model-one"},
+            {"model_id": "@cf/b/model-two"},
+        ],
+    }
+    result = diff_inventories(old, new)
+    assert result is not None
+    assert result["added"] == ["@cf/b/model-two"]
+    assert result["removed"] == []
+    assert result["status"] == "ok"
+
+
+def test_compute_weekly_diff_writes_json(tmp_path, monkeypatch):
+    monkeypatch.setenv("LIMA_DATA_DIR", str(tmp_path))
+    cf_old = {
+        "provider": "cloudflare",
+        "models": [{"model_id": "@cf/old/model"}],
+    }
+    save_daily_snapshot(cf_old, day=__import__("datetime").date(2026, 5, 10))
+    cf_new = {
+        "provider": "cloudflare",
+        "models": [
+            {"model_id": "@cf/old/model"},
+            {"model_id": "@cf/new/gemini-like"},
+        ],
+    }
+    payload = compute_weekly_diff(
+        cf_new,
+        None,
+        min_age_days=7,
+        today=__import__("datetime").date(2026, 5, 26),
+    )
+    assert payload["cloudflare"]["added"] == ["@cf/new/gemini-like"]
+    assert (tmp_path / "inventory_weekly_diff.json").is_file()
+
+
+def test_format_weekly_diff_digest_shows_added():
+    text = format_weekly_diff_digest(
+        {
+            "cloudflare": {
+                "status": "ok",
+                "added": ["@cf/foo", "@cf/bar"],
+                "removed": [],
+            },
+            "google": {
+                "status": "ok",
+                "added": ["gemini-new"],
+                "removed": ["gemini-old"],
+            },
+        }
+    )
+    assert "Inventory 7d:" in text
+    assert "CF" in text
+    assert "Google" in text
+    assert "@cf/foo" in text

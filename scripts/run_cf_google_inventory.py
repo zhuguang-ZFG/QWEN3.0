@@ -19,6 +19,7 @@ load_dotenv(ROOT / ".env")
 from provider_inventory.cloudflare import credentials_configured as cf_ready
 from provider_inventory.cloudflare import fetch_cloudflare_models
 from provider_inventory.compare import compare_inventory, format_inventory_report
+from provider_inventory.weekly_diff import compute_weekly_diff
 from provider_inventory.google import credentials_configured as google_ready
 from provider_inventory.google import fetch_google_models
 
@@ -93,6 +94,15 @@ def main() -> int:
         print(
             f"google unregistered={len(google_diff.get('unregistered_remote', []))} "
             f"registered={google_diff.get('registered_backend_count', 0)}"
+        )
+
+    if cf_inventory or google_inventory:
+        weekly = compute_weekly_diff(cf_inventory, google_inventory)
+        cf_w = weekly.get("cloudflare") or {}
+        google_w = weekly.get("google") or {}
+        print(
+            f"weekly_diff cf_added={len(cf_w.get('added', []))} "
+            f"google_added={len(google_w.get('added', []))}"
         )
 
     return exit_code

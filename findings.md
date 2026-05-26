@@ -22,6 +22,16 @@
 | FL-1-6 | Tests | focused 7 passed; full **1631 passed, 10 skipped** | Closed 2026-05-26 |
 | FL-1-7 | Ops | Manual Telegram `/github` `/device` on phone | Open |
 
+## 2026-05-26 CF-G-6 inventory weekly diff
+
+| ID | Area | Evidence | Status |
+|---|---|---|---|
+| CF-G-6-1 | Code | `provider_inventory/weekly_diff.py` + digest line | Closed 2026-05-26 |
+| CF-G-6-2 | Inventory hook | `run_cf_google_inventory.py` writes `inventory_weekly_diff.json` | Closed 2026-05-26 |
+| CF-G-6-3 | VPS | CF 73 models; diff file on VPS; digest `collecting baseline` | Closed 2026-05-26 |
+| CF-G-6-4 | Smoke | `smoke_weekly_inventory_vps.py` smoke_ok | Closed 2026-05-26 |
+| CF-G-6-5 | Residual | Google fetch on VPS: Network unreachable | Open |
+
 ## 2026-05-26 TG-GH-6 deploy/smoke notify
 
 | ID | Area | Evidence | Status |

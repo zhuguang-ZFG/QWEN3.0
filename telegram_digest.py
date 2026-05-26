@@ -42,6 +42,15 @@ def _budget_excerpt() -> str:
         return "Budget: (unavailable)"
 
 
+def _inventory_weekly_excerpt() -> str:
+    try:
+        from provider_inventory.weekly_diff import format_weekly_diff_digest, load_weekly_diff
+
+        return format_weekly_diff_digest(load_weekly_diff())
+    except Exception:
+        return "Inventory 7d: (unavailable)"
+
+
 def build_unified_digest_text(*, hours: float = 24.0) -> str:
     today = time.strftime("%Y-%m-%d")
     counts = _health_counts()
@@ -54,6 +63,7 @@ def build_unified_digest_text(*, hours: float = 24.0) -> str:
         *format_activity_lines(hours),
         _task_summary(),
         _budget_excerpt(),
+        _inventory_weekly_excerpt(),
         f"Requests today: {get_total_requests_today()}",
     ]
     dead_list = [b for b, s in health_tracker.get_health_map().items() if s == "dead"]

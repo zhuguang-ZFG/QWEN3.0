@@ -4,6 +4,17 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 CF-G-6 weekly inventory diff → Telegram
+
+- **模块**：`provider_inventory/weekly_diff.py` — 日快照、`find_week_baseline_inventory`（≥7d）、`compute_weekly_diff`、`format_weekly_diff_digest`
+- **接线**：`run_cf_google_inventory.py` 每次拉取后写 `data/inventory_weekly_diff.json`；`telegram_digest.build_unified_digest_text` 增加 `Inventory 7d:` 行
+- **部署**：`deploy_run_cf_google_inventory.py` + `deploy_telegram_digest.py` 含 `weekly_diff.py`
+- **VPS**：CF inventory 73 models；digest 行 `Inventory 7d: CF: collecting baseline`（首周无 7d 基线属预期）
+- **Smoke**：`scripts/smoke_weekly_inventory_vps.py` → **smoke_ok**
+- **测试**：`test_provider_inventory` +3、`test_telegram_digest` +1 → focused **18 passed**；全量 **1636 passed, 10 skipped**
+- **残余**：VPS Google inventory `Network is unreachable`（CF 侧已闭环）
+- **下一刀**：GI-G-3 re-probe（资源包）；FL-1-7 手机手工试命令；五线 P0 基本收齐 → 可启生产力计划 PE-C-1
+
 ## 2026-05-26 TG-GH-6 deploy/smoke → Telegram
 
 - **模块**：`scripts/deploy_common.py`（`LIMA_DEPLOY_NOTIFY=1` 默认）、`scripts/notify_ops_telegram.py`、`telegram_notify.notify_deploy_event` / `notify_smoke_event`

@@ -18,6 +18,8 @@ FILES = [
     "provider_inventory/cloudflare.py",
     "provider_inventory/google.py",
     "provider_inventory/compare.py",
+    "provider_inventory/weekly_diff.py",
+    "telegram_digest.py",
     "scripts/run_cf_google_inventory.py",
     "scripts/inventory_cloudflare_models.py",
     "scripts/inventory_google_models.py",

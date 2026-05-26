@@ -18,6 +18,8 @@ FILES = [
     "webhook_activity_buffer.py",
     "telegram_digest.py",
     "telegram_notify.py",
+    "provider_inventory/__init__.py",
+    "provider_inventory/weekly_diff.py",
     "github_webhook/activity.py",
     "gitee_webhook/activity.py",
     "routes/github_webhook.py",
@@ -44,7 +46,7 @@ def main() -> int:
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(SERVER, username="root", key_filename=KEY, timeout=60)
-    _run(ssh, f"mkdir -p {REMOTE}/scripts")
+    _run(ssh, f"mkdir -p {REMOTE}/scripts {REMOTE}/provider_inventory")
 
     for rel in FILES:
         local = base / rel
