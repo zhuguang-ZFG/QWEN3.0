@@ -121,29 +121,3 @@ jobs:
 
       - name: Run RAG gate pytest marker
         run: python -m pytest -q -m rag_gate
-
-  notify:
-    name: Notify Telegram
-    needs: [test, rag-gate]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Send notification
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: |
-          if [ "${{ needs.test.result }}" = "success" ] && [ "${{ needs.rag-gate.result }}" = "success" ]; then
-            python scripts/ci_notify.py "CI passed" "LiMa CI (test + rag-gate)"
-          else
-            DETAIL="test=${{ needs.test.result }} rag-gate=${{ needs.rag-gate.result }}"
-            python scripts/ci_notify.py "CI FAILED" "LiMa CI ${DETAIL}" --status failure
-          fi
