@@ -52,6 +52,8 @@ Telegram servers → https://chat.donglicao.com/telegram/webhook
 | `GFW_PROXY` | FRP 隧道代理（VPS→Windows clash） | `http://127.0.0.1:7897` |
 | `TELEGRAM_WEBHOOK_SECRET` | webhook 验证密钥 | 随机字符串 |
 | `TELEGRAM_DIGEST_HOUR` | 每日摘要推送时间（默认 9） | `9` |
+| `TELEGRAM_STREAM_CHAT` | `/chat` 流式 draft（Bot API 9.3+ `sendMessageDraft`） | `1` |
+| `TELEGRAM_STREAM_THROTTLE_MS` | draft 更新最小间隔 ms | `800` |
 
 ## 模块职责
 
@@ -62,6 +64,13 @@ Telegram servers → https://chat.donglicao.com/telegram/webhook
 - `send_alert(level, text)` — 告警消息（🔴/🟡/🟢 前缀）
 - `answer_callback(callback_query_id, text)` — 确认按钮点击
 - `is_configured() / is_authorized(chat_id)` — 守卫函数
+
+### telegram_draft_stream.py + routes/telegram_chat_stream.py（TG-10.0-1）
+
+- `/chat` 默认走 **sendMessageDraft** 逐字预览 + 最终 **sendMessage** 持久化
+- 复用 `speculative_stream_chunks`（与 HTTP SSE 同路由池）
+- 工具关键词路径（天气/汇率等）仍走 `fc_caller`，不流式
+- `TELEGRAM_STREAM_CHAT=0` 回退整段 `sendMessage`
 
 ### routes/telegram.py（路由 + 分发，~260 行）
 

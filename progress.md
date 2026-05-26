@@ -4,6 +4,15 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 TG-10.0-1 Telegram 流式 /chat
+
+- **实现**：`telegram_draft_stream.py` + `routes/telegram_chat_stream.py`；`/chat` 默认 `sendMessageDraft` 预览 + `sendMessage` 落盘
+- **路由**：复用 `speculative_stream_chunks`（与 HTTP SSE 同池）；工具关键词仍走 `fc_caller`
+- **Env**：`TELEGRAM_STREAM_CHAT=1`（默认开）；`TELEGRAM_STREAM_THROTTLE_MS=800`
+- **VPS**：`deploy_telegram_stream_ok`
+- **测试**：+6 draft stream；全量 **1666 passed, 10 skipped**
+- **待验收**：手机 `/chat` 长回答是否逐字 draft
+
 ## 2026-05-26 PE-C-2-3 + PE-D-1-2 + PE-F-1
 
 - **PE-C-2-3**：`enable_openobserve_vps.py` → **enable_openobserve_ok**（`OPENOBSERVE_ENABLED=1`；export_ok；journal 100 行 ship_ok）

@@ -161,6 +161,7 @@ class TestTelegramOptionalLocalTools:
             sent.append((text, chat_id))
             return True
 
+        monkeypatch.setenv("TELEGRAM_STREAM_CHAT", "0")
         monkeypatch.setattr(telegram_commands, "_optional_import", lambda _name: None)
         monkeypatch.setattr(telegram_commands.telegram_bot, "send_message", fake_send_message)
         monkeypatch.setattr(

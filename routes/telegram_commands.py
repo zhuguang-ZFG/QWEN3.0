@@ -59,6 +59,15 @@ async def cmd_chat(chat_id: str, message: str) -> None:
                     suffix = f"\n\n🔧 {', '.join(tools_used)}" if tools_used else ""
                     await telegram_bot.send_message((answer + suffix) or "(empty)", chat_id=chat_id)
                     return
+        from telegram_draft_stream import stream_chat_enabled
+
+        if stream_chat_enabled():
+            from routes.telegram_chat_stream import stream_chat_to_telegram
+
+            answer = await stream_chat_to_telegram(chat_id, message, list(history))
+            if answer and answer != "(empty response)":
+                history.append({"role": "assistant", "content": answer})
+            return
         result = routing_engine.route(
             query=message, messages=list(history), call_fn=http_caller.call_api,
         )
