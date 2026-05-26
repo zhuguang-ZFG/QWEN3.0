@@ -28,7 +28,7 @@ def save_memory(
     conn.commit()
     entry_id = cur.lastrowid
     conn.close()
-    return entry_id
+    return entry_id or 0
 
 
 def get_recent_memories(

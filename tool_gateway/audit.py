@@ -68,7 +68,7 @@ def _sanitize_value(value: object) -> object:
 # ── In-memory audit ─────────────────────────────────────────────────────────
 
 def audit_event(event_type: str, **kwargs) -> dict:
-    event = _sanitize_value({"time": int(time.time()), "event": event_type, **kwargs})
+    event: dict = _sanitize_value({"time": int(time.time()), "event": event_type, **kwargs})  # type: ignore[assignment]
     with _lock:
         _events.append(event)
         if len(_events) > 1000:
