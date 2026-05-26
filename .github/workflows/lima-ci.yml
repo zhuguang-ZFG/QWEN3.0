@@ -147,4 +147,3 @@ jobs:
             DETAIL="test=${{ needs.test.result }} rag-gate=${{ needs.rag-gate.result }}"
             python scripts/ci_notify.py "CI FAILED" "LiMa CI ${DETAIL}" --status failure
           fi
-          fi
