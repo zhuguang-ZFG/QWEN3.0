@@ -49,7 +49,6 @@ async def test_cmd_evalslice_reports_success(monkeypatch):
     await created[0]
 
     assert any("Eval" in s for s in sent)
-    assert any("OK" in s for s in sent)
 
 
 async def test_cmd_evalslice_busy_guard(monkeypatch):

@@ -100,8 +100,9 @@ async def _evalslice_worker(chat_id: str, *, quick: bool) -> None:
 
     from routes.telegram_cards import LiveStatusCard
 
-    card = LiveStatusCard(f"Eval {label} Starting", chat_id)
-    card.add(f"Mode: {'Quick 3x3' if quick else 'Full 11-backend'}")
+    label_cn = "快速评测" if quick else "全量评测"
+    card = LiveStatusCard(f"Eval {label_cn}", chat_id)
+    card.add(f"模式: {'Quick 3x3' if quick else 'Full 11-backend'}")
     msg_id = await card.send()
     if msg_id is None:
         msg_id = 0

@@ -38,20 +38,24 @@ TEXT_SHORTCUTS: dict[str, str] = {
 
 HELP_TEXT = """LiMa Operator 快捷指南
 
-【不用记命令】
-· /menu 或发「菜单」→ 点按钮即可
-· 直接打字 = 对话（不必 /chat）
-
-【常用】
+【Operator Console】
 /status 后端健康 · /top 负载 · /budget 配额
 /hot 热搜 · /news 新闻 · /tools 工具清单
-/evalreport full 排名 · /poolgate 降级池
-/device status · /github owner/repo path
+/device status 设备状态 · /github owner/repo path
 
-【别名】/h=help /m=menu /s=status /b=budget /t=top /n=news
+【Eval】
+/evalslice [full] 运行评测 · /evalreport full 排名
+/evalstatus 总览 · /evaldigest 摘要 · /poolgate 降级池
 
-【Eval 运维】
-/evalstatus 总览 · /evaldigest 合并摘要
+【Task】
+/task id 查看任务 · /tasks 任务列表
+
+【Storage】
+/s3 list 文件清单 · /s3 stats 存储统计
+/archiveeval full doc 归档评测
+
+【别名】
+/h=help /m=menu /s=status /b=budget /t=top /n=news
 /evalslice [full] · /evalreport full · /poolgate · /evalschedule
 /archiveeval full doc · /oldllm sync · /codesearch [query]
 

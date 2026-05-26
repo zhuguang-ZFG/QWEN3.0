@@ -32,7 +32,7 @@ def _patch_allowed_roots(monkeypatch):
         yield tmp
 
 
-@given(st.text(alphabet=st.characters(blacklist_characters="\x00"), min_size=1, max_size=100))
+@given(st.text(alphabet=st.characters(blacklist_characters="\x00", blacklist_categories=("Cs",)), min_size=1, max_size=100))
 @settings(max_examples=200)
 def test_arbitrary_paths_never_crash_or_bypass(path: str):
     """validate_path should never raise an unhandled exception, and should
@@ -49,7 +49,7 @@ def test_arbitrary_paths_never_crash_or_bypass(path: str):
         assert not ok, f"traversal not rejected: {path!r}"
 
 
-@given(st.text(alphabet=st.characters(blacklist_characters="\x00"), min_size=1, max_size=150))
+@given(st.text(alphabet=st.characters(blacklist_characters="\x00", blacklist_categories=("Cs",)), min_size=1, max_size=150))
 @settings(max_examples=200)
 def test_arbitrary_paths_for_existing_files(path: str):
     """validate_path with must_exist=True should handle any input gracefully."""

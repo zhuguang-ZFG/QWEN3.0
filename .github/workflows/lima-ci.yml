@@ -121,3 +121,12 @@ jobs:
 
       - name: Run RAG gate pytest marker
         run: python -m pytest -q -m rag_gate
+
+      - name: Notify Telegram
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          STATUS="${{ job.status == 'success' && 'passed' || 'FAILED' }}"
+          python scripts/ci_notify.py "CI $STATUS" "LiMa CI on ${{ github.ref_name }}" --status "${{ job.status }}"

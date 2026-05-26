@@ -113,6 +113,17 @@ async def _dispatch_operator(chat_id: str, cmd: str, arg: str, *, logs_fn, resta
     if cmd == "/oldllm":
         await cmd_oldllm(chat_id, arg)
         return True
+    if cmd == "/s3":
+        from routes.telegram_tgs3_commands import cmd_s3_list, cmd_s3_put, cmd_s3_stats
+
+        sub = arg.strip().split()[0] if arg.strip() else "list"
+        if sub == "put":
+            await cmd_s3_put(chat_id, arg)
+        elif sub == "stats":
+            await cmd_s3_stats(chat_id, arg)
+        else:
+            await cmd_s3_list(chat_id, arg)
+        return True
     return False
 
 
