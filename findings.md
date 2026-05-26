@@ -14,6 +14,11 @@
 | PE-C-1-2 | Smoke | `smoke_netdata_mcp_vps.py` smoke_ok | Closed 2026-05-26 |
 | PE-C-1-3 | Ops | 19999 binds 0.0.0.0 — restrict to loopback recommended | Open |
 
+| FL-1-7-1 | Ops | `/github` phone 11:01 title/body ok | Closed 2026-05-26 |
+| FL-1-7-2 | Bug | multi-line message ignored 2nd command | Closed 2026-05-26 |
+| FL-1-7-3 | Code | `_dispatch_command_lines` + `parse_github_args` first line | Closed 2026-05-26 |
+| FL-1-7-4 | Ops | phone re-test `/github` + `/device` same message | Open |
+
 ## 2026-05-26 Five-line closeout slice 1
 
 | ID | Area | Evidence | Status |

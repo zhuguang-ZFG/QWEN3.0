@@ -180,6 +180,16 @@ async def _cmd_restart(chat_id: str) -> None:
     })
 
 
+async def _dispatch_command_lines(chat_id: str, text: str) -> None:
+    """Run each slash-command line in a multi-line Telegram message."""
+    lines = [ln.strip() for ln in (text or "").splitlines() if ln.strip().startswith("/")]
+    if not lines:
+        await _dispatch_command(chat_id, text)
+        return
+    for line in lines:
+        await _dispatch_command(chat_id, line)
+
+
 async def _dispatch_command(chat_id: str, text: str) -> None:
     parts = text.strip().split(maxsplit=1)
     cmd = parts[0].lower().split("@")[0]
@@ -297,7 +307,7 @@ async def webhook(request: Request):
         if not telegram_bot.is_authorized(chat_id):
             logger.warning("Unauthorized chat_id: %s", chat_id)
             return {"ok": True}
-        await _dispatch_command(chat_id, message["text"])
+        await _dispatch_command_lines(chat_id, message["text"])
     elif message and message.get("text"):
         chat_id = str(message["chat"]["id"])
         if telegram_bot.is_authorized(chat_id):

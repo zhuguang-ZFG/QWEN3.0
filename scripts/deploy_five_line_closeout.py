@@ -21,6 +21,7 @@ FILES = [
     "telegram_notify.py",
     "telegram_push_translate.py",
     "channel_gateway/public_apis.py",
+    "telegram_operator_tools.py",
     "routes/telegram.py",
     "routes/telegram_commands.py",
     "scripts/notify_ops_telegram.py",

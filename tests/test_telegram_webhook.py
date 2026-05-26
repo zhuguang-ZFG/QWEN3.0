@@ -44,7 +44,7 @@ def test_webhook_requires_secret_when_bot_configured(monkeypatch):
 
 def test_webhook_accepts_valid_secret(telegram_env):
     client = TestClient(server.app)
-    with patch("routes.telegram._dispatch_command", new_callable=AsyncMock) as dispatch:
+    with patch("routes.telegram._dispatch_command_lines", new_callable=AsyncMock) as dispatch:
         response = client.post(
             "/telegram/webhook",
             json={
@@ -58,6 +58,35 @@ def test_webhook_accepts_valid_secret(telegram_env):
     assert response.status_code == 200
     assert response.json() == {"ok": True}
     dispatch.assert_awaited_once()
+
+
+def test_webhook_multiline_commands(telegram_env):
+    client = TestClient(server.app)
+    with patch("routes.telegram._dispatch_command", new_callable=AsyncMock) as dispatch:
+        response = client.post(
+            "/telegram/webhook",
+            json={
+                "message": {
+                    "text": "/github psf/requests README.md main\n/device status",
+                    "chat": {"id": 987654321},
+                }
+            },
+            headers={"x-telegram-bot-api-secret-token": "hook-secret"},
+        )
+    assert response.status_code == 200
+    assert dispatch.await_count == 2
+    dispatch.assert_any_await("987654321", "/github psf/requests README.md main")
+    dispatch.assert_any_await("987654321", "/device status")
+
+
+def test_parse_github_args_ignores_extra_lines():
+    from telegram_operator_tools import parse_github_args
+
+    assert parse_github_args("psf/requests README.md main\n/device status") == (
+        "psf/requests",
+        "README.md",
+        "main",
+    )
 
 
 def test_webhook_skips_auth_when_bot_not_configured(monkeypatch):

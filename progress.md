@@ -4,6 +4,14 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 FL-1-7 多命令 Telegram 修复
+
+- **问题**：同条消息 `/github …` + `/device status` 仅执行首行
+- **修复**：`_dispatch_command_lines` 按行 dispatch；`parse_github_args` 只读首行
+- **测试**：`test_webhook_multiline_commands` + `test_parse_github_args_ignores_extra_lines`；focused **20 passed**；全量 **1645 passed, 10 skipped**（`test_healthcheck_ping` 全量偶发 8 fail，单跑 9 passed — 与本次无关）
+- **VPS**：`deploy_five_line_closeout_ok`（含 `telegram_operator_tools.py`）
+- **待验收**：手机复测两行同发
+
 ## 2026-05-26 TG-GH-7 推送翻译 + FL-1-7 手机验收
 
 - **FL-1-7**：手机 `/github psf/requests README.md main` ✅；修复 Markdown 乱链 → 纯文本 + `title\n---\nbody`

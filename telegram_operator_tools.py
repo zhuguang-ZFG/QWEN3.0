@@ -17,7 +17,8 @@ def _loopback_root() -> str:
 
 
 def parse_github_args(args: str) -> tuple[str, str, str] | None:
-    parts = args.split()
+    first_line = (args or "").splitlines()[0].strip()
+    parts = first_line.split()
     if len(parts) < 2:
         return None
     repo = parts[0].strip()
