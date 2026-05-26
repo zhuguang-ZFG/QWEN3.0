@@ -2,6 +2,15 @@
 
 > Created: 2026-05-22
 
+## 2026-05-26 GitHub Webhook → Telegram（CQ-GH-001）
+
+- **设计**：`docs/GITHUB_WEBHOOK_INTEGRATION.md`；计划 `docs/superpowers/plans/2026-05-26-github-webhook-telegram.md`
+- **实现**：`github_webhook/verify.py` + `format.py`；`routes/github_webhook.py`；`telegram_notify.notify_github_event`
+- **事件**：push / pull_request（opened/merged 等）/ workflow_run（仅 failure 等非 success）
+- **安全**：默认关（`GITHUB_WEBHOOK_ENABLED`）；HMAC-SHA256 验签；可选 `GITHUB_WEBHOOK_REPOS` 白名单
+- **测试**：focused 12 passed；全量 **1559 passed, 10 skipped**
+- **待办**：VPS 配 env + GitHub repo webhook + nginx 无需改（已有 `/github/` 路径）；smoke 一次真实 push
+
 ## 2026-05-26 代码质量 P2 拆分（CQ-099）
 
 - **H1 anthropic_stream**：拆为 `anthropic_stream_sse.py` + `anthropic_stream_branches.py`；facade ~195 行；`inject_deps` → `AnthropicStreamDeps` + `_require_deps()`

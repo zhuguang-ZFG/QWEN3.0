@@ -63,3 +63,10 @@ def notify_error_spike(error_rate: float, strategy: str) -> None:
         return
     msg = f"Error rate {error_rate:.0%} → strategy switched to `{strategy}`"
     _fire_and_forget(telegram_bot.send_alert, "warning", msg)
+
+
+def notify_github_event(summary: str) -> None:
+    if not telegram_bot.is_configured():
+        logger.debug("github event skipped: telegram not configured")
+        return
+    _fire_and_forget(telegram_bot.send_message, summary)
