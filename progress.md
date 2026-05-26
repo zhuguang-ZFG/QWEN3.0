@@ -9,7 +9,12 @@
 - **事件**：push / pull_request（opened/merged 等）/ workflow_run（仅 failure 等非 success）
 - **安全**：默认关（`GITHUB_WEBHOOK_ENABLED`）；HMAC-SHA256 验签；可选 `GITHUB_WEBHOOK_REPOS` 白名单
 - **测试**：focused 12 passed；全量 **1559 passed, 10 skipped**
-- **待办**：VPS 配 env + GitHub repo webhook + nginx 无需改（已有 `/github/` 路径）；smoke 一次真实 push
+- **VPS 部署**（2026-05-26）：
+  - `scripts/deploy_github_webhook.py` → `.env` 写入 `GITHUB_WEBHOOK_*`
+  - `scripts/patch_nginx_github_webhook.py` → 补 `location ^~ /github/`（此前 POST 405）
+  - `scripts/setup_github_webhook.py` → GitHub hook id=630882225
+  - 公网 signed smoke **200**；真实 push 后 GitHub `140.82.115.x` → **200 OK** ×3
+- **Git**：`a0d159c` push `codex/free-web-ai-probe`
 
 ## 2026-05-26 代码质量 P2 拆分（CQ-099）
 
