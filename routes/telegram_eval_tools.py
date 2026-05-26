@@ -73,3 +73,35 @@ async def cmd_evalreport(chat_id: str, args: str) -> None:
     except Exception:
         _log.exception("cmd_evalreport failed")
         await telegram_bot.send_message(_operator_error("evalreport"), chat_id=chat_id)
+
+
+async def cmd_archiveeval(chat_id: str, args: str) -> None:
+    """Write eval summary into this chat history ([TG-ARCHIVE] cold storage)."""
+    mode = args.strip().lower()
+    full = mode in ("full", "all", "11")
+    path = latest_scores_path(_ROOT / "data", full=full)
+    if not path:
+        label = "full-11" if full else "quick"
+        await telegram_bot.send_message(
+            f"尚无 {label} eval JSON（先跑 /evalslice{' full' if full else ''}）",
+            chat_id=chat_id,
+        )
+        return
+    try:
+        top = 11 if full else 5
+        body = summarize_eval_json(path, top_n=top)
+        label = f"eval-{'full' if full else 'quick'}:{path.name}"
+        from telegram_archive import format_archive_message, chunk_text
+
+        message = format_archive_message(label, body)
+        parts = chunk_text(message)
+        for idx, part in enumerate(parts, start=1):
+            prefix = f"({idx}/{len(parts)})\n" if len(parts) > 1 else ""
+            await telegram_bot.send_message(prefix + part, chat_id=chat_id, parse_mode="")
+        await telegram_bot.send_message(
+            f"已归档到本 chat 历史（TG 冷存储 v0.1）· {path.name}",
+            chat_id=chat_id,
+        )
+    except Exception:
+        _log.exception("cmd_archiveeval failed")
+        await telegram_bot.send_message(_operator_error("archiveeval"), chat_id=chat_id)

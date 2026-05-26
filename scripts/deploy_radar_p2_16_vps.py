@@ -15,6 +15,7 @@ REMOTE = "/opt/lima-router"
 KEY = os.environ.get("LIMA_DEPLOY_KEY_PATH", os.path.expanduser("~/.ssh/id_ed25519"))
 
 FILES = [
+    "telegram_archive.py",
     "eval_slice_summary.py",
     "oldllm_diag.py",
     "channel_gateway/public_apis.py",

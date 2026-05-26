@@ -17,6 +17,7 @@
 | RADAR-P2-17-1 | Eval | Full 11-backend live 8080: 7×100, cf_kimi_k26 80, scnet_ds_pro 67, stock_kimi_k2/scnet_large_ds_pro 0 | Closed 2026-05-26 |
 | RADAR-P2-17-2 | Code | ntfy smoke + run_eval_full_and_report | Closed 2026-05-26 |
 | RADAR-P2-17-3 | VPS | upload_eval_full_vps → `/evalreport full` data ready | Closed 2026-05-26 |
+| RADAR-P2-18-1 | Code | TG-S3 v0.1 telegram_archive + /archiveeval + strategy doc | Closed 2026-05-26 |
 
 | GH-PUSH-MSG-1 | Code | push Telegram 摘要含 commit message（GH+Gitee） | Closed 2026-05-26 |
 | GH-PUSH-MSG-2 | VPS | deploy_github + deploy_gitee + smoke 200 | Closed 2026-05-26 |

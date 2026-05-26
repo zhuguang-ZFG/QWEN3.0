@@ -4,6 +4,12 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 雷达 P2-18：TG-S3 v0.1 冷归档
+
+- **策略**：`docs/TG_FREE_STORAGE_STRATEGY.md` — TG 作冷归档/Operator 镜像，非主库
+- **代码**：`telegram_archive.py`、`archive_eval_to_telegram.py`（`LIMA_TG_ARCHIVE=0`）
+- **Telegram**：`/archiveeval` / `/archiveeval full` — 写入 chat 历史作免费冷存储
+
 ## 2026-05-26 雷达 P2-17：Full eval 11×3 + ntfy smoke
 
 - **Full eval**：`run_eval_full_and_report.py` — 本地 8080 live **33/33 runs** → `coding_backend_scores_full_20260526.json`

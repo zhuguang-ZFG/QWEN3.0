@@ -285,6 +285,20 @@ def test_eval_full_report_skip_run():
     assert "eval" in combined.lower() or "Eval" in combined
 
 
+def test_tg_archive_smoke_skips_when_disabled():
+    proc = subprocess.run(
+        [sys.executable, "scripts/smoke_tg_archive.py"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=30,
+        check=False,
+    )
+    assert proc.returncode == 0
+    assert "skip tg_archive" in proc.stdout
+
+
 def test_pyright_report_only_runs():
     proc = subprocess.run(
         [sys.executable, "scripts/run_pyright.py", "--report-only"],

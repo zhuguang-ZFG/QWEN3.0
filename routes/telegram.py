@@ -19,7 +19,7 @@ from routes.telegram_commands import (
     cmd_voice, cmd_voicechat, start_broadcast_loop, _operator_error,
     cmd_github, cmd_device,
 )
-from routes.telegram_eval_tools import cmd_evalslice, cmd_evalreport
+from routes.telegram_eval_tools import cmd_evalslice, cmd_evalreport, cmd_archiveeval
 from routes.telegram_diag_tools import cmd_oldllm
 from routes.telegram_public_tools import (
     cmd_hot,
@@ -289,12 +289,14 @@ async def _dispatch_command(chat_id: str, text: str) -> None:
         await cmd_evalslice(chat_id, arg)
     elif cmd == "/evalreport":
         await cmd_evalreport(chat_id, arg)
+    elif cmd == "/archiveeval":
+        await cmd_archiveeval(chat_id, arg)
     elif cmd == "/oldllm":
         await cmd_oldllm(chat_id, arg)
     elif cmd == "/start":
         await telegram_bot.send_message(
             "LiMa Bot ready.\n/status /health /budget /top /uptime\n"
-            "/chat /clear /code /eval /evalslice /evalreport /oldllm /voice\n"
+            "/chat /clear /code /eval /evalslice /evalreport /archiveeval /oldllm /voice\n"
             "/github /device status\n"
             "/tools /news /hot /weather /wiki /exchange\n"
             "/dict /whois /qr /geocode /random /ssl /regex /image /uuid\n"

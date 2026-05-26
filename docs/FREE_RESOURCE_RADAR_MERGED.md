@@ -42,7 +42,7 @@
 | **Supabase** | 500MB PG+Auth+Storage | 免费数据库 | **Backlog** Device Gateway Postgres deferred |
 | **Neon** | 0.5GB PG Serverless | 免费数据库 | **Backlog** |
 | **Upstash** | 1GB Redis+10K命令/天 | 免费Redis | **Done** Device Gateway Redis HA |
-| **Telegram** | Bot API+无限云存储 | 无限备份 | **Done** Operator 通道；TG-S3 **Backlog** |
+| **Telegram** | Bot API+无限云存储 | 无限备份 | **Done** Operator；**Partial** TG-S3 v0.1 归档 2026-05-26 |
 
 ## 二、云平台免费层（需信用卡 ⚠️ 参考用）
 
@@ -150,7 +150,7 @@
 | **CI/CD** | Gitee Go | ~200 分/月 | **Deferred** YAML 已留仓；不启用（GitHub Actions 2000 分已够用） |
 | **定时任务** | Cron-job.org | 免费HTTP触发 | **Ref** 已有 VPS cron+HC |
 | **对象存储** | Cloudflare R2+阿里云OSS | 10GB+5GB | **Partial** R2 策略文档化 |
-| **Telegram存储** | TG-S3/K-Vault | 无限容量 | **Backlog** |
+| **Telegram存储** | TG-S3/K-Vault | 无限容量 | **Partial** `telegram_archive` + `/archiveeval` 2026-05-26 |
 
 ---
 
