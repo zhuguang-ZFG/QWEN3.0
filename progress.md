@@ -13,6 +13,7 @@
 - **测试** 12 focused passed（topology + internal + status）
 - **部署** `deploy_p2_25_vps.py`；**Windows :8080 需同步重启**（FRP 目标）
 - **VPS smoke**：`scnet_large_ds_flash` 1 case → 经 `:8088` 命中 internal 端点（502=Windows `:4505` 未监听，拓扑链路已通）
+- **2026-05-26 运维复跑**：清理 Windows `8080` 上 4 条 SSH 反向隧道（占端口致 FRP 打到 VPS）；重启本机 LiMa（`eval_internal`）；`:4505` 已监听；large 3×3 **满分 100**；full-11 重跑完成（~2min）
 
 ## 2026-05-26 雷达 P2-19…P2-24 closeout（文档 + commit）
 
