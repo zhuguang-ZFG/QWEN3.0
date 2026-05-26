@@ -20,6 +20,16 @@
 | P2-32 | Memory embedding bridge (Jina AI) + 4-tier semantic search fallback | **Done** VPS verified |
 | P2-33 | GitHub code search + PR + branch + file contents (9 tools total) | **Done** VPS verified |
 | P2-34 | memory_stats MCP tool (24 tools total) | **Done** VPS verified |
+| P2-35 | ESP32 Wokwi sim + MQTT device bus + structured logging/Prometheus | **Done** VPS verified |
+
+### New Infrastructure (P2-35)
+
+| Capability | Module | Status |
+|------------|--------|--------|
+| ESP32 Wokwi sim | `esp32S_XYZ/firmware/u1-grbl/wokwi.toml` | Config ready; stepper/limit/UART/OLED virtualized |
+| MQTT device bus | `device_gateway/mqtt_topics.py` + `mqtt_client.py` | Topic contract + stub daemon; paho-mqtt ready |
+| Structured JSON logging | `observability/structured_logging.py` | OTEL-compatible format; `LIMA_STRUCTURED_LOGGING=1` |
+| Prometheus metrics | `observability/prometheus_metrics.py` + `/v1/ops/metrics/prometheus` | Counters/histograms; `LIMA_PROMETHEUS_METRICS=1` |
 
 ### MCP Tool Inventory (24 total)
 
