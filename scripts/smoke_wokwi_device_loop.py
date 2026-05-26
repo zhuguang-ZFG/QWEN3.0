@@ -92,12 +92,18 @@ def main() -> int:
         print("[Smoke] FAIL: Device Gateway not healthy. Is lima-router running?")
         return 1
 
-    # 2. Inject a write_text task
+    # 2. Inject a write_text task (requires Wokwi device connected)
     task = inject_task("write_text", {"text": "LiMa", "font_size": 32})
     task_id = task.get("task_id", "")
     if not task_id:
-        print("[Smoke] FAIL: No task_id returned. Wokwi device may not be connected.")
-        return 1
+        if "--dry-run" in sys.argv:
+            print("[Smoke] PASS (dry-run): Gateway healthy, device not connected (expected)")
+            print("[Smoke] To run full loop: open wokwi_sim in Wokwi, then re-run without --dry-run")
+            return 0
+        print("[Smoke] WARN: No task_id returned. Wokwi device may not be connected.")
+        print("[Smoke] Gateway is healthy — ready for Wokwi device connection.")
+        print("[Smoke] Open esp32S_XYZ/firmware/u1-grbl/wokwi_sim/ in Wokwi to connect.")
+        return 0 if "--allow-missing-device" in sys.argv else 1
 
     # 3. Wait for device to process (Wokwi polls every 2s, motion takes ~3s)
     print("[Smoke] Waiting for device to execute...")
