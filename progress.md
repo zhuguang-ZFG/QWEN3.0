@@ -7,7 +7,7 @@
 ## 2026-05-26 TG-GH-7 推送翻译 + FL-1-7 手机验收
 
 - **FL-1-7**：手机 `/github psf/requests README.md main` ✅；修复 Markdown 乱链 → 纯文本 + `title\n---\nbody`
-- **TG-GH-7**：`telegram_push_translate.py` — `TELEGRAM_PUSH_TRANSLATE=1` 时英文推送附【译】（MyMemory，500 字内）
+- **TG-GH-7**：推送翻译默认 **LLM**（`TELEGRAM_PUSH_TRANSLATE_ENGINE=llm`）→ `google_flash_lite` → fallback；失败再 MyMemory
 - **范围**：GitHub/Gitee webhook、deploy/smoke、alert、digest；**不翻译** `/github` 文件正文、审批卡片
 - **VPS**：`TELEGRAM_PUSH_TRANSLATE=1` 已写入 `.env`；deploy_five_line_closeout 已上传
 - **GI-G-3**：用户确认无模力方舟免费额 → **Cancelled**（代码保留，`GITEE_AI_ENABLED=0`）

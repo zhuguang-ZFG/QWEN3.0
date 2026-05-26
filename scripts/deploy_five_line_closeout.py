@@ -73,7 +73,9 @@ def main() -> int:
         _run(
             ssh,
             f"grep -q '^TELEGRAM_PUSH_TRANSLATE=' {REMOTE}/.env 2>/dev/null || "
-            f"echo 'TELEGRAM_PUSH_TRANSLATE=1' >> {REMOTE}/.env",
+            f"echo 'TELEGRAM_PUSH_TRANSLATE=1' >> {REMOTE}/.env; "
+            f"grep -q '^TELEGRAM_PUSH_TRANSLATE_ENGINE=' {REMOTE}/.env 2>/dev/null || "
+            f"echo 'TELEGRAM_PUSH_TRANSLATE_ENGINE=llm' >> {REMOTE}/.env",
         )
         sys.path.insert(0, str(Path(__file__).resolve().parent))
         import deploy_common

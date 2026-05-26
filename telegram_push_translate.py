@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 
+logger = logging.getLogger(__name__)
+
 _CJK_RE = re.compile(r"[\u4e00-\u9fff\u3400-\u4dbf]")
+_DEFAULT_LLM_BACKENDS = ("google_flash_lite", "scnet_qwen30b", "cf_llama70b")
 
 
 def push_translate_enabled() -> bool:
@@ -17,8 +21,31 @@ def push_translate_enabled() -> bool:
     }
 
 
+def push_translate_engine() -> str:
+    return os.environ.get("TELEGRAM_PUSH_TRANSLATE_ENGINE", "llm").strip().lower() or "llm"
+
+
 def push_translate_target() -> str:
     return os.environ.get("TELEGRAM_PUSH_TRANSLATE_LANG", "zh-CN").strip() or "zh-CN"
+
+
+def push_translate_backends() -> tuple[str, ...]:
+    raw = os.environ.get("TELEGRAM_PUSH_TRANSLATE_BACKEND", "").strip()
+    if raw:
+        parts = tuple(b.strip() for b in raw.split(",") if b.strip())
+        return parts or _DEFAULT_LLM_BACKENDS
+    return _DEFAULT_LLM_BACKENDS
+
+
+_SKIP_TRANSLATE_MARKERS = (
+    "LiMa Daily",
+    "Backends:",
+    "Budget:",
+    "Inventory 7d:",
+    "Requests today:",
+    "GitHub 24h:",
+    "Gitee 24h:",
+)
 
 
 def mostly_chinese(text: str) -> bool:
@@ -32,20 +59,101 @@ def mostly_chinese(text: str) -> bool:
     return cjk / max(letters, 1) >= 0.25
 
 
-def translate_push_text(text: str, *, target: str | None = None) -> str:
-    """Translate outbound push text when enabled; skip if already Chinese."""
+def should_skip_translate(text: str) -> bool:
     body = (text or "").strip()
-    if not body or not push_translate_enabled() or mostly_chinese(body):
-        return text
+    if not body:
+        return True
+    if mostly_chinese(body):
+        return True
+    return any(marker in body for marker in _SKIP_TRANSLATE_MARKERS)
 
+
+def _lang_label(target: str) -> str:
+    if target.startswith("zh"):
+        return "简体中文"
+    return target
+
+
+def _backend_usable(backend: str) -> bool:
+    from backends import BACKENDS
+
+    if backend not in BACKENDS:
+        return False
+    try:
+        import budget_manager
+        import health_tracker
+    except ImportError:
+        return True
+    if health_tracker.is_cooled_down(backend):
+        return False
+    return budget_manager.is_budget_available(backend)
+
+
+def _translate_via_llm(text: str, *, target: str) -> str | None:
+    chunk = text.strip()[:1200]
+    if not chunk:
+        return None
+
+    lang = _lang_label(target)
+    system_prompt = (
+        f"Translate the following operator notification into {lang}. "
+        "Keep repository names, branch names, commit SHAs, numbers, URLs, "
+        "and text inside backticks unchanged. "
+        "Output only the translation with no preamble or quotes."
+    )
+    messages = [{"role": "user", "content": chunk}]
+
+    import http_caller
+
+    for backend in push_translate_backends():
+        if not _backend_usable(backend):
+            continue
+        try:
+            answer = http_caller.call_api(
+                backend,
+                messages,
+                max_tokens=512,
+                system_prompt=system_prompt,
+            )
+        except Exception:
+            logger.debug("llm push translate failed backend=%s", backend, exc_info=True)
+            continue
+        cleaned = (answer or "").strip()
+        if cleaned and not cleaned.startswith("[ERR]"):
+            return cleaned
+    return None
+
+
+def _translate_via_mymemory(text: str, *, target: str) -> str | None:
     from channel_gateway.public_apis import translate_text_only
 
-    lang = target or push_translate_target()
-    chunk = body[:500]
-    translated = translate_text_only(chunk, target=lang)
-    if not translated:
-        return text
+    return translate_text_only(text.strip()[:500], target=target)
 
+
+def _translate_chunk(text: str, *, target: str) -> str | None:
+    engine = push_translate_engine()
+    if engine == "mymemory":
+        return _translate_via_mymemory(text, target=target)
+    translated = _translate_via_llm(text, target=target)
+    if translated:
+        return translated
+    return _translate_via_mymemory(text, target=target)
+
+
+def _append_translation(body: str, translated: str) -> str:
     if len(body) <= 420:
         return f"{body}\n\n【译】{translated}"
     return f"{body[:420]}…\n\n【译】{translated}"
+
+
+def translate_push_text(text: str, *, target: str | None = None) -> str:
+    """Translate outbound push text when enabled; skip if already Chinese."""
+    body = (text or "").strip()
+    if not body or not push_translate_enabled() or should_skip_translate(body):
+        return text
+
+    lang = target or push_translate_target()
+    translated = _translate_chunk(body, target=lang)
+    if not translated:
+        return text
+    return _append_translation(body, translated)
