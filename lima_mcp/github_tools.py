@@ -204,3 +204,86 @@ def search_code(query: str, *, per_page: int = 10, language: str = "") -> dict:
             } for i in items[:per_page]],
         }
     return result
+
+
+def get_file_contents(owner: str, repo: str, path: str, ref: str = "main") -> dict:
+    """Read file contents from a GitHub repository."""
+    if not _is_configured():
+        return {"ok": False, "error": "GITHUB_TOKEN not configured"}
+    if not owner or not repo or not path:
+        return {"ok": False, "error": "owner, repo, and path are required"}
+
+    safe_ref = urllib.parse.quote(ref.strip() or "main", safe="/.")
+    safe_path = urllib.parse.quote(path.strip("/"), safe="/")
+    result = _api_request(
+        "GET", f"/repos/{owner}/{repo}/contents/{safe_path}?ref={safe_ref}",
+    )
+    if result.get("ok") and result.get("data"):
+        import base64
+        content = result["data"].get("content", "")
+        try:
+            decoded = base64.b64decode(content).decode("utf-8", errors="replace")
+        except Exception:
+            decoded = content
+        return {
+            "ok": True,
+            "path": result["data"].get("path", ""),
+            "content": decoded[:12000],
+            "size": result["data"].get("size", 0),
+            "url": result["data"].get("html_url", ""),
+        }
+    return result
+
+
+def create_pull_request(
+    owner: str, repo: str, title: str, head: str, base: str = "main",
+    body: str = "",
+) -> dict:
+    """Create a GitHub pull request."""
+    if not _is_configured():
+        return {"ok": False, "error": "GITHUB_TOKEN not configured"}
+    if not owner or not repo or not title or not head:
+        return {"ok": False, "error": "owner, repo, title, and head are required"}
+
+    payload = {
+        "title": title[:256],
+        "head": head,
+        "base": base,
+        "body": body[:65536],
+    }
+    result = _api_request("POST", f"/repos/{owner}/{repo}/pulls", payload)
+    if result.get("ok") and result.get("data"):
+        pr = result["data"]
+        return {
+            "ok": True,
+            "pr_url": pr.get("html_url", ""),
+            "pr_number": pr.get("number"),
+            "title": pr.get("title", ""),
+            "state": pr.get("state", ""),
+        }
+    return result
+
+
+def create_branch(owner: str, repo: str, branch: str, from_ref: str = "main") -> dict:
+    """Create a new branch from an existing ref."""
+    if not _is_configured():
+        return {"ok": False, "error": "GITHUB_TOKEN not configured"}
+    if not owner or not repo or not branch:
+        return {"ok": False, "error": "owner, repo, and branch are required"}
+
+    ref_result = _api_request(
+        "GET", f"/repos/{owner}/{repo}/git/ref/heads/{urllib.parse.quote(from_ref, safe='')}",
+    )
+    if not ref_result.get("ok"):
+        return {"ok": False, "error": f"source ref not found: {from_ref}"}
+    sha = ref_result["data"]["object"]["sha"]
+
+    payload = {"ref": f"refs/heads/{branch}", "sha": sha}
+    result = _api_request("POST", f"/repos/{owner}/{repo}/git/refs", payload)
+    if result.get("ok") and result.get("data"):
+        return {
+            "ok": True,
+            "ref": result["data"].get("ref", ""),
+            "sha": result["data"]["object"].get("sha", ""),
+        }
+    return result

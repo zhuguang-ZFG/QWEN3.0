@@ -34,6 +34,9 @@ def handle_tool_call(name: str, arguments: dict) -> dict:
         "github_add_issue_comment": _github_add_issue_comment,
         "github_search_issues": _github_search_issues,
         "github_search_code": _github_search_code,
+        "github_get_file_contents": _github_get_file_contents,
+        "github_create_pull_request": _github_create_pull_request,
+        "github_create_branch": _github_create_branch,
     }
     handler = handlers.get(name)
     if not handler:
@@ -384,4 +387,39 @@ def _github_search_code(args: dict) -> dict:
         query=args.get("query", ""),
         per_page=_bounded_int(args.get("per_page"), default=10, minimum=1, maximum=20),
         language=args.get("language", ""),
+    )
+
+
+def _github_get_file_contents(args: dict) -> dict:
+    from lima_mcp.github_tools import get_file_contents
+
+    return get_file_contents(
+        owner=args.get("owner", ""),
+        repo=args.get("repo", ""),
+        path=args.get("path", ""),
+        ref=args.get("ref", "main"),
+    )
+
+
+def _github_create_pull_request(args: dict) -> dict:
+    from lima_mcp.github_tools import create_pull_request
+
+    return create_pull_request(
+        owner=args.get("owner", ""),
+        repo=args.get("repo", ""),
+        title=args.get("title", ""),
+        head=args.get("head", ""),
+        base=args.get("base", "main"),
+        body=args.get("body", ""),
+    )
+
+
+def _github_create_branch(args: dict) -> dict:
+    from lima_mcp.github_tools import create_branch
+
+    return create_branch(
+        owner=args.get("owner", ""),
+        repo=args.get("repo", ""),
+        branch=args.get("branch", ""),
+        from_ref=args.get("from", "main"),
     )

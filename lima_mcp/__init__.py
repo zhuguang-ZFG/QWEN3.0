@@ -276,4 +276,48 @@ TOOL_DEFINITIONS = [
             "required": ["query"],
         },
     },
+    {
+        "name": "github_get_file_contents",
+        "description": "Read file contents from a GitHub repository. Requires GITHUB_TOKEN.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "owner": {"type": "string"},
+                "repo": {"type": "string"},
+                "path": {"type": "string", "description": "File path within the repo"},
+                "ref": {"type": "string", "description": "Branch or tag (default: main)"},
+            },
+            "required": ["owner", "repo", "path"],
+        },
+    },
+    {
+        "name": "github_create_pull_request",
+        "description": "Create a GitHub pull request. Requires GITHUB_TOKEN with repo scope.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "owner": {"type": "string"},
+                "repo": {"type": "string"},
+                "title": {"type": "string", "description": "PR title"},
+                "head": {"type": "string", "description": "Source branch name"},
+                "base": {"type": "string", "description": "Target branch (default: main)"},
+                "body": {"type": "string", "description": "PR description (markdown)"},
+            },
+            "required": ["owner", "repo", "title", "head"],
+        },
+    },
+    {
+        "name": "github_create_branch",
+        "description": "Create a new branch in a GitHub repository. Requires GITHUB_TOKEN.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "owner": {"type": "string"},
+                "repo": {"type": "string"},
+                "branch": {"type": "string", "description": "New branch name"},
+                "from": {"type": "string", "description": "Source branch (default: main)"},
+            },
+            "required": ["owner", "repo", "branch"],
+        },
+    },
 ]
