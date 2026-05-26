@@ -95,6 +95,14 @@ def _recent_agent_tasks(limit: int = 5) -> list[dict[str, Any]]:
     return recent
 
 
+def _get_capability_evidence() -> dict:
+    try:
+        from observability.capability_evidence import recent_evidence
+        return {"recent": recent_evidence(limit=10)}
+    except ImportError:
+        return {"recent": [], "error": "unavailable"}
+
+
 @router.get("/metrics", dependencies=[Depends(require_private_api_key)])
 async def ops_metrics(request: Request) -> JSONResponse:
     now = time.time()
@@ -237,6 +245,7 @@ async def ops_metrics(request: Request) -> JSONResponse:
         "learning": learning,
         "retrieval_traces": retrieval_traces,
         "recent_agent_tasks": recent_tasks,
+        "capability_evidence": _get_capability_evidence(),
     })
 
 
