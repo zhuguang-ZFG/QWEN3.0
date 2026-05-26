@@ -12,6 +12,14 @@
 - **INF-B operator**：Check `lima-vps-router` Period 5min / Grace 10min / Email ON；`verify_healthcheck_vps_ok`
 - **测试**：translate + healthchecks_io + healthcheck_ping **21 passed**
 
+## 2026-05-26 P1 SCNet/Kimi eval 重跑
+
+- **命令**：`eval_coding_backends.py` × 11 backends × 3 cases（~6min）
+- **亮点**：`scnet_large_ds_flash` **1199ms 3/3**；Kimi `4504` **2/3 恢复**（不再 quota-blocked）
+- **失效**：`scnet_ds_pro` timeout/cooldown；`stock_kimi_k2` invalid/cooldown
+- **产物**：`data/scnet_kimi_eval_20260526.json`、`docs/CODING_BACKEND_RANKING.md`、`docs/FREE_MODEL_ROUTING_STATUS.md`
+- **测试**：全量 **1716 passed**（eval 为数据切片，无生产代码改动）
+
 ## 2026-05-26 Gitee MCP 接线（雷达 P0+）
 
 - **能力**：`dev_search_gitee` + `dev_fetch_gitee_file` → MCP + `tool_gateway/registry`

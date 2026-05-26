@@ -467,6 +467,9 @@
 - Public coding smoke returned 200 in 4585ms.
 - Public Anthropic tool smoke returned 200 in 672ms with `stop_reason=tool_use`.
 
+| FREE-024 | Kimi re-eval 2026-05-26 | `4504` **2/3 pass** (80 avg); JSON case fails on markdown fences; no longer anonymous quota | Closed 2026-05-26 |
+| FREE-025 | SCNet re-eval 2026-05-26 | `scnet_large_ds_flash` 1199ms 3/3; `scnet_ds_pro` 0/3 cooldown/timeout | Closed 2026-05-26 |
+
 ## Latest SCNet First-Tier Deployment
 
 - 2026-05-22 SCNet first-tier deploy uploaded `code_orchestrator.py` and `router_v3.py` to `/opt/lima-router`.

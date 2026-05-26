@@ -1,7 +1,29 @@
 # Free Model Routing Status
 
-> Updated: 2026-05-22
+> Updated: 2026-05-26
 > Scope: SCNet and Kimi-family free or near-free backends in LiMa.
+
+## 2026-05-26 Re-eval (local Windows proxy)
+
+Command: `scripts/eval_coding_backends.py` on 11 SCNet/Kimi backends × 3 coding cases.
+
+| Backend | Passes | Avg Score | Avg Latency | Decision |
+|---|---:|---:|---:|---|
+| `scnet_large_ds_flash` | 3/3 | 100 | **1199ms** | **Fastest** first-tier via `localhost:4505` |
+| `scnet_qwen30b` | 3/3 | 100 | 1814ms | First tier (VPS direct) |
+| `scnet_ds_flash` | 3/3 | 100 | 2205ms | First tier |
+| `scnet_qwen235b` | 3/3 | 100 | 2388ms | First tier |
+| `scnet_large_ds_pro` | 3/3 | 100 | 75046ms | Local deep only (too slow for hot path) |
+| `kimi` / `kimi_thinking` / `kimi_search` | 2/3 | 80 | 4–7s | **Recovered** — `4504` no longer quota-blocked; fails strict JSON (markdown fences) |
+| `cf_kimi_k26` | 1/3 | 48 | 6776ms | Fallback only |
+| `scnet_ds_pro` | 0/3 | 0 | timeout/cooldown | Inactive this run |
+| `stock_kimi_k2` | 0/3 | 0 | invalid/cooldown | Inactive |
+
+Raw: `data/scnet_kimi_eval_20260526.json`, `docs/CODING_BACKEND_RANKING.md`.
+
+**Kimi 状态变化：** 2026-05-22 记录 `chat.anonymous_usage_exceeded`；**2026-05-26 重评已恢复 chat**，仍不宜进 strict JSON / 第一 coding 池。
+
+---
 
 ## Current Answer
 

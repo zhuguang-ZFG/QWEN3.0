@@ -1,0 +1,24 @@
+{
+  "eval_date": "2026-05-26",
+  "command": "python scripts/eval_coding_backends.py --backends scnet_ds_flash,scnet_ds_pro,scnet_qwen235b,scnet_qwen30b,scnet_large_ds_flash,scnet_large_ds_pro,cf_kimi_k26,kimi,kimi_thinking,kimi_search,stock_kimi_k2",
+  "cases": ["code_review", "json_tool_output", "python_bugfix"],
+  "summary": [
+    {"backend": "scnet_large_ds_flash", "passes": "3/3", "avg_score": 100, "avg_latency_ms": 1199},
+    {"backend": "scnet_qwen30b", "passes": "3/3", "avg_score": 100, "avg_latency_ms": 1814},
+    {"backend": "scnet_ds_flash", "passes": "3/3", "avg_score": 100, "avg_latency_ms": 2205},
+    {"backend": "scnet_qwen235b", "passes": "3/3", "avg_score": 100, "avg_latency_ms": 2388},
+    {"backend": "scnet_large_ds_pro", "passes": "3/3", "avg_score": 100, "avg_latency_ms": 75046},
+    {"backend": "kimi_thinking", "passes": "2/3", "avg_score": 80, "avg_latency_ms": 4301},
+    {"backend": "kimi", "passes": "2/3", "avg_score": 80, "avg_latency_ms": 4534},
+    {"backend": "kimi_search", "passes": "2/3", "avg_score": 80, "avg_latency_ms": 7126},
+    {"backend": "cf_kimi_k26", "passes": "1/3", "avg_score": 48, "avg_latency_ms": 6776},
+    {"backend": "stock_kimi_k2", "passes": "0/3", "avg_score": 0, "avg_latency_ms": 767},
+    {"backend": "scnet_ds_pro", "passes": "0/3", "avg_score": 0, "avg_latency_ms": 15113}
+  ],
+  "decisions": {
+    "first_tier": ["scnet_large_ds_flash", "scnet_qwen30b", "scnet_ds_flash", "scnet_qwen235b"],
+    "local_deep": ["scnet_large_ds_pro"],
+    "kimi_local_chat": ["kimi", "kimi_thinking", "kimi_search"],
+    "inactive": ["scnet_ds_pro", "stock_kimi_k2", "cf_kimi_k26"]
+  }
+}
