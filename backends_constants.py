@@ -21,7 +21,7 @@ VISION_BACKENDS = [
 
 # Backends that should use the configured outbound proxy.
 GFW_BACKENDS = frozenset({
-    'google_flash', 'google_flash_lite', 'google_gemini3', 'google_gemma4',
+    'google_flash', 'google_flash_lite', 'google_pro',
     'mistral_large', 'mistral_small', 'mistral_medium',
     'mistral_codestral', 'mistral_devstral', 'mistral_pixtral',
     'groq_llama70b', 'groq_gptoss', 'groq_gptoss_20b',

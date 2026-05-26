@@ -241,3 +241,41 @@ def build_prompt_evidence(tool_outputs: list[dict], *, max_chars: int = 4000) ->
         "tool": "dev_prompt_evidence",
         "evidence": "\n\n".join(sections)[:max_chars],
     }
+
+
+def search_google_grounded(query: str, *, max_tokens: int = 2000) -> dict:
+    """Search with Google Search grounding via Gemini native API.
+
+    Public doc retrieval only — private code must not be sent here.
+    Requires GOOGLE_AI_KEY + LIMA_GOOGLE_NATIVE=1.
+    """
+    try:
+        from search_gateway.gemini_native import generate_content
+
+        result = generate_content(
+            query[:4000],
+            model="gemini-2.5-flash",
+            temperature=0.3,
+            max_tokens=max_tokens,
+            grounding=True,
+            system_instruction=(
+                "You are a technical documentation search assistant. "
+                "Answer based on the latest official documentation, API references, "
+                "and public knowledge sources. Cite URLs when available. "
+                "Be concise and factual. Use code examples when helpful."
+            ),
+        )
+        if result.get("ok"):
+            return {
+                "ok": True,
+                "tool": "google_grounded_search",
+                "text": result.get("text", ""),
+                "grounding": result.get("grounding"),
+                "model": result.get("model", ""),
+                "token_count": result.get("token_count", 0),
+            }
+        return result
+    except ImportError:
+        return {"ok": False, "error": "gemini_native adapter not installed"}
+    except Exception as exc:
+        return {"ok": False, "error": f"grounded search failed: {exc}"}
