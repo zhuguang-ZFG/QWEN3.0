@@ -230,3 +230,18 @@ def test_ops_metrics_includes_recent_agent_tasks(monkeypatch, tmp_path):
     assert any("ops metrics recent task" in item["goal"] for item in recent)
 
     agent_tasks._reset_for_tests()
+
+
+def test_ops_metrics_includes_learning_loop_stats(monkeypatch):
+    monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
+    app = FastAPI()
+    app.state.stats = {"total_requests": 0, "backend_calls": {}, "start_time": 1}
+    app.include_router(router)
+    response = TestClient(app).get(
+        "/v1/ops/metrics",
+        headers={"Authorization": "Bearer test-private-token"},
+    )
+    assert response.status_code == 200
+    loop = (response.json().get("learning") or {}).get("loop") or {}
+    assert "eval_candidates" in loop
+    assert "prompt_profile_keys" in loop

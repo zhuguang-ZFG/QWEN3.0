@@ -4,6 +4,13 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 PROD-008 Learning Loop E2E
+
+- **Smoke**：`smoke_prod008_learning_loop_e2e.py` — POST task → POST result（backend/latency/artifacts）→ 四通道验证
+- **可观测**：`/v1/ops/metrics` → `learning.loop.eval_candidates` + `prompt_profile_keys`
+- **VPS**：`deploy_prod008_slice.py` → **smoke_ok** task `24db066c`（memory/prompt/routing/eval 全 true）
+- **测试**：focused **18 passed**；`tests/test_prod008_learning_e2e.py` HTTP 集成
+
 ## 2026-05-26 GFL-2 + INF-B dead-man closeout
 
 - **GFL-2**：`telegram_push_translate` 默认/ env 剔除 `google_flash_lite`（及 chat_fast/vision 池）；VPS `TELEGRAM_PUSH_TRANSLATE_BACKEND=scnet_qwen30b,cf_llama70b`；`deploy_productivity_slice_ok`

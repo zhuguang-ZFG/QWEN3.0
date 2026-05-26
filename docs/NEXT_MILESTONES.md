@@ -52,7 +52,7 @@
 
 1. **LiMa Task Prompt Contract v0.1** — `/agent/tasks`、worker prompt、role prompt、skill 提取统一 `Context/Task/Constraints/Verify/Output`（`task_plan.md` 第 4 项）。
 2. **Hooks + Skill Auto-Activation v0.1** — `skill-rules.json` 风格、post-task/post-edit/stop 检查点、`.lima-code/dev/active/<task>/`（第 5 项；依赖 Contract）。
-3. **Artifact → learning loop 接线验证** — PROD-008 已本地完成；补一条端到端证据（task → artifact → memory/routing candidate）。
+3. ~~**Artifact → learning loop 接线验证**~~ — **Closed 2026-05-26**：`smoke_prod008_learning_loop_e2e.py` VPS task `24db066c`（memory/prompt/routing/eval 四通道）。
 4. **Owner 命令真接线（独立 slice）** — Channel `/code-task` 等仍为 stub；需 owner-auth + 审计（`findings.md` CQ-054 注记）。
 5. **Always-on daemon** — 仅在人批准后：allowlist + budget + stop + audit + quarantine 全开。
 

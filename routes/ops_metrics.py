@@ -208,6 +208,15 @@ async def ops_metrics(request: Request) -> JSONResponse:
         learning["eval_gate"]["promoted_active"] = len(promoted)
     except ImportError:
         pass
+    try:
+        from session_memory.learning_loop import get_eval_candidates, get_prompt_profile_stats
+
+        learning["loop"] = {
+            "eval_candidates": len(get_eval_candidates(200)),
+            "prompt_profile_keys": len(get_prompt_profile_stats()),
+        }
+    except ImportError:
+        pass
 
     return JSONResponse({
         "timestamp": int(now),
