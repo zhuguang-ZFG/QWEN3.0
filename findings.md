@@ -28,10 +28,9 @@
 | GFL-2 | Code | push translate backend order scnet first | Closed 2026-05-26 |
 | PE-B-1-2 | Ops | codesearch v1.0.97 index lima-git smoke 3/3 | Closed 2026-05-26 |
 | PE-D-1-1 | Code | searxng_adapter + dev_adapter fallback | Closed 2026-05-26 |
-| PE-D-1-2 | Ops | docker compose SearXNG + SEARXNG_ENABLED=1 smoke | Open |
-| PE-C-2-1 | Code | openobserve_sink + metrics export hook | Closed 2026-05-26 |
-| PE-C-2-2 | VPS | OpenObserve 127.0.0.1:5080 smoke_ok | Closed 2026-05-26 |
-| PE-C-2-3 | Ops | OPENOBSERVE_ENABLED=1 lima-router export | Open |
+| PE-D-1-2 | Ops | ghcr SearXNG 8081 + smoke_ok (CN engine timeout→fallback) | Closed 2026-05-26 |
+| PE-C-2-3 | Ops | OPENOBSERVE_ENABLED=1 export + journal ship | Closed 2026-05-26 |
+| PE-F-1 | Docs | DEVICE_PLATFORM_REFERENCE TB/Ditto/LiMa DG | Closed 2026-05-26 |
 
 ## 2026-05-26 Five-line closeout slice 1
 

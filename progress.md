@@ -4,6 +4,15 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 PE-C-2-3 + PE-D-1-2 + PE-F-1
+
+- **PE-C-2-3**：`enable_openobserve_vps.py` → **enable_openobserve_ok**（`OPENOBSERVE_ENABLED=1`；export_ok；journal 100 行 ship_ok）
+- **PE-D-1-2**：SearXNG **ghcr.io** 镜像（绕 Docker Hub 429）；`settings.yml` 启用 **json** 格式；`install_searxng_ok`（127.0.0.1:8081）
+- **VPS smoke**：`smoke_searxng_vps` → **smoke_ok**（阿里云引擎出站超时 → `fallback_from=searxng` → TinyFish 3 条）
+- **dev_adapter**：SearXNG 空结果时 fallback TinyFish（与 unreachable 一致）
+- **PE-F-1**：`docs/reference/DEVICE_PLATFORM_REFERENCE.md`（TB CE / Ditto / LiMa DG 对照 + desired/reported 映射）
+- **测试**：全量 **1660 passed, 10 skipped**
+
 ## 2026-05-26 PE-B-1 收尾 + PE-C-2 OpenObserve 启动
 
 - **PE-B-1**：codesearch **v1.0.97** 索引 `lima-git`（~39k chunks）；`smoke_codesearch_local` **3/3 cs_ok**

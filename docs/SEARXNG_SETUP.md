@@ -19,10 +19,21 @@ LiMa Code / MCP dev_search_*
 
 ## 本地 Docker 部署
 
+镜像优先使用 **ghcr.io**（避免 Docker Hub 未认证 429）：
+
 ```powershell
 cd D:\GIT\infra\searxng
 docker compose up -d
 curl -s "http://127.0.0.1:8081/search?q=test&format=json" | head
+```
+
+`settings.yml` 必须启用 JSON 格式，否则 API 返回 **403**：
+
+```yaml
+search:
+  formats:
+    - html
+    - json
 ```
 
 LiMa `.env`：
@@ -50,7 +61,14 @@ python scripts/smoke_searxng_local.py
 
 ## VPS（可选）
 
-与 Netdata 相同原则：**仅 loopback** 暴露（compose 已绑 `127.0.0.1:8081`）。VPS 上 dev-search 仍走 TinyFish 除非显式开 SearXNG。
+与 Netdata 相同原则：**仅 loopback** 暴露（compose 已绑 `127.0.0.1:8081`）。
+
+```powershell
+python scripts/install_searxng_vps.py   # ghcr.io pull + compose up
+python scripts/smoke_searxng_vps.py     # 8081 监听 + dev_adapter ok
+```
+
+**已知限制（2026-05-26 阿里云 VPS）：** 默认搜索引擎（Google/DDG 等）出站超时，SearXNG 返回空结果；`dev_adapter` 会自动 **fallback TinyFish**（`fallback_from=searxng`）。容器与 JSON API 仍可用，海外 VPS 或配置可用引擎后可得 `source: searxng:*`。
 
 ## 验收
 

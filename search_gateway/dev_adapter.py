@@ -22,7 +22,7 @@ class _FallbackAdapter:
 
     def search(self, query: str, *, domain: str | None = None, max_results: int = 5) -> dict:
         result = self._primary.search(query, domain=domain, max_results=max_results)
-        if result.get("ok"):
+        if result.get("ok") and (result.get("results") or []):
             return result
         fb = self._fallback.search(query, domain=domain, max_results=max_results)
         if fb.get("ok"):
@@ -33,7 +33,7 @@ class _FallbackAdapter:
         self, queries: list[str], *, domain: str | None = None, max_results: int = 5
     ) -> dict:
         result = self._primary.batch_search(queries, domain=domain, max_results=max_results)
-        if result.get("ok"):
+        if result.get("ok") and (result.get("results") or []):
             return result
         fb = self._fallback.batch_search(queries, domain=domain, max_results=max_results)
         if fb.get("ok"):

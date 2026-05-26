@@ -3,7 +3,7 @@
 
 services:
   searxng:
-    image: searxng/searxng:latest
+    image: ghcr.io/searxng/searxng:latest
     container_name: lima-searxng
     restart: unless-stopped
     ports:
