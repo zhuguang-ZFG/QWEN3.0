@@ -18,7 +18,8 @@ def run(cmd: list[str]) -> int:
 def main() -> int:
     steps = [
         [sys.executable, "-m", "pip", "install", "-r", "requirements_server.txt"],
-        [sys.executable, "-m", "pip", "install", "pytest", "pytest-asyncio", "pybreaker"],
+        [sys.executable, "-m", "pip", "install", "pytest", "pytest-asyncio", "pybreaker", "pip-audit"],
+        [sys.executable, "scripts/run_pip_audit.py"],
         [sys.executable, "scripts/run_rag_eval_gate.py"],
         [sys.executable, "-m", "pytest", "-q", "-m", "rag_gate"],
         [sys.executable, "-m", "pytest", "-q"],

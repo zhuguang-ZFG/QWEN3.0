@@ -4,6 +4,13 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 雷达 P1：pip-audit 依赖审计
+
+- **切片**：`docs/FREE_RESOURCE_RADAR_MERGED.md` §四「依赖审计」
+- **实现**：`scripts/run_pip_audit.py` + `lima-ci.yml` + `run_ci_local.py`
+- **安全**：pin `fastapi<0.136.3`（MAL-2026-4750 恶意 PyPI 发布）
+- **测试**：`tests/test_run_pip_audit.py` **2 passed**；全量 **1724 passed**, 10 skipped
+
 ## 2026-05-26 CF overlay VPS + Kimi timeout
 
 - **VPS**：`deploy_cf_admission_overlay.py`（补 `budget_gitee.py`）→ **health ok**；`smoke_cf_admission_overlay_ok`

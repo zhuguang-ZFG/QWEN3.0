@@ -63,6 +63,8 @@ def test_mcp_verify_rejects_when_no_token_configured(monkeypatch):
 def test_mcp_verify_rejects_wrong_bearer(monkeypatch):
     """Wrong bearer token returns 401."""
     import lima_mcp.server as mcp_srv
+    monkeypatch.setenv("LIMA_API_KEY", "")
+    monkeypatch.setenv("LIMA_MCP_TOKEN", "")
     monkeypatch.setattr(mcp_srv, "_MCP_TOKEN", "correct-token")
 
     import asyncio
@@ -75,6 +77,8 @@ def test_mcp_verify_rejects_wrong_bearer(monkeypatch):
 def test_mcp_verify_passes_correct_bearer(monkeypatch):
     """Correct bearer token passes without exception."""
     import lima_mcp.server as mcp_srv
+    monkeypatch.setenv("LIMA_API_KEY", "")
+    monkeypatch.setenv("LIMA_MCP_TOKEN", "")
     monkeypatch.setattr(mcp_srv, "_MCP_TOKEN", "correct-token")
 
     import asyncio

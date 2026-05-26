@@ -39,6 +39,11 @@ jobs:
       - name: Secret scan (gitleaks)
         run: gitleaks detect --source . --config .gitleaks.toml --no-banner
 
+      - name: Dependency audit (pip-audit)
+        run: |
+          python -m pip install pip-audit
+          python scripts/run_pip_audit.py
+
   rag-gate:
     name: RAG offline eval gate
     runs-on: ubuntu-latest

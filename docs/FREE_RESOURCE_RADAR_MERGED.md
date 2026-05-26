@@ -23,9 +23,10 @@
 | 五线 closeout | CF/Google/TG/GitHub/Gitee | **Done** ~95% |
 | 运维 dead-man | Healthchecks.io + GA workflow | **Done** |
 | 生产力 PE-* | Netdata/SearXNG/codesearch/MCP inventory/OpenObserve | **Done**（SafeMCP Partial） |
-| LiMa Code Worker | Prompt Contract v0.1 | **Partial** LC-W-1e VPS smoke OK；deepcode-cli `/lima next` 待补 |
+| LiMa Code Worker | Prompt Contract v0.1 + Hooks + gated daemon | **Partial** LC-W-1e/2/3 Done；live TG 待 token |
 | 代码质量 P1.3 | 静默 catch 清理 | **Open** 进行中 |
 | 雷达 P0 | Gitleaks / Gitee CI / Gitee 搜索 | **Done** 2026-05-26 |
+| 雷达 P1 | pip-audit 依赖审计 | **Done** 2026-05-26 |
 
 ---
 
@@ -82,7 +83,7 @@
 | **类型检查** | Pyright / basedpyright | 快速CLI | **Backlog** |
 | **HTTP Mock** | RESPX / pytest-httpx | pytest插件 | **Done** 测试在用 |
 | **安全扫描** | Gitleaks | 提交前扫描密钥 | **Done** `.gitleaks.toml` + `lima-ci.yml` |
-| **依赖审计** | pip-audit + OSV-Scanner | CLI | **Backlog** |
+| **依赖审计** | pip-audit + OSV-Scanner | CLI | **Done** `scripts/run_pip_audit.py` + `lima-ci.yml`；OSV 待排 |
 | **容器扫描** | Trivy / Grype | CLI | **Backlog** |
 | **SBOM** | ORT / sbom-pilot / Syft | CLI | **Backlog** |
 | **Git Hooks** | betterhook (Rust,30ms) | 单二进制 | **Backlog** |
@@ -429,3 +430,33 @@
 | **Librarian** (MIT) | Go单二进制，无需Kafka/JVM |
 | **OLake** | PG→Iceberg，绕过Kafka |
 | **Apache SeaTunnel** | 100+连接器，Zeta引擎 |
+
+---
+
+## 二十三、代码质量新工具 & Agent 记忆 & 数据目录（Batch 53）
+
+### A. Python 代码质量（2026 新工具）
+
+| 资源 | 亮点 |
+|------|------|
+| **Ruff** | 800+规则，Rust单二进制，替代Flake8+isort+Black |
+| **ty** (Astral) | Rust 类型检查器，2025年底新出 |
+| **PySCN** | Go+tree-sitter，死代码+克隆检测，10万行/秒 |
+| **cq** (python-code-quality) | 聚合11工具，LLM友好输出，pip install |
+| **Skylos** | 调用图分析，比Vulture精确 |
+
+### B. Agent 记忆（Mem0 替代，单文件部署 ⭐）
+
+| 资源 | 亮点 |
+|------|------|
+| **kioku-lite** | SQLite单文件，三混合搜索(BM25+向量+KG)，MIT |
+| **paradigm-memory** | SQLite+MCP，28工具，认知地图，可审计 |
+| **MemKraft** | 纯Markdown文件，#1 LongMemEval(98%)，MIT |
+| **sqlite-graphrag** | Rust单25MB二进制，零依赖 |
+
+### C. 数据目录
+
+| 资源 | 亮点 |
+|------|------|
+| **Marmot** | Go，PostgreSQL，最轻量数据目录 |
+| **OpenMetadata** | 完整治理平台 |
