@@ -104,6 +104,18 @@ class TestFetchRandomuser:
         assert "demo" in r["text"]
 
 
+class TestFetchUuid:
+    def test_single(self):
+        r = lookup.fetch_uuid("")
+        assert r["ok"]
+        assert "UUID" in r["text"]
+
+    def test_count_capped(self):
+        r = lookup.fetch_uuid("3")
+        assert r["ok"]
+        assert r["text"].count("-") >= 3 * 4  # three uuid v4 strings
+
+
 class TestFetchGeocode:
     def test_mocked(self, monkeypatch):
         monkeypatch.setattr(

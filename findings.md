@@ -10,6 +10,8 @@
 | RADAR-P2-13-1 | Code | Postgres/Brave MCP smoke + Telegram `/oldllm` diag | Closed 2026-05-26 |
 | RADAR-P2-14-1 | Code | Syft SBOM CI + Firecrawl MCP smoke + eval slice summary | Closed 2026-05-26 |
 | RADAR-P2-15-1 | Code | Grype CI + run_eval_report + TG /evalreport + exchange Hypothesis | Closed 2026-05-26 |
+| RADAR-P2-16-1 | Code | smoke_mcp_gates + run_security_gates + /uuid + time Hypothesis | Closed 2026-05-26 |
+| RADAR-P2-16-2 | VPS | deploy_radar_p2_16 + smoke uuid/evalreport/oldllm import | Closed 2026-05-26 |
 
 | GH-PUSH-MSG-1 | Code | push Telegram 摘要含 commit message（GH+Gitee） | Closed 2026-05-26 |
 | GH-PUSH-MSG-2 | VPS | deploy_github + deploy_gitee + smoke 200 | Closed 2026-05-26 |

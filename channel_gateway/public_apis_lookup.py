@@ -243,3 +243,16 @@ def fetch_image(keyword: str = "") -> dict:
         "ok": True,
         "text": f"图片链接：\n{url}\n关键词：{kw}",
     }
+
+
+def fetch_uuid(args: str = "") -> dict:
+    """Generate UUID4 values locally (no network)."""
+    import uuid
+
+    raw = args.strip()
+    count = 1
+    if raw.isdigit():
+        count = max(1, min(int(raw), 5))
+    ids = [str(uuid.uuid4()) for _ in range(count)]
+    label = "UUID" if count == 1 else f"{count}× UUID"
+    return {"ok": True, "text": f"{label}：\n" + "\n".join(ids)}

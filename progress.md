@@ -4,6 +4,13 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 雷达 P2-16：MCP 盘点 + 安全 bundle + UUID 工具
+
+- **MCP 盘点**：`scripts/smoke_mcp_gates.py` + `docs/LC_W_MCP_GATES.md`
+- **安全 bundle**：`scripts/run_security_gates.py`（Trivy + Grype + Syft）
+- **§十三**：`/uuid` channel + Telegram；Hypothesis `test_time_hypothesis.py`
+- **VPS**：`deploy_radar_p2_16_vps.py` + `smoke_radar_p2_16_vps.py` — health ok，`uuid_ok` + `/evalreport`/`/oldllm` import ok
+
 ## 2026-05-26 雷达 P2-15：Grype + Eval 报告 + Exchange Hypothesis
 
 - **Grype**：`scripts/run_grype.py --report-only` + CI

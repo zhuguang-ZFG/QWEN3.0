@@ -32,6 +32,7 @@ _GUEST_LIMITS: dict[str, int] = {
     "ssl": 8,
     "regex": 20,
     "image": 8,
+    "uuid": 20,
 }
 
 _OWNER_MULT = float(os.environ.get("LIMA_CHANNEL_OWNER_TOOL_MULT", "3"))
@@ -78,6 +79,7 @@ def quota_exceeded_message(tool: str, limit: int) -> str:
         "ssl": "SSL 检查",
         "regex": "正则测试",
         "image": "图片",
+        "uuid": "UUID",
     }
     name = labels.get(tool, tool)
     return (

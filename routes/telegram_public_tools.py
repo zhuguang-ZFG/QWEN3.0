@@ -34,6 +34,7 @@ _TOOLS_HELP = (
     "/ssl <域名> — TLS 证书\n"
     "/regex <pattern> <text> — 正则测试\n"
     "/image [关键词] — 占位图\n"
+    "/uuid [1-5] — 生成 UUID4\n"
     "/tools — 本菜单"
 )
 
@@ -75,6 +76,7 @@ def _run_tool(tool: str, args: str) -> dict:
         fetch_randomuser,
         fetch_regex_test,
         fetch_ssl,
+        fetch_uuid,
         fetch_whois,
     )
 
@@ -99,6 +101,7 @@ def _run_tool(tool: str, args: str) -> dict:
         "ssl": lambda: fetch_ssl(args),
         "regex": lambda: fetch_regex_test(args),
         "image": lambda: fetch_image(args),
+        "uuid": lambda: fetch_uuid(args),
     }
     handler = handlers.get(tool)
     if handler is None:

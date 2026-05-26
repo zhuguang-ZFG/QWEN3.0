@@ -82,6 +82,8 @@ _GUEST_COMMANDS = {
     "regex": "regex",
     "图片": "image",
     "image": "image",
+    "uuid": "uuid",
+    "UUID": "uuid",
 }
 
 _OWNER_COMMANDS = {

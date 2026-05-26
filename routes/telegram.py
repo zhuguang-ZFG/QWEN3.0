@@ -283,6 +283,8 @@ async def _dispatch_command(chat_id: str, text: str) -> None:
         await cmd_public_tool(chat_id, "regex", arg)
     elif cmd == "/image":
         await cmd_public_tool(chat_id, "image", arg)
+    elif cmd == "/uuid":
+        await cmd_public_tool(chat_id, "uuid", arg)
     elif cmd == "/evalslice":
         await cmd_evalslice(chat_id, arg)
     elif cmd == "/evalreport":
@@ -295,7 +297,7 @@ async def _dispatch_command(chat_id: str, text: str) -> None:
             "/chat /clear /code /eval /evalslice /evalreport /oldllm /voice\n"
             "/github /device status\n"
             "/tools /news /hot /weather /wiki /exchange\n"
-            "/dict /whois /qr /geocode /random /ssl /regex /image\n"
+            "/dict /whois /qr /geocode /random /ssl /regex /image /uuid\n"
             "/logs /restart /task /tasks",
             chat_id=chat_id,
         )

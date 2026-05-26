@@ -78,7 +78,7 @@
 |------|---------|------|------|
 | **覆盖率** | coverage.py + pytest-cov | `pytest --cov` | **Done** `run_pytest_ci.py` + `.coveragerc` |
 | **并行测试** | pytest-xdist | `pytest -n auto` | **Done** CI `-n auto` |
-| **属性测试** | Hypothesis | property-based | **Partial** safety + calc + exchange 2026-05-26 |
+| **属性测试** | Hypothesis | property-based | **Partial** safety + calc + exchange + time 2026-05-26 |
 | **死代码** | Vulture + deptry | CLI扫描 | **Partial** scripts + **CI report-only** 2026-05-26 |
 | **复杂度** | Radon | CLI报告 | **Partial** `run_radon.py` + CI report-only 2026-05-26 |
 | **类型检查** | Pyright / basedpyright | 快速CLI | **Partial** `run_pyright.py` + CI report-only 2026-05-26 |

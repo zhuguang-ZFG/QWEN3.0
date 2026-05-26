@@ -228,6 +228,34 @@ def test_eval_report_cli():
     assert "eval" in combined.lower() or "Eval" in combined
 
 
+def test_mcp_gates_inventory():
+    proc = subprocess.run(
+        [sys.executable, "scripts/smoke_mcp_gates.py"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=300,
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "mcp_gates_ok" in proc.stdout
+
+
+def test_security_gates_bundle():
+    proc = subprocess.run(
+        [sys.executable, "scripts/run_security_gates.py"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=600,
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "security_gates_ok" in proc.stdout
+
+
 def test_pyright_report_only_runs():
     proc = subprocess.run(
         [sys.executable, "scripts/run_pyright.py", "--report-only"],

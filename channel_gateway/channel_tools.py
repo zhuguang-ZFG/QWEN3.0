@@ -29,6 +29,7 @@ from channel_gateway.public_apis_lookup import (
     fetch_randomuser,
     fetch_regex_test,
     fetch_ssl,
+    fetch_uuid,
     fetch_whois,
 )
 from channel_gateway.store import ChannelStore
@@ -63,6 +64,7 @@ CHANNEL_TOOL_INTENTS = frozenset({
     "ssl",
     "regex",
     "image",
+    "uuid",
 })
 
 _TOOLS_MENU = (
@@ -88,6 +90,7 @@ _TOOLS_MENU = (
     "/ssl <域名> — TLS 证书检查\n"
     "/正则 <pattern> <text> — 本地正则测试\n"
     "/图片 [关键词] — 占位图链接\n"
+    "/uuid [1-5] — 生成 UUID4\n"
     "/读 <https://...> — 安全抓取公开网页\n"
     "配额：访客每日有限次，主人更高；发送 /help 查看基础命令"
 )
@@ -100,7 +103,7 @@ def tools_help_suffix() -> str:
         "\n--- 联网工具（LIMA_CHANNEL_TOOLS=1）---\n"
         "/menu — 工具菜单\n"
         "/百科 /天气 /搜 /新闻 /翻译 /汇率 /时间 /热搜 /ip\n"
-        "/算 /黄历 /股票 /地震 /词典 /whois /二维码 /地理 /假数据 /ssl /正则 /图片 /读"
+        "/算 /黄历 /股票 /地震 /词典 /whois /二维码 /地理 /假数据 /ssl /正则 /图片 /uuid /读"
     )
 
 
@@ -245,6 +248,7 @@ class ChannelToolRunner:
             "ssl": lambda: fetch_ssl(args),
             "regex": lambda: fetch_regex_test(args),
             "image": lambda: fetch_image(args),
+            "uuid": lambda: fetch_uuid(args),
         }
         handler = handlers.get(intent)
         if handler is None:
