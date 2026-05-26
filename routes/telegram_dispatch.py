@@ -161,6 +161,24 @@ async def _dispatch_operator(chat_id: str, cmd: str, arg: str, *, logs_fn, resta
     return False
 
 
+def _record_command_outcome(cmd: str, chat_id: str, ok: bool) -> None:
+    """Record a Telegram command to the Outcome Ledger (fire-and-forget)."""
+    try:
+        from session_memory.outcome_ledger import record
+
+        record(
+            source="telegram",
+            event_type="command",
+            outcome="success" if ok else "failure",
+            task_id=chat_id,
+            scenario="ops",
+            summary=f"cmd={cmd} ok={ok}",
+            tags=["telegram", cmd.lstrip("/"), "success" if ok else "failure"],
+        )
+    except Exception:
+        pass  # never block the main path
+
+
 async def _dispatch_chat_session(chat_id: str, cmd: str, arg: str) -> bool:
     mapping = {
         "/chat": lambda: cmd_chat(chat_id, arg),
@@ -205,9 +223,11 @@ async def dispatch_command(
 
     if cmd in ("/help",):
         await cmd_help(chat_id)
+        _record_command_outcome(cmd, chat_id, True)
         return
     if cmd in ("/menu",):
         await cmd_menu(chat_id, with_reply_keyboard=True)
+        _record_command_outcome(cmd, chat_id, True)
         return
 
     pub = _PUBLIC_TOOL_COMMANDS.get(cmd)
@@ -235,6 +255,7 @@ async def dispatch_command(
             parse_mode="",
         )
         await cmd_menu(chat_id, with_reply_keyboard=True)
+        _record_command_outcome(cmd, chat_id, True)
         return
 
     await telegram_bot.send_message("Unknown command", chat_id=chat_id)
