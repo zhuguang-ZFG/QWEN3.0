@@ -93,10 +93,10 @@
 |------|---------|------|------|
 | **覆盖率** | coverage.py + pytest-cov | `pytest --cov` | **Done** `run_pytest_ci.py` + `.coveragerc` |
 | **并行测试** | pytest-xdist | `pytest -n auto` | **Done** CI `-n auto` |
-| **属性测试** | Hypothesis | property-based | **Partial** safety + calc + exchange + time 2026-05-26 |
-| **死代码** | Vulture + deptry | CLI扫描 | **Partial** scripts + **CI report-only** 2026-05-26 |
-| **复杂度** | Radon | CLI报告 | **Partial** `run_radon.py` + CI report-only 2026-05-26 |
-| **类型检查** | Pyright / basedpyright | 快速CLI | **Partial** `run_pyright.py` + CI report-only 2026-05-26 |
+| **属性测试** | Hypothesis | property-based | **Done** 30 tests: routing + fs + calc security 2026-05-26 |
+| **死代码** | Vulture + deptry | CLI扫描 | **Partial** deptry **Done** (CI enforce 2026-05-26); Vulture scripts + CI report-only |
+| **复杂度** | Radon | CLI报告 | **Partial** `run_radon.py` + CI report-only |
+| **类型检查** | Pyright / basedpyright | 快速CLI | **Done** 0 errors CI enforce 2026-05-26 |
 | **HTTP Mock** | RESPX / pytest-httpx | pytest插件 | **Done** 测试在用 |
 | **安全扫描** | Gitleaks | 提交前扫描密钥 | **Done** `.gitleaks.toml` + `lima-ci.yml` |
 | **依赖审计** | pip-audit + OSV-Scanner | CLI | **Done** `run_pip_audit.py` + `run_osv_scan.py` + CI |
@@ -139,8 +139,8 @@
 
 | 必装 | 安装量 | 命令 | LiMa |
 |------|--------|------|------|
-| **Filesystem** | 485K+ | `npx @modelcontextprotocol/server-filesystem` | **Partial** `smoke_filesystem_mcp.py`（默认关） |
-| **GitHub** | 398K+ | `npx @modelcontextprotocol/server-github` | **Partial** `smoke_github_mcp.py`（默认关） |
+| **Filesystem** | 485K+ | `npx @modelcontextprotocol/server-filesystem` | **Done** 原生 Python 3 tools + allowlist 2026-05-26 |
+| **GitHub** | 398K+ | `npx @modelcontextprotocol/server-github` | **Done** 原生 Python 9 tools (issues/PR/code/branch) 2026-05-26 |
 | **PostgreSQL** | 312K+ | `npx @modelcontextprotocol/server-postgres` | **Partial** `smoke_postgres_mcp.py`（默认关；需 URL） |
 | **Brave Search** | 287K+ | `npx @brave/brave-search-mcp-server` | **Partial** 原生 API tier Done + `smoke_brave_mcp.py`（默认关） |
 | **Fetch** | 241K+ | `npx @modelcontextprotocol/server-fetch` | **Partial** `smoke_fetch_mcp.py`（默认关） |
@@ -160,8 +160,8 @@
 | **Dead-man** | GitHub Actions | 2000分/月 | **Done** `lima-vps-deadman.yml` |
 | **微信推送** | Server酱 | 5条/天 | **Paused** 见 `WECHAT_RETIRED.md` |
 | **备份** | Kopia/restic+rclone | 自部署无限 | **Backlog** |
-| **SQLite复制** | Litestream | 连续复制 | **Backlog** |
-| **CI/CD** | GitHub Actions | 2000分/月 | **Done** |
+| **SQLite复制** | Litestream | 连续复制 | **Partial** 配置就绪；VPS pending 二进制安装 2026-05-26 |
+| **CI/CD** | GitHub Actions | 2000分/月 | **Done** + Renovate auto-deps 2026-05-26 |
 | **CI/CD** | Gitee Go | ~200 分/月 | **Deferred** YAML 已留仓；不启用（GitHub Actions 2000 分已够用） |
 | **定时任务** | Cron-job.org | 免费HTTP触发 | **Ref** 已有 VPS cron+HC |
 | **对象存储** | Cloudflare R2+阿里云OSS | 10GB+5GB | **Partial** R2 策略文档化 |

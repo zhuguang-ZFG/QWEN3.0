@@ -1,20 +1,52 @@
 # LiMa Status
 
-> Updated: 2026-05-26 (session handoff)
-> Branch: `codex/free-web-ai-probe` @ **96b8ffc** (pushed)
-> Tests: **1672 passed, 10 skipped** (`pytest -q --ignore=active_model`)
-> Memory: **`docs/LIMA_MEMORY.md`** — **§2026-05-26 会话交接** at top
+> Updated: 2026-05-26 (P2-26…32 closeout)
+> Branch: `codex/free-web-ai-probe` @ **5922c37** (pushed)
+> Tests: **1891 passed, 10 skipped** (`pytest -q --ignore=active_model`)
+> Pyright: **0 errors, 0 warnings** (CI enforce)
+> MCP Tools: **24** on VPS (9 GitHub + 3 filesystem + 12 search/knowledge)
+> Memory: **`docs/LIMA_MEMORY.md`** — **2026-05-26 P2-32 closeout** at top
 
-## 2026-05-26 Session Snapshot (Telegram + infra)
+## 2026-05-26 P2-26…32 Enhancement Blitz
 
-| Area | Status |
-|------|--------|
-| Telegram /chat | Phone OK 12:07; stream+fallback deployed; empty /chat hint CN |
-| TG-10.0-1 stream | `sendMessageDraft` + `TELEGRAM_STREAM_CHAT=1` on VPS |
-| TG-10.0-2 B2B | Code+Server wired; BotFather + real usernames pending E2E |
-| OpenObserve | `OPENOBSERVE_ENABLED=1`, password `change-me-local` on volume |
-| SearXNG VPS | ghcr container 8081; CN engine timeout → TinyFish |
-| codesearch | Local v1.0.97 `lima-git` ~39k chunks |
+| Slice | Area | Status |
+|-------|------|--------|
+| P2-26 | Pyright enforce (37→0) + Litestream config + Filesystem MCP (3 tools) | **Done** VPS verified |
+| P2-27 | GitHub MCP native tools (5 issue/PR tools) | **Done** VPS verified |
+| P2-28 | Renovate auto-deps + Hypothesis property tests (21 routing+fs) | **Done** |
+| P2-29 | public_apis split (318+128) + deptry CI enforce + requirements sync | **Done** VPS verified |
+| P2-30 | Hypothesis security tests (AST calc sandbox, 9 tests) | **Done** |
+| P2-31 | Thread safety fix (code_orchestrator_context defaultdict lock) | **Done** VPS verified |
+| P2-32 | Memory embedding bridge (Jina AI) + 4-tier semantic search fallback | **Done** VPS verified |
+| P2-33 | GitHub code search + PR + branch + file contents (9 tools total) | **Done** VPS verified |
+| P2-34 | memory_stats MCP tool (24 tools total) | **Done** VPS verified |
+
+### MCP Tool Inventory (24 total)
+
+| Category | Count | Tools |
+|----------|-------|-------|
+| Code Search | 5 | search_repo, dev_search_docs, dev_search_error, dev_search_codesearch, dev_search_gitee |
+| Filesystem | 3 | read_file, list_directory, glob_search |
+| Knowledge | 6 | search_memory, get_retrieval_trace, dev_read_url, dev_fetch_github_file, dev_fetch_gitee_file, dev_summarize_sources |
+| GitHub | 9 | create_issue, list_issues, get_issue, add_issue_comment, search_issues, search_code, get_file_contents, create_pull_request, create_branch |
+| Ops | 1 | memory_stats |
+
+### CI Gates
+
+| Gate | Before | After |
+|------|--------|-------|
+| Pyright | report-only (37 errors) | **enforce (0 errors)** |
+| deptry | report-only | **enforce (clean)** |
+| pip-audit | enforce | enforce |
+| gitleaks | enforce | enforce |
+
+### Bug Fixes This Session
+
+| Bug | File | Impact |
+|-----|------|--------|
+| `decide_topology()` import broke `assess_complexity()` | routing_engine.py:115 | Complexity assessment never ran |
+| `ide_source=` kwarg mismatch | routing_engine.py:117 | TypeError in complexity path |
+| `quality_gate_direct/tiers.py` missing on VPS | deploy script | 5 restart failures until sync |
 
 ## Current Summary
 
