@@ -10,6 +10,16 @@
 | GI-G-2-2 | Public smoke | `smoke_gitee_webhook_public.py` local+public 200 | Closed 2026-05-26 |
 | GI-G-2-3 | Ops | Gitee UI WebHook password must match VPS `GITEE_WEBHOOK_SECRET` | Open |
 
+## 2026-05-26 GI-G-3 Gitee AI adapter
+
+| ID | Area | Evidence | Status |
+|---|---|---|---|
+| GI-G-3-1 | Inventory | `/models` 200 → 247 models, 89 chat candidates | Closed 2026-05-26 |
+| GI-G-3-2 | Probe | 0/3 pass; all `resource_not_bound` | Blocked 2026-05-26 |
+| GI-G-3-3 | Code | adapter + budget + admission overlay provider | Closed 2026-05-26 |
+| GI-G-3-4 | VPS env | `deploy_gitee_ai_env.py`; `GITEE_AI_ENABLED=0` | Closed 2026-05-26 |
+| GI-G-3-5 | Ops | Bind resource pack or use free-trial token in Gitee console | Open |
+
 ## 2026-05-26 TG-GH-3 unified digest
 
 | ID | Area | Evidence | Status |

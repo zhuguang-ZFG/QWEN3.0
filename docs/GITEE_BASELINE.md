@@ -39,11 +39,14 @@ python scripts/gitee_mirror_status.py --json
 | Issues | ✅ | ✅ | 均未接 Telegram |
 | 代码评审触发 CI | ❌ | ✅ | 未接 |
 
-## 模力方舟 AI（GI-G-3 前置）
+## 模力方舟 AI（GI-G-3）
 
 - API：`https://ai.gitee.com/v1/chat/completions`（OpenAI 兼容）
-- 需要：`GITEE_AI_TOKEN`（模力方舟 Access Token）
-- **当前：未接入 LiMa 路由**
+- 需要：`GITEE_AI_TOKEN`（访问令牌，须绑定资源包或使用「免费体验访问令牌」）
+- Inventory：`scripts/inventory_gitee_ai_models.py` → `data/gitee_ai_inventory.json`
+- Probe：`scripts/probe_gitee_ai_models.py`（通过后可 `--apply` overlay）
+- **2026-05-26 实测**：`/models` 200（247 模型）；chat 全部 `resource_not_bound` — 当前令牌未授权资源包
+- 路由：`GITEE_AI_ENABLED=0` 默认关；仅 chat floor / late_fallback overlay
 
 ## 下一刀
 

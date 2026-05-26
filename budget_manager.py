@@ -89,8 +89,10 @@ from budget_cf_google import (  # noqa: E402
     get_usage_summary,
     register_cf_google_budgets,
 )
+from budget_gitee import register_gitee_budgets  # noqa: E402
 
 register_cf_google_budgets(BACKEND_BUDGETS, BudgetConfig)
+register_gitee_budgets(BACKEND_BUDGETS, BudgetConfig)
 
 # ── 状态管理 ─────────────────────────────────────────────────────────────────
 

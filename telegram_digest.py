@@ -35,7 +35,8 @@ def _budget_excerpt() -> str:
         grouped = get_usage_summary()
         cf_head = grouped.get("Cloudflare", "").splitlines()[0] if grouped.get("Cloudflare") else ""
         google_head = grouped.get("Google", "").splitlines()[0] if grouped.get("Google") else ""
-        parts = [p for p in (cf_head, google_head) if p]
+        gitee_head = grouped.get("Gitee", "").splitlines()[0] if grouped.get("Gitee") else ""
+        parts = [p for p in (cf_head, google_head, gitee_head) if p and not p.startswith("(none")]
         return "Budget: " + ("; ".join(parts) if parts else "(none)")
     except Exception:
         return "Budget: (unavailable)"

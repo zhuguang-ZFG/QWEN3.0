@@ -4,6 +4,17 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 GI-G-3 模力方舟 AI（基础设施，路由待资源包）
+
+- **实现**：`provider_automation/adapters/gitee_ai.py`、`budget_gitee.py`；inventory/probe/deploy 脚本
+- **Inventory**：247 模型 / 89 chat 候选 → `data/gitee_ai_inventory.json`
+- **Probe**：3/3 `resource_not_bound` — 当前令牌未绑定资源包（需 Gitee 控制台授权或换「免费体验访问令牌」）
+- **路由**：`GITEE_AI_ENABLED=0` 默认；overlay provider `gitee` 已接入 `backend_admission_store`
+- **Budget**：`gitee_*` 日限额 100 + digest Gitee 分组
+- **VPS**：`deploy_gitee_ai_env.py` 写入 `GITEE_AI_TOKEN`（prefix `T8TU...W1R`，`ENABLED=0`）
+- **测试**：focused **6 passed**（`test_gitee_ai_adapter`）；全量待跑
+- **下一刀**：Gitee 控制台绑定资源包 → re-probe → `--apply` overlay；或 **CF-G-3** / **GI-G-5**
+
 ## 2026-05-26 TG-GH-3 统一 Operator 早报
 
 - **实现**：`telegram_digest.py`、`webhook_activity_buffer.py`；`github_webhook/activity.py`、`gitee_webhook/activity.py`

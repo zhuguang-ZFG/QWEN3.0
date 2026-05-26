@@ -173,6 +173,11 @@ def apply_startup(path: str | Path = "") -> int:
             if overlay.provider == "cloudflare":
                 BACKENDS[overlay.backend_key] = build_backend_config(overlay.model_id)
                 applied += 1
+            elif overlay.provider == "gitee":
+                from provider_automation.adapters.gitee_ai import build_backend_config as build_gitee
+
+                BACKENDS[overlay.backend_key] = build_gitee(overlay.model_id)
+                applied += 1
 
     for entry in parse_watchlist(data):
         if entry.action == "disable":

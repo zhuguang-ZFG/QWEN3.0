@@ -164,12 +164,12 @@ GITEE_AI_TOKEN=...       # 模力方舟 Access Token（GI-G-3）
 
 | Task | 内容 |
 |------|------|
-| 3.1 | `scripts/inventory_gitee_ai_models.py` — 列出可用模型 → `data/gitee_ai_inventory.json` |
-| 3.2 | `provider_automation/adapters/gitee_ai.py` — OpenAI 兼容 smoke |
-| 3.3 | 1–3 个模型经 `ProbeRunner` → `backend_admission.json` overlay 或静态 `gitee_*`（review 后） |
-| 3.4 | `budget_manager` / `budget_gitee.py` — 日限额 + Telegram warn（对齐 CF-G-1） |
-| 3.5 | `router_v3` — 仅 **chat floor / late_fallback**；**不进** `code_orchestrator` 默认池 |
-| 3.6 | `GITEE_AI_ENABLED=0` 默认；token 仅 VPS `.env` |
+| 3.1 | `scripts/inventory_gitee_ai_models.py` — 列出可用模型 → `data/gitee_ai_inventory.json` | ✅ 247 / 89 chat |
+| 3.2 | `provider_automation/adapters/gitee_ai.py` — OpenAI 兼容 smoke | ✅ |
+| 3.3 | 1–3 个模型经 `ProbeRunner` → overlay | ⏸ 0 pass（resource_not_bound） |
+| 3.4 | `budget_gitee.py` — 日限额 + digest | ✅ |
+| 3.5 | `router_v3` — floor overlay only | ✅ admission provider |
+| 3.6 | `GITEE_AI_ENABLED=0` 默认；token 仅 VPS `.env` | ✅ |
 
 **Backend 命名：** `gitee_<model_slug>`，URL `https://ai.gitee.com/v1/chat/completions`。
 

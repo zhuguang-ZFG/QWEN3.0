@@ -88,9 +88,16 @@ def get_usage_summary() -> dict[str, str]:
         _format_backend_line(backend, usage_snapshot.get(backend, 0))
         for backend in _google_backends()
     ]
+    try:
+        from budget_gitee import get_gitee_summary_lines
+
+        gitee_lines = get_gitee_summary_lines(usage_snapshot)
+    except Exception:
+        gitee_lines = []
     return {
         "Cloudflare": "\n".join(cf_lines),
         "Google": "\n".join(google_lines) if google_lines else "(none configured)",
+        "Gitee": "\n".join(gitee_lines) if gitee_lines else "(none configured)",
     }
 
 

@@ -45,6 +45,7 @@ def detect_vendor(url: str) -> str:
     if 'models.inference.ai.azure.com' in u: return 'GitHub Models'
     if 'generativelanguage.googleapis.com' in u: return 'Google'
     if 'cloudflare.com' in u: return 'Cloudflare'
+    if 'ai.gitee.com' in u: return 'Gitee AI'
     if 'mistral.ai' in u or 'codestral.mistral' in u: return 'Mistral'
     if 'bigmodel.cn' in u: return 'Zhipu'
     if 'siliconflow.cn' in u: return 'SiliconFlow'
