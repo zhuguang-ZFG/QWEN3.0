@@ -15,9 +15,9 @@
 
 ## 2026-05-26 Telegram 出站修复（TG-PROXY-099）
 
-- **根因**：VPS `GFW_PROXY=127.0.0.1:7897` 无本地代理 → `sendMessage` 全部失败；webhook 入站仍 200
-- **修复**：`telegram_bot._telegram_proxy_candidates()` 代理失败后自动直连；`sendVoice` 同步
-- **验证**：VPS journal 原报 `All connection attempts failed`；部署后待复测
+- **根因**：VPS `GFW_PROXY=127.0.0.1:7897` 依赖 FRP 隧道，但 `frpc.toml` 仅有 `redcode-api`，**未映射 7897** → 出站全失败；webhook 入站仍 200
+- **修复**：① `telegram_bot` 代理失败回退直连（海外 VPS 场景）；② 补 `frp/frpc.toml` `gfw-proxy` remotePort=7897 并重启 frpc
+- **验证**：VPS `getMe ok=True`，`send_message True`（2026-05-26）
 
 ## 2026-05-26 安全/质量审查修复（CQ-098）
 
