@@ -309,6 +309,13 @@ async def webhook(request: Request):
     body = await request.json()
     message = body.get("message")
     callback_query = body.get("callback_query")
+    inline_query = body.get("inline_query")
+
+    if inline_query:
+        from telegram_inline import handle_inline_query
+
+        await handle_inline_query(inline_query)
+        return {"ok": True}
 
     if message:
         from telegram_b2b import handle_inbound_b2b

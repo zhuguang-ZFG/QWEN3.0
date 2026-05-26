@@ -38,6 +38,10 @@
 | TG-10.0-2 | Ops | HTTP approval E2E task `96eba398` Approve 200 + callback | Closed 2026-05-26 |
 | TG-10.0-2b | Ops | BotFather B2B mode (Telegram client rollout) | Blocked |
 | TG-10.0-2c | Code | Telegram review callback 409 → 已审批友好提示 | Closed 2026-05-26 |
+| TG-10.0-3 | Code | inline_query + answerInlineQuery + TELEGRAM_INLINE_ENABLED | Closed 2026-05-26 |
+| TG-10.0-3 | Ops | BotFather Inline Mode + phone @bot smoke | Open |
+| PE-A-1 | Code | inventory_mcp_registries.py + mcp_registry_snapshot | Closed 2026-05-26 |
+| PE-A-1 | Ops | safemcp HTML extract 0 entries (403/network); glama partial | Open |
 
 ## 2026-05-26 Five-line closeout slice 1
 

@@ -92,8 +92,7 @@ tool set needed for the current task.
 
 **LiMa MCP radar (PE-A-1):** read-only inventory from Glama + Official Registry + SafeMCP →
 `data/mcp_registry_snapshot.json` → candidate rows in this catalog.
-Planned script: `scripts/inventory_mcp_registries.py` per
-`docs/superpowers/plans/2026-05-26-lima-productivity-enhancement.md`.
+Script: `scripts/inventory_mcp_registries.py` (run 2026-05-26).
 
 The official reference server repository says its servers demonstrate MCP
 features and SDK usage and are educational examples, not production-ready

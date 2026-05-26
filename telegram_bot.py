@@ -152,6 +152,25 @@ async def answer_callback(callback_query_id: str, text: str) -> bool:
     return result is not None and result.get("ok", False)
 
 
+async def answer_inline_query(
+    inline_query_id: str,
+    results: list[dict],
+    *,
+    cache_time: int = 300,
+    is_personal: bool = True,
+) -> bool:
+    if not is_configured() or not inline_query_id:
+        return False
+    payload = {
+        "inline_query_id": inline_query_id,
+        "results": results[:50],
+        "cache_time": max(0, min(int(cache_time), 300)),
+        "is_personal": is_personal,
+    }
+    api_result = await _api_call("answerInlineQuery", payload)
+    return api_result is not None and api_result.get("ok", False)
+
+
 async def send_voice(audio_bytes: bytes, chat_id: str = "", caption: str = "") -> bool:
     """发送 OGG Opus 语音消息到 Telegram。"""
     if not is_configured():

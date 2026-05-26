@@ -4,6 +4,14 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 TG-10.0-3 inline + PE-A-1 MCP inventory
+
+- **TG-10.0-3**：`telegram_inline.py` — `@bot query` → `routing_engine` → `answerInlineQuery`；Operator 白名单 + 限流
+- **Env**：`TELEGRAM_INLINE_ENABLED=1`（VPS 已开）；BotFather **Inline Mode** 待 Operator 开启
+- **PE-A-1**：`scripts/inventory_mcp_registries.py` → `data/mcp_registry_snapshot.json`（merged **486**；official 800；glama 10）
+- **测试**：+11 focused；全量 **1685 passed, 10 skipped**
+- **VPS**：`deploy_telegram_inline_ok`；`/health` 200
+
 ## 2026-05-26 TG-10.0-2 HTTP 审批 E2E + 409 回调 UX
 
 - **E2E**：`96eba398` needs_review → 手机 Approve/Reject 卡片；首次 Approve **200**；重复点击 **409**（预期）

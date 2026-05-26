@@ -56,6 +56,7 @@ Telegram servers → https://chat.donglicao.com/telegram/webhook
 | `TELEGRAM_STREAM_THROTTLE_MS` | draft 更新最小间隔 ms | `800` |
 | `TELEGRAM_B2B_ENABLED` | 接收 LiMa Code bot 的 `LIMA_B2B` 消息 | `0` |
 | `TELEGRAM_CODE_BOT_USERNAMES` | 允许的 Code bot @username（逗号分隔） | — |
+| `TELEGRAM_INLINE_ENABLED` | `@bot query` inline 模式（TG-10.0-3） | `0` |
 
 ## 模块职责
 
@@ -80,6 +81,12 @@ Telegram servers → https://chat.donglicao.com/telegram/webhook
 - `task_needs_review` → Operator 审批键盘；其他事件 → 摘要推送
 - 仅 ACK 回 Code bot（`LIMA_B2B_ACK`），防 bot 循环
 - 详见 `docs/TELEGRAM_B2B_SETUP.md`
+
+### telegram_inline.py（TG-10.0-3）
+
+- `@bot <query>` → `answerInlineQuery` 文章结果
+- Operator 白名单 + 限流；复用 `routing_engine.route`
+- 详见 `docs/TELEGRAM_INLINE_MODE.md`
 
 ### routes/telegram.py（路由 + 分发，~260 行）
 
