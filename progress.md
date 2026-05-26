@@ -9,6 +9,21 @@
 - **`STATUS.md` / `findings.md`：** 测试基线 **1530 passed, 10 skipped**；Code quality 行。
 - **Tests：** 文档-only；基线证据 commit `57ea35a`。
 
+## 2026-05-26 代码质量 P2（CQ-095）
+
+- **P2.1**：`code_orchestrator_context.py` 拆分上下文/分层/池；`code_orchestrator.py` 保留执行管线（~210 行）
+- **P2.1**：`routes/agent_task_evolution.py` 拆分 skill promote 路由；`agent_tasks.py` <300 行
+- **P2.2**：`tests/test_request_pipeline_authority.py` 守卫 REF-005 模块权威
+- **P2.3**：`tests/README.md` 测试归属索引
+- **P1.3 batch4**（CQ-094）同批提交：voice/channel/request 静默 catch
+- **测试**：全量 **1536 passed, 10 skipped**（+6 authority tests）
+
+## 2026-05-26 代码质量 P1.3（第四批，CQ-094）
+
+- **范围**：P1.3 剩余项 — voice/approval/channel/request 路径
+- **文件**：`voice_gateway.py`, `agent_runtime/approval_session.py`, `channel_gateway/public_apis.py`, `channel_gateway/media_inbound.py`, `routes/request_tracking.py`
+- **测试**：focused 41 passed；全量 **1530 passed, 10 skipped**
+
 ## 2026-05-26 代码质量 P1.3（第三批，CQ-093）
 
 - **范围**：`agent_runtime/*` audit/emit 路径 + `orchestrate` / `speculative` / `router_http` 静默 catch

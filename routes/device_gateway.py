@@ -134,11 +134,12 @@ async def device_gateway_tasks(request: Request) -> JSONResponse:
         queue_depth = enqueue_pending_task(device_id.strip(), task)
         try:
             await publish_task_available(device_id.strip())
-        except Exception:
-            import logging
-            logging.getLogger("device_gateway").warning(
-                "publish_task_available failed device=%s task=%s",
-                device_id.strip(), task.get("task_id", ""),
+        except Exception as exc:
+            _log.warning(
+                "publish_task_available failed device=%s task=%s err=%s",
+                device_id.strip(),
+                task.get("task_id", ""),
+                type(exc).__name__,
             )
     return JSONResponse({"status": "sent" if sent else "queued", "sent": sent, "queue_depth": queue_depth, "task": task})
 
@@ -197,10 +198,11 @@ async def _notify_local_session_task_available(device_id: str) -> None:
         session = registry.get(device_id)
         if session is not None:
             await _drain_pending_tasks(session)
-    except Exception:
-        import logging
-        logging.getLogger("device_gateway").exception(
-            "_notify_local_session_task_available failed device=%s", device_id
+    except Exception as exc:
+        _log.exception(
+            "_notify_local_session_task_available failed device=%s: %s",
+            device_id,
+            type(exc).__name__,
         )
 
 

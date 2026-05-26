@@ -266,8 +266,8 @@ async def voice_ws(ws: WebSocket):
     finally:
         try:
             await ws.close()
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("websocket close skipped: %s", type(exc).__name__)
 
 
 # --- Health Check ---

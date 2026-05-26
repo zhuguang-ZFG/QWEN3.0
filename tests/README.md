@@ -1,51 +1,50 @@
-# LiMa Tests
+# LiMa Test Suite Map
 
-Flat layout: all files stay `tests/test_*.py` (no mass move). Use this map for ownership.
+> Updated: 2026-05-26  
+> Filenames stay flat under `tests/`; this file is the ownership index.
 
-## Request protocol and HTTP
+## Request protocol
 
-- `test_http_body_limit.py`, `test_chat_endpoints.py`, `test_chat_handler.py`
-- `test_chat_models.py`, `test_chat_request_utils.py`, `test_access_guard.py`
-- `test_anthropic_*`, `test_tool_forward*.py`, `test_stream_*`
+- `tests/test_chat_endpoints.py`, `tests/test_anthropic_*.py`, `tests/test_stream_*.py`
+- `tests/test_http_body_limit.py`, `tests/test_access_guard.py`
 
 ## Routing and backends
 
-- `test_routing_engine.py`, `test_router_*.py`, `test_chat_fallback.py`
-- `test_code_orchestrator_routing.py`, `test_backend_registry.py`
-- `test_health_tracker.py`, `test_key_pool.py`, `test_budget_manager.py`
+- `test_routing_engine.py`, `tests/test_route_scorer.py`, `tests/test_coding_eval.py`
+- `tests/test_backend_registry.py`, `tests/test_code_orchestrator_routing.py`
+- `test_code_orchestrator.py`, `tests/test_request_pipeline_authority.py`
 
-## Device gateway and ESP32 contract
+## Device gateway
 
-- `test_device_gateway_*.py`, `test_device_motion.py`, `test_p1_4_device_stability_gate.py`
+- `tests/test_device_gateway_*.py`, `tests/test_device_intent*.py` (if present)
 
 ## Agent runtime and tasks
 
-- `test_agent_orchestrator.py`, `test_agent_runtime.py`, `test_agent_store.py`
-- `test_agent_task_*.py`, `test_agent_evolution.py`, `test_approval_gate.py`
-- `test_real_executor.py`, `test_tool_gateway*.py`
+- `tests/test_agent_task_*.py`, `tests/test_operator_features.py`
+- `tests/test_tool_gateway.py`
 
 ## Memory and retrieval
 
-- `test_prompt_memory_recall.py`, `test_retrieval_*.py`, `test_local_retrieval.py`
-- `test_context_pipeline.py`, `test_context_cache.py`, `test_semantic_cache.py`
-- `test_learning_loop.py`, `test_typed_memory.py`
+- `tests/test_production_retrieval.py`, `tests/test_context_*.py`
+- `tests/test_semantic_cache.py`, `tests/test_session_memory*.py` (if present)
 
 ## Ops, security, hygiene
 
-- `test_secret_hygiene.py`, `test_repo_hygiene.py`, `test_ops_metrics.py`
-- `test_admin_*.py`, `test_system_endpoints.py`, `test_identity_hardening.py`
+- `tests/test_secret_hygiene.py`, `tests/test_repo_hygiene.py`, `tests/test_admin_*.py`
+- `tests/test_request_stats.py`, `tests/test_ops_metrics.py` (if present)
 
-## Channel / Telegram / WeChat
+## Channel gateway
 
-- `test_telegram_*.py`, `test_channel_gateway_*.py`, `test_wechat_channel_smoke.py`
-
-## Provider automation and eval
-
-- `test_provider_automation.py`, `test_web_reverse_eval.py`, `test_eval_registry.py`
+- `tests/test_channel_*.py`, `tests/test_channel_gateway_*.py`
 
 ## Running
 
 ```powershell
-python -m pytest tests/test_quality_gate.py tests/test_http_body_limit.py -q
-python -m pytest
+python -m pytest -q --ignore=active_model
+```
+
+Focused slice example:
+
+```powershell
+python -m pytest tests/test_request_pipeline_authority.py test_code_orchestrator.py -q --ignore=active_model
 ```

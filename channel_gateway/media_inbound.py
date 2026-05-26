@@ -27,7 +27,8 @@ def _decode_attachment(att: dict) -> Optional[bytes]:
         return None
     try:
         data = base64.b64decode(raw, validate=True)
-    except Exception:
+    except Exception as exc:
+        _log.debug("attachment base64 decode failed: %s", type(exc).__name__)
         return None
     if len(data) > _MAX_BYTES:
         return None
@@ -72,7 +73,8 @@ def _stt_audio(
                 )
                 if resp.status_code == 200:
                     return (resp.json().get("text") or "").strip()
-        except Exception:
+        except Exception as exc:
+            _log.debug("channel stt post failed model=%s: %s", model, type(exc).__name__)
             return None
         return None
 
@@ -117,7 +119,8 @@ def _pdf_text(data: bytes) -> str:
         for page in reader.pages[:8]:
             parts.append(page.extract_text() or "")
         return "\n".join(parts)[:12000]
-    except Exception:
+    except Exception as exc:
+        _log.debug("pdf text extract failed: %s", type(exc).__name__)
         return ""
 
 
@@ -154,7 +157,8 @@ def _vision_summary(data: bytes, mime: str, user_note: str) -> str:
         )
         answer = getattr(result, "answer", "") if hasattr(result, "answer") else str(result)
         return answer.strip() or "未能识别图片内容。"
-    except Exception:
+    except Exception as exc:
+        _log.warning("channel vision summary failed: %s", type(exc).__name__)
         return "图片分析暂时不可用，请稍后重试或改用文字描述。"
 
 
@@ -186,7 +190,8 @@ def _summarize_document(filename: str, excerpt: str, user_note: str) -> str:
         answer = getattr(result, "answer", "") if hasattr(result, "answer") else str(result)
         head = f"【文件：{filename}】\n"
         return head + (answer.strip() or "未能生成摘要。")
-    except Exception:
+    except Exception as exc:
+        _log.warning("channel document summary failed file=%s: %s", filename, type(exc).__name__)
         return f"【文件：{filename}】\n已提取正文，但摘要服务暂不可用。正文前 500 字：\n{body[:500]}"
 
 

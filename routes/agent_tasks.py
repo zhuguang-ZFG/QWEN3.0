@@ -10,10 +10,9 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query
 
 from agent_contracts.task_contract import AgentTaskResult
 from agent_evolution.candidates import get_candidate_store
-from agent_evolution.promote import promote_candidate
+from routes.agent_task_evolution import router as evolution_router
 from routes.agent_task_schemas import (
     ClaimBody,
-    PromoteBody,
     ReviewBody,
     TaskCreateBody,
     TaskResultBody,
@@ -32,6 +31,7 @@ from routes.agent_task_store import TaskStore, _DB_PATH, get_task_store, reset_t
 
 _log = logging.getLogger(__name__)
 router = APIRouter(prefix="/agent")
+router.include_router(evolution_router)
 
 # Back-compat for tests and ops_metrics
 _TaskStore = TaskStore
@@ -287,30 +287,6 @@ async def get_task_events(task_id: str):
     if not _store.has_events(task_id):
         raise HTTPException(404, "Task not found")
     return {"events": _store.get_events(task_id)}
-
-
-@router.get("/skills/candidates", dependencies=[Depends(_require_admin)])
-async def list_skill_candidates():
-    store = get_candidate_store()
-    return {"candidates": [asdict(c) for c in store.list_pending()]}
-
-
-@router.post("/skills/{skill_id}/promote", dependencies=[Depends(_require_admin)])
-async def promote_skill(skill_id: str, body: PromoteBody):
-    store = get_candidate_store()
-    success = promote_candidate(
-        store,
-        skill_id,
-        body.eval_passed,
-        body.manual_flag,
-        body.mastery_evidence_refs,
-    )
-    if not success:
-        raise HTTPException(
-            400,
-            "Promotion failed: eval, manual flag, and mastery evidence are required",
-        )
-    return {"promoted": True, "skill_id": skill_id}
 
 
 _create_task_from_body = create_task_from_body

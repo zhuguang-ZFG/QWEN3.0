@@ -14,8 +14,8 @@
 | P0.3 `key_rotation` | **Done** | stub in `deploy/key_rotation.py`; legacy in `scripts/archive/key_rotation_legacy.py` |
 | P1.1 semantic cache | **Done** | `_log.warning` + `db_write_errors`; `tests/test_semantic_cache.py` |
 | P1.2 admin login | **Done** | `constant_time_equals` in `routes/admin.py` |
-| P1.3 silent catches | **In progress** | batch1–3: streaming/audit/device intent + agent_runtime audit/emit + orchestrate/speculative/router_http |
-| P2+ file split / routing | **Backlog** | see sections below |
+| P1.3 silent catches | **Mostly done** | batch1–4 complete; residual best-effort in archives/submodules out of scope |
+| P2+ file split / routing | **In progress** | `code_orchestrator` + `agent_tasks` split done; next: `router_http`, `device_gateway` WS loop |
 
 ## Current Verification Snapshot
 

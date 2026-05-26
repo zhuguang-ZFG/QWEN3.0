@@ -10,6 +10,21 @@
 | MEM-091-2 | `docs/TECHNICAL_ARCHITECTURE.md` | 「当前架构（2026-05-26）」节；历史商业图标注为过时参考 | Closed |
 | MEM-091-3 | Test baseline | 沿用 `57ea35a`：**1530 passed, 10 skipped** | Closed |
 
+## 2026-05-26 CQ-095 Code quality P2 split + pipeline authority tests
+
+| ID | Area | Evidence | Status |
+|---|---|---|---|
+| CQ-095-1 | P2.1 split | `code_orchestrator_context.py`, slim `code_orchestrator.py`, `routes/agent_task_evolution.py` | Closed |
+| CQ-095-2 | P2.2/P2.3 | `tests/test_request_pipeline_authority.py`, `tests/README.md` | Closed |
+| CQ-095-3 | Tests | full **1536 passed, 10 skipped** | Closed |
+
+## 2026-05-26 CQ-094 Code quality P1.3 batch 4 (voice + channel + request tracking)
+
+| ID | Area | Evidence | Status |
+|---|---|---|---|
+| CQ-094-1 | P1.3 logging | `voice_gateway`, `approval_session`, `public_apis`, `media_inbound`, `request_tracking.get_ip_location` | Closed |
+| CQ-094-2 | Tests | focused 41 passed; full **1530 passed, 10 skipped** | Closed |
+
 ## 2026-05-26 CQ-093 Code quality P1.3 batch 3 (agent_runtime + orchestrate)
 
 | ID | Area | Evidence | Status |

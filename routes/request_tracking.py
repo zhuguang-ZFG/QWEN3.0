@@ -60,7 +60,8 @@ def get_ip_location(ip: str) -> str:
         resp = urllib.request.urlopen(f"http://ip-api.com/json/{ip}?fields=country,city&lang=zh-CN", timeout=0.5)
         data = json.loads(resp.read().decode())
         return f"{data.get('country', '')} {data.get('city', '')}"
-    except Exception:
+    except Exception as exc:
+        log.debug("ip location lookup failed ip=%s: %s", ip, type(exc).__name__)
         return "未知"
 
 

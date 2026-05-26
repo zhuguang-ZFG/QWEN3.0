@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ast
 import json
+import logging
 import operator
 import re
 import urllib.error
@@ -11,6 +12,8 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
+
+_log = logging.getLogger(__name__)
 
 _USER_AGENT = "LiMa-ChannelTools/1.0"
 _TIMEOUT = 10
@@ -96,7 +99,8 @@ def fetch_exchange(from_ccy: str, to_ccy: str, amount: float = 1.0) -> dict:
 def fetch_time(tz_name: str = "Asia/Shanghai") -> dict:
     try:
         tz = ZoneInfo(tz_name)
-    except Exception:
+    except Exception as exc:
+        _log.debug("invalid timezone %s, fallback Asia/Shanghai: %s", tz_name, type(exc).__name__)
         tz = ZoneInfo("Asia/Shanghai")
     now = datetime.now(timezone.utc).astimezone(tz)
     return {

@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass, field
+
+_log = logging.getLogger(__name__)
 
 from agent_runtime.approval import ApprovalGate, ApprovalRequest
 from agent_runtime.audit_trail import audit_event
@@ -119,5 +122,10 @@ def _safe_audit(event: str, session: ApprovalSession) -> str:
             approval_id=session.approval_id,
         )
         return ref.audit_id
-    except Exception:
+    except Exception as exc:
+        _log.debug(
+            "approval session audit skipped approval=%s: %s",
+            session.approval_id,
+            type(exc).__name__,
+        )
         return ""

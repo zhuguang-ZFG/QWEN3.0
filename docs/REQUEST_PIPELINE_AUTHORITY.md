@@ -82,6 +82,7 @@ sequenceDiagram
 - `tests/test_route_post_process.py` — post-route hooks
 - `tests/test_http_caller.py` — transport
 - `tests/test_request_context_preflight.py` — preflight contracts
+- `tests/test_request_pipeline_authority.py` — module ownership matrix (CQ-095)
 
 ## When to revisit full factory authority
 
