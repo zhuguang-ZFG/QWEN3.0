@@ -173,6 +173,11 @@ async def _dispatch_operator(chat_id: str, cmd: str, arg: str, *, logs_fn, resta
 
         await cmd_digest(chat_id, arg)
         return True
+    if cmd == "/contracts":
+        from routes.telegram_knowledge import cmd_contracts
+
+        await cmd_contracts(chat_id, arg)
+        return True
     return False
 
 

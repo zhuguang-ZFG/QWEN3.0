@@ -176,6 +176,39 @@ async def cmd_digest(chat_id: str, args: str) -> None:
         )
 
 
+async def cmd_contracts(chat_id: str, args: str) -> None:
+    """Show Agent Contracts and Pipeline stages."""
+    try:
+        from agent_runtime.contracts import AGENT_CONTRACTS, STANDARD_PIPELINE, AgentRole, Stage
+
+        lines = ["*Agent Contracts*", ""]
+
+        # Pipeline
+        lines.append("*Pipeline:*")
+        for gate in STANDARD_PIPELINE:
+            lines.append(f"  {gate.from_stage.value} → {gate.to_stage.value}"
+                         f"{'  [approval]' if gate.requires_approval else ''}")
+        lines.append("")
+
+        # Roles
+        lines.append("*Roles:*")
+        for role, contract in AGENT_CONTRACTS.items():
+            tools_n = len(contract.allowed_tools)
+            evidence = ", ".join(contract.produces_evidence[:3])
+            lines.append(f"  *{role.value}*: {tools_n} tools → {evidence}")
+
+        lines.append("")
+        lines.append("/contracts <role> for tool list")
+
+        await telegram_bot.send_message(
+            "\n".join(lines)[:4000], chat_id=chat_id, parse_mode="Markdown",
+        )
+    except Exception as exc:
+        await telegram_bot.send_message(
+            f"Contracts failed: {exc}", chat_id=chat_id, parse_mode="",
+        )
+
+
 async def cmd_learn(chat_id: str, args: str) -> None:
     """Show/approve learning candidates. Usage: /learn [approve|reject <id>]"""
     try:
