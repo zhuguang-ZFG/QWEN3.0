@@ -150,6 +150,7 @@ __all__ = [
     "WriteResult",
     "audit_event",
     "approve_session",
+    "deny_session",
     "build_default_gateway",
     "build_default_policy",
     "build_resume_state",

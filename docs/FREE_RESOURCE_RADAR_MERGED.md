@@ -24,9 +24,9 @@
 | 运维 dead-man | Healthchecks.io + GA workflow | **Done** |
 | 生产力 PE-* | Netdata/SearXNG/codesearch/MCP inventory/OpenObserve | **Done**（SafeMCP Partial） |
 | LiMa Code Worker | Prompt Contract v0.1 + Hooks + gated daemon | **Partial** LC-W-1e/2/3 Done；live TG 待 token |
-| 代码质量 P1.3 | 静默 catch 清理 | **Open** 进行中 |
+| 代码质量 P1.3 | 静默 catch 清理 | **Done** 2026-05-26（active paths） |
 | 雷达 P0 | Gitleaks / Gitee CI / Gitee 搜索 | **Done** 2026-05-26 |
-| 雷达 P1 | pip-audit 依赖审计 | **Done** 2026-05-26 |
+| 雷达 P1 | pip-audit + OSV-Scanner + Ruff + pytest-cov/xdist | **Done** 2026-05-26 |
 
 ---
 
@@ -75,19 +75,19 @@
 
 | 类别 | 最佳资源 | 方式 | LiMa |
 |------|---------|------|------|
-| **覆盖率** | coverage.py + pytest-cov | `pytest --cov` | **Backlog** |
-| **并行测试** | pytest-xdist | `pytest -n auto` | **Backlog** |
+| **覆盖率** | coverage.py + pytest-cov | `pytest --cov` | **Done** `run_pytest_ci.py` + `.coveragerc` |
+| **并行测试** | pytest-xdist | `pytest -n auto` | **Done** CI `-n auto` |
 | **属性测试** | Hypothesis | property-based | **Backlog** |
 | **死代码** | Vulture + deptry | CLI扫描 | **Backlog** |
 | **复杂度** | Radon | CLI报告 | **Backlog** |
 | **类型检查** | Pyright / basedpyright | 快速CLI | **Backlog** |
 | **HTTP Mock** | RESPX / pytest-httpx | pytest插件 | **Done** 测试在用 |
 | **安全扫描** | Gitleaks | 提交前扫描密钥 | **Done** `.gitleaks.toml` + `lima-ci.yml` |
-| **依赖审计** | pip-audit + OSV-Scanner | CLI | **Done** `scripts/run_pip_audit.py` + `lima-ci.yml`；OSV 待排 |
+| **依赖审计** | pip-audit + OSV-Scanner | CLI | **Done** `run_pip_audit.py` + `run_osv_scan.py` + CI |
 | **容器扫描** | Trivy / Grype | CLI | **Backlog** |
 | **SBOM** | ORT / sbom-pilot / Syft | CLI | **Backlog** |
 | **Git Hooks** | betterhook (Rust,30ms) | 单二进制 | **Backlog** |
-| **静默 catch** | logger.warning 替代 pass | CQ P1.3 | **Open** 进行中 |
+| **静默 catch** | logger.warning 替代 pass | CQ P1.3 | **Done** active paths 2026-05-26 |
 
 ---
 
@@ -439,7 +439,7 @@
 
 | 资源 | 亮点 |
 |------|------|
-| **Ruff** | 800+规则，Rust单二进制，替代Flake8+isort+Black |
+| **Ruff** | 800+规则，Rust单二进制；**Done** E9/F821 CI gate |
 | **ty** (Astral) | Rust 类型检查器，2025年底新出 |
 | **PySCN** | Go+tree-sitter，死代码+克隆检测，10万行/秒 |
 | **cq** (python-code-quality) | 聚合11工具，LLM友好输出，pip install |

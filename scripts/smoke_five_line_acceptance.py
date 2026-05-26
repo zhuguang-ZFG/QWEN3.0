@@ -85,7 +85,6 @@ def check_routing_config_vps(ssh: paramiko.SSHClient) -> bool:
 
 
 def check_github_issue_webhook(ssh: paramiko.SSHClient) -> bool:
-    line = ""
     _stdin, stdout, _stderr = ssh.exec_command(
         f"grep '^GITHUB_WEBHOOK_SECRET=' {REMOTE}/.env | head -1",
         timeout=30,

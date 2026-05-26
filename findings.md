@@ -140,6 +140,7 @@
 | TG-GH-2-3 | LiMa Code→TG | smoke script + notifier **8 passed**；live `--send` 待 Operator token | Partial 2026-05-26 |
 | LC-W-3-1 | Gated daemon | `LIMA_CODE_WORKER_DAEMON=1` + `/lima daemon start` idleRetry；cli **40 passed** | Closed 2026-05-26（默认关，需 Operator 开 env） |
 | RADAR-P1-1 | pip-audit | `scripts/run_pip_audit.py` + CI；pin `fastapi<0.136.3`（MAL-2026-4750） | Closed 2026-05-26 |
+| RADAR-P1-2 | OSV + Ruff + cov/xdist + P1.3 | `run_osv_scan.py` / `run_ruff_check.py` / `run_pytest_ci.py`；P1.3 active paths | Closed 2026-05-26 |
 
 ## 2026-05-26 TG-GH-2 LiMa Code Telegram
 

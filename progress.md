@@ -4,6 +4,14 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 雷达 P1 续：OSV / Ruff / cov-xdist / P1.3
+
+- **OSV-Scanner**：`scripts/run_osv_scan.py` + CI 安装 `osv-scanner_linux_amd64`
+- **Ruff**：`ruff.toml`（E9 + F821 门禁）+ `scripts/run_ruff_check.py` + CI
+- **pytest-cov/xdist**：`.coveragerc` + `scripts/run_pytest_ci.py`（`-n auto --cov`）；本地 **66.1%** 行覆盖报告
+- **P1.3**：`webhook_activity_buffer` / `gitee_webhook/dedupe` / `telegram_digest` / `streaming` / `http_sync` 静默 catch → `logger.warning/debug`
+- **测试**：`tests/test_ci_gates.py` + 全量 **1726 passed**（xdist+cov）
+
 ## 2026-05-26 雷达 P1：pip-audit 依赖审计
 
 - **切片**：`docs/FREE_RESOURCE_RADAR_MERGED.md` §四「依赖审计」

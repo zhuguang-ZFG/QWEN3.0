@@ -17,20 +17,13 @@ Run as:
 """
 from __future__ import annotations
 
-import os
-import tempfile
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-import server
-from device_gateway.sessions import registry
 from device_gateway.tasks import (
-    create_task_from_transcript,
-    enqueue_pending_task,
     pending_count,
-    pop_pending_tasks,
     task_snapshot,
 )
 from routes.device_gateway import _reset_for_tests, router
@@ -242,7 +235,7 @@ def test_stability_loop(request):
         c = _client()
         try:
             _reset_for_tests()  # Clean state between rounds
-            with c.websocket_connect(f"/device/v1/ws?token=test-device-token") as ws:
+            with c.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
                 ws.send_json({"type": "hello", "protocol": "lima-device-v1",
                               "device_id": "dev-1", "capabilities": ["run_path"]})
                 ack = ws.receive_json()
@@ -257,13 +250,11 @@ def test_stability_loop(request):
                 assert task["type"] == "motion_task", f"round {i}: expected motion_task"
 
                 task_id = task["task_id"]
-                last_phase = "accepted"
                 for phase in ("accepted", "running", "progress", "done"):
                     ws.send_json({"type": "motion_event", "device_id": "dev-1",
                                   "task_id": task_id, "phase": phase})
                     ack = ws.receive_json()
                     assert ack["type"] == "motion_event_ack", f"round {i} phase {phase}"
-                    last_phase = phase
 
             # Check after WebSocket close (events flushed)
             snap = task_snapshot(task_id)

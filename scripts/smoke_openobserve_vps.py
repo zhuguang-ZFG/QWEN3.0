@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 import sys
 
@@ -32,8 +31,6 @@ def main() -> int:
     listen = _run(ssh, "ss -tlnp 2>/dev/null | grep 5080 || true")[1]
     http = _run(ssh, "curl -sf -o /dev/null -w '%{http_code}' http://127.0.0.1:5080/")[1]
 
-    pw = os.environ.get("OPENOBSERVE_PASSWORD", "change-me-local")
-    user = os.environ.get("OPENOBSERVE_USER", "root@example.com")
     ingest = _run(
         ssh,
         "python3 -c \""

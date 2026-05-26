@@ -18,11 +18,24 @@ def run(cmd: list[str]) -> int:
 def main() -> int:
     steps = [
         [sys.executable, "-m", "pip", "install", "-r", "requirements_server.txt"],
-        [sys.executable, "-m", "pip", "install", "pytest", "pytest-asyncio", "pybreaker", "pip-audit"],
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "pytest",
+            "pytest-asyncio",
+            "pytest-xdist",
+            "pytest-cov",
+            "pybreaker",
+            "pip-audit",
+            "ruff",
+        ],
+        [sys.executable, "scripts/run_ruff_check.py"],
         [sys.executable, "scripts/run_pip_audit.py"],
         [sys.executable, "scripts/run_rag_eval_gate.py"],
         [sys.executable, "-m", "pytest", "-q", "-m", "rag_gate"],
-        [sys.executable, "-m", "pytest", "-q"],
+        [sys.executable, "scripts/run_pytest_ci.py"],
     ]
     for cmd in steps:
         code = run(cmd)

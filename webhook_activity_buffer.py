@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import threading
 import time
 from pathlib import Path
+
+_log = logging.getLogger(__name__)
 
 _MAX_EVENTS = 50
 _LOCK = threading.Lock()
@@ -25,8 +28,8 @@ def _load() -> list[dict]:
         data = json.loads(path.read_text(encoding="utf-8"))
         if isinstance(data, list):
             return data[-_MAX_EVENTS:]
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.warning("webhook_activity load failed: %s", type(exc).__name__)
     return []
 
 

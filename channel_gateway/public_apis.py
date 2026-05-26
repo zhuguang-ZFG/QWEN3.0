@@ -286,7 +286,6 @@ def fetch_earthquake(limit: int = 5) -> dict:
             props = feat.get("properties") or {}
             mag = props.get("mag", "?")
             place = str(props.get("place", ""))[:80]
-            t = props.get("time", 0)
             lines.append(f"· M{mag} {place}")
         if len(lines) <= 1:
             return {"ok": False, "error": "暂无地震数据"}

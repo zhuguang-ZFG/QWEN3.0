@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 import time
 
 import health_tracker
 from budget_cf_google import get_total_requests_today, get_usage_summary
 from webhook_activity_buffer import format_activity_lines
+
+_log = logging.getLogger(__name__)
 
 
 def _health_counts() -> dict[str, int]:
@@ -26,7 +29,8 @@ def _task_summary() -> str:
             f"{counts.get('running', 0)} running, "
             f"{counts.get('failed', 0)} failed"
         )
-    except Exception:
+    except Exception as exc:
+        _log.warning("task summary unavailable: %s", type(exc).__name__)
         return "Tasks: (unavailable)"
 
 
@@ -38,7 +42,8 @@ def _budget_excerpt() -> str:
         gitee_head = grouped.get("Gitee", "").splitlines()[0] if grouped.get("Gitee") else ""
         parts = [p for p in (cf_head, google_head, gitee_head) if p and not p.startswith("(none")]
         return "Budget: " + ("; ".join(parts) if parts else "(none)")
-    except Exception:
+    except Exception as exc:
+        _log.warning("budget excerpt unavailable: %s", type(exc).__name__)
         return "Budget: (unavailable)"
 
 
@@ -47,7 +52,8 @@ def _inventory_weekly_excerpt() -> str:
         from provider_inventory.weekly_diff import format_weekly_diff_digest, load_weekly_diff
 
         return format_weekly_diff_digest(load_weekly_diff())
-    except Exception:
+    except Exception as exc:
+        _log.warning("inventory weekly excerpt unavailable: %s", type(exc).__name__)
         return "Inventory 7d: (unavailable)"
 
 
@@ -82,6 +88,6 @@ async def send_unified_digest(*, hours: float = 24.0) -> bool:
         from telegram_push_translate import translate_push_text
 
         text = translate_push_text(text)
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.warning("digest translate skipped: %s", type(exc).__name__)
     return await telegram_bot.send_message(text)

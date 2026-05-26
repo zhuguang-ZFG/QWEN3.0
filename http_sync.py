@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import os
+import logging
 import sys
 import time
 
@@ -12,6 +12,8 @@ from response_cleaner import clean_response, _is_backend_error
 from backends import BACKENDS
 from http_errors import BackendError, _emit_backend_error, _extract_code, _extract_retry_after
 from http_response import _extract_answer, _extract_usage
+
+_log = logging.getLogger(__name__)
 
 
 def _caller():
@@ -30,7 +32,7 @@ def _apply_artifact_handles(messages: list[dict]) -> None:
                 if isinstance(content, str) and should_use_handle(content):
                     messages[index] = {**msg, "content": create_handle(content)}
     except ImportError:
-        pass
+        _log.debug("context_pipeline.artifact not installed; artifact handles skipped")
 
 
 def _record_success_telemetry(
@@ -48,14 +50,14 @@ def _record_success_telemetry(
 
         budget_manager.record_token_usage(backend, prompt_tokens, completion_tokens)
     except ImportError:
-        pass
+        _log.debug("budget_manager not installed; token usage skipped")
     try:
         from observability.metrics import record as obs_record
         from observability.events import backend_call_event
 
         obs_record(backend_call_event("", backend, "", latency_ms=latency_ms))
     except ImportError:
-        pass
+        _log.debug("observability.metrics not installed; backend_call_event skipped")
 
 
 def _handle_call_error(

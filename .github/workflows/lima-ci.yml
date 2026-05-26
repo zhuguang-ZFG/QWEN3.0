@@ -25,10 +25,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements_server.txt
-          pip install pytest pytest-asyncio
+          pip install pytest pytest-asyncio pytest-xdist pytest-cov ruff pip-audit
 
-      - name: Run test suite
-        run: python -m pytest -q
+      - name: Lint (ruff)
+        run: python scripts/run_ruff_check.py
+
+      - name: Run test suite (parallel + coverage)
+        run: python scripts/run_pytest_ci.py
 
       - name: Install gitleaks
         run: |
@@ -40,9 +43,16 @@ jobs:
         run: gitleaks detect --source . --config .gitleaks.toml --no-banner
 
       - name: Dependency audit (pip-audit)
+        run: python scripts/run_pip_audit.py
+
+      - name: Install osv-scanner
         run: |
-          python -m pip install pip-audit
-          python scripts/run_pip_audit.py
+          curl -sSfL https://github.com/google/osv-scanner/releases/download/v2.0.3/osv-scanner_linux_amd64 \
+            -o /usr/local/bin/osv-scanner
+          chmod +x /usr/local/bin/osv-scanner
+
+      - name: Dependency audit (osv-scanner)
+        run: python scripts/run_osv_scan.py
 
   rag-gate:
     name: RAG offline eval gate

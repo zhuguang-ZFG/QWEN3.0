@@ -7,8 +7,7 @@ LiMa Streaming — 纯流式核心，依赖注入解耦
 
 import asyncio
 import logging
-import time
-from typing import AsyncIterator, Awaitable, Callable, Iterator, Optional
+from typing import AsyncIterator, Awaitable, Callable, Iterator
 
 from streaming_bridge import bridge_stream
 
@@ -152,5 +151,10 @@ async def speculative_stream(
             route_task.cancel()
             try:
                 await route_task
-            except (asyncio.CancelledError, Exception):
+            except asyncio.CancelledError:
                 pass
+            except Exception as exc:
+                _log.debug(
+                    "speculative route task cancel failed: %s",
+                    type(exc).__name__,
+                )

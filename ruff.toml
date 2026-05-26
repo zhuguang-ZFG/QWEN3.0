@@ -1,0 +1,24 @@
+target-version = "py310"
+line-length = 120
+
+exclude = [
+    "esp32S_XYZ",
+    "deepcode-cli",
+    "wechat_bridge",
+    "scripts/archive",
+    "venv",
+    ".venv",
+    "managed_components",
+    ".ruff_cache",
+]
+
+[lint]
+# Gate real defects first; broaden to F401 unused-import cleanup in a later slice.
+select = ["E9", "F821", "F822", "F823"]
+
+[lint.per-file-ignores]
+"**/__init__.py" = ["F401"]
+"http_caller.py" = ["F401"]
+"smart_router.py" = ["F401"]
+"backends.py" = ["F401"]
+"routing_engine.py" = ["F401"]

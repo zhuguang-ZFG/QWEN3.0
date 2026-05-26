@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import threading
 import time
 from pathlib import Path
+
+_log = logging.getLogger(__name__)
 
 _DEFAULT_TTL = 300
 _LOCK = threading.Lock()
@@ -43,8 +46,8 @@ def _load_file() -> dict[str, dict[str, float]]:
                 "github": {k: float(v) for k, v in (data.get("github") or {}).items()},
                 "gitee": {k: float(v) for k, v in (data.get("gitee") or {}).items()},
             }
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.warning("webhook push dedupe load failed: %s", type(exc).__name__)
     return {"github": {}, "gitee": {}}
 
 
