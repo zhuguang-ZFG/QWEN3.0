@@ -23,7 +23,7 @@ from routes.chat_handler_dispatch import (
 )
 
 _model_id = "lima-1.3"
-_record_request: Callable[..., None] | None = None
+_record_request: Callable[..., None] = lambda *a, **kw: None
 _record_fallback: Callable[..., None] | None = None
 _build_pollinations_url: Callable[[str, str], str] | None = None
 

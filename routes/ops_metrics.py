@@ -83,13 +83,14 @@ def _recent_agent_tasks(limit: int = 5) -> list[dict[str, Any]]:
         return []
 
     recent: list[dict[str, Any]] = []
-    for task in tasks:
+    for task_raw in tasks:
+        task = task_raw if isinstance(task_raw, dict) else {}
         request = task.get("request") if isinstance(task.get("request"), dict) else {}
         recent.append({
-            "task_id": str(request.get("task_id", "")),
+            "task_id": str(request.get("task_id", "")),  # type: ignore[reportOptionalMemberAccess]
             "status": str(task.get("status", "")),
             "worker_id": str(task.get("worker_id", "")),
-            "goal": _redacted(str(request.get("goal", "")), 60),
+            "goal": _redacted(str(request.get("goal", "")), 60),  # type: ignore[reportOptionalMemberAccess]
         })
     return recent
 

@@ -120,14 +120,16 @@ def _parse_queue_status(value: object) -> QueueStatus:
         return QueueStatus.PENDING
 
 
-def _safe_int(value: object) -> int:
+from typing import Any
+
+def _safe_int(value: Any) -> int:
     try:
         return int(value)
     except (TypeError, ValueError):
         return 0
 
 
-def _safe_float(value: object) -> float:
+def _safe_float(value: Any) -> float:
     try:
         return float(value)
     except (TypeError, ValueError):

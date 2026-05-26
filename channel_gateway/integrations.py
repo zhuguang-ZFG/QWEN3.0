@@ -454,6 +454,12 @@ def build_owner_github_handler() -> Callable[[str, str], str]:
 class _StubExtractAdapter:
     """Minimal adapter for raw GitHub URLs when TinyFish is off."""
 
+    def search(self, query: str, *, domain: str | None = None, max_results: int = 5) -> dict:
+        return {"ok": False, "error": "stub: search not available"}
+
+    def batch_search(self, queries: list[str], *, domain: str | None = None, max_results: int = 5) -> dict:
+        return {"ok": False, "error": "stub: batch_search not available"}
+
     def extract_url(self, url: str) -> dict:
         import urllib.request
 

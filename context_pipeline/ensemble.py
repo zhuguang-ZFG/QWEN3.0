@@ -98,7 +98,7 @@ async def ensemble_race(
     if winner:
         return EnsembleResult(
             winner_backend=winner.backend,
-            response=winner.response,
+            response=winner.response or {},
             latency_ms=winner.latency_ms,
             candidates_tried=len(backends),
             candidates_succeeded=sum(1 for c in candidates if c.success),

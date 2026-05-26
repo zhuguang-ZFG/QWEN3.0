@@ -88,7 +88,7 @@ class EventLog:
 
 
 # Async-safe request-scoped event log using contextvars
-_request_log_var: contextvars.ContextVar[EventLog] = contextvars.ContextVar(
+_request_log_var: contextvars.ContextVar[EventLog | None] = contextvars.ContextVar(
     "request_log", default=None
 )
 

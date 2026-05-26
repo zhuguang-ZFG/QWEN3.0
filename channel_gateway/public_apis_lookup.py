@@ -61,6 +61,8 @@ def fetch_whois(domain: str) -> dict:
         return {"ok": False, "error": "用法：/whois example.com"}
     try:
         data = _get_json(f"https://rdap.org/domain/{urllib.parse.quote(raw)}")
+        if not isinstance(data, dict):
+            return {"ok": False, "error": "WHOIS 查询失败"}
         status = ", ".join(str(s) for s in (data.get("status") or [])[:3])
         events = data.get("events") or []
         created = next(
@@ -183,7 +185,7 @@ def fetch_ssl(host: str) -> dict:
             with ctx.wrap_socket(sock, server_hostname=name) as ssock:
                 cert = ssock.getpeercert() or {}
                 cipher = ssock.cipher()
-        not_after = cert.get("notAfter", "")
+        not_after = str(cert.get("notAfter", ""))
         issuer = cert.get("issuer", ())
         org = ""
         for item in issuer:

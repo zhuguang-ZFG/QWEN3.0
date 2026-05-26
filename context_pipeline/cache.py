@@ -16,7 +16,7 @@ class CacheMetrics:
     total_requests: int = 0
     cache_eligible: int = 0
     unique_prefixes: int = 0
-    _prefix_hashes: set = None
+    _prefix_hashes: set | None = None
 
     def __post_init__(self):
         if self._prefix_hashes is None:
@@ -25,6 +25,7 @@ class CacheMetrics:
     def record(self, prefix_hash: str) -> None:
         self.total_requests += 1
         self.cache_eligible += 1
+        assert self._prefix_hashes is not None, "PrefixCache not initialized; call __post_init__ first"
         self._prefix_hashes.add(prefix_hash)
         self.unique_prefixes = len(self._prefix_hashes)
 

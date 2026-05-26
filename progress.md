@@ -4,6 +4,39 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 P2-26：Pyright enforce + Litestream + Filesystem MCP
+
+### Pyright enforce
+- **修复前**：37 type errors across 13 files；CI report-only 模式
+- **修复后**：**0 errors, 0 warnings**；CI enforce 模式
+- **发现 2 个真实 bug**：
+  - `routing_engine.py:115` — `decide_topology()` 不存在，ImportError 导致 `assess_complexity()` 静默跳过（复杂度评估从未运行）
+  - `routing_engine.py:117` — `ide_source=` 参数名错误（函数签名为 `ide=`）
+- **配置**：`pyrightconfig.json`（typeCheckingMode=basic，排除 tests/scripts/venv）
+- **修复文件**：17 Python 文件（类型标注 + 守卫 + 无用导入删除）
+
+### Litestream SQLite 连续备份
+- **配置**：`litestream.yml` — 6 个 SQLite 数据库 → 本地文件系统副本
+- **状态**：配置文件就绪；**VPS 暂未安装 litestream 二进制文件**（systemd unit 已回退为原始 ExecStart）
+- **启用步骤**：在 VPS 上 `curl -L <litestream-url> | tar xz && mv litestream /usr/local/bin/`，然后切换到 litestream ExecStart
+- **Systemd snapshot**：`infra/vps/systemd/lima-router.service` 包含 litestream 包装行（备注），当前 VPS 使用回退行
+
+### Filesystem MCP
+- **新增**：`lima_mcp/fs_allowlist.py` — 路径验证引擎（遍历防护、符号链接解析、工作区边界）
+- **新增 3 个工具**：`read_file`、`list_directory`、`glob_search`（注册在 `TOOL_DEFINITIONS`）
+- **控制**：`LIMA_FILESYSTEM_ALLOWED_ROOTS` 环境变量（默认仅当前工作目录）
+- **默认关闭**：`access_plane.py` 中 `filesystem_write` 状态为 OFF；读取需要允许列表
+
+### VPS 部署验证
+- **部署**：`scripts/deploy_review_p2_26_vps.py` 上传 18 个文件
+- **VPS 意外故障**：`quality_gate_direct.py` 和 `quality_gate_tiers.py` 在 VPS 上缺失（本地拆分后未部署），导致 5 次重启失败
+- **修复**：上传缺失的 2 个文件后立即恢复
+- **验证**：HTTPS `/health` 200 · HTTPS `/v1/chat` 200 · FRP 200 · MCP 工具 14 个含 FS 工具 · 编码路由正常
+
+### 测试
+- **全量 pytest**：**1861 passed, 10 skipped**（本 session）
+- **Pyright**：0 errors, 0 warnings（本地 + CI enforce）
+
 ## 2026-05-26 全量审查 closeout（HIGH + 测试）
 
 - **审查修复**：`_eval_busy` 加 `asyncio.Lock`；`routes/telegram_dispatch.py` 拆分 dispatch；`telegram_async.py` 统一 fire-and-forget；`lima_mcp/tools.py` 工具异常可观测；`fetch_github_file` ref 保留 `/`

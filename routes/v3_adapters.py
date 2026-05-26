@@ -3,6 +3,7 @@
 从 server.py 提取，保持接口不变，去掉前导下划线。
 """
 import logging
+from collections.abc import AsyncIterator
 
 import routing_engine
 import http_caller
@@ -152,7 +153,7 @@ def fake_stream(text: str, chunk_size: int = 30):
 
 # ── Async adapters (M2-S2) ─────────────────────────────────────────────────
 
-async def v3_call_stream_async(backend, messages, max_tokens, ide):
+async def v3_call_stream_async(backend, messages, max_tokens, ide) -> AsyncIterator[str]:
     """Async streaming adapter. Falls back to non-stream for fake-stream backends."""
     sys_prompt = ""
     try:

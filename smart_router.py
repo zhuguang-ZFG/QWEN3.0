@@ -18,7 +18,7 @@ import sys
 import time
 import urllib.request
 
-sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[reportAttributeAccessIssue]
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -81,8 +81,8 @@ def _load_local_router():
     if _local_model is not None or _local_model_failed:
         return
     try:
-        from transformers import AutoModelForCausalLM, AutoTokenizer
-        import torch
+        from transformers import AutoModelForCausalLM, AutoTokenizer  # type: ignore[reportMissingImports]
+        import torch  # type: ignore[reportMissingImports]
 
         if DEBUG:
             print("[ROUTER] Loading local Qwen3 router model...", file=sys.stderr)
@@ -118,7 +118,7 @@ def warmup_router_model():
     try:
         _load_local_router()
         if _local_model is not None and _local_tokenizer is not None:
-            import torch
+            import torch  # type: ignore[reportMissingImports]
 
             messages = [
                 {"role": "system", "content": "你是LiMa智能路由决策器。"},

@@ -155,7 +155,7 @@ def _allows_safety_refusal(query: str) -> bool:
 def honest_failure_response(
     chat_id: str,
     fmt: str = "openai",
-    request_model: str = None,
+    request_model: str | None = None,
 ) -> dict:
     """Build an honest response when all backends fail."""
     content = (

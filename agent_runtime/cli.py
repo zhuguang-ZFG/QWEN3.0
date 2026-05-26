@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import time
+from typing import Any
 
 from agent_runtime.approval import ApprovalGate
 from agent_runtime.contract import redact
@@ -98,7 +99,7 @@ def status_snapshot(queue: AgentRunQueue, gov: WorkerGovernor | None = None,
 def status_snapshot_json(queue: AgentRunQueue, gov: WorkerGovernor | None = None,
                           gate: ApprovalGate | None = None,
                           store: AgentRunStore | None = None) -> str:
-    data = {"queue": queue.stats()}
+    data: dict[str, Any] = {"queue": queue.stats()}
     if gov:
         data["workers"] = gov.stats()
     if gate:

@@ -1,0 +1,53 @@
+# Litestream — SQLite continuous replication for LiMa
+#
+# All 6 production databases use WAL journal mode (required for Litestream).
+# Litestream runs as a sidecar, wrapping the Python process via its `replicate -exec` mode.
+#
+# Installation (VPS):
+#   curl -L https://github.com/benbjohnson/litestream/releases/download/v0.3.13/litestream-v0.3.13-linux-amd64.tar.gz | tar xz
+#   mv litestream /usr/local/bin/
+#
+# Local filesystem replica (zero external deps):
+#   mkdir -p /opt/lima-router/backups/litestream
+#   litestream replicate -config /opt/lima-router/litestream.yml &
+#
+# Cloudflare R2 upgrade path (zero egress fees):
+#   Set LITESTREAM_ACCESS_KEY_ID / LITESTREAM_SECRET_ACCESS_KEY in .env
+#   Uncomment the s3 replicas below.
+
+dbs:
+  # --- Session Memory (highest priority — chat history, prompt recall) ---
+  - path: /opt/lima-router/data/lima_sessions.db
+    replicas:
+      - type: file
+        path: /opt/lima-router/backups/litestream/lima_sessions
+
+  # --- Agent Task Queue (task lifecycle, worker assignments) ---
+  - path: /opt/lima-router/data/agent_tasks.db
+    replicas:
+      - type: file
+        path: /opt/lima-router/backups/litestream/agent_tasks
+
+  # --- Semantic Cache (LLM response cache, low criticality but high churn) ---
+  - path: /opt/lima-router/data/semantic_cache.db
+    replicas:
+      - type: file
+        path: /opt/lima-router/backups/litestream/semantic_cache
+
+  # --- Worker Registry (worker heartbeat, governance state) ---
+  - path: /opt/lima-router/data/worker_registry.db
+    replicas:
+      - type: file
+        path: /opt/lima-router/backups/litestream/worker_registry
+
+  # --- Tool Audit (audit event log, append-only) ---
+  - path: /opt/lima-router/data/tool_audit.db
+    replicas:
+      - type: file
+        path: /opt/lima-router/backups/litestream/tool_audit
+
+  # --- Mastery Loop (skill profiles, weak-point tracking) ---
+  - path: /opt/lima-router/data/mastery_loop.db
+    replicas:
+      - type: file
+        path: /opt/lima-router/backups/litestream/mastery_loop

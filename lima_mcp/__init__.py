@@ -156,4 +156,41 @@ TOOL_DEFINITIONS = [
             "required": ["sources"],
         },
     },
+    {
+        "name": "read_file",
+        "description": "Read a file within allowed workspace roots. Default-off; requires LIMA_FILESYSTEM_ALLOWED_ROOTS.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "Absolute or relative path to the file"},
+                "offset": {"type": "integer", "description": "Line offset to start reading from (0-based)"},
+                "limit": {"type": "integer", "description": "Maximum lines to return"},
+                "max_chars": {"type": "integer", "description": "Maximum characters to read"},
+            },
+            "required": ["path"],
+        },
+    },
+    {
+        "name": "list_directory",
+        "description": "List directory contents within allowed workspace roots. Default-off; requires LIMA_FILESYSTEM_ALLOWED_ROOTS.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "Directory path (defaults to workspace root)"},
+            },
+            "required": [],
+        },
+    },
+    {
+        "name": "glob_search",
+        "description": "Glob search for files within allowed workspace roots. Default-off; requires LIMA_FILESYSTEM_ALLOWED_ROOTS.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "pattern": {"type": "string", "description": "Glob pattern (e.g. '**/*.py', 'src/*.ts')"},
+                "path": {"type": "string", "description": "Search root directory"},
+            },
+            "required": ["pattern"],
+        },
+    },
 ]

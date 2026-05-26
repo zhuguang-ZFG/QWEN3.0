@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
+from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -24,6 +25,9 @@ def handle_tool_call(name: str, arguments: dict) -> dict:
         "dev_fetch_gitee_file": _dev_fetch_gitee_file,
         "dev_search_codesearch": _dev_search_codesearch,
         "dev_summarize_sources": _dev_summarize_sources,
+        "read_file": _read_file,
+        "list_directory": _list_directory,
+        "glob_search": _glob_search,
     }
     handler = handlers.get(name)
     if not handler:
@@ -209,3 +213,101 @@ def _dev_summarize_sources(args: dict) -> dict:
         args.get("sources", []),
         max_chars=_bounded_int(args.get("max_chars"), default=3000, minimum=1000, maximum=12000),
     )
+
+
+# ── Filesystem tools (default-off, path-allowlist gated) ──
+
+
+def _read_file(args: dict) -> dict:
+    """Read a file within allowed workspace roots."""
+    path = args.get("path", "")
+    max_chars = _bounded_int(args.get("max_chars"), default=8000, minimum=1000, maximum=20000)
+    offset = _bounded_int(args.get("offset"), default=0, minimum=0, maximum=1000000)
+    limit = _bounded_int(args.get("limit"), default=200, minimum=1, maximum=500)
+
+    from lima_mcp.fs_allowlist import validate_path
+
+    ok, result = validate_path(path)
+    if not ok:
+        return {"ok": False, "error": str(result)}
+    assert isinstance(result, Path)
+
+    try:
+        text = result.read_text(encoding="utf-8", errors="replace")
+    except (OSError, UnicodeDecodeError) as exc:
+        return {"ok": False, "error": f"cannot read file: {exc}"}
+
+    lines = text.split("\n")
+    total_lines = len(lines)
+    end = min(offset + limit, total_lines)
+    selected = lines[offset:end]
+
+    return {
+        "ok": True,
+        "path": str(result),
+        "content": "\n".join(selected),
+        "total_lines": total_lines,
+        "offset": offset,
+        "returned_lines": len(selected),
+        "truncated": end < total_lines or len(text) > max_chars,
+    }
+
+
+def _list_directory(args: dict) -> dict:
+    """List directory contents within allowed workspace roots."""
+    path = args.get("path", ".")
+
+    from lima_mcp.fs_allowlist import validate_path
+
+    ok, result = validate_path(path, must_exist=True)
+    if not ok:
+        return {"ok": False, "error": str(result)}
+    assert isinstance(result, Path)
+
+    try:
+        entries = []
+        for child in sorted(result.iterdir()):
+            try:
+                is_dir = child.is_dir()
+            except OSError:
+                is_dir = False
+            entries.append({
+                "name": child.name,
+                "type": "dir" if is_dir else "file",
+            })
+    except (OSError, PermissionError) as exc:
+        return {"ok": False, "error": f"cannot list directory: {exc}"}
+
+    return {
+        "ok": True,
+        "path": str(result),
+        "entries": entries,
+        "count": len(entries),
+    }
+
+
+def _glob_search(args: dict) -> dict:
+    """Glob search for files within allowed workspace roots."""
+    pattern = args.get("pattern", "*")
+    path = args.get("path", ".")
+
+    from lima_mcp.fs_allowlist import validate_path
+
+    ok, result = validate_path(path, must_exist=True)
+    if not ok:
+        return {"ok": False, "error": str(result)}
+    assert isinstance(result, Path)
+
+    try:
+        matches = sorted(result.glob(pattern))
+    except (OSError, ValueError) as exc:
+        return {"ok": False, "error": f"invalid glob pattern: {exc}"}
+
+    return {
+        "ok": True,
+        "path": str(result),
+        "pattern": pattern,
+        "matches": [str(m.relative_to(result)) for m in matches[:200]],
+        "count": min(len(matches), 200),
+        "truncated": len(matches) > 200,
+    }

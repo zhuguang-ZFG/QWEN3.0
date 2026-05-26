@@ -75,8 +75,8 @@ def respond(result: RouteResult, fmt: str = "openai",
 def route(query: str, messages: list[dict], *,
           fmt: str = "openai", ide_source: str = "",
           model: str = "", max_tokens: int = 4096,
-          system_prompt: str = "", headers: dict = None,
-          call_fn: Callable = None,
+          system_prompt: str = "", headers: dict | None = None,
+          call_fn: Callable | None = None,
           cache_enabled: bool = True,
           channel_role: str = "default") -> RouteResult:
     """统一路由入口。call_fn(backend, messages, max_tokens) -> str"""
@@ -99,7 +99,7 @@ def route(query: str, messages: list[dict], *,
                                request_type="cache_hit", ms=ms)
 
     req_type = classify(query, messages, fmt=fmt, ide_source=ide_source,
-                        system_prompt=system_prompt, headers=headers)
+                        system_prompt=system_prompt, headers=headers or {})
 
     scenario = classify_scenario(query, messages,
                                  ide_source=ide_source, request_type=req_type)
@@ -113,10 +113,9 @@ def route(query: str, messages: list[dict], *,
     messages, _retrieval_text = inject_retrieval_context(messages)
 
     try:
-        from context_pipeline.complexity import assess_complexity, decide_topology
+        from context_pipeline.complexity import assess_complexity
         raw_msgs = [{"role": m.get("role", ""), "content": m.get("content", "")} if isinstance(m, dict) else {"role": getattr(m, "role", ""), "content": getattr(m, "content", "")} for m in messages]
-        _complexity_score = assess_complexity(raw_msgs, ide_source=ide_source)
-        decide_topology(_complexity_score)
+        _complexity_score = assess_complexity(raw_msgs, ide=ide_source)
     except ImportError:
         pass
 
@@ -202,7 +201,7 @@ def route(query: str, messages: list[dict], *,
     return RouteResult(
         backend=final_backend, answer=answer,
         request_type=req_type, scenario=scenario, ms=ms,
-        fallback_used=(final_backend not in ("exhausted", "none") and backends and final_backend != backends[0]),
+        fallback_used=bool(final_backend not in ("exhausted", "none") and backends and final_backend != backends[0]),
         skills_injected=injected_ids,
         retrieval_context=_retrieval_text,
     )

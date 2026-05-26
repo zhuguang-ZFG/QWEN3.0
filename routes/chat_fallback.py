@@ -19,8 +19,8 @@ from routes.quality_gate import (
 
 from routes.chat_support import attach_memory_recall_meta
 
-_record_request: Callable[..., None] | None = None
-_record_fallback: Callable[..., None] | None = None
+_record_request: Callable[..., None] = lambda *a, **kw: None
+_record_fallback: Callable[..., None] = lambda *a, **kw: None
 _model_id = "lima-1.3"
 
 

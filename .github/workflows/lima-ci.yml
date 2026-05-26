@@ -48,10 +48,10 @@ jobs:
           pip install radon
           python scripts/run_radon.py --report-only
 
-      - name: Type check (pyright, report-only)
+      - name: Type check (pyright)
         run: |
           pip install pyright
-          python scripts/run_pyright.py --report-only
+          python scripts/run_pyright.py
 
       - name: Install gitleaks
         run: |
