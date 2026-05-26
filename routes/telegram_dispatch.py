@@ -124,6 +124,20 @@ async def _dispatch_operator(chat_id: str, cmd: str, arg: str, *, logs_fn, resta
         else:
             await cmd_s3_list(chat_id, arg)
         return True
+    if cmd == "/ci":
+        from routes.telegram_ci_tools import cmd_ci, cmd_ci_detail
+
+        parts = arg.strip().split()
+        if len(parts) >= 3:
+            # /ci owner/repo branch run_id → detail mode
+            try:
+                int(parts[2])
+                await cmd_ci_detail(chat_id, arg)
+                return True
+            except ValueError:
+                pass
+        await cmd_ci(chat_id, arg)
+        return True
     return False
 
 

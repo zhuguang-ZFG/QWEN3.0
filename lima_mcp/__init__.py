@@ -321,6 +321,73 @@ TOOL_DEFINITIONS = [
         },
     },
     {
+        "name": "github_list_workflow_runs",
+        "description": "List recent GitHub Actions workflow runs. Requires GITHUB_TOKEN.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "owner": {"type": "string"}, "repo": {"type": "string"},
+                "branch": {"type": "string"}, "status": {"type": "string"},
+                "per_page": {"type": "integer"},
+            }, "required": ["owner", "repo"],
+        },
+    },
+    {
+        "name": "github_get_workflow_run",
+        "description": "Get a specific workflow run by ID. Requires GITHUB_TOKEN.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "owner": {"type": "string"}, "repo": {"type": "string"},
+                "run_id": {"type": "integer"},
+            }, "required": ["owner", "repo", "run_id"],
+        },
+    },
+    {
+        "name": "github_list_workflow_jobs",
+        "description": "List jobs for a workflow run with step-level details. Requires GITHUB_TOKEN.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "owner": {"type": "string"}, "repo": {"type": "string"},
+                "run_id": {"type": "integer"}, "per_page": {"type": "integer"},
+            }, "required": ["owner", "repo", "run_id"],
+        },
+    },
+    {
+        "name": "github_list_workflow_artifacts",
+        "description": "List CI artifacts (coverage, SBOM, etc). Requires GITHUB_TOKEN.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "owner": {"type": "string"}, "repo": {"type": "string"},
+                "per_page": {"type": "integer"},
+            }, "required": ["owner", "repo"],
+        },
+    },
+    {
+        "name": "github_get_combined_status",
+        "description": "Get combined commit status (CI checks summary) for a ref. Requires GITHUB_TOKEN.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "owner": {"type": "string"}, "repo": {"type": "string"},
+                "ref": {"type": "string", "description": "Branch name or commit SHA"},
+            }, "required": ["owner", "repo", "ref"],
+        },
+    },
+    {
+        "name": "github_list_check_runs",
+        "description": "List check runs for a commit ref. Requires GITHUB_TOKEN.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "owner": {"type": "string"}, "repo": {"type": "string"},
+                "ref": {"type": "string"}, "per_page": {"type": "integer"},
+            }, "required": ["owner", "repo", "ref"],
+        },
+    },
+    {
         "name": "memory_stats",
         "description": "Return memory store statistics: total entries, embedding coverage, per-type counts, session count.",
         "parameters": {

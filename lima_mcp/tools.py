@@ -37,6 +37,12 @@ def handle_tool_call(name: str, arguments: dict) -> dict:
         "github_get_file_contents": _github_get_file_contents,
         "github_create_pull_request": _github_create_pull_request,
         "github_create_branch": _github_create_branch,
+        "github_list_workflow_runs": _github_list_workflow_runs,
+        "github_get_workflow_run": _github_get_workflow_run,
+        "github_list_workflow_jobs": _github_list_workflow_jobs,
+        "github_list_workflow_artifacts": _github_list_workflow_artifacts,
+        "github_get_combined_status": _github_get_combined_status,
+        "github_list_check_runs": _github_list_check_runs,
         "memory_stats": _memory_stats,
     }
     handler = handlers.get(name)
@@ -423,6 +429,61 @@ def _github_create_branch(args: dict) -> dict:
         repo=args.get("repo", ""),
         branch=args.get("branch", ""),
         from_ref=args.get("from", "main"),
+    )
+
+
+# ── CI Evidence handlers ──
+
+
+def _github_list_workflow_runs(args: dict) -> dict:
+    from lima_mcp.github_tools import list_workflow_runs
+    return list_workflow_runs(
+        owner=args.get("owner", ""), repo=args.get("repo", ""),
+        branch=args.get("branch", ""),
+        per_page=_bounded_int(args.get("per_page"), default=10, minimum=1, maximum=20),
+        status=args.get("status", ""),
+    )
+
+
+def _github_get_workflow_run(args: dict) -> dict:
+    from lima_mcp.github_tools import get_workflow_run
+    return get_workflow_run(
+        owner=args.get("owner", ""), repo=args.get("repo", ""),
+        run_id=_bounded_int(args.get("run_id"), default=0, minimum=1, maximum=999999999),
+    )
+
+
+def _github_list_workflow_jobs(args: dict) -> dict:
+    from lima_mcp.github_tools import list_workflow_jobs
+    return list_workflow_jobs(
+        owner=args.get("owner", ""), repo=args.get("repo", ""),
+        run_id=_bounded_int(args.get("run_id"), default=0, minimum=1, maximum=999999999),
+        per_page=_bounded_int(args.get("per_page"), default=20, minimum=1, maximum=30),
+    )
+
+
+def _github_list_workflow_artifacts(args: dict) -> dict:
+    from lima_mcp.github_tools import list_workflow_artifacts
+    return list_workflow_artifacts(
+        owner=args.get("owner", ""), repo=args.get("repo", ""),
+        per_page=_bounded_int(args.get("per_page"), default=10, minimum=1, maximum=20),
+    )
+
+
+def _github_get_combined_status(args: dict) -> dict:
+    from lima_mcp.github_tools import get_combined_status
+    return get_combined_status(
+        owner=args.get("owner", ""), repo=args.get("repo", ""),
+        ref=args.get("ref", ""),
+    )
+
+
+def _github_list_check_runs(args: dict) -> dict:
+    from lima_mcp.github_tools import list_check_runs
+    return list_check_runs(
+        owner=args.get("owner", ""), repo=args.get("repo", ""),
+        ref=args.get("ref", ""),
+        per_page=_bounded_int(args.get("per_page"), default=10, minimum=1, maximum=20),
     )
 
 
