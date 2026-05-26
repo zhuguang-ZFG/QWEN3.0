@@ -1,0 +1,27 @@
+version: "1.0"
+name: lima-pytest
+displayName: LiMa pytest (focused)
+
+triggers:
+  push:
+    branches:
+      include:
+        - master
+        - main
+        - codex/**
+
+stages:
+  - stage:
+      name: test
+      displayName: Test
+      trigger: auto
+      steps:
+        - step: build@python
+          name: pytest_focused
+          displayName: Run focused pytest
+          commands:
+            - python --version
+            - pip install --upgrade pip
+            - pip install -r requirements_server.txt
+            - pip install pytest pytest-asyncio
+            - python -m pytest -q --ignore=active_model tests/test_provider_inventory.py tests/test_prompt_contract.py tests/test_agent_task_routes.py tests/test_gitee_tools.py

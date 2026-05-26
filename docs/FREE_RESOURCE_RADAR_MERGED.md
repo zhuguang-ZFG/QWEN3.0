@@ -23,9 +23,9 @@
 | 五线 closeout | CF/Google/TG/GitHub/Gitee | **Done** ~95% |
 | 运维 dead-man | Healthchecks.io + GA workflow | **Done** |
 | 生产力 PE-* | Netdata/SearXNG/codesearch/MCP inventory/OpenObserve | **Done**（SafeMCP Partial） |
-| LiMa Code Worker | Prompt Contract v0.1 | **Partial** LC-W-1a–1d 本地完成；VPS smoke 待做 |
+| LiMa Code Worker | Prompt Contract v0.1 | **Partial** LC-W-1e VPS smoke OK；deepcode-cli `/lima next` 待补 |
 | 代码质量 P1.3 | 静默 catch 清理 | **Open** 进行中 |
-| 雷达 P0 | Gitee Go CI / Gitleaks / Gitee 搜索 | **Open** |
+| 雷达 P0 | Gitleaks / Gitee CI / Gitee 搜索 | **Done** 2026-05-26 |
 
 ---
 
@@ -81,7 +81,7 @@
 | **复杂度** | Radon | CLI报告 | **Backlog** |
 | **类型检查** | Pyright / basedpyright | 快速CLI | **Backlog** |
 | **HTTP Mock** | RESPX / pytest-httpx | pytest插件 | **Done** 测试在用 |
-| **安全扫描** | Gitleaks | 提交前扫描密钥 | **Open** 雷达 P0 #2 |
+| **安全扫描** | Gitleaks | 提交前扫描密钥 | **Done** `.gitleaks.toml` + `lima-ci.yml` |
 | **依赖审计** | pip-audit + OSV-Scanner | CLI | **Backlog** |
 | **容器扫描** | Trivy / Grype | CLI | **Backlog** |
 | **SBOM** | ORT / sbom-pilot / Syft | CLI | **Backlog** |
@@ -95,7 +95,7 @@
 | 类别 | 资源 | 免费额度 | LiMa |
 |------|------|---------|------|
 | **国内搜索** | 百度千帆搜索+火山引擎搜索 | 100次/天+500次/月 | **Backlog** |
-| **代码搜索** | Gitee OpenAPI | Token已有 | **Open** 雷达 P0 #3；无 `gitee_tools.py` |
+| **代码搜索** | Gitee OpenAPI | Token已有 | **Done** `search_gateway/gitee_tools.py` |
 | **Gitee 代码** | codesearch MCP | 本地索引 | **Done** PE-B-1 |
 | **实时文档** | Context7 MCP (48K⭐) | 免费 | **Done** Agent/IDE 可用 |
 | **网页搜索** | Brave Search MCP | $5免费额度 | **Backlog** |
@@ -145,7 +145,7 @@
 | **备份** | Kopia/restic+rclone | 自部署无限 | **Backlog** |
 | **SQLite复制** | Litestream | 连续复制 | **Backlog** |
 | **CI/CD** | GitHub Actions | 2000分/月 | **Done** |
-| **CI/CD** | Gitee Go | 免费 | **Open** 雷达 P0 #1 |
+| **CI/CD** | Gitee Go | 免费 | **Done** `.gitee/workflows/test.yml`（需在 Gitee 启用 Go） |
 | **定时任务** | Cron-job.org | 免费HTTP触发 | **Ref** 已有 VPS cron+HC |
 | **对象存储** | Cloudflare R2+阿里云OSS | 10GB+5GB | **Partial** R2 策略文档化 |
 | **Telegram存储** | TG-S3/K-Vault | 无限容量 | **Backlog** |
@@ -355,9 +355,9 @@
 
 | # | 行动 | 耗时 | LiMa | 备注 |
 |---|------|------|------|------|
-| 1 | Gitee Go CI (`.gitee/workflows/test.yml`) | 0.5h | **Open** | 无 `.gitee/workflows/` |
-| 2 | Gitleaks 本地配置 | 0.5h | **Open** | 未配置；LC-W Verify 候选 |
-| 3 | Gitee 代码搜索 (`search_gateway/gitee_tools.py`) | 1.5h | **Open** | 文件不存在；有 Gitee token |
+| 1 | Gitee Go CI (`.gitee/workflows/test.yml`) | 0.5h | **Done** | 需在 Gitee 仓库启用 Go 流水线 |
+| 2 | Gitleaks 本地配置 | 0.5h | **Done** | `.gitleaks.toml` + GitHub Actions |
+| 3 | Gitee 代码搜索 (`search_gateway/gitee_tools.py`) | 1.5h | **Done** | `GITEE_TOKEN` |
 | 4 | Cloudflare Tunnel 替代 FRP（可选）| 1h | **Ref** | FRP 已跑通；替换风险大 |
 
 ---

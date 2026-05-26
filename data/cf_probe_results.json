@@ -22,14 +22,5 @@
     "capabilities": [
       "vision"
     ]
-  },
-  {
-    "model_id": "@cf/unum/uform-gen2-qwen-500m",
-    "final_status": "rejected",
-    "highest_level": "metadata_only",
-    "capabilities": [
-      "chat",
-      "vision"
-    ]
   }
 ]

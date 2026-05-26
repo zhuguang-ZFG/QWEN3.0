@@ -12,6 +12,16 @@
 - **INF-B operator**：Check `lima-vps-router` Period 5min / Grace 10min / Email ON；`verify_healthcheck_vps_ok`
 - **测试**：translate + healthchecks_io + healthcheck_ping **21 passed**
 
+## 2026-05-26 M-雷达-P0 + LC-W-1e + CF-eval-1
+
+- **Gitleaks**：`.gitleaks.toml` + `lima-ci.yml` secret scan step
+- **Gitee Go**：`.gitee/workflows/test.yml` focused pytest（仓库侧需启用 Go）
+- **Gitee 搜索**：`search_gateway/gitee_tools.py` + `tests/test_gitee_tools.py` **5 passed**
+- **LC-W-1e**：`scripts/smoke_lcw1_prompt_contract_e2e.py` → VPS `smoke_ok` task `295f45b5`
+- **CF-eval-1**：`probe_cf_new_models.py --limit 3 --dry-run` → 0/3 pass（报告更新，未进池）
+- **部署**：`deploy_radar_p0_slice.py` → `deploy_radar_p0_ok`
+- **测试**：全量 **1710 passed**, 10 skipped
+
 ## 2026-05-26 CF-G-6 Google inventory VPS proxy fix
 
 - **根因**：`provider_inventory/google.py` 裸连 Google；路由已用 `GFW_PROXY`

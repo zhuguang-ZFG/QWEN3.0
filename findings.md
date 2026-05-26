@@ -121,6 +121,16 @@
 | TG-GH-3-4 | VPS smoke | `smoke_telegram_digest_vps.py` build OK; `--send` → True | Closed 2026-05-26 |
 | TG-GH-3-5 | Tests | focused 3 passed; full **1618 passed, 10 skipped** | Closed 2026-05-26 |
 
+## 2026-05-26 M-雷达-P0 + LC-W-1e
+
+| ID | Area | Evidence | Status |
+|---|---|---|---|
+| RADAR-P0-1 | Gitleaks | `.gitleaks.toml` + `lima-ci.yml` | Closed 2026-05-26 |
+| RADAR-P0-2 | Gitee Go | `.gitee/workflows/test.yml` | Closed 2026-05-26 |
+| RADAR-P0-3 | Gitee search | `search_gateway/gitee_tools.py` | Closed 2026-05-26 |
+| LC-W-1e-1 | VPS smoke | `smoke_lcw1_prompt_contract_e2e.py` task `295f45b5` | Closed 2026-05-26 |
+| CF-EVAL-1 | CF probe | 3 candidates dry-run 0/3 pass | Open |
+
 ## 2026-05-26 TG-GH-2 LiMa Code Telegram
 
 | ID | Area | Evidence | Status |
