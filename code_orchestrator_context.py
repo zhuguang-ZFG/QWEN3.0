@@ -73,6 +73,7 @@ POOLS = {
 }
 
 _stats = defaultdict(int)
+_stats_lock = __import__("threading").Lock()
 
 
 def detect_language(query: str, messages: list | None = None) -> str:
@@ -161,15 +162,17 @@ def enhance_context(query: str, messages: list, scenario: str = "") -> dict:
             "tier": "none",
         }
 
-    _stats["total_enhance"] += 1
-    language = detect_language(query, messages)
-    _stats[f"lang_{language}"] += 1
+    with _stats_lock:
+        _stats["total_enhance"] += 1
+        language = detect_language(query, messages)
+        _stats[f"lang_{language}"] += 1
 
     guide = build_system_prompt(query, messages, language=language)
     enhanced_query = build_enhanced_query(query)
 
     tier = classify_code_tier(query, messages)
-    _stats[f"tier_{tier}"] += 1
+    with _stats_lock:
+        _stats[f"tier_{tier}"] += 1
     pool_name = {"simple": "fast", "standard": "coder", "complex": "strong"}[tier]
     from eval_pool_gate import filter_coding_pool
 
@@ -191,11 +194,13 @@ def enhance_context(query: str, messages: list, scenario: str = "") -> dict:
 
 
 def record_streaming_quality(backend: str, response_text: str, query: str) -> None:
-    _stats["total_post_eval"] += 1
-    gate = quality_gate.check(response_text, query)
-    backend_reputation.record(backend, gate["passed"], "stream")
-    _stats[f"gate_{'pass' if gate['passed'] else 'fail'}"] += 1
+    with _stats_lock:
+        _stats["total_post_eval"] += 1
+        gate = quality_gate.check(response_text, query)
+        backend_reputation.record(backend, gate["passed"], "stream")
+        _stats[f"gate_{'pass' if gate['passed'] else 'fail'}"] += 1
 
 
 def get_stats() -> dict:
-    return dict(_stats)
+    with _stats_lock:
+        return dict(_stats)
