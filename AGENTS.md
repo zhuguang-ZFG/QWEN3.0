@@ -149,6 +149,10 @@ This project uses a two-role milestone loop:
 - 部署前备份；失败则记录 rollback 位置，不 force-push。
 - 新能力默认关（env flag），VPS 上不得擅自打开未审查开关。
 
+## Operator 全局偏好（2026-05-26）
+
+Owner 明确要求：**里程碑切片完成后 Agent 自动 VPS 部署 + 自动 git commit/push（GitHub + Gitee）**，无需再逐项请示。仍遵守：仅 stage 里程碑相关文件、不提交密钥、部署失败则记录 rollback。
+
 **常用脚本：**
 
 | 切片 | 部署 | VPS smoke |

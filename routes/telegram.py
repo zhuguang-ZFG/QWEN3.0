@@ -244,6 +244,14 @@ async def _dispatch_command(chat_id: str, text: str) -> None:
         await telegram_bot.send_message("Unknown command", chat_id=chat_id)
 
 
+def _review_callback_notice(status_code: int, task_id: str, decision: str) -> str:
+    if status_code == 200:
+        return f"Task {task_id} {decision}"
+    if status_code == 409:
+        return f"Task {task_id} 已审批，无需重复操作"
+    return f"Review failed: {status_code}"
+
+
 async def _handle_callback(callback_query: dict) -> None:
     cb_id = callback_query.get("id", "")
     data = callback_query.get("data", "")
@@ -260,10 +268,10 @@ async def _handle_callback(callback_query: dict) -> None:
                     headers={"Authorization": f"Bearer {admin}"},
                     json={"decision": decision, "reviewer": "telegram"},
                 )
-                if r.status_code == 200:
-                    await telegram_bot.answer_callback(cb_id, f"Task {task_id} {decision}")
-                else:
-                    await telegram_bot.answer_callback(cb_id, f"Review failed: {r.status_code}")
+                await telegram_bot.answer_callback(
+                    cb_id,
+                    _review_callback_notice(r.status_code, task_id, decision),
+                )
         except Exception:
             logger.exception("telegram task review callback failed")
             await telegram_bot.answer_callback(cb_id, _operator_error("task_review"))

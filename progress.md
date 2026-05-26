@@ -4,6 +4,14 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 TG-10.0-2 HTTP 审批 E2E + 409 回调 UX
+
+- **E2E**：`96eba398` needs_review → 手机 Approve/Reject 卡片；首次 Approve **200**；重复点击 **409**（预期）
+- **路径**：HTTP `submitResult` → `notify_task_ready` → `send_approval`（**不依赖 B2B**；BotFather B2B 开关客户端未推送 → Blocked）
+- **UX**：`routes/telegram.py` `_review_callback_notice` — 409 显示「已审批，无需重复操作」
+- **测试**：`test_review_callback_notice_*` 1 passed；全量 **1674 passed, 10 skipped**
+- **VPS**：`deploy_telegram_b2b_ok`；`/health` 200；`_review_callback_notice` on VPS
+
 ## 2026-05-26 TG /chat 空回复修复 + 手机验收
 
 - **根因**：`speculative_stream` 仅打 `deepseek_free` 失败；Telegram 流式路径未回退 `routing_engine` / `last_resort`

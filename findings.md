@@ -35,7 +35,9 @@
 | TG-10.0-1 | Ops | phone /chat 纯文字 12:07 验收 ok | Closed 2026-05-26 |
 | TG-10.0-1b | Code | /chat stream empty→route+last_resort fallback | Closed 2026-05-26 |
 | TG-10.0-2 | Code | LIMA_B2B ingress + Code notifier B2B | Closed 2026-05-26 |
-| TG-10.0-2 | Ops | BotFather B2B + real code bot username + E2E | Open |
+| TG-10.0-2 | Ops | HTTP approval E2E task `96eba398` Approve 200 + callback | Closed 2026-05-26 |
+| TG-10.0-2b | Ops | BotFather B2B mode (Telegram client rollout) | Blocked |
+| TG-10.0-2c | Code | Telegram review callback 409 → 已审批友好提示 | Closed 2026-05-26 |
 
 ## 2026-05-26 Five-line closeout slice 1
 

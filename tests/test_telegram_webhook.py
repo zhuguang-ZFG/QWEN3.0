@@ -89,6 +89,16 @@ def test_parse_github_args_ignores_extra_lines():
     )
 
 
+def test_review_callback_notice_maps_duplicate_review_to_friendly_text():
+    from routes.telegram import _review_callback_notice
+
+    assert _review_callback_notice(200, "abc123", "approved") == "Task abc123 approved"
+    assert _review_callback_notice(409, "abc123", "approved") == (
+        "Task abc123 已审批，无需重复操作"
+    )
+    assert _review_callback_notice(500, "abc123", "rejected") == "Review failed: 500"
+
+
 def test_webhook_skips_auth_when_bot_not_configured(monkeypatch):
     monkeypatch.delenv("TELEGRAM_BOT_TOKEN", raising=False)
     monkeypatch.delenv("TELEGRAM_CHAT_ID", raising=False)
