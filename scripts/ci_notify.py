@@ -94,6 +94,35 @@ def _try_record_outcome(repo: str, branch: str, sha: str, run_url: str, status: 
     except Exception as exc:
         print(f"[ci_notify] outcome record failed: {exc}")
 
+    # Auto-create LiMa task on CI failure
+    if status != "success" and os.environ.get("LIMA_CI_AUTO_TASK", "0") == "1":
+        _try_create_ci_fix_task(repo, branch, sha, run_url, lima_host, lima_key)
 
-if __name__ == "__main__":
-    raise SystemExit(main())
+
+def _try_create_ci_fix_task(repo: str, branch: str, sha: str, run_url: str, host: str, key: str) -> None:
+    """Create a LiMa Code task to investigate CI failure. Best-effort."""
+    try:
+        task_body = json.dumps({
+            "repo": repo,
+            "branch": branch,
+            "goal": f"Fix CI failure on {branch} ({sha[:7]})",
+            "instructions": [
+                f"CI run failed: {run_url}",
+                "1. Review the latest commit changes",
+                "2. Run test suite locally to reproduce",
+                "3. Fix the issue and verify tests pass",
+                "4. Return needs_review with the fix",
+            ],
+            "allowed_tools": ["git_diff", "read_file", "test"],
+            "mode": "patch",
+            "max_runtime_sec": 600,
+        }).encode()
+        req = urllib.request.Request(
+            f"{host}/agent/tasks", data=task_body,
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+        )
+        resp = urllib.request.urlopen(req, timeout=10)
+        result = json.loads(resp.read())
+        print(f"[ci_notify] auto-task created: {result.get('task_id', '?')}")
+    except Exception as exc:
+        print(f"[ci_notify] auto-task failed: {exc}")

@@ -182,6 +182,10 @@ async def _dispatch_operator(chat_id: str, cmd: str, arg: str, *, logs_fn, resta
         from routes.telegram_knowledge import cmd_inbox
         await cmd_inbox(chat_id, arg)
         return True
+    if cmd == "/dashboard":
+        from routes.telegram_knowledge import cmd_dashboard
+        await cmd_dashboard(chat_id, arg)
+        return True
     return False
 
 

@@ -417,3 +417,64 @@ async def cmd_inbox(chat_id: str, args: str) -> None:
     await telegram_bot.send_message(
         "\n".join(lines)[:4000], chat_id=chat_id, parse_mode="Markdown",
     )
+
+
+async def cmd_dashboard(chat_id: str, args: str) -> None:
+    """Unified dashboard: health, routing, memory, outcomes."""
+    import time as _t
+    lines = ["*LiMa Dashboard*", f"`{_t.strftime('%H:%M:%S')}`", ""]
+
+    # Health
+    try:
+        import urllib.request, json
+        req = urllib.request.Request("http://127.0.0.1:8080/health")
+        resp = urllib.request.urlopen(req, timeout=5)
+        h = json.loads(resp.read())
+        modules = [k for k, v in h.get("modules", {}).items() if v]
+        lines.append(f"*Health*: {h['status']} | {len(modules)} modules")
+        lines.append("")
+    except Exception:
+        lines.append("*Health*: N/A")
+        lines.append("")
+
+    # Routing
+    try:
+        from backends_registry import BACKENDS
+        lines.append(f"*Backends*: {len(BACKENDS)} registered")
+        lines.append("")
+    except Exception:
+        pass
+
+    # Outcomes
+    try:
+        from session_memory.outcome_ledger import stats
+        st = stats()
+        lines.append(f"*Outcomes*: {st['total']} total | {st['unlearned']} unlearned | {st.get('applied',0)} applied")
+        for src, s in st.get("by_source", {}).items():
+            if s["total"] > 0:
+                lines.append(f"  {src}: {s['success']}/{s['total']} ok")
+        lines.append("")
+    except Exception:
+        pass
+
+    # Memory
+    try:
+        from session_memory.store_db import memory_stats
+        ms = memory_stats()
+        lines.append(f"*Memory*: {ms['total']} entries | {ms['embedding_pct']}% embedded")
+        lines.append("")
+    except Exception:
+        pass
+
+    # MCP
+    try:
+        from lima_mcp.tool_defs import TOOL_DEFINITIONS
+        lines.append(f"*MCP*: {len(TOOL_DEFINITIONS)} tools")
+        lines.append("")
+    except Exception:
+        pass
+
+    lines.append("/inbox pending | /digest learning | /outcome details")
+    await telegram_bot.send_message(
+        "\n".join(lines)[:4000], chat_id=chat_id, parse_mode="Markdown",
+    )
