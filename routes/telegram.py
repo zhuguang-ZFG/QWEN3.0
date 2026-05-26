@@ -302,6 +302,15 @@ async def webhook(request: Request):
     message = body.get("message")
     callback_query = body.get("callback_query")
 
+    if message:
+        from telegram_b2b import handle_inbound_b2b
+
+        handled, reply_chat, ack = await handle_inbound_b2b(message)
+        if handled:
+            if reply_chat and ack:
+                await telegram_bot.send_message(ack, chat_id=reply_chat, parse_mode="")
+            return {"ok": True}
+
     if message and message.get("text", "").startswith("/"):
         chat_id = str(message["chat"]["id"])
         if not telegram_bot.is_authorized(chat_id):

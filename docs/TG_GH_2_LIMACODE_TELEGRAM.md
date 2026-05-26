@@ -16,9 +16,11 @@ Status: **已在 deepcode-cli 实现**（submodule）
 在 LiMa Code 项目根（`deepcode-cli`）或环境变量：
 
 ```bash
-LIMA_CODE_TELEGRAM_BOT_TOKEN=...   # 可与 Server 同 bot
-LIMA_CODE_TELEGRAM_CHAT_ID=...
-LIMA_CODE_TELEGRAM_PROXY=http://127.0.0.1:7897   # 可选；VPS 不需要
+LIMA_CODE_TELEGRAM_BOT_TOKEN=...   # Code 专用 bot（与 Server 不同）
+LIMA_CODE_TELEGRAM_B2B=1
+LIMA_SERVER_BOT_USERNAME=lima_router_bot   # Server bot @username，无 @
+LIMA_CODE_TELEGRAM_PROXY=http://127.0.0.1:7897   # Windows 出站
+# 回退：LIMA_CODE_TELEGRAM_CHAT_ID=...（B2B 未配时用）
 ```
 
 验证：
@@ -35,8 +37,8 @@ Doctor 会报告 Telegram 配置状态：`/lima doctor`
 | 来源 | 通道 |
 |------|------|
 | LiMa Server | `telegram_notify` / webhook / digest |
-| LiMa Code worker | 直连 Bot API（出站经 Windows 代理或 VPS 直连） |
-| **不在** LiMa Code 收 Telegram 命令 | 审批仍在 Server bot |
+| LiMa Code worker | B2B → Server bot（`LIMA_B2B`）或直连 Operator chat |
+| **审批** | 始终在 Server bot → Operator（inline keyboard） |
 
 ## 验收 smoke
 

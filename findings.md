@@ -33,6 +33,8 @@
 | PE-F-1 | Docs | DEVICE_PLATFORM_REFERENCE TB/Ditto/LiMa DG | Closed 2026-05-26 |
 | TG-10.0-1 | Code | sendMessageDraft /chat streaming | Closed 2026-05-26 |
 | TG-10.0-1 | Ops | VPS deploy + phone /chat draft验收 | Open |
+| TG-10.0-2 | Code | LIMA_B2B ingress + Code notifier B2B | Closed 2026-05-26 |
+| TG-10.0-2 | Ops | BotFather B2B + real code bot username + E2E | Open |
 
 ## 2026-05-26 Five-line closeout slice 1
 

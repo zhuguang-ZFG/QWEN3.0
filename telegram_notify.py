@@ -72,6 +72,27 @@ def notify_task_ready(task_id: str, summary: str, changed_files: list[str]) -> N
     _fire_and_forget(telegram_bot.send_approval, task_id, summary, changed_files)
 
 
+def notify_code_lifecycle(
+    event_type: str,
+    task_id: str,
+    summary: str,
+    changed_files: list[str] | None = None,
+) -> None:
+    """Forward LiMa Code lifecycle events (via B2B) to the operator chat."""
+    if not telegram_bot.is_configured():
+        return
+    lines = [f"LiMa Code `{event_type}`"]
+    if task_id:
+        lines.append(f"Task: `{task_id}`")
+    lines.append(summary)
+    if changed_files:
+        files = ", ".join(changed_files[:10])
+        if len(changed_files) > 10:
+            files += " …"
+        lines.append(f"Files: {files}")
+    _send_push_message("\n".join(lines))
+
+
 def notify_error_spike(error_rate: float, strategy: str) -> None:
     if not telegram_bot.is_configured():
         return

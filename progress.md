@@ -4,6 +4,15 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 TG-10.0-2 Bot-to-Bot
+
+- **Server**：`telegram_b2b.py` 解析 `LIMA_B2B`；`task_needs_review` → `send_approval`；其他 lifecycle → Operator 摘要
+- **Code**：`deepcode-cli/telegram-notifier.ts` 支持 `LIMA_CODE_TELEGRAM_B2B=1` + `LIMA_SERVER_BOT_USERNAME`
+- **VPS**：`deploy_telegram_b2b_ok`（`TELEGRAM_B2B_ENABLED=1`）
+- **文档**：`docs/TELEGRAM_B2B_SETUP.md`
+- **测试**：+6 b2b；全量 **1672 passed**；deepcode-cli notifier tests pass
+- **待办**：BotFather 双 bot 开 B2B；`.env` 填真实 `TELEGRAM_CODE_BOT_USERNAMES`；Windows worker 配 B2B 后跑 task 验收
+
 ## 2026-05-26 TG-10.0-1 Telegram 流式 /chat
 
 - **实现**：`telegram_draft_stream.py` + `routes/telegram_chat_stream.py`；`/chat` 默认 `sendMessageDraft` 预览 + `sendMessage` 落盘

@@ -54,6 +54,8 @@ Telegram servers → https://chat.donglicao.com/telegram/webhook
 | `TELEGRAM_DIGEST_HOUR` | 每日摘要推送时间（默认 9） | `9` |
 | `TELEGRAM_STREAM_CHAT` | `/chat` 流式 draft（Bot API 9.3+ `sendMessageDraft`） | `1` |
 | `TELEGRAM_STREAM_THROTTLE_MS` | draft 更新最小间隔 ms | `800` |
+| `TELEGRAM_B2B_ENABLED` | 接收 LiMa Code bot 的 `LIMA_B2B` 消息 | `0` |
+| `TELEGRAM_CODE_BOT_USERNAMES` | 允许的 Code bot @username（逗号分隔） | — |
 
 ## 模块职责
 
@@ -71,6 +73,13 @@ Telegram servers → https://chat.donglicao.com/telegram/webhook
 - 复用 `speculative_stream_chunks`（与 HTTP SSE 同路由池）
 - 工具关键词路径（天气/汇率等）仍走 `fc_caller`，不流式
 - `TELEGRAM_STREAM_CHAT=0` 回退整段 `sendMessage`
+
+### telegram_b2b.py（TG-10.0-2）
+
+- LiMa Code bot → `LIMA_B2B` JSON → Server webhook
+- `task_needs_review` → Operator 审批键盘；其他事件 → 摘要推送
+- 仅 ACK 回 Code bot（`LIMA_B2B_ACK`），防 bot 循环
+- 详见 `docs/TELEGRAM_B2B_SETUP.md`
 
 ### routes/telegram.py（路由 + 分发，~260 行）
 
