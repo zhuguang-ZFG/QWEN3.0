@@ -56,23 +56,28 @@ def _rg(query: str, root: Path) -> tuple[bool, float, str]:
     return hit, elapsed, sample
 
 
-def _codesearch(query: str) -> tuple[bool, float, str]:
+def _codesearch(query: str, root: Path) -> tuple[bool, float, str]:
     exe = shutil.which("codesearch") or shutil.which("codesearch.exe")
     if not exe:
         return False, 0.0, "binary_missing"
     start = time.perf_counter()
     proc = subprocess.run(
-        [exe, "search", query, "--limit", "3"],
+        [exe, "search", query, "-m", "3", "--path", str(root), "--compact", "--json"],
         capture_output=True,
         text=True,
         timeout=120,
+        cwd=str(root),
     )
     elapsed = time.perf_counter() - start
-    if proc.returncode != 0:
-        detail = (proc.stderr or proc.stdout or "").strip()[:120]
+    combined = (proc.stdout or "") + (proc.stderr or "")
+    if proc.returncode != 0 and "error:" in combined.lower():
+        detail = combined.strip().splitlines()[-1][:120]
         return False, elapsed, detail or "search_failed"
-    body = proc.stdout.strip()
-    return bool(body), elapsed, body.splitlines()[0][:120] if body else "empty"
+    body = (proc.stdout or "").strip()
+    if body.startswith("[") or body.startswith("{"):
+        return True, elapsed, body.splitlines()[0][:120]
+    lines = [ln for ln in body.splitlines() if ln.strip() and not ln.startswith("20")]
+    return bool(lines), elapsed, (lines[0][:120] if lines else "empty")
 
 
 def main() -> int:
@@ -105,7 +110,7 @@ def main() -> int:
         doctor = subprocess.run([cs_binary, "doctor"], capture_output=True, text=True, timeout=60)
         print(f"doctor_exit={doctor.returncode}")
         for query, _expect in FIXTURES:
-            hit, elapsed, sample = _codesearch(query)
+            hit, elapsed, sample = _codesearch(query, ROOT)
             flag = "ok" if hit else "miss"
             if hit:
                 cs_ok += 1

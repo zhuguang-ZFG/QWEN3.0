@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 from collections import defaultdict
 
 from observability.events import LiMaEvent
+
+logger = logging.getLogger(__name__)
 
 _lock = threading.Lock()
 
@@ -68,6 +71,15 @@ def record(event: LiMaEvent) -> None:
             _token_prompt[event.backend] += event.prompt_tokens
             _token_completion[event.backend] += event.completion_tokens
             _token_requests[event.backend] += 1
+
+    try:
+        from observability.openobserve_sink import maybe_export_event
+
+        maybe_export_event(event)
+    except ImportError:
+        logger.debug("openobserve sink unavailable")
+    except Exception:
+        logger.debug("openobserve export skipped", exc_info=True)
 
 
 def _prune_sessions() -> None:

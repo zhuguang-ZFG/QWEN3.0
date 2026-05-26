@@ -153,3 +153,6 @@ frp/frpc.toml
 pay_orders.db
 sessions.db
 feedback_queue.json
+
+# PE-B-1 codesearch local index
+.codesearch.db/

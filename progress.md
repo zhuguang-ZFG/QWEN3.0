@@ -4,6 +4,14 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 PE-B-1 收尾 + PE-C-2 OpenObserve 启动
+
+- **PE-B-1**：codesearch **v1.0.97** 索引 `lima-git`（~39k chunks）；`smoke_codesearch_local` **3/3 cs_ok**
+- **PE-C-2**：`observability/openobserve_sink.py` + metrics hook；`infra/openobserve/docker-compose.yml`（127.0.0.1:5080）
+- **VPS**：`install_openobserve_ok`；`smoke_openobserve_vps` → **smoke_ok**（ingest lima_events）
+- **文档**：`docs/OPENOBSERVE_SETUP.md`；journal ship `scripts/ship_lima_journal_openobserve.py`
+- **测试**：+4 openobserve；全量 **1660 passed**
+
 ## 2026-05-26 GFL-2 + PE-B-1 install + PE-D-1 SearXNG
 
 - **GFL-2**：`TELEGRAM_PUSH_TRANSLATE_BACKEND` 默认 **`scnet_qwen30b,cf_llama70b,google_flash_lite`**（google 末位）；VPS `deploy_productivity_slice_ok`
