@@ -145,7 +145,7 @@
 | **备份** | Kopia/restic+rclone | 自部署无限 | **Backlog** |
 | **SQLite复制** | Litestream | 连续复制 | **Backlog** |
 | **CI/CD** | GitHub Actions | 2000分/月 | **Done** |
-| **CI/CD** | Gitee Go | 免费 | **Done** `.gitee/workflows/test.yml`（需在 Gitee 启用 Go） |
+| **CI/CD** | Gitee Go | ~200 分/月 | **Deferred** YAML 已留仓；不启用（GitHub Actions 2000 分已够用） |
 | **定时任务** | Cron-job.org | 免费HTTP触发 | **Ref** 已有 VPS cron+HC |
 | **对象存储** | Cloudflare R2+阿里云OSS | 10GB+5GB | **Partial** R2 策略文档化 |
 | **Telegram存储** | TG-S3/K-Vault | 无限容量 | **Backlog** |
@@ -355,7 +355,7 @@
 
 | # | 行动 | 耗时 | LiMa | 备注 |
 |---|------|------|------|------|
-| 1 | Gitee Go CI (`.gitee/workflows/test.yml`) | 0.5h | **Done** | 需在 Gitee 仓库启用 Go 流水线 |
+| 1 | Gitee Go CI (`.gitee/workflows/test.yml`) | 0.5h | **Deferred** | 免费约 200 分/月；不启用，保留 YAML 备查 |
 | 2 | Gitleaks 本地配置 | 0.5h | **Done** | `.gitleaks.toml` + GitHub Actions |
 | 3 | Gitee 代码搜索 (`search_gateway/gitee_tools.py`) | 1.5h | **Done** | `GITEE_TOKEN` |
 | 4 | Cloudflare Tunnel 替代 FRP（可选）| 1h | **Ref** | FRP 已跑通；替换风险大 |

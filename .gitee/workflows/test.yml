@@ -1,3 +1,5 @@
+# DORMANT: do not enable on Gitee Go (~200 free min/month).
+# CI runs on GitHub Actions (.github/workflows/lima-ci.yml) instead.
 version: "1.0"
 name: lima-pytest
 displayName: LiMa pytest (focused)

@@ -15,7 +15,7 @@
 ## 2026-05-26 M-雷达-P0 + LC-W-1e + CF-eval-1
 
 - **Gitleaks**：`.gitleaks.toml` + `lima-ci.yml` secret scan step
-- **Gitee Go**：`.gitee/workflows/test.yml` focused pytest（仓库侧需启用 Go）
+- **Gitee Go**：`.gitee/workflows/test.yml` 已留仓；**Operator 决定不启用**（Gitee Go 免费约 200 分/月，GitHub Actions 2000 分已够用）
 - **Gitee 搜索**：`search_gateway/gitee_tools.py` + `tests/test_gitee_tools.py` **5 passed**
 - **LC-W-1e**：`scripts/smoke_lcw1_prompt_contract_e2e.py` → VPS `smoke_ok` task `295f45b5`
 - **CF-eval-1**：`probe_cf_new_models.py --limit 3 --dry-run` → 0/3 pass（报告更新，未进池）
