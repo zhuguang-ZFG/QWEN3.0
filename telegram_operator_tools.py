@@ -33,10 +33,9 @@ def fetch_github_file_text(repo: str, path: str, ref: str = "main", *, max_chars
     from search_gateway.dev_tools import fetch_github_file, read_url
 
     if os.environ.get("TINYFISH_API_KEY", "").strip():
-        from search_gateway.anysearch_adapter import AnySearchAdapter
-        from search_gateway.tinyfish_transport import tinyfish_transport
+        from search_gateway.dev_adapter import get_dev_search_adapter
 
-        adapter = AnySearchAdapter(tinyfish_transport)
+        adapter = get_dev_search_adapter()
         raw = fetch_github_file(repo, path, ref, adapter=adapter, max_chars=max_chars + 500)
     else:
         raw_url = f"https://raw.githubusercontent.com/{repo}/{ref}/{path.lstrip('/')}"

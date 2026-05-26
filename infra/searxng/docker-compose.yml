@@ -1,0 +1,14 @@
+# SearXNG — local meta-search for dev-search (PE-D-1)
+# Default off; enable only on trusted hosts.
+
+services:
+  searxng:
+    image: searxng/searxng:latest
+    container_name: lima-searxng
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8081:8080"
+    volumes:
+      - ./settings.yml:/etc/searxng/settings.yml:ro
+    environment:
+      - SEARXNG_BASE_URL=http://127.0.0.1:8081/

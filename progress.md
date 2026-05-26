@@ -4,6 +4,14 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 GFL-2 + PE-B-1 install + PE-D-1 SearXNG
+
+- **GFL-2**：`TELEGRAM_PUSH_TRANSLATE_BACKEND` 默认 **`scnet_qwen30b,cf_llama70b,google_flash_lite`**（google 末位）；VPS `deploy_productivity_slice_ok`
+- **PE-B-1**：`install_codesearch_local.ps1` → **v1.0.97** 已装 `%LOCALAPPDATA%\Programs\codesearch`；索引 `D:\GIT` 后台进行中
+- **PE-D-1**：`search_gateway/searxng_adapter.py` + `dev_adapter.py`（SearXNG→TinyFish fallback）；`docs/SEARXNG_SETUP.md`；`infra/searxng/docker-compose.yml`
+- **Smoke**：`smoke_searxng_local` smoke_ok（默认关）；`smoke_codesearch_local` rg 3/3
+- **测试**：focused 14 passed；全量 **1656 passed, 10 skipped**
+
 ## 2026-05-26 PE-C-1 loopback + PE-B-1 runbook + google_flash_lite 诊断
 
 - **PE-C-1 残余**：`bind to = loopback` 在 Netdata v2.10.3 无法解析 → 改为 **`127.0.0.1`**；`bind_netdata_loopback_vps.py` + `recover_netdata_vps.py`

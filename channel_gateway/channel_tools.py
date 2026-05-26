@@ -79,10 +79,9 @@ def tools_help_suffix() -> str:
 def _search_adapter():
     if not os.environ.get("TINYFISH_API_KEY", "").strip():
         return None
-    from search_gateway.anysearch_adapter import AnySearchAdapter
-    from search_gateway.tinyfish_transport import tinyfish_transport
+    from search_gateway.dev_adapter import get_dev_search_adapter
 
-    return AnySearchAdapter(tinyfish_transport)
+    return get_dev_search_adapter()
 
 
 def _format_search_results(results: list[dict], *, max_items: int = 5) -> str:

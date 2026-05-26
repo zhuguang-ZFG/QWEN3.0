@@ -25,6 +25,11 @@
 | GFL-1 | Ops | 11:02 degraded transient; VPS now healthy | Closed 2026-05-26 |
 | GFL-2 | Risk | TG push translate + chat_fast share google_flash_lite RPM | Open |
 
+| GFL-2 | Code | push translate backend order scnet first | Closed 2026-05-26 |
+| PE-B-1-2 | Ops | codesearch v1.0.97 installed; index lima-git running | Open |
+| PE-D-1-1 | Code | searxng_adapter + dev_adapter fallback | Closed 2026-05-26 |
+| PE-D-1-2 | Ops | docker compose SearXNG + SEARXNG_ENABLED=1 smoke | Open |
+
 ## 2026-05-26 Five-line closeout slice 1
 
 | ID | Area | Evidence | Status |

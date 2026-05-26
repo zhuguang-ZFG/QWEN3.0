@@ -5,6 +5,12 @@ from __future__ import annotations
 import telegram_push_translate as tpt
 
 
+def test_default_llm_backend_order():
+    monkeypatch_backends = tpt.push_translate_backends()
+    assert monkeypatch_backends[0] == "scnet_qwen30b"
+    assert monkeypatch_backends[-1] == "google_flash_lite"
+
+
 def test_translate_push_disabled(monkeypatch):
     monkeypatch.delenv("TELEGRAM_PUSH_TRANSLATE", raising=False)
     assert tpt.translate_push_text("GitHub push") == "GitHub push"

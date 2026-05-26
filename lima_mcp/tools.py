@@ -114,10 +114,9 @@ def _get_retrieval_trace(args: dict) -> dict:
 
 
 def _dev_adapter():
-    from search_gateway.anysearch_adapter import AnySearchAdapter
-    from search_gateway.tinyfish_transport import tinyfish_transport
+    from search_gateway.dev_adapter import get_dev_search_adapter
 
-    return AnySearchAdapter(tinyfish_transport)
+    return get_dev_search_adapter()
 
 
 def _dev_search_docs(args: dict) -> dict:

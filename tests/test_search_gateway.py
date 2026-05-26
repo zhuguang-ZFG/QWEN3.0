@@ -76,3 +76,41 @@ def test_anysearch_adapter_extract_url_uses_extract_method():
         "method": "extract_url",
         "params": {"url": "https://example.com/docs"},
     }
+
+
+def test_searxng_adapter_normalizes_results():
+    calls = []
+
+    def fake_http(url: str) -> dict:
+        calls.append(url)
+        return {
+            "results": [
+                {
+                    "title": "FastAPI Depends",
+                    "url": "https://fastapi.tiangolo.com/tutorial/dependencies/",
+                    "content": "Depends snippet",
+                    "engine": "google",
+                }
+            ]
+        }
+
+    from search_gateway.searxng_adapter import SearXNGAdapter
+
+    adapter = SearXNGAdapter(base_url="http://127.0.0.1:8081")
+    adapter._http_get_json = fake_http  # type: ignore[method-assign]
+    result = adapter.search("FastAPI Depends", max_results=2)
+
+    assert result["ok"] is True
+    assert result["results"][0]["source"] == "searxng:google"
+    assert "format=json" in calls[0]
+
+
+def test_dev_adapter_fallback_to_tinyfish(monkeypatch):
+    monkeypatch.setenv("SEARXNG_ENABLED", "1")
+    monkeypatch.setenv("SEARXNG_BASE_URL", "http://127.0.0.1:59999")
+
+    from search_gateway.dev_adapter import get_dev_search_adapter
+
+    adapter = get_dev_search_adapter()
+    result = adapter.search("test query", max_results=2)
+    assert "ok" in result

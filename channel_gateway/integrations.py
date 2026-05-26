@@ -423,10 +423,19 @@ def build_owner_github_handler() -> Callable[[str, str], str]:
             return "仓库格式应为 owner/repo"
         adapter = None
         if os.environ.get("TINYFISH_API_KEY", "").strip():
-            from search_gateway.anysearch_adapter import AnySearchAdapter
-            from search_gateway.tinyfish_transport import tinyfish_transport
+            from search_gateway.dev_adapter import get_dev_search_adapter
 
-            adapter = AnySearchAdapter(tinyfish_transport)
+            adapter = get_dev_search_adapter()
+        else:
+            try:
+                from search_gateway.searxng_adapter import searxng_enabled
+
+                if searxng_enabled():
+                    from search_gateway.dev_adapter import get_dev_search_adapter
+
+                    adapter = get_dev_search_adapter()
+            except ImportError:
+                pass
         if adapter is None:
             from search_gateway.dev_tools import read_url
 

@@ -9,7 +9,7 @@ import re
 logger = logging.getLogger(__name__)
 
 _CJK_RE = re.compile(r"[\u4e00-\u9fff\u3400-\u4dbf]")
-_DEFAULT_LLM_BACKENDS = ("google_flash_lite", "scnet_qwen30b", "cf_llama70b")
+_DEFAULT_LLM_BACKENDS = ("scnet_qwen30b", "cf_llama70b", "google_flash_lite")
 
 
 def push_translate_enabled() -> bool:
