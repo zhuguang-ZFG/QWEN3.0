@@ -17,11 +17,30 @@ from search_gateway.gitee_tools import (
 def test_credentials_configured_false(monkeypatch):
     monkeypatch.delenv("GITEE_TOKEN", raising=False)
     monkeypatch.delenv("GITEE_ACCESS_TOKEN", raising=False)
+    import search_gateway.gitee_tools as gt
+
+    gt._git_remote_token = ""
+    monkeypatch.setattr(gt, "gitee_token_from_git_remotes", lambda *a, **k: "")
     assert credentials_configured() is False
+
+
+def test_credentials_configured_from_git_remote(monkeypatch):
+    monkeypatch.delenv("GITEE_TOKEN", raising=False)
+    monkeypatch.delenv("GITEE_ACCESS_TOKEN", raising=False)
+    import search_gateway.gitee_tools as gt
+
+    gt._git_remote_token = None
+    monkeypatch.setattr(gt, "gitee_token_from_git_remotes", lambda *a, **k: "remote-token")
+    assert credentials_configured() is True
 
 
 def test_search_gitee_skips_without_token(monkeypatch):
     monkeypatch.delenv("GITEE_TOKEN", raising=False)
+    monkeypatch.delenv("GITEE_ACCESS_TOKEN", raising=False)
+    import search_gateway.gitee_tools as gt
+
+    gt._git_remote_token = ""
+    monkeypatch.setattr(gt, "gitee_token_from_git_remotes", lambda *a, **k: "")
     out = search_gitee("routing_engine")
     assert out["ok"] is False
     assert out.get("skipped") is True

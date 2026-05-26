@@ -10,7 +10,54 @@ from typing import Callable, Sequence
 from urllib.parse import urlparse, urlunparse
 
 _OAUTH_RE = re.compile(r"oauth2:[^@]+@", re.IGNORECASE)
+_OAUTH_TOKEN_RE = re.compile(r"oauth2:([^@]+)@", re.IGNORECASE)
 _TOKEN_IN_USER_RE = re.compile(r"^[^:/]+:[^@]+@")
+
+
+def extract_gitee_oauth_token(url: str) -> str:
+    """Return oauth2 token embedded in a Gitee git remote URL (empty if absent)."""
+    text = (url or "").strip()
+    if not text or "gitee.com" not in text.lower():
+        return ""
+    match = _OAUTH_TOKEN_RE.search(text)
+    if not match:
+        return ""
+    from urllib.parse import unquote
+
+    return unquote(match.group(1).strip())
+
+
+def iter_gitee_remote_urls(remote_v_output: str) -> list[str]:
+    """Collect every gitee.com URL from `git remote -v` output."""
+    urls: list[str] = []
+    seen: set[str] = set()
+    for line in (remote_v_output or "").splitlines():
+        parts = line.split()
+        if len(parts) < 2:
+            continue
+        url = parts[1]
+        if "gitee.com" not in url.lower():
+            continue
+        if url not in seen:
+            seen.add(url)
+            urls.append(url)
+    return urls
+
+
+def gitee_token_from_git_remotes(
+    repo: str | Path = "",
+    *,
+    runner: Callable[..., subprocess.CompletedProcess] | None = None,
+) -> str:
+    """Resolve Gitee OpenAPI token from oauth2 credentials in git remotes."""
+    code, output = run_git_remote_v(repo, runner=runner)
+    if code != 0:
+        return ""
+    for url in iter_gitee_remote_urls(output):
+        token = extract_gitee_oauth_token(url)
+        if token:
+            return token
+    return ""
 
 
 def redact_remote_url(url: str) -> str:

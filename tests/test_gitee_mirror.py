@@ -12,6 +12,24 @@ def test_redact_oauth_remote_url():
     assert gm.redact_remote_url(url) == "https://oauth2:***@gitee.com/owner/repo.git"
 
 
+def test_extract_gitee_oauth_token():
+    url = "https://oauth2:my-private-token@gitee.com/owner/repo.git"
+    assert gm.extract_gitee_oauth_token(url) == "my-private-token"
+    assert gm.extract_gitee_oauth_token("https://gitee.com/owner/repo.git") == ""
+
+
+def test_gitee_token_from_git_remotes():
+    remote_v = (
+        "origin\thttps://github.com/o/r.git (push)\n"
+        "origin\thttps://oauth2:abc123@gitee.com/o/r.git (push)\n"
+    )
+
+    def runner(cmd, **kwargs):
+        return subprocess.CompletedProcess(cmd, 0, stdout=remote_v, stderr="")
+
+    assert gm.gitee_token_from_git_remotes(runner=runner) == "abc123"
+
+
 def test_parse_git_remotes():
     output = """
 origin\thttps://github.com/owner/repo.git (fetch)

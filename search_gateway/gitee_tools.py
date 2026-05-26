@@ -9,6 +9,8 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
+from gitee_mirror import gitee_token_from_git_remotes
+
 from .safety import sanitize_error_text
 
 logger = logging.getLogger(__name__)
@@ -16,13 +18,27 @@ logger = logging.getLogger(__name__)
 GITEE_API_BASE = "https://gitee.com/api/v5"
 _DEFAULT_REPO = "zhuguang-cn/QWEN3.0"
 _TIMEOUT = 20.0
+_git_remote_token: str | None = None
 
 
 def _access_token() -> str:
-    return (
+    global _git_remote_token
+    env = (
         os.environ.get("GITEE_TOKEN", "").strip()
         or os.environ.get("GITEE_ACCESS_TOKEN", "").strip()
     )
+    if env:
+        return env
+    if _git_remote_token is None:
+        try:
+            _git_remote_token = gitee_token_from_git_remotes()
+        except OSError as exc:
+            logger.debug("gitee git remote token fallback skipped err=%s", type(exc).__name__)
+            _git_remote_token = ""
+        except RuntimeError as exc:
+            logger.warning("gitee git remote token fallback failed err=%s", type(exc).__name__)
+            _git_remote_token = ""
+    return _git_remote_token or ""
 
 
 def credentials_configured() -> bool:

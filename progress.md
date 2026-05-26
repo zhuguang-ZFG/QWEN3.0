@@ -12,7 +12,13 @@
 - **INF-B operator**：Check `lima-vps-router` Period 5min / Grace 10min / Email ON；`verify_healthcheck_vps_ok`
 - **测试**：translate + healthchecks_io + healthcheck_ping **21 passed**
 
-## 2026-05-26 M-雷达-P0 + LC-W-1e + CF-eval-1
+## 2026-05-26 雷达 P0 续：Gitee token fallback + CF-eval-2
+
+- **Gitee 搜索**：`gitee_mirror.gitee_token_from_git_remotes()` → `search_gateway/gitee_tools.py` 自动 fallback；本机 live `search_gitee('QWEN')` **ok**
+- **测试**：`tests/test_gitee_mirror.py` + `tests/test_gitee_tools.py` **15 passed**
+- **CF inventory**：`inventory_cloudflare_models.py` → **73 models**（刷新 `data/cf_model_inventory.json`）
+- **CF-eval-2**：剩余 4 个未注册候选 `--dry-run` → **0/4 pass**（`docs/CF_PROBE_REPORT.md`）；overlays **20/30**；未 `--apply`
+- **下一刀**：LC-W-1 deepcode-cli `/lima next` E2E；或 Kimi/SCNet eval 重跑（`NEXT_MILESTONES.md` P1）
 
 - **Gitleaks**：`.gitleaks.toml` + `lima-ci.yml` secret scan step
 - **Gitee Go**：`.gitee/workflows/test.yml` 已留仓；**Operator 决定不启用**（Gitee Go 免费约 200 分/月，GitHub Actions 2000 分已够用）
