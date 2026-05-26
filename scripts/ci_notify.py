@@ -57,12 +57,42 @@ def main() -> int:
         result = json.loads(resp.read())
         if result.get("ok"):
             print("[ci_notify] sent")
+
+            # Record to Outcome Ledger via LiMa internal API
+            _try_record_outcome(repo, branch, sha, run_url, status, workflow)
+
             return 0
         print(f"[ci_notify] failed: {result}")
         return 1
     except Exception as exc:
         print(f"[ci_notify] error: {exc}")
         return 1
+
+
+def _try_record_outcome(repo: str, branch: str, sha: str, run_url: str, status: str, workflow: str) -> None:
+    """POST outcome event to LiMa internal endpoint (best-effort)."""
+    lima_host = os.environ.get("LIMA_CI_OUTCOME_URL", "")
+    lima_key = os.environ.get("LIMA_API_KEY", "lima-local")
+    if not lima_host:
+        return
+    try:
+        outcome_body = json.dumps({
+            "source": "ci",
+            "event_type": "workflow_run",
+            "outcome": "success" if status == "success" else "failure",
+            "task_id": sha,
+            "scenario": "ci",
+            "summary": f"{workflow} on {branch}: {status}",
+            "tags": ["ci", status, branch],
+        }).encode()
+        req = urllib.request.Request(
+            f"{lima_host}/internal/v1/outcome", data=outcome_body,
+            headers={"Authorization": f"Bearer {lima_key}", "Content-Type": "application/json"},
+        )
+        urllib.request.urlopen(req, timeout=10)
+        print("[ci_notify] outcome recorded")
+    except Exception as exc:
+        print(f"[ci_notify] outcome record failed: {exc}")
 
 
 if __name__ == "__main__":

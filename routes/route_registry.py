@@ -141,6 +141,15 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
         deps.loaded_modules["eval_internal"] = False
 
     try:
+        from routes.outcome_ingest import router as outcome_router
+
+        app.include_router(outcome_router)
+        deps.loaded_modules["outcome_ingest"] = True
+    except ImportError as exc:
+        logging.warning("[STARTUP] outcome_ingest not loaded: %s", exc)
+        deps.loaded_modules["outcome_ingest"] = False
+
+    try:
         from routes.telegram import router as telegram_router
 
         app.include_router(telegram_router)
