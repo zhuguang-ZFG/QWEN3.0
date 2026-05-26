@@ -51,6 +51,15 @@ async def cmd_chat(chat_id: str, message: str) -> None:
             parse_mode="",
         )
         return
+    from routes.telegram_chat_identity import maybe_identity_answer, sanitize_chat_answer
+
+    identity = maybe_identity_answer(message)
+    if identity:
+        history = _get_history(chat_id)
+        history.append({"role": "user", "content": message})
+        history.append({"role": "assistant", "content": identity})
+        await telegram_bot.send_message(identity, chat_id=chat_id, parse_mode="")
+        return
     history = _get_history(chat_id)
     history.append({"role": "user", "content": message})
     try:
@@ -58,7 +67,7 @@ async def cmd_chat(chat_id: str, message: str) -> None:
             fc_caller = _optional_import("fc_caller")
             if fc_caller is not None:
                 result = await fc_caller.chat_with_tools(list(history))
-                answer = result.get("answer", "")
+                answer = sanitize_chat_answer(message, result.get("answer", ""))
                 tools_used = result.get("tools_used", [])
                 if answer:
                     history.append({"role": "assistant", "content": answer})
@@ -84,6 +93,7 @@ async def cmd_chat(chat_id: str, message: str) -> None:
             query=message, messages=list(history), call_fn=http_caller.call_api,
         )
         answer = result.get("answer", "") if isinstance(result, dict) else getattr(result, "answer", str(result))
+        answer = sanitize_chat_answer(message, answer)
         if answer:
             history.append({"role": "assistant", "content": answer})
         await telegram_bot.send_message(answer or "(empty response)", chat_id=chat_id)

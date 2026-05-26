@@ -9,6 +9,7 @@ import http_caller
 import routing_engine
 import telegram_bot
 from routes.stream_handlers import speculative_stream_chunks
+from routes.telegram_chat_identity import maybe_identity_answer, sanitize_chat_answer
 from telegram_draft_stream import TelegramDraftStreamer, stream_chat_enabled
 
 logger = logging.getLogger(__name__)
@@ -46,8 +47,14 @@ async def stream_chat_to_telegram(
     *,
     max_tokens: int = 4096,
 ) -> str:
+    identity = maybe_identity_answer(query)
+    if identity:
+        await telegram_bot.send_message(identity, chat_id=chat_id, parse_mode="")
+        return identity
+
     if not stream_chat_enabled():
         text = await asyncio.to_thread(_route_chat_sync, query, messages)
+        text = sanitize_chat_answer(query, text)
         if text:
             await telegram_bot.send_message(text, chat_id=chat_id, parse_mode="")
         return text or _EMPTY_FALLBACK
@@ -71,6 +78,8 @@ async def stream_chat_to_telegram(
 
     if not accumulated.strip():
         accumulated = _EMPTY_FALLBACK
+    else:
+        accumulated = sanitize_chat_answer(query, accumulated)
 
     if streamer._stopped:
         ok = await telegram_bot.send_message(

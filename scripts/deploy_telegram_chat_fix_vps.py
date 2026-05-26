@@ -6,6 +6,8 @@ from pathlib import Path
 KEY = os.environ.get("LIMA_DEPLOY_KEY_PATH", os.path.expanduser("~/.ssh/id_ed25519"))
 REMOTE = "/opt/lima-router"
 FILES = [
+    "identity_guard.py",
+    "routes/telegram_chat_identity.py",
     "routes/telegram_chat_stream.py",
     "routes/telegram_commands.py",
 ]
