@@ -132,6 +132,23 @@ async def handle_motion_event(device_id: str, message: dict[str, Any], request_i
         except Exception:
             _log.debug("device task card notification failed", exc_info=True)
 
+    # Record to Outcome Ledger (terminal phases only)
+    if phase in ("done", "failed", "cancelled"):
+        try:
+            from session_memory.outcome_ledger import record as ledger_record
+
+            ledger_record(
+                source="device_gateway",
+                event_type="device_task",
+                outcome="success" if phase == "done" else "failure",
+                task_id=str(message.get("task_id", "")),
+                scenario="device",
+                summary=f"{phase}: {message.get('capability', message.get('source_capability', ''))}",
+                tags=["device", phase, str(message.get("capability", ""))],
+            )
+        except Exception:
+            _log.debug("outcome ledger record failed", exc_info=True)
+
 
 async def handle_device_info(device_id: str, request_id: str | None) -> None:
     session = registry.get(device_id)

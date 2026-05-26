@@ -13,9 +13,12 @@ automatically — every learned pattern must pass eval before adoption.
 from __future__ import annotations
 
 import json
+import logging
 import time
 from dataclasses import dataclass, field
 from typing import Any
+
+_log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -45,6 +48,32 @@ def ingest_task_outcome(outcome: TaskOutcome) -> dict[str, Any]:
         "routing": _feed_routing(outcome),
         "eval": _feed_eval(outcome),
     }
+
+    # Record to unified Outcome Ledger
+    try:
+        from session_memory.outcome_ledger import record as ledger_record
+
+        tests_total = len(outcome.test_results)
+        tests_passed = sum(1 for t in outcome.test_results if t.get("exit_code") == 0)
+        outcome_str = "success" if outcome.status in ("completed", "needs_review") else "failure"
+        ledger_record(
+            source="lima_code",
+            event_type="task_complete",
+            outcome=outcome_str,
+            task_id=outcome.task_id,
+            backend=outcome.backend or "",
+            scenario=outcome.scenario or "coding",
+            summary=f"status={outcome.status} files={len(outcome.changed_files)} tests={tests_passed}/{tests_total}",
+            details={
+                "status": outcome.status, "changed_files": outcome.changed_files[:10],
+                "tests_passed": tests_passed, "tests_total": tests_total,
+                "risks": outcome.risks[:5], "latency_ms": outcome.latency_ms,
+            },
+            tags=["lima_code", outcome.status or "unknown"],
+        )
+    except Exception:
+        _log.debug("outcome ledger record failed", exc_info=True)
+
     return result
 
 

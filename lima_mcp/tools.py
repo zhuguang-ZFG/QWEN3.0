@@ -491,3 +491,9 @@ def _memory_stats(args: dict) -> dict:  # noqa: ARG001
     """Return memory store statistics."""
     from session_memory.store_db import memory_stats
     return memory_stats()
+
+
+def _outcome_ledger_stats(args: dict) -> dict:  # noqa: ARG001
+    """Return Outcome Ledger statistics."""
+    from session_memory.outcome_ledger import stats as ledger_stats
+    return ledger_stats()

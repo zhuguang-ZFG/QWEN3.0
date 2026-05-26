@@ -51,3 +51,9 @@ dbs:
     replicas:
       - type: file
         path: /opt/lima-router/backups/litestream/mastery_loop
+
+  # --- Outcome Ledger (unified event store) ---
+  - path: /opt/lima-router/data/outcome_ledger.db
+    replicas:
+      - type: file
+        path: /opt/lima-router/backups/litestream/outcome_ledger
