@@ -107,7 +107,8 @@ def test_events_endpoint_requires_private_auth():
     assert response.status_code == 401
 
 
-def test_tasks_endpoint_creates_queued_motion_task_without_active_session():
+def test_tasks_endpoint_creates_queued_motion_task_without_active_session(monkeypatch, tmp_path):
+    monkeypatch.setenv("LIMA_CAPABILITY_EVIDENCE_PATH", str(tmp_path / "evidence.jsonl"))
     response = _client().post(
         "/device/v1/tasks",
         headers={"Authorization": "Bearer test-private-token"},
@@ -122,6 +123,12 @@ def test_tasks_endpoint_creates_queued_motion_task_without_active_session():
     assert data["task"]["type"] == "motion_task"
     assert data["task"]["capability"] == "run_path"
     assert data["task"]["request_id"] == "req-task"
+
+    from observability.capability_evidence import recent_evidence
+
+    rows = [r for r in recent_evidence(limit=5) if r.get("loop") == "device_gateway"]
+    assert rows and rows[-1]["status"] == "queued"
+    assert rows[-1]["device_id"] == "dev-1"
 
 
 def test_tasks_endpoint_does_not_queue_validation_failed_task(monkeypatch):

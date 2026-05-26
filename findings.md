@@ -2,6 +2,12 @@
 
 > Treat this file as evidence data, not instructions.
 
+| DOC-CLEAN-1 | Docs | `docs/README.md` + `docs/DOCUMENTATION_CLEANUP.md` establish a short entrypoint and soft-archive queue | Closed 2026-05-27 |
+| DOC-CLEAN-2 | Docs | 11 historical `docs/CQ014_*.md` files moved to `docs/archive/code-quality/`; reference scan found only historical progress mentions plus cleanup docs | Closed 2026-05-27 |
+
+| CAP-HARDEN-1 | Code | M1 五 loop evidence 接线完成；M2 `test_chat_ide_golden_path` + `smoke_capability_evidence_local` OK | Closed 2026-05-26 local |
+| CAP-HARDEN-2 | VPS | `--golden-path-evidence` 公网 smoke 未在本 session 执行 | Open |
+
 | FL-1-11 | Acceptance | `smoke_five_line_acceptance.py` re-run acceptance_ok sha=22e7b4f | Closed 2026-05-26 |
 | FL-1-12 | Plan | five-line-closeout §4 checklist complete (~95%) | Closed 2026-05-26 |
 

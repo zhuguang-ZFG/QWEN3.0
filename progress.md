@@ -2,7 +2,34 @@
 
 > Created: 2026-05-22
 
-> Updated: 2026-05-26
+> Updated: 2026-05-27
+
+## 2026-05-27 DOC-CLEAN-1：文档入口收敛
+
+- 新增 `docs/README.md` 作为文档唯一入口，列出当前必读文件、活跃日志和历史文档处理规则。
+- 新增 `docs/DOCUMENTATION_CLEANUP.md`，记录 175 个 docs markdown 的软归档策略、热文档清单和后续物理迁移批次。
+- 更新 `docs/DOCUMENTATION_STATUS.md` 顶部，提示未来 agent 先读入口和 cleanup queue。
+- 物理清理第一批：引用扫描后将 11 个 `docs/CQ014_*.md` 历史切片移到 `docs/archive/code-quality/`，并新增目录 README。
+- 本刀不删除旧文档；后续按批次扫描引用后再迁移。
+
+## 2026-05-26 CAP-HARDEN-1：能力闭环加厚（M1 收尾 + M2 本地）
+
+**目标：** 不拓展新功能；五条生产环统一写入 `capability_evidence.jsonl`，Chat/IDE 金路径可测。
+
+### 代码
+- `observability/capability_evidence.py`：`record_evidence_safe`；chat closeout 失败改 `warning`
+- **接线：** `chat_handler_dispatch` → `record_capability_evidence`；`device_gateway` tasks；`learning_loop` → `ops_learning`；`run_eval_full_and_report` → `backend_eval`；`agent_tasks` 用 safe 包装
+- **测试：** `tests/test_chat_ide_golden_path.py`（路由 mock + evidence 断言）
+- **Smoke：** `scripts/smoke_capability_evidence_local.py`（五 loop 本地）；`smoke_online_distributions.py --golden-path-evidence`（公网待跑）
+
+### 验证（本 session）
+- `smoke_capability_evidence_local.py` → OK 五 loop
+- 聚焦 pytest：**11 passed**（capability + golden path + device evidence + learning）
+- 相关 broader：**73 passed, 2 failed**（`test_agent_task_routes` 两例 KeyError，与本次改动无关，store 隔离问题）
+
+### 下一刀
+- VPS：`smoke_online_distributions.py --chat-exact golden_path_ok --golden-path-evidence` → Chat/IDE score 5
+- 继续 M3 LiMa Code daily loop（Prompt Contract 加厚，不新开 radar）
 
 ## 2026-05-26 P2-26：Pyright enforce + Litestream + Filesystem MCP
 
@@ -950,7 +977,7 @@
 - Admin slice 11: `admin_state.py`, `admin_backends.py`, `admin_api.py`; `admin.py` ~68 lines (was ~330)
 - Routing slice 11: `routing_classifier.py`, `routing_selector.py`, `routing_executor.py`; `routing_engine.py` ~215 lines (was ~447)
 - Prod RAG: `lima_routing_prod.json` + `corpus_files` in `retrieval_eval_runner.resolve_corpus_files()`
-- Design: `docs/CQ014_ADMIN_SLICE11.md`, `docs/CQ014_ROUTING_ENGINE_SLICE11.md`, `docs/RAG_OFFLINE_EVAL_FIXTURE.md` updated
+- Design: `docs/archive/code-quality/CQ014_ADMIN_SLICE11.md`, `docs/archive/code-quality/CQ014_ROUTING_ENGINE_SLICE11.md`, `docs/RAG_OFFLINE_EVAL_FIXTURE.md` updated
 - Tests: **1432 passed, 10 skipped** (+2 prod RAG tests)
 - VPS backup: `/opt/lima-router/backups/cq014-slice11-*` (files uploaded + restart)
 - Public smoke: **7/7** (health/models; no exact-chat token this session)
@@ -966,7 +993,7 @@
 
 ## 2026-05-25 CQ-014 Health Tracker Slice 9 Closeout
 
-- Design: `docs/CQ014_HEALTH_TRACKER_SLICE.md`
+- Design: `docs/archive/code-quality/CQ014_HEALTH_TRACKER_SLICE.md`
 - Extracted `health_failure_classifier.py`, `health_state.py`, `health_recorder.py`, `health_scoring.py`; `health_tracker.py` ~82 lines (was ~472)
 - Tests: **1428 passed, 10 skipped**
 - VPS backup: `/opt/lima-router/backups/cq014-health-tracker-20260525_141942/runtime-before.tgz`
@@ -975,7 +1002,7 @@
 
 ## 2026-05-25 CQ-014 HTTP Caller Slice 8 Closeout
 
-- Design: `docs/CQ014_HTTP_CALLER_SLICE.md`
+- Design: `docs/archive/code-quality/CQ014_HTTP_CALLER_SLICE.md`
 - Extracted `http_errors.py`, `http_request_builder.py`, `http_response.py`, `http_stream.py`; `http_caller.py` ~390 lines (was ~763)
 - Tests: **1428 passed, 10 skipped**
 - VPS backup: `/opt/lima-router/backups/cq014-http-caller-20260525_141709/runtime-before.tgz`
@@ -984,7 +1011,7 @@
 
 ## 2026-05-25 CQ-014 Smart Router Slice 7 Closeout
 
-- Design: `docs/CQ014_SMART_ROUTER_SLICE.md` (updated slices 6–7)
+- Design: `docs/archive/code-quality/CQ014_SMART_ROUTER_SLICE.md` (updated slices 6-7)
 - Slice 7: `router_prompt.py`, `router_http.py`, `router_image.py`; vision dedup via `vision_handler.py`; `smart_router.py` ~228 lines
 - Slice 6 (prior): `router_circuit_breaker.py`, `router_intent.py`, `router_classifier.py`
 - RAG fixture: `tests/fixtures/retrieval_eval/lima_core.json`, `context_pipeline/retrieval_eval_runner.py`
@@ -994,7 +1021,7 @@
 
 ## 2026-05-25 CQ-014 Smart Router Slice 6 + RAG Offline Eval Fixture
 
-- Design: `docs/CQ014_SMART_ROUTER_SLICE.md`, `docs/RAG_OFFLINE_EVAL_FIXTURE.md`
+- Design: `docs/archive/code-quality/CQ014_SMART_ROUTER_SLICE.md`, `docs/RAG_OFFLINE_EVAL_FIXTURE.md`
 - CQ-014 slice 6: extracted `router_circuit_breaker.py`, `router_intent.py`, `router_classifier.py`; `smart_router.py` ~740 lines (was ~1065)
 - RAG fixture: `tests/fixtures/retrieval_eval/lima_core.json` + `context_pipeline/retrieval_eval_runner.py`
 - Tests: **1421 passed, 10 skipped** (+18: router CB/classifier 12, retrieval fixture 6)
@@ -1010,7 +1037,7 @@
 
 ## 2026-05-25 CQ-014 Chat Handler Slice Closeout
 
-- Design: `docs/CQ014_CHAT_HANDLER_SLICE.md`
+- Design: `docs/archive/code-quality/CQ014_CHAT_HANDLER_SLICE.md`
 - Extracted chat execution to `routes/chat_handler.py`, `routes/chat_stream.py`,
   `routes/chat_support.py`; `server.py` now ~180 lines (app wiring only)
 - Tests: **1401 passed, 10 skipped** (chat handler: 3; prompt memory/stream footer fixes)
@@ -1020,7 +1047,7 @@
 
 ## 2026-05-25 CQ-014 Server Routes + HTTP Caller Concurrency Closeout
 
-- Design: `docs/CQ014_SERVER_ROUTES_SLICE.md`, `docs/HTTP_CALLER_CONCURRENCY_TESTS.md`
+- Design: `docs/archive/code-quality/CQ014_SERVER_ROUTES_SLICE.md`, `docs/HTTP_CALLER_CONCURRENCY_TESTS.md`
 - Extracted all `app.include_router(...)` wiring to `routes/route_registry.py`
 - Added `tests/test_route_registry.py` and `tests/test_http_caller_concurrency.py`
 - Tests: **1398 passed, 10 skipped** (route registry: 4; http_caller concurrency: 4)
@@ -1030,7 +1057,7 @@
 
 ## 2026-05-25 CQ-014 Admin UI Slice Closeout
 
-- Design: `docs/CQ014_ADMIN_UI_SLICE.md`
+- Design: `docs/archive/code-quality/CQ014_ADMIN_UI_SLICE.md`
 - Extracted `ADMIN_HTML`, `ADMIN_BODY`, `ADMIN_JS` from `routes/admin.py` into
   `routes/admin_ui.py` with `render_admin_dashboard()`
 - `routes/admin.py` now API/auth only (~330 lines); `routes/admin_ui.py` ~292 lines
@@ -1041,7 +1068,7 @@
 
 ## 2026-05-25 CQ-014 Post-Route Slice Closeout
 
-- Design: `docs/CQ014_POST_ROUTE_SLICE.md`, `docs/REQUEST_PIPELINE_AUTHORITY.md`
+- Design: `docs/archive/code-quality/CQ014_POST_ROUTE_SLICE.md`, `docs/REQUEST_PIPELINE_AUTHORITY.md`
 - Extracted post-route integrations from `routing_engine.py` into `route_post_process.py`
 - Replaced silent broad catches with warning logs in post-route path and `http_caller` prefix cache
 - `routing_engine.py` reduced from ~409 to ~372 lines

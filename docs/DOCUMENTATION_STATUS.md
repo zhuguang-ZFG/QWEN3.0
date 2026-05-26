@@ -1,7 +1,13 @@
 ﻿# Documentation Status
 
-> Updated: 2026-05-26
+> Updated: 2026-05-27
 > Purpose: prevent old commercial-platform plans from being mistaken for the active LiMa direction.
+
+## Start Here
+
+Use `docs/README.md` as the short documentation entrypoint. It lists the hot
+docs, active logs, and how to treat historical plan files. Use
+`docs/DOCUMENTATION_CLEANUP.md` for the cleanup queue and archive policy.
 
 ## Current Source Of Truth
 
@@ -64,6 +70,7 @@
 | `docs/HEALTHCHECKS_SETUP.md` | Active | INF-B Healthchecks dead-man；login `/accounts/login/`；lima-vps-router live。 |
 | `docs/superpowers/plans/2026-05-26-infra-tools-integration.md` | **Active plan (P1)** | Infisical + Healthchecks + Tailscale（零路由）；SearXNG 见 productivity-enhancement PE-D-1。 |
 | `docs/FREE_RESOURCE_RADAR_MERGED.md` | Active radar | 免费资源索引 + **LiMa 状态列**；执行顺序见 `NEXT_MILESTONES.md`。 |
+| `docs/superpowers/plans/2026-05-26-lima-code-opencode-orchestration.md` | Deferred plan | OpenCode/oh-my-opencode-inspired LiMa Code role orchestration；dry-run first、默认关、不替换 LiMa 路由和 closeout。 |
 | `docs/superpowers/plans/2026-05-26-provider-model-automation-full-plan.md` | **Archived plan** | 免费模型发现/验证/准入完整方案；CF-G-2 与 PA-B 合并。 |
 | `docs/GITHUB_WEBHOOK_INTEGRATION.md` | Active | CQ-GH-001 webhook → Telegram；VPS smoke 2026-05-26。 |
 | `docs/PROVIDER_MODEL_AUTOMATION_PLAN.md` | Active policy | 模型发现策略与状态机；实施细节见 archived full plan。 |

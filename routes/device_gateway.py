@@ -132,6 +132,12 @@ async def device_gateway_tasks(request: Request) -> JSONResponse:
     device_id = device_id.strip()
     task = create_task_from_transcript(device_id, text.strip(), request_id=request_id if isinstance(request_id, str) else None)
     if task.get("error"):
+        _record_device_task_evidence(
+            device_id=device_id,
+            task=task,
+            status="failed",
+            request_id=request_id if isinstance(request_id, str) else "",
+        )
         return JSONResponse({"status": "failed", "sent": False, "queue_depth": pending_count(device_id), "task": task})
     session = registry.get(device_id)
     sent = False
@@ -149,7 +155,35 @@ async def device_gateway_tasks(request: Request) -> JSONResponse:
                 task.get("task_id", ""),
                 type(exc).__name__,
             )
-    return JSONResponse({"status": "sent" if sent else "queued", "sent": sent, "queue_depth": queue_depth, "task": task})
+    status = "sent" if sent else "queued"
+    _record_device_task_evidence(
+        device_id=device_id,
+        task=task,
+        status=status,
+        request_id=request_id if isinstance(request_id, str) else "",
+    )
+    return JSONResponse({"status": status, "sent": sent, "queue_depth": queue_depth, "task": task})
+
+
+def _record_device_task_evidence(
+    *,
+    device_id: str,
+    task: dict[str, Any],
+    status: str,
+    request_id: str = "",
+) -> None:
+    from observability.capability_evidence import record_evidence_safe
+
+    record_evidence_safe(
+        loop="device_gateway",
+        request_id=request_id or str(task.get("request_id", "")),
+        task_id=str(task.get("task_id", "")),
+        device_id=device_id,
+        entrypoint="/device/v1/tasks",
+        status=status,
+        evidence=["device_task_created"],
+        rollback="delete pending task queue for test device if smoke-generated",
+    )
 
 
 async def start_device_gateway_runtime() -> None:

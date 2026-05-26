@@ -19,6 +19,24 @@ from routes.quality_gate import (
 
 from routes.chat_support import attach_memory_recall_meta
 
+
+def _record_chat_evidence(*, request_id: str, backend: str, status: str, fallback_used: bool, latency_ms: int) -> None:
+    try:
+        from observability.capability_evidence import record_evidence_safe
+
+        record_evidence_safe(
+            loop="chat_ide",
+            request_id=request_id,
+            entrypoint="/v1/chat/completions",
+            selected_backend=backend,
+            fallback_used=fallback_used,
+            latency_ms=latency_ms,
+            status=status,
+            evidence=["chat_fallback"],
+        )
+    except Exception:
+        pass
+
 _record_request: Callable[..., None] = lambda *a, **kw: None
 _record_fallback: Callable[..., None] = lambda *a, **kw: None
 _model_id = "lima-1.3"
@@ -95,11 +113,25 @@ async def resolve_quality_fallback(req: QualityFallbackRequest) -> JSONResponse:
                 sys_prompt_preview=req.sys_prompt_preview,
             )
             if req.fmt == "anthropic":
+                _record_chat_evidence(
+                    request_id=req.chat_id,
+                    backend=backend,
+                    status="ok",
+                    fallback_used=True,
+                    latency_ms=req.elapsed_ms,
+                )
                 return JSONResponse(
                     build_anthropic_response(
                         req.chat_id, content, backend, req.request_model or _model_id
                     )
                 )
+            _record_chat_evidence(
+                request_id=req.chat_id,
+                backend=backend,
+                status="ok",
+                fallback_used=True,
+                latency_ms=req.elapsed_ms,
+            )
             return JSONResponse(
                 attach_memory_recall_meta(
                     build_response(req.chat_id, content, backend, req.elapsed_ms),
@@ -138,11 +170,25 @@ async def resolve_quality_fallback(req: QualityFallbackRequest) -> JSONResponse:
                 sys_prompt_preview=req.sys_prompt_preview,
             )
             if req.fmt == "anthropic":
+                _record_chat_evidence(
+                    request_id=req.chat_id,
+                    backend=backend,
+                    status="ok",
+                    fallback_used=True,
+                    latency_ms=req.elapsed_ms,
+                )
                 return JSONResponse(
                     build_anthropic_response(
                         req.chat_id, content, backend, req.request_model or _model_id
                     )
                 )
+            _record_chat_evidence(
+                request_id=req.chat_id,
+                backend=backend,
+                status="ok",
+                fallback_used=True,
+                latency_ms=req.elapsed_ms,
+            )
             return JSONResponse(
                 attach_memory_recall_meta(
                     build_response(req.chat_id, content, backend, req.elapsed_ms),
@@ -159,5 +205,12 @@ async def resolve_quality_fallback(req: QualityFallbackRequest) -> JSONResponse:
         client_ip=req.client_ip,
         ide_source=req.ide_source,
         sys_prompt_preview=req.sys_prompt_preview,
+    )
+    _record_chat_evidence(
+        request_id=req.chat_id,
+        backend="fallback_exhausted",
+        status="failed",
+        fallback_used=True,
+        latency_ms=req.elapsed_ms,
     )
     return JSONResponse(honest_failure_response(req.chat_id, req.fmt, req.request_model))

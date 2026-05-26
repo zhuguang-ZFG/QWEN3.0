@@ -25,6 +25,7 @@ _log = logging.getLogger(__name__)
 from routes.chat_post_closeout import (
     maybe_log_distill_queue,
     persist_session_memory,
+    record_capability_evidence,
     record_chat_observability,
 )
 from routes.chat_preflight import ChatPreflightResult, prepare_chat_preflight
@@ -289,6 +290,13 @@ async def finalize_success_response(
     )
     record_chat_observability(
         chat_id=ctx.chat_id, backend=backend, duration_ms=duration_ms
+    )
+    record_capability_evidence(
+        request_id=ctx.chat_id,
+        backend=backend,
+        fallback_used=bool(result.get("fallback_used")),
+        latency_ms=duration_ms,
+        status="ok",
     )
     maybe_log_distill_queue(
         query=ctx.query, content=content, intent=intent_name, backend=backend

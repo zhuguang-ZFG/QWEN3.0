@@ -7,7 +7,8 @@ from session_memory.learning_loop import (
 )
 
 
-def test_ingest_succeeded_task_feeds_all_channels():
+def test_ingest_succeeded_task_feeds_all_channels(monkeypatch, tmp_path):
+    monkeypatch.setenv("LIMA_CAPABILITY_EVIDENCE_PATH", str(tmp_path / "evidence.jsonl"))
     outcome = TaskOutcome(
         task_id="task-001",
         status="succeeded",
@@ -26,6 +27,12 @@ def test_ingest_succeeded_task_feeds_all_channels():
     assert "prompt" in result
     assert "routing" in result
     assert "eval" in result
+
+    from observability.capability_evidence import recent_evidence
+
+    rows = [r for r in recent_evidence(limit=5) if r.get("loop") == "ops_learning"]
+    assert rows and rows[-1]["task_id"] == "task-001"
+    assert rows[-1]["selected_backend"] == "scnet_ds_flash"
 
 
 def test_ingest_failed_task_records_failure_memory():

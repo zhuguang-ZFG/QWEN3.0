@@ -76,6 +76,42 @@ def _check_device_health(chat_root: str) -> bool:
         return False
 
 
+def _check_golden_path_evidence(
+    base_url: str,
+    api_key: str,
+    token: str,
+    *,
+    started_at: float,
+) -> bool:
+    """Chat request then ops metrics must show fresh chat_ide evidence."""
+    if not _check_exact_chat(base_url, api_key, token):
+        return False
+    metrics_url = base_url.rstrip("/").replace("/v1", "") + "/v1/ops/metrics"
+    try:
+        status, body, elapsed_ms = _request(
+            "GET",
+            metrics_url,
+            headers={"Authorization": "Bearer " + api_key},
+        )
+        data = json.loads(body)
+        recent = data.get("capability_evidence", {}).get("recent", [])
+        chat_rows = [
+            row
+            for row in recent
+            if row.get("loop") == "chat_ide" and float(row.get("created_at", 0)) >= started_at - 5
+        ]
+        ok = status == 200 and bool(chat_rows)
+        backend = chat_rows[-1].get("selected_backend", "") if chat_rows else ""
+        print(
+            f"{'OK' if ok else 'FAIL'} golden-path evidence: HTTP {status} {elapsed_ms}ms "
+            f"chat_ide_rows={len(chat_rows)} backend={backend!r}"
+        )
+        return ok
+    except Exception as exc:
+        print(f"FAIL golden-path evidence: {type(exc).__name__}: {str(exc)[:120]}")
+        return False
+
+
 def _check_exact_chat(base_url: str, api_key: str, token: str) -> bool:
     payload = {
         "model": "lima-1.3",
@@ -124,9 +160,19 @@ def main() -> int:
     parser.add_argument("--public-host", default="47.112.162.80")
     parser.add_argument("--api-key", default="lima-local")
     parser.add_argument("--chat-exact", default="", help="Optional exact-output token for /v1/chat/completions")
+    parser.add_argument(
+        "--golden-path-evidence",
+        action="store_true",
+        help="After --chat-exact, assert /v1/ops/metrics has fresh chat_ide evidence",
+    )
     parser.add_argument("--skip-port-guard", action="store_true")
     args = parser.parse_args()
 
+    if args.golden_path_evidence and not args.chat_exact:
+        print("FAIL golden-path-evidence requires --chat-exact TOKEN")
+        return 2
+
+    started_at = time.time()
     checks = [
         _check_http("official website", args.official_root),
         _check_http("open platform", args.open_platform_root),
@@ -136,7 +182,16 @@ def main() -> int:
         _check_http("frp health", args.frp_root.rstrip("/") + "/health"),
         _check_models(args.chat_base, args.api_key),
     ]
-    if args.chat_exact:
+    if args.chat_exact and args.golden_path_evidence:
+        checks.append(
+            _check_golden_path_evidence(
+                args.chat_base,
+                args.api_key,
+                args.chat_exact,
+                started_at=started_at,
+            )
+        )
+    elif args.chat_exact:
         checks.append(_check_exact_chat(args.chat_base, args.api_key, args.chat_exact))
     if not args.skip_port_guard:
         for port in (8080, 3003, 8091, 6379):

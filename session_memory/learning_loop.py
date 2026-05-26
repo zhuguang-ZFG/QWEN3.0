@@ -76,6 +76,23 @@ def ingest_task_outcome(outcome: TaskOutcome) -> dict[str, Any]:
     except Exception:
         _log.debug("outcome ledger record failed", exc_info=True)
 
+    try:
+        from observability.capability_evidence import record_evidence_safe
+
+        record_evidence_safe(
+            loop="ops_learning",
+            request_id=outcome.task_id,
+            task_id=outcome.task_id,
+            entrypoint="session_memory.learning_loop.ingest_task_outcome",
+            selected_backend=outcome.backend or "",
+            latency_ms=outcome.latency_ms,
+            status=outcome.status,
+            evidence=[f"memory={bool(result.get('memory'))}", f"eval={bool(result.get('eval'))}"],
+            rollback="promote routing/prompt changes only after eval gate",
+        )
+    except Exception:
+        _log.debug("ops_learning evidence record failed", exc_info=True)
+
     return result
 
 

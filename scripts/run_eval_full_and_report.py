@@ -53,6 +53,20 @@ def main() -> int:
         print("eval_full: no coding_backend_scores_full_*.json", file=sys.stderr)
         return 2
     print(summarize_eval_json(path, top_n=max(1, args.top)))
+    try:
+        from observability.capability_evidence import record_evidence_safe
+
+        record_evidence_safe(
+            loop="backend_eval",
+            request_id=path.name,
+            entrypoint="scripts/run_eval_full_and_report.py",
+            status="ok",
+            evidence=[str(path)],
+            artifact_paths=[str(path)],
+            rollback="do not promote backend without admission review",
+        )
+    except Exception as exc:
+        print(f"capability_evidence_warn {type(exc).__name__}", file=sys.stderr)
     return 0
 
 

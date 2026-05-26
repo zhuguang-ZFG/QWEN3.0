@@ -85,4 +85,4 @@ def record_capability_evidence(
             evidence=["chat_post_closeout"],
         )
     except Exception:
-        _log.debug("capability evidence failed", exc_info=True)
+        _log.warning("capability evidence failed", exc_info=True)
