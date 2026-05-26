@@ -107,6 +107,78 @@ async def send_message(
     return False
 
 
+async def send_message_with_keyboard(
+    text: str,
+    keyboard: dict | list,
+    *,
+    chat_id: str = "",
+    parse_mode: str = "Markdown",
+) -> int | None:
+    """Send a message with inline keyboard. Returns message_id on success, None on failure."""
+    if not is_configured():
+        return None
+    target = chat_id or _chat_id()
+    if len(text) > 4000:
+        text = text[:3997] + "..."
+    if isinstance(keyboard, list):
+        reply_markup = {"inline_keyboard": keyboard}
+    else:
+        reply_markup = keyboard
+    result = await _api_call("sendMessage", {
+        "chat_id": target,
+        "text": text,
+        "parse_mode": parse_mode,
+        "reply_markup": reply_markup,
+    })
+    if result is None:
+        return None
+    if not result.get("ok", False):
+        if parse_mode:
+            result = await _api_call("sendMessage", {
+                "chat_id": target,
+                "text": text,
+                "reply_markup": reply_markup,
+            })
+            if result is None:
+                return None
+    return result.get("result", {}).get("message_id")
+
+
+async def edit_message_text(
+    text: str,
+    message_id: int,
+    *,
+    chat_id: str = "",
+    parse_mode: str = "Markdown",
+    keyboard: dict | list | None = None,
+) -> bool:
+    """Edit an existing message. Used for live status cards."""
+    if not is_configured() or not message_id:
+        return False
+    target = chat_id or _chat_id()
+    if len(text) > 4000:
+        text = text[:3997] + "..."
+    payload: dict = {
+        "chat_id": target,
+        "message_id": message_id,
+        "text": text,
+        "parse_mode": parse_mode,
+    }
+    if keyboard is not None:
+        if isinstance(keyboard, list):
+            payload["reply_markup"] = {"inline_keyboard": keyboard}
+        else:
+            payload["reply_markup"] = keyboard
+    result = await _api_call("editMessageText", payload)
+    if result is not None and result.get("ok", False):
+        return True
+    if parse_mode:
+        payload["parse_mode"] = ""
+        result = await _api_call("editMessageText", payload)
+        return result is not None and result.get("ok", False)
+    return False
+
+
 async def send_approval(
     task_id: str, summary: str, changed_files: list[str]
 ) -> bool:
