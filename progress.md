@@ -4,6 +4,35 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 雷达 P2-10：11-backend eval + Pyright + 假数据 + Fetch MCP
+
+- **Eval full**：`run_radar_eval_slice.py --full`（11 SCNet/Kimi × 3 cases）；TG `/evalslice full`
+- **Pyright**：`scripts/run_pyright.py --report-only` + CI
+- **假数据**：`fetch_randomuser` → `/假数据` + TG `/random`
+- **Fetch MCP**：`scripts/smoke_fetch_mcp.py`（`LIMA_FETCH_MCP=0`）
+- **测试**：全量 **1756 passed**, 10 skipped；Fetch MCP live ok（Python `mcp-server-fetch`）
+
+## 2026-05-26 雷达 P2-9：§十三 lookup 工具 + Radon + TG /evalslice
+
+- **Lookup 工具**：`public_apis_lookup.py` — `/词典` `/whois` `/二维码` `/地理`（channel + Telegram `/dict` `/whois` `/qr` `/geocode`）
+- **Radon**：`scripts/run_radon.py --report-only` + CI 步骤
+- **Telegram**：`/evalslice` 触发 `run_radar_eval_slice --preflight --quick`（Operator）
+- **测试**：全量 **1750 passed**, 10 skipped
+
+## 2026-05-26 雷达 P2-8：eval 周期 + TG 工具全量 + Playwright live
+
+- **Eval**：`eval_preflight.py` + `run_radar_eval_slice.py --preflight --quick`（默认 SCNet/Kimi 三后端）；`periodic_coding_eval.py`（`LIMA_PERIODIC_CODING_EVAL=0`）接入 `server_lifespan`
+- **Live 证据**：`--preflight --quick` → scnet_qwen30b/scnet_ds_flash/kimi 6/6 pass；Playwright `--live` smoke ok
+- **Telegram**：`/weather` `/wiki` `/exchange` `/calc` `/time` `/translate` `/stock` `/holiday` `/ip` `/earthquake`（channel §十三 同源）
+- **测试**：全量 **1742 passed**, 10 skipped
+
+## 2026-05-26 雷达 P2-7：Telegram 60s + Hypothesis + CI deptry/vulture
+
+- **Telegram**：`routes/telegram_public_tools.py` — `/news` `/hot` `/tools`（与 channel `/新闻` `/热搜` 同源 `public_apis`）
+- **Hypothesis**：`tests/test_safety_hypothesis.py` 覆盖 `redact_sensitive_query` token/私网 IP
+- **CI**：`lima-ci.yml` 增加 vulture + deptry report-only 步骤；pytest 依赖加 `hypothesis`
+- **测试**：focused 27 passed；全量 **1736 passed**, 10 skipped
+
 ## 2026-05-26 雷达 P2 续：Playwright / Vulture / 60s / eval
 
 - **Playwright MCP**：`docs/LC_W_PLAYWRIGHT_VERIFY.md` + `.lima-code/mcp-playwright.example.json` + `smoke_playwright_mcp.py`（`LIMA_PLAYWRIGHT_MCP=0` 默认关）

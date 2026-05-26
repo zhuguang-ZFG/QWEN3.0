@@ -25,13 +25,33 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements_server.txt
-          pip install pytest pytest-asyncio pytest-xdist pytest-cov ruff pip-audit
+          pip install pytest pytest-asyncio pytest-xdist pytest-cov ruff pip-audit hypothesis
 
       - name: Lint (ruff)
         run: python scripts/run_ruff_check.py
 
       - name: Run test suite (parallel + coverage)
         run: python scripts/run_pytest_ci.py
+
+      - name: Dead code scan (vulture, report-only)
+        run: |
+          pip install vulture
+          python scripts/run_vulture.py --report-only
+
+      - name: Dependency usage scan (deptry, report-only)
+        run: |
+          pip install deptry
+          python scripts/run_deptry.py --report-only
+
+      - name: Complexity scan (radon, report-only)
+        run: |
+          pip install radon
+          python scripts/run_radon.py --report-only
+
+      - name: Type check (pyright, report-only)
+        run: |
+          pip install pyright
+          python scripts/run_pyright.py --report-only
 
       - name: Install gitleaks
         run: |

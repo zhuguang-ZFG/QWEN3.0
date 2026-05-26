@@ -19,6 +19,13 @@ from routes.telegram_commands import (
     cmd_voice, cmd_voicechat, start_broadcast_loop, _operator_error,
     cmd_github, cmd_device,
 )
+from routes.telegram_eval_tools import cmd_evalslice
+from routes.telegram_public_tools import (
+    cmd_hot,
+    cmd_news,
+    cmd_public_tool,
+    cmd_tools,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -233,10 +240,51 @@ async def _dispatch_command(chat_id: str, text: str) -> None:
         await cmd_github(chat_id, arg)
     elif cmd == "/device":
         await cmd_device(chat_id, arg)
+    elif cmd == "/news":
+        await cmd_news(chat_id, arg)
+    elif cmd == "/hot":
+        await cmd_hot(chat_id, arg)
+    elif cmd == "/tools":
+        await cmd_tools(chat_id)
+    elif cmd == "/weather":
+        await cmd_public_tool(chat_id, "weather", arg)
+    elif cmd == "/wiki":
+        await cmd_public_tool(chat_id, "wiki", arg)
+    elif cmd == "/exchange":
+        await cmd_public_tool(chat_id, "exchange", arg)
+    elif cmd == "/calc":
+        await cmd_public_tool(chat_id, "calc", arg)
+    elif cmd == "/time":
+        await cmd_public_tool(chat_id, "time", arg)
+    elif cmd == "/translate":
+        await cmd_public_tool(chat_id, "translate", arg)
+    elif cmd == "/stock":
+        await cmd_public_tool(chat_id, "stock", arg)
+    elif cmd == "/holiday":
+        await cmd_public_tool(chat_id, "holiday", arg)
+    elif cmd == "/ip":
+        await cmd_public_tool(chat_id, "ip", arg)
+    elif cmd == "/earthquake":
+        await cmd_public_tool(chat_id, "earthquake", arg)
+    elif cmd == "/dict":
+        await cmd_public_tool(chat_id, "dict", arg)
+    elif cmd == "/whois":
+        await cmd_public_tool(chat_id, "whois", arg)
+    elif cmd == "/qr":
+        await cmd_public_tool(chat_id, "qr", arg)
+    elif cmd == "/geocode":
+        await cmd_public_tool(chat_id, "geocode", arg)
+    elif cmd == "/random":
+        await cmd_public_tool(chat_id, "randomuser", arg)
+    elif cmd == "/evalslice":
+        await cmd_evalslice(chat_id, arg)
     elif cmd == "/start":
         await telegram_bot.send_message(
             "LiMa Bot ready.\n/status /health /budget /top /uptime\n"
-            "/chat /clear /code /eval /voice\n/github /device status\n"
+            "/chat /clear /code /eval /evalslice /voice\n"
+            "/github /device status\n"
+            "/tools /news /hot /weather /wiki /exchange\n"
+            "/dict /whois /qr /geocode /random\n"
             "/logs /restart /task /tasks",
             chat_id=chat_id,
         )

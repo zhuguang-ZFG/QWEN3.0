@@ -27,7 +27,7 @@
 | 代码质量 P1.3 | 静默 catch 清理 | **Done** 2026-05-26（active paths） |
 | 雷达 P0 | Gitleaks / Gitee CI / Gitee 搜索 | **Done** 2026-05-26 |
 | 雷达 P1 | pip-audit + OSV-Scanner + Ruff + pytest-cov/xdist | **Done** 2026-05-26 |
-| 雷达 P2 | Brave + deptry + Playwright + 60s/menu + eval | **Partial** 2026-05-26 |
+| 雷达 P2 | Brave + deptry + Playwright + 60s/menu + eval + 周期 eval | **Partial** 2026-05-26 |
 
 ---
 
@@ -78,10 +78,10 @@
 |------|---------|------|------|
 | **覆盖率** | coverage.py + pytest-cov | `pytest --cov` | **Done** `run_pytest_ci.py` + `.coveragerc` |
 | **并行测试** | pytest-xdist | `pytest -n auto` | **Done** CI `-n auto` |
-| **属性测试** | Hypothesis | property-based | **Backlog** |
-| **死代码** | Vulture + deptry | CLI扫描 | **Partial** `run_deptry.py` + `run_vulture.py` report-only |
-| **复杂度** | Radon | CLI报告 | **Backlog** |
-| **类型检查** | Pyright / basedpyright | 快速CLI | **Backlog** |
+| **属性测试** | Hypothesis | property-based | **Partial** `tests/test_safety_hypothesis.py` |
+| **死代码** | Vulture + deptry | CLI扫描 | **Partial** scripts + **CI report-only** 2026-05-26 |
+| **复杂度** | Radon | CLI报告 | **Partial** `run_radon.py` + CI report-only 2026-05-26 |
+| **类型检查** | Pyright / basedpyright | 快速CLI | **Partial** `run_pyright.py` + CI report-only 2026-05-26 |
 | **HTTP Mock** | RESPX / pytest-httpx | pytest插件 | **Done** 测试在用 |
 | **安全扫描** | Gitleaks | 提交前扫描密钥 | **Done** `.gitleaks.toml` + `lima-ci.yml` |
 | **依赖审计** | pip-audit + OSV-Scanner | CLI | **Done** `run_pip_audit.py` + `run_osv_scan.py` + CI |
@@ -128,9 +128,9 @@
 | **GitHub** | 398K+ | `npx @modelcontextprotocol/server-github` | **Backlog** |
 | **PostgreSQL** | 312K+ | `npx @modelcontextprotocol/server-postgres` | **Backlog** |
 | **Brave Search** | 287K+ | `npx @anthropic-ai/mcp-server-brave-search` | **Partial** 原生 API tier Done；MCP npx 仍 Backlog |
-| **Fetch** | 241K+ | `npx @modelcontextprotocol/server-fetch` | **Backlog** |
+| **Fetch** | 241K+ | `npx @modelcontextprotocol/server-fetch` | **Partial** `smoke_fetch_mcp.py`（默认关） |
 | **Context7** | 48K⭐ | `npx @upstash/context7-mcp@latest` | **Done** 文档查询 |
-| **Playwright** | 微软 | `npx @playwright/mcp` | **Partial** `LC_W_PLAYWRIGHT_VERIFY.md` + smoke（默认关） |
+| **Playwright** | 微软 | `npx @playwright/mcp` | **Partial** smoke `--live` ok；MCP 默认关 |
 | **Firecrawl** | 爬取 | `npx firecrawl-mcp` | **Backlog** |
 | **Registry 盘点** | official+Glama | `inventory_mcp_registries.py` | **Done** PE-A-1 merged 904 |
 
@@ -213,16 +213,16 @@
 |------|------|---------|-----|
 | **天气** | 和风天气 | 5万次/月 | 需注册 |
 | **股票** | 新浪财经 HTTP API | 无限 | 不需要 |
-| **新闻** | 60s API | 无限 | 不需要 |
-| **热搜** | 60s API 微博 | 50条 | 不需要 |
+| **新闻** | 60s API | 无限 | 不需要 | **Done** channel `/新闻` + TG `/news` |
+| **热搜** | 60s API 微博 | 50条 | 不需要 | **Done** channel `/热搜` + TG `/hot` |
 | **节假日** | bitefu.net+Chinese Days | 无限 | 不需要 |
 | **汇率** | Frankfurter+open.er-api.com | 无限 | 不需要 |
 | **时区** | WorldTimeAPI | 无限 | 不需要 |
-| **词典** | DictionaryAPI.dev | 无限 | 不需要 |
-| **假数据** | randomuser.me+MockHero | 无限+1000条/天 | 不需要 |
-| **二维码** | QR Code API | 无限 | 不需要 |
-| **地理编码** | Nominatim(OSM) | 1req/s | 不需要 |
-| **WHOIS** | rdap.org+domaindetails.com | 100次/分 | 不需要 |
+| **词典** | DictionaryAPI.dev | 无限 | 不需要 | **Done** `/词典` + TG `/dict` |
+| **二维码** | QR Code API | 无限 | 不需要 | **Done** `/二维码` + TG `/qr` |
+| **地理编码** | Nominatim(OSM) | 1req/s | 不需要 | **Done** `/地理` + TG `/geocode` |
+| **WHOIS** | rdap.org | 100次/分 | 不需要 | **Done** `/whois` |
+| **假数据** | randomuser.me | 无限 | 不需要 | **Done** `/假数据` + TG `/random` |
 | **SSL检查** | sslcheck(npm)+WhoisJSON | 无限+1000/月 | 不需要 |
 | **Regex** | Mate.tools Regex API | 60次/分 | 不需要 |
 | **图片** | Unsplash Source | ~50次/时 | 不需要 |
@@ -262,7 +262,7 @@
 
 | 能力 | 方案 | LiMa |
 |------|------|------|
-| **Bot** | /status /github /device /chat 等 | **Done** TG-GH-4 |
+| **Bot** | /status /github /device /chat + §十三 工具（/news /hot /weather /wiki…） | **Done** TG-GH-4 + radar §十三 |
 | **内联模式** | @bot query 即时回答 | **Done** TG-10.0-3 手机 12:32 |
 | **Push 翻译** | webhook 摘要 【译】 | **Done** TG-GH-7；GFL-2 已隔离 google RPM |
 | **GitHub/Gitee 推送** | webhook→TG + commit message | **Done** GH-PUSH-MSG |

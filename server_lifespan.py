@@ -20,6 +20,12 @@ async def lifespan(application):
         _log.debug("backend_admission_store not installed")
     probe_loop.start(probe_fn=http_caller.probe)
     try:
+        import periodic_coding_eval
+
+        periodic_coding_eval.start()
+    except ImportError:
+        _log.debug("periodic_coding_eval not installed")
+    try:
         from session_memory.daemon import start_daemon
 
         await start_daemon()
@@ -41,6 +47,12 @@ async def lifespan(application):
         yield
     finally:
         probe_loop.stop()
+        try:
+            import periodic_coding_eval
+
+            periodic_coding_eval.stop()
+        except ImportError:
+            _log.debug("periodic_coding_eval stop skipped")
         try:
             from session_memory.daemon import stop_daemon
 

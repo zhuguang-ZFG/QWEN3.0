@@ -65,6 +65,18 @@ _GUEST_COMMANDS = {
     "stock": "stock",
     "地震": "earthquake",
     "earthquake": "earthquake",
+    "词典": "dict",
+    "dict": "dict",
+    "dictionary": "dict",
+    "whois": "whois",
+    "二维码": "qr",
+    "qr": "qr",
+    "地理": "geocode",
+    "geocode": "geocode",
+    "假数据": "randomuser",
+    "randomuser": "randomuser",
+    "random": "randomuser",
+    "fake": "randomuser",
 }
 
 _OWNER_COMMANDS = {

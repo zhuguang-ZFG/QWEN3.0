@@ -10,6 +10,10 @@ from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from eval_preflight import check_eval_health, full_backend_list, quick_backend_list
 
 
 def main() -> int:
@@ -20,9 +24,19 @@ def main() -> int:
         help="Limit to 3 backends and 2 cases (smoke eval)",
     )
     parser.add_argument(
+        "--full",
+        action="store_true",
+        help="11 SCNet/Kimi backends and all coding cases (~3min)",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="List cases/backends only",
+    )
+    parser.add_argument(
+        "--preflight",
+        action="store_true",
+        help="Require LiMa /health before live eval",
     )
     parser.add_argument(
         "--backends",
@@ -31,8 +45,16 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    if args.preflight:
+        ok, detail = check_eval_health()
+        if not ok:
+            print(f"eval_preflight_fail {detail}", flush=True)
+            return 2
+        print(f"eval_preflight_ok {detail}", flush=True)
+
     stamp = datetime.now().strftime("%Y%m%d")
-    json_out = ROOT / "data" / f"coding_backend_scores_{stamp}.json"
+    suffix = "_full" if args.full else ""
+    json_out = ROOT / "data" / f"coding_backend_scores{suffix}_{stamp}.json"
     md_out = ROOT / "docs" / "CODING_BACKEND_RANKING.md"
 
     cmd = [
@@ -47,8 +69,13 @@ def main() -> int:
         cmd.append("--dry-run")
     if args.quick:
         cmd.extend(["--max-backends", "3", "--max-cases", "2"])
-    if args.backends:
-        cmd.extend(["--backends", args.backends])
+    backends = args.backends.strip()
+    if not backends and args.quick:
+        backends = ",".join(quick_backend_list())
+    elif not backends and args.full:
+        backends = ",".join(full_backend_list())
+    if backends:
+        cmd.extend(["--backends", backends])
 
     print("+", " ".join(cmd), flush=True)
     return subprocess.call(cmd, cwd=ROOT)

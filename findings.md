@@ -147,6 +147,10 @@
 | RADAR-P2-4 | Vulture | `scripts/run_vulture.py --report-only` | Partial 2026-05-26 |
 | RADAR-P2-5 | 60s /menu | `fetch_hot_60s` / `fetch_news_60s` | Closed 2026-05-26 |
 | RADAR-P2-6 | Eval slice | `run_radar_eval_slice.py` | Partial 2026-05-26 |
+| RADAR-P2-7 | TG 60s + Hypothesis + CI gates | `telegram_public_tools.py` + `test_safety_hypothesis.py` + `lima-ci.yml` deptry/vulture | Closed 2026-05-26 |
+| RADAR-P2-8 | 周期性 eval + TG §十三 + Playwright live | `periodic_coding_eval.py` + `eval_preflight.py` + TG 工具全量 + `smoke_playwright_mcp --live` | Closed 2026-05-26 |
+| RADAR-P2-9 | §十三 lookup + Radon + TG evalslice | `public_apis_lookup.py` + `run_radon.py` + `/evalslice` | Closed 2026-05-26 |
+| RADAR-P2-10 | full eval + Pyright + randomuser + Fetch MCP | `--full` 11-backend + `run_pyright.py` + `smoke_fetch_mcp.py` | Closed 2026-05-26 |
 
 ## 2026-05-26 TG-GH-2 LiMa Code Telegram
 

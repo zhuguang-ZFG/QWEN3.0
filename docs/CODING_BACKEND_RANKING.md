@@ -4,14 +4,6 @@
 
 | Backend | Avg Score | Passes | Avg Latency | Notes |
 |---|---:|---:|---:|---|
-| `scnet_large_ds_pro` | 100 | 3/3 | 1232ms | ok |
-| `scnet_qwen30b` | 100 | 3/3 | 1256ms | ok |
-| `scnet_large_ds_flash` | 100 | 3/3 | 1456ms | ok |
-| `scnet_qwen235b` | 100 | 3/3 | 1797ms | ok |
-| `scnet_ds_flash` | 100 | 3/3 | 1998ms | ok |
-| `cf_kimi_k26` | 100 | 3/3 | 4866ms | ok |
-| `kimi_search` | 100 | 3/3 | 5163ms | ok |
-| `scnet_ds_pro` | 100 | 3/3 | 6451ms | ok |
-| `kimi_thinking` | 100 | 3/3 | 27834ms | ok |
-| `kimi` | 66 | 2/3 | 12390ms | code_review: call failed: BackendError: timed out |
-| `stock_kimi_k2` | 0 | 0/3 | 1278ms | code_review: call failed: BackendError: Expecting value: line 1 column 1 (char 0); json_tool_output: call failed: BackendError: Expecting value: line 1 column 1 (char 0); python_bugfix: call failed: BackendError: Expecting value: line 1 column 1 (char 0) |
+| `scnet_ds_flash` | 100 | 2/2 | 1919ms | ok |
+| `scnet_qwen30b` | 100 | 2/2 | 1983ms | ok |
+| `kimi` | 100 | 2/2 | 4916ms | ok |

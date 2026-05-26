@@ -39,6 +39,7 @@ LIMA_PLAYWRIGHT_MCP=0
 python scripts/smoke_playwright_mcp.py          # ENABLED=0 → skip ok
 $env:LIMA_PLAYWRIGHT_MCP=1
 python scripts/smoke_playwright_mcp.py          # 需 Node + npx
+python scripts/smoke_playwright_mcp.py --live   # 短暂拉起 MCP 进程
 ```
 
 ## 与 Hooks 关系

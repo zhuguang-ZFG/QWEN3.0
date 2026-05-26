@@ -21,6 +21,13 @@ from channel_gateway.public_apis import (
     fetch_weather,
     fetch_wiki,
 )
+from channel_gateway.public_apis_lookup import (
+    fetch_dictionary,
+    fetch_geocode,
+    fetch_qr,
+    fetch_randomuser,
+    fetch_whois,
+)
 from channel_gateway.store import ChannelStore
 from channel_gateway.tool_usage import (
     quota_exceeded_message,
@@ -45,6 +52,11 @@ CHANNEL_TOOL_INTENTS = frozenset({
     "holiday",
     "stock",
     "earthquake",
+    "dict",
+    "whois",
+    "qr",
+    "geocode",
+    "randomuser",
 })
 
 _TOOLS_MENU = (
@@ -62,6 +74,11 @@ _TOOLS_MENU = (
     "/黄历 [日期] — 节假日/调休\n"
     "/股票 <代码> — 行情摘要\n"
     "/地震 — 近24h 全球地震简报\n"
+    "/词典 <英文> — DictionaryAPI\n"
+    "/whois <域名> — RDAP 查询\n"
+    "/二维码 <文本或URL> — 生成 QR 链接\n"
+    "/地理 <地点> — OpenStreetMap 地理编码\n"
+    "/假数据 [seed] — randomuser.me 假用户\n"
     "/读 <https://...> — 安全抓取公开网页\n"
     "配额：访客每日有限次，主人更高；发送 /help 查看基础命令"
 )
@@ -74,7 +91,7 @@ def tools_help_suffix() -> str:
         "\n--- 联网工具（LIMA_CHANNEL_TOOLS=1）---\n"
         "/menu — 工具菜单\n"
         "/百科 /天气 /搜 /新闻 /翻译 /汇率 /时间 /热搜 /ip\n"
-        "/算 /黄历 /股票 /地震 /读"
+        "/算 /黄历 /股票 /地震 /词典 /whois /二维码 /地理 /假数据 /读"
     )
 
 
@@ -211,6 +228,11 @@ class ChannelToolRunner:
             "holiday": lambda: fetch_holiday(args),
             "stock": lambda: fetch_stock(args),
             "earthquake": lambda: fetch_earthquake(),
+            "dict": lambda: fetch_dictionary(args),
+            "whois": lambda: fetch_whois(args),
+            "qr": lambda: fetch_qr(args),
+            "geocode": lambda: fetch_geocode(args),
+            "randomuser": lambda: fetch_randomuser(args),
         }
         handler = handlers.get(intent)
         if handler is None:
