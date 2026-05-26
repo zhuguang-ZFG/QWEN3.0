@@ -132,6 +132,19 @@ TOOL_DEFINITIONS = [
         },
     },
     {
+        "name": "dev_search_codesearch",
+        "description": "Semantic/local code search via codesearch CLI (allowlisted repos, offline).",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string"},
+                "path": {"type": "string", "description": "Optional subpath within allowlist"},
+                "max_results": {"type": "integer"},
+            },
+            "required": ["query"],
+        },
+    },
+    {
         "name": "dev_summarize_sources",
         "description": "Turn source dictionaries into a compact evidence block for LiMa Code.",
         "parameters": {

@@ -6,6 +6,7 @@ import asyncio
 import logging
 import os
 import threading
+from pathlib import Path
 from typing import Awaitable, Callable
 
 import telegram_bot
@@ -107,6 +108,45 @@ def archive_text(
             chat_id=chat_id,
             parse_mode=parse_mode,
         )
+
+    _fire_and_forget(_run)
+    return True
+
+
+async def archive_file_async(
+    file_path: str | Path,
+    label: str,
+    *,
+    chat_id: str = "",
+) -> bool:
+    """Upload JSON/file to operator chat (TG-S3 v0.2 sendDocument)."""
+    if not archive_enabled() or not telegram_bot.is_configured():
+        return False
+    path = Path(file_path)
+    if not path.is_file():
+        _log.warning("tg archive file missing: %s", path)
+        return False
+    caption = f"[TG-ARCHIVE] {(label or path.name).strip()[:80]}"
+    return await telegram_bot.send_document(
+        path,
+        chat_id=chat_id,
+        caption=caption,
+        filename=path.name,
+    )
+
+
+def archive_file(
+    file_path: str | Path,
+    label: str,
+    *,
+    chat_id: str = "",
+) -> bool:
+    if not archive_enabled() or not telegram_bot.is_configured():
+        _log.debug("tg archive file skipped (disabled or bot not configured)")
+        return False
+
+    async def _run() -> None:
+        await archive_file_async(file_path, label, chat_id=chat_id)
 
     _fire_and_forget(_run)
     return True

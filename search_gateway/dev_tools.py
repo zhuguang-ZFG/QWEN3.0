@@ -77,6 +77,40 @@ def search_error(
     return {"ok": True, "tool": "dev_search_error", "results": _normalize_results(raw, source="error_search")}
 
 
+def search_codesearch(
+    query: str,
+    *,
+    max_results: int = 5,
+    path_hint: str | None = None,
+) -> dict:
+    from search_gateway.codesearch_adapter import search_local_code
+
+    raw = search_local_code(query, max_results=max_results, path_hint=path_hint)
+    if not raw.get("ok"):
+        return {
+            "ok": False,
+            "tool": "dev_search_codesearch",
+            "error": raw.get("error", "search_failed"),
+        }
+    results = []
+    for item in raw.get("results") or []:
+        if not isinstance(item, dict):
+            continue
+        path = str(item.get("path") or "")
+        snippet = str(item.get("snippet") or "")[:1000]
+        title = path.rsplit("/", 1)[-1] if path else "match"
+        results.append(
+            DevSearchResult(title, path or "local", snippet, "codesearch").as_dict()
+        )
+    return {
+        "ok": True,
+        "tool": "dev_search_codesearch",
+        "engine": raw.get("engine"),
+        "root": raw.get("root"),
+        "results": results,
+    }
+
+
 def read_url(url: str, *, adapter: DevSearchAdapter, max_chars: int = 6000) -> dict:
     if not is_public_http_url(url):
         return {"ok": False, "tool": "dev_read_url", "error": "url_blocked"}
@@ -187,10 +221,13 @@ def build_prompt_evidence(tool_outputs: list[dict], *, max_chars: int = 4000) ->
         tool_name = str(output.get("tool") or "unknown_tool")
         if output.get("results"):
             for result in output["results"]:
+                url = str(result.get("url", ""))
+                path = str(result.get("path", ""))
+                loc = url or path
                 sections.append(
                     f"Tool: {tool_name}\n"
                     f"Title: {str(result.get('title', 'Untitled'))[:160]}\n"
-                    f"URL: {str(result.get('url', ''))[:300]}\n"
+                    f"Location: {loc[:300]}\n"
                     f"Evidence: {str(result.get('snippet', ''))[:700]}"
                 )
         elif output.get("text"):

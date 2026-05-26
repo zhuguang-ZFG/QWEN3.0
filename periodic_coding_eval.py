@@ -19,6 +19,13 @@ from eval_preflight import check_eval_health, quick_backend_list
 logger = logging.getLogger("periodic_coding_eval")
 
 ROOT = Path(__file__).resolve().parent
+
+
+def _log_info(msg: str, *args: object) -> None:
+    """Log to logger and stdout so systemd journal captures periodic eval."""
+    text = msg % args if args else msg
+    logger.info(text)
+    print(f"[periodic-coding-eval] {text}", flush=True)
 _stop = threading.Event()
 _thread: threading.Thread | None = None
 
@@ -37,14 +44,23 @@ def interval_seconds() -> int:
 
 
 def run_eval_slice(*, quick: bool = True) -> int:
+    from eval_quiet import set_eval_quiet
+
     cmd = [sys.executable, str(ROOT / "scripts" / "run_radar_eval_slice.py"), "--preflight"]
     if quick:
         cmd.append("--quick")
-    backends = ",".join(quick_backend_list())
-    if backends:
-        cmd.extend(["--backends", backends])
-    logger.info("periodic coding eval: %s", " ".join(cmd))
-    return subprocess.call(cmd, cwd=ROOT)
+    else:
+        cmd.append("--full")
+    if quick:
+        backends = ",".join(quick_backend_list())
+        if backends:
+            cmd.extend(["--backends", backends])
+    _log_info("periodic coding eval: %s", " ".join(cmd))
+    set_eval_quiet(True)
+    try:
+        return subprocess.call(cmd, cwd=ROOT)
+    finally:
+        set_eval_quiet(False)
 
 
 def start() -> None:
@@ -57,7 +73,7 @@ def start() -> None:
     _stop.clear()
     _thread = threading.Thread(target=_loop, name="periodic-coding-eval", daemon=True)
     _thread.start()
-    logger.info(
+    _log_info(
         "Periodic coding eval started (interval=%sh, quick backends=%s)",
         os.environ.get("LIMA_CODING_EVAL_INTERVAL_HOURS", "168"),
         ",".join(quick_backend_list()),
@@ -75,10 +91,14 @@ def _loop() -> None:
         ok, detail = check_eval_health()
         if ok:
             try:
-                code = run_eval_slice(quick=True)
-                logger.info("periodic coding eval finished exit=%s (%s)", code, detail)
+                from eval_notify import notify_eval_finished, periodic_full_eval
+
+                quick = not periodic_full_eval()
+                code = run_eval_slice(quick=quick)
+                _log_info("periodic coding eval finished exit=%s (%s)", code, detail)
+                notify_eval_finished(code=code, quick=quick, source="periodic")
             except Exception:
                 logger.exception("periodic coding eval subprocess failed")
         else:
-            logger.warning("periodic coding eval skipped: %s", detail)
+            _log_info("periodic coding eval skipped: %s", detail)
         _stop.wait(timeout=interval_seconds())

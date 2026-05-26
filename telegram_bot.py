@@ -2,6 +2,7 @@
 
 import logging
 import os
+from pathlib import Path
 
 import httpx
 
@@ -198,3 +199,62 @@ async def send_voice(audio_bytes: bytes, chat_id: str = "", caption: str = "") -
             logger.warning("Telegram sendVoice failed: %s", exc)
             return False
     return False
+
+
+async def send_document(
+    file_path: str | Path,
+    *,
+    chat_id: str = "",
+    caption: str = "",
+    filename: str = "",
+) -> bool:
+    """Upload a file via Telegram sendDocument."""
+    if not is_configured():
+        return False
+    path = Path(file_path)
+    if not path.is_file():
+        logger.warning("send_document missing file: %s", path)
+        return False
+    target = chat_id or _chat_id()
+    url = _BASE_URL.format(token=_bot_token(), method="sendDocument")
+    data: dict[str, str] = {"chat_id": target}
+    if caption:
+        data["caption"] = caption[:1024]
+    send_name = filename or path.name
+    for proxy in _telegram_proxy_candidates():
+        try:
+            async with httpx.AsyncClient(proxy=proxy, timeout=60.0) as client:
+                with path.open("rb") as handle:
+                    resp = await client.post(
+                        url,
+                        data=data,
+                        files={"document": (send_name, handle, "application/json")},
+                    )
+                resp.raise_for_status()
+                result = resp.json()
+                return result.get("ok", False)
+        except Exception as exc:
+            if proxy is not None:
+                logger.debug(
+                    "Telegram sendDocument via proxy failed, trying direct: %s",
+                    type(exc).__name__,
+                )
+                continue
+            logger.warning("Telegram sendDocument failed: %s", exc)
+            return False
+    return False
+
+
+async def set_my_commands(commands: list[dict[str, str]]) -> bool:
+    """Register commands for Telegram '/' autocomplete menu."""
+    if not is_configured() or not commands:
+        return False
+    payload = {
+        "commands": [
+            {"command": c["command"], "description": c["description"][:256]}
+            for c in commands
+            if c.get("command") and c.get("description")
+        ]
+    }
+    result = await _api_call("setMyCommands", payload)
+    return result is not None and result.get("ok", False)

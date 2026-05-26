@@ -136,6 +136,12 @@ def build_default_registry() -> ToolRegistry:
         requires_secret=True,
     ))
     registry.register(ToolDefinition(
+        name="dev_search_codesearch",
+        description="Local semantic code search via codesearch (allowlisted paths).",
+        tags=("code", "search", "semantic", "readonly", "lima-code", "offline"),
+        authority=AuthorityClass.READ_ONLY,
+    ))
+    registry.register(ToolDefinition(
         name="dev_summarize_sources",
         description="Summarize source dictionaries into prompt evidence.",
         tags=("evidence", "summary", "sources", "lima-code"),

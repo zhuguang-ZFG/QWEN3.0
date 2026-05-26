@@ -54,6 +54,40 @@ async def test_cmd_oldllm_reports(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_cmd_oldllm_sync(monkeypatch):
+    sent: list[str] = []
+    monkeypatch.setattr(
+        mod.telegram_bot,
+        "send_message",
+        AsyncMock(side_effect=lambda text, chat_id=None: sent.append(text)),
+    )
+    monkeypatch.setattr(
+        mod,
+        "try_sync",
+        lambda capture=False: {"ok": True, "attempts": [{"ok": True, "method": "refresh_url"}]},
+    )
+    monkeypatch.setattr(
+        mod,
+        "run_diag",
+        lambda **kwargs: {
+            "upstream": "https://up.test",
+            "local_proxy": "http://127.0.0.1:4502",
+            "upstream_chat_ok": True,
+            "any_models_ok": True,
+            "any_chat_ok": True,
+            "results": [],
+        },
+    )
+    monkeypatch.setattr(mod, "maybe_notify_oldllm_failure", lambda report: (False, "healthy"))
+
+    await mod.cmd_oldllm("chat-1", "sync")
+
+    assert len(sent) == 2
+    assert "OldLLM sync: ok" in sent[1]
+    assert "TheOldLLM 诊断" in sent[1]
+
+
+@pytest.mark.asyncio
 async def test_cmd_oldllm_models_only(monkeypatch):
     captured: dict = {}
 

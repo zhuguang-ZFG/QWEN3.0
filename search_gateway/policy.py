@@ -50,3 +50,31 @@ DEV_SEARCH_MARKERS = (
 def should_dev_search(query: str) -> bool:
     lowered = (query or "").lower()
     return any(marker in lowered for marker in DEV_SEARCH_MARKERS)
+
+
+CODESEARCH_MARKERS = (
+    ".py",
+    ".ts",
+    ".tsx",
+    ".rs",
+    ".go",
+    "routing_engine",
+    "where is",
+    "find ",
+    "locate ",
+    "在哪个文件",
+    "哪段代码",
+    "代码在哪",
+    "源码",
+    "函数定义",
+    "class ",
+    "def ",
+)
+
+
+def should_codesearch_local(query: str) -> bool:
+    """Prefer local codesearch for repo-scoped code location queries."""
+    lowered = (query or "").lower()
+    if should_dev_search(query):
+        return False
+    return any(marker in lowered for marker in CODESEARCH_MARKERS)

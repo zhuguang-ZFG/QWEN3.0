@@ -19,8 +19,25 @@ from routes.telegram_commands import (
     cmd_voice, cmd_voicechat, start_broadcast_loop, _operator_error,
     cmd_github, cmd_device,
 )
-from routes.telegram_eval_tools import cmd_evalslice, cmd_evalreport, cmd_archiveeval
+from routes.telegram_eval_tools import (
+    cmd_evalslice,
+    cmd_evalreport,
+    cmd_archiveeval,
+    cmd_poolgate,
+    cmd_evalschedule,
+    cmd_evalstatus,
+    cmd_evaldigest,
+)
+from routes.telegram_codesearch_tools import cmd_codesearch
 from routes.telegram_diag_tools import cmd_oldllm
+from routes.telegram_quick_menu import (
+    cmd_help,
+    cmd_menu,
+    expand_command_alias,
+    handle_quick_callback,
+    resolve_text_shortcut,
+    sync_bot_commands,
+)
 from routes.telegram_public_tools import (
     cmd_hot,
     cmd_news,
@@ -104,14 +121,9 @@ class SetupBody(BaseModel):
 # --- Command handlers ---
 
 async def _cmd_status(chat_id: str) -> None:
-    hmap = health_tracker.get_health_map()
-    counts = {"healthy": 0, "degraded": 0, "dead": 0}
-    for state in hmap.values():
-        counts[state] = counts.get(state, 0) + 1
-    text = (
-        f"Backends: {counts['healthy']} healthy, "
-        f"{counts['degraded']} degraded, {counts['dead']} dead"
-    )
+    from health_summary import format_backend_health_line, summarize_backend_health
+
+    text = format_backend_health_line(summarize_backend_health())
     await telegram_bot.send_message(text, chat_id=chat_id)
 
 
@@ -199,11 +211,16 @@ async def _dispatch_command_lines(chat_id: str, text: str) -> None:
 
 
 async def _dispatch_command(chat_id: str, text: str) -> None:
+    text = expand_command_alias(text)
     parts = text.strip().split(maxsplit=1)
     cmd = parts[0].lower().split("@")[0]
     arg = parts[1] if len(parts) > 1 else ""
 
-    if cmd == "/status":
+    if cmd in ("/help",):
+        await cmd_help(chat_id)
+    elif cmd in ("/menu",):
+        await cmd_menu(chat_id, with_reply_keyboard=True)
+    elif cmd == "/status":
         await _cmd_status(chat_id)
     elif cmd == "/health":
         await _cmd_health(chat_id, arg.strip())
@@ -291,18 +308,27 @@ async def _dispatch_command(chat_id: str, text: str) -> None:
         await cmd_evalreport(chat_id, arg)
     elif cmd == "/archiveeval":
         await cmd_archiveeval(chat_id, arg)
+    elif cmd == "/poolgate":
+        await cmd_poolgate(chat_id, arg)
+    elif cmd == "/evalschedule":
+        await cmd_evalschedule(chat_id, arg)
+    elif cmd == "/evalstatus":
+        await cmd_evalstatus(chat_id, arg)
+    elif cmd == "/evaldigest":
+        await cmd_evaldigest(chat_id, arg)
+    elif cmd == "/codesearch":
+        await cmd_codesearch(chat_id, arg)
     elif cmd == "/oldllm":
         await cmd_oldllm(chat_id, arg)
     elif cmd == "/start":
         await telegram_bot.send_message(
-            "LiMa Bot ready.\n/status /health /budget /top /uptime\n"
-            "/chat /clear /code /eval /evalslice /evalreport /archiveeval /oldllm /voice\n"
-            "/github /device status\n"
-            "/tools /news /hot /weather /wiki /exchange\n"
-            "/dict /whois /qr /geocode /random /ssl /regex /image /uuid\n"
-            "/logs /restart /task /tasks",
+            "LiMa Bot 就绪。\n"
+            "发 /menu 或「菜单」打开快捷按钮；直接打字即可对话。\n"
+            "发 /help 查看分类说明。",
             chat_id=chat_id,
+            parse_mode="",
         )
+        await cmd_menu(chat_id, with_reply_keyboard=True)
     else:
         await telegram_bot.send_message("Unknown command", chat_id=chat_id)
 
@@ -346,6 +372,13 @@ async def _handle_callback(callback_query: dict) -> None:
         )
     elif data == "restart:cancel":
         await telegram_bot.answer_callback(cb_id, "Cancelled")
+    elif data.startswith("qm:"):
+        cb_chat_id = str(callback_query.get("message", {}).get("chat", {}).get("id", ""))
+        handled = await handle_quick_callback(cb_chat_id, data, _dispatch_command)
+        await telegram_bot.answer_callback(
+            cb_id,
+            "已执行" if handled else "未知操作",
+        )
     else:
         await telegram_bot.answer_callback(cb_id, "Unknown action")
 
@@ -399,9 +432,13 @@ async def webhook(request: Request):
         chat_id = str(message["chat"]["id"])
         if telegram_bot.is_authorized(chat_id):
             text = message["text"]
-            await cmd_chat(chat_id, text)
-            if _voicechat_enabled.get(chat_id):
-                await _send_voicechat_reply(chat_id, text)
+            shortcut = resolve_text_shortcut(text)
+            if shortcut:
+                await _dispatch_command(chat_id, shortcut)
+            else:
+                await cmd_chat(chat_id, text)
+                if _voicechat_enabled.get(chat_id):
+                    await _send_voicechat_reply(chat_id, text)
     elif message and message.get("voice"):
         chat_id = str(message["chat"]["id"])
         if telegram_bot.is_authorized(chat_id):
@@ -422,7 +459,8 @@ async def setup_webhook(body: SetupBody):
         "url": body.url,
         "secret_token": _get_webhook_secret(),
     })
-    return {"ok": True, "result": result}
+    commands_ok = await sync_bot_commands()
+    return {"ok": True, "result": result, "commands_synced": commands_ok}
 
 
 # --- Daily digest ---
@@ -460,3 +498,7 @@ async def start_telegram_webhook() -> None:
     asyncio.create_task(_digest_loop())
     await start_probe_loop()
     await start_broadcast_loop()
+    try:
+        await sync_bot_commands()
+    except Exception:
+        logger.warning("Telegram setMyCommands sync failed", exc_info=True)

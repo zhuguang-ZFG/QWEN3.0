@@ -335,6 +335,7 @@ def fetch_hot_60s(platform: str = "微博") -> dict:
     key = platform.strip() or "微博"
     type_key = _HOT_PLATFORM_MAP.get(key.lower(), _HOT_PLATFORM_MAP.get(key, "weibo"))
     urls = (
+        f"https://60s.viki.moe/v2/{type_key}",
         f"https://api.vvhan.com/api/hotlist?type={type_key}",
         f"https://api.vvhan.com/api/hotlist/{type_key}",
     )
@@ -352,30 +353,56 @@ def fetch_hot_60s(platform: str = "微博") -> dict:
     return {"ok": False, "error": last_error}
 
 
-def fetch_news_60s() -> dict:
-    """Daily 60-second world briefing (radar §十三)."""
-    urls = (
+def _extract_60s_news(data: object) -> tuple[str, list[str]]:
+    """Normalize 60s news payloads (vvhan / viki v2 / static CDN)."""
+    if not isinstance(data, dict):
+        return "", []
+    payload = data
+    if isinstance(payload.get("data"), dict) and (
+        "news" in payload["data"] or payload.get("code") == 200
+    ):
+        inner = payload["data"]
+        if isinstance(inner, dict) and "news" in inner:
+            payload = inner
+        elif payload.get("code") == 200 and isinstance(inner, dict):
+            payload = inner
+    block = payload.get("data") if isinstance(payload.get("data"), dict) else payload
+    if isinstance(block, list):
+        date_str = str(payload.get("date") or "").strip()
+        news = block
+    elif isinstance(block, dict):
+        date_str = str(block.get("date") or block.get("time") or "").strip()
+        news = block.get("news") or block.get("data") or []
+    else:
+        return "", []
+    if not isinstance(news, list):
+        news = []
+    lines = [str(item).strip() for item in news if str(item).strip()]
+    return date_str, lines
+
+
+def _news_60s_urls() -> tuple[str, ...]:
+    from datetime import date
+
+    today = date.today().isoformat()
+    return (
+        "https://60s.viki.moe/v2/60s",
+        f"https://60s-static.viki.moe/60s/{today}.json",
+        f"https://cdn.jsdelivr.net/gh/vikiboss/60s-static-host@main/static/60s/{today}.json",
         "https://api.vvhan.com/api/60s?type=json",
         "https://api.vvhan.com/api/60s",
     )
+
+
+def fetch_news_60s() -> dict:
+    """Daily 60-second world briefing (radar §十三)."""
     last_error = "60s 新闻暂不可用"
-    for url in urls:
+    for url in _news_60s_urls():
         try:
             data = _get_json(url)
-            block = data.get("data") if isinstance(data, dict) else None
-            if isinstance(block, dict):
-                date = str(block.get("date") or block.get("time") or "").strip()
-                news = block.get("news") or block.get("data") or []
-            elif isinstance(block, list):
-                date = ""
-                news = block
-            else:
-                news = []
-            if not isinstance(news, list):
-                news = []
-            lines = [str(item).strip() for item in news if str(item).strip()]
+            date_str, lines = _extract_60s_news(data)
             if lines:
-                head = f"【60秒读懂世界 {date}】".strip()
+                head = f"【60秒读懂世界 {date_str}】".strip()
                 body = "\n".join(f"· {line[:200]}" for line in lines[:20])
                 return {"ok": True, "text": f"{head}\n{body}"[:1500]}
             last_error = "60s 新闻为空"

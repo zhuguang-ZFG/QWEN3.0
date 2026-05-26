@@ -27,7 +27,21 @@
 | 代码质量 P1.3 | 静默 catch 清理 | **Done** 2026-05-26（active paths） |
 | 雷达 P0 | Gitleaks / Gitee CI / Gitee 搜索 | **Done** 2026-05-26 |
 | 雷达 P1 | pip-audit + OSV-Scanner + Ruff + pytest-cov/xdist | **Done** 2026-05-26 |
-| 雷达 P2 | Brave + deptry + Playwright + 60s/menu + eval + 周期 eval | **Partial** 2026-05-26 |
+| 雷达 P2 | Brave + deptry + Playwright + 60s/menu + eval + TG-S3 v0.4 | **Done** P2-18…P2-24 VPS 2026-05-26；large eval 拓扑待 P2-25 |
+
+**雷达 P2 Operator 切片（2026-05-26 closeout）**
+
+| 切片 | Telegram / 代码 | 备注 |
+|------|-----------------|------|
+| P2-18 | `/archiveeval` | TG-S3 v0.1 冷归档 |
+| P2-19 | `/poolgate`、`eval_pool_gate.py` | eval 驱动 coding pool 降级 |
+| P2-20 | `/oldllm refresh`、Apprise、`dev_search_codesearch` | LC-W-2 + ops 通知 |
+| P2-21 | `/oldllm sync`、`oldllm_sync.py` | Windows→CF token |
+| P2-22 | FRP `:4501`、`eval_quiet`、auto archive env | eval 静默 + 隧道 |
+| P2-23 | `/evalschedule`、周期 quick eval + TG | `LIMA_PERIODIC_CODING_EVAL=1` |
+| P2-24 | `/evalstatus`、`/evaldigest`、`/codesearch` | 运维总览 + codesearch 探针 |
+
+部署脚本：`deploy_radar_p2_19_vps.py` … `deploy_p2_24_vps.py`。VPS 周期 eval 首次跑通 2026-05-26 18:56 UTC+8。
 
 ---
 
@@ -42,7 +56,7 @@
 | **Supabase** | 500MB PG+Auth+Storage | 免费数据库 | **Backlog** Device Gateway Postgres deferred |
 | **Neon** | 0.5GB PG Serverless | 免费数据库 | **Backlog** |
 | **Upstash** | 1GB Redis+10K命令/天 | 免费Redis | **Done** Device Gateway Redis HA |
-| **Telegram** | Bot API+无限云存储 | 无限备份 | **Done** Operator；**Partial** TG-S3 v0.1 归档 2026-05-26 |
+| **Telegram** | Bot API+无限云存储 | 无限备份 | **Done** Operator + TG-S3 v0.4（archive/eval/poolgate/周期通知）2026-05-26 |
 
 ## 二、云平台免费层（需信用卡 ⚠️ 参考用）
 
@@ -103,7 +117,7 @@
 | **网页搜索** | Brave Search MCP | $5免费额度 | **Done** `brave_adapter` + dev-search tier（`BRAVE_SEARCH_ENABLED=0` 默认关） |
 | **网页搜索** | SearXNG | 自部署 | **Done** PE-D-1 :8081 |
 | **网页抓取** | Firecrawl+changedetection.io | 500次/月+自部署 | **Backlog** |
-| **语义搜索** | CodeIndexer/demongrep/Octocode | 开源自部署 | **Backlog** LC-W-2 候选 |
+| **语义搜索** | CodeIndexer/demongrep/Octocode | 开源自部署 | **Done** LC-W-2 `dev_search_codesearch` + `/codesearch` TG 2026-05-26 |
 | **RSS聚合** | FreshRSS/Miniflux | 自部署 | **Backlog** |
 
 ---
@@ -140,7 +154,7 @@
 
 | 类别 | 最佳资源 | 免费额度 | LiMa |
 |------|---------|---------|------|
-| **通知** | ntfy/Apprise | 自建无限 | **Partial** `smoke_ntfy.py`（默认关）2026-05-26 |
+| **通知** | ntfy/Apprise | 自建无限 | **Done** `smoke_ntfy.py` + `smoke_apprise.py` + `LIMA_OPS_ALERTS` 2026-05-26 |
 | **Dead-man** | Healthchecks.io | 免费 | **Done** INF-B `lima-vps-router` |
 | **Dead-man** | GitHub Actions | 2000分/月 | **Done** `lima-vps-deadman.yml` |
 | **微信推送** | Server酱 | 5条/天 | **Paused** 见 `WECHAT_RETIRED.md` |
@@ -150,7 +164,7 @@
 | **CI/CD** | Gitee Go | ~200 分/月 | **Deferred** YAML 已留仓；不启用（GitHub Actions 2000 分已够用） |
 | **定时任务** | Cron-job.org | 免费HTTP触发 | **Ref** 已有 VPS cron+HC |
 | **对象存储** | Cloudflare R2+阿里云OSS | 10GB+5GB | **Partial** R2 策略文档化 |
-| **Telegram存储** | TG-S3/K-Vault | 无限容量 | **Partial** `telegram_archive` + `/archiveeval` 2026-05-26 |
+| **Telegram存储** | TG-S3/K-Vault | 无限容量 | **Done** v0.4：`/archiveeval`·`/poolgate`·周期 eval TG·`/evalstatus`·`/evaldigest` 2026-05-26 |
 
 ---
 

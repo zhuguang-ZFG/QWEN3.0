@@ -80,6 +80,8 @@ def main() -> int:
             f"  summary: models_ok={report['any_models_ok']} "
             f"chat_ok={report['any_chat_ok']}"
         )
+        for hint in report.get("hints", []):
+            print(f"  hint: {hint}")
 
     if report["any_chat_ok"]:
         return 0

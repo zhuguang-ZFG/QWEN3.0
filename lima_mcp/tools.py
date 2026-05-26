@@ -19,6 +19,7 @@ def handle_tool_call(name: str, arguments: dict) -> dict:
         "dev_fetch_github_file": _dev_fetch_github_file,
         "dev_search_gitee": _dev_search_gitee,
         "dev_fetch_gitee_file": _dev_fetch_gitee_file,
+        "dev_search_codesearch": _dev_search_codesearch,
         "dev_summarize_sources": _dev_summarize_sources,
     }
     handler = handlers.get(name)
@@ -184,6 +185,16 @@ def _dev_fetch_gitee_file(args: dict) -> dict:
         args.get("path", ""),
         args.get("ref", "master"),
         max_chars=_bounded_int(args.get("max_chars"), default=8000, minimum=1000, maximum=12000),
+    )
+
+
+def _dev_search_codesearch(args: dict) -> dict:
+    from search_gateway.dev_tools import search_codesearch
+
+    return search_codesearch(
+        args.get("query", ""),
+        max_results=_bounded_int(args.get("max_results"), default=5, minimum=1, maximum=15),
+        path_hint=args.get("path") or None,
     )
 
 

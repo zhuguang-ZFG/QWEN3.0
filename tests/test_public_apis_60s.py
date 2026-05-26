@@ -40,3 +40,16 @@ def test_fetch_news_60s_daily_briefing(monkeypatch):
     assert result["ok"] is True
     assert "2026-05-26" in result["text"]
     assert "第一条" in result["text"]
+
+
+def test_fetch_news_60s_viki_v2_shape(monkeypatch):
+    def fake_get(url: str) -> dict:
+        return {
+            "code": 200,
+            "data": {"date": "2026-05-26", "news": ["viki 新闻"]},
+        }
+
+    monkeypatch.setattr("channel_gateway.public_apis._get_json", fake_get)
+    result = fetch_news_60s()
+    assert result["ok"] is True
+    assert "viki 新闻" in result["text"]

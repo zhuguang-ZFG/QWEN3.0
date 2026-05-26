@@ -41,6 +41,7 @@ STEP_TOOL_ALIASES = {
         "dev_search_error",
         "dev_read_url",
         "dev_fetch_github_file",
+        "dev_search_codesearch",
         "dev_summarize_sources",
     },
     StepKind.RUN_TESTS: {"run_tests", "pytest"},

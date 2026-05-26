@@ -49,6 +49,13 @@ def _fire_and_forget(async_fn: Callable[..., Awaitable], *args, **kwargs) -> Non
 def notify_health_change(backend: str, old_state: str, new_state: str) -> None:
     if not telegram_bot.is_configured():
         return
+    try:
+        from eval_quiet import eval_quiet_active
+
+        if eval_quiet_active():
+            return
+    except ImportError:
+        logger.debug("eval_quiet module unavailable")
     if new_state == "dead":
         level = "critical"
     elif new_state == "degraded" and old_state == "healthy":

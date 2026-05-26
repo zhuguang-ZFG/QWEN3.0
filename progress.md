@@ -4,6 +4,76 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 雷达 P2-19…P2-24 closeout（文档 + commit）
+
+- **文档**：`FREE_RESOURCE_RADAR_MERGED.md` P2/TG-S3 v0.4；`TG_FREE_STORAGE_STRATEGY.md` v0.4
+- **VPS 证据**：周期 quick eval 18:56 exit=0；`server_lifespan` periodic 启动修复已部署
+- **测试**：focused 87 passed（commit 前本 session 复跑；含 oldllm_sync `parsed` 修复）
+- **未纳入本 commit**：eval JSON 快照、`data/webhook_*`、WeChat 参考目录、`.coverage`
+- **残余**：P2-25 large backend VPS full eval 经 FRP/8088（见 `findings FREE-002`）
+
+## 2026-05-26 雷达 P2-24：Eval 运维总览 + codesearch TG
+
+- **`eval_status.py`** — `/evalstatus`：周期开关、preflight、quick/full 文件年龄、pool gate、Large 0 分路由提示
+- **`eval_digest.py`** — `/evaldigest`：quick + full 合并摘要（一条消息看全局）
+- **`search_gateway/codesearch_status.py`** — `/codesearch` 状态；`/codesearch <query>` 探针搜索
+- **快捷菜单** — 📋 总览 / 📊 摘要 / 🔍 Code 按钮
+- **`periodic_coding_eval.py`** — stdout `[periodic-coding-eval]` 便于 journalctl 追踪
+- **Hotfix** — VPS `server_lifespan.py` 缺 `periodic_coding_eval.start()`，一并上传修复周期 eval 未启动
+- **测试** 22 focused passed（eval_status/digest + telegram + periodic）
+- **部署** `deploy_p2_24_vps.py` → lima-router active
+
+## 2026-05-26 雷达 P2-23：TG-S3 v0.3 周期 eval 通知
+
+- **`eval_notify.py`** — 周期 eval 完成 → TG 摘要 + pool gate + 可选 auto archive
+- **`/evalschedule`** — 查看 periodic / notify / auto_archive 开关
+- **`periodic_coding_eval.py`** — 支持 `LIMA_PERIODIC_CODING_EVAL_FULL=1`；eval_quiet 包裹
+- **部署** `deploy_p2_23_vps.py`（默认不开启 periodic，需 Operator 设 env）
+
+## 2026-05-26 雷达 P2-22：OldLLM FRP 隧道 + eval 静默 + TG 自动归档
+
+- **FRP** `oldllm-refresh`：`127.0.0.1:4501` → VPS `:4501`；VPS `.env` `OLDLLM_REFRESH_URL=http://127.0.0.1:4501`
+- **Telegram** `/oldllm sync` 可经隧道远程刷新；`scripts/smoke_oldllm_refresh_tunnel.py`
+- **Eval** `eval_quiet.py` — full eval 期间抑制 degraded 告警；`LIMA_EVAL_AUTO_ARCHIVE_TG=1` 时完成后自动 `/archiveeval`（full 带 doc）
+- **部署** `deploy_p2_22_vps.py` → lima-router active；隧道 smoke 200
+
+## 2026-05-26 Hotfix：`/evalslice` VPS exit=2
+
+- **根因**：VPS 缺 `scripts/run_radar_eval_slice.py` + `eval_preflight.py`（Telegram 调 python → 文件不存在 exit=2）
+- **修复**：`deploy_evalslice_vps.py` 上传 eval bundle；失败时 Telegram 展示 preflight 日志
+- **VPS smoke**：`/usr/local/bin/python3.10 … --preflight --quick` → JSON 写入 ok
+
+## 2026-05-26 雷达 P2-21：OldLLM sync + Ops Apprise
+
+- **`oldllm_sync.py`** — `OLDLLM_REFRESH_URL` 远程触发或 Windows 本地 `sync_oldllm_token_to_cf.py`
+- **Telegram** — `/oldllm sync`；快捷菜单 🔄 OldLLM → sync；refresh 失败时 `LIMA_OPS_ALERTS=1` 旁路 Apprise
+- **Windows** — `token_refresh_server.js` 改调 `sync_oldllm_token_to_cf.js --restart-proxy`
+- **测试**：18 focused passed；**VPS** `deploy_radar_p2_21_vps.py` → lima-router active
+
+## 2026-05-26 Telegram ops fix：状态 warmup + 60s 新闻 fallback
+
+- **`/status`**：按 BACKENDS 总数统计；restart 后无 traffic 时不再显示 0/0/0
+- **60s 新闻/热搜**：优先 `60s.viki.moe` + jsDelivr static（vvhan SSL 失败 fallback）
+
+## 2026-05-26 雷达 P2-20：Apprise + OldLLM refresh + LC-W-2
+
+- **Apprise**：`notify/apprise_bridge.py` + `scripts/smoke_apprise.py` + `docs/LC_W_APPRISE_NOTIFY.md`
+- **OldLLM**：`failure_hints` + `/oldllm refresh` + Telegram 快捷按钮
+- **LC-W-2**：`dev_search_codesearch` MCP 工具 + `search_gateway/codesearch_adapter.py`
+
+## 2026-05-26 Telegram 快捷菜单（TG-QUICK-1）
+
+- **`/menu`** + 内联按钮 + 底部键盘（菜单/状态/热搜/新闻）
+- **`/help`** 分类说明；别名 `/h` `/m` `/s`；中文「菜单」「帮助」「状态」
+- **`setMyCommands`** — Telegram 输入 `/` 时显示常用命令
+- 启动与 `/telegram/setup` 时自动同步命令列表
+
+## 2026-05-26 雷达 P2-19：Eval pool gate + TG-S3 v0.2
+
+- **eval_pool_gate.py** — 读 full eval JSON，avg&lt;1 的 backend 不进 coding pool（`LIMA_EVAL_POOL_GATE=1`）
+- **TG-S3 v0.2** — `send_document`、`/archiveeval full doc`、`/poolgate`
+- **VPS**：`deploy_radar_p2_19_vps.py`
+
 ## 2026-05-26 雷达 P2-18：TG-S3 v0.1 冷归档
 
 - **策略**：`docs/TG_FREE_STORAGE_STRATEGY.md` — TG 作冷归档/Operator 镜像，非主库

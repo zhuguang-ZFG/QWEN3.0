@@ -167,7 +167,23 @@ def test_mcp_lists_dev_search_tools():
     assert "dev_fetch_github_file" in names
     assert "dev_search_gitee" in names
     assert "dev_fetch_gitee_file" in names
+    assert "dev_search_codesearch" in names
     assert "dev_summarize_sources" in names
+
+
+def test_mcp_dev_search_codesearch_disabled(monkeypatch):
+    monkeypatch.setenv("CODESEARCH_MCP_ENABLED", "0")
+    result = handle_tool_call("dev_search_codesearch", {"query": "routing_engine"})
+    assert result["ok"] is False
+    assert result["tool"] == "dev_search_codesearch"
+    assert result["error"] == "codesearch_disabled"
+
+
+def test_should_codesearch_local():
+    from search_gateway.policy import should_codesearch_local
+
+    assert should_codesearch_local("where is routing_engine.py classify tier") is True
+    assert should_codesearch_local("查一下 FastAPI 官方文档") is False
 
 
 def test_mcp_dev_read_url_blocks_private_url_without_network():

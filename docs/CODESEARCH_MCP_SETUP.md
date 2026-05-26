@@ -109,6 +109,7 @@ python scripts/smoke_codesearch_local.py
 - [ ] allowlist 外路径拒绝（手动：对未注册路径 `codesearch index add` 不应出现在 repos.json）
 - [ ] 3 条 fixture query：`rg` baseline 有输出；codesearch 安装后 `search` 有结果
 - [ ] LiMa Code 任务可调用 `search`（read-only）
+- [ ] `dev_search_codesearch` MCP 工具（`CODESEARCH_MCP_ENABLED=1`）
 
 ## Baseline fixture queries（B-1.4）
 
