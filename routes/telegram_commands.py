@@ -401,3 +401,42 @@ async def cmd_voicechat(chat_id: str, arg: str) -> None:
         _voicechat_enabled[chat_id] = not current
         state = "ON" if not current else "OFF"
         await telegram_bot.send_message(f"Voicechat {state}", chat_id=chat_id)
+
+
+async def cmd_github(chat_id: str, args: str) -> None:
+    from telegram_operator_tools import fetch_github_file_text, parse_github_args
+
+    parsed = parse_github_args(args)
+    if not parsed:
+        await telegram_bot.send_message(
+            "Usage: /github owner/repo path/to/file [ref]",
+            chat_id=chat_id,
+        )
+        return
+    repo, path, ref = parsed
+    try:
+        text = fetch_github_file_text(repo, path, ref)
+        await telegram_bot.send_message(text, chat_id=chat_id)
+    except Exception:
+        logger.exception("cmd_github failed")
+        await telegram_bot.send_message(_operator_error("github"), chat_id=chat_id)
+
+
+async def cmd_device(chat_id: str, args: str) -> None:
+    from telegram_operator_tools import append_recent_tasks_summary, fetch_device_gateway_status
+
+    sub = (args or "status").strip().lower()
+    if sub not in ("status", ""):
+        await telegram_bot.send_message(
+            "Usage: /device status",
+            chat_id=chat_id,
+        )
+        return
+    try:
+        summary = await fetch_device_gateway_status()
+        lines = summary.splitlines()
+        append_recent_tasks_summary(lines)
+        await telegram_bot.send_message("\n".join(lines), chat_id=chat_id)
+    except Exception:
+        logger.exception("cmd_device failed")
+        await telegram_bot.send_message(_operator_error("device"), chat_id=chat_id)

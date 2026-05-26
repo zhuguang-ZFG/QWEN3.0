@@ -199,9 +199,9 @@ GITEE_AI_TOKEN=...       # 模力方舟 Access Token（GI-G-3）
 
 | Task | 内容 |
 |------|------|
-| 5.1 | `data/gitee_activity.json` ring buffer（或扩展现有 `github_activity.json` → `git_host_activity.json`） |
-| 5.2 | 早报段落：`Gitee 24h: N push, M MR` |
-| 5.3 | 每周 mirror lag 检查：GitHub vs Gitee 最新 commit SHA 是否一致 |
+| 5.1 | `data/gitee_activity.json` ring buffer（或扩展现有 `github_activity.json` → `git_host_activity.json`） | ✅ `webhook_activity_buffer.py` |
+| 5.2 | 早报段落：`Gitee 24h: N push, M MR` | ✅ TG-GH-3 |
+| 5.3 | 每周 mirror lag 检查：GitHub vs Gitee 最新 commit SHA 是否一致 | ✅ `scripts/gitee_mirror_lag_check.py` |
 
 **验收：** 手动触发 digest → 含 Gitee 行。
 

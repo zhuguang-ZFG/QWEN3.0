@@ -4,6 +4,17 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 五线 closeout 第一刀（CF-G-3 + TG-GH-4 + GI-G-5）
+
+- **计划**：`docs/superpowers/plans/2026-05-26-five-line-closeout.md` — 生产力六能力 **后置**
+- **CF-G-3**：`google_flash_lite` → `chat_fast.strong` 首位；vision 链 `cf_vision` → `google_flash` → `github_gpt4o`
+- **TG-GH-4**：`/github` 读公开文件；`/device status` 查 Device Gateway health + 最近 task
+- **GI-G-5**：`gitee_mirror.compare_mirror_heads` + `scripts/gitee_mirror_lag_check.py`
+- **测试**：`tests/test_five_line_closeout.py` **7 passed**
+- **VPS deploy**（2026-05-26）：`deploy_five_line_closeout.py` → `chat_fast_strong_0=google_flash_lite`；service active
+- **VPS smoke**：`smoke_telegram_operator_vps.py` → github_ok + device_ok **smoke_ok**
+- **待做**：TG-GH-5/6；CF-G-6 inventory diff；GI-G-3 资源包；手机 Telegram 手工试 `/github` `/device`
+
 ## 2026-05-26 GI-G-3 模力方舟 AI（基础设施，路由待资源包）
 
 - **实现**：`provider_automation/adapters/gitee_ai.py`、`budget_gitee.py`；inventory/probe/deploy 脚本

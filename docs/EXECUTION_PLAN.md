@@ -48,6 +48,8 @@ Paused work:
 | 13. Telegram × GitHub operator channel | **Active** | CQ-GH-001 webhook done; TG-GH-2~6 per `docs/superpowers/plans/2026-05-26-telegram-github-maximization.md`. |
 | 14. Cloudflare × Google free-tier maximization | **Active (P1)** | CF-G-0~6 per `docs/superpowers/plans/2026-05-26-cloudflare-google-maximization.md`; parallel after TG-GH-1. |
 | 15. Provider model auto-discovery | **Paused (archived plan)** | `docs/superpowers/plans/2026-05-26-provider-model-automation-full-plan.md`; CF-G-2 merges PA-B. |
+| 16. Productivity enhancement (六能力) | **Deferred (P2)** | 五线 closeout 后再启；见 `2026-05-26-five-line-closeout.md`。 |
+| 17. Five-line closeout (TG/GH/Gitee/CF/Google) | **Active (P0)** | `docs/superpowers/plans/2026-05-26-five-line-closeout.md` |
 
 ## 2026-05-24 Runtime Closure
 
@@ -90,26 +92,17 @@ Paused work:
 
 ## Next Implementation Order
 
-**当前 P0 主线：** `docs/superpowers/plans/2026-05-26-telegram-github-maximization.md`
+**当前 P0 主线：** [`docs/superpowers/plans/2026-05-26-five-line-closeout.md`](docs/superpowers/plans/2026-05-26-five-line-closeout.md)
 
-1. **TG-GH-1** — frpc/Clash 自启 + Telegram 出站 smoke
-2. **TG-GH-2** — LiMa Code → Telegram 任务生命周期推送（deepcode-cli）
-3. **TG-GH-3** — 统一 Operator 早报（health + GitHub + tasks + **CF/Google 配额**）
-4. **TG-GH-4** — Telegram `/github` `/device` 命令
+1. **CF-G-3** — Google `chat_fast` + vision 路由
+2. **TG-GH-4** — Telegram `/github` `/device`
+3. **GI-G-5** — Gitee mirror lag + digest 验证
+4. **TG-GH-5/6** — GitHub 事件加深 + deploy/smoke 推送
+5. **CF-G-6** — inventory diff → Telegram
 
-**并行 P1（免费 API 额度）：** `docs/superpowers/plans/2026-05-26-cloudflare-google-maximization.md`
+**延后：** 生产力六能力（Netdata/SearXNG…）；GI-G-3 overlay（待 Gitee 资源包）。
 
-5. **CF-G-0** — CF/Google 模型 inventory 脚本 + diff 报告（零路由风险）
-6. **CF-G-1** — `budget_manager` 补全 `cf_*` + 配额 Telegram 告警
-7. **CF-G-2/3** — CF 扩容 smoke + Google chat_fast/vision 优化
-
-四线优先级见 **`docs/NEXT_MILESTONES.md`**（编码后端 / LiMa Code Worker / ESP32·Device Gateway / 代码质量）。
-
-5. **代码质量 P0** — chunked body 413、`/api/live-key` 不泄钥（进行中）
-6. **编码后端** — Kimi/SCNet-large refresh + eval
-7. **Provider model automation** — 存档计划，TG-GH-3 后再启 PA-A
-8. **ESP32** — PROD-003 真机 smoke
-9. Run local tests; deploy when slice complete; smoke public endpoints.
+**已完成 closeout：** TG-GH-1~3、GI-G-0~2、CF-G-0~2、CQ-GH-001。
 
 **已关闭方向**：微信真机/机器人（`docs/WECHAT_RETIRED.md`）；商业支付/注册。
 

@@ -156,8 +156,8 @@ GOOGLE_AI_KEY=...
 | Task | 内容 |
 |------|------|
 | 3.1 | `inventory_google_models.py` 定期 diff |
-| 3.2 | 路由：`google_flash_lite` 提前到 `chat_fast.strong`（低成本短回复） |
-| 3.3 | `google_flash` 绑定 vision 路径（与 `cf_vision` 并列 fallback） |
+| 3.2 | 路由：`google_flash_lite` 提前到 `chat_fast.strong`（低成本短回复） | ✅ |
+| 3.3 | `google_flash` 绑定 vision 路径（与 `cf_vision` 并列 fallback） | ✅ |
 | 3.4 | 编码请求 **不** 默认 Google（保持现状）；仅 explicit model 或 public chat |
 | 3.5 | eval：`scripts/eval_coding_backends.py` 子集跑 Google（记录证据，不 promote） |
 

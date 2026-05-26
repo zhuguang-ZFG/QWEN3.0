@@ -17,6 +17,7 @@ from routes.telegram_commands import (
     cmd_chat, cmd_clear, cmd_code, cmd_top, cmd_uptime,
     cmd_eval, cmd_task, cmd_tasks, cmd_cache, cmd_stop, start_probe_loop,
     cmd_voice, cmd_voicechat, start_broadcast_loop, _operator_error,
+    cmd_github, cmd_device,
 )
 
 logger = logging.getLogger(__name__)
@@ -218,10 +219,15 @@ async def _dispatch_command(chat_id: str, text: str) -> None:
         await _cmd_logs(chat_id, arg.strip())
     elif cmd == "/restart":
         await _cmd_restart(chat_id)
+    elif cmd == "/github":
+        await cmd_github(chat_id, arg)
+    elif cmd == "/device":
+        await cmd_device(chat_id, arg)
     elif cmd == "/start":
         await telegram_bot.send_message(
             "LiMa Bot ready.\n/status /health /budget /top /uptime\n"
-            "/chat /clear /code /eval /voice\n/logs /restart /task /tasks",
+            "/chat /clear /code /eval /voice\n/github /device status\n"
+            "/logs /restart /task /tasks",
             chat_id=chat_id,
         )
     else:

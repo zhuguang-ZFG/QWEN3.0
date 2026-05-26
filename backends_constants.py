@@ -8,8 +8,15 @@ THINKING_BACKENDS = ["or_deepseek_r1", "longcat_thinking", "longcat_web_think"]
 
 # Vision-capable backends (must be registered in BACKENDS)
 VISION_BACKENDS = [
-    "longcat_omni", "or_deepseek_r1", "vision_joycaption", "cohere_vision",
+    "longcat_omni",
+    "cf_vision",
+    "google_flash",
+    "google_flash_lite",
     "github_gpt4o",
+    "mistral_pixtral",
+    "cohere_vision",
+    "or_deepseek_r1",
+    "vision_joycaption",
 ]
 
 # Backends that should use the configured outbound proxy.

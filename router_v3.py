@@ -73,7 +73,8 @@ POOLS = {
     },
     "vision": {
         "strong": ["longcat_omni"],
-        "medium": ["cohere_vision", "cf_kimi_k26", "github_gpt4o"],
+        "medium": ["cf_vision", "google_flash", "google_flash_lite",
+                   "cohere_vision", "cf_kimi_k26", "github_gpt4o", "mistral_pixtral"],
         "floor": ["pollinations"],
     },
     "image": {
@@ -98,14 +99,14 @@ POOLS = {
                   "ddg_claude_haiku_45", "ddg_tinfoil_gptoss_120b"],
     },
     "chat_fast": {
-        "strong": ["scnet_qwen30b", "scnet_ds_flash", "scnet_qwen235b",
+        "strong": ["google_flash_lite", "scnet_qwen30b", "scnet_ds_flash", "scnet_qwen235b",
                    "groq_llama70b", "groq_qwen32b", "cerebras_gptoss",
                    "longcat_lite", "cf_llama70b", "cfai_llama70b",
                    "cf_kimi_k26"],
         "medium": ["longcat_chat", "cf_qwen3_30b", "cfai_qwen_coder",
                    "cfai_llama4", "cf_gemma4",
                    "groq_gptoss", "groq_llama4",
-                   "google_flash", "google_flash_lite"],
+                   "google_flash"],
         "floor": ["ovh_llama70b", "ovh_deepseek", "pollinations_openai",
                   "local_fast", "local_chat",
                   "ddg_gpt4o_mini", "ddg_gpt5_mini"],

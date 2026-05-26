@@ -162,8 +162,8 @@ Budget: github_gpt4o 12%
 
 | 命令 | 来源 | 实现 |
 |------|------|------|
-| `/github owner/repo path [ref]` | Channel Gateway | 移植 `channel_gateway/integrations.build_owner_github_handler` → `telegram_commands.cmd_github` |
-| `/device status` | Device Gateway | HTTP `GET /device/v1/health` + 最近 task 摘要 |
+| `/github owner/repo path [ref]` | Channel Gateway | ✅ `telegram_operator_tools` + `cmd_github` |
+| `/device status` | Device Gateway | ✅ `cmd_device` → `/device/v1/health` |
 | `/task_status <id>` | agent_tasks | 已有 API 包装 |
 | `/deploy` | 可选 | 只读：最近 `progress.md` 条目或 VPS git rev（**不**远程 shell） |
 

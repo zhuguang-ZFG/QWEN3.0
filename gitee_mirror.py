@@ -139,3 +139,71 @@ def default_push_remotes(entries: Sequence[RemoteEntry]) -> list[str]:
         if name not in ordered:
             ordered.append(name)
     return ordered
+
+
+def remote_head_sha(
+    push_url: str,
+    branch: str = "HEAD",
+    *,
+    runner: Callable[..., subprocess.CompletedProcess] | None = None,
+) -> tuple[str, str]:
+    """Return (sha, error) from git ls-remote for a branch ref."""
+    ref = branch if branch.startswith("refs/") else f"refs/heads/{branch}"
+    cmd = ["git", "ls-remote", push_url, ref]
+    run = runner or subprocess.run
+    proc = run(cmd, capture_output=True, text=True, check=False)
+    out = (proc.stdout or "").strip()
+    if proc.returncode != 0:
+        err = (proc.stderr or out or f"exit {proc.returncode}").strip()
+        return "", err[:200]
+    if not out:
+        return "", "empty ls-remote"
+    line = out.splitlines()[0]
+    sha = line.split()[0] if line.split() else ""
+    return sha[:40], ""
+
+
+def compare_mirror_heads(
+    repo: str | Path = "",
+    branch: str = "",
+    *,
+    runner: Callable[..., subprocess.CompletedProcess] | None = None,
+) -> dict[str, object]:
+    """Compare GitHub origin vs Gitee push URL HEAD SHA."""
+    code, output = run_git_remote_v(repo, runner=runner)
+    if code != 0:
+        return {"ok": False, "error": output or f"git remote -v exit {code}"}
+    entries = build_remote_entries(parse_git_remotes(output))
+    github_url = ""
+    gitee_url = ""
+    for entry in entries:
+        if entry.host_kind == "github" and not github_url:
+            github_url = entry.push_url
+        if entry.host_kind == "gitee" and not gitee_url:
+            gitee_url = entry.push_url
+    if not github_url or not gitee_url:
+        return {
+            "ok": False,
+            "error": "missing github or gitee remote",
+            "has_github": bool(github_url),
+            "has_gitee": bool(gitee_url),
+        }
+    ref_branch = branch or "HEAD"
+    gh_sha, gh_err = remote_head_sha(github_url, ref_branch, runner=runner)
+    gt_sha, gt_err = remote_head_sha(gitee_url, ref_branch, runner=runner)
+    if gh_err or gt_err:
+        return {
+            "ok": False,
+            "error": gh_err or gt_err,
+            "github_sha": gh_sha,
+            "gitee_sha": gt_sha,
+        }
+    in_sync = gh_sha == gt_sha and bool(gh_sha)
+    return {
+        "ok": True,
+        "branch": ref_branch,
+        "github_sha": gh_sha,
+        "gitee_sha": gt_sha,
+        "in_sync": in_sync,
+        "lag": 0 if in_sync else 1,
+    }

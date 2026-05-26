@@ -10,6 +10,18 @@
 | GI-G-2-2 | Public smoke | `smoke_gitee_webhook_public.py` local+public 200 | Closed 2026-05-26 |
 | GI-G-2-3 | Ops | Gitee UI WebHook password must match VPS `GITEE_WEBHOOK_SECRET` | Open |
 
+## 2026-05-26 Five-line closeout slice 1
+
+| ID | Area | Evidence | Status |
+|---|---|---|---|
+| FL-1-1 | CF-G-3 | `google_flash_lite` first in `chat_fast.strong`; vision cf→google | Closed 2026-05-26 |
+| FL-1-2 | TG-GH-4 code | `/github` `/device status` commands | Closed 2026-05-26 |
+| FL-1-3 | GI-G-5 | `gitee_mirror_lag_check.py` | Closed 2026-05-26 |
+| FL-1-4 | VPS deploy | `deploy_five_line_closeout.py` active | Closed 2026-05-26 |
+| FL-1-5 | VPS smoke | `smoke_telegram_operator_vps.py` smoke_ok | Closed 2026-05-26 |
+| FL-1-6 | Tests | focused 7 passed; full **1631 passed, 10 skipped** | Closed 2026-05-26 |
+| FL-1-7 | Ops | Manual Telegram `/github` `/device` on phone | Open |
+
 ## 2026-05-26 GI-G-3 Gitee AI adapter
 
 | ID | Area | Evidence | Status |

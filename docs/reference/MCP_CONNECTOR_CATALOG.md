@@ -1,6 +1,6 @@
 # MCP Connector Catalog
 
-> Updated: 2026-05-24
+> Updated: 2026-05-26
 > Scope: candidate MCP connectors for LiMa Server and LiMa Code.
 
 ## Purpose
@@ -72,6 +72,9 @@ tool set needed for the current task.
 | Figma MCP | concept | Off | Design read/import only until a UI workflow exists; no automatic code landing. |
 | ElevenLabs MCP | concept | Off | Voice generation requires consent, voice license, storage, and cost controls. |
 | Tavily MCP | candidate | Off | Search/extract/map/crawl candidate behind privacy, quota, cache, and citation policy. |
+| searchcode MCP | candidate | Off | Public GitHub/open-source code intelligence (beta). **Public repos only**; never send LiMa private code. |
+| codesearch MCP | candidate | Off | Local offline multi-repo semantic search (Rust, BM25 + vector + tree-sitter). Path allowlist required; enhances LiMa Code over raw `rg`. |
+| Netdata MCP | candidate | Off | VPS/host diagnostics: CPU, memory, disk, processes, network, alerts via Netdata Agent MCP. Read-only first; see `docs/superpowers/plans/2026-05-26-lima-productivity-enhancement.md` PE-C-1. |
 | Magic MCP | concept | Off | UI-generation workflow reference; generated code must go through LiMa Code review and tests. |
 | last30days-style skill connectors | concept | Off | Time-bounded social/source search can inform research tasks only with BYO-key consent, platform-term review, attribution, and privacy boundaries. |
 | Sirchmunk-style raw-file search MCP | concept | Off | Useful for local/remote raw-data search and streaming evidence logs; requires path allowlists, secret redaction, cache retention, and audit before use. |
@@ -80,10 +83,17 @@ tool set needed for the current task.
 ## Discovery Sources
 
 - Official MCP Registry: `https://registry.modelcontextprotocol.io/`
+- Glama MCP Registry: `https://glama.ai/mcp/servers`
+- SafeMCP (categorized list): `https://safemcp.com/`
 - Official reference servers: `https://github.com/modelcontextprotocol/servers`
 - Google MCP catalog: `https://github.com/google/mcp`
 - Community list: `https://github.com/wong2/awesome-mcp-servers`
 - Online runtime reference: `https://turbomcp.ai/`
+
+**LiMa MCP radar (PE-A-1):** read-only inventory from Glama + Official Registry + SafeMCP →
+`data/mcp_registry_snapshot.json` → candidate rows in this catalog.
+Planned script: `scripts/inventory_mcp_registries.py` per
+`docs/superpowers/plans/2026-05-26-lima-productivity-enhancement.md`.
 
 The official reference server repository says its servers demonstrate MCP
 features and SDK usage and are educational examples, not production-ready
