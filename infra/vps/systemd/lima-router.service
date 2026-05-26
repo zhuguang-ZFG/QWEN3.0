@@ -8,9 +8,9 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/lima-router
-ExecStart=/usr/local/bin/litestream replicate -config /opt/lima-router/litestream.yml -exec "/usr/local/bin/python3.10 -m uvicorn server:app --host 0.0.0.0 --port 8080"
-# Fallback without Litestream (if litestream binary not installed):
-# ExecStart=/usr/local/bin/python3.10 -m uvicorn server:app --host 0.0.0.0 --port 8080
+ExecStart=/usr/local/bin/python3.10 -m uvicorn server:app --host 0.0.0.0 --port 8080
+# Litestream upgrade (install litestream binary first):
+# ExecStart=/usr/local/bin/litestream replicate -config /opt/lima-router/litestream.yml -exec "/usr/local/bin/python3.10 -m uvicorn server:app --host 0.0.0.0 --port 8080"
 Restart=always
 RestartSec=5
 EnvironmentFile=/opt/lima-router/.env

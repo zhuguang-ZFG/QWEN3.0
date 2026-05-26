@@ -37,6 +37,14 @@
 - **全量 pytest**：**1861 passed, 10 skipped**（本 session）
 - **Pyright**：0 errors, 0 warnings（本地 + CI enforce）
 
+## 2026-05-26 P2-27：GitHub MCP 原生 tools
+
+- **新增**：`lima_mcp/github_tools.py` — 原生 GitHub REST API（无需 npm）
+- **5 个工具**：`github_create_issue`、`github_list_issues`、`github_get_issue`、`github_add_issue_comment`、`github_search_issues`
+- **认证**：复用现有 `GITHUB_TOKEN`（已在 `.env` 中用于 GitHub Models + webhook）
+- **VPS 验证**：MCP 工具共 19 个含 5 个 GitHub 工具；HTTPS chat 200
+- **Systemd 修复**：`lima-router.service` ExecStart 回退为 Python 直启（litestream 注释保留）
+
 ## 2026-05-26 全量审查 closeout（HIGH + 测试）
 
 - **审查修复**：`_eval_busy` 加 `asyncio.Lock`；`routes/telegram_dispatch.py` 拆分 dispatch；`telegram_async.py` 统一 fire-and-forget；`lima_mcp/tools.py` 工具异常可观测；`fetch_github_file` ref 保留 `/`

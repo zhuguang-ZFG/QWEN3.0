@@ -28,6 +28,11 @@ def handle_tool_call(name: str, arguments: dict) -> dict:
         "read_file": _read_file,
         "list_directory": _list_directory,
         "glob_search": _glob_search,
+        "github_create_issue": _github_create_issue,
+        "github_list_issues": _github_list_issues,
+        "github_get_issue": _github_get_issue,
+        "github_add_issue_comment": _github_add_issue_comment,
+        "github_search_issues": _github_search_issues,
     }
     handler = handlers.get(name)
     if not handler:
@@ -311,3 +316,61 @@ def _glob_search(args: dict) -> dict:
         "count": min(len(matches), 200),
         "truncated": len(matches) > 200,
     }
+
+
+# ── GitHub API tools (default-off, GITHUB_TOKEN gated) ──
+
+
+def _github_create_issue(args: dict) -> dict:
+    from lima_mcp.github_tools import create_issue
+
+    return create_issue(
+        owner=args.get("owner", ""),
+        repo=args.get("repo", ""),
+        title=args.get("title", ""),
+        body=args.get("body", ""),
+        labels=args.get("labels"),
+        assignees=args.get("assignees"),
+    )
+
+
+def _github_list_issues(args: dict) -> dict:
+    from lima_mcp.github_tools import list_issues
+
+    return list_issues(
+        owner=args.get("owner", ""),
+        repo=args.get("repo", ""),
+        state=args.get("state", "open"),
+        labels=args.get("labels", ""),
+        per_page=_bounded_int(args.get("per_page"), default=10, minimum=1, maximum=30),
+    )
+
+
+def _github_get_issue(args: dict) -> dict:
+    from lima_mcp.github_tools import get_issue
+
+    return get_issue(
+        owner=args.get("owner", ""),
+        repo=args.get("repo", ""),
+        issue_number=_bounded_int(args.get("issue_number"), default=0, minimum=1, maximum=999999),
+    )
+
+
+def _github_add_issue_comment(args: dict) -> dict:
+    from lima_mcp.github_tools import add_issue_comment
+
+    return add_issue_comment(
+        owner=args.get("owner", ""),
+        repo=args.get("repo", ""),
+        issue_number=_bounded_int(args.get("issue_number"), default=0, minimum=1, maximum=999999),
+        body=args.get("body", ""),
+    )
+
+
+def _github_search_issues(args: dict) -> dict:
+    from lima_mcp.github_tools import search_issues
+
+    return search_issues(
+        query=args.get("query", ""),
+        per_page=_bounded_int(args.get("per_page"), default=10, minimum=1, maximum=20),
+    )

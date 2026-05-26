@@ -35,6 +35,8 @@ FILES = [
     "lima_mcp/__init__.py",
     "lima_mcp/tools.py",
     "lima_mcp/fs_allowlist.py",
+    # GitHub MCP
+    "lima_mcp/github_tools.py",
     # VPS sync: quality_gate sub-modules (must accompany quality_gate.py)
     "routes/quality_gate_direct.py",
     "routes/quality_gate_tiers.py",

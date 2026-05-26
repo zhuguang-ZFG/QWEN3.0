@@ -193,4 +193,74 @@ TOOL_DEFINITIONS = [
             "required": ["pattern"],
         },
     },
+    {
+        "name": "github_create_issue",
+        "description": "Create a GitHub issue. Requires GITHUB_TOKEN in environment.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "owner": {"type": "string"},
+                "repo": {"type": "string"},
+                "title": {"type": "string", "description": "Issue title (max 256 chars)"},
+                "body": {"type": "string", "description": "Issue body (markdown)"},
+                "labels": {"type": "array", "items": {"type": "string"}},
+                "assignees": {"type": "array", "items": {"type": "string"}},
+            },
+            "required": ["owner", "repo", "title"],
+        },
+    },
+    {
+        "name": "github_list_issues",
+        "description": "List issues in a GitHub repository. Requires GITHUB_TOKEN.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "owner": {"type": "string"},
+                "repo": {"type": "string"},
+                "state": {"type": "string", "description": "open, closed, or all"},
+                "labels": {"type": "string", "description": "Filter by label name"},
+                "per_page": {"type": "integer"},
+            },
+            "required": ["owner", "repo"],
+        },
+    },
+    {
+        "name": "github_get_issue",
+        "description": "Get a single GitHub issue by number. Requires GITHUB_TOKEN.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "owner": {"type": "string"},
+                "repo": {"type": "string"},
+                "issue_number": {"type": "integer"},
+            },
+            "required": ["owner", "repo", "issue_number"],
+        },
+    },
+    {
+        "name": "github_add_issue_comment",
+        "description": "Add a comment to a GitHub issue. Requires GITHUB_TOKEN.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "owner": {"type": "string"},
+                "repo": {"type": "string"},
+                "issue_number": {"type": "integer"},
+                "body": {"type": "string", "description": "Comment body (markdown)"},
+            },
+            "required": ["owner", "repo", "issue_number", "body"],
+        },
+    },
+    {
+        "name": "github_search_issues",
+        "description": "Search GitHub issues (across repos). Requires GITHUB_TOKEN.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "GitHub issue search query"},
+                "per_page": {"type": "integer"},
+            },
+            "required": ["query"],
+        },
+    },
 ]
