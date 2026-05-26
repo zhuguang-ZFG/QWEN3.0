@@ -15,7 +15,7 @@
 | P1.1 semantic cache | **Done** | `_log.warning` + `db_write_errors`; `tests/test_semantic_cache.py` |
 | P1.2 admin login | **Done** | `constant_time_equals` in `routes/admin.py` |
 | P1.3 silent catches | **Mostly done** | batch1–4 complete; residual best-effort in archives/submodules out of scope |
-| P2+ file split / routing | **In progress** | `code_orchestrator` + `agent_tasks` split done; next: `router_http`, `device_gateway` WS loop |
+| P2+ file split / routing | **In progress** | `device_gateway` + `router_http` split done; legacy urllib path documented |
 
 ## Current Verification Snapshot
 

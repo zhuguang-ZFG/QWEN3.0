@@ -1,5 +1,10 @@
 import router_http
 import smart_router
+from router_circuit_breaker import reset_for_tests
+
+
+def setup_function():
+    reset_for_tests()
 
 
 def _image_messages():

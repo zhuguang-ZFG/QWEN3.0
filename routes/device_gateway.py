@@ -1,4 +1,5 @@
-"""LiMa direct device gateway routes."""
+"""LiMa direct device gateway HTTP routes."""
+
 from __future__ import annotations
 
 import logging
@@ -6,41 +7,43 @@ from typing import Any
 
 _log = logging.getLogger(__name__)
 
-from fastapi import APIRouter, Depends, Request, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, Request, WebSocket
 from fastapi.responses import JSONResponse
 
 from access_guard import require_private_api_key
-from device_gateway.auth import token_configured, validate_device_token
+from device_gateway.auth import token_configured
 from device_gateway.protocol import (
     PROTOCOL_VERSION,
     ProtocolError,
     ack_frame,
     error_frame,
-    hello_ack,
     validate_uplink,
 )
-from device_gateway.sessions import DeviceSession, registry
+from device_gateway.sessions import registry
 from device_gateway.store import configure_task_store_from_env, task_store_health
-from device_gateway.notifier import (
-    configure_notifier_from_env,
-    notifier_health,
-    publish_task_available,
-    start_task_notifier,
-    stop_task_notifier,
-)
+from device_gateway.notifier import configure_notifier_from_env, notifier_health, publish_task_available, start_task_notifier, stop_task_notifier
 from device_gateway.tasks import (
     ack_processing_task,
     create_task_from_transcript,
     enqueue_pending_task,
-    mark_task_dispatched,
     pending_count,
-    pop_pending_tasks,
     record_motion_event,
-    requeue_pending_tasks,
     reset_tasks_for_tests,
 )
+from routes.device_gateway_dispatch import (
+    dispatch_task_to_session,
+    drain_pending_tasks,
+    notify_local_session_task_available,
+    record_motion_event_observability,
+)
+from routes.device_gateway_ws import handle_device_ws
 
 router = APIRouter(prefix="/device/v1")
+
+# Back-compat for tests
+_dispatch_task_to_session = dispatch_task_to_session
+_drain_pending_tasks = drain_pending_tasks
+_notify_local_session_task_available = notify_local_session_task_available
 
 
 @router.get("/health")
@@ -69,147 +72,90 @@ async def device_gateway_events(request: Request) -> JSONResponse:
     if msg_type == "motion_event":
         summary = record_motion_event(message)
         ack_processing_task(device_id, message["task_id"])
-        # ── P1.1: Correlation — record motion event outcome ─────────
-        try:
-            from observability.correlation import record_motion_event_correlation
-            error_code = ""
-            error_reason = ""
-            err = message.get("error", {}) if isinstance(message.get("error"), dict) else {}
-            if not err:
-                error_code = message.get("error_code", "")
-                error_reason = message.get("error_message", "")
-            else:
-                error_code = err.get("code", "")
-                error_reason = err.get("reason", "")
-            record_motion_event_correlation(
-                task_id=message["task_id"],
-                device_id=device_id,
-                phase=message.get("phase", "unknown"),
-                error_code=error_code,
-                error_reason=error_reason,
-            )
-        except ImportError:
-            pass
-        return JSONResponse(ack_frame("motion_event_ack", device_id, **summary, request_id=message.get("request_id")))
+        record_motion_event_observability(message, device_id)
+        return JSONResponse(
+            ack_frame("motion_event_ack", device_id, **summary, request_id=message.get("request_id"))
+        )
     if msg_type == "device_info":
         return JSONResponse(ack_frame("device_info_ack", device_id, request_id=message.get("request_id")))
     if msg_type == "self_check":
         return JSONResponse(
-            ack_frame("self_check_ack", device_id, status=message.get("status", "unknown"), request_id=message.get("request_id"))
+            ack_frame(
+                "self_check_ack",
+                device_id,
+                status=message.get("status", "unknown"),
+                request_id=message.get("request_id"),
+            )
         )
-    return JSONResponse(status_code=400, content=error_frame(ProtocolError("E_UNSUPPORTED_TYPE", "event type is not supported", message.get("request_id"))))
+    return JSONResponse(
+        status_code=400,
+        content=error_frame(
+            ProtocolError("E_UNSUPPORTED_TYPE", "event type is not supported", message.get("request_id"))
+        ),
+    )
 
 
 @router.post("/tasks", dependencies=[Depends(require_private_api_key)])
 async def device_gateway_tasks(request: Request) -> JSONResponse:
     body = await request.json()
     if not isinstance(body, dict):
-        return JSONResponse(status_code=400, content=error_frame(ProtocolError("E_INVALID_MESSAGE", "message must be a JSON object")))
+        return JSONResponse(
+            status_code=400,
+            content=error_frame(ProtocolError("E_INVALID_MESSAGE", "message must be a JSON object")),
+        )
     device_id = body.get("device_id")
     text = body.get("text")
     request_id = body.get("request_id")
     if not isinstance(device_id, str) or not device_id.strip():
         return JSONResponse(
             status_code=400,
-            content=error_frame(ProtocolError("E_INVALID_MESSAGE", "device_id must be a non-empty string", request_id if isinstance(request_id, str) else None)),
+            content=error_frame(
+                ProtocolError(
+                    "E_INVALID_MESSAGE",
+                    "device_id must be a non-empty string",
+                    request_id if isinstance(request_id, str) else None,
+                )
+            ),
         )
     if not isinstance(text, str) or not text.strip():
         return JSONResponse(
             status_code=400,
-            content=error_frame(ProtocolError("E_INVALID_MESSAGE", "text must be a non-empty string", request_id if isinstance(request_id, str) else None)),
+            content=error_frame(
+                ProtocolError(
+                    "E_INVALID_MESSAGE",
+                    "text must be a non-empty string",
+                    request_id if isinstance(request_id, str) else None,
+                )
+            ),
         )
 
-    task = create_task_from_transcript(device_id.strip(), text.strip(), request_id=request_id if isinstance(request_id, str) else None)
+    device_id = device_id.strip()
+    task = create_task_from_transcript(device_id, text.strip(), request_id=request_id if isinstance(request_id, str) else None)
     if task.get("error"):
-        return JSONResponse({"status": "failed", "sent": False, "queue_depth": pending_count(device_id.strip()), "task": task})
-    session = registry.get(device_id.strip())
+        return JSONResponse({"status": "failed", "sent": False, "queue_depth": pending_count(device_id), "task": task})
+    session = registry.get(device_id)
     sent = False
     if session is not None:
-        if await _dispatch_task_to_session(session, task):
-            sent = True
-            queue_depth = pending_count(device_id.strip())
-        else:
-            queue_depth = pending_count(device_id.strip())
+        sent = await dispatch_task_to_session(session, task)
+        queue_depth = pending_count(device_id)
     else:
-        queue_depth = enqueue_pending_task(device_id.strip(), task)
+        queue_depth = enqueue_pending_task(device_id, task)
         try:
-            await publish_task_available(device_id.strip())
+            await publish_task_available(device_id)
         except Exception as exc:
             _log.warning(
                 "publish_task_available failed device=%s task=%s err=%s",
-                device_id.strip(),
+                device_id,
                 task.get("task_id", ""),
                 type(exc).__name__,
             )
     return JSONResponse({"status": "sent" if sent else "queued", "sent": sent, "queue_depth": queue_depth, "task": task})
 
 
-def _extract_ws_token(websocket: WebSocket) -> str:
-    authorization = websocket.headers.get("authorization", "")
-    if authorization.lower().startswith("bearer "):
-        return authorization[7:].strip()
-    if authorization.strip():
-        return authorization.strip()
-    return websocket.query_params.get("token", "").strip()
-
-
-async def _send_error(websocket: WebSocket, error: ProtocolError | Exception, request_id: str | None = None) -> None:
-    await websocket.send_json(error_frame(error, request_id=request_id))
-
-
-def _requeue_session_outstanding(session: DeviceSession, extra_tasks: list[dict[str, Any]] | None = None) -> int:
-    outstanding = session.take_outstanding_tasks()
-    tasks = [*outstanding, *(extra_tasks or [])]
-    if not tasks:
-        return pending_count(session.device_id)
-    return requeue_pending_tasks(session.device_id, tasks)
-
-
-async def _dispatch_task_to_session(session: DeviceSession, task: dict[str, Any]) -> bool:
-    try:
-        await session.send_json(task)
-    except Exception:
-        registry.unregister(session.device_id, session.websocket)
-        _requeue_session_outstanding(session, [task])
-        return False
-    session.mark_task_dispatched(task)
-    mark_task_dispatched(task["task_id"])
-    return True
-
-
-async def _drain_pending_tasks(session: DeviceSession) -> bool:
-    while True:
-        pending_tasks = pop_pending_tasks(session.device_id)
-        if not pending_tasks:
-            return True
-        for index, pending_task in enumerate(pending_tasks):
-            try:
-                await session.send_json(pending_task)
-            except Exception:
-                registry.unregister(session.device_id, session.websocket)
-                _requeue_session_outstanding(session, pending_tasks[index:])
-                return False
-            session.mark_task_dispatched(pending_task)
-            mark_task_dispatched(pending_task["task_id"])
-
-
-async def _notify_local_session_task_available(device_id: str) -> None:
-    try:
-        session = registry.get(device_id)
-        if session is not None:
-            await _drain_pending_tasks(session)
-    except Exception as exc:
-        _log.exception(
-            "_notify_local_session_task_available failed device=%s: %s",
-            device_id,
-            type(exc).__name__,
-        )
-
-
 async def start_device_gateway_runtime() -> None:
     configure_task_store_from_env()
     configure_notifier_from_env()
-    await start_task_notifier(_notify_local_session_task_available)
+    await start_task_notifier(notify_local_session_task_available)
 
 
 async def stop_device_gateway_runtime() -> None:
@@ -218,129 +164,7 @@ async def stop_device_gateway_runtime() -> None:
 
 @router.websocket("/ws")
 async def device_ws(websocket: WebSocket) -> None:
-    await websocket.accept()
-    device_id: str | None = None
-    session: DeviceSession | None = None
-    authenticated = False
-    try:
-        while True:
-            raw = await websocket.receive_json()
-            try:
-                message = validate_uplink(raw)
-            except ProtocolError as exc:
-                await _send_error(websocket, exc)
-                continue
-
-            msg_type = message["type"]
-            request_id = message.get("request_id")
-
-            if msg_type == "hello":
-                device_id = message["device_id"]
-                if not validate_device_token(device_id, _extract_ws_token(websocket)):
-                    await _send_error(
-                        websocket,
-                        ProtocolError("E_UNAUTHORIZED_DEVICE", "device token is invalid", request_id),
-                    )
-                    await websocket.close(code=1008)
-                    return
-                authenticated = True
-                session = DeviceSession(
-                    device_id=device_id,
-                    websocket=websocket,
-                    fw_rev=message.get("fw_rev", ""),
-                    capabilities=message.get("capabilities", []),
-                )
-                previous = registry.register(session)
-                if previous and previous.websocket is not websocket:
-                    try:
-                        await previous.websocket.close(code=1012)
-                    except Exception as exc:
-                        _log.debug(
-                            "close superseded websocket device=%s: %s",
-                            device_id,
-                            type(exc).__name__,
-                        )
-                await session.send_json(hello_ack(device_id))
-                if not await _drain_pending_tasks(session):
-                    return
-                continue
-
-            if not authenticated or not device_id:
-                await _send_error(
-                    websocket,
-                    ProtocolError("E_HELLO_REQUIRED", "hello must be sent before other messages", request_id),
-                )
-                continue
-
-            if message["device_id"] != device_id:
-                await _send_error(
-                    websocket,
-                    ProtocolError("E_DEVICE_MISMATCH", "message device_id does not match session", request_id),
-                )
-                continue
-
-            if msg_type == "heartbeat":
-                registry.update_heartbeat(device_id, message["uptime_ms"])
-                session = registry.get(device_id)
-                sender = session.send_json if session is not None else websocket.send_json
-                await sender(
-                    ack_frame("heartbeat_ack", device_id, uptime_ms=message["uptime_ms"], request_id=request_id)
-                )
-            elif msg_type == "transcript":
-                task = create_task_from_transcript(device_id, message["text"], request_id=request_id)
-                if task.get("error"):
-                    await websocket.send_json(ack_frame("motion_task_failed", device_id, task_id=task["task_id"], error=task["error"], request_id=request_id))
-                    continue
-                session = registry.get(device_id)
-                if session is not None:
-                    if not await _dispatch_task_to_session(session, task):
-                        return
-                else:
-                    enqueue_pending_task(device_id, task)
-                    return
-            elif msg_type == "motion_event":
-                summary = record_motion_event(message)
-                ack_processing_task(device_id, message["task_id"])
-                # ── P1.1: Correlation — record motion event ─────────
-                try:
-                    from observability.correlation import record_motion_event_correlation
-                    ec = ""; er = ""
-                    err = message.get("error", {}) if isinstance(message.get("error"), dict) else {}
-                    if not err:
-                        ec = message.get("error_code", "")
-                        er = message.get("error_message", "")
-                    else:
-                        ec = err.get("code", "")
-                        er = err.get("reason", "")
-                    record_motion_event_correlation(
-                        task_id=message["task_id"], device_id=device_id,
-                        phase=message.get("phase", "unknown"),
-                        error_code=ec, error_reason=er,
-                    )
-                except ImportError:
-                    pass
-                session = registry.get(device_id)
-                if session is not None:
-                    session.mark_task_acknowledged(message["task_id"])
-                sender = session.send_json if session is not None else websocket.send_json
-                await sender(ack_frame("motion_event_ack", device_id, **summary, request_id=request_id))
-            elif msg_type == "device_info":
-                session = registry.get(device_id)
-                sender = session.send_json if session is not None else websocket.send_json
-                await sender(ack_frame("device_info_ack", device_id, request_id=request_id))
-            elif msg_type == "self_check":
-                session = registry.get(device_id)
-                sender = session.send_json if session is not None else websocket.send_json
-                await sender(
-                    ack_frame("self_check_ack", device_id, status=message.get("status", "unknown"), request_id=request_id)
-                )
-    except WebSocketDisconnect:
-        pass
-    finally:
-        if session is not None:
-            _requeue_session_outstanding(session)
-        if device_id:
-            registry.unregister(device_id, websocket)
+    await handle_device_ws(websocket)
 
 
 def _reset_for_tests() -> None:

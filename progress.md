@@ -9,6 +9,12 @@
 - **`STATUS.md` / `findings.md`：** 测试基线 **1530 passed, 10 skipped**；Code quality 行。
 - **Tests：** 文档-only；基线证据 commit `57ea35a`。
 
+## 2026-05-26 代码质量 P2（CQ-096）
+
+- **P2.1 device_gateway**：`device_gateway_dispatch.py` + `device_gateway_ws.py`；HTTP 路由 `device_gateway.py` 172 行
+- **P2.1 router_http**：`router_http_body/scnet/vision.py` 子模块；facade `router_http.py` ~200 行
+- **测试**：+2 authority tests；全量 **1538 passed, 10 skipped**
+
 ## 2026-05-26 代码质量 P2（CQ-095）
 
 - **P2.1**：`code_orchestrator_context.py` 拆分上下文/分层/池；`code_orchestrator.py` 保留执行管线（~210 行）

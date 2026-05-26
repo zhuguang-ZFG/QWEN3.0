@@ -47,3 +47,21 @@ def test_agent_task_evolution_routes_mounted():
     paths = {getattr(r, "path", "") for r in agent_tasks.router.routes}
     assert any("/skills/candidates" in p for p in paths)
     assert hasattr(evolution, "list_skill_candidates")
+
+
+def test_device_gateway_ws_split_preserves_exports():
+    routes = importlib.import_module("routes.device_gateway")
+    dispatch = importlib.import_module("routes.device_gateway_dispatch")
+    ws = importlib.import_module("routes.device_gateway_ws")
+    for name in ("_dispatch_task_to_session", "_drain_pending_tasks", "router"):
+        assert hasattr(routes, name)
+    assert hasattr(dispatch, "dispatch_task_to_session")
+    assert hasattr(ws, "handle_device_ws")
+
+
+def test_router_http_legacy_submodules():
+    router_http = importlib.import_module("router_http")
+    for submodule in ("router_http_body", "router_http_scnet", "router_http_vision"):
+        importlib.import_module(submodule)
+    assert hasattr(router_http, "call_api")
+    assert hasattr(router_http, "_build_request_body")

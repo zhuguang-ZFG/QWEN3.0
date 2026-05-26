@@ -10,6 +10,13 @@
 | MEM-091-2 | `docs/TECHNICAL_ARCHITECTURE.md` | 「当前架构（2026-05-26）」节；历史商业图标注为过时参考 | Closed |
 | MEM-091-3 | Test baseline | 沿用 `57ea35a`：**1530 passed, 10 skipped** | Closed |
 
+## 2026-05-26 CQ-096 Code quality P2 device_gateway + router_http split
+
+| ID | Area | Evidence | Status |
+|---|---|---|---|
+| CQ-096-1 | P2.1 split | `device_gateway_dispatch/ws`, `router_http_{body,scnet,vision}` | Closed |
+| CQ-096-2 | Tests | full **1538 passed, 10 skipped** | Closed |
+
 ## 2026-05-26 CQ-095 Code quality P2 split + pipeline authority tests
 
 | ID | Area | Evidence | Status |

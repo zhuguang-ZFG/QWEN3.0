@@ -2,7 +2,7 @@
 
 > Updated: 2026-05-26
 > Active direction: private personal coding assistant.
-> Tests: **1536 passed, 10 skipped** (`pytest -q --ignore=active_model`, 2026-05-26)
+> Tests: **1538 passed, 10 skipped** (`pytest -q --ignore=active_model`, 2026-05-26)
 > Memory: **`docs/LIMA_MEMORY.md`** — 2026-05-26 consolidated section at top
 
 ## Current Summary
