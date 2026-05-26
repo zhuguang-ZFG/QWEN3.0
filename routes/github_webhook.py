@@ -67,6 +67,15 @@ async def github_webhook(request: Request):
     if not summary:
         return {"ok": True, "ignored": True}
 
+    if event == "push":
+        try:
+            from github_webhook.format import extract_github_push_shas
+            from gitee_webhook.dedupe import record_push_shas
+
+            record_push_shas(extract_github_push_shas(payload), source="github")
+        except Exception:
+            logger.debug("github push dedupe record skipped", exc_info=True)
+
     try:
         from telegram_notify import notify_github_event
 

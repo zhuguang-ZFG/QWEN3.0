@@ -124,14 +124,14 @@ GITEE_AI_TOKEN=...       # 模力方舟 Access Token（GI-G-3）
 
 | Task | 文件 |
 |------|------|
-| 2.1 | `gitee_webhook/verify.py` — `X-Gitee-Token` 或签名验证（支持 password 与 sign 两种模式） |
-| 2.2 | `gitee_webhook/format.py` — push / merge_request / pipeline（fail only）摘要 |
-| 2.3 | `routes/gitee_webhook.py` — `POST /gitee/webhook` |
-| 2.4 | `route_registry.py` 注册；nginx `location /gitee/` 反代（VPS） |
-| 2.5 | `telegram_notify.notify_gitee_event()` 或复用 `notify_github_event` 带 `[Gitee]` 前缀 |
-| 2.6 | **去重：** `gitee_webhook/dedupe.py` — 同一 commit SHA 5min 内已推 GitHub 则跳过 Gitee 摘要 |
-| 2.7 | `tests/test_gitee_webhook.py` + `scripts/smoke_gitee_webhook_public.py` |
-| 2.8 | `docs/GITEE_WEBHOOK_INTEGRATION.md` |
+| 2.1 | `gitee_webhook/verify.py` | ✅ |
+| 2.2 | `gitee_webhook/format.py` | ✅ |
+| 2.3 | `routes/gitee_webhook.py` | ✅ |
+| 2.4 | nginx `/gitee/` + `patch_nginx_gitee_webhook.py` | ✅ |
+| 2.5 | `notify_gitee_event()` | ✅ |
+| 2.6 | `gitee_webhook/dedupe.py` + GitHub SHA record | ✅ |
+| 2.7 | `tests/test_gitee_webhook.py` + smoke | ✅ |
+| 2.8 | `docs/GITEE_WEBHOOK_INTEGRATION.md` | ✅ |
 
 **环境变量：**
 

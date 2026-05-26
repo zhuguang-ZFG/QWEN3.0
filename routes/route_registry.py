@@ -150,6 +150,15 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
         deps.loaded_modules["github_webhook"] = False
 
     try:
+        from routes.gitee_webhook import router as gitee_webhook_router
+
+        app.include_router(gitee_webhook_router)
+        deps.loaded_modules["gitee_webhook"] = True
+    except ImportError as exc:
+        logging.warning("[STARTUP] gitee_webhook module not loaded: %s", exc)
+        deps.loaded_modules["gitee_webhook"] = False
+
+    try:
         from routes.channel_gateway import router as channel_gateway_router
 
         app.include_router(channel_gateway_router)

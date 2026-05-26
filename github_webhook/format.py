@@ -43,6 +43,24 @@ def _format_push(payload: dict) -> str | None:
     )
 
 
+def extract_github_push_shas(payload: dict) -> list[str]:
+    shas: list[str] = []
+    for commit in payload.get("commits") or []:
+        if isinstance(commit, dict):
+            cid = str(commit.get("id") or "")
+            if cid:
+                shas.append(cid)
+    head = payload.get("head_commit") or {}
+    if isinstance(head, dict):
+        cid = str(head.get("id") or "")
+        if cid:
+            shas.append(cid)
+    after = str(payload.get("after") or "")
+    if after and after != "0" * 40:
+        shas.append(after)
+    return list(dict.fromkeys(shas))
+
+
 def _format_pull_request(payload: dict) -> str | None:
     action = str(payload.get("action") or "")
     if action not in {"opened", "closed", "reopened", "ready_for_review", "merged"}:

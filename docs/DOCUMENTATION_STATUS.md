@@ -56,6 +56,7 @@
 | `docs/superpowers/plans/2026-05-26-gitee-maximization.md` | **Active plan (P1)** | Gitee 镜像 + Webhook→Telegram + 模力方舟 AI + Pages；次于 TG-GH-1/2。 |
 | `docs/superpowers/plans/2026-05-26-cloudflare-google-maximization.md` | **Active plan (P1)** | Cloudflare Workers AI + Google Gemini 免费额度盘点、预算、扩容与路由；次于 TG-GH-2。 |
 | `docs/GITEE_BASELINE.md` | Active | GI-G-0 Gitee mirror baseline and event comparison. |
+| `docs/GITEE_WEBHOOK_INTEGRATION.md` | Active | GI-G-2 Gitee WebHook → Telegram + SHA dedupe. |
 | `docs/GITEE_MIRROR_RUNBOOK.md` | Active | GI-G-1 dual-remote push runbook. |
 | `docs/HEALTHCHECKS_SETUP.md` | Active | INF-B Healthchecks.io dead-man setup and cron runbook. |
 | `docs/superpowers/plans/2026-05-26-infra-tools-integration.md` | **Active plan (P1)** | Infisical + Healthchecks + Tailscale（零路由）；OpenLLMetry/SearXNG 暂缓。 |

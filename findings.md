@@ -6,7 +6,11 @@
 | TG-PROXY-099-2 | Code | `telegram_bot._telegram_proxy_candidates()` proxy→direct fallback | Closed 2026-05-26 |
 | TG-PROXY-099-3 | Ops | `frp/frpc.toml` added `gfw-proxy`; frpc restarted; VPS send smoke ok | Closed 2026-05-26 |
 
-| TG-GH-1-1 | VPS smoke | `deploy_reliability_ops.py` → `OK: http://127.0.0.1:7897: @limacode_bot` | Closed 2026-05-26 |
+| GI-G-2-1 | VPS deploy | `/gitee/webhook` enabled; health `gitee_webhook=true` | Closed 2026-05-26 |
+| GI-G-2-2 | Public smoke | `smoke_gitee_webhook_public.py` local+public 200 | Closed 2026-05-26 |
+| GI-G-2-3 | Ops | Gitee UI WebHook password must match VPS `GITEE_WEBHOOK_SECRET` | Open |
+
+## 2026-05-26 TG-GH-1 reliability
 | TG-GH-1-2 | Ops | `LIMA_HEALTHCHECK_ENABLED` still 0 on VPS (dry-run ok) | Open |
 
 ## 2026-05-26 CQ-099 Code quality P2 long-function splits

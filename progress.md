@@ -4,6 +4,17 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 GI-G-2 Gitee Webhook → Telegram
+
+- **实现**：`gitee_webhook/`（verify/format/dedupe）、`routes/gitee_webhook.py`、`notify_gitee_event`
+- **去重**：GitHub push 记录 SHA → Gitee 同 SHA 5min 内跳过（`GITEE_WEBHOOK_DEDUPE_GITHUB=1`）
+- **部署**：`deploy_gitee_webhook.py` + `patch_nginx_gitee_webhook.py`
+- **VPS smoke**：local + public **200** `{"ok":true}`（`smoke_gitee_webhook_public.py`）
+- **health**：`gitee_webhook=true`
+- **待运维**：Gitee 仓库 WebHook URL + 密码（与 VPS `GITEE_WEBHOOK_SECRET` 一致，prefix `140ed7e8...`）
+- **测试**：focused **11 passed**（gitee）；全量 **1615 passed, 10 skipped**
+- **下一刀**：GI-G-3 模力方舟 AI（有 token）或 TG-GH-2/3
+
 ## 2026-05-26 TG-GH-1 + GI-G-0/1 并行 closeout
 
 - **TG-GH-1**：`telegram_outbound.py`、`scripts/smoke_telegram_outbound.py`、`scripts/install_frpc_service.ps1`；`infra/lima-health.bat` 增 frpc 重启；`docs/TELEGRAM_BOT_DESIGN.md` FRP Runbook
