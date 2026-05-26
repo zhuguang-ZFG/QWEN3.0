@@ -206,15 +206,13 @@ async def admin_trigger_retrain():
 
 async def _run_retrain_job(job_id: str) -> None:
     try:
-        result = await asyncio.wait_for(
-            asyncio.to_thread(
-                subprocess.run,
-                [sys.executable, "auto_retrain.py", "--force"],
-                capture_output=True,
-                text=True,
-                cwd=str(REPO_ROOT),
-            ),
+        result = await asyncio.to_thread(
+            subprocess.run,
+            [sys.executable, "auto_retrain.py", "--force"],
+            capture_output=True,
+            text=True,
             timeout=_RETRAIN_TIMEOUT_SEC,
+            cwd=str(REPO_ROOT),
         )
         output = (result.stdout or result.stderr or "")[-500:]
         status = "completed" if result.returncode == 0 else "failed"
@@ -225,7 +223,7 @@ async def _run_retrain_job(job_id: str) -> None:
             "output": output,
             "finished_at": time.time(),
         }
-    except asyncio.TimeoutError:
+    except subprocess.TimeoutExpired:
         _log.warning("admin retrain job timed out: %s", job_id)
         _RETRAIN_JOBS[job_id] = {
             "job_id": job_id,

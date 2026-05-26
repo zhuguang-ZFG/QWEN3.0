@@ -157,6 +157,9 @@ async def _cmd_logs(chat_id: str, arg: str) -> None:
     except Exception:
         logger.exception("cmd_logs failed")
         await telegram_bot.send_message(_operator_error("logs"), chat_id=chat_id)
+
+
+async def _cmd_restart(chat_id: str) -> None:
     keyboard = {
         "inline_keyboard": [[
             {"text": "Confirm restart", "callback_data": "restart:confirm"},
