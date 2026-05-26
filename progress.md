@@ -12,6 +12,13 @@
 - **INF-B operator**：Check `lima-vps-router` Period 5min / Grace 10min / Email ON；`verify_healthcheck_vps_ok`
 - **测试**：translate + healthchecks_io + healthcheck_ping **21 passed**
 
+## 2026-05-26 LC-W-2 Hooks + Skill Activation v0.1
+
+- **配置**：`.lima-code/skill-rules.json`（LiMa 项目规则：router/telegram）
+- **Smoke**：`smoke_lcw2_hooks_e2e.py` → 本地 **smoke_ok** task `1422c6e6`；skills `security-review`, `requesting-code-review`, `lima:telegram-ops-review`
+- **产物**：`.lima-code/dev/active/<task>/{context,tasks,summary}.md` + `touched-files.txt`
+- **VPS**：`deploy_lcw2_ok` task `23fe89b3`（server_only）；worker 证据本机 task `b09828e7`
+
 ## 2026-05-26 LC-W-1e `/lima next` E2E
 
 - **Worker**：`verify_lcw1_worker_context.ts` + `smoke_lcw1_lima_next_e2e.py` → 本地 **full smoke_ok** task `f50f8795`，`context.md` 五段齐全

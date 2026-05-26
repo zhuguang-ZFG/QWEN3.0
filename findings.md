@@ -131,6 +131,7 @@
 | RADAR-P0-4 | Gitee MCP | `dev_search_gitee` + `dev_fetch_gitee_file`；VPS **`smoke_gitee_mcp_ok`** | Closed 2026-05-26 |
 | LC-W-1e-1 | VPS smoke | `smoke_lcw1_prompt_contract_e2e.py` task `295f45b5` | Closed 2026-05-26 |
 | LC-W-1e-2 | Worker E2E | `smoke_lcw1_lima_next_e2e.py` + `context.md` 五段；local `f50f8795` VPS `53b3b150` | Closed 2026-05-26 |
+| LC-W-2-1 | Hooks + skills | `.lima-code/skill-rules.json` + `smoke_lcw2_hooks_e2e.py` task `1422c6e6` | Closed 2026-05-26 |
 | CF-EVAL-1 | CF probe | 全量未注册候选 4/4 dry-run **0 pass**；overlays 20/30 | Open |
 
 ## 2026-05-26 TG-GH-2 LiMa Code Telegram

@@ -156,3 +156,6 @@ feedback_queue.json
 
 # PE-B-1 codesearch local index
 .codesearch.db/
+
+# LiMa Code worker active task dirs (keep skill-rules.json tracked)
+.lima-code/dev/

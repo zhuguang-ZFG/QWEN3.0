@@ -162,6 +162,7 @@ Owner 明确要求：**里程碑切片完成后 Agent 自动 VPS 部署 + 自动
 | GitHub webhook | `deploy_telegram.sh` / 手动 | `smoke_github_webhook_public.py` |
 | Gitee MCP | `deploy_gitee_mcp_slice.py` | `smoke_gitee_mcp_tools.py`（先 `provision_gitee_token_vps.py`） |
 | LC-W-1e | `deploy_lcw1_e2e_slice.py` | `smoke_lcw1_lima_next_e2e.py`（worker 需本机 tsx） |
+| LC-W-2 | `deploy_lcw2_slice.py` | `smoke_lcw2_hooks_e2e.py`（worker 需本机 `.lima-code/skill-rules.json`） |
 
 Hard rules for this loop:
 
