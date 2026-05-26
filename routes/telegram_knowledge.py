@@ -125,6 +125,60 @@ async def cmd_memstats(chat_id: str, args: str) -> None:
         )
 
 
+async def cmd_feed(chat_id: str, args: str) -> None:
+    """Search public experience sources. Usage: /feed <query> [--save]"""
+    query = args.strip()
+    save = False
+    if query.endswith(" --save"):
+        query = query[:-7].strip()
+        save = True
+
+    if not query:
+        await telegram_bot.send_message(
+            "/feed <query> [--save]\nSearch StackOverflow + GitHub Issues for public experience.\nAdd --save to store top results as typed memories.",
+            chat_id=chat_id, parse_mode="",
+        )
+        return
+
+    await telegram_bot.send_message(
+        f"Searching: `{query[:60]}`...", chat_id=chat_id, parse_mode="Markdown",
+    )
+
+    try:
+        from search_gateway.public_feeder import feed_experience
+
+        result = feed_experience(query, limit=3, save_to_memory=save)
+        items = result.get("results", [])
+        saved = result.get("saved_count", 0)
+
+        if not items:
+            await telegram_bot.send_message(
+                f"No results for: `{query[:60]}`", chat_id=chat_id, parse_mode="Markdown",
+            )
+            return
+
+        lines = [f"*Feed: `{query[:40]}`* ({len(items)} results)", ""]
+        for item in items[:5]:
+            icon = {0.8: "\U0001f7e2", 0.5: "\U0001f7e1"}.get(
+                round(item["confidence"] * 10) / 10 if item["confidence"] >= 0.8 else 0, "\U0001f534",
+            )
+            src = item["source"]
+            lines.append(f"{icon} [{src}] {item['title'][:120]}")
+            if item.get("url"):
+                lines.append(f"  {item['url'][:80]}")
+
+        if saved:
+            lines.append(f"\nSaved {saved} memories. /kb to search.")
+
+        await telegram_bot.send_message(
+            "\n".join(lines)[:4000], chat_id=chat_id, parse_mode="Markdown",
+        )
+    except Exception as exc:
+        await telegram_bot.send_message(
+            f"Feed failed: {exc}", chat_id=chat_id, parse_mode="",
+        )
+
+
 def _type_emoji(memory_type: str) -> str:
     return {
         "user_pref": "\U0001f464", "project_fact": "\U0001f4cb",

@@ -153,6 +153,11 @@ async def _dispatch_operator(chat_id: str, cmd: str, arg: str, *, logs_fn, resta
 
         await cmd_memstats(chat_id, arg)
         return True
+    if cmd == "/feed":
+        from routes.telegram_knowledge import cmd_feed
+
+        await cmd_feed(chat_id, arg)
+        return True
     return False
 
 
