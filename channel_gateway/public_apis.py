@@ -113,6 +113,17 @@ def fetch_translate(text: str, *, target: str = "zh-CN") -> dict:
     raw = text.strip()[:500]
     if not raw:
         return {"ok": False, "error": "用法：/翻译 hello"}
+    translated = translate_text_only(raw, target=target)
+    if not translated:
+        return {"ok": False, "error": "翻译失败"}
+    return {"ok": True, "text": f"{raw}\n→ {translated}"}
+
+
+def translate_text_only(text: str, *, target: str = "zh-CN", max_len: int = 500) -> str | None:
+    """Return translated text only (MyMemory, no API key)."""
+    raw = text.strip()[:max_len]
+    if not raw:
+        return None
     pair = f"en|{target}" if target.startswith("zh") else f"auto|{target}"
     try:
         url = (
@@ -120,12 +131,11 @@ def fetch_translate(text: str, *, target: str = "zh-CN") -> dict:
             + urllib.parse.urlencode({"q": raw, "langpair": pair})
         )
         data = _get_json(url)
-        translated = data.get("responseData", {}).get("translatedText", "")
-        if not translated:
-            return {"ok": False, "error": "翻译失败"}
-        return {"ok": True, "text": f"{raw}\n→ {translated}"}
+        translated = str(data.get("responseData", {}).get("translatedText") or "").strip()
+        return translated or None
     except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
-        return {"ok": False, "error": f"翻译服务暂不可用：{type(exc).__name__}"}
+        _log.debug("translate_text_only failed: %s", type(exc).__name__)
+        return None
 
 
 def fetch_ip_info(ip: str) -> dict:

@@ -10,6 +10,20 @@ import telegram_bot
 
 logger = logging.getLogger(__name__)
 
+
+def _prepare_push_text(summary: str) -> str:
+    try:
+        from telegram_push_translate import translate_push_text
+
+        return translate_push_text(summary)
+    except Exception:
+        logger.warning("push translate skipped", exc_info=True)
+        return summary
+
+
+def _send_push_message(summary: str, *, parse_mode: str = "") -> None:
+    _fire_and_forget(telegram_bot.send_message, _prepare_push_text(summary), parse_mode=parse_mode)
+
 _health_last_notified: dict[str, float] = {}
 _RATE_LIMIT_SECONDS = 60
 
@@ -49,7 +63,7 @@ def notify_health_change(backend: str, old_state: str, new_state: str) -> None:
     _health_last_notified[backend] = now
 
     msg = f"Backend `{backend}` → {new_state}"
-    _fire_and_forget(telegram_bot.send_alert, level, msg)
+    _fire_and_forget(telegram_bot.send_alert, level, _prepare_push_text(msg))
 
 
 def notify_task_ready(task_id: str, summary: str, changed_files: list[str]) -> None:
@@ -62,21 +76,21 @@ def notify_error_spike(error_rate: float, strategy: str) -> None:
     if not telegram_bot.is_configured():
         return
     msg = f"Error rate {error_rate:.0%} → strategy switched to `{strategy}`"
-    _fire_and_forget(telegram_bot.send_alert, "warning", msg)
+    _fire_and_forget(telegram_bot.send_alert, "warning", _prepare_push_text(msg))
 
 
 def notify_github_event(summary: str) -> None:
     if not telegram_bot.is_configured():
         logger.debug("github event skipped: telegram not configured")
         return
-    _fire_and_forget(telegram_bot.send_message, summary)
+    _send_push_message(summary)
 
 
 def notify_gitee_event(summary: str) -> None:
     if not telegram_bot.is_configured():
         logger.debug("gitee event skipped: telegram not configured")
         return
-    _fire_and_forget(telegram_bot.send_message, summary)
+    _send_push_message(summary)
 
 
 def notify_ops_event(summary: str, level: str = "warning") -> None:
@@ -84,7 +98,7 @@ def notify_ops_event(summary: str, level: str = "warning") -> None:
     if not telegram_bot.is_configured():
         logger.debug("ops event skipped: telegram not configured")
         return
-    _fire_and_forget(telegram_bot.send_alert, level, summary)
+    _fire_and_forget(telegram_bot.send_alert, level, _prepare_push_text(summary))
 
 
 def notify_deploy_event(summary: str) -> None:
@@ -92,7 +106,7 @@ def notify_deploy_event(summary: str) -> None:
     if not telegram_bot.is_configured():
         logger.debug("deploy notify skipped: telegram not configured")
         return
-    _fire_and_forget(telegram_bot.send_message, summary)
+    _send_push_message(summary)
 
 
 def notify_smoke_event(summary: str) -> None:
@@ -100,7 +114,7 @@ def notify_smoke_event(summary: str) -> None:
     if not telegram_bot.is_configured():
         logger.debug("smoke notify skipped: telegram not configured")
         return
-    _fire_and_forget(telegram_bot.send_message, summary)
+    _send_push_message(summary)
 
 
 _budget_last_notified: dict[str, float] = {}
@@ -146,4 +160,4 @@ def notify_budget_threshold(
         headline = "Budget warning"
 
     msg = f"{headline}: {target} {used}/{limit} ({pct}%)"
-    _fire_and_forget(telegram_bot.send_alert, alert_level, msg)
+    _fire_and_forget(telegram_bot.send_alert, alert_level, _prepare_push_text(msg))

@@ -64,7 +64,7 @@ def format_github_read(raw: dict, *, max_chars: int = 3500) -> str:
         return f"GitHub read failed: {raw.get('error', 'unknown')}"
     title = raw.get("title") or raw.get("path") or "file"
     body = str(raw.get("text") or "")[:max_chars]
-    return f"[{title}]\n{body}"
+    return f"{title}\n---\n{body}"
 
 
 async def fetch_device_gateway_status(

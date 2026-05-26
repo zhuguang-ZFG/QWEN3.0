@@ -19,6 +19,8 @@ FILES = [
     "backends_constants.py",
     "telegram_operator_tools.py",
     "telegram_notify.py",
+    "telegram_push_translate.py",
+    "channel_gateway/public_apis.py",
     "routes/telegram.py",
     "routes/telegram_commands.py",
     "scripts/notify_ops_telegram.py",
@@ -42,7 +44,7 @@ def main() -> int:
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(SERVER, username="root", key_filename=KEY, timeout=60)
-    _run(ssh, f"mkdir -p {REMOTE}/scripts")
+    _run(ssh, f"mkdir -p {REMOTE}/scripts {REMOTE}/channel_gateway")
 
     for rel in FILES:
         local = base / rel
@@ -68,6 +70,11 @@ def main() -> int:
     ok = active == "active" and "google_flash_lite" in verify
     print("deploy_five_line_closeout_ok" if ok else "deploy_five_line_closeout_FAILED")
     if ok:
+        _run(
+            ssh,
+            f"grep -q '^TELEGRAM_PUSH_TRANSLATE=' {REMOTE}/.env 2>/dev/null || "
+            f"echo 'TELEGRAM_PUSH_TRANSLATE=1' >> {REMOTE}/.env",
+        )
         sys.path.insert(0, str(Path(__file__).resolve().parent))
         import deploy_common
 

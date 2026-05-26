@@ -31,8 +31,9 @@ def test_parse_github_args():
 
 def test_format_github_read_ok():
     text = format_github_read({"ok": True, "title": "README", "text": "hello"})
-    assert "[README]" in text
+    assert "README" in text
     assert "hello" in text
+    assert text.startswith("README\n---\n")
 
 
 @pytest.mark.asyncio

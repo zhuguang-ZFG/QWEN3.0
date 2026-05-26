@@ -45,7 +45,7 @@ P2  延后
 | | TG-GH-5 issues/release/PR | ✅ | — |
 | **Gitee** | GI-G-0/1 镜像 | ✅ | — |
 | | GI-G-2 webhook→TG | ✅ | UI secret 对齐 |
-| | GI-G-3 模力方舟 AI | ⏸ 基础设施 | **resource_not_bound** |
+| | GI-G-3 模力方舟 AI | ❌ Cancelled | 无免费资源包 |
 | | GI-G-5 digest + mirror lag | ✅ | — |
 | **Cloudflare** | CF-G-0/1/2 | ✅ | — |
 | | CF-G-3 路由 | ✅ | — |

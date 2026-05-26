@@ -416,7 +416,7 @@ async def cmd_github(chat_id: str, args: str) -> None:
     repo, path, ref = parsed
     try:
         text = fetch_github_file_text(repo, path, ref)
-        await telegram_bot.send_message(text, chat_id=chat_id)
+        await telegram_bot.send_message(text, chat_id=chat_id, parse_mode="")
     except Exception:
         logger.exception("cmd_github failed")
         await telegram_bot.send_message(_operator_error("github"), chat_id=chat_id)
@@ -436,7 +436,7 @@ async def cmd_device(chat_id: str, args: str) -> None:
         summary = await fetch_device_gateway_status()
         lines = summary.splitlines()
         append_recent_tasks_summary(lines)
-        await telegram_bot.send_message("\n".join(lines), chat_id=chat_id)
+        await telegram_bot.send_message("\n".join(lines), chat_id=chat_id, parse_mode="")
     except Exception:
         logger.exception("cmd_device failed")
         await telegram_bot.send_message(_operator_error("device"), chat_id=chat_id)

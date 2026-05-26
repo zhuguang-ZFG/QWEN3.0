@@ -24,7 +24,12 @@
 | FL-1-4 | VPS deploy | `deploy_five_line_closeout.py` active | Closed 2026-05-26 |
 | FL-1-5 | VPS smoke | `smoke_telegram_operator_vps.py` smoke_ok | Closed 2026-05-26 |
 | FL-1-6 | Tests | focused 7 passed; full **1631 passed, 10 skipped** | Closed 2026-05-26 |
-| FL-1-7 | Ops | Manual Telegram `/github` `/device` on phone | Open |
+| FL-1-7 | Ops | Manual Telegram `/github` `/device` on phone | Closed 2026-05-26 |
+| TG-GH-7-1 | Push translate | MyMemory via `TELEGRAM_PUSH_TRANSLATE=1` | Closed 2026-05-26 |
+| TG-GH-7-2 | Scope | webhook/alert/digest only; not /github body | Closed 2026-05-26 |
+| GI-G-3-5 | Account | No 模力方舟 free quota — phase cancelled | Cancelled 2026-05-26 |
+
+## 2026-05-26 PE-C-1 Netdata MCP
 
 | FL-1-8 | GI-G-3 re-probe | 3/3 resource_not_bound (2026-05-26) | Blocked |
 | FL-1-9 | Acceptance smoke | `smoke_five_line_acceptance.py` acceptance_ok | Closed 2026-05-26 |

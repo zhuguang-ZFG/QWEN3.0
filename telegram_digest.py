@@ -78,4 +78,10 @@ async def send_unified_digest(*, hours: float = 24.0) -> bool:
     if not telegram_bot.is_configured():
         return False
     text = build_unified_digest_text(hours=hours)
+    try:
+        from telegram_push_translate import translate_push_text
+
+        text = translate_push_text(text)
+    except Exception:
+        pass
     return await telegram_bot.send_message(text)
