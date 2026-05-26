@@ -43,6 +43,17 @@ Doctor 会报告 Telegram 配置状态：`/lima doctor`
 ## 验收 smoke
 
 ```powershell
+cd D:\GIT
+# dry-run（仅需 LIMA_CODE_TELEGRAM_BOT_TOKEN + chat/B2B 配置）
+python scripts/smoke_tg_gh2_limacode_telegram_e2e.py
+
+# 真实推送（Operator 批准）
+python scripts/smoke_tg_gh2_limacode_telegram_e2e.py --send
+```
+
+或 deepcode-cli 跑任务：
+
+```powershell
 cd D:\GIT\deepcode-cli
 # 需 LIMA_CODE_SERVER_URL + API key + Telegram env
 npx tsx src/cli.ts lima task <task-id>

@@ -135,7 +135,9 @@
 | PROD-008-1 | Learning loop E2E | `smoke_prod008_learning_loop_e2e.py` VPS task `24db066c` 四通道 true | Closed 2026-05-26 |
 | KIMI-JSON-1 | Eval fence | Kimi 三模式 **3/3** `scnet_kimi_eval_20260526b.json` | Closed 2026-05-26 |
 | SCNET-DSPRO-1 | Timeout/empty | timeout 90 + empty guard；复测 **3/3** | Closed 2026-05-26 |
-| CF-EVAL-1 | CF probe | 4 候选 dry-run **0/4 pass**；overlays **20/30**；`cf_eval1_summary.json` | Open（池有候选，门槛未过） |
+| CF-EVAL-1 | CF probe | completion-only **2/4 pass** + **2 overlays**（22/30）；kimi-k2.5/uform 仍 rejected | Partial 2026-05-26 |
+| ROUTE-KIMI-1 | Coding pools | Kimi 三模式 → `code.medium` + orchestrator coder/strong | Closed 2026-05-26 |
+| TG-GH-2-3 | LiMa Code→TG | smoke script + notifier **8 passed**；live `--send` 待 Operator token | Partial 2026-05-26 |
 | LC-W-3-1 | Gated daemon | `LIMA_CODE_WORKER_DAEMON=1` + `/lima daemon start` idleRetry；cli **40 passed** | Closed 2026-05-26（默认关，需 Operator 开 env） |
 
 ## 2026-05-26 TG-GH-2 LiMa Code Telegram
@@ -144,7 +146,7 @@
 |---|---|---|---|
 | TG-GH-2-1 | Submodule | deepcode-cli `telegram-notifier.ts` 已有 | Closed 2026-05-26 |
 | TG-GH-2-2 | Docs | `docs/TG_GH_2_LIMACODE_TELEGRAM.md` closeout | Closed 2026-05-26 |
-| TG-GH-2-3 | E2E smoke | Windows worker `/lima task` → Telegram（待手工） | Open |
+| TG-GH-2-3 | E2E smoke | `smoke_tg_gh2_limacode_telegram_e2e.py` dry-run + notifier unit **8 passed**；live `--send` 待 token | Partial 2026-05-26 |
 
 ## 2026-05-26 TG-GH-1 reliability
 

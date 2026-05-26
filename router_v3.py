@@ -91,6 +91,7 @@ POOLS = {
         "medium": ["cfai_llama70b", "cfai_llama4",
                    "cerebras_gptoss", "groq_gptoss", "mistral_small",
                    "mistral_medium", "groq_gptoss_20b",
+                   "kimi", "kimi_thinking", "kimi_search",
                    "github_gpt4o", "github_codestral"],
         "floor": ["mistral_devstral", "mistral_large", "cerebras_gptoss",
                   "groq_gptoss", "longcat_lite", "local_coder14b",

@@ -31,10 +31,17 @@ def main() -> int:
     inv_code, inv_out = _run([sys.executable, "scripts/inventory_cloudflare_models.py"])
     summary["steps"].append({"inventory": inv_code, "tail": inv_out.splitlines()[-3:]})
 
-    probe_code, probe_out = _run(
-        [sys.executable, "scripts/probe_cf_new_models.py", "--dry-run"]
-    )
-    summary["steps"].append({"probe_dry_run": probe_code, "tail": probe_out.splitlines()[-5:]})
+    probe_args = [sys.executable, "scripts/probe_cf_new_models.py", "--dry-run"]
+    if "--completion-only" in sys.argv:
+        probe_args.append("--completion-only")
+    if "--apply" in sys.argv:
+        probe_args.extend(["--apply"])
+    probe_code, probe_out = _run(probe_args)
+    summary["steps"].append({
+        "probe": probe_code,
+        "mode": "completion-only" if "--completion-only" in sys.argv else "full",
+        "tail": probe_out.splitlines()[-5:],
+    })
 
     admission_path = ROOT / "data" / "backend_admission.json"
     inventory_path = ROOT / "data" / "cf_model_inventory.json"

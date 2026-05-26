@@ -7,11 +7,12 @@
       ]
     },
     {
-      "probe_dry_run": 1,
+      "probe": 0,
+      "mode": "completion-only",
       "tail": [
         "probing 4 CF candidate(s) (overlays 20/30)...",
         "report: D:\\GIT\\docs\\CF_PROBE_REPORT.md",
-        "probe_ok passed=0/4 admitted=0",
+        "probe_ok passed=2/4 admitted=0",
         "[LiMa] 162 backends configured"
       ]
     }
@@ -25,6 +26,6 @@
     "@cf/moonshotai/kimi-k2.5",
     "@cf/unum/uform-gen2-qwen-500m"
   ],
-  "pool_exhausted_for_admission": true,
+  "pool_exhausted_for_admission": false,
   "report": "CF_PROBE_REPORT.md"
 }

@@ -164,7 +164,8 @@ Owner 明确要求：**里程碑切片完成后 Agent 自动 VPS 部署 + 自动
 | LC-W-1e | `deploy_lcw1_e2e_slice.py` | `smoke_lcw1_lima_next_e2e.py`（worker 需本机 tsx） |
 | LC-W-2 | `deploy_lcw2_slice.py` | `smoke_lcw2_hooks_e2e.py`（worker 需本机 `.lima-code/skill-rules.json`） |
 | PROD-008 | `deploy_prod008_slice.py` | `smoke_prod008_learning_loop_e2e.py`（task→result→四通道 learning loop） |
-| CF-EVAL-1 | `run_cf_eval1_slice.py` | inventory + probe dry-run → `data/cf_eval1_summary.json` |
+| CF-EVAL-1 | `run_cf_eval1_slice.py --completion-only` | 可加 `--apply` 写入 SANDBOX overlay |
+| TG-GH-2 | — | `smoke_tg_gh2_limacode_telegram_e2e.py`（`--send` 需 Telegram token） |
 | SCNET-DSPRO | — | `diag_scnet_ds_pro.py`（只读 probe 30s/90s） |
 
 Hard rules for this loop:

@@ -286,6 +286,34 @@
         "probe:2026-05-26T01:11:42Z"
       ],
       "latency_ms": 0.0
+    },
+    {
+      "backend_key": "cf_defog_sqlcoder_7b_2",
+      "provider": "cloudflare",
+      "model_id": "@cf/defog/sqlcoder-7b-2",
+      "tier": "medium",
+      "admission_status": "admitted_late_fallback",
+      "private_code_allowed": false,
+      "enabled": true,
+      "expires_at": null,
+      "evidence_refs": [
+        "probe:2026-05-26T06:43:51Z"
+      ],
+      "latency_ms": 0.0
+    },
+    {
+      "backend_key": "cf_meta_llama_llama_2_7b_chat_hf_lora",
+      "provider": "cloudflare",
+      "model_id": "@cf/meta-llama/llama-2-7b-chat-hf-lora",
+      "tier": "medium",
+      "admission_status": "admitted_late_fallback",
+      "private_code_allowed": false,
+      "enabled": true,
+      "expires_at": null,
+      "evidence_refs": [
+        "probe:2026-05-26T06:43:51Z"
+      ],
+      "latency_ms": 0.0
     }
   ]
 }

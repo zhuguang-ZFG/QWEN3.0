@@ -4,6 +4,26 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 四线顺序 closeout（CF / 全量 eval / 路由池 / TG-GH-2）
+
+### 1. CF-EVAL-1 completion-only
+- **`probe_cf_new_models.py --completion-only`**：4 候选 **2/4 pass**（sqlcoder-7b-2、llama-2-7b-lora）
+- **`--apply`**：新增 overlay **2** 条 → overlays **22/30**
+- **仍 rejected**：kimi-k2.5 空响应、uform 400
+
+### 2. 11 backend 全量 eval
+- **`data/scnet_kimi_eval_20260526_full.json`** + `docs/CODING_BACKEND_RANKING.md`
+- **亮点**：10/11 有效；`scnet_ds_pro` **3/3**；Kimi 族 mostly 3/3（`kimi` code_review 偶发 timeout 2/3）
+- **失效**：`stock_kimi_k2` 0/3
+
+### 3. 路由池 Kimi 提升
+- **`code_orchestrator_context`** coder/strong + **`router_v3` code.medium**
+- **`backends_registry`**：`private_code_allowed` + `code_medium_candidate`（local 4504 拓扑）
+
+### 4. TG-GH-2-3 E2E
+- **`smoke_tg_gh2_limacode_telegram_e2e.py`** + **`verify_tg_gh2_limacode_telegram.ts`**
+- 本机 **SKIP**（无 `LIMA_CODE_TELEGRAM_BOT_TOKEN`）；deepcode-cli notifier **8 passed**
+
 ## 2026-05-26 P1 eval 验证刀（Kimi 3/3 + scnet_ds_pro 恢复）
 
 - **Kimi JSON 围栏**：`coding_eval._extract_json_payload`；`kimi`/`kimi_thinking`/`kimi_search` **3/3**（`data/scnet_kimi_eval_20260526b.json`）

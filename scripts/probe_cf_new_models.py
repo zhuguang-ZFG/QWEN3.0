@@ -37,6 +37,11 @@ def main() -> int:
                         help="Stop applying after this many total overlays (50%% of ~60 unregistered)")
     parser.add_argument("--dry-run", action="store_true", help="Probe only; do not write admission")
     parser.add_argument("--apply", action="store_true", help="Write passing models to admission overlay")
+    parser.add_argument(
+        "--completion-only",
+        action="store_true",
+        help="Skip coding fixture; metadata + completion smoke only (SANDBOX overlay tier)",
+    )
     args = parser.parse_args()
 
     if not cf_credentials_configured():
@@ -63,7 +68,7 @@ def main() -> int:
     runner = ProbeRunner(ProbeRunnerConfig(
         run_metadata=True,
         run_completion_smoke=True,
-        run_coding_fixture=True,
+        run_coding_fixture=not args.completion_only,
     ))
     runner.set_smoke_callable(make_smoke_callable())
     runner.set_coding_callable(make_coding_callable())
@@ -73,7 +78,8 @@ def main() -> int:
     report_path = ROOT / "docs" / "CF_PROBE_REPORT.md"
     report_path.write_text(
         "# CF Probe Report\n\n"
-        f"Generated: {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}\n\n"
+        f"Generated: {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}\n"
+        f"Mode: {'completion-only' if args.completion_only else 'metadata+completion+coding'}\n\n"
         + report_md + "\n",
         encoding="utf-8",
     )

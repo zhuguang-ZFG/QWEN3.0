@@ -3,6 +3,23 @@
 > Updated: 2026-05-26
 > Scope: SCNet and Kimi-family free or near-free backends in LiMa.
 
+## 2026-05-26 Re-eval C（11 backends 全量）
+
+Command: `eval_coding_backends.py` × 11 × 3 cases（~3.3min）。
+
+| Backend | Passes | Avg Score | Avg Latency | Decision |
+|---|---:|---:|---:|---|
+| `scnet_large_ds_pro` | 3/3 | 100 | 1232ms | Local 4505 最快 pro |
+| `scnet_qwen30b` / `scnet_large_ds_flash` / `scnet_qwen235b` / `scnet_ds_flash` | 3/3 | 100 | 1.3–2.0s | First tier |
+| `scnet_ds_pro` | **3/3** | 100 | 6451ms | Deep tier（timeout 90 + empty guard） |
+| `cf_kimi_k26` / `kimi_search` / `kimi_thinking` | 3/3 | 100 | 4.8–27s | Coding 候选 |
+| `kimi` | 2/3 | 66 | 12s | code_review 偶发 timeout |
+| `stock_kimi_k2` | 0/3 | 0 | — | Inactive |
+
+Raw: `data/scnet_kimi_eval_20260526_full.json`、`docs/CODING_BACKEND_RANKING.md`。
+
+---
+
 ## 2026-05-26 Re-eval B（JSON 围栏 + scnet_ds_pro timeout）
 
 Command: `scripts/eval_coding_backends.py` — Kimi 三模式 + `scnet_ds_pro`（post-fix）。
