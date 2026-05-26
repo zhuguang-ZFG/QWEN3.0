@@ -158,6 +158,16 @@ async def _dispatch_operator(chat_id: str, cmd: str, arg: str, *, logs_fn, resta
 
         await cmd_feed(chat_id, arg)
         return True
+    if cmd == "/learn":
+        from routes.telegram_knowledge import cmd_learn
+
+        await cmd_learn(chat_id, arg)
+        return True
+    if cmd == "/outcome":
+        from routes.telegram_knowledge import cmd_outcome
+
+        await cmd_outcome(chat_id, arg)
+        return True
     return False
 
 

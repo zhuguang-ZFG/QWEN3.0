@@ -33,6 +33,8 @@ class TaskOutcome:
     latency_ms: int = 0
     failure_reason: str = ""
     artifacts: list[str] = field(default_factory=list)
+    risks: list[str] = field(default_factory=list)
+    next_action: str = ""
     worker_id: str = ""
 
 
