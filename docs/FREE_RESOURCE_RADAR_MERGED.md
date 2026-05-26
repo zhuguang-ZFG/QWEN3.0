@@ -140,7 +140,7 @@
 
 | 类别 | 最佳资源 | 免费额度 | LiMa |
 |------|---------|---------|------|
-| **通知** | ntfy/Apprise | 自建无限 | **Backlog** |
+| **通知** | ntfy/Apprise | 自建无限 | **Partial** `smoke_ntfy.py`（默认关）2026-05-26 |
 | **Dead-man** | Healthchecks.io | 免费 | **Done** INF-B `lima-vps-router` |
 | **Dead-man** | GitHub Actions | 2000分/月 | **Done** `lima-vps-deadman.yml` |
 | **微信推送** | Server酱 | 5条/天 | **Paused** 见 `WECHAT_RETIRED.md` |

@@ -14,6 +14,8 @@
 | RADAR-P2-16-2 | VPS | deploy_radar_p2_16 + smoke uuid/evalreport/oldllm import | Closed 2026-05-26 |
 | TG-UUID-1 | Root cause | `/uuid` failed: VPS `public_apis.py` stale (no `fetch_hot_60s`); `_run_tool` import all-or-nothing | Closed 2026-05-26 |
 | TG-UUID-2 | Fix | deploy `public_apis.py` + split lookup/public imports in `telegram_public_tools.py` | Closed 2026-05-26 |
+| RADAR-P2-17-1 | Eval | Full 11-backend live 8080: 7×100, cf_kimi_k26 80, scnet_ds_pro 67, stock_kimi_k2/scnet_large_ds_pro 0 | Closed 2026-05-26 |
+| RADAR-P2-17-2 | Code | ntfy smoke + run_eval_full_and_report | Closed 2026-05-26 |
 
 | GH-PUSH-MSG-1 | Code | push Telegram 摘要含 commit message（GH+Gitee） | Closed 2026-05-26 |
 | GH-PUSH-MSG-2 | VPS | deploy_github + deploy_gitee + smoke 200 | Closed 2026-05-26 |

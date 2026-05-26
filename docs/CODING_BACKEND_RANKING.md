@@ -4,6 +4,14 @@
 
 | Backend | Avg Score | Passes | Avg Latency | Notes |
 |---|---:|---:|---:|---|
-| `scnet_ds_flash` | 100 | 2/2 | 1919ms | ok |
-| `scnet_qwen30b` | 100 | 2/2 | 1983ms | ok |
-| `kimi` | 100 | 2/2 | 4916ms | ok |
+| `scnet_large_ds_flash` | 100 | 3/3 | 1181ms | ok |
+| `scnet_qwen30b` | 100 | 3/3 | 1560ms | ok |
+| `scnet_ds_flash` | 100 | 3/3 | 1844ms | ok |
+| `scnet_qwen235b` | 100 | 3/3 | 1982ms | ok |
+| `kimi` | 100 | 3/3 | 7541ms | ok |
+| `kimi_search` | 100 | 3/3 | 11378ms | ok |
+| `kimi_thinking` | 100 | 3/3 | 11741ms | ok |
+| `cf_kimi_k26` | 80 | 2/3 | 12002ms | json_tool_output: json parse failed; python_bugfix: forbidden pattern: IndexError |
+| `scnet_ds_pro` | 66 | 2/3 | 42837ms | code_review: call failed: BackendError: scnet_ds_pro returned empty response |
+| `stock_kimi_k2` | 0 | 0/3 | 2146ms | code_review: call failed: BackendError: Expecting value: line 1 column 1 (char 0); json_tool_output: call failed: BackendError: Expecting value: line 1 column 1 (char 0); python_bugfix: call failed: BackendError: Expecting value: line 1 column 1 (char 0) |
+| `scnet_large_ds_pro` | 0 | 0/3 | 90228ms | code_review: call failed: BackendError: timed out; json_tool_output: call failed: BackendError: timed out; python_bugfix: call failed: BackendError: timed out |

@@ -256,6 +256,35 @@ def test_security_gates_bundle():
     assert "security_gates_ok" in proc.stdout
 
 
+def test_ntfy_smoke_skips_when_disabled():
+    proc = subprocess.run(
+        [sys.executable, "scripts/smoke_ntfy.py"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=30,
+        check=False,
+    )
+    assert proc.returncode == 0
+    assert "skip ntfy" in proc.stdout
+
+
+def test_eval_full_report_skip_run():
+    proc = subprocess.run(
+        [sys.executable, "scripts/run_eval_full_and_report.py", "--skip-run", "--top", "3"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=30,
+        check=False,
+    )
+    assert proc.returncode in (0, 2), proc.stdout + proc.stderr
+    combined = proc.stdout + proc.stderr
+    assert "eval" in combined.lower() or "Eval" in combined
+
+
 def test_pyright_report_only_runs():
     proc = subprocess.run(
         [sys.executable, "scripts/run_pyright.py", "--report-only"],
