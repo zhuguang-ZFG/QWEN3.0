@@ -320,4 +320,13 @@ TOOL_DEFINITIONS = [
             "required": ["owner", "repo", "branch"],
         },
     },
+    {
+        "name": "memory_stats",
+        "description": "Return memory store statistics: total entries, embedding coverage, per-type counts, session count.",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    },
 ]

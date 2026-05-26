@@ -37,6 +37,7 @@ def handle_tool_call(name: str, arguments: dict) -> dict:
         "github_get_file_contents": _github_get_file_contents,
         "github_create_pull_request": _github_create_pull_request,
         "github_create_branch": _github_create_branch,
+        "memory_stats": _memory_stats,
     }
     handler = handlers.get(name)
     if not handler:
@@ -423,3 +424,9 @@ def _github_create_branch(args: dict) -> dict:
         branch=args.get("branch", ""),
         from_ref=args.get("from", "main"),
     )
+
+
+def _memory_stats(args: dict) -> dict:  # noqa: ARG001
+    """Return memory store statistics."""
+    from session_memory.store_db import memory_stats
+    return memory_stats()

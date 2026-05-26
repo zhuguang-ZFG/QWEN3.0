@@ -108,3 +108,26 @@ def _sanitize_storage_text(text: str) -> str:
         return "[REDACTED]" if text and text.strip() else ""
     return cleaned
 
+
+def memory_stats() -> dict:
+    """Return aggregate statistics about the memory store."""
+    conn = _get_conn()
+    total = conn.execute("SELECT COUNT(*) FROM memories").fetchone()[0] or 0
+    by_type = conn.execute(
+        "SELECT memory_type, COUNT(*) FROM memories GROUP BY memory_type ORDER BY COUNT(*) DESC"
+    ).fetchall()
+    with_emb = conn.execute(
+        "SELECT COUNT(*) FROM memories WHERE embedding != '[]'"
+    ).fetchone()[0] or 0
+    sessions = conn.execute(
+        "SELECT COUNT(DISTINCT session_id) FROM memories"
+    ).fetchone()[0] or 0
+    conn.close()
+    return {
+        "total": total,
+        "with_embeddings": with_emb,
+        "embedding_pct": round(with_emb / total * 100, 1) if total else 0,
+        "sessions": sessions,
+        "by_type": {t: c for t, c in by_type},
+    }
+
