@@ -41,7 +41,7 @@ jobs:
       - name: Dependency usage scan (deptry, report-only)
         run: |
           pip install deptry
-          python scripts/run_deptry.py --report-only
+          python scripts/run_deptry.py
 
       - name: Complexity scan (radon, report-only)
         run: |

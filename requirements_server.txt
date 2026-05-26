@@ -11,3 +11,8 @@ numpy>=1.26.0,<2.3
 redis>=5.0
 pybreaker>=1.0.0
 python-multipart>=0.0.9
+
+# Dev / CI (test runner, type checking, dead-dep scanning)
+hypothesis>=6.0
+pyright>=1.1.0
+deptry>=0.20

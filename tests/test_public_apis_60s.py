@@ -18,7 +18,7 @@ def test_fetch_hot_60s_normalizes_vvhan_shape(monkeypatch):
             ],
         }
 
-    monkeypatch.setattr("channel_gateway.public_apis._get_json", fake_get)
+    monkeypatch.setattr("channel_gateway.public_apis_news._get_json", fake_get)
     result = fetch_hot_60s("微博")
     assert result["ok"] is True
     assert "话题A" in result["text"]
@@ -35,7 +35,7 @@ def test_fetch_news_60s_daily_briefing(monkeypatch):
             },
         }
 
-    monkeypatch.setattr("channel_gateway.public_apis._get_json", fake_get)
+    monkeypatch.setattr("channel_gateway.public_apis_news._get_json", fake_get)
     result = fetch_news_60s()
     assert result["ok"] is True
     assert "2026-05-26" in result["text"]
@@ -49,7 +49,7 @@ def test_fetch_news_60s_viki_v2_shape(monkeypatch):
             "data": {"date": "2026-05-26", "news": ["viki 新闻"]},
         }
 
-    monkeypatch.setattr("channel_gateway.public_apis._get_json", fake_get)
+    monkeypatch.setattr("channel_gateway.public_apis_news._get_json", fake_get)
     result = fetch_news_60s()
     assert result["ok"] is True
     assert "viki 新闻" in result["text"]
