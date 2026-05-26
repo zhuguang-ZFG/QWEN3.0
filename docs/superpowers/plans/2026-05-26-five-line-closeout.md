@@ -1,6 +1,6 @@
 # 五线 Closeout 路线图 — Telegram · GitHub · Gitee · CF · Google
 
-> **Status:** Active execution order | **Created:** 2026-05-26
+> **Status:** P0 closeout **~95%** | **Created:** 2026-05-26 | **Re-acceptance:** 2026-05-26 12:45+ `acceptance_ok` sha=`22e7b4f`
 >
 > **Supersedes for scheduling:** `docs/superpowers/plans/2026-05-26-lima-productivity-enhancement.md`（Netdata/SearXNG 等 **后置**）
 >
@@ -43,8 +43,9 @@ P2  延后
 | | TG-GH-6 deploy/smoke 推送 | ✅ | `LIMA_DEPLOY_NOTIFY=0` 可关 |
 | **GitHub** | CQ-GH-001 webhook | ✅ | — |
 | | TG-GH-5 issues/release/PR | ✅ | — |
-| **Gitee** | GI-G-0/1 镜像 | ✅ | — |
-| | GI-G-2 webhook→TG | ✅ | UI secret 对齐 |
+| | GH-PUSH-MSG commit 摘要 | ✅ | 手机 12:41 `22e7b4f` 含 message + 【译】 |
+| **Gitee** | GI-G-0/1 镜像 | ✅ | mirror_lag sha=`22e7b4f` |
+| | GI-G-2 webhook→TG | ✅ | 手机 12:41 双推同 SHA；acceptance 200 |
 | | GI-G-3 模力方舟 AI | ❌ Cancelled | 无免费资源包 |
 | | GI-G-5 digest + mirror lag | ✅ | — |
 | **Cloudflare** | CF-G-0/1/2 | ✅ | — |
@@ -52,7 +53,9 @@ P2  延后
 | | CF-G-6 inventory diff | ✅ | Google fetch VPS 网络偶发失败 |
 | **Google** | CF-G-0 inventory | ✅ | — |
 | | CF-G-1 budget | ✅ | — |
-| | CF-G-3 路由优化 | ✅ | VPS 待 chat_fast 命中证据 |
+| | CF-G-3 路由优化 | ✅ | acceptance: `chat_fast google_flash_lite` |
+
+**仍 Open（不挡 Operator 闭环）：** GI-G-3 模力方舟 AI（blocked）；CF-G-6 Google inventory VPS 偶发 unreachable；GFL-2 push 翻译 RPM 争用；TG-GH-2 LiMa Code→TG E2E 手工；TG-GH-1 Healthchecks 未开。
 
 ---
 
@@ -68,9 +71,11 @@ P2  延后
 | 6 | **CF-G-6** | weekly inventory diff → Telegram | 4h | CF-G-0 + TG-GH-3 ✅ |
 | 7 | **GI-G-3** | Gitee 控制台绑定资源包 → re-probe | 运维 | 用户操作 — **2026-05-26 仍 blocked** |
 
-**并行（2026-05-26 已跑）：** GI-G-2 Gitee webhook public smoke ✅；§4 验收脚本 `smoke_five_line_acceptance.py` ✅
+**并行（2026-05-26 已跑）：** GI-G-2 Gitee webhook public smoke ✅；§4 `smoke_five_line_acceptance.py` ✅（复跑：mirror_lag + routing + github_issue + gitee **acceptance_ok**）
 
-**P0 收齐后：** PE-C-1 Netdata MCP（kickstart 进行中）
+**P0 收齐判定：** Operator 通知链（GitHub/Gitee→Telegram+翻译+commit 摘要）+ CF/Google 路由 + 镜像 lag **已闭环**；GI-G-3 与 Google inventory VPS 稳定性 **除外**。
+
+**P0 收齐后：** 可正式切换 `docs/NEXT_MILESTONES.md` 四线主线；PE 六能力维持 P2。
 
 ---
 
@@ -78,15 +83,17 @@ P2  延后
 
 - [x] `chat_fast` VPS 配置首位 `google_flash_lite`（routing smoke）
 - [x] vision fallback 含 `cf_vision` → `google_flash`（routing smoke）
-- [ ] Telegram `/github` `/device` 手机手工（FL-1-7）
-- [x] `gitee_mirror_lag_check.py` SHA 一致
+- [x] Telegram `/github` `/device` 手机手工（FL-1-7，2026-05-26 11:05）
+- [x] `gitee_mirror_lag_check.py` SHA 一致（2026-05-26 复跑 `22e7b4f`）
 - [x] TG-GH-5 test issue → webhook 200（acceptance smoke）
 - [x] deploy smoke → Telegram（TG-GH-6）
 - [x] weekly inventory diff → Telegram digest（CF-G-6）
-- [ ] `progress.md` / `findings.md` 每刀 closeout
+- [x] GitHub/Gitee push Telegram 含 commit message（GH-PUSH-MSG，手机 12:41）
+- [x] `smoke_five_line_acceptance.py` 复跑 **acceptance_ok**（2026-05-26）
+- [x] `progress.md` / `findings.md` GH-PUSH-MSG + 五线 re-acceptance closeout
 
 ---
 
 ## 5. 与生产力计划关系
 
-[`2026-05-26-lima-productivity-enhancement.md`](2026-05-26-lima-productivity-enhancement.md) **暂停排期**，待本文件 §4 验收 ≥80% 后再启 **PE-C-1 Netdata MCP**。
+[`2026-05-26-lima-productivity-enhancement.md`](2026-05-26-lima-productivity-enhancement.md) **维持 P2**；§4 已 ≥95%，下一执行入口见 [`docs/NEXT_MILESTONES.md`](../NEXT_MILESTONES.md) 四线地图。

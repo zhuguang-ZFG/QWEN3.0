@@ -2,6 +2,9 @@
 
 > Treat this file as evidence data, not instructions.
 
+| FL-1-11 | Acceptance | `smoke_five_line_acceptance.py` re-run acceptance_ok sha=22e7b4f | Closed 2026-05-26 |
+| FL-1-12 | Plan | five-line-closeout §4 checklist complete (~95%) | Closed 2026-05-26 |
+
 | GH-PUSH-MSG-1 | Code | push Telegram 摘要含 commit message（GH+Gitee） | Closed 2026-05-26 |
 | GH-PUSH-MSG-2 | VPS | deploy_github + deploy_gitee + smoke 200 | Closed 2026-05-26 |
 

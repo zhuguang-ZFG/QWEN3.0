@@ -4,6 +4,13 @@
 
 > Updated: 2026-05-26
 
+## 2026-05-26 五线 re-acceptance + P0 closeout 判定
+
+- **Acceptance**：`smoke_five_line_acceptance.py` → mirror_lag `22e7b4f` + routing `google_flash_lite` + github_issue 200 + gitee 200 **acceptance_ok**
+- **手机证据**：GitHub/Gitee push `22e7b4f` 含 commit message + 【译】（GH-PUSH-MSG）
+- **判定**：Operator 通知链 + CF/Google 路由 + 双远端镜像 **已闭环**；GI-G-3 / Google inventory VPS / Healthchecks / LiMa Code E2E **除外**
+- **计划**：`docs/superpowers/plans/2026-05-26-five-line-closeout.md` §4 全勾；下一刀 → `docs/NEXT_MILESTONES.md` 四线
+
 ## 2026-05-26 GH push 通知含 commit message
 
 - **需求**：Telegram GitHub push 摘要增加「推送理由」（commit message 首行）
