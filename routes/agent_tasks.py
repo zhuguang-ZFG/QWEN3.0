@@ -261,6 +261,25 @@ async def submit_task_result(task_id: str, body: TaskResultBody):
             task_id,
             type(exc).__name__,
         )
+
+    # Record capability evidence
+    try:
+        from observability.capability_evidence import record_evidence
+
+        record_evidence(
+            loop="limacode_worker",
+            request_id=task_id, task_id=task_id,
+            entrypoint=f"/agent/tasks/{task_id}/result",
+            selected_backend=body.backend or "",
+            latency_ms=body.latency_ms or 0,
+            status=result.status,
+            evidence=["agent_task_result"],
+            artifact_paths=body.artifacts,
+            rollback="review task result and quarantine if unsafe",
+        )
+    except Exception:
+        _log.debug("worker evidence record failed", exc_info=True)
+
     return {"accepted": True, "task_id": task_id, "status": result.status}
 
 
