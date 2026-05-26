@@ -33,7 +33,7 @@ def main() -> int:
 
     cmd = [sys.executable, "-m", "pytest", "-q"]
     if not args.no_xdist:
-        cmd.extend(["-n", "auto"])
+        cmd.extend(["-n", "auto", "--dist", "loadscope"])
     if not args.no_cov:
         cmd.extend(["--cov", "--cov-report=term-missing:skip-covered"])
     cmd.extend(extra)
