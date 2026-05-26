@@ -228,7 +228,18 @@ async def submit_task_result(task_id: str, body: TaskResultBody):
         try:
             from telegram_notify import notify_task_ready
 
-            notify_task_ready(task_id, body.summary, body.changed_files)
+            tests_passed = sum(1 for t in body.test_results if t.get("exit_code") == 0)
+            tests_failed = len(body.test_results) - tests_passed
+            artifact_links = {}
+            for a in body.artifacts[:5]:
+                if isinstance(a, str) and a:
+                    artifact_links[a.split("/")[-1]] = a
+
+            notify_task_ready(
+                task_id, body.summary, body.changed_files,
+                tests_passed=tests_passed, tests_failed=tests_failed,
+                risks=body.risks, artifact_links=artifact_links or None,
+            )
         except Exception as exc:
             _log.warning(
                 "notify_task_ready failed task_id=%s err=%s",

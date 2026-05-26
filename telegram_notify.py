@@ -57,10 +57,46 @@ def notify_health_change(backend: str, old_state: str, new_state: str) -> None:
     _fire_and_forget(telegram_bot.send_alert, level, _prepare_push_text(msg))
 
 
-def notify_task_ready(task_id: str, summary: str, changed_files: list[str]) -> None:
+def notify_task_ready(
+    task_id: str,
+    summary: str,
+    changed_files: list[str],
+    *,
+    tests_passed: int = 0,
+    tests_failed: int = 0,
+    risks: list[str] | None = None,
+    artifact_links: dict[str, str] | None = None,
+) -> None:
     if not telegram_bot.is_configured():
         return
-    _fire_and_forget(telegram_bot.send_approval, task_id, summary, changed_files)
+    _fire_and_forget(
+        _send_task_review_card,
+        task_id, summary, changed_files,
+        tests_passed, tests_failed, risks, artifact_links,
+    )
+
+
+async def _send_task_review_card(
+    task_id: str,
+    summary: str,
+    changed_files: list[str],
+    tests_passed: int,
+    tests_failed: int,
+    risks: list[str] | None,
+    artifact_links: dict[str, str] | None,
+) -> None:
+    from routes.telegram_cards import send_task_review
+
+    await send_task_review(
+        task_id=task_id,
+        goal=summary,
+        changed_files=changed_files,
+        tests_passed=tests_passed,
+        tests_failed=tests_failed,
+        risks=risks,
+        artifact_links=artifact_links,
+        status="needs_review",
+    )
 
 
 def notify_code_lifecycle(

@@ -138,12 +138,11 @@ class TestTelegramNotify:
         with patch.object(telegram_bot, "is_configured", return_value=True):
             with patch.object(telegram_notify, "_fire_and_forget") as mock_ff:
                 telegram_notify.notify_task_ready("t1", "Fix", ["a.py"])
-                mock_ff.assert_called_once_with(
-                    telegram_bot.send_approval,
-                    "t1",
-                    "Fix",
-                    ["a.py"],
-                )
+                call_args = mock_ff.call_args[0]
+                assert call_args[0].__name__ == "_send_task_review_card"
+                assert call_args[1] == "t1"
+                assert call_args[2] == "Fix"
+                assert call_args[3] == ["a.py"]
 
     def test_not_configured_skips(self):
         with patch.object(telegram_bot, "is_configured", return_value=False):
