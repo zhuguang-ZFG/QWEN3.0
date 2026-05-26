@@ -134,6 +134,8 @@
 | ID | Area | Evidence | Status |
 |---|---|---|---|
 | TG-GH-1-1 | VPS smoke | `deploy_reliability_ops.py` → `OK: http://127.0.0.1:7897: @limacode_bot` | Closed 2026-05-26 |
+| TG-GH-1-4 | Ops | lima-vps-router 5min/10min Email ON operator confirmed | Closed 2026-05-26 |
+
 | TG-GH-1-3 | VPS live | Healthchecks ping OK 47.112.162.80 new→up 12:52 | Closed 2026-05-26 |
 
 | TG-GH-1-2 | Ops | GA `lima-vps-deadman.yml` external health + provision_healthchecks.py | Closed 2026-05-26 |

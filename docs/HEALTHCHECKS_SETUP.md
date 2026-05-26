@@ -25,12 +25,12 @@ This updates local `.env`, syncs GitHub Actions variable `HEALTHCHECK_LIMA_VPS_U
 
 ## Quick Start
 
-1. Create a free account at [healthchecks.io](https://healthchecks.io/).
+1. Create a free account at [healthchecks.io](https://healthchecks.io/) — **login:** [https://healthchecks.io/accounts/login/](https://healthchecks.io/accounts/login/) (there is **no** `/checks/` page; use `/` after login).
 2. Create checks (suggested):
 
 | Check name | Period | Grace |
 |------------|--------|-------|
-| `lima-vps-router` | 5 min | 10 min |
+| `lima-vps-router` | 5 min | 10 min | **Live 2026-05-26** — VPS cron + Email ON |
 | `lima-windows-router` | 5 min | 10 min |
 | `lima-frpc-tunnel` | 5 min | 10 min |
 | `lima-vps-probe-weekly` | 7 days | 1 day |
