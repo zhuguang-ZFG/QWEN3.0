@@ -20,6 +20,12 @@
 | EXERCISE-2 | Code | `server.py` 未加载 `.env` 文件 → 已添加 `dotenv.load_dotenv()` | Closed |
 | EXERCISE-3 | Code | `developer_skills/learn.py` API 不匹配 → 已修复 crystallize 调用参数 | Closed |
 | EXERCISE-4 | Config | `.env` 缺少 `LIMA_API_KEY` → 已添加，写入 AGENTS.md 全局约束 | Closed |
+| INTEG-1 | Infra | 公网 API `api.donglicao.com` 走 new-api (port 3003)，new-api 用 `internal-redcode` 调用 LiMa Server，LiMa 未识别该 key → 已添加到 LIMA_API_KEYS | Closed |
+| INTEG-2 | Code | OpenAI JS SDK 发送 gzip 压缩请求体，`http_body_limit.py` 未解压 → FastAPI 解析失败 500 → 已添加 gzip 解压 | Closed |
+| INTEG-3 | Code | `ChatRequest` 缺少 `tools/stream_options` 字段 → Pydantic 验证失败 → 已添加 | Closed |
+| INTEG-4 | Code | `thinking` 字段接收 `{'type':'disabled'}` dict 而非 bool → Pydantic 类型错误 → 已兼容 dict | Closed |
+| INTEG-5 | Code | 场景分类未识别文件名提及为 coding 信号 → 代码上下文注入未触发 → 已添加 .py/.js 文件名检测 | Closed |
+| INTEG-6 | Config | LiMa Code 需手动配置 API_KEY + SERVER_URL → 已添加 LIMA_CODE_ 环境变量自动连接 | Closed |
 
 | DOC-CLEAN-1 | Docs | `docs/README.md` + `docs/DOCUMENTATION_CLEANUP.md` establish a short entrypoint and soft-archive queue | Closed 2026-05-27 |
 | DOC-CLEAN-2 | Docs | 11 historical `docs/CQ014_*.md` files moved to `docs/archive/code-quality/`; reference scan found only historical progress mentions plus cleanup docs | Closed 2026-05-27 |

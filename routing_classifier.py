@@ -61,6 +61,10 @@ def classify_scenario(query: str, messages: list[dict], *,
     if sum(1 for s in code_signals if s in text) >= 2:
         return "coding"
 
+    import re
+    if re.search(r'\w+\.(?:py|js|ts|tsx|jsx|go|rs|java|c|cpp)\b', text):
+        return "coding"
+
     return "chat"
 
 
