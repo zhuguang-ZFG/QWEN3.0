@@ -211,6 +211,12 @@ async def submit_task_result(task_id: str, body: TaskResultBody):
     task["updated_at"] = time.time()
     _store.update(task_id)
     _store.append_event(task_id, {"type": "result_submitted", "status": result.status})
+
+    # Auto-fill metadata for learning loop (LiMa Code may not send these)
+    backend = body.backend or task.get("request", {}).get("backend", "")
+    latency_ms = body.latency_ms or int((time.time() - task.get("created_at", time.time())) * 1000)
+    scenario = "coding"
+
     try:
         from observability.correlation import record_worker_task_correlation
 
@@ -251,9 +257,9 @@ async def submit_task_result(task_id: str, body: TaskResultBody):
 
         ingest_from_agent_task_result(
             asdict(result),
-            backend=body.backend,
-            scenario="agent_task",
-            latency_ms=body.latency_ms,
+            backend=backend,
+            scenario=scenario,
+            latency_ms=latency_ms,
         )
     except Exception as exc:
         _log.warning(
@@ -269,8 +275,8 @@ async def submit_task_result(task_id: str, body: TaskResultBody):
         request_id=task_id,
         task_id=task_id,
         entrypoint=f"/agent/tasks/{task_id}/result",
-        selected_backend=body.backend or "",
-        latency_ms=body.latency_ms or 0,
+        selected_backend=backend,
+        latency_ms=latency_ms,
         status=result.status,
         evidence=["agent_task_result"],
         artifact_paths=body.artifacts,
