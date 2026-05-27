@@ -12,6 +12,7 @@ venv/
 __pycache__/
 *.pyc
 .env
+.lima-data/
 
 # === 第三方项目 ===
 llama.cpp/
@@ -159,3 +160,7 @@ feedback_queue.json
 
 # LiMa Code worker active task dirs (keep skill-rules.json tracked)
 .lima-code/dev/
+
+# MemPalace per-project files (issue #185)
+mempalace.yaml
+entities.json

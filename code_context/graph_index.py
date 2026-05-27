@@ -12,6 +12,7 @@ Interface:
 
 from __future__ import annotations
 
+import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
@@ -117,5 +118,17 @@ class InMemoryGraphIndex(GraphIndex):
 
 
 def build_graph_index() -> GraphIndex:
-    """Factory: returns the default GraphIndex implementation."""
+    """Factory: returns the best available GraphIndex implementation.
+
+    Prefers SqliteGraphIndex (persistent) when LIMA_DATA_DIR is set.
+    Falls back to InMemoryGraphIndex for zero-config usage.
+    """
+    data_dir = os.environ.get("LIMA_DATA_DIR", "")
+    if data_dir:
+        try:
+            from code_context.sqlite_graph_store import SqliteGraphIndex
+
+            return SqliteGraphIndex()
+        except Exception:
+            pass
     return InMemoryGraphIndex()

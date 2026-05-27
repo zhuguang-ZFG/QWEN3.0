@@ -186,6 +186,18 @@ async def _dispatch_operator(chat_id: str, cmd: str, arg: str, *, logs_fn, resta
         from routes.telegram_knowledge import cmd_dashboard
         await cmd_dashboard(chat_id, arg)
         return True
+    if cmd == "/investigate":
+        from routes.telegram_dev_skills import cmd_investigate
+        await cmd_investigate(chat_id, arg)
+        return True
+    if cmd == "/review":
+        from routes.telegram_dev_skills import cmd_review
+        await cmd_review(chat_id, arg)
+        return True
+    if cmd == "/ship":
+        from routes.telegram_dev_skills import cmd_ship
+        await cmd_ship(chat_id, arg)
+        return True
     return False
 
 
@@ -296,7 +308,3 @@ async def dispatch_command(
     finally:
         _record_command_outcome(cmd, chat_id, ok)
         await cmd_menu(chat_id, with_reply_keyboard=True)
-        _record_command_outcome(cmd, chat_id, True)
-        return
-
-    await telegram_bot.send_message("Unknown command", chat_id=chat_id)

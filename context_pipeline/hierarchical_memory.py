@@ -10,8 +10,13 @@ Replaces flat session_memory with structured layers:
 Each layer has different update frequency and retrieval priority.
 """
 
+from __future__ import annotations
+
+import logging
 from dataclasses import dataclass, field
 from typing import Any
+
+_log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -101,6 +106,30 @@ class HierarchicalMemory:
             context["performance"] = perf
         context["scenario"] = scenario
         return context
+
+    def save(self, db_path: str | None = None) -> None:
+        """Persist all layers to SQLite."""
+        try:
+            from context_pipeline.memory_persistence import (
+                MemoryPersistence,
+                save_hierarchical_memory,
+            )
+            p = MemoryPersistence(db_path) if db_path else MemoryPersistence()
+            save_hierarchical_memory(self, p)
+        except Exception as exc:
+            _log.debug("hierarchical_memory save failed: %s", exc)
+
+    def load(self, db_path: str | None = None) -> None:
+        """Load persisted state from SQLite."""
+        try:
+            from context_pipeline.memory_persistence import (
+                MemoryPersistence,
+                load_hierarchical_memory,
+            )
+            p = MemoryPersistence(db_path) if db_path else MemoryPersistence()
+            load_hierarchical_memory(self, p)
+        except Exception as exc:
+            _log.debug("hierarchical_memory load failed: %s", exc)
 
 
 # Singleton

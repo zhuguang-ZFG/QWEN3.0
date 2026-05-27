@@ -4,6 +4,73 @@
 
 > Updated: 2026-05-27
 
+## 2026-05-27 M1-M5 能力加厚 + Phase A 核心路径
+
+**目标：** 补齐 agent 真实执行、多语言代码上下文、管线持久化、开发者技能、研究编排五大核心缺口；打通 IDE→LiMa→后端 的编码增强路径。
+
+### M1: 真实 Agent 执行
+- 新建 `agent_runtime/shell_executor.py`：subprocess 执行，30s 超时，64KB 输出截断
+- 新建 `agent_runtime/git_executor.py`：白名单子命令（status/diff/log/commit/branch），禁止 push/pull
+- 新建 `agent_runtime/network_executor.py`：httpx HTTP 调用，域名白名单，15s 超时
+- 重写 `agent_runtime/real_executor.py`：替换 scaffold-disable → 按 execution_kind 分发
+- 测试：32 个新测试
+
+### M2: 代码上下文多语言 + 持久化
+- 新建 `code_context/treesitter_adapter.py`：支持 8 种语言的 tree-sitter 提取 + regex 回退
+- 新建 `code_context/sqlite_graph_store.py`：SQLite + FTS5 持久化图存储
+- 新建 `code_context/chroma_vector_store.py`：ChromaDB 向量索引，优雅降级
+- 新建 `code_context/file_watcher.py`：mtime + 内容哈希变更追踪
+- 修改 `ast_adapter.py`, `graph_index.py`, `scanner.py`, `index_store.py`：工厂分发
+- 测试：31 个新测试
+
+### M3: 管线集成
+- 新建 `context_pipeline/memory_persistence.py`：SQLite 持久化 L0-L4 层
+- 新建 `context_pipeline/routing_bridge.py`：串联 evolution→reflection→memory
+- 修改 `hierarchical_memory.py`：新增 save()/load() 方法
+- 修改 `route_post_process.py`：调用 routing_bridge + 自动保存
+- 测试：14 个新测试
+
+### M4: 开发者技能
+- 新建 `developer_skills/` 模块：investigate, review, ship, learn
+- 新建 `routes/telegram_dev_skills.py`：Telegram 桥接
+- 修改 `routes/telegram_dispatch.py`：注册 /investigate /review /ship 命令
+- 修改 `routes/telegram_quick_menu.py`：Bot 命令列表更新
+- 测试：13 个新测试
+
+### M5: 研究编排
+- 新建 `research/orchestrator.py`：多源并行搜索 + 去重排序
+- 新建 `research/source_adapters.py`：统一适配器接口
+- 新建 `research/synthesizer.py`：LLM 驱动结果综合
+- 测试：11 个新测试
+
+### Phase A: 核心路径打通
+- 新建 `context_pipeline/code_context_injection.py`：coding 场景自动注入代码上下文
+- 修改 `routing_engine.py`：coding 请求带项目理解转发给后端
+- 修改 `routing_selector.py`：后端选择读取 L1 历史性能数据
+- 验证：VPS 16/16 模块导入通过
+
+### 遗留修复
+- F1: CI 门禁修复（mempalace 已在 exclude 列表）
+- F2: 24 个文件 BOM 字符移除
+- F3: 项目约定文档 + 改善方案文档
+
+### 测试汇总
+- 本地：**1996 passed**（从 1906 增长 90 个新测试）
+- VPS：**16/16 模块导入通过**
+- CI 门禁：**通过**
+
+### VPS 清理
+- Python 3.6 移除（54MB）
+- Conda 包缓存清理（985MB）
+- Python 编译残留清理（171MB）
+- 旧日志清理（257MB）
+- 磁盘：22G → 21G
+
+### 关键文档
+- `docs/DEPLOY_AND_RELEASE_CONVENTION.md`：自动部署 + 发布约定
+- `docs/IMPROVEMENT_PLAN_2026-05-27.md`：三阶段改善方案
+- `docs/FIX_PLAN_2026-05-27.md`：遗留修复计划
+
 ## 2026-05-27 DOC-CLEAN-1：文档入口收敛
 
 - 新增 `docs/README.md` 作为文档唯一入口，列出当前必读文件、活跃日志和历史文档处理规则。
@@ -4448,3 +4515,56 @@ Verification note:
 - Expanded `docs/REQUEST_PIPELINE_AUTHORITY.md` with ownership matrix + mermaid flow.
 - Added `tests/test_module_split_imports.py`; fixed ops_metrics store wiring for tests.
 - Full suite: **1481 passed, 10 skipped**.
+
+## 2026-05-27 Project-Global Deploy/GitHub Closeout Rules + SSH Host-Key Sweep (CQ-088)
+
+- Wrote project-global closeout rules into `AGENTS.md`:
+  - local quality gates before deploy;
+  - VPS deploy/restart/health/smoke and debug evidence expectations;
+  - fixed host-key/known_hosts requirement for Paramiko deploy scripts;
+  - GitHub-first upload policy (`origin`) with related-file-only staging and secret checks;
+  - explicit rollback, no force-push, and no broad `git add .` boundaries.
+- Added a short `CLAUDE.md` summary pointing back to `AGENTS.md` as the authority.
+- Migrated another active deploy/smoke batch from `paramiko.AutoAddPolicy()` to
+  `deploy_common.configure_ssh_host_keys()`:
+  - `scripts/deploy_cf_admission_overlay.py`
+  - `scripts/deploy_reliability_ops.py`
+  - `scripts/deploy_github_webhook.py`
+  - `scripts/smoke_github_webhook_public.py`
+  - `scripts/deploy_gitee_webhook.py`
+  - `scripts/smoke_gitee_webhook_public.py`
+  - `scripts/setup_github_webhook.py`
+  - `scripts/patch_nginx_github_webhook.py`
+  - `scripts/patch_nginx_gitee_webhook.py`
+- Continued the sweep across all non-archive `scripts/*.py`:
+  - migrated remaining active `deploy_*.py` scripts, including P2/radar/telegram/bundle deployers;
+  - migrated closeout smoke/verify runners (`smoke_*`, `verify_*`, `vps_run_*`, `vps_probe_*`);
+  - migrated regular VPS ops scripts (`cleanup_*`, `install_*`, `recover_*`, `sync_*`, `upload_*`);
+  - migrated non-archive `_vps_*` one-off diagnostics so the live scripts tree is consistent.
+- Verification evidence:
+  - targeted grep on the migrated batch: no `AutoAddPolicy()` / direct policy calls remained;
+  - `ruff check --no-cache --select S507 ...`: passed for the migrated deploy/smoke batch;
+  - `python -m pytest -q tests\test_deploy_common.py tests\test_deploy_v3_security.py`: `8 passed`;
+  - `ruff check --no-cache D:\GIT`: passed;
+  - `pyright`: `0 errors, 0 warnings, 0 informations`.
+- Additional verification after the full non-archive scripts sweep:
+  - `rg -n "AutoAddPolicy\(" D:\GIT\scripts --glob "*.py" --glob "!**/archive/**"`: no matches;
+  - `ruff check --no-cache --select S507 D:\GIT\scripts --exclude D:\GIT\scripts\archive`: passed;
+  - in-memory syntax compile for non-archive `scripts/*.py`: `scripts_syntax_ok 207`;
+  - `python -m pytest -q tests\test_deploy_common.py tests\test_deploy_v3_security.py`: `8 passed`;
+  - `ruff check --no-cache D:\GIT`: passed;
+  - `pyright`: `0 errors, 0 warnings, 0 informations`.
+- Continued root-level SSH helper cleanup:
+  - migrated root debug/upload/stress scripts from `AutoAddPolicy()` to `configure_ssh_host_keys()`;
+  - removed hardcoded VPS password usage from root debug/upload/stress scripts and switched them to
+    `LIMA_DEPLOY_KEY_PATH` / `~/.ssh/id_ed25519`;
+  - added `S507` to `ruff.toml` so live code cannot reintroduce Paramiko auto-trust policy;
+  - non-archive Python grep for `AutoAddPolicy(`: no matches;
+  - live-source scan for the old VPS password literal: no Python source matches remain;
+  - root SSH helper in-memory syntax compile: `root_ssh_scripts_syntax_ok 15`;
+  - `ruff check --no-cache D:\GIT`: passed;
+  - `pyright`: `0 errors, 0 warnings, 0 informations`;
+  - deploy security tests: `8 passed`.
+- Residual:
+  - `.pytest_cache` still cannot be written in this environment (`Permission denied`);
+  - only `scripts/archive/**` retired scripts still contain `AutoAddPolicy()`; leave them archived unless a cleanup task explicitly targets retired code.

@@ -151,9 +151,17 @@ def _resolve_module_target(module_name: str, module_map: dict[str, str]) -> str:
 def get_extractor(language: str = "python") -> AstExtractor | None:
     """Factory: returns the appropriate AstExtractor for the given language.
 
-    Currently only Python is supported via stdlib ast.
-    Future languages require a gated tree-sitter adapter.
+    Uses stdlib ast for Python (zero dependencies).
+    Falls back to tree-sitter regex adapter for other languages.
     """
     if language == "python":
         return StdlibAstExtractor()
+    try:
+        from code_context.treesitter_adapter import get_tree_sitter_extractor
+
+        extractor = get_tree_sitter_extractor()
+        if language in extractor.supported_languages:
+            return extractor
+    except Exception:
+        pass
     return None

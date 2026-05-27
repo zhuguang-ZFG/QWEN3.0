@@ -44,10 +44,29 @@ def apply_post_route_integrations(
         hmem = get_hierarchical_memory()
         hmem.update_performance(final_backend, ms, bool(answer))
         hmem.set_global_fact(f"last_scenario:{scenario}", final_backend)
+        if ms > 0:
+            hmem.save()
     except ImportError:
         pass
     except Exception as exc:
         _warn("hierarchical_memory", exc)
+
+    try:
+        from context_pipeline.routing_bridge import record_routing_outcome
+        record_routing_outcome(final_backend, ms, bool(answer), scenario)
+    except ImportError:
+        pass
+    except Exception as exc:
+        _warn("routing_bridge", exc)
+
+    try:
+        if answer and scenario == "coding":
+            from context_pipeline.session_memory_enhancer import process_session_outcome
+            process_session_outcome(
+                messages, backend=final_backend, scenario=scenario, success=bool(answer),
+            )
+    except Exception as exc:
+        _warn("session_memory_enhancer", exc)
 
     try:
         from context_pipeline.response_processors import build_default_response_pipeline

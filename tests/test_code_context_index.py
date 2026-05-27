@@ -276,8 +276,8 @@ def test_get_extractor_python():
 def test_get_extractor_unknown_language():
     from code_context.ast_adapter import get_extractor
 
-    assert get_extractor("rust") is None
-    assert get_extractor("go") is None
+    assert get_extractor("brainfuck") is None
+    assert get_extractor("cobol") is None
 
 
 def test_ast_extractor_supported_languages():

@@ -21,7 +21,7 @@ class FileRecord:
 def _cosine_similarity(a: list[float], b: list[float]) -> float:
     if len(a) != len(b) or not a:
         return 0.0
-    dot = sum(x * y for x, y in zip(a, b))
+    dot = sum(x * y for x, y in zip(a, b, strict=True))
     norm_a = math.sqrt(sum(x * x for x in a))
     norm_b = math.sqrt(sum(x * x for x in b))
     if norm_a == 0 or norm_b == 0:
@@ -78,3 +78,21 @@ class InMemoryCodeIndex:
                 scored.append((score, record))
         scored.sort(key=lambda item: (-item[0], item[1].path))
         return [record for _score, record in scored[:limit]]
+
+
+def build_code_index(**kwargs) -> InMemoryCodeIndex:
+    """Factory: returns the best available code index.
+
+    Prefers ChromaCodeIndex when chromadb is available and LIMA_DATA_DIR is set.
+    Falls back to InMemoryCodeIndex.
+    """
+    import os
+
+    data_dir = os.environ.get("LIMA_DATA_DIR", "")
+    if data_dir:
+        try:
+            from code_context.chroma_vector_store import ChromaCodeIndex
+            return ChromaCodeIndex(persist_directory=data_dir, **kwargs)  # type: ignore[return-value]
+        except Exception:
+            pass
+    return InMemoryCodeIndex()

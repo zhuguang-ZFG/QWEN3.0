@@ -108,20 +108,20 @@ def test_unknown_execution_kind_blocked():
     assert "execution_kind" in result.blocked_reason
 
 
-def test_all_gates_passed_still_disabled():
+def test_all_gates_passed_shell_executes():
     config = _shell_config()
     flags = _flags()
     result = preflight_real_execution(config, _shell_step(), flags)
     assert result.passed is True
 
     executor = RealToolExecutor(config=config, flags=flags)
-    tool_result = executor.run("pytest --tb=short")
-    assert tool_result.ok is False
-    assert "disabled" in tool_result.error.lower()
-    assert tool_result.executed is False
+    tool_result = executor.run("echo m1-test-ok")
+    assert tool_result.ok is True
+    assert tool_result.executed is True
+    assert "m1-test-ok" in tool_result.output
 
 
-def test_network_all_gates_passed_still_disabled():
+def test_network_all_gates_passed_dispatches():
     config = _shell_config(execution_kind="network")
     flags = _flags(
         allow_network=True,
@@ -136,11 +136,10 @@ def test_network_all_gates_passed_still_disabled():
     tool_result = RealToolExecutor(config=config, flags=flags).run(
         "https://api.example.com/v1"
     )
-    assert tool_result.executed is False
-    assert "disabled" in tool_result.error
+    assert tool_result.executed is True
 
 
-def test_workspace_all_gates_passed_still_disabled(tmp_path):
+def test_workspace_all_gates_passed_dispatches(tmp_path):
     config = _shell_config(execution_kind="workspace")
     flags = _flags(
         allow_workspace_write=True,
@@ -150,8 +149,8 @@ def test_workspace_all_gates_passed_still_disabled(tmp_path):
     result = preflight_real_execution(config, _shell_step(str(target)), flags)
     assert result.passed is True
     tool_result = RealToolExecutor(config=config, flags=flags).run(str(target))
-    assert tool_result.executed is False
-    assert "disabled" in tool_result.error
+    assert tool_result.executed is True
+    assert tool_result.ok is True
 
 
 def test_real_executor_default_preflight_blocks():
@@ -181,14 +180,15 @@ def test_blocked_preflight_writes_blocked_audit(tmp_path, monkeypatch):
     assert "real_execution_blocked" in events
 
 
-def test_disabled_executor_writes_audit(tmp_path, monkeypatch):
+def test_blocked_executor_writes_audit(tmp_path, monkeypatch):
     monkeypatch.setenv("LIMA_AUDIT_TRAIL", str(tmp_path / "audit.jsonl"))
-    executor = RealToolExecutor(config=_shell_config(), flags=_flags())
+    config = _shell_config(dry_run=True)
+    executor = RealToolExecutor(config=config, flags=_flags(dry_run=True))
     executor.run("pytest")
     from agent_runtime.audit_trail import AuditTrail
 
     events = {record.event for record in AuditTrail(str(tmp_path / "audit.jsonl")).query()}
-    assert "real_execution_disabled" in events
+    assert "real_execution_blocked" in events
 
 
 def test_preflight_audit_redacts_secrets(tmp_path, monkeypatch):

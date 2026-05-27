@@ -112,6 +112,21 @@ def route(query: str, messages: list[dict], *,
 
     messages, _retrieval_text = inject_retrieval_context(messages)
 
+    _code_context_text = ""
+    if scenario == "coding":
+        try:
+            from context_pipeline.code_context_injection import scan_and_build_context
+            _code_context_text = scan_and_build_context(query, messages)
+            if _code_context_text:
+                code_ctx_msg = {"role": "system", "content": _code_context_text}
+                if messages and messages[0].get("role") == "system":
+                    messages.insert(1, code_ctx_msg)
+                else:
+                    messages.insert(0, code_ctx_msg)
+        except Exception as e:
+            import logging as _logging
+            _logging.debug("code_context_injection failed: %s", e)
+
     try:
         from context_pipeline.complexity import assess_complexity
         raw_msgs = [{"role": m.get("role", ""), "content": m.get("content", "")} if isinstance(m, dict) else {"role": getattr(m, "role", ""), "content": getattr(m, "content", "")} for m in messages]
@@ -182,6 +197,27 @@ def route(query: str, messages: list[dict], *,
             if cache_enabled and answer:
                 to_cache = clean_response(answer, final_backend) or answer
                 semantic_cache.put(model or "default", messages, 0, to_cache)
+
+        if answer and scenario == "coding":
+            try:
+                from context_pipeline.response_validator import validate_response
+                vr = validate_response(answer, query)
+                if not vr.passed and len(backends) > 1:
+                    retry_backends = [b for b in backends if b != final_backend][:2]
+                    if retry_backends:
+                        import logging as _rl
+                        _rl.getLogger(__name__).info(
+                            "response validation failed (score=%.2f, issues=%s), retrying with %s",
+                            vr.score, vr.issues[:3], retry_backends,
+                        )
+                        retry_backend, retry_answer, _ = execute(
+                            retry_backends, call_fn, messages_injected, max_tokens)
+                        if retry_answer:
+                            vr2 = validate_response(retry_answer, query)
+                            if vr2.score > vr.score:
+                                final_backend, answer = retry_backend, retry_answer
+            except Exception:
+                pass
     else:
         final_backend, answer = backends[0] if backends else "none", ""
 

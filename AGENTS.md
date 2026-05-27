@@ -131,27 +131,50 @@ This project uses a two-role milestone loop:
 
 ## Agent 自动 Closeout 约定（全局）
 
+> 完整流程见 [`docs/DEPLOY_AND_RELEASE_CONVENTION.md`](docs/DEPLOY_AND_RELEASE_CONVENTION.md)。
+
 当 Owner 或 Agent 完成一个可部署里程碑切片，且用户未禁止自动发布时，Agent **默认执行**：
 
 ```text
 1. 本地 pytest（生产代码改动 → 全量；纯文档 → focused）
-2. VPS 部署 + restart + /health + 切片 smoke（`scripts/deploy_*.py`）
+2. VPS 部署 + restart + /health + 切片 smoke
 3. 更新 progress.md / findings.md（含 VPS 证据）
 4. git add（仅里程碑相关文件）
-5. git commit
-6. git push origin HEAD && git push gitee HEAD（或 push_dual_remotes.py）
+5. git commit（conventional commit）
+6. git push origin HEAD → git push gitee HEAD
 ```
 
 **硬规则：**
 
 - 无 VPS smoke 证据不得声称「已部署」。
-- 不提交 `.env`、token、VPS 密码。
+- 不提交 `.env`、token、VPS 密码、`.lima-data/`、生成缓存。
 - 部署前备份；失败则记录 rollback 位置，不 force-push。
 - 新能力默认关（env flag），VPS 上不得擅自打开未审查开关。
+- 禁止 `git add .`，只 stage 里程碑相关文件。
 
 ## Operator 全局偏好（2026-05-26）
 
 Owner 明确要求：**里程碑切片完成后 Agent 自动 VPS 部署 + 自动 git commit/push（GitHub + Gitee）**，无需再逐项请示。仍遵守：仅 stage 里程碑相关文件、不提交密钥、部署失败则记录 rollback。
+
+## 自动部署、VPS 验证调试与 GitHub 上传（项目全局）
+
+当任务属于可交付代码切片、运维修复、联调验证或质量审查修复时，Agent 默认把 closeout 做到“本地可证据化 + VPS 可验证 + GitHub 可追溯”。除非用户明确说“不要部署”“不要提交”“只本地检查”，否则按以下顺序执行：
+
+1. 本地门禁：运行与改动匹配的 focused pytest；生产路径变化时补跑 `ruff check`、`pyright` 和必要的全量/分批 pytest。失败时先调试修复，不能带失败结果进入部署。
+2. 变更审查：检查 `git status --short`，只处理本轮相关文件；发现用户未说明的改动时保留并绕开，不做 reset/checkout。
+3. VPS 部署前置：确认部署脚本使用固定 host key/known_hosts 校验，不使用 `AutoAddPolicy()`；部署前记录当前版本、备份位置和可回滚命令。
+4. VPS 自动部署：优先使用 `scripts/deploy_*.py` 或该切片文档指定脚本，一次性上传替换，不在生产 VPS 上边改边调。
+5. VPS 验证调试：部署后执行 restart、`/health`、公开 HTTPS smoke 和切片专属 smoke；失败时先收集日志、端口、进程、服务状态和最近异常，再最小化修复并重跑 smoke。
+6. 证据落盘：把本地门禁、VPS health/smoke、失败原因、修复动作、rollback 位置和残余风险写入 `progress.md` / `findings.md` / `STATUS.md` 中最合适的位置。
+7. GitHub 上传：仅 `git add` 本轮相关文件，提交前做 secret/凭据风险检查；用简洁 conventional commit；优先 `git push origin HEAD` 上传 GitHub，再按需要推送 Gitee 镜像或使用双推脚本。
+8. 完成汇报：只有在本地门禁、VPS smoke 和 GitHub push 都有本轮证据时，才能声称“已部署并上传 GitHub”；否则明确说明卡在哪一环。
+
+硬性边界：
+
+- 不提交 `.env`、token、VPS 密码、本地数据库、生成缓存、压缩包、参考仓库、临时抓包/调试输出。
+- 不为通过 smoke 放宽认证、扩大公网端口、关闭 host key 校验、绕过硬件 allowlist，或默认打开未审查的云/消息/数据库/硬件能力。
+- 部署失败时优先 rollback 或停在可诊断状态，不 force-push，不用宽泛 `git add .` 掩盖问题。
+- 自动上传 GitHub 是 closeout 的一部分，但仍必须建立在“只包含相关改动、无凭据、验证证据完整”的前提上。
 
 **常用脚本：**
 

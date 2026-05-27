@@ -1,11 +1,31 @@
 # LiMa Status
 
-> Updated: 2026-05-26 (P2-35..38 closeout)
-> Branch: `codex/free-web-ai-probe` @ **7e5bcab** (pushed)
-> Tests: **1891 passed, 10 skipped** (`pytest -q --ignore=active_model`)
-> Pyright: **0 errors, 0 warnings** (CI enforce)
-> MCP Tools: **31** on VPS
-> Memory: **`docs/LIMA_MEMORY.md`** — **2026-05-26 closeout** at top
+> Updated: 2026-05-27 (M1-M5 capability thickening + VPS cleanup)
+> Branch: `codex/free-web-ai-probe`
+> Tests: **1996 passed, 10 skipped** (`pytest -q --ignore=tests/test_ci_gates.py`)
+> VPS: Python 3.6 removed, cleanup done (22G→21G)
+> Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
+
+## 2026-05-27 M1-M5 Capability Thickening
+
+| Milestone | What | Files | Tests |
+|-----------|------|-------|-------|
+| M1: Real Execution | shell/git/network executor with preflight gates | 3 new, 1 modified | 32 |
+| M2: Code Context | tree-sitter multi-language + SQLite graph + ChromaDB vector | 4 new, 4 modified | 31 |
+| M3: Pipeline Integration | memory persistence + routing bridge | 2 new, 2 modified | 14 |
+| M4: Developer Skills | /investigate /review /ship /learn | 5 new | 13 |
+| M5: Research Orchestration | multi-source parallel search + synthesis | 4 new | 11 |
+
+## 2026-05-27 VPS Cleanup
+
+| Action | Result |
+|--------|--------|
+| Python 3.6 removed | 54MB freed, python3 → 3.11 |
+| Conda package cache | 985MB freed |
+| Python build artifacts | 171MB freed |
+| Journal logs vacuumed | 257MB freed |
+| Unused podman images | ~80MB freed |
+| Total disk | 22G → 21G (55% used) |
 
 ## 2026-05-26 P2-26…32 Enhancement Blitz
 

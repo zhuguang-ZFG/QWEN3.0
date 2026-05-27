@@ -37,6 +37,18 @@ def select(request_type: str, health_map: dict,
         except ImportError:
             pass
 
+        try:
+            from context_pipeline.hierarchical_memory import get_hierarchical_memory
+            hmem = get_hierarchical_memory()
+            for b in result:
+                perf = hmem.L1.get(f"perf:{b}")
+                if perf and perf.get("total", 0) >= 3:
+                    success_rate = perf.get("success_rate", 0.5)
+                    latency_bonus = max(0, (2000 - perf.get("avg_latency", 1000)) / 100)
+                    scores[b] = scores.get(b, 50) * (0.7 + 0.3 * success_rate) + latency_bonus
+        except Exception:
+            pass
+
         result.sort(key=lambda b: -(
             scores.get(b, 50) * budget_manager.get_budget_priority(b)
             + random.uniform(0, 8)

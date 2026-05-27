@@ -1,8 +1,7 @@
-"""Real executor scaffold with multi-gate preflight and default-disabled output.
+"""Real executor with multi-gate preflight and dispatch to shell/git/network.
 
-No real execution happens in this module. It defines the future execution
-contract, records preflight evidence, and always returns a disabled result even
-when every gate passes.
+Execution only happens when all preflight gates pass (dry_run=0, allow_*=1,
+command in allowlist, audit refs present). Otherwise returns blocked result.
 """
 
 from __future__ import annotations
@@ -70,6 +69,12 @@ def preflight_real_execution(
             "shell_allowlist",
             "command not in shell allowlist",
         )
+    elif kind == "git":
+        check(
+            is_shell_allowed(step.command, flags),
+            "shell_allowlist",
+            "git requires shell allowlist",
+        )
     elif kind == "network":
         check(
             is_network_allowed(step.command, flags),
@@ -96,7 +101,11 @@ def preflight_real_execution(
 
 
 class RealToolExecutor(ToolExecutor):
-    """Scaffold executor. It never performs real shell/network/workspace work."""
+    """Executes real commands after preflight gates pass.
+
+    Dispatches to shell, git, network, or workspace executors based on
+    execution_kind. All gated behind LIMA_DRY_RUN=0 + LIMA_ALLOW_*=1.
+    """
 
     def __init__(
         self,
@@ -130,16 +139,8 @@ class RealToolExecutor(ToolExecutor):
                 executed=False,
             )
 
-        _audit_event(
-            "real_execution_disabled",
-            detail="all gates passed but executor disabled in scaffold",
-        )
-        return ToolResult(
-            ok=False,
-            error="real execution disabled in scaffold",
-            evidence=["real_executor_scaffold_disabled"],
-            duration_ms=(time.time() - t0) * 1000,
-            executed=False,
+        return _dispatch_execution(
+            command, self.config.execution_kind, self.flags, timeout_sec, t0,
         )
 
     @property
@@ -147,8 +148,68 @@ class RealToolExecutor(ToolExecutor):
         return self._preflight
 
 
-def _step_kind_for_execution_kind(kind: str) -> StepKind:
+def _dispatch_execution(
+    command: str,
+    kind: str,
+    flags: ExecutionFeatureFlags,
+    timeout_sec: float,
+    t0: float,
+) -> ToolResult:
+    _audit_event(
+        "real_execution_dispatch",
+        detail=f"kind={kind} command={redact(command[:100])}",
+    )
+
     if kind == "shell":
+        from agent_runtime.shell_executor import shell_execute
+
+        return shell_execute(command, flags=flags, timeout_sec=timeout_sec)
+
+    if kind == "git":
+        from agent_runtime.git_executor import git_execute
+
+        return git_execute(command, flags=flags, timeout_sec=timeout_sec)
+
+    if kind == "network":
+        from agent_runtime.network_executor import network_execute
+
+        return network_execute(command, flags=flags, timeout_sec=timeout_sec)
+
+    if kind == "workspace":
+        return _workspace_execute(command, t0)
+
+    return ToolResult(
+        ok=False,
+        error=f"execution kind '{kind}' not yet supported",
+        evidence=[f"unsupported_kind:{kind}"],
+        duration_ms=(time.time() - t0) * 1000,
+        executed=False,
+    )
+
+
+def _workspace_execute(command: str, t0: float) -> ToolResult:
+    from pathlib import Path
+
+    target = Path(command)
+    if not target.parent.exists():
+        return ToolResult(
+            ok=False,
+            error=f"parent directory does not exist: {target.parent}",
+            evidence=["workspace_parent_missing"],
+            duration_ms=(time.time() - t0) * 1000,
+            executed=False,
+        )
+    return ToolResult(
+        ok=True,
+        output=f"workspace path validated: {target}",
+        evidence=["workspace_validated"],
+        duration_ms=(time.time() - t0) * 1000,
+        executed=True,
+    )
+
+
+def _step_kind_for_execution_kind(kind: str) -> StepKind:
+    if kind in ("shell", "git"):
         return StepKind.SHELL_COMMAND
     if kind == "network":
         return StepKind.HTTP_CALL
@@ -175,4 +236,6 @@ def _audit_event(event: str, detail: str = "") -> None:
 
         audit_event(event, detail=detail)
     except Exception as exc:
-        _log.debug("real_executor audit skipped event=%s: %s", event, type(exc).__name__)
+        _log.debug(
+            "real_executor audit skipped event=%s: %s", event, type(exc).__name__,
+        )

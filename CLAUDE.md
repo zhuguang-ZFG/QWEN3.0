@@ -57,9 +57,9 @@ server.py → routes/route_registry.py
 1. 设计文档 (docs/*.md)
 2. 本地编码 (D:/GIT)
 3. pytest
-4. 必要时 VPS bundle 部署 + smoke
+4. VPS 部署 + health/smoke 验证（详见 docs/DEPLOY_AND_RELEASE_CONVENTION.md）
 5. 更新 STATUS.md / progress.md / findings.md
-6. 仅 stage 里程碑相关文件后 commit / push
+6. git commit（仅里程碑相关文件）→ push origin → push gitee
 ```
 
 ## 技术栈
@@ -104,3 +104,5 @@ python scripts/repo_stats.py
 ## Milestone Collaboration Protocol
 
 见 `AGENTS.md`：Owner 实现 → Agent 审查/修复/全量测试 → 更新 progress/findings → 仅 stage 相关文件 → commit → push → 下一里程碑计划。
+
+全局 closeout 默认包含：本地门禁通过、VPS 自动部署与 health/smoke 验证、失败时记录调试和 rollback 证据、仅 stage 本轮相关文件、无凭据检查后提交，并优先上传 GitHub (`origin`) 再同步 Gitee。完整硬规则以 `AGENTS.md` 的“自动部署、VPS 验证调试与 GitHub 上传（项目全局）”为准。
