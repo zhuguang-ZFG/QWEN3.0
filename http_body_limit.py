@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gzip
 import json
 from typing import Any, Awaitable, Callable
 
@@ -195,6 +196,13 @@ class BodySizeLimitMiddleware:
                 return
             if not message.get("more_body", False):
                 break
+
+        content_encoding = (headers.get("content-encoding") or "").lower()
+        if content_encoding == "gzip" and body:
+            try:
+                body = gzip.decompress(body)
+            except Exception:
+                pass
 
         replayed = False
 

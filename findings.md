@@ -16,6 +16,10 @@
 | F2-BOM-1 | Hygiene | 24 个 .py 文件有 UTF-8 BOM 头，已批量移除 | Closed |
 | VPS-CLEAN-1 | Ops | Python 3.6 已移除（54MB），conda 缓存 985MB，磁盘 22G→21G | Closed |
 | VPS-PY-1 | Ops | VPS 默认 python3 指向 3.6，server.py 实际运行在 python3.10（87 backends）。python3.11 有 168 backends 但缺 fastapi | Open |
+| EXERCISE-1 | Code | `/learn` 调用 `skill_store.crystallize()` 时传了不存在的 `success` 参数 → 已修复为正确签名 | Closed |
+| EXERCISE-2 | Code | `server.py` 未加载 `.env` 文件 → 已添加 `dotenv.load_dotenv()` | Closed |
+| EXERCISE-3 | Code | `developer_skills/learn.py` API 不匹配 → 已修复 crystallize 调用参数 | Closed |
+| EXERCISE-4 | Config | `.env` 缺少 `LIMA_API_KEY` → 已添加，写入 AGENTS.md 全局约束 | Closed |
 
 | DOC-CLEAN-1 | Docs | `docs/README.md` + `docs/DOCUMENTATION_CLEANUP.md` establish a short entrypoint and soft-archive queue | Closed 2026-05-27 |
 | DOC-CLEAN-2 | Docs | 11 historical `docs/CQ014_*.md` files moved to `docs/archive/code-quality/`; reference scan found only historical progress mentions plus cleanup docs | Closed 2026-05-27 |

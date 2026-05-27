@@ -18,12 +18,15 @@ class ChatRequest(BaseModel):
     stream: bool = False
     max_tokens: Optional[int] = Field(default=1024, alias="max_tokens")
     temperature: Optional[float] = 0.7
-    thinking: Optional[bool] = False
+    thinking: Optional[bool | dict] = False
+    tools: Optional[list[dict]] = None
+    tool_choice: Optional[dict | str] = None
+    stream_options: Optional[dict] = None
 
 
 def extract_system_prompt(messages: list[Message]) -> str | None:
     """Return the first non-empty system prompt from a chat message list."""
     for msg in messages:
-        if msg.role == "system" and msg.content:
+        if msg.role == "system" and isinstance(msg.content, str) and msg.content:
             return msg.content
     return None

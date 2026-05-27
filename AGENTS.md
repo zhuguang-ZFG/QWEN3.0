@@ -2,6 +2,29 @@
 
 ## Superpowers 原则
 
+### 0. 禁止降级处理（全局硬规则）
+
+**所有功能必须在正确配置下运行，不允许静默降级或跳过。**
+
+- `.env` 必须设置 `LIMA_API_KEY` 和 `LIMA_API_KEYS`，否则服务启动时应报错而非降级
+- 路由引擎收到 coding 请求时，必须执行代码上下文注入，不允许静默跳过
+- 响应后处理必须执行语法+安全检查，不允许因为"可选模块未安装"而跳过
+- agent 执行器必须在 `LIMA_DRY_RUN=0` 时真正执行，不允许返回"disabled in scaffold"
+- Telegram 命令必须完整处理，不允许返回"Unknown command"后不给用户任何提示
+- 任何 `except Exception: pass` 或 `except ImportError: pass` 在生产路径中都是**禁止的**——必须至少 `logger.warning` 并说明降级原因
+- 如果关键依赖不可用（如 chromadb、tree-sitter），必须在启动时日志明确告警，而不是运行时静默降级
+
+**违反此规则的代码不得合入主分支。**
+
+### 0.1 演练以自家项目为重（全局硬规则）
+
+**所有演练和测试必须以 LiMa 后端 + LiMa Code 前端为核心对象。**
+
+- 演练场景必须覆盖：LiMa 路由端到端、LiMa Code agent 任务全生命周期、Telegram 开发者技能
+- 不得用外部玩具项目代替自家项目的演练
+- 发现的问题必须记录到 `findings.md` 并修复
+- LiMa Code（`deepcode-cli` 子模块）的演练包括：CLI 启动、任务 claim、代码生成、结果提交
+
 ### 1. 文档先行
 
 - 任何非 trivial 改动，先写设计文档再编码。

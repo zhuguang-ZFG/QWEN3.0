@@ -70,10 +70,12 @@ server.py → routes/route_registry.py
 
 ## 代码质量红线
 
+- **禁止降级处理**：所有功能必须在正确配置下运行，不允许静默降级或跳过（详见 AGENTS.md Superpowers 原则 #0）
 - 禁止裸 `except Exception: pass`（至少 `logger.warning` + 类型名）
 - 禁止在生产路径硬编码密钥
 - 新模块超过 300 行必须拆分
 - 可选子系统：`ImportError` 时 `logger.debug` 说明未安装，勿静默吞掉未知异常
+- `.env` 必须设置 `LIMA_API_KEY`，否则启动报错
 
 ### 近期已关闭（CQ-085）
 
