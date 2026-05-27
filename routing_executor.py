@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 import time
 from typing import Callable, Optional
 
-MAX_FALLBACKS = 5
+MAX_FALLBACKS = 10
+MAX_FALLBACKS_TOOLS = 15
+PER_BACKEND_TIMEOUT = 12.0
+
+logger = logging.getLogger(__name__)
 
 
 def execute(backends: list[str],
@@ -13,61 +18,54 @@ def execute(backends: list[str],
             messages: list[dict],
             max_tokens: int = 4096,
             tools: list[dict] | None = None) -> tuple[str, str, int]:
-    """按序尝试后端，失败则 fallback。返回 (backend, answer, error_count)"""
+    """按序尝试后端，失败则快速 fallback。返回 (backend, answer, error_count)"""
     import routing_engine as re
 
     t0 = time.time()
     errors = 0
-    tried_any = False
+    max_tries = MAX_FALLBACKS_TOOLS if tools else MAX_FALLBACKS
 
-    for backend in backends[:MAX_FALLBACKS]:
+    for backend in backends[:max_tries]:
         if re.health_tracker.is_cooled_down(backend):
             errors += 1
             continue
-        tried_any = True
         try:
             t_backend = time.time()
             if tools:
                 answer = call_fn(backend, messages, max_tokens, tools=tools)
             else:
                 answer = call_fn(backend, messages, max_tokens)
+            latency_ms = (time.time() - t_backend) * 1000
+
             if answer and len(answer.strip()) > 5:
-                latency_ms = (time.time() - t_backend) * 1000
                 re.health_tracker.record_success(backend, latency_ms)
                 re.budget_manager.record_usage(backend)
                 return backend, answer, errors
+
             re.health_tracker.record_failure(backend, error_code=None)
             errors += 1
         except Exception as e:
             code = extract_error_code(e)
-            if code != 503:
-                re.health_tracker.record_failure(backend, error_code=code)
+            re.health_tracker.record_failure(backend, error_code=code)
             errors += 1
+            if latency_ms > PER_BACKEND_TIMEOUT * 1000:
+                logger.warning("[EXECUTE] %s slow (%.0fs), skipping", backend, latency_ms / 1000)
 
-    if not tried_any:
+    if not errors and backends:
         re.health_tracker.detect_and_reset_mass_failure()
         for backend in backends[:3]:
+            if re.health_tracker.is_cooled_down(backend):
+                continue
             try:
-                answer = call_fn(backend, messages, max_tokens, tools=tools)
+                if tools:
+                    answer = call_fn(backend, messages, max_tokens, tools=tools)
+                else:
+                    answer = call_fn(backend, messages, max_tokens)
                 if answer and len(answer.strip()) > 5:
                     re.health_tracker.record_success(backend, (time.time() - t0) * 1000)
                     return backend, answer, errors
             except Exception as e:
-                import logging
-                logging.warning(f"[EXECUTE] force-try {backend} failed: {type(e).__name__}: {e}")
                 re.health_tracker.record_failure(backend, error_code=extract_error_code(e))
-                errors += 1
-
-    if re.health_tracker.detect_and_reset_mass_failure():
-        for b in re.router_v3.DIRECT_BACKENDS[:2]:
-            if re.health_tracker.is_cooled_down(b):
-                continue
-            try:
-                answer = call_fn(b, messages, max_tokens)
-                if answer and len(answer.strip()) > 5:
-                    return b, answer, errors
-            except Exception as e:
-                re.health_tracker.record_failure(b, error_code=extract_error_code(e))
                 errors += 1
 
     return "exhausted", "", errors
