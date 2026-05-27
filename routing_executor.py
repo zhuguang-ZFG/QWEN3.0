@@ -7,8 +7,8 @@ import time
 from typing import Callable, Optional
 
 MAX_FALLBACKS = 10
-MAX_FALLBACKS_TOOLS = 15
-PER_BACKEND_TIMEOUT = 12.0
+MAX_FALLBACKS_TOOLS = 20
+PER_BACKEND_TIMEOUT = 15.0
 
 logger = logging.getLogger(__name__)
 
@@ -51,9 +51,9 @@ def execute(backends: list[str],
             if latency_ms > PER_BACKEND_TIMEOUT * 1000:
                 logger.warning("[EXECUTE] %s slow (%.0fs), skipping", backend, latency_ms / 1000)
 
-    if not errors and backends:
+    if backends:
         re.health_tracker.detect_and_reset_mass_failure()
-        for backend in backends[:3]:
+        for backend in backends[:5]:
             if re.health_tracker.is_cooled_down(backend):
                 continue
             try:
