@@ -34,6 +34,24 @@ def quality_check_processor(ctx: ResponseContext) -> ResponseContext:
     return ctx
 
 
+def code_validation_processor(ctx: ResponseContext) -> ResponseContext:
+    """Validate code responses: syntax check + security pattern scan."""
+    if not ctx.response_text or len(ctx.response_text) < 20:
+        return ctx
+
+    try:
+        from context_pipeline.response_validator import validate_response
+
+        vr = validate_response(ctx.response_text, "")
+        if not vr.passed:
+            ctx.quality_ok = False
+            ctx.quality_issues.extend(vr.issues[:5])
+    except Exception:
+        pass
+
+    return ctx
+
+
 def memory_capture_processor(ctx: ResponseContext) -> ResponseContext:
     """Extract response summary for session memory."""
     if not ctx.response_text:
@@ -88,6 +106,7 @@ def build_default_response_pipeline():
     return (
         ResponsePipeline()
         .add("quality_check", quality_check_processor)
+        .add("code_validation", code_validation_processor)
         .add("memory_capture", memory_capture_processor)
         .add("event_recording", event_recording_processor)
         .add("lesson_extraction", lesson_extraction_processor)

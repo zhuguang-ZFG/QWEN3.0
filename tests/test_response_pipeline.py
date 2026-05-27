@@ -76,7 +76,7 @@ def test_default_response_pipeline_full_flow():
     assert ctx.quality_ok is True
     assert "scnet_qwen72b" in ctx.summary
     assert ctx.lesson == ""
-    assert len(ctx.processors_applied) == 4
+    assert len(ctx.processors_applied) == 5
 
 
 def test_default_response_pipeline_failure_flow():
@@ -89,4 +89,4 @@ def test_default_response_pipeline_failure_flow():
     ))
     assert ctx.quality_ok is False
     assert "groq_llama70b" in ctx.lesson
-    assert len(ctx.processors_applied) == 4
+    assert len(ctx.processors_applied) == 5
