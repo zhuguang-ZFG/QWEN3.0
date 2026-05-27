@@ -8,6 +8,8 @@ import budget_manager
 import route_scorer
 import sticky_session
 
+import os
+
 MAX_FALLBACKS = 5
 
 # Static latency estimates (ms) for known fast backends
@@ -30,6 +32,22 @@ _STATIC_LATENCY_ESTIMATE = {
 }
 
 
+def _has_valid_key(name: str) -> bool:
+    """Check if a backend has a configured, non-empty API key."""
+    import backends_registry as reg
+    cfg = reg.BACKENDS.get(name, {})
+    key = cfg.get("key", "")
+    if not key or key in ("none", "YOUR_KEY_HERE", ""):
+        return False
+    env_var = key if key.startswith("$") else None
+    if env_var and not os.environ.get(env_var.lstrip("$"), ""):
+        return False
+    return True
+
+
+import os
+
+
 def select(request_type: str, health_map: dict,
            sticky_key: str = None, scenario: str = "",
            needs_tools: bool = False) -> list[str]:
@@ -47,9 +65,16 @@ def select(request_type: str, health_map: dict,
 
     if needs_tools:
         result = [b for b in result if "tool_calls" in reg.BACKENDS.get(b, {}).get("caps", [])]
-        if not result:
-            code_pool = re.router_v3.select_backends("code", health_map)
-            result = [b for b in code_pool if "tool_calls" in reg.BACKENDS.get(b, {}).get("caps", [])]
+        if len(result) < 8:
+            all_capable = [
+                n for n, c in reg.BACKENDS.items()
+                if "tool_calls" in c.get("caps", [])
+                and not re.health_tracker.is_cooled_down(n)
+                and budget_manager.is_budget_available(n)
+            ]
+            for b in all_capable:
+                if b not in result:
+                    result.append(b)
 
     result = [b for b in result if budget_manager.is_budget_available(b)]
 

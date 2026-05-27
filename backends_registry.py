@@ -132,8 +132,8 @@ BACKENDS = {
     'local_fast': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'qwen2.5-coder:1.5b', 'fmt': 'openai', 'timeout': 10},
     'local_chat': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'qwen2.5:0.5b', 'fmt': 'openai', 'timeout': 5},
     # ── DuckDuckGo-AI (本地 duckai, 免费, 仅 3 个模型验证可用) ──
-    'ddg_gpt4o_mini': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'gpt-4o-mini', 'fmt': 'openai', 'timeout': 30, 'no_system': True},
-    'ddg_gpt5_mini': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'gpt-5-mini', 'fmt': 'openai', 'timeout': 30, 'no_system': True},
+    'ddg_gpt4o_mini': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'gpt-4o-mini', 'fmt': 'openai', 'timeout': 30, 'no_system': True, 'caps': ['tool_calls']},
+    'ddg_gpt5_mini': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'gpt-5-mini', 'fmt': 'openai', 'timeout': 30, 'no_system': True, 'caps': ['tool_calls']},
     'ddg_claude_haiku_45': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'claude-haiku-4-5', 'fmt': 'openai', 'timeout': 30, 'no_system': True},
     'ddg_llama4': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'meta-llama/Llama-4-Scout-17B-16E-Instruct', 'fmt': 'openai', 'timeout': 30, 'no_system': True},
     'ddg_mistral': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'mistral-small-2603', 'fmt': 'openai', 'timeout': 20, 'no_system': True},
@@ -159,8 +159,8 @@ BACKENDS = {
     'oldllm_gpt53': {'url': 'https://llm.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'gpt-5.3', 'fmt': 'openai', 'timeout': 45},
     'oldllm_gpt52': {'url': 'https://llm.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'gpt-5.2', 'fmt': 'openai', 'timeout': 45},
     'oldllm_gpt51': {'url': 'https://llm.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'gpt-5.1', 'fmt': 'openai', 'timeout': 45},
-    'oldllm_gpt5': {'url': 'https://llm.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'gpt-5', 'fmt': 'openai', 'timeout': 45},
-    'oldllm_gpt5_mini': {'url': 'https://llm.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'gpt-5-mini', 'fmt': 'openai', 'timeout': 30},
+    'oldllm_gpt5': {'url': 'https://llm.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'gpt-5', 'fmt': 'openai', 'timeout': 45, 'caps': ['tool_calls']},
+    'oldllm_gpt5_mini': {'url': 'https://llm.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'gpt-5-mini', 'fmt': 'openai', 'timeout': 30, 'caps': ['tool_calls']},
     'oldllm_gpt41': {'url': 'https://llm.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'gpt-4.1', 'fmt': 'openai', 'timeout': 45},
     'oldllm_gpt41_mini': {'url': 'https://llm.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'gpt-4.1-mini', 'fmt': 'openai', 'timeout': 30},
     'oldllm_gpt41_nano': {'url': 'https://llm.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'gpt-4.1-nano', 'fmt': 'openai', 'timeout': 20},
@@ -168,9 +168,9 @@ BACKENDS = {
     'oldllm_o1': {'url': 'https://llm.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'o1', 'fmt': 'openai', 'timeout': 60},
     'oldllm_o4_mini': {'url': 'https://llm.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'o4-mini', 'fmt': 'openai', 'timeout': 45},
     # ── Cloudflare Workers AI (免费 10K neurons/天, 大模型推理) ──
-    'cfai_llama70b': {'url': 'https://ai.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'llama-3.3-70b', 'fmt': 'openai', 'timeout': 30},
+    'cfai_llama70b': {'url': 'https://ai.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'llama-3.3-70b', 'fmt': 'openai', 'timeout': 30, 'caps': ['tool_calls']},
     'cfai_llama4': {'url': 'https://ai.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'llama-4-scout', 'fmt': 'openai', 'timeout': 30},
-    'cfai_qwen_coder': {'url': 'https://ai.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'qwen2.5-coder-32b', 'fmt': 'openai', 'timeout': 30},
+    'cfai_qwen_coder': {'url': 'https://ai.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'qwen2.5-coder-32b', 'fmt': 'openai', 'timeout': 30, 'caps': ['tool_calls', 'code']},
     'cfai_deepseek_r1': {'url': 'https://ai.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'deepseek-r1-32b', 'fmt': 'openai', 'timeout': 45},
     'cfai_mistral': {'url': 'https://ai.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'mistral-small-3.1', 'fmt': 'openai', 'timeout': 30},
     # ── 本地 Ollama 新增模型 ──
