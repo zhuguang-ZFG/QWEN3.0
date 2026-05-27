@@ -7,6 +7,7 @@ sqlite_graph_store and chroma_vector_store for persistence.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import time
@@ -163,3 +164,36 @@ def get_auto_indexer() -> AutoIndexer:
 def run_indexer_scan() -> dict:
     """Convenience: get indexer, run scan, return stats."""
     return get_auto_indexer().scan_once()
+
+
+# ── Background loop for server lifespan ───────────────────────────────────────
+
+_INDEXER_TASK = None
+
+
+def start_auto_indexer(interval_sec: int = 300) -> None:
+    """Start background periodic scan. Non-blocking."""
+    global _INDEXER_TASK
+    try:
+        import asyncio
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return
+    _INDEXER_TASK = loop.create_task(_indexer_loop(interval_sec))
+    _log.info("auto_indexer started (interval=%ds)", interval_sec)
+
+
+async def _indexer_loop(interval_sec: int) -> None:
+    while True:
+        try:
+            run_indexer_scan()
+        except Exception:
+            pass
+        await asyncio.sleep(interval_sec)
+
+
+def stop_auto_indexer() -> None:
+    global _INDEXER_TASK
+    if _INDEXER_TASK and not _INDEXER_TASK.done():
+        _INDEXER_TASK.cancel()
+        _INDEXER_TASK = None

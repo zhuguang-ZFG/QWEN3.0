@@ -56,9 +56,21 @@ async def lifespan(application):
     except ImportError:
         _log.debug("device_gateway.mqtt_client not installed")
     try:
+        from context_pipeline.auto_indexer import start_auto_indexer
+
+        start_auto_indexer()
+    except ImportError:
+        _log.debug("auto_indexer not installed")
+    try:
         yield
     finally:
         probe_loop.stop()
+        try:
+            from context_pipeline.auto_indexer import stop_auto_indexer
+
+            stop_auto_indexer()
+        except ImportError:
+            pass
         try:
             import periodic_coding_eval
 
