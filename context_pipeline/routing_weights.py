@@ -11,13 +11,14 @@ Backend routing weights that learn from success/failure history:
 import json
 import os
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, asdict
 from pathlib import Path
 
 
-import tempfile
-
-_default_path = os.path.join(tempfile.gettempdir(), "lima_routing_weights.json")
+_default_path = os.path.join(
+    os.environ.get("LIMA_DATA_DIR", "data"),
+    "lima_routing_weights.json",
+)
 WEIGHTS_PATH = Path(os.environ.get("LIMA_WEIGHTS_PATH", _default_path))
 
 

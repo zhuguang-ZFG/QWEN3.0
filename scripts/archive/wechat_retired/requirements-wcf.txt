@@ -1,2 +1,0 @@
-# Windows only: LiMa 小号微信客服 (WeChatFerry)
-wcferry==39.5.2.0

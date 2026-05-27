@@ -85,6 +85,7 @@ data/wechat_install/
 data/geweapi_*
 data/hermes_weixin_login*
 data/weixin_share_qr.*
+decrypt-wc/
 frp/
 .claude/
 
