@@ -25,7 +25,8 @@ from typing import Any
 
 _log = logging.getLogger(__name__)
 
-_DB_PATH = os.environ.get("LIMA_OUTCOME_DB", str(Path(__file__).resolve().parent.parent / "data" / "outcome_ledger.db"))
+_DEFAULT_DB_PATH = str(Path(__file__).resolve().parent.parent / "data" / "outcome_ledger.db")
+_DB_PATH = os.environ.get("LIMA_OUTCOME_DB", _DEFAULT_DB_PATH)
 _ENABLED = os.environ.get("LIMA_OUTCOME_LEDGER", "1").strip().lower() in {"1", "true", "yes"}
 
 ALLOWED_LOOPS = {
@@ -34,9 +35,53 @@ ALLOWED_LOOPS = {
 }
 
 
+def get_db_path() -> str:
+    """Return the current outcome DB path, honoring test/runtime env changes."""
+    return os.environ.get("LIMA_OUTCOME_DB", _DB_PATH)
+
+
+def _clean_text(text: str, max_len: int = 500) -> str:
+    cleaned = str(text or "")
+    cleaned = re.sub(r"Bearer\s+\S+", "Bearer [REDACTED]", cleaned)
+    for pattern in ("sk-", "gho_", "ghp_", "github_pat_"):
+        cleaned = re.sub(rf"(^|\s)({re.escape(pattern)}\S+)", r"\1[REDACTED]", cleaned)
+    return cleaned[:max_len]
+
+
+def _clean_value(value: Any, *, max_items: int = 50) -> Any:
+    if isinstance(value, str):
+        return _clean_text(value)
+    if isinstance(value, dict):
+        return {
+            _clean_text(str(k), 80): _clean_value(v, max_items=max_items)
+            for k, v in list(value.items())[:max_items]
+        }
+    if isinstance(value, (list, tuple)):
+        return [_clean_value(v, max_items=max_items) for v in list(value)[:max_items]]
+    if isinstance(value, (int, float, bool)) or value is None:
+        return value
+    return _clean_text(str(value))
+
+
+def _clean_list(values: list[str] | None, *, max_items: int = 10) -> list[Any]:
+    return [_clean_value(v) for v in list(values or [])[:max_items]]
+
+
+def _json_loads_safe(value: Any) -> Any:
+    if not isinstance(value, str):
+        return value
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError:
+        return []
+
+
 def _get_conn() -> sqlite3.Connection:
-    os.makedirs(os.path.dirname(_DB_PATH), exist_ok=True)
-    conn = sqlite3.connect(_DB_PATH)
+    db_path = get_db_path()
+    db_dir = os.path.dirname(db_path)
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
+    conn = sqlite3.connect(db_path)
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("""
         CREATE TABLE IF NOT EXISTS outcomes (
@@ -117,6 +162,18 @@ def record(
         return None
 
     event_id = _make_id(source)
+    clean_source = _clean_text(source, 80)
+    clean_event_type = _clean_text(event_type, 80)
+    clean_outcome = _clean_text(outcome, 80)
+    clean_loop = _clean_text(loop, 80)
+    clean_backend = _clean_text(backend, 80)
+    clean_scenario = _clean_text(scenario, 80)
+    clean_task_id = _clean_text(task_id, 120)
+    clean_device_id = _clean_text(device_id, 120)
+    clean_request_id = _clean_text(request_id, 120)
+    clean_entrypoint = _clean_text(entrypoint, 120)
+    clean_evidence = _clean_list(evidence, max_items=10)
+    clean_artifacts = _clean_list(artifact_paths, max_items=10)
     conn = _get_conn()
     conn.execute(
         "INSERT INTO outcomes (event_id, source, event_type, loop, outcome, backend, scenario, "
@@ -124,12 +181,15 @@ def record(
         "summary, details, tags, evidence, artifact_paths, rollback, recorded_at) "
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
-            event_id, source, event_type, loop, outcome, backend, scenario,
-            task_id, device_id, request_id, entrypoint,
+            event_id, clean_source, clean_event_type, clean_loop, clean_outcome,
+            clean_backend, clean_scenario,
+            clean_task_id, clean_device_id, clean_request_id, clean_entrypoint,
             1 if fallback_used else 0, max(0, int(latency_ms or 0)),
-            summary[:500], json.dumps(details or {}, ensure_ascii=False),
-            json.dumps(tags or []), json.dumps(evidence or []),
-            json.dumps(artifact_paths or []), rollback[:500],
+            _clean_text(summary, 500), json.dumps(_clean_value(details or {}), ensure_ascii=False),
+            json.dumps(_clean_list(tags, max_items=20), ensure_ascii=False),
+            json.dumps(clean_evidence, ensure_ascii=False),
+            json.dumps(clean_artifacts, ensure_ascii=False),
+            _clean_text(rollback, 500),
             time.time(),
         ),
     )
@@ -159,6 +219,8 @@ def record_evidence(
     """Record capability evidence (same store, different interface)."""
     if loop not in ALLOWED_LOOPS:
         raise ValueError(f"unsupported capability loop: {loop}")
+    clean_evidence = _clean_list(evidence, max_items=10)
+    clean_artifacts = _clean_list(artifact_paths, max_items=10)
     record(
         source="evidence",
         event_type=loop,
@@ -171,8 +233,8 @@ def record_evidence(
         backend=selected_backend,
         fallback_used=fallback_used,
         latency_ms=latency_ms,
-        evidence=evidence,
-        artifact_paths=artifact_paths,
+        evidence=clean_evidence,
+        artifact_paths=clean_artifacts,
         rollback=rollback,
     )
     return {
@@ -181,7 +243,7 @@ def record_evidence(
         "request_id": request_id, "task_id": task_id, "device_id": device_id,
         "entrypoint": entrypoint, "selected_backend": selected_backend,
         "fallback_used": fallback_used, "latency_ms": latency_ms,
-        "evidence": evidence or [], "artifact_paths": (artifact_paths or [])[:10],
+        "evidence": clean_evidence, "artifact_paths": clean_artifacts,
         "rollback": rollback, "created_at": time.time(),
     }
 
@@ -200,161 +262,13 @@ def recent_evidence(*, limit: int = 20) -> list[dict[str, Any]]:
     return query_events(limit=limit)
 
 
-def query_events(
-    *,
-    source: str = "",
-    loop: str = "",
-    outcome: str = "",
-    limit: int = 20,
-) -> list[dict]:
-    """Query events with optional filters. Replaces query()."""
-    conn = _get_conn()
-    wheres: list[str] = []
-    params: list = []
-    if source:
-        wheres.append("source = ?")
-        params.append(source)
-    if loop:
-        wheres.append("loop = ?")
-        params.append(loop)
-    if outcome:
-        wheres.append("outcome = ?")
-        params.append(outcome)
-    where = " AND ".join(wheres) if wheres else "1=1"
-    rows = conn.execute(
-        f"SELECT event_id, source, event_type, loop, outcome, backend, scenario, "
-        f"task_id, device_id, request_id, entrypoint, fallback_used, latency_ms, "
-        f"summary, tags, evidence, artifact_paths, rollback, recorded_at, learned "
-        f"FROM outcomes WHERE {where} ORDER BY recorded_at DESC LIMIT ?",
-        (*params, limit),
-    ).fetchall()
-    conn.close()
-    return [_row_to_dict(r) for r in rows]
+# ── Query/Mark functions — delegated to outcome_queries.py ──
 
-
-def _row_to_dict(r: tuple) -> dict:
-    d = {
-        "event_id": r[0], "source": r[1], "event_type": r[2], "loop": r[3],
-        "outcome": r[4], "backend": r[5], "scenario": r[6],
-        "task_id": r[7], "device_id": r[8], "request_id": r[9],
-        "entrypoint": r[10], "fallback_used": bool(r[11]), "latency_ms": r[12],
-        "summary": r[13], "tags": json.loads(r[14]) if isinstance(r[14], str) else r[14],
-        "evidence": json.loads(r[15]) if isinstance(r[15], str) else r[15],
-        "artifact_paths": json.loads(r[16]) if isinstance(r[16], str) else r[16],
-        "rollback": r[17], "recorded_at": r[18], "learned": r[19],
-    }
-    d["status"] = d["outcome"]
-    d["selected_backend"] = d["backend"]
-    d["schema_version"] = "lima.capability_evidence.v0"
-    return d
-
-
-def query(
-    *,
-    source: str = "",
-    scenario: str = "",
-    outcome: str = "",
-    limit: int = 20,
-) -> list[dict]:
-    """Query outcome events with optional filters."""
-    conn = _get_conn()
-    wheres: list[str] = []
-    params: list = []
-    if source:
-        wheres.append("source = ?")
-        params.append(source)
-    if scenario:
-        wheres.append("scenario = ?")
-        params.append(scenario)
-    if outcome:
-        wheres.append("outcome = ?")
-        params.append(outcome)
-    where = " AND ".join(wheres) if wheres else "1=1"
-    rows = conn.execute(
-        f"SELECT event_id, source, event_type, outcome, backend, scenario, task_id, summary, tags, recorded_at "
-        f"FROM outcomes WHERE {where} ORDER BY recorded_at DESC LIMIT ?",
-        (*params, limit),
-    ).fetchall()
-    conn.close()
-    return [
-        {
-            "event_id": r[0], "source": r[1], "event_type": r[2],
-            "outcome": r[3], "backend": r[4], "scenario": r[5],
-            "task_id": r[6], "summary": r[7], "tags": json.loads(r[8]),
-            "recorded_at": r[9],
-        }
-        for r in rows
-    ]
-
-
-def stats() -> dict:
-    """Return aggregate statistics."""
-    conn = _get_conn()
-    total = conn.execute("SELECT COUNT(*) FROM outcomes").fetchone()[0] or 0
-    by_source = conn.execute(
-        "SELECT source, COUNT(*), SUM(CASE WHEN outcome='success' THEN 1 ELSE 0 END) FROM outcomes GROUP BY source"
-    ).fetchall()
-    by_scenario = conn.execute(
-        "SELECT scenario, COUNT(*), SUM(CASE WHEN outcome='success' THEN 1 ELSE 0 END) FROM outcomes GROUP BY scenario"
-    ).fetchall()
-    unlearned = conn.execute("SELECT COUNT(*) FROM outcomes WHERE learned=0").fetchone()[0] or 0
-    rejected = conn.execute("SELECT COUNT(*) FROM outcomes WHERE learned=2").fetchone()[0] or 0
-    applied = conn.execute("SELECT COUNT(*) FROM outcomes WHERE learned=3").fetchone()[0] or 0
-    conn.close()
-    return {
-        "total": total,
-        "unlearned": unlearned,
-        "rejected": rejected,
-        "applied": applied,
-        "by_source": {r[0]: {"total": r[1], "success": r[2]} for r in by_source},
-        "by_scenario": {r[0]: {"total": r[1], "success": r[2]} for r in by_scenario},
-    }
-
-
-# ── State machine actions (Hermes pattern: evidence-gated transitions) ──
-# learned: 0=unlearned, 1=learned, 2=rejected, 3=applied
-
-
-def mark_learned(event_id: str, *, notes: str = "") -> bool:
-    """Mark an outcome as learned (learned=1)."""
-    conn = _get_conn()
-    conn.execute(
-        "UPDATE outcomes SET learned=1, details=json_set(details, '$.learn_notes', ?) WHERE event_id=?",
-        (notes[:200], event_id),
-    )
-    conn.commit()
-    affected = conn.total_changes
-    conn.close()
-    if affected:
-        _log.info("outcome marked learned: %s", event_id)
-    return affected > 0
-
-
-def mark_rejected(event_id: str, *, reason: str = "") -> bool:
-    """Mark an outcome as rejected (learned=2)."""
-    conn = _get_conn()
-    conn.execute(
-        "UPDATE outcomes SET learned=2, details=json_set(details, '$.reject_reason', ?) WHERE event_id=?",
-        (reason[:200], event_id),
-    )
-    conn.commit()
-    affected = conn.total_changes
-    conn.close()
-    if affected:
-        _log.info("outcome rejected: %s (%s)", event_id, reason[:80])
-    return affected > 0
-
-
-def mark_applied(event_id: str, *, notes: str = "") -> bool:
-    """Mark an outcome as applied — evidence was used to change routing/prompt."""
-    conn = _get_conn()
-    conn.execute(
-        "UPDATE outcomes SET learned=3, details=json_set(details, '$.apply_notes', ?) WHERE event_id=?",
-        (notes[:200], event_id),
-    )
-    conn.commit()
-    affected = conn.total_changes
-    conn.close()
-    if affected:
-        _log.info("outcome applied: %s", event_id)
-    return affected > 0
+from session_memory.outcome_queries import (  # noqa: F401
+    query_events,
+    query,
+    stats,
+    mark_learned,
+    mark_rejected,
+    mark_applied,
+)

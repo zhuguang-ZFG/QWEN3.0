@@ -1,6 +1,7 @@
-"""Telegram Knowledge commands — /save, /kb, /memstats.
+"""Telegram Knowledge commands — /save, /kb, /learn, /feed, /inbox.
 
 All data stored on VPS (lima_sessions.db). Local is discardable cache only.
+Stats/dashboard commands are in telegram_kb_stats.py (re-exported below).
 """
 
 from __future__ import annotations
@@ -9,6 +10,12 @@ import telegram_bot
 from session_memory.store import search_memories_keyword
 from session_memory.store_db import memory_stats
 from session_memory.store_promote import save_typed_memory
+
+# Re-export stats/dashboard commands for backward compatibility
+from routes.telegram_kb_stats import (  # noqa: F401
+    cmd_memstats, cmd_outcome, cmd_digest, cmd_contracts, cmd_dashboard,
+    _type_emoji,
+)
 
 
 async def cmd_kb(chat_id: str, args: str) -> None:
@@ -98,114 +105,6 @@ async def cmd_save(chat_id: str, args: str) -> None:
     except Exception as exc:
         await telegram_bot.send_message(
             f"Save failed: {exc}", chat_id=chat_id, parse_mode="",
-        )
-
-
-async def cmd_memstats(chat_id: str, args: str) -> None:
-    """Show memory statistics."""
-    try:
-        stats = memory_stats()
-        lines = [
-            "*Memory Stats*",
-            f"  Total: {stats['total']} entries",
-            f"  Sessions: {stats['sessions']}",
-            f"  Embeddings: {stats['embedding_pct']}%",
-            f"",
-            "*By Type:*",
-        ]
-        for mem_type, count in stats["by_type"].items():
-            emoji = _type_emoji(mem_type)
-            lines.append(f"  {emoji} {mem_type}: {count}")
-        await telegram_bot.send_message(
-            "\n".join(lines), chat_id=chat_id, parse_mode="Markdown",
-        )
-    except Exception as exc:
-        await telegram_bot.send_message(
-            f"Stats failed: {exc}", chat_id=chat_id, parse_mode="",
-        )
-
-
-async def cmd_outcome(chat_id: str, args: str) -> None:
-    """Query Outcome Ledger. Usage: /outcome [source]"""
-    try:
-        from session_memory.outcome_ledger import query, stats
-
-        source = args.strip()
-        st = stats()
-        lines = [
-            "*Outcome Ledger*",
-            f"  Total: {st['total']} events | Unlearned: {st['unlearned']}",
-            "",
-        ]
-        if source:
-            items = query(source=source, limit=5)
-            lines.append(f"*Latest {source}:*")
-        else:
-            lines.append("*By Source:*")
-            for src, s in st["by_source"].items():
-                lines.append(f"  {src}: {s['total']} ({s['success']} ok)")
-            lines.append("")
-            lines.append("/outcome lima_code|ci|telegram|device_gateway for details")
-
-        for item in items[:5]:
-            icon = "✅" if item["outcome"] == "success" else "❌"
-            lines.append(f"  {icon} [{item['source']}] {item['summary'][:100]}")
-
-        await telegram_bot.send_message(
-            "\n".join(lines)[:4000], chat_id=chat_id, parse_mode="Markdown",
-        )
-    except Exception as exc:
-        await telegram_bot.send_message(
-            f"Outcome query failed: {exc}", chat_id=chat_id, parse_mode="",
-        )
-
-
-async def cmd_digest(chat_id: str, args: str) -> None:
-    """Generate learning digest with improvement candidates."""
-    try:
-        from session_memory.shadow_mode import scan_for_candidates, format_digest
-
-        candidates = scan_for_candidates()
-        text = format_digest(candidates)
-        await telegram_bot.send_message(
-            text, chat_id=chat_id, parse_mode="Markdown",
-        )
-    except Exception as exc:
-        await telegram_bot.send_message(
-            f"Digest failed: {exc}", chat_id=chat_id, parse_mode="",
-        )
-
-
-async def cmd_contracts(chat_id: str, args: str) -> None:
-    """Show Agent Contracts and Pipeline stages."""
-    try:
-        from agent_runtime.contracts import AGENT_CONTRACTS, STANDARD_PIPELINE, AgentRole, Stage
-
-        lines = ["*Agent Contracts*", ""]
-
-        # Pipeline
-        lines.append("*Pipeline:*")
-        for gate in STANDARD_PIPELINE:
-            lines.append(f"  {gate.from_stage.value} → {gate.to_stage.value}"
-                         f"{'  [approval]' if gate.requires_approval else ''}")
-        lines.append("")
-
-        # Roles
-        lines.append("*Roles:*")
-        for role, contract in AGENT_CONTRACTS.items():
-            tools_n = len(contract.allowed_tools)
-            evidence = ", ".join(contract.produces_evidence[:3])
-            lines.append(f"  *{role.value}*: {tools_n} tools → {evidence}")
-
-        lines.append("")
-        lines.append("/contracts <role> for tool list")
-
-        await telegram_bot.send_message(
-            "\n".join(lines)[:4000], chat_id=chat_id, parse_mode="Markdown",
-        )
-    except Exception as exc:
-        await telegram_bot.send_message(
-            f"Contracts failed: {exc}", chat_id=chat_id, parse_mode="",
         )
 
 
@@ -394,15 +293,6 @@ async def cmd_feed(chat_id: str, args: str) -> None:
         )
 
 
-def _type_emoji(memory_type: str) -> str:
-    return {
-        "user_pref": "\U0001f464", "project_fact": "\U0001f4cb",
-        "code_fact": "\U0001f4bb", "routing_lesson": "\U0001f9ed",
-        "security_lesson": "\U0001f6e1", "reference_pattern": "\U0001f4d6",
-        "test_result": "\U0001f9ea", "ops_event": "\U0001f6a8",
-        "exchange": "\U0001f4ac", "compacted": "\U0001f4e6",
-    }.get(memory_type, "\U0001f4be")
-
 
 async def cmd_inbox(chat_id: str, args: str) -> None:
     """Unified inbox: tasks, learning, CI, devices — one view."""
@@ -452,67 +342,6 @@ async def cmd_inbox(chat_id: str, args: str) -> None:
         lines.append(f"*{pending} items need attention*")
         lines.append("/learn | /digest | /outcome for details")
 
-    await telegram_bot.send_message(
-        "\n".join(lines)[:4000], chat_id=chat_id, parse_mode="Markdown",
-    )
-
-
-async def cmd_dashboard(chat_id: str, args: str) -> None:
-    """Unified dashboard: health, routing, memory, outcomes."""
-    import time as _t
-    lines = ["*LiMa Dashboard*", f"`{_t.strftime('%H:%M:%S')}`", ""]
-
-    # Health
-    try:
-        import urllib.request, json
-        req = urllib.request.Request("http://127.0.0.1:8080/health")
-        resp = urllib.request.urlopen(req, timeout=5)
-        h = json.loads(resp.read())
-        modules = [k for k, v in h.get("modules", {}).items() if v]
-        lines.append(f"*Health*: {h['status']} | {len(modules)} modules")
-        lines.append("")
-    except Exception:
-        lines.append("*Health*: N/A")
-        lines.append("")
-
-    # Routing
-    try:
-        from backends_registry import BACKENDS
-        lines.append(f"*Backends*: {len(BACKENDS)} registered")
-        lines.append("")
-    except Exception:
-        pass
-
-    # Outcomes
-    try:
-        from session_memory.outcome_ledger import stats
-        st = stats()
-        lines.append(f"*Outcomes*: {st['total']} total | {st['unlearned']} unlearned | {st.get('applied',0)} applied")
-        for src, s in st.get("by_source", {}).items():
-            if s["total"] > 0:
-                lines.append(f"  {src}: {s['success']}/{s['total']} ok")
-        lines.append("")
-    except Exception:
-        pass
-
-    # Memory
-    try:
-        from session_memory.store_db import memory_stats
-        ms = memory_stats()
-        lines.append(f"*Memory*: {ms['total']} entries | {ms['embedding_pct']}% embedded")
-        lines.append("")
-    except Exception:
-        pass
-
-    # MCP
-    try:
-        from lima_mcp.tool_defs import TOOL_DEFINITIONS
-        lines.append(f"*MCP*: {len(TOOL_DEFINITIONS)} tools")
-        lines.append("")
-    except Exception:
-        pass
-
-    lines.append("/inbox pending | /digest learning | /outcome details")
     await telegram_bot.send_message(
         "\n".join(lines)[:4000], chat_id=chat_id, parse_mode="Markdown",
     )
