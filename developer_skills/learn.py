@@ -48,8 +48,8 @@ def learn(observation: str) -> SkillResult:
             messages=[{"role": "user", "content": observation}],
             scenario="learn",
             backend=skill_key,
+            complexity_score=0,
             latency_ms=0,
-            success=True,
         )
         details.append("## Stored in skill_store (L3)")
         evidence.append("skill_store_ok")
