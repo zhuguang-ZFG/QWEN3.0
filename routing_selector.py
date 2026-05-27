@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import random
+import time
 
 import budget_manager
 import route_scorer
@@ -79,30 +80,41 @@ def select(request_type: str, health_map: dict,
     result = [b for b in result if budget_manager.is_budget_available(b)]
 
     scores = re.health_tracker.get_scores()
-    if scores:
+    latency_map = re.health_tracker.get_latency_map()
+    health_map = re.health_tracker.get_health_map()
+
+    for b in result:
+        base = scores.get(b, 50)
+
+        state = re.health_tracker.get_backend_state(b)
+        consec_fails = state.get("consecutive_failures", 0)
+        last_success = state.get("last_success", 0)
+        avg_lat = latency_map.get(b, 1500)
+        health = health_map.get(b, "healthy")
+
+        latency_score = max(0.1, 1.0 - min(avg_lat / 3000, 1.0))
+        error_penalty = min(consec_fails * 0.15, 0.9)
+        age = time.time() - last_success if last_success else 300
+        recency_bonus = max(0, 1.0 - min(age / 60, 1.0))
+
+        if health == "dead":
+            scores[b] = 0
+        elif health == "degraded":
+            scores[b] = base * 0.5 * latency_score * recency_bonus
+        else:
+            scores[b] = base * latency_score * (1 - error_penalty) * recency_bonus
+
         try:
             from context_pipeline.routing_weights import get_routing_weights
             rw = get_routing_weights()
-            for b in result:
-                w = rw.get_weight(b, scenario or request_type)
-                scores[b] = scores.get(b, 50) * w
+            w = rw.get_weight(b, scenario or request_type)
+            scores[b] *= w
         except ImportError:
             pass
 
-        try:
-            from context_pipeline.hierarchical_memory import get_hierarchical_memory
-            hmem = get_hierarchical_memory()
-            for b in result:
-                perf = hmem.L1.get(f"perf:{b}")
-                if perf and perf.get("total", 0) >= 3:
-                    success_rate = perf.get("success_rate", 0.5)
-                    latency_bonus = max(0, (2000 - perf.get("avg_latency", 1000)) / 100)
-                    scores[b] = scores.get(b, 50) * (0.7 + 0.3 * success_rate) + latency_bonus
-                else:
-                    static_latency = _STATIC_LATENCY_ESTIMATE.get(b, 1500)
-                    scores[b] = scores.get(b, 50) + max(0, (2000 - static_latency) / 100)
-        except Exception:
-            pass
+        static_latency = _STATIC_LATENCY_ESTIMATE.get(b)
+        if static_latency and consec_fails == 0:
+            scores[b] += max(0, (2000 - static_latency) / 100)
 
         result.sort(key=lambda b: -(
             scores.get(b, 50) * budget_manager.get_budget_priority(b)

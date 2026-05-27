@@ -86,7 +86,7 @@ def test_handle_chat_applies_prompt_memory_before_routing(monkeypatch):
         captured["analyze_prompt"] = system_prompt
         return {"intent": "chat", "complexity": 0.1}
 
-    def fake_v3_route(query, messages, system_prompt="", ide="", max_tokens=4096):
+    def fake_v3_route(query, messages, system_prompt="", ide="", max_tokens=4096, **kwargs):
         captured["route_prompt"] = system_prompt
         return {"answer": "ok", "backend": "fake_backend", "total_ms": 1}
 
@@ -133,7 +133,7 @@ def test_handle_chat_writes_and_recalls_same_header_session(monkeypatch):
         captured_prompts.append(system_prompt)
         return {"intent": "chat", "complexity": 0.1}
 
-    def fake_v3_route(query, messages, system_prompt="", ide="", max_tokens=4096):
+    def fake_v3_route(query, messages, system_prompt="", ide="", max_tokens=4096, **kwargs):
         return {
             "answer": next(answers),
             "backend": "fake_backend",

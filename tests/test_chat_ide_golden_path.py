@@ -36,7 +36,7 @@ def test_chat_golden_path_records_capability_evidence(evidence_db, monkeypatch):
     monkeypatch.setattr(
         chat_handler,
         "v3_route",
-        lambda query, messages, system_prompt="", ide="", max_tokens=4096: {
+        lambda query, messages, system_prompt="", ide="", max_tokens=4096, **kwargs: {
             "answer": "golden_path_ok",
             "backend": "test_backend",
             "total_ms": 12,

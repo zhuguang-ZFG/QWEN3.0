@@ -114,6 +114,13 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
         deps.loaded_modules["ops_metrics"] = False
 
     try:
+        from routes.health_dashboard import router as health_dashboard_router
+
+        app.include_router(health_dashboard_router)
+    except ImportError as exc:
+        logging.warning("[STARTUP] health_dashboard module not loaded: %s", exc)
+
+    try:
         from lima_mcp.server import router as mcp_router
 
         app.include_router(mcp_router)
