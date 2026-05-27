@@ -82,18 +82,24 @@ def detect_protocol(fmt: str) -> str:
 
 def detect_caps(name: str, cfg: dict = None) -> list:
     if cfg and cfg.get("caps"):
-        return cfg["caps"]
-    caps = []
+        explicit = set(cfg["caps"])
+    else:
+        explicit = set()
+    caps = list(explicit)
     if name in CODE_CAPABLE_BACKENDS or "coder" in name or "codestral" in name:
-        caps.append('code')
+        if "code" not in caps:
+            caps.append("code")
     if name in ('or_deepseek_r1', 'or_qwen3_coder',
                 'opencode_stealth', 'fireworks_llama405b', 'deepinfra_llama4', 'deepinfra_qwen235b',
                 'local_coder14b'):
-        caps.append('tool_calls')
+        if "tool_calls" not in caps:
+            caps.append('tool_calls')
     if name in VISION_BACKENDS:
-        caps.append('vision')
+        if "vision" not in caps:
+            caps.append('vision')
     if 'thinking' in name or 'r1' in name:
-        caps.append('deep_reasoning')
+        if "deep_reasoning" not in caps:
+            caps.append('deep_reasoning')
     if not caps:
         caps.append('text_only')
     return caps

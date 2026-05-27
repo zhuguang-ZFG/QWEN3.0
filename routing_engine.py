@@ -78,7 +78,9 @@ def route(query: str, messages: list[dict], *,
           system_prompt: str = "", headers: dict | None = None,
           call_fn: Callable | None = None,
           cache_enabled: bool = True,
-          channel_role: str = "default") -> RouteResult:
+          channel_role: str = "default",
+          needs_tools: bool = False,
+          tools: list[dict] | None = None) -> RouteResult:
     """统一路由入口。call_fn(backend, messages, max_tokens) -> str"""
     t0 = time.time()
 
@@ -156,7 +158,8 @@ def route(query: str, messages: list[dict], *,
         json.dumps(messages, ensure_ascii=False))
 
     hmap = health_tracker.get_health_map()
-    backends = select(req_type, hmap, sticky_key=sticky_key, scenario=scenario)
+    backends = select(req_type, hmap, sticky_key=sticky_key, scenario=scenario,
+                      needs_tools=needs_tools)
 
     messages_injected = inject_skills(
         messages, backend=backends[0] if backends else "",
@@ -179,7 +182,7 @@ def route(query: str, messages: list[dict], *,
                         spec_candidates, call_fn, messages_injected, max_tokens,
                         max_parallel=5, timeout_sec=5.0)
                 except RuntimeError:
-                    final_backend, answer, _ = execute(backends, call_fn, messages_injected, max_tokens)
+                    final_backend, answer, _ = execute(backends, call_fn, messages_injected, max_tokens, tools=tools)
             else:
                 final_backend, answer, _ = execute(backends, call_fn, messages_injected, max_tokens)
         elif complexity == "code":

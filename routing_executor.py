@@ -11,7 +11,8 @@ MAX_FALLBACKS = 5
 def execute(backends: list[str],
             call_fn: Callable[[str, list[dict], int], str],
             messages: list[dict],
-            max_tokens: int = 4096) -> tuple[str, str, int]:
+            max_tokens: int = 4096,
+            tools: list[dict] | None = None) -> tuple[str, str, int]:
     """按序尝试后端，失败则 fallback。返回 (backend, answer, error_count)"""
     import routing_engine as re
 
@@ -26,7 +27,10 @@ def execute(backends: list[str],
         tried_any = True
         try:
             t_backend = time.time()
-            answer = call_fn(backend, messages, max_tokens)
+            if tools:
+                answer = call_fn(backend, messages, max_tokens, tools=tools)
+            else:
+                answer = call_fn(backend, messages, max_tokens)
             if answer and len(answer.strip()) > 5:
                 latency_ms = (time.time() - t_backend) * 1000
                 re.health_tracker.record_success(backend, latency_ms)
@@ -44,7 +48,7 @@ def execute(backends: list[str],
         re.health_tracker.detect_and_reset_mass_failure()
         for backend in backends[:3]:
             try:
-                answer = call_fn(backend, messages, max_tokens)
+                answer = call_fn(backend, messages, max_tokens, tools=tools)
                 if answer and len(answer.strip()) > 5:
                     re.health_tracker.record_success(backend, (time.time() - t0) * 1000)
                     return backend, answer, errors

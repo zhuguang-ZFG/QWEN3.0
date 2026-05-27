@@ -10,11 +10,32 @@ import sticky_session
 
 MAX_FALLBACKS = 5
 
+# Static latency estimates (ms) for known fast backends
+_STATIC_LATENCY_ESTIMATE = {
+    "cerebras_llama8b": 800,
+    "cerebras_gptoss": 1200,
+    "cerebras_qwen235b": 1500,
+    "groq_gptoss_20b": 900,
+    "groq_gptoss": 1100,
+    "groq_llama8b": 700,
+    "groq_llama70b": 1200,
+    "groq_llama4": 1000,
+    "groq_qwen32b": 1100,
+    "github_gpt4o_mini": 1000,
+    "github_gpt4o": 1500,
+    "mistral_small": 1000,
+    "mistral_large": 1500,
+    "longcat_chat": 3000,
+    "longcat_lite": 2000,
+}
+
 
 def select(request_type: str, health_map: dict,
-           sticky_key: str = None, scenario: str = "") -> list[str]:
+           sticky_key: str = None, scenario: str = "",
+           needs_tools: bool = False) -> list[str]:
     """从对应池选健康后端，按健康评分排序，过滤预算耗尽，sticky 优先"""
     import routing_engine as re
+    import backends_registry as reg
 
     pool_key = request_type
     if request_type == "chat" and scenario == "coding":
@@ -23,6 +44,12 @@ def select(request_type: str, health_map: dict,
         pool_key = "chat_fast"
 
     result = re.router_v3.select_backends(pool_key, health_map)
+
+    if needs_tools:
+        result = [b for b in result if "tool_calls" in reg.BACKENDS.get(b, {}).get("caps", [])]
+        if not result:
+            code_pool = re.router_v3.select_backends("code", health_map)
+            result = [b for b in code_pool if "tool_calls" in reg.BACKENDS.get(b, {}).get("caps", [])]
 
     result = [b for b in result if budget_manager.is_budget_available(b)]
 
@@ -46,6 +73,9 @@ def select(request_type: str, health_map: dict,
                     success_rate = perf.get("success_rate", 0.5)
                     latency_bonus = max(0, (2000 - perf.get("avg_latency", 1000)) / 100)
                     scores[b] = scores.get(b, 50) * (0.7 + 0.3 * success_rate) + latency_bonus
+                else:
+                    static_latency = _STATIC_LATENCY_ESTIMATE.get(b, 1500)
+                    scores[b] = scores.get(b, 50) + max(0, (2000 - static_latency) / 100)
         except Exception:
             pass
 

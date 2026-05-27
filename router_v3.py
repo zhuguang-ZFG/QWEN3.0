@@ -83,6 +83,8 @@ POOLS = {
     "code": {
         "strong": ["scnet_ds_flash", "scnet_qwen235b", "scnet_qwen30b",
                    "scnet_ds_pro", "github_gpt4o", "github_gpt4o_mini",
+                   "groq_gptoss", "groq_gptoss_20b", "groq_llama8b",
+                   "cerebras_gptoss", "cerebras_llama8b", "cerebras_qwen235b",
                    "cf_qwen_coder", "cfai_qwen_coder", "or_gptoss_120b",
                    "cf_gptoss_120b", "cf_deepseek_r1", "cf_qwen3_30b",
                    "cfai_deepseek_r1", "github_codestral", "mistral_large",
@@ -153,7 +155,7 @@ def classify_request(path: str, headers: dict, body: dict) -> dict:
     if req_type != "ide":
         system = _extract_system(body)
         if system:
-            for ide, markers in _IDE_FINGERPRINTS.items():
+            for _ide, markers in _IDE_FINGERPRINTS.items():
                 if any(m in system for m in markers):
                     req_type = "ide"
                     break

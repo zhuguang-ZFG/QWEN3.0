@@ -10,15 +10,17 @@ import http_caller
 import health_tracker
 
 
-def v3_route(query, messages, system_prompt="", ide="", max_tokens=4096, **_kw):
+def v3_route(query, messages, system_prompt="", ide="", max_tokens=4096,
+             needs_tools=False, tools=None, **_kw):
     """V3 路由适配器：返回与 smart_router.route() 兼容的 dict。"""
-    def _call_fn(backend, msgs, mt):
+    def _call_fn(backend, msgs, mt, tools=None):
         return http_caller.call_api(backend, msgs, mt,
-                                    system_prompt=system_prompt, ide=ide)
+                                    system_prompt=system_prompt, ide=ide,
+                                    tools=tools)
     result = routing_engine.route(
         query, messages, fmt="openai", ide_source=ide,
         system_prompt=system_prompt, max_tokens=max_tokens,
-        call_fn=_call_fn)
+        call_fn=_call_fn, needs_tools=needs_tools, tools=tools)
     return {"answer": result.answer, "backend": result.backend,
             "total_ms": result.ms, "fallback_used": result.fallback_used}
 

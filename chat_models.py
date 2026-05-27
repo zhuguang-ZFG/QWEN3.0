@@ -23,6 +23,10 @@ class ChatRequest(BaseModel):
     tool_choice: Optional[dict | str] = None
     stream_options: Optional[dict] = None
 
+    @property
+    def has_tools(self) -> bool:
+        return bool(self.tools)
+
 
 def extract_system_prompt(messages: list[Message]) -> str | None:
     """Return the first non-empty system prompt from a chat message list."""

@@ -120,6 +120,7 @@ def call_api(
     *,
     system_prompt: str = "",
     ide: str = "",
+    tools: list[dict] | None = None,
 ) -> str:
     hc = _caller()
     cfg = BACKENDS.get(backend)
@@ -134,7 +135,7 @@ def call_api(
     _apply_artifact_handles(messages)
     started = time.time()
     headers = hc._build_headers(cfg, key=selected_key)
-    body = hc._build_body(cfg, messages, max_tokens, system_prompt, ide)
+    body = hc._build_body(cfg, messages, max_tokens, system_prompt, ide, tools=tools)
     timeout = cfg.get("timeout", 60)
 
     try:

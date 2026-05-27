@@ -111,6 +111,7 @@ def _build_body(
     system_prompt: str = "",
     ide: str = "",
     stream: bool = False,
+    tools: list[dict] | None = None,
 ) -> bytes:
     model = backend_cfg["model"]
     fmt = backend_cfg["fmt"]
@@ -180,4 +181,8 @@ def _build_body(
 
     if stream or backend_cfg.get("force_stream_param"):
         body["stream"] = bool(stream)
+
+    if tools:
+        body["tools"] = tools
+
     return json.dumps(body).encode()
