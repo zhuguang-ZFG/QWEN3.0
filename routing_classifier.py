@@ -61,6 +61,13 @@ def classify_scenario(query: str, messages: list[dict], *,
     if sum(1 for s in code_signals if s in text) >= 2:
         return "coding"
 
+    # Chinese coding signals
+    cn_code_signals = ("写一个", "写个", "编写", "实现", "函数", "代码",
+                       "编程", "开发", "重构", "修复", "调试", "测试",
+                       "Python", "JavaScript", "Golang", "Rust", "Java")
+    if sum(1 for s in cn_code_signals if s in text) >= 2:
+        return "coding"
+
     import re
     if re.search(r'\w+\.(?:py|js|ts|tsx|jsx|go|rs|java|c|cpp)\b', text):
         return "coding"

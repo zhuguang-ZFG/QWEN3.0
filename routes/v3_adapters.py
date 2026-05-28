@@ -32,18 +32,24 @@ def v3_predict(query):
         from routing_engine import classify_scenario
         scenario = classify_scenario(query, [], request_type="")
         if scenario == "coding":
+            # Prefer stream-stable backends for speculative streaming
+            stream_stable = ["longcat_chat", "scnet_qwen235b", "groq_gptoss",
+                             "cerebras_gptoss", "github_gpt4o", "mistral_small"]
+            for b in stream_stable:
+                if not health_tracker.is_cooled_down(b):
+                    return b
             import code_orchestrator
             pool = code_orchestrator.backend_reputation.sort_by_reputation(
                 code_orchestrator.POOLS["coder"])
             if pool:
                 return pool[0]
         else:
-            chat_only = ["zhipu_flash", "cf_llama70b",
-                         "groq_llama70b", "longcat_lite", "longcat_chat"]
+            chat_only = ["longcat_chat", "zhipu_flash", "cf_llama70b",
+                         "groq_llama70b", "longcat_lite"]
             for b in chat_only:
                 if not health_tracker.is_cooled_down(b):
                     return b
-            return "groq_llama70b"
+            return "longcat_chat"
     except Exception as e:
         logging.warning(f"[V3_SELECT] classify/context failed: {type(e).__name__}: {e}")
     backends = routing_engine.select("chat", hmap, scenario="chat")
@@ -67,13 +73,18 @@ def v3_select(query, system_prompt, ide, messages):
                                      ide_source=ide if is_ide else "",
                                      request_type="ide" if is_ide else "chat")
         if scenario == "coding":
+            stream_stable = ["longcat_chat", "scnet_qwen235b", "groq_gptoss",
+                             "cerebras_gptoss", "github_gpt4o", "mistral_small"]
+            for b in stream_stable:
+                if not health_tracker.is_cooled_down(b):
+                    return (b, messages)
             import code_orchestrator
             pool = code_orchestrator.backend_reputation.sort_by_reputation(
                 code_orchestrator.POOLS["coder"])
             if pool:
                 return (pool[0], messages)
         else:
-            chat_only = ["zhipu_flash", "cf_llama70b",
+            chat_only = ["longcat_chat", "zhipu_flash", "cf_llama70b",
                          "groq_llama70b", "longcat_lite", "longcat_chat"]
             for b in chat_only:
                 if not health_tracker.is_cooled_down(b):
