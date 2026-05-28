@@ -9,10 +9,12 @@ Builds a live project model without external dependencies:
 from __future__ import annotations
 
 import ast
+import json
 import logging
 import os
 import re
 import subprocess
+import time
 from collections import defaultdict
 from pathlib import Path
 
@@ -247,12 +249,17 @@ _model_cache: dict[str, ProjectModel] = {}
 
 
 def get_project_model(root: str | None = None) -> ProjectModel:
-    """Get or create a cached project model."""
+    """Get or create a cached project model. Tries disk cache first."""
     root = str(Path(root or os.getcwd()).resolve())
     if root not in _model_cache:
+        model = _load_from_cache(root)
+        if model:
+            _model_cache[root] = model
+            return model
         model = ProjectModel(root)
         count = model.scan()
         _log.info("Project model built: %d files in %s", count, root)
+        _save_to_cache(model)
         _model_cache[root] = model
     return _model_cache[root]
 
@@ -289,3 +296,83 @@ def _extract_query_keywords(query: str) -> list[str]:
     stops = {"this", "that", "with", "from", "have", "when", "will", "would", "could", "should", "about", "into", "over", "after", "before"}
     kw.extend(w for w in words if w not in stops)
     return list(dict.fromkeys(kw))[:12]
+
+
+# ── Disk Cache ────────────────────────────────────────────────────────────────
+
+_CACHE_DIR = Path.home() / ".lima" / "project_cache"
+
+
+def _cache_path(root: str) -> Path:
+    name = Path(root).resolve().name
+    return _CACHE_DIR / f"{name}_context.json"
+
+
+def _save_to_cache(model: ProjectModel) -> None:
+    try:
+        _CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        data = {
+            "root": str(model.root),
+            "files": {},
+        }
+        for rel, ctx in list(model.files.items())[:500]:
+            data["files"][rel] = {
+                "imports": ctx.imports[:10],
+                "functions": ctx.functions[:15],
+                "classes": ctx.classes[:8],
+                "dependencies": sorted(ctx.dependencies)[:10],
+            }
+        tmp = _cache_path(str(model.root)).with_suffix(".tmp")
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False)
+        tmp.replace(_cache_path(str(model.root)))
+    except (OSError, json.JSONDecodeError):
+        pass
+
+
+def _load_from_cache(root: str) -> ProjectModel | None:
+    cache_file = _cache_path(root)
+    if not cache_file.exists():
+        return None
+    # Check freshness: invalidate after 24h or on git HEAD change
+    try:
+        age = time.time() - cache_file.stat().st_mtime
+    except OSError:
+        return None
+    if age > 86400:
+        return None
+    # Invalidate if git HEAD changed
+    try:
+        head_file = Path(root) / ".git" / "HEAD"
+        if head_file.exists() and head_file.stat().st_mtime > cache_file.stat().st_mtime:
+            return None
+    except OSError:
+        pass
+
+    try:
+        with open(cache_file, encoding="utf-8") as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return None
+
+    model = ProjectModel.__new__(ProjectModel)
+    model.root = Path(data["root"])
+    model.max_files = 500
+    model.importers = defaultdict(set)
+    model.files = {}
+    model._scanned = True
+
+    for rel, info in data.get("files", {}).items():
+        ctx = FileContext.__new__(FileContext)
+        ctx.path = model.root / rel
+        ctx.imports = info.get("imports", [])
+        ctx.functions = info.get("functions", [])
+        ctx.classes = info.get("classes", [])
+        ctx.constants = []
+        ctx.dependencies = set(info.get("dependencies", []))
+        model.files[rel] = ctx
+        for dep in ctx.dependencies:
+            model.importers[dep].add(rel)
+
+    _log.info("Project model loaded from cache: %d files", len(model.files))
+    return model
