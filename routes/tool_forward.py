@@ -124,7 +124,11 @@ def anthropic_native_forward_sync(body: dict) -> dict:
     if not skip_tier1:
         for name in iter_tool_backends(TOOL_TIER1_BACKENDS):
             b = BACKENDS[name]
-            req_body = {"model": b["model"], "messages": openai_msgs,
+            msgs = list(openai_msgs)
+            # Inject JSON tool prompt for backends that output tools as text
+            if name in _TEXT_TOOL_BACKENDS:
+                msgs.insert(0, {"role": "system", "content": _TEXT_TOOL_SYSTEM_PROMPT})
+            req_body = {"model": b["model"], "messages": msgs,
                 "tools": openai_tools, "max_tokens": body.get("max_tokens", 4096),
                 "tool_choice": "auto"}
             if name.startswith("aliyun"):
@@ -309,7 +313,15 @@ async def tool_call_stream(body: dict):
 _TEXT_TOOL_BACKENDS = {
     "kimi", "kimi_thinking", "kimi_search",
     "cfai_qwen_coder", "cf_mistral",
+    "scnet_qwen30b", "scnet_qwen235b", "scnet_ds_flash", "scnet_ds_pro",
+    "scnet_large_ds_flash", "scnet_large_ds_pro",
 }
+
+_TEXT_TOOL_SYSTEM_PROMPT = (
+    'When asked to use a tool, output ONLY a JSON object with "name" and "arguments" fields. '
+    'Example: {"name": "tool_name", "arguments": {"param": "value"}}. '
+    'Do NOT output any other text before or after the JSON.'
+)
 
 
 def _extract_text_tools_from_response(data: dict) -> dict:

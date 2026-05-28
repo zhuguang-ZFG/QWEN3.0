@@ -183,11 +183,11 @@ BACKENDS = {
     'pollinations_deepseek': {'url': 'https://text.pollinations.ai/openai/chat/completions', 'key': 'none', 'model': 'deepseek', 'fmt': 'openai', 'timeout': 30},
     'pollinations_qwen_coder': {'url': 'https://text.pollinations.ai/openai/chat/completions', 'key': 'none', 'model': 'qwen-coder', 'fmt': 'openai', 'timeout': 30},
     # ── 国家超算互联网平台 (scnet.cn, 免费 5 模型, 无需 Key/登录) ──
-    'scnet_qwen30b': {'url': 'https://scnet.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'qwen3-30b', 'fmt': 'openai', 'timeout': 30},
+    'scnet_qwen30b': {'url': 'https://scnet.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'qwen3-30b', 'fmt': 'openai', 'timeout': 30, 'caps': ['tool_calls']},
     'scnet_minimax': {'url': 'https://scnet.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'minimax-m2.5', 'fmt': 'openai', 'timeout': 30},
-    'scnet_qwen235b': {'url': 'https://scnet.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'qwen3-235b', 'fmt': 'openai', 'timeout': 45},
-    'scnet_ds_flash': {'url': 'https://scnet.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-flash', 'fmt': 'openai', 'timeout': 30},
-    'scnet_ds_pro': {'url': 'https://scnet.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-pro', 'fmt': 'openai', 'timeout': 90},
+    'scnet_qwen235b': {'url': 'https://scnet.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'qwen3-235b', 'fmt': 'openai', 'timeout': 45, 'caps': ['tool_calls']},
+    'scnet_ds_flash': {'url': 'https://scnet.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-flash', 'fmt': 'openai', 'timeout': 30, 'caps': ['tool_calls']},
+    'scnet_ds_pro': {'url': 'https://scnet.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-pro', 'fmt': 'openai', 'timeout': 90, 'caps': ['tool_calls']},
     # ── Kimi (moonshot.cn, 登录后免费, K2 模型) ──
     # ── Kimi (moonshot.cn, 本地代理, K2.6 模型, 3 种模式) ──
     'kimi': {'url': 'http://localhost:4504/v1/chat/completions', 'key': 'none', 'model': 'kimi', 'fmt': 'openai', 'timeout': 45, 'private_code_allowed': True, 'admission': 'code_medium_candidate', 'caps': ['tool_calls']},
@@ -203,6 +203,6 @@ BACKENDS = {
     # MiMo STT (WeChat/Telegram voice; input_audio via chat/completions, not routing pool)
     'mimo_stt': {'url': 'https://api.xiaomimimo.com/v1/chat/completions', 'key': os.environ.get('MIMO_TTS_KEY', ''), 'model': 'mimo-v2-omni', 'fmt': 'openai', 'timeout': 45},
     # ── SCNet 大上下文 (本地代理, 文件上传突破 5 万字符限制, 需登录) ──
-    'scnet_large_ds_flash': {'url': 'http://localhost:4505/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-flash', 'fmt': 'openai', 'timeout': 60, 'admission': 'code_medium_candidate', 'private_code_allowed': True},
-    'scnet_large_ds_pro': {'url': 'http://localhost:4505/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-pro', 'fmt': 'openai', 'timeout': 90},
+    'scnet_large_ds_flash': {'url': 'http://localhost:4505/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-flash', 'fmt': 'openai', 'timeout': 60, 'admission': 'code_medium_candidate', 'private_code_allowed': True, 'caps': ['tool_calls']},
+    'scnet_large_ds_pro': {'url': 'http://localhost:4505/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-pro', 'fmt': 'openai', 'timeout': 90, 'caps': ['tool_calls']},
 }
