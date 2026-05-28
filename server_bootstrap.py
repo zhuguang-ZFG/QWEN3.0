@@ -11,7 +11,7 @@ import urllib.request
 
 MODEL_ID = "lima-1.3"
 MODEL_CREATED = int(time.time())
-MAX_BODY_SIZE = 2 * 1024 * 1024
+MAX_BODY_SIZE = 32 * 1024 * 1024  # 32MB — Claude Code sends large contexts
 
 
 def last_resort_call(messages: list) -> str:
