@@ -165,6 +165,16 @@ def route(query: str, messages: list[dict], *,
         messages, backend=backends[0] if backends else "",
         ide_source=ide_source, system_prompt=system_prompt)
 
+    # Auto-compress long conversations before they exceed backend context limits
+    try:
+        from context_compressor import should_compress, compress_messages
+        if backends and should_compress(messages_injected, backends[0]):
+            messages_injected = compress_messages(
+                messages_injected, backends[0], system_prompt=system_prompt,
+            )
+    except ImportError:
+        pass
+
     injected_ids = _get_injected_ids(messages, messages_injected)
 
     if call_fn:
