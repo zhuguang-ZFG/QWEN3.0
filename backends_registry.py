@@ -190,8 +190,8 @@ BACKENDS = {
     'scnet_ds_pro': {'url': 'https://scnet.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-pro', 'fmt': 'openai', 'timeout': 90},
     # ── Kimi (moonshot.cn, 登录后免费, K2 模型) ──
     # ── Kimi (moonshot.cn, 本地代理, K2.6 模型, 3 种模式) ──
-    'kimi': {'url': 'http://localhost:4504/v1/chat/completions', 'key': 'none', 'model': 'kimi', 'fmt': 'openai', 'timeout': 45, 'private_code_allowed': True, 'admission': 'code_medium_candidate'},
-    'kimi_thinking': {'url': 'http://localhost:4504/v1/chat/completions', 'key': 'none', 'model': 'kimi-thinking', 'fmt': 'openai', 'timeout': 45, 'private_code_allowed': True, 'admission': 'code_medium_candidate'},
+    'kimi': {'url': 'http://localhost:4504/v1/chat/completions', 'key': 'none', 'model': 'kimi', 'fmt': 'openai', 'timeout': 45, 'private_code_allowed': True, 'admission': 'code_medium_candidate', 'caps': ['tool_calls']},
+    'kimi_thinking': {'url': 'http://localhost:4504/v1/chat/completions', 'key': 'none', 'model': 'kimi-thinking', 'fmt': 'openai', 'timeout': 45, 'private_code_allowed': True, 'admission': 'code_medium_candidate', 'caps': ['tool_calls']},
     'kimi_search': {'url': 'http://localhost:4504/v1/chat/completions', 'key': 'none', 'model': 'kimi-search', 'fmt': 'openai', 'timeout': 60, 'private_code_allowed': True, 'admission': 'code_medium_candidate'},
     # ── MiMo 小米 (本地代理 port 4507, 网页逆向) ──
     'mimo_web': {'url': f"http://{os.environ.get('VPS_HOST', '47.112.162.80')}:4507/v1/chat/completions", 'key': 'none', 'model': 'mimo-web', 'fmt': 'openai', 'timeout': 60, 'force_stream_param': True, 'admission': 'sandbox_only', 'private_code_allowed': False, 'caps': ['tool_calls']},

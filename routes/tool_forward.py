@@ -132,6 +132,9 @@ def anthropic_native_forward_sync(body: dict) -> dict:
             payload = json.dumps(req_body, ensure_ascii=False).encode()
             try:
                 data = call_raw(name, payload)
+                # Text→tool extraction for backends that output JSON-as-text
+                if name in _TEXT_TOOL_BACKENDS:
+                    data = _extract_text_tools_from_response(data)
                 return convert_response_openai_to_anthropic(data, b["model"])
             except BackendError as exc:
                 _ht.record_failure(name, error_code=exc.status_code)
@@ -299,3 +302,68 @@ async def tool_call_stream(body: dict):
     usage = result.get("usage", {"input_tokens": 0, "output_tokens": 0})
     yield f"event: message_delta\ndata: {json.dumps({'type':'message_delta','delta':{'stop_reason':stop_reason,'stop_sequence':None},'usage':usage})}\n\n"
     yield f"event: message_stop\ndata: {json.dumps({'type':'message_stop'})}\n\n"
+
+
+# ── Text → Tool Call Extraction ───────────────────────────────────────────────
+
+_TEXT_TOOL_BACKENDS = {
+    "kimi", "kimi_thinking", "kimi_search",
+    "cfai_qwen_coder", "cf_mistral",
+}
+
+
+def _extract_text_tools_from_response(data: dict) -> dict:
+    """Extract tool calls from text content in OpenAI API response.
+
+    When a backend outputs tool calls as JSON text instead of using the
+    tool_calls protocol, parse them from the content and add to the response.
+    """
+    import re as _re
+    import uuid as _uuid
+
+    choices = data.get("choices", [])
+    if not choices:
+        return data
+
+    message = choices[0].get("message", {})
+    if message.get("tool_calls"):
+        return data  # Already has proper tool_calls
+
+    content = message.get("content", "") or ""
+    if not content:
+        return data
+
+    # Pattern 1: ```json ... ``` code blocks
+    json_block = _re.compile(r"```json\s*\n?(.*?)\n?```", _re.DOTALL | _re.IGNORECASE)
+    tool_calls = []
+    cleaned = content
+
+    for match in json_block.finditer(content):
+        try:
+            parsed = json.loads(match.group(1).strip())
+        except (json.JSONDecodeError, ValueError):
+            continue
+        if isinstance(parsed, dict):
+            parsed = [parsed]
+        if not isinstance(parsed, list):
+            continue
+        for item in parsed:
+            name = item.get("name", "")
+            args = item.get("arguments", {})
+            if not name:
+                continue
+            if isinstance(args, dict):
+                args = json.dumps(args, ensure_ascii=False)
+            tool_calls.append({
+                "id": f"call_{_uuid.uuid4().hex[:24]}",
+                "type": "function",
+                "function": {"name": name, "arguments": args},
+            })
+        cleaned = cleaned.replace(match.group(0), "")
+
+    if tool_calls:
+        message["tool_calls"] = tool_calls
+        message["content"] = _re.sub(r"\n{3,}", "\n\n", cleaned).strip() or None
+        choices[0]["finish_reason"] = "tool_calls"
+
+    return data

@@ -5,6 +5,7 @@ LiMa Response Cleaner — 响应清洗模块
 - 品牌名替换（隐藏底层模型/供应商信息）
 - 身份声明模式替换
 - 后端错误消息检测
+- 文本→工具调用提取（Kimi/Qwen 等文本输出工具调用的模型）
 """
 
 import re
@@ -292,6 +293,92 @@ def clean_response(text: str, backend_name: str = '') -> str:
         text = filter_identity_leak(text, prefer_language=prefer)
     return text.strip()
 
+
+# ── Text → Tool Call Extraction ───────────────────────────────────────────────
+
+# Backends known to output tool calls as text instead of protocol
+TEXT_TOOL_BACKENDS = {
+    "kimi", "kimi_thinking", "kimi_search",
+    "cfai_qwen_coder", "cf_mistral",
+}
+
+
+def extract_tool_calls_from_text(content: str) -> tuple[str, list[dict] | None]:
+    """Parse tool-call JSON from text content (Kimi/Qwen style).
+
+    Detects patterns like:
+      ```json
+      {"name": "tool_name", "arguments": {...}}
+      ```
+
+    Returns (cleaned_content, tool_calls_or_None).
+    tool_calls is OpenAI format: [{"id": ..., "type": "function", "function": {...}}]
+    """
+    if not content:
+        return content, None
+
+    import json as _json
+    import uuid as _uuid
+
+    tool_calls = []
+    cleaned = content
+
+    # Pattern: ```json ... ``` code blocks
+    json_block_pattern = re.compile(
+        r"```json\s*\n?(.*?)\n?```", re.DOTALL | re.IGNORECASE
+    )
+    for match in json_block_pattern.finditer(content):
+        json_str = match.group(1).strip()
+        parsed = _parse_json_tool(json_str, _json, _uuid)
+        if parsed:
+            tool_calls.extend(parsed)
+            cleaned = cleaned.replace(match.group(0), "")
+
+    # Pattern: Raw JSON objects (no code fence)
+    if not tool_calls:
+        raw_pattern = re.compile(
+            r'(?:^|\n)\s*(\{\s*"name"\s*:\s*"[^"]+"\s*,\s*"arguments"\s*:\s*\{[^}]*\}\s*\})',
+            re.DOTALL,
+        )
+        for match in raw_pattern.finditer(content):
+            json_str = match.group(1).strip()
+            parsed = _parse_json_tool(json_str, _json, _uuid)
+            if parsed:
+                tool_calls.extend(parsed)
+                cleaned = cleaned.replace(match.group(1), "")
+
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned).strip()
+    if not cleaned:
+        cleaned = ""
+
+    return cleaned, (tool_calls if tool_calls else None)
+
+
+def _parse_json_tool(json_str: str, _json, _uuid) -> list[dict] | None:
+    try:
+        data = _json.loads(json_str)
+    except (_json.JSONDecodeError, ValueError):
+        return None
+    if isinstance(data, dict):
+        data = [data]
+    if not isinstance(data, list):
+        return None
+    result = []
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        name = item.get("name", "")
+        args = item.get("arguments", {})
+        if not name:
+            continue
+        if isinstance(args, dict):
+            args = _json.dumps(args, ensure_ascii=False)
+        result.append({
+            "id": f"call_{_uuid.uuid4().hex[:24]}",
+            "type": "function",
+            "function": {"name": name, "arguments": args},
+        })
+    return result if result else None
 
 def _clean_brand_only(text: str, backend_name: str = '') -> str:
     """Streaming helper: clean a chunk with identity-aware patterns."""
