@@ -164,7 +164,7 @@ async def routing_engine_fallback(ctx: StreamContext, last_resort_call) -> tuple
     if fallback_text:
         return fallback_text, backend_used
 
-    total_text = last_resort_call(messages_to_dicts(ctx.req.messages)) or "系统维护中，请稍后重试。"
+    total_text = last_resort_call(messages_to_dicts(ctx.req.messages)) or "抱歉，所有后端暂不可用，请稍后重试。"
     return total_text, backend_used
 
 
@@ -199,5 +199,5 @@ async def apply_quality_fallback(ctx: StreamContext) -> None:
             ctx.backend_used = upgraded
             return
     if not ctx.content:
-        ctx.content = "当前所有服务暂时不可用，请稍后重试。"
+        ctx.content = "抱歉，所有后端暂不可用，请稍后重试。"
         ctx.backend_used = "fallback_exhausted"

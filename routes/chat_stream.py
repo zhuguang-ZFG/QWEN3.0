@@ -16,6 +16,8 @@ from routes.v3_adapters import v3_route
 
 from routes.chat_support import thinking_route
 
+FALLBACK_MSG = "抱歉，所有后端暂不可用，请稍后重试。可尝试 /model fast 切换快速模式。"
+
 _last_resort_call: Callable[[list], str] | None = None
 _build_pollinations_url: Callable[[str, str], str] | None = None
 
@@ -74,7 +76,7 @@ async def stream_response(
         from response_cleaner import clean_response
         content = clean_response(content, "") or content
         if not content or not content.strip():
-            content = (last_resort(messages) if last_resort else "") or "系统维护中，请稍后重试。"
+            content = (last_resort(messages) if last_resort else "") or FALLBACK_MSG
         for sentence in _split_sentences(content):
             yield build_stream_chunk(chat_id, sentence)
             await asyncio.sleep(0.02)
@@ -86,7 +88,7 @@ async def stream_response(
         result = await asyncio.to_thread(orchestrate, query)
         content = result.get("answer", "") if isinstance(result, dict) else str(result)
         if not content or not content.strip():
-            content = (last_resort(messages) if last_resort else "") or "系统维护中，请稍后重试。"
+            content = (last_resort(messages) if last_resort else "") or FALLBACK_MSG
         for sentence in _split_sentences(content):
             yield build_stream_chunk(chat_id, sentence)
             await asyncio.sleep(0.02)
@@ -109,7 +111,7 @@ async def stream_response(
         from response_cleaner import clean_response
         content = clean_response(content, "") or content
         if not content or not content.strip():
-            content = (last_resort(messages) if last_resort else "") or "系统维护中，请稍后重试。"
+            content = (last_resort(messages) if last_resort else "") or FALLBACK_MSG
         for sentence in _split_sentences(content):
             yield build_stream_chunk(chat_id, sentence)
             await asyncio.sleep(0.02)
@@ -142,7 +144,7 @@ async def stream_response(
         from response_cleaner import clean_response
         content = clean_response(content, "") or content
         if not content or content.startswith("[ERR]"):
-            content = (last_resort(messages) if last_resort else "") or "系统维护中，请稍后重试。"
+            content = (last_resort(messages) if last_resort else "") or FALLBACK_MSG
         for sentence in _split_sentences(content):
             yield build_stream_chunk(chat_id, sentence)
             await asyncio.sleep(0.02)

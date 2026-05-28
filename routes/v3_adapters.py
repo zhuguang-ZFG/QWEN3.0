@@ -34,7 +34,8 @@ def v3_predict(query):
         if scenario == "coding":
             # scnet_ds_flash has strong coding capability (non-streaming verified)
             stream_stable = ["longcat_chat", "scnet_ds_flash", "scnet_qwen235b",
-                             "groq_gptoss", "github_gpt4o", "mistral_small"]
+                             "scnet_qwen30b", "groq_gptoss", "github_gpt4o",
+                             "mistral_small", "cerebras_gptoss"]
             for b in stream_stable:
                 if not health_tracker.is_cooled_down(b):
                     return b
@@ -73,8 +74,9 @@ def v3_select(query, system_prompt, ide, messages):
                                      ide_source=ide if is_ide else "",
                                      request_type="ide" if is_ide else "chat")
         if scenario == "coding":
-            stream_stable = ["longcat_chat", "scnet_qwen235b", "groq_gptoss",
-                             "cerebras_gptoss", "github_gpt4o", "mistral_small"]
+            stream_stable = ["longcat_chat", "scnet_qwen235b", "scnet_qwen30b",
+                             "groq_gptoss", "cerebras_gptoss", "github_gpt4o",
+                             "mistral_small"]
             for b in stream_stable:
                 if not health_tracker.is_cooled_down(b):
                     return (b, messages)

@@ -144,7 +144,7 @@ async def anthropic_stream(
         await apply_quality_fallback(ctx)
 
     if not ctx.content or not ctx.content.strip():
-        ctx.content = deps.last_resort_call(messages_to_dicts(req.messages)) or "系统维护中，请稍后重试。"
+        ctx.content = deps.last_resort_call(messages_to_dicts(req.messages)) or "抱歉，所有后端暂不可用，请稍后重试。"
         ctx.backend_used = ctx.backend_used or "empty_response"
 
     _finalize_request(ctx, query, t0, client_ip, ide_source, sys_prompt_preview, deps)

@@ -72,6 +72,7 @@ def resolve_route_prefs(req: ChatRequest, ide_source: str, query: str) -> RouteP
         req.thinking = True
     elif req.model in ("code", "lima-code"):
         ide = ide or "chat_code_mode"
+        prefer = "scnet_qwen235b"
     use_thinking = getattr(req, "thinking", False) or smart_router.detect_thinking_intent(query)
     return RoutePrefs(prefer=prefer, ide_source=ide, use_thinking=use_thinking)
 
