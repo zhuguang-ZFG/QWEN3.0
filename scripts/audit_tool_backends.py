@@ -45,18 +45,34 @@ OPENAI_TOOLS = [{
 
 
 def _get_tool_backends() -> list[str]:
-    """Get all backends with tool_calls cap, sorted by preference."""
-    tier1 = []
+    """Get all backends to test: tagged tool_calls + Anthropic-native + GPT-family."""
+    candidates = set()
     for name, cfg in BACKENDS.items():
-        if "tool_calls" not in cfg.get("caps", []):
-            continue
         if health_tracker.is_cooled_down(name):
             continue
-        if cfg.get("fmt") == "openai":
-            tier1.append(name)
-    # Prefer native-tool backends first
-    native = {"github", "groq", "cerebras", "longcat", "mistral"}
-    tier1.sort(key=lambda n: (0 if any(p in n for p in native) else 1, BACKENDS.get(n, {}).get("timeout", 30)))
+        caps = cfg.get("caps", [])
+        fmt = cfg.get("fmt", "openai")
+        model = cfg.get("model", "").lower()
+
+        # Tagged with tool_calls
+        if "tool_calls" in caps:
+            candidates.add(name)
+        # Anthropic-native backends (all support tools via protocol)
+        elif fmt == "anthropic" and "longcat" in name:
+            candidates.add(name)
+        # GPT-family models (likely support tools even without tag)
+        elif "gpt" in model or "claude" in model:
+            candidates.add(name)
+        # Mistral models (known tool support)
+        elif "mistral" in model:
+            candidates.add(name)
+
+    tier1 = sorted(candidates)
+    native = {"github", "groq", "cerebras", "longcat", "mistral", "chinamobile", "ddg"}
+    tier1.sort(key=lambda n: (
+        0 if any(p in n for p in native) else 1,
+        BACKENDS.get(n, {}).get("timeout", 30),
+    ))
     return tier1
 
 
