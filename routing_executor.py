@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable, Optional
 
 MAX_FALLBACKS = 10
@@ -54,7 +55,22 @@ def execute(backends: list[str],
 
     if backends:
         re.health_tracker.detect_and_reset_mass_failure()
-        for backend in backends[:5]:
+        # Parallel fallback: try 3 backends simultaneously, first valid wins
+        candidates = [
+            b for b in backends[:8]
+            if not re.health_tracker.is_cooled_down(b)
+            and re.budget_manager.is_budget_available(b)
+        ][:3]
+        if len(candidates) >= 2:
+            result = _parallel_fallback(
+                candidates, call_fn, messages, max_tokens, tools, re,
+            )
+            if result:
+                backend, answer = result
+                re.health_tracker.record_success(backend, (time.time() - t0) * 1000)
+                return backend, answer, errors
+        # Serial fallback for remaining
+        for backend in candidates:
             if re.health_tracker.is_cooled_down(backend):
                 continue
             try:
@@ -65,22 +81,46 @@ def execute(backends: list[str],
                 if answer and len(answer.strip()) > 5:
                     re.health_tracker.record_success(backend, (time.time() - t0) * 1000)
                     return backend, answer, errors
-                if tools:
-                    try:
-                        answer = call_fn(backend, messages, max_tokens)
-                        if answer and len(answer.strip()) > 5:
-                            re.health_tracker.record_success(backend, (time.time() - t0) * 1000)
-                            return backend, answer, errors
-                    except Exception as exc:
-                        logger.warning(
-                            "[EXECUTE] %s non-streaming fallback also failed: %s",
-                            backend, type(exc).__name__,
-                        )
-            except Exception as e:
-                re.health_tracker.record_failure(backend, error_code=extract_error_code(e))
-                errors += 1
+            except Exception:
+                pass
 
     return "exhausted", "", errors
+
+
+def _parallel_fallback(
+    backends: list[str],
+    call_fn: Callable,
+    messages: list[dict],
+    max_tokens: int,
+    tools: list[dict] | None,
+    re,
+) -> tuple[str, str] | None:
+    """Try multiple backends in parallel, return first valid response."""
+    def _try_one(backend: str) -> tuple[str, str] | None:
+        try:
+            if tools:
+                answer = call_fn(backend, messages, max_tokens, tools=tools)
+            else:
+                answer = call_fn(backend, messages, max_tokens)
+            if answer and len(answer.strip()) > 5:
+                return backend, answer
+        except Exception:
+            pass
+        return None
+
+    with ThreadPoolExecutor(max_workers=len(backends)) as pool:
+        futures = {pool.submit(_try_one, b): b for b in backends}
+        for future in as_completed(futures):
+            try:
+                result = future.result()
+                if result:
+                    # Cancel remaining futures
+                    for f in futures:
+                        f.cancel()
+                    return result
+            except Exception:
+                continue
+    return None
 
 
 def extract_error_code(e: Exception) -> Optional[int]:
