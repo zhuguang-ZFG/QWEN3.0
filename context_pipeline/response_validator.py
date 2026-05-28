@@ -30,6 +30,13 @@ _PYTHON_SYNTAX_ISSUES = [
     (re.compile(r"except\s*:"), "bare_except"),
 ]
 
+# JavaScript/TypeScript common issues (regex-based, no Node.js required)
+_JS_SYNTAX_ISSUES = [
+    (re.compile(r"const\s+\w+\s*=\s*\w+\s*\(\).*\{.*\}"), "arrow_missing"),
+    (re.compile(r"await\s+(?![\w.({\[`$])"), "dangling_await"),
+    (re.compile(r"\.then\s*\(\s*\)"), "empty_then"),
+]
+
 
 @dataclass
 class CodeBlock:
@@ -114,6 +121,9 @@ def _validate_block(block: CodeBlock) -> list[tuple[str, str]]:
     if block.language in ("python", "py"):
         py_issues = _check_python_syntax(block.code)
         issues.extend(py_issues)
+    elif block.language in ("javascript", "js", "typescript", "ts", "tsx", "jsx"):
+        js_issues = _check_js_syntax(block.code)
+        issues.extend(js_issues)
 
     security = _check_security(block.code, block.language)
     issues.extend(security)
@@ -133,6 +143,15 @@ def _check_python_syntax(code: str) -> list[tuple[str, str]]:
         if pattern.search(code):
             issues.append(("quality", issue_type))
 
+    return issues
+
+
+def _check_js_syntax(code: str) -> list[tuple[str, str]]:
+    """Check JavaScript/TypeScript for common issues using regex patterns."""
+    issues: list[tuple[str, str]] = []
+    for pattern, issue_type in _JS_SYNTAX_ISSUES:
+        if pattern.search(code):
+            issues.append(("js_pattern_issue", issue_type))
     return issues
 
 

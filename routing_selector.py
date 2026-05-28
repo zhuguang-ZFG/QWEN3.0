@@ -119,6 +119,15 @@ def select(request_type: str, health_map: dict,
         except ImportError:
             pass
 
+        # Apply coding quality scores for coding scenarios
+        if scenario == "coding":
+            try:
+                from coding_backend_scorer import get_coding_weight
+                scores[b] *= get_coding_weight(b)
+            except ImportError:
+                pass
+            pass
+
         static_latency = _STATIC_LATENCY_ESTIMATE.get(b)
         if static_latency and consec_fails == 0:
             scores[b] += max(0, (2000 - static_latency) / 100)
