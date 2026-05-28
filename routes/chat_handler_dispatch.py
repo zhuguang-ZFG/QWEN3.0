@@ -73,6 +73,11 @@ def resolve_route_prefs(req: ChatRequest, ide_source: str, query: str) -> RouteP
     elif req.model in ("code", "lima-code"):
         ide = ide or "chat_code_mode"
         prefer = "scnet_qwen235b"
+
+    # Claude Code sends full history every turn → needs large context
+    if ide_source and "claude" in ide_source.lower():
+        prefer = prefer or "github_gpt4o"  # 128K context
+
     use_thinking = getattr(req, "thinking", False) or smart_router.detect_thinking_intent(query)
     return RoutePrefs(prefer=prefer, ide_source=ide, use_thinking=use_thinking)
 
