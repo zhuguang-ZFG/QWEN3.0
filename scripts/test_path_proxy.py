@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 import os
 """Final test: zhipu/github via Python path proxy through one-api"""
 import urllib.request, json, http.cookiejar, sys, os, time

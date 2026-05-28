@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 import os
 """Test: try base_url WITHOUT /v1 for type=1 channels
 Theory: type=1 (OpenAI) appends /v1/chat/completions to base_url

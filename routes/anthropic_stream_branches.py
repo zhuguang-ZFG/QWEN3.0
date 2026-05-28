@@ -106,12 +106,13 @@ async def stream_speculative_path(
     total_text = ""
     backend_used = "unknown"
     streamed_any = False
-    async for backend_used, chunk in speculative_stream_chunks(
+    async for chunk_backend, chunk in speculative_stream_chunks(
         ctx.query,
         messages_to_dicts(ctx.req.messages),
         ctx.req.max_tokens or 4096,
         ctx.ide_source,
     ):
+        backend_used = chunk_backend
         streamed_any = True
         total_text += chunk
         yield sse_text_delta(chunk)

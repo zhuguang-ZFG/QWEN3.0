@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 import os
 """Point zhipu channel to echo server, send request, read echo log"""
 import urllib.request, json, http.cookiejar, sys, os, time

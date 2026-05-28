@@ -21,7 +21,7 @@ class _TieredAdapter:
 
     def search(self, query: str, *, domain: str | None = None, max_results: int = 5) -> dict:
         last: dict = {"ok": False, "error": "no_search_tier"}
-        for index, (name, adapter) in enumerate(self._tiers):
+        for index, (_name, adapter) in enumerate(self._tiers):
             result = adapter.search(query, domain=domain, max_results=max_results)
             last = result
             if result.get("ok") and (result.get("results") or []):
@@ -36,7 +36,7 @@ class _TieredAdapter:
         self, queries: list[str], *, domain: str | None = None, max_results: int = 5
     ) -> dict:
         last: dict = {"ok": False, "error": "no_search_tier"}
-        for index, (name, adapter) in enumerate(self._tiers):
+        for index, (_name, adapter) in enumerate(self._tiers):
             result = adapter.batch_search(queries, domain=domain, max_results=max_results)
             last = result
             if result.get("ok") and (result.get("results") or []):

@@ -95,7 +95,9 @@ def search_memories_semantic(
         emb = json.loads(r[6])
         if not emb:
             continue
-        dot = sum(a * b for a, b in zip(query_embedding, emb))
+        if len(query_embedding) != len(emb):
+            continue
+        dot = sum(a * b for a, b in zip(query_embedding, emb, strict=True))
         norm_a = math.sqrt(sum(x * x for x in query_embedding))
         norm_b = math.sqrt(sum(x * x for x in emb))
         sim = dot / (norm_a * norm_b) if norm_a and norm_b else 0.0

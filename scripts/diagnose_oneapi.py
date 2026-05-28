@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 import os
 """Diagnose each one-api channel individually"""
 import urllib.request, json, http.cookiejar, sys, time, os

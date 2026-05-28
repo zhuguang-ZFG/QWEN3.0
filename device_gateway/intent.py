@@ -153,7 +153,14 @@ def _llm_replan(text: str, _fallback: dict[str, Any]) -> dict[str, Any] | None:
             max_tokens=200,
         )
         import json as _json
-        parsed = _json.loads(answer.strip().lstrip("```json").rstrip("```").strip())
+        json_text = answer.strip()
+        if json_text.startswith("```json"):
+            json_text = json_text.removeprefix("```json").strip()
+        elif json_text.startswith("```"):
+            json_text = json_text.removeprefix("```").strip()
+        if json_text.endswith("```"):
+            json_text = json_text.removesuffix("```").strip()
+        parsed = _json.loads(json_text)
         if isinstance(parsed, dict) and "capability" in parsed:
             return {
                 "capability": parsed["capability"],

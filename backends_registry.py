@@ -22,7 +22,7 @@ BACKENDS = {
     'nvidia_llama4': {'url': 'https://integrate.api.nvidia.com/v1/chat/completions', 'key': os.environ.get('NVIDIA_API_KEY', ''), 'model': 'meta/llama-4-maverick-17b-128e-instruct', 'fmt': 'openai'},
     'nvidia_mistral': {'url': 'https://integrate.api.nvidia.com/v1/chat/completions', 'key': os.environ.get('NVIDIA_API_KEY', ''), 'model': 'mistralai/mistral-large-3-675b-instruct-2512', 'fmt': 'openai'},
     'nvidia_phi4': {'url': 'https://integrate.api.nvidia.com/v1/chat/completions', 'key': os.environ.get('NVIDIA_API_KEY', ''), 'model': 'microsoft/phi-4-mini-instruct', 'fmt': 'openai'},
-    'chinamobile': {'url': 'https://maas.gd.chinamobile.com:36007/ai/uifm/open/v1/chat/completions', 'key': os.environ.get('CHINAMOBILE_API_KEY', ''), 'model': 'minimax-m25', 'fmt': 'openai'},
+    'chinamobile': {'url': 'https://maas.gd.chinamobile.com:36007/ai/uifm/open/v1/chat/completions', 'key': os.environ.get('CHINAMOBILE_API_KEY', ''), 'model': 'minimax-m25', 'fmt': 'openai', 'caps': ['tool_calls']},
     'or_deepseek_r1': {'url': 'https://openrouter.ai/api/v1/chat/completions', 'key': os.environ.get('OPENROUTER_API_KEY', ''), 'model': 'deepseek/deepseek-v4-flash:free', 'fmt': 'openai', 'timeout': 60},
     'or_qwen3_coder': {'url': 'https://openrouter.ai/api/v1/chat/completions', 'key': os.environ.get('OPENROUTER_API_KEY', ''), 'model': 'qwen/qwen3-coder:free', 'fmt': 'openai', 'timeout': 60},
     'or_llama70b': {'url': 'https://openrouter.ai/api/v1/chat/completions', 'key': os.environ.get('OPENROUTER_API_KEY', ''), 'model': 'meta-llama/llama-3.3-70b-instruct:free', 'fmt': 'openai', 'timeout': 45},
@@ -194,9 +194,9 @@ BACKENDS = {
     'kimi_thinking': {'url': 'http://localhost:4504/v1/chat/completions', 'key': 'none', 'model': 'kimi-thinking', 'fmt': 'openai', 'timeout': 45, 'private_code_allowed': True, 'admission': 'code_medium_candidate'},
     'kimi_search': {'url': 'http://localhost:4504/v1/chat/completions', 'key': 'none', 'model': 'kimi-search', 'fmt': 'openai', 'timeout': 60, 'private_code_allowed': True, 'admission': 'code_medium_candidate'},
     # ── MiMo 小米 (本地代理 port 4507, 网页逆向) ──
-    'mimo_web': {'url': 'http://localhost:4507/v1/chat/completions', 'key': 'none', 'model': 'mimo-web', 'fmt': 'openai', 'timeout': 60, 'force_stream_param': True, 'admission': 'sandbox_only', 'private_code_allowed': False},
-    'mimo_web_think': {'url': 'http://localhost:4507/v1/chat/completions', 'key': 'none', 'model': 'mimo-web-think', 'fmt': 'openai', 'timeout': 120, 'force_stream_param': True, 'admission': 'sandbox_only', 'private_code_allowed': False},
-    'mimo_web_flash': {'url': 'http://localhost:4507/v1/chat/completions', 'key': 'none', 'model': 'mimo-web-flash', 'fmt': 'openai', 'timeout': 30, 'force_stream_param': True, 'admission': 'sandbox_only', 'private_code_allowed': False},
+    'mimo_web': {'url': f"http://{os.environ.get('VPS_HOST', '47.112.162.80')}:4507/v1/chat/completions", 'key': 'none', 'model': 'mimo-web', 'fmt': 'openai', 'timeout': 60, 'force_stream_param': True, 'admission': 'sandbox_only', 'private_code_allowed': False, 'caps': ['tool_calls']},
+    'mimo_web_think': {'url': f"http://{os.environ.get('VPS_HOST', '47.112.162.80')}:4507/v1/chat/completions", 'key': 'none', 'model': 'mimo-web-think', 'fmt': 'openai', 'timeout': 120, 'force_stream_param': True, 'admission': 'sandbox_only', 'private_code_allowed': False, 'caps': ['tool_calls']},
+    'mimo_web_flash': {'url': f"http://{os.environ.get('VPS_HOST', '47.112.162.80')}:4507/v1/chat/completions", 'key': 'none', 'model': 'mimo-web-flash', 'fmt': 'openai', 'timeout': 30, 'force_stream_param': True, 'admission': 'sandbox_only', 'private_code_allowed': False, 'caps': ['tool_calls']},
     # ── MiMo TTS (官方API, 限时免费) ──
     'mimo_tts': {'url': 'https://api.xiaomimimo.com/v1/chat/completions', 'key': os.environ.get('MIMO_TTS_KEY', ''), 'model': 'mimo-v2.5-tts', 'fmt': 'openai', 'timeout': 30},
     'mimo_tts_v2': {'url': 'https://api.xiaomimimo.com/v1/chat/completions', 'key': os.environ.get('MIMO_TTS_KEY', ''), 'model': 'mimo-v2-tts', 'fmt': 'openai', 'timeout': 30},

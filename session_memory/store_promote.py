@@ -138,7 +138,7 @@ def auto_promote_candidates(session_id: str, limit: int = 50) -> list[int]:
     candidates = []
     for mem_id, summary in rows:
         text = (summary or "").lower()
-        for new_type, rule_set in _PROMOTION_RULES.get("exchange", {}).items():
+        for _new_type, rule_set in _PROMOTION_RULES.get("exchange", {}).items():
             for keywords in [rule_set]:
                 if any(kw in text for kw in keywords):
                     if mem_id not in candidates:

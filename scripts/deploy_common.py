@@ -7,6 +7,8 @@ import json
 import os
 from typing import Any
 
+import paramiko
+
 SERVER = "47.112.162.80"
 REMOTE = "/opt/lima-router"
 KEY = os.environ.get("LIMA_DEPLOY_KEY_PATH", os.path.expanduser("~/.ssh/id_ed25519"))
@@ -14,6 +16,15 @@ KEY = os.environ.get("LIMA_DEPLOY_KEY_PATH", os.path.expanduser("~/.ssh/id_ed255
 
 def notify_enabled() -> bool:
     return os.environ.get("LIMA_DEPLOY_NOTIFY", "1").strip().lower() not in {"0", "false", "no"}
+
+
+def configure_ssh_host_keys(ssh: paramiko.SSHClient) -> None:
+    """Load known_hosts and reject unknown SSH host keys."""
+    ssh.load_system_host_keys()
+    known_hosts = os.environ.get("LIMA_DEPLOY_KNOWN_HOSTS")
+    if known_hosts:
+        ssh.load_host_keys(known_hosts)
+    ssh.set_missing_host_key_policy(paramiko.RejectPolicy())
 
 
 def format_deploy_ok(label: str, *, service: str = "", health: str = "", detail: str = "") -> str:

@@ -34,3 +34,11 @@ def test_load_ignore_ids(tmp_path: Path, monkeypatch):
 
     monkeypatch.setattr(mod, "IGNORE_FILE", ignore_path)
     assert mod._load_ignore_ids() == {"PYSEC-TEST-1"}
+
+
+def test_payload_dependencies_accepts_list_shape():
+    import scripts.run_pip_audit as mod
+
+    payload = [{"name": "fastapi", "version": "1", "vulns": []}]
+
+    assert mod._payload_dependencies(payload) == payload

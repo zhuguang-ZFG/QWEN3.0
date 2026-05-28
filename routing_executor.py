@@ -64,6 +64,14 @@ def execute(backends: list[str],
                 if answer and len(answer.strip()) > 5:
                     re.health_tracker.record_success(backend, (time.time() - t0) * 1000)
                     return backend, answer, errors
+                if tools:
+                    try:
+                        answer = call_fn(backend, messages, max_tokens)
+                        if answer and len(answer.strip()) > 5:
+                            re.health_tracker.record_success(backend, (time.time() - t0) * 1000)
+                            return backend, answer, errors
+                    except Exception:
+                        pass
             except Exception as e:
                 re.health_tracker.record_failure(backend, error_code=extract_error_code(e))
                 errors += 1

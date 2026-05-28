@@ -11,6 +11,8 @@ import urllib.request
 
 import paramiko
 
+from deploy_common import configure_ssh_host_keys
+
 SERVER = "47.112.162.80"
 REMOTE = "/opt/lima-router"
 KEY = os.environ.get("LIMA_DEPLOY_KEY_PATH", os.path.expanduser("~/.ssh/id_ed25519"))
@@ -58,7 +60,7 @@ def main() -> int:
         sys.exit(f"SSH key not found: {KEY}")
 
     ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    configure_ssh_host_keys(ssh)
     ssh.connect(SERVER, username="root", key_filename=KEY, timeout=60)
 
     token = _env_val(ssh, "GITHUB_TOKEN")

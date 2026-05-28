@@ -54,6 +54,16 @@ def test_semantic_search():
     assert results[0].summary == "routing logic"
 
 
+def test_semantic_search_skips_mismatched_embedding_dimensions():
+    sid = "test-session-mismatch"
+    save_memory(sid, "exchange", "short embedding", embedding=[1.0, 0.0])
+    save_memory(sid, "exchange", "matching embedding", embedding=[0.9, 0.1, 0.0])
+
+    results = search_memories_semantic(sid, [0.85, 0.15, 0.0], limit=5)
+
+    assert [r.summary for r in results] == ["matching embedding"]
+
+
 def test_count_and_clear():
     sid = "test-session-4"
     save_memory(sid, "exchange", "entry 1")

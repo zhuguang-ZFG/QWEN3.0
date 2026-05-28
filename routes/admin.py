@@ -1,4 +1,4 @@
-﻿"""LiMa admin routes: session UI + API wiring (CQ-014 slice 11)."""
+"""LiMa admin routes: session UI + API wiring (CQ-014 slice 11)."""
 
 from __future__ import annotations
 

@@ -11,6 +11,8 @@ from pathlib import Path
 
 import paramiko
 
+from deploy_common import configure_ssh_host_keys
+
 SERVER = "47.112.162.80"
 REMOTE = "/opt/lima-router"
 KEY = os.environ.get("LIMA_DEPLOY_KEY_PATH", os.path.expanduser("~/.ssh/id_ed25519"))
@@ -88,10 +90,12 @@ def _run_smokes() -> None:
 
 def _health_probe_script() -> str:
     return r"""
-import paramiko, os, sys
+import os, sys, paramiko
+sys.path.insert(0, os.path.join(os.getcwd(), 'scripts'))
+from deploy_common import configure_ssh_host_keys
 KEY=os.path.expanduser('~/.ssh/id_ed25519')
 ssh=paramiko.SSHClient()
-ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+configure_ssh_host_keys(ssh)
 ssh.connect('47.112.162.80', username='root', key_filename=KEY, timeout=60)
 i,o,e=ssh.exec_command('curl -sf http://127.0.0.1:8080/health')
 body=o.read().decode()
@@ -109,7 +113,7 @@ def main() -> None:
 
     base = Path(__file__).resolve().parent.parent
     ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    configure_ssh_host_keys(ssh)
     ssh.connect(SERVER, username="root", key_filename=KEY, banner_timeout=30, timeout=60)
 
     _log("no VPS backup (rollback via GitHub)")

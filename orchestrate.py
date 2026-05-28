@@ -4,6 +4,7 @@ Superpower 原则：编排层让多个模型协作产生超越单模型的效果
 """
 import sys, os, json, time, logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Any
 
 _log = logging.getLogger(__name__)
 
@@ -59,7 +60,7 @@ def needs_orchestration(query: str, intent: dict) -> bool:
 
     # 条件2：跨多领域
     domains_hit = 0
-    for domain, keywords in MULTI_DOMAIN_KEYWORDS.items():
+    for _domain, keywords in MULTI_DOMAIN_KEYWORDS.items():
         if any(kw in query for kw in keywords):
             domains_hit += 1
     if domains_hit >= 2:
@@ -77,7 +78,7 @@ def needs_orchestration(query: str, intent: dict) -> bool:
     return False
 
 
-def decompose(query: str) -> list[dict]:
+def decompose(query: str) -> list[dict[str, Any]]:
     """将复杂问题拆解为子任务列表。
     调用本地模型，输出 JSON 格式子任务。
 
@@ -128,7 +129,7 @@ def decompose(query: str) -> list[dict]:
     return [{"task": query, "domain": "general", "backend_hint": ""}]
 
 
-def execute_subtasks(subtasks: list[dict]) -> list[dict]:
+def execute_subtasks(subtasks: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """并发执行子任务（ThreadPoolExecutor，最多 MAX_CONCURRENT 个并发）。
     每个子任务调用 smart_router.call_api 或 smart_router.route。
 
@@ -138,9 +139,17 @@ def execute_subtasks(subtasks: list[dict]) -> list[dict]:
     Returns:
         结果列表，每个为 dict: {"task": str, "answer": str, "backend": str, "ms": int}
     """
-    results = [None] * len(subtasks)
+    results: list[dict[str, Any]] = [
+        {
+            "task": subtask.get("task", ""),
+            "answer": "",
+            "backend": "pending",
+            "ms": 0,
+        }
+        for subtask in subtasks
+    ]
 
-    def _exec_one(idx: int, subtask: dict) -> dict:
+    def _exec_one(idx: int, subtask: dict[str, Any]) -> dict[str, Any]:
         t0 = time.time()
         task_query = subtask["task"]
         hint = subtask.get("backend_hint", "")
@@ -195,7 +204,7 @@ def execute_subtasks(subtasks: list[dict]) -> list[dict]:
     return results
 
 
-def synthesize(query: str, results: list[dict]) -> str:
+def synthesize(query: str, results: list[dict[str, Any]]) -> str:
     """合并子任务结果为最终回答。
     调用 longcat 或本地模型做合并，产生连贯的综合回答。
 
@@ -225,7 +234,11 @@ def synthesize(query: str, results: list[dict]) -> str:
     # 优先用 longcat，失败则用本地模型
     msgs = [{"role": "user", "content": prompt}]
     try:
-        answer = http_caller.call_api("longcat_chat", msgs, mt=SYNTHESIZE_MAX_TOKENS)
+        answer = http_caller.call_api(
+            "longcat_chat",
+            msgs,
+            max_tokens=SYNTHESIZE_MAX_TOKENS,
+        )
         if answer and "暂时不可用" not in answer:
             return answer
     except Exception as exc:

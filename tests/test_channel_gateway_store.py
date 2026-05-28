@@ -3,6 +3,8 @@ import os
 import sys
 import time
 
+import pytest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 os.environ["LIMA_CHANNEL_ID_SALT"] = "test-salt-for-channel-tests"
@@ -175,11 +177,8 @@ class TestChannelStore:
     def test_id_hashing_requires_salt(self):
         store_no_salt = ChannelStore(":memory:")
         store_no_salt._salt = ""
-        try:
+        with pytest.raises(RuntimeError):
             store_no_salt._hash_id("test")
-            assert False, "should have raised"
-        except RuntimeError:
-            pass
 
     def test_owner_allowlist_promotes_to_owner(self):
         user_hash = self.store._hash_id("owner-wx-id")

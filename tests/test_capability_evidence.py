@@ -30,6 +30,8 @@ def test_record_evidence_redacts_secret_like_values(evidence_db):
     row = recent_evidence(limit=1)[0]
     assert row["loop"] == "chat_ide"
     assert row["outcome"] == "ok"
+    assert "sk-test" not in str(row)
+    assert "Bearer sk-" not in str(row)
 
 
 def test_record_evidence_caps_artifact_paths(evidence_db):
@@ -41,7 +43,7 @@ def test_record_evidence_caps_artifact_paths(evidence_db):
         artifact_paths=[f"a{i}.md" for i in range(20)],
     )
     row = recent_evidence(limit=1)[0]
-    # artifact_paths capped at 10 in record_evidence return, stored as JSON in DB
+    # artifact_paths are capped before persistence.
     paths = row.get("artifact_paths", [])
     if isinstance(paths, str):
         import json; paths = json.loads(paths)

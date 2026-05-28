@@ -44,6 +44,15 @@ DIRS_TO_DEPLOY = [
 ]
 
 
+def _configure_host_key_policy(ssh) -> None:
+    """Use known_hosts verification and reject unknown SSH host keys."""
+    ssh.load_system_host_keys()
+    known_hosts = os.environ.get("LIMA_DEPLOY_KNOWN_HOSTS")
+    if known_hosts:
+        ssh.load_host_keys(known_hosts)
+    ssh.set_missing_host_key_policy(paramiko.RejectPolicy())
+
+
 def _preflight() -> None:
     if not PASS and not KEY_PATH:
         sys.exit("ERROR: set LIMA_DEPLOY_PASS or LIMA_DEPLOY_KEY_PATH")
@@ -56,13 +65,13 @@ def main():
 
     # 1. Connect
     ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    connect_args = {"username": USER}
+    _configure_host_key_policy(ssh)
     if KEY_PATH:
-        connect_args["key_filename"] = KEY_PATH
+        ssh.connect(SERVER, username=USER, key_filename=KEY_PATH)
     else:
-        connect_args["password"] = PASS
-    ssh.connect(SERVER, **connect_args)
+        if PASS is None:
+            sys.exit("ERROR: set LIMA_DEPLOY_PASS or LIMA_DEPLOY_KEY_PATH")
+        ssh.connect(SERVER, username=USER, password=PASS)
     sftp = ssh.open_sftp()
     print("[1/5] Connected")
 

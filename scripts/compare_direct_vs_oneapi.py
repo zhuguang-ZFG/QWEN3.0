@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Compare: direct call vs one-api call for the same model"""
 import urllib.request, json, sys, os, time
 

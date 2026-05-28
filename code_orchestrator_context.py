@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 import re
-import time
 from collections import defaultdict
 
 import backend_reputation
@@ -86,7 +85,7 @@ def detect_language(query: str, messages: list | None = None) -> str:
     scores = {}
     for lang, patterns in _LANG_SIGNALS.items():
         scores[lang] = sum(1 for p in patterns if re.search(p, text, re.I))
-    best = max(scores, key=scores.get) if scores else "general"
+    best = max(scores, key=lambda lang: scores[lang]) if scores else "general"
     return best if scores.get(best, 0) >= 2 else "general"
 
 

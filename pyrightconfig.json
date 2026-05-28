@@ -10,12 +10,17 @@
     "session_memory/",
     "lima_mcp/",
     "tool_gateway/",
+    "chat_models.py",
+    "code_orchestrator_context.py",
     "eval_preflight.py",
     "periodic_coding_eval.py",
+    "router_classifier.py",
     "routing_engine.py",
     "smart_router.py",
     "http_caller.py",
-    "server.py"
+    "server.py",
+    "speculative.py",
+    "voice_gateway.py"
   ],
   "exclude": [
     "**/__pycache__",

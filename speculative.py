@@ -12,7 +12,7 @@ import asyncio
 import threading
 import logging
 import queue as queue_mod
-from typing import Callable, Optional
+from typing import Awaitable, Callable
 
 import health_tracker
 import budget_manager
@@ -79,7 +79,7 @@ def _run_coro_sync(coro):
 
 async def speculative_call_async(
     backends: list[str],
-    async_call_fn: Callable[[str, list[dict], int], object],
+    async_call_fn: Callable[[str, list[dict], int], Awaitable[object]],
     messages: list[dict],
     max_tokens: int = 4096,
     max_parallel: int = 3,

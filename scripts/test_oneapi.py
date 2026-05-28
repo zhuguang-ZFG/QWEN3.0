@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 import os
 """Test one-api end-to-end from cloud server"""
 import urllib.request, json, sys, time

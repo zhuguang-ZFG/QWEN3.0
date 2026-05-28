@@ -8,7 +8,7 @@ from session_memory.learning_loop import (
 
 
 def test_ingest_succeeded_task_feeds_all_channels(monkeypatch, tmp_path):
-    monkeypatch.setenv("LIMA_CAPABILITY_EVIDENCE_PATH", str(tmp_path / "evidence.jsonl"))
+    monkeypatch.setenv("LIMA_OUTCOME_DB", str(tmp_path / "outcome.db"))
     outcome = TaskOutcome(
         task_id="task-001",
         status="succeeded",

@@ -1,5 +1,7 @@
 """Tests for bounded math evaluation in Telegram FC tools."""
 
+import pytest
+
 from lima_fc_tools.safe_math import evaluate_math_expression
 
 
@@ -12,16 +14,10 @@ def test_evaluate_allows_math_functions():
 
 
 def test_evaluate_rejects_huge_exponent():
-    try:
+    with pytest.raises(ValueError):
         evaluate_math_expression("2 ** 9999")
-        assert False, "expected ValueError"
-    except ValueError:
-        pass
 
 
 def test_evaluate_rejects_code_injection():
-    try:
+    with pytest.raises(ValueError):
         evaluate_math_expression("__import__('os').system('echo hi')")
-        assert False, "expected ValueError"
-    except ValueError:
-        pass

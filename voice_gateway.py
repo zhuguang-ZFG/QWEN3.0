@@ -100,7 +100,9 @@ async def generate_tts(text: str, language: str = "zh") -> bytes:
     audio_buffer = io.BytesIO()
     async for chunk in communicate.stream():
         if chunk["type"] == "audio":
-            audio_buffer.write(chunk["data"])
+            audio_data = chunk.get("data")
+            if isinstance(audio_data, bytes):
+                audio_buffer.write(audio_data)
     return audio_buffer.getvalue()
 
 

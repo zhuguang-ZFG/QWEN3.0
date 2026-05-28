@@ -93,7 +93,7 @@ def signal_classify(query: str):
     if not scores:
         return None
 
-    best_intent = max(scores, key=scores.get)
+    best_intent = max(scores, key=lambda intent: scores[intent])
     best_score = scores[best_intent]
 
     if best_score >= 8.0:
@@ -126,7 +126,7 @@ def rule_classify(query: str):
         return {
             "intent": best_intent,
             "complexity": 0.5,
-            "needs_code": "code" in best_intent,
+            "needs_code": best_intent is not None and "code" in best_intent,
             "domain_keywords": [],
             "cnc_subdomain": "general",
             "source": "rules",
