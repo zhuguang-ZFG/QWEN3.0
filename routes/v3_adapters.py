@@ -122,6 +122,24 @@ def v3_call_stream(backend, messages, max_tokens, ide):
                 ctx = code_orchestrator.enhance_context(query, messages, scenario)
                 sys_prompt = ctx.get("system_prompt", "")
                 messages = ctx.get("enhanced_messages", messages)
+                # Layer think/plan on top of orchestrator (not instead of)
+                try:
+                    from think_plan_context import enhance_coding_prompt, needs_plan
+                    if needs_plan(query):
+                        tpc = enhance_coding_prompt(query, messages)
+                        if tpc.get("system_prompt"):
+                            sys_prompt = tpc["system_prompt"] + "\n\n" + sys_prompt
+                        if tpc.get("context_files"):
+                            ctx_summary = "\nRelated files: " + ", ".join(
+                                tpc["context_files"][:5])
+                            if messages and messages[-1].get("role") == "user":
+                                messages[-1] = {
+                                    **messages[-1],
+                                    "content": str(messages[-1].get("content", ""))
+                                    + ctx_summary,
+                                }
+                except ImportError:
+                    pass
             else:
                 sys_prompt = "Answer the question directly in plain text. Do not generate code, functions, or programming examples unless the user explicitly asks for code."
     except Exception as e:
@@ -188,6 +206,24 @@ async def v3_call_stream_async(backend, messages, max_tokens, ide) -> AsyncItera
                 ctx = code_orchestrator.enhance_context(query, messages, scenario)
                 sys_prompt = ctx.get("system_prompt", "")
                 messages = ctx.get("enhanced_messages", messages)
+                # Layer think/plan on top of orchestrator (not instead of)
+                try:
+                    from think_plan_context import enhance_coding_prompt, needs_plan
+                    if needs_plan(query):
+                        tpc = enhance_coding_prompt(query, messages)
+                        if tpc.get("system_prompt"):
+                            sys_prompt = tpc["system_prompt"] + "\n\n" + sys_prompt
+                        if tpc.get("context_files"):
+                            ctx_summary = "\nRelated files: " + ", ".join(
+                                tpc["context_files"][:5])
+                            if messages and messages[-1].get("role") == "user":
+                                messages[-1] = {
+                                    **messages[-1],
+                                    "content": str(messages[-1].get("content", ""))
+                                    + ctx_summary,
+                                }
+                except ImportError:
+                    pass
             else:
                 sys_prompt = "Answer the question directly in plain text. Do not generate code, functions, or programming examples unless the user explicitly asks for code."
     except Exception as e:
