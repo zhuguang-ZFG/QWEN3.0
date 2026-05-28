@@ -169,6 +169,11 @@ def enhance_context(query: str, messages: list, scenario: str = "") -> dict:
     guide = build_system_prompt(query, messages, language=language)
     enhanced_query = build_enhanced_query(query)
 
+    # Session memory recall: inject past conversation context
+    memory_context = _recall_session_memory(query)
+    if memory_context:
+        guide = memory_context + "\n\n" + guide
+
     tier = classify_code_tier(query, messages)
     with _stats_lock:
         _stats[f"tier_{tier}"] += 1
@@ -203,3 +208,33 @@ def record_streaming_quality(backend: str, response_text: str, query: str) -> No
 def get_stats() -> dict:
     with _stats_lock:
         return dict(_stats)
+
+
+def _recall_session_memory(query: str) -> str:
+    """Recall relevant past session memories for a coding query."""
+    try:
+        from session_memory.store import search_memories_keyword, get_recent_memories
+        keywords = _extract_memory_keywords(query)
+        matches = []
+        for kw in keywords[:5]:
+            matches.extend(search_memories_keyword(kw, limit=3))
+        if not matches:
+            matches = get_recent_memories(limit=3)
+        if not matches:
+            return ""
+        lines = ["[Session Memory — past context]"]
+        seen = set()
+        for m in matches[:5]:
+            content = (getattr(m, "content", "") or str(m))[:150]
+            if content not in seen:
+                lines.append(f"  - {content}")
+                seen.add(content)
+        return "\n".join(lines) if len(lines) > 1 else ""
+    except (ImportError, Exception):
+        return ""
+
+
+def _extract_memory_keywords(query: str) -> list[str]:
+    words = __import__("re").findall(r"\b([a-z]{4,20})\b", query.lower())
+    stops = {"this", "that", "with", "from", "have", "when", "will", "would"}
+    return [w for w in words if w not in stops][:8]
