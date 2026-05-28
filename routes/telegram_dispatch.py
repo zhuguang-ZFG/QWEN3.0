@@ -215,8 +215,8 @@ def _record_command_outcome(cmd: str, chat_id: str, ok: bool) -> None:
             summary=f"cmd={cmd} ok={ok}",
             tags=["telegram", cmd.lstrip("/"), "success" if ok else "failure"],
         )
-    except Exception:
-        pass  # never block the main path
+    except Exception as exc:
+        _log.debug("telegram cmd record skipped: %s", type(exc).__name__)  # never block main path
 
 
 async def _dispatch_chat_session(chat_id: str, cmd: str, arg: str) -> bool:

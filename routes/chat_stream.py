@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from typing import Callable
 
 import health_tracker
@@ -120,7 +121,8 @@ async def stream_response(
                 4096,
             )
             content = answer if answer else ""
-        except Exception:
+        except Exception as exc:
+            logging.getLogger(__name__).debug("fallback execute failed: %s", type(exc).__name__)
             content = ""
         from response_cleaner import clean_response
         content = clean_response(content, "") or content

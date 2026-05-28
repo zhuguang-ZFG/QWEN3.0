@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import logging
+
 import telegram_bot
+
+_log = logging.getLogger(__name__)
 
 
 def _type_emoji(memory_type: str) -> str:
@@ -135,7 +139,8 @@ async def cmd_dashboard(chat_id: str, args: str) -> None:
         modules = [k for k, v in h.get("modules", {}).items() if v]
         lines.append(f"*Health*: {h['status']} | {len(modules)} modules")
         lines.append("")
-    except Exception:
+    except Exception as exc:
+        _log.debug("health check failed: %s", type(exc).__name__)
         lines.append("*Health*: N/A")
         lines.append("")
 
@@ -143,8 +148,8 @@ async def cmd_dashboard(chat_id: str, args: str) -> None:
         from backends_registry import BACKENDS
         lines.append(f"*Backends*: {len(BACKENDS)} registered")
         lines.append("")
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("kb stats collection failed: %s", type(exc).__name__)
 
     try:
         from session_memory.outcome_ledger import stats
@@ -154,23 +159,23 @@ async def cmd_dashboard(chat_id: str, args: str) -> None:
             if s["total"] > 0:
                 lines.append(f"  {src}: {s['success']}/{s['total']} ok")
         lines.append("")
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("kb stats collection failed: %s", type(exc).__name__)
 
     try:
         from session_memory.store_db import memory_stats
         ms = memory_stats()
         lines.append(f"*Memory*: {ms['total']} entries | {ms['embedding_pct']}% embedded")
         lines.append("")
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("kb stats collection failed: %s", type(exc).__name__)
 
     try:
         from lima_mcp.tool_defs import TOOL_DEFINITIONS
         lines.append(f"*MCP*: {len(TOOL_DEFINITIONS)} tools")
         lines.append("")
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("kb stats collection failed: %s", type(exc).__name__)
 
     lines.append("/inbox pending | /digest learning | /outcome details")
     await telegram_bot.send_message(

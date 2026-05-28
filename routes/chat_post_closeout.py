@@ -32,7 +32,8 @@ def persist_session_memory(
         for obs_type, obs_content in observations:
             try:
                 save_typed_memory(session_id, obs_type, obs_content)
-            except Exception:
+            except Exception as exc:
+                _log.debug("save_typed_memory failed: %s, falling back to raw", type(exc).__name__)
                 save_memory(session_id, obs_type, obs_content[:100])
 
         if needs_compaction(session_id):

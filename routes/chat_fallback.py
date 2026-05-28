@@ -34,8 +34,8 @@ def _record_chat_evidence(*, request_id: str, backend: str, status: str, fallbac
             status=status,
             evidence=["chat_fallback"],
         )
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("capability evidence record skipped: %s", type(exc).__name__)
 
 _record_request: Callable[..., None] = lambda *a, **kw: None
 _record_fallback: Callable[..., None] = lambda *a, **kw: None

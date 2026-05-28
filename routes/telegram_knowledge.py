@@ -310,8 +310,8 @@ async def cmd_inbox(chat_id: str, args: str) -> None:
                 lines.append(f"  {icon} {c['summary'][:80]}")
             pending += len(candidates)
             lines.append("")
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("knowledge stats collection failed: %s", type(exc).__name__)
 
     # Outcome Ledger
     try:
@@ -323,8 +323,8 @@ async def cmd_inbox(chat_id: str, args: str) -> None:
             lines.append(f"  Total: {st['total']} | Applied: {st.get('applied',0)} | Rejected: {st.get('rejected',0)}")
             pending += unlearned
             lines.append("")
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("knowledge stats collection failed: %s", type(exc).__name__)
 
     # Memory
     try:
@@ -333,8 +333,8 @@ async def cmd_inbox(chat_id: str, args: str) -> None:
         if ms.get("total"):
             lines.append(f"*Memory*: {ms['total']} entries, {ms['embedding_pct']}% embeddings")
             lines.append("")
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("knowledge stats collection failed: %s", type(exc).__name__)
 
     if pending == 0:
         lines.append("All clear. Nothing needs attention.")
