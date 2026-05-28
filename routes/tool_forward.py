@@ -315,6 +315,8 @@ _TEXT_TOOL_BACKENDS = {
     "cfai_qwen_coder", "cf_mistral",
     "scnet_qwen30b", "scnet_qwen235b", "scnet_ds_flash", "scnet_ds_pro",
     "scnet_large_ds_flash", "scnet_large_ds_pro",
+    "mimo_web", "mimo_web_think", "mimo_web_flash",
+    "longcat_web", "longcat_web_think",
 }
 
 _TEXT_TOOL_SYSTEM_PROMPT = (
