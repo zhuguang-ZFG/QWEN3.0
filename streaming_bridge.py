@@ -14,17 +14,11 @@ _log = logging.getLogger(__name__)
 CallStreamFn = Callable[[str, list, int, str], Iterator[str]]
 CallApiFn = Callable[[str, list, int, str], str]
 
-# Static latency estimates for adaptive first-chunk timeout
-_STATIC_LATENCY_ESTIMATE: dict[str, float] = {
-    "cerebras_llama8b": 800, "cerebras_gptoss": 1200, "cerebras_qwen235b": 1500,
-    "groq_gptoss_20b": 900, "groq_gptoss": 1100, "groq_llama8b": 700,
-    "groq_llama70b": 1200, "groq_llama4": 1000, "groq_qwen32b": 1100,
-    "github_gpt4o_mini": 1000, "github_gpt4o": 1500,
-    "mistral_small": 1000, "mistral_large": 1500,
-    "longcat_chat": 3000, "longcat_lite": 2000,
-    "scnet_qwen30b": 1200, "scnet_qwen235b": 2000,
-    "scnet_ds_flash": 1000, "scnet_ds_pro": 2500,
-}
+# Static latency estimates imported from routing_selector (canonical source)
+try:
+    from routing_selector import _STATIC_LATENCY_ESTIMATE
+except ImportError:
+    _STATIC_LATENCY_ESTIMATE: dict[str, float] = {}
 
 
 def _adaptive_timeout(backend: str, default: float = 3.0) -> float:

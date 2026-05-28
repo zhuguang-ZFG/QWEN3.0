@@ -225,7 +225,6 @@ async def stream_tier1_openai(body: dict, openai_tools: list, openai_msgs: list,
 
 async def stream_tier2_native(body: dict, deps: dict):
     import json
-    import urllib.request as _ur
 
     _ht = deps["health_tracker"]
     pick = deps["pick_tool_backend"]
@@ -250,25 +249,27 @@ async def stream_tier2_native(body: dict, deps: dict):
         else:
             headers["x-api-key"] = backend["key"]
         try:
-            req = _ur.Request(backend["url"], data=payload, headers=headers)
-            resp = _ur.urlopen(req, timeout=60)
-            _ht.record_success(name, 0)
-            buf = b""
-            while True:
-                chunk = resp.read(4096)
-                if not chunk:
-                    break
-                buf += chunk
-                while b"\n" in buf:
-                    line, buf = buf.split(b"\n", 1)
-                    decoded = line.decode("utf-8", errors="replace").strip()
-                    if decoded:
-                        yield decoded + "\n\n"
-            if buf.strip():
-                yield buf.decode("utf-8", errors="replace").strip() + "\n\n"
-            resp.close()
+            import httpx as _httpx
+            async with _httpx.AsyncClient(timeout=60) as http_client:
+                async with http_client.stream(
+                    "POST", backend["url"], headers=headers, content=payload,
+                ) as http_resp:
+                    if http_resp.status_code != 200:
+                        body = await http_resp.aread()
+                        raise RuntimeError(
+                            f"Backend {name} returned {http_resp.status_code}: "
+                            f"{str(body)[:200]}"
+                        )
+                    _ht.record_success(name, 0)
+                    async for line in http_resp.aiter_lines():
+                        if line:
+                            yield line + "\n\n"
             return
-        except Exception:
+        except Exception as exc:
+            import logging as _log
+            _log.getLogger(__name__).warning(
+                "stream_tier2_native %s failed: %s", name, type(exc).__name__,
+            )
             _ht.record_failure(name, error_code=None)
 
 

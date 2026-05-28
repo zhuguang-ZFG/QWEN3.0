@@ -310,19 +310,9 @@ async def tool_call_stream(body: dict):
 
 # ── Text → Tool Call Extraction ───────────────────────────────────────────────
 
-_TEXT_TOOL_BACKENDS = {
-    "kimi", "kimi_thinking", "kimi_search",
-    "cfai_qwen_coder", "cf_mistral",
-    "scnet_qwen30b", "scnet_qwen235b", "scnet_ds_flash", "scnet_ds_pro",
-    "scnet_large_ds_flash", "scnet_large_ds_pro",
-    "mimo_web", "mimo_web_think", "mimo_web_flash",
-    "longcat_web", "longcat_web_think",
-}
-
-_TEXT_TOOL_SYSTEM_PROMPT = (
-    'When asked to use a tool, output ONLY a JSON object with "name" and "arguments" fields. '
-    'Example: {"name": "tool_name", "arguments": {"param": "value"}}. '
-    'Do NOT output any other text before or after the JSON.'
+from text_tool_extractor import (
+    TEXT_TOOL_BACKENDS as _TEXT_TOOL_BACKENDS,
+    TEXT_TOOL_SYSTEM_PROMPT as _TEXT_TOOL_SYSTEM_PROMPT,
 )
 
 

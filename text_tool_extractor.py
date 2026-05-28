@@ -27,7 +27,17 @@ import uuid
 TEXT_TOOL_BACKENDS = {
     "kimi", "kimi_thinking", "kimi_search",
     "cfai_qwen_coder", "cf_mistral",
+    "scnet_qwen30b", "scnet_qwen235b", "scnet_ds_flash", "scnet_ds_pro",
+    "scnet_large_ds_flash", "scnet_large_ds_pro",
+    "mimo_web", "mimo_web_think", "mimo_web_flash",
+    "longcat_web", "longcat_web_think",
 }
+
+TEXT_TOOL_SYSTEM_PROMPT = (
+    'When asked to use a tool, output ONLY a JSON object with "name" and "arguments" fields. '
+    'Example: {"name": "tool_name", "arguments": {"param": "value"}}. '
+    'Do NOT output any other text before or after the JSON.'
+)
 
 
 def extract_tool_calls_from_text(content: str) -> tuple[str, list[dict] | None]:
