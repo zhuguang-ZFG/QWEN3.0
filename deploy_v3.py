@@ -139,26 +139,21 @@ def main():
     patch_out = stdout.read().decode("utf-8", errors="replace")
     print(f"  Patch output:\n{patch_out}")
 
-    # 4. Restart server
-    ssh.exec_command('pkill -9 -f "python3.10 server.py"')
-    time.sleep(3)
-    ssh.exec_command('fuser -k 8080/tcp 2>/dev/null')
-    time.sleep(2)
-    cmd = f"cd {REMOTE_DIR} && nohup /usr/local/bin/python3.10 server.py > /var/log/lima-server.log 2>&1 &"
-    ssh.exec_command(cmd)
-    time.sleep(5)
-    print("[4/5] Server restarted")
+    # 4. Restart via systemd (ExecStartPre kills port before start)
+    ssh.exec_command('systemctl restart lima-router')
+    time.sleep(8)
+    print("[4/5] Server restarted (systemd)")
 
     # 5. Verify
-    stdin, stdout, stderr = ssh.exec_command("ss -tlnp | grep 8080")
+    stdin, stdout, stderr = ssh.exec_command("fuser 8080/tcp 2>/dev/null")
     port = stdout.read().decode().strip()
     if port:
         print("[5/5] Server UP on 8080")
     else:
-        stdin, stdout, stderr = ssh.exec_command("tail -5 /var/log/lima-server.log")
+        stdin, stdout, stderr = ssh.exec_command("journalctl -u lima-router --no-pager -n 5 --output=cat 2>&1")
         log = stdout.read().decode("utf-8", errors="replace")
         print(f"[5/5] FAILED! Log:\n{log}")
-        print(f"\nRollback: cp {backup} {REMOTE_DIR}/server.py && restart")
+        print(f"\nRollback: cp {backup} {REMOTE_DIR}/server.py && systemctl restart lima-router")
         sftp.close()
         ssh.close()
         sys.exit(1)
