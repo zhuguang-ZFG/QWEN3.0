@@ -8,10 +8,7 @@ LM_URL = 'http://localhost:1234/v1/chat/completions'
 
 # -- Backend Registry --
 BACKENDS = {
-    'longcat_lite': {'url': 'https://api.longcat.chat/anthropic/v1/messages', 'key': os.environ.get('LONGCAT_API_KEY', ''), 'model': 'LongCat-Flash-Lite', 'fmt': 'anthropic', 'auth': 'bearer', 'caps': ['tool_calls']},
-    'longcat_chat': {'url': 'https://api.longcat.chat/anthropic/v1/messages', 'key': os.environ.get('LONGCAT_API_KEY', ''), 'model': 'LongCat-Flash-Chat', 'fmt': 'anthropic', 'auth': 'bearer', 'caps': ['tool_calls']},
-    'longcat_thinking': {'url': 'https://api.longcat.chat/anthropic/v1/messages', 'key': os.environ.get('LONGCAT_API_KEY', ''), 'model': 'LongCat-Flash-Thinking-2601', 'fmt': 'anthropic', 'auth': 'bearer', 'caps': ['tool_calls']},
-    'longcat_omni': {'url': 'https://api.longcat.chat/anthropic/v1/messages', 'key': os.environ.get('LONGCAT_API_KEY', ''), 'model': 'LongCat-Flash-Omni-2603', 'fmt': 'anthropic', 'auth': 'bearer', 'no_system': True},
+    # longcat_lite/chat/thinking/omni 已于 2026-05-29 下线
     'longcat': {'url': 'https://api.longcat.chat/anthropic/v1/messages', 'key': os.environ.get('LONGCAT_API_KEY', ''), 'model': 'LongCat-2.0-Preview', 'fmt': 'anthropic', 'auth': 'bearer', 'caps': ['tool_calls']},
     'longcat_web': {'url': 'http://localhost:4506/v1/chat/completions', 'key': 'local', 'model': 'longcat-web', 'fmt': 'openai', 'timeout': 60, 'force_stream_param': True, 'admission': 'code_floor_candidate', 'private_code_allowed': True},
     'longcat_web_think': {'url': 'http://localhost:4506/v1/chat/completions', 'key': 'local', 'model': 'longcat-web-think', 'fmt': 'openai', 'timeout': 120, 'force_stream_param': True},
