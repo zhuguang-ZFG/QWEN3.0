@@ -58,8 +58,9 @@ def warmup_all(backends: list[str] | None = None, max_workers: int = 3) -> dict:
                 name, latency, ok = future.result(timeout=WARMUP_TIMEOUT + 5)
                 results[name] = {"latency_ms": round(latency), "ok": ok}
                 _log.info("Warmup %s: %.0fms %s", name, latency, "OK" if ok else "FAIL")
-            except Exception:
+            except Exception as exc:
                 name = futures[future]
+                _log.debug("Warmup %s failed: %s", name, type(exc).__name__)
                 results[name] = {"latency_ms": 0, "ok": False}
 
     total_ms = (time.time() - t0) * 1000
