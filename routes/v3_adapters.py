@@ -38,7 +38,7 @@ def v3_predict(query):
             if pool:
                 return pool[0]
         else:
-            chat_only = ["deepseek_free", "zhipu_flash", "cf_llama70b",
+            chat_only = ["zhipu_flash", "cf_llama70b",
                          "groq_llama70b", "longcat_lite", "longcat_chat"]
             for b in chat_only:
                 if not health_tracker.is_cooled_down(b):
@@ -73,7 +73,7 @@ def v3_select(query, system_prompt, ide, messages):
             if pool:
                 return (pool[0], messages)
         else:
-            chat_only = ["deepseek_free", "zhipu_flash", "cf_llama70b",
+            chat_only = ["zhipu_flash", "cf_llama70b",
                          "groq_llama70b", "longcat_lite", "longcat_chat"]
             for b in chat_only:
                 if not health_tracker.is_cooled_down(b):
