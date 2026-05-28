@@ -33,7 +33,7 @@ def v3_predict(query):
         scenario = classify_scenario(query, [], request_type="")
         if scenario == "coding":
             # scnet_ds_flash has strong coding capability (non-streaming verified)
-            stream_stable = ["scnet_ds_flash", "scnet_qwen235b", "longcat_chat",
+            stream_stable = ["longcat_chat", "scnet_ds_flash", "scnet_qwen235b",
                              "groq_gptoss", "github_gpt4o", "mistral_small"]
             for b in stream_stable:
                 if not health_tracker.is_cooled_down(b):

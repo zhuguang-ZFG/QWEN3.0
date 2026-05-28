@@ -100,7 +100,7 @@ async def stream_response(
     import routing_classifier
     scenario = routing_classifier.classify_scenario(query, messages, request_type="chat")
 
-    if scenario == "coding" and not use_thinking:
+    if scenario == "coding":
         result = await asyncio.to_thread(
             v3_route, query, messages,
             system_prompt=sys_prompt_preview, ide=ide_source, max_tokens=4096,
