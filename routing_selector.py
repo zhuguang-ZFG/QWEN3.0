@@ -30,6 +30,10 @@ _STATIC_LATENCY_ESTIMATE = {
     "mistral_large": 1500,
     "longcat_chat": 3000,
     "longcat_lite": 2000,
+    "scnet_qwen30b": 1200,
+    "scnet_qwen235b": 2000,
+    "scnet_ds_flash": 1000,
+    "scnet_ds_pro": 2500,
 }
 
 
@@ -44,9 +48,6 @@ def _has_valid_key(name: str) -> bool:
     if env_var and not os.environ.get(env_var.lstrip("$"), ""):
         return False
     return True
-
-
-import os
 
 
 def select(request_type: str, health_map: dict,
@@ -118,7 +119,7 @@ def select(request_type: str, health_map: dict,
 
         result.sort(key=lambda b: -(
             scores.get(b, 50) * budget_manager.get_budget_priority(b)
-            + random.uniform(0, 8)
+            + random.uniform(0, 3)
         ))
 
     result = [b for b in result if not re.health_tracker.is_cooled_down(b)]

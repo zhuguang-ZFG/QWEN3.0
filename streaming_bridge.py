@@ -14,6 +14,25 @@ _log = logging.getLogger(__name__)
 CallStreamFn = Callable[[str, list, int, str], Iterator[str]]
 CallApiFn = Callable[[str, list, int, str], str]
 
+# Static latency estimates for adaptive first-chunk timeout
+_STATIC_LATENCY_ESTIMATE: dict[str, float] = {
+    "cerebras_llama8b": 800, "cerebras_gptoss": 1200, "cerebras_qwen235b": 1500,
+    "groq_gptoss_20b": 900, "groq_gptoss": 1100, "groq_llama8b": 700,
+    "groq_llama70b": 1200, "groq_llama4": 1000, "groq_qwen32b": 1100,
+    "github_gpt4o_mini": 1000, "github_gpt4o": 1500,
+    "mistral_small": 1000, "mistral_large": 1500,
+    "longcat_chat": 3000, "longcat_lite": 2000,
+    "scnet_qwen30b": 1200, "scnet_qwen235b": 2000,
+    "scnet_ds_flash": 1000, "scnet_ds_pro": 2500,
+}
+
+
+def _adaptive_timeout(backend: str, default: float = 3.0) -> float:
+    est = _STATIC_LATENCY_ESTIMATE.get(backend)
+    if est:
+        return max(default, est / 1000 + 1.5)
+    return default
+
 
 def drain_queue(q: queue_mod.Queue) -> None:
     while not q.empty():
@@ -77,6 +96,7 @@ async def bridge_stream(
     first_chunk_timeout: float = 3.0,
 ) -> AsyncIterator[str]:
     """Bridge a blocking stream iterator into async yields with sync fallback."""
+    timeout = _adaptive_timeout(backend, first_chunk_timeout)
     q: queue_mod.Queue = queue_mod.Queue()
     cancel = threading.Event()
     thread = start_sync_stream_worker(
@@ -92,7 +112,7 @@ async def bridge_stream(
     first = False
     start = time.time()
     while True:
-        remaining = first_chunk_timeout - (time.time() - start)
+        remaining = timeout - (time.time() - start)
         if remaining <= 0:
             break
         try:
