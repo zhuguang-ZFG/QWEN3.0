@@ -97,30 +97,11 @@ async def stream_response(
         return
 
     streamed_any = False
-
-    # For coding prompts, use non-streaming routing (verified clean response)
-    import routing_classifier
-    scenario = routing_classifier.classify_scenario(query, messages, request_type="chat")
-
-    if scenario == "coding":
-        result = await asyncio.to_thread(
-            v3_route, query, messages,
-            system_prompt=sys_prompt_preview, ide=ide_source, max_tokens=4096,
-        )
-        content = result.get("answer", "") if isinstance(result, dict) else str(result)
-        from response_cleaner import clean_response
-        content = clean_response(content, "") or content
-        if not content or not content.strip():
-            content = (last_resort(messages) if last_resort else "") or FALLBACK_MSG
-        for sentence in _split_sentences(content):
-            yield build_stream_chunk(chat_id, sentence)
-            await asyncio.sleep(0.02)
-        yield build_stream_chunk(chat_id, "", finish=True)
-        yield "data: [DONE]\n\n"
-        return
+    last_backend = "unknown"
 
     async for _backend, chunk in speculative_stream_chunks(query, messages, 4096, ide_source):
         streamed_any = True
+        last_backend = _backend
         from response_cleaner import clean_response
         chunk = clean_response(chunk, _backend) or chunk
         yield build_stream_chunk(chat_id, chunk)
