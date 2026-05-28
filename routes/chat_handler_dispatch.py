@@ -247,6 +247,8 @@ async def finalize_success_response(
     record_request: Callable[..., None],
 ) -> JSONResponse:
     content = result.get("answer", "")
+    from response_cleaner import clean_response
+    content = clean_response(content, result.get("backend", "")) or content
     backend = result.get("backend", "unknown")
     total_ms = result.get("total_ms", 0)
     intent_name = intent.get("intent", "unknown")

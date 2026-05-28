@@ -30,16 +30,33 @@ def get_admin_token() -> str:
 
 
 async def require_admin(authorization: str = "") -> None:
-    from access_guard import constant_time_equals, extract_bearer_token
-    from fastapi import Header
+    import logging as _log
+    from access_guard import (
+        configured_api_keys,
+        constant_time_equals,
+        extract_bearer_token,
+    )
 
-    del Header
-    token_expected = get_admin_token()
-    if not token_expected:
-        raise HTTPException(503, "LIMA_ADMIN_TOKEN not configured")
     presented = extract_bearer_token(authorization)
-    if not presented or not constant_time_equals(presented, token_expected):
+    if not presented:
+        _log.warning("require_admin: no token presented")
         raise HTTPException(401, "Unauthorized")
+
+    # Accept admin token
+    admin_token = get_admin_token()
+    if admin_token and constant_time_equals(presented, admin_token):
+        _log.info("require_admin: admin token accepted")
+        return
+
+    # Accept any configured private API key (enables LiMa Code single-key auth)
+    api_keys = configured_api_keys()
+    _log.info("require_admin: api_keys=%s, presented=%s...", list(api_keys)[:1], presented[:10])
+    if api_keys and any(constant_time_equals(presented, k) for k in api_keys):
+        _log.info("require_admin: API key accepted")
+        return
+
+    _log.warning("require_admin: token not matched")
+    raise HTTPException(401, "Unauthorized")
 
 
 def task_envelope(task: dict) -> dict:

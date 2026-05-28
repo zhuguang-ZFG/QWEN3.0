@@ -58,7 +58,6 @@ async def stream_response(
         thinking_result = await thinking_route(query, 4096, ide_source)
         if thinking_result:
             content = thinking_result.get("answer", "")
-            content = f"<think>\n{content}\n</think>"
         else:
             if use_orchestration:
                 result = await asyncio.to_thread(orchestrate, query)
@@ -72,6 +71,8 @@ async def stream_response(
                     max_tokens=4096,
                 )
             content = result.get("answer", "") if isinstance(result, dict) else str(result)
+        from response_cleaner import clean_response
+        content = clean_response(content, "") or content
         if not content or not content.strip():
             content = (last_resort(messages) if last_resort else "") or "系统维护中，请稍后重试。"
         for sentence in _split_sentences(content):
@@ -96,6 +97,8 @@ async def stream_response(
     streamed_any = False
     async for _backend, chunk in speculative_stream_chunks(query, messages, 4096, ide_source):
         streamed_any = True
+        from response_cleaner import clean_response
+        chunk = clean_response(chunk, _backend) or chunk
         yield build_stream_chunk(chat_id, chunk)
 
     if not streamed_any:
@@ -114,6 +117,8 @@ async def stream_response(
             content = answer if answer else ""
         except Exception:
             content = ""
+        from response_cleaner import clean_response
+        content = clean_response(content, "") or content
         if not content or content.startswith("[ERR]"):
             content = (last_resort(messages) if last_resort else "") or "系统维护中，请稍后重试。"
         for sentence in _split_sentences(content):
