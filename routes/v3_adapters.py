@@ -32,9 +32,9 @@ def v3_predict(query):
         from routing_engine import classify_scenario
         scenario = classify_scenario(query, [], request_type="")
         if scenario == "coding":
-            # Prefer stream-stable backends for speculative streaming
-            stream_stable = ["longcat_chat", "scnet_qwen235b", "groq_gptoss",
-                             "cerebras_gptoss", "github_gpt4o", "mistral_small"]
+            # scnet_ds_flash has strong coding capability (non-streaming verified)
+            stream_stable = ["scnet_ds_flash", "scnet_qwen235b", "longcat_chat",
+                             "groq_gptoss", "github_gpt4o", "mistral_small"]
             for b in stream_stable:
                 if not health_tracker.is_cooled_down(b):
                     return b
