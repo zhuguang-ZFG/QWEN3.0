@@ -84,7 +84,7 @@ BACKENDS = {
     'baidu_ernie': {'url': 'https://qianfan.baidubce.com/v2/chat/completions', 'key': os.environ.get('BAIDU_API_KEY', ''), 'model': 'ernie-3.5-8k', 'fmt': 'openai', 'auth': 'bearer', 'timeout': 10},
     'baidu_speed': {'url': 'https://qianfan.baidubce.com/v2/chat/completions', 'key': os.environ.get('BAIDU_API_KEY', ''), 'model': 'ernie-speed-8k', 'fmt': 'openai', 'auth': 'bearer', 'timeout': 8},
     'volcengine_doubao': {'url': 'https://ark.cn-beijing.volces.com/api/v3/chat/completions', 'key': os.environ.get('VOLCENGINE_API_KEY', ''), 'model': 'doubao-1-5-pro-256k', 'fmt': 'openai', 'timeout': 15},
-    'aliyun_qwen3': {'url': 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', 'key': os.environ.get('ALIYUN_API_KEY', ''), 'model': 'qwen3-8b', 'fmt': 'openai', 'timeout': 10},
+    'aliyun_qwen3': {'url': 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', 'key': os.environ.get('ALIYUN_API_KEY', ''), 'model': 'qwen3-8b', 'fmt': 'openai', 'timeout': 10, 'force_stream_param': True},
     'aliyun_coder': {'url': 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', 'key': os.environ.get('ALIYUN_API_KEY', ''), 'model': 'qwen-3-coder-plus', 'fmt': 'openai', 'timeout': 15},
     'tencent_hunyuan': {'url': 'https://api.hunyuan.cloud.tencent.com/v1/chat/completions', 'key': os.environ.get('TENCENT_API_KEY', ''), 'model': 'hunyuan-lite', 'fmt': 'openai', 'timeout': 10},
     'chat_ubi': {'url': 'https://ch.at/v1/chat/completions', 'key': 'none', 'model': 'gpt-3', 'fmt': 'openai', 'timeout': 20},
