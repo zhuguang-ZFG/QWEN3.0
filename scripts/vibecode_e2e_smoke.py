@@ -105,25 +105,39 @@ def _execute_tool(tool_name: str, args: dict) -> str:
 
 
 async def call_lima_with_tools(messages: list[dict], max_rounds: int = 5) -> dict:
-    """Call LiMa API with tools, handling tool-use loop."""
+    """Call LiMa API via Anthropic endpoint (verified tool-calling path)."""
     import httpx
 
     headers = {
         "Authorization": f"Bearer {LIMA_API_KEY}",
         "Content-Type": "application/json",
+        "anthropic-version": "2023-06-01",
     }
+
+    # Convert messages and tools to Anthropic format
+    ant_messages = []
+    for m in messages:
+        ant_messages.append({"role": m["role"], "content": m["content"]})
+
+    ant_tools = []
+    for t in TOOLS:
+        fn = t["function"]
+        ant_tools.append({
+            "name": fn["name"],
+            "description": fn.get("description", ""),
+            "input_schema": fn.get("parameters", {"type": "object", "properties": {}}),
+        })
 
     for round_num in range(max_rounds):
         body = {
             "model": LIMA_MODEL,
-            "messages": messages,
-            "tools": TOOLS,
+            "messages": ant_messages,
+            "tools": ant_tools,
             "max_tokens": 2048,
-            "stream": False,
         }
         async with httpx.AsyncClient(timeout=120) as client:
             resp = await client.post(
-                f"{LIMA_BASE}/v1/chat/completions",
+                f"{LIMA_BASE}/v1/messages",
                 headers=headers, json=body,
             )
 
@@ -131,36 +145,40 @@ async def call_lima_with_tools(messages: list[dict], max_rounds: int = 5) -> dic
             return {"ok": False, "error": f"HTTP {resp.status_code}: {resp.text[:300]}", "rounds": round_num}
 
         data = resp.json()
-        choice = data["choices"][0]
-        msg = choice["message"]
-        content = msg.get("content", "") or ""
-        tool_calls = msg.get("tool_calls", [])
+        backend = data.get("model", "?")
+        content_blocks = data.get("content", [])
+        stop_reason = data.get("stop_reason", "?")
 
-        # No tool calls — final response
-        if not tool_calls:
-            return {"ok": True, "content": content, "backend": data.get("model", "?"), "rounds": round_num + 1}
+        # Separate text and tool_use blocks
+        text_parts = [b["text"] for b in content_blocks if b.get("type") == "text"]
+        tool_blocks = [b for b in content_blocks if b.get("type") == "tool_use"]
+
+        if not tool_blocks:
+            return {
+                "ok": True,
+                "content": "\n".join(text_parts),
+                "backend": backend,
+                "rounds": round_num + 1,
+            }
+
+        # Build assistant message with tool_use blocks
+        ant_messages.append({"role": "assistant", "content": content_blocks})
 
         # Execute tool calls
-        assistant_msg = {"role": "assistant", "content": content}
-        if tool_calls:
-            assistant_msg["tool_calls"] = tool_calls
-        messages.append(assistant_msg)
-
-        for tc in tool_calls:
-            fn = tc["function"]
-            fn_name = fn["name"]
-            try:
-                fn_args = json.loads(fn["arguments"])
-            except (json.JSONDecodeError, TypeError):
-                fn_args = {}
-            print(f"  [round {round_num+1}] tool_call: {fn_name}({json.dumps(fn_args, ensure_ascii=False)[:100]})")
-            result = _execute_tool(fn_name, fn_args)
-            messages.append({
-                "role": "tool",
-                "tool_call_id": tc["id"],
-                "name": fn_name,
+        tool_results = []
+        for tb in tool_blocks:
+            tool_name = tb["name"]
+            tool_args = tb.get("input", {})
+            tool_id = tb["id"]
+            print(f"  [round {round_num+1}] tool_call: {tool_name}({json.dumps(tool_args, ensure_ascii=False)[:100]})")
+            result = _execute_tool(tool_name, tool_args)
+            tool_results.append({
+                "type": "tool_result",
+                "tool_use_id": tool_id,
                 "content": result[:3000],
             })
+
+        ant_messages.append({"role": "user", "content": tool_results})
 
     return {"ok": False, "error": f"Exceeded max rounds ({max_rounds})", "rounds": max_rounds}
 
