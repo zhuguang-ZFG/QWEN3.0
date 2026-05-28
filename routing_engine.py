@@ -170,7 +170,9 @@ def route(query: str, messages: list[dict], *,
     if call_fn:
         complexity = speculative.classify_complexity(query, messages)
 
-        if complexity == "simple" and req_type in ("ide", "chat"):
+        if needs_tools:
+            final_backend, answer, _ = execute(backends, call_fn, messages_injected, max_tokens, tools=tools)
+        elif complexity == "simple" and req_type in ("ide", "chat"):
             affinity_backends = speculative.get_affinity_backends("simple")
             spec_candidates = [b for b in affinity_backends
                                if not health_tracker.is_cooled_down(b)
