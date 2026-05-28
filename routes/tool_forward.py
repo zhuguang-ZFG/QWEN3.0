@@ -33,12 +33,35 @@ ANTHROPIC_NATIVE_BACKENDS = [
     'longcat_lite', 'longcat_thinking', 'longcat_omni',
 ]
 
-TOOL_TIER1_BACKENDS = [
-    'groq_gptoss_20b', 'cerebras_gptoss', 'groq_gptoss',
-    'github_gpt4o_mini', 'github_gpt4o',
-    'mistral_small', 'mistral_devstral', 'mistral_large',
-    'scnet_large_ds_flash',
-]
+TOOL_TIER1_BACKENDS: list[str] = []
+
+
+def _refresh_tool_tiers() -> None:
+    """Dynamically discover tool-call-capable backends from registry."""
+    import importlib
+    try:
+        reg = importlib.import_module("backends_registry")
+    except ImportError:
+        return
+    tier1 = []
+    for name, cfg in getattr(reg, "BACKENDS", {}).items():
+        caps = set(cfg.get("caps", []))
+        if "tool_calls" not in caps:
+            continue
+        if cfg.get("fmt") == "anthropic":
+            if name not in ANTHROPIC_NATIVE_BACKENDS:
+                ANTHROPIC_NATIVE_BACKENDS.append(name)
+        elif cfg.get("fmt") == "openai":
+            tier1.append(name)
+    # Sort: prefer backends with keys, then by timeout
+    tier1.sort(key=lambda n: (
+        0 if reg.BACKENDS.get(n, {}).get("key", "") not in ("", "none", "YOUR_KEY_HERE") else 1,
+        reg.BACKENDS.get(n, {}).get("timeout", 30),
+    ))
+    TOOL_TIER1_BACKENDS[:] = tier1
+
+
+_refresh_tool_tiers()
 
 _record_request_fn = None
 _model_id = "lima-1.3"
