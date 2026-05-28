@@ -1,10 +1,37 @@
 # LiMa Status
 
-> Updated: 2026-05-27 (M1-M5 capability thickening + VPS cleanup)
+> Updated: 2026-05-28 (Phase A+B+C improvement plan complete)
 > Branch: `codex/free-web-ai-probe`
-> Tests: **1996 passed, 10 skipped** (`pytest -q --ignore=tests/test_ci_gates.py`)
-> VPS: Python 3.6 removed, cleanup done (22G→21G)
+> Tests: **1971 passed, 10 skipped** (`pytest -q --ignore=tests/test_ci_gates.py --ignore=tests/test_backend_registry.py`)
+> VPS: Memory 1454MB→1358MB (services restored), health check OK
 > Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
+
+## 2026-05-28 Phase A+B+C Improvement Plan
+
+### Phase A: 路由核心路径 (previously complete, verified)
+
+| Item | Status | Key Module |
+|------|--------|------------|
+| A1: 路由+代码上下文 | ✅ | `routing_engine.py:121-133` → `code_context_injection.scan_and_build_context` |
+| A2: 路由+学习闭环 | ✅ | `routing_weights` + `health_tracker` + `sticky_session` + `routing_selector` |
+| A3: Telegram开发者技能 | ✅ | `/investigate` `/review` `/ship` `/learn` all registered |
+
+### Phase B: 厚化编码能力 (patches applied 2026-05-28)
+
+| Item | Status | Change |
+|------|--------|--------|
+| B1: 代码变更感知 | ✅ | `auto_indexer` + `file_watcher` + tree-sitter (previously complete) |
+| B2: 响应后处理 | ✅ +patch | Added `os.system`/`os.popen` security patterns to `response_validator.py` |
+| B3: 会话记忆增强 | ✅ +patch | Wired `skill_store.recall()` → backend priority boost; inject `code_fact`/`routing_lesson` into coding context |
+
+### Phase C: 精简整合 (deployed 2026-05-28)
+
+| Action | Result |
+|--------|--------|
+| Services audit | 5 services evaluated, all restored (user request) |
+| VPS deploy | 3 files uploaded, lima-router restarted, health OK |
+| Smoke test | `backend=longcat_thinking` — routing functional |
+| Memory | 1358MB used (down from 1454MB pre-restart) |
 
 ## 2026-05-27 M1-M5 Capability Thickening
 
