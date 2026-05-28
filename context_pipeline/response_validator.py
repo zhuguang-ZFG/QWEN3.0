@@ -18,8 +18,10 @@ _CODE_BLOCK_RE = re.compile(r"```(\w+)?\n(.*?)```", re.DOTALL)
 
 _SECURITY_PATTERNS = [
     (re.compile(r"(?:password|secret|api_key|token)\s*=\s*['\"][^'\"]{8,}"), "hardcoded_secret"),
-    (re.compile(r"eval\(|exec\("), "code_injection"),
-    (re.compile(r"shell\s*=\s*True"), "command_injection"),
+    (re.compile(r"\beval\s*\(|\bexec\s*\("), "code_injection"),
+    (re.compile(r"\bos\.system\s*\("), "shell_injection_os"),
+    (re.compile(r"\bos\.popen\s*\("), "shell_injection_os"),
+    (re.compile(r"\b(?:subprocess\.(?:call|run|Popen)|os\.system)\(.*shell\s*=\s*True"), "command_injection"),
     (re.compile(r"verify\s*=\s*False"), "ssl_bypass"),
     (re.compile(r"pickle\.loads|yaml\.load\((?!.*Loader)"), "unsafe_deserialization"),
     (re.compile(r"subprocess\.call\(.*shell\s*=\s*True"), "shell_injection"),

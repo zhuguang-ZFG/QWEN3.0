@@ -52,7 +52,7 @@ def _has_valid_key(name: str) -> bool:
 
 def select(request_type: str, health_map: dict,
            sticky_key: str = None, scenario: str = "",
-           needs_tools: bool = False) -> list[str]:
+           needs_tools: bool = False, recalled_backend: str = "") -> list[str]:
     """从对应池选健康后端，按健康评分排序，过滤预算耗尽，sticky 优先"""
     import routing_engine as re
     import backends_registry as reg
@@ -166,6 +166,12 @@ def select(request_type: str, health_map: dict,
                     pinned, request_type,
                     re.health_tracker.get_backend_state(pinned))):
             result = _prioritize(pinned, result)
+    elif recalled_backend and recalled_backend in result:
+        if (health_map.get(recalled_backend, "healthy") != "dead"
+                and route_scorer.is_selectable(
+                    recalled_backend, request_type,
+                    re.health_tracker.get_backend_state(recalled_backend))):
+            result = _prioritize(recalled_backend, result)
 
     return result[:MAX_FALLBACKS]
 

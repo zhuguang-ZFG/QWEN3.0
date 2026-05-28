@@ -106,9 +106,12 @@ def route(query: str, messages: list[dict], *,
     scenario = classify_scenario(query, messages,
                                  ide_source=ide_source, request_type=req_type)
 
+    _recalled_backend = ""
     try:
         from context_pipeline.skill_store import get_skill_store
-        get_skill_store().recall(messages, scenario)
+        recalled = get_skill_store().recall(messages, scenario)
+        if recalled:
+            _recalled_backend = recalled.backend
     except ImportError:
         pass
 
@@ -128,6 +131,20 @@ def route(query: str, messages: list[dict], *,
         except Exception as e:
             import logging as _logging
             _logging.debug("code_context_injection failed: %s", e)
+
+        try:
+            from session_memory.store_promote import query_by_type
+            _memory_parts: list[str] = []
+            for _mt in ("code_fact", "routing_lesson"):
+                for _mem in query_by_type(_mt, limit=3):
+                    _memory_parts.append(f"[{_mt}] {_mem.summary}")
+            if _memory_parts:
+                _memory_ctx = "Past coding decisions:\n" + "\n".join(_memory_parts)
+                _mem_msg = {"role": "system", "content": _memory_ctx}
+                _insert_pos = 2 if messages and messages[0].get("role") == "system" else 1
+                messages.insert(_insert_pos, _mem_msg)
+        except Exception:
+            pass
 
     try:
         from context_pipeline.complexity import assess_complexity
@@ -159,7 +176,7 @@ def route(query: str, messages: list[dict], *,
 
     hmap = health_tracker.get_health_map()
     backends = select(req_type, hmap, sticky_key=sticky_key, scenario=scenario,
-                      needs_tools=needs_tools)
+                      needs_tools=needs_tools, recalled_backend=_recalled_backend)
 
     messages_injected = inject_skills(
         messages, backend=backends[0] if backends else "",
