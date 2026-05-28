@@ -31,6 +31,8 @@ BACKEND_CONTEXT_LIMITS: dict[str, int] = {
     "scnet_qwen235b": 32000,
     "scnet_ds_flash": 64000,
     "scnet_ds_pro": 64000,
+    "scnet_large_ds_flash": 64000,
+    "scnet_large_ds_pro": 64000,
     "groq_llama70b": 128000,
     "cerebras_gptoss": 128000,
 }
