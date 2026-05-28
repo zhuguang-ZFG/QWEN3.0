@@ -28,9 +28,10 @@ _PLAN_SIGNALS = [
 _THINKING_PROMPT = (
     "Before writing code, think step by step:\n"
     "1. Understand the goal and constraints\n"
-    "2. Identify affected files and dependencies\n"
+    "2. Identify ALL affected files and dependencies\n"
     "3. Choose the simplest approach that works\n"
-    "4. Consider edge cases and error handling\n\n"
+    "4. Consider edge cases and error handling\n"
+    "5. Edit ALL affected files in ONE response (parallel edits are faster)\n\n"
     "Then implement with clear, tested code."
 )
 
