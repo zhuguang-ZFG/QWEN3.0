@@ -67,7 +67,7 @@ POOLS = {
                "cfai_llama70b", "cfai_llama4",
                "or_gptoss_120b", "github_codestral", "mistral_large",
                "mistral_devstral", "mistral_pixtral", "cf_kimi_k26",
-               "scnet_large_ds_flash", "scnet_large_ds_pro",
+               "scnet_large_ds_flash",
                "kimi", "kimi_thinking", "kimi_search"],
 }
 

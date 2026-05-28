@@ -70,8 +70,11 @@ def execute(backends: list[str],
                         if answer and len(answer.strip()) > 5:
                             re.health_tracker.record_success(backend, (time.time() - t0) * 1000)
                             return backend, answer, errors
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        logger.warning(
+                            "[EXECUTE] %s non-streaming fallback also failed: %s",
+                            backend, type(exc).__name__,
+                        )
             except Exception as e:
                 re.health_tracker.record_failure(backend, error_code=extract_error_code(e))
                 errors += 1
