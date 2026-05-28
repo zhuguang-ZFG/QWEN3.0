@@ -31,6 +31,7 @@ def execute(backends: list[str],
             continue
         try:
             t_backend = time.time()
+            latency_ms = 0.0
             if tools:
                 answer = call_fn(backend, messages, max_tokens, tools=tools)
             else:

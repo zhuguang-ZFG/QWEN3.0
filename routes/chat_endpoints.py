@@ -5,7 +5,9 @@ owns HTTP parsing, rate limiting, vision short-circuiting, and protocol wrapping
 """
 from __future__ import annotations
 
+import json
 import time
+import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, Request
@@ -120,6 +122,21 @@ async def chat_completions(request: Request):
     chat_req = ChatRequest(**body)
     if body.get("thinking", False):
         chat_req.thinking = True
+
+    # Route tool requests through the dedicated tool forwarding pipeline
+    # (GPT-4o/GitHub → real tool calls, unlike open-source models)
+    if body.get("tools") and body.get("stream"):
+        return StreamingResponse(
+            _call("anthropic_native_stream", _openai_to_anthropic_tool_body(body)),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
+    if body.get("tools"):
+        result = await _maybe_await(
+            _call("anthropic_native_forward", _openai_to_anthropic_tool_body(body))
+        )
+        return JSONResponse(_convert_anthropic_tool_response_to_openai(result, body))
+
     return await _dep("handle_chat")(
         chat_req,
         fmt="openai",
@@ -195,3 +212,60 @@ async def anthropic_messages(req: Request):
         sys_prompt_preview=parsed.sys_prompt_preview,
         request_headers=dict(req.headers),
     )
+
+
+# ── OpenAI ↔ Anthropic tool format conversion ─────────────────────────────────
+
+def _openai_to_anthropic_tool_body(body: dict) -> dict:
+    """Convert OpenAI-format tool request to Anthropic-format for tool_forward pipeline."""
+    tools = []
+    for t in body.get("tools", []):
+        fn = t.get("function", {})
+        tools.append({
+            "name": fn.get("name", ""),
+            "description": fn.get("description", ""),
+            "input_schema": fn.get("parameters", {"type": "object", "properties": {}}),
+        })
+    return {
+        "model": body.get("model", "lima-1.3"),
+        "messages": body.get("messages", []),
+        "tools": tools,
+        "max_tokens": body.get("max_tokens", 4096),
+        "system": body.get("system", ""),
+    }
+
+
+def _convert_anthropic_tool_response_to_openai(result: dict, original_body: dict) -> dict:
+    """Convert Anthropic tool response back to OpenAI format."""
+    import uuid
+    content_parts = result.get("content", [])
+    text_parts = [b["text"] for b in content_parts if b.get("type") == "text"]
+    tool_parts = [b for b in content_parts if b.get("type") == "tool_use"]
+
+    openai_tool_calls = []
+    for tc in tool_parts:
+        openai_tool_calls.append({
+            "id": tc.get("id", f"call_{uuid.uuid4().hex[:24]}"),
+            "type": "function",
+            "function": {
+                "name": tc.get("name", ""),
+                "arguments": json.dumps(tc.get("input", {})),
+            },
+        })
+
+    return {
+        "id": f"chatcmpl-{uuid.uuid4().hex[:12]}",
+        "object": "chat.completion",
+        "created": int(time.time()),
+        "model": original_body.get("model", "lima-1.3"),
+        "choices": [{
+            "index": 0,
+            "message": {
+                "role": "assistant",
+                "content": "\n".join(text_parts) if text_parts else None,
+                "tool_calls": openai_tool_calls if openai_tool_calls else None,
+            },
+            "finish_reason": "tool_calls" if openai_tool_calls else "stop",
+        }],
+        "usage": result.get("usage", {}),
+    }

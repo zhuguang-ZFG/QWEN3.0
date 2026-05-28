@@ -126,7 +126,7 @@ BACKENDS = {
     'deepinfra_qwen235b': {'url': 'https://api.deepinfra.com/v1/openai/chat/completions', 'key': os.environ.get('DEEPINFRA_API_KEY', ''), 'model': 'Qwen/Qwen3-235B-A22B-Instruct', 'fmt': 'openai', 'timeout': 30},
     'deepseek_free': {'url': 'http://127.0.0.1:8000/v1/chat/completions', 'key': 'none', 'model': 'deepseek-chat', 'fmt': 'openai', 'timeout': 60},
     # ── 本地 Ollama (RTX 5060 Ti 16GB, Cloudflare Tunnel 暴露) ──
-    'local_coder14b': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'qwen2.5-coder:14b', 'fmt': 'openai', 'timeout': 30, 'caps': ['tool_calls']},
+    'local_coder14b': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'qwen2.5-coder:14b', 'fmt': 'openai', 'timeout': 30},
     'local_reasoning': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'deepseek-r1:7b', 'fmt': 'openai', 'timeout': 45, 'caps': ['deep_reasoning']},
     'local_general': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'gemma3:12b', 'fmt': 'openai', 'timeout': 30},
     'local_fast': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'qwen2.5-coder:1.5b', 'fmt': 'openai', 'timeout': 10},

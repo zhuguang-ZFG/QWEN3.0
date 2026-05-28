@@ -77,6 +77,12 @@ def select(request_type: str, health_map: dict,
             for b in all_capable:
                 if b not in result:
                     result.append(b)
+        # Prioritize backends with native tool calling (GPT/Claude/Anthropic)
+        _NATIVE_TOOL_PREFER = {"github", "groq", "cerebras", "longcat", "mistral"}
+        result.sort(key=lambda b: (
+            0 if any(p in b for p in _NATIVE_TOOL_PREFER) else 1,
+            reg.BACKENDS.get(b, {}).get("timeout", 30),
+        ))
 
     result = [b for b in result if budget_manager.is_budget_available(b)]
 

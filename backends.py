@@ -89,11 +89,6 @@ def detect_caps(name: str, cfg: dict = None) -> list:
     if name in CODE_CAPABLE_BACKENDS or "coder" in name or "codestral" in name:
         if "code" not in caps:
             caps.append("code")
-    if name in ('or_deepseek_r1', 'or_qwen3_coder',
-                'opencode_stealth', 'fireworks_llama405b', 'deepinfra_llama4', 'deepinfra_qwen235b',
-                'local_coder14b'):
-        if "tool_calls" not in caps:
-            caps.append('tool_calls')
     if name in VISION_BACKENDS:
         if "vision" not in caps:
             caps.append('vision')
