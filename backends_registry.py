@@ -206,8 +206,8 @@ BACKENDS = {
     'scnet_large_ds_flash': {'url': 'http://localhost:4505/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-flash', 'fmt': 'openai', 'timeout': 60, 'admission': 'code_medium_candidate', 'private_code_allowed': True, 'caps': ['tool_calls']},
     'scnet_large_ds_pro': {'url': 'http://localhost:4505/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-pro', 'fmt': 'openai', 'timeout': 90, 'caps': ['tool_calls']},
     # ── ModelScope 免费 API (ms-key, 流式推荐) ──
-    'ms_deepseek_v4': {'url': 'https://api-inference.modelscope.cn/v1/chat/completions', 'key': os.environ.get('MODELSCOPE_API_KEY', ''), 'model': 'deepseek-ai/DeepSeek-V4-Flash', 'fmt': 'openai', 'timeout': 30, 'force_stream_param': True},
+    'ms_deepseek_v4': {'url': 'https://api-inference.modelscope.cn/v1/chat/completions', 'key': os.environ.get('MODELSCOPE_API_KEY', ''), 'model': 'deepseek-ai/DeepSeek-V4-Flash', 'fmt': 'openai', 'timeout': 30, 'force_stream_param': True, 'caps': ['tool_calls']},
     'ms_qwen35_27b': {'url': 'https://api-inference.modelscope.cn/v1/chat/completions', 'key': os.environ.get('MODELSCOPE_API_KEY', ''), 'model': 'Qwen/Qwen3.5-27B', 'fmt': 'openai', 'timeout': 30, 'force_stream_param': True, 'caps': ['tool_calls']},
     'ms_kimi_k25': {'url': 'https://api-inference.modelscope.cn/v1/chat/completions', 'key': os.environ.get('MODELSCOPE_API_KEY', ''), 'model': 'moonshotai/Kimi-K2.5', 'fmt': 'openai', 'timeout': 30, 'force_stream_param': True, 'caps': ['tool_calls']},
-    'ms_glm5': {'url': 'https://api-inference.modelscope.cn/v1/chat/completions', 'key': os.environ.get('MODELSCOPE_API_KEY', ''), 'model': 'ZhipuAI/GLM-5', 'fmt': 'openai', 'timeout': 30, 'force_stream_param': True},
+    'ms_glm5': {'url': 'https://api-inference.modelscope.cn/v1/chat/completions', 'key': os.environ.get('MODELSCOPE_API_KEY', ''), 'model': 'ZhipuAI/GLM-5', 'fmt': 'openai', 'timeout': 30, 'force_stream_param': True, 'caps': ['tool_calls']},
 }
