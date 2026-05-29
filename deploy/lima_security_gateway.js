@@ -10,13 +10,15 @@ const ALLOWED_PATHS = [
   '/telegram/webhook',
   '/agent/',
   '/mcp/',
+  '/fleet/',
 ];
 
-const ADMIN_PATHS = ['/agent/', '/mcp/'];
+const ADMIN_PATHS = ['/agent/', '/mcp/', '/fleet/'];
 
 const RATE_LIMITS = {
   '/v1/': { rpm: 60, burst: 10 },
   '/agent/': { rpm: 30, burst: 5 },
+  '/fleet/': { rpm: 60, burst: 10 },
   '/telegram/webhook': { rpm: 120, burst: 20 },
 };
 
