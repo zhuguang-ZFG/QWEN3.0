@@ -41,6 +41,18 @@ GFW_BACKENDS = frozenset({
     'sambanova_llama4', 'sambanova_ds_v3',
     'deepinfra_llama4', 'deepinfra_qwen235b',
     'ovh_llama70b', 'ovh_deepseek',
+    # SCNet reverse proxy requires browser User-Agent
+    'scnet_ds_flash', 'scnet_ds_pro', 'scnet_qwen235b', 'scnet_qwen30b',
+    'scnet_minimax', 'scnet_large_ds_flash', 'scnet_large_ds_pro',
+    'scnet_qwen235b_code', 'scnet_ds_pro_code',
+    # Reverse-engineered web proxies requiring browser User-Agent
+    'ms_kimi_k25', 'ms_kimi_k25_code',
+    'ddg_gpt4o_mini', 'ddg_gpt5_mini', 'ddg_claude_haiku_45',
+    'ddg_tinfoil_gptoss_120b', 'ddg_llama4', 'ddg_mistral',
+    'longcat', 'longcat_web', 'longcat_web_research', 'longcat_web_think',
+    'mimo_web', 'mimo_web_code', 'mimo_web_flash',
+    'mimo_web_think', 'mimo_web_think_code',
+    'stock_kimi_k2',
 })
 
 WEAK_BACKENDS = frozenset({'chat_ubi', 'pollinations', 'llm7'})

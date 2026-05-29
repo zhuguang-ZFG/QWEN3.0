@@ -31,7 +31,8 @@ POOLS = {
                    "mistral_large", "mistral_small",
                    "groq_llama70b", "cerebras_gptoss", "zhipu_flash", "deepseek_free",
                    "opencode_stealth", "fireworks_llama405b",
-                   "github_gpt4o", "github_codestral"],
+                   "github_gpt4o", "github_codestral",
+                   "ms_kimi_k25", "longcat"],
         "medium": ["cf_llama4", "cfai_llama4", "cf_gptoss_120b", "cf_qwen3_30b", "cf_glm47", "cf_deepseek_r1",
                    "cfai_deepseek_r1",
                    "cf_qwq", "cf_mistral", "cf_gemma4", "cf_nemotron",
@@ -56,7 +57,8 @@ POOLS = {
                    "cfai_llama70b", "cf_kimi_k26",
                    "groq_llama70b", "cerebras_gptoss", "zhipu_flash", "deepseek_free",
                    "opencode_stealth", "fireworks_llama405b",
-                   "github_gpt4o", "mistral_medium"],
+                   "github_gpt4o", "mistral_medium",
+                   "ms_kimi_k25", "longcat"],
         "medium": ["cf_llama4", "cfai_llama4", "cf_gptoss_120b", "cf_qwen3_30b", "cf_glm47", "cf_deepseek_r1",
                    "cfai_deepseek_r1",
                    "cf_qwq", "cf_mistral", "cf_gemma4", "cf_nemotron",
@@ -80,7 +82,9 @@ POOLS = {
         "strong": ["pollinations"],
     },
     "code": {
-        "strong": ["scnet_ds_flash", "scnet_qwen235b", "scnet_qwen30b",
+        "strong": ["ms_kimi_k25", "ms_kimi_k25_code",
+                   "longcat",
+                   "scnet_ds_flash", "scnet_qwen235b", "scnet_qwen30b",
                    "scnet_ds_pro", "github_gpt4o", "github_gpt4o_mini",
                    "groq_gptoss", "groq_gptoss_20b", "groq_llama8b",
                    "cerebras_gptoss", "cerebras_llama8b", "cerebras_qwen235b",
@@ -135,7 +139,7 @@ _IDE_FINGERPRINTS = {
     "copilot": ["GitHub Copilot", "Copilot"],
 }
 
-MAX_FALLBACKS = 8
+MAX_FALLBACKS = 12
 
 
 # ─── Layer 1: 请求分类器 ─────────────────────────────────────────────────────

@@ -11,7 +11,7 @@ import sticky_session
 
 import os
 
-MAX_FALLBACKS = 5
+MAX_FALLBACKS = 12
 
 # Static latency estimates (ms) for known fast backends
 _STATIC_LATENCY_ESTIMATE = {

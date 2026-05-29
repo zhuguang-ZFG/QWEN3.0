@@ -47,7 +47,8 @@ SIMPLE_SIGNALS = [
 POOLS = {
     "fast": ["scnet_qwen30b", "scnet_ds_flash", "scnet_qwen235b",
              "cerebras_gptoss", "groq_gptoss", "mistral_small",
-             "groq_gptoss_20b"],
+             "groq_gptoss_20b",
+             "ms_kimi_k25", "longcat"],
     "coder": ["scnet_ds_flash", "scnet_qwen235b", "scnet_qwen30b",
               "scnet_ds_pro", "github_gpt4o", "github_gpt4o_mini",
               "cf_qwen_coder", "cfai_qwen_coder", "cf_gptoss_120b",
@@ -59,7 +60,8 @@ POOLS = {
               "scnet_large_ds_flash",
               "kimi", "kimi_thinking", "kimi_search",
               "ddg_gpt4o_mini", "ddg_gpt5_mini",
-              "ddg_claude_haiku_45", "ddg_tinfoil_gptoss_120b"],
+              "ddg_claude_haiku_45", "ddg_tinfoil_gptoss_120b",
+              "ms_kimi_k25", "ms_kimi_k25_code", "longcat"],
     "strong": ["scnet_ds_flash", "scnet_qwen235b", "scnet_ds_pro",
                "scnet_qwen30b", "github_gpt4o", "github_gpt4o_mini",
                "cf_qwen_coder", "cfai_qwen_coder", "cf_gptoss_120b",
@@ -68,7 +70,8 @@ POOLS = {
                "or_gptoss_120b", "github_codestral", "mistral_large",
                "mistral_devstral", "mistral_pixtral", "cf_kimi_k26",
                "scnet_large_ds_flash",
-               "kimi", "kimi_thinking", "kimi_search"],
+               "kimi", "kimi_thinking", "kimi_search",
+               "ms_kimi_k25", "ms_kimi_k25_code", "longcat"],
 }
 
 _stats = defaultdict(int)
