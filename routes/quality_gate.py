@@ -89,7 +89,7 @@ def quality_check_typed(
     reasons: list[str] = []
     score = 1.0
 
-    if len(response_text) < 30 and complexity > 0.3:
+    if len(response_text) < 30 and complexity > 0.7:
         if not allows_short_direct_answer(query, response_text):
             reasons.append("too short for complexity")
             score -= 0.4

@@ -16,6 +16,31 @@ from http_response import _extract_answer, _extract_usage
 _log = logging.getLogger(__name__)
 
 
+def _extract_answer_from_sse(text: str) -> str:
+    """Extract answer content from SSE streaming response chunks."""
+    content_parts = []
+    reasoning_parts = []
+    for line in text.split("\n"):
+        if not line.startswith("data: "):
+            continue
+        data_str = line[6:].strip()
+        if data_str == "[DONE]":
+            break
+        try:
+            import json
+            chunk = json.loads(data_str)
+            choices = chunk.get("choices", [])
+            if choices:
+                delta = choices[0].get("delta", {})
+                if delta.get("content"):
+                    content_parts.append(delta["content"])
+                if delta.get("reasoning_content"):
+                    reasoning_parts.append(delta["reasoning_content"])
+        except (json.JSONDecodeError, KeyError, IndexError):
+            continue
+    return "".join(content_parts) or "".join(reasoning_parts)
+
+
 def _caller():
     import http_caller
 
@@ -142,7 +167,22 @@ def call_api(
         with hc._build_client(backend, timeout) as client:
             resp = client.post(cfg["url"], content=body, headers=headers)
             resp.raise_for_status()
-            payload = resp.json()
+            text = resp.text
+            try:
+                payload = json.loads(text)
+            except (json.JSONDecodeError, ValueError):
+                # SSE fallback: extract content from streaming chunks
+                content = _extract_answer_from_sse(text)
+                if content:
+                    hc.health_tracker.record_success(backend, (time.time() - started) * 1000)
+                    return content
+                hc.health_tracker.record_failure(
+                    backend, error_code=502, error_text="invalid JSON and no SSE content"
+                )
+                raise BackendError(
+                    f"{backend} returned unparseable response",
+                    status_code=502,
+                )
 
         answer = _extract_answer(payload, cfg["fmt"])
         if not (answer or "").strip():
