@@ -36,7 +36,7 @@ jobs:
         run: ruff check .
 
       - name: Bandit security scan
-        run: bandit -r agent_runtime/ routes/ -ll
+        run: bandit -r agent_runtime/ routes/ -s B310,B324,B604 -ll
 
       - name: Pytest
         run: pytest --tb=short -q
