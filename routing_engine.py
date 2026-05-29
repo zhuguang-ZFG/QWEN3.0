@@ -151,11 +151,12 @@ def route(query: str, messages: list[dict], *,
         except Exception:
             pass
 
+    _complexity_info = None
     try:
         from context_pipeline.complexity import assess_complexity
         raw_msgs = [{"role": m.get("role", ""), "content": m.get("content", "")} if isinstance(m, dict) else {"role": getattr(m, "role", ""), "content": getattr(m, "content", "")} for m in messages]
-        _complexity_score = assess_complexity(raw_msgs, ide=ide_source)
-    except ImportError:
+        _complexity_info = assess_complexity(raw_msgs, ide=ide_source)
+    except (ImportError, Exception):
         pass
 
     if scenario == "coding" and call_fn:
@@ -165,6 +166,16 @@ def route(query: str, messages: list[dict], *,
                 query, messages, call_fn, max_tokens)
             if orch_result.get("answer"):
                 ms = int((time.time() - t0) * 1000)
+                # Record feedback for code orchestrator results too
+                try:
+                    from routing_loop.feedback_bridge import on_request_complete
+                    on_request_complete(
+                        request_id=make_chat_id(), scenario=scenario,
+                        messages=messages, backend=orch_result["backend"],
+                        success=True, latency_ms=float(ms),
+                    )
+                except Exception:
+                    pass
                 return RouteResult(
                     backend=orch_result["backend"],
                     answer=orch_result["answer"],
@@ -181,7 +192,8 @@ def route(query: str, messages: list[dict], *,
 
     hmap = health_tracker.get_health_map()
     backends = select(req_type, hmap, sticky_key=sticky_key, scenario=scenario,
-                      needs_tools=needs_tools, recalled_backend=_recalled_backend)
+                      needs_tools=needs_tools, recalled_backend=_recalled_backend,
+                      complexity=_complexity_info)
 
     messages_injected = inject_skills(
         messages, backend=backends[0] if backends else "",
@@ -252,6 +264,12 @@ def route(query: str, messages: list[dict], *,
                         if retry_answer:
                             vr2 = validate_response(retry_answer, query)
                             if vr2.score > vr.score:
+                                # Penalize the original bad backend
+                                try:
+                                    health_tracker.record_failure(
+                                        final_backend, 200, "quality_retry")
+                                except Exception:
+                                    pass
                                 final_backend, answer = retry_backend, retry_answer
             except Exception:
                 pass
@@ -270,6 +288,22 @@ def route(query: str, messages: list[dict], *,
         scenario=scenario,
         ms=ms,
     )
+
+    # Unified feedback: record request in closed-loop system
+    try:
+        from routing_loop.feedback_bridge import on_request_complete
+        _success = bool(answer and len(answer) > 5)
+        on_request_complete(
+            request_id=make_chat_id(),
+            scenario=scenario,
+            messages=messages,
+            backend=final_backend,
+            success=_success,
+            latency_ms=float(ms),
+            fallback_used=bool(final_backend not in ("exhausted", "none") and backends and final_backend != backends[0]),
+        )
+    except Exception:
+        pass
 
     return RouteResult(
         backend=final_backend, answer=answer,
