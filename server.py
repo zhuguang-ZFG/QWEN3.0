@@ -36,6 +36,22 @@ app = FastAPI(title="LiMa", version="1.3",
               description="LiMa（力码）— 智能编程助手 API，OpenAI 兼容",
               lifespan=lifespan)
 
+# Sentry error tracking
+_sentry_dsn = os.environ.get("SENTRY_DSN", "")
+if _sentry_dsn:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.fastapi import FastApiIntegration
+        sentry_sdk.init(
+            dsn=_sentry_dsn,
+            send_default_pii=True,
+            enable_logs=True,
+            traces_sample_rate=0.1,
+            integrations=[FastApiIntegration()],
+        )
+    except ImportError:
+        pass
+
 app.add_middleware(BodySizeLimitMiddleware, max_body_size=MAX_BODY_SIZE)
 
 _stats, _stats_lock, _backend_enabled, _loaded_modules = create_runtime_state()
