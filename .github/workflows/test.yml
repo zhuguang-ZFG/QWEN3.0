@@ -39,4 +39,4 @@ jobs:
         run: bandit -r agent_runtime/ routes/ -s B310,B324,B604 -ll
 
       - name: Pytest
-        run: pytest --tb=short -q
+        run: python -m pytest --tb=short -q

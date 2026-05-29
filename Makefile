@@ -1,7 +1,7 @@
 .PHONY: test deploy docker-build docker-up docker-down smoke-test lint format
 
 test:
-	pytest --tb=short -q
+	python -m pytest --tb=short -q
 	ruff check .
 
 lint:
