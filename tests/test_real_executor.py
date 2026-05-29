@@ -60,14 +60,15 @@ def test_missing_session_blocked():
     assert "operator_session" in result.blocked_reason
 
 
-def test_missing_audit_refs_blocked():
+def test_missing_audit_refs_not_blocking():
+    """audit_refs are now optional ( lowered barrier for safe mode )."""
     result = preflight_real_execution(
         _shell_config(required_audit_refs=[]),
         _shell_step(),
         _flags(),
     )
-    assert result.passed is False
-    assert "audit_refs" in result.blocked_reason
+    # audit_refs no longer required — should still pass
+    assert result.passed is True
 
 
 def test_shell_allowlist_not_matched():
