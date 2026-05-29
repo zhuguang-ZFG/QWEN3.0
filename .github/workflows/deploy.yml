@@ -10,7 +10,7 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/lima-router
+  IMAGE_NAME: zhuguang-zfg/lima-router
 
 jobs:
   test:
