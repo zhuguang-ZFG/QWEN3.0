@@ -1,0 +1,133 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+    secrets: inherit
+
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image_tag: ${{ steps.meta.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -euo pipefail
+
+            IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.image_tag }}"
+            CONTAINER="lima"
+            PORT=8080
+
+            echo ">> Pulling $IMAGE"
+            docker pull "$IMAGE"
+
+            # Save current tag for rollback
+            PREV_TAG=$(docker inspect --format='{{.Config.Image}}' "$CONTAINER" 2>/dev/null || echo "")
+            echo "PREV_TAG=$PREV_TAG" > /tmp/lima_rollback.env
+
+            # Stop old container
+            docker stop "$CONTAINER" 2>/dev/null || true
+            docker rm "$CONTAINER" 2>/dev/null || true
+
+            # Start new container
+            docker run -d \
+              --name "$CONTAINER" \
+              --restart unless-stopped \
+              -p "$PORT:8080" \
+              --env-file /opt/lima/.env \
+              "$IMAGE"
+
+            echo ">> Waiting for health check..."
+            for i in $(seq 1 30); do
+              if curl -sf "http://127.0.0.1:$PORT/health" > /dev/null 2>&1; then
+                echo ">> Health OK after ${i}s"
+                exit 0
+              fi
+              sleep 2
+            done
+
+            echo ">> Health check FAILED — rolling back"
+            source /tmp/lima_rollback.env
+            docker stop "$CONTAINER" 2>/dev/null || true
+            docker rm "$CONTAINER" 2>/dev/null || true
+            if [ -n "$PREV_TAG" ]; then
+              docker run -d \
+                --name "$CONTAINER" \
+                --restart unless-stopped \
+                -p "$PORT:8080" \
+                --env-file /opt/lima/.env \
+                "$PREV_TAG"
+            fi
+            exit 1
+
+      - name: Notify Telegram (success)
+        if: success()
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d parse_mode=HTML \
+            -d text="<b>LiMa Deploy OK</b>%0ACommit: <code>${{ github.sha }}</code>%0ABy: ${{ github.actor }}"
+
+      - name: Notify Telegram (failure)
+        if: failure()
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d parse_mode=HTML \
+            -d text="<b>LiMa Deploy FAILED</b>%0ACommit: <code>${{ github.sha }}</code>%0ARolled back to previous image."

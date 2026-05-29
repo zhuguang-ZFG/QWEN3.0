@@ -1,4 +1,10 @@
-"""Real execution feature flags with env/config gates and audit pre-check."""
+"""Real execution feature flags with env/config gates and audit pre-check.
+
+Three execution modes via LIMA_EXEC_MODE:
+  dry  — all real execution disabled (default, safest)
+  safe — shell + workspace write enabled with allowlist + scope restrictions
+  full — all execution enabled (requires explicit opt-in)
+"""
 
 from __future__ import annotations
 
@@ -10,9 +16,26 @@ from pathlib import Path
 _log = logging.getLogger(__name__)
 
 
-SHELL_ALLOWLIST: frozenset[str] = frozenset({"pytest", "echo", "python", "git"})
+SHELL_ALLOWLIST: frozenset[str] = frozenset({
+    "pytest", "echo", "python", "git",
+    "ls", "cat", "grep", "find", "sed", "head", "tail",
+    "wc", "sort", "diff", "pip", "python3", "python3.10",
+    "mkdir", "cp", "mv", "touch", "chmod",
+    "curl", "wget", "jq", "env", "which",
+})
 NETWORK_DOMAIN_ALLOWLIST: frozenset[str] = frozenset()
 WORKSPACE_ALLOWLIST: frozenset[str] = frozenset()
+
+# Dangerous command patterns — always blocked even in full mode
+BLOCKED_COMMANDS: frozenset[str] = frozenset({
+    "rm", "rmdir", "dd", "mkfs", "format",
+    "shutdown", "reboot", "halt", "poweroff",
+    "kill", "killall", "pkill",
+    "sudo", "su", "passwd",
+    "nc", "ncat", "socat",
+})
+
+EXEC_MODES = frozenset({"dry", "safe", "full"})
 
 
 @dataclass
@@ -21,6 +44,7 @@ class ExecutionFeatureFlags:
     allow_network: bool = False
     allow_workspace_write: bool = False
     dry_run: bool = True
+    exec_mode: str = "dry"
     shell_allowlist: frozenset[str] = frozenset()
     network_domain_allowlist: frozenset[str] = frozenset()
     workspace_allowlist: frozenset[str] = frozenset()
@@ -31,14 +55,53 @@ class ExecutionFeatureFlags:
 
 
 def load_flags() -> ExecutionFeatureFlags:
+    raw_mode = os.environ.get("LIMA_EXEC_MODE", "").strip().lower()
+    exec_mode = raw_mode if raw_mode in EXEC_MODES else "dry"
+    mode_explicitly_set = raw_mode in EXEC_MODES
+
+    # Legacy env vars still override when exec_mode is not explicitly set
+    explicit_shell = os.environ.get("LIMA_ALLOW_SHELL", "") == "1"
+    explicit_network = os.environ.get("LIMA_ALLOW_NETWORK", "") == "1"
+    explicit_workspace = os.environ.get("LIMA_ALLOW_WORKSPACE_WRITE", "") == "1"
+    explicit_dry = os.environ.get("LIMA_DRY_RUN", "")
+
+    if exec_mode == "safe":
+        allow_shell = True
+        allow_network = False
+        allow_workspace_write = True
+        dry_run = False
+    elif exec_mode == "full":
+        allow_shell = True
+        allow_network = True
+        allow_workspace_write = True
+        dry_run = False
+    elif mode_explicitly_set:
+        # exec_mode="dry" explicitly set → always dry run
+        allow_shell = False
+        allow_network = False
+        allow_workspace_write = False
+        dry_run = True
+    else:
+        # Legacy path: LIMA_EXEC_MODE not set, honor LIMA_DRY_RUN + LIMA_ALLOW_*
+        allow_shell = explicit_shell
+        allow_network = explicit_network
+        allow_workspace_write = explicit_workspace
+        dry_run = explicit_dry != "0" if explicit_dry else True
+
+    workspace_root = os.environ.get("LIMA_WORKSPACE_ROOT", os.getcwd())
+
     return ExecutionFeatureFlags(
-        allow_shell=os.environ.get("LIMA_ALLOW_SHELL", "") == "1",
-        allow_network=os.environ.get("LIMA_ALLOW_NETWORK", "") == "1",
-        allow_workspace_write=os.environ.get("LIMA_ALLOW_WORKSPACE_WRITE", "") == "1",
-        dry_run=os.environ.get("LIMA_DRY_RUN", "1") != "0",
+        allow_shell=allow_shell,
+        allow_network=allow_network,
+        allow_workspace_write=allow_workspace_write,
+        dry_run=dry_run,
+        exec_mode=exec_mode,
         shell_allowlist=_parse_allowlist("LIMA_SHELL_ALLOWLIST", SHELL_ALLOWLIST),
         network_domain_allowlist=_parse_allowlist("LIMA_NETWORK_DOMAIN_ALLOWLIST"),
-        workspace_allowlist=_parse_allowlist("LIMA_WORKSPACE_ALLOWLIST"),
+        workspace_allowlist=_parse_allowlist(
+            "LIMA_WORKSPACE_ALLOWLIST",
+            frozenset({workspace_root}),
+        ),
     )
 
 
@@ -46,6 +109,15 @@ def is_shell_allowed(command: str, flags: ExecutionFeatureFlags) -> bool:
     if flags.dry_run or not flags.allow_shell:
         return False
     base = command.strip().split()[0] if command.strip() else ""
+    if not base:
+        return False
+    # Always block dangerous commands regardless of mode
+    if base in BLOCKED_COMMANDS:
+        return False
+    # Block sudo prefix patterns like "sudo rm ..."
+    stripped = command.strip()
+    if stripped.startswith("sudo ") or stripped.startswith("su "):
+        return False
     return base in flags.shell_allowlist
 
 

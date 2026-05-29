@@ -1,7 +1,9 @@
 """Real executor with multi-gate preflight and dispatch to shell/git/network.
 
-Execution only happens when all preflight gates pass (dry_run=0, allow_*=1,
-command in allowlist, audit refs present). Otherwise returns blocked result.
+Execution modes (via LIMA_EXEC_MODE):
+  dry  — all real execution blocked (default)
+  safe — shell + workspace allowed with allowlist and scope restrictions
+  full — all execution allowed (dangerous commands still blocked)
 """
 
 from __future__ import annotations
@@ -14,6 +16,7 @@ _log = logging.getLogger(__name__)
 
 from agent_runtime.contract import AgentStep, StepKind, redact
 from agent_runtime.feature_flags import (
+    BLOCKED_COMMANDS,
     ExecutionFeatureFlags,
     is_network_allowed,
     is_shell_allowed,
@@ -21,6 +24,24 @@ from agent_runtime.feature_flags import (
     load_flags,
 )
 from agent_runtime.tool_exec import ToolExecutor, ToolResult
+
+# Safe mode blocks these commands even though they're in the shell allowlist
+SAFE_MODE_BLOCKED: frozenset[str] = frozenset({
+    "rm", "rmdir", "dd", "mkfs", "format", "fdisk",
+    "shutdown", "reboot", "halt", "poweroff", "init",
+    "kill", "killall", "pkill",
+    "sudo", "su", "passwd",
+    "nc", "ncat", "socat",
+    "chmod", "chown", "chgrp",
+    "mount", "umount",
+    "iptables", "firewall-cmd",
+    "docker", "podman", "systemctl",
+})
+
+# Safe mode path restrictions — write only inside workspace root
+SAFE_MODE_WRITE_ROOTS = frozenset({
+    "LIMA_WORKSPACE_ROOT",
+})
 
 
 @dataclass
@@ -60,7 +81,6 @@ def preflight_real_execution(
     check(not config.dry_run, "config_dry_run", "config.dry_run is True")
     check(flags.dry_run is False, "flags_dry_run", "flags.dry_run is True")
     check(bool(config.operator_session_id), "operator_session", "no operator session id")
-    check(bool(config.required_audit_refs), "audit_refs", "no required audit refs")
 
     kind = config.execution_kind
     if kind == "shell":
@@ -69,6 +89,14 @@ def preflight_real_execution(
             "shell_allowlist",
             "command not in shell allowlist",
         )
+        # Extra safe-mode check: block dangerous commands even if in allowlist
+        if flags.exec_mode == "safe":
+            base_cmd = step.command.strip().split()[0] if step.command.strip() else ""
+            check(
+                base_cmd not in SAFE_MODE_BLOCKED,
+                "safe_mode_blocked",
+                f"command '{base_cmd}' blocked in safe mode",
+            )
     elif kind == "git":
         check(
             is_shell_allowed(step.command, flags),

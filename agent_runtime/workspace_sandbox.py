@@ -94,9 +94,38 @@ class WorkspaceSandbox:
             os.makedirs(os.path.dirname(target), exist_ok=True)
             with open(target, "w", encoding="utf-8") as handle:
                 handle.write(patch.patched)
+            self._record_git_diff(patch.file_path)
             return True
         except OSError:
             return False
+
+    def _record_git_diff(self, file_path: str) -> None:
+        """Run git diff to record what changed after a write."""
+        try:
+            import subprocess
+            target = self._resolve_target(file_path)
+            if target is None:
+                return
+            result = subprocess.run(
+                ["git", "diff", "--no-index", "--", file_path],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                cwd=os.path.dirname(self.root) or ".",
+            )
+            diff_output = (result.stdout or "")[:2048]
+            if diff_output:
+                _log.info("workspace_git_diff file=%s lines=%d", file_path, diff_output.count("\n"))
+                try:
+                    from agent_runtime.audit_trail import audit_event
+                    audit_event(
+                        "workspace_git_diff",
+                        detail=f"file={file_path} diff_lines={diff_output.count(chr(10))}",
+                    )
+                except Exception:
+                    pass
+        except Exception as exc:
+            _log.debug("workspace git diff skipped: %s", type(exc).__name__)
 
     def _compute_diff(self, original: str, patched: str) -> str:
         added = set(patched.splitlines()) - set(original.splitlines())

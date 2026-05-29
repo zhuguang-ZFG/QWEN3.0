@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import threading
 from dataclasses import dataclass
 from typing import Any, Callable
@@ -137,6 +138,17 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
     except ImportError as exc:
         logging.warning("[STARTUP] agent_tasks module not loaded: %s", exc)
         deps.loaded_modules["agent_tasks"] = False
+
+    try:
+        from routes.agent_execute import router as agent_execute_router
+        import routes.agent_execute as agent_execute_mod
+
+        agent_execute_mod.inject_state(admin_token=os.environ.get("LIMA_API_KEY", ""))
+        app.include_router(agent_execute_router)
+        deps.loaded_modules["agent_execute"] = True
+    except ImportError as exc:
+        logging.warning("[STARTUP] agent_execute module not loaded: %s", exc)
+        deps.loaded_modules["agent_execute"] = False
 
     try:
         from routes.eval_internal import router as eval_internal_router
