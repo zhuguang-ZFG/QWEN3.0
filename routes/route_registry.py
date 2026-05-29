@@ -170,6 +170,22 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
         deps.loaded_modules["agent_events"] = False
 
     try:
+        from routes.agent_memory import router as memory_router
+        app.include_router(memory_router)
+        deps.loaded_modules["agent_memory"] = True
+    except ImportError as exc:
+        logging.warning("[STARTUP] agent_memory module not loaded: %s", exc)
+        deps.loaded_modules["agent_memory"] = False
+
+    try:
+        from routes.agent_learn import router as learn_router
+        app.include_router(learn_router)
+        deps.loaded_modules["agent_learn"] = True
+    except ImportError as exc:
+        logging.warning("[STARTUP] agent_learn module not loaded: %s", exc)
+        deps.loaded_modules["agent_learn"] = False
+
+    try:
         from routes.eval_internal import router as eval_internal_router
 
         app.include_router(eval_internal_router)
