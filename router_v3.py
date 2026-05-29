@@ -82,7 +82,8 @@ POOLS = {
         "strong": ["pollinations"],
     },
     "code": {
-        "strong": ["ms_kimi_k25", "ms_kimi_k25_code",
+        "strong": ["mimo_web_code", "mimo_web_think_code", "mimo_web",
+                   "ms_kimi_k25", "ms_kimi_k25_code",
                    "longcat",
                    "scnet_ds_flash", "scnet_qwen235b", "scnet_qwen30b",
                    "scnet_ds_pro", "github_gpt4o", "github_gpt4o_mini",

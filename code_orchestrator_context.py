@@ -45,11 +45,13 @@ SIMPLE_SIGNALS = [
 ]
 
 POOLS = {
-    "fast": ["scnet_qwen30b", "scnet_ds_flash", "scnet_qwen235b",
+    "fast": ["mimo_web_code", "mimo_web", "ms_kimi_k25", "longcat",
+             "scnet_qwen30b", "scnet_ds_flash", "scnet_qwen235b",
              "cerebras_gptoss", "groq_gptoss", "mistral_small",
-             "groq_gptoss_20b",
-             "ms_kimi_k25", "longcat"],
-    "coder": ["scnet_ds_flash", "scnet_qwen235b", "scnet_qwen30b",
+             "groq_gptoss_20b"],
+    "coder": ["mimo_web_code", "mimo_web_think_code", "mimo_web",
+              "ms_kimi_k25", "ms_kimi_k25_code", "longcat",
+              "scnet_ds_flash", "scnet_qwen235b", "scnet_qwen30b",
               "scnet_ds_pro", "github_gpt4o", "github_gpt4o_mini",
               "cf_qwen_coder", "cfai_qwen_coder", "cf_gptoss_120b",
               "cf_deepseek_r1", "cf_qwen3_30b", "cfai_deepseek_r1",
