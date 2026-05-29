@@ -132,10 +132,27 @@ def select(request_type: str, health_map: dict,
         if static_latency and consec_fails == 0:
             scores[b] += max(0, (2000 - static_latency) / 100)
 
-        result.sort(key=lambda b: -(
-            scores.get(b, 50) * budget_manager.get_budget_priority(b)
-            + random.uniform(0, 3)
-        ))
+    # ML prediction boost — batch apply after per-backend scoring
+    try:
+        from routing_ml.routing_trainer import get_model, notify_request
+        from routing_ml.feature_extractor import extract_features
+        _ml_model = get_model()
+        if _ml_model and result:
+            _features = extract_features(
+                [], scenario=scenario, health_map=health_map,
+                top_backends=result[:5])
+            _topk = _ml_model.predict_topk(_features.features, k=min(5, len(result)))
+            for _ml_backend, _ml_score in _topk:
+                if _ml_backend in scores:
+                    scores[_ml_backend] *= (1.0 + _ml_score * 0.3)  # up to 30% boost
+            notify_request()
+    except ImportError:
+        pass
+
+    result.sort(key=lambda b: -(
+        scores.get(b, 50) * budget_manager.get_budget_priority(b)
+        + random.uniform(0, 3)
+    ))
 
     result = [b for b in result if not re.health_tracker.is_cooled_down(b)]
 
