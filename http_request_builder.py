@@ -17,10 +17,28 @@ GFW_PROXY_URL = os.environ.get("GFW_PROXY", "http://127.0.0.1:7897")
 GFW_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 
 
+def _needs_proxy(url: str) -> bool:
+    """Check if a URL should use the outbound proxy (skip local URLs)."""
+    local_hosts = ("127.0.0.1", "localhost", "0.0.0.0")
+    for h in local_hosts:
+        if h in url:
+            return False
+    return True
+
+
 def _build_client(backend: str, timeout: float) -> httpx.Client:
     if backend in GFW_BACKENDS:
+        import backends_registry as _reg
+        url = _reg.BACKENDS.get(backend, {}).get("url", "")
+        if _needs_proxy(url):
+            return httpx.Client(
+                proxy=GFW_PROXY_URL,
+                headers={"User-Agent": GFW_USER_AGENT},
+                timeout=httpx.Timeout(timeout, connect=10.0),
+            )
+        # Local backend: disable env proxy trust
         return httpx.Client(
-            proxy=GFW_PROXY_URL,
+            trust_env=False,
             headers={"User-Agent": GFW_USER_AGENT},
             timeout=httpx.Timeout(timeout, connect=10.0),
         )
@@ -29,8 +47,16 @@ def _build_client(backend: str, timeout: float) -> httpx.Client:
 
 def _build_async_client(backend: str, timeout: float) -> httpx.AsyncClient:
     if backend in GFW_BACKENDS:
+        import backends_registry as _reg
+        url = _reg.BACKENDS.get(backend, {}).get("url", "")
+        if _needs_proxy(url):
+            return httpx.AsyncClient(
+                proxy=GFW_PROXY_URL,
+                headers={"User-Agent": GFW_USER_AGENT},
+                timeout=httpx.Timeout(timeout, connect=10.0),
+            )
         return httpx.AsyncClient(
-            proxy=GFW_PROXY_URL,
+            trust_env=False,
             headers={"User-Agent": GFW_USER_AGENT},
             timeout=httpx.Timeout(timeout, connect=10.0),
         )
