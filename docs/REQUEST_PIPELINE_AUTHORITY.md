@@ -26,20 +26,52 @@ tests and VPS smoke (retrieval unification pattern, CQ-059).
 | Concern | Authoritative module | Legacy / compat facade | Notes |
 |--------|----------------------|-------------------------|-------|
 | Backend registry | `backends_registry.py` + `backends_constants.py` | `backends.py` re-exports | Detection helpers live in facade |
-| Intent + tier classify | `routing_engine.py` | `smart_router.classify` | `smart_router` delegates or mirrors |
-| Backend select + fallback | `routing_engine.py` | `router_v3.py` | P2C/sticky in `router_v3` / `sticky_session.py` |
+| Intent + tier classify | `routing_classifier.py` | `smart_router.classify` | `classify()` → request_type; `classify_scenario()` → scenario |
+| Backend pool definition | `router_v3.py` | — | `POOLS` dict; `select_backends()` returns candidates by request_type |
+| Backend ranking | `routing_selector.py` | — | `select()`综合 health/budget/sticky/ML/memory/评分 |
+| Backend execution | `routing_executor.py` | — | `execute()`按序/并行尝试，记录 health 成功/失败 |
+| HTTP transport | `http_caller.py` | `router_http.py` (urllib) | Migrate callers to httpx stack |
 | Health / cooldown | `health_tracker.py` | `router_circuit_breaker.py` | Prefer health_tracker for new code |
-| Sync/async HTTP call | `http_caller.py` | `router_http.py` (urllib) | Migrate callers to httpx stack |
+| Budget management | `budget_manager.py` | — | `is_budget_available` + `record_usage` |
+| Sticky session | `sticky_session.py` | — | `pin_backend` / `get_pinned_backend` |
+| Route scoring | `route_scorer.py` | — | 质量/稳定性/延迟/任务适配评分 |
 | Stream bridge | `streaming.py`, `routes/stream_handlers.py` | `routes/anthropic_stream.py` | Tool-native vs simulated SSE |
-| Retrieval inject | `routing_engine` + `local_retrieval` | `v3_adapters.py` slices | Evidence: `test_production_retrieval.py` |
+| Retrieval inject | `context_pipeline/retrieval_injection.py` | `local_retrieval` | 知识图谱/向量检索 |
+| Code context inject | `context_pipeline/code_context_injection.py` | — | tree-sitter 扫描 |
 | Skills inject | `skills_injector.py` | — | Temperature-gated |
 | Semantic cache | `semantic_cache.py` | — | temperature=0 only |
 | Session memory write | `session_memory/store*.py` | — | Split: db/crud/promote/admin |
 | Quality retry | `routes/quality_gate*.py` | root `quality_gate.py` (coding eval) | **Different modules** |
+| Response validation | `context_pipeline/response_validator.py` | — | 编码响应质量检查 |
+| Post-route hooks | `route_post_process.py` | — | correlation/evidence/feedback |
 | Agent task HTTP | `routes/agent_tasks.py` | store/service/schemas submodules | Not on chat hot path |
 | Agent run queue | `agent_runtime/orchestrator*.py` | `orchestrator.py` facade | Local lease queue |
-| Budget | `budget_manager.py` | — | Wired from routing_engine |
 | Ops metrics | `routes/ops_metrics.py` | — | Reads `app.state.stats` |
+
+## routing_engine.route() 内部管线
+
+`routing_engine.route()` 是唯一路由入口，内部按序执行：
+
+```text
+1. identity_guard    — 身份识别短路 (→ 直接返回)
+2. semantic_cache    — 缓存命中短路 (→ 直接返回)
+3. classify          — request_type (ide/chat/code/image)
+4. classify_scenario — scenario (coding/chat/device/...)
+5. skill_store       — 技能记忆召回 → recalled_backend
+6. retrieval_injection — 知识图谱/向量上下文注入
+7. code_context      — (coding only) tree-sitter 代码上下文
+8. memory_promote    — (coding only) 历史 coding_fact/routing_lesson
+9. complexity        — 请求复杂度评估
+10. code_orchestrator — (coding + call_fn) 编码 tier 逻辑 (→ 短路返回)
+11. router_v3.select_backends → routing_selector.select — 后端排名
+12. skills_injector  — Skills 注入到 messages
+13. context_compressor — (可选) 长对话压缩
+14. speculative      — (简单请求) 推测性并行调用
+15. routing_executor.execute — 按序/并行执行 + fallback
+16. response_validator — (coding) 响应质量验证 + 重试
+17. route_post_process — 后处理 (correlation/evidence/feedback)
+18. feedback_bridge  — 闭环反馈记录
+```
 
 ## Request flow (chat)
 
@@ -69,6 +101,7 @@ sequenceDiagram
 
 | Module | Status |
 |--------|--------|
+| `smart_router.py` chat path | Legacy. 保留 warmup/distill/ROUTE 兼容；新请求走 `routing_engine.route()` |
 | `router_http.py` direct calls | Legacy urllib path; use `http_caller` |
 | `v3_integration.py` | Dead; superseded by `routing_engine` |
 | `fallback_chain.py` | Unreferenced |

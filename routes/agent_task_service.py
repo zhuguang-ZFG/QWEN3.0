@@ -171,6 +171,84 @@ def apply_task_review(
     return {"task_id": task_id, "status": decision}
 
 
+def post_result_hooks(
+    task: dict,
+    task_id: str,
+    result_status: str,
+    backend: str,
+    latency_ms: int,
+    body,
+) -> None:
+    """Side-effect hooks after a task result is stored (correlation, notify, learn, evidence)."""
+    try:
+        from observability.correlation import record_worker_task_correlation
+
+        worker_id = (
+            task.get("request", {}).get("worker_id", "")
+            if isinstance(task.get("request"), dict)
+            else ""
+        )
+        record_worker_task_correlation(
+            task_id=task_id, status=result_status, worker_id=worker_id
+        )
+    except ImportError:
+        _log.debug("observability.correlation not installed")
+
+    if result_status == "needs_review":
+        try:
+            from telegram_notify import notify_task_ready
+
+            tests_passed = sum(1 for t in body.test_results if t.get("exit_code") == 0)
+            tests_failed = len(body.test_results) - tests_passed
+            artifact_links = {}
+            for a in body.artifacts[:5]:
+                if isinstance(a, str) and a:
+                    artifact_links[a.split("/")[-1]] = a
+
+            notify_task_ready(
+                task_id, body.summary, body.changed_files,
+                tests_passed=tests_passed, tests_failed=tests_failed,
+                risks=body.risks, artifact_links=artifact_links or None,
+            )
+        except Exception as exc:
+            _log.warning(
+                "notify_task_ready failed task_id=%s err=%s",
+                task_id,
+                type(exc).__name__,
+            )
+
+    try:
+        from session_memory.learning_loop import ingest_from_agent_task_result
+
+        ingest_from_agent_task_result(
+            asdict({"status": result_status, "task_id": task_id}),
+            backend=backend,
+            scenario="coding",
+            latency_ms=latency_ms,
+        )
+    except Exception as exc:
+        _log.warning(
+            "learning_loop ingest failed task_id=%s err=%s",
+            task_id,
+            type(exc).__name__,
+        )
+
+    from observability.capability_evidence import record_evidence_safe
+
+    record_evidence_safe(
+        loop="limacode_worker",
+        request_id=task_id,
+        task_id=task_id,
+        entrypoint=f"/agent/tasks/{task_id}/result",
+        selected_backend=backend,
+        latency_ms=latency_ms,
+        status=result_status,
+        evidence=["agent_task_result"],
+        artifact_paths=body.artifacts,
+        rollback="review task result and quarantine if unsafe",
+    )
+
+
 def create_task_from_body(body: TaskCreateBody) -> dict:
     store = _store()
     task_id = str(uuid.uuid4())[:8]

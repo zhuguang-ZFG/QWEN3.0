@@ -88,7 +88,7 @@
 | P1.2 | admin 登录常量时间比较 | **已完成** |
 | P1.3 | 生产路径 `except: pass` → 日志/计数 | **已完成** 2026-05-26（active paths；`tests/test_ci_gates.py`） |
 | RADAR-P1 | pip-audit + OSV + Ruff + pytest-cov/xdist | **已完成** 2026-05-26（见 `FREE_RESOURCE_RADAR_MERGED.md` §四） |
-| P2+ | 超 300 行文件渐进拆分 | 待做 |
+| P2+ | 超 300 行文件渐进拆分 | **已完成** — `agent_tasks.py` 325→260; 其余均 <300 |
 
 **完成定义**：P0 三项有回归测试；全量 pytest 通过；`git diff --check` 干净。
 

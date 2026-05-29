@@ -1,16 +1,29 @@
 #!/usr/bin/env python3
-"""LiMa Smart Router — legacy sync path (V3 uses routing_engine + http_caller).
+"""LiMa Smart Router — **LEGACY FACADE** (V3 uses routing_engine + http_caller).
 
-Extracted modules (CQ-014):
-  routing_engine.py      V3 five-layer routing
-  router_circuit_breaker.py  cb_allow / cb_record / cb_status
-  router_intent.py       detect_thinking_intent / get_thinking_backend
-  router_classifier.py   analyze / rule_classify / signal_classify
-  router_prompt.py       assemble_prompt / SYS
-  router_http.py         call_api / call_api_stream
-  router_image.py        detect_image_intent
-  vision_handler.py      detect_vision_request / convert_openai_vision_to_anthropic
-  response_cleaner.py    clean_response
+⚠️  This module is a backward-compatibility shim.
+    New code should import directly from the underlying modules:
+
+    | Need                        | Import from                    |
+    |-----------------------------|---------------------------------|
+    | Backend config              | `from backends import BACKENDS` |
+    | Thinking intent detection   | `from router_intent import detect_thinking_intent` |
+    | Image intent detection      | `from router_image import detect_image_intent` |
+    | HTTP call                   | `from http_caller import call_api` |
+    | Response cleaning           | `from response_cleaner import clean_response` |
+    | Prompt assembly             | `from router_prompt import assemble_prompt` |
+    | Circuit breaker             | `from router_circuit_breaker import cb_allow, cb_record` |
+
+    Extracted modules (CQ-014):
+      routing_engine.py      V3 five-layer routing (authoritative entry)
+      router_circuit_breaker.py  cb_allow / cb_record / cb_status
+      router_intent.py       detect_thinking_intent / get_thinking_backend
+      router_classifier.py   analyze / rule_classify / signal_classify
+      router_prompt.py       assemble_prompt / SYS
+      router_http.py         call_api / call_api_stream (legacy urllib)
+      router_image.py        detect_image_intent
+      vision_handler.py      detect_vision_request / convert_openai_vision_to_anthropic
+      response_cleaner.py    clean_response
 """
 import json
 import os

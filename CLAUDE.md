@@ -34,7 +34,7 @@
 | `routes/quality_gate.py` | ~230 | 质量门控（已拆 tier/direct 子模块） |
 | `routes/chat_handler_dispatch.py` | ~318 | 非流式分发（待继续拆） |
 | `backends.py` | 417 | 后端配置（待拆 registry） |
-| `routes/agent_tasks.py` | ~316 | Agent 任务路由（已拆 store/service/schemas） |
+| `routes/agent_tasks.py` | ~260 | Agent 任务路由（已拆 store/service/schemas/evolution） |
 | `session_memory/store.py` | facade | 会话存储（已拆 db/crud/promote/admin） |
 | `agent_runtime/orchestrator.py` | facade | 编排器（已拆 queue/worker/models/io） |
 | `backends.py` | ~135 | 后端 facade（registry/constants 已拆） |
@@ -82,10 +82,10 @@ server.py → routes/route_registry.py
 - ASGI body 分块上限、`/api/live-key` 不返回原始密钥、`key_rotation` 退役
 - semantic cache 写库失败可观测、admin 登录常量时间比较
 
-### 仍待办（见质量计划）
+### 已关闭（CQ-097）
 
-- 略超 300 行：`orchestrator_queue.py` (~308)、`routes/agent_tasks.py` (~316)
-- 路由双轨：以 `docs/REQUEST_PIPELINE_AUTHORITY.md` 为权威边界
+- ~~略超 300 行~~：`orchestrator_queue.py` 已拆分/移除；`routes/agent_tasks.py` 已降至 ~260 行
+- 路由权威边界：`docs/REQUEST_PIPELINE_AUTHORITY.md` 已更新，含 18 步管线图 + 21 模块所有权表
 
 ## 关键文档
 

@@ -15,7 +15,7 @@
 | P1.1 semantic cache | **Done** | `_log.warning` + `db_write_errors`; `tests/test_semantic_cache.py` |
 | P1.2 admin login | **Done** | `constant_time_equals` in `routes/admin.py` |
 | P1.3 silent catches | **Done** | active paths closed 2026-05-26；archives/submodules 仍 out of scope |
-| P2+ file split / routing | **In progress** | `device_gateway` + `router_http` split done; legacy urllib path documented |
+| P2+ file split / routing | **Done (2026-05-29)** | `agent_tasks.py` 489→260; `orchestrator_queue` removed; `session_memory/store` 431→51; `backends.py` 387→137; `router_http.py` 362→161; `code_orchestrator.py` 327→207; `device_gateway` 302→206; `quality_gate` 306→235. All ≤300. |
 
 ## Current Verification Snapshot
 

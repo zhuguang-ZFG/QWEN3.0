@@ -1,9 +1,14 @@
-"""Security tests for deploy_v3 SSH setup."""
+"""Security tests for deploy SSH host key policy (canonical: deploy_common)."""
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 import paramiko
 
+# Legacy deploy_v3 moved to scripts/archive — test the canonical version
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts" / "archive" / "deploy_legacy"))
 import deploy_v3
 
 
