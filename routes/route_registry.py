@@ -204,6 +204,15 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
         deps.loaded_modules["outcome_ingest"] = False
 
     try:
+        from routes.token_sync import router as token_sync_router
+
+        app.include_router(token_sync_router)
+        deps.loaded_modules["token_sync"] = True
+    except ImportError as exc:
+        logging.warning("[STARTUP] token_sync not loaded: %s", exc)
+        deps.loaded_modules["token_sync"] = False
+
+    try:
         from routes.telegram import router as telegram_router
 
         app.include_router(telegram_router)

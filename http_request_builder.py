@@ -66,6 +66,15 @@ def _key_pool_provider(backend: str, backend_cfg: dict) -> str:
 
 
 def _select_key(backend: str, backend_cfg: dict) -> tuple[str, str]:
+    # Check runtime token overrides first (from /internal/v1/token-sync)
+    try:
+        from routes.token_sync import get_token_override
+        override = get_token_override(backend)
+        if override:
+            return override, f"override:{backend}"
+    except ImportError:
+        pass
+
     provider = _key_pool_provider(backend, backend_cfg)
     if provider:
         pool_configured = key_pool.ensure_env_pool(provider)
