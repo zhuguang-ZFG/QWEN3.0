@@ -111,6 +111,8 @@ def test_skill_ema_success_grows_weight():
     skill = store.crystallize(messages, "coding", "scnet", 5, 800)
     initial_weight = skill.weight
     store.recall(messages, "coding")
+    # on_success is deferred until confirm_success
+    store.confirm_success()
     assert skill.weight > initial_weight
 
 

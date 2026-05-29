@@ -22,6 +22,7 @@ from routes.telegram_commands import (
     cmd_voice,
     cmd_voicechat,
 )
+from routes.telegram_code_tools import cmd_code_automation
 from routes.telegram_codesearch_tools import cmd_codesearch
 from routes.telegram_diag_tools import cmd_oldllm
 from routes.telegram_eval_tools import (
@@ -223,10 +224,22 @@ def _record_command_outcome(cmd: str, chat_id: str, ok: bool) -> None:
 
 
 async def _dispatch_chat_session(chat_id: str, cmd: str, arg: str) -> bool:
+    # /code with subcommands: /code run, /code plan, /code test, /code review, /code ship
+    if cmd == "/code":
+        subcmds = {"run", "plan", "test", "review", "ship"}
+        parts = arg.strip().split(maxsplit=1)
+        subcmd = parts[0].lower() if parts else ""
+        if subcmd in subcmds:
+            subarg = parts[1] if len(parts) > 1 else ""
+            await cmd_code_automation(chat_id, subcmd, subarg)
+        else:
+            # Legacy /code behavior (plain prompt)
+            await cmd_code(chat_id, arg)
+        return True
+
     mapping = {
         "/chat": lambda: cmd_chat(chat_id, arg),
         "/clear": lambda: cmd_clear(chat_id),
-        "/code": lambda: cmd_code(chat_id, arg),
         "/top": lambda: cmd_top(chat_id),
         "/uptime": lambda: cmd_uptime(chat_id),
         "/task": lambda: cmd_task(chat_id, arg),
