@@ -82,6 +82,7 @@ def record_routing_outcome(
     latency_ms: int,
     success: bool,
     scenario: str,
+    skip_weights: bool = False,
 ) -> None:
     """Record routing outcome into hierarchical memory and routing weights."""
     try:
@@ -91,15 +92,16 @@ def record_routing_outcome(
     except Exception as exc:
         _log.debug("hierarchical_memory update failed: %s", exc)
 
-    try:
-        from context_pipeline.routing_weights import get_routing_weights
-        rw = get_routing_weights()
-        if success:
-            rw.record_success(backend, scenario)
-        else:
-            rw.record_failure(backend, scenario)
-    except Exception as exc:
-        _log.debug("routing_weights update failed: %s", exc)
+    if not skip_weights:
+        try:
+            from context_pipeline.routing_weights import get_routing_weights
+            rw = get_routing_weights()
+            if success:
+                rw.record_success(backend, scenario)
+            else:
+                rw.record_failure(backend, scenario)
+        except Exception as exc:
+            _log.debug("routing_weights update failed: %s", exc)
 
 
 def get_metrics_snapshot() -> dict:

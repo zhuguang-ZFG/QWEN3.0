@@ -51,10 +51,12 @@ def apply_post_route_integrations(
     except Exception as exc:
         _warn("hierarchical_memory", exc)
 
+    # routing_bridge: only update hierarchical memory and session enhancer
+    # (routing_weights is handled by the response pipeline below)
     try:
         from context_pipeline.routing_bridge import record_routing_outcome
-        record_routing_outcome(final_backend, ms, bool(answer), scenario)
-    except ImportError:
+        record_routing_outcome(final_backend, ms, bool(answer), scenario, skip_weights=True)
+    except (ImportError, TypeError):
         pass
     except Exception as exc:
         _warn("routing_bridge", exc)
@@ -77,6 +79,7 @@ def apply_post_route_integrations(
         import logging as _cl
         _cl.getLogger(__name__).debug("cloud_services failed: %s", cloud_exc)
 
+    # Response pipeline: quality scoring + routing_weights + skill_store
     try:
         from context_pipeline.response_processors import build_default_response_pipeline
         from context_pipeline.response_pipeline import ResponseContext
@@ -86,19 +89,46 @@ def apply_post_route_integrations(
             latency_ms=ms,
             status_code=200 if answer else 500,
         ))
-        from context_pipeline.routing_weights import get_routing_weights
-        rw = get_routing_weights()
-        if resp_ctx.quality_ok and final_backend not in ("exhausted", "none", "cache"):
-            rw.record_success(final_backend, scenario)
-        elif final_backend not in ("exhausted", "none", "cache"):
-            rw.record_failure(final_backend, scenario)
-        if resp_ctx.quality_ok and answer and final_backend not in ("exhausted", "none", "cache"):
+
+        # Routing weights: record outcome (deduplicated — only here, not in routing_bridge)
+        try:
+            from context_pipeline.routing_weights import get_routing_weights
+            rw = get_routing_weights()
+            if resp_ctx.quality_ok and final_backend not in ("exhausted", "none", "cache"):
+                rw.record_success(final_backend, scenario)
+            elif final_backend not in ("exhausted", "none", "cache"):
+                rw.record_failure(final_backend, scenario)
+        except Exception:
+            pass
+
+        # Skill store: crystallize on success, penalize on failure
+        try:
             from context_pipeline.skill_store import get_skill_store
-            get_skill_store().crystallize(messages, scenario, final_backend, 0, ms)
+            if resp_ctx.quality_ok and answer and final_backend not in ("exhausted", "none", "cache"):
+                get_skill_store().crystallize(messages, scenario, final_backend, 0, ms)
+            elif not resp_ctx.quality_ok:
+                get_skill_store().on_failure(scenario)
+        except Exception:
+            pass
+
     except ImportError:
         pass
     except Exception as exc:
         _warn("response_pipeline", exc)
+
+    # Learning loop: feed regular route() outcomes (not just LiMa Code)
+    try:
+        from session_memory.learning_loop import ingest_task_outcome
+        ingest_task_outcome({
+            "backend": final_backend,
+            "scenario": scenario,
+            "success": bool(answer and len(answer) > 5),
+            "latency_ms": ms,
+            "task_type": f"route_{req_type}",
+            "query_summary": str(messages[-1].get("content", ""))[:100] if messages else "",
+        })
+    except Exception:
+        pass
 
     try:
         from observability.metrics import record as obs_record

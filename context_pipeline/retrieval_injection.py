@@ -89,6 +89,7 @@ def _record_trace(payload: RetrievalPayload) -> None:
         ],
         injected_text=payload.text,
         injected_chars=len(payload.text),
+        injection_useful=bool(payload.text and len(payload.text) > 50),
     ))
 
 
