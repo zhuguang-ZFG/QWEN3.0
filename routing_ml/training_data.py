@@ -3,25 +3,22 @@
 Reads:
   - data/lima_routing_weights.json → backend success/failure history
   - data/coding_backend_scores_full_*.json → backend quality scores
-  - data/lima_routing_weights.json → learned weight history
 """
 
 from __future__ import annotations
 
+import glob
 import json
 import os
-import time
 from dataclasses import dataclass
-
-import numpy as np
 
 from routing_ml.feature_extractor import N_FEATURES
 
 
 @dataclass
 class TrainingSample:
-    features: np.ndarray  # shape (N_FEATURES,)
-    target: np.ndarray   # shape (N_BACKENDS,) — 1.0 for chosen+success, 0.0 otherwise
+    features: list[float]   # length N_FEATURES
+    target: list[float]     # length N_BACKENDS — 1.0 for chosen+success, 0.0 otherwise
     backend: str
     success: bool
     scenario: str
@@ -58,7 +55,6 @@ def load_coding_scores(data_dir: str = "data") -> dict[str, float]:
       - dict: {backend: {avg_score: N, ...}}
       - list: [{backend: str, score: N, ok: bool, ...}, ...]
     """
-    import glob
     pattern = os.path.join(data_dir, "coding_backend_scores_full_*.json")
     files = sorted(glob.glob(pattern), reverse=True)
     if not files:
@@ -92,11 +88,7 @@ def build_training_samples(
     backend_names: list[str],
     coding_scores: dict[str, float] | None = None,
 ) -> list[TrainingSample]:
-    """Convert weight history into training samples.
-
-    Each entry becomes a sample with synthetic features based on scenario.
-    Success entries get positive targets, failure entries get negative.
-    """
+    """Convert weight history into training samples."""
     samples = []
     backend_idx = {name: i for i, name in enumerate(backend_names)}
     coding_scores = coding_scores or {}
@@ -114,53 +106,41 @@ def build_training_samples(
         if total == 0:
             continue
 
-        # Create synthetic features based on scenario
-        features = np.zeros(N_FEATURES, dtype=np.float32)
+        features = [0.0] * N_FEATURES
         if scenario == "coding":
-            features[0] = 0.5   # medium message length
-            features[1] = 0.7   # high code ratio
-            features[3] = 0.0   # no debug keyword
-            features[10] = 1.0  # coding scenario
+            features[0] = 0.5
+            features[1] = 0.7
+            features[10] = 1.0
         elif scenario == "chat":
             features[0] = 0.3
             features[1] = 0.1
-            features[11] = 1.0  # chat scenario
+            features[11] = 1.0
         else:
             features[0] = 0.4
             features[1] = 0.3
 
-        # Target: weight-based success probability
         weight = entry.get("weight", 1.0)
-        target = np.zeros(len(backend_names), dtype=np.float32)
+        target = [0.0] * len(backend_names)
         target[backend_idx[backend]] = min(max(weight / 2.0, 0.0), 1.0)
 
         samples.append(TrainingSample(
-            features=features,
-            target=target,
-            backend=backend,
-            success=successes > failures,
-            scenario=scenario,
+            features=features, target=target, backend=backend,
+            success=successes > failures, scenario=scenario,
         ))
 
-        # Augment: create a negative sample for each failure
         if failures > 0:
-            neg_target = target.copy()
-            neg_target[backend_idx[backend]] *= 0.3  # reduce score for failures
+            neg_target = list(target)
+            neg_target[backend_idx[backend]] *= 0.3
             samples.append(TrainingSample(
-                features=features,
-                target=neg_target,
-                backend=backend,
-                success=False,
-                scenario=scenario,
+                features=list(features), target=neg_target, backend=backend,
+                success=False, scenario=scenario,
             ))
 
     return samples
 
 
-def samples_to_arrays(samples: list[TrainingSample]) -> tuple[np.ndarray, np.ndarray]:
-    """Convert samples to feature/target arrays for batch training."""
+def samples_to_arrays(samples: list[TrainingSample]) -> tuple[list[list[float]], list[list[float]]]:
+    """Convert samples to feature/target lists for batch training."""
     if not samples:
-        return np.zeros((0, N_FEATURES), dtype=np.float32), np.zeros((0, 0), dtype=np.float32)
-    features = np.stack([s.features for s in samples])
-    targets = np.stack([s.target for s in samples])
-    return features, targets
+        return [], []
+    return [s.features for s in samples], [s.target for s in samples]

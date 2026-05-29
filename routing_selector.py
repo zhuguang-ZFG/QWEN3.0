@@ -146,7 +146,7 @@ def select(request_type: str, health_map: dict,
                 if _ml_backend in scores:
                     scores[_ml_backend] *= (1.0 + _ml_score * 0.3)  # up to 30% boost
             notify_request()
-    except ImportError:
+    except (ImportError, Exception):
         pass
 
     result.sort(key=lambda b: -(

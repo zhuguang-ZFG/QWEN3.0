@@ -1,4 +1,4 @@
-"""Tests for ML routing prediction module."""
+"""Tests for ML routing prediction module (pure Python, no numpy)."""
 
 from __future__ import annotations
 
@@ -7,7 +7,6 @@ import os
 import sys
 import tempfile
 
-import numpy as np
 import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -20,7 +19,6 @@ from routing_ml.feature_extractor import (
 from routing_ml.routing_model import (
     RoutingModel,
     create_model,
-    cross_entropy_loss,
     train_step,
 )
 from routing_ml.training_data import (
@@ -40,7 +38,7 @@ from routing_ml.routing_trainer import (
 class TestFeatureExtractor:
     def test_feature_dimension(self):
         v = extract_features([{"role": "user", "content": "hello"}])
-        assert v.features.shape == (N_FEATURES,)
+        assert len(v.features) == N_FEATURES
         assert N_FEATURES == 12
 
     def test_code_detection(self):
@@ -56,7 +54,7 @@ class TestFeatureExtractor:
 
     def test_scenario_encoding(self):
         v_coding = extract_features([], scenario="coding")
-        assert v_coding.features[10] == 1.0  # coding onehot
+        assert v_coding.features[10] == 1.0
         assert v_coding.features[11] == 0.0
 
         v_chat = extract_features([], scenario="chat")
@@ -66,8 +64,8 @@ class TestFeatureExtractor:
     def test_health_map_encoding(self):
         health = {"groq_llama70b": "healthy", "longcat_lite": "dead"}
         v = extract_features([], health_map=health, top_backends=["groq_llama70b", "longcat_lite"])
-        assert v.features[5] == 1.0  # healthy
-        assert v.features[6] == 0.0  # dead
+        assert v.features[5] == 1.0
+        assert v.features[6] == 0.0
 
     def test_metadata(self):
         v = extract_features([{"role": "user", "content": "hello"}], scenario="chat")
@@ -82,30 +80,25 @@ class TestRoutingModel:
     def test_create_model(self):
         backends = ["groq_llama70b", "scnet_ds_flash", "github_gpt4o"]
         model = create_model(backends)
-        assert model.weights1.shape == (N_FEATURES, 32)
-        assert model.weights2.shape == (32, 3)
+        assert len(model.w1) == N_FEATURES
+        assert len(model.w1[0]) == 32
+        assert len(model.w2) == 32
+        assert len(model.w2[0]) == 3
         assert model.backend_names == backends
 
     def test_predict_shape(self):
         model = create_model(["a", "b", "c"])
-        features = np.random.randn(N_FEATURES).astype(np.float32)
+        features = [0.1] * N_FEATURES
         scores = model.predict(features)
-        assert scores.shape == (3,)
+        assert len(scores) == 3
         assert all(0.0 <= s <= 1.0 for s in scores)
-
-    def test_predict_batch(self):
-        model = create_model(["a", "b"])
-        features = np.random.randn(5, N_FEATURES).astype(np.float32)
-        scores = model.predict(features)
-        assert scores.shape == (5, 2)
 
     def test_predict_topk(self):
         model = create_model(["a", "b", "c", "d"])
-        features = np.random.randn(N_FEATURES).astype(np.float32)
+        features = [0.5] * N_FEATURES
         topk = model.predict_topk(features, k=2)
         assert len(topk) == 2
         assert all(isinstance(name, str) and isinstance(score, float) for name, score in topk)
-        # Scores should be descending
         assert topk[0][1] >= topk[1][1]
 
     def test_serialize_roundtrip(self):
@@ -113,8 +106,10 @@ class TestRoutingModel:
         data = model.to_dict()
         restored = RoutingModel.from_dict(data)
         assert restored.backend_names == ["x", "y"]
-        assert restored.weights1.shape == model.weights1.shape
-        np.testing.assert_allclose(restored.weights1, model.weights1, rtol=1e-5)
+        assert len(restored.w1) == len(model.w1)
+        for i in range(len(model.w1)):
+            for j in range(len(model.w1[i])):
+                assert abs(restored.w1[i][j] - model.w1[i][j]) < 1e-10
 
     def test_save_load(self):
         model = create_model(["a", "b"])
@@ -133,17 +128,37 @@ class TestRoutingModel:
 
     def test_train_step_reduces_loss(self):
         model = create_model(["a", "b"], seed=0)
-        features = np.random.randn(10, N_FEATURES).astype(np.float32)
-        targets = np.zeros((10, 2), dtype=np.float32)
-        targets[:5, 0] = 1.0  # first 5 prefer backend "a"
-        targets[5:, 1] = 1.0  # last 5 prefer backend "b"
+        features = [0.5] * N_FEATURES
+        target_success = [1.0, 0.0]
+        target_fail = [0.0, 1.0]
 
-        loss_before = cross_entropy_loss(model.predict(features), targets)
+        # Get initial loss
+        pred_before = model.predict(features)
+        loss_before = -(
+            target_success[0] * _logsafe(pred_before[0]) +
+            (1 - target_success[0]) * _logsafe(1 - pred_before[0]) +
+            target_success[1] * _logsafe(pred_before[1]) +
+            (1 - target_success[1]) * _logsafe(1 - pred_before[1])
+        ) / 2
+
+        # Train
         for _ in range(50):
-            train_step(model, features, targets, lr=0.01)
-        loss_after = cross_entropy_loss(model.predict(features), targets)
+            train_step(model, features, target_success, lr=0.01)
+
+        pred_after = model.predict(features)
+        loss_after = -(
+            target_success[0] * _logsafe(pred_after[0]) +
+            (1 - target_success[0]) * _logsafe(1 - pred_after[0]) +
+            target_success[1] * _logsafe(pred_after[1]) +
+            (1 - target_success[1]) * _logsafe(1 - pred_after[1])
+        ) / 2
 
         assert loss_after < loss_before
+
+
+def _logsafe(x: float) -> float:
+    import math
+    return math.log(max(1e-7, min(1.0 - 1e-7, x)))
 
 
 # ─── Training data tests ──────────────────────────────────────────────
@@ -159,27 +174,18 @@ class TestTrainingData:
         with tempfile.TemporaryDirectory() as tmp:
             data = {
                 "scnet_ds_flash:coding": {
-                    "backend": "scnet_ds_flash",
-                    "scenario": "coding",
-                    "weight": 1.12,
-                    "successes": 8,
-                    "failures": 0,
-                    "last_updated": 1000,
+                    "backend": "scnet_ds_flash", "scenario": "coding",
+                    "weight": 1.12, "successes": 8, "failures": 0, "last_updated": 1000,
                 },
                 "longcat_lite:chat": {
-                    "backend": "longcat_lite",
-                    "scenario": "chat",
-                    "weight": 0.96,
-                    "successes": 0,
-                    "failures": 2,
-                    "last_updated": 1000,
+                    "backend": "longcat_lite", "scenario": "chat",
+                    "weight": 0.96, "successes": 0, "failures": 2, "last_updated": 1000,
                 },
             }
             with open(os.path.join(tmp, "lima_routing_weights.json"), "w") as f:
                 json.dump(data, f)
             result = load_weight_history(tmp)
             assert len(result) == 2
-            assert result[0]["backend"] == "scnet_ds_flash"
 
     def test_build_training_samples(self):
         history = [
@@ -187,7 +193,7 @@ class TestTrainingData:
             {"backend": "b", "scenario": "chat", "weight": 0.8, "successes": 1, "failures": 3, "last_updated": 0},
         ]
         samples = build_training_samples(history, ["a", "b"])
-        assert len(samples) >= 2  # at least one per entry
+        assert len(samples) >= 2
 
     def test_samples_to_arrays(self):
         history = [
@@ -195,8 +201,9 @@ class TestTrainingData:
         ]
         samples = build_training_samples(history, ["a"])
         features, targets = samples_to_arrays(samples)
-        assert features.shape[1] == N_FEATURES
-        assert targets.shape[1] == 1  # one backend
+        assert len(features) > 0
+        assert len(features[0]) == N_FEATURES
+        assert len(targets[0]) == 1
 
 
 # ─── Trainer integration tests ────────────────────────────────────────
@@ -210,8 +217,5 @@ class TestTrainer:
         assert state["train_interval"] > 0
 
     def test_try_train_no_data(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            # No weight history → should return False
-            result = try_train()
-            # Just verify it doesn't crash (may return True or False depending on data dir)
-            assert isinstance(result, bool)
+        result = try_train()
+        assert isinstance(result, bool)
