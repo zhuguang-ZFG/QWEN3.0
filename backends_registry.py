@@ -200,6 +200,9 @@ BACKENDS = {
     'mimo_tts_v2': {'url': 'https://api.xiaomimimo.com/v1/chat/completions', 'key': os.environ.get('MIMO_TTS_KEY', ''), 'model': 'mimo-v2-tts', 'fmt': 'openai', 'timeout': 30},
     # MiMo STT (WeChat/Telegram voice; input_audio via chat/completions, not routing pool)
     'mimo_stt': {'url': 'https://api.xiaomimimo.com/v1/chat/completions', 'key': os.environ.get('MIMO_TTS_KEY', ''), 'model': 'mimo-v2-omni', 'fmt': 'openai', 'timeout': 45},
+    # ── MiMo v2 Pro (Token Plan, 38B tokens) ──
+    'mimo_v2_pro': {'url': 'https://token-plan-cn.xiaomimimo.com/v1/chat/completions', 'key': os.environ.get('MIMO_V2_PRO_KEY', ''), 'model': 'mimo-v2-pro', 'fmt': 'openai', 'timeout': 30, 'force_stream_param': True, 'caps': ['tool_calls']},
+    'mimo_v2_pro_anthropic': {'url': 'https://token-plan-cn.xiaomimimo.com/anthropic/v1/messages', 'key': os.environ.get('MIMO_V2_PRO_KEY', ''), 'model': 'mimo-v2-pro', 'fmt': 'anthropic', 'auth': 'x-api-key', 'timeout': 30, 'caps': ['tool_calls']},
     # ── SCNet 大上下文 (本地代理, 文件上传突破 5 万字符限制, 需登录) ──
     'scnet_large_ds_flash': {'url': 'http://localhost:4505/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-flash', 'fmt': 'openai', 'timeout': 60, 'admission': 'code_medium_candidate', 'private_code_allowed': True, 'caps': ['tool_calls']},
     'scnet_large_ds_pro': {'url': 'http://localhost:4505/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-pro', 'fmt': 'openai', 'timeout': 90, 'caps': ['tool_calls']},
