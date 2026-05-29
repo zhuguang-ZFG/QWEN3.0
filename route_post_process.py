@@ -68,6 +68,15 @@ def apply_post_route_integrations(
     except Exception as exc:
         _warn("session_memory_enhancer", exc)
 
+    # Cloud services logging (Supabase + LangSmith)
+    try:
+        from integrations.cloud_services import log_routing_decision, log_llm_run
+        log_routing_decision(final_backend, req_type, scenario, ms, fallback_used)
+        log_llm_run(final_backend, final_backend, ms, scenario=scenario)
+    except Exception as cloud_exc:
+        import logging as _cl
+        _cl.getLogger(__name__).debug("cloud_services failed: %s", cloud_exc)
+
     try:
         from context_pipeline.response_processors import build_default_response_pipeline
         from context_pipeline.response_pipeline import ResponseContext

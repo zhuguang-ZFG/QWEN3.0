@@ -97,6 +97,11 @@ def route(query: str, messages: list[dict], *,
             cleaned = clean_response(cached, "cache")
             answer = cleaned if cleaned else cached
             ms = int((time.time() - t0) * 1000)
+            try:
+                from integrations.cloud_services import log_routing_decision
+                log_routing_decision("cache", "cache_hit", "", ms)
+            except Exception:
+                pass
             return RouteResult(backend="cache", answer=answer,
                                request_type="cache_hit", ms=ms)
 
