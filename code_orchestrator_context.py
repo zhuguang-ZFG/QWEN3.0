@@ -26,7 +26,7 @@ _LANG_SIGNALS = {
     "go": [r"\bfunc \w+\(", r"\bpackage \w+", r"\.go\b", r"\bgo mod\b"],
 }
 
-LATENCY_BUDGET = {"simple": 5.0, "standard": 12.0, "complex": 30.0}
+LATENCY_BUDGET = {"simple": 15.0, "standard": 25.0, "complex": 45.0}
 MAX_REPAIR_ATTEMPTS = 2
 
 COMPLEX_SIGNALS = [

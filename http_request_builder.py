@@ -84,7 +84,24 @@ def _select_key(backend: str, backend_cfg: dict) -> tuple[str, str]:
             selected = key_pool.get_key(provider)
             if selected:
                 return selected, provider
-    return backend_cfg.get("key", ""), provider
+
+    # Dynamic re-read: if key is empty but config has an env var ref, resolve now
+    raw_key = backend_cfg.get("key", "")
+    if not raw_key or raw_key in ("none", ""):
+        # Re-read from env at request time (handles .env loaded after import)
+        key_env_var = backend_cfg.get("key_env_var", "")
+        if key_env_var:
+            raw_key = os.environ.get(key_env_var, "")
+        if not raw_key:
+            # Scan common env var patterns
+            import re
+            for env_name in [f"{backend.upper()}_API_KEY", f"{backend.upper()}_KEY",
+                             f"{backend.replace('-', '_').upper()}_KEY"]:
+                raw_key = os.environ.get(env_name, "")
+                if raw_key:
+                    break
+
+    return raw_key, provider
 
 
 def _has_key(backend: str, backend_cfg: dict) -> bool:
