@@ -18,10 +18,10 @@ def test_chat_fast_strong_prefers_google_flash_lite():
 
 
 def test_vision_pool_includes_cf_and_google():
-    medium = router_v3.POOLS["vision"]["medium"]
-    assert medium[0] == "cf_vision"
-    assert "google_flash" in medium
-    assert "github_gpt4o" in medium
+    strong = router_v3.POOLS["vision"]["strong"]
+    assert "cf_vision" in strong
+    assert "google_flash" in strong
+    assert "github_gpt4o" in strong
 
 
 def test_parse_github_args():
