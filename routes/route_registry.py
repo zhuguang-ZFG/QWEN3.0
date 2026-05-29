@@ -151,6 +151,17 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
         deps.loaded_modules["agent_execute"] = False
 
     try:
+        from routes.fleet_api import router as fleet_router
+        import routes.fleet_api as fleet_mod
+
+        fleet_mod.inject_state(admin_token=os.environ.get("LIMA_API_KEY", ""))
+        app.include_router(fleet_router)
+        deps.loaded_modules["fleet"] = True
+    except ImportError as exc:
+        logging.warning("[STARTUP] fleet module not loaded: %s", exc)
+        deps.loaded_modules["fleet"] = False
+
+    try:
         from routes.eval_internal import router as eval_internal_router
 
         app.include_router(eval_internal_router)
