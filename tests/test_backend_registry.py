@@ -86,9 +86,9 @@ def test_ide_sources_non_empty():
 # ── Capability helpers ───────────────────────────────────────────────────────────
 
 def test_backend_has_capability_known_backend():
-    assert backends.backend_has_capability("longcat_omni", "vision")
+    assert backends.backend_has_capability("cf_vision", "vision")
     assert backends.backend_has_capability("nvidia_qwen_coder", "code")
-    assert backends.backend_has_capability("local_coder14b", "tool_calls")
+    assert backends.backend_has_capability("github_gpt4o", "tool_calls")
     assert backends.backend_has_capability("scnet_ds_pro", "code")
 
 
@@ -110,9 +110,9 @@ def test_is_weak_backend():
 
 def test_first_backend_with_capability():
     result = backends.first_backend_with_capability(
-        ["groq_llama70b", "longcat_omni", "scnet_qwen30b"], "vision"
+        ["groq_llama70b", "cf_vision", "scnet_qwen30b"], "vision"
     )
-    assert result == "longcat_omni"
+    assert result == "cf_vision"
 
     empty = backends.first_backend_with_capability(["groq_llama70b"], "vision")
     assert empty == ""

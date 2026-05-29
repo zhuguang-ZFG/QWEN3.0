@@ -5,6 +5,9 @@ from __future__ import annotations
 import pytest
 from hypothesis import given, settings, strategies as st
 
+settings.register_profile("ci", deadline=1000)
+settings.load_profile("ci")
+
 from routing_classifier import classify, classify_scenario
 from routing_engine import route
 

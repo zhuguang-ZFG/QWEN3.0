@@ -4,7 +4,7 @@
 def test_backends_facade_exports():
     import backends
 
-    assert "longcat_lite" in backends.BACKENDS
+    assert "scnet_ds_flash" in backends.BACKENDS
     assert backends.detect_vendor("https://api.groq.com/openai/v1")
 
 

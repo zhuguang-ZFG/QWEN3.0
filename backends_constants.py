@@ -4,11 +4,10 @@ import os
 PUBLIC_MODEL_NAME = os.environ.get('PUBLIC_MODEL_NAME', 'LiMa')
 
 # Thinking-capable backends in priority order
-THINKING_BACKENDS = ["or_deepseek_r1", "longcat_thinking", "longcat_web_think"]
+THINKING_BACKENDS = ["or_deepseek_r1"]
 
 # Vision-capable backends (must be registered in BACKENDS)
 VISION_BACKENDS = [
-    "longcat_omni",
     "cf_vision",
     "google_flash",
     "google_flash_lite",
@@ -48,7 +47,6 @@ WEAK_BACKENDS = frozenset({'chat_ubi', 'pollinations', 'llm7'})
 
 # Models capable of tool calls and directory-mode skill injection
 STRONG_MODELS = frozenset({
-    "longcat_chat", "longcat_thinking", "longcat",
     "naga_gpt41mini",
     "or_deepseek_r1", "nvidia_qwen_coder",
     "opencode_stealth", "fireworks_llama405b", "deepinfra_llama4", "deepseek_free",
