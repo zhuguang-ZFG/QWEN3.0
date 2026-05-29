@@ -264,11 +264,11 @@ def evaluate(clf, vectorizer, svd, feature_keys, X_test, y_test):
         print(f"{label:>12}  " + "  ".join(f"{cm[i][j]:>5}" for j in range(4)))
 
     # Accuracy
-    correct = sum(1 for p, t in zip(y_pred, y_test) if p == t)
+    correct = sum(1 for p, t in zip(y_pred, y_test, strict=False) if p == t)
     print(f"\nAccuracy: {correct}/{len(y_test)} = {correct/len(y_test):.2%}")
 
     # Low-confidence cases
-    low_conf = [(x, p, t, c) for x, p, t, c in zip(X_test, y_pred, y_test, y_conf) if c < 0.8]
+    low_conf = [(x, p, t, c) for x, p, t, c in zip(X_test, y_pred, y_test, y_conf, strict=False) if c < 0.8]
     if low_conf:
         print(f"\nLow confidence predictions (<0.8): {len(low_conf)}")
         for x, p, t, c in low_conf[:5]:

@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Callable
 
 from fastapi.responses import JSONResponse
 
 from response_builder import build_anthropic_response, build_response
+
+_log = logging.getLogger(__name__)
+
 from routes.quality_gate import (
     default_route,
     get_same_tier_backends,

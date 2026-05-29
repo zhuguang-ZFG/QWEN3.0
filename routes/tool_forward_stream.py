@@ -6,6 +6,7 @@ OpenAI SSE → Anthropic SSE conversion for tool calls.
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 import json
 import uuid
 import time

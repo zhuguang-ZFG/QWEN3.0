@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import logging
 import telegram_bot
+
+_log = logging.getLogger(__name__)
 from routes.telegram_commands import (
     cmd_cache,
     cmd_chat,
