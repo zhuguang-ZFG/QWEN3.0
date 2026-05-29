@@ -1,8 +1,7 @@
 """Direct code context injection for coding scenarios.
 
-Scans files mentioned in the query, extracts symbols via tree-sitter,
-finds related files via graph traversal, and builds concise context
-for injection into the system prompt.
+Enhanced with semantic retrieval: finds relevant files even when not
+explicitly mentioned in the query, using keyword scoring + graph expansion.
 """
 
 from __future__ import annotations
@@ -14,8 +13,8 @@ from pathlib import Path
 
 _log = logging.getLogger(__name__)
 
-_MAX_CONTEXT_CHARS = 2000
-_MAX_FILES = 5
+_MAX_CONTEXT_CHARS = 4000
+_MAX_FILES = 8
 
 def _detect_project_root() -> str:
     env_root = os.environ.get("LIMA_PROJECT_ROOT", "")
@@ -57,10 +56,11 @@ def scan_and_build_context(
 ) -> str:
     """Build code context string for a coding query.
 
-    1. Extract file mentions and identifiers from query
-    2. Scan mentioned files with tree-sitter
-    3. Find related files via graph
-    4. Build concise context string
+    1. Extract file mentions and identifiers from query (regex)
+    2. Also run semantic retrieval for implicit relevant files
+    3. Expand via graph relationships
+    4. Scan all candidates with tree-sitter
+    5. Build concise context string
     """
     file_mentions, identifiers = extract_file_mentions(query, messages)
     parts: list[str] = []
@@ -68,6 +68,7 @@ def scan_and_build_context(
 
     scanned_files: set[str] = set()
 
+    # Phase 1: Direct file mentions (existing regex approach)
     for fname in file_mentions[:_MAX_FILES]:
         path = _resolve_file(fname)
         if not path or str(path) in scanned_files:
@@ -78,8 +79,50 @@ def scan_and_build_context(
             parts.append(ctx)
             total += len(ctx)
 
+    # Phase 2: Semantic retrieval (find implicit relevant files)
+    try:
+        from context_pipeline.semantic_code_retrieval import retrieve_semantic
+        sem_results = retrieve_semantic(
+            query, max_results=5, messages=messages)
+        for result in sem_results:
+            if len(scanned_files) >= _MAX_FILES:
+                break
+            fpath = result.file_path
+            if fpath in scanned_files:
+                continue
+            # Only include if score is meaningful
+            if result.score < 0.1:
+                continue
+            scanned_files.add(fpath)
+            ctx = _scan_single_file(Path(fpath))
+            if ctx and total + len(ctx) < max_chars:
+                parts.append(f"[semantic match: score={result.score}]\n{ctx}")
+                total += len(ctx) + 30
+    except ImportError:
+        pass
+
+    # Phase 3: Graph expansion for remaining budget
+    if total < max_chars * 0.5 and len(scanned_files) < _MAX_FILES:
+        try:
+            from context_pipeline.graph_context_expander import expand_context
+            expanded = expand_context(
+                list(scanned_files), max_hops=1, max_files=3)
+            for ef in expanded:
+                if len(scanned_files) >= _MAX_FILES:
+                    break
+                if ef.file_path in scanned_files:
+                    continue
+                scanned_files.add(ef.file_path)
+                ctx = _scan_single_file(Path(ef.file_path))
+                if ctx and total + len(ctx) < max_chars:
+                    parts.append(ctx)
+                    total += len(ctx)
+        except ImportError:
+            pass
+
+    # Phase 4: Identifier search (existing approach)
     for ident in identifiers[:3]:
-        if total >= max_chars:
+        if total >= max_chars or len(scanned_files) >= _MAX_FILES:
             break
         related = _find_identifier_files(ident)
         for rpath in related[:2]:
