@@ -41,19 +41,26 @@ def on_request_complete(
         )
         feature_list = feature_vec.features
 
-        # Compute message-level metrics
-        text = " ".join(str(m.get("content", "")) for m in (messages or []) if isinstance(m, dict))
+        # Compute message-level metrics (safe encoding)
+        text = " ".join(
+            str(m.get("content", "")) for m in (messages or [])
+            if isinstance(m, dict)
+        ).encode("utf-8", errors="replace").decode("utf-8")
         message_length = len(text)
 
         # Count code blocks
         import re
-        code_fences = re.findall(r"```[\s\S]*?```", text)
-        code_chars = sum(len(f) for f in code_fences)
-        code_ratio = code_chars / max(message_length, 1)
+        try:
+            code_fences = re.findall(r"```[\s\S]*?```", text)
+            code_chars = sum(len(f) for f in code_fences)
+            code_ratio = code_chars / max(message_length, 1)
 
-        # Chinese ratio
-        chinese_chars = len(re.findall(r"[一-鿿]", text))
-        chinese_ratio = chinese_chars / max(message_length, 1)
+            # Chinese ratio
+            chinese_chars = len(re.findall(r"[一-鿿]", text))
+            chinese_ratio = chinese_chars / max(message_length, 1)
+        except Exception:
+            code_ratio = 0.0
+            chinese_ratio = 0.0
 
         # Persist to request log
         store = get_request_store()
@@ -81,7 +88,11 @@ def on_request_complete(
         _check_training_trigger()
 
     except Exception as exc:
-        _log.debug("feedback_bridge.on_request_complete failed: %s", exc)
+        import logging as _dbg
+        _dbg.getLogger(__name__).warning(
+            "feedback_bridge.on_request_complete FAILED: %s: %s",
+            type(exc).__name__, exc, exc_info=True,
+        )
 
 
 def _update_routing_weights(backend: str, scenario: str, success: bool) -> None:

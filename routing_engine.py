@@ -302,8 +302,9 @@ def route(query: str, messages: list[dict], *,
             latency_ms=float(ms),
             fallback_used=bool(final_backend not in ("exhausted", "none") and backends and final_backend != backends[0]),
         )
-    except Exception:
-        pass
+    except Exception as _fb_exc:
+        import logging as _fb_log
+        _fb_log.getLogger(__name__).warning("feedback_bridge error: %s", _fb_exc)
 
     return RouteResult(
         backend=final_backend, answer=answer,
