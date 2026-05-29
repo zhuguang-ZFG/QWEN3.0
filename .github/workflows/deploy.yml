@@ -38,12 +38,11 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script_stop: false
           script: |
-            echo ">> Restarting lima-router..."
-            pkill -9 -f "uvicorn server" 2>/dev/null || true
-            pkill -9 -f "python3.10 server.py" 2>/dev/null || true
+            echo ">> Stopping lima-router..."
+            systemctl stop lima-router 2>/dev/null || true
             sleep 3
-            systemctl restart lima-router
-            sleep 8
+            systemctl start lima-router
+            sleep 10
 
             echo ">> Waiting for health check..."
             for i in $(seq 1 20); do
