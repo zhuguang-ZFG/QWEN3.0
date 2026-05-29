@@ -1,0 +1,17 @@
+[run]
+source = .
+parallel = true
+omit =
+    esp32S_XYZ/*
+    deepcode-cli/*
+    wechat_bridge/*
+    scripts/archive/*
+    tests/*
+    venv/*
+    .venv/*
+    */site-packages/*
+
+[report]
+skip_empty = true
+show_missing = false
+precision = 1

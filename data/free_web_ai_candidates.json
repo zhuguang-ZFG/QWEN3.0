@@ -1,0 +1,88 @@
+[
+  {
+    "id": "duck_ai",
+    "url": "https://duck.ai/chat",
+    "trust": "medium-high",
+    "enabled": false,
+    "private_code_allowed": false,
+    "reverse_status": "already_reversed_local",
+    "local_adapter": "D:/duckai",
+    "admission_passed": true,
+    "admitted_models": ["ddg_gpt4o_mini", "ddg_gpt5_mini"],
+    "note": "Already reversed locally; admitted only as late fallback until tunnel/stability evidence improves."
+  },
+  {
+    "id": "heck_ai",
+    "url": "https://heck.ai/zh",
+    "trust": "medium",
+    "enabled": false,
+    "private_code_allowed": false,
+    "reverse_status": "adapter_draft_exists",
+    "local_adapter": "D:/ollama_server/heckai-worker.js",
+    "note": "Smoke the existing worker draft before capturing a new flow."
+  },
+  {
+    "id": "hix_chat",
+    "url": "https://hix.ai/a/chat",
+    "trust": "low-medium",
+    "enabled": false,
+    "private_code_allowed": false,
+    "reverse_status": "not_reversed_page_only"
+  },
+  {
+    "id": "gpt_chat",
+    "url": "https://gpt.chat",
+    "trust": "low",
+    "enabled": false,
+    "private_code_allowed": false,
+    "reverse_status": "not_reversed_page_only"
+  },
+  {
+    "id": "deep_seek_mirror",
+    "url": "https://deep-seek.com",
+    "trust": "low",
+    "enabled": false,
+    "private_code_allowed": false,
+    "reverse_status": "not_reversed_page_only"
+  },
+  {
+    "id": "plai_chat",
+    "url": "https://plai.chat",
+    "trust": "low-medium",
+    "enabled": false,
+    "private_code_allowed": false,
+    "reverse_status": "not_reversed_page_only"
+  },
+  {
+    "id": "deep_seek_ai",
+    "url": "https://deep-seek.ai/",
+    "trust": "low",
+    "enabled": false,
+    "private_code_allowed": false,
+    "reverse_status": "not_reversed_page_only"
+  },
+  {
+    "id": "glm_ai_chat",
+    "url": "https://glm-ai.chat/",
+    "trust": "low",
+    "enabled": false,
+    "private_code_allowed": false,
+    "reverse_status": "not_reversed_page_only"
+  },
+  {
+    "id": "instantseek",
+    "url": "https://instantseek.org/",
+    "trust": "low",
+    "enabled": false,
+    "private_code_allowed": false,
+    "reverse_status": "not_reversed_page_only"
+  },
+  {
+    "id": "chat_gpt_org",
+    "url": "https://chat-gpt.org/",
+    "trust": "low",
+    "enabled": false,
+    "private_code_allowed": false,
+    "reverse_status": "not_reversed_page_only"
+  }
+]

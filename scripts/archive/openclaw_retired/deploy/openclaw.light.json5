@@ -1,0 +1,101 @@
+// LiMa lightweight OpenClaw: WeChat DM only, brain = chat.donglicao.com/v1
+// State dir on VPS: /opt/lima-router/openclaw/state (OPENCLAW_STATE_DIR)
+{
+  gateway: {
+    mode: "local",
+    port: 18789,
+    bind: "loopback",
+    controlUi: { enabled: false },
+    auth: {
+      mode: "token",
+      token: "${OPENCLAW_GATEWAY_TOKEN}",
+    },
+    reload: { mode: "hybrid", debounceMs: 300 },
+  },
+
+  session: {
+    dmScope: "per-account-channel-peer",
+  },
+
+  models: {
+    mode: "merge",
+    pricing: { enabled: false },
+    providers: {
+      lima: {
+        baseUrl: "https://chat.donglicao.com/v1",
+        apiKey: "${LIMA_API_KEY}",
+        api: "openai-completions",
+        models: [
+          {
+            id: "lima-default",
+            name: "LiMa Default",
+            reasoning: false,
+            input: ["text"],
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+            contextWindow: 128000,
+            maxTokens: 8192,
+          },
+        ],
+      },
+    },
+  },
+
+  agents: {
+    defaults: {
+      workspace: "/opt/lima-router/openclaw/workspace",
+      model: { primary: "lima/lima-default" },
+      skills: [],
+      heartbeat: { every: "168h", directPolicy: "block" },
+      sandbox: { mode: "off" },
+      maxConcurrent: 2,
+      verboseDefault: "off",
+    },
+    list: [
+      {
+        id: "main",
+        default: true,
+        identity: { name: "LiMa", theme: "LiMa personal assistant", emoji: "🦞" },
+      },
+    ],
+  },
+
+  channels: {
+    telegram: { enabled: false },
+    whatsapp: { enabled: false },
+    discord: { enabled: false },
+    slack: { enabled: false },
+    signal: { enabled: false },
+    imessage: { enabled: false },
+    "openclaw-weixin": {
+      enabled: true,
+      dmPolicy: "pairing",
+      groupPolicy: "disabled",
+    },
+  },
+
+  plugins: {
+    bundledDiscovery: "allowlist",
+    allow: ["openclaw-weixin"],
+    slots: { memory: "none" },
+  },
+
+  tools: {
+    allow: [],
+    deny: [
+      "browser",
+      "canvas",
+      "exec",
+      "process",
+      "read",
+      "write",
+      "edit",
+      "apply_patch",
+    ],
+  },
+
+  commitments: { enabled: false },
+  cron: { enabled: false },
+  hooks: { enabled: false },
+  mcp: { servers: {} },
+  skills: { allowBundled: [] },
+}

@@ -1,0 +1,110 @@
+[
+  {
+    "backend": "scnet_ds_flash",
+    "passes": 3,
+    "cases": 3,
+    "avg_score": 100,
+    "avg_latency_ms": 3330,
+    "decision": "first_tier_candidate",
+    "notes": "Passed code_review, json_tool_output, and python_bugfix from VPS."
+  },
+  {
+    "backend": "scnet_ds_pro",
+    "passes": 3,
+    "cases": 3,
+    "avg_score": 91,
+    "avg_latency_ms": 4571,
+    "decision": "first_tier_candidate",
+    "notes": "Passed all fixtures; python_bugfix used a fenced code block, so keep after faster SCNet models."
+  },
+  {
+    "backend": "scnet_qwen235b",
+    "passes": 3,
+    "cases": 3,
+    "avg_score": 100,
+    "avg_latency_ms": 4004,
+    "decision": "first_tier_candidate",
+    "notes": "Passed all fixtures with clean JSON and Python output."
+  },
+  {
+    "backend": "scnet_qwen30b",
+    "passes": 3,
+    "cases": 3,
+    "avg_score": 91,
+    "avg_latency_ms": 2713,
+    "decision": "first_tier_candidate",
+    "notes": "Fastest successful SCNet direct model; one code_review response hit a conservative forbidden-pattern check."
+  },
+  {
+    "backend": "scnet_minimax",
+    "passes": 0,
+    "cases": 3,
+    "avg_score": 0,
+    "avg_latency_ms": 10145,
+    "decision": "inactive_due_to_timeout",
+    "notes": "Timed out on first fixture and then entered cooldown."
+  },
+  {
+    "backend": "scnet_large_ds_flash",
+    "passes": 0,
+    "cases": 3,
+    "avg_score": 0,
+    "avg_latency_ms": 0,
+    "decision": "inactive_until_proxy_fixed",
+    "notes": "VPS local proxy port 4505 refused connections."
+  },
+  {
+    "backend": "scnet_large_ds_pro",
+    "passes": 0,
+    "cases": 3,
+    "avg_score": 0,
+    "avg_latency_ms": 0,
+    "decision": "inactive_until_proxy_fixed",
+    "notes": "VPS local proxy port 4505 refused connections."
+  },
+  {
+    "backend": "cf_kimi_k26",
+    "passes": 1,
+    "cases": 3,
+    "avg_score": 48,
+    "avg_latency_ms": 7844,
+    "decision": "fallback_only",
+    "notes": "Reachable but verbose and failed strict JSON/code-only fixtures."
+  },
+  {
+    "backend": "stock_kimi_k2",
+    "passes": 0,
+    "cases": 3,
+    "avg_score": 0,
+    "avg_latency_ms": 525,
+    "decision": "inactive_due_to_invalid_response",
+    "notes": "Returned an invalid/empty response and then entered cooldown."
+  },
+  {
+    "backend": "kimi",
+    "passes": 0,
+    "cases": 3,
+    "avg_score": 0,
+    "avg_latency_ms": 0,
+    "decision": "inactive_until_proxy_fixed",
+    "notes": "VPS local proxy port 4504 refused connections."
+  },
+  {
+    "backend": "kimi_thinking",
+    "passes": 0,
+    "cases": 3,
+    "avg_score": 0,
+    "avg_latency_ms": 0,
+    "decision": "inactive_until_proxy_fixed",
+    "notes": "VPS local proxy port 4504 refused connections."
+  },
+  {
+    "backend": "kimi_search",
+    "passes": 0,
+    "cases": 3,
+    "avg_score": 0,
+    "avg_latency_ms": 0,
+    "decision": "inactive_until_proxy_fixed",
+    "notes": "VPS local proxy port 4504 refused connections."
+  }
+]

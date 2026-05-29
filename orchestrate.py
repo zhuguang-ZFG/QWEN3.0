@@ -2,11 +2,18 @@
 复杂任务拆解为子任务，每个子任务路由到最强专业模型，合并结果。
 Superpower 原则：编排层让多个模型协作产生超越单模型的效果。
 """
-import sys, os, json, time
+import sys, os, json, time, logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Any
+
+_log = logging.getLogger(__name__)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import smart_router
+import health_tracker
+import http_caller
+import routing_engine
+from backends import BACKENDS
 
 # ── 配置 ────────────────────────────────────────────────────────────────────
 MAX_CONCURRENT = 3          # 最大并发子任务数
@@ -53,7 +60,7 @@ def needs_orchestration(query: str, intent: dict) -> bool:
 
     # 条件2：跨多领域
     domains_hit = 0
-    for domain, keywords in MULTI_DOMAIN_KEYWORDS.items():
+    for _domain, keywords in MULTI_DOMAIN_KEYWORDS.items():
         if any(kw in query for kw in keywords):
             domains_hit += 1
     if domains_hit >= 2:
@@ -71,7 +78,7 @@ def needs_orchestration(query: str, intent: dict) -> bool:
     return False
 
 
-def decompose(query: str) -> list[dict]:
+def decompose(query: str) -> list[dict[str, Any]]:
     """将复杂问题拆解为子任务列表。
     调用本地模型，输出 JSON 格式子任务。
 
@@ -122,7 +129,7 @@ def decompose(query: str) -> list[dict]:
     return [{"task": query, "domain": "general", "backend_hint": ""}]
 
 
-def execute_subtasks(subtasks: list[dict]) -> list[dict]:
+def execute_subtasks(subtasks: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """并发执行子任务（ThreadPoolExecutor，最多 MAX_CONCURRENT 个并发）。
     每个子任务调用 smart_router.call_api 或 smart_router.route。
 
@@ -132,32 +139,48 @@ def execute_subtasks(subtasks: list[dict]) -> list[dict]:
     Returns:
         结果列表，每个为 dict: {"task": str, "answer": str, "backend": str, "ms": int}
     """
-    results = [None] * len(subtasks)
+    results: list[dict[str, Any]] = [
+        {
+            "task": subtask.get("task", ""),
+            "answer": "",
+            "backend": "pending",
+            "ms": 0,
+        }
+        for subtask in subtasks
+    ]
 
-    def _exec_one(idx: int, subtask: dict) -> dict:
+    def _exec_one(idx: int, subtask: dict[str, Any]) -> dict[str, Any]:
         t0 = time.time()
         task_query = subtask["task"]
         hint = subtask.get("backend_hint", "")
 
         # 如果有后端提示且可用，直接调用
-        if hint and hint in smart_router.BACKENDS and smart_router.cb_allow(hint):
-            answer = smart_router.call_api(
-                hint, [{"role": "user", "content": task_query}]
-            )
-            if answer and not answer.startswith("[ERR]"):
+        if hint and hint in BACKENDS and not health_tracker.is_cooled_down(hint):
+            try:
+                answer = http_caller.call_api(
+                    hint, [{"role": "user", "content": task_query}])
                 return {
                     "task": task_query,
                     "answer": answer,
                     "backend": hint,
                     "ms": int((time.time() - t0) * 1000)
                 }
+            except Exception as exc:
+                _log.debug(
+                    "orchestrate hint backend failed hint=%s: %s",
+                    hint,
+                    type(exc).__name__,
+                )
 
         # 否则走完整路由
-        result = smart_router.route(task_query)
+        def _call_fn(backend, msgs, mt):
+            return http_caller.call_api(backend, msgs, mt)
+        r = routing_engine.route(task_query,
+            [{"role": "user", "content": task_query}], call_fn=_call_fn)
         return {
             "task": task_query,
-            "answer": result.get("answer", ""),
-            "backend": result.get("backend", "unknown"),
+            "answer": r.answer,
+            "backend": r.backend,
             "ms": int((time.time() - t0) * 1000)
         }
 
@@ -181,7 +204,7 @@ def execute_subtasks(subtasks: list[dict]) -> list[dict]:
     return results
 
 
-def synthesize(query: str, results: list[dict]) -> str:
+def synthesize(query: str, results: list[dict[str, Any]]) -> str:
     """合并子任务结果为最终回答。
     调用 longcat 或本地模型做合并，产生连贯的综合回答。
 
@@ -210,9 +233,16 @@ def synthesize(query: str, results: list[dict]) -> str:
 
     # 优先用 longcat，失败则用本地模型
     msgs = [{"role": "user", "content": prompt}]
-    answer = smart_router.call_api("longcat_chat", msgs, mt=SYNTHESIZE_MAX_TOKENS)
-    if answer and "[ERR]" not in answer and "暂时不可用" not in answer:
-        return answer
+    try:
+        answer = http_caller.call_api(
+            "longcat_chat",
+            msgs,
+            max_tokens=SYNTHESIZE_MAX_TOKENS,
+        )
+        if answer and "暂时不可用" not in answer:
+            return answer
+    except Exception as exc:
+        _log.debug("orchestrate synthesize longcat failed: %s", type(exc).__name__)
 
     # 回退到本地模型
     answer = smart_router.call_local(msgs, mt=SYNTHESIZE_MAX_TOKENS, t=0.5)
@@ -245,14 +275,22 @@ def orchestrate(query: str) -> dict:
 
     # 再次确认是否需要编排（防止外部直接调用）
     if not needs_orchestration(query, intent):
-        return smart_router.route(query)
+        def _call_fn(backend, msgs, mt):
+            return http_caller.call_api(backend, msgs, mt)
+        r = routing_engine.route(query, [{"role": "user", "content": query}],
+                                 call_fn=_call_fn)
+        return {"answer": r.answer, "backend": r.backend, "total_ms": r.ms}
 
     # 拆解
     subtasks = decompose(query)
 
     # 如果拆解失败（只有1个且等于原查询），直接路由
     if len(subtasks) == 1 and subtasks[0]["task"] == query:
-        return smart_router.route(query)
+        def _call_fn(backend, msgs, mt):
+            return http_caller.call_api(backend, msgs, mt)
+        r = routing_engine.route(query, [{"role": "user", "content": query}],
+                                 call_fn=_call_fn)
+        return {"answer": r.answer, "backend": r.backend, "total_ms": r.ms}
 
     # 并发执行
     results = execute_subtasks(subtasks)

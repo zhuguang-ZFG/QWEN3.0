@@ -1,0 +1,17 @@
+{
+  "id": "explain_router",
+  "name": "Explain routing concept",
+  "prompt": "Explain the concept of a routing engine in 2-3 sentences.",
+  "required_patterns": [
+    "rout"
+  ],
+  "forbidden_patterns": [
+    "code",
+    "function"
+  ],
+  "min_chars": 50,
+  "tags": [
+    "explanation",
+    "english"
+  ]
+}

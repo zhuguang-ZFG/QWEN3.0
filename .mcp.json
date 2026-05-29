@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "ssh-manager": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-ssh-manager"],
+      "env": {
+        "SSH_SERVER_LIMA_HOST": "47.112.162.80",
+        "SSH_SERVER_LIMA_USER": "root",
+        "SSH_SERVER_LIMA_PASSWORD": "zhuguang110!",
+        "SSH_SERVER_LIMA_PORT": "22"
+      }
+    }
+  }
+}

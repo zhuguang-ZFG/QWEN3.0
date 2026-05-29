@@ -1,0 +1,31 @@
+[
+  {
+    "backend": "cfai_qwen_coder",
+    "case_id": "code_review",
+    "score": 100,
+    "latency_ms": 2166,
+    "ok": true,
+    "notes": [],
+    "response_preview": "The most important bug in this function is that it does not handle the case where `nums` is an empty list. This would result in a `ZeroDivisionError` when attempting to divide by `len(nums)`, which would be zero."
+  },
+  {
+    "backend": "cfai_deepseek_r1",
+    "case_id": "code_review",
+    "score": 100,
+    "latency_ms": 6919,
+    "ok": true,
+    "notes": [],
+    "response_preview": "The function `average` has a critical bug: it does not handle the case where `nums` is empty, leading to a `ZeroDivisionError` when `len(nums)` is zero."
+  },
+  {
+    "backend": "cfai_mistral",
+    "case_id": "code_review",
+    "score": 0,
+    "latency_ms": 880,
+    "ok": false,
+    "notes": [
+      "call failed: BackendError: HTTP Error 500: Internal Server Error"
+    ],
+    "response_preview": ""
+  }
+]

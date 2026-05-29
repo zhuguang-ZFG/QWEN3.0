@@ -1,0 +1,45 @@
+{
+  "name": "lima_routing",
+  "corpus_root": "tests/fixtures/routing_corpus",
+  "top_k": 5,
+  "match_by": "basename",
+  "eval_mode": "dual_layer",
+  "graph_relations": [
+    {"source": "routing_engine.py", "target": "http_caller.py", "relation_type": "imports"},
+    {"source": "routing_engine.py", "target": "health_tracker.py", "relation_type": "imports"},
+    {"source": "http_caller.py", "target": "health_tracker.py", "relation_type": "imports"},
+    {"source": "router_classifier.py", "target": "routing_engine.py", "relation_type": "used_by"}
+  ],
+  "thresholds": {
+    "min_hit_rate": 0.75,
+    "min_mean_recall": 0.5,
+    "min_mean_mrr": 0.25
+  },
+  "queries": [
+    {
+      "query": "five layer routing engine select backend health scores",
+      "expected_paths": ["routing_engine.py"],
+      "description": "Find routing engine module"
+    },
+    {
+      "query": "httpx call_api backend cooled down clean response",
+      "expected_paths": ["http_caller.py"],
+      "description": "Find http caller module"
+    },
+    {
+      "query": "rule_classify signal_classify analyze intent routing",
+      "expected_paths": ["router_classifier.py"],
+      "description": "Find classifier module"
+    },
+    {
+      "query": "record_failure cooldown health score degraded",
+      "expected_paths": ["health_tracker.py"],
+      "description": "Find health tracker module"
+    },
+    {
+      "query": "route_request call_api health tracker cooldown",
+      "expected_paths": ["routing_engine.py", "http_caller.py", "health_tracker.py"],
+      "description": "Graph should surface related routing modules"
+    }
+  ]
+}

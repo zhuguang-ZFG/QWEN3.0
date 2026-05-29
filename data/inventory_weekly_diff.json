@@ -1,0 +1,23 @@
+{
+  "computed_at": 1779773004.21371,
+  "computed_date": "2026-05-26",
+  "min_age_days": 7,
+  "cloudflare": {
+    "provider": "cloudflare",
+    "baseline_date": null,
+    "added": [],
+    "removed": [],
+    "old_count": 0,
+    "new_count": 73,
+    "status": "no_baseline"
+  },
+  "google": {
+    "provider": "google",
+    "baseline_date": null,
+    "added": [],
+    "removed": [],
+    "old_count": 0,
+    "new_count": 35,
+    "status": "no_baseline"
+  }
+}

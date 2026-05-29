@@ -1,0 +1,328 @@
+[
+  {
+    "backend": "scnet_ds_flash",
+    "case_id": "code_review",
+    "score": 100,
+    "latency_ms": 3256,
+    "ok": true,
+    "notes": [],
+    "response_preview": "The most important bug is that the function will raise a `ZeroDivisionError` if `nums` is an empty list, because `len(nums)` will be 0 and division by zero is undefined."
+  },
+  {
+    "backend": "scnet_ds_flash",
+    "case_id": "json_tool_output",
+    "score": 100,
+    "latency_ms": 1820,
+    "ok": true,
+    "notes": [],
+    "response_preview": "{\"action\": \"update\", \"files\": [\"router_v3.py\"], \"reason\": \"Modify routing logic to prioritize coding backends when handling IDE requests.\"}"
+  },
+  {
+    "backend": "scnet_ds_flash",
+    "case_id": "python_bugfix",
+    "score": 100,
+    "latency_ms": 1541,
+    "ok": true,
+    "notes": [],
+    "response_preview": "```python def last_item(items): return items[-1] ```"
+  },
+  {
+    "backend": "scnet_ds_pro",
+    "case_id": "code_review",
+    "score": 0,
+    "latency_ms": 45340,
+    "ok": false,
+    "notes": [
+      "call failed: BackendError: The read operation timed out"
+    ],
+    "response_preview": ""
+  },
+  {
+    "backend": "scnet_ds_pro",
+    "case_id": "json_tool_output",
+    "score": 0,
+    "latency_ms": 0,
+    "ok": false,
+    "notes": [
+      "call failed: BackendError: scnet_ds_pro is cooled down"
+    ],
+    "response_preview": ""
+  },
+  {
+    "backend": "scnet_ds_pro",
+    "case_id": "python_bugfix",
+    "score": 0,
+    "latency_ms": 0,
+    "ok": false,
+    "notes": [
+      "call failed: BackendError: scnet_ds_pro is cooled down"
+    ],
+    "response_preview": ""
+  },
+  {
+    "backend": "scnet_qwen235b",
+    "case_id": "code_review",
+    "score": 100,
+    "latency_ms": 3325,
+    "ok": true,
+    "notes": [],
+    "response_preview": "The most important bug in this function is **no check for an empty list**. If `nums` is empty, the function will raise a `ZeroDivisionError` when attempting to compute `total / len(nums)`. **Fix:** ```python def average(nums): if not nums: return 0 # or raise an exception, depend"
+  },
+  {
+    "backend": "scnet_qwen235b",
+    "case_id": "json_tool_output",
+    "score": 100,
+    "latency_ms": 2683,
+    "ok": true,
+    "notes": [],
+    "response_preview": "{ \"action\": \"update\", \"files\": [\"router_v3.py\"], \"reason\": \"To prioritize coding backends for IDE requests in the routing logic.\" }"
+  },
+  {
+    "backend": "scnet_qwen235b",
+    "case_id": "python_bugfix",
+    "score": 100,
+    "latency_ms": 1158,
+    "ok": true,
+    "notes": [],
+    "response_preview": "```python def last_item(items): return items[len(items) - 1] ```"
+  },
+  {
+    "backend": "scnet_qwen30b",
+    "case_id": "code_review",
+    "score": 100,
+    "latency_ms": 1811,
+    "ok": true,
+    "notes": [],
+    "response_preview": "The most important bug is that the function does not handle the case where `nums` is empty, which will raise a `ZeroDivisionError` when dividing by `len(nums)` (which is 0)."
+  },
+  {
+    "backend": "scnet_qwen30b",
+    "case_id": "json_tool_output",
+    "score": 100,
+    "latency_ms": 2343,
+    "ok": true,
+    "notes": [],
+    "response_preview": "{ \"action\": \"update\", \"files\": [ \"router_v3.py\" ], \"reason\": \"To prioritize coding backends for IDE-related requests, ensuring faster and more accurate code generation and support within development environments.\" }"
+  },
+  {
+    "backend": "scnet_qwen30b",
+    "case_id": "python_bugfix",
+    "score": 100,
+    "latency_ms": 1289,
+    "ok": true,
+    "notes": [],
+    "response_preview": "```python def last_item(items): return items[-1] ```"
+  },
+  {
+    "backend": "scnet_large_ds_flash",
+    "case_id": "code_review",
+    "score": 100,
+    "latency_ms": 1343,
+    "ok": true,
+    "notes": [],
+    "response_preview": "The most important bug is a division by zero error when `nums` is an empty list."
+  },
+  {
+    "backend": "scnet_large_ds_flash",
+    "case_id": "json_tool_output",
+    "score": 100,
+    "latency_ms": 1045,
+    "ok": true,
+    "notes": [],
+    "response_preview": "{\"action\": \"update\", \"files\": [\"router_v3.py\"], \"reason\": \"Modify router_v3.py to prioritize coding backends for IDE requests\"}"
+  },
+  {
+    "backend": "scnet_large_ds_flash",
+    "case_id": "python_bugfix",
+    "score": 100,
+    "latency_ms": 1210,
+    "ok": true,
+    "notes": [],
+    "response_preview": "```python def last_item(items): return items[-1] ```"
+  },
+  {
+    "backend": "scnet_large_ds_pro",
+    "case_id": "code_review",
+    "score": 100,
+    "latency_ms": 85355,
+    "ok": true,
+    "notes": [],
+    "response_preview": "The most important bug is that the function will raise a `ZeroDivisionError` if `nums` is an empty list, because `len(nums)` would be 0."
+  },
+  {
+    "backend": "scnet_large_ds_pro",
+    "case_id": "json_tool_output",
+    "score": 100,
+    "latency_ms": 84051,
+    "ok": true,
+    "notes": [],
+    "response_preview": "{\"action\": \"update\", \"files\": [\"router_v3.py\"], \"reason\": \"Modify routing logic to prefer coding backends when handling IDE requests\"}"
+  },
+  {
+    "backend": "scnet_large_ds_pro",
+    "case_id": "python_bugfix",
+    "score": 100,
+    "latency_ms": 55734,
+    "ok": true,
+    "notes": [],
+    "response_preview": "```python def last_item(items): return items[-1] ```"
+  },
+  {
+    "backend": "cf_kimi_k26",
+    "case_id": "code_review",
+    "score": 100,
+    "latency_ms": 9247,
+    "ok": true,
+    "notes": [],
+    "response_preview": "Division by zero when `nums` is empty (`len(nums) == 0`)."
+  },
+  {
+    "backend": "cf_kimi_k26",
+    "case_id": "json_tool_output",
+    "score": 5,
+    "latency_ms": 4215,
+    "ok": false,
+    "notes": [
+      "missing pattern: \\\"action\\\"",
+      "missing pattern: \\\"files\\\"",
+      "missing pattern: \\\"reason\\\"",
+      "json parse failed"
+    ],
+    "response_preview": "The user wants a JSON object with keys: action, files, and reason. The task is: update router_v3.py to prefer coding backends for IDE requests. No markdown, no prose. Just the JSON object. I need to determine what values to put: - action: likely \"update\" or \"modify\" since it's up"
+  },
+  {
+    "backend": "cf_kimi_k26",
+    "case_id": "python_bugfix",
+    "score": 40,
+    "latency_ms": 6866,
+    "ok": false,
+    "notes": [
+      "forbidden pattern: IndexError",
+      "python syntax error: unterminated string literal (detected at line 1)"
+    ],
+    "response_preview": "We need to fix a Python function: `def last_item(items): return items[len(items)]`. The bug: Python list indices are 0-based, so len(items)-1 is the last index. Also need to handle empty list? The prompt says \"Fix this Python function.\" Usually common fix: return items[-1] or ite"
+  },
+  {
+    "backend": "kimi",
+    "case_id": "code_review",
+    "score": 100,
+    "latency_ms": 6505,
+    "ok": true,
+    "notes": [],
+    "response_preview": "The most important bug is a **division by zero** when `nums` is empty. `len(nums)` returns `0`, causing `ZeroDivisionError`. Fix: Add a guard for empty input, e.g. `return total / len(nums) if nums else 0` (or raise `ValueError`, depending on desired behavior)."
+  },
+  {
+    "backend": "kimi",
+    "case_id": "json_tool_output",
+    "score": 40,
+    "latency_ms": 3026,
+    "ok": false,
+    "notes": [
+      "forbidden pattern: ```",
+      "json parse failed"
+    ],
+    "response_preview": "```json {\"action\":\"update\",\"files\":[\"router_v3.py\"],\"reason\":\"Modify routing logic to prioritize coding backends when requests originate from IDE clients\"} ```"
+  },
+  {
+    "backend": "kimi",
+    "case_id": "python_bugfix",
+    "score": 100,
+    "latency_ms": 4073,
+    "ok": true,
+    "notes": [],
+    "response_preview": "```python def last_item(items): return items[len(items) - 1] ```"
+  },
+  {
+    "backend": "kimi_thinking",
+    "case_id": "code_review",
+    "score": 100,
+    "latency_ms": 3844,
+    "ok": true,
+    "notes": [],
+    "response_preview": "**Bug:** Division by zero when `nums` is empty. `len(nums)` returns `0` for an empty list, causing a `ZeroDivisionError`."
+  },
+  {
+    "backend": "kimi_thinking",
+    "case_id": "json_tool_output",
+    "score": 40,
+    "latency_ms": 3662,
+    "ok": false,
+    "notes": [
+      "forbidden pattern: ```",
+      "json parse failed"
+    ],
+    "response_preview": "```json { \"action\": \"update\", \"files\": [\"router_v3.py\"], \"reason\": \"Modify routing logic to prioritize coding backends when request originates from IDE clients\" } ```"
+  },
+  {
+    "backend": "kimi_thinking",
+    "case_id": "python_bugfix",
+    "score": 100,
+    "latency_ms": 5399,
+    "ok": true,
+    "notes": [],
+    "response_preview": "```python def last_item(items): return items[len(items) - 1] ```"
+  },
+  {
+    "backend": "kimi_search",
+    "case_id": "code_review",
+    "score": 100,
+    "latency_ms": 4138,
+    "ok": true,
+    "notes": [],
+    "response_preview": "The most important bug is **division by zero when `nums` is empty**. When `nums` is an empty list, `len(nums)` returns `0`, causing `ZeroDivisionError`."
+  },
+  {
+    "backend": "kimi_search",
+    "case_id": "json_tool_output",
+    "score": 40,
+    "latency_ms": 3484,
+    "ok": false,
+    "notes": [
+      "forbidden pattern: ```",
+      "json parse failed"
+    ],
+    "response_preview": "```json { \"action\": \"edit\", \"files\": [\"router_v3.py\"], \"reason\": \"Update routing logic to prefer coding backends when request context indicates IDE origin\" } ```"
+  },
+  {
+    "backend": "kimi_search",
+    "case_id": "python_bugfix",
+    "score": 100,
+    "latency_ms": 13758,
+    "ok": true,
+    "notes": [],
+    "response_preview": "```python def last_item(items): return items[len(items) - 1] ```"
+  },
+  {
+    "backend": "stock_kimi_k2",
+    "case_id": "code_review",
+    "score": 0,
+    "latency_ms": 2303,
+    "ok": false,
+    "notes": [
+      "call failed: BackendError: Expecting value: line 1 column 1 (char 0)"
+    ],
+    "response_preview": ""
+  },
+  {
+    "backend": "stock_kimi_k2",
+    "case_id": "json_tool_output",
+    "score": 0,
+    "latency_ms": 0,
+    "ok": false,
+    "notes": [
+      "call failed: BackendError: stock_kimi_k2 is cooled down"
+    ],
+    "response_preview": ""
+  },
+  {
+    "backend": "stock_kimi_k2",
+    "case_id": "python_bugfix",
+    "score": 0,
+    "latency_ms": 0,
+    "ok": false,
+    "notes": [
+      "call failed: BackendError: stock_kimi_k2 is cooled down"
+    ],
+    "response_preview": ""
+  }
+]

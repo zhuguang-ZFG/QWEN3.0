@@ -1,0 +1,3 @@
+As a coding expert, rewrite this query into a detailed technical question.
+Add language, framework, and specific requirements.
+Under 300 chars. Chinese. Output ONLY the expanded question.

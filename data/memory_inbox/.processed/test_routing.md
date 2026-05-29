@@ -1,0 +1,3 @@
+- scnet_ds_flash routes coding requests fastest at 800ms avg
+- deploy backup created at /opt/lima-router/backups/test
+- test_routing_engine.py 34 passed

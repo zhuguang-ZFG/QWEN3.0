@@ -1,0 +1,995 @@
+{
+  "provider": "gitee",
+  "fetched_at": 1779760873.4278224,
+  "model_count": 247,
+  "models": [
+    {
+      "model_id": "ACE-Step-v1-3.5B",
+      "object": "model"
+    },
+    {
+      "model_id": "Align-DS-V",
+      "object": "model"
+    },
+    {
+      "model_id": "AnimeSharp",
+      "object": "model"
+    },
+    {
+      "model_id": "AudioFly",
+      "object": "model"
+    },
+    {
+      "model_id": "AutoGLM-Phone-9B-Multilingual",
+      "object": "model"
+    },
+    {
+      "model_id": "Baichuan-M2-32B",
+      "object": "model"
+    },
+    {
+      "model_id": "ChatTTS",
+      "object": "model"
+    },
+    {
+      "model_id": "CogVideoX-5b",
+      "object": "model"
+    },
+    {
+      "model_id": "CogView4_6B",
+      "object": "model"
+    },
+    {
+      "model_id": "CosyVoice2",
+      "object": "model"
+    },
+    {
+      "model_id": "CosyVoice3",
+      "object": "model"
+    },
+    {
+      "model_id": "DeepSeek-OCR",
+      "object": "model"
+    },
+    {
+      "model_id": "DeepSeek-OCR-2",
+      "object": "model"
+    },
+    {
+      "model_id": "DeepSeek-Prover-V2-7B",
+      "object": "model"
+    },
+    {
+      "model_id": "DeepSeek-R1",
+      "object": "model"
+    },
+    {
+      "model_id": "DeepSeek-R1-Distill-Qwen-1.5B",
+      "object": "model"
+    },
+    {
+      "model_id": "DeepSeek-R1-Distill-Qwen-14B",
+      "object": "model"
+    },
+    {
+      "model_id": "DeepSeek-R1-Distill-Qwen-32B",
+      "object": "model"
+    },
+    {
+      "model_id": "DeepSeek-R1-Distill-Qwen-7B",
+      "object": "model"
+    },
+    {
+      "model_id": "DeepSeek-V3",
+      "object": "model"
+    },
+    {
+      "model_id": "DeepSeek-V3.2",
+      "object": "model"
+    },
+    {
+      "model_id": "DeepSeek-V3.2-Exp",
+      "object": "model"
+    },
+    {
+      "model_id": "DeepSeek-V3_1",
+      "object": "model"
+    },
+    {
+      "model_id": "DeepSeek-V3_1-Terminus",
+      "object": "model"
+    },
+    {
+      "model_id": "DeepSeek-V4-Flash",
+      "object": "model"
+    },
+    {
+      "model_id": "DeepSeek-V4-Pro",
+      "object": "model"
+    },
+    {
+      "model_id": "DianJin-R1-32B",
+      "object": "model"
+    },
+    {
+      "model_id": "DreamO",
+      "object": "model"
+    },
+    {
+      "model_id": "Duix.Heygem",
+      "object": "model"
+    },
+    {
+      "model_id": "ERNIE-4.5-Turbo",
+      "object": "model"
+    },
+    {
+      "model_id": "ERNIE-4.5-Turbo-VL",
+      "object": "model"
+    },
+    {
+      "model_id": "ERNIE-5.0-Thinking",
+      "object": "model"
+    },
+    {
+      "model_id": "ERNIE-X1-Turbo",
+      "object": "model"
+    },
+    {
+      "model_id": "F5-TTS",
+      "object": "model"
+    },
+    {
+      "model_id": "FLUX.1-Kontext-dev",
+      "object": "model"
+    },
+    {
+      "model_id": "FLUX.1-dev",
+      "object": "model"
+    },
+    {
+      "model_id": "FLUX.2-dev",
+      "object": "model"
+    },
+    {
+      "model_id": "FLUX.2-klein-4B",
+      "object": "model"
+    },
+    {
+      "model_id": "FLUX.2-klein-9B",
+      "object": "model"
+    },
+    {
+      "model_id": "FLUX_1-Krea-dev",
+      "object": "model"
+    },
+    {
+      "model_id": "Fin-R1",
+      "object": "model"
+    },
+    {
+      "model_id": "Florence-2-large",
+      "object": "model"
+    },
+    {
+      "model_id": "Fun-ASR-Nano-2512",
+      "object": "model"
+    },
+    {
+      "model_id": "FunASR",
+      "object": "model"
+    },
+    {
+      "model_id": "FunAudioLLM-CosyVoice-300M",
+      "object": "model"
+    },
+    {
+      "model_id": "GLM-4-32B",
+      "object": "model"
+    },
+    {
+      "model_id": "GLM-4-9B-0414",
+      "object": "model"
+    },
+    {
+      "model_id": "GLM-4.6",
+      "object": "model"
+    },
+    {
+      "model_id": "GLM-4.6V",
+      "object": "model"
+    },
+    {
+      "model_id": "GLM-4.6V-Flash",
+      "object": "model"
+    },
+    {
+      "model_id": "GLM-4.7",
+      "object": "model"
+    },
+    {
+      "model_id": "GLM-4.7-Flash",
+      "object": "model"
+    },
+    {
+      "model_id": "GLM-4_5",
+      "object": "model"
+    },
+    {
+      "model_id": "GLM-4_5-Air",
+      "object": "model"
+    },
+    {
+      "model_id": "GLM-4_5V",
+      "object": "model"
+    },
+    {
+      "model_id": "GLM-5",
+      "object": "model"
+    },
+    {
+      "model_id": "GLM-5-Turbo",
+      "object": "model"
+    },
+    {
+      "model_id": "GLM-5.1",
+      "object": "model"
+    },
+    {
+      "model_id": "GLM-5V-Turbo",
+      "object": "model"
+    },
+    {
+      "model_id": "GLM-ASR",
+      "object": "model"
+    },
+    {
+      "model_id": "GLM-Image",
+      "object": "model"
+    },
+    {
+      "model_id": "GLM-TTS",
+      "object": "model"
+    },
+    {
+      "model_id": "GOT-OCR2_0",
+      "object": "model"
+    },
+    {
+      "model_id": "HY-MT1.5-7B",
+      "object": "model"
+    },
+    {
+      "model_id": "HappyHorse-1.0",
+      "object": "model"
+    },
+    {
+      "model_id": "HealthGPT-L14",
+      "object": "model"
+    },
+    {
+      "model_id": "HelloMeme",
+      "object": "model"
+    },
+    {
+      "model_id": "Hi3DGen",
+      "object": "model"
+    },
+    {
+      "model_id": "HiDream-E1-Full",
+      "object": "model"
+    },
+    {
+      "model_id": "HiDream-I1-Full",
+      "object": "model"
+    },
+    {
+      "model_id": "HuatuoGPT-o1-7B",
+      "object": "model"
+    },
+    {
+      "model_id": "Hulu-Med-14B",
+      "object": "model"
+    },
+    {
+      "model_id": "Hunyuan-MT-Chimera-7B",
+      "object": "model"
+    },
+    {
+      "model_id": "Hunyuan3D-2",
+      "object": "model"
+    },
+    {
+      "model_id": "HunyuanDiT-v1.2-Diffusers-Distilled",
+      "object": "model"
+    },
+    {
+      "model_id": "HunyuanOCR",
+      "object": "model"
+    },
+    {
+      "model_id": "HunyuanVideo-1.5",
+      "object": "model"
+    },
+    {
+      "model_id": "IndexTTS-1.5",
+      "object": "model"
+    },
+    {
+      "model_id": "IndexTTS-2",
+      "object": "model"
+    },
+    {
+      "model_id": "InfiniteTalk",
+      "object": "model"
+    },
+    {
+      "model_id": "InstantCharacter",
+      "object": "model"
+    },
+    {
+      "model_id": "InternVL2-8B",
+      "object": "model"
+    },
+    {
+      "model_id": "InternVL2.5-26B",
+      "object": "model"
+    },
+    {
+      "model_id": "InternVL2.5-78B",
+      "object": "model"
+    },
+    {
+      "model_id": "InternVL3-38B",
+      "object": "model"
+    },
+    {
+      "model_id": "InternVL3-78B",
+      "object": "model"
+    },
+    {
+      "model_id": "KAT-Dev",
+      "object": "model"
+    },
+    {
+      "model_id": "Kimi-K2-Thinking",
+      "object": "model"
+    },
+    {
+      "model_id": "Kimi-K2.5",
+      "object": "model"
+    },
+    {
+      "model_id": "Kimi-K2.6",
+      "object": "model"
+    },
+    {
+      "model_id": "Kolors",
+      "object": "model"
+    },
+    {
+      "model_id": "LTX-2",
+      "object": "model"
+    },
+    {
+      "model_id": "LegalOne-8B",
+      "object": "model"
+    },
+    {
+      "model_id": "Lingshu-32B",
+      "object": "model"
+    },
+    {
+      "model_id": "LongCat-Image",
+      "object": "model"
+    },
+    {
+      "model_id": "LongCat-Image-Edit",
+      "object": "model"
+    },
+    {
+      "model_id": "LongCat-Video",
+      "object": "model"
+    },
+    {
+      "model_id": "MAI-UI-8B",
+      "object": "model"
+    },
+    {
+      "model_id": "MOSS-TTSD-v0.5",
+      "object": "model"
+    },
+    {
+      "model_id": "MegaTTS3",
+      "object": "model"
+    },
+    {
+      "model_id": "MinerU2.5",
+      "object": "model"
+    },
+    {
+      "model_id": "MiniMax-M2",
+      "object": "model"
+    },
+    {
+      "model_id": "MiniMax-M2.1",
+      "object": "model"
+    },
+    {
+      "model_id": "MiniMax-M2.5",
+      "object": "model"
+    },
+    {
+      "model_id": "MiniMax-M2.7",
+      "object": "model"
+    },
+    {
+      "model_id": "OmniConsistency",
+      "object": "model"
+    },
+    {
+      "model_id": "PDF-Extract-Kit-1.0",
+      "object": "model"
+    },
+    {
+      "model_id": "PaddleOCR-VL",
+      "object": "model"
+    },
+    {
+      "model_id": "PaddleOCR-VL-1.5",
+      "object": "model"
+    },
+    {
+      "model_id": "QwQ-32B",
+      "object": "model"
+    },
+    {
+      "model_id": "QwQ-32B-Preview",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen-Image",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen-Image-2512",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen-Image-Edit",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen-Image-Edit-2511",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen-Image-Layered",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen2-72B-Instruct",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen2-7B-Instruct",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen2-Audio-7B-Instruct",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen2-VL-72B",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen2.5-14B-Instruct",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen2.5-32B-Instruct",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen2.5-72B-Instruct",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen2.5-7B-Instruct",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen2.5-Coder-14B-Instruct",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen2.5-Coder-32B-Instruct",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen2.5-VL-32B-Instruct",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen2.5-VL-7B-Instruct",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3-0.6B",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3-14B",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3-235B-A22B",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3-235B-A22B-Instruct-2507",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3-30B-A3B",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3-30B-A3B-Instruct-2507",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3-32B",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3-4B",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3-8B",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3-ASR-1.7B",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3-Coder-30B-A3B-Instruct",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3-Coder-Next",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3-Embedding-0.6B",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3-Embedding-4B",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3-Embedding-8B",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3-Next-80B-A3B-Instruct",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3-Next-80B-A3B-Thinking",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3-Reranker-0.6B",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3-Reranker-4B",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3-Reranker-8B",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3-TTS",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3-VL-30B-A3B-Instruct",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3-VL-4B-Instruct",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3-VL-8B-Instruct",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3-VL-Embedding-2B",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3-VL-Embedding-8B",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3-VL-Reranker-2B",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3-VL-Reranker-8B",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3.5-122B-A10B",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3.5-27B",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3.5-35B-A3B",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3.5-9B",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3.6-27B",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3.6-35B-A3B",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3.6-Max",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3.6-Plus",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3.7-Max",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3Guard-Gen-0.6B",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3Guard-Gen-4B",
+      "object": "model"
+    },
+    {
+      "model_id": "Qwen3Guard-Gen-8B",
+      "object": "model"
+    },
+    {
+      "model_id": "RMBG-2.0",
+      "object": "model"
+    },
+    {
+      "model_id": "Real-ESRGAN",
+      "object": "model"
+    },
+    {
+      "model_id": "Security-semantic-filtering",
+      "object": "model"
+    },
+    {
+      "model_id": "Seed-X-PPO-7B",
+      "object": "model"
+    },
+    {
+      "model_id": "SeedVR2-3B",
+      "object": "model"
+    },
+    {
+      "model_id": "SenseVoiceSmall",
+      "object": "model"
+    },
+    {
+      "model_id": "Sinong1.0-32B",
+      "object": "model"
+    },
+    {
+      "model_id": "Spark-TTS-0.5B",
+      "object": "model"
+    },
+    {
+      "model_id": "Step-Audio-TTS-3B",
+      "object": "model"
+    },
+    {
+      "model_id": "Step1X-3D",
+      "object": "model"
+    },
+    {
+      "model_id": "UVDoc",
+      "object": "model"
+    },
+    {
+      "model_id": "VajraV1",
+      "object": "model"
+    },
+    {
+      "model_id": "VibeVoice-Large",
+      "object": "model"
+    },
+    {
+      "model_id": "ViduQ2-Pro",
+      "object": "model"
+    },
+    {
+      "model_id": "ViduQ2-Turbo",
+      "object": "model"
+    },
+    {
+      "model_id": "ViduQ3-Pro",
+      "object": "model"
+    },
+    {
+      "model_id": "ViduQ3-Turbo",
+      "object": "model"
+    },
+    {
+      "model_id": "Wan2.1-I2V-14B-480P",
+      "object": "model"
+    },
+    {
+      "model_id": "Wan2.1-I2V-14B-720P",
+      "object": "model"
+    },
+    {
+      "model_id": "Wan2.1-T2V-1.3B",
+      "object": "model"
+    },
+    {
+      "model_id": "Wan2.1-T2V-14B",
+      "object": "model"
+    },
+    {
+      "model_id": "Wan2.7",
+      "object": "model"
+    },
+    {
+      "model_id": "Wan2_2-I2V-A14B",
+      "object": "model"
+    },
+    {
+      "model_id": "YOLOv8",
+      "object": "model"
+    },
+    {
+      "model_id": "Yi-34B-Chat",
+      "object": "model"
+    },
+    {
+      "model_id": "Youtu-Embedding",
+      "object": "model"
+    },
+    {
+      "model_id": "Z-Image",
+      "object": "model"
+    },
+    {
+      "model_id": "all-mpnet-base-v2",
+      "object": "model"
+    },
+    {
+      "model_id": "bce-embedding-base_v1",
+      "object": "model"
+    },
+    {
+      "model_id": "bce-reranker-base_v1",
+      "object": "model"
+    },
+    {
+      "model_id": "bge-large-zh-v1.5",
+      "object": "model"
+    },
+    {
+      "model_id": "bge-m3",
+      "object": "model"
+    },
+    {
+      "model_id": "bge-reranker-large",
+      "object": "model"
+    },
+    {
+      "model_id": "bge-reranker-v2-m3",
+      "object": "model"
+    },
+    {
+      "model_id": "bge-small-zh-v1.5",
+      "object": "model"
+    },
+    {
+      "model_id": "clip-vit",
+      "object": "model"
+    },
+    {
+      "model_id": "code-raccoon-v1",
+      "object": "model"
+    },
+    {
+      "model_id": "codegeex4-all-9b",
+      "object": "model"
+    },
+    {
+      "model_id": "codesage-large-v2",
+      "object": "model"
+    },
+    {
+      "model_id": "comfyui",
+      "object": "model"
+    },
+    {
+      "model_id": "deepseek-coder-33B-instruct",
+      "object": "model"
+    },
+    {
+      "model_id": "fish-speech-1.2-sft",
+      "object": "model"
+    },
+    {
+      "model_id": "fish-speech-1.5",
+      "object": "model"
+    },
+    {
+      "model_id": "flux-1-schnell",
+      "object": "model"
+    },
+    {
+      "model_id": "gemma-4-26B-A4B-it",
+      "object": "model"
+    },
+    {
+      "model_id": "glm-4-9b-chat",
+      "object": "model"
+    },
+    {
+      "model_id": "gpt-oss-120b",
+      "object": "model"
+    },
+    {
+      "model_id": "gpt-oss-20b",
+      "object": "model"
+    },
+    {
+      "model_id": "internlm3-8b-instruct",
+      "object": "model"
+    },
+    {
+      "model_id": "jina-clip-v1",
+      "object": "model"
+    },
+    {
+      "model_id": "jina-clip-v2",
+      "object": "model"
+    },
+    {
+      "model_id": "jina-embeddings-v4",
+      "object": "model"
+    },
+    {
+      "model_id": "jina-reranker-m0",
+      "object": "model"
+    },
+    {
+      "model_id": "kimi-k2-instruct",
+      "object": "model"
+    },
+    {
+      "model_id": "medgemma-4b-it",
+      "object": "model"
+    },
+    {
+      "model_id": "moark-m1",
+      "object": "model"
+    },
+    {
+      "model_id": "moark-text-moderation",
+      "object": "model"
+    },
+    {
+      "model_id": "nomic-embed-code",
+      "object": "model"
+    },
+    {
+      "model_id": "nonescape-v0",
+      "object": "model"
+    },
+    {
+      "model_id": "nsfw-classifier",
+      "object": "model"
+    },
+    {
+      "model_id": "qwen3-coder-480b-a35b-instruct",
+      "object": "model"
+    },
+    {
+      "model_id": "resnet-50",
+      "object": "model"
+    },
+    {
+      "model_id": "sam3",
+      "object": "model"
+    },
+    {
+      "model_id": "search",
+      "object": "model"
+    },
+    {
+      "model_id": "speecht5_tts",
+      "object": "model"
+    },
+    {
+      "model_id": "stable-diffusion-3-medium",
+      "object": "model"
+    },
+    {
+      "model_id": "stable-diffusion-3.5-large",
+      "object": "model"
+    },
+    {
+      "model_id": "stable-diffusion-3.5-large-turbo",
+      "object": "model"
+    },
+    {
+      "model_id": "stable-diffusion-v1-4",
+      "object": "model"
+    },
+    {
+      "model_id": "stable-diffusion-v1-5",
+      "object": "model"
+    },
+    {
+      "model_id": "stable-diffusion-xl-base-1.0",
+      "object": "model"
+    },
+    {
+      "model_id": "step3",
+      "object": "model"
+    },
+    {
+      "model_id": "stepvideo-t2v",
+      "object": "model"
+    },
+    {
+      "model_id": "whisper-base",
+      "object": "model"
+    },
+    {
+      "model_id": "whisper-large",
+      "object": "model"
+    },
+    {
+      "model_id": "whisper-large-v3",
+      "object": "model"
+    },
+    {
+      "model_id": "whisper-large-v3-turbo",
+      "object": "model"
+    },
+    {
+      "model_id": "z-image-turbo",
+      "object": "model"
+    }
+  ]
+}

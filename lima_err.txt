@@ -1,0 +1,1 @@
+lima-code requires an interactive terminal (TTY). Re-run from a real terminal session.

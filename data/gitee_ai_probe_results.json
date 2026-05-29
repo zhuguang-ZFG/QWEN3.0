@@ -1,0 +1,28 @@
+{
+  "provider": "gitee",
+  "probed": 3,
+  "passed": 0,
+  "results": [
+    {
+      "model_id": "AutoGLM-Phone-9B-Multilingual",
+      "backend_key": "gitee_autoglm_phone_9b_multilingual",
+      "ok": false,
+      "reason": "resource_not_bound",
+      "error": "resource_not_bound: {\"error\":{\"code\":\"400\",\"message\":\"您正在使用的“访问令牌”尚未绑定到任何资源包，或账号未购买可用的资源包。因此无法调用当前接口。请前往工作台绑定已有资源包，或购买新的资源包后重新调用该接口。\",\"type\":\"server_error\"}}"
+    },
+    {
+      "model_id": "DeepSeek-Prover-V2-7B",
+      "backend_key": "gitee_deepseek_prover_v2_7b",
+      "ok": false,
+      "reason": "resource_not_bound",
+      "error": "resource_not_bound: {\"error\":{\"code\":\"400\",\"message\":\"您正在使用的“访问令牌”尚未绑定到任何资源包，或账号未购买可用的资源包。因此无法调用当前接口。请前往工作台绑定已有资源包，或购买新的资源包后重新调用该接口。\",\"type\":\"server_error\"}}"
+    },
+    {
+      "model_id": "DeepSeek-R1",
+      "backend_key": "gitee_deepseek_r1",
+      "ok": false,
+      "reason": "resource_not_bound",
+      "error": "resource_not_bound: {\"error\":{\"code\":\"400\",\"message\":\"您正在使用的“访问令牌”尚未绑定到任何资源包，或账号未购买可用的资源包。因此无法调用当前接口。请前往工作台绑定已有资源包，或购买新的资源包后重新调用该接口。\",\"type\":\"server_error\"}}"
+    }
+  ]
+}

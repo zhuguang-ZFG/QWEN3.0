@@ -1,0 +1,4 @@
+{
+  "ignore_vuln_ids": [],
+  "_comment": "Optional pip-audit --ignore-vuln IDs; prefer pinning/fixing deps first."
+}

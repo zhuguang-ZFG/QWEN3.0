@@ -1,0 +1,56 @@
+[
+  {
+    "backend": "scnet_qwen30b",
+    "case_id": "code_review",
+    "score": 100,
+    "latency_ms": 2144,
+    "ok": true,
+    "notes": [],
+    "response_preview": "The most important bug is that the function does not handle the case where `nums` is empty, which would cause a `ZeroDivisionError` when dividing by zero."
+  },
+  {
+    "backend": "scnet_qwen30b",
+    "case_id": "json_tool_output",
+    "score": 100,
+    "latency_ms": 2939,
+    "ok": true,
+    "notes": [],
+    "response_preview": "{ \"action\": \"update\", \"files\": [ \"router_v3.py\" ], \"reason\": \"To prioritize coding backends for IDE-related requests, ensuring faster and more accurate code generation and assistance within integrated development environments.\" }"
+  },
+  {
+    "backend": "scnet_ds_flash",
+    "case_id": "code_review",
+    "score": 100,
+    "latency_ms": 1857,
+    "ok": true,
+    "notes": [],
+    "response_preview": "The most important bug is that dividing by `len(nums)` will cause a `ZeroDivisionError` if `nums` is an empty list."
+  },
+  {
+    "backend": "scnet_ds_flash",
+    "case_id": "json_tool_output",
+    "score": 100,
+    "latency_ms": 2232,
+    "ok": true,
+    "notes": [],
+    "response_preview": "{\"action\": \"update\", \"files\": [\"router_v3.py\"], \"reason\": \"Modify routing logic to prioritize coding backends for IDE requests\"}"
+  },
+  {
+    "backend": "kimi",
+    "case_id": "code_review",
+    "score": 100,
+    "latency_ms": 3690,
+    "ok": true,
+    "notes": [],
+    "response_preview": "Division by zero when `nums` is empty. Add a check: `if not nums: return 0` (or raise an exception)."
+  },
+  {
+    "backend": "kimi",
+    "case_id": "json_tool_output",
+    "score": 100,
+    "latency_ms": 4343,
+    "ok": true,
+    "notes": [],
+    "response_preview": "```json { \"action\": \"update_file\", \"files\": [\"router_v3.py\"], \"reason\": \"Modify routing logic to prioritize coding backends when request headers or parameters indicate IDE origin (e.g., User-Agent containing 'VSCode', 'JetBrains', 'Cursor', or X-Client-Type: 'ide')\" } ```"
+  }
+]

@@ -1,0 +1,3 @@
+As an embedded systems expert, rewrite this query with hardware context.
+Add: MCU type, peripheral, protocol, constraints.
+Under 300 chars. Chinese. Output ONLY the expanded question.

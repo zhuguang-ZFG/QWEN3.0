@@ -1,0 +1,519 @@
+{
+  "provider": "cloudflare",
+  "fetched_at": 1779774324.790586,
+  "account_id": "3e8dfc378deaf1a6f39fda85ceaca32b",
+  "model_count": 73,
+  "models": [
+    {
+      "model_id": "@cf/ai4bharat/indictrans2-en-indic-1B",
+      "name": "@cf/ai4bharat/indictrans2-en-indic-1B",
+      "description": "IndicTrans2 is the first open-source transformer-based multilingual NMT model that supports high-quality translations across all the 22 scheduled Indic languages",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/aisingapore/gemma-sea-lion-v4-27b-it",
+      "name": "@cf/aisingapore/gemma-sea-lion-v4-27b-it",
+      "description": "SEA-LION stands for Southeast Asian Languages In One Network, which is a collection of Large Language Models (LLMs) which have been pretrained and instruct-tuned for the Southeast Asia (SEA) region.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/baai/bge-base-en-v1.5",
+      "name": "@cf/baai/bge-base-en-v1.5",
+      "description": "BAAI general embedding (Base) model that transforms any given text into a 768-dimensional vector",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/baai/bge-large-en-v1.5",
+      "name": "@cf/baai/bge-large-en-v1.5",
+      "description": "BAAI general embedding (Large) model that transforms any given text into a 1024-dimensional vector",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/baai/bge-m3",
+      "name": "@cf/baai/bge-m3",
+      "description": "Multi-Functionality, Multi-Linguality, and Multi-Granularity embeddings model.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/baai/bge-reranker-base",
+      "name": "@cf/baai/bge-reranker-base",
+      "description": "Different from embedding model, reranker uses question and document as input and directly output similarity instead of embedding. You can get a relevance score by inputting query and passage to the reranker. And the score can be mapped to a",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/baai/bge-small-en-v1.5",
+      "name": "@cf/baai/bge-small-en-v1.5",
+      "description": "BAAI general embedding (Small) model that transforms any given text into a 384-dimensional vector",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/black-forest-labs/flux-1-schnell",
+      "name": "@cf/black-forest-labs/flux-1-schnell",
+      "description": "FLUX.1 [schnell] is a 12 billion parameter rectified flow transformer capable of generating images from text descriptions. ",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/black-forest-labs/flux-2-dev",
+      "name": "@cf/black-forest-labs/flux-2-dev",
+      "description": "FLUX.2 [dev] is an image model from Black Forest Labs where you can generate highly realistic and detailed images, with multi-reference support.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/black-forest-labs/flux-2-klein-4b",
+      "name": "@cf/black-forest-labs/flux-2-klein-4b",
+      "description": "FLUX.2 [klein] is an ultra-fast, distilled image model. It unifies image generation and editing in a single model, delivering state-of-the-art quality enabling interactive workflows, real-time previews, and latency-critical applications.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/black-forest-labs/flux-2-klein-9b",
+      "name": "@cf/black-forest-labs/flux-2-klein-9b",
+      "description": "FLUX.2 [klein] 9B is a 9 billion parameter model that can generate images from text descriptions and supports multi-reference editing capabilities.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/bytedance/stable-diffusion-xl-lightning",
+      "name": "@cf/bytedance/stable-diffusion-xl-lightning",
+      "description": "SDXL-Lightning is a lightning-fast text-to-image generation model. It can generate high-quality 1024px images in a few steps.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/deepgram/aura-1",
+      "name": "@cf/deepgram/aura-1",
+      "description": "Aura is a context-aware text-to-speech (TTS) model that applies natural pacing, expressiveness, and fillers based on the context of the provided text. The quality of your text input directly impacts the naturalness of the audio output.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/deepgram/aura-2-en",
+      "name": "@cf/deepgram/aura-2-en",
+      "description": "Aura-2 is a context-aware text-to-speech (TTS) model that applies natural pacing, expressiveness, and fillers based on the context of the provided text. The quality of your text input directly impacts the naturalness of the audio output.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/deepgram/aura-2-es",
+      "name": "@cf/deepgram/aura-2-es",
+      "description": "Aura-2 is a context-aware text-to-speech (TTS) model that applies natural pacing, expressiveness, and fillers based on the context of the provided text. The quality of your text input directly impacts the naturalness of the audio output.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/deepgram/flux",
+      "name": "@cf/deepgram/flux",
+      "description": "Flux is the first conversational speech recognition model built specifically for voice agents.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/deepgram/nova-3",
+      "name": "@cf/deepgram/nova-3",
+      "description": "Transcribe audio using Deepgram’s speech-to-text model",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
+      "name": "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
+      "description": "DeepSeek-R1-Distill-Qwen-32B is a model distilled from DeepSeek-R1 based on Qwen2.5. It outperforms OpenAI-o1-mini across various benchmarks, achieving new state-of-the-art results for dense models.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/defog/sqlcoder-7b-2",
+      "name": "@cf/defog/sqlcoder-7b-2",
+      "description": "This model is intended to be used by non-technical users to understand data inside their SQL databases. ",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/facebook/bart-large-cnn",
+      "name": "@cf/facebook/bart-large-cnn",
+      "description": "BART is a transformer encoder-encoder (seq2seq) model with a bidirectional (BERT-like) encoder and an autoregressive (GPT-like) decoder. You can use this model for text summarization.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/google/embeddinggemma-300m",
+      "name": "@cf/google/embeddinggemma-300m",
+      "description": "EmbeddingGemma is a 300M parameter, state-of-the-art for its size, open embedding model from Google, built from Gemma 3 (with T5Gemma initialization) and the same research and technology used to create Gemini models. EmbeddingGemma produces",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/google/gemma-2b-it-lora",
+      "name": "@cf/google/gemma-2b-it-lora",
+      "description": "This is a Gemma-2B base model that Cloudflare dedicates for inference with LoRA adapters. Gemma is a family of lightweight, state-of-the-art open models from Google, built from the same research and technology used to create the Gemini mode",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/google/gemma-3-12b-it",
+      "name": "@cf/google/gemma-3-12b-it",
+      "description": "Gemma 3 models are well-suited for a variety of text generation and image understanding tasks, including question answering, summarization, and reasoning. Gemma 3 models are multimodal, handling text and image input and generating text outp",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/google/gemma-4-26b-a4b-it",
+      "name": "@cf/google/gemma-4-26b-a4b-it",
+      "description": "Gemma 4 is Google's most intelligent family of open models, built from Gemini 3 research to maximize intelligence-per-parameter.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/google/gemma-7b-it-lora",
+      "name": "@cf/google/gemma-7b-it-lora",
+      "description": "  This is a Gemma-7B base model that Cloudflare dedicates for inference with LoRA adapters. Gemma is a family of lightweight, state-of-the-art open models from Google, built from the same research and technology used to create the Gemini mo",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/huggingface/distilbert-sst-2-int8",
+      "name": "@cf/huggingface/distilbert-sst-2-int8",
+      "description": "Distilled BERT model that was finetuned on SST-2 for sentiment classification",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/ibm-granite/granite-4.0-h-micro",
+      "name": "@cf/ibm-granite/granite-4.0-h-micro",
+      "description": "Granite 4.0 instruct models deliver strong performance across benchmarks, achieving industry-leading results in key agentic tasks like instruction following and function calling. These efficiencies make the models well-suited for a wide ran",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/leonardo/lucid-origin",
+      "name": "@cf/leonardo/lucid-origin",
+      "description": "Lucid Origin from Leonardo.AI is their most adaptable and prompt-responsive model to date. Whether you're generating images with sharp graphic design, stunning full-HD renders, or highly specific creative direction, it adheres closely to yo",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/leonardo/phoenix-1.0",
+      "name": "@cf/leonardo/phoenix-1.0",
+      "description": "Phoenix 1.0 is a model by Leonardo.Ai that generates images with exceptional prompt adherence and coherent text.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/llava-hf/llava-1.5-7b-hf",
+      "name": "@cf/llava-hf/llava-1.5-7b-hf",
+      "description": "LLaVA is an open-source chatbot trained by fine-tuning LLaMA/Vicuna on GPT-generated multimodal instruction-following data. It is an auto-regressive language model, based on the transformer architecture.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/lykon/dreamshaper-8-lcm",
+      "name": "@cf/lykon/dreamshaper-8-lcm",
+      "description": "Stable Diffusion model that has been fine-tuned to be better at photorealism without sacrificing range.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/meta-llama/llama-2-7b-chat-hf-lora",
+      "name": "@cf/meta-llama/llama-2-7b-chat-hf-lora",
+      "description": "This is a Llama2 base model that Cloudflare dedicated for inference with LoRA adapters. Llama 2 is a collection of pretrained and fine-tuned generative text models ranging in scale from 7 billion to 70 billion parameters. This is the reposi",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/meta/llama-2-7b-chat-fp16",
+      "name": "@cf/meta/llama-2-7b-chat-fp16",
+      "description": "Full precision (fp16) generative text model with 7 billion parameters from Meta",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/meta/llama-2-7b-chat-int8",
+      "name": "@cf/meta/llama-2-7b-chat-int8",
+      "description": "Quantized (int8) generative text model with 7 billion parameters from Meta",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/meta/llama-3-8b-instruct",
+      "name": "@cf/meta/llama-3-8b-instruct",
+      "description": "Generation over generation, Meta Llama 3 demonstrates state-of-the-art performance on a wide range of industry benchmarks and offers new capabilities, including improved reasoning.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/meta/llama-3-8b-instruct-awq",
+      "name": "@cf/meta/llama-3-8b-instruct-awq",
+      "description": "Quantized (int4) generative text model with 8 billion parameters from Meta.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/meta/llama-3.1-8b-instruct-awq",
+      "name": "@cf/meta/llama-3.1-8b-instruct-awq",
+      "description": "Quantized (int4) generative text model with 8 billion parameters from Meta.\n",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/meta/llama-3.1-8b-instruct-fp8",
+      "name": "@cf/meta/llama-3.1-8b-instruct-fp8",
+      "description": "Llama 3.1 8B quantized to FP8 precision",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/meta/llama-3.2-11b-vision-instruct",
+      "name": "@cf/meta/llama-3.2-11b-vision-instruct",
+      "description": " The Llama 3.2-Vision instruction-tuned models are optimized for visual recognition, image reasoning, captioning, and answering general questions about an image.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/meta/llama-3.2-1b-instruct",
+      "name": "@cf/meta/llama-3.2-1b-instruct",
+      "description": "The Llama 3.2 instruction-tuned text only models are optimized for multilingual dialogue use cases, including agentic retrieval and summarization tasks.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/meta/llama-3.2-3b-instruct",
+      "name": "@cf/meta/llama-3.2-3b-instruct",
+      "description": "The Llama 3.2 instruction-tuned text only models are optimized for multilingual dialogue use cases, including agentic retrieval and summarization tasks.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+      "name": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+      "description": "Llama 3.3 70B quantized to fp8 precision, optimized to be faster.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/meta/llama-4-scout-17b-16e-instruct",
+      "name": "@cf/meta/llama-4-scout-17b-16e-instruct",
+      "description": "Meta's Llama 4 Scout is a 17 billion parameter model with 16 experts that is natively multimodal. These models leverage a mixture-of-experts architecture to offer industry-leading performance in text and image understanding.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/meta/llama-guard-3-8b",
+      "name": "@cf/meta/llama-guard-3-8b",
+      "description": "Llama Guard 3 is a Llama-3.1-8B pretrained model, fine-tuned for content safety classification. Similar to previous versions, it can be used to classify content in both LLM inputs (prompt classification) and in LLM responses (response class",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/meta/m2m100-1.2b",
+      "name": "@cf/meta/m2m100-1.2b",
+      "description": "Multilingual encoder-decoder (seq-to-seq) model trained for Many-to-Many multilingual translation",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/microsoft/phi-2",
+      "name": "@cf/microsoft/phi-2",
+      "description": "Phi-2 is a Transformer-based model with a next-word prediction objective, trained on 1.4T tokens from multiple passes on a mixture of Synthetic and Web datasets for NLP and coding.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/microsoft/resnet-50",
+      "name": "@cf/microsoft/resnet-50",
+      "description": "50 layers deep image classification CNN trained on more than 1M images from ImageNet",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/mistral/mistral-7b-instruct-v0.1",
+      "name": "@cf/mistral/mistral-7b-instruct-v0.1",
+      "description": "Instruct fine-tuned version of the Mistral-7b generative text model with 7 billion parameters",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/mistral/mistral-7b-instruct-v0.2-lora",
+      "name": "@cf/mistral/mistral-7b-instruct-v0.2-lora",
+      "description": "The Mistral-7B-Instruct-v0.2 Large Language Model (LLM) is an instruct fine-tuned version of the Mistral-7B-v0.2.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/mistralai/mistral-small-3.1-24b-instruct",
+      "name": "@cf/mistralai/mistral-small-3.1-24b-instruct",
+      "description": "Building upon Mistral Small 3 (2501), Mistral Small 3.1 (2503) adds state-of-the-art vision understanding and enhances long context capabilities up to 128k tokens without compromising text performance. With 24 billion parameters, this model",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/moonshotai/kimi-k2.5",
+      "name": "@cf/moonshotai/kimi-k2.5",
+      "description": "Kimi K2.5 is a frontier-scale open-source model with a 256k context window, multi-turn tool calling, vision inputs, and structured outputs for agentic workloads.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/moonshotai/kimi-k2.6",
+      "name": "@cf/moonshotai/kimi-k2.6",
+      "description": "Kimi K2.6 is a frontier-scale open-source 1T parameter model with a 262.1k context window, multi-turn tool calling, vision inputs, and structured outputs for agentic workloads.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/myshell-ai/melotts",
+      "name": "@cf/myshell-ai/melotts",
+      "description": "MeloTTS is a high-quality multi-lingual text-to-speech library by MyShell.ai.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/nvidia/nemotron-3-120b-a12b",
+      "name": "@cf/nvidia/nemotron-3-120b-a12b",
+      "description": "NVIDIA Nemotron 3 Super is a hybrid MoE model with leading accuracy for multi-agent applications and specialized agentic AI systems.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/openai/gpt-oss-120b",
+      "name": "@cf/openai/gpt-oss-120b",
+      "description": "OpenAI’s open-weight models designed for powerful reasoning, agentic tasks, and versatile developer use cases – gpt-oss-120b is for production, general purpose, high reasoning use-cases.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/openai/gpt-oss-20b",
+      "name": "@cf/openai/gpt-oss-20b",
+      "description": "OpenAI’s open-weight models designed for powerful reasoning, agentic tasks, and versatile developer use cases – gpt-oss-20b is for lower latency, and local or specialized use-cases.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/openai/whisper",
+      "name": "@cf/openai/whisper",
+      "description": "Whisper is a general-purpose speech recognition model. It is trained on a large dataset of diverse audio and is also a multitasking model that can perform multilingual speech recognition, speech translation, and language identification.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/openai/whisper-large-v3-turbo",
+      "name": "@cf/openai/whisper-large-v3-turbo",
+      "description": "Whisper is a pre-trained model for automatic speech recognition (ASR) and speech translation. ",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/openai/whisper-tiny-en",
+      "name": "@cf/openai/whisper-tiny-en",
+      "description": "Whisper is a pre-trained model for automatic speech recognition (ASR) and speech translation. Trained on 680k hours of labelled data, Whisper models demonstrate a strong ability to generalize to many datasets and domains without the need fo",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/pfnet/plamo-embedding-1b",
+      "name": "@cf/pfnet/plamo-embedding-1b",
+      "description": "PLaMo-Embedding-1B is a Japanese text embedding model developed by Preferred Networks, Inc.\n\nIt can convert Japanese text input into numerical vectors and can be used for a wide range of applications, including information retrieval, text c",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/pipecat-ai/smart-turn-v2",
+      "name": "@cf/pipecat-ai/smart-turn-v2",
+      "description": "An open source, community-driven, native audio turn detection model in 2nd version",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/qwen/qwen2.5-coder-32b-instruct",
+      "name": "@cf/qwen/qwen2.5-coder-32b-instruct",
+      "description": "Qwen2.5-Coder is the latest series of Code-Specific Qwen large language models (formerly known as CodeQwen). As of now, Qwen2.5-Coder has covered six mainstream model sizes, 0.5, 1.5, 3, 7, 14, 32 billion parameters, to meet the needs of di",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/qwen/qwen3-30b-a3b-fp8",
+      "name": "@cf/qwen/qwen3-30b-a3b-fp8",
+      "description": "Qwen3 is the latest generation of large language models in Qwen series, offering a comprehensive suite of dense and mixture-of-experts (MoE) models. Built upon extensive training, Qwen3 delivers groundbreaking advancements in reasoning, ins",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/qwen/qwen3-embedding-0.6b",
+      "name": "@cf/qwen/qwen3-embedding-0.6b",
+      "description": "The Qwen3 Embedding model series is the latest proprietary model of the Qwen family, specifically designed for text embedding and ranking tasks. ",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/qwen/qwq-32b",
+      "name": "@cf/qwen/qwq-32b",
+      "description": "QwQ is the reasoning model of the Qwen series. Compared with conventional instruction-tuned models, QwQ, which is capable of thinking and reasoning, can achieve significantly enhanced performance in downstream tasks, especially hard problem",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/runwayml/stable-diffusion-v1-5-img2img",
+      "name": "@cf/runwayml/stable-diffusion-v1-5-img2img",
+      "description": "Stable Diffusion is a latent text-to-image diffusion model capable of generating photo-realistic images. Img2img generate a new image from an input image with Stable Diffusion. ",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/runwayml/stable-diffusion-v1-5-inpainting",
+      "name": "@cf/runwayml/stable-diffusion-v1-5-inpainting",
+      "description": "Stable Diffusion Inpainting is a latent text-to-image diffusion model capable of generating photo-realistic images given any text input, with the extra capability of inpainting the pictures by using a mask.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/stabilityai/stable-diffusion-xl-base-1.0",
+      "name": "@cf/stabilityai/stable-diffusion-xl-base-1.0",
+      "description": "Diffusion-based text-to-image generative model by Stability AI. Generates and modify images based on text prompts.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/unum/uform-gen2-qwen-500m",
+      "name": "@cf/unum/uform-gen2-qwen-500m",
+      "description": "UForm-Gen is a small generative vision-language model primarily designed for Image Captioning and Visual Question Answering. The model was pre-trained on the internal image captioning dataset and fine-tuned on public instructions datasets: ",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@cf/zai-org/glm-4.7-flash",
+      "name": "@cf/zai-org/glm-4.7-flash",
+      "description": "GLM-4.7-Flash is a fast and efficient multilingual text generation model with a 131,072 token context window. Optimized for dialogue, instruction-following, and multi-turn tool calling across 100+ languages.",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@hf/google/gemma-7b-it",
+      "name": "@hf/google/gemma-7b-it",
+      "description": "Gemma is a family of lightweight, state-of-the-art open models from Google, built from the same research and technology used to create the Gemini models. They are text-to-text, decoder-only large language models, available in English, with ",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@hf/mistral/mistral-7b-instruct-v0.2",
+      "name": "@hf/mistral/mistral-7b-instruct-v0.2",
+      "description": "The Mistral-7B-Instruct-v0.2 Large Language Model (LLM) is an instruct fine-tuned version of the Mistral-7B-v0.2. Mistral-7B-v0.2 has the following changes compared to Mistral-7B-v0.1: 32k context window (vs 8k context in v0.1), rope-theta ",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    },
+    {
+      "model_id": "@hf/nousresearch/hermes-2-pro-mistral-7b",
+      "name": "@hf/nousresearch/hermes-2-pro-mistral-7b",
+      "description": "Hermes 2 Pro on Mistral 7B is the new flagship 7B Hermes! Hermes 2 Pro is an upgraded, retrained version of Nous Hermes 2, consisting of an updated and cleaned version of the OpenHermes 2.5 Dataset, as well as a newly introduced Function Ca",
+      "source": "cloudflare_account_api",
+      "properties": {}
+    }
+  ]
+}

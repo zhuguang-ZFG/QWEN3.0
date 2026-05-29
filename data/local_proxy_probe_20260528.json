@@ -1,0 +1,54 @@
+{
+  "timestamp": "2026-05-28T01:16:37.708136",
+  "results": [
+    {
+      "name": "theoldllm",
+      "port": 4502,
+      "base_url": "http://127.0.0.1:4502",
+      "models": {
+        "ok": true,
+        "models": [
+          "gpt-5.2",
+          "gpt-5.1",
+          "o1",
+          "o3",
+          "o3-mini",
+          "gpt-4o",
+          "claude-opus-4-5",
+          "claude-3-7-sonnet",
+          "gemini-3-pro",
+          "gemini-3-flash",
+          "deepseek-r1"
+        ],
+        "count": 11,
+        "latency_ms": 3
+      },
+      "fixtures": [
+        {
+          "name": "fix_function",
+          "passed": false,
+          "latency_ms": 0,
+          "answer_preview": "",
+          "error": "TimeoutError: timed out"
+        },
+        {
+          "name": "explain_code",
+          "passed": false,
+          "latency_ms": 0,
+          "answer_preview": "",
+          "error": "TimeoutError: timed out"
+        },
+        {
+          "name": "json_output",
+          "passed": false,
+          "latency_ms": 0,
+          "answer_preview": "",
+          "error": "TimeoutError: timed out"
+        }
+      ],
+      "score": 0.0,
+      "status": "degraded",
+      "delta": "new"
+    }
+  ]
+}

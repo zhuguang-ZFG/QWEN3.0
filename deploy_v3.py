@@ -1,0 +1,167 @@
+#!/usr/bin/env python3
+"""
+deploy_v3.py — 一键部署 V3 路由到服务器
+遵循 Superpowers 原则: 本地验证通过后一次性替换
+
+用法: python deploy_v3.py
+"""
+
+import paramiko
+import sys
+import time
+import os
+
+SERVER = "47.112.162.80"
+USER = "root"
+PASS = os.environ.get("LIMA_DEPLOY_PASS")
+KEY_PATH = os.environ.get("LIMA_DEPLOY_KEY_PATH")
+REMOTE_DIR = "/opt/lima-router"
+
+FILES_TO_DEPLOY = [
+    "router_v3.py",
+    "health_tracker.py",
+    "sticky_session.py",
+    "patch_server_v3.py",
+    "server.py",
+    "routing_engine.py",
+    "rate_limiter.py",
+    "budget_manager.py",
+    "capability_matrix.py",
+    "backends_registry.py",
+    "backends.py",
+    "routing_selector.py",
+    "routing_executor.py",
+    "routing_classifier.py",
+    "router_classifier.py",
+    "streaming.py",
+    "streaming_bridge.py",
+    "speculative.py",
+    "code_orchestrator_context.py",
+    "orchestrate.py",
+    "smart_router.py",
+    "http_caller.py",
+    "http_sync.py",
+    "http_async.py",
+    "http_request_builder.py",
+    "router_http.py",
+    "chat_models.py",
+    "response_cleaner.py",
+    "response_builder.py",
+    "route_scorer.py",
+    "fc_caller.py",
+    "semantic_cache.py",
+    "voice_gateway.py",
+]
+
+# Phase 7-25 module directories to deploy
+DIRS_TO_DEPLOY = [
+    "context_pipeline",
+    "session_memory",
+    "user_identity",
+    "lima_mcp",
+    "routes",
+    "agent_contracts",
+    "agent_roles",
+    "agent_eval",
+    "agent_evolution",
+    "converters",
+]
+
+
+def _configure_host_key_policy(ssh) -> None:
+    """Use known_hosts verification and reject unknown SSH host keys."""
+    ssh.load_system_host_keys()
+    known_hosts = os.environ.get("LIMA_DEPLOY_KNOWN_HOSTS")
+    if known_hosts:
+        ssh.load_host_keys(known_hosts)
+    ssh.set_missing_host_key_policy(paramiko.RejectPolicy())
+
+
+def _preflight() -> None:
+    if not PASS and not KEY_PATH:
+        sys.exit("ERROR: set LIMA_DEPLOY_PASS or LIMA_DEPLOY_KEY_PATH")
+
+
+def main():
+    _preflight()
+    print("=== LiMa V3 Deploy ===")
+    print(f"Target: {SERVER}:{REMOTE_DIR}")
+
+    # 1. Connect
+    ssh = paramiko.SSHClient()
+    _configure_host_key_policy(ssh)
+    if KEY_PATH:
+        ssh.connect(SERVER, username=USER, key_filename=KEY_PATH)
+    else:
+        if PASS is None:
+            sys.exit("ERROR: set LIMA_DEPLOY_PASS or LIMA_DEPLOY_KEY_PATH")
+        ssh.connect(SERVER, username=USER, password=PASS)
+    sftp = ssh.open_sftp()
+    print("[1/5] Connected")
+
+    # 2. Backup current server.py
+    ts = time.strftime("%Y%m%d_%H%M%S")
+    backup = f"{REMOTE_DIR}/server.py.bak.{ts}"
+    ssh.exec_command(f"cp {REMOTE_DIR}/server.py {backup}")
+    print(f"[2/5] Backup: {backup}")
+    print("Rollback:")
+    print(f"  cp {backup} {REMOTE_DIR}/server.py")
+    print("  systemctl restart lima-router")
+
+    # 3. Upload V3 modules
+    for f in FILES_TO_DEPLOY:
+        local = os.path.join(os.path.dirname(__file__), f)
+        remote = f"{REMOTE_DIR}/{f}"
+        sftp.put(local, remote)
+        print(f"  Uploaded: {f}")
+
+    # 3.1 Upload Phase 7-25 module directories
+    base_dir = os.path.dirname(__file__)
+    for d in DIRS_TO_DEPLOY:
+        local_dir = os.path.join(base_dir, d)
+        if not os.path.isdir(local_dir):
+            continue
+        remote_dir = f"{REMOTE_DIR}/{d}"
+        try:
+            sftp.mkdir(remote_dir)
+        except IOError:
+            pass
+        for fname in os.listdir(local_dir):
+            if fname.endswith(".py"):
+                sftp.put(os.path.join(local_dir, fname), f"{remote_dir}/{fname}")
+                print(f"  Uploaded: {d}/{fname}")
+    print("[3/5] Files deployed")
+
+    # 3.5 Run patch script on server
+    stdin, stdout, stderr = ssh.exec_command(
+        f"cd {REMOTE_DIR} && /usr/local/bin/python3.10 patch_server_v3.py"
+    )
+    patch_out = stdout.read().decode("utf-8", errors="replace")
+    print(f"  Patch output:\n{patch_out}")
+
+    # 4. Restart via systemd (ExecStartPre kills port before start)
+    ssh.exec_command('systemctl restart lima-router')
+    time.sleep(8)
+    print("[4/5] Server restarted (systemd)")
+
+    # 5. Verify
+    stdin, stdout, stderr = ssh.exec_command("fuser 8080/tcp 2>/dev/null")
+    port = stdout.read().decode().strip()
+    if port:
+        print("[5/5] Server UP on 8080")
+    else:
+        stdin, stdout, stderr = ssh.exec_command("journalctl -u lima-router --no-pager -n 5 --output=cat 2>&1")
+        log = stdout.read().decode("utf-8", errors="replace")
+        print(f"[5/5] FAILED! Log:\n{log}")
+        print(f"\nRollback: cp {backup} {REMOTE_DIR}/server.py && systemctl restart lima-router")
+        sftp.close()
+        ssh.close()
+        sys.exit(1)
+
+    sftp.close()
+    ssh.close()
+    print("\nDeploy complete!")
+
+
+if __name__ == "__main__":
+    main()

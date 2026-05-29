@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LiMa 力码 — 智能编程助手 | 深圳市动力巢科技有限公司</title>
+  <meta name="description" content="LiMa 力码是深圳动力巢科技打造的智能编程助手，通过100+AI后端智能路由，为开发者匹配最优解答。">
+  <meta property="og:title" content="LiMa 力码 — 智能编程助手">
+  <meta property="og:description" content="100+ AI 后端智能路由，为你匹配最优解答">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://donglicao.com">
+  <meta name="theme-color" content="#6366f1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #0E0C15;
+      --bg-card: rgba(255, 255, 255, 0.03);
+      --accent: #6366f1;
+      --accent-glow: rgba(99, 102, 241, 0.3);
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --border: rgba(255, 255, 255, 0.08);
+      --radius: 16px;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      z-index: 100;
+      padding: 1rem 2rem;
+      backdrop-filter: blur(20px);
+      background: rgba(14, 12, 21, 0.8);
+      border-bottom: 1px solid var(--border);
+    }
+
+    nav .nav-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    nav .logo {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    nav .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      margin-left: 2rem;
+      font-size: 0.9rem;
+      transition: color 0.3s;
+    }
+
+    nav .nav-links a:hover {
+      color: var(--accent);
+    }
+
+    /* SECTIONS */
+    section {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 6rem 2rem;
+    }
+
+    .section-title {
+      font-size: 2rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    .section-subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      margin-bottom: 3rem;
+      font-size: 1.1rem;
+    }
+
+    /* HERO */
+    #hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      padding-top: 5rem;
+    }
+
+    #hero::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(ellipse at center, rgba(99,102,241,0.08) 0%, transparent 60%);
+      animation: pulse 8s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.5; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.1); }
+    }
+
+    #hero h1 {
+      font-size: clamp(2.5rem, 6vw, 4rem);
+      font-weight: 700;
+      position: relative;
+      margin-bottom: 1rem;
+    }
+
+    #hero h1 span {
+      background: linear-gradient(135deg, var(--accent), #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    #hero p {
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      max-width: 600px;
+      position: relative;
+      margin-bottom: 2.5rem;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 1rem;
+      position: relative;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn {
+      padding: 0.85rem 2rem;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.3s;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px var(--accent-glow);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    /* FEATURES */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s;
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    .feature-card.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .feature-card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 30px var(--accent-glow);
+      transform: translateY(-4px);
+    }
+
+    .feature-card .icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    .feature-card h3 {
+      font-size: 1.15rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .feature-card p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    /* HOW IT WORKS */
+    .steps {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .step {
+      text-align: center;
+      padding: 2rem;
+      flex: 1;
+      min-width: 200px;
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    .step.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .step .step-icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin: 0 auto 1rem;
+    }
+
+    .step h3 {
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .step p {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .step-arrow {
+      font-size: 1.5rem;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    /* DEVELOPER */
+    .dev-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 3rem;
+      backdrop-filter: blur(10px);
+    }
+
+    .dev-section .endpoint {
+      background: rgba(0,0,0,0.4);
+      border-radius: 8px;
+      padding: 1rem 1.5rem;
+      margin: 1.5rem 0;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.9rem;
+      color: #a78bfa;
+      border: 1px solid var(--border);
+      overflow-x: auto;
+    }
+
+    .code-block {
+      background: #1a1625;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      position: relative;
+    }
+
+    .code-block pre {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.85rem;
+      line-height: 1.7;
+      color: #e2e8f0;
+    }
+    .code-block .comment { color: #6b7280; }
+    .code-block .string { color: #34d399; }
+    .code-block .key { color: #a78bfa; }
+    .code-block .cmd { color: #f472b6; }
+
+    .code-block .copy-btn {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      background: rgba(255,255,255,0.1);
+      border: none;
+      color: var(--text-muted);
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      transition: all 0.3s;
+    }
+
+    .code-block .copy-btn:hover {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .compat-badge {
+      display: inline-block;
+      background: rgba(99,102,241,0.15);
+      color: var(--accent);
+      padding: 0.3rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      margin-top: 1rem;
+    }
+
+    /* STATS */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 2rem;
+      text-align: center;
+    }
+
+    .stat-item {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    .stat-item.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .stat-number {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 3rem 2rem;
+      text-align: center;
+    }
+
+    footer .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    footer .company {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    footer .links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      margin: 0 1rem;
+      font-size: 0.9rem;
+      transition: color 0.3s;
+    }
+
+    footer .links a:hover {
+      color: var(--accent);
+    }
+
+    footer .copyright {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      margin-top: 1.5rem;
+    }
+
+    /* ANIMATIONS */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      section { padding: 4rem 1.5rem; }
+      #hero h1 { font-size: 2rem; }
+      #hero p { font-size: 1rem; }
+      .dev-section { padding: 1.5rem; }
+      nav .nav-links { display: none; }
+      .steps { flex-direction: column; }
+      .step-arrow { transform: rotate(90deg); }
+    }
+  </style>
+</head>
+<body>
+  <!-- NAV -->
+  <nav>
+    <div class="nav-inner">
+      <a href="#" class="logo">LiMa 力码</a>
+      <div class="nav-links">
+        <a href="#features">功能</a>
+        <a href="#how-it-works">原理</a>
+        <a href="#developer">开发者</a>
+        <a href="https://chat.donglicao.com" target="_blank">在线体验</a>
+      </div>
+    </div>
+  </nav>
+  <!-- HERO -->
+  <section id="hero">
+    <h1><span>LiMa 力码</span> — 智能编程助手</h1>
+    <p>100+ AI 后端智能路由，为你匹配最优解答</p>
+    <div class="hero-buttons">
+      <a href="https://chat.donglicao.com" class="btn btn-primary">开始使用</a>
+      <a href="#developer" class="btn btn-secondary">开发者文档</a>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <h2 class="section-title">核心能力</h2>
+    <p class="section-subtitle">四大核心技术，让每次对话都找到最佳后端</p>
+    <div class="features-grid">
+      <div class="feature-card fade-in">
+        <div class="icon">🧠</div>
+        <h3>智能路由</h3>
+        <p>自动匹配最优后端，代码问题走代码模型，简单问题走快速模型</p>
+      </div>
+      <div class="feature-card fade-in">
+        <div class="icon">⚡</div>
+        <h3>并行投机</h3>
+        <p>多后端竞速，谁快用谁，延迟降到最低</p>
+      </div>
+      <div class="feature-card fade-in">
+        <div class="icon">📊</div>
+        <h3>能力矩阵</h3>
+        <p>6维能力评测，精准匹配每个问题的最佳后端</p>
+      </div>
+      <div class="feature-card fade-in">
+        <div class="icon">🎭</div>
+        <h3>身份统一</h3>
+        <p>无论哪个后端响应，始终以 LiMa 身份回答</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how-it-works">
+    <h2 class="section-title">工作原理</h2>
+    <p class="section-subtitle">三步完成智能路由，毫秒级响应</p>
+    <div class="steps">
+      <div class="step fade-in">
+        <div class="step-icon">📤</div>
+        <h3>发送请求</h3>
+        <p>兼容 OpenAI 格式，无缝接入</p>
+      </div>
+      <span class="step-arrow">→</span>
+      <div class="step fade-in">
+        <div class="step-icon">🔍</div>
+        <h3>意图分类</h3>
+        <p>6维评测，精准识别需求类型</p>
+      </div>
+      <span class="step-arrow">→</span>
+      <div class="step fade-in">
+        <div class="step-icon">✨</div>
+        <h3>最优响应</h3>
+        <p>自动选择最佳后端，流式返回</p>
+      </div>
+    </div>
+  </section>
+  <!-- DEVELOPER -->
+  <section id="developer">
+    <h2 class="section-title">开发者接入</h2>
+    <p class="section-subtitle">兼容 OpenAI 格式，一行代码切换</p>
+    <div class="dev-section fade-in">
+      <h3>API Endpoint</h3>
+      <div class="endpoint">https://api.donglicao.com/v1/chat/completions</div>
+      <span class="compat-badge">兼容 OpenAI SDK</span>
+
+      <h3 style="margin-top: 2rem;">快速开始</h3>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">复制</button>
+        <pre><span class="cmd">curl</span> https://api.donglicao.com/v1/chat/completions \
+  <span class="cmd">-H</span> <span class="string">"Content-Type: application/json"</span> \
+  <span class="cmd">-H</span> <span class="string">"Authorization: Bearer $YOUR_API_KEY"</span> \
+  <span class="cmd">-d</span> <span class="string">'{
+  <span class="key">"model"</span>: "lima",
+  <span class="key">"messages"</span>: [
+    {<span class="key">"role"</span>: "user", <span class="key">"content"</span>: "用Python写一个快速排序"}
+  ],
+  <span class="key">"stream"</span>: true
+}'</span></pre>
+      </div>
+      <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 1rem;">
+        完整文档请访问
+        <a href="https://api.donglicao.com/docs" style="color: var(--accent);">Quickstart Guide →</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- IMAGE GENERATION -->
+  <section id="image-gen" style="padding: 5rem 2rem;">
+    <div style="max-width: 800px; margin: 0 auto; text-align: center;">
+      <h2 class="fade-in" style="font-size: 2rem; margin-bottom: 0.5rem;">AI 图片生成</h2>
+      <p class="fade-in" style="color: var(--text-muted); margin-bottom: 2rem;">输入描述，LiMa 为你生成高质量图片 — 完全免费</p>
+      <div class="fade-in" style="display:flex;gap:12px;margin-bottom:1.5rem;flex-wrap:wrap;justify-content:center;">
+        <input id="img-prompt" type="text" placeholder="描述你想生成的图片，例如：一只在太空中的猫" style="flex:1;min-width:250px;padding:12px 16px;border-radius:10px;border:1px solid rgba(99,102,241,.3);background:rgba(30,27,46,.8);color:#e2e8f0;font-size:1rem;outline:none;" />
+        <button id="img-btn" onclick="generateImage()" style="padding:12px 24px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;font-size:1rem;white-space:nowrap;">生成图片</button>
+      </div>
+      <div id="img-tags" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:1.5rem;">
+        <span class="img-tag" onclick="setPrompt('a cute cat astronaut floating in space, digital art')">太空猫</span>
+        <span class="img-tag" onclick="setPrompt('cyberpunk city at night with neon lights, rain, cinematic')">赛博朋克</span>
+        <span class="img-tag" onclick="setPrompt('beautiful Chinese landscape painting with mountains and rivers, ink wash style')">山水画</span>
+        <span class="img-tag" onclick="setPrompt('futuristic robot programmer writing code, holographic display')">机器人程序员</span>
+      </div>
+      <div id="img-result" style="min-height:300px;border-radius:16px;overflow:hidden;background:rgba(30,27,46,.5);border:1px solid rgba(99,102,241,.15);display:flex;align-items:center;justify-content:center;position:relative;">
+        <p id="img-placeholder" style="color:var(--text-muted);font-size:0.9rem;">图片将在这里显示</p>
+        <div id="img-loading" style="display:none;flex-direction:column;align-items:center;gap:12px;">
+          <div style="width:40px;height:40px;border:3px solid rgba(99,102,241,.3);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;"></div>
+          <span style="color:var(--text-muted);font-size:0.85rem;">正在生成...</span>
+        </div>
+        <img id="img-output" style="display:none;width:100%;height:auto;max-height:512px;object-fit:contain;" />
+      </div>
+      <p style="color:var(--text-muted);font-size:0.75rem;margin-top:0.8rem;opacity:0.7;">Powered by Pollinations.ai — 免费开源图片生成</p>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section id="stats">
+    <div class="stats-grid">
+      <div class="stat-item fade-in">
+        <div class="stat-number" data-target="100">0</div>
+        <div class="stat-label">AI 后端</div>
+      </div>
+      <div class="stat-item fade-in">
+        <div class="stat-number" data-target="2" data-prefix="<" data-suffix="s">0</div>
+        <div class="stat-label">平均响应</div>
+      </div>
+      <div class="stat-item fade-in">
+        <div class="stat-number" data-target="99.9" data-suffix="%">0</div>
+        <div class="stat-label">可用性</div>
+      </div>
+      <div class="stat-item fade-in">
+        <div class="stat-number" data-target="6" data-suffix="维">0</div>
+        <div class="stat-label">能力评测</div>
+      </div>
+    </div>
+  </section>
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-inner">
+      <div class="company">深圳市动力巢科技有限公司</div>
+      <div class="links">
+        <a href="https://chat.donglicao.com" target="_blank">在线体验</a>
+        <a href="https://api.donglicao.com" target="_blank">API 服务</a>
+        <a href="https://api.donglicao.com/docs" target="_blank">开发文档</a>
+      </div>
+      <div class="copyright">Copyright &copy; 2024-2026 DongLiCao Technology. All rights reserved.</div>
+    </div>
+  </footer>
+
+  <script>
+    // Intersection Observer for fade-in animations
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry, index) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => {
+            entry.target.classList.add('visible');
+          }, index * 100);
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+    // Animated counters
+    const counterObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          animateCounters();
+          counterObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.3 });
+
+    const statsSection = document.getElementById('stats');
+    if (statsSection) counterObserver.observe(statsSection);
+
+    function animateCounters() {
+      document.querySelectorAll('.stat-number').forEach(counter => {
+        const target = parseFloat(counter.dataset.target);
+        const prefix = counter.dataset.prefix || '';
+        const suffix = counter.dataset.suffix || '+';
+        const duration = 2000;
+        const start = performance.now();
+
+        function update(now) {
+          const elapsed = now - start;
+          const progress = Math.min(elapsed / duration, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          const current = target * eased;
+          if (target === 99.9) {
+            counter.textContent = prefix + current.toFixed(1) + suffix;
+          } else {
+            counter.textContent = prefix + Math.floor(current) + suffix;
+          }
+
+          if (progress < 1) {
+            requestAnimationFrame(update);
+          }
+        }
+        requestAnimationFrame(update);
+      });
+    }
+
+    // Copy code button
+    function copyCode(btn) {
+      const code = btn.parentElement.querySelector('pre').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        btn.textContent = '已复制';
+        setTimeout(() => { btn.textContent = '复制'; }, 2000);
+      });
+    }
+
+    // Smooth scroll for nav links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function(e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+    });
+  </script>
+</body>
+</html>

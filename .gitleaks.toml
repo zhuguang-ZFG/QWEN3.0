@@ -1,0 +1,23 @@
+title = "LiMa gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Non-secret fixtures and examples"
+paths = [
+  '''\.env\.example$''',
+  '''^tests/''',
+  '''^docs/''',
+  '''^esp32S_XYZ/''',
+  '''^deepcode-cli/''',
+  '''\.md$''',
+  '''gitleaks\.toml$''',
+]
+
+[allowlist.regexTarget]
+line = "match"
+
+[[allowlist.regexes]]
+description = "Placeholder keys in docs and examples"
+regex = '''(?i)(example|placeholder|your[-_]?token|xxx+|fake[-_]?key|sk-test)'''

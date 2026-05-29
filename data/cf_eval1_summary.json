@@ -1,0 +1,31 @@
+{
+  "steps": [
+    {
+      "inventory": 0,
+      "tail": [
+        "cloudflare_inventory_ok models=73 path=D:\\GIT\\data\\cf_model_inventory.json"
+      ]
+    },
+    {
+      "probe": 0,
+      "mode": "completion-only",
+      "tail": [
+        "probing 4 CF candidate(s) (overlays 20/30)...",
+        "report: D:\\GIT\\docs\\CF_PROBE_REPORT.md",
+        "probe_ok passed=2/4 admitted=0",
+        "[LiMa] 162 backends configured"
+      ]
+    }
+  ],
+  "overlays": 20,
+  "target_overlays": 30,
+  "remaining_candidates": 4,
+  "candidate_ids": [
+    "@cf/defog/sqlcoder-7b-2",
+    "@cf/meta-llama/llama-2-7b-chat-hf-lora",
+    "@cf/moonshotai/kimi-k2.5",
+    "@cf/unum/uform-gen2-qwen-500m"
+  ],
+  "pool_exhausted_for_admission": false,
+  "report": "CF_PROBE_REPORT.md"
+}

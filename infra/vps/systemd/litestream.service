@@ -1,0 +1,13 @@
+[Unit]
+Description=Litestream SQLite Replication
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/litestream replicate -config /opt/lima-router/litestream.yml
+Restart=always
+RestartSec=10
+WorkingDirectory=/opt/lima-router
+
+[Install]
+WantedBy=multi-user.target

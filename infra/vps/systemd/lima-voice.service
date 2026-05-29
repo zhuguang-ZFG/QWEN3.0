@@ -1,0 +1,18 @@
+# Sanitized snapshot of /etc/systemd/system/lima-voice.service
+# Updated from VPS: 2026-05-24
+
+[Unit]
+Description=LiMa Voice Gateway
+After=lima-router.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/lima-voice
+ExecStart=/usr/local/bin/python3.10 voice_gateway.py
+Restart=always
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=/opt/lima-voice/.env
+
+[Install]
+WantedBy=multi-user.target
