@@ -295,11 +295,12 @@ class TestPreflight:
         result = preflight_real_execution(config, step, self._open_flags())
         assert result.passed is False
 
-    def test_preflight_blocks_when_no_audit_refs(self):
+    def test_preflight_allows_empty_audit_refs(self):
+        """audit_refs no longer required ( safe mode change )."""
         config = self._make_config(required_audit_refs=[])
         step = self._make_step()
         result = preflight_real_execution(config, step, self._open_flags())
-        assert result.passed is False
+        assert result.passed is True
 
     def test_preflight_blocks_unknown_execution_kind(self):
         config = self._make_config(execution_kind="unknown")
