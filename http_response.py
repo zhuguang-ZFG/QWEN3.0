@@ -38,7 +38,12 @@ def _parse_sse_chunk(data_str: str, fmt: str) -> str:
     try:
         data = json.loads(data_str)
         if fmt == "openai":
-            return data["choices"][0]["delta"].get("content", "")
+            delta = data["choices"][0]["delta"]
+            return (
+                delta.get("content")
+                or delta.get("reasoning_content")
+                or ""
+            )
         if data.get("type") == "content_block_delta":
             delta = data.get("delta", {})
             if delta.get("type") == "text_delta":
