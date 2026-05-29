@@ -59,11 +59,14 @@ def get_dev_search_adapter() -> DevSearchAdapter:
     from search_gateway.anysearch_adapter import AnySearchAdapter
     from search_gateway.brave_adapter import BraveSearchAdapter, brave_search_enabled
     from search_gateway.searxng_adapter import SearXNGAdapter, searxng_enabled
+    from search_gateway.tavily_adapter import TavilyAdapter, tavily_enabled
     from search_gateway.tinyfish_transport import tinyfish_transport
 
     tiers: list[tuple[str, DevSearchAdapter]] = []
     if searxng_enabled():
         tiers.append(("searxng", SearXNGAdapter.from_env()))
+    if tavily_enabled():
+        tiers.append(("tavily", TavilyAdapter.from_env()))
     if brave_search_enabled():
         tiers.append(("brave", BraveSearchAdapter.from_env()))
     tiers.append(("tinyfish", AnySearchAdapter(tinyfish_transport)))
