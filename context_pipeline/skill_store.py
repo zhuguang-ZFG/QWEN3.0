@@ -46,6 +46,7 @@ class SkillStore:
     def __init__(self, max_skills: int = 200) -> None:
         self._skills: dict[str, RoutingSkill] = {}
         self._max = max_skills
+        self._last_recalled: RoutingSkill | None = None
 
     def crystallize(
         self,
@@ -74,17 +75,33 @@ class SkillStore:
         return skill
 
     def recall(self, messages: list[dict], scenario: str) -> RoutingSkill | None:
-        """Try to recall a matching skill for this request."""
+        """Try to recall a matching skill for this request.
+
+        NOTE: on_success() is NOT called here — it's deferred until the
+        backend actually succeeds. Call confirm_success() after execution.
+        """
         key = self._compute_key(messages, scenario)
         skill = self._skills.get(key)
         if skill and not skill.is_expired:
             skill.last_used = time.time()
             skill.use_count += 1
-            skill.on_success()
+            self._last_recalled = skill
             return skill
         if skill and skill.is_expired:
             del self._skills[key]
         return None
+
+    def confirm_success(self) -> None:
+        """Confirm the last recalled skill succeeded — now apply on_success."""
+        if self._last_recalled:
+            self._last_recalled.on_success()
+            self._last_recalled = None
+
+    def on_failure(self, scenario: str = "") -> None:
+        """Penalize the last recalled skill on failure."""
+        if self._last_recalled:
+            self._last_recalled.on_failure()
+            self._last_recalled = None
 
     def _compute_key(self, messages: list[dict], scenario: str) -> str:
         """Compute a normalized key from request pattern."""

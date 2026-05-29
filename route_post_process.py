@@ -106,6 +106,7 @@ def apply_post_route_integrations(
             from context_pipeline.skill_store import get_skill_store
             if resp_ctx.quality_ok and answer and final_backend not in ("exhausted", "none", "cache"):
                 get_skill_store().crystallize(messages, scenario, final_backend, 0, ms)
+                get_skill_store().confirm_success()
             elif not resp_ctx.quality_ok:
                 get_skill_store().on_failure(scenario)
         except Exception:
@@ -118,15 +119,16 @@ def apply_post_route_integrations(
 
     # Learning loop: feed regular route() outcomes (not just LiMa Code)
     try:
-        from session_memory.learning_loop import ingest_task_outcome
-        ingest_task_outcome({
-            "backend": final_backend,
-            "scenario": scenario,
-            "success": bool(answer and len(answer) > 5),
-            "latency_ms": ms,
-            "task_type": f"route_{req_type}",
-            "query_summary": str(messages[-1].get("content", ""))[:100] if messages else "",
-        })
+        from session_memory.learning_loop import ingest_task_outcome, TaskOutcome
+        outcome = TaskOutcome(
+            task_id=f"route-{scenario}-{final_backend}",
+            status="succeeded" if (answer and len(answer) > 5) else "failed",
+            goal=str(messages[-1].get("content", ""))[:200] if messages else "",
+            backend=final_backend,
+            scenario=scenario,
+            latency_ms=ms,
+        )
+        ingest_task_outcome(outcome)
     except Exception:
         pass
 

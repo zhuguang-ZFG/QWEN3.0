@@ -81,8 +81,8 @@ def on_request_complete(
             tokens_completion=tokens_completion,
         )
 
-        # Also update routing weights (backward compatible)
-        _update_routing_weights(backend, scenario, success)
+        # NOTE: routing_weights is updated by route_post_process.py, NOT here.
+        # Avoid double-writing which would double the GRPO learning rate.
 
         # Increment ML training counter
         _check_training_trigger()

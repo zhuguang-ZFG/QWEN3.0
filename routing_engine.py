@@ -97,9 +97,14 @@ def route(query: str, messages: list[dict], *,
             cleaned = clean_response(cached, "cache")
             answer = cleaned if cleaned else cached
             ms = int((time.time() - t0) * 1000)
+            # Log cache hit to request_store for ML training visibility
             try:
-                from integrations.cloud_services import log_routing_decision
-                log_routing_decision("cache", "cache_hit", "", ms)
+                from routing_loop.feedback_bridge import on_request_complete
+                on_request_complete(
+                    request_id=make_chat_id(), scenario="cache_hit",
+                    messages=messages, backend="cache", success=True,
+                    latency_ms=float(ms),
+                )
             except Exception:
                 pass
             return RouteResult(backend="cache", answer=answer,
@@ -176,6 +181,17 @@ def route(query: str, messages: list[dict], *,
                     )
                 except Exception:
                     pass
+                # Also run full post-route integrations
+                apply_post_route_integrations(
+                    final_backend=orch_result["backend"],
+                    answer=orch_result["answer"],
+                    backends=[orch_result["backend"]],
+                    messages_injected=messages,
+                    messages=messages,
+                    req_type="coding",
+                    scenario=scenario,
+                    ms=ms,
+                )
                 return RouteResult(
                     backend=orch_result["backend"],
                     answer=orch_result["answer"],
