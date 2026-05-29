@@ -20,25 +20,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Create deployment bundle
-        run: |
-          git archive HEAD \
-            -- *.py \
-            routes/ agent_runtime/ context_pipeline/ fleet/ routing_ml/ \
-            skills/ config/ \
-            | gzip > /tmp/lima-deploy.tar.gz
-          echo "Bundle size: $(du -sh /tmp/lima-deploy.tar.gz | cut -f1)"
-
-      - name: Upload and extract on VPS
+      - name: Deploy to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          source: /tmp/lima-deploy.tar.gz
-          target: /tmp
+          source: "*.py,routes/,agent_runtime/,context_pipeline/,fleet/,routing_ml/,skills/,config/"
+          target: /opt/lima-router
+          strip_components: 0
 
-      - name: Extract, restart and health check
+      - name: Restart and health check
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -46,11 +38,6 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script_stop: false
           script: |
-            echo ">> Extracting deployment bundle..."
-            cd /opt/lima-router
-            tar xzf /tmp/lima-deploy.tar.gz
-            rm -f /tmp/lima-deploy.tar.gz
-
             echo ">> Stopping lima-router..."
             systemctl stop lima-router 2>/dev/null || true
             sleep 3
@@ -66,7 +53,7 @@ jobs:
               sleep 3
             done
 
-            echo ">> Health check FAILED — checking logs"
+            echo ">> Health check FAILED"
             journalctl -u lima-router --no-pager -n 10 || true
             exit 1
 
