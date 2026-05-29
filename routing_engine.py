@@ -305,6 +305,20 @@ def route(query: str, messages: list[dict], *,
         ms=ms,
     )
 
+    # Record routing event for SSE consumers
+    try:
+        from routes.agent_events import record_event
+        record_event("routing_decision", {
+            "backend": final_backend,
+            "scenario": scenario,
+            "req_type": req_type,
+            "latency_ms": ms,
+            "success": bool(answer and len(answer) > 5),
+            "fallback_used": bool(final_backend not in ("exhausted", "none") and backends and final_backend != backends[0]),
+        })
+    except Exception:
+        pass
+
     # Unified feedback: record request in closed-loop system
     try:
         from routing_loop.feedback_bridge import on_request_complete

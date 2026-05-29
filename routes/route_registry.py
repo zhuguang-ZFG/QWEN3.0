@@ -162,6 +162,14 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
         deps.loaded_modules["fleet"] = False
 
     try:
+        from routes.agent_events import router as events_router
+        app.include_router(events_router)
+        deps.loaded_modules["agent_events"] = True
+    except ImportError as exc:
+        logging.warning("[STARTUP] agent_events module not loaded: %s", exc)
+        deps.loaded_modules["agent_events"] = False
+
+    try:
         from routes.eval_internal import router as eval_internal_router
 
         app.include_router(eval_internal_router)
