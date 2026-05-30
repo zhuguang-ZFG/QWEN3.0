@@ -50,20 +50,29 @@ def _loop(probe_fn: Callable[[str], bool]):
         except Exception as e:
             logger.error(f"Probe cycle error: {e}")
 
-        # Token health check every 10 minutes
+        # Token health check every 30 minutes (reduce frequency)
         try:
             import token_health
             results = token_health.check_all_tokens()
             expired = [r for r in results if r.get("status") == "expired"]
             if expired:
                 names = [r["backend"] for r in expired]
-                logger.warning("TOKEN EXPIRED: %s", ", ".join(names))
-                try:
-                    from telegram_notify import notify_health_change
-                    for r in expired:
-                        notify_health_change(r["backend"], "healthy", "auth_expired")
-                except (ImportError, Exception):
-                    pass
+                # Only alert once per hour per backend
+                import time as _time
+                now = _time.time()
+                for r in expired:
+                    key = f"alert_{r['backend']}"
+                    last_alert = getattr(_loop, '_last_alerts', {}).get(key, 0)
+                    if now - last_alert > 3600:  # 1 hour cooldown
+                        logger.warning("TOKEN EXPIRED: %s", r["backend"])
+                        try:
+                            from telegram_notify import notify_health_change
+                            notify_health_change(r["backend"], "healthy", "auth_expired")
+                        except (ImportError, Exception):
+                            pass
+                        if not hasattr(_loop, '_last_alerts'):
+                            _loop._last_alerts = {}
+                        _loop._last_alerts[key] = now
             token_health.save_token_status(results)
         except ImportError:
             pass
