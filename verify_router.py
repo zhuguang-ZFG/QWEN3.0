@@ -5,7 +5,7 @@
 使用你的 MCP 配置中的多个 LLM 来测试分类器的一致性。
 """
 
-import json, os, sys, re
+import json, os
 from collections import Counter
 
 # Load the zero-shot classifier prompt

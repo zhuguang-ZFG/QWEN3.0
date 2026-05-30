@@ -1,6 +1,5 @@
 """Tests for context_pipeline.index_protocol in-memory fixtures."""
 from context_pipeline.index_protocol import (
-    GraphIndex,
     IndexEntry,
     InMemoryVectorIndex,
     VectorIndex,

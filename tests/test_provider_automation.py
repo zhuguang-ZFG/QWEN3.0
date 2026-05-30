@@ -317,7 +317,6 @@ def test_save_and_load_snapshot(tmp_path, monkeypatch):
 
 def test_load_latest_snapshot(tmp_path, monkeypatch):
     monkeypatch.setenv("LIMA_SNAPSHOT_DIR", str(tmp_path))
-    import time
     snap1 = ProviderModelSnapshot(provider="openrouter", source="f",
                                   fetched_at=100, models=[
         ProviderModelEntry(model_id="old", provider="openrouter"),
@@ -341,7 +340,6 @@ def test_load_snapshot_bad_file(tmp_path, monkeypatch):
 
 
 def test_list_and_count_snapshots(tmp_path, monkeypatch):
-    import time
     monkeypatch.setenv("LIMA_SNAPSHOT_DIR", str(tmp_path))
     for i in range(3):
         snap = ProviderModelSnapshot(provider="or", source="f", models=[

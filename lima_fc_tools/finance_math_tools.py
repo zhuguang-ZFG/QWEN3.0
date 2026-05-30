@@ -1,10 +1,13 @@
 """Telegram Function Calling tools."""
 
+import logging
 from datetime import datetime
 
 from .http_client import _get
 from .registry import tool
 from .safe_math import evaluate_math_expression
+
+_log = logging.getLogger(__name__)
 
 
 @tool('get_crypto_price', 'Run the get_crypto_price utility.', {'properties': {'coin': {'description': 'Coin identifier.', 'type': 'string'}},

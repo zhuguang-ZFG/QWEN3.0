@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import os
 """Point zhipu channel to echo server, send request, read echo log"""
-import urllib.request, json, http.cookiejar, sys, os, time
+import urllib.request, json, http.cookiejar, sys, time
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 

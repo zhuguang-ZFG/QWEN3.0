@@ -18,7 +18,6 @@ from channel_gateway.models import (
     ChannelMessage,
     InboundMessage,
     OutboundReply,
-    CommandResult,
 )
 from channel_gateway.store import ChannelStore
 

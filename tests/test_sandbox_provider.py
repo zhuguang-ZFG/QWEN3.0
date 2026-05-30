@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from sandbox.provider import (
     SandboxProvider, FakeSandboxProvider,
-    SandboxConfig, SandboxFile, SandboxResult, SandboxCreateResult,
+    SandboxConfig, SandboxFile, SandboxResult,
 )
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures" / "sandbox"

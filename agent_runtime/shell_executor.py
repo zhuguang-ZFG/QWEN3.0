@@ -11,7 +11,6 @@ import os
 import signal
 import subprocess
 import time
-from pathlib import Path
 
 from agent_runtime.contract import redact
 from agent_runtime.feature_flags import ExecutionFeatureFlags, is_shell_allowed
@@ -61,6 +60,17 @@ def shell_execute(
 
     _log.info("shell_execute: %s (cwd=%s, timeout=%s)", redact(command[:100]), effective_cwd, timeout)
 
+    if args[0].lower() == "echo":
+        output = " ".join(args[1:])
+        return ToolResult(
+            ok=True,
+            output=f"{output}\n" if output else "\n",
+            error="",
+            evidence=["shell_exit:0", "shell_builtin:echo"],
+            duration_ms=(time.time() - t0) * 1000,
+            executed=True,
+        )
+
     try:
         proc = subprocess.run(
             args,
@@ -104,7 +114,7 @@ def shell_execute(
             executed=True,
         )
 
-    except FileNotFoundError as exc:
+    except FileNotFoundError:
         return ToolResult(
             ok=False,
             error=f"command not found: {args[0]}",

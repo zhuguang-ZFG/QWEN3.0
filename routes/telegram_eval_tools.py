@@ -94,8 +94,6 @@ async def _archive_eval_to_chat(
 
 async def _evalslice_worker(chat_id: str, *, quick: bool) -> None:
     global _eval_busy
-    label = "quick" if quick else "full-11"
-    out = "coding_backend_scores_*.json" if quick else "coding_backend_scores_full_*.json"
     set_eval_quiet(True)
 
     from routes.telegram_cards import LiveStatusCard

@@ -5,7 +5,7 @@ from typing import Any
 
 from .intent import resolve_voice_task
 from .safety import DEFAULT_FEED, safe_point
-from .path_validator import validate_capability_params, validate_run_path_params
+from .path_validator import validate_capability_params
 from .path_pipeline import render_svg_task, render_text_task
 from . import store as store_mod
 from .store import DeviceTaskStore, InMemoryDeviceTaskStore

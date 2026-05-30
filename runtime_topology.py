@@ -8,6 +8,8 @@ LOCAL_ONLY_BACKENDS: set[str] = {
     "kimi",
     "kimi_thinking",
     "kimi_search",
+    "scnet_large_ds_flash",
+    "scnet_large_ds_pro",
     "local_coder14b",
     "local_reasoning",
     "local_general",

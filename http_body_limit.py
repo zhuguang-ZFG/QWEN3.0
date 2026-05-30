@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import gzip
 import json
+import logging
 from typing import Any, Awaitable, Callable
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
+
+_log = logging.getLogger(__name__)
 
 JSON_BODY_METHODS = frozenset({"POST", "PUT", "PATCH"})
 JSON_BODY_PREFIXES = (

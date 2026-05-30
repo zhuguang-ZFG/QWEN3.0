@@ -7,9 +7,12 @@ LiMa Routing Engine — 统一路由入口
 """
 
 import json
+import logging
 import time
 from dataclasses import dataclass, field
 from typing import Callable
+
+_log = logging.getLogger(__name__)
 
 import health_tracker
 import budget_manager

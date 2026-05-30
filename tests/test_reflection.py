@@ -1,4 +1,4 @@
-from context_pipeline.reflection import reflect_on_routing, ReflectionResult
+from context_pipeline.reflection import reflect_on_routing
 
 
 def test_reflection_no_correction_for_strong_coding_backend():

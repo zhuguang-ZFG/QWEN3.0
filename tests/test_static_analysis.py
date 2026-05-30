@@ -1,8 +1,6 @@
 """Tests for context_pipeline.static_analysis typed symbol extraction."""
-import os
 
 from context_pipeline.static_analysis import (
-    TypedSymbol,
     extract_typed_symbols,
     is_module_eligible,
 )

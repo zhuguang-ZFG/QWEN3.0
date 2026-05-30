@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-import pytest
 
 from context_pipeline.response_validator import (
-    CodeBlock,
-    ValidationResult,
     validate_response,
     _extract_code_blocks,
     _check_python_syntax,

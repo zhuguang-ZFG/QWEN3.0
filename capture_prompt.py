@@ -1,5 +1,5 @@
 """实时系统提示词捕获脚本 - 供各工具的 hook 系统调用"""
-import json, os, sys, time, argparse
+import json, os, sys, argparse
 from datetime import datetime
 
 CAPTURE_DIR = "C:/Users/zhugu/Desktop/prompt_captures"

@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import os
 import tempfile
 from pathlib import Path
 
 import pytest
-from hypothesis import assume, given, settings, strategies as st
+from hypothesis import given, settings, strategies as st
 
 from lima_mcp.fs_allowlist import is_within_allowed, validate_path
 
@@ -19,7 +18,6 @@ def _patch_allowed_roots(monkeypatch):
         monkeypatch.setenv("LIMA_FILESYSTEM_ALLOWED_ROOTS", tmp)
         # Force reload of the allowed roots cache
         from lima_mcp.fs_allowlist import _load_allowed_roots as _fn
-        import functools
         try:
             _fn.cache_clear()
         except AttributeError:

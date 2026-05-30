@@ -12,6 +12,7 @@ import sqlite3
 import time
 
 logger = logging.getLogger(__name__)
+_log = logger
 
 DB_PATH = os.environ.get("LIMA_BACKEND_RETIREMENT_DB", "data/backend_retirement.db")
 
@@ -39,18 +40,6 @@ def check_retirement(backend: str) -> dict | None:
         profile = backend_profile.get_profile(backend)
     except ImportError:
         return None
-
-    # Check consecutive failures
-    try:
-        import health_state
-        state = health_state.get_backend_state(backend)
-        consec_fails = 0
-        if state:
-            # health_state doesn't expose consecutive_failures directly
-            # Use backend_profile as fallback
-            pass
-    except ImportError:
-        pass
 
     total = profile.successes + profile.failures
     if total < 5:

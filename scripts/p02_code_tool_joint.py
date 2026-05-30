@@ -11,7 +11,6 @@ import os
 import sys
 import subprocess
 import tempfile
-from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

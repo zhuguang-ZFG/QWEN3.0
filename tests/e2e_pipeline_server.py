@@ -1,4 +1,4 @@
-import sys, os
+import sys
 sys.path.insert(0, '/opt/lima-router')
 
 from context_pipeline import RequestContext

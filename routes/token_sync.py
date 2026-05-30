@@ -11,13 +11,11 @@ The server updates backends.py runtime config and validates each token.
 from __future__ import annotations
 
 import logging
-import os
-import time
 import urllib.request
 import urllib.error
 import json
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header
 from pydantic import BaseModel
 
 from access_guard import require_private_api_key

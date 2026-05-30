@@ -2,7 +2,6 @@
 
 import os
 import tempfile
-import time
 
 # Set test DB path
 os.environ["LIMA_BACKEND_PROFILE_DB"] = os.path.join(tempfile.gettempdir(), "test_profiles.db")

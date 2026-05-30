@@ -6,7 +6,6 @@ Ring buffer of recent traces for admin diagnostics.
 import time
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Optional
 
 MAX_TRACES = 50
 

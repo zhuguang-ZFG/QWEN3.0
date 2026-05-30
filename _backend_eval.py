@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """LiMa Backend Evaluation Script — test each backend across 6 dimensions."""
-import sys, os, json, time, re, unicodedata
+import sys, os, json, time, re
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

@@ -16,7 +16,7 @@ Requirements:
   (fastText is optional - sklearn fallback works too)
 """
 
-import json, os, re, sys, argparse
+import json, os, argparse
 import numpy as np
 
 # ============================================================
@@ -91,8 +91,6 @@ def extract_features(text: str) -> dict:
             # Binary: at least one match
             features[f"{tool}_{category}_any"] = 1 if count > 0 else 0
 
-    # N-gram features from first 100 chars (strongest signal area)
-    first100 = text[:100].lower()
     # Check for common patterns
     features["starts_with_you_are"] = 1 if text_lower.strip().startswith("you are") else 0
     features["contains_gpt"] = 1 if "gpt" in text_lower[:200] else 0
@@ -193,7 +191,6 @@ def train_sklearn(X_train, y_train):
     """Train a scikit-learn classifier."""
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.ensemble import RandomForestClassifier
-    from sklearn.pipeline import Pipeline
 
     # Convert to feature vectors
     feature_dicts = [extract_features(x) for x in X_train]
@@ -205,7 +202,6 @@ def train_sklearn(X_train, y_train):
     X_tfidf = vectorizer.fit_transform(X_train)
 
     # Build pipeline with both feature sets
-    from sklearn.preprocessing import StandardScaler
     from sklearn.decomposition import TruncatedSVD
 
     # Combine features

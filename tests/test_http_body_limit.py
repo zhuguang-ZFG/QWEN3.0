@@ -2,7 +2,6 @@
 
 import pytest
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
 
 from http_body_limit import (

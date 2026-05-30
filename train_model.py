@@ -10,11 +10,9 @@ Usage:
 """
 
 import os
-import gc
 import json
 import argparse
 import torch
-from pathlib import Path
 import train_lock
 
 # ========== CONFIGURATION ==========
@@ -222,7 +220,6 @@ def export_gguf():
             "D:/GIT/venv/Scripts/pip", "install", "llama-cpp-python",
         ])
 
-    from llama_cpp import Llama
     from transformers import AutoModelForCausalLM, AutoTokenizer
     from peft import PeftModel
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import os
 """Diagnose each one-api channel individually"""
-import urllib.request, json, http.cookiejar, sys, time, os
+import urllib.request, json, http.cookiejar, sys, time
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 

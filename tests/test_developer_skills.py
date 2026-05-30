@@ -2,14 +2,9 @@
 
 from __future__ import annotations
 
-import os
 import subprocess
-import tempfile
-from pathlib import Path
 
-import pytest
 
-from developer_skills import SkillResult
 from developer_skills.investigate import investigate
 from developer_skills.review import review
 from developer_skills.ship import ship
@@ -66,8 +61,8 @@ class TestReview:
 
 
 class TestShip:
-    def test_ship_clean_tree(self, tmp_path):
-        os.chdir(tmp_path)
+    def test_ship_clean_tree(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
         subprocess.run(["git", "init"], capture_output=True)
         subprocess.run(["git", "config", "user.email", "test@test.com"], capture_output=True)
         subprocess.run(["git", "config", "user.name", "Test"], capture_output=True)
@@ -75,8 +70,8 @@ class TestShip:
         assert result.ok is True
         assert "clean" in result.summary.lower()
 
-    def test_ship_with_changes(self, tmp_path):
-        os.chdir(tmp_path)
+    def test_ship_with_changes(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
         subprocess.run(["git", "init"], capture_output=True)
         subprocess.run(["git", "config", "user.email", "test@test.com"], capture_output=True)
         subprocess.run(["git", "config", "user.name", "Test"], capture_output=True)

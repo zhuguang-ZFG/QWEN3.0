@@ -56,7 +56,6 @@ def _loop(probe_fn: Callable[[str], bool]):
             results = token_health.check_all_tokens()
             expired = [r for r in results if r.get("status") == "expired"]
             if expired:
-                names = [r["backend"] for r in expired]
                 # Only alert once per hour per backend
                 import time as _time
                 now = _time.time()

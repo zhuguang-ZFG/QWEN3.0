@@ -9,10 +9,7 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 import smart_router
-from orchestrate import needs_orchestration, orchestrate
 from response_builder import extract_query, messages_to_dicts
-from routes.quality_gate import quality_check
-from routes.stream_handlers import speculative_stream_chunks
 from routes.anthropic_stream_branches import (
     StreamContext,
     apply_quality_fallback,

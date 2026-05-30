@@ -41,7 +41,7 @@ def warmup_backend(backend: str) -> tuple[str, float, bool]:
         latency = (time.time() - t0) * 1000
         ok = bool(answer and len(answer.strip()) > 0)
         return backend, latency, ok
-    except Exception as e:
+    except Exception:
         return backend, (time.time() - t0) * 1000, False
 
 

@@ -2,7 +2,7 @@
 让 Cursor、Claude Code、VS Code Copilot 等 AI IDE 直接接入。
 支持流式/非流式 ChatCompletion，兼容 OpenAI API 格式。
 """
-import sys, os, time
+import sys, os, time as time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 try:
@@ -14,13 +14,13 @@ except ImportError:
 from fastapi import FastAPI
 import uvicorn
 
-from chat_models import ChatRequest, Message, extract_system_prompt
+from chat_models import ChatRequest as ChatRequest, Message as Message, extract_system_prompt
 import smart_router
 from vision_handler import (
     _vision_route, _stream_vision_response,
 )
 from converters.anthropic_format import (
-    convert_response_openai_to_anthropic as _convert_response_openai_to_anthropic,
+    convert_response_openai_to_anthropic as _convert_response_openai_to_anthropic,  # noqa: F401
 )
 from http_body_limit import BodySizeLimitMiddleware
 from server_bootstrap import (

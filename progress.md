@@ -2,7 +2,44 @@
 
 > Created: 2026-05-22
 
-> Updated: 2026-05-27
+> Updated: 2026-05-30
+
+## 2026-05-30 Whole-Project Code Quality Audit + VPS Deploy
+
+**Goal:** review the whole project for quality issues, remove dead/duplicate code where safe,
+stabilize quality gates, deploy to VPS, and verify production behavior.
+
+- Code quality cleanup:
+  - ran ruff cleanup for unused imports/variables, duplicate definitions, and undefined names;
+  - restored public compatibility exports that tests and downstream modules rely on;
+  - deduplicated Telegram developer-skill command handling in `routes/telegram_dev_skills.py`;
+  - fixed Windows shell execution for built-in `echo` in `agent_runtime/shell_executor.py`;
+  - kept SCNet large DS backends local-only in `runtime_topology.py`;
+  - isolated routing/developer-skill tests so full-suite runs no longer share mutable stores/cwd.
+- Deployment reliability cleanup:
+  - fixed `scripts/deploy_unified.py` SFTP upload failures by replacing per-file `ssh.exec_command("mkdir -p ...")`
+    with SFTP directory creation; root cause was leaked SSH exec channels hitting the VPS MaxSessions limit;
+  - changed failed uploads to return non-zero and skip restart;
+  - changed restart to `systemctl restart lima-router` plus health polling instead of racing `pkill`/`nohup`.
+- Local verification:
+  - `python -m ruff check --select F401,F841,F811,F821 --output-format concise .`: passed;
+  - `python -m ruff check .`: passed;
+  - `git diff --check`: passed;
+  - `python -m pytest`: `2130 passed, 10 skipped in 211.72s`.
+- VPS deploy evidence:
+  - backup: `/opt/lima-router/backups/quality-audit-20260530_201229/runtime-before.tgz`;
+  - full deploy: `scripts/deploy_unified.py --files <126 changed production files>` uploaded `126`, failed `0`, skipped `0`;
+  - post-deploy VPS-local health: `HTTP/1.1 200 OK`, `status=ok`, modules include device_gateway, mcp, agent_tasks,
+    telegram, github_webhook, gitee_webhook, and channel_gateway;
+  - public health: `https://chat.donglicao.com/health` returned `HTTP/1.1 200 OK`;
+  - public unauthenticated `/v1/models` returned `401 Unauthorized` as expected;
+  - public authenticated chat smoke, using VPS `.env` token without printing it, returned `HTTP_STATUS:200`,
+    backend `cerebras_gptoss`, `x_lima_meta.total_ms=902`.
+- Residual notes:
+  - Windows curl needed `--ssl-no-revoke` because Schannel revocation lookup was offline;
+  - direct `source .env` on VPS showed CRLF noise, so smoke used a temporary CRLF-stripped env copy;
+  - `python scripts/stress_test_lima.py --mode server --rounds 1` from local failed `403` because local
+    `LIMA_API_KEY` is unset; the generated stress result file was removed.
 
 ## 2026-05-27 M1-M5 能力加厚 + Phase A 核心路径
 

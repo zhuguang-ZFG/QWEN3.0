@@ -1,7 +1,6 @@
 import os
 import tempfile
 
-import pytest
 
 os.environ["LIMA_SESSION_DB"] = tempfile.mktemp(suffix=".db")
 os.environ["LIMA_SESSION_MEMORY"] = "1"

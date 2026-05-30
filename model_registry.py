@@ -6,10 +6,12 @@ model_registry.py — red V1flash 自动蒸馏+持续训练系统的版本管理
 """
 
 import json
+import logging
 import os
 import subprocess
 from datetime import datetime
-from glob import glob
+
+_log = logging.getLogger(__name__)
 
 REGISTRY_PATH = "D:/GIT/data/models/registry.json"
 ACTIVE_LINK = "D:/GIT/active_model"

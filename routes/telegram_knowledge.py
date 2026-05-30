@@ -12,7 +12,6 @@ _log = logging.getLogger(__name__)
 
 import telegram_bot
 from session_memory.store import search_memories_keyword
-from session_memory.store_db import memory_stats
 from session_memory.store_promote import save_typed_memory
 
 # Re-export stats/dashboard commands for backward compatibility
@@ -36,7 +35,6 @@ async def cmd_kb(chat_id: str, args: str) -> None:
     if not results:
         results = search_memories_keyword("_global", query[:80], limit=8)
     # Also search per-session
-    from session_memory.store import get_recent_memories
     if not results:
         # Try broader search with fewer chars
         results = search_memories_keyword("_global", query.split()[0][:30], limit=5)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """批量配置 one-api 渠道和分组 tokens"""
-import urllib.request, json, http.cookiejar, sys, os
+import urllib.request, json, http.cookiejar, os
 
 BASE = "http://localhost:3001"
 

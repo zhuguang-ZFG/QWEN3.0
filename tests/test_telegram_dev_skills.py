@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -107,7 +107,6 @@ class TestCmdLearn:
     def test_learn_empty_shows_usage(self, _mock_send):
         """Empty /learn shows candidate list or usage."""
         import routes.telegram_knowledge as kn_mod
-        monkeypatch_send = MagicMock()
         # telegram_knowledge uses its own telegram_bot import
         # patch send_message on the knowledge module
         kn_mod.telegram_bot.send_message = AsyncMock(
@@ -139,6 +138,3 @@ class TestCmdLearn:
             _run(kn_mod.cmd_learn("chat1", "approve test-candidate-123"))
 
         assert any("Approved" in m or "Boosted" in m for m in _mock_send)
-
-
-from unittest.mock import patch

@@ -9,9 +9,8 @@ from __future__ import annotations
 import logging
 import os
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
-from routing_ml.feature_extractor import N_FEATURES
 from routing_ml.routing_model import (
     RoutingModel,
     create_model,

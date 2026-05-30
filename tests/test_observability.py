@@ -1,8 +1,6 @@
 """Tests for observability events, metrics, and redaction guarantees."""
-import pytest
 from observability.events import (
-    LiMaEvent, _hash_session, _make_request_id,
-    request_start_event, request_end_event,
+    LiMaEvent, _hash_session, request_start_event, request_end_event,
     backend_call_event, backend_error_event,
     route_decision_event, quality_result_event,
     key_pool_event, token_usage_event,

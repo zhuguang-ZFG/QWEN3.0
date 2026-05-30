@@ -9,7 +9,6 @@ import sys
 import time
 import subprocess
 import tempfile
-from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -147,7 +146,6 @@ async def call_lima_with_tools(messages: list[dict], max_rounds: int = 5) -> dic
         data = resp.json()
         backend = data.get("model", "?")
         content_blocks = data.get("content", [])
-        stop_reason = data.get("stop_reason", "?")
 
         # Separate text and tool_use blocks
         text_parts = [b["text"] for b in content_blocks if b.get("type") == "text"]

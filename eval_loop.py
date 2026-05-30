@@ -7,14 +7,15 @@ eval_loop.py — red V1flash 自动蒸馏+持续训练系统的评估模块
 
 import json
 import os
-import re
-import time
 import glob
+import logging
 import urllib.request
 import urllib.error
 from datetime import datetime
 
 import model_registry
+
+_log = logging.getLogger(__name__)
 
 # ─── 常量 ────────────────────────────────────────────────────────────────────
 

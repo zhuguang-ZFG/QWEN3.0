@@ -11,12 +11,10 @@ Execution modes:
 from __future__ import annotations
 
 import logging
-import os
 import time
 import uuid
-from dataclasses import dataclass
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/agent", tags=["agent"])

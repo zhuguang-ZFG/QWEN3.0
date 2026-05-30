@@ -1,9 +1,12 @@
 """Telegram Function Calling tools."""
 
+import logging
 import os
 
 from .http_client import _get
 from .registry import tool
+
+_log = logging.getLogger(__name__)
 
 
 @tool('get_weather', 'Get current weather for a city.', {'properties': {'city': {'description': 'City name.', 'type': 'string'}},

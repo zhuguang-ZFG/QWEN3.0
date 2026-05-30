@@ -15,7 +15,7 @@ import os
 import subprocess
 import sys
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 logging.basicConfig(
@@ -91,7 +91,6 @@ def check_backend_health(port: int, model: str) -> tuple[bool, str]:
 def refresh_longcat_cookie() -> bool:
     """Attempt Playwright-based cookie refresh for LongCat-web."""
     cookie_file = Path("/root/.longcat_cookie")
-    state_file = Path("/root/.longcat_browser_state.json")
 
     # Check if playwright is available
     try:
@@ -144,7 +143,7 @@ def save_alert(proxy_name: str, status: str, detail: str) -> None:
         try:
             with open(ALERT_FILE) as f:
                 alerts = json.load(f)
-        except Exception as exc:
+        except Exception:
             pass  # scripts/reverse_proxy_keepalive.py
 
     alerts[proxy_name] = {
@@ -165,7 +164,7 @@ def send_notification(message: str) -> None:
             import httpx
 
             httpx.post(ntfy_url, json={"topic": "lima", "message": message}, timeout=10)
-        except Exception as exc:
+        except Exception:
             pass  # scripts/reverse_proxy_keepalive.py
     log.warning(f"ALERT: {message}")
 
@@ -215,7 +214,7 @@ def main():
             alerts = {k: v for k, v in alerts.items() if v["status"] != "HEALTHY"}
             with open(ALERT_FILE, "w") as f:
                 json.dump(alerts, f, indent=2)
-        except Exception as exc:
+        except Exception:
             pass  # scripts/reverse_proxy_keepalive.py
 
     status_str = "ALL HEALTHY" if all_healthy else "SOME DOWN"

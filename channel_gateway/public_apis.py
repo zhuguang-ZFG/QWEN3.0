@@ -307,12 +307,13 @@ _HOT_PLATFORM_MAP = {
     "douyin": "douyin",
 }
 
+from channel_gateway.public_apis_news import (  # noqa: E402
+    _extract_60s_news as _extract_60s_news,
+    _news_60s_urls as _news_60s_urls,
+    _normalize_hot_items as _normalize_hot_items,
+    fetch_hot_60s as fetch_hot_60s,
+    fetch_news_60s as fetch_news_60s,
+)
+
 
 # ── Re-exports from public_apis_news (backwards compatibility) ──
-from channel_gateway.public_apis_news import (  # noqa: E402
-    _normalize_hot_items,
-    _extract_60s_news,
-    _news_60s_urls,
-    fetch_hot_60s,
-    fetch_news_60s,
-)

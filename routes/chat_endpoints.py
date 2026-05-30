@@ -237,7 +237,6 @@ def _openai_to_anthropic_tool_body(body: dict) -> dict:
 
 def _convert_anthropic_tool_response_to_openai(result: dict, original_body: dict) -> dict:
     """Convert Anthropic tool response back to OpenAI format."""
-    import uuid
     content_parts = result.get("content", [])
     text_parts = [b["text"] for b in content_parts if b.get("type") == "text"]
     tool_parts = [b for b in content_parts if b.get("type") == "tool_use"]

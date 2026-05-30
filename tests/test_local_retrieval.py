@@ -1,8 +1,6 @@
 """Tests for M16 local retrieval index lab."""
 
-import os
 
-import pytest
 
 from local_retrieval.chunking import CodeAwareChunker, SimpleTextChunker
 from local_retrieval.eval_bridge import evaluate_index, format_eval_report, make_eval_query

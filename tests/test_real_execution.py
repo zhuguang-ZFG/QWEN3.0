@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-import os
 import subprocess
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
 
-import pytest
 
 from agent_runtime.feature_flags import (
     ExecutionFeatureFlags,
@@ -18,14 +15,12 @@ from agent_runtime.feature_flags import (
 from agent_runtime.git_executor import _extract_git_subcommand, git_execute
 from agent_runtime.network_executor import network_execute
 from agent_runtime.real_executor import (
-    PreflightResult,
     RealExecutorConfig,
     RealToolExecutor,
     preflight_real_execution,
 )
 from agent_runtime.contract import AgentStep, StepKind
 from agent_runtime.shell_executor import shell_execute
-from agent_runtime.tool_exec import ToolResult
 
 
 # ---------------------------------------------------------------------------

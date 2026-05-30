@@ -9,7 +9,6 @@ from session_memory.store import save_memory, count_memories
 from session_memory.compactor import (
     needs_compaction,
     compact_session,
-    get_oldest_memories,
     COMPACTION_THRESHOLD,
 )
 

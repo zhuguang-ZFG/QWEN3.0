@@ -2,6 +2,19 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-05-30 Whole-Project Code Quality Audit
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| CQ-089-1 | Code quality | Project-wide ruff cleanup removed unused imports/variables and fixed undefined logger paths while preserving compatibility exports used by tests/importers. | Closed |
+| CQ-089-2 | Duplication | Telegram developer-skill command flow had repeated parsing/dispatch logic; it is now centralized in a shared helper while keeping command behavior covered by tests. | Closed |
+| CQ-089-3 | Windows execution | `agent_runtime/shell_executor.py` did not handle shell built-ins like `echo` consistently on Windows; the executor now covers the verified built-in path. | Closed |
+| CQ-089-4 | Test isolation | Developer-skill and routing-loop tests leaked cwd/store state across full-suite runs; they now use temp cwd/request-store isolation. | Closed |
+| CQ-089-5 | Deploy root cause | `scripts/deploy_unified.py` opened one SSH exec channel per uploaded file for `mkdir -p` and did not drain/close those channels, causing VPS `ChannelException(2, 'Connect failed')` after MaxSessions during a 126-file deploy. Replaced with SFTP directory creation and fail-fast upload handling. | Closed |
+| CQ-089-6 | Deploy restart | `deploy_unified.py` mixed `pkill`/`nohup` with the systemd-managed `lima-router` service and used a 4-second health wait, creating false failed health results. Restart now uses `systemctl restart lima-router` and polls `/health` for up to 45 seconds. | Closed |
+| CQ-089-7 | VPS smoke | VPS-local health and public health passed after full deploy. Authenticated public chat smoke returned `HTTP_STATUS:200` via backend `cerebras_gptoss`; unauthenticated `/v1/models` returned `401` as expected. | Closed |
+| CQ-089-8 | Environment | Local `curl.exe` hit Schannel revocation lookup offline; public smoke required `--ssl-no-revoke`. VPS `.env` has CRLF noise when sourced directly, so remote smoke used a temporary CRLF-stripped copy. | Open |
+
 ## 2026-05-27 M1-M5 + Phase A
 
 | ID | Area | Finding | Status |

@@ -7,7 +7,7 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Sequence
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import urlparse
 
 _OAUTH_RE = re.compile(r"oauth2:[^@]+@", re.IGNORECASE)
 _OAUTH_TOKEN_RE = re.compile(r"oauth2:([^@]+)@", re.IGNORECASE)

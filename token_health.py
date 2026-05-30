@@ -12,6 +12,7 @@ import sqlite3
 import time
 
 logger = logging.getLogger(__name__)
+_log = logger
 
 DB_PATH = os.environ.get("LIMA_TOKEN_HEALTH_DB", "data/token_health.db")
 

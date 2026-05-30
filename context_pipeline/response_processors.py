@@ -1,6 +1,10 @@
 """Response processors — individual post-response processing stages."""
 
+import logging
+
 from context_pipeline.response_pipeline import ResponseContext
+
+_log = logging.getLogger(__name__)
 
 
 def quality_check_processor(ctx: ResponseContext) -> ResponseContext:

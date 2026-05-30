@@ -3,7 +3,6 @@
 Usage: python scripts/stream_latency_evidence.py
 """
 import asyncio
-import json
 import time
 import sys
 import os

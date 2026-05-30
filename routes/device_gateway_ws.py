@@ -9,7 +9,6 @@ from fastapi import WebSocket, WebSocketDisconnect
 from device_gateway.protocol import ProtocolError, validate_uplink
 from device_gateway.sessions import DeviceSession, registry
 from routes.device_gateway_dispatch import requeue_session_outstanding, send_ws_error
-from device_gateway.tasks import ack_processing_task, create_task_from_transcript
 from routes.device_gateway_ws_handlers import (
     handle_device_info,
     handle_heartbeat,

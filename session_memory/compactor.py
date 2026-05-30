@@ -7,10 +7,8 @@ Based on Google ADK Context Compaction + claude-mem AI Summarization:
 - Use LiMa's own free backends for summarization
 """
 
-import time
 from session_memory.store import (
     MemoryEntry,
-    get_recent_memories,
     save_memory,
     count_memories,
     _get_conn,

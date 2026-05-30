@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-import pytest
 
 from search_gateway.gitee_tools import (
     credentials_configured,

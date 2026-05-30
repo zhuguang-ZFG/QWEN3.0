@@ -1,6 +1,5 @@
 """Tests for Telegram codesearch operator command."""
 
-import asyncio
 import os
 import sys
 

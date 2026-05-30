@@ -1,10 +1,22 @@
 # LiMa Status
 
-> Updated: 2026-05-28 (Phase A+B+C improvement plan complete)
+> Updated: 2026-05-30 (whole-project code quality audit deployed)
 > Branch: `codex/free-web-ai-probe`
-> Tests: **1971 passed, 10 skipped** (`pytest -q --ignore=tests/test_ci_gates.py --ignore=tests/test_backend_registry.py`)
+> Tests: **2130 passed, 10 skipped** (`python -m pytest`)
 > VPS: Memory 1454MB→1358MB (services restored), health check OK
 > Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
+
+## 2026-05-30 Whole-Project Code Quality Audit
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| Ruff cleanup | Done | `ruff check --select F401,F841,F811,F821` and full `ruff check .` passed |
+| Dead/duplicate code | Done | unused imports/vars cleaned; Telegram dev-skill duplicate command flow centralized |
+| Compatibility | Done | public re-exports restored where tests/importers depend on them |
+| Test stability | Done | full suite `2130 passed, 10 skipped in 211.72s` |
+| VPS deploy | Done | backup `/opt/lima-router/backups/quality-audit-20260530_201229/runtime-before.tgz`; 126/126 uploaded |
+| VPS/public smoke | Done | VPS-local `/health` 200; public `/health` 200; authenticated public chat 200 via `cerebras_gptoss` |
+| Deploy tooling | Done | `deploy_unified.py` no longer leaks SSH exec channels and now restarts through systemd with health polling |
 
 ## 2026-05-28 Phase A+B+C Improvement Plan
 

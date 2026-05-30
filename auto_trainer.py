@@ -8,10 +8,10 @@ import json
 import os
 import subprocess
 import sys
-import time
 import glob
+import logging
 import random
-from datetime import datetime, timezone
+from datetime import datetime
 
 import model_registry
 import train_lock
@@ -26,6 +26,7 @@ CHECKPOINT_BASE = "D:/GIT/data/models/checkpoints/"
 MERGED_TEMP_PATH = "D:/GIT/data/training_data/merged_temp.json"
 TRAIN_SCRIPT = "D:/GIT/train_model.py"
 PYTHON_BIN = "D:/GIT/venv/Scripts/python.exe"
+_log = logging.getLogger(__name__)
 
 
 # ========== 辅助函数 ==========

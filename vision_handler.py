@@ -2,7 +2,7 @@
 import json, time, asyncio, sys, os
 
 import health_tracker
-from http_caller import clean_response, BackendError
+from http_caller import clean_response
 from backends import BACKENDS, VISION_BACKENDS
 
 DEBUG = os.environ.get('LIMA_DEBUG', '') == '1'

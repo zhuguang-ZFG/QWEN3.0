@@ -3,7 +3,7 @@ import os
 """Test: try base_url WITHOUT /v1 for type=1 channels
 Theory: type=1 (OpenAI) appends /v1/chat/completions to base_url
 So base_url should be the root domain without /v1"""
-import urllib.request, json, http.cookiejar, sys, time, os
+import urllib.request, json, http.cookiejar, sys, time
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 

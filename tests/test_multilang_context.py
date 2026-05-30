@@ -3,10 +3,7 @@
 from __future__ import annotations
 
 import os
-import tempfile
-from pathlib import Path
 
-import pytest
 
 from code_context.ast_adapter import (
     FileAst,
@@ -14,14 +11,12 @@ from code_context.ast_adapter import (
     get_extractor,
 )
 from code_context.graph_index import (
-    GraphIndex,
-    GraphSearchResult,
     InMemoryGraphIndex,
     build_graph_index,
 )
 from code_context.index_store import InMemoryCodeIndex, CodeSymbol, build_code_index
 from code_context.scanner import scan_file, scan_python_file
-from code_context.file_watcher import FileWatcher, FileChange
+from code_context.file_watcher import FileWatcher
 
 
 # ---------------------------------------------------------------------------
@@ -313,7 +308,6 @@ class TestFactories:
         assert isinstance(g, InMemoryGraphIndex)
 
     def test_build_graph_index_persistent(self, tmp_path):
-        import shutil
         fresh = tmp_path / "fresh_graph"
         fresh.mkdir()
         os.environ["LIMA_DATA_DIR"] = str(fresh)

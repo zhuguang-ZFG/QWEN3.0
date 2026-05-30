@@ -7,13 +7,11 @@ import os
 import sys
 import tempfile
 
-import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from routing_ml.feature_extractor import (
     N_FEATURES,
-    FeatureVector,
     extract_features,
 )
 from routing_ml.routing_model import (
@@ -130,7 +128,6 @@ class TestRoutingModel:
         model = create_model(["a", "b"], seed=0)
         features = [0.5] * N_FEATURES
         target_success = [1.0, 0.0]
-        target_fail = [0.0, 1.0]
 
         # Get initial loss
         pred_before = model.predict(features)

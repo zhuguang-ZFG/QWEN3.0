@@ -5,12 +5,10 @@ from __future__ import annotations
 import os
 import sys
 
-import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from context_pipeline.semantic_code_retrieval import (
-    CodeResult,
     assess_code_complexity,
     retrieve_semantic,
     _tokenize_query,
@@ -18,7 +16,6 @@ from context_pipeline.semantic_code_retrieval import (
     _score_file,
 )
 from context_pipeline.graph_context_expander import (
-    ExpandedFile,
     expand_context,
 )
 

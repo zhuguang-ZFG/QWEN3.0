@@ -1,4 +1,4 @@
-from context_pipeline.entity_extraction import extract_entities, ExtractedEntities
+from context_pipeline.entity_extraction import extract_entities
 from context_pipeline.graph_retrieval import (
     CodeGraph,
     RetrievalResult,

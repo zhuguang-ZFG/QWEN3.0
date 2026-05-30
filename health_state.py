@@ -143,6 +143,7 @@ import os
 import sqlite3
 
 logger = logging.getLogger(__name__)
+_log = logger
 
 _DB_PATH = os.environ.get("LIMA_HEALTH_STATE_DB", "data/health_state.db")
 

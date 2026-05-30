@@ -4,8 +4,7 @@ import os
 import pytest
 from data_workbench.policy import (
     PrivacyClass, ArtifactKind,
-    ACCEPTED_EXTENSIONS, MAX_DATASET_BYTES, DEFAULT_RETENTION_DAYS,
-    is_accepted_file_type, is_within_size_limit, validate_retention_days,
+    ACCEPTED_EXTENSIONS, MAX_DATASET_BYTES, is_accepted_file_type, is_within_size_limit, validate_retention_days,
     is_sensitive_schema_key, redact_schema_keys, redact_schema_key_list,
     redact_text_body, normalize_artifact_path,
 )

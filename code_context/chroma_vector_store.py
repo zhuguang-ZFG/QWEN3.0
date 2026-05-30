@@ -7,6 +7,7 @@ Falls back gracefully when ChromaDB is unavailable.
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import logging
 import os
 from pathlib import Path
@@ -23,11 +24,8 @@ def _is_chromadb_available() -> bool:
     global _CHROMADB_AVAILABLE
     if _CHROMADB_AVAILABLE is not None:
         return _CHROMADB_AVAILABLE
-    try:
-        import chromadb
-        _CHROMADB_AVAILABLE = True
-    except ImportError:
-        _CHROMADB_AVAILABLE = False
+    _CHROMADB_AVAILABLE = importlib.util.find_spec("chromadb") is not None
+    if not _CHROMADB_AVAILABLE:
         _log.debug("chromadb not installed, using in-memory fallback")
     return _CHROMADB_AVAILABLE
 

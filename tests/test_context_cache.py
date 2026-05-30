@@ -2,7 +2,6 @@ from context_pipeline.cache import (
     compute_stable_prefix,
     compute_prefix_hash,
     build_cached_prompt,
-    get_cache_metrics,
     CacheMetrics,
 )
 

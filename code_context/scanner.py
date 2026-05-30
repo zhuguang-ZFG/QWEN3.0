@@ -1,6 +1,9 @@
+import logging
 from pathlib import Path
 
 from .index_store import CodeSymbol, FileRecord
+
+_log = logging.getLogger(__name__)
 
 _LANG_EXT_MAP: dict[str, str] = {
     ".py": "python",

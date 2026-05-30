@@ -3,7 +3,7 @@
 import hmac
 import os
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/channel")

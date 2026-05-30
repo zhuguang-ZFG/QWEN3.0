@@ -4,10 +4,9 @@ Model Evaluator: Perplexity + Domain Accuracy + Round Comparison.
 Quantifies exactly how much each training round improved.
 """
 
-import json, os, sys, random, time
+import json, os, sys, random
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
-from datasets import Dataset
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 BASE_MODEL = r"D:\GIT\models\Qwen\Qwen3-8B"
@@ -52,8 +51,6 @@ def calculate_perplexity(model_path, label: str, base_model_path: str):
         prepare_test_set()
 
     encodings = torch.load(r"D:\GIT\test_set.pt", weights_only=False)
-    tokenizer = AutoTokenizer.from_pretrained(base_model_path, trust_remote_code=True)
-
     print(f"\n  Loading {label} for perplexity evaluation...")
     bnb = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_use_double_quant=True,
                               bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16)
@@ -108,13 +105,6 @@ def calculate_perplexity(model_path, label: str, base_model_path: str):
 
 def domain_accuracy_test():
     """Quick accuracy check on domain-specific questions."""
-    questions = [
-        ("Grbl的$100参数是什么", ["step", "mm", "步", "毫", "脉冲", "250"]),
-        ("ESP32 GPIO12为什么影响启动", ["GPIO", "boot", "启动", "电平"]),
-        ("如何计算CNC的steps/mm", ["step", "mm", "公式", "导程", "细分"]),
-        ("OpenOCD dump STM32固件命令", ["openocd", "flash", "dump", "read"]),
-        ("SVG path转GCode Python代码", ["svg", "path", "gcode", "def ", "import"]),
-    ]
     # This requires LM Studio running. Skip if not available.
     return None
 

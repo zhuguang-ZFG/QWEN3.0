@@ -6,12 +6,8 @@ These tests verify that module responsibilities don't leak across boundaries.
 
 from __future__ import annotations
 
-import importlib
-import ast
-import os
 from pathlib import Path
 
-import pytest
 
 REPO = Path(__file__).resolve().parent.parent
 

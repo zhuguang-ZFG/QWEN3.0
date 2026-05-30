@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import threading
 
-from routes.request_tracking import FALLBACK_LOG
+from routes.request_tracking import FALLBACK_LOG as FALLBACK_LOG
+
 
 _stats: dict = {}
 _stats_lock: threading.Lock = threading.Lock()

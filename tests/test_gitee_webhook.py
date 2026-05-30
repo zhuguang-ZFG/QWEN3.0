@@ -14,7 +14,7 @@ from fastapi.testclient import TestClient
 import server
 from gitee_webhook.dedupe import record_push_shas, reset_dedupe_for_tests, should_skip_gitee_push
 from gitee_webhook.format import extract_push_shas, format_gitee_event
-from gitee_webhook.verify import verify_gitee_request, verify_gitee_sign, verify_gitee_token
+from gitee_webhook.verify import verify_gitee_request, verify_gitee_sign
 
 
 @pytest.fixture(autouse=True)

@@ -99,7 +99,7 @@ def test_persistence_round_trip(_isolated_weights):
 
 
 def test_no_persistence_when_no_data(_isolated_weights):
-    rw = _fresh()
+    _fresh()
     # No record_* called → file not created
     assert not _isolated_weights.exists()
 

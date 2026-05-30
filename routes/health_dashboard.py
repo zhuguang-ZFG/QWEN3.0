@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import json
 import time
-from pathlib import Path
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 
 router = APIRouter()

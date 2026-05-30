@@ -20,8 +20,6 @@ import json
 import time
 import sys
 import subprocess
-import shutil
-from pathlib import Path
 
 # ── 配置 ──────────────────────────────────────────────────────────────────────
 FALLBACK_LOG = "D:/GIT/data/fallback_log.jsonl"

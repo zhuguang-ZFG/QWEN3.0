@@ -6,7 +6,6 @@ import os
 import sys
 import tempfile
 
-import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -115,11 +114,20 @@ class TestFeedbackBridge:
 
 
 class TestLoopCloser:
-    def test_close_loop_with_empty_store(self):
+    def test_close_loop_with_empty_store(self, tmp_path):
+        from routing_loop.request_store import RequestStore
+        import routing_loop.request_store as rs_mod
         from routing_loop.loop_closer import close_loop
-        result = close_loop()
-        assert "store_count" in result
-        assert result["training"] is False  # not enough data
+
+        store = RequestStore(db_path=str(tmp_path / "request_log.db"))
+        rs_mod._store = store
+        try:
+            result = close_loop()
+            assert "store_count" in result
+            assert result["training"] is False  # not enough data
+        finally:
+            store.close()
+            rs_mod._store = None
 
     def test_close_loop_with_data(self):
         from routing_loop.request_store import RequestStore

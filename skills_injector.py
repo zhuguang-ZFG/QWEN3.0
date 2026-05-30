@@ -10,9 +10,7 @@ LiMa Skills Injector — 智能补缺注入
 """
 
 import os
-import re
 import glob as glob_mod
-from typing import Optional
 
 from backends import STRONG_MODELS
 

@@ -16,7 +16,6 @@ import argparse
 import json
 import os
 import subprocess
-import sys
 import time
 from datetime import datetime
 from pathlib import Path
@@ -246,7 +245,7 @@ def snapshot_weights() -> dict:
     if weights_path.exists():
         try:
             return json.loads(weights_path.read_text(encoding="utf-8"))
-        except Exception as exc:
+        except Exception:
             pass  # scripts/stress_test_lima.py
     return {}
 

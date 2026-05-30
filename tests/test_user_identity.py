@@ -6,7 +6,7 @@ os.environ["LIMA_LESSONS_DIR"] = tempfile.mkdtemp()
 
 from user_identity.profile import UserProfile, load_profile, save_profile
 from user_identity.lessons import add_lesson, get_lessons, get_routing_lessons
-from user_identity.adapter import adapt_prompt_for_user, infer_tech_level
+from user_identity.adapter import adapt_prompt_for_user
 
 
 def test_profile_create_and_save():

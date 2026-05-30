@@ -1,4 +1,4 @@
-import subprocess, json, os, sys
+import subprocess, json, os
 
 env = os.environ.copy()
 env['LIMA_API_KEY'] = os.environ.get('LIMA_API_KEY', '')

@@ -56,7 +56,6 @@ class TaskDispatcher:
 
     def dispatch(self, registry) -> tuple[FleetTask, str] | None:
         """Find best task+node pair. Returns (task, node_id) or None."""
-        from fleet.node_registry import NodeRegistry
 
         online_nodes = registry.get_online_nodes()
         if not online_nodes:

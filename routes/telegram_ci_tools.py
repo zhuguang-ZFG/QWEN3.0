@@ -6,7 +6,6 @@ import telegram_bot
 from lima_mcp.github_tools import (
     get_combined_status,
     get_workflow_run,
-    list_check_runs,
     list_workflow_jobs,
     list_workflow_runs,
 )

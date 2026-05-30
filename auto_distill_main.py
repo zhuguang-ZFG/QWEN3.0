@@ -13,6 +13,7 @@
 
 import argparse
 import json
+import logging
 import os
 import sys
 import time
@@ -35,6 +36,7 @@ except ImportError:
 
 STATE_PATH = "D:/GIT/data/system_state.json"
 HEARTBEAT_PATH = "D:/GIT/data/heartbeat.txt"
+_log = logging.getLogger(__name__)
 
 # ─── 合法阶段集合 ─────────────────────────────────────────────────────────────
 

@@ -4,7 +4,6 @@ from device_gateway.path_validator import (
     validate_run_path_params,
     CAPABILITY_PATH_MAP,
     MAX_PATH_POINTS,
-    MAX_POINT_COORD,
 )
 
 

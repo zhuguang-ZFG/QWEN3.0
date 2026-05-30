@@ -16,7 +16,7 @@ import os
 import re
 import hashlib
 from typing import Optional
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 MINUTE_COOLDOWN = 60
 DAY_COOLDOWN_HOUR = 24 * 3600

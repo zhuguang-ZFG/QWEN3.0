@@ -8,8 +8,6 @@ GET  /agent/memory/context  — Get context for routing (preferred backends, etc
 from __future__ import annotations
 
 import logging
-import os
-import time
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field

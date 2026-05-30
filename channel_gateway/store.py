@@ -12,8 +12,6 @@ from channel_gateway.models import (
     BindingRole,
     BindingStatus,
     ChannelBinding,
-    ChannelBindingCode,
-    ChannelMessage,
 )
 
 

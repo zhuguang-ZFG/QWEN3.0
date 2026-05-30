@@ -98,11 +98,9 @@ async def stream_response(
         return
 
     streamed_any = False
-    last_backend = "unknown"
 
     async for _backend, chunk in speculative_stream_chunks(query, messages, 4096, ide_source):
         streamed_any = True
-        last_backend = _backend
         from response_cleaner import clean_response
         chunk = clean_response(chunk, _backend) or chunk
         yield build_stream_chunk(chat_id, chunk)

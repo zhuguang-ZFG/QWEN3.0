@@ -3,10 +3,9 @@ from __future__ import annotations
 
 import json
 import os
-import sqlite3
 import time
 
-from session_memory.store_db import MemoryEntry, _DB_PATH, _get_conn
+from session_memory.store_db import _get_conn
 from session_memory.store_crud import count_memories
 
 

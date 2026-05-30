@@ -12,11 +12,8 @@ Used by vibecode agent scripts and the /lima fix command flow.
 """
 from __future__ import annotations
 
-import json
 import logging
 import subprocess
-import time
-from pathlib import Path
 
 _log = logging.getLogger(__name__)
 

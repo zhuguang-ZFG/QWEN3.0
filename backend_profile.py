@@ -12,10 +12,10 @@ import os
 import sqlite3
 import threading
 import time
-from collections import deque
 from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
+_log = logger
 
 DB_PATH = os.environ.get("LIMA_BACKEND_PROFILE_DB", "data/backend_profiles.db")
 _lock = threading.Lock()

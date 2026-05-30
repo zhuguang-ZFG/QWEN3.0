@@ -12,6 +12,7 @@ MAX_FALLBACKS_TOOLS = 20
 PER_BACKEND_TIMEOUT = 15.0
 
 logger = logging.getLogger(__name__)
+_log = logger
 
 
 def execute(backends: list[str],

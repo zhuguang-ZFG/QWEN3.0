@@ -16,7 +16,6 @@ from converters.anthropic_format import (
     convert_tools_anthropic_to_openai,
     inject_anthropic_body_preflight,
     inject_anthropic_context_preflight,
-    convert_response_openai_to_anthropic,
 )
 
 
@@ -81,7 +80,6 @@ async def _stream_openai_sse_to_anthropic(
     block_index = 0
     text_block_started = False
     emitted_tool_blocks: set[int] = set()
-    finished = False
 
     async with httpx.AsyncClient(timeout=120) as client:
         async with client.stream(
@@ -104,7 +102,6 @@ async def _stream_openai_sse_to_anthropic(
                     continue
                 data_str = line[6:]
                 if data_str == "[DONE]":
-                    finished = True
                     break
 
                 try:
@@ -186,7 +183,6 @@ async def _stream_openai_sse_to_anthropic(
 
 async def stream_tier1_openai(body: dict, openai_tools: list, openai_msgs: list, deps: dict):
     """Real streaming: OpenAI SSE → Anthropic SSE conversion on-the-fly."""
-    import asyncio
 
     backends = deps["iter_tool_backends"](deps["TOOL_TIER1_BACKENDS"])
     BACKENDS = deps["BACKENDS"]

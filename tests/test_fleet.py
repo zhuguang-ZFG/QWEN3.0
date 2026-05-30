@@ -6,17 +6,15 @@ import os
 import sys
 import time
 
-import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from fleet.node_registry import (
     HEARTBEAT_TIMEOUT,
     NodeCapabilities,
-    NodeInfo,
     NodeRegistry,
 )
-from fleet.task_dispatcher import FleetTask, TaskDispatcher
+from fleet.task_dispatcher import TaskDispatcher
 
 
 # ─── Node registry tests ──────────────────────────────────────────────

@@ -141,7 +141,6 @@ def _select_key(backend: str, backend_cfg: dict) -> tuple[str, str]:
             raw_key = os.environ.get(key_env_var, "")
         if not raw_key:
             # Scan common env var patterns
-            import re
             for env_name in [f"{backend.upper()}_API_KEY", f"{backend.upper()}_KEY",
                              f"{backend.replace('-', '_').upper()}_KEY"]:
                 raw_key = os.environ.get(env_name, "")

@@ -12,7 +12,6 @@ and routing messages to the same protocol handlers as WebSocket devices.
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import os
 
@@ -111,8 +110,8 @@ async def _mqtt_message_loop() -> None:
         return  # unreachable
 
     from device_gateway.mqtt_topics import (
-        LWT_OFFLINE, LWT_ONLINE, SERVER_SUB_FILTER,
-        device_downlink_topic, device_status_topic, device_uplink_topic,
+        LWT_OFFLINE, SERVER_SUB_FILTER,
+        device_downlink_topic, device_status_topic,
     )
 
     # Bridging: paho (sync) → asyncio

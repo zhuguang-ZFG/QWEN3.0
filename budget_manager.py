@@ -78,15 +78,15 @@ BACKEND_BUDGETS: dict[str, BudgetConfig] = {
 }
 
 from budget_cf_google import (  # noqa: E402
-    CF_ACCOUNT_DAILY_LIMIT,
-    CF_ACCOUNT_WARN_AT,
+    CF_ACCOUNT_DAILY_LIMIT as CF_ACCOUNT_DAILY_LIMIT,
+    CF_ACCOUNT_WARN_AT as CF_ACCOUNT_WARN_AT,
     CF_BACKEND_PREFIX,
     emit_budget_alerts,
     emit_cf_pool_alerts,
-    get_cf_pool_status,
-    get_cf_pool_usage,
-    get_total_requests_today,
-    get_usage_summary,
+    get_cf_pool_status as get_cf_pool_status,
+    get_cf_pool_usage as get_cf_pool_usage,
+    get_total_requests_today as get_total_requests_today,
+    get_usage_summary as get_usage_summary,
     register_cf_google_budgets,
 )
 from budget_gitee import register_gitee_budgets  # noqa: E402

@@ -6,7 +6,6 @@ deduplicate, and append to round5_training_data.json
 
 import json
 import os
-import sys
 
 os.environ["HF_HOME"] = "D:/GIT/hf_cache"
 os.environ["HF_DATASETS_CACHE"] = "D:/GIT/hf_cache"

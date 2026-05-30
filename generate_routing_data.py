@@ -1,7 +1,12 @@
 """generate_routing_data.py — 从路由日志自动生成路由训练数据。
 读取 distill_queue/pending/ 中带评分的日志，生成路由模型训练样本。
 """
-import json, os, glob
+import glob
+import json
+import logging
+import os
+
+_log = logging.getLogger(__name__)
 
 PENDING_DIR = "D:/GIT/data/distill_queue/pending/"
 OUTPUT_PATH = "D:/GIT/data/training_data/round8_routing_feedback.json"

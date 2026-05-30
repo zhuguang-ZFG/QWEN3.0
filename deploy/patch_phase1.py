@@ -1,7 +1,6 @@
 """Phase 1 patch: IDE detection + Skills injection + model-specific prompts
 Adds to smart_router.py without breaking existing functionality.
 """
-import re, json
 
 PATCH_FILE = "/opt/lima-router/smart_router.py"
 

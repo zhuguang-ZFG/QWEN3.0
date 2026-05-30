@@ -1,6 +1,5 @@
 """Tests for M9: Streaming event protocol — SSE format, event types, serialization."""
 import json
-import pytest
 from streaming_events import (
     StreamEvent, StreamEventType,
     token_event, tool_start_event, tool_delta_event, tool_end_event,

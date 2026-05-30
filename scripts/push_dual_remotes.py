@@ -77,7 +77,7 @@ def main() -> int:
                 "Git dual-remote push failed\n" + "\n".join(failures),
                 level="critical",
             )
-        except Exception as exc:
+        except Exception:
             pass  # scripts/push_dual_remotes.py
 
     return 1 if failures else 0

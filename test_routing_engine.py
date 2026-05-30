@@ -2,7 +2,6 @@
 test_routing_engine.py — 测试统一路由引擎
 覆盖: classify(5) / select(4) / inject(2) / execute(3) / route(1)
 """
-import pytest
 import sys
 import os
 import builtins

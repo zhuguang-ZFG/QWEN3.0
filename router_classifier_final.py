@@ -3,7 +3,7 @@ AI Coding Tool Router — Production Classifier
 No external dependencies. Pure Python. Drop-in for any routing system.
 """
 
-import json, os, re
+import json, os
 from collections import Counter
 
 # ============================================================
