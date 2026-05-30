@@ -246,8 +246,8 @@ def snapshot_weights() -> dict:
     if weights_path.exists():
         try:
             return json.loads(weights_path.read_text(encoding="utf-8"))
-        except Exception:
-            pass
+        except Exception as exc:
+            pass  # scripts/stress_test_lima.py
     return {}
 
 

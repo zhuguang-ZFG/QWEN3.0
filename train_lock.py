@@ -81,8 +81,8 @@ def is_locked() -> bool:
                 return True
             except (OSError, ProcessLookupError):
                 return False
-    except Exception:
-        pass
+    except Exception as exc:
+        pass  # train_lock.py
     return False
 
 

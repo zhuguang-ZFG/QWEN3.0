@@ -144,8 +144,8 @@ def save_alert(proxy_name: str, status: str, detail: str) -> None:
         try:
             with open(ALERT_FILE) as f:
                 alerts = json.load(f)
-        except Exception:
-            pass
+        except Exception as exc:
+            pass  # scripts/reverse_proxy_keepalive.py
 
     alerts[proxy_name] = {
         "status": status,
@@ -165,8 +165,8 @@ def send_notification(message: str) -> None:
             import httpx
 
             httpx.post(ntfy_url, json={"topic": "lima", "message": message}, timeout=10)
-        except Exception:
-            pass
+        except Exception as exc:
+            pass  # scripts/reverse_proxy_keepalive.py
     log.warning(f"ALERT: {message}")
 
 
@@ -215,8 +215,8 @@ def main():
             alerts = {k: v for k, v in alerts.items() if v["status"] != "HEALTHY"}
             with open(ALERT_FILE, "w") as f:
                 json.dump(alerts, f, indent=2)
-        except Exception:
-            pass
+        except Exception as exc:
+            pass  # scripts/reverse_proxy_keepalive.py
 
     status_str = "ALL HEALTHY" if all_healthy else "SOME DOWN"
     log.info(f"=== {status_str} ===")
