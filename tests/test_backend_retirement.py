@@ -1,0 +1,69 @@
+"""Tests for backend_retirement.py — automatic degradation module."""
+
+import os
+import tempfile
+
+os.environ["LIMA_BACKEND_RETIREMENT_DB"] = os.path.join(tempfile.gettempdir(), "test_retirement.db")
+os.environ["LIMA_BACKEND_PROFILE_DB"] = os.path.join(tempfile.gettempdir(), "test_retirement_profiles.db")
+
+import backend_retirement as br
+import backend_profile as bp
+
+
+def test_check_retirement_not_enough_data():
+    bp._profiles.clear()
+    bp.record_request("new_backend", 100.0, True, "coding", 500)
+    result = br.check_retirement("new_backend")
+    assert result is None, "Should not retire with only 1 request"
+
+
+def test_check_retirement_healthy_backend():
+    bp._profiles.clear()
+    for _ in range(10):
+        bp.record_request("healthy", 100.0, True, "coding", 500)
+    result = br.check_retirement("healthy")
+    assert result is None, "Healthy backend should not be retired"
+
+
+def test_check_retirement_low_success_rate():
+    bp._profiles.clear()
+    for _ in range(25):
+        bp.record_request("failing", 100.0, False, "coding", 0)
+    bp.record_request("failing", 100.0, True, "coding", 100)
+    result = br.check_retirement("failing")
+    assert result is not None
+    assert result["action"] == "retire"
+    assert result["backend"] == "failing"
+
+
+def test_apply_retirement():
+    bp._profiles.clear()
+    assert not br.is_retired("test_backend")
+    br.apply_retirement({
+        "action": "retire",
+        "backend": "test_backend",
+        "reason": "test",
+        "status": "retired",
+    })
+    assert br.is_retired("test_backend")
+
+
+def test_reactivate():
+    br._retired_backends.add("react_test")
+    assert br.is_retired("react_test")
+    br.reactivate("react_test")
+    assert not br.is_retired("react_test")
+
+
+def test_load_retired():
+    br._retired_backends.clear()
+    br.apply_retirement({
+        "action": "retire",
+        "backend": "load_test",
+        "reason": "test",
+        "status": "retired",
+    })
+    br._retired_backends.clear()
+    loaded = br.load_retired()
+    assert loaded >= 1
+    assert br.is_retired("load_test")

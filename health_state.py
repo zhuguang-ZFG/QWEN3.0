@@ -218,7 +218,7 @@ def save_health_state() -> None:
             # Quality states
             for backend, quality in _quality_states.items():
                 conn.execute(
-                    "INSERT OR REPLACE INTO quality_states VALUES (?, ?, ?, ?, ?, ?)",
+                    "INSERT OR REPLACE INTO quality_states VALUES (?, ?, ?, ?, ?, ?, ?)",
                     (
                         backend,
                         json.dumps(list(quality.latencies)),
