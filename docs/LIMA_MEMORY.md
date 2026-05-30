@@ -1,9 +1,35 @@
 # LiMa Memory
 
+> **Updated: 2026-05-30 (whole-project code quality audit closeout)**
+> **Branch:** `main` - **HEAD:** `8e5bcba` (pushed)
+> **Latest authority:** `STATUS.md`, `progress.md`, `findings.md`, `docs/DOCUMENTATION_STATUS.md`
+
 > **Updated: 2026-05-26（P2-35 三切片 closeout）**  
 > **Branch:** `codex/free-web-ai-probe` · **HEAD:** `4077588`（已 push）  
 > **权威状态：** `STATUS.md`、`docs/EXECUTION_PLAN.md`、`docs/NEXT_MILESTONES.md`  
 > **本文件：** 跨会话 durable 事实；计划 checkbox 以状态文档为准。
+
+---
+
+## 2026-05-30 Closeout Snapshot
+
+- Whole-project quality audit is closed: unused imports/variables and duplicate
+  command-flow code were cleaned while compatibility exports were preserved.
+- Local verification evidence:
+  - `python -m ruff check --select F401,F841,F811,F821 --output-format concise .`: passed;
+  - `python -m ruff check .`: passed;
+  - `git diff --check`: passed;
+  - `python -m pytest`: `2130 passed, 10 skipped in 211.72s`.
+- VPS evidence:
+  - backup `/opt/lima-router/backups/quality-audit-20260530_201229/runtime-before.tgz`;
+  - 126 changed production files uploaded, 0 failed, 0 skipped;
+  - VPS-local `/health` and public `https://chat.donglicao.com/health` returned 200;
+  - authenticated public chat smoke returned HTTP 200 through backend `cerebras_gptoss`.
+- Deploy tooling was hardened and covered by regression tests:
+  - `deploy_unified.py` uses SFTP directory creation instead of per-file SSH exec channels;
+  - upload failures return non-zero and skip restart;
+  - restart uses `systemctl restart lima-router` and polls `/health`;
+  - `python -m pytest tests\test_deploy_unified.py tests\test_deploy_common.py tests\test_deploy_v3_security.py`: `11 passed`.
 
 ---
 

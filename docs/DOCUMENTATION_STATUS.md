@@ -1,6 +1,6 @@
 ﻿# Documentation Status
 
-> Updated: 2026-05-27
+> Updated: 2026-05-30
 > Purpose: prevent old commercial-platform plans from being mistaken for the active LiMa direction.
 
 ## Start Here
@@ -8,6 +8,17 @@
 Use `docs/README.md` as the short documentation entrypoint. It lists the hot
 docs, active logs, and how to treat historical plan files. Use
 `docs/DOCUMENTATION_CLEANUP.md` for the cleanup queue and archive policy.
+
+## Latest Closeout
+
+- 2026-05-30 whole-project code quality audit is closed and deployed.
+- Current branch is `main`; latest pushed closeout commit is `8e5bcba`.
+- Verification evidence lives in `STATUS.md`, `progress.md`, and `findings.md`:
+  `ruff check .`, `git diff --check`, full `pytest` (`2130 passed, 10 skipped`),
+  VPS `/health`, public `/health`, and authenticated public chat smoke.
+- Deployment regression coverage now includes `tests/test_deploy_unified.py`;
+  deploy tooling uses SFTP directory creation, fail-fast upload handling, and
+  systemd health polling.
 
 ## Current Source Of Truth
 

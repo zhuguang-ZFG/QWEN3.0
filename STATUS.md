@@ -1,8 +1,9 @@
 # LiMa Status
 
 > Updated: 2026-05-30 (whole-project code quality audit deployed)
-> Branch: `codex/free-web-ai-probe`
+> Branch: `main`
 > Tests: **2130 passed, 10 skipped** (`python -m pytest`)
+> Current VPS: quality audit deploy uploaded 126 files; `/health` OK; public authenticated chat smoke HTTP 200
 > VPS: Memory 1454MB→1358MB (services restored), health check OK
 > Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
 

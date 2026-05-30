@@ -1,8 +1,12 @@
 # LiMa Documentation
 
-> Updated: 2026-05-27
+> Updated: 2026-05-30
 
 ## Quick Start
+
+Latest closeout: the whole-project code quality audit is deployed on VPS and
+pushed on `main`. Start with `../STATUS.md` for the live snapshot, then
+`../progress.md` and `../findings.md` for evidence.
 
 | What you need | Read this |
 |---------------|-----------|
