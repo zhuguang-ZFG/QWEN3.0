@@ -90,11 +90,21 @@ def gitee_env(monkeypatch):
     monkeypatch.setenv("TELEGRAM_CHAT_ID", "123")
 
 
-def test_gitee_webhook_disabled_returns_503(monkeypatch):
+def test_gitee_webhook_disabled_acknowledges_without_retry_noise(monkeypatch):
     monkeypatch.delenv("GITEE_WEBHOOK_ENABLED", raising=False)
     client = TestClient(server.app)
     response = client.post("/gitee/webhook", content=b"{}")
-    assert response.status_code == 503
+    assert response.status_code == 200
+    assert response.json() == {"ok": True, "ignored": True, "reason": "disabled"}
+
+
+def test_gitee_webhook_missing_secret_acknowledges_without_retry_noise(monkeypatch):
+    monkeypatch.setenv("GITEE_WEBHOOK_ENABLED", "1")
+    monkeypatch.delenv("GITEE_WEBHOOK_SECRET", raising=False)
+    client = TestClient(server.app)
+    response = client.post("/gitee/webhook", content=b"{}")
+    assert response.status_code == 200
+    assert response.json() == {"ok": True, "ignored": True, "reason": "secret_not_configured"}
 
 
 def test_gitee_webhook_rejects_bad_token(gitee_env):

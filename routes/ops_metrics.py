@@ -103,6 +103,27 @@ def _get_capability_evidence() -> dict:
         return {"recent": [], "error": "unavailable"}
 
 
+def _get_cli_telemetry() -> dict[str, Any]:
+    try:
+        from observability.cli_telemetry import cli_telemetry_summary
+        return cli_telemetry_summary(limit=10)
+    except ImportError:
+        return {"total_recent": 0, "recent": [], "error": "unavailable"}
+
+
+def _backend_recovery_snapshot(dead_backends: list[str], degraded_backends: list[str]) -> dict[str, Any]:
+    try:
+        from backend_retirement import get_recovery_snapshot
+        return get_recovery_snapshot(dead_backends=dead_backends, degraded_backends=degraded_backends)
+    except ImportError:
+        return {
+            "retired_count": 0,
+            "retired_list": [],
+            "probe_candidates": (dead_backends + degraded_backends)[:10],
+            "error": "backend_retirement unavailable",
+        }
+
+
 @router.get("/metrics", dependencies=[Depends(require_private_api_key)])
 async def ops_metrics(request: Request) -> JSONResponse:
     now = time.time()
@@ -239,12 +260,14 @@ async def ops_metrics(request: Request) -> JSONResponse:
             "degraded": len(degraded_backends),
             "dead_list": dead_backends[:10],
             "error_summary": dict(list(backend_errors.items())[:10]),
+            "recovery": _backend_recovery_snapshot(dead_backends, degraded_backends),
         },
         "device_gateway": device,
         "agent_workers": agent,
         "learning": learning,
         "retrieval_traces": retrieval_traces,
         "recent_agent_tasks": recent_tasks,
+        "cli_telemetry": _get_cli_telemetry(),
         "capability_evidence": _get_capability_evidence(),
     })
 

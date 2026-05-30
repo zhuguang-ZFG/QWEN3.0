@@ -1,6 +1,6 @@
 # LiMa Memory
 
-> **Updated: 2026-05-31 (LiMa Code telemetry + tool-call closeout)**
+> **Updated: 2026-05-31 (runtime governance + telemetry aggregation closeout)**
 > **Branch:** `main` - **HEAD:** pending closeout push
 > **Latest authority:** `STATUS.md`, `progress.md`, `findings.md`, `docs/DOCUMENTATION_STATUS.md`
 
@@ -12,6 +12,31 @@
 ---
 
 ## 2026-05-31 Closeout Snapshot
+
+- Runtime governance closeout:
+  - tracked runtime JSON dirty files were removed from Git index and ignored:
+    `data/lima_routing_weights.json`, `data/routing_model.json`,
+    `data/webhook_activity.json`, `data/webhook_push_dedupe.json`;
+  - local Git remotes were sanitized to plain HTTPS URLs;
+  - VPS `lima-router.service` was backed up to
+    `/etc/systemd/system/lima-router.service.bak.20260531015530` and no longer
+    contains hardcoded `LIMA_API_KEY` environment lines.
+- Webhook and telemetry:
+  - disabled GitHub/Gitee webhook paths now return `200 ignored`, stopping 503
+    retry noise while bad signatures remain 403 when enabled;
+  - `/agent/learn/outcome` records sanitized LiMa Code telemetry and
+    `/v1/ops/metrics` exposes `cli_telemetry` plus `backends.recovery`.
+- VPS reproducibility:
+  - `scripts/check_vps_environment.py` checks required imports and redacted env
+    presence;
+  - missing packages were installed after unsetting stale proxy env; final VPS
+    check is `ok=true`, `missing_required=[]`;
+  - optional `transformers` remains absent and explicitly reported as optional.
+- Verification:
+  - LiMa Server full pytest: `2151 passed, 10 skipped in 190.58s`;
+  - LiMa Code `npm.cmd test`: `476 pass, 6 skipped, 0 fail`;
+  - VPS public `/health` 200 after deploy, dependency install, unit sanitation,
+    and final restart.
 
 - LiMa Code headless JSON now includes explicit operator-facing model
   telemetry: timeout, retry count, per-call latency/status/error/content/tool

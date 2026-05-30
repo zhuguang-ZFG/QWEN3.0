@@ -4,6 +4,72 @@
 
 > Updated: 2026-05-31
 
+## 2026-05-31 runtime governance + telemetry aggregation closeout
+
+**Goal:** close the remaining operational hygiene issues: runtime data
+governance, remote/credential hygiene, webhook retry noise, supplier recovery
+visibility, VPS reproducibility, and backend aggregation of LiMa Code telemetry.
+
+- Runtime data governance:
+  - stopped tracking mutable runtime JSON:
+    `data/lima_routing_weights.json`, `data/routing_model.json`,
+    `data/webhook_activity.json`, and `data/webhook_push_dedupe.json`;
+  - added exact `.gitignore` entries and confirmed the local files remain on
+    disk for the running service.
+- Credential and remote hygiene:
+  - sanitized local Git remotes to plain HTTPS URLs for `origin` and `gitee`;
+  - found hardcoded `LIMA_API_KEY/LIMA_API_KEYS` lines in the VPS systemd unit;
+  - backed up `/etc/systemd/system/lima-router.service` to
+    `/etc/systemd/system/lima-router.service.bak.20260531015530`;
+  - removed the hardcoded key lines, reloaded systemd, and confirmed
+    `secret_environment_lines=0`.
+- Webhook noise:
+  - GitHub and Gitee webhook routes now acknowledge disabled or missing-secret
+    states with `200 ignored` so providers do not retry into 503 storms;
+  - bad signatures/tokens still return 403 when the webhook is enabled and
+    configured.
+- Telemetry aggregation:
+  - added `observability/cli_telemetry.py` JSONL aggregation with sanitized
+    model-call counts, retry count, timeout, latency, error class, and tool
+    capability;
+  - extended `/agent/learn/outcome` to accept LiMa Code telemetry and
+    `/v1/ops/metrics` to expose `cli_telemetry`;
+  - LiMa Code now sends sanitized telemetry in outcome reports, classifying
+    model errors before sending them to the backend.
+- Supplier pool recovery:
+  - `/v1/ops/metrics.backends.recovery` now exposes retired backends, probe
+    candidates, and manual reactivation guidance;
+  - this keeps known-bad providers out of automatic routing while telling the
+    operator exactly which pool needs a fresh probe before reactivation.
+- VPS environment reproducibility:
+  - added `scripts/check_vps_environment.py` with redacted env presence checks
+    and import checks for `requirements_server.txt`;
+  - initial VPS check found missing `paramiko`, `numpy`, `pybreaker`,
+    `python-multipart`, `prometheus_client`, and `paho-mqtt`;
+  - root cause for pip failures was stale SSH proxy env
+    `100.94.119.7:7890`; installing with proxy variables unset succeeded;
+  - final VPS environment check returned `ok=true`, `missing_required=[]`,
+    optional `transformers=false` only.
+- Local verification:
+  - focused server tests: `53 passed`;
+  - `ruff check` on touched Python files: clean;
+  - `py_compile` on touched runtime files: clean;
+  - LiMa Code `npm.cmd test`: `476 pass, 6 skipped, 0 fail`;
+  - LiMa Code `npm.cmd run check`: clean;
+  - LiMa Server full `pytest -q`: `2151 passed, 10 skipped in 190.58s`.
+- VPS deploy and smoke:
+  - `scripts/deploy_unified.py --files backend_retirement.py routes/agent_learn.py routes/ops_metrics.py routes/github_webhook.py routes/gitee_webhook.py observability/cli_telemetry.py scripts/check_vps_environment.py`
+    uploaded `7`, failed `0`, skipped `0`, health `OK`;
+  - public `/health`: `200`;
+  - public `/agent/learn/outcome` telemetry smoke:
+    `{"ok": true, "recorded": true, "telemetry_recorded": true}`;
+  - public `/v1/ops/metrics`: `cli_total_recent=1`, `cli_recent_seen=true`,
+    recovery keys present;
+  - public webhook smoke: `/github/webhook` and `/gitee/webhook` returned
+    `200 ignored reason=disabled`;
+  - final restart after dependency install returned 0 and public `/health`
+    returned 200.
+
 ## 2026-05-31 LiMa Code model telemetry + tool-call closeout
 
 **Goal:** make LiMa Code headless model waits, retries, outcome reporting, and

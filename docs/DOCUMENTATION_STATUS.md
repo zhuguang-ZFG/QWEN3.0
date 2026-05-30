@@ -11,15 +11,16 @@ docs, active logs, and how to treat historical plan files. Use
 
 ## Latest Closeout
 
-- 2026-05-31 LiMa Code model telemetry + tool-call closeout is deployed.
+- 2026-05-31 runtime governance + telemetry aggregation closeout is deployed.
 - Current branch is `main`; latest LiMa Code submodule commit is `3cae0bc`.
 - Verification evidence lives in `STATUS.md`, `progress.md`, and `findings.md`:
-  LiMa Code `npm test` (`475 pass, 7 skipped`), LiMa Server full `pytest`
-  (`2143 passed, 10 skipped`), VPS health, public basic CLI smoke, and public
-  bash tool-call smoke with model/tool/outcome telemetry.
-- Latest deployed backend fix is `routes/chat_endpoints.py`: OpenAI tool
-  histories now route through the tool pipeline before ordinary chat schema
-  validation.
+  LiMa Code `npm test` (`476 pass, 6 skipped`), LiMa Server full `pytest`
+  (`2151 passed, 10 skipped`), VPS health, webhook ignored smoke, public CLI
+  telemetry aggregation smoke, and VPS environment reproducibility check.
+- Latest deployed backend fixes are `routes/agent_learn.py`,
+  `routes/ops_metrics.py`, `routes/github_webhook.py`,
+  `routes/gitee_webhook.py`, `observability/cli_telemetry.py`, and
+  `backend_retirement.py`.
 
 ## Current Source Of Truth
 

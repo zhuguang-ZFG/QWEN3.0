@@ -41,10 +41,12 @@ def _repo_allowed(full_name: str) -> bool:
 @router.post("/webhook")
 async def github_webhook(request: Request):
     if not _is_enabled():
-        raise HTTPException(503, "GitHub webhook not enabled")
+        logger.info("github webhook ignored: disabled")
+        return {"ok": True, "ignored": True, "reason": "disabled"}
     secret = _get_secret()
     if not secret:
-        raise HTTPException(503, "GITHUB_WEBHOOK_SECRET not configured")
+        logger.warning("github webhook ignored: GITHUB_WEBHOOK_SECRET not configured")
+        return {"ok": True, "ignored": True, "reason": "secret_not_configured"}
 
     body = await request.body()
     signature = request.headers.get("x-hub-signature-256", "")

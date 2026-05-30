@@ -47,10 +47,12 @@ def _repo_from_payload(payload: dict) -> str:
 @router.post("/webhook")
 async def gitee_webhook(request: Request):
     if not _is_enabled():
-        raise HTTPException(503, "Gitee webhook not enabled")
+        logger.info("gitee webhook ignored: disabled")
+        return {"ok": True, "ignored": True, "reason": "disabled"}
     secret = _get_secret()
     if not secret:
-        raise HTTPException(503, "GITEE_WEBHOOK_SECRET not configured")
+        logger.warning("gitee webhook ignored: GITEE_WEBHOOK_SECRET not configured")
+        return {"ok": True, "ignored": True, "reason": "secret_not_configured"}
 
     body = await request.body()
     token_header = request.headers.get("X-Gitee-Token", "") or request.headers.get("x-gitee-token", "")

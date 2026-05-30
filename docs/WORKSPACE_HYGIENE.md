@@ -20,7 +20,8 @@ D:\LIMA-external\
 
 - LiMa Python 核心、`routes/`、`tests/`、`docs/`（已 tracked 的 superpowers plans）
 - Git 子模块：`deepcode-cli`、`esp32S_XYZ`
-- Tracked 的 `data/` 评测 JSON 与 `requirements_server.txt`
+- `requirements_server.txt` and deliberate test fixtures stay tracked; mutable
+  runtime JSON under `data/` stays ignored and must not be re-added
 - `donglicao-site/`（官网 demo，tracked）
 
 ## FRP 仍在 D:\GIT\frp 时

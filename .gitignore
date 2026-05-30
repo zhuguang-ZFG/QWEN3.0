@@ -68,6 +68,10 @@ LIMA-external/
 data/*.db
 data/*.db-shm
 data/*.db-wal
+data/lima_routing_weights.json
+data/routing_model.json
+data/webhook_activity.json
+data/webhook_push_dedupe.json
 data/models/*.pkl
 data/models/*.pt
 data/models/*.pth

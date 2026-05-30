@@ -13,6 +13,19 @@
 | LC-TOOL-3 | Protocol conversion | OpenAI `assistant.tool_calls` plus `role:"tool"` history is converted to Anthropic `tool_use` / `tool_result` blocks before entering the existing tool forwarding pipeline. | Closed |
 | LC-VPS-1 | VPS smoke | After deploy, public CLI basic smoke and real bash tool-call smoke both passed; tool smoke returned `lima_tool_call_ok` with two successful model calls and `outcomeReport.ok=true`. | Closed |
 
+## 2026-05-31 Runtime Governance + Ops Hygiene Closeout
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| OPS-RUN-1 | Runtime data | Four mutable runtime JSON files were tracked and kept dirty after normal service/test activity. They are now removed from the index and exactly ignored while preserved locally. | Closed |
+| OPS-SEC-1 | Git remotes | Local Git remotes included credential-bearing Gitee URLs. They are now plain HTTPS URLs for `origin` and `gitee`; credential material must come from the credential manager or explicit operator setup. | Closed |
+| OPS-SEC-2 | VPS credentials | `lima-router.service` contained hardcoded `LIMA_API_KEY/LIMA_API_KEYS` in addition to `EnvironmentFile`. The unit was backed up and sanitized; `secret_environment_lines=0`. | Closed |
+| OPS-WH-1 | Webhook noise | Disabled/missing-secret GitHub and Gitee webhooks returned 503, causing provider retry noise. They now return `200 ignored` while keeping invalid signatures/tokens at 403. | Closed |
+| OPS-TEL-1 | Telemetry aggregation | LiMa Code telemetry reached CLI JSON but not backend observability. `/agent/learn/outcome` now records sanitized telemetry and `/v1/ops/metrics` exposes recent aggregates. | Closed |
+| OPS-BE-7 | Supplier recovery | Failed/retired suppliers should not be blindly revived. Ops metrics now exposes `backends.recovery` with retired lists, probe candidates, and manual reactivation guidance. | Closed |
+| OPS-VPS-1 | Reproducibility | VPS dependency reproduction initially failed because required packages were missing and pip inherited a dead proxy (`100.94.119.7:7890`). Missing packages were installed with proxy env unset; `check_vps_environment.py` now returns `ok=true`. | Closed |
+| OPS-VPS-2 | Optional local model | `transformers` remains absent on VPS. It is explicitly reported as optional local-router warmup only, not a required server dependency. | Accepted |
+
 ## 2026-05-30 Whole-Project Code Quality Audit
 
 | ID | Area | Finding | Status |

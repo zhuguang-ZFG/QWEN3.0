@@ -72,7 +72,8 @@ def check_retirement(backend: str) -> dict | None:
     try:
         import backend_profile
         profile = backend_profile.get_profile(backend)
-    except ImportError:
+    except ImportError as exc:
+        logger.warning("backend_profile unavailable; cannot evaluate backend retirement: %s", exc)
         return None
 
     total = profile.successes + profile.failures
@@ -174,8 +175,23 @@ def load_retired() -> int:
             count += 1
         conn.close()
         return count
-    except Exception:
+    except Exception as exc:
+        logger.warning("Failed to load retired backends: %s", type(exc).__name__)
         return 0
+
+
+def get_recovery_snapshot(*, dead_backends: list[str] | None = None, degraded_backends: list[str] | None = None) -> dict:
+    """Return operator-facing recovery state without reactivating providers."""
+    retired = sorted(_retired_backends)
+    dead = sorted(set(dead_backends or []))
+    degraded = sorted(set(degraded_backends or []))
+    candidates = sorted((set(dead) | set(degraded)) - set(retired))
+    return {
+        "retired_count": len(retired),
+        "retired_list": retired[:20],
+        "probe_candidates": candidates[:20],
+        "manual_reactivation": "probe first, then call backend_retirement.reactivate(backend) after fresh success evidence",
+    }
 
 
 def _save_retirement(backend: str, status: str, reason: str) -> None:
@@ -206,7 +222,7 @@ def _notify_retirement(backend: str, status: str, reason: str) -> None:
     try:
         from telegram_notify import notify_health_change
         notify_health_change(backend, "healthy", status)
-    except ImportError:
-        pass
+    except ImportError as exc:
+        logger.warning("telegram_notify unavailable; backend retirement notification skipped: %s", exc)
     except Exception as exc:
-        _log.debug("backend_retirement.py: {}", type(exc).__name__)
+        _log.warning("backend retirement notification failed: %s", type(exc).__name__)

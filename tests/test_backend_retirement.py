@@ -108,3 +108,16 @@ def test_load_retired_marks_health_dead():
     assert br.is_retired("load_health_test")
     assert hs.get_health("load_health_test") == "dead"
     assert hs.get_backend_state("load_health_test")["state"] == "retired"
+
+
+def test_recovery_snapshot_keeps_retired_out_of_probe_candidates():
+    br._retired_backends.clear()
+    br._retired_backends.add("retired_one")
+
+    snapshot = br.get_recovery_snapshot(
+        dead_backends=["retired_one", "dead_one"],
+        degraded_backends=["degraded_one"],
+    )
+
+    assert snapshot["retired_list"] == ["retired_one"]
+    assert snapshot["probe_candidates"] == ["dead_one", "degraded_one"]

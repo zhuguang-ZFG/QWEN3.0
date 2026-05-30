@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import time
+from typing import Any
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
@@ -29,6 +30,7 @@ class OutcomeRequest(BaseModel):
     changed_files: list[str] = Field(default_factory=list)
     test_passed: bool = Field(default=True)
     summary: str = Field(default="", max_length=1000)
+    telemetry: dict[str, Any] = Field(default_factory=dict)
 
 
 class FeedbackRequest(BaseModel):
@@ -75,7 +77,21 @@ async def report_outcome(req: OutcomeRequest) -> dict:
         )
         ingest_task_outcome(outcome)
 
-        return {"ok": True, "recorded": True}
+        telemetry_recorded = False
+        if req.telemetry:
+            from observability.cli_telemetry import record_cli_outcome, sanitize_cli_outcome
+
+            telemetry_record = sanitize_cli_outcome(
+                task_id=outcome.task_id,
+                backend=req.backend,
+                scenario=req.scenario,
+                success=req.success,
+                latency_ms=req.latency_ms,
+                telemetry=req.telemetry,
+            )
+            telemetry_recorded = record_cli_outcome(telemetry_record)
+
+        return {"ok": True, "recorded": True, "telemetry_recorded": telemetry_recorded}
     except Exception as exc:
         _log.warning("outcome report failed: %s", exc)
         return {"ok": False, "error": str(exc)}

@@ -1,11 +1,23 @@
 # LiMa Status
 
-> Updated: 2026-05-31 (LiMa Code telemetry + tool-call closeout)
+> Updated: 2026-05-31 (runtime governance + telemetry aggregation closeout)
 > Branch: `main`
-> Tests: LiMa Code `npm test` **475 pass / 7 skipped / 0 fail**; LiMa Server full pytest **2143 passed, 10 skipped**; ruff focused **clean**
-> Current VPS: LiMa Code public basic + bash tool-call smoke passed with explicit model/tool/outcome telemetry
+> Tests: LiMa Code `npm test` **476 pass / 6 skipped / 0 fail**; LiMa Server full pytest **2151 passed, 10 skipped**; focused ruff/py_compile clean
+> Current VPS: runtime deps check OK, systemd unit secret lines removed, webhook disabled paths return 200 ignored, ops metrics exposes CLI telemetry + backend recovery
 > VPS: Memory 1454MB→1358MB (services restored), health check OK
 > Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
+
+## 2026-05-31 Runtime Governance + Telemetry Aggregation Closeout
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| Runtime data governance | Done | `data/lima_routing_weights.json`, `data/routing_model.json`, `data/webhook_activity.json`, and `data/webhook_push_dedupe.json` removed from Git index and ignored while local runtime files remain on disk |
+| Remote credential hygiene | Done | local `origin` and `gitee` remotes are plain HTTPS URLs; VPS `lima-router.service` now has `secret_environment_lines=0` and uses `/opt/lima-router/.env` only |
+| Webhook retry noise | Deployed | public `POST /github/webhook` and `/gitee/webhook` return `200 {"ok":true,"ignored":true,"reason":"disabled"}` instead of 503 when disabled |
+| CLI telemetry aggregation | Deployed | `/agent/learn/outcome` stores sanitized LiMa Code telemetry; `/v1/ops/metrics` exposes `cli_telemetry.total_recent=1` after public smoke |
+| Supplier pool recovery visibility | Deployed | `/v1/ops/metrics.backends.recovery` exposes retired count/list, probe candidates, and manual reactivation guidance without auto-reviving failing suppliers |
+| VPS environment reproducibility | Done | `scripts/check_vps_environment.py` on VPS returns `ok=true`, `missing_required=[]`; broken proxy env was bypassed for pip install with `env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY` |
+| VPS restart smoke | Done | after dependency install + systemd hygiene, `systemctl restart lima-router` returned 0 and public `/health` returned 200 |
 
 ## 2026-05-31 LiMa Code Model Telemetry + Tool-Call Closeout
 
