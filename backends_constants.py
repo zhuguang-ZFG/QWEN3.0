@@ -55,6 +55,8 @@ GFW_BACKENDS = frozenset({
     'stock_kimi_k2',
     # 讯飞星火编码模型
     'xfyun_astron',
+    # 阿里云 DashScope 编码 API
+    'dashscope_coding', 'dashscope_coding_anthropic',
 })
 
 WEAK_BACKENDS = frozenset({'chat_ubi', 'pollinations', 'llm7'})
