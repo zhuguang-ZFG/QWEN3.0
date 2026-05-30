@@ -195,7 +195,9 @@ def test_call_api_thread_burst_all_succeed(
 
     mock_client = MagicMock()
     mock_resp = MagicMock()
-    mock_resp.json.return_value = {"choices": [{"message": {"content": "ok"}}]}
+    _resp_json = {"choices": [{"message": {"content": "ok"}}]}
+    mock_resp.json.return_value = _resp_json
+    mock_resp.text = json.dumps(_resp_json)
     mock_resp.raise_for_status.return_value = None
     mock_client.__enter__.return_value = mock_client
     mock_client.__exit__.return_value = False
