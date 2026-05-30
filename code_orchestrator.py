@@ -13,6 +13,10 @@ import quality_gate
 import route_scorer
 import runtime_topology
 
+# Limit concurrent backend calls to prevent rate limiting
+import threading
+_backend_semaphore = threading.Semaphore(3)
+
 from code_orchestrator_context import (
     LATENCY_BUDGET,
     MAX_REPAIR_ATTEMPTS,
@@ -75,9 +79,7 @@ def _backend_selectable(name: str) -> bool:
 def _try_backends_ranked(pool_name: str, messages: list, call_fn,
                          system: str, max_tokens: int,
                          t0: float, deadline: float) -> tuple[str, str]:
-    """Try backends with parallel execution for faster first-response."""
-    from concurrent.futures import ThreadPoolExecutor, as_completed
-
+    """Try backends sequentially — one at a time to avoid rate limiting."""
     pool = runtime_topology.filter_backends(POOLS.get(pool_name, []))
     ranked = [
         b for b in backend_reputation.sort_by_reputation(pool)
@@ -87,13 +89,9 @@ def _try_backends_ranked(pool_name: str, messages: list, call_fn,
     if not ranked:
         return "", ""
 
-    # Phase 1: Try top 3 backends in parallel (fastest response wins)
-    parallel_batch = ranked[:3]
-    remaining = ranked[3:]
-
-    def _try_one(backend: str) -> tuple[str, str] | None:
+    for backend in ranked:
         if time.time() - t0 > deadline:
-            return None
+            break
         try:
             msgs = messages.copy()
             if system:
@@ -103,28 +101,6 @@ def _try_backends_ranked(pool_name: str, messages: list, call_fn,
                 return backend, answer
         except Exception as exc:
             logger.warning("code_orchestrator backend %s failed: %s", backend, exc)
-        return None
-
-    with ThreadPoolExecutor(max_workers=len(parallel_batch)) as pool_exec:
-        futures = {pool_exec.submit(_try_one, b): b for b in parallel_batch}
-        for future in as_completed(futures):
-            try:
-                result = future.result()
-                if result:
-                    # Cancel remaining futures
-                    for f in futures:
-                        f.cancel()
-                    return result
-            except Exception:
-                continue
-
-    # Phase 2: Sequential fallback for remaining backends
-    for backend in remaining:
-        if time.time() - t0 > deadline:
-            break
-        result = _try_one(backend)
-        if result:
-            return result
     return "", ""
 
 
