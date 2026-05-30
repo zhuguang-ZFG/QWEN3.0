@@ -150,3 +150,125 @@ def test_public_demo_chat_rejects_tool_requests(monkeypatch):
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Unsupported public demo request"
+
+
+def test_openai_tool_history_converts_to_anthropic_tool_blocks():
+    body = {
+        "model": "lima-1.3",
+        "messages": [
+            {"role": "user", "content": "run a tool"},
+            {
+                "role": "assistant",
+                "content": None,
+                "tool_calls": [
+                    {
+                        "id": "call_1",
+                        "type": "function",
+                        "function": {
+                            "name": "bash",
+                            "arguments": "{\"command\":\"echo ok\"}",
+                        },
+                    }
+                ],
+            },
+            {
+                "role": "tool",
+                "tool_call_id": "call_1",
+                "content": "ok\n",
+            },
+        ],
+        "tools": [
+            {
+                "type": "function",
+                "function": {
+                    "name": "bash",
+                    "description": "Run a command",
+                    "parameters": {"type": "object", "properties": {}},
+                },
+            }
+        ],
+    }
+
+    converted = chat_endpoints._openai_to_anthropic_tool_body(body)
+
+    assert converted["messages"] == [
+        {"role": "user", "content": "run a tool"},
+        {
+            "role": "assistant",
+            "content": [
+                {
+                    "type": "tool_use",
+                    "id": "call_1",
+                    "name": "bash",
+                    "input": {"command": "echo ok"},
+                }
+            ],
+        },
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "tool_result",
+                    "tool_use_id": "call_1",
+                    "content": "ok\n",
+                }
+            ],
+        },
+    ]
+
+
+def test_openai_endpoint_routes_tool_history_before_chatrequest_validation(monkeypatch):
+    captured = {}
+
+    async def fake_forward(body):
+        captured["messages"] = body["messages"]
+        return {
+            "content": [{"type": "text", "text": "tool history accepted"}],
+            "usage": {},
+        }
+
+    monkeypatch.setenv("LIMA_API_KEY", "test-key")
+    monkeypatch.setattr(server, "_anthropic_native_forward", fake_forward)
+
+    client = TestClient(server.app)
+    response = client.post(
+        "/v1/chat/completions",
+        headers={"Authorization": "Bearer test-key"},
+        json={
+            "model": "lima-1.3",
+            "messages": [
+                {"role": "user", "content": "run a tool"},
+                {
+                    "role": "assistant",
+                    "content": None,
+                    "tool_calls": [
+                        {
+                            "id": "call_1",
+                            "type": "function",
+                            "function": {
+                                "name": "bash",
+                                "arguments": "{\"command\":\"echo ok\"}",
+                            },
+                        }
+                    ],
+                },
+                {"role": "tool", "tool_call_id": "call_1", "content": "ok\n"},
+            ],
+            "tools": [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "bash",
+                        "description": "Run a command",
+                        "parameters": {"type": "object", "properties": {}},
+                    },
+                }
+            ],
+            "stream": False,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["choices"][0]["message"]["content"] == "tool history accepted"
+    assert captured["messages"][1]["content"][0]["type"] == "tool_use"
+    assert captured["messages"][2]["content"][0]["type"] == "tool_result"

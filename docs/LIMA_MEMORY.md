@@ -1,13 +1,41 @@
 # LiMa Memory
 
-> **Updated: 2026-05-30 (whole-project code quality audit closeout)**
-> **Branch:** `main` - **HEAD:** `8e5bcba` (pushed)
+> **Updated: 2026-05-31 (LiMa Code telemetry + tool-call closeout)**
+> **Branch:** `main` - **HEAD:** pending closeout push
 > **Latest authority:** `STATUS.md`, `progress.md`, `findings.md`, `docs/DOCUMENTATION_STATUS.md`
 
 > **Updated: 2026-05-26（P2-35 三切片 closeout）**  
 > **Branch:** `codex/free-web-ai-probe` · **HEAD:** `4077588`（已 push）  
 > **权威状态：** `STATUS.md`、`docs/EXECUTION_PLAN.md`、`docs/NEXT_MILESTONES.md`  
 > **本文件：** 跨会话 durable 事实；计划 checkbox 以状态文档为准。
+
+---
+
+## 2026-05-31 Closeout Snapshot
+
+- LiMa Code headless JSON now includes explicit operator-facing model
+  telemetry: timeout, retry count, per-call latency/status/error/content/tool
+  counts, tool protocol, tool capability, and outcome-report result.
+- LiMa Code submodule commit pushed:
+  `3cae0bc fix: expose headless model telemetry`.
+- The real public tool smoke found and closed a server-side protocol gap:
+  `/v1/chat/completions` was constructing `ChatRequest` before the `tools`
+  branch, so OpenAI `assistant.content:null` tool history failed validation.
+- Server fix:
+  - route `tools` requests before ordinary chat validation;
+  - convert OpenAI `assistant.tool_calls` and `role:"tool"` history into
+    Anthropic `tool_use` / `tool_result` blocks for the existing tool pipeline.
+- Verification:
+  - LiMa Code `npm.cmd test`: `475 pass, 7 skipped, 0 fail`;
+  - LiMa Code `npm.cmd run check` and `npm.cmd run build`: passed;
+  - LiMa Server full `pytest -q`: `2143 passed, 10 skipped in 255.41s`;
+  - focused chat/tool tests: `15 passed`; ruff focused: clean.
+- VPS evidence:
+  - backup `/opt/lima-router/routes/chat_endpoints.py.bak.20260531010857`;
+  - deployed `routes/chat_endpoints.py`, health OK;
+  - public basic CLI smoke returned `lima_code_cli_smoke_ok`;
+  - public bash tool-call smoke returned `lima_tool_call_ok` with one observed
+    OpenAI tool call and successful tool-result follow-up.
 
 ---
 

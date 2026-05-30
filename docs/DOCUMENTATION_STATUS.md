@@ -1,6 +1,6 @@
 ﻿# Documentation Status
 
-> Updated: 2026-05-30
+> Updated: 2026-05-31
 > Purpose: prevent old commercial-platform plans from being mistaken for the active LiMa direction.
 
 ## Start Here
@@ -11,14 +11,15 @@ docs, active logs, and how to treat historical plan files. Use
 
 ## Latest Closeout
 
-- 2026-05-30 whole-project code quality audit is closed and deployed.
-- Current branch is `main`; latest pushed closeout commit is `8e5bcba`.
+- 2026-05-31 LiMa Code model telemetry + tool-call closeout is deployed.
+- Current branch is `main`; latest LiMa Code submodule commit is `3cae0bc`.
 - Verification evidence lives in `STATUS.md`, `progress.md`, and `findings.md`:
-  `ruff check .`, `git diff --check`, full `pytest` (`2130 passed, 10 skipped`),
-  VPS `/health`, public `/health`, and authenticated public chat smoke.
-- Deployment regression coverage now includes `tests/test_deploy_unified.py`;
-  deploy tooling uses SFTP directory creation, fail-fast upload handling, and
-  systemd health polling.
+  LiMa Code `npm test` (`475 pass, 7 skipped`), LiMa Server full `pytest`
+  (`2143 passed, 10 skipped`), VPS health, public basic CLI smoke, and public
+  bash tool-call smoke with model/tool/outcome telemetry.
+- Latest deployed backend fix is `routes/chat_endpoints.py`: OpenAI tool
+  histories now route through the tool pipeline before ordinary chat schema
+  validation.
 
 ## Current Source Of Truth
 

@@ -117,10 +117,6 @@ async def chat_completions(request: Request):
                 )
             return JSONResponse(build_response(chat_id, content, backend, duration_ms))
 
-    chat_req = ChatRequest(**body)
-    if body.get("thinking", False):
-        chat_req.thinking = True
-
     # Route tool requests through the dedicated tool forwarding pipeline
     # (GPT-4o/GitHub → real tool calls, unlike open-source models)
     if body.get("tools") and body.get("stream"):
@@ -134,6 +130,10 @@ async def chat_completions(request: Request):
             _call("anthropic_native_forward", _openai_to_anthropic_tool_body(body))
         )
         return JSONResponse(_convert_anthropic_tool_response_to_openai(result, body))
+
+    chat_req = ChatRequest(**body)
+    if body.get("thinking", False):
+        chat_req.thinking = True
 
     return await _dep("handle_chat")(
         chat_req,
@@ -224,13 +224,69 @@ def _openai_to_anthropic_tool_body(body: dict) -> dict:
             "description": fn.get("description", ""),
             "input_schema": fn.get("parameters", {"type": "object", "properties": {}}),
         })
+    messages, system = _convert_openai_tool_messages_to_anthropic(body.get("messages", []))
+    explicit_system = body.get("system", "")
+    if explicit_system:
+        system = f"{system}\n\n{explicit_system}".strip() if system else explicit_system
     return {
         "model": body.get("model", "lima-1.3"),
-        "messages": body.get("messages", []),
+        "messages": messages,
         "tools": tools,
         "max_tokens": body.get("max_tokens", 4096),
-        "system": body.get("system", ""),
+        "system": system,
     }
+
+
+def _convert_openai_tool_messages_to_anthropic(messages: list) -> tuple[list, str]:
+    converted = []
+    system_parts = []
+    for msg in messages:
+        role = msg.get("role", "user")
+        content = msg.get("content", "")
+        if role == "system":
+            if isinstance(content, str) and content:
+                system_parts.append(content)
+            continue
+        if role == "assistant" and msg.get("tool_calls"):
+            blocks = []
+            if isinstance(content, str) and content:
+                blocks.append({"type": "text", "text": content})
+            for tool_call in msg.get("tool_calls") or []:
+                function = tool_call.get("function", {}) if isinstance(tool_call, dict) else {}
+                if not isinstance(function, dict) or not function.get("name"):
+                    continue
+                blocks.append({
+                    "type": "tool_use",
+                    "id": tool_call.get("id", f"call_{uuid.uuid4().hex[:24]}"),
+                    "name": function["name"],
+                    "input": _parse_openai_tool_arguments(function.get("arguments", {})),
+                })
+            converted.append({"role": "assistant", "content": blocks})
+            continue
+        if role == "tool":
+            converted.append({
+                "role": "user",
+                "content": [{
+                    "type": "tool_result",
+                    "tool_use_id": msg.get("tool_call_id", ""),
+                    "content": "" if content is None else str(content),
+                }],
+            })
+            continue
+        converted.append({"role": role, "content": content})
+    return converted, "\n\n".join(system_parts)
+
+
+def _parse_openai_tool_arguments(value) -> dict:
+    if isinstance(value, dict):
+        return value
+    if not isinstance(value, str) or not value.strip():
+        return {}
+    try:
+        parsed = json.loads(value)
+    except (TypeError, ValueError):
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
 
 
 def _convert_anthropic_tool_response_to_openai(result: dict, original_body: dict) -> dict:

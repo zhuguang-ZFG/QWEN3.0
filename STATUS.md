@@ -1,11 +1,24 @@
 # LiMa Status
 
-> Updated: 2026-05-30 (pyright gate clean)
+> Updated: 2026-05-31 (LiMa Code telemetry + tool-call closeout)
 > Branch: `main`
-> Tests: pyright **0 errors / 0 warnings**; ruff **clean**; focused **90 passed**; full suite **2140 passed, 10 skipped**
-> Current VPS: pyright cleanup deployed; public `/health`, private chat, and agent-memory context smoke passed
+> Tests: LiMa Code `npm test` **475 pass / 7 skipped / 0 fail**; LiMa Server full pytest **2143 passed, 10 skipped**; ruff focused **clean**
+> Current VPS: LiMa Code public basic + bash tool-call smoke passed with explicit model/tool/outcome telemetry
 > VPS: Memory 1454MB→1358MB (services restored), health check OK
 > Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
+
+## 2026-05-31 LiMa Code Model Telemetry + Tool-Call Closeout
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| CLI timeout/retry telemetry | Done | `runHeadless` JSON includes `timeoutMs`, `maxRetries`, `retryCount`, per-call `modelCalls[]` with latency/status/error/content/tool counts, and `outcomeReport` |
+| CLI tool-call telemetry | Done | OpenAI and Anthropic tool protocols are detected; `toolCapability` reports requested/observed/protocol/toolCalls/unsupportedReason |
+| Server tool history fix | Deployed | `/v1/chat/completions` routes `tools` requests before `ChatRequest` validation, so OpenAI `assistant.content:null` + `role:"tool"` history reaches the tool pipeline |
+| Local LiMa Code tests | Done | `npm.cmd run test:single -- src/tests/headless.test.ts`: 4 passed; `npm.cmd run check`: clean; `npm.cmd test`: 475 pass, 7 skipped; `npm.cmd run build`: OK |
+| Local LiMa Server tests | Done | focused tool/chat tests: 15 passed; `ruff check routes/chat_endpoints.py tests/test_chat_endpoints.py`: clean; full `pytest -q`: 2143 passed, 10 skipped |
+| VPS deploy | Done | backup `/opt/lima-router/routes/chat_endpoints.py.bak.20260531010857`; `deploy_unified.py --files routes/chat_endpoints.py` uploaded 1/1 and health OK |
+| Public smoke | Done | basic CLI smoke returned `lima_code_cli_smoke_ok`, model latency 3480ms, outcome report 398ms; tool smoke returned `lima_tool_call_ok`, observed 1 OpenAI tool call in 3267ms, then completed in 2089ms |
+| Git | Done | LiMa Code submodule pushed `3cae0bc fix: expose headless model telemetry` |
 
 ## 2026-05-30 Pyright Gate Cleanup
 

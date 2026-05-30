@@ -2,7 +2,50 @@
 
 > Created: 2026-05-22
 
-> Updated: 2026-05-30
+> Updated: 2026-05-31
+
+## 2026-05-31 LiMa Code model telemetry + tool-call closeout
+
+**Goal:** make LiMa Code headless model waits, retries, outcome reporting, and
+tool-call capability visible to the operator, then close the real public
+tool-call loop against LiMa Server.
+
+- LiMa Code changes:
+  - added structured headless telemetry to JSON output:
+    `timeoutMs`, `maxRetries`, `retryCount`, `modelCalls[]`, `toolCapability`,
+    and `outcomeReport`;
+  - each model call records attempt, stream mode, timeout, latency, HTTP status,
+    error, content length, tool call count, and tool protocol;
+  - added explicit `AbortSignal.timeout()` and one retry by default, configurable
+    through `LIMA_CODE_HEADLESS_TIMEOUT_MS` and `LIMA_CODE_HEADLESS_RETRIES`;
+  - OpenAI and Anthropic tool-call parser paths now report observed protocol.
+- LiMa Server fix:
+  - public tool smoke exposed that OpenAI tool history reaches the server as
+    `assistant.content: null` plus a follow-up `role: "tool"` message;
+  - `/v1/chat/completions` now routes `tools` requests before constructing
+    `ChatRequest`, avoiding non-tool chat schema validation on tool histories;
+  - OpenAI `assistant.tool_calls` and `role:"tool"` history is converted to
+    Anthropic `tool_use` / `tool_result` blocks before entering the existing
+    tool forwarding pipeline.
+- Local verification:
+  - LiMa Code `npm.cmd run test:single -- src/tests/headless.test.ts`: `4 passed`;
+  - LiMa Code `npm.cmd run check`: clean;
+  - LiMa Code `npm.cmd test`: `475 pass, 7 skipped, 0 fail`;
+  - LiMa Code `npm.cmd run build`: OK;
+  - LiMa Server focused chat/tool suite: `15 passed`;
+  - `ruff check routes/chat_endpoints.py tests/test_chat_endpoints.py`: clean;
+  - LiMa Server full `pytest -q`: `2143 passed, 10 skipped in 255.41s`.
+- VPS deploy and smoke:
+  - backup: `/opt/lima-router/routes/chat_endpoints.py.bak.20260531010857`;
+  - deploy: `scripts/deploy_unified.py --files routes/chat_endpoints.py`,
+    uploaded `1`, failed `0`, skipped `0`, health `OK`;
+  - public basic CLI smoke returned `lima_code_cli_smoke_ok`, model latency
+    `3480ms`, outcome report `398ms`;
+  - public CLI tool smoke returned `lima_tool_call_ok`, observed one OpenAI
+    tool call in `3267ms`, second model call completed in `2089ms`, and outcome
+    report returned `ok=true` in `395ms`.
+- Git:
+  - LiMa Code pushed `3cae0bc fix: expose headless model telemetry`.
 
 ## 2026-05-30 Backend Dead Alert Stabilization
 

@@ -1,6 +1,6 @@
 # LiMa Code Management
 
-> Updated: 2026-05-30
+> Updated: 2026-05-31
 
 ## Purpose
 
@@ -26,7 +26,7 @@ This keeps the boundary explicit:
 Current pinned revision:
 
 ```text
-eaf30ce fix: harden LiMa headless server integration
+3cae0bc fix: expose headless model telemetry
 ```
 
 ## Update Rules
@@ -64,6 +64,22 @@ target repository is allowlisted.
 
 Latest Server/Worker evidence:
 
+- LiMa Code verification for `3cae0bc` passed with
+  `npm.cmd run test:single -- src/tests/headless.test.ts` (`4 passed`),
+  `npm.cmd run check`, `npm.cmd test` (`475 pass, 7 skipped, 0 fail`), and
+  `npm.cmd run build`.
+- Public LiMa Code headless smoke against `https://chat.donglicao.com/v1`
+  now exposes structured model telemetry. Basic smoke returned
+  `lima_code_cli_smoke_ok` with model latency `3480ms` and outcome report
+  `398ms`.
+- Public real bash tool-call smoke returned `lima_tool_call_ok`; telemetry
+  observed one OpenAI tool call in the first model call (`3267ms`), then a
+  successful tool-result follow-up model call (`2089ms`) and outcome report
+  `ok=true`.
+- LiMa Server `/v1/chat/completions` now handles OpenAI tool histories before
+  ordinary `ChatRequest` validation, so `assistant.content:null` plus
+  `role:"tool"` messages are converted into the Anthropic tool pipeline instead
+  of failing schema validation.
 - LiMa Code verification for `eaf30ce` passed with `npm.cmd run check`,
   `npm.cmd test` (`480 tests, 473 pass, 7 skipped`), and `npm.cmd run build`.
 - Public LiMa Server headless smoke against `https://chat.donglicao.com/v1`
