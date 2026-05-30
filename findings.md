@@ -14,6 +14,7 @@
 | CQ-089-6 | Deploy restart | `deploy_unified.py` mixed `pkill`/`nohup` with the systemd-managed `lima-router` service and used a 4-second health wait, creating false failed health results. Restart now uses `systemctl restart lima-router` and polls `/health` for up to 45 seconds. | Closed |
 | CQ-089-7 | VPS smoke | VPS-local health and public health passed after full deploy. Authenticated public chat smoke returned `HTTP_STATUS:200` via backend `cerebras_gptoss`; unauthenticated `/v1/models` returned `401` as expected. | Closed |
 | CQ-089-8 | Environment | Local `curl.exe` hit Schannel revocation lookup offline; public smoke required `--ssl-no-revoke`. VPS `.env` has CRLF noise when sourced directly, so remote smoke used a temporary CRLF-stripped copy. | Open |
+| CQ-089-9 | Regression coverage | Added deploy regression tests for SFTP-only directory creation, fail-fast upload handling, and systemd health-poll restart behavior. Deploy test batch now returns `11 passed`. | Closed |
 
 ## 2026-05-27 M1-M5 + Phase A
 

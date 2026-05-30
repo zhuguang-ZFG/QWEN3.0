@@ -41,6 +41,19 @@ stabilize quality gates, deploy to VPS, and verify production behavior.
   - `python scripts/stress_test_lima.py --mode server --rounds 1` from local failed `403` because local
     `LIMA_API_KEY` is unset; the generated stress result file was removed.
 
+### Follow-up: Deploy Regression Tests
+
+- Added `tests/test_deploy_unified.py` to lock the deploy fixes from this closeout:
+  - `deploy_files()` creates remote directories through SFTP and does not open per-file exec channels;
+  - upload failures return `1` from `main()` and do not restart the service;
+  - `restart_server()` uses `systemctl restart lima-router` and polls `/health`, with no `pkill`/`nohup` race.
+- Verification:
+  - `python -m pytest tests\test_deploy_unified.py`: `3 passed`;
+  - `python -m pytest tests\test_deploy_unified.py tests\test_deploy_common.py tests\test_deploy_v3_security.py`:
+    `11 passed`;
+  - `python -m ruff check .`: passed;
+  - `git diff --check`: passed.
+
 ## 2026-05-27 M1-M5 能力加厚 + Phase A 核心路径
 
 **目标：** 补齐 agent 真实执行、多语言代码上下文、管线持久化、开发者技能、研究编排五大核心缺口；打通 IDE→LiMa→后端 的编码增强路径。
