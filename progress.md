@@ -4874,3 +4874,43 @@ Verification note:
   - LiMa Code commit pushed to GitHub: `eaf30ce`
     (`fix: harden LiMa headless server integration`).
   - Main repo will pin the updated submodule revision and this evidence.
+
+## 2026-05-31 LiMa Code Router Thinking Guard (CQ-092)
+
+- Scope:
+  - diagnosed Windows npm-installed LiMa Code hanging at
+    `Thinking... waiting for first token` when using `lima-1.3` against
+    `https://chat.donglicao.com/v1`;
+  - root cause: stale/auto-enabled OpenAI `thinking` request fields were sent
+    through LiMa Router, causing the server-side route to block behind slow or
+    failing provider streaming before the CLI saw a first token;
+  - added a LiMa Router URL guard so `chat.donglicao.com` and `api.donglicao.com`
+    receive no OpenAI `thinking` payload;
+  - constrained CLI thinking mode to models that actually support it
+    (`deepseek-v4-flash`, `deepseek-v4-pro`), so `lima-1.3` now resolves
+    `thinkingEnabled=false` even if stale settings say true.
+- Verification:
+  - focused LiMa Code tests:
+    `npm.cmd run test:single -- src/tests/settings-and-notify.test.ts`
+    -> `22 pass, 1 skip`;
+  - focused thinking tests:
+    `npm.cmd run test:single -- src/tests/openai-thinking.test.ts`
+    -> `6 pass`;
+  - `npm.cmd run build` -> passed;
+  - full LiMa Code suite: `485 tests, 478 pass, 7 skipped`;
+  - `git diff --check` -> clean;
+  - `npm.cmd --cache D:\GIT\.npm-cache pack` -> passed and produced
+    `lima-code-0.1.24.tgz` with shasum `fe87426198e68a8e2fa29021ea453a1ded95f27a`;
+  - package content check confirmed `package/dist/cli.js` is included;
+  - dist check confirmed the LiMa Router host guard is present in bundled code;
+  - `node D:\GIT\deepcode-cli\dist\cli.js --version` -> `0.1.24`.
+- Release:
+  - refreshed GitHub Release `lima-code-v0.1.24` assets:
+    `lima-code-0.1.24.tgz`, `lima-code-win-0.1.24.zip`,
+    `lima-code-win-portable-0.1.24.zip`.
+- Note:
+  - isolated npm install-smoke with default cache failed on Windows cache
+    permission (`EPERM ... AppData\Local\npm-cache`);
+  - retry with project-local cache hung with no output and was stopped, so the
+    closeout relies on pack/build/full-test/tarball/dist/version evidence rather
+    than a completed local prefix install.
