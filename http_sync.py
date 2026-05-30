@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import sys
 import time
@@ -27,7 +28,6 @@ def _extract_answer_from_sse(text: str) -> str:
         if data_str == "[DONE]":
             break
         try:
-            import json
             chunk = json.loads(data_str)
             choices = chunk.get("choices", [])
             if choices:
