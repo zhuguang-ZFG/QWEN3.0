@@ -4914,3 +4914,34 @@ Verification note:
   - retry with project-local cache hung with no output and was stopped, so the
     closeout relies on pack/build/full-test/tarball/dist/version evidence rather
     than a completed local prefix install.
+
+## 2026-05-31 LiMa Code TUI Router Non-Stream (CQ-093)
+
+- Scope:
+  - user reinstall confirmed `lima-1.3` now shows `Thinking Enabled false`;
+  - follow-up issue: TUI still waited at `Thinking... waiting for first token`
+    because `SessionManager` always used streaming chat completions;
+  - public LiMa Server smoke showed both non-stream and stream can return content,
+    but streaming remains brittle/slow for real TUI prompts with loaded skills;
+  - changed TUI chat completion transport to use `stream=false` whenever the
+    configured base URL is LiMa Router (`chat.donglicao.com` or
+    `api.donglicao.com`), while preserving normal streaming for non-LiMa
+    providers.
+- Verification:
+  - public non-stream smoke for `lima-1.3` and prompt `你是、` returned 200 with
+    content via `groq_llama4`;
+  - public stream smoke for the same prompt returned SSE content and `[DONE]`;
+  - focused LiMa Code tests:
+    `npm.cmd run test:single -- src/tests/session.test.ts`
+    -> `53 pass, 3 skip`;
+  - focused thinking tests:
+    `npm.cmd run test:single -- src/tests/openai-thinking.test.ts`
+    -> `6 pass`;
+  - full LiMa Code suite: `486 tests, 479 pass, 7 skipped`;
+  - `npm.cmd run build` -> passed;
+  - `npm.cmd --cache D:\GIT\.npm-cache pack` -> passed and produced
+    `lima-code-0.1.24.tgz` with shasum `ac52578bc88f6971f15f7a23e87f8fa6619967b8`;
+  - refreshed GitHub Release `lima-code-v0.1.24` assets again.
+- Note:
+  - this does not remove server-side provider latency; it removes the TUI's
+    dependency on LiMa Router streaming first-token behavior for normal chat.
