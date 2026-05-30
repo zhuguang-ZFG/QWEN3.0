@@ -4725,3 +4725,43 @@ Verification note:
     `/opt/lima-router/backups/pyright-clean-20260530_223900/deployed-files.tgz`.
   - caveat: `deploy_unified.py` does not yet create a pre-upload tar backup for custom
     `--files` deploys; the next ops-hardening slice should add that hook.
+
+## 2026-05-30 LiMa Code CLI Server Adaptation (CQ-091)
+
+- Scope:
+  - fixed LiMa Code `--headless --json` so it no longer returns empty content
+    when LiMa Server emits Anthropic-style SSE chunks;
+  - changed headless chat requests to non-stream by default for CLI reliability,
+    while retaining parsers for OpenAI JSON, OpenAI SSE, and Anthropic-style
+    SSE text/tool events;
+  - fixed successful headless runs to return the generated `hls-...` session id;
+  - changed headless CLI exit handling to natural `process.exitCode` so Windows
+    no longer trips a libuv assertion after a successful JSON result;
+  - kept legacy external prompt telemetry disabled and tested;
+  - cleaned existing LiMa Code lint warnings in touched reliability files.
+- Server/VPS:
+  - deployed `routes/agent_learn.py` and `routes/route_registry.py` to restore
+    `/agent/learn/outcome` on VPS, then redeployed `routes/agent_learn.py` with
+    private Bearer auth;
+  - VPS deploy script reported uploaded files and `Health: OK`;
+  - public health shows `agent_learn: true`;
+  - unauthenticated `/agent/learn/outcome` POST returns 401;
+  - authenticated `/agent/learn/outcome` POST returns 200 with
+    `{"ok":true,"recorded":true}`.
+- Verification:
+  - LiMa Code focused: `npm.cmd run test:single -- src/tests/headless.test.ts`
+    -> `2 pass`;
+  - LiMa Code full: `npm.cmd run check` -> clean; `npm.cmd test` ->
+    `480 tests, 473 pass, 7 skipped`; `npm.cmd run build` -> passed;
+  - public CLI smoke from final `dist/cli.js`:
+    `ok: true`, content `lima_code_cli_smoke_ok`, non-empty `hls-...`
+    session id, exit code 0;
+  - main focused: `tests/test_agent_learn_guard.py`,
+    `tests/test_learning_loop.py`, `tests/test_route_registry.py` ->
+    `12 passed`;
+  - main gates: `ruff check .` passed; `pyright` -> `0 errors`; full pytest
+    -> `2141 passed, 10 skipped in 288.33s`.
+- Git:
+  - LiMa Code commit pushed to GitHub: `eaf30ce`
+    (`fix: harden LiMa headless server integration`).
+  - Main repo will pin the updated submodule revision and this evidence.

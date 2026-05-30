@@ -1002,3 +1002,22 @@ Latest implementation/review planning addendum:
 - Review ownership is explicit: the user implements one slice at a time; Codex
   reviews for bugs, regressions, tests, security, data leakage, permission
   expansion, architecture fit, and release readiness.
+
+Latest LiMa Code CLI adaptation closeout:
+
+- LiMa Code submodule advanced to `eaf30ce`
+  (`fix: harden LiMa headless server integration`).
+- The headless CLI no longer depends on fragile SSE-only parsing: it uses
+  non-stream chat calls by default, preserves OpenAI JSON/SSE parsing, and
+  accepts LiMa Server's Anthropic-style SSE text/tool events when encountered.
+- Headless success now returns a non-empty `hls-...` session id and exits
+  naturally with code 0 on Windows instead of hard `process.exit()`.
+- Legacy external prompt telemetry remains disabled; tests assert no calls to
+  `https://deepcode.vegamo.cn/api/plugin/new`.
+- VPS route sync restored `/agent/learn/outcome`, then tightened it behind
+  private Bearer auth. Public unauth POST returns 401; authenticated POST
+  returns `{"ok":true,"recorded":true}`.
+- Evidence: LiMa Code `npm.cmd run check`, `npm.cmd test`
+  (`480 tests, 473 pass, 7 skipped`), `npm.cmd run build`, public headless
+  smoke `lima_code_cli_smoke_ok` with exit code 0; main repo `ruff check .`,
+  `pyright`, and full pytest `2141 passed, 10 skipped in 288.33s`.

@@ -1915,3 +1915,33 @@ Deployment: not performed.
   - no external code copied;
   - implementation remains future work to be coded by the user and reviewed by
     Codex.
+
+## 2026-05-30 LiMa Code CLI Server Adaptation
+
+- LiMa Code submodule advanced to `eaf30ce`
+  (`fix: harden LiMa headless server integration`).
+- Root cause: LiMa Server can emit Anthropic-style SSE
+  `content_block_delta.delta.text`, while LiMa Code headless only parsed
+  OpenAI `choices[].delta.content`; this produced successful but empty
+  headless JSON results.
+- Fix:
+  - headless now defaults to non-stream chat calls for CLI reliability;
+  - parser still accepts OpenAI JSON, OpenAI SSE, and Anthropic-style SSE
+    text/tool events;
+  - successful headless runs return generated `hls-...` session ids;
+  - CLI uses `process.exitCode` on headless success to avoid Windows libuv
+    assertion failures from hard `process.exit()`;
+  - legacy `deepcode.vegamo.cn` prompt telemetry remains disabled.
+- Server alignment:
+  - `/agent/learn/outcome` was missing on VPS; deployed `agent_learn` route
+    and route registry;
+  - the route is now private Bearer-auth guarded, matching LiMa Code's
+    existing `Authorization: Bearer <LIMA_CODE_API_KEY>` outcome report.
+- Evidence:
+  - LiMa Code `npm.cmd run check`, `npm.cmd test`
+    (`480 tests, 473 pass, 7 skipped`), `npm.cmd run build`;
+  - public headless smoke returned content `lima_code_cli_smoke_ok`, non-empty
+    session id, and exit code 0;
+  - unauth outcome POST 401; auth outcome POST 200 recorded;
+  - main repo `ruff check .`, `pyright`, and full pytest
+    `2141 passed, 10 skipped in 288.33s`.

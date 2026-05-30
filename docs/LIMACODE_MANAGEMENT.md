@@ -1,6 +1,6 @@
 # LiMa Code Management
 
-> Updated: 2026-05-26
+> Updated: 2026-05-30
 
 ## Purpose
 
@@ -26,7 +26,7 @@ This keeps the boundary explicit:
 Current pinned revision:
 
 ```text
-7209247 feat(lima): add daemon, Telegram B2B, gated always-on worker
+eaf30ce fix: harden LiMa headless server integration
 ```
 
 ## Update Rules
@@ -64,6 +64,17 @@ target repository is allowlisted.
 
 Latest Server/Worker evidence:
 
+- LiMa Code verification for `eaf30ce` passed with `npm.cmd run check`,
+  `npm.cmd test` (`480 tests, 473 pass, 7 skipped`), and `npm.cmd run build`.
+- Public LiMa Server headless smoke against `https://chat.donglicao.com/v1`
+  returned `ok: true`, content `lima_code_cli_smoke_ok`, and non-empty
+  `hls-...` session id with process exit code 0.
+- `--headless --json` now uses non-stream chat calls by default, still parses
+  OpenAI JSON, OpenAI SSE deltas, and Anthropic-style SSE text/tool events.
+- Legacy prompt telemetry to `https://deepcode.vegamo.cn/api/plugin/new`
+  remains disabled and covered by tests.
+- LiMa Server `/agent/learn/outcome` is deployed and private-auth guarded:
+  unauthenticated POST returns 401, Bearer-auth POST returns 200 recorded.
 - LiMa Code verification for `7209247` passed with `0 fail, 6 skipped`; main
   LiMa Server verification passed `1240 passed, 8 skipped`.
 - Local workflow stage commands now produce structured artifact bundles under

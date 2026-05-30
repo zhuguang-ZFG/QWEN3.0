@@ -10,10 +10,12 @@ from __future__ import annotations
 import logging
 import time
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
-router = APIRouter(prefix="/agent/learn", tags=["agent-learning"])
+from access_guard import require_private_api_key
+
+router = APIRouter(prefix="/agent/learn", tags=["agent-learning"], dependencies=[Depends(require_private_api_key)])
 _log = logging.getLogger(__name__)
 
 
