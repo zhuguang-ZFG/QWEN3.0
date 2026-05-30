@@ -77,21 +77,34 @@ def _build_headers(backend_cfg: dict, key: str | None = None) -> dict:
 
     if fmt == "anthropic":
         if auth_style == "bearer":
-            return {
+            headers = {
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {key}",
                 "anthropic-version": "2023-06-01",
             }
-        return {
+        else:
+            headers = {
+                "Content-Type": "application/json",
+                "x-api-key": key,
+                "anthropic-version": "2023-06-01",
+            }
+    else:
+        headers = {
             "Content-Type": "application/json",
-            "x-api-key": key,
-            "anthropic-version": "2023-06-01",
+            "Authorization": f"Bearer {key}",
+            "User-Agent": "LiMa/2.0",
         }
-    return {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {key}",
-        "User-Agent": "LiMa/2.0",
-    }
+
+    # Add extra headers (e.g., X-Request-Timestamp for Zhihu)
+    extra = backend_cfg.get("extra_headers", {})
+    if extra:
+        for hk, hv in extra.items():
+            if hv == "dynamic" and hk == "X-Request-Timestamp":
+                headers[hk] = str(int(time.time()))
+            elif hv != "dynamic":
+                headers[hk] = hv
+
+    return headers
 
 
 def _key_pool_provider(backend: str, backend_cfg: dict) -> str:

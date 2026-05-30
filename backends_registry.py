@@ -226,6 +226,9 @@ BACKENDS = {
     # ── 阿里云 DashScope 编码专用 API ──
     'dashscope_coding': {'url': 'https://coding.dashscope.aliyuncs.com/v1/chat/completions', 'key': os.environ.get('DASHSCOPE_CODING_KEY', ''), 'model': 'qwen3-coder-plus', 'fmt': 'openai', 'timeout': 30, 'admission': 'code_medium_candidate', 'private_code_allowed': True, 'caps': ['tool_calls']},
     'dashscope_coding_anthropic': {'url': 'https://coding.dashscope.aliyuncs.com/apps/anthropic/v1/messages', 'key': os.environ.get('DASHSCOPE_CODING_KEY', ''), 'model': 'qwen3-coder-plus', 'fmt': 'anthropic', 'auth': 'bearer', 'timeout': 30, 'admission': 'code_medium_candidate', 'private_code_allowed': True},
+    # ── 知乎直答 API ──
+    'zhihu_zhida': {'url': 'https://developer.zhihu.com/v1/chat/completions', 'key': os.environ.get('ZHIHU_API_KEY', ''), 'model': 'zhida-fast-1p5', 'fmt': 'openai', 'timeout': 30, 'admission': 'code_medium_candidate', 'private_code_allowed': True, 'caps': ['tool_calls'], 'extra_headers': {'X-Request-Timestamp': 'dynamic'}},
+    'zhihu_zhida_think': {'url': 'https://developer.zhihu.com/v1/chat/completions', 'key': os.environ.get('ZHIHU_API_KEY', ''), 'model': 'zhida-thinking-1p5', 'fmt': 'openai', 'timeout': 60, 'admission': 'code_medium_candidate', 'private_code_allowed': True, 'extra_headers': {'X-Request-Timestamp': 'dynamic'}},
     # ── 强力编程后端 (大模型 + tool_calls) ──
     'scnet_qwen235b_code': {'url': f"http://{os.environ.get('VPS_HOST', '47.112.162.80')}:4505/v1/chat/completions", 'key': 'none', 'model': 'qwen3-235b', 'fmt': 'openai', 'timeout': 60, 'admission': 'code_medium_candidate', 'private_code_allowed': True, 'caps': ['tool_calls']},
     'scnet_ds_pro_code': {'url': f"http://{os.environ.get('VPS_HOST', '47.112.162.80')}:4505/v1/chat/completions", 'key': 'none', 'model': 'deepseek-v4-pro', 'fmt': 'openai', 'timeout': 90, 'admission': 'code_medium_candidate', 'private_code_allowed': True, 'caps': ['tool_calls']},
