@@ -55,8 +55,8 @@ def _get_version_from_adapter(adapter_path: str) -> str:
                     round_num = int(part[1:])
                     break
             return f"r{round_num}_step{step}"
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("model_registry.py: {}", type(exc).__name__)
     return f"v{datetime.now().strftime('%Y%m%d_%H%M')}"
 
 

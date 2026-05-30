@@ -107,8 +107,8 @@ async def _gold_price() -> dict:
         if isinstance(r, str) and ',' in r:
             parts = r.split(',')
             return {'gold_usd_oz': parts[0].split('=')[-1].strip('"'), 'raw': ','.join(parts[:6])}
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("lima_fc_tools/information_tools.py: {}", type(exc).__name__)
     r2 = await _get('https://api.exchangerate-api.com/v4/latest/USD')
     return {'note': 'Gold price via exchange rate proxy', 'usd_cny': r2.get('rates', {}).get('CNY', 'N/A')}
 
@@ -128,8 +128,8 @@ async def _express(number: str) -> dict:
         r = await _get('https://www.kuaidi100.com/autonumber/autoComNum', {'resultv2': '1', 'text': number})
         if isinstance(r, dict) and r.get('auto'):
             return {'number': number, 'company': r['auto'][0].get('comCode', ''), 'name': r['auto'][0].get('name', '')}
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("lima_fc_tools/information_tools.py: {}", type(exc).__name__)
     return {'number': number, 'note': 'unavailable'}
 
 @tool('get_phone_info', 'Run the get_phone_info utility.', {'properties': {'phone': {'description': 'Phone number.', 'type': 'string'}},

@@ -285,5 +285,5 @@ def save_on_change() -> None:
     """Save state after each modification (called by health_recorder)."""
     try:
         save_health_state()
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("health_state.py: {}", type(exc).__name__)

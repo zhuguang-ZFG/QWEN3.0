@@ -105,8 +105,8 @@ def route(query: str, messages: list[dict], *,
                     messages=messages, backend="cache", success=True,
                     latency_ms=float(ms),
                 )
-            except Exception:
-                pass
+            except Exception as exc:
+                _log.debug("routing_engine.py: {}", type(exc).__name__)
             return RouteResult(backend="cache", answer=answer,
                                request_type="cache_hit", ms=ms)
 
@@ -153,8 +153,8 @@ def route(query: str, messages: list[dict], *,
                 _mem_msg = {"role": "system", "content": _memory_ctx}
                 _insert_pos = 2 if messages and messages[0].get("role") == "system" else 1
                 messages.insert(_insert_pos, _mem_msg)
-        except Exception:
-            pass
+        except Exception as exc:
+            _log.debug("routing_engine.py: {}", type(exc).__name__)
 
     _complexity_info = None
     try:
@@ -179,8 +179,8 @@ def route(query: str, messages: list[dict], *,
                         messages=messages, backend=orch_result["backend"],
                         success=True, latency_ms=float(ms),
                     )
-                except Exception:
-                    pass
+                except Exception as exc:
+                    _log.debug("routing_engine.py: {}", type(exc).__name__)
                 # Also run full post-route integrations
                 apply_post_route_integrations(
                     final_backend=orch_result["backend"],
@@ -284,11 +284,11 @@ def route(query: str, messages: list[dict], *,
                                 try:
                                     health_tracker.record_failure(
                                         final_backend, 200, "quality_retry")
-                                except Exception:
-                                    pass
+                                except Exception as exc:
+                                    _log.debug("routing_engine.py: {}", type(exc).__name__)
                                 final_backend, answer = retry_backend, retry_answer
-            except Exception:
-                pass
+            except Exception as exc:
+                _log.debug("routing_engine.py: {}", type(exc).__name__)
     else:
         final_backend, answer = backends[0] if backends else "none", ""
 
@@ -316,8 +316,8 @@ def route(query: str, messages: list[dict], *,
             "success": bool(answer and len(answer) > 5),
             "fallback_used": bool(final_backend not in ("exhausted", "none") and backends and final_backend != backends[0]),
         })
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("routing_engine.py: {}", type(exc).__name__)
 
     # Unified feedback: record request in closed-loop system
     try:

@@ -201,8 +201,8 @@ class BodySizeLimitMiddleware:
         if content_encoding == "gzip" and body:
             try:
                 body = gzip.decompress(body)
-            except Exception:
-                pass
+            except Exception as exc:
+                _log.debug("http_body_limit.py: {}", type(exc).__name__)
 
         replayed = False
 

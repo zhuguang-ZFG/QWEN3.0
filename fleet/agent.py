@@ -72,8 +72,8 @@ def detect_capabilities() -> dict:
             caps["models"] = [
                 f"ollama:{m['name']}" for m in data.get("models", [])
             ]
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("fleet/agent.py: {}", type(exc).__name__)
 
     # Detect RAM
     try:
@@ -103,8 +103,8 @@ def detect_capabilities() -> dict:
                     if "MemTotal" in line:
                         caps["ram_gb"] = round(int(line.split()[1]) / (1024**2), 1)
                         break
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("fleet/agent.py: {}", type(exc).__name__)
 
     return caps
 

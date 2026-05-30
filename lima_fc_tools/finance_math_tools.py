@@ -15,8 +15,8 @@ async def _crypto(coin: str) -> dict:
         r = await _get(f'https://api.coinbase.com/v2/prices/{coin}-USD/spot', timeout=8)
         if isinstance(r, dict) and 'data' in r:
             return {'coin': coin, 'price_usd': r['data'].get('amount'), 'currency': 'USD'}
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("lima_fc_tools/finance_math_tools.py: {}", type(exc).__name__)
     return {'coin': coin, 'error': 'Price unavailable (blocked in China)'}
 
 @tool('get_stock_price', 'Run the get_stock_price utility.', {'properties': {'code': {'description': 'Stock code.', 'type': 'string'}},
@@ -29,8 +29,8 @@ async def _stock(code: str) -> dict:
             parts = r.split(',')
             name = parts[0].split('=')[-1].strip('"')
             return {'code': code, 'name': name, 'open': parts[1], 'close_yesterday': parts[2], 'current': parts[3], 'high': parts[4], 'low': parts[5]}
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("lima_fc_tools/finance_math_tools.py: {}", type(exc).__name__)
     return {'code': code, 'error': 'unavailable'}
 
 @tool('calculate', 'Evaluate a safe math expression.', {'properties': {'expression': {'description': 'Math expression.', 'type': 'string'}},

@@ -124,7 +124,7 @@ def alert_expired_tokens() -> None:
             notify_health_change(r["backend"], "healthy", "auth_expired")
     except ImportError:
         pass
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("token_health.py: {}", type(exc).__name__)
 
     logger.warning("Expired tokens: %s", message)

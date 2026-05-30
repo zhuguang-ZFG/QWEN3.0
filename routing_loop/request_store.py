@@ -181,8 +181,8 @@ class RequestStore:
         if row[7]:  # feature_vector column
             try:
                 fv = pickle.loads(row[7])
-            except Exception:
-                pass
+            except Exception as exc:
+                _log.debug("routing_loop/request_store.py: {}", type(exc).__name__)
         return RequestRecord(
             id=row[0], timestamp=row[1], request_id=row[2] or "",
             scenario=row[3] or "", message_length=row[4] or 0,

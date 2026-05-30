@@ -149,5 +149,5 @@ def _trigger_eval_gate() -> None:
             if c.get("pass_rate", 0) >= 0.8 and c.get("total_tasks", 0) >= 3:
                 approve_candidate(c.get("pattern_id", ""))
                 _log.info("eval_gate: auto-approved pattern %s", c.get("pattern_id"))
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("routing_loop/loop_closer.py: {}", type(exc).__name__)

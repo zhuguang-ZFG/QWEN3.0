@@ -36,8 +36,8 @@ def load_logs() -> list:
                 entry = json.load(fp)
                 if 'quality_score' in entry:
                     logs.append(entry)
-        except Exception:
-            pass
+        except Exception as exc:
+            _log.debug("generate_routing_data.py: {}", type(exc).__name__)
     return logs
 
 

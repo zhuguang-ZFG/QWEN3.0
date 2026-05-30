@@ -229,8 +229,8 @@ def format_digest(candidates: list[CandidateImprovement] | None = None) -> str:
             for c in applied[:5]:
                 lines.append(f"  ✅ {c['summary'][:100]}")
             lines.append("")
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("session_memory/shadow_mode.py: {}", type(exc).__name__)
 
     # Show routing weight effects
     try:
@@ -247,8 +247,8 @@ def format_digest(candidates: list[CandidateImprovement] | None = None) -> str:
                 icon = "\U0001f7e2" if rate >= 0.8 else ("\U0001f7e1" if rate >= 0.5 else "\U0001f534")
                 lines.append(f"  {icon} {backend}:{scenario} w={weight:.2f} rate={rate:.0%} n={total}")
         lines.append("")
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("session_memory/shadow_mode.py: {}", type(exc).__name__)
 
     lines.append("/learn to review  /outcome for ledger  /memstats for memory")
 

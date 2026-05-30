@@ -98,8 +98,8 @@ def apply_post_route_integrations(
                 rw.record_success(final_backend, scenario)
             elif final_backend not in ("exhausted", "none", "cache"):
                 rw.record_failure(final_backend, scenario)
-        except Exception:
-            pass
+        except Exception as exc:
+            _log.debug("route_post_process.py: {}", type(exc).__name__)
 
         # Skill store: crystallize on success, penalize on failure
         try:
@@ -109,8 +109,8 @@ def apply_post_route_integrations(
                 get_skill_store().confirm_success()
             elif not resp_ctx.quality_ok:
                 get_skill_store().on_failure(scenario)
-        except Exception:
-            pass
+        except Exception as exc:
+            _log.debug("route_post_process.py: {}", type(exc).__name__)
 
     except ImportError:
         pass
@@ -129,8 +129,8 @@ def apply_post_route_integrations(
             latency_ms=ms,
         )
         ingest_task_outcome(outcome)
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("route_post_process.py: {}", type(exc).__name__)
 
     try:
         from observability.metrics import record as obs_record

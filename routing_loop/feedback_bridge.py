@@ -104,8 +104,8 @@ def _update_routing_weights(backend: str, scenario: str, success: bool) -> None:
             rw.record_success(backend, scenario)
         else:
             rw.record_failure(backend, scenario)
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("routing_loop/feedback_bridge.py: {}", type(exc).__name__)
 
 
 _request_counter = 0
