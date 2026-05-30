@@ -63,7 +63,9 @@ def record_failure(
 
         state = _cooldown_states.setdefault(backend, CooldownState())
         error_class = classify_failure(error_code, error_text)
-        state.consecutive_failures += 1
+        # Only count non-rate-limited failures toward dead threshold
+        if error_class not in ("rate_limited", "quota_exhausted"):
+            state.consecutive_failures += 1
         state.last_error_code = error_code
         state.state = error_class
         state.last_error_class = error_class
@@ -85,7 +87,10 @@ def record_failure(
         old_health = _health_map.get(backend, "healthy")
         if error_class in ("auth_expired", "manual_refresh_required"):
             _health_map[backend] = "suspicious"
-        elif error_class in ("rate_limited", "quota_exhausted"):
+        elif error_class == "rate_limited":
+            # Rate limiting is temporary — never mark as dead
+            _health_map[backend] = "degraded"
+        elif error_class == "quota_exhausted":
             _health_map[backend] = "degraded"
         elif state.consecutive_failures >= FAILURE_THRESHOLD_MIN_REQUESTS:
             _health_map[backend] = "dead"

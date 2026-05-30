@@ -5,20 +5,9 @@ import socket
 TRUTHY = {"1", "true", "yes", "on"}
 
 LOCAL_ONLY_BACKENDS: set[str] = {
-    "ddg_gpt4o_mini",
-    "ddg_gpt5_mini",
-    "ddg_claude_haiku_45",
-    "ddg_llama4",
-    "ddg_mistral",
-    "ddg_tinfoil_gptoss_120b",
     "kimi",
     "kimi_thinking",
     "kimi_search",
-    "longcat_web",
-    "longcat_web_think",
-    "longcat_web_research",
-    "scnet_large_ds_flash",
-    "scnet_large_ds_pro",
     "local_coder14b",
     "local_reasoning",
     "local_general",
