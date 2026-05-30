@@ -195,8 +195,8 @@ def _find_identifier_files(identifier: str) -> list[Path]:
             p = Path(r.entity)
             if p.exists():
                 results.append(p)
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("context_pipeline/code_context_injection.py: {}", type(exc).__name__)
 
     if not results:
         try:
@@ -207,7 +207,7 @@ def _find_identifier_files(identifier: str) -> list[Path]:
                 p = Path(m.path)
                 if p.exists():
                     results.append(p)
-        except Exception:
-            pass
+        except Exception as exc:
+            _log.debug("context_pipeline/code_context_injection.py: {}", type(exc).__name__)
 
     return results

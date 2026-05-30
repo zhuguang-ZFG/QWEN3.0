@@ -170,5 +170,5 @@ class SqliteGraphIndex(GraphIndex):
     def __del__(self) -> None:
         try:
             self._conn.close()
-        except Exception:
-            pass
+        except Exception as exc:
+            _log.debug("code_context/sqlite_graph_store.py: {}", type(exc).__name__)

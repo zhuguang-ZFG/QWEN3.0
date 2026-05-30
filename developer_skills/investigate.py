@@ -99,8 +99,8 @@ def _check_git_log(path: Path, details: list[str], evidence: list[str]) -> None:
             for line in result.stdout.strip().split("\n"):
                 details.append(f"  {line}")
             evidence.append("git_log_ok")
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("developer_skills/investigate.py: {}", type(exc).__name__)
 
 
 def _search_by_keywords(query: str, details: list[str], evidence: list[str]) -> None:
@@ -113,8 +113,8 @@ def _search_by_keywords(query: str, details: list[str], evidence: list[str]) -> 
             for r in results:
                 details.append(f"  - {r.path}")
             evidence.append(f"keyword_matches:{len(results)}")
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("developer_skills/investigate.py: {}", type(exc).__name__)
 
 
 def _run_related_tests(

@@ -41,8 +41,8 @@ def scan_file(path: Path) -> FileRecord:
                 imports=sorted(imports, key=lambda item: (item[1], item[0])),
                 mtime=path.stat().st_mtime,
             )
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("code_context/scanner.py: {}", type(exc).__name__)
     return _scan_python_file(path)
 
 

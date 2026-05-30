@@ -165,5 +165,5 @@ def _notify_retirement(backend: str, status: str, reason: str) -> None:
         notify_health_change(backend, "healthy", status)
     except ImportError:
         pass
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("backend_retirement.py: {}", type(exc).__name__)

@@ -134,14 +134,14 @@ class ChromaCodeIndex:
         try:
             doc_id = hashlib.sha256(path.encode()).hexdigest()[:16]
             self._collection.delete(ids=[doc_id])
-        except Exception:
-            pass
+        except Exception as exc:
+            _log.debug("code_context/chroma_vector_store.py: {}", type(exc).__name__)
 
     @property
     def count(self) -> int:
         if self._use_chroma and self._collection:
             try:
                 return self._collection.count()
-            except Exception:
-                pass
+            except Exception as exc:
+                _log.debug("code_context/chroma_vector_store.py: {}", type(exc).__name__)
         return len(self._fallback._files)

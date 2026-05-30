@@ -510,8 +510,8 @@ def _update_status(updates: dict) -> None:
         try:
             with open(STATUS_PATH, "r", encoding="utf-8") as f:
                 status = json.load(f)
-        except Exception:
-            pass
+        except Exception as exc:
+            _log.debug("auto_trainer.py: {}", type(exc).__name__)
     status.update(updates)
     os.makedirs(os.path.dirname(STATUS_PATH), exist_ok=True)
     with open(STATUS_PATH, "w", encoding="utf-8") as f:

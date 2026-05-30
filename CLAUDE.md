@@ -17,23 +17,23 @@
 
 | 指标 | 值 |
 |------|-----|
-| Python 文件 | 516 |
-| Python 行数 | ~66,842 |
-| `tests/test_*.py` | 135 |
-| `routes/*.py` | 35 文件 / ~6,087 行 |
-| 顶层目录数 | 40 |
+| Python 文件 | 829 |
+| Python 行数 | ~109,606 |
+| `tests/test_*.py` | 216 |
+| `routes/*.py` | 73 文件 / ~11,718 行 |
+| 顶层目录数 | 60 |
 
 ### 关键入口行数
 
 | 文件 | 行数 | 备注 |
 |------|-----:|------|
-| `server.py` | 124 | FastAPI 入口 + `BodySizeLimitMiddleware` |
-| `routing_engine.py` | 222 | 五层统一路由 |
-| `smart_router.py` | 228 | 兼容层（分类/熔断/调用） |
-| `http_body_limit.py` | 236 | ASGI body 上限 |
-| `routes/quality_gate.py` | ~230 | 质量门控（已拆 tier/direct 子模块） |
-| `routes/chat_handler_dispatch.py` | ~318 | 非流式分发（待继续拆） |
-| `backends.py` | 417 | 后端配置（待拆 registry） |
+| `server.py` | 146 | FastAPI 入口 + `BodySizeLimitMiddleware` |
+| `routing_engine.py` | 359 | 五层统一路由 |
+| `smart_router.py` | 241 | 兼容层（分类/熔断/调用） |
+| `http_body_limit.py` | 244 | ASGI body 上限 |
+| `routes/quality_gate.py` | 235 | 质量门控（已拆 tier/direct 子模块） |
+| `routes/chat_handler_dispatch.py` | 338 | 非流式分发 |
+| `backends.py` | 137 | 后端配置 facade |
 | `routes/agent_tasks.py` | ~260 | Agent 任务路由（已拆 store/service/schemas/evolution） |
 | `session_memory/store.py` | facade | 会话存储（已拆 db/crud/promote/admin） |
 | `agent_runtime/orchestrator.py` | facade | 编排器（已拆 queue/worker/models/io） |

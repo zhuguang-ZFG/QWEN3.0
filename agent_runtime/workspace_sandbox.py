@@ -122,8 +122,8 @@ class WorkspaceSandbox:
                         "workspace_git_diff",
                         detail=f"file={file_path} diff_lines={diff_output.count(chr(10))}",
                     )
-                except Exception:
-                    pass
+                except Exception as exc:
+                    _log.debug("agent_runtime/workspace_sandbox.py: {}", type(exc).__name__)
         except Exception as exc:
             _log.debug("workspace git diff skipped: %s", type(exc).__name__)
 

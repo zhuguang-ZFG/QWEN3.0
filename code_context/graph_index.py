@@ -129,6 +129,6 @@ def build_graph_index() -> GraphIndex:
             from code_context.sqlite_graph_store import SqliteGraphIndex
 
             return SqliteGraphIndex()
-        except Exception:
-            pass
+        except Exception as exc:
+            _log.debug("code_context/graph_index.py: {}", type(exc).__name__)
     return InMemoryGraphIndex()

@@ -186,8 +186,8 @@ def run_filter_phase(state: dict) -> dict:
             print(f"[main] DPO 池达到 {pool_count} 条，触发 DPO 训练")
             dpo_collector.export_for_training()
             print("[main] DPO 数据集已导出，等待 train_dpo.py 实现")
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("auto_distill_main.py: {}", type(exc).__name__)
 
     return transition(new_state, "IDLE")
 

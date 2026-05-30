@@ -271,8 +271,8 @@ def save_on_interval(interval_sec: int = 300) -> None:
             time.sleep(interval_sec)
             try:
                 save_profiles()
-            except Exception:
-                pass
+            except Exception as exc:
+                _log.debug("backend_profile.py: {}", type(exc).__name__)
 
     t = threading.Thread(target=_save_loop, daemon=True)
     t.start()

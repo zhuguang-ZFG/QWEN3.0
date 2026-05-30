@@ -162,6 +162,6 @@ def get_extractor(language: str = "python") -> AstExtractor | None:
         extractor = get_tree_sitter_extractor()
         if language in extractor.supported_languages:
             return extractor
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("code_context/ast_adapter.py: {}", type(exc).__name__)
     return None

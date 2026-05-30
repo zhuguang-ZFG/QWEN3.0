@@ -126,8 +126,8 @@ class AutoIndexer:
                 content = ""
                 try:
                     content = p.read_text(encoding="utf-8", errors="replace")[:5000]
-                except Exception:
-                    pass
+                except Exception as exc:
+                    _log.debug("context_pipeline/auto_indexer.py: {}", type(exc).__name__)
                 symbols_data = [
                     type("S", (), {"name": s.name, "kind": s.kind, "line": s.line})()
                     for s in file_ast.symbols
@@ -187,8 +187,8 @@ async def _indexer_loop(interval_sec: int) -> None:
     while True:
         try:
             run_indexer_scan()
-        except Exception:
-            pass
+        except Exception as exc:
+            _log.debug("context_pipeline/auto_indexer.py: {}", type(exc).__name__)
         await asyncio.sleep(interval_sec)
 
 

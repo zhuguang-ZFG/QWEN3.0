@@ -93,6 +93,6 @@ def build_code_index(**kwargs) -> InMemoryCodeIndex:
         try:
             from code_context.chroma_vector_store import ChromaCodeIndex
             return ChromaCodeIndex(persist_directory=data_dir, **kwargs)  # type: ignore[return-value]
-        except Exception:
-            pass
+        except Exception as exc:
+            _log.debug("code_context/index_store.py: {}", type(exc).__name__)
     return InMemoryCodeIndex()
