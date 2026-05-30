@@ -42,9 +42,10 @@ def test_try_backends_ranked_skips_terminal_state(monkeypatch):
 def test_coder_pool_includes_kimi_local_proxy_backends():
     from code_orchestrator_context import POOLS
 
+    # After POOLS unification, kimi backends are in the coder pool
+    # (derived from router_v3 POOLS)
     for name in ("kimi", "kimi_thinking", "kimi_search"):
         assert name in POOLS["coder"]
-        assert name in POOLS["strong"]
 
 
 def test_backend_selectable_respects_cooled_down(monkeypatch):
