@@ -44,37 +44,22 @@ SIMPLE_SIGNALS = [
     r"what is|是什么|什么意思",
 ]
 
-POOLS = {
-    "fast": ["mimo_web_code", "mimo_web", "ms_kimi_k25", "longcat", "xfyun_astron",
-             "scnet_qwen30b", "scnet_ds_flash", "scnet_qwen235b",
-             "cerebras_gptoss", "groq_gptoss", "mistral_small",
-             "groq_gptoss_20b"],
-    "coder": ["mimo_web_code", "mimo_web_think_code", "mimo_web",
-              "ms_kimi_k25", "ms_kimi_k25_code", "longcat", "xfyun_astron",
-              "scnet_ds_flash", "scnet_qwen235b", "scnet_qwen30b",
-              "scnet_ds_pro", "github_gpt4o", "github_gpt4o_mini",
-              "cf_qwen_coder", "cfai_qwen_coder", "cf_gptoss_120b",
-              "cf_deepseek_r1", "cf_qwen3_30b", "cfai_deepseek_r1",
-              "cfai_llama70b", "cfai_llama4",
-              "cerebras_gptoss", "groq_gptoss", "mistral_small",
-              "mistral_pixtral", "mistral_large", "mistral_devstral",
-              "github_codestral", "or_gptoss_120b", "cf_kimi_k26",
-              "scnet_large_ds_flash",
-              "kimi", "kimi_thinking", "kimi_search",
-              "ddg_gpt4o_mini", "ddg_gpt5_mini",
-              "ddg_claude_haiku_45", "ddg_tinfoil_gptoss_120b",
-              "ms_kimi_k25", "ms_kimi_k25_code", "longcat"],
-    "strong": ["scnet_ds_flash", "scnet_qwen235b", "scnet_ds_pro",
-               "scnet_qwen30b", "github_gpt4o", "github_gpt4o_mini",
-               "cf_qwen_coder", "cfai_qwen_coder", "cf_gptoss_120b",
-               "cf_deepseek_r1", "cf_qwen3_30b", "cfai_deepseek_r1",
-               "cfai_llama70b", "cfai_llama4",
-               "or_gptoss_120b", "github_codestral", "mistral_large",
-               "mistral_devstral", "mistral_pixtral", "cf_kimi_k26",
-               "scnet_large_ds_flash",
-               "kimi", "kimi_thinking", "kimi_search",
-               "ms_kimi_k25", "ms_kimi_k25_code", "longcat", "xfyun_astron"],
-}
+def _build_code_pools() -> dict[str, list[str]]:
+    """Build code-specific pools from router_v3 POOLS (single source of truth)."""
+    try:
+        from router_v3 import POOLS as V3_POOLS
+        code_strong = V3_POOLS.get("code", {}).get("strong", [])
+        code_medium = V3_POOLS.get("code", {}).get("medium", [])
+        chat_fast_strong = V3_POOLS.get("chat_fast", {}).get("strong", [])
+        all_code = code_strong + code_medium
+        fast = list(dict.fromkeys(chat_fast_strong[:5] + code_strong[:5]))
+        return {"fast": fast, "coder": all_code, "strong": code_strong}
+    except ImportError:
+        # Fallback: minimal pool if router_v3 not available
+        return {"fast": [], "coder": [], "strong": []}
+
+
+POOLS = _build_code_pools()
 
 _stats = defaultdict(int)
 _stats_lock = __import__("threading").Lock()
