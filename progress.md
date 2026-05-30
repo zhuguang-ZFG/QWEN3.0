@@ -4945,3 +4945,80 @@ Verification note:
 - Note:
   - this does not remove server-side provider latency; it removes the TUI's
     dependency on LiMa Router streaming first-token behavior for normal chat.
+
+## 2026-05-31 LiMa Code TUI Router Hardening (CQ-094)
+
+- Scope:
+  - reproduced real PTY TUI failures against `https://chat.donglicao.com/v1`
+    with the Windows test key and `lima-1.3`;
+  - root causes found after CQ-093:
+    - direct minimal HTTP to LiMa Router returned 200, but the same request
+      through the OpenAI JS SDK could return `403 Your request was blocked`;
+    - root cause was SDK fingerprint headers (`x-stainless-*`, `openai-*`,
+      `user-agent`) reaching the public gateway/upstream admission path;
+    - remote auto skill matching could send the full local skill catalog and
+      JSON-mode request to LiMa Router, producing `403 Your request was
+      blocked`;
+    - project `AGENTS.md`, default skill documents, and verbose tool manuals
+      made project-learning prompts brittle against upstream provider admission;
+    - repeated model tool calls could keep reading the same `AGENTS.md` section
+      until the very high historical loop cap;
+    - non-stream TUI loading text still said `waiting for first token`, which
+      was misleading for LiMa Router.
+  - fixes:
+    - LiMa Router OpenAI SDK transport now sanitizes outgoing headers to only
+      `authorization`, `content-type`, and `accept`;
+    - LiMa Router skill matching is local and explicit-name-only;
+    - LiMa Router requests use compact system/default-skill/project-instruction
+      summaries while preserving actual OpenAI tool schemas;
+    - repeated identical tool calls are detected before execution and stopped
+      with an operator-visible loop message;
+    - model loop cap is now 20 iterations;
+    - LiMa Router TUI requests carry explicit `timeout=90s` and
+      `maxRetries=1`;
+    - LiMa Router blocked requests retry once without tools, then return a
+      local `upstream model/provider admission` report if the fallback is also
+      blocked;
+    - loading text now reports `waiting for response (try 1/2, timeout 1m30s)`
+      for non-stream requests.
+- Verification:
+  - focused LiMa Code tests:
+    `npm.cmd run test:single -- src/tests/session.test.ts`
+    -> `61 tests, 58 pass, 3 skipped`;
+  - focused loading tests:
+    `npm.cmd run test:single -- src/tests/loadingText.test.ts`
+    -> `9 pass`;
+  - focused settings/notify tests:
+    `npm.cmd run test:single -- src/tests/settings-and-notify.test.ts`
+    -> `24 tests, 23 pass, 1 skipped`;
+  - `npm.cmd run build` -> passed;
+  - full LiMa Code suite:
+    `npm.cmd test` -> `494 tests, 487 pass, 7 skipped`;
+  - `npm.cmd --cache D:\GIT\.npm-cache pack` -> passed and produced
+    `lima-code-0.1.24.tgz` with shasum
+    `1e20c8f62d258723c4e27cdc9d000269b71ee38d`;
+  - GitHub Release `lima-code-v0.1.24` tarball asset refreshed with
+    `--clobber`;
+  - GitHub URL install smoke:
+    `npm.cmd install -g --force https://github.com/zhuguang-ZFG/deepcode-cli/releases/download/lima-code-v0.1.24/lima-code-0.1.24.tgz`
+    -> `added 60 packages in 8s`;
+  - installed shim smoke:
+    `C:\Users\Administrator\AppData\Roaming\npm\lima-code.cmd --version`
+    -> `0.1.24`;
+  - headless JSON public smoke from `D:\GIT`:
+    `node D:\GIT\deepcode-cli\dist\cli.js --headless --json -p '你是、'`
+    -> `ok: true`, `status: 200`, `latencyMs: 5139`, `maxRetries: 1`;
+  - real PTY TUI short smoke from `D:\GIT`:
+    `node D:\GIT\deepcode-cli\dist\cli.js -p '你是、'`
+    -> `status: completed`, content returned by LiMa Router;
+  - real PTY TUI long smoke from `D:\GIT`:
+    `node D:\GIT\deepcode-cli\dist\cli.js -p '学习这个项目'`
+    -> model thinking appeared, real `Bash` tools executed, and the waiting
+    line showed `Thinking... (8s) - waiting for response (try 1/2, timeout
+    1m30s)`.
+- Note:
+  - CLI/TUI transport, tool-call execution, and operator waiting telemetry are
+    now live for LiMa Router. Remaining risk is model quality/provider latency
+    for broad project-learning prompts; server-side routing should next
+    aggregate backend latency/admission telemetry and prefer stronger
+    coding-tool backends for these turns.
