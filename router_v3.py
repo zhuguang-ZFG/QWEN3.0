@@ -89,7 +89,7 @@ POOLS = {
                    "scnet_ds_flash", "scnet_qwen235b", "scnet_qwen30b",
                    "scnet_ds_pro", "github_gpt4o", "github_gpt4o_mini",
                    "groq_gptoss", "groq_gptoss_20b", "groq_llama8b",
-                   "cerebras_gptoss", "cerebras_llama8b", "cerebras_qwen235b",
+                   "cerebras_gptoss", "cerebras_qwen235b",
                    "cf_qwen_coder", "cfai_qwen_coder", "or_gptoss_120b",
                    "cf_gptoss_120b", "cf_deepseek_r1", "cf_qwen3_30b",
                    "cfai_deepseek_r1", "github_codestral", "mistral_large",
