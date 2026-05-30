@@ -3,8 +3,6 @@
 The heavy request execution path lives in routes/chat_handler.py; this module
 owns HTTP parsing, rate limiting, vision short-circuiting, and protocol wrapping.
 """
-from __future__ import annotations
-
 import json
 import time
 import uuid

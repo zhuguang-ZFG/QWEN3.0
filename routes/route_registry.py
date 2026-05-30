@@ -74,6 +74,15 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
     )
     app.include_router(chat_endpoints_router)
 
+    from routes.public_demo import router as public_demo_router
+    import routes.public_demo as public_demo_mod
+
+    public_demo_mod.inject_deps(
+        model_id=deps.model_id,
+        handle_chat=deps.handle_chat,
+    )
+    app.include_router(public_demo_router)
+
     from routes.embeddings import router as embeddings_router
 
     app.include_router(embeddings_router)

@@ -1,11 +1,22 @@
 # LiMa Status
 
-> Updated: 2026-05-30 (backend dead alert stabilization deployed)
+> Updated: 2026-05-30 (public frontend demo bridge deployed)
 > Branch: `main`
-> Tests: **2137 passed, 10 skipped** (`python -m pytest`)
-> Current VPS: backend retired/dead alert stabilization deployed; `/health` OK; alert backends are `dead`/`retired`
+> Tests: focused **13 passed**; full suite **2140 passed, 10 skipped**
+> Current VPS: public website `/api/demo` -> LiMa backend chat bridge deployed; private `/v1` auth preserved
 > VPS: Memory 1454MB→1358MB (services restored), health check OK
 > Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
+
+## 2026-05-30 Public Frontend Demo Bridge
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| Root cause | Confirmed | `donglicao.com/api/demo` proxied directly to private `/v1/chat/completions` without `Authorization`, so backend correctly returned 401 |
+| Backend fix | Deployed | added default-off `routes/public_demo.py` `/public/demo/chat` endpoint with env gate, per-IP minute cap, max token cap, message length cap, and no tools/streaming |
+| Nginx fix | Deployed | `/api/demo` now proxies to `http://127.0.0.1:8080/public/demo/chat`; `nginx -t` passed and `nginx -s reload` succeeded |
+| Public smoke | Done | after split deploy, `https://donglicao.com/api/demo` without token returned 200 via `groq_llama4` in 9656 ms |
+| Private API guard | Done | after split deploy, unauthenticated `https://chat.donglicao.com/v1/chat/completions` returned 401; authenticated request returned 200 via `cerebras_gptoss` |
+| Rollback | Ready | backup `/opt/lima-router/backups/public-demo-20260530_214412` contains backend, nginx, and `.env` pre-change copies |
 
 ## 2026-05-30 Backend Dead Alert Stabilization
 

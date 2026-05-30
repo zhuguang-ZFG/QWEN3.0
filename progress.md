@@ -4664,3 +4664,30 @@ Verification note:
 - Residual:
   - `.pytest_cache` still cannot be written in this environment (`Permission denied`);
   - only `scripts/archive/**` retired scripts still contain `AutoAddPolicy()`; leave them archived unless a cleanup task explicitly targets retired code.
+
+## 2026-05-30 Public Frontend Demo Bridge
+
+- Diagnosis:
+  - public authenticated `https://chat.donglicao.com/v1/chat/completions` now returns 200;
+  - website `https://donglicao.com/api/demo` returned 401 because the frontend script sends no token and nginx proxied it to private `/v1/chat/completions`.
+- Fix:
+  - added default-off `routes/public_demo.py` `/public/demo/chat` with `LIMA_PUBLIC_DEMO_ENABLED`, per-IP minute cap, message length cap, max-token cap, and no public tools/streaming;
+  - deployed `routes/chat_endpoints.py`, `routes/public_demo.py`, and `routes/route_registry.py` to VPS and restarted `lima-router`;
+  - appended `LIMA_PUBLIC_DEMO_ENABLED=1` and `LIMA_PUBLIC_DEMO_MAX_PER_MINUTE=6` to VPS `.env`;
+  - changed `www.donglicao.com` nginx `/api/demo` proxy target to `/public/demo/chat`.
+- VPS evidence:
+  - backup: `/opt/lima-router/backups/public-demo-20260530_214412`;
+  - `nginx -t`: passed;
+  - `nginx -s reload`: succeeded after `systemctl reload nginx` hit existing `226/NAMESPACE`;
+  - public website demo smoke after split deploy: `FRONT_HTTP_STATUS 200`, backend `groq_llama4`, `9656 ms`;
+  - private unauth smoke: `PRIVATE_UNAUTH_STATUS 401`;
+  - private auth smoke after split deploy: `PRIVATE_AUTH_STATUS 200`, backend `cerebras_gptoss`, `3978 ms`.
+- Local evidence:
+  - focused: `pytest tests/test_chat_endpoints.py tests/test_access_guard.py -q` -> `13 passed`;
+  - `ruff check routes/chat_endpoints.py tests/test_chat_endpoints.py` -> passed;
+  - final full suite after split deploy: `2140 passed, 10 skipped in 273.13s`;
+  - a duplicate full-suite run also passed: `2140 passed, 10 skipped in 268.24s`;
+  - one run emitted Telegram sendMessage network/shutdown noise after pytest completion, but both pytest exits were green;
+  - `ruff check .` -> passed;
+  - changed-file `pyright routes/public_demo.py routes/route_registry.py routes/chat_endpoints.py tests/test_chat_endpoints.py` -> `0 errors`;
+  - full-repo `pyright` still reports 7 pre-existing errors outside this slice (`code_orchestrator_context.py`, `context_pipeline/*`, `routes/agent_memory.py`, `routes/telegram_code_tools.py`).
