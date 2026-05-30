@@ -62,3 +62,29 @@ def test_routing_select_excludes_web_adapter_for_ide(monkeypatch):
     monkeypatch.setattr(routing_engine.health_tracker, "get_latency_map", lambda: {})
 
     assert routing_engine.select("ide", {}) == ["scnet_ds_flash"]
+
+
+def test_routing_select_excludes_retired_backend(monkeypatch):
+    import backend_retirement
+    import routing_engine
+
+    backend_retirement._retired_backends.clear()
+    backend_retirement._retired_backends.add("oldllm_gpt54")
+    monkeypatch.setattr(
+        routing_engine.router_v3,
+        "select_backends",
+        lambda req_type, health_map: ["oldllm_gpt54", "longcat_chat"],
+    )
+    monkeypatch.setattr(routing_engine.health_tracker, "is_cooled_down", lambda b: False)
+    monkeypatch.setattr(
+        routing_engine.health_tracker,
+        "get_backend_state",
+        lambda b: {"state": "ok"},
+    )
+    monkeypatch.setattr(routing_engine.health_tracker, "get_scores", lambda: {})
+    monkeypatch.setattr(routing_engine.health_tracker, "get_latency_map", lambda: {})
+
+    try:
+        assert routing_engine.select("chat", {}) == ["longcat_chat"]
+    finally:
+        backend_retirement._retired_backends.clear()

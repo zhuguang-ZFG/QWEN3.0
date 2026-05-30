@@ -9,6 +9,7 @@ TERMINAL_STATES = {
     "auth_expired",
     "manual_refresh_required",
     "quota_exhausted",
+    "retired",
 }
 
 UNPROVEN_WEB_ADAPTERS = {

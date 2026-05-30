@@ -48,6 +48,26 @@ def test_apply_retirement():
     assert br.is_retired("test_backend")
 
 
+def test_apply_retirement_is_idempotent(monkeypatch):
+    br._retired_backends.clear()
+    calls = {"save": 0, "notify": 0}
+
+    monkeypatch.setattr(br, "_save_retirement", lambda *a, **k: calls.__setitem__("save", calls["save"] + 1))
+    monkeypatch.setattr(br, "_notify_retirement", lambda *a, **k: calls.__setitem__("notify", calls["notify"] + 1))
+
+    action = {
+        "action": "retire",
+        "backend": "idempotent_backend",
+        "reason": "test",
+        "status": "retired",
+    }
+    br.apply_retirement(action)
+    br.apply_retirement(action)
+
+    assert br.is_retired("idempotent_backend")
+    assert calls == {"save": 1, "notify": 1}
+
+
 def test_reactivate():
     br._retired_backends.add("react_test")
     assert br.is_retired("react_test")
@@ -67,3 +87,24 @@ def test_load_retired():
     loaded = br.load_retired()
     assert loaded >= 1
     assert br.is_retired("load_test")
+
+
+def test_load_retired_marks_health_dead():
+    import health_state as hs
+
+    br._retired_backends.clear()
+    hs.reset_all_state()
+    br.apply_retirement({
+        "action": "retire",
+        "backend": "load_health_test",
+        "reason": "test",
+        "status": "retired",
+    })
+    br._retired_backends.clear()
+    hs.reset_all_state()
+
+    br.load_retired()
+
+    assert br.is_retired("load_health_test")
+    assert hs.get_health("load_health_test") == "dead"
+    assert hs.get_backend_state("load_health_test")["state"] == "retired"

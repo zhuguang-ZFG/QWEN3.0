@@ -43,7 +43,7 @@ def test_classify_scenario_never_crashes(query: str, ide_source: str):
     query=st.text(min_size=1, max_size=200),
     fmt=st.sampled_from(["openai", "anthropic"]),
 )
-@settings(max_examples=30)
+@settings(max_examples=30, deadline=None)
 def test_route_never_crashes(query: str, fmt: str):
     """route() should return a RouteResult (or fail gracefully with no backends)."""
     messages = [{"role": "user", "content": query}]

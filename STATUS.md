@@ -1,11 +1,22 @@
 # LiMa Status
 
-> Updated: 2026-05-30 (whole-project code quality audit deployed)
+> Updated: 2026-05-30 (backend dead alert stabilization deployed)
 > Branch: `main`
-> Tests: **2130 passed, 10 skipped** (`python -m pytest`)
-> Current VPS: quality audit deploy uploaded 126 files; `/health` OK; public authenticated chat smoke HTTP 200
+> Tests: **2137 passed, 10 skipped** (`python -m pytest`)
+> Current VPS: backend retired/dead alert stabilization deployed; `/health` OK; alert backends are `dead`/`retired`
 > VPS: Memory 1454MB→1358MB (services restored), health check OK
 > Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
+
+## 2026-05-30 Backend Dead Alert Stabilization
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| Alert root cause | Confirmed | retired backend pools were retried after restart because health state was not persisted and retired state was not a routing filter |
+| Upstream probes | Confirmed | stock returned unparseable responses; oldllm returned `502`; Google/Mistral direct APIs were network unreachable from VPS |
+| Routing fix | Deployed | retired backends hydrate as `dead`/`retired`, are excluded from selection, and repeated retirement is idempotent |
+| Test stability | Done | crash-safety Hypothesis deadline disabled; full suite `2137 passed, 10 skipped` |
+| VPS smoke | Done | 4 files uploaded, `lima-router` restarted, public `/health` 200 |
+| Log check | Done | no new `retirement: retired`, `dead`, or `CRITICAL` lines since new process start `2026-05-30 21:08:34 CST` |
 
 ## 2026-05-30 Whole-Project Code Quality Audit
 

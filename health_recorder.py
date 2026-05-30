@@ -24,12 +24,26 @@ from health_state import (
 )
 
 
+def _persist_health_state() -> None:
+    try:
+        from health_state import save_on_change
+
+        save_on_change()
+    except ImportError:
+        _log.debug("health_state save_on_change unavailable")
+    except Exception as exc:
+        _log.warning("health state persistence failed: %s", type(exc).__name__)
+
+
 def record_success(backend: str, latency_ms: float) -> None:
+    should_persist = False
     with _lock:
+        old_health = _health_map.get(backend)
         _health_map[backend] = "healthy"
 
         state = _cooldown_states.get(backend)
         if state:
+            should_persist = True
             state.consecutive_failures = 0
             state.current_cooldown = BASE_COOLDOWN
             state.cooldown_until = 0.0
@@ -41,6 +55,10 @@ def record_success(backend: str, latency_ms: float) -> None:
         quality.last_success = time.monotonic()
         quality.empty_count = max(0, quality.empty_count - 1)
         quality.total_requests += 1
+        should_persist = should_persist or old_health != "healthy"
+
+    if should_persist:
+        _persist_health_state()
 
     # Update backend profile (outside lock to avoid deadlock)
     try:
@@ -55,6 +73,7 @@ def record_failure(
     error_code: Optional[int] = None,
     error_text: str = "",
 ) -> None:
+    should_persist = False
     with _lock:
         if error_code == 400:
             state = _cooldown_states.setdefault(backend, CooldownState())
@@ -98,6 +117,7 @@ def record_failure(
             _health_map[backend] = "degraded"
 
         new_health = _health_map[backend]
+        should_persist = True
         if old_health != new_health:
             try:
                 from telegram_notify import notify_health_change
@@ -121,6 +141,9 @@ def record_failure(
                 backend,
                 type(exc).__name__,
             )
+
+    if should_persist:
+        _persist_health_state()
 
     # Update backend profile (outside lock to avoid deadlock)
     try:

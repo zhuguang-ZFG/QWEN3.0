@@ -33,6 +33,40 @@ STATUS_RETIRED = "retired"
 _retired_backends: set[str] = set()
 
 
+def _mark_health_retired(backend: str) -> None:
+    """Reflect persisted retirement in runtime health state."""
+    try:
+        import health_state
+    except ImportError:
+        logger.debug("health_state unavailable; retired backend not marked")
+        return
+    except Exception as exc:
+        logger.warning(
+            "Failed to import health_state for retired backend=%s: %s",
+            backend,
+            type(exc).__name__,
+        )
+        return
+
+    try:
+        with health_state._lock:
+            current = health_state._health_map.get(backend)
+            if current != STATUS_HEALTHY:
+                health_state._health_map[backend] = "dead"
+            state = health_state._cooldown_states.setdefault(
+                backend, health_state.CooldownState()
+            )
+            state.state = STATUS_RETIRED
+            state.last_error_class = STATUS_RETIRED
+            state.last_error_code = None
+    except Exception as exc:
+        logger.warning(
+            "Failed to mark retired backend health backend=%s: %s",
+            backend,
+            type(exc).__name__,
+        )
+
+
 def check_retirement(backend: str) -> dict | None:
     """Check if a backend should be retired. Returns retirement action or None."""
     try:
@@ -81,10 +115,15 @@ def apply_retirement(action: dict) -> None:
     status = action["status"]
     reason = action["reason"]
 
+    if status == STATUS_RETIRED and backend in _retired_backends:
+        _mark_health_retired(backend)
+        return
+
     logger.warning("Backend %s retirement: %s — %s", backend, status, reason)
 
     if status == STATUS_RETIRED:
         _retired_backends.add(backend)
+        _mark_health_retired(backend)
         _save_retirement(backend, status, reason)
         _notify_retirement(backend, status, reason)
 
@@ -93,6 +132,20 @@ def reactivate(backend: str) -> None:
     """Manually reactivate a retired backend."""
     _retired_backends.discard(backend)
     _save_retirement(backend, STATUS_HEALTHY, "Manually reactivated")
+    try:
+        import health_state
+
+        health_state.clear_cooldown(backend)
+        with health_state._lock:
+            health_state._health_map[backend] = STATUS_HEALTHY
+    except ImportError:
+        logger.debug("health_state unavailable; reactivated backend not marked")
+    except Exception as exc:
+        logger.warning(
+            "Failed to mark reactivated backend health backend=%s: %s",
+            backend,
+            type(exc).__name__,
+        )
     logger.info("Backend %s reactivated", backend)
 
 
@@ -117,6 +170,7 @@ def load_retired() -> int:
             "SELECT backend FROM retirements WHERE status = ?", (STATUS_RETIRED,)
         ):
             _retired_backends.add(row[0])
+            _mark_health_retired(row[0])
             count += 1
         conn.close()
         return count

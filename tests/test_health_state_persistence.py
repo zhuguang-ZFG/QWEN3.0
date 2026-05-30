@@ -44,3 +44,21 @@ def test_save_and_load_quality_state():
     assert q.empty_count == 5
     assert q.total_requests == 10
     assert list(q.latencies) == [100, 200, 300]
+
+
+def test_record_failure_persists_health_state():
+    import health_recorder
+
+    hs.reset_all_state()
+
+    health_recorder.record_failure(
+        "persisted_failure",
+        error_code=502,
+        error_text="upstream failed",
+    )
+    hs.reset_all_state()
+
+    hs.load_health_state()
+
+    assert hs.get_health("persisted_failure") == "degraded"
+    assert hs.get_backend_state("persisted_failure")["last_error_code"] == 502

@@ -6,6 +6,12 @@
 
 | ID | Area | Finding | Status |
 |----|------|---------|--------|
+| OPS-BE-1 | Backend health | Telegram CRITICAL storm was caused by retired/failing backend pools being retried after restart: VPS persisted profile/retirement DBs, but not health_state, and retired backends were not excluded from routing. | Closed |
+| OPS-BE-2 | Upstream health | Direct VPS probes confirmed representative alert backends are real upstream/network failures: stock backends returned unparseable responses, oldllm returned 502, and Google/Mistral direct APIs were network unreachable from VPS. | Open |
+| OPS-BE-3 | Routing | Retired backends now hydrate into runtime health as `dead`/`retired`, are excluded by `routing_selector`, and `retired` is terminal in `route_scorer`; repeated retirement application is idempotent. | Closed |
+| OPS-BE-4 | Persistence | `health_recorder` now persists health state on failure/recovery changes so restart does not turn known-dead backends into fresh alert transitions. | Closed |
+| OPS-BE-5 | VPS smoke | Deployed 4 backend-health files, restart health OK, public `/health` 200, admin backend-health shows listed alert backends as `dead` with error class `retired`; no new retired/dead/CRITICAL logs since new process start. | Closed |
+| OPS-BE-6 | Test stability | Full pytest first exposed a flaky Hypothesis deadline in `test_route_never_crashes` (`query='null'`, anthropic) due Telegram network retry latency; deadline disabled for this crash-safety property and full suite now passes. | Closed |
 | CQ-089-1 | Code quality | Project-wide ruff cleanup removed unused imports/variables and fixed undefined logger paths while preserving compatibility exports used by tests/importers. | Closed |
 | CQ-089-2 | Duplication | Telegram developer-skill command flow had repeated parsing/dispatch logic; it is now centralized in a shared helper while keeping command behavior covered by tests. | Closed |
 | CQ-089-3 | Windows execution | `agent_runtime/shell_executor.py` did not handle shell built-ins like `echo` consistently on Windows; the executor now covers the verified built-in path. | Closed |

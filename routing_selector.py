@@ -50,6 +50,15 @@ def _has_valid_key(name: str) -> bool:
     return True
 
 
+def _is_retired(name: str) -> bool:
+    try:
+        import backend_retirement
+
+        return backend_retirement.is_retired(name)
+    except ImportError:
+        return False
+
+
 def select(request_type: str, health_map: dict,
            sticky_key: str = None, scenario: str = "",
            needs_tools: bool = False, recalled_backend: str = "",
@@ -74,6 +83,7 @@ def select(request_type: str, health_map: dict,
         pool_key = "chat_fast"
 
     result = re.router_v3.select_backends(pool_key, health_map)
+    result = [b for b in result if not _is_retired(b)]
 
     if needs_tools:
         result = [b for b in result if "tool_calls" in reg.BACKENDS.get(b, {}).get("caps", [])]
@@ -83,6 +93,7 @@ def select(request_type: str, health_map: dict,
                 if "tool_calls" in c.get("caps", [])
                 and not re.health_tracker.is_cooled_down(n)
                 and budget_manager.is_budget_available(n)
+                and not _is_retired(n)
             ]
             for b in all_capable:
                 if b not in result:
