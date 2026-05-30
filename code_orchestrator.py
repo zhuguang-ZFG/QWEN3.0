@@ -75,14 +75,25 @@ def _backend_selectable(name: str) -> bool:
 def _try_backends_ranked(pool_name: str, messages: list, call_fn,
                          system: str, max_tokens: int,
                          t0: float, deadline: float) -> tuple[str, str]:
+    """Try backends with parallel execution for faster first-response."""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
     pool = runtime_topology.filter_backends(POOLS.get(pool_name, []))
     ranked = [
         b for b in backend_reputation.sort_by_reputation(pool)
         if _backend_selectable(b)
     ]
-    for backend in ranked:
+
+    if not ranked:
+        return "", ""
+
+    # Phase 1: Try top 3 backends in parallel (fastest response wins)
+    parallel_batch = ranked[:3]
+    remaining = ranked[3:]
+
+    def _try_one(backend: str) -> tuple[str, str] | None:
         if time.time() - t0 > deadline:
-            break
+            return None
         try:
             msgs = messages.copy()
             if system:
@@ -92,7 +103,28 @@ def _try_backends_ranked(pool_name: str, messages: list, call_fn,
                 return backend, answer
         except Exception as exc:
             logger.warning("code_orchestrator backend %s failed: %s", backend, exc)
-            continue
+        return None
+
+    with ThreadPoolExecutor(max_workers=len(parallel_batch)) as pool_exec:
+        futures = {pool_exec.submit(_try_one, b): b for b in parallel_batch}
+        for future in as_completed(futures):
+            try:
+                result = future.result()
+                if result:
+                    # Cancel remaining futures
+                    for f in futures:
+                        f.cancel()
+                    return result
+            except Exception:
+                continue
+
+    # Phase 2: Sequential fallback for remaining backends
+    for backend in remaining:
+        if time.time() - t0 > deadline:
+            break
+        result = _try_one(backend)
+        if result:
+            return result
     return "", ""
 
 
