@@ -40,8 +40,8 @@ app = FastAPI(title="LiMa", version="1.3",
 _sentry_dsn = os.environ.get("SENTRY_DSN", "")
 if _sentry_dsn:
     try:
-        import sentry_sdk
-        from sentry_sdk.integrations.fastapi import FastApiIntegration
+        import sentry_sdk  # type: ignore[reportMissingImports]
+        from sentry_sdk.integrations.fastapi import FastApiIntegration  # type: ignore[reportMissingImports]
         sentry_sdk.init(
             dsn=_sentry_dsn,
             send_default_pii=True,

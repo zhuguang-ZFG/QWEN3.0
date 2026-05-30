@@ -252,10 +252,10 @@ async def stream_tier2_native(body: dict, deps: dict):
                     "POST", backend["url"], headers=headers, content=payload,
                 ) as http_resp:
                     if http_resp.status_code != 200:
-                        body = await http_resp.aread()
+                        response_body = await http_resp.aread()
                         raise RuntimeError(
                             f"Backend {name} returned {http_resp.status_code}: "
-                            f"{str(body)[:200]}"
+                            f"{str(response_body)[:200]}"
                         )
                     _ht.record_success(name, 0)
                     async for line in http_resp.aiter_lines():

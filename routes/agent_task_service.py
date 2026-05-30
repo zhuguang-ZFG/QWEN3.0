@@ -221,7 +221,7 @@ def post_result_hooks(
         from session_memory.learning_loop import ingest_from_agent_task_result
 
         ingest_from_agent_task_result(
-            asdict({"status": result_status, "task_id": task_id}),
+            {"status": result_status, "task_id": task_id},
             backend=backend,
             scenario="coding",
             latency_ms=latency_ms,

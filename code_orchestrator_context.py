@@ -207,9 +207,9 @@ def _recall_session_memory(query: str) -> str:
         keywords = _extract_memory_keywords(query)
         matches = []
         for kw in keywords[:5]:
-            matches.extend(search_memories_keyword(kw, limit=3))
+            matches.extend(search_memories_keyword("_global", kw, limit=3))
         if not matches:
-            matches = get_recent_memories(limit=3)
+            matches = get_recent_memories("_global", limit=3)
         if not matches:
             return ""
         lines = ["[Session Memory — past context]"]

@@ -30,7 +30,10 @@ def _detect_project_root() -> str:
 _PROJECT_ROOT = _detect_project_root()
 
 
-def extract_file_mentions(query: str, messages: list[dict] | None = None) -> list[str]:
+def extract_file_mentions(
+    query: str,
+    messages: list[dict] | None = None,
+) -> tuple[list[str], list[str]]:
     """Extract file paths and code identifiers from query and recent messages."""
     text = query
     if messages:

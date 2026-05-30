@@ -14,6 +14,7 @@ import subprocess
 
 import http_caller
 import telegram_bot
+from routes.quality_gate_tiers import default_route
 
 logger = logging.getLogger(__name__)
 
@@ -50,11 +51,13 @@ async def _call_llm(prompt: str, system: str = "", max_tokens: int = 4096) -> st
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": prompt})
 
+        backend = default_route(prompt, ide="telegram_code")
         result = http_caller.call_api(
+            backend,
             messages=messages,
             max_tokens=max_tokens,
         )
-        return result.get("answer", "") or result.get("content", "") or "(no response)"
+        return result or "(no response)"
     except Exception as exc:
         logger.error("LLM call failed: %s", exc)
         return f"LLM 调用失败: {exc}"

@@ -10,10 +10,10 @@ The server updates backends.py runtime config and validates each token.
 
 from __future__ import annotations
 
-import logging
-import urllib.request
 import urllib.error
+import urllib.request
 import json
+import logging
 
 from fastapi import APIRouter, Depends, Header
 from pydantic import BaseModel
@@ -39,10 +39,7 @@ class TokenSyncResult(BaseModel):
 
 def _require_auth(authorization: str = Header(default="")) -> None:
     """Accept admin token or private API key."""
-    import asyncio
-    asyncio.get_event_loop().run_until_complete(
-        require_private_api_key(authorization=authorization)
-    )
+    require_private_api_key(authorization=authorization)
 
 
 def get_token_override(backend_name: str) -> str | None:

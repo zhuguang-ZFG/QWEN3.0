@@ -1,11 +1,24 @@
 # LiMa Status
 
-> Updated: 2026-05-30 (public frontend demo bridge deployed)
+> Updated: 2026-05-30 (pyright gate clean)
 > Branch: `main`
-> Tests: focused **13 passed**; full suite **2140 passed, 10 skipped**
-> Current VPS: public website `/api/demo` -> LiMa backend chat bridge deployed; private `/v1` auth preserved
+> Tests: pyright **0 errors / 0 warnings**; ruff **clean**; focused **90 passed**; full suite **2140 passed, 10 skipped**
+> Current VPS: pyright cleanup deployed; public `/health`, private chat, and agent-memory context smoke passed
 > VPS: Memory 1454MB→1358MB (services restored), health check OK
 > Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
+
+## 2026-05-30 Pyright Gate Cleanup
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| Type gate | Local clean | full-repo `pyright` now returns `0 errors, 0 warnings, 0 informations` |
+| API drift fixes | Done | memory routes, routing bridge, Telegram code tools, token sync, task service, stream forwarder, context injection, and Sentry optional imports aligned to current signatures |
+| Local tests | Done | focused route/memory/tool/Telegram suite `90 passed`; full suite `2140 passed, 10 skipped in 259.33s` |
+| Lint | Done | `ruff check .` passed |
+| Runtime data hygiene | Done | test-written routing/webhook JSON diffs restored and left out of the commit |
+| VPS deploy | Done | `deploy_unified.py --files ...` uploaded 9/9 and restarted `lima-router`; deploy health OK |
+| VPS smoke | Done | public `/health` 200; authenticated public `/v1/chat/completions` 200; `/agent/memory/context?backend=groq&scenario=coding` 200 |
+| VPS snapshot | Done | deployed-file snapshot saved at `/opt/lima-router/backups/pyright-clean-20260530_223900/deployed-files.tgz` |
 
 ## 2026-05-30 Public Frontend Demo Bridge
 

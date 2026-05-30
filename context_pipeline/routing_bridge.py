@@ -29,11 +29,22 @@ def select_backend_with_evolution(
     """Select backend using evolution strategy based on recent metrics."""
     if not backends:
         return RoutingDecision(backend="none", confidence=0.0)
+    if not metrics_snapshot:
+        return RoutingDecision(backend=backends[0], strategy="fallback")
 
     try:
         from context_pipeline.evolution import auto_select_strategy, apply_strategy_to_backends
-        strategy = auto_select_strategy(metrics_snapshot or {})
-        adjusted = apply_strategy_to_backends(strategy, backends, metrics_snapshot or {})
+        recent_error_rate = float(metrics_snapshot.get("recent_error_rate", 0.0))
+        recent_fallback_rate = float(metrics_snapshot.get("recent_fallback_rate", 0.0))
+        backends_available = int(metrics_snapshot.get("backends_available", len(backends)))
+        raw_proven = metrics_snapshot.get("proven_backends")
+        proven_backends = raw_proven if isinstance(raw_proven, list) else None
+        strategy = auto_select_strategy(
+            recent_error_rate,
+            recent_fallback_rate,
+            backends_available,
+        )
+        adjusted = apply_strategy_to_backends(backends, strategy, proven_backends)
         if adjusted:
             return RoutingDecision(
                 backend=adjusted[0],
@@ -57,7 +68,7 @@ def reflect_and_adjust(
     """Apply reflection correction after a routing outcome."""
     try:
         from context_pipeline.reflection import reflect_on_routing
-        result = reflect_on_routing(backend, latency_ms, success, scenario)
+        result = reflect_on_routing(backend, scenario, ide="")
         corrected = getattr(result, "corrected_backend", None) or str(result)
         was_corrected = getattr(result, "was_corrected", False)
         if was_corrected and corrected != backend:

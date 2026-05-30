@@ -4691,3 +4691,37 @@ Verification note:
   - `ruff check .` -> passed;
   - changed-file `pyright routes/public_demo.py routes/route_registry.py routes/chat_endpoints.py tests/test_chat_endpoints.py` -> `0 errors`;
   - full-repo `pyright` still reports 7 pre-existing errors outside this slice (`code_orchestrator_context.py`, `context_pipeline/*`, `routes/agent_memory.py`, `routes/telegram_code_tools.py`).
+
+## 2026-05-30 Pyright Gate Cleanup (CQ-090)
+
+- Scope:
+  - cleared the remaining full-repo `pyright` drift across `code_orchestrator_context.py`,
+    `context_pipeline/code_context_injection.py`, `context_pipeline/routing_bridge.py`,
+    `routes/agent_memory.py`, `routes/agent_task_service.py`,
+    `routes/telegram_code_tools.py`, `routes/token_sync.py`,
+    `routes/tool_forward_stream.py`, and `server.py`;
+  - fixed stale function signatures instead of suppressing the errors, except for the
+    optional `sentry_sdk` import boundary where local installs may omit the package;
+  - restored test-written runtime JSON diffs under `data/` before staging.
+- Local verification:
+  - focused pyright on changed files: `0 errors, 0 warnings`;
+  - full-repo `pyright`: `0 errors, 0 warnings, 0 informations`;
+  - `ruff check .`: passed;
+  - focused tests:
+    `tests/test_pipeline_integration.py tests/test_session_memory.py tests/test_typed_memory.py tests/test_prompt_memory_recall.py tests/test_agent_task_routes.py tests/test_tool_forward.py tests/test_telegram_bot.py`
+    -> `90 passed`;
+  - full suite: `2140 passed, 10 skipped in 259.33s`.
+- Note:
+  - the full suite emitted one non-fatal Telegram `sendMessage` network failure after pytest
+    completion; pytest exit status was green.
+- Closeout:
+  - deployed 9/9 production files with `scripts/deploy_unified.py --files ...`;
+  - `lima-router` restart health returned OK;
+  - public `https://chat.donglicao.com/health` returned 200;
+  - authenticated public `https://chat.donglicao.com/v1/chat/completions` returned 200
+    for `pyright_cleanup_smoke`;
+  - public `/agent/memory/context?backend=groq&scenario=coding` returned 200;
+  - deployed-file snapshot:
+    `/opt/lima-router/backups/pyright-clean-20260530_223900/deployed-files.tgz`.
+  - caveat: `deploy_unified.py` does not yet create a pre-upload tar backup for custom
+    `--files` deploys; the next ops-hardening slice should add that hook.
