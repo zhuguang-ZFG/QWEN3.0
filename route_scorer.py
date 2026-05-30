@@ -112,13 +112,43 @@ def effective_score(backend: str, request_type: str, scenario: str = "",
         budget_manager.get_remaining_quota_score(backend)
         if remaining_quota_score is None else remaining_quota_score
     )
+
+    # Reputation score (0-1 normalized)
+    try:
+        import backend_reputation
+        rep_score = backend_reputation.get_stats().get("scores", {}).get(backend, 70)
+        reputation = _norm_score(rep_score)
+    except (ImportError, Exception):
+        reputation = 0.5
+
+    # Learned weight score (0-1 normalized)
+    try:
+        from context_pipeline.routing_weights import get_routing_weights
+        rw = get_routing_weights()
+        weight = rw.get_weight(backend, scenario or request_type)
+        learned = min(1.0, weight / 2.0)  # weight range is [0.1, 2.0]
+    except (ImportError, Exception):
+        learned = 0.5
+
+    # Backend profile composite score (0-1)
+    try:
+        import backend_profile
+        profile = backend_profile.get_profile(backend)
+        profile_bonus = profile.composite_score() / 100.0
+    except (ImportError, Exception):
+        profile_bonus = 0.5
+
+    # Composite: health 35%, stability 20%, latency 15%, reputation 15%, learned 10%, quota 5%
     score = (
-        _norm_score(health_score) * 0.45
-        + stability_score(state) * 0.25
+        _norm_score(health_score) * 0.35
+        + stability_score(state) * 0.20
         + latency_score(avg_latency_ms) * 0.15
-        + max(0.0, min(quota_score, 1.0)) * 0.10
-        + task_fit_score(backend, request_type, scenario) * 0.05
+        + reputation * 0.15
+        + learned * 0.10
+        + max(0.0, min(quota_score, 1.0)) * 0.05
     )
+    # Small bonus from profile composite score
+    score += profile_bonus * 0.05
     return round(score, 6)
 
 

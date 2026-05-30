@@ -12,6 +12,31 @@ _log = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(application):
     """Start and stop background runtime helpers."""
+    # Load persisted health state
+    try:
+        import health_state
+        loaded = health_state.load_health_state()
+        _log.info("Loaded health state: %d backends", loaded)
+    except ImportError:
+        pass
+
+    # Load persisted backend profiles
+    try:
+        import backend_profile
+        loaded = backend_profile.load_profiles()
+        _log.info("Loaded backend profiles: %d", loaded)
+        backend_profile.save_on_interval(300)
+    except ImportError:
+        pass
+
+    # Load retired backends
+    try:
+        import backend_retirement
+        loaded = backend_retirement.load_retired()
+        _log.info("Loaded retired backends: %d", loaded)
+    except ImportError:
+        pass
+
     try:
         from backend_admission_store import apply_startup
 

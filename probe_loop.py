@@ -76,5 +76,17 @@ def _probe_cycle(probe_fn: Callable[[str], bool]):
         if success:
             health_tracker.record_success(backend, 0)
             logger.info(f"[PROBE] {backend} recovered!")
+            # Update backend profile
+            try:
+                import backend_profile
+                backend_profile.record_request(backend, 0.0, success=True, scenario="probe")
+            except ImportError:
+                pass
         else:
             logger.debug(f"[PROBE] {backend} still down")
+            # Update backend profile
+            try:
+                import backend_profile
+                backend_profile.record_request(backend, 0.0, success=False, scenario="probe")
+            except ImportError:
+                pass

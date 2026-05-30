@@ -42,6 +42,13 @@ def record_success(backend: str, latency_ms: float) -> None:
         quality.empty_count = max(0, quality.empty_count - 1)
         quality.total_requests += 1
 
+    # Update backend profile (outside lock to avoid deadlock)
+    try:
+        import backend_profile
+        backend_profile.record_request(backend, latency_ms, success=True)
+    except ImportError:
+        pass
+
 
 def record_failure(
     backend: str,
@@ -109,6 +116,22 @@ def record_failure(
                 backend,
                 type(exc).__name__,
             )
+
+    # Update backend profile (outside lock to avoid deadlock)
+    try:
+        import backend_profile
+        backend_profile.record_request(backend, 0.0, success=False)
+    except ImportError:
+        pass
+
+    # Check retirement
+    try:
+        import backend_retirement
+        action = backend_retirement.check_retirement(backend)
+        if action:
+            backend_retirement.apply_retirement(action)
+    except ImportError:
+        pass
 
 
 def record_response_quality(
