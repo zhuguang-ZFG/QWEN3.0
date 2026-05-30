@@ -45,12 +45,12 @@ SIMPLE_SIGNALS = [
 ]
 
 POOLS = {
-    "fast": ["mimo_web_code", "mimo_web", "ms_kimi_k25", "longcat",
+    "fast": ["mimo_web_code", "mimo_web", "ms_kimi_k25", "longcat", "xfyun_astron",
              "scnet_qwen30b", "scnet_ds_flash", "scnet_qwen235b",
              "cerebras_gptoss", "groq_gptoss", "mistral_small",
              "groq_gptoss_20b"],
     "coder": ["mimo_web_code", "mimo_web_think_code", "mimo_web",
-              "ms_kimi_k25", "ms_kimi_k25_code", "longcat",
+              "ms_kimi_k25", "ms_kimi_k25_code", "longcat", "xfyun_astron",
               "scnet_ds_flash", "scnet_qwen235b", "scnet_qwen30b",
               "scnet_ds_pro", "github_gpt4o", "github_gpt4o_mini",
               "cf_qwen_coder", "cfai_qwen_coder", "cf_gptoss_120b",
@@ -73,7 +73,7 @@ POOLS = {
                "mistral_devstral", "mistral_pixtral", "cf_kimi_k26",
                "scnet_large_ds_flash",
                "kimi", "kimi_thinking", "kimi_search",
-               "ms_kimi_k25", "ms_kimi_k25_code", "longcat"],
+               "ms_kimi_k25", "ms_kimi_k25_code", "longcat", "xfyun_astron"],
 }
 
 _stats = defaultdict(int)

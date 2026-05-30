@@ -53,6 +53,8 @@ GFW_BACKENDS = frozenset({
     'mimo_web', 'mimo_web_code', 'mimo_web_flash',
     'mimo_web_think', 'mimo_web_think_code',
     'stock_kimi_k2',
+    # 讯飞星火编码模型
+    'xfyun_astron',
 })
 
 WEAK_BACKENDS = frozenset({'chat_ubi', 'pollinations', 'llm7'})

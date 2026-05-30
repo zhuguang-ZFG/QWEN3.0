@@ -123,6 +123,8 @@ BACKENDS = {
     'deepinfra_llama4': {'url': 'https://api.deepinfra.com/v1/openai/chat/completions', 'key': os.environ.get('DEEPINFRA_API_KEY', ''), 'model': 'meta-llama/Llama-4-Maverick-17B-128E-Instruct', 'fmt': 'openai', 'timeout': 20},
     'deepinfra_qwen235b': {'url': 'https://api.deepinfra.com/v1/openai/chat/completions', 'key': os.environ.get('DEEPINFRA_API_KEY', ''), 'model': 'Qwen/Qwen3-235B-A22B-Instruct', 'fmt': 'openai', 'timeout': 30},
     'deepseek_free': {'url': 'http://127.0.0.1:8000/v1/chat/completions', 'key': 'none', 'model': 'deepseek-chat', 'fmt': 'openai', 'timeout': 60},
+    # ── 讯飞星火编码模型 (逆向网页) ──
+    'xfyun_astron': {'url': 'https://maas-coding-api.cn-huabei-1.xf-yun.com/v2/chat/completions', 'key': '1e1e82b192819a4449f84e0702a2f771:ZmI0MGY5NWExZGFiZGFhNjg0ZjllZWIz', 'model': 'astron-code-latest', 'fmt': 'openai', 'timeout': 30, 'auth': 'bearer', 'caps': ['tool_calls'], 'admission': 'code_medium_candidate', 'private_code_allowed': True},
     # ── 本地 Ollama (RTX 5060 Ti 16GB, Cloudflare Tunnel 暴露) ──
     'local_coder14b': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'qwen2.5-coder:14b', 'fmt': 'openai', 'timeout': 30},
     'local_reasoning': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'deepseek-r1:7b', 'fmt': 'openai', 'timeout': 45, 'caps': ['deep_reasoning']},

@@ -83,8 +83,8 @@ POOLS = {
     },
     "code": {
         "strong": ["mimo_web_code", "mimo_web_think_code", "mimo_web",
-                   "ms_kimi_k25", "ms_kimi_k25_code",
-                   "longcat",
+                   "ms_kimi_k25", "ms_kimi_k25_code", "longcat",
+                   "xfyun_astron",
                    "scnet_ds_flash", "scnet_qwen235b", "scnet_qwen30b",
                    "scnet_ds_pro", "github_gpt4o", "github_gpt4o_mini",
                    "groq_gptoss", "groq_gptoss_20b", "groq_llama8b",
