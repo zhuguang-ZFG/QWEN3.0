@@ -36,13 +36,16 @@ def _build_client(backend: str, timeout: float) -> httpx.Client:
                 headers={"User-Agent": GFW_USER_AGENT},
                 timeout=httpx.Timeout(timeout, connect=10.0),
             )
-        # Local backend: disable env proxy trust
         return httpx.Client(
             trust_env=False,
             headers={"User-Agent": GFW_USER_AGENT},
             timeout=httpx.Timeout(timeout, connect=10.0),
         )
-    return httpx.Client(timeout=httpx.Timeout(timeout, connect=10.0))
+    # Non-GFW backends: disable env proxy to prevent SOCKS errors
+    return httpx.Client(
+        trust_env=False,
+        timeout=httpx.Timeout(timeout, connect=10.0),
+    )
 
 
 def _build_async_client(backend: str, timeout: float) -> httpx.AsyncClient:
@@ -60,7 +63,11 @@ def _build_async_client(backend: str, timeout: float) -> httpx.AsyncClient:
             headers={"User-Agent": GFW_USER_AGENT},
             timeout=httpx.Timeout(timeout, connect=10.0),
         )
-    return httpx.AsyncClient(timeout=httpx.Timeout(timeout, connect=10.0))
+    # Non-GFW backends: disable env proxy to prevent SOCKS errors
+    return httpx.AsyncClient(
+        trust_env=False,
+        timeout=httpx.Timeout(timeout, connect=10.0),
+    )
 
 
 def _build_headers(backend_cfg: dict, key: str | None = None) -> dict:

@@ -49,6 +49,16 @@ def _loop(probe_fn: Callable[[str], bool]):
             _probe_cycle(probe_fn)
         except Exception as e:
             logger.error(f"Probe cycle error: {e}")
+
+        # Token health check every 10 minutes
+        try:
+            import token_health
+            token_health.save_token_status(token_health.check_all_tokens())
+        except ImportError:
+            pass
+        except Exception as e:
+            logger.debug(f"Token health check error: {e}")
+
         _stop_event.wait(timeout=LOOP_SLEEP)
 
 
