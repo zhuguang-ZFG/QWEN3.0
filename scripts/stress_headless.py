@@ -1,9 +1,9 @@
 import subprocess, json, os, sys
 
 env = os.environ.copy()
-env['LIMA_API_KEY'] = 'xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw'
-env['LIMA_CODE_SERVER_URL'] = 'https://chat.donglicao.com'
-env['LIMA_CODE_API_KEY'] = 'xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw'
+env['LIMA_API_KEY'] = os.environ.get('LIMA_API_KEY', '')
+env['LIMA_CODE_SERVER_URL'] = os.environ.get('LIMA_CODE_SERVER_URL', 'https://chat.donglicao.com')
+env['LIMA_CODE_API_KEY'] = os.environ.get('LIMA_CODE_API_KEY', '')
 
 tests = [
     ('1+1等于几', 'simple'),
