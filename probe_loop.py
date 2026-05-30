@@ -53,11 +53,22 @@ def _loop(probe_fn: Callable[[str], bool]):
         # Token health check every 10 minutes
         try:
             import token_health
-            token_health.save_token_status(token_health.check_all_tokens())
+            results = token_health.check_all_tokens()
+            expired = [r for r in results if r.get("status") == "expired"]
+            if expired:
+                names = [r["backend"] for r in expired]
+                logger.warning("TOKEN EXPIRED: %s", ", ".join(names))
+                try:
+                    from telegram_notify import notify_health_change
+                    for r in expired:
+                        notify_health_change(r["backend"], "healthy", "auth_expired")
+                except (ImportError, Exception):
+                    pass
+            token_health.save_token_status(results)
         except ImportError:
             pass
         except Exception as e:
-            logger.debug(f"Token health check error: {e}")
+            logger.debug("Token health check error: %s", e)
 
         _stop_event.wait(timeout=LOOP_SLEEP)
 
