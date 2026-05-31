@@ -88,3 +88,16 @@ def test_routing_select_excludes_retired_backend(monkeypatch):
         assert routing_engine.select("chat", {}) == ["longcat_chat"]
     finally:
         backend_retirement._retired_backends.clear()
+
+
+def test_routing_selector_identifies_strong_coding_tool_backend():
+    import routing_selector
+
+    assert routing_selector._is_strong_coding_tool_backend(
+        "github_gpt4o_code",
+        {"caps": ["tool_calls"], "admission": "code_medium_candidate"},
+    )
+    assert not routing_selector._is_strong_coding_tool_backend(
+        "mistral_small",
+        {"caps": ["tool_calls"]},
+    )

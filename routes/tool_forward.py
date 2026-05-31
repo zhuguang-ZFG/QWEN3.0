@@ -37,6 +37,35 @@ ANTHROPIC_NATIVE_BACKENDS = [
 TOOL_TIER1_BACKENDS: list[str] = []
 _log = logging.getLogger(__name__)
 
+STRONG_CODING_TOOL_BACKENDS = {
+    "dashscope_coding",
+    "dashscope_coding_anthropic",
+    "github_gpt4o",
+    "github_gpt4o_code",
+    "github_codestral",
+    "mistral_large",
+    "mistral_large_code",
+    "mistral_devstral",
+    "mistral_codestral",
+    "or_gptoss_120b",
+    "or_gptoss_120b_code",
+    "cfai_qwen_coder",
+    "cfai_qwen_coder_code",
+    "cf_qwen_coder",
+    "scnet_large_ds_flash",
+    "scnet_large_ds_pro",
+    "scnet_qwen235b",
+    "scnet_qwen235b_code",
+    "scnet_ds_pro",
+    "scnet_ds_pro_code",
+    "ms_qwen35_27b_code",
+    "ms_kimi_k25_code",
+    "ms_deepseek_v4_code",
+    "ms_glm5_code",
+    "xfyun_astron",
+}
+LARGE_TOOL_PAYLOAD_BYTES = 25000
+
 
 def _refresh_tool_tiers() -> None:
     """Dynamically discover tool-call-capable backends from registry."""
@@ -55,15 +84,9 @@ def _refresh_tool_tiers() -> None:
                 ANTHROPIC_NATIVE_BACKENDS.append(name)
         elif cfg.get("fmt") == "openai":
             tier1.append(name)
-    # Sort: prefer backends with keys, then by timeout
-    tier1.sort(key=lambda n: (
-        0 if reg.BACKENDS.get(n, {}).get("key", "") not in ("", "none", "YOUR_KEY_HERE") else 1,
-        reg.BACKENDS.get(n, {}).get("timeout", 30),
-    ))
+    tier1 = _rank_tool_tier(tier1)
     TOOL_TIER1_BACKENDS[:] = tier1
 
-
-_refresh_tool_tiers()
 
 _record_request_fn = None
 _model_id = "lima-1.3"
@@ -113,6 +136,53 @@ def iter_tool_backends(tier: list):
             yield n
 
 
+def _has_real_key(cfg: dict) -> bool:
+    return cfg.get("key", "") not in ("", "none", "YOUR_KEY_HERE")
+
+
+def _is_strong_coding_tool_backend(name: str, cfg: dict | None = None) -> bool:
+    cfg = cfg or {}
+    return (
+        name in STRONG_CODING_TOOL_BACKENDS
+        or name.endswith("_code")
+        or cfg.get("admission") == "code_medium_candidate"
+        or cfg.get("private_code_allowed") is True
+        or "code" in cfg.get("caps", [])
+    )
+
+
+def _rank_tool_tier(tier: list, *, body_size: int = 0) -> list:
+    """Prefer proven coding-tool backends for large repo/tool payloads."""
+    from backends import BACKENDS
+
+    large_payload = body_size >= LARGE_TOOL_PAYLOAD_BYTES
+
+    def _key(name: str) -> tuple[int, int, int, int, str]:
+        cfg = BACKENDS.get(name, {})
+        strong = _is_strong_coding_tool_backend(name, cfg)
+        timeout = int(cfg.get("timeout", 30) or 30)
+        if not large_payload:
+            return (
+                0 if _has_real_key(cfg) else 1,
+                timeout,
+                0 if strong else 1,
+                0,
+                name,
+            )
+        return (
+            0 if _has_real_key(cfg) else 1,
+            0 if strong else 1,
+            timeout,
+            0,
+            name,
+        )
+
+    return sorted(tier, key=_key)
+
+
+_refresh_tool_tiers()
+
+
 async def anthropic_native_forward(body: dict) -> dict:
     """分层 tool 路由：第一梯队 OpenAI 格式(快) → 第二梯队 LongCat 原生(兜底)。"""
     return await asyncio.to_thread(anthropic_native_forward_sync, body)
@@ -133,7 +203,8 @@ def anthropic_native_forward_sync(body: dict) -> dict:
     inject_anthropic_body_preflight(body, openai_msgs)
 
     if not skip_tier1:
-        for name in iter_tool_backends(TOOL_TIER1_BACKENDS):
+        ranked_tier1 = _rank_tool_tier(TOOL_TIER1_BACKENDS, body_size=body_size)
+        for name in iter_tool_backends(ranked_tier1):
             b = BACKENDS[name]
             msgs = list(openai_msgs)
             # Inject JSON tool prompt for backends that output tools as text
@@ -234,6 +305,7 @@ def _stream_deps() -> dict:
         "health_tracker": _ht,
         "iter_tool_backends": iter_tool_backends,
         "pick_tool_backend": pick_tool_backend,
+        "rank_tool_tier": _rank_tool_tier,
         "TOOL_TIER1_BACKENDS": TOOL_TIER1_BACKENDS,
         "ANTHROPIC_NATIVE_BACKENDS": ANTHROPIC_NATIVE_BACKENDS,
         "simulate_anthropic_sse": simulate_anthropic_sse,

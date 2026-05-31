@@ -28,3 +28,59 @@ def test_tool_backend_selectable_excludes_terminal_state(monkeypatch):
 
     assert not tool_forward._tool_backend_selectable("kimi")
     assert tool_forward._tool_backend_selectable("github_gpt4o_mini")
+
+
+def test_large_tool_payload_prefers_strong_coding_backend(monkeypatch):
+    from backends import BACKENDS
+
+    monkeypatch.setitem(
+        BACKENDS,
+        "mistral_small",
+        {"key": "k1", "timeout": 10, "caps": ["tool_calls"]},
+    )
+    monkeypatch.setitem(
+        BACKENDS,
+        "github_gpt4o_code",
+        {
+            "key": "k2",
+            "timeout": 30,
+            "caps": ["tool_calls"],
+            "admission": "code_medium_candidate",
+            "private_code_allowed": True,
+        },
+    )
+
+    ranked = tool_forward._rank_tool_tier(
+        ["mistral_small", "github_gpt4o_code"],
+        body_size=tool_forward.LARGE_TOOL_PAYLOAD_BYTES + 1,
+    )
+
+    assert ranked[0] == "github_gpt4o_code"
+
+
+def test_small_tool_payload_keeps_fast_backend_first(monkeypatch):
+    from backends import BACKENDS
+
+    monkeypatch.setitem(
+        BACKENDS,
+        "mistral_small",
+        {"key": "k1", "timeout": 10, "caps": ["tool_calls"]},
+    )
+    monkeypatch.setitem(
+        BACKENDS,
+        "github_gpt4o_code",
+        {
+            "key": "k2",
+            "timeout": 30,
+            "caps": ["tool_calls"],
+            "admission": "code_medium_candidate",
+            "private_code_allowed": True,
+        },
+    )
+
+    ranked = tool_forward._rank_tool_tier(
+        ["mistral_small", "github_gpt4o_code"],
+        body_size=1000,
+    )
+
+    assert ranked[0] == "mistral_small"

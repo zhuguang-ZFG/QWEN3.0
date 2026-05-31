@@ -1,11 +1,21 @@
 # LiMa Status
 
-> Updated: 2026-05-31 (backend attempt telemetry closeout)
+> Updated: 2026-05-31 (strong tool-backend routing closeout)
 > Branch: `main`
-> Tests: LiMa Server full pytest **2155 passed, 10 skipped**; focused backend telemetry/tool/routing tests **35 passed**; ruff/pyright clean
-> Current VPS: health OK; public chat/tool smoke OK; `/v1/ops/metrics` exposes backend attempt telemetry for speculative, route, and tool-forward paths
+> Tests: LiMa Server full pytest **2158 passed, 10 skipped**; focused tool/routing tests **44 passed**; ruff/pyright clean
+> Current VPS: health OK; public large tools smoke OK; large tool payload now routes to stronger tool backend (`mistral_large`)
 > VPS: Memory 1454MB→1358MB (services restored), health check OK
 > Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
+
+## 2026-05-31 Strong Tool-Backend Routing Closeout
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| Large tool payload routing | Deployed | `routes/tool_forward.py` ranks large tool payloads toward strong coding/tool backends while keeping small payloads latency-first |
+| Streaming tool parity | Deployed | `routes/tool_forward_stream.py` uses the same ranked tier ordering for OpenAI tool-stream forwarding |
+| Normal routing support | Deployed | `routing_selector.py` boosts strong coding-tool backends when `needs_tools` and `scenario=coding` are both true |
+| Local verification | Done | focused telemetry/tool/routing tests `44 passed`; `ruff check` clean; `pyright` 0 errors; full pytest `2158 passed, 10 skipped` |
+| VPS smoke | Done | deploy uploaded 3/3 and health OK; public large tools payload `38176` bytes returned HTTP `200`, `finish_reason=tool_calls`, `recent_backend=mistral_large` |
 
 ## 2026-05-31 Backend Attempt Telemetry Closeout
 

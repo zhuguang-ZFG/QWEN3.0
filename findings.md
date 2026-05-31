@@ -2,6 +2,15 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-05-31 Strong Tool-Backend Routing Closeout
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| TOOL-RANK-1 | Tool routing | Tool-forward tier1 ordering was mostly key/timeout based, so large repo/tool payloads could land on smaller models even when stronger coding-tool backends were configured. Large tool payloads now prioritize strong coding/tool backends. | Closed |
+| TOOL-RANK-2 | TUI latency | Small tool payloads remain latency-first; the stronger-backend preference only takes over for large payloads, avoiding unnecessary slowdown for ordinary tool calls. | Closed |
+| TOOL-RANK-3 | Stream parity | Streaming and non-streaming tool forwarding now share the same ranked tier ordering. | Closed |
+| TOOL-RANK-4 | VPS smoke | Public large tools smoke (`38176` byte payload) returned `finish_reason=tool_calls`; backend telemetry recorded `phase=tool_forward`, `attempt=tier1_openai`, `backend=mistral_large`, proving the strong tool route was selected. | Closed |
+
 ## 2026-05-31 Backend Attempt Telemetry Closeout
 
 | ID | Area | Finding | Status |

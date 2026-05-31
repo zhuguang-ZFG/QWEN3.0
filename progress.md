@@ -4,6 +4,36 @@
 
 > Updated: 2026-05-31
 
+## 2026-05-31 strong tool-backend routing closeout
+
+**Goal:** after backend attempt telemetry made stalls visible, reduce the
+chance that large repo/tool requests land on small or weak tool models.
+
+- Implementation:
+  - added strong coding-tool backend recognition in `routes/tool_forward.py`;
+  - large tool payloads (`>=25000` bytes) now rank strong coding/tool backends
+    before smaller low-latency models;
+  - small tool payloads remain latency-first to preserve fast TUI interactions;
+  - streaming tool forwarding uses the same ranked tier order;
+  - `routing_selector.py` boosts strong coding-tool backends when a normal
+    route has both `needs_tools=true` and `scenario=coding`;
+  - fixed an existing type/signature drift in `routing_selector` by passing the
+    expected backend+scenario pair to hierarchical memory routing context.
+- Local verification:
+  - focused telemetry/tool/routing tests: `44 passed`;
+  - `ruff check` on touched files: clean;
+  - `pyright` on touched runtime files: `0 errors`;
+  - `git diff --check`: clean;
+  - full LiMa Server pytest: `2158 passed, 10 skipped in 199.96s`.
+- VPS deploy and smoke:
+  - `scripts/deploy_unified.py --files routes/tool_forward.py routes/tool_forward_stream.py routing_selector.py`
+    uploaded `3`, failed `0`, skipped `0`, health `OK`;
+  - public large OpenAI tools smoke used a `38176` byte payload, returned HTTP
+    `200`, `finish_reason=tool_calls`, `has_tool_calls=true`;
+  - `/v1/ops/metrics.backend_telemetry.recent[-1]` showed
+    `phase=tool_forward`, `attempt=tier1_openai`, `backend=mistral_large`,
+    proving the large-payload ranking moved off the previous small-model path.
+
 ## 2026-05-31 backend attempt telemetry closeout
 
 **Goal:** make provider/model latency and tool-call stalls visible at the

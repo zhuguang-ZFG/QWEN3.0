@@ -36,6 +36,20 @@ _STATIC_LATENCY_ESTIMATE = {
     "scnet_ds_pro": 2500,
 }
 
+STRONG_CODING_TOOL_BACKENDS = {
+    "dashscope_coding",
+    "github_gpt4o_code",
+    "mistral_large_code",
+    "or_gptoss_120b_code",
+    "cfai_qwen_coder_code",
+    "scnet_qwen235b_code",
+    "scnet_ds_pro_code",
+    "ms_qwen35_27b_code",
+    "ms_kimi_k25_code",
+    "ms_deepseek_v4_code",
+    "ms_glm5_code",
+}
+
 
 def _has_valid_key(name: str) -> bool:
     """Check if a backend has a configured, non-empty API key."""
@@ -59,8 +73,19 @@ def _is_retired(name: str) -> bool:
         return False
 
 
+def _is_strong_coding_tool_backend(name: str, cfg: dict | None = None) -> bool:
+    cfg = cfg or {}
+    return (
+        name in STRONG_CODING_TOOL_BACKENDS
+        or name.endswith("_code")
+        or cfg.get("admission") == "code_medium_candidate"
+        or cfg.get("private_code_allowed") is True
+        or "code" in cfg.get("caps", [])
+    )
+
+
 def select(request_type: str, health_map: dict,
-           sticky_key: str = None, scenario: str = "",
+           sticky_key: str | None = None, scenario: str = "",
            needs_tools: bool = False, recalled_backend: str = "",
            complexity=None) -> list[str]:
     """从对应池选健康后端，按健康评分排序，过滤预算耗尽，sticky 优先"""
@@ -71,7 +96,7 @@ def select(request_type: str, health_map: dict,
     try:
         from context_pipeline.hierarchical_memory import get_hierarchical_memory
         hmem = get_hierarchical_memory()
-        mem_context = hmem.get_context_for_routing(scenario)
+        mem_context = hmem.get_context_for_routing("", scenario)
         _preferred = mem_context.get("preferred_backends", []) if isinstance(mem_context, dict) else []
     except Exception:
         _preferred = []
@@ -101,6 +126,7 @@ def select(request_type: str, health_map: dict,
         # Prioritize backends verified to support native tool calling
         _NATIVE_TOOL_PREFER = {"github", "chinamobile", "ddg", "groq", "cerebras", "longcat"}
         result.sort(key=lambda b: (
+            0 if scenario == "coding" and _is_strong_coding_tool_backend(b, reg.BACKENDS.get(b, {})) else 1,
             0 if any(p in b for p in _NATIVE_TOOL_PREFER) else 1,
             reg.BACKENDS.get(b, {}).get("timeout", 30),
         ))
@@ -147,6 +173,8 @@ def select(request_type: str, health_map: dict,
                 scores[b] *= get_coding_weight(b)
             except ImportError:
                 pass
+            if needs_tools and _is_strong_coding_tool_backend(b, reg.BACKENDS.get(b, {})):
+                scores[b] *= 1.25
             pass
 
         static_latency = _STATIC_LATENCY_ESTIMATE.get(b)

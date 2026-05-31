@@ -196,7 +196,10 @@ async def _stream_openai_sse_to_anthropic(
 async def stream_tier1_openai(body: dict, openai_tools: list, openai_msgs: list, deps: dict):
     """Real streaming: OpenAI SSE → Anthropic SSE conversion on-the-fly."""
 
-    backends = deps["iter_tool_backends"](deps["TOOL_TIER1_BACKENDS"])
+    body_size = len(json.dumps(body, ensure_ascii=False))
+    rank_tool_tier = deps.get("rank_tool_tier", lambda tier, **_kwargs: tier)
+    ranked_tier = rank_tool_tier(deps["TOOL_TIER1_BACKENDS"], body_size=body_size)
+    backends = deps["iter_tool_backends"](ranked_tier)
     BACKENDS = deps["BACKENDS"]
     _ht = deps["health_tracker"]
 
