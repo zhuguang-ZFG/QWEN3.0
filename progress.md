@@ -5168,3 +5168,38 @@ Verification note:
     The real smoke used a temp JSON file with `--data-binary @file`.
   - guard uses telemetry record order in addition to second-level timestamps so
     a failure after a success in the same second is not accidentally cleared.
+
+## 2026-05-31 Chat JSON Guard + Tailscale Link (CQ-096)
+
+- Scope:
+  - fixed the production robustness gap found during smoke: malformed JSON sent
+    to `/v1/chat/completions` escaped as an ASGI exception and returned 500;
+  - added a shared JSON body parser for OpenAI and Anthropic chat endpoints;
+  - malformed JSON and non-object JSON now return HTTP 400 with
+    `invalid_request_error`.
+- Verification:
+  - red test reproduced the `JSONDecodeError` path;
+  - focused chat endpoint tests:
+    `python -m pytest tests/test_chat_endpoints.py -q` -> `10 passed`;
+  - related route/body-limit tests:
+    `python -m pytest tests/test_chat_endpoints.py tests/test_route_registry.py tests/test_http_body_limit.py -q`
+    -> `19 passed`;
+  - `ruff check routes/chat_endpoints.py tests/test_chat_endpoints.py` -> clean;
+  - `pyright routes/chat_endpoints.py` -> `0 errors`;
+  - full server suite:
+    `python -m pytest -q --ignore=active_model`
+    -> `2170 passed, 10 skipped`.
+- VPS:
+  - `python scripts/deploy_unified.py --files routes/chat_endpoints.py`
+    -> 1/1 uploaded, restart OK, health OK;
+  - public malformed JSON smoke returned HTTP `400` with
+    `{"error":{"message":"valid JSON body required","type":"invalid_request_error"}}`;
+  - public valid chat smoke returned HTTP `200` via `groq_llama70b`.
+- Tailscale:
+  - Windows install failure root cause was disabled `iphlpsvc` / IP Helper;
+  - enabled and started `iphlpsvc`, then MSI installed Tailscale `1.98.2`;
+  - after login, local Tailscale initially could not ping peers until the
+    Tailscale service was restarted;
+  - final `tailscale ping 100.103.82.78` reached `lima-server`, first via
+    DERP(sfo), then direct `47.112.162.80:53729` in `11ms`;
+  - final local status: `BackendState=Running`, `Health=[]`.

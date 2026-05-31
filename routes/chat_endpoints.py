@@ -54,6 +54,28 @@ async def _maybe_await(value: Any) -> Any:
     return value
 
 
+def _invalid_json_response(message: str) -> JSONResponse:
+    return JSONResponse(
+        status_code=400,
+        content={
+            "error": {
+                "message": message,
+                "type": "invalid_request_error",
+            }
+        },
+    )
+
+
+async def _read_json_body(request: Request) -> dict[str, Any] | JSONResponse:
+    try:
+        body = await request.json()
+    except json.JSONDecodeError:
+        return _invalid_json_response("valid JSON body required")
+    if not isinstance(body, dict):
+        return _invalid_json_response("JSON object body required")
+    return body
+
+
 # Backward-compatible test hook (CQ-014 slice 12).
 _anthropic_vision_messages = anthropic_vision_messages
 
@@ -64,7 +86,9 @@ _anthropic_vision_messages = anthropic_vision_messages
 )
 async def chat_completions(request: Request):
     """OpenAI-compatible chat completions endpoint."""
-    body = await request.json()
+    body = await _read_json_body(request)
+    if isinstance(body, JSONResponse):
+        return body
     raw_messages = body.get("messages", [])
     client_ip = _call("client_ip", request)
     ide_source = _call("detect_ide", raw_messages)
@@ -149,7 +173,9 @@ async def chat_completions(request: Request):
 async def anthropic_messages(req: Request):
     """Anthropic-compatible Messages endpoint."""
     request_started_at = time.time()
-    body = await req.json()
+    body = await _read_json_body(req)
+    if isinstance(body, JSONResponse):
+        return body
     client_ip = _call("client_ip", req)
 
     rate_error = check_anthropic_rate_limit(req, client_ip)

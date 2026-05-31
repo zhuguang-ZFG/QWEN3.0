@@ -2025,3 +2025,28 @@ Deployment: not performed.
   - VPS deploy uploaded 4/4 files and health passed;
   - public ops metrics returned `routing_guard.enabled=true`;
   - public chat smoke returned HTTP 200 via `groq_llama70b`.
+
+## 2026-05-31 Chat JSON Guard and Tailscale Link
+
+- During public smoke, malformed JSON sent to `/v1/chat/completions` returned
+  HTTP 500 because `request.json()` raised `JSONDecodeError`.
+- Fix:
+  - added a shared JSON body parser in `routes/chat_endpoints.py`;
+  - `/v1/chat/completions` and `/v1/messages` now return HTTP 400 with
+    `invalid_request_error` for malformed or non-object JSON.
+- Evidence:
+  - focused chat endpoint tests `10 passed`;
+  - related route/body-limit tests `19 passed`;
+  - full server suite `2170 passed, 10 skipped`;
+  - ruff, pyright, and `git diff --check` clean;
+  - VPS deploy uploaded 1/1 and health passed;
+  - public malformed JSON smoke returned 400;
+  - public valid chat smoke returned 200 via `groq_llama70b`.
+- Tailscale:
+  - Windows installer failed because `iphlpsvc` / IP Helper was disabled;
+  - enabling IP Helper allowed Tailscale 1.98.2 to install and run;
+  - after login, peer ping stayed stuck until the local Tailscale service was
+    restarted;
+  - final Windows-to-VPS ping reached `lima-server` direct at
+    `47.112.162.80:53729` in `11ms`;
+  - final local Tailscale status was `BackendState=Running`, `Health=[]`.

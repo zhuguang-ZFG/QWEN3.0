@@ -1,11 +1,21 @@
 # LiMa Status
 
-> Updated: 2026-05-31 (telemetry-driven routing guard closeout)
+> Updated: 2026-05-31 (chat JSON guard + Tailscale closeout)
 > Branch: `main`
-> Tests: LiMa Server full pytest **2168 passed, 10 skipped**; focused routing guard tests **28 passed**; ruff/pyright clean
-> Current VPS: health OK; ops metrics OK; telemetry-driven routing guard is active
+> Tests: LiMa Server full pytest **2170 passed, 10 skipped**; focused chat endpoint tests **19 passed**; ruff/pyright clean
+> Current VPS: health OK; malformed JSON now returns 400; Tailscale Windows↔VPS link is reachable
 > VPS: Memory 1454MB→1358MB (services restored), health check OK
 > Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
+
+## 2026-05-31 Chat JSON Guard + Tailscale Closeout
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| Malformed JSON handling | Deployed | `/v1/chat/completions` and `/v1/messages` now return HTTP `400` with `invalid_request_error` instead of leaking `JSONDecodeError` as a 500 |
+| Local verification | Done | chat endpoint focused tests `10 passed`; related route/body-limit tests `19 passed`; full pytest `2170 passed, 10 skipped`; `ruff check`, `pyright`, and `git diff --check` clean |
+| VPS smoke | Done | deploy uploaded 1/1 and health OK; public malformed JSON smoke returned HTTP `400`; public valid chat smoke returned HTTP `200` via `groq_llama70b` |
+| Tailscale install/root cause | Fixed | Windows Tailscale install failed because `iphlpsvc` was disabled; enabling IP Helper allowed Tailscale `1.98.2` to install and run |
+| Tailscale connectivity | Fixed | after restarting local Tailscale service, `tailscale ping 100.103.82.78` reached `lima-server` first via DERP(sfo), then direct `47.112.162.80:53729` in `11ms`; final local status `BackendState=Running`, `Health=[]` |
 
 ## 2026-05-31 Telemetry-Driven Routing Guard Closeout
 
