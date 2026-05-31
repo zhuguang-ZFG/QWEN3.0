@@ -5626,3 +5626,39 @@ Verification note:
     Windows/global npm users will not see CQ-107 until the package is refreshed;
   - visual brainstorm files under `.superpowers/` are local scratch material
     and are intentionally not part of the release commit.
+
+## 2026-05-31 LiMa Code Command Center npm Refresh (CQ-108)
+
+- Scope:
+  - rebuilt the npm-installable `lima-code-0.1.24.tgz` after CQ-107;
+  - uploaded it to GitHub Release `lima-code-v0.1.24` with `--clobber`;
+  - smoke-tested the public GitHub Release URL install into a local temp prefix
+    instead of mutating the global npm installation.
+- Packaging evidence:
+  - `npm.cmd pack --json --cache .npm-cache` succeeded and reran `prepack`
+    (`npm.cmd run build`);
+  - resulting package: size `255139`, unpacked size `796773`, shasum
+    `6de321c009828f0fc9ee34ee40ea2139beca7857`, SHA256
+    `1fb7afa1e080c61cad349abdcd4d2d8b8bdfcca09e2b34dd2f183c9372448d6f`.
+- Release evidence:
+  - previous Release npm asset digest was
+    `sha256:9d05c85101a8f0d12918305341fbae7c40f8a12d35a67f1c30ef48792f3c31a4`;
+  - after `gh release upload lima-code-v0.1.24 lima-code-0.1.24.tgz --clobber`,
+    `gh release view lima-code-v0.1.24 --json assets` reports
+    `lima-code-0.1.24.tgz` digest
+    `sha256:1fb7afa1e080c61cad349abdcd4d2d8b8bdfcca09e2b34dd2f183c9372448d6f`.
+- Install smoke:
+  - `npm.cmd install --prefix .pkg-smoke --cache .npm-cache https://github.com/zhuguang-ZFG/deepcode-cli/releases/download/lima-code-v0.1.24/lima-code-0.1.24.tgz`
+    -> `added 60 packages`;
+  - `.pkg-smoke\node_modules\.bin\lima-code.cmd --version` -> `0.1.24`;
+  - `.pkg-smoke\node_modules\.bin\lima-code.cmd --headless -p "/lima start" --json`
+    -> `ok=true`, returned `LiMa Code 工作台`, and made zero model calls;
+  - installed `dist/cli.js` contains `RuntimeStatusPanel` and
+    `402 quota/balance`, confirming the command-center runtime UI is in the
+    published npm package.
+- Cleanup:
+  - removed `lima-code-0.1.24.tgz`, `.npm-cache`, and `.pkg-smoke` after
+    verifying they were inside `D:\GIT\deepcode-cli`;
+  - root and submodule worktrees were clean after cleanup.
+- VPS:
+  - not deployed. This is package/release refresh only.

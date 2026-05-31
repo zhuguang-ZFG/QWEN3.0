@@ -1231,6 +1231,18 @@ Latest LiMa Code command-center TUI closeout:
   clean with `dist/cli.js` 633.4kb; `git diff --check` clean.
 - No VPS deploy was needed because this is LiMa Code CLI/TUI-only.
 
+Latest LiMa Code npm package refresh:
+
+- Rebuilt and re-uploaded `lima-code-0.1.24.tgz` after the command-center TUI
+  slice.
+- GitHub Release `lima-code-v0.1.24` now reports npm asset digest
+  `sha256:1fb7afa1e080c61cad349abdcd4d2d8b8bdfcca09e2b34dd2f183c9372448d6f`.
+- Public URL install smoke added 60 packages into a local temp prefix;
+  installed `lima-code.cmd --version` returned `0.1.24`; installed
+  `/lima start --json` returned `ok=true` with zero model calls.
+- Installed dist contains the command-center runtime UI markers
+  `RuntimeStatusPanel` and `402 quota/balance`.
+
 Latest command execution/security hardening closeout:
 
 - Added a shared `safe_command.py` command boundary and removed active
