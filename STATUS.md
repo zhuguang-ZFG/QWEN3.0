@@ -1,11 +1,22 @@
 # LiMa Status
 
-> Updated: 2026-05-31 (LiMa Code npm release refresh closeout)
+> Updated: 2026-05-31 (LiMa Code Chinese-first UX deepening closeout)
 > Branch: `main`
-> Tests: LiMa Code focused prompt/status/session tests **70 passed, 3 skipped**; full LiMa Code suite **492 passed, 7 skipped**; Release URL install smoke clean
+> Tests: LiMa Code `npm.cmd run check` clean; full LiMa Code suite **495 passed, 7 skipped**; `npm.cmd run build` clean
 > Current VPS: unchanged for this CLI/TUI-only slice; last server smoke health OK with `/v1/ops/summary` 200
-> VPS: Memory 1454MB→1358MB (services restored), health check OK
+> VPS: Memory 1454MB -> 1358MB (services restored), health check OK
 > Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
+
+## 2026-05-31 LiMa Code Chinese-First UX Deepening Closeout
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| CLI/TUI operator language | Done | Startup banner, CLI help, slash commands, welcome workflow, model menu, status line, loading text, session list, undo panel, MCP status panel, file mention menu, AskUserQuestion prompt, and process-output controls now use Chinese-first labels |
+| LiMa worker/operator text | Done | `/lima` command help, workbench/start/doctor/work-loop messages, drone probe output, worker budget stops, task runner summaries, artifact headings, Telegram event text, and empty/failure response messages were localized while preserving protocol fields |
+| Cache and latency UX | Preserved | Token/cache/request meters and non-stream LiMa Router wait telemetry remain visible; internal API/JSON fields such as `status`, `tokens`, `cache`, `task_id`, and model/tool protocol values were not translated |
+| Local verification | Done | Focused LiMa/UI tests `114 tests, 113 pass, 1 skipped`; `npm.cmd run check` clean; full `npm.cmd test` -> `502 tests, 495 pass, 7 skipped`; `npm.cmd run build` clean, `dist/cli.js` `621.3kb`; `git diff --check` clean |
+| VPS deploy | Not needed | This slice only changes LiMa Code CLI/TUI/package source and tests; no LiMa Server route, env, deployment script, or VPS runtime changed |
+| Release packaging | Pending | npm/GitHub Release asset was not rebuilt in this slice; installed Windows users need a follow-up package refresh to receive the Chinese-first UX |
 
 ## 2026-05-31 LiMa Code npm Release Refresh Closeout
 

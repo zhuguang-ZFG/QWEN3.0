@@ -5555,3 +5555,39 @@ Verification note:
   - root and submodule worktrees were clean after cleanup.
 - VPS:
   - not deployed. This is package/release refresh only.
+
+## 2026-05-31 LiMa Code Chinese-First UX Deepening (CQ-106)
+
+- Scope:
+  - deepened LiMa Code CLI/TUI Chinese-first operator experience across startup
+    banner, CLI help, slash command descriptions, welcome actions, model menu,
+    status/loading text, session list, undo restore panel, MCP status panel,
+    file mention menu, AskUserQuestion prompt, process-output controls, and
+    visible failure messages;
+  - localized `/lima` worker/operator surfaces including command help, local
+    plan/test/ship goals, work loop summaries, worker budget stop reasons,
+    drone probe output, task runner summaries, artifact headings, and Telegram
+    notification text;
+  - kept machine/protocol fields stable: `status`, `tokens`, `cache`,
+    `task_id`, model names, tool protocol values, JSON keys, and model-facing
+    prompt contracts were not mechanically translated.
+- Verification:
+  - focused LiMa/UI tests:
+    `npm.cmd run test:single -- src/tests/lima-drone.test.ts src/tests/lima-telegram-notifier.test.ts src/tests/lima-task-runner.test.ts src/tests/lima-command-runner.test.ts src/tests/sessionList.test.ts src/tests/promptInputKeys.test.ts src/tests/fileMentions.test.ts src/tests/askUserQuestion.test.ts`
+    -> `114 tests`, `113 pass`, `1 skipped`;
+  - `npm.cmd run check` -> clean (`typecheck`, `lint`, `format:check`);
+  - `npm.cmd test` -> `502 tests`, `495 pass`, `7 skipped`;
+  - `npm.cmd run build` -> clean, `dist/cli.js` `621.3kb`;
+  - `git diff --check` in `deepcode-cli` -> clean;
+  - local secret scan found only an intentional fake `sk-...` test fixture and
+    non-secret source text, no real credential.
+- VPS:
+  - not deployed. This slice only changes LiMa Code CLI/TUI/package source and
+    tests; no LiMa Server route, env, deployment script, or VPS runtime changed.
+- Residual:
+  - npm/GitHub Release asset was not rebuilt in this slice, so already
+    installed Windows/global npm users will not see CQ-106 until the package is
+    refreshed;
+  - some model-facing prompt templates, protocol enum strings, and internal
+    paste markers intentionally remain English for cache stability and parser
+    compatibility.
