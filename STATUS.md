@@ -1,11 +1,23 @@
 # LiMa Status
 
-> Updated: 2026-05-31 (Telegram test-noise closeout)
+> Updated: 2026-05-31 (Ops/API/Tailscale hardening closeout)
 > Branch: `main`
-> Tests: LiMa Server full pytest **2171 passed, 10 skipped**; focused Telegram tests **30 passed**; ruff/pyright clean
-> Current VPS: health OK; malformed JSON returns 400; Tailscale Windows↔VPS link is reachable; pytest Telegram noise removed
+> Tests: LiMa Server full pytest **2181 passed, 10 skipped**; focused ops/API route tests **69 passed**; ruff/pyright clean
+> Current VPS: health OK; `/v1/ops/summary` 200; malformed backend-action JSON returns 400; Tailscale Windows/VPS link restored at 11ms; Git global ignore warning fixed
 > VPS: Memory 1454MB→1358MB (services restored), health check OK
 > Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
+
+## 2026-05-31 Ops/API/Tailscale Hardening Closeout
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| Ops dashboard rollup | Deployed | `/v1/ops/summary` now returns status, alerts, counts, and operator action hints derived from `/v1/ops/metrics` |
+| Supplier recovery UX | Deployed | Added private `POST /v1/ops/backends/retire` and `POST /v1/ops/backends/reactivate`, both requiring explicit operator evidence/reason |
+| Wider API JSON contract | Deployed | Shared JSON parser now returns HTTP `400` for malformed/non-object JSON across chat, embeddings, images, public demo, outcome ingest, device gateway, Telegram webhook, and ops POST actions |
+| Local verification | Done | focused ops/API route tests `69 passed`; full pytest `2181 passed, 10 skipped`; `ruff check`, `pyright`, and `git diff --check` clean |
+| VPS smoke | Done | deploy uploaded 9/9 and health OK; public `/health` 200; authenticated `/v1/ops/summary` 200; malformed `/v1/ops/backends/reactivate` body returned `400 {"error":"valid JSON body required"}` |
+| Git warning | Fixed | granted current Codex user read/traverse permission on `C:\Users\Administrator\.config\git\ignore` path; `git status --short` no longer emits the permission warning |
+| Tailscale startup | Fixed | VPS had `tailscale` binaries but no `tailscaled.service`; added and enabled systemd unit, restored peer online; Windows status `BackendState=Running`, `HealthCount=0`, VPS online, ping `100.103.82.78` in `11ms` |
 
 ## 2026-05-31 Telegram Test-Noise Closeout
 

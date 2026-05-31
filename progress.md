@@ -5230,3 +5230,55 @@ Verification note:
 - VPS:
   - `python scripts/deploy_unified.py --files telegram_bot.py`
     -> 1/1 uploaded, restart OK, health OK.
+
+## 2026-05-31 Ops Summary, API Contract, and Tailscale Autostart (CQ-098)
+
+- Scope:
+  - added an operator-facing `/v1/ops/summary` rollup on top of existing
+    `/v1/ops/metrics`;
+  - added private backend override actions:
+    `POST /v1/ops/backends/retire` and
+    `POST /v1/ops/backends/reactivate`;
+  - centralized JSON object parsing in `routes/json_body.py` and applied it to
+    chat, embeddings, images, public demo, outcome ingest, device gateway,
+    Telegram webhook, and ops POST routes;
+  - fixed the local Git warning by granting the current Codex user read/traverse
+    access to `C:\Users\Administrator\.config\git\ignore`;
+  - fixed VPS Tailscale persistence by adding and enabling a
+    `tailscaled.service` unit for the existing `/usr/local/bin/tailscaled`.
+- Verification:
+  - focused route/ops tests:
+    `python -m pytest tests/test_ops_metrics.py tests/test_json_body_contract.py tests/test_chat_endpoints.py tests/test_embeddings_guard.py tests/test_image_endpoint_guard.py tests/test_device_gateway_routes.py tests/test_telegram_webhook.py -q`
+    -> `69 passed`;
+  - `python -m ruff check ...` -> clean;
+  - `python -m pyright routes/json_body.py routes/ops_metrics.py routes/chat_endpoints.py routes/embeddings.py routes/images.py routes/public_demo.py routes/outcome_ingest.py routes/device_gateway.py routes/telegram.py`
+    -> `0 errors, 0 warnings, 0 informations`;
+  - full server suite:
+    `python -m pytest -q --ignore=active_model`
+    -> `2181 passed, 10 skipped in 216.63s`;
+  - `git diff --check` -> clean apart from normal CRLF notices.
+- VPS:
+  - `python scripts/deploy_unified.py --files routes/json_body.py routes/chat_endpoints.py routes/ops_metrics.py routes/embeddings.py routes/images.py routes/public_demo.py routes/outcome_ingest.py routes/device_gateway.py routes/telegram.py`
+    -> 9/9 uploaded, restart OK, health OK;
+  - public `/health` returned HTTP 200;
+  - authenticated `/v1/ops/summary` returned HTTP 200 with current status
+    `critical`, including backend dead/degraded/retired counts and operator
+    action hints;
+  - authenticated malformed JSON to `/v1/ops/backends/reactivate` returned
+    HTTP 400 with `{"error":"valid JSON body required"}`.
+- Tailscale:
+  - Windows service is `Running` and `Automatic`;
+  - VPS root cause was missing `tailscaled.service` despite existing
+    `/usr/local/bin/tailscale` and `/usr/local/bin/tailscaled` binaries;
+  - added systemd unit using existing `/var/lib/tailscale/tailscaled.state`,
+    then `systemctl enable --now tailscaled`;
+  - VPS `tailscale status` returned `BackendState=Running`, IP
+    `100.103.82.78`;
+  - Windows summary returned `BackendState=Running`, `HealthCount=0`,
+    `VpsOnline=True`;
+  - Windows `tailscale ping 100.103.82.78` returned
+    `pong from lima-server ... via 47.112.162.80:41641 in 11ms`.
+- Residual risk:
+  - `/v1/ops/summary` now correctly shows the provider pool still has many
+    dead/degraded/retired backends. The blind spot is closed, but provider
+    resurrection still needs deliberate probe/evidence work backend by backend.

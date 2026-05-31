@@ -357,6 +357,90 @@ def test_ops_metrics_includes_backend_recovery_snapshot(monkeypatch):
     health_state.reset_all_state()
 
 
+def test_ops_summary_rolls_up_alerts_and_actions(monkeypatch):
+    monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
+
+    import backend_retirement
+    import health_state
+
+    backend_retirement._retired_backends.clear()
+    backend_retirement._retired_backends.add("retired_backend")
+    health_state.reset_all_state()
+    health_state._health_map["dead_backend"] = "dead"
+    health_state._health_map["degraded_backend"] = "degraded"
+
+    app = FastAPI()
+    app.state.stats = {"total_requests": 0, "backend_calls": {}, "start_time": 1}
+    app.include_router(router)
+    response = TestClient(app).get(
+        "/v1/ops/summary",
+        headers={"Authorization": "Bearer test-private-token"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "critical"
+    assert data["counts"]["dead_backends"] == 1
+    assert data["counts"]["degraded_backends"] == 1
+    assert data["counts"]["retired_backends"] == 1
+    assert data["actions"]["reactivate_backend"] == "POST /v1/ops/backends/reactivate"
+    assert any(alert["code"] == "backend_dead" for alert in data["alerts"])
+
+    backend_retirement._retired_backends.clear()
+    health_state.reset_all_state()
+
+
+def test_ops_backend_manual_retire_and_reactivate(monkeypatch, tmp_path):
+    monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
+
+    import backend_retirement
+    import health_state
+
+    backend_retirement.DB_PATH = str(tmp_path / "retirement.db")
+    backend_retirement._retired_backends.clear()
+    health_state.reset_all_state()
+
+    app = FastAPI()
+    app.include_router(router)
+    client = TestClient(app)
+
+    retire = client.post(
+        "/v1/ops/backends/retire",
+        json={"backend": "manual_backend", "reason": "operator saw repeated 504"},
+        headers={"Authorization": "Bearer test-private-token"},
+    )
+    assert retire.status_code == 200
+    assert retire.json() == {"ok": True, "backend": "manual_backend", "status": "retired"}
+    assert backend_retirement.is_retired("manual_backend")
+
+    reactivate = client.post(
+        "/v1/ops/backends/reactivate",
+        json={"backend": "manual_backend", "evidence": "fresh probe succeeded"},
+        headers={"Authorization": "Bearer test-private-token"},
+    )
+    assert reactivate.status_code == 200
+    assert reactivate.json() == {"ok": True, "backend": "manual_backend", "status": "healthy"}
+    assert not backend_retirement.is_retired("manual_backend")
+
+    backend_retirement._retired_backends.clear()
+    health_state.reset_all_state()
+
+
+def test_ops_backend_reactivate_requires_evidence(monkeypatch):
+    monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
+    app = FastAPI()
+    app.include_router(router)
+
+    response = TestClient(app).post(
+        "/v1/ops/backends/reactivate",
+        json={"backend": "manual_backend"},
+        headers={"Authorization": "Bearer test-private-token"},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["error"] == "evidence required"
+
+
 def test_ops_metrics_includes_routing_guard_snapshot(monkeypatch, tmp_path):
     monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
     monkeypatch.setenv("LIMA_DATA_DIR", str(tmp_path))

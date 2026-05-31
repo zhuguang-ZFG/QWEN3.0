@@ -15,6 +15,7 @@ from access_guard import require_private_api_key
 from chat_models import ChatRequest
 from chat_request_utils import extract_system_preview
 from response_builder import build_response, make_chat_id
+from routes.json_body import read_json_object
 from routes.anthropic_messages_handler import (
     check_anthropic_rate_limit,
     handle_tool_messages,
@@ -54,26 +55,8 @@ async def _maybe_await(value: Any) -> Any:
     return value
 
 
-def _invalid_json_response(message: str) -> JSONResponse:
-    return JSONResponse(
-        status_code=400,
-        content={
-            "error": {
-                "message": message,
-                "type": "invalid_request_error",
-            }
-        },
-    )
-
-
 async def _read_json_body(request: Request) -> dict[str, Any] | JSONResponse:
-    try:
-        body = await request.json()
-    except json.JSONDecodeError:
-        return _invalid_json_response("valid JSON body required")
-    if not isinstance(body, dict):
-        return _invalid_json_response("JSON object body required")
-    return body
+    return await read_json_object(request, openai_error=True)
 
 
 # Backward-compatible test hook (CQ-014 slice 12).

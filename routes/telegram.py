@@ -25,6 +25,7 @@ from routes.telegram_quick_menu import (
     sync_bot_commands,
 )
 from routes.telegram_dispatch import dispatch_command as _dispatch_telegram_command
+from routes.json_body import read_json_object
 
 logger = logging.getLogger(__name__)
 
@@ -272,7 +273,9 @@ async def webhook(request: Request):
     secret = request.headers.get("x-telegram-bot-api-secret-token", "")
     _verify_webhook_secret(secret)
 
-    body = await request.json()
+    body = await read_json_object(request)
+    if not isinstance(body, dict):
+        return body
     message = body.get("message")
     callback_query = body.get("callback_query")
     inline_query = body.get("inline_query")

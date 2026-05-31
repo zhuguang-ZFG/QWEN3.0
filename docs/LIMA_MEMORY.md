@@ -2069,3 +2069,44 @@ Deployment: not performed.
   - no trailing Telegram sendMessage failure noise after pytest completion;
   - ruff and pyright clean;
   - VPS deploy uploaded 1/1 and health passed.
+
+## 2026-05-31 Ops Summary, API Contract, and Tailscale Autostart
+
+- Added private `/v1/ops/summary` as an operator rollup over metrics:
+  status, alerts, counts, and backend action hints.
+- Added private backend override endpoints:
+  `POST /v1/ops/backends/retire` and
+  `POST /v1/ops/backends/reactivate`.
+  Both require explicit operator reason/evidence and do not silently revive
+  providers.
+- Added `routes/json_body.py` and used it across chat, embeddings, images,
+  public demo, outcome ingest, device gateway, Telegram webhook, and ops POST
+  routes so malformed/non-object JSON returns HTTP 400 instead of leaking as
+  framework exceptions.
+- Fixed local Git warning:
+  `C:\Users\Administrator/.config/git/ignore` lacked read/traverse permission
+  for `CHINAMI-OUVMRPV\codexsandboxoffline`; after ACL repair,
+  `git status --short` no longer emits the permission warning.
+- Fixed Tailscale persistence:
+  - Windows service was already `Running`/`Automatic`;
+  - VPS had `/usr/local/bin/tailscale` and `/usr/local/bin/tailscaled` but no
+    `tailscaled.service`;
+  - added/enabled a systemd unit using
+    `/var/lib/tailscale/tailscaled.state`;
+  - VPS returned `BackendState=Running`, IP `100.103.82.78`;
+  - Windows returned `BackendState=Running`, `HealthCount=0`,
+    `VpsOnline=True`;
+  - Windows `tailscale ping 100.103.82.78` returned
+    `pong from lima-server ... in 11ms`.
+- Evidence:
+  - focused ops/API route tests `69 passed`;
+  - full server suite `2181 passed, 10 skipped`;
+  - ruff and pyright clean;
+  - VPS deploy uploaded 9/9 and health passed;
+  - public `/health` 200, authenticated `/v1/ops/summary` 200, malformed
+    `/v1/ops/backends/reactivate` JSON 400.
+- Residual:
+  - provider-pool status is now visible and actionable, but the current
+    `/v1/ops/summary` status is `critical` because many backends remain
+    dead/degraded/retired. Reactivation should be done only after fresh probe
+    evidence for each backend.

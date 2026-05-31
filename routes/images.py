@@ -6,9 +6,10 @@ import urllib.parse
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from access_guard import require_private_api_key
+from routes.json_body import read_json_object
 
 router = APIRouter()
 
@@ -51,8 +52,13 @@ def inject_record_request(fn):
 @router.post("/v1/images/generations", dependencies=[Depends(require_private_api_key)])
 async def image_generations(request: Request):
     """OpenAI-compatible image generation endpoint using Pollinations.ai."""
-    body = await request.json()
-    img_req = ImageRequest(**body)
+    body = await read_json_object(request)
+    if isinstance(body, JSONResponse):
+        return body
+    try:
+        img_req = ImageRequest(**body)
+    except ValidationError:
+        return JSONResponse({"error": "invalid image request"}, status_code=400)
     prompt = img_req.prompt.strip()
     if not prompt:
         raise HTTPException(status_code=400, detail="Empty prompt")

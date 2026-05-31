@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
 from access_guard import require_private_api_key
+from routes.json_body import read_json_object
 
 router = APIRouter()
 
@@ -15,7 +16,9 @@ router = APIRouter()
 @router.post("/v1/embeddings", dependencies=[Depends(require_private_api_key)])
 async def embeddings(request: Request):
     """OpenAI-compatible embeddings endpoint, proxied to Jina AI."""
-    body = await request.json()
+    body = await read_json_object(request)
+    if isinstance(body, JSONResponse):
+        return body
     inp = body.get("input", [])
     if isinstance(inp, str):
         inp = [inp]

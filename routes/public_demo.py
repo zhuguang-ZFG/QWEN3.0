@@ -8,9 +8,11 @@ from collections import defaultdict, deque
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import JSONResponse
 
 from chat_models import ChatRequest
 from chat_request_utils import extract_system_preview
+from routes.json_body import read_json_object
 
 router = APIRouter()
 
@@ -141,7 +143,9 @@ async def public_demo_chat(request: Request):
     if not _check_public_demo_rate_limit(client_key):
         raise HTTPException(status_code=429, detail="Public demo rate limit exceeded.")
 
-    body = await request.json()
+    body = await read_json_object(request)
+    if isinstance(body, JSONResponse):
+        return body
     sanitized = _validate_public_demo_body(body)
     chat_req = ChatRequest(**sanitized)
     return await _dep("handle_chat")(

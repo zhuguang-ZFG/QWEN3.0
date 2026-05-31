@@ -9,6 +9,8 @@ All raw prompts, keys, paths, and device tokens are redacted.
 """
 from __future__ import annotations
 
+import logging
+import re
 import time
 from typing import Any
 
@@ -16,8 +18,11 @@ from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse
 
 from access_guard import require_private_api_key
+from routes.json_body import read_json_object
 
 router = APIRouter(prefix="/v1/ops")
+logger = logging.getLogger(__name__)
+_BACKEND_NAME_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,96}$")
 
 
 def _redacted(value: str, max_len: int = 40) -> str:
@@ -140,8 +145,7 @@ def _backend_recovery_snapshot(dead_backends: list[str], degraded_backends: list
         }
 
 
-@router.get("/metrics", dependencies=[Depends(require_private_api_key)])
-async def ops_metrics(request: Request) -> JSONResponse:
+def _ops_metrics_snapshot(request: Request) -> dict[str, Any]:
     now = time.time()
 
     # Request stats (injected from server)
@@ -264,7 +268,7 @@ async def ops_metrics(request: Request) -> JSONResponse:
     except ImportError:
         pass
 
-    return JSONResponse({
+    return {
         "timestamp": int(now),
         "uptime_sec": int(now - stats.get("start_time", now)),
         "total_requests": total_requests,
@@ -287,7 +291,103 @@ async def ops_metrics(request: Request) -> JSONResponse:
         "backend_telemetry": _get_backend_telemetry(),
         "routing_guard": _get_routing_guard(),
         "capability_evidence": _get_capability_evidence(),
-    })
+    }
+
+
+def _alert(severity: str, code: str, message: str, count: int = 1) -> dict[str, Any]:
+    return {
+        "severity": severity,
+        "code": code,
+        "message": message,
+        "count": count,
+    }
+
+
+def _ops_summary_from_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
+    raw_backends = metrics.get("backends")
+    backends = raw_backends if isinstance(raw_backends, dict) else {}
+    raw_recovery = backends.get("recovery")
+    recovery = raw_recovery if isinstance(raw_recovery, dict) else {}
+    raw_cli = metrics.get("cli_telemetry")
+    cli = raw_cli if isinstance(raw_cli, dict) else {}
+    raw_backend_telemetry = metrics.get("backend_telemetry")
+    backend_telemetry = raw_backend_telemetry if isinstance(raw_backend_telemetry, dict) else {}
+    raw_routing_guard = metrics.get("routing_guard")
+    routing_guard = raw_routing_guard if isinstance(raw_routing_guard, dict) else {}
+    raw_decisions = routing_guard.get("decisions")
+    decisions = raw_decisions if isinstance(raw_decisions, dict) else {}
+
+    dead = int(backends.get("dead", 0) or 0)
+    degraded = int(backends.get("degraded", 0) or 0)
+    retired = int(recovery.get("retired_count", 0) or 0)
+    probe_candidates = recovery.get("probe_candidates", [])
+    probe_count = len(probe_candidates) if isinstance(probe_candidates, list) else 0
+    quarantined = sum(
+        1
+        for value in decisions.values()
+        if isinstance(value, dict) and value.get("status") == "quarantined"
+    )
+
+    alerts: list[dict[str, Any]] = []
+    if dead:
+        alerts.append(_alert("critical", "backend_dead", f"{dead} backend(s) are dead", dead))
+    if degraded:
+        alerts.append(_alert("warning", "backend_degraded", f"{degraded} backend(s) are degraded", degraded))
+    if retired:
+        alerts.append(_alert("warning", "backend_retired", f"{retired} backend(s) are manually retired", retired))
+    if quarantined:
+        alerts.append(_alert("warning", "backend_quarantined", f"{quarantined} backend(s) are quarantined", quarantined))
+    if int(cli.get("failed_recent", 0) or 0):
+        alerts.append(_alert("warning", "cli_failures", "Recent LiMa Code CLI failures observed", int(cli.get("failed_recent", 0))))
+    if int(backend_telemetry.get("slow_recent", 0) or 0):
+        alerts.append(_alert("warning", "slow_backends", "Recent slow backend attempts observed", int(backend_telemetry.get("slow_recent", 0))))
+    if probe_count:
+        alerts.append(_alert("info", "probe_candidates", "Backends are ready for manual probe/recovery review", probe_count))
+
+    if any(item["severity"] == "critical" for item in alerts):
+        status = "critical"
+    elif alerts:
+        status = "warning"
+    else:
+        status = "ok"
+
+    return {
+        "status": status,
+        "timestamp": metrics.get("timestamp"),
+        "alerts": alerts[:20],
+        "counts": {
+            "dead_backends": dead,
+            "degraded_backends": degraded,
+            "retired_backends": retired,
+            "probe_candidates": probe_count,
+            "quarantined_backends": quarantined,
+            "cli_failures_recent": int(cli.get("failed_recent", 0) or 0),
+            "slow_backend_attempts_recent": int(backend_telemetry.get("slow_recent", 0) or 0),
+        },
+        "actions": {
+            "metrics": "GET /v1/ops/metrics",
+            "reactivate_backend": "POST /v1/ops/backends/reactivate",
+            "retire_backend": "POST /v1/ops/backends/retire",
+            "body": {"backend": "name", "evidence": "fresh probe result or rollback reason"},
+        },
+    }
+
+
+def _valid_backend_name(value: Any) -> str:
+    backend = value.strip() if isinstance(value, str) else ""
+    if not backend or not _BACKEND_NAME_RE.match(backend):
+        return ""
+    return backend
+
+
+@router.get("/metrics", dependencies=[Depends(require_private_api_key)])
+async def ops_metrics(request: Request) -> JSONResponse:
+    return JSONResponse(_ops_metrics_snapshot(request))
+
+
+@router.get("/summary", dependencies=[Depends(require_private_api_key)])
+async def ops_summary(request: Request) -> JSONResponse:
+    return JSONResponse(_ops_summary_from_metrics(_ops_metrics_snapshot(request)))
 
 
 @router.get("/correlate/summary", dependencies=[Depends(require_private_api_key)])
@@ -362,7 +462,9 @@ async def ops_eval_revision() -> JSONResponse:
 async def ops_eval_approve(request: Request) -> JSONResponse:
     """Manually approve a pattern candidate. Body: {pattern_key, rollback_notes}."""
     try:
-        body = await request.json()
+        body = await read_json_object(request)
+        if isinstance(body, JSONResponse):
+            return body
         pattern_key = body.get("pattern_key", "")
         rollback = body.get("rollback_notes", "")
         if not pattern_key:
@@ -377,12 +479,9 @@ async def ops_eval_approve(request: Request) -> JSONResponse:
 async def ops_eval_apply(request: Request) -> JSONResponse:
     """Apply an approved pattern to runtime routing weights. Body: {pattern_key}."""
     try:
-        try:
-            body = await request.json()
-        except ValueError:
-            return JSONResponse({"error": "valid JSON body required"}, status_code=400)
-        if not isinstance(body, dict):
-            return JSONResponse({"error": "JSON object body required"}, status_code=400)
+        body = await read_json_object(request)
+        if isinstance(body, JSONResponse):
+            return body
         pattern_key = body.get("pattern_key", "")
         if not isinstance(pattern_key, str) or not pattern_key.strip():
             return JSONResponse({"error": "pattern_key required"}, status_code=400)
@@ -390,6 +489,60 @@ async def ops_eval_apply(request: Request) -> JSONResponse:
         return JSONResponse(apply_promotion(pattern_key))
     except ImportError:
         return JSONResponse({"error": "eval_gate module not loaded"}, status_code=503)
+
+
+@router.post("/backends/reactivate", dependencies=[Depends(require_private_api_key)])
+async def ops_backend_reactivate(request: Request) -> JSONResponse:
+    """Manually reactivate a backend after fresh operator evidence."""
+    body = await read_json_object(request)
+    if isinstance(body, JSONResponse):
+        return body
+    backend = _valid_backend_name(body.get("backend"))
+    evidence = str(body.get("evidence", "")).strip()
+    if not backend:
+        return JSONResponse({"error": "valid backend required"}, status_code=400)
+    if not evidence:
+        return JSONResponse({"error": "evidence required"}, status_code=400)
+    try:
+        from backend_retirement import reactivate
+
+        reactivate(backend)
+    except ImportError:
+        return JSONResponse({"error": "backend_retirement module not loaded"}, status_code=503)
+    except Exception as exc:
+        logger.warning("manual backend reactivation failed backend=%s: %s", backend, type(exc).__name__)
+        return JSONResponse({"error": "backend reactivation failed"}, status_code=500)
+    logger.warning("manual backend reactivation backend=%s evidence=%s", backend, evidence[:120])
+    return JSONResponse({"ok": True, "backend": backend, "status": "healthy"})
+
+
+@router.post("/backends/retire", dependencies=[Depends(require_private_api_key)])
+async def ops_backend_retire(request: Request) -> JSONResponse:
+    """Manually remove a backend from routing until an operator reactivates it."""
+    body = await read_json_object(request)
+    if isinstance(body, JSONResponse):
+        return body
+    backend = _valid_backend_name(body.get("backend"))
+    reason = str(body.get("reason", "")).strip()
+    if not backend:
+        return JSONResponse({"error": "valid backend required"}, status_code=400)
+    if not reason:
+        return JSONResponse({"error": "reason required"}, status_code=400)
+    try:
+        from backend_retirement import STATUS_RETIRED, apply_retirement
+
+        apply_retirement({
+            "action": "retire",
+            "backend": backend,
+            "reason": f"manual operator override: {reason[:200]}",
+            "status": STATUS_RETIRED,
+        })
+    except ImportError:
+        return JSONResponse({"error": "backend_retirement module not loaded"}, status_code=503)
+    except Exception as exc:
+        logger.warning("manual backend retirement failed backend=%s: %s", backend, type(exc).__name__)
+        return JSONResponse({"error": "backend retirement failed"}, status_code=500)
+    return JSONResponse({"ok": True, "backend": backend, "status": "retired"})
 
 
 @router.get("/metrics/prometheus", dependencies=[Depends(require_private_api_key)])

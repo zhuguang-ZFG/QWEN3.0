@@ -37,6 +37,7 @@ from routes.device_gateway_dispatch import (
     record_motion_event_observability,
 )
 from routes.device_gateway_ws import handle_device_ws
+from routes.json_body import read_json_object
 
 router = APIRouter(prefix="/device/v1")
 
@@ -61,7 +62,9 @@ async def device_gateway_health() -> dict[str, Any]:
 
 @router.post("/events", dependencies=[Depends(require_private_api_key)])
 async def device_gateway_events(request: Request) -> JSONResponse:
-    body = await request.json()
+    body = await read_json_object(request)
+    if isinstance(body, JSONResponse):
+        return body
     try:
         message = validate_uplink(body)
     except ProtocolError as exc:
@@ -97,12 +100,9 @@ async def device_gateway_events(request: Request) -> JSONResponse:
 
 @router.post("/tasks", dependencies=[Depends(require_private_api_key)])
 async def device_gateway_tasks(request: Request) -> JSONResponse:
-    body = await request.json()
-    if not isinstance(body, dict):
-        return JSONResponse(
-            status_code=400,
-            content=error_frame(ProtocolError("E_INVALID_MESSAGE", "message must be a JSON object")),
-        )
+    body = await read_json_object(request)
+    if isinstance(body, JSONResponse):
+        return body
     device_id = body.get("device_id")
     text = body.get("text")
     request_id = body.get("request_id")

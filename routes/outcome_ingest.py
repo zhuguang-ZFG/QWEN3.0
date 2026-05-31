@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
 from access_guard import require_private_api_key
+from routes.json_body import read_json_object
 
 router = APIRouter(prefix="/internal/v1", tags=["internal"])
 
@@ -20,10 +21,9 @@ router = APIRouter(prefix="/internal/v1", tags=["internal"])
 @router.post("/outcome", dependencies=[Depends(require_private_api_key)])
 async def ingest_outcome(request: Request):
     """Record an outcome event from an external source (CI, smoke, Telegram)."""
-    try:
-        body = await request.json()
-    except Exception:
-        return JSONResponse({"error": "JSON body required"}, status_code=400)
+    body = await read_json_object(request)
+    if isinstance(body, JSONResponse):
+        return body
 
     source = str(body.get("source", ""))
     event_type = str(body.get("event_type", ""))
