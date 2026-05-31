@@ -1143,3 +1143,17 @@ Latest LiMa Code CLI adaptation closeout:
   (`480 tests, 473 pass, 7 skipped`), `npm.cmd run build`, public headless
   smoke `lima_code_cli_smoke_ok` with exit code 0; main repo `ruff check .`,
   `pyright`, and full pytest `2141 passed, 10 skipped in 288.33s`.
+
+Latest LiMa Code TUI workbench closeout:
+
+- Added `/lima start` as a read-only operator workbench command in LiMa Code.
+- The workbench gives the operator a clear first path: `/lima doctor`, local
+  review, explicit test command, direct project Ask workflow, and server-task
+  next/work commands.
+- The welcome screen now renders fixed first-run actions for `/lima start`,
+  `/lima doctor`, and direct project work instead of leaving discovery to
+  random tips.
+- Evidence: focused LiMa Code tests `47 passed`, `npm.cmd run typecheck`
+  clean, `npm.cmd run lint` clean, `npm.cmd run format:check` clean,
+  `npm.cmd run build` clean, and built CLI `/lima start` headless smoke
+  returned `ok=true` with zero model calls.

@@ -5384,3 +5384,29 @@ Verification note:
   - provider pool is still `critical`, but the DNS/proxy false-negative layer
     is removed. Remaining failures are now upstream format/502/500/network
     evidence, not silent VPS resolver breakage.
+
+## 2026-05-31 LiMa Code TUI Start Workbench (CQ-101)
+
+- Scope:
+  - added `/lima start` as a first-class, read-only TUI command;
+  - the command returns a LiMa Code workbench with project path, server
+    configured state, `/lima doctor`, `/lima review`, `/lima test --cmd ...`,
+    direct Ask workflow, and server-task next/work entry points;
+  - welcome screen now shows a fixed first-run action list instead of relying
+    only on random tips;
+  - CLI help and `/lima` command help now list `/lima start`.
+- Verification:
+  - red test failed first for missing parser/help/runner/welcome exports;
+  - focused LiMa Code tests:
+    `npm.cmd run test:single -- src/tests/lima-commands.test.ts src/tests/lima-command-runner.test.ts src/tests/welcomeScreen.test.ts`
+    -> `47 passed`;
+  - `npm.cmd run typecheck` -> clean;
+  - `npm.cmd run lint` -> clean;
+  - `npm.cmd run format:check` -> clean;
+  - `npm.cmd run build` -> clean, `dist/cli.js` bundled;
+  - built CLI smoke:
+    `node dist\cli.js --headless -p "/lima start" --json`
+    -> `ok=true`, returned `LiMa Code workbench`, and made zero model calls.
+- Residual:
+  - this slice is local CLI/TUI behavior only; no VPS server deploy is needed
+    unless packaging/release refresh is requested for another Windows install.
