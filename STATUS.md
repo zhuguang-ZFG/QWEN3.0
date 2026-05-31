@@ -1,11 +1,23 @@
 # LiMa Status
 
-> Updated: 2026-05-31 (Evidence-based backend probe closeout)
+> Updated: 2026-05-31 (VPS DNS/proxy and probe-timeout closeout)
 > Branch: `main`
-> Tests: LiMa Server full pytest **2184 passed, 10 skipped**; focused backend probe tests **33 passed**; ruff/pyright clean
-> Current VPS: health OK; `/v1/ops/summary` 200; `POST /v1/ops/backends/probe` records fresh evidence and only reactivates on explicit successful probe
+> Tests: LiMa Server full pytest **2186 passed, 10 skipped**; focused backend probe/ops tests **31 passed**; ruff/pyright clean
+> Current VPS: health OK; `/v1/ops/summary` 200; VPS DNS/proxy repaired; operator probe has explicit outer timeout
 > VPS: Memory 1454MB→1358MB (services restored), health check OK
 > Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
+
+## 2026-05-31 VPS DNS/Proxy and Probe Timeout Closeout
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| VPS DNS root cause | Fixed | `/etc/resolv.conf` had been overwritten by Tailscale DNS (`100.100.100.100`) while Tailscale reported it could not reach configured DNS servers; disabled Tailscale DNS accept (`CorpDNS=false`) and restored public resolvers |
+| Shell proxy hygiene | Fixed | `/etc/profile.d/proxy.sh` exported dead proxy `100.94.119.7:7890`; backed it up to `/etc/profile.d/proxy.sh.lima-disabled-20260531-1405` and disabled it; fresh SSH login has no proxy env |
+| Worker provider recovery | Partially restored | After DNS/proxy repair, public probes reactivated `cfai_llama4`, `assist_brainstorm`, `cfai_qwen_coder`, `cfai_llama70b`, `scnet_ds_flash`, and `scnet_qwen30b` from fresh healthy evidence |
+| Failed-provider evidence | Recorded | `StockAI` family now returns unparseable responses; `OldLLM` family returns upstream 502; `cfai_mistral` returns upstream 500; `cfai_deepseek_r1` returns empty; `google_flash_code` and `mistral_large_code` return network errors/timeouts |
+| Operator probe timeout | Deployed | `POST /v1/ops/backends/probe` accepts `timeout_sec` and defaults to a bounded operator timeout; `google_flash_code` with `timeout_sec=5` returned timeout evidence in `5150ms` instead of blocking for about 130s |
+| Local verification | Done | focused tests `31 passed`; full pytest `2186 passed, 10 skipped`; ruff/pyright clean |
+| VPS smoke | Done | deploy uploaded 2/2 and health OK; public timeout regression returned `error_class=timeout`, `timed_out=true`, `recorded=true`; final `/v1/ops/summary` 200 shows dead backends reduced to `124` and probe candidates to `12` |
 
 ## 2026-05-31 Evidence-Based Backend Probe Closeout
 

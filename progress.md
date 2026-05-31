@@ -5325,3 +5325,62 @@ Verification note:
     dead/degraded/retired and should be recovered backend by backend from fresh
     probe evidence. The DNS failures are real evidence to investigate at the
     provider/config layer.
+
+## 2026-05-31 VPS DNS/Proxy Repair and Bounded Operator Probe (CQ-100)
+
+- Root cause:
+  - VPS `/etc/resolv.conf` was managed by Tailscale DNS and pointed only to
+    `100.100.100.100`;
+  - `tailscale status` reported it could not reach configured DNS servers;
+  - fresh Worker probes failed as DNS/network errors from VPS even though the
+    same Worker `/v1/models` endpoints were healthy from Windows;
+  - shell login also exported stale proxies from `/etc/profile.d/proxy.sh`
+    pointing at `100.94.119.7:7890`, causing normal curl diagnostics to hang.
+- Ops repair:
+  - backed up current resolver to `/etc/resolv.conf.lima-dns-fix-20260531135915`;
+  - ran `tailscale set --accept-dns=false`;
+  - restored `/etc/resolv.conf` to public resolvers
+    `223.5.5.5`, `119.29.29.29`, and `1.1.1.1`;
+  - restarted `tailscaled`; final `tailscale status --peers=false` no longer
+    prints DNS health warnings and `CorpDNS=false`;
+  - backed up `/etc/profile.d/proxy.sh` to
+    `/etc/profile.d/proxy.sh.lima-disabled-20260531-1405` and disabled it;
+  - a fresh SSH login now has no `HTTP_PROXY`/`HTTPS_PROXY`/`ALL_PROXY`, and
+    normal `curl -4 -I https://ai.zhuguang.ccwu.cc/v1/models` returns HTTP 200.
+- Provider recovery evidence:
+  - restored from fresh healthy probe:
+    `cfai_llama4`, `assist_brainstorm`, `cfai_qwen_coder`,
+    `cfai_llama70b`, `scnet_ds_flash`, and `scnet_qwen30b`;
+  - kept retired/degraded with recorded evidence:
+    `cfai_deepseek_r1` returned empty, `cfai_mistral` returned upstream 500,
+    StockAI returned unparseable responses, OldLLM returned upstream 502,
+    `google_flash_code`/`mistral_large_code` returned network errors/timeouts.
+- Code hardening:
+  - operator probe now has an outer timeout guard;
+  - `/v1/ops/backends/probe` accepts `timeout_sec` with a bounded range;
+  - timed-out probes return and record `error_class=timeout` plus
+    `timed_out=true`, and do not reactivate the backend.
+- Verification:
+  - focused tests:
+    `python -m pytest tests\test_backend_probe_loop.py tests\test_ops_metrics.py tests\test_backend_retirement.py -q`
+    -> `31 passed`;
+  - `python -m ruff check backend_probe_loop.py routes\ops_metrics.py tests\test_ops_metrics.py tests\test_backend_probe_loop.py`
+    -> clean;
+  - `python -m pyright backend_probe_loop.py routes\ops_metrics.py`
+    -> `0 errors, 0 warnings, 0 informations`;
+  - full server suite:
+    `python -m pytest -q --ignore=active_model`
+    -> `2186 passed, 10 skipped in 227.66s`.
+- VPS:
+  - `python scripts\deploy_unified.py --files backend_probe_loop.py routes/ops_metrics.py`
+    -> 2/2 uploaded, restart OK, health OK;
+  - public regression probe
+    `{"backend":"google_flash_code","timeout_sec":5}` returned in `5150ms`
+    with `error_class=timeout`, `timed_out=true`, and `recorded=true`;
+  - final authenticated `/v1/ops/summary` returned HTTP 200 with
+    `dead_backends=124`, `probe_candidates=12`, `quarantined_backends=1`, and
+    `slow_backend_attempts_recent=1`.
+- Residual:
+  - provider pool is still `critical`, but the DNS/proxy false-negative layer
+    is removed. Remaining failures are now upstream format/502/500/network
+    evidence, not silent VPS resolver breakage.

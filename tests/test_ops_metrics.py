@@ -445,9 +445,15 @@ def test_ops_backend_probe_records_without_reactivating(monkeypatch):
     monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
     calls = {"probe": 0, "reactivate": 0}
 
-    def fake_probe(backend: str, *, ignore_cooldown: bool = False) -> dict:
+    def fake_probe(
+        backend: str,
+        *,
+        ignore_cooldown: bool = False,
+        timeout_sec: float | None = None,
+    ) -> dict:
         calls["probe"] += 1
         assert ignore_cooldown is True
+        assert timeout_sec == 25
         return {
             "backend": backend,
             "status": "healthy",
@@ -485,12 +491,13 @@ def test_ops_backend_probe_can_reactivate_on_success(monkeypatch):
 
     monkeypatch.setattr(
         "backend_probe_loop.probe_and_record_backend",
-        lambda backend, *, ignore_cooldown=False: {
+        lambda backend, *, ignore_cooldown=False, timeout_sec=None: {
             "backend": backend,
             "status": "healthy",
             "latency_ms": 10,
             "recorded": True,
             "ignore_cooldown": ignore_cooldown,
+            "timeout_sec": timeout_sec,
         },
     )
     monkeypatch.setattr(
@@ -516,13 +523,14 @@ def test_ops_backend_probe_keeps_failed_backend_retired(monkeypatch):
     monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
     monkeypatch.setattr(
         "backend_probe_loop.probe_and_record_backend",
-        lambda backend, *, ignore_cooldown=False: {
+        lambda backend, *, ignore_cooldown=False, timeout_sec=None: {
             "backend": backend,
             "status": "failed",
             "latency_ms": 90000,
             "error_class": "timeout",
             "recorded": True,
             "ignore_cooldown": ignore_cooldown,
+            "timeout_sec": timeout_sec,
         },
     )
 
@@ -538,6 +546,21 @@ def test_ops_backend_probe_keeps_failed_backend_retired(monkeypatch):
     assert response.json()["ok"] is False
     assert response.json()["reactivated"] is False
     assert response.json()["recommended_action"] == "keep_retired"
+
+
+def test_ops_backend_probe_rejects_invalid_timeout(monkeypatch):
+    monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
+    app = FastAPI()
+    app.include_router(router)
+
+    response = TestClient(app).post(
+        "/v1/ops/backends/probe",
+        json={"backend": "manual_backend", "timeout_sec": 0},
+        headers={"Authorization": "Bearer test-private-token"},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["error"] == "timeout_sec must be between 0 and 120"
 
 
 def test_ops_metrics_includes_routing_guard_snapshot(monkeypatch, tmp_path):

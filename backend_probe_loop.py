@@ -6,6 +6,7 @@ Updates health_tracker and backend_profile with probe results.
 
 from __future__ import annotations
 
+import concurrent.futures
 import logging
 import os
 import threading
@@ -15,11 +16,17 @@ logger = logging.getLogger(__name__)
 
 # Probe interval: 5 minutes between batches
 PROBE_INTERVAL = int(os.environ.get("LIMA_PROBE_INTERVAL", 300))
+OPERATOR_PROBE_TIMEOUT = float(os.environ.get("LIMA_OPERATOR_PROBE_TIMEOUT", 25))
+OPERATOR_PROBE_WORKERS = int(os.environ.get("LIMA_OPERATOR_PROBE_WORKERS", 4))
 # Number of batches (full cycle = PROBE_INTERVAL * NUM_BATCHES)
 NUM_BATCHES = 4
 
 _running = False
 _thread: threading.Thread | None = None
+_operator_probe_executor = concurrent.futures.ThreadPoolExecutor(
+    max_workers=max(1, OPERATOR_PROBE_WORKERS),
+    thread_name_prefix="operator-probe",
+)
 
 
 def start_probe_loop() -> None:
@@ -154,9 +161,49 @@ def record_probe_result(result: dict) -> bool:
     return recorded
 
 
-def probe_and_record_backend(backend: str, *, ignore_cooldown: bool = False) -> dict:
+def _probe_backend_with_timeout(
+    backend: str,
+    *,
+    ignore_cooldown: bool = False,
+    timeout_sec: float,
+) -> dict:
+    started = time.time()
+    future = _operator_probe_executor.submit(
+        probe_backend,
+        backend,
+        ignore_cooldown=ignore_cooldown,
+    )
+    try:
+        return future.result(timeout=timeout_sec)
+    except concurrent.futures.TimeoutError:
+        future.cancel()
+        latency_ms = int((time.time() - started) * 1000)
+        return {
+            "backend": backend,
+            "status": "failed",
+            "latency_ms": latency_ms,
+            "error": f"operator probe timed out after {timeout_sec:g}s",
+            "error_class": "timeout",
+            "timed_out": True,
+        }
+
+
+def probe_and_record_backend(
+    backend: str,
+    *,
+    ignore_cooldown: bool = False,
+    timeout_sec: float | None = None,
+) -> dict:
     """Probe a backend once and persist the evidence for operator recovery."""
-    result = probe_backend(backend, ignore_cooldown=ignore_cooldown)
+    timeout = OPERATOR_PROBE_TIMEOUT if timeout_sec is None else timeout_sec
+    if timeout > 0:
+        result = _probe_backend_with_timeout(
+            backend,
+            ignore_cooldown=ignore_cooldown,
+            timeout_sec=timeout,
+        )
+    else:
+        result = probe_backend(backend, ignore_cooldown=ignore_cooldown)
     result["recorded"] = record_probe_result(result)
     return result
 

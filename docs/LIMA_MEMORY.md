@@ -2144,3 +2144,46 @@ Deployment: not performed.
 - Current truth:
   - `/v1/ops/summary` still reports provider pool `critical`; this is now a
     visible recovery queue, not a silent failure.
+
+## 2026-05-31 VPS DNS/Proxy Repair and Bounded Operator Probe
+
+- VPS provider probes were producing false negatives because the runtime
+  network path was broken:
+  - `/etc/resolv.conf` had been overwritten by Tailscale DNS and only used
+    `100.100.100.100`;
+  - `tailscale status` reported DNS health failures;
+  - shell login loaded `/etc/profile.d/proxy.sh`, exporting stale
+    `HTTP_PROXY`/`HTTPS_PROXY`/`ALL_PROXY` values pointing to
+    `100.94.119.7:7890`.
+- Repair:
+  - backed up resolver to `/etc/resolv.conf.lima-dns-fix-20260531135915`;
+  - set `tailscale set --accept-dns=false`;
+  - wrote public resolvers `223.5.5.5`, `119.29.29.29`, and `1.1.1.1`;
+  - restarted `tailscaled`; final status has `CorpDNS=false` and no DNS health
+    warning;
+  - backed up and disabled `/etc/profile.d/proxy.sh`; fresh SSH login no
+    longer has proxy env.
+- Provider recovery after the repair:
+  - restored by fresh healthy probe:
+    `cfai_llama4`, `assist_brainstorm`, `cfai_qwen_coder`,
+    `cfai_llama70b`, `scnet_ds_flash`, `scnet_qwen30b`;
+  - kept inactive with evidence:
+    StockAI unparseable responses, OldLLM upstream 502, `cfai_mistral`
+    upstream 500, `cfai_deepseek_r1` empty, Google/Mistral code paths network
+    timeout/errors.
+- Code hardening:
+  - `POST /v1/ops/backends/probe` now accepts bounded `timeout_sec`;
+  - operator probes default to an outer timeout and record `error_class=timeout`
+    plus `timed_out=true`;
+  - regression smoke for `google_flash_code` with `timeout_sec=5` returned in
+    `5150ms`, recorded timeout evidence, and did not reactivate.
+- Verification:
+  - focused tests `31 passed`;
+  - ruff clean;
+  - pyright `0 errors`;
+  - full pytest `2186 passed, 10 skipped`;
+  - VPS deploy 2/2 health OK.
+- Current truth:
+  - final `/v1/ops/summary` still reports `critical`, but counts improved to
+    `dead_backends=124` and `probe_candidates=12`. Remaining failures are
+    provider/upstream issues rather than VPS DNS/proxy false negatives.

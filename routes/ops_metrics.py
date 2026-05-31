@@ -525,12 +525,23 @@ async def ops_backend_probe(request: Request) -> JSONResponse:
         return body
     backend = _valid_backend_name(body.get("backend"))
     reactivate_on_success = bool(body.get("reactivate_on_success", False))
+    timeout_raw = body.get("timeout_sec", 25)
     if not backend:
         return JSONResponse({"error": "valid backend required"}, status_code=400)
     try:
+        timeout_sec = float(timeout_raw)
+    except (TypeError, ValueError):
+        return JSONResponse({"error": "valid timeout_sec required"}, status_code=400)
+    if timeout_sec <= 0 or timeout_sec > 120:
+        return JSONResponse({"error": "timeout_sec must be between 0 and 120"}, status_code=400)
+    try:
         from backend_probe_loop import probe_and_record_backend
 
-        result = probe_and_record_backend(backend, ignore_cooldown=True)
+        result = probe_and_record_backend(
+            backend,
+            ignore_cooldown=True,
+            timeout_sec=timeout_sec,
+        )
     except ImportError:
         return JSONResponse({"error": "backend_probe_loop module not loaded"}, status_code=503)
     except Exception as exc:
