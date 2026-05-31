@@ -98,14 +98,13 @@ def test_host_dependent_backends_removed_from_production_registry():
     # M2: scnet_large now VPS sidecar → directly in BACKENDS, no longer in DISABLED
     assert "scnet_large_ds_flash" in backends.BACKENDS
     assert "scnet_large_ds_flash" not in backends.DISABLED_HOST_DEPENDENT_BACKENDS
-    # M3: kimi VPS; M4: longcat VPS → directly in BACKENDS
+    # M3 kimi · M4 longcat · M5 mimo → directly in BACKENDS
     assert "kimi" in backends.BACKENDS
     assert "kimi" not in backends.DISABLED_HOST_DEPENDENT_BACKENDS
     assert "longcat_web" in backends.BACKENDS
     assert "longcat_web" not in backends.DISABLED_HOST_DEPENDENT_BACKENDS
-    # mimo_web still host-dependent → in DISABLED, not in BACKENDS
-    assert "mimo_web" not in backends.BACKENDS
-    assert "mimo_web" in backends.DISABLED_HOST_DEPENDENT_BACKENDS
+    assert "mimo_web" in backends.BACKENDS
+    assert "mimo_web" not in backends.DISABLED_HOST_DEPENDENT_BACKENDS
     # scnet_ds_flash (CF Worker) was never host-dependent, always in BACKENDS
     assert backends.backend_has_capability("scnet_ds_flash", "tool_calls")
 

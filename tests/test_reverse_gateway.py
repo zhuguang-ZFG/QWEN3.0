@@ -20,13 +20,7 @@ HOST_DEPENDENT_BACKENDS = {
     "ddg_llama4",
     "ddg_mistral",
     "ddg_tinfoil_gptoss_120b",
-    # M3: kimi VPS; M4: longcat VPS
-    # M2: scnet_large/scnet_code now VPS sidecar
-    "mimo_web",
-    "mimo_web_think",
-    "mimo_web_flash",
-    "mimo_web_code",
-    "mimo_web_think_code",
+    # M2 scnet · M3 kimi · M4 longcat · M5 mimo — all VPS sidecars
     # M1: local_* Ollama models removed
 }
 
@@ -72,10 +66,11 @@ def test_reverse_gateway_registry_starts_disabled():
     statuses = list_provider_status()
 
     assert statuses
-    # M2: scnet ready; M3: kimi ready; M4: longcat ready
+    # M2/M3/M4/M5: all reverse providers now ready
     assert provider_status("scnet_large")["status"] == "ready_protocol_adapter"
     assert provider_status("kimi_web")["status"] == "ready_proxy_shell"
     assert provider_status("longcat_web")["status"] == "ready_proxy_shell"
+    assert provider_status("mimo_web")["status"] == "ready_proxy_shell"
 
 
 def test_reverse_gateway_health_endpoint_payload():

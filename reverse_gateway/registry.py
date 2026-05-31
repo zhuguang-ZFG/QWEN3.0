@@ -49,8 +49,8 @@ PROVIDERS: dict[str, ReverseProvider] = {
         name="mimo_web",
         port=4507,
         backends=("mimo_web", "mimo_web_think", "mimo_web_flash", "mimo_web_code", "mimo_web_think_code"),
-        status="disabled_no_adapter",
-        reason="Needs a VPS browser/cookie sidecar before routing.",
+        status="ready_proxy_shell",
+        reason="M5: VPS mimo-proxy.service running, 260 requests/243 success.",
     ),
 }
 

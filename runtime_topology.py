@@ -13,13 +13,7 @@ LOCAL_ONLY_BACKENDS: set[str] = {
     "ddg_llama4",
     "ddg_mistral",
     "ddg_tinfoil_gptoss_120b",
-    # M3: kimi VPS sidecar; M4: longcat VPS sidecar
-    # M2: scnet_large/scnet_code now served by VPS sidecar (lima-scnet-reverse.service :4505)
-    "mimo_web",
-    "mimo_web_think",
-    "mimo_web_flash",
-    "mimo_web_code",
-    "mimo_web_think_code",
+    # M2 scnet_large · M3 kimi · M4 longcat · M5 mimo — all VPS sidecars
     # M1: oldllm_* already on CF Worker (llm.zhuguang.ccwu.cc), no longer host-dependent
     # M1: local_* Ollama models removed, no longer part of LiMa
 }

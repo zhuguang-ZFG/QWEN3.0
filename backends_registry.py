@@ -236,10 +236,7 @@ DISABLED_HOST_DEPENDENT_BACKENDS = {
         # M1: local_* Ollama models removed; oldllm_* already on CF Worker, no longer need pop
         'ddg_gpt4o_mini', 'ddg_gpt5_mini', 'ddg_claude_haiku_45',
         'ddg_llama4', 'ddg_mistral', 'ddg_tinfoil_gptoss_120b',
-        # M3: kimi VPS; M4: longcat VPS — no longer need pop
-        # M2: scnet_large/scnet_code now served by VPS sidecar
-        'mimo_web', 'mimo_web_think', 'mimo_web_flash',
-        'mimo_web_code', 'mimo_web_think_code',
+        # M2 scnet · M3 kimi · M4 longcat · M5 mimo — VPS sidecars, no pop needed
     )
     if name in BACKENDS
 }
