@@ -28,8 +28,8 @@ PROVIDERS: dict[str, ReverseProvider] = {
         name="kimi_web",
         port=4504,
         backends=("kimi", "kimi_thinking", "kimi_search"),
-        status="disabled_no_adapter",
-        reason="Auth/quota state requires a VPS adapter and health probe.",
+        status="ready_proxy_shell",
+        reason="M3: VPS kimi-proxy.service running (Node.js), session deployed.",
     ),
     "scnet_large": ReverseProvider(
         name="scnet_large",

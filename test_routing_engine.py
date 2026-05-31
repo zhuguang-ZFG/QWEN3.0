@@ -225,19 +225,19 @@ def test_local_proxy_backends_require_local_topology(monkeypatch):
     monkeypatch.delenv("SCNET_LARGE_TUNNEL_URL", raising=False)
     monkeypatch.setattr(runtime_topology, "local_port_open", lambda port: False)
 
-    # M2: scnet_large now VPS sidecar, always available. Use kimi (still host-dependent).
-    assert not runtime_topology.backend_available("kimi")
+    # M2/M3: scnet_large + kimi now VPS sidecars. Use ddg (still host-dependent).
+    assert not runtime_topology.backend_available("ddg_gpt4o_mini")
     assert runtime_topology.backend_available("scnet_ds_flash")
 
 
 def test_local_proxy_backends_can_be_enabled_explicitly(monkeypatch):
     import runtime_topology
-    # M2: scnet_large now VPS sidecar, always available. Use kimi (still host-dependent).
+    # M2/M3: scnet_large + kimi now VPS sidecars. Use ddg (still host-dependent).
     monkeypatch.setenv(runtime_topology.HOST_DEPENDENT_OPT_IN, "1")
-    monkeypatch.setenv("KIMI_TUNNEL_URL", "http://127.0.0.1:4504")
+    monkeypatch.setenv("DDG_TUNNEL_URL", "http://127.0.0.1:4500")
     monkeypatch.setattr(runtime_topology, "local_port_open", lambda port: False)
 
-    assert runtime_topology.backend_available("kimi")
+    assert runtime_topology.backend_available("ddg_gpt4o_mini")
 
 
 def test_code_orchestrator_filters_unreachable_local_proxy(monkeypatch):

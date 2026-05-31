@@ -13,9 +13,7 @@ LOCAL_ONLY_BACKENDS: set[str] = {
     "ddg_llama4",
     "ddg_mistral",
     "ddg_tinfoil_gptoss_120b",
-    "kimi",
-    "kimi_thinking",
-    "kimi_search",
+    # M3: kimi now served by VPS kimi-proxy.service (Node.js, port 4504)
     "longcat_web",
     "longcat_web_think",
     "longcat_web_research",
@@ -36,9 +34,7 @@ BACKEND_PORT_ENV: dict[str, tuple[int, str]] = {
     "ddg_llama4": (4500, "DDG_TUNNEL_URL"),
     "ddg_mistral": (4500, "DDG_TUNNEL_URL"),
     "ddg_tinfoil_gptoss_120b": (4500, "DDG_TUNNEL_URL"),
-    "kimi": (4504, "KIMI_TUNNEL_URL"),
-    "kimi_thinking": (4504, "KIMI_TUNNEL_URL"),
-    "kimi_search": (4504, "KIMI_TUNNEL_URL"),
+    # M3: kimi tunnel entries removed (now VPS kimi-proxy.service, no FRP needed)
     # M2: scnet_large_* tunnel entries removed (now VPS sidecar, no FRP needed)
     # M1: local_* Ollama 模型已删除
 }

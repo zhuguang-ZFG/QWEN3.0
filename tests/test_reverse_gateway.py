@@ -20,9 +20,7 @@ HOST_DEPENDENT_BACKENDS = {
     "ddg_llama4",
     "ddg_mistral",
     "ddg_tinfoil_gptoss_120b",
-    "kimi",
-    "kimi_thinking",
-    "kimi_search",
+    # M3: kimi now VPS kimi-proxy.service
     "longcat_web",
     "longcat_web_think",
     "longcat_web_research",
@@ -68,8 +66,8 @@ def test_host_dependent_backends_require_explicit_opt_in(monkeypatch):
     monkeypatch.delenv(runtime_topology.HOST_DEPENDENT_OPT_IN, raising=False)
     monkeypatch.setenv("SCNET_LARGE_TUNNEL_URL", "http://127.0.0.1:4505")
 
-    # M2: scnet_large now VPS sidecar, always available. Use kimi (still host-dependent).
-    assert not runtime_topology.backend_available("kimi")
+    # M2/M3: scnet_large + kimi now VPS sidecars. Use ddg (still host-dependent).
+    assert not runtime_topology.backend_available("ddg_gpt4o_mini")
     assert runtime_topology.backend_available("scnet_ds_flash")
 
 
@@ -77,8 +75,9 @@ def test_reverse_gateway_registry_starts_disabled():
     statuses = list_provider_status()
 
     assert statuses
-    # M2: scnet_large now ready_protocol_adapter (VPS sidecar enabled)
+    # M2: scnet_large ready; M3: kimi ready
     assert provider_status("scnet_large")["status"] == "ready_protocol_adapter"
+    assert provider_status("kimi_web")["status"] == "ready_proxy_shell"
 
 
 def test_reverse_gateway_health_endpoint_payload():
