@@ -5591,3 +5591,38 @@ Verification note:
   - some model-facing prompt templates, protocol enum strings, and internal
     paste markers intentionally remain English for cache stability and parser
     compatibility.
+
+## 2026-05-31 LiMa Code Command Center TUI (CQ-107)
+
+- Scope:
+  - selected and documented the A "command center" TUI direction after the
+    ui-ux-pro-max review: main chat stays primary, runtime state becomes an
+    always-visible operator layer;
+  - added `src/ui/runtimeStatus.ts` as a pure view-model builder for Router
+    phase, model, thinking mode, token/cache/request usage, running tools, MCP
+    readiness, and actionable risk labels such as 401 auth, 402 quota/balance,
+    429 rate limit, timeout, and empty response;
+  - added `RuntimeStatusPanel` and wired it into `App.tsx`: wide terminals show
+    the panel beside the prompt, medium terminals show a two-line status band,
+    and narrow terminals show a compact single-line summary;
+  - kept LiMa Server protocol and routing unchanged.
+- Verification:
+  - TDD red first:
+    `npm.cmd run test:single -- src/tests/runtimeStatus.test.ts` failed before
+    `runtimeStatus.ts` existed;
+  - focused tests:
+    `npm.cmd run test:single -- src/tests/runtimeStatus.test.ts src/tests/statusLine.test.ts`
+    -> `5 tests`, `5 pass`;
+  - `npm.cmd run check` -> clean (`typecheck`, `lint`, `format:check`);
+  - `npm.cmd test` -> `506 tests`, `499 pass`, `7 skipped`;
+  - `npm.cmd run build` -> clean, `dist/cli.js` `633.4kb`;
+  - `git diff --check` in `deepcode-cli` -> clean.
+- VPS:
+  - not deployed. This slice only changes LiMa Code CLI/TUI package source,
+    tests, and design docs; no LiMa Server route, env, deployment script, or
+    VPS runtime changed.
+- Residual:
+  - npm/GitHub Release asset was not rebuilt in this slice, so installed
+    Windows/global npm users will not see CQ-107 until the package is refreshed;
+  - visual brainstorm files under `.superpowers/` are local scratch material
+    and are intentionally not part of the release commit.

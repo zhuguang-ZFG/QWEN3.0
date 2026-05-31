@@ -1216,6 +1216,21 @@ Latest LiMa Code TUI vibe telemetry closeout:
 - No VPS deploy was needed because no LiMa Server route, env, or deployment
   code changed in this slice.
 
+Latest LiMa Code command-center TUI closeout:
+
+- Selected A方案 from the ui-ux-pro-max TUI review: main chat remains the
+  working surface, while runtime state becomes a visible operator layer.
+- Added a pure runtime status view model for Router phase, model, thinking,
+  active/input/output/cache/request usage, running tools, MCP readiness, and
+  actionable risk labels including 401, 402, 429, timeout, and empty response.
+- Wired a responsive `RuntimeStatusPanel` into the TUI: wide terminals show a
+  right-side panel, medium terminals show a two-line band, and narrow terminals
+  show a compact single-line summary.
+- Evidence: focused runtime/status tests `5 passed`; `npm.cmd run check` clean;
+  full LiMa Code suite `506 tests, 499 pass, 7 skipped`; `npm.cmd run build`
+  clean with `dist/cli.js` 633.4kb; `git diff --check` clean.
+- No VPS deploy was needed because this is LiMa Code CLI/TUI-only.
+
 Latest command execution/security hardening closeout:
 
 - Added a shared `safe_command.py` command boundary and removed active
