@@ -5493,3 +5493,33 @@ Verification note:
 - Residual:
   - Windows npm package/release refresh is still needed before already
     installed global users see this TUI telemetry.
+
+## 2026-05-31 LiMa Code Cache-Rate and Prompt Hygiene (CQ-104)
+
+- Scope:
+  - added cache hit-rate display to the TUI status line next to cached token
+    count, using `cached/(cached+miss)` when `prompt_cache_miss_tokens` exists
+    and falling back to `cached/input`;
+  - cleaned runtime date/model prompt wording into readable Chinese with stable
+    spacing;
+  - added prompt tests that guard the LiMa Code base prompt against mojibake;
+  - kept existing system prompt ordering contract intact: stable tool prompt,
+    default skills, dynamic runtime context, then project instructions.
+- TDD:
+  - first red run failed as expected:
+    cache line lacked `(73.1%)`, and runtime guidance did not match the
+    readable text contract;
+  - implementation then made focused tests pass.
+- Verification:
+  - `git diff --check` in `deepcode-cli` -> clean;
+  - `npm.cmd run test:single -- src/tests/statusLine.test.ts src/tests/prompt.test.ts src/tests/session.test.ts`
+    -> `73 tests`, `70 pass`, `3 skipped`;
+  - `npm.cmd run check` -> clean;
+  - `npm.cmd run build` -> clean, `dist/cli.js` `612.8kb`;
+  - `npm.cmd test` -> `499 tests`, `492 pass`, `7 skipped`.
+- VPS:
+  - not deployed. This is LiMa Code CLI/TUI prompt/status display logic only;
+    no LiMa Server public route or VPS environment changed.
+- Residual:
+  - installed Windows npm users still need a package/release refresh to receive
+    the cache percentage UI.

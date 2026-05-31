@@ -1,11 +1,21 @@
 # LiMa Status
 
-> Updated: 2026-05-31 (LiMa Code TUI vibe telemetry closeout)
+> Updated: 2026-05-31 (LiMa Code cache-rate and prompt hygiene closeout)
 > Branch: `main`
-> Tests: LiMa Code focused TUI/session tests **68 passed, 3 skipped**; full LiMa Code suite **491 passed, 7 skipped**; `npm.cmd run check` and build clean
+> Tests: LiMa Code focused prompt/status/session tests **70 passed, 3 skipped**; full LiMa Code suite **492 passed, 7 skipped**; `npm.cmd run check` and build clean
 > Current VPS: unchanged for this CLI/TUI-only slice; last server smoke health OK with `/v1/ops/summary` 200
 > VPS: Memory 1454MB→1358MB (services restored), health check OK
 > Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
+
+## 2026-05-31 LiMa Code Cache-Rate and Prompt Hygiene Closeout
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| Cache hit percentage | Done | TUI status line now renders cached token count plus hit rate, e.g. `cache: 950 (73.1%)`; hit rate uses `cached/(cached+miss)` when miss telemetry exists and falls back to `cached/input` |
+| Prompt readability | Done | Runtime date/model guidance now uses readable Chinese spacing instead of dense/legacy wording; tests guard against mojibake in the base LiMa Code prompt |
+| Stable prompt contract | Guarded | Existing session test still proves system prompt order stays prefix-cache-friendly: tools first, default skills second, dynamic runtime context third, project instructions last |
+| Local verification | Done | TDD red first: cache percentage and runtime guidance failed; focused tests `73 tests, 70 pass, 3 skipped`; `npm.cmd run check` clean; full `npm.cmd test` -> `499 tests, 492 pass, 7 skipped`; `npm.cmd run build` clean, `dist/cli.js` 612.8kb |
+| VPS deploy | Not needed | No LiMa Server code, route, env, or deployment script changed in this slice |
 
 ## 2026-05-31 LiMa Code TUI Vibe Telemetry Closeout
 
