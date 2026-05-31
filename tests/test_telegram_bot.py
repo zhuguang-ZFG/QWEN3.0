@@ -55,6 +55,35 @@ class TestTelegramBot:
         assert calls == ["http://127.0.0.1:9", None]
 
     @pytest.mark.asyncio
+    async def test_api_call_placeholder_token_failure_is_debug_only(self, monkeypatch, caplog):
+        monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test-token-123")
+        monkeypatch.setenv("TELEGRAM_NO_PROXY", "1")
+
+        class FakeClient:
+            def __init__(self, *, proxy=None, timeout=10.0):
+                pass
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                return False
+
+            async def post(self, url, json=None):
+                raise httpx.ConnectError("offline", request=MagicMock())
+
+        monkeypatch.setattr(telegram_bot.httpx, "AsyncClient", FakeClient)
+
+        with caplog.at_level("WARNING"):
+            result = await telegram_bot._api_call("sendMessage", {})
+
+        assert result is None
+        assert not [
+            record for record in caplog.records
+            if "Telegram API sendMessage failed" in record.getMessage()
+        ]
+
+    @pytest.mark.asyncio
     async def test_send_message_calls_api(self):
         with patch.object(telegram_bot, "_api_call", new_callable=AsyncMock) as mock:
             mock.return_value = {"ok": True}

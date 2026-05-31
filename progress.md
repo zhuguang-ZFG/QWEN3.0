@@ -5203,3 +5203,30 @@ Verification note:
   - final `tailscale ping 100.103.82.78` reached `lima-server`, first via
     DERP(sfo), then direct `47.112.162.80:53729` in `11ms`;
   - final local status: `BackendState=Running`, `Health=[]`.
+
+## 2026-05-31 Telegram Test-Noise Cleanup (CQ-097)
+
+- Scope:
+  - removed false-positive Telegram warning noise at the end of full pytest;
+  - root cause was test modules setting placeholder Telegram credentials such
+    as `test-token-123`, then fire-and-forget notification paths attempting a
+    real Telegram send after the tests had already passed.
+- Fix:
+  - `telegram_bot._api_call()` still warns for real configured tokens;
+  - for obvious placeholder tokens (`test-token`, `test-token-123`, `123:test`,
+    `tok`, and `test-*`) API failures are logged at debug level only.
+- Verification:
+  - red test reproduced the placeholder-token warning;
+  - focused Telegram tests:
+    `python -m pytest tests/test_telegram_bot.py tests/test_telegram_b2b.py tests/test_telegram_draft_stream.py -q`
+    -> `30 passed`;
+  - `ruff check telegram_bot.py tests/test_telegram_bot.py` -> clean;
+  - `pyright telegram_bot.py` -> `0 errors`;
+  - full server suite:
+    `python -m pytest -q --ignore=active_model`
+    -> `2171 passed, 10 skipped`;
+  - the previous trailing `Telegram API sendMessage failed` lines no longer
+    appear after pytest completion.
+- VPS:
+  - `python scripts/deploy_unified.py --files telegram_bot.py`
+    -> 1/1 uploaded, restart OK, health OK.

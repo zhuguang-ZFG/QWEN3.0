@@ -2050,3 +2050,22 @@ Deployment: not performed.
   - final Windows-to-VPS ping reached `lima-server` direct at
     `47.112.162.80:53729` in `11ms`;
   - final local Tailscale status was `BackendState=Running`, `Health=[]`.
+
+## 2026-05-31 Telegram Test-Noise Cleanup
+
+- Full pytest previously passed but ended with noisy Telegram warnings:
+  `Telegram API sendMessage failed: All connection attempts failed`.
+- Root cause:
+  - Telegram tests set placeholder credentials such as `test-token-123`;
+  - fire-and-forget notification paths could still attempt a real send after
+    tests had already passed.
+- Fix:
+  - `telegram_bot._api_call()` logs failures for obvious placeholder tokens at
+    debug level only;
+  - real configured Telegram tokens still log failures at warning level.
+- Evidence:
+  - focused Telegram tests `30 passed`;
+  - full server suite `2171 passed, 10 skipped`;
+  - no trailing Telegram sendMessage failure noise after pytest completion;
+  - ruff and pyright clean;
+  - VPS deploy uploaded 1/1 and health passed.

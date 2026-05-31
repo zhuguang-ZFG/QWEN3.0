@@ -23,6 +23,22 @@ def is_configured() -> bool:
     return bool(_bot_token() and _chat_id())
 
 
+def _using_placeholder_token() -> bool:
+    token = _bot_token().strip().lower()
+    return (
+        token in {"tok", "test-token", "test-token-123", "123:test"}
+        or token.startswith("test-")
+        or token.endswith(":test")
+    )
+
+
+def _log_api_failure(message: str, *args: object) -> None:
+    if _using_placeholder_token():
+        logger.debug(message, *args)
+    else:
+        logger.warning(message, *args)
+
+
 def is_authorized(chat_id: int | str) -> bool:
     return str(chat_id) == _chat_id()
 
@@ -72,14 +88,18 @@ async def _api_call(method: str, data: dict) -> dict | None:
                     type(exc).__name__,
                 )
                 continue
-            logger.warning("Telegram API %s failed: %s", method, exc)
+            _log_api_failure("Telegram API %s failed: %s", method, exc)
             return None
         except Exception as exc:
             last_error = exc
-            logger.warning("Telegram API %s unexpected error: %s", method, exc)
+            _log_api_failure("Telegram API %s unexpected error: %s", method, exc)
             return None
     if last_error is not None:
-        logger.warning("Telegram API %s failed after transport attempts: %s", method, last_error)
+        _log_api_failure(
+            "Telegram API %s failed after transport attempts: %s",
+            method,
+            last_error,
+        )
     return None
 
 

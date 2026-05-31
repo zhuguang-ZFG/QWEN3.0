@@ -1,11 +1,19 @@
 # LiMa Status
 
-> Updated: 2026-05-31 (chat JSON guard + Tailscale closeout)
+> Updated: 2026-05-31 (Telegram test-noise closeout)
 > Branch: `main`
-> Tests: LiMa Server full pytest **2170 passed, 10 skipped**; focused chat endpoint tests **19 passed**; ruff/pyright clean
-> Current VPS: health OK; malformed JSON now returns 400; Tailscale Windows↔VPS link is reachable
+> Tests: LiMa Server full pytest **2171 passed, 10 skipped**; focused Telegram tests **30 passed**; ruff/pyright clean
+> Current VPS: health OK; malformed JSON returns 400; Tailscale Windows↔VPS link is reachable; pytest Telegram noise removed
 > VPS: Memory 1454MB→1358MB (services restored), health check OK
 > Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
+
+## 2026-05-31 Telegram Test-Noise Closeout
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| Test placeholder token handling | Deployed | `telegram_bot.py` now logs Telegram API failures at debug level when the configured token is an obvious placeholder such as `test-token-123`; real tokens still warn |
+| Local verification | Done | focused Telegram tests `30 passed`; full pytest `2171 passed, 10 skipped`; no trailing `Telegram API sendMessage failed` noise |
+| VPS smoke | Done | deploy uploaded 1/1 and health OK |
 
 ## 2026-05-31 Chat JSON Guard + Tailscale Closeout
 
