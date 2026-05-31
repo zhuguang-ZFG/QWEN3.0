@@ -1258,6 +1258,26 @@ Latest LiMa Code visible Chinese cleanup:
 - Public URL install smoke confirmed Chinese `/lima doctor --json`; installed
   bundle no longer contains old `enter send` or `LiMa doctor: ready` strings.
 
+Latest LiMa Code cache-busting Chinese package:
+
+- Root cause of the user's repeated English TUI was npm/GitHub URL caching:
+  `lima-code-v0.1.24/lima-code-0.1.24.tgz` could still install the stale
+  package even after Release asset replacement.
+- LiMa Code is now bumped to `0.1.25` with a new Release URL and package name.
+- Remaining visible command-center English was localized: welcome `Tips`,
+  runtime labels (`路由`, `模型`, `思考`, `缓存`, `请求`, `工具`, `风险`), MCP
+  readiness, running-tool counts, retry labels, and risk values.
+- Evidence: focused tests `71 passed`; full LiMa Code suite
+  `507 tests, 500 pass, 7 skipped`; `npm.cmd run check` clean;
+  `npm.cmd run build` clean with `dist/cli.js` 635.9kb.
+- GitHub Release `lima-code-v0.1.25` npm asset digest:
+  `sha256:14f43e7c110ce7dad6d5dedf75fcc670fb033bfa96beeaf21c49b5af70caee09`.
+- Public URL install smoke added 60 packages; installed `lima-code --version`
+  returned `0.1.25`; installed `/lima doctor --json` returned Chinese output;
+  old screenshot strings (`Type your message`, `enter send`, `Tips:`,
+  `Router:`, `Tools: 0 running`, `MCP: 0 configured`, `Risk: none`) were not
+  present in the installed dist.
+
 Latest command execution/security hardening closeout:
 
 - Added a shared `safe_command.py` command boundary and removed active

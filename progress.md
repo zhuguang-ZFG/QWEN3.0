@@ -5706,3 +5706,62 @@ Verification note:
 - VPS:
   - not deployed. This is LiMa Code CLI/TUI package source and release asset
     only.
+
+## 2026-05-31 LiMa Code 0.1.25 Cache-Busting Chinese TUI Release (CQ-110)
+
+- Root cause:
+  - reusing `lima-code-v0.1.24/lima-code-0.1.24.tgz` allowed npm on Windows to
+    keep installing a stale cached package, so the user's TUI still showed
+    English doctor/footer/runtime-panel strings after reinstall;
+  - the correct fix is a new package version and Release URL, not another
+    clobber of the same tarball.
+- Scope:
+  - bumped LiMa Code from `0.1.24` to `0.1.25`;
+  - localized the remaining visible command-center operator text:
+    welcome `Tips` -> `提示`, runtime labels (`路由`, `模型`, `思考`, `缓存`,
+    `请求`, `工具`, `风险`), retry text, MCP readiness/configured text,
+    running-tool counts, thinking on/off text, and risk labels;
+  - added regression tests that reject the old visible strings from the user's
+    screenshot.
+- Verification:
+  - TDD red first:
+    `runtimeStatus.test.ts` failed on old `Router`, `Thinking`, `Tools`,
+    `ready`, `running`, `retry` labels before implementation;
+  - focused screenshot-path tests:
+    `npm.cmd run test:single -- src/tests/lima-doctor.test.ts src/tests/lima-command-runner.test.ts src/tests/promptInputKeys.test.ts src/tests/runtimeStatus.test.ts src/tests/welcomeScreen.test.ts`
+    -> `71 tests`, `71 pass`;
+  - `npm.cmd run check` -> clean;
+  - `npm.cmd test` -> `507 tests`, `500 pass`, `7 skipped`;
+  - `npm.cmd run build` -> clean, `dist/cli.js` `635.9kb`;
+  - `git diff --check` -> clean;
+  - secret scan over changed package/UI/test files found only an existing fake
+    `sk-...` detector fixture.
+- Packaging evidence:
+  - `npm.cmd pack --json --cache .npm-cache` succeeded and ran `prepack`;
+  - resulting package: size `255747`, unpacked size `799329`, shasum
+    `ff8e27b132e778e001b9872afaf3cd36d1fed62d`, SHA256
+    `14f43e7c110ce7dad6d5dedf75fcc670fb033bfa96beeaf21c49b5af70caee09`;
+  - GitHub Release `lima-code-v0.1.25` created at
+    `https://github.com/zhuguang-ZFG/deepcode-cli/releases/tag/lima-code-v0.1.25`;
+  - Release asset `lima-code-0.1.25.tgz` reports digest
+    `sha256:14f43e7c110ce7dad6d5dedf75fcc670fb033bfa96beeaf21c49b5af70caee09`.
+- Install smoke:
+  - public Release URL install into `.pkg-url-smoke` -> `added 60 packages`;
+  - installed `lima-code.cmd --version` -> `0.1.25`;
+  - installed `/lima doctor --json` returned Chinese operator output:
+    `LiMa doctor：需要处理`, `[失败] 服务配置`, `[跳过] 服务连通`,
+    `[警告] Telegram 通知`;
+  - installed bundle scan found none of the old screenshot strings:
+    `LiMa doctor: ready`, `[pass]`, `[warn]`, `Type your message`,
+    `enter send`, `shift+enter newline`, `Tips:`, `Router:`,
+    `Thinking: off`, `Tools: 0 running`, `MCP: 0 configured`, `Risk: none`.
+- Cleanup:
+  - removed `.npm-cache`, `.npm-cache-url`, `.pkg-smoke`, `.pkg-url-smoke`,
+    and `lima-code-0.1.25.tgz` after verifying resolved paths were inside
+    `D:\GIT\deepcode-cli`.
+- Security note:
+  - the third-party token pasted during the user-side CLI session was not
+    tested, committed, or written into docs. It should be revoked or rotated
+    by the operator because it was exposed in terminal history.
+- VPS:
+  - not deployed. This is LiMa Code CLI/TUI package and GitHub Release only.
