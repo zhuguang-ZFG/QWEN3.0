@@ -123,12 +123,7 @@ BACKENDS = {
     'deepinfra_llama4': {'url': 'https://api.deepinfra.com/v1/openai/chat/completions', 'key': os.environ.get('DEEPINFRA_API_KEY', ''), 'model': 'meta-llama/Llama-4-Maverick-17B-128E-Instruct', 'fmt': 'openai', 'timeout': 20},
     'deepinfra_qwen235b': {'url': 'https://api.deepinfra.com/v1/openai/chat/completions', 'key': os.environ.get('DEEPINFRA_API_KEY', ''), 'model': 'Qwen/Qwen3-235B-A22B-Instruct', 'fmt': 'openai', 'timeout': 30},
     'deepseek_free': {'url': 'http://127.0.0.1:8000/v1/chat/completions', 'key': 'none', 'model': 'deepseek-chat', 'fmt': 'openai', 'timeout': 60},
-    # ── 本地 Ollama (RTX 5060 Ti 16GB, Cloudflare Tunnel 暴露) ──
-    'local_coder14b': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'qwen2.5-coder:14b', 'fmt': 'openai', 'timeout': 30},
-    'local_reasoning': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'deepseek-r1:7b', 'fmt': 'openai', 'timeout': 45, 'caps': ['deep_reasoning']},
-    'local_general': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'gemma3:12b', 'fmt': 'openai', 'timeout': 30},
-    'local_fast': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'qwen2.5-coder:1.5b', 'fmt': 'openai', 'timeout': 10},
-    'local_chat': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'qwen2.5:0.5b', 'fmt': 'openai', 'timeout': 5},
+    # ── 本地 Ollama 模型已于 M1 删除 (脱离本机计划) ──
     # ── DuckDuckGo-AI (本地 duckai, 免费, 仅 3 个模型验证可用) ──
     'ddg_gpt4o_mini': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'gpt-4o-mini', 'fmt': 'openai', 'timeout': 30, 'no_system': True, 'caps': ['tool_calls']},
     'ddg_gpt5_mini': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'gpt-5-mini', 'fmt': 'openai', 'timeout': 30, 'no_system': True, 'caps': ['tool_calls']},
@@ -171,10 +166,7 @@ BACKENDS = {
     'cfai_qwen_coder': {'url': 'https://ai.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'qwen2.5-coder-32b', 'fmt': 'openai', 'timeout': 30, 'caps': ['tool_calls', 'code']},
     'cfai_deepseek_r1': {'url': 'https://ai.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'deepseek-r1-32b', 'fmt': 'openai', 'timeout': 45},
     'cfai_mistral': {'url': 'https://ai.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'mistral-small-3.1', 'fmt': 'openai', 'timeout': 30},
-    # ── 本地 Ollama 新增模型 ──
-    'local_qwen3': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'qwen3:8b', 'fmt': 'openai', 'timeout': 30},
-    'local_phi4': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'phi4:14b', 'fmt': 'openai', 'timeout': 45},
-    'local_mistral': {'url': f"{os.environ.get('OLLAMA_TUNNEL_URL', 'http://localhost:11434')}/v1/chat/completions", 'key': 'none', 'model': 'mistral', 'fmt': 'openai', 'timeout': 30, 'caps': ['tool_calls']},
+    # ── 本地 Ollama 新增模型已于 M1 删除 ──
     # ── PollinationsAI (免费, 直连, 无需 g4f 中间层) ──
     'pollinations_openai': {'url': 'https://text.pollinations.ai/openai/chat/completions', 'key': 'none', 'model': 'openai', 'fmt': 'openai', 'timeout': 30},
     'pollinations_openai_large': {'url': 'https://text.pollinations.ai/openai/chat/completions', 'key': 'none', 'model': 'openai-large', 'fmt': 'openai', 'timeout': 45},
@@ -241,8 +233,7 @@ DISABLED_HOST_DEPENDENT_BACKENDS = {
     name: BACKENDS.pop(name)
     for name in (
         'deepseek_free',
-        'local_coder14b', 'local_reasoning', 'local_general', 'local_fast', 'local_chat',
-        'local_qwen3', 'local_phi4', 'local_mistral',
+        # M1: local_* Ollama models removed; oldllm_* already on CF Worker, no longer need pop
         'ddg_gpt4o_mini', 'ddg_gpt5_mini', 'ddg_claude_haiku_45',
         'ddg_llama4', 'ddg_mistral', 'ddg_tinfoil_gptoss_120b',
         'kimi', 'kimi_thinking', 'kimi_search',
@@ -251,9 +242,6 @@ DISABLED_HOST_DEPENDENT_BACKENDS = {
         'scnet_qwen235b_code', 'scnet_ds_pro_code',
         'mimo_web', 'mimo_web_think', 'mimo_web_flash',
         'mimo_web_code', 'mimo_web_think_code',
-        'oldllm_gpt54', 'oldllm_gpt53', 'oldllm_gpt52', 'oldllm_gpt51',
-        'oldllm_gpt5', 'oldllm_gpt5_mini', 'oldllm_gpt41', 'oldllm_gpt41_mini',
-        'oldllm_gpt41_nano', 'oldllm_gpt4', 'oldllm_o1', 'oldllm_o4_mini',
     )
     if name in BACKENDS
 }

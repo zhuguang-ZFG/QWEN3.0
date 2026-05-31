@@ -28,26 +28,8 @@ LOCAL_ONLY_BACKENDS: set[str] = {
     "mimo_web_flash",
     "mimo_web_code",
     "mimo_web_think_code",
-    "oldllm_gpt54",
-    "oldllm_gpt53",
-    "oldllm_gpt52",
-    "oldllm_gpt51",
-    "oldllm_gpt5",
-    "oldllm_gpt5_mini",
-    "oldllm_gpt41",
-    "oldllm_gpt41_mini",
-    "oldllm_gpt41_nano",
-    "oldllm_gpt4",
-    "oldllm_o1",
-    "oldllm_o4_mini",
-    "local_coder14b",
-    "local_reasoning",
-    "local_general",
-    "local_fast",
-    "local_chat",
-    "local_qwen3",
-    "local_phi4",
-    "local_mistral",
+    # M1: oldllm_* already on CF Worker (llm.zhuguang.ccwu.cc), no longer host-dependent
+    # M1: local_* Ollama models removed, no longer part of LiMa
 }
 
 BACKEND_PORT_ENV: dict[str, tuple[int, str]] = {
@@ -62,14 +44,7 @@ BACKEND_PORT_ENV: dict[str, tuple[int, str]] = {
     "kimi_search": (4504, "KIMI_TUNNEL_URL"),
     "scnet_large_ds_flash": (4505, "SCNET_LARGE_TUNNEL_URL"),
     "scnet_large_ds_pro": (4505, "SCNET_LARGE_TUNNEL_URL"),
-    "local_coder14b": (11434, "OLLAMA_TUNNEL_URL"),
-    "local_reasoning": (11434, "OLLAMA_TUNNEL_URL"),
-    "local_general": (11434, "OLLAMA_TUNNEL_URL"),
-    "local_fast": (11434, "OLLAMA_TUNNEL_URL"),
-    "local_chat": (11434, "OLLAMA_TUNNEL_URL"),
-    "local_qwen3": (11434, "OLLAMA_TUNNEL_URL"),
-    "local_phi4": (11434, "OLLAMA_TUNNEL_URL"),
-    "local_mistral": (11434, "OLLAMA_TUNNEL_URL"),
+    # M1 清理: local_* Ollama 模型已删除
 }
 
 

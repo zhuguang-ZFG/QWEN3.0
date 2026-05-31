@@ -95,7 +95,8 @@ def test_host_dependent_backends_removed_from_production_registry():
     assert "local_coder14b" not in backends.BACKENDS
     assert "scnet_large_ds_flash" not in backends.BACKENDS
     assert "mimo_web" not in backends.BACKENDS
-    assert "local_coder14b" in backends.DISABLED_HOST_DEPENDENT_BACKENDS
+    # M1: local_* Ollama models fully removed, no longer in DISABLED_HOST_DEPENDENT_BACKENDS
+    assert "local_coder14b" not in backends.DISABLED_HOST_DEPENDENT_BACKENDS
     assert "scnet_large_ds_flash" in backends.DISABLED_HOST_DEPENDENT_BACKENDS
     assert backends.backend_has_capability("scnet_large_ds_flash", "tool_calls")
 

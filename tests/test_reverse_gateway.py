@@ -33,14 +33,7 @@ HOST_DEPENDENT_BACKENDS = {
     "mimo_web_flash",
     "mimo_web_code",
     "mimo_web_think_code",
-    "local_coder14b",
-    "local_reasoning",
-    "local_general",
-    "local_fast",
-    "local_chat",
-    "local_qwen3",
-    "local_phi4",
-    "local_mistral",
+    # M1: local_* Ollama models removed
 }
 
 
