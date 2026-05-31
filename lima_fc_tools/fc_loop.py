@@ -13,7 +13,7 @@ FC_BACKENDS = [
     "groq_qwen32b",
     "google_gemini3",
     "google_flash",
-    "deepseek_free",
+    # M6: deepseek_free deleted
     "mistral_large",
     "cf_kimi_k26",
     "cf_qwen3_30b",

@@ -13,7 +13,8 @@ FC_BACKENDS = [
     "github_gpt4o", "github_gpt5", "github_o4_mini",
     "groq_llama70b", "groq_qwen32b",
     "google_gemini3", "google_flash",
-    "deepseek_free", "mistral_large", "mistral_small",
+    # M6: deepseek_free deleted
+    "mistral_large", "mistral_small",
     "cf_kimi_k26", "cf_qwen3_30b",
     "scnet_ds_flash", "scnet_qwen30b",
 ]

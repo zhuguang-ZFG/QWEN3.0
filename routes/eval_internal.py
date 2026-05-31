@@ -1,4 +1,4 @@
-"""Internal direct-backend eval call (P2-25). Used via FRP from VPS for local proxies."""
+"""Internal direct-backend eval call (P2-25). M6: FRP path retired — all backends cloud-native."""
 
 from __future__ import annotations
 

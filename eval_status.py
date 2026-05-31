@@ -10,7 +10,7 @@ from eval_slice_summary import latest_scores_path
 
 ROOT = Path(__file__).resolve().parent
 
-# Often score 0 on VPS localhost when large pool is on Windows FRP.
+# M6: All backends cloud-native, no more Windows FRP issues.
 _LARGE_ZERO_HINT = frozenset(
     {"scnet_large_ds_pro", "scnet_large_ds_flash", "stock_kimi_k2"}
 )
@@ -62,8 +62,7 @@ def large_eval_hint_lines(data_dir: Path | None = None) -> list[str]:
 
     return [
         "Large/Stock 0 分提示",
-        f"· {', '.join(zeros)} avg=0（VPS localhost 可能不可达）",
-        "· full eval 可设 LIMA_EVAL_VIA_ROUTER_URL=http://127.0.0.1:8088（FRP→Windows）",
+        f"· {', '.join(zeros)} avg=0",
         f"· 当前 base={eval_base_url()}",
     ]
 

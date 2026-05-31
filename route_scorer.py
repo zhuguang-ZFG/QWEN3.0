@@ -11,14 +11,8 @@ TERMINAL_STATES = {
     "quota_exhausted",
 }
 
-UNPROVEN_WEB_ADAPTERS = {
-    "ddg_gpt4o_mini",
-    "ddg_gpt5_mini",
-    "ddg_claude_haiku_45",
-    "ddg_llama4",
-    "ddg_mistral",
-    "ddg_tinfoil_gptoss_120b",
-}
+# M6: DDG backends deleted — no unproven web adapters remain
+UNPROVEN_WEB_ADAPTERS: set[str] = set()
 
 CODING_BACKENDS = {
     "scnet_ds_flash",

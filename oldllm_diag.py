@@ -12,24 +12,12 @@ from typing import Any
 
 _log = logging.getLogger(__name__)
 
+# M1: oldllm_* now CF Workers on llm.zhuguang.ccwu.cc. No local proxy needed.
 DEFAULT_UPSTREAM = os.environ.get(
     "OLDLLM_UPSTREAM_URL", "https://llm.zhuguang.ccwu.cc"
 ).rstrip("/")
-DEFAULT_LOCAL_PROXY = os.environ.get(
-    "OLDLLM_LOCAL_PROXY_URL", "http://127.0.0.1:4502"
-).rstrip("/")
 DEFAULT_CHAT_MODEL = os.environ.get("OLDLLM_DIAG_MODEL", "gpt-4.1-nano")
-DEFAULT_LOCAL_CHAT_MODEL = os.environ.get("OLDLLM_LOCAL_DIAG_MODEL", "gpt-5.1")
 DEFAULT_CHAT_TIMEOUT = float(os.environ.get("OLDLLM_DIAG_CHAT_TIMEOUT", "30"))
-LOCAL_CHAT_TIMEOUT = float(os.environ.get("OLDLLM_LOCAL_CHAT_TIMEOUT", "12"))
-
-
-def skip_local_probe() -> bool:
-    return os.environ.get("OLDLLM_SKIP_LOCAL_PROBE", "").strip().lower() in {
-        "1",
-        "true",
-        "yes",
-    }
 
 
 def _parse_sse_chat(raw: str) -> str:
@@ -56,12 +44,12 @@ def _parse_sse_chat(raw: str) -> str:
             pass
     return "".join(parts).strip()[:120]
 
+# M1: oldllm_* now CF Workers (no Windows proxy). Hints updated.
 REFRESH_HINTS = (
-    "502 Bad Gateway → Windows: node D:\\ollama_server\\sync_oldllm_token_to_cf.js（或 python scripts/sync_oldllm_token_to_cf.py --diag）",
-    "Turnstile 导致全自动失败 → sync 脚本读 oldllm_proxy.log 推 CF；仍失败再跑 refresh_theoldllm_token.js --capture",
-    "local_proxy FAIL + upstream ok → 重启 oldllm_proxy (:4502) 与 frpc 隧道",
+    "502 Bad Gateway → check CF Worker token sync (scripts/sync_oldllm_token_to_cf.py --diag)",
+    "Turnstile → sync script pushes token to CF Worker; retry refresh if needed",
     "chat timeout → 增大 OLDLLM_DIAG_CHAT_TIMEOUT 或换 gpt-5.1 / gpt-4.1-nano",
-    "models ok chat fail → VPS/Windows 检查 Bearer key 与代理日志",
+    "models ok chat fail → check CF Worker Bearer key and upstream health",
 )
 
 
@@ -203,119 +191,32 @@ def _extract_chat_content(payload: dict[str, Any] | str) -> str:
         return ""
 
 
-def _local_proxy_unreachable(models: dict[str, Any]) -> bool:
-    if models.get("ok"):
-        return False
-    elapsed = float(models.get("elapsed_sec") or 0)
-    status = models.get("status")
-    return status is None and elapsed < 0.2
-
-
+# M1: oldllm_* now CF Workers. Simplified diag — upstream only.
 def run_diag(
     *,
     upstream: str = DEFAULT_UPSTREAM,
-    local_proxy: str = DEFAULT_LOCAL_PROXY,
     chat_timeout: float = DEFAULT_CHAT_TIMEOUT,
     skip_chat: bool = False,
 ) -> dict[str, Any]:
-    targets = [
-        ("upstream", upstream),
-        ("local_proxy", local_proxy),
-    ]
     results: list[dict[str, Any]] = []
-    for label, base in targets:
-        if label == "local_proxy" and skip_local_probe():
-            results.append(
-                {
-                    "label": label,
-                    "kind": "models",
-                    "target": base,
-                    "ok": False,
-                    "skipped": True,
-                    "skip_reason": "OLDLLM_SKIP_LOCAL_PROBE=1",
-                    "status": None,
-                    "elapsed_sec": 0.0,
-                    "model_count": 0,
-                }
-            )
-            if not skip_chat:
-                results.append(
-                    {
-                        "label": label,
-                        "kind": "chat",
-                        "target": base,
-                        "ok": False,
-                        "skipped": True,
-                        "skip_reason": "OLDLLM_SKIP_LOCAL_PROBE=1",
-                        "status": None,
-                        "elapsed_sec": 0.0,
-                        "model": DEFAULT_LOCAL_CHAT_MODEL,
-                    }
-                )
-            continue
+    models = probe_models(upstream)
+    models["label"] = "upstream"
+    results.append(models)
 
-        models = probe_models(base)
-        models["label"] = label
-
-        if label == "local_proxy" and _local_proxy_unreachable(models):
-            skip_reason = "4502 在本机 Windows；VPS 上请只看 upstream"
-            models.update(
-                {
-                    "ok": False,
-                    "skipped": True,
-                    "skip_reason": skip_reason,
-                }
-            )
-            results.append(models)
-            if not skip_chat:
-                results.append(
-                    {
-                        "label": label,
-                        "kind": "chat",
-                        "target": base,
-                        "ok": False,
-                        "skipped": True,
-                        "skip_reason": skip_reason,
-                        "status": None,
-                        "elapsed_sec": models.get("elapsed_sec", 0),
-                        "model": DEFAULT_LOCAL_CHAT_MODEL,
-                    }
-                )
-            continue
-
-        results.append(models)
-
-        if skip_chat:
-            continue
-
-        chat_model = (
-            DEFAULT_LOCAL_CHAT_MODEL if label == "local_proxy" else DEFAULT_CHAT_MODEL
-        )
-        probe_timeout = (
-            LOCAL_CHAT_TIMEOUT if label == "local_proxy" else chat_timeout
-        )
-        chat = probe_chat(base, model=chat_model, timeout=probe_timeout)
-        chat["label"] = label
+    if not skip_chat:
+        chat = probe_chat(upstream, model=DEFAULT_CHAT_MODEL, timeout=chat_timeout)
+        chat["label"] = "upstream"
         results.append(chat)
 
-    any_models = any(
-        r.get("kind") == "models" and r.get("ok") for r in results
-    )
+    any_models = any(r.get("kind") == "models" and r.get("ok") for r in results)
     any_chat = any(r.get("kind") == "chat" and r.get("ok") for r in results)
-    upstream_chat_ok = any(
-        r.get("label") == "upstream"
-        and r.get("kind") == "chat"
-        and r.get("ok")
-        for r in results
-    )
     report = {
         "upstream": upstream,
-        "local_proxy": local_proxy,
         "chat_model": DEFAULT_CHAT_MODEL,
         "chat_timeout_sec": chat_timeout,
         "any_models_ok": any_models,
         "any_chat_ok": any_chat,
-        "upstream_chat_ok": upstream_chat_ok,
+        "upstream_chat_ok": any_chat,
         "results": results,
     }
     report["hints"] = failure_hints(report)

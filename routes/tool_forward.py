@@ -29,8 +29,8 @@ TOOL_BACKEND_MODEL = "deepseek/deepseek-v4-flash:free"
 TOOL_BACKEND_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 
 ANTHROPIC_NATIVE_BACKENDS = [
-    'longcat_chat', 'longcat', 'deepseek_free',
-    'longcat_lite', 'longcat_thinking', 'longcat_omni',
+    'longcat_chat', 'longcat',
+    # M6: deepseek_free deleted; longcat_lite/thinking/omni offline 2026-05-29
 ]
 
 TOOL_TIER1_BACKENDS: list[str] = []

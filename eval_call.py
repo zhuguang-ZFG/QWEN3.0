@@ -1,4 +1,4 @@
-"""Eval call_fn factory — direct http_caller or FRP/Windows router for local proxies."""
+"""Eval call_fn factory (M6: FRP path retired — all backends cloud-native)."""
 
 from __future__ import annotations
 

@@ -11,15 +11,15 @@ from web_reverse_eval import (
 def test_discover_web_reverse_backends_uses_inventory_and_registry_only_candidates():
     inventory = [
         {
-            "id": "duck_ai",
-            "lima_backends": ["ddg_gpt4o_mini", "missing_backend"],
+            "id": "kimi_web",
+            "lima_backends": ["kimi", "missing_backend"],
         }
     ]
     backends = {
-        "ddg_gpt4o_mini": {
-            "url": "http://localhost:4500/v1/chat/completions",
+        "kimi": {
+            "url": "http://localhost:4504/v1/chat/completions",
             "key": "none",
-            "model": "gpt-4o-mini",
+            "model": "kimi",
         },
         "mimo_web": {
             "url": "http://localhost:4507/v1/chat/completions",
@@ -35,7 +35,8 @@ def test_discover_web_reverse_backends_uses_inventory_and_registry_only_candidat
 
     selected = discover_web_reverse_backends(inventory, backends)
 
-    assert selected == ["ddg_gpt4o_mini", "mimo_web"]
+    # M6: ddg deleted. kimi is now a real VPS sidecar — it should be discovered.
+    assert selected == ["kimi", "mimo_web"]
 
 
 def test_discover_web_reverse_backends_does_not_select_direct_kimi_named_apis():
@@ -109,15 +110,16 @@ def test_summarize_results_requires_full_batch_before_route_candidate_status():
 
 
 def test_summarize_results_recommends_code_floor_for_two_passing_cases():
+    # M6: ddg deleted. Use kimi as test backend.
     results = [
-        EvalResult("ddg_gpt5_mini", "a", 90, 1200, True, [], "ok"),
-        EvalResult("ddg_gpt5_mini", "b", 75, 1800, True, [], "ok"),
-        EvalResult("ddg_gpt5_mini", "c", 40, 1600, False, ["json parse failed"], ""),
+        EvalResult("kimi", "a", 90, 1200, True, [], "ok"),
+        EvalResult("kimi", "b", 75, 1800, True, [], "ok"),
+        EvalResult("kimi", "c", 40, 1600, False, ["json parse failed"], ""),
     ]
 
     summaries = summarize_results(results)
 
-    assert summaries["ddg_gpt5_mini"]["recommendation"] == "code_floor_candidate"
+    assert summaries["kimi"]["recommendation"] == "code_floor_candidate"
 
 
 def test_summarize_results_disables_auth_or_quota_failures():

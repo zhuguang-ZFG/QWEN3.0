@@ -7,18 +7,20 @@ def test_pick_tool_backend_skips_unproven_web_adapter(monkeypatch):
         "_tool_backend_selectable",
         lambda name: name == "scnet_large_ds_flash",
     )
+    # M6: ddg_* deleted. Use active backends.
     picked = tool_forward.pick_tool_backend(
-        ["ddg_gpt4o_mini", "scnet_large_ds_flash"],
+        ["mimo_web", "scnet_large_ds_flash"],
     )
     assert picked == "scnet_large_ds_flash"
 
 
 def test_tool_tier_discovery_excludes_host_dependent_backends():
+    # M2/M3/M6: scnet_large/kimi now VPS → in TOOL_TIER1; ddg deleted; mimo still in DISABLED
     tool_forward._refresh_tool_tiers()
 
-    assert "scnet_large_ds_flash" not in tool_forward.TOOL_TIER1_BACKENDS
-    assert "kimi" not in tool_forward.TOOL_TIER1_BACKENDS
-    assert "ddg_gpt4o_mini" not in tool_forward.TOOL_TIER1_BACKENDS
+    assert "scnet_large_ds_flash" in tool_forward.TOOL_TIER1_BACKENDS
+    assert "kimi" in tool_forward.TOOL_TIER1_BACKENDS
+    # ddg deleted, not testable
 
 
 def test_tool_backend_selectable_excludes_terminal_state(monkeypatch):

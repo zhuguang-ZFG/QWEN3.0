@@ -51,18 +51,10 @@ _DEFAULT_MATRIX = {
     "cf_gemma4": {"code": 6, "debug": 5, "chinese": 3, "english": 7, "reasoning": 5, "speed": 7},
 
     # 本地 Ollama (RTX 5060 Ti)
-    "local_coder14b": {"code": 8, "debug": 7, "chinese": 6, "english": 7, "reasoning": 6, "speed": 6},
-    "local_reasoning": {"code": 5, "debug": 5, "chinese": 5, "english": 6, "reasoning": 8, "speed": 4},
-    "local_general": {"code": 6, "debug": 5, "chinese": 5, "english": 7, "reasoning": 5, "speed": 6},
-    "local_fast": {"code": 5, "debug": 4, "chinese": 4, "english": 5, "reasoning": 3, "speed": 9},
-    "local_chat": {"code": 2, "debug": 2, "chinese": 3, "english": 4, "reasoning": 2, "speed": 10},
+    # M1: local_* Ollama models deleted
 
     # DuckDuckGo AI (免费)
-    "ddg_gpt4o_mini": {"code": 8, "debug": 7, "chinese": 7, "english": 9, "reasoning": 7, "speed": 7},
-    "ddg_claude_haiku": {"code": 7, "debug": 7, "chinese": 7, "english": 9, "reasoning": 7, "speed": 8},
-    "ddg_llama4": {"code": 7, "debug": 6, "chinese": 5, "english": 8, "reasoning": 7, "speed": 7},
-    "ddg_o3_mini": {"code": 8, "debug": 8, "chinese": 6, "english": 9, "reasoning": 9, "speed": 6},
-    "ddg_mistral": {"code": 6, "debug": 5, "chinese": 4, "english": 7, "reasoning": 5, "speed": 7},
+    # M6: ddg_* backends deleted
 
     # lza6 CF Workers
     "tele_reason": {"code": 6, "debug": 6, "chinese": 5, "english": 7, "reasoning": 8, "speed": 6},

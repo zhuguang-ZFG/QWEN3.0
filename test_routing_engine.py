@@ -217,13 +217,9 @@ def test_default_routes_exclude_sandbox_only_web_reverse_backends():
     assert offenders == []
 
 
-def test_all_backends_available_without_local_topology(monkeypatch):
+def test_all_backends_available_without_local_topology():
     # M6: LOCAL_ONLY_BACKENDS is empty. All backends are cloud-native.
-    # No backend requires local topology checks.
     import runtime_topology
-
-    monkeypatch.delenv(runtime_topology.HOST_DEPENDENT_OPT_IN, raising=False)
-    monkeypatch.setattr(runtime_topology, "local_port_open", lambda port: False)
 
     assert runtime_topology.backend_available("scnet_ds_flash")
     assert runtime_topology.backend_available("kimi")
@@ -241,8 +237,9 @@ def test_code_orchestrator_filters_unreachable_local_proxy(monkeypatch):
     import code_orchestrator
     import runtime_topology
 
-    monkeypatch.setattr(runtime_topology, "backend_available",
-                        lambda name: name != "scnet_large_ds_flash")
+    # M6: filter_backends no longer filters — mock it directly
+    monkeypatch.setattr(runtime_topology, "filter_backends",
+                        lambda names: [n for n in names if n != "scnet_large_ds_flash"])
     tried = []
 
     def call_fn(backend, messages, max_tokens):
