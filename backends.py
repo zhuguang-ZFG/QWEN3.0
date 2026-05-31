@@ -13,7 +13,7 @@ from backends_constants import (
     VISION_SYSTEM_PROMPT,
     WEAK_BACKENDS,
 )
-from backends_registry import BACKENDS, LM_URL
+from backends_registry import BACKENDS, DISABLED_HOST_DEPENDENT_BACKENDS, LM_URL
 
 # -- Backend enable/disable state (default: enabled) --
 _backend_enabled: dict[str, bool] = {}
@@ -102,7 +102,8 @@ def detect_caps(name: str, cfg: dict = None) -> list:
 
 def backend_has_capability(name: str, capability: str, cfg: dict = None) -> bool:
     """Return whether a backend has a normalized capability."""
-    return capability in detect_caps(name, cfg or BACKENDS.get(name, {}))
+    resolved = cfg or BACKENDS.get(name) or DISABLED_HOST_DEPENDENT_BACKENDS.get(name, {})
+    return capability in detect_caps(name, resolved)
 
 
 def is_weak_backend(name: str) -> bool:

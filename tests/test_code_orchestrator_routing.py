@@ -39,12 +39,12 @@ def test_try_backends_ranked_skips_terminal_state(monkeypatch):
     assert calls == ["scnet_ds_flash"]
 
 
-def test_coder_pool_includes_kimi_local_proxy_backends():
+def test_coder_pool_excludes_kimi_local_proxy_backends():
     from code_orchestrator_context import POOLS
 
     for name in ("kimi", "kimi_thinking", "kimi_search"):
-        assert name in POOLS["coder"]
-        assert name in POOLS["strong"]
+        assert name not in POOLS["coder"]
+        assert name not in POOLS["strong"]
 
 
 def test_backend_selectable_respects_cooled_down(monkeypatch):

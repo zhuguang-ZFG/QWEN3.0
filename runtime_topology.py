@@ -3,8 +3,10 @@ import socket
 
 
 TRUTHY = {"1", "true", "yes", "on"}
+HOST_DEPENDENT_OPT_IN = "LIMA_ENABLE_HOST_DEPENDENT_BACKENDS"
 
 LOCAL_ONLY_BACKENDS: set[str] = {
+    "deepseek_free",
     "ddg_gpt4o_mini",
     "ddg_gpt5_mini",
     "ddg_claude_haiku_45",
@@ -19,6 +21,25 @@ LOCAL_ONLY_BACKENDS: set[str] = {
     "longcat_web_research",
     "scnet_large_ds_flash",
     "scnet_large_ds_pro",
+    "scnet_qwen235b_code",
+    "scnet_ds_pro_code",
+    "mimo_web",
+    "mimo_web_think",
+    "mimo_web_flash",
+    "mimo_web_code",
+    "mimo_web_think_code",
+    "oldllm_gpt54",
+    "oldllm_gpt53",
+    "oldllm_gpt52",
+    "oldllm_gpt51",
+    "oldllm_gpt5",
+    "oldllm_gpt5_mini",
+    "oldllm_gpt41",
+    "oldllm_gpt41_mini",
+    "oldllm_gpt41_nano",
+    "oldllm_gpt4",
+    "oldllm_o1",
+    "oldllm_o4_mini",
     "local_coder14b",
     "local_reasoning",
     "local_general",
@@ -75,14 +96,16 @@ def local_port_open(port: int, host: str = "127.0.0.1",
 def backend_available(name: str) -> bool:
     if name not in LOCAL_ONLY_BACKENDS:
         return True
-    if env_truthy("LIMA_ENABLE_LOCAL_PROXIES"):
-        return True
-    if env_truthy("LIMA_RUNTIME_LOCAL_PROXIES"):
-        return True
+    if not env_truthy(HOST_DEPENDENT_OPT_IN):
+        return False
     if has_tunnel_override(name):
         return True
     cfg = BACKEND_PORT_ENV.get(name)
     return local_port_open(cfg[0]) if cfg else False
+
+
+def is_host_dependent_backend(name: str) -> bool:
+    return name in LOCAL_ONLY_BACKENDS
 
 
 def filter_backends(names: list[str]) -> list[str]:

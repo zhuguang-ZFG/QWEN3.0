@@ -1,0 +1,17 @@
+[Unit]
+Description=LiMa SCNet Reverse Sidecar (disabled adapter shell)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/lima-router
+EnvironmentFile=-/opt/lima-router/.env
+ExecStart=/usr/local/bin/python3.10 -m uvicorn reverse_gateway.sidecar_scnet:app --host 127.0.0.1 --port 4505
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

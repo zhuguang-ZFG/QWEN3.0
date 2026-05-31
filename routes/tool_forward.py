@@ -41,10 +41,13 @@ def _refresh_tool_tiers() -> None:
     import importlib
     try:
         reg = importlib.import_module("backends_registry")
+        runtime_topology = importlib.import_module("runtime_topology")
     except ImportError:
         return
     tier1 = []
     for name, cfg in getattr(reg, "BACKENDS", {}).items():
+        if runtime_topology.is_host_dependent_backend(name):
+            continue
         caps = set(cfg.get("caps", []))
         if "tool_calls" not in caps:
             continue
@@ -125,9 +128,12 @@ def anthropic_native_forward_sync(body: dict) -> dict:
         for name in iter_tool_backends(TOOL_TIER1_BACKENDS):
             b = BACKENDS[name]
             msgs = list(openai_msgs)
-            # Inject JSON tool prompt for backends that output tools as text
+            # Inject JSON tool prompt for backends that output tools as text.
+            # Include actual tool definitions so models that don't understand
+            # the OpenAI tools field can still pick the right tool.
             if name in _TEXT_TOOL_BACKENDS:
-                msgs.insert(0, {"role": "system", "content": _TEXT_TOOL_SYSTEM_PROMPT})
+                prompt = _build_tool_system_prompt(openai_tools)
+                msgs.insert(0, {"role": "system", "content": prompt})
             req_body = {"model": b["model"], "messages": msgs,
                 "tools": openai_tools, "max_tokens": body.get("max_tokens", 4096),
                 "tool_choice": "auto"}
@@ -313,6 +319,7 @@ async def tool_call_stream(body: dict):
 from text_tool_extractor import (
     TEXT_TOOL_BACKENDS as _TEXT_TOOL_BACKENDS,
     TEXT_TOOL_SYSTEM_PROMPT as _TEXT_TOOL_SYSTEM_PROMPT,
+    build_tool_system_prompt as _build_tool_system_prompt,
 )
 
 

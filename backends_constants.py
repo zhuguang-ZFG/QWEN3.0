@@ -4,11 +4,10 @@ import os
 PUBLIC_MODEL_NAME = os.environ.get('PUBLIC_MODEL_NAME', 'LiMa')
 
 # Thinking-capable backends in priority order
-THINKING_BACKENDS = ["or_deepseek_r1", "longcat_thinking", "longcat_web_think"]
+THINKING_BACKENDS = ["or_deepseek_r1"]
 
 # Vision-capable backends (must be registered in BACKENDS)
 VISION_BACKENDS = [
-    "longcat_omni",
     "cf_vision",
     "google_flash",
     "google_flash_lite",
@@ -48,10 +47,10 @@ WEAK_BACKENDS = frozenset({'chat_ubi', 'pollinations', 'llm7'})
 
 # Models capable of tool calls and directory-mode skill injection
 STRONG_MODELS = frozenset({
-    "longcat_chat", "longcat_thinking", "longcat",
+    "longcat",
     "naga_gpt41mini",
     "or_deepseek_r1", "nvidia_qwen_coder",
-    "opencode_stealth", "fireworks_llama405b", "deepinfra_llama4", "deepseek_free",
+    "opencode_stealth", "fireworks_llama405b", "deepinfra_llama4",
 })
 
 KEY_POOL_PREFIXES = {
@@ -79,13 +78,12 @@ KEY_POOL_PREFIXES = {
 
 CODE_CAPABLE_BACKENDS = frozenset({
     'scnet_ds_flash', 'scnet_qwen235b', 'scnet_qwen30b', 'scnet_ds_pro',
-    'scnet_large_ds_flash', 'scnet_large_ds_pro',
     'github_gpt4o', 'github_gpt4o_mini', 'github_codestral',
     'cf_qwen_coder', 'cfai_qwen_coder', 'or_qwen3_coder', 'or_gptoss_120b',
     'cf_gptoss_120b', 'cf_deepseek_r1', 'cf_qwen3_30b', 'cfai_deepseek_r1',
     'mistral_large', 'mistral_devstral', 'mistral_pixtral', 'mistral_codestral',
     'cerebras_gptoss', 'groq_gptoss', 'groq_gptoss_20b',
-    'deepinfra_qwen235b', 'local_coder14b',
+    'deepinfra_qwen235b',
 })
 VISION_SYSTEM_PROMPT = "你是一位耐心的老师。用户上传了一道题目的图片。请：1. 识别题目内容 2. 分步骤解答 3. 给出最终答案。如果是选择题，明确指出正确选项。"
 

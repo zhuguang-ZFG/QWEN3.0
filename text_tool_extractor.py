@@ -122,6 +122,40 @@ def _parse_tool_json(json_str: str) -> list[dict] | None:
     return tool_calls if tool_calls else None
 
 
+def build_tool_system_prompt(tools: list[dict]) -> str:
+    """Build a system prompt that includes available tool definitions.
+
+    For models that don't natively support the OpenAI tools field, we embed
+    the tool descriptions directly in the system prompt so the model knows
+    what tools are available and what arguments they accept.
+    """
+    if not tools:
+        return TEXT_TOOL_SYSTEM_PROMPT
+
+    tool_lines = []
+    for t in tools:
+        if isinstance(t, dict) and t.get("function"):
+            fn = t["function"]
+            name = fn.get("name", "")
+            desc = fn.get("description", "")
+            params = fn.get("parameters", {})
+            props = params.get("properties", {})
+            required = params.get("required", [])
+            arg_parts = []
+            for pname, pinfo in props.items():
+                pdesc = pinfo.get("description", "")
+                is_req = "required" if pname in required else "optional"
+                arg_parts.append(f"{pname}({is_req}): {pdesc}")
+            tool_lines.append(f"- {name}: {desc}. Arguments: {', '.join(arg_parts)}")
+
+    tools_text = "\n".join(tool_lines)
+    return (
+        f"Available tools (you MUST use one of these when asked to perform a task):\n"
+        f"{tools_text}\n\n"
+        f"{TEXT_TOOL_SYSTEM_PROMPT}"
+    )
+
+
 def should_extract_tools(backend: str) -> bool:
     """Check if this backend is known to output tools as text."""
     return backend in TEXT_TOOL_BACKENDS

@@ -13,6 +13,14 @@ def test_pick_tool_backend_skips_unproven_web_adapter(monkeypatch):
     assert picked == "scnet_large_ds_flash"
 
 
+def test_tool_tier_discovery_excludes_host_dependent_backends():
+    tool_forward._refresh_tool_tiers()
+
+    assert "scnet_large_ds_flash" not in tool_forward.TOOL_TIER1_BACKENDS
+    assert "kimi" not in tool_forward.TOOL_TIER1_BACKENDS
+    assert "ddg_gpt4o_mini" not in tool_forward.TOOL_TIER1_BACKENDS
+
+
 def test_tool_backend_selectable_excludes_terminal_state(monkeypatch):
     import health_tracker
     from backends import BACKENDS

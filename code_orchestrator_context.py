@@ -55,20 +55,14 @@ POOLS = {
               "cfai_llama70b", "cfai_llama4",
               "cerebras_gptoss", "groq_gptoss", "mistral_small",
               "mistral_pixtral", "mistral_large", "mistral_devstral",
-              "github_codestral", "or_gptoss_120b", "cf_kimi_k26",
-              "scnet_large_ds_flash",
-              "kimi", "kimi_thinking", "kimi_search",
-              "ddg_gpt4o_mini", "ddg_gpt5_mini",
-              "ddg_claude_haiku_45", "ddg_tinfoil_gptoss_120b"],
+              "github_codestral", "or_gptoss_120b", "cf_kimi_k26"],
     "strong": ["scnet_ds_flash", "scnet_qwen235b", "scnet_ds_pro",
                "scnet_qwen30b", "github_gpt4o", "github_gpt4o_mini",
                "cf_qwen_coder", "cfai_qwen_coder", "cf_gptoss_120b",
                "cf_deepseek_r1", "cf_qwen3_30b", "cfai_deepseek_r1",
                "cfai_llama70b", "cfai_llama4",
                "or_gptoss_120b", "github_codestral", "mistral_large",
-               "mistral_devstral", "mistral_pixtral", "cf_kimi_k26",
-               "scnet_large_ds_flash",
-               "kimi", "kimi_thinking", "kimi_search"],
+               "mistral_devstral", "mistral_pixtral", "cf_kimi_k26"],
 }
 
 _stats = defaultdict(int)

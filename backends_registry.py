@@ -236,3 +236,24 @@ BACKENDS = {
     'mimo_v2_5_code': {'url': 'https://token-plan-cn.xiaomimimo.com/v1/chat/completions', 'key': os.environ.get('MIMO_V2_PRO_KEY', ''), 'model': 'mimo-v2.5', 'fmt': 'openai', 'timeout': 45, 'force_stream_param': True, 'admission': 'code_medium_candidate', 'private_code_allowed': True, 'caps': ['tool_calls']},
     'mimo_v2_omni_code': {'url': 'https://token-plan-cn.xiaomimimo.com/v1/chat/completions', 'key': os.environ.get('MIMO_V2_PRO_KEY', ''), 'model': 'mimo-v2-omni', 'fmt': 'openai', 'timeout': 30, 'force_stream_param': True, 'admission': 'code_medium_candidate', 'private_code_allowed': True, 'caps': ['tool_calls']},
 }
+
+DISABLED_HOST_DEPENDENT_BACKENDS = {
+    name: BACKENDS.pop(name)
+    for name in (
+        'deepseek_free',
+        'local_coder14b', 'local_reasoning', 'local_general', 'local_fast', 'local_chat',
+        'local_qwen3', 'local_phi4', 'local_mistral',
+        'ddg_gpt4o_mini', 'ddg_gpt5_mini', 'ddg_claude_haiku_45',
+        'ddg_llama4', 'ddg_mistral', 'ddg_tinfoil_gptoss_120b',
+        'kimi', 'kimi_thinking', 'kimi_search',
+        'longcat_web', 'longcat_web_think', 'longcat_web_research',
+        'scnet_large_ds_flash', 'scnet_large_ds_pro',
+        'scnet_qwen235b_code', 'scnet_ds_pro_code',
+        'mimo_web', 'mimo_web_think', 'mimo_web_flash',
+        'mimo_web_code', 'mimo_web_think_code',
+        'oldllm_gpt54', 'oldllm_gpt53', 'oldllm_gpt52', 'oldllm_gpt51',
+        'oldllm_gpt5', 'oldllm_gpt5_mini', 'oldllm_gpt41', 'oldllm_gpt41_mini',
+        'oldllm_gpt41_nano', 'oldllm_gpt4', 'oldllm_o1', 'oldllm_o4_mini',
+    )
+    if name in BACKENDS
+}

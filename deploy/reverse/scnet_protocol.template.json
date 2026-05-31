@@ -1,0 +1,25 @@
+﻿{
+  "endpoint": "https://www.scnet.cn/acx/chatbot/v1/chat/completion",
+  "method": "POST",
+  "headers": {
+    "Accept": "application/json, text/plain, */*",
+    "Content-Type": "application/json",
+    "Origin": "https://www.scnet.cn",
+    "Referer": "https://www.scnet.cn/ui/chatbot/"
+  },
+  "payload_template": {
+    "conversationId": "",
+    "content": "",
+    "thinkingEnable": false,
+    "onlineEnable": true,
+    "modelId": 17,
+    "textFile": [],
+    "imageFile": [],
+    "autoRun": 0,
+    "clusterId": "",
+    "history": [],
+    "tools": [],
+    "mcpServers": []
+  },
+  "stream": true
+}

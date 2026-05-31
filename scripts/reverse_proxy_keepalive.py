@@ -7,7 +7,7 @@ Run via cron: */30 * * * * python3.10 /opt/lima-router/reverse_proxy_keepalive.p
 Checks each reverse proxy every 30 min. If cookie expired:
   1. Logs warning with exact error
   2. LongCat-web: attempts Playwright auto-refresh
-  3. MiMo/Kimi: sends notification (needs manual refresh)
+  3. SCNet/Kimi/MiMo: sends notification (needs manual cookie refresh)
 """
 import json
 import logging
@@ -30,19 +30,29 @@ PROXIES = {
         "port": 4506,
         "cookie_file": "/root/.longcat_cookie",
         "test_model": "longcat-web",
-        "auto_refresh": True,  # Has Playwright refresh
+        "auto_refresh": True,
+        "service_name": "longcat-web-proxy",
     },
     "mimo": {
         "port": 4507,
         "cookie_file": "/root/.mimo_cookie",
         "test_model": "mimo-web-flash",
-        "auto_refresh": False,  # Needs manual browser login
+        "auto_refresh": False,
+        "service_name": "mimo-proxy",
     },
     "kimi": {
         "port": 4504,
-        "cookie_file": None,  # No cookie file for Kimi
+        "cookie_file": "/opt/lima-router/reverse_gateway_state/kimi_cookies.json",
         "test_model": "kimi",
         "auto_refresh": False,
+        "service_name": "kimi-proxy",
+    },
+    "scnet-large": {
+        "port": 4505,
+        "cookie_file": "/opt/lima-router/reverse_gateway_state/scnet_cookies.json",
+        "test_model": "deepseek-v4-flash",
+        "auto_refresh": False,
+        "service_name": "lima-scnet-reverse",
     },
 }
 
@@ -190,8 +200,9 @@ def main():
                     log.info(f"  → Attempting auto-refresh for {name}...")
                     if refresh_longcat_cookie():
                         # Restart the proxy to pick up new cookie
+                        svc = cfg.get("service_name", f"{name}-proxy")
                         subprocess.run(
-                            ["systemctl", "restart", f"{name}-proxy"],
+                            ["systemctl", "restart", svc],
                             capture_output=True,
                             timeout=30,
                         )

@@ -86,10 +86,18 @@ def test_ide_sources_non_empty():
 # ── Capability helpers ───────────────────────────────────────────────────────────
 
 def test_backend_has_capability_known_backend():
-    assert backends.backend_has_capability("longcat_omni", "vision")
+    assert backends.backend_has_capability("github_gpt4o", "vision")
     assert backends.backend_has_capability("nvidia_qwen_coder", "code")
-    assert backends.backend_has_capability("local_coder14b", "tool_calls")
     assert backends.backend_has_capability("scnet_ds_pro", "code")
+
+
+def test_host_dependent_backends_removed_from_production_registry():
+    assert "local_coder14b" not in backends.BACKENDS
+    assert "scnet_large_ds_flash" not in backends.BACKENDS
+    assert "mimo_web" not in backends.BACKENDS
+    assert "local_coder14b" in backends.DISABLED_HOST_DEPENDENT_BACKENDS
+    assert "scnet_large_ds_flash" in backends.DISABLED_HOST_DEPENDENT_BACKENDS
+    assert backends.backend_has_capability("scnet_large_ds_flash", "tool_calls")
 
 
 def test_backend_has_capability_unknown_backend():
@@ -110,9 +118,9 @@ def test_is_weak_backend():
 
 def test_first_backend_with_capability():
     result = backends.first_backend_with_capability(
-        ["groq_llama70b", "longcat_omni", "scnet_qwen30b"], "vision"
+        ["groq_llama70b", "github_gpt4o", "scnet_qwen30b"], "vision"
     )
-    assert result == "longcat_omni"
+    assert result == "github_gpt4o"
 
     empty = backends.first_backend_with_capability(["groq_llama70b"], "vision")
     assert empty == ""
@@ -161,7 +169,7 @@ def test_detect_caps_code_backends_have_code_cap():
 
 
 def test_detect_caps_returns_list():
-    caps = backends.detect_caps("longcat_chat")
+    caps = backends.detect_caps("longcat")
     assert isinstance(caps, list)
     assert len(caps) >= 1
 

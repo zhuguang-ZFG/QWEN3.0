@@ -798,3 +798,57 @@ Source record: `docs/superpowers/plans/2026-05-23-code-quality-review-closeout.m
 | CQ-087 | Closed | Split `agent_tasks`, `orchestrator`, `session_memory/store`, `backends`; REF-005 pipeline authority doc expanded. Tests **1481 passed**. | `orchestrator_queue` (308) and `agent_tasks` routes (316) still slightly over 300-line target. |
 | REF-006 | Closed | GCP `generative-ai` repo assessed in `docs/GCP_GENERATIVE_AI_RESEARCH.md`: reference-only (eval/RAG methodology), no deep port; llmevalkit/agents are GCP-locked demos. Local RAG eval fixture delivered (CQ-067). | Add LiMa routing corpus fixture when retrieval wired to production path. |
 | CQ-088 | Closed | Project-global closeout rules now require local gates, VPS deploy/restart/health/smoke evidence, rollback notes, host-key verification, related-file-only staging, secret checks, and GitHub-first upload. All non-archive `scripts/*.py` and root SSH helper scripts were migrated from `AutoAddPolicy()` to known_hosts verification, and `S507` is now part of `ruff.toml`. Root debug/upload/stress helpers no longer hardcode the VPS password and use SSH key paths instead. Non-archive `AutoAddPolicy` grep has no matches; live Python source no longer contains the old VPS password literal; script syntax compile (`207` files), root helper syntax compile (`15` files), targeted deploy security tests (`8 passed`), full ruff, and pyright all passed. | `.pytest_cache` permission warning remains environmental. Only `scripts/archive/**` retired scripts still contain `AutoAddPolicy()`. |
+
+## CQ-089: SCNet + Kimi Cookie 刷新机制分析
+
+**日期**: 2026-06-02
+
+### 基准数据
+
+| 项目 | Cookie 文件 | 关键 Auth Cookie | 类型 | 过期时间 | 剩余 |
+|------|-----------|-----------------|------|---------|------|
+| SCNet | `cpk.json` | `Token` = `3199cedb-...` | UUID (session) | 无固定过期，浏览器会话级 | N/A |
+| SCNet | `cpk.json` | `jsessionid` = `BF436F3A...` | HEX (session) | 无固定过期，浏览器会话级 | N/A |
+| Kimi | `kimi.txt` | `kimi-auth` = `eyJhbG...` | JWT access token | 2027-06-01 | ~364 天 |
+
+### SCNet Token 分析
+
+- **格式**: `Token` 值 `MzE5OWNlZGItY2Q0Ni00ZmVlLTlkYjEtNjZlMDRmM2Q2YmJh` → Base64 解码 = `3199cedb-cd46-4fee-9db1-66e04f3d6bba`（UUID v4）
+- `jsessionid` = `BF436F3AA02DE449354158C64057A820`（Java servlet session ID）
+- **结论**: 没有 refresh token，没有 JWT。这两个都是传统 session cookie，服务器端维护会话状态。
+- **刷新方式**: 只能通过完整重新登录（浏览器打开 `scnet.cn`，完成登录流程）来获取新的 session。
+- **Playwright 自动刷新可行性**: 
+  - SCNet 登录方式未知（手机号？微信扫码？密码？）
+  - 如果是密码登录 + 无验证码 → Playwright 可行
+  - 如果是扫码/短信验证 → VPS 上不可行
+  - 需实际测试登录页确定
+
+### Kimi Token 分析
+
+- `kimi-auth` JWT payload:
+  ```json
+  {"iss":"user-center","exp":1782841037,"iat":1780249037,
+   "typ":"access","app_id":"kimi","sub":"d7q8o91g6i8qbdiiplbg",
+   "space_id":"d45fllracc4fekcetl0g","region":"cn",
+   "membership":{"level":10}}
+  ```
+- `typ` = `access` → 这是一个 access token，不是 refresh token
+- `iss` = `user-center` → 签发者是 Kimi 用户中心
+- `membership.level` = 10 → 付费用户（登录态）
+- **结论**: 没有独立的 refresh token cookie。JWT 有效期约 1 年（到 2027-06-01），足够长。
+- **刷新方式**: 当前不需要刷新。过期前重新登录导出即可。
+- **是否有 refresh endpoint**: 常见模式是 `POST /api/auth/token/refresh`，需实际抓包验证。
+
+### 决策
+
+1. **SCNet**: `auto_refresh=False`。Playwright 自动登录门控条件：需先确认登录页是密码登录（非扫码/短信），才能投入开发。
+2. **Kimi**: `auto_refresh=False`。Token 有效期 1 年，到期前一个月再处理。如有 refresh endpoint 可届时实现。
+3. **两个 Cookie 的有效期都远超 VPS deploy 的等待周期**——当前手动导出→上传→重启 sidecar 的流程足够。
+
+### 产物
+
+- `scripts/provision_kimi_cookies.py` (新建) — Kimi Cookie 部署脚本
+- `scripts/reverse_proxy_keepalive.py` (更新) — 添加 SCNet + Kimi 监控
+- `deploy/reverse/README.md` (更新) — 补 Kimi + SCNet 部署步骤
+
+|

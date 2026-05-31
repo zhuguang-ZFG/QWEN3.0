@@ -215,6 +215,15 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
         logging.warning("[STARTUP] channel_gateway module not loaded: %s", exc)
         deps.loaded_modules["channel_gateway"] = False
 
+    try:
+        from routes.reverse_gateway import router as reverse_gateway_router
+
+        app.include_router(reverse_gateway_router)
+        deps.loaded_modules["reverse_gateway"] = True
+    except ImportError as exc:
+        logging.warning("[STARTUP] reverse_gateway module not loaded: %s", exc)
+        deps.loaded_modules["reverse_gateway"] = False
+
     return RegisteredRoutes(
         chat_completions=chat_endpoints_mod.chat_completions,
         anthropic_messages=chat_endpoints_mod.anthropic_messages,

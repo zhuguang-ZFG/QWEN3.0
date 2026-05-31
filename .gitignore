@@ -13,6 +13,7 @@ __pycache__/
 *.pyc
 .env
 .lima-data/
+reverse_gateway_state/
 
 # === 第三方项目 ===
 llama.cpp/
@@ -155,6 +156,19 @@ frp/frpc.toml
 pay_orders.db
 sessions.db
 feedback_queue.json
+
+# === Cookie / Token 文件（绝对不可提交）===
+cpk.json
+kimi.txt
+kimi_session_vps.json
+*_cookies*.json
+*_session*.json
+reverse_gateway_state/
+
+# === 临时测试脚本 ===
+scripts/test_*.py
+data/kimi_cookies_test.json
+data/scnet_cookies_test.json
 
 # PE-B-1 codesearch local index
 .codesearch.db/
