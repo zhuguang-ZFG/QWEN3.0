@@ -13,10 +13,7 @@ LOCAL_ONLY_BACKENDS: set[str] = {
     "ddg_llama4",
     "ddg_mistral",
     "ddg_tinfoil_gptoss_120b",
-    # M3: kimi now served by VPS kimi-proxy.service (Node.js, port 4504)
-    "longcat_web",
-    "longcat_web_think",
-    "longcat_web_research",
+    # M3: kimi VPS sidecar; M4: longcat VPS sidecar
     # M2: scnet_large/scnet_code now served by VPS sidecar (lima-scnet-reverse.service :4505)
     "mimo_web",
     "mimo_web_think",

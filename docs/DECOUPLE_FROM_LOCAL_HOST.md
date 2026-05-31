@@ -18,7 +18,7 @@
 | 8-10 | `kimi*` (3) | `localhost:4504` | ✅ **M3 已完成**：VPS kimi-proxy.service 已运行，端到端通过 | M3 ✅ |
 | 11-12 | `scnet_large_ds_*` (2) | `localhost:4505` | ✅ **M2 已完成**：VPS sidecar 已启用，healthy，端到端通过 | M2 ✅ |
 | 41-42 | `scnet_qwen235b_code`, `scnet_ds_pro_code` | `VPS_HOST:4505` | ✅ **M2 已完成**：随 scnet_large 一同迁移 | M2 ✅ |
-| 13-15 | `longcat_web_*` (3) | `localhost:4506` | VPS 占位 sidecar，keepalive 已有 Playwright 刷新 | M4 实现 |
+| 13-15 | `longcat_web_*` (3) | `localhost:4506` | ✅ **M4 已完成**：VPS longcat-web-proxy.service 已运行，1076 请求/976 成功 | M4 ✅ |
 | 16-20 | `mimo_web_*` (5) | `VPS_HOST:4507` | VPS 占位 sidecar，需浏览器/cookie | M5 实现 |
 | 21-32 | `oldllm_*` (12) | `llm.zhuguang.ccwu.cc` | **已是 CF Worker！** 标记错误 | M1 清理标记 |
 | 33-40 | `local_*` (8) | `localhost:11434` | 本机 Ollama GPU 推理 | M1 删除 |

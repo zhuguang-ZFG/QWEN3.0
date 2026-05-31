@@ -42,8 +42,8 @@ PROVIDERS: dict[str, ReverseProvider] = {
         name="longcat_web",
         port=4506,
         backends=("longcat_web", "longcat_web_think", "longcat_web_research"),
-        status="disabled_no_adapter",
-        reason="Web proxy source is unavailable.",
+        status="ready_proxy_shell",
+        reason="M4: VPS longcat-web-proxy.service running, cookie_valid=true.",
     ),
     "mimo_web": ReverseProvider(
         name="mimo_web",

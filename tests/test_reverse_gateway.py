@@ -20,10 +20,7 @@ HOST_DEPENDENT_BACKENDS = {
     "ddg_llama4",
     "ddg_mistral",
     "ddg_tinfoil_gptoss_120b",
-    # M3: kimi now VPS kimi-proxy.service
-    "longcat_web",
-    "longcat_web_think",
-    "longcat_web_research",
+    # M3: kimi VPS; M4: longcat VPS
     # M2: scnet_large/scnet_code now VPS sidecar
     "mimo_web",
     "mimo_web_think",
@@ -75,9 +72,10 @@ def test_reverse_gateway_registry_starts_disabled():
     statuses = list_provider_status()
 
     assert statuses
-    # M2: scnet_large ready; M3: kimi ready
+    # M2: scnet ready; M3: kimi ready; M4: longcat ready
     assert provider_status("scnet_large")["status"] == "ready_protocol_adapter"
     assert provider_status("kimi_web")["status"] == "ready_proxy_shell"
+    assert provider_status("longcat_web")["status"] == "ready_proxy_shell"
 
 
 def test_reverse_gateway_health_endpoint_payload():
