@@ -13,11 +13,26 @@ Used by vibecode agent scripts and the /lima fix command flow.
 from __future__ import annotations
 
 import logging
-import subprocess
+
+from safe_command import UnsafeCommandError, run_safe_command
 
 _log = logging.getLogger(__name__)
 
 MAX_FIX_ROUNDS = 3
+TEST_COMMAND_ALLOWLIST = {
+    "python",
+    "python.exe",
+    "pytest",
+    "pytest.exe",
+    "ruff",
+    "ruff.exe",
+    "pyright",
+    "pyright.exe",
+    "npm",
+    "npm.cmd",
+    "node",
+    "node.exe",
+}
 
 
 async def fix_loop(
@@ -50,10 +65,15 @@ async def fix_loop(
         _log.info("Fix loop round %d/%d", round_num, max_rounds)
 
         # Run tests
-        test_result = subprocess.run(
-            test_command, shell=True, capture_output=True, text=True,
-            timeout=120, cwd=cwd,
-        )
+        try:
+            test_result = run_safe_command(
+                test_command,
+                allowed_commands=TEST_COMMAND_ALLOWLIST,
+                timeout=120,
+                cwd=cwd,
+            )
+        except UnsafeCommandError as exc:
+            return {"ok": False, "rounds": round_num, "error": f"unsafe test command rejected: {exc}"}
         test_output = test_result.stdout[-3000:] + test_result.stderr[-2000:]
 
         if test_result.returncode == 0:
@@ -82,10 +102,15 @@ async def fix_loop(
             return {"ok": False, "rounds": round_num, "error": result.get("error", "AI call failed")}
 
         # Re-check test after fix
-        test_result2 = subprocess.run(
-            test_command, shell=True, capture_output=True, text=True,
-            timeout=120, cwd=cwd,
-        )
+        try:
+            test_result2 = run_safe_command(
+                test_command,
+                allowed_commands=TEST_COMMAND_ALLOWLIST,
+                timeout=120,
+                cwd=cwd,
+            )
+        except UnsafeCommandError as exc:
+            return {"ok": False, "rounds": round_num, "error": f"unsafe test command rejected: {exc}"}
         if test_result2.returncode == 0:
             return {
                 "ok": True,

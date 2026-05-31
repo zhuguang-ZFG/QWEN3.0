@@ -18,9 +18,12 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from safe_command import UnsafeCommandError, run_safe_command
+
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LIMA_API_KEY = os.environ.get("LIMA_API_KEY", "xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw")
+LIMA_API_KEY = os.environ.get("LIMA_API_KEY")
 LIMA_BASE = "https://chat.donglicao.com"
+COMMAND_ALLOWLIST = {"python", "python.exe", "pytest", "pytest.exe"}
 
 TOOLS = [
     {
@@ -82,10 +85,15 @@ def _execute(name: str, args: dict) -> str:
             return f"ERROR: {e}"
     elif name == "run_command":
         try:
-            r = subprocess.run(
-                args["command"], shell=True, capture_output=True, text=True, timeout=30,
+            r = run_safe_command(
+                args["command"],
+                allowed_commands=COMMAND_ALLOWLIST,
+                timeout=30,
+                cwd=PROJECT_ROOT,
             )
             return f"stdout: {r.stdout[:2000]}\nstderr: {r.stderr[:500]}\nexit_code: {r.returncode}"
+        except UnsafeCommandError as e:
+            return f"ERROR: unsafe command rejected: {e}"
         except Exception as e:
             return f"ERROR: {e}"
     elif name == "list_files":
@@ -327,6 +335,9 @@ if __name__ == "__main__":
 
 
 async def main():
+    if not LIMA_API_KEY:
+        raise SystemExit("LIMA_API_KEY env var is required")
+
     print("LiMa P1.3: Multi-File Cross-File Programming")
     print()
     try:

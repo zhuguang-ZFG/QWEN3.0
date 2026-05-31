@@ -14,9 +14,12 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from safe_command import UnsafeCommandError, run_safe_command
+
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LIMA_API_KEY = os.environ.get("LIMA_API_KEY", "xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw")
+LIMA_API_KEY = os.environ.get("LIMA_API_KEY")
 LIMA_BASE = "https://chat.donglicao.com"
+COMMAND_ALLOWLIST = {"python", "python.exe", "pytest", "pytest.exe"}
 
 ANTHROPIC_TOOLS = [
     {
@@ -69,11 +72,15 @@ def _execute_tool(name: str, args: dict) -> str:
             return f"Error: {e}"
     elif name == "run_command":
         try:
-            r = subprocess.run(
-                args["command"], shell=True, capture_output=True, text=True,
-                timeout=60, cwd=PROJECT_ROOT,
+            r = run_safe_command(
+                args["command"],
+                allowed_commands=COMMAND_ALLOWLIST,
+                timeout=60,
+                cwd=PROJECT_ROOT,
             )
             return f"stdout:\n{r.stdout[:2000]}\nstderr:\n{r.stderr[:500]}\nexit_code: {r.returncode}"
+        except UnsafeCommandError as e:
+            return f"Error: unsafe command rejected: {e}"
         except Exception as e:
             return f"Error: {e}"
     return f"Unknown tool: {name}"
@@ -226,6 +233,9 @@ except Exception as e:
 
 
 async def main():
+    if not LIMA_API_KEY:
+        raise SystemExit("LIMA_API_KEY env var is required")
+
     print("LiMa P0.2: Code + Tool Joint Scenario E2E")
     print()
 

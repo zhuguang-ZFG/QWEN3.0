@@ -5410,3 +5410,54 @@ Verification note:
 - Residual:
   - this slice is local CLI/TUI behavior only; no VPS server deploy is needed
     unless packaging/release refresh is requested for another Windows install.
+
+## 2026-05-31 Command Execution and Secret Hygiene Hardening (CQ-102)
+
+- Scope:
+  - added `safe_command.py` as the shared boundary for operator/agent supplied
+    command strings: reject shell metacharacters/newlines, parse to argv, enforce
+    executable allowlists, and always run with `shell=False`;
+  - removed active `shell=True` execution from `fix_loop.py`,
+    `fleet/agent.py`, `routes/telegram_code_tools.py`, LiMa vibecode smoke
+    scripts, and the two ESP32-side utility/example Python scripts found by the
+    full scan;
+  - rewrote `routes/telegram_code_tools.py` to use fixed git argv commands and
+    safe allowlisted test commands, removing the old shell pipeline path;
+  - removed hardcoded LiMa API keys from root launchers and E2E scripts; launch
+    paths now require `LIMA_API_KEY` or `LIMA_CODE_API_KEY` from the operator
+    environment and fail clearly when missing;
+  - refreshed `deepcode-cli/package-lock.json` so production `npm audit` no
+    longer reports the moderate `ws` advisory.
+- Verification:
+  - focused safety tests:
+    `python -m pytest tests\test_safe_command.py tests\test_fix_loop.py tests\test_fleet.py tests\test_telegram_code_tools.py -q`
+    -> `29 passed`;
+  - root gates:
+    `python -m ruff check .` -> clean;
+    `python -m pyright` -> `0 errors, 0 warnings, 0 informations`;
+    `python -m pytest -q --ignore=active_model`
+    -> `2195 passed, 10 skipped in 228.20s`;
+  - ESP32 touched-file syntax:
+    `python -m py_compile esp32S_XYZ\firmware\u8-xiaozhi\scripts\Image_Converter\LVGLImage.py esp32S_XYZ\firmware\u1-grbl\libraries\arduinoWebSockets\examples\esp8266_pico\WebSocketClientOTA\python_ota_server\main.py`
+    -> clean;
+  - dependency audits:
+    `python -m pip_audit -r requirements_server.txt`
+    -> `No known vulnerabilities found`;
+    `npm.cmd audit --omit=dev` in `deepcode-cli`
+    -> `found 0 vulnerabilities`;
+  - LiMa Code gates after lock refresh:
+    `npm.cmd run check` -> clean;
+    `npm.cmd test` -> `497 tests, 490 pass, 7 skipped`.
+- VPS:
+  - `python scripts\deploy_unified.py --files safe_command.py fix_loop.py fleet/agent.py routes/telegram_code_tools.py`
+    -> `4 uploaded, 0 failed, 0 skipped`, restart OK, health OK;
+  - public `/health` returned HTTP 200 with service modules enabled;
+  - public unauthenticated `/v1/models` returned HTTP 401, preserving the
+    private API boundary;
+  - authenticated public chat smoke was not run locally because this Codex
+    process has no `LIMA_API_KEY` in its environment.
+- Residual:
+  - scan results still include intentional `allow_shell=True` feature-flag
+    tests/configuration, detector strings that mention `shell=True`, and
+    historical docs. No active project Python subprocess call remains using
+    `shell=True` outside those test/detector/documentation references.

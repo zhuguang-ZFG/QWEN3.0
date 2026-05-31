@@ -1157,3 +1157,20 @@ Latest LiMa Code TUI workbench closeout:
   clean, `npm.cmd run lint` clean, `npm.cmd run format:check` clean,
   `npm.cmd run build` clean, and built CLI `/lima start` headless smoke
   returned `ok=true` with zero model calls.
+
+Latest command execution/security hardening closeout:
+
+- Added a shared `safe_command.py` command boundary and removed active
+  `shell=True` execution from root service paths, LiMa vibecode scripts, and
+  the ESP32 utility/example hits found by the full scan.
+- Root launchers and smoke scripts no longer contain hardcoded LiMa API keys;
+  they require `LIMA_API_KEY` or `LIMA_CODE_API_KEY` from the operator
+  environment and fail clearly if missing.
+- LiMa Code production dependency audit is clean after refreshing
+  `deepcode-cli/package-lock.json`.
+- Evidence: focused safety tests `29 passed`; root `ruff check .` clean;
+  root `pyright` `0 errors`; root full pytest `2195 passed, 10 skipped`;
+  `pip_audit` no known vulnerabilities; LiMa Code `npm.cmd run check` clean,
+  `npm.cmd test` `497 tests, 490 pass, 7 skipped`, and
+  `npm.cmd audit --omit=dev` `0 vulnerabilities`; VPS deployed 4 service files
+  with health OK, public `/health` 200, and unauthenticated `/v1/models` 401.

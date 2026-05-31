@@ -12,10 +12,13 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from safe_command import UnsafeCommandError, run_safe_command
+
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LIMA_API_KEY = os.environ.get("LIMA_API_KEY", "xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw")
+LIMA_API_KEY = os.environ.get("LIMA_API_KEY")
 LIMA_BASE = os.environ.get("LIMA_CODE_SERVER_URL", "https://chat.donglicao.com")
 LIMA_MODEL = "lima-code"
+COMMAND_ALLOWLIST = {"python", "python.exe", "pytest", "pytest.exe"}
 
 # ── Tool definitions (OpenAI format) ──────────────────────────────────────────
 
@@ -91,13 +94,17 @@ def _execute_tool(tool_name: str, args: dict) -> str:
     elif tool_name == "run_command":
         cmd = args.get("command", "")
         try:
-            result = subprocess.run(
-                cmd, shell=True, capture_output=True, text=True,
-                timeout=30, cwd=PROJECT_ROOT,
+            result = run_safe_command(
+                cmd,
+                allowed_commands=COMMAND_ALLOWLIST,
+                timeout=30,
+                cwd=PROJECT_ROOT,
             )
             return f"stdout:\n{result.stdout[:2000]}\nstderr:\n{result.stderr[:500]}\nexit_code: {result.returncode}"
         except subprocess.TimeoutExpired:
             return "Error: command timed out after 30s"
+        except UnsafeCommandError as e:
+            return f"Error: unsafe command rejected: {e}"
         except Exception as e:
             return f"Error running command: {e}"
     return f"Unknown tool: {tool_name}"
@@ -286,6 +293,9 @@ async def test_backend_count():
 
 
 async def main():
+    if not LIMA_API_KEY:
+        raise SystemExit("LIMA_API_KEY env var is required")
+
     print("LiMa Vibecode E2E Agent-Loop Smoke Test")
     print(f"Server: {LIMA_BASE}")
     print(f"Model: {LIMA_MODEL}")

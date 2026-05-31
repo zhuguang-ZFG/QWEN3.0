@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import sys
 import time
+from unittest.mock import patch
 
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -192,3 +193,25 @@ class TestFleetAgent:
         assert "cpu_cores" in caps
         assert "shell" in caps
         assert isinstance(caps["models"], list)
+
+    def test_run_shell_task_rejects_shell_metacharacters(self):
+        from fleet.agent import run_shell_task
+
+        result, error = run_shell_task("pytest -q; whoami")
+
+        assert result == ""
+        assert "unsafe command rejected" in error
+
+    def test_run_shell_task_uses_safe_subprocess_boundary(self):
+        from fleet.agent import run_shell_task
+
+        with patch("fleet.agent.run_safe_command") as run:
+            run.return_value.stdout = "ok\n"
+            run.return_value.stderr = ""
+            run.return_value.returncode = 0
+
+            result, error = run_shell_task("pytest -q")
+
+        assert result == "ok\n"
+        assert error == ""
+        assert run.call_args.kwargs["allowed_commands"]

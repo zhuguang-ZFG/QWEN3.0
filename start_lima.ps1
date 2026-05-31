@@ -1,9 +1,16 @@
 Write-Host 'LiMa Code Launcher' -ForegroundColor Cyan
 Write-Host ''
 
-$env:LIMA_API_KEY = 'xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw'
+if (-not $env:LIMA_API_KEY -and -not $env:LIMA_CODE_API_KEY) {
+    throw 'LIMA_API_KEY or LIMA_CODE_API_KEY environment variable is required'
+}
+if (-not $env:LIMA_API_KEY) {
+    $env:LIMA_API_KEY = $env:LIMA_CODE_API_KEY
+}
+if (-not $env:LIMA_CODE_API_KEY) {
+    $env:LIMA_CODE_API_KEY = $env:LIMA_API_KEY
+}
 $env:LIMA_CODE_SERVER_URL = 'https://chat.donglicao.com'
-$env:LIMA_CODE_API_KEY = 'xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw'
 $env:LIMA_FORCE_TTY = '1'
 
 # Set console window size

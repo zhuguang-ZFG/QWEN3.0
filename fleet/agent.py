@@ -21,11 +21,28 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import httpx
+from safe_command import UnsafeCommandError, run_safe_command
 
 _log = logging.getLogger("fleet.agent")
 
 POLL_INTERVAL = 30  # seconds
 EXEC_TIMEOUT = 60    # seconds
+DEFAULT_FLEET_COMMAND_ALLOWLIST = {
+    "python",
+    "python.exe",
+    "pytest",
+    "pytest.exe",
+    "ruff",
+    "ruff.exe",
+    "pyright",
+    "pyright.exe",
+    "npm",
+    "npm.cmd",
+    "node",
+    "node.exe",
+    "git",
+    "git.exe",
+}
 
 
 def detect_capabilities() -> dict:
@@ -138,6 +155,34 @@ def heartbeat(vps_url: str, node_id: str, load_avg: float = 0.0) -> bool:
         return False
 
 
+def fleet_command_allowlist() -> set[str]:
+    raw = os.environ.get("LIMA_FLEET_ALLOWED_COMMANDS", "")
+    configured = {item.strip().lower() for item in raw.split(",") if item.strip()}
+    return configured or DEFAULT_FLEET_COMMAND_ALLOWLIST
+
+
+def run_shell_task(command: str) -> tuple[str, str]:
+    """Run a fleet shell task through the reviewed command boundary."""
+    try:
+        proc = run_safe_command(
+            command,
+            allowed_commands=fleet_command_allowlist(),
+            timeout=EXEC_TIMEOUT,
+        )
+    except subprocess.TimeoutExpired:
+        return "", f"timeout after {EXEC_TIMEOUT}s"
+    except UnsafeCommandError as exc:
+        return "", f"unsafe command rejected: {exc}"
+    except Exception as exc:
+        return "", str(exc)[:1024]
+
+    result = proc.stdout[:65536]
+    error = ""
+    if proc.returncode != 0:
+        error = f"exit {proc.returncode}: {proc.stderr[:2048]}"
+    return result, error
+
+
 def poll_and_execute(vps_url: str, node_id: str) -> bool:
     """Poll VPS for tasks, execute, report result."""
     try:
@@ -157,18 +202,7 @@ def poll_and_execute(vps_url: str, node_id: str) -> bool:
         error = ""
 
         if task_type == "shell":
-            try:
-                proc = subprocess.run(
-                    command, shell=True, capture_output=True, text=True,
-                    timeout=EXEC_TIMEOUT,
-                )
-                result = proc.stdout[:65536]
-                if proc.returncode != 0:
-                    error = f"exit {proc.returncode}: {proc.stderr[:2048]}"
-            except subprocess.TimeoutExpired:
-                error = f"timeout after {EXEC_TIMEOUT}s"
-            except Exception as exc:
-                error = str(exc)[:1024]
+            result, error = run_shell_task(command)
         elif task_type == "inference":
             # Route to Ollama or local model
             error = "inference tasks not yet implemented"

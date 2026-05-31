@@ -1,10 +1,14 @@
 const pty = require('node-pty');
 const path = require('path');
 
+if (!process.env.LIMA_API_KEY && !process.env.LIMA_CODE_API_KEY) {
+  throw new Error('LIMA_API_KEY or LIMA_CODE_API_KEY env var is required');
+}
+
 const env = Object.assign({}, process.env, {
-  LIMA_API_KEY: 'xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw',
   LIMA_CODE_SERVER_URL: 'https://chat.donglicao.com',
-  LIMA_CODE_API_KEY: 'xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw',
+  LIMA_API_KEY: process.env.LIMA_API_KEY || process.env.LIMA_CODE_API_KEY,
+  LIMA_CODE_API_KEY: process.env.LIMA_CODE_API_KEY || process.env.LIMA_API_KEY,
 });
 
 const ptyProcess = pty.spawn('node', [
