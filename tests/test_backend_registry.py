@@ -92,13 +92,17 @@ def test_backend_has_capability_known_backend():
 
 
 def test_host_dependent_backends_removed_from_production_registry():
+    # M1: local_* fully removed
     assert "local_coder14b" not in backends.BACKENDS
-    assert "scnet_large_ds_flash" not in backends.BACKENDS
-    assert "mimo_web" not in backends.BACKENDS
-    # M1: local_* Ollama models fully removed, no longer in DISABLED_HOST_DEPENDENT_BACKENDS
     assert "local_coder14b" not in backends.DISABLED_HOST_DEPENDENT_BACKENDS
-    assert "scnet_large_ds_flash" in backends.DISABLED_HOST_DEPENDENT_BACKENDS
-    assert backends.backend_has_capability("scnet_large_ds_flash", "tool_calls")
+    # M2: scnet_large now VPS sidecar → directly in BACKENDS, no longer in DISABLED
+    assert "scnet_large_ds_flash" in backends.BACKENDS
+    assert "scnet_large_ds_flash" not in backends.DISABLED_HOST_DEPENDENT_BACKENDS
+    # mimo_web still host-dependent → in DISABLED, not in BACKENDS
+    assert "mimo_web" not in backends.BACKENDS
+    assert "mimo_web" in backends.DISABLED_HOST_DEPENDENT_BACKENDS
+    # scnet_ds_flash (CF Worker) was never host-dependent, always in BACKENDS
+    assert backends.backend_has_capability("scnet_ds_flash", "tool_calls")
 
 
 def test_backend_has_capability_unknown_backend():

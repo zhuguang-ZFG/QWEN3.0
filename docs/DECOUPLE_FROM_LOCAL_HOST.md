@@ -16,12 +16,13 @@
 | 1 | `deepseek_free` | `127.0.0.1:8000` | 本机代理，用途不明 | 待确认后决定 |
 | 2-7 | `ddg_*` (6) | `localhost:4500` | 本机 DuckAI (bun)，需 GFW 代理 | M6 决定 |
 | 8-10 | `kimi*` (3) | `localhost:4504` | 本机 Node.js 代理，cookie 认证 | M3 迁 VPS |
-| 11-12 | `scnet_large_ds_*` (2) | `localhost:4505` | 本机 Node.js 代理；VPS Python sidecar **已有完整代码** | M2 启用 |
+| 11-12 | `scnet_large_ds_*` (2) | `localhost:4505` | ✅ **M2 已完成**：VPS sidecar 已启用，healthy，端到端通过 | M2 ✅ |
+| 41-42 | `scnet_qwen235b_code`, `scnet_ds_pro_code` | `VPS_HOST:4505` | ✅ **M2 已完成**：随 scnet_large 一同迁移 | M2 ✅ |
 | 13-15 | `longcat_web_*` (3) | `localhost:4506` | VPS 占位 sidecar，keepalive 已有 Playwright 刷新 | M4 实现 |
 | 16-20 | `mimo_web_*` (5) | `VPS_HOST:4507` | VPS 占位 sidecar，需浏览器/cookie | M5 实现 |
 | 21-32 | `oldllm_*` (12) | `llm.zhuguang.ccwu.cc` | **已是 CF Worker！** 标记错误 | M1 清理标记 |
 | 33-40 | `local_*` (8) | `localhost:11434` | 本机 Ollama GPU 推理 | M1 删除 |
-| 41-42 | `scnet_qwen235b_code`, `scnet_ds_pro_code` | `VPS_HOST:4505` | 走 SCNet Large sidecar 端口，状态同 #11-12 | 随 M2 |
+| 41-42 | `scnet_qwen235b_code`, `scnet_ds_pro_code` | `VPS_HOST:4505` | ✅ **M2 已完成** | M2 ✅ |
 
 ## 迁移优先级
 

@@ -19,10 +19,7 @@ LOCAL_ONLY_BACKENDS: set[str] = {
     "longcat_web",
     "longcat_web_think",
     "longcat_web_research",
-    "scnet_large_ds_flash",
-    "scnet_large_ds_pro",
-    "scnet_qwen235b_code",
-    "scnet_ds_pro_code",
+    # M2: scnet_large/scnet_code now served by VPS sidecar (lima-scnet-reverse.service :4505)
     "mimo_web",
     "mimo_web_think",
     "mimo_web_flash",
@@ -42,9 +39,8 @@ BACKEND_PORT_ENV: dict[str, tuple[int, str]] = {
     "kimi": (4504, "KIMI_TUNNEL_URL"),
     "kimi_thinking": (4504, "KIMI_TUNNEL_URL"),
     "kimi_search": (4504, "KIMI_TUNNEL_URL"),
-    "scnet_large_ds_flash": (4505, "SCNET_LARGE_TUNNEL_URL"),
-    "scnet_large_ds_pro": (4505, "SCNET_LARGE_TUNNEL_URL"),
-    # M1 清理: local_* Ollama 模型已删除
+    # M2: scnet_large_* tunnel entries removed (now VPS sidecar, no FRP needed)
+    # M1: local_* Ollama 模型已删除
 }
 
 

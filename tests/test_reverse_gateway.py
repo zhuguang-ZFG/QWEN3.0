@@ -26,8 +26,7 @@ HOST_DEPENDENT_BACKENDS = {
     "longcat_web",
     "longcat_web_think",
     "longcat_web_research",
-    "scnet_large_ds_flash",
-    "scnet_large_ds_pro",
+    # M2: scnet_large/scnet_code now VPS sidecar
     "mimo_web",
     "mimo_web_think",
     "mimo_web_flash",
@@ -69,7 +68,8 @@ def test_host_dependent_backends_require_explicit_opt_in(monkeypatch):
     monkeypatch.delenv(runtime_topology.HOST_DEPENDENT_OPT_IN, raising=False)
     monkeypatch.setenv("SCNET_LARGE_TUNNEL_URL", "http://127.0.0.1:4505")
 
-    assert not runtime_topology.backend_available("scnet_large_ds_flash")
+    # M2: scnet_large now VPS sidecar, always available. Use kimi (still host-dependent).
+    assert not runtime_topology.backend_available("kimi")
     assert runtime_topology.backend_available("scnet_ds_flash")
 
 
@@ -77,8 +77,8 @@ def test_reverse_gateway_registry_starts_disabled():
     statuses = list_provider_status()
 
     assert statuses
-    assert all(str(item["status"]).startswith("disabled_") for item in statuses)
-    assert provider_status("scnet_large")["status"] == "disabled_no_adapter"
+    # M2: scnet_large now ready_protocol_adapter (VPS sidecar enabled)
+    assert provider_status("scnet_large")["status"] == "ready_protocol_adapter"
 
 
 def test_reverse_gateway_health_endpoint_payload():

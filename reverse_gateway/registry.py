@@ -35,8 +35,8 @@ PROVIDERS: dict[str, ReverseProvider] = {
         name="scnet_large",
         port=4505,
         backends=("scnet_large_ds_flash", "scnet_large_ds_pro"),
-        status="disabled_no_adapter",
-        reason="No local proxy source exists; reimplement adapter before use.",
+        status="ready_protocol_adapter",
+        reason="M2: VPS sidecar enabled (lima-scnet-reverse.service), protocol + cookies deployed.",
     ),
     "longcat_web": ReverseProvider(
         name="longcat_web",

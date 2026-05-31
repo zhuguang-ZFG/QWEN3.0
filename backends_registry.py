@@ -238,8 +238,7 @@ DISABLED_HOST_DEPENDENT_BACKENDS = {
         'ddg_llama4', 'ddg_mistral', 'ddg_tinfoil_gptoss_120b',
         'kimi', 'kimi_thinking', 'kimi_search',
         'longcat_web', 'longcat_web_think', 'longcat_web_research',
-        'scnet_large_ds_flash', 'scnet_large_ds_pro',
-        'scnet_qwen235b_code', 'scnet_ds_pro_code',
+        # M2: scnet_large/scnet_code now served by VPS sidecar
         'mimo_web', 'mimo_web_think', 'mimo_web_flash',
         'mimo_web_code', 'mimo_web_think_code',
     )
