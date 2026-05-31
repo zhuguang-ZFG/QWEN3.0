@@ -1243,6 +1243,21 @@ Latest LiMa Code npm package refresh:
 - Installed dist contains the command-center runtime UI markers
   `RuntimeStatusPanel` and `402 quota/balance`.
 
+Latest LiMa Code visible Chinese cleanup:
+
+- Fixed remaining visible English in PromptInput placeholder/footer/status
+  hints, raw-mode exit text, and `/lima doctor` report output.
+- Internal doctor check ids remain machine-stable, but the operator report now
+  renders Chinese labels such as `服务配置`, `服务连通`, `停止标记`, and
+  `本地审计日志`.
+- Evidence: focused tests `62 passed`; full LiMa Code suite
+  `507 tests, 500 pass, 7 skipped`; `npm.cmd run check` clean;
+  `npm.cmd run build` clean with `dist/cli.js` 635.2kb.
+- GitHub Release `lima-code-v0.1.24` npm asset was refreshed again. Digest:
+  `sha256:5eeeb390b2c90dc05d3dfb0466d254400f4813b74ee7f0b9711f60c07693730a`.
+- Public URL install smoke confirmed Chinese `/lima doctor --json`; installed
+  bundle no longer contains old `enter send` or `LiMa doctor: ready` strings.
+
 Latest command execution/security hardening closeout:
 
 - Added a shared `safe_command.py` command boundary and removed active

@@ -5662,3 +5662,47 @@ Verification note:
   - root and submodule worktrees were clean after cleanup.
 - VPS:
   - not deployed. This is package/release refresh only.
+
+## 2026-05-31 LiMa Code TUI English Residue Cleanup (CQ-109)
+
+- Scope:
+  - fixed the remaining visible English surfaced by the Windows install smoke:
+    PromptInput placeholder/footer/status hints, raw-mode exit text, and
+    `/lima doctor` report title/check labels/details;
+  - preserved internal doctor check names (`server_config`, `server_reachable`,
+    etc.) as machine fields while localizing the operator-facing report;
+  - rebuilt and refreshed the GitHub Release npm package after the fix.
+- Verification:
+  - TDD red first:
+    focused tests failed on English Doctor/footer output before implementation;
+  - focused tests:
+    `npm.cmd run test:single -- src/tests/lima-doctor.test.ts src/tests/lima-command-runner.test.ts src/tests/promptInputKeys.test.ts`
+    -> `62 tests`, `62 pass`;
+  - visible-English scan over `src/ui` and `src/lima` found no remaining
+    `Type your message`, `enter send`, `view output`, `LiMa doctor: ready`,
+    or old doctor detail strings;
+  - `npm.cmd run check` -> clean (`typecheck`, `lint`, `format:check`);
+  - `npm.cmd test` -> `507 tests`, `500 pass`, `7 skipped`;
+  - `npm.cmd run build` -> clean, `dist/cli.js` `635.2kb`;
+  - `git diff --check` in `deepcode-cli` -> clean;
+  - secret scan over touched UI/LiMa/test files found no credential patterns.
+- Packaging evidence:
+  - `npm.cmd pack --json --cache .npm-cache` succeeded and ran `prepack`;
+  - resulting package: size `255562`, unpacked size `798539`, shasum
+    `d0bcce72bd12d86f4790cd779c03e993a6a2426b`, SHA256
+    `5eeeb390b2c90dc05d3dfb0466d254400f4813b74ee7f0b9711f60c07693730a`;
+  - GitHub Release `lima-code-v0.1.24` npm asset now reports digest
+    `sha256:5eeeb390b2c90dc05d3dfb0466d254400f4813b74ee7f0b9711f60c07693730a`.
+- Install smoke:
+  - public Release URL install into `.pkg-smoke` -> `added 60 packages`;
+  - installed `lima-code.cmd --version` -> `0.1.24`;
+  - installed `/lima doctor --json` returned a Chinese operator report:
+    `LiMa doctor：需要处理`, `[失败] 服务配置`, `[跳过] 服务连通`,
+    `[警告] Telegram 通知`;
+  - installed bundle no longer contains `enter send` or `LiMa doctor: ready`.
+- Cleanup:
+  - removed `.npm-cache`, `.pkg-smoke`, and `lima-code-0.1.24.tgz` after
+    verifying they were inside `D:\GIT\deepcode-cli`.
+- VPS:
+  - not deployed. This is LiMa Code CLI/TUI package source and release asset
+    only.
