@@ -234,7 +234,10 @@ def route(query: str, messages: list[dict], *,
         complexity = speculative.classify_complexity(query, messages)
 
         if needs_tools:
-            final_backend, answer, _ = execute(backends, call_fn, messages_injected, max_tokens, tools=tools)
+            final_backend, answer, _ = execute(
+                backends, call_fn, messages_injected, max_tokens,
+                tools=tools, scenario=scenario, request_type=req_type,
+            )
         elif complexity == "simple" and req_type in ("ide", "chat"):
             affinity_backends = speculative.get_affinity_backends("simple")
             spec_candidates = [b for b in affinity_backends
@@ -245,20 +248,34 @@ def route(query: str, messages: list[dict], *,
                 try:
                     final_backend, answer, _ = speculative.speculative_call(
                         spec_candidates, call_fn, messages_injected, max_tokens,
-                        max_parallel=5, timeout_sec=5.0)
+                        max_parallel=5, timeout_sec=5.0,
+                        scenario=scenario, request_type=req_type,
+                    )
                 except RuntimeError:
-                    final_backend, answer, _ = execute(backends, call_fn, messages_injected, max_tokens, tools=tools)
+                    final_backend, answer, _ = execute(
+                        backends, call_fn, messages_injected, max_tokens,
+                        tools=tools, scenario=scenario, request_type=req_type,
+                    )
             else:
-                final_backend, answer, _ = execute(backends, call_fn, messages_injected, max_tokens)
+                final_backend, answer, _ = execute(
+                    backends, call_fn, messages_injected, max_tokens,
+                    scenario=scenario, request_type=req_type,
+                )
         elif complexity == "code":
             code_backends = speculative.get_affinity_backends("code")
             code_available = [b for b in code_backends
                               if not health_tracker.is_cooled_down(b)
                               and budget_manager.is_budget_available(b)]
             merged = code_available + [b for b in backends if b not in code_available]
-            final_backend, answer, _ = execute(merged, call_fn, messages_injected, max_tokens)
+            final_backend, answer, _ = execute(
+                merged, call_fn, messages_injected, max_tokens,
+                scenario=scenario, request_type=req_type,
+            )
         else:
-            final_backend, answer, _ = execute(backends, call_fn, messages_injected, max_tokens)
+            final_backend, answer, _ = execute(
+                backends, call_fn, messages_injected, max_tokens,
+                scenario=scenario, request_type=req_type,
+            )
 
         if final_backend != "exhausted":
             sticky_session.pin_backend(sticky_key, final_backend)
@@ -279,7 +296,9 @@ def route(query: str, messages: list[dict], *,
                             vr.score, vr.issues[:3], retry_backends,
                         )
                         retry_backend, retry_answer, _ = execute(
-                            retry_backends, call_fn, messages_injected, max_tokens)
+                            retry_backends, call_fn, messages_injected, max_tokens,
+                            scenario=scenario, request_type=req_type,
+                        )
                         if retry_answer:
                             vr2 = validate_response(retry_answer, query)
                             if vr2.score > vr.score:

@@ -120,6 +120,8 @@ frp/
 net/new-site/out/
 net/new-site/node_modules/
 net/new-site/.next/
+release/
+.npm-cache/
 
 # === 数据文件 ===
 *.jsonl

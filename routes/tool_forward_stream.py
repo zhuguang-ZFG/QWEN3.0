@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 import json
+import logging
 import uuid
 import time
 
@@ -17,6 +18,17 @@ from converters.anthropic_format import (
     inject_anthropic_body_preflight,
     inject_anthropic_context_preflight,
 )
+
+_log = logging.getLogger(__name__)
+
+
+def _record_backend_attempt(**kwargs) -> None:
+    try:
+        from observability.backend_telemetry import record_backend_attempt
+
+        record_backend_attempt(**kwargs)
+    except ImportError:
+        _log.debug("observability.backend_telemetry not installed; backend telemetry skipped")
 
 
 def prepare_tool_openai_payload(body: dict) -> tuple[list, list, bool]:
@@ -213,11 +225,25 @@ async def stream_tier1_openai(body: dict, openai_tools: list, openai_msgs: list,
                 backend["url"], backend_headers, req_body, msg_id, backend["model"],
             ):
                 yield event
-            _ht.record_success(name, (time.time() - t0) * 1000)
+            latency_ms = (time.time() - t0) * 1000
+            _ht.record_success(name, latency_ms)
+            _record_backend_attempt(
+                backend=name, scenario="coding", request_type="tool_use",
+                success=True, latency_ms=latency_ms, tools_requested=True,
+                phase="tool_forward_stream", attempt="tier1_openai",
+                model=backend.get("model", ""),
+            )
             return
         except Exception as exc:
             code = getattr(exc, "code", None) or getattr(exc, "status", None) or 500
             _ht.record_failure(name, error_code=code)
+            _record_backend_attempt(
+                backend=name, scenario="coding", request_type="tool_use",
+                success=False, latency_ms=(time.time() - t0) * 1000,
+                tools_requested=True, status_code=code, error=str(exc),
+                phase="tool_forward_stream", attempt="tier1_openai",
+                model=backend.get("model", ""),
+            )
 
 
 async def stream_tier2_native(body: dict, deps: dict):
@@ -245,6 +271,7 @@ async def stream_tier2_native(body: dict, deps: dict):
             headers["Authorization"] = f"Bearer {backend['key']}"
         else:
             headers["x-api-key"] = backend["key"]
+        started = time.time()
         try:
             import httpx as _httpx
             async with _httpx.AsyncClient(timeout=60) as http_client:
@@ -257,10 +284,17 @@ async def stream_tier2_native(body: dict, deps: dict):
                             f"Backend {name} returned {http_resp.status_code}: "
                             f"{str(response_body)[:200]}"
                         )
-                    _ht.record_success(name, 0)
                     async for line in http_resp.aiter_lines():
                         if line:
                             yield line + "\n\n"
+                    latency_ms = (time.time() - started) * 1000
+                    _ht.record_success(name, latency_ms)
+                    _record_backend_attempt(
+                        backend=name, scenario="coding", request_type="tool_use",
+                        success=True, latency_ms=latency_ms,
+                        tools_requested=True, phase="tool_forward_stream",
+                        attempt="tier2_native", model=backend.get("model", ""),
+                    )
             return
         except Exception as exc:
             import logging as _log
@@ -268,6 +302,13 @@ async def stream_tier2_native(body: dict, deps: dict):
                 "stream_tier2_native %s failed: %s", name, type(exc).__name__,
             )
             _ht.record_failure(name, error_code=None)
+            _record_backend_attempt(
+                backend=name, scenario="coding", request_type="tool_use",
+                success=False, latency_ms=(time.time() - started) * 1000,
+                tools_requested=True, error=str(exc),
+                phase="tool_forward_stream", attempt="tier2_native",
+                model=backend.get("model", ""),
+            )
 
 
 async def anthropic_native_stream(body: dict, deps: dict):

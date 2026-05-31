@@ -1,11 +1,23 @@
 # LiMa Status
 
-> Updated: 2026-05-31 (runtime governance + telemetry aggregation closeout)
+> Updated: 2026-05-31 (backend attempt telemetry closeout)
 > Branch: `main`
-> Tests: LiMa Code `npm test` **476 pass / 6 skipped / 0 fail**; LiMa Server full pytest **2151 passed, 10 skipped**; focused ruff/py_compile clean
-> Current VPS: runtime deps check OK, systemd unit secret lines removed, webhook disabled paths return 200 ignored, ops metrics exposes CLI telemetry + backend recovery
+> Tests: LiMa Server full pytest **2155 passed, 10 skipped**; focused backend telemetry/tool/routing tests **35 passed**; ruff/pyright clean
+> Current VPS: health OK; public chat/tool smoke OK; `/v1/ops/metrics` exposes backend attempt telemetry for speculative, route, and tool-forward paths
 > VPS: Memory 1454MB→1358MB (services restored), health check OK
 > Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
+
+## 2026-05-31 Backend Attempt Telemetry Closeout
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| Backend attempt ledger | Deployed | `observability/backend_telemetry.py` records sanitized JSONL attempts with backend, scenario, request type, phase, attempt, latency, success, status, and error class; no raw prompts/errors/keys are persisted |
+| Normal route coverage | Deployed | `routing_executor.execute()` records serial, skipped, serial fallback, and parallel fallback attempts with empty-response/error classification |
+| Speculative fast path coverage | Deployed | `speculative_call()` records completed speculative attempts; public non-cache chat produced backend telemetry for `groq_llama70b` |
+| Tool-call coverage | Deployed | OpenAI/Anthropic tool forwarding records tier1/tier2/legacy direct attempts; public tools smoke returned `finish_reason=tool_calls`, `recent_phase=tool_forward`, `recent_backend=mistral_small` |
+| Ops visibility | Deployed | `/v1/ops/metrics.backend_telemetry` exposes `total_recent`, `failed_recent`, `slow_recent`, `error_classes`, `by_backend`, and sanitized recent events |
+| Local verification | Done | focused tests `35 passed`; route/HTTP focused tests `34 passed`; full pytest `2155 passed, 10 skipped`; `ruff check` clean; `pyright` 0 errors; `git diff --check` clean |
+| VPS smoke | Done | deploy uploaded 7/7 and health OK; public chat `200` via `groq_llama70b`; ops metrics `backend_telemetry.total_recent=3` after chat and `4` after tools smoke |
 
 ## 2026-05-31 Runtime Governance + Telemetry Aggregation Closeout
 

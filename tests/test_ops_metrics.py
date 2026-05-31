@@ -290,6 +290,43 @@ def test_ops_metrics_includes_sanitized_cli_telemetry(monkeypatch, tmp_path):
     assert "sk-test" not in str(recent)
 
 
+def test_ops_metrics_includes_backend_telemetry(monkeypatch, tmp_path):
+    monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
+    monkeypatch.setenv("LIMA_DATA_DIR", str(tmp_path))
+
+    from observability.backend_telemetry import record_backend_attempt
+
+    assert record_backend_attempt(
+        backend="tool_backend_a",
+        scenario="coding",
+        request_type="tool_use",
+        success=False,
+        latency_ms=90001,
+        tools_requested=True,
+        status_code=504,
+        error="timeout with secret sk-test",
+        phase="tool_forward",
+        attempt="tier1_openai",
+    )
+
+    app = FastAPI()
+    app.state.stats = {"total_requests": 0, "backend_calls": {}, "start_time": 1}
+    app.include_router(router)
+    response = TestClient(app).get(
+        "/v1/ops/metrics",
+        headers={"Authorization": "Bearer test-private-token"},
+    )
+
+    assert response.status_code == 200
+    telemetry = response.json()["backend_telemetry"]
+    assert telemetry["total_recent"] == 1
+    assert telemetry["failed_recent"] == 1
+    assert telemetry["slow_recent"] == 1
+    assert telemetry["error_classes"] == {"timeout": 1}
+    assert telemetry["by_backend"]["tool_backend_a"]["failures"] == 1
+    assert "sk-test" not in str(telemetry)
+
+
 def test_ops_metrics_includes_backend_recovery_snapshot(monkeypatch):
     monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
 

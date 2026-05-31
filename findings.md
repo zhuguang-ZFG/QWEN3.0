@@ -2,6 +2,17 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-05-31 Backend Attempt Telemetry Closeout
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| BE-TEL-1 | Observability | Server-side backend attempts were not visible per request path; operators could see CLI waits but not whether the stall was speculative routing, normal fallback, provider admission, empty response, or tool forwarding. `observability/backend_telemetry.py` now records sanitized attempt events and `/v1/ops/metrics.backend_telemetry` aggregates them. | Closed |
+| BE-TEL-2 | Route coverage | Normal routing and fallback attempts are now recorded from `routing_executor.execute()` with latency, success, empty-response, status, and error class. | Closed |
+| BE-TEL-3 | Speculative path | Public chat smoke showed short prompts can hit `speculative_call()` and bypass `routing_executor`, leaving telemetry empty. Speculative completed attempts are now recorded; public non-cache chat then exposed `groq_llama70b` in backend telemetry. | Closed |
+| BE-TEL-4 | Tool-call path | OpenAI/Anthropic tool forwarding now records tier1/tier2/legacy direct attempts. Public tools smoke returned `finish_reason=tool_calls`, `has_tool_calls=true`, and recent telemetry `phase=tool_forward`, `attempt=tier1_openai`, `backend=mistral_small`. | Closed |
+| BE-TEL-5 | Provider volatility | One unique public chat still produced `fallback_exhausted` before a subsequent non-cache chat succeeded via `groq_llama70b`. This is now observable as backend/error-class telemetry rather than a blind TUI wait. | Accepted |
+| BE-HYG-1 | Repo hygiene | Local `release/` package output triggered the full-suite repo hygiene guard. `release/` and `.npm-cache/` are now ignored as generated artifacts and are not staged. | Closed |
+
 ## 2026-05-31 LiMa Code Telemetry + Tool-Call Closeout
 
 | ID | Area | Finding | Status |

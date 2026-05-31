@@ -30,6 +30,8 @@ def speculative_call(
     max_tokens: int = 4096,
     max_parallel: int = 3,
     timeout_sec: float = 3.0,
+    scenario: str = "",
+    request_type: str = "",
 ) -> tuple[str, str, float]:
     """并行调用多个后端，返回第一个有效响应。
 
@@ -46,6 +48,7 @@ def speculative_call(
         return _run_coro_sync(speculative_call_async(
             backends, _wrap_sync, messages, max_tokens,
             max_parallel=max_parallel, timeout_sec=timeout_sec,
+            scenario=scenario, request_type=request_type,
         ))
     except RuntimeError:
         raise
@@ -84,6 +87,8 @@ async def speculative_call_async(
     max_tokens: int = 4096,
     max_parallel: int = 3,
     timeout_sec: float = 3.0,
+    scenario: str = "",
+    request_type: str = "",
 ) -> tuple[str, str, float]:
     """Async-native speculative execution using asyncio.create_task.
 
@@ -104,13 +109,30 @@ async def speculative_call_async(
             latency = (time.time() - backend_t0) * 1000
             _record_latency(backend, latency)
             if isinstance(result, str):
+                _record_backend_attempt(
+                    backend=backend, scenario=scenario,
+                    request_type=request_type, success=len(result.strip()) >= MIN_VALID_LENGTH,
+                    latency_ms=latency, response_empty=len(result.strip()) < MIN_VALID_LENGTH,
+                    phase="speculative", attempt="parallel",
+                )
                 return result
+            _record_backend_attempt(
+                backend=backend, scenario=scenario, request_type=request_type,
+                success=False, latency_ms=latency, response_empty=True,
+                phase="speculative", attempt="parallel",
+            )
             return ""
         except Exception as e:
             latency = (time.time() - backend_t0) * 1000
             health_tracker.record_failure(
                 backend, error_code=getattr(e, 'status_code', 500))
             _record_latency(backend, latency + _SLOW_THRESHOLD_MS)
+            _record_backend_attempt(
+                backend=backend, scenario=scenario, request_type=request_type,
+                success=False, latency_ms=latency,
+                status_code=getattr(e, "status_code", 500), error=str(e),
+                phase="speculative", attempt="parallel",
+            )
             logger.debug(f"[SPEC_ASYNC] {backend} failed: {type(e).__name__}")
             return ""
 
@@ -186,6 +208,15 @@ def is_historically_fast(backend: str) -> bool:
             return True
         avg = sum(history) / len(history)
         return avg < _SLOW_THRESHOLD_MS
+
+
+def _record_backend_attempt(**kwargs) -> None:
+    try:
+        from observability.backend_telemetry import record_backend_attempt
+
+        record_backend_attempt(**kwargs)
+    except ImportError:
+        logger.debug("observability.backend_telemetry not installed; backend telemetry skipped")
 
 
 # ── 查询复杂度判断 ───────────────────────────────────────────────────────────

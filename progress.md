@@ -4,6 +4,55 @@
 
 > Updated: 2026-05-31
 
+## 2026-05-31 backend attempt telemetry closeout
+
+**Goal:** make provider/model latency and tool-call stalls visible at the
+server layer, so LiMa Code operators can tell whether a request is blocked in
+speculative routing, normal fallback, or tool forwarding.
+
+- Implementation:
+  - added `observability/backend_telemetry.py`, a sanitized JSONL attempt
+    ledger under `data/backend_telemetry.jsonl`;
+  - classified backend failures into `timeout`, `quota`, `auth`,
+    `rate_limit`, `admission_blocked`, `empty_response`, `provider_5xx`,
+    `network`, and `unknown`;
+  - wired `routing_executor.execute()` for serial, skipped, parallel fallback,
+    and serial fallback attempts;
+  - wired `speculative.speculative_call()` because public short chat smoke
+    proved this fast path bypassed `routing_executor`;
+  - wired `routes/tool_forward.py` and `routes/tool_forward_stream.py` for
+    tier1 OpenAI-compatible tools, tier2 Anthropic-native tools, and legacy
+    direct tool forwarding;
+  - exposed `/v1/ops/metrics.backend_telemetry` with recent totals, failures,
+    slow attempts, error classes, per-backend aggregates, and sanitized recent
+    events;
+  - ignored local `release/` and `.npm-cache/` build/cache outputs so repo
+    hygiene does not fail on generated packages.
+- Local verification:
+  - focused telemetry/tool/routing tests: `35 passed`;
+  - route/HTTP focused tests: `34 passed`;
+  - `ruff check` on touched Python files: clean;
+  - `pyright` on touched runtime files: `0 errors`;
+  - `git diff --check`: clean;
+  - full LiMa Server pytest: `2155 passed, 10 skipped in 205.95s`.
+- VPS deploy and smoke:
+  - `scripts/deploy_unified.py --files observability/backend_telemetry.py speculative.py routing_executor.py routing_engine.py routes/tool_forward.py routes/tool_forward_stream.py routes/ops_metrics.py`
+    uploaded `7`, failed `0`, skipped `0`, health `OK`;
+  - public non-cache chat smoke returned HTTP `200` via backend
+    `groq_llama70b`;
+  - public `/v1/ops/metrics` showed backend telemetry totals increasing from
+    `0` to `3` after chat, with one `admission_blocked` failure visible from a
+    provider attempt;
+  - public OpenAI tools smoke returned HTTP `200`, `finish_reason=tool_calls`,
+    `has_tool_calls=true`, and `/v1/ops/metrics` then showed
+    `backend_telemetry.total_recent=4`, `recent_phase=tool_forward`,
+    `recent_attempt=tier1_openai`, `recent_backend=mistral_small`.
+- Residual risk:
+  - provider availability still fluctuates; one unique chat smoke produced
+    `fallback_exhausted` before the next non-cache chat succeeded. The
+    operator can now see the backend/error class instead of only watching a
+    long CLI wait.
+
 ## 2026-05-31 runtime governance + telemetry aggregation closeout
 
 **Goal:** close the remaining operational hygiene issues: runtime data

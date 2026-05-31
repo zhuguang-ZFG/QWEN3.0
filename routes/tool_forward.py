@@ -12,6 +12,7 @@ import json
 import time
 import uuid
 import asyncio
+import logging
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -34,6 +35,7 @@ ANTHROPIC_NATIVE_BACKENDS = [
 ]
 
 TOOL_TIER1_BACKENDS: list[str] = []
+_log = logging.getLogger(__name__)
 
 
 def _refresh_tool_tiers() -> None:
@@ -71,6 +73,15 @@ def inject_state(record_fn, model_id: str):
     global _record_request_fn, _model_id
     _record_request_fn = record_fn
     _model_id = model_id
+
+
+def _record_backend_attempt(**kwargs) -> None:
+    try:
+        from observability.backend_telemetry import record_backend_attempt
+
+        record_backend_attempt(**kwargs)
+    except ImportError:
+        _log.debug("observability.backend_telemetry not installed; backend telemetry skipped")
 
 
 def _tool_backend_selectable(name: str) -> bool:
@@ -134,18 +145,39 @@ def anthropic_native_forward_sync(body: dict) -> dict:
             if name.startswith("aliyun"):
                 req_body["enable_thinking"] = False
             payload = json.dumps(req_body, ensure_ascii=False).encode()
+            started = time.time()
             try:
                 data = call_raw(name, payload)
                 # Text→tool extraction for backends that output JSON-as-text
                 if name in _TEXT_TOOL_BACKENDS:
                     data = _extract_text_tools_from_response(data)
+                _record_backend_attempt(
+                    backend=name, scenario="coding", request_type="tool_use",
+                    success=True, latency_ms=(time.time() - started) * 1000,
+                    tools_requested=True, phase="tool_forward",
+                    attempt="tier1_openai", model=b.get("model", ""),
+                )
                 return convert_response_openai_to_anthropic(data, b["model"])
             except BackendError as exc:
                 _ht.record_failure(name, error_code=exc.status_code)
+                _record_backend_attempt(
+                    backend=name, scenario="coding", request_type="tool_use",
+                    success=False, latency_ms=(time.time() - started) * 1000,
+                    tools_requested=True, status_code=exc.status_code,
+                    error=str(exc), phase="tool_forward",
+                    attempt="tier1_openai", model=b.get("model", ""),
+                )
                 continue
             except Exception as exc:
                 code = getattr(exc, "code", None) or getattr(exc, "status", None) or 500
                 _ht.record_failure(name, error_code=code)
+                _record_backend_attempt(
+                    backend=name, scenario="coding", request_type="tool_use",
+                    success=False, latency_ms=(time.time() - started) * 1000,
+                    tools_requested=True, status_code=code, error=str(exc),
+                    phase="tool_forward", attempt="tier1_openai",
+                    model=b.get("model", ""),
+                )
                 continue
 
     # Tier 2: LongCat Anthropic native
@@ -158,6 +190,7 @@ def anthropic_native_forward_sync(body: dict) -> dict:
         fwd = dict(body)
         fwd["model"] = b["model"]
         payload = json.dumps(fwd, ensure_ascii=False).encode()
+        started = time.time()
         try:
             headers = {"Content-Type": "application/json",
                        "anthropic-version": "2023-06-01"}
@@ -169,10 +202,23 @@ def anthropic_native_forward_sync(body: dict) -> dict:
             with _ur.urlopen(req, timeout=60) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
             _ht.record_success(name, 0)
+            _record_backend_attempt(
+                backend=name, scenario="coding", request_type="tool_use",
+                success=True, latency_ms=(time.time() - started) * 1000,
+                tools_requested=True, phase="tool_forward",
+                attempt="tier2_native", model=b.get("model", ""),
+            )
             return data
         except Exception as e:
             code = getattr(e, 'code', None) or getattr(e, 'status', None) or 500
             _ht.record_failure(name, error_code=code)
+            _record_backend_attempt(
+                backend=name, scenario="coding", request_type="tool_use",
+                success=False, latency_ms=(time.time() - started) * 1000,
+                tools_requested=True, status_code=code, error=str(e),
+                phase="tool_forward", attempt="tier2_native",
+                model=b.get("model", ""),
+            )
             continue
 
     return {"type": "error", "error": {"type": "api_error",
@@ -250,6 +296,13 @@ async def tool_call_forward(body: dict) -> dict:
             )
             openai_resp = resp.json()
     except Exception as e:
+        _record_backend_attempt(
+            backend="openrouter_tool_direct", scenario="coding",
+            request_type="tool_use", success=False,
+            latency_ms=(time.time() - t0) * 1000, tools_requested=True,
+            error=str(e), phase="tool_forward", attempt="legacy_direct",
+            model=TOOL_BACKEND_MODEL,
+        )
         return {
             "id": f"msg_{uuid.uuid4().hex[:24]}",
             "type": "message", "role": "assistant",
@@ -265,6 +318,12 @@ async def tool_call_forward(body: dict) -> dict:
 
     if "error" in openai_resp:
         err_msg = openai_resp["error"].get("message", str(openai_resp["error"]))
+        _record_backend_attempt(
+            backend="openrouter_tool_direct", scenario="coding",
+            request_type="tool_use", success=False, latency_ms=duration_ms,
+            tools_requested=True, error=err_msg, phase="tool_forward",
+            attempt="legacy_direct", model=TOOL_BACKEND_MODEL,
+        )
         return {
             "id": f"msg_{uuid.uuid4().hex[:24]}",
             "type": "message", "role": "assistant",
@@ -274,6 +333,12 @@ async def tool_call_forward(body: dict) -> dict:
             "usage": {"input_tokens": 0, "output_tokens": 0},
         }
 
+    _record_backend_attempt(
+        backend="openrouter_tool_direct", scenario="coding",
+        request_type="tool_use", success=True, latency_ms=duration_ms,
+        tools_requested=True, phase="tool_forward",
+        attempt="legacy_direct", model=TOOL_BACKEND_MODEL,
+    )
     return convert_response_openai_to_anthropic(
         openai_resp, body.get("model", _model_id)
     )
