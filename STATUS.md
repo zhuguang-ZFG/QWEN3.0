@@ -1,11 +1,21 @@
 # LiMa Status
 
-> Updated: 2026-05-31 (LiMa Code cache-rate and prompt hygiene closeout)
+> Updated: 2026-05-31 (LiMa Code npm release refresh closeout)
 > Branch: `main`
-> Tests: LiMa Code focused prompt/status/session tests **70 passed, 3 skipped**; full LiMa Code suite **492 passed, 7 skipped**; `npm.cmd run check` and build clean
+> Tests: LiMa Code focused prompt/status/session tests **70 passed, 3 skipped**; full LiMa Code suite **492 passed, 7 skipped**; Release URL install smoke clean
 > Current VPS: unchanged for this CLI/TUI-only slice; last server smoke health OK with `/v1/ops/summary` 200
 > VPS: Memory 1454MB→1358MB (services restored), health check OK
 > Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
+
+## 2026-05-31 LiMa Code npm Release Refresh Closeout
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| npm tgz rebuilt | Done | `npm.cmd pack --json` with project-local npm cache rebuilt `lima-code-0.1.24.tgz`; package size `249519`, shasum `2d0ab22afe3f67fa64b3420c9285a6fdc4b0c7c7`, SHA256 `9d05c85101a8f0d12918305341fbae7c40f8a12d35a67f1c30ef48792f3c31a4` |
+| Release asset refreshed | Done | `gh release upload lima-code-v0.1.24 lima-code-0.1.24.tgz --clobber`; GitHub Release asset digest now `sha256:9d05c85101a8f0d12918305341fbae7c40f8a12d35a67f1c30ef48792f3c31a4` |
+| Install smoke | Done | Installed from `https://github.com/zhuguang-ZFG/deepcode-cli/releases/download/lima-code-v0.1.24/lima-code-0.1.24.tgz` into a local temp prefix; `lima-code --version` returned `0.1.24`; `lima-code --headless -p "/lima start" --json` returned `ok=true` with zero model calls |
+| Workspace hygiene | Done | Temporary `.npm-cache` and `.pkg-smoke` directories were removed after smoke; both root and `deepcode-cli` worktrees returned clean |
+| VPS deploy | Not needed | This only refreshed the npm-installable GitHub Release package; no LiMa Server code or VPS environment changed |
 
 ## 2026-05-31 LiMa Code Cache-Rate and Prompt Hygiene Closeout
 

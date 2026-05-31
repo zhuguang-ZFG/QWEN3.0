@@ -5523,3 +5523,35 @@ Verification note:
 - Residual:
   - installed Windows npm users still need a package/release refresh to receive
     the cache percentage UI.
+
+## 2026-05-31 LiMa Code npm Release Refresh (CQ-105)
+
+- Scope:
+  - rebuilt the npm-installable `lima-code-0.1.24.tgz` after CQ-104;
+  - uploaded it to GitHub Release `lima-code-v0.1.24` with `--clobber`;
+  - smoke-tested the public GitHub Release URL install into a local temp prefix
+    instead of mutating the global npm installation.
+- Packaging evidence:
+  - first `npm.cmd pack --json` hit Windows npm global-cache `EPERM`;
+  - reran with project-local cache `D:\GIT\deepcode-cli\.npm-cache`;
+  - resulting package: size `249519`, unpacked size `775629`, shasum
+    `2d0ab22afe3f67fa64b3420c9285a6fdc4b0c7c7`, SHA256
+    `9d05c85101a8f0d12918305341fbae7c40f8a12d35a67f1c30ef48792f3c31a4`.
+- Release evidence:
+  - `gh release upload lima-code-v0.1.24 lima-code-0.1.24.tgz --clobber`
+    succeeded;
+  - `gh release view lima-code-v0.1.24 --json assets` reports
+    `lima-code-0.1.24.tgz` digest
+    `sha256:9d05c85101a8f0d12918305341fbae7c40f8a12d35a67f1c30ef48792f3c31a4`.
+- Install smoke:
+  - `npm.cmd install --prefix D:\GIT\deepcode-cli\.pkg-smoke --cache D:\GIT\deepcode-cli\.npm-cache https://github.com/zhuguang-ZFG/deepcode-cli/releases/download/lima-code-v0.1.24/lima-code-0.1.24.tgz`
+    -> `added 60 packages`;
+  - `.pkg-smoke\node_modules\.bin\lima-code.cmd --version` -> `0.1.24`;
+  - `.pkg-smoke\node_modules\.bin\lima-code.cmd --headless -p "/lima start" --json`
+    -> `ok=true`, returned `LiMa Code workbench`, and made zero model calls.
+- Cleanup:
+  - removed `.npm-cache` and `.pkg-smoke` after verifying they were inside
+    `D:\GIT\deepcode-cli`;
+  - root and submodule worktrees were clean after cleanup.
+- VPS:
+  - not deployed. This is package/release refresh only.
