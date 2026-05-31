@@ -10,20 +10,7 @@ from reverse_gateway.models import ReverseProvider
 
 
 PROVIDERS: dict[str, ReverseProvider] = {
-    "duck_web": ReverseProvider(
-        name="duck_web",
-        port=4500,
-        backends=(
-            "ddg_gpt4o_mini",
-            "ddg_gpt5_mini",
-            "ddg_claude_haiku_45",
-            "ddg_llama4",
-            "ddg_mistral",
-            "ddg_tinfoil_gptoss_120b",
-        ),
-        status="disabled_no_adapter",
-        reason="Windows/local proxy source is unavailable.",
-    ),
+    # M6: duck_web provider deleted — DDG backends removed (not in any routing pool)
     "kimi_web": ReverseProvider(
         name="kimi_web",
         port=4504,

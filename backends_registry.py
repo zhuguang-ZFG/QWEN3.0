@@ -122,15 +122,7 @@ BACKENDS = {
     # ── 新增: DeepInfra (200并发, 高吞吐) ──
     'deepinfra_llama4': {'url': 'https://api.deepinfra.com/v1/openai/chat/completions', 'key': os.environ.get('DEEPINFRA_API_KEY', ''), 'model': 'meta-llama/Llama-4-Maverick-17B-128E-Instruct', 'fmt': 'openai', 'timeout': 20},
     'deepinfra_qwen235b': {'url': 'https://api.deepinfra.com/v1/openai/chat/completions', 'key': os.environ.get('DEEPINFRA_API_KEY', ''), 'model': 'Qwen/Qwen3-235B-A22B-Instruct', 'fmt': 'openai', 'timeout': 30},
-    'deepseek_free': {'url': 'http://127.0.0.1:8000/v1/chat/completions', 'key': 'none', 'model': 'deepseek-chat', 'fmt': 'openai', 'timeout': 60},
-    # ── 本地 Ollama 模型已于 M1 删除 (脱离本机计划) ──
-    # ── DuckDuckGo-AI (本地 duckai, 免费, 仅 3 个模型验证可用) ──
-    'ddg_gpt4o_mini': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'gpt-4o-mini', 'fmt': 'openai', 'timeout': 30, 'no_system': True, 'caps': ['tool_calls']},
-    'ddg_gpt5_mini': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'gpt-5-mini', 'fmt': 'openai', 'timeout': 30, 'no_system': True, 'caps': ['tool_calls']},
-    'ddg_claude_haiku_45': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'claude-haiku-4-5', 'fmt': 'openai', 'timeout': 30, 'no_system': True},
-    'ddg_llama4': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'meta-llama/Llama-4-Scout-17B-16E-Instruct', 'fmt': 'openai', 'timeout': 30, 'no_system': True},
-    'ddg_mistral': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'mistral-small-2603', 'fmt': 'openai', 'timeout': 20, 'no_system': True, 'caps': ['tool_calls']},
-    'ddg_tinfoil_gptoss_120b': {'url': f"{os.environ.get('DDG_TUNNEL_URL', 'http://localhost:4500')}/v1/chat/completions", 'key': 'none', 'model': 'tinfoil/gpt-oss-120b', 'fmt': 'openai', 'timeout': 45, 'no_system': True},
+    # M6: deepseek_free + DDG backends deleted (not in any routing pool, dead code)
     # ── lza6 系列 CF Workers (逆向网页 AI, 免费) ──
     'tele_reason': {'url': 'https://tele.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'teleprompt-reason', 'fmt': 'openai', 'timeout': 30},
     'tele_standard': {'url': 'https://tele.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'teleprompt-standard', 'fmt': 'openai', 'timeout': 30},
@@ -229,14 +221,6 @@ BACKENDS = {
     'mimo_v2_omni_code': {'url': 'https://token-plan-cn.xiaomimimo.com/v1/chat/completions', 'key': os.environ.get('MIMO_V2_PRO_KEY', ''), 'model': 'mimo-v2-omni', 'fmt': 'openai', 'timeout': 30, 'force_stream_param': True, 'admission': 'code_medium_candidate', 'private_code_allowed': True, 'caps': ['tool_calls']},
 }
 
-DISABLED_HOST_DEPENDENT_BACKENDS = {
-    name: BACKENDS.pop(name)
-    for name in (
-        'deepseek_free',
-        # M1: local_* Ollama models removed; oldllm_* already on CF Worker, no longer need pop
-        'ddg_gpt4o_mini', 'ddg_gpt5_mini', 'ddg_claude_haiku_45',
-        'ddg_llama4', 'ddg_mistral', 'ddg_tinfoil_gptoss_120b',
-        # M2 scnet · M3 kimi · M4 longcat · M5 mimo — VPS sidecars, no pop needed
-    )
-    if name in BACKENDS
-}
+# M6: All host-dependent backends migrated to VPS or deleted.
+# DISABLED_HOST_DEPENDENT_BACKENDS is now empty — no backends need to be popped.
+DISABLED_HOST_DEPENDENT_BACKENDS: dict[str, dict] = {}

@@ -9,7 +9,8 @@ def setup_function():
 # ── Cost class ─────────────────────────────────────────────────────────────────
 
 def test_local_backends_are_free():
-    for b in ['local_coder14b', 'local_reasoning', 'local_fast', 'deepseek_free']:
+    # M1: local_* deleted; M6: deepseek_free deleted. Use active free backends.
+    for b in ['scnet_ds_flash', 'opencode_stealth', 'ovh_llama70b']:
         assert budget_manager.get_cost_class(b) == 'free', f'{b} should be free'
 
 
@@ -23,7 +24,8 @@ def test_unknown_backend_is_limited():
 
 
 def test_free_backends_never_block():
-    for b in ['local_coder14b', 'scnet_ds_flash', 'opencode_stealth']:
+    # M1: local_coder14b deleted. Use only active free backends.
+    for b in ['scnet_ds_flash', 'opencode_stealth', 'ovh_llama70b']:
         assert budget_manager.should_track_cost(b) is False, f'{b} should not block'
         assert budget_manager.is_budget_available(b) is True
 

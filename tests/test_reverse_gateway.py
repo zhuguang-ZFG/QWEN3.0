@@ -12,17 +12,8 @@ from reverse_gateway.registry import list_provider_status, provider_status
 from routes.reverse_gateway import reverse_gateway_health, reverse_gateway_probe, reverse_gateway_provider
 
 
-HOST_DEPENDENT_BACKENDS = {
-    "deepseek_free",
-    "ddg_gpt4o_mini",
-    "ddg_gpt5_mini",
-    "ddg_claude_haiku_45",
-    "ddg_llama4",
-    "ddg_mistral",
-    "ddg_tinfoil_gptoss_120b",
-    # M2 scnet · M3 kimi · M4 longcat · M5 mimo — all VPS sidecars
-    # M1: local_* Ollama models removed
-}
+# M6: All host-dependent backends migrated or deleted. Set is empty.
+HOST_DEPENDENT_BACKENDS: set[str] = set()
 
 
 def _router_pool_names() -> set[str]:
@@ -54,11 +45,10 @@ def test_code_orchestrator_pools_exclude_host_dependent_backends():
 
 
 def test_host_dependent_backends_require_explicit_opt_in(monkeypatch):
+    # M6: LOCAL_ONLY_BACKENDS is empty — all backends are cloud-native.
+    # No backend requires explicit opt-in anymore.
     monkeypatch.delenv(runtime_topology.HOST_DEPENDENT_OPT_IN, raising=False)
-    monkeypatch.setenv("SCNET_LARGE_TUNNEL_URL", "http://127.0.0.1:4505")
 
-    # M2/M3: scnet_large + kimi now VPS sidecars. Use ddg (still host-dependent).
-    assert not runtime_topology.backend_available("ddg_gpt4o_mini")
     assert runtime_topology.backend_available("scnet_ds_flash")
 
 

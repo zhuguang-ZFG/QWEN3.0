@@ -98,8 +98,8 @@ def v3_select(query, system_prompt, ide, messages):
     return (backends[0] if backends else "longcat_chat", messages)
 
 
-# 非真流式后端（代理/逆向），强制走非流式保证身份清洗完整
-FAKE_STREAM_BACKENDS = {'deepseek_free'}
+# M6: deepseek_free deleted. No fake-stream backends remain.
+FAKE_STREAM_BACKENDS: set[str] = set()
 
 
 def v3_call_stream(backend, messages, max_tokens, ide):

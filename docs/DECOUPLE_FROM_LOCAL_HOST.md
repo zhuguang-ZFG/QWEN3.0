@@ -13,8 +13,8 @@
 
 | # | Backend | 实际 URL | 现状 | 决定 |
 |---|---------|----------|------|------|
-| 1 | `deepseek_free` | `127.0.0.1:8000` | 本机代理，用途不明 | 待确认后决定 |
-| 2-7 | `ddg_*` (6) | `localhost:4500` | 本机 DuckAI (bun)，需 GFW 代理 | M6 决定 |
+| 1 | `deepseek_free` | — | ✅ **M6 已删除**：不在任何路由池，死代码 | M6 ✅ |
+| 2-7 | `ddg_*` (6) | — | ✅ **M6 已删除**：不在任何路由池，VPS 端口 4500 dead | M6 ✅ |
 | 8-10 | `kimi*` (3) | `localhost:4504` | ✅ **M3 已完成**：VPS kimi-proxy.service 已运行，端到端通过 | M3 ✅ |
 | 11-12 | `scnet_large_ds_*` (2) | `localhost:4505` | ✅ **M2 已完成**：VPS sidecar 已启用，healthy，端到端通过 | M2 ✅ |
 | 41-42 | `scnet_qwen235b_code`, `scnet_ds_pro_code` | `VPS_HOST:4505` | ✅ **M2 已完成**：随 scnet_large 一同迁移 | M2 ✅ |

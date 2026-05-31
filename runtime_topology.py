@@ -5,30 +5,12 @@ import socket
 TRUTHY = {"1", "true", "yes", "on"}
 HOST_DEPENDENT_OPT_IN = "LIMA_ENABLE_HOST_DEPENDENT_BACKENDS"
 
-LOCAL_ONLY_BACKENDS: set[str] = {
-    "deepseek_free",
-    "ddg_gpt4o_mini",
-    "ddg_gpt5_mini",
-    "ddg_claude_haiku_45",
-    "ddg_llama4",
-    "ddg_mistral",
-    "ddg_tinfoil_gptoss_120b",
-    # M2 scnet_large · M3 kimi · M4 longcat · M5 mimo — all VPS sidecars
-    # M1: oldllm_* already on CF Worker (llm.zhuguang.ccwu.cc), no longer host-dependent
-    # M1: local_* Ollama models removed, no longer part of LiMa
-}
+# M6: DDG + deepseek_free deleted (not in any routing pool, dead code).
+# LOCAL_ONLY_BACKENDS is now empty — all backends are cloud-native.
+LOCAL_ONLY_BACKENDS: set[str] = set()
 
-BACKEND_PORT_ENV: dict[str, tuple[int, str]] = {
-    "ddg_gpt4o_mini": (4500, "DDG_TUNNEL_URL"),
-    "ddg_gpt5_mini": (4500, "DDG_TUNNEL_URL"),
-    "ddg_claude_haiku_45": (4500, "DDG_TUNNEL_URL"),
-    "ddg_llama4": (4500, "DDG_TUNNEL_URL"),
-    "ddg_mistral": (4500, "DDG_TUNNEL_URL"),
-    "ddg_tinfoil_gptoss_120b": (4500, "DDG_TUNNEL_URL"),
-    # M3: kimi tunnel entries removed (now VPS kimi-proxy.service, no FRP needed)
-    # M2: scnet_large_* tunnel entries removed (now VPS sidecar, no FRP needed)
-    # M1: local_* Ollama 模型已删除
-}
+# M6: DDG tunnel entries removed. All tunnel entries cleared — no FRP needed.
+BACKEND_PORT_ENV: dict[str, tuple[int, str]] = {}
 
 
 def env_truthy(name: str) -> bool:

@@ -73,8 +73,7 @@ BACKEND_BUDGETS: dict[str, BudgetConfig] = {
     # 中国移动: 保守
     "chinamobile": BudgetConfig(daily_limit=500, warn_at=0.7),
 
-    # 逆向代理: 最保守
-    "deepseek_free": BudgetConfig(daily_limit=200, warn_at=0.6),
+    # M6: deepseek_free deleted
 }
 
 from budget_cf_google import (  # noqa: E402
@@ -192,11 +191,8 @@ def get_all_budgets() -> dict[str, dict]:
 COST_CLASS: dict[str, str] = {}
 
 # Local / free-tier backends
-_LOCAL_BACKENDS = {
-    "local_coder14b", "local_reasoning", "local_general",
-    "local_fast", "local_chat", "local_qwen3", "local_phi4", "local_mistral",
-    "deepseek_free",
-}
+# M6: deepseek_free deleted; M1: local_* Ollama models deleted
+_LOCAL_BACKENDS: set[str] = set()
 _FREE_BACKENDS = {
     "chat_ubi", "llm7", "pollinations", "pollinations_openai",
     "pollinations_openai_large", "pollinations_deepseek", "pollinations_qwen_coder",

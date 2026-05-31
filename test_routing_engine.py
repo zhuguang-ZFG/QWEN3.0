@@ -217,27 +217,24 @@ def test_default_routes_exclude_sandbox_only_web_reverse_backends():
     assert offenders == []
 
 
-def test_local_proxy_backends_require_local_topology(monkeypatch):
+def test_all_backends_available_without_local_topology(monkeypatch):
+    # M6: LOCAL_ONLY_BACKENDS is empty. All backends are cloud-native.
+    # No backend requires local topology checks.
     import runtime_topology
 
-    monkeypatch.delenv("LIMA_ENABLE_LOCAL_PROXIES", raising=False)
-    monkeypatch.delenv("LIMA_RUNTIME_LOCAL_PROXIES", raising=False)
-    monkeypatch.delenv("SCNET_LARGE_TUNNEL_URL", raising=False)
+    monkeypatch.delenv(runtime_topology.HOST_DEPENDENT_OPT_IN, raising=False)
     monkeypatch.setattr(runtime_topology, "local_port_open", lambda port: False)
 
-    # M2/M3: scnet_large + kimi now VPS sidecars. Use ddg (still host-dependent).
-    assert not runtime_topology.backend_available("ddg_gpt4o_mini")
     assert runtime_topology.backend_available("scnet_ds_flash")
+    assert runtime_topology.backend_available("kimi")
 
 
-def test_local_proxy_backends_can_be_enabled_explicitly(monkeypatch):
+def test_backend_available_always_true_for_non_host_dependent():
+    # M6: With empty LOCAL_ONLY_BACKENDS, any unknown/random backend name
+    # returns True (not host-dependent → always available).
     import runtime_topology
-    # M2/M3: scnet_large + kimi now VPS sidecars. Use ddg (still host-dependent).
-    monkeypatch.setenv(runtime_topology.HOST_DEPENDENT_OPT_IN, "1")
-    monkeypatch.setenv("DDG_TUNNEL_URL", "http://127.0.0.1:4500")
-    monkeypatch.setattr(runtime_topology, "local_port_open", lambda port: False)
 
-    assert runtime_topology.backend_available("ddg_gpt4o_mini")
+    assert runtime_topology.backend_available("some_random_backend_xyz")
 
 
 def test_code_orchestrator_filters_unreachable_local_proxy(monkeypatch):
