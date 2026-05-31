@@ -4,6 +4,32 @@
 
 > Updated: 2026-05-31
 
+## 2026-05-31 bounded telemetry JSONL closeout
+
+**Goal:** keep telemetry useful without letting local JSONL files grow into a
+new runtime hygiene problem.
+
+- Implementation:
+  - added `observability/jsonl_store.py` with compact append + size-bound
+    trimming;
+  - default retention cap is `LIMA_TELEMETRY_JSONL_MAX_BYTES=1048576`;
+  - setting `LIMA_TELEMETRY_JSONL_MAX_BYTES=0` disables size trimming for
+    diagnostics;
+  - `observability/backend_telemetry.py` now writes through the bounded helper
+    and preserves the latest `500` records when trimming;
+  - `observability/cli_telemetry.py` now writes through the bounded helper and
+    preserves the latest `200` records when trimming.
+- Local verification:
+  - focused telemetry-store tests: `18 passed`;
+  - `ruff check` on touched files: clean;
+  - `pyright` on touched runtime files: `0 errors`;
+  - full LiMa Server pytest: `2160 passed, 10 skipped in 205.32s`.
+- VPS deploy and smoke:
+  - `scripts/deploy_unified.py --files observability/jsonl_store.py observability/cli_telemetry.py observability/backend_telemetry.py`
+    uploaded `3`, failed `0`, skipped `0`, health `OK`;
+  - public `/v1/ops/metrics` returned HTTP `200` with
+    `backend_telemetry.total_recent=5` and `cli_telemetry.total_recent=2`.
+
 ## 2026-05-31 strong tool-backend routing closeout
 
 **Goal:** after backend attempt telemetry made stalls visible, reduce the

@@ -2,6 +2,14 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-05-31 Bounded Telemetry JSONL Closeout
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| TEL-STORE-1 | Runtime data | Backend/CLI telemetry JSONL files were append-only. They are ignored by Git, but could still grow indefinitely on VPS. A shared bounded JSONL writer now trims above `LIMA_TELEMETRY_JSONL_MAX_BYTES` while preserving recent records. | Closed |
+| TEL-STORE-2 | Operator override | `LIMA_TELEMETRY_JSONL_MAX_BYTES=0` disables trimming for temporary diagnostics without code changes. | Closed |
+| TEL-STORE-3 | VPS smoke | After deploy, public `/v1/ops/metrics` still returned telemetry aggregates: `backend_telemetry.total_recent=5`, `cli_telemetry.total_recent=2`. | Closed |
+
 ## 2026-05-31 Strong Tool-Backend Routing Closeout
 
 | ID | Area | Finding | Status |

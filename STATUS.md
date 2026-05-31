@@ -1,11 +1,21 @@
 # LiMa Status
 
-> Updated: 2026-05-31 (strong tool-backend routing closeout)
+> Updated: 2026-05-31 (bounded telemetry JSONL closeout)
 > Branch: `main`
-> Tests: LiMa Server full pytest **2158 passed, 10 skipped**; focused tool/routing tests **44 passed**; ruff/pyright clean
-> Current VPS: health OK; public large tools smoke OK; large tool payload now routes to stronger tool backend (`mistral_large`)
+> Tests: LiMa Server full pytest **2160 passed, 10 skipped**; focused telemetry-store tests **18 passed**; ruff/pyright clean
+> Current VPS: health OK; ops metrics OK; CLI/backend telemetry JSONL now has bounded retention
 > VPS: Memory 1454MB→1358MB (services restored), health check OK
 > Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
+
+## 2026-05-31 Bounded Telemetry JSONL Closeout
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| Runtime telemetry retention | Deployed | `observability/jsonl_store.py` appends compact JSONL and trims files above `LIMA_TELEMETRY_JSONL_MAX_BYTES` (default 1MB), preserving recent lines |
+| Backend telemetry writer | Deployed | `observability/backend_telemetry.py` now uses the bounded writer with `MAX_RECENT=500` |
+| CLI telemetry writer | Deployed | `observability/cli_telemetry.py` now uses the bounded writer with `MAX_RECENT=200` |
+| Local verification | Done | focused telemetry tests `18 passed`; full pytest `2160 passed, 10 skipped`; `ruff check` clean; `pyright` 0 errors |
+| VPS smoke | Done | deploy uploaded 3/3 and health OK; public `/v1/ops/metrics` returned `backend_telemetry.total_recent=5`, `cli_telemetry.total_recent=2` |
 
 ## 2026-05-31 Strong Tool-Backend Routing Closeout
 

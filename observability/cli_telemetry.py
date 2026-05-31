@@ -121,15 +121,14 @@ def sanitize_cli_outcome(
 
 
 def record_cli_outcome(record: dict[str, Any]) -> bool:
-    path = _telemetry_path()
-    try:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(record, ensure_ascii=True, separators=(",", ":")) + "\n")
-        return True
-    except Exception as exc:
-        _log.warning("failed to record cli telemetry: %s", type(exc).__name__)
-        return False
+    from observability.jsonl_store import append_jsonl_record
+
+    return append_jsonl_record(
+        _telemetry_path(),
+        record,
+        keep_lines=MAX_RECENT,
+        logger=_log,
+    )
 
 
 def _read_recent(limit: int) -> list[dict[str, Any]]:
