@@ -2110,3 +2110,37 @@ Deployment: not performed.
     `/v1/ops/summary` status is `critical` because many backends remain
     dead/degraded/retired. Reactivation should be done only after fresh probe
     evidence for each backend.
+
+## 2026-05-31 Evidence-Based Backend Probe Recovery
+
+- Added private `POST /v1/ops/backends/probe`.
+- The endpoint is intentionally evidence-first:
+  - default behavior probes a backend and records evidence only;
+  - `reactivate_on_success=true` reactivates only when the fresh probe returns
+    `status=healthy`;
+  - failed probes recommend `keep_retired`.
+- Manual operator probes call `http_sync.call_api(..., ignore_cooldown=True)`
+  through `backend_probe_loop`, so stale cooldown state cannot hide the real
+  current provider status. Normal routing still respects cooldown.
+- Probe evidence is recorded into:
+  - `health_tracker`;
+  - `backend_profile`;
+  - `observability.backend_telemetry` with `scenario=probe` and
+    `phase=operator_probe`.
+- Verification:
+  - focused tests `33 passed`;
+  - ruff clean for the touched files;
+  - pyright `0 errors`;
+  - full pytest `2184 passed, 10 skipped`.
+- VPS/public evidence:
+  - deploy uploaded 3/3 files and health passed;
+  - public `/health` returned HTTP 200;
+  - `groq_llama70b` probe returned healthy, recorded, and not reactivated by
+    default;
+  - `cerebras_gptoss` probe returned healthy and was reactivated with explicit
+    `reactivate_on_success=true`;
+  - `assist_brainstorm` and `cfai_llama4` returned DNS failure evidence and
+    were kept retired.
+- Current truth:
+  - `/v1/ops/summary` still reports provider pool `critical`; this is now a
+    visible recovery queue, not a silent failure.

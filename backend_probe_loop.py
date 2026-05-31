@@ -40,7 +40,7 @@ def stop_probe_loop() -> None:
     logger.info("Backend probe loop stopped")
 
 
-def probe_backend(backend: str) -> dict:
+def probe_backend(backend: str, *, ignore_cooldown: bool = False) -> dict:
     """Probe a single backend. Returns probe result dict."""
     try:
         from backends import BACKENDS
@@ -57,6 +57,7 @@ def probe_backend(backend: str) -> dict:
                 backend,
                 [{"role": "user", "content": "hi"}],
                 5,
+                ignore_cooldown=ignore_cooldown,
             )
             latency_ms = int((time.time() - t0) * 1000)
             if result and len(result.strip()) > 0:
@@ -91,6 +92,73 @@ def probe_batch(backends: list[str]) -> list[dict]:
         # Brief pause between probes to avoid rate limiting
         time.sleep(0.5)
     return results
+
+
+def record_probe_result(result: dict) -> bool:
+    """Persist a probe result into health/profile/telemetry stores."""
+    backend = str(result.get("backend", ""))
+    if not backend:
+        return False
+    status = str(result.get("status", "unknown"))
+    success = status == "healthy"
+    latency_ms = int(result.get("latency_ms", 0) or 0)
+
+    recorded = False
+    try:
+        import health_tracker
+
+        if success:
+            health_tracker.record_success(backend, latency_ms)
+        elif status in ("failed", "empty"):
+            health_tracker.record_failure(
+                backend,
+                error_code=result.get("error_code"),
+                error_text=str(result.get("error", "")),
+            )
+        recorded = True
+    except ImportError as exc:
+        logger.warning("health_tracker unavailable; probe health not recorded: %s", exc)
+
+    try:
+        import backend_profile
+
+        backend_profile.record_request(
+            backend,
+            latency_ms,
+            success=success,
+            scenario="probe",
+            response_len=int(result.get("response_len", 0) or 0),
+        )
+        recorded = True
+    except ImportError as exc:
+        logger.warning("backend_profile unavailable; probe profile not recorded: %s", exc)
+
+    try:
+        from observability.backend_telemetry import record_backend_attempt
+
+        record_backend_attempt(
+            backend=backend,
+            scenario="probe",
+            request_type="operator_probe",
+            success=success,
+            latency_ms=latency_ms,
+            status_code=result.get("error_code"),
+            error=result.get("error"),
+            response_empty=(status == "empty"),
+            phase="operator_probe",
+            attempt="manual",
+        )
+        recorded = True
+    except ImportError as exc:
+        logger.warning("backend telemetry unavailable; probe attempt not recorded: %s", exc)
+    return recorded
+
+
+def probe_and_record_backend(backend: str, *, ignore_cooldown: bool = False) -> dict:
+    """Probe a backend once and persist the evidence for operator recovery."""
+    result = probe_backend(backend, ignore_cooldown=ignore_cooldown)
+    result["recorded"] = record_probe_result(result)
+    return result
 
 
 def get_probe_schedule() -> list[list[str]]:
@@ -149,30 +217,7 @@ def _probe_loop() -> None:
                 status = result.get("status", "unknown")
                 latency_ms = result.get("latency_ms", 0)
 
-                try:
-                    import health_tracker
-                    if status == "healthy":
-                        health_tracker.record_success(backend, latency_ms)
-                    elif status in ("failed", "empty"):
-                        health_tracker.record_failure(
-                            backend,
-                            error_code=result.get("error_code"),
-                            error_text=result.get("error", ""),
-                        )
-                except ImportError:
-                    pass
-
-                try:
-                    import backend_profile
-                    backend_profile.record_request(
-                        backend,
-                        latency_ms,
-                        success=(status == "healthy"),
-                        scenario="probe",
-                        response_len=result.get("response_len", 0),
-                    )
-                except ImportError:
-                    pass
+                record_probe_result(result)
 
             healthy = sum(1 for r in results if r.get("status") == "healthy")
             logger.info("Probe batch %d complete: %d/%d healthy", batch_index + 1, healthy, len(results))

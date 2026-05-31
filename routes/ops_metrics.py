@@ -366,6 +366,7 @@ def _ops_summary_from_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
         },
         "actions": {
             "metrics": "GET /v1/ops/metrics",
+            "probe_backend": "POST /v1/ops/backends/probe",
             "reactivate_backend": "POST /v1/ops/backends/reactivate",
             "retire_backend": "POST /v1/ops/backends/retire",
             "body": {"backend": "name", "evidence": "fresh probe result or rollback reason"},
@@ -514,6 +515,57 @@ async def ops_backend_reactivate(request: Request) -> JSONResponse:
         return JSONResponse({"error": "backend reactivation failed"}, status_code=500)
     logger.warning("manual backend reactivation backend=%s evidence=%s", backend, evidence[:120])
     return JSONResponse({"ok": True, "backend": backend, "status": "healthy"})
+
+
+@router.post("/backends/probe", dependencies=[Depends(require_private_api_key)])
+async def ops_backend_probe(request: Request) -> JSONResponse:
+    """Probe one backend and record the evidence before any recovery action."""
+    body = await read_json_object(request)
+    if isinstance(body, JSONResponse):
+        return body
+    backend = _valid_backend_name(body.get("backend"))
+    reactivate_on_success = bool(body.get("reactivate_on_success", False))
+    if not backend:
+        return JSONResponse({"error": "valid backend required"}, status_code=400)
+    try:
+        from backend_probe_loop import probe_and_record_backend
+
+        result = probe_and_record_backend(backend, ignore_cooldown=True)
+    except ImportError:
+        return JSONResponse({"error": "backend_probe_loop module not loaded"}, status_code=503)
+    except Exception as exc:
+        logger.warning("manual backend probe failed backend=%s: %s", backend, type(exc).__name__)
+        return JSONResponse({"error": "backend probe failed"}, status_code=500)
+
+    status = str(result.get("status", "unknown"))
+    healthy = status == "healthy"
+    reactivated = False
+    if healthy and reactivate_on_success:
+        try:
+            from backend_retirement import reactivate
+
+            reactivate(backend)
+            reactivated = True
+        except ImportError:
+            return JSONResponse({"error": "backend_retirement module not loaded"}, status_code=503)
+        except Exception as exc:
+            logger.warning("probe-based backend reactivation failed backend=%s: %s", backend, type(exc).__name__)
+            return JSONResponse({"error": "backend reactivation failed"}, status_code=500)
+
+    if healthy:
+        recommended = "reactivated" if reactivated else "reactivate_with_evidence"
+    elif status == "unknown":
+        recommended = "check_backend_name"
+    else:
+        recommended = "keep_retired"
+
+    return JSONResponse({
+        "ok": healthy,
+        "backend": backend,
+        "probe": result,
+        "reactivated": reactivated,
+        "recommended_action": recommended,
+    })
 
 
 @router.post("/backends/retire", dependencies=[Depends(require_private_api_key)])

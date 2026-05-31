@@ -1,11 +1,23 @@
 # LiMa Status
 
-> Updated: 2026-05-31 (Ops/API/Tailscale hardening closeout)
+> Updated: 2026-05-31 (Evidence-based backend probe closeout)
 > Branch: `main`
-> Tests: LiMa Server full pytest **2181 passed, 10 skipped**; focused ops/API route tests **69 passed**; ruff/pyright clean
-> Current VPS: health OK; `/v1/ops/summary` 200; malformed backend-action JSON returns 400; Tailscale Windows/VPS link restored at 11ms; Git global ignore warning fixed
+> Tests: LiMa Server full pytest **2184 passed, 10 skipped**; focused backend probe tests **33 passed**; ruff/pyright clean
+> Current VPS: health OK; `/v1/ops/summary` 200; `POST /v1/ops/backends/probe` records fresh evidence and only reactivates on explicit successful probe
 > VPS: Memory 1454MB→1358MB (services restored), health check OK
 > Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
+
+## 2026-05-31 Evidence-Based Backend Probe Closeout
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| Manual backend probe | Deployed | Added private `POST /v1/ops/backends/probe`; default behavior probes and records evidence without reactivating |
+| Evidence recording | Deployed | Probe results write to health tracker, backend profile, and backend telemetry with `scenario=probe` / `phase=operator_probe` |
+| Cooldown bypass for operators | Deployed | Manual probe uses `ignore_cooldown=True`, so stale cooldown state does not block fresh operator evidence |
+| Guarded reactivation | Deployed | `reactivate_on_success=true` only reactivates when the fresh probe returns `status=healthy`; failed probes recommend `keep_retired` |
+| Local verification | Done | focused tests `33 passed`; `ruff check backend_probe_loop.py http_sync.py routes/ops_metrics.py tests/test_ops_metrics.py` clean; `pyright backend_probe_loop.py http_sync.py routes/ops_metrics.py` returned 0 errors; full pytest `2184 passed, 10 skipped` |
+| VPS smoke | Done | deploy uploaded 3/3 and health OK; public `/health` 200; `groq_llama70b` probe returned healthy/recorded/reactivated=false; `cerebras_gptoss` probe returned healthy and reactivated; `assist_brainstorm` and `cfai_llama4` remained failed with DNS evidence and were not reactivated |
+| Residual provider state | Visible | `/v1/ops/summary` remains `critical` with many dead/degraded/retired backends; this is now an explicit operator recovery queue rather than a silent routing failure |
 
 ## 2026-05-31 Ops/API/Tailscale Hardening Closeout
 

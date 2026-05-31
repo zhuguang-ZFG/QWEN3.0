@@ -5282,3 +5282,46 @@ Verification note:
   - `/v1/ops/summary` now correctly shows the provider pool still has many
     dead/degraded/retired backends. The blind spot is closed, but provider
     resurrection still needs deliberate probe/evidence work backend by backend.
+
+## 2026-05-31 Evidence-Based Backend Probe Recovery (CQ-099)
+
+- Scope:
+  - added private `POST /v1/ops/backends/probe` for operator-driven backend
+    recovery;
+  - default probe behavior records evidence only and does not reactivate;
+  - optional `reactivate_on_success=true` reactivates only after a fresh
+    healthy probe;
+  - manual probes bypass stale health cooldown with `ignore_cooldown=True`,
+    while normal routing still honors cooldown.
+- Runtime evidence:
+  - probe results are persisted to `health_tracker`, `backend_profile`, and
+    `observability.backend_telemetry` with `scenario=probe` and
+    `phase=operator_probe`;
+  - public smoke for `groq_llama70b` returned HTTP 200 with
+    `status=healthy`, `recorded=true`, and `reactivated=false`;
+  - public smoke for `cerebras_gptoss` returned HTTP 200 with
+    `status=healthy`, `recorded=true`, and `reactivated=true`;
+  - public smokes for `assist_brainstorm` and `cfai_llama4` returned HTTP 200
+    with DNS failure evidence and `reactivated=false`.
+- Verification:
+  - `python -m ruff check backend_probe_loop.py http_sync.py routes\ops_metrics.py tests\test_ops_metrics.py`
+    -> clean;
+  - `python -m pyright backend_probe_loop.py http_sync.py routes\ops_metrics.py`
+    -> `0 errors, 0 warnings, 0 informations`;
+  - focused tests:
+    `python -m pytest tests\test_ops_metrics.py tests\test_http_caller_concurrency.py tests\test_backend_retirement.py -q`
+    -> `33 passed`;
+  - full server suite:
+    `python -m pytest -q --ignore=active_model`
+    -> `2184 passed, 10 skipped in 219.09s`.
+- VPS:
+  - `python scripts\deploy_unified.py --files backend_probe_loop.py http_sync.py routes/ops_metrics.py`
+    -> 3/3 uploaded, restart OK, health OK;
+  - public `/health` returned HTTP 200;
+  - authenticated `/v1/ops/summary` returned HTTP 200 and still reports
+    provider pool `critical`, now with `probe_backend` as an explicit action.
+- Residual:
+  - provider pool is not "fixed by magic"; many backends remain
+    dead/degraded/retired and should be recovered backend by backend from fresh
+    probe evidence. The DNS failures are real evidence to investigate at the
+    provider/config layer.

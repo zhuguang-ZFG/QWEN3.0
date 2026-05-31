@@ -6,6 +6,7 @@ import json
 import logging
 import sys
 import time
+from typing import NoReturn
 
 import httpx
 from response_cleaner import clean_response, _is_backend_error
@@ -55,7 +56,8 @@ def _apply_artifact_handles(messages: list[dict]) -> None:
             if isinstance(msg, dict) and msg.get("role") == "user":
                 content = msg.get("content", "")
                 if isinstance(content, str) and should_use_handle(content):
-                    messages[index] = {**msg, "content": create_handle(content)}
+                    handle = create_handle(f"message:{index}", content)
+                    messages[index] = {**msg, "content": handle.to_context_line()}
     except ImportError:
         _log.debug("context_pipeline.artifact not installed; artifact handles skipped")
 
@@ -92,7 +94,7 @@ def _handle_call_error(
     exc: Exception,
     *,
     emit_obs: bool,
-) -> None:
+) -> NoReturn:
     hc = _caller()
     if isinstance(exc, BackendError):
         hc._report_key_result(
@@ -146,6 +148,7 @@ def call_api(
     system_prompt: str = "",
     ide: str = "",
     tools: list[dict] | None = None,
+    ignore_cooldown: bool = False,
 ) -> str:
     hc = _caller()
     cfg = BACKENDS.get(backend)
@@ -154,7 +157,7 @@ def call_api(
     selected_key, key_provider = hc._select_key(backend, cfg)
     if not selected_key:
         raise BackendError(f"{backend} unavailable (no key)", status_code=404)
-    if hc.health_tracker.is_cooled_down(backend):
+    if not ignore_cooldown and hc.health_tracker.is_cooled_down(backend):
         raise BackendError(f"{backend} is cooled down", status_code=503)
 
     _apply_artifact_handles(messages)

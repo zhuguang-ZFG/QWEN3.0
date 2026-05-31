@@ -441,6 +441,105 @@ def test_ops_backend_reactivate_requires_evidence(monkeypatch):
     assert response.json()["error"] == "evidence required"
 
 
+def test_ops_backend_probe_records_without_reactivating(monkeypatch):
+    monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
+    calls = {"probe": 0, "reactivate": 0}
+
+    def fake_probe(backend: str, *, ignore_cooldown: bool = False) -> dict:
+        calls["probe"] += 1
+        assert ignore_cooldown is True
+        return {
+            "backend": backend,
+            "status": "healthy",
+            "latency_ms": 12,
+            "response_len": 2,
+            "recorded": True,
+        }
+
+    def fake_reactivate(backend: str) -> None:
+        calls["reactivate"] += 1
+
+    monkeypatch.setattr("backend_probe_loop.probe_and_record_backend", fake_probe)
+    monkeypatch.setattr("backend_retirement.reactivate", fake_reactivate)
+
+    app = FastAPI()
+    app.include_router(router)
+    response = TestClient(app).post(
+        "/v1/ops/backends/probe",
+        json={"backend": "manual_backend"},
+        headers={"Authorization": "Bearer test-private-token"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["ok"] is True
+    assert data["reactivated"] is False
+    assert data["recommended_action"] == "reactivate_with_evidence"
+    assert data["probe"]["recorded"] is True
+    assert calls == {"probe": 1, "reactivate": 0}
+
+
+def test_ops_backend_probe_can_reactivate_on_success(monkeypatch):
+    monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
+    calls = {"reactivate": []}
+
+    monkeypatch.setattr(
+        "backend_probe_loop.probe_and_record_backend",
+        lambda backend, *, ignore_cooldown=False: {
+            "backend": backend,
+            "status": "healthy",
+            "latency_ms": 10,
+            "recorded": True,
+            "ignore_cooldown": ignore_cooldown,
+        },
+    )
+    monkeypatch.setattr(
+        "backend_retirement.reactivate",
+        lambda backend: calls["reactivate"].append(backend),
+    )
+
+    app = FastAPI()
+    app.include_router(router)
+    response = TestClient(app).post(
+        "/v1/ops/backends/probe",
+        json={"backend": "manual_backend", "reactivate_on_success": True},
+        headers={"Authorization": "Bearer test-private-token"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["reactivated"] is True
+    assert response.json()["recommended_action"] == "reactivated"
+    assert calls["reactivate"] == ["manual_backend"]
+
+
+def test_ops_backend_probe_keeps_failed_backend_retired(monkeypatch):
+    monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
+    monkeypatch.setattr(
+        "backend_probe_loop.probe_and_record_backend",
+        lambda backend, *, ignore_cooldown=False: {
+            "backend": backend,
+            "status": "failed",
+            "latency_ms": 90000,
+            "error_class": "timeout",
+            "recorded": True,
+            "ignore_cooldown": ignore_cooldown,
+        },
+    )
+
+    app = FastAPI()
+    app.include_router(router)
+    response = TestClient(app).post(
+        "/v1/ops/backends/probe",
+        json={"backend": "manual_backend", "reactivate_on_success": True},
+        headers={"Authorization": "Bearer test-private-token"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["ok"] is False
+    assert response.json()["reactivated"] is False
+    assert response.json()["recommended_action"] == "keep_retired"
+
+
 def test_ops_metrics_includes_routing_guard_snapshot(monkeypatch, tmp_path):
     monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
     monkeypatch.setenv("LIMA_DATA_DIR", str(tmp_path))
