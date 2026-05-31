@@ -119,6 +119,14 @@ def _get_backend_telemetry() -> dict[str, Any]:
         return {"total_recent": 0, "recent": [], "error": "unavailable"}
 
 
+def _get_routing_guard() -> dict[str, Any]:
+    try:
+        from observability.routing_guard import backend_guard_snapshot
+        return backend_guard_snapshot(limit=200)
+    except ImportError:
+        return {"enabled": False, "decisions": {}, "error": "unavailable"}
+
+
 def _backend_recovery_snapshot(dead_backends: list[str], degraded_backends: list[str]) -> dict[str, Any]:
     try:
         from backend_retirement import get_recovery_snapshot
@@ -277,6 +285,7 @@ async def ops_metrics(request: Request) -> JSONResponse:
         "recent_agent_tasks": recent_tasks,
         "cli_telemetry": _get_cli_telemetry(),
         "backend_telemetry": _get_backend_telemetry(),
+        "routing_guard": _get_routing_guard(),
         "capability_evidence": _get_capability_evidence(),
     })
 

@@ -355,3 +355,29 @@ def test_ops_metrics_includes_backend_recovery_snapshot(monkeypatch):
 
     backend_retirement._retired_backends.clear()
     health_state.reset_all_state()
+
+
+def test_ops_metrics_includes_routing_guard_snapshot(monkeypatch, tmp_path):
+    monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
+    monkeypatch.setenv("LIMA_DATA_DIR", str(tmp_path))
+
+    from observability.backend_telemetry import record_backend_attempt
+
+    assert record_backend_attempt(
+        backend="guarded_backend",
+        success=False,
+        response_empty=True,
+    )
+
+    app = FastAPI()
+    app.state.stats = {"total_requests": 0, "backend_calls": {}, "start_time": 1}
+    app.include_router(router)
+    response = TestClient(app).get(
+        "/v1/ops/metrics",
+        headers={"Authorization": "Bearer test-private-token"},
+    )
+
+    assert response.status_code == 200
+    guard = response.json()["routing_guard"]
+    assert guard["enabled"] is True
+    assert guard["decisions"]["guarded_backend"]["status"] == "quarantined"

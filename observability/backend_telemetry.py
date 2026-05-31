@@ -171,8 +171,12 @@ def _read_recent(limit: int) -> list[dict[str, Any]]:
     return records
 
 
+def recent_backend_attempts(limit: int = MAX_RECENT) -> list[dict[str, Any]]:
+    return _read_recent(max(limit, 1))
+
+
 def backend_telemetry_summary(limit: int = 20, slow_ms: int = 30000) -> dict[str, Any]:
-    records = _read_recent(max(limit, MAX_RECENT))
+    records = recent_backend_attempts(max(limit, MAX_RECENT))
     total = len(records)
     failures = sum(1 for item in records if not item.get("success", False))
     slow = sum(1 for item in records if _int(item.get("latency_ms", 0)) >= slow_ms)

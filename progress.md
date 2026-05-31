@@ -5127,3 +5127,44 @@ Verification note:
     for broad project-learning prompts; server-side routing should next
     aggregate backend latency/admission telemetry and prefer stronger
     coding-tool backends for these turns.
+
+## 2026-05-31 Telemetry-Driven Routing Guard (CQ-095)
+
+- Scope:
+  - turned recent backend attempt telemetry into routing behavior, not only
+    operator diagnostics;
+  - added `observability.routing_guard` to derive short-lived
+    `quarantined` and `penalized` decisions from sanitized telemetry;
+  - wired `routing_selector` so quarantined backends are skipped when another
+    backend is available, while the last remaining backend is kept as a safety
+    valve;
+  - applied penalty multipliers for recently unstable backends that are no
+    longer quarantined;
+  - exposed `/v1/ops/metrics.routing_guard` for operator/TUI diagnosis.
+- Verification:
+  - focused routing guard/selector/ops tests:
+    `python -m pytest tests/test_routing_guard.py tests/test_route_scorer.py tests/test_ops_metrics.py -q`
+    -> `28 passed`;
+  - `python -m ruff check observability/backend_telemetry.py observability/routing_guard.py routing_selector.py routes/ops_metrics.py tests/test_routing_guard.py tests/test_route_scorer.py tests/test_ops_metrics.py`
+    -> passed;
+  - `python -m pyright observability/backend_telemetry.py observability/routing_guard.py routing_selector.py routes/ops_metrics.py`
+    -> `0 errors, 0 warnings, 0 informations`;
+  - `git diff --check` -> clean;
+  - full server suite:
+    `python -m pytest -q --ignore=active_model`
+    -> `2168 passed, 10 skipped`.
+- VPS:
+  - `python scripts/deploy_unified.py --files observability/backend_telemetry.py observability/routing_guard.py routing_selector.py routes/ops_metrics.py`
+    -> 4/4 uploaded, restart OK, health OK;
+  - public `/health` returned OK;
+  - public `/v1/ops/metrics` returned `routing_guard.enabled=true`,
+    `backend_telemetry.total_recent=8`, `failed_recent=3`, latest backend
+    telemetry success from `groq_llama70b`;
+  - public `/v1/chat/completions` smoke returned HTTP 200 via
+    `groq_llama70b`, `finish_reason=stop`.
+- Notes:
+  - first public chat smoke attempts returned 500 because the PowerShell/curl
+    command malformed JSON; journal showed `JSONDecodeError` at request parsing.
+    The real smoke used a temp JSON file with `--data-binary @file`.
+  - guard uses telemetry record order in addition to second-level timestamps so
+    a failure after a success in the same second is not accidentally cleared.

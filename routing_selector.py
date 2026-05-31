@@ -133,6 +133,23 @@ def select(request_type: str, health_map: dict,
 
     result = [b for b in result if budget_manager.is_budget_available(b)]
 
+    routing_guard_decisions: dict[str, dict] = {}
+    try:
+        from observability.routing_guard import backend_guard_snapshot
+
+        guard_snapshot = backend_guard_snapshot()
+        raw_decisions = guard_snapshot.get("decisions", {})
+        if isinstance(raw_decisions, dict):
+            routing_guard_decisions = raw_decisions
+            non_quarantined = [
+                b for b in result
+                if routing_guard_decisions.get(b, {}).get("status") != "quarantined"
+            ]
+            if non_quarantined:
+                result = non_quarantined
+    except ImportError:
+        routing_guard_decisions = {}
+
     scores = re.health_tracker.get_scores()
     latency_map = re.health_tracker.get_latency_map()
     health_map = re.health_tracker.get_health_map()
@@ -180,6 +197,13 @@ def select(request_type: str, health_map: dict,
         static_latency = _STATIC_LATENCY_ESTIMATE.get(b)
         if static_latency and consec_fails == 0:
             scores[b] += max(0, (2000 - static_latency) / 100)
+
+        guard_decision = routing_guard_decisions.get(b, {})
+        if guard_decision:
+            try:
+                scores[b] *= float(guard_decision.get("penalty_multiplier", 1.0))
+            except (TypeError, ValueError):
+                scores[b] *= 1.0
 
         # Hierarchical memory boost for preferred backends
         if b in _preferred:

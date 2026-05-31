@@ -1998,3 +1998,30 @@ Deployment: not performed.
   - unauth outcome POST 401; auth outcome POST 200 recorded;
   - main repo `ruff check .`, `pyright`, and full pytest
     `2141 passed, 10 skipped in 288.33s`.
+
+## 2026-05-31 Telemetry-Driven Routing Guard
+
+- User asked to close the remaining runtime/provider-governance gap after
+  backend attempt telemetry and LiMa Code TUI hardening.
+- Added `observability.routing_guard`:
+  - reads sanitized recent backend telemetry;
+  - short-term quarantines recent hard failures;
+  - down-ranks backends with recent failure ratio after a newer success clears
+    quarantine;
+  - uses record order plus second-level timestamps to avoid same-second
+    success/failure mis-ordering.
+- Routing behavior:
+  - `routing_selector.select()` skips quarantined backends when alternatives
+    exist;
+  - keeps the only remaining backend to avoid self-inflicted full outage;
+  - applies guard penalty multipliers before final scoring.
+- Operator visibility:
+  - `/v1/ops/metrics.routing_guard` exposes enabled state, window,
+    quarantine duration, hard classes, and backend decisions.
+- Evidence:
+  - focused routing guard/selector/ops tests `28 passed`;
+  - full server suite `2168 passed, 10 skipped`;
+  - ruff, pyright, and `git diff --check` clean;
+  - VPS deploy uploaded 4/4 files and health passed;
+  - public ops metrics returned `routing_guard.enabled=true`;
+  - public chat smoke returned HTTP 200 via `groq_llama70b`.

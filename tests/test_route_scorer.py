@@ -101,3 +101,63 @@ def test_routing_selector_identifies_strong_coding_tool_backend():
         "mistral_small",
         {"caps": ["tool_calls"]},
     )
+
+
+def test_routing_select_skips_recently_quarantined_backend(monkeypatch, tmp_path):
+    monkeypatch.setenv("LIMA_DATA_DIR", str(tmp_path))
+
+    from observability.backend_telemetry import record_backend_attempt
+
+    assert record_backend_attempt(
+        backend="flaky_backend",
+        success=False,
+        response_empty=True,
+    )
+
+    import routing_engine
+
+    monkeypatch.setattr(
+        routing_engine.router_v3,
+        "select_backends",
+        lambda req_type, health_map: ["flaky_backend", "stable_backend"],
+    )
+    monkeypatch.setattr(routing_engine.health_tracker, "is_cooled_down", lambda b: False)
+    monkeypatch.setattr(
+        routing_engine.health_tracker,
+        "get_backend_state",
+        lambda b: {"state": "ok"},
+    )
+    monkeypatch.setattr(routing_engine.health_tracker, "get_scores", lambda: {})
+    monkeypatch.setattr(routing_engine.health_tracker, "get_latency_map", lambda: {})
+
+    assert routing_engine.select("chat", {}) == ["stable_backend"]
+
+
+def test_routing_select_keeps_only_backend_even_if_quarantined(monkeypatch, tmp_path):
+    monkeypatch.setenv("LIMA_DATA_DIR", str(tmp_path))
+
+    from observability.backend_telemetry import record_backend_attempt
+
+    assert record_backend_attempt(
+        backend="only_backend",
+        success=False,
+        response_empty=True,
+    )
+
+    import routing_engine
+
+    monkeypatch.setattr(
+        routing_engine.router_v3,
+        "select_backends",
+        lambda req_type, health_map: ["only_backend"],
+    )
+    monkeypatch.setattr(routing_engine.health_tracker, "is_cooled_down", lambda b: False)
+    monkeypatch.setattr(
+        routing_engine.health_tracker,
+        "get_backend_state",
+        lambda b: {"state": "ok"},
+    )
+    monkeypatch.setattr(routing_engine.health_tracker, "get_scores", lambda: {})
+    monkeypatch.setattr(routing_engine.health_tracker, "get_latency_map", lambda: {})
+
+    assert routing_engine.select("chat", {}) == ["only_backend"]

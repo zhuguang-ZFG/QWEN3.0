@@ -1,11 +1,22 @@
 # LiMa Status
 
-> Updated: 2026-05-31 (bounded telemetry JSONL closeout)
+> Updated: 2026-05-31 (telemetry-driven routing guard closeout)
 > Branch: `main`
-> Tests: LiMa Server full pytest **2160 passed, 10 skipped**; focused telemetry-store tests **18 passed**; ruff/pyright clean
-> Current VPS: health OK; ops metrics OK; CLI/backend telemetry JSONL now has bounded retention
+> Tests: LiMa Server full pytest **2168 passed, 10 skipped**; focused routing guard tests **28 passed**; ruff/pyright clean
+> Current VPS: health OK; ops metrics OK; telemetry-driven routing guard is active
 > VPS: Memory 1454MB→1358MB (services restored), health check OK
 > Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
+
+## 2026-05-31 Telemetry-Driven Routing Guard Closeout
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| Routing guard | Deployed | `observability/routing_guard.py` derives short-lived backend `quarantined`/`penalized` decisions from recent sanitized backend telemetry |
+| Route selection | Deployed | `routing_selector.py` skips quarantined backends when alternatives exist, keeps the last available backend as a safety valve, and applies penalty multipliers to unstable candidates |
+| Ops visibility | Deployed | `/v1/ops/metrics.routing_guard` exposes enabled state, time windows, hard error classes, and current backend decisions |
+| Same-second ordering | Fixed | guard uses telemetry record order as well as timestamp, so a failure after a success in the same second is not accidentally cleared |
+| Local verification | Done | focused routing guard/selector/ops tests `28 passed`; full pytest `2168 passed, 10 skipped`; `ruff check`, `pyright`, and `git diff --check` clean |
+| VPS smoke | Done | deploy uploaded 4/4 and health OK; public `/v1/ops/metrics` returned `routing_guard.enabled=true`, `backend_telemetry.total_recent=8`, latest backend attempt success via `groq_llama70b`; public chat smoke returned HTTP `200` via `groq_llama70b` |
 
 ## 2026-05-31 Bounded Telemetry JSONL Closeout
 
