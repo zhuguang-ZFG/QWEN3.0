@@ -1,11 +1,22 @@
 # LiMa Status
 
-> Updated: 2026-05-31 (VPS DNS/proxy and probe-timeout closeout)
+> Updated: 2026-05-31 (LiMa Code TUI vibe telemetry closeout)
 > Branch: `main`
-> Tests: LiMa Server full pytest **2186 passed, 10 skipped**; focused backend probe/ops tests **31 passed**; ruff/pyright clean
-> Current VPS: health OK; `/v1/ops/summary` 200; VPS DNS/proxy repaired; operator probe has explicit outer timeout
+> Tests: LiMa Code focused TUI/session tests **68 passed, 3 skipped**; full LiMa Code suite **491 passed, 7 skipped**; `npm.cmd run check` and build clean
+> Current VPS: unchanged for this CLI/TUI-only slice; last server smoke health OK with `/v1/ops/summary` 200
 > VPS: Memory 1454MB→1358MB (services restored), health check OK
 > Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
+
+## 2026-05-31 LiMa Code TUI Vibe Telemetry Closeout
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| Reasonix-informed UX | Done | Borrowed the visible request-layer and token/cache meter idea from `esengine/DeepSeek-Reasonix`; did not copy the DeepSeek-only cache architecture |
+| Router wait clarity | Done | Non-stream LiMa Router waits now render as `waiting for LiMa Router response [model]`, with retry and timeout telemetry when present |
+| Status-line usage meters | Done | TUI status line now surfaces active tokens plus accumulated input/output/cache/request counts from `usagePerModel` |
+| Progress model telemetry | Done | `LlmStreamProgress` carries the active request model so wait text can show which model/router request is currently blocking |
+| Local verification | Done | `npm.cmd run test:single -- src/tests/loadingText.test.ts src/tests/statusLine.test.ts src/tests/session.test.ts` -> 71 tests, 68 pass, 3 skipped; `npm.cmd run check` clean; `npm.cmd test` -> 498 tests, 491 pass, 7 skipped; `npm.cmd run build` clean, `dist/cli.js` 612.3kb |
+| VPS deploy | Not needed | No LiMa Server code, route, env, or deployment script changed in this slice; package/release refresh can follow if the Windows install should receive it immediately |
 
 ## 2026-05-31 VPS DNS/Proxy and Probe Timeout Closeout
 
@@ -1157,6 +1168,22 @@ Latest LiMa Code TUI workbench closeout:
   clean, `npm.cmd run lint` clean, `npm.cmd run format:check` clean,
   `npm.cmd run build` clean, and built CLI `/lima start` headless smoke
   returned `ok=true` with zero model calls.
+
+Latest LiMa Code TUI vibe telemetry closeout:
+
+- Referenced `esengine/DeepSeek-Reasonix` for visible request-layer feedback
+  and token/cache meters, while keeping LiMa Code on its own LiMa Router
+  transport path instead of adopting Reasonix's DeepSeek-only cache design.
+- TUI waiting text now distinguishes LiMa Router waits from generic first-token
+  waits and includes the active model plus retry/timeout telemetry.
+- The TUI status line now shows active tokens and accumulated input, output,
+  cache, and request counts from `usagePerModel`, so the operator can see
+  where time and token budget are going.
+- Evidence: focused LiMa Code TUI/session tests `71 tests, 68 pass, 3 skipped`;
+  `npm.cmd run check` clean; full LiMa Code suite `498 tests, 491 pass,
+  7 skipped`; `npm.cmd run build` clean with `dist/cli.js` 612.3kb.
+- No VPS deploy was needed because no LiMa Server route, env, or deployment
+  code changed in this slice.
 
 Latest command execution/security hardening closeout:
 

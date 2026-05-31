@@ -5461,3 +5461,35 @@ Verification note:
     tests/configuration, detector strings that mention `shell=True`, and
     historical docs. No active project Python subprocess call remains using
     `shell=True` outside those test/detector/documentation references.
+
+## 2026-05-31 LiMa Code TUI Vibe Telemetry (CQ-103)
+
+- Reference:
+  - reviewed `esengine/DeepSeek-Reasonix` for its event-log/TUI telemetry
+    ideas: visible request layer, token/cache/request meters, and replayable
+    operator feedback;
+  - adopted only the relevant UX pattern. LiMa Code still uses its own LiMa
+    Router transport/session path and did not import Reasonix's DeepSeek-only
+    cache architecture.
+- Scope:
+  - `LlmStreamProgress` now carries the active request model;
+  - non-stream LiMa Router wait text now says `waiting for LiMa Router response`
+    and includes `[model]`, retry count, and timeout when available;
+  - TUI status line now includes formatted active tokens plus accumulated
+    `input`, `output`, `cache`, and `reqs` from `usagePerModel`;
+  - exported `buildStatusLine()` and added a focused regression test for the
+    new status-line telemetry.
+- Verification:
+  - `git diff --check` in `deepcode-cli` -> clean;
+  - `npm.cmd run test:single -- src/tests/loadingText.test.ts src/tests/statusLine.test.ts src/tests/session.test.ts`
+    -> `71 tests`, `68 pass`, `3 skipped`;
+  - `npm.cmd run check` -> clean (`typecheck`, `lint`, `format:check`);
+  - `npm.cmd test` -> `498 tests`, `491 pass`, `7 skipped`;
+  - `npm.cmd run build` -> clean, `dist/cli.js` `612.3kb`.
+- VPS:
+  - not deployed. This slice only changes LiMa Code CLI/TUI/session display
+    logic and tests; no LiMa Server route, environment, deployment, or public
+    API behavior changed.
+- Residual:
+  - Windows npm package/release refresh is still needed before already
+    installed global users see this TUI telemetry.
