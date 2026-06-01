@@ -1,3 +1,5 @@
+> ⚠️ 2026-06-01 起已过时。FRP/ESP32 引用已失效。当前状态见 STATUS.md
+
 # LiMa Online Distributions
 
 > Updated: 2026-05-25

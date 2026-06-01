@@ -1,3 +1,5 @@
+> ⚠️ 2026-06-01 起已过时。主线已变更为 LiMa Code CLI vibe coding 提升。当前状态见 STATUS.md
+
 # LiMa Personal Coding Assistant Plan
 
 > Date: 2026-05-22

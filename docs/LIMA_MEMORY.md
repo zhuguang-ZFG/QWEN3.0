@@ -1,3 +1,5 @@
+> 长期记忆日志（历史记录）。当前状态见 STATUS.md
+
 # LiMa Memory
 
 > **Updated: 2026-05-26（P2-35 三切片 closeout）**  

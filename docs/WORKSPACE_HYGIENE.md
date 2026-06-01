@@ -1,3 +1,5 @@
+> ⚠️ 2026-06-01 起已过时。ESP32 已移除。
+
 # Workspace Hygiene
 
 LiMa 主仓库 (`D:\GIT`) 只保留 Server、子模块、评测 fixture 与文档。

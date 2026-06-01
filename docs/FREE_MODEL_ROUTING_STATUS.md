@@ -1,3 +1,5 @@
+> ⚠️ 2026-06-01 起已过时。LOCAL_ONLY_BACKENDS 已清空，所有后端云端化。当前状态见 STATUS.md
+
 # Free Model Routing Status
 
 > Updated: 2026-05-26

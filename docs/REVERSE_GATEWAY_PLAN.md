@@ -1,3 +1,5 @@
+> ⚠️ 2026-06-01 起已过时。所有 reverse sidecar 已启用。当前状态见 STATUS.md
+
 ﻿# Reverse Gateway Plan
 
 LiMa production routing must not depend on the Windows host, FRP, or ad-hoc local proxy ports. Browser/reverse-engineered providers are managed as isolated VPS sidecars and remain disabled until they have health, auth, and eval evidence.

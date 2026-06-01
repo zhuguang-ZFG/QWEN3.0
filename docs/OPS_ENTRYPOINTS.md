@@ -1,3 +1,5 @@
+> ⚠️ 2026-06-01 起已过时。FRP 已停用。当前状态见 STATUS.md
+
 # LiMa Ops Entrypoints
 
 > Superseded and expanded by `docs/ONLINE_DISTRIBUTIONS.md`.

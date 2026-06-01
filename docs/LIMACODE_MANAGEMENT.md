@@ -1,3 +1,5 @@
+> ⚠️ 2026-06-01: LiMa Code CLI 已初始化（M9），submodule 已检出。当前状态见 STATUS.md
+
 # LiMa Code Management
 
 > Updated: 2026-05-26

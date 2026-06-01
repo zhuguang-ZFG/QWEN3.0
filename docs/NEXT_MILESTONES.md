@@ -1,3 +1,5 @@
+> ⚠️ 2026-06-01 起已过时。M1-M9 已完成。当前路线图见 STATUS.md + docs/VIBE_CODING_ANALYSIS.md
+
 # LiMa 下一里程碑（四线并行）
 
 > Updated: 2026-05-26

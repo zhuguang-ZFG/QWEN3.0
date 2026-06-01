@@ -1,3 +1,5 @@
+> ⚠️ 2026-06-01 起已过时。文档状态已大幅变化。当前状态见 STATUS.md
+
 ﻿# Documentation Status
 
 > Updated: 2026-05-27

@@ -1,3 +1,5 @@
+> 入口文档。当前状态见 STATUS.md
+
 # LiMa Documentation
 
 > Updated: 2026-05-27
