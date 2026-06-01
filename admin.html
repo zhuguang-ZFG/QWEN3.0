@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LiMa Admin — 多模型路由管理</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020617; --bg-card: #0F172A; --bg-elevated: #1A1E2F;
+    --border: #334155; --muted: #64748B; --text: #F8FAFC;
+    --accent: #22C55E; --accent-dim: #166534; --warn: #F59E0B; --danger: #EF4444;
+    --blue: #3B82F6; --purple: #8B5CF6;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Fira Sans', system-ui, sans-serif;
+    background: var(--bg); color: var(--text);
+    display: flex; min-height: 100vh;
+  }
+  code, .mono { font-family: 'Fira Code', monospace; }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 240px; background: var(--bg-card); border-right: 1px solid var(--border);
+    padding: 20px 16px; display: flex; flex-direction: column; gap: 8px;
+    position: sticky; top: 0; height: 100vh;
+  }
+  .sidebar h1 { font-size: 18px; font-weight: 700; margin-bottom: 16px; color: var(--accent); }
+  .nav-item {
+    padding: 10px 14px; border-radius: var(--radius); cursor: pointer;
+    transition: background 150ms; color: var(--muted); font-size: 14px; font-weight: 500;
+  }
+  .nav-item:hover, .nav-item.active { background: var(--bg-elevated); color: var(--text); }
+  .nav-item .icon { margin-right: 10px; }
+
+  /* ── Main ── */
+  .main { flex: 1; padding: 24px 32px; overflow-y: auto; }
+
+  /* ── Status cards ── */
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .stat-card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px 20px;
+  }
+  .stat-card .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .stat-card .value { font-size: 28px; font-weight: 700; font-family: 'Fira Code', monospace; }
+  .stat-card .sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .stat-green { border-left: 3px solid var(--accent); }
+  .stat-blue  { border-left: 3px solid var(--blue); }
+  .stat-purple { border-left: 3px solid var(--purple); }
+  .stat-warn  { border-left: 3px solid var(--warn); }
+
+  /* ── Tables ── */
+  .table-wrap { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow-x: auto; margin-bottom: 24px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 12px 16px; background: var(--bg-elevated); color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  td { padding: 10px 16px; border-top: 1px solid var(--border); }
+  tr:hover td { background: var(--bg-elevated); }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .badge-green { background: var(--accent-dim); color: var(--accent); }
+  .badge-yellow { background: #78350F; color: var(--warn); }
+  .badge-red { background: #7F1D1D; color: var(--danger); }
+  .badge-blue { background: #1E3A5F; color: var(--blue); }
+  .badge-purple { background: #3B1F6E; color: var(--purple); }
+
+  /* ── Section title ── */
+  .section-title { font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin: 28px 0 12px; }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main { padding: 16px; }
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ Sidebar ═══ -->
+<aside class="sidebar">
+  <h1>⚡ LiMa Admin</h1>
+  <div class="nav-item active"><span class="icon">📊</span>仪表盘</div>
+  <div class="nav-item"><span class="icon">🔌</span>后端管理</div>
+  <div class="nav-item"><span class="icon">🔍</span>MCP 服务</div>
+  <div class="nav-item"><span class="icon">🤖</span>Agent 任务</div>
+  <div class="nav-item"><span class="icon">📋</span>路由日志</div>
+  <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border);">
+    <div class="nav-item" style="color: var(--muted); font-size: 11px;">
+      v2.0 · lima-1.3<br>
+      184 backends<br>
+      全部云端化
+    </div>
+  </div>
+</aside>
+
+<!-- ═══ Main Content ═══ -->
+<main class="main">
+
+  <!-- Status Cards -->
+  <div class="stat-grid">
+    <div class="stat-card stat-green">
+      <div class="label">系统状态</div>
+      <div class="value" style="color: var(--accent);">OK</div>
+      <div class="sub">VPS 47.112.162.80</div>
+    </div>
+    <div class="stat-card stat-blue">
+      <div class="label">在线后端</div>
+      <div class="value" style="color: var(--blue);">184</div>
+      <div class="sub">全部云端化 · 0 离线</div>
+    </div>
+    <div class="stat-card stat-purple">
+      <div class="label">MCP 服务</div>
+      <div class="value" style="color: var(--purple);">6</div>
+      <div class="sub">scnet · kimi · longcat · mimo · codegraph</div>
+    </div>
+    <div class="stat-card stat-green">
+      <div class="label">今日请求</div>
+      <div class="value" style="color: var(--accent);">1,247</div>
+      <div class="sub">↑ 12% vs 昨日</div>
+    </div>
+  </div>
+
+  <!-- Reverse Sidecar Health -->
+  <div class="section-title">🔌 Reverse Sidecar 健康状态</div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>服务</th><th>端口</th><th>状态</th><th>协议</th><th>后端数</th><th>备注</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">scnet-large</td><td>4505</td><td><span class="badge badge-green">ready</span></td><td>ready_protocol_adapter</td><td>2</td><td>文件桥接 500K</td></tr>
+        <tr><td class="mono">kimi-proxy</td><td>4504</td><td><span class="badge badge-green">ready</span></td><td>ready_proxy_shell</td><td>3</td><td>K2.6 模型</td></tr>
+        <tr><td class="mono">longcat-web</td><td>4506</td><td><span class="badge badge-green">ready</span></td><td>ready_proxy_shell</td><td>3</td><td>Playwright 自动刷新</td></tr>
+        <tr><td class="mono">mimo-proxy</td><td>4507</td><td><span class="badge badge-green">ready</span></td><td>ready_proxy_shell</td><td>5</td><td>260 请求 / 243 成功</td></tr>
+        <tr><td class="mono">codegraph</td><td>—</td><td><span class="badge badge-blue">indexed</span></td><td>MCP stdio</td><td>—</td><td>15,013 节点 · 30,346 边</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Backend Pool Stats -->
+  <div class="section-title">📊 后端池分布</div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>池</th><th>Strong</th><th>Medium</th><th>Floor</th><th>总计</th></tr></thead>
+      <tbody>
+        <tr><td>IDE (编码)</td><td>20</td><td>36</td><td>5</td><td><strong>61</strong></td></tr>
+        <tr><td>Chat (对话)</td><td>18</td><td>32</td><td>5</td><td><strong>55</strong></td></tr>
+        <tr><td>Code (编程)</td><td>28</td><td>9</td><td>4</td><td><strong>41</strong></td></tr>
+        <tr><td>Chat Fast (快响)</td><td>11</td><td>7</td><td>3</td><td><strong>21</strong></td></tr>
+        <tr><td>Vision (视觉)</td><td>1</td><td>7</td><td>1</td><td><strong>9</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ModelScope Backends -->
+  <div class="section-title">🆕 ModelScope 免费后端 (新增)</div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>后端 ID</th><th>模型</th><th>池</th><th>tool_calls</th><th>状态</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">ms_deepseek_v4</td><td>DeepSeek-V4-Flash</td><td>ide/chat/code strong</td><td>✅</td><td><span class="badge badge-green">active</span></td></tr>
+        <tr><td class="mono">ms_qwen35_27b</td><td>Qwen3.5-27B</td><td>ide/chat medium</td><td>✅</td><td><span class="badge badge-green">active</span></td></tr>
+        <tr><td class="mono">ms_kimi_k25</td><td>Kimi-K2.5</td><td>ide/chat medium</td><td>✅</td><td><span class="badge badge-green">active</span></td></tr>
+        <tr><td class="mono">ms_glm5</td><td>GLM-5</td><td>ide/chat medium</td><td>✅</td><td><span class="badge badge-green">active</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Recent Activity -->
+  <div class="section-title">📋 最近变更</div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>时间</th><th>里程碑</th><th>变更</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">2026-06-01</td><td>M12</td><td>CodeGraph 语义索引集成 (15,013 节点)</td></tr>
+        <tr><td class="mono">2026-06-01</td><td>M11a-f</td><td>ModelScope 8 后端 + ContextManager 移植 + 代码审查</td></tr>
+        <tr><td class="mono">2026-06-01</td><td>M9-M10</td><td>LiMa Code CLI v0.1.25 + 文档更新</td></tr>
+        <tr><td class="mono">2026-06-01</td><td>M1-M7</td><td>脱离本机 — 37→0 LOCAL_ONLY_BACKENDS · VPS 清理</td></tr>
+        <tr><td class="mono">2026-05-31</td><td>—</td><td>184 后端全部云端化 · 5 reverse sidecar active</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</main>
+</body>
+</html>
