@@ -31,7 +31,8 @@ POOLS = {
                    "mistral_large", "mistral_small",
                    "groq_llama70b", "cerebras_gptoss", "zhipu_flash",
                    "opencode_stealth", "fireworks_llama405b",
-                   "github_gpt4o", "github_codestral"],
+                   "github_gpt4o", "github_codestral",
+                   "ms_deepseek_v4"],  # ModelScope free tier
         "medium": ["cf_llama4", "cfai_llama4", "cf_gptoss_120b", "cf_qwen3_30b", "cf_glm47", "cf_deepseek_r1",
                    "cfai_deepseek_r1",
                    "cf_qwq", "cf_mistral", "cf_gemma4", "cf_nemotron",
@@ -42,7 +43,8 @@ POOLS = {
                    "deepinfra_llama4", "deepinfra_qwen235b",
                    "github_gpt4o_mini", "github_llama70b", "google_flash",
                    "groq_llama4", "groq_gptoss", "or_qwen3_coder",
-                   "mistral_codestral", "sambanova_ds_v3"],
+                   "mistral_codestral", "sambanova_ds_v3",
+                   "ms_qwen35_27b", "ms_kimi_k25", "ms_glm5"],  # ModelScope free tier
         "floor": ["google_flash", "ovh_llama70b", "ovh_deepseek",
                   "google_flash_lite", "google_pro"],
     },
@@ -53,7 +55,8 @@ POOLS = {
                    "cfai_llama70b", "cf_kimi_k26",
                    "groq_llama70b", "cerebras_gptoss", "zhipu_flash",
                    "opencode_stealth", "fireworks_llama405b",
-                   "github_gpt4o", "mistral_medium"],
+                   "github_gpt4o", "mistral_medium",
+                   "ms_deepseek_v4"],  # ModelScope
         "medium": ["cf_llama4", "cfai_llama4", "cf_gptoss_120b", "cf_qwen3_30b", "cf_glm47", "cf_deepseek_r1",
                    "cfai_deepseek_r1",
                    "cf_qwq", "cf_mistral", "cf_gemma4", "cf_nemotron",
@@ -61,7 +64,8 @@ POOLS = {
                    "sambanova_llama4", "cohere_command", "cohere_command_plus", "deepinfra_llama4", "deepinfra_qwen235b",
                    "github_gpt4o_mini", "github_llama70b", "google_flash",
                    "groq_llama4", "groq_gptoss", "or_llama70b", "or_nemotron",
-                   "or_qwen3_80b", "mistral_small", "sambanova_ds_v3"],
+                   "or_qwen3_80b", "mistral_small", "sambanova_ds_v3",
+                   "ms_qwen35_27b", "ms_kimi_k25", "ms_glm5"],  # ModelScope
         "floor": ["google_flash", "ovh_llama70b", "ovh_deepseek",
                   "google_flash_lite", "google_pro"],
     },
@@ -77,6 +81,7 @@ POOLS = {
     "code": {
         "strong": ["scnet_ds_flash", "scnet_qwen235b", "scnet_qwen30b",
                    "scnet_ds_pro", "github_gpt4o", "github_gpt4o_mini",
+                   "ms_deepseek_v4_code", "ms_kimi_k25_code", "ms_glm5_code", "ms_qwen35_27b_code",  # ModelScope
                    "groq_gptoss", "groq_gptoss_20b", "groq_llama8b",
                    "cerebras_gptoss", "cerebras_llama8b", "cerebras_qwen235b",
                    "cf_qwen_coder", "cfai_qwen_coder", "or_gptoss_120b",
@@ -94,7 +99,7 @@ POOLS = {
         "strong": ["google_flash_lite", "scnet_qwen30b", "scnet_ds_flash", "scnet_qwen235b",
                    "groq_llama70b", "groq_qwen32b", "cerebras_gptoss",
                    "cf_llama70b", "cfai_llama70b",
-                   "cf_kimi_k26"],
+                   "cf_kimi_k26", "ms_deepseek_v4"],  # ModelScope
         "medium": ["cf_qwen3_30b", "cfai_qwen_coder",
                    "cfai_llama4", "cf_gemma4",
                    "groq_gptoss", "groq_llama4",
