@@ -225,7 +225,7 @@ def _detect_project_root() -> str:
     if env_root and os.path.isdir(env_root):
         return env_root
     cwd = os.getcwd()
-    candidates = [cwd, "/opt/lima-router", "D:/GIT"]
+    candidates = [cwd, "/opt/lima-router"]
     for p in candidates:
         if os.path.isdir(p) and os.path.exists(os.path.join(p, "routing_engine.py")):
             return p
