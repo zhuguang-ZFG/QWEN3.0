@@ -107,9 +107,19 @@
 - File length: 23,975 字符
 
 ### VPS 部署
-- 部署脚本：scripts/deploy_m20_admin_rewrite.py
-- 状态：遇到 SFTP 路径问题（远程目录结构需确认）
-- 残余风险：VPS 部署未完成，需调整路径后重试
+- 部署脚本：scripts/deploy_m20_vps.py
+- 远程路径：/opt/lima-router/
+- 服务名称：lima-router.service
+- 状态：✅ 部署成功
+- VPS Smoke Test 证据：
+  - ✅ 服务运行：PID 1265913, active (running)
+  - ✅ 端口 8080 监听中
+  - ✅ Health endpoint: HTTP 200 OK
+  - ✅ 171 backends configured
+  - ✅ LIMA 管理面板 branding: 验证通过
+  - ✅ filterPool 函数: 6 次引用
+  - ✅ editBackend 函数: 2 次引用
+- 回滚命令：`cp /opt/lima-router/routes/admin_ui.py.bak.m20 /opt/lima-router/routes/admin_ui.py && systemctl restart lima-router.service`
 
 ## 2026-06-01 M19 管理面板池分类与 CRUD 完善
 

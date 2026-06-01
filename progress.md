@@ -2,7 +2,7 @@
 
 > Last updated: 2026-06-02 · 19 个里程碑完成 · 1972+498 tests passing
 
-## M20: 管理面板完整重写 - URL/Key/池/编辑功能 (in progress)
+## M20: 管理面板完整重写 - URL/Key/池/编辑功能 (completed)
 
 | 问题级别 | 修复内容 | 文件 | 状态 |
 |---------|---------|------|------|
@@ -13,6 +13,7 @@
 | **HIGH** | 池筛选器完整实现 | routes/admin_ui.py | ✅ |
 | **HIGH** | 编辑功能完整实现 | routes/admin_ui.py | ✅ |
 | **MEDIUM** | 现代化 UI/UX 设计 | routes/admin_ui.py | ✅ |
+| **HIGH** | VPS 部署与 smoke test | scripts/deploy_m20_vps.py | ✅ |
 
 ### 修复详情
 
@@ -59,8 +60,13 @@ File length: 23,975 chars
 ```
 
 ### VPS 部署
-- 状态：SFTP 路径问题（远程目录结构需确认）
-- 残余风险：需调整部署脚本后重试
+- ✅ 远程路径：/opt/lima-router/
+- ✅ 服务名称：lima-router.service
+- ✅ PID 1265913, active (running)
+- ✅ Health endpoint: HTTP 200 OK
+- ✅ 171 backends configured
+- ✅ 文件验证：LIMA 管理面板、filterPool、editBackend 全部通过
+- 回滚：`cp /opt/lima-router/routes/admin_ui.py.bak.m20 /opt/lima-router/routes/admin_ui.py && systemctl restart lima-router.service`
 
 ## M19: 管理面板池分类与 CRUD 完善 (completed)
 
