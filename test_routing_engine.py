@@ -294,8 +294,8 @@ def test_tool_backend_iteration_tries_distinct_fast_candidates():
     # Backend availability depends on env loading order; verify basic properties.
     assert len(backends) == len(set(backends)), "tool backends must be distinct"
     assert len(backends) >= 3, f"at least 3 tool-capable backends, got {len(backends)}"
-    # First backend should have low timeout (fast tier-1)
-    first_timeout = server._tool_fwd.TOOL_TIER1_BACKENDS[0]  # name of first
+    # First backend should be present
+    assert len(server._tool_fwd.TOOL_TIER1_BACKENDS) >= 1
     # All backends should be tool-capable OpenAI backends
     from backends_registry import BACKENDS
     for name in backends:
