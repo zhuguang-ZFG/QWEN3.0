@@ -178,15 +178,15 @@ def forward_chat(body: dict, cfg: ProviderConfig | None = None) -> tuple[int, di
 
     latency_ms = int((time.time() - started) * 1000)
     try:
-        payload: object = response.json()
+        response_data: object = response.json()
     except ValueError:
-        payload = response.text
+        response_data = response.text
     if response.status_code >= 400:
-        return _error_response(response.status_code, {"message": str(payload)[:500]}, latency_ms)
-    if isinstance(payload, dict) and _looks_like_error(payload):
-        return _error_response(response.status_code, payload, latency_ms)
+        return _error_response(response.status_code, {"message": str(response_data)[:500]}, latency_ms)
+    if isinstance(response_data, dict) and _looks_like_error(response_data):
+        return _error_response(response.status_code, response_data, latency_ms)
     model = str(body.get("model") or "")
-    return response.status_code, normalize_response(payload, model)
+    return response.status_code, normalize_response(response_data, model)
 
 
 def _forward_upstream_shell(body: dict, active_config: ProviderConfig) -> tuple[int, dict]:

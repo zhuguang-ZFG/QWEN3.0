@@ -146,9 +146,8 @@ async def delete_backend(name: str):
 
 @router.post("/admin/backends/{name}/test", dependencies=[Depends(verify_admin)])
 async def test_backend(name: str):
-    """Test backend connectivity with a simple chat probe."""
+    """Test backend connectivity with a simple chat probe. Uses httpx for proxy awareness."""
     import time
-    import urllib.request
 
     cfg = BACKENDS.get(name) or DISABLED_HOST_DEPENDENT_BACKENDS.get(name)
     if not cfg:
@@ -157,20 +156,27 @@ async def test_backend(name: str):
     url = cfg.get("url", "")
     key = cfg.get("key", "")
     model = cfg.get("model", "")
+    fmt = cfg.get("fmt", "openai")
+    auth_mode = cfg.get("auth", "x-api-key" if fmt == "anthropic" else "bearer")
+
+    import httpx
+    headers = {"Content-Type": "application/json"}
+    if key and key not in ("none", ""):
+        if auth_mode == "bearer":
+            headers["Authorization"] = f"Bearer {key}"
+        else:
+            headers["x-api-key"] = key
+
     started = time.time()
     try:
-        payload = json.dumps({
-            "model": model,
-            "max_tokens": 5,
-            "messages": [{"role": "user", "content": "hi"}],
-        }).encode()
-        req = urllib.request.Request(url, data=payload, headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {key}",
-        }, method="POST")
-        resp = urllib.request.urlopen(req, timeout=15)
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(url, json={
+                "model": model,
+                "max_tokens": 5,
+                "messages": [{"role": "user", "content": "hi"}],
+            }, headers=headers)
         elapsed = int((time.time() - started) * 1000)
-        return {"ok": True, "latency_ms": elapsed, "status": resp.status}
+        return {"ok": resp.status_code < 500, "latency_ms": elapsed, "status": resp.status_code}
     except Exception as exc:
         elapsed = int((time.time() - started) * 1000)
         return {"ok": False, "latency_ms": elapsed, "error": str(exc)[:200]}

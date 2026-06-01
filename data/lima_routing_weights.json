@@ -1,1 +1,82 @@
-{"unit_backend:chat": {"backend": "unit_backend", "scenario": "chat", "weight": 1.2993015873015876, "successes": 20, "failures": 0, "last_updated": 1780255751.8484683}, "oldllm_gpt5_mini:chat": {"backend": "oldllm_gpt5_mini", "scenario": "chat", "weight": 1.02, "successes": 2, "failures": 0, "last_updated": 1780236022.1685467}, "exhausted:chat": {"backend": "exhausted", "scenario": "chat", "weight": 0.3243174603174602, "successes": 0, "failures": 10, "last_updated": 1780255751.873355}, "oldllm_gpt5:chat": {"backend": "oldllm_gpt5", "scenario": "chat", "weight": 1.0766666666666669, "successes": 4, "failures": 0, "last_updated": 1780255141.3124793}, "groq_llama70b:chat": {"backend": "groq_llama70b", "scenario": "chat", "weight": 1.04, "successes": 2, "failures": 0, "last_updated": 1780254247.8439646}, "oldllm_gpt41_mini:chat": {"backend": "oldllm_gpt41_mini", "scenario": "chat", "weight": 1.0533333333333335, "successes": 4, "failures": 0, "last_updated": 1780255390.204201}, "ddg_gpt4o_mini:chat": {"backend": "ddg_gpt4o_mini", "scenario": "chat", "weight": 1.0285714285714285, "successes": 2, "failures": 0, "last_updated": 1780255179.3377938}, "ddg_claude_haiku:chat": {"backend": "ddg_claude_haiku", "scenario": "chat", "weight": 1.025, "successes": 2, "failures": 0, "last_updated": 1780255279.05475}, "oldllm_gpt51:chat": {"backend": "oldllm_gpt51", "scenario": "chat", "weight": 1.0222222222222224, "successes": 2, "failures": 0, "last_updated": 1780255714.709413}, "oldllm_gpt54:chat": {"backend": "oldllm_gpt54", "scenario": "chat", "weight": 1.02, "successes": 2, "failures": 0, "last_updated": 1780255751.864595}}
+{
+  "unit_backend:chat": {
+    "backend": "unit_backend",
+    "scenario": "chat",
+    "weight": 1.2993015873015876,
+    "successes": 20,
+    "failures": 0,
+    "last_updated": 1780255751.8484683
+  },
+  "oldllm_gpt5_mini:chat": {
+    "backend": "oldllm_gpt5_mini",
+    "scenario": "chat",
+    "weight": 1.02,
+    "successes": 2,
+    "failures": 0,
+    "last_updated": 1780236022.1685467
+  },
+  "exhausted:chat": {
+    "backend": "exhausted",
+    "scenario": "chat",
+    "weight": 0.3243174603174602,
+    "successes": 0,
+    "failures": 10,
+    "last_updated": 1780255751.873355
+  },
+  "oldllm_gpt5:chat": {
+    "backend": "oldllm_gpt5",
+    "scenario": "chat",
+    "weight": 1.0766666666666669,
+    "successes": 4,
+    "failures": 0,
+    "last_updated": 1780255141.3124793
+  },
+  "groq_llama70b:chat": {
+    "backend": "groq_llama70b",
+    "scenario": "chat",
+    "weight": 1.04,
+    "successes": 2,
+    "failures": 0,
+    "last_updated": 1780254247.8439646
+  },
+  "oldllm_gpt41_mini:chat": {
+    "backend": "oldllm_gpt41_mini",
+    "scenario": "chat",
+    "weight": 1.0533333333333335,
+    "successes": 4,
+    "failures": 0,
+    "last_updated": 1780255390.204201
+  },
+  "ddg_gpt4o_mini:chat": {
+    "backend": "ddg_gpt4o_mini",
+    "scenario": "chat",
+    "weight": 1.0285714285714285,
+    "successes": 2,
+    "failures": 0,
+    "last_updated": 1780255179.3377938
+  },
+  "ddg_claude_haiku:chat": {
+    "backend": "ddg_claude_haiku",
+    "scenario": "chat",
+    "weight": 1.025,
+    "successes": 2,
+    "failures": 0,
+    "last_updated": 1780255279.05475
+  },
+  "oldllm_gpt51:chat": {
+    "backend": "oldllm_gpt51",
+    "scenario": "chat",
+    "weight": 1.0222222222222224,
+    "successes": 2,
+    "failures": 0,
+    "last_updated": 1780255714.709413
+  },
+  "oldllm_gpt54:chat": {
+    "backend": "oldllm_gpt54",
+    "scenario": "chat",
+    "weight": 1.02,
+    "successes": 2,
+    "failures": 0,
+    "last_updated": 1780255751.864595
+  }
+}
