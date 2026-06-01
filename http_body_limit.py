@@ -201,8 +201,13 @@ class BodySizeLimitMiddleware:
         if content_encoding == "gzip" and body:
             try:
                 body = gzip.decompress(body)
-            except Exception:
-                pass
+            except Exception as e:
+                import logging
+                logging.warning("http_body_limit: gzip decompress failed: %s", e)
+                # 清除 Content-Encoding header，告知下游数据未解压
+                # 避免下游假设 body 已解压而直接 decode()
+                if "content-encoding" in headers:
+                    del headers["content-encoding"]
 
         replayed = False
 

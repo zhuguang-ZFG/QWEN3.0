@@ -14,6 +14,10 @@
     --accent: #22C55E; --accent-dim: #166534; --warn: #F59E0B; --danger: #EF4444;
     --blue: #3B82F6; --purple: #8B5CF6;
     --radius: 8px;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+    --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -32,9 +36,17 @@
   .sidebar h1 { font-size: 18px; font-weight: 700; margin-bottom: 16px; color: var(--accent); }
   .nav-item {
     padding: 10px 14px; border-radius: var(--radius); cursor: pointer;
-    transition: background 150ms; color: var(--muted); font-size: 14px; font-weight: 500;
+    transition: var(--transition); color: var(--muted); font-size: 14px; font-weight: 500;
+    position: relative;
   }
-  .nav-item:hover, .nav-item.active { background: var(--bg-elevated); color: var(--text); }
+  .nav-item:hover {
+    background: var(--bg-elevated); color: var(--text);
+    transform: translateX(2px);
+  }
+  .nav-item.active {
+    background: linear-gradient(135deg, var(--accent-dim) 0%, transparent 100%);
+    color: var(--accent); border-left: 3px solid var(--accent);
+  }
   .nav-item .icon { margin-right: 10px; }
 
   /* ── Main ── */
@@ -45,6 +57,28 @@
   .stat-card {
     background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
     padding: 18px 20px;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--muted);
+  }
+  .stat-card:hover::before {
+    opacity: 1;
   }
   .stat-card .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
   .stat-card .value { font-size: 28px; font-weight: 700; font-family: 'Fira Code', monospace; }
@@ -60,7 +94,8 @@
   th { text-align: left; padding: 12px 16px; background: var(--bg-elevated); color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
   td { padding: 10px 16px; border-top: 1px solid var(--border); }
   tr:hover td { background: var(--bg-elevated); }
-  .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; transition: var(--transition); }
+  .badge:hover { transform: scale(1.05); }
   .badge-green { background: var(--accent-dim); color: var(--accent); }
   .badge-yellow { background: #78350F; color: var(--warn); }
   .badge-red { background: #7F1D1D; color: var(--danger); }
@@ -69,6 +104,59 @@
 
   /* ── Section title ── */
   .section-title { font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin: 28px 0 12px; }
+
+  /* ── Buttons ── */
+  button {
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+  }
+  button:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
+  button:active {
+    transform: translateY(0);
+  }
+  button::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+  }
+  button:active::after {
+    width: 200px;
+    height: 200px;
+  }
+
+  /* ── Loading spinner ── */
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  .spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  /* ── Fade in animation ── */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
 
   /* ── Responsive ── */
   @media (max-width: 768px) {
@@ -199,6 +287,10 @@
 </main>
 
 <script>
+// ── Security: HTML/JS escaping ────────────────────────────────────────────
+function esc(value){return String(value??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function escJs(value){return String(value??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,' ')}
+
 // ── Backend CRUD API ──────────────────────────────────────────────────────
 const API = '/admin/backends';
 let allBackends = [];
@@ -213,29 +305,35 @@ async function api(method, path, body) {
 }
 
 async function loadBackends() {
+  const statusEl = document.getElementById('crudStatus');
+  statusEl.innerHTML = '<span class="spinner"></span> 加载中...';
   try {
     const data = await api('GET', API);
     allBackends = data.backends || [];
     renderBackends(allBackends);
-    document.getElementById('crudStatus').textContent = `${allBackends.length} backends`;
+    statusEl.textContent = `✅ ${allBackends.length} backends`;
   } catch(e) {
-    document.getElementById('crudStatus').textContent = '❌ ' + e.message;
+    statusEl.textContent = '❌ ' + e.message;
+    statusEl.style.color = 'var(--danger)';
   }
 }
 
 function renderBackends(list) {
   const tbody = document.getElementById('backendTableBody');
-  if (!list.length) { tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted);text-align:center;">无匹配后端</td></tr>'; return; }
-  tbody.innerHTML = list.map(b => `
-    <tr>
-      <td class="mono">${b.name} ${b.overlay_action === 'added' ? '<span class="badge badge-green">new</span>' : b.overlay_action === 'updated' ? '<span class="badge badge-blue">mod</span>' : b.overlay_action === 'deleted' ? '<span class="badge badge-red">del</span>' : ''}</td>
-      <td>${b.model || '—'}</td>
-      <td>${b.fmt}</td>
+  if (!list.length) { 
+    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:20px;">无匹配后端</td></tr>'; 
+    return; 
+  }
+  tbody.innerHTML = list.map((b, index) => `
+    <tr class="fade-in" style="animation-delay: ${index * 0.05}s">
+      <td class="mono">${esc(b.name)} ${b.overlay_action === 'added' ? '<span class="badge badge-green">new</span>' : b.overlay_action === 'updated' ? '<span class="badge badge-blue">mod</span>' : b.overlay_action === 'deleted' ? '<span class="badge badge-red">del</span>' : ''}</td>
+      <td>${esc(b.model) || '—'}</td>
+      <td>${esc(b.fmt)}</td>
       <td>${b.key_configured ? '<span class="badge badge-green">✓</span>' : '<span class="badge badge-yellow">✗</span>'}</td>
       <td>
-        <button onclick="editBackend('${b.name}')" style="background:var(--blue);color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;margin-right:4px;font-size:11px;">编辑</button>
-        <button onclick="testBackend('${b.name}')" style="background:var(--purple);color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;margin-right:4px;font-size:11px;">测试</button>
-        <button onclick="deleteBackend('${b.name}')" style="background:var(--danger);color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;">删除</button>
+        <button onclick="editBackend('${escJs(b.name)}')" style="background:var(--blue);color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;margin-right:4px;font-size:11px;">编辑</button>
+        <button onclick="testBackend('${escJs(b.name)}')" style="background:var(--purple);color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;margin-right:4px;font-size:11px;">测试</button>
+        <button onclick="deleteBackend('${escJs(b.name)}')" style="background:var(--danger);color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;">删除</button>
       </td>
     </tr>
   `).join('');
@@ -252,24 +350,60 @@ function editBackend(name) { editTarget = name; const b = allBackends.find(x => 
 function showForm(backend) {
   const isEdit = !!editTarget;
   const html = `
-    <div id="crudForm" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;">
-      <h3 style="margin-bottom:12px;">${isEdit ? '编辑' : '添加'}后端</h3>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div><label style="font-size:11px;color:var(--muted);">名称</label><input id="f_name" value="${backend.name||''}" ${isEdit?'readonly':''} style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;"></div>
-        <div><label style="font-size:11px;color:var(--muted);">URL</label><input id="f_url" value="${backend.url||''}" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;"></div>
-        <div><label style="font-size:11px;color:var(--muted);">模型名</label><input id="f_model" value="${backend.model||''}" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;"></div>
-        <div><label style="font-size:11px;color:var(--muted);">协议 (fmt)</label><select id="f_fmt" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;"><option ${backend.fmt==='openai'?'selected':''}>openai</option><option ${backend.fmt==='anthropic'?'selected':''}>anthropic</option></select></div>
-        <div><label style="font-size:11px;color:var(--muted);">API Key</label><input id="f_key" value="${backend.key_configured?'••••••':''}" placeholder="留空=不修改" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;"></div>
-        <div><label style="font-size:11px;color:var(--muted);">超时 (秒)</label><input id="f_timeout" type="number" value="${backend.timeout||30}" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px;border-radius:4px;"></div>
+    <div id="crudForm" class="fade-in" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;box-shadow:var(--shadow-md);">
+      <h3 style="margin-bottom:12px;font-size:16px;font-weight:600;">${isEdit ? '✏️ 编辑' : '➕ 添加'}后端</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">名称 <span style="color:var(--danger);">*</span></label>
+          <input id="f_name" value="${esc(backend.name||'')}" ${isEdit?'readonly':''}
+            style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:4px;"
+            placeholder="例如: cf_gpt4o"
+            required>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">URL <span style="color:var(--danger);">*</span></label>
+          <input id="f_url" value="${esc(backend.url||'')}"
+            style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:4px;"
+            placeholder="https://api.example.com/v1/chat/completions"
+            required>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">模型名</label>
+          <input id="f_model" value="${esc(backend.model||'')}" 
+            style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:4px;"
+            placeholder="例如: gpt-4o">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">协议 (fmt)</label>
+          <select id="f_fmt" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:4px;">
+            <option ${backend.fmt==='openai'?'selected':''}>openai</option>
+            <option ${backend.fmt==='anthropic'?'selected':''}>anthropic</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">API Key</label>
+          <input id="f_key" value="${backend.key_configured?'••••••':''}" 
+            placeholder="${isEdit ? '留空=不修改' : '必填'}" 
+            style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:4px;"
+            type="password">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">超时 (秒)</label>
+          <input id="f_timeout" type="number" value="${esc(backend.timeout||30)}" min="5" max="300"
+            style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:4px;">
+        </div>
       </div>
-      <div style="margin-top:12px;display:flex;gap:8px;">
-        <button onclick="saveBackend()" style="background:var(--accent);color:#020617;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;">保存</button>
-        <button onclick="closeForm()" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 16px;border-radius:6px;cursor:pointer;">取消</button>
+      <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end;">
+        <button onclick="saveBackend()" style="background:var(--accent);color:#020617;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;">💾 保存</button>
+        <button onclick="closeForm()" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 20px;border-radius:6px;cursor:pointer;font-size:13px;">取消</button>
       </div>
     </div>`;
   const existing = document.getElementById('crudForm');
   if (existing) existing.remove();
   document.getElementById('backendTableWrap').insertAdjacentHTML('beforebegin', html);
+  
+  // Focus on first input
+  setTimeout(() => document.getElementById('f_name')?.focus(), 100);
 }
 
 function closeForm() { const f = document.getElementById('crudForm'); if (f) f.remove(); }
@@ -284,35 +418,96 @@ async function saveBackend() {
   };
   const keyVal = document.getElementById('f_key').value.trim();
   if (keyVal && keyVal !== '••••••') body.key = keyVal;
-  if (!body.name || !body.url) { alert('名称和 URL 为必填项'); return; }
+  if (!body.name || !body.url) { 
+    showNotification('名称和 URL 为必填项', 'error');
+    return; 
+  }
 
   try {
     if (editTarget) {
       await api('PUT', API + '/' + encodeURIComponent(editTarget), body);
+      showNotification('后端更新成功', 'success');
     } else {
       await api('POST', API, body);
+      showNotification('后端添加成功', 'success');
     }
     closeForm();
     await loadBackends();
-  } catch(e) { alert('保存失败: ' + e.message); }
+  } catch(e) { 
+    showNotification('保存失败: ' + e.message, 'error');
+  }
 }
 
 async function deleteBackend(name) {
-  if (!confirm('确定删除 ' + name + '？')) return;
+  if (!confirm('确定删除 ' + name + '？此操作不可恢复。')) return;
   try {
     await api('DELETE', API + '/' + encodeURIComponent(name));
+    showNotification('后端删除成功', 'success');
     await loadBackends();
-  } catch(e) { alert('删除失败: ' + e.message); }
+  } catch(e) { 
+    showNotification('删除失败: ' + e.message, 'error');
+  }
+}
+
+// ── Notification System ─────────────────────────────────────────────────
+function showNotification(message, type = 'info') {
+  const colors = {
+    success: 'var(--accent)',
+    error: 'var(--danger)',
+    warning: 'var(--warn)',
+    info: 'var(--blue)'
+  };
+  const icons = {
+    success: '✅',
+    error: '❌',
+    warning: '⚠️',
+    info: 'ℹ️'
+  };
+  
+  const notification = document.createElement('div');
+  notification.className = 'fade-in';
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--bg-card);
+    border: 1px solid ${colors[type]};
+    border-left: 4px solid ${colors[type]};
+    color: var(--text);
+    padding: 12px 20px;
+    border-radius: 6px;
+    box-shadow: var(--shadow-lg);
+    z-index: 10000;
+    max-width: 400px;
+    font-size: 13px;
+  `;
+  notification.innerHTML = `${icons[type]} ${esc(message)}`;
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    notification.style.opacity = '0';
+    notification.style.transform = 'translateX(100px)';
+    notification.style.transition = 'all 0.3s ease-out';
+    setTimeout(() => notification.remove(), 300);
+  }, 3000);
 }
 
 async function testBackend(name) {
-  document.getElementById('crudStatus').textContent = '测试 ' + name + '...';
+  const statusEl = document.getElementById('crudStatus');
+  statusEl.innerHTML = `<span class="spinner"></span> 测试 ${esc(name)}...`;
   try {
     const resp = await fetch(API + '/' + encodeURIComponent(name) + '/test', { method: 'POST' });
     const data = await resp.json();
-    document.getElementById('crudStatus').textContent = data.ok ? '✅ ' + name + ' OK (' + data.latency_ms + 'ms)' : '❌ ' + (data.error || 'failed');
+    if (data.ok) {
+      statusEl.innerHTML = `✅ ${esc(name)} OK (<span class="mono">${data.latency_ms}ms</span>)`;
+      statusEl.style.color = 'var(--accent)';
+    } else {
+      statusEl.innerHTML = `❌ ${esc(data.error || 'failed')}`;
+      statusEl.style.color = 'var(--danger)';
+    }
   } catch(e) {
-    document.getElementById('crudStatus').textContent = '❌ ' + e.message;
+    statusEl.innerHTML = '❌ ' + esc(e.message);
+    statusEl.style.color = 'var(--danger)';
   }
 }
 

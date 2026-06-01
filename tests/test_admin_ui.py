@@ -16,6 +16,8 @@ def test_render_admin_dashboard_contains_core_sections():
     assert "function esc(" in html
     assert "/admin/api/stats" in html
     assert "/admin/api/agent-audit" in html
+    assert "/admin/backends" in html
+    assert "/admin/api/backends/toggle" not in html
     assert "��" not in html
 
 

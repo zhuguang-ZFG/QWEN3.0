@@ -7,6 +7,7 @@ LiMa Routing Engine — 统一路由入口
 """
 
 import json
+import logging
 import time
 from dataclasses import dataclass, field
 from typing import Callable
@@ -100,8 +101,8 @@ def route(query: str, messages: list[dict], *,
             try:
                 from integrations.cloud_services import log_routing_decision
                 log_routing_decision("cache", "cache_hit", "", ms)
-            except Exception:
-                pass
+            except Exception as e:
+                logging.warning("routing_engine: cache logging failed: %s", e)
             return RouteResult(backend="cache", answer=answer,
                                request_type="cache_hit", ms=ms)
 
@@ -117,8 +118,8 @@ def route(query: str, messages: list[dict], *,
         recalled = get_skill_store().recall(messages, scenario)
         if recalled:
             _recalled_backend = recalled.backend
-    except ImportError:
-        pass
+    except ImportError as e:
+        logging.debug("routing_engine: skill_store not available: %s", e)
 
     messages, _retrieval_text = inject_retrieval_context(messages)
 
@@ -148,15 +149,15 @@ def route(query: str, messages: list[dict], *,
                 _mem_msg = {"role": "system", "content": _memory_ctx}
                 _insert_pos = 2 if messages and messages[0].get("role") == "system" else 1
                 messages.insert(_insert_pos, _mem_msg)
-        except Exception:
-            pass
+        except Exception as e:
+            logging.warning("routing_engine: session memory query failed: %s", e)
 
     try:
         from context_pipeline.complexity import assess_complexity
         raw_msgs = [{"role": m.get("role", ""), "content": m.get("content", "")} if isinstance(m, dict) else {"role": getattr(m, "role", ""), "content": getattr(m, "content", "")} for m in messages]
         _complexity_score = assess_complexity(raw_msgs, ide=ide_source)
-    except ImportError:
-        pass
+    except ImportError as e:
+        logging.debug("routing_engine: complexity assessment not available: %s", e)
 
     if scenario == "coding" and call_fn:
         try:
@@ -194,8 +195,8 @@ def route(query: str, messages: list[dict], *,
             messages_injected = compress_messages(
                 messages_injected, backends[0], system_prompt=system_prompt,
             )
-    except ImportError:
-        pass
+    except ImportError as e:
+        logging.debug("routing_engine: context compressor not available: %s", e)
 
     injected_ids = _get_injected_ids(messages, messages_injected)
 
@@ -253,8 +254,8 @@ def route(query: str, messages: list[dict], *,
                             vr2 = validate_response(retry_answer, query)
                             if vr2.score > vr.score:
                                 final_backend, answer = retry_backend, retry_answer
-            except Exception:
-                pass
+            except Exception as e:
+                logging.warning("routing_engine: response validation failed: %s", e)
     else:
         final_backend, answer = backends[0] if backends else "none", ""
 

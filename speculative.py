@@ -53,8 +53,19 @@ def speculative_call(
         raise RuntimeError(f"Speculative execution failed: {e}") from e
 
 
-def _run_coro_sync(coro):
-    """Run a coroutine for the sync facade, even if called inside an event loop."""
+def _run_coro_sync(coro, timeout: float = 30.0):
+    """Run a coroutine for the sync facade, even if called inside an event loop.
+    
+    Args:
+        coro: Coroutine to execute
+        timeout: Safety net timeout in seconds (default: 30s).
+                 This should NOT be triggered in normal operation.
+                 Business logic timeout is handled by speculative_call_async
+                 (typically 5s for speculative calls).
+    
+    Raises:
+        RuntimeError: If timeout exceeded or worker thread failed
+    """
     try:
         asyncio.get_running_loop()
     except RuntimeError:
@@ -70,8 +81,14 @@ def _run_coro_sync(coro):
 
     thread = threading.Thread(target=_runner, daemon=True)
     thread.start()
-    thread.join()
-    ok, value = result_q.get()
+    thread.join(timeout=timeout)
+    
+    if thread.is_alive():
+        raise RuntimeError(f"Speculative call timed out after {timeout}s")
+    if result_q.empty():
+        raise RuntimeError("Worker thread exited without result")
+    
+    ok, value = result_q.get_nowait()
     if ok:
         return value
     raise value

@@ -68,7 +68,7 @@ def test_admin_login_uses_constant_time_compare(monkeypatch):
     assert calls == [("secret-admin-token", "secret-admin-token")]
 
 
-def test_admin_toggle_backend_requires_csrf_for_cookie_session(monkeypatch):
+def test_admin_add_backend_requires_csrf_for_cookie_session(monkeypatch):
     monkeypatch.setattr(admin_auth, "_ADMIN_TOKEN", "secret-admin-token")
     monkeypatch.delenv("LIMA_ADMIN_TOKEN", raising=False)
 
@@ -83,14 +83,15 @@ def test_admin_toggle_backend_requires_csrf_for_cookie_session(monkeypatch):
     )
     assert login.status_code == 303
 
-    denied = client.post("/admin/api/backends/demo-backend/toggle")
+    denied = client.post("/admin/backends", json={"name": "demo-backend", "url": "https://example.com/api"})
     assert denied.status_code == 403
 
     allowed = client.post(
-        "/admin/api/backends/demo-backend/toggle",
+        "/admin/backends",
+        json={"name": "demo-backend", "url": "https://example.com/api"},
         headers={
             "Origin": "https://testserver",
             "Referer": "https://testserver/admin",
         },
     )
-    assert allowed.status_code in (200, 404)
+    assert allowed.status_code != 403

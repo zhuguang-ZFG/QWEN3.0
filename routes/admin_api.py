@@ -11,11 +11,9 @@ import sys
 import time
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 
-import smart_router
 from routes.admin_auth import verify_admin, verify_csrf
-from routes.admin_backends import describe_backend, test_backend_sync
 from routes.admin_state import FALLBACK_LOG, stats_context
 from routes.ops_metrics import _backend_call_detail
 
@@ -75,89 +73,6 @@ async def admin_retrieval_traces():
         return get_recent_traces(limit=20)
     except ImportError:
         return []
-
-
-@router.get("/api/backends", dependencies=[Depends(verify_admin)])
-async def admin_backends():
-    _stats, _lock, backend_enabled = stats_context()
-    cb = smart_router.cb_status()
-    backends = []
-    for name, cfg in smart_router.BACKENDS.items():
-        enabled = backend_enabled.get(name, True)
-        backends.append(
-            describe_backend(
-                name,
-                cfg,
-                enabled=enabled,
-                status_info=cb.get(name, {}),
-            )
-        )
-    return backends
-
-
-@router.post("/api/backends", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
-async def admin_add_backend(req: Request):
-    _stats, _lock, backend_enabled = stats_context()
-    body = await req.json()
-    name = body.get("name", "").strip()
-    url = body.get("url", "").strip()
-    key = body.get("key", "").strip()
-    model = body.get("model", name)
-    fmt = body.get("fmt", "openai")
-    auth = body.get("auth", "").strip()
-    if not auth:
-        auth = "x-api-key" if fmt == "anthropic" else "bearer"
-    if not name or not url:
-        raise HTTPException(400, "name and url required")
-    if name in smart_router.BACKENDS:
-        raise HTTPException(409, f"backend '{name}' already exists")
-    smart_router.BACKENDS[name] = {
-        "url": url,
-        "key": key,
-        "model": model,
-        "fmt": fmt,
-        "auth": auth,
-        "tier": body.get("tier", ""),
-        "caps": body.get("caps", []),
-    }
-    backend_enabled[name] = True
-    try:
-        test_result = test_backend_sync(name)
-        return {"ok": True, "message": f"backend '{name}' added", "test": test_result}
-    except Exception as exc:
-        backend_enabled[name] = False
-        return {
-            "ok": True,
-            "message": f"backend '{name}' added but DISABLED (test failed: {exc})",
-            "enabled": False,
-        }
-
-
-@router.delete("/api/backends/{name}", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
-async def admin_delete_backend(name: str):
-    _stats, _lock, backend_enabled = stats_context()
-    if name not in smart_router.BACKENDS:
-        raise HTTPException(404, f"backend '{name}' not found")
-    del smart_router.BACKENDS[name]
-    backend_enabled.pop(name, None)
-    return {"ok": True, "message": f"backend '{name}' deleted"}
-
-
-@router.post("/api/backends/{name}/toggle", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
-async def admin_toggle_backend(name: str):
-    _stats, _lock, backend_enabled = stats_context()
-    if name not in smart_router.BACKENDS:
-        raise HTTPException(404, f"backend '{name}' not found")
-    current = backend_enabled.get(name, True)
-    backend_enabled[name] = not current
-    return {"ok": True, "enabled": not current}
-
-
-@router.post("/api/backends/{name}/test", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
-async def admin_test_backend(name: str):
-    if name not in smart_router.BACKENDS:
-        raise HTTPException(404, f"backend '{name}' not found")
-    return test_backend_sync(name)
 
 
 @router.get("/api/model-status", dependencies=[Depends(verify_admin)])

@@ -30,6 +30,7 @@ FILES = [
     "response_cleaner.py",
     "http_stream.py",
     "lima_context.py",
+    "speculative.py",
     "converters/anthropic_format.py",
     "context_pipeline/retrieval_corpus.py",
     "context_pipeline/production_index.py",
@@ -39,8 +40,12 @@ FILES = [
     "context_pipeline/graph_retrieval.py",
     "context_pipeline/reranking.py",
     "context_pipeline/retrieval_trace.py",
-    "routes/admin_state.py",
+    "routes/admin.py",
     "routes/admin_api.py",
+    "routes/admin_auth.py",
+    "routes/admin_backends_crud.py",
+    "routes/admin_state.py",
+    "routes/admin_ui.py",
     "routes/request_tracking.py",
     "routes/chat_handler.py",
     "routes/chat_handler_dispatch.py",
@@ -49,6 +54,7 @@ FILES = [
     "routes/anthropic_vision_sse.py",
     "routes/tool_forward.py",
     "routes/tool_forward_stream.py",
+    "admin.html",
 ]
 
 DIRS = ["local_retrieval"]

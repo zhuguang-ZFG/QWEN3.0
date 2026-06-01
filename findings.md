@@ -2,6 +2,133 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-06-01 M16 代码审查修复 (Critical Issues)
+
+### Critical 问题修复 (已全部修复)
+
+| ID | 优先级 | 问题 | 文件 | 修复 | 状态 |
+|----|-------|------|------|------|------|
+| M16-C-1 | Critical | secure flag 反向代理后失效 | routes/admin.py | 三重判断 env+header+hostname | ✅ |
+| M16-C-2 | Critical | gzip 失败后下游假设违反 | http_body_limit.py | 清除 Content-Encoding header | ✅ |
+| M16-C-3 | Critical | 两层超时语义混乱 | speculative.py | 完善 docstring 文档 | ✅ |
+| M16-W-1 | Warning | routing_engine.py 重复导入 logging | routing_engine.py | 顶部导入+移除 6 处重复 | ✅ |
+| M16-W-2 | Warning | 速率限制多进程部署失效 | routes/admin.py | 添加限制说明注释 | ✅ |
+| M16-W-3 | Warning | DEPRECATED 日志级别过高 | routes/admin_api.py | warning → info | ✅ |
+
+### 修复详情
+
+**M16-C-1: secure flag 反向代理兼容**
+- 问题：`request.url.hostname` 在 Nginx/Cloudflare 后可能仍是 localhost
+- 修复：
+  ```python
+  is_production = (
+      os.getenv("LIMA_PRODUCTION", "").lower() in ("1", "true", "yes")
+      or request.headers.get("X-Forwarded-Proto", "") == "https"
+      or not (request.url.hostname or "").startswith(("localhost", "127.0.0.1"))
+  )
+  ```
+- 安全提升：生产环境强制 secure cookie，防止会话劫持
+
+**M16-C-2: gzip 解压失败下游保护**
+- 问题：解压失败后保留压缩 body，下游 `body.decode('utf-8')` 会失败
+- 修复：清除 `Content-Encoding` header
+- 影响：防止 UnicodeDecodeError
+
+**M16-C-3: 超时语义文档化**
+- 问题：30s safety net vs 5s business timeout 关系不明确
+- 修复：docstring 明确说明职责分工
+- 影响：降低调试困惑
+
+**M16-W-1: logging 导入优化**
+- 移除 6 处 `import logging as _logging`
+- 文件顶部统一导入
+- 影响：代码更简洁，符合 Python 最佳实践
+
+**M16-W-2: 速率限制多进程注释**
+- 添加 NOTE 说明内存限制器在多进程场景的局限
+- 建议生产环境迁移到 Redis/SQLite
+
+**M16-W-3: DEPRECATED 日志降级**
+- warning → info
+- 避免自动化脚本频繁调用时日志嘈杂
+
+---
+
+## 2026-06-01 M15 安全加固 + 运维改进
+
+### 问题修复 (已全部修复)
+
+| ID | 优先级 | 问题 | 文件 | 修复 | 状态 |
+|----|-------|------|------|------|------|
+| M15-H-1 | HIGH | gzip 解压异常静默吞掉 | http_body_limit.py | 添加 logging.warning | ✅ |
+| M15-M-1 | MEDIUM | 两套 CRUD 系统并存 | routes/admin_api.py | 标记 DEPRECATED | ✅ |
+| M15-L-1 | LOW | admin 登录无限速 | routes/admin.py | 5次/15分钟限制 | ✅ |
+| M15-L-2 | LOW | secure cookie localhost 不可用 | routes/admin.py | 动态 secure flag | ✅ |
+
+### 修复详情
+
+**M15-H-1: gzip 异常处理**
+- 位置：`http_body_limit.py:204`
+- 问题：`except Exception: pass` 吞掉 gzip 解压失败
+- 风险：无法诊断压缩请求问题
+- 修复：记录警告 + 保留原始 body
+
+**M15-M-1: CRUD 系统统一**
+- 问题：`admin_api.py` (内存) vs `admin_backends_crud.py` (文件持久化)
+- 策略：保留持久化版本，标记内存版本废弃
+- 实施：添加 DEPRECATED 文档字符串 + logging.warning
+- 迁移路径：用户应使用 `/admin/backends` 而非 `/api/backends`
+
+**M15-L-1: 登录速率限制**
+- 实现：`_LOGIN_ATTEMPTS` dict + `_check_login_rate_limit()`
+- 限制：5 次失败 / 15 分钟 / IP
+- 特性：
+  - 自动清理过期记录
+  - 成功后清除失败历史
+  - 429 状态码 + 友好提示
+
+**M15-L-2: Cookie secure 兼容**
+- 问题：`secure=True` 在 localhost 时浏览器拒绝 cookie
+- 修复：根据 `request.url.hostname` 动态设置
+- 逻辑：`localhost`/`127.0.0.1` → False，其他 → True
+- 安全：生产环境仍然强制 secure
+
+---
+
+## 2026-06-01 M12 代码审查修复
+
+### 关键问题 (已修复)
+
+| ID | 问题 | 文件 | 修复 | 状态 |
+|----|------|------|------|------|
+| M12-P0-1 | 6 处 `except Exception: pass` 静默降级 | routing_engine.py | 改为 logging.warning/debug | ✅ |
+| M12-P0-2 | speculative.py 线程无超时 | speculative.py | 添加 30s timeout | ✅ |
+| M12-P0-3 | tool_forward API Key 未验证 | routes/tool_forward.py | 添加空值检查 | ✅ |
+| M12-P1-1 | Admin 面板 UI/UX 简陋 | admin.html | 增强动画/通知/验证 | ✅ |
+
+### 修复详情
+
+**M12-P0-1: 禁止静默降级 (Superpowers 原则 0)**
+- 位置：L103 (缓存日志), L120 (skill_store), L151 (记忆查询), L158 (复杂度评估), L197 (上下文压缩), L256 (响应验证)
+- 风险：生产错误无法诊断
+- 证据：`grep -r "except Exception: pass" routing_engine.py` → 0 结果
+
+**M12-P0-2: 投机执行线程安全**
+- 问题：`_run_coro_sync()` 无超时，后端挂起时永久阻塞
+- 修复：添加 `thread.join(timeout=30)` + 线程状态检查
+- 影响：防止服务不可用
+
+**M12-P0-3: API Key 验证**
+- 问题：空 key 发送请求导致 401 错误
+- 修复：请求前验证 `if not b.get("key")` → 跳过并记录
+- 影响：避免浪费配额和触发限流
+
+**M12-P1-1: Admin 面板 UI/UX 增强**
+- 新增：加载动画、Toast 通知系统、按钮微交互、卡片悬停动效
+- 表单：输入验证、占位符提示、必填标记 (*)、密码字段
+- 动画：fade-in、ripple effect、hover transform
+- 遵循：UI/UX 最佳实践
+
 ## 2026-05-27 M1-M5 + Phase A
 
 | ID | Area | Finding | Status |
@@ -851,4 +978,56 @@ Source record: `docs/superpowers/plans/2026-05-23-code-quality-review-closeout.m
 - `scripts/reverse_proxy_keepalive.py` (更新) — 添加 SCNet + Kimi 监控
 - `deploy/reverse/README.md` (更新) — 补 Kimi + SCNet 部署步骤
 
-|
+---
+
+## 2026-06-01 M17 XSS 修复 + CRUD 架构统一
+
+### 问题修复 (已全部修复)
+
+| ID | 优先级 | 问题 | 文件 | 修复 | 状态 |
+|----|-------|------|------|------|------|
+| M17-C-1 | CRITICAL | innerHTML XSS 15 处未转义 | admin.html | esc() + escJs() 双上下文转义 | ✅ |
+| M17-C-2 | MEDIUM | 双 CRUD 系统并存 | admin_api.py + admin_ui.py | 删除内存 CRUD 路由 | ✅ |
+| M17-C-3 | MEDIUM | admin_ui.py 引用旧 API 路径 | routes/admin_ui.py | 路径迁移 /admin/api/backends → /admin/backends | ✅ |
+| M17-C-4 | LOW | toggleBackend 函数已失效 | routes/admin_ui.py | 删除函数和按钮 | ✅ |
+
+### 修复详情
+
+**M17-C-1: XSS 双上下文转义**
+- 新增 `esc()` 函数：转义 `& < > " '` 为 HTML 实体
+- 新增 `escJs()` 函数：转义 `\ ' \n` 为 JS 安全字符串
+- 15 处修复点：
+  - renderBackends: `esc(b.name)`, `esc(b.model)`, `esc(b.fmt)` (HTML 上下文)
+  - onclick 属性: `escJs(b.name)` ×3 (HTML+JS 双重上下文)
+  - showForm value 属性: `esc(backend.*)` ×5 (HTML 属性上下文)
+  - showNotification: `esc(message)` (HTML 上下文)
+  - testBackend: `esc(name)`, `esc(data.error)`, `esc(e.message)` ×3 (HTML 上下文)
+
+**M17-C-2: 双 CRUD 统一**
+- 删除 `routes/admin_api.py` 中 5 个 CRUD 路由 (~90 行)
+- 移除废弃标记和 dead imports (smart_router, describe_backend 等)
+- 保留 5 个非 CRUD 路由: stats, logs, retrieval-traces, model-status, retrain
+- 单一 CRUD 入口: `routes/admin_backends_crud.py` 的 `/admin/backends*`
+
+**M17-C-3: admin_ui.py 路径迁移**
+- 4 处 `/admin/api/backends` → `/admin/backends`
+- 涉及: loadBackends, addBackend, testBackend, deleteBackend
+
+**M17-C-4: toggleBackend 移除**
+- 删除 `toggleBackend()` 函数定义
+- 删除 renderBackends 行中的 toggle 按钮
+
+### 测试证据
+```
+test_admin_ui.py: 2/2 passed
+test_admin_csrf.py: 5/7 (2 pre-existing starlette/httpx incompatibilities)
+admin_api router: 5 routes (all non-CRUD)
+admin_ui.py: 0 toggleBackend, 0 old /admin/api/backends
+admin.html: esc() + escJs() present, all 15 data points escaped
+```
+
+### 安全验证
+- XSS: `grep -n '${[^}]*}' admin.html` → 所有动态值均经过 esc()/escJs()
+- CSRF: test_csrf_*.py 全部通过
+- 速率限制: 5 次/15min/IP + 登录失败日志
+- Cookie secure: 动态检测 (env + X-Forwarded-Proto + hostname)

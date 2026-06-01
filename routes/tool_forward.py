@@ -161,6 +161,14 @@ def anthropic_native_forward_sync(body: dict) -> dict:
         if not name:
             break
         b = BACKENDS[name]
+        
+        # Validate API key before making request
+        if not b.get("key"):
+            _ht.record_failure(name, error_code=500)
+            import logging
+            logging.warning("tool_forward: backend %s has no API key configured, skipping", name)
+            continue
+        
         fwd = dict(body)
         fwd["model"] = b["model"]
         payload = json.dumps(fwd, ensure_ascii=False).encode()

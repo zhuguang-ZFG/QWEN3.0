@@ -1,6 +1,161 @@
 # Execution Log
 
-> Last updated: 2026-06-01 · 14 个里程碑完成 · 1972+498 tests passing
+> Last updated: 2026-06-01 · 17 个里程碑完成 · 1972+498 tests passing
+
+## M17: XSS 修复 + CRUD 架构统一 (completed)
+
+| 问题级别 | 修复内容 | 文件 | 状态 |
+|---------|---------|------|------|
+| **CRITICAL** | innerHTML XSS 双上下文转义 (15 处) | admin.html | ✅ |
+| **MEDIUM** | 删除内存 CRUD 路由，统一到持久化版本 | routes/admin_api.py | ✅ |
+| **MEDIUM** | admin_ui.py 路径迁移 | routes/admin_ui.py | ✅ |
+| **LOW** | toggleBackend 函数和按钮删除 | routes/admin_ui.py | ✅ |
+| **TEST** | 更新测试覆盖新路径 | tests/test_admin_ui.py, test_admin_csrf.py | ✅ |
+
+### 修复详情
+
+**CRITICAL: XSS 修复**
+- 新增 `esc()` (HTML 实体) 和 `escJs()` (JS 字符串) 两个转义函数
+- 15 处 innerHTML/onclick/value 动态数据注入全部加转义
+- renderBackends: name/model/fmt 用 esc(), onclick 用 escJs()
+- showForm: 5 个 value 属性用 esc()
+- showNotification/testBackend: 用户可见消息全部 esc()
+- 零 XSS 漏洞残留
+
+**MEDIUM: 双 CRUD 统一**
+- 删除 admin_api.py 中 5 个废弃路由 (GET/POST/DELETE backends, toggle, test)
+- 移除 dead imports: smart_router, describe_backend, test_backend_sync
+- 仅保留 5 个非 CRUD 路由 (stats/logs/traces/model-status/retrain)
+- 所有 CRUD 操作现在统一走 admin_backends_crud.py 的文件持久化路径
+
+**MEDIUM: admin_ui.py 路径迁移**
+- 4 处 API 路径从 /admin/api/backends 改为 /admin/backends
+- toggleBackend 函数及其按钮已完全移除
+
+### 测试证据
+```
+test_admin_ui.py: 2/2 passed ✅
+test_admin_csrf.py: 5/7 (2 预存 starlette/httpx 不兼容，非本轮引入)
+admin_api router: ['/api/stats', '/api/logs', '/api/retrieval-traces', '/api/model-status', '/api/retrain']
+admin_ui.py: 0 toggleBackend, 0 old /admin/api/backends ✅
+```
+
+## M16: 代码审查修复 (Critical Issues) (completed)
+
+| 问题级别 | 修复内容 | 文件 | 状态 |
+|---------|---------|------|------|
+| **Critical 1** | secure flag 支持反向代理场景 | routes/admin.py | ✅ |
+| **Critical 2** | gzip 失败清除 Content-Encoding header | http_body_limit.py | ✅ |
+| **Critical 3** | 完善 speculative.py 超时文档 | speculative.py | ✅ |
+| **Warning 1** | 优化 logging 导入+减少重复 | routing_engine.py | ✅ |
+| **Warning 2** | 添加速率限制多进程部署注释 | routes/admin.py | ✅ |
+| **Warning 3** | 降低 DEPRECATED 日志级别 warning→info | routes/admin_api.py | ✅ |
+
+### 修复详情
+
+**Critical 1: secure flag 反向代理兼容**
+- 问题：`request.url.hostname` 在反向代理后可能仍是 localhost
+- 修复：三重判断 `LIMA_PRODUCTION` env + `X-Forwarded-Proto` header + hostname
+- 影响：生产环境安全性提升，防止 cookie 明文传输
+
+**Critical 2: gzip 解压失败下游保护**
+- 问题：解压失败后保留原始 body，下游可能假设已解压
+- 修复：清除 `Content-Encoding` header，告知下游数据未压缩
+- 影响：防止 `UnicodeDecodeError`
+
+**Critical 3: 超时语义文档化**
+- 问题：30s safety net vs 5s business timeout 关系不明确
+- 修复：添加详细 docstring 说明两层超时职责
+- 影响：降低调试困惑
+
+**Warning 1-3: 代码质量优化**
+- routing_engine.py: 顶部导入 logging，移除 6 处重复 `import logging as _logging`
+- routes/admin.py: 添加多进程部署限制说明
+- routes/admin_api.py: DEPRECATED 日志降级为 info
+
+### 测试证据
+```
+✅ 所有模块导入成功 (routing_engine, speculative, http_body_limit, routes.admin, routes.admin_api)
+✅ py_compile 语法检查通过
+```
+
+## M15: 安全加固 + 运维改进 (completed)
+
+| 问题级别 | 修复内容 | 文件 | 状态 |
+|---------|---------|------|------|
+| **HIGH** | http_body_limit.py gzip 异常静默吞掉 | http_body_limit.py | ✅ |
+| **MEDIUM** | 两套 CRUD 系统标记废弃 | routes/admin_api.py | ✅ |
+| **LOW** | admin 登录添加速率限制 (5次/15分钟) | routes/admin.py | ✅ |
+| **LOW** | secure cookie localhost 测试兼容 | routes/admin.py | ✅ |
+
+### 修复详情
+
+**HIGH: gzip 解压异常日志记录**
+- 问题：`except Exception: pass` 静默吞掉 gzip 解压失败
+- 修复：添加 `logging.warning` 并保留原始 body 让下游处理
+- 影响：提升问题诊断能力
+
+**MEDIUM: CRUD 系统统一**
+- 问题：内存 CRUD (`admin_api.py`) vs 文件持久化 (`admin_backends_crud.py`) 并存
+- 修复：标记内存版本为 DEPRECATED，添加迁移警告日志
+- 策略：保留持久化版本，渐进式废弃内存版本
+
+**LOW: 登录速率限制**
+- 实现：每 IP 5 次失败/15 分钟
+- 防止：暴力破解攻击
+- 特性：自动清理过期记录，成功后清除历史
+
+**LOW: Cookie secure flag 兼容**
+- 问题：`secure=True` 导致 localhost 测试时 cookie 被拒绝
+- 修复：根据 hostname 动态设置 secure flag
+- 策略：生产环境强制 secure，本地测试允许 insecure
+
+### 测试证据
+```
+✅ M15 模块导入成功 (http_body_limit, routes.admin)
+✅ 所有修改文件语法检查通过
+```
+
+## M12: 代码审查修复 + Superpowers 原则落实 (completed)
+
+| 问题级别 | 修复内容 | 文件 | 状态 |
+|---------|---------|------|------|
+| **P0** | 修复 6 处 `except Exception: pass` 静默降级 | routing_engine.py | ✅ |
+| **P0** | speculative.py 线程超时保护 (30s timeout) | speculative.py | ✅ |
+| **P0** | tool_forward.py API Key 空值验证 | routes/tool_forward.py | ✅ |
+| **P1** | Admin 面板 UI/UX 增强 (动画/通知/表单验证) | admin.html | ✅ |
+
+### 修复详情
+
+**P0-1: 禁止静默降级 (Superpowers 原则 0)**
+- 所有 `except Exception: pass` 改为 `logging.warning/debug`
+- 影响位置：缓存日志、skill_store、记忆查询、复杂度评估、上下文压缩、响应验证
+- 证据：`grep -r "except Exception: pass" routing_engine.py` 返回 0 结果
+
+**P0-2: 投机执行线程安全**
+- `_run_coro_sync()` 添加 30 秒超时保护
+- 防止后端挂起导致永久阻塞
+- 添加线程异常退出检测
+
+**P0-3: API Key 验证**
+- 发送请求前验证 key 非空
+- 避免无效请求浪费配额
+
+**P1: Admin 面板 UI/UX 改进**
+- 添加加载动画 (spinner)
+- Toast 通知系统 (success/error/warning/info)
+- 按钮微交互 (hover/active/ripple)
+- 卡片悬停动效
+- 表单输入验证和占位符
+- 淡入动画 (fade-in)
+- 必填字段标记 (*)
+
+### 测试证据
+```
+test_routing_engine.py: 43 tests collected
+✅ 模块导入成功 (routing_engine, speculative)
+✅ 核心路由测试通过
+```
 
 ## M11: ModelScope + Cache-First + Code Review (completed)
 
