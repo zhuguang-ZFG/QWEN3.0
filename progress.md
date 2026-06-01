@@ -1,6 +1,23 @@
 # Execution Log
 
-> Last updated: 2026-06-01
+> Last updated: 2026-06-01 · 14 个里程碑完成 · 1972+498 tests passing
+
+## M11: ModelScope + Cache-First + Code Review (completed)
+
+| Milestone | Commit | Result |
+|-----------|--------|--------|
+| M11a | 28e3f18 | ModelScope 8 backends added to routing pools, VPS verified |
+| M11b | 02b336a | Code review fixes (dead store, dead FRP imports) |
+| M11c | 85e40e0 | Cache-first compaction ported (deepcode-cli@649eb34) |
+| M11d | 6ca16aa | Full ContextManager port (+412 lines, deepcode-cli@182730d) |
+| M11e | 12d1fe4 | Deploy verify + docs update |
+| M11f | 19a47f4 | Code review fix (D:/GIT hardcode removed) |
+
+Architecture correction: `docs/REQUEST_PIPELINE_AUTHORITY.md` proves routing_engine is authoritative,
+smart_router is compat layer, router_v3 is P2C complement — NOT redundant. Product doc updated.
+
+Open: ContextManager not yet integrated into SessionManager (orphan code).
+Open: VPS has 3 non-LiMa services (ai-router MCP, BT-Panel, mission-server).
 
 ## M1-M9: Decouple from Local Host + Vibe Coding Analysis (completed)
 
