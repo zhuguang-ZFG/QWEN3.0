@@ -225,3 +225,33 @@ BACKENDS = {
 # M6: All host-dependent backends migrated to VPS or deleted.
 # DISABLED_HOST_DEPENDENT_BACKENDS is now empty — no backends need to be popped.
 DISABLED_HOST_DEPENDENT_BACKENDS: dict[str, dict] = {}
+
+
+# ── Admin CRUD overlay (M13) ──────────────────────────────────────────────────
+# Loads data/backend_overrides.json and merges add/update/delete into BACKENDS.
+# This allows the admin panel to manage backends without editing source code.
+
+import json as _json
+from pathlib import Path as _Path
+
+_OVERLAY_PATH = _Path(__file__).resolve().parent / "data" / "backend_overrides.json"
+
+
+def _load_backend_overlay() -> None:
+    """Merge backend overlay JSON into BACKENDS. Idempotent — safe to call multiple times."""
+    if not _OVERLAY_PATH.exists():
+        return
+    try:
+        overlay = _json.loads(_OVERLAY_PATH.read_text(encoding="utf-8"))
+    except (_json.JSONDecodeError, OSError):
+        return
+    for name, cfg in overlay.get("add", {}).items():
+        BACKENDS[name] = cfg
+    for name in overlay.get("delete", []):
+        BACKENDS.pop(name, None)
+    for name, cfg in overlay.get("update", {}).items():
+        if name in BACKENDS:
+            BACKENDS[name].update(cfg)
+
+
+_load_backend_overlay()
