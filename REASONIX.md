@@ -59,6 +59,14 @@ Dev: `python -m uvicorn server:app --host 0.0.0.0 --port 8080`
 - **Dual routing**: `routing_engine.py` (five-layer) ↔ `smart_router.py` (compat); see `docs/REQUEST_PIPELINE_AUTHORITY.md`
 - **FastAPI lifespan** in `server_lifespan.py` (not inline)
 
+## Architecture notes (from docs/REQUEST_PIPELINE_AUTHORITY.md)
+
+- **routing_engine.route()** is the authoritative routing module — NOT smart_router or router_v3
+- smart_router is a legacy compat layer (26 callers), delegates to routing_engine
+- router_v3 provides P2C/sticky session features that complement routing_engine
+- http_caller (httpx) is authoritative for HTTP; router_http (urllib) is legacy
+- health_tracker is authoritative for health/cooldown; circuit_breaker is legacy
+
 ## Watch out for
 - **Dockerfile references `requirements.txt`** but actual file is `requirements_server.txt`
 - **`.env` mandatory** — `LIMA_API_KEY` must be set or startup errors
