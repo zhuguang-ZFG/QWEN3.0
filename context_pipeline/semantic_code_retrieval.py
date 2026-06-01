@@ -42,7 +42,7 @@ def retrieve_semantic(
     3. Boost files with matching symbols
     4. Return top results with snippets
     """
-    root = Path(project_root or _detect_project_root())
+    root = _resolve_project_root(project_root)
     if not root.is_dir():
         return []
 
@@ -144,8 +144,19 @@ def _tokenize_query(query: str, messages: list[dict] | None = None) -> list[str]
     return [t for t in terms if t not in stop_words and len(t) > 1]
 
 
+def _resolve_project_root(project_root: str = "") -> Path:
+    root = Path(project_root or _detect_project_root())
+    if root.is_dir() and (root / "routing_engine.py").exists():
+        return root
+    repo_root = Path(__file__).resolve().parent.parent
+    if (repo_root / "routing_engine.py").exists():
+        return repo_root
+    return root
+
+
 def _build_file_index(root: Path) -> dict[str, dict]:
     """Build a lightweight index of Python files in the project."""
+    root = _resolve_project_root(str(root))
     index = {}
     py_files = list(root.rglob("*.py"))[:500]  # cap at 500 files
 

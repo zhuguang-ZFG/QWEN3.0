@@ -81,6 +81,8 @@ def preflight_real_execution(
     check(not config.dry_run, "config_dry_run", "config.dry_run is True")
     check(flags.dry_run is False, "flags_dry_run", "flags.dry_run is True")
     check(bool(config.operator_session_id), "operator_session", "no operator session id")
+    if flags.exec_mode != "safe":
+        check(bool(config.required_audit_refs), "audit_refs", "no required audit refs")
 
     kind = config.execution_kind
     if kind == "shell":

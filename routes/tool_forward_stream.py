@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import uuid
 import time
+from typing import AsyncIterator
 
 from converters.anthropic_format import (
     convert_messages_anthropic_to_openai,

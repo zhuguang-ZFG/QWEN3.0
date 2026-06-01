@@ -76,6 +76,9 @@ deepcode-cli/data/
 scripts/archive/*.log
 data/deploy-*.tar
 data/candidate_store.json
+data/webhook_push_dedupe.json
+data/webhook_activity.json
+data/routing_model.json
 data/openrouter_fixture.json
 data/web_reverse_*.json
 data/claude_code_source_analysis.txt

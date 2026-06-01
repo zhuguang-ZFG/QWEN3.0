@@ -195,6 +195,7 @@ def _extract_chat_content(payload: dict[str, Any] | str) -> str:
 def run_diag(
     *,
     upstream: str = DEFAULT_UPSTREAM,
+    local_proxy: str | None = None,
     chat_timeout: float = DEFAULT_CHAT_TIMEOUT,
     skip_chat: bool = False,
 ) -> dict[str, Any]:
@@ -202,6 +203,14 @@ def run_diag(
     models = probe_models(upstream)
     models["label"] = "upstream"
     results.append(models)
+
+    if local_proxy:
+        local_models = probe_models(local_proxy)
+        local_models["label"] = "local_proxy"
+        if not local_models.get("ok"):
+            local_models["skipped"] = True
+            local_models["skip_reason"] = "local proxy unreachable"
+        results.append(local_models)
 
     if not skip_chat:
         chat = probe_chat(upstream, model=DEFAULT_CHAT_MODEL, timeout=chat_timeout)
@@ -212,6 +221,7 @@ def run_diag(
     any_chat = any(r.get("kind") == "chat" and r.get("ok") for r in results)
     report = {
         "upstream": upstream,
+        "local_proxy": local_proxy or "",
         "chat_model": DEFAULT_CHAT_MODEL,
         "chat_timeout_sec": chat_timeout,
         "any_models_ok": any_models,

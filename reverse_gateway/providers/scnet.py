@@ -10,6 +10,8 @@ from reverse_gateway.config import ProviderConfig, scnet_config
 from reverse_gateway.errors import classify_error
 from reverse_gateway.models import ProbeResult
 from reverse_gateway.providers.scnet_adapter import attach_text_files, build_headers, build_payload, latest_user_content, normalize_response
+
+FILE_CONTEXT_BRIDGE_PROMPT = "?" * 32
 from reverse_gateway.providers.scnet_cookie import cookie_path, load_cookie_state
 from reverse_gateway.providers.scnet_file_context import should_bridge_text, upload_text_context_chunks
 from reverse_gateway.providers.scnet_protocol import load_template, protocol_path
@@ -154,7 +156,7 @@ def forward_chat(body: dict, cfg: ProviderConfig | None = None) -> tuple[int, di
             attach_text_files(
                 payload,
                 [item.as_payload() for item in uploaded],
-                "请阅读上传的文件内容，并根据文件中的信息回答问题。如果文件中包含对话历史，请理解上下文后回答最后一个用户的问题。",
+                FILE_CONTEXT_BRIDGE_PROMPT,
             )
     except httpx.HTTPError as exc:
         return 502, {"error": {"message": str(exc), "type": classify_error(str(exc))}}

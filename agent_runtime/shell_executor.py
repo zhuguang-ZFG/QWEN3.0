@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import os
+import shutil
 import signal
 import subprocess
 import time
@@ -63,7 +64,7 @@ def shell_execute(
 
     try:
         proc = subprocess.run(
-            args,
+            _subprocess_args(args),
             cwd=effective_cwd,
             capture_output=True,
             text=True,
@@ -149,3 +150,9 @@ def _kill_proc_tree(proc: subprocess.Popen | None) -> None:
                 proc.kill()
     except (ProcessLookupError, OSError):
         pass
+
+
+def _subprocess_args(args: list[str]) -> list[str]:
+    if os.name == "nt" and args and shutil.which(args[0]) is None:
+        return ["cmd", "/c", *args]
+    return args

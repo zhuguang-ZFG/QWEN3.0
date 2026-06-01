@@ -6,6 +6,8 @@ Stats/dashboard commands are in telegram_kb_stats.py (re-exported below).
 
 from __future__ import annotations
 
+import logging
+
 import telegram_bot
 from session_memory.store import search_memories_keyword
 from session_memory.store_db import memory_stats
@@ -16,6 +18,8 @@ from routes.telegram_kb_stats import (  # noqa: F401
     cmd_memstats, cmd_outcome, cmd_digest, cmd_contracts, cmd_dashboard,
     _type_emoji,
 )
+
+_log = logging.getLogger(__name__)
 
 
 async def cmd_kb(chat_id: str, args: str) -> None:

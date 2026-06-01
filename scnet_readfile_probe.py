@@ -66,4 +66,3 @@ for body in [
                     cr=client.post(BASE+'/chatbot/v1/chat/completion', json=payload, timeout=120)
                     ctext=cr.text[:2000]
                     print('\nCHATVAR', idx, cr.status_code, ctext, flush=True)
-PY

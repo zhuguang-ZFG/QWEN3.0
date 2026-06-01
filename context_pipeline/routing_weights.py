@@ -15,11 +15,10 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 
 
-_default_path = os.path.join(
-    os.environ.get("LIMA_DATA_DIR", "data"),
-    "lima_routing_weights.json",
-)
+_runtime_data_dir = os.environ.get("LIMA_DATA_DIR", ".lima-data")
+_default_path = os.path.join(_runtime_data_dir, "lima_routing_weights.json")
 WEIGHTS_PATH = Path(os.environ.get("LIMA_WEIGHTS_PATH", _default_path))
+SEED_WEIGHTS_PATH = Path(__file__).resolve().parent.parent / "data" / "lima_routing_weights.json"
 
 
 @dataclass
@@ -118,9 +117,10 @@ class RoutingWeights:
         }
 
     def _load(self) -> None:
-        if WEIGHTS_PATH.exists():
+        load_path = WEIGHTS_PATH if WEIGHTS_PATH.exists() else SEED_WEIGHTS_PATH
+        if load_path.exists():
             try:
-                data = json.loads(WEIGHTS_PATH.read_text(encoding="utf-8"))
+                data = json.loads(load_path.read_text(encoding="utf-8"))
                 for key, d in data.items():
                     self._weights[key] = BackendWeight(**d)
             except (json.JSONDecodeError, TypeError):

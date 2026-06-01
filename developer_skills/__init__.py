@@ -19,9 +19,4 @@ class SkillResult:
     evidence: list[str] = field(default_factory=list)
 
 
-from developer_skills.investigate import investigate
-from developer_skills.review import review
-from developer_skills.ship import ship
-from developer_skills.learn import learn
-
-__all__ = ["investigate", "review", "ship", "learn", "SkillResult"]
+__all__ = ["SkillResult"]

@@ -2,8 +2,8 @@ FROM python:3.10-slim AS builder
 
 WORKDIR /build
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+COPY requirements_server.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements_server.txt
 
 # --- runtime ---
 FROM python:3.10-slim

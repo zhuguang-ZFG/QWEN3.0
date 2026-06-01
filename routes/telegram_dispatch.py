@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 import telegram_bot
 from routes.telegram_commands import (
     cmd_cache,
@@ -37,6 +39,8 @@ from routes.telegram_public_tools import (
     cmd_tools,
 )
 from routes.telegram_quick_menu import cmd_help, cmd_menu, expand_command_alias
+
+_log = logging.getLogger(__name__)
 
 _PUBLIC_TOOL_COMMANDS: dict[str, str] = {
     "/weather": "weather",

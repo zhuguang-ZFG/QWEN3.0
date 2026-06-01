@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import logging
 from typing import Callable
 
 from fastapi.responses import JSONResponse
@@ -18,6 +19,8 @@ from routes.quality_gate import (
 )
 
 from routes.chat_support import attach_memory_recall_meta
+
+_log = logging.getLogger(__name__)
 
 
 def _record_chat_evidence(*, request_id: str, backend: str, status: str, fallback_used: bool, latency_ms: int) -> None:

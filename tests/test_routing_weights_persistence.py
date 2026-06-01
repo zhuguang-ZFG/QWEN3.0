@@ -111,3 +111,16 @@ def test_corrupt_file_handled():
     WEIGHTS_PATH.write_text("NOT JSON {{{", encoding="utf-8")
     rw = RoutingWeights()
     assert rw.get_weight("any", "any") == 1.0
+
+
+def test_default_runtime_path_uses_ignored_lima_data(monkeypatch):
+    import importlib
+    import context_pipeline.routing_weights as routing_weights
+
+    monkeypatch.delenv("LIMA_WEIGHTS_PATH", raising=False)
+    monkeypatch.delenv("LIMA_DATA_DIR", raising=False)
+    reloaded = importlib.reload(routing_weights)
+    try:
+        assert ".lima-data" in str(reloaded.WEIGHTS_PATH).replace("\\", "/")
+    finally:
+        importlib.reload(routing_weights)
