@@ -14,7 +14,7 @@ from routes.admin_auth import (
 )
 from routes.admin_state import inject_state
 from access_guard import constant_time_equals
-from routes.admin_ui import render_admin_dashboard
+from routes.admin_ui import render_admin_dashboard, render_admin_login
 
 router = APIRouter(prefix="/admin")
 router.include_router(admin_api_router)
@@ -27,13 +27,7 @@ async def admin_page(lima_admin_session: str = Cookie(default="")):
     if not get_admin_token():
         raise HTTPException(503, "LIMA_ADMIN_TOKEN not configured")
     if not is_valid_admin_session(lima_admin_session):
-        return HTMLResponse(
-            "<h2>Admin Login</h2>"
-            '<form method="post" action="/admin/login">'
-            '<input name="token" placeholder="Admin Token" type="password">'
-            '<button type="submit">Login</button></form>',
-            status_code=401,
-        )
+        return HTMLResponse(render_admin_login(), status_code=401)
     return HTMLResponse(render_admin_dashboard())
 
 
@@ -43,13 +37,7 @@ async def admin_login(request: Request):
     token = form.get("token", "")
     expected = get_admin_token()
     if not expected or not constant_time_equals(str(token), expected):
-        return HTMLResponse(
-            "<h2>Admin Login</h2><p style='color:red'>Token 错误</p>"
-            '<form method="post" action="/admin/login">'
-            '<input name="token" placeholder="Admin Token" type="password">'
-            '<button type="submit">Login</button></form>',
-            status_code=401,
-        )
+        return HTMLResponse(render_admin_login("Token error"), status_code=401)
     response = RedirectResponse("/admin", status_code=303)
     response.set_cookie(
         SESSION_COOKIE,

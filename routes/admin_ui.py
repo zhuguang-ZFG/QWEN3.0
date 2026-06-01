@@ -1,292 +1,104 @@
-"""Admin dashboard HTML/JS templates (CQ-014 slice)."""
+"""Admin dashboard HTML/JS templates."""
 
-# ── Admin HTML ─────────────────────────────────────────────────────────────────
-
-ADMIN_HTML = """<!DOCTYPE html>
+ADMIN_HTML = r"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LiMa - 管理后台</title>
+<title>LiMa Admin Console</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#1a1a2e;color:#e0e0e0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:20px}
-h1{color:#00d4ff;margin-bottom:20px;font-size:1.6em}
-h2{color:#00d4ff;margin-bottom:12px;font-size:1.1em;border-bottom:1px solid #2a2a4e;padding-bottom:6px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:24px}
-.card{background:#16213e;border-radius:10px;padding:18px;border:1px solid #2a2a4e}
-.stat-num{font-size:2em;font-weight:700;color:#00d4ff}
-.stat-label{font-size:0.85em;color:#888;margin-top:4px}
-table{width:100%;border-collapse:collapse;font-size:0.85em}
-th,td{padding:8px 10px;text-align:left;border-bottom:1px solid #2a2a4e}
-th{color:#00d4ff;font-weight:600}
-tr:hover{background:#1f2b47}
-.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.75em;font-weight:600}
-.badge-ok{background:#0d4d2e;color:#4caf50}
-.badge-err{background:#4d0d0d;color:#f44336}
-.badge-off{background:#3d3d3d;color:#999}
-button{background:#00d4ff;color:#1a1a2e;border:none;padding:6px 14px;border-radius:5px;cursor:pointer;font-size:0.8em;font-weight:600}
-button:hover{background:#00b8d4}
-button.danger{background:#f44336;color:#fff}
-button.danger:hover{background:#d32f2f}
-input,select{background:#0f1a30;border:1px solid #2a2a4e;color:#e0e0e0;padding:6px 10px;border-radius:5px;font-size:0.85em}
-input:focus,select:focus{outline:none;border-color:#00d4ff}
-.form-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center}
-.form-row input{flex:1;min-width:120px}
-.log-time{color:#888;font-size:0.8em}
-.log-backend{color:#00d4ff}
-.log-query{color:#ccc;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tabs{display:flex;gap:4px;margin-bottom:16px}
-.tab{padding:8px 18px;background:#16213e;border:1px solid #2a2a4e;border-radius:6px 6px 0 0;cursor:pointer;color:#888}
-.tab.active{background:#1f2b47;color:#00d4ff;border-bottom-color:#1f2b47}
-.panel{display:none}
-.panel.active{display:block}
-.refresh-info{font-size:0.75em;color:#555;margin-left:12px}
+:root{color-scheme:dark;--bg:#07111f;--bg2:#0b1730;--panel:rgba(15,27,50,.82);--panel2:rgba(18,35,67,.94);--line:rgba(145,166,210,.18);--text:#e8f1ff;--muted:#8fa3c7;--cyan:#35d5ff;--blue:#6a8dff;--green:#4ade80;--amber:#fbbf24;--red:#fb7185;--violet:#a78bfa;--shadow:0 18px 55px rgba(0,0,0,.38)}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100vh;background:radial-gradient(circle at 10% 0%,rgba(53,213,255,.18),transparent 28%),radial-gradient(circle at 85% 10%,rgba(167,139,250,.18),transparent 30%),linear-gradient(135deg,#050914 0%,#07111f 52%,#0b1020 100%);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px}.shell{display:grid;grid-template-columns:260px 1fr;min-height:100vh}.sidebar{position:sticky;top:0;height:100vh;padding:24px 18px;border-right:1px solid var(--line);background:linear-gradient(180deg,rgba(7,17,31,.95),rgba(7,17,31,.72));backdrop-filter:blur(18px)}.brand{display:flex;gap:12px;align-items:center;margin-bottom:24px}.logo{width:42px;height:42px;border-radius:16px;background:linear-gradient(135deg,var(--cyan),var(--violet));box-shadow:0 0 30px rgba(53,213,255,.32)}.brand h1{font-size:18px;margin:0}.brand p{margin:3px 0 0;color:var(--muted);font-size:12px}.nav{display:grid;gap:8px}.nav button{width:100%;text-align:left;border:1px solid transparent;border-radius:14px;background:transparent;color:var(--muted);padding:11px 12px;cursor:pointer}.nav button:hover,.nav button.active{color:var(--text);background:rgba(106,141,255,.12);border-color:rgba(106,141,255,.24)}.sidebar-footer{position:absolute;left:18px;right:18px;bottom:18px;color:var(--muted);font-size:12px}.main{padding:28px;min-width:0}.topbar{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;margin-bottom:22px}.eyebrow{color:var(--cyan);font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:12px}.title{font-size:32px;line-height:1.05;margin:6px 0 8px}.subtitle{color:var(--muted);margin:0;max-width:760px}.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.btn{border:1px solid rgba(53,213,255,.28);border-radius:12px;background:rgba(53,213,255,.12);color:var(--text);padding:9px 12px;cursor:pointer;font-weight:700}.btn:hover{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(53,213,255,.1)}.btn.danger{border-color:rgba(251,113,133,.35);background:rgba(251,113,133,.14)}.btn.ghost{background:rgba(145,166,210,.08);border-color:var(--line);color:var(--muted)}.status-dot{display:inline-flex;align-items:center;gap:7px;color:var(--muted);font-size:12px}.status-dot:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 14px var(--green)}.section{display:none}.section.active{display:block}.bento{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}.card{grid-column:span 4;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:22px;padding:18px;box-shadow:var(--shadow);min-width:0}.card.wide{grid-column:span 8}.card.full{grid-column:1/-1}.card h2{font-size:15px;margin:0 0 14px;display:flex;align-items:center;justify-content:space-between}.metric{font-size:34px;font-weight:800;letter-spacing:-.04em}.metric-label{color:var(--muted);font-size:12px;margin-top:4px}.mini{color:var(--muted);font-size:12px}.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}.table-wrap{overflow:auto;max-height:520px;border-radius:14px;border:1px solid rgba(145,166,210,.12)}table{width:100%;border-collapse:collapse;font-size:13px;min-width:680px}th,td{padding:11px 12px;text-align:left;border-bottom:1px solid rgba(145,166,210,.1);vertical-align:top}th{position:sticky;top:0;background:#10213f;color:#b7c7e8;font-size:12px;text-transform:uppercase;letter-spacing:.08em;z-index:1}tr:hover td{background:rgba(106,141,255,.07)}.badge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:3px 9px;font-size:12px;font-weight:800;border:1px solid transparent;white-space:nowrap}.badge-ok{background:rgba(74,222,128,.12);color:#86efac;border-color:rgba(74,222,128,.24)}.badge-warn{background:rgba(251,191,36,.12);color:#fde68a;border-color:rgba(251,191,36,.25)}.badge-err{background:rgba(251,113,133,.13);color:#fecdd3;border-color:rgba(251,113,133,.28)}.badge-off{background:rgba(148,163,184,.12);color:#cbd5e1;border-color:rgba(148,163,184,.18)}.mono{font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace}.truncate{max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.form{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}.form input,.form select,.search{width:100%;border:1px solid var(--line);border-radius:12px;background:rgba(3,8,20,.55);color:var(--text);padding:10px}.form input:focus,.form select:focus,.search:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(53,213,255,.1)}.form .span2{grid-column:span 2}.form .span3{grid-column:span 3}.form .span6{grid-column:1/-1}.toast{position:fixed;right:22px;bottom:22px;max-width:460px;background:#0f1f3d;border:1px solid var(--line);border-radius:16px;padding:12px 14px;box-shadow:var(--shadow);display:none}.toast.show{display:block}.empty{padding:28px;color:var(--muted);text-align:center}.spark{height:8px;border-radius:999px;background:rgba(145,166,210,.14);overflow:hidden}.spark span{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--violet));width:0}.login{min-height:100vh;display:grid;place-items:center;padding:24px}.login-card{width:min(440px,100%);background:var(--panel);border:1px solid var(--line);border-radius:28px;padding:28px;box-shadow:var(--shadow)}.login-card h1{margin:0 0 8px}.login-card p{color:var(--muted)}.login-card input{width:100%;margin:14px 0;border:1px solid var(--line);border-radius:14px;background:#07111f;color:var(--text);padding:12px}@media(max-width:980px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto}.sidebar-footer{position:static;margin-top:18px}.main{padding:18px}.card,.card.wide{grid-column:1/-1}.topbar{display:block}.toolbar{margin-top:14px}.form{grid-template-columns:1fr}.form .span2,.form .span3{grid-column:auto}}
 </style>
-</head>"""
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand"><div class="logo"></div><div><h1>LiMa Console</h1><p>AI Router Ops Center</p></div></div>
+    <nav class="nav" id="nav">
+      <button class="active" data-panel="overview">Status</button>
+      <button data-panel="traffic">Overview</button>
+      <button data-panel="backends">Overview</button>
+      <button data-panel="retrieval">Overview</button>
+      <button data-panel="model">Overview?</button>
+      <button data-panel="agents">Agent Status</button>
+    </nav>
+    <div class="sidebar-footer"><div class="status-dot">Admin session active</div><div style="margin-top:8px"><a href="/admin/logout" style="color:var(--muted)">Overview</a></div></div>
+  </aside>
+  <main class="main">
+    <header class="topbar">
+      <div><div class="eyebrow">Production Control Plane</div><h1 class="title">LiMa Admin Console</h1><p class="subtitle">OverviewOverviewOverviewOverviewOverviewOverviewStatus fallback ? Agent Overview?</p></div>
+      <div class="toolbar"><span class="status-dot" id="refresh-info">Overview</span><button class="btn" onclick="refreshAll()">Overview</button></div>
+    </header>
 
-ADMIN_BODY = """<body>
-<h1>LiMa 管理后台<span class="refresh-info" id="refresh-info">每5秒自动刷新</span></h1>
-<div class="tabs">
-  <div class="tab active" onclick="switchTab('stats')">实时指标</div>
-  <div class="tab" onclick="switchTab('backends')">后端管理</div>
-  <div class="tab" onclick="switchTab('model')">模型 & Fallback</div>
-  <div class="tab" onclick="switchTab('agents')">Agent Tasks</div>
+    <section id="panel-overview" class="section active">
+      <div class="bento">
+        <div class="card"><h2>Overview</h2><div class="metric" id="s-total">0</div><div class="metric-label">Total requests</div></div>
+        <div class="card"><h2>Overview</h2><div class="metric" id="s-avg-ms">0ms</div><div class="metric-label">Average response time</div></div>
+        <div class="card"><h2>Overview</h2><div class="metric" id="s-uptime">0s</div><div class="metric-label">Service uptime</div></div>
+        <div class="card"><h2>Accuracy</h2><div class="metric" id="s-backends">0</div><div class="metric-label">Configured backends</div></div>
+        <div class="card"><h2>Status IP</h2><div class="metric" id="s-ips">0</div><div class="metric-label">Recent unique clients</div></div>
+        <div class="card"><h2>Fallback</h2><div class="metric" id="s-fallbacks">0</div><div class="metric-label">Fallback log entries</div></div>
+        <div class="card wide"><h2>OverviewStatus <span class="mini">Accuracy / Overview</span></h2><div class="table-wrap"><table><thead><tr><th>Status</th><th>Status</th><th>Accuracy</th><th>Avg ms</th><th>Status</th></tr></thead><tbody id="t-backends"></tbody></table></div></div>
+        <div class="card"><h2>Overview</h2><div class="table-wrap"><table><thead><tr><th>Status</th><th>Status</th><th>Status</th></tr></thead><tbody id="t-intents"></tbody></table></div></div>
+        <div class="card full"><h2>IDE / Overview</h2><div id="ide-bars"></div></div>
+      </div>
+    </section>
+
+    <section id="panel-traffic" class="section"><div class="bento"><div class="card full"><h2>Overview <input class="search" id="log-filter" placeholder="Status IP / query / backend / intent" oninput="renderLogs()"></h2><div class="table-wrap"><table><thead><tr><th>Status</th><th>IP</th><th>Status</th><th>IDE</th><th>Query</th><th>Status</th><th>Status</th><th>Status</th><th>Status</th></tr></thead><tbody id="t-logs"></tbody></table></div></div></div></section>
+
+    <section id="panel-backends" class="section"><div class="bento"><div class="card full"><h2>Overview</h2><div class="form"><input id="be-name" placeholder="name" class="span2"><input id="be-url" placeholder="url" class="span3"><input id="be-model" placeholder="model"><input id="be-key" placeholder="api keyOverviewStatus" type="password" class="span2"><select id="be-fmt"><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option></select><select id="be-auth"><option value="bearer">Bearer</option><option value="x-api-key">x-api-key</option></select><input id="be-tier" placeholder="tier"><button class="btn" onclick="addBackend()">Overview?</button></div></div><div class="card full"><h2>Overview <input class="search" id="backend-filter" placeholder="Status name / model / capability" oninput="renderBackends()"></h2><div class="table-wrap"><table><thead><tr><th>Status</th><th>Status</th><th>Status</th><th>Status</th><th>Status</th><th>Status</th><th>Status</th><th>Accuracy</th><th>Status</th></tr></thead><tbody id="t-be-list"></tbody></table></div></div></div></section>
+
+    <section id="panel-retrieval" class="section"><div class="bento"><div class="card full"><h2>OverviewStatus</h2><div class="table-wrap"><table><thead><tr><th>Status</th><th>Query</th><th>Status</th><th>Status</th><th>Status</th></tr></thead><tbody id="t-retrieval"></tbody></table></div></div></div></section>
+
+    <section id="panel-model" class="section"><div class="bento"><div class="card"><h2>Overview</h2><div class="metric" id="m-name">-</div><div class="metric-label">Overview</div></div><div class="card"><h2>Accuracy</h2><div class="metric" id="m-accuracy">-</div><div class="metric-label">Overview</div></div><div class="card"><h2>Overview</h2><div class="metric" id="m-data">0</div><div class="metric-label">Accuracy</div></div><div class="card full"><h2>Fallback Overview? <button class="btn" onclick="triggerRetrain()">Overview</button></h2><div class="table-wrap"><table><thead><tr><th>Status</th><th>Query</th><th>Status</th><th>Status</th></tr></thead><tbody id="t-fallbacks"></tbody></table></div></div></div></section>
+
+    <section id="panel-agents" class="section"><div class="bento"><div class="card full"><h2>Agent Task Audit</h2><div class="table-wrap"><table><thead><tr><th>Task</th><th>Status</th><th>Mode</th><th>Repo</th><th>Goal</th><th>Events</th><th>Next</th></tr></thead><tbody id="t-agent-audit"></tbody></table></div></div></div></section>
+  </main>
 </div>
-
-<div id="panel-stats" class="panel active">
-  <div class="grid">
-    <div class="card"><div class="stat-num" id="s-total">0</div><div class="stat-label">总请求数</div></div>
-    <div class="card"><div class="stat-num" id="s-avg-ms">0ms</div><div class="stat-label">平均响应时间</div></div>
-    <div class="card"><div class="stat-num" id="s-uptime">0s</div><div class="stat-label">运行时间</div></div>
-    <div class="card"><div class="stat-num" id="s-backends">0</div><div class="stat-label">活跃后端</div></div>
-    <div class="card"><div class="stat-num" id="s-ips">0</div><div class="stat-label">活跃用户(IP)</div></div>
-  </div>
-  <div class="grid">
-    <div class="card"><h2>后端调用统计</h2><table><thead><tr><th>后端</th><th>调用</th><th>成功率</th><th>平均ms</th></tr></thead><tbody id="t-backends"></tbody></table></div>
-    <div class="card"><h2>意图分布</h2><table><thead><tr><th>意图</th><th>次数</th><th>占比</th></tr></thead><tbody id="t-intents"></tbody></table></div>
-    <div class="card"><h2>IDE 分布</h2><table><thead><tr><th>IDE</th><th>次数</th></tr></thead><tbody id="t-ides"></tbody></table></div>
-  </div>
-  <div class="card" style="margin-top:16px"><h2>最近请求日志</h2><table><thead><tr><th>时间</th><th>IP</th><th>国家</th><th>IDE</th><th>查询</th><th>后端</th><th>意图</th><th>耗时</th><th>状态</th></tr></thead><tbody id="t-logs"></tbody></table></div>
-</div>
-
-<div id="panel-backends" class="panel">
-  <div class="card" style="margin-bottom:16px">
-    <h2>添加新后端</h2>
-    <div class="form-row">
-      <input id="nb-name" placeholder="名称" style="flex:1">
-      <input id="nb-url" placeholder="API URL" style="flex:2">
-      <select id="nb-fmt"><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option></select>
-      <select id="nb-tier"><option value="">自动检测</option><option value="L0">L0 本地</option><option value="L1">L1 免费无限</option><option value="L2">L2 免费额度</option><option value="L3">L3 免费限量</option><option value="L4">L4 付费</option></select>
-    </div>
-    <div class="form-row" style="margin-top:6px">
-      <input id="nb-key" placeholder="API Key (可选)" style="flex:2">
-      <input id="nb-model" placeholder="模型名" style="flex:2">
-      <input id="nb-auth" placeholder="认证方式 (默认x-api-key)" style="flex:1">
-    </div>
-    <div class="form-row" style="margin-top:6px">
-      <input id="nb-caps" placeholder="能力标签(逗号分隔,如: 工具调用,视觉,深度推理)" style="flex:3">
-      <button onclick="addBackend()" style="flex:1">添加并测试</button>
-    </div>
-  </div>
-  <div class="card"><h2>后端列表</h2><table><thead><tr><th>名称</th><th>供应商</th><th>层级</th><th>协议</th><th>能力</th><th>模型</th><th>URL</th><th>状态</th><th>测试</th><th>操作</th></tr></thead><tbody id="t-be-list"></tbody></table></div>
-</div>
-
-<div id="panel-model" class="panel">
-  <div class="grid">
-    <div class="card">
-      <h2>路由模型状态</h2>
-      <table>
-        <tr><td>当前模型</td><td id="m-model">-</td></tr>
-        <tr><td>准确率</td><td id="m-accuracy">-</td></tr>
-        <tr><td>数据量</td><td id="m-data">-</td></tr>
-        <tr><td>Fallback 率</td><td id="m-fallback-rate">-</td></tr>
-      </table>
-    </div>
-    <div class="card">
-      <h2>自动训练状态</h2>
-      <table>
-        <tr><td>Fallback 日志</td><td id="m-log-count">0 / 100</td></tr>
-        <tr><td>下次训练触发</td><td id="m-next-train">日志满100条</td></tr>
-        <tr><td>上次训练</td><td id="m-last-train">-</td></tr>
-      </table>
-      <button onclick="triggerRetrain()" style="margin-top:10px">手动触发训练</button>
-    </div>
-  </div>
-  <div class="card" style="margin-top:16px">
-    <h2>Fallback 日志（最近50条）</h2>
-    <table>
-      <thead><tr><th>时间</th><th>查询</th><th>原后端</th><th>Fallback到</th><th>IDE</th><th>意图</th></tr></thead>
-      <tbody id="t-fallback-logs"></tbody>
-    </table>
-  </div>
-</div>
-
-<div id="panel-agents" class="panel">
-  <div class="card">
-    <h2>Agent Task Audit</h2>
-    <table>
-      <thead><tr><th>Task</th><th>Status</th><th>Mode</th><th>Repo</th><th>Goal</th><th>Events</th><th>Next</th></tr></thead>
-      <tbody id="t-agent-audit"></tbody>
-    </table>
-  </div>
-</div>"""
-
-ADMIN_JS = """<script>
-function authFetch(url,opts={}){
-  opts.headers=Object.assign({},opts.headers||{});
-  opts.credentials='same-origin';
-  return fetch(url,opts);
-}
-function switchTab(name){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  event.target.classList.add('active');
-  document.getElementById('panel-'+name).classList.add('active');
-}
-function fmtUptime(s){
-  if(s<60)return s+'s';
-  if(s<3600)return Math.floor(s/60)+'m '+s%60+'s';
-  let h=Math.floor(s/3600),m=Math.floor((s%3600)/60);
-  return h+'h '+m+'m';
-}
-async function loadStats(){
-  try{
-    let r=await authFetch('/admin/api/stats');let d=await r.json();
-    document.getElementById('s-total').textContent=d.total_requests;
-    document.getElementById('s-avg-ms').textContent=d.avg_response_ms+'ms';
-    document.getElementById('s-uptime').textContent=fmtUptime(d.uptime_seconds);
-    document.getElementById('s-backends').textContent=Object.keys(d.backend_calls).length;
-    document.getElementById('s-ips').textContent=d.unique_ips||0;
-    let tb=document.getElementById('t-backends');tb.innerHTML='';
-    for(let[name,info]of Object.entries(d.backend_calls)){
-      let rate=info.count>0?Math.round(info.success/info.count*100):0;
-      let avg=info.count>0?Math.round(info.total_ms/info.count):0;
-      tb.innerHTML+=`<tr><td>${esc(name)}</td><td>${esc(String(info.count))}</td><td><span class="badge ${rate>90?'badge-ok':'badge-err'}">${esc(String(rate))}%</span></td><td>${esc(String(avg))}</td></tr>`;
-    }
-    let ti=document.getElementById('t-intents');ti.innerHTML='';
-    let total=Object.values(d.intent_distribution).reduce((a,b)=>a+b,0)||1;
-    let sorted=Object.entries(d.intent_distribution).sort((a,b)=>b[1]-a[1]);
-    for(let[intent,count]of sorted){
-      ti.innerHTML+=`<tr><td>${esc(intent)}</td><td>${esc(String(count))}</td><td>${esc(String(Math.round(count/total*100)))}%</td></tr>`;
-    }
-    let tIde=document.getElementById('t-ides');tIde.innerHTML='';
-    if(d.ide_distribution){
-      let ideSorted=Object.entries(d.ide_distribution).sort((a,b)=>b[1]-a[1]);
-      for(let[ide,count]of ideSorted){
-        tIde.innerHTML+=`<tr><td>${esc(ide)}</td><td>${esc(String(count))}</td></tr>`;
-      }
-    }
-  }catch(e){console.error('stats error',e)}
-}
-function esc(s){return s?s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):''}
-function escJs(s){return s?s.replace(/\\/g,'\\\\').replace(/'/g,"\\'"):''}
-async function loadLogs(){
-  try{
-    let r=await authFetch('/admin/api/logs');let d=await r.json();
-    let tl=document.getElementById('t-logs');tl.innerHTML='';
-    for(let log of d){
-      let cls=log.success?'badge-ok':'badge-err';
-      tl.innerHTML+=`<tr><td class="log-time">${esc(log.time)}</td><td style="font-size:11px">${esc(log.ip||'')}</td><td>${esc(log.country||'')}</td><td>${esc(log.ide||'')}</td><td class="log-query" title="${esc(log.sys_prompt||'')}">${esc(log.query)}</td><td class="log-backend">${esc(log.backend)}</td><td>${esc(log.intent)}</td><td>${log.ms}ms</td><td><span class="badge ${cls}">${log.success?'OK':'ERR'}</span></td></tr>`;
-    }
-  }catch(e){console.error('logs error',e)}
-}
-async function loadBackends(){
-  try{
-    let r=await authFetch('/admin/api/backends');let d=await r.json();
-    let tb=document.getElementById('t-be-list');tb.innerHTML='';
-    for(let b of d){
-      let stCls=b.enabled?'badge-ok':'badge-off';
-      let stTxt=b.enabled?'启用':'禁用';
-      let cbCls=b.state==='open'?'badge-err':'badge-ok';
-      let caps=(b.capabilities||[]).map(c=>`<span class="badge ${c.includes('工具')?'badge-ok':c.includes('推理')?'badge-off':''}" style="font-size:10px;margin:1px">${esc(c)}</span>`).join('');
-      let urlShort=(b.url||'').length>30?b.url.substring(0,30)+'...':(b.url||'');
-      tb.innerHTML+=`<tr><td>${esc(b.name)}</td><td>${esc(b.vendor||'')}</td><td><span class="badge ${b.tier&&b.tier.includes('免费')?'badge-ok':b.tier&&b.tier.includes('付费')?'badge-err':'badge-off'}">${esc(b.tier||'')}</span></td><td>${esc(b.protocol||'')}</td><td>${caps}</td><td style="font-size:11px">${esc(b.model)}</td><td style="font-size:10px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(b.url||'')}">${esc(urlShort)}</td><td><span class="badge ${stCls}">${esc(stTxt)}</span></td><td><button onclick="testBackend('${escJs(b.name)}')">测试</button> <button onclick="toggleBackend('${escJs(b.name)}')">${b.enabled?'禁用':'启用'}</button> <button class="danger" onclick="deleteBackend('${escJs(b.name)}')">删除</button></td></tr>`;
-    }
-  }catch(e){console.error('backends error',e)}
-}
-async function loadModelStatus(){
-  try{
-    let r=await authFetch('/admin/api/model-status');let d=await r.json();
-    document.getElementById('m-model').textContent=d.model||'-';
-    document.getElementById('m-accuracy').textContent=d.accuracy||'-';
-    document.getElementById('m-data').textContent=(d.data_count||0)+' 条';
-    let fbRate=d.fallback_log_count>0?Math.round(d.fallback_log_count/Math.max(1,d.data_count)*100)+'%':'-';
-    document.getElementById('m-fallback-rate').textContent=fbRate;
-    document.getElementById('m-log-count').textContent=d.fallback_log_count+' / '+d.threshold;
-    document.getElementById('m-next-train').textContent=d.fallback_log_count>=d.threshold?'已就绪，可触发':'日志满'+d.threshold+'条';
-    document.getElementById('m-last-train').textContent=d.model||'-';
-    let tb=document.getElementById('t-fallback-logs');tb.innerHTML='';
-    for(let log of (d.recent_fallbacks||[])){
-      tb.innerHTML+=`<tr><td class="log-time">${esc(log.timestamp||'')}</td><td class="log-query">${esc((log.query||'').substring(0,60))}</td><td>${esc(log.original_backend||'')}</td><td class="log-backend">${esc(log.fallback_backend||'')}</td><td>${esc(log.ide||'')}</td><td>${esc(log.intent||'')}</td></tr>`;
-    }
-  }catch(e){console.error('model-status error',e)}
-}
-async function triggerRetrain(){
-  if(!confirm('确定手动触发训练？'))return;
-  try{
-    let r=await authFetch('/admin/api/retrain',{method:'POST'});
-    let d=await r.json();
-    alert('训练触发: '+d.status+'\\n'+((d.output||'').substring(0,300)));
-    loadModelStatus();
-  }catch(e){alert('触发失败: '+e)}
-}
-async function addBackend(){
-  let name=document.getElementById('nb-name').value.trim();
-  let url=document.getElementById('nb-url').value.trim();
-  let key=document.getElementById('nb-key').value.trim();
-  let model=document.getElementById('nb-model').value.trim();
-  let fmt=document.getElementById('nb-fmt').value;
-  let tier=document.getElementById('nb-tier').value;
-  let auth=document.getElementById('nb-auth').value.trim();
-  let capsRaw=document.getElementById('nb-caps').value.trim();
-  let caps=capsRaw?capsRaw.split(',').map(s=>s.trim()).filter(s=>s):[];
-  if(!name||!url){alert('名称和URL必填');return}
-  let r=await authFetch('/admin/api/backends',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,url,key,model:model||name,fmt,tier,auth,caps})});
-  let d=await r.json();
-  if(r.ok){
-    document.getElementById('nb-name').value='';document.getElementById('nb-url').value='';document.getElementById('nb-key').value='';document.getElementById('nb-model').value='';document.getElementById('nb-auth').value='';document.getElementById('nb-caps').value='';
-    loadBackends();
-    if(d.test){alert(d.test.ok?`✅ 添加成功\n测试延迟: ${d.test.latency_ms}ms\n响应: ${d.test.response_preview||''}`:`⚠️ 添加成功但测试失败\n错误: ${d.test.error||''}`)}
-    else{alert(d.message||'添加成功')}
-  }else{alert(d.detail||'添加失败')}
-}
-async function deleteBackend(name){
-  if(!confirm('确定删除后端 '+name+' ?'))return;
-  await authFetch('/admin/api/backends/'+name,{method:'DELETE'});loadBackends();
-}
-async function toggleBackend(name){
-  await authFetch('/admin/api/backends/'+name+'/toggle',{method:'POST'});loadBackends();
-}
-async function testBackend(name){
-  let btn=event.target;btn.disabled=true;btn.textContent='测试中...';
-  try{
-    let r=await authFetch('/admin/api/backends/'+name+'/test',{method:'POST'});
-    let d=await r.json();
-    if(d.ok){alert(`✅ ${name} 可用\\n延迟: ${d.latency_ms}ms\\n响应: ${d.response_preview||''}`)}
-    else{alert(`❌ ${name} 不可用\\n延迟: ${d.latency_ms}ms\\n错误: ${d.error||''}`)}
-  }catch(e){alert('测试失败: '+e)}
-  btn.disabled=false;btn.textContent='测试';loadBackends();
-}
-async function loadAgentAudit(){
-  try{
-    let r=await authFetch('/admin/api/agent-audit?limit=20');let d=await r.json();
-    let tb=document.getElementById('t-agent-audit');if(!tb)return;tb.innerHTML='';
-    for(let task of (d.tasks||[])){
-      tb.innerHTML+=`<tr><td>${esc(task.task_id)}</td><td>${esc(task.status)}</td><td>${esc(task.mode)}</td><td>${esc(task.repo)}</td><td>${esc(task.goal)}</td><td>${task.event_count}</td><td>${esc(task.next_action||'')}</td></tr>`;
-    }
-  }catch(e){console.error('agent audit error',e)}
-}
-function refreshAll(){loadStats();loadLogs();loadBackends();loadModelStatus();loadAgentAudit()}
-refreshAll();
-setInterval(refreshAll,5000);
+<div class="toast" id="toast"></div>
+<script>
+const state={stats:null,logs:[],backends:[],model:null,traces:[],agents:[]};
+function authFetch(url,opts={}){opts.headers=Object.assign({'Content-Type':'application/json'},opts.headers||{});opts.credentials='same-origin';return fetch(url,opts)}
+function esc(value){return String(valueStatus'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function escJs(value){return String(valueStatus'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,' ')}
+function badge(text,type='off'){return `<span class="badge badge-${type}">${esc(text)}</span>`}
+function fmtUptime(s){s=Number(s||0);if(s<60)return s+'s';if(s<3600)return Math.floor(s/60)+'m '+s%60+'s';const d=Math.floor(s/86400),h=Math.floor((s%86400)/3600),m=Math.floor((s%3600)/60);return (d?d+'d ':'')+h+'h '+m+'m'}
+function toast(msg,type='ok'){const el=document.getElementById('toast');el.textContent=msg;el.style.borderColor=type==='err'?'rgba(251,113,133,.45)':'rgba(53,213,255,.35)';el.classList.add('show');setTimeout(()=>el.classList.remove('show'),4200)}
+document.querySelectorAll('#nav button').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('#nav button').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));btn.classList.add('active');document.getElementById('panel-'+btn.dataset.panel).classList.add('active')}));
+async function json(url,opts){const r=await authFetch(url,opts);if(!r.ok)throw new Error(await r.text());return r.json()}
+async function refreshAll(){await Promise.allSettled([loadStats(),loadLogs(),loadBackends(),loadModel(),loadRetrieval(),loadAgents()]);document.getElementById('refresh-info').textContent='Overview '+new Date().toLocaleTimeString()}
+async function loadStats(){state.stats=await json('/admin/api/stats');renderStats()}
+function renderStats(){const d=state.stats||{};document.getElementById('s-total').textContent=d.total_requestsStatus0;document.getElementById('s-avg-ms').textContent=(d.avg_response_msStatus0)+'ms';document.getElementById('s-uptime').textContent=fmtUptime(d.uptime_seconds);document.getElementById('s-ips').textContent=d.unique_ipsStatus0;const calls=d.backend_calls||{};document.getElementById('s-backends').textContent=Object.keys(calls).length;const tbody=document.getElementById('t-backends');tbody.innerHTML='';const max=Math.max(1,...Object.values(calls).map(x=>Number(x.count||0)));Object.entries(calls).sort((a,b)=>(b[1].count||0)-(a[1].count||0)).slice(0,12).forEach(([name,info])=>{const count=Number(info.count||0),success=Number(info.success||0),rate=count?Math.round(success/count*100):0,avg=count?Math.round(Number(info.total_ms||0)/count):0;tbody.innerHTML+=`<tr><td class="mono">${esc(name)}</td><td>${count}</td><td>${badge(rate+'%',rate>90?'ok':rate>60?'warn':'err')}</td><td>${avg}</td><td><div class="spark"><span style="width:${Math.round(count/max*100)}%"></span></div></td></tr>`});renderIntentTable(d.intent_distribution||{});renderIdeBars(d.ide_distribution||{})}
+function renderIntentTable(map){const rows=Object.entries(map).sort((a,b)=>b[1]-a[1]);const total=rows.reduce((a,b)=>a+Number(b[1]||0),0)||1;document.getElementById('t-intents').innerHTML=rows.map(([k,v])=>`<tr><td>${esc(k)}</td><td>${v}</td><td>${Math.round(Number(v)/total*100)}%</td></tr>`).join('')||'<tr><td colspan="3" class="empty">Overview</td></tr>'}
+function renderIdeBars(map){const rows=Object.entries(map).sort((a,b)=>b[1]-a[1]);const max=Math.max(1,...rows.map(r=>Number(r[1]||0)));document.getElementById('ide-bars').innerHTML=rows.map(([k,v])=>`<div style="display:grid;grid-template-columns:160px 1fr 50px;gap:10px;align-items:center;margin:9px 0"><span>${esc(k)}</span><div class="spark"><span style="width:${Math.round(Number(v)/max*100)}%"></span></div><span class="mono">${v}</span></div>`).join('')||'<div class="empty">Overview</div>'}
+async function loadLogs(){state.logs=await json('/admin/api/logs');renderLogs()}
+function renderLogs(){const q=(document.getElementById('log-filter')?.value||'').toLowerCase();const rows=state.logs.filter(l=>JSON.stringify(l).toLowerCase().includes(q));document.getElementById('t-logs').innerHTML=rows.map(l=>`<tr><td class="mini">${esc(l.time)}</td><td class="mono">${esc(l.ip)}</td><td>${esc(l.country)}</td><td>${esc(l.ide)}</td><td class="truncate" title="${esc(l.query||l.sys_prompt)}">${esc(l.query||l.sys_prompt)}</td><td class="mono">${esc(l.backend)}</td><td>${esc(l.intent)}</td><td>${esc(l.ms)}ms</td><td>${badge(l.success?'OK':'ERR',l.success?'ok':'err')}</td></tr>`).join('')||'<tr><td colspan="9" class="empty">Overview</td></tr>'}
+async function loadBackends(){state.backends=await json('/admin/api/backends');renderBackends()}
+function renderBackends(){const q=(document.getElementById('backend-filter')?.value||'').toLowerCase();const rows=state.backends.filter(b=>JSON.stringify(b).toLowerCase().includes(q));document.getElementById('t-be-list').innerHTML=rows.map(b=>{const caps=(b.capabilities||[]).map(c=>badge(c,'off')).join(' ');const enabled=b.enabled?badge('Status','ok'):badge('Status','off');const cb=b.state==='open'?badge('open','err'):badge(b.state||'closed','ok');return `<tr><td>${enabled}</td><td class="mono">${esc(b.name)}</td><td>${esc(b.model)}</td><td>${esc(b.format)}</td><td>${caps}</td><td>${cb}</td><td>${esc(b.total_calls||0)}</td><td>${esc(b.error_rate||'0%')}</td><td><button class="btn ghost" onclick="toggleBackend('${escJs(b.name)}')">Status</button> <button class="btn ghost" onclick="testBackend('${escJs(b.name)}')">Status</button> <button class="btn danger" onclick="deleteBackend('${escJs(b.name)}')">Status</button></td></tr>`}).join('')||'<tr><td colspan="9" class="empty">Overview</td></tr>'}
+async function addBackend(){const body={name:v('be-name'),url:v('be-url'),model:v('be-model'),key:v('be-key'),fmt:v('be-fmt'),auth:v('be-auth'),tier:v('be-tier')};try{const res=await json('/admin/api/backends',{method:'POST',body:JSON.stringify(body)});toast(res.message||'Accuracy');await loadBackends()}catch(e){toast('Overview?'+e.message,'err')}}
+function v(id){return document.getElementById(id).value.trim()}
+async function toggleBackend(name){try{await json('/admin/api/backends/'+encodeURIComponent(name)+'/toggle',{method:'POST'});toast('Accuracy '+name);await loadBackends()}catch(e){toast('Overview?'+e.message,'err')}}
+async function testBackend(name){try{const res=await json('/admin/api/backends/'+encodeURIComponent(name)+'/test',{method:'POST'});toast(name+' Status '+(res.ok?'Status':'Status')+' '+(res.latency_ms||0)+'ms',res.ok?'ok':'err')}catch(e){toast('Overview?'+e.message,'err')}}
+async function deleteBackend(name){if(!confirm('Overview '+name+' ?'))return;try{await json('/admin/api/backends/'+encodeURIComponent(name),{method:'DELETE'});toast('Accuracy '+name);await loadBackends()}catch(e){toast('Overview?'+e.message,'err')}}
+async function loadModel(){state.model=await json('/admin/api/model-status');renderModel()}
+function renderModel(){const d=state.model||{};document.getElementById('m-name').textContent=d.model||'-';document.getElementById('m-accuracy').textContent=d.accuracy||'-';document.getElementById('m-data').textContent=d.data_count||0;document.getElementById('s-fallbacks').textContent=d.fallback_log_count||0;const rows=d.recent_fallbacks||[];document.getElementById('t-fallbacks').innerHTML=rows.slice().reverse().map(x=>`<tr><td>${esc(x.time||x.ts||'')}</td><td class="truncate">${esc(x.query||x.prompt||'')}</td><td class="mono">${esc(x.backend||'')}</td><td>${esc(x.reason||x.error||'')}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">Status fallback</td></tr>'}
+async function triggerRetrain(){if(!confirm('Overview auto_retrain.py --force ?'))return;try{const r=await json('/admin/api/retrain',{method:'POST'});toast('Overview?'+(r.job_id||r.status));}catch(e){toast('Overview?'+e.message,'err')}}
+async function loadRetrieval(){state.traces=await json('/admin/api/retrieval-traces');renderRetrieval()}
+function renderRetrieval(){const rows=Array.isArray(state.traces)?state.traces:[];document.getElementById('t-retrieval').innerHTML=rows.map(t=>`<tr><td>${esc(t.time||t.ts||'')}</td><td class="truncate">${esc(t.query||'')}</td><td>${esc(t.hitsStatust.hit_countStatus'')}</td><td>${esc(t.strategy||t.mode||'')}</td><td class="truncate" title="${esc(JSON.stringify(t))}">${esc(JSON.stringify(t))}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">OverviewStatus</td></tr>'}
+async function loadAgents(){const d=await json('/admin/api/agent-audit?limit=50');state.agents=d.tasks||[];renderAgents()}
+function renderAgents(){document.getElementById('t-agent-audit').innerHTML=state.agents.map(t=>`<tr><td class="mono">${esc(t.task_id||t.id)}</td><td>${badge(t.status||'-',String(t.status).includes('fail')?'err':String(t.status).includes('review')?'warn':'ok')}</td><td>${esc(t.mode)}</td><td class="truncate">${esc(t.repo)}</td><td class="truncate" title="${esc(t.goal)}">${esc(t.goal)}</td><td>${esc(t.events_countStatust.event_countStatus'')}</td><td>${esc(t.next_action||'')}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">Status Agent Status</td></tr>'}
+refreshAll();setInterval(refreshAll,5000);
 </script>
 </body>
 </html>"""
 
+LOGIN_HTML = r"""<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>LiMa Admin Login</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:radial-gradient(circle at 20% 0%,rgba(53,213,255,.2),transparent 30%),#07111f;color:#e8f1ff;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.card{width:min(420px,calc(100% - 32px));padding:30px;border:1px solid rgba(145,166,210,.2);border-radius:28px;background:rgba(15,27,50,.88);box-shadow:0 18px 55px rgba(0,0,0,.38)}h1{margin:0 0 8px}.muted{color:#8fa3c7}input{width:100%;box-sizing:border-box;margin:18px 0 12px;border:1px solid rgba(145,166,210,.22);border-radius:14px;background:#07111f;color:#e8f1ff;padding:13px}button{width:100%;border:0;border-radius:14px;background:linear-gradient(135deg,#35d5ff,#a78bfa);color:#07111f;font-weight:900;padding:12px}.err{color:#fecdd3;background:rgba(251,113,133,.13);border:1px solid rgba(251,113,133,.28);padding:10px;border-radius:12px}</style></head><body><form class="card" method="post" action="/admin/login"><h1>LiMa Admin Console</h1><p class="muted">Overview? Token OverviewOverview</p>{error}<input name="token" placeholder="Admin Token" type="password" autofocus><button type="submit">Status</button></form></body></html>"""
 
+def render_admin_login(error: str = "") -> str:
+    error_html = f'<p class="err">{error}</p>' if error else ""
+    return LOGIN_HTML.replace("{error}", error_html)
 
 
 def render_admin_dashboard() -> str:
-    """Return authenticated admin dashboard HTML."""
-    return ADMIN_HTML + ADMIN_BODY + ADMIN_JS
+    return ADMIN_HTML
