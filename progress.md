@@ -1,3 +1,27 @@
+# Execution Log
+
+> Last updated: 2026-06-01
+
+## M1-M9: Decouple from Local Host + Vibe Coding Analysis (completed)
+
+| Milestone | Commits | Result |
+|-----------|---------|--------|
+| M1 | 82bc403 | LOCAL_ONLY_BACKENDS 37→22, deleted 8 Ollama models |
+| M2 | 3b6a97e | Enabled SCNet Large VPS sidecar, 22→18 |
+| M3 | ade7505 | Kimi VPS sidecar (already running), 18→15 |
+| M4 | e7758ea | LongCat VPS sidecar (already running), 15→12 |
+| M5 | 530eaa1 | MiMo VPS sidecar (already running), 12→7 |
+| M6 | 32ea7d5 | Deleted DDG + deepseek_free (not in any routing pool), 7→0 |
+| M7 | 92ee5ca | Cleanup: -647 lines (FRP/tunnel, ESP32, dead refs) |
+| M8 | b5ccd89 | MiMo-Reasonix reference analysis |
+| M9 | fd1c6d5 | LiMa Code CLI init + smoke test passed |
+
+VPS verified: all 5 reverse sidecars active, LOCAL_ONLY_BACKENDS = empty, DISABLED_HOST_DEPENDENT_BACKENDS = empty.
+Tests: 184 backends all cloud-native. LiMa Code CLI: 436/445 pass.
+
+
+---
+
 ﻿# Personal Coding Assistant Progress
 
 > Created: 2026-05-22

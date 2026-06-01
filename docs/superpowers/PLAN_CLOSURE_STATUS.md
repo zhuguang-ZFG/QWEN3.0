@@ -1,7 +1,22 @@
 # Superpowers Plan Closure Status
 
-> Updated: 2026-05-26
+> Updated: 2026-06-01
 > Scope: execution plans under `docs/superpowers/plans/`.
+
+## M1-M9: Decouple from Local Host (completed 2026-06-01)
+
+All 37 LOCAL_ONLY_BACKENDS have been migrated to VPS or deleted. All 5 VPS reverse
+sidecars (scnet/kimi/longcat/mimo) are active. 184 backends are cloud-native.
+DDG + deepseek_free deleted (not in any routing pool). ESP32 artifacts removed.
+LiMa Code CLI (lima-code v0.1.24) initialized and smoke-tested against LiMa VPS.
+
+Key evidence: STATUS.md, findings.md, progress.md, docs/DECOUPLE_FROM_LOCAL_HOST.md,
+docs/VIBE_CODING_ANALYSIS.md.
+
+**Retired plans** (targets achieved, no longer relevant):
+- `2026-05-22-token-safe-local-proxy-routing.md` — LOCAL_ONLY_BACKENDS is now empty
+- `2026-05-22-local-reverse-ai-integration.md` — all reverse sidecars on VPS
+- `2026-05-23-lima-autonomous-worker-v02.md` — worker APIs deployed, daemon gated
 
 ## Summary
 

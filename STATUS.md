@@ -1,52 +1,63 @@
-# LiMa Code CLI — 运行状态
+# LiMa Code — 运行状态
 
-> 更新: 2026-06-02
-> VPS: `47.112.162.80` | 仓库: `github.com/zhuguang-ZFG/QWEN3.0`
+> 更新: 2026-06-01 · VPS: `47.112.162.80` · 分支: `codex/free-web-ai-probe`
+
+## M1-M9 里程碑完成状态
+
+| # | 内容 | 状态 | LOCAL_ONLY_BACKENDS |
+|---|------|------|---------------------|
+| M0 | 设计文档 | ✅ | — |
+| M1 | 清理 oldllm_* + 删除 local_* Ollama 模型 | ✅ | 37→22 |
+| M2 | 启用 SCNet Large VPS sidecar | ✅ | 22→18 |
+| M3 | Kimi VPS sidecar | ✅ | 18→15 |
+| M4 | LongCat VPS sidecar | ✅ | 15→12 |
+| M5 | MiMo VPS sidecar | ✅ | 12→7 |
+| M6 | 删除 DDG + deepseek_free | ✅ | 7→0 |
+| M7 | 清理残留 + ESP32 删除 | ✅ | -647 行 |
+| M8 | MiMo-Reasonix 深度分析 | ✅ | 参考文档 |
+| M9 | LiMa Code CLI 初始化 + 烟雾测试 | ✅ | 端到端通过 |
 
 ## 部署状态
 
 | 服务 | 端口 | 状态 |
-|---|---|---|
-| lima-router | 8080 | ✅ 运行中 |
-| scnet-large (SCNet) | 4505 | ✅ HEALTHY |
-| kimi-proxy (Kimi) | 4504 | ✅ HEALTHY |
-| mimo-proxy (MiMo) | 4507 | ✅ HEALTHY |
-| longcat-web-proxy | 4506 | ✅ HEALTHY |
+|------|------|------|
+| lima-router | 8080 | ✅ active (184 backends, 全部云端化) |
+| scnet-large-reverse | 4505 | ✅ ready_protocol_adapter |
+| kimi-proxy | 4504 | ✅ ready_proxy_shell |
+| longcat-web-proxy | 4506 | ✅ ready_proxy_shell |
+| mimo-proxy | 4507 | ✅ ready_proxy_shell |
 | keepalive cron | — | ✅ 每 30 分钟 |
 
-## 能力矩阵（已验证）
+## 关键指标
 
-| 能力 | SCNet | Kimi | MiMo | LongCat |
-|---|---|---|---|---|
-| 基础对话 | ✅ | ✅ | ✅ | ✅ |
-| 联网搜索 | ✅ | ✅(search) | ❌ | ❌ |
-| Thinking | N/A | ✅ | ✅ | ✅ |
-| 长上下文文件桥接 | ✅ 500K | ⚠️ | ⚠️ | ⚠️ |
-| 工具调用(文本提取) | ❌ 平台限制 | ✅ | ✅ | ✅ |
-| Cookie 自动刷新 | ❌ | ❌ | ❌ | ✅ Playwright |
+| 指标 | 之前 | 之后 |
+|------|------|------|
+| `LOCAL_ONLY_BACKENDS` | 37 | **0** |
+| `BACKEND_PORT_ENV` (FRP 隧道) | 14 条目 | **0** |
+| `DISABLED_HOST_DEPENDENT_BACKENDS` | 37 后端 | **0** |
+| 总后端数 | ~170 | **184**（全部云端化） |
+| 净删代码 | — | **~600 行** |
+| runtime_topology.py | 112 行 | **44 行** |
+| eval_topology.py | 122 行 | **49 行** |
+| oldllm_diag.py | 322 行 | **231 行** |
 
-## Cookie 有效期
+## CLI 状态 (LiMa Code)
 
-| 后端 | 当前 Cookie | 过期 | 剩余 |
-|---|---|---|---|
-| SCNet | `cpk.json` (11 cookies) | session 型 | 不确定 |
-| Kimi | `kimi.txt` → JWT | 2027-06-01 | ~364 天 |
+| 指标 | 值 |
+|------|-----|
+| 版本 | lima-code v0.1.24 |
+| 测试 | 445 tests, 436 pass, 2 fail (需本地服务), 7 skip |
+| 配置 | `.lima-code/settings.json` → LiMa VPS |
+| 烟雾测试 | ✅ headless prompt → scnet_ds_flash → 正确输出 |
+| 工作流 | `/lima plan|test|review|ship|task|work` |
 
-## 最近变更 (2026-06-02)
+## 不再依赖的本机服务
 
-| 变更 | 文件 |
-|---|---|
-| SCNet 文件桥接修复 | `reverse_gateway/providers/scnet.py` |
-| SCNet 工具检测自动禁用联网 | `reverse_gateway/providers/scnet_adapter.py` |
-| 增强工具 system prompt | `text_tool_extractor.py`, `routes/tool_forward.py` |
-| Kimi v2 代理 (工具转发+历史) | `infra/kimi_proxy_v2.js` |
-| 健康监控完善 | `scripts/reverse_proxy_keepalive.py` |
-| Kimi Cookie 部署脚本 | `scripts/provision_kimi_cookies.py` |
-| VPS 上下文扩容 50K→500K | `.env` |
-
-## 文件统计
-
-- Python 源文件: ~200+
-- 测试: 1481+ passed
-- 逆向后端: 4 个
-- 总模型数: 50+
+| 服务 | 状态 |
+|------|------|
+| Ollama (port 11434) | ❌ 已删除 |
+| DuckAI (port 4500) | ❌ 已删除 |
+| TheOldLLM 代理 (port 4502) | ❌ 已迁移到 CF Worker |
+| g4f (port 4503) | ❌ 不再需要 |
+| FRP 隧道 (port 8088) | ❌ 不再需要 |
+| Windows lima-startup.bat | ⚠️ 待手动停用 |

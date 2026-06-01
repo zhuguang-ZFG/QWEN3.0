@@ -34,7 +34,7 @@
 | P3 | M4 LongCat | 3 | 中 | 需实现 sidecar |
 | P4 | M5 MiMo | 5 | 中 | 需实现 sidecar |
 | P5 | M6 DDG + deepseek_free | 7 | 低 | 先确认使用率再决定去留 |
-| P6 | M7 收尾 | — | 低 | 停 Windows 进程 + FRP |
+| P6 | M7 收尾 | ✅ | 完成 | -647 行清理，ESP32 删除 |
 
 ## 架构原则
 

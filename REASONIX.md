@@ -1,5 +1,13 @@
 # REASONIX.md — LiMa Project
 
+> Updated: 2026-06-01. 184 backends all cloud-native. LiMa Code CLI initialized.
+
+## Key Facts (summer 2026)
+- **LOCAL_ONLY_BACKENDS = empty** — all backends are cloud-native (M1-M7)
+- **5 VPS reverse sidecars active** — scnet-large (4505), kimi (4504), longcat (4506), mimo (4507)
+- **LiMa Code CLI** — lima-code v0.1.24, submodule at `deepcode-cli/`, smoke-tested
+- **ESP32 / WeChat / FRP tunnels** — retired
+
 ## Stack
 - **Python 3.10+** (ruff, Dockerfile, pyrightconfig)
 - **FastAPI + Uvicorn** — port 8080, OpenAI-compatible API
