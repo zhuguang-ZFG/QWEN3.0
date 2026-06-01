@@ -16,6 +16,11 @@
 | M7 | 清理残留 + ESP32 删除 | ✅ | -647 行 |
 | M8 | MiMo-Reasonix 深度分析 | ✅ | 参考文档 |
 | M9 | LiMa Code CLI 初始化 + 烟雾测试 | ✅ | 端到端通过 |
+| M10 | 文档更新 + 过期标记 | ✅ | 13 个过期文档已标记 |
+| M11a | ModelScope 8 后端加入路由池 | ✅ | VPS 已验证 |
+| M11b | 代码审查修复 | ✅ | 2 minor 问题已修 |
+| M11c | cache-first compaction 移植 | ✅ | deepcode-cli@649eb34 |
+| M11d | 完整 ContextManager 移植 | ✅ | +412 行, deepcode-cli@182730d |
 
 ## 部署状态
 
@@ -40,6 +45,14 @@
 | runtime_topology.py | 112 行 | **44 行** |
 | eval_topology.py | 122 行 | **49 行** |
 | oldllm_diag.py | 322 行 | **231 行** |
+
+## VPS 清理 (M11)
+
+| 进程 | 结果 |
+|------|------|
+| `frps.service` (FRP 隧道) | ✅ 已停止+禁用 |
+| `duckai` 容器 | ✅ 已停止+删除 |
+| `proxy.py` port 8000 | ✅ 已 kill |
 
 ## CLI 状态 (LiMa Code)
 

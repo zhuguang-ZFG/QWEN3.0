@@ -2,7 +2,13 @@
 
 > Updated: 2026-06-01. 184 backends all cloud-native. LiMa Code CLI initialized.
 
-## Key Facts (summer 2026)
+## Key Facts (2026-06-01)
+
+- **13 milestones completed** (M0–M11d) — decouple from local host + ModelScope + cache-first port
+- **LOCAL_ONLY_BACKENDS = empty** — all 184 backends cloud-native
+- **FRP / DuckAI / deepseek_free** — stopped and removed from VPS
+- **ModelScope** — 8 backends active (ms_deepseek_v4/qwen35/kimi_k25/glm5 + code variants)
+- **LiMa Code CLI** — v0.1.25, ContextManager ported (+412 lines), 498/507 tests pass
 - **LOCAL_ONLY_BACKENDS = empty** — all backends are cloud-native (M1-M7)
 - **5 VPS reverse sidecars active** — scnet-large (4505), kimi (4504), longcat (4506), mimo (4507)
 - **LiMa Code CLI** — lima-code v0.1.24, submodule at `deepcode-cli/`, smoke-tested
