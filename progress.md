@@ -1,6 +1,28 @@
 # Execution Log
 
-> Last updated: 2026-06-02 · 19 个里程碑完成 · 1972+498 tests passing
+> Last updated: 2026-06-02 · 20 个里程碑完成 · 1972+498 tests passing
+
+## M21: 管理面板按钮交互修复 - CSRF/Origin/JS 全链路 (completed)
+
+| 问题级别 | 修复内容 | 文件 | 状态 |
+|---------|---------|------|------|
+| **CRITICAL** | CSRF 支持 X-Forwarded-Host/Host 头 | routes/admin_auth.py | ✅ |
+| **CRITICAL** | Nginx 转发 Origin/Referer 到后端 | VPS nginx conf | ✅ |
+| **CRITICAL** | 导航切换触发数据加载 | routes/admin_ui.py | ✅ |
+| **HIGH** | API 错误处理 + 状态码反馈 | routes/admin_ui.py | ✅ |
+| **HIGH** | Toast 使用正确 API 响应字段 | routes/admin_ui.py | ✅ |
+| **MEDIUM** | 按钮 loading 状态 | routes/admin_ui.py | ✅ |
+| **MEDIUM** | 自动刷新间隔 5s → 10s | routes/admin_ui.py | ✅ |
+
+### VPS smoke evidence
+
+```
+POST (HTTPS): PASS  ← 修复前: 403 (CSRF blocked)
+DELETE (HTTPS): PASS
+GET /admin (HTTPS): PASS
+GET /admin/api/stats: PASS
+POST direct 8080: HTTP 200 PASS
+```
 
 ## M20: 管理面板完整重写 - URL/Key/池/编辑功能 (completed)
 

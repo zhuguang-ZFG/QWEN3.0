@@ -66,20 +66,32 @@ async def verify_csrf(
     authorization: str = Header(default=""),
     origin: str = Header(default=""),
     referer: str = Header(default=""),
+    x_forwarded_host: str = Header(default=""),
+    host: str = Header(default=""),
 ) -> None:
     """CSRF guard for mutating admin endpoints.
 
     Browsers send Origin/Referer on cross-origin requests. We verify:
     - API clients using Authorization header are exempt (they can't be CSRF'd)
     - Cookie-only clients must have Origin/Referer hostname matching request host
+    - Behind Nginx proxy, also check X-Forwarded-Host and Host headers
     """
     from access_guard import extract_bearer_token
     if extract_bearer_token(authorization):
         return
-    expected = (request.url.hostname or "").lower()
-    if not expected:
+    # Collect candidate expected hostnames (original URL, X-Forwarded-Host, Host)
+    candidates: set[str] = set()
+    url_host = (request.url.hostname or "").lower()
+    if url_host:
+        candidates.add(url_host)
+    if x_forwarded_host:
+        candidates.add(x_forwarded_host.split(":")[0].lower())
+    if host:
+        candidates.add(host.split(":")[0].lower())
+    if not candidates:
         raise HTTPException(status_code=403, detail="CSRF: cannot determine host")
     for header_val in (origin, referer):
-        if _header_hostname(header_val) == expected:
+        parsed = _header_hostname(header_val)
+        if parsed and parsed in candidates:
             return
     raise HTTPException(status_code=403, detail="CSRF: Origin/Referer mismatch")
