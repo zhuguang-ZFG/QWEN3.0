@@ -1,6 +1,82 @@
 # Execution Log
 
-> Last updated: 2026-06-01 · 17 个里程碑完成 · 1972+498 tests passing
+> Last updated: 2026-06-01 · 18 个里程碑完成 · 1972+498 tests passing
+
+## M19: 管理面板池分类与 CRUD 完善 (completed)
+
+| 问题级别 | 修复内容 | 文件 | 状态 |
+|---------|---------|------|------|
+| **HIGH** | 后端池自动检测函数 | routes/admin_backends_crud.py | ✅ |
+| **HIGH** | 前端池筛选器 + 按钮 | routes/admin_ui.py | ✅ |
+| **HIGH** | 表格新增池和 admission 列 | routes/admin_ui.py | ✅ |
+| **MEDIUM** | 添加后端 admission 选择器 | routes/admin_ui.py | ✅ |
+| **MEDIUM** | 编辑后端功能 (PUT) | routes/admin_ui.py | ✅ |
+| **LOW** | addBackend() 提交 admission | routes/admin_ui.py | ✅ |
+
+### 修复详情
+
+**HIGH: 后端池自动检测**
+- 新增 `_detect_backend_pools(name, cfg)` 函数
+- 优先检查 `router_v3.POOLS`，回退使用 `admission` 字段
+- 返回后端所属的所有池列表
+
+**HIGH: 池筛选器**
+- 5 个筛选按钮：全部 / IDE 池 / Chat 池 / 编程池 / 沙箱
+- `filterPool(pool)` 函数实现筛选和高亮
+
+**HIGH: 表格增强**
+- 新增列：所属池 (badge 列表)、准入 (admission 策略)
+- 状态列：注册状态 + overlay 状态
+- 操作列：编辑 | 测试 | 删除
+
+**MEDIUM: admission 选择器**
+- 添加后端表单新增下拉框：
+  - 默认 (IDE/Chat)
+  - 编程池 (code_medium_candidate)
+  - 仅沙箱 (sandbox_only)
+
+**MEDIUM: 编辑后端功能**
+- 新增 `editBackend(name)` 函数
+- prompt 弹窗修改：URL、模型、能力、准入
+- 调用 `PUT /admin/backends/{name}`
+
+### 测试证据
+```
+test_admin_ui.py: 2/2 passed ✅
+HTML 结构完整性验证通过 ✅
+```
+
+## M18: 管理面板功能全面验证 (completed)
+
+| 问题级别 | 修复内容 | 文件 | 状态 |
+|---------|---------|------|------|
+| **CRITICAL** | admin_ui.js 残留 toggleBackend 代码碎片 | routes/admin_ui.py | ✅ |
+| **MEDIUM** | 8 个功能模块完整绑定验证 | 全局 | ✅ |
+| **LOW** | 路由注册完整性验证 | routes/route_registry.py | ✅ |
+
+### 修复详情
+
+**CRITICAL: JavaScript 语法错误修复**
+- 删除 `toggleBackend` 残留代码：`);toast('已切换 '+name);await loadBackends()...`
+- 使用正则表达式精确匹配并删除
+- 测试通过：`test_admin_ui.py: 2/2 passed`
+
+**MEDIUM: 功能绑定验证**
+- 8 个模块全部验证：
+  1. 仪表盘 `/admin/api/stats`
+  2. 后端池 CRUD `/admin/backends`
+  3. 后端测试 `/admin/backends/{name}/test`
+  4. 流量日志 `/admin/api/logs`
+  5. 检索追踪 `/admin/api/retrieval-traces`
+  6. 模型状态 `/admin/api/model-status`
+  7. 模型重训 `/admin/api/retrain`
+  8. Agent 审计 `/admin/api/agent-audit`
+
+### 测试证据
+```
+test_admin_ui.py: 2/2 passed ✅
+toggleBackend count: 0 ✅
+```
 
 ## M17: XSS 修复 + CRUD 架构统一 (completed)
 

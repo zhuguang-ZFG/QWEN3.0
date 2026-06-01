@@ -36,6 +36,36 @@ def _write_overlay(overlay: dict) -> None:
     OVERLAY_PATH.write_text(json.dumps(overlay, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _detect_backend_pools(name: str, cfg: dict) -> list[str]:
+    """Detect which routing pools a backend belongs to based on admission metadata."""
+    pools = []
+    admission = cfg.get("admission", "")
+    
+    # Check if backend is in router_v3 POOLS
+    try:
+        from router_v3 import POOLS
+        for pool_name, tiers in POOLS.items():
+            for tier_name, backends in tiers.items():
+                if isinstance(backends, list) and name in backends:
+                    if pool_name not in pools:
+                        pools.append(pool_name)
+                    break
+    except ImportError:
+        pass
+    
+    # Fallback: use admission metadata
+    if not pools:
+        if admission.startswith("code_"):
+            pools.append("code")
+        elif admission == "sandbox_only":
+            pools.append("sandbox")
+        else:
+            # Default: ide + chat pools
+            pools.extend(["ide", "chat"])
+    
+    return sorted(pools)
+
+
 def _describe_backend_list() -> list[dict]:
     """List all backends with their current status, including overlay state."""
     results = []
@@ -44,6 +74,7 @@ def _describe_backend_list() -> list[dict]:
 
     for name in sorted(all_names):
         cfg = BACKENDS.get(name) or DISABLED_HOST_DEPENDENT_BACKENDS.get(name, {})
+        pools = _detect_backend_pools(name, cfg)
         results.append({
             "name": name,
             "url": cfg.get("url", ""),
@@ -59,6 +90,7 @@ def _describe_backend_list() -> list[dict]:
             "overlay_action": "added" if name in overlay.get("add", {}) else
                               "updated" if name in overlay.get("update", {}) else
                               "deleted" if name in overlay.get("delete", []) else "none",
+            "pools": pools,
         })
 
     # Also list overlay entries that aren't in BACKENDS/DISABLED (pending adds)

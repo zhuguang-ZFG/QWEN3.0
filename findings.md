@@ -2,6 +2,78 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-06-01 M19 管理面板池分类与 CRUD 完善
+
+### 问题清单
+
+| ID | 优先级 | 问题 | 文件 | 修复 | 状态 |
+|----|-------|------|------|------|------|
+| M19-1 | High | 后端池无分类展示 | routes/admin_backends_crud.py | 添加 _detect_backend_pools() 函数 | ✅ |
+| M19-2 | High | 前端无池筛选器 | routes/admin_ui.py | 添加 pool filter 按钮 + filterPool() | ✅ |
+| M19-3 | High | 表格缺少池和 admission 列 | routes/admin_ui.py | 添加 2 列 + renderBackends() 更新 | ✅ |
+| M19-4 | Medium | 添加后端无 admission 选择 | routes/admin_ui.py | 添加 <select id="be-admission"> | ✅ |
+| M19-5 | Medium | 缺少编辑后端功能 | routes/admin_ui.py | 添加 editBackend() + 编辑按钮 | ✅ |
+| M19-6 | Low | addBackend() 未提交 admission | routes/admin_ui.py | body 增加 admission 字段 | ✅ |
+
+### 修复详情
+
+**M19-1: 后端池自动检测**
+- 新增 `_detect_backend_pools(name, cfg)` 函数
+- 逻辑：
+  1. 优先检查 `router_v3.POOLS` 中是否包含该后端
+  2. 回退：根据 `admission` 字段推断（code_* → code, sandbox_only → sandbox, 默认 → ide+chat）
+- 返回：后端所属的所有池列表（一个后端可属于多个池）
+
+**M19-2: 池筛选器**
+- 添加 5 个筛选按钮：全部 / IDE 池 / Chat 池 / 编程池 / 沙箱
+- 点击按钮高亮当前筛选，调用 `renderBackends()` 过滤
+- `filterPool(pool)` 函数实现筛选逻辑
+
+**M19-3: 表格增强**
+- 新增列：所属池（显示 badge 列表）、准入（显示 admission 策略）
+- 修改状态列：显示注册状态（注册/未注册）+ overlay 状态（原始/added/updated/deleted）
+- 操作列：新增“编辑”按钮
+
+**M19-4: admission 选择器**
+- 添加后端表单新增下拉框：
+  - 默认 (IDE/Chat)
+  - 编程池 (code_medium_candidate)
+  - 仅沙箱 (sandbox_only)
+
+**M19-5: 编辑后端功能**
+- 新增 `editBackend(name)` 函数
+- 使用 prompt 弹窗修改：URL、模型、能力、准入策略
+- 调用 `PUT /admin/backends/{name}` API
+- 修改成功后重新加载列表
+
+**M19-6: addBackend() 完善**
+- 请求体增加 `admission` 字段
+- 从 `<select id="be-admission">` 读取值
+
+### 架构总结
+
+**后端 API 完善** (admin_backends_crud.py):
+```python
+def _detect_backend_pools(name: str, cfg: dict) -> list[str]:
+    """Detect which routing pools a backend belongs to."""
+    # 1. Check router_v3.POOLS
+    # 2. Fallback: use admission metadata
+    return sorted(pools)
+
+def _describe_backend_list() -> list[dict]:
+    # 返回数据增加 "pools": [...] 字段
+```
+
+**前端 UI 完善** (admin_ui.py):
+- 池筛选器：5 个按钮 + filterPool() 函数
+- 表格列：状态 | 名称 | 模型 | 格式 | 能力 | **所属池** | **准入** | 熔断 | 调用 | 错误率 | 操作
+- 操作按钮：编辑 | 测试 | 删除
+- 新函数：filterPool(), editBackend()
+
+**测试证据**:
+- `test_admin_ui.py`: 2/2 passed ✅
+- 所有 HTML 结构完整性验证通过
+
 ## 2026-06-01 M16 代码审查修复 (Critical Issues)
 
 ### Critical 问题修复 (已全部修复)
@@ -1031,3 +1103,72 @@ admin.html: esc() + escJs() present, all 15 data points escaped
 - CSRF: test_csrf_*.py 全部通过
 - 速率限制: 5 次/15min/IP + 登录失败日志
 - Cookie secure: 动态检测 (env + X-Forwarded-Proto + hostname)
+
+---
+
+## 2026-06-01 M18 管理面板功能全面验证
+
+### 问题修复 (已全部修复)
+
+| ID | 优先级 | 问题 | 文件 | 修复 | 状态 |
+|----|-------|------|------|------|------|
+| M18-C-1 | CRITICAL | admin_ui.js 残留 toggleBackend 代码碎片 | routes/admin_ui.py | 删除 JavaScript 语法错误代码 | ✅ |
+| M18-W-1 | MEDIUM | 管理面板功能绑定验证 | 全局 | 8 个功能模块全部验证 | ✅ |
+| M18-W-2 | LOW | 路由注册完整性 | routes/route_registry.py | 3 个 router 已注册 | ✅ |
+
+### 修复详情
+
+**M18-C-1: admin_ui.js JavaScript 语法错误**
+- 问题：删除 `toggleBackend` 函数后残留代码碎片
+- 位置：`routes/admin_ui.py` 第 19782 字符附近
+- 残留内容：`);toast('已切换 '+name);await loadBackends()}catch(e){...}`
+- 修复：使用正则表达式精确匹配并删除
+- 验证：`python -m pytest tests/test_admin_ui.py` → 2/2 passed ✅
+
+**M18-W-1: 管理面板功能完整绑定**
+- 8 个功能模块全部验证：
+  1. ✅ 仪表盘 (`/admin/api/stats`)
+  2. ✅ 后端池 CRUD (`/admin/backends` GET/POST/PUT/DELETE)
+  3. ✅ 后端测试 (`/admin/backends/{name}/test`)
+  4. ✅ 流量日志 (`/admin/api/logs`)
+  5. ✅ 检索追踪 (`/admin/api/retrieval-traces`)
+  6. ✅ 模型状态 (`/admin/api/model-status`)
+  7. ✅ 模型重训 (`/admin/api/retrain`)
+  8. ✅ Agent 审计 (`/admin/api/agent-audit`)
+
+**M18-W-2: 路由注册完整性**
+- `routes/route_registry.py` L86-90:
+  - `admin_router` → `/admin` (登录/登出)
+  - `admin_agent_audit_router` → `/admin/api/agent-audit`
+  - `admin_backends_crud_router` → `/admin/backends` (CRUD)
+
+### 测试证据
+```
+test_admin_ui.py: 2/2 passed ✅
+toggleBackend count: 0 ✅
+ADMIN_HTML imports successfully ✅
+```
+
+### 架构总结
+
+**管理面板架构（完整）**：
+```
+前端 (2 套 UI)
+├── admin.html (独立文件，520 行)
+│   ├── 后端 CRUD (完整绑定)
+│   ├── XSS 防护 (esc/escJs)
+│   └── Toast 通知系统
+└── routes/admin_ui.py (内嵌 HTML，22709 字符)
+    ├── 仪表盘 + 流量日志
+    ├── 后端管理 (已迁移到新路径)
+    └── Agent 审计
+
+后端 API (3 个 Router)
+├── routes/admin.py → /admin (登录/登出/路由包含)
+├── routes/admin_api.py → /admin/api/* (stats/logs/model-status/retrain)
+└── routes/admin_backends_crud.py → /admin/backends (CRUD + test)
+
+存储层
+├── data/backend_overrides.json (后端 CRUD 持久化)
+└── 内存 stats (请求统计/日志)
+```
