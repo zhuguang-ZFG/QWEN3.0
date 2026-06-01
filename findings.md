@@ -2,6 +2,115 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-06-02 M20 管理面板完整重写 - URL/Key/池/编辑功能
+
+### 问题清单
+
+| ID | 优先级 | 问题 | 文件 | 修复 | 状态 |
+|----|-------|------|------|------|------|
+| M20-1 | Critical | 标题显示"李马"而非"LIMA" | routes/admin_ui.py | 改为"LIMA 管理面板" | ✅ |
+| M20-2 | Critical | 表格缺少 URL 列 | routes/admin_ui.py | 添加 URL 列（45字符截断+tooltip） | ✅ |
+| M20-3 | Critical | 表格缺少 Key 状态列 | routes/admin_ui.py | 添加 Key 列（已配置/未配置徽章） | ✅ |
+| M20-4 | High | M19 修复未生效 | routes/admin_ui.py | 完整重写 ADMIN_HTML（23,975字符） | ✅ |
+| M20-5 | High | 池筛选器未生效 | routes/admin_ui.py | filterPool() 函数完整实现 | ✅ |
+| M20-6 | High | 编辑功能未生效 | routes/admin_ui.py | editBackend() 函数完整实现 | ✅ |
+| M20-7 | Medium | UI/UX 过时 | routes/admin_ui.py | 现代化设计：径向渐变/卡片阴影/动画 | ✅ |
+
+### 修复详情
+
+**M20-1/4: 完整重写 ADMIN_HTML**
+- 根因：M19 使用正则修复压缩单行字符串，部分失败但报告成功
+- 修复：创建 _generate_admin_html.py 脚本，生成完整的新 ADMIN_HTML
+- 结果：23,975 字符，包含所有功能
+- 验证：
+  - ✅ admin_ui.py 导入成功
+  - ✅ 标题：LIMA 管理面板
+  - ✅ URL column
+  - ✅ Key column
+  - ✅ filterPool function
+  - ✅ editBackend function
+
+**M20-2: URL 列**
+- 表格头添加 `<th>URL</th>`
+- 显示逻辑：
+  - 超过 45 字符截断为 `https://api.example.com/v1/chat...`
+  - 完整 URL 放在 title 属性（hover 显示）
+  - 使用 `.truncate` CSS 类
+
+**M20-3: Key 状态列**
+- 表格头添加 `<th>Key</th>`
+- 显示逻辑：
+  - `b.key_configured === true` → 绿色徽章"已配置"
+  - `b.key_configured === false` → 红色徽章"未配置"
+- 数据来源：admin_backends_crud.py 返回的 `key_configured` 布尔值
+
+**M20-5: 池筛选器完整实现**
+- 5 个筛选按钮：全部 / IDE 池 / Chat 池 / 编程池 / 沙箱
+- `filterPool(pool)` 函数：
+  ```javascript
+  function filterPool(pool) {
+    state._poolFilter = pool;
+    // 更新按钮 active 状态
+    renderBackends(); // 重新渲染，应用筛选
+  }
+  ```
+- `renderBackends()` 过滤逻辑：
+  ```javascript
+  if (poolFilter !== 'all' && (!b.pools || !b.pools.includes(poolFilter)))
+    return false;
+  ```
+
+**M20-6: 编辑后端功能完整实现**
+- `editBackend(name)` 函数：
+  1. 查找后端：`state.backends.find(x => x.name === name)`
+  2. prompt 弹窗修改：URL、模型、能力（逗号分隔）、准入策略
+  3. 构建请求体：`{url, model, caps[], admission}`
+  4. 调用 `PUT /admin/backends/{name}`
+  5. 成功后重新加载列表
+
+**M20-7: 现代化 UI/UX**
+- 背景：径向渐变（青色 + 紫色光晕）
+- 卡片：半透明背景 + 边框 + 阴影 + hover 动画
+- 徽章：5 种颜色（ok/warn/err/off/info）
+- 表格：sticky header + hover 高亮
+- 响应式：@media(max-width:1024px) 移动端适配
+- 动画：fadeIn、slideIn、spark 进度条
+
+### 后端 API 数据（M19已实现）
+
+**admin_backends_crud.py 返回完整字段**：
+```python
+{
+    "name": name,
+    "url": cfg.get("url", ""),
+    "model": cfg.get("model", ""),
+    "key_configured": bool(cfg.get("key", "") and ...),
+    "pools": _detect_backend_pools(name, cfg),
+    "admission": cfg.get("admission", ""),
+    "in_registry": name in BACKENDS,
+    ...
+}
+```
+
+**池检测算法**：
+1. 优先检查 `router_v3.POOLS` 实际配置
+2. 回退使用 `admission` 字段推断
+3. 支持多池（一个后端可属于多个池）
+
+### 测试证据
+- admin_ui.py 导入成功 ✅
+- Title check: LIMA 管理面板 ✅
+- URL column check: ✅
+- Key column check: ✅
+- Pool filter check: ✅
+- editBackend check: ✅
+- File length: 23,975 字符
+
+### VPS 部署
+- 部署脚本：scripts/deploy_m20_admin_rewrite.py
+- 状态：遇到 SFTP 路径问题（远程目录结构需确认）
+- 残余风险：VPS 部署未完成，需调整路径后重试
+
 ## 2026-06-01 M19 管理面板池分类与 CRUD 完善
 
 ### 问题清单

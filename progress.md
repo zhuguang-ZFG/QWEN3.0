@@ -1,6 +1,66 @@
 # Execution Log
 
-> Last updated: 2026-06-01 · 18 个里程碑完成 · 1972+498 tests passing
+> Last updated: 2026-06-02 · 19 个里程碑完成 · 1972+498 tests passing
+
+## M20: 管理面板完整重写 - URL/Key/池/编辑功能 (in progress)
+
+| 问题级别 | 修复内容 | 文件 | 状态 |
+|---------|---------|------|------|
+| **CRITICAL** | 标题改为"LIMA 管理面板" | routes/admin_ui.py | ✅ |
+| **CRITICAL** | 添加 URL 列（45字符截断） | routes/admin_ui.py | ✅ |
+| **CRITICAL** | 添加 Key 状态列 | routes/admin_ui.py | ✅ |
+| **HIGH** | 完整重写 ADMIN_HTML | routes/admin_ui.py | ✅ |
+| **HIGH** | 池筛选器完整实现 | routes/admin_ui.py | ✅ |
+| **HIGH** | 编辑功能完整实现 | routes/admin_ui.py | ✅ |
+| **MEDIUM** | 现代化 UI/UX 设计 | routes/admin_ui.py | ✅ |
+
+### 修复详情
+
+**CRITICAL: 完整重写 ADMIN_HTML**
+- 根因：M19 使用正则修复压缩单行字符串，部分失败但报告成功
+- 修复：创建生成脚本，完整重写 ADMIN_HTML（23,975 字符）
+- 验证：
+  - ✅ admin_ui.py 导入成功
+  - ✅ 标题：LIMA 管理面板
+  - ✅ URL/Key/filterPool/editBackend 全部检查通过
+
+**CRITICAL: URL 列**
+- 超过 45 字符截断 + tooltip 显示完整 URL
+- 使用 `.truncate` CSS 类
+
+**CRITICAL: Key 状态列**
+- 绿色徽章"已配置" / 红色徽章"未配置"
+- 数据来源：`key_configured` 布尔值
+
+**HIGH: 池筛选器完整实现**
+- 5 个筛选按钮 + filterPool() 函数
+- renderBackends() 应用池过滤逻辑
+
+**HIGH: 编辑后端功能完整实现**
+- editBackend(name) 函数
+- prompt 弹窗修改：URL、模型、能力、准入策略
+- 调用 PUT API + 重新加载列表
+
+**MEDIUM: 现代化 UI/UX**
+- 径向渐变背景（青色 + 紫色光晕）
+- 卡片阴影 + hover 动画
+- 5 种徽章颜色
+- 响应式布局（@media 1024px）
+
+### 测试证据
+```
+admin_ui.py import: ✅
+Title check: LIMA 管理面板 ✅
+URL column: ✅
+Key column: ✅
+filterPool: ✅
+editBackend: ✅
+File length: 23,975 chars
+```
+
+### VPS 部署
+- 状态：SFTP 路径问题（远程目录结构需确认）
+- 残余风险：需调整部署脚本后重试
 
 ## M19: 管理面板池分类与 CRUD 完善 (completed)
 
