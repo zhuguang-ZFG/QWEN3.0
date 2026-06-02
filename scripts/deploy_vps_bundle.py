@@ -44,6 +44,7 @@ FILES = [
     "routes/admin_api.py",
     "routes/admin_auth.py",
     "routes/admin_backends_crud.py",
+    "routes/admin_client_keys.py",
     "routes/admin_state.py",
     "routes/admin_ui.py",
     "routes/request_tracking.py",

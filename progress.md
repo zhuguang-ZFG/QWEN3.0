@@ -5069,3 +5069,24 @@ Verification note:
 - 部署到 VPS: 47.112.162.80:/opt/lima-router
 - 更新 `scripts/deploy_vps_bundle.py` 添加新文件
 - 服务重启成功, 端口 8080 正常监听
+
+## 2026-06-03 客户端密钥管理功能部署
+
+### 功能概述
+- 新增客户端密钥管理功能，支持动态API密钥发放、配额控制、使用追踪
+- 增强认证系统，支持静态环境密钥和动态客户端密钥
+- 添加管理面板，提供客户端密钥CRUD操作
+
+### 测试结果
+- 本地 pytest: 54 passed (客户端密钥测试19个 + 上下文增强测试35个)
+- VPS 部署 smoke: health check PASS, HTTP 200
+- VPS 服务状态: active (running), 端口 8080 正常监听
+
+### 部署验证
+- VPS health: HTTP 200, 所有模块加载成功
+- VPS 服务重启成功, 新功能已部署
+- 更新 `scripts/deploy_vps_bundle.py` 添加 `routes/admin_client_keys.py`
+
+### 下一步
+- 提交到 GitHub
+- 验证公共 API 端点

@@ -42,6 +42,7 @@ async def stream_response(
     use_thinking: bool = False,
     messages: list | None = None,
     prefer: str | None = None,
+    model: str = "",
 ):
     """SSE generator: speculative streaming with orchestration/thinking fallbacks."""
     messages = messages or []
@@ -72,6 +73,7 @@ async def stream_response(
                     system_prompt=sys_prompt_preview,
                     ide=ide_source,
                     max_tokens=4096,
+                    model=model,
                 )
             content = result.get("answer", "") if isinstance(result, dict) else str(result)
         from response_cleaner import clean_response

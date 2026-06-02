@@ -54,6 +54,7 @@ class ChatRunContext:
     fmt: str
     request_model: str | None
     client_ip: str
+    user_agent: str
     ide_source: str
     sys_prompt_preview: str
     memory_recall_meta: dict
@@ -104,6 +105,7 @@ def start_chat_run(
         trace=trace,
     )
     prefs = resolve_route_prefs(req, ide_source, query)
+    user_agent = (request_headers or {}).get("user-agent", "")
     return ChatRunContext(
         chat_id=make_chat_id(),
         query=query,
@@ -111,6 +113,7 @@ def start_chat_run(
         fmt=fmt,
         request_model=request_model,
         client_ip=client_ip,
+        user_agent=user_agent,
         ide_source=prefs.ide_source,
         sys_prompt_preview=preflight.system_prompt,
         memory_recall_meta=preflight.memory_recall_meta,
@@ -212,6 +215,7 @@ def build_streaming_response(ctx: ChatRunContext, req: ChatRequest) -> Streaming
             use_thinking=ctx.prefs.use_thinking,
             messages=ctx.preflight.prompt_context_messages,
             prefer=ctx.prefs.prefer,
+            model=ctx.request_model or "",
         ),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
@@ -240,6 +244,9 @@ async def execute_non_stream_route(ctx: ChatRunContext, req: ChatRequest) -> tup
             max_tokens=req.max_tokens or 4096,
             needs_tools=req.has_tools,
             tools=req.tools,
+            client_ip=ctx.client_ip,
+            user_agent=ctx.user_agent,
+            model=ctx.request_model or "",
         )
     return result, intent if isinstance(intent, dict) else {}
 

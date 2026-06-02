@@ -154,6 +154,7 @@ async def chat_completions(request: Request):
     return await _dep("handle_chat")(
         chat_req,
         fmt="openai",
+        request_model=body.get("model", "lima-1.3"),
         client_ip=client_ip,
         ide_source=ide_source,
         sys_prompt_preview=sys_prompt_preview,
