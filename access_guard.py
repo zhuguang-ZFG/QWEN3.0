@@ -40,7 +40,10 @@ def constant_time_equals(a: str, b: str) -> bool:
     return secrets.compare_digest(a.encode("utf-8"), b.encode("utf-8"))
 
 
-def require_private_api_key(authorization: str = Header(default="")) -> None:
+def require_private_api_key(
+    authorization: str = Header(default=""),
+    request: object = None,
+) -> None:
     """FastAPI dependency that fails closed unless a configured key is supplied.
 
     Checks static environment keys first, then dynamic client keys from the store.
@@ -64,7 +67,7 @@ def require_private_api_key(authorization: str = Header(default="")) -> None:
     # 2. Check dynamic client keys from the store
     client_key = None
     try:
-        from routes.admin_client_keys import find_client_key, check_key_quota, record_key_usage
+        from routes.admin_client_keys import find_client_key, try_consume_quota, check_allowed_urls
 
         client_key = find_client_key(token)
     except ImportError:
@@ -73,9 +76,19 @@ def require_private_api_key(authorization: str = Header(default="")) -> None:
     if client_key is not None:
         if not client_key.get("enabled", False):
             raise HTTPException(status_code=403, detail="API key is disabled")
-        if not check_key_quota(client_key):
-            raise HTTPException(status_code=429, detail="API key quota exceeded")
-        record_key_usage(token)
+        # URL restriction check (if request object available)
+        if request is not None and hasattr(request, "url"):
+            if not check_allowed_urls(client_key, request.url.path):
+                raise HTTPException(status_code=403, detail="URL not allowed for this key")
+        # Atomic quota + RPM check and consumption
+        allowed, reason = try_consume_quota(client_key)
+        if not allowed:
+            detail = {
+                "daily_limit": "API key daily quota exceeded",
+                "monthly_limit": "API key monthly quota exceeded",
+                "rpm_limit": "API key rate limit (RPM) exceeded",
+            }.get(reason, "API key quota exceeded")
+            raise HTTPException(status_code=429, detail=detail)
         return
 
     # No matching key found

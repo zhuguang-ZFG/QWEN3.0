@@ -26,9 +26,10 @@ _DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 _KEYS_PATH = _DATA_DIR / "client_keys.json"
 _lock = threading.Lock()
 
-# ── Daily/monthly quota tracking (in-memory, resets on restart) ────────────
+# ── Daily/monthly quota + RPM tracking (in-memory, resets on restart) ──────
 
-_usage: dict[str, dict] = {}  # key_value -> {daily_count, monthly_count, day, month}
+_usage: dict[str, dict] = {}  # key_value -> {daily_count, monthly_count, day, month, rpm_timestamps}
+_rpm_window: dict[str, list[float]] = {}  # key_value -> [timestamps within 60s window]
 
 
 def _now_day() -> str:
@@ -53,11 +54,14 @@ def _load_keys() -> list[dict]:
 
 
 def _save_keys(keys: list[dict]) -> None:
+    """Atomically persist keys to disk (write-tmp-then-rename)."""
     _DATA_DIR.mkdir(parents=True, exist_ok=True)
-    _KEYS_PATH.write_text(
+    tmp = _KEYS_PATH.with_suffix(".tmp")
+    tmp.write_text(
         json.dumps({"keys": keys}, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
+    tmp.replace(_KEYS_PATH)  # atomic on POSIX, near-atomic on Windows
 
 
 def _generate_key_value() -> str:
@@ -82,6 +86,14 @@ def _key_id(value: str) -> str:
     return f"ck-{digest}-{suffix}"
 
 
+def check_allowed_urls(key_record: dict, request_path: str) -> bool:
+    """Return True if request_path is within the key's allowed_urls whitelist."""
+    allowed = key_record.get("allowed_urls", ["*"])
+    if not allowed or "*" in allowed:
+        return True
+    return request_path in allowed
+
+
 # ── Public API for access_guard integration ─────────────────────────────────
 
 
@@ -94,28 +106,106 @@ def find_client_key(token: str) -> dict | None:
     return None
 
 
+def try_consume_quota(key_record: dict) -> tuple[bool, str]:
+    """Atomically check ALL quotas (daily, monthly, RPM) and record usage.
+
+    Returns (allowed, reason) where reason is empty on success or a short
+    description like 'daily_limit', 'monthly_limit', 'rpm_limit' on denial.
+    This replaces the old separate check_key_quota + record_key_usage pair
+    to eliminate the TOCTOU race condition.
+    """
+    token = key_record["key_value"]
+    daily_limit = key_record.get("quota_daily", 0)
+    monthly_limit = key_record.get("quota_monthly", 0)
+    rpm_limit = key_record.get("rate_limit_rpm", 0)
+    now = time.time()
+    day = _now_day()
+    month = _now_month()
+    window_start = now - 60.0
+
+    with _lock:
+        entry = _usage.setdefault(token, {
+            "day": day, "month": month,
+            "daily_count": 0, "monthly_count": 0,
+            "last_used_at": None,
+        })
+        # Reset counters on day/month rollover
+        if entry.get("day") != day:
+            entry["day"] = day
+            entry["daily_count"] = 0
+        if entry.get("month") != month:
+            entry["month"] = month
+            entry["monthly_count"] = 0
+
+        # Daily quota check
+        if daily_limit > 0 and entry["daily_count"] >= daily_limit:
+            return False, "daily_limit"
+
+        # Monthly quota check
+        if monthly_limit > 0 and entry["monthly_count"] >= monthly_limit:
+            return False, "monthly_limit"
+
+        # RPM (requests per minute) sliding window check
+        if rpm_limit > 0:
+            timestamps = _rpm_window.setdefault(token, [])
+            # Prune expired entries outside the 60s window
+            timestamps[:] = [t for t in timestamps if t > window_start]
+            if len(timestamps) >= rpm_limit:
+                return False, "rpm_limit"
+            timestamps.append(now)
+
+        # All checks passed — consume the quota
+        entry["daily_count"] += 1
+        entry["monthly_count"] += 1
+        entry["last_used_at"] = now
+
+    # Persist usage counters to key record (throttled: every 10 requests)
+    if entry["daily_count"] % 10 == 0:
+        _persist_usage(token, entry)
+    return True, ""
+
+
+# ── Legacy API (backward compatible with tests and callers) ────────────────
+
+
 def check_key_quota(key_record: dict) -> bool:
-    """Return True if the key has remaining quota (daily)."""
+    """Check if key has remaining quota WITHOUT consuming it (read-only)."""
     if not key_record.get("enabled", False):
         return False
+    token = key_record["key_value"]
     daily_limit = key_record.get("quota_daily", 0)
-    if daily_limit <= 0:
-        return True  # unlimited
+    monthly_limit = key_record.get("quota_monthly", 0)
     day = _now_day()
-    entry = _usage.get(key_record["key_value"], {})
-    if entry.get("day") != day:
-        return True
-    return entry.get("daily_count", 0) < daily_limit
+    month = _now_month()
+    with _lock:
+        entry = _usage.get(token)
+        if entry is None:
+            return True  # never used, definitely has quota
+        # Reset counters on day/month rollover
+        if entry.get("day") != day:
+            entry["day"] = day
+            entry["daily_count"] = 0
+        if entry.get("month") != month:
+            entry["month"] = month
+            entry["monthly_count"] = 0
+        if daily_limit > 0 and entry["daily_count"] >= daily_limit:
+            return False
+        if monthly_limit > 0 and entry["monthly_count"] >= monthly_limit:
+            return False
+    return True
 
 
 def record_key_usage(token: str) -> None:
-    """Increment request count for a client key."""
+    """Increment request count for a client key (legacy, use try_consume_quota instead)."""
     now = time.time()
     day = _now_day()
     month = _now_month()
     with _lock:
-        entry = _usage.setdefault(token, {"day": day, "month": month,
-                                           "daily_count": 0, "monthly_count": 0})
+        entry = _usage.setdefault(token, {
+            "day": day, "month": month,
+            "daily_count": 0, "monthly_count": 0,
+            "last_used_at": None,
+        })
         if entry.get("day") != day:
             entry["day"] = day
             entry["daily_count"] = 0
@@ -125,7 +215,6 @@ def record_key_usage(token: str) -> None:
         entry["daily_count"] += 1
         entry["monthly_count"] += 1
         entry["last_used_at"] = now
-
     # Persist usage counters to key record (throttled: every 10 requests)
     if entry["daily_count"] % 10 == 0:
         _persist_usage(token, entry)
@@ -267,16 +356,17 @@ async def regenerate_client_key(key_id: str):
             if key.get("key_id") == key_id:
                 old_token = key.get("key_value", "")
                 key["key_value"] = new_token
-                key["key_id"] = _key_id(new_token)
+                # key_id stays the same — preserve external references
                 key["request_count"] = 0
                 key["last_used_at"] = None
                 _save_keys(keys)
                 # Clean up old usage entry
                 _usage.pop(old_token, None)
+                _rpm_window.pop(old_token, None)
                 _log.info("admin: regenerated client key %s", key_id)
                 return {
                     "ok": True,
-                    "key_id": key["key_id"],
+                    "key_id": key_id,
                     "key_value": new_token,
                 }
     raise HTTPException(404, f"Key '{key_id}' not found")

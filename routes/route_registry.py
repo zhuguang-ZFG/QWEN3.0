@@ -92,6 +92,7 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
 
     from routes.admin_client_keys import router as admin_client_keys_router
     app.include_router(admin_client_keys_router)
+    deps.loaded_modules["admin_client_keys"] = True
 
     import routes.quality_gate as quality_gate_mod
 
