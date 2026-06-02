@@ -25,7 +25,20 @@ _log = logging.getLogger(__name__)
 
 _RETRAIN_LOCK = asyncio.Lock()
 _RETRAIN_JOBS: dict[str, dict[str, object]] = {}
-_RETRAIN_TIMEOUT_SEC = int(os.environ.get("LIMA_RETRAIN_TIMEOUT_SEC", "600"))
+
+
+def _env_int(name: str, default: int) -> int:
+    """Safe int-from-env that never crashes on empty/malformed values."""
+    val = os.environ.get(name, "")
+    if not val:
+        return default
+    try:
+        return int(val)
+    except ValueError:
+        return default
+
+
+_RETRAIN_TIMEOUT_SEC = _env_int("LIMA_RETRAIN_TIMEOUT_SEC", 600)
 
 _VERSION_CACHE: dict[str, str] = {}
 
@@ -376,6 +389,15 @@ async def admin_key_url_inventory():
 _log_subscribers: list[asyncio.Queue[dict | None]] = []
 _log_subscribers_lock = asyncio.Lock()
 
+# Stored main event-loop reference for SSE fan-out from non-async paths.
+_main_sse_loop: asyncio.AbstractEventLoop | None = None
+
+
+def _set_sse_event_loop(loop: asyncio.AbstractEventLoop) -> None:
+    """Called once at startup to capture the asyncio event loop."""
+    global _main_sse_loop
+    _main_sse_loop = loop
+
 
 async def publish_log_event(event: dict) -> None:
     """Push *event* to every active SSE subscriber (fire-and-forget)."""
@@ -616,6 +638,13 @@ async def admin_config_import(body: dict):
         )
         imported.append("backend_admission")
     _log.info("admin: config imported sections=%s", imported)
+    # Reload backends in-process so imported config takes effect immediately.
+    try:
+        from backends_registry import _load_backend_overlay
+        _load_backend_overlay()
+        _log.info("admin: backends reloaded after config import")
+    except ImportError:
+        _log.warning("admin: backends_registry not available, config requires restart")
     return {"ok": True, "imported": imported}
 
 
@@ -671,7 +700,6 @@ async def admin_device_detail(device_id: str):
 async def admin_device_restart(device_id: str):
     """Send a restart command to a connected device."""
     try:
-        import asyncio as _asyncio
         from device_gateway.sessions import registry
         from device_gateway.protocol import ack_frame
 
@@ -691,6 +719,10 @@ async def admin_device_restart(device_id: str):
 # -- Alert rules management (Phase 3.2) -----------------------------------
 
 _ALERT_RULES_PATH = Path(__file__).resolve().parent.parent / "data" / "alert_rules.json"
+_ALERT_RULES_LOCK = asyncio.Lock()
+
+_ALLOWED_CONDITIONS = {"gt", "lt", "eq"}
+_ALLOWED_METRICS = {"error_rate", "latency_ms", "fallback_rate", "request_count"}
 
 
 def _read_alert_rules() -> list[dict]:
@@ -720,21 +752,36 @@ async def admin_alert_rules_list():
 @router.post("/api/alerts/rules", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
 async def admin_alert_rules_create(body: dict):
     """Create a new alert rule."""
-    rules = _read_alert_rules()
-    rule_id = f"alert-{int(time.time())}-{len(rules)}"
-    rule = {
-        "rule_id": rule_id,
-        "name": body.get("name", "Untitled"),
-        "metric": body.get("metric", "error_rate"),
-        "condition": body.get("condition", "gt"),
-        "threshold": body.get("threshold", 0.5),
-        "window_sec": body.get("window_sec", 300),
-        "enabled": body.get("enabled", True),
-        "notify": body.get("notify", []),
-        "created_at": time.time(),
-    }
-    rules.append(rule)
-    _write_alert_rules(rules)
+    # Validate fields
+    condition = body.get("condition", "gt")
+    if condition not in _ALLOWED_CONDITIONS:
+        raise HTTPException(422, f"Invalid condition: {condition!r} (allowed: {_ALLOWED_CONDITIONS})")
+    metric = body.get("metric", "error_rate")
+    if metric not in _ALLOWED_METRICS:
+        raise HTTPException(422, f"Invalid metric: {metric!r} (allowed: {_ALLOWED_METRICS})")
+    threshold = body.get("threshold", 0.5)
+    if not isinstance(threshold, (int, float)):
+        raise HTTPException(422, f"threshold must be a number, got {type(threshold).__name__}")
+    window_sec = body.get("window_sec", 300)
+    if not isinstance(window_sec, (int, float)) or window_sec < 10:
+        raise HTTPException(422, "window_sec must be >= 10")
+
+    async with _ALERT_RULES_LOCK:
+        rules = _read_alert_rules()
+        rule_id = f"alert-{int(time.time())}-{len(rules)}"
+        rule = {
+            "rule_id": rule_id,
+            "name": body.get("name", "Untitled"),
+            "metric": metric,
+            "condition": condition,
+            "threshold": threshold,
+            "window_sec": int(window_sec),
+            "enabled": body.get("enabled", True),
+            "notify": body.get("notify", []),
+            "created_at": time.time(),
+        }
+        rules.append(rule)
+        _write_alert_rules(rules)
     _log.info("admin: created alert rule %s", rule_id)
     return {"ok": True, "rule": rule}
 
@@ -742,25 +789,27 @@ async def admin_alert_rules_create(body: dict):
 @router.put("/api/alerts/rules/{rule_id}", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
 async def admin_alert_rules_update(rule_id: str, body: dict):
     """Update an existing alert rule."""
-    rules = _read_alert_rules()
-    for rule in rules:
-        if rule.get("rule_id") == rule_id:
-            for key in ("name", "metric", "condition", "threshold", "window_sec", "enabled", "notify"):
-                if key in body:
-                    rule[key] = body[key]
-            _write_alert_rules(rules)
-            _log.info("admin: updated alert rule %s", rule_id)
-            return {"ok": True, "rule": rule}
+    async with _ALERT_RULES_LOCK:
+        rules = _read_alert_rules()
+        for rule in rules:
+            if rule.get("rule_id") == rule_id:
+                for key in ("name", "metric", "condition", "threshold", "window_sec", "enabled", "notify"):
+                    if key in body:
+                        rule[key] = body[key]
+                _write_alert_rules(rules)
+                _log.info("admin: updated alert rule %s", rule_id)
+                return {"ok": True, "rule": rule}
     raise HTTPException(404, f"Alert rule '{rule_id}' not found")
 
 
 @router.delete("/api/alerts/rules/{rule_id}", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
 async def admin_alert_rules_delete(rule_id: str):
     """Delete an alert rule."""
-    rules = _read_alert_rules()
-    new_rules = [r for r in rules if r.get("rule_id") != rule_id]
-    if len(new_rules) == len(rules):
-        raise HTTPException(404, f"Alert rule '{rule_id}' not found")
-    _write_alert_rules(new_rules)
+    async with _ALERT_RULES_LOCK:
+        rules = _read_alert_rules()
+        new_rules = [r for r in rules if r.get("rule_id") != rule_id]
+        if len(new_rules) == len(rules):
+            raise HTTPException(404, f"Alert rule '{rule_id}' not found")
+        _write_alert_rules(new_rules)
     _log.info("admin: deleted alert rule %s", rule_id)
     return {"ok": True, "deleted": rule_id}

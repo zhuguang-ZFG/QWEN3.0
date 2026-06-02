@@ -1,4 +1,4 @@
-"""Web browsing tools — fetch and parse web pages."""
+"""Web browsing tools -- fetch and parse web pages."""
 
 from __future__ import annotations
 

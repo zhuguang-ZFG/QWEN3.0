@@ -49,6 +49,15 @@ async def lifespan(application):
         setup_structured_logging()
     except ImportError:
         _log.debug("observability.structured_logging not installed")
+
+    # Register the asyncio event loop for SSE log fan-out.
+    try:
+        import asyncio
+        from routes.admin_api import _set_sse_event_loop
+
+        _set_sse_event_loop(asyncio.get_running_loop())
+    except Exception:
+        _log.debug("SSE event loop registration skipped", exc_info=True)
     try:
         from device_gateway.mqtt_client import start_mqtt_client
 

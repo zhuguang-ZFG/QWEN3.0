@@ -1,4 +1,4 @@
-"""Database query tools — execute read-only SQL queries safely.
+"""Database query tools -- execute read-only SQL queries safely.
 
 Supported databases:
 - SQLite (file-based, no additional drivers needed)
@@ -23,26 +23,40 @@ from .registry import tool
 
 _log = logging.getLogger(__name__)
 
-# ── Configuration ─────────────────────────────────────────────────────────────
-_QUERY_TIMEOUT = int(os.environ.get("LIMA_DB_QUERY_TIMEOUT", "10"))
-_MAX_ROWS = int(os.environ.get("LIMA_DB_MAX_ROWS", "100"))
+# -- Configuration ---------------------------------------------------------------
+def _env_int(name: str, default: int) -> int:
+    """Safe int-from-env that never crashes on empty/malformed values."""
+    val = os.environ.get(name, "")
+    if not val:
+        return default
+    try:
+        return int(val)
+    except ValueError:
+        return default
 
-# SQL statements that are NOT allowed (write / admin operations)
-_FORBIDDEN_PATTERNS = re.compile(
-    r"^\s*(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|GRANT|REVOKE)\b",
+
+_QUERY_TIMEOUT = _env_int("LIMA_DB_QUERY_TIMEOUT", 10)
+_MAX_ROWS = _env_int("LIMA_DB_MAX_ROWS", 100)
+
+# SQL keywords that are NOT allowed ANYWHERE in the statement (write / admin ops).
+_WRITE_KEYWORD_RE = re.compile(
+    r"\b(DELETE|INSERT|UPDATE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|GRANT|REVOKE)\b",
     re.IGNORECASE,
 )
 
 
 def _is_read_only(sql: str) -> bool:
-    """Return True if the SQL statement is a safe read-only query."""
-    # Strip leading comments and whitespace
+    """Return True if the SQL statement contains no write-keywords anywhere.
+
+    Strips single-line (``--``) and block (``/* */``) comments first,
+    then searches the entire cleaned statement for forbidden keywords.
+    """
     cleaned = re.sub(r"--[^\n]*", "", sql)
     cleaned = re.sub(r"/\*.*?\*/", "", cleaned, flags=re.DOTALL)
     cleaned = cleaned.strip()
     if not cleaned:
         return False
-    if _FORBIDDEN_PATTERNS.match(cleaned):
+    if _WRITE_KEYWORD_RE.search(cleaned):
         return False
     return True
 
@@ -70,7 +84,9 @@ async def _query_sqlite(path: str, sql: str, timeout: float) -> dict[str, Any]:
     """Execute a read-only query on a SQLite database."""
     import sqlite3
 
-    conn = sqlite3.connect(path, timeout=timeout)
+    # Open in read-only mode via URI to prevent any write operations at the
+    # driver level (defence-in-depth beyond the _is_read_only regex check).
+    conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=timeout)
     conn.row_factory = sqlite3.Row
     try:
         cursor = conn.execute(sql)
@@ -141,6 +157,8 @@ async def _query_mysql(url: str, sql: str) -> dict[str, Any]:
     )
     try:
         with conn.cursor() as cur:
+            # Enforce read-only at the session level (defence-in-depth).
+            cur.execute("SET SESSION TRANSACTION READ ONLY")
             cur.execute(sql)
             columns = [desc[0] for desc in cur.description] if cur.description else []
             rows = cur.fetchmany(_MAX_ROWS + 1)

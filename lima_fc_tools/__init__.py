@@ -11,9 +11,18 @@ from . import media_text_tools as media_text_tools
 from . import public_api_tools as public_api_tools
 from . import lookup_tools as lookup_tools
 from . import web_tools as web_tools
-from . import file_tools as file_tools
-from . import image_tools as image_tools
-from . import db_tools as db_tools
+try:
+    from . import file_tools as file_tools
+except ImportError:
+    file_tools = None
+try:
+    from . import image_tools as image_tools
+except ImportError:
+    image_tools = None
+try:
+    from . import db_tools as db_tools
+except ImportError:
+    db_tools = None
 
 from .fc_loop import run_fc_loop
 

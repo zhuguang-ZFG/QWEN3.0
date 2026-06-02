@@ -55,15 +55,8 @@ FILES = [
     "routes/tool_forward.py",
     "routes/tool_forward_stream.py",
     "admin.html",
-    # 新增: FC 工具模块
-    "lima_fc_tools/__init__.py",
-    "lima_fc_tools/web_tools.py",
-    "lima_fc_tools/file_tools.py",
-    "lima_fc_tools/image_tools.py",
-    "lima_fc_tools/db_tools.py",
-    # 新增: 代码执行沙箱
-    "sandbox/__init__.py",
-    "sandbox/executor.py",
+    # 新增: FC 工具模块 (DIRS handles lima_fc_tools/ *.py auto-upload)
+    # 新增: 代码执行沙箱 (DIRS handles sandbox/ *.py auto-upload)
 ]
 
 DIRS = ["local_retrieval", "lima_fc_tools", "sandbox"]

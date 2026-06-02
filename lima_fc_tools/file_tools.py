@@ -1,4 +1,4 @@
-"""File operation tools — upload, download, and list files with safety constraints."""
+"""File operation tools -- upload, download, and list files with safety constraints."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from typing import Any
 
 from .registry import tool
 
-# ── Safety: allowed base directories ──────────────────────────────────────────
+# -- Safety: allowed base directories --------------------------------------------
 # Only paths under these roots are permitted for file operations.
 # Environment variable LIMA_FILE_TOOLS_ROOT can override (colon-separated).
 _DEFAULT_ROOTS = [

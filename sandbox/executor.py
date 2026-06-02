@@ -23,9 +23,22 @@ from typing import Any
 
 _log = logging.getLogger(__name__)
 
+
+# ── Configuration helpers ───────────────────────────────────────────────────
+def _env_int(name: str, default: int) -> int:
+    """Safe int-from-env that never crashes on empty/malformed values."""
+    val = os.environ.get(name, "")
+    if not val:
+        return default
+    try:
+        return int(val)
+    except ValueError:
+        return default
+
+
 # ── Configuration ─────────────────────────────────────────────────────────────
-_MAX_TIMEOUT = int(os.environ.get("LIMA_SANDBOX_MAX_TIMEOUT", "120"))
-_DEFAULT_TIMEOUT = int(os.environ.get("LIMA_SANDBOX_TIMEOUT", "30"))
+_MAX_TIMEOUT = _env_int("LIMA_SANDBOX_MAX_TIMEOUT", 120)
+_DEFAULT_TIMEOUT = _env_int("LIMA_SANDBOX_TIMEOUT", 30)
 _MEMORY_LIMIT = os.environ.get("LIMA_SANDBOX_MEMORY", "256m")
 _NETWORK = os.environ.get("LIMA_SANDBOX_NETWORK", "none")  # "none" or "bridge"
 
@@ -48,18 +61,26 @@ _RUNTIMES: dict[str, dict[str, Any]] = {
     },
 }
 
+_DOCKER_CACHE = [0, False]  # [timestamp: float, available: bool]
+
 
 def _docker_available() -> bool:
-    """Check if Docker is available."""
+    """Check if Docker is available (cached for 60 s)."""
+    now = time.time()
+    if now - _DOCKER_CACHE[0] < 60:
+        return _DOCKER_CACHE[1]
     try:
         result = subprocess.run(
             ["docker", "info"],
             capture_output=True,
             timeout=5,
         )
-        return result.returncode == 0
+        available = result.returncode == 0
     except (FileNotFoundError, subprocess.TimeoutExpired):
-        return False
+        available = False
+    _DOCKER_CACHE[0] = now
+    _DOCKER_CACHE[1] = available
+    return available
 
 
 async def run_code(
@@ -127,9 +148,11 @@ async def run_code(
                     "timeout": True,
                 }
 
-            stdout = stdout_bytes.decode("utf-8", errors="replace")[:10000]
-            stderr = stderr_bytes.decode("utf-8", errors="replace")[:5000]
-            truncated = len(stdout) >= 10000 or len(stderr) >= 5000
+            stdout_raw = stdout_bytes.decode("utf-8", errors="replace")
+            stderr_raw = stderr_bytes.decode("utf-8", errors="replace")
+            truncated = len(stdout_raw) > 10000 or len(stderr_raw) > 5000
+            stdout = stdout_raw[:10000]
+            stderr = stderr_raw[:5000]
             return {
                 "stdout": stdout,
                 "stderr": stderr,
@@ -172,16 +195,17 @@ async def _run_local_fallback(
             stdout_bytes, stderr_bytes = await asyncio.wait_for(
                 proc.communicate(), timeout=timeout
             )
-            stdout = stdout_bytes.decode("utf-8", errors="replace")[:10000]
-            stderr = stderr_bytes.decode("utf-8", errors="replace")[:5000]
+            stdout_raw = stdout_bytes.decode("utf-8", errors="replace")
+            stderr_raw = stderr_bytes.decode("utf-8", errors="replace")
+            stdout = stdout_raw[:10000]
+            stderr = stderr_raw[:5000]
             return {
                 "stdout": stdout,
                 "stderr": stderr,
                 "exit_code": proc.returncode or 0,
                 "duration_ms": int((time.time() - start) * 1000),
                 "language": language,
-                "truncated": len(stdout) >= 10000,
-                "fallback": True,
+                "truncated": len(stdout_raw) > 10000 or len(stderr_raw) > 5000,
             }
         except asyncio.TimeoutError:
             proc.kill()

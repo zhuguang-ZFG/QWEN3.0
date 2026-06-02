@@ -102,9 +102,14 @@ async def _generate_image(
 
         for _ in range(30):  # Max 30 polls (~30 seconds)
             await asyncio.sleep(1)
-            async with httpx.AsyncClient(timeout=10) as client:
-                poll_resp = await client.get(status_url, headers={"Authorization": f"Bearer {api_key}"})
-                poll_data = poll_resp.json()
+            try:
+                async with httpx.AsyncClient(timeout=10) as client:
+                    poll_resp = await client.get(status_url, headers={"Authorization": f"Bearer {api_key}"})
+                    poll_data = poll_resp.json()
+            except asyncio.CancelledError:
+                raise
+            except Exception as poll_exc:
+                continue  # transient network error, keep polling
 
             task_status = poll_data.get("output", {}).get("task_status", "")
             if task_status == "SUCCEEDED":
