@@ -2,6 +2,28 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-06-03 M22 工具调用管道 7 项改善
+
+### 改善清单
+
+| ID | 优先级 | 改善 | 文件 | 状态 |
+|----|-------|------|------|------|
+| T1 | CRITICAL | tool_choice 协议转换 Anthropic↔OpenAI | converters/anthropic_format.py | ✅ |
+| T2 | HIGH | stream_tier2_native 变量遮蔽修复 | routes/tool_forward_stream.py | ✅ |
+| T3 | HIGH | Tier2 SSE 事件级缓冲 yield | routes/tool_forward_stream.py | ✅ |
+| T4 | MEDIUM | 请求体大小限制 LIMA_TOOL_BODY_LIMIT | routes/tool_forward.py, routes/tool_forward_stream.py | ✅ |
+| T5 | MEDIUM | 工具调用 record_request 统计包装 | routes/chat_endpoints.py | ✅ |
+| T6 | LOW | _extract_text_tools 去重委托 text_tool_extractor | routes/tool_forward.py | ✅ |
+| T7 | VERIFY | 20 个新测试全部通过 | tests/test_tool_improvements.py | ✅ |
+| HOTFIX | CRITICAL | extract_last_user_text UnboundLocalError | routes/chat_endpoints.py | ✅ |
+
+### 关键发现
+
+1. **UnboundLocalError 根因**: `chat_endpoints.py` 第93行 vision 分支内的 `from chat_request_utils import extract_last_user_text` 局部 import 使 Python 将整个函数内的 `extract_last_user_text` 视为局部变量，导致工具调用路径在未执行 vision 分支时引用该名称报 UnboundLocalError。修复方法：移除局部 import，保留模块级 import。
+2. **tool_choice 协议差异**: Anthropic 用 `"auto"/"any"/"none"` + `{"type":"tool","name":"..."}`，OpenAI 用 `"auto"/"required"/"none"` + `{"type":"function","function":{"name":"..."}}`，需双向转换。
+3. **SSE 逐行 yield 导致客户端解析失败**: Tier2 passthrough 按行 yield 会将 SSE 事件的 `data:` 和 `event:` 行分开，客户端无法正确解析。改为事件级缓冲后正确。
+4. **VPS 双协议 smoke 均通过**: OpenAI /v1/chat/completions 和 Anthropic /v1/messages 工具调用均在 VPS 上正确返回 tool_call/tool_use。
+
 ## 2026-06-02 M21 管理面板按钮交互修复 - CSRF/Origin/JS 全链路修复
 
 ### 问题清单

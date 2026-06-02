@@ -14,20 +14,23 @@ from typing import AsyncIterator
 from converters.anthropic_format import (
     convert_messages_anthropic_to_openai,
     convert_tools_anthropic_to_openai,
+    convert_tool_choice_anthropic_to_openai,
     inject_anthropic_body_preflight,
     inject_anthropic_context_preflight,
     convert_response_openai_to_anthropic,
 )
 
 
-def prepare_tool_openai_payload(body: dict) -> tuple[list, list, bool]:
+def prepare_tool_openai_payload(body: dict) -> tuple[list, list, bool, str | dict]:
+    from routes.tool_forward import _TOOL_BODY_LIMIT
     body_size = len(json.dumps(body, ensure_ascii=False))
-    skip_tier1 = body_size > 100000
+    skip_tier1 = body_size > _TOOL_BODY_LIMIT
     openai_tools = convert_tools_anthropic_to_openai(body.get("tools", []))
     openai_msgs = convert_messages_anthropic_to_openai(body.get("messages", []))
     inject_anthropic_context_preflight(openai_msgs, body)
     inject_anthropic_body_preflight(body, openai_msgs)
-    return openai_tools, openai_msgs, skip_tier1
+    client_tool_choice = convert_tool_choice_anthropic_to_openai(body.get("tool_choice"))
+    return openai_tools, openai_msgs, skip_tier1, client_tool_choice
 
 
 # ── OpenAI SSE → Anthropic SSE streaming converter ────────────────────────────
@@ -184,7 +187,7 @@ async def _stream_openai_sse_to_anthropic(
             )
 
 
-async def stream_tier1_openai(body: dict, openai_tools: list, openai_msgs: list, deps: dict):
+async def stream_tier1_openai(body: dict, openai_tools: list, openai_msgs: list, deps: dict, client_tool_choice="auto"):
     """Real streaming: OpenAI SSE → Anthropic SSE conversion on-the-fly."""
     import asyncio
 
@@ -201,7 +204,7 @@ async def stream_tier1_openai(body: dict, openai_tools: list, openai_msgs: list,
             "messages": openai_msgs,
             "tools": openai_tools,
             "max_tokens": body.get("max_tokens", 4096),
-            "tool_choice": "auto",
+            "tool_choice": client_tool_choice,
         }
         if name.startswith("aliyun"):
             req_body["enable_thinking"] = False
@@ -256,15 +259,24 @@ async def stream_tier2_native(body: dict, deps: dict):
                     "POST", backend["url"], headers=headers, content=payload,
                 ) as http_resp:
                     if http_resp.status_code != 200:
-                        body = await http_resp.aread()
+                        err_body = await http_resp.aread()
                         raise RuntimeError(
                             f"Backend {name} returned {http_resp.status_code}: "
-                            f"{str(body)[:200]}"
+                            f"{str(err_body)[:200]}"
                         )
                     _ht.record_success(name, 0)
+                    event_buffer: list[str] = []
                     async for line in http_resp.aiter_lines():
-                        if line:
-                            yield line + "\n\n"
+                        if not line:
+                            # Empty line = end of SSE event; flush buffer
+                            if event_buffer:
+                                yield "\n".join(event_buffer) + "\n\n"
+                                event_buffer = []
+                        else:
+                            event_buffer.append(line)
+                    # Flush any remaining event
+                    if event_buffer:
+                        yield "\n".join(event_buffer) + "\n\n"
             return
         except Exception as exc:
             import logging as _log
@@ -276,10 +288,10 @@ async def stream_tier2_native(body: dict, deps: dict):
 
 async def anthropic_native_stream(body: dict, deps: dict):
     """Tier1 OpenAI tool stream → Tier2 Anthropic-native passthrough."""
-    openai_tools, openai_msgs, skip_tier1 = prepare_tool_openai_payload(body)
+    openai_tools, openai_msgs, skip_tier1, client_tool_choice = prepare_tool_openai_payload(body)
     if not skip_tier1:
         tier1_sent = False
-        async for chunk in stream_tier1_openai(body, openai_tools, openai_msgs, deps):
+        async for chunk in stream_tier1_openai(body, openai_tools, openai_msgs, deps, client_tool_choice):
             tier1_sent = True
             yield chunk
         if tier1_sent:

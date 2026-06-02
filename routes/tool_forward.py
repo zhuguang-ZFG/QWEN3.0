@@ -19,6 +19,7 @@ import httpx as _httpx
 from converters.anthropic_format import (
     convert_tools_anthropic_to_openai,
     convert_messages_anthropic_to_openai,
+    convert_tool_choice_anthropic_to_openai,
     inject_anthropic_body_preflight,
     inject_anthropic_context_preflight,
     convert_response_openai_to_anthropic,
@@ -32,6 +33,9 @@ ANTHROPIC_NATIVE_BACKENDS = [
     'longcat_chat', 'longcat',
     # M6: deepseek_free deleted; longcat_lite/thinking/omni offline 2026-05-29
 ]
+
+# Tier1 skip threshold: configurable via LIMA_TOOL_BODY_LIMIT (bytes), default 512KB
+_TOOL_BODY_LIMIT = int(os.environ.get("LIMA_TOOL_BODY_LIMIT", "524288"))
 
 TOOL_TIER1_BACKENDS: list[str] = []
 
@@ -117,12 +121,13 @@ def anthropic_native_forward_sync(body: dict) -> dict:
     import health_tracker as _ht
 
     body_size = len(json.dumps(body, ensure_ascii=False))
-    skip_tier1 = body_size > 100000
+    skip_tier1 = body_size > _TOOL_BODY_LIMIT
 
     openai_tools = convert_tools_anthropic_to_openai(body.get("tools", []))
     openai_msgs = convert_messages_anthropic_to_openai(body.get("messages", []))
     inject_anthropic_context_preflight(openai_msgs, body)
     inject_anthropic_body_preflight(body, openai_msgs)
+    client_tool_choice = convert_tool_choice_anthropic_to_openai(body.get("tool_choice"))
 
     if not skip_tier1:
         for name in iter_tool_backends(TOOL_TIER1_BACKENDS):
@@ -136,7 +141,7 @@ def anthropic_native_forward_sync(body: dict) -> dict:
                 msgs.insert(0, {"role": "system", "content": prompt})
             req_body = {"model": b["model"], "messages": msgs,
                 "tools": openai_tools, "max_tokens": body.get("max_tokens", 4096),
-                "tool_choice": "auto"}
+                "tool_choice": client_tool_choice}
             if name.startswith("aliyun"):
                 req_body["enable_thinking"] = False
             payload = json.dumps(req_body, ensure_ascii=False).encode()
@@ -328,18 +333,15 @@ from text_tool_extractor import (
     TEXT_TOOL_BACKENDS as _TEXT_TOOL_BACKENDS,
     TEXT_TOOL_SYSTEM_PROMPT as _TEXT_TOOL_SYSTEM_PROMPT,
     build_tool_system_prompt as _build_tool_system_prompt,
+    extract_tool_calls_from_text as _extract_tool_calls_from_text,
 )
 
 
 def _extract_text_tools_from_response(data: dict) -> dict:
     """Extract tool calls from text content in OpenAI API response.
 
-    When a backend outputs tool calls as JSON text instead of using the
-    tool_calls protocol, parse them from the content and add to the response.
+    Delegates to text_tool_extractor.extract_tool_calls_from_text for parsing.
     """
-    import re as _re
-    import uuid as _uuid
-
     choices = data.get("choices", [])
     if not choices:
         return data
@@ -352,37 +354,10 @@ def _extract_text_tools_from_response(data: dict) -> dict:
     if not content:
         return data
 
-    # Pattern 1: ```json ... ``` code blocks
-    json_block = _re.compile(r"```json\s*\n?(.*?)\n?```", _re.DOTALL | _re.IGNORECASE)
-    tool_calls = []
-    cleaned = content
-
-    for match in json_block.finditer(content):
-        try:
-            parsed = json.loads(match.group(1).strip())
-        except (json.JSONDecodeError, ValueError):
-            continue
-        if isinstance(parsed, dict):
-            parsed = [parsed]
-        if not isinstance(parsed, list):
-            continue
-        for item in parsed:
-            name = item.get("name", "")
-            args = item.get("arguments", {})
-            if not name:
-                continue
-            if isinstance(args, dict):
-                args = json.dumps(args, ensure_ascii=False)
-            tool_calls.append({
-                "id": f"call_{_uuid.uuid4().hex[:24]}",
-                "type": "function",
-                "function": {"name": name, "arguments": args},
-            })
-        cleaned = cleaned.replace(match.group(0), "")
-
+    cleaned, tool_calls = _extract_tool_calls_from_text(content)
     if tool_calls:
         message["tool_calls"] = tool_calls
-        message["content"] = _re.sub(r"\n{3,}", "\n\n", cleaned).strip() or None
+        message["content"] = cleaned or None
         choices[0]["finish_reason"] = "tool_calls"
 
     return data

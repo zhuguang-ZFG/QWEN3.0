@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 from access_guard import require_private_api_key
 from chat_models import ChatRequest
-from chat_request_utils import extract_system_preview
+from chat_request_utils import extract_system_preview, extract_last_user_text
 from response_builder import build_response, make_chat_id
 from routes.anthropic_messages_handler import (
     check_anthropic_rate_limit,
@@ -90,8 +90,6 @@ async def chat_completions(request: Request):
     if detect_vision_request(raw_messages):
         chat_id = make_chat_id()
         t0 = time.time()
-        from chat_request_utils import extract_last_user_text
-
         query_text = extract_last_user_text(raw_messages)
         vision_result = await _maybe_await(
             _call("vision_route", raw_messages, body.get("max_tokens", 4096), ide_source)
@@ -127,13 +125,29 @@ async def chat_completions(request: Request):
     # (GPT-4o/GitHub → real tool calls, unlike open-source models)
     if body.get("tools") and body.get("stream"):
         return StreamingResponse(
-            _call("anthropic_native_stream", _openai_to_anthropic_tool_body(body)),
+            _wrap_tool_stream_with_recording(
+                _call("anthropic_native_stream", _openai_to_anthropic_tool_body(body)),
+                raw_messages, client_ip, ide_source, sys_prompt_preview,
+            ),
             media_type="text/event-stream",
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
     if body.get("tools"):
+        tool_t0 = time.time()
         result = await _maybe_await(
             _call("anthropic_native_forward", _openai_to_anthropic_tool_body(body))
+        )
+        tool_ms = int((time.time() - tool_t0) * 1000)
+        _call(
+            "record_request",
+            extract_last_user_text(raw_messages) or "[tool_use]",
+            result.get("model", "tool"),
+            "tool_use",
+            tool_ms,
+            result.get("type") != "error",
+            client_ip=client_ip,
+            ide_source=ide_source,
+            sys_prompt_preview=sys_prompt_preview,
         )
         return JSONResponse(_convert_anthropic_tool_response_to_openai(result, body))
 
@@ -216,6 +230,38 @@ async def anthropic_messages(req: Request):
 
 # ── OpenAI ↔ Anthropic tool format conversion ─────────────────────────────────
 
+async def _wrap_tool_stream_with_recording(
+    stream, raw_messages: list, client_ip: str, ide_source: str, sys_prompt_preview: str,
+):
+    """Wrap tool stream generator to record request stats after completion."""
+    t0 = time.time()
+    backend_model = "tool"
+    async for chunk in stream:
+        # Try to extract model from message_start event
+        if "message_start" in chunk and '"model"' in chunk:
+            try:
+                import json as _json
+                for line in chunk.splitlines():
+                    if line.startswith("data: "):
+                        data = _json.loads(line[6:])
+                        backend_model = data.get("message", {}).get("model", "tool")
+                        break
+            except Exception:
+                pass
+        yield chunk
+    duration_ms = int((time.time() - t0) * 1000)
+    _call(
+        "record_request",
+        extract_last_user_text(raw_messages) or "[tool_use]",
+        backend_model,
+        "tool_use",
+        duration_ms,
+        True,
+        client_ip=client_ip,
+        ide_source=ide_source,
+        sys_prompt_preview=sys_prompt_preview,
+    )
+
 def _openai_to_anthropic_tool_body(body: dict) -> dict:
     """Convert OpenAI-format tool request to Anthropic-format for tool_forward pipeline."""
     tools = []
@@ -226,13 +272,17 @@ def _openai_to_anthropic_tool_body(body: dict) -> dict:
             "description": fn.get("description", ""),
             "input_schema": fn.get("parameters", {"type": "object", "properties": {}}),
         })
-    return {
+    result = {
         "model": body.get("model", "lima-1.3"),
         "messages": body.get("messages", []),
         "tools": tools,
         "max_tokens": body.get("max_tokens", 4096),
         "system": body.get("system", ""),
     }
+    # Pass through tool_choice if present
+    if "tool_choice" in body:
+        result["tool_choice"] = body["tool_choice"]
+    return result
 
 
 def _convert_anthropic_tool_response_to_openai(result: dict, original_body: dict) -> dict:

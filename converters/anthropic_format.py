@@ -82,6 +82,28 @@ def convert_messages_anthropic_to_openai(messages: list) -> list:
     return openai_msgs
 
 
+def convert_tool_choice_anthropic_to_openai(tool_choice) -> str | dict:
+    """Anthropic tool_choice -> OpenAI tool_choice.
+
+    Anthropic: "auto" | "any" | "none" | {"type": "tool", "name": "..."}
+    OpenAI:    "auto" | "required" | "none" | {"type": "function", "function": {"name": "..."}}
+    """
+    if tool_choice is None or tool_choice == "auto":
+        return "auto"
+    if tool_choice == "any":
+        return "required"
+    if tool_choice == "none":
+        return "none"
+    if isinstance(tool_choice, dict):
+        tc_type = tool_choice.get("type", "")
+        if tc_type in ("tool", "function"):
+            name = tool_choice.get("name", "")
+            if name:
+                return {"type": "function", "function": {"name": name}}
+        return "auto"
+    return "auto"
+
+
 def anthropic_system_text(body: dict) -> str:
     system = body.get("system", "")
     if isinstance(system, str):

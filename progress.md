@@ -1,6 +1,25 @@
 # Execution Log
 
-> Last updated: 2026-06-02 · 20 个里程碑完成 · 1972+498 tests passing
+> Last updated: 2026-06-03 · 21 个里程碑完成 · 2168+20 tests passing
+
+## M22: 工具调用管道 7 项改善 (completed)
+
+| Task | 修复内容 | 文件 | 状态 |
+|------|---------|------|------|
+| **T1** | tool_choice 协议转换 (Anthropic↔OpenAI) | converters/anthropic_format.py, routes/tool_forward.py, routes/tool_forward_stream.py, routes/chat_endpoints.py | ✅ |
+| **T2** | stream_tier2_native 变量遮蔽 body→err_body | routes/tool_forward_stream.py | ✅ |
+| **T3** | Tier2 SSE 逐行 yield→事件级缓冲 | routes/tool_forward_stream.py | ✅ |
+| **T4** | 请求体大小限制 LIMA_TOOL_BODY_LIMIT (默认512KB) | routes/tool_forward.py, routes/tool_forward_stream.py | ✅ |
+| **T5** | 工具调用请求统计 record_request 包装 | routes/chat_endpoints.py | ✅ |
+| **T6** | _extract_text_tools_from_response 去重委托 | routes/tool_forward.py | ✅ |
+| **T7** | 20 个新测试覆盖全部改善项 | tests/test_tool_improvements.py | ✅ |
+| **HOTFIX** | extract_last_user_text UnboundLocalError 修复 | routes/chat_endpoints.py | ✅ |
+
+**本地门禁**: 全量 pytest 2168 passed, 3 pre-existing CSRF failures, 10 skipped; ruff check passed
+**VPS 部署**: deploy_v3.py 一键部署, 备份 /opt/lima-router/server.py.bak.20260603_004000
+**VPS /health**: `{"status":"ok","version":"2.0"}` 所有模块正常
+**VPS smoke**: OpenAI /v1/chat/completions tool_call PASS, Anthropic /v1/messages tool_use PASS
+**热修复**: 移除 chat_endpoints.py 第93行函数内局部 import extract_last_user_text (遮蔽模块级 import 导致 UnboundLocalError)
 
 ## M21: 管理面板按钮交互修复 - CSRF/Origin/JS 全链路 (completed)
 
