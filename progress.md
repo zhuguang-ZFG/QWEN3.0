@@ -5113,3 +5113,35 @@ Verification note:
 
 ### 结论
 公共API端点验证通过, 功能正常工作。
+
+## 2026-06-03 代码审查修复 - 客户端密钥管理配额与安全问题
+
+### 修复内容
+| 问题 | 修复方案 | 文件 |
+|------|---------|------|
+| 月度配额/RPM速率限制/URL白名单未执行 | 新增 try_consume_quota() 原子操作 + check_allowed_urls() | routes/admin_client_keys.py |
+| TOCTOU竞态条件 | 合并配额检查与使用记录为单一原子操作 | routes/admin_client_keys.py |
+| regenerate修改key_id违反API契约 | 保留原始key_id不变 | routes/admin_client_keys.py |
+| _save_keys非原子写入 | 使用临时文件+rename原子写入 | routes/admin_client_keys.py |
+| route_registry未记录模块加载状态 | 添加 loaded_modules["admin_client_keys"] = True | routes/route_registry.py |
+| access_guard使用旧API | 改用 try_consume_quota + check_allowed_urls | access_guard.py |
+
+### 验证结果
+- ✅ 本地pytest: 19/19 test_client_keys.py 测试通过
+- ✅ VPS部署: deploy_vps_bundle.py 一键部署成功
+- ✅ VPS服务状态: active (running)
+- ✅ VPS /health: HTTP 200, 所有模块加载成功
+- ✅ 公共API: chat.donglicao.com/v1/models 返回13个模型
+- ✅ Git提交: 2babde2 fix(client-keys): 修复配额检查、RPM限制和原子写入问题
+
+### 新增API
+- `try_consume_quota(key_record)` — 原子性检查并消耗配额（日限额/月限额/RPM），返回 (allowed, reason)
+- `check_allowed_urls(key_record, request_path)` — 检查URL是否在白名单内
+
+### 向后兼容性
+- 保留 check_key_quota() 和 record_key_usage() 函数，保持现有调用方兼容
+- 新代码推荐使用 try_consume_quota() 进行原子性配额消费
+
+### 下一步
+- 创建PR合并到main分支
+- 在生产环境中测试配额限制功能
