@@ -5090,3 +5090,26 @@ Verification note:
 ### 下一步
 - 提交到 GitHub
 - 验证公共 API 端点
+
+## 2026-06-03 公共API端点验证
+
+### 验证结果
+- ✅ VPS health: HTTP 200, 所有模块加载成功
+- ✅ /v1/models: 正常返回模型列表 (13个模型)
+- ✅ /v1/chat/completions: 正常响应, 正确回答问题
+- ✅ 公共域名: chat.donglicao.com/v1/* 端点正常工作
+
+### 测试详情
+- 测试工具: Python requests 库
+- 测试密钥: LIMA_API_KEY (从VPS .env获取)
+- 测试模型: lima-1.3
+- 响应时间: 6738ms
+- 后端: scnet_ds_flash
+
+### Nginx配置
+- chat.donglicao.com: /v1/* 代理到后端8080端口
+- www.donglicao.com: /api/demo 代理到后端/v1/chat/completions
+- 所有端点需要Authorization头认证
+
+### 结论
+公共API端点验证通过, 功能正常工作。
