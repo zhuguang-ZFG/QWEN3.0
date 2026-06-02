@@ -1394,5 +1394,25 @@ ADMIN_HTML imports successfully ✅
 
 存储层
 ├── data/backend_overrides.json (后端 CRUD 持久化)
+├── data/alert_rules.json (告警规则持久化)
 └── 内存 stats (请求统计/日志)
+
+新增 API 端点:
+├── GET  /admin/api/logs/stream (SSE 实时日志)
+├── GET  /admin/api/config/export
+├── POST /admin/api/config/import
+├── GET  /admin/api/devices
+├── GET  /admin/api/devices/{device_id}
+├── POST /admin/api/devices/{device_id}/restart
+├── GET  /admin/api/alerts/rules
+├── POST /admin/api/alerts/rules
+├── PUT  /admin/api/alerts/rules/{rule_id}
+└── DELETE /admin/api/alerts/rules/{rule_id}
+
+新增工具模块:
+├── lima_fc_tools/web_tools.py (网页浏览)
+├── lima_fc_tools/file_tools.py (文件操作)
+├── lima_fc_tools/image_tools.py (图片生成)
+├── lima_fc_tools/db_tools.py (数据库查询)
+└── sandbox/executor.py (代码执行沙箱)
 ```

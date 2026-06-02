@@ -85,6 +85,11 @@ tr:hover td{background:rgba(59,130,246,0.08)}
 <button data-panel="health">健康状态</button>
 <button data-panel="keys">密钥与端点</button>
 <button data-panel="agents">Agent 审计</button>
+<button data-panel="agent-tasks">Agent 任务</button>
+<button data-panel="live-logs">实时日志</button>
+<button data-panel="config">配置管理</button>
+<button data-panel="devices">设备管理</button>
+<button data-panel="alerts">告警配置</button>
 </nav>
 <div class="sidebar-footer"><div class="status-dot">管理会话已启用</div><div style="margin-top:10px"><a href="/admin/logout" style="color:var(--muted);text-decoration:none">退出登录</a></div></div>
 </aside>
@@ -155,6 +160,44 @@ tr:hover td{background:rgba(59,130,246,0.08)}
 </div></section>
 
 <section id="panel-agents" class="section"><div class="bento"><div class="card full"><h2>Agent Task Audit</h2><div class="table-wrap"><table><thead><tr><th>Task</th><th>Status</th><th>Mode</th><th>Repo</th><th>Goal</th><th>Events</th><th>Next</th></tr></thead><tbody id="t-agent-audit"></tbody></table></div></div></div></section>
+
+<section id="panel-agent-tasks" class="section"><div class="bento">
+<div class="card"><h2>任务总数</h2><div class="metric" id="at-total">0</div><div class="metric-label">Total tasks</div></div>
+<div class="card"><h2>运行中</h2><div class="metric" id="at-running">0</div><div class="metric-label">Running</div></div>
+<div class="card"><h2>已完成</h2><div class="metric" id="at-completed">0</div><div class="metric-label">Completed</div></div>
+<div class="card"><h2>失败</h2><div class="metric" id="at-failed">0</div><div class="metric-label">Failed</div></div>
+<div class="card full"><h2>Agent 任务管理</h2><div class="filter-bar"><button class="btn ghost active" onclick="filterAgentTasks('')" id="at-all">全部</button><button class="btn ghost" onclick="filterAgentTasks('accepted')" id="at-accepted">待处理</button><button class="btn ghost" onclick="filterAgentTasks('running')" id="at-running-btn">运行中</button><button class="btn ghost" onclick="filterAgentTasks('completed')" id="at-completed-btn">已完成</button><button class="btn ghost" onclick="filterAgentTasks('failed')" id="at-failed-btn">失败</button></div><div class="table-wrap"><table><thead><tr><th>Task ID</th><th>状态</th><th>Worker</th><th>后端</th><th>描述</th><th>创建时间</th><th>操作</th></tr></thead><tbody id="t-agent-tasks"></tbody></table></div></div>
+</div></section>
+
+<section id="panel-live-logs" class="section"><div class="bento">
+<div class="card"><h2>SSE 连接</h2><div class="metric" id="ll-status">未连接</div><div class="metric-label">Connection status</div></div>
+<div class="card"><h2>已接收</h2><div class="metric" id="ll-count">0</div><div class="metric-label">Events received</div></div>
+<div class="card"><h2>成功</h2><div class="metric" id="ll-success">0</div><div class="metric-label">Successful requests</div></div>
+<div class="card"><h2>失败</h2><div class="metric" id="ll-fail">0</div><div class="metric-label">Failed requests</div></div>
+<div class="card full"><h2>实时日志流 <input class="search" id="ll-filter" placeholder="搜索 IP / query / backend / intent" oninput="filterLiveLogs()"> <button class="btn ghost" id="ll-toggle" onclick="toggleLiveLogs()">开始监听</button> <button class="btn ghost" onclick="clearLiveLogs()">清空</button></h2><div style="max-height:500px;overflow-y:auto;border:1px solid var(--line);border-radius:12px"><table><thead><tr><th>时间</th><th>IP</th><th>地区</th><th>IDE</th><th>Query</th><th>后端</th><th>意图</th><th>耗时</th><th>状态</th></tr></thead><tbody id="t-live-logs"></tbody></table></div></div>
+</div></section>
+
+<section id="panel-config" class="section"><div class="bento">
+<div class="card"><h2>导出配置</h2><p style="color:var(--muted);margin:8px 0">导出后端覆盖和准入配置为 JSON 文件，用于备份或迁移。</p><button class="btn" onclick="exportConfig()">导出配置</button></div>
+<div class="card"><h2>导入配置</h2><p style="color:var(--muted);margin:8px 0">从 JSON 文件导入配置。会覆盖现有的后端覆盖和准入配置。</p><input type="file" id="config-file" accept=".json" style="margin:8px 0;color:var(--text)"><button class="btn" onclick="importConfig()">导入配置</button></div>
+<div class="card"><h2>配置版本</h2><div class="metric" id="cfg-version">-</div><div class="metric-label">Config version</div></div>
+<div class="card full"><h2>当前配置预览</h2><div style="max-height:400px;overflow:auto;background:rgba(8,12,20,0.6);border:1px solid var(--line);border-radius:12px;padding:12px"><pre id="cfg-preview" class="mono" style="font-size:12px;color:var(--muted)">加载中...</pre></div></div>
+</div></section>
+
+<section id="panel-devices" class="section"><div class="bento">
+<div class="card"><h2>在线设备</h2><div class="metric" id="dev-total">0</div><div class="metric-label">Connected devices</div></div>
+<div class="card"><h2>MQTT 设备</h2><div class="metric" id="dev-mqtt">0</div><div class="metric-label">MQTT-connected</div></div>
+<div class="card"><h2>WebSocket 设备</h2><div class="metric" id="dev-ws">0</div><div class="metric-label">WS-connected</div></div>
+<div class="card"><h2>总任务数</h2><div class="metric" id="dev-tasks">0</div><div class="metric-label">Inflight tasks</div></div>
+<div class="card full"><h2>设备列表 <button class="btn ghost" onclick="loadDevices()">刷新</button></h2><div class="table-wrap"><table><thead><tr><th>Device ID</th><th>固件版本</th><th>能力</th><th>运行时间</th><th>任务数</th><th>操作</th></tr></thead><tbody id="t-devices"></tbody></table></div></div>
+</div></section>
+
+<section id="panel-alerts" class="section"><div class="bento">
+<div class="card"><h2>告警规则数</h2><div class="metric" id="alert-total">0</div><div class="metric-label">Total rules</div></div>
+<div class="card"><h2>已启用</h2><div class="metric" id="alert-active">0</div><div class="metric-label">Enabled rules</div></div>
+<div class="card full"><h2>告警规则 <button class="btn" onclick="showAddAlert()">添加规则</button></h2><div class="table-wrap"><table><thead><tr><th>ID</th><th>名称</th><th>指标</th><th>条件</th><th>阈值</th><th>窗口</th><th>状态</th><th>操作</th></tr></thead><tbody id="t-alerts"></tbody></table></div></div>
+<div class="card full" id="alert-add-form" style="display:none"><h2>添加告警规则</h2><div class="form"><input id="al-name" placeholder="规则名称" class="span2"><select id="al-metric" class="span2"><option value="error_rate">错误率</option><option value="latency_ms">延迟 (ms)</option><option value="fallback_rate">Fallback 率</option><option value="request_count">请求量</option></select><select id="al-condition"><option value="gt">大于 (>)</option><option value="lt">小于 (<)</option><option value="eq">等于 (=)</option></select><input id="al-threshold" placeholder="阈值" type="number" value="0.5"><input id="al-window" placeholder="窗口(秒)" type="number" value="300"><button class="btn" onclick="addAlertRule()">保存</button> <button class="btn ghost" onclick="hideAddAlert()">取消</button></div></div>
+</div></section>
 </main>
 </div>
 <div class="toast" id="toast"></div>
@@ -209,7 +252,72 @@ function renderKeyUrlTable(){var d=state.keyUrl||{};var q=(document.getElementBy
 function renderKeyPools(){var d=state.keyUrl||{};var pools=(d.key_pools||{}).providers||{};var el=document.getElementById('key-pool-info');if(!el)return;var names=Object.keys(pools).sort();if(!names.length){el.innerHTML='<div class="empty">暂无 Provider Key Pool</div>';return}var html=names.map(function(p){var pool=pools[p];return '<div style="margin-bottom:12px;padding:12px 14px;border:1px solid var(--line);border-radius:12px"><div style="display:flex;gap:12px;align-items:center;margin-bottom:6px"><span class="mono" style="font-weight:700;color:var(--cyan)">'+esc(p)+'</span>'+badge(pool.active+' active','ok')+badge(pool.cooled+' cooled','warn')+badge(pool.blocked+' blocked','err')+'</div><div style="display:flex;gap:6px;flex-wrap:wrap">'+(pool.entries||[]).map(function(e){var sc=e.status==='active'?'ok':e.status==='cooled'?'warn':'err';return '<span style="font-size:11px;padding:3px 8px;border-radius:8px;background:rgba(148,163,184,0.1);border:1px solid var(--line)" class="badge badge-'+sc+'">'+esc(e.key_id)+' w='+e.weight+(e.cool_remaining_sec>0?' cd='+e.cool_remaining_sec+'s':'')+'</span>'}).join('')+'</div></div>'}).join('');el.innerHTML=html}
 async function loadAgents(){try{var d=await json('/admin/api/agent-audit?limit=50');state.agents=d.tasks||[];renderAgents()}catch(e){console.error('loadAgents failed:',e)}}
 function renderAgents(){document.getElementById('t-agent-audit').innerHTML=state.agents.map(function(t){return '<tr><td class="mono">'+esc(t.task_id||t.id)+'</td><td>'+badge(t.status||'-',String(t.status).indexOf('fail')>=0?'err':String(t.status).indexOf('review')>=0?'warn':'ok')+'</td><td>'+esc(t.mode)+'</td><td class="truncate">'+esc(t.repo)+'</td><td class="truncate" title="'+esc(t.goal)+'">'+esc(t.goal)+'</td><td>'+esc(t.events_count!=null?t.events_count:t.event_count!=null?t.event_count:'')+'</td><td>'+esc(t.next_action||'')+'</td></tr>'}).join('')||'<tr><td colspan="7" class="empty">暂无 Agent 任务</td></tr>'}
-var panelLoaders={overview:loadStats,traffic:loadLogs,backends:loadBackends,retrieval:loadRetrieval,model:function(){return Promise.all([loadModel(),loadFallbackAnalysis()])},health:loadHealth,keys:loadKeyUrl,agents:loadAgents};
+
+var _agentTasksFilter='';
+var _agentTasksData=[];
+
+async function loadAgentTasks(){try{var d=await json('/admin/api/agent-tasks?limit=100');_agentTasksData=d.tasks||[];renderAgentTasks();renderAgentTaskStats()}catch(e){console.error('loadAgentTasks failed:',e)}}
+function renderAgentTaskStats(){var tasks=_agentTasksData;var total=tasks.length,running=0,completed=0,failed=0;
+tasks.forEach(function(t){var s=t.status||'';if(s==='running'||s==='claimed')running++;else if(s==='completed')completed++;else if(s==='failed')failed++});
+document.getElementById('at-total').textContent=total;
+document.getElementById('at-running').textContent=running;
+document.getElementById('at-completed').textContent=completed;
+document.getElementById('at-failed').textContent=failed}
+function renderAgentTasks(){var q=(document.getElementById('at-filter')?document.getElementById('at-filter').value:'').toLowerCase();var filter=_agentTasksFilter;var rows=_agentTasksData.filter(function(t){if(filter&&t.status!==filter)return false;if(q&&!JSON.stringify(t).toLowerCase().includes(q))return false;return true});document.getElementById('t-agent-tasks').innerHTML=rows.map(function(t){var sc=t.status==='completed'?'ok':t.status==='failed'?'err':t.status==='running'?'warn':'off';var created=t.created_at?new Date(t.created_at*1000).toLocaleString():'-';var desc=(t.description||'').substring(0,60);var taskId=t.task_id||'';var shortId=taskId.length>12?taskId.substring(0,12)+'...':taskId;var actions='';if(t.status!=='completed'&&t.status!=='failed'&&t.status!=='cancelled'){actions+='<button class="btn ghost" style="font-size:11px;padding:4px 8px" onclick="cancelAgentTask(\''+escJs(taskId)+'\')">取消</button> '}
+if(t.status==='failed'||t.status==='quarantined'){actions+='<button class="btn ghost" style="font-size:11px;padding:4px 8px" onclick="retryAgentTask(\''+escJs(taskId)+'\')">重试</button> '}
+actions+='<button class="btn ghost" style="font-size:11px;padding:4px 8px" onclick="showAgentTaskDetail(\''+escJs(taskId)+'\')">详情</button>';
+return '<tr><td class="mono" title="'+esc(taskId)+'">'+esc(shortId)+'</td><td>'+badge(t.status,sc)+'</td><td class="mono">'+esc(t.worker_id||'-')+'</td><td class="mono">'+esc(t.backend||'-')+'</td><td class="truncate" title="'+esc(desc)+'">'+esc(desc)+'</td><td class="mini">'+esc(created)+'</td><td>'+actions+'</td></tr>'}).join('')||'<tr><td colspan="7" class="empty">暂无 Agent 任务</td></tr>'}
+function filterAgentTasks(filter){_agentTasksFilter=filter;document.querySelectorAll('#panel-agent-tasks .filter-bar button').forEach(function(b){b.classList.remove('active')});var id=filter?'at-'+filter:'at-all';var el=document.getElementById(id);if(el)el.classList.add('active');renderAgentTasks()}
+async function cancelAgentTask(taskId){if(!confirm('确认取消任务 '+taskId+' ?'))return;try{await json('/admin/api/agent-tasks/'+encodeURIComponent(taskId)+'/cancel',{method:'POST'});toast('已请求取消任务');await loadAgentTasks()}catch(e){toast('取消失败: '+e.message,'err')}}
+async function retryAgentTask(taskId){if(!confirm('确认重试任务 '+taskId+' ?'))return;try{await json('/admin/api/agent-tasks/'+encodeURIComponent(taskId)+'/retry',{method:'POST'});toast('已重试任务');await loadAgentTasks()}catch(e){toast('重试失败: '+e.message,'err')}}
+async function showAgentTaskDetail(taskId){try{var d=await json('/admin/api/agent-tasks/'+encodeURIComponent(taskId));var el=document.getElementById('at-detail-card');var content=document.getElementById('at-detail-content');el.style.display='block';var sc=d.status==='completed'?'ok':d.status==='failed'?'err':d.status==='running'?'warn':'off';var html='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px">';
+html+='<div><span class="metric-label">Task ID</span><div class="mono" style="color:var(--cyan)">'+esc(d.task_id)+'</div></div>';
+html+='<div><span class="metric-label">状态</span><div>'+badge(d.status,sc)+'</div></div>';
+html+='<div><span class="metric-label">创建时间</span><div class="mini">'+esc(d.created_at?new Date(d.created_at*1000).toLocaleString():'-')+'</div></div>';
+html+='<div><span class="metric-label">更新时间</span><div class="mini">'+esc(d.updated_at?new Date(d.updated_at*1000).toLocaleString():'-')+'</div></div>';
+html+='</div>';
+if(d.request){html+='<div style="margin-bottom:16px"><h3 style="font-size:14px;color:var(--muted);margin-bottom:8px">请求内容</h3><pre style="background:rgba(8,12,20,0.6);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:12px;max-height:200px;overflow:auto">'+esc(JSON.stringify(d.request,null,2))+'</pre></div>'}
+if(d.result){html+='<div style="margin-bottom:16px"><h3 style="font-size:14px;color:var(--muted);margin-bottom:8px">执行结果</h3><pre style="background:rgba(8,12,20,0.6);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:12px;max-height:200px;overflow:auto">'+esc(JSON.stringify(d.result,null,2))+'</pre></div>'}
+if(d.events&&d.events.length){html+='<div><h3 style="font-size:14px;color:var(--muted);margin-bottom:8px">事件日志 ('+d.events.length+')</h3><div class="table-wrap"><table><thead><tr><th>时间</th><th>事件</th></tr></thead><tbody>';
+d.events.forEach(function(e){var ts=e.ts?new Date(e.ts*1000).toLocaleTimeString():'-';var evt=JSON.stringify(e);if(evt.length>100)evt=evt.substring(0,100)+'...';html+='<tr><td class="mini">'+esc(ts)+'</td><td class="truncate" title="'+esc(JSON.stringify(e))+'">'+esc(evt)+'</td></tr>'});
+html+='</tbody></table></div></div>'}
+content.innerHTML=html}catch(e){toast('加载详情失败: '+e.message,'err')}}
+function hideTaskDetail(){document.getElementById('at-detail-card').style.display='none'}
+// ── Live Logs SSE ───────────────────────────────────────────────────────
+var _liveLogs=[];
+var _liveLogCount=0;
+var _liveLogSuccess=0;
+var _liveLogFail=0;
+var _liveLogEventSource=null;
+function toggleLiveLogs(){if(_liveLogEventSource){_liveLogEventSource.close();_liveLogEventSource=null;document.getElementById('ll-status').textContent='已断开';document.getElementById('ll-toggle').textContent='开始监听';return}document.getElementById('ll-status').textContent='连接中...';_liveLogEventSource=new EventSource('/admin/api/logs/stream');_liveLogEventSource.onopen=function(){document.getElementById('ll-status').textContent='已连接';document.getElementById('ll-toggle').textContent='停止监听'};_liveLogEventSource.onmessage=function(ev){try{var d=JSON.parse(ev.data);_liveLogs.unshift(d);if(_liveLogs.length>200)_liveLogs.pop();_liveLogCount++;if(d.success)_liveLogSuccess++;else _liveLogFail++;document.getElementById('ll-count').textContent=_liveLogCount;document.getElementById('ll-success').textContent=_liveLogSuccess;document.getElementById('ll-fail').textContent=_liveLogFail;renderLiveLogs()}catch(e){}};_liveLogEventSource.onerror=function(){document.getElementById('ll-status').textContent='连接错误';_liveLogEventSource.close();_liveLogEventSource=null;document.getElementById('ll-toggle').textContent='开始监听'}}
+function filterLiveLogs(){renderLiveLogs()}
+function renderLiveLogs(){var q=(document.getElementById('ll-filter')?document.getElementById('ll-filter').value:'').toLowerCase();var rows=_liveLogs.filter(function(l){return JSON.stringify(l).toLowerCase().includes(q)}).slice(0,100);document.getElementById('t-live-logs').innerHTML=rows.map(function(l){return '<tr><td class="mini">'+esc(l.time)+'</td><td class="mono">'+esc(l.ip)+'</td><td>'+esc(l.country)+'</td><td>'+esc(l.ide)+'</td><td class="truncate" title="'+esc(l.query||l.sys_prompt)+'">'+esc(l.query||l.sys_prompt)+'</td><td class="mono">'+esc(l.backend)+'</td><td>'+esc(l.intent)+'</td><td>'+esc(l.ms)+'ms</td><td>'+badge(l.success?'成功':'失败',l.success?'ok':'err')+'</td></tr>'}).join('')||'<tr><td colspan="9" class="empty">等待日志...</td></tr>'}
+function clearLiveLogs(){_liveLogs=[];_liveLogCount=0;_liveLogSuccess=0;_liveLogFail=0;document.getElementById('ll-count').textContent='0';document.getElementById('ll-success').textContent='0';document.getElementById('ll-fail').textContent='0';renderLiveLogs()}
+
+// ── Config Import/Export ──────────────────────────────────────────────────
+var _configData=null;
+async function loadConfig(){try{var d=await json('/admin/api/config/export');_configData=d;document.getElementById('cfg-version').textContent=d.version||'-';document.getElementById('cfg-preview').textContent=JSON.stringify(d,null,2)}catch(e){document.getElementById('cfg-preview').textContent='加载失败: '+e.message}}
+async function exportConfig(){try{var d=await json('/admin/api/config/export');var blob=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='lima-config-'+new Date().toISOString().slice(0,10)+'.json';a.click();toast('已导出配置')}catch(e){toast('导出失败: '+e.message,'err')}}
+async function importConfig(){var fileInput=document.getElementById('config-file');if(!fileInput||!fileInput.files.length){toast('请选择配置文件','warn');return}var file=fileInput.files[0];try{var text=await file.text();var data=JSON.parse(text);if(!data.version){toast('无效的配置文件格式','err');return}if(!confirm('确认导入配置？这将覆盖现有配置。'))return;var res=await json('/admin/api/config/import',{method:'POST',body:JSON.stringify(data)});if(res.ok){toast('已导入配置: '+res.imported.join(', '));loadConfig()}else{toast('导入失败','err')}}catch(e){toast('导入失败: '+e.message,'err')}}
+
+// ── Device Management ──────────────────────────────────────────────────────
+var _deviceData=[];
+async function loadDevices(){try{var d=await json('/admin/api/devices');_deviceData=d.devices||[];renderDevices();document.getElementById('dev-total').textContent=_deviceData.length;var mqtt=0,ws=0,tasks=0;_deviceData.forEach(function(dev){tasks+=dev.inflight_count||0});document.getElementById('dev-tasks').textContent=tasks}catch(e){console.error('loadDevices failed:',e)}}
+function renderDevices(){document.getElementById('t-devices').innerHTML=_deviceData.map(function(dev){var uptime=dev.last_uptime_ms?Math.round(dev.last_uptime_ms/1000)+'s':'-';var caps=(dev.capabilities||[]).slice(0,4).map(function(c){return badge(c,'off')}).join(' ');return '<tr><td class="mono">'+esc(dev.device_id)+'</td><td class="mono">'+esc(dev.fw_rev||'-')+'</td><td>'+caps+'</td><td>'+uptime+'</td><td>'+(dev.inflight_count||0)+'</td><td><button class="btn ghost" style="font-size:11px;padding:4px 8px" onclick="showDeviceDetail(\''+escJs(dev.device_id)+'\')">详情</button> <button class="btn ghost" style="font-size:11px;padding:4px 8px" onclick="restartDevice(\''+escJs(dev.device_id)+'\')">重启</button></td></tr>'}).join('')||'<tr><td colspan="6" class="empty">无在线设备</td></tr>'}
+async function showDeviceDetail(deviceId){try{var d=await json('/admin/api/devices/'+encodeURIComponent(deviceId));var info='Device ID: '+d.device_id+'\n固件: '+d.fw_rev+'\n能力: '+(d.capabilities||[]).join(', ')+'\n运行时间: '+Math.round(d.last_uptime_ms/1000)+'s\n待处理任务: '+(d.inflight_tasks||[]).length;alert(info)}catch(e){toast('加载详情失败: '+e.message,'err')}}
+async function restartDevice(deviceId){if(!confirm('确认重启设备 '+deviceId+' ?'))return;try{await json('/admin/api/devices/'+encodeURIComponent(deviceId)+'/restart',{method:'POST'});toast('已发送重启命令');setTimeout(loadDevices,2000)}catch(e){toast('重启失败: '+e.message,'err')}}
+
+// ── Alert Rules ────────────────────────────────────────────────────────────
+var _alertRules=[];
+async function loadAlerts(){try{var d=await json('/admin/api/alerts/rules');_alertRules=d.rules||[];renderAlerts();document.getElementById('alert-total').textContent=_alertRules.length;var active=0;_alertRules.forEach(function(r){if(r.enabled)active++});document.getElementById('alert-active').textContent=active}catch(e){console.error('loadAlerts failed:',e)}}
+function renderAlerts(){document.getElementById('t-alerts').innerHTML=_alertRules.map(function(r){var metricNames={error_rate:'错误率',latency_ms:'延迟',fallback_rate:'Fallback率',request_count:'请求量'};var condNames={gt:'>',lt:'<',eq:'='};return '<tr><td class="mono" style="font-size:11px">'+esc(r.rule_id)+'</td><td>'+esc(r.name)+'</td><td>'+esc(metricNames[r.metric]||r.metric)+'</td><td>'+esc(condNames[r.condition]||r.condition)+' '+esc(r.threshold)+'</td><td>'+esc(r.threshold)+'</td><td>'+esc(r.window_sec)+'s</td><td>'+badge(r.enabled?'启用':'禁用',r.enabled?'ok':'off')+'</td><td><button class="btn ghost" style="font-size:11px;padding:4px 8px" onclick="toggleAlert(\''+escJs(r.rule_id)+'\','+(!r.enabled)+')">'+(r.enabled?'禁用':'启用')+'</button> <button class="btn danger" style="font-size:11px;padding:4px 8px" onclick="deleteAlert(\''+escJs(r.rule_id)+'\')">删除</button></td></tr>'}).join('')||'<tr><td colspan="8" class="empty">暂无告警规则</td></tr>'}
+function showAddAlert(){document.getElementById('alert-add-form').style.display='block'}
+function hideAddAlert(){document.getElementById('alert-add-form').style.display='none'}
+async function addAlertRule(){var body={name:v('al-name'),metric:v('al-metric'),condition:v('al-condition'),threshold:parseFloat(v('al-threshold'))||0.5,window_sec:parseInt(v('al-window'))||300};if(!body.name){toast('请输入规则名称','warn');return}try{await json('/admin/api/alerts/rules',{method:'POST',body:JSON.stringify(body)});toast('已创建告警规则');hideAddAlert();loadAlerts()}catch(e){toast('创建失败: '+e.message,'err')}}
+async function toggleAlert(ruleId,enabled){try{await json('/admin/api/alerts/rules/'+encodeURIComponent(ruleId),{method:'PUT',body:JSON.stringify({enabled:enabled})});toast('已更新规则');loadAlerts()}catch(e){toast('更新失败: '+e.message,'err')}}
+async function deleteAlert(ruleId){if(!confirm('确认删除告警规则 '+ruleId+' ?'))return;try{await json('/admin/api/alerts/rules/'+encodeURIComponent(ruleId),{method:'DELETE'});toast('已删除告警规则');loadAlerts()}catch(e){toast('删除失败: '+e.message,'err')}}
+
+var panelLoaders={overview:loadStats,traffic:loadLogs,backends:loadBackends,retrieval:loadRetrieval,model:function(){return Promise.all([loadModel(),loadFallbackAnalysis()])},health:loadHealth,keys:loadKeyUrl,agents:loadAgents,'agent-tasks':loadAgentTasks,config:loadConfig,devices:loadDevices,alerts:loadAlerts};
 document.querySelectorAll('#nav button').forEach(function(btn){btn.addEventListener('click',function(){document.querySelectorAll('#nav button').forEach(function(x){x.classList.remove('active')});document.querySelectorAll('.section').forEach(function(x){x.classList.remove('active')});btn.classList.add('active');document.getElementById('panel-'+btn.dataset.panel).classList.add('active');var loader=panelLoaders[btn.dataset.panel];if(loader){setRefreshStatus('加载中...');loader().then(function(){setRefreshStatus('已刷新 '+new Date().toLocaleTimeString())}).catch(function(e){setRefreshStatus('加载失败');console.error(e)})}})});
 refreshAll();setInterval(refreshAll,10000);
 </script>

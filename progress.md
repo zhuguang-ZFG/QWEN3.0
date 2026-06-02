@@ -4973,3 +4973,99 @@ Verification note:
 - Residual:
   - `.pytest_cache` still cannot be written in this environment (`Permission denied`);
   - only `scripts/archive/**` retired scripts still contain `AutoAddPolicy()`; leave them archived unless a cleanup task explicitly targets retired code.
+
+---
+
+## Phase 1-4 实施：后台控制面板与工具执行能力审计
+
+**日期**: 2025-07-18
+
+### Phase 1: 管理面板增强
+
+#### 1.1 Agent 任务管理面板
+- 已有功能 (`routes/admin_api.py` L369-477, `routes/admin_ui.py` L222-251)
+- 包含: 任务列表 (分页/筛选)、任务详情、取消/重试、进度追踪
+- 无需修改
+
+#### 1.2 实时日志流 (SSE)
+- 新增 SSE pub-sub 系统 (`routes/admin_api.py`):
+  - `_log_subscribers` + `publish_log_event()` 推送日志到所有订阅者
+  - `GET /admin/api/logs/stream` SSE 端点
+- 集成到 `routes/request_tracking.py` 的 `record_request()` 函数
+- 前端: 实时日志面板 (SSE 连接、滚动、过滤、清除)
+- 测试: `tests/test_admin_logs_stream.py`
+
+#### 1.3 配置导入/导出
+- `GET /admin/api/config/export` - 导出完整配置 JSON
+- `POST /admin/api/config/import` - 导入配置 (需 CSRF 验证)
+- 前端: 配置管理面板 (导出/导入按钮)
+- 测试: `tests/test_admin_config.py`
+
+### Phase 2: 工具能力扩展
+
+#### 2.1 网页浏览工具
+- 新建 `lima_fc_tools/web_tools.py`:
+  - `browse_webpage(url, selector?, max_length?)` - HTML 解析 + 文本提取
+  - `fetch_url(url)` - 获取原始响应
+- 使用 regex HTML parser (避免 beautifulsoup4 依赖)
+- 测试: `tests/test_web_tools.py`
+
+#### 2.2 文件操作工具
+- 新建 `lima_fc_tools/file_tools.py`:
+  - `list_files(directory, recursive?)` - 安全文件列表
+  - `read_file_content(file_path, encoding?)` - 读取文件 (带大小限制)
+  - `write_file_content(file_path, content, mode?)` - 写入文件
+- 安全: `_is_safe_path()` 路径验证, 可配置允许根目录
+- 测试: `tests/test_file_tools.py`
+
+#### 2.3 图片生成工具
+- 新建 `lima_fc_tools/image_tools.py`:
+  - `generate_image(prompt, style?, size?)` - DashScope 通义万相 API
+- 支持异步任务轮询 (30秒超时)
+- 需要 `LIMA_IMAGE_GEN_API_KEY` 环境变量
+
+### Phase 3: 管理面板完善
+
+#### 3.1 设备网关控制面板
+- 新增端点:
+  - `GET /admin/api/devices` - 设备列表
+  - `GET /admin/api/devices/{device_id}` - 设备详情
+  - `POST /admin/api/devices/{device_id}/restart` - 重启设备
+- 前端: 设备管理面板
+
+#### 3.2 告警配置
+- 新增 CRUD 端点:
+  - `GET /admin/api/alerts/rules` - 列表
+  - `POST /admin/api/alerts/rules` - 创建
+  - `PUT /admin/api/alerts/rules/{rule_id}` - 更新
+  - `DELETE /admin/api/alerts/rules/{rule_id}` - 删除
+- 持久化: `data/alert_rules.json`
+- 前端: 告警配置面板
+
+### Phase 4: 工具能力完善
+
+#### 4.1 代码执行沙箱
+- 新建 `sandbox/executor.py`:
+  - `run_code(language, code, timeout?)` - 执行代码
+  - `_docker_available()` - 检测 Docker 可用性
+- 支持: Python, JavaScript, Shell
+- Docker 安全: `--cap-drop ALL`, `--read-only`, `--no-new-privileges`
+- 本地 fallback (当 Docker 不可用时)
+- 测试: `tests/test_sandbox_executor.py`
+
+#### 4.2 数据库查询工具
+- 新建 `lima_fc_tools/db_tools.py`:
+  - `query_database(connection_string, sql, max_rows?)` - 执行只读 SQL
+- 支持: SQLite, PostgreSQL, MySQL
+- 安全: `_is_read_only()` SQL 注入防护, 查询超时, 结果限制 (100 行)
+- 测试: `tests/test_db_tools.py`
+
+### 测试结果
+- 本地 pytest: 26 passed, 1 skipped (Windows bash)
+- VPS 部署 smoke: 13 passed, 0 failed
+- VPS health: HTTP 200, 所有模块加载成功
+
+### 部署
+- 部署到 VPS: 47.112.162.80:/opt/lima-router
+- 更新 `scripts/deploy_vps_bundle.py` 添加新文件
+- 服务重启成功, 端口 8080 正常监听

@@ -139,3 +139,13 @@ def record_request(query: str, backend: str, intent: str, duration_ms: int,
         _stats["recent_logs"].append(log_entry)
         if len(_stats["recent_logs"]) > 100:
             _stats["recent_logs"] = _stats["recent_logs"][-100:]
+
+    # Fan-out to SSE log stream subscribers (non-blocking).
+    try:
+        import asyncio
+        from routes.admin_api import publish_log_event
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            loop.create_task(publish_log_event(log_entry))
+    except Exception:
+        pass  # Best-effort: never block the request path.

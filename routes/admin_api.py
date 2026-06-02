@@ -10,8 +10,10 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import AsyncGenerator
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 
 from routes.admin_auth import verify_admin, verify_csrf
 from routes.admin_state import FALLBACK_LOG, stats_context
@@ -361,3 +363,404 @@ async def admin_key_url_inventory():
 
     pools = kp.pool_snapshot()
     return {"backends": backends, "key_pools": pools}
+
+
+# -- Agent task management (M26) ------------------------------------------
+
+
+# ── SSE log stream (Phase 1.2) ───────────────────────────────────────────
+# A simple in-process pub-sub for log events.  Each SSE client gets an
+# ``asyncio.Queue``.  When a new log entry arrives the dispatcher fans
+# it out to every queue.
+
+_log_subscribers: list[asyncio.Queue[dict | None]] = []
+_log_subscribers_lock = asyncio.Lock()
+
+
+async def publish_log_event(event: dict) -> None:
+    """Push *event* to every active SSE subscriber (fire-and-forget)."""
+    async with _log_subscribers_lock:
+        dead: list[int] = []
+        for idx, q in enumerate(_log_subscribers):
+            try:
+                q.put_nowait(event)
+            except asyncio.QueueFull:
+                dead.append(idx)
+        for idx in reversed(dead):
+            _log_subscribers.pop(idx)
+
+
+async def _log_sse_generator(
+    queue: asyncio.Queue[dict | None],
+) -> AsyncGenerator[str, None]:
+    """Yield SSE-formatted strings for every log event in *queue*."""
+    try:
+        # Send a keepalive comment immediately so the connection is
+        # established before we start waiting for events.
+        yield ": connected\n\n"
+        while True:
+            event: dict | None = await queue.get()
+            if event is None:
+                # Sentinel: client should close
+                break
+            data = json.dumps(event, ensure_ascii=False)
+            yield f"data: {data}\n\n"
+    except asyncio.CancelledError:
+        pass
+
+
+@router.get("/api/logs/stream", dependencies=[Depends(verify_admin)])
+async def admin_logs_stream():
+    """SSE endpoint that streams log events in real time."""
+    queue: asyncio.Queue[dict | None] = asyncio.Queue(maxsize=256)
+    async with _log_subscribers_lock:
+        _log_subscribers.append(queue)
+
+    async def _cleanup():
+        async with _log_subscribers_lock:
+            if queue in _log_subscribers:
+                _log_subscribers.remove(queue)
+
+    async def _wrapped():
+        try:
+            async for chunk in _log_sse_generator(queue):
+                yield chunk
+        finally:
+            await _cleanup()
+
+    return StreamingResponse(
+        _wrapped(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@router.get("/api/agent-tasks", dependencies=[Depends(verify_admin)])
+async def admin_agent_tasks(
+    status: str = "",
+    limit: int = 50,
+    offset: int = 0,
+):
+    """List agent tasks with optional status filter and pagination."""
+    try:
+        from routes.agent_task_store import get_task_store
+
+        store = get_task_store()
+        all_tasks = list(store.values())
+        if status:
+            all_tasks = [t for t in all_tasks if t.get("status") == status]
+        all_tasks.sort(key=lambda t: t.get("created_at", 0), reverse=True)
+        total = len(all_tasks)
+        page = all_tasks[offset : offset + limit]
+
+        items = []
+        for t in page:
+            request = t.get("request", {})
+            items.append({
+                "task_id": request.get("task_id", ""),
+                "status": t.get("status", "unknown"),
+                "created_at": t.get("created_at", 0),
+                "updated_at": t.get("updated_at", 0),
+                "worker_id": request.get("worker_id", ""),
+                "backend": request.get("backend", ""),
+                "description": request.get("description", ""),
+                "has_result": "result" in t,
+            })
+        return {"tasks": items, "total": total, "offset": offset, "limit": limit}
+    except ImportError:
+        return {"tasks": [], "total": 0, "offset": 0, "limit": limit}
+
+
+@router.get("/api/agent-tasks/{task_id}", dependencies=[Depends(verify_admin)])
+async def admin_agent_task_detail(task_id: str):
+    """Get detailed information about a specific agent task."""
+    try:
+        from routes.agent_task_store import get_task_store
+
+        store = get_task_store()
+        if not store.contains(task_id):
+            raise HTTPException(404, "Task not found")
+        task = store.get(task_id)
+        events = store.get_events(task_id)
+        return {
+            "task_id": task_id,
+            "status": task.get("status", "unknown"),
+            "created_at": task.get("created_at", 0),
+            "updated_at": task.get("updated_at", 0),
+            "request": task.get("request", {}),
+            "result": task.get("result"),
+            "events": events[-20:],
+        }
+    except ImportError:
+        raise HTTPException(503, "Task store not available")
+
+
+@router.post("/api/agent-tasks/{task_id}/cancel", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
+async def admin_agent_task_cancel(task_id: str):
+    """Cancel an agent task by setting cancel_requested flag."""
+    try:
+        from routes.agent_task_store import get_task_store
+
+        store = get_task_store()
+        if not store.contains(task_id):
+            raise HTTPException(404, "Task not found")
+        task = store.get(task_id)
+        current_status = task.get("status", "")
+        if current_status in ("completed", "failed", "cancelled"):
+            raise HTTPException(409, f"Cannot cancel task in {current_status} status")
+        request = dict(task.get("request", {}))
+        request["cancel_requested"] = True
+        task["request"] = request
+        task["updated_at"] = time.time()
+        store.update(task_id)
+        store.append_event(task_id, {"type": "cancel_requested", "by": "admin"})
+        return {"task_id": task_id, "status": "cancel_requested"}
+    except ImportError:
+        raise HTTPException(503, "Task store not available")
+
+
+@router.post("/api/agent-tasks/{task_id}/retry", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
+async def admin_agent_task_retry(task_id: str):
+    """Retry a failed task by resetting its status to accepted."""
+    try:
+        from routes.agent_task_store import get_task_store
+
+        store = get_task_store()
+        if not store.contains(task_id):
+            raise HTTPException(404, "Task not found")
+        task = store.get(task_id)
+        current_status = task.get("status", "")
+        if current_status not in ("failed", "quarantined"):
+            raise HTTPException(409, f"Cannot retry task in {current_status} status")
+        task["status"] = "accepted"
+        task["updated_at"] = time.time()
+        if "result" in task:
+            del task["result"]
+        request = dict(task.get("request", {}))
+        request["cancel_requested"] = False
+        task["request"] = request
+        store.update(task_id)
+        store.append_event(task_id, {"type": "retry", "by": "admin"})
+        return {"task_id": task_id, "status": "accepted"}
+    except ImportError:
+        raise HTTPException(503, "Task store not available")
+
+
+# -- Config import/export (Phase 1.3) ------------------------------------
+
+_CONFIG_EXPORT_VERSION = "1.0"
+_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+_OVERLAY_PATH = _DATA_DIR / "backend_overrides.json"
+_ADMIT_PATH = _DATA_DIR / "backend_admission.json"
+
+
+@router.get("/api/config/export", dependencies=[Depends(verify_admin)])
+async def admin_config_export():
+    """Export backend overrides and admission config as a single JSON blob."""
+    config: dict = {
+        "version": _CONFIG_EXPORT_VERSION,
+        "exported_at": time.time(),
+        "backend_overrides": {},
+        "backend_admission": {},
+    }
+    if _OVERLAY_PATH.exists():
+        try:
+            config["backend_overrides"] = json.loads(
+                _OVERLAY_PATH.read_text(encoding="utf-8")
+            )
+        except (json.JSONDecodeError, OSError):
+            pass
+    if _ADMIT_PATH.exists():
+        try:
+            config["backend_admission"] = json.loads(
+                _ADMIT_PATH.read_text(encoding="utf-8")
+            )
+        except (json.JSONDecodeError, OSError):
+            pass
+    return config
+
+
+@router.post("/api/config/import", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
+async def admin_config_import(body: dict):
+    """Import backend overrides and admission config from a JSON payload.
+
+    Accepts the same structure returned by ``/api/config/export``.
+    Only the ``backend_overrides`` and ``backend_admission`` keys are
+    imported; everything else is ignored.
+    """
+    version = body.get("version", "")
+    if version != _CONFIG_EXPORT_VERSION:
+        raise HTTPException(
+            422,
+            f"Unsupported config version: {version!r} (expected {_CONFIG_EXPORT_VERSION})",
+        )
+    imported: list[str] = []
+    overrides = body.get("backend_overrides")
+    if isinstance(overrides, dict):
+        _DATA_DIR.mkdir(parents=True, exist_ok=True)
+        _OVERLAY_PATH.write_text(
+            json.dumps(overrides, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        imported.append("backend_overrides")
+    admission = body.get("backend_admission")
+    if isinstance(admission, dict):
+        _DATA_DIR.mkdir(parents=True, exist_ok=True)
+        _ADMIT_PATH.write_text(
+            json.dumps(admission, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        imported.append("backend_admission")
+    _log.info("admin: config imported sections=%s", imported)
+    return {"ok": True, "imported": imported}
+
+
+# -- Device gateway management (Phase 3.1) --------------------------------
+
+
+@router.get("/api/devices", dependencies=[Depends(verify_admin)])
+async def admin_devices():
+    """List all connected devices from the device gateway session registry."""
+    try:
+        from device_gateway.sessions import registry
+
+        sessions_info = []
+        with registry._lock:
+            for device_id, session in registry._sessions.items():
+                sessions_info.append({
+                    "device_id": device_id,
+                    "fw_rev": session.fw_rev,
+                    "capabilities": session.capabilities,
+                    "last_uptime_ms": session.last_uptime_ms,
+                    "inflight_count": len(session.inflight_tasks),
+                })
+        return {"devices": sessions_info, "total": len(sessions_info)}
+    except (ImportError, AttributeError):
+        return {"devices": [], "total": 0, "note": "Device gateway not available"}
+
+
+@router.get("/api/devices/{device_id}", dependencies=[Depends(verify_admin)])
+async def admin_device_detail(device_id: str):
+    """Get detailed information about a specific device."""
+    try:
+        from device_gateway.sessions import registry
+
+        session = registry.get(device_id)
+        if session is None:
+            raise HTTPException(404, "Device not connected")
+        with session.inflight_lock:
+            inflight = list(session.inflight_tasks.values())
+        return {
+            "device_id": device_id,
+            "fw_rev": session.fw_rev,
+            "capabilities": session.capabilities,
+            "last_uptime_ms": session.last_uptime_ms,
+            "inflight_tasks": inflight,
+        }
+    except HTTPException:
+        raise
+    except (ImportError, AttributeError):
+        raise HTTPException(503, "Device gateway not available")
+
+
+@router.post("/api/devices/{device_id}/restart", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
+async def admin_device_restart(device_id: str):
+    """Send a restart command to a connected device."""
+    try:
+        import asyncio as _asyncio
+        from device_gateway.sessions import registry
+        from device_gateway.protocol import ack_frame
+
+        session = registry.get(device_id)
+        if session is None:
+            raise HTTPException(404, "Device not connected")
+        await session.send_json({"type": "restart", "device_id": device_id})
+        return {"device_id": device_id, "command": "restart", "sent": True}
+    except HTTPException:
+        raise
+    except (ImportError, AttributeError):
+        raise HTTPException(503, "Device gateway not available")
+    except Exception as exc:
+        raise HTTPException(500, f"Failed to send restart: {exc}")
+
+
+# -- Alert rules management (Phase 3.2) -----------------------------------
+
+_ALERT_RULES_PATH = Path(__file__).resolve().parent.parent / "data" / "alert_rules.json"
+
+
+def _read_alert_rules() -> list[dict]:
+    if not _ALERT_RULES_PATH.exists():
+        return []
+    try:
+        data = json.loads(_ALERT_RULES_PATH.read_text(encoding="utf-8"))
+        return data if isinstance(data, list) else []
+    except (json.JSONDecodeError, OSError):
+        return []
+
+
+def _write_alert_rules(rules: list[dict]) -> None:
+    _ALERT_RULES_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _ALERT_RULES_PATH.write_text(
+        json.dumps(rules, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
+@router.get("/api/alerts/rules", dependencies=[Depends(verify_admin)])
+async def admin_alert_rules_list():
+    """List all alert rules."""
+    return {"rules": _read_alert_rules()}
+
+
+@router.post("/api/alerts/rules", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
+async def admin_alert_rules_create(body: dict):
+    """Create a new alert rule."""
+    rules = _read_alert_rules()
+    rule_id = f"alert-{int(time.time())}-{len(rules)}"
+    rule = {
+        "rule_id": rule_id,
+        "name": body.get("name", "Untitled"),
+        "metric": body.get("metric", "error_rate"),
+        "condition": body.get("condition", "gt"),
+        "threshold": body.get("threshold", 0.5),
+        "window_sec": body.get("window_sec", 300),
+        "enabled": body.get("enabled", True),
+        "notify": body.get("notify", []),
+        "created_at": time.time(),
+    }
+    rules.append(rule)
+    _write_alert_rules(rules)
+    _log.info("admin: created alert rule %s", rule_id)
+    return {"ok": True, "rule": rule}
+
+
+@router.put("/api/alerts/rules/{rule_id}", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
+async def admin_alert_rules_update(rule_id: str, body: dict):
+    """Update an existing alert rule."""
+    rules = _read_alert_rules()
+    for rule in rules:
+        if rule.get("rule_id") == rule_id:
+            for key in ("name", "metric", "condition", "threshold", "window_sec", "enabled", "notify"):
+                if key in body:
+                    rule[key] = body[key]
+            _write_alert_rules(rules)
+            _log.info("admin: updated alert rule %s", rule_id)
+            return {"ok": True, "rule": rule}
+    raise HTTPException(404, f"Alert rule '{rule_id}' not found")
+
+
+@router.delete("/api/alerts/rules/{rule_id}", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
+async def admin_alert_rules_delete(rule_id: str):
+    """Delete an alert rule."""
+    rules = _read_alert_rules()
+    new_rules = [r for r in rules if r.get("rule_id") != rule_id]
+    if len(new_rules) == len(rules):
+        raise HTTPException(404, f"Alert rule '{rule_id}' not found")
+    _write_alert_rules(new_rules)
+    _log.info("admin: deleted alert rule %s", rule_id)
+    return {"ok": True, "deleted": rule_id}
