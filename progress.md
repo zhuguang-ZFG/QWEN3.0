@@ -1,6 +1,32 @@
 # Execution Log
 
-> Last updated: 2026-06-03 · 21 个里程碑完成 · 2168+20 tests passing
+> Last updated: 2026-06-03 · 22 个里程碑完成 · 2191 tests passing
+
+## M23: 模型解析器 - 客户端模型参数路由 (completed)
+
+| Task | 修复内容 | 文件 | 状态 |
+|------|---------|------|------|
+| **T1** | 创建 model_resolver.py — resolve_backend() 函数 | model_resolver.py | ✅ |
+| **T2** | backends_constants.py — 添加 MODEL_ALIASES 字典 | backends_constants.py | ✅ |
+| **T3** | routing_engine.py — route() 接入 forced_backend | routing_engine.py | ✅ |
+| **T4** | tests/test_model_resolver.py — 单元测试 | tests/test_model_resolver.py | ✅ |
+| **T5** | 本地 pytest 验证 — 2191 passed | - | ✅ |
+| **T6** | VPS 部署 + health + smoke | scripts/deploy_model_resolver.py, scripts/smoke_model_resolver.py | ✅ |
+| **T7** | 更新 progress.md / findings.md，git commit/push | progress.md, findings.md | ✅ |
+
+**功能说明**: 允许 IDE 客户端（Cursor、Copilot 等）通过 model 参数指定 LiMa 后端，例如 `model=gpt-4o` 会路由到 `github_gpt4o`。
+
+**本地门禁**: 全量 pytest 2191 passed
+**VPS 部署**: deploy_model_resolver.py 一键部署, 备份 model_resolver.py.bak.model_resolver, backends_constants.py.bak.model_resolver, routing_engine.py.bak.model_resolver
+**VPS /health**: `{"status":"ok","version":"2.0"}` 所有模块正常
+**VPS smoke**: health check PASS, API 端点响应正常 (401 预期，测试 token 无效)
+**回滚命令**: 
+```
+cp /opt/lima-router/model_resolver.py.bak.model_resolver /opt/lima-router/model_resolver.py
+cp /opt/lima-router/backends_constants.py.bak.model_resolver /opt/lima-router/backends_constants.py
+cp /opt/lima-router/routing_engine.py.bak.model_resolver /opt/lima-router/routing_engine.py
+systemctl restart lima-router.service
+```
 
 ## M22: 工具调用管道 7 项改善 (completed)
 

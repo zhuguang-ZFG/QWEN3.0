@@ -95,3 +95,57 @@ IDE_SOURCES = {"Claude Code", "claude_code", "Cursor", "cursor",
                "Kiro", "kiro", "Zed", "zed", "Trae", "trae",
                "Windsurf", "windsurf", "Copilot", "copilot",
                "GitHub Copilot"}
+
+# ── Model Aliases: client-friendly names → LiMa backend names ──
+# Used by model_resolver.resolve_backend() to let IDE clients
+# (Cursor, Copilot, etc.) target specific LiMa backends.
+MODEL_ALIASES = {
+    # OpenAI
+    "gpt-4o": "github_gpt4o",
+    "gpt-4o-mini": "github_gpt4o_mini",
+    "gpt-5": "github_gpt5",
+    "o3-mini": "github_o3_mini",
+    "o4-mini": "github_o4_mini",
+    # DeepSeek
+    "deepseek-v3": "scnet_ds_pro",
+    "deepseek-v4": "scnet_ds_pro",
+    "deepseek-v4-flash": "scnet_ds_flash",
+    "deepseek-r1": "github_deepseek_r1",
+    # Qwen
+    "qwen-max": "scnet_qwen235b",
+    "qwen-plus": "scnet_qwen30b",
+    "qwen3-coder": "or_qwen3_coder",
+    "qwen3-235b": "scnet_qwen235b",
+    "qwen3-30b": "scnet_qwen30b",
+    # Claude / Anthropic (via longcat proxy)
+    "claude-opus": "longcat",
+    "claude-sonnet": "longcat",
+    "claude-haiku": "longcat",
+    "claude-3-opus": "longcat",
+    "claude-3-sonnet": "longcat",
+    "claude-3-haiku": "longcat",
+    # Llama
+    "llama-3.3-70b": "groq_llama70b",
+    "llama-3.1-8b": "groq_llama8b",
+    "llama-4-scout": "groq_llama4",
+    # Google
+    "gemini-2.5-flash": "google_flash",
+    "gemini-2.5-pro": "google_pro",
+    "gemini-flash": "google_flash",
+    # Mistral
+    "mistral-large": "mistral_large",
+    "mistral-small": "mistral_small",
+    "codestral": "mistral_codestral",
+    # MiMo
+    "mimo": "mimo_web",
+    "mimo-pro": "mimo_v2_pro",
+    "mimo-v2.5-pro": "mimo_v2_5_pro",
+    # Kimi
+    "kimi": "kimi",
+    "kimi-k2.6": "kimi",
+    # Cloudflare
+    "gpt-oss-120b": "cf_gptoss_120b",
+    # Fallback aliases (point to strong free backends)
+    "default": None,
+    "auto": None,
+}

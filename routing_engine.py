@@ -26,6 +26,7 @@ from response_cleaner import clean_response
 from route_post_process import apply_post_route_integrations
 from routing_classifier import classify, classify_scenario
 from routing_executor import execute
+from model_resolver import resolve_backend
 from routing_selector import select
 
 # Re-export for backward compatibility
@@ -81,7 +82,9 @@ def route(query: str, messages: list[dict], *,
           cache_enabled: bool = True,
           channel_role: str = "default",
           needs_tools: bool = False,
-          tools: list[dict] | None = None) -> RouteResult:
+          tools: list[dict] | None = None,
+          client_ip: str = "",
+          user_agent: str = "") -> RouteResult:
     """统一路由入口。call_fn(backend, messages, max_tokens) -> str"""
     t0 = time.time()
 
@@ -122,6 +125,25 @@ def route(query: str, messages: list[dict], *,
         logging.debug("routing_engine: skill_store not available: %s", e)
 
     messages, _retrieval_text = inject_retrieval_context(messages)
+
+    # ── Enriched context: date/time + location + device ──
+    try:
+        from context_pipeline.enrich_context import inject_enriched_context
+        messages = inject_enriched_context(
+            messages, client_ip=client_ip, user_agent=user_agent,
+        )
+    except Exception as e:
+        logging.debug("routing_engine: enrich_context injection failed: %s", e)
+
+    # ── Web search context: detect + search + inject ──
+    _web_search_text = ""
+    try:
+        from context_pipeline.web_search_context import inject_web_search_context
+        messages, _web_search_text = inject_web_search_context(query, messages)
+        if _web_search_text:
+            _retrieval_text = (_retrieval_text + "\n" + _web_search_text).strip()
+    except Exception as e:
+        logging.debug("routing_engine: web_search_context injection failed: %s", e)
 
     _code_context_text = ""
     if scenario == "coding":
@@ -183,6 +205,22 @@ def route(query: str, messages: list[dict], *,
     hmap = health_tracker.get_health_map()
     backends = select(req_type, hmap, sticky_key=sticky_key, scenario=scenario,
                       needs_tools=needs_tools, recalled_backend=_recalled_backend)
+
+    # ── Client model override: resolve model param to specific backend ──
+    forced_backend = resolve_backend(model)
+    if forced_backend and forced_backend not in backends:
+        if health_tracker.is_cooled_down(forced_backend):
+            logging.info(
+                "model_resolver: forced backend %s is cooled down, "
+                "falling back to auto-route %s",
+                forced_backend, backends[:3],
+            )
+        else:
+            logging.info(
+                "model_resolver: client override %r → %s (inserted at position 0)",
+                model, forced_backend,
+            )
+            backends = [forced_backend] + [b for b in backends if b != forced_backend]
 
     messages_injected = inject_skills(
         messages, backend=backends[0] if backends else "",
