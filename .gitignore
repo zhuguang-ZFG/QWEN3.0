@@ -83,6 +83,7 @@ data/openrouter_fixture.json
 data/web_reverse_*.json
 data/claude_code_source_analysis.txt
 data/models/registry.json
+data/client_keys.json
 # Retired WeChat / GeWe local probes (never commit)
 data/.geweapi_browser_profile/
 data/wechat_install/
