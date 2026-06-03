@@ -14,41 +14,41 @@ logger = logging.getLogger("capability_matrix")
 
 # ── 能力维度 ─────────────────────────────────────────────────────────────────
 
-DIMENSIONS = ["code", "debug", "chinese", "english", "reasoning", "speed"]
+DIMENSIONS = ["code", "debug", "chinese", "english", "reasoning", "speed", "tool_calls"]
 
 # ── 默认能力矩阵（手动标注 + 评测结果覆盖）─────────────────────────────────
 
 _DEFAULT_MATRIX = {
     # 代码专用后端
-    "nvidia_qwen_coder": {"code": 9, "debug": 8, "chinese": 7, "english": 7, "reasoning": 6, "speed": 6},
-    "cf_qwen_coder": {"code": 9, "debug": 8, "chinese": 7, "english": 7, "reasoning": 6, "speed": 7},
-    "github_codestral": {"code": 9, "debug": 8, "chinese": 3, "english": 8, "reasoning": 5, "speed": 8},
-    "mistral_codestral": {"code": 9, "debug": 8, "chinese": 3, "english": 8, "reasoning": 5, "speed": 7},
-    "mistral_devstral": {"code": 8, "debug": 7, "chinese": 3, "english": 8, "reasoning": 5, "speed": 7},
-    "or_qwen3_coder": {"code": 9, "debug": 8, "chinese": 7, "english": 7, "reasoning": 6, "speed": 5},
-    "opencode_stealth": {"code": 8, "debug": 7, "chinese": 5, "english": 7, "reasoning": 6, "speed": 6},
+    "nvidia_qwen_coder": {"code": 9, "debug": 8, "chinese": 7, "english": 7, "reasoning": 6, "speed": 6, "tool_calls": 0},
+    "cf_qwen_coder": {"code": 9, "debug": 8, "chinese": 7, "english": 7, "reasoning": 6, "speed": 7, "tool_calls": 5},
+    "github_codestral": {"code": 9, "debug": 8, "chinese": 3, "english": 8, "reasoning": 5, "speed": 8, "tool_calls": 8},
+    "mistral_codestral": {"code": 9, "debug": 8, "chinese": 3, "english": 8, "reasoning": 5, "speed": 7, "tool_calls": 8},
+    "mistral_devstral": {"code": 8, "debug": 7, "chinese": 3, "english": 8, "reasoning": 5, "speed": 7, "tool_calls": 8},
+    "or_qwen3_coder": {"code": 9, "debug": 8, "chinese": 7, "english": 7, "reasoning": 6, "speed": 5, "tool_calls": 0},
+    "opencode_stealth": {"code": 8, "debug": 7, "chinese": 5, "english": 7, "reasoning": 6, "speed": 6, "tool_calls": 0},
 
     # 快速通用后端
-    "groq_llama70b": {"code": 7, "debug": 6, "chinese": 4, "english": 8, "reasoning": 6, "speed": 9},
-    "groq_qwen32b": {"code": 7, "debug": 6, "chinese": 6, "english": 7, "reasoning": 6, "speed": 9},
-    "groq_gptoss": {"code": 6, "debug": 5, "chinese": 4, "english": 7, "reasoning": 5, "speed": 9},
-    "groq_llama4": {"code": 7, "debug": 6, "chinese": 5, "english": 8, "reasoning": 7, "speed": 9},
-    "cerebras_gptoss": {"code": 6, "debug": 5, "chinese": 4, "english": 7, "reasoning": 5, "speed": 9},
+    "groq_llama70b": {"code": 7, "debug": 6, "chinese": 4, "english": 8, "reasoning": 6, "speed": 9, "tool_calls": 8},
+    "groq_qwen32b": {"code": 7, "debug": 6, "chinese": 6, "english": 7, "reasoning": 6, "speed": 9, "tool_calls": 8},
+    "groq_gptoss": {"code": 6, "debug": 5, "chinese": 4, "english": 7, "reasoning": 5, "speed": 9, "tool_calls": 8},
+    "groq_llama4": {"code": 7, "debug": 6, "chinese": 5, "english": 8, "reasoning": 7, "speed": 9, "tool_calls": 8},
+    "cerebras_gptoss": {"code": 6, "debug": 5, "chinese": 4, "english": 7, "reasoning": 5, "speed": 9, "tool_calls": 0},
 
     # LongCat 系列
-    "longcat_lite": {"code": 5, "debug": 4, "chinese": 7, "english": 6, "reasoning": 4, "speed": 8},
-    "longcat_chat": {"code": 7, "debug": 6, "chinese": 8, "english": 7, "reasoning": 6, "speed": 7},
-    "longcat": {"code": 8, "debug": 7, "chinese": 9, "english": 8, "reasoning": 7, "speed": 6},
-    "longcat_thinking": {"code": 9, "debug": 8, "chinese": 9, "english": 8, "reasoning": 9, "speed": 4},
-    "longcat_web": {"code": 7, "debug": 6, "chinese": 8, "english": 7, "reasoning": 6, "speed": 5},
-    "longcat_web_think": {"code": 8, "debug": 7, "chinese": 9, "english": 8, "reasoning": 8, "speed": 3},
-    "longcat_web_research": {"code": 7, "debug": 6, "chinese": 9, "english": 8, "reasoning": 8, "speed": 2},
+    "longcat_lite": {"code": 5, "debug": 4, "chinese": 7, "english": 6, "reasoning": 4, "speed": 8, "tool_calls": 8},
+    "longcat_chat": {"code": 7, "debug": 6, "chinese": 8, "english": 7, "reasoning": 6, "speed": 7, "tool_calls": 0},
+    "longcat": {"code": 8, "debug": 7, "chinese": 9, "english": 8, "reasoning": 7, "speed": 6, "tool_calls": 9},
+    "longcat_thinking": {"code": 9, "debug": 8, "chinese": 9, "english": 8, "reasoning": 9, "speed": 4, "tool_calls": 0},
+    "longcat_web": {"code": 7, "debug": 6, "chinese": 8, "english": 7, "reasoning": 6, "speed": 5, "tool_calls": 5},
+    "longcat_web_think": {"code": 8, "debug": 7, "chinese": 9, "english": 8, "reasoning": 8, "speed": 3, "tool_calls": 5},
+    "longcat_web_research": {"code": 7, "debug": 6, "chinese": 9, "english": 8, "reasoning": 8, "speed": 2, "tool_calls": 0},
 
     # Cloudflare 系列
-    "cf_llama70b": {"code": 7, "debug": 6, "chinese": 4, "english": 8, "reasoning": 6, "speed": 7},
-    "cf_kimi_k26": {"code": 8, "debug": 7, "chinese": 9, "english": 7, "reasoning": 7, "speed": 3},
-    "cf_qwen3_30b": {"code": 7, "debug": 6, "chinese": 7, "english": 7, "reasoning": 6, "speed": 7},
-    "cf_gemma4": {"code": 6, "debug": 5, "chinese": 3, "english": 7, "reasoning": 5, "speed": 7},
+    "cf_llama70b": {"code": 7, "debug": 6, "chinese": 4, "english": 8, "reasoning": 6, "speed": 7, "tool_calls": 0},
+    "cf_kimi_k26": {"code": 8, "debug": 7, "chinese": 9, "english": 7, "reasoning": 7, "speed": 3, "tool_calls": 0},
+    "cf_qwen3_30b": {"code": 7, "debug": 6, "chinese": 7, "english": 7, "reasoning": 6, "speed": 7, "tool_calls": 0},
+    "cf_gemma4": {"code": 6, "debug": 5, "chinese": 3, "english": 7, "reasoning": 5, "speed": 7, "tool_calls": 0},
 
     # 本地 Ollama (RTX 5060 Ti)
     # M1: local_* Ollama models deleted
@@ -57,48 +57,48 @@ _DEFAULT_MATRIX = {
     # M6: ddg_* backends deleted
 
     # lza6 CF Workers
-    "tele_reason": {"code": 6, "debug": 6, "chinese": 5, "english": 7, "reasoning": 8, "speed": 6},
-    "tele_standard": {"code": 6, "debug": 5, "chinese": 5, "english": 7, "reasoning": 5, "speed": 7},
-    "tele_apps": {"code": 7, "debug": 6, "chinese": 5, "english": 7, "reasoning": 5, "speed": 7},
-    "assist_brainstorm": {"code": 5, "debug": 4, "chinese": 5, "english": 7, "reasoning": 6, "speed": 6},
-    "vision_joycaption": {"code": 2, "debug": 2, "chinese": 3, "english": 6, "reasoning": 3, "speed": 5},
+    "tele_reason": {"code": 6, "debug": 6, "chinese": 5, "english": 7, "reasoning": 8, "speed": 6, "tool_calls": 0},
+    "tele_standard": {"code": 6, "debug": 5, "chinese": 5, "english": 7, "reasoning": 5, "speed": 7, "tool_calls": 0},
+    "tele_apps": {"code": 7, "debug": 6, "chinese": 5, "english": 7, "reasoning": 5, "speed": 7, "tool_calls": 0},
+    "assist_brainstorm": {"code": 5, "debug": 4, "chinese": 5, "english": 7, "reasoning": 6, "speed": 6, "tool_calls": 0},
+    "vision_joycaption": {"code": 2, "debug": 2, "chinese": 3, "english": 6, "reasoning": 3, "speed": 5, "tool_calls": 0},
 
     # StockAI
-    "stock_gpt4o_mini": {"code": 8, "debug": 7, "chinese": 7, "english": 9, "reasoning": 7, "speed": 7},
-    "stock_gemini_flash": {"code": 8, "debug": 7, "chinese": 7, "english": 8, "reasoning": 7, "speed": 8},
-    "stock_deepseek": {"code": 9, "debug": 8, "chinese": 9, "english": 8, "reasoning": 8, "speed": 6},
-    "stock_llama4": {"code": 7, "debug": 6, "chinese": 5, "english": 8, "reasoning": 7, "speed": 7},
-    "stock_kimi_k2": {"code": 8, "debug": 7, "chinese": 9, "english": 7, "reasoning": 8, "speed": 6},
-    "stock_glm46": {"code": 7, "debug": 6, "chinese": 9, "english": 7, "reasoning": 6, "speed": 7},
-    "stock_qwen3_coder": {"code": 9, "debug": 8, "chinese": 7, "english": 7, "reasoning": 7, "speed": 6},
-    "stock_news": {"code": 3, "debug": 2, "chinese": 5, "english": 7, "reasoning": 4, "speed": 7},
-    "stock_mistral": {"code": 6, "debug": 5, "chinese": 4, "english": 7, "reasoning": 5, "speed": 7},
+    "stock_gpt4o_mini": {"code": 8, "debug": 7, "chinese": 7, "english": 9, "reasoning": 7, "speed": 7, "tool_calls": 0},
+    "stock_gemini_flash": {"code": 8, "debug": 7, "chinese": 7, "english": 8, "reasoning": 7, "speed": 8, "tool_calls": 0},
+    "stock_deepseek": {"code": 9, "debug": 8, "chinese": 9, "english": 8, "reasoning": 8, "speed": 6, "tool_calls": 0},
+    "stock_llama4": {"code": 7, "debug": 6, "chinese": 5, "english": 8, "reasoning": 7, "speed": 7, "tool_calls": 0},
+    "stock_kimi_k2": {"code": 8, "debug": 7, "chinese": 9, "english": 7, "reasoning": 8, "speed": 6, "tool_calls": 0},
+    "stock_glm46": {"code": 7, "debug": 6, "chinese": 9, "english": 7, "reasoning": 6, "speed": 7, "tool_calls": 0},
+    "stock_qwen3_coder": {"code": 9, "debug": 8, "chinese": 7, "english": 7, "reasoning": 7, "speed": 6, "tool_calls": 0},
+    "stock_news": {"code": 3, "debug": 2, "chinese": 5, "english": 7, "reasoning": 4, "speed": 7, "tool_calls": 0},
+    "stock_mistral": {"code": 6, "debug": 5, "chinese": 4, "english": 7, "reasoning": 5, "speed": 7, "tool_calls": 0},
 
     # TheOldLLM
-    "oldllm_gpt54": {"code": 10, "debug": 9, "chinese": 8, "english": 10, "reasoning": 9, "speed": 5},
-    "oldllm_gpt53": {"code": 10, "debug": 9, "chinese": 8, "english": 10, "reasoning": 9, "speed": 5},
-    "oldllm_gpt52": {"code": 10, "debug": 9, "chinese": 8, "english": 10, "reasoning": 9, "speed": 5},
-    "oldllm_gpt51": {"code": 9, "debug": 9, "chinese": 8, "english": 10, "reasoning": 9, "speed": 5},
-    "oldllm_gpt5": {"code": 9, "debug": 8, "chinese": 8, "english": 10, "reasoning": 8, "speed": 5},
-    "oldllm_gpt5_mini": {"code": 8, "debug": 7, "chinese": 7, "english": 9, "reasoning": 7, "speed": 7},
-    "oldllm_gpt41": {"code": 9, "debug": 8, "chinese": 7, "english": 9, "reasoning": 8, "speed": 6},
-    "oldllm_gpt41_mini": {"code": 8, "debug": 7, "chinese": 7, "english": 9, "reasoning": 7, "speed": 7},
-    "oldllm_gpt41_nano": {"code": 6, "debug": 5, "chinese": 5, "english": 8, "reasoning": 5, "speed": 9},
-    "oldllm_gpt4": {"code": 8, "debug": 8, "chinese": 7, "english": 9, "reasoning": 8, "speed": 5},
-    "oldllm_o1": {"code": 9, "debug": 9, "chinese": 7, "english": 9, "reasoning": 10, "speed": 3},
-    "oldllm_o4_mini": {"code": 9, "debug": 8, "chinese": 7, "english": 9, "reasoning": 9, "speed": 6},
+    "oldllm_gpt54": {"code": 10, "debug": 9, "chinese": 8, "english": 10, "reasoning": 9, "speed": 5, "tool_calls": 8},
+    "oldllm_gpt53": {"code": 10, "debug": 9, "chinese": 8, "english": 10, "reasoning": 9, "speed": 5, "tool_calls": 8},
+    "oldllm_gpt52": {"code": 10, "debug": 9, "chinese": 8, "english": 10, "reasoning": 9, "speed": 5, "tool_calls": 8},
+    "oldllm_gpt51": {"code": 9, "debug": 9, "chinese": 8, "english": 10, "reasoning": 9, "speed": 5, "tool_calls": 8},
+    "oldllm_gpt5": {"code": 9, "debug": 8, "chinese": 8, "english": 10, "reasoning": 8, "speed": 5, "tool_calls": 8},
+    "oldllm_gpt5_mini": {"code": 8, "debug": 7, "chinese": 7, "english": 9, "reasoning": 7, "speed": 7, "tool_calls": 8},
+    "oldllm_gpt41": {"code": 9, "debug": 8, "chinese": 7, "english": 9, "reasoning": 8, "speed": 6, "tool_calls": 0},
+    "oldllm_gpt41_mini": {"code": 8, "debug": 7, "chinese": 7, "english": 9, "reasoning": 7, "speed": 7, "tool_calls": 0},
+    "oldllm_gpt41_nano": {"code": 6, "debug": 5, "chinese": 5, "english": 8, "reasoning": 5, "speed": 9, "tool_calls": 0},
+    "oldllm_gpt4": {"code": 8, "debug": 8, "chinese": 7, "english": 9, "reasoning": 8, "speed": 5, "tool_calls": 0},
+    "oldllm_o1": {"code": 9, "debug": 9, "chinese": 7, "english": 9, "reasoning": 10, "speed": 3, "tool_calls": 0},
+    "oldllm_o4_mini": {"code": 9, "debug": 8, "chinese": 7, "english": 9, "reasoning": 9, "speed": 6, "tool_calls": 0},
 
     # 国家超算互联网平台 (scnet.cn)
-    "scnet_qwen30b": {"code": 8, "debug": 7, "chinese": 9, "english": 7, "reasoning": 7, "speed": 8},
-    "scnet_minimax": {"code": 7, "debug": 6, "chinese": 8, "english": 7, "reasoning": 7, "speed": 5},
-    "scnet_qwen235b": {"code": 9, "debug": 8, "chinese": 9, "english": 8, "reasoning": 8, "speed": 7},
-    "scnet_ds_flash": {"code": 9, "debug": 8, "chinese": 9, "english": 8, "reasoning": 8, "speed": 8},
-    "scnet_ds_pro": {"code": 10, "debug": 9, "chinese": 9, "english": 9, "reasoning": 9, "speed": 5},
+    "scnet_qwen30b": {"code": 8, "debug": 7, "chinese": 9, "english": 7, "reasoning": 7, "speed": 8, "tool_calls": 5},
+    "scnet_minimax": {"code": 7, "debug": 6, "chinese": 8, "english": 7, "reasoning": 7, "speed": 5, "tool_calls": 0},
+    "scnet_qwen235b": {"code": 9, "debug": 8, "chinese": 9, "english": 8, "reasoning": 8, "speed": 7, "tool_calls": 5},
+    "scnet_ds_flash": {"code": 9, "debug": 8, "chinese": 9, "english": 8, "reasoning": 8, "speed": 8, "tool_calls": 5},
+    "scnet_ds_pro": {"code": 10, "debug": 9, "chinese": 9, "english": 9, "reasoning": 9, "speed": 5, "tool_calls": 5},
 
     # Kimi (月之暗面, K2.6)
-    "kimi": {"code": 8, "debug": 7, "chinese": 10, "english": 7, "reasoning": 7, "speed": 7},
-    "kimi_thinking": {"code": 9, "debug": 8, "chinese": 10, "english": 8, "reasoning": 9, "speed": 5},
-    "kimi_search": {"code": 7, "debug": 6, "chinese": 10, "english": 7, "reasoning": 7, "speed": 4},
+    "kimi": {"code": 8, "debug": 7, "chinese": 10, "english": 7, "reasoning": 7, "speed": 7, "tool_calls": 5},
+    "kimi_thinking": {"code": 9, "debug": 8, "chinese": 10, "english": 8, "reasoning": 9, "speed": 5, "tool_calls": 5},
+    "kimi_search": {"code": 7, "debug": 6, "chinese": 10, "english": 7, "reasoning": 7, "speed": 4, "tool_calls": 0},
 }
 
 # ── 加载评测结果覆盖 ─────────────────────────────────────────────────────────
