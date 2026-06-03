@@ -183,6 +183,16 @@
     z-index: 999;
   }
 
+  /* ── Form grid ── */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* ── Toolbar ── */
+  .toolbar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .toolbar .search-input { width: 240px; }
+
+  /* ── Action buttons (mobile-friendly) ── */
+  .btn-sm { padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; }
+
   /* ── Responsive ── */
   @media (max-width: 768px) {
     .mobile-header { display: flex; }
@@ -195,6 +205,20 @@
     .sidebar-overlay.open { display: block; }
     .main { padding: 60px 16px 16px; }
     .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .form-grid { grid-template-columns: 1fr; }
+    .toolbar .search-input { width: 100%; min-width: 0; }
+    .btn-sm { padding: 10px 14px; font-size: 13px; min-height: 44px; }
+    .notification { left: 16px; right: 16px; max-width: none; top: 60px; }
+    .section-title { font-size: 13px; letter-spacing: 0.5px; }
+  }
+
+  /* ── Reduced motion ── */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 </style>
 </head>
@@ -299,10 +323,10 @@
 
   <!-- Backend CRUD Management -->
   <div class="section-title"><i data-lucide="settings" style="width:14px;height:14px;display:inline;vertical-align:middle;margin-right:6px;"></i>后端管理 <span style="font-weight:400;font-size:11px;color:var(--muted);">(CRUD — 需 admin 登录)</span></div>
-  <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+  <div class="toolbar">
     <button onclick="showAddForm()" style="background:var(--accent);color:#020617;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;"><i data-lucide="plus" style="width:14px;height:14px;display:inline;vertical-align:middle;margin-right:4px;"></i>添加后端</button>
-    <input id="searchBackend" placeholder="搜索后端名..." oninput="filterBackends()"
-      style="background:var(--bg-elevated);border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:6px;width:240px;">
+    <input id="searchBackend" class="search-input" placeholder="搜索后端名..." oninput="filterBackends()"
+      style="background:var(--bg-elevated);border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:6px;">
     <span id="crudStatus" style="font-size:12px;color:var(--muted);align-self:center;"></span>
   </div>
   <div class="table-wrap" id="backendTableWrap">
@@ -372,9 +396,9 @@ function renderBackends(list) {
       <td>${esc(b.fmt)}</td>
       <td>${b.key_configured ? '<span class="badge badge-green"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>' : '<span class="badge badge-yellow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>'}</td>
       <td>
-        <button onclick="editBackend('${escJs(b.name)}')" style="background:var(--blue);color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;margin-right:4px;font-size:11px;">编辑</button>
-        <button onclick="testBackend('${escJs(b.name)}')" style="background:var(--purple);color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;margin-right:4px;font-size:11px;">测试</button>
-        <button onclick="deleteBackend('${escJs(b.name)}')" style="background:var(--danger);color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;">删除</button>
+        <button class="btn-sm" onclick="editBackend('${escJs(b.name)}')" style="background:var(--blue);color:#fff;border:none;margin-right:4px;">编辑</button>
+        <button class="btn-sm" onclick="testBackend('${escJs(b.name)}')" style="background:var(--purple);color:#fff;border:none;margin-right:4px;">测试</button>
+        <button class="btn-sm" onclick="deleteBackend('${escJs(b.name)}')" style="background:var(--danger);color:#fff;border:none;">删除</button>
       </td>
     </tr>
   `).join('');
@@ -393,7 +417,7 @@ function showForm(backend) {
   const html = `
     <div id="crudForm" class="fade-in" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;box-shadow:var(--shadow-md);">
       <h3 style="margin-bottom:12px;font-size:16px;font-weight:600;"><i data-lucide="pencil" style="width:16px;height:16px;display:inline;vertical-align:middle;margin-right:6px;"></i>${isEdit ? '编辑' : '添加'}后端</h3>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="form-grid">
         <div>
           <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">名称 <span style="color:var(--danger);">*</span></label>
           <input id="f_name" value="${esc(backend.name||'')}" ${isEdit?'readonly':''}
@@ -506,7 +530,7 @@ function showNotification(message, type = 'info') {
   };
   
   const notification = document.createElement('div');
-  notification.className = 'fade-in';
+  notification.className = 'fade-in notification';
   notification.style.cssText = `
     position: fixed;
     top: 20px;
