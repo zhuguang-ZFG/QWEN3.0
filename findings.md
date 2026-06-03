@@ -2,6 +2,53 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-06-04 OpenCode 克隆与 LiMa 联通调试
+
+### 背景
+克隆 OpenCode 源码仓库，研究 provider 连接层架构，配置 OpenCode 连接 LiMa Server 并验证端到端连通性。
+
+### 关键发现
+
+1. **OpenCode 架构**：TypeScript/Bun monorepo（非 Go），核心 LLM 层在 `packages/llm/src/`。
+   - Provider 连接通过 `@ai-sdk/openai-compatible` NPM 包实现。
+   - `baseURL` + `/chat/completions` 组成完整端点 URL。
+   - 内置 `openai-compatible-profile.ts` 预定义 deepseek/groq/xai 等平台。
+
+2. **LiMa 兼容性**：OpenCode 使用标准 OpenAI `/v1/chat/completions` + SSE streaming，与 LiMa 完全兼容。
+   - baseURL 配置为 `http://127.0.0.1:8080/v1` 时，OpenCode 自动拼接 `/chat/completions`。
+   - 认证使用 Bearer token。
+
+3. **IDE 检测验证**：
+   - `detect_ide()` 扫描 system prompt 内容，匹配 `"OpenCode"` 关键字 → 返回 `"OpenCode"` ✅
+   - `classify(ide_source="OpenCode")` → 返回 `"ide"` ✅
+   - `classify_scenario(ide_source="OpenCode")` → 返回 `"coding"` ✅
+   - 这意味着 OpenCode 连接 LiMa 后将享受 IDE 级路由质量（5x 速率限制、高质量后端池）。
+
+4. **curl 端到端测试**：
+   - `GET /health` → HTTP 200 ✅
+   - `GET /v1/models` → HTTP 200, 13 models ✅
+   - `POST /v1/chat/completions` (identity query) → HTTP 200, `backend: identity_guard` ✅
+   - `POST /v1/chat/completions` (coding query) → HTTP 200, `backend: scnet_ds_flash`, 6226ms ✅
+   - `POST /v1/chat/completions` (with OpenCode system prompt) → HTTP 200, `backend: scnet_ds_flash`, 4341ms ✅
+
+5. **配置要点**：OpenCode 配置文件位于 `~/.config/opencode/opencode.json` (Windows)，provider 使用 `@ai-sdk/openai`。
+
+### 待用户操作
+- 在终端运行 `cd d:\QWEN3.0 && opencode` 启动 OpenCode TUI
+- 使用 `/connect` 选择 `lima` provider
+- 验证实际 OpenCode TUI ↔ LiMa 对话体验
+
+### 测试证据
+```
+# detect_ide 检测
+$ python -c "from routes.request_tracking import detect_ide; ..."
+detect_ide: 'OpenCode'
+
+# 路由分类
+$ python -c "from routing_classifier import classify, classify_scenario; ..."
+classify=ide, classify_scenario=coding
+```
+
 ## 2026-06-03 M23 模型解析器 - 客户端模型参数路由
 
 ### 功能说明
