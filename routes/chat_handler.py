@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import time
 from typing import Callable
 
 from fastapi import HTTPException
 from fastapi.responses import JSONResponse
 
 from chat_models import ChatRequest
+from http_errors import BackendError
+from opencode_error_adapter import build_overflow_response, extract_overflow_message
 from orchestrate import needs_orchestration
 from response_builder import extract_query
 from routes.chat_fallback import inject_deps as _inject_chat_fallback_deps
@@ -101,12 +104,28 @@ async def handle_chat(
     if req.stream:
         return build_streaming_response(ctx, req)
 
-    result, intent = await execute_non_stream_route(ctx, req)
-    return await finalize_success_response(
-        ctx,
-        req,
-        result,
-        intent,
-        model_id=_model_id,
-        record_request=_record_request,
-    )
+    try:
+        result, intent = await execute_non_stream_route(ctx, req)
+        return await finalize_success_response(
+            ctx,
+            req,
+            result,
+            intent,
+            model_id=_model_id,
+            record_request=_record_request,
+        )
+    except BackendError as e:
+        if getattr(e, "is_overflow", False):
+            duration_ms = int((time.time() - ctx.t0) * 1000)
+            _record_request(
+                ctx.query, "", "context_overflow", duration_ms, False,
+                client_ip=ctx.client_ip, ide_source=ctx.ide_source,
+                sys_prompt_preview=ctx.sys_prompt_preview,
+            )
+            return JSONResponse(
+                status_code=413,
+                content=build_overflow_response(
+                    extract_overflow_message(e),
+                ),
+            )
+        raise

@@ -12,6 +12,7 @@ from response_cleaner import StreamIdentitySanitizer, clean_response, _is_backen
 
 from backends import BACKENDS
 from http_errors import BackendError, _extract_code, _extract_retry_after
+from opencode_error_adapter import detect_context_overflow
 import json as _json_mod
 from http_response import _parse_sse_chunk, extract_sse_usage, extract_sse_reasoning
 
@@ -35,6 +36,7 @@ def call_api_stream(
     *,
     system_prompt: str = "",
     ide: str = "",
+    reasoning_effort: str | None = None,
 ) -> Generator[str, None, None]:
     hc = _caller()
     cfg = BACKENDS.get(backend)
@@ -47,7 +49,8 @@ def call_api_stream(
         raise BackendError(f"{backend} is cooling down", status_code=503)
 
     headers = hc._build_headers(cfg, key=selected_key)
-    body = hc._build_body(cfg, messages, max_tokens, system_prompt, ide, stream=True)
+    body = hc._build_body(cfg, messages, max_tokens, system_prompt, ide, stream=True,
+                          reasoning_effort=reasoning_effort)
     timeout = cfg.get("timeout", 60)
     fmt = cfg["fmt"]
     started = time.time()
@@ -71,6 +74,9 @@ def call_api_stream(
                 usage = extract_sse_usage(data_str)
                 if usage:
                     yield "__LIMA_META__:" + _json_mod.dumps({"usage": usage})
+                reasoning = extract_sse_reasoning(data_str, fmt)
+                if reasoning:
+                    yield "__LIMA_META__:" + _json_mod.dumps({"reasoning_content": reasoning})
                 text = _parse_sse_chunk(data_str, fmt)
                 if not text:
                     continue
@@ -152,7 +158,11 @@ def call_api_stream(
             error_code=error_code,
             retry_after=_extract_retry_after(exc),
         )
-        raise BackendError(str(exc), status_code=error_code) from exc
+        response_text = exc.response.text if hasattr(exc.response, "text") else str(exc)
+        is_overflow = detect_context_overflow(
+            str(exc), status_code=error_code, response_body=response_text,
+        )
+        raise BackendError(str(exc), status_code=error_code, is_overflow=is_overflow) from exc
     except Exception as exc:
         error_code = _extract_code(exc)
         hc.health_tracker.record_failure(
@@ -167,7 +177,8 @@ def call_api_stream(
         )
         if DEBUG:
             print(f"[STREAM] {backend} error: {exc}", file=sys.stderr)
-        raise BackendError(str(exc), status_code=error_code) from exc
+        is_overflow = detect_context_overflow(str(exc), status_code=error_code)
+        raise BackendError(str(exc), status_code=error_code, is_overflow=is_overflow) from exc
 
 
 async def call_api_stream_async(
@@ -177,6 +188,7 @@ async def call_api_stream_async(
     *,
     system_prompt: str = "",
     ide: str = "",
+    reasoning_effort: str | None = None,
 ) -> AsyncIterator[str]:
     hc = _caller()
     cfg = BACKENDS.get(backend)
@@ -189,7 +201,8 @@ async def call_api_stream_async(
         raise BackendError(f"{backend} is cooling down", status_code=503)
 
     headers = hc._build_headers(cfg, key=selected_key)
-    body = hc._build_body(cfg, messages, max_tokens, system_prompt, ide, stream=True)
+    body = hc._build_body(cfg, messages, max_tokens, system_prompt, ide, stream=True,
+                          reasoning_effort=reasoning_effort)
     timeout = cfg.get("timeout", 60)
     fmt = cfg["fmt"]
     started = time.time()
@@ -215,6 +228,9 @@ async def call_api_stream_async(
                 usage = extract_sse_usage(data_str)
                 if usage:
                     yield "__LIMA_META__:" + _json_mod.dumps({"usage": usage})
+                reasoning = extract_sse_reasoning(data_str, fmt)
+                if reasoning:
+                    yield "__LIMA_META__:" + _json_mod.dumps({"reasoning_content": reasoning})
                 text = _parse_sse_chunk(data_str, fmt)
                 if not text:
                     continue
@@ -298,7 +314,11 @@ async def call_api_stream_async(
             error_code=error_code,
             retry_after=_extract_retry_after(exc),
         )
-        raise BackendError(str(exc), status_code=error_code) from exc
+        response_text = exc.response.text if hasattr(exc.response, "text") else str(exc)
+        is_overflow = detect_context_overflow(
+            str(exc), status_code=error_code, response_body=response_text,
+        )
+        raise BackendError(str(exc), status_code=error_code, is_overflow=is_overflow) from exc
     except Exception as exc:
         error_code = _extract_code(exc)
         hc.health_tracker.record_failure(
@@ -313,4 +333,5 @@ async def call_api_stream_async(
         )
         if DEBUG:
             print(f"[STREAM] {backend} async error: {exc}", file=sys.stderr)
-        raise BackendError(str(exc), status_code=error_code) from exc
+        is_overflow = detect_context_overflow(str(exc), status_code=error_code)
+        raise BackendError(str(exc), status_code=error_code, is_overflow=is_overflow) from exc

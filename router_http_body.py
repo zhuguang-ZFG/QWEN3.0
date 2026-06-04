@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 
 from backends import BACKENDS
+from opencode_message_normalizer import normalize_messages
 from router_prompt import SYS
 
 UNAVAILABLE_USER_MESSAGE = "服务暂时不可用，请稍后重试"
@@ -25,6 +26,10 @@ def build_request_body(name, msgs, mt=1024, ide="unknown", stream=False):
     backend = BACKENDS.get(name)
     if not backend:
         return None, None, None, 60
+
+    # Message normalization (OpenCode 兼容)
+    msgs = normalize_messages(msgs, name)
+
     auth_style = backend.get("auth", "x-api-key")
 
     if backend["fmt"] == "anthropic":

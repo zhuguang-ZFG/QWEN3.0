@@ -10,6 +10,7 @@ import health_tracker
 import http_caller
 import routing_engine
 import smart_router
+from http_errors import BackendError
 from orchestrate import orchestrate
 from response_builder import _split_sentences, build_stream_chunk
 from routes.stream_handlers import speculative_stream_chunks
@@ -56,6 +57,7 @@ async def stream_response(
     messages: list | None = None,
     prefer: str | None = None,
     model: str = "",
+    reasoning_effort: str | None = None,
 ):
     """SSE generator: speculative streaming with orchestration/thinking fallbacks."""
     messages = messages or []
@@ -142,6 +144,14 @@ async def stream_response(
                 4096,
             )
             content = answer if answer else ""
+        except BackendError as exc:
+            if getattr(exc, "is_overflow", False):
+                from opencode_error_adapter import build_overflow_sse_chunk, extract_overflow_message
+                yield build_overflow_sse_chunk(chat_id, extract_overflow_message(exc))
+                yield "data: [DONE]\n\n"
+                return
+            logging.getLogger(__name__).debug("fallback execute failed: %s", type(exc).__name__)
+            content = ""
         except Exception as exc:
             logging.getLogger(__name__).debug("fallback execute failed: %s", type(exc).__name__)
             content = ""

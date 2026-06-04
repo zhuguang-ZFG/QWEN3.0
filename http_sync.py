@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import sys
+import threading
 import time
 
 import httpx
@@ -11,9 +12,27 @@ from response_cleaner import clean_response, _is_backend_error
 
 from backends import BACKENDS
 from http_errors import BackendError, _emit_backend_error, _extract_code, _extract_retry_after
+from opencode_error_adapter import detect_context_overflow
 from http_response import _extract_answer, _extract_usage
 
 _log = logging.getLogger(__name__)
+
+# ── Usage tracking (thread-safe) ───────────────────────────────────────────
+_last_usage: dict[str, dict] = {}
+_usage_lock = threading.Lock()
+"""Per-backend last usage cache. Protected by _usage_lock for thread safety."""
+
+
+def record_last_usage(backend: str, usage: dict) -> None:
+    """Record usage for a backend (thread-safe)."""
+    with _usage_lock:
+        _last_usage[backend] = usage
+
+
+def get_last_usage(backend: str) -> dict | None:
+    """Return the last recorded usage dict for a backend, or None."""
+    with _usage_lock:
+        return _last_usage.get(backend)
 
 
 def _caller():
@@ -45,6 +64,11 @@ def _record_success_telemetry(
     hc = _caller()
     hc.health_tracker.record_response_quality(backend, len(cleaned) if cleaned else 0)
     prompt_tokens, completion_tokens = _extract_usage(payload, fmt)
+    record_last_usage(backend, {
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "total_tokens": prompt_tokens + completion_tokens,
+    })
     try:
         import budget_manager
 
@@ -94,7 +118,12 @@ def _handle_call_error(
         )
         if emit_obs:
             _emit_backend_error(backend, error_code, str(exc))
-        raise BackendError(str(exc), status_code=error_code) from exc
+        # 检测上下文溢出（context overflow）：停止 fallback 并返回 OpenCode 可识别的错误
+        response_text = exc.response.text if hasattr(exc.response, "text") else str(exc)
+        is_overflow = detect_context_overflow(
+            str(exc), status_code=error_code, response_body=response_text,
+        )
+        raise BackendError(str(exc), status_code=error_code, is_overflow=is_overflow) from exc
     error_code = _extract_code(exc)
     hc.health_tracker.record_failure(
         backend, error_code=error_code, error_text=str(exc)
@@ -110,7 +139,8 @@ def _handle_call_error(
         _emit_backend_error(backend, error_code, str(exc))
     if hc.DEBUG:
         print(f"[HTTP] {backend} error: {exc}", file=sys.stderr)
-    raise BackendError(str(exc), status_code=error_code) from exc
+    is_overflow = detect_context_overflow(str(exc), status_code=error_code)
+    raise BackendError(str(exc), status_code=error_code, is_overflow=is_overflow) from exc
 
 
 def call_api(
@@ -121,6 +151,7 @@ def call_api(
     system_prompt: str = "",
     ide: str = "",
     tools: list[dict] | None = None,
+    reasoning_effort: str | None = None,
 ) -> str:
     hc = _caller()
     cfg = BACKENDS.get(backend)
@@ -135,7 +166,8 @@ def call_api(
     _apply_artifact_handles(messages)
     started = time.time()
     headers = hc._build_headers(cfg, key=selected_key)
-    body = hc._build_body(cfg, messages, max_tokens, system_prompt, ide, tools=tools)
+    body = hc._build_body(cfg, messages, max_tokens, system_prompt, ide, tools=tools,
+                          reasoning_effort=reasoning_effort)
     timeout = cfg.get("timeout", 60)
 
     try:

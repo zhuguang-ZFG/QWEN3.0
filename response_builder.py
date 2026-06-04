@@ -19,8 +19,17 @@ def make_chat_id() -> str:
 
 # ── OpenAI ChatCompletion 格式 ───────────────────────────────────────────────────
 
-def build_response(chat_id: str, content: str, backend: str, total_ms: int) -> dict:
-    """构建 OpenAI ChatCompletion 非流式响应格式。"""
+def build_response(chat_id: str, content: str, backend: str, total_ms: int,
+                   usage: dict | None = None) -> dict:
+    """构建 OpenAI ChatCompletion 非流式响应格式。
+
+    Args:
+        usage: 可选的 token 用量字典。若提供则覆盖默认的全零值。
+              通常来自后端响应的 usage 字段，包含 prompt_tokens、
+              completion_tokens、total_tokens 等键。
+    """
+    if usage is None:
+        usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
     return {
         "id": chat_id,
         "object": "chat.completion",
@@ -31,11 +40,7 @@ def build_response(chat_id: str, content: str, backend: str, total_ms: int) -> d
             "message": {"role": "assistant", "content": content},
             "finish_reason": "stop"
         }],
-        "usage": {
-            "prompt_tokens": 0,
-            "completion_tokens": 0,
-            "total_tokens": 0
-        },
+        "usage": usage,
         "system_fingerprint": f"router_{backend}",
         "x_lima_meta": {"backend": backend, "total_ms": total_ms}
     }
@@ -84,10 +89,11 @@ def extract_query(messages) -> str:
         role = msg.role if hasattr(msg, 'role') else msg.get('role', '')
         content = msg.content if hasattr(msg, 'content') else msg.get('content', '')
         if role == "user":
-            return content
+            return content or ""
     if messages:
         last = messages[-1]
-        return last.content if hasattr(last, 'content') else last.get('content', '')
+        content = last.content if hasattr(last, 'content') else last.get('content', '')
+        return content or ""
     return ""
 
 
@@ -95,7 +101,7 @@ def messages_to_dicts(messages) -> list[dict]:
     """将 Pydantic Message 列表转为 dict 列表，用于传递完整上下文。"""
     return [
         {'role': m.role if hasattr(m, 'role') else m.get('role', ''),
-         'content': m.content if hasattr(m, 'content') else m.get('content', '')}
+         'content': (m.content if hasattr(m, 'content') else m.get('content', '')) or ""}
         for m in messages
         if (m.role if hasattr(m, 'role') else m.get('role', '')) in ('user', 'assistant')
     ]

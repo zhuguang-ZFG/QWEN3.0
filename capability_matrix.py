@@ -99,6 +99,11 @@ _DEFAULT_MATRIX = {
     "kimi": {"code": 8, "debug": 7, "chinese": 10, "english": 7, "reasoning": 7, "speed": 7, "tool_calls": 5},
     "kimi_thinking": {"code": 9, "debug": 8, "chinese": 10, "english": 8, "reasoning": 9, "speed": 5, "tool_calls": 5},
     "kimi_search": {"code": 7, "debug": 6, "chinese": 10, "english": 7, "reasoning": 7, "speed": 4, "tool_calls": 0},
+
+    # ModelScope 魔搭 (Qwen2.5-Coder 系列)
+    "ms_qwen_coder_32b": {"code": 9, "debug": 8, "chinese": 8, "english": 7, "reasoning": 7, "speed": 6, "tool_calls": 0},
+    "ms_qwen_coder_14b": {"code": 8, "debug": 7, "chinese": 8, "english": 7, "reasoning": 6, "speed": 7, "tool_calls": 0},
+    "ms_qwen_coder_7b": {"code": 7, "debug": 6, "chinese": 8, "english": 7, "reasoning": 5, "speed": 8, "tool_calls": 0},
 }
 
 # ── 加载评测结果覆盖 ─────────────────────────────────────────────────────────

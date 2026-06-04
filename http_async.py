@@ -13,6 +13,17 @@ from http_errors import BackendError, _extract_code, _extract_retry_after
 from http_response import _extract_answer, _extract_usage
 from http_sync import _apply_artifact_handles, _handle_call_error
 
+# ── Usage tracking (asyncio single-threaded, no lock needed) ──────────────
+_last_usage: dict[str, dict] = {}
+"""Async per-backend last usage cache.
+Safe without lock: asyncio is single-threaded per event loop.
+"""
+
+
+def get_last_usage(backend: str) -> dict | None:
+    """Return the last recorded usage dict for a backend, or None."""
+    return _last_usage.get(backend)
+
 
 def _caller():
     import http_caller
@@ -28,6 +39,7 @@ async def call_api_async(
     system_prompt: str = "",
     ide: str = "",
     tools: list[dict] | None = None,
+    reasoning_effort: str | None = None,
 ) -> str:
     hc = _caller()
     cfg = BACKENDS.get(backend)
@@ -41,7 +53,8 @@ async def call_api_async(
 
     started = time.time()
     headers = hc._build_headers(cfg, key=selected_key)
-    body = hc._build_body(cfg, messages, max_tokens, system_prompt, ide, tools=tools)
+    body = hc._build_body(cfg, messages, max_tokens, system_prompt, ide, tools=tools,
+                          reasoning_effort=reasoning_effort)
     timeout = cfg.get("timeout", 60)
 
     try:
@@ -68,6 +81,11 @@ async def call_api_async(
             backend, len(cleaned) if cleaned else 0
         )
         prompt_tokens, completion_tokens = _extract_usage(payload, cfg["fmt"])
+        _last_usage[backend] = {
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": prompt_tokens + completion_tokens,
+        }
         try:
             import budget_manager
 

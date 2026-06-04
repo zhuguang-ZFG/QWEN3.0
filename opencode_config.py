@@ -7,12 +7,28 @@ import time and is therefore constant for the process lifetime.
 
 from __future__ import annotations
 
+import logging
 import os
+import warnings
+
+_log = logging.getLogger(__name__)
 
 # ── Tool call mode ─────────────────────────────────────────────────────────
 # "direct"  → OpenCode tools handled natively in OpenAI format (default)
 # "convert" → route through Anthropic conversion pipeline (legacy)
 OPENCODE_TOOL_MODE = os.environ.get("LIMA_OPENCODE_TOOL_MODE", "direct")
+
+# Backward compatibility: OPENCODE_OPTIMIZATION_ENABLED=1 → direct mode
+if (os.environ.get("OPENCODE_OPTIMIZATION_ENABLED", "0") == "1"
+        and "LIMA_OPENCODE_TOOL_MODE" not in os.environ):
+    warnings.warn(
+        "OPENCODE_OPTIMIZATION_ENABLED is deprecated. "
+        "Set LIMA_OPENCODE_TOOL_MODE=direct instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    OPENCODE_TOOL_MODE = "direct"
+    _log.info("Legacy OPENCODE_OPTIMIZATION_ENABLED=1 → OPENCODE_TOOL_MODE=direct")
 
 # ── Backend affinity boost ────────────────────────────────────────────────
 # Score multiplier applied to fast coding backends for OpenCode requests.

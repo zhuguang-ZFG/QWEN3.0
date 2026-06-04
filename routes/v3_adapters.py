@@ -12,19 +12,32 @@ import health_tracker
 
 def v3_route(query, messages, system_prompt="", ide="", max_tokens=4096,
              needs_tools=False, tools=None, client_ip="", user_agent="",
-             model="", **_kw):
-    """V3 路由适配器：返回与 smart_router.route() 兼容的 dict。"""
+             model="", headers: dict | None = None,
+             reasoning_effort: str | None = None, **_kw):
+    """V3 路由适配器：返回与 smart_router.route() 兼容的 dict。
+
+    返回的 dict 包含 usage 字段（从后端响应中提取的 token 用量）。
+    """
     def _call_fn(backend, msgs, mt, tools=None):
         return http_caller.call_api(backend, msgs, mt,
                                     system_prompt=system_prompt, ide=ide,
-                                    tools=tools)
+                                    tools=tools,
+                                    reasoning_effort=reasoning_effort)
     result = routing_engine.route(
         query, messages, fmt="openai", ide_source=ide,
         system_prompt=system_prompt, max_tokens=max_tokens,
         call_fn=_call_fn, needs_tools=needs_tools, tools=tools,
-        client_ip=client_ip, user_agent=user_agent, model=model)
+        client_ip=client_ip, user_agent=user_agent, model=model,
+        headers=headers or {})
+
+    # Capture token usage from the winning backend's last response
+    usage = http_caller.get_last_usage(result.backend)
+    if usage:
+        result.usage = usage
+
     return {"answer": result.answer, "backend": result.backend,
-            "total_ms": result.ms, "fallback_used": result.fallback_used}
+            "total_ms": result.ms, "fallback_used": result.fallback_used,
+            "usage": usage}
 
 
 def v3_predict(query):
@@ -104,7 +117,7 @@ def v3_select(query, system_prompt, ide, messages):
 FAKE_STREAM_BACKENDS: set[str] = set()
 
 
-def v3_call_stream(backend, messages, max_tokens, ide):
+def v3_call_stream(backend, messages, max_tokens, ide, reasoning_effort=None):
     """V3 流式调用适配器。注入上下文增强 + 非真流式后端强制走非流式。"""
     sys_prompt = ""
     try:
@@ -152,7 +165,8 @@ def v3_call_stream(backend, messages, max_tokens, ide):
             backend, messages, max_tokens, system_prompt=sys_prompt, ide=ide)
         return fake_stream(result)
     return http_caller.call_api_stream(
-        backend, messages, max_tokens, system_prompt=sys_prompt, ide=ide)
+        backend, messages, max_tokens, system_prompt=sys_prompt, ide=ide,
+        reasoning_effort=reasoning_effort)
 
 
 def v3_call_api(backend, messages, max_tokens, ide):
@@ -188,7 +202,7 @@ def fake_stream(text: str, chunk_size: int = 30):
 
 # ── Async adapters (M2-S2) ─────────────────────────────────────────────────
 
-async def v3_call_stream_async(backend, messages, max_tokens, ide) -> AsyncIterator[str]:
+async def v3_call_stream_async(backend, messages, max_tokens, ide, reasoning_effort=None) -> AsyncIterator[str]:
     """Async streaming adapter. Falls back to non-stream for fake-stream backends."""
     sys_prompt = ""
     try:
@@ -233,12 +247,14 @@ async def v3_call_stream_async(backend, messages, max_tokens, ide) -> AsyncItera
 
     if backend in FAKE_STREAM_BACKENDS:
         result = await http_caller.call_api_async(
-            backend, messages, max_tokens, system_prompt=sys_prompt, ide=ide)
+            backend, messages, max_tokens, system_prompt=sys_prompt, ide=ide,
+            reasoning_effort=reasoning_effort)
         for chunk in fake_stream(result):
             yield chunk
         return
     async for chunk in http_caller.call_api_stream_async(
-        backend, messages, max_tokens, system_prompt=sys_prompt, ide=ide):
+        backend, messages, max_tokens, system_prompt=sys_prompt, ide=ide,
+        reasoning_effort=reasoning_effort):
         yield chunk
 
 

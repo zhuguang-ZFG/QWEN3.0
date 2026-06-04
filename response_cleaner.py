@@ -64,7 +64,6 @@ _BRANDS = [
     'llm7',
     'chatubi',
     'uncloseai',
-    'opencode',
     # Chinese cloud providers
     'siliconflow', '硅基流动',
     'volcengine', '火山引擎',

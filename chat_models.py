@@ -9,7 +9,7 @@ MODEL_ID = "lima-1.3"
 
 class Message(BaseModel):
     role: str
-    content: Union[str, list] = ""
+    content: Union[str, list, None] = ""
 
 
 class ChatRequest(BaseModel):
@@ -19,6 +19,7 @@ class ChatRequest(BaseModel):
     max_tokens: Optional[int] = Field(default=1024, alias="max_tokens")
     temperature: Optional[float] = 0.7
     thinking: Optional[bool | dict] = False
+    reasoning_effort: Optional[str] = None
     tools: Optional[list[dict]] = None
     tool_choice: Optional[dict | str] = None
     stream_options: Optional[dict] = None

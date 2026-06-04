@@ -62,6 +62,7 @@ class ChatRunContext:
     memory_session_id: str | None
     preflight: ChatPreflightResult
     prefs: RoutePrefs
+    request_headers: dict | None = None
 
 
 def resolve_route_prefs(req: ChatRequest, ide_source: str, query: str) -> RoutePrefs:
@@ -125,6 +126,7 @@ def start_chat_run(
         memory_session_id=preflight.memory_session_id,
         preflight=preflight,
         prefs=prefs,
+        request_headers=request_headers,
     )
 
 
@@ -221,6 +223,7 @@ def build_streaming_response(ctx: ChatRunContext, req: ChatRequest) -> Streaming
             messages=ctx.preflight.prompt_context_messages,
             prefer=ctx.prefs.prefer,
             model=ctx.request_model or "",
+            reasoning_effort=req.reasoning_effort,
         ),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
@@ -252,6 +255,8 @@ async def execute_non_stream_route(ctx: ChatRunContext, req: ChatRequest) -> tup
             client_ip=ctx.client_ip,
             user_agent=ctx.user_agent,
             model=ctx.request_model or "",
+            headers=ctx.request_headers or {},
+            reasoning_effort=req.reasoning_effort,
         )
     return result, intent if isinstance(intent, dict) else {}
 
@@ -270,6 +275,7 @@ async def finalize_success_response(
     content = clean_response(content, result.get("backend", "")) or content
     backend = result.get("backend", "unknown")
     total_ms = result.get("total_ms", 0)
+    usage = result.get("usage")
     intent_name = intent.get("intent", "unknown")
     complexity = intent.get("complexity", 0.5)
 
@@ -344,7 +350,7 @@ async def finalize_success_response(
         )
     return JSONResponse(
         attach_memory_recall_meta(
-            build_response(ctx.chat_id, content, backend, total_ms),
+            build_response(ctx.chat_id, content, backend, total_ms, usage=usage),
             ctx.memory_recall_meta,
         )
     )

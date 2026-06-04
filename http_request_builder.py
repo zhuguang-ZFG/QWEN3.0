@@ -12,6 +12,7 @@ import httpx
 
 import key_pool
 from backends import GFW_BACKENDS, infer_key_pool_provider
+from opencode_message_normalizer import normalize_messages
 
 logger = logging.getLogger(__name__)
 
@@ -79,8 +80,8 @@ def _get_client(backend: str, timeout: float) -> httpx.Client:
                 if old is not None:
                     try:
                         old.close()
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        logger.debug("pool cleanup: close(%s) failed: %s", sk, type(exc).__name__)
             _sync_client_pool[key] = client
         return _sync_client_pool[key]
 
@@ -113,8 +114,8 @@ def _get_async_client(backend: str, timeout: float) -> httpx.AsyncClient:
             if old is not None:
                 try:
                     old.close()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("pool cleanup: close(%s) failed: %s", sk, type(exc).__name__)
         _async_client_pool[key] = client
     return _async_client_pool[key]
 
@@ -194,6 +195,7 @@ def _build_body(
     ide: str = "",
     stream: bool = False,
     tools: list[dict] | None = None,
+    reasoning_effort: str | None = None,
 ) -> bytes:
     model = backend_cfg["model"]
     fmt = backend_cfg["fmt"]
@@ -218,6 +220,9 @@ def _build_body(
         pass
     except Exception as exc:
         logger.warning("prefix cache optimization failed: %s", exc, exc_info=True)
+
+    # Message normalization (OpenCode 兼容): surrogate 清理、空消息过滤、toolCallId 规范化
+    messages = normalize_messages(messages, backend_cfg.get("model", ""))
 
     if fmt == "anthropic":
         if backend_cfg.get("no_system"):
@@ -266,5 +271,8 @@ def _build_body(
 
     if tools:
         body["tools"] = tools
+
+    if reasoning_effort:
+        body["reasoning_effort"] = reasoning_effort
 
     return json.dumps(body).encode()

@@ -47,6 +47,10 @@ def execute(backends: list[str],
             re.health_tracker.record_failure(backend, error_code=None)
             errors += 1
         except Exception as e:
+            # Context overflow: stop fallback immediately, propagate to client
+            if getattr(e, "is_overflow", False):
+                logger.warning("[EXECUTE] %s context overflow, stopping fallback", backend)
+                raise
             code = extract_error_code(e)
             re.health_tracker.record_failure(backend, error_code=code)
             errors += 1
@@ -82,6 +86,10 @@ def execute(backends: list[str],
                     re.health_tracker.record_success(backend, (time.time() - t0) * 1000)
                     return backend, answer, errors
             except Exception as exc:
+                # Context overflow: stop serial fallback immediately
+                if getattr(exc, "is_overflow", False):
+                    logger.warning("[EXECUTE] %s context overflow in serial fallback, stopping", backend)
+                    raise
                 logger.warning("[EXECUTE] serial fallback %s failed: %s", backend, type(exc).__name__)
 
     return "exhausted", "", errors
@@ -105,6 +113,10 @@ def _parallel_fallback(
             if answer and len(answer.strip()) > 5:
                 return backend, answer
         except Exception as exc:
+            # Context overflow: propagate immediately from parallel fallback
+            if getattr(exc, "is_overflow", False):
+                logger.warning("[EXECUTE] %s context overflow in parallel fallback", backend)
+                raise
             logger.debug("[EXECUTE] parallel fallback %s failed: %s", backend, type(exc).__name__)
         return None
 
@@ -119,6 +131,9 @@ def _parallel_fallback(
                         f.cancel()
                     return result
             except Exception as exc:
+                # Context overflow: propagate from parallel result
+                if getattr(exc, "is_overflow", False):
+                    raise
                 logger.debug("[EXECUTE] parallel result error: %s", type(exc).__name__)
                 continue
     return None

@@ -98,6 +98,10 @@ BACKENDS = {
     'freetheai_swe': {'url': 'https://api.freetheai.xyz/v1/chat/completions', 'key': os.environ.get('FREETHEAI_API_KEY', ''), 'model': 'wsf/swe-1.6', 'fmt': 'openai', 'timeout': 20},
     'zuki_codestral': {'url': 'https://zukijourney.com/v1/chat/completions', 'key': os.environ.get('ZUKI_API_KEY', ''), 'model': 'codestral-latest', 'fmt': 'openai', 'timeout': 20},
     'zuki_mistral_small': {'url': 'https://zukijourney.com/v1/chat/completions', 'key': os.environ.get('ZUKI_API_KEY', ''), 'model': 'mistral-small-latest', 'fmt': 'openai', 'timeout': 20},
+    # ── ModelScope 魔搭 (免费 API 推理) ──
+    'ms_qwen_coder_32b': {'url': 'https://api-inference.modelscope.cn/v1/chat/completions', 'key': os.environ.get('MODELSCOPE_API_KEY', ''), 'model': 'Qwen/Qwen2.5-Coder-32B-Instruct', 'fmt': 'openai', 'timeout': 30, 'caps': ['code']},
+    'ms_qwen_coder_14b': {'url': 'https://api-inference.modelscope.cn/v1/chat/completions', 'key': os.environ.get('MODELSCOPE_API_KEY', ''), 'model': 'Qwen/Qwen2.5-Coder-14B-Instruct', 'fmt': 'openai', 'timeout': 20, 'caps': ['code']},
+    'ms_qwen_coder_7b': {'url': 'https://api-inference.modelscope.cn/v1/chat/completions', 'key': os.environ.get('MODELSCOPE_API_KEY', ''), 'model': 'Qwen/Qwen2.5-Coder-7B-Instruct', 'fmt': 'openai', 'timeout': 15, 'caps': ['code']},
     'featherless': {'url': 'https://api.featherless.ai/v1/chat/completions', 'key': os.environ.get('FEATHERLESS_API_KEY', ''), 'model': 'Qwen/Qwen3-32B', 'fmt': 'openai', 'timeout': 20},
     'glhf': {'url': 'https://glhf.chat/api/openai/v1/chat/completions', 'key': os.environ.get('GLHF_API_KEY', ''), 'model': 'hf:Qwen/Qwen3-32B', 'fmt': 'openai', 'timeout': 20},
     'agentrouter': {'url': 'https://agentrouter.org/v1/chat/completions', 'key': os.environ.get('AGENTROUTER_API_KEY', ''), 'model': 'qwen/qwen3-32b', 'fmt': 'openai', 'timeout': 20},

@@ -52,6 +52,7 @@ class RouteResult:
     fallback_used: bool = False
     skills_injected: list = field(default_factory=list)
     retrieval_context: str = ""
+    usage: dict | None = None
 
 
 def inject_skills(messages: list[dict], *,
@@ -68,7 +69,8 @@ def respond(result: RouteResult, fmt: str = "openai",
     chat_id = make_chat_id()
     if fmt == "anthropic":
         return build_anthropic_response(chat_id, result.answer, result.backend, model)
-    resp = build_response(chat_id, result.answer, result.backend, result.ms)
+    resp = build_response(chat_id, result.answer, result.backend, result.ms,
+                          usage=result.usage)
     resp["x_lima_meta"]["request_type"] = result.request_type
     resp["x_lima_meta"]["skills_injected"] = result.skills_injected
     return resp
@@ -210,9 +212,14 @@ def route(query: str, messages: list[dict], *,
             import logging as _logging
             _logging.warning(f"[ORCH] code_orchestrator failed: {type(e).__name__}: {e}")
 
-    sticky_key = sticky_session.compute_key(
-        model or "default",
-        json.dumps(messages, ensure_ascii=False))
+    # OpenCode x-session-affinity: use session ID 替代 message hash 做 sticky key
+    affinity = (headers or {}).get("x-session-affinity", "") if headers else ""
+    if affinity:
+        sticky_key = f"affinity:{affinity}"
+    else:
+        sticky_key = sticky_session.compute_key(
+            model or "default",
+            json.dumps(messages, ensure_ascii=False))
 
     hmap = health_tracker.get_health_map()
     backends = select(req_type, hmap, sticky_key=sticky_key, scenario=scenario,
