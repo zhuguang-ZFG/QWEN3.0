@@ -58,7 +58,7 @@ def test_detect_ide_windsurf():
 def test_detect_ide_copilot():
     assert server._detect_ide([
         {"role": "system", "content": "GitHub Copilot instructions"}
-    ]) == "GitHub Copilot"
+    ]) == "Copilot"
 
 
 def test_detect_ide_codex():
@@ -89,37 +89,37 @@ def test_detect_ide_aider():
 
 def test_fingerprint_detects_kiro():
     result = router_v3.detect_ide_from_system_prompt("You are Kiro, an AI-powered IDE")
-    assert result == "kiro"
+    assert result == "Kiro"
 
 
 def test_fingerprint_detects_zed():
     result = router_v3.detect_ide_from_system_prompt("You are an AI assistant in Zed editor")
-    assert result == "zed"
+    assert result == "Zed"
 
 
 def test_fingerprint_detects_trae():
     result = router_v3.detect_ide_from_system_prompt("Trae coding assistant")
-    assert result == "trae"
+    assert result == "Trae"
 
 
 def test_fingerprint_detects_windsurf():
     result = router_v3.detect_ide_from_system_prompt("Windsurf by Codeium")
-    assert result == "windsurf"
+    assert result == "Windsurf"
 
 
 def test_fingerprint_detects_copilot():
     result = router_v3.detect_ide_from_system_prompt("GitHub Copilot chat")
-    assert result == "copilot"
+    assert result == "Copilot"
 
 
 def test_fingerprint_detects_cursor():
     result = router_v3.detect_ide_from_system_prompt("You are Cursor, an intelligent programmer")
-    assert result == "cursor"
+    assert result == "Cursor"
 
 
 def test_fingerprint_detects_claude_code():
     result = router_v3.detect_ide_from_system_prompt("CLAUDE.md workspace context")
-    assert result == "claude_code"
+    assert result == "Claude Code"
 
 
 # ─── Layer 1: User-Agent header detection ────────────────────────────────────

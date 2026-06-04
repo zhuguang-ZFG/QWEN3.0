@@ -26,6 +26,8 @@ from http_request_builder import (
     _build_body,
     _build_client,
     _build_headers,
+    _get_async_client,
+    _get_client,
     _has_key,
     _key_pool_provider,
     _report_key_result,

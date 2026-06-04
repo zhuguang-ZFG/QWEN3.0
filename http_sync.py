@@ -139,10 +139,10 @@ def call_api(
     timeout = cfg.get("timeout", 60)
 
     try:
-        with hc._build_client(backend, timeout) as client:
-            resp = client.post(cfg["url"], content=body, headers=headers)
-            resp.raise_for_status()
-            payload = resp.json()
+        client = hc._get_client(backend, timeout)
+        resp = client.post(cfg["url"], content=body, headers=headers)
+        resp.raise_for_status()
+        payload = resp.json()
 
         answer = _extract_answer(payload, cfg["fmt"])
         if not (answer or "").strip():
@@ -186,10 +186,10 @@ def call_raw(backend: str, payload: bytes) -> dict:
         "Authorization": f"Bearer {selected_key}",
     }
     try:
-        with hc._build_client(backend, cfg.get("timeout", 30)) as client:
-            resp = client.post(cfg["url"], content=payload, headers=headers)
-            resp.raise_for_status()
-            data = resp.json()
+        client = hc._get_client(backend, cfg.get("timeout", 30))
+        resp = client.post(cfg["url"], content=payload, headers=headers)
+        resp.raise_for_status()
+        data = resp.json()
         latency_ms = int((time.time() - started) * 1000)
         hc.health_tracker.record_success(backend, latency_ms)
         hc._report_key_result(key_provider, selected_key, True)

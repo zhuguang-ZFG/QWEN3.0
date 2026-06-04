@@ -52,7 +52,8 @@ def _has_valid_key(name: str) -> bool:
 
 def select(request_type: str, health_map: dict,
            sticky_key: str = None, scenario: str = "",
-           needs_tools: bool = False, recalled_backend: str = "") -> list[str]:
+           needs_tools: bool = False, recalled_backend: str = "",
+           ide_source: str = "") -> list[str]:
     """从对应池选健康后端，按健康评分排序，过滤预算耗尽，sticky 优先"""
     import routing_engine as re
     import backends_registry as reg
@@ -131,6 +132,15 @@ def select(request_type: str, health_map: dict,
         static_latency = _STATIC_LATENCY_ESTIMATE.get(b)
         if static_latency and consec_fails == 0:
             scores[b] += max(0, (2000 - static_latency) / 100)
+
+    # OpenCode coding affinity: boost fast coding backends for OpenCode IDE users only
+    if (os.environ.get("OPENCODE_OPTIMIZATION_ENABLED", "0") == "1"
+            and scenario == "coding"
+            and ide_source and "opencode" in ide_source.lower()):
+        _FAST_CODE_BOOST_PREFIXES = {"groq_", "cerebras_", "scnet_ds_flash"}
+        for b in result:
+            if any(b == pfx or b.startswith(pfx) for pfx in _FAST_CODE_BOOST_PREFIXES):
+                scores[b] = scores[b] * 1.15  # 15% score boost
 
     # ML prediction boost — batch apply after per-backend scoring
     try:

@@ -29,6 +29,7 @@ IDE_COVERAGE = {
     "Codex": {"style"},                           # 4000 tok, 30% personality
     "Aider": {"safety", "lang"},                  # 2000 tok
     "Cline": {"safety", "style"},                 # 4000 tok
+    "OpenCode": set(),  # 自带系统提示词极少，全类别注入
 }
 
 

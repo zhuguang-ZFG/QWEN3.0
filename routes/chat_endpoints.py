@@ -6,6 +6,7 @@ owns HTTP parsing, rate limiting, vision short-circuiting, and protocol wrapping
 from __future__ import annotations
 
 import json
+import os
 import time
 import uuid
 from typing import Any
@@ -120,6 +121,22 @@ async def chat_completions(request: Request):
     chat_req = ChatRequest(**body)
     if body.get("thinking", False):
         chat_req.thinking = True
+
+    # OpenCode direct tool mode: bypass Anthropic-native tool forwarding,
+    # let the routing engine handle tools natively in OpenAI format.
+    # Activate via LIMA_OPENCODE_TOOL_MODE=direct OR master switch OPENCODE_OPTIMIZATION_ENABLED=1.
+    if (body.get("tools") and ide_source == "OpenCode"
+            and (os.environ.get("LIMA_OPENCODE_TOOL_MODE") == "direct"
+                 or os.environ.get("OPENCODE_OPTIMIZATION_ENABLED", "0") == "1")):
+        return await _dep("handle_chat")(
+            chat_req,
+            fmt="openai",
+            request_model=body.get("model", "lima-1.3"),
+            client_ip=client_ip,
+            ide_source=ide_source,
+            sys_prompt_preview=sys_prompt_preview,
+            request_headers=dict(request.headers),
+        )
 
     # Route tool requests through the dedicated tool forwarding pipeline
     # (GPT-4o/GitHub → real tool calls, unlike open-source models)

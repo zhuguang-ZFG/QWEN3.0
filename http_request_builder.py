@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import logging
 import os
+import threading
+import time as _time
 
 import httpx
 
@@ -16,8 +18,17 @@ logger = logging.getLogger(__name__)
 GFW_PROXY_URL = os.environ.get("GFW_PROXY", "http://127.0.0.1:7897")
 GFW_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 
+# ── Connection pool per backend — reused across requests to eliminate TCP/TLS handshake ──
+_async_client_pool: dict[str, httpx.AsyncClient] = {}
+_sync_client_pool: dict[str, httpx.Client] = {}
+_sync_pool_lock = threading.Lock()
+_POOL_MAX_KEEPALIVE = 5
+_POOL_MAX_CONNECTIONS = 20
+_POOL_RECYCLE_SECONDS = 300
+
 
 def _build_client(backend: str, timeout: float) -> httpx.Client:
+    """Create a new httpx.Client (not pooled). Kept for backward compat."""
     if backend in GFW_BACKENDS:
         return httpx.Client(
             proxy=GFW_PROXY_URL,
@@ -28,6 +39,7 @@ def _build_client(backend: str, timeout: float) -> httpx.Client:
 
 
 def _build_async_client(backend: str, timeout: float) -> httpx.AsyncClient:
+    """Create a new httpx.AsyncClient (not pooled). Kept for backward compat."""
     if backend in GFW_BACKENDS:
         return httpx.AsyncClient(
             proxy=GFW_PROXY_URL,
@@ -35,6 +47,76 @@ def _build_async_client(backend: str, timeout: float) -> httpx.AsyncClient:
             timeout=httpx.Timeout(timeout, connect=10.0),
         )
     return httpx.AsyncClient(timeout=httpx.Timeout(timeout, connect=10.0))
+
+
+def _get_client(backend: str, timeout: float) -> httpx.Client:
+    """Get a pooled httpx.Client — reuses connections across requests.
+
+    Thread-safe via _sync_pool_lock. Timeout is included in the pool key
+    so that callers with different timeout requirements get separate clients.
+    Old pool entries are closed on eviction to avoid TCP/FD leaks.
+    """
+    key = f"{backend}:{int(timeout)}:{int(_time.time() // _POOL_RECYCLE_SECONDS)}"
+    with _sync_pool_lock:
+        if key not in _sync_client_pool:
+            limits = httpx.Limits(
+                max_keepalive_connections=_POOL_MAX_KEEPALIVE,
+                max_connections=_POOL_MAX_CONNECTIONS)
+            if backend in GFW_BACKENDS:
+                client = httpx.Client(
+                    proxy=GFW_PROXY_URL,
+                    headers={"User-Agent": GFW_USER_AGENT},
+                    timeout=httpx.Timeout(timeout, connect=10.0),
+                    limits=limits)
+            else:
+                client = httpx.Client(
+                    timeout=httpx.Timeout(timeout, connect=10.0),
+                    limits=limits)
+            # Clean up old pool entries for this backend
+            stale = [k for k in _sync_client_pool if k.startswith(f"{backend}:")]
+            for sk in stale[:-2]:
+                old = _sync_client_pool.pop(sk, None)
+                if old is not None:
+                    try:
+                        old.close()
+                    except Exception:
+                        pass
+            _sync_client_pool[key] = client
+        return _sync_client_pool[key]
+
+
+def _get_async_client(backend: str, timeout: float) -> httpx.AsyncClient:
+    """Get a pooled httpx.AsyncClient — reuses connections across requests.
+
+    Timeout is included in the pool key. Old pool entries are closed on eviction.
+    No lock needed — asyncio event loop is single-threaded per context.
+    """
+    key = f"{backend}:{int(timeout)}:{int(_time.time() // _POOL_RECYCLE_SECONDS)}"
+    if key not in _async_client_pool:
+        limits = httpx.Limits(
+            max_keepalive_connections=_POOL_MAX_KEEPALIVE,
+            max_connections=_POOL_MAX_CONNECTIONS)
+        if backend in GFW_BACKENDS:
+            client = httpx.AsyncClient(
+                proxy=GFW_PROXY_URL,
+                headers={"User-Agent": GFW_USER_AGENT},
+                timeout=httpx.Timeout(timeout, connect=10.0),
+                limits=limits)
+        else:
+            client = httpx.AsyncClient(
+                timeout=httpx.Timeout(timeout, connect=10.0),
+                limits=limits)
+        # Clean up old pool entries for this backend
+        stale = [k for k in _async_client_pool if k.startswith(f"{backend}:")]
+        for sk in stale[:-2]:
+            old = _async_client_pool.pop(sk, None)
+            if old is not None:
+                try:
+                    old.close()
+                except Exception:
+                    pass
+        _async_client_pool[key] = client
+    return _async_client_pool[key]
 
 
 def _build_headers(backend_cfg: dict, key: str | None = None) -> dict:

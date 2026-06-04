@@ -225,12 +225,21 @@ def test_smart_router_uses_backends_vision_source():
 
 # ── IDE_SOURCES single source ────────────────────────────────────────────────────
 
-def test_router_v3_uses_backends_ide_sources():
+def test_router_v3_is_ide_sources_single_source():
+    """router_v3._IDE_FINGERPRINTS is the single source of truth; backends_constants
+    and routing_classifier both derive IDE_SOURCES from router_v3."""
     import router_v3
+    from backends_constants import IDE_SOURCES
 
-    assert router_v3.IDE_SOURCES is backends.IDE_SOURCES, (
-        "router_v3.IDE_SOURCES should be backends.IDE_SOURCES"
+    # backends_constants.IDE_SOURCES is imported from router_v3
+    assert IDE_SOURCES is router_v3.IDE_SOURCES, (
+        "backends_constants.IDE_SOURCES should be router_v3.IDE_SOURCES"
     )
+
+    # All canonical IDE names are in IDE_SOURCES
+    for name in router_v3.get_all_ide_names():
+        assert name in IDE_SOURCES, f"{name} should be in IDE_SOURCES"
+        assert name.lower() in IDE_SOURCES, f"{name.lower()} should be in IDE_SOURCES"
 
 
 # ── STRONG_MODELS single source ──────────────────────────────────────────────────

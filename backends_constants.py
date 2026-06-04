@@ -74,6 +74,7 @@ KEY_POOL_PREFIXES = {
     'sambanova_': 'sambanova',
     'deepinfra_': 'deepinfra',
     'fireworks_': 'fireworks',
+    'ms_': 'modelscope',
 }
 
 CODE_CAPABLE_BACKENDS = frozenset({
@@ -84,17 +85,15 @@ CODE_CAPABLE_BACKENDS = frozenset({
     'mistral_large', 'mistral_devstral', 'mistral_pixtral', 'mistral_codestral',
     'cerebras_gptoss', 'groq_gptoss', 'groq_gptoss_20b',
     'deepinfra_qwen235b',
+    # ModelScope 魔搭
+    'ms_qwen_coder_32b', 'ms_qwen_coder_14b', 'ms_qwen_coder_7b',
 })
 VISION_SYSTEM_PROMPT = "你是一位耐心的老师。用户上传了一道题目的图片。请：1. 识别题目内容 2. 分步骤解答 3. 给出最终答案。如果是选择题，明确指出正确选项。"
 
 # Known IDE sources (both canonical and lowercased forms for flexible matching).
 # Used by routing_engine.classify() and router_v3.classify_request().
-IDE_SOURCES = {"Claude Code", "claude_code", "Cursor", "cursor",
-               "Codex", "codex", "Aider", "aider", "Cline", "cline",
-               "Continue", "continue", "VS Code", "vscode", "vs code",
-               "Kiro", "kiro", "Zed", "zed", "Trae", "trae",
-               "Windsurf", "windsurf", "Copilot", "copilot",
-               "GitHub Copilot"}
+# Single source of truth: router_v3._IDE_FINGERPRINTS.
+from router_v3 import IDE_SOURCES
 
 # ── Model Aliases: client-friendly names → LiMa backend names ──
 # Used by model_resolver.resolve_backend() to let IDE clients

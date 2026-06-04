@@ -181,6 +181,17 @@ def route(query: str, messages: list[dict], *,
     except ImportError as e:
         logging.debug("routing_engine: complexity assessment not available: %s", e)
 
+    # ── Skills injection (must happen BEFORE code_orchestrator to ensure
+    #     IDE-customized prompts are available to all execution paths) ──
+    _msg_count_before = len(messages)
+    try:
+        messages = inject_skills(
+            messages, backend="",
+            ide_source=ide_source, system_prompt=system_prompt)
+    except Exception as _e:
+        logging.warning(f"[SKILLS] early injection failed: {type(_e).__name__}: {_e}")
+    _injected_ids = _get_injected_ids(list(messages[:_msg_count_before]), messages)
+
     if scenario == "coding" and call_fn:
         try:
             import code_orchestrator
@@ -193,7 +204,8 @@ def route(query: str, messages: list[dict], *,
                     answer=orch_result["answer"],
                     request_type=f"code_{orch_result['tier']}",
                     ms=ms, scenario=scenario,
-                    retrieval_context=_retrieval_text)
+                    retrieval_context=_retrieval_text,
+                    skills_injected=_injected_ids)
         except Exception as e:
             import logging as _logging
             _logging.warning(f"[ORCH] code_orchestrator failed: {type(e).__name__}: {e}")
@@ -204,7 +216,8 @@ def route(query: str, messages: list[dict], *,
 
     hmap = health_tracker.get_health_map()
     backends = select(req_type, hmap, sticky_key=sticky_key, scenario=scenario,
-                      needs_tools=needs_tools, recalled_backend=_recalled_backend)
+                      needs_tools=needs_tools, recalled_backend=_recalled_backend,
+                      ide_source=ide_source)
 
     # ── Client model override: resolve model param to specific backend ──
     forced_backend = resolve_backend(model)
@@ -222,9 +235,8 @@ def route(query: str, messages: list[dict], *,
             )
             backends = [forced_backend] + [b for b in backends if b != forced_backend]
 
-    messages_injected = inject_skills(
-        messages, backend=backends[0] if backends else "",
-        ide_source=ide_source, system_prompt=system_prompt)
+    # Skills already injected above; reuse injected messages directly
+    messages_injected = messages
 
     # Auto-compress long conversations before they exceed backend context limits
     try:
@@ -236,7 +248,7 @@ def route(query: str, messages: list[dict], *,
     except ImportError as e:
         logging.debug("routing_engine: context compressor not available: %s", e)
 
-    injected_ids = _get_injected_ids(messages, messages_injected)
+    injected_ids = _injected_ids  # computed during early skills injection above
 
     if call_fn:
         complexity = speculative.classify_complexity(query, messages)

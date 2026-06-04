@@ -18,7 +18,6 @@ import json
 from typing import Optional
 
 import runtime_topology
-from backends import IDE_SOURCES
 
 # ─── 后端池定义 ───────────────────────────────────────────────────────────────
 
@@ -114,18 +113,25 @@ DIRECT_BACKENDS = [
 ]
 
 _IDE_FINGERPRINTS = {
-    "cursor": ["intelligent programmer", "You are Cursor"],
-    "claude_code": ["CLAUDE.md", "Claude Code", "EnterPlanMode"],
-    "codex": ["Codex", "codex"],
-    "aider": ["SEARCH/REPLACE", "RepoMap"],
-    "cline": ["<environment_details>", "Cline"],
-    "continue": ["Continue is an open-source", "continue.dev"],
-    "kiro": ["Kiro", "kiro"],
-    "zed": ["Zed", "zed-editor", "You are an AI assistant in Zed"],
-    "trae": ["Trae", "trae"],
-    "windsurf": ["Windsurf", "Codeium"],
-    "copilot": ["GitHub Copilot", "Copilot"],
+    "Cursor": ["intelligent programmer", "You are Cursor"],
+    "Claude Code": ["CLAUDE.md", "Claude Code", "claude-code", "EnterPlanMode"],
+    "Codex": ["Codex", "codex"],
+    "Aider": ["SEARCH/REPLACE", "RepoMap"],
+    "Cline": ["<environment_details>", "Cline"],
+    "Continue": ["Continue is an open-source", "continue.dev"],
+    "Kiro": ["Kiro", "kiro"],
+    "Zed": ["Zed", "zed-editor", "You are an AI assistant in Zed"],
+    "Trae": ["Trae", "trae"],
+    "Windsurf": ["Windsurf", "Codeium"],
+    "Copilot": ["GitHub Copilot", "Copilot"],
+    "OpenCode": ["OpenCode", "opencode", "opencode-ai"],
+    "VS Code": ["VS Code", "vscode"],
 }
+
+# Known IDE sources (both canonical and lowercased forms for flexible matching).
+# Used by routing_engine.classify() and router_v3.classify_request().
+# Derived from _IDE_FINGERPRINTS — the single source of truth.
+IDE_SOURCES = set(_IDE_FINGERPRINTS.keys()) | {n.lower() for n in _IDE_FINGERPRINTS}
 
 MAX_FALLBACKS = 8
 
@@ -140,7 +146,7 @@ def classify_request(path: str, headers: dict, body: dict) -> dict:
         req_type = "ide"
     else:
         ua = headers.get("user-agent", "").lower()
-        if any(x in ua for x in ["claude-code", "cursor", "aider", "codex", "cline", "continue", "vscode", "kiro", "zed", "trae", "windsurf", "copilot"]):
+        if any(x in ua for x in ["claude-code", "cursor", "aider", "codex", "cline", "continue", "vscode", "kiro", "zed", "trae", "windsurf", "copilot", "opencode"]):
             req_type = "ide"
 
     if req_type != "ide":
@@ -231,4 +237,19 @@ def detect_ide_from_system_prompt(text: str) -> str:
     for ide, markers in _IDE_FINGERPRINTS.items():
         if any(m in text for m in markers):
             return ide
+    return ""
+
+
+def get_all_ide_names() -> set[str]:
+    """返回所有已知 IDE 名称集合（canonical form）。"""
+    return set(_IDE_FINGERPRINTS.keys())
+
+
+def detect_ide_by_fingerprints(text: str) -> str:
+    """通过指纹匹配文本内容检测 IDE 来源（单一入口，供 request_tracking 等调用）。"""
+    if not text:
+        return ""
+    for ide_name, markers in _IDE_FINGERPRINTS.items():
+        if any(m in text for m in markers):
+            return ide_name
     return ""

@@ -81,14 +81,14 @@ BACKEND_CFG = {
 
 
 @patch("http_caller.health_tracker")
-@patch("http_caller._build_async_client")
-def test_call_api_async_parallel_success(mock_build_async_client, mock_ht):
+@patch("http_caller._get_async_client")
+def test_call_api_async_parallel_success(mock_get_async_client, mock_ht):
     mock_ht.is_cooled_down.return_value = False
     clients = [
         _CountingAsyncClient(f"c{i}", {"choices": [{"message": {"content": f"ok{i}"}}]}, delay=0.01)
         for i in range(8)
     ]
-    mock_build_async_client.side_effect = clients
+    mock_get_async_client.side_effect = clients
 
     async def _run():
         tasks = [
@@ -109,8 +109,8 @@ def test_call_api_async_parallel_success(mock_build_async_client, mock_ht):
 
 
 @patch("http_caller.health_tracker")
-@patch("http_caller._build_async_client")
-def test_call_api_async_parallel_mixed_failures_isolated(mock_build_async_client, mock_ht):
+@patch("http_caller._get_async_client")
+def test_call_api_async_parallel_mixed_failures_isolated(mock_get_async_client, mock_ht):
     mock_ht.is_cooled_down.return_value = False
 
     def _client_factory(backend, timeout):
@@ -121,7 +121,7 @@ def test_call_api_async_parallel_mixed_failures_isolated(mock_build_async_client
             {"choices": [{"message": {"content": "fine"}}]},
         )
 
-    mock_build_async_client.side_effect = _client_factory
+    mock_get_async_client.side_effect = _client_factory
 
     async def _run():
         async def _one(name: str):
@@ -154,15 +154,15 @@ def test_call_api_async_parallel_mixed_failures_isolated(mock_build_async_client
 
 
 @patch("http_caller.health_tracker")
-@patch("http_caller._build_async_client")
-def test_call_api_stream_async_parallel_collects_chunks(mock_build_async_client, mock_ht):
+@patch("http_caller._get_async_client")
+def test_call_api_stream_async_parallel_collects_chunks(mock_get_async_client, mock_ht):
     mock_ht.is_cooled_down.return_value = False
     line = "data: " + json.dumps({"choices": [{"delta": {"content": "x"}}]})
     clients = [
         _AsyncStreamClient([line, "data: [DONE]"], delay=0.01)
         for _ in range(5)
     ]
-    mock_build_async_client.side_effect = clients
+    mock_get_async_client.side_effect = clients
 
     async def _run():
         tasks = [
@@ -184,9 +184,9 @@ def test_call_api_stream_async_parallel_collects_chunks(mock_build_async_client,
 @patch("http_caller.key_pool.ensure_env_pool")
 @patch("http_caller.key_pool.get_key")
 @patch("http_caller.health_tracker")
-@patch("http_caller._build_client")
+@patch("http_caller._get_client")
 def test_call_api_thread_burst_all_succeed(
-    mock_build_client, mock_ht, mock_get_key, mock_ensure_env_pool, mock_is_exhausted,
+    mock_get_client, mock_ht, mock_get_key, mock_ensure_env_pool, mock_is_exhausted,
 ):
     mock_ht.is_cooled_down.return_value = False
     mock_ensure_env_pool.return_value = True
@@ -197,10 +197,8 @@ def test_call_api_thread_burst_all_succeed(
     mock_resp = MagicMock()
     mock_resp.json.return_value = {"choices": [{"message": {"content": "ok"}}]}
     mock_resp.raise_for_status.return_value = None
-    mock_client.__enter__.return_value = mock_client
-    mock_client.__exit__.return_value = False
     mock_client.post.return_value = mock_resp
-    mock_build_client.return_value = mock_client
+    mock_get_client.return_value = mock_client
 
     cfg = dict(BACKEND_CFG)
     cfg["key_pool"] = "burst-provider"

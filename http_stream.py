@@ -16,6 +16,9 @@ from http_response import _parse_sse_chunk
 
 DEBUG = os.environ.get("LIMA_DEBUG", "") == "1"
 
+# Configurable stream flush threshold (default 200 chars)
+_STREAM_FLUSH_CHARS = int(os.environ.get("LIMA_STREAM_FLUSH_CHARS", "200"))
+
 
 def _caller():
     """Resolve http_caller at runtime so tests can patch _build_client etc."""
@@ -49,48 +52,48 @@ def call_api_stream(
     started = time.time()
 
     try:
-        with hc._build_client(backend, timeout) as client:
-            pending_chunks: list[str] = []
-            total_text = ""
-            flushed = False
-            stream_sanitizer: StreamIdentitySanitizer | None = None
+        client = hc._get_client(backend, timeout)
+        pending_chunks: list[str] = []
+        total_text = ""
+        flushed = False
+        stream_sanitizer: StreamIdentitySanitizer | None = None
 
-            with client.stream("POST", cfg["url"], content=body, headers=headers) as resp:
-                resp.raise_for_status()
-                for line in resp.iter_lines():
-                    if not line or not line.startswith("data: "):
-                        continue
-                    data_str = line[6:]
-                    if data_str == "[DONE]":
-                        break
-                    text = _parse_sse_chunk(data_str, fmt)
-                    if not text:
-                        continue
-                    total_text += text
-                    if flushed:
-                        if stream_sanitizer is None:
-                            stream_sanitizer = StreamIdentitySanitizer(backend)
-                        cleaned_out = stream_sanitizer.feed(text)
-                        if cleaned_out:
-                            yield cleaned_out
-                    else:
-                        pending_chunks.append(text)
-                        if len(total_text) > 200:
-                            if _is_backend_error(total_text):
-                                hc.health_tracker.record_failure(
-                                    backend, error_code=429, error_text=total_text
-                                )
-                                raise BackendError(
-                                    f"{backend} error: {total_text[:60]}",
-                                    status_code=429,
-                                )
-                            buffered = "".join(pending_chunks)
-                            cleaned = clean_response(buffered, backend)
-                            if cleaned:
-                                yield cleaned
-                            pending_chunks = []
-                            flushed = True
-                            stream_sanitizer = StreamIdentitySanitizer(backend)
+        with client.stream("POST", cfg["url"], content=body, headers=headers) as resp:
+            resp.raise_for_status()
+            for line in resp.iter_lines():
+                if not line or not line.startswith("data: "):
+                    continue
+                data_str = line[6:]
+                if data_str == "[DONE]":
+                    break
+                text = _parse_sse_chunk(data_str, fmt)
+                if not text:
+                    continue
+                total_text += text
+                if flushed:
+                    if stream_sanitizer is None:
+                        stream_sanitizer = StreamIdentitySanitizer(backend)
+                    cleaned_out = stream_sanitizer.feed(text)
+                    if cleaned_out:
+                        yield cleaned_out
+                else:
+                    pending_chunks.append(text)
+                    if len(total_text) > _STREAM_FLUSH_CHARS:
+                        if _is_backend_error(total_text):
+                            hc.health_tracker.record_failure(
+                                backend, error_code=429, error_text=total_text
+                            )
+                            raise BackendError(
+                                f"{backend} error: {total_text[:60]}",
+                                status_code=429,
+                            )
+                        buffered = "".join(pending_chunks)
+                        cleaned = clean_response(buffered, backend)
+                        if cleaned:
+                            yield cleaned
+                        pending_chunks = []
+                        flushed = True
+                        stream_sanitizer = StreamIdentitySanitizer(backend)
 
         if flushed and stream_sanitizer is not None:
             tail = stream_sanitizer.flush()
@@ -187,50 +190,50 @@ async def call_api_stream_async(
     started = time.time()
 
     try:
-        async with hc._build_async_client(backend, timeout) as client:
-            pending_chunks: list[str] = []
-            total_text = ""
-            flushed = False
-            stream_sanitizer: StreamIdentitySanitizer | None = None
+        client = hc._get_async_client(backend, timeout)
+        pending_chunks: list[str] = []
+        total_text = ""
+        flushed = False
+        stream_sanitizer: StreamIdentitySanitizer | None = None
 
-            async with client.stream(
+        async with client.stream(
                 "POST", cfg["url"], content=body, headers=headers
             ) as resp:
-                resp.raise_for_status()
-                async for line in resp.aiter_lines():
-                    if not line or not line.startswith("data: "):
-                        continue
-                    data_str = line[6:]
-                    if data_str == "[DONE]":
-                        break
-                    text = _parse_sse_chunk(data_str, fmt)
-                    if not text:
-                        continue
-                    total_text += text
-                    if flushed:
-                        if stream_sanitizer is None:
-                            stream_sanitizer = StreamIdentitySanitizer(backend)
-                        cleaned_out = stream_sanitizer.feed(text)
+            resp.raise_for_status()
+            async for line in resp.aiter_lines():
+                if not line or not line.startswith("data: "):
+                    continue
+                data_str = line[6:]
+                if data_str == "[DONE]":
+                    break
+                text = _parse_sse_chunk(data_str, fmt)
+                if not text:
+                    continue
+                total_text += text
+                if flushed:
+                    if stream_sanitizer is None:
+                        stream_sanitizer = StreamIdentitySanitizer(backend)
+                    cleaned_out = stream_sanitizer.feed(text)
+                    if cleaned_out:
+                        yield cleaned_out
+                else:
+                    pending_chunks.append(text)
+                    if len(total_text) > _STREAM_FLUSH_CHARS:
+                        if _is_backend_error(total_text):
+                            hc.health_tracker.record_failure(
+                                backend, error_code=429, error_text=total_text
+                            )
+                            raise BackendError(
+                                f"{backend} error: {total_text[:60]}",
+                                status_code=429,
+                            )
+                        buffered = "".join(pending_chunks)
+                        cleaned_out = clean_response(buffered, backend)
                         if cleaned_out:
                             yield cleaned_out
-                    else:
-                        pending_chunks.append(text)
-                        if len(total_text) > 200:
-                            if _is_backend_error(total_text):
-                                hc.health_tracker.record_failure(
-                                    backend, error_code=429, error_text=total_text
-                                )
-                                raise BackendError(
-                                    f"{backend} error: {total_text[:60]}",
-                                    status_code=429,
-                                )
-                            buffered = "".join(pending_chunks)
-                            cleaned_out = clean_response(buffered, backend)
-                            if cleaned_out:
-                                yield cleaned_out
-                            pending_chunks = []
-                            flushed = True
-                            stream_sanitizer = StreamIdentitySanitizer(backend)
+                        pending_chunks = []
+                        flushed = True
+                        stream_sanitizer = StreamIdentitySanitizer(backend)
 
         if flushed and stream_sanitizer is not None:
             tail = stream_sanitizer.flush()

@@ -45,10 +45,10 @@ async def call_api_async(
     timeout = cfg.get("timeout", 60)
 
     try:
-        async with hc._build_async_client(backend, timeout) as client:
-            resp = await client.post(cfg["url"], content=body, headers=headers)
-            resp.raise_for_status()
-            payload = resp.json()
+        client = hc._get_async_client(backend, timeout)
+        resp = await client.post(cfg["url"], content=body, headers=headers)
+        resp.raise_for_status()
+        payload = resp.json()
 
         answer = _extract_answer(payload, cfg["fmt"])
         if _is_backend_error(answer):

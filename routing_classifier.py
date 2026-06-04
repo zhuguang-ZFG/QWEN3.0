@@ -18,7 +18,7 @@ def classify(query: str, messages: list[dict], *,
         return "ide"
 
     ua = headers.get("user-agent", "").lower()
-    if any(x in ua for x in ["claude-code", "cursor", "aider", "codex", "cline", "continue", "vscode", "kiro", "zed", "trae", "windsurf", "copilot"]):
+    if any(x in ua for x in ["claude-code", "cursor", "aider", "codex", "cline", "continue", "vscode", "kiro", "zed", "trae", "windsurf", "copilot", "opencode", "opencode-ai"]):
         return "ide"
 
     if system_prompt and router_v3.detect_ide_from_system_prompt(system_prompt):
@@ -38,6 +38,7 @@ def classify_scenario(query: str, messages: list[dict], *,
     if ide_source and ide_source.lower() in (
         "claude code", "cursor", "aider", "cline", "codex",
         "continue", "vscode", "vs code",
+        "opencode", "opencode-ai",
     ):
         return "coding"
 

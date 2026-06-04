@@ -77,32 +77,14 @@ def client_ip(request: Request) -> str:
 
 
 def detect_ide(messages: list) -> str:
-    """从消息中检测 IDE 来源。"""
+    """从消息中检测 IDE 来源。使用 router_v3 的指纹匹配作为单一来源。"""
+    from router_v3 import detect_ide_by_fingerprints
     for msg in messages:
         content = msg.get("content", "") if isinstance(msg, dict) else ""
         if isinstance(content, str):
-            if "Claude Code" in content or "claude-code" in content:
-                return "Claude Code"
-            if "Cursor" in content or "You are Cursor" in content:
-                return "Cursor"
-            if "GitHub Copilot" in content or "Copilot" in content:
-                return "GitHub Copilot"
-            if "Windsurf" in content or "Codeium" in content:
-                return "Windsurf"
-            if "Kiro" in content or "kiro" in content:
-                return "Kiro"
-            if "Zed" in content or "zed-editor" in content:
-                return "Zed"
-            if "Trae" in content or "trae" in content:
-                return "Trae"
-            if "Codex" in content:
-                return "Codex"
-            if "Continue" in content or "continue.dev" in content:
-                return "Continue"
-            if "Cline" in content or "<environment_details>" in content:
-                return "Cline"
-            if "Aider" in content or "SEARCH/REPLACE" in content:
-                return "Aider"
+            ide = detect_ide_by_fingerprints(content)
+            if ide:
+                return ide
     return ""
 
 
