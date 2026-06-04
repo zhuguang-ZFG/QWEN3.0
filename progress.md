@@ -5145,3 +5145,35 @@ Verification note:
 ### 下一步
 - 创建PR合并到main分支
 - 在生产环境中测试配额限制功能
+
+---
+
+## OpenCode Round 2 深度适配 — 部署验证
+
+### 部署时间
+2026-06-04 19:10 CST
+
+### 部署方式
+deploy_opencode.py → VPS 47.112.162.80 (systemctl restart lima-router)
+
+### 变更摘要
+- 23 files changed, 760 insertions, 72 deletions
+- 2 new files: opencode_error_adapter.py, opencode_message_normalizer.py
+- Key features: overflow detection, message normalization, usage tracking, reasoning_effort passthrough, x-session-affinity, streaming overflow handling
+
+### 验证结果
+- ✅ 本地 pytest: 41/41 OpenCode 测试通过
+- ✅ 本地 ruff: All checks passed
+- ✅ VPS /health: HTTP 200, 所有模块加载成功
+- ✅ VPS /v1/models: 13 个模型返回
+- ✅ VPS /v1/chat/completions 非流式: HTTP 200, scnet_ds_flash, 4010ms
+- ✅ VPS /v1/chat/completions 流式: HTTP 200, 2 chunks
+- ✅ VPS Tool calling: HTTP 200, ls function call returned
+- ✅ VPS 日志: 无新代码错误，无 import 错误
+- ✅ OpenCode 配置: BASE_URL=https://chat.donglicao.com/v1, MODEL=lima-1.3
+- ✅ Git push: 89d3ad4 → origin/codex/free-web-ai-probe
+
+### 发现的问题
+- deploy_opencode.py 缺少 http_caller.py → 已修复并重新部署
+- VPS 服务由 systemd 管理 (lima-router.service)，需使用 systemctl restart
+- Telegram API sendMessage 失败 → 预存问题，与本次变更无关
