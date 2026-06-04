@@ -39,7 +39,7 @@ def execute(backends: list[str],
                 answer = call_fn(backend, messages, max_tokens)
             latency_ms = (time.time() - t_backend) * 1000
 
-            if answer and len(answer.strip()) > 5:
+            if answer and len(answer.strip()) > 0:
                 re.health_tracker.record_success(backend, latency_ms)
                 re.budget_manager.record_usage(backend)
                 return backend, answer, errors
@@ -82,7 +82,7 @@ def execute(backends: list[str],
                     answer = call_fn(backend, messages, max_tokens, tools=tools)
                 else:
                     answer = call_fn(backend, messages, max_tokens)
-                if answer and len(answer.strip()) > 5:
+                if answer and len(answer.strip()) > 0:
                     re.health_tracker.record_success(backend, (time.time() - t0) * 1000)
                     return backend, answer, errors
             except Exception as exc:
@@ -110,7 +110,7 @@ def _parallel_fallback(
                 answer = call_fn(backend, messages, max_tokens, tools=tools)
             else:
                 answer = call_fn(backend, messages, max_tokens)
-            if answer and len(answer.strip()) > 5:
+            if answer and len(answer.strip()) > 0:
                 return backend, answer
         except Exception as exc:
             # Context overflow: propagate immediately from parallel fallback
