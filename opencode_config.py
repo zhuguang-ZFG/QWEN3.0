@@ -66,3 +66,20 @@ OPENCODE_KEEP_RECENT_TURNS = int(
 OPENCODE_SKIP_SPECULATIVE_TOOLS = (
     os.environ.get("LIMA_OPENCODE_SKIP_SPECULATIVE_TOOLS", "1") == "1"
 )
+
+# ── M-OC3: Reasoning variants ──────────────────────────────────────────────
+# Enable reasoning_effort / thinking tier translation per model/provider.
+# When enabled, reasoning_effort from client requests is translated into
+# provider-specific body parameters (e.g. Anthropic thinking.budgetTokens,
+# Google thinkingConfig.thinkingLevel) instead of bare passthrough.
+OPENCODE_REASONING_VARIANTS = (
+    os.environ.get("LIMA_OPENCODE_REASONING_VARIANTS", "1") == "1"
+)
+
+# ── M-OC3: Session options ─────────────────────────────────────────────────
+# Enable per-model session-level options injection (store/enable_thinking/
+# toolStreaming/promptCacheKey). These options are required by OpenCode for
+# correct model behavior (e.g. store=false for GPT-5 stateless reasoning).
+OPENCODE_SESSION_OPTIONS = (
+    os.environ.get("LIMA_OPENCODE_SESSION_OPTIONS", "1") == "1"
+)

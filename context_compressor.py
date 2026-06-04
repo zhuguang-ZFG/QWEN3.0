@@ -13,7 +13,6 @@ Supports:
 from __future__ import annotations
 
 import logging
-import os
 from typing import Callable
 
 _log = logging.getLogger(__name__)
@@ -45,8 +44,8 @@ BACKEND_CONTEXT_LIMITS: dict[str, int] = {
 CHARS_PER_TOKEN = 4
 SAFETY_FACTOR = 0.8
 
-# OpenCode multi-turn conversation settings
-OPENCODE_KEEP_RECENT_TURNS = int(os.environ.get("LIMA_OPENCODE_KEEP_RECENT_TURNS", "8"))
+# OpenCode multi-turn conversation settings (imported from centralized config)
+from opencode_config import OPENCODE_KEEP_RECENT_TURNS  # noqa: E402
 
 # Compression prompt: summarize conversation so far
 _COMPRESSION_PROMPT = (

@@ -2,6 +2,62 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-06-04 M-OC3 OpenCode Round 3 深度适配 — 模型推理兼容性
+
+### 背景
+M-OC1 (Phase 1) 和 M-OC2 (Round 2) 已完成基础 IDE 适配。M-OC3 补齐 OpenCode provider 层关键能力：reasoning/thinking tier 映射、session 级 options 注入、流错误结构化解析。
+
+### 新增/增强模块
+
+| 模块 | 类型 | LOC | 参考 OpenCode 源码 |
+|------|------|-----|-------------------|
+| `reasoning_variants.py` | 新建 | 258 | `transform.ts:614-1025` |
+| `session_options.py` | 新建 | 183 | `transform.ts:1027-1168` |
+| `opencode_message_normalizer.py` | 增强 | +55 | `transform.ts:267-316` |
+| `opencode_error_adapter.py` | 增强 | +98 | `error.ts:134-218` |
+| `http_request_builder.py` | 接线 | +18 | — |
+| `opencode_config.py` | 配置 | +15 | — |
+
+### 关键发现
+
+1. **reasoning_effort 不兼容**: LiMa 原本将 reasoning_effort 裸传 (`body["reasoning_effort"] = value`)，但不同 provider 需要不同参数格式：
+   - OpenAI/GPT-5: `reasoning_effort` (fine)
+   - Anthropic Claude: `thinking: {type: "enabled", budgetTokens: N}` 或 adaptive `thinking: {type: "adaptive"}`
+   - Google Gemini: `thinkingConfig: {thinkingLevel: "low"|"high"}`
+   - OpenRouter: `reasoning: {effort: "low"}` (不是 `reasoning_effort`)
+   - 修复: `apply_variant()` 按 backend+model 翻译 effort 到 provider-specific params
+
+2. **session options 缺失**: OpenCode 依赖 `store=false` (GPT-5 stateless reasoning), `enable_thinking` (DashScope/Kimi), `toolStreaming=false` (non-Claude Anthropic) 等 session 级选项。缺失导致多轮推理降级。
+
+3. **DeepSeek reasoning 消息结构**: DeepSeek 要求 assistant 消息必须携带 reasoning content part，且 reasoning_content 需通过 `providerOptions.openaiCompatible` 跨轮传递，不能在 content 数组中。
+
+4. **流错误码未解析**: LiMa 原仅检测 context_overflow，但 OpenCode 还依赖 `insufficient_quota`、`usage_not_included`、`server_is_overloaded` 等结构化错误码来做重试/降级决策。
+
+### VPS 部署证据
+```
+30 files uploaded to 47.112.162.80:/opt/lima-router
+lima-router restarted via systemctl
+/health: {"status":"ok","version":"2.0"} 14/14 modules active
+VARIANTS: low/medium/high/max ✅
+OPTIONS store=false ✅
+OPTIONS reasoningEffort=medium ✅
+STREAM_ERR retryable=True ✅
+NORMALIZER: 2 parts (text + reasoning) ✅
+```
+
+### 测试证据
+```
+pytest tests/test_opencode_round3.py: 38 passed
+pytest tests/test_opencode_{e2e,optimization,streaming}.py: 41 passed (no regression)
+ruff check: All checks passed
+```
+
+### 特性开关
+| Flag | Default | Purpose |
+|------|---------|---------|
+| `LIMA_OPENCODE_REASONING_VARIANTS` | `1` | Enable reasoning_effort tier translation |
+| `LIMA_OPENCODE_SESSION_OPTIONS` | `1` | Enable per-model session options injection |
+
 ## 2026-06-04 OpenCode 克隆与 LiMa 联通调试
 
 ### 背景

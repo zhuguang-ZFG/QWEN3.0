@@ -70,6 +70,8 @@ tr:hover td{background:rgba(59,130,246,0.08)}
 .filter-bar button{padding:8px 12px;font-size:12px}
 .filter-bar button.active{border-color:var(--cyan);color:var(--cyan)}
 @media(max-width:1024px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;padding:20px}.sidebar-footer{position:static;margin-top:20px}.main{padding:20px}.card,.card.wide{grid-column:1/-1}.topbar{display:block}.toolbar{margin-top:16px}.form{grid-template-columns:1fr 1fr}.form .span2,.form .span3{grid-column:auto}}
+@media(max-width:768px){.main{padding:16px}.card,.card.wide{padding:14px;border-radius:16px}.toolbar{flex-direction:column;align-items:stretch}.toolbar .btn,.filter-bar button{padding:12px 14px;min-height:44px;font-size:13px}.form{grid-template-columns:1fr}.form .span2,.form .span3{grid-column:auto}.bento{gap:12px}.title{font-size:24px}.notification{left:16px;right:16px;max-width:none;top:60px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important}}
 </style>
 </head>
 <body>

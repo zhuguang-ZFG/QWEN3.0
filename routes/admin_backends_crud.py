@@ -14,7 +14,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException
 
 from routes.admin_auth import verify_admin, verify_csrf
-from backends_registry import BACKENDS, DISABLED_HOST_DEPENDENT_BACKENDS
+from backends_registry import BACKENDS, DISABLED_HOST_DEPENDENT_BACKENDS, _load_backend_overlay
 
 router = APIRouter()
 _log = logging.getLogger(__name__)
@@ -144,6 +144,7 @@ async def add_backend(body: dict):
         "caps": body.get("caps", []),
     }
     _write_overlay(overlay)
+    _load_backend_overlay()
     _log.info("admin: added backend %s", name)
     return {"ok": True, "name": name}
 
@@ -158,6 +159,7 @@ async def update_backend(name: str, body: dict):
         "url", "key", "model", "fmt", "timeout", "caps", "admission", "private_code_allowed"
     )}
     _write_overlay(overlay)
+    _load_backend_overlay()
     _log.info("admin: updated backend %s", name)
     return {"ok": True, "name": name}
 
@@ -172,6 +174,7 @@ async def delete_backend(name: str):
     overlay.get("add", {}).pop(name, None)
     overlay.get("update", {}).pop(name, None)
     _write_overlay(overlay)
+    _load_backend_overlay()
     _log.info("admin: deleted backend %s", name)
     return {"ok": True, "name": name}
 

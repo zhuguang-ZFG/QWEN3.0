@@ -25,7 +25,7 @@ import httpx
 _log = logging.getLogger("fleet.agent")
 
 POLL_INTERVAL = 30  # seconds
-EXEC_TIMEOUT = 60    # seconds
+EXEC_TIMEOUT = 60  # seconds
 
 
 def detect_capabilities() -> dict:
@@ -45,7 +45,9 @@ def detect_capabilities() -> dict:
     try:
         result = subprocess.run(
             ["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         if result.returncode == 0 and result.stdout.strip():
             line = result.stdout.strip().split("\n")[0]
@@ -65,22 +67,24 @@ def detect_capabilities() -> dict:
     try:
         result = subprocess.run(
             ["curl", "-s", "http://127.0.0.1:11434/api/tags"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         if result.returncode == 0:
             data = json.loads(result.stdout)
-            caps["models"] = [
-                f"ollama:{m['name']}" for m in data.get("models", [])
-            ]
-    except Exception:
-        pass
+            caps["models"] = [f"ollama:{m['name']}" for m in data.get("models", [])]
+    except Exception as exc:
+        _log.warning("ollama detection failed: %s", exc)
 
     # Detect RAM
     try:
         if platform.system() == "Windows":
             import ctypes
+
             kernel32 = ctypes.windll.kernel32
             c_ulonglong = ctypes.c_ulonglong
+
             class MEMORYSTATUSEX(ctypes.Structure):
                 _fields_ = [
                     ("dwLength", ctypes.c_ulong),
@@ -93,6 +97,7 @@ def detect_capabilities() -> dict:
                     ("ullAvailVirtual", c_ulonglong),
                     ("ullAvailExtendedVirtual", c_ulonglong),
                 ]
+
             mem = MEMORYSTATUSEX()
             mem.dwLength = ctypes.sizeof(MEMORYSTATUSEX)
             kernel32.GlobalMemoryStatusEx(ctypes.byref(mem))
@@ -103,8 +108,8 @@ def detect_capabilities() -> dict:
                     if "MemTotal" in line:
                         caps["ram_gb"] = round(int(line.split()[1]) / (1024**2), 1)
                         break
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.warning("RAM detection failed: %s", exc)
 
     return caps
 
@@ -134,7 +139,8 @@ def heartbeat(vps_url: str, node_id: str, load_avg: float = 0.0) -> bool:
             timeout=5,
         )
         return resp.json().get("ok", False)
-    except Exception:
+    except Exception as exc:
+        _log.warning("heartbeat failed: %s", exc)
         return False
 
 
@@ -159,7 +165,10 @@ def poll_and_execute(vps_url: str, node_id: str) -> bool:
         if task_type == "shell":
             try:
                 proc = subprocess.run(
-                    command, shell=True, capture_output=True, text=True,
+                    command,
+                    shell=True,
+                    capture_output=True,
+                    text=True,
                     timeout=EXEC_TIMEOUT,
                 )
                 result = proc.stdout[:65536]
@@ -193,16 +202,23 @@ def run_agent(vps_url: str, node_id: str) -> None:
     _log.info("fleet agent starting: node=%s vps=%s", node_id, vps_url)
 
     caps = detect_capabilities()
-    _log.info("capabilities: gpu=%s gpu_model=%s vram=%.1fGB models=%d",
-              caps["gpu"], caps["gpu_model"], caps["gpu_vram_gb"], len(caps["models"]))
+    _log.info(
+        "capabilities: gpu=%s gpu_model=%s vram=%.1fGB models=%d",
+        caps["gpu"],
+        caps["gpu_model"],
+        caps["gpu_vram_gb"],
+        len(caps["models"]),
+    )
 
     register(vps_url, node_id, caps)
 
     while True:
         try:
             import psutil
+
             load = psutil.getloadavg()[0] if hasattr(psutil, "getloadavg") else 0.0
-        except Exception:
+        except Exception as exc:
+            _log.warning("loadavg detection failed: %s", exc)
             load = 0.0
 
         heartbeat(vps_url, node_id, load)

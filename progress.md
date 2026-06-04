@@ -1,6 +1,29 @@
 # Execution Log
 
-> Last updated: 2026-06-03 · 22 个里程碑完成 · 2191 tests passing
+> Last updated: 2026-06-04 · 23 个里程碑完成 · 2229 tests passing
+
+## M-OC3: OpenCode Round 3 深度适配 — 模型推理兼容性 (completed)
+
+| Task | 修复内容 | 文件 | 状态 |
+|------|---------|------|------|
+| **T1** | reasoning_variants.py — 按 provider+model 映射 reasoning_effort/thinking 层级 | reasoning_variants.py | ✅ |
+| **T2** | session_options.py — 注入 store/enable_thinking/toolStreaming/usage/include | session_options.py | ✅ |
+| **T3** | opencode_message_normalizer — DeepSeek reasoning_content + interleaved 字段 | opencode_message_normalizer.py | ✅ |
+| **T4** | parse_stream_error — 结构化流错误码解析 | opencode_error_adapter.py | ✅ |
+| **T5** | parse_api_error — 结构化 API 错误解析 | opencode_error_adapter.py | ✅ |
+| **T6** | 接线 — http_request_builder/sync/async/stream 调用新模块 | http_request_builder.py, http_sync.py, http_async.py, http_stream.py | ✅ |
+| **T7** | opencode_config.py — OPENCODE_REASONING_VARIANTS/OPENCODE_SESSION_OPTIONS 开关 | opencode_config.py | ✅ |
+| **T8** | 38 个新测试 | tests/test_opencode_round3.py | ✅ |
+| **T9** | ruff check passed | - | ✅ |
+| **T10** | VPS 部署 + health + smoke | - | ✅ |
+
+**功能说明**: 补齐 GPT-5/Claude Opus 4.7+/Gemini 3/DeepSeek 等模型的 reasoning_effort 层级映射、session 级 options 注入、流错误结构化解析能力。
+
+**本地门禁**: 全量 pytest 2229 passed (38 new + 41 OpenCode no regression)
+**ruff check**: All checks passed
+**VPS 部署**: deploy_opencode.py (30 files), lima-router restarted
+**VPS /health**: `{"status":"ok","version":"2.0"}` 14/14 modules active
+**VPS smoke**: VARIANTS ok (low/medium/high/max), OPTIONS store=False ok, STREAM_ERR retryable=True ok, NORMALIZER ok
 
 ## M23: 模型解析器 - 客户端模型参数路由 (completed)
 

@@ -27,9 +27,14 @@ app.include_router(admin_api_router, prefix="/admin")
 client = TestClient(app)
 HEADERS = {"Authorization": "Bearer test-admin-token"}
 
+# Separate client WITHOUT auth overrides — used for auth-required tests
+_raw_app = FastAPI()
+_raw_app.include_router(admin_api_router, prefix="/admin")
+raw_client = TestClient(_raw_app)
+
 
 def test_config_export_requires_auth():
-    resp = client.get("/admin/api/config/export")
+    resp = raw_client.get("/admin/api/config/export")
     assert resp.status_code in (401, 403)
 
 

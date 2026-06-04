@@ -58,6 +58,7 @@ def investigate(target: str, *, cwd: str | None = None) -> SkillResult:
 def _analyze_file(path: Path, details: list[str], evidence: list[str]) -> None:
     try:
         from code_context.ast_adapter import get_extractor
+
         suffix = path.suffix.lower()
         lang_map = {".py": "python", ".js": "javascript", ".ts": "typescript"}
         lang = lang_map.get(suffix, "python")
@@ -76,6 +77,7 @@ def _analyze_file(path: Path, details: list[str], evidence: list[str]) -> None:
 def _find_related(path: Path, details: list[str], evidence: list[str]) -> None:
     try:
         from code_context.graph_index import build_graph_index
+
         g = build_graph_index()
         if g.edge_count > 0:
             results = g.search([path.name], max_depth=2, max_results=5)
@@ -92,20 +94,24 @@ def _check_git_log(path: Path, details: list[str], evidence: list[str]) -> None:
     try:
         result = subprocess.run(
             ["git", "log", "--oneline", "-5", "--", str(path)],
-            capture_output=True, text=True, timeout=5, cwd=path.parent,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            cwd=path.parent,
         )
         if result.stdout.strip():
             details.append("## Recent git history:")
             for line in result.stdout.strip().split("\n"):
                 details.append(f"  {line}")
             evidence.append("git_log_ok")
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.warning("git log check failed for %s: %s", path, exc)
 
 
 def _search_by_keywords(query: str, details: list[str], evidence: list[str]) -> None:
     try:
         from code_context.index_store import InMemoryCodeIndex
+
         idx = InMemoryCodeIndex()
         results = idx.search(query, limit=5)
         if results:
@@ -113,12 +119,14 @@ def _search_by_keywords(query: str, details: list[str], evidence: list[str]) -> 
             for r in results:
                 details.append(f"  - {r.path}")
             evidence.append(f"keyword_matches:{len(results)}")
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.warning("keyword search failed: %s", exc)
 
 
 def _run_related_tests(
-    path: Path | None, details: list[str], evidence: list[str],
+    path: Path | None,
+    details: list[str],
+    evidence: list[str],
 ) -> None:
     if not path or path.suffix != ".py":
         return
@@ -130,7 +138,9 @@ def _run_related_tests(
     try:
         result = subprocess.run(
             ["python", "-m", "pytest", str(test_path), "-q", "--tb=short"],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         lines = result.stdout.strip().split("\n")
         details.append(f"## Tests ({test_path.name}):")

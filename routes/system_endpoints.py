@@ -45,8 +45,7 @@ async def list_models(request: Request):
     # OpenCode curated model list: return a focused subset of coding-capable models.
     # Default enabled for OpenCode clients; set LIMA_OPENCODE_MODEL_LIST=0 to disable.
     ua = request.headers.get("user-agent", "").lower()
-    if ("opencode" in ua or "opencode-ai" in ua
-            and os.environ.get("LIMA_OPENCODE_MODEL_LIST", "1") != "0"):
+    if ("opencode" in ua or "opencode-ai" in ua) and os.environ.get("LIMA_OPENCODE_MODEL_LIST", "1") != "0":
         # Curated coding-agent models: models with strong tool-calling + coding ability
         opencode_models = [
             {"id": "claude-sonnet-4", "object": "model", "created": _model_created, "owned_by": "anthropic"},

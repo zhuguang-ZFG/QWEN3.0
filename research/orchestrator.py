@@ -105,5 +105,6 @@ def _normalize_url(url: str) -> str:
     try:
         parsed = urlparse(url)
         return f"{parsed.netloc}{parsed.path}".rstrip("/").lower()
-    except Exception:
+    except Exception as exc:
+        _log.warning("URL normalization failed for %s: %s", url, exc)
         return url.lower()

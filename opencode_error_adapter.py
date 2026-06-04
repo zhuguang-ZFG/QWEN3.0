@@ -143,7 +143,7 @@ def build_overflow_sse_chunk(
 
 def extract_overflow_message(exc: Exception) -> str:
     """从异常中提取最适合展示的溢出错误消息。
-
+    
     优先使用异常的 status_code 和消息文本。
     """
     status = ""
@@ -153,3 +153,133 @@ def extract_overflow_message(exc: Exception) -> str:
             status = f" (status {val})"
             break
     return f"Input exceeds context window of this model{status}"
+
+
+def parse_stream_error(raw: str) -> dict[str, Any] | None:
+    """解析 SSE 流中的错误事件，返回结构化错误信息。
+
+    移植自 OpenCode error.ts parseStreamError() (L134-179)。
+    识别的错误码：
+      - context_length_exceeded → type="context_overflow"
+      - insufficient_quota     → type="api_error", isRetryable=False
+      - usage_not_included     → type="api_error", isRetryable=False
+      - invalid_prompt         → type="api_error", isRetryable=False
+      - server_is_overloaded   → type="api_error", isRetryable=True
+      - server_error           → type="api_error", isRetryable=True
+
+    Args:
+        raw: SSE 事件体的字符串（含 type/error 字段的 JSON）。
+
+    Returns:
+        结构化错误 dict，或 None（若非错误事件或无法解析）。
+    """
+    try:
+        body: dict[str, Any] = json.loads(raw) if isinstance(raw, str) else raw
+    except (json.JSONDecodeError, TypeError):
+        return None
+
+    # 部分 SSE 错误将 JSON 嵌套在 message 字段中
+    if isinstance(body.get("message"), str):
+        try:
+            inner = json.loads(body["message"])
+            if isinstance(inner, dict):
+                body = inner
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    if body.get("type") != "error":
+        return None
+
+    code = (body.get("error") or {}).get("code") if isinstance(body.get("error"), dict) else None
+    response_body = json.dumps(body, ensure_ascii=False)
+
+    if code == "context_length_exceeded":
+        return {
+            "type": "context_overflow",
+            "message": "Input exceeds context window of this model",
+            "responseBody": response_body,
+        }
+    if code == "insufficient_quota":
+        return {
+            "type": "api_error",
+            "message": "Quota exceeded. Check your plan and billing details.",
+            "isRetryable": False,
+            "responseBody": response_body,
+        }
+    if code == "usage_not_included":
+        return {
+            "type": "api_error",
+            "message": "To use Codex with your ChatGPT plan, upgrade to Plus: https://chatgpt.com/explore/plus.",
+            "isRetryable": False,
+            "responseBody": response_body,
+        }
+    if code == "invalid_prompt":
+        err_msg = (body.get("error") or {}).get("message") if isinstance(body.get("error"), dict) else None
+        return {
+            "type": "api_error",
+            "message": err_msg if isinstance(err_msg, str) else "Invalid prompt.",
+            "isRetryable": False,
+            "responseBody": response_body,
+        }
+    if code in ("server_is_overloaded", "server_error"):
+        err_msg = (body.get("error") or {}).get("message") if isinstance(body.get("error"), dict) else None
+        return {
+            "type": "api_error",
+            "message": err_msg if isinstance(err_msg, str) else "Server error.",
+            "isRetryable": True,
+            "responseBody": response_body,
+        }
+
+    return None
+
+
+def parse_api_error(
+    error_obj: dict[str, Any],
+    status_code: int = 0,
+    response_headers: dict[str, str] | None = None,
+    response_body: str = "",
+    url: str = "",
+) -> dict[str, Any]:
+    """解析 API 调用错误，返回结构化的错误信息。
+
+    移植自 OpenCode error.ts parseAPICallError() (L197-218)。
+
+    Args:
+        error_obj: 后端返回的 error dict（含 message/code 字段）。
+        status_code: HTTP 状态码。
+        response_headers: 响应头字典。
+        response_body: 响应体 JSON 字符串。
+        url: 请求 URL（用于元数据）。
+
+    Returns:
+        type="context_overflow" | type="api_error" 的结构化 dict。
+    """
+    msg = str(error_obj.get("message", "Unknown API error"))
+    is_overflow = detect_context_overflow(msg, status_code, response_body)
+    try:
+        body = json.loads(response_body) if isinstance(response_body, str) else None
+    except (json.JSONDecodeError, TypeError):
+        body = None
+
+    if is_overflow:
+        return {
+            "type": "context_overflow",
+            "message": msg,
+            "responseBody": response_body,
+        }
+
+    metadata: dict[str, str] = {}
+    if url:
+        metadata["url"] = url
+
+    is_retryable = error_obj.get("isRetryable", False)
+
+    return {
+        "type": "api_error",
+        "message": msg,
+        "statusCode": status_code or error_obj.get("statusCode", 0),
+        "isRetryable": bool(is_retryable),
+        "responseHeaders": response_headers or {},
+        "responseBody": response_body,
+        "metadata": metadata,
+    }

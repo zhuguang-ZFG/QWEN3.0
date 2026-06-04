@@ -1,162 +1,492 @@
 <!DOCTYPE html>
-<html lang="zh-CN" class="dark">
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LiMa Admin — 多模型路由管理</title>
-<script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
+  /* ── Apple Design System ── */
   :root {
-    --bg: #020617; --bg-card: #0F172A; --bg-elevated: #1A1E2F;
-    --border: #334155; --muted: #64748B; --text: #F8FAFC;
-    --accent: #22C55E; --accent-dim: #166534; --warn: #F59E0B; --danger: #EF4444;
-    --blue: #3B82F6; --purple: #8B5CF6;
-    --radius: 8px;
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-    --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Light mode (default) */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f5f5f7;
+    --bg-tertiary: #fafafa;
+    --bg-card: rgba(255, 255, 255, 0.8);
+    --bg-elevated: rgba(255, 255, 255, 0.95);
+    
+    --text-primary: #1d1d1f;
+    --text-secondary: #86868b;
+    --text-tertiary: #a1a1a6;
+    
+    --border-light: rgba(0, 0, 0, 0.06);
+    --border-medium: rgba(0, 0, 0, 0.1);
+    
+    --accent: #0071e3;
+    --accent-hover: #0077ed;
+    --success: #34c759;
+    --success-bg: rgba(52, 199, 89, 0.1);
+    --warning: #ff9f0a;
+    --warning-bg: rgba(255, 159, 10, 0.1);
+    --danger: #ff3b30;
+    --danger-bg: rgba(255, 59, 48, 0.1);
+    --info: #5ac8fa;
+    --info-bg: rgba(90, 200, 250, 0.1);
+    --purple: #af52de;
+    --purple-bg: rgba(175, 82, 222, 0.1);
+    
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+    
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 18px;
+    --radius-pill: 980px;
+    
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 48px;
+    --space-2xl: 96px;
+    
+    --transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    --transition-fast: all 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
   }
+  
+  /* Dark mode */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-primary: #000000;
+      --bg-secondary: #1d1d1f;
+      --bg-tertiary: #2d2d2f;
+      --bg-card: rgba(28, 28, 30, 0.8);
+      --bg-elevated: rgba(44, 44, 46, 0.95);
+      
+      --text-primary: #f5f5f7;
+      --text-secondary: #86868b;
+      --text-tertiary: #6e6e73;
+      
+      --border-light: rgba(255, 255, 255, 0.08);
+      --border-medium: rgba(255, 255, 255, 0.14);
+      
+      --accent: #0a84ff;
+      --accent-hover: #409cff;
+      --success: #30d158;
+      --success-bg: rgba(48, 209, 88, 0.15);
+      --warning: #ffd60a;
+      --warning-bg: rgba(255, 214, 10, 0.15);
+      --danger: #ff453a;
+      --danger-bg: rgba(255, 69, 58, 0.15);
+      --info: #64d2ff;
+      --info-bg: rgba(100, 210, 255, 0.15);
+      --purple: #bf5af2;
+      --purple-bg: rgba(191, 90, 242, 0.15);
+      
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+  }
+  
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  
   body {
-    font-family: 'Fira Sans', system-ui, sans-serif;
-    background: var(--bg); color: var(--text);
-    display: flex; min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', 'Segoe UI', sans-serif;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    display: flex;
+    min-height: 100vh;
+    font-size: 17px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
-  code, .mono { font-family: 'Fira Code', monospace; }
+  
+  code, .mono { 
+    font-family: 'SF Mono', 'Fira Code', 'Menlo', 'Monaco', monospace;
+    font-size: 0.9em;
+  }
 
   /* ── Sidebar ── */
   .sidebar {
-    width: 240px; background: var(--bg-card); border-right: 1px solid var(--border);
-    padding: 20px 16px; display: flex; flex-direction: column; gap: 8px;
-    position: sticky; top: 0; height: 100vh;
+    width: 260px;
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-right: 1px solid var(--border-light);
+    padding: var(--space-lg) var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    position: sticky;
+    top: 0;
+    height: 100vh;
   }
-  .sidebar h1 { font-size: 18px; font-weight: 700; margin-bottom: 16px; color: var(--accent); }
+  
+  .sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: 0 var(--space-md) var(--space-lg);
+    border-bottom: 1px solid var(--border-light);
+    margin-bottom: var(--space-md);
+  }
+  
+  .sidebar-brand h1 {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+  }
+  
+  .sidebar-brand .brand-icon {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, var(--accent) 0%, #5856d6 100%);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+  }
+  
+  .nav-section {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: var(--space-md) var(--space-md) var(--space-sm);
+  }
+  
   .nav-item {
-    padding: 10px 14px; border-radius: var(--radius); cursor: pointer;
-    transition: var(--transition); color: var(--muted); font-size: 14px; font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    color: var(--text-secondary);
+    font-size: 15px;
+    font-weight: 500;
     position: relative;
   }
+  
   .nav-item:hover {
-    background: var(--bg-elevated); color: var(--text);
-    transform: translateX(2px);
+    background: var(--border-light);
+    color: var(--text-primary);
   }
+  
   .nav-item.active {
-    background: linear-gradient(135deg, var(--accent-dim) 0%, transparent 100%);
-    color: var(--accent); border-left: 3px solid var(--accent);
+    background: var(--accent);
+    color: white;
   }
-  .nav-item .icon { margin-right: 10px; }
+  
+  .nav-item .icon {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .sidebar-footer {
+    margin-top: auto;
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--border-light);
+  }
+  
+  .sidebar-footer .version-info {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    padding: 0 var(--space-md);
+    line-height: 1.6;
+  }
 
-  /* ── Main ── */
-  .main { flex: 1; padding: 24px 32px; overflow-y: auto; }
+  /* ── Main Content ── */
+  .main {
+    flex: 1;
+    padding: var(--space-xl);
+    overflow-y: auto;
+    max-width: 1200px;
+  }
+  
+  .page-header {
+    margin-bottom: var(--space-xl);
+  }
+  
+  .page-title {
+    font-size: 32px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+    margin-bottom: var(--space-sm);
+  }
+  
+  .page-subtitle {
+    font-size: 17px;
+    color: var(--text-secondary);
+  }
 
-  /* ── Status cards ── */
-  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  /* ── Status Cards ── */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-md);
+    margin-bottom: var(--space-xl);
+  }
+  
   .stat-card {
-    background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 18px 20px;
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
     transition: var(--transition);
     position: relative;
     overflow: hidden;
   }
-  .stat-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--accent), transparent);
-    opacity: 0;
-    transition: opacity 0.3s;
-  }
+  
   .stat-card:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
-    border-color: var(--muted);
+    border-color: var(--border-medium);
   }
-  .stat-card:hover::before {
-    opacity: 1;
+  
+  .stat-card .stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: var(--space-md);
   }
-  .stat-card .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-  .stat-card .value { font-size: 28px; font-weight: 700; font-family: 'Fira Code', monospace; }
-  .stat-card .sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
-  .stat-green { border-left: 3px solid var(--accent); }
-  .stat-blue  { border-left: 3px solid var(--blue); }
-  .stat-purple { border-left: 3px solid var(--purple); }
-  .stat-warn  { border-left: 3px solid var(--warn); }
+  
+  .stat-card .stat-icon.green { background: var(--success-bg); color: var(--success); }
+  .stat-card .stat-icon.blue { background: var(--info-bg); color: var(--info); }
+  .stat-card .stat-icon.purple { background: var(--purple-bg); color: var(--purple); }
+  .stat-card .stat-icon.orange { background: var(--warning-bg); color: var(--warning); }
+  
+  .stat-card .label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: var(--space-xs);
+  }
+  
+  .stat-card .value {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+  
+  .stat-card .sub {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    margin-top: var(--space-xs);
+  }
 
   /* ── Tables ── */
-  .table-wrap { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow-x: auto; margin-bottom: 24px; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { text-align: left; padding: 12px 16px; background: var(--bg-elevated); color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
-  td { padding: 10px 16px; border-top: 1px solid var(--border); }
-  tr:hover td { background: var(--bg-elevated); }
-  .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; transition: var(--transition); }
-  .badge:hover { transform: scale(1.05); }
-  .badge-green { background: var(--accent-dim); color: var(--accent); }
-  .badge-yellow { background: #78350F; color: var(--warn); }
-  .badge-red { background: #7F1D1D; color: var(--danger); }
-  .badge-blue { background: #1E3A5F; color: var(--blue); }
-  .badge-purple { background: #3B1F6E; color: var(--purple); }
+  .table-wrap {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: var(--space-xl);
+  }
+  
+  .table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: 1px solid var(--border-light);
+  }
+  
+  .table-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+  }
+  
+  th {
+    text-align: left;
+    padding: 12px var(--space-lg);
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border-light);
+  }
+  
+  td {
+    padding: 14px var(--space-lg);
+    border-bottom: 1px solid var(--border-light);
+    color: var(--text-primary);
+  }
+  
+  tr:last-child td {
+    border-bottom: none;
+  }
+  
+  tr:hover td {
+    background: var(--border-light);
+  }
+  
+  /* ── Badges ── */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    font-size: 12px;
+    font-weight: 500;
+    transition: var(--transition-fast);
+  }
+  
+  .badge-green { background: var(--success-bg); color: var(--success); }
+  .badge-yellow { background: var(--warning-bg); color: var(--warning); }
+  .badge-red { background: var(--danger-bg); color: var(--danger); }
+  .badge-blue { background: var(--info-bg); color: var(--info); }
+  .badge-purple { background: var(--purple-bg); color: var(--purple); }
+  .badge-gray { background: var(--border-light); color: var(--text-secondary); }
 
   /* ── Section title ── */
-  .section-title { font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin: 28px 0 12px; }
+  .section-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: var(--space-xl) 0 var(--space-md);
+    letter-spacing: -0.01em;
+  }
+  
+  .section-subtitle {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    font-weight: 400;
+    margin-left: var(--space-sm);
+  }
 
   /* ── Buttons ── */
   button {
-    transition: var(--transition);
-    position: relative;
-    overflow: hidden;
+    transition: var(--transition-fast);
+    font-family: inherit;
+    cursor: pointer;
   }
-  button:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-sm);
+  
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    padding: 10px 20px;
+    border-radius: var(--radius-pill);
+    font-size: 15px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: var(--transition-fast);
   }
-  button:active {
-    transform: translateY(0);
+  
+  .btn:hover {
+    transform: scale(1.02);
   }
-  button::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 0;
-    height: 0;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.3);
-    transform: translate(-50%, -50%);
-    transition: width 0.6s, height 0.6s;
+  
+  .btn:active {
+    transform: scale(0.98);
   }
-  button:active::after {
-    width: 200px;
-    height: 200px;
+  
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+  }
+  
+  .btn-primary:hover {
+    background: var(--accent-hover);
+  }
+  
+  .btn-secondary {
+    background: var(--border-light);
+    color: var(--text-primary);
+  }
+  
+  .btn-secondary:hover {
+    background: var(--border-medium);
+  }
+  
+  .btn-danger {
+    background: var(--danger);
+    color: white;
+  }
+  
+  .btn-sm {
+    padding: 6px 12px;
+    font-size: 13px;
+    border-radius: var(--radius-sm);
+  }
+  
+  /* ── Input ── */
+  .input {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-family: inherit;
+    transition: var(--transition-fast);
+    width: 100%;
+  }
+  
+  .input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.2);
+  }
+  
+  .input::placeholder {
+    color: var(--text-tertiary);
   }
 
   /* ── Loading spinner ── */
   @keyframes spin {
     to { transform: rotate(360deg); }
   }
+  
   .spinner {
     display: inline-block;
     width: 16px;
     height: 16px;
-    border: 2px solid var(--border);
+    border: 2px solid var(--border-medium);
     border-top-color: var(--accent);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
 
-  /* ── Fade in animation ── */
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
+  /* ── Animations ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
   }
+  
   .fade-in {
-    animation: fadeIn 0.3s ease-out;
+    animation: fadeUp 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
   }
 
   /* ── Mobile hamburger ── */
@@ -165,51 +495,85 @@
     position: fixed;
     top: 0; left: 0; right: 0;
     background: var(--bg-card);
-    border-bottom: 1px solid var(--border);
-    padding: 12px 16px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border-light);
+    padding: 12px var(--space-md);
     z-index: 1000;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-md);
   }
+  
   .hamburger {
-    background: none; border: none; color: var(--text); cursor: pointer;
-    padding: 6px; border-radius: 4px;
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    cursor: pointer;
+    padding: var(--space-sm);
+    border-radius: var(--radius-sm);
   }
-  .hamburger:hover { background: var(--bg-elevated); }
+  
+  .hamburger:hover {
+    background: var(--border-light);
+  }
+  
   .sidebar-overlay {
     display: none;
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.5);
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
     z-index: 999;
   }
 
   /* ── Form grid ── */
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-md);
+  }
+  
+  .form-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    display: block;
+    margin-bottom: var(--space-xs);
+  }
 
   /* ── Toolbar ── */
-  .toolbar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
-  .toolbar .search-input { width: 240px; }
-
-  /* ── Action buttons (mobile-friendly) ── */
-  .btn-sm { padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; }
+  .toolbar {
+    display: flex;
+    gap: var(--space-md);
+    margin-bottom: var(--space-md);
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  
+  .toolbar .search-input {
+    width: 280px;
+  }
 
   /* ── Responsive ── */
   @media (max-width: 768px) {
     .mobile-header { display: flex; }
     .sidebar {
-      position: fixed; left: -260px; top: 0; z-index: 1001;
-      transition: left 0.3s ease;
+      position: fixed;
+      left: -280px;
+      top: 0;
+      z-index: 1001;
+      transition: left 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
       height: 100vh;
     }
     .sidebar.open { left: 0; }
     .sidebar-overlay.open { display: block; }
-    .main { padding: 60px 16px 16px; }
+    .main { padding: 80px var(--space-md) var(--space-md); }
     .stat-grid { grid-template-columns: repeat(2, 1fr); }
     .form-grid { grid-template-columns: 1fr; }
     .toolbar .search-input { width: 100%; min-width: 0; }
-    .btn-sm { padding: 10px 14px; font-size: 13px; min-height: 44px; }
-    .notification { left: 16px; right: 16px; max-width: none; top: 60px; }
-    .section-title { font-size: 13px; letter-spacing: 0.5px; }
+    .btn-sm { padding: 10px 14px; font-size: 14px; min-height: 44px; }
+    .notification { left: var(--space-md); right: var(--space-md); max-width: none; top: 70px; }
+    .page-title { font-size: 24px; }
   }
 
   /* ── Reduced motion ── */
@@ -229,20 +593,45 @@
   <button class="hamburger" onclick="toggleSidebar()">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
   </button>
-  <span style="font-weight:700;color:var(--accent);font-size:16px;">LiMa Admin</span>
+  <span style="font-weight:600;font-size:17px;">LiMa Admin</span>
 </div>
 <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
 
 <!-- ═══ Sidebar ═══ -->
 <aside class="sidebar">
-  <h1><i data-lucide="zap" style="width:20px;height:20px;display:inline;vertical-align:middle;margin-right:6px;"></i> LiMa Admin</h1>
-  <div class="nav-item active"><span class="icon"><i data-lucide="layout-dashboard" style="width:16px;height:16px;"></i></span>仪表盘</div>
-  <div class="nav-item"><span class="icon"><i data-lucide="server" style="width:16px;height:16px;"></i></span>后端管理</div>
-  <div class="nav-item"><span class="icon"><i data-lucide="puzzle" style="width:16px;height:16px;"></i></span>MCP 服务</div>
-  <div class="nav-item"><span class="icon"><i data-lucide="bot" style="width:16px;height:16px;"></i></span>Agent 任务</div>
-  <div class="nav-item"><span class="icon"><i data-lucide="scroll-text" style="width:16px;height:16px;"></i></span>路由日志</div>
-  <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border);">
-    <div class="nav-item" style="color: var(--muted); font-size: 11px;">
+  <div class="sidebar-brand">
+    <div class="brand-icon">
+      <i data-lucide="zap" style="width:18px;height:18px;"></i>
+    </div>
+    <h1>LiMa Admin</h1>
+  </div>
+  
+  <div class="nav-section">概览</div>
+  <div class="nav-item active">
+    <span class="icon"><i data-lucide="layout-dashboard" style="width:18px;height:18px;"></i></span>
+    仪表盘
+  </div>
+  
+  <div class="nav-section">管理</div>
+  <div class="nav-item">
+    <span class="icon"><i data-lucide="server" style="width:18px;height:18px;"></i></span>
+    后端管理
+  </div>
+  <div class="nav-item">
+    <span class="icon"><i data-lucide="puzzle" style="width:18px;height:18px;"></i></span>
+    MCP 服务
+  </div>
+  <div class="nav-item">
+    <span class="icon"><i data-lucide="bot" style="width:18px;height:18px;"></i></span>
+    Agent 任务
+  </div>
+  <div class="nav-item">
+    <span class="icon"><i data-lucide="scroll-text" style="width:18px;height:18px;"></i></span>
+    路由日志
+  </div>
+  
+  <div class="sidebar-footer">
+    <div class="version-info">
       v2.0 · lima-1.3<br>
       184 backends<br>
       全部云端化
@@ -253,47 +642,71 @@
 <!-- ═══ Main Content ═══ -->
 <main class="main">
 
+  <!-- Page Header -->
+  <div class="page-header">
+    <h1 class="page-title">仪表盘</h1>
+    <p class="page-subtitle">多模型智能路由后端概览</p>
+  </div>
+
   <!-- Status Cards -->
   <div class="stat-grid">
-    <div class="stat-card stat-green">
+    <div class="stat-card">
+      <div class="stat-icon green">
+        <i data-lucide="check-circle" style="width:20px;height:20px;"></i>
+      </div>
       <div class="label">系统状态</div>
-      <div class="value" style="color: var(--accent);">OK</div>
-      <div class="sub">VPS 47.112.162.80</div>
+      <div class="value" style="color: var(--success);">OK</div>
+      <div class="sub">VPS 运行中</div>
     </div>
-    <div class="stat-card stat-blue">
+    <div class="stat-card">
+      <div class="stat-icon blue">
+        <i data-lucide="server" style="width:20px;height:20px;"></i>
+      </div>
       <div class="label">在线后端</div>
-      <div class="value" style="color: var(--blue);">184</div>
+      <div class="value">184</div>
       <div class="sub">全部云端化 · 0 离线</div>
     </div>
-    <div class="stat-card stat-purple">
+    <div class="stat-card">
+      <div class="stat-icon purple">
+        <i data-lucide="puzzle" style="width:20px;height:20px;"></i>
+      </div>
       <div class="label">MCP 服务</div>
-      <div class="value" style="color: var(--purple);">6</div>
-      <div class="sub">scnet · kimi · longcat · mimo · codegraph</div>
+      <div class="value">6</div>
+      <div class="sub">scnet · kimi · longcat · mimo</div>
     </div>
-    <div class="stat-card stat-green">
+    <div class="stat-card">
+      <div class="stat-icon orange">
+        <i data-lucide="trending-up" style="width:20px;height:20px;"></i>
+      </div>
       <div class="label">今日请求</div>
-      <div class="value" style="color: var(--accent);">1,247</div>
+      <div class="value">1,247</div>
       <div class="sub">↑ 12% vs 昨日</div>
     </div>
   </div>
 
   <!-- Reverse Sidecar Health -->
-  <div class="section-title"><i data-lucide="activity" style="width:14px;height:14px;display:inline;vertical-align:middle;margin-right:6px;"></i>Reverse Sidecar 健康状态</div>
+  <h2 class="section-title">
+    Reverse Sidecar 健康状态
+    <span class="section-subtitle">实时服务监控</span>
+  </h2>
   <div class="table-wrap">
     <table>
       <thead><tr><th>服务</th><th>端口</th><th>状态</th><th>协议</th><th>后端数</th><th>备注</th></tr></thead>
       <tbody>
-        <tr><td class="mono">scnet-large</td><td>4505</td><td><span class="badge badge-green">ready</span></td><td>ready_protocol_adapter</td><td>2</td><td>文件桥接 500K</td></tr>
-        <tr><td class="mono">kimi-proxy</td><td>4504</td><td><span class="badge badge-green">ready</span></td><td>ready_proxy_shell</td><td>3</td><td>K2.6 模型</td></tr>
-        <tr><td class="mono">longcat-web</td><td>4506</td><td><span class="badge badge-green">ready</span></td><td>ready_proxy_shell</td><td>3</td><td>Playwright 自动刷新</td></tr>
-        <tr><td class="mono">mimo-proxy</td><td>4507</td><td><span class="badge badge-green">ready</span></td><td>ready_proxy_shell</td><td>5</td><td>260 请求 / 243 成功</td></tr>
-        <tr><td class="mono">codegraph</td><td>—</td><td><span class="badge badge-blue">indexed</span></td><td>MCP stdio</td><td>—</td><td>15,013 节点 · 30,346 边</td></tr>
+        <tr><td class="mono">scnet-large</td><td>4505</td><td><span class="badge badge-green"><i data-lucide="check-circle" style="width:12px;height:12px;"></i> ready</span></td><td>ready_protocol_adapter</td><td>2</td><td>文件桥接 500K</td></tr>
+        <tr><td class="mono">kimi-proxy</td><td>4504</td><td><span class="badge badge-green"><i data-lucide="check-circle" style="width:12px;height:12px;"></i> ready</span></td><td>ready_proxy_shell</td><td>3</td><td>K2.6 模型</td></tr>
+        <tr><td class="mono">longcat-web</td><td>4506</td><td><span class="badge badge-green"><i data-lucide="check-circle" style="width:12px;height:12px;"></i> ready</span></td><td>ready_proxy_shell</td><td>3</td><td>Playwright 自动刷新</td></tr>
+        <tr><td class="mono">mimo-proxy</td><td>4507</td><td><span class="badge badge-green"><i data-lucide="check-circle" style="width:12px;height:12px;"></i> ready</span></td><td>ready_proxy_shell</td><td>5</td><td>260 请求 / 243 成功</td></tr>
+        <tr><td class="mono">codegraph</td><td>—</td><td><span class="badge badge-blue"><i data-lucide="database" style="width:12px;height:12px;"></i> indexed</span></td><td>MCP stdio</td><td>—</td><td>15,013 节点 · 30,346 边</td></tr>
       </tbody>
     </table>
   </div>
 
   <!-- Backend Pool Stats -->
-  <div class="section-title"><i data-lucide="pie-chart" style="width:14px;height:14px;display:inline;vertical-align:middle;margin-right:6px;"></i>后端池分布</div>
+  <h2 class="section-title">
+    后端池分布
+    <span class="section-subtitle">按能力层级分类</span>
+  </h2>
   <div class="table-wrap">
     <table>
       <thead><tr><th>池</th><th>Strong</th><th>Medium</th><th>Floor</th><th>总计</th></tr></thead>
@@ -308,43 +721,56 @@
   </div>
 
   <!-- ModelScope Backends -->
-  <div class="section-title"><i data-lucide="sparkles" style="width:14px;height:14px;display:inline;vertical-align:middle;margin-right:6px;"></i>ModelScope 免费后端 (新增)</div>
+  <h2 class="section-title">
+    ModelScope 免费后端
+    <span class="section-subtitle">新增免费模型接入</span>
+  </h2>
   <div class="table-wrap">
     <table>
       <thead><tr><th>后端 ID</th><th>模型</th><th>池</th><th>tool_calls</th><th>状态</th></tr></thead>
       <tbody>
-        <tr><td class="mono">ms_deepseek_v4</td><td>DeepSeek-V4-Flash</td><td>ide/chat/code strong</td><td><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></td><td><span class="badge badge-green">active</span></td></tr>
-        <tr><td class="mono">ms_qwen35_27b</td><td>Qwen3.5-27B</td><td>ide/chat medium</td><td><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></td><td><span class="badge badge-green">active</span></td></tr>
-        <tr><td class="mono">ms_kimi_k25</td><td>Kimi-K2.5</td><td>ide/chat medium</td><td><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></td><td><span class="badge badge-green">active</span></td></tr>
-        <tr><td class="mono">ms_glm5</td><td>GLM-5</td><td>ide/chat medium</td><td><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></td><td><span class="badge badge-green">active</span></td></tr>
+        <tr><td class="mono">ms_deepseek_v4</td><td>DeepSeek-V4-Flash</td><td><span class="badge badge-gray">ide/chat/code strong</span></td><td><i data-lucide="check-circle" style="width:16px;height:16px;color:var(--success);"></i></td><td><span class="badge badge-green">active</span></td></tr>
+        <tr><td class="mono">ms_qwen35_27b</td><td>Qwen3.5-27B</td><td><span class="badge badge-gray">ide/chat medium</span></td><td><i data-lucide="check-circle" style="width:16px;height:16px;color:var(--success);"></i></td><td><span class="badge badge-green">active</span></td></tr>
+        <tr><td class="mono">ms_kimi_k25</td><td>Kimi-K2.5</td><td><span class="badge badge-gray">ide/chat medium</span></td><td><i data-lucide="check-circle" style="width:16px;height:16px;color:var(--success);"></i></td><td><span class="badge badge-green">active</span></td></tr>
+        <tr><td class="mono">ms_glm5</td><td>GLM-5</td><td><span class="badge badge-gray">ide/chat medium</span></td><td><i data-lucide="check-circle" style="width:16px;height:16px;color:var(--success);"></i></td><td><span class="badge badge-green">active</span></td></tr>
       </tbody>
     </table>
   </div>
 
   <!-- Backend CRUD Management -->
-  <div class="section-title"><i data-lucide="settings" style="width:14px;height:14px;display:inline;vertical-align:middle;margin-right:6px;"></i>后端管理 <span style="font-weight:400;font-size:11px;color:var(--muted);">(CRUD — 需 admin 登录)</span></div>
+  <h2 class="section-title">
+    后端管理
+    <span class="section-subtitle">CRUD — 需 admin 登录</span>
+  </h2>
   <div class="toolbar">
-    <button onclick="showAddForm()" style="background:var(--accent);color:#020617;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;"><i data-lucide="plus" style="width:14px;height:14px;display:inline;vertical-align:middle;margin-right:4px;"></i>添加后端</button>
-    <input id="searchBackend" class="search-input" placeholder="搜索后端名..." oninput="filterBackends()"
-      style="background:var(--bg-elevated);border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:6px;">
-    <span id="crudStatus" style="font-size:12px;color:var(--muted);align-self:center;"></span>
+    <button class="btn btn-primary" onclick="showAddForm()">
+      <i data-lucide="plus" style="width:16px;height:16px;"></i>
+      添加后端
+    </button>
+    <input id="searchBackend" class="input search-input" placeholder="搜索后端..." oninput="filterBackends()">
+    <span id="crudStatus" style="font-size:13px;color:var(--text-tertiary);align-self:center;"></span>
   </div>
   <div class="table-wrap" id="backendTableWrap">
-    <table><thead><tr><th>名称</th><th>模型</th><th>协议</th><th>Key</th><th>操作</th></tr></thead>
-    <tbody id="backendTableBody"><tr><td colspan="5" style="color:var(--muted);text-align:center;">加载中...</td></tr></tbody></table>
+    <table>
+      <thead><tr><th>名称</th><th>模型</th><th>协议</th><th>Key</th><th>操作</th></tr></thead>
+      <tbody id="backendTableBody"><tr><td colspan="5" style="color:var(--text-tertiary);text-align:center;padding:40px;">加载中...</td></tr></tbody>
+    </table>
   </div>
 
   <!-- Recent Activity -->
-  <div class="section-title"><i data-lucide="history" style="width:14px;height:14px;display:inline;vertical-align:middle;margin-right:6px;"></i>最近变更</div>
+  <h2 class="section-title">
+    最近变更
+    <span class="section-subtitle">里程碑记录</span>
+  </h2>
   <div class="table-wrap">
     <table>
       <thead><tr><th>时间</th><th>里程碑</th><th>变更</th></tr></thead>
       <tbody>
-        <tr><td class="mono">2026-06-01</td><td>M12</td><td>CodeGraph 语义索引集成 (15,013 节点)</td></tr>
-        <tr><td class="mono">2026-06-01</td><td>M11a-f</td><td>ModelScope 8 后端 + ContextManager 移植 + 代码审查</td></tr>
-        <tr><td class="mono">2026-06-01</td><td>M9-M10</td><td>LiMa Code CLI v0.1.25 + 文档更新</td></tr>
-        <tr><td class="mono">2026-06-01</td><td>M1-M7</td><td>脱离本机 — 37→0 LOCAL_ONLY_BACKENDS · VPS 清理</td></tr>
-        <tr><td class="mono">2026-05-31</td><td>—</td><td>184 后端全部云端化 · 5 reverse sidecar active</td></tr>
+        <tr><td class="mono">2026-06-01</td><td><span class="badge badge-blue">M12</span></td><td>CodeGraph 语义索引集成 (15,013 节点)</td></tr>
+        <tr><td class="mono">2026-06-01</td><td><span class="badge badge-purple">M11a-f</span></td><td>ModelScope 8 后端 + ContextManager 移植 + 代码审查</td></tr>
+        <tr><td class="mono">2026-06-01</td><td><span class="badge badge-green">M9-M10</span></td><td>LiMa Code CLI v0.1.25 + 文档更新</td></tr>
+        <tr><td class="mono">2026-06-01</td><td><span class="badge badge-gray">M1-M7</span></td><td>脱离本机 — 37→0 LOCAL_ONLY_BACKENDS · VPS 清理</td></tr>
+        <tr><td class="mono">2026-05-31</td><td><span class="badge badge-gray">—</span></td><td>184 后端全部云端化 · 5 reverse sidecar active</td></tr>
       </tbody>
     </table>
   </div>
@@ -386,22 +812,23 @@ async function loadBackends() {
 function renderBackends(list) {
   const tbody = document.getElementById('backendTableBody');
   if (!list.length) { 
-    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:20px;">无匹配后端</td></tr>'; 
+    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--text-tertiary);text-align:center;padding:40px;">无匹配后端</td></tr>'; 
     return; 
   }
   tbody.innerHTML = list.map((b, index) => `
-    <tr class="fade-in" style="animation-delay: ${index * 0.05}s">
+    <tr class="fade-in" style="animation-delay: ${index * 0.03}s">
       <td class="mono">${esc(b.name)} ${b.overlay_action === 'added' ? '<span class="badge badge-green">new</span>' : b.overlay_action === 'updated' ? '<span class="badge badge-blue">mod</span>' : b.overlay_action === 'deleted' ? '<span class="badge badge-red">del</span>' : ''}</td>
-      <td>${esc(b.model) || '—'}</td>
-      <td>${esc(b.fmt)}</td>
-      <td>${b.key_configured ? '<span class="badge badge-green"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>' : '<span class="badge badge-yellow"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>'}</td>
+      <td>${esc(b.model) || '<span style="color:var(--text-tertiary);">—</span>'}</td>
+      <td><span class="badge badge-gray">${esc(b.fmt)}</span></td>
+      <td>${b.key_configured ? '<span class="badge badge-green"><i data-lucide="check" style="width:12px;height:12px;"></i></span>' : '<span class="badge badge-yellow"><i data-lucide="x" style="width:12px;height:12px;"></i></span>'}</td>
       <td>
-        <button class="btn-sm" onclick="editBackend('${escJs(b.name)}')" style="background:var(--blue);color:#fff;border:none;margin-right:4px;">编辑</button>
-        <button class="btn-sm" onclick="testBackend('${escJs(b.name)}')" style="background:var(--purple);color:#fff;border:none;margin-right:4px;">测试</button>
-        <button class="btn-sm" onclick="deleteBackend('${escJs(b.name)}')" style="background:var(--danger);color:#fff;border:none;">删除</button>
+        <button class="btn btn-sm btn-secondary" onclick="editBackend('${escJs(b.name)}')" style="margin-right:4px;">编辑</button>
+        <button class="btn btn-sm btn-secondary" onclick="testBackend('${escJs(b.name)}')" style="margin-right:4px;">测试</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteBackend('${escJs(b.name)}')">删除</button>
       </td>
     </tr>
   `).join('');
+  lucide.createIcons();
 }
 
 function filterBackends() {
@@ -415,60 +842,52 @@ function editBackend(name) { editTarget = name; const b = allBackends.find(x => 
 function showForm(backend) {
   const isEdit = !!editTarget;
   const html = `
-    <div id="crudForm" class="fade-in" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;box-shadow:var(--shadow-md);">
-      <h3 style="margin-bottom:12px;font-size:16px;font-weight:600;"><i data-lucide="pencil" style="width:16px;height:16px;display:inline;vertical-align:middle;margin-right:6px;"></i>${isEdit ? '编辑' : '添加'}后端</h3>
+    <div id="crudForm" class="fade-in" style="background:var(--bg-card);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border-light);border-radius:18px;padding:24px;margin-bottom:16px;box-shadow:0 8px 32px rgba(0,0,0,0.08);">
+      <h3 style="margin-bottom:16px;font-size:20px;font-weight:600;display:flex;align-items:center;gap:8px;">
+        <i data-lucide="pencil" style="width:20px;height:20px;color:var(--accent);"></i>
+        ${isEdit ? '编辑后端' : '添加后端'}
+      </h3>
       <div class="form-grid">
         <div>
-          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">名称 <span style="color:var(--danger);">*</span></label>
-          <input id="f_name" value="${esc(backend.name||'')}" ${isEdit?'readonly':''}
-            style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:4px;"
-            placeholder="例如: cf_gpt4o"
-            required>
+          <label class="form-label">名称 <span style="color:var(--danger);">*</span></label>
+          <input id="f_name" class="input" value="${esc(backend.name||'')}" ${isEdit?'readonly':''} placeholder="例如: cf_gpt4o" required>
         </div>
         <div>
-          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">URL <span style="color:var(--danger);">*</span></label>
-          <input id="f_url" value="${esc(backend.url||'')}"
-            style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:4px;"
-            placeholder="https://api.example.com/v1/chat/completions"
-            required>
+          <label class="form-label">URL <span style="color:var(--danger);">*</span></label>
+          <input id="f_url" class="input" value="${esc(backend.url||'')}" placeholder="https://api.example.com/v1/chat/completions" required>
         </div>
         <div>
-          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">模型名</label>
-          <input id="f_model" value="${esc(backend.model||'')}" 
-            style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:4px;"
-            placeholder="例如: gpt-4o">
+          <label class="form-label">模型名</label>
+          <input id="f_model" class="input" value="${esc(backend.model||'')}" placeholder="例如: gpt-4o">
         </div>
         <div>
-          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">协议 (fmt)</label>
-          <select id="f_fmt" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:4px;">
+          <label class="form-label">协议 (fmt)</label>
+          <select id="f_fmt" class="input" style="background:var(--bg-primary);">
             <option ${backend.fmt==='openai'?'selected':''}>openai</option>
             <option ${backend.fmt==='anthropic'?'selected':''}>anthropic</option>
           </select>
         </div>
         <div>
-          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">API Key</label>
-          <input id="f_key" value="${backend.key_configured?'••••••':''}" 
-            placeholder="${isEdit ? '留空=不修改' : '必填'}" 
-            style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:4px;"
-            type="password">
+          <label class="form-label">API Key</label>
+          <input id="f_key" class="input" value="${backend.key_configured?'••••••':''}" placeholder="${isEdit ? '留空=不修改' : '必填'}" type="password">
         </div>
         <div>
-          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">超时 (秒)</label>
-          <input id="f_timeout" type="number" value="${esc(backend.timeout||30)}" min="5" max="300"
-            style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:4px;">
+          <label class="form-label">超时 (秒)</label>
+          <input id="f_timeout" class="input" type="number" value="${esc(backend.timeout||30)}" min="5" max="300">
         </div>
       </div>
-      <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end;">
-        <button onclick="saveBackend()" style="background:var(--accent);color:#020617;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;">保存</button>
-        <button onclick="closeForm()" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 20px;border-radius:6px;cursor:pointer;font-size:13px;">取消</button>
+      <div style="margin-top:24px;display:flex;gap:12px;justify-content:flex-end;">
+        <button class="btn btn-primary" onclick="saveBackend()">保存</button>
+        <button class="btn btn-secondary" onclick="closeForm()">取消</button>
       </div>
     </div>`;
   const existing = document.getElementById('crudForm');
   if (existing) existing.remove();
   document.getElementById('backendTableWrap').insertAdjacentHTML('beforebegin', html);
-  
-  // Focus on first input
-  setTimeout(() => document.getElementById('f_name')?.focus(), 100);
+  setTimeout(() => {
+    document.getElementById('f_name')?.focus();
+    lucide.createIcons();
+  }, 100);
 }
 
 function closeForm() { const f = document.getElementById('crudForm'); if (f) f.remove(); }
@@ -517,42 +936,47 @@ async function deleteBackend(name) {
 // ── Notification System ─────────────────────────────────────────────────
 function showNotification(message, type = 'info') {
   const colors = {
-    success: 'var(--accent)',
+    success: 'var(--success)',
     error: 'var(--danger)',
-    warning: 'var(--warn)',
-    info: 'var(--blue)'
+    warning: 'var(--warning)',
+    info: 'var(--accent)'
   };
   const icons = {
-    success: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
-    error: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
-    warning: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
-    info: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+    success: '<i data-lucide="check-circle" style="width:18px;height:18px;"></i>',
+    error: '<i data-lucide="x-circle" style="width:18px;height:18px;"></i>',
+    warning: '<i data-lucide="alert-triangle" style="width:18px;height:18px;"></i>',
+    info: '<i data-lucide="info" style="width:18px;height:18px;"></i>'
   };
   
   const notification = document.createElement('div');
   notification.className = 'fade-in notification';
   notification.style.cssText = `
     position: fixed;
-    top: 20px;
-    right: 20px;
-    background: var(--bg-card);
-    border: 1px solid ${colors[type]};
-    border-left: 4px solid ${colors[type]};
-    color: var(--text);
-    padding: 12px 20px;
-    border-radius: 6px;
-    box-shadow: var(--shadow-lg);
+    top: 24px;
+    right: 24px;
+    background: var(--bg-elevated);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-light);
+    color: var(--text-primary);
+    padding: 16px 20px;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
     z-index: 10000;
     max-width: 400px;
-    font-size: 13px;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-left: 4px solid ${colors[type]};
   `;
-  notification.innerHTML = `${icons[type]} ${esc(message)}`;
+  notification.innerHTML = `<span style="color:${colors[type]}">${icons[type]}</i></span> ${esc(message)}`;
   document.body.appendChild(notification);
   
   setTimeout(() => {
     notification.style.opacity = '0';
-    notification.style.transform = 'translateX(100px)';
-    notification.style.transition = 'all 0.3s ease-out';
+    notification.style.transform = 'translateX(20px)';
+    notification.style.transition = 'all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1)';
     setTimeout(() => notification.remove(), 300);
   }, 3000);
 }
@@ -603,17 +1027,10 @@ async function loadRealTimeData() {
     const healthData = await healthResp.json();
     
     // Update system status
-    const statusCard = document.querySelector('.stat-card.stat-green .value');
-    if (statusCard) {
-      statusCard.textContent = healthData.status === 'ok' ? 'OK' : 'ERROR';
-      statusCard.style.color = healthData.status === 'ok' ? 'var(--accent)' : 'var(--danger)';
-    }
-    
-    // Update module count
-    const moduleCount = healthData.modules ? Object.keys(healthData.modules).length : 0;
-    const mcpCard = document.querySelectorAll('.stat-card.stat-purple .value')[0];
-    if (mcpCard) {
-      mcpCard.textContent = moduleCount;
+    const statusCards = document.querySelectorAll('.stat-card .value');
+    if (statusCards.length > 0) {
+      statusCards[0].textContent = healthData.status === 'ok' ? 'OK' : 'ERROR';
+      statusCards[0].style.color = healthData.status === 'ok' ? 'var(--success)' : 'var(--danger)';
     }
     
     // Load backends data
@@ -623,19 +1040,17 @@ async function loadRealTimeData() {
     if (backendsData.backends) {
       const backends = backendsData.backends;
       const total = backends.length;
-      const toolCallsCount = backends.filter(b => b.caps && b.caps.includes('tool_calls')).length;
-      const onlineCount = backends.filter(b => b.key_configured && b.in_registry).length;
       
       // Update online backends count
-      const onlineCard = document.querySelectorAll('.stat-card.stat-blue .value')[0];
-      if (onlineCard) {
-        onlineCard.textContent = total;
+      const statValues = document.querySelectorAll('.stat-card .value');
+      if (statValues.length > 1) {
+        statValues[1].textContent = total;
       }
       
       // Update sidebar info
-      const sidebarInfo = document.querySelector('.sidebar .nav-item:last-child');
+      const sidebarInfo = document.querySelector('.sidebar-footer .version-info');
       if (sidebarInfo) {
-        sidebarInfo.innerHTML = `v2.0 · lima-1.3<br>${total} backends · ${toolCallsCount} tool_calls<br>全部云端化`;
+        sidebarInfo.innerHTML = `v2.0 · lima-1.3<br>${total} backends<br>全部云端化`;
       }
     }
   } catch (e) {

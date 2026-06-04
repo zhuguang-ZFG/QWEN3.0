@@ -161,14 +161,88 @@ def _apply_tool_id_scrub(messages: list[dict], scrub_fn) -> list[dict]:
     return result
 
 
+def inject_deepseek_reasoning(messages: list[dict]) -> list[dict]:
+    """确保 DeepSeek 后端的所有 assistant 消息都携带 reasoning content part。
+
+    DeepSeek 要求所有 assistant 消息（包括历史消息）都包含 reasoning
+    内容块。如果缺失则注入空 reasoning。
+
+    移植自 transform.ts L267-282。
+    """
+    result: list[dict] = []
+    for msg in messages:
+        if msg.get("role") != "assistant":
+            result.append(msg)
+            continue
+        content = msg.get("content", "")
+        if isinstance(content, list):
+            has_reasoning = any(
+                isinstance(p, dict) and p.get("type") == "reasoning"
+                for p in content
+            )
+            if has_reasoning:
+                result.append(msg)
+            else:
+                result.append({**msg, "content": [*content, {"type": "reasoning", "text": ""}]})
+        elif isinstance(content, str):
+            parts = []
+            if content:
+                parts.append({"type": "text", "text": content})
+            parts.append({"type": "reasoning", "text": ""})
+            result.append({**msg, "content": parts})
+        else:
+            result.append(msg)
+    return result
+
+
+def extract_interleaved_reasoning(
+    messages: list[dict],
+    interleaved_field: str = "reasoning_content",
+) -> list[dict]:
+    """将 assistant 消息内容中的 reasoning 部分提取到 providerOptions。
+
+    某些后端（如 DeepSeek via OpenAI-compatible）通过 content 数组中的
+    reasoning 类型块返回思考内容。将这些块提取到
+    providerOptions.openaiCompatible.{field} 中，避免污染正文内容。
+
+    移植自 transform.ts L284-316。
+    """
+    result: list[dict] = []
+    for msg in messages:
+        if msg.get("role") != "assistant" or not isinstance(msg.get("content"), list):
+            result.append(msg)
+            continue
+        content = msg["content"]
+        reasoning_parts = [p for p in content if isinstance(p, dict) and p.get("type") == "reasoning"]
+        if not reasoning_parts:
+            result.append(msg)
+            continue
+        reasoning_text = "".join(p.get("text", "") for p in reasoning_parts)
+        filtered = [p for p in content if not (isinstance(p, dict) and p.get("type") == "reasoning")]
+        result.append({
+            **msg,
+            "content": filtered,
+            "providerOptions": {
+                **msg.get("providerOptions", {}),
+                "openaiCompatible": {
+                    **msg.get("providerOptions", {}).get("openaiCompatible", {}),
+                    interleaved_field: reasoning_text,
+                },
+            },
+        })
+    return result
+
+
 def normalize_messages(messages: list[dict], backend: str) -> list[dict]:
     """统一入口：对消息列表做完整的规范化处理。
     
     处理顺序:
     1. Surrogate 字符清理（所有后端）
-    2. 空消息过滤（仅 Anthropic 格式后端——但安全无害可通用）
-    3. toolCallId 规范化（按后端类型）
-    4. 消息序列修复（Mistral）
+    2. DeepSeek 推理注入（assistant 消息添加 reasoning）
+    3. 交错推理字段提取（reasoning → providerOptions）
+    4. 空消息过滤（仅 Anthropic 格式后端——但安全无害可通用）
+    5. toolCallId 规范化（按后端类型）
+    6. 消息序列修复（Mistral）
     
     Args:
         messages: 消息列表，每个元素为 {"role": ..., "content": ...} 格式。
@@ -182,10 +256,18 @@ def normalize_messages(messages: list[dict], backend: str) -> list[dict]:
     # Step 1: Surrogate 清理
     result = [_sanitize_message_content(m) for m in messages]
 
-    # Step 2: 空消息过滤（安全地应用所有后端）
+    # Step 2: DeepSeek reasoning 注入
+    if "deepseek" in backend.lower():
+        result = inject_deepseek_reasoning(result)
+
+    # Step 3: 交错推理字段提取（DeepSeek via OpenAI-compatible）
+    if "deepseek" in backend.lower():
+        result = extract_interleaved_reasoning(result)
+
+    # Step 4: 空消息过滤
     result = filter_empty_messages(result)
 
-    # Step 3-4: toolCallId 规范化 + 序列修复
+    # Step 5-6: toolCallId 规范化 + 序列修复
     result = normalize_tool_call_ids(result, backend)
 
     return result

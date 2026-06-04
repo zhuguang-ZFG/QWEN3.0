@@ -27,6 +27,7 @@
 | M11f | 代码审查修复 (D:/GIT 硬编码) | 0 |
 | M-OC1 | OpenCode Phase 1 基础 IDE 适配 | 0 |
 | M-OC2 | OpenCode Round 2 深度适配（overflow/normalize/usage/reasoning_effort） | 0 |
+| M-OC3 | OpenCode Round 3 深度适配（reasoning_variants/session_options/stream_error） | 0 |
 
 ## 部署状态
 

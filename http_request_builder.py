@@ -13,6 +13,8 @@ import httpx
 import key_pool
 from backends import GFW_BACKENDS, infer_key_pool_provider
 from opencode_message_normalizer import normalize_messages
+from reasoning_variants import apply_variant
+from session_options import resolve_session_options
 
 logger = logging.getLogger(__name__)
 
@@ -196,6 +198,7 @@ def _build_body(
     stream: bool = False,
     tools: list[dict] | None = None,
     reasoning_effort: str | None = None,
+    backend_name: str = "",
 ) -> bytes:
     model = backend_cfg["model"]
     fmt = backend_cfg["fmt"]
@@ -273,6 +276,32 @@ def _build_body(
         body["tools"] = tools
 
     if reasoning_effort:
-        body["reasoning_effort"] = reasoning_effort
+        variant_opts = apply_variant(backend_name, model, reasoning_effort)
+        if variant_opts:
+            for k, v in variant_opts.items():
+                body[k] = v
+        else:
+            body["reasoning_effort"] = reasoning_effort
+
+    # M-OC3: session options (store/enable_thinking/toolStreaming/promptCacheKey)
+    if _is_ide_backend_session(backend_name, ide):
+        session_opts = resolve_session_options(backend_name, model, session_id=_mk_session_id(backend_name))
+        for k, v in session_opts.items():
+            if k not in body:
+                body[k] = v
 
     return json.dumps(body).encode()
+
+
+def _is_ide_backend_session(backend_name: str, ide: str) -> bool:
+    return bool(ide and ide.lower() in ("opencode",))
+
+
+def _mk_session_id(backend_name: str) -> str:
+    """Generate a session ID for prompt caching.
+
+    TODO: Implement real session ID generation based on conversation context.
+    Currently returns empty string — promptCacheKey features are inactive.
+    """
+    return ""
+
