@@ -30,15 +30,28 @@ def speculative_call(
     max_tokens: int = 4096,
     max_parallel: int = 3,
     timeout_sec: float = 3.0,
+    needs_tools: bool = False,
+    ide_source: str = "",
 ) -> tuple[str, str, float]:
     """并行调用多个后端，返回第一个有效响应。
 
     Uses asyncio internally via speculative_call_async,
     wrapping call_fn with asyncio.to_thread.
 
+    Args:
+        needs_tools: If True, skip speculative execution (tool calls need specific backends)
+        ide_source: IDE source identifier (e.g., 'OpenCode')
+
     Returns: (backend_name, answer, latency_ms)
     Raises: RuntimeError if all backends fail within timeout
     """
+    # Skip speculative execution for tool calls (OpenCode optimization)
+    if needs_tools and ide_source and "opencode" in ide_source.lower():
+        from opencode_config import OPENCODE_SKIP_SPECULATIVE_TOOLS
+        if OPENCODE_SKIP_SPECULATIVE_TOOLS:
+            logger.info("Skipping speculative execution for OpenCode tool call")
+            raise RuntimeError("Speculative execution skipped for tool calls")
+
     async def _wrap_sync(b: str, m: list[dict], mt: int) -> str:
         return await asyncio.to_thread(call_fn, b, m, mt)
 
@@ -152,7 +165,8 @@ async def speculative_call_async(
             for task in done:
                 try:
                     answer = task.result()
-                except Exception:
+                except Exception as exc:
+                    logger.debug("[SPEC_ASYNC] task failed: %s", type(exc).__name__)
                     continue
                 if answer and len(answer.strip()) >= MIN_VALID_LENGTH:
                     winner_backend = tasks[task]
@@ -286,8 +300,9 @@ def get_affinity_backends(complexity: str) -> list[str]:
             "complex": "reasoning",
         }.get(complexity, "english")
         pool = capability_matrix.select_backends(intent, top_n=12)
-    except Exception:
+    except Exception as exc:
         # Fallback to static AFFINITY if capability_matrix fails
+        logger.debug("[SPEC] capability_matrix unavailable: %s", type(exc).__name__)
         if complexity == "simple":
             pool = list(AFFINITY["simple_fast"])
         elif complexity == "code":

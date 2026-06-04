@@ -35,17 +35,24 @@ def resolve_backend(model: str) -> str | None:
     if not model or model in ("auto", "lima-1.3", ""):
         return None
 
-    # 1. Exact match: client passed a LiMa backend name directly
+    # 1. Strip provider prefix (e.g., "openai/lima-1.3" → "lima-1.3")
+    if "/" in model:
+        parts = model.split("/", 1)
+        if parts[0].lower() in ("openai", "anthropic", "deepseek", "qwen", "meta", "mistral", "google"):
+            model = parts[1]
+            logger.info("model_resolver: stripped provider prefix → '%s'", model)
+
+    # 2. Exact match: client passed a LiMa backend name directly
     if model in BACKENDS:
         logger.info("model_resolver: exact match → %s", model)
         return model
 
-    # 2. Alias match: human-friendly name → backend name
+    # 3. Alias match: human-friendly name → backend name
     alias_target = MODEL_ALIASES.get(model)
     if alias_target and alias_target in BACKENDS:
         logger.info("model_resolver: alias '%s' → %s", model, alias_target)
         return alias_target
 
-    # 3. No match → let auto-routing handle it
+    # 4. No match → let auto-routing handle it
     logger.debug("model_resolver: no match for '%s', falling back to auto-route", model)
     return None

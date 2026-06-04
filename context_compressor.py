@@ -13,6 +13,7 @@ Supports:
 from __future__ import annotations
 
 import logging
+import os
 from typing import Callable
 
 _log = logging.getLogger(__name__)
@@ -35,11 +36,17 @@ BACKEND_CONTEXT_LIMITS: dict[str, int] = {
     "scnet_large_ds_pro": 800000,
     "groq_llama70b": 128000,
     "cerebras_gptoss": 128000,
+    # OpenCode stealth backends
+    "opencode_stealth": 128000,
+    "opencode_ds_flash": 128000,
 }
 
 # ~4 chars per token, reserve 20% for safety
 CHARS_PER_TOKEN = 4
 SAFETY_FACTOR = 0.8
+
+# OpenCode multi-turn conversation settings
+OPENCODE_KEEP_RECENT_TURNS = int(os.environ.get("LIMA_OPENCODE_KEEP_RECENT_TURNS", "8"))
 
 # Compression prompt: summarize conversation so far
 _COMPRESSION_PROMPT = (
@@ -84,13 +91,15 @@ def compress_messages(
     backend: str,
     system_prompt: str = "",
     summarize_fn: Callable | None = None,
+    ide_source: str = "",
 ) -> list[dict]:
     """Compress message history to fit within backend context limit.
 
     Strategy:
-      - Keep last 4 messages intact (the user-assistant loop is critical)
+      - Keep last N messages intact (N=4 for chat, N=OPENCODE_KEEP_RECENT_TURNS for OpenCode)
       - Summarize everything before that into a single system-like message
       - If no summarize_fn provided, do structural compression only
+      - OpenCode: preserve tool_calls and tool results in recent turns
 
     Returns compressed messages list.
     """
@@ -105,7 +114,15 @@ def compress_messages(
         len(messages), backend, limit,
     )
 
-    keep_count = 4  # Keep last 4 messages intact
+    # OpenCode: keep more recent turns to preserve tool call context
+    if ide_source and "opencode" in ide_source.lower():
+        keep_count = OPENCODE_KEEP_RECENT_TURNS
+        _log.info(
+            "OpenCode mode: keeping %d recent turns for tool context",
+            keep_count,
+        )
+    else:
+        keep_count = 4  # Keep last 4 messages intact
     if len(messages) <= keep_count + 2:
         # Not enough messages to compress meaningfully
         # Just truncate oldest content

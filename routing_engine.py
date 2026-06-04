@@ -244,6 +244,7 @@ def route(query: str, messages: list[dict], *,
         if backends and should_compress(messages_injected, backends[0]):
             messages_injected = compress_messages(
                 messages_injected, backends[0], system_prompt=system_prompt,
+                ide_source=ide_source,
             )
     except ImportError as e:
         logging.debug("routing_engine: context compressor not available: %s", e)
@@ -265,7 +266,8 @@ def route(query: str, messages: list[dict], *,
                 try:
                     final_backend, answer, _ = speculative.speculative_call(
                         spec_candidates, call_fn, messages_injected, max_tokens,
-                        max_parallel=5, timeout_sec=5.0)
+                        max_parallel=5, timeout_sec=5.0,
+                        needs_tools=needs_tools, ide_source=ide_source)
                 except RuntimeError:
                     final_backend, answer, _ = execute(backends, call_fn, messages_injected, max_tokens, tools=tools)
             else:

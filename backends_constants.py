@@ -88,6 +88,24 @@ CODE_CAPABLE_BACKENDS = frozenset({
     # ModelScope 魔搭
     'ms_qwen_coder_32b', 'ms_qwen_coder_14b', 'ms_qwen_coder_7b',
 })
+
+# Backends that reliably support tool_calls (OpenAI function calling format)
+TOOL_CAPABLE_BACKENDS = frozenset({
+    # Groq backends with tool_calls capability
+    'groq_llama70b', 'groq_gptoss', 'groq_qwen32b', 'groq_llama4',
+    # GitHub Models
+    'github_gpt4o', 'github_gpt4o_mini', 'github_gpt5', 'github_o3_mini', 'github_o4_mini',
+    # Cerebras
+    'cerebras_qwen235b',
+    # OpenRouter
+    'or_gptoss_120b',
+    # NVIDIA
+    'nvidia_mistral',
+    # China Mobile
+    'chinamobile',
+    # Longcat (Anthropic format, but supports tool_calls)
+    'longcat',
+})
 VISION_SYSTEM_PROMPT = "你是一位耐心的老师。用户上传了一道题目的图片。请：1. 识别题目内容 2. 分步骤解答 3. 给出最终答案。如果是选择题，明确指出正确选项。"
 
 # Known IDE sources (both canonical and lowercased forms for flexible matching).

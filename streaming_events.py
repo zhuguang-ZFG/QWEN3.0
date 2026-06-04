@@ -139,6 +139,28 @@ def audit_ref_event(audit_id: str) -> StreamEvent:
     )
 
 
+def build_usage_chunk(request_id: str, usage: dict, model: str = "lima") -> str:
+    """Build an OpenAI-compatible SSE chunk containing usage statistics.
+
+    Emitted as the final data chunk before [DONE] when stream_options.include_usage
+    is requested.  Format matches OpenAI spec:
+        {"id":"...","object":"chat.completion.chunk","choices":[...],"usage":{...}}
+    """
+    chunk = {
+        "id": f"chatcmpl-{request_id}",
+        "object": "chat.completion.chunk",
+        "created": int(time.time()),
+        "model": model,
+        "choices": [{
+            "index": 0,
+            "delta": {},
+            "finish_reason": None,
+        }],
+        "usage": usage,
+    }
+    return f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
+
+
 # ── SSE formatting ──────────────────────────────────────────────────────────
 
 def format_sse_done() -> str:

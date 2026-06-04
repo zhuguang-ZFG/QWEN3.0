@@ -12,7 +12,8 @@ from response_cleaner import StreamIdentitySanitizer, clean_response, _is_backen
 
 from backends import BACKENDS
 from http_errors import BackendError, _extract_code, _extract_retry_after
-from http_response import _parse_sse_chunk
+import json as _json_mod
+from http_response import _parse_sse_chunk, extract_sse_usage, extract_sse_reasoning
 
 DEBUG = os.environ.get("LIMA_DEBUG", "") == "1"
 
@@ -66,6 +67,10 @@ def call_api_stream(
                 data_str = line[6:]
                 if data_str == "[DONE]":
                     break
+                # Capture usage and reasoning metadata before extracting content
+                usage = extract_sse_usage(data_str)
+                if usage:
+                    yield "__LIMA_META__:" + _json_mod.dumps({"usage": usage})
                 text = _parse_sse_chunk(data_str, fmt)
                 if not text:
                     continue
@@ -206,6 +211,10 @@ async def call_api_stream_async(
                 data_str = line[6:]
                 if data_str == "[DONE]":
                     break
+                # Capture usage and reasoning metadata before extracting content
+                usage = extract_sse_usage(data_str)
+                if usage:
+                    yield "__LIMA_META__:" + _json_mod.dumps({"usage": usage})
                 text = _parse_sse_chunk(data_str, fmt)
                 if not text:
                     continue

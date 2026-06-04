@@ -10,6 +10,7 @@ import route_scorer
 import sticky_session
 
 import os
+from opencode_config import OPENCODE_FAST_BOOST, OPENCODE_FAST_BACKENDS
 
 MAX_FALLBACKS = 5
 
@@ -79,7 +80,7 @@ def select(request_type: str, health_map: dict,
                 if b not in result:
                     result.append(b)
         # Prioritize backends verified to support native tool calling
-        _NATIVE_TOOL_PREFER = {"github", "chinamobile", "ddg", "groq", "cerebras", "longcat"}
+        _NATIVE_TOOL_PREFER = {"github", "chinamobile", "groq", "cerebras", "longcat"}
         result.sort(key=lambda b: (
             0 if any(p in b for p in _NATIVE_TOOL_PREFER) else 1,
             reg.BACKENDS.get(b, {}).get("timeout", 30),
@@ -134,13 +135,12 @@ def select(request_type: str, health_map: dict,
             scores[b] += max(0, (2000 - static_latency) / 100)
 
     # OpenCode coding affinity: boost fast coding backends for OpenCode IDE users only
-    if (os.environ.get("OPENCODE_OPTIMIZATION_ENABLED", "0") == "1"
+    if (OPENCODE_FAST_BOOST > 1.0
             and scenario == "coding"
             and ide_source and "opencode" in ide_source.lower()):
-        _FAST_CODE_BOOST_PREFIXES = {"groq_", "cerebras_", "scnet_ds_flash"}
         for b in result:
-            if any(b == pfx or b.startswith(pfx) for pfx in _FAST_CODE_BOOST_PREFIXES):
-                scores[b] = scores[b] * 1.15  # 15% score boost
+            if any(b == pfx or b.startswith(pfx) for pfx in OPENCODE_FAST_BACKENDS):
+                scores[b] = scores[b] * OPENCODE_FAST_BOOST
 
     # ML prediction boost — batch apply after per-backend scoring
     try:

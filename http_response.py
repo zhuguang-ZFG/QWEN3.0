@@ -51,3 +51,27 @@ def _parse_sse_chunk(data_str: str, fmt: str) -> str:
     except (json.JSONDecodeError, KeyError, IndexError):
         pass
     return ""
+
+
+def extract_sse_usage(data_str: str) -> dict | None:
+    """Extract usage stats from an SSE chunk (OpenAI format). Returns None if no usage."""
+    try:
+        data = json.loads(data_str)
+        usage = data.get("usage")
+        if usage and isinstance(usage, dict) and usage.get("prompt_tokens"):
+            return usage
+    except (json.JSONDecodeError, KeyError):
+        pass
+    return None
+
+
+def extract_sse_reasoning(data_str: str, fmt: str) -> str:
+    """Extract reasoning_content from an SSE chunk without including it in content."""
+    try:
+        data = json.loads(data_str)
+        if fmt == "openai":
+            delta = data.get("choices", [{}])[0].get("delta", {})
+            return delta.get("reasoning_content") or ""
+    except (json.JSONDecodeError, KeyError, IndexError):
+        pass
+    return ""

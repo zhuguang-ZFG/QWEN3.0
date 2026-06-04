@@ -64,15 +64,16 @@ def test_detect_opencode_from_ua():
     assert result["type"] == "chat"
 
 
-# ─── Test 3: OpenCode has full skills coverage (empty set = inject all) ───────
+# ─── Test 3: OpenCode skills coverage (skip style category) ───────────────────
 
 def test_opencode_full_skills_coverage():
-    """IDE_COVERAGE['OpenCode'] is empty — all skill categories injected."""
+    """IDE_COVERAGE['OpenCode'] skips style category (built-in)."""
     from skills_injector import IDE_COVERAGE
 
     assert "OpenCode" in IDE_COVERAGE
-    assert IDE_COVERAGE["OpenCode"] == set(), (
-        "OpenCode should have empty coverage set (full skill injection)"
+    # OpenCode skips style category (already covered by built-in system prompt)
+    assert IDE_COVERAGE["OpenCode"] == {"style"}, (
+        "OpenCode should skip style category (already built-in)"
     )
 
 

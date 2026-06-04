@@ -5,7 +5,7 @@ import os
 import time
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from access_guard import require_private_api_key
 import smart_router
@@ -25,7 +25,7 @@ def inject_state(*, model_id: str, model_created: int, loaded_modules: dict[str,
 
 
 @router.get("/v1/models", dependencies=[Depends(require_private_api_key)])
-async def list_models():
+async def list_models(request: Request):
     models = [
         {"id": "claude-opus-4-7", "object": "model", "created": _model_created, "owned_by": "anthropic"},
         {"id": "claude-sonnet-4", "object": "model", "created": _model_created, "owned_by": "anthropic"},
@@ -41,6 +41,24 @@ async def list_models():
         {"id": "llama-3.3-70b", "object": "model", "created": _model_created, "owned_by": "meta"},
         {"id": _model_id, "object": "model", "created": _model_created, "owned_by": "donglicao"},
     ]
+
+    # OpenCode curated model list: return a focused subset of coding-capable models.
+    # Default enabled for OpenCode clients; set LIMA_OPENCODE_MODEL_LIST=0 to disable.
+    ua = request.headers.get("user-agent", "").lower()
+    if ("opencode" in ua or "opencode-ai" in ua
+            and os.environ.get("LIMA_OPENCODE_MODEL_LIST", "1") != "0"):
+        # Curated coding-agent models: models with strong tool-calling + coding ability
+        opencode_models = [
+            {"id": "claude-sonnet-4", "object": "model", "created": _model_created, "owned_by": "anthropic"},
+            {"id": "claude-opus-4-7", "object": "model", "created": _model_created, "owned_by": "anthropic"},
+            {"id": "gpt-5.4", "object": "model", "created": _model_created, "owned_by": "openai"},
+            {"id": "gpt-4.1", "object": "model", "created": _model_created, "owned_by": "openai"},
+            {"id": "deepseek-v4-pro", "object": "model", "created": _model_created, "owned_by": "deepseek"},
+            {"id": "qwen3-coder", "object": "model", "created": _model_created, "owned_by": "qwen"},
+            {"id": _model_id, "object": "model", "created": _model_created, "owned_by": "donglicao"},
+        ]
+        return {"object": "list", "data": opencode_models}
+
     return {"object": "list", "data": models}
 
 

@@ -16,8 +16,21 @@ from routes.stream_handlers import speculative_stream_chunks
 from routes.v3_adapters import v3_route
 
 from routes.chat_support import thinking_route
+from streaming_events import build_usage_chunk
 
 FALLBACK_MSG = "抱歉，所有后端暂不可用，请稍后重试。可尝试 /model fast 切换快速模式。"
+_META_PREFIX = "__LIMA_META__:"
+
+
+def _extract_meta(chunk: str) -> dict | None:
+    """Extract __LIMA_META__ metadata from a stream chunk. Returns None if not metadata."""
+    if chunk.startswith(_META_PREFIX):
+        try:
+            import json
+            return json.loads(chunk[len(_META_PREFIX):])
+        except (json.JSONDecodeError, ValueError):
+            pass
+    return None
 
 _last_resort_call: Callable[[list], str] | None = None
 _build_pollinations_url: Callable[[str, str], str] | None = None
@@ -101,8 +114,14 @@ async def stream_response(
 
     streamed_any = False
     last_backend = "unknown"
+    last_usage: dict | None = None
 
     async for _backend, chunk in speculative_stream_chunks(query, messages, 4096, ide_source):
+        meta = _extract_meta(chunk)
+        if meta:
+            if "usage" in meta:
+                last_usage = meta["usage"]
+            continue
         streamed_any = True
         last_backend = _backend
         from response_cleaner import clean_response
@@ -135,4 +154,6 @@ async def stream_response(
             await asyncio.sleep(0.02)
 
     yield build_stream_chunk(chat_id, "", finish=True)
+    if last_usage:
+        yield build_usage_chunk(chat_id, last_usage)
     yield "data: [DONE]\n\n"

@@ -26,6 +26,7 @@ from routes.anthropic_messages_handler import (
 )
 from routes.anthropic_vision_sse import anthropic_vision_messages
 from vision_handler import detect_vision_request
+from opencode_config import OPENCODE_TOOL_MODE, OPENCODE_RATE_MULTIPLIER
 
 router = APIRouter()
 
@@ -74,7 +75,7 @@ async def chat_completions(request: Request):
 
     import rate_limiter
 
-    rate_limit_multiplier = 5 if ide_source else 1
+    rate_limit_multiplier = OPENCODE_RATE_MULTIPLIER if ide_source else 1
     if not rate_limiter.check_rate_limit(client_ip, multiplier=rate_limit_multiplier):
         return JSONResponse(
             status_code=429,
@@ -124,10 +125,9 @@ async def chat_completions(request: Request):
 
     # OpenCode direct tool mode: bypass Anthropic-native tool forwarding,
     # let the routing engine handle tools natively in OpenAI format.
-    # Activate via LIMA_OPENCODE_TOOL_MODE=direct OR master switch OPENCODE_OPTIMIZATION_ENABLED=1.
+    # Default on (OPENCODE_TOOL_MODE="direct"); set LIMA_OPENCODE_TOOL_MODE=convert to disable.
     if (body.get("tools") and ide_source == "OpenCode"
-            and (os.environ.get("LIMA_OPENCODE_TOOL_MODE") == "direct"
-                 or os.environ.get("OPENCODE_OPTIMIZATION_ENABLED", "0") == "1")):
+            and OPENCODE_TOOL_MODE == "direct"):
         return await _dep("handle_chat")(
             chat_req,
             fmt="openai",
@@ -265,7 +265,7 @@ async def _wrap_tool_stream_with_recording(
                         backend_model = data.get("message", {}).get("model", "tool")
                         break
             except Exception:
-                pass
+                pass  # non-critical model name extraction
         yield chunk
     duration_ms = int((time.time() - t0) * 1000)
     _call(

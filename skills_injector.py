@@ -15,6 +15,7 @@ import glob as glob_mod
 from typing import Optional
 
 from backends import STRONG_MODELS
+from opencode_config import OPENCODE_SKIPPED_SKILL_CATEGORIES
 
 # ─── 常量 ─────────────────────────────────────────────────────────────────────
 
@@ -29,7 +30,7 @@ IDE_COVERAGE = {
     "Codex": {"style"},                           # 4000 tok, 30% personality
     "Aider": {"safety", "lang"},                  # 2000 tok
     "Cline": {"safety", "style"},                 # 4000 tok
-    "OpenCode": set(),  # 自带系统提示词极少，全类别注入
+    "OpenCode": {"style"},  # 已内置安全和语言指导，跳过style类别
 }
 
 
@@ -81,7 +82,10 @@ def load_skills_from_dir(skills_dir: str) -> list[dict]:
                 "priority": meta.get("priority", 5),
                 "globs": meta.get("globs", []),
             })
-        except Exception:
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning(
+                "skills_injector: failed to load %s: %s", fpath, type(exc).__name__)
             continue
     return skills
 
@@ -192,7 +196,11 @@ def _filter_by_ide(skills: list[dict], ide_source: str) -> list[dict]:
     """根据 IDE 已覆盖内容过滤不需要的 skills"""
     if not ide_source:
         return skills
-    covered_cats = IDE_COVERAGE.get(ide_source, set())
+    # For OpenCode, use config from opencode_config
+    if ide_source and "opencode" in ide_source.lower():
+        covered_cats = OPENCODE_SKIPPED_SKILL_CATEGORIES
+    else:
+        covered_cats = IDE_COVERAGE.get(ide_source, set())
     if not covered_cats:
         return skills  # Unknown or Cursor — keep all
     return [s for s in skills

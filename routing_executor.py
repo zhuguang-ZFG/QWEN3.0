@@ -81,8 +81,8 @@ def execute(backends: list[str],
                 if answer and len(answer.strip()) > 5:
                     re.health_tracker.record_success(backend, (time.time() - t0) * 1000)
                     return backend, answer, errors
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning("[EXECUTE] serial fallback %s failed: %s", backend, type(exc).__name__)
 
     return "exhausted", "", errors
 
@@ -104,8 +104,8 @@ def _parallel_fallback(
                 answer = call_fn(backend, messages, max_tokens)
             if answer and len(answer.strip()) > 5:
                 return backend, answer
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("[EXECUTE] parallel fallback %s failed: %s", backend, type(exc).__name__)
         return None
 
     with ThreadPoolExecutor(max_workers=len(backends)) as pool:
@@ -118,7 +118,8 @@ def _parallel_fallback(
                     for f in futures:
                         f.cancel()
                     return result
-            except Exception:
+            except Exception as exc:
+                logger.debug("[EXECUTE] parallel result error: %s", type(exc).__name__)
                 continue
     return None
 

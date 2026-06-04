@@ -20,6 +20,7 @@ from response_builder import (
     make_chat_id,
 )
 from routes.chat_fallback import QualityFallbackRequest, resolve_quality_fallback
+from opencode_config import OPENCODE_PREFERRED_BACKEND
 
 _log = logging.getLogger(__name__)
 from routes.chat_post_closeout import (
@@ -82,7 +83,7 @@ def resolve_route_prefs(req: ChatRequest, ide_source: str, query: str) -> RouteP
 
     # OpenCode sends full context like Claude Code → needs large context window
     if ide_source and "opencode" in ide_source.lower():
-        prefer = prefer or "scnet_ds_pro"
+        prefer = prefer or OPENCODE_PREFERRED_BACKEND
 
     use_thinking = getattr(req, "thinking", False) or smart_router.detect_thinking_intent(query)
     return RoutePrefs(prefer=prefer, ide_source=ide, use_thinking=use_thinking)
