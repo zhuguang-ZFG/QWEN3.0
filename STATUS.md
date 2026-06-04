@@ -1,6 +1,6 @@
 # LiMa — 运行状态
 
-> 2026-06-01 · VPS `47.112.162.80` · 分支 `codex/free-web-ai-probe`
+> 2026-06-18 · VPS `47.112.162.80` · 分支 `codex/free-web-ai-probe`
 > 权威架构见 `docs/REQUEST_PIPELINE_AUTHORITY.md`
 > 产品定义见 `docs/PRODUCT_DEFINITION.md`
 
@@ -25,6 +25,8 @@
 | M11d | 完整 ContextManager 移植 (+412 行, deepcode-cli@182730d) | 0 |
 | M11e | 部署验证 + 文档更新 | 0 |
 | M11f | 代码审查修复 (D:/GIT 硬编码) | 0 |
+| M-OC1 | OpenCode Phase 1 基础 IDE 适配 | 0 |
+| M-OC2 | OpenCode Round 2 深度适配（overflow/normalize/usage/reasoning_effort） | 0 |
 
 ## 部署状态
 
@@ -56,7 +58,11 @@
 | VPS reverse sidecar | 5/5 active |
 | net code removed | ~650 行 |
 
-## LiMa Code CLI
+## LiMa Code CLI — 维护模式
+
+> **状态**: 已进入维护模式 — 不再添加新功能，仅修复关键问题
+> 子模块 `deepcode-cli/` 保留，配置目录 `.lima-code/` 作为 OpenCode 配置参考
+> 构建说明见 `docs/archive/lima-code-cli.md`
 
 | 指标 | 值 |
 |------|-----|

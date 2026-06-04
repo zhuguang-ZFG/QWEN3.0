@@ -1,44 +1,41 @@
-# LiMa Code CLI
+# LiMa — 多模型智能路由 AI 编程助手后端
 
-> **个人 AI 编程助手** — 对标 Claude Code / OpenAI Codex
+> **个人 AI 编程助手** — OpenAI-compatible API，自动路由到最优后端模型
 
-LiMa 是一个**多模型智能路由 AI 编程助手**，通过反向工程免费 AI 平台提供编码能力。
-支持代码阅读、分析、修改，通过 CLI / VS Code / Telegram 交互。
+LiMa 是一个**多模型智能路由后端**，提供 `/v1/chat/completions` 和 `/v1/messages` 端点，根据请求意图、能力、成本和质量自动选择最优后端模型。客户端包括 OpenCode、Cursor、VS Code Copilot、Telegram 及自定义 CLI。
 
 ## 核心能力
 
 | 能力 | 说明 |
 |---|---|
-| **多模型路由** | 根据意图/能力/成本/质量自动选择最优模型 |
-| **逆向后端** | 集成 SCNet、Kimi、MiMo、LongCat 等免费 AI 平台 |
+| **多模型路由** | 根据意图/能力/成本/质量自动选择最优模型（180+ 后端） |
+| **OpenCode 深度适配** | overflow 检测、消息规范化、usage 跟踪、reasoning_effort 透传 |
 | **代码读写** | 代码文件读取、分析、Bug 修复、重构 |
-| **长上下文** | SCNet OSS 文件桥接支持 500K 字符 |
-| **工具调用** | 文本提取式工具调用（Kimi 已验证） |
+| **工具调用** | 原生 OpenAI tool_calls + 文本提取式工具调用 |
 | **联网搜索** | SCNet / Kimi-search 实时联网 |
-| **健康监控** | 4 代理自动健康检查 + Cookie 过期告警 |
+| **会话亲和** | x-session-affinity sticky session |
+| **健康监控** | 自动健康检查 + 后端降级 |
 
 ## 架构
 
 ```
-┌─ 用户 ──────────────────────────────────────┐
-│  CLI (deepcode-cli) / VS Code / Telegram     │
-└──────────────┬───────────────────────────────┘
+┌─ 用户 ──────────────────────────────────────────────┐
+│  OpenCode / Cursor / VS Code / Telegram              │
+└──────────────┬──────────────────────────────────────┘
                ▼
-┌──────────────────────────────────────────────┐
-│  LiMa Router (port 8080, VPS)                │
-│  ├─ routing_engine.py   智能路由决策          │
-│  ├─ tool_forward.py     工具调用转发          │
-│  ├─ code_orchestrator   代码上下文注入         │
-│  └─ text_tool_extractor 文本工具提取           │
-└──────┬──────┬──────┬──────┬──────────────────┘
+┌──────────────────────────────────────────────────────┐
+│  LiMa Router (port 8080, VPS, FastAPI)               │
+│  ├─ routing_engine.py     智能路由决策                │
+│  ├─ opencode_config.py    OpenCode IDE 配置中心       │
+│  ├─ opencode_error_adapter.py  Overflow 检测          │
+│  ├─ opencode_message_normalizer.py  消息规范化        │
+│  ├─ code_orchestrator.py  代码上下文注入              │
+│  └─ skills_injector.py    后端感知 skill 注入         │
+└──────┬──────┬──────┬──────┬──────────────────────────┘
        ▼      ▼      ▼      ▼
 ┌──────┐ ┌────┐ ┌────┐ ┌────────┐
-│SCNet │ │Kimi│ │MiMo│ │LongCat │  ← 逆向后端
-│:4505 │ │:4504│ │:4507│ │:4506  │     (VPS)
-└──┬───┘ └─┬──┘ └─┬──┘ └───┬────┘
-   ▼       ▼     ▼        ▼
- 国家算力  moonshot 小米  longcat
- 平台      .cn     AI    .chat
+│SCNet │ │Kimi│ │MiMo│ │LongCat │  ← 180+ 云端后端
+└──────┘ └────┘ └────┘ └────────┘
 ```
 
 ## 快速开始
@@ -52,60 +49,79 @@ cd QWEN3.0
 cp .env.example .env
 # 编辑 .env 填入 API keys
 
-# 3. 启动（本地）
+# 3. 启动
 pip install -r requirements_server.txt
 python server.py
 
 # 4. 测试
 curl -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -d '{"model":"auto","messages":[{"role":"user","content":"写一个快速排序"}]}'
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -d '{"model":"lima-1.3","messages":[{"role":"user","content":"写一个快速排序"}]}'
+```
+
+### OpenCode 配置
+
+在项目根目录创建 `.lima-code/settings.json`：
+
+```json
+{
+  "env": {
+    "BASE_URL": "https://your-domain.com/v1",
+    "MODEL": "lima-1.3"
+  }
+}
 ```
 
 ## 可用模型
 
 | 后端 | 模型 | 联网 | 工具调用 | 上下文 |
 |---|---|---|---|---|
-| SCNet | deepseek-v4-flash/pro, qwen3-30b/235b, minimax-m2.5 | ✅ | ❌ | 500K |
-| Kimi | kimi, kimi-thinking, kimi-search | ✅ | ✅ (文本) | 平台限制 |
-| MiMo | mimo-web, mimo-web-think, mimo-web-flash | ❌ | ✅ (文本) | 平台限制 |
-| LongCat | longcat-web, longcat-web-think | ❌ | ✅ (文本) | 平台限制 |
+| SCNet | deepseek-v4-flash/pro, qwen3-30b/235b | ✅ | ✅ | 500K |
+| Kimi | kimi, kimi-thinking, kimi-search | ✅ | ✅ | 平台限制 |
+| MiMo | mimo-web, mimo-web-think, mimo-v3-pro | ❌ | ✅ | 平台限制 |
+| LongCat | longcat-web, longcat-web-think | ❌ | ✅ | 平台限制 |
 | Cloudflare | gpt-4o-mini, llama4, deepseek-r1 等 37+ | ❌ | ✅ | API 限制 |
 
 ## 项目结构
 
 ```
 lima-router/
-├── router_v3.py          # 主路由引擎
-├── routing_engine.py     # 路由决策
-├── routes/               # API 路由
-│   ├── chat_handler.py   # 对话处理
-│   ├── tool_forward.py   # 工具调用转发
-│   └── reverse_gateway.py # 逆向后端管理
-├── reverse_gateway/      # 逆向后端适配器
-│   ├── providers/
-│   │   ├── scnet.py      # SCNet Web Chat 适配器
-│   │   ├── scnet_adapter.py
-│   │   ├── scnet_protocol.py
-│   │   └── scnet_file_context.py  # OSS 文件桥接
-│   └── sidecar_scnet.py  # SCNet Sidecar
-├── code_orchestrator.py  # 代码编排
-├── text_tool_extractor.py # 文本工具提取
-├── infra/                # 代理脚本
-│   ├── kimi_proxy_v2.js  # Kimi 代理
-│   ├── scnet_large_proxy.js
-│   └── scnet-worker.js
-├── scripts/              # 运维脚本
-│   ├── reverse_proxy_keepalive.py  # 健康监控
-│   ├── provision_kimi_cookies.py
-│   └── provision_scnet_cookies.py
-├── deploy/reverse/       # Sidecar 部署配置
-└── docs/                 # 文档
+├── server.py                   # FastAPI 入口
+├── routing_engine.py           # 路由引擎（5层：分类→选择→注入→执行→响应）
+├── routing_executor.py         # 路由执行（fallback 链）
+├── routing_selector.py         # 后端选择（健康/粘性/预算）
+├── backends_registry.py        # 后端注册表（180+ 提供商）
+├── opencode_config.py          # OpenCode IDE 配置中心
+├── opencode_error_adapter.py   # Overflow 检测 + 错误响应构建
+├── opencode_message_normalizer.py  # 消息规范化管线
+├── http_caller.py              # HTTP 传输层（sync/async/stream）
+├── chat_models.py              # 请求模型（含 reasoning_effort）
+├── routes/
+│   ├── chat_endpoints.py       # OpenAI/Anthropic 协议端点
+│   ├── chat_handler.py         # 对话处理（含 413 overflow 响应）
+│   ├── chat_stream.py          # SSE 流式生成
+│   └── v3_adapters.py          # 后端适配层
+├── context_pipeline/           # 上下文管道（检索/搜索/代码/压缩）
+├── session_memory/             # 会话记忆（SQLite）
+├── deploy_opencode.py          # OpenCode 部署脚本
+└── docs/                       # 文档
 ```
 
 ## 部署
 
-VPS 部署文档见 [`deploy/reverse/README.md`](deploy/reverse/README.md)。
+```bash
+# Docker
+docker compose build && docker compose up -d
+
+# VPS 部署
+python deploy_opencode.py
+
+# 健康检查
+curl -sf https://your-domain.com/health
+```
+
+详细部署文档见 [`AGENTS.md`](AGENTS.md)。
 
 ## 许可
 

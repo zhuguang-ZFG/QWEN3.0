@@ -4,7 +4,7 @@ This file provides guidance to Qoder (qoder.com) when working with code in this 
 
 ## Project Overview
 
-LiMa (力码) is a **multi-model intelligent routing AI coding assistant backend**. It provides an OpenAI-compatible API (`/v1/chat/completions`, `/v1/messages`) that automatically selects the best backend model based on request intent, capability, cost, and quality. Clients include Cursor, Claude Code, VS Code Copilot, Telegram, and a custom CLI (LiMa Code / `deepcode-cli`).
+LiMa (力码) is a **multi-model intelligent routing AI coding assistant backend**. It provides an OpenAI-compatible API (`/v1/chat/completions`, `/v1/messages`) that automatically selects the best backend model based on request intent, capability, cost, and quality. Clients include **OpenCode (primary IDE client)**, Cursor, Claude Code, VS Code Copilot, Telegram, and LiMa Code CLI (maintenance mode).
 
 - **Tech stack**: Python 3.10, FastAPI, uvicorn, httpx, SQLite, Redis (optional), pybreaker
 - **Runtime**: Port 8080, single-process async, Docker or bare metal
@@ -84,30 +84,22 @@ curl -sf http://127.0.0.1:8080/health && echo " OK"
 curl -sf http://127.0.0.1:8080/v1/models | python -m json.tool
 ```
 
-### LiMa Code CLI (deepcode-cli/)
+### LiMa Code CLI (deepcode-cli/) — Maintenance Mode
 
-The CLI is a Node.js (≥22) TypeScript/React/Ink terminal app. It is **not published to npm** — install from GitHub.
+The CLI is in **maintenance mode** — no new features, critical fixes only. See `docs/archive/lima-code-cli.md` for build instructions.
 
-```bash
-cd deepcode-cli
-npm install
-npm run build        # typecheck + lint + format check + esbuild bundle
-npm run bundle       # esbuild only (fast)
-npm run test         # node src/tests/run-tests.mjs
-npm run lint         # eslint src/
-npm run typecheck    # tsc --noEmit
-```
-
-Binary entry: `dist/cli.js` (bin name: `lima-code`).
+Submodule still present for existing users; configuration directory `.lima-code/` retained as OpenCode config reference.
 
 ## Architecture
 
 ### Request Pipeline (Chat)
 
 ```
-Client → server.py (FastAPI + BodySizeLimitMiddleware, 32MB limit)
+Client (OpenCode/Cursor/VS Code/Telegram) → server.py (FastAPI + BodySizeLimitMiddleware, 32MB limit)
        → routes/chat_endpoints.py (OpenAI/Anthropic protocol dispatch)
        → routes/chat_preflight.py (auth via LIMA_API_KEY, validation)
+       → opencode_message_normalizer.py  ← message normalization (surrogate cleanup, toolCallId adapt)
+       → opencode_error_adapter.py       ← overflow detection (18+ regex patterns)
        → routing_engine.route()          ← authoritative routing entry
            ├─ identity_guard             (self-identification detection)
            ├─ semantic_cache             (temperature=0 deterministic cache)
@@ -122,6 +114,7 @@ Client → server.py (FastAPI + BodySizeLimitMiddleware, 32MB limit)
        → http_caller → http_sync/http_async/http_stream (HTTP transport)
        → route_post_process.py + response_cleaner.py (post-process)
        → routes/chat_post_closeout.py (memory, observability, distill)
+       → Usage tracking (x-lima-usage header) + reasoning_effort parameter passthrough
 ```
 
 ### Key Module Map
@@ -134,6 +127,10 @@ Client → server.py (FastAPI + BodySizeLimitMiddleware, 32MB limit)
 | Backend registry | `backends_registry.py` + `backends_constants.py` | `backends.py` is a facade re-exporting both |
 | HTTP transport | `http_caller.py` | Thin facade over `http_sync`, `http_async`, `http_stream`, `http_request_builder`, `http_response`, `http_errors` |
 | Streaming | `streaming.py`, `routes/stream_handlers.py` | Tool-native vs simulated SSE |
+| **OpenCode config** | **`opencode_config.py`** | **OpenCode IDE configuration center** |
+| **Overflow detection** | **`opencode_error_adapter.py`** | **18+ regex patterns for context overflow → HTTP 413 + SSE error event** |
+| **Message normalization** | **`opencode_message_normalizer.py`** | **Surrogate cleanup, toolCallId adapt, content part filter** |
+| **Usage tracking** | **`routes/chat_post_closeout.py`** | **x-lima-usage header injection** |
 | Legacy router | `smart_router.py` | V3 compat layer; delegates to `routing_engine` for production |
 | Health tracking | `health_tracker.py` | Prefer over `router_circuit_breaker.py` for new code |
 | Session memory | `session_memory/store*.py` | Split: db/crud/promote/admin |
@@ -188,7 +185,7 @@ Always check if a module is a facade before adding logic to it.
 
 ### Submodules & Sub-projects
 
-- `deepcode-cli/` — LiMa Code CLI (Node.js/TypeScript), git submodule
+- `deepcode-cli/` — LiMa Code CLI (Node.js/TypeScript), git submodule — **maintenance mode**
 - `_codegraph_repo/` — CodeGraph tool (separate repo, not part of LiMa core)
 - `infra/` — Proxy scripts for reverse-engineered backends (Kimi, SCNet)
 - `deploy/` — Deployment configs for sidecar services
