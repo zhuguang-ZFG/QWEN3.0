@@ -70,10 +70,15 @@ def _sanitize_message_content(msg: dict) -> dict:
 
 def filter_empty_messages(messages: list[dict]) -> list[dict]:
     """过滤空内容消息（Anthropic/Bedrock 兼容）。
-    
+
     Anthropic 和 Bedrock 拒绝包含空 content 的消息。
     移除 content 为空的字符串消息，以及内容列表全部为空的消息。
-    移植自 transform.ts L132-185。
+
+    保留有意义的 reasoning 块（即使 text 为空）:
+    - Anthropic: 带 signature 的 reasoning 块 (providerOptions.anthropic.signature)
+    - Bedrock: 带 signature/redactedData 的 reasoning 块 (providerOptions.bedrock.signature)
+
+    移植自 transform.ts L132-199。
     """
     result: list[dict] = []
     for msg in messages:
@@ -83,10 +88,22 @@ def filter_empty_messages(messages: list[dict]) -> list[dict]:
                 continue
             result.append(msg)
         elif isinstance(content, list):
-            filtered = [
-                p for p in content
-                if not (isinstance(p, dict) and p.get("type") == "text" and not p.get("text"))
-            ]
+            def _should_keep_part(part: dict) -> bool:
+                if not isinstance(part, dict):
+                    return True
+                if part.get("type") != "text":
+                    # Preserve reasoning blocks with signatures (transform.ts:152-172, 180-199)
+                    if part.get("type") == "reasoning":
+                        anthropic_opts = msg.get("providerOptions", {}).get("anthropic", {})
+                        bedrock_opts = msg.get("providerOptions", {}).get("bedrock", {})
+                        if anthropic_opts.get("signature") or bedrock_opts.get("signature"):
+                            return True
+                        if bedrock_opts.get("redactedData"):
+                            return True
+                    return True
+                return bool(part.get("text"))
+
+            filtered = [p for p in content if _should_keep_part(p)]
             if not filtered:
                 continue
             result.append({**msg, "content": filtered})
@@ -256,12 +273,16 @@ def normalize_messages(messages: list[dict], backend: str) -> list[dict]:
     # Step 1: Surrogate 清理
     result = [_sanitize_message_content(m) for m in messages]
 
-    # Step 2: DeepSeek reasoning 注入
-    if "deepseek" in backend.lower():
+    # Step 2: Reasoning 注入（支持 deepseek + 可扩展）
+    _reasoning_backends = {"deepseek"}
+    if any(b in backend.lower() for b in _reasoning_backends):
         result = inject_deepseek_reasoning(result)
 
-    # Step 3: 交错推理字段提取（DeepSeek via OpenAI-compatible）
-    if "deepseek" in backend.lower():
+    # Step 3: 交错推理字段提取（支持 deepseek + 可配置 field）
+    # OpenCode uses model.capabilities.interleaved.field — we hardcode
+    # "reasoning_content" for DeepSeek but keep the parameter extensible.
+    _interleaved_backends = {"deepseek"}
+    if any(b in backend.lower() for b in _interleaved_backends):
         result = extract_interleaved_reasoning(result)
 
     # Step 4: 空消息过滤

@@ -70,7 +70,8 @@ def resolve_session_options(
         result["enable_thinking"] = True
 
     # GPT-5 family: default reasoning_effort=medium, textVerbosity=low
-    if "gpt-5" in mid and "gpt-5-chat" not in mid and "gpt-5-pro" not in mid:
+    # Exclude: chat, pro, mini (no reasoning_effort support)
+    if "gpt-5" in mid and not any(e in mid for e in ("gpt-5-chat", "gpt-5-pro", "gpt-5-mini")):
         result["reasoningEffort"] = "medium"
         result["reasoningSummary"] = "auto"
         if pk == "openai":

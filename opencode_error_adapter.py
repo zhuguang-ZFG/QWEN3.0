@@ -3,8 +3,11 @@
 移植自 opencode-source/packages/opencode/src/provider/error.ts。
 
 核心功能:
-1. detect_context_overflow() — 用 18+ 种正则匹配后端错误消息
+1. detect_context_overflow() — 用 20 种正则匹配后端错误消息
 2. build_overflow_response() — 构建 OpenCode 可识别的 context_overflow 错误响应
+3. parse_stream_error() — SSE 流错误结构化解析
+4. parse_api_error() — API 调用错误解析（含 HTML 网关检测）
+5. HeaderTimeoutError / ResponseStreamError — SSE 超时错误类
 """
 
 from __future__ import annotations
@@ -279,6 +282,141 @@ def parse_api_error(
         "message": msg,
         "statusCode": status_code or error_obj.get("statusCode", 0),
         "isRetryable": bool(is_retryable),
+        "responseHeaders": response_headers or {},
+        "responseBody": response_body,
+        "metadata": metadata,
+    }
+
+
+# ── Timeout error classes (error.ts L11-19) ──────────────────────────────────
+
+class HeaderTimeoutError(Exception):
+    """Raised when response headers take too long to arrive (error.ts:11-14)."""
+
+    def __init__(self, url: str, timeout_ms: int) -> None:
+        self.url = url
+        self.timeout_ms = timeout_ms
+        super().__init__(f"Timeout waiting for headers from {url} after {timeout_ms}ms")
+
+
+class ResponseStreamError(Exception):
+    """Raised on SSE read timeouts inside wrapSSE() (error.ts:16-19)."""
+
+    def __init__(self, url: str, timeout_ms: int, chunks_received: int = 0) -> None:
+        self.url = url
+        self.timeout_ms = timeout_ms
+        self.chunks_received = chunks_received
+        super().__init__(
+            f"Timeout reading stream from {url} after {timeout_ms}ms "
+            f"({chunks_received} chunks received)"
+        )
+
+
+# ── OpenAI retryable detection (error.ts:46-49) ──────────────────────────────
+
+def is_openai_error_retryable(status_code: int) -> bool:
+    """Check if an OpenAI error status code is retryable.
+
+    Ported from error.ts isOpenAiErrorRetryable().
+    OpenAI 404 is retryable because models can become available mid-request.
+    """
+    return status_code == 404
+
+
+# ── Error message builder (error.ts:56-88) ───────────────────────────────────
+
+_HTML_DETECT_RE = re.compile(r"<(!doctype|\s*html)", re.IGNORECASE)
+
+
+def message(error_body: Any, status_code: int = 0, url: str = "") -> str:
+    """Build a user-readable error message from a raw error body.
+
+    Ported from error.ts message() (L56-88).
+    Handles: empty messages, status code text fallback, HTML proxy detection.
+    """
+    msg = ""
+    if isinstance(error_body, dict):
+        err = error_body.get("error") or {}
+        msg = str(err.get("message", "") if isinstance(err, dict) else err).strip()
+    elif isinstance(error_body, str):
+        msg = error_body.strip()
+
+    # Empty message → use status code
+    if not msg and status_code:
+        msg = f"{status_code}"
+
+    if not msg and url:
+        msg = f"Error response from {url}"
+
+    # HTML body detection (error.ts:79-85)
+    if _HTML_DETECT_RE.search(msg):
+        if status_code == 401:
+            msg = "Authentication token is missing. Are you signed in?"
+        elif status_code == 403:
+            msg = "You do not have permissions to use this model. Try selecting a different model."
+        else:
+            # Try to extract a meaningful message from JSON error body
+            if isinstance(error_body, dict):
+                err = error_body.get("error") or {}
+                if isinstance(err, dict) and err.get("message"):
+                    msg = str(err["message"])
+            if _HTML_DETECT_RE.search(msg):
+                return f"{status_code}"
+        return msg
+
+    if not msg:
+        return f"{status_code}"
+
+    return msg
+
+
+# ── Enhanced parse_api_error with HTML detection ─────────────────────────────
+
+def parse_api_error_v2(
+    error_obj: dict[str, Any],
+    status_code: int = 0,
+    response_headers: dict[str, str] | None = None,
+    response_body: str = "",
+    url: str = "",
+) -> dict[str, Any]:
+    """Enhanced API error parser with HTML gateway detection and retryable logic.
+
+    Builds on parse_api_error() with:
+    - HTML body gateway detection (401 → auth, 403 → permissions)
+    - OpenAI 404 retryable detection
+    - URL metadata from actual request context
+    """
+    # Use message() builder for proper error text
+    try:
+        body = json.loads(response_body) if isinstance(response_body, str) and response_body else None
+    except (json.JSONDecodeError, TypeError):
+        body = response_body
+
+    msg = message(body or error_obj, status_code, url)
+    is_overflow = detect_context_overflow(msg, status_code, response_body)
+
+    if is_overflow:
+        return {
+            "type": "context_overflow",
+            "message": msg,
+            "responseBody": response_body,
+        }
+
+    metadata: dict[str, str] = {}
+    if url:
+        metadata["url"] = url
+
+    # Determine retryability (error.ts:46-49 + L211-217)
+    is_retryable = bool(
+        error_obj.get("isRetryable", False)
+        or is_openai_error_retryable(status_code)
+    )
+
+    return {
+        "type": "api_error",
+        "message": msg,
+        "statusCode": status_code or error_obj.get("statusCode", 0),
+        "isRetryable": is_retryable,
         "responseHeaders": response_headers or {},
         "responseBody": response_body,
         "metadata": metadata,
