@@ -91,9 +91,11 @@ def test_handle_chat_applies_prompt_memory_before_routing(monkeypatch):
         return {"answer": "ok", "backend": "fake_backend", "total_ms": 1}
 
     monkeypatch.setenv("LIMA_SESSION_MEMORY", "1")
-    monkeypatch.setattr(server.smart_router, "detect_image_intent", lambda query: (False, ""))
-    monkeypatch.setattr(server.smart_router, "detect_thinking_intent", lambda query: False)
-    monkeypatch.setattr(server.smart_router, "analyze", fake_analyze)
+    import routing_facade
+
+    monkeypatch.setattr(routing_facade, "detect_image_intent", lambda query: (False, ""))
+    monkeypatch.setattr(routing_facade, "detect_thinking_intent", lambda query: False)
+    monkeypatch.setattr(routing_facade, "analyze", fake_analyze)
     monkeypatch.setattr(chat_handler, "needs_orchestration", lambda query, intent: False)
     monkeypatch.setattr(chat_handler, "v3_route", fake_v3_route)
     monkeypatch.setattr(chat_handler, "quality_check", lambda *args, **kwargs: True)
@@ -141,9 +143,11 @@ def test_handle_chat_writes_and_recalls_same_header_session(monkeypatch):
         }
 
     monkeypatch.setenv("LIMA_SESSION_MEMORY", "1")
-    monkeypatch.setattr(server.smart_router, "detect_image_intent", lambda query: (False, ""))
-    monkeypatch.setattr(server.smart_router, "detect_thinking_intent", lambda query: False)
-    monkeypatch.setattr(server.smart_router, "analyze", fake_analyze)
+    import routing_facade
+
+    monkeypatch.setattr(routing_facade, "detect_image_intent", lambda query: (False, ""))
+    monkeypatch.setattr(routing_facade, "detect_thinking_intent", lambda query: False)
+    monkeypatch.setattr(routing_facade, "analyze", fake_analyze)
     monkeypatch.setattr(chat_handler, "needs_orchestration", lambda query, intent: False)
     monkeypatch.setattr(chat_handler, "v3_route", fake_v3_route)
     monkeypatch.setattr(chat_handler, "quality_check", lambda *args, **kwargs: True)

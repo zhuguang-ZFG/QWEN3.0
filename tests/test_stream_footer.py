@@ -22,9 +22,11 @@ async def _collect_anthropic_stream(req: server.ChatRequest) -> str:
 
 
 def test_anthropic_speculative_stream_hides_backend_footer(monkeypatch):
-    monkeypatch.setattr(server.smart_router, "detect_image_intent", lambda _query: (False, ""))
+    import routing_facade
+
+    monkeypatch.setattr(routing_facade, "detect_image_intent", lambda _query: (False, ""))
     monkeypatch.setattr(
-        server.smart_router,
+        routing_facade,
         "analyze",
         lambda *_args, **_kwargs: {"intent": "chat", "complexity": 0.1},
     )
@@ -44,9 +46,11 @@ def test_anthropic_speculative_stream_hides_backend_footer(monkeypatch):
 
 
 def test_anthropic_fake_stream_hides_backend_footer(monkeypatch):
-    monkeypatch.setattr(server.smart_router, "detect_image_intent", lambda _query: (False, ""))
+    import routing_facade
+
+    monkeypatch.setattr(routing_facade, "detect_image_intent", lambda _query: (False, ""))
     monkeypatch.setattr(
-        server.smart_router,
+        routing_facade,
         "analyze",
         lambda *_args, **_kwargs: {"intent": "chat", "complexity": 0.1},
     )

@@ -3,7 +3,7 @@
 > Date: 2026-06-05  
 > 权威路由：`routing_engine.route()` · 权威 HTTP：`http_caller`  
 > 门面（渐进入口）：`routing_facade.py`  
-> 状态快照：生产代码 **14 处** 直接 `import smart_router`（不含测试/部署脚本）
+> 状态快照：生产代码 **0 处** 热路径 `import smart_router`（仅 `smart_router.py` 兼容壳 + 测试/脚本）
 
 ## 原则
 
@@ -25,10 +25,10 @@
 | 🔴 | `routes/chat_support.py` | `call_api`, `BACKENDS`, `THINKING_BACKENDS`, `cb_*`, `DISTILL_QUEUE_DIR`, `DEBUG` | `http_caller` + `backends` + `router_circuit_breaker` + `distill_queue` | 待迁 |
 | 🔴 | `routes/quality_gate.py` | `BACKENDS`, `cb_allow`, `cb_record`, `call_api` | `backends` + `router_circuit_breaker` + `http_caller` | 待迁 |
 | 🟡 | `routes/chat_post_closeout.py` | `_log_to_distill_queue` | `distill_queue.log_to_distill_queue`（待抽） | 待迁 |
-| 🟡 | `orchestrate.py` | `analyze`, `call_local`, `call_api`, `route` | `routing_engine` + `http_caller` | 待迁 |
-| 🟡 | `server.py` | `warmup_router_model` | 保留或迁至 `server_lifespan` | 待决 |
-| 🟢 | `routes/admin_backends.py` | `BACKENDS` | `backends.BACKENDS` | 待迁 |
-| 🟢 | `routing_facade.py` | `ROUTE`, `PUBLIC_MODEL_NAME` | 常量迁至 `routing_constants.py` 后删 facade 内 import | 🔄 进行中 |
+| ✅ | `orchestrate.py` | `analyze`, `call_local` | `router_classifier` + `local_router` + `routing_engine` | **Slice 4 done** |
+| ✅ | `server.py` | `warmup_router_model` | `local_router.warmup_router_model` | **Slice 4 done** |
+| ✅ | `routes/admin_backends.py` | `BACKENDS` | `backends.BACKENDS` | Slice 4 done |
+| ✅ | `routing_facade.py` | `ROUTE`, `PUBLIC_MODEL_NAME` | `routing_constants.py` | **Slice 5 done** |
 | ⚪ | `scripts/validate_via_router.py` | `call_api`, `BACKENDS` | 运维脚本，低优先级 | 待迁 |
 | ⚪ | `scripts/test_route_e2e.py` | `route`, `ONEAPI_ENABLED` | 遗留 e2e，可归档 | 待归档 |
 | ⚪ | `scripts/archive/key_rotation_legacy.py` | 注释引用 | 无 | — |
@@ -157,10 +157,11 @@ flowchart TD
 
 ---
 
-### Slice 6 — 兼容壳收尾（可选）
+### Slice 6 — 兼容壳收尾 ✅
 
-- `smart_router.py` 仅保留：re-export、`warmup_router_model`、`call_local`（若仍需要）
-- 文档标记 **deprecated**；CI gate 禁止新增 `import smart_router`（`tests/test_ci_gates.py` 可加一条）
+- `smart_router.py` 瘦身为纯 re-export（无 `_log_to_distill_queue` 重复实现）
+- 模块 docstring 标记 **DEPRECATED**
+- `tests/test_ci_gates.py::test_no_smart_router_imports_in_production` 禁止生产路径新引用
 
 ---
 
@@ -185,7 +186,7 @@ from router_intent import detect_thinking_intent, get_thinking_backend
 |------|------|
 | `routing_engine.py` | **生产权威** — select + execute + inject |
 | `router_v3.py` | P2C / sticky / 部分 pool 常量；逐步只保留 sticky 相关 |
-| `smart_router.py` | **遗留同步壳** — 待瘦身为 re-export |
+| `smart_router.py` | **DEPRECATED 兼容壳** — 仅 re-export，禁止生产新引用 |
 
 新功能：**禁止** 再向 `router_v3` 或 `smart_router.route()` 添加分支。
 

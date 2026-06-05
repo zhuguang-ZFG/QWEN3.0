@@ -9,11 +9,12 @@ from typing import Any
 _log = logging.getLogger(__name__)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import smart_router
 import health_tracker
 import http_caller
 import routing_engine
 from backends import BACKENDS
+from local_router import call_local
+from router_classifier import analyze
 
 # ── 配置 ────────────────────────────────────────────────────────────────────
 MAX_CONCURRENT = 3          # 最大并发子任务数
@@ -45,7 +46,7 @@ def needs_orchestration(query: str, intent: dict) -> bool:
 
     Args:
         query: 用户原始查询
-        intent: smart_router.analyze() 返回的意图字典
+        intent: router_classifier.analyze() 返回的意图字典
 
     Returns:
         True 表示需要编排，False 表示直接路由
@@ -98,7 +99,7 @@ def decompose(query: str) -> list[dict[str, Any]]:
         '- "backend_hint": 建议后端（留空则自动路由）\n\n'
         "只输出 JSON，不要其他文字。"
     )
-    resp = smart_router.call_local(
+    resp = call_local(
         [{"role": "user", "content": prompt}],
         mt=DECOMPOSE_MAX_TOKENS, t=0.3
     )
@@ -131,7 +132,7 @@ def decompose(query: str) -> list[dict[str, Any]]:
 
 def execute_subtasks(subtasks: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """并发执行子任务（ThreadPoolExecutor，最多 MAX_CONCURRENT 个并发）。
-    每个子任务调用 smart_router.call_api 或 smart_router.route。
+    每个子任务调用 http_caller 或 routing_engine.route。
 
     Args:
         subtasks: decompose() 返回的子任务列表
@@ -245,7 +246,7 @@ def synthesize(query: str, results: list[dict[str, Any]]) -> str:
         _log.debug("orchestrate synthesize longcat failed: %s", type(exc).__name__)
 
     # 回退到本地模型
-    answer = smart_router.call_local(msgs, mt=SYNTHESIZE_MAX_TOKENS, t=0.5)
+    answer = call_local(msgs, mt=SYNTHESIZE_MAX_TOKENS, t=0.5)
     if answer and not answer.startswith("[LOCAL_ERR]"):
         return answer
 
@@ -265,13 +266,13 @@ def orchestrate(query: str) -> dict:
         query: 用户原始查询
 
     Returns:
-        与 smart_router.route() 相同格式的 dict:
+        与 routing_engine.route() 兼容的 dict:
         {"answer": str, "backend": str, "intent": dict, "total_ms": int, ...}
     """
     t0 = time.time()
 
     # 意图分析
-    intent = smart_router.analyze(query)
+    intent = analyze(query)
 
     # 再次确认是否需要编排（防止外部直接调用）
     if not needs_orchestration(query, intent):

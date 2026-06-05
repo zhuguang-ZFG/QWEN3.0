@@ -25,10 +25,12 @@ def test_chat_golden_path_records_capability_evidence(evidence_db, monkeypatch):
     import server
 
     monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
-    monkeypatch.setattr(server.smart_router, "detect_image_intent", lambda query: (False, ""))
-    monkeypatch.setattr(server.smart_router, "detect_thinking_intent", lambda query: False)
+    import routing_facade
+
+    monkeypatch.setattr(routing_facade, "detect_image_intent", lambda query: (False, ""))
+    monkeypatch.setattr(routing_facade, "detect_thinking_intent", lambda query: False)
     monkeypatch.setattr(
-        server.smart_router,
+        routing_facade,
         "analyze",
         lambda query, system_prompt="", ide="": {"intent": "chat", "complexity": 0.1},
     )

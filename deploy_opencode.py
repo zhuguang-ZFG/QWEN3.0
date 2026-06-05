@@ -49,9 +49,11 @@ FILES = [
     "step_checkpoint.py",  # NEW: per-step agent checkpointing
     # Slice 3: distill queue extraction
     "distill_queue.py",  # NEW: extracted from smart_router.py L155–228
+    "local_router.py",  # Slice 4: warmup_router_model + call_local
     # M-OC8: coding pool + routing facade + tool repair + context injection
     "coding_pool_admission.py",  # NEW: eval evidence gate for IDE default pool
     "routing_facade.py",  # NEW: smart_router → routing_engine migration entry
+    "routing_constants.py",  # Slice 5: ROUTE + PUBLIC_MODEL_NAME
     "tool_repair_pipeline.py",  # NEW: tool call repair pipeline
     "text_tool_extractor.py",  # NEW: text block → tool extraction
     "context_injection_trace.py",  # NEW: context injection trace endpoint

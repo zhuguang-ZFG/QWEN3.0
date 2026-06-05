@@ -1,7 +1,7 @@
 """Facade for gradual smart_router → routing_engine migration (CQ-014 P2).
 
 Slice 1: classify/intent wrappers — chat hot path no longer imports smart_router.
-Slice 2 (future): call_api / cb_* → http_caller + router_circuit_breaker.
+Slice 5: ROUTE / PUBLIC_MODEL_NAME → routing_constants (status zero legacy import).
 """
 
 from __future__ import annotations
@@ -15,17 +15,16 @@ from router_intent import detect_thinking_intent, get_thinking_backend  # noqa: 
 
 
 def router_status_payload() -> dict[str, Any]:
-    """Status dict for /v1/status without importing smart_router at call sites."""
+    """Status dict for /v1/status without importing smart_router."""
     from backends import BACKENDS
     from router_circuit_breaker import cb_status
-    # ROUTE table still lives on smart_router during migration
-    import smart_router
+    from routing_constants import PUBLIC_MODEL_NAME, ROUTE
 
     return {
         "circuit_breakers": cb_status(),
         "backends": list(BACKENDS.keys()),
-        "route_table": smart_router.ROUTE,
-        "public_model": smart_router.PUBLIC_MODEL_NAME,
+        "route_table": ROUTE,
+        "public_model": PUBLIC_MODEL_NAME,
         "routing_entry": "routing_engine.route",
     }
 
