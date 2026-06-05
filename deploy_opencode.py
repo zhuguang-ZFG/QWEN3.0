@@ -59,6 +59,7 @@ FILES = [
     "routes/chat_support.py",  # MODIFIED: smart_router call sites
     "routes/quality_gate.py",  # MODIFIED: smart_router → backends/http_caller/cb
     "routes/agent_task_result_hooks.py",  # NEW
+    "routes/admin_backends.py",  # MODIFIED: smart_router → backends
     "routes/admin_api.py",  # MODIFIED
     "routes/agent_tasks.py",  # MODIFIED
     "agent_runtime/workspace_sandbox.py",  # MODIFIED: read gate
