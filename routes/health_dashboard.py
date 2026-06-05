@@ -70,6 +70,7 @@ def _collect_backend_health() -> dict:
     healthy = sum(1 for b in backends if b["health"] == "healthy")
     degraded = sum(1 for b in backends if b["health"] == "degraded")
     dead = sum(1 for b in backends if b["health"] == "dead")
+    unknown = sum(1 for b in backends if b["health"] == "unknown")
     cooled = sum(1 for b in backends if b["cooldown_remaining_s"] > 0)
 
     return {
@@ -78,6 +79,8 @@ def _collect_backend_health() -> dict:
         "healthy": healthy,
         "degraded": degraded,
         "dead": dead,
+        "unknown": unknown,
+        "probed": len(backends) - unknown,
         "cooled": cooled,
         "backends": backends,
     }

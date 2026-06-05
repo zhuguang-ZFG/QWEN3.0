@@ -86,6 +86,27 @@ def cb_record(name: str, success: bool, latency_ms: int = 0) -> None:
                 )
 
 
+def seed_backends(names: list[str]) -> int:
+    """Pre-register circuit breaker slots for all configured backends."""
+    seeded = 0
+    with _cb_lock:
+        for name in names:
+            if not name:
+                continue
+            if name not in _cb_state:
+                _cb_state[name] = {
+                    "state": "closed",
+                    "failures": 0,
+                    "successes": 0,
+                    "opened_at": 0,
+                    "total_calls": 0,
+                    "total_errors": 0,
+                    "total_latency_ms": 0,
+                }
+                seeded += 1
+    return seeded
+
+
 def cb_status() -> dict:
     """Return breaker summary for all backends."""
     result = {}

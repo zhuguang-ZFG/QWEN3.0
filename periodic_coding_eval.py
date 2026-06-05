@@ -43,6 +43,26 @@ def interval_seconds() -> int:
     return max(3600, int(hours * 3600))
 
 
+def scores_max_age_seconds() -> int:
+    days = float(os.environ.get("LIMA_CODING_EVAL_MAX_AGE_DAYS", "7"))
+    return max(86400, int(days * 86400))
+
+
+def scores_are_stale() -> tuple[bool, str]:
+    """Return (stale, detail) when newest eval scores file is missing or too old."""
+    from eval_slice_summary import latest_scores_path
+
+    base = ROOT / "data"
+    path = latest_scores_path(base, full=True) or latest_scores_path(base, full=False)
+    if not path or not path.is_file():
+        return True, "no scores file"
+    age = time.time() - path.stat().st_mtime
+    limit = scores_max_age_seconds()
+    if age > limit:
+        return True, f"scores age {int(age // 86400)}d > {int(limit // 86400)}d"
+    return False, f"scores fresh ({path.name})"
+
+
 def run_eval_slice(*, quick: bool = True) -> int:
     from eval_quiet import set_eval_quiet
 
@@ -84,12 +104,30 @@ def stop() -> None:
     _stop.set()
 
 
-def _loop() -> None:
-    # Stagger first run so server boot is not blocked by eval traffic.
-    _stop.wait(timeout=120)
-    while not _stop.is_set():
+def _wait_server_ready(max_seconds: int = 180) -> tuple[bool, str]:
+    """Block until /health responds or timeout (eval must run after uvicorn binds)."""
+    deadline = time.monotonic() + max_seconds
+    last_detail = "timeout"
+    while time.monotonic() < deadline and not _stop.is_set():
         ok, detail = check_eval_health()
         if ok:
+            return True, detail
+        last_detail = detail
+        _stop.wait(timeout=5)
+    return False, last_detail
+
+
+def _loop() -> None:
+    # Stagger first run unless eval evidence is stale (operator-visible quality gap).
+    stale, stale_detail = scores_are_stale()
+    if stale:
+        _log_info("periodic coding eval: stale scores (%s), waiting for server", stale_detail)
+        _stop.wait(timeout=10)
+    else:
+        _stop.wait(timeout=120)
+    while not _stop.is_set():
+        ready, detail = _wait_server_ready()
+        if ready:
             try:
                 from eval_notify import notify_eval_finished, periodic_full_eval
 
@@ -100,5 +138,5 @@ def _loop() -> None:
             except Exception:
                 logger.exception("periodic coding eval subprocess failed")
         else:
-            _log_info("periodic coding eval skipped: %s", detail)
+            _log_info("periodic coding eval skipped: server not ready (%s)", detail)
         _stop.wait(timeout=interval_seconds())

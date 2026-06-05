@@ -127,6 +127,21 @@ def clear_cooldown(backend: str) -> None:
         state.state = "ok"
 
 
+def seed_backends(names: list[str]) -> int:
+    """Register configured backends for tracking (state=unknown until probed or called)."""
+    seeded = 0
+    with _lock:
+        for name in names:
+            if not name:
+                continue
+            if name not in _health_map:
+                _health_map[name] = "unknown"
+                seeded += 1
+            _quality_states.setdefault(name, QualityState())
+            _cooldown_states.setdefault(name, CooldownState())
+    return seeded
+
+
 def reset_all_state() -> None:
     with _lock:
         _health_map.clear()

@@ -105,14 +105,24 @@ class VerifyReport:
 
 # ── HTTP helpers ──────────────────────────────────────────────────────────────
 
-def _headers(stream: bool = False, affinity: str = "") -> dict:
+def _headers(stream: bool = False, affinity: str = "", opencode: bool = False) -> dict:
     h = {
         "Authorization": f"Bearer {LIMA_API_KEY}",
         "Content-Type": "application/json",
     }
+    if opencode:
+        h["User-Agent"] = "OpenCode/1.0"
     if affinity:
         h["x-session-affinity"] = affinity
     return h
+
+
+def _opencode_messages(user_content: str) -> list[dict]:
+    """Messages that trigger OpenCode direct tool routing (LIMA_OPENCODE_TOOL_MODE=direct)."""
+    return [
+        {"role": "system", "content": "You are OpenCode, an AI coding assistant."},
+        {"role": "user", "content": user_content},
+    ]
 
 
 async def _post_chat(
@@ -125,6 +135,7 @@ async def _post_chat(
     affinity: str = "",
     model: str = LIMA_MODEL,
     timeout: float = 60,
+    opencode: bool = False,
 ) -> dict:
     """Send a chat completion request and return parsed result."""
     import httpx
@@ -139,7 +150,7 @@ async def _post_chat(
         body["tools"] = tools
 
     url = f"{base}/v1/chat/completions"
-    headers = _headers(stream=stream, affinity=affinity)
+    headers = _headers(stream=stream, affinity=affinity, opencode=opencode)
 
     t0 = time.perf_counter()
     ttfb = 0
@@ -360,14 +371,22 @@ async def verify_streaming(base: str, *, retries: int = 1) -> VerifyResult:
     )
 
 
-async def verify_streaming_tools(base: str, *, retries: int = 1) -> VerifyResult:
-    """Step 4b: Streaming tool calls SSE delta format (with retry for network flakes)."""
-    messages = [
-        {"role": "user", "content": "Search the codebase for 'async def route' in *.py files."},
-    ]
+async def verify_streaming_tools(base: str, *, retries: int = 2) -> VerifyResult:
+    """Step 4b: Streaming tool calls via OpenCode direct path (with retry)."""
+    messages = _opencode_messages(
+        "Search the codebase for 'async def route' in *.py files."
+    )
     last_result = None
     for attempt in range(retries + 1):
-        r = await _post_chat(base, messages, stream=True, tools=OPENCODE_TOOLS, max_tokens=256, timeout=180)
+        r = await _post_chat(
+            base,
+            messages,
+            stream=True,
+            tools=OPENCODE_TOOLS,
+            max_tokens=256,
+            timeout=240,
+            opencode=True,
+        )
         stream_error = r.get("stream_error", "")
         if not r["ok"]:
             last_result = r

@@ -20,7 +20,9 @@ logger = logging.getLogger("probe_loop")
 
 PROBE_INTERVAL_SUSPICIOUS = 300   # 5 min
 PROBE_INTERVAL_DEAD = 900         # 15 min
+PROBE_INTERVAL_UNKNOWN = 1800     # 30 min — unprobed backends
 LOOP_SLEEP = 60                   # 主循环每分钟跑一次
+PROBE_BATCH_UNKNOWN = 8           # cap probes per cycle to save quota
 
 _stop_event = threading.Event()
 _thread: Optional[threading.Thread] = None
@@ -52,12 +54,53 @@ def _loop(probe_fn: Callable[[str], bool]):
         _stop_event.wait(timeout=LOOP_SLEEP)
 
 
+def _backend_probe_eligible(name: str) -> bool:
+    """Skip backends that cannot accept a minimal probe request."""
+    try:
+        from backends_registry import BACKENDS
+        import http_request_builder as hrb
+    except ImportError:
+        return False
+    cfg = BACKENDS.get(name, {})
+    if not cfg:
+        return False
+    return hrb._has_key(name, cfg)
+
+
+def _probe_one(probe_fn: Callable[[str], bool], backend: str, *, recovered: bool) -> None:
+    success = False
+    try:
+        success = probe_fn(backend)
+    except Exception as e:
+        logger.warning(f"[PROBE] {backend} probe_fn raised: {type(e).__name__}: {e}")
+
+    if success:
+        health_tracker.record_success(backend, 0)
+        if recovered:
+            logger.info(f"[PROBE] {backend} recovered!")
+        else:
+            logger.info(f"[PROBE] {backend} probe ok (was unknown)")
+    else:
+        health_tracker.record_failure(backend, error_code=None, error_text="probe failed")
+        logger.debug(f"[PROBE] {backend} probe failed")
+
+
 def _probe_cycle(probe_fn: Callable[[str], bool]):
     now = time.monotonic()
     hmap = health_tracker.get_health_map()
+    unknown_due: list[str] = []
 
     for backend, state in hmap.items():
         if state in ("healthy", "degraded"):
+            continue
+        if not _backend_probe_eligible(backend):
+            continue
+
+        if state == "unknown":
+            with _probe_lock:
+                last = _last_probe.get(backend, 0)
+                if now - last >= PROBE_INTERVAL_UNKNOWN:
+                    unknown_due.append(backend)
             continue
 
         interval = PROBE_INTERVAL_SUSPICIOUS if state == "suspicious" else PROBE_INTERVAL_DEAD
@@ -67,14 +110,11 @@ def _probe_cycle(probe_fn: Callable[[str], bool]):
                 continue
             _last_probe[backend] = now
 
-        success = False
-        try:
-            success = probe_fn(backend)
-        except Exception as e:
-            logger.warning(f"[PROBE] {backend} probe_fn raised: {type(e).__name__}: {e}")
+        _probe_one(probe_fn, backend, recovered=True)
 
-        if success:
-            health_tracker.record_success(backend, 0)
-            logger.info(f"[PROBE] {backend} recovered!")
-        else:
-            logger.debug(f"[PROBE] {backend} still down")
+    if unknown_due:
+        unknown_due.sort()
+        for backend in unknown_due[:PROBE_BATCH_UNKNOWN]:
+            with _probe_lock:
+                _last_probe[backend] = now
+            _probe_one(probe_fn, backend, recovered=False)

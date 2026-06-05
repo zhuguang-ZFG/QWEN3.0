@@ -78,6 +78,16 @@ FILES = [
     "skills_injector.py",  # MODIFIED
     "data/coding_backend_tiers.json",  # NEW: backend tier data
     "data/opencode_e2e_results.json",  # NEW: e2e results
+    # Quality system: health bootstrap + probe + eval staleness
+    "health_bootstrap.py",  # NEW: seed health/cb for all backends at startup
+    "health_state.py",  # MODIFIED: seed_backends()
+    "health_tracker.py",  # MODIFIED: re-export seed_backends
+    "health_summary.py",  # MODIFIED: unknown ≠ healthy
+    "probe_loop.py",  # MODIFIED: probe unknown backends in batches
+    "router_circuit_breaker.py",  # MODIFIED: seed_backends()
+    "server_lifespan.py",  # MODIFIED: bootstrap_runtime_health on boot
+    "routes/tool_forward_stream.py",  # MODIFIED: longer tool stream read timeout
+    "periodic_coding_eval.py",  # MODIFIED: run sooner when scores stale
 ]
 
 

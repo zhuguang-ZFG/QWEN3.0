@@ -44,6 +44,7 @@ from health_state import (
     get_health_map,
     get_latency_map,
     is_cooled_down,
+    seed_backends,
     set_cooldown,
 )
 
@@ -78,5 +79,6 @@ __all__ = [
     "record_response_quality",
     "record_success",
     "score_response_quality",
+    "seed_backends",
     "set_cooldown",
 ]

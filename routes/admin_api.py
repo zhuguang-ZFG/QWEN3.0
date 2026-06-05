@@ -255,7 +255,10 @@ async def admin_backend_health():
     healthy = sum(1 for b in backends if b["health"] == "healthy")
     degraded = sum(1 for b in backends if b["health"] == "degraded")
     dead = sum(1 for b in backends if b["health"] == "dead")
+    unknown = sum(1 for b in backends if b["health"] == "unknown")
     cooled = sum(1 for b in backends if b["cooldown_remaining_s"] > 0)
+    probed = len(backends) - unknown
+    cb_tracked = sum(1 for b in backends if b["cb_total_calls"] > 0)
 
     return {
         "backends": backends,
@@ -264,7 +267,10 @@ async def admin_backend_health():
             "healthy": healthy,
             "degraded": degraded,
             "dead": dead,
+            "unknown": unknown,
+            "probed": probed,
             "cooled": cooled,
+            "cb_tracked": cb_tracked,
         },
     }
 

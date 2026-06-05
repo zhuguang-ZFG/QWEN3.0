@@ -18,6 +18,12 @@ async def lifespan(application):
         apply_startup()
     except ImportError:
         _log.debug("backend_admission_store not installed")
+    try:
+        from health_bootstrap import bootstrap_runtime_health
+
+        bootstrap_runtime_health()
+    except ImportError:
+        _log.debug("health_bootstrap not installed")
     probe_loop.start(probe_fn=http_caller.probe)
     try:
         import periodic_coding_eval

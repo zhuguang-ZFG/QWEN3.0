@@ -7,6 +7,7 @@ OpenAI SSE → Anthropic SSE conversion for tool calls.
 from __future__ import annotations
 
 import json
+import os
 import uuid
 import time
 from typing import AsyncIterator
@@ -86,7 +87,11 @@ async def _stream_openai_sse_to_anthropic(
     emitted_tool_blocks: set[int] = set()
     finished = False
 
-    async with httpx.AsyncClient(timeout=120) as client:
+    stream_read_s = float(
+        os.environ.get("LIMA_TOOL_STREAM_READ_TIMEOUT", "300")
+    )
+    timeout = httpx.Timeout(connect=30.0, read=stream_read_s, write=30.0, pool=30.0)
+    async with httpx.AsyncClient(timeout=timeout) as client:
         async with client.stream(
             "POST", backend_url, headers=backend_headers, json=req_body,
         ) as resp:
