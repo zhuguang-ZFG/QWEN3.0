@@ -30,7 +30,6 @@ TRACKED_ALLOWLIST = set()
 UNTRACKED_SCAN_DIRS = (
     ROOT / "data",
     ROOT / "scripts",
-    ROOT / "deepcode-cli" / "data",
 )
 
 UNTRACKED_ALLOWLIST_PREFIXES = (
@@ -83,18 +82,19 @@ def test_worktree_has_no_untracked_high_risk_artifacts():
     assert offenders == [], f"untracked high-risk files: {offenders}"
 
 
-def test_deepcode_cli_runtime_data_ignored_in_root_gitignore():
-    """CI may not checkout the deepcode-cli submodule; root ignore is authoritative."""
-    text = (ROOT / ".gitignore").read_text(encoding="utf-8")
-    assert "deepcode-cli/data/" in text.replace("\\", "/")
+def test_external_repo_clones_gitignored():
+    """Decoupled clones (opencode-source, deepcode-cli, esp32S_XYZ) must not be tracked."""
+    text = (ROOT / ".gitignore").read_text(encoding="utf-8").replace("\\", "/")
+    for name in ("opencode-source/", "deepcode-cli/", "esp32S_XYZ/"):
+        assert name in text, f"missing gitignore entry: {name}"
 
 
-def test_deepcode_cli_submodule_gitignore_when_present():
-    submodule_gitignore = ROOT / "deepcode-cli" / ".gitignore"
-    if not submodule_gitignore.is_file():
-        return
-    text = submodule_gitignore.read_text(encoding="utf-8")
-    assert "data/" in text
+def test_external_repos_doc_exists():
+    doc = ROOT / "docs" / "EXTERNAL_REPOS.md"
+    assert doc.is_file()
+    body = doc.read_text(encoding="utf-8")
+    assert "deepcode-cli" in body
+    assert "opencode-source" in body
 
 
 def test_scripts_archive_readme_exists():

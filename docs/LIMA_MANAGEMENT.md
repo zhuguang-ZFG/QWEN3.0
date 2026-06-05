@@ -1,4 +1,4 @@
-> ⚠️ 2026-06-01: LiMa CLI 已初始化（M9），submodule 已检出。当前状态见 STATUS.md
+> ⚠️ **Archived workflow (2026-06-05):** `deepcode-cli` 已从主仓 **子模块脱钩**。当前 clone/集成说明见 [`EXTERNAL_REPOS.md`](EXTERNAL_REPOS.md) 与 `STATUS.md`。下文保留作历史 submodule 治理记录。
 
 # LiMa Management
 

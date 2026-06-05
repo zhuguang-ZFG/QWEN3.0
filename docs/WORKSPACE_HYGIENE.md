@@ -21,9 +21,13 @@ D:\LIMA-external\
 ## 保留在仓库内
 
 - LiMa Python 核心、`routes/`、`tests/`、`docs/`（已 tracked 的 superpowers plans）
-- Git 子模块：`deepcode-cli`、`esp32S_XYZ`
 - Tracked 的 `data/` 评测 JSON 与 `requirements_server.txt`
 - `donglicao-site/`（官网 demo，tracked）
+
+## 外置克隆（gitignore，本地可保留）
+
+- `opencode-source/` — OpenCode 上游参考
+- `deepcode-cli/`、`esp32S_XYZ/` — 已脱钩，见 `docs/EXTERNAL_REPOS.md`
 
 ## FRP 仍在 D:\GIT\frp 时
 

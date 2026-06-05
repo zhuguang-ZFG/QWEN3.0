@@ -36,8 +36,8 @@
 
 | Document | Content |
 |----------|---------|
-| `LIMA_MANAGEMENT.md` | LiMa 子模块 |
-| `ESP32S_XYZ_MANAGEMENT.md` | ESP32/硬件子模块 |
+| `EXTERNAL_REPOS.md` | 外置仓库 clone 说明（deepcode-cli / esp32 / opencode-source） |
+| `LIMA_MANAGEMENT.md` | LiMa CLI 历史 submodule 治理（已归档） |
 | `MODEL_CATALOG.md` | 模型目录 |
 | `FREE_MODEL_ROUTING_STATUS.md` | 免费模型路由状态 |
 | `CAPABILITY_HARDENING_SCORECARD.md` | 能力加固评分 |

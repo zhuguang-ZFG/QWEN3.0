@@ -21,7 +21,11 @@ reverse_gateway_state/
 .hypothesis/
 .vite/
 
-# === 第三方项目 ===
+# === 第三方项目 / 外置克隆（不进 Git，本地可保留）===
+opencode-source/
+deepcode-cli/
+esp32S_XYZ/
+.qoder/
 llama.cpp/
 GRBL-Plotter/
 Grbl_Esp32/
