@@ -15,7 +15,7 @@ def test_simple_chat_low_complexity():
 
 def test_medium_coding_request():
     messages = [{"role": "user", "content": "fix the bug in server.py where the routing fails"}]
-    result = assess_complexity(messages, ide="Cursor")
+    result = assess_complexity(messages, ide="OpenCode")
     assert result.score >= 2
     assert result.recommended_parallelism == 1
 
@@ -29,7 +29,7 @@ def test_complex_multi_file_refactor():
         "```python\nimport asyncio\nclass Pipeline:\n    def __init__(self):\n        pass\n"
         "    def process(self):\n        pass\n```"
     )}]
-    result = assess_complexity(messages, ide="Claude Code")
+    result = assess_complexity(messages, ide="OpenCode")
     assert result.score >= 6
     assert result.recommended_tier == "strong"
 
@@ -56,6 +56,6 @@ def test_dynamic_ensemble_decision_complex():
         "with concurrent optimization for the .go and .rs services. "
         f"```python\n{code}\n```"
     )}]
-    decision = dynamic_ensemble_decision(messages, ide="Cursor")
+    decision = dynamic_ensemble_decision(messages, ide="OpenCode")
     assert decision["strategy"] in ("ensemble_race", "single_strong")
     assert decision["complexity_score"] >= 4

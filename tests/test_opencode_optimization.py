@@ -116,7 +116,7 @@ def test_opencode_backend_preference():
 
     # Non-OpenCode IDE, default model → no forced prefer
     req = ChatRequest(model="lima-1.3", messages=[{"role": "user", "content": "hello"}])
-    prefs = resolve_route_prefs(req, "Cursor", "hello")
+    prefs = resolve_route_prefs(req, "OtherIDE", "hello")
     assert prefs.prefer is None
 
 
@@ -173,7 +173,7 @@ def test_opencode_tool_mode_flag():
 
     # Not OpenCode — never triggers
     body = {"tools": [{"type": "function", "function": {"name": "read_file"}}]}
-    ide_source = "Cursor"
+    ide_source = "OtherIDE"
     result = (
         body.get("tools")
         and ide_source == "OpenCode"

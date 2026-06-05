@@ -57,9 +57,9 @@ class TestDeviceParsing:
         assert "macOS" in device
         assert "Firefox" in device
 
-    def test_claude_code(self):
-        ua = "Claude Code/0.1.0"
-        assert _parse_user_agent(ua) == "Claude Code"
+    def test_opencode(self):
+        ua = "OpenCode/1.0"
+        assert _parse_user_agent(ua) == "OpenCode"
 
     def test_android_mobile(self):
         ua = "Mozilla/5.0 (Linux; Android 13; Pixel 7) Chrome/120.0.0.0 Mobile Safari/537.36"

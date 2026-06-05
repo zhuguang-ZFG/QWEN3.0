@@ -16,15 +16,9 @@ def ide_detection_processor(ctx: RequestContext) -> RequestContext:
     import router_v3
 
     ua = ctx.headers.get("user-agent", "").lower()
-    ide_keywords = [
-        "claude-code", "cursor", "aider", "codex", "cline",
-        "continue", "vscode", "kiro", "zed", "trae", "windsurf", "copilot",
-    ]
+    ide_keywords = ["opencode", "opencode-ai"]
     if any(k in ua for k in ide_keywords):
-        for k in ide_keywords:
-            if k in ua:
-                ctx.ide = k.replace("-", "_")
-                break
+        ctx.ide = "OpenCode"
 
     if not ctx.ide:
         for msg in ctx.messages:

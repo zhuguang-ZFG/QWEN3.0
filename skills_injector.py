@@ -1,9 +1,9 @@
 """
 LiMa Skills Injector — 智能补缺注入
-基于 Cursor/Claude Code/Codex 逆向分析设计。
+基于 OpenCode 逆向分析设计。
 
 双模式:
-- 强模型(可 tool call): 列目录，让模型自己拉取 (Cursor 模式)
+- 强模型(可 tool call): 列目录，让模型自己拉取 (OpenCode 模式)
 - 弱模型(无 tool call): 检测缺失，预注入最少 skills
 
 核心原则: 逐条检测 → 只补缺的 → 最多5条 → 不超200 token
@@ -25,11 +25,6 @@ CHARS_PER_TOKEN = 4
 
 IDE_COVERAGE = {
     # IDE → set of categories already well-covered by built-in system prompt
-    "Claude Code": {"safety", "lang", "style"},  # 8000 tok covers almost everything
-    "Cursor": set(),                              # 642 tok covers almost nothing
-    "Codex": {"style"},                           # 4000 tok, 30% personality
-    "Aider": {"safety", "lang"},                  # 2000 tok
-    "Cline": {"safety", "style"},                 # 4000 tok
     "OpenCode": {"style"},  # 已内置安全和语言指导，跳过style类别
 }
 

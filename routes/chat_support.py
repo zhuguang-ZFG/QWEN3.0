@@ -56,6 +56,26 @@ def attach_memory_recall_meta(response: dict, memory_meta: dict) -> dict:
     return response
 
 
+def attach_context_injection_meta(response: dict, injection_meta: dict | None) -> dict:
+    """Attach routing injection trace (retrieval/memory/skills) without full prompts."""
+    if isinstance(response, dict) and injection_meta:
+        response.setdefault("x_lima_meta", {})["context_injection"] = injection_meta
+    return response
+
+
+def attach_lima_meta(
+    response: dict,
+    *,
+    memory_meta: dict | None = None,
+    injection_meta: dict | None = None,
+) -> dict:
+    if memory_meta:
+        attach_memory_recall_meta(response, memory_meta)
+    if injection_meta:
+        attach_context_injection_meta(response, injection_meta)
+    return response
+
+
 def log_sys_prompt(sys_prompt: str) -> None:
     """Record new system prompts with SHA256 dedup."""
     os.makedirs(smart_router.DISTILL_QUEUE_DIR.replace("pending", "sys_prompts"), exist_ok=True)
@@ -68,12 +88,7 @@ def log_sys_prompt(sys_prompt: str) -> None:
 
     ide_source = "unknown"
     ide_markers = {
-        "Claude Code": "claude_code",
-        "Cursor": "cursor",
-        "You are Cursor": "cursor",
-        "GitHub Copilot": "copilot",
-        "Codex": "codex",
-        "Windsurf": "windsurf",
+        "OpenCode": "opencode",
     }
     for marker, source in ide_markers.items():
         if marker in sys_prompt:

@@ -55,9 +55,9 @@ def test_chat_golden_path_records_capability_evidence(evidence_db, monkeypatch):
             req,
             fmt="openai",
             client_ip="127.0.0.1",
-            ide_source="cursor",
+            ide_source="opencode",
             sys_prompt_preview="base",
-            request_headers={"user-agent": "cursor"},
+            request_headers={"user-agent": "opencode"},
         )
     )
     data = json.loads(response.body.decode("utf-8"))

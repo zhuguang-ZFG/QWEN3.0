@@ -20,11 +20,11 @@ def test_build_context_digest_extracts_file_error_and_language():
         "Fix the bug",
         messages,
         system_prompt="Working directory: D:\\GIT",
-        ide_source="Claude Code",
+        ide_source="OpenCode",
     )
 
     assert "LiMa context preflight" in digest
-    assert "IDE: Claude Code" in digest
+    assert "IDE: OpenCode" in digest
     assert "Language: python" in digest
     assert "D:\\GIT\\server.py" in digest
     assert "SyntaxError" in digest
@@ -40,7 +40,7 @@ def test_build_context_digest_summarizes_tool_results():
         },
     ]
 
-    digest = build_context_digest("Why did tests fail?", messages, ide_source="Cursor")
+    digest = build_context_digest("Why did tests fail?", messages, ide_source="OpenCode")
 
     assert "Tool/error signals" in digest
     assert "pytest failed" in digest

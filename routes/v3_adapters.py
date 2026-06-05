@@ -37,7 +37,8 @@ def v3_route(query, messages, system_prompt="", ide="", max_tokens=4096,
 
     return {"answer": result.answer, "backend": result.backend,
             "total_ms": result.ms, "fallback_used": result.fallback_used,
-            "usage": usage}
+            "usage": usage,
+            "injection_meta": getattr(result, "injection_meta", {}) or {}}
 
 
 def v3_predict(query):
@@ -54,9 +55,9 @@ def v3_predict(query):
             for b in stream_stable:
                 if not health_tracker.is_cooled_down(b):
                     return b
-            import code_orchestrator
-            pool = code_orchestrator.backend_reputation.sort_by_reputation(
-                code_orchestrator.POOLS["coder"])
+            import routing_facade
+
+            pool = routing_facade.ide_coder_pool()
             if pool:
                 return pool[0]
         else:
@@ -95,9 +96,9 @@ def v3_select(query, system_prompt, ide, messages):
             for b in stream_stable:
                 if not health_tracker.is_cooled_down(b):
                     return (b, messages)
-            import code_orchestrator
-            pool = code_orchestrator.backend_reputation.sort_by_reputation(
-                code_orchestrator.POOLS["coder"])
+            import routing_facade
+
+            pool = routing_facade.ide_coder_pool()
             if pool:
                 return (pool[0], messages)
         else:

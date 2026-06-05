@@ -146,7 +146,7 @@ runtime dependencies:
 - `repowise-dev/claude-code-prompts`: MIT reference for prompt-contract
   structure, tool-specific instructions, verification prompts, memory prompts,
   and coordinator/delegation boundaries.
-- `VoltAgent/awesome-codex-subagents`: MIT reference for Codex-native subagent
+- `VoltAgent/awesome-codex-subagents`: MIT reference for OpenCode-native subagent
   metadata, category naming, sandbox defaults, and explicit delegation. Do not
   install broad subagent libraries by default.
 - `anomalyco/opencode`: MIT reference for coding-agent terminal UI, packaging,

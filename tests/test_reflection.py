@@ -5,7 +5,7 @@ def test_reflection_no_correction_for_strong_coding_backend():
     result = reflect_on_routing(
         backend="scnet_ds_pro",
         scenario="coding",
-        ide="Cursor",
+        ide="OpenCode",
         available_backends=["scnet_ds_pro", "chat_ubi"],
     )
     assert not result.was_corrected
@@ -16,7 +16,7 @@ def test_reflection_corrects_weak_backend_for_ide_coding():
     result = reflect_on_routing(
         backend="chat_ubi",
         scenario="coding",
-        ide="Cursor",
+        ide="OpenCode",
         available_backends=["chat_ubi", "scnet_ds_pro", "pollinations"],
     )
     assert result.was_corrected
@@ -28,7 +28,7 @@ def test_reflection_corrects_non_vision_backend_for_vision():
     result = reflect_on_routing(
         backend="groq_llama70b",
         scenario="vision",
-        ide="Cursor",
+        ide="OpenCode",
         available_backends=["groq_llama70b", "github_gpt4o"],
     )
     assert result.was_corrected

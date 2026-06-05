@@ -1,41 +1,66 @@
-# 逆向代理 Cookie 自动化 — 任务计划
+# LiMa — 当前任务计划
 
-## 目标
-将 SCNet 和 Kimi 的 Cookie 管理集成到 `reverse_proxy_keepalive.py` 监控框架中，
-补全三步落地：监控接入 → Cookie 部署 → 刷新机制分析。
+> Updated: 2026-06-05 · 权威状态见 `STATUS.md` + `AGENTS.md`
+> 优先级详见 `docs/NEXT_MILESTONES.md`（2026-06-01 起部分已过时）
 
-## 基准数据
+## 待提交
 
-| 项目 | Cookie 文件 | 关键 Token | 过期 | 风险 |
-|------|-----------|-----------|------|------|
-| SCNet | `cpk.json` | `Token` (UUID, session) + `jsessionid` (session) | 浏览器会话结束 | ⚠️ 高危：无固定过期，session 类型随时可能失效 |
-| Kimi | `kimi.txt` | `kimi-auth` (JWT access) | 2027-06-01 (364天) | ✅ 低危：JWT 有效期近一年 |
+| 文件 | 变更 | 说明 |
+|------|------|------|
+| AGENTS.md | 全面重写 (309→346行) | 架构文档 + 代码审查 10 项修复 |
+| STATUS.md | 日期修正 + 里程碑补全 | 新增 M-OC0~M-OC6 |
+| progress.md | 补全 M-OC4~M-OC6 条目 | routing fix + admin UI + AGENTS rewrite |
+| findings.md | 补全 M-OC4~M-OC6 发现 | root cause + lessons learned |
 
-VPS: `47.112.162.80` (凭据通过 SSH key 管理)
+## 活跃优先级（按 Superpowers 原则排序）
 
-## 步骤
+### P0: 代码质量 — 大文件渐进拆分
 
-### Step-1: 创建 Kimi Cookie 部署脚本
-- 仿照 `scripts/provision_scnet_cookies.py` 创建 `scripts/provision_kimi_cookies.py`
-- 输入: 浏览器导出 JSON → 输出: `/opt/lima-router/reverse_gateway_state/kimi_cookies.json`
-- 与 SCNet 共用同样的 Cookie 加载逻辑 (`scnet_cookie.py` 重命名为通用后复用)
+- 权威 backlog: `docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md`
+- 目标: 超 300 行文件拆分（目标 ≤300 行/文件, ≤50 行/函数）
+- 入口: `ruff check .` 识别大文件 → 按模块职责拆分
 
-### Step-2: 更新 `reverse_proxy_keepalive.py`
-- 添加 SCNet (port 4505) 监控条目，`auto_refresh=False`
-- 修复 Kimi 条目：补上 `cookie_file` 路径，`auto_refresh=False`
-- 修复 `check_backend_health` 中 SCNet 后端名 (`scnet-large-ds-flash`)
-- 确保 `refresh_longcat_cookie` 不影响 SCNet/Kimi
+### P1: 编码后端 — eval refresh + 路由硬化
 
-### Step-3: 刷新机制分析 + 落地
-- SCNet: Token=UUID session cookie，**无可用的 refresh token** → 结论：只能全量重新登录
-- Kimi: `kimi-auth` JWT 1年有效 → 结论：**当前不需要刷新**，过期前一个月再处理
-- 写入 findings.md 作为后续参考
+- Kimi/SCNet-large 经 Windows:8080 或 FRP:8088 重跑 eval
+- `periodic_coding_eval.py`（`LIMA_PERIODIC_CODING_EVAL=0` 默认关）
+- `health_tracker` + `probe_loop` terminal-state 冷却
 
-### Step-4: VPS 部署指令
-- 写入 `deploy/reverse/README.md` 补全 Kimi 部署步骤
+### P2: LiMa Worker — Prompt Contract v0.1
 
-## 产物
-- `scripts/provision_kimi_cookies.py` (新建)
-- `scripts/reverse_proxy_keepalive.py` (修改)
-- `findings.md` (更新刷新分析)
-- `deploy/reverse/README.md` (补 Kimi 部署步骤)
+- `/agent/tasks`、worker prompt、role prompt 统一 Context/Task/Constraints/Verify/Output
+- Hooks + Skill Auto-Activation v0.1（依赖 Contract）
+
+### P3: ESP32/Device Gateway — 真机
+
+- PROD-003 真机烧录 + 结构化失败事件 + write/home 真机 smoke
+- 需硬件，不阻塞其他线路
+
+### 已永久暂停
+
+支付、公共注册、商业 billing、微信真机/机器人
+
+## 验证命令
+
+```powershell
+# 全量测试
+.venv310\Scripts\python.exe -m pytest tests/ -q --tb=short
+
+# Lint
+ruff check .
+
+# Smoke
+curl -sf http://127.0.0.1:8080/health
+curl -sf http://127.0.0.1:8080/v1/models | python -m json.tool
+```
+
+## 相关文档
+
+| 文档 | 用途 |
+|------|------|
+| `AGENTS.md` | 项目架构总览（权威） |
+| `STATUS.md` | 里程碑状态 + 部署状态 |
+| `progress.md` | 执行日志 |
+| `findings.md` | 发现与教训（证据数据） |
+| `docs/NEXT_MILESTONES.md` | 优先级与路线图 |
+| `docs/PERSONAL_CODING_ASSISTANT_PLAN.md` | 当前路线图 |

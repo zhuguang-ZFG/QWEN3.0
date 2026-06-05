@@ -115,6 +115,26 @@ async def admin_retrieval_traces():
         return []
 
 
+@router.get("/api/context-injection-traces", dependencies=[Depends(verify_admin)])
+async def admin_context_injection_traces():
+    try:
+        from context_injection_trace import get_recent_traces
+
+        return get_recent_traces(limit=20)
+    except ImportError:
+        return []
+
+
+@router.get("/api/coding-pool-admission", dependencies=[Depends(verify_admin)])
+async def admin_coding_pool_admission():
+    try:
+        from coding_pool_admission import summarize_admission
+
+        return summarize_admission()
+    except ImportError:
+        return {}
+
+
 @router.get("/api/model-status", dependencies=[Depends(verify_admin)])
 async def admin_model_status():
     log_count = 0

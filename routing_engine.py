@@ -53,6 +53,7 @@ class RouteResult:
     skills_injected: list = field(default_factory=list)
     retrieval_context: str = ""
     usage: dict | None = None
+    injection_meta: dict = field(default_factory=dict)
 
 
 def inject_skills(messages: list[dict], *,
@@ -117,6 +118,13 @@ def route(query: str, messages: list[dict], *,
     scenario = classify_scenario(query, messages,
                                  ide_source=ide_source, request_type=req_type)
 
+    try:
+        from context_injection_trace import begin_trace
+
+        begin_trace(scenario=scenario, request_type=req_type)
+    except ImportError:
+        pass
+
     _recalled_backend = ""
     try:
         from context_pipeline.skill_store import get_skill_store
@@ -127,6 +135,12 @@ def route(query: str, messages: list[dict], *,
         logging.debug("routing_engine: skill_store not available: %s", e)
 
     messages, _retrieval_text = inject_retrieval_context(messages)
+    try:
+        from context_injection_trace import record_retrieval
+
+        record_retrieval(_retrieval_text)
+    except ImportError:
+        pass
 
     # ── Enriched context: date/time + location + device ──
     try:
@@ -144,6 +158,12 @@ def route(query: str, messages: list[dict], *,
         messages, _web_search_text = inject_web_search_context(query, messages)
         if _web_search_text:
             _retrieval_text = (_retrieval_text + "\n" + _web_search_text).strip()
+            try:
+                from context_injection_trace import record_web_search
+
+                record_web_search(_web_search_text)
+            except ImportError:
+                pass
     except Exception as e:
         logging.debug("routing_engine: web_search_context injection failed: %s", e)
 
@@ -158,6 +178,12 @@ def route(query: str, messages: list[dict], *,
                     messages.insert(1, code_ctx_msg)
                 else:
                     messages.insert(0, code_ctx_msg)
+                try:
+                    from context_injection_trace import record_code_context
+
+                    record_code_context(_code_context_text)
+                except ImportError:
+                    pass
         except Exception as e:
             import logging as _logging
             _logging.debug("code_context_injection failed: %s", e)
@@ -168,6 +194,12 @@ def route(query: str, messages: list[dict], *,
             for _mt in ("code_fact", "routing_lesson"):
                 for _mem in query_by_type(_mt, limit=3):
                     _memory_parts.append(f"[{_mt}] {_mem.summary}")
+                    try:
+                        from context_injection_trace import record_memory_item
+
+                        record_memory_item(f"[{_mt}]")
+                    except ImportError:
+                        pass
             if _memory_parts:
                 _memory_ctx = "Past coding decisions:\n" + "\n".join(_memory_parts)
                 _mem_msg = {"role": "system", "content": _memory_ctx}
@@ -193,6 +225,12 @@ def route(query: str, messages: list[dict], *,
     except Exception as _e:
         logging.warning(f"[SKILLS] early injection failed: {type(_e).__name__}: {_e}")
     _injected_ids = _get_injected_ids(list(messages[:_msg_count_before]), messages)
+    try:
+        from context_injection_trace import record_skills
+
+        record_skills(_injected_ids)
+    except ImportError:
+        pass
 
     if scenario == "coding" and call_fn:
         try:
@@ -201,13 +239,13 @@ def route(query: str, messages: list[dict], *,
                 query, messages, call_fn, max_tokens)
             if orch_result.get("answer"):
                 ms = int((time.time() - t0) * 1000)
-                return RouteResult(
+                return _with_injection_meta(RouteResult(
                     backend=orch_result["backend"],
                     answer=orch_result["answer"],
                     request_type=f"code_{orch_result['tier']}",
                     ms=ms, scenario=scenario,
                     retrieval_context=_retrieval_text,
-                    skills_injected=_injected_ids)
+                    skills_injected=_injected_ids), orch_result["backend"])
         except Exception as e:
             import logging as _logging
             _logging.warning(f"[ORCH] code_orchestrator failed: {type(e).__name__}: {e}")
@@ -331,13 +369,25 @@ def route(query: str, messages: list[dict], *,
         ms=ms,
     )
 
-    return RouteResult(
+    return _with_injection_meta(RouteResult(
         backend=final_backend, answer=answer,
         request_type=req_type, scenario=scenario, ms=ms,
         fallback_used=bool(final_backend not in ("exhausted", "none") and backends and final_backend != backends[0]),
         skills_injected=injected_ids,
         retrieval_context=_retrieval_text,
-    )
+    ), final_backend)
+
+
+def _with_injection_meta(result: RouteResult, backend: str = "") -> RouteResult:
+    try:
+        from context_injection_trace import finish_trace
+
+        trace = finish_trace(backend=backend)
+        if trace:
+            result.injection_meta = trace.to_meta()
+    except ImportError:
+        pass
+    return result
 
 
 def _get_injected_ids(original: list[dict], modified: list[dict]) -> list[str]:

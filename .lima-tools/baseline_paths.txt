@@ -1,0 +1,9 @@
+﻿
+.lima-code/mcp-playwright.example.json
+.lima-code/settings.json
+.lima-code/skill-rules.json
+docs/archive/lima-code-cli.md
+docs/superpowers/plans/2026-05-23-lima-code-dev-search-tools.md
+docs/superpowers/plans/2026-05-23-lima-code-vibe-coding.md
+
+

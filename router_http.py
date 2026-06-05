@@ -47,6 +47,22 @@ def _ide_system_prompt(ide: str) -> str:
 
 
 def call_api(name, msgs, mt=1024, ide="unknown"):
+    if os.environ.get("LIMA_ROUTER_HTTP_HTTPX", "1").strip().lower() not in ("0", "false", "no"):
+        try:
+            import http_caller
+
+            started = time.time()
+            answer = http_caller.call_api(name, msgs, mt, ide=ide)
+            if answer and not (
+                isinstance(answer, str)
+                and (answer.startswith("[ERR]") or "暂时不可用" in answer)
+            ):
+                cb_record(name, True, int((time.time() - started) * 1000))
+                return answer
+            cb_record(name, False)
+        except Exception as exc:
+            _log.debug("router_http http_caller delegation failed: %s", type(exc).__name__)
+
     if not cb_allow(name):
         if DEBUG:
             print(f"[CB] {name}: blocked by circuit breaker", file=sys.stderr)

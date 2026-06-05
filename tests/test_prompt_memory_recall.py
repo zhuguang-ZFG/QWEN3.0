@@ -50,7 +50,7 @@ def test_server_context_builds_prompt_messages_without_memory(monkeypatch):
 def test_apply_prompt_memory_recall_injects_memory_and_trace():
     from session_memory.prompt_recall import apply_prompt_memory_recall
 
-    headers = {"x-forwarded-for": "10.9.0.1", "user-agent": "cursor"}
+    headers = {"x-forwarded-for": "10.9.0.1", "user-agent": "opencode"}
     sid = _session_id_from_headers(headers)
     save_memory(sid, "exchange", "remember routing_engine.py fallback bug")
 
@@ -76,7 +76,7 @@ def test_handle_chat_applies_prompt_memory_before_routing(monkeypatch):
     import server
     from chat_models import ChatRequest, Message
 
-    headers = {"x-forwarded-for": "10.9.0.2", "user-agent": "cursor"}
+    headers = {"x-forwarded-for": "10.9.0.2", "user-agent": "opencode"}
     sid = _session_id_from_headers(headers)
     save_memory(sid, "exchange", "remember pytest routing fix")
 
@@ -108,7 +108,7 @@ def test_handle_chat_applies_prompt_memory_before_routing(monkeypatch):
             req,
             fmt="openai",
             client_ip="10.9.0.2",
-            ide_source="cursor",
+            ide_source="opencode",
             sys_prompt_preview="base prompt",
             request_headers=headers,
         )
@@ -125,7 +125,7 @@ def test_handle_chat_writes_and_recalls_same_header_session(monkeypatch):
     import server
     from chat_models import ChatRequest, Message
 
-    headers = {"x-forwarded-for": "10.9.0.3", "user-agent": "cursor"}
+    headers = {"x-forwarded-for": "10.9.0.3", "user-agent": "opencode"}
     captured_prompts = []
     answers = iter(["we fixed banana cache", "ok"])
 
@@ -163,7 +163,7 @@ def test_handle_chat_writes_and_recalls_same_header_session(monkeypatch):
             first,
             fmt="openai",
             client_ip="10.9.0.3",
-            ide_source="cursor",
+            ide_source="opencode",
             request_headers=headers,
         )
     )
@@ -172,7 +172,7 @@ def test_handle_chat_writes_and_recalls_same_header_session(monkeypatch):
             second,
             fmt="openai",
             client_ip="10.9.0.3",
-            ide_source="cursor",
+            ide_source="opencode",
             request_headers=headers,
         )
     )

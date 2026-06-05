@@ -14,7 +14,7 @@ LiMa is a **multi-model intelligent routing AI coding assistant backend**. It pr
 - **Runtime**: Port 8080, single-process async, Docker or bare metal
 - **Backends**: 180+ cloud AI providers (SCNet, Kimi, MiMo, LongCat, Cloudflare, NVIDIA, OpenRouter, etc.)
 - **Dual protocol**: OpenAI (`/v1/chat/completions`) and Anthropic (`/v1/messages`); `converters/anthropic_format.py` handles translation
-- **Primary clients**: OpenCode (IDE), Cursor, Claude Code, VS Code Copilot, Telegram
+- **Primary clients**: OpenCode (IDE), Telegram
 
 ### Repository Scale (2026-06 estimate)
 
@@ -120,7 +120,7 @@ curl -sf http://127.0.0.1:8080/v1/models | python -m json.tool
 ### Request Pipeline
 
 ```
-Client (OpenCode/Cursor/VS Code/Telegram)
+Client (OpenCode/Telegram)
   → server.py (FastAPI app + BodySizeLimitMiddleware, 32MB limit)
   → routes/chat_endpoints.py (OpenAI/Anthropic protocol dispatch + auth)
   → routes/chat_preflight.py (validation)

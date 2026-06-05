@@ -1,0 +1,38 @@
+﻿code_context/chroma_vector_store.py:18:_DEFAULT_COLLECTION = "lima_code_index"
+docs/LIMACODE_MANAGEMENT.md:60:D:\GIT\venv\Scripts\python.exe -m pytest tests\test_agent_task_routes.py tests\test_lima_code_dev_search_tools.py -q --ignore=active_model
+docs/archive/historical/DEVELOPER_CHECKLIST.md:85:python -m pytest tests/test_tool_gateway.py tests/test_mcp_tools.py tests/test_lima_code_dev_search_tools.py -q --ignore=active_model
+docs/superpowers/plans/2026-05-23-lima-code-dev-search-tools.md:89:- Create `tests/test_lima_code_dev_search_tools.py`
+docs/superpowers/plans/2026-05-23-lima-code-dev-search-tools.md:150:- Test: `tests/test_lima_code_dev_search_tools.py`
+docs/superpowers/plans/2026-05-23-lima-code-dev-search-tools.md:154:Create `tests/test_lima_code_dev_search_tools.py` with:
+docs/superpowers/plans/2026-05-23-lima-code-dev-search-tools.md:187:D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_code_dev_search_tools.py -q --ignore=active_model
+docs/superpowers/plans/2026-05-23-lima-code-dev-search-tools.md:238:D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_code_dev_search_tools.py -q --ignore=active_model
+docs/superpowers/plans/2026-05-23-lima-code-dev-search-tools.md:247:- Modify test: `tests/test_lima_code_dev_search_tools.py`
+docs/superpowers/plans/2026-05-23-lima-code-dev-search-tools.md:270:D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_code_dev_search_tools.py::test_should_dev_search_detects_programming_docs_errors_and_urls -q --ignore=active_model
+docs/superpowers/plans/2026-05-23-lima-code-dev-search-tools.md:312:D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_code_dev_search_tools.py -q --ignore=active_model
+docs/superpowers/plans/2026-05-23-lima-code-dev-search-tools.md:321:- Modify test: `tests/test_lima_code_dev_search_tools.py`
+docs/superpowers/plans/2026-05-23-lima-code-dev-search-tools.md:423:D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_code_dev_search_tools.py -q --ignore=active_model
+docs/superpowers/plans/2026-05-23-lima-code-dev-search-tools.md:565:D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_code_dev_search_tools.py -q --ignore=active_model
+docs/superpowers/plans/2026-05-23-lima-code-dev-search-tools.md:575:- Modify test: `tests/test_lima_code_dev_search_tools.py`
+docs/superpowers/plans/2026-05-23-lima-code-dev-search-tools.md:608:D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_code_dev_search_tools.py::test_mcp_lists_dev_search_tools tests\test_lima_code_dev_search_tools.py::test_mcp_dev_read_url_blocks_private_url_without_network -q --ignore=active_model
+docs/superpowers/plans/2026-05-23-lima-code-dev-search-tools.md:776:D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_code_dev_search_tools.py tests\test_mcp_tools.py -q --ignore=active_model
+docs/superpowers/plans/2026-05-23-lima-code-dev-search-tools.md:785:- Modify test: `tests/test_lima_code_dev_search_tools.py`
+docs/superpowers/plans/2026-05-23-lima-code-dev-search-tools.md:821:D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_code_dev_search_tools.py::test_build_prompt_evidence_includes_source_urls_and_tool_names -q --ignore=active_model
+docs/superpowers/plans/2026-05-23-lima-code-dev-search-tools.md:857:D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_code_dev_search_tools.py -q --ignore=active_model
+docs/superpowers/plans/2026-05-23-lima-code-dev-search-tools.md:876:def test_default_registry_includes_lima_code_dev_search_tools():
+docs/superpowers/plans/2026-05-23-lima-code-dev-search-tools.md:892:D:\GIT\venv\Scripts\python.exe -m pytest tests\test_tool_gateway.py::test_default_registry_includes_lima_code_dev_search_tools -q --ignore=active_model
+docs/superpowers/plans/2026-05-23-lima-code-dev-search-tools.md:1000:D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_code_dev_search_tools.py tests\test_search_gateway.py tests\test_tool_gateway.py tests\test_mcp_tools.py -q --ignore=active_model
+docs/superpowers/plans/2026-05-26-lima-capability-hardening-execution.md:507:- Create: `tests/test_lima_code_daily_loop.py`
+docs/superpowers/plans/2026-05-26-lima-capability-hardening-execution.md:530:    "schema_version": "lima_code.hook_evidence.v0",
+docs/superpowers/plans/2026-05-26-lima-capability-hardening-execution.md:553:  python -m pytest -q tests\test_agent_task_contract.py tests\test_agent_task_routes.py tests\test_lima_code_daily_loop.py tests\test_learning_loop.py --ignore=active_model
+docs/superpowers/plans/2026-05-26-lima-capability-hardening-execution.md:586:  git add deepcode-cli docs\LIMACODE_MANAGEMENT.md docs\CAPABILITY_HARDENING_SCORECARD.md STATUS.md docs\LIMA_MEMORY.md progress.md findings.md tests\test_lima_code_daily_loop.py
+docs/superpowers/plans/2026-05-26-telegram-github-maximization.md:222:telegram_notify.py            # +notify_deploy, +notify_lima_code (server-side 鍙€?
+routes/telegram_kb_stats.py:67:            lines.append("/outcome lima_code|ci|telegram|device_gateway for details")
+scripts/p02_code_tool_joint.py:149:    tmpdir = tempfile.mkdtemp(prefix="lima_codefix_")
+session_memory/learning_loop.py:62:            source="lima_code",
+session_memory/learning_loop.py:74:            tags=["lima_code", outcome.status or "unknown"],
+session_memory/outcome_ledger.py:8:  source:  telegram | ci | lima_code | vps_smoke | device_gateway | esp32
+tests/test_agent_task_routes.py:58:    def test_get_task_returns_lima_code_task_envelope(self):
+tests/test_telegram_b2b.py:78:        monkeypatch.setenv("TELEGRAM_CODE_BOT_USERNAMES", "lima_code_bot")
+tests/test_telegram_b2b.py:86:        monkeypatch.setenv("TELEGRAM_CODE_BOT_USERNAMES", "lima_code_bot")
+tests/test_telegram_b2b.py:103:                "from": {"is_bot": True, "username": "lima_code_bot"},
+tests/test_tool_gateway.py:62:def test_default_registry_includes_lima_code_dev_search_tools():

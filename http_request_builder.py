@@ -295,7 +295,7 @@ def _build_body(
 
 def _is_ide_backend_session(backend_name: str, ide: str) -> bool:
     """Check if this is an IDE-backed session that should receive session-level optimizations."""
-    return bool(ide and ide.lower() in ("opencode", "cursor", "vscode", "copilot"))
+    return bool(ide and ide.lower() in ("opencode",))
 
 
 def _mk_session_id(backend_name: str) -> str:

@@ -11,14 +11,9 @@ SKILLS_BLOCK = '''
 # Phase 1: IDE 识别 + Skills 注入 + 模型专属 Prompt
 # ══════════════════════════════════════════════════════════════
 
-# IDE 指纹检测
+# IDE 指纹检测 — 与 router_v3._IDE_FINGERPRINTS 保持一致（仅 OpenCode）
 _IDE_FINGERPRINTS = {
-    "cursor": ["intelligent programmer", "Cursor", "cursor-tools"],
-    "claude_code": ["CLAUDE.md", "EnterPlanMode", "Claude Code", "claude-code"],
-    "aider": ["SEARCH/REPLACE", "RepoMap", "aider"],
-    "cline": ["<environment_details>", "Cline", "cline_docs"],
-    "continue": ["Continue is an open-source", "continue.dev"],
-    "copilot": ["GitHub Copilot", "copilot"],
+    "OpenCode": ["OpenCode", "opencode", "opencode-ai"],
 }
 
 # L0 通用编程 Skills (检测到编程场景时注入)

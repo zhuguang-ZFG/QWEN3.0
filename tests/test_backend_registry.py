@@ -80,7 +80,7 @@ def test_weak_backends_registered():
 # ── IDE_SOURCES consistency ─────────────────────────────────────────────────────
 
 def test_ide_sources_non_empty():
-    assert len(backends.IDE_SOURCES) >= 10, "IDE_SOURCES should cover major IDEs"
+    assert len(backends.IDE_SOURCES) >= 2, "IDE_SOURCES should contain OpenCode (canonical + lowercase)"
 
 
 # ── Capability helpers ───────────────────────────────────────────────────────────

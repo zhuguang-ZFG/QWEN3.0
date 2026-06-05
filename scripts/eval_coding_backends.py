@@ -19,6 +19,7 @@ from coding_eval import (
     write_json_report,
     write_markdown_report,
 )
+from coding_pool_admission import build_tiers_from_eval_results, write_tier_assignments
 from eval_call import make_eval_call_fn
 
 
@@ -59,8 +60,14 @@ def main() -> int:
     results = run_eval(cases, selected, make_eval_call_fn())
     write_json_report(results, args.json_out)
     write_markdown_report(results, args.md_out)
+    from dataclasses import asdict
+
+    tier_path = write_tier_assignments(
+        build_tiers_from_eval_results([asdict(r) for r in results])
+    )
     print(f"Wrote {args.json_out}")
     print(f"Wrote {args.md_out}")
+    print(f"Wrote {tier_path}")
     return 0
 
 

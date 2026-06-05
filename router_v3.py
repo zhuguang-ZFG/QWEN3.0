@@ -113,19 +113,7 @@ DIRECT_BACKENDS = [
 ]
 
 _IDE_FINGERPRINTS = {
-    "Cursor": ["intelligent programmer", "You are Cursor"],
-    "Claude Code": ["CLAUDE.md", "Claude Code", "claude-code", "EnterPlanMode"],
-    "Codex": ["Codex", "codex"],
-    "Aider": ["SEARCH/REPLACE", "RepoMap"],
-    "Cline": ["<environment_details>", "Cline"],
-    "Continue": ["Continue is an open-source", "continue.dev"],
-    "Kiro": ["Kiro", "kiro"],
-    "Zed": ["Zed", "zed-editor", "You are an AI assistant in Zed"],
-    "Trae": ["Trae", "trae"],
-    "Windsurf": ["Windsurf", "Codeium"],
-    "Copilot": ["GitHub Copilot", "Copilot"],
     "OpenCode": ["OpenCode", "opencode", "opencode-ai"],
-    "VS Code": ["VS Code", "vscode"],
 }
 
 # Known IDE sources (both canonical and lowercased forms for flexible matching).
@@ -146,7 +134,7 @@ def classify_request(path: str, headers: dict, body: dict) -> dict:
         req_type = "ide"
     else:
         ua = headers.get("user-agent", "").lower()
-        if any(x in ua for x in ["claude-code", "cursor", "aider", "codex", "cline", "continue", "vscode", "kiro", "zed", "trae", "windsurf", "copilot", "opencode"]):
+        if any(x in ua for x in ["opencode", "opencode-ai"]):
             req_type = "ide"
 
     if req_type != "ide":

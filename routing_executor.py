@@ -51,6 +51,16 @@ def execute(backends: list[str],
             if getattr(e, "is_overflow", False):
                 logger.warning("[EXECUTE] %s context overflow, stopping fallback", backend)
                 raise
+            if getattr(e, "is_retryable", False):
+                code = extract_error_code(e)
+                re.health_tracker.record_failure(backend, error_code=code)
+                errors += 1
+                logger.info(
+                    "[EXECUTE] %s retryable stream error, falling back (code=%s)",
+                    backend,
+                    code,
+                )
+                continue
             code = extract_error_code(e)
             re.health_tracker.record_failure(backend, error_code=code)
             errors += 1
@@ -90,6 +100,12 @@ def execute(backends: list[str],
                 if getattr(exc, "is_overflow", False):
                     logger.warning("[EXECUTE] %s context overflow in serial fallback, stopping", backend)
                     raise
+                if getattr(exc, "is_retryable", False):
+                    logger.info(
+                        "[EXECUTE] serial fallback %s retryable error, continuing",
+                        backend,
+                    )
+                    continue
                 logger.warning("[EXECUTE] serial fallback %s failed: %s", backend, type(exc).__name__)
 
     return "exhausted", "", errors
@@ -117,6 +133,9 @@ def _parallel_fallback(
             if getattr(exc, "is_overflow", False):
                 logger.warning("[EXECUTE] %s context overflow in parallel fallback", backend)
                 raise
+            if getattr(exc, "is_retryable", False):
+                logger.debug("[EXECUTE] parallel fallback %s retryable error", backend)
+                return None
             logger.debug("[EXECUTE] parallel fallback %s failed: %s", backend, type(exc).__name__)
         return None
 

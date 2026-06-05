@@ -74,7 +74,7 @@ opencode
 当使用 OpenCode 连接 LiMa 时，LiMa 后端会自动：
 
 - **识别 OpenCode 客户端**：通过请求特征自动检测，无需额外配置
-- **IDE 级路由质量**：享受与 Cursor、Claude Code 同等的高质量后端池
+- **IDE 级路由质量**：享受 OpenCode IDE 专属的高质量后端池和优化路由
 - **5x 速率限制**：IDE 客户端获得更高的请求配额
 - **编码场景优化**：自动走 coding 专用路由路径
 

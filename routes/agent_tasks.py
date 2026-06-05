@@ -18,6 +18,7 @@ from routes.agent_task_schemas import (
     TaskResultBody,
     WorkerSmokeTaskBody,
 )
+from routes.agent_task_result_hooks import after_task_result_submitted
 from routes.agent_task_service import (
     apply_task_review,
     create_task_from_body,
@@ -211,77 +212,7 @@ async def submit_task_result(task_id: str, body: TaskResultBody):
     task["updated_at"] = time.time()
     _store.update(task_id)
     _store.append_event(task_id, {"type": "result_submitted", "status": result.status})
-
-    # Auto-fill metadata for learning loop (LiMa may not send these)
-    backend = body.backend or task.get("request", {}).get("backend", "")
-    latency_ms = body.latency_ms or int((time.time() - task.get("created_at", time.time())) * 1000)
-    scenario = "coding"
-
-    try:
-        from observability.correlation import record_worker_task_correlation
-
-        worker_id = (
-            task.get("request", {}).get("worker_id", "")
-            if isinstance(task.get("request"), dict)
-            else ""
-        )
-        record_worker_task_correlation(
-            task_id=task_id, status=result.status, worker_id=worker_id
-        )
-    except ImportError:
-        _log.debug("observability.correlation not installed")
-    if result.status == "needs_review":
-        try:
-            from telegram_notify import notify_task_ready
-
-            tests_passed = sum(1 for t in body.test_results if t.get("exit_code") == 0)
-            tests_failed = len(body.test_results) - tests_passed
-            artifact_links = {}
-            for a in body.artifacts[:5]:
-                if isinstance(a, str) and a:
-                    artifact_links[a.split("/")[-1]] = a
-
-            notify_task_ready(
-                task_id, body.summary, body.changed_files,
-                tests_passed=tests_passed, tests_failed=tests_failed,
-                risks=body.risks, artifact_links=artifact_links or None,
-            )
-        except Exception as exc:
-            _log.warning(
-                "notify_task_ready failed task_id=%s err=%s",
-                task_id,
-                type(exc).__name__,
-            )
-    try:
-        from session_memory.learning_loop import ingest_from_agent_task_result
-
-        ingest_from_agent_task_result(
-            asdict(result),
-            backend=backend,
-            scenario=scenario,
-            latency_ms=latency_ms,
-        )
-    except Exception as exc:
-        _log.warning(
-            "learning_loop ingest failed task_id=%s err=%s",
-            task_id,
-            type(exc).__name__,
-        )
-
-    from observability.capability_evidence import record_evidence_safe
-
-    record_evidence_safe(
-        loop="lima_worker",
-        request_id=task_id,
-        task_id=task_id,
-        entrypoint=f"/agent/tasks/{task_id}/result",
-        selected_backend=backend,
-        latency_ms=latency_ms,
-        status=result.status,
-        evidence=["agent_task_result"],
-        artifact_paths=body.artifacts,
-        rollback="review task result and quarantine if unsafe",
-    )
+    after_task_result_submitted(_store, task_id, body, result)
 
     return {"accepted": True, "task_id": task_id, "status": result.status}
 

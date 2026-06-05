@@ -152,9 +152,9 @@ def test_trace_creation():
 
 def test_trace_spans():
     trace = RequestTrace()
-    span = trace.start_span("ide_detection", ide="cursor")
+    span = trace.start_span("ide_detection", ide="opencode")
     assert span.name == "ide_detection"
-    assert span.metadata["ide"] == "cursor"
+    assert span.metadata["ide"] == "opencode"
     trace.end_span(span)
     assert span.is_complete
     assert span.duration_ms >= 0

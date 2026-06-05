@@ -172,11 +172,10 @@ def enhance_context(query: str, messages: list, scenario: str = "") -> dict:
     with _stats_lock:
         _stats[f"tier_{tier}"] += 1
     pool_name = {"simple": "fast", "standard": "coder", "complex": "strong"}[tier]
-    from eval_pool_gate import filter_coding_pool
+    from coding_pool_admission import tier_pool_from_evidence
 
-    ranked_pool = filter_coding_pool(
-        backend_reputation.sort_by_reputation(POOLS[pool_name])
-    )
+    base_pool = backend_reputation.sort_by_reputation(POOLS[pool_name])
+    ranked_pool = tier_pool_from_evidence(pool_name, base_pool)
 
     enhanced_msgs = messages.copy()
     if enhanced_query != query and messages:

@@ -35,6 +35,39 @@
 | M-OC6 | AGENTS.md 全面重写 + 代码审查 (346 lines, 10 issues fixed) | 0 |
 | M-OC7 | provider_kind 修复 (21 backends) + SSE 错误接线 + session ID + IDE 扩展 | 0 |
 
+## 编码体验加厚（2026-06）
+
+> **主线**：个人编码助手后端 → OpenCode/Cursor 客户端 → `routing_engine` + eval 证据驱动 IDE 默认池 → 加深可靠性（非再堆聊天模型）。
+> 差距参考：`docs/VIBE_CODING_ANALYSIS.md` · 请求管线：`docs/REQUEST_PIPELINE_AUTHORITY.md`
+
+| 切片 | 状态 | 权威模块 / 入口 |
+|------|------|-----------------|
+| P0 eval 驱动 IDE 默认池 | ✅ | `coding_pool_admission.py` · `data/coding_backend_tiers.json` · `scripts/build_coding_tiers_from_scores.py` |
+| P1 OpenCode E2E + 流错误重试 | ✅ | `tests/test_opencode_e2e_cases.py` · `routing_executor.py`（`is_retryable` fallback） |
+| P1 工具修复管线 MVP | ✅ | `tool_repair_pipeline.py` · `text_tool_extractor.py` · `workspace_sandbox.ReadTracker`（`LIMA_WORKSPACE_READ_GATE=1`） |
+| P2 上下文注入 trace | ✅ | `context_injection_trace.py` · Admin `GET /api/context-injection-traces` · 响应 `x_lima_meta.context_injection` |
+| P2 路由双轨收敛（渐进） | 🔄 | `routing_facade.py`（`/v1/status`、`ide_coder_pool`）· `router_http` → `http_caller` · `routes/agent_task_result_hooks.py` |
+
+**Admin / 运维**
+
+| 端点 / 命令 | 用途 |
+|-------------|------|
+| `GET /api/coding-pool-admission` | 证据门禁、tier 数量、demoted 摘要 |
+| `GET /api/context-injection-traces` | 最近注入 trace（无密钥/无全文 prompt） |
+| `python scripts/eval_coding_backends.py` | 跑 eval 并刷新 scores + tiers |
+| `python scripts/build_coding_tiers_from_scores.py` | 仅从已有 scores 重建 tiers |
+
+**环境变量**
+
+| 变量 | 默认 | 含义 |
+|------|------|------|
+| `LIMA_IDE_POOL_EVIDENCE_GATE` | `1` | 无 eval/admission/tier 证据不进 IDE 默认池 |
+| `LIMA_ROUTER_HTTP_HTTPX` | `1` | `router_http` 委托 `http_caller` |
+| `LIMA_WORKSPACE_READ_GATE` | `0` | `1` 时 sandbox 未读文件禁止 edit |
+| `LIMA_PERIODIC_CODING_EVAL` | `0` | `1` 启用周期性 coding eval |
+
+**仍渐进（非方向问题）**：`smart_router` 部分调用方未迁完 — 见 [`docs/SMART_ROUTER_MIGRATION.md`](docs/SMART_ROUTER_MIGRATION.md)（调用方清单 + 6 slice 热路径顺序）；`docs/NEXT_MILESTONES.md` 与 `docs/superpowers/plans/` 仅作档案。
+
 ## 部署状态
 
 | 服务 | 端口 | 状态 |

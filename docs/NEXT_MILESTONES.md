@@ -1,10 +1,20 @@
-> ⚠️ 2026-06-01 起已过时。M1-M9 已完成。当前路线图见 STATUS.md + docs/VIBE_CODING_ANALYSIS.md
+> ## ⛔ 档案馆 — 请勿用于排期或优先级决策
+>
+> **本文件自 2026-06-01 起已冻结为历史档案。** 正文中的 ESP32、四线并行、Worker 等待办**不代表当前主线**。
+>
+> **当前唯一路线图**：仓库根目录 [`STATUS.md`](../STATUS.md) → 章节 **「编码体验加厚（2026-06）」**
+>
+> **架构与管线**：[`AGENTS.md`](../AGENTS.md) · [`docs/REQUEST_PIPELINE_AUTHORITY.md`](REQUEST_PIPELINE_AUTHORITY.md)
+>
+> 若与 `STATUS.md` / `AGENTS.md` 冲突，**以二者为准**。下文保留仅供检索旧决策上下文。
 
-# LiMa 下一里程碑（四线并行）
+# LiMa 下一里程碑（四线并行）— 历史档案
 
-> Updated: 2026-05-26
-> 权威状态仍见 `STATUS.md`、`docs/EXECUTION_PLAN.md`、`findings.md`、`progress.md`。
-> 本文件只做**优先级与文档对齐**；`docs/superpowers/plans/` 内未勾 checkbox 以状态文档为准。
+> ⚠️ 2026-06-01 起已过时。M1–M9、M-OC0–OC7 已完成。编码体验 2026-06 加厚见 `STATUS.md`。
+
+> Updated: 2026-05-26（**档案快照，非 live roadmap**）
+> 曾引用：`STATUS.md`、`docs/EXECUTION_PLAN.md`、`findings.md`、`progress.md`。
+> 本文件只做**历史优先级与文档对齐**；`docs/superpowers/plans/` 内未勾 checkbox 以当时状态文档为准。
 
 ## 文档清理说明（2026-05-26）
 
@@ -112,11 +122,15 @@ python scripts/eval_coding_backends.py
 
 | 文档 | 用途 |
 |---|---|
-| `docs/EXECUTION_PLAN.md` | Phase 完成度与全局 Next Order |
+| **`STATUS.md`（根目录）** | **当前 live 状态与编码体验加厚（2026-06）** |
+| **`AGENTS.md`** | **权威架构与约定** |
+| `docs/REQUEST_PIPELINE_AUTHORITY.md` | 生产请求管线分层 |
+| `docs/VIBE_CODING_ANALYSIS.md` | 编码体验差距参考 |
+| `docs/EXECUTION_PLAN.md` | Phase 完成度（历史） |
 | `docs/superpowers/PLAN_CLOSURE_STATUS.md` | Superpowers 计划开闭状态 |
 | `docs/WECHAT_RETIRED.md` | 微信已放弃 |
 | `docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md` | 质量 P0/P1（P1.3 Done） |
 | `docs/FREE_RESOURCE_RADAR_MERGED.md` | 免费资源索引 + LiMa 对齐状态 |
 | `docs/FREE_MODEL_ROUTING_STATUS.md` | 免费模型证据 |
 | `docs/LIMA_MANAGEMENT.md` | LiMa 子模块 |
-| `docs/ESP32S_XYZ_MANAGEMENT.md` | 硬件子模块 |
+| `docs/ESP32S_XYZ_MANAGEMENT.md` | 硬件子模块（非当前主线） |

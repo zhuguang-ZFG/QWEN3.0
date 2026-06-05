@@ -138,16 +138,7 @@ _BROWSER_PATTERNS: list[tuple[str, str]] = [
 ]
 
 _APP_PATTERNS: list[tuple[str, str]] = [
-    (r"Claude Code", "Claude Code"),
-    (r"cursor-ide", "Cursor"),
-    (r"GitHub Copilot", "GitHub Copilot"),
-    (r"Codex CLI", "Codex CLI"),
-    (r"aider", "Aider"),
-    (r"Continue", "Continue"),
-    (r"Cline", "Cline"),
-    (r"Windsurf", "Windsurf"),
-    (r"Kiro", "Kiro"),
-    (r"Trae", "Trae"),
+    (r"[Oo]pen[Cc]ode", "OpenCode"),
     (r"python-requests|Python/|python-httpx|aiohttp", "Python 脚本"),
     (r"curl/", "curl"),
     (r"PostmanRuntime", "Postman"),

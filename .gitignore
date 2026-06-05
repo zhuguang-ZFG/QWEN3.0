@@ -20,6 +20,7 @@ reverse_gateway_state/
 .ruff_cache/
 .hypothesis/
 .vite/
+_codegraph_repo/
 
 # === 第三方项目 / 外置克隆（不进 Git，本地可保留）===
 opencode-source/

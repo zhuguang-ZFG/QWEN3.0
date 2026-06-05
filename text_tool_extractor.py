@@ -20,8 +20,13 @@ Also supports multi-tool arrays:
 from __future__ import annotations
 
 import json
+import logging
 import re
 import uuid
+
+from tool_repair_pipeline import repair_tool_calls_from_text
+
+_log = logging.getLogger(__name__)
 
 # Backends known to output tool calls as text instead of protocol
 TEXT_TOOL_BACKENDS = {
@@ -49,8 +54,15 @@ def extract_tool_calls_from_text(content: str) -> tuple[str, list[dict] | None]:
     if not content:
         return content, None
 
-    tool_calls = []
+    tool_calls: list[dict] = []
     cleaned = content
+
+    # Repair pipeline: scavenge DSML / truncated JSON before classic patterns
+    repaired_cleaned, repaired_calls, repair_meta = repair_tool_calls_from_text(content)
+    if repaired_calls:
+        if repair_meta.get("storm"):
+            _log.warning("tool repair storm breaker triggered")
+        return repaired_cleaned, repaired_calls
 
     # Pattern 1: ```json ... ``` code blocks
     json_block_pattern = re.compile(

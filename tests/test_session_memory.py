@@ -77,9 +77,9 @@ def test_count_and_clear():
 
 
 def test_session_id_from_headers():
-    h1 = {"x-forwarded-for": "1.2.3.4", "user-agent": "cursor/1.0"}
-    h2 = {"x-forwarded-for": "1.2.3.4", "user-agent": "cursor/1.0"}
-    h3 = {"x-forwarded-for": "5.6.7.8", "user-agent": "kiro/2.0"}
+    h1 = {"x-forwarded-for": "1.2.3.4", "user-agent": "opencode/1.0"}
+    h2 = {"x-forwarded-for": "1.2.3.4", "user-agent": "opencode/1.0"}
+    h3 = {"x-forwarded-for": "5.6.7.8", "user-agent": "opencode/2.0"}
 
     sid1 = _session_id_from_headers(h1)
     sid2 = _session_id_from_headers(h2)
@@ -118,7 +118,7 @@ def test_session_memory_processor_skipped_when_disabled():
 
 
 def test_save_request_memory():
-    headers = {"x-forwarded-for": "20.0.0.1", "user-agent": "cursor"}
+    headers = {"x-forwarded-for": "20.0.0.1", "user-agent": "opencode"}
     messages = [{"role": "user", "content": "add embeddings endpoint to server.py"}]
 
     sid = _session_id_from_headers(headers)

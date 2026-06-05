@@ -8,8 +8,8 @@ from context_pipeline.cache import (
 
 
 def test_compute_stable_prefix_deterministic():
-    p1 = compute_stable_prefix("Cursor", "coding")
-    p2 = compute_stable_prefix("Cursor", "coding")
+    p1 = compute_stable_prefix("OpenCode", "coding")
+    p2 = compute_stable_prefix("OpenCode", "coding")
     assert p1 == p2
     assert "编程助手" in p1
     assert "编码实现" in p1
@@ -17,15 +17,15 @@ def test_compute_stable_prefix_deterministic():
 
 
 def test_compute_stable_prefix_different_for_different_scenarios():
-    coding = compute_stable_prefix("Cursor", "coding")
-    chat = compute_stable_prefix("Cursor", "chat")
+    coding = compute_stable_prefix("OpenCode", "coding")
+    chat = compute_stable_prefix("OpenCode", "chat")
     assert coding != chat
     assert "编程助手" in coding
     assert "联网能力" in chat
 
 
 def test_compute_prefix_hash_consistent():
-    prefix = compute_stable_prefix("Cursor", "coding")
+    prefix = compute_stable_prefix("OpenCode", "coding")
     h1 = compute_prefix_hash(prefix)
     h2 = compute_prefix_hash(prefix)
     assert h1 == h2
@@ -33,7 +33,7 @@ def test_compute_prefix_hash_consistent():
 
 
 def test_build_cached_prompt_without_variable():
-    prompt, prefix_hash = build_cached_prompt("Cursor", "coding")
+    prompt, prefix_hash = build_cached_prompt("OpenCode", "coding")
     assert "编程助手" in prompt
     assert "编码实现" in prompt
     assert "质量门控" in prompt
@@ -42,7 +42,7 @@ def test_build_cached_prompt_without_variable():
 
 def test_build_cached_prompt_with_variable_content():
     prompt, _ = build_cached_prompt(
-        "Cursor", "coding",
+        "OpenCode", "coding",
         variable_content="[上下文]\nrouting_engine.py | select, classify"
     )
     assert "routing_engine.py" in prompt
@@ -65,12 +65,12 @@ def test_cache_metrics_tracks_requests():
 
 
 def test_same_ide_scenario_produces_same_hash():
-    _, h1 = build_cached_prompt("Kiro", "coding")
-    _, h2 = build_cached_prompt("Kiro", "coding")
+    _, h1 = build_cached_prompt("OpenCode", "coding")
+    _, h2 = build_cached_prompt("OpenCode", "coding")
     assert h1 == h2
 
 
-def test_different_ide_produces_different_hash():
-    _, h1 = build_cached_prompt("Cursor", "coding")
-    _, h2 = build_cached_prompt("Kiro", "coding")
+def test_different_scenario_produces_different_hash():
+    _, h1 = build_cached_prompt("OpenCode", "coding")
+    _, h2 = build_cached_prompt("OpenCode", "chat")
     assert h1 != h2

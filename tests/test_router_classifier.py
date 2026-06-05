@@ -32,7 +32,7 @@ def test_analyze_thinking_takes_priority():
 
 def test_analyze_code_block_detect():
     query = "```python\ndef foo():\n    pass\n```"
-    result = clf.analyze(query, ide="cursor")
+    result = clf.analyze(query, ide="opencode")
     assert result["intent"] == "code_generation"
     assert result["source"] in ("code_detect", "rules", "signal_v2", "ide_context")
 

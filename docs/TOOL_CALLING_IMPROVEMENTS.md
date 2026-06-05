@@ -12,7 +12,7 @@ LiMa 工具调用管道已实现双协议（OpenAI/Anthropic）、双梯队（Ti
 ### Task 1: tool_choice 尊重客户端请求 [Critical]
 
 **问题**: `tool_forward.py` L139 和 `tool_forward_stream.py` L204 硬编码 `"tool_choice": "auto"`，
-忽略客户端传入的 `tool_choice` 参数。IDE 客户端（Claude Code/Cursor）常发
+忽略客户端传入的 `tool_choice` 参数。IDE 客户端（OpenCode）常发
 `tool_choice: {"type": "tool", "name": "Read"}` 来强制使用特定工具。
 
 **修复**:

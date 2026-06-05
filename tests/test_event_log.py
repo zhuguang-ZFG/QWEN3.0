@@ -17,7 +17,7 @@ def test_emit_records_event():
 
 def test_events_property():
     log = EventLog()
-    log.emit(EventType.IDE_DETECTED, ide="cursor")
+    log.emit(EventType.IDE_DETECTED, ide="opencode")
     log.emit(EventType.SCENARIO_CLASSIFIED, scenario="coding")
     assert len(log.events) == 2
 
@@ -43,7 +43,7 @@ def test_last_n():
 def test_summary():
     log = EventLog()
     log.emit(EventType.REQUEST_RECEIVED)
-    log.emit(EventType.IDE_DETECTED, ide="kiro")
+    log.emit(EventType.IDE_DETECTED, ide="opencode")
     log.emit(EventType.BACKEND_SELECTED, backend="scnet_qwen72b")
     log.emit(EventType.RESPONSE_ERROR, error="timeout")
     log.emit(EventType.FALLBACK_TRIGGERED, new_backend="groq_llama70b")

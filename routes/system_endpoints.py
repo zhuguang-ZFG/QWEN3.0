@@ -8,7 +8,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from access_guard import require_private_api_key
-import smart_router
+import routing_facade
 
 router = APIRouter()
 
@@ -85,9 +85,4 @@ async def live_key():
 
 @router.get("/v1/status", dependencies=[Depends(require_private_api_key)])
 async def router_status():
-    return {
-        "circuit_breakers": smart_router.cb_status(),
-        "backends": list(smart_router.BACKENDS.keys()),
-        "route_table": smart_router.ROUTE,
-        "public_model": smart_router.PUBLIC_MODEL_NAME,
-    }
+    return routing_facade.router_status_payload()

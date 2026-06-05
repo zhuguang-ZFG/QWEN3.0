@@ -44,7 +44,7 @@ def test_inject_anthropic_body_preflight_string_system():
 
 def test_inject_anthropic_body_preflight_block_system():
     body = _coding_body()
-    body["system"] = [{"type": "text", "text": "Claude Code agent"}]
+    body["system"] = [{"type": "text", "text": "OpenCode agent"}]
     openai_msgs = convert_messages_anthropic_to_openai(body["messages"])
     inject_anthropic_body_preflight(body, openai_msgs)
 

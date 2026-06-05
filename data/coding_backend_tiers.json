@@ -1,0 +1,69 @@
+{
+  "source": "coding_backend_scores",
+  "backends": {
+    "scnet_large_ds_flash": {
+      "tier": "strong",
+      "pool": "strong",
+      "avg_score": 100.0,
+      "avg_latency_ms": 1199,
+      "pass_rate": 1.0,
+      "evidence": "coding_backend_scores"
+    },
+    "scnet_qwen30b": {
+      "tier": "strong",
+      "pool": "strong",
+      "avg_score": 100.0,
+      "avg_latency_ms": 1814,
+      "pass_rate": 1.0,
+      "evidence": "coding_backend_scores"
+    },
+    "scnet_ds_flash": {
+      "tier": "strong",
+      "pool": "strong",
+      "avg_score": 100.0,
+      "avg_latency_ms": 2205,
+      "pass_rate": 1.0,
+      "evidence": "coding_backend_scores"
+    },
+    "scnet_qwen235b": {
+      "tier": "strong",
+      "pool": "strong",
+      "avg_score": 100.0,
+      "avg_latency_ms": 2388,
+      "pass_rate": 1.0,
+      "evidence": "coding_backend_scores"
+    },
+    "scnet_large_ds_pro": {
+      "tier": "strong",
+      "pool": "strong",
+      "avg_score": 100.0,
+      "avg_latency_ms": 75046,
+      "pass_rate": 1.0,
+      "evidence": "coding_backend_scores"
+    },
+    "kimi_thinking": {
+      "tier": "fast",
+      "pool": "fast",
+      "avg_score": 80.0,
+      "avg_latency_ms": 4301,
+      "pass_rate": 0.667,
+      "evidence": "coding_backend_scores"
+    },
+    "kimi": {
+      "tier": "fast",
+      "pool": "fast",
+      "avg_score": 80.0,
+      "avg_latency_ms": 4534,
+      "pass_rate": 0.667,
+      "evidence": "coding_backend_scores"
+    },
+    "kimi_search": {
+      "tier": "fast",
+      "pool": "fast",
+      "avg_score": 80.0,
+      "avg_latency_ms": 7126,
+      "pass_rate": 0.667,
+      "evidence": "coding_backend_scores"
+    }
+  }
+}

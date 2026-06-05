@@ -58,7 +58,7 @@ def test_ensemble_race_empty_backends():
 
 
 def test_should_use_ensemble_true_for_ide_coding():
-    assert should_use_ensemble("coding", "Cursor") is True
+    assert should_use_ensemble("coding", "OpenCode") is True
 
 
 def test_should_use_ensemble_false_for_chat():

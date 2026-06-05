@@ -32,13 +32,48 @@ class WriteResult:
     dry_run: bool = True
 
 
+class ReadTracker:
+    """Tracks files read before allowing SEARCH/replace edits (MiMo-style gate)."""
+
+    def __init__(self) -> None:
+        self._read_paths: set[str] = set()
+
+    def record_read(self, file_path: str) -> None:
+        normalized = file_path.replace("\\", "/").lstrip("./")
+        if normalized:
+            self._read_paths.add(normalized)
+
+    def has_read(self, file_path: str) -> bool:
+        normalized = file_path.replace("\\", "/").lstrip("./")
+        return normalized in self._read_paths
+
+    def clear(self) -> None:
+        self._read_paths.clear()
+
+
 class WorkspaceSandbox:
     """Constrained write sandbox. All writes stay under a bounded root."""
 
-    def __init__(self, root: str = "", dry_run: bool = True) -> None:
+    def __init__(
+        self,
+        root: str = "",
+        dry_run: bool = True,
+        *,
+        read_tracker: ReadTracker | None = None,
+        enforce_read_gate: bool | None = None,
+    ) -> None:
         self.root = os.path.abspath(root or SANDBOX_ROOT_DEFAULT)
         self.dry_run = dry_run
+        self.read_tracker = read_tracker or ReadTracker()
+        if enforce_read_gate is None:
+            enforce_read_gate = os.environ.get(
+                "LIMA_WORKSPACE_READ_GATE", "0"
+            ).strip().lower() in {"1", "true", "yes"}
+        self.enforce_read_gate = enforce_read_gate
         self._patches: list[PatchRecord] = []
+
+    def record_read(self, file_path: str) -> None:
+        self.read_tracker.record_read(file_path)
 
     def apply_patches(self, patches: list[PatchRecord]) -> WriteResult:
         if not self._validate_root():
@@ -49,6 +84,10 @@ class WorkspaceSandbox:
             target = self._resolve_target(patch.file_path)
             if target is None:
                 return WriteResult(ok=False, error="patch path escapes sandbox")
+
+            gate_err = self._validate_edit_gate(patch, target)
+            if gate_err:
+                return WriteResult(ok=False, error=gate_err)
 
             patch.audit_ref = f"write-audit-{int(time.time())}"
             if self.dry_run:
@@ -159,6 +198,25 @@ class WorkspaceSandbox:
             audit_event("workspace_rollback", detail=f"file={patch.file_path}")
         except Exception as exc:
             _log.debug("workspace rollback audit skipped: %s", type(exc).__name__)
+
+    def _validate_edit_gate(self, patch: PatchRecord, target: str) -> str | None:
+        """Require prior read + byte-exact SEARCH block when editing existing files."""
+        is_new_file = not os.path.isfile(target)
+        if is_new_file:
+            return None
+        if self.enforce_read_gate and not self.read_tracker.has_read(patch.file_path):
+            return f"edit blocked: file not read yet: {patch.file_path}"
+        if patch.original:
+            try:
+                on_disk = open(target, encoding="utf-8").read()
+            except OSError:
+                return f"cannot read file for SEARCH validation: {patch.file_path}"
+            if patch.original not in on_disk:
+                return (
+                    f"SEARCH block not found in {patch.file_path} "
+                    "(byte-exact match required)"
+                )
+        return None
 
     def _resolve_target(self, file_path: str) -> str | None:
         target = os.path.abspath(os.path.join(self.root, file_path))

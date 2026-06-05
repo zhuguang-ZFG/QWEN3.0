@@ -18,7 +18,7 @@ def _base_request(**overrides):
         fmt="openai",
         request_model=None,
         max_tokens=128,
-        ide_source="cursor",
+        ide_source="opencode",
         client_ip="127.0.0.1",
         sys_prompt_preview="base",
         prompt_context_messages=[{"role": "user", "content": "hello"}],

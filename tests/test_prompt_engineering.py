@@ -14,9 +14,9 @@ def test_build_role_layer_coding_without_ide():
 
 
 def test_build_role_layer_coding_with_ide():
-    role = build_role_layer("Cursor", "coding")
+    role = build_role_layer("OpenCode", "coding")
     assert "编程助手" in role
-    assert "Cursor" in role
+    assert "OpenCode" in role
     assert "文件读写" in role
     assert "无法访问本地文件" in role
 
@@ -70,12 +70,12 @@ def test_build_quality_gate_vision():
 
 def test_compose_system_prompt_coding_with_ide_and_context():
     prompt = compose_system_prompt(
-        ide="Claude Code",
+        ide="OpenCode",
         scenario="coding",
         code_context="routing_engine.py | select, classify",
     )
     assert "编程助手" in prompt
-    assert "Claude Code" in prompt
+    assert "OpenCode" in prompt
     assert "编码实现" in prompt
     assert "routing_engine.py" in prompt
     assert "质量门控" in prompt
@@ -92,7 +92,7 @@ def test_compose_system_prompt_chat_no_context():
 
 def test_compose_system_prompt_has_all_four_layers():
     prompt = compose_system_prompt(
-        ide="Kiro", scenario="coding", code_context="server.py | embeddings"
+        ide="OpenCode", scenario="coding", code_context="server.py | embeddings"
     )
     layers_found = 0
     if "编程助手" in prompt:

@@ -43,7 +43,7 @@ def check_anthropic_rate_limit(req: Request, client_ip: str) -> JSONResponse | N
 
     ua = req.headers.get("user-agent", "")
     is_ide_client = any(
-        k in ua.lower() for k in ("claude-code", "continue", "cursor", "copilot")
+        k in ua.lower() for k in ("opencode", "opencode-ai")
     )
     multiplier = 5 if is_ide_client else 1
     if rate_limiter.check_rate_limit(client_ip, multiplier=multiplier):

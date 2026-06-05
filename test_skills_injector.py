@@ -187,33 +187,33 @@ def test_apply_skills_injection_mode_weak_backend():
     assert "Never fabricate" in content or "PEP 8" in content or "concise" in content.lower()
 
 
-def test_apply_skills_claude_code_skips_known_skills():
-    """Claude Code has 8000 tok system prompt — most skills already covered"""
+def test_apply_skills_opencode_skips_style_skills():
+    """OpenCode has built-in style — style skills filtered out"""
     result = si.apply_skills(
         backend="chat_ubi",  # weak backend, injection mode
         messages=[{"role": "user", "content": "debug"}],
-        system_prompt="Claude Code CLI. Follow coding style. "
+        system_prompt="OpenCode CLI. Follow coding style. "
                        "Handle errors explicitly. Use small files. "
                        "Don't hallucinate. Be concise. OWASP security.",
-        ide_source="Claude Code"
+        ide_source="OpenCode"
     )
     content = result[0]["content"] if result else ""
-    # Claude Code IDE_COVERAGE={'safety','lang','style'} — safety/lang/style filtered out
-    # Only project category (lima_conventions) remains — correct behavior
+    # OpenCode IDE_COVERAGE={'style'} — style filtered out
+    # Other categories remain — correct behavior
     assert "production" in content or "LiMa" in content
 
 
-def test_apply_skills_cursor_needs_more():
-    """Cursor 642 tok minimal prompt — needs more injection"""
+def test_apply_skills_unknown_ide_needs_more():
+    """Unknown IDE — needs more injection"""
     result = si.apply_skills(
         backend="chat_ubi",
         messages=[{"role": "user", "content": "code"}],
-        system_prompt="You are Auto, an agent router by Cursor. "
+        system_prompt="You are a coding assistant. "
                        "Use backticks for code. Cite with file:line format.",
-        ide_source="Cursor"
+        ide_source=""
     )
     content = result[0]["content"] if result else ""
-    # Cursor has almost nothing — should inject many skills
+    # Unknown IDE has nothing — should inject many skills
     assert len(content) > 20  # Non-trivial injection
 
 
@@ -225,7 +225,7 @@ def test_apply_skills_respects_ide_source_detection():
         backend="chat_ubi",
         messages=[{"role": "user", "content": "help"}],
         system_prompt="",  # Empty prompt
-        ide_source="Claude Code"  # Strong IDE with lots of built-in context
+        ide_source="OpenCode"  # OpenCode with built-in context
     )
     result_unknown = si.apply_skills(
         backend="chat_ubi",
@@ -233,7 +233,7 @@ def test_apply_skills_respects_ide_source_detection():
         system_prompt="",
         ide_source=""  # Unknown IDE
     )
-    # Unknown IDE gets more injection than Claude Code
+    # Unknown IDE gets more injection than OpenCode
     known_count = len(result_known[0]["content"]) if result_known else 0
     unknown_count = len(result_unknown[0]["content"]) if result_unknown else 0
     assert unknown_count >= known_count

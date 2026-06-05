@@ -35,20 +35,20 @@ def test_pipeline_stages_property():
 
 def test_ide_detection_from_user_agent():
     ctx = RequestContext(
-        headers={"user-agent": "cursor/1.0"},
+        headers={"user-agent": "opencode/1.0"},
         messages=[{"role": "user", "content": "hello"}],
     )
     ctx = ide_detection_processor(ctx)
-    assert ctx.ide == "cursor"
+    assert ctx.ide == "OpenCode"
 
 
 def test_ide_detection_from_system_prompt():
     ctx = RequestContext(
         headers={},
-        messages=[{"role": "system", "content": "You are Kiro, an AI IDE"}],
+        messages=[{"role": "system", "content": "OpenCode coding assistant"}],
     )
     ctx = ide_detection_processor(ctx)
-    assert ctx.ide == "kiro"
+    assert ctx.ide == "OpenCode"
 
 
 def test_ide_detection_no_ide():
@@ -61,7 +61,7 @@ def test_ide_detection_no_ide():
 
 
 def test_scenario_classification_coding_when_ide_present():
-    ctx = RequestContext(ide="cursor")
+    ctx = RequestContext(ide="opencode")
     ctx = scenario_classification_processor(ctx)
     assert ctx.scenario == "coding"
 
@@ -74,7 +74,7 @@ def test_scenario_classification_chat_when_no_ide():
 
 def test_scenario_classification_vision_when_image_present():
     ctx = RequestContext(
-        ide="cursor",
+        ide="opencode",
         messages=[{"role": "user", "content": [
             {"type": "text", "text": "what is this?"},
             {"type": "image_url", "image_url": {"url": "data:image/png;base64,..."}}
@@ -85,10 +85,10 @@ def test_scenario_classification_vision_when_image_present():
 
 
 def test_prompt_composition_processor_builds_structured_prompt():
-    ctx = RequestContext(ide="Cursor", scenario="coding", code_context="server.py | embeddings")
+    ctx = RequestContext(ide="OpenCode", scenario="coding", code_context="server.py | embeddings")
     ctx = prompt_composition_processor(ctx)
     assert "编程助手" in ctx.system_prompt
-    assert "Cursor" in ctx.system_prompt
+    assert "OpenCode" in ctx.system_prompt
     assert "编码实现" in ctx.system_prompt
     assert "server.py" in ctx.system_prompt
     assert "质量门控" in ctx.system_prompt
@@ -126,13 +126,13 @@ def test_code_context_processor_uses_unified_retrieval_text(monkeypatch):
 def test_default_pipeline_processes_full_request():
     pipe = build_default_pipeline()
     ctx = RequestContext(
-        headers={"user-agent": "cursor/1.0"},
+        headers={"user-agent": "opencode/1.0"},
         messages=[{"role": "user", "content": "fix the bug in server.py"}],
         path="/v1/chat/completions",
     )
     ctx = pipe.process(ctx)
 
-    assert ctx.ide == "cursor"
+    assert ctx.ide == "OpenCode"
     assert ctx.scenario == "coding"
     assert "编程助手" in ctx.system_prompt
     assert "编码实现" in ctx.system_prompt

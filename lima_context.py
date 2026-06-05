@@ -128,14 +128,8 @@ def _detect_task(text: str) -> str:
 
 def _detect_ide(text: str) -> str:
     lowered = text.lower()
-    if "claude code" in lowered or "claude-code" in lowered:
-        return "Claude Code"
-    if "cursor" in lowered:
-        return "Cursor"
-    if "continue" in lowered:
-        return "Continue"
-    if "vscode" in lowered or "vs code" in lowered:
-        return "VS Code"
+    if "opencode" in lowered or "opencode-ai" in lowered:
+        return "OpenCode"
     return ""
 
 
