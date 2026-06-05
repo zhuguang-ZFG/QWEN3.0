@@ -55,6 +55,7 @@ FILES = [
     "router_v3.py",  # MODIFIED
     "routing_classifier.py",  # MODIFIED
     "routes/chat_support.py",  # MODIFIED: smart_router call sites
+    "routes/quality_gate.py",  # MODIFIED: smart_router → backends/http_caller/cb
     "routes/agent_task_result_hooks.py",  # NEW
     "routes/admin_api.py",  # MODIFIED
     "routes/agent_tasks.py",  # MODIFIED

@@ -14,7 +14,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LIMA_API_KEY = os.environ.get("LIMA_API_KEY", "xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw")
+LIMA_API_KEY = os.environ.get("LIMA_API_KEY", "")
 LIMA_BASE = os.environ.get("LIMA_SERVER_URL", "https://chat.donglicao.com")
 LIMA_MODEL = "lima"
 
