@@ -1,0 +1,10 @@
+{
+  "id": "typescript_typefix",
+  "name": "Fix TypeScript type errors",
+  "prompt": "Fix the TypeScript type errors in this code. Return only the corrected code in a TypeScript code block.\n\n```typescript\nfunction processUsers(users: any[]) {\n  return users.map(user => ({\n    ...user,\n    fullName: user.firstName + ' ' + user.lastName,\n    age: new Date().getFullYear() - user.birthYear\n  }));\n}\n\ninterface User {\n  firstName: string;\n  lastName: string;\n  birthYear: number;\n  email: string;\n}\n\nconst result: User[] = processUsers([\n  { firstName: 'Alice', lastName: 'Smith', birthYear: 1990, email: 'alice@example.com' }\n]);\n```",
+  "required_patterns": ["interface\\s+User|type\\s+User", "processUsers", "fullName|age"],
+  "forbidden_patterns": ["I cannot", "as an AI", "I'm sorry"],
+  "min_chars": 80,
+  "max_tokens": 512,
+  "tags": ["opencode", "typescript", "typefix", "coding"]
+}

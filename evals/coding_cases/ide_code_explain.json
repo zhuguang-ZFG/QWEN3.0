@@ -1,0 +1,11 @@
+{
+  "id": "ide_code_explain",
+  "name": "Accurately explain code logic without hallucination",
+  "prompt": "Explain what this Python code does, step by step. Be precise and do not add features that are not present in the code.\n\n```python\nimport asyncio\nfrom collections import defaultdict\n\nclass EventHub:\n    def __init__(self):\n        self._handlers = defaultdict(list)\n        self._queue = asyncio.Queue()\n\n    def on(self, event: str, handler):\n        self._handlers[event].append(handler)\n\n    async def emit(self, event: str, data=None):\n        for handler in self._handlers.get(event, []):\n            await self._queue.put((handler, data))\n\n    async def run(self):\n        while True:\n            handler, data = await self._queue.get()\n            try:\n                if asyncio.iscoroutinefunction(handler):\n                    await handler(data)\n                else:\n                    handler(data)\n            except Exception as e:\n                print(f'Handler error: {e}')\n            finally:\n                self._queue.task_done()\n```\n\nProvide your explanation as a concise paragraph (not bullet points). Focus on the actual behavior.",
+  "required_patterns": ["queue|Queue", "handler|handlers", "event|emit", "async|await"],
+  "forbidden_patterns": ["database|DB", "HTTP server", "REST API", "web framework", "I cannot", "as an AI"],
+  "min_chars": 100,
+  "max_chars": 800,
+  "max_tokens": 512,
+  "tags": ["opencode", "code_explain", "ide", "accuracy"]
+}

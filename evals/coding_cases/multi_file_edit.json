@@ -1,0 +1,11 @@
+{
+  "id": "multi_file_edit",
+  "name": "Multi-file edit plan with structured output",
+  "prompt": "You are an AI coding assistant. The user wants to add logging to their FastAPI app. Current files:\n\n- main.py: FastAPI app with 3 routes (/, /health, /api/data)\n- config.py: App configuration with DEBUG flag\n- utils.py: Helper functions\n\nProvide a structured edit plan as JSON with keys: 'files' (array of objects each with 'path', 'action' (create|modify), 'description', 'code_snippet'). Include the actual code changes needed.",
+  "required_patterns": ["\"files\"", "\"path\"", "\"action\"", "\"code_snippet\"", "logging"],
+  "forbidden_patterns": ["I cannot", "as an AI", "I'm sorry"],
+  "required_json_keys": ["files"],
+  "min_chars": 120,
+  "max_tokens": 1024,
+  "tags": ["opencode", "multi_file", "planning"]
+}

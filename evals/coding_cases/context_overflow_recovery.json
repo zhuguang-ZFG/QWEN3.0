@@ -1,0 +1,10 @@
+{
+  "id": "context_overflow_recovery",
+  "name": "Recover useful answer from compressed long context",
+  "prompt": "Given this conversation history where earlier messages have been summarized due to context limits:\n\n[Summary: User was working on a Python FastAPI project. They discussed database models, API routes, and authentication middleware. The last action was adding JWT authentication.]\n\nRecent messages:\n- User: 'The JWT middleware is working. Now I need to add rate limiting to the /api/data endpoint.'\n- Assistant: 'I'll help you add rate limiting. Here's a solution using slowapi...'\n- User: 'Thanks. Now how do I add CORS headers only for the /api/* routes?'\n\nProvide a concise, correct answer about adding CORS headers to specific route prefixes in FastAPI.",
+  "required_patterns": ["cors|CORS|origin|middleware|header|Header"],
+  "forbidden_patterns": ["I cannot", "I don't have enough context", "as an AI"],
+  "min_chars": 20,
+  "max_tokens": 512,
+  "tags": ["opencode", "context_recovery", "coding"]
+}

@@ -1,0 +1,11 @@
+{
+  "id": "tool_call_generation",
+  "name": "Generate tool_calls with correct JSON structure",
+  "prompt": "You have access to these tools:\n1. read_file(path: string) - Read a file\n2. write_file(path: string, content: string) - Write a file\n3. run_command(cmd: string) - Run a shell command\n\nThe user asks: 'Read the contents of src/main.py and then write a modified version that adds error handling to the main function.'\n\nRespond with the tool calls you would make, in JSON format with keys: tool_calls (array of objects with id, type='function', function.name, function.arguments as JSON string).",
+  "required_patterns": ["\"tool_calls\"", "\"function\"", "\"name\"", "\"read_file\"", "\"arguments\"", "\"path\""],
+  "forbidden_patterns": ["I cannot", "as an AI", "I don't have access"],
+  "required_json_keys": ["tool_calls"],
+  "min_chars": 80,
+  "max_tokens": 512,
+  "tags": ["opencode", "tool_calls", "json"]
+}

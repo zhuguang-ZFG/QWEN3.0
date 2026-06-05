@@ -1,0 +1,11 @@
+{
+  "id": "reasoning_effort",
+  "name": "Demonstrate reasoning with structured analysis",
+  "prompt": "Analyze this Python function and provide a structured reasoning response. Use 'reasoning_effort: high' level analysis.\n\n```python\ndef merge_sorted(a, b):\n    result = []\n    i, j = 0, 0\n    while i < len(a) and j < len(b):\n        if a[i] <= b[j]:\n            result.append(a[i])\n            i += 1\n        else:\n            result.append(b[j])\n            j += 1\n    result.extend(a[i:])\n    result.extend(b[j:])\n    return result\n```\n\nProvide your response as JSON with keys: 'analysis' (correctness + complexity), 'edge_cases' (list), 'improvements' (list of suggested changes with rationale).",
+  "required_patterns": ["\"analysis\"", "\"edge_cases\"", "\"improvements\"", "O\\(|complexity|linear"],
+  "forbidden_patterns": ["I cannot", "as an AI"],
+  "required_json_keys": ["analysis", "edge_cases", "improvements"],
+  "min_chars": 100,
+  "max_tokens": 512,
+  "tags": ["opencode", "reasoning", "analysis"]
+}

@@ -89,14 +89,28 @@ def _log(msg: str) -> None:
 def _run_smokes() -> None:
     scripts = Path(__file__).resolve().parent
     py = sys.executable
-    steps = [
+    critical_steps = [
         ("health", [py, "-c", _health_probe_script()]),
         ("retrieval", [py, str(scripts / "vps_run_retrieval_smoke.py")]),
         ("messages", [py, str(scripts / "vps_run_messages_smoke.py")]),
     ]
-    for name, cmd in steps:
+    for name, cmd in critical_steps:
         _log(f"running smoke: {name}")
         subprocess.run(cmd, check=True, cwd=str(scripts.parent))
+
+    # OpenCode E2E — warning-only, does not block deploy on failure
+    _log("running smoke: opencode_e2e")
+    try:
+        result = subprocess.run(
+            [py, str(scripts / "vps_opencode_e2e_verify.py"), "--quick"],
+            cwd=str(scripts.parent), timeout=180,
+        )
+        if result.returncode != 0:
+            _log(f"opencode_e2e warning: exit={result.returncode} (non-blocking)")
+    except subprocess.TimeoutExpired:
+        _log("opencode_e2e warning: timed out after 180s (non-blocking)")
+    except Exception as exc:
+        _log(f"opencode_e2e warning: {exc} (non-blocking)")
 
 
 def _health_probe_script() -> str:

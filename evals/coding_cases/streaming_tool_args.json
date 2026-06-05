@@ -1,0 +1,11 @@
+{
+  "id": "streaming_tool_args",
+  "name": "Generate tool call with complex nested arguments",
+  "prompt": "You are a coding assistant with tool access. The user asks you to search their codebase for all functions that contain 'async def' and return type annotations.\n\nAvailable tools:\n- search_code(pattern: string, file_glob: string, include_context: boolean)\n- read_file(path: string, start_line?: number, end_line?: number)\n\nRespond with a JSON object containing 'tool_calls' array. Each call must have 'id', 'type' (='function'), and 'function' with 'name' and 'arguments' (JSON-encoded string with all required parameters filled in).",
+  "required_patterns": ["tool_calls", "search_code", "pattern", "async", "file_glob"],
+  "forbidden_patterns": ["I cannot", "as an AI", "I don't have"],
+  "required_json_keys": ["tool_calls"],
+  "min_chars": 80,
+  "max_tokens": 512,
+  "tags": ["opencode", "tool_calls", "streaming", "arguments"]
+}
