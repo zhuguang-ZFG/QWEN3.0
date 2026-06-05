@@ -2,6 +2,34 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-06-05 M-OC13 OpenCode 启动空 body 500 + deploy 端口冲突
+
+### 根因
+
+1. OpenCode 启动探测：`POST /v1/chat/completions` 空 body → `await request.json()` 异常 → HTTP 500。
+2. `deploy_opencode.py` 用 `fuser -k` + `nohup server.py` 重启，与 `lima-router.service` 争用 8080，导致 systemd 报 `address already in use` 并进入重启循环。
+
+### 修复
+
+| 文件 | 修改 |
+|------|------|
+| `routes/chat_endpoints.py` | JSON 解析异常 → 400；缺 `messages` → 400 |
+| `routes/system_endpoints.py` | `GET /v1` 端点发现 |
+| `deploy_opencode.py` | 上传后 `systemctl restart lima-router.service` |
+| `tests/test_opencode_optimization.py` | empty body + /v1 回归测试 |
+
+### VPS 证据 (2026-06-05 21:22 CST)
+
+```
+curl 127.0.0.1:8080/health → 200, 14/14 modules active
+curl 127.0.0.1:8080/v1 → endpoints list OK
+curl auth+empty POST → 400 Invalid JSON body (not 500)
+https://chat.donglicao.com/health → 200
+systemctl is-active lima-router.service → active
+```
+
+公网 `47.112.162.80:8080` 直连 502（防火墙/仅 nginx 反代）；验证以 localhost + HTTPS 域名为准。
+
 ## 2026-06-05 M-OC7 provider_kind 检测缺口 + SSE 错误接线
 
 ### 根因分析

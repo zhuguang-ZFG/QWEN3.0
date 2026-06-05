@@ -1,6 +1,31 @@
 # Execution Log
 
-> Last updated: 2026-06-05 · 27 milestones completed · 2261 tests passing (M-OC7)
+> Last updated: 2026-06-05 · 28 milestones completed · OpenCode empty-body + /v1 deployed
+
+## M-OC13: OpenCode 启动空 body 修复 + /v1 发现端点 (completed)
+
+| Task | 修复内容 | 文件 | 状态 |
+|------|---------|------|------|
+| **T1** | 空 POST body → 400 `invalid_request_error`（不再 500） | routes/chat_endpoints.py | ✅ |
+| **T2** | 缺少 `messages` 字段 → 400 | routes/chat_endpoints.py | ✅ |
+| **T3** | GET `/v1` 端点发现 | routes/system_endpoints.py | ✅ |
+| **T4** | deploy_opencode 改用 `systemctl restart`（避免端口冲突） | deploy_opencode.py | ✅ |
+| **T5** | 测试：empty body + /v1 discovery | tests/test_opencode_optimization.py | ✅ |
+| **T6** | VPS 部署 56 files + systemd restart | deploy_opencode.py | ✅ |
+| **T7** | VPS smoke：health 200、/v1 OK、auth+empty→400 | scripts/_vps_smoke_now.py | ✅ |
+
+**根因**: OpenCode 启动时对 `/v1/chat/completions` 发送空 POST；`await request.json()` 抛异常导致 500。
+
+**VPS 证据**:
+```
+127.0.0.1 /health → 200 {"status":"ok","version":"2.0",...14 modules}
+127.0.0.1 /v1 → {"endpoints":["/v1/chat/completions","/v1/models"]}
+auth + empty POST → 400 {"error":{"message":"Invalid JSON body",...}}
+https://chat.donglicao.com/health → 200
+lima-router.service → active
+```
+
+**部署注意**: `deploy_opencode.py` 原 `nohup` 与 systemd 争用 8080；已改为 `systemctl restart lima-router.service`。
 
 ## M-OC7: OpenCode Provider Kind 修复 + SSE 错误接线 (completed)
 

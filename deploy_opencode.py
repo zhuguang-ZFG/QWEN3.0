@@ -100,30 +100,32 @@ def main():
 
     sftp.close()
 
-    # Restart server — kill any process on port 8080 (uvicorn or server.py)
+    # Restart via systemd — avoids port conflict with rogue nohup processes
     stdin, stdout, stderr = ssh.exec_command(
-        'fuser -k 8080/tcp 2>/dev/null; '
-        'pkill -9 -f "python3.10.*server" || true; '
-        'sleep 2'
+        "fuser -k 8080/tcp 2>/dev/null; "
+        "pkill -9 -f 'python3.10.*server.py' 2>/dev/null || true; "
+        "sleep 2; "
+        "systemctl restart lima-router.service; "
+        "sleep 10; "
+        "systemctl is-active lima-router.service"
     )
-    stdout.read()
-    time.sleep(2)
+    active = stdout.read().decode().strip()
+    err = stderr.read().decode().strip()
+    if active == "active":
+        print("lima-router.service active")
+    else:
+        print(f"lima-router.service status: {active or err or 'unknown'}")
+        stdin, stdout, stderr = ssh.exec_command(
+            "journalctl -u lima-router.service -n 25 --no-pager"
+        )
+        print(stdout.read().decode())
 
-    stdin, stdout, stderr = ssh.exec_command(
-        f"cd {REMOTE} && nohup /usr/local/bin/python3.10 server.py > /var/log/lima-server.log 2>&1 &"
-    )
-    stdout.read()
-    time.sleep(8)
-
-    # Check if server is running
     stdin, stdout, stderr = ssh.exec_command("ss -tlnp | grep 8080")
     result = stdout.read().decode()
     if "8080" in result:
         print("Server UP on 8080")
     else:
-        print("Server may not be running, checking logs...")
-        stdin, stdout, stderr = ssh.exec_command("tail -20 /var/log/lima-server.log")
-        print(stdout.read().decode())
+        print("Port 8080 not listening")
 
     ssh.close()
 

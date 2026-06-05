@@ -261,3 +261,38 @@ def test_stream_flush_threshold_configurable():
     os.environ.pop("LIMA_STREAM_FLUSH_CHARS", None)
     importlib.reload(http_stream)
     assert http_stream._STREAM_FLUSH_CHARS == 200
+
+
+# ─── Test 9: OpenCode startup empty-body must not 500 ────────────────────────
+
+def test_opencode_empty_body_returns_400(monkeypatch):
+    """OpenCode sends empty POST on startup; must return 400, not crash."""
+    from fastapi.testclient import TestClient
+
+    import server
+
+    monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
+    client = TestClient(server.app)
+    response = client.post(
+        "/v1/chat/completions",
+        headers={
+            "Authorization": "Bearer test-private-token",
+            "Content-Type": "application/json",
+        },
+        content=b"",
+    )
+    assert response.status_code == 400
+    assert response.json()["error"]["type"] == "invalid_request_error"
+
+
+def test_v1_discovery_endpoint():
+    """GET /v1 exposes OpenAI-compatible endpoint discovery."""
+    from fastapi.testclient import TestClient
+
+    import server
+
+    client = TestClient(server.app)
+    response = client.get("/v1")
+    assert response.status_code == 200
+    data = response.json()
+    assert "/v1/chat/completions" in data.get("endpoints", [])
