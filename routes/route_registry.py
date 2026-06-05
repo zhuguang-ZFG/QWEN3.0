@@ -94,10 +94,6 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
     app.include_router(admin_client_keys_router)
     deps.loaded_modules["admin_client_keys"] = True
 
-    from routes.admin_api import router as admin_api_router
-    app.include_router(admin_api_router)
-    deps.loaded_modules["admin_api"] = True
-
     import routes.quality_gate as quality_gate_mod
 
     quality_gate_mod.inject_state(deps.backend_enabled)
