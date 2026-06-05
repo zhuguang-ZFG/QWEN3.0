@@ -250,6 +250,41 @@ def extract_interleaved_reasoning(
     return result
 
 
+# ── Provider option key remapping (transform.ts:316-348) ─────────────────────
+
+# Map from stored provider IDs to AI SDK expected keys.
+# OpenCode stores options under the provider ID but the SDK expects
+# SDK-specific keys (e.g. "openai" → "openaiCompatible").
+_SDK_KEY_MAP: dict[str, str] = {
+    "openai": "openaiCompatible",
+    "openai-compatible": "openaiCompatible",
+    "anthropic": "anthropic",
+    "google": "google",
+    "azure": "azure",
+    "bedrock": "bedrock",
+}
+
+
+def remap_provider_options(messages: list[dict]) -> list[dict]:
+    """Remap providerOptions keys from stored providerID to SDK-expected key.
+
+    Ported from transform.ts sdkKey() (L316-348).
+    Example: providerOptions.openai.someOption → providerOptions.openaiCompatible.someOption
+    """
+    result: list[dict] = []
+    for msg in messages:
+        opts = msg.get("providerOptions")
+        if not opts or not isinstance(opts, dict):
+            result.append(msg)
+            continue
+        remapped: dict[str, object] = {}
+        for key, val in opts.items():
+            new_key = _SDK_KEY_MAP.get(key, key)
+            remapped[new_key] = val
+        result.append({**msg, "providerOptions": remapped})
+    return result
+
+
 def normalize_messages(messages: list[dict], backend: str) -> list[dict]:
     """统一入口：对消息列表做完整的规范化处理。
     
@@ -285,10 +320,13 @@ def normalize_messages(messages: list[dict], backend: str) -> list[dict]:
     if any(b in backend.lower() for b in _interleaved_backends):
         result = extract_interleaved_reasoning(result)
 
-    # Step 4: 空消息过滤
+    # Step 4: Provider option key remapping (sdkKey)
+    result = remap_provider_options(result)
+
+    # Step 5: 空消息过滤
     result = filter_empty_messages(result)
 
-    # Step 5-6: toolCallId 规范化 + 序列修复
+    # Step 6-7: toolCallId 规范化 + 序列修复
     result = normalize_tool_call_ids(result, backend)
 
     return result

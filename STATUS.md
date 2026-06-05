@@ -34,6 +34,10 @@
 | M-OC5 | Admin Panel Apple UI 重设计 (admin.html +889/-330) | 0 |
 | M-OC6 | AGENTS.md 全面重写 + 代码审查 (346 lines, 10 issues fixed) | 0 |
 | M-OC7 | provider_kind 修复 (21 backends) + SSE 错误接线 + session ID + IDE 扩展 | 0 |
+| M-OC8 | smart_router Slice 1-3 热路径迁移（classify/http/distill → routing_facade/http_caller/backends/cb）| 0 |
+| M-OC9 | 死代码清理（9 模块 -5874行）+ 过期文档（12）+ 退役支线（OpenClaw 10） | 0 |
+| M-OC10 | 深度适配：error adapter (+144行 HTML检测/timeout类/retryable) + message normalizer (Bedrock) + GPT-5 mini | 0 |
+| M-OC11 | API Key 安全去硬编码 (4 scripts) + 周期 eval 开启 + hypothesis importorskip | 0 |
 
 ## 编码体验加厚（2026-06）
 
@@ -46,7 +50,7 @@
 | P1 OpenCode E2E + 流错误重试 | ✅ | `tests/test_opencode_e2e_cases.py` · `routing_executor.py`（`is_retryable` fallback） |
 | P1 工具修复管线 MVP | ✅ | `tool_repair_pipeline.py` · `text_tool_extractor.py` · `workspace_sandbox.ReadTracker`（`LIMA_WORKSPACE_READ_GATE=1`） |
 | P2 上下文注入 trace | ✅ | `context_injection_trace.py` · Admin `GET /api/context-injection-traces` · 响应 `x_lima_meta.context_injection` |
-| P2 路由双轨收敛（渐进） | 🔄 | `routing_facade.py`（`/v1/status`、`ide_coder_pool`）· `router_http` → `http_caller` · `routes/agent_task_result_hooks.py` |
+| P2 路由双轨收敛（渐进） | ✅ (Slice 1-3 done, 3 deps remain) | `routing_facade.py`（`/v1/status`、`ide_coder_pool`）· smart_router 生产引用 14→3 |
 
 **Admin / 运维**
 
@@ -64,7 +68,7 @@
 | `LIMA_IDE_POOL_EVIDENCE_GATE` | `1` | 无 eval/admission/tier 证据不进 IDE 默认池 |
 | `LIMA_ROUTER_HTTP_HTTPX` | `1` | `router_http` 委托 `http_caller` |
 | `LIMA_WORKSPACE_READ_GATE` | `0` | `1` 时 sandbox 未读文件禁止 edit |
-| `LIMA_PERIODIC_CODING_EVAL` | `0` | `1` 启用周期性 coding eval |
+| `LIMA_PERIODIC_CODING_EVAL` | `1` (VPS) | VPS 已开启周期性 coding eval |
 
 **仍渐进（非方向问题）**：`smart_router` 部分调用方未迁完 — 见 [`docs/SMART_ROUTER_MIGRATION.md`](docs/SMART_ROUTER_MIGRATION.md)（调用方清单 + 6 slice 热路径顺序）；`docs/NEXT_MILESTONES.md` 与 `docs/superpowers/plans/` 仅作档案。
 

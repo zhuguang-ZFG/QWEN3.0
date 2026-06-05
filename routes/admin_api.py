@@ -58,8 +58,8 @@ def _get_version_info() -> dict[str, str]:
         )
         if result.returncode == 0:
             commit = result.stdout.strip()
-    except Exception:
-        pass
+    except Exception as exc:
+        _log.debug("git commit extraction failed: %s", type(exc).__name__)
     _VERSION_CACHE["git_commit"] = commit
     _VERSION_CACHE["python_version"] = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
     return dict(_VERSION_CACHE)
