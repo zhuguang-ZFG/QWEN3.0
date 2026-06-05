@@ -275,11 +275,13 @@ AFFINITY = {
         "groq_llama4", "groq_gptoss", "google_flash_lite", "google_gemma4", "github_gpt4o_mini",
     ],
     "code": [
+        # Tier 1: fastest coding backends (prioritized for IDE/OpenCode)
+        "scnet_ds_flash", "scnet_qwen30b",
         "nvidia_qwen_coder", "cf_qwen_coder",
-        "opencode_stealth", "mistral_devstral",
         "groq_llama70b", "cerebras_gptoss",
         "github_codestral", "or_qwen3_coder", "mistral_codestral",
-        "scnet_qwen30b", "scnet_qwen235b", "scnet_ds_flash",
+        "scnet_qwen235b",
+        "opencode_stealth", "mistral_devstral",
     ],
     "complex_premium": [
         "longcat", "longcat_thinking",
