@@ -2,6 +2,37 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-06-05 M-OC7 provider_kind 检测缺口 + SSE 错误接线
+
+### 根因分析
+
+`provider_kind.detect_provider_kind()` 缺少 `or_*` (OpenRouter) 和 `github_*` (GitHub Models) 前缀检测。这两个 provider 在 reasoning_variants.py 和 session_options.py 中有专门的 match case，但永远不触发，因为后端名落入了 `"openai_compatible"` 默认值。
+
+**更严重的次级问题**: `github_deepseek_r1` 的 model 字段是 "DeepSeek-R1"，先于 backend 名匹配到 `"deepseek_reasoning"`，导致该 GitHub 后端被错误分类为 DeepSeek reasoning provider。
+
+### 修复方案
+
+| 文件 | 修改 |
+|------|------|
+| `provider_kind.py` | 在 model-name 检测之前添加 `fn.startswith("or_")` → "openrouter" 和 `fn.startswith("github_")` → "github_copilot" |
+| `http_request_builder.py` | `_mk_session_id()` 改为 backend+day 的确定性 hash (promptCacheKey 生效); `_is_ide_backend_session` 支持 cursor/vscode/copilot |
+| `http_stream.py` | 在 sync + async SSE 循环中接入 `parse_stream_error()`，分类 context_overflow (413) 和 api_error (502 + isRetryable) |
+| `http_errors.py` | `BackendError` 新增 `is_retryable` 参数 |
+| `tests/test_provider_kind.py` | 32 个新测试 (parametrize: 11 OpenRouter + 9 GitHub + 12 回归测试) |
+
+### 影响范围
+
+- 12 个 OpenRouter 后端 (or_deepseek_r1, or_qwen3_coder, or_llama70b, ...) 现在获得 `reasoning: {effort: "low"}` 格式 + `usage: {include: true}` session option
+- 9 个 GitHub 后端 (github_gpt5, github_o3_mini, ...) 现在获得 `reasoningEffort` + `reasoningSummary: "auto"` + `store: false` session option
+- SSE 流中的 `type: "error"` 事件现在被结构化分类，支持 isRetryable 重试决策
+
+### VPS 证据
+```
+health: {"status":"ok","version":"2.0"} 14/14 modules
+smoke: gpt-4o=200, qwen3-coder=200, gpt-5=200
+journalctl: No tracebacks (5 min window)
+```
+
 ## 2026-06-04 M-OC3 OpenCode Round 3 深度适配 — 模型推理兼容性
 
 ### 背景
@@ -1530,3 +1561,54 @@ ADMIN_HTML imports successfully ✅
 - **A6** model alias 移除：`routes/chat_handler_dispatch.py` 删除 `"code"` alias
 - **A9** 过渡句：README/AGENTS/STATUS 顶部添加迁移说明
 - **A10** 验证：grep 0 命中 ✓、pytest 222+137 ✓、ruff ✓
+
+## M-OC4 routing_executor 最小答案长度修复 (2026-06-04)
+
+### Root Cause
+`routing_executor.py` 中 `execute()` 和 `_parallel_fallback()` 要求后端回答 `len(answer.strip()) > 5` 才算有效。这导致短而有效的回答（如 "Yes"、"OK"、"3"）被拒绝，触发 fallback 耗尽并返回 "all services unavailable"。
+
+### 修复
+3 处 `> 5` 改为 `> 0`：
+- `execute()` main loop (line 42)
+- `execute()` serial fallback (line 85)
+- `_parallel_fallback()` (line 113)
+
+### VPS 验证
+4 个模型 (deepseek-v4-flash, claude-sonnet-4, gpt-4.1, qwen3-coder) 均正常返回短回答。
+
+### 教训
+**回答长度阈值不应作为质量判断标准**。有效回答可以是任意长度。如需质量验证，应使用后端健康分数 + 回答验证器 (`response_validator`)，而非硬编码字符数。
+
+## M-OC5 Admin Panel Apple UI 重设计 (2026-06-04)
+
+### 设计系统
+- 采用 Apple Design System 设计语言
+- CSS 变量体系：light/dark mode 双主题
+- 圆角层级：8px/12px/18px/pill (980px)
+- 色彩：Apple 系统色 (#0071e3 accent, #34c759 success, #ff3b30 danger)
+- 阴影层级：sm/md/lg 三级
+- Lucide 图标库
+
+### 规模
+admin.html 从 520 行扩展到 1064 行 (+889/-330)，新增完整 CSS 设计系统和 JS 交互层。
+
+## M-OC6 AGENTS.md 全面重写 + 代码审查 (2026-06-05)
+
+### 重写过程
+1. 读取现有 AGENTS.md (309行) + CLAUDE.md + README.md
+2. 读取 server.py, routing_engine.py, smart_router.py, backends.py 等核心模块验证架构描述
+3. 完整重写为 339 行新版
+4. 三路并行代码审查 (completeness/correctness/impact)
+5. 应用 10 项审查修复 → 最终 346 行
+
+### 审查发现的关键修正
+1. **Facade 表格错误**：routing_engine.py 被标为 facade，但它包含完整 `route()` 编排函数 (355行)
+2. **smart_router.py 描述错误**：说 "delegates to routing_engine" 但实际从未导入 routing_engine
+3. **文件计数错误**：channel_gateway 标注 8 files 实际 19 files
+4. **缺失条目**：search_gateway、quality_gate、tool_forward 未记录
+5. **路由管道顺序**：原写为 "classify → select → inject → execute → respond"，实际包含更多层
+
+### 教训
+- 架构文档必须通过代码审查验证，不能仅凭代码阅读
+- Facade 模式的判断标准：模块是否仅做 re-export，还是包含自有逻辑
+- 文件计数应通过工具验证，不可凭印象

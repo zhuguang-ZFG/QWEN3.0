@@ -10,10 +10,18 @@ import httpx
 class BackendError(Exception):
     """Backend call failed; carries status_code for health_tracker."""
 
-    def __init__(self, message: str, status_code: Optional[int] = None, *, is_overflow: bool = False):
+    def __init__(
+        self,
+        message: str,
+        status_code: Optional[int] = None,
+        *,
+        is_overflow: bool = False,
+        is_retryable: bool = False,
+    ):
         super().__init__(message)
         self.status_code = status_code
         self.is_overflow = is_overflow
+        self.is_retryable = is_retryable
 
 
 def _extract_retry_after(exc: Exception) -> int:

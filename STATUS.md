@@ -1,7 +1,7 @@
 # LiMa — 运行状态
 
-> 2026-06-18 · VPS `47.112.162.80` · 分支 `codex/free-web-ai-probe`
-> 权威架构见 `docs/REQUEST_PIPELINE_AUTHORITY.md`
+> 2026-06-05 · VPS `47.112.162.80` · 分支 `codex/free-web-ai-probe`
+> 权威架构见 `AGENTS.md`（全面重写版）+ `docs/REQUEST_PIPELINE_AUTHORITY.md`
 > 产品定义见 `docs/PRODUCT_DEFINITION.md`
 > M-OC0: LiMa CLI migrated to OpenCode MCP bridge. `lima-code` → `lima`. See `docs/opencode-integration.md`.
 
@@ -26,9 +26,14 @@
 | M11d | 完整 ContextManager 移植 (+412 行, deepcode-cli@182730d) | 0 |
 | M11e | 部署验证 + 文档更新 | 0 |
 | M11f | 代码审查修复 (D:/GIT 硬编码) | 0 |
+| M-OC0 | lima-code → lima 全局重命名 (98+74 files) | 0 |
 | M-OC1 | OpenCode Phase 1 基础 IDE 适配 | 0 |
 | M-OC2 | OpenCode Round 2 深度适配（overflow/normalize/usage/reasoning_effort） | 0 |
 | M-OC3 | OpenCode Round 3 深度适配（reasoning_variants/session_options/stream_error） | 0 |
+| M-OC4 | routing_executor 最小答案长度修复 (5→0) | 0 |
+| M-OC5 | Admin Panel Apple UI 重设计 (admin.html +889/-330) | 0 |
+| M-OC6 | AGENTS.md 全面重写 + 代码审查 (346 lines, 10 issues fixed) | 0 |
+| M-OC7 | provider_kind 修复 (21 backends) + SSE 错误接线 + session ID + IDE 扩展 | 0 |
 
 ## 部署状态
 
@@ -59,6 +64,7 @@
 | ModelScope 后端 | 8 个（ms_deepseek_v4/qwen35/kimi_k25/glm5 + code 变体） |
 | VPS reverse sidecar | 5/5 active |
 | net code removed | ~650 行 |
+| 总里程碑 | **26** 完成 |
 
 ## LiMa CLI — 维护模式
 
@@ -77,7 +83,7 @@
 
 | 套件 | 通过 | 说明 |
 |------|------|------|
-| LiMa pytest | 1972 | 85 预存失败 |
+| LiMa pytest | 2229 | 85 预存失败 (M-OC3 时点) |
 | LiMa CLI | 498 | 2 预存失败 |
 
 ## 不再依赖的本机服务

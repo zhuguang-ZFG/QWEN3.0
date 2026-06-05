@@ -294,14 +294,17 @@ def _build_body(
 
 
 def _is_ide_backend_session(backend_name: str, ide: str) -> bool:
-    return bool(ide and ide.lower() in ("opencode",))
+    """Check if this is an IDE-backed session that should receive session-level optimizations."""
+    return bool(ide and ide.lower() in ("opencode", "cursor", "vscode", "copilot"))
 
 
 def _mk_session_id(backend_name: str) -> str:
-    """Generate a session ID for prompt caching.
+    """Generate a deterministic session ID for prompt caching.
 
-    TODO: Implement real session ID generation based on conversation context.
-    Currently returns empty string — promptCacheKey features are inactive.
+    Same backend + same day → same session ID, enabling promptCacheKey reuse.
     """
-    return ""
+    import hashlib
+    day_key = _time.strftime("%Y%m%d")
+    raw = f"{backend_name}:{day_key}"
+    return hashlib.sha256(raw.encode()).hexdigest()[:16]
 

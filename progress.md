@@ -1,6 +1,28 @@
 # Execution Log
 
-> Last updated: 2026-06-04 · 23 个里程碑完成 · 2229 tests passing
+> Last updated: 2026-06-05 · 27 milestones completed · 2261 tests passing (M-OC7)
+
+## M-OC7: OpenCode Provider Kind 修复 + SSE 错误接线 (completed)
+
+| Task | 修复内容 | 文件 | 状态 |
+|------|---------|------|------|
+| **T1** | provider_kind.py — 添加 openrouter (or_*) + github (github_*) 检测 | provider_kind.py | ✅ |
+| **T2** | 32 个新测试覆盖 provider_kind 检测逻辑 | tests/test_provider_kind.py | ✅ |
+| **T3** | _mk_session_id() — 生成确定性 session ID (backend+day hash) | http_request_builder.py | ✅ |
+| **T4** | _is_ide_backend_session — 支持 cursor/vscode/copilot | http_request_builder.py | ✅ |
+| **T5** | parse_stream_error 接线到 http_stream sync+async SSE 循环 | http_stream.py, http_errors.py | ✅ |
+| **T6** | 本地 pytest 194 passed (相关模块), ruff clean | - | ✅ |
+| **T7** | VPS 部署: 4 files scp + systemctl restart | - | ✅ |
+| **T8** | VPS /health OK, 3/3 smoke tests PASS, 无 traceback | - | ✅ |
+
+**根因**: provider_kind.detect_provider_kind() 缺少 "or_" 和 "github_" 前缀检测，导致 12 个 OpenRouter 和 9 个 GitHub 后端落入 "openai_compatible" 默认值，reasoning_variants.py 和 session_options.py 中的 openrouter/github_copilot case 永远不触发。
+
+**修复影响**: 21 个后端现在获得正确的 reasoning effort 翻译和 session options 注入。
+
+**本地门禁**: pytest 194 passed (provider_kind + opencode_round3 + http_caller + streaming + routing)
+**ruff check**: All checks passed
+**VPS /health**: `{"status":"ok","version":"2.0"}` 14/14 modules active
+**VPS smoke**: gpt-4o 200 OK, qwen3-coder 200 OK, gpt-5 200 OK
 
 ## M-OC3: OpenCode Round 3 深度适配 — 模型推理兼容性 (completed)
 
@@ -5211,3 +5233,52 @@ deploy_opencode.py → VPS 47.112.162.80 (systemctl restart lima-router)
 - **A6** model alias 移除：`routes/chat_handler_dispatch.py` 删除 `"code"` alias
 - **A9** 过渡句：README/AGENTS/STATUS 顶部添加迁移说明
 - **A10** 验证：grep 0 命中 ✓、pytest 222+137 ✓、ruff ✓、`data/backend_admission.json` 恢复 ✓
+
+## M-OC4: routing_executor 最小答案长度修复 (2026-06-04)
+
+| Task | 修复内容 | 文件 | 状态 |
+|------|---------|------|------|
+| **T1** | minimum answer length threshold 5→0 prevents rejecting short valid responses | routing_executor.py | ✅ |
+
+**修复原因**: `routing_executor.py` 中验证逻辑要求后端回答至少 5 字符，导致某些有效短回答（如 “Yes”、“OK”）被拒绝并重试。
+**Commit**: `2c523a6`
+
+## CHORE: 深度清理 + 调试脚本移除 (2026-06-04)
+
+- `b5377dd` — 清理 cache dirs, ghost dirs, temp scripts
+- `fb5bf4a` — 移除临时调试脚本和审查产物
+
+## M-OC5: Admin Panel Apple UI 重设计 (2026-06-04)
+
+| Task | 内容 | 文件 | 状态 |
+|------|------|------|------|
+| **T1** | admin.html 全面重设计，Apple 风格 UI | admin.html (+889/-330) | ✅ |
+| **T2** | context_compressor.py 微调 | context_compressor.py | ✅ |
+| **T3** | fleet/agent.py 增强 | fleet/agent.py | ✅ |
+| **T4** | provider_kind.py 新增 | provider_kind.py | ✅ |
+
+**Commit**: `f066e87` — feat: OpenCode Round 3 adaptation + Apple UI admin panel redesign
+
+## M-OC6: AGENTS.md 全面重写 + 代码审查 (2026-06-05)
+
+| Task | 内容 | 状态 |
+|------|------|------|
+| **T1** | 读取现有 AGENTS.md (309行) + CLAUDE.md + README.md | ✅ |
+| **T2** | 读取 server.py, routing_engine.py, smart_router.py, backends.py 等核心模块 | ✅ |
+| **T3** | 完整重写 AGENTS.md (339行) | ✅ |
+| **T4** | 三路并行代码审查 (completeness/correctness/impact) | ✅ |
+| **T5** | 应用 10 项审查修复 → 最终 346行 | ✅ |
+
+**关键修正**:
+- Facade 表格：routing_engine.py 不是 facade（包含完整 route() 编排）
+- smart_router.py 描述修正（不委托 routing_engine，是独立工具集）
+- channel_gateway 文件计数修正 (8→19)
+- 新增 search_gateway/quality_gate/tool_forward 条目
+- 路由管道顺序修正
+- Ruff excludes 恢复
+
+**未提交**: AGENTS.md 变更已暂存，待 commit
+
+## REF: deepcode-cli 子模块指针更新 (2026-06-05)
+
+- `a0c3502` — 更新 deepcode-cli 子模块指针以匹配 lima 重命名

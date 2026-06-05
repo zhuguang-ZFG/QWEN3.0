@@ -12,7 +12,7 @@ from response_cleaner import StreamIdentitySanitizer, clean_response, _is_backen
 
 from backends import BACKENDS
 from http_errors import BackendError, _extract_code, _extract_retry_after
-from opencode_error_adapter import detect_context_overflow
+from opencode_error_adapter import detect_context_overflow, parse_stream_error
 import json as _json_mod
 from http_response import _parse_sse_chunk, extract_sse_usage, extract_sse_reasoning
 
@@ -70,6 +70,20 @@ def call_api_stream(
                 data_str = line[6:]
                 if data_str == "[DONE]":
                     break
+                # Detect SSE error events (context_overflow, quota, server_error etc.)
+                sse_err = parse_stream_error(data_str)
+                if sse_err and sse_err.get("type") == "context_overflow":
+                    raise BackendError(
+                        sse_err.get("message", "context overflow"),
+                        status_code=413,
+                        is_overflow=True,
+                    )
+                if sse_err and sse_err.get("type") == "api_error":
+                    raise BackendError(
+                        sse_err.get("message", "API error"),
+                        status_code=502,
+                        is_retryable=bool(sse_err.get("isRetryable", False)),
+                    )
                 # Capture usage and reasoning metadata before extracting content
                 usage = extract_sse_usage(data_str)
                 if usage:
@@ -224,6 +238,20 @@ async def call_api_stream_async(
                 data_str = line[6:]
                 if data_str == "[DONE]":
                     break
+                # Detect SSE error events (context_overflow, quota, server_error etc.)
+                sse_err = parse_stream_error(data_str)
+                if sse_err and sse_err.get("type") == "context_overflow":
+                    raise BackendError(
+                        sse_err.get("message", "context overflow"),
+                        status_code=413,
+                        is_overflow=True,
+                    )
+                if sse_err and sse_err.get("type") == "api_error":
+                    raise BackendError(
+                        sse_err.get("message", "API error"),
+                        status_code=502,
+                        is_retryable=bool(sse_err.get("isRetryable", False)),
+                    )
                 # Capture usage and reasoning metadata before extracting content
                 usage = extract_sse_usage(data_str)
                 if usage:

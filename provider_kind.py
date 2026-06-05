@@ -15,6 +15,16 @@ def detect_provider_kind(backend_name: str, model_id: str) -> str:
     mid = model_id.lower() if model_id else ""
 
     # Premium providers are named directly
+    # OpenRouter: backend name starts with "or_"
+    if fn.startswith("or_"):
+        return "openrouter"
+
+    # GitHub Models (models.inference.ai.azure.com)
+    # Must be before deepseek/qwen model-name checks to prevent false positives
+    # (e.g. github_deepseek_r1 model="DeepSeek-R1" would otherwise match deepseek_reasoning)
+    if fn.startswith("github_"):
+        return "github_copilot"
+
     if any(p in fn for p in ("openai",)):
         return "openai"
     if any(p in fn for p in ("anthropic", "claude")):
