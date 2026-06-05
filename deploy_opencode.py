@@ -97,8 +97,12 @@ def main():
 
     sftp.close()
 
-    # Restart server
-    stdin, stdout, stderr = ssh.exec_command('pkill -9 -f "python3.10 server.py" || true')
+    # Restart server — kill any process on port 8080 (uvicorn or server.py)
+    stdin, stdout, stderr = ssh.exec_command(
+        'fuser -k 8080/tcp 2>/dev/null; '
+        'pkill -9 -f "python3.10.*server" || true; '
+        'sleep 2'
+    )
     stdout.read()
     time.sleep(2)
 
@@ -106,7 +110,7 @@ def main():
         f"cd {REMOTE} && nohup /usr/local/bin/python3.10 server.py > /var/log/lima-server.log 2>&1 &"
     )
     stdout.read()
-    time.sleep(5)
+    time.sleep(8)
 
     # Check if server is running
     stdin, stdout, stderr = ssh.exec_command("ss -tlnp | grep 8080")
