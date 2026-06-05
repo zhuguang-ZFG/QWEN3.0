@@ -1,9 +1,15 @@
 """
 quality_gate.py — 多维代码质量门（纯规则，不调模型）
 5 个维度评分，总分 0-100，≥70 通过
+
+增强功能:
+  - 精确 Python 语法错误提取（行号 + 错误类型）
+  - 类型注解检查（函数参数/返回值）
+  - 增强 import 缺失检测
 """
 import re
 import ast
+from typing import Optional
 
 
 # ── Security Patterns ────────────────────────────────────────────────────────
@@ -28,6 +34,80 @@ _DEPRECATED = [
     (r"\braw_input\(", "deprecated_raw_input"),
     (r"\bxrange\(", "deprecated_xrange"),
 ]
+
+
+def _extract_syntax_error_detail(code: str) -> Optional[str]:
+    """Extract detailed Python syntax error info from code string.
+
+    Returns:
+        "line N: error_message" or None if valid.
+    """
+    try:
+        ast.parse(code)
+        return None
+    except SyntaxError as e:
+        lineno = getattr(e, "lineno", 0)
+        msg = str(e.msg) if hasattr(e, "msg") else str(e)
+        offset = getattr(e, "offset", 0)
+        text = getattr(e, "text", "") if hasattr(e, "text") else ""
+        if text:
+            text = text.strip()
+        parts = [f"line {lineno}: {msg}"]
+        if text:
+            parts.append(f"near '{text[:60]}'")
+        return " — ".join(parts)
+
+
+def _check_type_hints(python_blocks: list[str]) -> str:
+    """Check if Python functions lack type annotations.
+
+    Only flags issues if >50% of top-level functions lack annotations.
+
+    Returns:
+        Comma-separated function names lacking annotations, or empty string.
+    """
+    all_code = "\n".join(python_blocks)
+    try:
+        tree = ast.parse(all_code)
+    except SyntaxError:
+        return ""  # Can't check if syntax is invalid
+
+    func_defs = [
+        node for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    ]
+
+    if not func_defs:
+        return ""
+
+    unannotated: list[str] = []
+    for func in func_defs:
+        # Skip dunder methods and simple properties
+        if func.name.startswith("_") and func.name.endswith("_"):
+            continue
+        if func.name == "main":
+            continue
+
+        # Check return annotation
+        has_return = func.returns is not None
+        # Check parameter annotations (skip 'self' and 'cls')
+        params = [
+            a for a in func.args.args
+            if a.arg not in ("self", "cls")
+        ]
+        annotated_params = sum(1 for a in params if a.annotation is not None)
+
+        if not has_return and annotated_params == 0 and params:
+            unannotated.append(func.name)
+
+    if not unannotated:
+        return ""
+
+    # Only flag if >50% are unannotated
+    if len(unannotated) / len(func_defs) <= 0.5:
+        return ""
+
+    return ",".join(unannotated[:4])
 
 
 def check(response: str, query: str) -> dict:
@@ -120,25 +200,49 @@ def check(response: str, query: str) -> dict:
     d5_score = 20
     d5_issues = []
     python_blocks = re.findall(r"```python\n(.*?)```", text, re.S)
-    for block in python_blocks[:3]:
+
+    # AST 语法检查（含精确错误信息）
+    syntax_errors: list[str] = []
+    for i, block in enumerate(python_blocks[:3]):
         try:
             ast.parse(block)
-        except SyntaxError:
+        except SyntaxError as e:
+            lineno = getattr(e, "lineno", 0)
+            msg = str(e.msg) if hasattr(e, "msg") else str(e)
+            syntax_errors.append(f"line {lineno}: {msg}" if lineno else msg)
             d5_score -= 10
-            d5_issues.append("python_syntax_error")
-            break
+            if i == 0:  # Only flag first block with syntax error
+                break
+
+    if syntax_errors:
+        d5_issues.append(f"python_syntax_error:{';'.join(syntax_errors[:2])}")
 
     # import 完整性：用了但没 import
-    if python_blocks:
+    if python_blocks and not syntax_errors:
         all_code = "\n".join(python_blocks)
         used_modules = set(re.findall(r"\b(\w+)\.\w+\(", all_code))
         imported = set(re.findall(r"(?:import|from)\s+(\w+)", all_code))
-        missing = used_modules - imported - {"self", "cls", "str", "int",
-                                              "list", "dict", "set", "os",
-                                              "re", "sys", "math", "json"}
+        # Built-in modules and common stdlib
+        builtins = {"self", "cls", "str", "int", "list", "dict", "set",
+                    "os", "re", "sys", "math", "json", "time", "datetime",
+                    "pathlib", "Path", "io", "csv", "random", "collections",
+                    "itertools", "functools", "typing", "logging", "enum",
+                    "dataclasses", "contextlib", "asyncio", "subprocess",
+                    "shutil", "tempfile", "hashlib", "uuid", "base64",
+                    "threading", "queue", "copy", "types", "warnings",
+                    "textwrap", "argparse", "configparser", "decimal",
+                    "fractions", "statistics", "unittest", "pytest"}
+        missing = used_modules - imported - builtins
         if missing:
             d5_score -= 5
-            d5_issues.append(f"missing_imports:{','.join(list(missing)[:3])}")
+            d5_issues.append(f"missing_imports:{','.join(sorted(list(missing))[:3])}")
+
+    # 类型注解检查：检查函数是否缺少类型注解（Python 代码）
+    if python_blocks and not syntax_errors:
+        type_issues = _check_type_hints(python_blocks)
+        if type_issues:
+            d5_score -= 3
+            d5_issues.append(f"missing_type_hints:{type_issues}")
 
     dims["correctness"] = max(0, d5_score)
 

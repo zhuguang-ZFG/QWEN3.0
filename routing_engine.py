@@ -234,9 +234,71 @@ def route(query: str, messages: list[dict], *,
 
     if scenario == "coding" and call_fn:
         try:
+            # ── Inject OpenCode tool-aware prompts before code orchestration ──
+            try:
+                from opencode_tool_aware import inject_opencode_prompt
+                messages = inject_opencode_prompt(
+                    messages, backend="", system_prompt=system_prompt,
+                    tools=tools, headers=headers or {},
+                )
+            except (ImportError, Exception) as _e:
+                logging.debug("routing_engine: opencode_tool_aware failed: %s", _e)
+
+            # ── Inject reasoning bridge (thinking reminder + provider prompt) ──
+            try:
+                from opencode_reasoning_bridge import (
+                    inject_thinking_reminder, select_provider_system_prompt,
+                )
+                # Get estimated backend for this coding path
+                _est_backend = ""
+                try:
+                    from routing_selector import select as _rselect
+                    _hmap = health_tracker.get_health_map()
+                    _candidates = _rselect("ide", _hmap, scenario="coding",
+                                            needs_tools=needs_tools, ide_source=ide_source)
+                    _est_backend = _candidates[0] if _candidates else ""
+                except Exception:
+                    pass
+                if _est_backend:
+                    messages = inject_thinking_reminder(messages, _est_backend)
+                    _provider_hint = select_provider_system_prompt(_est_backend)
+                    if _provider_hint:
+                        _sp_msg = {"role": "system", "content": _provider_hint}
+                        _sys_idx = next((i for i, m in enumerate(messages)
+                                        if m.get("role") == "system"), -1)
+                        if _sys_idx >= 0:
+                            _old = messages[_sys_idx].get("content", "")
+                            if isinstance(_old, str):
+                                messages[_sys_idx] = {**messages[_sys_idx],
+                                    "content": _old.rstrip() + "\n" + _provider_hint}
+                # Inject sequential tool hint for weak backends
+                if _est_backend:
+                    try:
+                        from opencode_tool_splitter import (
+                            should_inject_sequential_hint, build_sequential_tool_prompt,
+                        )
+                        if should_inject_sequential_hint(_est_backend):
+                            _seq_hint = build_sequential_tool_prompt(tools)
+                            if _seq_hint:
+                                _sys_idx = next((i for i, m in enumerate(messages)
+                                                if m.get("role") == "system"), -1)
+                                if _sys_idx >= 0:
+                                    _old = messages[_sys_idx].get("content", "")
+                                    if isinstance(_old, str):
+                                        messages[_sys_idx] = {**messages[_sys_idx],
+                                            "content": _old.rstrip() + "\n" + _seq_hint}
+                                else:
+                                    messages.insert(0, {"role": "system", "content": _seq_hint})
+                    except (ImportError, Exception) as _e2:
+                        logging.debug("routing_engine: tool_splitter hint failed: %s", _e2)
+            except (ImportError, Exception) as _e:
+                logging.debug("routing_engine: reasoning_bridge failed: %s", _e)
+
             import code_orchestrator
             orch_result = code_orchestrator.handle(
-                query, messages, call_fn, max_tokens)
+                query, messages, call_fn, max_tokens,
+                ide_source=ide_source,
+            )
             if orch_result.get("answer"):
                 ms = int((time.time() - t0) * 1000)
                 return _with_injection_meta(RouteResult(
@@ -282,6 +344,16 @@ def route(query: str, messages: list[dict], *,
 
     # Skills already injected above; reuse injected messages directly
     messages_injected = messages
+
+    # ── Inject token budget info for OpenCode-compatible context management ──
+    if backends:
+        try:
+            from opencode_token_bridge import inject_token_budget_info
+            messages_injected = inject_token_budget_info(
+                messages_injected, backends[0], system_prompt=system_prompt,
+            )
+        except (ImportError, Exception) as _e:
+            logging.debug("routing_engine: token_bridge failed: %s", _e)
 
     # Auto-compress long conversations before they exceed backend context limits
     try:

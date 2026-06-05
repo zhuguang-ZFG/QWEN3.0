@@ -1,6 +1,11 @@
 """
 code_orchestrator.py — 编程模型塔 V3：上下文工程+容错+自愈+学习
-Pipeline: Context Engineering → Intent Amplify → Guided Execute → Quality Gate → Repair
+Pipeline: Context Engineering → Intent Amplify → Multi-Pass Refine → Quality Gate → Repair
+
+增强功能:
+  - 集成 multi_pass_refiner: Generate→Review→Fix→Verify 四遍精炼
+  - 集成 opencode_tool_aware: 工具感知提示注入
+  - 精确语法错误修复注入
 """
 from __future__ import annotations
 
@@ -42,8 +47,14 @@ __all__ = [
 ]
 
 
-def handle(query: str, messages: list, call_fn, max_tokens: int = 4096) -> dict:
-    """编程模型塔主入口。返回 {answer, backend, tier, repaired, score}"""
+def handle(query: str, messages: list, call_fn, max_tokens: int = 4096,
+           ide_source: str = "") -> dict:
+    """编程模型塔主入口。返回 {answer, backend, tier, repaired, score}。
+
+    集成 multi_pass_refiner 作为核心执行策略：
+      - Generate→Review→Fix→Verify 四遍精炼
+      - 若 multi_pass 不可用，回退到原有单遍执行
+    """
     tier = classify_code_tier(query, messages)
     budget = LATENCY_BUDGET[tier]
     t0 = time.time()
@@ -51,6 +62,37 @@ def handle(query: str, messages: list, call_fn, max_tokens: int = 4096) -> dict:
     system = build_system_prompt(query, messages)
     enhanced_query = build_enhanced_query(query)
 
+    # ── Try multi-pass refinement first (for standard/complex tiers) ──
+    if tier in ("standard", "complex"):
+        try:
+            import multi_pass_refiner
+            mp_result = multi_pass_refiner.refine(
+                enhanced_query, messages, call_fn,
+                max_tokens=max_tokens, system_prompt=system,
+                ide_source=ide_source,
+            )
+            if mp_result.get("answer") and mp_result.get("passes", 0) > 0:
+                logger.info(
+                    "[ORCH] multi_pass success: %d passes, score=%d, "
+                    "backend=%s, %.0fms",
+                    mp_result["passes"], mp_result.get("score", 0),
+                    mp_result.get("backend", "?"), mp_result.get("latency_ms", 0),
+                )
+                return {
+                    "answer": mp_result["answer"],
+                    "backend": mp_result["backend"],
+                    "tier": tier,
+                    "repaired": mp_result.get("fixed", False),
+                    "score": mp_result.get("score", 70),
+                }
+            logger.debug(
+                "[ORCH] multi_pass skipped/empty: %s",
+                mp_result.get("skipped", "empty_answer"),
+            )
+        except (ImportError, Exception) as e:
+            logger.debug("[ORCH] multi_pass_refiner unavailable: %s", type(e).__name__)
+
+    # ── Fallback to original single-pass execution ──
     if tier == "simple":
         result = _execute_simple(enhanced_query, messages, call_fn, system, max_tokens, t0, budget)
     elif tier == "standard":
@@ -159,7 +201,22 @@ def _execute_complex(query, messages, call_fn, system, max_tokens, t0, budget):
 
 def _repair_with_breaker(query, bad_answer, reasons, messages,
                           call_fn, system, max_tokens, t0, budget):
+    """Repair a bad coding answer with different backends.
+
+    Enhanced: extracts precise syntax error info from quality_gate reasons
+    to give the repair model exact line numbers and error messages.
+    """
     strong_pool = POOLS["strong"][:]
+
+    # Extract precise syntax error details for targeted repair
+    syntax_detail = ""
+    for reason in reasons:
+        if "python_syntax_error:" in reason:
+            # Extract the error detail part after the colon
+            detail = reason.split(":", 1)[-1] if ":" in reason else ""
+            if detail:
+                syntax_detail = f"\nSyntax errors found:\n  {detail}\n"
+            break
 
     for attempt in range(MAX_REPAIR_ATTEMPTS):
         remaining = budget - (time.time() - t0)
@@ -169,12 +226,14 @@ def _repair_with_breaker(query, bad_answer, reasons, messages,
         backend_to_use = strong_pool.pop(0)
 
         if attempt == 0:
-            repair_prompt = (
-                f"以下代码回复存在问题: {', '.join(reasons)}\n\n"
-                f"原始问题: {query}\n\n"
-                f"有问题的回复:\n{bad_answer[:1500]}\n\n"
-                f"请修复上述问题，直接给出正确的完整代码回复。"
-            )
+            # Build precise repair prompt with error details
+            repair_parts = [f"以下代码回复存在问题: {', '.join(reasons)}"]
+            if syntax_detail:
+                repair_parts.append(syntax_detail)
+            repair_parts.append(f"原始问题: {query}")
+            repair_parts.append(f"有问题的回复:\n{bad_answer[:1500]}")
+            repair_parts.append("请修复上述问题，直接给出正确的完整代码回复。")
+            repair_prompt = "\n\n".join(repair_parts)
         else:
             repair_prompt = query
 

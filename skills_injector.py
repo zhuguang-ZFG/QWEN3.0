@@ -9,6 +9,7 @@ LiMa Skills Injector — 智能补缺注入
 核心原则: 逐条检测 → 只补缺的 → 最多5条 → 不超200 token
 """
 
+import logging
 import os
 import re
 import glob as glob_mod
@@ -16,6 +17,8 @@ from typing import Optional
 
 from backends import STRONG_MODELS
 from opencode_config import OPENCODE_SKIPPED_SKILL_CATEGORIES
+
+_log = logging.getLogger(__name__)
 
 # ─── 常量 ─────────────────────────────────────────────────────────────────────
 
@@ -160,10 +163,41 @@ def apply_skills(backend: str, messages: list[dict],
     if not all_skills:
         return list(messages)
 
+    result: list[dict]
     if backend in STRONG_MODELS:
-        return _directory_mode(messages, all_skills)
+        result = _directory_mode(messages, all_skills)
     else:
-        return _injection_mode(messages, all_skills, system_prompt, ide_source)
+        result = _injection_mode(messages, all_skills, system_prompt, ide_source)
+
+    # ── Integrate reasoning_bridge provider-specific system prompt ──
+    if backend:
+        try:
+            from opencode_reasoning_bridge import select_provider_system_prompt
+            provider_hint = select_provider_system_prompt(backend)
+            if provider_hint:
+                result = _append_to_system(result, provider_hint)
+        except (ImportError, Exception) as _e:
+            _log.debug("skills_injector: reasoning_bridge provider hint failed: %s", _e)
+
+    return result
+
+
+def _append_to_system(messages: list[dict], text: str) -> list[dict]:
+    """Append text to the first system message, or create one."""
+    result = list(messages)
+    for i, msg in enumerate(result):
+        if msg.get("role") == "system":
+            content = msg.get("content", "")
+            if isinstance(content, str):
+                result[i] = {**msg, "content": content.rstrip() + "\n" + text}
+            elif isinstance(content, list):
+                result[i] = {
+                    **msg,
+                    "content": content + [{"type": "text", "text": text}],
+                }
+            return result
+    result.insert(0, {"role": "system", "content": text})
+    return result
 
 
 def _directory_mode(messages: list[dict], all_skills: list[dict]) -> list[dict]:
