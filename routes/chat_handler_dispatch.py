@@ -31,7 +31,7 @@ from routes.chat_post_closeout import (
 )
 from routes.chat_preflight import ChatPreflightResult, prepare_chat_preflight
 from routes.chat_stream import stream_response
-from routes.chat_support import attach_lima_meta, log_sys_prompt, thinking_route
+from routes.chat_support import attach_lima_meta, attach_memory_recall_meta, log_sys_prompt, thinking_route
 
 def _chat_handler():
     import routes.chat_handler as mod

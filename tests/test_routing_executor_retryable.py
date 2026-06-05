@@ -33,6 +33,6 @@ def test_execute_stops_on_overflow():
 
     try:
         mod.execute(["only"], call_fn, [{"role": "user", "content": "hi"}])
-        assert False, "expected overflow to propagate"
+        raise AssertionError("expected overflow to propagate")
     except BackendError as exc:
         assert exc.is_overflow is True
