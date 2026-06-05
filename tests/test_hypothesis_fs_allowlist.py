@@ -7,6 +7,8 @@ import tempfile
 from pathlib import Path
 
 import pytest
+
+hypothesis = pytest.importorskip("hypothesis")
 from hypothesis import assume, given, settings, strategies as st
 
 from lima_mcp.fs_allowlist import is_within_allowed, validate_path

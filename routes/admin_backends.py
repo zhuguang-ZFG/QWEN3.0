@@ -6,7 +6,7 @@ import json
 import time
 import urllib.request
 
-import smart_router
+import backends
 
 
 def describe_backend(name: str, cfg: dict, *, enabled: bool, status_info: dict) -> dict:
@@ -71,9 +71,9 @@ def describe_backend(name: str, cfg: dict, *, enabled: bool, status_info: dict) 
 
 
 def test_backend_sync(name: str) -> dict:
-    if name not in smart_router.BACKENDS:
+    if name not in backends.BACKENDS:
         return {"ok": False, "error": f"backend '{name}' not found"}
-    cfg = smart_router.BACKENDS[name]
+    cfg = backends.BACKENDS[name]
     url = cfg.get("url", "")
     key = cfg.get("key", "")
     fmt = cfg.get("fmt", "openai")

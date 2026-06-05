@@ -122,6 +122,7 @@ def test_opencode_backend_preference():
 
 # ─── Test 6: OPENCODE_OPTIMIZATION_ENABLED activates direct tool mode ─────────
 
+@pytest.mark.filterwarnings("ignore:OPENCODE_OPTIMIZATION_ENABLED is deprecated")
 def test_opencode_tool_mode_flag():
     """Master switch OPENCODE_OPTIMIZATION_ENABLED=1 enables direct tool mode for OpenCode."""
     with patch.dict(os.environ, {"OPENCODE_OPTIMIZATION_ENABLED": "1"}):
