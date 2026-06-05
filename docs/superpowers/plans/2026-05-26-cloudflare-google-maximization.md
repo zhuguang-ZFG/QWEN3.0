@@ -278,7 +278,7 @@ docs/CF_GOOGLE_INVENTORY_REPORT.md # 生成物
 
 ```text
 并行轨道:
-  TG-GH-1/2（Telegram 可靠性 + LiMa Code 推送）     ← 仍是最先
+  TG-GH-1/2（Telegram 可靠性 + LiMa 推送）     ← 仍是最先
   CF-G-0 + CF-G-1（盘点 + 预算）                   ← 可立即做，零路由风险
   CF-G-2 + PA-B（CF 发现与扩容）                   ← CF-G-0 之后
   CF-G-3（Google 路由优化）                        ← CF-G-0 之后

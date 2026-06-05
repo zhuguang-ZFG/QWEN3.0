@@ -536,7 +536,7 @@ Implementation slices:
    - Do not turn on third-party MCP servers by default.
 
 4. A2A contract research:
-   - Map current LiMa Server to LiMa Code task contract to A2A-like fields.
+   - Map current LiMa Server to LiMa task contract to A2A-like fields.
    - No protocol replacement until schema parity exists.
    - Use Solvita-style roles only as opt-in task modes: planner, solver,
      oracle/reviewer, and hacker/adversarial tester. Store lessons as
@@ -781,7 +781,7 @@ Implementation slices:
    - Do not require a TUI for automation.
 
 4. Aider-style editing protocol:
-   - Borrow SEARCH/REPLACE and repo-map ideas for LiMa Code review prompts,
+   - Borrow SEARCH/REPLACE and repo-map ideas for LiMa review prompts,
      not as a runtime dependency.
 
 Likely files:

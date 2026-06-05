@@ -1,4 +1,4 @@
-"""Create a safe LiMa Code smoke task on LiMa Server."""
+"""Create a safe LiMa smoke task on LiMa Server."""
 
 import argparse
 import json
@@ -31,8 +31,8 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", required=True)
     parser.add_argument("--kind", choices=["review", "patch_readme"], default="review")
-    parser.add_argument("--server-url", default=os.environ.get("LIMA_CODE_SERVER_URL", ""))
-    parser.add_argument("--api-key", default=os.environ.get("LIMA_CODE_API_KEY", ""))
+    parser.add_argument("--server-url", default=os.environ.get("LIMA_SERVER_URL", ""))
+    parser.add_argument("--api-key", default=os.environ.get("LIMA_API_KEY", ""))
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
@@ -45,9 +45,9 @@ def main() -> None:
         return
 
     if not args.server_url:
-        raise SystemExit("LIMA_CODE_SERVER_URL or --server-url is required")
+        raise SystemExit("LIMA_SERVER_URL or --server-url is required")
     if not args.api_key:
-        raise SystemExit("LIMA_CODE_API_KEY or --api-key is required")
+        raise SystemExit("LIMA_API_KEY or --api-key is required")
 
     req = build_request(args.server_url, args.api_key, payload)
     try:

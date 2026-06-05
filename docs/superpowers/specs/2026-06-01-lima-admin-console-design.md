@@ -23,7 +23,7 @@ The first production version is a single static HTML page rendered from `routes/
 - `/admin/api/backends`: backend inventory, enable/disable, test, add, delete.
 - `/admin/api/model-status`: fallback count and retraining metadata.
 - `/admin/api/retrieval-traces`: recent retrieval pipeline traces.
-- `/admin/api/agent-audit`: recent LiMa Code/agent task audit.
+- `/admin/api/agent-audit`: recent LiMa/agent task audit.
 - `/admin/api/retrain`: guarded retrain trigger.
 
 ## Constraints

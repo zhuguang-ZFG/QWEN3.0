@@ -551,7 +551,7 @@ def _describe_backend_list() -> list[dict]:
 | INTEG-3 | Code | `ChatRequest` 缺少 `tools/stream_options` 字段 → Pydantic 验证失败 → 已添加 | Closed |
 | INTEG-4 | Code | `thinking` 字段接收 `{'type':'disabled'}` dict 而非 bool → Pydantic 类型错误 → 已兼容 dict | Closed |
 | INTEG-5 | Code | 场景分类未识别文件名提及为 coding 信号 → 代码上下文注入未触发 → 已添加 .py/.js 文件名检测 | Closed |
-| INTEG-6 | Config | LiMa Code 需手动配置 API_KEY + SERVER_URL → 已添加 LIMA_CODE_ 环境变量自动连接 | Closed |
+| INTEG-6 | Config | LiMa 需手动配置 API_KEY + SERVER_URL → 已添加 LIMA_ 环境变量自动连接 | Closed |
 
 | DOC-CLEAN-1 | Docs | `docs/README.md` + `docs/DOCUMENTATION_CLEANUP.md` establish a short entrypoint and soft-archive queue | Closed 2026-05-27 |
 | DOC-CLEAN-2 | Docs | 11 historical `docs/CQ014_*.md` files moved to `docs/archive/code-quality/`; reference scan found only historical progress mentions plus cleanup docs | Closed 2026-05-27 |
@@ -713,14 +713,14 @@ def _describe_backend_list() -> list[dict]:
 | RADAR-P0-4 | Gitee MCP | `dev_search_gitee` + `dev_fetch_gitee_file`；VPS **`smoke_gitee_mcp_ok`** | Closed 2026-05-26 |
 | LC-W-1e-1 | VPS smoke | `smoke_lcw1_prompt_contract_e2e.py` task `295f45b5` | Closed 2026-05-26 |
 | LC-W-1e-2 | Worker E2E | `smoke_lcw1_lima_next_e2e.py` + `context.md` 五段；local `f50f8795` VPS `53b3b150` | Closed 2026-05-26 |
-| LC-W-2-1 | Hooks + skills | `.lima-code/skill-rules.json` + `smoke_lcw2_hooks_e2e.py` task `1422c6e6` | Closed 2026-05-26 |
+| LC-W-2-1 | Hooks + skills | `.lima/skill-rules.json` + `smoke_lcw2_hooks_e2e.py` task `1422c6e6` | Closed 2026-05-26 |
 | PROD-008-1 | Learning loop E2E | `smoke_prod008_learning_loop_e2e.py` VPS task `24db066c` 四通道 true | Closed 2026-05-26 |
 | KIMI-JSON-1 | Eval fence | Kimi 三模式 **3/3** `scnet_kimi_eval_20260526b.json` | Closed 2026-05-26 |
 | SCNET-DSPRO-1 | Timeout/empty | timeout 90 + empty guard；复测 **3/3** | Closed 2026-05-26 |
 | CF-EVAL-1 | CF probe | completion-only **2/4** + VPS **22 overlays** `smoke_cf_admission_overlay_ok` | Closed 2026-05-26 |
 | ROUTE-KIMI-1 | Coding pools | Kimi 三模式 → `code.medium` + orchestrator coder/strong | Closed 2026-05-26 |
-| TG-GH-2-3 | LiMa Code→TG | smoke script + notifier **8 passed**；live `--send` 待 Operator token | Partial 2026-05-26 |
-| LC-W-3-1 | Gated daemon | `LIMA_CODE_WORKER_DAEMON=1` + `/lima daemon start` idleRetry；cli **40 passed** | Closed 2026-05-26（默认关，需 Operator 开 env） |
+| TG-GH-2-3 | LiMa→TG | smoke script + notifier **8 passed**；live `--send` 待 Operator token | Partial 2026-05-26 |
+| LC-W-3-1 | Gated daemon | `LIMA_WORKER_DAEMON=1` + `/lima daemon start` idleRetry；cli **40 passed** | Closed 2026-05-26（默认关，需 Operator 开 env） |
 | RADAR-P1-1 | pip-audit | `scripts/run_pip_audit.py` + CI；pin `fastapi<0.136.3`（MAL-2026-4750） | Closed 2026-05-26 |
 | RADAR-P1-2 | OSV + Ruff + cov/xdist + P1.3 | `run_osv_scan.py` / `run_ruff_check.py` / `run_pytest_ci.py`；P1.3 active paths | Closed 2026-05-26 |
 | RADAR-P2-1 | Brave dev-search | `brave_adapter.py` + `_TieredAdapter`；`smoke_brave_search.py` | Partial 2026-05-26 |
@@ -735,19 +735,19 @@ def _describe_backend_list() -> list[dict]:
 | RADAR-P2-10 | full eval + Pyright + randomuser + Fetch MCP | `--full` 11-backend + `run_pyright.py` + `smoke_fetch_mcp.py` | Closed 2026-05-26 |
 | RADAR-P2-11 | SSL/regex/image + Filesystem MCP | `public_apis_lookup` + `smoke_filesystem_mcp.py` + calc Hypothesis | Closed 2026-05-26 |
 
-## 2026-05-26 TG-GH-2 LiMa Code Telegram
+## 2026-05-26 TG-GH-2 LiMa Telegram
 
 | ID | Area | Evidence | Status |
 |---|---|---|---|
 | TG-GH-2-1 | Submodule | deepcode-cli `telegram-notifier.ts` 已有 | Closed 2026-05-26 |
-| TG-GH-2-2 | Docs | `docs/TG_GH_2_LIMACODE_TELEGRAM.md` closeout | Closed 2026-05-26 |
-| TG-GH-2-3 | E2E smoke | `smoke_tg_gh2_limacode_telegram_e2e.py` dry-run + notifier unit **8 passed**；live `--send` 待 token | Partial 2026-05-26 |
+| TG-GH-2-2 | Docs | `docs/TG_GH_2_LIMA_TELEGRAM.md` closeout | Closed 2026-05-26 |
+| TG-GH-2-3 | E2E smoke | `smoke_tg_gh2_lima_telegram_e2e.py` dry-run + notifier unit **8 passed**；live `--send` 待 token | Partial 2026-05-26 |
 
 ## 2026-05-26 TG-GH-1 reliability
 
 | ID | Area | Evidence | Status |
 |---|---|---|---|
-| TG-GH-1-1 | VPS smoke | `deploy_reliability_ops.py` → `OK: http://127.0.0.1:7897: @limacode_bot` | Closed 2026-05-26 |
+| TG-GH-1-1 | VPS smoke | `deploy_reliability_ops.py` → `OK: http://127.0.0.1:7897: @lima_bot` | Closed 2026-05-26 |
 | TG-GH-1-4 | Ops | lima-vps-router 5min/10min Email ON operator confirmed | Closed 2026-05-26 |
 
 | TG-GH-1-3 | VPS live | Healthchecks ping OK 47.112.162.80 new→up 12:52 | Closed 2026-05-26 |
@@ -937,7 +937,7 @@ def _describe_backend_list() -> list[dict]:
 | PROD-003 | ESP32 failure telemetry | `E_MISSING_PATH` / unsupported-capability style failures and firmware compile are now covered; real hardware is not flashed yet. | Hardware flash and real-device smoke coverage. |
 | PROD-004 | Device task intelligence | The text/SVG/path pipeline is implemented with stroke font, SVG parser, preview, and safety limits. | Keep fake-U8/VPS smoke in the release gate and expand fixtures from real operator commands. |
 | PROD-005 | Intent parsing | Deterministic regex parsing, confidence, rejection reasons, and gated LLM replanning are implemented. | Feed accepted/rejected outcomes into the later learning loop. |
-| PROD-006 | LiMa Code workflow depth | `deepcode-cli` now writes artifact bundles under `.lima/artifacts/<task_id>/` for `/lima plan`, `/lima test`, `/lima review`, and `/lima ship`. | Closed for artifact bundle; use these artifacts as PROD-008 learning-loop evidence before broad autonomy. |
+| PROD-006 | LiMa workflow depth | `deepcode-cli` now writes artifact bundles under `.lima/artifacts/<task_id>/` for `/lima plan`, `/lima test`, `/lima review`, and `/lima ship`. | Closed for artifact bundle; use these artifacts as PROD-008 learning-loop evidence before broad autonomy. |
 | PROD-007 | Observability access | Authenticated `/v1/ops/metrics` is deployed and smoke-verified with production-shaped backend stats. | Add deeper request_id/task_id/device_id/session_id correlation as incidents expose gaps. |
 | PROD-008 | Learning loop | Memory, eval, routing, and prompt components exist but are not yet one outcome-driven feedback loop. | Promote verified task outcomes into memory/prompt/routing eval candidates with rollback evidence. |
 
@@ -1192,21 +1192,21 @@ Latest local verification:
 | TECHSPAR-004 | Graph/diagnostic value | TechSpar's graph concept is useful as a way to inspect related weak points and low-score areas. | Add admin diagnostics later; do not build a React product shell first. |
 | TECHSPAR-005 | License boundary | TechSpar uses CC BY-NC 4.0. | Borrow concepts only; do not copy code into LiMa without a separate license review. |
 
-## 2026-05-23 LiMa Code Integration Findings
+## 2026-05-23 LiMa Integration Findings
 
 | ID | Area | Evidence | Next Action |
 |---|---|---|---|
-| LIMACODE-001 | Fork | Owner forked LiMa Code to `https://github.com/zhuguang-ZFG/deepcode-cli.git`. | Clone the fork into `D:\GIT\deepcode-cli`. |
-| LIMACODE-002 | Product fit | LiMa Code is better suited as LiMa's visible vibe coding shell/worker than as a hidden backend-only module. | Point LiMa Code provider config at LiMa's OpenAI-compatible endpoint first. |
-| LIMACODE-003 | Safety | The current LiMa workspace is dirty and contains many reference repos and local experiments. | Do not run LiMa Code directly against `D:\GIT`; use sandbox or worktree first. |
-| LIMACODE-004 | Integration boundary | LiMa should keep routing, memory, mastery, safety, and final verification; LiMa Code should own task UX and coding workflow. | Build a LiMa Code LiMa profile before deeper code changes. |
-| LIMACODE-005 | Local clone | Fork cloned successfully to `D:\GIT\deepcode-cli`; branch is `main...origin/main`. | Keep LiMa Code work isolated in that repo. |
-| LIMACODE-006 | Runtime stack | `package.json` identifies a TypeScript/npm CLI package `@vegamo/deepcode-cli`, Node `>=22`, build via `npm run build`, tests via `npm test`. | Install dependencies before TypeScript/runtime changes. |
-| LIMACODE-007 | Provider config | README and configuration docs support OpenAI-compatible models through `MODEL`, `BASE_URL`, and `API_KEY`; env overrides use `DEEPCODE_*`. | LiMa can be configured without code changes. |
-| LIMACODE-008 | Tool risk | Built-in tools include `bash`, `read`, `write`, `edit`, `AskUserQuestion`, `UpdatePlan`, and `WebSearch`; `bash` executes local shell commands. | Add safety boundaries before using on real LiMa workspace. |
-| LIMACODE-009 | First fork changes | Added `docs/lima.md`, `docs/lima_zh_CN.md`, and README links for LiMa provider configuration and safe first-run guidance. | Next step is dependency install and sandbox smoke. |
-| LIMACODE-010 | Rebrand | User-facing name is now LiMa Code and the promoted command is `lima-code`. `.deepcode` storage and `DEEPCODE_*` env vars remain legacy-compatible. | Add a tested `.lima-code` / `LIMA_CODE_*` migration in a later slice. |
-| LIMACODE-011 | Native config | `.lima-code` settings and `LIMA_CODE_*` env vars are now native and preferred; `.deepcode` and `DEEPCODE_*` remain fallback-compatible. | Next slice can move session/log/storage paths after deciding migration behavior. |
+| lima-001 | Fork | Owner forked LiMa to `https://github.com/zhuguang-ZFG/deepcode-cli.git`. | Clone the fork into `D:\GIT\deepcode-cli`. |
+| lima-002 | Product fit | LiMa is better suited as LiMa's visible vibe coding shell/worker than as a hidden backend-only module. | Point LiMa provider config at LiMa's OpenAI-compatible endpoint first. |
+| lima-003 | Safety | The current LiMa workspace is dirty and contains many reference repos and local experiments. | Do not run LiMa directly against `D:\GIT`; use sandbox or worktree first. |
+| lima-004 | Integration boundary | LiMa should keep routing, memory, mastery, safety, and final verification; LiMa should own task UX and coding workflow. | Build a LiMa LiMa profile before deeper code changes. |
+| lima-005 | Local clone | Fork cloned successfully to `D:\GIT\deepcode-cli`; branch is `main...origin/main`. | Keep LiMa work isolated in that repo. |
+| lima-006 | Runtime stack | `package.json` identifies a TypeScript/npm CLI package `@vegamo/deepcode-cli`, Node `>=22`, build via `npm run build`, tests via `npm test`. | Install dependencies before TypeScript/runtime changes. |
+| lima-007 | Provider config | README and configuration docs support OpenAI-compatible models through `MODEL`, `BASE_URL`, and `API_KEY`; env overrides use `DEEPCODE_*`. | LiMa can be configured without code changes. |
+| lima-008 | Tool risk | Built-in tools include `bash`, `read`, `write`, `edit`, `AskUserQuestion`, `UpdatePlan`, and `WebSearch`; `bash` executes local shell commands. | Add safety boundaries before using on real LiMa workspace. |
+| lima-009 | First fork changes | Added `docs/lima.md`, `docs/lima_zh_CN.md`, and README links for LiMa provider configuration and safe first-run guidance. | Next step is dependency install and sandbox smoke. |
+| lima-010 | Rebrand | User-facing name is now LiMa and the promoted command is `lima`. `.deepcode` storage and `DEEPCODE_*` env vars remain legacy-compatible. | Add a tested `.lima` / `LIMA_*` migration in a later slice. |
+| lima-011 | Native config | `.lima` settings and `LIMA_*` env vars are now native and preferred; `.deepcode` and `DEEPCODE_*` remain fallback-compatible. | Next slice can move session/log/storage paths after deciding migration behavior. |
 
 ## 2026-05-23 Code Quality Review Findings
 
@@ -1290,7 +1290,7 @@ Source record: `docs/superpowers/plans/2026-05-23-code-quality-review-closeout.m
 | CQ-052 | Closed | M34 adds a real-executor scaffold with multi-gate preflight and a disabled executor. Review fixed mojibake, typed step construction, workspace preflight using the requested path instead of an empty string, network/workspace all-gates-passed disabled coverage, audit sink exception isolation, redacted command previews, and package exports. Focused real-executor tests return 18 passed, focused execution-gate tests return 92 passed, and the full suite returns 1147 passed, 8 skipped. | This is still a disabled scaffold. Real shell/network/workspace execution remains prohibited until an explicit, documented release decision replaces the disabled executor with reviewed implementations and replayable operator evidence. |
 | CQ-053 | Closed | PROD-008 commit `b372ccc` adds a learning loop that feeds task-result evidence into memory, prompt profiles, routing feedback, and eval candidates without directly changing routing pools. Review verified the evidence-only gate and reran focused plus full tests. | Keep `reference_pattern` promotion as evidence only. Any behavior-changing prompt or route adoption still needs an explicit eval/release gate. |
 | CQ-054 | Closed | V1 WeChat guest safety adds guest/owner binding roles, guest-safe command handlers, sidecar routes, smoke tools, and route mounting in `server.py`. Review fixed owner-only dispatch for real owner bindings and hardened sidecar auth to require `Bearer` with constant-time token comparison. Focused tests return 106 passed, guest smoke returns 14/14 steps, and the full suite returns 1346 passed, 8 skipped. | Owner command handlers remain V1 stubs. Do not connect `/code-task`, `/device`, `/artifact`, `/memory`, or `/status` to real private actions until a separate reviewed owner-auth and audit slice lands. |
-| CQ-055 | Closed | P1.1/P1.2/P1.3 adds cross-system correlation, explicit eval approval gates, and the LiMa Code `/lima fix` workflow. Review fixed the documented `/v1/ops/correlate?id=...` query shape and made eval approvals visible in `revision_check()` without auto-mutating routing. Focused P1 tests return 59 passed and the full suite returns 1348 passed, 8 skipped. VPS deployment of `645a6fc` passed remote compile, service restart/health, authenticated local ops smoke, public ops smoke, and public online smoke `12/12 checks passed`; backup is `/opt/lima-router/backups/p1-review-20260525_113033/runtime-before.tgz`. | Keep eval approval as evidence/audit only until a separate release gate applies any route or prompt behavior change. No real-device validation was run because no hardware is currently available. |
+| CQ-055 | Closed | P1.1/P1.2/P1.3 adds cross-system correlation, explicit eval approval gates, and the LiMa `/lima fix` workflow. Review fixed the documented `/v1/ops/correlate?id=...` query shape and made eval approvals visible in `revision_check()` without auto-mutating routing. Focused P1 tests return 59 passed and the full suite returns 1348 passed, 8 skipped. VPS deployment of `645a6fc` passed remote compile, service restart/health, authenticated local ops smoke, public ops smoke, and public online smoke `12/12 checks passed`; backup is `/opt/lima-router/backups/p1-review-20260525_113033/runtime-before.tgz`. | Keep eval approval as evidence/audit only until a separate release gate applies any route or prompt behavior change. No real-device validation was run because no hardware is currently available. |
 | CQ-057 | Closed | Quality-fix review closed ops metrics `recent_agent_tasks`, admin CSRF/XSS hardening, strict Bearer auth, eval promotion abort-on-write-failure, and channel draw/device integration fixes. Focused tests return 48 passed; full suite returns 1366 passed, 10 skipped. VPS deploy at `62ad977` with backup `/opt/lima-router/backups/quality-fix-20260525_133000/runtime-before.tgz`; public smoke `12/12` with exact `quality_fix_62ad977_ok`. | Keep `/v1/ops/eval/apply` behind private auth and human release review. Bearer-only auth is now required for private API paths. |
 | CQ-058 | Closed | Code-quality follow-up closes `/v1/models` and `/v1/embeddings` auth fail-open gaps, makes Telegram webhook fail-closed when bot is configured, wires `route_scorer` into `code_orchestrator` and `routes/tool_forward`, and adds logging for orchestrator backend failures. VPS smoke verified Bearer `/v1/models` and public `12/12`. | None for this slice. |
 | CQ-059 | Closed | CQ-006 retrieval duplication removed by moving graph/vector/rerank injection into `context_pipeline/retrieval_injection.py` as the single authority. `routing_engine.route()`, `request_context_preflight.maybe_enhance_messages()`, and `code_context_processor()` now delegate to that module; legacy index singleton path deleted. VPS retrieval trace smoke hit `routing_engine.py` with 192 injected chars. | Keep MCP `search_repo` on the same retrieval primitives; do not reintroduce a second message-mutation path. |
@@ -1519,3 +1519,14 @@ ADMIN_HTML imports successfully ✅
 ├── lima_fc_tools/db_tools.py (数据库查询)
 └── sandbox/executor.py (代码执行沙箱)
 ```
+
+## M-OC0 改名完成（2026-06-04）
+
+`lima-code` 全面重命名为 `lima`：
+
+- **A2** 主仓文本 sed：98 files，含 `lima-code`→`lima`、`lima_code`→`lima`、`LiMa Code`→`LiMa`、`limacode`(CI)→`lima`、`LIMA_CODE_`→`LIMA_`
+- **A3** 子模块: 74 files + 8 路径重命名
+- **A4** 主仓路径：5 files（`LIMACODE_MANAGEMENT`→`LIMA_MANAGEMENT`、`test_lima_code_dev_search_tools`→`test_lima_dev_search_tools` 等）
+- **A6** model alias 移除：`routes/chat_handler_dispatch.py` 删除 `"code"` alias
+- **A9** 过渡句：README/AGENTS/STATUS 顶部添加迁移说明
+- **A10** 验证：grep 0 命中 ✓、pytest 222+137 ✓、ruff ✓

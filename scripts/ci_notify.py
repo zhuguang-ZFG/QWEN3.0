@@ -100,7 +100,7 @@ def _try_record_outcome(repo: str, branch: str, sha: str, run_url: str, status: 
 
 
 def _try_create_ci_fix_task(repo: str, branch: str, sha: str, run_url: str, host: str, key: str) -> None:
-    """Create a LiMa Code task to investigate CI failure. Best-effort."""
+    """Create a LiMa task to investigate CI failure. Best-effort."""
     try:
         task_body = json.dumps({
             "repo": repo,

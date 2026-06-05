@@ -99,51 +99,51 @@ def build_default_registry() -> ToolRegistry:
     registry = ToolRegistry()
     registry.register(ToolDefinition(
         name="dev_search_docs",
-        description="Search public programming documentation for LiMa Code.",
-        tags=("programming", "docs", "search", "readonly", "lima-code"),
+        description="Search public programming documentation for LiMa.",
+        tags=("programming", "docs", "search", "readonly", "lima"),
         authority=AuthorityClass.READ_ONLY,
     ))
     registry.register(ToolDefinition(
         name="dev_search_error",
         description="Search public sources for sanitized programming errors.",
-        tags=("programming", "error", "traceback", "debug", "readonly", "lima-code"),
+        tags=("programming", "error", "traceback", "debug", "readonly", "lima"),
         authority=AuthorityClass.READ_ONLY,
     ))
     registry.register(ToolDefinition(
         name="dev_read_url",
-        description="Read a public HTTP or HTTPS URL for LiMa Code.",
-        tags=("url", "docs", "fetch", "readonly", "lima-code"),
+        description="Read a public HTTP or HTTPS URL for LiMa.",
+        tags=("url", "docs", "fetch", "readonly", "lima"),
         authority=AuthorityClass.NETWORK_READ,
     ))
     registry.register(ToolDefinition(
         name="dev_fetch_github_file",
         description="Fetch a public GitHub file for reference.",
-        tags=("github", "source", "reference", "readonly", "lima-code"),
+        tags=("github", "source", "reference", "readonly", "lima"),
         authority=AuthorityClass.NETWORK_READ,
     ))
     registry.register(ToolDefinition(
         name="dev_search_gitee",
-        description="Search Gitee repositories and scoped issues for LiMa Code.",
-        tags=("gitee", "mirror", "search", "readonly", "lima-code"),
+        description="Search Gitee repositories and scoped issues for LiMa.",
+        tags=("gitee", "mirror", "search", "readonly", "lima"),
         authority=AuthorityClass.NETWORK_READ,
         requires_secret=True,
     ))
     registry.register(ToolDefinition(
         name="dev_fetch_gitee_file",
         description="Fetch a file from a Gitee repository via OpenAPI.",
-        tags=("gitee", "mirror", "source", "readonly", "lima-code"),
+        tags=("gitee", "mirror", "source", "readonly", "lima"),
         authority=AuthorityClass.NETWORK_READ,
         requires_secret=True,
     ))
     registry.register(ToolDefinition(
         name="dev_search_codesearch",
         description="Local semantic code search via codesearch (allowlisted paths).",
-        tags=("code", "search", "semantic", "readonly", "lima-code", "offline"),
+        tags=("code", "search", "semantic", "readonly", "lima", "offline"),
         authority=AuthorityClass.READ_ONLY,
     ))
     registry.register(ToolDefinition(
         name="dev_summarize_sources",
         description="Summarize source dictionaries into prompt evidence.",
-        tags=("evidence", "summary", "sources", "lima-code"),
+        tags=("evidence", "summary", "sources", "lima"),
     ))
     return registry

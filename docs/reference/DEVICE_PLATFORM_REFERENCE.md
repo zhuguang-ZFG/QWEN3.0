@@ -49,7 +49,7 @@ LiMa 现有等价物：
 
 ```mermaid
 sequenceDiagram
-    participant Op as Operator/LiMa Code
+    participant Op as Operator/LiMa
     participant DG as Device Gateway
     participant Redis as Redis Queue
     participant Dev as ESP32/U8

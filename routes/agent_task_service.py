@@ -48,7 +48,7 @@ async def require_admin(authorization: str = "") -> None:
         _log.info("require_admin: admin token accepted")
         return
 
-    # Accept any configured private API key (enables LiMa Code single-key auth)
+    # Accept any configured private API key (enables LiMa single-key auth)
     api_keys = configured_api_keys()
     _log.info("require_admin: api_keys=%s, presented=%s...", list(api_keys)[:1], presented[:10])
     if api_keys and any(constant_time_equals(presented, k) for k in api_keys):

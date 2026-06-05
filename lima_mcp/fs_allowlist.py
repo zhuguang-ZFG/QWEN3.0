@@ -28,7 +28,7 @@ def _default_allowed_roots() -> list[str]:
     roots.append(cwd)
 
     # Allow explicit project roots from env
-    for key in ("LIMA_PROJECT_ROOT", "LIMA_CODE_ROOT", "LIMA_WORKSPACE"):
+    for key in ("LIMA_PROJECT_ROOT", "LIMA_ROOT", "LIMA_WORKSPACE"):
         val = os.getenv(key, "").strip()
         if val and os.path.isdir(val) and val not in roots:
             roots.append(val)

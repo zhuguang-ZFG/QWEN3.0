@@ -64,7 +64,7 @@
   references.
 - last30days-style time-bounded research skills that rank sources by observed
   engagement and synthesize grounded briefs.
-- oh-my-pi-style local IDE/tool harness ergonomics for LiMa Code.
+- oh-my-pi-style local IDE/tool harness ergonomics for LiMa.
 - deepclaude-style backend proxy ergonomics as a UX reference only, never as a
   bypass around LiMa provider admission or key custody.
 - Sub-Agent versus Agent Team coordination boundary: default to isolated
@@ -172,7 +172,7 @@
 
 ## LiMa Implementation
 
-- Server task APIs and LiMa Code bounded worker loops provide the current agent workbench.
+- Server task APIs and LiMa bounded worker loops provide the current agent workbench.
 - Current default orchestration mode is owner-agent plus isolated sub-agents.
 - Candidate skills are suggestion-only until manually promoted.
 - Promotion now requires mastery evidence references in addition to evaluation and manual approval.

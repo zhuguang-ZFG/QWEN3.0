@@ -418,10 +418,10 @@ Open: VPS has 3 non-LiMa services (ai-router MCP, BT-Panel, mission-server).
 | M6 | 32ea7d5 | Deleted DDG + deepseek_free (not in any routing pool), 7→0 |
 | M7 | 92ee5ca | Cleanup: -647 lines (FRP/tunnel, ESP32, dead refs) |
 | M8 | b5ccd89 | MiMo-Reasonix reference analysis |
-| M9 | fd1c6d5 | LiMa Code CLI init + smoke test passed |
+| M9 | fd1c6d5 | LiMa CLI init + smoke test passed |
 
 VPS verified: all 5 reverse sidecars active, LOCAL_ONLY_BACKENDS = empty, DISABLED_HOST_DEPENDENT_BACKENDS = empty.
-Tests: 184 backends all cloud-native. LiMa Code CLI: 436/445 pass.
+Tests: 184 backends all cloud-native. LiMa CLI: 436/445 pass.
 
 
 ---
@@ -524,7 +524,7 @@ Tests: 184 backends all cloud-native. LiMa Code CLI: 436/445 pass.
 
 ### 下一刀
 - VPS：`smoke_online_distributions.py --chat-exact golden_path_ok --golden-path-evidence` → Chat/IDE score 5
-- 继续 M3 LiMa Code daily loop（Prompt Contract 加厚，不新开 radar）
+- 继续 M3 LiMa daily loop（Prompt Contract 加厚，不新开 radar）
 
 ## 2026-05-26 P2-26：Pyright enforce + Litestream + Filesystem MCP
 
@@ -739,7 +739,7 @@ Tests: 184 backends all cloud-native. LiMa Code CLI: 436/445 pass.
 
 ## 2026-05-26 雷达 P2 续：Playwright / Vulture / 60s / eval
 
-- **Playwright MCP**：`docs/LC_W_PLAYWRIGHT_VERIFY.md` + `.lima-code/mcp-playwright.example.json` + `smoke_playwright_mcp.py`（`LIMA_PLAYWRIGHT_MCP=0` 默认关）
+- **Playwright MCP**：`docs/LC_W_PLAYWRIGHT_VERIFY.md` + `.lima/mcp-playwright.example.json` + `smoke_playwright_mcp.py`（`LIMA_PLAYWRIGHT_MCP=0` 默认关）
 - **Vulture**：`scripts/run_vulture.py --report-only`
 - **60s /menu**：`fetch_hot_60s` / `fetch_news_60s` → `/热搜` `/新闻`（无参）
 - **Eval 切片**：`scripts/run_radar_eval_slice.py --dry-run|--quick`
@@ -790,8 +790,8 @@ Tests: 184 backends all cloud-native. LiMa Code CLI: 436/445 pass.
 - **`backends_registry`**：`private_code_allowed` + `code_medium_candidate`（local 4504 拓扑）
 
 ### 4. TG-GH-2-3 E2E
-- **`smoke_tg_gh2_limacode_telegram_e2e.py`** + **`verify_tg_gh2_limacode_telegram.ts`**
-- 本机 **SKIP**（无 `LIMA_CODE_TELEGRAM_BOT_TOKEN`）；deepcode-cli notifier **8 passed**
+- **`smoke_tg_gh2_lima_telegram_e2e.py`** + **`verify_tg_gh2_lima_telegram.ts`**
+- 本机 **SKIP**（无 `LIMA_TELEGRAM_BOT_TOKEN`）；deepcode-cli notifier **8 passed**
 
 ## 2026-05-26 P1 eval 验证刀（Kimi 3/3 + scnet_ds_pro 恢复）
 
@@ -816,7 +816,7 @@ Tests: 184 backends all cloud-native. LiMa Code CLI: 436/445 pass.
 - **产物**：`data/cf_eval1_summary.json`、`docs/CF_PROBE_REPORT.md`（池未空但准入门槛未过）
 
 ### 4. LC-W-3+ gated daemon（deepcode-cli）
-- **`/lima daemon start`** 需 `LIMA_CODE_WORKER_DAEMON=1`；`idleRetry` 空队列退避
+- **`/lima daemon start`** 需 `LIMA_WORKER_DAEMON=1`；`idleRetry` 空队列退避
 - **测试**：deepcode-cli `lima-commands` + `lima-command-runner` **40 passed**
 
 - **全量 pytest**：**1718 passed**, 10 skipped（`test_mcp_verify_passes_correct_bearer` 401 预存）
@@ -838,9 +838,9 @@ Tests: 184 backends all cloud-native. LiMa Code CLI: 436/445 pass.
 
 ## 2026-05-26 LC-W-2 Hooks + Skill Activation v0.1
 
-- **配置**：`.lima-code/skill-rules.json`（LiMa 项目规则：router/telegram）
+- **配置**：`.lima/skill-rules.json`（LiMa 项目规则：router/telegram）
 - **Smoke**：`smoke_lcw2_hooks_e2e.py` → 本地 **smoke_ok** task `1422c6e6`；skills `security-review`, `requesting-code-review`, `lima:telegram-ops-review`
-- **产物**：`.lima-code/dev/active/<task>/{context,tasks,summary}.md` + `touched-files.txt`
+- **产物**：`.lima/dev/active/<task>/{context,tasks,summary}.md` + `touched-files.txt`
 - **VPS**：`deploy_lcw2_ok` task `23fe89b3`（server_only）；worker 证据本机 task `b09828e7`
 
 ## 2026-05-26 LC-W-1e `/lima next` E2E
@@ -899,7 +899,7 @@ Tests: 184 backends all cloud-native. LiMa Code CLI: 436/445 pass.
 
 ## 2026-05-26 下一刀 LC-W-1 Prompt Contract v0.1（计划）
 
-- **依据**：`docs/NEXT_MILESTONES.md` §2 LiMa Code Worker 第一切片
+- **依据**：`docs/NEXT_MILESTONES.md` §2 LiMa Worker 第一切片
 - **设计**：`docs/superpowers/plans/2026-05-26-lima-task-prompt-contract-v0.1.md`
 - **范围**：Server `/agent/tasks` + deepcode-cli worker prompt 统一 `Context/Task/Constraints/Verify/Output`
 
@@ -911,7 +911,7 @@ Tests: 184 backends all cloud-native. LiMa Code CLI: 436/445 pass.
 
 - **Acceptance**：`smoke_five_line_acceptance.py` → mirror_lag `22e7b4f` + routing `google_flash_lite` + github_issue 200 + gitee 200 **acceptance_ok**
 - **手机证据**：GitHub/Gitee push `22e7b4f` 含 commit message + 【译】（GH-PUSH-MSG）
-- **判定**：Operator 通知链 + CF/Google 路由 + 双远端镜像 **已闭环**；GI-G-3 / Google inventory VPS / Healthchecks / LiMa Code E2E **除外**
+- **判定**：Operator 通知链 + CF/Google 路由 + 双远端镜像 **已闭环**；GI-G-3 / Google inventory VPS / Healthchecks / LiMa E2E **除外**
 - **计划**：`docs/superpowers/plans/2026-05-26-five-line-closeout.md` §4 全勾；下一刀 → `docs/NEXT_MILESTONES.md` 四线
 
 ## 2026-05-26 GH push 通知含 commit message
@@ -958,7 +958,7 @@ Tests: 184 backends all cloud-native. LiMa Code CLI: 436/445 pass.
 ## 2026-05-26 TG-10.0-2 Bot-to-Bot
 
 - **Server**：`telegram_b2b.py` 解析 `LIMA_B2B`；`task_needs_review` → `send_approval`；其他 lifecycle → Operator 摘要
-- **Code**：`deepcode-cli/telegram-notifier.ts` 支持 `LIMA_CODE_TELEGRAM_B2B=1` + `LIMA_SERVER_BOT_USERNAME`
+- **Code**：`deepcode-cli/telegram-notifier.ts` 支持 `LIMA_TELEGRAM_B2B=1` + `LIMA_SERVER_BOT_USERNAME`
 - **VPS**：`deploy_telegram_b2b_ok`（`TELEGRAM_B2B_ENABLED=1`）
 - **文档**：`docs/TELEGRAM_B2B_SETUP.md`
 - **测试**：+6 b2b；全量 **1672 passed**；deepcode-cli notifier tests pass
@@ -1105,7 +1105,7 @@ Tests: 184 backends all cloud-native. LiMa Code CLI: 436/445 pass.
 - **部署**：`deploy_telegram_digest.py`；`smoke_telegram_digest_vps.py` build + `--send`
 - **VPS smoke**：digest 构建 OK；Telegram send **True**（Markdown 失败后 plain 回退）
 - **测试**：focused **3 passed**（`test_telegram_digest`）；全量 **1618 passed, 10 skipped**
-- **文档**：`docs/TG_GH_2_LIMACODE_TELEGRAM.md`（TG-GH-2 closeout）；计划表 TG-GH-2/3 标 ✅
+- **文档**：`docs/TG_GH_2_LIMA_TELEGRAM.md`（TG-GH-2 closeout）；计划表 TG-GH-2/3 标 ✅
 - **下一刀**：GI-G-3 模力方舟 AI 或 CF-G-3 Google 路由；GI-G-5 早报合并（依赖 TG-GH-3 ✅）
 
 ## 2026-05-26 GI-G-2 Gitee Webhook → Telegram
@@ -1126,7 +1126,7 @@ Tests: 184 backends all cloud-native. LiMa Code CLI: 436/445 pass.
 - **GI-G-1**：`docs/GITEE_MIRROR_RUNBOOK.md`、`scripts/push_dual_remotes.py` + shell/ps1；`telegram_notify.notify_ops_event`
 - **测试**：focused **15 passed**（`test_telegram_outbound` + `test_gitee_mirror`）
 - **待运维**：Windows 跑 `install_frpc_service.ps1`；VPS cron `smoke_telegram_outbound.py --notify`
-- **VPS deploy**（2026-05-26）：`deploy_reliability_ops.py` → service=active；`smoke_telegram_outbound` **OK** `@limacode_bot` via `7897`
+- **VPS deploy**（2026-05-26）：`deploy_reliability_ops.py` → service=active；`smoke_telegram_outbound` **OK** `@lima_bot` via `7897`
 - **全局约定**：`AGENTS.md` § Agent 自动 Closeout（pytest → VPS smoke → commit → push origin+gitee）
 - **下一刀**：**GI-G-2** `/gitee/webhook` → Telegram
 
@@ -1318,7 +1318,7 @@ Tests: 184 backends all cloud-native. LiMa Code CLI: 436/445 pass.
 
 ## 2026-05-26 文档清理与四线里程碑
 
-- **新增**：`docs/NEXT_MILESTONES.md`（编码后端 / LiMa Code / ESP32 / 代码质量优先级）
+- **新增**：`docs/NEXT_MILESTONES.md`（编码后端 / LiMa / ESP32 / 代码质量优先级）
 - **对齐**：`EXECUTION_PLAN.md`、`PERSONAL_CODING_ASSISTANT_PLAN.md`、`DOCUMENTATION_STATUS.md`、`STATUS.md`、`findings.md`（WX-088/089 Pending → Superseded）、`PLAN_CLOSURE_STATUS.md`
 - **未改**：`task_plan.md`（用户契约；其中 server 拆分/BACKENDS 项已由 EXECUTION_PLAN 标关闭，见 NEXT_MILESTONES 对照表）
 
@@ -1618,7 +1618,7 @@ Tests: 184 backends all cloud-native. LiMa Code CLI: 436/445 pass.
 | PROD-003 | ESP32 firmware compile passed. | Hardware flash and real-device motion smoke. |
 | PROD-004 | Path pipeline complete: stroke font, SVG path parser, path preview, safety bounds. | Keep using fake-U8/VPS smoke before hardware execution. |
 | PROD-005 | Intent parser upgraded: deterministic regex, confidence, rejection reasons, gated LLM replanner. | Add outcome feedback only after P0.8 learning loop. |
-| PROD-006 | LiMa Code artifact bundle complete. | Use `.lima/artifacts/<task_id>/` bundles as review and learning-loop evidence. |
+| PROD-006 | LiMa artifact bundle complete. | Use `.lima/artifacts/<task_id>/` bundles as review and learning-loop evidence. |
 | PROD-007 | Ops metrics endpoint deployed and public/private smoke-verified. | Keep adding correlation detail as real incidents expose gaps. |
 | PROD-008 | Learning loop remains architecture-level follow-up. | Promote verified outcomes into memory, prompts, routing, and evals. |
 
@@ -1672,9 +1672,9 @@ Tests: 184 backends all cloud-native. LiMa Code CLI: 436/445 pass.
   - Postgres remains deferred for audit/history and is not required for current
     realtime WebSocket task delivery.
 
-## 2026-05-25 PROD-006 LiMa Code Artifact Bundle
+## 2026-05-25 PROD-006 LiMa Artifact Bundle
 
-- Advanced LiMa Code to `8e680ea` (`feat(lima): add artifact bundle for plan/test/ship/review commands`).
+- Advanced LiMa to `8e680ea` (`feat(lima): add artifact bundle for plan/test/ship/review commands`).
 - Artifact output location: `.lima/artifacts/<task_id>/`.
 - Command outputs:
   - `/lima plan`: `plan.md`, `context.json`, `risks.md` with git diff,
@@ -1689,7 +1689,7 @@ Tests: 184 backends all cloud-native. LiMa Code CLI: 436/445 pass.
   - terminal scrollback is no longer the only source of execution evidence;
   - PROD-006 is complete and becomes the evidence source for PROD-008.
 - Verification:
-  - LiMa Code: `0 fail, 6 skipped`;
+  - LiMa: `0 fail, 6 skipped`;
   - LiMa Server: `1240 passed, 8 skipped`.
 
 ## 2026-05-25 P0.4/P0.5/P0.7 Review Fixes
@@ -1817,7 +1817,7 @@ Tests: 184 backends all cloud-native. LiMa Code CLI: 436/445 pass.
 - Phase 4: Added `RiskClass` enum and `rollback_owner` to `ToolDefinition`;
   dangerous tools fail closed at construction when risk_class or
   rollback_owner is missing; MCP provenance recorded in audit events; worker
-  summary contract with required fields for LiMa Code task submissions.
+  summary contract with required fields for LiMa task submissions.
 - Phase 5: Created MCP access plane with connector policies, per-connector
   owner/allowlist/credential/timeout/audit, and foundation-vs-gated split.
 - Phase 6: Added unified eval registry (`eval_registry.py`) linking
@@ -1833,12 +1833,12 @@ Tests: 184 backends all cloud-native. LiMa Code CLI: 436/445 pass.
 - Added the project-wide productivity/productization constraint to
   `AGENTS.md`.
 - Added `docs/superpowers/plans/2026-05-25-productivity-infrastructure-review.md`
-  as the active P0 roadmap for LiMa Server, LiMa Code, and ESP32 infrastructure
+  as the active P0 roadmap for LiMa Server, LiMa, and ESP32 infrastructure
   strengthening.
 - Key review conclusion:
   - LiMa has enough interfaces and reference-derived scaffolding for now;
   - the urgent work is observable execution closure, real Device Gateway
-    path/text generation, LiMa Code review artifacts, and outcome-driven
+    path/text generation, LiMa review artifacts, and outcome-driven
     prompt/routing/memory feedback;
   - UI/visual/multimodal polish should follow only after the writing-machine
     and coding-worker loops can produce real work reliably.
@@ -1846,10 +1846,10 @@ Tests: 184 backends all cloud-native. LiMa Code CLI: 436/445 pass.
   future sessions treat this as active product direction rather than a side
   note.
 
-## 2026-05-25 LiMa Code Phase 7 Workflow Slice
+## 2026-05-25 LiMa Phase 7 Workflow Slice
 
 - Advanced the `deepcode-cli` submodule from `278a5f7` to `ca51967`.
-- Added local LiMa Code workflow stage commands:
+- Added local LiMa workflow stage commands:
   - `/lima plan` creates a local read-only planning task.
   - `/lima test [--cmd <command>]` runs a guarded local verification task and defaults to `npm test`.
   - `/lima ship` runs a local ship-readiness review and explicitly does not deploy or push.
@@ -2276,45 +2276,45 @@ Follow-up after final review:
 - Updated `docs/DOCUMENTATION_STATUS.md` and `findings.md`.
 - No runtime code was changed in this pass.
 
-## 2026-05-23 LiMa Code Fork Start
+## 2026-05-23 LiMa Fork Start
 
-- Owner forked LiMa Code to `https://github.com/zhuguang-ZFG/deepcode-cli.git`.
-- Created `docs/superpowers/plans/2026-05-23-lima-code-vibe-coding.md`.
+- Owner forked LiMa to `https://github.com/zhuguang-ZFG/deepcode-cli.git`.
+- Created `docs/superpowers/plans/2026-05-23-lima-vibe-coding.md`.
 - Updated `docs/DOCUMENTATION_STATUS.md` and `findings.md`.
 - First attempted network reachability to the fork failed from the sandboxed command environment with inability to connect to `github.com:443`; next step is to retry clone with approved network access.
 - Retried with approved network access and cloned the fork into `D:\GIT\deepcode-cli`.
-- Read LiMa Code `AGENTS.md`, `package.json`, README, configuration docs, provider settings, OpenAI client setup, tool executor, and bash handler.
-- Confirmed LiMa Code is TypeScript/npm, OpenAI-compatible through `MODEL`, `BASE_URL`, and `API_KEY`, and has real local tool execution through `bash`.
-- Added first LiMa Code fork changes:
+- Read LiMa `AGENTS.md`, `package.json`, README, configuration docs, provider settings, OpenAI client setup, tool executor, and bash handler.
+- Confirmed LiMa is TypeScript/npm, OpenAI-compatible through `MODEL`, `BASE_URL`, and `API_KEY`, and has real local tool execution through `bash`.
+- Added first LiMa fork changes:
   - `D:\GIT\deepcode-cli\docs\lima.md`
   - `D:\GIT\deepcode-cli\docs\lima_zh_CN.md`
   - README links in `README-en.md`, `README.md`, and `README-zh_CN.md`.
-- LiMa Code validation:
+- LiMa validation:
   - `git -C D:\GIT\deepcode-cli diff --check`: passed.
   - Secret-shape scan over the new LiMa docs: no matches.
 - Did not install npm dependencies or run `npm test` yet because this first change is documentation/config guidance only.
 - No LiMa runtime code was changed in this pass.
 
-## 2026-05-23 LiMa Code Rebrand Slice
+## 2026-05-23 LiMa Rebrand Slice
 
-- Renamed the active Superpowers plan to `docs/superpowers/plans/2026-05-23-lima-code-vibe-coding.md`.
-- Rebranded the fork's user-facing product surface to LiMa Code:
-  - npm package name: `lima-code`;
-  - CLI bin: `lima-code`;
+- Renamed the active Superpowers plan to `docs/superpowers/plans/2026-05-23-lima-vibe-coding.md`.
+- Rebranded the fork's user-facing product surface to LiMa:
+  - npm package name: `lima`;
+  - CLI bin: `lima`;
   - CLI help, TTY errors, update prompt, welcome screen, slash-command exit text, system prompt identity, MCP client name, and checkpoint author.
-- Updated README and docs to promote `lima-code`.
+- Updated README and docs to promote `lima`.
 - Kept `.deepcode` paths and `DEEPCODE_*` environment variables as a legacy compatibility layer for this first slice.
 - No LiMa runtime code or VPS files were changed.
 
-## 2026-05-23 LiMa Code Native Config Slice
+## 2026-05-23 LiMa Native Config Slice
 
-- Added native LiMa Code config support in the fork:
-  - `~/.lima-code/settings.json` and `<project>/.lima-code/settings.json` are preferred.
+- Added native LiMa config support in the fork:
+  - `~/.lima/settings.json` and `<project>/.lima/settings.json` are preferred.
   - Legacy `~/.deepcode/settings.json` and `<project>/.deepcode/settings.json` remain readable fallbacks.
-  - `LIMA_CODE_*` environment variables are preferred over legacy `DEEPCODE_*` variables.
+  - `LIMA_*` environment variables are preferred over legacy `DEEPCODE_*` variables.
   - `DEEPCODE_*` remains a fallback for old local profiles.
-  - Model-selection writes create `.lima-code` settings by default, but update an existing project `.deepcode/settings.json` when that is the only project config.
-- Updated CLI help, API-key error text, WebSearch config error text, README files, LiMa provider docs, MCP docs, notification docs, and configuration docs to promote `.lima-code` / `LIMA_CODE_*`.
+  - Model-selection writes create `.lima` settings by default, but update an existing project `.deepcode/settings.json` when that is the only project config.
+- Updated CLI help, API-key error text, WebSearch config error text, README files, LiMa provider docs, MCP docs, notification docs, and configuration docs to promote `.lima` / `LIMA_*`.
 - Added regression tests:
   - `D:\GIT\deepcode-cli\src\tests\app-settings-paths.test.ts`
   - expanded `D:\GIT\deepcode-cli\src\tests\settings-and-notify.test.ts`
@@ -2332,46 +2332,46 @@ Follow-up after final review:
 - **Phase 5: Server APIs** — 5 protected endpoints under `/agent/` (8 tests).
 - **Total: 103 tests passing.** Server never executes shell; evolution is eval-gated + manually promoted.
 
-## 2026-05-23 LiMa Code Worker Command Runner
+## 2026-05-23 LiMa Worker Command Runner
 
-- Added a real local command runner for LiMa Code:
+- Added a real local command runner for LiMa:
   - `/lima connect` reports local Server configuration without exposing keys.
   - `/lima status` reports project and Server configuration state.
   - `/lima review` runs guarded local review mode over the current git diff.
   - `/lima task <task_id>` fetches a LiMa Server task, runs the guarded local task runner, writes local audit evidence, and submits the structured result back to Server.
 - Wired the UI path so `/lima task <id>` is handled locally instead of being sent to the model as a chat prompt.
 - Added `src/tests/lima-command-runner.test.ts`.
-- Fixed Windows Bash timeout cleanup: after killing the process tree, LiMa Code now waits for process close before returning, preventing temp workspace `EPERM` cleanup failures while still ignoring post-timeout output.
-- Added `.lima-code/` to LiMa Code `.gitignore` because local audit/settings data may contain sensitive runtime state.
+- Fixed Windows Bash timeout cleanup: after killing the process tree, LiMa now waits for process close before returning, preventing temp workspace `EPERM` cleanup failures while still ignoring post-timeout output.
+- Added `.lima/` to LiMa `.gitignore` because local audit/settings data may contain sensitive runtime state.
 - Public end-to-end smoke:
   - Created LiMa Server task `4d6c02b3` through `https://chat.donglicao.com/agent/tasks`.
-  - Ran LiMa Code `/lima task 4d6c02b3` locally against `D:\GIT\deepcode-cli`.
+  - Ran LiMa `/lima task 4d6c02b3` locally against `D:\GIT\deepcode-cli`.
   - Worker returned `needs_review`, listed `src/ui/App.tsx` and `src/ui/PromptInput.tsx`, and submitted the result.
   - Server detail confirmed `hasResult=true`; events endpoint returned `created,result_submitted`.
 - Verification:
   - LiMa targeted tests: `41 passed`.
   - Tool handler regression tests: `22 passed`.
   - `npm.cmd run check`: passed.
-  - Full LiMa Code suite: `368 passed, 7 skipped`.
+  - Full LiMa suite: `368 passed, 7 skipped`.
 
-## 2026-05-23 LiMa Code Single-Claim Worker
+## 2026-05-23 LiMa Single-Claim Worker
 
-- Added `/lima next` to LiMa Code.
+- Added `/lima next` to LiMa.
 - `/lima next` claims the first pending `accepted` LiMa Server task through `GET /agent/tasks?status=accepted&limit=1`, runs it through the guarded local task runner, writes local audit evidence, and submits the result.
 - If no pending task exists, it exits cleanly with a no-task message.
 - Kept this as a single-task command; a daemon/poll loop remains a later explicit phase with backoff and stop controls.
 - Public end-to-end smoke:
   - Created Server task `eb9410e1`.
-  - Ran LiMa Code `/lima next` against `https://chat.donglicao.com`.
+  - Ran LiMa `/lima next` against `https://chat.donglicao.com`.
   - Worker returned `needs_review` and submitted the result.
   - Server detail confirmed `hasResult=true`; events endpoint returned `created,result_submitted`.
 - Verification:
   - Parser/runner tests: `13 passed`.
   - LiMa worker targeted tests: `52 passed`.
   - `npm.cmd run check`: passed.
-  - Full LiMa Code suite: `371 passed, 7 skipped`.
+  - Full LiMa suite: `371 passed, 7 skipped`.
 
-## 2026-05-23 LiMa Code Bounded Worker Loop
+## 2026-05-23 LiMa Bounded Worker Loop
 
 - Added `/lima work --once` and `/lima work --loop --max-tasks <n>`.
 - Loop mode requires `--max-tasks` and caps it at 100 to avoid uncontrolled background execution.
@@ -2394,7 +2394,7 @@ Follow-up after final review:
   - Parser/runner tests: `19 passed`.
   - LiMa worker targeted tests: `58 passed`.
   - `npm.cmd run check`: passed.
-  - Full LiMa Code suite: `377 passed, 7 skipped`.
+  - Full LiMa suite: `377 passed, 7 skipped`.
 
 ## 2026-05-23 LiMa Autonomous Worker v0.2 Plan
 
@@ -2403,10 +2403,10 @@ Follow-up after final review:
   - GenericAgent-style repeated success becomes candidate skills.
   - Evolver-style self-improvement becomes evidence-gated promotion.
   - agency-agents-style roles remain a compact coding role set.
-- The plan keeps LiMa Server as orchestrator and audit gate, and LiMa Code as the local allowlisted executor.
+- The plan keeps LiMa Server as orchestrator and audit gate, and LiMa as the local allowlisted executor.
 - Scope before real daemon mode:
   - Server claim/cancel/control/review/quarantine endpoints.
-  - LiMa Code repo allowlist, worker budget, failure quarantine, stop marker, and audit command.
+  - LiMa repo allowlist, worker budget, failure quarantine, stop marker, and audit command.
   - Safe temporary real-repo smoke for patch plus test plus result submission.
 - This is design-only; no runtime code was changed in this entry.
 
@@ -2415,19 +2415,19 @@ Follow-up after final review:
 - Recorded KERNEL as a future `LiMa Task Prompt Contract v0.1` item in `task_plan.md`.
 - Intended use:
   - Normalize Server-created agent tasks with `Context`, `Task`, `Constraints`, `Verify`, and `Output`.
-  - Keep LiMa Code worker tasks single-purpose and easy to verify.
+  - Keep LiMa worker tasks single-purpose and easy to verify.
   - Reduce prompt drift during candidate skill extraction and evolution review.
 - Source reference: Reddit PromptEngineering KERNEL framework post shared by the user.
 - This is a todo only; no runtime code was changed.
 
 ## 2026-05-23 Claude Code Infrastructure Todo
 
-- Recorded `LiMa Code Hooks + Skill Auto-Activation v0.1` as a future item in `task_plan.md`.
+- Recorded `LiMa Hooks + Skill Auto-Activation v0.1` as a future item in `task_plan.md`.
 - Source reference: the Claude Code infrastructure tips thread and `diet103/claude-code-infrastructure-showcase`.
 - Intended use after autonomous worker v0.2 lifecycle controls:
   - Skill auto-activation rules based on prompt, file path, and content patterns.
   - Post-task, post-edit, and stop checkpoints for touched files, tests, failures, and review gates.
-  - Worker-local dev docs under `.lima-code/dev/active/<task>/plan.md`, `context.md`, and `tasks.md`.
+  - Worker-local dev docs under `.lima/dev/active/<task>/plan.md`, `context.md`, and `tasks.md`.
   - `/lima docs` and `/lima docs-update` commands.
   - Final worker summaries that explicitly list changed files, tests run, remaining risks, and review status.
 - This is a todo only; no runtime code was changed.
@@ -2446,13 +2446,13 @@ Follow-up after final review:
 
 ## 2026-05-23 Autonomous Worker v0.2 Task 1
 
-- Implemented the shared agent task lifecycle contract on Server and LiMa Code.
+- Implemented the shared agent task lifecycle contract on Server and LiMa.
 - Server `AgentTaskResult` now accepts lifecycle statuses: `claimed`, `approved`, `rejected`, `applied`, `cancel_requested`, `cancelled`, and `quarantined`.
 - Server `AgentTaskRequest` now carries worker lifecycle metadata: `worker_id`, `lease_expires_at`, `cancel_requested`, and `failure_count`.
-- LiMa Code TypeScript validation accepts the same statuses and optional metadata.
+- LiMa TypeScript validation accepts the same statuses and optional metadata.
 - Red-green evidence:
   - Server contract tests first failed on missing lifecycle metadata/statuses.
-  - LiMa Code contract tests first failed on stripped metadata and missing statuses.
+  - LiMa contract tests first failed on stripped metadata and missing statuses.
 - Verification:
   - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_agent_task_contract.py -q --ignore=active_model`: `14 passed`.
   - `npm.cmd test -- src/tests/lima-agent-task-types.test.ts`: `380 passed, 6 skipped`.
@@ -2474,7 +2474,7 @@ Follow-up after final review:
 
 ## 2026-05-23 Autonomous Worker v0.2 Task 3
 
-- Implemented explicit LiMa Code repository allowlisting.
+- Implemented explicit LiMa repository allowlisting.
 - Added `src/lima/repo-allowlist.ts` so the current workspace is allowed by default and sibling repositories require explicit `allowedRepos` configuration.
 - Wired `workspace-guard.ts` to use the allowlist while preserving existing `allowedRoots` compatibility.
 - Red-green evidence:
@@ -2485,7 +2485,7 @@ Follow-up after final review:
 
 ## 2026-05-23 Autonomous Worker v0.2 Task 4
 
-- Implemented LiMa Code worker-session budgets.
+- Implemented LiMa worker-session budgets.
 - Added `src/lima/worker-budget.ts` to stop worker loops by max task count or max elapsed minutes.
 - Added `/lima work --max-minutes <n>` parsing with a default 60-minute session budget.
 - Wired the work loop to check budget before fetching the next task and to report the budget stop reason.
@@ -2499,15 +2499,15 @@ Follow-up after final review:
 
 ## 2026-05-23 Autonomous Worker v0.2 Task 5
 
-- Implemented repeated-failure quarantine for LiMa Code worker tasks.
-- Added `.lima-code/quarantine.json` state management through `src/lima/failure-quarantine.ts`.
+- Implemented repeated-failure quarantine for LiMa worker tasks.
+- Added `.lima/quarantine.json` state management through `src/lima/failure-quarantine.ts`.
 - Added `LiMaAgentTaskClient.quarantineTask()` for `POST /agent/tasks/{task_id}/quarantine`.
 - Wired worker loop failures so a task reaching 3 recorded failures is reported to Server as `quarantined`.
 - Added Server `/agent/tasks/{task_id}/quarantine` endpoint and event emission.
 - Red-green evidence:
   - Server route test first failed with `404` for the missing quarantine endpoint.
-  - LiMa Code client test first failed because `quarantineTask` did not exist.
-  - LiMa Code quarantine tests first failed because `failure-quarantine.ts` did not exist.
+  - LiMa client test first failed because `quarantineTask` did not exist.
+  - LiMa quarantine tests first failed because `failure-quarantine.ts` did not exist.
   - Worker loop test first failed because repeated failures were not quarantined.
 - Verification:
   - `npm.cmd test -- src/tests/lima-failure-quarantine.test.ts src/tests/lima-agent-task-client.test.ts src/tests/lima-command-runner.test.ts`: `395 passed, 6 skipped`.
@@ -2517,8 +2517,8 @@ Follow-up after final review:
 
 ## 2026-05-23 Autonomous Worker v0.2 Task 6
 
-- Implemented LiMa Code worker stop control.
-- Added `.lima-code/worker.stop.json` marker helpers in `src/lima/worker-control.ts`.
+- Implemented LiMa worker stop control.
+- Added `.lima/worker.stop.json` marker helpers in `src/lima/worker-control.ts`.
 - Added `/lima daemon status` and `/lima daemon stop` commands.
 - Wired the work loop to stop before fetching another task when the stop marker is present.
 - Red-green evidence:
@@ -2531,8 +2531,8 @@ Follow-up after final review:
 
 ## 2026-05-23 Autonomous Worker v0.2 Task 7
 
-- Implemented LiMa Code audit viewing.
-- Added `src/lima/audit-reader.ts` to read `.lima-code/audit.jsonl`, normalize `timestamp` and `created_at`, sort newest first, and format a compact summary.
+- Implemented LiMa audit viewing.
+- Added `src/lima/audit-reader.ts` to read `.lima/audit.jsonl`, normalize `timestamp` and `created_at`, sort newest first, and format a compact summary.
 - Added `/lima audit [--last <n>]` command parsing and runner output.
 - Red-green evidence:
   - Audit reader tests first failed because `audit-reader.ts` did not exist.
@@ -2544,23 +2544,23 @@ Follow-up after final review:
 
 ## 2026-05-23 Autonomous Worker v0.2 Task 8
 
-- Added a real temporary git repository smoke test for LiMa Code patch mode.
+- Added a real temporary git repository smoke test for LiMa patch mode.
 - Patch mode now runs explicit `test_commands` after applying `patch_files` when the task allows the `test` tool.
 - The submitted result now includes changed files, diff preview, test commands, and test results for patch-plus-test tasks.
 - Closed an end-to-end contract gap found during smoke work:
   - Server `AgentTaskRequest` accepts `patch_files` and `test_commands`.
   - Server `/agent/tasks` preserves those fields in fetched task envelopes.
-  - LiMa Code request validation preserves those fields instead of stripping them.
+  - LiMa request validation preserves those fields instead of stripping them.
 - Red-green evidence:
   - The local smoke first failed because patch mode submitted no test evidence.
   - Server contract tests first failed on missing `patch_files` support.
-  - LiMa Code validation tests first failed because `patch_files` were stripped.
+  - LiMa validation tests first failed because `patch_files` were stripped.
 - Verification:
   - `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_agent_task_contract.py tests\test_agent_task_routes.py -q --ignore=active_model`: `31 passed`.
   - `npm.cmd test -- src/tests/lima-agent-task-types.test.ts src/tests/lima-command-runner.test.ts`: `407 passed, 6 skipped`.
   - `npm.cmd run check`: passed.
   - `D:\GIT\venv\Scripts\python.exe -m py_compile agent_contracts\task_contract.py routes\agent_tasks.py`: passed.
-- VPS public smoke is still pending until this Server contract update is deployed. Do not treat patch-plus-test as live-verified until the VPS task endpoint returns `patch_files` and LiMa Code submits one passing `test_results` entry from a temporary repo.
+- VPS public smoke is still pending until this Server contract update is deployed. Do not treat patch-plus-test as live-verified until the VPS task endpoint returns `patch_files` and LiMa submits one passing `test_results` entry from a temporary repo.
 
 Verification note:
 
@@ -2661,9 +2661,9 @@ Verification note:
   - Server still only creates task records and does not execute shell or mutate repositories.
 - Added `scripts/create_lima_smoke_task.py`:
   - `--dry-run` prints only `/agent/worker/smoke-task` payload shape;
-  - live mode reads `LIMA_CODE_SERVER_URL` and `LIMA_CODE_API_KEY` or CLI args;
+  - live mode reads `LIMA_SERVER_URL` and `LIMA_API_KEY` or CLI args;
   - output never prints API keys.
-- Added `docs/LIMA_REAL_MACHINE_SMOKE.md` with `/lima doctor` as the first LiMa Code step.
+- Added `docs/LIMA_REAL_MACHINE_SMOKE.md` with `/lima doctor` as the first LiMa step.
 - Verification:
   - `python -m pytest tests\test_agent_task_routes.py -q --ignore=active_model`: `24 passed`.
   - `python -m pytest tests\test_lima_smoke_task_script.py -q --ignore=active_model`: `2 passed`.
@@ -2960,11 +2960,11 @@ Verification note:
   - added `docs/OPS_ENTRYPOINTS.md` as the original FreeDomain-inspired ops entrypoint document, pointing to the expanded `docs/ONLINE_DISTRIBUTIONS.md` source of truth.
 - Added regression coverage that imports and uses `code_context.retriever.retrieve_relevant_files()`.
 
-## 2026-05-24 LiMa Code Main-Repo Management Closure
+## 2026-05-24 LiMa Main-Repo Management Closure
 
-- Registered `deepcode-cli` as the main repository's tracked LiMa Code submodule.
-- Added `docs/LIMACODE_MANAGEMENT.md` as the governance record for LiMa Code ownership boundaries, submodule pointer updates, verification, and safety rules.
-- Recorded LiMa Code as a first-class managed LiMa distribution in `STATUS.md` and `docs/DOCUMENTATION_STATUS.md`.
+- Registered `deepcode-cli` as the main repository's tracked LiMa submodule.
+- Added `docs/LIMA_MANAGEMENT.md` as the governance record for LiMa ownership boundaries, submodule pointer updates, verification, and safety rules.
+- Recorded LiMa as a first-class managed LiMa distribution in `STATUS.md` and `docs/DOCUMENTATION_STATUS.md`.
 
 ## 2026-05-24 esp32S_XYZ Backend Management Closure
 
@@ -3126,7 +3126,7 @@ Verification note:
   - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
   - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
   - `docs/reference/HARDWARE_COMPANION_REFERENCES.md`;
-  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/LIMA_MANAGEMENT.md`;
   - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
   - `docs/reference/POTPIE_COMPOSIO_BORROWING_NOTES.md`;
   - `STATUS.md`, `docs/DOCUMENTATION_STATUS.md`, and `docs/LIMA_MEMORY.md`.
@@ -3169,7 +3169,7 @@ Verification note:
   - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
   - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
   - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
-  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/LIMA_MANAGEMENT.md`;
   - `docs/LIMA_MEMORY.md`;
   - `progress.md`.
 - Boundary retained:
@@ -3198,9 +3198,9 @@ Verification note:
   - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
   - `docs/reference/MCP_CONNECTOR_CATALOG.md`;
   - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
-  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/LIMA_MANAGEMENT.md`;
   - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
-  - `docs/superpowers/plans/2026-05-23-lima-code-dev-search-tools.md`;
+  - `docs/superpowers/plans/2026-05-23-lima-dev-search-tools.md`;
   - `docs/DOCUMENTATION_STATUS.md`;
   - `STATUS.md`;
   - `docs/LIMA_MEMORY.md`.
@@ -3257,7 +3257,7 @@ Verification note:
 - Updated:
   - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
   - `docs/reference/HARDWARE_COMPANION_REFERENCES.md`;
-  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/LIMA_MANAGEMENT.md`;
   - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
   - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
   - `STATUS.md`;
@@ -3292,7 +3292,7 @@ Verification note:
     with prompts, skills, multilingual docs, and AI-pair-programming workflow.
 - Updated:
   - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
-  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/LIMA_MANAGEMENT.md`;
   - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
   - `docs/reference/MCP_CONNECTOR_CATALOG.md`;
   - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
@@ -3348,7 +3348,7 @@ Verification note:
 - Updated:
   - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
   - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
-  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/LIMA_MANAGEMENT.md`;
   - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
   - `docs/reference/MCP_CONNECTOR_CATALOG.md`;
   - `STATUS.md`;
@@ -3411,7 +3411,7 @@ Verification note:
 - Updated:
   - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
   - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
-  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/LIMA_MANAGEMENT.md`;
   - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
   - `docs/reference/MCP_CONNECTOR_CATALOG.md`;
   - `docs/reference/HARDWARE_COMPANION_REFERENCES.md`;
@@ -3443,7 +3443,7 @@ Verification note:
   - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
   - `docs/reference/HARDWARE_COMPANION_REFERENCES.md`;
   - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
-  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/LIMA_MANAGEMENT.md`;
   - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
   - `STATUS.md`;
   - `docs/LIMA_MEMORY.md`;
@@ -3474,7 +3474,7 @@ Verification note:
 - Updated:
   - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
   - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
-  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/LIMA_MANAGEMENT.md`;
   - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
   - `STATUS.md`;
   - `docs/LIMA_MEMORY.md`;
@@ -4556,9 +4556,9 @@ Verification note:
     passed.
   - `python -m pytest -q --ignore=active_model`:
     1147 passed, 8 skipped.
-## 2026-05-25 Joint Debug: Server, LiMa Code, ESP32
+## 2026-05-25 Joint Debug: Server, LiMa, ESP32
 
-- Verified Server to LiMa Code worker contract via public task `92820005`; worker submitted `needs_review` back to Server.
+- Verified Server to LiMa worker contract via public task `92820005`; worker submitted `needs_review` back to Server.
 - Restarted stale local Windows router on port `8080`; current process reports `device_gateway=true`.
 - Verified local ESP32 fake U8 WebSocket loop against `/device/v1/ws`; all expected acknowledgement frames returned.
 - Added tracked public device gateway nginx route and smoke expectation updates; first deployment used memory-only single-node mode and was superseded by the Redis HA deployment below.
@@ -4623,7 +4623,7 @@ Verification note:
   - agent/tool governance;
   - MCP access plane;
   - eval, observability, and cost;
-  - LiMa Code workflow UX;
+  - LiMa workflow UX;
   - ESP32/hardware companion expansion.
 - Updated `docs/DOCUMENTATION_STATUS.md` so future sessions can find this as
   the active execution roadmap instead of mistaking the broader capability
@@ -4850,7 +4850,7 @@ Verification note:
 - Review fixes applied:
   - `/code-task` now reuses the formal Agent Task creation path so
     `request.task_id`, validation, persistence, and `created` events match the
-    LiMa Code worker contract;
+    LiMa worker contract;
   - `apply_promotion()` is idempotent even when the original `promoted:*`
     memory is older than the most recent 30 reference memories;
   - `/v1/ops/eval/apply` returns stable 400 responses for malformed JSON,
@@ -5200,3 +5200,14 @@ deploy_opencode.py → VPS 47.112.162.80 (systemctl restart lima-router)
 - deploy_opencode.py 缺少 http_caller.py → 已修复并重新部署
 - VPS 服务由 systemd 管理 (lima-router.service)，需使用 systemctl restart
 - Telegram API sendMessage 失败 → 预存问题，与本次变更无关
+
+## M-OC0 改名完成（2026-06-04）
+
+`lima-code` 全面重命名为 `lima`：
+
+- **A2** 主仓文本 sed：98 files，含 `lima-code`→`lima`、`lima_code`→`lima`、`LiMa Code`→`LiMa`、`limacode`(CI)→`lima`、`LIMA_CODE_`→`LIMA_`
+- **A3** 子模块（deepcode-cli）：74 files + 8 路径重命名（`bin/lima-code.js`→`lima.js` 等）
+- **A4** 主仓路径：5 files（`LIMACODE_MANAGEMENT`→`LIMA_MANAGEMENT`、`test_lima_code_dev_search_tools`→`test_lima_dev_search_tools` 等）
+- **A6** model alias 移除：`routes/chat_handler_dispatch.py` 删除 `"code"` alias
+- **A9** 过渡句：README/AGENTS/STATUS 顶部添加迁移说明
+- **A10** 验证：grep 0 命中 ✓、pytest 222+137 ✓、ruff ✓、`data/backend_admission.json` 恢复 ✓

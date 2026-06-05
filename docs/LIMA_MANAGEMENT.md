@@ -1,22 +1,22 @@
-> ⚠️ 2026-06-01: LiMa Code CLI 已初始化（M9），submodule 已检出。当前状态见 STATUS.md
+> ⚠️ 2026-06-01: LiMa CLI 已初始化（M9），submodule 已检出。当前状态见 STATUS.md
 
-# LiMa Code Management
+# LiMa Management
 
 > Updated: 2026-05-26
 
 ## Purpose
 
-LiMa Code is a first-class LiMa distribution and worker. The main LiMa
-repository manages it through the `deepcode-cli` submodule, while LiMa Code
+LiMa is a first-class LiMa distribution and worker. The main LiMa
+repository manages it through the `deepcode-cli` submodule, while LiMa
 keeps its own source history in `https://github.com/zhuguang-ZFG/deepcode-cli`.
 
 This keeps the boundary explicit:
 
 - LiMa Server owns routing, memory, backend health, task contracts, VPS
   deployment, and safety gates.
-- LiMa Code owns terminal coding workflow, local tool execution, MCP client
+- LiMa owns terminal coding workflow, local tool execution, MCP client
   behavior, worker loops, local audit files, and user-facing CLI behavior.
-- The main repository owns the pinned LiMa Code revision, integration records,
+- The main repository owns the pinned LiMa revision, integration records,
   cross-repo contract tests, and release/deploy evidence.
 
 ## Repository Entry
@@ -33,14 +33,14 @@ Current pinned revision:
 
 ## Update Rules
 
-1. Commit and push LiMa Code changes in `deepcode-cli` first.
-2. Run the relevant LiMa Code checks in `deepcode-cli`.
+1. Commit and push LiMa changes in `deepcode-cli` first.
+2. Run the relevant LiMa checks in `deepcode-cli`.
 3. Return to the main LiMa repository and stage only the updated submodule
    pointer plus related main-repo docs/tests.
 4. If the Server/Worker task contract changes, update both repositories in
    the same closure and record the verification in `STATUS.md`,
    `docs/LIMA_MEMORY.md`, and `progress.md`.
-5. Do not commit `.lima-code/` runtime state, local audit files, API keys,
+5. Do not commit `.lima/` runtime state, local audit files, API keys,
    provider credentials, VPS secrets, or generated local task workspaces.
 
 ## Verification
@@ -57,7 +57,7 @@ For Server/Worker integration changes, also verify from the main repo:
 
 ```powershell
 cd D:\GIT
-D:\GIT\venv\Scripts\python.exe -m pytest tests\test_agent_task_routes.py tests\test_lima_code_dev_search_tools.py -q --ignore=active_model
+D:\GIT\venv\Scripts\python.exe -m pytest tests\test_agent_task_routes.py tests\test_lima_dev_search_tools.py -q --ignore=active_model
 ```
 
 For live-worker changes, run the documented smoke path in
@@ -66,7 +66,7 @@ target repository is allowlisted.
 
 Latest Server/Worker evidence:
 
-- LiMa Code verification for `7209247` passed with `0 fail, 6 skipped`; main
+- LiMa verification for `7209247` passed with `0 fail, 6 skipped`; main
   LiMa Server verification passed `1240 passed, 8 skipped`.
 - Local workflow stage commands now produce structured artifact bundles under
   `.lima/artifacts/<task_id>/`:
@@ -85,7 +85,7 @@ Latest Server/Worker evidence:
 
 ## Safety Boundary
 
-LiMa Code may execute local commands only inside explicit allowlisted
+LiMa may execute local commands only inside explicit allowlisted
 repositories. The main LiMa repository remains the control plane for task
 creation, audit expectations, model routing policy, and deployment records.
 
@@ -106,7 +106,7 @@ MCP connector use follows `docs/reference/MCP_CONNECTOR_CATALOG.md`:
 
 ## External Workflow References
 
-These external projects are admitted as LiMa Code workflow references, not as
+These external projects are admitted as LiMa workflow references, not as
 runtime dependencies:
 
 - `can1357/oh-my-pi`: IDE-wired coding-agent UX, LSP/debug/tool harness, status
@@ -136,7 +136,7 @@ runtime dependencies:
 - Context7, Tavily, Firecrawl, GitHub MCP, Playwright MCP, Filesystem, Git,
   Memory, Sequential Thinking, Postgres, and Magic MCP remain candidate
   connectors behind the catalog. Each needs a per-task allowlist, credential
-  boundary, and audit path before LiMa Code can use it.
+  boundary, and audit path before LiMa can use it.
 - `calesthio/OpenMontage`: AGPL concept-only reference for agentic media
   pipeline staging, artifact quality gates, provider boundaries, and
   skill/tool catalog structure.
@@ -173,7 +173,7 @@ runtime dependencies:
 - `hyperbrowserai/hyperbrowser-app-examples`: browser automation and data
   extraction app reference. Keep API keys, scraping targets, privacy, target
   terms, and anti-abuse policy behind explicit review.
-- `garrytan/gstack`: MIT reference for stage-gated LiMa Code workflows:
+- `garrytan/gstack`: MIT reference for stage-gated LiMa workflows:
   office-hours/planning, review, browser QA, security audit, release, safety
   guard commands, cross-model second opinion, and memory sync. Do not install
   the full skill stack by default or introduce broad role sprawl.
@@ -198,7 +198,7 @@ runtime dependencies:
 - `langflow-ai/openrag`: Apache-2.0 reference for document ingestion,
   Docling-style parsing, retrieval observability, reranking, chat UI, and
   Langflow/OpenSearch workflow shape. Do not adopt the full platform as a
-  LiMa Code dependency.
+  LiMa dependency.
 - `GoogleCloudPlatform/generative-ai`: Apache-2.0 reference for Gemini,
   Agent Platform, Agent Search, RAG/grounding, vision, audio, and setup
   samples. Google Cloud usage remains optional and provider-gated.

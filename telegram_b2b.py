@@ -1,4 +1,4 @@
-"""Telegram Bot-to-Bot ingress from LiMa Code (Bot API 10.0, TG-10.0-2)."""
+"""Telegram Bot-to-Bot ingress from LiMa (Bot API 10.0, TG-10.0-2)."""
 
 from __future__ import annotations
 

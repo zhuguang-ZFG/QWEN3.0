@@ -26,7 +26,7 @@ class RegressionSuite:
         """Run all entries and return (name, actual_pass) tuples.
 
         STUB: returns expected_pass as actual result.
-        Real execution deferred to LiMa Code worker.
+        Real execution deferred to LiMa worker.
         Do NOT use all_passed() as a real promotion gate until
         this stub is replaced with actual test execution.
         """

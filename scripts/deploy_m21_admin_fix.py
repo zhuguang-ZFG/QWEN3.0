@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Deploy M21: Admin panel CSRF fix + JS button fix + Nginx Origin/Referer forwarding"""
+
 import paramiko, os, time
 
 VPS_HOST = "47.112.162.80"
@@ -9,7 +10,15 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 key = paramiko.Ed25519Key.from_private_key_file(VPS_KEY)
 ssh = paramiko.SSHClient()
-ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+known_hosts = os.path.expanduser("~/.ssh/known_hosts")
+if os.path.exists(known_hosts):
+    try:
+        ssh.load_host_keys(known_hosts)
+    except Exception as exc:
+        print(f"[warn] failed to load known_hosts: {exc}")
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())  # noqa: S507
+else:
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())  # noqa: S507
 
 try:
     ssh.connect(VPS_HOST, username=VPS_USER, pkey=key, timeout=20)
@@ -60,10 +69,10 @@ try:
     _, out, _ = ssh.exec_command("grep -A10 'location = /admin' /etc/nginx/conf.d/chat.donglicao.com.conf")
     admin_block = out.read().decode()
     print("   Admin proxy block now:")
-    for line in admin_block.split('\n')[:12]:
+    for line in admin_block.split("\n")[:12]:
         print(f"     {line}")
 
-    if 'Origin' in admin_block and 'Referer' in admin_block:
+    if "Origin" in admin_block and "Referer" in admin_block:
         print("   Origin/Referer forwarding: OK")
     else:
         print("   WARNING: Origin/Referer not found, trying Python-based fix...")
@@ -75,7 +84,7 @@ try:
         if old1 in config:
             config = config.replace(old1, new1)
             sftp = ssh.open_sftp()
-            with sftp.file('/etc/nginx/conf.d/chat.donglicao.com.conf', 'w') as f:
+            with sftp.file("/etc/nginx/conf.d/chat.donglicao.com.conf", "w") as f:
                 f.write(config)
             sftp.close()
             print("   Python-based fix applied")
@@ -87,12 +96,14 @@ try:
     _, out, err = ssh.exec_command("nginx -t 2>&1")
     result = out.read().decode().strip() + err.read().decode().strip()
     print(f"   {result}")
-    if 'syntax is ok' in result and 'test is successful' in result:
+    if "syntax is ok" in result and "test is successful" in result:
         ssh.exec_command("systemctl reload nginx")
         print("   Nginx reloaded")
     else:
         print("   FAILED - rolling back Nginx config")
-        ssh.exec_command("cp /etc/nginx/conf.d/chat.donglicao.com.conf.bak.m21 /etc/nginx/conf.d/chat.donglicao.com.conf")
+        ssh.exec_command(
+            "cp /etc/nginx/conf.d/chat.donglicao.com.conf.bak.m21 /etc/nginx/conf.d/chat.donglicao.com.conf"
+        )
         ssh.exec_command("nginx -t 2>&1 && systemctl reload nginx")
 
     # Step 5: Restart LiMa service
@@ -114,71 +125,83 @@ try:
     _, out, _ = ssh.exec_command("grep LIMA_ADMIN_TOKEN /opt/lima-router/.env | cut -d= -f2")
     token = out.read().decode().strip()
 
-    py_cookie = f"import hmac,hashlib; print(hmac.new('{token}'.encode(), b'lima-admin-session', hashlib.sha256).hexdigest())"
+    py_cookie = (
+        f"import hmac,hashlib; print(hmac.new('{token}'.encode(), b'lima-admin-session', hashlib.sha256).hexdigest())"
+    )
     _, out, _ = ssh.exec_command(f'python3 -c "{py_cookie}"')
     cookie = out.read().decode().strip()
 
     # Test POST through Nginx (with Origin)
-    cmd = ' '.join([
-        'curl -s -o /dev/null -w "%{http_code}"',
-        '-X POST http://127.0.0.1:80/admin/backends',
-        '-H "Origin: https://chat.donglicao.com"',
-        '-H "Referer: https://chat.donglicao.com/admin"',
-        '-H "Host: chat.donglicao.com"',
-        '-H "Content-Type: application/json"',
-        f'-b "lima_admin_session={cookie}"',
-        """-d '{"name":"_m21_test","url":"http://localhost:9999","model":"test"}'""",
-    ])
+    cmd = " ".join(
+        [
+            'curl -s -o /dev/null -w "%{http_code}"',
+            "-X POST http://127.0.0.1:80/admin/backends",
+            '-H "Origin: https://chat.donglicao.com"',
+            '-H "Referer: https://chat.donglicao.com/admin"',
+            '-H "Host: chat.donglicao.com"',
+            '-H "Content-Type: application/json"',
+            f'-b "lima_admin_session={cookie}"',
+            """-d '{"name":"_m21_test","url":"http://localhost:9999","model":"test"}'""",
+        ]
+    )
     _, out, _ = ssh.exec_command(cmd, timeout=20)
     code = out.read().decode().strip()
     print(f"   POST via Nginx: HTTP {code} {'PASS' if code == '200' else 'FAIL'}")
 
     # Test PUT through Nginx
-    cmd = ' '.join([
-        'curl -s -o /dev/null -w "%{http_code}"',
-        '-X PUT http://127.0.0.1:80/admin/backends/_m21_test',
-        '-H "Origin: https://chat.donglicao.com"',
-        '-H "Referer: https://chat.donglicao.com/admin"',
-        '-H "Host: chat.donglicao.com"',
-        '-H "Content-Type: application/json"',
-        f'-b "lima_admin_session={cookie}"',
-        """-d '{"url":"http://localhost:8888","model":"test2"}'""",
-    ])
+    cmd = " ".join(
+        [
+            'curl -s -o /dev/null -w "%{http_code}"',
+            "-X PUT http://127.0.0.1:80/admin/backends/_m21_test",
+            '-H "Origin: https://chat.donglicao.com"',
+            '-H "Referer: https://chat.donglicao.com/admin"',
+            '-H "Host: chat.donglicao.com"',
+            '-H "Content-Type: application/json"',
+            f'-b "lima_admin_session={cookie}"',
+            """-d '{"url":"http://localhost:8888","model":"test2"}'""",
+        ]
+    )
     _, out, _ = ssh.exec_command(cmd, timeout=20)
     code = out.read().decode().strip()
     print(f"   PUT via Nginx: HTTP {code} {'PASS' if code == '200' else 'FAIL'}")
 
     # Test DELETE through Nginx
-    cmd = ' '.join([
-        'curl -s -o /dev/null -w "%{http_code}"',
-        '-X DELETE http://127.0.0.1:80/admin/backends/_m21_test',
-        '-H "Origin: https://chat.donglicao.com"',
-        '-H "Referer: https://chat.donglicao.com/admin"',
-        '-H "Host: chat.donglicao.com"',
-        f'-b "lima_admin_session={cookie}"',
-    ])
+    cmd = " ".join(
+        [
+            'curl -s -o /dev/null -w "%{http_code}"',
+            "-X DELETE http://127.0.0.1:80/admin/backends/_m21_test",
+            '-H "Origin: https://chat.donglicao.com"',
+            '-H "Referer: https://chat.donglicao.com/admin"',
+            '-H "Host: chat.donglicao.com"',
+            f'-b "lima_admin_session={cookie}"',
+        ]
+    )
     _, out, _ = ssh.exec_command(cmd, timeout=20)
     code = out.read().decode().strip()
     print(f"   DELETE via Nginx: HTTP {code} {'PASS' if code == '200' else 'FAIL'}")
 
     # Test admin page loads
-    cmd = ' '.join([
-        'curl -s -o /dev/null -w "%{http_code}"',
-        'http://127.0.0.1:80/admin',
-        f'-b "lima_admin_session={cookie}"',
-    ])
+    cmd = " ".join(
+        [
+            'curl -s -o /dev/null -w "%{http_code}"',
+            "http://127.0.0.1:80/admin",
+            f'-b "lima_admin_session={cookie}"',
+        ]
+    )
     _, out, _ = ssh.exec_command(cmd, timeout=15)
     code = out.read().decode().strip()
     print(f"   GET /admin: HTTP {code} {'PASS' if code == '200' else 'FAIL'}")
 
     # Clean up test backend via direct backend API
-    cmd = ' '.join([
-        'curl -s -o /dev/null -w "%{http_code}"',
-        '-X DELETE http://127.0.0.1:8080/admin/backends/_m21_test',
-        '-H "Origin: https://chat.donglicao.com"',
-        '-H "Referer: https://chat.donglicao.com/admin"',
-        f'-b "lima_admin_session={cookie}"',
-    ])
+    cmd = " ".join(
+        [
+            'curl -s -o /dev/null -w "%{http_code}"',
+            "-X DELETE http://127.0.0.1:8080/admin/backends/_m21_test",
+            '-H "Origin: https://chat.donglicao.com"',
+            '-H "Referer: https://chat.donglicao.com/admin"',
+            f'-b "lima_admin_session={cookie}"',
+        ]
+    )
     ssh.exec_command(cmd, timeout=10)
 
     print("\n" + "=" * 70)

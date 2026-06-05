@@ -83,7 +83,7 @@ LiMa 运维层（本计划）
 | `GOOGLE_AI_KEY` | VPS router |
 | `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` / `TELEGRAM_WEBHOOK_SECRET` | VPS |
 | `GITHUB_WEBHOOK_SECRET` | VPS |
-| `LIMA_ADMIN_TOKEN` | VPS / LiMa Code |
+| `LIMA_ADMIN_TOKEN` | VPS / LiMa |
 | `GFW_PROXY` / frpc 相关 | Windows only |
 | Tailscale auth key（INF-C） | VPS + Windows |
 
@@ -224,13 +224,13 @@ LIMA_TAILSCALE_SMOKE=0            # 1 启用私有 smoke 脚本
 
 ```text
 并行（不阻塞）:
-  TG-GH-1/2     Telegram 可靠性 + LiMa Code 推送
+  TG-GH-1/2     Telegram 可靠性 + LiMa 推送
   CF-G-3        Google 路由优化
   INF-A/B/C     本计划（密钥 / dead-man / mesh）
 
 后续（单独计划）:
   INF-D         OpenLLMetry → routing_engine span
-  INF-E         SearXNG → LiMa Code research
+  INF-E         SearXNG → LiMa research
 ```
 
 **建议第一刀：** INF-B Healthchecks（2h，零密钥迁移风险）或 INF-A（若你已准备好 Infisical 账号）。

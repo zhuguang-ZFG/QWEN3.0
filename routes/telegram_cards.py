@@ -2,7 +2,7 @@ r"""Operator Console cards v0.1 -- live status cards for Telegram.
 
 Three card types:
   1. LiveStatusCard  -- eval/deploy progress that updates in-place
-  2. TaskReviewCard  -- LiMa Code task review with Approve/Reject buttons
+  2. TaskReviewCard  -- LiMa task review with Approve/Reject buttons
   3. DeviceTaskCard  -- device task lifecycle with error codes + SVG
 
 Usage pattern:
@@ -82,7 +82,7 @@ class LiveStatusCard:
         )
 
 
-# ── Card 2: Task Review (LiMa Code plan/test/review/ship) ──
+# ── Card 2: Task Review (LiMa plan/test/review/ship) ──
 
 def build_task_review_card(
     task_id: str,

@@ -4,7 +4,7 @@
 
 **Goal:** Build the lifecycle layer LiMa needs before true daemon mode: stop control, failure quarantine, repository allowlist, runtime budget, audit UI, and real-repo smoke verification.
 
-**Architecture:** LiMa Server remains the orchestrator and policy/audit source; LiMa Code remains the local executor that reads/writes only explicitly allowed repositories. This plan follows the GenericAgent/Evolver/agency-agents direction, but converts it into a controlled personal coding assistant: skills are candidates before activation, evolution is evidence-gated, and agent roles are limited to the coding workflow.
+**Architecture:** LiMa Server remains the orchestrator and policy/audit source; LiMa remains the local executor that reads/writes only explicitly allowed repositories. This plan follows the GenericAgent/Evolver/agency-agents direction, but converts it into a controlled personal coding assistant: skills are candidates before activation, evolution is evidence-gated, and agent roles are limited to the coding workflow.
 
 **Tech Stack:** Python 3.11, FastAPI, pytest, current `agent_contracts`, `routes.agent_tasks`, `agent_evolution`; TypeScript, Node.js, React Ink CLI, current `src/lima/*`, `src/ui/App.tsx`, `node:test`.
 
@@ -33,8 +33,8 @@ LiMa v0.2 should be a controlled autonomous coding worker, not a fully autonomou
 Completed baseline:
 
 - LiMa Server exposes agent task endpoints under `routes/agent_tasks.py`.
-- LiMa Code supports `/lima task <task_id>`, `/lima next`, `/lima work --once`, and bounded `/lima work --loop --max-tasks <n>`.
-- LiMa Code writes local audit entries to `.lima-code/audit.jsonl`.
+- LiMa supports `/lima task <task_id>`, `/lima next`, `/lima work --once`, and bounded `/lima work --loop --max-tasks <n>`.
+- LiMa writes local audit entries to `.lima/audit.jsonl`.
 - Public smoke verified Server task creation, worker polling, local execution, result submission, and event retrieval.
 
 Known gaps this plan closes:
@@ -59,13 +59,13 @@ Server files:
 - Modify: `agent_evolution/candidates.py` - accept task evidence from reviewed successful tasks.
 - Modify: `tests/test_agent_evolution.py` - prove reviewed task evidence creates inactive candidate skills only.
 
-LiMa Code files:
+LiMa files:
 
 - Create: `D:\GIT\deepcode-cli\src\lima\repo-allowlist.ts` - explicit repository authorization.
 - Create: `D:\GIT\deepcode-cli\src\lima\worker-budget.ts` - worker-session budgets and counters.
 - Create: `D:\GIT\deepcode-cli\src\lima\failure-quarantine.ts` - repeated failure tracking and quarantine decisions.
 - Create: `D:\GIT\deepcode-cli\src\lima\worker-control.ts` - stop marker and run state.
-- Create: `D:\GIT\deepcode-cli\src\lima\audit-reader.ts` - read and summarize `.lima-code/audit.jsonl`.
+- Create: `D:\GIT\deepcode-cli\src\lima\audit-reader.ts` - read and summarize `.lima/audit.jsonl`.
 - Modify: `D:\GIT\deepcode-cli\src\lima\commands.ts` - parse lifecycle commands.
 - Modify: `D:\GIT\deepcode-cli\src\lima\command-runner.ts` - use claim/control/budget/quarantine/audit commands.
 - Modify: `D:\GIT\deepcode-cli\src\lima\agent-task-client.ts` - add claim, cancel/control polling, and task review calls.
@@ -80,7 +80,7 @@ LiMa Code files:
 
 Docs:
 
-- Modify: `STATUS.md` - update LiMa Code worker reality after implementation.
+- Modify: `STATUS.md` - update LiMa worker reality after implementation.
 - Modify: `docs/LIMA_MEMORY.md` - append lifecycle/evolution decision record.
 - Modify: `progress.md` - append implementation evidence and test results.
 
@@ -206,7 +206,7 @@ class AgentTaskRequest:
             raise ValueError("failure_count must not be negative")
 ```
 
-- [x] **Step 4: Write failing LiMa Code contract tests**
+- [x] **Step 4: Write failing LiMa contract tests**
 
 Add to `D:\GIT\deepcode-cli\src\tests\lima-agent-task-types.test.ts`:
 
@@ -868,7 +868,7 @@ export function shouldQuarantineTask(
 }
 
 function quarantinePath(projectRoot: string): string {
-  return path.join(projectRoot, ".lima-code", "quarantine.json");
+  return path.join(projectRoot, ".lima", "quarantine.json");
 }
 
 function readState(projectRoot: string): QuarantineState {
@@ -938,7 +938,7 @@ git add routes/agent_tasks.py tests/test_agent_task_routes.py
 git commit -m "feat: add agent task quarantine endpoint"
 ```
 
-LiMa Code:
+LiMa:
 
 ```bash
 git add src/lima/failure-quarantine.ts src/lima/command-runner.ts src/lima/agent-task-client.ts src/tests/lima-failure-quarantine.test.ts src/tests/lima-command-runner.test.ts
@@ -1011,7 +1011,7 @@ export function readWorkerStop(projectRoot: string): { stop: boolean; reason: st
 }
 
 function stopMarkerPath(projectRoot: string): string {
-  return path.join(projectRoot, ".lima-code", "worker.stop.json");
+  return path.join(projectRoot, ".lima", "worker.stop.json");
 }
 ```
 
@@ -1097,7 +1097,7 @@ import { formatAuditSummary, readRecentAuditEntries } from "../lima/audit-reader
 
 test("readRecentAuditEntries returns newest entries first", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "lima-audit-read-"));
-  const dir = path.join(root, ".lima-code");
+  const dir = path.join(root, ".lima");
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(
     path.join(dir, "audit.jsonl"),
@@ -1137,7 +1137,7 @@ export type LiMaAuditSummaryEntry = {
 };
 
 export function readRecentAuditEntries(projectRoot: string, limit = 10): LiMaAuditSummaryEntry[] {
-  const file = path.join(projectRoot, ".lima-code", "audit.jsonl");
+  const file = path.join(projectRoot, ".lima", "audit.jsonl");
   if (!fs.existsSync(file)) {
     return [];
   }
@@ -1294,16 +1294,16 @@ Actual local evidence:
 - Green: `npm.cmd test -- src/tests/lima-command-runner.test.ts`: `406 passed, 6 skipped`.
 - Implementation: patch mode now runs explicit test commands when `allowed_tools` includes `test`, and submits changed files, diff preview, test commands, and test results together.
 
-- [x] **Step 2.5: Preserve patch/test payload through Server and LiMa Code contracts**
+- [x] **Step 2.5: Preserve patch/test payload through Server and LiMa contracts**
 
-Reason: the local runner smoke exposed a real end-to-end contract gap. `routes.agent_tasks.TaskCreateBody` did not accept `patch_files` or `test_commands`, and LiMa Code validation stripped those fields from fetched Server tasks.
+Reason: the local runner smoke exposed a real end-to-end contract gap. `routes.agent_tasks.TaskCreateBody` did not accept `patch_files` or `test_commands`, and LiMa validation stripped those fields from fetched Server tasks.
 
 Evidence:
 
 - Red Server tests failed because `AgentTaskRequest` rejected `patch_files`, and created tasks did not return `patch_files`.
-- Red LiMa Code test failed because `validateLiMaAgentTaskRequest()` stripped `patch_files`.
+- Red LiMa test failed because `validateLiMaAgentTaskRequest()` stripped `patch_files`.
 - Green Server tests: `D:\GIT\venv\Scripts\python.exe -m pytest tests\test_agent_task_contract.py tests\test_agent_task_routes.py -q --ignore=active_model`: `31 passed`.
-- Green LiMa Code tests: `npm.cmd test -- src/tests/lima-agent-task-types.test.ts src/tests/lima-command-runner.test.ts`: `407 passed, 6 skipped`.
+- Green LiMa tests: `npm.cmd test -- src/tests/lima-agent-task-types.test.ts src/tests/lima-command-runner.test.ts`: `407 passed, 6 skipped`.
 - `npm.cmd run check`: passed.
 
 - [ ] **Step 3: Perform public safe smoke**
@@ -1322,7 +1322,7 @@ Use a temporary repo, never a private working repo with unreviewed code. Create 
 }
 ```
 
-Run LiMa Code:
+Run LiMa:
 
 ```bash
 /lima task <task_id>
@@ -1337,7 +1337,7 @@ changed_files includes README.md
 test_results includes one passing command
 ```
 
-Current status: pending deployment of the new Server task payload contract to VPS. Do not record this as complete until the live Server returns `patch_files` and `test_commands` in `/agent/tasks/{task_id}` and LiMa Code submits a result containing passing `test_results`.
+Current status: pending deployment of the new Server task payload contract to VPS. Do not record this as complete until the live Server returns `patch_files` and `test_commands` in `/agent/tasks/{task_id}` and LiMa submits a result containing passing `test_results`.
 
 - [x] **Step 4: Update docs with smoke evidence**
 
@@ -1349,7 +1349,7 @@ Append exact evidence to:
 
 - [x] **Step 5: Commit Task 8**
 
-LiMa Code:
+LiMa:
 
 ```bash
 git add src/tests/lima-command-runner.test.ts docs/lima-mcp-worker-plan.md
@@ -1384,7 +1384,7 @@ D:\GIT\venv\Scripts\python.exe -m pytest tests\test_agent_task_contract.py tests
 
 Expected: all selected tests pass.
 
-- [ ] **Step 2: Run LiMa Code lifecycle tests**
+- [ ] **Step 2: Run LiMa lifecycle tests**
 
 Run:
 
@@ -1394,7 +1394,7 @@ npm.cmd test -- src/tests/lima-agent-task-types.test.ts src/tests/lima-agent-tas
 
 Expected: all selected tests pass.
 
-- [ ] **Step 3: Run LiMa Code full checks**
+- [ ] **Step 3: Run LiMa full checks**
 
 Run:
 
@@ -1410,7 +1410,7 @@ Expected: check passes and full suite has zero failures.
 Update `STATUS.md`:
 
 ```markdown
-| LiMa Code worker lifecycle | Designed/Implemented | v0.2 adds stop control, repo allowlist, worker budget, failure quarantine, audit command, and real-repo smoke path. |
+| LiMa worker lifecycle | Designed/Implemented | v0.2 adds stop control, repo allowlist, worker budget, failure quarantine, audit command, and real-repo smoke path. |
 ```
 
 Append to `docs/LIMA_MEMORY.md`:
@@ -1423,7 +1423,7 @@ LiMa follows the GenericAgent/Evolver/agency-agents direction through controlled
 - GenericAgent-like skill growth becomes inactive candidate skills, not self-published runtime behavior.
 - Evolver-like evolution becomes evidence-gated promotion with tests and manual approval.
 - agency-agents-like roles remain a compact coding role set, not a large simulated company.
-- Server orchestrates and audits; LiMa Code executes locally inside allowlisted repos.
+- Server orchestrates and audits; LiMa executes locally inside allowlisted repos.
 - v0.2 lifecycle controls are stop markers, claim leases, cancellation, runtime budgets, failure quarantine, and audit viewing.
 ```
 
@@ -1433,8 +1433,8 @@ Append to `progress.md`:
 ## 2026-05-23 LiMa Autonomous Worker v0.2
 
 - Implemented lifecycle contract and Server claim/cancel/control/review/quarantine endpoints.
-- Implemented LiMa Code repo allowlist, worker budget, failure quarantine, stop control, and audit command.
-- Verified with focused Server tests, focused LiMa Code tests, full LiMa Code check, full LiMa Code suite, and safe real-repo smoke.
+- Implemented LiMa repo allowlist, worker budget, failure quarantine, stop control, and audit command.
+- Verified with focused Server tests, focused LiMa tests, full LiMa check, full LiMa suite, and safe real-repo smoke.
 ```
 
 - [ ] **Step 5: Commit documentation closure**
@@ -1446,7 +1446,7 @@ git add STATUS.md docs/LIMA_MEMORY.md progress.md
 git commit -m "docs: close autonomous worker v0.2 lifecycle"
 ```
 
-LiMa Code:
+LiMa:
 
 ```bash
 git add docs/lima-mcp-worker-plan.md
@@ -1476,11 +1476,11 @@ Expected: both pushes succeed.
 LiMa v0.2 is complete only when all of these are true:
 
 - Server can claim a task with `worker_id` and lease metadata.
-- Server can request cancellation, and LiMa Code can observe stop/cancel controls.
-- LiMa Code refuses to touch non-allowlisted repositories.
-- LiMa Code stops when worker-session budget is reached.
-- LiMa Code quarantines repeated failures and reports that status to Server.
-- LiMa Code exposes a user-facing audit summary command.
+- Server can request cancellation, and LiMa can observe stop/cancel controls.
+- LiMa refuses to touch non-allowlisted repositories.
+- LiMa stops when worker-session budget is reached.
+- LiMa quarantines repeated failures and reports that status to Server.
+- LiMa exposes a user-facing audit summary command.
 - A safe temp real-repo smoke proves patch plus test plus result submission.
 - Evolution remains candidate-only until tests and manual promotion pass.
 - Documentation records the exact evidence.

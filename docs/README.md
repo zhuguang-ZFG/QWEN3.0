@@ -36,7 +36,7 @@
 
 | Document | Content |
 |----------|---------|
-| `LIMACODE_MANAGEMENT.md` | LiMa Code 子模块 |
+| `LIMA_MANAGEMENT.md` | LiMa 子模块 |
 | `ESP32S_XYZ_MANAGEMENT.md` | ESP32/硬件子模块 |
 | `MODEL_CATALOG.md` | 模型目录 |
 | `FREE_MODEL_ROUTING_STATUS.md` | 免费模型路由状态 |

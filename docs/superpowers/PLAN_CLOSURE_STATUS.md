@@ -8,7 +8,7 @@
 All 37 LOCAL_ONLY_BACKENDS have been migrated to VPS or deleted. All 5 VPS reverse
 sidecars (scnet/kimi/longcat/mimo) are active. 184 backends are cloud-native.
 DDG + deepseek_free deleted (not in any routing pool). ESP32 artifacts removed.
-LiMa Code CLI (lima-code v0.1.24) initialized and smoke-tested against LiMa VPS.
+LiMa CLI (lima v0.1.24) initialized and smoke-tested against LiMa VPS.
 
 Key evidence: STATUS.md, findings.md, progress.md, docs/DECOUPLE_FROM_LOCAL_HOST.md,
 docs/VIBE_CODING_ANALYSIS.md.
@@ -29,9 +29,9 @@ Several 2026-05-23/2026-05-24 plan files still contain unchecked implementation-
 - `docs/LIMA_MEMORY.md`
 - `progress.md`
 
-The current runtime truth is: VPS Server/Worker APIs are deployed, LiMa Code completed a public real-machine worker smoke, FRP `8088` chat is healthy again after local router startup hardening, `server.py` route decomposition is closed for this architecture pass, backend capability registry plus `key_pool.py` integration are deployed, redacted key-pool telemetry is implemented, the TechSpar-inspired mastery loop is implemented locally, the public LiMa Device Gateway is deployed with Redis HA task routing, and **WeChat product channels are retired** (`docs/WECHAT_RETIRED.md`).
+The current runtime truth is: VPS Server/Worker APIs are deployed, LiMa completed a public real-machine worker smoke, FRP `8088` chat is healthy again after local router startup hardening, `server.py` route decomposition is closed for this architecture pass, backend capability registry plus `key_pool.py` integration are deployed, redacted key-pool telemetry is implemented, the TechSpar-inspired mastery loop is implemented locally, the public LiMa Device Gateway is deployed with Redis HA task routing, and **WeChat product channels are retired** (`docs/WECHAT_RETIRED.md`).
 
-**Open work prioritization:** `docs/NEXT_MILESTONES.md` (four tracks: coding backends, LiMa Code Worker, ESP32/Device Gateway, code quality).
+**Open work prioritization:** `docs/NEXT_MILESTONES.md` (four tracks: coding backends, LiMa Worker, ESP32/Device Gateway, code quality).
 
 ## Plan Status
 
@@ -47,10 +47,10 @@ The current runtime truth is: VPS Server/Worker APIs are deployed, LiMa Code com
 | `2026-05-22-complete-open-phases.md` | Closed | `task_plan.md` phases 5, 10, 11 complete; public OpenAI, Anthropic, and real Claude Code CLI smokes recorded. | Commit/push evidence exists in git history on `codex/free-web-ai-probe`. |
 | `2026-05-22-p0-router-hardening.md` | Closed | Local verification: `112 passed`; VPS deployment backup `/opt/lima-router/backups/p0-router-hardening-20260522_230407`; public OpenAI and Anthropic smokes passed. | `health_tracker.py` was also synced after deployment to repair stale VPS runtime dependency. |
 | `2026-05-23-lima-server-agent-evolution.md` | Implemented/closed by evidence | Server task contract, role/eval/evolution modules, protected task APIs, and focused tests are recorded in `STATUS.md` and `docs/LIMA_MEMORY.md`. | The plan file still has draft checkboxes; use status docs as truth. |
-| `2026-05-23-lima-code-agent-worker.md` | Implemented/closed by evidence | `D:\GIT\deepcode-cli` has `/lima task`, `/lima next`, bounded `/lima work`, audit, quarantine, repo allowlist, and full test evidence. | The plan file still has draft checkboxes; use status docs as truth. |
+| `2026-05-23-lima-agent-worker.md` | Implemented/closed by evidence | `D:\GIT\deepcode-cli` has `/lima task`, `/lima next`, bounded `/lima work`, audit, quarantine, repo allowlist, and full test evidence. | The plan file still has draft checkboxes; use status docs as truth. |
 | `2026-05-23-lima-server-control-plane-v03-for-ai-worker.md` | Implemented locally and deployed as part of later sync | Admin audit, Telegram review helpers, candidate extraction, and contract smoke evidence are recorded in `STATUS.md` and `docs/LIMA_MEMORY.md`. | VPS worker APIs were deployed on 2026-05-24. |
-| `2026-05-23-lima-real-machine-worker-v04.md` | Deployed and smoke-verified | Live task `cfcd3f2b` was created, executed by LiMa Code, submitted as `needs_review`, and confirmed with events `created,result_submitted`. | This supersedes the earlier "No production deployment was performed" note. |
-| `2026-05-23-lima-autonomous-worker-v02.md` | Partially implemented | Bounded work loops, stop marker, failure quarantine, repo allowlist, audit, and runtime budget exist in LiMa Code. | Always-on daemon mode remains deferred and gated. |
+| `2026-05-23-lima-real-machine-worker-v04.md` | Deployed and smoke-verified | Live task `cfcd3f2b` was created, executed by LiMa, submitted as `needs_review`, and confirmed with events `created,result_submitted`. | This supersedes the earlier "No production deployment was performed" note. |
+| `2026-05-23-lima-autonomous-worker-v02.md` | Partially implemented | Bounded work loops, stop marker, failure quarantine, repo allowlist, audit, and runtime budget exist in LiMa. | Always-on daemon mode remains deferred and gated. |
 | `2026-05-23-techspar-mastery-loop.md` | Implemented and deployed | `mastery_loop/` has typed records, SQLite store, event adapters, scoring, weak-point extraction, review scheduling, recommendations, and traces; skill promotion requires mastery evidence. VPS backup `/opt/lima-router/backups/mastery-loop-20260524-125511`; HTTPS/FRP/preflight smokes passed. | Admin UI exposure and hot-path planner/routing influence remain deferred and gated. |
 | `2026-05-24-tool-dispatcher-clean-split.md` | Closed locally and deployed as runtime files | Split `lima_fc_tools` runtime files were part of the 2026-05-24 VPS sync; focused tests and full pytest evidence are in `STATUS.md`. | Telegram FC/TTS remains outside ordinary routing by policy. |
 | `2026-05-24-lima-direct-device-gateway.md` | Public route deployed; Redis HA follow-up deployed | Public `/device/v1/*` route, fake U8 local/public smokes, Redis task store/session bus, cross-process temp-router smoke, and `12/12` online distribution smoke are recorded in `STATUS.md`, `docs/LIMA_MEMORY.md`, and `progress.md`. | Real U8 firmware and real hardware motion remain gated. |

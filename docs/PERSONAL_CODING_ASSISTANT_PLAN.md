@@ -1,4 +1,4 @@
-> ⚠️ 2026-06-01 起已过时。主线已变更为 LiMa Code CLI vibe coding 提升。当前状态见 STATUS.md
+> ⚠️ 2026-06-01 起已过时。主线已变更为 LiMa CLI vibe coding 提升。当前状态见 STATUS.md
 
 # LiMa Personal Coding Assistant Plan
 
@@ -209,7 +209,7 @@ The personal coding assistant direction is closed when:
 **Active next steps** (see `docs/NEXT_MILESTONES.md`):
 
 1. Re-run backend evals when keys, rate limits, or local proxy sessions improve.
-2. LiMa Code: Task Prompt Contract v0.1, then Hooks + skill auto-activation.
+2. LiMa: Task Prompt Contract v0.1, then Hooks + skill auto-activation.
 3. Code quality P0: body limit, live-key boundary, legacy deploy scripts.
 4. ESP32: real-device flash and motion smoke after PROD-003.
 

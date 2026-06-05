@@ -1,7 +1,7 @@
 # LiMa Productivity Infrastructure Review
 
 > Date: 2026-05-25
-> Scope: LiMa Server, LiMa Code (`deepcode-cli`), and ESP32 (`esp32S_XYZ`).
+> Scope: LiMa Server, LiMa (`deepcode-cli`), and ESP32 (`esp32S_XYZ`).
 > Goal: turn existing capabilities into real production usefulness, not
 > feature spectacle.
 
@@ -16,7 +16,7 @@ features.
 
 LiMa already has many strong building blocks: Redis-backed Device Gateway HA,
 typed memory, mastery loop, eval registry, agent/tool governance, MCP access
-plane, LiMa Code worker commands, and fake U8 smoke tests. The remaining
+plane, LiMa worker commands, and fake U8 smoke tests. The remaining
 weakness is not "missing more ideas"; it is the gap between interfaces and a
 daily-use production loop.
 
@@ -27,7 +27,7 @@ Current P0 status as of 2026-05-25:
 | PROD-003 | ESP32 firmware compile passed; hardware flash is next. |
 | PROD-004 | Path pipeline implemented: stroke font, SVG parser, preview, safety clamps. |
 | PROD-005 | Intent parser upgraded with regex, confidence, rejection reasons, and gated LLM replanning. |
-| PROD-006 | LiMa Code artifact bundle implemented under `.lima/artifacts/<task_id>/` for plan/test/review/ship. |
+| PROD-006 | LiMa artifact bundle implemented under `.lima/artifacts/<task_id>/` for plan/test/review/ship. |
 | PROD-007 | Ops metrics endpoint deployed and smoke-verified. |
 | PROD-008 | Learning loop remains architecture-level follow-up. |
 
@@ -36,7 +36,7 @@ The highest leverage path is:
 1. make ESP32 tasks observable, stateful, and hard to silently lose;
 2. make Device Gateway turn intent into real executable geometry/G-code, not
    placeholders;
-3. make LiMa Code produce reviewable plan/patch/test/ship artifacts from real
+3. make LiMa produce reviewable plan/patch/test/ship artifacts from real
    context;
 4. connect logs, memory, routing, prompts, and evals into one learning loop.
 
@@ -48,14 +48,14 @@ The highest leverage path is:
 | PROD-002 | P0 | ESP32 failure telemetry | The zhuguang handler logs unsupported capability and missing `run_path` payload but returns without a failure event. | Server/Device Gateway can believe a task is still pending or silently lost. | Missing path, unsupported capability, bad params, U1 unavailable, and update-in-progress all return structured failure events with codes. |
 | PROD-003 | P0 | Device intelligence | `device_gateway/tasks.py` maps `write_text` to a rectangle and `draw_generated` to a hardcoded star. | Voice "write/draw" demos look alive but do not produce useful real-world output. | Add a real text/vector/path pipeline with preview, safety limits, and fake-device replay before more protocol families. |
 | PROD-004 | P0 | Intent understanding | `device_gateway/intent.py` is deterministic first-slice mapping. | Real commands beyond tiny Chinese/English phrases collapse to text-writing fallback. | Introduce a gated model-backed planner or grammar+LLM hybrid that outputs validated motion intents with reasons and rejected-command explanations. |
-| PROD-005 | P0 | LiMa Code productivity | `/lima plan` creates a local task whose runner only echoes constraints; `/lima test` runs commands; `/lima ship` reviews diff only. | Commands exist, but do not yet behave like a productive implementation assistant. | Stage artifacts: context packet, implementation plan, patch proposal, test evidence, risks, rollback notes, and Server submission link. |
+| PROD-005 | P0 | LiMa productivity | `/lima plan` creates a local task whose runner only echoes constraints; `/lima test` runs commands; `/lima ship` reviews diff only. | Commands exist, but do not yet behave like a productive implementation assistant. | Stage artifacts: context packet, implementation plan, patch proposal, test evidence, risks, rollback notes, and Server submission link. |
 | PROD-006 | P1 | Observability surface | `observability/events.py` and `observability/metrics.py` exist, but `routes/system_endpoints.py` exposes health/status, not a focused operator metrics endpoint. | Good events stay hidden during incidents and joint debugging. | Add authenticated `/v1/ops/metrics` or admin panel slices for request_id/task_id/device_id/session_id correlation. |
-| PROD-007 | P1 | Request correlation | Current observability wiring emits backend/route/quality events, but request start/end integration is not clearly universal. | Latency and failure analysis are fragmented across logs, task states, and route metrics. | Standardize correlation ids across chat, worker, Device Gateway, LiMa Code audit, and ESP32 motion events. |
+| PROD-007 | P1 | Request correlation | Current observability wiring emits backend/route/quality events, but request start/end integration is not clearly universal. | Latency and failure analysis are fragmented across logs, task states, and route metrics. | Standardize correlation ids across chat, worker, Device Gateway, LiMa audit, and ESP32 motion events. |
 | PROD-008 | P1 | Memory learning loop | Memory taxonomy and recall exist, but production outcomes are not yet clearly fed back into prompt/routing decisions. | Long-term memory can become a passive archive instead of improving work quality. | Promote verified lessons from failures, tests, and successful patches into typed memory and route/prompt eval queues. |
-| PROD-009 | P1 | Prompt capability | LiMa Code has a hardcoded system prompt and templates, but no prompt registry/version/eval loop tied to outcomes. | Prompt improvements are hard to compare, roll back, or personalize safely. | Add prompt versions, fixture evals, and per-workflow prompt profiles for plan/patch/review/test/device. |
-| PROD-010 | P1 | Routing intelligence | Router/eval primitives exist, but route decisions are still mostly pool/order/evidence rules. | It can choose a working model, but not yet learn task-fit from real LiMa Code outcomes. | Add task-outcome feedback: model, route reason, test result, review status, latency, cost, and failure class. |
+| PROD-009 | P1 | Prompt capability | LiMa has a hardcoded system prompt and templates, but no prompt registry/version/eval loop tied to outcomes. | Prompt improvements are hard to compare, roll back, or personalize safely. | Add prompt versions, fixture evals, and per-workflow prompt profiles for plan/patch/review/test/device. |
+| PROD-010 | P1 | Routing intelligence | Router/eval primitives exist, but route decisions are still mostly pool/order/evidence rules. | It can choose a working model, but not yet learn task-fit from real LiMa outcomes. | Add task-outcome feedback: model, route reason, test result, review status, latency, cost, and failure class. |
 | PROD-011 | P1 | Visualization | Device fake loop verifies protocol frames, but there is no first-class path preview/simulator/dashboard as the operator's daily view. | Hardware work remains blind and risky. | Add SVG/path preview, task replay, and simple device dashboard before camera/OCR/voice expansion. |
-| PROD-012 | P2 | Maintainability | Large files remain in Server, LiMa Code, and ESP32 firmware. | Future fixes are slower and riskier. | Split only along production boundaries: task execution, prompt context, device motion executor, and ops views. |
+| PROD-012 | P2 | Maintainability | Large files remain in Server, LiMa, and ESP32 firmware. | Future fixes are slower and riskier. | Split only along production boundaries: task execution, prompt context, device motion executor, and ops views. |
 
 ## P0 Plan: Make The System Useful Under Hands
 
@@ -86,7 +86,7 @@ one smoke run.
 Exit: "write LiMa" and one simple imported SVG can be previewed, sent to fake
 U8, and replayed with identical task ids and events.
 
-### P0.3 LiMa Code Work Artifact Bundle
+### P0.3 LiMa Work Artifact Bundle
 
 - Upgrade `/lima plan` from echo mode to a real context packet:
   git diff, recent files, tests, AGENTS rules, open risks, and suggested slice.
@@ -96,7 +96,7 @@ U8, and replayed with identical task ids and events.
 - Make `/lima ship` verify the artifact bundle instead of only raw diff.
 - Keep deploy/push disabled unless a gated Server task explicitly asks for it.
 
-Exit: one LiMa Code command produces a review packet that a human or Server can
+Exit: one LiMa command produces a review packet that a human or Server can
 consume without reading the whole terminal scrollback.
 
 ## P1 Plan: Make It Learn And Operate
@@ -123,7 +123,7 @@ which worker, which device, where it stopped, and what to do next.
 Exit: a repeated class of failure changes future prompt/routing behavior only
 after eval evidence, not by ad hoc prompt edits.
 
-### P1.3 LiMa Code Real Worker Loop
+### P1.3 LiMa Real Worker Loop
 
 - Move from "local stage commands" to an operator-safe work loop:
   claim task -> build context -> propose plan -> apply patch only when allowed
@@ -131,7 +131,7 @@ after eval evidence, not by ad hoc prompt edits.
 - Add retry/quarantine reasons that are visible from Server.
 - Add a narrow "fix test failure" workflow before broad autonomous coding.
 
-Exit: LiMa Code can fix a small real repo issue end-to-end with reviewable
+Exit: LiMa can fix a small real repo issue end-to-end with reviewable
 evidence and no hidden permission expansion.
 
 ## P2 Plan: Make It Pleasant, Distinctive, And Productized
@@ -155,7 +155,7 @@ evidence and no hidden permission expansion.
 
 - Split large files incrementally where the split directly improves production
   work:
-  Server request lifecycle, LiMa Code session/workflow, ESP32 motion executor,
+  Server request lifecycle, LiMa session/workflow, ESP32 motion executor,
   and zhuguang board motion helpers.
 
 ## First Slice Recommendation
@@ -176,7 +176,7 @@ Suggested first implementation sequence:
 ## Verification Rules
 
 - For Server changes: focused pytest first, then broader gateway/agent subset.
-- For LiMa Code changes: `npm.cmd run check`, focused tests, then
+- For LiMa changes: `npm.cmd run check`, focused tests, then
   `npm.cmd test`.
 - For ESP32 changes: compile where available, fake-U8 smoke always, real-device
   smoke only with explicit token/device readiness.

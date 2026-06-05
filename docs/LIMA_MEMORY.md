@@ -44,7 +44,7 @@
 
 ### 下一刀建议
 
-1. 按 `docs/NEXT_MILESTONES.md` 四线选下一切片（LiMa Code worker / Device Gateway / 代码质量）
+1. 按 `docs/NEXT_MILESTONES.md` 四线选下一切片（LiMa worker / Device Gateway / 代码质量）
 2. B2B / SafeMCP — **暂停**（等 Telegram / 站点可用）
 
 ---
@@ -56,7 +56,7 @@
 | `docs/LIMA_MEMORY.md` | **本文件** — 拓扑、证据、运维、决策原因 |
 | `STATUS.md` | 一页式运行快照与 P0 全景 |
 | `docs/EXECUTION_PLAN.md` | Phase 完成度与全局 Next Order |
-| `docs/NEXT_MILESTONES.md` | 四线优先级：编码后端 / LiMa Code / ESP32 / 代码质量 |
+| `docs/NEXT_MILESTONES.md` | 四线优先级：编码后端 / LiMa / ESP32 / 代码质量 |
 | `findings.md` | 里程碑证据表（WX/CQ/PROD ID） |
 | `progress.md` | 按日执行日志与测试数字 |
 | `docs/WECHAT_RETIRED.md` | 微信全线退役（产品决策） |
@@ -132,14 +132,14 @@
 | Channel 部署 | `deploy_channel_gateway.py` 上传 `channel_gateway/`；`.env` 补丁 |
 | FRP | `8088` → Windows LiMa `8080`（见 `local_router_start.bat`） |
 | 在线 smoke | `scripts/smoke_online_distributions.py` 曾 `12/12` |
-| Worker | LiMa Code 公开任务 `cfcd3f2b` → `needs_review` 已验证 |
+| Worker | LiMa 公开任务 `cfcd3f2b` → `needs_review` 已验证 |
 
 **未做 / 延后：** Postgres 设备审计库；Gemini Live 服务端 WebSocket 代理（`/api/live-key` 已 metadata-only）。
 
 ### 6. 四线「未完成」摘要（详见 NEXT_MILESTONES）
 
 1. **编码后端：** Kimi `4504` quota/refresh；TheOldLLM 超时；page-only Web AI 仅 sandbox；周期性 `eval_coding_backends.py`。
-2. **LiMa Code：** Task Prompt Contract v0.1 → Hooks v0.1；always-on daemon **gated**；artifact ↔ learning loop 端到端证据。
+2. **LiMa：** Task Prompt Contract v0.1 → Hooks v0.1；always-on daemon **gated**；artifact ↔ learning loop 端到端证据。
 3. **ESP32 / Device Gateway：** PROD-003 **真机烧录 + 运动 smoke**；M12 Hardware Companion **pending**；`esp32S_XYZ` 协议缺口（PAUSE/ESTOP 等）。
 4. **代码质量：** P1.3 续扫；P2 拆 `agent_tasks.py` / `session_memory/store.py` 等。
 
@@ -160,7 +160,7 @@
 
 | 子模块 | 路径 | 锚点 / 说明 |
 |--------|------|-------------|
-| LiMa Code | `deepcode-cli/` | `8e680ea` — `/lima plan|test|review|ship` artifact bundle |
+| LiMa | `deepcode-cli/` | `8e680ea` — `/lima plan|test|review|ship` artifact bundle |
 | ESP32 产品 | `esp32S_XYZ/` | `160e526` — fake-U8、固件 compile 已过，**真机 flash pending** |
 | 官网 demo | `donglicao-site/` | tracked；`lima-demo.js` 等 |
 
@@ -192,12 +192,12 @@
   Code artifact bundle is complete in the submodule; PROD-007 ops metrics is
   deployed and smoke-verified;   PROD-008 learning loop is **complete locally** (see 2026-05-26 section);
   behavior changes stay behind eval gates.
-- On 2026-05-25 LiMa Code advanced to `8e680ea`, adding structured artifact
+- On 2026-05-25 LiMa advanced to `8e680ea`, adding structured artifact
   bundles under `.lima/artifacts/<task_id>/`: `/lima plan` writes `plan.md`,
   `context.json`, and `risks.md`; `/lima test` writes `tests.json`;
   `/lima review` writes `review.md` and `diff.patch`; `/lima ship` writes
   `ship.md` and `diff.patch` with test evidence, residual risks, rollback
-  notes, commit summary, and review checklist. Verification: LiMa Code
+  notes, commit summary, and review checklist. Verification: LiMa
   `0 fail, 6 skipped`; LiMa Server `1240 passed, 8 skipped`.
 - On 2026-05-25 the P0.4/P0.5/P0.7 review fixes were deployed to VPS. During
   deploy smoke, `/v1/ops/metrics` returned 500 because production
@@ -231,13 +231,13 @@
   Remote compile, `lima-router` restart, local health, public online smoke
   `12/12`, authenticated worker preflight, and public fake U8 WSS loop all
   passed. Exact chat token: `baseline_ad7cab5_ok`.
-- Three-project joint debug covered LiMa Server (`D:\GIT`), LiMa Code (`D:\GIT\deepcode-cli`), and ESP32/U8 tooling (`D:\GIT\esp32S_XYZ`).
+- Three-project joint debug covered LiMa Server (`D:\GIT`), LiMa (`D:\GIT\deepcode-cli`), and ESP32/U8 tooling (`D:\GIT\esp32S_XYZ`).
 - Root cause for local fake U8 WebSocket failure was a stale Windows router process on port `8080`; it did not load `routes.device_gateway`, so `/device/v1/health` returned `404`.
 - After restarting the router from current `D:\GIT\server.py` and injecting a test `LIMA_DEVICE_TOKENS` entry for the spawned process, local fake U8 completed the full hello, heartbeat, motion task, and motion event acknowledgement loop.
 - Public `https://chat.donglicao.com/device/v1/health` originally returned the chat HTML because nginx had no `/device/` location. The tracked VPS nginx snapshot now includes `/device/v1/ws` WebSocket proxying and `/device/` HTTP proxying to the router.
 - Redis HA mode for Device Gateway is default-off. Enable with `LIMA_DEVICE_TASK_STORE=redis`, `LIMA_DEVICE_SESSION_BUS=redis`, and `LIMA_DEVICE_REDIS_URL`; this shares task queues and publishes task-available notifications so the process with the local WebSocket session can drain remote-created tasks.
 - On 2026-05-25 VPS Redis HA was enabled for Device Gateway. Redis must remain loopback-only; public `6379` is part of online distribution guard checks.
-- On 2026-05-25 LiMa Code Phase 7 first workflow slice advanced
+- On 2026-05-25 LiMa Phase 7 first workflow slice advanced
   `deepcode-cli` to `ca51967`, adding local `/lima plan`,
   `/lima test [--cmd <command>]`, and `/lima ship` commands. These run through
   the guarded local task runner, write audit evidence, do not submit to Server,
@@ -249,7 +249,7 @@
   distinctive character. The active three-project review is
   `docs/superpowers/plans/2026-05-25-productivity-infrastructure-review.md`.
   Highest priority is observable ESP32 execution, real Device Gateway
-  text/vector/path generation, LiMa Code artifact bundles, and a unified
+  text/vector/path generation, LiMa artifact bundles, and a unified
   prompt/routing/memory outcome loop.
 - On 2026-05-25 P0.1 ESP32 motion contract was deployed to VPS at commit
   `4a7faed`. Backup:
@@ -590,7 +590,7 @@ Next implementation item:
 
 - Task 4 quota-aware routing, after current branch is verified and committed.
 
-## 2026-05-24 VPS + FRP + LiMa Code Worker Closure
+## 2026-05-24 VPS + FRP + LiMa Worker Closure
 
 The main LiMa Server and `D:\GIT\deepcode-cli` now have a public end-to-end worker smoke on the deployed VPS path.
 
@@ -619,7 +619,7 @@ Public smoke evidence:
 - Worker preflight after chat model extraction returned `ready=true`, latest task `cfcd3f2b`.
 - Real-machine worker task:
   - Server task id: `cfcd3f2b`.
-  - LiMa Code command: `/lima task cfcd3f2b`.
+  - LiMa command: `/lima task cfcd3f2b`.
   - Result: `needs_review`, summary `No git diff found to review.`
   - Server events: `created,result_submitted`.
 
@@ -1016,9 +1016,9 @@ Follow-up security correction:
 - Final sanitized checks found no tracked script hardcoded credential literals, and `D:\GIT\venv\Scripts\python.exe -m compileall -q scripts` passed.
 - Treat any credentials that existed in repository history as exposed and rotate them. Never paste token values into docs, commits, or chat.
 
-## 2026-05-23 LiMa Code Worker Command Runner
+## 2026-05-23 LiMa Worker Command Runner
 
-LiMa Code now has a real local command runner for the Server task path:
+LiMa now has a real local command runner for the Server task path:
 
 - `/lima connect` reports whether Server URL/API key configuration exists without printing the key.
 - `/lima status` reports local project and Server configuration state.
@@ -1030,11 +1030,11 @@ LiMa Code now has a real local command runner for the Server task path:
 Important boundary:
 
 - Server still does not execute shell commands.
-- LiMa Code executes only inside the guarded local workspace.
+- LiMa executes only inside the guarded local workspace.
 - `plan` and `review` are read-only.
 - `patch` requires explicit `patch_files` and `write`.
 - `test` requires explicit test commands and the `test` tool.
-- Local audit output lives under `.lima-code/audit.jsonl`; `.lima-code/` is ignored by Git because it may contain local runtime state or credentials.
+- Local audit output lives under `.lima/audit.jsonl`; `.lima/` is ignored by Git because it may contain local runtime state or credentials.
 
 Evidence:
 
@@ -1044,14 +1044,14 @@ Evidence:
 - Fixed Windows Bash timeout cleanup in `D:\GIT\deepcode-cli\src\tools\bash-handler.ts`; timeout now waits for process close after killing the process tree and ignores post-timeout output.
 - Public end-to-end smoke:
   - Created Server task `4d6c02b3`.
-  - Ran LiMa Code `/lima task 4d6c02b3` against `https://chat.donglicao.com`.
+  - Ran LiMa `/lima task 4d6c02b3` against `https://chat.donglicao.com`.
   - Worker submitted `needs_review` with changed files `src/ui/App.tsx` and `src/ui/PromptInput.tsx`.
   - Server detail confirmed `hasResult=true`; events endpoint returned `created,result_submitted`.
 - Verification:
   - LiMa targeted tests: `41 passed`.
   - Tool handler tests: `22 passed`.
   - `npm.cmd run check`: passed.
-  - Full LiMa Code suite: `368 passed, 7 skipped`.
+  - Full LiMa suite: `368 passed, 7 skipped`.
 
 Single-claim follow-up:
 
@@ -1062,7 +1062,7 @@ Single-claim follow-up:
   - Parser/runner tests: `13 passed`.
   - LiMa worker targeted tests: `52 passed`.
   - `npm.cmd run check`: passed.
-  - Full LiMa Code suite: `371 passed, 7 skipped`.
+  - Full LiMa suite: `371 passed, 7 skipped`.
 
 Bounded-loop follow-up:
 
@@ -1079,7 +1079,7 @@ Bounded-loop follow-up:
   - Parser/runner tests: `19 passed`.
   - LiMa worker targeted tests: `58 passed`.
   - `npm.cmd run check`: passed.
-  - Full LiMa Code suite: `377 passed, 7 skipped`.
+  - Full LiMa suite: `377 passed, 7 skipped`.
 
 ## 2026-05-23 Autonomous Worker v0.2 Design Direction
 
@@ -1089,7 +1089,7 @@ LiMa should continue toward the GenericAgent/Evolver/agency-agents direction, bu
 - Evolver-style evolution maps to evidence-gated promotion with regression tests and manual approval.
 - agency-agents-style role decomposition maps to a compact coding role set, not a large simulated company.
 - Server remains the orchestrator, lifecycle gate, and audit source.
-- LiMa Code remains the local executor and may touch only allowlisted repositories.
+- LiMa remains the local executor and may touch only allowlisted repositories.
 - Before real daemon mode, implement stop control, claim leases, cancellation/control polling, repo allowlist, worker budgets, failure quarantine, audit viewing, and a safe real-repo patch/test smoke.
 
 Plan document:
@@ -1098,7 +1098,7 @@ Plan document:
 
 ## 2026-05-23 Autonomous Worker v0.2 Task 8
 
-LiMa Code patch mode now supports the real patch-plus-test worker path locally:
+LiMa patch mode now supports the real patch-plus-test worker path locally:
 
 - A task may carry explicit `patch_files` and `test_commands`.
 - Patch mode applies only explicit files inside the guarded repo.
@@ -1108,14 +1108,14 @@ LiMa Code patch mode now supports the real patch-plus-test worker path locally:
 Important contract decision:
 
 - Server `AgentTaskRequest` and `/agent/tasks` now preserve `patch_files` and `test_commands`.
-- LiMa Code validation also preserves those fields, so fetched Server tasks can drive real patch/test execution.
+- LiMa validation also preserves those fields, so fetched Server tasks can drive real patch/test execution.
 - This keeps Server as policy/audit broker only; Server still does not execute shell or mutate repositories.
 
 Evidence:
 
 - Server task contract and route tests: `31 passed`.
-- LiMa Code worker tests: `407 passed, 6 skipped`.
-- LiMa Code `npm.cmd run check`: passed.
+- LiMa worker tests: `407 passed, 6 skipped`.
+- LiMa `npm.cmd run check`: passed.
 - VPS public smoke remains pending until this Server contract is deployed and verified against a temporary repo.
 
 ## 2026-05-23 LiMa Server Control Plane v0.3
@@ -1136,7 +1136,7 @@ LiMa Server v0.4 should make real-machine worker testing repeatable:
 
 - `/agent/worker/preflight` reports Server task-control readiness without secrets.
 - `/agent/worker/smoke-task` creates bounded read-only or disposable patch smoke tasks.
-- `scripts/create_lima_smoke_task.py` creates smoke tasks and prints the exact LiMa Code commands to run.
+- `scripts/create_lima_smoke_task.py` creates smoke tasks and prints the exact LiMa commands to run.
 - `docs/LIMA_REAL_MACHINE_SMOKE.md` is the runbook.
 
 Boundary preserved: Server still never executes shell, never mutates repositories, and never auto-deploys.
@@ -1215,9 +1215,9 @@ Verification:
 
 Deployment: not performed.
 
-## 2026-05-23 LiMa Code Dev Search Tools v0.1
+## 2026-05-23 LiMa Dev Search Tools v0.1
 
-- LiMa Code dev-search tools are explicit, read-only, and MCP-exposed.
+- LiMa dev-search tools are explicit, read-only, and MCP-exposed.
 - Tools added: `dev_search_docs`, `dev_search_error`, `dev_read_url`, `dev_fetch_github_file`, `dev_summarize_sources`.
 - External search input is redacted before transport: API-token patterns, Windows paths, and private IPs are removed.
 - URL reads reject non-HTTP schemes and private/loopback targets.
@@ -1305,16 +1305,16 @@ Deployment: not performed.
   - `http://47.112.162.80:8088/v1/chat/completions` returned exact `endpoints_closed_frp_ok`;
   - `/agent/worker/preflight` returned `ready=true`, `contract_version=agent-task-v1`.
 
-## 2026-05-24 LiMa Code Main-Repo Management Closure
+## 2026-05-24 LiMa Main-Repo Management Closure
 
 - `deepcode-cli` is now a first-class main-repo managed component through a Git submodule.
 - Submodule remote: `https://github.com/zhuguang-ZFG/deepcode-cli.git`.
-- Pinned LiMa Code revision: `278a5f7` (`feat: add lima worker diagnostics`).
-- `docs/LIMACODE_MANAGEMENT.md` records ownership boundaries:
+- Pinned LiMa revision: `278a5f7` (`feat: add lima worker diagnostics`).
+- `docs/LIMA_MANAGEMENT.md` records ownership boundaries:
   - LiMa Server owns routing, memory, backend health, task contracts, VPS deployment, and safety gates.
-  - LiMa Code owns terminal coding workflow, local tool execution, MCP client behavior, worker loops, local audit files, and CLI behavior.
+  - LiMa owns terminal coding workflow, local tool execution, MCP client behavior, worker loops, local audit files, and CLI behavior.
   - The main repo owns the pinned revision, integration records, cross-repo contract checks, and release/deploy evidence.
-- Future LiMa Code changes should be committed and pushed in `deepcode-cli` first, then the main repo should advance only the submodule pointer plus related docs/tests.
+- Future LiMa changes should be committed and pushed in `deepcode-cli` first, then the main repo should advance only the submodule pointer plus related docs/tests.
 
 ## 2026-05-24 esp32S_XYZ Backend Management Closure
 
@@ -1493,7 +1493,7 @@ Deployment: not performed.
   - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
   - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
   - `docs/reference/HARDWARE_COMPANION_REFERENCES.md`;
-  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/LIMA_MANAGEMENT.md`;
   - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
   - `docs/reference/POTPIE_COMPOSIO_BORROWING_NOTES.md`.
 - Current policy:
@@ -1530,7 +1530,7 @@ Deployment: not performed.
   - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
   - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
   - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
-  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/LIMA_MANAGEMENT.md`;
   - `docs/LIMA_MEMORY.md`;
   - `progress.md`.
 - Policy retained:
@@ -1548,9 +1548,9 @@ Deployment: not performed.
   - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
   - `docs/reference/MCP_CONNECTOR_CATALOG.md`;
   - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
-  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/LIMA_MANAGEMENT.md`;
   - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
-  - `docs/superpowers/plans/2026-05-23-lima-code-dev-search-tools.md`;
+  - `docs/superpowers/plans/2026-05-23-lima-dev-search-tools.md`;
   - `docs/DOCUMENTATION_STATUS.md`;
   - `STATUS.md`;
   - `progress.md`.
@@ -1618,7 +1618,7 @@ Deployment: not performed.
 - Updated:
   - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
   - `docs/reference/HARDWARE_COMPANION_REFERENCES.md`;
-  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/LIMA_MANAGEMENT.md`;
   - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
   - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
   - `STATUS.md`;
@@ -1663,7 +1663,7 @@ Deployment: not performed.
     AI-pair-programming workflow.
 - Updated:
   - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
-  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/LIMA_MANAGEMENT.md`;
   - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
   - `docs/reference/MCP_CONNECTOR_CATALOG.md`;
   - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
@@ -1711,7 +1711,7 @@ Deployment: not performed.
 - Updated:
   - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
   - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
-  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/LIMA_MANAGEMENT.md`;
   - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
   - `docs/reference/MCP_CONNECTOR_CATALOG.md`;
   - `STATUS.md`;
@@ -1765,7 +1765,7 @@ Deployment: not performed.
 - Updated:
   - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
   - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
-  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/LIMA_MANAGEMENT.md`;
   - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
   - `docs/reference/MCP_CONNECTOR_CATALOG.md`;
   - `docs/reference/HARDWARE_COMPANION_REFERENCES.md`;
@@ -1795,7 +1795,7 @@ Deployment: not performed.
   - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
   - `docs/reference/HARDWARE_COMPANION_REFERENCES.md`;
   - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
-  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/LIMA_MANAGEMENT.md`;
   - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
   - `STATUS.md`;
   - `docs/LIMA_MEMORY.md`.
@@ -1824,7 +1824,7 @@ Deployment: not performed.
 - Updated:
   - `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`;
   - `docs/superpowers/plans/2026-05-24-external-capability-adoption-roadmap.md`;
-  - `docs/LIMACODE_MANAGEMENT.md`;
+  - `docs/LIMA_MANAGEMENT.md`;
   - `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md`;
   - `STATUS.md`;
   - `docs/LIMA_MEMORY.md`.

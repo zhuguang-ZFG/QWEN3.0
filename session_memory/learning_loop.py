@@ -1,7 +1,7 @@
-"""Learning loop — feeds LiMa Code task outcomes back into memory, prompt,
+"""Learning loop — feeds LiMa task outcomes back into memory, prompt,
 routing, and eval systems.
 
-Connects the artifact-bundle outputs from LiMa Code worker runs to:
+Connects the artifact-bundle outputs from LiMa worker runs to:
 1. Typed memory: save patterns as routing_lesson, test_result, code_fact
 2. Prompt profiles: record task-type → prompt-version → outcome tuples
 3. Routing feedback: record backend, route reason, latency, success/failure
@@ -59,7 +59,7 @@ def ingest_task_outcome(outcome: TaskOutcome) -> dict[str, Any]:
         tests_passed = sum(1 for t in outcome.test_results if t.get("exit_code") == 0)
         outcome_str = "success" if outcome.status in ("completed", "needs_review") else "failure"
         ledger_record(
-            source="lima_code",
+            source="lima",
             event_type="task_complete",
             outcome=outcome_str,
             task_id=outcome.task_id,
@@ -71,7 +71,7 @@ def ingest_task_outcome(outcome: TaskOutcome) -> dict[str, Any]:
                 "tests_passed": tests_passed, "tests_total": tests_total,
                 "risks": outcome.risks[:5], "latency_ms": outcome.latency_ms,
             },
-            tags=["lima_code", outcome.status or "unknown"],
+            tags=["lima", outcome.status or "unknown"],
         )
     except Exception:
         _log.debug("outcome ledger record failed", exc_info=True)
@@ -344,7 +344,7 @@ def ingest_from_agent_task_result(
 ) -> dict[str, Any]:
     """Convenience: ingest a LiMa agent task result dict into the learning loop.
 
-    Accepts the result format that LiMa Server receives from LiMa Code worker
+    Accepts the result format that LiMa Server receives from LiMa worker
     submissions (the LiMaAgentTaskResult contract).
     """
     outcome = TaskOutcome(

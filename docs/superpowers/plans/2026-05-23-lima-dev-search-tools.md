@@ -1,10 +1,10 @@
-# LiMa Code Dev Search Tools Implementation Plan
+# LiMa Dev Search Tools Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Give LiMa Code safe, read-only internet abilities for programming work: search docs, search errors, read URLs, fetch GitHub files, and return source-grounded evidence blocks.
+**Goal:** Give LiMa safe, read-only internet abilities for programming work: search docs, search errors, read URLs, fetch GitHub files, and return source-grounded evidence blocks.
 
-**Architecture:** Build on the existing `search_gateway/`, `tool_gateway/`, and `lima_mcp/` boundaries. Do not wire dev-search tools directly into `routing_engine.py`; expose them through MCP and an explicit Python service so LiMa Code can call them when a task asks to check docs, inspect an error, or read a URL.
+**Architecture:** Build on the existing `search_gateway/`, `tool_gateway/`, and `lima_mcp/` boundaries. Do not wire dev-search tools directly into `routing_engine.py`; expose them through MCP and an explicit Python service so LiMa can call them when a task asks to check docs, inspect an error, or read a URL.
 
 **Tech Stack:** Python standard library, existing `search_gateway.AnySearchAdapter`, existing `search_gateway.tinyfish_transport`, existing MCP-over-HTTP routes in `lima_mcp/server.py`, pytest.
 
@@ -29,12 +29,12 @@ The feature should not reuse `tool_dispatcher.py` as-is. That file is a large lo
 
 In scope for v0.1:
 
-- Explicit LiMa Code programming tools only.
+- Explicit LiMa programming tools only.
 - Read-only internet calls.
 - Redaction before external search.
 - SSRF-safe URL reads.
 - Result normalization with URL/title/source/snippet fields.
-- MCP exposure for LiMa Code.
+- MCP exposure for LiMa.
 - Unit tests using injected fake transports.
 
 Out of scope for v0.1:
@@ -69,7 +69,7 @@ content.
 - Create `search_gateway/dev_tools.py`
   - Owns high-level programming search functions.
   - Converts raw adapter results into stable `DevSearchResult` dictionaries.
-  - Contains no FastAPI code and no LiMa Code client code.
+  - Contains no FastAPI code and no LiMa client code.
 
 - Modify `search_gateway/policy.py`
   - Add dev-search intent detection for programming docs, errors, and explicit URLs.
@@ -80,17 +80,17 @@ content.
   - Reuse existing token/path/private-IP redaction.
 
 - Modify `lima_mcp/__init__.py`
-  - Add MCP tool definitions for LiMa Code dev-search tools.
+  - Add MCP tool definitions for LiMa dev-search tools.
 
 - Modify `lima_mcp/tools.py`
   - Add handlers that call `search_gateway.dev_tools`.
   - Return deterministic errors when `TINYFISH_API_KEY` is missing.
 
-- Create `tests/test_lima_code_dev_search_tools.py`
+- Create `tests/test_lima_dev_search_tools.py`
   - Unit-test policy, sanitization, adapter use, URL safety, source formatting, and MCP handler behavior.
 
 - Modify `docs/LIMA_MEMORY.md`
-  - Record that LiMa Code dev-search is explicit, read-only, source-grounded, and not part of default chat routing.
+  - Record that LiMa dev-search is explicit, read-only, source-grounded, and not part of default chat routing.
 
 - Modify `STATUS.md`
   - Add a short current-state note after implementation and verification.
@@ -147,11 +147,11 @@ def summarize_sources(sources: list[dict], *, max_chars: int = 3000) -> dict: ..
 
 **Files:**
 - Modify: `search_gateway/safety.py`
-- Test: `tests/test_lima_code_dev_search_tools.py`
+- Test: `tests/test_lima_dev_search_tools.py`
 
 - [x] **Step 1: Write failing safety tests**
 
-Create `tests/test_lima_code_dev_search_tools.py` with:
+Create `tests/test_lima_dev_search_tools.py` with:
 
 ```python
 from search_gateway.safety import is_public_http_url, sanitize_error_text
@@ -184,7 +184,7 @@ def test_is_public_http_url_blocks_private_and_non_http_targets():
 Run:
 
 ```powershell
-D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_code_dev_search_tools.py -q --ignore=active_model
+D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_dev_search_tools.py -q --ignore=active_model
 ```
 
 Expected: FAIL with `ImportError` for `is_public_http_url` and `sanitize_error_text`.
@@ -235,7 +235,7 @@ def is_public_http_url(url: str) -> bool:
 Run:
 
 ```powershell
-D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_code_dev_search_tools.py -q --ignore=active_model
+D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_dev_search_tools.py -q --ignore=active_model
 ```
 
 Expected: `2 passed`.
@@ -244,7 +244,7 @@ Expected: `2 passed`.
 
 **Files:**
 - Modify: `search_gateway/policy.py`
-- Modify test: `tests/test_lima_code_dev_search_tools.py`
+- Modify test: `tests/test_lima_dev_search_tools.py`
 
 - [x] **Step 1: Add failing policy tests**
 
@@ -267,7 +267,7 @@ def test_should_dev_search_detects_programming_docs_errors_and_urls():
 Run:
 
 ```powershell
-D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_code_dev_search_tools.py::test_should_dev_search_detects_programming_docs_errors_and_urls -q --ignore=active_model
+D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_dev_search_tools.py::test_should_dev_search_detects_programming_docs_errors_and_urls -q --ignore=active_model
 ```
 
 Expected: FAIL with `ImportError` for `should_dev_search`.
@@ -309,7 +309,7 @@ def should_dev_search(query: str) -> bool:
 Run:
 
 ```powershell
-D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_code_dev_search_tools.py -q --ignore=active_model
+D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_dev_search_tools.py -q --ignore=active_model
 ```
 
 Expected: `3 passed`.
@@ -318,7 +318,7 @@ Expected: `3 passed`.
 
 **Files:**
 - Create: `search_gateway/dev_tools.py`
-- Modify test: `tests/test_lima_code_dev_search_tools.py`
+- Modify test: `tests/test_lima_dev_search_tools.py`
 
 - [x] **Step 1: Add failing service tests**
 
@@ -420,7 +420,7 @@ def test_summarize_sources_builds_compact_evidence_block():
 Run:
 
 ```powershell
-D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_code_dev_search_tools.py -q --ignore=active_model
+D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_dev_search_tools.py -q --ignore=active_model
 ```
 
 Expected: FAIL because `search_gateway.dev_tools` does not exist.
@@ -562,7 +562,7 @@ def summarize_sources(sources: list[dict], *, max_chars: int = 3000) -> dict:
 Run:
 
 ```powershell
-D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_code_dev_search_tools.py -q --ignore=active_model
+D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_dev_search_tools.py -q --ignore=active_model
 ```
 
 Expected: all tests in this file pass.
@@ -572,7 +572,7 @@ Expected: all tests in this file pass.
 **Files:**
 - Modify: `lima_mcp/__init__.py`
 - Modify: `lima_mcp/tools.py`
-- Modify test: `tests/test_lima_code_dev_search_tools.py`
+- Modify test: `tests/test_lima_dev_search_tools.py`
 
 - [x] **Step 1: Add failing MCP tests**
 
@@ -605,7 +605,7 @@ def test_mcp_dev_read_url_blocks_private_url_without_network():
 Run:
 
 ```powershell
-D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_code_dev_search_tools.py::test_mcp_lists_dev_search_tools tests\test_lima_code_dev_search_tools.py::test_mcp_dev_read_url_blocks_private_url_without_network -q --ignore=active_model
+D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_dev_search_tools.py::test_mcp_lists_dev_search_tools tests\test_lima_dev_search_tools.py::test_mcp_dev_read_url_blocks_private_url_without_network -q --ignore=active_model
 ```
 
 Expected: FAIL because tool definitions and handlers do not include dev-search tools.
@@ -670,7 +670,7 @@ Append these entries to `TOOL_DEFINITIONS` in `lima_mcp/__init__.py`:
 },
 {
     "name": "dev_summarize_sources",
-    "description": "Turn source dictionaries into a compact evidence block for LiMa Code.",
+    "description": "Turn source dictionaries into a compact evidence block for LiMa.",
     "input_schema": {
         "type": "object",
         "properties": {
@@ -773,16 +773,16 @@ def _dev_summarize_sources(args: dict) -> dict:
 Run:
 
 ```powershell
-D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_code_dev_search_tools.py tests\test_mcp_tools.py -q --ignore=active_model
+D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_dev_search_tools.py tests\test_mcp_tools.py -q --ignore=active_model
 ```
 
 Expected: all selected tests pass.
 
-## Task 5: Add Evidence Formatting Contract for LiMa Code
+## Task 5: Add Evidence Formatting Contract for LiMa
 
 **Files:**
 - Modify: `search_gateway/dev_tools.py`
-- Modify test: `tests/test_lima_code_dev_search_tools.py`
+- Modify test: `tests/test_lima_dev_search_tools.py`
 
 - [x] **Step 1: Add failing evidence contract test**
 
@@ -818,7 +818,7 @@ def test_build_prompt_evidence_includes_source_urls_and_tool_names():
 Run:
 
 ```powershell
-D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_code_dev_search_tools.py::test_build_prompt_evidence_includes_source_urls_and_tool_names -q --ignore=active_model
+D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_dev_search_tools.py::test_build_prompt_evidence_includes_source_urls_and_tool_names -q --ignore=active_model
 ```
 
 Expected: FAIL because `build_prompt_evidence` does not exist.
@@ -854,7 +854,7 @@ def build_prompt_evidence(tool_outputs: list[dict], *, max_chars: int = 4000) ->
 Run:
 
 ```powershell
-D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_code_dev_search_tools.py -q --ignore=active_model
+D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_dev_search_tools.py -q --ignore=active_model
 ```
 
 Expected: all tests in this file pass.
@@ -873,7 +873,7 @@ Append to `tests/test_tool_gateway.py`:
 from tool_gateway.registry import build_default_registry
 
 
-def test_default_registry_includes_lima_code_dev_search_tools():
+def test_default_registry_includes_lima_dev_search_tools():
     registry = build_default_registry()
 
     matches = registry.search("programming docs error url")
@@ -889,7 +889,7 @@ def test_default_registry_includes_lima_code_dev_search_tools():
 Run:
 
 ```powershell
-D:\GIT\venv\Scripts\python.exe -m pytest tests\test_tool_gateway.py::test_default_registry_includes_lima_code_dev_search_tools -q --ignore=active_model
+D:\GIT\venv\Scripts\python.exe -m pytest tests\test_tool_gateway.py::test_default_registry_includes_lima_dev_search_tools -q --ignore=active_model
 ```
 
 Expected: FAIL because `build_default_registry` does not exist.
@@ -903,28 +903,28 @@ def build_default_registry() -> ToolRegistry:
     registry = ToolRegistry()
     registry.register(ToolDefinition(
         name="dev_search_docs",
-        description="Search public programming documentation for LiMa Code.",
-        tags=("programming", "docs", "search", "readonly", "lima-code"),
+        description="Search public programming documentation for LiMa.",
+        tags=("programming", "docs", "search", "readonly", "lima"),
     ))
     registry.register(ToolDefinition(
         name="dev_search_error",
         description="Search public sources for sanitized programming errors.",
-        tags=("programming", "error", "traceback", "debug", "readonly", "lima-code"),
+        tags=("programming", "error", "traceback", "debug", "readonly", "lima"),
     ))
     registry.register(ToolDefinition(
         name="dev_read_url",
-        description="Read a public HTTP or HTTPS URL for LiMa Code.",
-        tags=("url", "docs", "fetch", "readonly", "lima-code"),
+        description="Read a public HTTP or HTTPS URL for LiMa.",
+        tags=("url", "docs", "fetch", "readonly", "lima"),
     ))
     registry.register(ToolDefinition(
         name="dev_fetch_github_file",
         description="Fetch a public GitHub file for reference.",
-        tags=("github", "source", "reference", "readonly", "lima-code"),
+        tags=("github", "source", "reference", "readonly", "lima"),
     ))
     registry.register(ToolDefinition(
         name="dev_summarize_sources",
         description="Summarize source dictionaries into prompt evidence.",
-        tags=("evidence", "summary", "sources", "lima-code"),
+        tags=("evidence", "summary", "sources", "lima"),
     ))
     return registry
 ```
@@ -950,9 +950,9 @@ Expected: all `test_tool_gateway.py` tests pass.
 Add a dated entry to `docs/LIMA_MEMORY.md`:
 
 ```markdown
-### 2026-05-23 - LiMa Code Dev Search Tools v0.1
+### 2026-05-23 - LiMa Dev Search Tools v0.1
 
-- LiMa Code dev-search tools are explicit, read-only, and MCP-exposed.
+- LiMa dev-search tools are explicit, read-only, and MCP-exposed.
 - Tools added: `dev_search_docs`, `dev_search_error`, `dev_read_url`, `dev_fetch_github_file`, `dev_summarize_sources`.
 - External search input is redacted before transport: API-token patterns, Windows paths, and private IPs are removed.
 - URL reads reject non-HTTP schemes and private/loopback targets.
@@ -964,7 +964,7 @@ Add a dated entry to `docs/LIMA_MEMORY.md`:
 Add a short line to `STATUS.md` under the current capability section:
 
 ```markdown
-- LiMa Code has planned read-only dev-search tools through MCP: docs search, error search, public URL read, public GitHub file fetch, and source evidence summarization.
+- LiMa has planned read-only dev-search tools through MCP: docs search, error search, public URL read, public GitHub file fetch, and source evidence summarization.
 ```
 
 - [x] **Step 3: Verify docs mention the new tools**
@@ -972,7 +972,7 @@ Add a short line to `STATUS.md` under the current capability section:
 Run:
 
 ```powershell
-rg -n "LiMa Code Dev Search Tools|dev_search_docs|dev_search_error|dev_read_url|dev_fetch_github_file" docs\LIMA_MEMORY.md STATUS.md
+rg -n "LiMa Dev Search Tools|dev_search_docs|dev_search_error|dev_read_url|dev_fetch_github_file" docs\LIMA_MEMORY.md STATUS.md
 ```
 
 Expected: output includes both `docs/LIMA_MEMORY.md` and `STATUS.md`.
@@ -997,7 +997,7 @@ Expected: exit code `0`.
 Run:
 
 ```powershell
-D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_code_dev_search_tools.py tests\test_search_gateway.py tests\test_tool_gateway.py tests\test_mcp_tools.py -q --ignore=active_model
+D:\GIT\venv\Scripts\python.exe -m pytest tests\test_lima_dev_search_tools.py tests\test_search_gateway.py tests\test_tool_gateway.py tests\test_mcp_tools.py -q --ignore=active_model
 ```
 
 Expected: all selected tests pass.
@@ -1027,7 +1027,7 @@ Expected: no real secrets. Test fixture strings such as `"sk-" + "abc123456789xy
 Run:
 
 ```powershell
-git status --short -- search_gateway tool_gateway lima_mcp tests docs\LIMA_MEMORY.md STATUS.md docs\superpowers\plans\2026-05-23-lima-code-dev-search-tools.md
+git status --short -- search_gateway tool_gateway lima_mcp tests docs\LIMA_MEMORY.md STATUS.md docs\superpowers\plans\2026-05-23-lima-dev-search-tools.md
 ```
 
 Expected: only intended files appear.
@@ -1039,7 +1039,7 @@ Expected: only intended files appear.
 - **Blast radius:** dev-search tools are MCP-only in v0.1. They do not change default OpenAI-compatible chat routing.
 - **Reproducibility:** all new runtime modules must be tracked by Git. Do not depend on untracked `tool_dispatcher.py`.
 - **Operational failure:** missing `TINYFISH_API_KEY` returns structured tool errors and must not break LiMa Server startup.
-- **Evidence quality:** every useful result must include URL/source/title/snippet or extracted URL/text so LiMa Code can cite sources in its reasoning.
+- **Evidence quality:** every useful result must include URL/source/title/snippet or extracted URL/text so LiMa can cite sources in its reasoning.
 
 ## Implementation Order
 
@@ -1057,4 +1057,4 @@ Expected: only intended files appear.
 - Spec coverage: the plan covers docs search, error search, URL read, GitHub file fetch, source summarization, MCP exposure, redaction, SSRF blocking, and tests.
 - Placeholder scan: no step relies on an undefined placeholder; each code task includes concrete function names and expected commands.
 - Type consistency: `DevSearchAdapter`, `DevSearchResult`, MCP tool names, and test names are consistent across tasks.
-- Scope check: the plan stays inside read-only LiMa Code dev-search and does not include shell tools, browser tools, VPS control, or default chat auto-search.
+- Scope check: the plan stays inside read-only LiMa dev-search and does not include shell tools, browser tools, VPS control, or default chat auto-search.

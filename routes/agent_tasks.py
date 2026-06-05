@@ -107,7 +107,7 @@ async def create_worker_smoke_task(body: WorkerSmokeTaskBody):
             repo=body.repo,
             branch=body.branch,
             goal=(
-                "LiMa Code real-machine patch smoke: replace README with a "
+                "LiMa real-machine patch smoke: replace README with a "
                 "harmless marker and run node --version."
             ),
             constraints=[
@@ -119,7 +119,7 @@ async def create_worker_smoke_task(body: WorkerSmokeTaskBody):
             allowed_tools=["write", "git_diff", "test"],
             max_runtime_sec=120,
             mode="patch",
-            patch_files=[{"file_path": "README.md", "content": "# LiMa Code Smoke\n"}],
+            patch_files=[{"file_path": "README.md", "content": "# LiMa Smoke\n"}],
             test_commands=["node --version"],
         )
     else:
@@ -127,7 +127,7 @@ async def create_worker_smoke_task(body: WorkerSmokeTaskBody):
             repo=body.repo,
             branch=body.branch,
             goal=(
-                "LiMa Code real-machine read-only smoke: review current git "
+                "LiMa real-machine read-only smoke: review current git "
                 "diff and report evidence."
             ),
             constraints=[
@@ -212,7 +212,7 @@ async def submit_task_result(task_id: str, body: TaskResultBody):
     _store.update(task_id)
     _store.append_event(task_id, {"type": "result_submitted", "status": result.status})
 
-    # Auto-fill metadata for learning loop (LiMa Code may not send these)
+    # Auto-fill metadata for learning loop (LiMa may not send these)
     backend = body.backend or task.get("request", {}).get("backend", "")
     latency_ms = body.latency_ms or int((time.time() - task.get("created_at", time.time())) * 1000)
     scenario = "coding"
@@ -271,7 +271,7 @@ async def submit_task_result(task_id: str, body: TaskResultBody):
     from observability.capability_evidence import record_evidence_safe
 
     record_evidence_safe(
-        loop="limacode_worker",
+        loop="lima_worker",
         request_id=task_id,
         task_id=task_id,
         entrypoint=f"/agent/tasks/{task_id}/result",

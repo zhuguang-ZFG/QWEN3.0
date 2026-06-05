@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+
 """Point zhipu channel to echo server, send request, read echo log"""
 import urllib.request, json, http.cookiejar, sys, os, time
 
@@ -11,28 +12,35 @@ for line in open("/opt/lima-router/.env"):
         os.environ[k] = v
 
 BASE = "http://localhost:3001"
+
+
 def require_env(name: str) -> str:
     value = os.environ.get(name, "")
     if not value:
         raise RuntimeError(f"{name} is required")
     return value
 
+
 cj = http.cookiejar.CookieJar()
 opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
+
 
 def api_post(path, data):
     body = json.dumps(data).encode()
     req = urllib.request.Request(BASE + path, data=body, headers={"Content-Type": "application/json"})
     return json.loads(opener.open(req).read().decode())
 
+
 def api_get(path):
     req = urllib.request.Request(BASE + path)
     return json.loads(opener.open(req).read().decode())
+
 
 def api_put(path, data):
     body = json.dumps(data).encode()
     req = urllib.request.Request(BASE + path, data=body, method="PUT", headers={"Content-Type": "application/json"})
     return json.loads(opener.open(req).read().decode())
+
 
 api_post("/api/user/login", {"username": "root", "password": require_env("ONEAPI_ADMIN_PASSWORD")})
 
@@ -62,14 +70,12 @@ time.sleep(0.5)
 
 # Send request through one-api
 TOKEN = os.environ.get("ONEAPI_ACCESS_TOKEN", "")
-body = json.dumps({
-    "model": "glm-4-flash",
-    "messages": [{"role": "user", "content": "hi"}],
-    "max_tokens": 5
-}).encode()
+body = json.dumps({"model": "glm-4-flash", "messages": [{"role": "user", "content": "hi"}], "max_tokens": 5}).encode()
 req = urllib.request.Request(
-    BASE + "/v1/chat/completions", data=body,
-    headers={"Content-Type": "application/json", "Authorization": "Bearer " + TOKEN})
+    BASE + "/v1/chat/completions",
+    data=body,
+    headers={"Content-Type": "application/json", "Authorization": "Bearer " + TOKEN},
+)
 try:
     resp = urllib.request.urlopen(req, timeout=5)
     print("Response: " + resp.read().decode()[:80])
@@ -85,5 +91,5 @@ print("\n=== ECHO LOG (what one-api actually sent) ===")
 try:
     with open("/tmp/echo.log") as f:
         print(f.read())
-except:
+except Exception:
     print("(empty or not found)")

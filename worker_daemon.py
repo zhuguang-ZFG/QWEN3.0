@@ -35,8 +35,8 @@ SERVER_URL = os.environ.get("LIMA_SERVER_URL", "http://127.0.0.1:8088")
 ADMIN_TOKEN = os.environ.get("LIMA_ADMIN_TOKEN", "")
 POLL_INTERVAL = int(os.environ.get("LIMA_POLL_INTERVAL", "10"))
 MAX_RUNTIME_SEC = int(os.environ.get("LIMA_MAX_RUNTIME", "3600"))
-STOP_FILE = Path(os.environ.get("LIMA_STOP_FILE", ".lima-code/worker.stop.json"))
-AUDIT_FILE = Path(os.environ.get("LIMA_AUDIT_FILE", ".lima-code/audit.jsonl"))
+STOP_FILE = Path(os.environ.get("LIMA_STOP_FILE", ".lima/worker.stop.json"))
+AUDIT_FILE = Path(os.environ.get("LIMA_AUDIT_FILE", ".lima/audit.jsonl"))
 QUARANTINE_THRESHOLD = 3
 
 

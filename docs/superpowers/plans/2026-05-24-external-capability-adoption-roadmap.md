@@ -3,7 +3,7 @@
 **Date:** 2026-05-24
 **Status:** planned
 **Scope:** convert the user-provided external reference list into staged,
-reviewable LiMa Server, LiMa Code, and `esp32S_XYZ` improvements.
+reviewable LiMa Server, LiMa, and `esp32S_XYZ` improvements.
 
 ## Goal
 
@@ -170,7 +170,7 @@ Main repo plan:
   interactive graph UX from Understand-Anything against LiMa's existing
   `code_context` boundaries.
 
-LiMa Code plan:
+LiMa plan:
 
 - Surface graph-index snippets to local coding sessions.
 - Add a review-context prefetch command that explains why each file was pulled.
@@ -203,7 +203,7 @@ Main repo plan:
 - Keep self-learning vector memory experiments behind promotion evidence and
   regression tests so retrieval quality can improve without silent drift.
 
-LiMa Code plan:
+LiMa plan:
 
 - Store worker-relevant session memory without leaking secrets or provider
   credentials.
@@ -308,7 +308,7 @@ Main repo plan:
   keep provider key custody, backend admission, and routing policy in the main
   backend registry.
 
-LiMa Code plan:
+LiMa plan:
 
 - Evaluate hook/HUD patterns for local worker status, command safety, and
   review checkpoints.
@@ -375,7 +375,7 @@ Main repo plan:
 - Treat bluebox as a closed-API/routine-discovery reference only. It must not
   reverse engineer or scrape targets without a documented target policy.
 
-LiMa Code plan:
+LiMa plan:
 
 - Expose only the MCP tools needed for a local coding task. Prefer small
   read-only tools first, such as docs lookup, repo search, error lookup, and
@@ -414,7 +414,7 @@ Main repo plan:
 - Keep design/canvas/3D workspace ideas behind local files and explicit user
   actions.
 
-LiMa Code plan:
+LiMa plan:
 
 - Borrow Warp-style terminal command-block UX and agent panels only where they
   improve local auditability and recovery.
@@ -428,10 +428,10 @@ LiMa Code plan:
   reconstruction reference. Scraping, API keys, sandbox providers, and
   generated code must stay behind review and tests.
 - Borrow OpenCode's terminal UI, package-manager installation, desktop beta,
-  localization, and coding-agent ergonomics for LiMa Code packaging.
+  localization, and coding-agent ergonomics for LiMa packaging.
 - Borrow gstack's slash-command ergonomics, stage handoffs, QA/browser
   verification, release checklist, and careful/freeze/guard safety vocabulary
-  as opt-in LiMa Code workflow patterns.
+  as opt-in LiMa workflow patterns.
 - Borrow cc-connect's web admin UI, provider/project management, lifecycle
   hooks, skills page, and mobile messaging UX as references for LiMa's online
   distributions; keep messaging actions approval-gated.
@@ -487,7 +487,7 @@ Main repo plan:
   Anti-detection or scraping-like capabilities require terms-of-service,
   privacy, and target-site policy review before use.
 
-LiMa Code plan:
+LiMa plan:
 
 - Route dangerous local execution through explicit safety checks.
 - Record browser task screenshots/logs as artifacts when a UI claim is made.
@@ -569,10 +569,10 @@ Main repo plan:
 - Treat OpenMontage as AGPL concept-only: borrow artifact pipeline, provider
   boundary, and media workflow staging ideas without copying code or making it
   a runtime dependency.
-- Treat open-lovable as a LiMa Code design/productivity workflow reference,
+- Treat open-lovable as a LiMa design/productivity workflow reference,
   not as a default site-scraping path or automatic production code generator.
 
-LiMa Code plan:
+LiMa plan:
 
 - Provide research summaries to coding sessions as structured findings.
 - Keep generated visual browsing as an artifact viewer, not as a source of
@@ -675,7 +675,7 @@ Recommended first slice after this plan is accepted:
 5. Add governance metadata fields to agent tasks before expanding autonomous
    work loops.
 6. Add the MCP candidate catalog and foundation connector policy before
-   enabling more tools in LiMa Code sessions.
+   enabling more tools in LiMa sessions.
 7. Document TUNA mirror fallbacks for VPS/China-network dependency bootstrap.
 8. Add prompt-contract fixtures for tool instructions and verification prompts
    before adopting external prompt libraries.

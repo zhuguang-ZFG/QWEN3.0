@@ -1,7 +1,7 @@
-# LiMa Code CLI (deepcode-cli/) — 维护模式
+# LiMa CLI (deepcode-cli/) — 维护模式
 
 > **状态**: 已进入维护模式 — 不再添加新功能，仅修复关键问题
-> 子模块 `deepcode-cli/` 保留，配置目录 `.lima-code/` 作为 OpenCode 配置参考
+> 子模块 `deepcode-cli/` 保留，配置目录 `.lima/` 作为 OpenCode 配置参考
 
 ## 构建说明
 
@@ -17,7 +17,7 @@ npm run lint         # eslint src/
 npm run typecheck    # tsc --noEmit
 ```
 
-Binary entry: `dist/cli.js` (bin name: `lima-code`).
+Binary entry: `dist/cli.js` (bin name: `lima`).
 
 ## 测试
 
@@ -30,9 +30,9 @@ npm run test
 
 ## 迁移到 OpenCode
 
-推荐从 LiMa Code CLI 迁移到 OpenCode。详见 `docs/opencode-integration.md` 的「从 LiMa Code CLI 迁移」章节。
+推荐从 LiMa CLI 迁移到 OpenCode。详见 `docs/opencode-integration.md` 的「从 LiMa CLI 迁移」章节。
 
-| LiMa Code CLI | OpenCode |
+| LiMa CLI | OpenCode |
 |---------------|----------|
 | `/lima vibe` 工作流 | `Tab` 切换 Plan 模式 → 描述需求 |
 | `/model` 切换模型 | `/models` 或自动路由 |

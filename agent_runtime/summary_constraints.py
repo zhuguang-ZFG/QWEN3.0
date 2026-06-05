@@ -1,4 +1,4 @@
-"""LiMa Code worker summary constraints.
+"""LiMa worker summary constraints.
 
 Worker task summaries MUST include changed files, tests run, remaining
 risks, and review status. The Server contract gate rejects summaries

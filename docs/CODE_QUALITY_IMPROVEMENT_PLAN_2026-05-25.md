@@ -1,4 +1,4 @@
-# LiMa Code Quality Improvement Plan
+# LiMa Quality Improvement Plan
 
 > Date: 2026-05-25
 > Updated: 2026-05-26

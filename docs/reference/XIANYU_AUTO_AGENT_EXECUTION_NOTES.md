@@ -9,7 +9,7 @@
 ## Purpose
 
 This document converts the useful lessons from `shaxiu/XianyuAutoAgent` into
-LiMa-native execution slices for LiMa Server, LiMa Code, and ESP32/Device
+LiMa-native execution slices for LiMa Server, LiMa, and ESP32/Device
 Gateway.
 
 The reference project is valuable because it is a vertical always-on business
@@ -95,7 +95,7 @@ Target fields:
 
 | Field | Purpose |
 |---|---|
-| `channel` | `web`, `telegram`, `wechat`, `device`, `limacode`. |
+| `channel` | `web`, `telegram`, `wechat`, `device`, `lima`. |
 | `conversation_id` | Stable channel conversation key. |
 | `user_id_hash` | Redacted identity join key. |
 | `task_id` | Optional LiMa task/work item link. |
@@ -136,8 +136,8 @@ Initial LiMa intents:
 
 | Intent | Owner | First useful action |
 |---|---|---|
-| `code_plan` | LiMa Code | Produce a reviewable implementation plan. |
-| `code_fix` | LiMa Code | Create or claim a bounded fix task. |
+| `code_plan` | LiMa | Produce a reviewable implementation plan. |
+| `code_fix` | LiMa | Create or claim a bounded fix task. |
 | `device_motion` | Device Gateway | Convert safe command into previewable path task. |
 | `ops_debug` | Server | Return correlated health/task/device status. |
 | `memory_query` | Session memory | Recall cited project facts. |
@@ -168,7 +168,7 @@ Manual takeover must exist at three levels:
 | Scope | Meaning |
 |---|---|
 | `conversation` | Stop automatic replies in one channel thread. |
-| `task` | Stop a LiMa Code or Device Gateway task. |
+| `task` | Stop a LiMa or Device Gateway task. |
 | `device` | Stop dispatching motion tasks to a device. |
 
 Required state:
@@ -274,7 +274,7 @@ Minimum events:
 | `channel.reply.sent` | `channel`, `conversation_id`, `task_id`, `request_id`. |
 | `channel.connector.reconnected` | `channel`, `reconnect_count`, `last_error_code`. |
 | `device.motion.dispatched` | `device_id`, `task_id`, `motion_task_id`. |
-| `limacode.task.submitted` | `task_id`, `artifact_bundle_id`, `review_status`. |
+| `lima.task.submitted` | `task_id`, `artifact_bundle_id`, `review_status`. |
 
 All events must redact raw user ids, tokens, cookies, API keys, and raw private
 messages unless an explicit debug export is approved.
@@ -435,7 +435,7 @@ The reference is considered successfully absorbed only when LiMa has all of:
 - A deterministic intent router with model classification behind a gate.
 - Bounded session state with manual takeover.
 - Structured audit events for route, reply, takeover, and connector health.
-- Ops metrics that correlate channel messages to LiMa Code or Device Gateway
+- Ops metrics that correlate channel messages to LiMa or Device Gateway
   tasks.
 - Prompt profile ids tied to eval evidence.
 - No copied GPL source code, no copied prompts, and no default cookie-based
@@ -475,7 +475,7 @@ Do not start with WeChat or Xianyu-specific integration. Start with a fake
 channel connector and reuse it to drive two productive LiMa flows:
 
 1. `device_motion`: "write LiMa" -> preview -> fake U8 task -> motion events.
-2. `code_fix`: "fix failing test" -> LiMa Code artifact bundle -> review
+2. `code_fix`: "fix failing test" -> LiMa artifact bundle -> review
    status.
 
 Once these fake-channel flows produce real artifacts and correlated ops

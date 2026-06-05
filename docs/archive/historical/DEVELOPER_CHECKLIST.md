@@ -82,7 +82,7 @@ python -m pytest tests/test_access_guard.py tests/test_secret_hygiene.py tests/t
 ### Tool Gateway / MCP
 
 ```powershell
-python -m pytest tests/test_tool_gateway.py tests/test_mcp_tools.py tests/test_lima_code_dev_search_tools.py -q --ignore=active_model
+python -m pytest tests/test_tool_gateway.py tests/test_mcp_tools.py tests/test_lima_dev_search_tools.py -q --ignore=active_model
 ```
 
 ### Full Suite

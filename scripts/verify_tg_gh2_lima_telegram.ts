@@ -1,5 +1,5 @@
 #!/usr/bin/env tsx
-/** TG-GH-2 verify: LiMa Code Telegram config + optional test send. */
+/** TG-GH-2 verify: LiMa Telegram config + optional test send. */
 
 import {
   formatLiMaTelegramEvent,
@@ -16,7 +16,7 @@ async function main(): Promise<void> {
       JSON.stringify({
         smoke_ok: false,
         reason: "telegram_not_configured",
-        hint: "Set LIMA_CODE_TELEGRAM_BOT_TOKEN and chat id or B2B username",
+        hint: "Set LIMA_TELEGRAM_BOT_TOKEN and chat id or B2B username",
       })
     );
     process.exit(2);
@@ -26,8 +26,8 @@ async function main(): Promise<void> {
     type: "task_needs_review",
     taskId: "tg-gh2-smoke",
     status: "needs_review",
-    summary: "TG-GH-2 smoke: LiMa Code lifecycle notifier",
-    changedFiles: ["scripts/verify_tg_gh2_limacode_telegram.ts"],
+    summary: "TG-GH-2 smoke: LiMa lifecycle notifier",
+    changedFiles: ["scripts/verify_tg_gh2_lima_telegram.ts"],
   });
 
   if (!send) {
@@ -46,8 +46,8 @@ async function main(): Promise<void> {
     type: "task_needs_review",
     taskId: "tg-gh2-smoke",
     status: "needs_review",
-    summary: "TG-GH-2 smoke send: LiMa Code lifecycle notifier",
-    changedFiles: ["scripts/verify_tg_gh2_limacode_telegram.ts"],
+    summary: "TG-GH-2 smoke send: LiMa lifecycle notifier",
+    changedFiles: ["scripts/verify_tg_gh2_lima_telegram.ts"],
   });
   console.log(JSON.stringify({ smoke_ok: ok, dry_run: false, sent: ok }));
   if (!ok) {

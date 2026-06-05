@@ -1,7 +1,7 @@
 # LiMa Task Prompt Contract v0.1 (LC-W-1)
 
 > **Status:** Active (next slice) | **Created:** 2026-05-26  
-> **Parent:** [`docs/NEXT_MILESTONES.md`](../NEXT_MILESTONES.md) §2 LiMa Code Worker  
+> **Parent:** [`docs/NEXT_MILESTONES.md`](../NEXT_MILESTONES.md) §2 LiMa Worker  
 > **Depends on:** bounded `/lima task|next|work`, agent task store, summary constraints (existing)
 
 ---
@@ -14,7 +14,7 @@ Unify how LiMa **creates**, **stores**, and **renders** worker task prompts usin
 Context / Task / Constraints / Verify / Output
 ```
 
-So `/agent/tasks`, LiMa Code worker runs, role prompts, and skill activation all read the **same contract**, not ad-hoc `goal` + string list.
+So `/agent/tasks`, LiMa worker runs, role prompts, and skill activation all read the **same contract**, not ad-hoc `goal` + string list.
 
 ---
 
@@ -32,7 +32,7 @@ So `/agent/tasks`, LiMa Code worker runs, role prompts, and skill activation all
 | Layer | Today |
 |-------|--------|
 | Server | `TaskCreateBody`: `goal`, `constraints[]`, `test_commands[]`, `mode` — no structured sections |
-| LiMa Code | `LiMaAgentTaskRequest.goal/constraints`; lifecycle hooks write markdown lists |
+| LiMa | `LiMaAgentTaskRequest.goal/constraints`; lifecycle hooks write markdown lists |
 | Summary gate | `agent_runtime/summary_constraints.py` — required result fields |
 | Artifacts | `deepcode-cli` `artifact-bundle.ts` — plan.md from goal/constraints |
 
@@ -67,7 +67,7 @@ Add optional field on task create/get (backward compatible):
 
 ## 5. Render format (worker-facing)
 
-Single markdown block injected before tools (LiMa Code + Server smoke tasks):
+Single markdown block injected before tools (LiMa + Server smoke tasks):
 
 ```markdown
 ## Context
@@ -129,4 +129,4 @@ Return needs_review with summary JSON: changed_files, tests_run, remaining_risks
 
 ## 9. After v0.1
 
-LC-W-2 Hooks + `.lima-code/dev/active/<task>/` per `task_plan.md` item 5.
+LC-W-2 Hooks + `.lima/dev/active/<task>/` per `task_plan.md` item 5.

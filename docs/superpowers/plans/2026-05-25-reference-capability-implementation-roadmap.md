@@ -9,13 +9,13 @@
 tested, reversible implementation slices without copying or mass-installing
 reference projects.
 
-**Architecture:** Keep the existing LiMa Server, LiMa Code, and `esp32S_XYZ`
+**Architecture:** Keep the existing LiMa Server, LiMa, and `esp32S_XYZ`
 ownership boundaries. Every adopted idea lands behind a LiMa-owned interface,
 small tests, documentation evidence, and an explicit gate for license,
 security, privacy, cost, and rollback.
 
 **Tech Stack:** Python/FastAPI/SQLite/Redis for LiMa Server, TypeScript for
-LiMa Code, ESP32 firmware/product code in `esp32S_XYZ`, pytest/npm tests,
+LiMa, ESP32 firmware/product code in `esp32S_XYZ`, pytest/npm tests,
 systemd/nginx/VPS smoke scripts, and markdown status records.
 
 ---
@@ -168,7 +168,7 @@ Toolkit, gstack, OpenAI Symphony, agent-skills, mattpocock skills.
   and rollback owner to agent task/tool metadata.
 - [x] Fail closed when dangerous tool classes lack explicit approval metadata.
 - [x] Record tool/MCP provenance in audit events.
-- [x] Require LiMa Code worker summaries to report changed files, tests,
+- [x] Require LiMa worker summaries to report changed files, tests,
   remaining risks, and review status.
 - [x] Keep deploy, push, GitHub write, cloud, database migration, and hardware
   actions behind explicit gate metadata.
@@ -208,19 +208,19 @@ Prometheus, Portkey, LiteLLM.
   promotion decision, and evidence.
 - [x] Define route-level cost, latency, cache, cooldown, and failure-state
   metric names before adding exporters.
-- [x] Add per-task budget envelopes for LiMa Code worker runs.
+- [x] Add per-task budget envelopes for LiMa worker runs.
 - [x] Keep hosted tracing/eval services disabled until data residency,
   redaction, self-hosting, and license gates pass.
 
-## Phase 7 - LiMa Code UX And Workflow
+## Phase 7 - LiMa UX And Workflow
 
 **References:** OpenCode, Warp, Aider, gstack, Open Design, ClaudePrism,
 vibe-coding-cn, agent-skills.
 
 **Files:**
 - Modify: `deepcode-cli` submodule after explicit submodule plan
-- Modify: `docs/LIMACODE_MANAGEMENT.md`
-- Test: LiMa Code npm tests and Server/Worker contract tests
+- Modify: `docs/LIMA_MANAGEMENT.md`
+- Test: LiMa npm tests and Server/Worker contract tests
 
 - [x] Add opt-in stage commands for plan, review, test, and ship workflows.
 - [ ] Add review-context prefetch that explains why each file was selected.

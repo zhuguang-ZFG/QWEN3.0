@@ -69,14 +69,14 @@
 | nginx `/github/` 反代 | VPS `patch_nginx_github_webhook.py` | ✅ |
 | GitHub Models 推理后端 | `backends_registry.py` + `GITHUB_TOKEN` | ✅ |
 | 读公开文件 | `dev_fetch_github_file` / Channel `/github` | ✅ |
-| LiMa Code GitHub MCP | `deepcode-cli/docs/mcp.md` | 可选，客户端配置 |
-| Submodule 治理 | `docs/LIMACODE_MANAGEMENT.md` | ✅ |
+| LiMa GitHub MCP | `deepcode-cli/docs/mcp.md` | 可选，客户端配置 |
+| Submodule 治理 | `docs/LIMA_MANAGEMENT.md` | ✅ |
 
 ### 2.3 缺口（最大化目标）
 
 | 缺口 | 价值 |
 |------|------|
-| LiMa Code worker → Telegram 进度 | 手机看 task 开始/完成/失败 |
+| LiMa worker → Telegram 进度 | 手机看 task 开始/完成/失败 |
 | Telegram `/github owner/repo path` | 移动读参考源码 |
 | Telegram `/device` Device Gateway | 硬件状态/告警 |
 | GitHub CI fail → 可选创建 Agent task | 事件驱动编码 |
@@ -106,24 +106,24 @@
 
 ---
 
-### Phase TG-GH-2 — LiMa Code → Telegram 生命周期（P0，~1 天）
+### Phase TG-GH-2 — LiMa → Telegram 生命周期（P0，~1 天）
 
-**设计权威：** `deepcode-cli/docs/lima-code-telegram-notifier-design.md`
+**设计权威：** `deepcode-cli/docs/lima-telegram-notifier-design.md`
 
 | Task | 仓库 | 内容 |
 |------|------|------|
 | 2.1 | deepcode-cli | `src/lima/telegram-notifier.ts`：config、redaction、sendMessage |
 | 2.2 | deepcode-cli | `command-runner.ts` 注入 notifier |
 | 2.3 | deepcode-cli | 事件：`task_started` / `finished` / `failed` / `needs_review` / `work_stopped` |
-| 2.4 | 主仓 | 文档 + submodule 指针 | ✅ `docs/TG_GH_2_LIMACODE_TELEGRAM.md` |
+| 2.4 | 主仓 | 文档 + submodule 指针 | ✅ `docs/TG_GH_2_LIMA_TELEGRAM.md` |
 | 2.5 | 双仓 | npm test + pytest | ✅ deepcode-cli tests 已有 |
 
 **消息示例：**
 ```text
-LiMa Code ▶ task cfcd3f2b started
+LiMa ▶ task cfcd3f2b started
 Goal: fix routing test...
 ---
-LiMa Code ✓ task cfcd3f2b needs_review (3 files)
+LiMa ✓ task cfcd3f2b needs_review (3 files)
 [Tap Approve on Server bot]
 ```
 
@@ -219,7 +219,7 @@ github_webhook/
   format.py                   # 扩展事件
   activity_buffer.py          # TG-GH-3 ring buffer
 
-telegram_notify.py            # +notify_deploy, +notify_lima_code (server-side 可选)
+telegram_notify.py            # +notify_deploy, +notify_lima (server-side 可选)
 
 scripts/
   smoke_telegram_outbound.py  # TG-GH-1
@@ -241,7 +241,7 @@ docs/
 ```text
 Week 1（立即）:
   TG-GH-1 可靠性
-  TG-GH-2 LiMa Code 推送
+  TG-GH-2 LiMa 推送
 
 Week 2:
   TG-GH-3 统一早报
@@ -279,14 +279,14 @@ Week 3（可选）:
 | GitHub auto-task 误触发 | `GITHUB_WEBHOOK_AUTO_TASK=0` 默认；仅 inline 确认 |
 | Telegram 泄露密钥 | 沿用 `_redact_logs` / notifier redaction |
 | 消息轰炸 | CI success 默认不推；同类告警 60s 限频 |
-| LiMa Code 双 token | 可复用 Server token+chat_id 或独立 env |
+| LiMa 双 token | 可复用 Server token+chat_id 或独立 env |
 
 ---
 
 ## 8. 验收总清单（主线完成定义）
 
 - [ ] Windows 重启后 Telegram 出站自愈
-- [ ] LiMa Code task 全生命周期可在手机追踪
+- [ ] LiMa task 全生命周期可在手机追踪
 - [ ] 每日一条合并早报（health + GitHub + tasks）
 - [ ] `/github` `/device` 可在 Telegram 使用
 - [ ] GitHub push/PR/CI fail 已验证（CQ-GH-001 ✅）
@@ -300,5 +300,5 @@ Week 3（可选）:
 |------|------|
 | `docs/TELEGRAM_BOT_DESIGN.md` | Telegram 架构 |
 | `docs/GITHUB_WEBHOOK_INTEGRATION.md` | Webhook 配置 |
-| `deepcode-cli/docs/lima-code-telegram-notifier-design.md` | Worker 推送 |
+| `deepcode-cli/docs/lima-telegram-notifier-design.md` | Worker 推送 |
 | `docs/superpowers/plans/2026-05-26-provider-model-automation-full-plan.md` | **存档**，后续衔接 |

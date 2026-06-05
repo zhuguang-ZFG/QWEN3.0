@@ -1,5 +1,7 @@
 # LiMa — 多模型智能路由 AI 编程助手后端
 
+> **M-OC0**: LiMa CLI migrated to OpenCode MCP bridge. `lima-code` → `lima`. See `docs/opencode-integration.md`.
+
 > **个人 AI 编程助手** — OpenAI-compatible API，自动路由到最优后端模型
 
 LiMa 是一个**多模型智能路由后端**，提供 `/v1/chat/completions` 和 `/v1/messages` 端点，根据请求意图、能力、成本和质量自动选择最优后端模型。客户端包括 OpenCode、Cursor、VS Code Copilot、Telegram 及自定义 CLI。
@@ -62,7 +64,7 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 
 ### OpenCode 配置
 
-在项目根目录创建 `.lima-code/settings.json`：
+在项目根目录创建 `.lima/settings.json`：
 
 ```json
 {

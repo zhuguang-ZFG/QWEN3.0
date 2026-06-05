@@ -1,4 +1,4 @@
-"""Local codesearch CLI adapter for LiMa Code (LC-W-2, default off)."""
+"""Local codesearch CLI adapter for LiMa (LC-W-2, default off)."""
 
 from __future__ import annotations
 

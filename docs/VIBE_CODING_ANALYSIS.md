@@ -1,4 +1,4 @@
-# LiMa Code Vibe Coding — MiMo-Reasonix 参考分析
+# LiMa Vibe Coding — MiMo-Reasonix 参考分析
 
 > 2026-06-01 · 对比 MiMo-Reasonix v0.1.1 与 LiMa 当前状态
 
@@ -85,7 +85,7 @@ Storm → 检测重复 tool call 循环并打断
 git submodule update --init deepcode-cli
 cd deepcode-cli && npm install && npm test
 
-# 方案 B：直接用 MiMo-Reasonix 的架构作为参考重写 LiMa Code CLI
+# 方案 B：直接用 MiMo-Reasonix 的架构作为参考重写 LiMa CLI
 # （更彻底，但成本更高）
 ```
 
@@ -100,7 +100,7 @@ cd deepcode-cli && npm install && npm test
 | 工具修复 Truncation | `repair/truncation.ts` | `text_tool_extractor.py` | 30min |
 | Storm breaker | `repair/storm.ts` | 新建 `routes/tool_storm.py` | 1h |
 
-### 第 3 步：LiMa Code CLI 体验升级
+### 第 3 步：LiMa CLI 体验升级
 
 - 添加 Ink 风格的进度指示器（当前 Telegram bot 有，CLI 侧无）
 - `/lima plan|test|review|ship` 命令 → 结构化 artifact bundle

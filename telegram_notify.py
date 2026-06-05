@@ -105,10 +105,10 @@ def notify_code_lifecycle(
     summary: str,
     changed_files: list[str] | None = None,
 ) -> None:
-    """Forward LiMa Code lifecycle events (via B2B) to the operator chat."""
+    """Forward LiMa lifecycle events (via B2B) to the operator chat."""
     if not telegram_bot.is_configured():
         return
-    lines = [f"LiMa Code `{event_type}`"]
+    lines = [f"LiMa `{event_type}`"]
     if task_id:
         lines.append(f"Task: `{task_id}`")
     lines.append(summary)

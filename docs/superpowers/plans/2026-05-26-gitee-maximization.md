@@ -8,7 +8,7 @@
 >
 > **Related:** [`2026-05-26-telegram-github-maximization.md`](2026-05-26-telegram-github-maximization.md)、
 > [`2026-05-26-cloudflare-google-maximization.md`](2026-05-26-cloudflare-google-maximization.md)（CF-G-5 官网）、
-> `docs/GITHUB_WEBHOOK_INTEGRATION.md`、`docs/LIMACODE_MANAGEMENT.md`
+> `docs/GITHUB_WEBHOOK_INTEGRATION.md`、`docs/LIMA_MANAGEMENT.md`
 
 ---
 
@@ -32,7 +32,7 @@ LiMa 静态站点（国内访问）
 
 **原则：**
 
-1. **GitHub 仍是主仓**；Gitee 是镜像与国内可达性，不替代 submodule 治理与 LiMa Code 契约。
+1. **GitHub 仍是主仓**；Gitee 是镜像与国内可达性，不替代 submodule 治理与 LiMa 契约。
 2. **默认关**：`GITEE_WEBHOOK_ENABLED=0`、`GITEE_AI_ENABLED=0` 直到 smoke 证据写入 `progress.md`。
 3. **不自动** `git pull`、merge、开 PR；事件只推 Telegram 摘要（与 GitHub 一致）。
 4. **新 AI 模型** 先 inventory → smoke → budget → **late_fallback**，不进 coding 第一梯队。

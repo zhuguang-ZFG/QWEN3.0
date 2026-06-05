@@ -69,11 +69,13 @@ def _run(ssh: paramiko.SSHClient, cmd: str, timeout: float | None = None) -> str
         stdout.channel.settimeout(timeout)
     try:
         out = stdout.read().decode("utf-8", errors="replace")
-    except Exception:
+    except Exception as exc:
+        _log(f"[warn] stdout read failed: {exc}")
         out = ""
     try:
         err = stderr.read().decode("utf-8", errors="replace")
-    except Exception:
+    except Exception as exc:
+        _log(f"[warn] stderr read failed: {exc}")
         err = ""
     if err.strip():
         out = (out + "\n" + err).strip()

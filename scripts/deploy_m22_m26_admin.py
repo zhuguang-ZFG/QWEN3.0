@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Deploy M22-M26: Admin panel enhancements (health, fallback, batch, keys, latency)."""
+
 import paramiko
 import os
 import time
@@ -15,10 +16,12 @@ known_hosts = os.path.expanduser("~/.ssh/known_hosts")
 if os.path.exists(known_hosts):
     try:
         ssh.load_host_keys(known_hosts)
-    except Exception:
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    except Exception as exc:
+        print(f"[warn] failed to load known_hosts: {exc}, using AutoAddPolicy")
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())  # noqa: S507
 else:
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    print("[warn] known_hosts not found, using AutoAddPolicy")
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())  # noqa: S507
 
 try:
     ssh.connect(VPS_HOST, username=VPS_USER, pkey=key, timeout=20)
@@ -71,7 +74,9 @@ try:
     _, out, _ = ssh.exec_command("grep LIMA_ADMIN_TOKEN /opt/lima-router/.env | cut -d= -f2")
     token = out.read().decode().strip()
 
-    py_cookie = f"import hmac,hashlib; print(hmac.new('{token}'.encode(), b'lima-admin-session', hashlib.sha256).hexdigest())"
+    py_cookie = (
+        f"import hmac,hashlib; print(hmac.new('{token}'.encode(), b'lima-admin-session', hashlib.sha256).hexdigest())"
+    )
     _, out, _ = ssh.exec_command(f'python3 -c "{py_cookie}"')
     cookie = out.read().decode().strip()
 

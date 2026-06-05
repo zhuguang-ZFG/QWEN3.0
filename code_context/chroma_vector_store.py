@@ -15,7 +15,7 @@ from code_context.index_store import FileRecord, InMemoryCodeIndex
 
 _log = logging.getLogger(__name__)
 
-_DEFAULT_COLLECTION = "lima_code_index"
+_DEFAULT_COLLECTION = "lima_index"
 _CHROMADB_AVAILABLE: bool | None = None
 
 

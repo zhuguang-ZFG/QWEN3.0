@@ -3,6 +3,7 @@
 > 2026-06-18 · VPS `47.112.162.80` · 分支 `codex/free-web-ai-probe`
 > 权威架构见 `docs/REQUEST_PIPELINE_AUTHORITY.md`
 > 产品定义见 `docs/PRODUCT_DEFINITION.md`
+> M-OC0: LiMa CLI migrated to OpenCode MCP bridge. `lima-code` → `lima`. See `docs/opencode-integration.md`.
 
 ## 全部里程碑
 
@@ -17,7 +18,7 @@
 | M6 | 删除 DDG + deepseek_free | 7→0 |
 | M7 | 清理残留 + ESP32 删除 (-647 行) | 0 |
 | M8 | MiMo-Reasonix 深度分析 | 0 |
-| M9 | LiMa Code CLI 初始化 + 烟雾测试 | 0 |
+| M9 | LiMa CLI 初始化 + 烟雾测试 | 0 |
 | M10 | 文档更新 + 13 个过期文档标记 | 0 |
 | M11a | ModelScope 8 后端加入路由池 | 0 |
 | M11b | 代码审查修复 (2 issues) | 0 |
@@ -59,11 +60,11 @@
 | VPS reverse sidecar | 5/5 active |
 | net code removed | ~650 行 |
 
-## LiMa Code CLI — 维护模式
+## LiMa CLI — 维护模式
 
 > **状态**: 已进入维护模式 — 不再添加新功能，仅修复关键问题
-> 子模块 `deepcode-cli/` 保留，配置目录 `.lima-code/` 作为 OpenCode 配置参考
-> 构建说明见 `docs/archive/lima-code-cli.md`
+> 子模块 `deepcode-cli/` 保留，配置目录 `.lima/` 作为 OpenCode 配置参考
+> 构建说明见 `docs/archive/lima-cli.md`
 
 | 指标 | 值 |
 |------|-----|
@@ -77,7 +78,7 @@
 | 套件 | 通过 | 说明 |
 |------|------|------|
 | LiMa pytest | 1972 | 85 预存失败 |
-| LiMa Code CLI | 498 | 2 预存失败 |
+| LiMa CLI | 498 | 2 预存失败 |
 
 ## 不再依赖的本机服务
 

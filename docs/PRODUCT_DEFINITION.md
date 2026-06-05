@@ -9,7 +9,7 @@
 | 组件 | 角色 | 部署位置 |
 |------|------|----------|
 | **LiMa Server** | 多模型路由网关 + Agent 运行时 + 会话记忆 | VPS |
-| **LiMa Code CLI** | 终端交互式编码助手 | 用户本机 |
+| **LiMa CLI** | 终端交互式编码助手 | 用户本机 |
 
 ## 二、请求管线（权威架构）
 
@@ -64,7 +64,7 @@ Client → server.py → chat_endpoints → chat_preflight
 ## 六、当前项目状态（2026-06-01）
 
 - M1-M7 完成：全部 184 后端云端化，LOCAL_ONLY_BACKENDS 清空
-- M8-M9 完成：MiMo-Reasonix 分析 + LiMa Code CLI 初始化
+- M8-M9 完成：MiMo-Reasonix 分析 + LiMa CLI 初始化
 - M10 完成：文档更新
 - M11a-f 完成：ModelScope 集成 + ContextManager 移植 + 代码审查
 - VPS 验证通过：5 个 sidecar active，FRP/duckai/proxy 已清理

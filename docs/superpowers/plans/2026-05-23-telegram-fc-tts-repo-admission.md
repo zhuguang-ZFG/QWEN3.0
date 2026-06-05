@@ -21,7 +21,7 @@ Formally admit the optional Telegram FC/TTS helper modules into the repository w
 - Do not route ordinary IDE/chat requests through `fc_caller`.
 - Do not commit hardcoded API keys, passwords, cookies, or tokens.
 - Keep Telegram FC/TTS optional: missing or unconfigured external credentials must degrade cleanly.
-- Do not promote `tool_dispatcher.py` into LiMa Code dev-search; dev-search keeps its smaller focused modules.
+- Do not promote `tool_dispatcher.py` into LiMa dev-search; dev-search keeps its smaller focused modules.
 
 ## Changes
 

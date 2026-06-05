@@ -19,7 +19,7 @@ def build_owner_rejection_handler(command_name: str) -> Callable:
 
 
 def build_owner_code_task_handler() -> Callable:
-    """Owner /code-task <goal> — create an agent task for LiMa Code worker."""
+    """Owner /code-task <goal> — create an agent task for LiMa worker."""
 
     def handler(user_id: str, goal: str) -> str:
         if not goal.strip():
@@ -40,7 +40,7 @@ def build_owner_code_task_handler() -> Callable:
             return (
                 f"Task {task_id} created.\n"
                 f"Goal: {goal.strip()[:200]}\n"
-                f"Run `/lima next` in LiMa Code to claim it."
+                f"Run `/lima next` in LiMa to claim it."
             )
         except ImportError:
             return "Agent task store not available. Is the server loaded?"
@@ -162,7 +162,7 @@ def build_owner_status_handler() -> Callable:
 
 
 def build_owner_artifact_handler() -> Callable:
-    """Owner /artifact <task_id> — show LiMa Code artifact bundle summary."""
+    """Owner /artifact <task_id> — show LiMa artifact bundle summary."""
 
     def handler(task_id: str) -> str:
         if not task_id.strip():

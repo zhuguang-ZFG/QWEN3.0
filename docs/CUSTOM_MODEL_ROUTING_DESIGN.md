@@ -133,7 +133,7 @@ def route(query, messages, *, model="", ...):
 
 ### 对 IDE 客户端的影响
 
-LiMa Code (deepcode-cli) 和 Cursor/Copilot 等客户端通常传 `model=gpt-4o` 或 `model=claude-3-opus`。启用此功能后，这些请求将**自动匹配到对应后端**，无需客户端修改。
+LiMa (deepcode-cli) 和 Cursor/Copilot 等客户端通常传 `model=gpt-4o` 或 `model=claude-3-opus`。启用此功能后，这些请求将**自动匹配到对应后端**，无需客户端修改。
 
 ### 风险
 

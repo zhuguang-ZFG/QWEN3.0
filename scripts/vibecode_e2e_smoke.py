@@ -15,8 +15,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LIMA_API_KEY = os.environ.get("LIMA_API_KEY", "xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw")
-LIMA_BASE = os.environ.get("LIMA_CODE_SERVER_URL", "https://chat.donglicao.com")
-LIMA_MODEL = "lima-code"
+LIMA_BASE = os.environ.get("LIMA_SERVER_URL", "https://chat.donglicao.com")
+LIMA_MODEL = "lima"
 
 # ── Tool definitions (OpenAI format) ──────────────────────────────────────────
 
@@ -191,7 +191,7 @@ async def test_read_system_info():
 
     target_file = os.path.join(PROJECT_ROOT, "_lima_output.txt")
     messages = [
-        {"role": "user", "content": f"读取文件 {target_file}，告诉我 LiMa Code 的版本号是什么。只需回答版本号即可。"},
+        {"role": "user", "content": f"读取文件 {target_file}，告诉我 LiMa 的版本号是什么。只需回答版本号即可。"},
     ]
 
     t0 = time.time()

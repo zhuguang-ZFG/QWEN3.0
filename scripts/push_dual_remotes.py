@@ -77,8 +77,8 @@ def main() -> int:
                 "Git dual-remote push failed\n" + "\n".join(failures),
                 level="critical",
             )
-        except Exception:
-            pass
+        except Exception as exc:
+            print(f"[warn] telegram notification failed: {exc}", file=sys.stderr)
 
     return 1 if failures else 0
 

@@ -75,7 +75,7 @@ class TestTelegramB2BInbound:
 
     async def test_rejects_non_bot(self, monkeypatch) -> None:
         monkeypatch.setenv("TELEGRAM_B2B_ENABLED", "1")
-        monkeypatch.setenv("TELEGRAM_CODE_BOT_USERNAMES", "lima_code_bot")
+        monkeypatch.setenv("TELEGRAM_CODE_BOT_USERNAMES", "lima_bot")
         handled, chat, ack = await telegram_b2b.handle_inbound_b2b(
             {"from": {"is_bot": False, "username": "human"}, "chat": {"id": 1}, "text": "hi"}
         )
@@ -83,7 +83,7 @@ class TestTelegramB2BInbound:
 
     async def test_accepts_code_bot(self, monkeypatch) -> None:
         monkeypatch.setenv("TELEGRAM_B2B_ENABLED", "1")
-        monkeypatch.setenv("TELEGRAM_CODE_BOT_USERNAMES", "lima_code_bot")
+        monkeypatch.setenv("TELEGRAM_CODE_BOT_USERNAMES", "lima_bot")
         monkeypatch.setattr(
             telegram_notify,
             "notify_task_ready",
@@ -100,7 +100,7 @@ class TestTelegramB2BInbound:
         )
         handled, chat, ack = await telegram_b2b.handle_inbound_b2b(
             {
-                "from": {"is_bot": True, "username": "lima_code_bot"},
+                "from": {"is_bot": True, "username": "lima_bot"},
                 "chat": {"id": 999},
                 "text": text,
             }

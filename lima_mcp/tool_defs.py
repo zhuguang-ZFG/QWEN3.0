@@ -132,7 +132,7 @@ TOOL_DEFINITIONS = [
     },
     {
         "name": "dev_summarize_sources",
-        "description": "Turn source dictionaries into a compact evidence block for LiMa Code.",
+        "description": "Turn source dictionaries into a compact evidence block for LiMa.",
         "parameters": {
             "type": "object",
             "properties": {

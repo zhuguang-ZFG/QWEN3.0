@@ -51,9 +51,7 @@ async def _browse_webpage(
     try:
         import httpx
 
-        async with httpx.AsyncClient(
-            timeout=15, follow_redirects=True, verify=False
-        ) as client:
+        async with httpx.AsyncClient(timeout=15, follow_redirects=True, verify=False) as client:
             resp = await client.get(
                 url,
                 headers={"User-Agent": "LiMa-Bot/1.0 (web-tools)"},
@@ -63,7 +61,7 @@ async def _browse_webpage(
             if "json" in content_type:
                 try:
                     return {"url": url, "format": "json", "data": resp.json()}
-                except Exception:
+                except ValueError:
                     pass
             html = resp.text
     except Exception as exc:
@@ -107,8 +105,7 @@ async def _browse_webpage(
         matches = pattern.findall(html)
         if matches:
             extracted = " ".join(
-                _clean_text(re.sub(r"<[^>]+>", " ", m), max_length // max(len(matches), 1))
-                for m in matches
+                _clean_text(re.sub(r"<[^>]+>", " ", m), max_length // max(len(matches), 1)) for m in matches
             )
             return {
                 "url": url,
@@ -117,7 +114,14 @@ async def _browse_webpage(
                 "text": extracted[:max_length],
                 "links": links[:10],
             }
-        return {"url": url, "title": title, "selector": selector, "text": "", "note": "No matches for selector", "links": links[:10]}
+        return {
+            "url": url,
+            "title": title,
+            "selector": selector,
+            "text": "",
+            "note": "No matches for selector",
+            "links": links[:10],
+        }
 
     return {"url": url, "title": title, "text": body, "links": links[:10]}
 

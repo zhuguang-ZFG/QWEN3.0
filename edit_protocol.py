@@ -1,4 +1,4 @@
-"""SEARCH/REPLACE edit protocol for LiMa Code.
+"""SEARCH/REPLACE edit protocol for LiMa.
 
 The protocol is deterministic and auditable. It is inspired by Aider-style
 SEARCH/REPLACE blocks, but this module has no runtime dependency on Aider.

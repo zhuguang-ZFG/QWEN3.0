@@ -16,5 +16,5 @@ async def _get(url: str, params: dict[str, Any] | None = None, timeout: float = 
     response.raise_for_status()
     try:
         return response.json()
-    except Exception:
+    except ValueError:
         return response.text

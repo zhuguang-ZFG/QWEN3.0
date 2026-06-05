@@ -5,6 +5,7 @@
 - Provides valid key via simple HTTP API for smart_router.py
 - Auto check-in for FreeTheAI daily
 """
+
 import urllib.request, json, re, time, sys, threading, os
 import http.server
 from datetime import datetime, timezone
@@ -31,13 +32,16 @@ state = {
     "last_validate": "",
 }
 
+
 def log(msg):
     ts = datetime.now().strftime("%H:%M:%S")
     print(f"[{ts}] {msg}", flush=True)
 
+
 def get_proxy_opener():
     handler = urllib.request.ProxyHandler({"https": PROXY_URL, "http": PROXY_URL})
     return urllib.request.build_opener(handler)
+
 
 def save_state():
     tmp = STATE_FILE + ".tmp"
@@ -45,6 +49,7 @@ def save_state():
         with open(tmp, "w") as f:
             json.dump(state, f, indent=2)
         os.replace(tmp, STATE_FILE)
+
 
 def load_state():
     global state
@@ -54,6 +59,7 @@ def load_state():
                 state.update(json.load(f))
     except (json.JSONDecodeError, ValueError):
         pass
+
 
 def scrape_keys():
     log("Scraping keys from GitHub...")
@@ -70,10 +76,15 @@ def scrape_keys():
     except Exception as e:
         log(f"  Scrape failed: {e}")
 
+
 def validate_key(key, model="deepseek-chat"):
     try:
         data = json.dumps({"model": model, "messages": [{"role": "user", "content": "hi"}], "max_tokens": 1}).encode()
-        req = urllib.request.Request(f"{PEKPIK_BASE}/chat/completions", data=data, headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"})
+        req = urllib.request.Request(
+            f"{PEKPIK_BASE}/chat/completions",
+            data=data,
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
+        )
         resp = urllib.request.urlopen(req, timeout=10)
         return True
     except urllib.error.HTTPError as e:
@@ -83,8 +94,9 @@ def validate_key(key, model="deepseek-chat"):
         if "额度" in body or "quota" in body.lower():
             return False
         return False
-    except:
+    except Exception:
         return False
+
 
 def validate_all():
     log("Validating keys...")
@@ -101,6 +113,7 @@ def validate_all():
     log(f"  Result: {len(valid)}/{len(state['pekpik_keys'])} valid")
     save_state()
 
+
 def rotate_key():
     """Switch to next valid key when current fails"""
     valid = state["pekpik_valid"]
@@ -116,6 +129,7 @@ def rotate_key():
     log(f"  Rotated to: {valid[idx][:20]}...")
     return valid[idx]
 
+
 def freetheai_checkin():
     """Daily check-in for FreeTheAI"""
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -124,9 +138,13 @@ def freetheai_checkin():
     log("FreeTheAI check-in...")
     try:
         opener = get_proxy_opener()
-        req = urllib.request.Request(f"{FREETHEAI_BASE}/chat/completions",
-            data=json.dumps({"model": "bbl/gpt-4.1", "messages": [{"role": "user", "content": "ping"}], "max_tokens": 1}).encode(),
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {FREETHEAI_KEY}"})
+        req = urllib.request.Request(
+            f"{FREETHEAI_BASE}/chat/completions",
+            data=json.dumps(
+                {"model": "bbl/gpt-4.1", "messages": [{"role": "user", "content": "ping"}], "max_tokens": 1}
+            ).encode(),
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {FREETHEAI_KEY}"},
+        )
         resp = opener.open(req, timeout=15)
         state["freetheai_checked_in"] = True
         state["freetheai_checkin_date"] = today
@@ -136,8 +154,10 @@ def freetheai_checkin():
         state["freetheai_checked_in"] = False
     save_state()
 
+
 class APIHandler(http.server.BaseHTTPRequestHandler):
     """HTTP API for smart_router.py to query valid keys"""
+
     def do_GET(self):
         if self.path == "/pekpik/key":
             key = state["pekpik_current"] or ""
@@ -146,7 +166,13 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
             key = rotate_key()
             body = json.dumps({"key": key}).encode()
         elif self.path == "/freetheai/status":
-            body = json.dumps({"key": FREETHEAI_KEY, "checked_in": state["freetheai_checked_in"], "date": state["freetheai_checkin_date"]}).encode()
+            body = json.dumps(
+                {
+                    "key": FREETHEAI_KEY,
+                    "checked_in": state["freetheai_checked_in"],
+                    "date": state["freetheai_checkin_date"],
+                }
+            ).encode()
         elif self.path == "/status":
             body = json.dumps(state, indent=2).encode()
         else:
@@ -157,11 +183,15 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
-    def log_message(self, *a): pass
+
+    def log_message(self, *a):
+        pass
+
 
 def run_api():
     srv = http.server.HTTPServer(("127.0.0.1", LISTEN_PORT), APIHandler)
     srv.serve_forever()
+
 
 def main():
     load_state()
@@ -177,6 +207,6 @@ def main():
         validate_all()
         freetheai_checkin()
 
+
 if __name__ == "__main__":
     main()
-

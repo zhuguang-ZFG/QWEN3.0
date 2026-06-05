@@ -6,13 +6,13 @@
 
 **Architecture:** Keep LiMa Server as the control plane for routing, memory, task contracts, device tasks, ops, and deployment evidence. Hardening happens through narrow milestone slices: each slice adds one measurable capability, one regression harness, one smoke path, and one documentation closeout. New behavior remains default-off until tests, VPS smoke, and operator review prove it improves real productivity.
 
-**Tech Stack:** Python 3.10+ FastAPI LiMa Server, pytest/Hypothesis/Pyright/Ruff/security gates, `deepcode-cli` TypeScript LiMa Code submodule, Redis-backed Device Gateway, existing MCP/search/memory tooling, Telegram/operator surfaces, VPS deployment scripts under `scripts/`.
+**Tech Stack:** Python 3.10+ FastAPI LiMa Server, pytest/Hypothesis/Pyright/Ruff/security gates, `deepcode-cli` TypeScript LiMa submodule, Redis-backed Device Gateway, existing MCP/search/memory tooling, Telegram/operator surfaces, VPS deployment scripts under `scripts/`.
 
 ---
 
 ## Diagnosis
 
-LiMa is not weak across the board. The engineering substrate is already strong: routing layers, tests, VPS smoke discipline, Device Gateway protocol, Agent Task APIs, LiMa Code artifacts, MCP tools, learning loop, and observability scaffolds all exist.
+LiMa is not weak across the board. The engineering substrate is already strong: routing layers, tests, VPS smoke discipline, Device Gateway protocol, Agent Task APIs, LiMa artifacts, MCP tools, learning loop, and observability scaffolds all exist.
 
 The weak point is **closure density**: too many capable pieces exist side-by-side, while the two or three highest-frequency user paths still need to feel boringly reliable.
 
@@ -21,7 +21,7 @@ Hardening must therefore optimize for:
 | Area | Current State | Weakness To Close | Success Signal |
 |---|---|---|---|
 | Chat/IDE coding | OpenAI/Anthropic-compatible routes, context preflight, routing tiers | Route quality and fallback evidence is scattered across docs, logs, and eval JSON | One golden-path smoke shows route, backend, latency, fallback, retrieval, memory, and closeout |
-| LiMa Code Worker | `/agent/tasks`, artifact bundles, `/lima work`, learning loop | Worker prompt/hook/review loop is not yet the default daily production loop | One public task can be planned, executed, reviewed, learned from, and closed with artifacts |
+| LiMa Worker | `/agent/tasks`, artifact bundles, `/lima work`, learning loop | Worker prompt/hook/review loop is not yet the default daily production loop | One public task can be planned, executed, reviewed, learned from, and closed with artifacts |
 | Device Gateway | Public Redis HA path, fake-U8, path pipeline, metrics | Fake loop is good; real-device release evidence is still pending | Fake smoke remains green, and real-device smoke has a gated repeatable checklist |
 | Backend routing | SCNet/Kimi/Cloudflare/GitHub tiers and evals exist | Availability changes faster than static docs | Re-eval pipeline creates signed/dated admission evidence before promotion |
 | Ops/learning | Metrics, memory, learning loop, Telegram commands | Operator has many endpoints but no single "what should I fix next" cockpit | Daily digest ranks failing loops by impact and points to evidence |
@@ -43,7 +43,7 @@ The work should be done in seven slices. Each slice is independently shippable.
 M0 scorecard baseline
   -> M1 unified golden-path evidence
   -> M2 Chat/IDE reliability closure
-  -> M3 LiMa Code worker daily loop
+  -> M3 LiMa worker daily loop
   -> M4 backend re-eval and admission closure
   -> M5 Device fake-to-real release gate
   -> M6 operator digest and closeout automation
@@ -73,7 +73,7 @@ Every golden path should be able to produce this shape:
 ```json
 {
   "schema_version": "lima.capability_evidence.v0",
-  "loop": "chat_ide|limacode_worker|device_gateway|backend_eval|ops_learning",
+  "loop": "chat_ide|lima_worker|device_gateway|backend_eval|ops_learning",
   "request_id": "string",
   "task_id": "optional-string",
   "device_id": "optional-string",
@@ -129,7 +129,7 @@ This record is evidence-only. It must not automatically mutate routing pools, pr
   | Loop | Score | Evidence | Next Gate |
   |---|---:|---|---|
   | Chat/IDE coding | 4 | `/v1/chat/completions`, `/v1/messages`, routing tiers, public smokes | Unified evidence record + reliability smoke |
-  | LiMa Code Worker | 3 | `/agent/tasks`, public task smoke, artifact bundles | Prompt contract + hooks + review loop |
+  | LiMa Worker | 3 | `/agent/tasks`, public task smoke, artifact bundles | Prompt contract + hooks + review loop |
   | Device Gateway | 4 fake / 2 real | Redis HA, fake-U8 public WSS smoke | Real-device flash + motion smoke |
   | Backend routing | 4 | SCNet/Kimi/Cloudflare eval docs and JSON | Scheduled re-eval + admission report |
   | Ops/learning | 3 | learning loop, metrics, Telegram commands | Operator digest ranks next fixes |
@@ -147,7 +147,7 @@ This record is evidence-only. It must not automatically mutate routing pools, pr
   Add one row to `docs/DOCUMENTATION_STATUS.md` in the active planning/status area:
 
   ```markdown
-  | `docs/CAPABILITY_HARDENING_SCORECARD.md` | Active scorecard | Ranks Chat/IDE, LiMa Code, Device Gateway, backend routing, ops/learning, and code quality by evidence level. |
+  | `docs/CAPABILITY_HARDENING_SCORECARD.md` | Active scorecard | Ranks Chat/IDE, LiMa, Device Gateway, backend routing, ops/learning, and code quality by evidence level. |
   ```
 
 - [ ] **Step 3: Verify docs-only change**
@@ -169,7 +169,7 @@ This record is evidence-only. It must not automatically mutate routing pools, pr
 
 ## Milestone 1: Unified Golden-Path Evidence
 
-**Goal:** Add a tiny evidence API used by Chat/IDE, LiMa Code Worker, Device Gateway, backend eval, and ops learning.
+**Goal:** Add a tiny evidence API used by Chat/IDE, LiMa Worker, Device Gateway, backend eval, and ops learning.
 
 **Files:**
 - Create: `observability/capability_evidence.py`
@@ -209,7 +209,7 @@ This record is evidence-only. It must not automatically mutate routing pools, pr
       from observability.capability_evidence import record_evidence, recent_evidence
 
       record_evidence(
-          loop="limacode_worker",
+          loop="lima_worker",
           request_id="req-2",
           task_id="task-2",
           entrypoint="/agent/tasks/task-2/result",
@@ -247,7 +247,7 @@ This record is evidence-only. It must not automatically mutate routing pools, pr
   DEFAULT_PATH = Path("data/capability_evidence.jsonl")
   ALLOWED_LOOPS = {
       "chat_ide",
-      "limacode_worker",
+      "lima_worker",
       "device_gateway",
       "backend_eval",
       "ops_learning",
@@ -356,7 +356,7 @@ This record is evidence-only. It must not automatically mutate routing pools, pr
   from observability.capability_evidence import record_evidence
 
   record_evidence(
-      loop="limacode_worker",
+      loop="lima_worker",
       request_id=task_id,
       task_id=task_id,
       entrypoint=f"/agent/tasks/{task_id}/result",
@@ -494,17 +494,17 @@ This record is evidence-only. It must not automatically mutate routing pools, pr
   | Chat/IDE coding | 5 | Golden-path evidence smoke passed on public HTTPS | Keep monitoring fallback and latency |
   ```
 
-## Milestone 3: LiMa Code Worker Daily Loop
+## Milestone 3: LiMa Worker Daily Loop
 
-**Goal:** Make a LiMa Code task run produce a reviewable artifact bundle, submit `needs_review`, enter learning loop, and appear in capability evidence.
+**Goal:** Make a LiMa task run produce a reviewable artifact bundle, submit `needs_review`, enter learning loop, and appear in capability evidence.
 
 **Files:**
-- Modify: `docs/LIMACODE_MANAGEMENT.md`
+- Modify: `docs/LIMA_MANAGEMENT.md`
 - Modify: `routes/agent_task_schemas.py`
 - Modify: `routes/agent_task_service.py`
 - Modify: `routes/agent_tasks.py`
 - Modify: `deepcode-cli` submodule files for prompt contract and hooks
-- Create: `tests/test_lima_code_daily_loop.py`
+- Create: `tests/test_lima_daily_loop.py`
 - Use existing: `scripts/smoke_lcw1_prompt_contract_e2e.py`, `scripts/smoke_lcw2_hooks_e2e.py`, `scripts/smoke_prod008_learning_loop_e2e.py`
 
 - [ ] **Step 1: Lock Task Prompt Contract v0.1**
@@ -523,11 +523,11 @@ This record is evidence-only. It must not automatically mutate routing pools, pr
 
 - [ ] **Step 2: Wire hook evidence**
 
-  In LiMa Code, hooks must write a per-task local evidence file:
+  In LiMa, hooks must write a per-task local evidence file:
 
   ```json
   {
-    "schema_version": "lima_code.hook_evidence.v0",
+    "schema_version": "lima.hook_evidence.v0",
     "task_id": "string",
     "touched_files": [],
     "tests_run": [],
@@ -538,7 +538,7 @@ This record is evidence-only. It must not automatically mutate routing pools, pr
 
   Do not submit this automatically until the task result is created; include it as an artifact path.
 
-- [ ] **Step 3: Verify LiMa Code submodule first**
+- [ ] **Step 3: Verify LiMa submodule first**
 
   ```powershell
   cd D:\GIT\deepcode-cli
@@ -550,7 +550,7 @@ This record is evidence-only. It must not automatically mutate routing pools, pr
 
   ```powershell
   cd D:\GIT
-  python -m pytest -q tests\test_agent_task_contract.py tests\test_agent_task_routes.py tests\test_lima_code_daily_loop.py tests\test_learning_loop.py --ignore=active_model
+  python -m pytest -q tests\test_agent_task_contract.py tests\test_agent_task_routes.py tests\test_lima_daily_loop.py tests\test_learning_loop.py --ignore=active_model
   ```
 
 - [ ] **Step 5: VPS smoke**
@@ -566,7 +566,7 @@ This record is evidence-only. It must not automatically mutate routing pools, pr
 
   Update:
 
-  - `docs/LIMACODE_MANAGEMENT.md`
+  - `docs/LIMA_MANAGEMENT.md`
   - `docs/CAPABILITY_HARDENING_SCORECARD.md`
   - `STATUS.md`
   - `docs/LIMA_MEMORY.md`
@@ -583,8 +583,8 @@ This record is evidence-only. It must not automatically mutate routing pools, pr
   git push origin HEAD
 
   cd D:\GIT
-  git add deepcode-cli docs\LIMACODE_MANAGEMENT.md docs\CAPABILITY_HARDENING_SCORECARD.md STATUS.md docs\LIMA_MEMORY.md progress.md findings.md tests\test_lima_code_daily_loop.py
-  git commit -m "feat(agent): close LiMa Code daily worker loop"
+  git add deepcode-cli docs\LIMA_MANAGEMENT.md docs\CAPABILITY_HARDENING_SCORECARD.md STATUS.md docs\LIMA_MEMORY.md progress.md findings.md tests\test_lima_daily_loop.py
+  git commit -m "feat(agent): close LiMa daily worker loop"
   python scripts/push_dual_remotes.py
   ```
 
@@ -728,7 +728,7 @@ This record is evidence-only. It must not automatically mutate routing pools, pr
   ```python
   evidence = [
       {"loop": "chat_ide", "status": "ok", "latency_ms": 1200},
-      {"loop": "limacode_worker", "status": "needs_review", "latency_ms": 0},
+      {"loop": "lima_worker", "status": "needs_review", "latency_ms": 0},
       {"loop": "device_gateway", "status": "failed", "latency_ms": 0},
   ]
   ```
@@ -777,7 +777,7 @@ This record is evidence-only. It must not automatically mutate routing pools, pr
   ```text
   LiMa capability digest
   1. device_gateway - recent failure - run public/fake smoke
-  2. limacode_worker - needs_review - inspect latest task artifacts
+  2. lima_worker - needs_review - inspect latest task artifacts
   3. chat_ide - ok - monitor latency
   ```
 
@@ -835,7 +835,7 @@ This record is evidence-only. It must not automatically mutate routing pools, pr
   python scripts/smoke_device_gateway_public.py
   ```
 
-  Run LiMa Code and Telegram smokes only if those slices changed:
+  Run LiMa and Telegram smokes only if those slices changed:
 
   ```powershell
   python scripts/smoke_prod008_learning_loop_e2e.py
@@ -912,7 +912,7 @@ This record is evidence-only. It must not automatically mutate routing pools, pr
 | M0 scorecard | `git diff --check` | Not required | None |
 | M1 evidence | `tests/test_capability_evidence.py`, chat, agent, device, ops tests | Required | Deploy if hot path touched |
 | M2 Chat/IDE | chat/preflight/retrieval/post-process tests | Required | online distributions + golden evidence |
-| M3 LiMa Code | LiMa Code npm tests/check + agent task tests | Required | LCW prompt/hooks/learning smokes |
+| M3 LiMa | LiMa npm tests/check + agent task tests | Required | LCW prompt/hooks/learning smokes |
 | M4 backend eval | coding eval/admission/route scorer tests | Required if route code changed | eval script; deploy only on routing apply |
 | M5 Device | device route/motion/release tests | Required if server code changed | fake WSS; real hardware only when available |
 | M6 digest | digest/ops/telegram tests | Required if routes changed | telegram operator smoke |

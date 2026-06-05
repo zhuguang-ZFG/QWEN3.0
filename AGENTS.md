@@ -2,9 +2,11 @@
 
 This file provides guidance to Qoder (qoder.com) when working with code in this repository.
 
+> **M-OC0**: LiMa CLI migrated to OpenCode MCP bridge. `lima-code` → `lima`. See `docs/opencode-integration.md`.
+
 ## Project Overview
 
-LiMa (力码) is a **multi-model intelligent routing AI coding assistant backend**. It provides an OpenAI-compatible API (`/v1/chat/completions`, `/v1/messages`) that automatically selects the best backend model based on request intent, capability, cost, and quality. Clients include **OpenCode (primary IDE client)**, Cursor, Claude Code, VS Code Copilot, Telegram, and LiMa Code CLI (maintenance mode).
+LiMa (力码) is a **multi-model intelligent routing AI coding assistant backend**. It provides an OpenAI-compatible API (`/v1/chat/completions`, `/v1/messages`) that automatically selects the best backend model based on request intent, capability, cost, and quality. Clients include **OpenCode (primary IDE client)**, Cursor, Claude Code, VS Code Copilot, Telegram, and LiMa CLI (maintenance mode).
 
 - **Tech stack**: Python 3.10, FastAPI, uvicorn, httpx, SQLite, Redis (optional), pybreaker
 - **Runtime**: Port 8080, single-process async, Docker or bare metal
@@ -84,11 +86,11 @@ curl -sf http://127.0.0.1:8080/health && echo " OK"
 curl -sf http://127.0.0.1:8080/v1/models | python -m json.tool
 ```
 
-### LiMa Code CLI (deepcode-cli/) — Maintenance Mode
+### LiMa CLI (deepcode-cli/) — Maintenance Mode
 
-The CLI is in **maintenance mode** — no new features, critical fixes only. See `docs/archive/lima-code-cli.md` for build instructions.
+The CLI is in **maintenance mode** — no new features, critical fixes only. See `docs/archive/lima-cli.md` for build instructions.
 
-Submodule still present for existing users; configuration directory `.lima-code/` retained as OpenCode config reference.
+Submodule still present for existing users; configuration directory `.lima/` retained as OpenCode config reference.
 
 ## Architecture
 
@@ -185,7 +187,7 @@ Always check if a module is a facade before adding logic to it.
 
 ### Submodules & Sub-projects
 
-- `deepcode-cli/` — LiMa Code CLI (Node.js/TypeScript), git submodule — **maintenance mode**
+- `deepcode-cli/` — LiMa CLI (Node.js/TypeScript), git submodule — **maintenance mode**
 - `_codegraph_repo/` — CodeGraph tool (separate repo, not part of LiMa core)
 - `infra/` — Proxy scripts for reverse-engineered backends (Kimi, SCNet)
 - `deploy/` — Deployment configs for sidecar services

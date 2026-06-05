@@ -8,7 +8,7 @@
 >
 > **Related:** `docs/superpowers/plans/2026-05-25-productivity-infrastructure-review.md`、
 > `docs/superpowers/plans/2026-05-26-infra-tools-integration.md`、
-> `docs/superpowers/plans/2026-05-23-lima-code-dev-search-tools.md`、
+> `docs/superpowers/plans/2026-05-23-lima-dev-search-tools.md`、
 > `docs/superpowers/plans/2026-05-25-lima-device-gateway-ha.md`、
 > `docs/reference/MCP_CONNECTOR_CATALOG.md`、
 > `docs/reference/EXTERNAL_CAPABILITY_RADAR_2026-05-24.md`、
@@ -41,7 +41,7 @@
 | 做 | 不做 |
 |----|------|
 | 让 Agent **发现**外部 MCP / free tier / 开源工具变化 | 未 smoke 的新模型自动进 `code_orchestrator` 主池 |
-| 让 LiMa Code **更快定位**跨文件关系与公开参考实现 | 把 LiMa 私有代码发给第三方 SaaS 搜索 |
+| 让 LiMa **更快定位**跨文件关系与公开参考实现 | 把 LiMa 私有代码发给第三方 SaaS 搜索 |
 | 让 Operator **自己查** VPS/Redis/FRP/Device Gateway 指标与历史错误 | 再堆一个与现有 Telegram/health 重复且不可审计的告警通道 |
 | 把 smoke / eval / deploy / digest **编排成可见工作流** | 引入需要长期专职运维的重型平台作为默认依赖 |
 | 为 Device Gateway **借鉴**设备台账与数字孪生模型 | 第一天用 ThingsBoard 替换 LiMa 自有 gateway |
@@ -86,7 +86,7 @@
 | 本地/参考仓语义搜索 | **codesearch MCP**（Rust，BM25 + vector + tree-sitter） | 索引 allowlist 目录；离线优先；比纯 `rg` 更懂语义 |
 | LiMa 已有 | `search_repo`、graph retrieval、`dev_fetch_github_file` | 保持 LiMa-owned 为默认；外部 MCP 为 optional overlay |
 
-**与 LiMa Code 集成路径：** 经 `lima_mcp/` 暴露 read-only 工具；不在 `routing_engine` 热路径默认启用。
+**与 LiMa 集成路径：** 经 `lima_mcp/` 暴露 read-only 工具；不在 `routing_engine` 热路径默认启用。
 
 ---
 
@@ -106,7 +106,7 @@
 
 ### PE-D — 检索入口（Search & Ingestion）
 
-**目标：** 免费搜索、文档抓取、知识摄取 — 给 LiMa Code research / dev-search grounding。
+**目标：** 免费搜索、文档抓取、知识摄取 — 给 LiMa research / dev-search grounding。
 
 | 能力 | 工具 | 护栏 |
 |------|------|------|
@@ -182,7 +182,7 @@
 ```text
 PE-C-1 Netdata MCP          ← 立刻增强 VPS 自诊断
     ↓
-PE-B-1 codesearch MCP       ← LiMa Code 代码理解
+PE-B-1 codesearch MCP       ← LiMa 代码理解
     ↓
 PE-D-1 SearXNG              ← research grounding
     ↓
@@ -214,7 +214,7 @@ PE-F-1 ThingsBoard/Ditto    ← Device Gateway 后续台账/孪生参考
 | C-1.2 | 启用 Netdata MCP endpoint；只读 tool allowlist |
 | C-1.3 | `docs/NETDATA_MCP_RUNBOOK.md` — Operator + Agent 查询示例 |
 | C-1.4 | `scripts/smoke_netdata_mcp_vps.py` — CPU/mem/disk 可读 |
-| C-1.5 | 可选：LiMa Code MCP connector 条目 `candidate` |
+| C-1.5 | 可选：LiMa MCP connector 条目 `candidate` |
 
 **验收：** Agent 通过 MCP 查询 VPS 指标；`progress.md` 有 smoke 证据；**不改** LiMa 路由。
 
@@ -226,10 +226,10 @@ PE-F-1 ThingsBoard/Ditto    ← Device Gateway 后续台账/孪生参考
 |------|------|
 | B-1.1 | 调研 codesearch MCP 部署（Rust binary / Docker） |
 | B-1.2 | `docs/CODESEARCH_MCP_SETUP.md` — 索引 `D:\GIT` + 参考仓 allowlist |
-| B-1.3 | LiMa Code MCP 注册 read-only `codesearch_query`（或官方 tool 名映射） |
+| B-1.3 | LiMa MCP 注册 read-only `codesearch_query`（或官方 tool 名映射） |
 | B-1.4 | 对比 baseline：`rg` vs codesearch 延迟与召回（3 条 fixture query） |
 
-**验收：** LiMa Code 任务可语义查本地仓；私有路径不在 allowlist 则拒绝。
+**验收：** LiMa 任务可语义查本地仓；私有路径不在 allowlist 则拒绝。
 
 ---
 
@@ -344,7 +344,7 @@ CODESEARCH_INDEX_PATHS=D:/GIT,D:/GIT/deepcode-cli
 |----------|------|
 | `infra-tools-integration` INF-A/B/C | Infisical/Healthchecks/Tailscale **并行**；Uptime Kuma 可选替 INF-B SaaS |
 | `telegram-github-maximization` | Telegram 仍是告警通道；Kestra 编排 digest/smoke 事件 |
-| `lima-code-dev-search-tools` | dev-search 为 LiMa-owned 默认；SearXNG/searchcode/codesearch 为 **增强 tier** |
+| `lima-dev-search-tools` | dev-search 为 LiMa-owned 默认；SearXNG/searchcode/codesearch 为 **增强 tier** |
 | `gitee/cloudflare-maximization` | PE-A free tier 雷达 **扩展现有** inventory 脚本模式 |
 | `provider-model-automation` | **仍暂停**；本计划优先生产力六能力 |
 | `productivity-infrastructure-review` PROD-006~011 | PE-C/PE-F **直接回应** observability 与 visualization 缺口 |

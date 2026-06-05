@@ -24,7 +24,7 @@
 | P0 | 代码质量 | P0.1–P1.3 **已完成**；下一刀 P2+ 大文件拆分或雷达 §四 Backlog | 本地全量 pytest + CI gates |
 | P1 | 编码后端 | Kimi/SCNet-large 经 Windows:8080 或 FRP:8088 重跑 eval；TheOldLLM 诊断 | 准入 JSON + 路由池不默认提升 |
 | P1 | ESP32 / Device Gateway | PROD-003 真机烧录 + 真机运动 smoke | fake-U8 已通过；需硬件 |
-| P2 | LiMa Code Worker | Prompt Contract v0.1 → Hooks v0.1 | bounded `/lima work` 已有；daemon 仍 gated |
+| P2 | LiMa Worker | Prompt Contract v0.1 → Hooks v0.1 | bounded `/lima work` 已有；daemon 仍 gated |
 | P3 | 横切 | Mastery admin UI；always-on daemon；Postgres 设备审计 | 各自独立批准 |
 
 **已永久暂停（非 backlog）**：支付、公共注册、商业 billing、微信真机/机器人（`docs/WECHAT_RETIRED.md`）。
@@ -46,19 +46,19 @@
 
 ---
 
-## 2. LiMa Code Worker
+## 2. LiMa Worker
 
 **现状**：`/lima task|next|work`、审计、隔离、repo allowlist、VPS 真机 smoke `cfcd3f2b` → `needs_review`；**always-on daemon 未开**（故意 gated）。
 
 **下一切片（建议顺序）**
 
 1. **LiMa Task Prompt Contract v0.1** — `/agent/tasks`、worker prompt、role prompt、skill 提取统一 `Context/Task/Constraints/Verify/Output`（`task_plan.md` 第 4 项）。
-2. **Hooks + Skill Auto-Activation v0.1** — `skill-rules.json` 风格、post-task/post-edit/stop 检查点、`.lima-code/dev/active/<task>/`（第 5 项；依赖 Contract）。
+2. **Hooks + Skill Auto-Activation v0.1** — `skill-rules.json` 风格、post-task/post-edit/stop 检查点、`.lima/dev/active/<task>/`（第 5 项；依赖 Contract）。
 3. ~~**Artifact → learning loop 接线验证**~~ — **Closed 2026-05-26**：`smoke_prod008_learning_loop_e2e.py` VPS task `24db066c`（memory/prompt/routing/eval 四通道）。
 4. **Owner 命令真接线（独立 slice）** — Channel `/code-task` 等仍为 stub；需 owner-auth + 审计（`findings.md` CQ-054 注记）。
-5. **Always-on daemon** — **LC-W-3 gated slice closed 2026-05-26**：`/lima daemon start` + `LIMA_CODE_WORKER_DAEMON=1`；生产仍默认关，需 Operator 批准后再开 env。
+5. **Always-on daemon** — **LC-W-3 gated slice closed 2026-05-26**：`/lima daemon start` + `LIMA_WORKER_DAEMON=1`；生产仍默认关，需 Operator 批准后再开 env。
 
-**完成定义**：一条公开 HTTPS 任务可由 LiMa Code 自动跑完并提交，artifact 与 learning 证据可追溯。
+**完成定义**：一条公开 HTTPS 任务可由 LiMa 自动跑完并提交，artifact 与 learning 证据可追溯。
 
 ---
 
@@ -118,5 +118,5 @@ python scripts/eval_coding_backends.py
 | `docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md` | 质量 P0/P1（P1.3 Done） |
 | `docs/FREE_RESOURCE_RADAR_MERGED.md` | 免费资源索引 + LiMa 对齐状态 |
 | `docs/FREE_MODEL_ROUTING_STATUS.md` | 免费模型证据 |
-| `docs/LIMACODE_MANAGEMENT.md` | LiMa Code 子模块 |
+| `docs/LIMA_MANAGEMENT.md` | LiMa 子模块 |
 | `docs/ESP32S_XYZ_MANAGEMENT.md` | 硬件子模块 |

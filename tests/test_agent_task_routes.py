@@ -55,7 +55,7 @@ class TestTaskEndpoints:
         assert resp.status_code == 200
         assert len(resp.json()["events"]) >= 1
 
-    def test_get_task_returns_lima_code_task_envelope(self):
+    def test_get_task_returns_lima_task_envelope(self):
         resp = client.post("/agent/tasks", json={
             "repo": "D:/GIT",
             "goal": "review routing",
@@ -275,7 +275,7 @@ class TestTaskEndpoints:
         assert task["allowed_tools"] == ["write", "git_diff", "test"]
         assert task["patch_files"] == [{
             "file_path": "README.md",
-            "content": "# LiMa Code Smoke\n",
+            "content": "# LiMa Smoke\n",
         }]
         assert task["test_commands"] == ["node --version"]
 

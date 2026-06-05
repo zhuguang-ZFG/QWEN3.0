@@ -99,7 +99,7 @@ def get_code_graph(directory: str | None = None) -> CodeGraph:
         if corpus_paths:
             _global_graph = scan_files(corpus_paths)
         else:
-            scan_dir = directory or os.environ.get("LIMA_CODE_DIR", "/opt/lima-router")
+            scan_dir = directory or os.environ.get("LIMA_DIR", "/opt/lima-router")
             _global_graph = scan_directory(scan_dir)
     return _global_graph
 
@@ -113,6 +113,6 @@ def refresh_graph(directory: str | None = None) -> CodeGraph:
     if corpus_paths:
         _global_graph = scan_files(corpus_paths)
     else:
-        scan_dir = directory or os.environ.get("LIMA_CODE_DIR", "/opt/lima-router")
+        scan_dir = directory or os.environ.get("LIMA_DIR", "/opt/lima-router")
         _global_graph = scan_directory(scan_dir)
     return _global_graph

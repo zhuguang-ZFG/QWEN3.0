@@ -27,7 +27,7 @@ Scope included LiMa Server runtime, routes, tests, scripts, and local support mo
 - `scripts/`
 - `tests/`
 
-Scope excluded local reference repositories and LiMa Code:
+Scope excluded local reference repositories and LiMa:
 
 - `deepcode-cli/`
 - `bCNC/`, `opencode/`, `portkey-ref/`, `routellm-ref/`, and other downloaded reference trees

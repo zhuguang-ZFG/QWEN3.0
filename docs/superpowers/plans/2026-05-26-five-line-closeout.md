@@ -36,7 +36,7 @@ P2  延后
 | 线 | Phase | 状态 | 阻塞 |
 |----|-------|------|------|
 | **Telegram** | TG-GH-1 出站可靠 | ✅ | — |
-| | TG-GH-2 LiMa Code 推送 | ✅ 文档 + submodule | E2E 手工 smoke |
+| | TG-GH-2 LiMa 推送 | ✅ 文档 + submodule | E2E 手工 smoke |
 | | TG-GH-3 统一早报 | ✅ | — |
 | | TG-GH-4 `/github` `/device` | ✅ | — |
 | | TG-GH-5 事件加深 | ✅ | — |
@@ -55,7 +55,7 @@ P2  延后
 | | CF-G-1 budget | ✅ | — |
 | | CF-G-3 路由优化 | ✅ | acceptance: `chat_fast google_flash_lite` |
 
-**仍 Open（不挡 Operator 闭环）：** GI-G-3 模力方舟 AI（blocked）；CF-G-6 Google inventory VPS 偶发 unreachable；TG-GH-2 LiMa Code→TG E2E 手工。
+**仍 Open（不挡 Operator 闭环）：** GI-G-3 模力方舟 AI（blocked）；CF-G-6 Google inventory VPS 偶发 unreachable；TG-GH-2 LiMa→TG E2E 手工。
 
 ---
 

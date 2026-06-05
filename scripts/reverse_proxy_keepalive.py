@@ -9,6 +9,7 @@ Checks each reverse proxy every 30 min. If cookie expired:
   2. LongCat-web: attempts Playwright auto-refresh
   3. SCNet/Kimi/MiMo: sends notification (needs manual cookie refresh)
 """
+
 import json
 import logging
 import os
@@ -78,11 +79,7 @@ def check_backend_health(port: int, model: str) -> tuple[bool, str]:
         if resp.status_code == 200:
             try:
                 data = resp.json()
-                content = (
-                    data.get("choices", [{}])[0]
-                    .get("message", {})
-                    .get("content", "")
-                )
+                content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
                 if content and len(content.strip()) >= 1:
                     return True, f"OK ({len(content)} chars)"
                 return False, "Empty response"
@@ -154,8 +151,8 @@ def save_alert(proxy_name: str, status: str, detail: str) -> None:
         try:
             with open(ALERT_FILE) as f:
                 alerts = json.load(f)
-        except Exception:
-            pass
+        except Exception as exc:
+            log.warning("failed to read alert file: %s", exc)
 
     alerts[proxy_name] = {
         "status": status,
@@ -175,8 +172,8 @@ def send_notification(message: str) -> None:
             import httpx
 
             httpx.post(ntfy_url, json={"topic": "lima", "message": message}, timeout=10)
-        except Exception:
-            pass
+        except Exception as exc:
+            log.warning("ntfy notification failed: %s", exc)
     log.warning(f"ALERT: {message}")
 
 
@@ -213,10 +210,7 @@ def main():
                             log.info(f"  → {name} RECOVERED after auto-refresh")
                             save_alert(name, "RECOVERED", detail2)
                             continue
-                send_notification(
-                    f"LiMa reverse proxy {name} DOWN: {detail}. "
-                    f"Manual cookie refresh needed."
-                )
+                send_notification(f"LiMa reverse proxy {name} DOWN: {detail}. Manual cookie refresh needed.")
 
     # Remove stale alerts for healthy proxies
     if os.path.exists(ALERT_FILE):
@@ -226,8 +220,8 @@ def main():
             alerts = {k: v for k, v in alerts.items() if v["status"] != "HEALTHY"}
             with open(ALERT_FILE, "w") as f:
                 json.dump(alerts, f, indent=2)
-        except Exception:
-            pass
+        except Exception as exc:
+            log.warning("failed to clean stale alerts: %s", exc)
 
     status_str = "ALL HEALTHY" if all_healthy else "SOME DOWN"
     log.info(f"=== {status_str} ===")

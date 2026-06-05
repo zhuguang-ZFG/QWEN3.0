@@ -64,7 +64,7 @@ async def cmd_outcome(chat_id: str, args: str) -> None:
             for src, s in st["by_source"].items():
                 lines.append(f"  {src}: {s['total']} ({s['success']} ok)")
             lines.append("")
-            lines.append("/outcome lima_code|ci|telegram|device_gateway for details")
+            lines.append("/outcome lima|ci|telegram|device_gateway for details")
 
         for item in items[:5]:
             icon = "✅" if item["outcome"] == "success" else "❌"

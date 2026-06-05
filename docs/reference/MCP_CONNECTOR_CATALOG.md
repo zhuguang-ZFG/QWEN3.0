@@ -1,7 +1,7 @@
 # MCP Connector Catalog
 
 > Updated: 2026-05-26
-> Scope: candidate MCP connectors for LiMa Server and LiMa Code.
+> Scope: candidate MCP connectors for LiMa Server and LiMa.
 
 ## Purpose
 
@@ -12,7 +12,7 @@ Skills and MCP have different jobs:
 
 This catalog is not an install list. A connector becomes usable only after it
 has a task need, owner, allowlist, credential boundary, audit event, timeout,
-and failure mode. Default LiMa Code sessions should receive only the smallest
+and failure mode. Default LiMa sessions should receive only the smallest
 tool set needed for the current task.
 
 ## Status Legend
@@ -28,7 +28,7 @@ tool set needed for the current task.
 
 | Connector | Status | Default | LiMa boundary |
 |---|---|---|---|
-| LiMa dev-search MCP tools | active | On only for LiMa Code tasks that request docs/error/source lookup | Existing tools: `dev_search_docs`, `dev_search_error`, `dev_read_url`, `dev_fetch_github_file`, `dev_summarize_sources`; read-only, SSRF-guarded, redacted. |
+| LiMa dev-search MCP tools | active | On only for LiMa tasks that request docs/error/source lookup | Existing tools: `dev_search_docs`, `dev_search_error`, `dev_read_url`, `dev_fetch_github_file`, `dev_summarize_sources`; read-only, SSRF-guarded, redacted. |
 | Filesystem MCP | candidate | Off | Allowlisted repositories only; read-only by default; write requires task-scoped approval. |
 | Git MCP | candidate | Off | Read/search/status first; branch, commit, and push actions require explicit approval gates. |
 | Memory MCP | concept | Off | Borrow knowledge-graph memory shape; LiMa keeps typed memory, promotion evidence, and secret redaction as the active store. |
@@ -73,9 +73,9 @@ tool set needed for the current task.
 | ElevenLabs MCP | concept | Off | Voice generation requires consent, voice license, storage, and cost controls. |
 | Tavily MCP | candidate | Off | Search/extract/map/crawl candidate behind privacy, quota, cache, and citation policy. |
 | searchcode MCP | candidate | Off | Public GitHub/open-source code intelligence (beta). **Public repos only**; never send LiMa private code. |
-| codesearch MCP | candidate | Off | Local offline multi-repo semantic search (Rust, BM25 + vector + tree-sitter). Path allowlist required; enhances LiMa Code over raw `rg`. |
+| codesearch MCP | candidate | Off | Local offline multi-repo semantic search (Rust, BM25 + vector + tree-sitter). Path allowlist required; enhances LiMa over raw `rg`. |
 | Netdata MCP | candidate | Off | VPS/host diagnostics: CPU, memory, disk, processes, network, alerts via Netdata Agent MCP. Read-only first; see `docs/superpowers/plans/2026-05-26-lima-productivity-enhancement.md` PE-C-1. |
-| Magic MCP | concept | Off | UI-generation workflow reference; generated code must go through LiMa Code review and tests. |
+| Magic MCP | concept | Off | UI-generation workflow reference; generated code must go through LiMa review and tests. |
 | last30days-style skill connectors | concept | Off | Time-bounded social/source search can inform research tasks only with BYO-key consent, platform-term review, attribution, and privacy boundaries. |
 | Sirchmunk-style raw-file search MCP | concept | Off | Useful for local/remote raw-data search and streaming evidence logs; requires path allowlists, secret redaction, cache retention, and audit before use. |
 | Nunchi agent-cli MCP | blocked | Off | Trading/finance tooling is not part of LiMa's coding/hardware scope. Borrow MCP-surface shape only; do not enable financial actions. |

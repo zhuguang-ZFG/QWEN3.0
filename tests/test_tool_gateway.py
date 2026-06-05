@@ -59,7 +59,7 @@ def test_executor_rejects_unregistered_tool():
     assert result["error"] == "tool_not_registered"
 
 
-def test_default_registry_includes_lima_code_dev_search_tools():
+def test_default_registry_includes_lima_dev_search_tools():
     registry = build_default_registry()
 
     matches = registry.search("programming docs error url gitee mirror")

@@ -47,6 +47,7 @@ DATA_DIR = Path(os.environ.get("LIMA_DATA_DIR", "data"))
 
 # ── Probe Logic ───────────────────────────────────────────────────────────────
 
+
 def probe_models(base_url: str, timeout: int = 5) -> dict:
     """GET /v1/models → list available models."""
     import urllib.request
@@ -70,13 +71,15 @@ def probe_chat(base_url: str, model: str, prompt: str, timeout: int = 15) -> dic
     """POST /v1/chat/completions with a coding fixture."""
     import urllib.request
 
-    body = json.dumps({
-        "model": model,
-        "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": 200,
-        "temperature": 0,
-        "stream": False,
-    }).encode()
+    body = json.dumps(
+        {
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 200,
+            "temperature": 0,
+            "stream": False,
+        }
+    ).encode()
 
     try:
         req = urllib.request.Request(
@@ -150,7 +153,8 @@ def load_previous_results() -> dict:
     try:
         data = json.loads(files[0].read_text(encoding="utf-8"))
         return {r["name"]: r for r in data.get("results", [])}
-    except Exception:
+    except Exception as exc:
+        print(f"[warn] failed to load previous probe data: {exc}")
         return {}
 
 
@@ -193,8 +197,10 @@ def main():
         results.append(result)
 
         if not args.json:
-            print(f"  Models: {result['models'].get('count', 0)} available"
-                  + (f" ({result['models']['latency_ms']}ms)" if result['models'].get('ok') else ""))
+            print(
+                f"  Models: {result['models'].get('count', 0)} available"
+                + (f" ({result['models']['latency_ms']}ms)" if result["models"].get("ok") else "")
+            )
             print(f"  Status: {result['status']} (score: {result['score']:.0%})")
             for fx in result["fixtures"]:
                 mark = "PASS" if fx["passed"] else "FAIL"

@@ -247,7 +247,7 @@ env: LIMA_OPENROUTER_LIVE_FETCH=1, CF_ACCOUNT_ID=..., GITHUB_TOKEN=...
 
 ## 9. 与 Telegram / GitHub 主线关系
 
-本计划 **暂停执行**，待 [`2026-05-26-telegram-github-maximization.md`](2026-05-26-telegram-github-maximization.md) 完成 **TG-GH-2（LiMa Code 生命周期推送）** 与 **TG-GH-3（统一 Operator 简报）** 后再启动 **PA-G**，避免重复造通知通道。
+本计划 **暂停执行**，待 [`2026-05-26-telegram-github-maximization.md`](2026-05-26-telegram-github-maximization.md) 完成 **TG-GH-2（LiMa 生命周期推送）** 与 **TG-GH-3（统一 Operator 简报）** 后再启动 **PA-G**，避免重复造通知通道。
 
 ---
 

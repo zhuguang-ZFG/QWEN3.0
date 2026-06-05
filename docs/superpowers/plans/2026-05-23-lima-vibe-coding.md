@@ -1,10 +1,10 @@
-﻿# LiMa Code Vibe Coding Integration Plan
+﻿# LiMa Vibe Coding Integration Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `safety-guard` for this work. Use `superpowers:verification-before-completion` before marking any phase done. Use `superpowers:subagent-driven-development` only after the local fork is cloned and understood.
 >
-> **Current policy:** The fork is being rebranded as **LiMa Code**. User-facing product names should say LiMa Code / `lima-code`. The old `.deepcode` config path and `DEEPCODE_*` environment variables remain as a legacy compatibility layer until a tested migration is added.
+> **Current policy:** The fork is being rebranded as **LiMa**. User-facing product names should say LiMa / `lima`. The old `.deepcode` config path and `DEEPCODE_*` environment variables remain as a legacy compatibility layer until a tested migration is added.
 
-**Goal:** Turn the user's fork `zhuguang-ZFG/deepcode-cli` into **LiMa Code**, a LiMa-powered vibe coding worker: LiMa Code provides the user-facing coding workflow, CLI/Web experience, and multi-agent project execution; LiMa provides OpenAI-compatible model routing, memory, safety, mastery profile, and final verification gates.
+**Goal:** Turn the user's fork `zhuguang-ZFG/deepcode-cli` into **LiMa**, a LiMa-powered vibe coding worker: LiMa provides the user-facing coding workflow, CLI/Web experience, and multi-agent project execution; LiMa provides OpenAI-compatible model routing, memory, safety, mastery profile, and final verification gates.
 
 **Fork:**
 
@@ -18,12 +18,12 @@
 
 ## Strategic Decision
 
-Use LiMa Code as the first-class vibe coding shell, not as a hidden worker behind LiMa.
+Use LiMa as the first-class vibe coding shell, not as a hidden worker behind LiMa.
 
 ```text
 User
-  -> LiMa Code CLI / Web UI / future voice/mobile entry
-  -> LiMa Code coding workflow
+  -> LiMa CLI / Web UI / future voice/mobile entry
+  -> LiMa coding workflow
   -> LiMa OpenAI-compatible endpoint
   -> LiMa routes model calls, records memory, and runs safety/verification logic
 ```
@@ -34,10 +34,10 @@ This is faster than rebuilding a coding UI inside LiMa. It also keeps LiMa focus
 
 ## Non-Goals
 
-- Do not merge LiMa Code into the LiMa repo.
-- Do not let LiMa Code write directly to production LiMa files during initial tests.
-- Do not deploy LiMa Code to VPS in the first pass.
-- Do not give LiMa Code unrestricted shell, token files, `.env`, or deployment credentials.
+- Do not merge LiMa into the LiMa repo.
+- Do not let LiMa write directly to production LiMa files during initial tests.
+- Do not deploy LiMa to VPS in the first pass.
+- Do not give LiMa unrestricted shell, token files, `.env`, or deployment credentials.
 - Do not allow automatic `git push`, VPS deployment, nginx/firewall edits, or destructive commands.
 - Do not copy upstream code into LiMa; keep it in the forked repository.
 
@@ -67,29 +67,29 @@ Status: complete for inventory, dependency install, and baseline checks. Runtime
 
 ## Phase 1: LiMa Provider Configuration
 
-**Purpose:** Make LiMa Code call LiMa as an OpenAI-compatible provider.
+**Purpose:** Make LiMa call LiMa as an OpenAI-compatible provider.
 
 ### Phase 1A: LiMa-Native Config Compatibility
 
-**Purpose:** Make LiMa Code feel like its own product without breaking the upstream-compatible install base.
+**Purpose:** Make LiMa feel like its own product without breaking the upstream-compatible install base.
 
 **Decision:**
 
-- Prefer `~/.lima-code/settings.json` over `~/.deepcode/settings.json`.
-- Prefer `<project>/.lima-code/settings.json` over `<project>/.deepcode/settings.json`.
-- Prefer `LIMA_CODE_*` environment variables over legacy `DEEPCODE_*` variables with the same stripped key.
+- Prefer `~/.lima/settings.json` over `~/.deepcode/settings.json`.
+- Prefer `<project>/.lima/settings.json` over `<project>/.deepcode/settings.json`.
+- Prefer `LIMA_*` environment variables over legacy `DEEPCODE_*` variables with the same stripped key.
 - Continue reading `.deepcode` and `DEEPCODE_*` as a compatibility fallback.
-- Write new user/project settings to `.lima-code` by default.
+- Write new user/project settings to `.lima` by default.
 - If a project already has only `.deepcode/settings.json`, model-selection writes should update that existing legacy project file instead of silently creating a second project config.
 
 **Required tests:**
 
-- Settings source resolution proves `LIMA_CODE_MODEL` wins over `DEEPCODE_MODEL`.
-- MCP env merge proves `LIMA_CODE_MCP_*` wins over `DEEPCODE_MCP_*`.
-- User settings read prefers `.lima-code` and falls back to `.deepcode`.
-- Project settings read prefers `.lima-code` and falls back to `.deepcode`.
-- Settings writes create `.lima-code/settings.json`.
-- Model-selection writes update an existing legacy project settings file when no `.lima-code` project config exists.
+- Settings source resolution proves `LIMA_MODEL` wins over `DEEPCODE_MODEL`.
+- MCP env merge proves `LIMA_MCP_*` wins over `DEEPCODE_MCP_*`.
+- User settings read prefers `.lima` and falls back to `.deepcode`.
+- Project settings read prefers `.lima` and falls back to `.deepcode`.
+- Settings writes create `.lima/settings.json`.
+- Model-selection writes update an existing legacy project settings file when no `.lima` project config exists.
 
 **Status:** Complete in the local fork. Verified by `npm.cmd run test:single -- src/tests/settings-and-notify.test.ts src/tests/app-settings-paths.test.ts src/tests/web-search-handler.test.ts`.
 
@@ -114,11 +114,11 @@ model: lima-1.3
 - Store keys only in ignored local config or environment variables.
 - Do not commit keys.
 - Do not paste keys into docs or logs.
-- Prefer a LiMa Code config profile named `lima`.
+- Prefer a LiMa config profile named `lima`.
 
 **Tests/checks:**
 
-- LiMa Code can list or call a trivial model through LiMa.
+- LiMa can list or call a trivial model through LiMa.
 - LiMa receives the request as OpenAI-compatible traffic.
 - No secret is committed.
 
@@ -131,7 +131,7 @@ model: lima-1.3
 **Create or use later:**
 
 ```text
-D:\GIT\lima-code-sandbox\
+D:\GIT\lima-sandbox\
 ```
 
 **Rules:**
@@ -144,7 +144,7 @@ D:\GIT\lima-code-sandbox\
 
 **Evidence to collect:**
 
-- LiMa Code plan.
+- LiMa plan.
 - Files touched.
 - Diff.
 - Commands run.
@@ -153,14 +153,14 @@ D:\GIT\lima-code-sandbox\
 
 **Exit criteria:**
 
-- LiMa Code can complete a tiny task using LiMa as model provider.
+- LiMa can complete a tiny task using LiMa as model provider.
 - Output can be reviewed before merge.
 
 ---
 
-## Phase 3: LiMa Safety Profile For LiMa Code
+## Phase 3: LiMa Safety Profile For LiMa
 
-**Purpose:** Restrict LiMa Code before using it on real projects.
+**Purpose:** Restrict LiMa before using it on real projects.
 
 **Required boundaries:**
 
@@ -172,21 +172,21 @@ D:\GIT\lima-code-sandbox\
 
 **Possible implementation points after inventory:**
 
-- LiMa Code provider config.
-- LiMa Code tool permission config.
-- Wrapper script around LiMa Code CLI.
-- LiMa Tool Gateway policy if LiMa Code calls LiMa tools.
+- LiMa provider config.
+- LiMa tool permission config.
+- Wrapper script around LiMa CLI.
+- LiMa Tool Gateway policy if LiMa calls LiMa tools.
 - Repo-level AGENTS.md inside sandbox/worktree.
 
 **Exit criteria:**
 
-- Running LiMa Code on a protected repo cannot read obvious secret files or run disallowed commands.
+- Running LiMa on a protected repo cannot read obvious secret files or run disallowed commands.
 
 ---
 
-## Phase 4: LiMa Code Result Adapter For LiMa Memory
+## Phase 4: LiMa Result Adapter For LiMa Memory
 
-**Purpose:** Feed LiMa Code task results back into LiMa.
+**Purpose:** Feed LiMa task results back into LiMa.
 
 **Output contract:**
 
@@ -213,7 +213,7 @@ D:\GIT\lima-code-sandbox\
 
 **Exit criteria:**
 
-- A LiMa Code run can be summarized into a LiMa memory/mastery event without raw secrets.
+- A LiMa run can be summarized into a LiMa memory/mastery event without raw secrets.
 
 ---
 
@@ -231,7 +231,7 @@ D:\GIT\lima-code-sandbox\
 
 **Exit criteria:**
 
-- LiMa Code + LiMa can produce a reviewable patch on a real LiMa task.
+- LiMa + LiMa can produce a reviewable patch on a real LiMa task.
 - The patch includes plan, diff, tests, and risk summary.
 
 ---
@@ -242,7 +242,7 @@ D:\GIT\lima-code-sandbox\
 
 **Potential additions:**
 
-- `lima-code` profile command.
+- `lima` profile command.
 - Windows `.bat` launcher.
 - Local notification on completion.
 - Optional `lima-local-agent` TTS/desktop notification.
@@ -250,7 +250,7 @@ D:\GIT\lima-code-sandbox\
 
 **Exit criteria:**
 
-- Owner can start a LiMa Code + LiMa coding task with one command and get a clear completion signal.
+- Owner can start a LiMa + LiMa coding task with one command and get a clear completion signal.
 
 ---
 
@@ -261,9 +261,9 @@ Before claiming any implementation slice complete:
 ```powershell
 git -C D:\GIT diff --check
 git -C D:\GIT\deepcode-cli status --short
-<LiMa Code repo test command discovered during Phase 0>
+<LiMa repo test command discovered during Phase 0>
 <LiMa focused test command if LiMa files are touched>
-rg -n "sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9_]{20,}|password\s*=|token\s*=" D:\GIT\deepcode-cli D:\GIT\docs\superpowers\plans\2026-05-23-lima-code-vibe-coding.md
+rg -n "sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9_]{20,}|password\s*=|token\s*=" D:\GIT\deepcode-cli D:\GIT\docs\superpowers\plans\2026-05-23-lima-vibe-coding.md
 ```
 
 Do not run unrestricted tests across `D:\GIT`; this workspace contains many unrelated local reference repositories.
@@ -274,11 +274,11 @@ Do not run unrestricted tests across `D:\GIT`; this workspace contains many unre
 
 The integration is successful when:
 
-- LiMa Code can run locally from the user's fork.
-- LiMa Code can call LiMa through an OpenAI-compatible profile.
+- LiMa can run locally from the user's fork.
+- LiMa can call LiMa through an OpenAI-compatible profile.
 - A toy coding task succeeds in a sandbox.
-- LiMa Code's file/tool permissions are bounded.
-- LiMa Code run results can be summarized back into LiMa memory/mastery.
+- LiMa's file/tool permissions are bounded.
+- LiMa run results can be summarized back into LiMa memory/mastery.
 - Real LiMa tasks are attempted only in isolated worktrees with explicit owner approval.
 
 This gives LiMa a creative vibe coding surface while preserving LiMa's safety discipline.

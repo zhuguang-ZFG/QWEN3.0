@@ -50,9 +50,9 @@ Client → server.py (BodySizeLimitMiddleware, access_guard)
 |--------|------|------|
 | Device Gateway | `device_gateway/` | `/device/v1/*`；Redis 任务队列 + WSS；公开 `chat.donglicao.com/device/v1/*` |
 | Channel Gateway | `channel_gateway/`, `routes/channel_gateway.py` | 斜杠命令、G3 会话、公开 API 工具 |
-| Agent tasks | `routes/agent_tasks.py`, `agent_runtime/` | LiMa Code 任务契约 |
+| Agent tasks | `routes/agent_tasks.py`, `agent_runtime/` | LiMa 任务契约 |
 | Session memory | `session_memory/` | 持久记忆 + learning loop（PROD-008） |
-| LiMa Code | `deepcode-cli/` submodule `8e680ea` | 本地 worker `/lima task` |
+| LiMa | `deepcode-cli/` submodule `8e680ea` | 本地 worker `/lima task` |
 | ESP32 产品 | `esp32S_XYZ/` submodule `160e526` | 固件 + fake-U8；真机 flash pending |
 
 ### 部署拓扑（简图）
