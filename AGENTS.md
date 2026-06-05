@@ -130,10 +130,15 @@ Client (OpenCode/Telegram)
       ├─ identity_guard       (self-identification detection)
       ├─ semantic_cache       (temperature=0 deterministic cache)
       ├─ routing_classifier   (classify intent + scenario)
+      ├─ context_injection_trace (begin trace for observability)
       ├─ context_pipeline     (retrieval, web search, code context, enrich)
-      ├─ skills_injector      (backend-aware skill injection)
+      ├─ skills_injector      (backend-aware skill injection — before code_orchestrator)
+      ├─ opencode_tool_aware  (IDE-aware tool prompt injection)
+      ├─ opencode_reasoning_bridge (thinking reminder + provider system prompt)
       ├─ code_orchestrator    (coding scenario handling)
-      ├─ routing_selector     (backend selection: health, sticky, budget)
+      ├─ routing_selector     (backend selection: health, sticky, budget, ML)
+      ├─ opencode_token_bridge (token budget info injection)
+      ├─ context_compressor   (auto-compress long conversations)
       ├─ routing_executor     (execute with fallback chain)
       ├─ speculative          (parallel speculative calls for simple queries)
       └─ response_validator   (coding answer quality check + retry)
@@ -169,7 +174,7 @@ Several top-level modules are **thin re-export facades** — they contain no log
 | `http_caller.py` | `http_sync`, `http_async`, `http_stream`, `http_request_builder`, `http_response`, `http_errors` |
 | `smart_router.py` | Legacy utility module — provides `analyze()`, `detect_image_intent()`, `detect_thinking_intent()`, circuit breaker, and ROUTE table to production pipeline. Also loads local Qwen3 router model. NOT a routing_engine delegate. |
 
-> **Note**: `routing_engine.py` re-exports some sub-module symbols but is **NOT** a facade — it contains the full `route()` orchestration function (classify → enrich → inject → select → execute → validate → respond). Do not treat it as a thin re-export module.
+> **Note**: `routing_engine.py` re-exports some sub-module symbols but is **NOT** a facade — it contains the full `route()` orchestration function (classify → enrich → inject → select → execute → validate → respond). Do not treat it as a thin re-export module. **Current: 425 lines — over 300-line target; needs split.**
 
 ### Backend Configuration
 
@@ -178,6 +183,10 @@ Several top-level modules are **thin re-export facades** — they contain no log
 - `backends.py`: Facade combining both, plus `detect_vendor()`, `detect_tier()`, `detect_caps()`, `backend_has_capability()`, `is_enabled()`, `get_configured()`
 - `health_tracker.py`: Health state tracking — prefer over `router_circuit_breaker.py` for new code
 - `model_resolver.py`: Maps client `model` param to specific backend; supports override
+- `route_scorer.py`: `is_selectable()` gating + `rank_backends()` weighted ranking — used by `routing_selector.py`
+- `budget_manager.py`: Per-backend budget tracking and priority scoring
+- `coding_backend_scorer.py`: Coding quality weights for backend selection in coding scenarios
+- `speculative.py`: Parallel speculative calls for simple queries; complexity classification; code-tier affinity
 
 ### Protocol Handling
 
@@ -199,15 +208,24 @@ Tool call pipeline:
 |-----------|-------------|-----------|
 | **Route registration** | `routes/route_registry.py` | Central `register_all_routes()` mounts all routers; uses `RouteRegistryDeps` dataclass |
 | **Routing decision** | `routing_engine.py` | classify → enrich → inject → select → execute → validate → respond |
+| **Backend selection** | `routing_selector.py` | Multi-factor scoring: health, latency, budget, ML prediction, coding quality, OpenCode fast boost |
+| **Backend execution** | `routing_executor.py` | Sequential fallback + parallel fallback (3-backend race); overflow propagation |
+| **Backend scoring** | `route_scorer.py` | `is_selectable()` gating + `rank_backends()` weighted ranking |
+| **Context compression** | `context_compressor.py` | Auto-compress long conversations; hierarchical 3-tier compression for OpenCode; tool output summarization; system prompt dedup |
 | **HTTP transport** | `http_caller.py` (facade) | `http_sync`, `http_async`, `http_stream`, `http_request_builder`, `http_response`, `http_errors` |
 | **Streaming** | `streaming.py` | Tool-native vs simulated SSE; `routes/stream_handlers.py` |
 | **OpenCode config** | `opencode_config.py` | All OpenCode-specific tuning knobs (tool mode, rate limit, fast boost, preferred backend, compression). Values read at import time. |
 | **OpenCode overflow** | `opencode_error_adapter.py` | 18+ regex patterns for context overflow → HTTP 413 + SSE error event |
 | **OpenCode messages** | `opencode_message_normalizer.py` | Surrogate cleanup, toolCallId adapt, content part filter |
-| **Context pipeline** | `context_pipeline/` (45 files) | Retrieval injection, web search, code context, enrichment, compression, auto-indexer, skill store, response validation, semantic code retrieval, token budget, reranking |
+| **OpenCode reasoning** | `opencode_reasoning_bridge.py` | Thinking reminder injection + provider-specific system prompt selection |
+| **OpenCode tool aware** | `opencode_tool_aware.py` | IDE-aware tool prompt injection for coding scenarios |
+| **OpenCode tool splitter** | `opencode_tool_splitter.py` | Sequential tool hint for weak backends that struggle with parallel tool calls |
+| **OpenCode token bridge** | `opencode_token_bridge.py` | Token budget info injection for OpenCode-compatible context management |
+| **Context injection trace** | `context_injection_trace.py` | Observable trace for retrieval/memory/skills/code context injection (deque of recent traces) |
+| **Context pipeline** | `context_pipeline/` (~46 files) | Retrieval injection, web search, code context, enrichment, auto-indexer, skill store, response validation, semantic code retrieval, token budget, reranking, routing weights, signal extraction, evolution |
 | **Session memory** | `session_memory/` (18 files) | Split: `store_db` (schema), `store_crud` (operations), `store_promote` (promotion), `store_admin` (admin ops); also `daemon.py`, `compactor.py`, `learning_loop.py`, `prompt_recall.py`, `shadow_mode.py` |
 | **Agent runtime** | `agent_runtime/` (29 files) | `orchestrator.py` (facade) → `orchestrator_queue.py` + `orchestrator_worker.py`; also `executor.py`, `approval.py`, `tool_exec.py`, `shell_executor.py`, `git_executor.py`, `network_executor.py` |
-| **Telegram bot** | `routes/telegram*.py` (17 files) | Commands, dispatch, knowledge, dev skills, eval tools, CI tools, diag tools |
+| **Telegram bot** | `routes/telegram*.py` (17+ files) | Commands, dispatch, knowledge, dev skills, eval tools, CI tools, diag tools, TGS3 advanced commands |
 | **Device gateway** | `device_gateway/` (17 files) | ESP32/hardware WebSocket + MQTT; `protocol.py`, `path_pipeline.py`, `redis_store.py`, `mqtt_client.py` |
 | **Channel gateway** | `channel_gateway/` (20 files) | Multi-channel (Telegram, web) message routing; `service.py`, `store.py`, `branding.py`, `commands.py` |
 | **Reverse gateway** | `reverse_gateway/` (14 files) | Adapters for reverse-engineered free AI platforms; `providers/scnet.py` is the primary adapter |
@@ -242,7 +260,7 @@ Copy `.env.example` to `.env`. Critical vars:
 - Feature flags: `GITEE_WEBHOOK_ENABLED`, `GITHUB_WEBHOOK_ENABLED`, `SEARXNG_ENABLED`, etc. (default off)
 - `LIMA_DEVICE_TOKENS` — device gateway per-device auth
 - `LIMA_OPENCODE_TOOL_MODE` — `direct` (default) or `convert` for tool call handling
-- `LIMA_OPENCODE_*` — 6 additional OpenCode tuning vars (fast boost, rate multiplier, preferred backend, context turns, speculative tools, model list); see `opencode_config.py` and `.env.example`
+- `LIMA_OPENCODE_*` — 8 OpenCode tuning vars: `FAST_BOOST`, `RATE_MULTIPLIER`, `PREFERRED_BACKEND`, `KEEP_RECENT_TURNS`, `SKIP_SPECULATIVE_TOOLS`, `DIRECT_STREAM`, `REASONING_VARIANTS`, `SESSION_OPTIONS`; see `opencode_config.py` and `.env.example`
 - `SENTRY_DSN` — optional error tracking
 
 ### OpenCode IDE Config
@@ -346,13 +364,18 @@ Docker health check: `curl -f http://localhost:8080/health`. Multi-stage build (
 
 | File | Lines | Notes |
 |------|------:|-------|
-| `server.py` | 146 | FastAPI entry + `BodySizeLimitMiddleware` |
-| `routing_engine.py` | 354 | Core routing orchestration (NOT a facade) |
-| `smart_router.py` | 228 | Legacy utility set (analyze/detect), not on main request path |
-| `server_lifespan.py` | 106 | Async lifespan startup/shutdown |
-| `routes/route_registry.py` | 242 | Central router mounting + `RouteRegistryDeps` |
-| `routes/chat_handler_dispatch.py` | 356 | Non-streaming dispatch (**over 300-line target, needs split**) |
-| `http_body_limit.py` | 249 | ASGI body size limit middleware |
+| `server.py` | 130 | FastAPI entry + `BodySizeLimitMiddleware` |
+| `routing_engine.py` | 425 | Core routing orchestration (**over 300-line target, needs split**) |
+| `smart_router.py` | 78 | Legacy utility set (analyze/detect), not on main request path |
+| `server_lifespan.py` | 91 | Async lifespan startup/shutdown |
+| `routes/route_registry.py` | 199 | Central router mounting + `RouteRegistryDeps` |
+| `routes/chat_endpoints.py` | 306 | OpenAI/Anthropic protocol dispatch + auth (**over 300-line target**) |
+| `routes/chat_handler_dispatch.py` | 392 | Non-streaming dispatch (**over 300-line target, needs split**) |
+| `context_compressor.py` | 398 | Auto-compress conversations (**over 300-line target, needs split**) |
+| `http_body_limit.py` | 195 | ASGI body size limit middleware |
+| `routing_selector.py` | 178 | Multi-factor backend scoring and selection |
+| `routing_executor.py` | 156 | Sequential + parallel backend execution with fallback |
+| `opencode_config.py` | 73 | OpenCode-specific tuning knobs (import-time constants) |
 
 ## Key Documents
 

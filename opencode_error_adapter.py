@@ -51,6 +51,8 @@ def detect_context_overflow(
 ) -> bool:
     """检测错误消息是否表示上下文溢出。
 
+    优先使用增强检测模块 (opencode_overflow_detect)，回退到本地模式库。
+
     Args:
         error_message: 后端返回的原始错误消息文本。
         status_code: HTTP 状态码（可选）。
@@ -61,6 +63,18 @@ def detect_context_overflow(
     Returns:
         若检测到上下文溢出则返回 True。
     """
+    # M-OC11: 优先使用增强溢出检测模块
+    try:
+        from opencode_overflow_detect import is_overflow_error
+        if is_overflow_error(
+            error_message=error_message,
+            status_code=status_code,
+            response_body=response_body,
+        ):
+            return True
+    except ImportError:
+        pass
+
     # HTTP 413 = Request Entity Too Large → 上下文溢出
     if status_code == 413:
         return True

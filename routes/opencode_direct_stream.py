@@ -92,13 +92,32 @@ async def stream_openai_passthrough(
     system_prompt: str = "",
     ide: str = "OpenCode",
     reasoning_effort: str | None = None,
+    request_headers: dict | None = None,
 ) -> AsyncIterator[str]:
     """Stream raw OpenAI SSE from a pinned backend (preserves tool_call deltas).
 
     For backends in TEXT_TOOL_BACKENDS (e.g. scnet_ds_flash), injects a tool
     system prompt and extracts tool_calls from the text response at stream end.
+
+    Args:
+        request_headers: 原始 HTTP 请求头 (用于解析 OpenCode 会话上下文)。
     """
     import httpx
+
+    # M-OC12: parse OpenCode session headers for affinity routing
+    oc_ctx = None
+    if request_headers:
+        try:
+            from opencode_request_headers import parse_opencode_headers
+            oc_ctx = parse_opencode_headers(request_headers)
+            if oc_ctx.has_session:
+                _log.debug(
+                    "[OPENCODE_DIRECT] session=%s request=%s compaction=%s",
+                    oc_ctx.session_id[:12], oc_ctx.request_id[:12] if oc_ctx.request_id else "",
+                    oc_ctx.is_compaction_request,
+                )
+        except Exception as exc:
+            _log.debug("failed to parse opencode headers: %s", exc)
 
     cfg = BACKENDS.get(backend)
     if not cfg:

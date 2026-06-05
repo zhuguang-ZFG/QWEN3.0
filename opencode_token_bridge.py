@@ -182,6 +182,8 @@ def compute_usage_percentage(
 ) -> dict[str, Any]:
     """计算当前上下文使用百分比及相关指标。
 
+    M-OC13: 优先使用 opencode_compaction_signal 模块的精确评估逻辑。
+
     Returns:
         {
             "prompt_tokens": int,         # 当前 prompt token 数
@@ -191,6 +193,7 @@ def compute_usage_percentage(
             "is_near_overflow": bool,     # 是否接近溢出 (>85%)
             "estimated_turns_left": int,  # 估算剩余轮次
             "compaction_recommended": bool,  # 是否建议压缩
+            "compaction_signal": str,     # ok|warning|critical|compact
         }
     """
     prompt_tokens = estimate_accurate_tokens(messages, usage, system_prompt)
@@ -199,22 +202,37 @@ def compute_usage_percentage(
     reserved = min(COMPACTION_BUFFER, output)
     usable = max(0, context - reserved)
 
-    if usable <= 0:
-        return {
-            "prompt_tokens": prompt_tokens,
-            "usable_tokens": 0,
-            "context_window": context,
-            "usage_percent": 100.0,
-            "is_near_overflow": True,
-            "estimated_turns_left": 0,
-            "compaction_recommended": True,
-        }
-
-    usage_percent = min(100.0, (prompt_tokens / usable) * 100)
+    # M-OC13: 使用增强压缩信号模块
+    try:
+        from opencode_compaction_signal import evaluate_compaction_signal
+        signal_result = evaluate_compaction_signal(prompt_tokens, context, output)
+        usage_percent = signal_result["usage_percent"]
+        compaction_signal = signal_result["signal"]
+        compaction_recommended = signal_result["should_compact"]
+        is_near = usage_percent > 85.0
+    except ImportError:
+        if usable <= 0:
+            return {
+                "prompt_tokens": prompt_tokens,
+                "usable_tokens": 0,
+                "context_window": context,
+                "usage_percent": 100.0,
+                "is_near_overflow": True,
+                "estimated_turns_left": 0,
+                "compaction_recommended": True,
+                "compaction_signal": "compact",
+            }
+        usage_percent = min(100.0, (prompt_tokens / usable) * 100)
+        compaction_signal = "ok"
+        if usage_percent > 85:
+            compaction_signal = "critical"
+        elif usage_percent > 70:
+            compaction_signal = "warning"
+        is_near = usage_percent > 85.0
+        compaction_recommended = usage_percent > 70.0
 
     # 估算每轮平均 token 消耗
     avg_turn_tokens = 3000  # 保守估计：user+assistant+tool_results per turn
-    is_near = usage_percent > 85.0
     remaining = max(0, usable - prompt_tokens)
     turns_left = max(0, remaining // avg_turn_tokens)
 
@@ -225,7 +243,8 @@ def compute_usage_percentage(
         "usage_percent": round(usage_percent, 1),
         "is_near_overflow": is_near,
         "estimated_turns_left": turns_left,
-        "compaction_recommended": usage_percent > 70.0,
+        "compaction_recommended": compaction_recommended,
+        "compaction_signal": compaction_signal,
     }
 
 

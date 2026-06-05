@@ -51,7 +51,9 @@ def execute(backends: list[str],
             if getattr(e, "is_overflow", False):
                 logger.warning("[EXECUTE] %s context overflow, stopping fallback", backend)
                 raise
-            if getattr(e, "is_retryable", False):
+            # M-OC8: OpenCode-style retry policy (session/retry.ts)
+            from opencode_retry_policy import is_retryable_error
+            if getattr(e, "is_retryable", False) or is_retryable_error(e):
                 code = extract_error_code(e)
                 re.health_tracker.record_failure(backend, error_code=code)
                 errors += 1
@@ -100,7 +102,8 @@ def execute(backends: list[str],
                 if getattr(exc, "is_overflow", False):
                     logger.warning("[EXECUTE] %s context overflow in serial fallback, stopping", backend)
                     raise
-                if getattr(exc, "is_retryable", False):
+                from opencode_retry_policy import is_retryable_error as _is_retryable
+                if getattr(exc, "is_retryable", False) or _is_retryable(exc):
                     logger.info(
                         "[EXECUTE] serial fallback %s retryable error, continuing",
                         backend,
@@ -133,7 +136,8 @@ def _parallel_fallback(
             if getattr(exc, "is_overflow", False):
                 logger.warning("[EXECUTE] %s context overflow in parallel fallback", backend)
                 raise
-            if getattr(exc, "is_retryable", False):
+            from opencode_retry_policy import is_retryable_error as _is_retryable
+            if getattr(exc, "is_retryable", False) or _is_retryable(exc):
                 logger.debug("[EXECUTE] parallel fallback %s retryable error", backend)
                 return None
             logger.debug("[EXECUTE] parallel fallback %s failed: %s", backend, type(exc).__name__)

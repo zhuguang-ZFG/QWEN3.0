@@ -224,8 +224,29 @@ def _build_body(
     except Exception as exc:
         logger.warning("prefix cache optimization failed: %s", exc, exc_info=True)
 
+    # M-OC14: model-family-aware system prompt enhancement (system.ts:19-33)
+    try:
+        from opencode_system_prompt import enhance_system_prompt
+        sys_text = enhance_system_prompt(sys_text, model, backend_name)
+    except ImportError:
+        pass
+    except Exception as exc:
+        logger.debug("system prompt enhancement failed: %s", exc)
+
+    # M-OC9: filter unsupported media (image/audio/video/pdf) per model capability
+    from opencode_media_detect import filter_unsupported_media
+    messages = filter_unsupported_media(messages, backend_name, model)
+
     # Message normalization (OpenCode 兼容): surrogate 清理、空消息过滤、toolCallId 规范化
     messages = normalize_messages(messages, backend_cfg.get("model", ""))
+
+    # M-OC10: truncate oversized tool outputs (truncate.ts: MAX_LINES=2000, MAX_BYTES=50KB)
+    from opencode_truncate import truncate_tool_results_in_messages
+    messages = truncate_tool_results_in_messages(messages)
+
+    # M-OC6: prompt caching (Anthropic/OpenRouter/Bedrock/etc. cache control markers)
+    from opencode_prompt_cache import apply_prompt_caching
+    messages = apply_prompt_caching(messages, backend_name, model)
 
     if fmt == "anthropic":
         if backend_cfg.get("no_system"):
@@ -273,6 +294,9 @@ def _build_body(
         body["stream"] = bool(stream)
 
     if tools:
+        # M-OC7: sanitize tool schemas for Kimi/Gemini (transform.ts:1254-1371)
+        from opencode_schema_sanitize import sanitize_tools_for_backend
+        tools = sanitize_tools_for_backend(tools, backend_name, model)
         body["tools"] = tools
 
     if reasoning_effort:
@@ -282,6 +306,13 @@ def _build_body(
                 body[k] = v
         else:
             body["reasoning_effort"] = reasoning_effort
+
+    # M-OC5: sampling parameters (temperature/top_p/top_k per model family)
+    from opencode_sampling import resolve_sampling_params
+    sampling = resolve_sampling_params(model, backend_name)
+    for k, v in sampling.items():
+        if k not in body:
+            body[k] = v
 
     # M-OC3: session options (store/enable_thinking/toolStreaming/promptCacheKey)
     if _is_ide_backend_session(backend_name, ide):

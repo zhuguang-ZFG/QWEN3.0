@@ -41,6 +41,9 @@ GFW_BACKENDS = frozenset({
     'sambanova_llama4', 'sambanova_ds_v3',
     'deepinfra_llama4', 'deepinfra_qwen235b',
     'ovh_llama70b', 'ovh_deepseek',
+    'ogw_gpt55', 'ogw_gpt54', 'ogw_gpt5_codex', 'ogw_gpt4o_mini',
+    'ogw_claude_sonnet', 'ogw_claude_haiku', 'ogw_deepseek_v4', 'ogw_deepseek_flash',
+    'ogw_grok', 'ogw_kimi', 'ogw_glm5', 'ogw_minimax',
 })
 
 WEAK_BACKENDS = frozenset({'chat_ubi', 'pollinations', 'llm7'})
@@ -76,6 +79,7 @@ KEY_POOL_PREFIXES = {
     'fireworks_': 'fireworks',
     'ms_': 'modelscope',
     'fm_': 'freemodel',
+    'ogw_': 'opengateway',
 }
 
 CODE_CAPABLE_BACKENDS = frozenset({
@@ -92,6 +96,10 @@ CODE_CAPABLE_BACKENDS = frozenset({
     'nvidia_deepseek_v4', 'nvidia_qwen35_coder',
     # FreeModel.dev
     'fm_gpt55', 'fm_gpt54', 'fm_gpt54_mini', 'fm_gpt53_codex',
+    # OpenGateway (Sionic AI)
+    'ogw_gpt55', 'ogw_gpt54', 'ogw_gpt5_codex', 'ogw_gpt4o_mini', 'ogw_gpt54_mini',
+    'ogw_claude_sonnet', 'ogw_claude_haiku', 'ogw_deepseek_v4', 'ogw_deepseek_flash',
+    'ogw_grok', 'ogw_kimi', 'ogw_glm5', 'ogw_minimax',
 })
 
 # Backends that reliably support tool_calls (OpenAI function calling format)
@@ -108,6 +116,10 @@ TOOL_CAPABLE_BACKENDS = frozenset({
     'nvidia_mistral', 'nvidia_deepseek_v4', 'nvidia_qwen35_coder', 'nvidia_kimi_k25',
     # FreeModel.dev
     'fm_gpt55', 'fm_gpt54', 'fm_gpt53_codex',
+    # OpenGateway
+    'ogw_gpt55', 'ogw_gpt54', 'ogw_gpt54_mini', 'ogw_gpt5_codex', 'ogw_gpt4o_mini',
+    'ogw_claude_sonnet', 'ogw_claude_haiku', 'ogw_deepseek_v4', 'ogw_deepseek_flash',
+    'ogw_grok', 'ogw_kimi', 'ogw_glm5', 'ogw_minimax',
     # China Mobile
     'chinamobile',
     # Longcat (Anthropic format, but supports tool_calls)
