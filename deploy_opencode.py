@@ -44,6 +44,28 @@ FILES = [
     # Round 3 deep adaptation (M-OC3)
     "reasoning_variants.py",  # NEW: reasoning_effort/thinking tier mapping
     "session_options.py",  # NEW: per-model session options injection
+    # M-OC8: coding pool + routing facade + tool repair + context injection
+    "coding_pool_admission.py",  # NEW: eval evidence gate for IDE default pool
+    "routing_facade.py",  # NEW: smart_router → routing_engine migration entry
+    "tool_repair_pipeline.py",  # NEW: tool call repair pipeline
+    "text_tool_extractor.py",  # NEW: text block → tool extraction
+    "context_injection_trace.py",  # NEW: context injection trace endpoint
+    "prompt_caching.py",  # NEW: prompt caching support
+    "router_http.py",  # MODIFIED
+    "router_v3.py",  # MODIFIED
+    "routing_classifier.py",  # MODIFIED
+    "routes/chat_support.py",  # MODIFIED: smart_router call sites
+    "routes/agent_task_result_hooks.py",  # NEW
+    "routes/admin_api.py",  # MODIFIED
+    "routes/agent_tasks.py",  # MODIFIED
+    "agent_runtime/workspace_sandbox.py",  # MODIFIED: read gate
+    "code_orchestrator_context.py",  # MODIFIED
+    "context_pipeline/enrich_context.py",  # MODIFIED
+    "context_pipeline/processors.py",  # MODIFIED
+    "lima_context.py",  # MODIFIED
+    "skills_injector.py",  # MODIFIED
+    "data/coding_backend_tiers.json",  # NEW: backend tier data
+    "data/opencode_e2e_results.json",  # NEW: e2e results
 ]
 
 

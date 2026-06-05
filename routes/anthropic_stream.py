@@ -8,7 +8,8 @@ import time
 from dataclasses import dataclass
 from typing import Any, Callable
 
-import smart_router
+import routing_facade
+import smart_router  # TODO: remove after Slice 3 (_log_to_distill_queue)
 from orchestrate import needs_orchestration, orchestrate
 from response_builder import extract_query, messages_to_dicts
 from routes.quality_gate import quality_check
@@ -115,7 +116,7 @@ async def anthropic_stream(
         sys_prompt_preview=sys_prompt_preview,
     )
 
-    is_image, _image_prompt = smart_router.detect_image_intent(query)
+    is_image, _image_prompt = routing_facade.detect_image_intent(query)
     if is_image:
         async for frame in stream_image_intent(ctx):
             yield frame

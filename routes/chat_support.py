@@ -10,16 +10,20 @@ from datetime import datetime
 
 import asyncio
 
-import smart_router
+import routing_facade
+import http_caller
+import backends
+import router_circuit_breaker
+import smart_router  # TODO: remove after Slice 3 (DISTILL_QUEUE_DIR)
 
 
 async def thinking_route(query: str, max_tokens: int = 4096, ide: str = "unknown") -> dict | None:
     """Route to a thinking-capable backend. Returns result dict or None on failure."""
-    thinking_backend = smart_router.get_thinking_backend()
+    thinking_backend = routing_facade.get_thinking_backend()
     msgs = [{"role": "user", "content": query}]
     try:
         result = await asyncio.wait_for(
-            asyncio.to_thread(smart_router.call_api, thinking_backend, msgs, max_tokens, ide),
+            asyncio.to_thread(http_caller.call_api, thinking_backend, msgs, max_tokens, ide),
             timeout=90.0,
         )
         if result and not (
@@ -27,18 +31,18 @@ async def thinking_route(query: str, max_tokens: int = 4096, ide: str = "unknown
         ):
             return {"answer": result, "backend": thinking_backend, "thinking_mode": True}
     except (asyncio.TimeoutError, Exception) as exc:
-        if smart_router.DEBUG:
+        if http_caller.DEBUG:
             print(f"[THINKING] {thinking_backend} failed: {exc}", file=sys.stderr)
-    for alt in smart_router.THINKING_BACKENDS:
+    for alt in backends.THINKING_BACKENDS:
         if alt == thinking_backend:
             continue
-        if alt not in smart_router.BACKENDS or not smart_router.BACKENDS[alt].get("key"):
+        if alt not in backends.BACKENDS or not backends.BACKENDS[alt].get("key"):
             continue
-        if not smart_router.cb_allow(alt):
+        if not router_circuit_breaker.cb_allow(alt):
             continue
         try:
             result = await asyncio.wait_for(
-                asyncio.to_thread(smart_router.call_api, alt, msgs, max_tokens, ide),
+                asyncio.to_thread(http_caller.call_api, alt, msgs, max_tokens, ide),
                 timeout=90.0,
             )
             if result and not (
@@ -105,5 +109,5 @@ def log_sys_prompt(sys_prompt: str) -> None:
     fname = os.path.join(sys_prompt_dir, f"{ide_source}_{phash}.json")
     with open(fname, "w", encoding="utf-8") as handle:
         json.dump(entry, handle, ensure_ascii=False, indent=2)
-    if smart_router.DEBUG:
+    if http_caller.DEBUG:
         print(f"[SYS_PROMPT] new: {ide_source} ({len(sys_prompt)} chars)", file=sys.stderr)

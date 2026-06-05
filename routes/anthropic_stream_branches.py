@@ -10,7 +10,7 @@ from typing import Any, AsyncIterator
 import health_tracker
 import http_caller
 import routing_engine
-import smart_router
+import routing_facade
 from orchestrate import orchestrate, needs_orchestration
 from response_builder import messages_to_dicts
 from routes.anthropic_stream_sse import (
@@ -60,7 +60,7 @@ async def stream_image_intent(ctx: StreamContext) -> AsyncIterator[str]:
 
 
 async def resolve_thinking(ctx: StreamContext, thinking_route) -> None:
-    use_thinking = getattr(ctx.req, "thinking", False) or smart_router.detect_thinking_intent(ctx.query)
+    use_thinking = getattr(ctx.req, "thinking", False) or routing_facade.detect_thinking_intent(ctx.query)
     if not use_thinking:
         return
     thinking_result = await thinking_route(ctx.query, ctx.req.max_tokens or 4096, ctx.ide_source)
@@ -73,7 +73,7 @@ async def resolve_thinking(ctx: StreamContext, thinking_route) -> None:
 
 
 async def resolve_normal_route(ctx: StreamContext) -> None:
-    ctx.intent_used = smart_router.analyze(
+    ctx.intent_used = routing_facade.analyze(
         ctx.query, system_prompt=ctx.sys_prompt_preview, ide=ctx.ide_source
     )
     ctx.intent_name = (

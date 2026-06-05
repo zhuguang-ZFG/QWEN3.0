@@ -1,8 +1,17 @@
-"""Facade for gradual smart_router → routing_engine migration (CQ-014 P2)."""
+"""Facade for gradual smart_router → routing_engine migration (CQ-014 P2).
+
+Slice 1: classify/intent wrappers — chat hot path no longer imports smart_router.
+Slice 2 (future): call_api / cb_* → http_caller + router_circuit_breaker.
+"""
 
 from __future__ import annotations
 
 from typing import Any
+
+# ── Slice 1: classify / intent thin wrappers ────────────────────────────────
+from router_classifier import analyze  # noqa: F401  (re-export for call sites)
+from router_image import detect_image_intent  # noqa: F401
+from router_intent import detect_thinking_intent, get_thinking_backend  # noqa: F401
 
 
 def router_status_payload() -> dict[str, Any]:

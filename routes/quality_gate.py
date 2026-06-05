@@ -7,7 +7,8 @@ import logging
 from dataclasses import dataclass, field
 
 import http_caller
-import smart_router
+import backends
+import router_circuit_breaker
 from response_builder import MODEL_ID, build_anthropic_response, build_response
 from routes.quality_gate_direct import (
     EXACT_OUTPUT_MARKERS,
@@ -182,16 +183,16 @@ async def try_backend(
     messages: list[dict] | None = None,
 ) -> dict | None:
     """Try one backend and return a smart_router.route-compatible dict."""
-    if backend_name not in smart_router.BACKENDS:
+    if backend_name not in backends.BACKENDS:
         return None
     if not _backend_enabled.get(backend_name, True):
         return None
-    if not smart_router.cb_allow(backend_name):
+    if not router_circuit_breaker.cb_allow(backend_name):
         return None
     try:
         msgs = messages if messages else [{"role": "user", "content": query}]
         result = await asyncio.wait_for(
-            asyncio.to_thread(smart_router.call_api, backend_name, msgs, max_tokens),
+            asyncio.to_thread(http_caller.call_api, backend_name, msgs, max_tokens),
             timeout=35.0,
         )
         if result is None or (
@@ -201,11 +202,11 @@ async def try_backend(
                 or "\u6682\u65f6\u4e0d\u53ef\u7528" in result
             )
         ):
-            smart_router.cb_record(backend_name, False)
+            router_circuit_breaker.cb_record(backend_name, False)
             return None
         return {"answer": result, "backend": backend_name, "total_ms": 0}
     except asyncio.TimeoutError:
-        smart_router.cb_record(backend_name, False)
+        router_circuit_breaker.cb_record(backend_name, False)
         return None
     except Exception as exc:
         _log.debug(
@@ -214,7 +215,7 @@ async def try_backend(
             type(exc).__name__,
             exc,
         )
-        smart_router.cb_record(backend_name, False)
+        router_circuit_breaker.cb_record(backend_name, False)
         return None
 
 

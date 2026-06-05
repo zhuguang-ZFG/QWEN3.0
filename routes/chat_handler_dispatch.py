@@ -10,7 +10,7 @@ from typing import Callable
 
 from fastapi.responses import JSONResponse, StreamingResponse
 
-import smart_router
+import routing_facade
 from chat_models import ChatRequest, extract_system_prompt
 from orchestrate import orchestrate
 from response_builder import (
@@ -86,7 +86,7 @@ def resolve_route_prefs(req: ChatRequest, ide_source: str, query: str) -> RouteP
     if ide_source and "opencode" in ide_source.lower():
         prefer = prefer or OPENCODE_PREFERRED_BACKEND
 
-    use_thinking = getattr(req, "thinking", False) or smart_router.detect_thinking_intent(query)
+    use_thinking = getattr(req, "thinking", False) or routing_facade.detect_thinking_intent(query)
     return RoutePrefs(prefer=prefer, ide_source=ide, use_thinking=use_thinking)
 
 
@@ -138,7 +138,7 @@ async def maybe_image_response(
     record_request: Callable[..., None],
     build_pollinations_url: Callable[[str, str], str] | None,
 ) -> JSONResponse | None:
-    is_image, image_prompt = smart_router.detect_image_intent(ctx.query)
+    is_image, image_prompt = routing_facade.detect_image_intent(ctx.query)
     if not is_image or not build_pollinations_url:
         return None
     image_url = build_pollinations_url(image_prompt, "1024x1024")
@@ -203,7 +203,7 @@ async def maybe_thinking_response(
 
 
 def build_streaming_response(ctx: ChatRunContext, req: ChatRequest) -> StreamingResponse:
-    intent = smart_router.analyze(
+    intent = routing_facade.analyze(
         ctx.query, system_prompt=ctx.sys_prompt_preview, ide=ctx.ide_source
     )
     handler = _chat_handler()
@@ -231,7 +231,7 @@ def build_streaming_response(ctx: ChatRunContext, req: ChatRequest) -> Streaming
 
 
 async def execute_non_stream_route(ctx: ChatRunContext, req: ChatRequest) -> tuple[dict, dict]:
-    intent = smart_router.analyze(
+    intent = routing_facade.analyze(
         ctx.query, system_prompt=ctx.sys_prompt_preview, ide=ctx.ide_source
     )
     handler = _chat_handler()
