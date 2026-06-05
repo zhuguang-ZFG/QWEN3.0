@@ -24,6 +24,16 @@ def inject_state(*, model_id: str, model_created: int, loaded_modules: dict[str,
     _loaded_modules = loaded_modules
 
 
+@router.get("/v1")
+async def openai_v1_info():
+    """OpenAI-compatible /v1 info — helps IDE clients discover the API."""
+    return {
+        "object": "list",
+        "description": "LiMa OpenAI-compatible API",
+        "endpoints": ["/v1/chat/completions", "/v1/models"],
+    }
+
+
 @router.get("/v1/models", dependencies=[Depends(require_private_api_key)])
 async def list_models(request: Request):
     models = [

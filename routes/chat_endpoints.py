@@ -68,7 +68,18 @@ _anthropic_vision_messages = anthropic_vision_messages
 )
 async def chat_completions(request: Request):
     """OpenAI-compatible chat completions endpoint."""
-    body = await request.json()
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse(
+            status_code=400,
+            content={"error": {"message": "Invalid JSON body", "type": "invalid_request_error"}},
+        )
+    if not isinstance(body, dict) or "messages" not in body:
+        return JSONResponse(
+            status_code=400,
+            content={"error": {"message": "Missing 'messages' field", "type": "invalid_request_error"}},
+        )
     raw_messages = body.get("messages", [])
     client_ip = _call("client_ip", request)
     ide_source = _call("detect_ide", raw_messages)
