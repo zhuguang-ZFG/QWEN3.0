@@ -44,6 +44,9 @@ FILES = [
     # Round 3 deep adaptation (M-OC3)
     "reasoning_variants.py",  # NEW: reasoning_effort/thinking tier mapping
     "session_options.py",  # NEW: per-model session options injection
+    # M-OC12: tool guard + step checkpoint
+    "tool_guard.py",  # NEW: doom loop detection + tool output truncation
+    "step_checkpoint.py",  # NEW: per-step agent checkpointing
     # Slice 3: distill queue extraction
     "distill_queue.py",  # NEW: extracted from smart_router.py L155–228
     # M-OC8: coding pool + routing facade + tool repair + context injection
