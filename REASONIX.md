@@ -1,16 +1,20 @@
 # REASONIX.md — LiMa Project
 
-> Updated: 2026-06-05. 30 milestones completed. smart_router migration Slice 1-3 done.
+> Updated: 2026-06-05. 31 milestones. smart_router Slice 1-3 done. Agent hardening deployed.
 
 ## Key Facts (2026-06-05)
 
-- **30 milestones completed** (M0–M11f + M-OC0–M-OC11) — decouple, OpenCode adaptation, cleanup, security
+- **31 milestones** (M0–M11f + M-OC0–M-OC13) — decouple, OpenCode, cleanup, security, agent
 - **LOCAL_ONLY_BACKENDS = empty** — all 184 backends cloud-native
-- **5 VPS reverse sidecars active** — scnet-large (4505), kimi (4504), longcat (4506), mimo (4507)
-- **smart_router** — production refs reduced 14→3 (orchestrate, routing_facade, server)
-- **LIMA_PERIODIC_CODING_EVAL=1** — VPS 已开启周期编码 eval
-- **API Key 安全** — 4 脚本去硬编码
-- **OpenCode 适配** — error adapter (HTML检测/timeout类) + message normalizer (Bedrock) + session options
+- **5 VPS reverse sidecars** — scnet-large (4505), kimi (4504), longcat (4506), mimo (4507)
+- **smart_router** — production refs 14→3 (orchestrate, routing_facade, server)
+- **LIMA_PERIODIC_CODING_EVAL=1** — VPS 周期编码 eval
+- **API Key** — 4 脚本去硬编码 + 生产 key 环境变量 `LIMA_API_KEY`
+- **OpenCode 适配** — error adapter (HTML/timeout) + normalizer (Bedrock/sdkKey) + session options + provider remap
+- **Agent 能力** — doom loop + output truncation + step checkpoint
+- **模型列表** — 13→21（+gpt-5, o3-mini, deepseek-r1, qwen3-235b, gemini-2.5-pro, mistral-large, codestral, mimo-v2.5-pro）
+- **管理面板** — admin_api 路由修复，15 端点可用
+- **死代码** — -5874 行 + 42 __pycache__ 目录清理
 
 ## Stack
 - **Python 3.10+** (ruff, Dockerfile, pyrightconfig)
@@ -66,10 +70,27 @@ Dev: `python -m uvicorn server:app --host 0.0.0.0 --port 8080`
 - health_tracker is authoritative for health/cooldown; router_circuit_breaker is migration target
 - distill_queue.py extracted from smart_router (Slice 3); routing_facade.py is migration gateway
 
+## New modules (M-OC8–M-OC13)
+
+| Module | Purpose |
+|------|------|
+| `tool_guard.py` | Doom loop detection + tool output truncation |
+| `step_checkpoint.py` | Per-step agent checkpointing |
+| `distill_queue.py` | Q&A distillation queue (extracted from smart_router) |
+| `coding_pool_admission.py` | Eval evidence gate for IDE coding pool |
+| `routing_facade.py` | smart_router → routing_engine migration gateway |
+| `tool_repair_pipeline.py` | Tool call repair pipeline |
+| `context_injection_trace.py` | Context injection tracing |
+| `opencode_error_adapter.py` | Context overflow detection + SSE error parsing |
+| `opencode_message_normalizer.py` | Message normalization (Bedrock/sdkKey/surrogate) |
+| `reasoning_variants.py` | Reasoning effort → provider-specific body params |
+| `session_options.py` | Per-model session options injection |
+
 ## Watch out for
 - **Dockerfile references `requirements.txt`** but actual file is `requirements_server.txt`
 - **`.env` mandatory** — `LIMA_API_KEY` must be set or startup errors
 - **FastAPI 0.136.3 blocked** — malicious PyPI release, pinned `<0.136.3`
 - **`server.py` patches `sys.path`** before other imports
-- **`deepcode-cli/`, `esp32S_XYZ/`** are separate sub-projects, excluded from Python tooling
-- **~150 top-level .py files** — many are eval/probe/ops scripts, not all import-safe
+- **`deepcode-cli/`, `esp32S_XYZ/`, `opencode-source/`** are separate sub-projects
+- **部署**：`deploy_opencode.py` 用 `fuser -k 8080/tcp` 杀旧进程，然后 `python server.py` 启动
+- **OpenCode 客户端配置**：需要 `"api"`（URL 字符串）+ `"npm"` + `"options"` + `"env"` + `"models"` 才能被识别
