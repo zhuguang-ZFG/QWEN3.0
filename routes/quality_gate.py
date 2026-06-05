@@ -90,7 +90,14 @@ def quality_check_typed(
     reasons: list[str] = []
     score = 1.0
 
-    if len(response_text) < 30 and complexity > 0.3:
+    # Short response penalty — but only for genuinely complex queries.
+    # Trivial queries (short prompts, simple requests) naturally produce
+    # short responses; penalizing them causes false fallback cascades.
+    query_is_trivial = len(query) < 50 and not any(
+        kw in query.lower()
+        for kw in ("explain", "write", "implement", "debug", "analyze", "compare", "difference", "how to", "what is")
+    )
+    if len(response_text) < 30 and complexity > 0.3 and not query_is_trivial:
         if not allows_short_direct_answer(query, response_text):
             reasons.append("too short for complexity")
             score -= 0.4

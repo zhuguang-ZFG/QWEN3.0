@@ -302,15 +302,17 @@ def route(query: str, messages: list[dict], *,
         if needs_tools:
             final_backend, answer, _ = execute(backends, call_fn, messages_injected, max_tokens, tools=tools)
         elif complexity == "simple" and req_type in ("ide", "chat"):
-            affinity_backends = speculative.get_affinity_backends("simple")
-            spec_candidates = [b for b in affinity_backends
-                               if not health_tracker.is_cooled_down(b)
-                               and budget_manager.is_budget_available(b)
-                               and speculative.is_historically_fast(b)]
-            if len(spec_candidates) >= 2:
+            # IDE/OpenCode clients should never be routed through low-quality
+            # tunnel/free backends. Use code-tier affinity or fall back to
+            # the full evidence-gated coding pool.
+            affinity_backends = speculative.get_affinity_backends("code")
+            simple_candidates = [b for b in affinity_backends
+                                 if not health_tracker.is_cooled_down(b)
+                                 and budget_manager.is_budget_available(b)]
+            if len(simple_candidates) >= 2:
                 try:
                     final_backend, answer, _ = speculative.speculative_call(
-                        spec_candidates, call_fn, messages_injected, max_tokens,
+                        simple_candidates, call_fn, messages_injected, max_tokens,
                         max_parallel=5, timeout_sec=5.0,
                         needs_tools=needs_tools, ide_source=ide_source)
                 except RuntimeError:
