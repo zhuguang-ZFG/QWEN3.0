@@ -1,6 +1,18 @@
 # Execution Log
 
-> Last updated: 2026-06-05 · 28 milestones completed · OpenCode empty-body + /v1 deployed
+> Last updated: 2026-06-05 · smart_router Slice 4-6 complete · CI gate active
+
+## smart_router Slice 4-6: 热路径迁离 + 兼容壳 + CI gate (completed)
+
+| Slice | 内容 | 状态 |
+|-------|------|------|
+| **4** | `local_router.py`; `orchestrate`/`server` 迁离 smart_router | ✅ |
+| **5** | `routing_constants.py`; `routing_facade` 零 legacy import | ✅ |
+| **6** | `smart_router.py` 纯 re-export + DEPRECATED; CI gate | ✅ |
+
+**门禁**: pytest 21+ (orchestrate/facade/smart_router/ci_gates/opencode) passed; ruff clean
+
+**Commit**: `refactor(smart-router): complete Slice 4-6 migration + CI gate`
 
 ## M-OC13: OpenCode 启动空 body 修复 + /v1 发现端点 (completed)
 

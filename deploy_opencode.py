@@ -50,6 +50,9 @@ FILES = [
     # Slice 3: distill queue extraction
     "distill_queue.py",  # NEW: extracted from smart_router.py L155–228
     "local_router.py",  # Slice 4: warmup_router_model + call_local
+    "orchestrate.py",  # Slice 4: router_classifier + local_router
+    "server.py",  # Slice 4: local_router warmup (no smart_router)
+    "smart_router.py",  # Slice 6: deprecated re-export facade
     # M-OC8: coding pool + routing facade + tool repair + context injection
     "coding_pool_admission.py",  # NEW: eval evidence gate for IDE default pool
     "routing_facade.py",  # NEW: smart_router → routing_engine migration entry
@@ -102,13 +105,12 @@ def main():
 
     sftp.close()
 
-    # Restart via systemd — avoids port conflict with rogue nohup processes
+    # Restart via systemd only (do not fuser-kill — races with systemd unit)
     stdin, stdout, stderr = ssh.exec_command(
-        "fuser -k 8080/tcp 2>/dev/null; "
-        "pkill -9 -f 'python3.10.*server.py' 2>/dev/null || true; "
-        "sleep 2; "
         "systemctl restart lima-router.service; "
-        "sleep 10; "
+        "sleep 3; "
+        "for i in 1 2 3 4 5 6 7 8 9 10 11 12; do "
+        "curl -sf http://127.0.0.1:8080/health >/dev/null && break; sleep 5; done; "
         "systemctl is-active lima-router.service"
     )
     active = stdout.read().decode().strip()

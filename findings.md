@@ -2,6 +2,39 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-06-05 smart_router Slice 4-6 + VPS/OpenCode E2E closeout
+
+### 变更
+- Slice 4: `local_router.py`; `orchestrate.py`/`server.py` 迁离 `smart_router`
+- Slice 5: `routing_constants.py`; `routing_facade` 无 legacy import
+- Slice 6: `smart_router.py` 纯 re-export + `test_no_smart_router_imports_in_production`
+- `deploy_opencode.py`: 补传 `server.py`/`orchestrate.py`/`smart_router.py`; 仅 `systemctl restart`（去掉 `fuser -k` 竞态）
+
+### Git
+- Commit: `ca0aa2a refactor(smart-router): complete Slice 4-6 migration + CI gate`
+- Push: `origin/codex/free-web-ai-probe` OK
+
+### VPS smoke (2026-06-05 21:54 CST)
+```
+health 200 (14/14 modules) | GET /v1 OK | empty POST → 400
+OpenCode UA chat → 200, content=LIMA_E2E_OK
+/v1/status routing_entry=routing_engine.route | /v1/models 21
+https://chat.donglicao.com/health 200
+slice6 files: local_router + routing_constants + DEPRECATED smart_router
+```
+
+### OpenCode E2E (`vps_opencode_e2e_verify.py`) — 10/13 PASS
+| Step | Result |
+|------|--------|
+| health, tool_calls, streaming, session_affinity | PASS |
+| coding: multi_file, reasoning, streaming_tool_args, tool_call_gen, typescript | PASS |
+| coding: context_overflow_recovery | PASS (score 80) |
+| coding: ide_code_explain | FAIL score 65 (grading strict) |
+| streaming_tools | FAIL RemoteProtocolError (peer closed, 127s) |
+| overflow_handling | FAIL 422 input_too_long guardrail (expected block) |
+
+Avg coding score: 89. Verdict: 3 failed (2 infra/grading, 1 guardrail-by-design).
+
 ## 2026-06-05 M-OC13 OpenCode 启动空 body 500 + deploy 端口冲突
 
 ### 根因
