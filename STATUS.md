@@ -38,6 +38,7 @@
 | M-OC9 | 死代码清理（9 模块 -5874行）+ 过期文档（12）+ 退役支线（OpenClaw 10） | 0 |
 | M-OC10 | 深度适配：error adapter (+144行 HTML检测/timeout类/retryable) + message normalizer (Bedrock) + GPT-5 mini | 0 |
 | M-OC11 | API Key 安全去硬编码 (4 scripts) + 周期 eval 开启 + hypothesis importorskip | 0 |
+| M-OC12 | Agent 能力加厚：tool_guard（doom loop 检测+输出截断）+ step_checkpoint + 模型列表 13→21 | 0 |
 
 ## 编码体验加厚（2026-06）
 
