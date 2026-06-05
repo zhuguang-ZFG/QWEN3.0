@@ -110,10 +110,10 @@ def maybe_log_distill_queue(*, query: str, content: str, intent, backend: str) -
     if os.environ.get("DISTILL_LOG", "0") != "1":
         return
     try:
-        import smart_router
+        import distill_queue
 
         intent_payload = intent if isinstance(intent, dict) else {"intent": intent}
-        smart_router._log_to_distill_queue(query, content, intent_payload, backend)
+        distill_queue.log_to_distill_queue(query, content, intent_payload, backend)
     except Exception as exc:
         _log.debug("distill queue log skipped: %s", type(exc).__name__)
 

@@ -44,6 +44,8 @@ FILES = [
     # Round 3 deep adaptation (M-OC3)
     "reasoning_variants.py",  # NEW: reasoning_effort/thinking tier mapping
     "session_options.py",  # NEW: per-model session options injection
+    # Slice 3: distill queue extraction
+    "distill_queue.py",  # NEW: extracted from smart_router.py L155–228
     # M-OC8: coding pool + routing facade + tool repair + context injection
     "coding_pool_admission.py",  # NEW: eval evidence gate for IDE default pool
     "routing_facade.py",  # NEW: smart_router → routing_engine migration entry

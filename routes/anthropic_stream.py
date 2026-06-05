@@ -9,7 +9,6 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 import routing_facade
-import smart_router  # TODO: remove after Slice 3 (_log_to_distill_queue)
 from orchestrate import needs_orchestration, orchestrate
 from response_builder import extract_query, messages_to_dicts
 from routes.quality_gate import quality_check
@@ -191,6 +190,7 @@ def _do_logging(req, query, content, record_intent, backend_used, deps: Anthropi
             _log.warning("log_sys_prompt failed: %s", type(exc).__name__)
     try:
         if os.environ.get("DISTILL_LOG", "0") == "1":
-            smart_router._log_to_distill_queue(query, content, record_intent, backend_used)
+            import distill_queue
+            distill_queue.log_to_distill_queue(query, content, record_intent, backend_used)
     except Exception as exc:
         _log.debug("distill queue log skipped: %s", type(exc).__name__)

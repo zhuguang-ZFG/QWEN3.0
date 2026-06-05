@@ -14,7 +14,7 @@ import routing_facade
 import http_caller
 import backends
 import router_circuit_breaker
-import smart_router  # TODO: remove after Slice 3 (DISTILL_QUEUE_DIR)
+import distill_queue
 
 
 async def thinking_route(query: str, max_tokens: int = 4096, ide: str = "unknown") -> dict | None:
@@ -82,9 +82,9 @@ def attach_lima_meta(
 
 def log_sys_prompt(sys_prompt: str) -> None:
     """Record new system prompts with SHA256 dedup."""
-    os.makedirs(smart_router.DISTILL_QUEUE_DIR.replace("pending", "sys_prompts"), exist_ok=True)
+    os.makedirs(distill_queue.DISTILL_QUEUE_DIR.replace("pending", "sys_prompts"), exist_ok=True)
     phash = hashlib.sha256(sys_prompt.encode()).hexdigest()[:16]
-    sys_prompt_dir = os.path.join(os.path.dirname(smart_router.DISTILL_QUEUE_DIR), "sys_prompts")
+    sys_prompt_dir = os.path.join(os.path.dirname(distill_queue.DISTILL_QUEUE_DIR), "sys_prompts")
 
     existing = os.listdir(sys_prompt_dir) if os.path.exists(sys_prompt_dir) else []
     if any(phash in name for name in existing):
