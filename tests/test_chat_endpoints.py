@@ -14,6 +14,7 @@ def test_server_registers_extracted_chat_endpoints():
     }
 
     assert "/v1/chat/completions" in paths
+    assert "/v1/responses" in paths
     assert "/v1/messages" in paths
     assert server.chat_completions is chat_endpoints.chat_completions
     assert server.anthropic_messages is chat_endpoints.anthropic_messages

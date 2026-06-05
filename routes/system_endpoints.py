@@ -30,7 +30,7 @@ async def openai_v1_info():
     return {
         "object": "list",
         "description": "LiMa OpenAI-compatible API",
-        "endpoints": ["/v1/chat/completions", "/v1/models"],
+        "endpoints": ["/v1/chat/completions", "/v1/responses", "/v1/models"],
     }
 
 

@@ -26,6 +26,8 @@ FILES = [
     "routing_executor.py",
     "routes/chat_stream.py",
     "routes/chat_endpoints.py",
+    "routes/responses_endpoints.py",
+    "converters/responses_api.py",
     "routes/chat_handler_dispatch.py",
     "routes/system_endpoints.py",
     # Round 2 deep adaptation

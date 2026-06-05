@@ -74,6 +74,18 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
     )
     app.include_router(chat_endpoints_router)
 
+    from routes.responses_endpoints import router as responses_router
+    import routes.responses_endpoints as responses_mod
+
+    responses_mod.inject_deps(
+        client_ip=deps.client_ip,
+        detect_ide=deps.detect_ide,
+        handle_chat=deps.handle_chat,
+        anthropic_native_stream=deps.anthropic_native_stream,
+        anthropic_native_forward=deps.anthropic_native_forward,
+    )
+    app.include_router(responses_router)
+
     from routes.embeddings import router as embeddings_router
 
     app.include_router(embeddings_router)
