@@ -92,19 +92,20 @@ def test_opencode_scenario_is_coding():
     assert classify_scenario("hello", [], ide_source="") == "chat"
 
 
-# ─── Test 5: OpenCode backend preference (scnet_ds_pro) ───────────────────────
+# ─── Test 5: OpenCode backend preference (scnet_ds_flash default) ─────────────
 
 def test_opencode_backend_preference():
-    """resolve_route_prefs() prefers scnet_ds_pro for OpenCode IDE."""
+    """resolve_route_prefs() prefers OPENCODE_PREFERRED_BACKEND for OpenCode IDE."""
     from routes.chat_handler_dispatch import resolve_route_prefs
     from chat_models import ChatRequest
+    from opencode_config import OPENCODE_PREFERRED_BACKEND
 
-    # OpenCode with default model → scnet_ds_pro
+    # OpenCode with default model → configured preferred backend
     req = ChatRequest(model="lima-1.3", messages=[{"role": "user", "content": "write a function"}])
     prefs = resolve_route_prefs(req, "OpenCode", "write a function")
-    assert prefs.prefer == "scnet_ds_pro", f"Expected scnet_ds_pro, got {prefs.prefer}"
+    assert prefs.prefer == OPENCODE_PREFERRED_BACKEND
 
-    # OpenCode with expert model → keeps scnet_ds_pro (expert already sets it)
+    # OpenCode with expert model → expert overrides to scnet_ds_pro
     req = ChatRequest(model="lima-thinking", messages=[{"role": "user", "content": "explain code"}])
     prefs = resolve_route_prefs(req, "OpenCode", "explain code")
     assert prefs.prefer == "scnet_ds_pro"
@@ -112,7 +113,7 @@ def test_opencode_backend_preference():
     # OpenCode lowercase
     req = ChatRequest(model="lima-1.3", messages=[{"role": "user", "content": "test"}])
     prefs = resolve_route_prefs(req, "opencode-ai", "test")
-    assert prefs.prefer == "scnet_ds_pro"
+    assert prefs.prefer == OPENCODE_PREFERRED_BACKEND
 
     # Non-OpenCode IDE, default model → no forced prefer
     req = ChatRequest(model="lima-1.3", messages=[{"role": "user", "content": "hello"}])

@@ -1,6 +1,38 @@
 # Execution Log
 
-> Last updated: 2026-06-05 · smart_router Slice 4-6 complete · CI gate active
+> Last updated: 2026-06-06 · OpenCode E2E 11/11 PASS · LongCat OpenAI format support
+
+## OpenCode E2E VPS 验证：11/11 全部通过 (2026-06-06 00:53 CST)
+
+**验证结果**：
+- API 层面：11/11 PASS, 平均编码得分 92
+- 真实 OpenCode 客户端：✅ tool_calls、read_file、bash 工具全部正常
+
+**关键修复**：
+1. **LongCat OpenAI 格式**：新增 `longcat_openai` 后端 (`https://api.longcat.chat/openai/v1/chat/completions`)
+2. **tool_calls 适配层**：`text_tool_extractor.py` + `opencode_direct_stream.py` 集成
+3. **Groq 403 修复**：切换默认后端从 `groq_gptoss` 到 `longcat_openai`
+
+**修改文件**：
+- `backends_registry.py` — 新增 `longcat_openai` 后端
+- `backends_constants.py` — 添加到 `TOOL_CAPABLE_BACKENDS`
+- `opencode_config.py` — 默认后端改为 `longcat_openai`
+- `routes/opencode_direct_stream.py` — 集成 text_tool_extractor
+
+**E2E 验证结果**：
+| Step | Result | Score |
+|------|--------|-------|
+| health_check | PASS | - |
+| coding_context_overflow_recovery | PASS | 80 |
+| coding_ide_code_explain | PASS | 90 |
+| coding_multi_file_edit | PASS | 100 |
+| coding_reasoning_effort | PASS | 100 |
+| coding_streaming_tool_args | PASS | 100 |
+| coding_tool_call_generation | PASS | 80 |
+| coding_typescript_typefix | PASS | 100 |
+| tool_calls | PASS | - |
+| streaming | PASS | - |
+| streaming_tools | PASS | - |
 
 ## smart_router Slice 4-6: 热路径迁离 + 兼容壳 + CI gate (completed)
 

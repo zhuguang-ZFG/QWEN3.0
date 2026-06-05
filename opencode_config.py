@@ -36,7 +36,7 @@ if (os.environ.get("OPENCODE_OPTIMIZATION_ENABLED", "0") == "1"
 OPENCODE_FAST_BOOST = float(os.environ.get("LIMA_OPENCODE_FAST_BOOST", "1.15"))
 
 # Set of backend name prefixes that qualify for the fast boost.
-OPENCODE_FAST_BACKENDS: set[str] = {"groq_", "cerebras_", "scnet_ds_flash"}
+OPENCODE_FAST_BACKENDS: set[str] = {"groq_", "cerebras_", "scnet_", "longcat", "cfai_", "kimi"}
 
 # ── Rate limiting ─────────────────────────────────────────────────────────
 # Multiplier applied to the base rate limit for IDE clients.
@@ -45,8 +45,12 @@ OPENCODE_RATE_MULTIPLIER = int(os.environ.get("LIMA_OPENCODE_RATE_MULTIPLIER", "
 # ── Preferred backend ─────────────────────────────────────────────────────
 # Default backend for OpenCode when no better routing decision is made.
 OPENCODE_PREFERRED_BACKEND = os.environ.get(
-    "LIMA_OPENCODE_PREFERRED_BACKEND", "scnet_ds_pro"
+    "LIMA_OPENCODE_PREFERRED_BACKEND", "nvidia_qwen_coder"
 )
+
+# ── Fast path ───────────────────────────────────────────────────────────────
+# Pin OpenCode to preferred backend; skip speculative routing / heavy injections.
+OPENCODE_DIRECT_STREAM = os.environ.get("LIMA_OPENCODE_DIRECT_STREAM", "1") == "1"
 
 # ── Skills injection ──────────────────────────────────────────────────────
 # Categories that OpenCode's built-in system prompt already covers.

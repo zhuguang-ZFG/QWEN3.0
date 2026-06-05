@@ -75,6 +75,7 @@ KEY_POOL_PREFIXES = {
     'deepinfra_': 'deepinfra',
     'fireworks_': 'fireworks',
     'ms_': 'modelscope',
+    'fm_': 'freemodel',
 }
 
 CODE_CAPABLE_BACKENDS = frozenset({
@@ -87,6 +88,10 @@ CODE_CAPABLE_BACKENDS = frozenset({
     'deepinfra_qwen235b',
     # ModelScope 魔搭
     'ms_qwen_coder_32b', 'ms_qwen_coder_14b', 'ms_qwen_coder_7b',
+    # NVIDIA NIM 新增强力模型
+    'nvidia_deepseek_v4', 'nvidia_qwen35_coder',
+    # FreeModel.dev
+    'fm_gpt55', 'fm_gpt54', 'fm_gpt54_mini', 'fm_gpt53_codex',
 })
 
 # Backends that reliably support tool_calls (OpenAI function calling format)
@@ -100,11 +105,13 @@ TOOL_CAPABLE_BACKENDS = frozenset({
     # OpenRouter
     'or_gptoss_120b',
     # NVIDIA
-    'nvidia_mistral',
+    'nvidia_mistral', 'nvidia_deepseek_v4', 'nvidia_qwen35_coder', 'nvidia_kimi_k25',
+    # FreeModel.dev
+    'fm_gpt55', 'fm_gpt54', 'fm_gpt53_codex',
     # China Mobile
     'chinamobile',
     # Longcat (Anthropic format, but supports tool_calls)
-    'longcat',
+    'longcat', 'longcat_openai',
 })
 VISION_SYSTEM_PROMPT = "你是一位耐心的老师。用户上传了一道题目的图片。请：1. 识别题目内容 2. 分步骤解答 3. 给出最终答案。如果是选择题，明确指出正确选项。"
 
@@ -157,6 +164,11 @@ MODEL_ALIASES = {
     "mimo": "mimo_web",
     "mimo-pro": "mimo_v2_pro",
     "mimo-v2.5-pro": "mimo_v2_5_pro",
+    # FreeModel.dev
+    "gpt-5.5": "fm_gpt55",
+    "gpt-5.4": "fm_gpt54",
+    "gpt-5.4-mini": "fm_gpt54_mini",
+    "gpt-5.3-codex": "fm_gpt53_codex",
     # Kimi
     "kimi": "kimi",
     "kimi-k2.6": "kimi",

@@ -11,6 +11,7 @@ BACKENDS = {
     # longcat_lite/chat/thinking/omni 已于 2026-05-29 下线
     'longcat': {'url': 'https://api.longcat.chat/anthropic/v1/messages', 'key': os.environ.get('LONGCAT_API_KEY', ''), 'model': 'LongCat-2.0-Preview', 'fmt': 'anthropic', 'auth': 'bearer', 'caps': ['tool_calls']},
     'longcat_lite': {'url': 'https://api.longcat.chat/anthropic/v1/messages', 'key': os.environ.get('LONGCAT_API_KEY', ''), 'model': 'LongCat-2.0-Preview', 'fmt': 'anthropic', 'auth': 'bearer', 'caps': ['tool_calls'], 'alias_for': 'longcat'},
+    'longcat_openai': {'url': 'https://api.longcat.chat/openai/v1/chat/completions', 'key': os.environ.get('LONGCAT_API_KEY', ''), 'model': 'LongCat-2.0-Preview', 'fmt': 'openai', 'timeout': 90, 'caps': ['tool_calls']},
     'longcat_web': {'url': 'http://localhost:4506/v1/chat/completions', 'key': 'local', 'model': 'longcat-web', 'fmt': 'openai', 'timeout': 60, 'force_stream_param': True, 'admission': 'code_floor_candidate', 'private_code_allowed': True},
     'longcat_web_think': {'url': 'http://localhost:4506/v1/chat/completions', 'key': 'local', 'model': 'longcat-web-think', 'fmt': 'openai', 'timeout': 120, 'force_stream_param': True},
     'longcat_web_research': {'url': 'http://localhost:4506/v1/chat/completions', 'key': 'local', 'model': 'longcat-web-research', 'fmt': 'openai', 'timeout': 180, 'force_stream_param': True},
@@ -20,6 +21,16 @@ BACKENDS = {
     'nvidia_llama4': {'url': 'https://integrate.api.nvidia.com/v1/chat/completions', 'key': os.environ.get('NVIDIA_API_KEY', ''), 'model': 'meta/llama-4-maverick-17b-128e-instruct', 'fmt': 'openai'},
     'nvidia_mistral': {'url': 'https://integrate.api.nvidia.com/v1/chat/completions', 'key': os.environ.get('NVIDIA_API_KEY', ''), 'model': 'mistralai/mistral-large-3-675b-instruct-2512', 'fmt': 'openai', 'caps': ['tool_calls']},
     'nvidia_phi4': {'url': 'https://integrate.api.nvidia.com/v1/chat/completions', 'key': os.environ.get('NVIDIA_API_KEY', ''), 'model': 'microsoft/phi-4-mini-instruct', 'fmt': 'openai'},
+    # ── NVIDIA NIM 新增强力模型 (40 RPM free tier, shared key) ──
+    'nvidia_deepseek_v4': {'url': 'https://integrate.api.nvidia.com/v1/chat/completions', 'key': os.environ.get('NVIDIA_API_KEY', ''), 'model': 'deepseek-ai/deepseek-v4-pro', 'fmt': 'openai', 'timeout': 45, 'caps': ['tool_calls']},
+    'nvidia_qwen35_coder': {'url': 'https://integrate.api.nvidia.com/v1/chat/completions', 'key': os.environ.get('NVIDIA_API_KEY', ''), 'model': 'qwen/qwen3.5-397b-a17b', 'fmt': 'openai', 'timeout': 45, 'caps': ['tool_calls']},
+    'nvidia_glm5': {'url': 'https://integrate.api.nvidia.com/v1/chat/completions', 'key': os.environ.get('NVIDIA_API_KEY', ''), 'model': 'z-ai/glm-5.1', 'fmt': 'openai', 'timeout': 30},
+    'nvidia_kimi_k25': {'url': 'https://integrate.api.nvidia.com/v1/chat/completions', 'key': os.environ.get('NVIDIA_API_KEY', ''), 'model': 'moonshotai/kimi-k2.5', 'fmt': 'openai', 'timeout': 45, 'caps': ['tool_calls']},
+    # ── FreeModel.dev (OpenAI-compatible proxy, free tier) ──
+    'fm_gpt55': {'url': 'https://api.freemodel.dev/v1/chat/completions', 'key': os.environ.get('FREEMODEL_API_KEY', ''), 'model': 'gpt-5.5', 'fmt': 'openai', 'timeout': 90, 'caps': ['tool_calls']},
+    'fm_gpt54': {'url': 'https://api.freemodel.dev/v1/chat/completions', 'key': os.environ.get('FREEMODEL_API_KEY', ''), 'model': 'gpt-5.4', 'fmt': 'openai', 'timeout': 60, 'caps': ['tool_calls']},
+    'fm_gpt54_mini': {'url': 'https://api.freemodel.dev/v1/chat/completions', 'key': os.environ.get('FREEMODEL_API_KEY', ''), 'model': 'gpt-5.4-mini', 'fmt': 'openai', 'timeout': 30},
+    'fm_gpt53_codex': {'url': 'https://api.freemodel.dev/v1/chat/completions', 'key': os.environ.get('FREEMODEL_API_KEY', ''), 'model': 'gpt-5.3-codex', 'fmt': 'openai', 'timeout': 60, 'caps': ['tool_calls']},
     'chinamobile': {'url': 'https://maas.gd.chinamobile.com:36007/ai/uifm/open/v1/chat/completions', 'key': os.environ.get('CHINAMOBILE_API_KEY', ''), 'model': 'minimax-m25', 'fmt': 'openai', 'caps': ['tool_calls']},
     'or_deepseek_r1': {'url': 'https://openrouter.ai/api/v1/chat/completions', 'key': os.environ.get('OPENROUTER_API_KEY', ''), 'model': 'deepseek/deepseek-v4-flash:free', 'fmt': 'openai', 'timeout': 60},
     'or_qwen3_coder': {'url': 'https://openrouter.ai/api/v1/chat/completions', 'key': os.environ.get('OPENROUTER_API_KEY', ''), 'model': 'qwen/qwen3-coder:free', 'fmt': 'openai', 'timeout': 60},
@@ -49,6 +60,8 @@ BACKENDS = {
     'github_o3_mini': {'url': 'https://models.inference.ai.azure.com/chat/completions', 'key': os.environ.get('GITHUB_TOKEN', ''), 'model': 'o3-mini', 'fmt': 'openai', 'timeout': 30, 'caps': ['tool_calls']},
     'github_o4_mini': {'url': 'https://models.inference.ai.azure.com/chat/completions', 'key': os.environ.get('GITHUB_TOKEN', ''), 'model': 'o4-mini', 'fmt': 'openai', 'timeout': 30, 'caps': ['tool_calls']},
     'github_deepseek_r1': {'url': 'https://models.inference.ai.azure.com/chat/completions', 'key': os.environ.get('GITHUB_TOKEN', ''), 'model': 'DeepSeek-R1', 'fmt': 'openai', 'timeout': 60},
+    'github_codellama': {'url': 'https://models.inference.ai.azure.com/chat/completions', 'key': os.environ.get('GITHUB_TOKEN', ''), 'model': 'CodeLlama-70b-Instruct-hf', 'fmt': 'openai', 'timeout': 30, 'caps': ['tool_calls']},
+    'github_starcoder2': {'url': 'https://models.inference.ai.azure.com/chat/completions', 'key': os.environ.get('GITHUB_TOKEN', ''), 'model': 'starcoder2-15b', 'fmt': 'openai', 'timeout': 20, 'caps': ['tool_calls']},
     'github_llama70b': {'url': 'https://models.inference.ai.azure.com/chat/completions', 'key': os.environ.get('GITHUB_TOKEN', ''), 'model': 'Llama-3.3-70B-Instruct', 'fmt': 'openai', 'timeout': 15},
     'github_codestral': {'url': 'https://models.inference.ai.azure.com/chat/completions', 'key': os.environ.get('GITHUB_TOKEN', ''), 'model': 'Codestral-2501', 'fmt': 'openai', 'timeout': 15, 'caps': ['tool_calls']},
     'google_flash_lite': {'url': 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', 'key': os.environ.get('GOOGLE_AI_KEY', ''), 'model': 'gemini-3.1-flash-lite', 'fmt': 'openai', 'timeout': 15, 'caps': ['tool_calls']},
@@ -57,6 +70,8 @@ BACKENDS = {
     'cf_llama70b': {'url': f"https://api.cloudflare.com/client/v4/accounts/{os.environ.get('CLOUDFLARE_ACCOUNT_ID', '')}/ai/v1/chat/completions", 'key': os.environ.get('CLOUDFLARE_TOKEN', ''), 'model': '@cf/meta/llama-3.3-70b-instruct-fp8-fast', 'fmt': 'openai', 'timeout': 15},
     'cf_llama4': {'url': f"https://api.cloudflare.com/client/v4/accounts/{os.environ.get('CLOUDFLARE_ACCOUNT_ID', '')}/ai/v1/chat/completions", 'key': os.environ.get('CLOUDFLARE_TOKEN', ''), 'model': '@cf/meta/llama-4-scout-17b-16e-instruct', 'fmt': 'openai', 'timeout': 15},
     'cf_qwen_coder': {'url': f"https://api.cloudflare.com/client/v4/accounts/{os.environ.get('CLOUDFLARE_ACCOUNT_ID', '')}/ai/v1/chat/completions", 'key': os.environ.get('CLOUDFLARE_TOKEN', ''), 'model': '@cf/qwen/qwen2.5-coder-32b-instruct', 'fmt': 'openai', 'timeout': 15},
+    'cf_codellama': {'url': f"https://api.cloudflare.com/client/v4/accounts/{os.environ.get('CLOUDFLARE_ACCOUNT_ID', '')}/ai/v1/chat/completions", 'key': os.environ.get('CLOUDFLARE_TOKEN', ''), 'model': '@cf/meta/codellama-7b-instruct', 'fmt': 'openai', 'timeout': 15},
+    'cf_starcoder': {'url': f"https://api.cloudflare.com/client/v4/accounts/{os.environ.get('CLOUDFLARE_ACCOUNT_ID', '')}/ai/v1/chat/completions", 'key': os.environ.get('CLOUDFLARE_TOKEN', ''), 'model': '@cf/bigcode/starcoder2-15b', 'fmt': 'openai', 'timeout': 15},
     'cf_mistral': {'url': f"https://api.cloudflare.com/client/v4/accounts/{os.environ.get('CLOUDFLARE_ACCOUNT_ID', '')}/ai/v1/chat/completions", 'key': os.environ.get('CLOUDFLARE_TOKEN', ''), 'model': '@cf/mistralai/mistral-small-3.1-24b-instruct', 'fmt': 'openai', 'timeout': 15},
     'cf_vision': {'url': f"https://api.cloudflare.com/client/v4/accounts/{os.environ.get('CLOUDFLARE_ACCOUNT_ID', '')}/ai/v1/chat/completions", 'key': os.environ.get('CLOUDFLARE_TOKEN', ''), 'model': '@cf/meta/llama-3.2-11b-vision-instruct', 'fmt': 'openai', 'timeout': 15},
     # ── Cloudflare 新增 (37个模型嗅探, 挑最强) ──
@@ -124,9 +139,18 @@ BACKENDS = {
     # ── 新增: SambaNova Cloud (芯片级加速推理) ──
     'sambanova_llama4': {'url': 'https://api.sambanova.ai/v1/chat/completions', 'key': os.environ.get('SAMBANOVA_API_KEY', ''), 'model': 'Meta-Llama-4-Maverick-17B-128E-Instruct', 'fmt': 'openai', 'timeout': 20},
     'sambanova_ds_v3': {'url': 'https://api.sambanova.ai/v1/chat/completions', 'key': os.environ.get('SAMBANOVA_API_KEY', ''), 'model': 'DeepSeek-V3.2', 'fmt': 'openai', 'timeout': 30},
+    'sambanova_coder': {'url': 'https://api.sambanova.ai/v1/chat/completions', 'key': os.environ.get('SAMBANOVA_API_KEY', ''), 'model': 'DeepSeek-Coder-V2-Lite-Instruct', 'fmt': 'openai', 'timeout': 30, 'caps': ['tool_calls']},
+    'sambanova_qwen_coder': {'url': 'https://api.sambanova.ai/v1/chat/completions', 'key': os.environ.get('SAMBANOVA_API_KEY', ''), 'model': 'Qwen2.5-Coder-32B-Instruct', 'fmt': 'openai', 'timeout': 30, 'caps': ['tool_calls']},
     # ── 新增: DeepInfra (200并发, 高吞吐) ──
     'deepinfra_llama4': {'url': 'https://api.deepinfra.com/v1/openai/chat/completions', 'key': os.environ.get('DEEPINFRA_API_KEY', ''), 'model': 'meta-llama/Llama-4-Maverick-17B-128E-Instruct', 'fmt': 'openai', 'timeout': 20},
     'deepinfra_qwen235b': {'url': 'https://api.deepinfra.com/v1/openai/chat/completions', 'key': os.environ.get('DEEPINFRA_API_KEY', ''), 'model': 'Qwen/Qwen3-235B-A22B-Instruct', 'fmt': 'openai', 'timeout': 30},
+    'deepinfra_coder': {'url': 'https://api.deepinfra.com/v1/openai/chat/completions', 'key': os.environ.get('DEEPINFRA_API_KEY', ''), 'model': 'Qwen/Qwen2.5-Coder-32B-Instruct', 'fmt': 'openai', 'timeout': 30, 'caps': ['tool_calls']},
+    'deepinfra_codellama': {'url': 'https://api.deepinfra.com/v1/openai/chat/completions', 'key': os.environ.get('DEEPINFRA_API_KEY', ''), 'model': 'codellama/CodeLlama-70b-Instruct-hf', 'fmt': 'openai', 'timeout': 30, 'caps': ['tool_calls']},
+    # ── 新增: Together.ai (高吞吐编码模型) ──
+    'together_qwen_coder': {'url': 'https://api.together.xyz/v1/chat/completions', 'key': os.environ.get('TOGETHER_API_KEY', ''), 'model': 'Qwen/Qwen2.5-Coder-32B-Instruct', 'fmt': 'openai', 'timeout': 30, 'caps': ['tool_calls']},
+    'together_codellama': {'url': 'https://api.together.xyz/v1/chat/completions', 'key': os.environ.get('TOGETHER_API_KEY', ''), 'model': 'codellama/CodeLlama-70b-Instruct-hf', 'fmt': 'openai', 'timeout': 30, 'caps': ['tool_calls']},
+    'together_deepseek_coder': {'url': 'https://api.together.xyz/v1/chat/completions', 'key': os.environ.get('TOGETHER_API_KEY', ''), 'model': 'deepseek-ai/deepseek-coder-33b-instruct', 'fmt': 'openai', 'timeout': 30, 'caps': ['tool_calls']},
+    
     # M6: deepseek_free + DDG backends deleted (not in any routing pool, dead code)
     # ── lza6 系列 CF Workers (逆向网页 AI, 免费) ──
     'tele_reason': {'url': 'https://tele.zhuguang.ccwu.cc/v1/chat/completions', 'key': '1', 'model': 'teleprompt-reason', 'fmt': 'openai', 'timeout': 30},

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
 import sys
 import time
 
@@ -9,15 +11,47 @@ import httpx
 from response_cleaner import clean_response, _is_backend_error
 
 from backends import BACKENDS
+from backends_constants import KEY_POOL_PREFIXES
 from http_errors import BackendError, _extract_code, _extract_retry_after
 from http_response import _extract_answer, _extract_usage
 from http_sync import _apply_artifact_handles, _handle_call_error
+
+_log = logging.getLogger(__name__)
 
 # ── Usage tracking (asyncio single-threaded, no lock needed) ──────────────
 _last_usage: dict[str, dict] = {}
 """Async per-backend last usage cache.
 Safe without lock: asyncio is single-threaded per event loop.
 """
+
+# ── Provider-level concurrency limiter ─────────────────────────────────────
+# Prevents multiple backends sharing the same API key from flooding
+# the provider and triggering rate-limit cascades (e.g. NVIDIA NIM 40 RPM).
+# Each provider gets an asyncio.Semaphore — calls wait in the event loop
+# instead of failing with 429.
+_PROVIDER_MAX_CONCURRENT: dict[str, int] = {
+    "nvidia": 3,
+}
+_provider_semaphores: dict[str, asyncio.Semaphore] = {}
+
+
+def _resolve_provider(backend: str) -> str | None:
+    """Map backend name to its key-pool provider (e.g. 'nvidia_qwen_coder' → 'nvidia')."""
+    for prefix, provider in KEY_POOL_PREFIXES.items():
+        if backend.startswith(prefix):
+            return provider
+    return None
+
+
+def _get_provider_semaphore(backend: str) -> asyncio.Semaphore | None:
+    """Return an asyncio.Semaphore for the backend's provider, if rate-limited."""
+    provider = _resolve_provider(backend)
+    if not provider or provider not in _PROVIDER_MAX_CONCURRENT:
+        return None
+    if provider not in _provider_semaphores:
+        _provider_semaphores[provider] = asyncio.Semaphore(_PROVIDER_MAX_CONCURRENT[provider])
+        _log.info("provider_semaphore created: %s (max_concurrent=%d)", provider, _PROVIDER_MAX_CONCURRENT[provider])
+    return _provider_semaphores[provider]
 
 
 def get_last_usage(backend: str) -> dict | None:
@@ -57,11 +91,25 @@ async def call_api_async(
                           reasoning_effort=reasoning_effort, backend_name=backend)
     timeout = cfg.get("timeout", 60)
 
-    try:
+    # Provider-level concurrency gate: acquire semaphore before HTTP call.
+    # This prevents multiple backends sharing one API key from flooding the
+    # provider (e.g. NVIDIA NIM free tier 40 RPM).  Calls wait in the event
+    # loop instead of failing with 429, and the key pool's 429 cooldown
+    # provides additional backpressure.
+    sem = _get_provider_semaphore(backend)
+
+    async def _do_call():
         client = hc._get_async_client(backend, timeout)
         resp = await client.post(cfg["url"], content=body, headers=headers)
         resp.raise_for_status()
-        payload = resp.json()
+        return resp.json()
+
+    try:
+        if sem:
+            async with sem:
+                payload = await _do_call()
+        else:
+            payload = await _do_call()
 
         answer = _extract_answer(payload, cfg["fmt"])
         if _is_backend_error(answer):

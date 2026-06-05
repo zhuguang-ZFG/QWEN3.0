@@ -13,7 +13,7 @@ import routing_facade
 from http_errors import BackendError
 from orchestrate import orchestrate
 from response_builder import _split_sentences, build_stream_chunk
-from routes.stream_handlers import speculative_stream_chunks
+from routes.stream_handlers import real_stream_chunks_async, speculative_stream_chunks
 from routes.v3_adapters import v3_route
 
 from routes.chat_support import thinking_route
@@ -58,6 +58,7 @@ async def stream_response(
     prefer: str | None = None,
     model: str = "",
     reasoning_effort: str | None = None,
+    has_tools: bool = False,
 ):
     """SSE generator: speculative streaming with orchestration/thinking fallbacks."""
     messages = messages or []
@@ -115,8 +116,26 @@ async def stream_response(
         return
 
     streamed_any = False
-    last_backend = "unknown"
+    last_backend = prefer or "unknown"
     last_usage: dict | None = None
+
+    if prefer and not has_tools:
+        async for chunk in real_stream_chunks_async(prefer, messages, 4096, ide_source):
+            meta = _extract_meta(chunk)
+            if meta:
+                if "usage" in meta:
+                    last_usage = meta["usage"]
+                continue
+            streamed_any = True
+            from response_cleaner import clean_response
+            chunk = clean_response(chunk, prefer) or chunk
+            yield build_stream_chunk(chat_id, chunk)
+        if streamed_any:
+            yield build_stream_chunk(chat_id, "", finish=True)
+            if last_usage:
+                yield build_usage_chunk(chat_id, last_usage)
+            yield "data: [DONE]\n\n"
+            return
 
     async for _backend, chunk in speculative_stream_chunks(query, messages, 4096, ide_source):
         meta = _extract_meta(chunk)

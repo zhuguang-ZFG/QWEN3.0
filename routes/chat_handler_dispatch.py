@@ -20,7 +20,7 @@ from response_builder import (
     make_chat_id,
 )
 from routes.chat_fallback import QualityFallbackRequest, resolve_quality_fallback
-from opencode_config import OPENCODE_PREFERRED_BACKEND
+from opencode_config import OPENCODE_DIRECT_STREAM, OPENCODE_PREFERRED_BACKEND
 
 _log = logging.getLogger(__name__)
 from routes.chat_post_closeout import (
@@ -83,8 +83,10 @@ def resolve_route_prefs(req: ChatRequest, ide_source: str, query: str) -> RouteP
         prefer = prefer or "scnet_ds_pro"
 
     # OpenCode sends full context like Claude Code → needs large context window
+    # Override fast model default (longcat_lite) for OpenCode — it needs tool-capable backends
     if ide_source and "opencode" in ide_source.lower():
-        prefer = prefer or OPENCODE_PREFERRED_BACKEND
+        if prefer in (None, "longcat_lite"):
+            prefer = OPENCODE_PREFERRED_BACKEND
 
     use_thinking = getattr(req, "thinking", False) or routing_facade.detect_thinking_intent(query)
     return RoutePrefs(prefer=prefer, ide_source=ide, use_thinking=use_thinking)
@@ -203,6 +205,44 @@ async def maybe_thinking_response(
 
 
 def build_streaming_response(ctx: ChatRunContext, req: ChatRequest) -> StreamingResponse:
+    is_opencode = bool(
+        ctx.ide_source and "opencode" in ctx.ide_source.lower()
+    )
+    if (
+        OPENCODE_DIRECT_STREAM
+        and is_opencode
+        and req.has_tools
+        and ctx.prefs.prefer
+    ):
+        from routes.opencode_direct_stream import (
+            resolve_opencode_backend,
+            stream_openai_passthrough,
+        )
+
+        backend = resolve_opencode_backend(ctx.prefs.prefer)
+
+        async def _opencode_tool_stream():
+            async for line in stream_openai_passthrough(
+                backend=backend,
+                messages=ctx.preflight.prompt_context_messages,
+                chat_id=ctx.chat_id,
+                model=ctx.request_model or _model_id_fallback(),
+                tools=req.tools,
+                tool_choice=req.tool_choice,
+                max_tokens=req.max_tokens or 4096,
+                system_prompt=ctx.preflight.system_prompt,
+                ide=ctx.ide_source,
+                reasoning_effort=req.reasoning_effort,
+            ):
+                yield line
+            yield "data: [DONE]\n\n"
+
+        return StreamingResponse(
+            _opencode_tool_stream(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
+
     intent = routing_facade.analyze(
         ctx.query, system_prompt=ctx.sys_prompt_preview, ide=ctx.ide_source
     )
@@ -224,10 +264,19 @@ def build_streaming_response(ctx: ChatRunContext, req: ChatRequest) -> Streaming
             prefer=ctx.prefs.prefer,
             model=ctx.request_model or "",
             reasoning_effort=req.reasoning_effort,
+            has_tools=req.has_tools,
         ),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+def _model_id_fallback() -> str:
+    try:
+        from chat_models import MODEL_ID
+        return MODEL_ID
+    except ImportError:
+        return "lima-1.3"
 
 
 async def execute_non_stream_route(ctx: ChatRunContext, req: ChatRequest) -> tuple[dict, dict]:
@@ -240,6 +289,32 @@ async def execute_non_stream_route(ctx: ChatRunContext, req: ChatRequest) -> tup
         if not ctx.prefs.prefer
         else False
     )
+    is_opencode = bool(
+        ctx.ide_source and "opencode" in ctx.ide_source.lower()
+    )
+    if OPENCODE_DIRECT_STREAM and is_opencode and ctx.prefs.prefer and not use_orchestration:
+        import http_caller
+        from routes.opencode_direct_stream import resolve_opencode_backend
+
+        backend = resolve_opencode_backend(ctx.prefs.prefer)
+        answer = await asyncio.to_thread(
+            http_caller.call_api,
+            backend,
+            ctx.preflight.prompt_context_messages,
+            req.max_tokens or 4096,
+            system_prompt=ctx.preflight.system_prompt,
+            ide=ctx.ide_source,
+            tools=req.tools if req.has_tools else None,
+            reasoning_effort=req.reasoning_effort,
+        )
+        return (
+            {
+                "answer": answer,
+                "backend": backend,
+                "usage": http_caller.get_last_usage(backend),
+            },
+            intent if isinstance(intent, dict) else {},
+        )
     if use_orchestration:
         result = await asyncio.to_thread(orchestrate, ctx.query)
     else:
