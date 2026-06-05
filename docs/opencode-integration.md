@@ -86,7 +86,7 @@ opencode
 |------|--------|------|
 | `LIMA_OPENCODE_MODEL_LIST` | `0` | 设为 `1` 启用 OpenCode 专属模型列表（/v1/models 返回 coding 精选模型） |
 | `LIMA_OPENCODE_SKILLS` | `0` | 设为 `1` 启用 OpenCode Skills 注入（全类别 skill 补缺） |
-| `LIMA_OPENCODE_TOOL_MODE` | `auto` | 设为 `direct` 启用工具调用直通模式（绕过 Anthropic 转换，原生 OpenAI 格式） |
+| `LIMA_OPENCODE_TOOL_MODE` | `direct` | 默认启用工具调用直通模式（原生 OpenAI 格式）；设为 `convert` 走 Anthropic 转换管线 |
 | `LIMA_OPENCODE_OVERFLOW` | `1` | 设为 `0` 禁用 overflow 检测（上下文溢出自动处理） |
 | `LIMA_OPENCODE_NORMALIZE` | `1` | 设为 `0` 禁用消息规范化（surrogate 清理、toolCallId 适配） |
 | `LIMA_OPENCODE_USAGE` | `1` | 设为 `0` 禁用 usage token 用量追踪 |

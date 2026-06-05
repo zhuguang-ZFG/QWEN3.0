@@ -7,8 +7,11 @@ from pathlib import Path
 
 SKIP_PARTS = {
     "venv",
+    ".venv310",
     ".git",
     "deepcode-cli",
+    "_codegraph_repo",
+    "opencode-source",
     "donglicao",
     "node_modules",
     "__pycache__",
@@ -24,10 +27,12 @@ SKIP_PARTS = {
 
 KEY_FILES = (
     "server.py",
+    "server_lifespan.py",
     "smart_router.py",
     "routing_engine.py",
     "http_body_limit.py",
     "semantic_cache.py",
+    "routes/route_registry.py",
     "routes/quality_gate.py",
     "routes/chat_handler_dispatch.py",
     "routes/system_endpoints.py",

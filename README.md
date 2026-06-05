@@ -87,6 +87,8 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 
 ## 项目结构
 
+> 详细架构与模块说明见 [`AGENTS.md`](AGENTS.md)（权威参考）。
+
 ```
 lima-router/
 ├── server.py                   # FastAPI 入口
