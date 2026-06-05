@@ -52,7 +52,6 @@ FILES = [
     "tool_repair_pipeline.py",  # NEW: tool call repair pipeline
     "text_tool_extractor.py",  # NEW: text block → tool extraction
     "context_injection_trace.py",  # NEW: context injection trace endpoint
-    "prompt_caching.py",  # NEW: prompt caching support
     "router_http.py",  # MODIFIED
     "router_v3.py",  # MODIFIED
     "routing_classifier.py",  # MODIFIED
