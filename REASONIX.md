@@ -1,16 +1,16 @@
 # REASONIX.md — LiMa Project
 
-> Updated: 2026-06-05. 31 milestones. smart_router Slice 1-3 done. Agent hardening deployed.
+> Updated: 2026-06-05. 31 milestones. smart_router migration COMPLETE (Slice 1-6 done).
 
 ## Key Facts (2026-06-05)
 
 - **31 milestones** (M0–M11f + M-OC0–M-OC13) — decouple, OpenCode, cleanup, security, agent
 - **LOCAL_ONLY_BACKENDS = empty** — all 184 backends cloud-native
 - **5 VPS reverse sidecars** — scnet-large (4505), kimi (4504), longcat (4506), mimo (4507)
-- **smart_router** — production refs 14→3 (orchestrate, routing_facade, server)
+- **smart_router** — ✅ **迁移完成**（Slice 1-6）。255行→93行废弃壳。新增 `routing_constants.py` + `local_router.py`。CI gate 禁止新 `import smart_router`
 - **LIMA_PERIODIC_CODING_EVAL=1** — VPS 周期编码 eval
 - **API Key** — 4 脚本去硬编码 + 生产 key 环境变量 `LIMA_API_KEY`
-- **OpenCode 适配** — error adapter (HTML/timeout) + normalizer (Bedrock/sdkKey) + session options + provider remap
+- **OpenCode 适配** — error adapter (HTML/timeout) + normalizer (Bedrock/sdkKey) + session options + provider remap + `/v1` endpoint
 - **Agent 能力** — doom loop + output truncation + step checkpoint
 - **模型列表** — 13→21（+gpt-5, o3-mini, deepseek-r1, qwen3-235b, gemini-2.5-pro, mistral-large, codestral, mimo-v2.5-pro）
 - **管理面板** — admin_api 路由修复，15 端点可用
@@ -63,17 +63,21 @@ Dev: `python -m uvicorn server:app --host 0.0.0.0 --port 8080`
 
 ## Architecture notes (from docs/REQUEST_PIPELINE_AUTHORITY.md)
 
-- **routing_engine.route()** is the authoritative routing module — NOT smart_router or router_v3
-- smart_router is a legacy compat layer (14→3 callers after Slice 1-3 migration)
-- router_v3 provides P2C/sticky session features that complement routing_engine
-- http_caller (httpx) is authoritative for HTTP; router_http (urllib) is legacy
-- health_tracker is authoritative for health/cooldown; router_circuit_breaker is migration target
-- distill_queue.py extracted from smart_router (Slice 3); routing_facade.py is migration gateway
+- **routing_engine.route()** is the authoritative routing module
+- smart_router is a **deprecated re-export shell** (93 lines, Slice 6); CI-gated against new imports
+- router_v3 provides P2C/sticky session features
+- http_caller (httpx) is authoritative for HTTP
+- routing_constants.py holds ROUTE/PUBLIC_MODEL_NAME (Slice 5)
+- local_router.py holds call_local/warmup_router_model (Slice 4)
+- distill_queue.py handles Q&A logging (Slice 3)
+- routing_facade.py is the classify/intent/status gateway (Slice 1)
 
 ## New modules (M-OC8–M-OC13)
 
 | Module | Purpose |
 |------|------|
+| `routing_constants.py` | ROUTE table + PUBLIC_MODEL_NAME (Slice 5) |
+| `local_router.py` | call_local + warmup_router_model (Slice 4) |
 | `tool_guard.py` | Doom loop detection + tool output truncation |
 | `step_checkpoint.py` | Per-step agent checkpointing |
 | `distill_queue.py` | Q&A distillation queue (extracted from smart_router) |
