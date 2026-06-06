@@ -268,7 +268,11 @@ def _consolidate_if_needed() -> int:
 
 
 def _consolidate_session(conn, session_id: str) -> bool:
-    """Merge oldest exchange memories into a single compacted entry."""
+    """Merge oldest exchange memories into a single compacted entry.
+
+    Uses LLM summarizer (via compactor.llm_summarizer_factory) when available;
+    falls back to simple string concatenation.
+    """
     oldest = conn.execute(
         "SELECT id, summary FROM memories "
         "WHERE session_id = ? AND memory_type = 'exchange' "
@@ -280,7 +284,7 @@ def _consolidate_session(conn, session_id: str) -> bool:
 
     ids = [r[0] for r in oldest]
     summaries = [r[1] for r in oldest]
-    merged = "; ".join(summaries)[:500]
+    merged = _summarize_with_llm(summaries)
 
     conn.execute(
         "INSERT INTO memories (session_id, timestamp, role, summary, detail, embedding, memory_type) "
@@ -293,3 +297,65 @@ def _consolidate_session(conn, session_id: str) -> bool:
     conn.commit()
     logger.info("[MemoryDaemon] consolidated %d memories for session %s", len(ids), session_id[:8])
     return True
+
+
+def _summarize_with_llm(summaries: list[str]) -> str:
+    """Try LLM summarization; fall back to string join if unavailable."""
+    summarizer = _get_summarizer()
+    if summarizer is None:
+        return "; ".join(summaries)[:500]
+    try:
+        result = summarizer(summaries)
+        if result and len(result) > 3:
+            return result[:200]
+    except Exception:
+        logger.debug("[MemoryDaemon] LLM summarizer failed, using fallback", exc_info=True)
+    return "; ".join(summaries)[:500]
+
+
+_summarizer_cache = None
+
+
+def _get_summarizer():
+    """Lazy-init LLM summarizer using LiMa's own free backends.
+
+    Falls back to None (string-join summarization) if:
+    - compactor module is not importable
+    - LiMa local API is unreachable
+    - Any other initialization error
+    """
+    global _summarizer_cache
+    if _summarizer_cache is not None:
+        return _summarizer_cache
+    try:
+        from session_memory.compactor import llm_summarizer_factory
+        import httpx
+
+        async def _call_lima(messages):
+            try:
+                async with httpx.AsyncClient(timeout=30) as client:
+                    r = await client.post(
+                        "http://127.0.0.1:8080/v1/chat/completions",
+                        json={
+                            "model": "lima",
+                            "messages": messages,
+                            "max_tokens": 120,
+                            "temperature": 0,
+                        },
+                        headers={"Authorization": "Bearer lima-internal"},
+                    )
+                    if r.status_code == 200:
+                        data = r.json()
+                        choices = data.get("choices", [])
+                        if choices:
+                            return choices[0].get("message", {}).get("content", "")
+                    return ""
+            except Exception:
+                return ""
+
+        _summarizer_cache = llm_summarizer_factory(_call_lima)
+        logger.info("[MemoryDaemon] LLM summarizer initialized via LiMa local API")
+    except Exception:
+        _summarizer_cache = None
+        logger.debug("[MemoryDaemon] LLM summarizer unavailable, will use string fallback", exc_info=True)
+    return _summarizer_cache

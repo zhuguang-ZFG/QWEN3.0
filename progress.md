@@ -1,6 +1,27 @@
 # Execution Log
 
-> Last updated: 2026-06-06 · OpenCode E2E 12/13 PASS · 267 backends · ModelScope 46
+> Last updated: 2026-06-06 · LIMA_SESSION_MEMORY=1 enabled · LLM compaction wired · 2323 VPS memories
+
+## 长期记忆强化 P0 (2026-06-06 15:12 CST)
+
+**目标**：激活热路径记忆召回 + 接入 LLM 摘要替换字符串拼接
+
+### P0-1: 开启 LIMA_SESSION_MEMORY=1
+- **问题**：processor.py L56 默认值 "0"，整个四级召回链路完全不工作
+- **修复**：VPS `.env` 追加 `LIMA_SESSION_MEMORY=1`，重启后生效
+- **备份**：`.env.bak-20260605-memory`
+
+### P0-2: daemon consolidation 接入 LLM 摘要
+- **问题**：`_consolidate_session` 使用 `"; ".join(summaries)` 纯字符串拼接
+- **修复**：新增 `_get_summarizer()` 懒加载 LLM 摘要器
+  - 调用 `compactor.llm_summarizer_factory` + 本地 LiMa API (127.0.0.1:8080)
+  - 失败时优雅降级到原字符串拼接
+  - 中文提示词："将以下对话摘要压缩为一句话（中文，不超过100字）"
+
+**部署文件**：`session_memory/daemon.py` (+68 lines)
+**VPS 状态**：`lima_sessions.db` 774KB / 2323 memories / health OK
+
+---
 
 ## OpenCode E2E VPS 验证：12/13 通过 (2026-06-06 14:59 CST)
 
