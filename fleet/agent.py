@@ -59,7 +59,7 @@ def detect_capabilities() -> dict:
                 try:
                     caps["gpu_vram_gb"] = round(float(vram_str) / 1024, 1)
                 except ValueError:
-                    pass
+                    _log.debug("agent: optional dependency or operation failed", exc_info=True)
     except (FileNotFoundError, subprocess.TimeoutExpired):
         pass
 

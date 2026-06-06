@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import logging
+
+_log = logging.getLogger(__name__)
+
 from response_builder import build_anthropic_response, build_response, make_chat_id
 from routing_engine_types import RouteResult
 
@@ -24,5 +28,5 @@ def with_injection_meta(result: RouteResult, backend: str = "") -> RouteResult:
         if trace:
             result.injection_meta = trace.to_meta()
     except ImportError:
-        pass
+        _log.debug("routing_engine_response: context_injection_trace not available")
     return result

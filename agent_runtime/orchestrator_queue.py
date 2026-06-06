@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import time
 from typing import Any
+
+_log = logging.getLogger(__name__)
 
 from agent_runtime.contract import AgentRunResult, AgentRunStatus, AgentTask
 from agent_runtime.executor import AgentRuntime
@@ -299,8 +302,7 @@ class AgentRunQueue:
         try:
             os.remove(_state_path())
         except OSError:
-            pass
-
+            _log.debug("orchestrator_queue: optional dependency or operation failed", exc_info=True)
     def save_and_snapshot(self) -> dict:
         """Save state and return a snapshot for debugging."""
         self.save_state()

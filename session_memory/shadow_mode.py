@@ -230,7 +230,7 @@ def format_digest(candidates: list[CandidateImprovement] | None = None) -> str:
                 lines.append(f"  ✅ {c['summary'][:100]}")
             lines.append("")
     except Exception:
-        pass
+        _log.debug("shadow_mode: applied candidates listing failed", exc_info=True)
 
     # Show routing weight effects
     try:
@@ -248,7 +248,7 @@ def format_digest(candidates: list[CandidateImprovement] | None = None) -> str:
                 lines.append(f"  {icon} {backend}:{scenario} w={weight:.2f} rate={rate:.0%} n={total}")
         lines.append("")
     except Exception:
-        pass
+        _log.debug("shadow_mode: routing weights display failed", exc_info=True)
 
     lines.append("/learn to review  /outcome for ledger  /memstats for memory")
 

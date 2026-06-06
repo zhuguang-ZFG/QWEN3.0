@@ -1,5 +1,8 @@
+import logging
 import math
 from dataclasses import dataclass, field
+
+_log = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -94,5 +97,5 @@ def build_code_index(**kwargs) -> InMemoryCodeIndex:
             from code_context.chroma_vector_store import ChromaCodeIndex
             return ChromaCodeIndex(persist_directory=data_dir, **kwargs)  # type: ignore[return-value]
         except Exception:
-            pass
+            _log.debug("index_store: ChromaDB index unavailable", exc_info=True)
     return InMemoryCodeIndex()

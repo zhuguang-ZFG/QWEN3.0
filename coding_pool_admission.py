@@ -167,7 +167,7 @@ def _registry_private_code_allowed(backend: str) -> bool | None:
         if "private_code_allowed" in cfg:
             return bool(cfg["private_code_allowed"])
     except ImportError:
-        pass
+        _log.debug("coding_pool_admission: optional module not available", exc_info=True)
     return None
 
 
@@ -211,7 +211,7 @@ def _admission_overlay_allows(backend: str) -> bool:
             if overlay.admission_status == "admitted_late_fallback":
                 return True
     except ImportError:
-        pass
+        _log.debug("coding_pool_admission: optional module not available", exc_info=True)
     return False
 
 

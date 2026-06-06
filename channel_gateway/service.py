@@ -4,6 +4,10 @@ Guests: scan/add-friend then chat (auto guest bind when enabled).
 Owner-only commands (/code-task /device /status /artifact /memory) rejected for guests.
 """
 
+import logging
+
+_log = logging.getLogger(__name__)
+
 import os
 import re
 
@@ -131,7 +135,7 @@ def _demo_text() -> str:
         if session_enabled():
             lines[1] = f"1. 直接发消息（保留最近 {max_turns()} 轮）"
     except ImportError:
-        pass
+        _log.debug("service: optional module not available", exc_info=True)
     return "\n".join(lines)
 
 

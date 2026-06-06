@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import re
 import statistics
 import time
 from dataclasses import asdict, dataclass, field
+
+_log = logging.getLogger(__name__)
 from pathlib import Path
 from typing import Callable
 
@@ -192,9 +195,7 @@ def _clear_eval_cooldown(backend: str) -> None:
 
         clear_cooldown(backend)
     except ImportError:
-        pass
-
-
+        _log.debug("coding_eval: optional module not available", exc_info=True)
 def run_eval(
     cases: list[CodingCase],
     backends: list[str],

@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 import random
 import time
+
+_log = logging.getLogger(__name__)
 
 import budget_manager
 import route_scorer
@@ -119,15 +122,14 @@ def select(request_type: str, health_map: dict,
             w = rw.get_weight(b, scenario or request_type)
             scores[b] *= w
         except ImportError:
-            pass
-
+            _log.debug("routing_selector: optional module not available", exc_info=True)
         # Apply coding quality scores for coding scenarios
         if scenario == "coding":
             try:
                 from coding_backend_scorer import get_coding_weight
                 scores[b] *= get_coding_weight(b)
             except ImportError:
-                pass
+                _log.debug("routing_selector: optional module not available", exc_info=True)
             pass
 
         static_latency = _STATIC_LATENCY_ESTIMATE.get(b)
@@ -174,7 +176,7 @@ def select(request_type: str, health_map: dict,
         strategy = recommend_strategy_from_signals(signals, backends_available=len(result))
         result = apply_strategy_to_backends(result, strategy, proven_backends=result[:2])
     except ImportError:
-        pass
+        _log.debug("routing_selector: optional module not available", exc_info=True)
     states = {b: re.health_tracker.get_backend_state(b) for b in result}
     result = [
         b for b in result

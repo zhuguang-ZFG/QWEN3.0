@@ -102,7 +102,7 @@ def record_failure(
 
             backend_reputation.record_failure_class(backend, error_class)
         except ImportError:
-            pass
+            _log.debug("health_recorder: optional module not available", exc_info=True)
         except Exception as exc:
             _log.debug(
                 "backend_reputation record failed backend=%s: %s",

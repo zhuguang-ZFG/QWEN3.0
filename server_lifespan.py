@@ -85,7 +85,7 @@ async def lifespan(application):
 
             stop_auto_indexer()
         except ImportError:
-            pass
+            _log.debug("server_lifespan: optional module not available", exc_info=True)
         try:
             import periodic_coding_eval
 

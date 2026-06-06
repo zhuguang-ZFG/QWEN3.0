@@ -248,7 +248,7 @@ def _build_body(
         if sys_text and messages:
             sys_text, messages = optimize_for_prefix_cache(sys_text, messages)
     except ImportError:
-        pass
+        logger.debug("http_request_builder: prefix cache module not available")
     except Exception as exc:
         logger.warning("prefix cache optimization failed: %s", exc, exc_info=True)
 
@@ -257,7 +257,7 @@ def _build_body(
         from opencode_system_prompt import enhance_system_prompt
         sys_text = enhance_system_prompt(sys_text, model, backend_name)
     except ImportError:
-        pass
+        logger.debug("http_request_builder: system prompt enhancement module not available")
     except Exception as exc:
         logger.debug("system prompt enhancement failed: %s", exc)
 
@@ -327,7 +327,7 @@ def _build_body(
             from opencode_tool_schema import normalize_tools_schemas
             tools = normalize_tools_schemas(tools)
         except ImportError:
-            pass
+            logger.debug("http_request_builder: tool schema normalization not available")
 
         # M-OC7: sanitize tool schemas for Kimi/Gemini (transform.ts:1254-1371)
         from opencode_schema_sanitize import sanitize_tools_for_backend
@@ -338,14 +338,14 @@ def _build_body(
             from opencode_tool_routing import filter_tools_for_model
             tools = filter_tools_for_model(tools, model, backend_name)
         except ImportError:
-            pass
+            logger.debug("http_request_builder: tool model routing not available")
 
         # M-OC17: Copilot _noop tool workaround (request.ts:142-158)
         try:
             from opencode_tool_routing import inject_noop_tool_if_needed
             tools = inject_noop_tool_if_needed(tools, messages, backend_name)
         except ImportError:
-            pass
+            logger.debug("http_request_builder: noop tool workaround not available")
 
         body["tools"] = tools
 
@@ -356,7 +356,7 @@ def _build_body(
                 from opencode_tool_repair import get_invalid_tool_definition
                 body["tools"] = list(tools) + [get_invalid_tool_definition()]
         except ImportError:
-            pass
+            logger.debug("http_request_builder: tool repair module not available")
 
     if reasoning_effort:
         variant_opts = apply_variant(backend_name, model, reasoning_effort)
@@ -399,14 +399,14 @@ def _build_body(
         if loop_info:
             messages = inject_doom_loop_break(messages, loop_info)
     except ImportError:
-        pass
+        logger.debug("http_request_builder: doom loop detection not available")
 
     # M-OC19: cap max_tokens at OUTPUT_TOKEN_MAX=32000 (transform.ts:18)
     try:
         from opencode_output_limit import cap_max_tokens_in_body
         cap_max_tokens_in_body(body, backend_name, model)
     except ImportError:
-        pass
+        logger.debug("http_request_builder: output limit module not available")
 
     return json.dumps(body).encode()
 

@@ -3,6 +3,11 @@
 
 from __future__ import annotations
 
+
+import logging
+
+_log = logging.getLogger(__name__)
+
 import os
 import subprocess
 import sys
@@ -151,7 +156,7 @@ def main() -> None:
         try:
             sftp.mkdir(remote_dir)
         except OSError:
-            pass
+            _log.debug("deploy_vps_bundle: optional dependency or operation failed", exc_info=True)
         data = local.read_bytes()
         with sftp.file(remote, "wb") as handle:
             handle.write(data)
@@ -164,7 +169,7 @@ def main() -> None:
         try:
             sftp.mkdir(remote_dir)
         except OSError:
-            pass
+            _log.debug("deploy_vps_bundle: optional dependency or operation failed", exc_info=True)
         for name in os.listdir(local_dir):
             if name.endswith(".py"):
                 sftp.put(str(local_dir / name), f"{remote_dir}/{name}")

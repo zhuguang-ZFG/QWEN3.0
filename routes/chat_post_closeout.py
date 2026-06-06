@@ -103,9 +103,7 @@ def record_chat_observability(*, chat_id: str, backend: str, duration_ms: int) -
             latency_ms=duration_ms,
         )
     except ImportError:
-        pass
-
-
+        _log.debug("chat_post_closeout: optional module not available", exc_info=True)
 def maybe_log_distill_queue(*, query: str, content: str, intent, backend: str) -> None:
     if os.environ.get("DISTILL_LOG", "0") != "1":
         return

@@ -1,3 +1,6 @@
+import logging
+
+_log = logging.getLogger(__name__)
 import re
 import urllib.parse
 import ipaddress
@@ -48,8 +51,7 @@ def _parse_ip_literal(host: str) -> ipaddress.IPv4Address | ipaddress.IPv6Addres
     try:
         return ipaddress.ip_address(host)
     except ValueError:
-        pass
-
+        _log.debug("safety: optional dependency or operation failed", exc_info=True)
     try:
         if host.startswith(("0x", "0X")):
             value = int(host, 16)

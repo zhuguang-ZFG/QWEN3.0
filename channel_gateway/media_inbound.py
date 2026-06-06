@@ -51,7 +51,7 @@ def _stt_audio(
         if text:
             return text
     except ImportError:
-        pass
+        _log.debug("media_inbound: optional module not available", exc_info=True)
     except Exception as exc:
         _log.warning("channel mimo_stt failed: %s", type(exc).__name__)
 

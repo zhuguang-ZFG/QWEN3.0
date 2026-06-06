@@ -246,7 +246,7 @@ def repair_tool_call_json(args_json: str) -> tuple[str, bool]:
             _log.warning("Extracted partial JSON from malformed tool call args")
             return extracted, True
     except Exception:
-        pass
+        _log.debug("tool_splitter: JSON extraction failed", exc_info=True)
 
     return original, False
 

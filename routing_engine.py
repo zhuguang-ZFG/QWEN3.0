@@ -87,7 +87,7 @@ def route(query: str, messages: list[dict], *,
 
         begin_trace(scenario=scenario, request_type=req_type)
     except ImportError:
-        pass
+        logging.debug("routing_engine: context_injection_trace not available")
 
     _recalled_backend = ""
     try:
@@ -104,7 +104,7 @@ def route(query: str, messages: list[dict], *,
 
         record_retrieval(_retrieval_text)
     except ImportError:
-        pass
+        logging.debug("routing_engine: context_injection_trace not available")
 
     # ── Enriched context: date/time + location + device ──
     try:
@@ -127,7 +127,7 @@ def route(query: str, messages: list[dict], *,
 
                 record_web_search(_web_search_text)
             except ImportError:
-                pass
+                logging.debug("routing_engine: context_injection_trace not available")
     except Exception as e:
         logging.debug("routing_engine: web_search_context injection failed: %s", e)
 
@@ -147,7 +147,7 @@ def route(query: str, messages: list[dict], *,
 
                     record_code_context(_code_context_text)
                 except ImportError:
-                    pass
+                    logging.debug("routing_engine: context_injection_trace not available")
         except Exception as e:
             import logging as _logging
             _logging.debug("code_context_injection failed: %s", e)
@@ -177,7 +177,7 @@ def route(query: str, messages: list[dict], *,
 
         record_skills(_injected_ids)
     except ImportError:
-        pass
+        logging.debug("routing_engine: context_injection_trace not available")
 
     if scenario == "coding" and call_fn:
         try:
@@ -205,7 +205,7 @@ def route(query: str, messages: list[dict], *,
                                             needs_tools=needs_tools, ide_source=ide_source)
                     _est_backend = _candidates[0] if _candidates else ""
                 except Exception:
-                    pass
+                    logging.debug("routing_engine: backend estimation failed", exc_info=True)
                 if _est_backend:
                     messages = inject_thinking_reminder(messages, _est_backend)
                     _provider_hint = select_provider_system_prompt(_est_backend)

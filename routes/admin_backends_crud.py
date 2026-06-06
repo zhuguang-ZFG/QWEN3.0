@@ -51,8 +51,7 @@ def _detect_backend_pools(name: str, cfg: dict) -> list[str]:
                         pools.append(pool_name)
                     break
     except ImportError:
-        pass
-    
+        _log.debug("admin_backends_crud: optional module not available", exc_info=True)
     # Fallback: use admission metadata
     if not pools:
         if admission.startswith("code_"):

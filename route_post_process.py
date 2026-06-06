@@ -35,7 +35,7 @@ def apply_post_route_integrations(
             from context_pipeline.narrative import reframe_for_handoff
             reframe_for_handoff(messages_injected, backends[0], final_backend)
         except ImportError:
-            pass
+            logger.debug("route_post_process: optional module not available", exc_info=True)
         except Exception as exc:
             _warn("narrative", exc)
 
@@ -47,7 +47,7 @@ def apply_post_route_integrations(
         if ms > 0:
             hmem.save()
     except ImportError:
-        pass
+        logger.debug("route_post_process: optional module not available", exc_info=True)
     except Exception as exc:
         _warn("hierarchical_memory", exc)
 
@@ -55,7 +55,7 @@ def apply_post_route_integrations(
         from context_pipeline.routing_bridge import record_routing_outcome
         record_routing_outcome(final_backend, ms, bool(answer), scenario)
     except ImportError:
-        pass
+        logger.debug("route_post_process: optional module not available", exc_info=True)
     except Exception as exc:
         _warn("routing_bridge", exc)
 
@@ -96,7 +96,7 @@ def apply_post_route_integrations(
             from context_pipeline.skill_store import get_skill_store
             get_skill_store().crystallize(messages, scenario, final_backend, 0, ms)
     except ImportError:
-        pass
+        logger.debug("route_post_process: optional module not available", exc_info=True)
     except Exception as exc:
         _warn("response_pipeline", exc)
 
@@ -111,6 +111,6 @@ def apply_post_route_integrations(
             candidates=backends if backends else [],
         ))
     except ImportError:
-        pass
+        logger.debug("route_post_process: optional module not available", exc_info=True)
     except Exception as exc:
         _warn("observability", exc)

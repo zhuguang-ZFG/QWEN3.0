@@ -139,7 +139,7 @@ async def _dispatch_operator(chat_id: str, cmd: str, arg: str, *, logs_fn, resta
                 await cmd_ci_detail(chat_id, arg)
                 return True
             except ValueError:
-                pass
+                _log.debug("telegram_dispatch: optional dependency or operation failed", exc_info=True)
         await cmd_ci(chat_id, arg)
         return True
     if cmd in ("/kb", "/search"):

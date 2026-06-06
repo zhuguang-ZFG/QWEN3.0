@@ -6,6 +6,7 @@ network calls, or write to the workspace.
 
 from __future__ import annotations
 
+import logging
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -24,6 +25,8 @@ from agent_runtime.tool_policy import check_step_policy
 from agent_runtime.store import AgentRunStore
 from agent_runtime.approval import ApprovalGate
 from agent_runtime.tool_gateway_adapter import ToolExecutionGateway
+
+_log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -58,9 +61,9 @@ class AgentRuntime:
                 else:
                     task.goal = outcome_ctx
         except ImportError:
-            pass
+            _log.debug("executor: outcome ledger not available")
         except Exception:
-            pass
+            _log.debug("executor: outcome context injection failed", exc_info=True)
         plan_task(task)
         task.status = AgentRunStatus.PLANNING
         self._audit("plan", task.task_id, f"planned {len(task.steps)} steps")

@@ -7,6 +7,10 @@ LiMa Budget Manager — 请求预算管理
 - 每日 UTC 0:00 自动重置
 """
 
+import logging
+
+_log = logging.getLogger(__name__)
+
 import time
 import threading
 from dataclasses import dataclass
@@ -262,9 +266,7 @@ def record_token_usage(backend: str, prompt_tokens: int = 0,
         _obs_record(token_usage_event(backend, prompt_tokens, completion_tokens,
                                        get_cost_class(backend)))
     except ImportError:
-        pass
-
-
+        _log.debug("budget_manager: optional module not available", exc_info=True)
 def get_token_usage(backend: str = "") -> dict:
     """Return token telemetry. Pass empty string for all backends."""
     with _token_lock:

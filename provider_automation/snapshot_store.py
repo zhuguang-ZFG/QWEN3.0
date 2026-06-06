@@ -3,9 +3,12 @@
 Stores snapshots as JSON files in data/provider_snapshots/.
 Retains the most recent N snapshots per provider.
 """
-
 from __future__ import annotations
 
+
+import logging
+
+_log = logging.getLogger(__name__)
 import json
 import os
 import re
@@ -104,9 +107,7 @@ def _prune_old_snapshots(provider: str) -> None:
             try:
                 os.remove(path)
             except OSError:
-                pass
-
-
+                _log.debug("snapshot_store: optional dependency or operation failed", exc_info=True)
 def count_snapshots(provider: str) -> int:
     return len(list_snapshots(provider, limit=1000))
 
@@ -117,4 +118,4 @@ def reset_snapshots(provider: str = "") -> None:
         try:
             os.remove(path)
         except OSError:
-            pass
+            _log.debug("snapshot_store: optional dependency or operation failed", exc_info=True)

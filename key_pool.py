@@ -10,6 +10,10 @@ LiMa Key Pool — SWRR 权重轮转 + 分级冷却 + 自动拉黑恢复
 - 401/403 → 永久拉黑 (需手动恢复)
 """
 
+import logging
+
+_log = logging.getLogger(__name__)
+
 import time
 import threading
 import os
@@ -241,9 +245,7 @@ def report_key_result(provider: str, key: str, success: bool,
         event_name = "success" if success else f"failure_{error_code}"
         _obs_record(key_pool_event(provider, event_name))
     except ImportError:
-        pass
-
-
+        _log.debug("key_pool: optional module not available", exc_info=True)
 def is_exhausted(provider: str) -> bool:
     """All keys for this provider are blocked or cooled."""
     pool = _pools.get(provider)

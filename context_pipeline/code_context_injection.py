@@ -99,8 +99,7 @@ def scan_and_build_context(
                 parts.append(f"[semantic match: score={result.score}]\n{ctx}")
                 total += len(ctx) + 30
     except ImportError:
-        pass
-
+        _log.debug("code_context_injection: optional module not available", exc_info=True)
     # Phase 3: Graph expansion for remaining budget
     if total < max_chars * 0.5 and len(scanned_files) < _MAX_FILES:
         try:
@@ -118,8 +117,7 @@ def scan_and_build_context(
                     parts.append(ctx)
                     total += len(ctx)
         except ImportError:
-            pass
-
+            _log.debug("code_context_injection: optional module not available", exc_info=True)
     # Phase 4: Identifier search (existing approach)
     for ident in identifiers[:3]:
         if total >= max_chars or len(scanned_files) >= _MAX_FILES:
@@ -196,8 +194,7 @@ def _find_identifier_files(identifier: str) -> list[Path]:
             if p.exists():
                 results.append(p)
     except Exception:
-        pass
-
+        _log.debug("code_context_injection: optional dependency or operation failed", exc_info=True)
     if not results:
         try:
             from code_context.index_store import InMemoryCodeIndex
@@ -208,6 +205,5 @@ def _find_identifier_files(identifier: str) -> list[Path]:
                 if p.exists():
                     results.append(p)
         except Exception:
-            pass
-
+            _log.debug("code_context_injection: optional dependency or operation failed", exc_info=True)
     return results

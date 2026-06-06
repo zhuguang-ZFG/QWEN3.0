@@ -7,8 +7,11 @@ All records are sanitized before write. Bad lines are skipped on read.
 from __future__ import annotations
 
 import json
+import logging
 import os
 from abc import ABC, abstractmethod
+
+_log = logging.getLogger(__name__)
 
 from agent_runtime.contract import AgentRunResult, AgentTask, redact
 
@@ -274,9 +277,7 @@ def reset_store_for_tests(path: str = "") -> None:
     try:
         os.remove(target)
     except OSError:
-        pass
-
-
+        _log.debug("store: optional dependency or operation failed", exc_info=True)
 def _sanitize_task(task: AgentTask) -> AgentTask:
     return AgentTask.from_dict(task.to_dict())
 

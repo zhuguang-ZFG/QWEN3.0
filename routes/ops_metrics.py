@@ -9,6 +9,10 @@ All raw prompts, keys, paths, and device tokens are redacted.
 """
 from __future__ import annotations
 
+import logging
+
+_log = logging.getLogger(__name__)
+
 import time
 from typing import Any
 
@@ -129,25 +133,24 @@ async def ops_metrics(request: Request) -> JSONResponse:
         from device_gateway.sessions import registry
         device["sessions"] = registry.count()
     except ImportError:
-        pass
+        _log.debug("ops_metrics: optional module not available", exc_info=True)
     try:
         from device_gateway.tasks import pending_count
         device["pending_tasks"] = pending_count()
     except ImportError:
-        pass
+        _log.debug("ops_metrics: optional module not available", exc_info=True)
     try:
         from device_gateway.store import task_store_health
         th = task_store_health()
         device["store_backend"] = th.get("backend", "unknown")
         device["shared"] = th.get("shared_across_processes", False)
     except ImportError:
-        pass
+        _log.debug("ops_metrics: optional module not available", exc_info=True)
     try:
         from device_gateway.notifier import notifier_health
         device["bus"] = notifier_health()
     except ImportError:
-        pass
-
+        _log.debug("ops_metrics: optional module not available", exc_info=True)
     # Agent tasks
     agent = {"active_workers": 0, "total_completed": 0, "total_failed": 0}
     try:
@@ -157,16 +160,14 @@ async def ops_metrics(request: Request) -> JSONResponse:
         agent["total_completed"] = sum(w.total_completed for w in workers)
         agent["total_failed"] = sum(w.total_failed for w in workers)
     except ImportError:
-        pass
-
+        _log.debug("ops_metrics: optional module not available", exc_info=True)
     # Recent retrieval traces
     retrieval_traces: list[dict] = []
     try:
         from context_pipeline.retrieval_trace import get_recent_traces
         retrieval_traces = get_recent_traces(limit=5)
     except ImportError:
-        pass
-
+        _log.debug("ops_metrics: optional module not available", exc_info=True)
     recent_tasks = _recent_agent_tasks(limit=5)
 
     # Backend error summary
@@ -177,7 +178,7 @@ async def ops_metrics(request: Request) -> JSONResponse:
             from health_tracker import get_backend_state
             state = get_backend_state(backend_name)
         except ImportError:
-            pass
+            _log.debug("ops_metrics: optional module not available", exc_info=True)
         if state.get("last_error_class"):
             backend_errors[backend_name] = {
                 "error_class": state.get("last_error_class"),
@@ -191,7 +192,7 @@ async def ops_metrics(request: Request) -> JSONResponse:
         from session_memory.prompt_recall import recall_stats
         learning["prompt_recall"] = recall_stats()
     except ImportError:
-        pass
+        _log.debug("ops_metrics: optional module not available", exc_info=True)
     try:
         from context_pipeline.routing_weights import get_routing_weights
         rw = get_routing_weights()
@@ -203,7 +204,7 @@ async def ops_metrics(request: Request) -> JSONResponse:
             "top_scenarios": scenarios[:10],
         }
     except ImportError:
-        pass
+        _log.debug("ops_metrics: optional module not available", exc_info=True)
     try:
         from session_memory.eval_gate import revision_check
         revision = revision_check()
@@ -216,7 +217,7 @@ async def ops_metrics(request: Request) -> JSONResponse:
         promoted = [c for c in revision.get("promotable", []) if c.get("promoted")]
         learning["eval_gate"]["promoted_active"] = len(promoted)
     except ImportError:
-        pass
+        _log.debug("ops_metrics: optional module not available", exc_info=True)
     try:
         from session_memory.learning_loop import get_eval_candidates, get_prompt_profile_stats
 
@@ -225,8 +226,7 @@ async def ops_metrics(request: Request) -> JSONResponse:
             "prompt_profile_keys": len(get_prompt_profile_stats()),
         }
     except ImportError:
-        pass
-
+        _log.debug("ops_metrics: optional module not available", exc_info=True)
     return JSONResponse({
         "timestamp": int(now),
         "uptime_sec": int(now - stats.get("start_time", now)),

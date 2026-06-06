@@ -2,9 +2,12 @@
 
 Extracted from integrations.py for file-size compliance.
 """
-
 from __future__ import annotations
 
+
+import logging
+
+_log = logging.getLogger(__name__)
 import os
 from typing import Callable
 
@@ -145,7 +148,7 @@ def build_owner_status_handler() -> Callable:
             from device_gateway.sessions import registry
             lines.append(f"Device sessions: {registry.count()}")
         except ImportError:
-            pass
+            _log.debug("owner_handlers: optional module not available", exc_info=True)
         try:
             import health_tracker
             hm = health_tracker.get_health_map()
@@ -155,7 +158,7 @@ def build_owner_status_handler() -> Callable:
             if dead:
                 lines.append(f"  Dead: {', '.join(dead[:3])}")
         except ImportError:
-            pass
+            _log.debug("owner_handlers: optional module not available", exc_info=True)
         return "\n".join(lines)
 
     return handler
@@ -243,7 +246,7 @@ def build_owner_digest_handler() -> Callable[[str], str]:
                 for e in entries:
                     lines.append(f"  · {(e.summary or '')[:60]}")
         except ImportError:
-            pass
+            _log.debug("owner_handlers: optional module not available", exc_info=True)
         return "\n".join(lines)[:4000]
 
     return handler
@@ -275,7 +278,7 @@ def build_owner_github_handler() -> Callable[[str, str], str]:
 
                     adapter = get_dev_search_adapter()
             except ImportError:
-                pass
+                _log.debug("owner_handlers: optional module not available", exc_info=True)
         if adapter is None:
             from search_gateway.dev_tools import read_url
 

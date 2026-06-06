@@ -1,3 +1,6 @@
+import logging
+
+_log = logging.getLogger(__name__)
 """Server request context staging."""
 
 from dataclasses import dataclass
@@ -50,8 +53,7 @@ def build_prompt_context(
         memory_recall_meta = recall.meta()
         memory_session_id = recall.session_id
     except ImportError:
-        pass
-
+        _log.debug("server_context: optional module not available", exc_info=True)
     return ServerPromptContext(
         request_messages=request_messages,
         prompt_context_messages=messages_with_system_context(

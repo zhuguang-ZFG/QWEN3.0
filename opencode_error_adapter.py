@@ -9,9 +9,12 @@
 4. parse_api_error() — API 调用错误解析（含 HTML 网关检测）
 5. HeaderTimeoutError / ResponseStreamError — SSE 超时错误类
 """
-
 from __future__ import annotations
 
+
+import logging
+
+_log = logging.getLogger(__name__)
 import json
 import re
 from typing import Any
@@ -73,8 +76,7 @@ def detect_context_overflow(
         ):
             return True
     except ImportError:
-        pass
-
+        _log.debug("opencode_error_adapter: optional module not available", exc_info=True)
     # HTTP 413 = Request Entity Too Large → 上下文溢出
     if status_code == 413:
         return True

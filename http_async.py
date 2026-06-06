@@ -141,7 +141,7 @@ async def call_api_async(
                 backend, prompt_tokens, completion_tokens
             )
         except ImportError:
-            pass
+            _log.debug("http_async: optional module not available", exc_info=True)
         return cleaned
     except Exception as exc:
         _handle_call_error(backend, key_provider, selected_key, exc, emit_obs=False)

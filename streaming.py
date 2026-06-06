@@ -54,7 +54,7 @@ async def bridge_stream_async(
                 if not received_finish and '"finish_reason"' in chunk:
                     received_finish = True
             except Exception:
-                pass
+                _log.debug("streaming: protocol adapter normalize failed", exc_info=True)
 
             total_text += chunk
             yield chunk
@@ -87,7 +87,7 @@ async def bridge_stream_async(
             yield graceful
             total_text += graceful
         except Exception:
-            pass
+            _log.debug("streaming: graceful finish injection failed", exc_info=True)
 
     if not total_text:
         try:

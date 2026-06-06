@@ -147,7 +147,7 @@ def compute_retry_delay(
                 if delta_ms > 0:
                     return _cap_delay(math.ceil(delta_ms))
             except Exception:
-                pass
+                _log.debug("retry_policy: retry-after date parsing failed", exc_info=True)
 
         # Exponential backoff with headers (higher cap)
         return _cap_delay(RETRY_INITIAL_DELAY_MS * (RETRY_BACKOFF_FACTOR ** (attempt - 1)))

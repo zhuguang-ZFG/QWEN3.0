@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Optional
 
 import httpx
+
+_log = logging.getLogger(__name__)
 
 
 class BackendError(Exception):
@@ -71,4 +74,4 @@ def _emit_backend_error(backend: str, error_code: int | None, error_text: str) -
         failure_class = classify_failure(error_code, error_text)
         obs_record(backend_error_event("", backend, failure_class))
     except ImportError:
-        pass
+        _log.debug("http_errors: optional module not available", exc_info=True)

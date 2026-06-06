@@ -3,9 +3,12 @@
 Records every decision point in a JSONL audit log. All values are redacted
 before write. Supports query by event type, task_id, worker_id.
 """
-
 from __future__ import annotations
 
+
+import logging
+
+_log = logging.getLogger(__name__)
 import json
 import os
 import time
@@ -124,9 +127,7 @@ class AuditTrail:
         try:
             os.remove(self._path)
         except OSError:
-            pass
-
-
+            _log.debug("audit_trail: optional dependency or operation failed", exc_info=True)
 _global_trail: AuditTrail | None = None
 
 

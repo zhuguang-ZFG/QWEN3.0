@@ -10,9 +10,12 @@ Provider implementations:
     (future) E2BProvider — E2B cloud sandbox, gated
     (future) CubeSandboxProvider — CubeSandbox, gated
 """
-
 from __future__ import annotations
 
+
+import logging
+
+_log = logging.getLogger(__name__)
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -223,7 +226,7 @@ class FakeSandboxProvider(SandboxProvider):
         try:
             shutil.rmtree(entry["work_dir"], ignore_errors=True)
         except OSError:
-            pass
+            _log.debug("provider: optional dependency or operation failed", exc_info=True)
         return True
 
     def is_alive(self, sandbox_id: str) -> bool:

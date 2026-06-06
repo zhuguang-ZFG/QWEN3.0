@@ -127,7 +127,7 @@ class AutoIndexer:
                 try:
                     content = p.read_text(encoding="utf-8", errors="replace")[:5000]
                 except Exception:
-                    pass
+                    _log.debug("auto_indexer: optional dependency or operation failed", exc_info=True)
                 symbols_data = [
                     type("S", (), {"name": s.name, "kind": s.kind, "line": s.line})()
                     for s in file_ast.symbols
@@ -188,7 +188,7 @@ async def _indexer_loop(interval_sec: int) -> None:
         try:
             run_indexer_scan()
         except Exception:
-            pass
+            _log.debug("auto_indexer: optional dependency or operation failed", exc_info=True)
         await asyncio.sleep(interval_sec)
 
 

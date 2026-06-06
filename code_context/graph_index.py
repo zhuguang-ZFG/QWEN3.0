@@ -12,7 +12,10 @@ Interface:
 
 from __future__ import annotations
 
+import logging
 import os
+
+_log = logging.getLogger(__name__)
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
@@ -130,5 +133,5 @@ def build_graph_index() -> GraphIndex:
 
             return SqliteGraphIndex()
         except Exception:
-            pass
+            _log.debug("graph_index: SqliteGraphIndex unavailable", exc_info=True)
     return InMemoryGraphIndex()

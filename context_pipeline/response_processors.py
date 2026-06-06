@@ -1,6 +1,10 @@
 """Response processors — individual post-response processing stages."""
 
+import logging
+
 from context_pipeline.response_pipeline import ResponseContext
+
+_log = logging.getLogger(__name__)
 
 
 def quality_check_processor(ctx: ResponseContext) -> ResponseContext:
@@ -47,7 +51,7 @@ def code_validation_processor(ctx: ResponseContext) -> ResponseContext:
             ctx.quality_ok = False
             ctx.quality_issues.extend(vr.issues[:5])
     except Exception:
-        pass
+        _log.debug("response_processors: quality validation failed", exc_info=True)
 
     return ctx
 

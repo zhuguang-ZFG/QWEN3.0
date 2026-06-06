@@ -171,4 +171,4 @@ class SqliteGraphIndex(GraphIndex):
         try:
             self._conn.close()
         except Exception:
-            pass
+            _log.debug("sqlite_graph_store: connection close failed", exc_info=True)

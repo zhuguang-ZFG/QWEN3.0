@@ -149,7 +149,7 @@ def _feed_memory(outcome: TaskOutcome) -> dict[str, Any]:
             saved.append(f"code_fact:{len(outcome.changed_files)}")
 
     except ImportError:
-        pass
+        _log.debug("learning_loop: outcome ledger save not available")
 
     return {"saved": saved}
 
@@ -189,7 +189,7 @@ def _feed_prompt(outcome: TaskOutcome) -> dict[str, Any]:
             detail=json.dumps(entry, ensure_ascii=False),
         )
     except ImportError:
-        pass
+        _log.debug("learning_loop: prompt profile save not available")
 
     return {"profile_key": profile_key, "status": outcome.status}
 
@@ -222,7 +222,7 @@ def _feed_routing(outcome: TaskOutcome) -> dict[str, Any]:
         else:
             rw.record_failure(outcome.backend, outcome.scenario)
     except ImportError:
-        pass
+        _log.debug("learning_loop: routing weights not available")
 
     try:
         from session_memory.store import save_typed_memory
@@ -232,7 +232,7 @@ def _feed_routing(outcome: TaskOutcome) -> dict[str, Any]:
             detail=json.dumps(feedback, ensure_ascii=False),
         )
     except ImportError:
-        pass
+        _log.debug("learning_loop: routing feedback save not available")
 
     return {"recorded": True, "backend": outcome.backend, "scenario": outcome.scenario}
 
@@ -311,7 +311,7 @@ def _maybe_promote_pattern(outcome: TaskOutcome) -> None:
                     }, ensure_ascii=False),
                 )
         except ImportError:
-            pass
+            _log.debug("learning_loop: cross-session evidence not available")
 
 
 # ── Public query helpers ─────────────────────────────────────────────────────

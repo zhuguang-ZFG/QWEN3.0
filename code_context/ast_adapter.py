@@ -12,7 +12,10 @@ Interface:
 from __future__ import annotations
 
 import ast
+import logging
 from abc import ABC, abstractmethod
+
+_log = logging.getLogger(__name__)
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -163,5 +166,5 @@ def get_extractor(language: str = "python") -> AstExtractor | None:
         if language in extractor.supported_languages:
             return extractor
     except Exception:
-        pass
+        _log.debug("ast_adapter: treesitter extractor unavailable", exc_info=True)
     return None

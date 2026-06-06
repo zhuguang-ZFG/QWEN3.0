@@ -2,6 +2,10 @@
 让 Cursor、Claude Code、VS Code Copilot 等 AI IDE 直接接入。
 支持流式/非流式 ChatCompletion，兼容 OpenAI API 格式。
 """
+
+import logging
+
+_log = logging.getLogger(__name__)
 import sys, os, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -9,8 +13,7 @@ try:
     from dotenv import load_dotenv
     load_dotenv()
 except ImportError:
-    pass
-
+    _log.debug("server: optional module not available", exc_info=True)
 from fastapi import FastAPI
 import uvicorn
 
@@ -50,8 +53,7 @@ if _sentry_dsn:
             integrations=[FastApiIntegration()],
         )
     except ImportError:
-        pass
-
+        _log.debug("server: optional module not available", exc_info=True)
 app.add_middleware(BodySizeLimitMiddleware, max_body_size=MAX_BODY_SIZE)
 
 _stats, _stats_lock, _backend_enabled, _loaded_modules = create_runtime_state()

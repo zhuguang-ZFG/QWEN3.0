@@ -1,6 +1,9 @@
+import logging
 from pathlib import Path
 
 from .index_store import CodeSymbol, FileRecord
+
+_log = logging.getLogger(__name__)
 
 _LANG_EXT_MAP: dict[str, str] = {
     ".py": "python",
@@ -42,7 +45,7 @@ def scan_file(path: Path) -> FileRecord:
                 mtime=path.stat().st_mtime,
             )
     except Exception:
-        pass
+        _log.debug("scanner: treesitter scan failed for %s", path, exc_info=True)
     return _scan_python_file(path)
 
 

@@ -21,7 +21,7 @@ def begin_injection_trace(*, scenario: str, request_type: str) -> None:
 
         begin_trace(scenario=scenario, request_type=request_type)
     except ImportError:
-        pass
+        logging.debug("routing_engine_context: context_injection_trace not available")
 
 
 def prepare_route_context(
@@ -80,7 +80,7 @@ def _record_retrieval(retrieval_text: str) -> None:
 
         record_retrieval(retrieval_text)
     except ImportError:
-        pass
+        logging.debug("routing_engine_context: context_injection_trace not available")
 
 
 def _inject_enriched_context(messages: list[dict], *, client_ip: str, user_agent: str) -> list[dict]:
@@ -105,7 +105,7 @@ def _inject_web_search(query: str, messages: list[dict], retrieval_text: str) ->
 
                 record_web_search(web_search_text)
             except ImportError:
-                pass
+                logging.debug("routing_engine_context: context_injection_trace not available")
     except Exception as exc:
         logging.debug("routing_engine: web_search_context injection failed: %s", exc)
     return messages, retrieval_text
@@ -130,7 +130,7 @@ def _inject_code_context(query: str, messages: list[dict], scenario: str) -> lis
 
             record_code_context(code_context_text)
         except ImportError:
-            pass
+            logging.debug("routing_engine_context: context_injection_trace not available")
     except Exception as exc:
         logging.debug("code_context_injection failed: %s", exc)
     return messages
@@ -157,4 +157,4 @@ def _record_skills(injected_ids: list[str]) -> None:
 
         record_skills(injected_ids)
     except ImportError:
-        pass
+        logging.debug("routing_engine_context: context_injection_trace not available")

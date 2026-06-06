@@ -3,9 +3,12 @@
 Each artifact has a manifest record with provenance, privacy classification,
 retention policy, and evidence references. Stored as JSON for portability.
 """
-
 from __future__ import annotations
 
+
+import logging
+
+_log = logging.getLogger(__name__)
 import json
 import os
 import time
@@ -132,4 +135,4 @@ def reset_manifests() -> None:
     try:
         os.remove(_store_path())
     except OSError:
-        pass
+        _log.debug("manifest: optional dependency or operation failed", exc_info=True)

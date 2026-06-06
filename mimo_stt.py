@@ -86,9 +86,7 @@ def _ffmpeg_to_wav(data: bytes, suffix: str) -> Optional[bytes]:
                 try:
                     os.unlink(p)
                 except OSError:
-                    pass
-
-
+                    logging.debug("mimo_stt: optional dependency or operation failed", exc_info=True)
 def _prepare_wav_bytes(data: bytes, mime: str, name: str = "") -> Optional[bytes]:
     mime_l = (mime or "").lower()
     if mime_l in _MIME_FOR_EXT.values() or mime_l.endswith("/wav"):

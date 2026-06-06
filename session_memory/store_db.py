@@ -2,10 +2,13 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sqlite3
 import time
 from dataclasses import dataclass
+
+_log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -40,7 +43,7 @@ def get_db_path() -> str:
         if isinstance(facade_path, str) and facade_path:
             return facade_path
     except ImportError:
-        pass
+        _log.debug("store_db: store facade not available")
     return _DB_PATH
 
 
@@ -53,7 +56,7 @@ def set_db_path(path: str) -> None:
 
         store_facade._DB_PATH = path
     except ImportError:
-        pass
+        _log.debug("store_db: store facade not available for path update")
 
 
 def _get_conn() -> sqlite3.Connection:

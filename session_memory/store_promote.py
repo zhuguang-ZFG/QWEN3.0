@@ -2,9 +2,12 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sqlite3
 import time
+
+_log = logging.getLogger(__name__)
 
 from session_memory.store_db import (
     MEMORY_TYPES,
@@ -162,5 +165,4 @@ def _record_promotion_audit(
         with open(audit_path, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
     except OSError:
-        pass
-
+        _log.debug("store_promote: optional dependency or operation failed", exc_info=True)

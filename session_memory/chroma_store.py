@@ -20,7 +20,7 @@ try:
     import sys as _sys
     _sys.modules["sqlite3"] = _sys.modules.pop("pysqlite3")
 except ImportError:
-    pass
+    pass  # pysqlite3 not installed; sqlite3 will be used as-is
 
 _log = logging.getLogger(__name__)
 

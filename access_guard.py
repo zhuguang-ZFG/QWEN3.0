@@ -71,7 +71,7 @@ def require_private_api_key(
 
         client_key = find_client_key(token)
     except ImportError:
-        pass
+        _log.debug("access_guard: admin_client_keys not available")
 
     if client_key is not None:
         if not client_key.get("enabled", False):
