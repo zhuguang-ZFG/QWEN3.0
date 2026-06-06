@@ -87,3 +87,22 @@ OPENCODE_REASONING_VARIANTS = (
 OPENCODE_SESSION_OPTIONS = (
     os.environ.get("LIMA_OPENCODE_SESSION_OPTIONS", "1") == "1"
 )
+
+
+# ── Startup summary ────────────────────────────────────────────────────────
+def log_config_summary() -> None:
+    """Log a compact summary of all OpenCode settings at server startup."""
+    lines = [
+        f"tool_mode={OPENCODE_TOOL_MODE}",
+        f"direct_stream={OPENCODE_DIRECT_STREAM}",
+        f"preferred={OPENCODE_PREFERRED_BACKEND}",
+        f"fast_boost={OPENCODE_FAST_BOOST}",
+        f"fast_backends={sorted(OPENCODE_FAST_BACKENDS)}",
+        f"rate_multiplier={OPENCODE_RATE_MULTIPLIER}x",
+        f"keep_turns={OPENCODE_KEEP_RECENT_TURNS}",
+        f"skip_spec_tools={OPENCODE_SKIP_SPECULATIVE_TOOLS}",
+        f"reasoning_variants={OPENCODE_REASONING_VARIANTS}",
+        f"session_options={OPENCODE_SESSION_OPTIONS}",
+        f"skip_skills={sorted(OPENCODE_SKIPPED_SKILL_CATEGORIES)}",
+    ]
+    print(f"[opencode-config] {' | '.join(lines)}", flush=True)

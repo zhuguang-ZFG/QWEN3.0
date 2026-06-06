@@ -77,6 +77,12 @@ async def lifespan(application):
     except ImportError:
         _log.debug("auto_indexer not installed")
     try:
+        from opencode_config import log_config_summary
+
+        log_config_summary()
+    except ImportError:
+        _log.debug("opencode_config not installed")
+    try:
         yield
     finally:
         probe_loop.stop()
