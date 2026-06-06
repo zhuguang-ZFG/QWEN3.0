@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException, Request
 from github_webhook.format import format_github_event
 from github_webhook.verify import verify_github_signature
 
+_log = logging.getLogger(__name__)
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/github")
@@ -69,22 +70,22 @@ async def github_webhook(request: Request):
 
     if event == "push":
         try:
-            from github_webhook.format import extract_github_push_shas
             from gitee_webhook.dedupe import record_push_shas
+            from github_webhook.format import extract_github_push_shas
 
             record_push_shas(extract_github_push_shas(payload), source="github")
-        except Exception:
+        except Exception as exc:
             logger.debug("github push dedupe record skipped", exc_info=True)
 
     try:
-        from telegram_notify import notify_github_event
         from github_webhook.activity import classify_github_event
+        from telegram_notify import notify_github_event
         from webhook_activity_buffer import record_webhook_event
 
         kind, repo = classify_github_event(event, payload)
         record_webhook_event(source="github", kind=kind, repo=repo)
         notify_github_event(summary)
-    except Exception:
+    except Exception as exc:
         logger.exception("github webhook telegram notify failed event=%s", event)
 
     task_id = None
@@ -98,9 +99,9 @@ async def github_webhook(request: Request):
                     from telegram_notify import notify_github_event
 
                     notify_github_event(f"Auto-task created: `{task_id}` from GitHub issue")
-                except Exception:
+                except Exception as exc:
                     logger.debug("auto_task telegram notify skipped", exc_info=True)
-        except Exception:
+        except Exception as exc:
             logger.exception("github auto_task failed event=%s", event)
 
     result = {"ok": True, "event": event}

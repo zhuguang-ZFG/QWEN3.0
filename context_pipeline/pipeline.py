@@ -6,7 +6,7 @@ Processors run in sequence, each building on previous outputs.
 
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 from . import RequestContext
 

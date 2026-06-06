@@ -1,8 +1,11 @@
 import logging
 
 _log = logging.getLogger(__name__)
-import json, time
+import json
+import time
+
 import httpx
+
 COOKIE_PATH='/opt/lima-router/reverse_gateway_state/scnet_cookies.json'
 BASE='https://www.scnet.cn/acx'
 raw=json.load(open(COOKIE_PATH))
@@ -47,7 +50,7 @@ for body in [
     try:
         first=pdata['data'][0]
         doc_id=first.get('result') or first.get('documentId') or first.get('id')
-    except Exception:
+    except Exception as exc:
         _log.debug("scnet_readfile_probe: optional dependency or operation failed", exc_info=True)
     if isinstance(pdata,list) and pdata:
         doc_id=pdata[0].get('result') if isinstance(pdata[0],dict) else None

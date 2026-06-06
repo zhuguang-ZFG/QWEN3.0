@@ -5,13 +5,14 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from fastapi.responses import JSONResponse, StreamingResponse
 
 import routing_facade
 from chat_models import ChatRequest, extract_system_prompt
+from opencode_config import OPENCODE_DIRECT_STREAM, OPENCODE_PREFERRED_BACKEND
 from orchestrate import orchestrate
 from response_builder import (
     build_anthropic_response,
@@ -20,7 +21,6 @@ from response_builder import (
     make_chat_id,
 )
 from routes.chat_fallback import QualityFallbackRequest, resolve_quality_fallback
-from opencode_config import OPENCODE_DIRECT_STREAM, OPENCODE_PREFERRED_BACKEND
 
 _log = logging.getLogger(__name__)
 from routes.chat_post_closeout import (
@@ -32,6 +32,7 @@ from routes.chat_post_closeout import (
 from routes.chat_preflight import ChatPreflightResult, prepare_chat_preflight
 from routes.chat_stream import stream_response
 from routes.chat_support import attach_lima_meta, attach_memory_recall_meta, log_sys_prompt, thinking_route
+
 
 def _chat_handler():
     import routes.chat_handler as mod

@@ -50,7 +50,7 @@ def code_validation_processor(ctx: ResponseContext) -> ResponseContext:
         if not vr.passed:
             ctx.quality_ok = False
             ctx.quality_issues.extend(vr.issues[:5])
-    except Exception:
+    except Exception as exc:
         _log.debug("response_processors: quality validation failed", exc_info=True)
 
     return ctx
@@ -70,7 +70,7 @@ def memory_capture_processor(ctx: ResponseContext) -> ResponseContext:
 
 def event_recording_processor(ctx: ResponseContext) -> ResponseContext:
     """Record response event to the event log."""
-    from context_pipeline.event_log import get_request_log, EventType
+    from context_pipeline.event_log import EventType, get_request_log
 
     log = get_request_log()
     if ctx.quality_ok:

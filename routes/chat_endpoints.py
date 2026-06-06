@@ -17,7 +17,8 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 from access_guard import require_private_api_key
 from chat_models import ChatRequest
-from chat_request_utils import extract_system_preview, extract_last_user_text
+from chat_request_utils import extract_last_user_text, extract_system_preview
+from opencode_config import OPENCODE_RATE_MULTIPLIER, OPENCODE_TOOL_MODE
 from response_builder import build_response, make_chat_id
 from routes.anthropic_messages_handler import (
     check_anthropic_rate_limit,
@@ -27,7 +28,6 @@ from routes.anthropic_messages_handler import (
 )
 from routes.anthropic_vision_sse import anthropic_vision_messages
 from vision_handler import detect_vision_request
-from opencode_config import OPENCODE_TOOL_MODE, OPENCODE_RATE_MULTIPLIER
 
 router = APIRouter()
 
@@ -72,7 +72,8 @@ async def chat_completions(request: Request):
     """OpenAI-compatible chat completions endpoint."""
     try:
         body = await request.json()
-    except Exception:
+    except Exception as exc:
+        _log.warning("operation failed: %s", exc)
         return JSONResponse(
             status_code=400,
             content={"error": {"message": "Invalid JSON body", "type": "invalid_request_error"}},

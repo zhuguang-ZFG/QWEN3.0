@@ -9,19 +9,18 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from context_pipeline.semantic_code_retrieval import (
-    CodeResult,
-    assess_code_complexity,
-    retrieve_semantic,
-    _tokenize_query,
-    _build_file_index,
-    _score_file,
-)
 from context_pipeline.graph_context_expander import (
     ExpandedFile,
     expand_context,
 )
-
+from context_pipeline.semantic_code_retrieval import (
+    CodeResult,
+    _build_file_index,
+    _score_file,
+    _tokenize_query,
+    assess_code_complexity,
+    retrieve_semantic,
+)
 
 # ─── Tokenizer tests ──────────────────────────────────────────────────
 

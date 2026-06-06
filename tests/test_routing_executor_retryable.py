@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from http_errors import BackendError
-
 import routing_executor as mod
+from http_errors import BackendError
 
 
 def test_execute_falls_back_on_retryable_error():

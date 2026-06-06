@@ -4,7 +4,6 @@ from fastapi import APIRouter, Depends
 
 from routes.admin_auth import verify_admin
 
-
 router = APIRouter(prefix="/admin")
 
 

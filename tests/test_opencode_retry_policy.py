@@ -1,14 +1,16 @@
 """Tests for opencode_retry_policy.py — retry decision and backoff computation."""
 
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from opencode_retry_policy import (
-    is_retryable_error,
-    compute_retry_delay,
-    classify_retry_error,
     RETRY_INITIAL_DELAY_MS,
     RETRY_MAX_DELAY_NO_HEADERS_MS,
+    classify_retry_error,
+    compute_retry_delay,
+    is_retryable_error,
 )
 
 

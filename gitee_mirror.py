@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import re
 import subprocess
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Sequence
 from urllib.parse import urlparse, urlunparse
 
 _OAUTH_RE = re.compile(r"oauth2:[^@]+@", re.IGNORECASE)

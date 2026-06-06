@@ -1,14 +1,20 @@
 """Tests for context_pipeline: graph_retrieval, reranking, entity_extraction, retrieval_eval."""
 from context_pipeline.graph_retrieval import (
-    CodeGraph, CodeRelation, RetrievalResult, dual_layer_search,
+    CodeGraph,
+    CodeRelation,
+    RetrievalResult,
+    dual_layer_search,
 )
-from context_pipeline.reranking import rerank_results, format_for_injection
+from context_pipeline.reranking import format_for_injection, rerank_results
 from context_pipeline.retrieval_eval import (
-    RetrievalQuery, evaluate_single, evaluate_queries,
-    compute_recall, compute_precision_at_k, compute_reciprocal_rank,
+    RetrievalQuery,
+    compute_precision_at_k,
+    compute_recall,
+    compute_reciprocal_rank,
+    evaluate_queries,
+    evaluate_single,
     format_summary,
 )
-
 
 # -- CodeGraph ------------------------------------------------------------------
 

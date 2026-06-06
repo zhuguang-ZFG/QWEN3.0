@@ -14,7 +14,6 @@ os.environ["LIMA_ADMIN_TOKEN"] = "test-admin-token"
 from routes.admin_api import router as admin_api_router
 from routes.admin_auth import verify_admin, verify_csrf
 
-
 app = FastAPI()
 app.dependency_overrides[verify_admin] = lambda: None
 app.dependency_overrides[verify_csrf] = lambda: None

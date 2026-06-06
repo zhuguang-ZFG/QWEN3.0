@@ -11,8 +11,8 @@ import logging
 
 _log = logging.getLogger(__name__)
 
-import time
 import threading
+import time
 from dataclasses import dataclass
 from typing import Optional
 
@@ -80,7 +80,7 @@ BACKEND_BUDGETS: dict[str, BudgetConfig] = {
     # M6: deepseek_free deleted
 }
 
-from budget_cf_google import (  # noqa: E402
+from budget_cf_google import (
     CF_ACCOUNT_DAILY_LIMIT,
     CF_ACCOUNT_WARN_AT,
     CF_BACKEND_PREFIX,
@@ -92,7 +92,7 @@ from budget_cf_google import (  # noqa: E402
     get_usage_summary,
     register_cf_google_budgets,
 )
-from budget_gitee import register_gitee_budgets  # noqa: E402
+from budget_gitee import register_gitee_budgets
 
 register_cf_google_budgets(BACKEND_BUDGETS, BudgetConfig)
 register_gitee_budgets(BACKEND_BUDGETS, BudgetConfig)
@@ -261,8 +261,8 @@ def record_token_usage(backend: str, prompt_tokens: int = 0,
 
     # Emit token_usage_event to observability (M6-S3)
     try:
-        from observability.metrics import record as _obs_record
         from observability.events import token_usage_event
+        from observability.metrics import record as _obs_record
         _obs_record(token_usage_event(backend, prompt_tokens, completion_tokens,
                                        get_cost_class(backend)))
     except ImportError:

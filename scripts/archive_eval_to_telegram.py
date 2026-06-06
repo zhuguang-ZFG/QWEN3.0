@@ -12,9 +12,9 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+import telegram_bot
 from eval_slice_summary import latest_scores_path, summarize_eval_json
 from telegram_archive import archive_enabled, archive_file_async, archive_text_async
-import telegram_bot
 
 
 async def _main_async(*, full: bool, top: int, chat_id: str, document: bool) -> int:

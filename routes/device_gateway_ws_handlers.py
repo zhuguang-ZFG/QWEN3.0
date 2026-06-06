@@ -7,6 +7,7 @@ from typing import Any
 
 from fastapi import WebSocket
 
+from device_gateway.auth import validate_device_token
 from device_gateway.protocol import ProtocolError, ack_frame, hello_ack
 from device_gateway.sessions import DeviceSession, registry
 from device_gateway.tasks import (
@@ -22,7 +23,6 @@ from routes.device_gateway_dispatch import (
     record_motion_event_observability,
     send_ws_error,
 )
-from device_gateway.auth import validate_device_token
 
 _log = logging.getLogger(__name__)
 
@@ -117,8 +117,9 @@ async def handle_motion_event(device_id: str, message: dict[str, Any], request_i
     phase = message.get("phase", "")
     if phase in ("accepted", "running", "done", "failed"):
         try:
-            from routes.telegram_cards import send_device_task_card
             import time as _time
+
+            from routes.telegram_cards import send_device_task_card
 
             await send_device_task_card(
                 task_id=str(message.get("task_id", "")),
@@ -129,7 +130,7 @@ async def handle_motion_event(device_id: str, message: dict[str, Any], request_i
                 error_message=str(message.get("error_message", message.get("error", {}).get("message", ""))) if phase == "failed" else "",
                 device_id=device_id,
             )
-        except Exception:
+        except Exception as exc:
             _log.debug("device task card notification failed", exc_info=True)
 
     # Record to Outcome Ledger (terminal phases only)
@@ -146,7 +147,7 @@ async def handle_motion_event(device_id: str, message: dict[str, Any], request_i
                 summary=f"{phase}: {message.get('capability', message.get('source_capability', ''))}",
                 tags=["device", phase, str(message.get("capability", ""))],
             )
-        except Exception:
+        except Exception as exc:
             _log.debug("outcome ledger record failed", exc_info=True)
 
 

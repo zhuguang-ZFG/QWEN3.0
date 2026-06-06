@@ -8,12 +8,12 @@ import time
 
 _log = logging.getLogger(__name__)
 
+import os
+
 import budget_manager
 import route_scorer
 import sticky_session
-
-import os
-from opencode_config import OPENCODE_FAST_BOOST, OPENCODE_FAST_BACKENDS
+from opencode_config import OPENCODE_FAST_BACKENDS, OPENCODE_FAST_BOOST
 
 MAX_FALLBACKS = 5
 
@@ -59,8 +59,8 @@ def select(request_type: str, health_map: dict,
            needs_tools: bool = False, recalled_backend: str = "",
            ide_source: str = "") -> list[str]:
     """从对应池选健康后端，按健康评分排序，过滤预算耗尽，sticky 优先"""
-    import routing_engine as re
     import backends_registry as reg
+    import routing_engine as re
 
     pool_key = request_type
     if request_type == "chat" and scenario == "coding":
@@ -145,8 +145,8 @@ def select(request_type: str, health_map: dict,
 
     # ML prediction boost — batch apply after per-backend scoring
     try:
-        from routing_ml.routing_trainer import get_model, notify_request
         from routing_ml.feature_extractor import extract_features
+        from routing_ml.routing_trainer import get_model, notify_request
         _ml_model = get_model()
         if _ml_model and result:
             _features = extract_features(
@@ -168,9 +168,9 @@ def select(request_type: str, health_map: dict,
     result = [b for b in result if not re.health_tracker.is_cooled_down(b)]
 
     try:
-        from context_pipeline.signal_extraction import extract_signals, recommend_strategy_from_signals
-        from context_pipeline.evolution import apply_strategy_to_backends
         from context_pipeline.event_log import get_request_log
+        from context_pipeline.evolution import apply_strategy_to_backends
+        from context_pipeline.signal_extraction import extract_signals, recommend_strategy_from_signals
         signals = extract_signals(get_request_log())
         strategy = recommend_strategy_from_signals(signals, backends_available=len(result))
         result = apply_strategy_to_backends(result, strategy, proven_backends=result[:2])

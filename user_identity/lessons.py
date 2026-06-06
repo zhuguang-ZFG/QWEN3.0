@@ -3,9 +3,8 @@
 import json
 import os
 import time
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from pathlib import Path
-
 
 LESSONS_DIR = Path(os.environ.get("LIMA_LESSONS_DIR", "/tmp/lima_lessons"))
 

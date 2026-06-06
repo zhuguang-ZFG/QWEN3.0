@@ -1,9 +1,13 @@
 """vision_handler.py — Vision (Photo-to-Answer) detection, format conversion, routing, and streaming. Extracted from server.py + smart_router.py."""
-import json, time, asyncio, sys, os
+import asyncio
+import json
+import os
+import sys
+import time
 
 import health_tracker
-from http_caller import clean_response, BackendError
 from backends import BACKENDS, VISION_BACKENDS
+from http_caller import BackendError, clean_response
 
 DEBUG = os.environ.get('LIMA_DEBUG', '') == '1'
 

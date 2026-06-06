@@ -8,7 +8,6 @@ import lima_fc_tools.information_tools as information_tools
 import mimo_tts
 import tool_dispatcher
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 EXPECTED_TOOL_NAMES = [

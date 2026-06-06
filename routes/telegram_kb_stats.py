@@ -82,7 +82,7 @@ async def cmd_outcome(chat_id: str, args: str) -> None:
 async def cmd_digest(chat_id: str, args: str) -> None:
     """Generate learning digest with improvement candidates."""
     try:
-        from session_memory.shadow_mode import scan_for_candidates, format_digest
+        from session_memory.shadow_mode import format_digest, scan_for_candidates
 
         candidates = scan_for_candidates()
         text = format_digest(candidates)
@@ -132,7 +132,8 @@ async def cmd_dashboard(chat_id: str, args: str) -> None:
     lines = ["*LiMa Dashboard*", f"`{_t.strftime('%H:%M:%S')}`", ""]
 
     try:
-        import urllib.request, json
+        import json
+        import urllib.request
         req = urllib.request.Request("http://127.0.0.1:8080/health")
         resp = urllib.request.urlopen(req, timeout=5)
         h = json.loads(resp.read())

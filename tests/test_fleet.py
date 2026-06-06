@@ -18,7 +18,6 @@ from fleet.node_registry import (
 )
 from fleet.task_dispatcher import FleetTask, TaskDispatcher
 
-
 # ─── Node registry tests ──────────────────────────────────────────────
 
 

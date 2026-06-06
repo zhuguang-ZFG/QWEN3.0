@@ -8,12 +8,12 @@ import threading
 import time
 
 import httpx
-from response_cleaner import clean_response, _is_backend_error
 
 from backends import BACKENDS
 from http_errors import BackendError, _emit_backend_error, _extract_code, _extract_retry_after
-from opencode_error_adapter import detect_context_overflow
 from http_response import _extract_answer, _extract_usage
+from opencode_error_adapter import detect_context_overflow
+from response_cleaner import _is_backend_error, clean_response
 
 _log = logging.getLogger(__name__)
 
@@ -76,8 +76,8 @@ def _record_success_telemetry(
     except ImportError:
         _log.debug("budget_manager not installed; token usage skipped")
     try:
-        from observability.metrics import record as obs_record
         from observability.events import backend_call_event
+        from observability.metrics import record as obs_record
 
         obs_record(backend_call_event("", backend, "", latency_ms=latency_ms))
     except ImportError:

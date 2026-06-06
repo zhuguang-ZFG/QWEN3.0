@@ -2,11 +2,11 @@
 
 from .pipeline import Pipeline
 from .processors import (
-    ide_detection_processor,
-    scenario_classification_processor,
-    code_context_processor,
-    prompt_composition_processor,
     cache_optimization_processor,
+    code_context_processor,
+    ide_detection_processor,
+    prompt_composition_processor,
+    scenario_classification_processor,
 )
 
 

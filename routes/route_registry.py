@@ -5,8 +5,9 @@ from __future__ import annotations
 import logging
 import os
 import threading
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 from fastapi import FastAPI
 
@@ -48,15 +49,16 @@ class RegisteredRoutes:
 
 def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRoutes:
     """Mount all LiMa routers and inject shared state."""
-    from routes.images import router as images_router, build_pollinations_url
     import routes.images as images_mod
+    from routes.images import build_pollinations_url
+    from routes.images import router as images_router
 
     images_mod.inject_record_request(deps.record_request)
     app.include_router(images_router)
     _ = build_pollinations_url  # imported for server-side image intent handling
 
-    from routes.chat_endpoints import router as chat_endpoints_router
     import routes.chat_endpoints as chat_endpoints_mod
+    from routes.chat_endpoints import router as chat_endpoints_router
 
     chat_endpoints_mod.inject_deps(
         model_id=deps.model_id,
@@ -74,8 +76,8 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
     )
     app.include_router(chat_endpoints_router)
 
-    from routes.responses_endpoints import router as responses_router
     import routes.responses_endpoints as responses_mod
+    from routes.responses_endpoints import router as responses_router
 
     responses_mod.inject_deps(
         client_ip=deps.client_ip,
@@ -90,9 +92,9 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
 
     app.include_router(embeddings_router)
 
+    import routes.admin as admin_mod
     from routes.admin import router as admin_router
     from routes.admin_agent_audit import router as admin_agent_audit_router
-    import routes.admin as admin_mod
 
     admin_mod.inject_state(deps.stats, deps.stats_lock, deps.backend_enabled)
     app.include_router(admin_router)
@@ -110,8 +112,8 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
 
     quality_gate_mod.inject_state(deps.backend_enabled)
 
-    from routes.system_endpoints import router as system_endpoints_router
     import routes.system_endpoints as system_endpoints_mod
+    from routes.system_endpoints import router as system_endpoints_router
 
     system_endpoints_mod.inject_state(
         model_id=deps.model_id,
@@ -160,8 +162,8 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
         deps.loaded_modules["agent_tasks"] = False
 
     try:
-        from routes.agent_execute import router as agent_execute_router
         import routes.agent_execute as agent_execute_mod
+        from routes.agent_execute import router as agent_execute_router
 
         agent_execute_mod.inject_state(admin_token=os.environ.get("LIMA_API_KEY", ""))
         app.include_router(agent_execute_router)
@@ -171,8 +173,8 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
         deps.loaded_modules["agent_execute"] = False
 
     try:
-        from routes.fleet_api import router as fleet_router
         import routes.fleet_api as fleet_mod
+        from routes.fleet_api import router as fleet_router
 
         fleet_mod.inject_state(admin_token=os.environ.get("LIMA_API_KEY", ""))
         app.include_router(fleet_router)

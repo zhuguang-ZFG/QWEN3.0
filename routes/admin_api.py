@@ -22,31 +22,31 @@ from pathlib import Path
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
+from routes.admin_agent_tasks import router as _agent_tasks_router
+from routes.admin_alerts import _ALERT_RULES_PATH
+from routes.admin_alerts import router as _alerts_router
 from routes.admin_auth import verify_admin, verify_csrf
-from routes.admin_state import FALLBACK_LOG, stats_context
-from routes.ops_metrics import _backend_call_detail
+from routes.admin_config import (
+    _ADMIT_PATH,
+    _DATA_DIR,
+    _OVERLAY_PATH,
+)
+from routes.admin_config import router as _config_router
+from routes.admin_devices import router as _devices_router
+
+# ── Backward-compatible re-exports ─────────────────────────────────────────
+from routes.admin_sse import (
+    _log_sse_generator,
+    _log_subscribers,
+    _main_sse_loop,
+    _set_sse_event_loop,
+    publish_log_event,
+)
 
 # ── Sub-module routers (include into main router) ──────────────────────────
 from routes.admin_sse import router as _sse_router
-from routes.admin_agent_tasks import router as _agent_tasks_router
-from routes.admin_devices import router as _devices_router
-from routes.admin_alerts import router as _alerts_router
-from routes.admin_config import router as _config_router
-
-# ── Backward-compatible re-exports ─────────────────────────────────────────
-from routes.admin_sse import (  # noqa: F401
-    _set_sse_event_loop,
-    publish_log_event,
-    _main_sse_loop,
-    _log_sse_generator,
-    _log_subscribers,
-)
-from routes.admin_alerts import _ALERT_RULES_PATH  # noqa: F401
-from routes.admin_config import (  # noqa: F401
-    _DATA_DIR,
-    _OVERLAY_PATH,
-    _ADMIT_PATH,
-)
+from routes.admin_state import FALLBACK_LOG, stats_context
+from routes.ops_metrics import _backend_call_detail
 
 router = APIRouter()
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -359,8 +359,8 @@ def _mask_key(raw: str) -> str:
 @router.get("/api/key-url-inventory", dependencies=[Depends(verify_admin)])
 async def admin_key_url_inventory():
     """List all backends with masked keys and URLs."""
-    from backends_registry import BACKENDS, DISABLED_HOST_DEPENDENT_BACKENDS
     import key_pool as kp
+    from backends_registry import BACKENDS, DISABLED_HOST_DEPENDENT_BACKENDS
 
     backends = []
     for name in sorted(BACKENDS.keys()):

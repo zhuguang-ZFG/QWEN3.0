@@ -10,8 +10,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 _log = logging.getLogger(__name__)
 
-from access_guard import require_private_api_key
 import routing_facade
+from access_guard import require_private_api_key
 
 router = APIRouter()
 
@@ -67,7 +67,7 @@ async def list_models(request: Request):
     try:
         from opencode_protocol_adapter import build_model_output_limits
         models = build_model_output_limits(models)
-    except Exception:
+    except Exception as exc:
         _log.debug("system_endpoints: protocol adapter output limits failed", exc_info=True)
 
     # OpenCode curated model list: return a focused subset of coding-capable models.

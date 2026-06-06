@@ -208,8 +208,9 @@ def _mock_verify_csrf():
 def _make_app():
     """Create a FastAPI app with auth overrides for testing."""
     from fastapi import FastAPI
-    from routes.admin_client_keys import router
+
     from routes.admin_auth import verify_admin, verify_csrf
+    from routes.admin_client_keys import router
 
     app = FastAPI()
     app.dependency_overrides[verify_admin] = _mock_verify_admin

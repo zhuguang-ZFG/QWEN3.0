@@ -8,17 +8,17 @@ from __future__ import annotations
 
 import json
 import os
-import uuid
 import time
-from typing import AsyncIterator
+import uuid
+from collections.abc import AsyncIterator
 
 from converters.anthropic_format import (
     convert_messages_anthropic_to_openai,
-    convert_tools_anthropic_to_openai,
+    convert_response_openai_to_anthropic,
     convert_tool_choice_anthropic_to_openai,
+    convert_tools_anthropic_to_openai,
     inject_anthropic_body_preflight,
     inject_anthropic_context_preflight,
-    convert_response_openai_to_anthropic,
 )
 
 
@@ -259,29 +259,28 @@ async def stream_tier2_native(body: dict, deps: dict):
             headers["x-api-key"] = backend["key"]
         try:
             import httpx as _httpx
-            async with _httpx.AsyncClient(timeout=60) as http_client:
-                async with http_client.stream(
-                    "POST", backend["url"], headers=headers, content=payload,
-                ) as http_resp:
-                    if http_resp.status_code != 200:
-                        err_body = await http_resp.aread()
-                        raise RuntimeError(
-                            f"Backend {name} returned {http_resp.status_code}: "
-                            f"{str(err_body)[:200]}"
-                        )
-                    _ht.record_success(name, 0)
-                    event_buffer: list[str] = []
-                    async for line in http_resp.aiter_lines():
-                        if not line:
-                            # Empty line = end of SSE event; flush buffer
-                            if event_buffer:
-                                yield "\n".join(event_buffer) + "\n\n"
-                                event_buffer = []
-                        else:
-                            event_buffer.append(line)
-                    # Flush any remaining event
-                    if event_buffer:
-                        yield "\n".join(event_buffer) + "\n\n"
+            async with _httpx.AsyncClient(timeout=60) as http_client, http_client.stream(
+                "POST", backend["url"], headers=headers, content=payload,
+            ) as http_resp:
+                if http_resp.status_code != 200:
+                    err_body = await http_resp.aread()
+                    raise RuntimeError(
+                        f"Backend {name} returned {http_resp.status_code}: "
+                        f"{str(err_body)[:200]}"
+                    )
+                _ht.record_success(name, 0)
+                event_buffer: list[str] = []
+                async for line in http_resp.aiter_lines():
+                    if not line:
+                        # Empty line = end of SSE event; flush buffer
+                        if event_buffer:
+                            yield "\n".join(event_buffer) + "\n\n"
+                            event_buffer = []
+                    else:
+                        event_buffer.append(line)
+                # Flush any remaining event
+                if event_buffer:
+                    yield "\n".join(event_buffer) + "\n\n"
             return
         except Exception as exc:
             import logging as _log

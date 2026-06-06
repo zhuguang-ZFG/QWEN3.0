@@ -7,7 +7,7 @@ import logging
 import queue as queue_mod
 import threading
 import time
-from typing import AsyncIterator, Callable, Iterator
+from collections.abc import AsyncIterator, Callable, Iterator
 
 _log = logging.getLogger(__name__)
 

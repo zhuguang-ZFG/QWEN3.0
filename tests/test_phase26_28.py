@@ -4,10 +4,9 @@ import time
 
 os.environ["LIMA_WEIGHTS_PATH"] = tempfile.mktemp(suffix=".json")
 
-from context_pipeline.routing_weights import RoutingWeights
 from context_pipeline.concurrency_pool import ConcurrencyPool
-from context_pipeline.skill_store import SkillStore, RoutingSkill
-
+from context_pipeline.routing_weights import RoutingWeights
+from context_pipeline.skill_store import RoutingSkill, SkillStore
 
 # === Phase 26: GRPO Advantage Estimation ===
 
@@ -47,6 +46,7 @@ def test_grpo_clipped_delta():
     import tempfile as _tf
     os.environ["LIMA_WEIGHTS_PATH"] = _tf.mktemp(suffix=".json")
     from importlib import reload
+
     import context_pipeline.routing_weights as _rw_mod
     reload(_rw_mod)
     rw = _rw_mod.RoutingWeights()

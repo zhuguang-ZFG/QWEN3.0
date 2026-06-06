@@ -8,8 +8,8 @@ All file operations must pass through `validate_path()` which enforces:
 
 from __future__ import annotations
 
-import os
 import logging
+import os
 from pathlib import Path
 
 _log = logging.getLogger(__name__)

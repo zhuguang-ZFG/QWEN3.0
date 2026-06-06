@@ -59,10 +59,11 @@ async def lifespan(application):
     # Register the asyncio event loop for SSE log fan-out.
     try:
         import asyncio
+
         from routes.admin_api import _set_sse_event_loop
 
         _set_sse_event_loop(asyncio.get_running_loop())
-    except Exception:
+    except Exception as exc:
         _log.debug("SSE event loop registration skipped", exc_info=True)
     try:
         from device_gateway.mqtt_client import start_mqtt_client
@@ -116,3 +117,31 @@ async def lifespan(application):
             await stop_mqtt_client()
         except ImportError:
             _log.debug("mqtt_client stop skipped")
+        # Close httpx client pools to prevent FD leaks
+        try:
+            from http_request_builder import _async_client_pool, _sync_client_pool
+
+            for client in _sync_client_pool.values():
+                try:
+                    client.close()
+                except Exception as exc:
+                    _log.debug("sync client close: %s", exc)
+            _sync_client_pool.clear()
+            for client in _async_client_pool.values():
+                try:
+                    await client.aclose()
+                except Exception as exc:
+                    _log.debug("async client close: %s", exc)
+            _async_client_pool.clear()
+            _log.debug("httpx client pools closed")
+        except ImportError:
+            pass
+        # Close SQLite connections
+        try:
+            from sqlite_manager import close_all as _close_sqlite
+
+            closed = _close_sqlite()
+            if closed:
+                _log.debug("sqlite connections closed: %d", closed)
+        except ImportError:
+            pass

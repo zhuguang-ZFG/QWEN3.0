@@ -5,14 +5,16 @@ following a simplified MCP-over-HTTP pattern that IDE clients can invoke.
 """
 
 from __future__ import annotations
+
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from typing import Any
+
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
-from typing import Any
 
 from lima_mcp import TOOL_DEFINITIONS
 from lima_mcp.tools import handle_tool_call

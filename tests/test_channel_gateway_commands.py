@@ -4,7 +4,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from channel_gateway.commands import parse_command, is_owner_only, MAX_TEXT_LENGTH
+from channel_gateway.commands import MAX_TEXT_LENGTH, is_owner_only, parse_command
 
 
 class TestCommandParser:

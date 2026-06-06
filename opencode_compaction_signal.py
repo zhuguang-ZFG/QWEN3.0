@@ -269,8 +269,8 @@ def should_trigger_compaction(
     """
     from opencode_token_bridge import (
         estimate_accurate_tokens,
-        get_context_window,
         estimate_max_output,
+        get_context_window,
     )
 
     total = estimate_accurate_tokens(messages, usage)

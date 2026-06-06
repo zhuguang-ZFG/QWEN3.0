@@ -1,12 +1,14 @@
-import subprocess
-import shlex
 import json
-import httpx
-from typing import Any, Callable
+import shlex
+import subprocess
+from collections.abc import Callable
+from typing import Any
 
-from .registry import ToolRegistry, requires_approval
-from .auth import SecretStore
+import httpx
+
 from .audit import audit_event
+from .auth import SecretStore
+from .registry import ToolRegistry, requires_approval
 
 
 class ToolExecutor:

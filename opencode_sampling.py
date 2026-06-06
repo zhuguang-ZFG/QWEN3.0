@@ -13,7 +13,6 @@ OpenCode 按模型 ID 模式匹配设置采样参数以提升响应质量。
 
 from __future__ import annotations
 
-
 # ── temperature (transform.ts:457-473) ───────────────────────────────────────
 
 def resolve_temperature(model_id: str) -> float | None:

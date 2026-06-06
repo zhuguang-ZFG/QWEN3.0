@@ -156,29 +156,28 @@ async def bench_streaming(base: str, rounds: int) -> BenchMetrics:
         chunks = 0
         sse_errors = 0
         try:
-            async with httpx.AsyncClient(timeout=60, trust_env=False) as client:
-                async with client.stream(
-                    "POST", f"{base}/v1/chat/completions",
-                    headers=_headers(),
-                    json={"model": LIMA_MODEL, "messages": msg, "max_tokens": 256, "stream": True},
-                ) as resp:
-                    ttfb = int((time.perf_counter() - t0) * 1000)
-                    if resp.status_code != 200:
-                        m.errors.append(f"round {r}: HTTP {resp.status_code}")
-                        m.latency_values.append(ttfb)
-                        m.ttfb_values.append(ttfb)
-                        m.scores.append(0)
+            async with httpx.AsyncClient(timeout=60, trust_env=False) as client, client.stream(
+                "POST", f"{base}/v1/chat/completions",
+                headers=_headers(),
+                json={"model": LIMA_MODEL, "messages": msg, "max_tokens": 256, "stream": True},
+            ) as resp:
+                ttfb = int((time.perf_counter() - t0) * 1000)
+                if resp.status_code != 200:
+                    m.errors.append(f"round {r}: HTTP {resp.status_code}")
+                    m.latency_values.append(ttfb)
+                    m.ttfb_values.append(ttfb)
+                    m.scores.append(0)
+                    continue
+                async for line in resp.aiter_lines():
+                    if not line.startswith("data: "):
                         continue
-                    async for line in resp.aiter_lines():
-                        if not line.startswith("data: "):
-                            continue
-                        if line[6:].strip() == "[DONE]":
-                            break
-                        try:
-                            json.loads(line[6:])
-                            chunks += 1
-                        except json.JSONDecodeError:
-                            sse_errors += 1
+                    if line[6:].strip() == "[DONE]":
+                        break
+                    try:
+                        json.loads(line[6:])
+                        chunks += 1
+                    except json.JSONDecodeError:
+                        sse_errors += 1
 
             elapsed = int((time.perf_counter() - t0) * 1000)
             m.ttfb_values.append(ttfb)

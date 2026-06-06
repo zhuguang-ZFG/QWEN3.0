@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 
 def make_eval_call_fn() -> Callable[[str, list[dict], int], str]:

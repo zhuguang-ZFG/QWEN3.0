@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from agent_contracts.task_contract import AgentTaskResult
 from agent_evolution.candidates import get_candidate_store
 from routes.agent_task_evolution import router as evolution_router
+from routes.agent_task_result_hooks import after_task_result_submitted
 from routes.agent_task_schemas import (
     ClaimBody,
     ReviewBody,
@@ -18,7 +19,6 @@ from routes.agent_task_schemas import (
     TaskResultBody,
     WorkerSmokeTaskBody,
 )
-from routes.agent_task_result_hooks import after_task_result_submitted
 from routes.agent_task_service import (
     apply_task_review,
     create_task_from_body,
@@ -28,7 +28,7 @@ from routes.agent_task_service import (
     task_counts,
     task_envelope,
 )
-from routes.agent_task_store import TaskStore, _DB_PATH, get_task_store, reset_task_store_for_tests
+from routes.agent_task_store import _DB_PATH, TaskStore, get_task_store, reset_task_store_for_tests
 
 _log = logging.getLogger(__name__)
 router = APIRouter(prefix="/agent")

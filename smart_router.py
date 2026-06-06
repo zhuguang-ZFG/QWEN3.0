@@ -29,11 +29,13 @@ load_dotenv()
 DEBUG = os.environ.get("LIMA_DEBUG", "") == "1"
 
 # ── Slice 4/5: local router + constants ─────────────────────────────────────
-from local_router import call_local, warmup_router_model
-from routing_constants import PUBLIC_MODEL_NAME, ROUTE
-
 # ── Backends registry ─────────────────────────────────────────────────────────
 from backends import BACKENDS, GFW_BACKENDS, THINKING_BACKENDS, VISION_BACKENDS
+
+# ── Slice 3: distill queue (no duplicate implementation here) ───────────────
+from distill_queue import DISTILL_QUEUE_DIR, log_to_distill_queue
+from local_router import call_local, warmup_router_model
+from response_cleaner import clean_response
 
 # ── Extracted router_* modules (re-export for scripts/tests) ──────────────────
 from router_circuit_breaker import cb_allow, cb_record, cb_status
@@ -49,15 +51,12 @@ from router_http import (
 from router_image import detect_image_intent
 from router_intent import detect_thinking_intent, get_thinking_backend
 from router_prompt import FRAGMENT_DIR, SYS, assemble_prompt
-from response_cleaner import clean_response
+from routing_constants import PUBLIC_MODEL_NAME, ROUTE
 from vision_handler import (
     VISION_SYSTEM_PROMPT,
     convert_openai_vision_to_anthropic,
     detect_vision_request,
 )
-
-# ── Slice 3: distill queue (no duplicate implementation here) ───────────────
-from distill_queue import DISTILL_QUEUE_DIR, log_to_distill_queue
 
 _log_to_distill_queue = log_to_distill_queue  # back-compat alias
 _has_vision_content = detect_vision_request  # back-compat alias

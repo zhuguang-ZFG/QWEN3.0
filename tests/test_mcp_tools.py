@@ -1,6 +1,7 @@
 """Tests for LiMa MCP tools."""
 import os
 import sys
+
 import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -50,10 +51,12 @@ def test_mcp_verify_rejects_when_no_token_configured(monkeypatch):
     monkeypatch.setenv("LIMA_MCP_TOKEN", "")
     # Re-import to pick up patched env
     import importlib
+
     import lima_mcp.server as mcp_srv
     monkeypatch.setattr(mcp_srv, "_MCP_TOKEN", "")
 
     import asyncio
+
     from fastapi import HTTPException
     with pytest.raises(HTTPException) as exc_info:
         asyncio.run(mcp_srv._verify_mcp_access(""))
@@ -68,6 +71,7 @@ def test_mcp_verify_rejects_wrong_bearer(monkeypatch):
     monkeypatch.setattr(mcp_srv, "_MCP_TOKEN", "correct-token")
 
     import asyncio
+
     from fastapi import HTTPException
     with pytest.raises(HTTPException) as exc_info:
         asyncio.run(mcp_srv._verify_mcp_access("Bearer wrong-token"))

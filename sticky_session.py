@@ -7,8 +7,8 @@ LiMa Sticky Session — 会话亲和路由
 """
 
 import hashlib
-import time
 import threading
+import time
 
 _lock = threading.Lock()
 _store: dict[str, tuple[str, float]] = {}

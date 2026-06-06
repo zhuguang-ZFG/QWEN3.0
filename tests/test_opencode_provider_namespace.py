@@ -1,10 +1,11 @@
 """Tests for opencode_provider_namespace.py — namespace key mapping."""
 
 import pytest
+
 from opencode_provider_namespace import (
+    build_provider_options_for_body,
     resolve_provider_namespace_key,
     wrap_provider_options,
-    build_provider_options_for_body,
 )
 
 

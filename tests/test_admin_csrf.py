@@ -8,9 +8,9 @@ from fastapi.testclient import TestClient
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from routes.admin import router as admin_router
-import routes.admin_auth as admin_auth
 import routes.admin as admin_routes
+import routes.admin_auth as admin_auth
+from routes.admin import router as admin_router
 
 
 def test_csrf_rejects_cross_origin_cookie_request():

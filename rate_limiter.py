@@ -1,19 +1,42 @@
+"""rate_limiter.py — 滑动窗口 IP 限流
+
+单进程部署下工作正常。多 Worker 场景需迁移到 Redis 共享存储。
 """
-rate_limiter.py — 滑动窗口 IP 限流
-接入点: server.py 的 /v1/chat/completions 入口
-"""
+import logging
 import time
 from collections import defaultdict
 
+_log = logging.getLogger(__name__)
+
 WINDOW = 60
 MAX_PER_WINDOW = 20
+_STALE_TTL = 300  # seconds before an IP entry is considered stale
+_CLEANUP_INTERVAL = 60  # seconds between automatic stale evictions
+_last_cleanup = 0.0
 
 _requests: dict[str, list[float]] = defaultdict(list)
 
 
+def _evict_stale(now: float) -> int:
+    """Remove IP entries with no requests within _STALE_TTL. Returns count removed."""
+    stale_ips = [ip for ip, ts in _requests.items() if not ts or now - ts[-1] > _STALE_TTL]
+    for ip in stale_ips:
+        del _requests[ip]
+    return len(stale_ips)
+
+
 def check_rate_limit(ip: str, multiplier: int = 1) -> bool:
     """返回 True 表示允许，False 表示超限。multiplier 用于 IDE 客户端提高配额。"""
+    global _last_cleanup
     now = time.time()
+
+    # Periodic stale-entry eviction to prevent unbounded dict growth
+    if now - _last_cleanup > _CLEANUP_INTERVAL:
+        removed = _evict_stale(now)
+        if removed:
+            _log.debug("rate_limiter: evicted %d stale IP entries", removed)
+        _last_cleanup = now
+
     _requests[ip] = [t for t in _requests[ip] if now - t < WINDOW]
     limit = MAX_PER_WINDOW * multiplier
     if len(_requests[ip]) >= limit:

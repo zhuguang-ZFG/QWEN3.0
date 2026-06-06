@@ -7,10 +7,9 @@ quality_gate.py — 多维代码质量门（纯规则，不调模型）
   - 类型注解检查（函数参数/返回值）
   - 增强 import 缺失检测
 """
-import re
 import ast
+import re
 from typing import Optional
-
 
 # ── Security Patterns ────────────────────────────────────────────────────────
 

@@ -7,7 +7,7 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from lima_fc_tools.web_tools import _browse_webpage, _fetch_url, _clean_text
+from lima_fc_tools.web_tools import _browse_webpage, _clean_text, _fetch_url
 
 
 def test_clean_text_collapses_whitespace():

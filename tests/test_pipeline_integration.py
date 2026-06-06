@@ -9,13 +9,13 @@ from pathlib import Path
 import pytest
 
 from context_pipeline.hierarchical_memory import HierarchicalMemory, get_hierarchical_memory
-from context_pipeline.memory_persistence import MemoryPersistence, save_hierarchical_memory, load_hierarchical_memory
+from context_pipeline.memory_persistence import MemoryPersistence, load_hierarchical_memory, save_hierarchical_memory
 from context_pipeline.routing_bridge import (
     RoutingDecision,
-    select_backend_with_evolution,
-    reflect_and_adjust,
-    record_routing_outcome,
     get_metrics_snapshot,
+    record_routing_outcome,
+    reflect_and_adjust,
+    select_backend_with_evolution,
 )
 
 

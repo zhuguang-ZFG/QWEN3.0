@@ -1,5 +1,5 @@
-from fastapi.routing import APIRoute
 from fastapi.responses import JSONResponse
+from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 
 import routes.chat_endpoints as chat_endpoints

@@ -45,8 +45,9 @@ def fetch_github_file_text(repo: str, path: str, ref: str = "main", *, max_chars
 
 class _RawUrlAdapter:
     def extract_url(self, url: str) -> dict:
-        from search_gateway.safety import is_public_http_url
         import urllib.request
+
+        from search_gateway.safety import is_public_http_url
 
         if not is_public_http_url(url):
             return {"ok": False, "error": "url_blocked"}

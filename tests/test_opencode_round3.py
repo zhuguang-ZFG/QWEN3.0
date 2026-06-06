@@ -10,7 +10,6 @@ import json
 import pytest
 
 # ── reasoning_variants ────────────────────────────────────────────────────
-
 from reasoning_variants import (
     apply_variant,
     compute_variants,

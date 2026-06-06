@@ -11,7 +11,14 @@ _log = logging.getLogger(__name__)
 import os
 import re
 
-from channel_gateway.commands import parse_command, is_owner_only
+from channel_gateway.branding import company_pitch, maybe_brand_footer
+from channel_gateway.channel_tools import (
+    CHANNEL_TOOL_INTENTS,
+    run_channel_tool,
+    tools_help_suffix,
+)
+from channel_gateway.commands import is_owner_only, parse_command
+from channel_gateway.invite import invite_text
 from channel_gateway.keyword_router import normalize_guest_text
 from channel_gateway.media_inbound import extract_voice_transcript, resolve_media_to_text
 from channel_gateway.models import (
@@ -20,16 +27,9 @@ from channel_gateway.models import (
     InboundMessage,
     OutboundReply,
 )
-from channel_gateway.channel_tools import (
-    CHANNEL_TOOL_INTENTS,
-    run_channel_tool,
-    tools_help_suffix,
-)
-from channel_gateway.branding import company_pitch, maybe_brand_footer
-from channel_gateway.invite import invite_text
 from channel_gateway.outbound_pack import pack_text_reply
-from channel_gateway.voice_reply import parse_voice_reply_command, voice_reply_globally_enabled
 from channel_gateway.store import ChannelStore
+from channel_gateway.voice_reply import parse_voice_reply_command, voice_reply_globally_enabled
 
 _CMD_ALLOWED_WHEN_PAUSED = frozenset({"resume", "unbind", "help"})
 _CMD_ALLOWED_WHEN_UNBOUND = frozenset({"bind", "help"})

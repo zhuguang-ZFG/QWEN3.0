@@ -249,7 +249,7 @@ def is_overflow_from_exception(exc: Exception) -> bool:
     if response is not None:
         try:
             body = response.text
-        except Exception:
+        except Exception as exc:
             _log.debug("overflow_detect: response text read failed", exc_info=True)
         if status is None:
             status = getattr(response, "status_code", None)

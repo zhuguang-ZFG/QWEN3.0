@@ -10,7 +10,6 @@ import urllib.error
 import urllib.request
 
 import paramiko
-
 from deploy_common import configure_ssh_host_keys
 
 SERVER = "47.112.162.80"

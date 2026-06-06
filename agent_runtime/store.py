@@ -15,7 +15,6 @@ _log = logging.getLogger(__name__)
 
 from agent_runtime.contract import AgentRunResult, AgentTask, redact
 
-
 _DEFAULT_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     "data",

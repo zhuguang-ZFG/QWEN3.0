@@ -1,12 +1,124 @@
 {
   "add": {
-    "demo-backend": {
-      "url": "https://example.com/api",
-      "key": "none",
-      "model": "",
+    "muyuan_claude_sonnet46": {
+      "url": "https://muyuan.do/v1/chat/completions",
+      "key": "sk-aAxFMnzjlfgywEE9iaDMwIGDccPaNGS8INjTshYP1iQTLkxn",
+      "model": "claude-sonnet-4-6",
       "fmt": "openai",
       "timeout": 30,
-      "caps": []
+      "caps": ["tool_calls"],
+      "auth": "bearer",
+      "admission": "code_medium_candidate",
+      "private_code_allowed": true
+    },
+    "muyuan_claude_opus46": {
+      "url": "https://muyuan.do/v1/chat/completions",
+      "key": "sk-aAxFMnzjlfgywEE9iaDMwIGDccPaNGS8INjTshYP1iQTLkxn",
+      "model": "claude-opus-4-6",
+      "fmt": "openai",
+      "timeout": 60,
+      "caps": ["tool_calls"],
+      "auth": "bearer",
+      "admission": "code_strong_candidate",
+      "private_code_allowed": true
+    },
+    "muyuan_claude_opus47": {
+      "url": "https://muyuan.do/v1/chat/completions",
+      "key": "sk-aAxFMnzjlfgywEE9iaDMwIGDccPaNGS8INjTshYP1iQTLkxn",
+      "model": "claude-opus-4-7",
+      "fmt": "openai",
+      "timeout": 60,
+      "caps": ["tool_calls"],
+      "auth": "bearer",
+      "admission": "code_strong_candidate",
+      "private_code_allowed": true
+    },
+    "muyuan_claude_opus48": {
+      "url": "https://muyuan.do/v1/chat/completions",
+      "key": "sk-aAxFMnzjlfgywEE9iaDMwIGDccPaNGS8INjTshYP1iQTLkxn",
+      "model": "claude-opus-4-8",
+      "fmt": "openai",
+      "timeout": 60,
+      "caps": ["tool_calls"],
+      "auth": "bearer",
+      "admission": "code_strong_candidate",
+      "private_code_allowed": true
+    },
+    "muyuan_claude_haiku45": {
+      "url": "https://muyuan.do/v1/chat/completions",
+      "key": "sk-aAxFMnzjlfgywEE9iaDMwIGDccPaNGS8INjTshYP1iQTLkxn",
+      "model": "claude-haiku-4-5-20251001",
+      "fmt": "openai",
+      "timeout": 20,
+      "caps": ["tool_calls"],
+      "auth": "bearer"
+    },
+    "muyuan_gpt55": {
+      "url": "https://muyuan.do/v1/chat/completions",
+      "key": "sk-aAxFMnzjlfgywEE9iaDMwIGDccPaNGS8INjTshYP1iQTLkxn",
+      "model": "gpt-5.5",
+      "fmt": "openai",
+      "timeout": 90,
+      "caps": ["tool_calls"],
+      "auth": "bearer",
+      "admission": "code_strong_candidate",
+      "private_code_allowed": true
+    },
+    "muyuan_gpt54_mini": {
+      "url": "https://muyuan.do/v1/chat/completions",
+      "key": "sk-aAxFMnzjlfgywEE9iaDMwIGDccPaNGS8INjTshYP1iQTLkxn",
+      "model": "gpt-5.4-mini",
+      "fmt": "openai",
+      "timeout": 45,
+      "auth": "bearer"
+    },
+    "muyuan_minimax_m3": {
+      "url": "https://muyuan.do/v1/chat/completions",
+      "key": "sk-aAxFMnzjlfgywEE9iaDMwIGDccPaNGS8INjTshYP1iQTLkxn",
+      "model": "MiniMax-M3",
+      "fmt": "openai",
+      "timeout": 30,
+      "auth": "bearer"
+    },
+    "mimo_sgp_v25pro": {
+      "url": "https://token-plan-sgp.xiaomimimo.com/v1/chat/completions",
+      "key": "tp-sgum6wg7acw5q84cumb1usqwa01u32lznqv5z192yfom11wf",
+      "model": "mimo-v2.5-pro",
+      "fmt": "openai",
+      "timeout": 60,
+      "caps": ["tool_calls"],
+      "auth": "bearer",
+      "admission": "code_strong_candidate",
+      "private_code_allowed": true
+    },
+    "mimo_sgp_v2pro": {
+      "url": "https://token-plan-sgp.xiaomimimo.com/v1/chat/completions",
+      "key": "tp-sgum6wg7acw5q84cumb1usqwa01u32lznqv5z192yfom11wf",
+      "model": "mimo-v2-pro",
+      "fmt": "openai",
+      "timeout": 60,
+      "caps": ["tool_calls"],
+      "auth": "bearer",
+      "admission": "code_medium_candidate",
+      "private_code_allowed": true
+    },
+    "mimo_sgp_v25": {
+      "url": "https://token-plan-sgp.xiaomimimo.com/v1/chat/completions",
+      "key": "tp-sgum6wg7acw5q84cumb1usqwa01u32lznqv5z192yfom11wf",
+      "model": "mimo-v2.5",
+      "fmt": "openai",
+      "timeout": 45,
+      "auth": "bearer",
+      "admission": "code_medium_candidate"
+    },
+    "mimo_sgp_v25_asr": {
+      "url": "https://token-plan-sgp.xiaomimimo.com/v1/chat/completions",
+      "key": "tp-sgum6wg7acw5q84cumb1usqwa01u32lznqv5z192yfom11wf",
+      "model": "mimo-v2.5-asr",
+      "fmt": "openai",
+      "timeout": 30,
+      "auth": "bearer"
     }
-  }
+  },
+  "delete": ["demo-backend"]
 }

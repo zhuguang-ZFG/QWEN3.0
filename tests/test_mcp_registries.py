@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from provider_inventory.mcp_registries import (
+    _glama_entry,
+    _official_entry,
     infer_tags,
     merge_registry_entries,
-    _official_entry,
-    _glama_entry,
 )
 
 

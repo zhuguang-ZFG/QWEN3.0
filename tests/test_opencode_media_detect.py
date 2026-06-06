@@ -1,11 +1,13 @@
 """Tests for opencode_media_detect.py — unsupported media graceful degradation."""
 
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from opencode_media_detect import (
-    mime_to_modality,
     filter_unsupported_media,
+    mime_to_modality,
 )
 
 

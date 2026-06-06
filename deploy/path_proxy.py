@@ -2,7 +2,12 @@
 """Lightweight path-rewrite proxy for one-api
 Listens on :8901-8908 (zhipu/github/aliyun/chinamobile/google/baidu/volcengine/longcat)
 Rewrites /v1/chat/completions to the correct upstream path"""
-import http.server, urllib.request, ssl, json, sys, threading
+import http.server
+import json
+import ssl
+import sys
+import threading
+import urllib.request
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -170,5 +175,6 @@ for port in ROUTES:
 
 print("Proxy ready.")
 import time
+
 while True:
     time.sleep(3600)

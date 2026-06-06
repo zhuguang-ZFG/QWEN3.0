@@ -11,7 +11,6 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REGISTRY = ROOT / "data" / "free_web_ai_candidates.json"
 DEFAULT_OUTPUT = ROOT / "data" / "free_web_ai_probe_results.json"

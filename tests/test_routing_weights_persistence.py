@@ -106,7 +106,7 @@ def test_no_persistence_when_no_data(_isolated_weights):
 
 def test_corrupt_file_handled():
     """Corrupt weights file should not crash initialization."""
-    from context_pipeline.routing_weights import RoutingWeights, WEIGHTS_PATH
+    from context_pipeline.routing_weights import WEIGHTS_PATH, RoutingWeights
     WEIGHTS_PATH.parent.mkdir(parents=True, exist_ok=True)
     WEIGHTS_PATH.write_text("NOT JSON {{{", encoding="utf-8")
     rw = RoutingWeights()
@@ -115,6 +115,7 @@ def test_corrupt_file_handled():
 
 def test_default_runtime_path_uses_ignored_lima_data(monkeypatch):
     import importlib
+
     import context_pipeline.routing_weights as routing_weights
 
     monkeypatch.delenv("LIMA_WEIGHTS_PATH", raising=False)

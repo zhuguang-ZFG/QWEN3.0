@@ -70,7 +70,7 @@ def apply_post_route_integrations(
 
     # Cloud services logging (Supabase + LangSmith)
     try:
-        from integrations.cloud_services import log_routing_decision, log_llm_run
+        from integrations.cloud_services import log_llm_run, log_routing_decision
         log_routing_decision(final_backend, req_type, scenario, ms, fallback_used)
         log_llm_run(final_backend, final_backend, ms, scenario=scenario)
     except Exception as cloud_exc:
@@ -78,8 +78,8 @@ def apply_post_route_integrations(
         _cl.getLogger(__name__).debug("cloud_services failed: %s", cloud_exc)
 
     try:
-        from context_pipeline.response_processors import build_default_response_pipeline
         from context_pipeline.response_pipeline import ResponseContext
+        from context_pipeline.response_processors import build_default_response_pipeline
         resp_ctx = build_default_response_pipeline().process(ResponseContext(
             backend=final_backend,
             response_text=answer or "",
@@ -101,8 +101,8 @@ def apply_post_route_integrations(
         _warn("response_pipeline", exc)
 
     try:
-        from observability.metrics import record as obs_record
         from observability.events import route_decision_event
+        from observability.metrics import record as obs_record
         suffix = "/fallback" if fallback_used else ""
         obs_record(route_decision_event(
             "",

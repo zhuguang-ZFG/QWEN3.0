@@ -3,13 +3,12 @@ from typing import Optional, Union
 
 from pydantic import BaseModel, Field
 
-
 MODEL_ID = "lima-1.3"
 
 
 class Message(BaseModel):
     role: str
-    content: Union[str, list, None] = ""
+    content: str | list | None = ""
 
 
 class ChatRequest(BaseModel):

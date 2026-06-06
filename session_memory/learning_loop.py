@@ -73,7 +73,7 @@ def ingest_task_outcome(outcome: TaskOutcome) -> dict[str, Any]:
             },
             tags=["lima", outcome.status or "unknown"],
         )
-    except Exception:
+    except Exception as exc:
         _log.debug("outcome ledger record failed", exc_info=True)
 
     try:
@@ -90,7 +90,7 @@ def ingest_task_outcome(outcome: TaskOutcome) -> dict[str, Any]:
             evidence=[f"memory={bool(result.get('memory'))}", f"eval={bool(result.get('eval'))}"],
             rollback="promote routing/prompt changes only after eval gate",
         )
-    except Exception:
+    except Exception as exc:
         _log.debug("ops_learning evidence record failed", exc_info=True)
 
     return result
@@ -291,7 +291,7 @@ def _maybe_promote_pattern(outcome: TaskOutcome) -> None:
     ]
     if len(matches) >= 3:
         try:
-            from session_memory.store import save_typed_memory, query_by_type
+            from session_memory.store import query_by_type, save_typed_memory
             existing = query_by_type("reference_pattern", limit=10)
             already_recorded = any(
                 f"candidate:{outcome.backend}:{outcome.scenario}" in (e.summary or "")

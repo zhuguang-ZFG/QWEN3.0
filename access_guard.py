@@ -67,7 +67,7 @@ def require_private_api_key(
     # 2. Check dynamic client keys from the store
     client_key = None
     try:
-        from routes.admin_client_keys import find_client_key, try_consume_quota, check_allowed_urls
+        from routes.admin_client_keys import check_allowed_urls, find_client_key, try_consume_quota
 
         client_key = find_client_key(token)
     except ImportError:

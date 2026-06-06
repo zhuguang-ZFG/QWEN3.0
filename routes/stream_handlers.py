@@ -7,9 +7,12 @@
 """
 import streaming as streaming_mod
 from routes.v3_adapters import (
-    v3_predict, v3_select,
-    v3_call_stream, v3_call_api,
-    v3_call_stream_async, v3_call_api_async,
+    v3_call_api,
+    v3_call_api_async,
+    v3_call_stream,
+    v3_call_stream_async,
+    v3_predict,
+    v3_select,
 )
 
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, Request
@@ -17,6 +18,8 @@ from converters.responses_api import (
     transform_chat_sse_stream,
 )
 from opencode_config import OPENCODE_RATE_MULTIPLIER, OPENCODE_TOOL_MODE
+
+_log = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -49,7 +52,8 @@ async def responses_create(request: Request):
     """OpenAI Responses API → internal chat/completions pipeline."""
     try:
         body = await request.json()
-    except Exception:
+    except Exception as exc:
+        _log.warning("operation failed: %s", exc)
         return JSONResponse(
             status_code=400,
             content={"error": {"message": "Invalid JSON body", "type": "invalid_request_error"}},
@@ -111,12 +115,13 @@ async def responses_create(request: Request):
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
     elif has_tools and not stream:
+        import time
+
         from routes.chat_endpoints import (
             _convert_anthropic_tool_response_to_openai,
-            _openai_to_anthropic_tool_body,
             _maybe_await,
+            _openai_to_anthropic_tool_body,
         )
-        import time
 
         tool_t0 = time.time()
         result = await _maybe_await(

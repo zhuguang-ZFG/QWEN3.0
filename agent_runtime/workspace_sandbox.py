@@ -161,7 +161,7 @@ class WorkspaceSandbox:
                         "workspace_git_diff",
                         detail=f"file={file_path} diff_lines={diff_output.count(chr(10))}",
                     )
-                except Exception:
+                except Exception as exc:
                     _log.debug("workspace_sandbox: audit event failed", exc_info=True)
         except Exception as exc:
             _log.debug("workspace git diff skipped: %s", type(exc).__name__)

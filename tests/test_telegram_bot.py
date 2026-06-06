@@ -3,7 +3,7 @@
 import asyncio
 import os
 import time
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
@@ -11,9 +11,9 @@ import pytest
 os.environ.setdefault("TELEGRAM_BOT_TOKEN", "test-token-123")
 os.environ.setdefault("TELEGRAM_CHAT_ID", "987654321")
 
+import routes.telegram_commands as telegram_commands
 import telegram_bot
 import telegram_notify
-import routes.telegram_commands as telegram_commands
 
 
 class TestTelegramBot:

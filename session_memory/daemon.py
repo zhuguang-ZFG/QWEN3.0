@@ -7,13 +7,14 @@ and periodically consolidates old memories into durable insights.
 
 import asyncio
 import json
+import logging
 import os
 import re
 import time
-import logging
 
 from session_memory.store import save_typed_memory
 
+_log = logging.getLogger(__name__)
 logger = logging.getLogger(__name__)
 
 DEFAULT_INBOX_DIR = os.path.join(
@@ -357,7 +358,7 @@ def _summarize_with_llm(summaries: list[str]) -> str:
         result = summarizer(summaries)
         if result and len(result) > 3:
             return result[:200]
-    except Exception:
+    except Exception as exc:
         logger.debug("[MemoryDaemon] LLM summarizer failed, using fallback", exc_info=True)
     return "; ".join(summaries)[:500]
 
@@ -377,8 +378,9 @@ def _get_summarizer():
     if _summarizer_cache is not None:
         return _summarizer_cache
     try:
-        from session_memory.compactor import llm_summarizer_factory
         import httpx
+
+        from session_memory.compactor import llm_summarizer_factory
 
         async def _call_lima(messages):
             try:
@@ -399,12 +401,14 @@ def _get_summarizer():
                         if choices:
                             return choices[0].get("message", {}).get("content", "")
                     return ""
-            except Exception:
+            except Exception as exc:
+                _log.warning("operation failed: %s", exc)
                 return ""
 
         _summarizer_cache = llm_summarizer_factory(_call_lima)
         logger.info("[MemoryDaemon] LLM summarizer initialized via LiMa local API")
-    except Exception:
+    except Exception as exc:
+        _log.warning("operation failed: %s", exc)
         _summarizer_cache = None
         logger.debug("[MemoryDaemon] LLM summarizer unavailable, will use string fallback", exc_info=True)
     return _summarizer_cache

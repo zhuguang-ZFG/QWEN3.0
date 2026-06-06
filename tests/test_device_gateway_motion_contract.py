@@ -1,9 +1,9 @@
 """Tests for device_gateway protocol — motion error codes and lifecycle validation."""
 from device_gateway.protocol import (
+    TERMINAL_MOTION_PHASES,
     motion_failure_event,
     validate_motion_event,
     validate_motion_task_lifecycle,
-    TERMINAL_MOTION_PHASES,
 )
 from device_gateway.protocol_families import MotionErrorCode
 

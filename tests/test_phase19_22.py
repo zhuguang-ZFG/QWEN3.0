@@ -1,22 +1,21 @@
-from context_pipeline.guardrails import (
-    check_injection,
-    check_input_length,
-    check_format,
-    check_output_safety,
-    run_input_guardrails,
-    GuardrailSeverity,
-)
-from context_pipeline.signal_extraction import extract_signals, recommend_strategy_from_signals
 from context_pipeline.event_log import EventLog, EventType
 from context_pipeline.evolution import EvolutionStrategy
-from context_pipeline.token_budget import (
-    estimate_tokens,
-    estimate_request_tokens,
-    check_budget,
-    TokenTracker,
+from context_pipeline.guardrails import (
+    GuardrailSeverity,
+    check_format,
+    check_injection,
+    check_input_length,
+    check_output_safety,
+    run_input_guardrails,
 )
-from context_pipeline.tracing import RequestTrace, new_trace, get_current_trace
-
+from context_pipeline.signal_extraction import extract_signals, recommend_strategy_from_signals
+from context_pipeline.token_budget import (
+    TokenTracker,
+    check_budget,
+    estimate_request_tokens,
+    estimate_tokens,
+)
+from context_pipeline.tracing import RequestTrace, get_current_trace, new_trace
 
 # === Phase 19: Guardrails ===
 

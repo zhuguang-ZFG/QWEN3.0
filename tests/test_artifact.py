@@ -1,8 +1,8 @@
 from context_pipeline.artifact import (
     ArtifactHandle,
     create_handle,
-    should_use_handle,
     render_handles_for_context,
+    should_use_handle,
 )
 
 

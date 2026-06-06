@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import uuid
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 
 def new_message_id() -> str:

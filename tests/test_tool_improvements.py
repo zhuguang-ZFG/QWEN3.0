@@ -13,7 +13,6 @@ import json
 
 from converters.anthropic_format import convert_tool_choice_anthropic_to_openai
 
-
 # ── Task 1: tool_choice conversion ────────────────────────────────────────────
 
 
@@ -87,9 +86,9 @@ class TestOpenAIToAnthropicToolBody:
 class TestToolForwardChoicePassthrough:
     def test_sync_forward_uses_client_tool_choice(self, monkeypatch):
         """Verify anthropic_native_forward_sync passes client tool_choice to backend."""
+        import health_tracker
         import routes.tool_forward as tf
         from backends import BACKENDS
-        import health_tracker
 
         captured_bodies = []
 
@@ -123,9 +122,9 @@ class TestToolForwardChoicePassthrough:
 
     def test_sync_forward_defaults_to_auto(self, monkeypatch):
         """Without tool_choice in body, should default to 'auto'."""
+        import health_tracker
         import routes.tool_forward as tf
         from backends import BACKENDS
-        import health_tracker
 
         captured_bodies = []
 

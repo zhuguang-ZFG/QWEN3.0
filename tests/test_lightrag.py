@@ -1,11 +1,10 @@
-from context_pipeline.entity_extraction import extract_entities, ExtractedEntities
+from context_pipeline.entity_extraction import ExtractedEntities, extract_entities
 from context_pipeline.graph_retrieval import (
     CodeGraph,
     RetrievalResult,
     dual_layer_search,
 )
-from context_pipeline.reranking import rerank_results, format_for_injection
-
+from context_pipeline.reranking import format_for_injection, rerank_results
 
 # === Phase 23: Entity Extraction ===
 

@@ -33,7 +33,7 @@ def _ensure_instruments():
     if _counters or not _ENABLED:
         return
     try:
-        from prometheus_client import Counter, Histogram, generate_latest, REGISTRY  # noqa: F401
+        from prometheus_client import REGISTRY, Counter, Histogram, generate_latest
 
         _counters["requests"] = Counter(
             "lima_requests_total", "Total requests", ["backend", "status"],
@@ -56,7 +56,7 @@ def _ensure_instruments():
         )
     except ImportError:
         _log.debug("prometheus_client not installed")
-    except Exception:
+    except Exception as exc:
         _log.debug("Prometheus instrument init failed", exc_info=True)
 
 
@@ -99,7 +99,7 @@ def generate_metrics() -> bytes:
     """Generate Prometheus text format output."""
     _ensure_instruments()
     try:
-        from prometheus_client import generate_latest  # noqa: F811
+        from prometheus_client import generate_latest
 
         return generate_latest()
     except ImportError:

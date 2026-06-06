@@ -1,13 +1,22 @@
 """Tests for M9: Streaming event protocol — SSE format, event types, serialization."""
 import json
-import pytest
-from streaming_events import (
-    StreamEvent, StreamEventType,
-    token_event, tool_start_event, tool_delta_event, tool_end_event,
-    warning_event, error_event, done_event, audit_ref_event,
-    format_sse_done, is_valid_event_name,
-)
 
+import pytest
+
+from streaming_events import (
+    StreamEvent,
+    StreamEventType,
+    audit_ref_event,
+    done_event,
+    error_event,
+    format_sse_done,
+    is_valid_event_name,
+    token_event,
+    tool_delta_event,
+    tool_end_event,
+    tool_start_event,
+    warning_event,
+)
 
 # ── StreamEventType enum ─────────────────────────────────────────────────────
 

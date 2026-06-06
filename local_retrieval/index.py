@@ -17,8 +17,8 @@ from local_retrieval.chunking import TextChunk
 from local_retrieval.manifest import (
     ChunkRecord,
     IndexBackendKind,
-    IndexManifest,
     IndexedDocument,
+    IndexManifest,
     _make_content_hash,
     redact_text,
 )

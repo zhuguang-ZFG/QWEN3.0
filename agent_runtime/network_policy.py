@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass, field
 
-
+_log = logging.getLogger(__name__)
 DEFAULT_DOMAIN_ALLOWLIST: frozenset[str] = frozenset()
 DEFAULT_MAX_REQUESTS_PER_MINUTE: int = 10
 
@@ -57,7 +58,8 @@ class NetworkPolicy:
             if parsed.scheme not in ("http", "https"):
                 return ""
             return parsed.hostname or ""
-        except Exception:
+        except Exception as exc:
+            _log.warning("operation failed: %s", exc)
             return ""
 
 

@@ -14,6 +14,7 @@ from agent_contracts.task_contract import AgentTaskRequest
 from agent_evolution.candidates import get_candidate_store
 from agent_runtime.prompt_contract import contract_to_dict, resolve_prompt_contract
 from routes.agent_task_schemas import TaskCreateBody
+
 _log = logging.getLogger(__name__)
 
 
@@ -31,6 +32,7 @@ def get_admin_token() -> str:
 
 async def require_admin(authorization: str = "") -> None:
     import logging as _log
+
     from access_guard import (
         configured_api_keys,
         constant_time_equals,

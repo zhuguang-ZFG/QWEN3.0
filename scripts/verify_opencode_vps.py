@@ -16,8 +16,8 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
-from urllib.error import URLError, HTTPError
 
 # ── Config ──────────────────────────────────────────────────────────────────
 VPS_IP = "47.112.162.80"

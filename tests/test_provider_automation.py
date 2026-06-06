@@ -293,11 +293,16 @@ def test_compute_delta_rejects_different_providers():
 
 # M14: Snapshot store
 
-from provider_automation.snapshot_store import (
-    save_snapshot, load_snapshot, load_latest_snapshot,
-    list_snapshots, count_snapshots, reset_snapshots,
-)
 import os
+
+from provider_automation.snapshot_store import (
+    count_snapshots,
+    list_snapshots,
+    load_latest_snapshot,
+    load_snapshot,
+    reset_snapshots,
+    save_snapshot,
+)
 
 
 def test_save_and_load_snapshot(tmp_path, monkeypatch):

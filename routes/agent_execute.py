@@ -80,12 +80,12 @@ def _command_from_task(task: str, kind: str) -> str:
 @router.post("/execute", response_model=ExecuteResponse)
 async def execute_task(req: ExecuteRequest) -> ExecuteResponse:
     """Execute a task through the agent runtime."""
+    from agent_runtime.contract import AgentStep, StepKind
     from agent_runtime.feature_flags import load_flags
     from agent_runtime.real_executor import (
         RealExecutorConfig,
         preflight_real_execution,
     )
-    from agent_runtime.contract import AgentStep, StepKind
 
     t0 = time.time()
     task_id = f"exec-{uuid.uuid4().hex[:12]}"

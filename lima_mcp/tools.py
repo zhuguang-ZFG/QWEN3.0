@@ -1,6 +1,7 @@
 """MCP tool handlers — execute search_repo, search_memory, get_retrieval_trace."""
 
 from __future__ import annotations
+
 import logging
 import os
 import sys
@@ -76,9 +77,9 @@ def _search_repo(args: dict) -> dict:
         return {"error": "query is required"}
 
     try:
-        from context_pipeline.entity_extraction import extract_entities
         from context_pipeline.code_scanner import get_code_graph
-        from context_pipeline.graph_retrieval import dual_layer_search, RetrievalResult
+        from context_pipeline.entity_extraction import extract_entities
+        from context_pipeline.graph_retrieval import RetrievalResult, dual_layer_search
         from context_pipeline.reranking import rerank_results
     except ImportError as e:
         return {"error": f"Missing module: {e}"}
@@ -337,11 +338,25 @@ def _glob_search(args: dict) -> dict:
 
 # GitHub and CI handlers imported from sub-module
 from lima_mcp.github_handlers import (
-    _github_create_issue, _github_list_issues, _github_get_issue,
-    _github_add_issue_comment, _github_search_issues, _github_search_code,
-    _github_get_file_contents, _github_create_pull_request, _github_create_branch,
-    _github_list_workflow_runs, _github_get_workflow_run, _github_list_workflow_jobs,
-    _github_list_workflow_artifacts, _github_get_combined_status, _github_list_check_runs,
-    _memory_stats, _outcome_ledger_stats,
-    _github_get_pull_request, _github_get_pr_files, _github_get_pr_diff, _github_create_review,
+    _github_add_issue_comment,
+    _github_create_branch,
+    _github_create_issue,
+    _github_create_pull_request,
+    _github_create_review,
+    _github_get_combined_status,
+    _github_get_file_contents,
+    _github_get_issue,
+    _github_get_pr_diff,
+    _github_get_pr_files,
+    _github_get_pull_request,
+    _github_get_workflow_run,
+    _github_list_check_runs,
+    _github_list_issues,
+    _github_list_workflow_artifacts,
+    _github_list_workflow_jobs,
+    _github_list_workflow_runs,
+    _github_search_code,
+    _github_search_issues,
+    _memory_stats,
+    _outcome_ledger_stats,
 )

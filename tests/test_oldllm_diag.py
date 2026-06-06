@@ -126,22 +126,21 @@ def test_run_diag_skips_unreachable_local_proxy():
             "error": None,
         }
 
-    with patch("oldllm_diag.probe_models", side_effect=fake_models):
-        with patch("oldllm_diag.probe_chat") as chat:
-            chat.return_value = {
-                "target": "https://up.test",
-                "kind": "chat",
-                "ok": False,
-                "status": 502,
-                "elapsed_sec": 0.5,
-                "timed_out": False,
-                "content_sample": "",
-                "error": "502",
-            }
-            report = oldllm_diag.run_diag(
-                upstream="https://up.test",
-                local_proxy="http://127.0.0.1:4502",
-            )
+    with patch("oldllm_diag.probe_models", side_effect=fake_models), patch("oldllm_diag.probe_chat") as chat:
+        chat.return_value = {
+            "target": "https://up.test",
+            "kind": "chat",
+            "ok": False,
+            "status": 502,
+            "elapsed_sec": 0.5,
+            "timed_out": False,
+            "content_sample": "",
+            "error": "502",
+        }
+        report = oldllm_diag.run_diag(
+            upstream="https://up.test",
+            local_proxy="http://127.0.0.1:4502",
+        )
     local = [r for r in report["results"] if r.get("label") == "local_proxy"]
     assert all(r.get("skipped") for r in local)
     chat.assert_called_once()

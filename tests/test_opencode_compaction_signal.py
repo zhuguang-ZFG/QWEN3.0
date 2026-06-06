@@ -1,19 +1,20 @@
 """Tests for opencode_compaction_signal.py — compaction trigger logic."""
 
 import pytest
+
 from opencode_compaction_signal import (
-    SIGNAL_OK,
-    SIGNAL_WARNING,
-    SIGNAL_CRITICAL,
-    SIGNAL_COMPACT,
     COMPACTION_BUFFER,
     PRUNE_MINIMUM,
     PRUNE_PROTECT,
-    compute_usable,
-    is_overflow,
-    evaluate_compaction_signal,
+    SIGNAL_COMPACT,
+    SIGNAL_CRITICAL,
+    SIGNAL_OK,
+    SIGNAL_WARNING,
     build_compaction_response_headers,
+    compute_usable,
+    evaluate_compaction_signal,
     inject_compaction_signal_in_response,
+    is_overflow,
     should_trigger_compaction,
 )
 

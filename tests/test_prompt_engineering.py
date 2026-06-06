@@ -1,7 +1,7 @@
 from prompt_engineering.layers import (
+    build_quality_gate,
     build_role_layer,
     build_skill_layer,
-    build_quality_gate,
     compose_system_prompt,
 )
 

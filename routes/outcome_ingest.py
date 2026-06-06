@@ -9,10 +9,14 @@ Protected by LIMA_API_KEY (same as other internal endpoints).
 
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
 from access_guard import require_private_api_key
+
+_log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/internal/v1", tags=["internal"])
 
@@ -22,7 +26,8 @@ async def ingest_outcome(request: Request):
     """Record an outcome event from an external source (CI, smoke, Telegram)."""
     try:
         body = await request.json()
-    except Exception:
+    except Exception as exc:
+        _log.warning("operation failed: %s", exc)
         return JSONResponse({"error": "JSON body required"}, status_code=400)
 
     source = str(body.get("source", ""))

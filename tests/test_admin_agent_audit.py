@@ -7,10 +7,11 @@ os.environ["LIMA_ADMIN_TOKEN"] = "test-admin-token"
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+import routes.admin_auth as admin_auth
 from routes.admin import router as admin_router
 from routes.admin_agent_audit import router as admin_agent_audit_router
-import routes.admin_auth as admin_auth
-from routes.agent_tasks import _reset_for_tests, router as agent_router
+from routes.agent_tasks import _reset_for_tests
+from routes.agent_tasks import router as agent_router
 
 app = FastAPI()
 app.include_router(admin_router)

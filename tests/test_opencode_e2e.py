@@ -14,13 +14,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-
 # ─── Test 1: OpenCode IDE detection and routing ──────────────────────────────
 
 def test_opencode_ide_detection_and_routing():
     """OpenCode requests are detected and routed correctly."""
-    from routes.request_tracking import detect_ide
     from router_v3 import classify_request
+    from routes.request_tracking import detect_ide
     
     # Test IDE detection from User-Agent
     headers = {
@@ -81,7 +80,7 @@ def test_model_name_resolution_with_prefix():
 
 def test_opencode_context_compression():
     """OpenCode multi-turn conversations preserve recent turns."""
-    from context_compressor import compress_messages, OPENCODE_KEEP_RECENT_TURNS
+    from context_compressor import OPENCODE_KEEP_RECENT_TURNS, compress_messages
     
     # Create a long conversation
     messages = []
@@ -107,8 +106,8 @@ def test_opencode_context_compression():
 
 def test_opencode_skills_injection():
     """OpenCode skips style category skills."""
-    from skills_injector import _filter_by_ide
     from opencode_config import OPENCODE_SKIPPED_SKILL_CATEGORIES
+    from skills_injector import _filter_by_ide
     
     # Create mock skills
     skills = [
@@ -129,7 +128,7 @@ def test_opencode_skills_injection():
 
 def test_opencode_backend_affinity():
     """OpenCode coding requests get affinity boost."""
-    from opencode_config import OPENCODE_FAST_BOOST, OPENCODE_FAST_BACKENDS
+    from opencode_config import OPENCODE_FAST_BACKENDS, OPENCODE_FAST_BOOST
     
     # Verify config is loaded
     assert OPENCODE_FAST_BOOST > 1.0
@@ -146,8 +145,8 @@ def test_opencode_backend_affinity():
 def test_usage_extraction_pipeline():
     """Full usage extraction pipeline works correctly."""
     from http_response import extract_sse_usage
-    from streaming_events import build_usage_chunk
     from routes.chat_stream import _extract_meta
+    from streaming_events import build_usage_chunk
     
     # Simulate backend chunk with usage
     backend_chunk = json.dumps({
@@ -222,8 +221,8 @@ def test_opencode_skip_speculative():
 
 def test_full_opencode_request_simulation():
     """Simulate a full OpenCode request through the pipeline."""
-    from routes.request_tracking import detect_ide
     from router_v3 import classify_request
+    from routes.request_tracking import detect_ide
     
     # Simulate OpenCode request
     headers = {
@@ -262,8 +261,8 @@ def test_full_opencode_request_simulation():
     assert result["type"] == "ide"
     
     # Verify model resolution
-    from model_resolver import resolve_backend
     from backends_registry import BACKENDS
+    from model_resolver import resolve_backend
     backend = resolve_backend(body["model"])
     # Note: anthropic/claude-sonnet-4 is not in MODEL_ALIASES, so returns None
     # In production, auto-routing will handle it
@@ -274,7 +273,7 @@ def test_full_opencode_request_simulation():
 
 def test_opencode_error_handling():
     """Error handling works correctly in OpenCode pipeline."""
-    from http_response import extract_sse_usage, extract_sse_reasoning
+    from http_response import extract_sse_reasoning, extract_sse_usage
     
     # Invalid JSON
     assert extract_sse_usage("not json") is None
@@ -293,14 +292,14 @@ def test_opencode_error_handling():
 def test_opencode_config_consistency():
     """OpenCode configuration is consistent across modules."""
     from opencode_config import (
-        OPENCODE_TOOL_MODE,
-        OPENCODE_FAST_BOOST,
         OPENCODE_FAST_BACKENDS,
-        OPENCODE_RATE_MULTIPLIER,
-        OPENCODE_PREFERRED_BACKEND,
-        OPENCODE_SKIPPED_SKILL_CATEGORIES,
+        OPENCODE_FAST_BOOST,
         OPENCODE_KEEP_RECENT_TURNS,
+        OPENCODE_PREFERRED_BACKEND,
+        OPENCODE_RATE_MULTIPLIER,
         OPENCODE_SKIP_SPECULATIVE_TOOLS,
+        OPENCODE_SKIPPED_SKILL_CATEGORIES,
+        OPENCODE_TOOL_MODE,
     )
     
     # Verify types

@@ -1,8 +1,8 @@
 """Tests for agent_roles module."""
 
 import pytest
-from agent_roles import Role, ROLES, get_role
 
+from agent_roles import ROLES, Role, get_role
 
 EXPECTED_ROLES = ["planner", "coder", "reviewer", "tester", "security", "ops", "memory_curator"]
 

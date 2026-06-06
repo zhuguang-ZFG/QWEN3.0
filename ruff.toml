@@ -15,16 +15,34 @@ exclude = [
     "scripts/archive",
     "venv",
     ".venv",
+    ".venv310",
+    ".lima-tools",
     "managed_components",
     ".ruff_cache",
 ]
 
 [lint]
 # Gate real defects first; broaden cleanup-only rules in later slices.
+# E9: runtime syntax errors
+# F: pyflakes (undefined names, unused imports gated by per-file)
+# B: bugbear (common pitfalls)
+# S: bandit security rules (high-signal only)
 # S110: try-except-pass without logging (Principle 0 anti-degradation gate)
 # BLE001: blind except Exception (catch-all should be explicit)
 # E722: bare except (must name exception type)
-select = ["E9", "F821", "F822", "F823", "B005", "B011", "B012", "B905", "S507", "S110", "E722"]
+# I: isort (import ordering)
+# UP: pyupgrade (modernize syntax)
+# SIM: flake8-simplify (code simplification)
+# RUF: ruff-specific rules
+select = [
+    "E9", "F821", "F822", "F823",
+    "B005", "B011", "B012", "B905",
+    "S507", "S110", "E722",
+    "I",
+    "UP006", "UP007", "UP035",
+    "SIM105", "SIM117", "SIM118",
+    "RUF005", "RUF010", "RUF100",
+]
 
 [lint.per-file-ignores]
 "**/__init__.py" = ["F401"]
@@ -33,3 +51,5 @@ select = ["E9", "F821", "F822", "F823", "B005", "B011", "B012", "B905", "S507", 
 "backends.py" = ["F401"]
 "routing_engine.py" = ["F401"]
 "tests/**/*.py" = ["S110", "E722"]
+# Style rules with many existing violations — fix incrementally
+"*.py" = ["RUF005", "SIM105", "SIM117"]

@@ -8,6 +8,7 @@ V2 owner-only: /code-task /device /status /artifact /memory
 
 import os
 import re
+
 from channel_gateway.models import CommandResult
 
 MAX_TEXT_LENGTH = int(os.environ.get("LIMA_CHANNEL_MAX_TEXT", "4000"))

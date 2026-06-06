@@ -5,7 +5,6 @@ Retains the most recent N snapshots per provider.
 """
 from __future__ import annotations
 
-
 import logging
 
 _log = logging.getLogger(__name__)
@@ -15,7 +14,6 @@ import re
 import time
 
 from provider_automation.catalog import ProviderModelSnapshot
-
 
 _DEFAULT_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),

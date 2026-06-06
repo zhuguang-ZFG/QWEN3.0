@@ -10,8 +10,8 @@ from __future__ import annotations
 import json
 import logging
 import os
-import time
 import sys
+import time
 
 _ENABLED = os.environ.get("LIMA_STRUCTURED_LOGGING", "0").strip().lower() in {
     "1", "true", "yes",

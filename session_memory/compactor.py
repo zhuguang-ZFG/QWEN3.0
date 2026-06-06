@@ -7,14 +7,18 @@ Based on Google ADK Context Compaction + claude-mem AI Summarization:
 - Use LiMa's own free backends for summarization
 """
 
+import logging
 import time
+
 from session_memory.store import (
     MemoryEntry,
+    _get_conn,
+    count_memories,
     get_recent_memories,
     save_memory,
-    count_memories,
-    _get_conn,
 )
+
+_log = logging.getLogger(__name__)
 
 
 COMPACTION_THRESHOLD = 20
@@ -86,7 +90,8 @@ def compact_session(session_id: str, summarizer=None) -> dict:
     if summarizer:
         try:
             compressed = summarizer(summaries)
-        except Exception:
+        except Exception as exc:
+            _log.warning("operation failed: %s", exc)
             compressed = _fallback_summarize(summaries)
     else:
         compressed = _fallback_summarize(summaries)
@@ -142,7 +147,8 @@ def llm_summarizer_factory(call_fn):
             else:
                 result = asyncio.run(call_fn(messages))
             return result[:200] if result else _fallback_summarize(summaries)
-        except Exception:
+        except Exception as exc:
+            _log.warning("operation failed: %s", exc)
             return _fallback_summarize(summaries)
 
     return summarizer

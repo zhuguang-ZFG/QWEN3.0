@@ -1,10 +1,10 @@
 """Tests for device_gateway.path_validator."""
 from device_gateway.path_validator import (
-    validate_capability_params,
-    validate_run_path_params,
     CAPABILITY_PATH_MAP,
     MAX_PATH_POINTS,
     MAX_POINT_COORD,
+    validate_capability_params,
+    validate_run_path_params,
 )
 
 

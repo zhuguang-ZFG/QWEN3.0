@@ -16,6 +16,7 @@ from pathlib import Path
 
 from eval_preflight import check_eval_health, quick_backend_list
 
+_log = logging.getLogger(__name__)
 logger = logging.getLogger("periodic_coding_eval")
 
 ROOT = Path(__file__).resolve().parent
@@ -135,7 +136,7 @@ def _loop() -> None:
                 code = run_eval_slice(quick=quick)
                 _log_info("periodic coding eval finished exit=%s (%s)", code, detail)
                 notify_eval_finished(code=code, quick=quick, source="periodic")
-            except Exception:
+            except Exception as exc:
                 logger.exception("periodic coding eval subprocess failed")
         else:
             _log_info("periodic coding eval skipped: server not ready (%s)", detail)

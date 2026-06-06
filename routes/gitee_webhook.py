@@ -12,6 +12,7 @@ from gitee_webhook.dedupe import record_push_shas, should_skip_gitee_push
 from gitee_webhook.format import extract_push_shas, format_gitee_event
 from gitee_webhook.verify import verify_gitee_request
 
+_log = logging.getLogger(__name__)
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/gitee")
@@ -92,14 +93,14 @@ async def gitee_webhook(request: Request):
         return {"ok": True, "ignored": True}
 
     try:
-        from telegram_notify import notify_gitee_event
         from gitee_webhook.activity import classify_gitee_event
+        from telegram_notify import notify_gitee_event
         from webhook_activity_buffer import record_webhook_event
 
         kind, repo = classify_gitee_event(event, payload)
         record_webhook_event(source="gitee", kind=kind, repo=repo)
         notify_gitee_event(summary)
-    except Exception:
+    except Exception as exc:
         logger.exception("gitee webhook telegram notify failed event=%s", event)
 
     return {"ok": True, "event": event or hook}

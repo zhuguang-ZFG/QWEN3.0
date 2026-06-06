@@ -8,7 +8,7 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from sandbox.executor import run_code, _docker_available
+from sandbox.executor import _docker_available, run_code
 
 
 def test_docker_available_returns_bool():

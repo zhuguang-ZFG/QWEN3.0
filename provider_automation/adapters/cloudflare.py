@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import time
@@ -14,6 +15,7 @@ import httpx
 from provider_automation.catalog import ModelAdmissionStatus, ProviderModelEntry, ProviderModelSnapshot
 from provider_inventory.compare import registered_model_ids
 
+_log = logging.getLogger(__name__)
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_INVENTORY = ROOT / "data" / "cf_model_inventory.json"
 MAX_SMOKE_LATENCY_MS = 15_000
@@ -59,7 +61,8 @@ def _admitted_overlay_model_ids(admission_path: str | Path = "") -> set[str]:
 
         data = load_store(admission_path)
         return {o.model_id for o in parse_overlays(data) if o.model_id}
-    except Exception:
+    except Exception as exc:
+        _log.warning("operation failed: %s", exc)
         return set()
 
 
@@ -236,7 +239,8 @@ def run_coding_fixture(entry: ProviderModelEntry) -> tuple[int, int]:
             lower = text.lower()
             if all(marker.lower() in lower for marker in markers):
                 passed += 1
-        except Exception:
+        except Exception as exc:
+            _log.warning("operation failed: %s", exc)
             continue
     return passed, len(_CODING_CASES)
 

@@ -7,7 +7,7 @@ LiMa Streaming — 纯流式核心，依赖注入解耦
 
 import asyncio
 import logging
-from typing import AsyncIterator, Awaitable, Callable, Iterator
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
 
 from streaming_bridge import bridge_stream
 
@@ -53,7 +53,7 @@ async def bridge_stream_async(
                 # Track whether we received a finish_reason
                 if not received_finish and '"finish_reason"' in chunk:
                     received_finish = True
-            except Exception:
+            except Exception as exc:
                 _log.debug("streaming: protocol adapter normalize failed", exc_info=True)
 
             total_text += chunk
@@ -86,7 +86,7 @@ async def bridge_stream_async(
             _log.info("stream truncated, injecting graceful finish for backend=%s", backend)
             yield graceful
             total_text += graceful
-        except Exception:
+        except Exception as exc:
             _log.debug("streaming: graceful finish injection failed", exc_info=True)
 
     if not total_text:

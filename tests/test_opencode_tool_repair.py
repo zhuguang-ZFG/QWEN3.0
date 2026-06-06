@@ -1,17 +1,18 @@
 """Tests for opencode_tool_repair.py — tool name auto-repair + invalid routing."""
 
 import json
+
 import pytest
+
 from opencode_tool_repair import (
-    repair_tool_name,
-    build_invalid_tool_result,
+    INVALID_TOOL_NAME,
     build_invalid_tool_input_json,
+    build_invalid_tool_result,
     get_invalid_tool_definition,
     repair_tool_calls_in_body,
+    repair_tool_name,
     should_inject_invalid_tool,
-    INVALID_TOOL_NAME,
 )
-
 
 # ── repair_tool_name ─────────────────────────────────────────────────────────
 

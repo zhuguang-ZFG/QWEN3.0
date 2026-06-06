@@ -6,6 +6,7 @@ import logging
 import os
 import re
 
+_log = logging.getLogger(__name__)
 logger = logging.getLogger(__name__)
 
 _CJK_RE = re.compile(r"[\u4e00-\u9fff\u3400-\u4dbf]")
@@ -120,7 +121,7 @@ def _translate_via_llm(text: str, *, target: str) -> str | None:
                 max_tokens=512,
                 system_prompt=system_prompt,
             )
-        except Exception:
+        except Exception as exc:
             logger.debug("llm push translate failed backend=%s", backend, exc_info=True)
             continue
         cleaned = (answer or "").strip()

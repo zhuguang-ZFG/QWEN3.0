@@ -9,26 +9,29 @@ LiMa Routing Engine — 统一路由入口
 import json
 import logging
 import time
-from typing import Callable
+from collections.abc import Callable
 
-import health_tracker
 import budget_manager
+import health_tracker
 import identity_guard
 import router_v3
 import semantic_cache
 import speculative
 import sticky_session
 from context_pipeline.retrieval_injection import inject_retrieval_context
+from model_resolver import resolve_backend
 from response_cleaner import clean_response
 from route_post_process import apply_post_route_integrations
 from routing_classifier import classify, classify_scenario
-from routing_executor import execute
-from model_resolver import resolve_backend
-from routing_engine_response import respond, with_injection_meta as _with_injection_meta
-from routing_engine_skills import get_injected_ids as _get_injected_ids, inject_skills
+from routing_engine_response import respond
+from routing_engine_response import with_injection_meta as _with_injection_meta
+from routing_engine_skills import get_injected_ids as _get_injected_ids
+from routing_engine_skills import inject_skills
 from routing_engine_types import RouteResult
+from routing_executor import execute
 from routing_selector import select
 
+_log = logging.getLogger(__name__)
 # Re-export for backward compatibility
 __all__ = [
     "RouteResult",
@@ -194,7 +197,8 @@ def route(query: str, messages: list[dict], *,
             # ── Inject reasoning bridge (thinking reminder + provider prompt) ──
             try:
                 from opencode_reasoning_bridge import (
-                    inject_thinking_reminder, select_provider_system_prompt,
+                    inject_thinking_reminder,
+                    select_provider_system_prompt,
                 )
                 # Get estimated backend for this coding path
                 _est_backend = ""
@@ -204,7 +208,7 @@ def route(query: str, messages: list[dict], *,
                     _candidates = _rselect("ide", _hmap, scenario="coding",
                                             needs_tools=needs_tools, ide_source=ide_source)
                     _est_backend = _candidates[0] if _candidates else ""
-                except Exception:
+                except Exception as exc:
                     logging.debug("routing_engine: backend estimation failed", exc_info=True)
                 if _est_backend:
                     messages = inject_thinking_reminder(messages, _est_backend)
@@ -222,7 +226,8 @@ def route(query: str, messages: list[dict], *,
                 if _est_backend:
                     try:
                         from opencode_tool_splitter import (
-                            should_inject_sequential_hint, build_sequential_tool_prompt,
+                            build_sequential_tool_prompt,
+                            should_inject_sequential_hint,
                         )
                         if should_inject_sequential_hint(_est_backend):
                             _seq_hint = build_sequential_tool_prompt(tools)
@@ -304,7 +309,7 @@ def route(query: str, messages: list[dict], *,
 
     # Auto-compress long conversations before they exceed backend context limits
     try:
-        from context_compressor import should_compress, compress_messages
+        from context_compressor import compress_messages, should_compress
         if backends and should_compress(messages_injected, backends[0]):
             messages_injected = compress_messages(
                 messages_injected, backends[0], system_prompt=system_prompt,

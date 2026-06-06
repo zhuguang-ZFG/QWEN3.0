@@ -22,7 +22,6 @@ from typing import Any
 
 from reverse_gateway.providers.scnet_cookie import CookieState, load_cookie_state
 
-
 KIMI_DEFAULT_PATH = "/opt/lima-router/reverse_gateway_state/kimi_cookies.json"
 KIMI_PUBLIC_COOKIE_NAMES = {"theme", "language", "_tea_utm_cache_20001731"}
 REDACTED = "<redacted>"

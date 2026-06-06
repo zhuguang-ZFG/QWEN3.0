@@ -11,7 +11,6 @@ import backends
 import http_caller
 import smart_router
 
-
 # ── BACKENDS completeness ───────────────────────────────────────────────────────
 
 def test_proxy_backend_set_is_shared_from_backend_registry():

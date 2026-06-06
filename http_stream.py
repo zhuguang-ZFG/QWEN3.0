@@ -2,19 +2,19 @@
 
 from __future__ import annotations
 
+import json as _json_mod
 import os
 import sys
 import time
-from typing import AsyncIterator, Generator
+from collections.abc import AsyncIterator, Generator
 
 import httpx
-from response_cleaner import StreamIdentitySanitizer, clean_response, _is_backend_error
 
 from backends import BACKENDS
 from http_errors import BackendError, _extract_code, _extract_retry_after
+from http_response import _parse_sse_chunk, extract_sse_reasoning, extract_sse_usage
 from opencode_error_adapter import detect_context_overflow, parse_stream_error
-import json as _json_mod
-from http_response import _parse_sse_chunk, extract_sse_usage, extract_sse_reasoning
+from response_cleaner import StreamIdentitySanitizer, _is_backend_error, clean_response
 
 DEBUG = os.environ.get("LIMA_DEBUG", "") == "1"
 

@@ -10,6 +10,7 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+from agent_runtime.contract import AgentStep, StepKind
 from agent_runtime.feature_flags import (
     BLOCKED_COMMANDS,
     EXEC_MODES,
@@ -23,8 +24,6 @@ from agent_runtime.real_executor import (
     RealExecutorConfig,
     preflight_real_execution,
 )
-from agent_runtime.contract import AgentStep, StepKind
-
 
 # ─── feature_flags tests ─────────────────────────────────────────────
 

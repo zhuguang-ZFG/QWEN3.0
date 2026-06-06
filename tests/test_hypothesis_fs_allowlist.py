@@ -9,7 +9,8 @@ from pathlib import Path
 import pytest
 
 hypothesis = pytest.importorskip("hypothesis")
-from hypothesis import assume, given, settings, strategies as st
+from hypothesis import assume, given, settings
+from hypothesis import strategies as st
 
 from lima_mcp.fs_allowlist import is_within_allowed, validate_path
 
@@ -20,8 +21,9 @@ def _patch_allowed_roots(monkeypatch):
     with tempfile.TemporaryDirectory() as tmp:
         monkeypatch.setenv("LIMA_FILESYSTEM_ALLOWED_ROOTS", tmp)
         # Force reload of the allowed roots cache
-        from lima_mcp.fs_allowlist import _load_allowed_roots as _fn
         import functools
+
+        from lima_mcp.fs_allowlist import _load_allowed_roots as _fn
         try:
             _fn.cache_clear()
         except AttributeError:

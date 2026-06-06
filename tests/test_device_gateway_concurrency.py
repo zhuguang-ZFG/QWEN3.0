@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 
+from device_gateway.store import InMemoryDeviceTaskStore
 from device_gateway.tasks import (
     create_task_from_transcript,
     enqueue_pending_task,
@@ -10,7 +11,6 @@ from device_gateway.tasks import (
     reset_tasks_for_tests,
     task_snapshot,
 )
-from device_gateway.store import InMemoryDeviceTaskStore
 
 
 def setup_function():

@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-
 DEFAULT_PROTOCOL_PATH = "/opt/lima-router/reverse_gateway_state/scnet_protocol.json"
 SECRET_HEADER_NAMES = {
     "authorization",

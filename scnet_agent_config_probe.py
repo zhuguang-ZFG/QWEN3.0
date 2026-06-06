@@ -1,4 +1,7 @@
-import json, httpx
+import json
+
+import httpx
+
 COOKIE_PATH='/opt/lima-router/reverse_gateway_state/scnet_cookies.json'
 BASE='https://www.scnet.cn/acx'
 raw=json.load(open(COOKIE_PATH))

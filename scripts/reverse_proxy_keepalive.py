@@ -19,6 +19,7 @@ import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
+_log = logging.getLogger(__name__)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [keepalive] %(message)s",
@@ -83,7 +84,8 @@ def check_backend_health(port: int, model: str) -> tuple[bool, str]:
                 if content and len(content.strip()) >= 1:
                     return True, f"OK ({len(content)} chars)"
                 return False, "Empty response"
-            except Exception:
+            except Exception as exc:
+                _log.warning("operation failed: %s", exc)
                 return False, f"JSON parse error: {resp.text[:80]}"
         elif resp.status_code in (401, 403):
             return False, f"Cookie expired (HTTP {resp.status_code})"
@@ -102,7 +104,7 @@ def refresh_longcat_cookie() -> bool:
 
     # Check if playwright is available
     try:
-        import playwright  # noqa: F401
+        import playwright
     except ImportError:
         log.warning("Playwright not installed, cannot auto-refresh LongCat cookie")
         return False

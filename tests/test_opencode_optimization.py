@@ -96,9 +96,9 @@ def test_opencode_scenario_is_coding():
 
 def test_opencode_backend_preference():
     """resolve_route_prefs() prefers OPENCODE_PREFERRED_BACKEND for OpenCode IDE."""
-    from routes.chat_handler_dispatch import resolve_route_prefs
     from chat_models import ChatRequest
     from opencode_config import OPENCODE_PREFERRED_BACKEND
+    from routes.chat_handler_dispatch import resolve_route_prefs
 
     # OpenCode with default model → configured preferred backend
     req = ChatRequest(model="lima-1.3", messages=[{"role": "user", "content": "write a function"}])
@@ -192,10 +192,10 @@ def test_opencode_tool_mode_flag():
 def test_opencode_connection_pool():
     """_get_client / _get_async_client return the same pooled client for same backend."""
     from http_request_builder import (
-        _get_client,
-        _get_async_client,
-        _sync_client_pool,
         _async_client_pool,
+        _get_async_client,
+        _get_client,
+        _sync_client_pool,
     )
 
     # Clear pools before test
@@ -252,6 +252,7 @@ def test_opencode_connection_pool():
 def test_stream_flush_threshold_configurable():
     """LIMA_STREAM_FLUSH_CHARS env var controls _STREAM_FLUSH_CHARS."""
     import importlib
+
     import http_stream
 
     with patch.dict(os.environ, {"LIMA_STREAM_FLUSH_CHARS": "50"}):

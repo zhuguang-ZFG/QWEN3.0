@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 
 load_dotenv(ROOT / ".env")
 
-import healthcheck_ping as hc  # noqa: E402
+import healthcheck_ping as hc
 
 
 def main() -> int:

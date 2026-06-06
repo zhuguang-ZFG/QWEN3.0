@@ -88,8 +88,9 @@ async def test_cmd_evalslice_full_mode(monkeypatch):
 
 
 async def test_cmd_evalreport_shows_summary(monkeypatch):
-    import routes.telegram_eval_tools as mod
     from pathlib import Path
+
+    import routes.telegram_eval_tools as mod
 
     sent: list[str] = []
 
@@ -109,8 +110,9 @@ async def test_cmd_evalreport_shows_summary(monkeypatch):
 
 
 async def test_cmd_archiveeval_writes_archive(monkeypatch):
-    import routes.telegram_eval_tools as mod
     from pathlib import Path
+
+    import routes.telegram_eval_tools as mod
 
     sent: list[str] = []
 
@@ -182,8 +184,9 @@ async def test_cmd_evaldigest(monkeypatch):
 
 
 async def test_cmd_archiveeval_document_upload(monkeypatch):
-    import routes.telegram_eval_tools as mod
     from pathlib import Path
+
+    import routes.telegram_eval_tools as mod
 
     sent: list[str] = []
     docs: list[Path] = []

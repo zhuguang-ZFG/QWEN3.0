@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from code_context.scanner import scan_python_file
 from code_context.index_store import CodeSymbol, InMemoryCodeIndex, _cosine_similarity
 from code_context.retriever import retrieve_relevant_files
+from code_context.scanner import scan_python_file
 
 
 def test_scan_python_file_extracts_classes_functions_and_imports(tmp_path: Path):
@@ -172,15 +172,16 @@ def test_in_memory_graph_index_edge_count():
 
 
 def test_graph_index_is_abstract():
-    from code_context.graph_index import GraphIndex
     import pytest
+
+    from code_context.graph_index import GraphIndex
 
     with pytest.raises(TypeError):
         GraphIndex()
 
 
 def test_build_graph_index_factory():
-    from code_context.graph_index import build_graph_index, InMemoryGraphIndex
+    from code_context.graph_index import InMemoryGraphIndex, build_graph_index
 
     g = build_graph_index()
     assert isinstance(g, InMemoryGraphIndex)
@@ -267,7 +268,7 @@ def test_stdlib_extractor_handles_missing_file():
 
 
 def test_get_extractor_python():
-    from code_context.ast_adapter import get_extractor, StdlibAstExtractor
+    from code_context.ast_adapter import StdlibAstExtractor, get_extractor
 
     ext = get_extractor("python")
     assert isinstance(ext, StdlibAstExtractor)

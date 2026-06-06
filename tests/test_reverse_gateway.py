@@ -1,16 +1,20 @@
-import runtime_topology
 import router_v3
+import runtime_topology
 from code_orchestrator_context import POOLS as CODE_POOLS
 from reverse_gateway.errors import classify_error
 from reverse_gateway.health import probe_provider
 from reverse_gateway.providers.scnet import forward_chat, sidecar_health
-from reverse_gateway.providers.scnet_adapter import attach_text_file, build_payload, extract_sse_text, message_transcript
+from reverse_gateway.providers.scnet_adapter import (
+    attach_text_file,
+    build_payload,
+    extract_sse_text,
+    message_transcript,
+)
 from reverse_gateway.providers.scnet_cookie import REDACTED as COOKIE_REDACTED
 from reverse_gateway.providers.scnet_cookie import load_cookie_state, write_cookie_state
 from reverse_gateway.providers.scnet_protocol import REDACTED, ProtocolTemplate, load_template, write_redacted_capture
 from reverse_gateway.registry import list_provider_status, provider_status
 from routes.reverse_gateway import reverse_gateway_health, reverse_gateway_probe, reverse_gateway_provider
-
 
 # M6: All host-dependent backends migrated or deleted. Set is empty.
 HOST_DEPENDENT_BACKENDS: set[str] = set()
@@ -146,8 +150,8 @@ def test_scnet_probe_requires_cookies_with_protocol(monkeypatch, tmp_path):
 
 
 def test_scnet_forward_chat_proxies_explicit_upstream(monkeypatch):
-    from reverse_gateway.config import ProviderConfig
     import reverse_gateway.providers.scnet as scnet
+    from reverse_gateway.config import ProviderConfig
 
     class Response:
         status_code = 200

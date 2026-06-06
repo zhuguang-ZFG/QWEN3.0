@@ -13,16 +13,15 @@ from code_context.ast_adapter import (
     StdlibAstExtractor,
     get_extractor,
 )
+from code_context.file_watcher import FileChange, FileWatcher
 from code_context.graph_index import (
     GraphIndex,
     GraphSearchResult,
     InMemoryGraphIndex,
     build_graph_index,
 )
-from code_context.index_store import InMemoryCodeIndex, CodeSymbol, build_code_index
+from code_context.index_store import CodeSymbol, InMemoryCodeIndex, build_code_index
 from code_context.scanner import scan_file, scan_python_file
-from code_context.file_watcher import FileWatcher, FileChange
-
 
 # ---------------------------------------------------------------------------
 # AST Adapter - existing Python extractor

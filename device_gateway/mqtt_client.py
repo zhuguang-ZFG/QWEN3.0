@@ -100,9 +100,10 @@ async def _mqtt_message_loop() -> None:
     and bridges incoming messages to asyncio via queues.
     """
     try:
-        import paho.mqtt.client as mqtt
         import json as _json
         import time as _time_mod
+
+        import paho.mqtt.client as mqtt
     except ImportError:
         _log.info("paho-mqtt not installed; MQTT transport remains in stub mode")
         _log.info("Install: pip install paho-mqtt")
@@ -111,8 +112,12 @@ async def _mqtt_message_loop() -> None:
         return  # unreachable
 
     from device_gateway.mqtt_topics import (
-        LWT_OFFLINE, LWT_ONLINE, SERVER_SUB_FILTER,
-        device_downlink_topic, device_status_topic, device_uplink_topic,
+        LWT_OFFLINE,
+        LWT_ONLINE,
+        SERVER_SUB_FILTER,
+        device_downlink_topic,
+        device_status_topic,
+        device_uplink_topic,
     )
 
     # Bridging: paho (sync) → asyncio
@@ -131,7 +136,7 @@ async def _mqtt_message_loop() -> None:
             topic = msg.topic
             payload = _json.loads(msg.payload.decode("utf-8", errors="replace"))
             message_queue.put_nowait((topic, "uplink", payload))
-        except Exception:
+        except Exception as exc:
             _log.debug("MQTT message parse failed topic=%s", msg.topic, exc_info=True)
 
     def on_disconnect(client, userdata, flags, reason_code, properties=None):
@@ -196,7 +201,7 @@ async def _mqtt_message_loop() -> None:
                     try:
                         from routes.device_gateway_ws_handlers import handle_motion_event
                         await handle_motion_event(device_id, payload, None)
-                    except Exception:
+                    except Exception as exc:
                         _log.debug("motion event forward failed", exc_info=True)
 
             except asyncio.TimeoutError:

@@ -1,10 +1,11 @@
 """Tests for opencode_system_prompt.py — model family prompt routing."""
 
 import pytest
+
 from opencode_system_prompt import (
-    resolve_prompt_template,
-    get_model_family_hint,
     enhance_system_prompt,
+    get_model_family_hint,
+    resolve_prompt_template,
     resolve_provider_kind,
 )
 

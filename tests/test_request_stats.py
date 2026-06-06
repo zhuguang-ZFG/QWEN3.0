@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
-import server
 import routes.request_tracking as request_tracking
+import server
 
 
 def test_elapsed_ms_clamps_and_reports_real_duration(monkeypatch):

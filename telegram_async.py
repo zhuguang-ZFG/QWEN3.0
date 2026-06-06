@@ -7,6 +7,7 @@ import logging
 import threading
 from collections.abc import Awaitable, Callable
 
+_log = logging.getLogger(__name__)
 logger = logging.getLogger(__name__)
 
 
@@ -19,7 +20,7 @@ def fire_and_forget(awaitable_factory: Callable[[], Awaitable[object]]) -> None:
             return
     except RuntimeError:
         pass
-    except Exception:
+    except Exception as exc:
         logger.exception("fire_and_forget schedule failed")
         return
 

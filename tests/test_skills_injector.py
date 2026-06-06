@@ -2,9 +2,10 @@
 test_skills_injector.py — 测试 Skills 智能补缺模块
 覆盖: 检测逻辑, 注入逻辑, 双模式切换, token限制, per-IDE矩阵
 """
-import pytest
-import sys
 import os
+import sys
+
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 

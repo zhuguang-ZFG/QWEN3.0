@@ -1,7 +1,8 @@
 """Fixture stub: unified httpx backend caller."""
 
-import health_tracker
 import httpx
+
+import health_tracker
 from response_cleaner import clean_response
 
 

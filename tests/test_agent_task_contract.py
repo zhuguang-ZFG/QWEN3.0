@@ -3,9 +3,9 @@
 import pytest
 
 from agent_contracts.task_contract import (
+    VALID_STATUSES,
     AgentTaskRequest,
     AgentTaskResult,
-    VALID_STATUSES,
 )
 
 

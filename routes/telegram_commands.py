@@ -16,6 +16,7 @@ import http_caller
 import routing_engine
 import telegram_bot
 
+_log = logging.getLogger(__name__)
 logger = logging.getLogger(__name__)
 
 _chat_histories: dict[str, deque] = {}
@@ -97,7 +98,7 @@ async def cmd_chat(chat_id: str, message: str) -> None:
         if answer:
             history.append({"role": "assistant", "content": answer})
         await telegram_bot.send_message(answer or "(empty response)", chat_id=chat_id)
-    except Exception:
+    except Exception as exc:
         logger.exception("cmd_chat failed")
         await telegram_bot.send_message(_operator_error("chat"), chat_id=chat_id)
 
@@ -158,7 +159,7 @@ async def cmd_code(chat_id: str, message: str) -> None:
         await telegram_bot.send_message(text, chat_id=chat_id)
     except ImportError:
         await telegram_bot.send_message("code_orchestrator not available", chat_id=chat_id)
-    except Exception:
+    except Exception as exc:
         logger.exception("cmd_code failed")
         await telegram_bot.send_message(_operator_error("code"), chat_id=chat_id)
 
@@ -181,7 +182,7 @@ async def cmd_top(chat_id: str) -> None:
             f"Connections: {conns}"
         )
         await telegram_bot.send_message(text, chat_id=chat_id)
-    except Exception:
+    except Exception as exc:
         logger.exception("cmd_top failed")
         await telegram_bot.send_message(_operator_error("top"), chat_id=chat_id)
 
@@ -197,7 +198,7 @@ async def cmd_uptime(chat_id: str) -> None:
         h, m = elapsed // 3600, (elapsed % 3600) // 60
         text = f"Uptime: {h}h {m}m\nStarted: {ts_str or 'unknown'}"
         await telegram_bot.send_message(text, chat_id=chat_id)
-    except Exception:
+    except Exception as exc:
         logger.exception("cmd_uptime failed")
         await telegram_bot.send_message(_operator_error("uptime"), chat_id=chat_id)
 
@@ -218,7 +219,7 @@ async def cmd_eval(chat_id: str, backend: str) -> None:
         else:
             verdict = "FAILED"
         await telegram_bot.send_message(f"`{backend}`: {verdict}", chat_id=chat_id)
-    except Exception:
+    except Exception as exc:
         logger.exception("cmd_eval failed")
         await telegram_bot.send_message(_operator_error("eval"), chat_id=chat_id)
 
@@ -246,7 +247,7 @@ async def cmd_task(chat_id: str, goal: str) -> None:
             await telegram_bot.send_message(
                 f"Task created: `{data.get('task_id', '?')}`", chat_id=chat_id,
             )
-    except Exception:
+    except Exception as exc:
         logger.exception("cmd_task failed")
         await telegram_bot.send_message(_operator_error("task"), chat_id=chat_id)
 
@@ -266,7 +267,7 @@ async def cmd_tasks(chat_id: str) -> None:
                 return
             lines = [f"- `{t.get('task_id','')}` {t.get('goal','')[:40]}" for t in tasks]
             await telegram_bot.send_message("\n".join(lines), chat_id=chat_id)
-    except Exception:
+    except Exception as exc:
         logger.exception("cmd_tasks failed")
         await telegram_bot.send_message(_operator_error("tasks"), chat_id=chat_id)
 
@@ -299,7 +300,7 @@ async def cmd_stop(chat_id: str, task_id: str) -> None:
                 await telegram_bot.send_message(f"Task `{task_id}` cancelled.", chat_id=chat_id)
             else:
                 await telegram_bot.send_message(_operator_error("stop"), chat_id=chat_id)
-    except Exception:
+    except Exception as exc:
         logger.exception("cmd_stop failed")
         await telegram_bot.send_message(_operator_error("stop"), chat_id=chat_id)
 
@@ -343,7 +344,7 @@ async def start_probe_loop() -> None:
             await asyncio.sleep(3600)
             try:
                 await probe_backends()
-            except Exception:
+            except Exception as exc:
                 logger.exception("Probe loop error")
 
     _probe_task = asyncio.create_task(_loop())
@@ -389,7 +390,7 @@ async def start_broadcast_loop() -> None:
             await asyncio.sleep(wait_secs)
             try:
                 await daily_broadcast()
-            except Exception:
+            except Exception as exc:
                 logger.exception("Broadcast error")
 
     _broadcast_task = asyncio.create_task(_loop())
@@ -413,7 +414,7 @@ async def cmd_voice(chat_id: str, message: str) -> None:
         ok = await telegram_bot.send_voice(ogg, chat_id=chat_id, caption=message[:100])
         if not ok:
             await telegram_bot.send_message("Failed to send voice message", chat_id=chat_id)
-    except Exception:
+    except Exception as exc:
         logger.exception("cmd_voice failed")
         await telegram_bot.send_message(_operator_error("voice"), chat_id=chat_id)
 
@@ -448,7 +449,7 @@ async def cmd_github(chat_id: str, args: str) -> None:
     try:
         text = fetch_github_file_text(repo, path, ref)
         await telegram_bot.send_message(text, chat_id=chat_id, parse_mode="")
-    except Exception:
+    except Exception as exc:
         logger.exception("cmd_github failed")
         await telegram_bot.send_message(_operator_error("github"), chat_id=chat_id)
 
@@ -468,6 +469,6 @@ async def cmd_device(chat_id: str, args: str) -> None:
         lines = summary.splitlines()
         append_recent_tasks_summary(lines)
         await telegram_bot.send_message("\n".join(lines), chat_id=chat_id, parse_mode="")
-    except Exception:
+    except Exception as exc:
         logger.exception("cmd_device failed")
         await telegram_bot.send_message(_operator_error("device"), chat_id=chat_id)

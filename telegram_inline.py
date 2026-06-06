@@ -12,6 +12,7 @@ import http_caller
 import routing_engine
 import telegram_bot
 
+_log = logging.getLogger(__name__)
 logger = logging.getLogger(__name__)
 
 _INLINE_MAX_QUERY = 500
@@ -126,7 +127,7 @@ async def handle_inline_query(inline_query: dict[str, Any]) -> bool:
 
     try:
         answer = route_inline_query(raw_query)
-    except Exception:
+    except Exception as exc:
         logger.exception("inline query route failed")
         answer = "LiMa 暂时无法回答，请稍后在私聊中使用 /chat。"
 

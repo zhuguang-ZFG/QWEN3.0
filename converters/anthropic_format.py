@@ -5,7 +5,10 @@ Extracted from server.py to reduce main file size.
 """
 
 import json
+import logging
 import uuid
+
+_log = logging.getLogger(__name__)
 
 
 def convert_tools_anthropic_to_openai(tools: list) -> list:
@@ -142,7 +145,8 @@ def build_lima_context_digest_for_tool_request(
             system_prompt=sys_text,
             ide_source="Claude Code",
         )
-    except Exception:
+    except Exception as exc:
+        _log.warning("operation failed: %s", exc)
         return ""
 
 

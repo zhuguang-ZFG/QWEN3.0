@@ -10,8 +10,8 @@ from __future__ import annotations
 import json
 import logging
 import os
-import urllib.request
 import urllib.error
+import urllib.request
 
 _log = logging.getLogger(__name__)
 

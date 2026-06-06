@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-
 DEFAULT_COOKIE_PATH = "/opt/lima-router/reverse_gateway_state/scnet_cookies.json"
 PUBLIC_COOKIE_NAMES = {"language", "org.springframework.web.servlet.i18n.cookielocaleresolver.locale"}
 REDACTED = "<redacted>"

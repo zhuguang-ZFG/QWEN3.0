@@ -73,7 +73,7 @@ async def cmd_oldllm(chat_id: str, args: str) -> None:
                 text += "\n\nWindows 操作:\n" + "\n".join(f"· {h}" for h in win_lines)
             await asyncio.to_thread(maybe_notify_oldllm_failure, report)
         await telegram_bot.send_message(text, chat_id=chat_id)
-    except Exception:
+    except Exception as exc:
         _log.exception("cmd_oldllm failed")
         await telegram_bot.send_message(_operator_error("oldllm"), chat_id=chat_id)
 
@@ -88,6 +88,6 @@ async def _cmd_oldllm_sync(chat_id: str, mode: str) -> None:
         if not report.get("upstream_chat_ok", report.get("any_chat_ok")):
             await asyncio.to_thread(maybe_notify_oldllm_failure, report)
         await telegram_bot.send_message("\n".join(parts), chat_id=chat_id)
-    except Exception:
+    except Exception as exc:
         _log.exception("cmd_oldllm sync failed")
         await telegram_bot.send_message(_operator_error("oldllm sync"), chat_id=chat_id)

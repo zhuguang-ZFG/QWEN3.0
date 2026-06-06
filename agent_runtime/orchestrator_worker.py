@@ -184,6 +184,6 @@ def pre_plan_context(goal: str, limit: int = 3) -> str:
         return "Relevant past outcomes:\n" + "\n".join(f"  {t}" for _, t in top)
     except ImportError:
         _log.debug("Outcome Ledger not available for agent planning")
-    except Exception:
+    except Exception as exc:
         _log.debug("pre_plan_context failed", exc_info=True)
     return ""

@@ -1,10 +1,10 @@
 import logging
 
 _log = logging.getLogger(__name__)
-import re
-import urllib.parse
 import ipaddress
+import re
 import socket
+import urllib.parse
 
 _TOKEN_RE = re.compile(
     r"(sk-[A-Za-z0-9_-]{12,}"

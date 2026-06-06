@@ -1,6 +1,5 @@
-import server
 import router_v3
-
+import server
 
 # ─── Layer 3: _detect_ide (message content scanning) ─────────────────────────
 

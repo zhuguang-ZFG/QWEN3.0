@@ -261,7 +261,7 @@ class ChannelStore:
             channel_user_id_hash=row["channel_user_id_hash"],
             display_name=row["display_name"],
             lima_user_id=row["lima_user_id"],
-            role=row["role"] if "role" in row.keys() else BindingRole.GUEST,
+            role=row["role"] if "role" in row else BindingRole.GUEST,
             status=row["status"],
             created_at=row["created_at"],
             updated_at=row["updated_at"],

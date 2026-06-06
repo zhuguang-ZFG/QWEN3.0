@@ -2,6 +2,7 @@
 import os
 import sys
 import tempfile
+
 import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -18,7 +19,7 @@ class TestTypedMemory:
         conn.close()
 
     def test_save_and_query_typed_memory(self):
-        from session_memory.store import save_typed_memory, query_by_type
+        from session_memory.store import query_by_type, save_typed_memory
         save_typed_memory("routing_lesson", "scnet_ds_flash is fastest")
         save_typed_memory("ops_event", "deployed v3 to VPS")
         save_typed_memory("routing_lesson", "groq has 429 rate limits")
@@ -28,7 +29,7 @@ class TestTypedMemory:
         assert "groq" in results[0].summary
 
     def test_query_by_type_with_session_scope(self):
-        from session_memory.store import save_typed_memory, query_by_type
+        from session_memory.store import query_by_type, save_typed_memory
         save_typed_memory("code_fact", "route() has 5 layers", session_id="sess1")
         save_typed_memory("code_fact", "http_caller uses urllib", session_id="sess2")
 
@@ -53,8 +54,9 @@ class TestMemoryDaemon:
         assert "test_result" in types
 
     def test_extract_facts_from_json(self):
-        from session_memory.daemon import _extract_facts
         import json
+
+        from session_memory.daemon import _extract_facts
         data = json.dumps([
             {"type": "routing_lesson", "summary": "scnet is fast"},
             {"type": "code_fact", "summary": "route() has 5 layers"},
@@ -71,8 +73,9 @@ class TestMemoryDaemon:
         assert _classify_line("auth token leaked") == "security_lesson"
 
     def test_ingest_inbox_empty_dir(self):
-        from session_memory.daemon import _ingest_inbox
         import tempfile
+
+        from session_memory.daemon import _ingest_inbox
         os.environ["LIMA_MEMORY_INBOX"] = tempfile.mkdtemp()
         assert _ingest_inbox() == 0
 
@@ -122,6 +125,7 @@ class TestMemoryDaemon:
     @pytest.mark.asyncio
     async def test_start_daemon_is_idempotent_and_stop_cancels_task(self, monkeypatch):
         import asyncio
+
         import session_memory.daemon as daemon
 
         await daemon.stop_daemon()
@@ -157,14 +161,14 @@ class TestTypedMemoryValidation:
         conn.close()
 
     def test_unknown_type_normalized_to_project_fact(self):
-        from session_memory.store import save_typed_memory, query_by_type
+        from session_memory.store import query_by_type, save_typed_memory
         save_typed_memory("invented_type", "some fact")
         results = query_by_type("project_fact")
         assert len(results) >= 1
         assert "some fact" in results[0].summary
 
     def test_unknown_type_records_original_in_detail(self):
-        from session_memory.store import save_typed_memory, _get_conn
+        from session_memory.store import _get_conn, save_typed_memory
         save_typed_memory("weird_category", "test detail recording")
         conn = _get_conn()
         row = conn.execute(
@@ -174,7 +178,7 @@ class TestTypedMemoryValidation:
         assert "original_type=weird_category" in row[0]
 
     def test_known_type_passes_through(self):
-        from session_memory.store import save_typed_memory, query_by_type
+        from session_memory.store import query_by_type, save_typed_memory
         save_typed_memory("routing_lesson", "known type works")
         results = query_by_type("routing_lesson")
         assert any("known type works" in r.summary for r in results)

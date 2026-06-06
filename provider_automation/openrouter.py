@@ -19,7 +19,6 @@ from provider_automation.catalog import (
     ProviderModelSnapshot,
 )
 
-
 _WATCHLIST_PATTERNS: dict[str, str] = {
     "elephant": "unverified model; endpoint_count and source evidence required",
     "alpha": "generic or experimental model name; verify current endpoints",

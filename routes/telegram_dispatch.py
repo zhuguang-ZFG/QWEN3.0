@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 
 import telegram_bot
+from routes.telegram_codesearch_tools import cmd_codesearch
 from routes.telegram_commands import (
     cmd_cache,
     cmd_chat,
@@ -21,7 +22,6 @@ from routes.telegram_commands import (
     cmd_voice,
     cmd_voicechat,
 )
-from routes.telegram_codesearch_tools import cmd_codesearch
 from routes.telegram_diag_tools import cmd_oldllm
 from routes.telegram_eval_tools import (
     cmd_archiveeval,

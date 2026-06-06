@@ -1,12 +1,13 @@
 """Test date, location, and device context injection."""
 
 import pytest
+
 from context_pipeline.enrich_context import (
-    inject_enriched_context,
     _build_date_context,
-    _parse_user_agent,
     _build_device_context,
     _build_location_context,
+    _parse_user_agent,
+    inject_enriched_context,
 )
 
 

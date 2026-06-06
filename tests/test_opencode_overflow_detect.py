@@ -1,11 +1,13 @@
 """Tests for opencode_overflow_detect.py — enhanced overflow detection."""
 
 import json
+
 import pytest
+
 from opencode_overflow_detect import (
-    is_overflow_error,
-    identify_overflow_provider,
     classify_overflow_severity,
+    identify_overflow_provider,
+    is_overflow_error,
     is_overflow_from_exception,
 )
 

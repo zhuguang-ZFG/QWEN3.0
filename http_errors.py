@@ -67,9 +67,9 @@ def _extract_code(exc: Exception) -> Optional[int]:
 
 def _emit_backend_error(backend: str, error_code: int | None, error_text: str) -> None:
     try:
-        from observability.metrics import record as obs_record
-        from observability.events import backend_error_event
         from health_tracker import classify_failure
+        from observability.events import backend_error_event
+        from observability.metrics import record as obs_record
 
         failure_class = classify_failure(error_code, error_text)
         obs_record(backend_error_event("", backend, failure_class))

@@ -2,8 +2,8 @@
 
 from context_pipeline.response_pipeline import ResponseContext
 from context_pipeline.response_processors import (
-    code_validation_processor,
     build_default_response_pipeline,
+    code_validation_processor,
 )
 
 

@@ -4,14 +4,15 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
-from typing import Any, AsyncIterator
+from typing import Any
 
 import health_tracker
 import http_caller
 import routing_engine
 import routing_facade
-from orchestrate import orchestrate, needs_orchestration
+from orchestrate import needs_orchestration, orchestrate
 from response_builder import messages_to_dicts
 from routes.anthropic_stream_sse import (
     new_message_id,

@@ -37,6 +37,6 @@ async def cmd_codesearch(chat_id: str, args: str) -> None:
         payload = await asyncio.to_thread(probe_search, query)
         text = format_search_result(payload)
         await telegram_bot.send_message(text, chat_id=chat_id, parse_mode=_PLAIN)
-    except Exception:
+    except Exception as exc:
         _log.exception("cmd_codesearch search failed")
         await telegram_bot.send_message(_operator_error("codesearch"), chat_id=chat_id)

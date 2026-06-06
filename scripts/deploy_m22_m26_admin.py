@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Deploy M22-M26: Admin panel enhancements (health, fallback, batch, keys, latency)."""
 
-import paramiko
 import os
 import time
+
+import paramiko
 
 VPS_HOST = "47.112.162.80"
 VPS_USER = "root"

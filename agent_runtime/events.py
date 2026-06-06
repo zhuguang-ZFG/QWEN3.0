@@ -36,7 +36,8 @@ def _safe_stream(event_type: str, data: dict[str, Any]) -> str | None:
 
         event = StreamEvent(event=event_type, data=safe_data)
         return event.to_sse()
-    except Exception:
+    except Exception as exc:
+        _log.warning("operation failed: %s", exc)
         return None
 
 

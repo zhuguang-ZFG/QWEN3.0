@@ -4,12 +4,11 @@ Extracted from integrations.py for file-size compliance.
 """
 from __future__ import annotations
 
-
 import logging
 
 _log = logging.getLogger(__name__)
 import os
-from typing import Callable
+from collections.abc import Callable
 
 
 def build_owner_rejection_handler(command_name: str) -> Callable:

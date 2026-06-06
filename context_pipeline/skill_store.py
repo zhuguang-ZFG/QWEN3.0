@@ -9,7 +9,7 @@ When a routing decision succeeds, crystallize it as a reusable "skill":
 
 import hashlib
 import time
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 
 
 @dataclass

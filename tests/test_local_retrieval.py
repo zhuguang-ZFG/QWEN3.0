@@ -16,8 +16,8 @@ from local_retrieval.leann_adapter import (
 from local_retrieval.manifest import (
     ChunkRecord,
     IndexBackendKind,
-    IndexManifest,
     IndexedDocument,
+    IndexManifest,
     _make_chunk_id,
     _make_content_hash,
     _redact_path,

@@ -9,10 +9,10 @@ LiMa Skills Injector — 智能补缺注入
 核心原则: 逐条检测 → 只补缺的 → 最多5条 → 不超200 token
 """
 
+import glob as glob_mod
 import logging
 import os
 import re
-import glob as glob_mod
 from typing import Optional
 
 from backends import STRONG_MODELS

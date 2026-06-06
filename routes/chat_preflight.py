@@ -22,7 +22,8 @@ class ChatPreflightResult:
 
 
 def run_input_guardrails(req: ChatRequest) -> None:
-    from context_pipeline.guardrails import GuardrailSeverity, run_input_guardrails as _run
+    from context_pipeline.guardrails import GuardrailSeverity
+    from context_pipeline.guardrails import run_input_guardrails as _run
 
     raw_messages: list[dict] = [
         {"role": m.role, "content": m.content} if hasattr(m, "role") else {"role": m.get("role", ""), "content": m.get("content", "")}  # type: ignore[reportAssignmentType]
@@ -62,7 +63,9 @@ def apply_token_budget(
 
 def adapt_identity_prompt(system_prompt: str, client_ip: str, request_messages: list[dict]):
     # adapt_system_prompt is not yet implemented in user_identity.adapter
-    from user_identity.adapter import adapt_system_prompt  # type: ignore[reportAttributeAccessIssue,reportArgumentType]  # noqa: F401
+    from user_identity.adapter import (
+        adapt_system_prompt,  # type: ignore[reportAttributeAccessIssue,reportArgumentType]
+    )
 
     adapted = adapt_system_prompt(system_prompt or "", client_ip)
     if adapted != system_prompt:

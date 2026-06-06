@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import gzip
 import json
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from fastapi import Request
 from fastapi.responses import JSONResponse

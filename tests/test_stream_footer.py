@@ -1,8 +1,8 @@
 import asyncio
 
-import server
 import routes.anthropic_stream as anthropic_stream
 import routes.anthropic_stream_branches as anthropic_stream_branches
+import server
 
 
 def _chat_request(query: str) -> server.ChatRequest:

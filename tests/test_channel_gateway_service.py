@@ -12,13 +12,13 @@ from channel_gateway.models import (
     InboundMessage,
     OutboundReply,
 )
-from channel_gateway.store import ChannelStore
 from channel_gateway.service import (
-    ChannelService,
     _ABOUT_TEXT,
     _HELP_TEXT,
     _TIP_FOOTER,
+    ChannelService,
 )
+from channel_gateway.store import ChannelStore
 
 
 def _make_store():
@@ -93,8 +93,8 @@ class TestChannelServiceGuestLifecycle:
         assert "owner" in body.lower() or "主人" in body
 
     def test_session_reset_clears_history(self):
-        from channel_gateway.integrations import build_reset_handler
         from channel_gateway.chat_session import ChannelChatSession
+        from channel_gateway.integrations import build_reset_handler
 
         sess = ChannelChatSession(self.store)
         sess.record_turn("wx-reset", "user", "one")

@@ -11,7 +11,8 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["LIMA_ADMIN_TOKEN"] = "test-admin-token"
 
-from routes.admin_api import _ALERT_RULES_PATH, router as admin_api_router
+from routes.admin_api import _ALERT_RULES_PATH
+from routes.admin_api import router as admin_api_router
 from routes.admin_auth import verify_admin, verify_csrf
 
 

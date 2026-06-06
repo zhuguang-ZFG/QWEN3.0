@@ -7,8 +7,9 @@ import telegram_notify
 
 def test_notify_health_suppressed_during_eval(monkeypatch):
     telegram_notify._health_last_notified.clear()
-    from eval_quiet import set_eval_quiet
     from unittest.mock import patch
+
+    from eval_quiet import set_eval_quiet
 
     set_eval_quiet(True)
     try:

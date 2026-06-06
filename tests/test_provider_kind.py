@@ -11,7 +11,6 @@ import pytest
 
 from provider_kind import detect_provider_kind
 
-
 # ── OpenRouter backends (or_*) → "openrouter" ──
 
 

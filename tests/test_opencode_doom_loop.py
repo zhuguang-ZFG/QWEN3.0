@@ -1,15 +1,16 @@
 """Tests for opencode_doom_loop.py — doom loop detection and break."""
 
 import json
+
 import pytest
+
 from opencode_doom_loop import (
-    detect_doom_loop,
-    build_doom_loop_warning,
-    inject_doom_loop_break,
     DOOM_LOOP_THRESHOLD,
     _extract_tool_call_key,
+    build_doom_loop_warning,
+    detect_doom_loop,
+    inject_doom_loop_break,
 )
-
 
 # ── _extract_tool_call_key ────────────────────────────────────────────────────
 

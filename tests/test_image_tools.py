@@ -14,7 +14,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from lima_fc_tools.image_tools import _generate_image
 
-
 # -- Helpers ---------------------------------------------------------------
 
 def _mock_async_client(**kw):

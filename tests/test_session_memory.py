@@ -6,20 +6,20 @@ import pytest
 os.environ["LIMA_SESSION_DB"] = tempfile.mktemp(suffix=".db")
 os.environ["LIMA_SESSION_MEMORY"] = "1"
 
-from session_memory.store import (
-    save_memory,
-    get_recent_memories,
-    search_memories_keyword,
-    search_memories_semantic,
-    count_memories,
-    clear_session,
-)
+from context_pipeline import RequestContext
 from session_memory.processor import (
     _session_id_from_headers,
-    session_memory_processor,
     save_request_memory,
+    session_memory_processor,
 )
-from context_pipeline import RequestContext
+from session_memory.store import (
+    clear_session,
+    count_memories,
+    get_recent_memories,
+    save_memory,
+    search_memories_keyword,
+    search_memories_semantic,
+)
 
 
 def test_save_and_retrieve_memory():

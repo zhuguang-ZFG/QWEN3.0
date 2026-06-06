@@ -65,7 +65,7 @@ async def _archive_eval_to_chat(
     top = 11 if full else 5
     body = summarize_eval_json(path, top_n=top)
     label = f"eval-{'full' if full else 'quick'}:{path.name}"
-    from telegram_archive import format_archive_message, chunk_text
+    from telegram_archive import chunk_text, format_archive_message
 
     message = format_archive_message(label, body)
     parts = chunk_text(message)
@@ -116,7 +116,7 @@ async def _evalslice_worker(chat_id: str, *, quick: bool) -> None:
             if path:
                 try:
                     summary = summarize_eval_json(path)
-                except Exception:
+                except Exception as exc:
                     _log.warning("eval slice summary failed path=%s", path, exc_info=True)
             card.add(f"Result: OK ({summary[:200] if summary else 'no summary'})")
             await card.done(msg_id, ok=True)
@@ -125,7 +125,7 @@ async def _evalslice_worker(chat_id: str, *, quick: bool) -> None:
                     await _archive_eval_to_chat(
                         chat_id, path, full=not quick, send_doc=not quick,
                     )
-                except Exception:
+                except Exception as exc:
                     _log.warning("eval auto archive failed", exc_info=True)
         else:
             detail = log_tail or ""
@@ -138,7 +138,7 @@ async def _evalslice_worker(chat_id: str, *, quick: bool) -> None:
             card.add(f"Error: exit={code} {detail[:200]}")
             card.add(f"Hint: {hint}")
             await card.done(msg_id, ok=False)
-    except Exception:
+    except Exception as exc:
         _log.exception("evalslice worker failed")
         await telegram_bot.send_message(_operator_error("evalslice"), chat_id=chat_id)
     finally:
@@ -185,7 +185,7 @@ async def cmd_evalreport(chat_id: str, args: str) -> None:
     try:
         text = summarize_eval_json(path)
         await telegram_bot.send_message(text, chat_id=chat_id, parse_mode=_PLAIN)
-    except Exception:
+    except Exception as exc:
         _log.exception("cmd_evalreport failed")
         await telegram_bot.send_message(_operator_error("evalreport"), chat_id=chat_id)
 
@@ -211,7 +211,7 @@ async def cmd_archiveeval(chat_id: str, args: str) -> None:
             full=full,
             send_doc=send_doc,
         )
-    except Exception:
+    except Exception as exc:
         _log.exception("cmd_archiveeval failed")
         await telegram_bot.send_message(_operator_error("archiveeval"), chat_id=chat_id)
 
@@ -260,7 +260,7 @@ async def cmd_evalstatus(chat_id: str, args: str) -> None:
     try:
         text = build_eval_status(_ROOT / "data", eval_busy=_eval_busy)
         await telegram_bot.send_message(text, chat_id=chat_id, parse_mode=_PLAIN)
-    except Exception:
+    except Exception as exc:
         _log.exception("cmd_evalstatus failed")
         await telegram_bot.send_message(_operator_error("evalstatus"), chat_id=chat_id)
 
@@ -271,6 +271,6 @@ async def cmd_evaldigest(chat_id: str, args: str) -> None:
     try:
         text = build_eval_digest(_ROOT / "data")
         await telegram_bot.send_message(text[:4000], chat_id=chat_id, parse_mode=_PLAIN)
-    except Exception:
+    except Exception as exc:
         _log.exception("cmd_evaldigest failed")
         await telegram_bot.send_message(_operator_error("evaldigest"), chat_id=chat_id)

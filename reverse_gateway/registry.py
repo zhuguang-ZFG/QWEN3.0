@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from reverse_gateway.models import ReverseProvider
 
-
 PROVIDERS: dict[str, ReverseProvider] = {
     # M6: duck_web provider deleted — DDG backends removed (not in any routing pool)
     "kimi_web": ReverseProvider(

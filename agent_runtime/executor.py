@@ -11,6 +11,7 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from agent_runtime.approval import ApprovalGate
 from agent_runtime.contract import (
     AgentRunResult,
     AgentRunStatus,
@@ -21,10 +22,9 @@ from agent_runtime.contract import (
     redact,
 )
 from agent_runtime.planner import plan_task
-from agent_runtime.tool_policy import check_step_policy
 from agent_runtime.store import AgentRunStore
-from agent_runtime.approval import ApprovalGate
 from agent_runtime.tool_gateway_adapter import ToolExecutionGateway
+from agent_runtime.tool_policy import check_step_policy
 
 _log = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ class AgentRuntime:
                     task.goal = outcome_ctx
         except ImportError:
             _log.debug("executor: outcome ledger not available")
-        except Exception:
+        except Exception as exc:
             _log.debug("executor: outcome context injection failed", exc_info=True)
         plan_task(task)
         task.status = AgentRunStatus.PLANNING

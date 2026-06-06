@@ -44,6 +44,7 @@ def test_registry_marks_device_gateway_loaded():
 
 def test_register_all_routes_is_idempotent_on_fresh_app():
     from fastapi import FastAPI
+
     import routes.chat_endpoints as chat_endpoints_mod
     import routes.system_endpoints as system_endpoints_mod
 

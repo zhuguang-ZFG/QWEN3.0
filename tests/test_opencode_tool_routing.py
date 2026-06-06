@@ -1,13 +1,13 @@
 """Tests for opencode_tool_routing.py — tool routing + Copilot _noop."""
 
 import pytest
+
 from opencode_tool_routing import (
-    should_use_apply_patch,
+    _has_tool_calls_in_history,
     filter_tools_for_model,
     inject_noop_tool_if_needed,
-    _has_tool_calls_in_history,
+    should_use_apply_patch,
 )
-
 
 # ── Helper tool definitions ──
 

@@ -69,8 +69,9 @@ def _chroma_semantic_search(session_id: str, query: str, limit: int = 3) -> list
             return []
 
         # Map ChromaDB results back to MemoryEntry via SQLite
-        from session_memory.store_db import _get_conn, MemoryEntry
         import json
+
+        from session_memory.store_db import MemoryEntry, _get_conn
 
         ids = [r["sqlite_id"] for r in results if r["sqlite_id"] > 0]
         if not ids:
@@ -97,7 +98,7 @@ def _chroma_semantic_search(session_id: str, query: str, limit: int = 3) -> list
         return entries
     except ImportError:
         _log.debug("ChromaDB semantic search not available")
-    except Exception:
+    except Exception as exc:
         _log.debug("ChromaDB semantic search failed", exc_info=True)
     return []
 
@@ -115,7 +116,7 @@ def _semantic_fallback(session_id: str, query: str, limit: int = 3) -> list:
         return search_memories_semantic(session_id, emb[0], limit=limit)
     except ImportError:
         _log.debug("Jina semantic search not available")
-    except Exception:
+    except Exception as exc:
         _log.debug("Jina semantic search failed", exc_info=True)
     return []
 
@@ -124,7 +125,8 @@ def _cross_session_fallback(query: str, limit: int = 2) -> list:
     """Search global (cross-session) memories when per-session misses."""
     try:
         return search_memories_keyword("_global", query[:50], limit=limit)
-    except Exception:
+    except Exception as exc:
+        _log.warning("operation failed: %s", exc)
         return []
 
 
@@ -164,7 +166,7 @@ def _outcome_recall(query: str, limit: int = 2) -> list[str]:
         return [text for _, text in lessons[:limit]]
     except ImportError:
         _log.debug("Outcome Ledger not available")
-    except Exception:
+    except Exception as exc:
         _log.debug("Outcome recall failed", exc_info=True)
     return []
 
@@ -241,14 +243,14 @@ def session_memory_processor(ctx: RequestContext) -> RequestContext:
     try:
         lessons = _outcome_recall(query, limit=2)
         _inject_outcome_lessons(lessons, ctx)
-    except Exception:
+    except Exception as exc:
         _log.debug("outcome recall skipped", exc_info=True)
 
     # Tier 6: typed memories (code_fact, routing_lesson, reference_pattern)
     try:
         typed = _typed_memory_recall(limit=3)
         _inject_typed_memories(typed, ctx)
-    except Exception:
+    except Exception as exc:
         _log.debug("typed memory recall skipped", exc_info=True)
 
     ctx.recalled_memory_ids = recalled_ids
@@ -271,7 +273,7 @@ def _typed_memory_recall(limit: int = 3) -> list:
                 typed.append((mt, mem.summary))
     except ImportError:
         _log.debug("store_promote not available")
-    except Exception:
+    except Exception as exc:
         _log.debug("typed memory recall failed", exc_info=True)
     return typed
 

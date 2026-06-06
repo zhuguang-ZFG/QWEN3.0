@@ -1,16 +1,23 @@
 """Tests for http_caller.py — httpx migration."""
 import asyncio
 import json
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 
 import http_caller
 import key_pool
 from backends import BACKENDS
 from http_caller import (
-    BackendError, call_api,
-    clean_response, _build_headers, _build_body,
-    _extract_answer, _extract_code, _parse_sse_chunk, _build_client,
+    BackendError,
+    _build_body,
+    _build_client,
+    _build_headers,
+    _extract_answer,
+    _extract_code,
+    _parse_sse_chunk,
+    call_api,
+    clean_response,
 )
 
 
@@ -390,9 +397,8 @@ def test_call_api_reports_key_pool_failure_with_retry_after(
         'pool_backend': {'url': 'http://test.com/v1/chat/completions',
                          'key': 'sk-primary', 'key_pool': 'unit-provider',
                          'model': 'test-model', 'fmt': 'openai', 'timeout': 10}
-    }):
-        with pytest.raises(BackendError):
-            call_api('pool_backend', [{'role': 'user', 'content': 'hi'}])
+    }), pytest.raises(BackendError):
+        call_api('pool_backend', [{'role': 'user', 'content': 'hi'}])
 
     mock_report_key_result.assert_called_once_with(
         'unit-provider', 'sk-pooled', False, error_code=429, retry_after=7)
@@ -427,9 +433,8 @@ def test_call_api_cooled_down(mock_ht):
     mock_ht.is_cooled_down.return_value = True
     with patch.dict(http_caller.BACKENDS, {'any_backend': {
         'url': 'http://x', 'key': 'sk-test', 'model': 'm', 'fmt': 'openai'
-    }}):
-        with pytest.raises(BackendError) as exc_info:
-            call_api('any_backend', [{'role': 'user', 'content': 'hi'}])
+    }}), pytest.raises(BackendError) as exc_info:
+        call_api('any_backend', [{'role': 'user', 'content': 'hi'}])
     assert exc_info.value.status_code == 503
 
 
@@ -438,9 +443,8 @@ def test_call_api_no_key(mock_ht):
     mock_ht.is_cooled_down.return_value = False
     with patch.dict(http_caller.BACKENDS, {
         'nokey': {'url': 'http://x', 'key': '', 'model': 'm', 'fmt': 'openai'}
-    }):
-        with pytest.raises(BackendError) as exc_info:
-            call_api('nokey', [{'role': 'user', 'content': 'hi'}])
+    }), pytest.raises(BackendError) as exc_info:
+        call_api('nokey', [{'role': 'user', 'content': 'hi'}])
     assert exc_info.value.status_code == 404
 
 
@@ -457,9 +461,8 @@ def test_call_api_network_error(mock_build_client, mock_ht):
     with patch.dict(http_caller.BACKENDS, {
         'fail_backend': {'url': 'http://fail.com/v1', 'key': 'sk-x',
                         'model': 'm', 'fmt': 'openai', 'timeout': 5}
-    }):
-        with pytest.raises(BackendError):
-            call_api('fail_backend', [{'role': 'user', 'content': 'hi'}])
+    }), pytest.raises(BackendError):
+        call_api('fail_backend', [{'role': 'user', 'content': 'hi'}])
     mock_ht.record_failure.assert_called_once()
 
 
@@ -478,9 +481,8 @@ def test_call_api_backend_error_emits_observability(mock_build_client, mock_ht):
         'err_backend': {'url': 'http://test.com/v1/chat/completions',
                         'key': 'sk-test', 'model': 'test-model',
                         'fmt': 'openai', 'timeout': 10}
-    }):
-        with pytest.raises(BackendError) as exc_info:
-            call_api('err_backend', [{'role': 'user', 'content': 'hi'}])
+    }), pytest.raises(BackendError) as exc_info:
+        call_api('err_backend', [{'role': 'user', 'content': 'hi'}])
 
     snapshot = get_metrics_snapshot()
     assert exc_info.value.status_code == 429
@@ -615,9 +617,8 @@ def test_call_api_key_pool_exhausted_returns_empty_key(mock_ht, mock_exhausted, 
     with patch.dict(http_caller.BACKENDS, {
         'pooled': {'url': 'http://test.com/v1', 'key': 'sk-default',
                    'model': 'm', 'fmt': 'openai', 'key_pool': 'exhausted_provider'}
-    }):
-        with pytest.raises(BackendError) as exc_info:
-            call_api('pooled', [{'role': 'user', 'content': 'hi'}])
+    }), pytest.raises(BackendError) as exc_info:
+        call_api('pooled', [{'role': 'user', 'content': 'hi'}])
     assert exc_info.value.status_code == 404
     mock_exhausted.assert_called_once_with('exhausted_provider')
 
@@ -659,10 +660,9 @@ def test_call_api_stream_reports_empty_stream_as_502_to_key_pool(
         'pool_backend': {'url': 'http://test.com/v1/chat/completions',
                          'key': 'sk-primary', 'key_pool': 'unit-provider',
                          'model': 'test-model', 'fmt': 'openai', 'timeout': 10}
-    }):
-        with pytest.raises(BackendError) as exc_info:
-            list(http_caller.call_api_stream(
-                'pool_backend', [{'role': 'user', 'content': 'hi'}]))
+    }), pytest.raises(BackendError) as exc_info:
+        list(http_caller.call_api_stream(
+            'pool_backend', [{'role': 'user', 'content': 'hi'}]))
 
     assert exc_info.value.status_code == 502
     mock_report_key_result.assert_called_once_with(

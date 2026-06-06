@@ -12,7 +12,7 @@ import time
 from dataclasses import dataclass, field
 from urllib.parse import urlparse
 
-from research.source_adapters import SearchHit, search_web, search_code
+from research.source_adapters import SearchHit, search_code, search_web
 
 _log = logging.getLogger(__name__)
 

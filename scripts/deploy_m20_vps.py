@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Deploy M20: Complete admin panel UI rewrite to VPS /opt/lima-router/"""
 
-import paramiko
 import os
 import time
+
+import paramiko
 
 VPS_HOST = "47.112.162.80"
 VPS_USER = "root"

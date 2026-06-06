@@ -1,8 +1,15 @@
 #!/usr/bin/env python3
+import logging
 import os
 
+_log = logging.getLogger(__name__)
 """Point zhipu channel to echo server, send request, read echo log"""
-import urllib.request, json, http.cookiejar, sys, os, time
+import http.cookiejar
+import json
+import os
+import sys
+import time
+import urllib.request
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -91,5 +98,6 @@ print("\n=== ECHO LOG (what one-api actually sent) ===")
 try:
     with open("/tmp/echo.log") as f:
         print(f.read())
-except Exception:
+except Exception as exc:
+    _log.warning("operation failed: %s", exc)
     print("(empty or not found)")

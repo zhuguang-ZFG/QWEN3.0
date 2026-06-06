@@ -122,6 +122,7 @@ def _parse_queue_status(value: object) -> QueueStatus:
 
 from typing import Any
 
+
 def _safe_int(value: Any) -> int:
     try:
         return int(value)

@@ -2,15 +2,15 @@
 test_routing_engine.py — 测试统一路由引擎
 覆盖: classify(5) / select(4) / inject(2) / execute(3) / route(1)
 """
-import pytest
-import sys
-import os
 import builtins
+import os
+import sys
+
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import routing_engine as re_
-
 
 # ── classify ─────────────────────────────────────────────────────────────────
 
@@ -506,9 +506,7 @@ def test_route_result_has_retrieval_context_field():
 
 
 def test_retrieval_trace_records_and_retrieves():
-    from context_pipeline.retrieval_trace import (
-        record_trace, get_recent_traces, RetrievalTrace
-    )
+    from context_pipeline.retrieval_trace import RetrievalTrace, get_recent_traces, record_trace
     record_trace(RetrievalTrace(
         query_entities=["routing_engine", "health_tracker"],
         candidates_searched=8,

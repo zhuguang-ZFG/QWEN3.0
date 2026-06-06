@@ -7,10 +7,10 @@ from unittest.mock import patch
 import pytest
 
 hypothesis = pytest.importorskip("hypothesis")
-from hypothesis import given, strategies as st
+from hypothesis import given
+from hypothesis import strategies as st
 
 from channel_gateway.public_apis import fetch_calc, fetch_exchange, fetch_time
-
 
 # ── calc ──
 

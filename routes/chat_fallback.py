@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import logging
-from typing import Callable
+from collections.abc import Callable
+from dataclasses import dataclass
 
 from fastapi.responses import JSONResponse
 
 from response_builder import build_anthropic_response, build_response
+from routes.chat_support import attach_memory_recall_meta
 from routes.quality_gate import (
     default_route,
     get_same_tier_backends,
@@ -17,8 +18,6 @@ from routes.quality_gate import (
     quality_check,
     try_backend,
 )
-
-from routes.chat_support import attach_memory_recall_meta
 
 _log = logging.getLogger(__name__)
 

@@ -1,9 +1,9 @@
 from context_pipeline.event_log import (
+    Event,
     EventLog,
     EventType,
-    Event,
-    new_request_log,
     get_request_log,
+    new_request_log,
 )
 
 

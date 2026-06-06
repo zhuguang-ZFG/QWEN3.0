@@ -134,7 +134,8 @@ def is_network_allowed(url: str, flags: ExecutionFeatureFlags) -> bool:
             return False
         host = parsed.hostname or ""
         return any(_host_matches(host, domain) for domain in flags.network_domain_allowlist)
-    except Exception:
+    except Exception as exc:
+        _log.warning("operation failed: %s", exc)
         return False
 
 

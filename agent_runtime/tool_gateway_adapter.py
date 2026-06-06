@@ -16,7 +16,6 @@ from agent_runtime.approval import ApprovalGate
 from agent_runtime.contract import AgentStep, StepKind, StepResult, redact
 from agent_runtime.tool_exec import NoopToolExecutor, ToolExecutor
 
-
 DANGEROUS_TOOL_NAMES = frozenset({
     "deploy",
     "device_write",

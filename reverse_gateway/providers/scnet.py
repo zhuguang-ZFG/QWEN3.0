@@ -9,14 +9,19 @@ import httpx
 from reverse_gateway.config import ProviderConfig, scnet_config
 from reverse_gateway.errors import classify_error
 from reverse_gateway.models import ProbeResult
-from reverse_gateway.providers.scnet_adapter import attach_text_files, build_headers, build_payload, latest_user_content, normalize_response
+from reverse_gateway.providers.scnet_adapter import (
+    attach_text_files,
+    build_headers,
+    build_payload,
+    latest_user_content,
+    normalize_response,
+)
 
 FILE_CONTEXT_BRIDGE_PROMPT = "?" * 32
 from reverse_gateway.providers.scnet_cookie import cookie_path, load_cookie_state
 from reverse_gateway.providers.scnet_file_context import should_bridge_text, upload_text_context_chunks
 from reverse_gateway.providers.scnet_protocol import load_template, protocol_path
 from reverse_gateway.rate_limit import ConcurrencyGate
-
 
 PROVIDER_NAME = "scnet_large"
 PORT = 4505

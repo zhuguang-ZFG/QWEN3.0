@@ -1,7 +1,7 @@
 from context_pipeline.narrative import (
+    inject_handoff_context,
     reframe_for_handoff,
     should_reframe,
-    inject_handoff_context,
 )
 
 

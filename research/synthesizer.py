@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import os
+
 from research.source_adapters import SearchHit
 
 _log = logging.getLogger(__name__)

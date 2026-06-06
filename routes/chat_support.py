@@ -2,19 +2,18 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import os
 import sys
 from datetime import datetime
 
-import asyncio
-
-import routing_facade
-import http_caller
 import backends
-import router_circuit_breaker
 import distill_queue
+import http_caller
+import router_circuit_breaker
+import routing_facade
 
 
 async def thinking_route(query: str, max_tokens: int = 4096, ide: str = "unknown") -> dict | None:

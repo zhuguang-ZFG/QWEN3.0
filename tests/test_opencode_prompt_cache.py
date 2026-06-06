@@ -1,12 +1,14 @@
 """Tests for opencode_prompt_cache.py — prompt caching marker injection."""
 
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from opencode_prompt_cache import (
+    _deep_merge,
     apply_prompt_caching,
     should_apply_caching,
-    _deep_merge,
 )
 
 

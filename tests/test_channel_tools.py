@@ -8,10 +8,10 @@ os.environ["LIMA_CHANNEL_ID_SALT"] = "channel-tools-test-salt"
 os.environ["LIMA_CHANNEL_DB_PATH"] = ":memory:"
 os.environ["LIMA_CHANNEL_TOOLS"] = "1"
 
-from channel_gateway.commands import parse_command
-from channel_gateway.channel_tools import run_channel_tool, CHANNEL_TOOL_INTENTS
-from channel_gateway.store import ChannelStore
 from channel_gateway import channel_tools as ct_mod
+from channel_gateway.channel_tools import CHANNEL_TOOL_INTENTS, run_channel_tool
+from channel_gateway.commands import parse_command
+from channel_gateway.store import ChannelStore
 
 
 class TestChannelToolCommands:

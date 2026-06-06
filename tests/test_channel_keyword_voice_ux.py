@@ -9,9 +9,9 @@ os.environ["LIMA_CHANNEL_SHOW_VOICE_TRANSCRIPT"] = "1"
 
 from channel_gateway.keyword_router import normalize_guest_text
 from channel_gateway.media_inbound import extract_voice_transcript
-from channel_gateway.store import ChannelStore
-from channel_gateway.service import ChannelService
 from channel_gateway.models import InboundMessage
+from channel_gateway.service import ChannelService
+from channel_gateway.store import ChannelStore
 
 
 def test_keyword_menu():

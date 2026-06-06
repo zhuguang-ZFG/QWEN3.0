@@ -12,8 +12,8 @@ Patterns:
     - Private SSH keys
 """
 
-import re
 import logging
+import re
 
 logger = logging.getLogger("memory_redact")
 

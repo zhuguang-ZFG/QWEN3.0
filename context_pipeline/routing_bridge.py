@@ -32,7 +32,7 @@ def select_backend_with_evolution(
         return RoutingDecision(backend="none", confidence=0.0)
 
     try:
-        from context_pipeline.evolution import auto_select_strategy, apply_strategy_to_backends
+        from context_pipeline.evolution import apply_strategy_to_backends, auto_select_strategy
         strategy = auto_select_strategy(metrics_snapshot or {})
         adjusted = apply_strategy_to_backends(strategy, backends, metrics_snapshot or {})
         if adjusted:
@@ -114,5 +114,6 @@ def get_metrics_snapshot() -> dict:
                 for k, v in perf_entries
             }
         }
-    except Exception:
+    except Exception as exc:
+        _log.warning("operation failed: %s", exc)
         return {}

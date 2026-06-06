@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-
 BLOCKED_STATUSES = {
     "blocked",
     "auth_expired",

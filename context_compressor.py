@@ -17,7 +17,7 @@ Supports:
 from __future__ import annotations
 
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 _log = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ CHARS_PER_TOKEN = 4
 SAFETY_FACTOR = 0.8
 
 # OpenCode multi-turn conversation settings (imported from centralized config)
-from opencode_config import OPENCODE_KEEP_RECENT_TURNS  # noqa: E402
+from opencode_config import OPENCODE_KEEP_RECENT_TURNS
 
 # ── Tool output summarization ──────────────────────────────────────────────
 # Max chars to keep per tool result (e.g., file reads can be 100K+ chars)

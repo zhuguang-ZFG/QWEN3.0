@@ -1,17 +1,31 @@
 import pytest
 
+from tool_gateway.audit import (
+    audit_event,
+    count_events,
+    get_recent_events,
+    query_events,
+    reset_audit,
+)
 from tool_gateway.auth import SecretStore
 from tool_gateway.executor import ToolExecutor
-from tool_gateway.registry import (
-    ToolDefinition, ToolRegistry, AuthorityClass, RiskClass,
-    DANGEROUS_AUTHORITIES, requires_approval, build_default_registry,
-)
-from tool_gateway.audit import (
-    audit_event, get_recent_events, query_events, count_events, reset_audit,
-)
 from tool_gateway.governance import (
-    register_worker, heartbeat, get_worker, list_workers,
-    quarantine_worker, mark_offline_stale, reset_for_tests,
+    get_worker,
+    heartbeat,
+    list_workers,
+    mark_offline_stale,
+    quarantine_worker,
+    register_worker,
+    reset_for_tests,
+)
+from tool_gateway.registry import (
+    DANGEROUS_AUTHORITIES,
+    AuthorityClass,
+    RiskClass,
+    ToolDefinition,
+    ToolRegistry,
+    build_default_registry,
+    requires_approval,
 )
 
 

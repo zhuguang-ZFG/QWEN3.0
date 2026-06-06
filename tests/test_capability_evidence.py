@@ -20,7 +20,7 @@ def evidence_db(monkeypatch):
 
 
 def test_record_evidence_redacts_secret_like_values(evidence_db):
-    from observability.capability_evidence import record_evidence, recent_evidence
+    from observability.capability_evidence import recent_evidence, record_evidence
 
     record_evidence(
         loop="chat_ide", request_id="req-1",
@@ -35,7 +35,7 @@ def test_record_evidence_redacts_secret_like_values(evidence_db):
 
 
 def test_record_evidence_caps_artifact_paths(evidence_db):
-    from observability.capability_evidence import record_evidence, recent_evidence
+    from observability.capability_evidence import recent_evidence, record_evidence
 
     record_evidence(
         loop="lima_worker", request_id="req-2", task_id="task-2",
@@ -46,7 +46,8 @@ def test_record_evidence_caps_artifact_paths(evidence_db):
     # artifact_paths are capped before persistence.
     paths = row.get("artifact_paths", [])
     if isinstance(paths, str):
-        import json; paths = json.loads(paths)
+        import json
+        paths = json.loads(paths)
     assert len(paths) <= 10
 
 
@@ -58,7 +59,7 @@ def test_record_evidence_rejects_unknown_loop(evidence_db):
 
 
 def test_record_evidence_stores_all_fields(evidence_db):
-    from observability.capability_evidence import record_evidence, recent_evidence
+    from observability.capability_evidence import recent_evidence, record_evidence
 
     record_evidence(
         loop="device_gateway", request_id="req-d", task_id="task-d",
@@ -75,7 +76,7 @@ def test_record_evidence_stores_all_fields(evidence_db):
 
 
 def test_recent_evidence_respects_limit(evidence_db):
-    from observability.capability_evidence import record_evidence, recent_evidence
+    from observability.capability_evidence import recent_evidence, record_evidence
 
     for i in range(5):
         record_evidence(loop="backend_eval", request_id=f"r{i}", status="ok")

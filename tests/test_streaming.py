@@ -1,6 +1,7 @@
 """Tests for streaming — bridge_stream_async and speculative_stream."""
 
 import asyncio
+
 import pytest
 
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 
+_log = logging.getLogger(__name__)
 logger = logging.getLogger(__name__)
 
 
@@ -46,6 +47,6 @@ def maybe_create_task_from_issue(payload: dict) -> str | None:
         if task_id:
             logger.info("github auto_task created task_id=%s issue=%s", task_id, number)
         return task_id or None
-    except Exception:
+    except Exception as exc:
         logger.exception("github auto_task failed issue=%s", number)
         return None

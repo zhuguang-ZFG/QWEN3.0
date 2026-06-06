@@ -1,16 +1,15 @@
+from context_pipeline.evolution import (
+    EvolutionStrategy,
+    apply_strategy_to_backends,
+    auto_select_strategy,
+    get_strategy_config,
+)
 from context_pipeline.hierarchical_memory import (
     HierarchicalMemory,
     MemoryLayer,
     get_hierarchical_memory,
 )
-from context_pipeline.skill_store import SkillStore, RoutingSkill, get_skill_store
-from context_pipeline.evolution import (
-    EvolutionStrategy,
-    auto_select_strategy,
-    get_strategy_config,
-    apply_strategy_to_backends,
-)
-
+from context_pipeline.skill_store import RoutingSkill, SkillStore, get_skill_store
 
 # === Phase 16: Hierarchical Memory ===
 

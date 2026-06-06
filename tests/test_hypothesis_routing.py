@@ -5,7 +5,8 @@ from __future__ import annotations
 import pytest
 
 hypothesis = pytest.importorskip("hypothesis")
-from hypothesis import given, settings, strategies as st
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from routing_classifier import classify, classify_scenario
 from routing_engine import route

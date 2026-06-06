@@ -155,7 +155,8 @@ def recall_relevant_decisions(query: str, limit: int = 3) -> list[dict]:
                 if any(term in decision_key for term in query_lower.split() if len(term) > 3):
                     relevant.append(value)
         return relevant[:limit]
-    except Exception:
+    except Exception as exc:
+        _log.warning("operation failed: %s", exc)
         return []
 
 

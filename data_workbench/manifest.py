@@ -5,7 +5,6 @@ retention policy, and evidence references. Stored as JSON for portability.
 """
 from __future__ import annotations
 
-
 import logging
 
 _log = logging.getLogger(__name__)
@@ -15,9 +14,13 @@ import time
 from dataclasses import asdict, dataclass, field
 
 from data_workbench.policy import (
-    ArtifactKind, PrivacyClass,
-    DEFAULT_RETENTION_DAYS, validate_retention_days,
-    normalize_artifact_path, redact_schema_key_list, redact_text_body,
+    DEFAULT_RETENTION_DAYS,
+    ArtifactKind,
+    PrivacyClass,
+    normalize_artifact_path,
+    redact_schema_key_list,
+    redact_text_body,
+    validate_retention_days,
 )
 
 

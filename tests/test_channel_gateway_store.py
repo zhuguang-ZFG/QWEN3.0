@@ -16,9 +16,9 @@ from channel_gateway.models import (
     ChannelBinding,
     ChannelBindingCode,
     ChannelMessage,
+    CommandResult,
     InboundMessage,
     OutboundReply,
-    CommandResult,
 )
 from channel_gateway.store import ChannelStore
 

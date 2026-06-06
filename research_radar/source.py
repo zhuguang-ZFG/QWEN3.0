@@ -11,7 +11,6 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-
 _REDACTED = "[REDACTED]"
 _SECRET_MARKERS = (
     "api_key",

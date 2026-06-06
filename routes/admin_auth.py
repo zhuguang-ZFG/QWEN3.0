@@ -8,7 +8,6 @@ from urllib.parse import urlparse
 
 from fastapi import Cookie, Header, HTTPException, Request
 
-
 SESSION_COOKIE = "lima_admin_session"
 _ADMIN_TOKEN = os.environ.get("LIMA_ADMIN_TOKEN", "")
 
@@ -48,7 +47,7 @@ async def verify_admin(
     if is_valid_admin_session(lima_admin_session):
         return
     # Require strict Bearer token with constant-time comparison
-    from access_guard import extract_bearer_token, constant_time_equals
+    from access_guard import constant_time_equals, extract_bearer_token
     presented = extract_bearer_token(authorization)
     if not presented or not constant_time_equals(presented, token_expected):
         raise HTTPException(status_code=401, detail="Unauthorized")

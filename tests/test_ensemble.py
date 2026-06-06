@@ -3,10 +3,10 @@ import asyncio
 import pytest
 
 from context_pipeline.ensemble import (
-    ensemble_race,
-    should_use_ensemble,
-    select_ensemble_backends,
     EnsembleResult,
+    ensemble_race,
+    select_ensemble_backends,
+    should_use_ensemble,
 )
 
 

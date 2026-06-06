@@ -9,7 +9,7 @@ from typing import Any
 
 import paramiko
 
-SERVER = "47.112.162.80"
+SERVER = os.environ.get("VPS_HOST", "47.112.162.80")
 REMOTE = "/opt/lima-router"
 KEY = os.environ.get("LIMA_DEPLOY_KEY_PATH", os.path.expanduser("~/.ssh/id_ed25519"))
 

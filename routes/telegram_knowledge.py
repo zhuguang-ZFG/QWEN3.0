@@ -9,15 +9,19 @@ from __future__ import annotations
 import logging
 
 import telegram_bot
+
+# Re-export stats/dashboard commands for backward compatibility
+from routes.telegram_kb_stats import (
+    _type_emoji,
+    cmd_contracts,
+    cmd_dashboard,
+    cmd_digest,
+    cmd_memstats,
+    cmd_outcome,
+)
 from session_memory.store import search_memories_keyword
 from session_memory.store_db import memory_stats
 from session_memory.store_promote import save_typed_memory
-
-# Re-export stats/dashboard commands for backward compatibility
-from routes.telegram_kb_stats import (  # noqa: F401
-    cmd_memstats, cmd_outcome, cmd_digest, cmd_contracts, cmd_dashboard,
-    _type_emoji,
-)
 
 _log = logging.getLogger(__name__)
 

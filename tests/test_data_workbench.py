@@ -1,16 +1,30 @@
 """Tests for M10: Data Workbench ingestion policy, artifact manifest, redaction."""
 import json
 import os
+
 import pytest
-from data_workbench.policy import (
-    PrivacyClass, ArtifactKind,
-    ACCEPTED_EXTENSIONS, MAX_DATASET_BYTES, DEFAULT_RETENTION_DAYS,
-    is_accepted_file_type, is_within_size_limit, validate_retention_days,
-    is_sensitive_schema_key, redact_schema_keys, redact_schema_key_list,
-    redact_text_body, normalize_artifact_path,
-)
+
 from data_workbench.manifest import (
-    ArtifactManifest, save_manifest, load_manifests, count_manifests, reset_manifests,
+    ArtifactManifest,
+    count_manifests,
+    load_manifests,
+    reset_manifests,
+    save_manifest,
+)
+from data_workbench.policy import (
+    ACCEPTED_EXTENSIONS,
+    DEFAULT_RETENTION_DAYS,
+    MAX_DATASET_BYTES,
+    ArtifactKind,
+    PrivacyClass,
+    is_accepted_file_type,
+    is_sensitive_schema_key,
+    is_within_size_limit,
+    normalize_artifact_path,
+    redact_schema_key_list,
+    redact_schema_keys,
+    redact_text_body,
+    validate_retention_days,
 )
 
 

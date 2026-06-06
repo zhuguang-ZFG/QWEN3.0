@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import logging
+
+_log = logging.getLogger(__name__)
 CF_ACCOUNT_DAILY_LIMIT = 12000
 CF_ACCOUNT_WARN_AT = 0.7
 CF_BACKEND_PREFIX = "cf_"
@@ -92,7 +95,8 @@ def get_usage_summary() -> dict[str, str]:
         from budget_gitee import get_gitee_summary_lines
 
         gitee_lines = get_gitee_summary_lines(usage_snapshot)
-    except Exception:
+    except Exception as exc:
+        _log.warning("operation failed: %s", exc)
         gitee_lines = []
     return {
         "Cloudflare": "\n".join(cf_lines),

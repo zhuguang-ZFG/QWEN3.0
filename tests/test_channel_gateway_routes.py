@@ -7,15 +7,15 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["LIMA_CHANNEL_ID_SALT"] = "test-salt-for-channel-tests"
 os.environ["LIMA_CHANNEL_DB_PATH"] = ":memory:"
 
-from fastapi.testclient import TestClient
 from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
-from channel_gateway.store import ChannelStore
 from channel_gateway.service import ChannelService
+from channel_gateway.store import ChannelStore
 from routes.channel_gateway import (
-    router,
     _reset_deps_for_test,
     inject_deps,
+    router,
 )
 
 app = FastAPI()

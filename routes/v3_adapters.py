@@ -5,9 +5,9 @@
 import logging
 from collections.abc import AsyncIterator
 
-import routing_engine
-import http_caller
 import health_tracker
+import http_caller
+import routing_engine
 
 
 def v3_route(query, messages, system_prompt="", ide="", max_tokens=4096,

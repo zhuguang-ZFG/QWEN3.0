@@ -2,16 +2,17 @@
 
 从 server.py 提取。通过 inject_state() 注入共享状态。
 """
-import logging
-import os
-import json
-import time
 import asyncio
 import functools
+import json
+import logging
+import os
 import threading
+import time
 
 from fastapi import Request
 
+_log = logging.getLogger(__name__)
 log = logging.getLogger(__name__)
 
 # ── Shared state (injected from server.py) ────────────────────────────────────
@@ -125,9 +126,9 @@ def record_request(query: str, backend: str, intent: str, duration_ms: int,
 
     # Fan-out to SSE log stream subscribers (best-effort, non-blocking).
     try:
-        from routes.admin_api import publish_log_event, _main_sse_loop
+        from routes.admin_api import _main_sse_loop, publish_log_event
         loop = _main_sse_loop or asyncio.get_event_loop()
         if loop and loop.is_running():
             loop.create_task(publish_log_event(log_entry))
-    except Exception:
+    except Exception as exc:
         log.warning("Failed to fan-out SSE log event", exc_info=True)

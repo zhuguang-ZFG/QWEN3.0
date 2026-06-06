@@ -60,7 +60,8 @@ class SqliteGraphIndex(GraphIndex):
                     VALUES ('delete', old.id, old.source, old.target, old.relation_type);
                 END;
             """)
-        except Exception:
+        except Exception as exc:
+            _log.warning("operation failed: %s", exc)
             _log.debug("FTS5 trigger setup skipped (may already exist)")
 
     def add_relation(self, source: str, target: str, relation_type: str) -> None:
@@ -152,7 +153,8 @@ class SqliteGraphIndex(GraphIndex):
                 {"source": r[0], "target": r[1], "relation_type": r[2], "rank": r[3]}
                 for r in rows
             ]
-        except Exception:
+        except Exception as exc:
+            _log.warning("operation failed: %s", exc)
             return []
 
     def clear(self) -> None:
@@ -170,5 +172,5 @@ class SqliteGraphIndex(GraphIndex):
     def __del__(self) -> None:
         try:
             self._conn.close()
-        except Exception:
+        except Exception as exc:
             _log.debug("sqlite_graph_store: connection close failed", exc_info=True)

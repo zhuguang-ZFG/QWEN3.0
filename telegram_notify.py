@@ -6,6 +6,7 @@ import time
 import telegram_bot
 from telegram_async import fire_and_forget_call as _fire_and_forget
 
+_log = logging.getLogger(__name__)
 logger = logging.getLogger(__name__)
 
 
@@ -14,7 +15,7 @@ def _prepare_push_text(summary: str) -> str:
         from telegram_push_translate import translate_push_text
 
         return translate_push_text(summary)
-    except Exception:
+    except Exception as exc:
         logger.warning("push translate skipped", exc_info=True)
         return summary
 

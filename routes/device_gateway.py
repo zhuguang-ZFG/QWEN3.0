@@ -12,6 +12,13 @@ from fastapi.responses import JSONResponse
 
 from access_guard import require_private_api_key
 from device_gateway.auth import token_configured
+from device_gateway.notifier import (
+    configure_notifier_from_env,
+    notifier_health,
+    publish_task_available,
+    start_task_notifier,
+    stop_task_notifier,
+)
 from device_gateway.protocol import (
     PROTOCOL_VERSION,
     ProtocolError,
@@ -21,7 +28,6 @@ from device_gateway.protocol import (
 )
 from device_gateway.sessions import registry
 from device_gateway.store import configure_task_store_from_env, task_store_health
-from device_gateway.notifier import configure_notifier_from_env, notifier_health, publish_task_available, start_task_notifier, stop_task_notifier
 from device_gateway.tasks import (
     ack_processing_task,
     create_task_from_transcript,

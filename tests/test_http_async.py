@@ -1,8 +1,9 @@
 """Tests for http_async — provider semaphore, usage tracking, error handling."""
 
 import asyncio
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 
 # ── Provider resolution ─────────────────────────────────────────────────────
@@ -19,8 +20,8 @@ class TestResolveProvider:
 
     def test_all_pool_prefixes(self):
         """Every KEY_POOL_PREFIXES entry should resolve."""
-        from http_async import _resolve_provider
         from backends_constants import KEY_POOL_PREFIXES
+        from http_async import _resolve_provider
 
         for prefix, provider in KEY_POOL_PREFIXES.items():
             backend = f"{prefix}test_model"
@@ -56,13 +57,13 @@ class TestProviderSemaphore:
 # ── Usage tracking ──────────────────────────────────────────────────────────
 class TestUsageTracking:
     def test_get_last_usage_none(self):
-        from http_async import get_last_usage, _last_usage
+        from http_async import _last_usage, get_last_usage
 
         _last_usage.clear()
         assert get_last_usage("nonexistent_backend") is None
 
     def test_get_last_usage_after_set(self):
-        from http_async import get_last_usage, _last_usage
+        from http_async import _last_usage, get_last_usage
 
         _last_usage["test_backend"] = {
             "prompt_tokens": 100,
@@ -83,12 +84,11 @@ class TestCallApiAsyncErrors:
         from http_async import call_api_async
         from http_errors import BackendError
 
-        with patch("http_async.BACKENDS", {}):
-            with pytest.raises(BackendError, match="unavailable"):
-                await call_api_async(
-                    "nonexistent_backend",
-                    [{"role": "user", "content": "hi"}],
-                )
+        with patch("http_async.BACKENDS", {}), pytest.raises(BackendError, match="unavailable"):
+            await call_api_async(
+                "nonexistent_backend",
+                [{"role": "user", "content": "hi"}],
+            )
 
     @pytest.mark.asyncio
     async def test_cooled_down_backend_raises(self):
@@ -118,9 +118,8 @@ class TestCallRawAsyncErrors:
         from http_async import call_raw_async
         from http_errors import BackendError
 
-        with patch("http_async.BACKENDS", {}):
-            with pytest.raises(BackendError, match="unavailable"):
-                await call_raw_async("nonexistent", b'{"test": true}')
+        with patch("http_async.BACKENDS", {}), pytest.raises(BackendError, match="unavailable"):
+            await call_raw_async("nonexistent", b'{"test": true}')
 
     @pytest.mark.asyncio
     async def test_no_key_raises(self):

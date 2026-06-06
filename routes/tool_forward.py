@@ -6,23 +6,24 @@ Handles tool_use requests from Claude Code / IDE clients:
 - OpenRouter DeepSeek R1 (legacy direct forward)
 """
 
+import asyncio
+import json
 import os
 import sys
-import json
 import time
 import uuid
-import asyncio
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import httpx as _httpx
+
 from converters.anthropic_format import (
-    convert_tools_anthropic_to_openai,
     convert_messages_anthropic_to_openai,
+    convert_response_openai_to_anthropic,
     convert_tool_choice_anthropic_to_openai,
+    convert_tools_anthropic_to_openai,
     inject_anthropic_body_preflight,
     inject_anthropic_context_preflight,
-    convert_response_openai_to_anthropic,
 )
 
 TOOL_BACKEND_URL = "https://openrouter.ai/api/v1/chat/completions"
@@ -83,8 +84,8 @@ def inject_state(record_fn, model_id: str):
 def _tool_backend_selectable(name: str) -> bool:
     """Configured, healthy tool backends suitable for IDE tool forwarding."""
     import health_tracker as _ht
-    from backends import BACKENDS
     import route_scorer as _rs
+    from backends import BACKENDS
 
     if not BACKENDS.get(name, {}).get("key"):
         return False
@@ -116,9 +117,9 @@ async def anthropic_native_forward(body: dict) -> dict:
 
 def anthropic_native_forward_sync(body: dict) -> dict:
     """同步版本，在线程池中执行。"""
-    from http_caller import call_raw, BackendError
-    from backends import BACKENDS
     import health_tracker as _ht
+    from backends import BACKENDS
+    from http_caller import BackendError, call_raw
 
     body_size = len(json.dumps(body, ensure_ascii=False))
     skip_tier1 = body_size > _TOOL_BODY_LIMIT
@@ -199,8 +200,8 @@ def anthropic_native_forward_sync(body: dict) -> dict:
 
 
 def _stream_deps() -> dict:
-    from backends import BACKENDS
     import health_tracker as _ht
+    from backends import BACKENDS
 
     return {
         "BACKENDS": BACKENDS,
@@ -331,8 +332,14 @@ async def tool_call_stream(body: dict):
 
 from text_tool_extractor import (
     TEXT_TOOL_BACKENDS as _TEXT_TOOL_BACKENDS,
+)
+from text_tool_extractor import (
     TEXT_TOOL_SYSTEM_PROMPT as _TEXT_TOOL_SYSTEM_PROMPT,
+)
+from text_tool_extractor import (
     build_tool_system_prompt as _build_tool_system_prompt,
+)
+from text_tool_extractor import (
     extract_tool_calls_from_text as _extract_tool_calls_from_text,
 )
 

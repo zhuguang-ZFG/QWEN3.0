@@ -6,9 +6,13 @@
 NOTE: 这是手工 smoke 测试，不应被 pytest 自动收集。
 """
 import pytest
+
 pytestmark = pytest.mark.skip(reason="Manual smoke test — requires external network access")
 
-import urllib.request, json, time, sys
+import json
+import sys
+import time
+import urllib.request
 
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 

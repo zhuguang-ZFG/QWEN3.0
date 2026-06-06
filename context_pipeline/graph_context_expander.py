@@ -75,7 +75,8 @@ def expand_context(
 
                 if len(expanded) >= max_files:
                     return expanded
-        except Exception:
+        except Exception as exc:
+            _log.warning("operation failed: %s", exc)
             continue
 
     return expanded

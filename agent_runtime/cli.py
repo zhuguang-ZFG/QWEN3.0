@@ -11,10 +11,10 @@ import time
 from typing import Any
 
 from agent_runtime.approval import ApprovalGate
+from agent_runtime.audit_trail import audit_event
 from agent_runtime.contract import redact
 from agent_runtime.orchestrator import AgentRunQueue, WorkerGovernor
 from agent_runtime.store import AgentRunStore
-from agent_runtime.audit_trail import audit_event
 
 
 def list_pending_approvals(gate: ApprovalGate) -> str:

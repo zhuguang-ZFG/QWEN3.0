@@ -20,7 +20,8 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import dynamic_backend_pool
 import health_tracker
@@ -43,6 +44,7 @@ MIN_VALID_LENGTH = 20
 # ── Multi-pass enabled flag (can be toggled via env var) ───────────────────
 
 import os
+
 MULTI_PASS_ENABLED = os.environ.get("LIMA_MULTI_PASS_ENABLED", "1") == "1"
 
 

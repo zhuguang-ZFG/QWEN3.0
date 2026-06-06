@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable
+from collections.abc import Callable
 
-
+_log = logging.getLogger(__name__)
 def inject_coding_opencode_prompts(
     messages: list[dict],
     *,
@@ -62,7 +62,8 @@ def _estimate_backend(
             ide_source=ide_source,
         )
         return candidates[0] if candidates else ""
-    except Exception:
+    except Exception as exc:
+        _log.warning("operation failed: %s", exc)
         return ""
 
 

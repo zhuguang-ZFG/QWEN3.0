@@ -8,6 +8,7 @@ import os
 import threading
 from pathlib import Path
 
+_log = logging.getLogger(__name__)
 logger = logging.getLogger(__name__)
 
 ROOT = Path(__file__).resolve().parent
@@ -47,7 +48,7 @@ def _build_message(*, code: int, quick: bool, source: str) -> str:
         try:
             top = 5 if quick else 11
             lines.append(summarize_eval_json(path, top_n=top))
-        except Exception:
+        except Exception as exc:
             logger.warning("eval notify summary failed", exc_info=True)
 
     try:
@@ -59,7 +60,7 @@ def _build_message(*, code: int, quick: bool, source: str) -> str:
             lines.append(f"pool gate demoted={len(blocked)}")
             for name in blocked[:5]:
                 lines.append(f"· {name}: avg={scores.get(name, 0):.0f}")
-    except Exception:
+    except Exception as exc:
         logger.debug("pool gate summary skipped", exc_info=True)
 
     return "\n".join(lines)
@@ -119,7 +120,7 @@ def notify_eval_finished(*, code: int, quick: bool, source: str = "periodic") ->
             asyncio.run(_send_eval_telegram(text))
             if code == 0:
                 asyncio.run(_maybe_auto_archive(quick=quick))
-        except Exception:
+        except Exception as exc:
             logger.exception("eval notify failed source=%s", source)
 
     threading.Thread(target=_runner, name="eval-notify-tg", daemon=True).start()

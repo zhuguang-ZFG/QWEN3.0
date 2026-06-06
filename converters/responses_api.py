@@ -5,7 +5,8 @@ from __future__ import annotations
 import json
 import time
 import uuid
-from typing import Any, AsyncIterator, Iterator
+from collections.abc import AsyncIterator, Iterator
+from typing import Any
 
 
 def _new_response_id() -> str:

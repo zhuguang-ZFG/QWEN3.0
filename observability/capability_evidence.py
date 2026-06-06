@@ -8,9 +8,9 @@ from __future__ import annotations
 
 from session_memory.outcome_ledger import (
     ALLOWED_LOOPS,
+    recent_evidence,
     record_evidence,
     record_evidence_safe,
-    recent_evidence,
 )
 
 __all__ = ["record_evidence", "record_evidence_safe", "recent_evidence", "ALLOWED_LOOPS"]

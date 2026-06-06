@@ -6,7 +6,7 @@ command results, and audit events.
 
 import time
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import Optional
 
 
 class BindingStatus:
@@ -68,7 +68,7 @@ class InboundMessage:
         conversation_type: str = "private",
         text: str = "",
         timestamp: int = 0,
-        attachments: Optional[List[dict]] = None,
+        attachments: Optional[list[dict]] = None,
         voice_transcript: str = "",
     ):
         self.message_id = message_id

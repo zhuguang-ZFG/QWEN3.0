@@ -1,7 +1,7 @@
 from context_pipeline.complexity import (
+    ComplexityAssessment,
     assess_complexity,
     dynamic_ensemble_decision,
-    ComplexityAssessment,
 )
 
 

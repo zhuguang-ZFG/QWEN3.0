@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 import urllib.parse
 
 from lima_mcp.github._common import _api_request, _is_configured
 
-
+_log = logging.getLogger(__name__)
 def search_code(query: str, *, per_page: int = 10, language: str = "") -> dict:
     if not _is_configured():
         return {"ok": False, "error": "GITHUB_TOKEN not configured"}
@@ -49,7 +50,8 @@ def get_file_contents(owner: str, repo: str, path: str, ref: str = "main") -> di
         content = result["data"].get("content", "")
         try:
             decoded = base64.b64decode(content).decode("utf-8", errors="replace")
-        except Exception:
+        except Exception as exc:
+            _log.warning("operation failed: %s", exc)
             decoded = content
         return {
             "ok": True,

@@ -11,9 +11,8 @@ import time
 from dataclasses import asdict, dataclass, field
 
 _log = logging.getLogger(__name__)
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
-
 
 CODE_SIGNALS = (
     "coder",

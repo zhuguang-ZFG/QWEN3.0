@@ -36,10 +36,10 @@ async def health_dashboard(request: Request):
 
 def _collect_backend_health() -> dict:
     """Collect comprehensive health data for all backends."""
-    import health_tracker
     import budget_manager
-    from backends_registry import BACKENDS
+    import health_tracker
     from backends import detect_caps
+    from backends_registry import BACKENDS
 
     scores = health_tracker.get_scores()
     latency_map = health_tracker.get_latency_map()

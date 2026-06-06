@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Debug: check what one-api actually sends to upstream by testing with a known-good endpoint"""
-import urllib.request, json, http.cookiejar, sys, time
+import http.cookiejar
+import json
+import sys
+import time
+import urllib.request
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -50,6 +54,7 @@ for ch in all_channels:
 # Direct test: call siliconflow directly (bypass one-api) to verify key works
 print("\n=== Direct API Test (bypass one-api) ===")
 import os
+
 sf_key = os.environ.get("SILICONFLOW_API_KEY", "")
 print("SiliconFlow key from env: " + sf_key[:15] + "... (" + str(len(sf_key)) + " chars)")
 

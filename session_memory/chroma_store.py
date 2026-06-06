@@ -33,7 +33,7 @@ _collection = None
 def _is_chromadb_available() -> bool:
     """Check if chromadb package is importable."""
     try:
-        import chromadb  # noqa: F401
+        import chromadb
         return True
     except ImportError:
         return False
@@ -165,7 +165,8 @@ def delete_memory(sqlite_id: int) -> bool:
         doc_id = f"mem_{sqlite_id}"
         _collection.delete(ids=[doc_id])
         return True
-    except Exception:
+    except Exception as exc:
+        _log.warning("operation failed: %s", exc)
         return False
 
 
@@ -175,5 +176,6 @@ def store_stats() -> dict:
         return {"available": False, "count": 0}
     try:
         return {"available": True, "count": _collection.count()}
-    except Exception:
+    except Exception as exc:
+        _log.warning("operation failed: %s", exc)
         return {"available": False, "count": 0}

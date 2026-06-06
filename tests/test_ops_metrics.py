@@ -115,15 +115,15 @@ def test_eval_approve_marks_candidate_manual_approved(monkeypatch, tmp_path):
 
 def test_eval_apply_is_idempotent_after_recent_memory_noise(monkeypatch, tmp_path):
     monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
-    import session_memory.store as memory_store
     import context_pipeline.routing_weights as routing_weights
+    import session_memory.store as memory_store
 
     monkeypatch.setattr(memory_store, "_DB_PATH", str(tmp_path / "memory.db"))
     monkeypatch.setattr(routing_weights, "WEIGHTS_PATH", tmp_path / "weights.json")
     monkeypatch.setattr(routing_weights, "_instance", None)
 
-    from session_memory.store import save_typed_memory
     from context_pipeline.routing_weights import get_routing_weights
+    from session_memory.store import save_typed_memory
 
     save_typed_memory(
         "reference_pattern",

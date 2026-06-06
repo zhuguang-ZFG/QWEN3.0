@@ -82,7 +82,8 @@ def _check_tree_sitter() -> bool:
         from tree_sitter_languages import get_parser
         get_parser("python")
         _TREE_SITTER_AVAILABLE = True
-    except Exception:
+    except Exception as exc:
+        _log.warning("operation failed: %s", exc)
         _TREE_SITTER_AVAILABLE = False
         _log.debug("tree-sitter unavailable, using regex fallback")
     return _TREE_SITTER_AVAILABLE
@@ -128,7 +129,8 @@ class TreeSitterExtractor(AstExtractor):
             for lang_name in ("python", "javascript", "typescript", "go", "rust", "java", "c"):
                 try:
                     self._parsers[lang_name] = get_parser(lang_name)
-                except Exception:
+                except Exception as exc:
+                    _log.warning("operation failed: %s", exc)
                     _log.debug("tree-sitter parser unavailable for %s", lang_name)
         except ImportError:
             self._use_tree_sitter = False
@@ -180,7 +182,8 @@ class TreeSitterExtractor(AstExtractor):
             symbols: list[SymbolInfo] = []
             self._walk_ts_node(tree.root_node, symbols, source, depth=0)
             return symbols
-        except Exception:
+        except Exception as exc:
+            _log.warning("operation failed: %s", exc)
             return self._extract_regex_symbols(source, lang)
 
     def _walk_ts_node(

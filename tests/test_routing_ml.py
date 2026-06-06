@@ -21,16 +21,15 @@ from routing_ml.routing_model import (
     create_model,
     train_step,
 )
+from routing_ml.routing_trainer import (
+    get_training_state,
+    try_train,
+)
 from routing_ml.training_data import (
     build_training_samples,
     load_weight_history,
     samples_to_arrays,
 )
-from routing_ml.routing_trainer import (
-    get_training_state,
-    try_train,
-)
-
 
 # ─── Feature extractor tests ──────────────────────────────────────────
 

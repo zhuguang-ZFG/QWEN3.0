@@ -6,10 +6,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from agent_eval import (
-    TaskScore,
-    can_auto_promote,
     RegressionEntry,
     RegressionSuite,
+    TaskScore,
+    can_auto_promote,
 )
 
 

@@ -1,13 +1,15 @@
 """Tests for opencode_schema_sanitize.py — Kimi/Gemini schema sanitization."""
 
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from opencode_schema_sanitize import (
+    _sanitize_gemini,
+    _sanitize_moonshot,
     sanitize_tool_schema,
     sanitize_tools_for_backend,
-    _sanitize_moonshot,
-    _sanitize_gemini,
 )
 
 

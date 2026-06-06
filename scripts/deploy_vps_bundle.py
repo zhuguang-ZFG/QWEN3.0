@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-
 import logging
 
 _log = logging.getLogger(__name__)
@@ -15,7 +14,6 @@ import time
 from pathlib import Path
 
 import paramiko
-
 from deploy_common import configure_ssh_host_keys
 
 SERVER = "47.112.162.80"

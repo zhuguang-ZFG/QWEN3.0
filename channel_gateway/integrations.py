@@ -10,23 +10,24 @@ Owner-only handlers are in owner_handlers.py (re-exported below).
 """
 
 import os
-from typing import Callable, Optional, TYPE_CHECKING
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from channel_gateway.chat_session import ChannelChatSession
 
 # Re-export owner handlers for backward compatibility
-from channel_gateway.owner_handlers import (  # noqa: F401
-    build_owner_rejection_handler,
+from channel_gateway.owner_handlers import (
+    _queue_device_task_http,
+    _voice_task_from_channel_task,
+    build_owner_artifact_handler,
     build_owner_code_task_handler,
     build_owner_device_handler,
-    build_owner_status_handler,
-    build_owner_artifact_handler,
-    build_owner_memory_handler,
     build_owner_digest_handler,
     build_owner_github_handler,
-    _voice_task_from_channel_task,
-    _queue_device_task_http,
+    build_owner_memory_handler,
+    build_owner_rejection_handler,
+    build_owner_status_handler,
 )
 
 
@@ -49,8 +50,8 @@ def build_chat_handler(
     """Guest chat handler: routes through LiMa with public persona."""
 
     if route_fn is None:
-        import routing_engine
         import http_caller
+        import routing_engine
 
         def _default_route(query, messages, call_fn):
             return routing_engine.route(
@@ -104,8 +105,8 @@ def build_code_handler(
     """Guest code handler: explanation/suggestion only. No task creation, no repo reads."""
 
     if route_fn is None:
-        import routing_engine
         import http_caller
+        import routing_engine
 
         def _default_route(query, messages, call_fn):
             return routing_engine.route(

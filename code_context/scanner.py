@@ -44,7 +44,7 @@ def scan_file(path: Path) -> FileRecord:
                 imports=sorted(imports, key=lambda item: (item[1], item[0])),
                 mtime=path.stat().st_mtime,
             )
-    except Exception:
+    except Exception as exc:
         _log.debug("scanner: treesitter scan failed for %s", path, exc_info=True)
     return _scan_python_file(path)
 

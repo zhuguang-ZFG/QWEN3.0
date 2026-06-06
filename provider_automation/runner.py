@@ -27,7 +27,6 @@ from provider_automation.probe import (
     probe_stream_smoke,
 )
 
-
 _LEVEL_ORDER = {
     ProbeLevel.METADATA_ONLY: 0,
     ProbeLevel.COMPLETION_SMOKE: 1,

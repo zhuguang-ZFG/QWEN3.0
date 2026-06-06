@@ -4,8 +4,8 @@ from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
 import server
-from routes.images import ImageRequest
 from access_guard import require_private_api_key
+from routes.images import ImageRequest
 
 
 def _route_for(path: str, method: str) -> APIRoute:

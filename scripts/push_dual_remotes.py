@@ -21,7 +21,7 @@ from gitee_mirror import (
     default_push_remotes,
     parse_git_remotes,
     run_git_remote_v,
-)  # noqa: E402
+)
 
 
 def _push_remote(repo: Path, remote: str, refspec: str) -> tuple[bool, str]:

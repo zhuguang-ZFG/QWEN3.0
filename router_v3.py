@@ -11,10 +11,10 @@ Layer 3: 执行器 (execute)
 - 全部失败返回诚实错误，不降级到不可接受质量
 """
 
-import math
-import random
 import hashlib
 import json
+import math
+import random
 from typing import Optional
 
 import runtime_topology

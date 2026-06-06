@@ -134,7 +134,7 @@ class ChromaCodeIndex:
         try:
             doc_id = hashlib.sha256(path.encode()).hexdigest()[:16]
             self._collection.delete(ids=[doc_id])
-        except Exception:
+        except Exception as exc:
             _log.debug("chroma_vector_store: delete failed for %s", path, exc_info=True)
 
     @property
@@ -142,6 +142,6 @@ class ChromaCodeIndex:
         if self._use_chroma and self._collection:
             try:
                 return self._collection.count()
-            except Exception:
+            except Exception as exc:
                 _log.debug("chroma_vector_store: count failed", exc_info=True)
         return len(self._fallback._files)

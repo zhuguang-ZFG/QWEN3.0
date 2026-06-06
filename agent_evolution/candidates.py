@@ -5,7 +5,7 @@ import json
 import os
 import threading
 import time
-from dataclasses import dataclass, asdict, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 _PERSIST_DIR = Path(os.environ.get(

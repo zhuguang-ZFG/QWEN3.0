@@ -1,7 +1,8 @@
 """Tests for tool_guard — doom loop detection + output truncation."""
 
 import pytest
-from tool_guard import DoomLoopGuard, truncate_tool_output, tool_call_identity
+
+from tool_guard import DoomLoopGuard, tool_call_identity, truncate_tool_output
 
 
 class TestDoomLoopGuard:

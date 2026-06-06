@@ -5,11 +5,14 @@
 - Provides valid key via simple HTTP API for smart_router.py
 - Auto check-in for FreeTheAI daily
 """
+import logging
 
 import urllib.request, json, re, time, sys, threading, os
 import http.server
 from datetime import datetime, timezone
 
+
+_log = logging.getLogger(__name__)
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 GITHUB_RAW = "https://raw.githubusercontent.com/alistaitsacle/free-llm-api-keys/main/README.md"
@@ -94,7 +97,8 @@ def validate_key(key, model="deepseek-chat"):
         if "额度" in body or "quota" in body.lower():
             return False
         return False
-    except Exception:
+    except Exception as exc:
+        _log.warning("operation failed: %s", exc)
         return False
 
 

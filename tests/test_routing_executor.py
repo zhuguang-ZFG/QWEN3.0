@@ -1,8 +1,9 @@
 """Tests for routing_executor — execute, fallback, error code extraction."""
 
 import sys
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 
 # ── extract_error_code ──────────────────────────────────────────────────────

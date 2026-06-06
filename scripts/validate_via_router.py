@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Correct validation: test keys via smart_router call_api (uses GFW proxy)"""
-import sys, os, time
+import os
+import sys
+import time
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.path.insert(0, "/opt/lima-router")
@@ -10,7 +12,7 @@ for line in open("/opt/lima-router/.env"):
         k, v = line.strip().split("=", 1)
         os.environ[k] = v
 
-from smart_router import call_api, BACKENDS
+from smart_router import BACKENDS, call_api
 
 backends_to_test = [
     "zhipu_flash", "silicon_qwen8b", "baidu_ernie", "groq_llama4",

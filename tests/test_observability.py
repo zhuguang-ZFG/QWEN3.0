@@ -1,16 +1,26 @@
 """Tests for observability events, metrics, and redaction guarantees."""
 import pytest
+
 from observability.events import (
-    LiMaEvent, _hash_session, _make_request_id,
-    request_start_event, request_end_event,
-    backend_call_event, backend_error_event,
-    route_decision_event, quality_result_event,
-    key_pool_event, token_usage_event,
+    LiMaEvent,
+    _hash_session,
+    _make_request_id,
+    backend_call_event,
+    backend_error_event,
+    key_pool_event,
+    quality_result_event,
+    request_end_event,
+    request_start_event,
+    route_decision_event,
+    token_usage_event,
 )
 from observability.metrics import (
-    record, get_metrics_snapshot, reset_metrics,
-    get_top_failing_backends, get_top_quality_backends,
     get_fastest_growing_failure_class,
+    get_metrics_snapshot,
+    get_top_failing_backends,
+    get_top_quality_backends,
+    record,
+    reset_metrics,
 )
 
 

@@ -6,8 +6,8 @@ import asyncio
 import logging
 from dataclasses import dataclass, field
 
-import http_caller
 import backends
+import http_caller
 import router_circuit_breaker
 from response_builder import MODEL_ID, build_anthropic_response, build_response
 from routes.quality_gate_direct import (
@@ -134,8 +134,8 @@ def quality_check_typed(
         repairable=repairable, severity=severity,
     )
     try:
-        from observability.metrics import record as _obs_record
         from observability.events import quality_result_event
+        from observability.metrics import record as _obs_record
         _obs_record(quality_result_event("", backend, result.score, result.passed))
     except ImportError:
         _log.debug("observability metrics unavailable for quality_result_event")

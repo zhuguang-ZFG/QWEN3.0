@@ -9,6 +9,7 @@ from collections import defaultdict
 
 from observability.events import LiMaEvent
 
+_log = logging.getLogger(__name__)
 logger = logging.getLogger(__name__)
 
 _lock = threading.Lock()
@@ -78,7 +79,7 @@ def record(event: LiMaEvent) -> None:
         maybe_export_event(event)
     except ImportError:
         logger.debug("openobserve sink unavailable")
-    except Exception:
+    except Exception as exc:
         logger.debug("openobserve export skipped", exc_info=True)
 
 

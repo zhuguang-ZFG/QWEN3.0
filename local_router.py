@@ -30,8 +30,8 @@ def _load_local_router() -> None:
     if _local_model is not None or _local_model_failed:
         return
     try:
-        from transformers import AutoModelForCausalLM, AutoTokenizer  # type: ignore[reportMissingImports]
         import torch  # type: ignore[reportMissingImports]
+        from transformers import AutoModelForCausalLM, AutoTokenizer  # type: ignore[reportMissingImports]
 
         if DEBUG:
             print("[ROUTER] Loading local Qwen3 router model...", file=sys.stderr)
@@ -45,7 +45,8 @@ def _load_local_router() -> None:
                 torch_dtype=torch.float16,
                 device_map="auto",
             )
-        except Exception:
+        except Exception as exc:
+            _log.warning("operation failed: %s", exc)
             if DEBUG:
                 print("[ROUTER] GPU failed, falling back to CPU", file=sys.stderr)
             _local_model = AutoModelForCausalLM.from_pretrained(

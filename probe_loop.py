@@ -9,10 +9,11 @@ LiMa Probe Loop — 主动探活后台线程
 - 探针: max_tokens=1 的最小请求
 """
 
-import time
-import threading
 import logging
-from typing import Callable, Optional
+import threading
+import time
+from collections.abc import Callable
+from typing import Optional
 
 import health_tracker
 
@@ -57,8 +58,8 @@ def _loop(probe_fn: Callable[[str], bool]):
 def _backend_probe_eligible(name: str) -> bool:
     """Skip backends that cannot accept a minimal probe request."""
     try:
-        from backends_registry import BACKENDS
         import http_request_builder as hrb
+        from backends_registry import BACKENDS
     except ImportError:
         return False
     cfg = BACKENDS.get(name, {})

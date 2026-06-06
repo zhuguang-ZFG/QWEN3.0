@@ -11,8 +11,8 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from backends_registry import BACKENDS
 import health_tracker
+from backends_registry import BACKENDS
 
 # Single-turn tool prompt that any model should understand
 TOOL_PROMPT = "Use the get_weather tool to check the weather in Beijing. Return the tool call."

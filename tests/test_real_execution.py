@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 import pytest
 
+from agent_runtime.contract import AgentStep, StepKind
 from agent_runtime.feature_flags import (
     ExecutionFeatureFlags,
     is_network_allowed,
@@ -23,10 +24,8 @@ from agent_runtime.real_executor import (
     RealToolExecutor,
     preflight_real_execution,
 )
-from agent_runtime.contract import AgentStep, StepKind
 from agent_runtime.shell_executor import shell_execute
 from agent_runtime.tool_exec import ToolResult
-
 
 # ---------------------------------------------------------------------------
 # Feature flags

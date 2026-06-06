@@ -11,9 +11,9 @@ import pytest
 
 from developer_skills import SkillResult
 from developer_skills.investigate import investigate
+from developer_skills.learn import learn
 from developer_skills.review import review
 from developer_skills.ship import ship
-from developer_skills.learn import learn
 
 
 class TestInvestigate:

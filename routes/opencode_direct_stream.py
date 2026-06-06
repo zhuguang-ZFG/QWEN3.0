@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 import health_tracker
 from backends import BACKENDS
@@ -166,35 +166,34 @@ async def stream_openai_passthrough(
     started = False
     accumulated_content = ""
     has_native_tool_calls = False
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        async with client.stream(
-            "POST", cfg["url"], headers=headers, content=body
-        ) as resp:
-            if resp.status_code != 200:
-                detail = (await resp.aread()).decode("utf-8", errors="replace")[:300]
-                raise BackendError(
-                    f"{backend} stream HTTP {resp.status_code}: {detail}",
-                    status_code=resp.status_code,
-                )
-            async for line in resp.aiter_lines():
-                if not line:
-                    continue
-                if line.startswith("data: "):
-                    started = True
-                    # Track if native tool_calls appear in the stream
-                    if is_text_tool:
-                        try:
-                            chunk = json.loads(line[6:].strip())
-                            delta = (chunk.get("choices") or [{}])[0].get("delta", {})
-                            if delta.get("tool_calls"):
-                                has_native_tool_calls = True
-                            if delta.get("content"):
-                                accumulated_content += delta["content"]
-                        except (json.JSONDecodeError, IndexError, KeyError):
-                            pass
-                    yield _rewrite_sse_model(line + "\n\n", model, chat_id, backend)
-                elif started:
-                    yield line + "\n\n"
+    async with httpx.AsyncClient(timeout=timeout) as client, client.stream(
+        "POST", cfg["url"], headers=headers, content=body
+    ) as resp:
+        if resp.status_code != 200:
+            detail = (await resp.aread()).decode("utf-8", errors="replace")[:300]
+            raise BackendError(
+                f"{backend} stream HTTP {resp.status_code}: {detail}",
+                status_code=resp.status_code,
+            )
+        async for line in resp.aiter_lines():
+            if not line:
+                continue
+            if line.startswith("data: "):
+                started = True
+                # Track if native tool_calls appear in the stream
+                if is_text_tool:
+                    try:
+                        chunk = json.loads(line[6:].strip())
+                        delta = (chunk.get("choices") or [{}])[0].get("delta", {})
+                        if delta.get("tool_calls"):
+                            has_native_tool_calls = True
+                        if delta.get("content"):
+                            accumulated_content += delta["content"]
+                    except (json.JSONDecodeError, IndexError, KeyError):
+                        pass
+                yield _rewrite_sse_model(line + "\n\n", model, chat_id, backend)
+            elif started:
+                yield line + "\n\n"
 
     # For TEXT_TOOL_BACKENDS: if no native tool_calls in stream, extract from text
     if is_text_tool and not has_native_tool_calls and accumulated_content:

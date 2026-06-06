@@ -8,8 +8,8 @@ from research.orchestrator import (
     ResearchQuery,
     ResearchResult,
     _deduplicate,
-    _rank,
     _normalize_url,
+    _rank,
 )
 from research.source_adapters import SearchHit
 

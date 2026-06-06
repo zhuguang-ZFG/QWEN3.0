@@ -6,7 +6,7 @@ import base64
 import logging
 import os
 import re
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 _log = logging.getLogger(__name__)
 
@@ -104,15 +104,17 @@ def _read_text_file(filename: str, data: bytes) -> str:
     for enc in ("utf-8", "gbk", "latin-1"):
         try:
             return data.decode(enc)[:12000]
-        except Exception:
+        except Exception as exc:
+            _log.warning("operation failed: %s", exc)
             continue
     return ""
 
 
 def _pdf_text(data: bytes) -> str:
     try:
-        from pypdf import PdfReader
         import io
+
+        from pypdf import PdfReader
 
         reader = PdfReader(io.BytesIO(data))
         parts = []
@@ -125,8 +127,8 @@ def _pdf_text(data: bytes) -> str:
 
 
 def _vision_summary(data: bytes, mime: str, user_note: str) -> str:
-    import routing_engine
     import http_caller
+    import routing_engine
 
     b64 = base64.b64encode(data).decode("ascii")
     media = mime or "image/jpeg"
@@ -168,8 +170,8 @@ def _summarize_document(filename: str, excerpt: str, user_note: str) -> str:
             f"已收到文件「{filename}」，暂不支持该格式自动解析。\n"
             "请发送 .txt/.md/.pdf 或截图，并附上你想问的问题。"
         )
-    import routing_engine
     import http_caller
+    import routing_engine
 
     prompt = user_note.strip() or "请用中文概括以下文件要点，并给出可操作建议："
     body = excerpt[:8000]
@@ -195,7 +197,7 @@ def _summarize_document(filename: str, excerpt: str, user_note: str) -> str:
         return f"【文件：{filename}】\n已提取正文，但摘要服务暂不可用。正文前 500 字：\n{body[:500]}"
 
 
-def extract_voice_transcript(text: str, attachments: Optional[List[dict]]) -> str:
+def extract_voice_transcript(text: str, attachments: Optional[list[dict]]) -> str:
     """Best-effort transcript for user-visible voice feedback."""
     for att in attachments or []:
         if str(att.get("kind") or "") == "voice":
@@ -208,12 +210,12 @@ def extract_voice_transcript(text: str, attachments: Optional[List[dict]]) -> st
     return ""
 
 
-def resolve_media_to_text(text: str, attachments: Optional[List[dict]]) -> str:
+def resolve_media_to_text(text: str, attachments: Optional[list[dict]]) -> str:
     """Merge plain text with voice/file/image attachments into one chat prompt."""
     if not attachments:
         return (text or "").strip()
 
-    parts: List[str] = []
+    parts: list[str] = []
     base = (text or "").strip()
     if base:
         parts.append(base)

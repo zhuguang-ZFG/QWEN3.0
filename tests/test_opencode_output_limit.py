@@ -1,10 +1,11 @@
 """Tests for opencode_output_limit.py — max output tokens cap."""
 
 import pytest
+
 from opencode_output_limit import (
     OUTPUT_TOKEN_MAX,
-    resolve_max_output_tokens,
     cap_max_tokens_in_body,
+    resolve_max_output_tokens,
 )
 
 

@@ -19,6 +19,7 @@ def test_resolve_opencode_backend_prefers_healthy_prefer():
 
 async def test_stream_response_uses_prefer_without_speculative():
     import asyncio
+
     from routes.chat_stream import stream_response
 
     chunks: list[str] = []

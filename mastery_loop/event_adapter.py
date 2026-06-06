@@ -5,7 +5,6 @@ import re
 
 from .models import MasteryEvent
 
-
 FILE_RE = re.compile(r"([A-Za-z0-9_./\\-]+\.(?:py|ts|tsx|js|md|json|toml|yml|yaml))")
 
 

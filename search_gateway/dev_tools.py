@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import urllib.parse
 from dataclasses import dataclass
 from typing import Protocol
-import urllib.parse
 
 from .safety import is_public_http_url, sanitize_error_text
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 import telegram_bot
 from routes.telegram_commands import _operator_error
@@ -158,7 +158,7 @@ async def cmd_public_tool(chat_id: str, tool: str, args: str) -> None:
     try:
         result = await asyncio.to_thread(_run_tool, tool, args)
         await _send_tool_result(chat_id, result, tool=tool)
-    except Exception:
+    except Exception as exc:
         _log.exception("cmd_public_tool failed tool=%s", tool)
         await telegram_bot.send_message(_operator_error(tool), chat_id=chat_id)
 
@@ -173,7 +173,7 @@ async def cmd_news(chat_id: str, args: str) -> None:
             return
         result = await asyncio.to_thread(_run_tool, "news", "")
         await _send_tool_result(chat_id, result, tool="news")
-    except Exception:
+    except Exception as exc:
         _log.exception("cmd_news failed")
         await telegram_bot.send_message(_operator_error("news"), chat_id=chat_id)
 

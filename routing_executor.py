@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Callable, Optional
+from typing import Optional
 
 MAX_FALLBACKS = 10
 MAX_FALLBACKS_TOOLS = 20

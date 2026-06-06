@@ -11,6 +11,7 @@ Uses only Python stdlib (ast module). No external dependencies.
 import ast
 import os
 from pathlib import Path
+
 from context_pipeline.graph_retrieval import CodeGraph
 
 

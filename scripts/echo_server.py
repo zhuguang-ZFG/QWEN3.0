@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Echo server to capture what one-api actually sends to upstream"""
-import http.server, json, sys
+import http.server
+import json
+import sys
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 

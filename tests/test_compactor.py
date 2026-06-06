@@ -5,13 +5,13 @@ os.environ["LIMA_SESSION_DB"] = tempfile.mktemp(suffix=".db")
 os.environ["LIMA_SESSION_MEMORY"] = "1"
 os.environ["LIMA_LESSONS_DIR"] = tempfile.mkdtemp()
 
-from session_memory.store import save_memory, count_memories
 from session_memory.compactor import (
-    needs_compaction,
+    COMPACTION_THRESHOLD,
     compact_session,
     get_oldest_memories,
-    COMPACTION_THRESHOLD,
+    needs_compaction,
 )
+from session_memory.store import count_memories, save_memory
 
 
 def test_needs_compaction_false_below_threshold():

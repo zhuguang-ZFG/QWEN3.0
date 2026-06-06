@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import time
@@ -13,6 +14,7 @@ import httpx
 
 from provider_automation.catalog import ModelAdmissionStatus, ProviderModelEntry, ProviderModelSnapshot
 
+_log = logging.getLogger(__name__)
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_INVENTORY = ROOT / "data" / "gitee_ai_inventory.json"
 DEFAULT_BASE_URL = "https://ai.gitee.com/v1"
@@ -174,7 +176,8 @@ def call_gitee_chat(
         if response.status_code >= 400:
             try:
                 reason = classify_error_payload(response.json())
-            except Exception:
+            except Exception as exc:
+                _log.warning("operation failed: %s", exc)
                 reason = f"http_{response.status_code}"
             raise RuntimeError(f"{reason}: {response.text[:200]}")
         payload = response.json()

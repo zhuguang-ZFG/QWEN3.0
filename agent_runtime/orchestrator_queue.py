@@ -11,7 +11,6 @@ _log = logging.getLogger(__name__)
 
 from agent_runtime.contract import AgentRunResult, AgentRunStatus, AgentTask
 from agent_runtime.executor import AgentRuntime
-from agent_runtime.store import AgentRunStore, InMemoryAgentRunStore
 from agent_runtime.orchestrator_io import (
     _emit,
     _has_terminal_or_blocked_result,
@@ -31,6 +30,7 @@ from agent_runtime.orchestrator_models import (
     AgentRunRequest,
     QueueStatus,
 )
+from agent_runtime.store import AgentRunStore, InMemoryAgentRunStore
 
 _LOCAL_RUNNER_ID = "local-runner"
 

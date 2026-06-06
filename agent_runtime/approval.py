@@ -219,7 +219,8 @@ class ApprovalGate:
     def _audit(self, msg: str) -> None:
         try:
             safe_msg = redact(msg)
-        except Exception:
+        except Exception as exc:
+            _log.warning("operation failed: %s", exc)
             safe_msg = "[REDACTED]"
         self._audit_log.append(safe_msg)
         try:

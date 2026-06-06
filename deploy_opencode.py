@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Deploy OpenCode optimization files to VPS."""
 
-import paramiko
 import os
 import time
+
+import paramiko
 
 SERVER = "47.112.162.80"
 REMOTE = "/opt/lima-router"

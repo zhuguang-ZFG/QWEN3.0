@@ -17,10 +17,10 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
-import time
 
 _log = logging.getLogger(__name__)
 
@@ -194,7 +194,7 @@ def source_espidf_search(query: str, *, limit: int = 5) -> list[dict]:
                     "confidence": 0.6,
                     "tags": ["esp32", "espidf", "documentation"],
                 })
-    except Exception:
+    except Exception as exc:
         _log.debug("espidf search failed", exc_info=True)
 
     # Espressif GitHub examples
@@ -215,7 +215,7 @@ def source_espidf_search(query: str, *, limit: int = 5) -> list[dict]:
                     "confidence": 0.55,
                     "tags": ["esp32", "espidf", "example"] + item.get("topics", [])[:3],
                 })
-    except Exception:
+    except Exception as exc:
         _log.debug("espidf github search failed", exc_info=True)
 
     return results
@@ -243,7 +243,7 @@ def source_mcp_registry_search(query: str, *, limit: int = 5) -> list[dict]:
                 "confidence": 0.4,
                 "tags": ["mcp", "tool", name.lower()] if name else ["mcp"],
             })
-    except Exception:
+    except Exception as exc:
         _log.debug("pulsemcp search failed", exc_info=True)
 
     # Smithery Registry
@@ -262,7 +262,7 @@ def source_mcp_registry_search(query: str, *, limit: int = 5) -> list[dict]:
                 "confidence": 0.4,
                 "tags": ["mcp", "tool", name.lower()] if name else ["mcp"],
             })
-    except Exception:
+    except Exception as exc:
         _log.debug("smithery search failed", exc_info=True)
 
     return results
@@ -291,7 +291,7 @@ def source_zhihu_search(query: str, *, limit: int = 5) -> list[dict]:
                 "confidence": 0.35 if obj.get("voteup_count", 0) > 10 else 0.2,
                 "tags": ["zhihu", "cn", obj_type],
             })
-    except Exception:
+    except Exception as exc:
         _log.debug("zhihu search failed", exc_info=True)
     return results
 

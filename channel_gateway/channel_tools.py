@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import os
 import re
-from typing import Callable, Optional
+from collections.abc import Callable
+from typing import Optional
 
 from channel_gateway.public_apis import (
     fetch_calc,

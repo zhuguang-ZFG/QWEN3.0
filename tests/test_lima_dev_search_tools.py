@@ -3,8 +3,8 @@ import socket
 import pytest
 
 import search_gateway.safety as safety
-from search_gateway.safety import is_public_http_url, sanitize_error_text
-from search_gateway.policy import should_dev_search
+from lima_mcp import TOOL_DEFINITIONS
+from lima_mcp.tools import handle_tool_call
 from search_gateway.dev_tools import (
     build_prompt_evidence,
     fetch_github_file,
@@ -13,8 +13,8 @@ from search_gateway.dev_tools import (
     search_error,
     summarize_sources,
 )
-from lima_mcp import TOOL_DEFINITIONS
-from lima_mcp.tools import handle_tool_call
+from search_gateway.policy import should_dev_search
+from search_gateway.safety import is_public_http_url, sanitize_error_text
 
 
 @pytest.fixture(autouse=True)

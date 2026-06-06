@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from reverse_gateway.providers import scnet
 
-
 PROBES = {
     "scnet_large": scnet.probe,
 }

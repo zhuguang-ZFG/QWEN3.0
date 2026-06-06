@@ -7,15 +7,15 @@ LiMa Speculative Execution — 并行投机调用
 - 复杂问题不并行（避免浪费付费配额）
 """
 
-import time
 import asyncio
-import threading
 import logging
 import queue as queue_mod
-from typing import Awaitable, Callable
+import threading
+import time
+from collections.abc import Awaitable, Callable
 
-import health_tracker
 import budget_manager
+import health_tracker
 
 logger = logging.getLogger("speculative")
 

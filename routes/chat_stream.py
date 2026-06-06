@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 import health_tracker
 import http_caller
@@ -13,10 +13,9 @@ import routing_facade
 from http_errors import BackendError
 from orchestrate import orchestrate
 from response_builder import _split_sentences, build_stream_chunk
+from routes.chat_support import thinking_route
 from routes.stream_handlers import real_stream_chunks_async, speculative_stream_chunks
 from routes.v3_adapters import v3_route
-
-from routes.chat_support import thinking_route
 from streaming_events import build_usage_chunk
 
 FALLBACK_MSG = "抱歉，所有后端暂不可用，请稍后重试。可尝试 /model fast 切换快速模式。"

@@ -7,6 +7,7 @@ commands, restart services, or read credentials.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 
 
@@ -25,7 +26,7 @@ class DeploymentInventory:
     services: list[ServiceEntry] = field(default_factory=list)
     backup_dir: str = "/opt/lima-router/backups"
     deploy_user: str = "root"
-    deploy_host: str = "47.112.162.80"
+    deploy_host: str = ""  # set in __post_init__ from env
     remote_path: str = "/opt/lima-router"
     systemd_service: str = "lima-router"
     restart_command: str = "systemctl restart lima-router"
@@ -34,7 +35,9 @@ class DeploymentInventory:
 
 
 def build_inventory() -> DeploymentInventory:
-    return DeploymentInventory(
+    vps_host = os.environ.get("VPS_HOST", "47.112.162.80")
+    inv = DeploymentInventory(
+        deploy_host=vps_host,
         services=[
             ServiceEntry(
                 name="lima-router",
@@ -72,7 +75,7 @@ def build_inventory() -> DeploymentInventory:
         backup_dir="/opt/lima-router/backups",
         smoke_commands=[
             "curl -s https://chat.donglicao.com/health",
-            "curl -s http://47.112.162.80:8088/health",
+            "curl -s http://" + vps_host + ":8088/health",
             "curl -s -H 'Authorization: Bearer $LIMA_API_KEY' "
             "-H 'Content-Type: application/json' "
             "https://chat.donglicao.com/v1/chat/completions "
@@ -85,6 +88,7 @@ def build_inventory() -> DeploymentInventory:
             "curl -s https://chat.donglicao.com/health",
         ],
     )
+    return inv
 
 
 def format_inventory_markdown(inv: DeploymentInventory) -> str:

@@ -8,8 +8,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # Force test token regardless of real env
 os.environ["LIMA_ADMIN_TOKEN"] = "test-admin-token"
 
-from fastapi.testclient import TestClient
 from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
 from routes.agent_tasks import _reset_for_tests, _store, router
 

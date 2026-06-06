@@ -96,6 +96,6 @@ def build_code_index(**kwargs) -> InMemoryCodeIndex:
         try:
             from code_context.chroma_vector_store import ChromaCodeIndex
             return ChromaCodeIndex(persist_directory=data_dir, **kwargs)  # type: ignore[return-value]
-        except Exception:
+        except Exception as exc:
             _log.debug("index_store: ChromaDB index unavailable", exc_info=True)
     return InMemoryCodeIndex()

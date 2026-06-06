@@ -193,7 +193,7 @@ def _find_identifier_files(identifier: str) -> list[Path]:
             p = Path(r.entity)
             if p.exists():
                 results.append(p)
-    except Exception:
+    except Exception as exc:
         _log.debug("code_context_injection: optional dependency or operation failed", exc_info=True)
     if not results:
         try:
@@ -204,6 +204,6 @@ def _find_identifier_files(identifier: str) -> list[Path]:
                 p = Path(m.path)
                 if p.exists():
                     results.append(p)
-        except Exception:
+        except Exception as exc:
             _log.debug("code_context_injection: optional dependency or operation failed", exc_info=True)
     return results

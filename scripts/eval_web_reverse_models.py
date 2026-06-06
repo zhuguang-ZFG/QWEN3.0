@@ -7,14 +7,10 @@ import argparse
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-import http_caller
-from backends import BACKENDS
-from coding_eval import run_eval
 from web_reverse_eval import (
     cap_backend_timeouts,
     discover_web_reverse_backends,
@@ -25,6 +21,9 @@ from web_reverse_eval import (
     write_markdown_report,
 )
 
+import http_caller
+from backends import BACKENDS
+from coding_eval import run_eval
 
 DEFAULT_INVENTORY = ROOT / "data" / "local_reverse_ai_inventory.json"
 DEFAULT_JSON = ROOT / "data" / "web_reverse_model_eval.json"

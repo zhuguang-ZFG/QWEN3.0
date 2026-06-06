@@ -9,6 +9,7 @@ Tests:
 """
 import json
 import sys
+
 import requests
 
 BASE_URL = "https://chat.donglicao.com"

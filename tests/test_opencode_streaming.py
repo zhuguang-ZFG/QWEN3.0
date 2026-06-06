@@ -9,7 +9,6 @@ import time
 
 import pytest
 
-
 # ─── Test 1: extract_sse_usage extracts usage from OpenAI SSE chunk ──────────
 
 def test_extract_sse_usage_valid():

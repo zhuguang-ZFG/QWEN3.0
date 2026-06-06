@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import re
 
-
 PATH_RE = re.compile(
     r"(?:[A-Za-z]:\\[^\s`'\"<>|]+|/(?:[\w .-]+/)+[\w .-]+\.\w+|[\w.-]+(?:/[\w.-]+)+\.\w+)"
 )

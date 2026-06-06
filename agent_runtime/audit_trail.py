@@ -5,7 +5,6 @@ before write. Supports query by event type, task_id, worker_id.
 """
 from __future__ import annotations
 
-
 import logging
 
 _log = logging.getLogger(__name__)
@@ -16,7 +15,6 @@ import uuid
 from dataclasses import dataclass, field
 
 from agent_runtime.contract import redact
-
 
 _DEFAULT_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data"

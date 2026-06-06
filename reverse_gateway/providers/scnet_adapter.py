@@ -11,7 +11,6 @@ from typing import Any
 from reverse_gateway.providers.scnet_cookie import CookieState
 from reverse_gateway.providers.scnet_protocol import ProtocolTemplate
 
-
 SCNET_MODEL_IDS = {
     "qwen3-30b-a3b-instruct-2507": 17,
     "qwen3-30b": 17,

@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Deploy M21: Admin panel CSRF fix + JS button fix + Nginx Origin/Referer forwarding"""
 
-import paramiko, os, time
+import os
+import time
+
+import paramiko
 
 VPS_HOST = "47.112.162.80"
 VPS_USER = "root"

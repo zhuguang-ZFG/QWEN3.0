@@ -1,13 +1,13 @@
 """Tests for model_resolver.resolve_backend()."""
 
 import os
+
 import pytest
 
 # Ensure feature gate is ON for tests (default behavior)
 os.environ.setdefault("LIMA_ALLOW_MODEL_OVERRIDE", "true")
 
 from model_resolver import resolve_backend
-
 
 # ── Exact backend name matching ──
 

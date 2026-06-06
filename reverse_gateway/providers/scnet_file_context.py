@@ -9,7 +9,6 @@ from typing import Any
 
 import httpx
 
-
 SIGNATURE_URL = "https://www.scnet.cn/acx/chatbot/file/sso/form/signature"
 OSS_CONTENT_TYPE = "text/plain"
 

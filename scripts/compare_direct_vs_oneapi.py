@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Compare: direct call vs one-api call for the same model"""
-import urllib.request, json, sys, os, time
+import json
+import os
+import sys
+import time
+import urllib.request
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 

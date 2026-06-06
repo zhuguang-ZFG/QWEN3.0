@@ -206,7 +206,7 @@ def get_stats() -> dict:
 def _recall_session_memory(query: str) -> str:
     """Recall relevant past session memories for a coding query."""
     try:
-        from session_memory.store import search_memories_keyword, get_recent_memories
+        from session_memory.store import get_recent_memories, search_memories_keyword
         keywords = _extract_memory_keywords(query)
         matches = []
         for kw in keywords[:5]:

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 ERROR_CLASSES = {
     "auth_expired",
     "quota_exceeded",

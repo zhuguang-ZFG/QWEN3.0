@@ -28,11 +28,11 @@ def _normalize_messages(messages: list) -> list[dict]:
 def run_retrieval(messages: list[dict]) -> RetrievalPayload | None:
     """Extract entities, search graph/vector layers, rerank, and format context."""
     try:
-        from context_pipeline.entity_extraction import extract_entities
         from context_pipeline.code_scanner import get_code_graph
-        from context_pipeline.graph_retrieval import dual_layer_search, RetrievalResult
+        from context_pipeline.entity_extraction import extract_entities
+        from context_pipeline.graph_retrieval import RetrievalResult, dual_layer_search
         from context_pipeline.production_index import search_production_corpus
-        from context_pipeline.reranking import rerank_results, format_for_injection
+        from context_pipeline.reranking import format_for_injection, rerank_results
     except ImportError:
         return None
 
@@ -78,7 +78,7 @@ def build_retrieval_text(messages: list[dict]) -> str:
 
 
 def _record_trace(payload: RetrievalPayload) -> None:
-    from context_pipeline.retrieval_trace import record_trace, RetrievalTrace
+    from context_pipeline.retrieval_trace import RetrievalTrace, record_trace
 
     record_trace(RetrievalTrace(
         query_entities=payload.query_terms,

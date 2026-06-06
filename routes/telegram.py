@@ -10,21 +10,21 @@ import time
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel
 
-import health_tracker
 import budget_manager
+import health_tracker
 import telegram_bot
 from routes.telegram_commands import (
-    cmd_chat,
-    start_probe_loop,
-    start_broadcast_loop,
     _operator_error,
+    cmd_chat,
+    start_broadcast_loop,
+    start_probe_loop,
 )
+from routes.telegram_dispatch import dispatch_command as _dispatch_telegram_command
 from routes.telegram_quick_menu import (
     handle_quick_callback,
     resolve_text_shortcut,
     sync_bot_commands,
 )
-from routes.telegram_dispatch import dispatch_command as _dispatch_telegram_command
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ async def _handle_voice_message(chat_id: str, voice: dict) -> None:
             return
         await telegram_bot.send_message(f"🎤 {text}", chat_id=chat_id)
         await cmd_chat(chat_id, text)
-    except Exception:
+    except Exception as exc:
         logger.exception("Voice STT failed")
         await telegram_bot.send_message(_operator_error("voice_stt"), chat_id=chat_id)
 
@@ -89,7 +89,7 @@ async def _require_admin(authorization: str = Header(default="")) -> None:
     token_expected = _get_admin_token()
     if not token_expected:
         raise HTTPException(503, "LIMA_ADMIN_TOKEN not configured")
-    from access_guard import extract_bearer_token, constant_time_equals
+    from access_guard import constant_time_equals, extract_bearer_token
     presented = extract_bearer_token(authorization)
     if not presented or not constant_time_equals(presented, token_expected):
         raise HTTPException(401, "Unauthorized")
@@ -162,7 +162,7 @@ async def _cmd_logs(chat_id: str, arg: str) -> None:
         if len(text) > 3500:
             text = text[-3500:]
         await telegram_bot.send_message(f"```\n{text}\n```", chat_id=chat_id)
-    except Exception:
+    except Exception as exc:
         logger.exception("cmd_logs failed")
         await telegram_bot.send_message(_operator_error("logs"), chat_id=chat_id)
 
@@ -231,7 +231,7 @@ async def _handle_callback(callback_query: dict) -> None:
                     cb_id,
                     _review_callback_notice(r.status_code, task_id, decision),
                 )
-        except Exception:
+        except Exception as exc:
             logger.exception("telegram task review callback failed")
             await telegram_bot.answer_callback(cb_id, _operator_error("task_review"))
     elif data == "restart:confirm":
@@ -356,7 +356,7 @@ async def _digest_loop() -> None:
             _last_digest_day = today
             try:
                 await _send_daily_digest()
-            except Exception:
+            except Exception as exc:
                 logger.exception("Daily digest failed")
 
 
@@ -370,5 +370,5 @@ async def start_telegram_webhook() -> None:
     await start_broadcast_loop()
     try:
         await sync_bot_commands()
-    except Exception:
+    except Exception as exc:
         logger.warning("Telegram setMyCommands sync failed", exc_info=True)

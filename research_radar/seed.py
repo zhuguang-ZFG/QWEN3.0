@@ -5,7 +5,9 @@ docs. This file is the structured replacement for scattered doc references.
 """
 
 from research_radar.source import (
-    AdoptionState, LicenseClass, SourceRecord,
+    AdoptionState,
+    LicenseClass,
+    SourceRecord,
 )
 
 SEED_SOURCES: list[SourceRecord] = [

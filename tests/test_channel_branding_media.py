@@ -9,9 +9,9 @@ os.environ["LIMA_CHANNEL_BRAND_FOOTER"] = "1"
 
 from channel_gateway.branding import company_pitch, maybe_brand_footer
 from channel_gateway.media_inbound import resolve_media_to_text
-from channel_gateway.store import ChannelStore
-from channel_gateway.service import ChannelService
 from channel_gateway.models import InboundMessage
+from channel_gateway.service import ChannelService
+from channel_gateway.store import ChannelStore
 
 
 def _store():

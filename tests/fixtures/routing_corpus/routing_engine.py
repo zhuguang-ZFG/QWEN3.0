@@ -1,7 +1,7 @@
 """Fixture stub: routing engine five-layer selection."""
 
-from http_caller import call_api
 import health_tracker
+from http_caller import call_api
 
 
 def select_backend(candidates: list[str]) -> str:

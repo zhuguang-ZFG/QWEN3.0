@@ -253,7 +253,7 @@ def record_evidence_safe(**kwargs: Any) -> dict[str, Any] | None:
     """Best-effort evidence write; never raises to callers."""
     try:
         return record_evidence(**kwargs)
-    except Exception:
+    except Exception as exc:
         _log.warning("record_evidence failed loop=%s", kwargs.get("loop", "?"), exc_info=True)
         return None
 
@@ -265,11 +265,11 @@ def recent_evidence(*, limit: int = 20) -> list[dict[str, Any]]:
 
 # ── Query/Mark functions — delegated to outcome_queries.py ──
 
-from session_memory.outcome_queries import (  # noqa: F401
-    query_events,
-    query,
-    stats,
+from session_memory.outcome_queries import (
+    mark_applied,
     mark_learned,
     mark_rejected,
-    mark_applied,
+    query,
+    query_events,
+    stats,
 )

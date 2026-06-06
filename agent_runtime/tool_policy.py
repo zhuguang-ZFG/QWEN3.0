@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from agent_runtime.contract import AgentStep, StepKind, StepResult, redact
 
-
 READONLY_STEP_KINDS = {
     StepKind.SUMMARIZE,
     StepKind.RETRIEVE_CONTEXT,

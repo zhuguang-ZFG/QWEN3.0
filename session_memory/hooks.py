@@ -9,8 +9,8 @@ Based on claude-mem lifecycle hook pattern:
 
 import os
 
+from session_memory.compactor import compact_session, needs_compaction
 from session_memory.processor import _session_id_from_headers, save_request_memory
-from session_memory.compactor import needs_compaction, compact_session
 
 
 def on_request_start(headers: dict, messages: list[dict]) -> str:

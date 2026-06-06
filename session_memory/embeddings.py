@@ -34,7 +34,7 @@ def _generate_embedding(text: str) -> list[float]:
             return results[0]
     except ImportError:
         _log.debug("code_context.embedding_client not installed")
-    except Exception:
+    except Exception as exc:
         _log.debug("embedding generation failed", exc_info=True)
 
     return []

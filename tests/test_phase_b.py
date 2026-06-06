@@ -11,11 +11,10 @@ from context_pipeline.auto_indexer import AutoIndexer, run_indexer_scan
 from context_pipeline.session_memory_enhancer import (
     ExtractedDecision,
     extract_decisions,
-    store_decisions,
     process_session_outcome,
     recall_relevant_decisions,
+    store_decisions,
 )
-
 
 # ---------------------------------------------------------------------------
 # B1: Auto-Indexer

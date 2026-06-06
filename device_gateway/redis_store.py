@@ -1,11 +1,12 @@
 """Redis-backed Device Gateway task store."""
 from __future__ import annotations
 
-from copy import deepcopy
 import json
+import logging
+from copy import deepcopy
 from typing import Any
 
-
+_log = logging.getLogger(__name__)
 class RedisDeviceTaskStore:
     backend_name = "redis"
     shared_across_processes = True
@@ -159,7 +160,8 @@ class RedisDeviceTaskStore:
                             state.pop("processing_started_at", None)
                             self._write_task_state(task_id, state)
                         count += 1
-            except Exception:
+            except Exception as exc:
+                _log.warning("operation failed: %s", exc)
                 continue
         return count
 
@@ -186,7 +188,8 @@ class RedisDeviceTaskStore:
         for item in self._redis.lrange(key, 0, -1):
             try:
                 data = self._decode(item)
-            except Exception:
+            except Exception as exc:
+                _log.warning("operation failed: %s", exc)
                 continue
             if data.get("task_id") == task_id:
                 return bool(self._redis.lrem(key, 1, item))

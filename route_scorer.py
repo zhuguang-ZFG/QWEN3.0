@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import budget_manager
 
-
 TERMINAL_STATES = {
     "auth_expired",
     "manual_refresh_required",

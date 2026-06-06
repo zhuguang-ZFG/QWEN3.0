@@ -1,13 +1,13 @@
 from context_pipeline import RequestContext
+from context_pipeline.factory import build_default_pipeline
 from context_pipeline.pipeline import Pipeline
 from context_pipeline.processors import (
-    ide_detection_processor,
-    scenario_classification_processor,
-    code_context_processor,
-    prompt_composition_processor,
     cache_optimization_processor,
+    code_context_processor,
+    ide_detection_processor,
+    prompt_composition_processor,
+    scenario_classification_processor,
 )
-from context_pipeline.factory import build_default_pipeline
 
 
 def test_pipeline_runs_processors_in_order():

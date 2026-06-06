@@ -13,8 +13,8 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from routes.admin_auth import verify_admin, verify_csrf
 from backends_registry import BACKENDS, DISABLED_HOST_DEPENDENT_BACKENDS, _load_backend_overlay
+from routes.admin_auth import verify_admin, verify_csrf
 
 router = APIRouter()
 _log = logging.getLogger(__name__)

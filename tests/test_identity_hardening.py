@@ -1,12 +1,12 @@
 """Identity guard and response cleaner hardening tests."""
 
+import identity_guard
+import routing_engine
 from response_cleaner import (
     StreamIdentitySanitizer,
     apply_identity_cleaning,
     clean_response,
 )
-import identity_guard
-import routing_engine
 
 
 def test_clean_response_as_claude_intro():

@@ -5,10 +5,10 @@ Tests the full loop: AI decides to read a file → tool call → execute → AI 
 import asyncio
 import json
 import os
-import sys
-import time
 import subprocess
+import sys
 import tempfile
+import time
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

@@ -1,9 +1,11 @@
 """Tests for opencode_sampling.py — model-level sampling parameter resolution."""
 
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from opencode_sampling import resolve_temperature, resolve_top_p, resolve_top_k, resolve_sampling_params
+from opencode_sampling import resolve_sampling_params, resolve_temperature, resolve_top_k, resolve_top_p
 
 
 class TestResolveTemperature:

@@ -8,8 +8,8 @@ import pytest
 os.environ.setdefault("TELEGRAM_BOT_TOKEN", "test-token")
 os.environ.setdefault("TELEGRAM_CHAT_ID", "987654321")
 
-import telegram_draft_stream
 import routes.telegram_commands as telegram_commands
+import telegram_draft_stream
 
 
 class TestTelegramDraftStream:
