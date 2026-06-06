@@ -63,19 +63,19 @@ def _rewrite_sse_model(line: str, model: str, chat_id: str, backend: str = "") -
             from opencode_protocol_adapter import normalize_sse_chunk
             chunk = normalize_sse_chunk(chunk)
         except (ImportError, Exception):
-            pass
+            _log.debug("opencode_direct_stream: protocol adapter not available", exc_info=True)
         # Passthrough reasoning_content (ensure not filtered)
         try:
             from opencode_reasoning_bridge import passthrough_reasoning_content
             chunk = passthrough_reasoning_content(chunk, backend)
         except (ImportError, Exception):
-            pass
+            _log.debug("opencode_direct_stream: reasoning bridge not available", exc_info=True)
         # Normalize tool calls (repair malformed JSON arguments, ensure fields)
         try:
             from opencode_tool_splitter import normalize_tool_calls_in_chunk
             chunk = normalize_tool_calls_in_chunk(chunk)
         except (ImportError, Exception):
-            pass
+            _log.debug("opencode_direct_stream: tool splitter not available", exc_info=True)
         return f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
     return line
 

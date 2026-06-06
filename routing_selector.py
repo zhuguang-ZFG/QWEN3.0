@@ -130,7 +130,6 @@ def select(request_type: str, health_map: dict,
                 scores[b] *= get_coding_weight(b)
             except ImportError:
                 _log.debug("routing_selector: optional module not available", exc_info=True)
-            pass
 
         static_latency = _STATIC_LATENCY_ESTIMATE.get(b)
         if static_latency and consec_fails == 0:
@@ -159,7 +158,7 @@ def select(request_type: str, health_map: dict,
                     scores[_ml_backend] *= (1.0 + _ml_score * 0.3)  # up to 30% boost
             notify_request()
     except (ImportError, Exception):
-        pass
+        _log.debug("routing_selector: ML prediction boost not available", exc_info=True)
 
     result.sort(key=lambda b: -(
         scores.get(b, 50) * budget_manager.get_budget_priority(b)

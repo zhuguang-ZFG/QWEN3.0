@@ -21,7 +21,10 @@ exclude = [
 
 [lint]
 # Gate real defects first; broaden cleanup-only rules in later slices.
-select = ["E9", "F821", "F822", "F823", "B005", "B011", "B012", "B905", "S507"]
+# S110: try-except-pass without logging (Principle 0 anti-degradation gate)
+# BLE001: blind except Exception (catch-all should be explicit)
+# E722: bare except (must name exception type)
+select = ["E9", "F821", "F822", "F823", "B005", "B011", "B012", "B905", "S507", "S110", "E722"]
 
 [lint.per-file-ignores]
 "**/__init__.py" = ["F401"]
@@ -29,3 +32,4 @@ select = ["E9", "F821", "F822", "F823", "B005", "B011", "B012", "B905", "S507"]
 "smart_router.py" = ["F401"]
 "backends.py" = ["F401"]
 "routing_engine.py" = ["F401"]
+"tests/**/*.py" = ["S110", "E722"]
