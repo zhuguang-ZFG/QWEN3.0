@@ -61,9 +61,23 @@
 - **日志状态**: ✅ 无关键错误，opencode-config 正常加载
 - **VPS 进程**: PID 3979434, 内存 161.5M, uvicorn 0.0.0.0:8080
 
+### OpenCode 真实联调测试
+- **测试脚本**: `scripts/opencode_e2e_real.py` 已创建
+- **VPS 健康检查**: ✅ PASS (version 2.0, model lima-1.3)
+- **认证问题**: ⚠️ API Key 需要同步
+  - 本地 .env: `sk-local-debug-opencode-2026`
+  - VPS .env: `xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw`
+  - 建议: 更新本地 .env 或使用 VPS API Key 进行测试
+- **待验证项**:
+  - Simple Query (2+2)
+  - IDE Detection (User-Agent: OpenCode/1.0.0)
+  - Tool Call (file read)
+  - Streaming Response
+  - Skill Injection (无重复检测)
+
 ### 下一步
-- 优先级 2: 拆分超 300 行文件 (`orchestrator_queue.py` 308 行)
-- 优先级 2: 完成 `smart_router` 最后 3 个引用迁移
+- 同步 API Key 后重新运行 `python scripts/opencode_e2e_real.py`
+- 或使用 VPS API Key: `export LIMA_API_KEY=xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw`
 
 ## VPS 全功能验证 + AGENTS.md 重写 (2026-06-06)
 
