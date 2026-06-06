@@ -1,6 +1,43 @@
 # Execution Log
 
-> Last updated: 2026-06-06 · P1 memory decay + identity bridge deployed · VPS health OK
+> Last updated: 2026-06-06 · P2 ChromaDB + Outcome Ledger deployed · VPS health OK
+
+## 长期记忆强化 P2 (2026-06-06)
+
+**目标**：ChromaDB 替代 Jina API 语义检索 + Outcome Ledger 热路径注入
+
+### P2-1: ChromaDB 本地语义检索
+- **问题**：语义检索依赖 Jina AI 外部 API（需 JINA_API_KEY），无网络/未配置时降级为纯关键词
+- **修复**：
+  - 新建 `session_memory/chroma_store.py`：ChromaDB PersistentClient + DefaultEmbeddingFunction（all-MiniLM-L6-v2, 384-dim, 本地运行）
+  - `add_memory()` / `search_memory()` / `delete_memory()` CRUD 接口
+  - 自动 sqlite3 兼容性 patch（`pysqlite3` → `sys.modules["sqlite3"]`）
+  - `embeddings.py` 保存时同步写入 ChromaDB（fire-and-forget）
+  - `processor.py` 新增 Tier 2 ChromaDB 语义搜索，Tier 3 保留 Jina 外部 API fallback
+- **效果**：语义检索零外部依赖、零 API 费用、本地毫秒级响应
+
+### P2-2: Outcome Ledger 热路径注入
+- **问题**：Outcome Ledger 仅在 shadow_mode 后台分析，未参与实时路由决策
+- **修复**：
+  - `processor.py` 新增 `_outcome_recall()` 函数（Tier 5）
+  - 从 Outcome Ledger 查询最近 50 条事件，按关键词+结果评分
+  - 以 `[routing lessons from past outcomes]` 格式注入系统提示
+  - 格式：`- [routing_lesson] backend=X outcome=Y summary`
+- **效果**：LLM 在路由决策时可以参考历史成功/失败经验
+
+### 召回链升级（5 级）
+```
+Tier 1: keyword (SQL LIKE, 快速本地)
+Tier 2: ChromaDB semantic (本地, 零 API)  ← NEW
+Tier 3: Jina AI semantic (外部, fallback)
+Tier 4: cross-session global + recent
+Tier 5: Outcome Ledger routing lessons   ← NEW
+```
+
+**部署**：chroma_store.py(新), embeddings.py, processor.py
+**VPS**：Health OK, DB 2325条, ChromaDB available, chromadb 已安装
+
+---
 
 ## 长期记忆强化 P1 (2026-06-06)
 

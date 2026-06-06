@@ -47,11 +47,11 @@ def save_memory_with_embedding(
     detail: str = "",
     memory_type: str = "exchange",
 ) -> int:
-    """Save a memory entry with an auto-generated embedding vector."""
+    """Save a memory entry with embedding + ChromaDB sync."""
     from session_memory.store_crud import save_memory
 
     embedding = _generate_embedding(summary)
-    return save_memory(
+    entry_id = save_memory(
         session_id=session_id,
         role=role,
         summary=summary,
@@ -59,3 +59,13 @@ def save_memory_with_embedding(
         embedding=embedding if embedding else None,
         memory_type=memory_type,
     )
+
+    # Sync to ChromaDB for local semantic search (fire-and-forget)
+    if entry_id:
+        try:
+            from session_memory.chroma_store import add_memory
+            add_memory(entry_id, session_id, summary, memory_type)
+        except Exception:
+            pass  # ChromaDB sync is best-effort
+
+    return entry_id
