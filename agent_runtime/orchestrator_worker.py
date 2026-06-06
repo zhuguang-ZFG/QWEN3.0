@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass, field
 
 from agent_runtime.orchestrator_io import _emit
 from agent_runtime.orchestrator_models import AgentRunLease, QueueStatus
 from agent_runtime.orchestrator_queue import AgentRunQueue
+
+_log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -130,3 +133,57 @@ class WorkerGovernor:
             worker.active_lease_id = ""
         if worker.status not in ("quarantined", "offline"):
             worker.status = "idle"
+
+
+def pre_plan_context(goal: str, limit: int = 3) -> str:
+    """Query Outcome Ledger for relevant past outcomes before agent planning.
+
+    Returns a concise context string with matching routing lessons
+    (successful backends, failure patterns) that the agent can use
+    to make better decisions. Returns empty string if nothing found.
+    """
+    if not goal or len(goal) < 5:
+        return ""
+    try:
+        from session_memory.outcome_ledger import query as ledger_query
+
+        events = ledger_query(limit=50)
+        if not events:
+            return ""
+
+        q_lower = goal.lower()
+        keywords = []
+        for kw in ["code", "debug", "refactor", "test", "deploy", "api", "fix",
+                    "build", "lint", "review", "push", "commit", "migrate"]:
+            if kw in q_lower:
+                keywords.append(kw)
+
+        lessons: list[tuple[float, str]] = []
+        for e in events:
+            summary = (e.get("summary", "") or "").lower()
+            score = 0.0
+            for kw in keywords:
+                if kw in summary:
+                    score += 0.3
+            if e.get("outcome") == "success":
+                score += 0.15
+            elif e.get("outcome") == "failed":
+                score += 0.1  # still relevant — what to avoid
+            backend = e.get("backend", "")
+            if backend and backend.lower() in q_lower:
+                score += 0.4
+            if score > 0.25:
+                lessons.append((score,
+                    f"[{e.get('backend','?')}] {e.get('outcome','?')}: {e.get('summary','')[:120]}"))
+
+        if not lessons:
+            return ""
+
+        lessons.sort(key=lambda x: -x[0])
+        top = lessons[:limit]
+        return "Relevant past outcomes:\n" + "\n".join(f"  {t}" for _, t in top)
+    except ImportError:
+        _log.debug("Outcome Ledger not available for agent planning")
+    except Exception:
+        _log.debug("pre_plan_context failed", exc_info=True)
+    return ""

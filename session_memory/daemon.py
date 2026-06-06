@@ -29,6 +29,8 @@ _stats = {
     "last_ingested": 0,
     "last_consolidated": 0,
     "last_error": "",
+    "last_eviction_at": None,
+    "last_evicted": 0,
 }
 
 
@@ -61,7 +63,7 @@ async def start_daemon() -> dict:
 
 async def _daemon_loop() -> None:
     while _running:
-        run_once()
+        await asyncio.to_thread(run_once)
         await asyncio.sleep(_interval_seconds())
 
 
@@ -94,12 +96,14 @@ def run_once(*, ingest: bool = True, consolidate: bool = True) -> dict:
     """Run one daemon cycle outside the request path."""
     ingested = 0
     consolidated = 0
+    evicted = 0
     error = ""
     try:
         if ingest:
             ingested = _ingest_inbox()
         if consolidate:
             consolidated = _consolidate_if_needed()
+        evicted = _evict_if_needed()
     except Exception as e:
         error = str(e)
         logger.warning("[MemoryDaemon] cycle error: %s", e)
@@ -109,11 +113,13 @@ def run_once(*, ingest: bool = True, consolidate: bool = True) -> dict:
         "last_cycle_at": time.time(),
         "last_ingested": ingested,
         "last_consolidated": consolidated,
+        "last_evicted": evicted,
         "last_error": error,
     })
     return {
         "ingested": ingested,
         "consolidated": consolidated,
+        "evicted": evicted,
         "error": error,
         "status": daemon_status(),
     }
@@ -212,6 +218,49 @@ def _sanitize_text(text: str) -> str | None:
             logger.warning("[MemoryDaemon] secret pattern detected, skipping fact")
             return None
         return text
+
+
+_EVICTION_TTL_DAYS = 90  # stale exchange memories older than this get evicted
+_EVICTION_INTERVAL_SECONDS = 604800  # run eviction at most once per week
+_LAST_EVICTION_TIME = 0.0
+
+
+def _evict_if_needed() -> int:
+    """Evict stale exchange-type memories older than TTL.
+
+    Protected types (compacted, code_fact, routing_lesson, reference_pattern)
+    are never evicted. Runs at most once per week.
+    """
+    global _LAST_EVICTION_TIME
+    now = time.time()
+    if now - _LAST_EVICTION_TIME < _EVICTION_INTERVAL_SECONDS:
+        return 0
+
+    conn = None
+    evicted = 0
+    try:
+        from session_memory.store import _get_conn
+        conn = _get_conn()
+        cutoff = now - (_EVICTION_TTL_DAYS * 86400)
+        # Delete old exchange memories that were never recalled or recalled long ago
+        cursor = conn.execute(
+            "DELETE FROM memories WHERE memory_type = 'exchange' "
+            "AND timestamp < ? "
+            "AND (last_recalled_at = 0 OR last_recalled_at < ?)",
+            (cutoff, cutoff),
+        )
+        evicted = cursor.rowcount
+        if evicted > 0:
+            conn.commit()
+            logger.info("[MemoryDaemon] evicted %d stale exchange memories (older than %d days)",
+                        evicted, _EVICTION_TTL_DAYS)
+    except Exception as e:
+        logger.warning("[MemoryDaemon] eviction error: %s", e)
+    finally:
+        if conn:
+            conn.close()
+        _LAST_EVICTION_TIME = now
+    return evicted
 
 
 def _classify_line(text: str) -> str:

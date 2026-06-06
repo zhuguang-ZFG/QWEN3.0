@@ -1,6 +1,37 @@
 # Execution Log
 
-> Last updated: 2026-06-06 · P2 ChromaDB + Outcome Ledger deployed · VPS health OK
+> Last updated: 2026-06-06 · System Cohesion Fix deployed · 4 gaps closed · VPS health OK
+
+## 系统通顺性修复 (2026-06-06)
+
+**目标**：修复 4 个系统断裂点，让所有子系统合为一体
+
+### Task 1: ChromaDB 依赖补全
+- `requirements_server.txt` 添加 `chromadb>=0.5.0` + `pysqlite3-binary>=0.5.0`
+
+### Task 2: 记忆淘汰机制
+- `session_memory/daemon.py` 新增 `_evict_stale_memories()`
+- 策略：90 天 TTL 的 exchange 类型自动清理
+- compacted/code_fact/routing_lesson/reference_pattern 永不过期
+- 每周最多执行一次，由 daemon cycle 驱动
+
+### Task 3: 双轨记忆统一
+- **问题**：routing_engine 独立查询 code_fact/routing_lesson，与 session_memory_processor 5-tier 并行
+- `session_memory/processor.py` 新增 Tier 6 `_typed_memory_recall()` 查询 code_fact + routing_lesson + reference_pattern
+- `routing_engine.py` 删除 L191-207 独立查询块（-17 lines）
+- 所有记忆召回统一入口 → 6 级召回链
+
+### Task 4: Agent 读 Outcome Ledger
+- **问题**：Agent 只写不读 Outcome Ledger
+- `agent_runtime/orchestrator_worker.py` 新增 `pre_plan_context()` 查询历史 outcome
+- `agent_runtime/executor.py` 在 `AgentRuntime.plan()` 中注入 outcome 上下文
+- 按关键词+backend+outcome 评分，注入 plan 提示
+
+**部署文件**：requirements_server.txt, daemon.py, processor.py, routing_engine.py, orchestrator_worker.py, executor.py
+**VPS**：Health OK, DB 2327 memories, all imports verified
+**最终召回链**：Tier 1 keyword → Tier 2 ChromaDB → Tier 3 Jina → Tier 4 cross-session → Tier 5 Outcome Ledger → Tier 6 typed memories
+
+---
 
 ## 长期记忆强化 P2 (2026-06-06)
 

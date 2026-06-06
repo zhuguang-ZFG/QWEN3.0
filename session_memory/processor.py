@@ -1,11 +1,12 @@
 """Session memory processor for context_pipeline integration.
 
-Five-tier recall cascade:
+Six-tier recall cascade:
   Tier 1: keyword (SQL LIKE, fast local)
   Tier 2: ChromaDB semantic (local, zero API dependency)
   Tier 3: Jina AI semantic (external, fallback)
   Tier 4: cross-session global + recent
   Tier 5: Outcome Ledger routing lessons
+  Tier 6: typed memories (code_fact, routing_lesson, reference_pattern)
 """
 
 import hashlib
@@ -221,8 +222,50 @@ def session_memory_processor(ctx: RequestContext) -> RequestContext:
     except Exception:
         _log.debug("outcome recall skipped", exc_info=True)
 
+    # Tier 6: typed memories (code_fact, routing_lesson, reference_pattern)
+    try:
+        typed = _typed_memory_recall(limit=3)
+        _inject_typed_memories(typed, ctx)
+    except Exception:
+        _log.debug("typed memory recall skipped", exc_info=True)
+
     ctx.recalled_memory_ids = recalled_ids
     return ctx
+
+
+def _typed_memory_recall(limit: int = 3) -> list:
+    """Tier 6: query typed memories (code_fact, routing_lesson, reference_pattern).
+
+    These are the deeper, structured memories promoted from patterns —
+    previously queried independently by routing_engine in coding scenarios.
+    Now unified into the single memory recall entry point.
+    """
+    typed: list = []
+    try:
+        from session_memory.store_promote import query_by_type
+
+        for mt in ("code_fact", "routing_lesson", "reference_pattern"):
+            for mem in query_by_type(mt, limit=limit):
+                typed.append((mt, mem.summary))
+    except ImportError:
+        _log.debug("store_promote not available")
+    except Exception:
+        _log.debug("typed memory recall failed", exc_info=True)
+    return typed
+
+
+def _inject_typed_memories(typed: list, ctx: RequestContext) -> None:
+    """Inject typed memories as 'Past coding decisions' system prompt."""
+    if not typed:
+        return
+    lines = ["Past coding decisions:"]
+    for mt, summary in typed:
+        lines.append(f"[{mt}] {summary}")
+    text = "\n".join(lines)[:800]
+    if ctx.system_prompt:
+        ctx.system_prompt += "\n\n" + text
+    else:
+        ctx.system_prompt = text
 
 
 def save_request_memory(

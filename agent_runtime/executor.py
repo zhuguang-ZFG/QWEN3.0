@@ -48,6 +48,19 @@ class AgentRuntime:
         self._audit_log: list[str] = []
 
     def plan(self, task: AgentTask) -> AgentTask:
+        # Inject Outcome Ledger context before planning
+        try:
+            from agent_runtime.orchestrator_worker import pre_plan_context
+            outcome_ctx = pre_plan_context(task.goal)
+            if outcome_ctx:
+                if task.goal:
+                    task.goal += "\n\n" + outcome_ctx
+                else:
+                    task.goal = outcome_ctx
+        except ImportError:
+            pass
+        except Exception:
+            pass
         plan_task(task)
         task.status = AgentRunStatus.PLANNING
         self._audit("plan", task.task_id, f"planned {len(task.steps)} steps")

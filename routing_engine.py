@@ -188,25 +188,8 @@ def route(query: str, messages: list[dict], *,
             import logging as _logging
             _logging.debug("code_context_injection failed: %s", e)
 
-        try:
-            from session_memory.store_promote import query_by_type
-            _memory_parts: list[str] = []
-            for _mt in ("code_fact", "routing_lesson"):
-                for _mem in query_by_type(_mt, limit=3):
-                    _memory_parts.append(f"[{_mt}] {_mem.summary}")
-                    try:
-                        from context_injection_trace import record_memory_item
-
-                        record_memory_item(f"[{_mt}]")
-                    except ImportError:
-                        pass
-            if _memory_parts:
-                _memory_ctx = "Past coding decisions:\n" + "\n".join(_memory_parts)
-                _mem_msg = {"role": "system", "content": _memory_ctx}
-                _insert_pos = 2 if messages and messages[0].get("role") == "system" else 1
-                messages.insert(_insert_pos, _mem_msg)
-        except Exception as e:
-            logging.warning("routing_engine: session memory query failed: %s", e)
+        # Typed memory recall is now unified in session_memory.processor (Tier 6)
+        # — no longer queried independently here.
 
     try:
         from context_pipeline.complexity import assess_complexity
