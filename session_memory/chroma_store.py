@@ -132,8 +132,10 @@ def search_memory(
         items = []
         if results and results.get("ids") and results["ids"][0]:
             ids = results["ids"][0]
-            distances = results.get("distances", [[]])[0]
-            metadatas = results.get("metadatas", [[]])[0]
+            distances_raw = results.get("distances")
+            distances = distances_raw[0] if distances_raw else []
+            metadatas_raw = results.get("metadatas")
+            metadatas = metadatas_raw[0] if metadatas_raw else []
             for i, doc_id in enumerate(ids):
                 meta = metadatas[i] if i < len(metadatas) else {}
                 dist = distances[i] if i < len(distances) else 1.0
