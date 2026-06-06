@@ -250,6 +250,35 @@ def compute_variants(
             return {e: {"reasoningEffort": e, "reasoningSummary": "auto",
                          "include": ["reasoning.encrypted_content"]} for e in efforts}
 
+        case "bedrock":
+            # Bedrock uses reasoningConfig (not thinking) — transform.ts:855-900
+            adaptive = _anthropic_adaptive_efforts(mid)
+            if adaptive:
+                is_opus47 = _anthropic_opus_47_or_later(mid)
+                result = {}
+                for effort in adaptive:
+                    rc: dict[str, object] = {
+                        "type": "adaptive",
+                        "maxReasoningEffort": effort,
+                    }
+                    if is_opus47:
+                        rc["display"] = "summarized"
+                    result[effort] = {"reasoningConfig": rc}
+                return result
+
+            # Anthropic models on Bedrock: budgetTokens
+            if "anthropic" in mid or "claude" in mid:
+                return {
+                    "high": {"reasoningConfig": {"type": "enabled", "budgetTokens": 16000}},
+                    "max": {"reasoningConfig": {"type": "enabled", "budgetTokens": 31999}},
+                }
+
+            # Nova / other models: maxReasoningEffort
+            return {
+                e: {"reasoningConfig": {"type": "enabled", "maxReasoningEffort": e}}
+                for e in WIDELY_SUPPORTED_EFFORTS
+            }
+
         case "mistral":
             if not any(v in mid for v in _MISTRAL_REASONING_IDS):
                 return {}

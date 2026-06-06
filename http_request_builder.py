@@ -146,6 +146,26 @@ def _build_headers(backend_cfg: dict, key: str | None = None) -> dict:
     }
 
 
+def _build_headers_with_affinity(
+    backend_cfg: dict,
+    key: str | None = None,
+    backend_name: str = "",
+    session_id: str = "",
+) -> dict:
+    """Build headers with optional x-session-affinity (request.ts:181).
+
+    Non-OpenCode providers get x-session-affinity for load balancer stickiness.
+    """
+    headers = _build_headers(backend_cfg, key)
+    # M-OC21: x-session-affinity for non-opencode providers
+    if session_id and backend_name:
+        from provider_kind import detect_provider_kind
+        pk = detect_provider_kind(backend_name, backend_cfg.get("model", ""))
+        if pk not in ("opencode_zen",):
+            headers["x-session-affinity"] = session_id
+    return headers
+
+
 def _key_pool_provider(backend: str, backend_cfg: dict) -> str:
     return infer_key_pool_provider(backend, backend_cfg)
 
@@ -294,10 +314,41 @@ def _build_body(
         body["stream"] = bool(stream)
 
     if tools:
+        # M-OC15: normalize tool JSON schemas ($ref inline, allOf flatten, integer bounds)
+        try:
+            from opencode_tool_schema import normalize_tools_schemas
+            tools = normalize_tools_schemas(tools)
+        except ImportError:
+            pass
+
         # M-OC7: sanitize tool schemas for Kimi/Gemini (transform.ts:1254-1371)
         from opencode_schema_sanitize import sanitize_tools_for_backend
         tools = sanitize_tools_for_backend(tools, backend_name, model)
+
+        # M-OC16: filter tools by model family (apply_patch vs edit/write)
+        try:
+            from opencode_tool_routing import filter_tools_for_model
+            tools = filter_tools_for_model(tools, model, backend_name)
+        except ImportError:
+            pass
+
+        # M-OC17: Copilot _noop tool workaround (request.ts:142-158)
+        try:
+            from opencode_tool_routing import inject_noop_tool_if_needed
+            tools = inject_noop_tool_if_needed(tools, messages, backend_name)
+        except ImportError:
+            pass
+
         body["tools"] = tools
+
+        # M-OC20: repair tool call names (case-insensitive) + invalid tool routing
+        try:
+            from opencode_tool_repair import should_inject_invalid_tool
+            if should_inject_invalid_tool(tools):
+                from opencode_tool_repair import get_invalid_tool_definition
+                body["tools"] = list(tools) + [get_invalid_tool_definition()]
+        except ImportError:
+            pass
 
     if reasoning_effort:
         variant_opts = apply_variant(backend_name, model, reasoning_effort)
@@ -317,9 +368,37 @@ def _build_body(
     # M-OC3: session options (store/enable_thinking/toolStreaming/promptCacheKey)
     if _is_ide_backend_session(backend_name, ide):
         session_opts = resolve_session_options(backend_name, model, session_id=_mk_session_id(backend_name))
+
+        # M-OC18: wrap options in providerOptions namespace keys
+        try:
+            from opencode_provider_namespace import build_provider_options_for_body
+            from provider_kind import detect_provider_kind
+            pk = detect_provider_kind(backend_name, model)
+            provider_opts = build_provider_options_for_body(session_opts, pk, backend_name, model)
+            if provider_opts:
+                body["providerOptions"] = provider_opts
+        except (ImportError, Exception) as exc:
+            logger.debug("provider namespace wrapping failed: %s", exc)
+
         for k, v in session_opts.items():
             if k not in body:
                 body[k] = v
+
+    # M-OC22: doom loop detection — break repeated identical tool calls
+    try:
+        from opencode_doom_loop import detect_doom_loop, inject_doom_loop_break
+        loop_info = detect_doom_loop(messages)
+        if loop_info:
+            messages = inject_doom_loop_break(messages, loop_info)
+    except ImportError:
+        pass
+
+    # M-OC19: cap max_tokens at OUTPUT_TOKEN_MAX=32000 (transform.ts:18)
+    try:
+        from opencode_output_limit import cap_max_tokens_in_body
+        cap_max_tokens_in_body(body, backend_name, model)
+    except ImportError:
+        pass
 
     return json.dumps(body).encode()
 

@@ -101,3 +101,59 @@ def resolve_session_options(
 
     return result
 
+
+# ── SmallOptions (transform.ts:1170-1192) ──────────────────────────────────
+
+def resolve_small_options(
+    backend_name: str,
+    model_id: str,
+    provider_kind: str = "",
+) -> dict[str, object]:
+    """Return lightweight options for sub-agent / task requests.
+
+    Ported from transform.ts smallOptions() (L1170-1192).
+    Sub-agent requests use minimal options to reduce cost and latency.
+
+    Args:
+        backend_name: Backend identifier.
+        model_id: Model identifier.
+        provider_kind: Pre-computed provider kind.
+
+    Returns:
+        Lightweight options dict.
+    """
+    pk = provider_kind or detect_provider_kind(backend_name, model_id)
+    result: dict[str, object] = {}
+
+    # OpenAI / Copilot: store=false + smallest variant
+    if pk in ("openai", "azure", "github_copilot", "opencode_zen"):
+        result["store"] = False
+
+    # OpenRouter + Google: disable reasoning
+    if pk == "openrouter" or pk == "google":
+        result["reasoning"] = {"enabled": False}
+
+    # Venice: disable thinking
+    if pk == "venice":
+        result["veniceParameters"] = {"disableThinking": True}
+
+    return result
+
+
+def is_subagent_request(metadata: dict | None = None) -> bool:
+    """Check if request metadata indicates a sub-agent / task request.
+
+    Args:
+        metadata: Request metadata dict (may contain 'subagent' or 'task' flag).
+
+    Returns:
+        True if this is a sub-agent request.
+    """
+    if not metadata or not isinstance(metadata, dict):
+        return False
+    return bool(
+        metadata.get("subagent")
+        or metadata.get("is_subagent")
+        or metadata.get("task_request")
+    )
+
