@@ -80,6 +80,7 @@ KEY_POOL_PREFIXES = {
     'ms_': 'modelscope',
     'fm_': 'freemodel',
     'ogw_': 'opengateway',
+        'agnes': 'agnes_ai',
 }
 
 CODE_CAPABLE_BACKENDS = frozenset({
@@ -100,6 +101,8 @@ CODE_CAPABLE_BACKENDS = frozenset({
     'ogw_gpt55', 'ogw_gpt54', 'ogw_gpt5_codex', 'ogw_gpt4o_mini', 'ogw_gpt54_mini',
     'ogw_claude_sonnet', 'ogw_claude_haiku', 'ogw_deepseek_v4', 'ogw_deepseek_flash',
     'ogw_grok', 'ogw_kimi', 'ogw_glm5', 'ogw_minimax',
+    # Agnes AI (Sapiens AI, 新加坡免费网关)
+    'agnes20', 'agnes15',
 })
 
 # Backends that reliably support tool_calls (OpenAI function calling format)
@@ -120,6 +123,8 @@ TOOL_CAPABLE_BACKENDS = frozenset({
     'ogw_gpt55', 'ogw_gpt54', 'ogw_gpt54_mini', 'ogw_gpt5_codex', 'ogw_gpt4o_mini',
     'ogw_claude_sonnet', 'ogw_claude_haiku', 'ogw_deepseek_v4', 'ogw_deepseek_flash',
     'ogw_grok', 'ogw_kimi', 'ogw_glm5', 'ogw_minimax',
+    # Agnes AI
+    'agnes20', 'agnes15',
     # China Mobile
     'chinamobile',
     # Longcat (Anthropic format, but supports tool_calls)

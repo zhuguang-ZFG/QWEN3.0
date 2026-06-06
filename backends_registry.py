@@ -243,6 +243,9 @@ BACKENDS = {
     'ogw_glm5': {'url': 'https://api.opengateway.ai/v1/chat/completions', 'key': os.environ.get('OPENGATEWAY_API_KEY', ''), 'model': 'z-ai/glm-5.1', 'fmt': 'openai', 'timeout': 30, 'caps': ['tool_calls']},
     'ogw_gemini_flash': {'url': 'https://api.opengateway.ai/v1/chat/completions', 'key': os.environ.get('OPENGATEWAY_API_KEY', ''), 'model': 'google/gemini-2.5-flash', 'fmt': 'openai', 'timeout': 20},
     'ogw_minimax': {'url': 'https://api.opengateway.ai/v1/chat/completions', 'key': os.environ.get('OPENGATEWAY_API_KEY', ''), 'model': 'minimax/MiniMax-M2.7', 'fmt': 'openai', 'timeout': 30, 'caps': ['tool_calls']},
+    # ── Agnes AI (Sapiens AI 全模态免费网关, 新加坡) ──
+    'agnes20': {'url': 'https://apihub.agnes-ai.com/v1/chat/completions', 'key': os.environ.get('AGNES_AI_API_KEY', ''), 'model': 'agnes-2.0-flash', 'fmt': 'openai', 'timeout': 45, 'caps': ['tool_calls', 'code']},
+    'agnes15': {'url': 'https://apihub.agnes-ai.com/v1/chat/completions', 'key': os.environ.get('AGNES_AI_API_KEY', ''), 'model': 'agnes-1.5-flash', 'fmt': 'openai', 'timeout': 20, 'caps': ['tool_calls']},
     # ── 编程后端池 (admission=code_* 被编程场景路由选中) ──
     'ms_qwen35_27b_code': {'url': 'https://api-inference.modelscope.cn/v1/chat/completions', 'key': os.environ.get('MODELSCOPE_API_KEY', ''), 'model': 'Qwen/Qwen3.5-27B', 'fmt': 'openai', 'timeout': 45, 'force_stream_param': True, 'admission': 'code_medium_candidate', 'private_code_allowed': True, 'caps': ['tool_calls']},
     'ms_kimi_k25_code': {'url': 'https://api-inference.modelscope.cn/v1/chat/completions', 'key': os.environ.get('MODELSCOPE_API_KEY', ''), 'model': 'moonshotai/Kimi-K2.5', 'fmt': 'openai', 'timeout': 45, 'force_stream_param': True, 'admission': 'code_medium_candidate', 'private_code_allowed': True, 'caps': ['tool_calls']},
@@ -269,6 +272,9 @@ BACKENDS = {
     'ogw_claude_sonnet_code': {'url': 'https://api.opengateway.ai/v1/chat/completions', 'key': os.environ.get('OPENGATEWAY_API_KEY', ''), 'model': 'anthropic/claude-sonnet-4-6', 'fmt': 'openai', 'timeout': 45, 'admission': 'code_medium_candidate', 'private_code_allowed': True, 'caps': ['tool_calls']},
     'ogw_deepseek_v4_code': {'url': 'https://api.opengateway.ai/v1/chat/completions', 'key': os.environ.get('OPENGATEWAY_API_KEY', ''), 'model': 'deepseek/deepseek-v4-pro', 'fmt': 'openai', 'timeout': 60, 'admission': 'code_medium_candidate', 'private_code_allowed': True, 'caps': ['tool_calls']},
     'ogw_gpt5_nano_code': {'url': 'https://api.opengateway.ai/v1/chat/completions', 'key': os.environ.get('OPENGATEWAY_API_KEY', ''), 'model': 'openai/gpt-5-nano', 'fmt': 'openai', 'timeout': 15, 'admission': 'code_floor_candidate', 'private_code_allowed': True},
+    # ── Agnes AI 编程池 ──
+    'agnes20_code': {'url': 'https://apihub.agnes-ai.com/v1/chat/completions', 'key': os.environ.get('AGNES_AI_API_KEY', ''), 'model': 'agnes-2.0-flash', 'fmt': 'openai', 'timeout': 45, 'admission': 'code_medium_candidate', 'private_code_allowed': True, 'caps': ['tool_calls', 'code']},
+    'agnes15_code': {'url': 'https://apihub.agnes-ai.com/v1/chat/completions', 'key': os.environ.get('AGNES_AI_API_KEY', ''), 'model': 'agnes-1.5-flash', 'fmt': 'openai', 'timeout': 20, 'admission': 'code_floor_candidate', 'private_code_allowed': True, 'caps': ['tool_calls']},
 }
 
 # M6: All host-dependent backends migrated to VPS or deleted.
