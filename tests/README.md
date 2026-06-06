@@ -1,6 +1,6 @@
 # LiMa Test Suite Map
 
-> Updated: 2026-05-28 | 211 test files, ~2000+ test cases
+> Updated: 2026-06-07 | 279 test files, ~3000+ test cases
 > Filenames stay flat under `tests/`; this file is the ownership index.
 
 ## Running
@@ -17,7 +17,8 @@ python -m pytest tests/test_routing_engine.py tests/test_http_caller.py -q
 ## Ownership Map
 
 ### Request Pipeline
-- `test_routing_engine.py` — 5-layer routing
+- `test_routing_engine.py` — 5-layer routing + backend-aware skill reinjection
+- `test_skills_injector.py` — skill prompt injection & marker-based deduplication
 - `test_route_scorer.py` — quality/stability/latency scoring
 - `test_route_post_process.py` — post-route hooks
 - `test_request_pipeline_authority.py` — module ownership matrix
@@ -27,6 +28,10 @@ python -m pytest tests/test_routing_engine.py tests/test_http_caller.py -q
 - `test_router_circuit_breaker.py` — health/cooldown
 - `test_router_classifier.py` — intent classification
 - `test_routing_weights.py` / `test_routing_weights_persistence.py` — weight learning
+- `test_dual_track.py` — smart_router migration tracking
+- `test_health_tracker.py` — backend health monitoring
+- `test_budget_manager.py` — token budget & CF/Google facade
+- `test_coding_pool_admission.py` — IDE coder pool evidence gate
 
 ### Response & Quality
 - `test_response_pipeline.py` — processor chain
@@ -37,9 +42,12 @@ python -m pytest tests/test_routing_engine.py tests/test_http_caller.py -q
 
 ### Chat & Protocol
 - `test_chat_endpoints.py` / `test_chat_handler.py` / `test_chat_handler_dispatch.py`
+- `test_chat_ide_golden_path.py` — IDE detection & OpenCode E2E golden path
 - `test_anthropic_tool_protocol.py` / `test_anthropic_format_tools.py`
+- `test_anthropic_preflight.py` — Anthropic request validation
 - `test_tool_forward.py` / `test_tool_forward_failures.py`
 - `test_ide_detection.py` / `test_vision_routing.py`
+- `test_opencode_e2e.py` / `test_opencode_e2e_cases.py` — OpenCode integration tests
 
 ### Code Context & Retrieval
 - `test_lima_context.py` — context preflight

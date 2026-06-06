@@ -52,6 +52,15 @@
 - ✅ **永不破坏生产**: 预存失败与本次改动无关
 - ✅ **渐进式替换**: 保留兼容性 facade
 
+### VPS 部署验证
+- **部署时间**: 2026-06-07 04:20:00
+- **部署文件**: 14 个核心文件（routing_engine_skills, skills_injector, router_v3, routing_classifier 等）
+- **服务状态**: ✅ active (running)
+- **健康检查**: ✅ /health 返回 200 OK
+- **周期性 eval**: ✅ 自动运行，coding_backend_scores 已生成
+- **日志状态**: ✅ 无关键错误，opencode-config 正常加载
+- **VPS 进程**: PID 3979434, 内存 161.5M, uvicorn 0.0.0.0:8080
+
 ### 下一步
 - 优先级 2: 拆分超 300 行文件 (`orchestrator_queue.py` 308 行)
 - 优先级 2: 完成 `smart_router` 最后 3 个引用迁移

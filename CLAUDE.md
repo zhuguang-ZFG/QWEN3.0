@@ -15,8 +15,7 @@
 
 > 见 `AGENTS.md` “Repository Scale” 与 “Key Entry File Sizes” 节（权威数据，由 `python scripts/repo_stats.py` 生成）。
 
-易漂移的完整清单与 P0/P1/P2 切片见
-[`docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md`](docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md)。
+代码质量改进计划见 [`docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md`](docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md)。
 
 ## 架构速览
 
@@ -56,15 +55,7 @@ server.py → routes/route_registry.py
 - 可选子系统：`ImportError` 时 `logger.debug` 说明未安装，勿静默吞掉未知异常
 - `.env` 必须设置 `LIMA_API_KEY`，否则启动报错
 
-### 近期已关闭（CQ-085）
-
-- ASGI body 分块上限、`/api/live-key` 不返回原始密钥、`key_rotation` 退役
-- semantic cache 写库失败可观测、admin 登录常量时间比较
-
-### 仍待办（见质量计划）
-
-- 略超 300 行：`orchestrator_queue.py` (~308)、`routes/agent_tasks.py` (325)
-- 路由双轨：以 `docs/REQUEST_PIPELINE_AUTHORITY.md` 为权威边界
+具体改进项见 [`docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md`](docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md)。
 
 ## 关键文档
 
