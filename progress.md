@@ -5505,3 +5505,49 @@ deploy_opencode.py → VPS 47.112.162.80 (systemctl restart lima-router)
 ## REF: deepcode-cli 子模块指针更新 (2026-06-05)
 
 - `a0c3502` — 更新 deepcode-cli 子模块指针以匹配 lima 重命名
+
+## Slice: 全面质量提升 (P0-P6) (2026-06-07)
+
+### P0: 消除所有 except:pass 静默退化 (Principle 0)
+- 58 files changed, 63+ 处修复
+- 批量脚本 + 手动修复结合
+- ruff S110 + E722 规则作为自动门禁
+- Commit: `e4c7ff6` + `a92b648`
+
+### P1: 补充关键模块测试
+- `test_routing_executor.py`: 13 tests (execute/fallback/overflow/error codes)
+- `test_streaming.py`: 6 tests (bridge_stream_async/speculative_stream)
+- `test_http_async.py`: 12 tests (provider semaphore/usage tracking/errors)
+- Total: 31 new tests, all passing
+- Commit: `138f7e2`
+
+### P2: 拆分 TOP5 超大文件
+- `routes/admin_api.py`: 842 → 332 lines
+- Extracted: admin_sse.py (93), admin_agent_tasks.py (125), admin_devices.py (74), admin_alerts.py (112), admin_config.py (83)
+- Backward-compatible re-exports for existing tests
+- All 20 admin tests still passing
+- Commit: `52d0142`
+
+### P3: Ruff S110/E722 规则
+- Added to ruff.toml select list
+- Fixed last 5 violations
+- Tests excluded via per-file-ignores
+- Commit: `a92b648`
+
+### P4: VPS 部署
+- scp 批量上传 60 个修改文件到 47.112.162.80:/opt/lima-router
+- systemctl restart + health check 200 OK
+- OpenCode config summary log visible in journalctl
+
+### P5: Nginx 配置模板化
+- `deploy/nginx/` 目录创建
+- 5 个配置文件 + 部署脚本 + README
+- chat.donglicao.com.conf, www.donglicao.com.conf, donglicao.conf, lima.257339.xyz.conf, http_limits.conf
+- deploy_nginx.sh with backup + rollback
+- Commit: `7a3b47b`
+
+### P6: OpenCode 配置启动摘要日志
+- `opencode_config.py` 新增 `log_config_summary()`
+- `server_lifespan.py` 启动时调用
+- VPS journalctl 可见 `[opencode-config]` 完整配置摘要
+- Commit: `7a3b47b`
