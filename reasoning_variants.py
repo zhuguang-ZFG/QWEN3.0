@@ -218,7 +218,38 @@ def compute_variants(
                 for e in _google_thinking_level_efforts(mid)
             }
 
-        case "groq" | "cerebras" | "togetherai" | "xai" | "deepinfra" | "venice" | "openai_compatible":
+        case "groq":
+            # Groq supports "none" in addition to standard efforts — transform.ts:956-966
+            efforts = ["none", *WIDELY_SUPPORTED_EFFORTS]
+            return {e: {"reasoningEffort": e} for e in efforts}
+
+        case "sap_ai":
+            # SAP AI provider (transform.ts:972-1022) — Anthropic models use thinking format
+            adaptive = _anthropic_adaptive_efforts(mid)
+            if adaptive:
+                is_opus47 = _anthropic_opus_47_or_later(mid)
+                result = {}
+                for effort in adaptive:
+                    opts: dict[str, object] = {"thinking": {"type": "adaptive"}, "effort": effort}
+                    if is_opus47:
+                        opts["thinking"]["display"] = "summarized"  # type: ignore[index]
+                    result[effort] = opts
+                return result
+            if "anthropic" in mid or "claude" in mid:
+                return {
+                    "high": {"thinking": {"type": "enabled", "budgetTokens": 16000}},
+                    "max": {"thinking": {"type": "enabled", "budgetTokens": 31999}},
+                }
+            if "gemini" in mid and "2.5" in mid:
+                return {
+                    "high": {"thinkingConfig": {"includeThoughts": True, "thinkingBudget": 16000}},
+                    "max": {"thinkingConfig": {"includeThoughts": True, "thinkingBudget": 24576}},
+                }
+            if "gpt" in mid or re.search(r"\bo[1-9]", mid):
+                return {e: {"reasoningEffort": e} for e in WIDELY_SUPPORTED_EFFORTS}
+            return {}
+
+        case "cerebras" | "togetherai" | "xai" | "deepinfra" | "venice" | "openai_compatible":
             efforts = list(WIDELY_SUPPORTED_EFFORTS)
             if "deepseek-v4" in mid:
                 efforts.append("max")
