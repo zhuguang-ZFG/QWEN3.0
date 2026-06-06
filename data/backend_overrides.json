@@ -1,3 +1,12 @@
 {
-  "add": {}
+  "add": {
+    "demo-backend": {
+      "url": "https://example.com/api",
+      "key": "none",
+      "model": "",
+      "fmt": "openai",
+      "timeout": 30,
+      "caps": []
+    }
+  }
 }

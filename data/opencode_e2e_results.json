@@ -1,11 +1,11 @@
 {
-  "timestamp": "2026-06-05T14:06:42Z",
+  "timestamp": "2026-06-05T16:53:46Z",
   "server": "https://chat.donglicao.com",
   "results": [
     {
       "name": "health_check",
       "passed": true,
-      "latency_ms": 3413,
+      "latency_ms": 1485,
       "ttfb_ms": 0,
       "score": 0,
       "backend": "",
@@ -14,132 +14,112 @@
     },
     {
       "name": "coding_context_overflow_recovery",
-      "passed": false,
-      "latency_ms": 2539,
-      "ttfb_ms": 0,
-      "score": 0,
-      "backend": "",
-      "detail": "",
-      "error": "{\"detail\":\"Unauthorized\"}"
-    },
-    {
-      "name": "coding_ide_code_explain",
-      "passed": false,
-      "latency_ms": 1963,
-      "ttfb_ms": 0,
-      "score": 0,
-      "backend": "",
-      "detail": "",
-      "error": "{\"detail\":\"Unauthorized\"}"
-    },
-    {
-      "name": "coding_multi_file_edit",
-      "passed": false,
-      "latency_ms": 2914,
-      "ttfb_ms": 0,
-      "score": 0,
-      "backend": "",
-      "detail": "",
-      "error": "{\"detail\":\"Unauthorized\"}"
-    },
-    {
-      "name": "coding_reasoning_effort",
-      "passed": false,
-      "latency_ms": 2025,
-      "ttfb_ms": 0,
-      "score": 0,
-      "backend": "",
-      "detail": "",
-      "error": "{\"detail\":\"Unauthorized\"}"
-    },
-    {
-      "name": "coding_streaming_tool_args",
-      "passed": false,
-      "latency_ms": 2502,
-      "ttfb_ms": 0,
-      "score": 0,
-      "backend": "",
-      "detail": "",
-      "error": "{\"detail\":\"Unauthorized\"}"
-    },
-    {
-      "name": "coding_tool_call_generation",
-      "passed": false,
-      "latency_ms": 2279,
-      "ttfb_ms": 0,
-      "score": 0,
-      "backend": "",
-      "detail": "",
-      "error": "{\"detail\":\"Unauthorized\"}"
-    },
-    {
-      "name": "coding_typescript_typefix",
-      "passed": false,
-      "latency_ms": 2091,
-      "ttfb_ms": 0,
-      "score": 0,
-      "backend": "",
-      "detail": "",
-      "error": "{\"detail\":\"Unauthorized\"}"
-    },
-    {
-      "name": "tool_calls",
-      "passed": false,
-      "latency_ms": 10356,
-      "ttfb_ms": 0,
-      "score": 0,
-      "backend": "",
-      "detail": "",
-      "error": "{\"detail\":\"Unauthorized\"}"
-    },
-    {
-      "name": "streaming",
-      "passed": false,
-      "latency_ms": 5024,
-      "ttfb_ms": 0,
-      "score": 0,
-      "backend": "",
-      "detail": "content_len=0 usage=False sse_errors=0",
-      "error": "content=False errors=0 stream_err=ConnectError: "
-    },
-    {
-      "name": "streaming_tools",
-      "passed": false,
-      "latency_ms": 5046,
-      "ttfb_ms": 0,
-      "score": 0,
-      "backend": "",
-      "detail": "tools=0 args_valid=True stream_error=ConnectError: ",
-      "error": "has_tool=False args_valid=True err=ConnectError: "
-    },
-    {
-      "name": "overflow_handling",
-      "passed": false,
-      "latency_ms": 5045,
-      "ttfb_ms": 0,
-      "score": 0,
-      "backend": "",
-      "detail": "",
+      "passed": true,
+      "latency_ms": 6148,
+      "ttfb_ms": 6148,
+      "score": 80,
+      "backend": "lima-1.3",
+      "detail": "notes=['missing pattern: cors|CORS|origin|middleware|header|Header']",
       "error": ""
     },
     {
-      "name": "affinity",
-      "passed": false,
-      "latency_ms": 0,
-      "ttfb_ms": 0,
+      "name": "coding_ide_code_explain",
+      "passed": true,
+      "latency_ms": 9696,
+      "ttfb_ms": 9696,
+      "score": 90,
+      "backend": "lima-1.3",
+      "detail": "notes=['too long: 1036 chars']",
+      "error": ""
+    },
+    {
+      "name": "coding_multi_file_edit",
+      "passed": true,
+      "latency_ms": 25065,
+      "ttfb_ms": 25065,
+      "score": 100,
+      "backend": "lima-1.3",
+      "detail": "clean",
+      "error": ""
+    },
+    {
+      "name": "coding_reasoning_effort",
+      "passed": true,
+      "latency_ms": 11558,
+      "ttfb_ms": 11558,
+      "score": 100,
+      "backend": "lima-1.3",
+      "detail": "clean",
+      "error": ""
+    },
+    {
+      "name": "coding_streaming_tool_args",
+      "passed": true,
+      "latency_ms": 5511,
+      "ttfb_ms": 5511,
+      "score": 100,
+      "backend": "lima-1.3",
+      "detail": "clean",
+      "error": ""
+    },
+    {
+      "name": "coding_tool_call_generation",
+      "passed": true,
+      "latency_ms": 5274,
+      "ttfb_ms": 5274,
+      "score": 80,
+      "backend": "lima-1.3",
+      "detail": "notes=['missing pattern: \"path\"']",
+      "error": ""
+    },
+    {
+      "name": "coding_typescript_typefix",
+      "passed": true,
+      "latency_ms": 4473,
+      "ttfb_ms": 4473,
+      "score": 100,
+      "backend": "lima-1.3",
+      "detail": "clean",
+      "error": ""
+    },
+    {
+      "name": "tool_calls",
+      "passed": true,
+      "latency_ms": 38098,
+      "ttfb_ms": 38098,
       "score": 0,
-      "backend": "",
-      "detail": "",
+      "backend": "lima",
+      "detail": "tools=1 correct_name=True",
+      "error": ""
+    },
+    {
+      "name": "streaming",
+      "passed": true,
+      "latency_ms": 10922,
+      "ttfb_ms": 2561,
+      "score": 0,
+      "backend": "lima-1.3",
+      "detail": "content_len=728 usage=False sse_errors=0",
+      "error": ""
+    },
+    {
+      "name": "streaming_tools",
+      "passed": true,
+      "latency_ms": 5962,
+      "ttfb_ms": 3089,
+      "score": 0,
+      "backend": "lima",
+      "detail": "tools=1 args_valid=True",
       "error": ""
     }
   ],
   "summary": {
-    "total": 13,
-    "passed": 1,
-    "failed": 12,
-    "avg_latency_ms": 3476,
-    "avg_ttfb_ms": 0,
-    "avg_coding_score": 0,
-    "all_passed": false
+    "total": 11,
+    "passed": 11,
+    "failed": 0,
+    "avg_latency_ms": 11290,
+    "avg_ttfb_ms": 11147,
+    "avg_coding_score": 92,
+    "all_passed": true
   }
 }

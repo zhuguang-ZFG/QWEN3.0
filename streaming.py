@@ -33,6 +33,7 @@ async def bridge_stream_async(
 ) -> AsyncIterator[str]:
     """Direct async streaming. No threads, no queues."""
     total_text = ""
+    received_finish = False
     stream = call_stream_async_fn(backend, messages, max_tokens, ide)
 
     try:
@@ -44,6 +45,17 @@ async def bridge_stream_async(
                 break
             except asyncio.TimeoutError:
                 break
+
+            # ── Protocol adapter: normalize finish_reason in SSE chunks ──
+            try:
+                from opencode_protocol_adapter import normalize_sse_line
+                chunk = normalize_sse_line(chunk)
+                # Track whether we received a finish_reason
+                if not received_finish and '"finish_reason"' in chunk:
+                    received_finish = True
+            except Exception:
+                pass
+
             total_text += chunk
             yield chunk
     except Exception as exc:
@@ -65,6 +77,17 @@ async def bridge_stream_async(
                     backend,
                     type(exc).__name__,
                 )
+
+    # ── Protocol adapter: graceful finish if stream was truncated ──
+    if total_text and not received_finish:
+        try:
+            from opencode_protocol_adapter import build_graceful_finish_chunk
+            graceful = build_graceful_finish_chunk(model=backend)
+            _log.info("stream truncated, injecting graceful finish for backend=%s", backend)
+            yield graceful
+            total_text += graceful
+        except Exception:
+            pass
 
     if not total_text:
         try:

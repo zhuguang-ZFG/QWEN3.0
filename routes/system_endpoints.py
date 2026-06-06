@@ -60,6 +60,13 @@ async def list_models(request: Request):
         {"id": _model_id, "object": "model", "created": _model_created, "owned_by": "donglicao"},
     ]
 
+    # ── Protocol adapter: add maxOutputTokens for OpenCode compatibility ──
+    try:
+        from opencode_protocol_adapter import build_model_output_limits
+        models = build_model_output_limits(models)
+    except Exception:
+        pass
+
     # OpenCode curated model list: return a focused subset of coding-capable models.
     # Default enabled for OpenCode clients; set LIMA_OPENCODE_MODEL_LIST=0 to disable.
     ua = request.headers.get("user-agent", "").lower()
