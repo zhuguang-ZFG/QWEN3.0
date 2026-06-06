@@ -9,6 +9,9 @@ from __future__ import annotations
 from typing import Any
 
 # ── Slice 1: classify / intent thin wrappers ────────────────────────────────
+from router_classifier import analyze
+from router_image import detect_image_intent
+from router_intent import detect_thinking_intent
 
 
 def router_status_payload() -> dict[str, Any]:

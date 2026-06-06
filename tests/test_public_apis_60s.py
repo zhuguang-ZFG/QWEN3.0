@@ -5,7 +5,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from channel_gateway.public_apis import fetch_hot_60s, fetch_news_60s
+from channel_gateway.public_apis_news import fetch_hot_60s, fetch_news_60s
 
 
 def test_fetch_hot_60s_normalizes_vvhan_shape(monkeypatch):

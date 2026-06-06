@@ -7,10 +7,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["LIMA_CHANNEL_ID_SALT"] = "test-salt-for-channel-tests"
 
 from channel_gateway.integrations import (
-    _voice_task_from_channel_task,
     build_chat_handler,
     build_code_handler,
     build_draw_handler,
+)
+from channel_gateway.owner_handlers import (
+    _voice_task_from_channel_task,
     build_owner_rejection_handler,
 )
 

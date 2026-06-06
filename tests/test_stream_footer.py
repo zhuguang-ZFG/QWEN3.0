@@ -2,21 +2,28 @@ import asyncio
 
 import routes.anthropic_stream as anthropic_stream
 import routes.anthropic_stream_branches as anthropic_stream_branches
-import server
+from chat_models import ChatRequest, Message
 
 
-def _chat_request(query: str) -> server.ChatRequest:
-    return server.ChatRequest(
+def _chat_request(query: str) -> ChatRequest:
+    return ChatRequest(
         model="test-model",
-        messages=[server.Message(role="user", content=query)],
+        messages=[Message(role="user", content=query)],
         stream=True,
         max_tokens=64,
     )
 
 
-async def _collect_anthropic_stream(req: server.ChatRequest) -> str:
+async def _collect_anthropic_stream(req: ChatRequest) -> str:
+    anthropic_stream.inject_deps(
+        last_resort_call=lambda *a, **kw: "",
+        thinking_route=lambda *a, **kw: None,
+        record_request=lambda *a, **kw: None,
+        extract_system_prompt=lambda msgs: "",
+        log_sys_prompt=lambda *a, **kw: None,
+    )
     chunks = []
-    async for chunk in server._anthropic_stream(req, "test-model"):
+    async for chunk in anthropic_stream.anthropic_stream(req, "test-model"):
         chunks.append(chunk)
     return "".join(chunks)
 

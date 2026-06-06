@@ -12,9 +12,7 @@ from channel_gateway.public_apis import (
     fetch_earthquake,
     fetch_exchange,
     fetch_holiday,
-    fetch_hot_60s,
     fetch_ip_info,
-    fetch_news_60s,
     fetch_stock,
     fetch_time,
     fetch_translate,
@@ -32,6 +30,7 @@ from channel_gateway.public_apis_lookup import (
     fetch_uuid,
     fetch_whois,
 )
+from channel_gateway.public_apis_news import fetch_hot_60s, fetch_news_60s
 from channel_gateway.store import ChannelStore
 from channel_gateway.tool_usage import (
     quota_exceeded_message,

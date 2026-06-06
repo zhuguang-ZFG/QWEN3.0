@@ -10,13 +10,13 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["LIMA_ADMIN_TOKEN"] = "test-admin-token"
 
 from routes.admin_api import (
-    _ADMIT_PATH,
-    _OVERLAY_PATH,
-)
-from routes.admin_api import (
     router as admin_api_router,
 )
 from routes.admin_auth import verify_admin, verify_csrf
+from routes.admin_config import (
+    _ADMIT_PATH,
+    _OVERLAY_PATH,
+)
 
 app = FastAPI()
 app.dependency_overrides[verify_admin] = lambda: None
