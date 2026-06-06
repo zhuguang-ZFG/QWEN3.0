@@ -369,12 +369,23 @@ def _load_backend_overlay() -> None:
     except (_json.JSONDecodeError, OSError):
         return
     for name, cfg in overlay.get("add", {}).items():
-        BACKENDS[name] = cfg
+        BACKENDS[name] = _normalize_overlay_backend(name, cfg)
     for name in overlay.get("delete", []):
         BACKENDS.pop(name, None)
     for name, cfg in overlay.get("update", {}).items():
         if name in BACKENDS:
-            BACKENDS[name].update(cfg)
+            BACKENDS[name].update(_normalize_overlay_backend(name, cfg))
+
+
+def _normalize_overlay_backend(name: str, cfg: dict) -> dict:
+    normalized = dict(cfg)
+    normalized.setdefault("fmt", "openai")
+    normalized.setdefault("key", "none")
+    normalized.setdefault("timeout", 30)
+    normalized.setdefault("caps", [])
+    if not normalized.get("model"):
+        normalized["model"] = name
+    return normalized
 
 
 _load_backend_overlay()

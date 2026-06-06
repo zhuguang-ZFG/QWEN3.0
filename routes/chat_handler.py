@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from chat_models import ChatRequest
 from http_errors import BackendError
 from opencode_error_adapter import build_overflow_response, extract_overflow_message
+from orchestrate import needs_orchestration
 from response_builder import extract_query
 from routes.chat_fallback import inject_deps as _inject_chat_fallback_deps
 from routes.chat_handler_dispatch import (
@@ -21,6 +22,8 @@ from routes.chat_handler_dispatch import (
     maybe_thinking_response,
     start_chat_run,
 )
+from routes.quality_gate import quality_check
+from routes.v3_adapters import v3_route
 
 _model_id = "lima-1.3"
 _record_request: Callable[..., None] = lambda *a, **kw: None

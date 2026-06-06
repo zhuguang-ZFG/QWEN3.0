@@ -1,9 +1,10 @@
 # LiMa — 运行状态
 
-> 2026-06-06 · VPS `47.112.162.80` · 分支 `codex/free-web-ai-probe`
+> 2026-06-07 · VPS `47.112.162.80` · 分支 `codex/free-web-ai-probe`
 > 权威架构见 `AGENTS.md`（全面重写版）+ `docs/REQUEST_PIPELINE_AUTHORITY.md`
 > 产品定义见 `docs/PRODUCT_DEFINITION.md`
 > M-OC0: LiMa CLI migrated to OpenCode MCP bridge. `lima-code` → `lima`. See `docs/opencode-integration.md`.
+> M-OC16: Backend-Aware Skill Reinjection + Routing Suite Stabilization Slice 2 完成 (196 routing tests 全通过).
 
 ## 全部里程碑
 
@@ -42,6 +43,7 @@
 | M-OC13 | P0-P2 安全加固（12 项）：API 文档禁用、systemctl 部署、rate limiter 防泄漏、134 处异常日志化 | 0 |
 | M-OC14 | 基础设施升级：sqlite_manager 统一连接、Sentry 增强、Redis 服务、pyproject.toml、ruff 19+ 规则 | 0 |
 | M-OC15 | 死代码清理：365 未使用 import 移除 + 3 F811 修复 + graceful shutdown | 0 |
+| M-OC16 | Backend-Aware Skill Reinjection + Routing Suite Stabilization Slice 2 (196 routing tests, 24 files, +195/-160) | 0 |
 
 ## 编码体验加厚（2026-06）
 

@@ -6,9 +6,7 @@ import health_tracker
 
 
 def setup_function():
-    health_tracker._health_map.clear()
-    health_tracker._cooldown_states.clear()
-    health_tracker._quality_states.clear()
+    health_tracker.reset_all_state()
     backend_reputation._scores.clear()
     backend_reputation._history.clear()
     backend_reputation._cooldowns.clear()

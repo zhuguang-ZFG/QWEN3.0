@@ -1,6 +1,7 @@
 import json
 
 import server
+from converters.anthropic_format import convert_response_openai_to_anthropic
 
 
 def _first_text(resp):
@@ -18,7 +19,7 @@ def _event_payload(chunk):
 
 
 def test_empty_openai_message_converts_to_valid_anthropic_text():
-    resp = server._convert_response_openai_to_anthropic(
+    resp = convert_response_openai_to_anthropic(
         {
             "choices": [{"message": {"role": "assistant", "content": ""}}],
             "usage": {"prompt_tokens": 5, "completion_tokens": 0},
@@ -32,7 +33,7 @@ def test_empty_openai_message_converts_to_valid_anthropic_text():
 
 
 def test_malformed_openai_response_converts_to_valid_anthropic_text():
-    resp = server._convert_response_openai_to_anthropic({}, "backend-model")
+    resp = convert_response_openai_to_anthropic({}, "backend-model")
 
     assert resp["type"] == "message"
     assert resp["model"] == "backend-model"
@@ -40,7 +41,7 @@ def test_malformed_openai_response_converts_to_valid_anthropic_text():
 
 
 def test_openai_text_list_content_is_normalized_to_string():
-    resp = server._convert_response_openai_to_anthropic(
+    resp = convert_response_openai_to_anthropic(
         {
             "choices": [
                 {

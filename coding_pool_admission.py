@@ -296,6 +296,8 @@ def filter_ide_coding_pool(
             if assigned_pool and assigned_pool != want and pool_tier in POOL_TO_TIER:
                 continue
         out.append(name)
+    if not out:
+        return [name for name in filtered if not private_code_blocked(name)]
     return out
 
 

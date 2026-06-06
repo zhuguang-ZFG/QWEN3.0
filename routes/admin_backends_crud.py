@@ -136,7 +136,7 @@ async def add_backend(body: dict):
     overlay.setdefault("add", {})[name] = {
         "url": body.get("url", ""),
         "key": body.get("key", "none"),
-        "model": body.get("model", ""),
+        "model": body.get("model") or name,
         "fmt": body.get("fmt", "openai"),
         "timeout": int(body.get("timeout", 30)),
         "caps": body.get("caps", []),

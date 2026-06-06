@@ -214,6 +214,7 @@ def check(response: str, query: str) -> dict:
                 break
 
     if syntax_errors:
+        d5_issues.append("python_syntax_error")
         d5_issues.append(f"python_syntax_error:{';'.join(syntax_errors[:2])}")
 
     # import 完整性：用了但没 import

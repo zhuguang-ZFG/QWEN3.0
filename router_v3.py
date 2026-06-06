@@ -74,11 +74,12 @@ POOLS = {
     },
     "code": {
         "strong": ["scnet_ds_flash", "scnet_qwen235b", "scnet_qwen30b",
-                   "scnet_ds_pro", "github_gpt4o", "github_gpt4o_mini",
+                   "scnet_ds_pro", "cf_qwen_coder", "cfai_qwen_coder",
+                   "github_gpt4o", "github_gpt4o_mini",
                    "ms_deepseek_v4_code", "ms_kimi_k25_code", "ms_glm5_code", "ms_qwen35_27b_code",  # ModelScope
                    "groq_gptoss", "groq_gptoss_20b", "groq_llama8b",
                    "cerebras_gptoss", "cerebras_llama8b", "cerebras_qwen235b",
-                   "cf_qwen_coder", "cfai_qwen_coder", "or_gptoss_120b",
+                   "or_gptoss_120b",
                    "cf_gptoss_120b", "cf_deepseek_r1", "cf_qwen3_30b",
                    "cfai_deepseek_r1", "github_codestral", "mistral_large",
                    "mistral_devstral", "mistral_pixtral", "cf_kimi_k26"],
@@ -109,6 +110,9 @@ DIRECT_BACKENDS = [
 
 _IDE_FINGERPRINTS = {
     "OpenCode": ["OpenCode", "opencode", "opencode-ai"],
+    "Claude Code": ["Claude Code", "claude-code"],
+    "Continue": ["Continue", "continue/"],
+    "Cursor": ["Cursor", "<user_query>"],
 }
 
 # Known IDE sources (both canonical and lowercased forms for flexible matching).
@@ -128,8 +132,8 @@ def classify_request(path: str, headers: dict, body: dict) -> dict:
     if path.startswith("/v1/messages"):
         req_type = "ide"
     else:
-        ua = headers.get("user-agent", "").lower()
-        if any(x in ua for x in ["opencode", "opencode-ai"]):
+        ua = headers.get("user-agent", "")
+        if detect_ide_from_user_agent(ua):
             req_type = "ide"
 
     if req_type != "ide":
@@ -220,6 +224,19 @@ def detect_ide_from_system_prompt(text: str) -> str:
     for ide, markers in _IDE_FINGERPRINTS.items():
         if any(m in text for m in markers):
             return ide
+    return ""
+
+
+def detect_ide_from_user_agent(text: str) -> str:
+    """Detect known IDE clients from request user-agent strings."""
+    if not text:
+        return ""
+    lowered = text.lower()
+    for ide, markers in _IDE_FINGERPRINTS.items():
+        for marker in markers:
+            marker_l = marker.lower()
+            if marker_l and marker_l in lowered:
+                return ide
     return ""
 
 

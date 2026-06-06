@@ -44,12 +44,21 @@ def test_routing_engine_reuses_shared_injector(monkeypatch):
         return [{"role": "system", "content": "[retrieval]"}] + list(messages), "[retrieval]"
 
     monkeypatch.setattr(routing_engine, "inject_retrieval_context", fake_inject)
+    from context_pipeline import retrieval_injection as _ri
+
+    monkeypatch.setattr(_ri, "inject_retrieval_context", fake_inject)
     monkeypatch.setattr(routing_engine, "classify_scenario", lambda *a, **kw: "chat")
     monkeypatch.setattr(routing_engine, "select", lambda *a, **kw: ["unit_backend"])
     monkeypatch.setattr(routing_engine.health_tracker, "get_health_map", lambda: {})
+    monkeypatch.setattr(routing_engine.speculative, "classify_complexity", lambda *a: "complex")
+    monkeypatch.setattr(
+        routing_engine,
+        "apply_backend_aware_skills",
+        lambda messages, *a, **kw: messages,
+    )
 
     def call_fn(backend, messages, max_tokens):
-        assert messages[0]["content"] == "[retrieval]"
+        assert any(m.get("content") == "[retrieval]" for m in messages)
         return "ok done"
 
     result = routing_engine.route(

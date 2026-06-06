@@ -22,9 +22,11 @@ def evidence_db(monkeypatch):
 
 def test_chat_golden_path_records_capability_evidence(evidence_db, monkeypatch):
     import routes.chat_handler as chat_handler
+    import routes.chat_non_stream as chat_non_stream
     import server
 
     monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
+    monkeypatch.setattr(chat_non_stream, "OPENCODE_DIRECT_STREAM", False)
     import routing_facade
 
     monkeypatch.setattr(routing_facade, "detect_image_intent", lambda query: (False, ""))

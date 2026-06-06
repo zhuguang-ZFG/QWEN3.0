@@ -93,7 +93,7 @@ def quality_check_typed(
     # Short response penalty — but only for genuinely complex queries.
     # Trivial queries (short prompts, simple requests) naturally produce
     # short responses; penalizing them causes false fallback cascades.
-    query_is_trivial = len(query) < 50 and not any(
+    query_is_trivial = bool(query) and len(query) < 50 and not any(
         kw in query.lower()
         for kw in ("explain", "write", "implement", "debug", "analyze", "compare", "difference", "how to", "what is")
     )

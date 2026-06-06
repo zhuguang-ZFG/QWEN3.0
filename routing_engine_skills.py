@@ -42,15 +42,30 @@ def apply_backend_aware_skills(
     if not backend:
         return messages
     try:
+        base_messages = _without_lima_skill_prompts(messages)
         return skills_mod.apply_skills(
             backend=backend,
-            messages=messages,
+            messages=base_messages,
             system_prompt=system_prompt,
             ide_source=ide_source,
         )
     except Exception as exc:
         _log.debug("backend_aware_skills injection failed: %s", exc)
         return messages
+
+
+def _without_lima_skill_prompts(messages: list[dict]) -> list[dict]:
+    """Remove prior LiMa skill prompts before backend-specific reinjection."""
+    return [msg for msg in messages if not _is_lima_skill_prompt(msg)]
+
+
+def _is_lima_skill_prompt(msg: dict) -> bool:
+    if msg.get("role") != "system":
+        return False
+    content = msg.get("content", "")
+    if not isinstance(content, str):
+        return False
+    return skills_mod.SKILL_PROMPT_MARKER in content
 
 
 def get_injected_ids(original: list[dict], modified: list[dict]) -> list[str]:

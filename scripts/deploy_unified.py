@@ -159,6 +159,24 @@ def restart_server() -> bool:
         ssh.close()
 
 
+def _stop_port_8080_cmd() -> str:
+    return (
+        'attempt=1; '
+        'while [ "$attempt" -le 10 ]; do '
+        'pid=$(lsof -ti:8080 2>/dev/null | head -n 1); '
+        '[ -z "$pid" ] && break; '
+        'kill "$pid" 2>/dev/null || true; '
+        'wait_attempt=1; '
+        'while [ "$wait_attempt" -le 15 ]; do '
+        'kill -0 "$pid" 2>/dev/null || break; '
+        'sleep 1; wait_attempt=$((wait_attempt + 1)); '
+        'done; '
+        'kill -0 "$pid" 2>/dev/null && kill -9 "$pid" 2>/dev/null || true; '
+        'attempt=$((attempt + 1)); '
+        'done'
+    )
+
+
 def _exec_checked(ssh: paramiko.SSHClient, command: str, timeout: int = 30) -> str:
     _stdin, stdout, stderr = ssh.exec_command(command, timeout=timeout)
     out = stdout.read().decode("utf-8", errors="replace")

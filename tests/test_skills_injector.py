@@ -11,7 +11,7 @@ import skills_injector as si
 
 # ── 测试用 Skills ─────────────────────────────────────────────────────────────
 
-SKILLS_DIR = os.path.join(os.path.dirname(__file__), "skills")
+SKILLS_DIR = os.path.join(os.path.dirname(__file__), "..", "skills")
 
 SAMPLE_SKILLS = [
     {
@@ -159,7 +159,7 @@ def test_inject_respects_max_skills():
 def test_apply_skills_directory_mode_strong_backend():
     """强模型 should get directory listing, not full injection"""
     result = si.apply_skills(
-        backend="longcat_chat",
+        backend="longcat",
         messages=[{"role": "user", "content": "help"}],
         system_prompt="",
         ide_source=""

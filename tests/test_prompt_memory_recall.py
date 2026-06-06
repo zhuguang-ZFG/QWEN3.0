@@ -73,6 +73,7 @@ def test_apply_prompt_memory_recall_injects_memory_and_trace():
 
 def test_handle_chat_applies_prompt_memory_before_routing(monkeypatch):
     import routes.chat_handler as chat_handler
+    import routes.chat_non_stream as chat_non_stream
     import server
     from chat_models import ChatRequest, Message
 
@@ -91,6 +92,7 @@ def test_handle_chat_applies_prompt_memory_before_routing(monkeypatch):
         return {"answer": "ok", "backend": "fake_backend", "total_ms": 1}
 
     monkeypatch.setenv("LIMA_SESSION_MEMORY", "1")
+    monkeypatch.setattr(chat_non_stream, "OPENCODE_DIRECT_STREAM", False)
     import routing_facade
 
     monkeypatch.setattr(routing_facade, "detect_image_intent", lambda query: (False, ""))
@@ -124,6 +126,7 @@ def test_handle_chat_applies_prompt_memory_before_routing(monkeypatch):
 
 def test_handle_chat_writes_and_recalls_same_header_session(monkeypatch):
     import routes.chat_handler as chat_handler
+    import routes.chat_non_stream as chat_non_stream
     import server
     from chat_models import ChatRequest, Message
 
@@ -143,6 +146,7 @@ def test_handle_chat_writes_and_recalls_same_header_session(monkeypatch):
         }
 
     monkeypatch.setenv("LIMA_SESSION_MEMORY", "1")
+    monkeypatch.setattr(chat_non_stream, "OPENCODE_DIRECT_STREAM", False)
     import routing_facade
 
     monkeypatch.setattr(routing_facade, "detect_image_intent", lambda query: (False, ""))

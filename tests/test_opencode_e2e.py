@@ -134,7 +134,7 @@ def test_opencode_backend_affinity():
     # Test that fast backends are in the set
     assert "groq_" in OPENCODE_FAST_BACKENDS
     assert "cerebras_" in OPENCODE_FAST_BACKENDS
-    assert "scnet_ds_flash" in OPENCODE_FAST_BACKENDS
+    assert "scnet_" in OPENCODE_FAST_BACKENDS
 
 
 # ─── Test 7: Usage metadata extraction pipeline ──────────────────────────────

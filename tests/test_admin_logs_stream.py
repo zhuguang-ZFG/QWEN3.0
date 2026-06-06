@@ -74,7 +74,7 @@ def test_publish_log_event_fans_out():
         assert event["query"] == "fan-out"
         _log_subscribers.clear()
 
-    asyncio.get_event_loop().run_until_complete(_test())
+    asyncio.run(_test())
 
 
 def test_publish_removes_full_queues():
@@ -88,4 +88,4 @@ def test_publish_removes_full_queues():
         assert q not in _log_subscribers
         _log_subscribers.clear()
 
-    asyncio.get_event_loop().run_until_complete(_test())
+    asyncio.run(_test())

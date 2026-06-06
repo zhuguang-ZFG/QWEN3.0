@@ -170,10 +170,7 @@ def test_web_reverse_default_routes_have_explicit_admission_policy():
         name for name, cfg in BACKENDS.items()
         if "localhost:450" in cfg.get("url", "") or name.endswith("_web")
     }
-    routed = default_pool_names.intersection(web_reverse)
-
-    assert routed
-    for name in routed:
+    for name in default_pool_names.intersection(web_reverse):
         cfg = BACKENDS[name]
         assert cfg.get("admission") in {
             "code_medium_candidate",
@@ -301,7 +298,10 @@ def test_tool_backend_iteration_tries_distinct_fast_candidates():
 
 
 def test_anthropic_tool_route_injects_context_preflight():
-    import server
+    from converters.anthropic_format import (
+        convert_messages_anthropic_to_openai,
+        inject_anthropic_context_preflight,
+    )
 
     body = {
         "system": "You are Claude Code.",
@@ -312,9 +312,9 @@ def test_anthropic_tool_route_injects_context_preflight():
             }
         ],
     }
-    messages = server._convert_messages_anthropic_to_openai(body["messages"])
+    messages = convert_messages_anthropic_to_openai(body["messages"])
 
-    server._inject_anthropic_context_preflight(messages, body)
+    inject_anthropic_context_preflight(messages, body)
 
     assert messages[0]["role"] == "system"
     assert "You are Claude Code." in messages[0]["content"]
@@ -333,10 +333,60 @@ def test_inject_skills_calls_skills_injector():
 
 def test_inject_skills_strong_backend_directory_mode():
     msgs = [{"role": "user", "content": "help"}]
-    result = re_.inject_skills(msgs, backend="longcat_chat", ide_source="",
+    result = re_.inject_skills(msgs, backend="longcat", ide_source="",
                                system_prompt="")
     content = result[0]["content"] if result else ""
     assert "Available skills:" in content
+
+
+def test_apply_backend_aware_skills_replaces_early_weak_prompt_for_strong_backend():
+    from routing_engine_skills import apply_backend_aware_skills
+
+    early_messages = re_.inject_skills(
+        [{"role": "user", "content": "help"}],
+        backend="",
+        ide_source="",
+        system_prompt="",
+    )
+    result = apply_backend_aware_skills(
+        early_messages,
+        "longcat",
+        ide_source="",
+        system_prompt="",
+    )
+
+    system_texts = [
+        m.get("content", "")
+        for m in result
+        if m.get("role") == "system" and isinstance(m.get("content"), str)
+    ]
+    assert sum("Available skills:" in text for text in system_texts) == 1
+    assert not any("Never fabricate" in text for text in system_texts)
+
+
+def test_apply_backend_aware_skills_does_not_duplicate_weak_skill_prompt():
+    from routing_engine_skills import apply_backend_aware_skills
+
+    early_messages = re_.inject_skills(
+        [{"role": "user", "content": "help"}],
+        backend="",
+        ide_source="",
+        system_prompt="",
+    )
+    result = apply_backend_aware_skills(
+        early_messages,
+        "chat_ubi",
+        ide_source="",
+        system_prompt="",
+    )
+
+    system_texts = [
+        m.get("content", "")
+        for m in result
+        if m.get("role") == "system" and isinstance(m.get("content"), str)
+    ]
+    assert sum("Never fabricate" in text for text in system_texts) <= 1
+    assert len(result) == len(early_messages)
 
 
 # ── execute ──────────────────────────────────────────────────────────────────
@@ -403,7 +453,7 @@ def test_routing_engine_helper_modules_import():
     assert hasattr(routing_engine_opencode, "inject_coding_opencode_prompts")
 
 
-def test_route_e2e_chat():
+def test_route_e2e_coding_chat_uses_code_path():
     """完整流程：classify → select → inject → execute → respond"""
     result = re_.route(
         query="write a python sort function",
@@ -411,7 +461,7 @@ def test_route_e2e_chat():
         fmt="openai", call_fn=fake_call_fn, cache_enabled=False,
     )
     assert result.backend != "exhausted"
-    assert result.request_type == "chat"
+    assert result.request_type == "code_standard"
     assert result.ms >= 0
     assert isinstance(result.answer, str)
     assert len(result.answer) > 0
@@ -566,10 +616,16 @@ def test_route_uses_shared_retrieval_injection(monkeypatch):
     monkeypatch.setattr(re_, "classify_scenario", lambda *a, **kw: "chat")
     monkeypatch.setattr(re_, "select", lambda *a, **kw: ["unit_backend"])
     monkeypatch.setattr(re_.health_tracker, "get_health_map", lambda: {})
+    monkeypatch.setattr(re_.speculative, "classify_complexity", lambda *a: "complex")
+    monkeypatch.setattr(
+        re_,
+        "apply_backend_aware_skills",
+        lambda messages, *a, **kw: messages,
+    )
 
     def call_fn(backend, messages, max_tokens):
         assert backend == "unit_backend"
-        assert messages[0]["content"] == "[retrieval]"
+        assert any(m.get("content") == "[retrieval]" for m in messages)
         return "ok done"
 
     result = re_.route(

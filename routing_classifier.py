@@ -17,8 +17,8 @@ def classify(query: str, messages: list[dict], *,
     if ide_source and ide_source in router_v3.IDE_SOURCES:
         return "ide"
 
-    ua = headers.get("user-agent", "").lower()
-    if any(x in ua for x in ["opencode", "opencode-ai"]):
+    ua = headers.get("user-agent", "")
+    if router_v3.detect_ide_from_user_agent(ua):
         return "ide"
 
     if system_prompt and router_v3.detect_ide_from_system_prompt(system_prompt):
@@ -35,9 +35,7 @@ def classify_scenario(query: str, messages: list[dict], *,
     """判断场景: coding / chat。决定走质量路径还是速度路径。"""
     if request_type == "ide":
         return "coding"
-    if ide_source and ide_source.lower() in (
-        "opencode", "opencode-ai",
-    ):
+    if ide_source and ide_source.lower() in router_v3.IDE_SOURCES:
         return "coding"
 
     last_content = ""

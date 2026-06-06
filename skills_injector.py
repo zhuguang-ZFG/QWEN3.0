@@ -23,6 +23,7 @@ _log = logging.getLogger(__name__)
 MAX_SKILLS = 5
 TOKEN_BUDGET = 200
 CHARS_PER_TOKEN = 4
+SKILL_PROMPT_MARKER = "## LiMa Skills"
 
 IDE_COVERAGE = {
     # IDE → set of categories already well-covered by built-in system prompt
@@ -121,7 +122,7 @@ def inject_skills(messages: list[dict], missing_skills: list[dict]) -> list[dict
     skills_text = "\n".join(s["content"] for s in limited)
     skills_text = _trim_to_budget(skills_text, TOKEN_BUDGET)
 
-    skills_msg = {"role": "system", "content": skills_text}
+    skills_msg = {"role": "system", "content": f"{SKILL_PROMPT_MARKER}\n{skills_text}"}
 
     if not messages:
         return [skills_msg]
@@ -202,7 +203,7 @@ def _directory_mode(messages: list[dict], all_skills: list[dict]) -> list[dict]:
     """强模型: 只列目录，让模型自己决定需要什么"""
     names = ", ".join(s["id"] for s in all_skills)
     dir_msg = {"role": "system",
-               "content": f"Available skills: {names}"}
+               "content": f"{SKILL_PROMPT_MARKER}\nAvailable skills: {names}"}
     result = list(messages)
     if result and result[0].get("role") == "system":
         result.insert(1, dir_msg)

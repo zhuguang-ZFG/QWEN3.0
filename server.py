@@ -8,6 +8,7 @@ import logging
 _log = logging.getLogger(__name__)
 import os
 import sys
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -19,7 +20,7 @@ except ImportError:
 import uvicorn
 from fastapi import FastAPI
 
-from chat_models import extract_system_prompt
+from chat_models import ChatRequest, Message, extract_system_prompt
 from http_body_limit import BodySizeLimitMiddleware
 from local_router import warmup_router_model
 from server_bootstrap import (
@@ -96,7 +97,9 @@ _record_request = _rt_mod.record_request
 _get_ip_location = _rt_mod.get_ip_location
 _client_ip = _rt_mod.client_ip
 _detect_ide = _rt_mod.detect_ide
-_elapsed_ms = _rt_mod.elapsed_ms
+def _elapsed_ms(started_at: float) -> int:
+    return max(0, int((time.time() - started_at) * 1000))
+
 FALLBACK_LOG = _rt_mod.FALLBACK_LOG
 
 import routes.tool_forward as _tool_fwd
