@@ -1,6 +1,5 @@
 """Tests for opencode_tool_routing.py — tool routing + Copilot _noop."""
 
-import pytest
 
 from opencode_tool_routing import (
     _has_tool_calls_in_history,

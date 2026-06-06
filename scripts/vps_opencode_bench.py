@@ -98,7 +98,7 @@ def _headers(affinity: str = "") -> dict:
 
 async def bench_coding(base: str, rounds: int) -> BenchMetrics:
     """Benchmark coding response quality and latency."""
-    from coding_eval import CodingCase, grade_response, load_cases
+    from coding_eval import grade_response, load_cases
 
     cases = load_cases(CASES_DIR)
     oc_cases = [c for c in cases if "opencode" in c.tags][:3]  # top 3 for speed

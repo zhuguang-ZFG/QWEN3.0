@@ -21,8 +21,6 @@ def test_session_memory_store_facade():
     from session_memory.store import (
         MEMORY_TYPES,
         MemoryEntry,
-        save_memory,
-        save_typed_memory,
     )
 
     assert "exchange" in MEMORY_TYPES

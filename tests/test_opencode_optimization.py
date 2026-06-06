@@ -4,8 +4,7 @@ Validates all seven optimization dimensions from the OpenCode-Deep-Optimization 
 """
 
 import os
-import sys
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 

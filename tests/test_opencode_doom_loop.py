@@ -1,8 +1,6 @@
 """Tests for opencode_doom_loop.py — doom loop detection and break."""
 
-import json
 
-import pytest
 
 from opencode_doom_loop import (
     DOOM_LOOP_THRESHOLD,

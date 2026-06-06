@@ -8,7 +8,6 @@ LiMa Capability Matrix — 后端能力矩阵 + 精细路由
 import json
 import logging
 import os
-from typing import Optional
 
 logger = logging.getLogger("capability_matrix")
 

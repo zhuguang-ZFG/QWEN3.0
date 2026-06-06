@@ -24,7 +24,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from coding_eval import CodingCase, grade_response, load_cases
+from coding_eval import grade_response, load_cases
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CASES_DIR = PROJECT_ROOT / "evals" / "coding_cases"

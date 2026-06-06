@@ -4,12 +4,7 @@ from __future__ import annotations
 
 import os
 import subprocess
-import tempfile
-from pathlib import Path
 
-import pytest
-
-from developer_skills import SkillResult
 from developer_skills.investigate import investigate
 from developer_skills.learn import learn
 from developer_skills.review import review

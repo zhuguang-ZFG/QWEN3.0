@@ -1,7 +1,6 @@
-from context_pipeline.response_pipeline import ResponseContext, ResponsePipeline
+from context_pipeline.response_pipeline import ResponseContext
 from context_pipeline.response_processors import (
     build_default_response_pipeline,
-    event_recording_processor,
     lesson_extraction_processor,
     memory_capture_processor,
     quality_check_processor,

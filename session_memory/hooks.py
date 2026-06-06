@@ -9,7 +9,6 @@ Based on claude-mem lifecycle hook pattern:
 
 import os
 
-from session_memory.compactor import compact_session, needs_compaction
 from session_memory.processor import _session_id_from_headers, save_request_memory
 
 

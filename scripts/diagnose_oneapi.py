@@ -4,7 +4,6 @@ import os
 """Diagnose each one-api channel individually"""
 import http.cookiejar
 import json
-import os
 import sys
 import time
 import urllib.request

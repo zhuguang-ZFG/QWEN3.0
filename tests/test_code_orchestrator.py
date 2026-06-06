@@ -1,7 +1,6 @@
 """test_code_orchestrator.py — 编程模型塔测试"""
-import pytest
 
-from code_orchestrator import POOLS, classify_code_tier, handle
+from code_orchestrator import classify_code_tier
 from intent_templates import amplify_intent, match_template
 from quality_gate import check
 

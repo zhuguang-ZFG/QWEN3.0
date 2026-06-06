@@ -37,7 +37,6 @@ async def test_fetch_url_returns_error_on_bad_url():
 @pytest.mark.asyncio
 async def test_browse_webpage_parses_html():
     """Test HTML parsing with inline mock HTML via monkeypatch."""
-    import httpx
 
     class FakeResponse:
         status_code = 200

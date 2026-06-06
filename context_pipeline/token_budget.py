@@ -7,8 +7,7 @@ Tracks and controls token consumption per request:
 - Cumulative tracking for cost optimization
 """
 
-import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass

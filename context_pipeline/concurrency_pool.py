@@ -9,7 +9,7 @@ Upgrades basic SWRR key rotation with:
 
 import threading
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass

@@ -1,11 +1,9 @@
 """Session memory schema and SQLite connection."""
 from __future__ import annotations
 
-import json
 import logging
 import os
 import sqlite3
-import time
 from dataclasses import dataclass
 
 _log = logging.getLogger(__name__)

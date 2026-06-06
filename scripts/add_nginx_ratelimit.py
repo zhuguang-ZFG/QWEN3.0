@@ -1,5 +1,4 @@
 """Add nginx rate limiting to LiMa server."""
-import re
 
 NGINX_CONF = "/etc/nginx/nginx.conf"
 SITE_CONF = "/etc/nginx/conf.d/chat.donglicao.com.conf"

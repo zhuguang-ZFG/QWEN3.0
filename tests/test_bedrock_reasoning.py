@@ -1,6 +1,5 @@
 """Tests for Bedrock reasoningConfig in reasoning_variants.py (Round 4)."""
 
-import pytest
 
 from reasoning_variants import apply_variant, compute_variants, list_efforts
 

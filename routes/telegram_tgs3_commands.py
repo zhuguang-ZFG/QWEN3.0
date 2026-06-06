@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import telegram_bot
-from routes.telegram_tgs3 import tg_s3_list, tg_s3_put, tg_s3_stats
+from routes.telegram_tgs3 import tg_s3_list, tg_s3_stats
 
 
 async def cmd_s3_put(chat_id: str, args: str) -> None:

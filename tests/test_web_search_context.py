@@ -1,6 +1,5 @@
 """Test web search context injection."""
 
-import pytest
 
 from context_pipeline.web_search_context import (
     _detect_search_intent,

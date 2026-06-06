@@ -16,10 +16,8 @@ All text is Chinese-localized with monospace data fields.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
-from collections.abc import Callable
 from dataclasses import dataclass, field
 
 import telegram_bot

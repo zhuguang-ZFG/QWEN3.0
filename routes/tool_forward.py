@@ -334,9 +334,6 @@ from text_tool_extractor import (
     TEXT_TOOL_BACKENDS as _TEXT_TOOL_BACKENDS,
 )
 from text_tool_extractor import (
-    TEXT_TOOL_SYSTEM_PROMPT as _TEXT_TOOL_SYSTEM_PROMPT,
-)
-from text_tool_extractor import (
     build_tool_system_prompt as _build_tool_system_prompt,
 )
 from text_tool_extractor import (

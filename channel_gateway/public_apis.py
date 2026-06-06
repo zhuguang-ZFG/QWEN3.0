@@ -309,10 +309,3 @@ _HOT_PLATFORM_MAP = {
 
 
 # ── Re-exports from public_apis_news (backwards compatibility) ──
-from channel_gateway.public_apis_news import (
-    _extract_60s_news,
-    _news_60s_urls,
-    _normalize_hot_items,
-    fetch_hot_60s,
-    fetch_news_60s,
-)

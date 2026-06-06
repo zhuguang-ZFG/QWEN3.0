@@ -3,20 +3,14 @@
 from __future__ import annotations
 
 import os
-import tempfile
-from pathlib import Path
-
-import pytest
 
 from code_context.ast_adapter import (
     FileAst,
     StdlibAstExtractor,
     get_extractor,
 )
-from code_context.file_watcher import FileChange, FileWatcher
+from code_context.file_watcher import FileWatcher
 from code_context.graph_index import (
-    GraphIndex,
-    GraphSearchResult,
     InMemoryGraphIndex,
     build_graph_index,
 )
@@ -312,7 +306,6 @@ class TestFactories:
         assert isinstance(g, InMemoryGraphIndex)
 
     def test_build_graph_index_persistent(self, tmp_path):
-        import shutil
         fresh = tmp_path / "fresh_graph"
         fresh.mkdir()
         os.environ["LIMA_DATA_DIR"] = str(fresh)

@@ -6,7 +6,6 @@ _log = logging.getLogger(__name__)
 """Point zhipu channel to echo server, send request, read echo log"""
 import http.cookiejar
 import json
-import os
 import sys
 import time
 import urllib.request

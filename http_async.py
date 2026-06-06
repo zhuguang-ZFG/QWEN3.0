@@ -4,16 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import sys
 import time
-
-import httpx
 
 from backends import BACKENDS
 from backends_constants import KEY_POOL_PREFIXES
-from http_errors import BackendError, _extract_code, _extract_retry_after
+from http_errors import BackendError
 from http_response import _extract_answer, _extract_usage
-from http_sync import _apply_artifact_handles, _handle_call_error
+from http_sync import _handle_call_error
 from response_cleaner import _is_backend_error, clean_response
 
 _log = logging.getLogger(__name__)

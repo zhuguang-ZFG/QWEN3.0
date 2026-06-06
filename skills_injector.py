@@ -12,8 +12,6 @@ LiMa Skills Injector — 智能补缺注入
 import glob as glob_mod
 import logging
 import os
-import re
-from typing import Optional
 
 from backends import STRONG_MODELS
 from opencode_config import OPENCODE_SKIPPED_SKILL_CATEGORIES

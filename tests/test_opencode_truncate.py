@@ -1,10 +1,8 @@
 """Tests for opencode_truncate.py — tool output truncation."""
 
-import pytest
 
 from opencode_truncate import (
     MAX_BYTES,
-    MAX_LINES,
     truncate_output,
     truncate_tool_results_in_messages,
 )

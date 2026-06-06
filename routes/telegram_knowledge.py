@@ -13,14 +13,8 @@ import telegram_bot
 # Re-export stats/dashboard commands for backward compatibility
 from routes.telegram_kb_stats import (
     _type_emoji,
-    cmd_contracts,
-    cmd_dashboard,
-    cmd_digest,
-    cmd_memstats,
-    cmd_outcome,
 )
 from session_memory.store import search_memories_keyword
-from session_memory.store_db import memory_stats
 from session_memory.store_promote import save_typed_memory
 
 _log = logging.getLogger(__name__)
@@ -40,7 +34,6 @@ async def cmd_kb(chat_id: str, args: str) -> None:
     if not results:
         results = search_memories_keyword("_global", query[:80], limit=8)
     # Also search per-session
-    from session_memory.store import get_recent_memories
     if not results:
         # Try broader search with fewer chars
         results = search_memories_keyword("_global", query.split()[0][:30], limit=5)

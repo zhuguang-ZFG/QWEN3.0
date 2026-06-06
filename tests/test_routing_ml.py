@@ -7,13 +7,10 @@ import os
 import sys
 import tempfile
 
-import pytest
-
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from routing_ml.feature_extractor import (
     N_FEATURES,
-    FeatureVector,
     extract_features,
 )
 from routing_ml.routing_model import (

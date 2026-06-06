@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import Any
 
 from eval_pool_gate import (
-    average_scores_from_path,
     demoted_backends,
     filter_coding_pool,
     latest_scores_path,

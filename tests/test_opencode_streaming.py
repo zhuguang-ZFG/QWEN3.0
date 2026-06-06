@@ -7,8 +7,6 @@ extraction, and OpenAI-compatible usage chunk generation.
 import json
 import time
 
-import pytest
-
 # ─── Test 1: extract_sse_usage extracts usage from OpenAI SSE chunk ──────────
 
 def test_extract_sse_usage_valid():
@@ -234,7 +232,6 @@ def test_usage_pipeline_end_to_end():
 def test_meta_protocol_flow():
     """Simulate __LIMA_META__ protocol flow."""
     from routes.chat_stream import _extract_meta
-    from streaming_events import build_usage_chunk
     
     # Simulate stream with meta and content chunks
     stream = [

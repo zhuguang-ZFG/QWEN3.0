@@ -1,6 +1,5 @@
 """Tests for telegram_bot, telegram_notify, and routes/telegram."""
 
-import asyncio
 import os
 import time
 from unittest.mock import AsyncMock, MagicMock, patch

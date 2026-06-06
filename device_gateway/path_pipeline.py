@@ -15,7 +15,6 @@ are enforced at the pipeline boundary.
 """
 from __future__ import annotations
 
-import math
 from typing import Any
 
 # ── Stroke font: 5x9 monospace glyphs for ASCII 0x20–0x7E ──────────────────

@@ -13,7 +13,6 @@ from data_workbench.manifest import (
 )
 from data_workbench.policy import (
     ACCEPTED_EXTENSIONS,
-    DEFAULT_RETENTION_DAYS,
     MAX_DATASET_BYTES,
     ArtifactKind,
     PrivacyClass,

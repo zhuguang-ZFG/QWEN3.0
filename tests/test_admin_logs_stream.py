@@ -4,7 +4,6 @@ import asyncio
 import os
 import sys
 
-import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -12,7 +11,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["LIMA_ADMIN_TOKEN"] = "test-admin-token"
 
 from routes.admin_api import (
-    _log_sse_generator,
     _log_subscribers,
     publish_log_event,
 )

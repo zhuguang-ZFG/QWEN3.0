@@ -1,6 +1,5 @@
 """Tests for alert rules CRUD endpoints (Phase 3.2)."""
 
-import json
 import os
 import sys
 

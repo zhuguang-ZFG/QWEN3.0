@@ -7,9 +7,8 @@ from context_pipeline.evolution import (
 from context_pipeline.hierarchical_memory import (
     HierarchicalMemory,
     MemoryLayer,
-    get_hierarchical_memory,
 )
-from context_pipeline.skill_store import RoutingSkill, SkillStore, get_skill_store
+from context_pipeline.skill_store import SkillStore
 
 # === Phase 16: Hierarchical Memory ===
 

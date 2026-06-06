@@ -16,7 +16,6 @@ from channel_gateway.models import (
     ChannelBinding,
     ChannelBindingCode,
     ChannelMessage,
-    CommandResult,
     InboundMessage,
     OutboundReply,
 )

@@ -2,8 +2,6 @@
 
 import json
 
-import pytest
-
 from opencode_tool_repair import (
     INVALID_TOOL_NAME,
     build_invalid_tool_input_json,

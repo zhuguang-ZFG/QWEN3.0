@@ -1,10 +1,8 @@
 """Tests for opencode_compaction_signal.py — compaction trigger logic."""
 
-import pytest
 
 from opencode_compaction_signal import (
     COMPACTION_BUFFER,
-    PRUNE_MINIMUM,
     PRUNE_PROTECT,
     SIGNAL_COMPACT,
     SIGNAL_CRITICAL,

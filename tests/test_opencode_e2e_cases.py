@@ -11,8 +11,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 from coding_eval import CodingCase, EvalResult, grade_response, load_cases
 
 CASES_DIR = Path(__file__).resolve().parent.parent / "evals" / "coding_cases"

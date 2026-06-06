@@ -29,7 +29,6 @@ from scripts.deploy_common import (
     SERVER,
     configure_ssh_host_keys,
     format_deploy_ok,
-    notify_telegram_vps,
 )
 
 CORE_FILES = [

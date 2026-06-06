@@ -2,8 +2,6 @@
 
 import os
 
-import pytest
-
 # Ensure feature gate is ON for tests (default behavior)
 os.environ.setdefault("LIMA_ALLOW_MODEL_OVERRIDE", "true")
 

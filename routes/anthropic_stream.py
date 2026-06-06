@@ -10,7 +10,6 @@ from dataclasses import dataclass
 from typing import Any
 
 import routing_facade
-from orchestrate import needs_orchestration, orchestrate
 from response_builder import extract_query, messages_to_dicts
 from routes.anthropic_stream_branches import (
     StreamContext,
@@ -21,8 +20,6 @@ from routes.anthropic_stream_branches import (
     stream_speculative_path,
 )
 from routes.anthropic_stream_sse import stream_text_as_sse
-from routes.quality_gate import quality_check
-from routes.stream_handlers import speculative_stream_chunks
 
 _log = logging.getLogger(__name__)
 

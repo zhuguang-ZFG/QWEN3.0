@@ -266,10 +266,5 @@ def recent_evidence(*, limit: int = 20) -> list[dict[str, Any]]:
 # ── Query/Mark functions — delegated to outcome_queries.py ──
 
 from session_memory.outcome_queries import (
-    mark_applied,
-    mark_learned,
-    mark_rejected,
-    query,
     query_events,
-    stats,
 )

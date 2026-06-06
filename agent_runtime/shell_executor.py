@@ -12,7 +12,6 @@ import shutil
 import signal
 import subprocess
 import time
-from pathlib import Path
 
 from agent_runtime.contract import redact
 from agent_runtime.feature_flags import ExecutionFeatureFlags, is_shell_allowed

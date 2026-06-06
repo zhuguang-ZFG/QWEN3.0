@@ -3,7 +3,6 @@
 import http.cookiejar
 import json
 import os
-import sys
 import urllib.request
 
 BASE = "http://localhost:3001"

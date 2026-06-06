@@ -6,7 +6,6 @@ import pytest
 from sandbox.provider import (
     FakeSandboxProvider,
     SandboxConfig,
-    SandboxCreateResult,
     SandboxFile,
     SandboxProvider,
     SandboxResult,

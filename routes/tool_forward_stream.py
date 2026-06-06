@@ -14,7 +14,6 @@ from collections.abc import AsyncIterator
 
 from converters.anthropic_format import (
     convert_messages_anthropic_to_openai,
-    convert_response_openai_to_anthropic,
     convert_tool_choice_anthropic_to_openai,
     convert_tools_anthropic_to_openai,
     inject_anthropic_body_preflight,
@@ -194,7 +193,6 @@ async def _stream_openai_sse_to_anthropic(
 
 async def stream_tier1_openai(body: dict, openai_tools: list, openai_msgs: list, deps: dict, client_tool_choice="auto"):
     """Real streaming: OpenAI SSE → Anthropic SSE conversion on-the-fly."""
-    import asyncio
 
     backends = deps["iter_tool_backends"](deps["TOOL_TIER1_BACKENDS"])
     BACKENDS = deps["BACKENDS"]

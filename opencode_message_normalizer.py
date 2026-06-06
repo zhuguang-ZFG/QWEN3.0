@@ -10,7 +10,6 @@
 from __future__ import annotations
 
 import re
-from typing import Any
 
 # Surrogate 字符清理正则 — 移植自 transform.ts L25-27
 _SURROGATE_RE = re.compile(

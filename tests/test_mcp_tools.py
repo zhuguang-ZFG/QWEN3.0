@@ -50,7 +50,6 @@ def test_mcp_verify_rejects_when_no_token_configured(monkeypatch):
     monkeypatch.setenv("LIMA_API_KEY", "")
     monkeypatch.setenv("LIMA_MCP_TOKEN", "")
     # Re-import to pick up patched env
-    import importlib
 
     import lima_mcp.server as mcp_srv
     monkeypatch.setattr(mcp_srv, "_MCP_TOKEN", "")

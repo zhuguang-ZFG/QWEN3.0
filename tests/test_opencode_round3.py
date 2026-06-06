@@ -7,8 +7,6 @@ Covers reasoning_variants, session_options, error adapter
 
 import json
 
-import pytest
-
 # ── reasoning_variants ────────────────────────────────────────────────────
 from reasoning_variants import (
     apply_variant,

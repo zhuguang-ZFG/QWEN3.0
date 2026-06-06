@@ -28,7 +28,7 @@ from routes.agent_task_service import (
     task_counts,
     task_envelope,
 )
-from routes.agent_task_store import _DB_PATH, TaskStore, get_task_store, reset_task_store_for_tests
+from routes.agent_task_store import TaskStore, get_task_store, reset_task_store_for_tests
 
 _log = logging.getLogger(__name__)
 router = APIRouter(prefix="/agent")

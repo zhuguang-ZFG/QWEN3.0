@@ -1,4 +1,3 @@
-import json
 import shlex
 import subprocess
 from collections.abc import Callable

@@ -1,11 +1,11 @@
 """Telegram chat identity intercept tests."""
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 
 import identity_guard
-from routes.telegram_chat_identity import maybe_identity_answer, sanitize_chat_answer
+from routes.telegram_chat_identity import sanitize_chat_answer
 
 
 def test_ni_shi_shen_me_matches_identity_guard():

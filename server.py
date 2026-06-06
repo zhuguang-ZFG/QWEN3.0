@@ -8,7 +8,6 @@ import logging
 _log = logging.getLogger(__name__)
 import os
 import sys
-import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -20,10 +19,7 @@ except ImportError:
 import uvicorn
 from fastapi import FastAPI
 
-from chat_models import ChatRequest, Message, extract_system_prompt
-from converters.anthropic_format import (
-    convert_response_openai_to_anthropic as _convert_response_openai_to_anthropic,
-)
+from chat_models import extract_system_prompt
 from http_body_limit import BodySizeLimitMiddleware
 from local_router import warmup_router_model
 from server_bootstrap import (

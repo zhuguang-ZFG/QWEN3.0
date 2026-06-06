@@ -10,7 +10,6 @@ from __future__ import annotations
 import logging
 import time
 
-from agent_runtime.contract import redact
 from agent_runtime.feature_flags import ExecutionFeatureFlags
 from agent_runtime.shell_executor import shell_execute
 from agent_runtime.tool_exec import ToolResult

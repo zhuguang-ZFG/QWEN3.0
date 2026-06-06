@@ -14,7 +14,6 @@ def evidence_db(monkeypatch):
         db = Path(tmp) / "test_outcome.db"
         monkeypatch.setenv("LIMA_OUTCOME_DB", str(db))
         # Clear any module-level cached connections
-        import session_memory.outcome_ledger as mod
         # Force fresh connection by re-importing key functions
         yield db
 

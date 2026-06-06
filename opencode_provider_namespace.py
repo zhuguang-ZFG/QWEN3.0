@@ -18,7 +18,6 @@ AI SDK 按命名空间键读取 providerOptions。如果键名错误，
 from __future__ import annotations
 
 import logging
-import re
 from typing import Any
 
 _log = logging.getLogger(__name__)

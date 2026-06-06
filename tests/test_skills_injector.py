@@ -5,8 +5,6 @@ test_skills_injector.py — 测试 Skills 智能补缺模块
 import os
 import sys
 
-import pytest
-
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import skills_injector as si

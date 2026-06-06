@@ -1,7 +1,6 @@
 """Prompt-time Session Memory recall integration."""
 
 import logging
-import time
 from dataclasses import dataclass, field
 
 from context_pipeline import RequestContext

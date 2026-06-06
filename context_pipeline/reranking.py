@@ -7,7 +7,6 @@ After dual-layer retrieval returns candidates, rerank for precision:
 - Return top-K for context injection
 """
 
-from dataclasses import dataclass
 
 from context_pipeline.graph_retrieval import RetrievalResult
 

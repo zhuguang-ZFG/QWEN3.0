@@ -9,7 +9,6 @@ V1: All handlers produce public/demo content only.
 Owner-only handlers are in owner_handlers.py (re-exported below).
 """
 
-import os
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Optional
 
@@ -17,18 +16,6 @@ if TYPE_CHECKING:
     from channel_gateway.chat_session import ChannelChatSession
 
 # Re-export owner handlers for backward compatibility
-from channel_gateway.owner_handlers import (
-    _queue_device_task_http,
-    _voice_task_from_channel_task,
-    build_owner_artifact_handler,
-    build_owner_code_task_handler,
-    build_owner_device_handler,
-    build_owner_digest_handler,
-    build_owner_github_handler,
-    build_owner_memory_handler,
-    build_owner_rejection_handler,
-    build_owner_status_handler,
-)
 
 
 def _friendly_guest_error(exc: BaseException) -> str:

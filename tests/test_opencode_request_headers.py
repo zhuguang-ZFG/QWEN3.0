@@ -1,6 +1,5 @@
 """Tests for opencode_request_headers.py — request header parsing."""
 
-import pytest
 
 from opencode_request_headers import (
     OpenCodeRequestContext,

@@ -49,6 +49,8 @@ select = [
 "http_caller.py" = ["F401"]
 "smart_router.py" = ["F401"]
 "backends.py" = ["F401"]
+"backends_constants.py" = ["F401"]
+"routes/admin_state.py" = ["F401"]
 "routing_engine.py" = ["F401"]
 "tests/**/*.py" = ["S110", "E722"]
 # Style rules with many existing violations — fix incrementally

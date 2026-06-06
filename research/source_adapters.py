@@ -7,7 +7,7 @@ into a common SearchHit format.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 _log = logging.getLogger(__name__)
 

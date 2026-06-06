@@ -1,5 +1,5 @@
 """Shared chat request models for LiMa-compatible APIs."""
-from typing import Optional, Union
+from typing import Optional
 
 from pydantic import BaseModel, Field
 

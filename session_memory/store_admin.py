@@ -3,11 +3,10 @@ from __future__ import annotations
 
 import json
 import os
-import sqlite3
 import time
 
 from session_memory.store_crud import count_memories
-from session_memory.store_db import _DB_PATH, MemoryEntry, _get_conn
+from session_memory.store_db import _get_conn
 
 # Deletion
 

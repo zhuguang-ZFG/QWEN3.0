@@ -5,10 +5,7 @@ import json
 import threading
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 import http_caller
-import key_pool
 
 
 class _CountingAsyncClient:

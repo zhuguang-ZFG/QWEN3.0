@@ -1,10 +1,8 @@
 """Tests for CF-G-0 provider inventory."""
 
-import json
 from unittest.mock import MagicMock
 
 import httpx
-import pytest
 
 from provider_inventory.cloudflare import (
     fetch_cloudflare_models,
@@ -14,13 +12,11 @@ from provider_inventory.cloudflare import (
 from provider_inventory.compare import compare_inventory, format_inventory_report
 from provider_inventory.google import (
     fetch_google_models,
-    normalize_google_item,
     parse_google_response,
 )
 from provider_inventory.weekly_diff import (
     compute_weekly_diff,
     diff_inventories,
-    extract_model_ids,
     format_weekly_diff_digest,
     save_daily_snapshot,
 )

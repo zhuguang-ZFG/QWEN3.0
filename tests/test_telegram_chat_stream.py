@@ -1,6 +1,5 @@
 """Tests for Telegram chat stream fallback."""
 
-from unittest.mock import AsyncMock, patch
 
 import pytest
 

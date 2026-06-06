@@ -1,6 +1,5 @@
 """Tests for opencode_system_prompt.py — model family prompt routing."""
 
-import pytest
 
 from opencode_system_prompt import (
     enhance_system_prompt,

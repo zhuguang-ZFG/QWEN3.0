@@ -7,14 +7,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["LIMA_CHANNEL_ID_SALT"] = "test-salt-for-channel-tests"
 
 from channel_gateway.models import (
-    BindingRole,
     BindingStatus,
     InboundMessage,
-    OutboundReply,
 )
 from channel_gateway.service import (
-    _ABOUT_TEXT,
-    _HELP_TEXT,
     _TIP_FOOTER,
     ChannelService,
 )

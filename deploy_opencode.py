@@ -2,7 +2,6 @@
 """Deploy OpenCode optimization files to VPS."""
 
 import os
-import time
 
 import paramiko
 

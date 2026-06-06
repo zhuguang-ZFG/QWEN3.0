@@ -3,7 +3,7 @@ import tempfile
 
 os.environ["LIMA_WEIGHTS_PATH"] = tempfile.mktemp(suffix=".json")
 
-from context_pipeline.routing_weights import RoutingWeights, get_routing_weights
+from context_pipeline.routing_weights import RoutingWeights
 
 
 def test_initial_weight_is_one():

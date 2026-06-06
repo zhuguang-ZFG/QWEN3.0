@@ -1,11 +1,8 @@
 """Tests for config import/export endpoints (Phase 1.3)."""
 
-import json
 import os
 import sys
-import tempfile
 
-import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -14,7 +11,6 @@ os.environ["LIMA_ADMIN_TOKEN"] = "test-admin-token"
 
 from routes.admin_api import (
     _ADMIT_PATH,
-    _DATA_DIR,
     _OVERLAY_PATH,
 )
 from routes.admin_api import (

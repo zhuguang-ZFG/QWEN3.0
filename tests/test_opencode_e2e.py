@@ -10,9 +10,7 @@ Validates the complete OpenCode request pipeline including:
 
 import json
 import os
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 # ─── Test 1: OpenCode IDE detection and routing ──────────────────────────────
 
@@ -80,7 +78,7 @@ def test_model_name_resolution_with_prefix():
 
 def test_opencode_context_compression():
     """OpenCode multi-turn conversations preserve recent turns."""
-    from context_compressor import OPENCODE_KEEP_RECENT_TURNS, compress_messages
+    from context_compressor import compress_messages
     
     # Create a long conversation
     messages = []
@@ -106,7 +104,6 @@ def test_opencode_context_compression():
 
 def test_opencode_skills_injection():
     """OpenCode skips style category skills."""
-    from opencode_config import OPENCODE_SKIPPED_SKILL_CATEGORIES
     from skills_injector import _filter_by_ide
     
     # Create mock skills
@@ -222,7 +219,6 @@ def test_opencode_skip_speculative():
 def test_full_opencode_request_simulation():
     """Simulate a full OpenCode request through the pipeline."""
     from router_v3 import classify_request
-    from routes.request_tracking import detect_ide
     
     # Simulate OpenCode request
     headers = {

@@ -1,6 +1,5 @@
 """Tests for SmallOptions in session_options.py."""
 
-import pytest
 
 from session_options import is_subagent_request, resolve_small_options
 

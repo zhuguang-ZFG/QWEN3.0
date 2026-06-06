@@ -1,7 +1,6 @@
 """Tests for Telegram sendMessageDraft streaming (TG-10.0-1)."""
 
 import os
-from unittest.mock import AsyncMock, patch
 
 import pytest
 

@@ -1,6 +1,6 @@
 # LiMa — 运行状态
 
-> 2026-06-05 · VPS `47.112.162.80` · 分支 `codex/free-web-ai-probe`
+> 2026-06-06 · VPS `47.112.162.80` · 分支 `codex/free-web-ai-probe`
 > 权威架构见 `AGENTS.md`（全面重写版）+ `docs/REQUEST_PIPELINE_AUTHORITY.md`
 > 产品定义见 `docs/PRODUCT_DEFINITION.md`
 > M-OC0: LiMa CLI migrated to OpenCode MCP bridge. `lima-code` → `lima`. See `docs/opencode-integration.md`.
@@ -39,6 +39,9 @@
 | M-OC10 | 深度适配：error adapter (+144行 HTML检测/timeout类/retryable) + message normalizer (Bedrock) + GPT-5 mini | 0 |
 | M-OC11 | API Key 安全去硬编码 (4 scripts) + 周期 eval 开启 + hypothesis importorskip | 0 |
 | M-OC12 | Agent 能力加厚：tool_guard（doom loop 检测+输出截断）+ step_checkpoint + 模型列表 13→21 | 0 |
+| M-OC13 | P0-P2 安全加固（12 项）：API 文档禁用、systemctl 部署、rate limiter 防泄漏、134 处异常日志化 | 0 |
+| M-OC14 | 基础设施升级：sqlite_manager 统一连接、Sentry 增强、Redis 服务、pyproject.toml、ruff 19+ 规则 | 0 |
+| M-OC15 | 死代码清理：365 未使用 import 移除 + 3 F811 修复 + graceful shutdown | 0 |
 
 ## 编码体验加厚（2026-06）
 
@@ -70,6 +73,8 @@
 | `LIMA_ROUTER_HTTP_HTTPX` | `1` | `router_http` 委托 `http_caller` |
 | `LIMA_WORKSPACE_READ_GATE` | `0` | `1` 时 sandbox 未读文件禁止 edit |
 | `LIMA_PERIODIC_CODING_EVAL` | `1` (VPS) | VPS 已开启周期性 coding eval |
+| `LIMA_DOCS_ENABLED` | `""` | `1/true/yes` 时启用 Swagger/ReDoc 文档端点 |
+| `VPS_HOST` | `47.112.162.80` | VPS 地址（部署脚本使用，替代硬编码） |
 
 **仍渐进（非方向问题）**：`smart_router` 部分调用方未迁完 — 见 [`docs/SMART_ROUTER_MIGRATION.md`](docs/SMART_ROUTER_MIGRATION.md)（调用方清单 + 6 slice 热路径顺序）；`docs/NEXT_MILESTONES.md` 与 `docs/superpowers/plans/` 仅作档案。
 
@@ -102,7 +107,7 @@
 | ModelScope 后端 | 8 个（ms_deepseek_v4/qwen35/kimi_k25/glm5 + code 变体） |
 | VPS reverse sidecar | 5/5 active |
 | net code removed | ~650 行 |
-| 总里程碑 | **26** 完成 |
+| 总里程碑 | **29** 完成 |
 
 ## LiMa CLI — 维护模式
 
@@ -122,6 +127,7 @@
 | 套件 | 通过 | 说明 |
 |------|------|------|
 | LiMa pytest | 2229 | 85 预存失败 (M-OC3 时点) |
+| CI gates | 46/46 | M-OC13+ 后全通过 |
 | LiMa CLI | 498 | 2 预存失败 |
 
 ## 不再依赖的本机服务

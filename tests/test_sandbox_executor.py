@@ -1,6 +1,5 @@
 """Tests for code execution sandbox (Phase 4.1)."""
 
-import asyncio
 import os
 import sys
 

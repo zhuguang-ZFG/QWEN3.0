@@ -2,8 +2,6 @@
 
 import json
 
-import pytest
-
 from opencode_overflow_detect import (
     classify_overflow_severity,
     identify_overflow_provider,

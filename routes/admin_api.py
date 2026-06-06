@@ -20,29 +20,14 @@ import time
 from pathlib import Path
 
 from fastapi import APIRouter, Depends
-from fastapi.responses import StreamingResponse
 
 from routes.admin_agent_tasks import router as _agent_tasks_router
-from routes.admin_alerts import _ALERT_RULES_PATH
 from routes.admin_alerts import router as _alerts_router
 from routes.admin_auth import verify_admin, verify_csrf
-from routes.admin_config import (
-    _ADMIT_PATH,
-    _DATA_DIR,
-    _OVERLAY_PATH,
-)
 from routes.admin_config import router as _config_router
 from routes.admin_devices import router as _devices_router
 
 # ── Backward-compatible re-exports ─────────────────────────────────────────
-from routes.admin_sse import (
-    _log_sse_generator,
-    _log_subscribers,
-    _main_sse_loop,
-    _set_sse_event_loop,
-    publish_log_event,
-)
-
 # ── Sub-module routers (include into main router) ──────────────────────────
 from routes.admin_sse import router as _sse_router
 from routes.admin_state import FALLBACK_LOG, stats_context

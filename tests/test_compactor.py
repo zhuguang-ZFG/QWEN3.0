@@ -8,7 +8,6 @@ os.environ["LIMA_LESSONS_DIR"] = tempfile.mkdtemp()
 from session_memory.compactor import (
     COMPACTION_THRESHOLD,
     compact_session,
-    get_oldest_memories,
     needs_compaction,
 )
 from session_memory.store import count_memories, save_memory

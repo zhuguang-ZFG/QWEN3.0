@@ -117,7 +117,6 @@ async def handle_motion_event(device_id: str, message: dict[str, Any], request_i
     phase = message.get("phase", "")
     if phase in ("accepted", "running", "done", "failed"):
         try:
-            import time as _time
 
             from routes.telegram_cards import send_device_task_card
 

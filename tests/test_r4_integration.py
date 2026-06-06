@@ -1,6 +1,5 @@
 """Tests for x-session-affinity header and tool repair integration (Round 4)."""
 
-import pytest
 
 from http_request_builder import _build_body, _build_headers_with_affinity
 

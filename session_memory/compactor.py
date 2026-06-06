@@ -8,13 +8,11 @@ Based on Google ADK Context Compaction + claude-mem AI Summarization:
 """
 
 import logging
-import time
 
 from session_memory.store import (
     MemoryEntry,
     _get_conn,
     count_memories,
-    get_recent_memories,
     save_memory,
 )
 

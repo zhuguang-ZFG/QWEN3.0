@@ -2,12 +2,7 @@
 
 from __future__ import annotations
 
-import time
-from pathlib import Path
-
-import pytest
-
-from context_pipeline.auto_indexer import AutoIndexer, run_indexer_scan
+from context_pipeline.auto_indexer import AutoIndexer
 from context_pipeline.session_memory_enhancer import (
     ExtractedDecision,
     extract_decisions,

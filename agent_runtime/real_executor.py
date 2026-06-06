@@ -16,7 +16,6 @@ _log = logging.getLogger(__name__)
 
 from agent_runtime.contract import AgentStep, StepKind, redact
 from agent_runtime.feature_flags import (
-    BLOCKED_COMMANDS,
     ExecutionFeatureFlags,
     is_network_allowed,
     is_shell_allowed,

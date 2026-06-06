@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-import pytest
-
 
 def test_resolve_opencode_backend_prefers_healthy_prefer():
     from routes.opencode_direct_stream import resolve_opencode_backend
@@ -18,7 +16,6 @@ def test_resolve_opencode_backend_prefers_healthy_prefer():
 
 
 async def test_stream_response_uses_prefer_without_speculative():
-    import asyncio
 
     from routes.chat_stream import stream_response
 

@@ -1,8 +1,6 @@
 """Tests for opencode_tool_schema.py — JSON Schema normalization."""
 
-import math
 
-import pytest
 
 from opencode_tool_schema import (
     MAX_SAFE_INTEGER,

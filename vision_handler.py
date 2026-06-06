@@ -7,7 +7,7 @@ import time
 
 import health_tracker
 from backends import BACKENDS, VISION_BACKENDS
-from http_caller import BackendError, clean_response
+from http_caller import clean_response
 
 DEBUG = os.environ.get('LIMA_DEBUG', '') == '1'
 

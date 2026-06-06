@@ -2,16 +2,14 @@
 
 from __future__ import annotations
 
-import time
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
 
 from fastapi import Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from chat_models import ChatRequest, Message
+from chat_models import Message
 from chat_request_utils import extract_last_user_text, extract_system_preview
 from response_builder import build_anthropic_response
 from routes.anthropic_vision_sse import anthropic_vision_messages, vision_anthropic_stream

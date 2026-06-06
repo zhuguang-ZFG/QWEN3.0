@@ -58,7 +58,7 @@ python scripts/repo_stats.py              # refresh repo stats
 - `pytest.ini`: `testpaths = tests`, `pythonpath = .`, `asyncio_mode = auto`. Root-level `test_*.py` files are **not** in the default pytest suite.
 - CI (`.github/workflows/test.yml`): `ruff check .` → `bandit -r agent_runtime/ routes/ -ll` → `pytest --tb=short -q`.
 - `pyrightconfig.json` checks selected production paths (`routes/`, `routing_engine.py`, `server.py`, etc.) and excludes `tests`, `scripts`, `data`, `deepcode-cli`.
-- Ruff rules: `E9, F821-F823, B005, B011, B012, B905, S507`. Facade modules (`http_caller.py`, `backends.py`, `smart_router.py`, `routing_engine.py`) have `F401` ignored.
+- Ruff rules: `E9, F821-F823, B005, B011, B012, B905, S507, S110, E722, I (isort), UP006/UP007/UP035 (pyupgrade), SIM105/SIM117/SIM118, RUF005/RUF010/RUF100`. Facade modules (`http_caller.py`, `backends.py`, `smart_router.py`, `routing_engine.py`) have `F401` ignored.
 
 ## Production Request Path
 
@@ -204,7 +204,10 @@ Default tool mode: `LIMA_OPENCODE_TOOL_MODE=direct` (OpenAI-format tools on dire
 | `LIMA_WORKSPACE_READ_GATE` | `0` | Block edit if file not read (sandbox) |
 | `LIMA_PERIODIC_CODING_EVAL` | `1` (VPS) | Periodic coding eval on VPS |
 | `LIMA_DEBUG` | `0` | Debug mode for http_caller |
+| `LIMA_DOCS_ENABLED` | `""` | `1/true/yes` enables Swagger/ReDoc docs endpoints |
+| `VPS_HOST` | `47.112.162.80` | VPS address for deploy scripts (replaces hardcoded IP) |
 | `SENTRY_DSN` | (empty) | Optional Sentry error tracking |
+| `SENTRY_TRACES_RATE` | `0.1` | Sentry trace sampling rate |
 
 New capabilities should default off behind explicit `LIMA_` env flags.
 
@@ -221,6 +224,10 @@ New capabilities should default off behind explicit `LIMA_` env flags.
 - `device_gateway` — device gateway runtime + MQTT
 - `observability.structured_logging` — structured log setup
 - `context_pipeline.auto_indexer` — auto code indexing
+
+Graceful shutdown (finally block) closes:
+- httpx sync/async client pools (`http_request_builder._sync_client_pool`, `_async_client_pool`)
+- SQLite connections via `sqlite_manager.close_all()`
 
 ## Coding Rules
 
@@ -247,9 +254,17 @@ New capabilities should default off behind explicit `LIMA_` env flags.
 - Never hardcode provider keys/tokens; use environment variables.
 - Do not commit: `.env`, local DBs, `.lima-data/`, `.claude/`, `.qoder/`, `_*.py` debug scripts, generated caches.
 
+## Key Infrastructure Modules
+
+| Module | Purpose |
+|--------|--------|
+| `sqlite_manager.py` | Unified SQLite connection manager (WAL mode, busy_timeout=30s) |
+| `rate_limiter.py` | IP rate limiting with TTL eviction (5 min stale, 60s cleanup) |
+| `server.py` | FastAPI app + Sentry init (HttpxIntegration, sensitive header filter) |
+
 ## Deployment And Git
 
-- Deploy conventions: `docs/DEPLOY_AND_RELEASE_CONVENTION.md`. Do not claim VPS deployment without real health/smoke evidence.
+- Deploy via `scripts/deploy_unified.py` which uses `systemctl restart lima-router.service`.
 - Push to `main` triggers CI → Docker/GHCR deploy to VPS with rollback (`.github/workflows/deploy.yml`).
 - Before commit: inspect `git status`, `git diff`, recent log. Stage **only** files related to the change; never `git add .`.
 - Working tree may contain unrelated changes. Do not revert, reset, checkout, or modify unrelated files.
