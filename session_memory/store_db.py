@@ -18,6 +18,8 @@ class MemoryEntry:
     detail: str
     embedding: list[float]
     memory_type: str = "exchange"
+    recall_count: int = 0
+    last_recalled_at: float = 0.0
 
 
 
@@ -69,7 +71,9 @@ def _get_conn() -> sqlite3.Connection:
             summary TEXT NOT NULL,
             detail TEXT DEFAULT '',
             embedding TEXT DEFAULT '[]',
-            memory_type TEXT DEFAULT 'exchange'
+            memory_type TEXT DEFAULT 'exchange',
+            recall_count INTEGER DEFAULT 0,
+            last_recalled_at REAL DEFAULT 0.0
         )
     """)
     conn.execute("""
@@ -85,6 +89,15 @@ def _get_conn() -> sqlite3.Connection:
         conn.execute("SELECT memory_type FROM memories LIMIT 1")
     except sqlite3.OperationalError:
         conn.execute("ALTER TABLE memories ADD COLUMN memory_type TEXT DEFAULT 'exchange'")
+    # Migration: add recall tracking columns
+    try:
+        conn.execute("SELECT recall_count FROM memories LIMIT 1")
+    except sqlite3.OperationalError:
+        conn.execute("ALTER TABLE memories ADD COLUMN recall_count INTEGER DEFAULT 0")
+    try:
+        conn.execute("SELECT last_recalled_at FROM memories LIMIT 1")
+    except sqlite3.OperationalError:
+        conn.execute("ALTER TABLE memories ADD COLUMN last_recalled_at REAL DEFAULT 0.0")
     conn.commit()
     return conn
 

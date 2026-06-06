@@ -1,6 +1,29 @@
 # Execution Log
 
-> Last updated: 2026-06-06 · LIMA_SESSION_MEMORY=1 enabled · LLM compaction wired · 2323 VPS memories
+> Last updated: 2026-06-06 · P1 memory decay + identity bridge deployed · VPS health OK
+
+## 长期记忆强化 P1 (2026-06-06)
+
+**目标**：记忆衰减排序 + 跨会话身份桥接
+
+### P1-1: 记忆衰减机制
+- **问题**：所有记忆同等权重，高频/低频无区分
+- **修复**：
+  - DB 新增 recall_count/last_recalled_at 列
+  - _decay_weight(): decay = max(0.3, 0.5^(hours_ago/168)), boost = 1 + 0.15*ln(1+recall_count)
+  - keyword/semantic/recent 搜索前均排序，召回时自动 bump_recall()
+- **效果**：未召回 1.0, 刚召回x5 1.27, 两周前x1 0.33, 1h前x20 1.45
+
+### P1-2: 跨会话身份桥接
+- **问题**：session_id = SHA-256(IP+UA)，跨网络/设备断裂
+- **修复**：_session_id_from_headers() 优先读 x-lima-user-id header
+  - 有uid: SHA-256("uid:{user_id}")[:16]
+  - 无uid: 回退 IP+UA 哈希
+
+**部署**：store_db.py, store_crud.py, processor.py
+**VPS**：recall_count/last_recalled_at columns verified, health OK, public smoke 200
+
+---
 
 ## 长期记忆强化 P0 (2026-06-06 15:12 CST)
 

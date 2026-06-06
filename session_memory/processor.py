@@ -18,7 +18,16 @@ _log = logging.getLogger(__name__)
 
 
 def _session_id_from_headers(headers: dict) -> str:
-    """Derive session ID from request headers (IP + User-Agent hash)."""
+    """Derive session ID from request headers.
+
+    Priority:
+    1. x-lima-user-id header (explicit cross-device identity bridge)
+    2. IP + User-Agent hash (implicit fingerprint)
+    """
+    user_id = headers.get("x-lima-user-id", "").strip()
+    if user_id:
+        # User-provided stable identity — hash for consistent 16-char session ID
+        return hashlib.sha256(f"uid:{user_id}".encode()).hexdigest()[:16]
     ip = headers.get("x-forwarded-for", headers.get("x-real-ip", "unknown"))
     ua = headers.get("user-agent", "")
     raw = f"{ip}:{ua}"

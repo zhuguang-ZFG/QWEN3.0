@@ -2,9 +2,64 @@
 from __future__ import annotations
 
 import json
+import math
 import time
 
 from session_memory.store_db import MemoryEntry, _get_conn, _sanitize_storage_text
+
+# ── Decay configuration ────────────────────────────────────────────────
+_HALF_LIFE_HOURS = 168.0   # 1 week half-life for recall decay
+_DECAY_FLOOR = 0.3          # memories never drop below 30% weight
+_BOOST_LOG_FACTOR = 0.15    # log(1+recall_count) multiplier
+
+
+def _decay_weight(recall_count: int, last_recalled_at: float) -> float:
+    """Compute recall-weighted decay score for a memory.
+
+    decay = max(floor, 0.5 ^ (hours_since_last_recall / half_life))
+    boost = 1 + factor * ln(1 + recall_count)
+    weight = decay * boost
+    """
+    if last_recalled_at <= 0:
+        decay = 1.0  # never recalled → full weight (no decay)
+    else:
+        hours_ago = (time.time() - last_recalled_at) / 3600.0
+        decay = max(_DECAY_FLOOR, 0.5 ** (hours_ago / _HALF_LIFE_HOURS))
+    boost = 1.0 + _BOOST_LOG_FACTOR * math.log(1 + recall_count)
+    return round(decay * boost, 4)
+
+
+def _bump_recall(memory_ids: list[int]) -> None:
+    """Increment recall_count and update last_recalled_at for given memory IDs."""
+    if not memory_ids:
+        return
+    conn = _get_conn()
+    now = time.time()
+    placeholders = ",".join("?" * len(memory_ids))
+    conn.execute(
+        f"UPDATE memories SET recall_count = recall_count + 1, last_recalled_at = ? "
+        f"WHERE id IN ({placeholders})",
+        [now] + list(memory_ids),
+    )
+    conn.commit()
+    conn.close()
+
+
+_ROW_SQL = (
+    "SELECT id, session_id, timestamp, role, summary, detail, embedding, "
+    "memory_type, recall_count, last_recalled_at FROM memories"
+)
+
+
+def _row_to_entry(row: tuple) -> MemoryEntry:
+    """Convert a DB row tuple (10 fields) to MemoryEntry."""
+    return MemoryEntry(
+        id=row[0], session_id=row[1], timestamp=row[2], role=row[3],
+        summary=row[4], detail=row[5], embedding=json.loads(row[6]),
+        memory_type=row[7] if len(row) > 7 else "exchange",
+        recall_count=row[8] if len(row) > 8 else 0,
+        last_recalled_at=row[9] if len(row) > 9 else 0.0,
+    )
 
 def save_memory(
     session_id: str,
@@ -34,44 +89,37 @@ def save_memory(
 def get_recent_memories(
     session_id: str, limit: int = 5
 ) -> list[MemoryEntry]:
-    """Get most recent memories for a session (progressive disclosure: summaries only)."""
+    """Get most recent memories for a session, sorted by decay-weighted recency."""
     conn = _get_conn()
     rows = conn.execute(
-        "SELECT id, session_id, timestamp, role, summary, detail, embedding, memory_type "
-        "FROM memories WHERE session_id = ? ORDER BY timestamp DESC LIMIT ?",
+        f"{_ROW_SQL} WHERE session_id = ? ORDER BY timestamp DESC LIMIT ?",
         (session_id, limit),
     ).fetchall()
     conn.close()
-    return [
-        MemoryEntry(
-            id=r[0], session_id=r[1], timestamp=r[2], role=r[3],
-            summary=r[4], detail=r[5], embedding=json.loads(r[6]),
-            memory_type=r[7] if len(r) > 7 else "exchange",
-        )
-        for r in rows
-    ]
+    entries = [_row_to_entry(r) for r in rows]
+    # Sort by decay weight (boosts frequently-recalled memories)
+    entries.sort(key=lambda e: _decay_weight(e.recall_count, e.last_recalled_at), reverse=True)
+    if entries:
+        _bump_recall([e.id for e in entries])
+    return entries
 
 
 def search_memories_keyword(
     session_id: str, query: str, limit: int = 3
 ) -> list[MemoryEntry]:
-    """Keyword search across session memories."""
+    """Keyword search across session memories, sorted by decay-weighted match."""
     conn = _get_conn()
     rows = conn.execute(
-        "SELECT id, session_id, timestamp, role, summary, detail, embedding, memory_type "
-        "FROM memories WHERE session_id = ? AND summary LIKE ? "
+        f"{_ROW_SQL} WHERE session_id = ? AND summary LIKE ? "
         "ORDER BY timestamp DESC LIMIT ?",
         (session_id, f"%{query}%", limit),
     ).fetchall()
     conn.close()
-    return [
-        MemoryEntry(
-            id=r[0], session_id=r[1], timestamp=r[2], role=r[3],
-            summary=r[4], detail=r[5], embedding=json.loads(r[6]),
-            memory_type=r[7] if len(r) > 7 else "exchange",
-        )
-        for r in rows
-    ]
+    entries = [_row_to_entry(r) for r in rows]
+    entries.sort(key=lambda e: _decay_weight(e.recall_count, e.last_recalled_at), reverse=True)
+    if entries:
+        _bump_recall([e.id for e in entries])
+    return entries
 
 
 def search_memories_semantic(
@@ -79,13 +127,10 @@ def search_memories_semantic(
     query_embedding: list[float],
     limit: int = 3,
 ) -> list[MemoryEntry]:
-    """Semantic search using cosine similarity against stored embeddings."""
-    import math
-
+    """Semantic search using cosine similarity × decay weight."""
     conn = _get_conn()
     rows = conn.execute(
-        "SELECT id, session_id, timestamp, role, summary, detail, embedding, memory_type "
-        "FROM memories WHERE session_id = ? AND embedding != '[]'",
+        f"{_ROW_SQL} WHERE session_id = ? AND embedding != '[]'",
         (session_id,),
     ).fetchall()
     conn.close()
@@ -102,14 +147,16 @@ def search_memories_semantic(
         norm_b = math.sqrt(sum(x * x for x in emb))
         sim = dot / (norm_a * norm_b) if norm_a and norm_b else 0.0
         if sim > 0.1:
-            entries.append((sim, MemoryEntry(
-                id=r[0], session_id=r[1], timestamp=r[2], role=r[3],
-                summary=r[4], detail=r[5], embedding=emb,
-                memory_type=r[7] if len(r) > 7 else "exchange",
-            )))
+            entry = _row_to_entry(r)
+            # Weighted score: similarity × decay boost
+            weight = _decay_weight(entry.recall_count, entry.last_recalled_at)
+            entries.append((sim * weight, entry))
 
     entries.sort(key=lambda x: -x[0])
-    return [e for _, e in entries[:limit]]
+    result = [e for _, e in entries[:limit]]
+    if result:
+        _bump_recall([e.id for e in result])
+    return result
 
 
 def count_memories(session_id: str) -> int:
