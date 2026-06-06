@@ -385,6 +385,26 @@ def test_execute_exhausted_all_fail():
 
 # ── route (end-to-end) ──────────────────────────────────────────────────────
 
+def test_routing_engine_reexports_route_result_after_split():
+    result = re_.RouteResult(backend="unit", answer="ok")
+    assert result.backend == "unit"
+    assert result.answer == "ok"
+
+
+def test_routing_engine_helper_modules_import():
+    import routing_engine_context
+    import routing_engine_opencode
+    import routing_engine_response
+    import routing_engine_skills
+    import routing_engine_types
+
+    assert hasattr(routing_engine_types, "RouteResult")
+    assert hasattr(routing_engine_response, "respond")
+    assert hasattr(routing_engine_skills, "inject_skills")
+    assert hasattr(routing_engine_context, "prepare_route_context")
+    assert hasattr(routing_engine_opencode, "inject_coding_opencode_prompts")
+
+
 def test_route_e2e_chat():
     """完整流程：classify → select → inject → execute → respond"""
     result = re_.route(

@@ -22,6 +22,27 @@ from session_memory.store import (
 _log = logging.getLogger(__name__)
 
 
+def _semantic_recall_enabled() -> bool:
+    return os.environ.get("LIMA_SESSION_MEMORY_SEMANTIC", "0") == "1"
+
+
+def _keyword_token_recall(session_id: str, query: str, limit: int = 3) -> list:
+    seen: set[int] = set()
+    results = []
+    for token in query.replace("_", " ").split():
+        token = token.strip(".,;:!?()[]{}'\"")
+        if len(token) < 3:
+            continue
+        for memory in search_memories_keyword(session_id, token[:50], limit=limit):
+            if memory.id in seen:
+                continue
+            seen.add(memory.id)
+            results.append(memory)
+            if len(results) >= limit:
+                return results
+    return results
+
+
 def _session_id_from_headers(headers: dict) -> str:
     """Derive session ID from request headers.
 
@@ -197,13 +218,14 @@ def session_memory_processor(ctx: RequestContext) -> RequestContext:
 
     # Tier 1: keyword search (fast, no external API)
     memories = search_memories_keyword(session_id, query[:50], limit=3)
-
-    # Tier 2: ChromaDB semantic search (local, zero API dependency)
     if not memories:
+        memories = _keyword_token_recall(session_id, query, limit=3)
+
+    # Tier 2/3 semantic recall can trigger heavyweight model/API setup. Keep it
+    # explicitly gated so request preflight remains bounded on fresh VPS hosts.
+    if not memories and _semantic_recall_enabled():
         memories = _chroma_semantic_search(session_id, query, limit=3)
-
-    # Tier 3: Jina AI semantic search (external, fallback)
-    if not memories:
+    if not memories and _semantic_recall_enabled():
         memories = _semantic_fallback(session_id, query, limit=3)
 
     # Tier 4: cross-session global + recent

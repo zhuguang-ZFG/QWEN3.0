@@ -9,7 +9,6 @@ LiMa Routing Engine — 统一路由入口
 import json
 import logging
 import time
-from dataclasses import dataclass, field
 from typing import Callable
 
 import health_tracker
@@ -17,16 +16,17 @@ import budget_manager
 import identity_guard
 import router_v3
 import semantic_cache
-import skills_injector as skills_mod
 import speculative
 import sticky_session
 from context_pipeline.retrieval_injection import inject_retrieval_context
-from response_builder import build_anthropic_response, build_response, make_chat_id
 from response_cleaner import clean_response
 from route_post_process import apply_post_route_integrations
 from routing_classifier import classify, classify_scenario
 from routing_executor import execute
 from model_resolver import resolve_backend
+from routing_engine_response import respond, with_injection_meta as _with_injection_meta
+from routing_engine_skills import get_injected_ids as _get_injected_ids, inject_skills
+from routing_engine_types import RouteResult
 from routing_selector import select
 
 # Re-export for backward compatibility
@@ -40,42 +40,6 @@ __all__ = [
     "respond",
     "route",
 ]
-
-
-@dataclass
-class RouteResult:
-    backend: str = ""
-    answer: str = ""
-    request_type: str = "chat"
-    scenario: str = ""
-    ms: int = 0
-    fallback_used: bool = False
-    skills_injected: list = field(default_factory=list)
-    retrieval_context: str = ""
-    usage: dict | None = None
-    injection_meta: dict = field(default_factory=dict)
-
-
-def inject_skills(messages: list[dict], *,
-                  backend: str = "", ide_source: str = "",
-                  system_prompt: str = "") -> list[dict]:
-    """根据后端能力和 IDE 注入 skills"""
-    return skills_mod.apply_skills(
-        backend=backend, messages=messages,
-        system_prompt=system_prompt, ide_source=ide_source)
-
-
-def respond(result: RouteResult, fmt: str = "openai",
-            model: str = "lima-1.3") -> dict:
-    chat_id = make_chat_id()
-    if fmt == "anthropic":
-        return build_anthropic_response(chat_id, result.answer, result.backend, model)
-    resp = build_response(chat_id, result.answer, result.backend, result.ms,
-                          usage=result.usage)
-    resp["x_lima_meta"]["request_type"] = result.request_type
-    resp["x_lima_meta"]["skills_injected"] = result.skills_injected
-    return resp
-
 
 def route(query: str, messages: list[dict], *,
           fmt: str = "openai", ide_source: str = "",
@@ -433,29 +397,3 @@ def route(query: str, messages: list[dict], *,
         skills_injected=injected_ids,
         retrieval_context=_retrieval_text,
     ), final_backend)
-
-
-def _with_injection_meta(result: RouteResult, backend: str = "") -> RouteResult:
-    try:
-        from context_injection_trace import finish_trace
-
-        trace = finish_trace(backend=backend)
-        if trace:
-            result.injection_meta = trace.to_meta()
-    except ImportError:
-        pass
-    return result
-
-
-def _get_injected_ids(original: list[dict], modified: list[dict]) -> list[str]:
-    """提取被注入的 skill ID"""
-    if len(modified) <= len(original):
-        return []
-    for msg in modified:
-        if msg.get("role") == "system":
-            content = msg.get("content", "")
-            if "Available skills:" in content:
-                names = content.replace("Available skills:", "").strip()
-                return ["dir:" + n.strip() for n in names.split(",") if n.strip()]
-    extra = len(modified) - len(original)
-    return [f"injected_{extra}_skills"] if extra > 0 else []

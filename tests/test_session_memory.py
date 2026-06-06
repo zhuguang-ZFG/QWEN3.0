@@ -105,6 +105,31 @@ def test_session_memory_processor_injects_memories():
     assert "routing" in ctx.system_prompt
 
 
+def test_session_memory_processor_semantic_recall_disabled_by_default(monkeypatch):
+    import session_memory.processor as processor
+
+    monkeypatch.delenv("LIMA_SESSION_MEMORY_SEMANTIC", raising=False)
+
+    sid = _session_id_from_headers({"x-forwarded-for": "10.0.0.9", "user-agent": "test"})
+    save_memory(sid, "exchange", "fixed banana cache issue")
+
+    def fail_semantic(*args, **kwargs):
+        raise AssertionError("semantic recall should not run by default")
+
+    monkeypatch.setattr(processor, "_chroma_semantic_search", fail_semantic)
+    monkeypatch.setattr(processor, "_semantic_fallback", fail_semantic)
+
+    ctx = RequestContext(
+        headers={"x-forwarded-for": "10.0.0.9", "user-agent": "test"},
+        messages=[{"role": "user", "content": "banana again"}],
+        system_prompt="existing prompt",
+    )
+    ctx = session_memory_processor(ctx)
+
+    assert "session memory" in ctx.system_prompt
+    assert "banana cache" in ctx.system_prompt
+
+
 def test_session_memory_processor_skipped_when_disabled():
     os.environ["LIMA_SESSION_MEMORY"] = "0"
     ctx = RequestContext(

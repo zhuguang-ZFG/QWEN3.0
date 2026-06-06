@@ -147,24 +147,68 @@ def deploy_files(files: list[str], *, dry_run: bool = False) -> dict:
 
 
 def restart_server() -> bool:
-    """Clear pycache, kill old process, restart server."""
+    """Clear pycache, stop the 8080 owner, restart server, then poll health."""
     ssh = paramiko.SSHClient()
     ssh.load_system_host_keys()
     configure_ssh_host_keys(ssh)
     ssh.connect(SERVER, username="root", key_filename=KEY, timeout=15)
 
-    ssh.exec_command(f"find {REMOTE} -type d -name __pycache__ -exec rm -rf {{}} + 2>/dev/null")
-    ssh.exec_command("pkill -9 -f 'uvicorn server' 2>/dev/null")
-    time.sleep(2)
-    ssh.exec_command(f"cd {REMOTE} && nohup python3.10 -m uvicorn server:app --host 0.0.0.0 --port 8080 > nohup.out 2>&1 &")
-    time.sleep(4)
+    try:
+        _exec_checked(ssh, f"find {REMOTE} -type d -name __pycache__ -exec rm -rf {{}} + 2>/dev/null || true")
+        _exec_checked(ssh, _stop_port_8080_cmd())
+        _exec_checked(
+            ssh,
+            f"cd {REMOTE} && "
+            "nohup /usr/local/bin/python3.10 -m uvicorn server:app "
+            "--host 0.0.0.0 --port 8080 > nohup.out 2>&1 < /dev/null &",
+        )
+        return _wait_for_health(ssh)
+    finally:
+        ssh.close()
 
-    stdin, stdout, stderr = ssh.exec_command("curl -s http://127.0.0.1:8080/health | head -c 50")
-    health = stdout.read().decode().strip()
-    ok = "ok" in health
 
-    ssh.close()
-    return ok
+def _exec_checked(ssh: paramiko.SSHClient, command: str, timeout: int = 30) -> str:
+    _stdin, stdout, stderr = ssh.exec_command(command, timeout=timeout)
+    out = stdout.read().decode("utf-8", errors="replace")
+    err = stderr.read().decode("utf-8", errors="replace")
+    code = stdout.channel.recv_exit_status()
+    if code != 0:
+        raise RuntimeError(f"remote command failed ({code}): {command}\n{out}\n{err}")
+    return (out + err).strip()
+
+
+def _stop_port_8080_cmd() -> str:
+    return r"""
+PID=$(ss -tlnp | awk '/:8080/{print $NF}' | sed -n 's/.*pid=\([0-9]*\).*/\1/p' | head -1)
+if [ -n "$PID" ]; then
+  kill -TERM "$PID" 2>/dev/null || true
+  sleep 3
+  if kill -0 "$PID" 2>/dev/null; then
+    kill -KILL "$PID" 2>/dev/null || true
+  fi
+fi
+fuser -k 8080/tcp 2>/dev/null || true
+sleep 1
+exit 0
+""".strip()
+
+
+def _wait_for_health(ssh: paramiko.SSHClient, attempts: int = 30) -> bool:
+    for _ in range(attempts):
+        time.sleep(1)
+        _stdin, stdout, _stderr = ssh.exec_command(
+            "curl -sf http://127.0.0.1:8080/health >/dev/null && echo ok",
+            timeout=10,
+        )
+        out = stdout.read().decode("utf-8", errors="replace").strip()
+        if stdout.channel.recv_exit_status() == 0 and out == "ok":
+            return True
+    _stdin, stdout, stderr = ssh.exec_command(f"cd {REMOTE} && tail -80 nohup.out 2>/dev/null || true")
+    print(stdout.read().decode("utf-8", errors="replace"))
+    err = stderr.read().decode("utf-8", errors="replace")
+    if err:
+        print(err)
+    return False
 
 
 def main() -> int:
