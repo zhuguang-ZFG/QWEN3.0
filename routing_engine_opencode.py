@@ -1,109 +1,154 @@
-"""OpenCode prompt injection helpers for routing_engine coding path."""
+"""OpenCode coding path for routing_engine.
+
+Extracted from routing_engine.py to keep the main route() skeleton concise.
+Handles: opencode_tool_aware, reasoning_bridge, tool_splitter, code_orchestrator.
+"""
 
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+import time
+
+import health_tracker
+from routing_engine_response import with_injection_meta
+from routing_engine_types import RouteResult
 
 _log = logging.getLogger(__name__)
-def inject_coding_opencode_prompts(
+
+
+def try_code_orchestration(
+    messages: list[dict],
+    query: str,
+    call_fn,
+    max_tokens: int,
+    *,
+    ide_source: str = "",
+    system_prompt: str = "",
+    tools: list[dict] | None = None,
+    headers: dict | None = None,
+    needs_tools: bool = False,
+    scenario: str = "coding",
+    t0: float,
+    retrieval_text: str = "",
+    injected_ids: list[str],
+) -> RouteResult | None:
+    """Attempt the OpenCode coding orchestration path.
+
+    Returns a RouteResult on success, or None to fall through to the
+    standard routing path.
+    """
+    try:
+        # ── Inject OpenCode tool-aware prompts before code orchestration ──
+        try:
+            from opencode_tool_aware import inject_opencode_prompt
+
+            messages = inject_opencode_prompt(
+                messages, backend="", system_prompt=system_prompt,
+                tools=tools, headers=headers or {},
+            )
+        except (ImportError, Exception) as _e:
+            _log.debug("opencode_tool_aware failed: %s", _e)
+
+        # ── Inject reasoning bridge (thinking reminder + provider prompt) ──
+        _inject_reasoning_bridge(
+            messages, needs_tools=needs_tools,
+            ide_source=ide_source, tools=tools,
+        )
+
+        # ── Run code orchestrator ──
+        import code_orchestrator
+
+        orch_result = code_orchestrator.handle(
+            query, messages, call_fn, max_tokens,
+            ide_source=ide_source,
+        )
+        if orch_result.get("answer"):
+            ms = int((time.time() - t0) * 1000)
+            return with_injection_meta(RouteResult(
+                backend=orch_result["backend"],
+                answer=orch_result["answer"],
+                request_type=f"code_{orch_result['tier']}",
+                ms=ms, scenario=scenario,
+                retrieval_context=retrieval_text,
+                skills_injected=injected_ids,
+            ), orch_result["backend"])
+    except Exception as e:
+        _log.warning("[ORCH] code_orchestrator failed: %s: %s", type(e).__name__, e)
+
+    return None
+
+
+def _inject_reasoning_bridge(
     messages: list[dict],
     *,
-    system_prompt: str,
-    tools: list[dict] | None,
-    headers: dict,
-    needs_tools: bool,
-    ide_source: str,
-    health_map_getter: Callable[[], dict],
-    selector: Callable[..., list[str]],
-) -> list[dict]:
+    needs_tools: bool = False,
+    ide_source: str = "",
+    tools: list[dict] | None = None,
+) -> None:
+    """Inject reasoning bridge hints (thinking reminder + provider prompt + tool splitter)."""
     try:
-        from opencode_tool_aware import inject_opencode_prompt
-
-        messages = inject_opencode_prompt(
-            messages,
-            backend="",
-            system_prompt=system_prompt,
-            tools=tools,
-            headers=headers,
+        from opencode_reasoning_bridge import (
+            inject_thinking_reminder,
+            select_provider_system_prompt,
         )
-    except (ImportError, Exception) as exc:
-        logging.debug("routing_engine: opencode_tool_aware failed: %s", exc)
 
-    try:
-        estimated_backend = _estimate_backend(
-            needs_tools=needs_tools,
-            ide_source=ide_source,
-            health_map_getter=health_map_getter,
-            selector=selector,
-        )
-        if estimated_backend:
-            messages = _inject_reasoning_bridge(messages, estimated_backend)
-            messages = _inject_sequential_tool_hint(messages, estimated_backend, tools)
-    except (ImportError, Exception) as exc:
-        logging.debug("routing_engine: reasoning_bridge failed: %s", exc)
+        # Estimate backend for coding path
+        est_backend = ""
+        try:
+            from routing_selector import select as _rselect
 
-    return messages
+            hmap = health_tracker.get_health_map()
+            candidates = _rselect(
+                "ide", hmap, scenario="coding",
+                needs_tools=needs_tools, ide_source=ide_source,
+            )
+            est_backend = candidates[0] if candidates else ""
+        except Exception:
+            _log.debug("backend estimation failed", exc_info=True)
+
+        if not est_backend:
+            return
+
+        messages_ref = messages  # mutable list, modified in-place
+        inject_thinking_reminder(messages_ref, est_backend)
+
+        provider_hint = select_provider_system_prompt(est_backend)
+        if provider_hint:
+            _append_to_system(messages_ref, provider_hint)
+
+        # Sequential tool hint for weak backends
+        try:
+            from opencode_tool_splitter import (
+                build_sequential_tool_prompt,
+                should_inject_sequential_hint,
+            )
+
+            if should_inject_sequential_hint(est_backend):
+                seq_hint = build_sequential_tool_prompt(tools)
+                if seq_hint:
+                    _append_to_system(messages_ref, seq_hint)
+        except (ImportError, Exception) as _e2:
+            _log.debug("tool_splitter hint failed: %s", _e2)
+    except (ImportError, Exception) as _e:
+        _log.debug("reasoning_bridge failed: %s", _e)
 
 
-def _estimate_backend(
-    *,
-    needs_tools: bool,
-    ide_source: str,
-    health_map_getter: Callable[[], dict],
-    selector: Callable[..., list[str]],
-) -> str:
-    try:
-        candidates = selector(
-            "ide",
-            health_map_getter(),
-            scenario="coding",
-            needs_tools=needs_tools,
-            ide_source=ide_source,
-        )
-        return candidates[0] if candidates else ""
-    except Exception as exc:
-        _log.warning("operation failed: %s", exc)
-        return ""
-
-
-def _inject_reasoning_bridge(messages: list[dict], backend: str) -> list[dict]:
-    from opencode_reasoning_bridge import inject_thinking_reminder, select_provider_system_prompt
-
-    messages = inject_thinking_reminder(messages, backend)
-    provider_hint = select_provider_system_prompt(backend)
-    if not provider_hint:
-        return messages
-    system_index = next((i for i, msg in enumerate(messages) if msg.get("role") == "system"), -1)
-    if system_index >= 0:
-        old_content = messages[system_index].get("content", "")
-        if isinstance(old_content, str):
-            messages[system_index] = {
-                **messages[system_index],
-                "content": old_content.rstrip() + "\n" + provider_hint,
+def _append_to_system(messages: list[dict], text: str) -> None:
+    """Append *text* to the first system message, or insert one if absent."""
+    sys_idx = next(
+        (i for i, m in enumerate(messages) if m.get("role") == "system"),
+        -1,
+    )
+    if sys_idx >= 0:
+        old = messages[sys_idx].get("content", "")
+        if isinstance(old, str):
+            messages[sys_idx] = {
+                **messages[sys_idx],
+                "content": old.rstrip() + "\n" + text,
             }
-    return messages
+    else:
+        messages.insert(0, {"role": "system", "content": text})
 
 
-def _inject_sequential_tool_hint(messages: list[dict], backend: str, tools: list[dict] | None) -> list[dict]:
-    try:
-        from opencode_tool_splitter import build_sequential_tool_prompt, should_inject_sequential_hint
-
-        if not should_inject_sequential_hint(backend):
-            return messages
-        sequential_hint = build_sequential_tool_prompt(tools)
-        if not sequential_hint:
-            return messages
-        system_index = next((i for i, msg in enumerate(messages) if msg.get("role") == "system"), -1)
-        if system_index >= 0:
-            old_content = messages[system_index].get("content", "")
-            if isinstance(old_content, str):
-                messages[system_index] = {
-                    **messages[system_index],
-                    "content": old_content.rstrip() + "\n" + sequential_hint,
-                }
-        else:
-            messages.insert(0, {"role": "system", "content": sequential_hint})
-    except (ImportError, Exception) as exc:
-        logging.debug("routing_engine: tool_splitter hint failed: %s", exc)
-    return messages
+# Backward-compat alias
+inject_coding_opencode_prompts = try_code_orchestration

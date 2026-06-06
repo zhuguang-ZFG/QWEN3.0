@@ -1,6 +1,6 @@
 # smart_router 调用方清单与热路径迁移顺序
 
-> Date: 2026-06-05  
+> Date: 2026-06-05 · **Migration Complete: 2026-06-07**  
 > 权威路由：`routing_engine.route()` · 权威 HTTP：`http_caller`  
 > 门面（渐进入口）：`routing_facade.py`  
 > 状态快照：生产代码 **0 处** 热路径 `import smart_router`（仅 `smart_router.py` 兼容壳 + 测试/脚本）
@@ -18,18 +18,18 @@
 
 | 热度 | 文件 | 使用的 smart_router API | 目标替换 | 状态 |
 |:---:|------|-------------------------|----------|:----:|
-| 🔴 | `routes/chat_handler_dispatch.py` | `analyze`, `detect_image_intent`, `detect_thinking_intent` | `routing_facade` → `router_classifier` / `router_image` / `router_intent` | 待迁 |
-| 🔴 | `routes/chat_stream.py` | `detect_image_intent` | `router_image.detect_image_intent` | 待迁 |
-| 🔴 | `routes/anthropic_stream.py` | `detect_image_intent`, `_log_to_distill_queue` | `router_image` + `distill_queue`（待抽） | 待迁 |
-| 🔴 | `routes/anthropic_stream_branches.py` | `analyze`, `detect_thinking_intent` | `router_classifier` + `router_intent` | 待迁 |
-| 🔴 | `routes/chat_support.py` | `call_api`, `BACKENDS`, `THINKING_BACKENDS`, `cb_*`, `DISTILL_QUEUE_DIR`, `DEBUG` | `http_caller` + `backends` + `router_circuit_breaker` + `distill_queue` | 待迁 |
-| 🔴 | `routes/quality_gate.py` | `BACKENDS`, `cb_allow`, `cb_record`, `call_api` | `backends` + `router_circuit_breaker` + `http_caller` | 待迁 |
-| 🟡 | `routes/chat_post_closeout.py` | `_log_to_distill_queue` | `distill_queue.log_to_distill_queue`（待抽） | 待迁 |
+| 🔴 | `routes/chat_handler_dispatch.py` | `analyze`, `detect_image_intent`, `detect_thinking_intent` | `routing_facade` → `router_classifier` / `router_image` / `router_intent` | ✅ Done |
+| 🔴 | `routes/chat_stream.py` | `detect_image_intent` | `routing_facade.detect_image_intent` | ✅ Done |
+| 🔴 | `routes/anthropic_stream.py` | `detect_image_intent`, `_log_to_distill_queue` | `routing_facade` + `distill_queue` | ✅ Done |
+| 🔴 | `routes/anthropic_stream_branches.py` | `analyze`, `detect_thinking_intent` | `routing_facade.analyze` + `routing_facade.detect_thinking_intent` | ✅ Done |
+| 🔴 | `routes/chat_support.py` | `call_api`, `BACKENDS`, `THINKING_BACKENDS`, `cb_*`, `DISTILL_QUEUE_DIR`, `DEBUG` | `http_caller` + `backends` + `router_circuit_breaker` + `distill_queue` | ✅ Done |
+| 🔴 | `routes/quality_gate.py` | `BACKENDS`, `cb_allow`, `cb_record`, `call_api` | `backends` + `router_circuit_breaker` + `http_caller` | ✅ Done |
+| 🟡 | `routes/chat_post_closeout.py` | `_log_to_distill_queue` | `distill_queue.log_to_distill_queue` | ✅ Done |
 | ✅ | `orchestrate.py` | `analyze`, `call_local` | `router_classifier` + `local_router` + `routing_engine` | **Slice 4 done** |
 | ✅ | `server.py` | `warmup_router_model` | `local_router.warmup_router_model` | **Slice 4 done** |
 | ✅ | `routes/admin_backends.py` | `BACKENDS` | `backends.BACKENDS` | Slice 4 done |
 | ✅ | `routing_facade.py` | `ROUTE`, `PUBLIC_MODEL_NAME` | `routing_constants.py` | **Slice 5 done** |
-| ⚪ | `scripts/validate_via_router.py` | `call_api`, `BACKENDS` | 运维脚本，低优先级 | 待迁 |
+| ⚪ | `scripts/validate_via_router.py` | `call_api`, `BACKENDS` | 运维脚本，低优先级 | ✅ Done |
 | ⚪ | `scripts/test_route_e2e.py` | `route`, `ONEAPI_ENABLED` | 遗留 e2e，可归档 | 待归档 |
 | ⚪ | `scripts/archive/key_rotation_legacy.py` | 注释引用 | 无 | — |
 
@@ -165,10 +165,10 @@ flowchart TD
 
 ---
 
-## routing_facade 目标 API（Slice 1 待补）
+## routing_facade 目标 API（✅ Slice 1 完成）
 
 ```python
-# routing_facade.py — 规划中的薄封装（实现 Slice 1 时添加）
+# routing_facade.py — 已完成
 from router_classifier import analyze
 from router_image import detect_image_intent
 from router_intent import detect_thinking_intent, get_thinking_backend

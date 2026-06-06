@@ -118,6 +118,23 @@ async def stream_response(
     last_backend = prefer or "unknown"
     last_usage: dict | None = None
 
+    # ── Backend-aware skill injection for streaming paths ──
+    # The non-stream path injects via routing_engine.route().
+    # Streaming paths that bypass route() need their own injection.
+    if not use_orchestration and not use_thinking:
+        try:
+            from routing_engine_skills import apply_backend_aware_skills
+            _skill_backend = prefer or ""
+            messages = apply_backend_aware_skills(
+                messages, _skill_backend,
+                ide_source=ide_source, system_prompt=sys_prompt_preview,
+            )
+        except Exception as _e:
+            logging.getLogger(__name__).debug("stream skill injection failed: %s", _e)
+
+    streamed_text = ""
+    stream_backend = prefer or "unknown"
+
     if prefer and not has_tools:
         async for chunk in real_stream_chunks_async(prefer, messages, 4096, ide_source):
             meta = _extract_meta(chunk)
@@ -128,8 +145,10 @@ async def stream_response(
             streamed_any = True
             from response_cleaner import clean_response
             chunk = clean_response(chunk, prefer) or chunk
+            streamed_text += chunk
             yield build_stream_chunk(chat_id, chunk)
         if streamed_any:
+            stream_backend = prefer
             yield build_stream_chunk(chat_id, "", finish=True)
             if last_usage:
                 yield build_usage_chunk(chat_id, last_usage)
@@ -146,6 +165,8 @@ async def stream_response(
         last_backend = _backend
         from response_cleaner import clean_response
         chunk = clean_response(chunk, _backend) or chunk
+        streamed_text += chunk
+        stream_backend = _backend
         yield build_stream_chunk(chat_id, chunk)
 
     if not streamed_any:
@@ -161,6 +182,7 @@ async def stream_response(
                 messages,
                 4096,
             )
+            last_backend = _backend
             content = answer if answer else ""
         except BackendError as exc:
             if getattr(exc, "is_overflow", False):
@@ -180,6 +202,22 @@ async def stream_response(
         for sentence in _split_sentences(content):
             yield build_stream_chunk(chat_id, sentence)
             await asyncio.sleep(0.02)
+        streamed_text = content
+        stream_backend = last_backend
+
+    # ── Post-stream finalization (sticky pin, cache, integrations) ──
+    try:
+        from routing_engine_postprocess import finalize_route
+        finalize_route(
+            final_backend=stream_backend, answer=streamed_text,
+            backends=[stream_backend], messages=messages,
+            messages_injected=messages,
+            req_type="ide" if ide_source else "chat",
+            scenario="coding" if ide_source else "general",
+            ms=0,
+        )
+    except Exception as _e:
+        logging.getLogger(__name__).debug("stream finalize_route failed: %s", _e)
 
     yield build_stream_chunk(chat_id, "", finish=True)
     if last_usage:

@@ -101,6 +101,13 @@ async def stream_speculative_path(
     *,
     last_resort_call,
 ) -> AsyncIterator[str]:
+    """Speculative streaming with quality gating.
+
+    NOTE: Unlike finalize_route (used by routing_engine.route and chat_stream),
+    the Anthropic SSE path has independent quality-gate + upgrade-chain logic.
+    Post-route integrations (memory, weights, observability) are handled by
+    apply_quality_fallback / record_response_quality rather than finalize_route.
+    """
     yield sse_message_start(ctx.model, new_message_id())
     yield sse_content_block_start()
 
@@ -136,6 +143,13 @@ async def stream_speculative_path(
 
 
 async def routing_engine_fallback(ctx: StreamContext, last_resort_call) -> tuple[str, str]:
+    """Non-streaming fallback for Anthropic SSE.
+
+    NOTE: This bypasses finalize_route because Anthropic SSE manages its own
+    lifecycle (quality_check, record_response_quality). Sticky session pin and
+    semantic cache are intentionally skipped here — the Anthropic SSE path
+    uses per-request routing rather than session affinity.
+    """
     try:
         backends = routing_engine.select(
             "ide" if ctx.ide_source else "chat",

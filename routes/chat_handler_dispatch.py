@@ -23,7 +23,9 @@ from response_builder import (
 from routes.chat_fallback import QualityFallbackRequest, resolve_quality_fallback
 
 _log = logging.getLogger(__name__)
+from routes.chat_non_stream import execute_non_stream_route
 from routes.chat_post_closeout import (
+    finalize_success_response,
     maybe_log_distill_queue,
     persist_session_memory,
     record_capability_evidence,
@@ -281,153 +283,15 @@ def _model_id_fallback() -> str:
 
 
 async def execute_non_stream_route(ctx: ChatRunContext, req: ChatRequest) -> tuple[dict, dict]:
-    intent = routing_facade.analyze(
-        ctx.query, system_prompt=ctx.sys_prompt_preview, ide=ctx.ide_source
-    )
-    handler = _chat_handler()
-    use_orchestration = (
-        handler.needs_orchestration(ctx.query, intent)
-        if not ctx.prefs.prefer
-        else False
-    )
-    is_opencode = bool(
-        ctx.ide_source and "opencode" in ctx.ide_source.lower()
-    )
-    if OPENCODE_DIRECT_STREAM and is_opencode and ctx.prefs.prefer and not use_orchestration:
-        import http_caller
-        from routes.opencode_direct_stream import resolve_opencode_backend
-
-        backend = resolve_opencode_backend(ctx.prefs.prefer)
-        answer = await asyncio.to_thread(
-            http_caller.call_api,
-            backend,
-            ctx.preflight.prompt_context_messages,
-            req.max_tokens or 4096,
-            system_prompt=ctx.preflight.system_prompt,
-            ide=ctx.ide_source,
-            tools=req.tools if req.has_tools else None,
-            reasoning_effort=req.reasoning_effort,
-        )
-        return (
-            {
-                "answer": answer,
-                "backend": backend,
-                "usage": http_caller.get_last_usage(backend),
-            },
-            intent if isinstance(intent, dict) else {},
-        )
-    if use_orchestration:
-        result = await asyncio.to_thread(orchestrate, ctx.query)
-    else:
-        result = await asyncio.to_thread(
-            handler.v3_route,
-            ctx.query,
-            ctx.preflight.request_messages,
-            system_prompt=ctx.sys_prompt_preview,
-            ide=ctx.ide_source,
-            max_tokens=req.max_tokens or 4096,
-            needs_tools=req.has_tools,
-            tools=req.tools,
-            client_ip=ctx.client_ip,
-            user_agent=ctx.user_agent,
-            model=ctx.request_model or "",
-            headers=ctx.request_headers or {},
-            reasoning_effort=req.reasoning_effort,
-        )
-    return result, intent if isinstance(intent, dict) else {}
+    """Re-exported from routes.chat_non_stream for backward compat."""
+    from routes.chat_non_stream import execute_non_stream_route as _impl
+    return await _impl(ctx, req)
 
 
 async def finalize_success_response(
-    ctx: ChatRunContext,
-    req: ChatRequest,
-    result: dict,
-    intent: dict,
-    *,
-    model_id: str,
-    record_request: Callable[..., None],
-) -> JSONResponse:
-    content = result.get("answer", "")
-    from response_cleaner import clean_response
-    content = clean_response(content, result.get("backend", "")) or content
-    backend = result.get("backend", "unknown")
-    total_ms = result.get("total_ms", 0)
-    usage = result.get("usage")
-    intent_name = intent.get("intent", "unknown")
-    complexity = intent.get("complexity", 0.5)
-
-    if not _chat_handler().quality_check(content, complexity, backend, query=ctx.query):
-        return await resolve_quality_fallback(
-            QualityFallbackRequest(
-                chat_id=ctx.chat_id,
-                query=ctx.query,
-                content=content,
-                backend=backend,
-                complexity=complexity,
-                intent_name=intent_name,
-                fmt=ctx.fmt,
-                request_model=ctx.request_model,
-                max_tokens=req.max_tokens or 1024,
-                ide_source=ctx.ide_source,
-                client_ip=ctx.client_ip,
-                sys_prompt_preview=ctx.sys_prompt_preview,
-                prompt_context_messages=ctx.preflight.prompt_context_messages,
-                memory_recall_meta=ctx.memory_recall_meta,
-                elapsed_ms=int((time.time() - ctx.t0) * 1000),
-            )
-        )
-
-    duration_ms = int((time.time() - ctx.t0) * 1000)
-    persist_session_memory(
-        client_ip=ctx.client_ip,
-        memory_session_id=ctx.memory_session_id,
-        query=ctx.query,
-        content=content,
-    )
-    record_request(
-        ctx.query,
-        backend,
-        intent_name,
-        duration_ms,
-        True,
-        client_ip=ctx.client_ip,
-        ide_source=ctx.ide_source,
-        sys_prompt_preview=ctx.sys_prompt_preview,
-    )
-    record_chat_observability(
-        chat_id=ctx.chat_id, backend=backend, duration_ms=duration_ms
-    )
-    record_capability_evidence(
-        request_id=ctx.chat_id,
-        backend=backend,
-        fallback_used=bool(result.get("fallback_used")),
-        latency_ms=duration_ms,
-        status="ok",
-    )
-    maybe_log_distill_queue(
-        query=ctx.query, content=content, intent=intent_name, backend=backend
-    )
-
-    sys_prompt = extract_system_prompt(req.messages)
-    if sys_prompt:
-        try:
-            log_sys_prompt(sys_prompt)
-        except Exception as exc:
-            _log.warning(
-                "log_sys_prompt failed: %s",
-                type(exc).__name__,
-                exc_info=True,
-            )
-
-    if ctx.fmt == "anthropic":
-        return JSONResponse(
-            build_anthropic_response(
-                ctx.chat_id, content, backend, ctx.request_model or model_id
-            )
-        )
-    return JSONResponse(
-        attach_lima_meta(
-            build_response(ctx.chat_id, content, backend, total_ms, usage=usage),
-            memory_meta=ctx.memory_recall_meta,
-            injection_meta=result.get("injection_meta"),
-        )
-    )
+    ctx: ChatRunContext, req: ChatRequest, result: dict, intent: dict,
+    *, model_id: str, record_request,
+):
+    """Re-exported from routes.chat_post_closeout for backward compat."""
+    from routes.chat_post_closeout import finalize_success_response as _impl
+    return await _impl(ctx, req, result, intent, model_id=model_id, record_request=record_request)

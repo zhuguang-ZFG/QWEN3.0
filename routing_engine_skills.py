@@ -2,10 +2,20 @@
 
 from __future__ import annotations
 
+import logging
+
 import skills_injector as skills_mod
 
+_log = logging.getLogger(__name__)
 
-def inject_skills(messages: list[dict], *, backend: str = "", ide_source: str = "", system_prompt: str = "") -> list[dict]:
+
+def inject_skills(
+    messages: list[dict],
+    *,
+    backend: str = "",
+    ide_source: str = "",
+    system_prompt: str = "",
+) -> list[dict]:
     """Inject backend-aware skills for IDE and coding requests."""
     return skills_mod.apply_skills(
         backend=backend,
@@ -13,6 +23,34 @@ def inject_skills(messages: list[dict], *, backend: str = "", ide_source: str = 
         system_prompt=system_prompt,
         ide_source=ide_source,
     )
+
+
+def apply_backend_aware_skills(
+    messages: list[dict],
+    backend: str,
+    *,
+    ide_source: str = "",
+    system_prompt: str = "",
+) -> list[dict]:
+    """Re-inject skills with the actual backend known.
+
+    When the early injection used backend="" (unknown), all skills may have been
+    injected in weak-model mode.  This second pass uses the real backend so that
+    strong models get directory mode (skill names only) and weak models get the
+    provider-specific reasoning hints from opencode_reasoning_bridge.
+    """
+    if not backend:
+        return messages
+    try:
+        return skills_mod.apply_skills(
+            backend=backend,
+            messages=messages,
+            system_prompt=system_prompt,
+            ide_source=ide_source,
+        )
+    except Exception as exc:
+        _log.debug("backend_aware_skills injection failed: %s", exc)
+        return messages
 
 
 def get_injected_ids(original: list[dict], modified: list[dict]) -> list[str]:

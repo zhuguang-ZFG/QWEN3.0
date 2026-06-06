@@ -558,6 +558,11 @@ def test_route_uses_shared_retrieval_injection(monkeypatch):
         return [{"role": "system", "content": "[retrieval]"}] + list(messages), "[retrieval]"
 
     monkeypatch.setattr(re_, "inject_retrieval_context", fake_inject)
+    import routing_engine_context as _rec
+    monkeypatch.setattr(_rec, "inject_retrieval_context", fake_inject, raising=False)
+    # Also patch inside the module where inject_all_context imports it
+    from context_pipeline import retrieval_injection as _ri
+    monkeypatch.setattr(_ri, "inject_retrieval_context", fake_inject)
     monkeypatch.setattr(re_, "classify_scenario", lambda *a, **kw: "chat")
     monkeypatch.setattr(re_, "select", lambda *a, **kw: ["unit_backend"])
     monkeypatch.setattr(re_.health_tracker, "get_health_map", lambda: {})
