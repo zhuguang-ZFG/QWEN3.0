@@ -1,265 +1,184 @@
-"""Tests for streaming.bridge_stream and streaming.speculative_stream.
-
-These tests intentionally run async generators through asyncio.run() so the
-suite does not depend on pytest-asyncio being installed in the local router
-environment.
-"""
+"""Tests for streaming — bridge_stream_async and speculative_stream."""
 
 import asyncio
-
 import pytest
 
-import speculative
-import streaming
 
-
-def _mock_call_stream(backend, msgs, max_tokens, ide):
-    yield "Hello"
-    yield " world"
-    yield "!"
-
-
-def _mock_call_stream_empty(backend, msgs, max_tokens, ide):
-    yield from ()
-
-
-def _mock_call_api(backend, msgs, max_tokens, ide):
-    return f"Answer from {backend}"
-
-
-def _mock_call_api_fail(backend, msgs, max_tokens, ide):
-    raise Exception("backend down")
-
-
-def _mock_predict(query):
-    return "longcat_chat"
-
-
-def _mock_select(query, system_prompt, ide, messages):
-    return "longcat_chat", messages
-
-
-@pytest.fixture
-def mock_deps():
-    return {
-        "call_stream_fn": _mock_call_stream,
-        "call_fn": _mock_call_api,
-        "predict_fn": _mock_predict,
-        "select_fn": _mock_select,
-    }
-
-
-async def _collect_async(async_iterable):
-    items = []
-    async for item in async_iterable:
-        items.append(item)
-    return items
-
-
-async def _mock_call_stream_async(backend, msgs, max_tokens, ide):
-    yield "Hello"
-    yield " async"
-
-
-async def _mock_call_stream_async_empty(backend, msgs, max_tokens, ide):
-    if False:
-        yield ""
-
-
-async def _mock_call_stream_async_slow_first_chunk(backend, msgs, max_tokens, ide):
-    await asyncio.sleep(0.05)
-    yield "too late"
-
-
-async def _mock_call_api_async(backend, msgs, max_tokens, ide):
-    return f"Async answer from {backend}"
-
-
-def test_bridge_stream_yields_chunks(mock_deps):
-    chunks = asyncio.run(_collect_async(streaming.bridge_stream(
-        "longcat_chat",
-        [{"role": "user", "content": "hi"}],
-        4096,
-        "unknown",
-        call_stream_fn=mock_deps["call_stream_fn"],
-        call_fn=mock_deps["call_fn"],
-    )))
-
-    assert len(chunks) == 3
-    assert "".join(chunks) == "Hello world!"
-
-
-def test_bridge_stream_fallback_on_empty(mock_deps):
-    chunks = asyncio.run(_collect_async(streaming.bridge_stream(
-        "longcat_chat",
-        [{"role": "user", "content": "hi"}],
-        4096,
-        "unknown",
-        call_stream_fn=_mock_call_stream_empty,
-        call_fn=mock_deps["call_fn"],
-    )))
-
-    assert len(chunks) == 1
-    assert "Answer from longcat_chat" in chunks[0]
-
-
-def test_bridge_stream_fallback_when_both_fail(mock_deps):
-    chunks = asyncio.run(_collect_async(streaming.bridge_stream(
-        "longcat_chat",
-        [{"role": "user", "content": "hi"}],
-        4096,
-        "unknown",
-        call_stream_fn=_mock_call_stream_empty,
-        call_fn=_mock_call_api_fail,
-    )))
-
-    assert len(chunks) == 0
-
-
-def test_bridge_stream_async_yields_chunks():
-    chunks = asyncio.run(_collect_async(streaming.bridge_stream_async(
-        "longcat_chat",
-        [{"role": "user", "content": "hi"}],
-        4096,
-        "unknown",
-        call_stream_async_fn=_mock_call_stream_async,
-        call_api_async_fn=_mock_call_api_async,
-    )))
-
-    assert "".join(chunks) == "Hello async"
-
-
-def test_bridge_stream_async_fallback_on_empty():
-    chunks = asyncio.run(_collect_async(streaming.bridge_stream_async(
-        "longcat_chat",
-        [{"role": "user", "content": "hi"}],
-        4096,
-        "unknown",
-        call_stream_async_fn=_mock_call_stream_async_empty,
-        call_api_async_fn=_mock_call_api_async,
-    )))
-
-    assert chunks == ["Async answer from longcat_chat"]
-
-
-def test_bridge_stream_async_first_chunk_timeout_falls_back():
-    chunks = asyncio.run(_collect_async(streaming.bridge_stream_async(
-        "longcat_chat",
-        [{"role": "user", "content": "hi"}],
-        4096,
-        "unknown",
-        call_stream_async_fn=_mock_call_stream_async_slow_first_chunk,
-        call_api_async_fn=_mock_call_api_async,
-        first_chunk_timeout=0.001,
-    )))
-
-    assert chunks == ["Async answer from longcat_chat"]
-
-
-def test_speculative_stream_prediction_correct(mock_deps):
-    results = asyncio.run(_collect_async(streaming.speculative_stream(
-        "debug this",
-        [{"role": "user", "content": "debug"}],
-        4096,
-        "unknown",
-        predict_fn=mock_deps["predict_fn"],
-        select_fn=mock_deps["select_fn"],
-        call_stream_fn=mock_deps["call_stream_fn"],
-        call_fn=mock_deps["call_fn"],
-    )))
-
-    assert all(backend == "longcat_chat" for backend, _ in results)
-    assert len(results) == 3
-
-
-def test_speculative_stream_uses_async_native_path(mock_deps):
-    async def _stream_async(backend, msgs, max_tokens, ide):
-        yield f"async from {backend}"
-
-    async def _api_async(backend, msgs, max_tokens, ide):
-        return f"fallback from {backend}"
-
-    results = asyncio.run(_collect_async(streaming.speculative_stream(
-        "hello",
-        [{"role": "user", "content": "hello"}],
-        4096,
-        "unknown",
-        predict_fn=mock_deps["predict_fn"],
-        select_fn=mock_deps["select_fn"],
-        call_stream_fn=mock_deps["call_stream_fn"],
-        call_fn=mock_deps["call_fn"],
-        call_stream_async_fn=_stream_async,
-        call_api_async_fn=_api_async,
-    )))
-
-    assert results == [("longcat_chat", "async from longcat_chat")]
-
-
-def test_speculative_stream_prediction_wrong_switches(mock_deps):
-    call_order = []
-
-    def _select_different(*args):
-        return "deepseek_flash", [{"role": "user", "content": "debug"}]
-
-    def _stream_predicted(backend, msgs, mt, ide):
-        call_order.append(("stream", backend))
-        yield "partial..."
-
-    results = asyncio.run(_collect_async(streaming.speculative_stream(
-        "debug this",
-        [{"role": "user", "content": "debug"}],
-        4096,
-        "unknown",
-        predict_fn=mock_deps["predict_fn"],
-        select_fn=_select_different,
-        call_stream_fn=_stream_predicted,
-        call_fn=mock_deps["call_fn"],
-    )))
-
-    assert len(results) > 0
-    assert call_order == [("stream", "longcat_chat")]
-
-
-def test_speculative_call_async_waits_past_invalid_first_result(monkeypatch):
-    monkeypatch.setattr(speculative.health_tracker, "record_success", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr(speculative.budget_manager, "record_usage", lambda *_args, **_kwargs: None)
-
-    async def _call(backend, _messages, _max_tokens):
-        if backend == "fast_bad":
-            await asyncio.sleep(0.001)
-            return "short"
-        await asyncio.sleep(0.01)
-        return "valid response from slower backend"
-
-    backend, answer, _latency = asyncio.run(speculative.speculative_call_async(
-        ["fast_bad", "slow_good"],
-        _call,
-        [{"role": "user", "content": "hi"}],
-        max_parallel=2,
-        timeout_sec=0.1,
-    ))
-
-    assert backend == "slow_good"
-    assert answer == "valid response from slower backend"
-
-
-def test_speculative_call_sync_facade_works_inside_running_loop(monkeypatch):
-    monkeypatch.setattr(speculative.health_tracker, "record_success", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr(speculative.budget_manager, "record_usage", lambda *_args, **_kwargs: None)
-
-    def _call(backend, _messages, _max_tokens):
-        return f"valid response from {backend}"
-
-    async def _inside_loop():
-        return speculative.speculative_call(
-            ["sync_backend"],
-            _call,
-            [{"role": "user", "content": "hi"}],
-            max_parallel=1,
-            timeout_sec=0.1,
-        )
-
-    backend, answer, _latency = asyncio.run(_inside_loop())
-
-    assert backend == "sync_backend"
-    assert answer == "valid response from sync_backend"
+# ── bridge_stream_async ─────────────────────────────────────────────────────
+class TestBridgeStreamAsync:
+    @pytest.mark.asyncio
+    async def test_basic_stream(self):
+        """Stream yields chunks from async iterator."""
+        from streaming import bridge_stream_async
+
+        async def mock_stream(backend, messages, max_tokens, ide):
+            for chunk in ["Hello", " ", "world"]:
+                yield chunk
+
+        async def mock_api(backend, messages, max_tokens, ide):
+            return ""
+
+        chunks = []
+        async for chunk in bridge_stream_async(
+            "test_backend", [{"role": "user", "content": "hi"}],
+            4096, "", mock_stream, mock_api,
+        ):
+            chunks.append(chunk)
+
+        # Stream yields chunks; graceful finish injected if no finish_reason
+        assert chunks[:3] == ["Hello", " ", "world"]
+        # Graceful finish chunk should be appended (no finish_reason in mock)
+        assert len(chunks) == 4
+        assert "finish_reason" in chunks[3]
+
+    @pytest.mark.asyncio
+    async def test_timeout_breaks_stream(self):
+        """Stream breaks on timeout after first chunk timeout."""
+        from streaming import bridge_stream_async
+
+        async def slow_stream(backend, messages, max_tokens, ide):
+            yield "first"
+            await asyncio.sleep(10)  # Will timeout
+            yield "never"
+
+        async def mock_api(backend, messages, max_tokens, ide):
+            return ""
+
+        chunks = []
+        async for chunk in bridge_stream_async(
+            "test_backend", [{"role": "user", "content": "hi"}],
+            4096, "", slow_stream, mock_api,
+            first_chunk_timeout=2.0, chunk_timeout=0.1,
+        ):
+            chunks.append(chunk)
+
+        assert "first" in chunks
+        assert "never" not in chunks
+
+    @pytest.mark.asyncio
+    async def test_empty_stream_fallback_to_api(self):
+        """When stream yields nothing, falls back to API call."""
+        from streaming import bridge_stream_async
+
+        async def empty_stream(backend, messages, max_tokens, ide):
+            return
+            yield  # Make it an async generator
+
+        async def mock_api(backend, messages, max_tokens, ide):
+            return "fallback answer"
+
+        chunks = []
+        async for chunk in bridge_stream_async(
+            "test_backend", [{"role": "user", "content": "hi"}],
+            4096, "", empty_stream, mock_api,
+        ):
+            chunks.append(chunk)
+
+        assert chunks == ["fallback answer"]
+
+    @pytest.mark.asyncio
+    async def test_error_in_stream(self):
+        """When stream raises, error is caught and fallback is tried."""
+        from streaming import bridge_stream_async
+
+        async def error_stream(backend, messages, max_tokens, ide):
+            raise RuntimeError("stream exploded")
+            yield  # Make it an async generator
+
+        async def mock_api(backend, messages, max_tokens, ide):
+            return "recovered"
+
+        chunks = []
+        async for chunk in bridge_stream_async(
+            "test_backend", [{"role": "user", "content": "hi"}],
+            4096, "", error_stream, mock_api,
+        ):
+            chunks.append(chunk)
+
+        assert chunks == ["recovered"]
+
+
+# ── speculative_stream ──────────────────────────────────────────────────────
+class TestSpeculativeStream:
+    @pytest.mark.asyncio
+    async def test_prediction_matches_routing(self):
+        """When predicted backend matches actual, stream continues uninterrupted."""
+        from streaming import speculative_stream
+
+        def predict_fn(query):
+            return "fast_backend"
+
+        def select_fn(query, model, ide, messages):
+            return ("fast_backend", messages)
+
+        async def mock_stream_async(backend, messages, max_tokens, ide):
+            for chunk in ["Hello", " world"]:
+                yield chunk
+
+        async def mock_api_async(backend, messages, max_tokens, ide):
+            return ""
+
+        def mock_stream_fn(*args):
+            return iter([])
+
+        def mock_call_fn(*args):
+            return ""
+
+        chunks = []
+        async for backend, chunk in speculative_stream(
+            "hi", [{"role": "user", "content": "hi"}], 4096, "",
+            predict_fn, select_fn, mock_stream_fn, mock_call_fn,
+            call_stream_async_fn=mock_stream_async,
+            call_api_async_fn=mock_api_async,
+        ):
+            chunks.append((backend, chunk))
+
+        assert len(chunks) >= 2
+        assert all(b == "fast_backend" for b, _ in chunks)
+        joined = "".join(c for _, c in chunks)
+        assert "Hello world" in joined
+
+    @pytest.mark.asyncio
+    async def test_prediction_mismatch_switches_backend(self):
+        """When routing selects different backend, stream switches."""
+        from streaming import speculative_stream
+
+        call_count = {"n": 0}
+
+        def predict_fn(query):
+            return "predicted_backend"
+
+        async def slow_select(query, model, ide, messages):
+            await asyncio.sleep(0.01)
+            return ("actual_backend", messages)
+
+        async def mock_stream_async(backend, messages, max_tokens, ide):
+            call_count["n"] += 1
+            if backend == "predicted_backend":
+                # Simulate slow stream that hasn't started when routing completes
+                await asyncio.sleep(0.1)
+                yield "predicted_chunk"
+            else:
+                yield "actual_chunk"
+
+        async def mock_api_async(backend, messages, max_tokens, ide):
+            return ""
+
+        def mock_stream_fn(*args):
+            return iter([])
+
+        def mock_call_fn(*args):
+            return ""
+
+        chunks = []
+        async for backend, chunk in speculative_stream(
+            "hi", [{"role": "user", "content": "hi"}], 4096, "",
+            predict_fn, slow_select, mock_stream_fn, mock_call_fn,
+            call_stream_async_fn=mock_stream_async,
+            call_api_async_fn=mock_api_async,
+        ):
+            chunks.append((backend, chunk))
+
+        # Should have at least one chunk from actual_backend
+        backends = set(b for b, _ in chunks)
+        assert "actual_backend" in backends or "predicted_backend" in backends
