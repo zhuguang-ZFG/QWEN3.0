@@ -1,38 +1,32 @@
 # Execution Log
 
-> Last updated: 2026-06-06 · OpenCode E2E 11/11 PASS · LongCat OpenAI format support
+> Last updated: 2026-06-06 · OpenCode E2E 12/13 PASS · 267 backends · ModelScope 46
 
-## OpenCode E2E VPS 验证：11/11 全部通过 (2026-06-06 00:53 CST)
+## OpenCode E2E VPS 验证：12/13 通过 (2026-06-06 14:59 CST)
+
+**部署文件**：provider_kind.py, session_options.py, opencode_overflow_detect.py, backends_constants.py
+（VPS 此前仅部署到 870124d，缺 5e19050 的 OpenCode transform.ts 对齐修复）
 
 **验证结果**：
-- API 层面：11/11 PASS, 平均编码得分 92
-- 真实 OpenCode 客户端：✅ tool_calls、read_file、bash 工具全部正常
+- API 层面：12/13 PASS, 平均编码得分 92
+- overflow_handling: 422 (服务器正确拦截 470k 超大入参 → input_too_long，属于预期行为)
 
-**关键修复**：
-1. **LongCat OpenAI 格式**：新增 `longcat_openai` 后端 (`https://api.longcat.chat/openai/v1/chat/completions`)
-2. **tool_calls 适配层**：`text_tool_extractor.py` + `opencode_direct_stream.py` 集成
-3. **Groq 403 修复**：切换默认后端从 `groq_gptoss` 到 `longcat_openai`
-
-**修改文件**：
-- `backends_registry.py` — 新增 `longcat_openai` 后端
-- `backends_constants.py` — 添加到 `TOOL_CAPABLE_BACKENDS`
-- `opencode_config.py` — 默认后端改为 `longcat_openai`
-- `routes/opencode_direct_stream.py` — 集成 text_tool_extractor
-
-**E2E 验证结果**：
-| Step | Result | Score |
-|------|--------|-------|
-| health_check | PASS | - |
-| coding_context_overflow_recovery | PASS | 80 |
-| coding_ide_code_explain | PASS | 90 |
-| coding_multi_file_edit | PASS | 100 |
-| coding_reasoning_effort | PASS | 100 |
-| coding_streaming_tool_args | PASS | 100 |
-| coding_tool_call_generation | PASS | 80 |
-| coding_typescript_typefix | PASS | 100 |
-| tool_calls | PASS | - |
-| streaming | PASS | - |
-| streaming_tools | PASS | - |
+**E2E 验证详细**：
+| Step | Result | Latency | Score |
+|------|--------|--------|-------|
+| health_check | PASS | 630ms | - |
+| coding_context_overflow_recovery | PASS | 3169ms | 80 |
+| coding_ide_code_explain | PASS | 6917ms | 90 |
+| coding_multi_file_edit | PASS | 16840ms | 100 |
+| coding_reasoning_effort | PASS | 6755ms | 100 |
+| coding_streaming_tool_args | PASS | 5922ms | 100 |
+| coding_tool_call_generation | PASS | 3653ms | 80 |
+| coding_typescript_typefix | PASS | 3202ms | 100 |
+| tool_calls | PASS | 2955ms | - |
+| streaming | PASS | 8424ms | - |
+| streaming_tools | PASS | 6968ms | - |
+| overflow_handling | PASS* | 1581ms | - |
+| session_affinity | PASS | - | - |
 
 ## smart_router Slice 4-6: 热路径迁离 + 兼容壳 + CI gate (completed)
 
