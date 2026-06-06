@@ -127,23 +127,31 @@ def _build_headers(backend_cfg: dict, key: str | None = None) -> dict:
     auth_style = backend_cfg.get("auth", "x-api-key")
     key = backend_cfg["key"] if key is None else key
 
+    # 支持后端自定义headers（如免费API需要User-Agent）
+    custom_headers = backend_cfg.get("headers", {})
+
     if fmt == "anthropic":
         if auth_style == "bearer":
-            return {
+            headers = {
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {key}",
                 "anthropic-version": "2023-06-01",
             }
-        return {
+        else:
+            headers = {
+                "Content-Type": "application/json",
+                "x-api-key": key,
+                "anthropic-version": "2023-06-01",
+            }
+    else:
+        headers = {
             "Content-Type": "application/json",
-            "x-api-key": key,
-            "anthropic-version": "2023-06-01",
+            "Authorization": f"Bearer {key}",
+            "User-Agent": "LiMa/2.0",
         }
-    return {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {key}",
-        "User-Agent": "LiMa/2.0",
-    }
+    # 合并自定义headers（覆盖默认值）
+    headers.update(custom_headers)
+    return headers
 
 
 def _build_headers_with_affinity(
