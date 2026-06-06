@@ -21,6 +21,8 @@ def test_csrf_rejects_cross_origin_cookie_request():
             authorization="",
             origin="https://evil.example.com",
             referer="",
+            x_forwarded_host="",
+            host="",
         ))
     assert exc.value.status_code == 403
 
@@ -32,6 +34,8 @@ def test_csrf_allows_matching_origin():
         authorization="",
         origin="https://chat.example.com",
         referer="",
+        x_forwarded_host="",
+        host="",
     )) is None
 
 

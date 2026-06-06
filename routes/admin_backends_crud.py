@@ -117,13 +117,13 @@ def _describe_backend_list() -> list[dict]:
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
-@router.get("/admin/backends", dependencies=[Depends(verify_admin)])
+@router.get("/backends", dependencies=[Depends(verify_admin)])
 async def list_backends():
     """List all backends with overlay status."""
     return {"ok": True, "backends": _describe_backend_list(), "total": len(BACKENDS)}
 
 
-@router.post("/admin/backends", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
+@router.post("/backends", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
 async def add_backend(body: dict):
     """Add a new backend via overlay."""
     name = (body.get("name") or "").strip()
@@ -149,7 +149,7 @@ async def add_backend(body: dict):
     return {"ok": True, "name": name}
 
 
-@router.put("/admin/backends/{name}", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
+@router.put("/backends/{name}", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
 async def update_backend(name: str, body: dict):
     """Update an existing backend via overlay."""
     if name not in BACKENDS and name not in DISABLED_HOST_DEPENDENT_BACKENDS:
@@ -164,7 +164,7 @@ async def update_backend(name: str, body: dict):
     return {"ok": True, "name": name}
 
 
-@router.delete("/admin/backends/{name}", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
+@router.delete("/backends/{name}", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
 async def delete_backend(name: str):
     """Delete a backend by adding it to the overlay delete list."""
     overlay = _read_overlay()
@@ -179,7 +179,7 @@ async def delete_backend(name: str):
     return {"ok": True, "name": name}
 
 
-@router.post("/admin/backends/{name}/test", dependencies=[Depends(verify_admin)])
+@router.post("/backends/{name}/test", dependencies=[Depends(verify_admin)])
 async def test_backend(name: str):
     """Test backend connectivity with a simple chat probe. Uses httpx for proxy awareness."""
     import time
