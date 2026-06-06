@@ -50,6 +50,22 @@ def detect_provider_kind(backend_name: str, model_id: str) -> str:
     if any(p in fn for p in ("venice",)):
         return "venice"
 
+    # Azure (GitHub Models via Azure, Azure OpenAI)
+    if fn.startswith("azure_") or fn.startswith("aoai_"):
+        return "azure"
+
+    # Amazon Bedrock
+    if "bedrock" in fn or fn.startswith("aws_"):
+        return "bedrock"
+
+    # Alibaba / DashScope
+    if "alibaba" in fn or "dashscope" in fn:
+        return "alibaba"
+
+    # SAP AI Core
+    if "sap" in fn:
+        return "sap_ai"
+
     # SCNet hosts DeepSeek models
     if "scnet" in fn or "deepseek" in mid or "deepseek" in fn:
         if any(t in mid for t in ("r1", "reasoner", "thinking")):
@@ -64,11 +80,16 @@ def detect_provider_kind(backend_name: str, model_id: str) -> str:
     if "qwen" in mid or "qwq" in mid:
         return "qwen"
 
+    # Baseten
+    if "baseten" in fn:
+        return "baseten"
+
     if "cf_" in fn:
         return "cloudflare_gateway"
     if "opencode_" in fn:
         return "opencode_zen"
-    if "zhipu" in fn:
+    # ZhipuAI / ZAI (z.ai)
+    if any(t in fn for t in ("zhipu", "zai")):
         return "openai_compatible"
 
     return "openai_compatible"

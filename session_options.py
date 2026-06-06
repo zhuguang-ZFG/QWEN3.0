@@ -43,11 +43,13 @@ def resolve_session_options(
             result["reasoning"] = {"effort": "high"}
 
     # enable_thinking for specific models on opencode zen / baseten
-    if pk == "opencode_zen" and any(t in mid for t in ("kimi-k2-thinking", "glm-4.6")):
+    # transform.ts:1064-1069 — baseten and opencode with kimi-k2-thinking/glm-4.6
+    if pk in ("opencode_zen", "baseten") and any(t in mid for t in ("kimi-k2-thinking", "glm-4.6")):
         result["chat_template_args"] = {"enable_thinking": True}
-
-    # ZhipuAI: thinking enabled with clear_thinking=false
-    if "zhipu" in backend_name.lower() and pk == "openai_compatible":
+    
+    # ZhipuAI/ZAI: thinking enabled with clear_thinking=false
+    # transform.ts:1071-1079
+    if any(t in backend_name.lower() for t in ("zhipu", "zai")) and pk == "openai_compatible":
         result["thinking"] = {"type": "enabled", "clear_thinking": False}
 
     # OpenAI provider: set promptCacheKey with session ID
@@ -69,8 +71,15 @@ def resolve_session_options(
     if "alibaba" in backend_name.lower() and reasoning_capable and "kimi-k2-thinking" not in mid:
         result["enable_thinking"] = True
 
+    # Azure gpt-5.5: only reasoningSummary=auto, early return
+    # transform.ts:1122-1125
+    if pk == "azure" and "gpt-5.5" in mid:
+        result["reasoningSummary"] = "auto"
+        return result
+
     # GPT-5 family: default reasoning_effort=medium, textVerbosity=low
     # Exclude: chat, pro, mini (no reasoning_effort support)
+    # transform.ts:1127-1152
     if "gpt-5" in mid and not any(e in mid for e in ("gpt-5-chat", "gpt-5-pro", "gpt-5-mini")):
         result["reasoningEffort"] = "medium"
         result["reasoningSummary"] = "auto"

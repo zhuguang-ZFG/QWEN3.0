@@ -83,8 +83,12 @@ class TestIsOverflowError:
     def test_400_no_body(self):
         assert is_overflow_error("400 status code (no body)")
 
-    def test_403_no_body(self):
-        assert is_overflow_error("403 (no body)")
+    def test_403_no_body_not_overflow(self):
+        # 403 is Forbidden, not overflow — only 400/413 no-body match (error.ts:58-62)
+        assert not is_overflow_error("403 (no body)")
+
+    def test_413_no_body(self):
+        assert is_overflow_error("413 (no body)")
 
     # ── error.code detection ──
 

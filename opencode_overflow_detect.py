@@ -100,9 +100,10 @@ for _p in _ALL_OVERFLOW_PATTERNS:
         _seen.add(_p.pattern)
         _UNIQUE_PATTERNS.append(_p)
 
-# ── No-body 状态码模式 (error.ts:94-98) ────────────────────────────────────
+# ── No-body 状态码模式 (error.ts:58-62) ────────────────────────────────────
+# Cerebras/Mistral often return "400 (no body)" / "413 (no body)" on overflow
 _NO_BODY_PATTERN = re.compile(
-    r"^4(00|03)\s*(status code)?\s*\(no body\)", re.IGNORECASE,
+    r"^4(00|13)\s*(status code)?\s*\(no body\)", re.IGNORECASE,
 )
 
 
