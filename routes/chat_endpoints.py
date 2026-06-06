@@ -6,6 +6,7 @@ owns HTTP parsing, rate limiting, vision short-circuiting, and protocol wrapping
 from __future__ import annotations
 
 import json
+import logging
 import os
 import time
 import uuid
@@ -31,6 +32,7 @@ from opencode_config import OPENCODE_TOOL_MODE, OPENCODE_RATE_MULTIPLIER
 router = APIRouter()
 
 _deps: dict[str, Any] = {}
+_log = logging.getLogger(__name__)
 
 
 def inject_deps(**kwargs: Any) -> None:
@@ -275,8 +277,8 @@ async def _wrap_tool_stream_with_recording(
                         data = _json.loads(line[6:])
                         backend_model = data.get("message", {}).get("model", "tool")
                         break
-            except Exception:
-                pass  # non-critical model name extraction
+            except Exception as exc:
+                _log.debug("tool stream model extraction failed: %s", type(exc).__name__, exc_info=True)
         yield chunk
     duration_ms = int((time.time() - t0) * 1000)
     _call(

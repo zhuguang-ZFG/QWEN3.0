@@ -155,7 +155,7 @@ def restart_server() -> bool:
 
     try:
         _exec_checked(ssh, f"find {REMOTE} -type d -name __pycache__ -exec rm -rf {{}} + 2>/dev/null || true")
-        _exec_checked(ssh, _stop_port_8080_cmd())
+        _exec_checked(ssh, _stop_port_8080_cmd(), timeout=60)
         _exec_checked(
             ssh,
             f"cd {REMOTE} && "
@@ -179,16 +179,33 @@ def _exec_checked(ssh: paramiko.SSHClient, command: str, timeout: int = 30) -> s
 
 def _stop_port_8080_cmd() -> str:
     return r"""
-PID=$(ss -tlnp | awk '/:8080/{print $NF}' | sed -n 's/.*pid=\([0-9]*\).*/\1/p' | head -1)
-if [ -n "$PID" ]; then
+# Kill the process owning port 8080 and wait until the port is truly free
+attempt=1
+while [ "$attempt" -le 10 ]; do
+  PID=$(ss -tlnp 2>/dev/null | awk '/:8080/{print $NF}' | sed -n 's/.*pid=\([0-9]*\).*/\1/p' | head -1)
+  if [ -z "$PID" ]; then
+    break
+  fi
+  echo "Stopping PID $PID on port 8080 (attempt $attempt)"
   kill -TERM "$PID" 2>/dev/null || true
-  sleep 3
+  sleep 2
   if kill -0 "$PID" 2>/dev/null; then
     kill -KILL "$PID" 2>/dev/null || true
+    sleep 1
   fi
-fi
+  attempt=$((attempt + 1))
+done
 fuser -k 8080/tcp 2>/dev/null || true
-sleep 1
+# Wait until port is truly free
+wait_attempt=1
+while [ "$wait_attempt" -le 15 ]; do
+  if ! ss -tlnp 2>/dev/null | grep -q ':8080 '; then
+    break
+  fi
+  echo "Waiting for port 8080 to be released... ($wait_attempt)"
+  sleep 1
+  wait_attempt=$((wait_attempt + 1))
+done
 exit 0
 """.strip()
 

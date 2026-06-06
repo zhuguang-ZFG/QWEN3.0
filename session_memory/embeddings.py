@@ -65,7 +65,13 @@ def save_memory_with_embedding(
         try:
             from session_memory.chroma_store import add_memory
             add_memory(entry_id, session_id, summary, memory_type)
-        except Exception:
-            pass  # ChromaDB sync is best-effort
+        except Exception as exc:
+            _log.warning(
+                "ChromaDB memory sync failed entry_id=%s session_id=%s reason=%s",
+                entry_id,
+                session_id,
+                type(exc).__name__,
+                exc_info=True,
+            )
 
     return entry_id

@@ -19,8 +19,7 @@
     "smart_router.py",
     "http_caller.py",
     "server.py",
-    "speculative.py",
-    "voice_gateway.py"
+    "speculative.py"
   ],
   "exclude": [
     "**/__pycache__",

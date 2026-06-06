@@ -136,6 +136,7 @@ net/new-site/.next/
 # === 数据文件 ===
 *.jsonl
 data/distill_queue/
+data/chroma_memory/
 data/usage.json
 ab_results/
 anti_hallucination_full.json
@@ -169,6 +170,8 @@ _*.tmp
 /run_r*_test.py
 /stress*_runner.py
 /net/auto_deploy.py
+/check_vps.py
+.learnings/
 
 # === 系统 ===
 .DS_Store

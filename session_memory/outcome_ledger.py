@@ -122,8 +122,9 @@ def _get_conn() -> sqlite3.Connection:
     ]:
         try:
             conn.execute(f"ALTER TABLE outcomes ADD COLUMN {col} {col_type}")
-        except sqlite3.OperationalError:
-            pass  # column already exists
+        except sqlite3.OperationalError as exc:
+            if "duplicate column name" not in str(exc).lower():
+                raise
     conn.execute("CREATE INDEX IF NOT EXISTS idx_outcomes_source ON outcomes(source, recorded_at DESC)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_outcomes_task ON outcomes(task_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_outcomes_loop ON outcomes(loop, outcome)")
