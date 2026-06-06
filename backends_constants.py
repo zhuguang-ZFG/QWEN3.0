@@ -103,6 +103,14 @@ CODE_CAPABLE_BACKENDS = frozenset({
     'ogw_grok', 'ogw_kimi', 'ogw_glm5', 'ogw_minimax',
     # Agnes AI (Sapiens AI, 新加坡免费网关)
     'agnes20', 'agnes15',
+    # ModelScope 扩展 (2026-06-06)
+    'ms_ds_v32', 'ms_ds_r1',
+    'ms_qwen3_235b', 'ms_qwen3_235b_think',
+    'ms_qwen3_32b', 'ms_qwen3_coder_30b',
+    'ms_qwen3_next_80b', 'ms_qwen3_next_80b_think',
+    'ms_qwen35_35b', 'ms_qwen35_122b', 'ms_qwen35_397b',
+    'ms_glm51', 'ms_step37',
+    'ms_mistral_large', 'ms_llama4', 'ms_interns2',
 })
 
 # Backends that reliably support tool_calls (OpenAI function calling format)
@@ -125,6 +133,11 @@ TOOL_CAPABLE_BACKENDS = frozenset({
     'ogw_grok', 'ogw_kimi', 'ogw_glm5', 'ogw_minimax',
     # Agnes AI
     'agnes20', 'agnes15',
+    # ModelScope (existing)
+    'ms_deepseek_v4', 'ms_qwen35_27b', 'ms_kimi_k25', 'ms_glm5',
+    # ModelScope 扩展 (2026-06-06)
+    'ms_ds_v32', 'ms_qwen3_235b', 'ms_qwen3_coder_30b',
+    'ms_qwen3_next_80b', 'ms_qwen35_122b', 'ms_glm51', 'ms_step37',
     # China Mobile
     'chinamobile',
     # Longcat (Anthropic format, but supports tool_calls)
