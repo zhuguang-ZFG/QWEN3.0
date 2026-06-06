@@ -1,6 +1,54 @@
 # Execution Log
 
-> Last updated: 2026-06-06 · System Cohesion Fix deployed · 4 gaps closed · VPS health OK
+> Last updated: 2026-06-06 · VPS full verification · Smoke 10/10 · OpenCode 8/8 · AGENTS.md rewrite
+
+## VPS 全功能验证 + AGENTS.md 重写 (2026-06-06)
+
+**目标**：AGENTS.md 重写部署 + VPS 全端点验证 + OpenCode 真实联调
+
+### AGENTS.md 重写
+- 从 93 行扩展到 273 行，新增完整架构文档
+- 新增：Routing Engine 5 层表、Backend Registry schema、HTTP Transport 分解表
+- 新增：OpenCode 20+ 模块族完整列表、Module Ownership 矩阵(17行)
+- 新增：Key Environment Variables 表、Server Lifespan 启动序列(9 服务)
+- 新增：Superpowers 原则 6 条、Documentation Authority 表格(11 文档)
+
+### Nginx 修复
+- **问题**：Nginx 配置缺少 `location ^~ /api/` 代理规则，admin API 请求走了静态文件返回 HTML
+- **修复**：在 `/etc/nginx/conf.d/chat.donglicao.com.conf` 添加 `/api/` location block
+- 备份文件：`.bak.api-fix`
+
+### VPS Smoke 测试 — 10/10 PASS
+| # | 端点 | 结果 |
+|---|------|------|
+| 1 | GET /health | 200, 16 modules |
+| 2 | GET /v1/models | 200, models list |
+| 3 | POST /v1/chat/completions (OpenAI) | 200, streaming |
+| 4 | POST /v1/messages (Anthropic) | 200, streaming |
+| 5 | GET /v1/status | 200, routing info |
+| 6 | GET /v1/ops/metrics | 200, metrics data |
+| 7 | GET /admin/api/backends | 200, backend list |
+| 8 | GET /admin/api/traces | 200, trace list |
+| 9 | POST /v1/chat/completions (tools) | 200, tool calls |
+| 10 | GET /v1/models (public HTTPS) | 200, via Cloudflare |
+
+### OpenCode 联调测试 — 8/8 PASS
+| # | 测试 | 结果 |
+|---|------|------|
+| 1 | IDE 检测 (UA + system prompt) | PASS |
+| 2 | 工具调用 (file read/write) | PASS |
+| 3 | 流式 + 工具混合 | PASS |
+| 4 | 多轮对话 | PASS |
+| 5 | Anthropic 流式协议 | PASS |
+| 6 | Reasoning effort | PASS |
+| 7 | 多工具并行调用 | PASS |
+| 8 | Overflow guard (50K chars) | PASS (120s timeout) |
+
+**发现**：VPS 日志有 `code_orchestrator` 的 `ide_source` 参数 warning（非关键，不影响功能）
+**部署文件**：AGENTS.md
+**VPS**：47.112.162.80, lima-router.service active, health OK
+
+---
 
 ## 系统通顺性修复 (2026-06-06)
 

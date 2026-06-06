@@ -2,6 +2,29 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-06-06 VPS full verification + Nginx /api/ fix
+
+### Nginx /api/ 代理缺失
+- **根因**：`/etc/nginx/conf.d/chat.donglicao.com.conf` 只有 `/admin/api/` location，没有通用 `/api/` 代理
+- **影响**：admin API 请求走了默认 `location /` 的 `try_files`，返回静态 HTML 而非 API JSON
+- **修复**：添加 `location ^~ /api/` block + `proxy_pass http://127.0.0.1:8080`
+- **备份**：`.bak.api-fix`
+
+### 认证体系梳理
+- API 认证：`Authorization: Bearer {LIMA_API_KEY}`（`access_guard.py`）
+- Admin 认证：`LIMA_ADMIN_TOKEN`（`routes/admin_auth.py`）
+- `x-api-key` header **不被支持**，Anthropic 端点也必须用 Bearer
+
+### code_orchestrator ide_source warning
+- VPS 日志：`TypeError: handle() got an unexpected keyword argument 'ide_source'`
+- 非关键，不影响聊天功能，但应后续清理
+
+### Smoke 10/10 + OpenCode 8/8
+- 双协议 (OpenAI + Anthropic) streaming 正常
+- Admin API (`/admin/api/backends`, `/admin/api/traces`) 正常
+- Ops metrics (`/v1/ops/metrics`) 正常
+- OpenCode IDE 检测、工具调用、流式工具、多轮对话、overflow guard 全部通过
+
 ## 2026-06-05 smart_router Slice 4-6 + VPS/OpenCode E2E closeout
 
 ### 变更
