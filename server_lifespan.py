@@ -37,12 +37,14 @@ async def lifespan(application):
         await start_daemon()
     except ImportError:
         _log.debug("session_memory.daemon not installed")
-    try:
-        from routes.telegram import start_telegram_webhook
 
-        await start_telegram_webhook()
-    except ImportError:
-        _log.debug("routes.telegram not installed")
+    # Telegram webhook disabled (user request: rarely used)
+    # try:
+    #     from routes.telegram import start_telegram_webhook
+    #     await start_telegram_webhook()
+    # except ImportError:
+    #     _log.debug("routes.telegram not installed")
+
     try:
         from routes.device_gateway import start_device_gateway_runtime
 

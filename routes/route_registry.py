@@ -210,14 +210,15 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
         logging.warning("[STARTUP] outcome_ingest not loaded: %s", exc)
         deps.loaded_modules["outcome_ingest"] = False
 
-    try:
-        from routes.telegram import router as telegram_router
-
-        app.include_router(telegram_router)
-        deps.loaded_modules["telegram"] = True
-    except ImportError as exc:
-        logging.warning("[STARTUP] telegram module not loaded: %s", exc)
-        deps.loaded_modules["telegram"] = False
+    # Telegram router disabled (user request: rarely used)
+    # try:
+    #     from routes.telegram import router as telegram_router
+    #     app.include_router(telegram_router)
+    #     deps.loaded_modules["telegram"] = True
+    # except ImportError as exc:
+    #     logging.warning("[STARTUP] telegram module not loaded: %s", exc)
+    #     deps.loaded_modules["telegram"] = False
+    deps.loaded_modules["telegram"] = False  # Explicitly disabled
 
     try:
         from routes.github_webhook import router as github_webhook_router
