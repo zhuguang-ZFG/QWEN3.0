@@ -7,6 +7,12 @@ import time
 import uuid
 
 from converters.responses_errors import chat_error_from_chunk, failed_response_payload
+from converters.responses_stream_items import (
+    completed_message_item,
+    completed_reasoning_item,
+    completed_tool_item,
+    incomplete_reason,
+)
 from converters.responses_usage import chat_usage_to_responses_usage
 
 
@@ -212,18 +218,20 @@ class ResponsesStreamConverter:
         output_items: list[dict] = []
         if self.reasoning_started:
             events.extend(self._complete_reasoning_item())
-            output_items.append(self._completed_reasoning_item())
+            output_items.append(
+                completed_reasoning_item(self.reasoning_item_id, self.reasoning_text)
+            )
         for _idx, entry in sorted(self.tool_items.items()):
             if not entry["announced"]:
                 continue
-            item = _completed_tool_item(entry)
+            item = completed_tool_item(entry)
             output_items.append(item)
             events.append(_sse_event("response.output_item.done", {
                 "output_index": entry["output_index"],
                 "item": item,
             }))
         if self.text_part_started:
-            item = self._completed_message_item()
+            item = completed_message_item(self.message_item_id, self.text_content)
             output_items.append(item)
             events.append(_sse_event("response.output_item.done", {
                 "output_index": self.message_output_index,
@@ -255,29 +263,11 @@ class ResponsesStreamConverter:
         }
 
     def _incomplete_details(self) -> dict | None:
-        reason = _incomplete_reason(self.finish_reason)
+        reason = incomplete_reason(self.finish_reason)
         return {"reason": reason} if reason else None
 
-    def _completed_message_item(self) -> dict:
-        return {
-            "type": "message",
-            "id": self.message_item_id,
-            "role": "assistant",
-            "status": "completed",
-            "content": [{"type": "output_text", "text": self.text_content}],
-        }
-
-    def _completed_reasoning_item(self) -> dict:
-        return {
-            "type": "reasoning",
-            "id": self.reasoning_item_id,
-            "status": "completed",
-            "summary": [{"type": "summary_text", "text": self.reasoning_text}],
-            "encrypted_content": None,
-        }
-
     def _complete_reasoning_item(self) -> list[str]:
-        item = self._completed_reasoning_item()
+        item = completed_reasoning_item(self.reasoning_item_id, self.reasoning_text)
         return [
             _sse_event("response.reasoning_summary_part.done", {
                 "item_id": self.reasoning_item_id,
@@ -311,22 +301,3 @@ def _reasoning_delta(delta: dict) -> str:
         if isinstance(value, str) and value:
             return value
     return ""
-
-
-def _incomplete_reason(finish_reason: str) -> str:
-    if finish_reason == "length":
-        return "max_output_tokens"
-    if finish_reason == "content_filter":
-        return "content_filter"
-    return ""
-
-
-def _completed_tool_item(entry: dict) -> dict:
-    return {
-        "type": "function_call",
-        "id": entry["id"],
-        "call_id": entry["call_id"],
-        "name": entry["name"],
-        "arguments": entry["arguments"] or "{}",
-        "status": "completed",
-    }
