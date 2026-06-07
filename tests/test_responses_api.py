@@ -284,6 +284,10 @@ def test_stream_converter_emits_text_deltas():
         and event.get("item", {}).get("type") == "message"
     ]
     assert done_messages[0]["content"] == [{"type": "output_text", "text": "Hello"}]
+    terminal = _responses_events(out)[-1]
+    assert terminal["response"]["output"][0]["content"] == [
+        {"type": "output_text", "text": "Hello"}
+    ]
 
 
 def test_stream_converter_maps_length_finish_to_response_incomplete():
@@ -409,3 +413,5 @@ def test_stream_converter_suppresses_tool_argument_delta_until_tool_is_announced
     assert '"output_index": null' not in out
     assert "response.output_item.added" in out
     assert '"arguments": "{\\"path\\":\\"AGENTS.md\\"}"' in out
+    terminal = _responses_events(out)[-1]
+    assert terminal["response"]["output"][0]["arguments"] == "{\"path\":\"AGENTS.md\"}"

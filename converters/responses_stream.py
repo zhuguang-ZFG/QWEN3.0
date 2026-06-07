@@ -209,32 +209,25 @@ class ResponsesStreamConverter:
         if self.failed:
             return []
         events: list[str] = []
+        output_items: list[dict] = []
         if self.reasoning_started:
             events.extend(self._complete_reasoning_item())
+            output_items.append(self._completed_reasoning_item())
         for _idx, entry in sorted(self.tool_items.items()):
             if not entry["announced"]:
                 continue
+            item = _completed_tool_item(entry)
+            output_items.append(item)
             events.append(_sse_event("response.output_item.done", {
                 "output_index": entry["output_index"],
-                "item": {
-                    "type": "function_call",
-                    "id": entry["id"],
-                    "call_id": entry["call_id"],
-                    "name": entry["name"],
-                    "arguments": entry["arguments"] or "{}",
-                    "status": "completed",
-                },
+                "item": item,
             }))
         if self.text_part_started:
+            item = self._completed_message_item()
+            output_items.append(item)
             events.append(_sse_event("response.output_item.done", {
                 "output_index": self.message_output_index,
-                "item": {
-                    "type": "message",
-                    "id": self.message_item_id,
-                    "role": "assistant",
-                    "status": "completed",
-                    "content": [{"type": "output_text", "text": self.text_content}],
-                },
+                "item": item,
             }))
         usage = self._usage()
         incomplete_details = self._incomplete_details()
@@ -247,7 +240,7 @@ class ResponsesStreamConverter:
                 "status": status,
                 "created_at": self.created_at,
                 "model": self.model,
-                "output": [],
+                "output": output_items,
                 "usage": usage,
                 "incomplete_details": incomplete_details,
             },
@@ -265,24 +258,36 @@ class ResponsesStreamConverter:
         reason = _incomplete_reason(self.finish_reason)
         return {"reason": reason} if reason else None
 
+    def _completed_message_item(self) -> dict:
+        return {
+            "type": "message",
+            "id": self.message_item_id,
+            "role": "assistant",
+            "status": "completed",
+            "content": [{"type": "output_text", "text": self.text_content}],
+        }
+
+    def _completed_reasoning_item(self) -> dict:
+        return {
+            "type": "reasoning",
+            "id": self.reasoning_item_id,
+            "status": "completed",
+            "summary": [{"type": "summary_text", "text": self.reasoning_text}],
+            "encrypted_content": None,
+        }
+
     def _complete_reasoning_item(self) -> list[str]:
-        summary = [{"type": "summary_text", "text": self.reasoning_text}]
+        item = self._completed_reasoning_item()
         return [
             _sse_event("response.reasoning_summary_part.done", {
                 "item_id": self.reasoning_item_id,
                 "output_index": self.reasoning_output_index,
                 "summary_index": 0,
-                "part": summary[0],
+                "part": item["summary"][0],
             }),
             _sse_event("response.output_item.done", {
                 "output_index": self.reasoning_output_index,
-                "item": {
-                    "type": "reasoning",
-                    "id": self.reasoning_item_id,
-                    "status": "completed",
-                    "summary": summary,
-                    "encrypted_content": None,
-                },
+                "item": item,
             }),
         ]
 
@@ -314,3 +319,14 @@ def _incomplete_reason(finish_reason: str) -> str:
     if finish_reason == "content_filter":
         return "content_filter"
     return ""
+
+
+def _completed_tool_item(entry: dict) -> dict:
+    return {
+        "type": "function_call",
+        "id": entry["id"],
+        "call_id": entry["call_id"],
+        "name": entry["name"],
+        "arguments": entry["arguments"] or "{}",
+        "status": "completed",
+    }
