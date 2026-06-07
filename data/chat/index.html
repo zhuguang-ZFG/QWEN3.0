@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>LiMa Chat</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#fff;--bg2:#f5f5f7;--bg3:#e8e8ed;--text:#1d1d1f;--text2:#86868b;--text3:#aeaeb2;
+  --accent:#0071e3;--glass:rgba(255,255,255,.72);--glass-b:rgba(0,0,0,.08);
+  --user-bg:#0071e3;--ai-bg:#f5f5f7;--code-bg:#1e1e1e;--radius:16px;--rs:10px;
+  --font:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text','Helvetica Neue',sans-serif;
+  --sw:280px}
+[data-theme="dark"]{--bg:#000;--bg2:#1c1c1e;--bg3:#2c2c2e;--text:#f5f5f7;--text2:#98989d;--text3:#636366;
+  --glass:rgba(28,28,30,.72);--glass-b:rgba(255,255,255,.08);--user-bg:#0a84ff;--ai-bg:#1c1c1e;--code-bg:#0d0d0d}
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--text);overflow:hidden}
+.app{display:flex;height:100dvh}
+/* Sidebar */
+.sb{width:var(--sw);background:var(--bg2);border-right:1px solid var(--glass-b);display:flex;
+  flex-direction:column;flex-shrink:0;transition:transform .3s cubic-bezier(.4,0,.2,1);z-index:100}
+.sb-head{padding:16px;display:flex;align-items:center;justify-content:space-between}
+.sb-logo{font-size:18px;font-weight:700;letter-spacing:-.02em}
+.sb-logo b{color:var(--accent)}
+.sb-new{width:34px;height:34px;border:none;border-radius:var(--rs);background:var(--bg3);color:var(--text);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s}
+.sb-new:hover{background:var(--accent);color:#fff}
+.sb-search{padding:0 12px 8px}
+.sb-search input{width:100%;padding:8px 12px;border:none;border-radius:var(--rs);background:var(--bg3);
+  color:var(--text);font-size:13px;outline:none}
+.sb-search input::placeholder{color:var(--text3)}
+.sb-list{flex:1;overflow-y:auto;padding:4px 8px;scrollbar-width:thin}
+.sb-item{padding:10px 12px;border-radius:var(--rs);cursor:pointer;margin-bottom:2px;display:flex;
+  align-items:center;gap:8px;transition:background .15s}
+.sb-item:hover{background:var(--bg3)}
+.sb-item.on{background:var(--accent);color:#fff}
+.sb-item.on .sb-time{color:rgba(255,255,255,.6)}
+.sb-t{flex:1;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-time{font-size:11px;color:var(--text3);flex-shrink:0}
+.sb-del{opacity:0;width:18px;height:18px;border:none;background:none;color:inherit;cursor:pointer;
+  font-size:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.sb-item:hover .sb-del{opacity:.6}
+.sb-del:hover{opacity:1!important}
+/* Main */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;position:relative}
+.main-head{padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--glass-b);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);position:sticky;top:0;z-index:10;
+  background:var(--glass)}
+.hamburger{display:none;width:34px;height:34px;border:none;border-radius:var(--rs);background:none;
+  color:var(--text);cursor:pointer;font-size:20px}
+.head-title{flex:1;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.head-actions{display:flex;gap:6px}
+.hbtn{width:34px;height:34px;border:none;border-radius:var(--rs);background:var(--bg3);color:var(--text);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s}
+.hbtn:hover{background:var(--accent);color:#fff}
+.hbtn.on{background:var(--accent);color:#fff}
+/* Chat area */
+.chat{flex:1;overflow-y:auto;padding:20px 0;scroll-behavior:smooth;scrollbar-width:thin}
+.chat-inner{max-width:780px;margin:0 auto;padding:0 20px}
+/* Welcome */
+.welcome{text-align:center;padding:60px 20px}
+.welcome-icon{font-size:56px;margin-bottom:16px}
+.welcome h2{font-size:28px;font-weight:700;margin-bottom:8px;letter-spacing:-.02em}
+.welcome p{color:var(--text2);font-size:15px;margin-bottom:32px;line-height:1.6}
+.suggest{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:520px;margin:0 auto}
+.suggest button{padding:10px 18px;border:1px solid var(--glass-b);border-radius:20px;background:var(--bg2);
+  color:var(--text);font-size:13px;cursor:pointer;transition:all .2s;font-family:var(--font)}
+.suggest button:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+/* Messages */
+.msg{display:flex;gap:12px;margin-bottom:20px;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.msg.user{flex-direction:row-reverse}
+.msg-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:16px;flex-shrink:0;background:var(--bg3)}
+.msg.user .msg-avatar{background:var(--accent);color:#fff}
+.msg-body{max-width:85%;min-width:60px}
+.msg-bubble{padding:12px 16px;border-radius:var(--radius);font-size:14.5px;line-height:1.7;word-break:break-word}
+.msg.user .msg-bubble{background:var(--user-bg);color:#fff;border-bottom-right-radius:4px}
+.msg.ai .msg-bubble{background:var(--ai-bg);border-bottom-left-radius:4px}
+.msg-bubble p{margin-bottom:8px}
+.msg-bubble p:last-child{margin-bottom:0}
+.msg-bubble ul,.msg-bubble ol{margin:8px 0;padding-left:24px}
+.msg-bubble li{margin-bottom:4px}
+.msg-bubble a{color:var(--accent);text-decoration:none}
+.msg-bubble a:hover{text-decoration:underline}
+.msg-bubble strong{font-weight:600}
+.msg-bubble code{font-family:'SF Mono','Fira Code',monospace;font-size:13px;background:var(--code-bg);
+  color:#e0e0e0;padding:2px 6px;border-radius:4px}
+.msg-bubble pre{background:var(--code-bg);border-radius:var(--rs);margin:10px 0;overflow:hidden;position:relative}
+.msg-bubble pre code{display:block;padding:16px;overflow-x:auto;background:none;color:#e0e0e0;font-size:13px;line-height:1.5}
+.msg-bubble .copy-code{position:absolute;top:8px;right:8px;padding:4px 10px;border:none;border-radius:6px;
+  background:rgba(255,255,255,.1);color:#aaa;font-size:11px;cursor:pointer;transition:all .2s;font-family:var(--font)}
+.msg-bubble .copy-code:hover{background:rgba(255,255,255,.2);color:#fff}
+.msg-actions{display:flex;gap:4px;margin-top:4px;opacity:0;transition:opacity .2s}
+.msg:hover .msg-actions{opacity:1}
+.mbtn{padding:2px 8px;border:none;border-radius:6px;background:none;color:var(--text3);font-size:11px;
+  cursor:pointer;transition:all .15s;font-family:var(--font)}
+.mbtn:hover{background:var(--bg3);color:var(--text)}
+.retry-btn{padding:6px 16px;border:none;border-radius:var(--rs);background:var(--accent);color:#fff;cursor:pointer;font-size:13px;margin-top:6px;font-family:var(--font)}
+.retry-btn:hover{filter:brightness(1.1)}
+.voice-popup{position:fixed;bottom:80px;right:20px;z-index:9999;background:var(--bg2);border-radius:var(--rr);box-shadow:0 8px 32px rgba(0,0,0,.25);padding:14px;min-width:220px;max-height:400px;overflow-y:auto}
+.voice-popup h4{margin:0 0 10px;font-size:14px;color:var(--text)}
+.voice-item{display:flex;align-items:center;padding:8px 10px;border-radius:var(--rs);cursor:pointer;margin-bottom:4px;transition:background .2s}
+.voice-item:hover{background:var(--bg3)}
+.voice-item.playing{background:var(--bg3);border-left:3px solid var(--accent)}
+.voice-dot{width:8px;height:8px;border-radius:50%;margin-right:10px;flex-shrink:0}
+.voice-dot.f{background:#ff6b9d}.voice-dot.m{background:#4dabf7}
+.voice-name{font-size:13px;font-weight:500}.voice-desc{font-size:11px;color:var(--text3);margin-left:6px}
+.tts-loading{display:inline-block;width:14px;height:14px;border:2px solid var(--text3);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:4px}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* Thinking indicator */
+.thinking-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:12px;
+  background:var(--bg3);font-size:12px;color:var(--text2);margin-bottom:8px}
+.thinking-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.4s infinite}
+@keyframes pulse{0%,80%,100%{opacity:.3;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+/* Input panel */
+.input-panel{padding:12px 20px 20px;border-top:1px solid var(--glass-b);background:var(--bg);
+  padding-bottom:max(20px,env(safe-area-inset-bottom))}
+.input-inner{max-width:780px;margin:0 auto}
+.input-bar{display:flex;align-items:flex-end;gap:8px;background:var(--bg2);border:1px solid var(--glass-b);
+  border-radius:var(--radius);padding:8px 12px;transition:border-color .2s}
+.input-bar:focus-within{border-color:var(--accent)}
+.input-bar textarea{flex:1;border:none;background:none;color:var(--text);font-size:14.5px;font-family:var(--font);
+  resize:none;outline:none;max-height:160px;line-height:1.5;padding:4px 0}
+.input-bar textarea::placeholder{color:var(--text3)}
+.ibtn{width:34px;height:34px;border:none;border-radius:50%;background:none;color:var(--text2);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;transition:all .2s}
+.ibtn:hover{color:var(--accent);background:var(--bg3)}
+.ibtn.send{background:var(--accent);color:#fff;font-size:20px}
+.ibtn.send:hover{opacity:.85}
+.ibtn.send:disabled{opacity:.3;cursor:not-allowed}
+.ibtn.stop{background:#ff453a!important;opacity:1!important;animation:pulse 1.4s infinite}
+.input-tools{display:flex;align-items:center;gap:8px;margin-top:8px}
+.mode-pill{padding:5px 14px;border:1px solid var(--glass-b);border-radius:16px;background:none;color:var(--text2);
+  font-size:12px;cursor:pointer;transition:all .2s;font-family:var(--font)}
+.mode-pill:hover,.mode-pill.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.input-right{margin-left:auto;display:flex;gap:4px}
+/* Image preview */
+.img-prev{display:none;margin-bottom:8px;position:relative;width:fit-content}
+.img-prev img{max-height:80px;border-radius:var(--rs);border:1px solid var(--glass-b)}
+.img-prev .rm{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border:none;border-radius:50%;
+  background:var(--text3);color:#fff;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center}
+/* Overlay */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:90}
+/* Responsive */
+@media(max-width:768px){
+  .sb{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%)}
+  .sb.open{transform:translateX(0)}
+  .overlay.open{display:block}
+  .hamburger{display:flex}
+  .chat-inner{padding:0 12px}
+  .input-panel{padding:8px 12px 16px}
+  .msg-body{max-width:90%}
+  .welcome{padding:40px 12px}
+  .welcome h2{font-size:22px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sb" id="sb">
+    <div class="sb-head">
+      <div class="sb-logo"><b>LiMa</b> Chat</div>
+      <button class="sb-new" onclick="newConv()" title="新对话">+</button>
+    </div>
+    <div class="sb-search"><input id="sbSearch" placeholder="搜索对话..." oninput="renderList()"></div>
+    <div class="sb-list" id="sbList"></div>
+  </aside>
+  <div class="overlay" id="overlay" onclick="toggleSb()"></div>
+  <main class="main">
+    <header class="main-head">
+      <button class="hamburger" onclick="toggleSb()">☰</button>
+      <span class="head-title" id="headTitle">新对话</span>
+      <div class="head-actions">
+        <button class="hbtn" id="themeBtn" onclick="toggleTheme()" title="切换主题">🌙</button>
+        <button class="hbtn" onclick="exportChat()" title="导出对话">📥</button>
+        <button class="hbtn" onclick="clearAll()" title="清空对话">🗑️</button>
+      </div>
+    </header>
+    <div class="chat" id="chatArea">
+      <div class="chat-inner" id="chatInner">
+        <div class="welcome" id="welcome">
+          <div class="welcome-icon">🧠</div>
+          <h2>你好，我是 LiMa</h2>
+          <p>你的智能 AI 助手，100+ 后端模型智能路由<br>支持联网搜索 · 深度思考 · 代码生成 · 图片分析</p>
+          <div class="suggest">
+            <button onclick="ask('用 Python 写一个快速排序')">🐍 Python 快速排序</button>
+            <button onclick="ask('解释 React Hooks 的核心概念')">⚛️ React Hooks</button>
+            <button onclick="ask('深度思考：证明根号2是无理数')">🤔 数学证明</button>
+            <button onclick="ask('搜索最新的 AI 新闻')">🌐 联网搜索</button>
+            <button onclick="ask('帮我调试这个 TypeError')">🐛 调试 Bug</button>
+            <button onclick="ask('写一首关于春天的诗')">✍️ 写诗</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="input-panel">
+      <div class="input-inner">
+        <div class="img-prev" id="imgPrev">
+          <img id="imgPrevImg" src="">
+          <button class="rm" onclick="rmImg()">×</button>
+        </div>
+        <div class="input-bar">
+          <button class="ibtn" onclick="document.getElementById('fileIn').click()" title="上传图片">📎</button>
+          <textarea id="input" rows="1" placeholder="问 LiMa 任何问题…" onkeydown="onKey(event)" oninput="autoGrow(this)"></textarea>
+          <button class="ibtn" id="voiceBtn" onclick="startVoice()" title="语音输入">🎙️</button>
+          <button class="ibtn send" id="sendBtn" onclick="sendOrStop()" disabled title="发送">↑</button>
+        </div>
+        <div class="input-tools">
+          <button class="mode-pill" id="mThink" onclick="toggleMode('think')">💭 深度思考</button>
+          <button class="mode-pill" id="mSearch" onclick="toggleMode('search')">🌐 联网搜索</button>
+          <div class="input-right">
+            <span style="font-size:11px;color:var(--text3);line-height:34px" id="statusText"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<input type="file" id="fileIn" accept="image/*" hidden onchange="onFile(event)">
+<script>
+const API='/v1/chat/completions';
+const $ = s => document.getElementById(s);
+let state = JSON.parse(localStorage.getItem('lima_data')||'null') || {convs:[],active:null};
+let mode = {think:false,search:false}, streaming=false, pendingImg=null, abortCtrl=null;
+let clientInfo={ip:'',loc:'',browser:'',os:''};
+// Detect browser & OS from UA
+(function(){const ua=navigator.userAgent;
+  clientInfo.browser=/Edg\//.test(ua)?'Edge':/Chrome\//.test(ua)?'Chrome':/Firefox\//.test(ua)?'Firefox':/Safari\//.test(ua)?'Safari':'其他';
+  clientInfo.os=/Win/.test(ua)?'Windows':/Mac/.test(ua)?'macOS':/Linux/.test(ua)?'Linux':/Android/.test(ua)?'Android':/iPhone|iPad/.test(ua)?'iOS':'其他';
+  fetch('https://ipapi.co/json/').then(r=>r.json()).then(d=>{
+    clientInfo.ip=d.ip||'';clientInfo.loc=(d.city||'')+(d.country_name?' '+d.country_name:'')}).catch(()=>{});
+})();
+
+// Marked config
+marked.setOptions({highlight:(c,l)=>{try{return hljs.highlight(c,{language:l||'plaintext'}).value}catch{return c}},
+  breaks:true,gfm:true});
+
+function save(){localStorage.setItem('lima_data',JSON.stringify(state))}
+function getConv(){return state.convs.find(c=>c.id===state.active)||null}
+
+function newConv(){
+  const c={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),title:'新对话',msgs:[],ts:Date.now()};
+  state.convs.unshift(c);state.active=c.id;save();renderList();renderChat();
+}
+
+function switchConv(id){state.active=id;save();renderList();renderChat();toggleSb(false)}
+
+function delConv(id,e){
+  e.stopPropagation();
+  state.convs=state.convs.filter(c=>c.id!==id);
+  if(state.active===id){state.active=state.convs[0]?.id||null;if(!state.active)newConv()}
+  save();renderList();renderChat();
+}
+
+function renderList(){
+  const q=$('sbSearch').value.toLowerCase();
+  $('sbList').innerHTML=state.convs.filter(c=>!q||c.title.toLowerCase().includes(q)||
+    c.msgs.some(m=>m.content?.toLowerCase().includes(q)))
+    .map(c=>`<div class="sb-item${c.id===state.active?' on':''}" onclick="switchConv('${c.id}')">
+    <span class="sb-t">${esc(c.title)}</span>
+    <span class="sb-time">${fmtTime(c.ts)}</span>
+    <button class="sb-del" onclick="delConv('${c.id}',event)">×</button></div>`).join('');
+}
+
+function renderChat(){
+  const c=getConv();
+  if(!c){$('chatInner').innerHTML='';$('headTitle').textContent='新对话';return}
+  $('headTitle').textContent=c.title;
+  if(!c.msgs.length){$('welcome').style.display='';$('chatInner').querySelectorAll('.msg').forEach(e=>e.remove());return}
+  $('welcome').style.display='none';
+  const msgs=c.msgs.map((m,i)=>renderMsg(m,i)).join('');
+  $('chatInner').innerHTML=`<div class="welcome" id="welcome" style="display:none"></div>${msgs}`;
+  $('chatInner').querySelectorAll('pre code').forEach(b=>hljs.highlightElement(b));
+  $('chatInner').querySelectorAll('.msg-bubble').forEach(b=>{try{renderMathInElement(b,{delimiters:[
+    {left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false},{left:'\\[',right:'\\]',display:true},
+    {left:'\\(',right:'\\)',display:false}],throwOnError:false})}catch{}});
+  scrollBottom();
+}
+
+function renderMsg(m,i){
+  const role=m.role==='user'?'user':'ai';
+  const avatar=role==='user'?'👤':'🧠';
+  let html=role==='user'?esc(m.content):renderMd(m.content);
+  if(m.image) html=`<img src="${m.image}" style="max-width:200px;border-radius:8px;margin-bottom:8px"><br>`+html;
+  return `<div class="msg ${role}">
+    <div class="msg-avatar">${avatar}</div>
+    <div class="msg-body">
+      <div class="msg-bubble">${html}</div>
+      <div class="msg-actions">
+        <button class="mbtn" onclick="copyMsg(${i})">📋 复制</button>
+        ${role==='user'?`<button class="mbtn" onclick="editMsg(${i})">✏️ 编辑</button>`:''}
+        ${role==='ai'?`<button class="mbtn" onclick="toggleVoice(${i})">🔊 朗读</button><button class="mbtn" onclick="regen(${i})">🔄 重新生成</button>`:''}
+      </div>
+    </div></div>`;
+}
+
+function renderMd(t){
+  if(!t)return'';
+  let h=marked.parse(t);
+  h=h.replace(/<pre><code(.*?)>([\s\S]*?)<\/code><\/pre>/g,(m,a,c)=>{
+    const lang=(a.match(/class="language-(\w+)"/)||[])[1]||'';
+    return `<pre><button class="copy-code" onclick="copyCode(this)">复制</button><code class="language-${lang}">${c}</code></pre>`;
+  });
+  return h;
+}
+
+function scrollBottom(){const a=$('chatArea');requestAnimationFrame(()=>a.scrollTop=a.scrollHeight)}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function fmtTime(t){const d=new Date(t),n=new Date();return d.toDateString()===n.toDateString()?
+  d.toLocaleTimeString('zh',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('zh',{month:'short',day:'numeric'})}
+
+// Input
+function autoGrow(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,160)+'px';
+  $('sendBtn').disabled=!el.value.trim()&&!pendingImg}
+function onKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();if(!$('sendBtn').disabled)send()}}
+function sendOrStop(){if(streaming){stopStream()}else{send()}}
+function stopStream(){if(abortCtrl)abortCtrl.abort()}
+// Drag & drop
+(function(){const bar=document.querySelector('.input-bar');
+  ['dragenter','dragover'].forEach(e=>bar.addEventListener(e,ev=>{ev.preventDefault();bar.style.borderColor='var(--accent)'}));
+  ['dragleave','drop'].forEach(e=>bar.addEventListener(e,ev=>{ev.preventDefault();bar.style.borderColor=''}));
+  bar.addEventListener('drop',ev=>{const f=ev.dataTransfer?.files?.[0];
+    if(f&&f.type.startsWith('image/')){const r=new FileReader();
+      r.onload=()=>{pendingImg=r.result;$('imgPrevImg').src=r.result;$('imgPrev').style.display='block';$('sendBtn').disabled=false};
+      r.readAsDataURL(f)}})})();
+
+// File upload
+function onFile(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{pendingImg=r.result;$('imgPrevImg').src=r.result;$('imgPrev').style.display='block';
+    $('sendBtn').disabled=false};r.readAsDataURL(f);e.target.value=''}
+function rmImg(){pendingImg=null;$('imgPrev').style.display='none';$('sendBtn').disabled=!$('input').value.trim()}
+
+// Voice input
+function startVoice(){
+  if(!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)){alert('浏览器不支持语音输入');return}
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;const r=new SR();
+  r.lang='zh-CN';r.interimResults=true;r.start();$('voiceBtn').textContent='🔴';
+  r.onresult=e=>{let t='';for(let i=e.resultIndex;i<e.results.length;i++)t+=e.results[i][0].transcript;
+    $('input').value+=t;autoGrow($('input'))};
+  r.onend=()=>$('voiceBtn').textContent='🎙️';
+  r.onerror=()=>$('voiceBtn').textContent='🎙️';
+}
+
+// Theme
+function toggleTheme(){const t=document.documentElement.dataset.theme==='dark'?'light':'dark';
+  document.documentElement.dataset.theme=t;localStorage.setItem('lima_theme',t);
+  $('themeBtn').textContent=t==='dark'?'🌙':'☀️'}
+(function(){const t=localStorage.getItem('lima_theme');if(t){document.documentElement.dataset.theme=t;
+  $('themeBtn').textContent=t==='dark'?'🌙':'☀️'}})();
+
+// Mode toggles
+function toggleMode(m){mode[m]=!mode[m];$('m'+m[0].toUpperCase()+m.slice(1)).classList.toggle('on',mode[m])}
+
+// Send message
+async function send(){
+  if(streaming)return;
+  const text=$('input').value.trim();if(!text&&!pendingImg)return;
+  let c=getConv();if(!c){newConv();c=getConv()}
+  // Build user message
+  const userMsg={role:'user',content:text};
+  if(pendingImg)userMsg.image=pendingImg;
+  c.msgs.push(userMsg);
+  if(c.msgs.length===1)c.title=text.slice(0,40)||'图片对话';
+  // Clear input
+  $('input').value='';$('input').style.height='auto';$('sendBtn').disabled=true;
+  pendingImg=null;$('imgPrev').style.display='none';
+  $('welcome').style.display='none';
+  renderList();
+  // Append user bubble
+  $('chatInner').insertAdjacentHTML('beforeend',renderMsg(userMsg,c.msgs.length-1));
+  scrollBottom();
+  // Build API messages
+  const apiMsgs=c.msgs.filter(m=>m.role!=='system').map(m=>{
+    if(m.image){return{role:'user',content:[{type:'image_url',image_url:{url:m.image}},{type:'text',text:m.content}]}}
+    return{role:m.role,content:m.content}});
+  // Search mode prefix
+  let query=text;
+  if(mode.search) query='联网搜索: '+text;
+  if(mode.think) query='请深度思考：'+text;
+  // Add thinking badge
+  $('chatInner').insertAdjacentHTML('beforeend',
+    `<div class="msg ai" id="streamMsg"><div class="msg-avatar">🧠</div><div class="msg-body">
+    ${mode.think?'<div class="thinking-badge"><span class="thinking-dot"></span>深度思考中…</div>':''}
+    <div class="msg-bubble" id="streamBubble"><span class="thinking-dot" id="loadDot"></span></div>
+    </div></div>`);
+  scrollBottom();
+  streaming=true;
+  $('sendBtn').classList.add('stop');$('sendBtn').textContent='■';$('sendBtn').disabled=false;
+  const t0=Date.now();
+  let full='';
+  setStatus('正在连接…');
+  try{
+    abortCtrl=new AbortController();
+    const body={model:'lima-1.3',messages:[...apiMsgs,{role:'user',content:query!==text?query:text}].slice(0,-1)
+      .concat([{role:'user',content:query}]),max_tokens:4096,stream:true};
+    // De-duplicate: replace last user msg with query version
+    body.messages=buildApiMessages(c.msgs,query,text);
+    const resp=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(body),signal:abortCtrl.signal});
+    if(!resp.ok){const e=await resp.text();throw new Error(`HTTP ${resp.status}: ${e.slice(0,200)}`)}
+    setStatus('正在回复…');
+    $('loadDot')?.remove();
+    const reader=resp.body.getReader(),dec=new TextDecoder();
+    let buf='',done=false;
+    while(!done){
+      const{done:d,value}=await reader.read();done=d;
+      buf+=dec.decode(value,{stream:true});
+      const lines=buf.split('\n');buf=lines.pop()||'';
+      for(const line of lines){
+        if(!line.startsWith('data:'))continue;
+        const data=line.slice(5).trim();
+        if(data==='[DONE]')continue;
+        try{const j=JSON.parse(data);const delta=j.choices?.[0]?.delta?.content||'';
+          if(delta){full+=delta;$('streamBubble').innerHTML=renderMd(full);
+            $('chatInner').querySelectorAll('pre code:not(.hljs)').forEach(b=>hljs.highlightElement(b));
+            scrollBottom()}}catch{}}
+    }
+    // Save AI response
+    if(full){c.msgs.push({role:'assistant',content:full});c.ts=Date.now();save()}
+    const ms=Date.now()-t0;setStatus(`完成 · ${ms}ms`);
+  }catch(e){
+    $('loadDot')?.remove();
+    if(e.name==='AbortError'){setStatus('已取消');if(full){c.msgs.push({role:'assistant',content:full});c.ts=Date.now();save()}else{$('streamBubble').innerHTML='<em>已取消</em>'}}
+    else{setStatus('出错');$('streamBubble').innerHTML=`<span style="color:#ff453a">⚠️ ${esc(e.message)}</span><br><button class="retry-btn" onclick="retry()">🔄 重试</button>`}
+  }finally{streaming=false;abortCtrl=null;$('sendBtn').classList.remove('stop');$('sendBtn').textContent='↑';renderChat();renderList();setTimeout(()=>setStatus(''),3000)}
+}
+
+function buildApiMessages(msgs,query,original){
+  // Inject system message with current date/time so AI knows "today"
+  const now=new Date();
+  let sys=`当前时间: ${now.toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',year:'numeric',month:'long',day:'numeric',weekday:'long',hour:'2-digit',minute:'2-digit'})}。`;
+  if(clientInfo.ip) sys+=`\n用户IP: ${clientInfo.ip}，位置: ${clientInfo.loc||'未知'}。`;
+  sys+=`\n设备: ${clientInfo.os} ${clientInfo.browser}。`;
+  if(mode.search) sys+='用户启用了联网搜索模式，请优先使用最新网络信息回答。';
+  const sysMsg={role:'system',content:sys};
+  const result=[sysMsg];
+  for(let i=0;i<msgs.length;i++){
+    const m=msgs[i];
+    const isLast=i===msgs.length-1;
+    const content=isLast&&m.role==='user'?query:m.content;
+    if(m.image){result.push({role:'user',content:[{type:'image_url',image_url:{url:m.image}},{type:'text',text:content}]})}
+    else{result.push({role:m.role,content})}
+  }
+  return result;
+}
+
+function setStatus(t){$('statusText').textContent=t}
+
+// Copy
+function copyMsg(i){const c=getConv();if(!c)return;const m=c.msgs[i];
+  navigator.clipboard.writeText(m.content).then(()=>setStatus('已复制'));setTimeout(()=>setStatus(''),1500)}
+function copyCode(btn){const code=btn.nextElementSibling.textContent;
+  navigator.clipboard.writeText(code).then(()=>{btn.textContent='已复制';setTimeout(()=>btn.textContent='复制',1500)})}
+
+// Regen
+function retry(){const c=getConv();if(!c||streaming)return;
+  const lastUser=[...c.msgs].reverse().find(m=>m.role==='user');
+  if(lastUser){$('input').value=lastUser.content;autoGrow($('input'));send()}}
+function regen(i){const c=getConv();if(!c||streaming)return;
+  c.msgs=c.msgs.slice(0,i);save();renderChat();
+  const lastUser=[...c.msgs].reverse().find(m=>m.role==='user');
+  if(lastUser){$('input').value=lastUser.content;autoGrow($('input'));send()}}
+function editMsg(i){const c=getConv();if(!c||streaming)return;
+  $('input').value=c.msgs[i].content;autoGrow($('input'));c.msgs=c.msgs.slice(0,i);save();renderChat()}
+let ttsAudio=null,ttsVoiceIdx=-1,ttsFallback=false;
+const ttsVoices=[{id:'冰糖',name:'冰糖',g:'f',desc:'温柔女声'},{id:'茉莉',name:'茉莉',g:'f',desc:'甜美女声'},{id:'苏打',name:'苏打',g:'m',desc:'清朗男声'},{id:'白桦',name:'白桦',g:'m',desc:'沉稳男声'},{id:'mimo_default',name:'默认',g:'f',desc:'系统默认'}];
+const webVoices=[{id:'browser-f',name:'浏览器女声',g:'f',desc:'Web Speech'},{id:'browser-m',name:'浏览器男声',g:'m',desc:'Web Speech'}];
+function getVoiceList(){return ttsFallback?webVoices:ttsVoices}
+function toggleVoice(i){const popup=document.getElementById('voicePopup');if(popup){popup.remove();return}
+  const vl=getVoiceList();
+  const el=document.createElement('div');el.id='voicePopup';el.className='voice-popup';
+  el.innerHTML='<h4>🎙️ 选择音色'+(ttsFallback?' <span style="font-size:11px;color:var(--text3)">(浏览器)</span>':'')+'</h4>'+vl.map(v=>'<div class="voice-item" onclick="playTTS('+i+',\''+v.id+'\',this)"><span class="voice-dot '+v.g+'"></span><span class="voice-name">'+v.name+'</span><span class="voice-desc">'+v.desc+'</span></div>').join('');
+  document.body.appendChild(el);setTimeout(()=>document.addEventListener('click',closeVoicePopup,{once:true}),50)}
+function closeVoicePopup(e){const p=document.getElementById('voicePopup');if(p&&!p.contains(e.target))p.remove()}
+function stopTTS(){if(ttsAudio){ttsAudio.pause();ttsAudio=null;ttsVoiceIdx=-1}
+  if(speechSynthesis.speaking)speechSynthesis.cancel()}
+async function playTTS(i,voice,el){const c=getConv();if(!c)return;const text=c.msgs[i].content;if(!text)return;
+  document.querySelectorAll('.voice-item.playing').forEach(e=>e.classList.remove('playing'));
+  if(ttsAudio&&ttsVoiceIdx===i){stopTTS();return}
+  if(speechSynthesis.speaking){speechSynthesis.cancel();return}
+  if(el)el.classList.add('playing');
+  const orig=el?el.innerHTML:'';
+  // Web Speech fallback
+  if(ttsFallback||voice.startsWith('browser')){
+    if(el)el.innerHTML=orig+' 🔊';
+    const u=new SpeechSynthesisUtterance(text);u.lang='zh-CN';u.rate=1.05;
+    const bv=speechSynthesis.getVoices();
+    if(voice==='browser-m'){const m=bv.find(v=>v.lang.startsWith('zh')&&v.name.toLowerCase().includes('male'));if(m)u.voice=m}
+    else{const f=bv.find(v=>v.lang.startsWith('zh'));if(f)u.voice=f}
+    u.onend=()=>{if(el)el.classList.remove('playing')};speechSynthesis.speak(u);return}
+  // MiMo TTS
+  if(el)el.innerHTML='<span class="tts-loading"></span> 生成中...';
+  try{const resp=await fetch('/tts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text.slice(0,2000),voice:voice})});
+    if(!resp.ok){const err=await resp.json().catch(()=>({error:'unknown'}));throw new Error(err.error||'HTTP '+resp.status);}
+    const blob=await resp.blob();const url=URL.createObjectURL(blob);
+    stopTTS();ttsAudio=new Audio(url);ttsVoiceIdx=i;
+    ttsAudio.onended=()=>{if(el)el.classList.remove('playing');ttsAudio=null;ttsVoiceIdx=-1};
+    ttsAudio.play();if(el)el.innerHTML=orig+' 🔊'}
+  catch(e){console.warn('MiMo TTS failed, using browser fallback:',e.message);
+    ttsFallback=true;playTTS(i,'browser-f',el)}}
+
+// Sidebar toggle
+function toggleSb(force){const sb=$('sb'),ov=$('overlay');
+  const open=force!==undefined?force:!sb.classList.contains('open');
+  sb.classList.toggle('open',open);ov.classList.toggle('open',open)}
+
+// Export
+function exportChat(){const c=getConv();if(!c||!c.msgs.length){alert('无对话可导出');return}
+  let md=`# ${c.title}\n\n`;
+  c.msgs.forEach(m=>{md+=`## ${m.role==='user'?'👤 用户':'🧠 LiMa'}\n\n${m.content}\n\n`});
+  const blob=new Blob([md],{type:'text/markdown'});const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=`${c.title}.md`;a.click()}
+
+// Clear
+function clearAll(){const c=getConv();if(!c||!c.msgs.length)return;
+  if(!confirm('确定清空当前对话？'))return;c.msgs=[];c.title='新对话';save();renderList();renderChat()}
+
+// Quick ask
+function ask(t){if(!getConv())newConv();$('input').value=t;autoGrow($('input'));send()}
+
+// Init
+if(!state.convs.length)newConv();
+renderList();renderChat();
+$('input').addEventListener('input',()=>autoGrow($('input')));
+</script>
+</body>
+</html>
