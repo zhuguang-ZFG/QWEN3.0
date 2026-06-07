@@ -29,7 +29,8 @@ Usage:
 from __future__ import annotations
 
 import json
-from typing import Any, Iterator
+from collections.abc import Iterator
+from typing import Any
 
 import requests
 
@@ -235,8 +236,8 @@ def create_client(
 
 if __name__ == "__main__":
     # 示例用法
-    import sys
     import io
+    import sys
 
     # Fix Windows console encoding
     if sys.platform == "win32":

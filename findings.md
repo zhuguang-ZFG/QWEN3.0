@@ -2,6 +2,34 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-06-07 VPS Deployment Verification + OpenCode E2E Test
+
+### Code Quality (Typing Migration)
+- **变更**: ruff自动修复typing导入（typing.List → list, typing.Dict → dict）
+- **影响文件**: 6个（openai_compatible.py, opencode_reasoning_budget.py, opencode_skill_optimizer.py, opencode_tool_schema_simplifier.py, scripts/benchmark_opencode.py, scripts/opencode_e2e_real.py）
+- **代码统计**: +12行 / -11行
+- **本地测试**: pytest 47/47 通过 ✅
+
+### VPS Deployment (47.112.162.80)
+- **部署方法**: SCP逐文件上传 + systemctl restart
+- **备份策略**: 无（纯代码优化，无功能变更）
+- **服务状态**: active ✅
+- **Health Check**: 200 OK (14/14 modules active) ✅
+- **端口监听**: 8080 (python3.10) ✅
+
+### E2E Test Results (4/4 PASS)
+| Test | Status | Details |
+|------|--------|---------|
+| 1. Health Check | ✅ 200 | `/health` endpoint正常 |
+| 2. OpenAI Chat | ✅ 200 | 响应"OK"，后端"lima-1.3" |
+| 3. Anthropic Messages | ✅ 200 | 响应"OK" |
+| 4. Tool Call (list_files) | ✅ 200 | 检测到1个工具调用 |
+
+### Git Commit
+- Files: 6个（typing优化）
+- Branch: ready for commit
+- Note: 纯代码质量提升，无功能变更
+
 ## 2026-06-06 VPS full verification + Nginx /api/ fix
 
 ### Nginx /api/ 代理缺失

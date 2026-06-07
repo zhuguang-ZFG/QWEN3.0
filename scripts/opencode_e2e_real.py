@@ -100,8 +100,8 @@ def test_opencode_simple_query() -> bool:
 
     # 使用 Python OpenAI SDK 模拟 OpenCode 请求
     try:
-        from openai import OpenAI
         import httpx
+        from openai import OpenAI
 
         print(f"   API Key: {VPS_API_KEY[:10]}...")
         print(f"   Base URL: {VPS_BASE_URL}")
@@ -148,8 +148,8 @@ def test_opencode_ide_detection() -> bool:
     print("\n🔍 Test 3: IDE Detection")
 
     try:
-        from openai import OpenAI
         import httpx
+        from openai import OpenAI
 
         # 创建自定义 HTTP 客户端，添加 OpenCode User-Agent
         http_client = httpx.Client(
@@ -185,8 +185,8 @@ def test_opencode_tool_call() -> bool:
     print("\n🔍 Test 4: Tool Call (File Read)")
 
     try:
-        from openai import OpenAI
         import httpx
+        from openai import OpenAI
 
         # 使用自定义 User-Agent
         http_client = httpx.Client(
@@ -247,8 +247,8 @@ def test_opencode_streaming() -> bool:
     print("\n🔍 Test 5: Streaming Response")
 
     try:
-        from openai import OpenAI
         import httpx
+        from openai import OpenAI
 
         # 使用自定义 User-Agent
         http_client = httpx.Client(
@@ -294,8 +294,8 @@ def test_skill_injection() -> bool:
     print("\n🔍 Test 6: Skill Injection (No Duplication)")
 
     try:
-        from openai import OpenAI
         import httpx
+        from openai import OpenAI
 
         # 使用自定义 User-Agent
         http_client = httpx.Client(

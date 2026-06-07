@@ -18,7 +18,7 @@ import os
 import sys
 import time
 from statistics import mean, median, stdev
-from typing import List, Dict, Tuple
+from typing import Dict, List, Tuple
 
 import httpx
 
