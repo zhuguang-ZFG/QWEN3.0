@@ -122,6 +122,7 @@ async def stream_openai_passthrough(
     system_prompt: str = "",
     ide: str = "OpenCode",
     reasoning_effort: str | None = None,
+    sampling: dict | None = None,
     request_headers: dict | None = None,
 ) -> AsyncIterator[str]:
     """Stream raw OpenAI SSE from a pinned backend (preserves tool_call deltas).
@@ -175,6 +176,7 @@ async def stream_openai_passthrough(
         tools=native_tools,
         reasoning_effort=reasoning_effort,
         backend_name=backend,
+        sampling=sampling,
     )
     if native_tools and tool_choice is not None:
         # _build_body returns bytes; parse, modify, re-encode
@@ -249,6 +251,7 @@ async def stream_openai_passthrough(
             ide=ide,
             tools=native_tools,
             reasoning_effort=reasoning_effort,
+            sampling=sampling,
         )
         _ensure_not_backend_error_text(backend, answer)
         if answer:

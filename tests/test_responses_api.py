@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 
+from chat_models import ChatRequest
+from chat_request_utils import request_sampling_params
 from converters.responses_api import (
     chat_completion_to_response,
     responses_body_to_chat,
@@ -204,6 +206,22 @@ def test_responses_passthrough_sampling_options_and_ignores_response_state_optio
     assert "store" not in chat
     assert "include" not in chat
     assert "previous_response_id" not in chat
+
+
+def test_request_sampling_params_does_not_materialize_temperature_default():
+    req = ChatRequest(messages=[{"role": "user", "content": "hi"}])
+
+    assert request_sampling_params(req) == {}
+
+
+def test_request_sampling_params_keeps_explicit_responses_sampling():
+    req = ChatRequest(
+        messages=[{"role": "user", "content": "hi"}],
+        temperature=0.2,
+        top_p=0.7,
+    )
+
+    assert request_sampling_params(req) == {"temperature": 0.2, "top_p": 0.7}
 
 
 def test_chat_completion_to_response_text():

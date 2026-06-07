@@ -205,6 +205,21 @@ def test_build_body_stream_flag():
     assert body['stream'] is True
 
 
+def test_build_body_explicit_sampling_overrides_model_defaults():
+    cfg = {'fmt': 'openai', 'model': 'qwen-plus', 'key': 'k'}
+    msgs = [{'role': 'user', 'content': 'hi'}]
+    raw = _build_body(
+        cfg,
+        msgs,
+        1024,
+        backend_name='qwen',
+        sampling={'temperature': 0.2, 'top_p': 0.7},
+    )
+    body = json.loads(raw)
+    assert body['temperature'] == 0.2
+    assert body['top_p'] == 0.7
+
+
 def test_build_body_can_force_explicit_non_stream_flag():
     cfg = {'fmt': 'openai', 'model': 'mimo-web', 'key': 'none', 'force_stream_param': True}
     msgs = [{'role': 'user', 'content': 'hi'}]

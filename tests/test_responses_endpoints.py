@@ -10,6 +10,8 @@ import server
 
 def test_responses_endpoint_non_stream(monkeypatch):
     async def fake_handle_chat(req, **kwargs):
+        assert req.temperature == 0.2
+        assert req.top_p == 0.7
         return JSONResponse({
             "id": "chatcmpl-test",
             "object": "chat.completion",
@@ -38,6 +40,8 @@ def test_responses_endpoint_non_stream(monkeypatch):
             "input": "ping",
             "instructions": "You are OpenCode.",
             "stream": False,
+            "temperature": 0.2,
+            "top_p": 0.7,
         },
     )
     assert resp.status_code == 200

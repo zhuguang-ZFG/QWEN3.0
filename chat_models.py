@@ -17,6 +17,7 @@ class ChatRequest(BaseModel):
     stream: bool = False
     max_tokens: Optional[int] = Field(default=1024, alias="max_tokens")
     temperature: Optional[float] = 0.7
+    top_p: Optional[float] = None
     thinking: Optional[bool | dict] = False
     reasoning_effort: Optional[str] = None
     tools: Optional[list[dict]] = None

@@ -88,6 +88,7 @@ async def stream_response(
     model: str = "",
     reasoning_effort: str | None = None,
     has_tools: bool = False,
+    sampling: dict | None = None,
 ):
     """SSE generator: speculative streaming with orchestration/thinking fallbacks."""
     messages = messages or []
@@ -119,6 +120,7 @@ async def stream_response(
                     ide=ide_source,
                     max_tokens=4096,
                     model=model,
+                    sampling=sampling,
                 )
             content = result.get("answer", "") if isinstance(result, dict) else str(result)
         from response_cleaner import clean_response
@@ -192,6 +194,7 @@ async def stream_response(
             prefer, messages, 4096, ide_source,
             fallback_backends=fallbacks,
             on_failover=_track_failover,
+            sampling=sampling,
         ):
             meta = _extract_meta(chunk)
             if meta:
@@ -217,6 +220,7 @@ async def stream_response(
     async for _backend, chunk in speculative_stream_chunks(
         query, messages, 4096, ide_source,
         fallback_backends=spec_fallbacks,
+        sampling=sampling,
     ):
         meta = _extract_meta(chunk)
         if meta:
@@ -240,7 +244,7 @@ async def stream_response(
             _backend, answer, _ = await asyncio.to_thread(
                 routing_engine.execute,
                 backends,
-                lambda b, m, t: http_caller.call_api(b, m, t),
+                lambda b, m, t: http_caller.call_api(b, m, t, sampling=sampling),
                 messages,
                 4096,
             )

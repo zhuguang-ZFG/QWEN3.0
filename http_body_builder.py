@@ -29,6 +29,7 @@ def build_body(
     tools: list[dict] | None = None,
     reasoning_effort: str | None = None,
     backend_name: str = "",
+    sampling: dict | None = None,
 ) -> bytes:
     """Build the HTTP request body for an LLM API call."""
     model = backend_cfg["model"]
@@ -100,6 +101,10 @@ def build_body(
                 body[k] = v
         else:
             body["reasoning_effort"] = reasoning_effort
+
+    for key, value in (sampling or {}).items():
+        if value is not None:
+            body[key] = value
 
     # M-OC5: sampling parameters
     from opencode_sampling import resolve_sampling_params

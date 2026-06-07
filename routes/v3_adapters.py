@@ -13,7 +13,8 @@ import routing_engine
 def v3_route(query, messages, system_prompt="", ide="", max_tokens=4096,
              needs_tools=False, tools=None, client_ip="", user_agent="",
              model="", headers: dict | None = None,
-             reasoning_effort: str | None = None, **_kw):
+             reasoning_effort: str | None = None,
+             sampling: dict | None = None, **_kw):
     """V3 路由适配器：返回与 smart_router.route() 兼容的 dict。
 
     返回的 dict 包含 usage 字段（从后端响应中提取的 token 用量）。
@@ -22,7 +23,8 @@ def v3_route(query, messages, system_prompt="", ide="", max_tokens=4096,
         return http_caller.call_api(backend, msgs, mt,
                                     system_prompt=system_prompt, ide=ide,
                                     tools=tools,
-                                    reasoning_effort=reasoning_effort)
+                                    reasoning_effort=reasoning_effort,
+                                    sampling=sampling)
     result = routing_engine.route(
         query, messages, fmt="openai", ide_source=ide,
         system_prompt=system_prompt, max_tokens=max_tokens,
@@ -118,7 +120,9 @@ def v3_select(query, system_prompt, ide, messages):
 FAKE_STREAM_BACKENDS: set[str] = set()
 
 
-def v3_call_stream(backend, messages, max_tokens, ide, reasoning_effort=None):
+def v3_call_stream(
+    backend, messages, max_tokens, ide, reasoning_effort=None, sampling=None
+):
     """V3 流式调用适配器。注入上下文增强 + 非真流式后端强制走非流式。"""
     sys_prompt = ""
     try:
@@ -163,14 +167,15 @@ def v3_call_stream(backend, messages, max_tokens, ide, reasoning_effort=None):
 
     if backend in FAKE_STREAM_BACKENDS:
         result = http_caller.call_api(
-            backend, messages, max_tokens, system_prompt=sys_prompt, ide=ide)
+            backend, messages, max_tokens, system_prompt=sys_prompt, ide=ide,
+            sampling=sampling)
         return fake_stream(result)
     return http_caller.call_api_stream(
         backend, messages, max_tokens, system_prompt=sys_prompt, ide=ide,
-        reasoning_effort=reasoning_effort)
+        reasoning_effort=reasoning_effort, sampling=sampling)
 
 
-def v3_call_api(backend, messages, max_tokens, ide):
+def v3_call_api(backend, messages, max_tokens, ide, sampling=None):
     """V3 非流式调用适配器。含场景检测 + 反向约束。"""
     sys_prompt = ""
     try:
@@ -192,7 +197,8 @@ def v3_call_api(backend, messages, max_tokens, ide):
     except Exception as e:
         logging.warning(f"[V3_CALL_API] context enhance failed: {type(e).__name__}: {e}")
     return http_caller.call_api(
-        backend, messages, max_tokens, system_prompt=sys_prompt, ide=ide)
+        backend, messages, max_tokens, system_prompt=sys_prompt, ide=ide,
+        sampling=sampling)
 
 
 def fake_stream(text: str, chunk_size: int = 30):
@@ -203,7 +209,9 @@ def fake_stream(text: str, chunk_size: int = 30):
 
 # ── Async adapters (M2-S2) ─────────────────────────────────────────────────
 
-async def v3_call_stream_async(backend, messages, max_tokens, ide, reasoning_effort=None) -> AsyncIterator[str]:
+async def v3_call_stream_async(
+    backend, messages, max_tokens, ide, reasoning_effort=None, sampling=None
+) -> AsyncIterator[str]:
     """Async streaming adapter. Falls back to non-stream for fake-stream backends."""
     sys_prompt = ""
     try:
@@ -249,17 +257,17 @@ async def v3_call_stream_async(backend, messages, max_tokens, ide, reasoning_eff
     if backend in FAKE_STREAM_BACKENDS:
         result = await http_caller.call_api_async(
             backend, messages, max_tokens, system_prompt=sys_prompt, ide=ide,
-            reasoning_effort=reasoning_effort)
+            reasoning_effort=reasoning_effort, sampling=sampling)
         for chunk in fake_stream(result):
             yield chunk
         return
     async for chunk in http_caller.call_api_stream_async(
         backend, messages, max_tokens, system_prompt=sys_prompt, ide=ide,
-        reasoning_effort=reasoning_effort):
+        reasoning_effort=reasoning_effort, sampling=sampling):
         yield chunk
 
 
-async def v3_call_api_async(backend, messages, max_tokens, ide):
+async def v3_call_api_async(backend, messages, max_tokens, ide, sampling=None):
     """Async non-streaming adapter."""
     sys_prompt = ""
     try:
@@ -281,4 +289,5 @@ async def v3_call_api_async(backend, messages, max_tokens, ide):
     except Exception as e:
         logging.warning(f"[V3_CALL_API_ASYNC] context enhance: {type(e).__name__}: {e}")
     return await http_caller.call_api_async(
-        backend, messages, max_tokens, system_prompt=sys_prompt, ide=ide)
+        backend, messages, max_tokens, system_prompt=sys_prompt, ide=ide,
+        sampling=sampling)

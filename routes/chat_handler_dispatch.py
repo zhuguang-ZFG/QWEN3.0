@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 import routing_facade
 from chat_models import ChatRequest, extract_system_prompt
+from chat_request_utils import request_sampling_params
 from http_errors import BackendError
 from opencode_config import OPENCODE_DIRECT_STREAM, OPENCODE_PREFERRED_BACKEND
 from orchestrate import orchestrate
@@ -245,6 +246,7 @@ def build_streaming_response(ctx: ChatRunContext, req: ChatRequest) -> Streaming
                     system_prompt=ctx.preflight.system_prompt,
                     ide=ctx.ide_source,
                     reasoning_effort=req.reasoning_effort,
+                    sampling=request_sampling_params(req),
                     request_headers=ctx.request_headers,
                 ):
                     streamed_any = True
@@ -266,6 +268,7 @@ def build_streaming_response(ctx: ChatRunContext, req: ChatRequest) -> Streaming
                         prefer=ctx.prefs.prefer,
                         model=ctx.request_model or "",
                         reasoning_effort=req.reasoning_effort,
+                        sampling=request_sampling_params(req),
                         has_tools=False,
                     ):
                         yield line
@@ -301,6 +304,7 @@ def build_streaming_response(ctx: ChatRunContext, req: ChatRequest) -> Streaming
             model=ctx.request_model or "",
             reasoning_effort=req.reasoning_effort,
             has_tools=req.has_tools,
+            sampling=request_sampling_params(req),
         ),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},

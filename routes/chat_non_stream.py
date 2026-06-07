@@ -11,6 +11,7 @@ import logging
 
 import routing_facade
 from chat_models import ChatRequest
+from chat_request_utils import request_sampling_params
 from http_errors import BackendError
 from opencode_config import OPENCODE_DIRECT_STREAM
 from opencode_text_tool_payload import prepare_opencode_text_tool_payload
@@ -63,6 +64,7 @@ async def execute_non_stream_route(ctx, req: ChatRequest) -> tuple[dict, dict]:
                 ide=ctx.ide_source,
                 tools=tools,
                 reasoning_effort=req.reasoning_effort,
+                sampling=request_sampling_params(req),
             )
             return (
                 {
@@ -94,5 +96,6 @@ async def execute_non_stream_route(ctx, req: ChatRequest) -> tuple[dict, dict]:
             model=ctx.request_model or "",
             headers=ctx.request_headers or {},
             reasoning_effort=req.reasoning_effort,
+            sampling=request_sampling_params(req),
         )
     return result, intent if isinstance(intent, dict) else {}

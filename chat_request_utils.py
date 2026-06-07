@@ -36,3 +36,18 @@ def extract_system_preview(messages: list, system=None, limit: int = 200) -> str
     if isinstance(system, list):
         return _text_from_content_blocks(system)[:limit]
     return ""
+
+
+def request_sampling_params(req) -> dict:
+    """Return explicit client sampling params without materializing defaults."""
+    fields = set(
+        getattr(req, "model_fields_set", None)
+        or getattr(req, "__fields_set__", set())
+        or set()
+    )
+    out = {}
+    if "temperature" in fields and getattr(req, "temperature", None) is not None:
+        out["temperature"] = req.temperature
+    if getattr(req, "top_p", None) is not None:
+        out["top_p"] = req.top_p
+    return out

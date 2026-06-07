@@ -188,12 +188,12 @@ def _build_body(
     backend_cfg: dict, messages: list[dict], max_tokens: int,
     system_prompt: str = "", ide: str = "", stream: bool = False,
     tools: list[dict] | None = None, reasoning_effort: str | None = None,
-    backend_name: str = "",
+    backend_name: str = "", sampling: dict | None = None,
 ) -> bytes:
     return _build_body_impl(
         backend_cfg, messages, max_tokens,
         system_prompt=system_prompt, ide=ide, stream=stream,
         tools=tools, reasoning_effort=reasoning_effort,
-        backend_name=backend_name,
+        backend_name=backend_name, sampling=sampling,
     )
 

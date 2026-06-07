@@ -152,6 +152,7 @@ def call_api(
     ide: str = "",
     tools: list[dict] | None = None,
     reasoning_effort: str | None = None,
+    sampling: dict | None = None,
 ) -> str:
     hc = _caller()
     cfg = BACKENDS.get(backend)
@@ -167,7 +168,8 @@ def call_api(
     started = time.time()
     headers = hc._build_headers(cfg, key=selected_key)
     body = hc._build_body(cfg, messages, max_tokens, system_prompt, ide, tools=tools,
-                          reasoning_effort=reasoning_effort, backend_name=backend)
+                          reasoning_effort=reasoning_effort, backend_name=backend,
+                          sampling=sampling)
     timeout = cfg.get("timeout", 60)
 
     try:
