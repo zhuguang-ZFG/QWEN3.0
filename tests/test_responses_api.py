@@ -196,6 +196,27 @@ def test_stream_converter_emits_text_deltas():
     assert '"delta": "Hel"' in out or '"delta":"Hel"' in out.replace(" ", "")
 
 
+def test_stream_converter_maps_chat_reasoning_content_to_responses_reasoning_events():
+    chunk = {
+        "choices": [{
+            "delta": {
+                "reasoning_content": "I should inspect the file first.",
+            },
+        }],
+    }
+    lines = [f"data: {json.dumps(chunk)}", "data: [DONE]"]
+
+    out = "".join(transform_chat_sse_iter(iter(lines), model="lima-1.3"))
+
+    assert "response.output_item.added" in out
+    assert '"type": "reasoning"' in out
+    assert "response.reasoning_summary_part.added" in out
+    assert "response.reasoning_summary_text.delta" in out
+    assert "I should inspect the file first." in out
+    assert "response.reasoning_summary_part.done" in out
+    assert "response.output_item.done" in out
+
+
 def test_stream_converter_emits_tool_events():
     chunk = {
         "choices": [{
