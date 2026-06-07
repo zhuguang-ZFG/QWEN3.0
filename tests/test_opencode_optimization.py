@@ -120,55 +120,29 @@ def test_opencode_backend_preference():
     assert prefs.prefer is None
 
 
-# ─── Test 6: OPENCODE_OPTIMIZATION_ENABLED activates direct tool mode ─────────
+# ─── Test 6: LIMA_OPENCODE_TOOL_MODE activates direct tool mode ──────────────
 
-@pytest.mark.filterwarnings("ignore:OPENCODE_OPTIMIZATION_ENABLED is deprecated")
 def test_opencode_tool_mode_flag():
-    """Master switch OPENCODE_OPTIMIZATION_ENABLED=1 enables direct tool mode for OpenCode."""
-    with patch.dict(os.environ, {"OPENCODE_OPTIMIZATION_ENABLED": "1"}):
+    """LIMA_OPENCODE_TOOL_MODE=direct enables direct tool mode for OpenCode."""
+    with patch.dict(os.environ, {"LIMA_OPENCODE_TOOL_MODE": "direct"}):
         # Simulate the condition from chat_endpoints.py
         body = {"tools": [{"type": "function", "function": {"name": "read_file"}}]}
         ide_source = "OpenCode"
         result = (
             body.get("tools")
             and ide_source == "OpenCode"
-            and (
-                os.environ.get("LIMA_OPENCODE_TOOL_MODE") == "direct"
-                or os.environ.get("OPENCODE_OPTIMIZATION_ENABLED", "0") == "1"
-            )
+            and os.environ.get("LIMA_OPENCODE_TOOL_MODE") == "direct"
         )
         assert result is True
 
-    # Without the flag, but with LIMA_OPENCODE_TOOL_MODE=direct
-    with patch.dict(os.environ, {
-        "OPENCODE_OPTIMIZATION_ENABLED": "0",
-        "LIMA_OPENCODE_TOOL_MODE": "direct",
-    }):
+    # Without the flag
+    with patch.dict(os.environ, {}, clear=True):
         body = {"tools": [{"type": "function", "function": {"name": "read_file"}}]}
         ide_source = "OpenCode"
         result = (
             body.get("tools")
             and ide_source == "OpenCode"
-            and (
-                os.environ.get("LIMA_OPENCODE_TOOL_MODE") == "direct"
-                or os.environ.get("OPENCODE_OPTIMIZATION_ENABLED", "0") == "1"
-            )
-        )
-        assert result is True
-
-    # Without any flag
-    with patch.dict(os.environ, {
-        "OPENCODE_OPTIMIZATION_ENABLED": "0",
-    }, clear=False):
-        body = {"tools": [{"type": "function", "function": {"name": "read_file"}}]}
-        ide_source = "OpenCode"
-        result = (
-            body.get("tools")
-            and ide_source == "OpenCode"
-            and (
-                os.environ.get("LIMA_OPENCODE_TOOL_MODE") == "direct"
-                or os.environ.get("OPENCODE_OPTIMIZATION_ENABLED", "0") == "1"
-            )
+            and os.environ.get("LIMA_OPENCODE_TOOL_MODE") == "direct"
         )
         assert result is False
 
@@ -178,10 +152,7 @@ def test_opencode_tool_mode_flag():
     result = (
         body.get("tools")
         and ide_source == "OpenCode"
-        and (
-            os.environ.get("LIMA_OPENCODE_TOOL_MODE") == "direct"
-            or os.environ.get("OPENCODE_OPTIMIZATION_ENABLED", "0") == "1"
-        )
+        and os.environ.get("LIMA_OPENCODE_TOOL_MODE") == "direct"
     )
     assert result is False
 

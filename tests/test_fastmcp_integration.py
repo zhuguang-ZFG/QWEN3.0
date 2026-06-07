@@ -17,6 +17,18 @@ from unittest.mock import patch
 
 import pytest
 
+# Check if mcp module is available
+try:
+    import mcp.server.fastmcp
+    MCP_AVAILABLE = True
+except ImportError:
+    MCP_AVAILABLE = False
+
+pytestmark = pytest.mark.skipif(
+    not MCP_AVAILABLE,
+    reason="mcp module not installed (install with: pip install 'mcp[cli]')"
+)
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

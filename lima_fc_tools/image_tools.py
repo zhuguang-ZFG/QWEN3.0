@@ -1,4 +1,4 @@
-"""Image generation tools — DashScope / 通义万相 integration."""
+"""Image generation tools - DashScope / Tongyi Wanxiang integration."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ def _get_api_key() -> str:
 
 @tool(
     "generate_image",
-    "Generate an image from a text prompt using DashScope (通义万相). "
+    "Generate an image from a text prompt using DashScope (Tongyi Wanxiang). "
     "Returns a URL to the generated image.",
     {
         "properties": {
@@ -55,7 +55,7 @@ async def _generate_image(
     try:
         import httpx
 
-        # DashScope API for 通义万相 image generation
+        # DashScope API for Tongyi Wanxiang image generation
         url = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis"
         headers = {
             "Authorization": f"Bearer {api_key}",
@@ -82,7 +82,7 @@ async def _generate_image(
                 "detail": str(data)[:500],
             }
 
-        # Async task — poll for result
+        # Async task - poll for result
         task_id = data.get("output", {}).get("task_id", "")
         if not task_id:
             # Try sync response

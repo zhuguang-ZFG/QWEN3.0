@@ -5,6 +5,20 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+# Check if mcp module is available
+try:
+    import mcp.server.fastmcp
+    MCP_AVAILABLE = True
+except ImportError:
+    MCP_AVAILABLE = False
+
+pytestmark = pytest.mark.skipif(
+    not MCP_AVAILABLE,
+    reason="mcp module not installed (install with: pip install 'mcp[cli]')"
+)
+
+
+
 
 def test_mount_mcp_function_exists():
     """mount_mcp function must exist in fastmcp_server module."""
