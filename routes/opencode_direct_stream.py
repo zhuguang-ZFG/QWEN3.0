@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import time
 from collections.abc import AsyncIterator
 
 import health_tracker
@@ -14,13 +13,29 @@ from backends_constants import TOOL_CAPABLE_BACKENDS
 from http_errors import BackendError
 from http_request_builder import _build_body, _build_headers, _select_key
 from opencode_config import (
-    OPENCODE_DIRECT_STREAM_READ_TIMEOUT,
     OPENCODE_FAST_BACKENDS,
     OPENCODE_PREFERRED_BACKEND,
+    OPENCODE_TOOL_STABLE_BACKENDS,
 )
+from opencode_sse_adapter import (
+    content_chunk as _content_chunk,
+)
+from opencode_sse_adapter import (
+    content_delta as _content_delta,
+)
+from opencode_sse_adapter import (
+    has_meaningful_delta as _has_meaningful_delta,
+)
+from opencode_sse_adapter import (
+    read_timeout_for as _read_timeout_for,
+)
+from opencode_sse_adapter import (
+    rewrite_sse_model as _rewrite_sse_model,
+)
+from opencode_text_tool_payload import prepare_opencode_text_tool_payload
+from response_cleaner import _is_backend_error
 from text_tool_extractor import (
     TEXT_TOOL_BACKENDS,
-    build_tool_system_prompt,
     extract_tool_calls_from_text,
 )
 
@@ -30,8 +45,13 @@ _log = logging.getLogger(__name__)
 def resolve_opencode_backend(prefer: str | None = None, *, require_tools: bool = False) -> str:
     """Pick a healthy OpenCode backend with minimal routing overhead."""
     candidates: list[str] = []
-    if prefer:
+    if require_tools and prefer in OPENCODE_TOOL_STABLE_BACKENDS:
         candidates.append(prefer)
+    if require_tools:
+        for name in OPENCODE_TOOL_STABLE_BACKENDS:
+            _append_candidate(candidates, name)
+    if prefer:
+        _append_candidate(candidates, prefer)
     if OPENCODE_PREFERRED_BACKEND not in candidates:
         candidates.append(OPENCODE_PREFERRED_BACKEND)
     for prefix in sorted(OPENCODE_FAST_BACKENDS):
@@ -56,6 +76,11 @@ def resolve_opencode_backend(prefer: str | None = None, *, require_tools: bool =
     raise BackendError("No healthy OpenCode backend available", status_code=503)
 
 
+def _append_candidate(candidates: list[str], name: str | None) -> None:
+    if name and name not in candidates:
+        candidates.append(name)
+
+
 def _supports_tools(name: str, cfg: dict) -> bool:
     return (
         name in TOOL_CAPABLE_BACKENDS
@@ -64,79 +89,14 @@ def _supports_tools(name: str, cfg: dict) -> bool:
     )
 
 
-def _rewrite_sse_model(line: str, model: str, chat_id: str, backend: str = "") -> str:
-    """Rewrite model/id in SSE chunk AND normalize non-standard finish_reason.
-
-    Also applies reasoning_content passthrough and tool_call normalization.
-    """
-    if not line.startswith("data: "):
-        return line
-    payload = line[6:].strip()
-    if payload == "[DONE]":
-        return line
-    try:
-        chunk = json.loads(payload)
-    except json.JSONDecodeError:
-        return line
-    if isinstance(chunk, dict):
-        chunk["model"] = model
-        if chat_id:
-            chunk["id"] = chat_id
-        # Normalize finish_reason for OpenCode compatibility
-        try:
-            from opencode_protocol_adapter import normalize_sse_chunk
-            chunk = normalize_sse_chunk(chunk)
-        except (ImportError, Exception):
-            _log.debug("opencode_direct_stream: protocol adapter not available", exc_info=True)
-        # Passthrough reasoning_content (ensure not filtered)
-        try:
-            from opencode_reasoning_bridge import passthrough_reasoning_content
-            chunk = passthrough_reasoning_content(chunk, backend)
-        except (ImportError, Exception):
-            _log.debug("opencode_direct_stream: reasoning bridge not available", exc_info=True)
-        # Normalize tool calls (repair malformed JSON arguments, ensure fields)
-        try:
-            from opencode_tool_splitter import normalize_tool_calls_in_chunk
-            chunk = normalize_tool_calls_in_chunk(chunk)
-        except (ImportError, Exception):
-            _log.debug("opencode_direct_stream: tool splitter not available", exc_info=True)
-        return f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
-    return line
-
-
-def _read_timeout_for(cfg: dict) -> float:
-    backend_timeout = float(cfg.get("timeout", 90))
-    return max(backend_timeout, OPENCODE_DIRECT_STREAM_READ_TIMEOUT)
-
-
-def _content_chunk(chat_id: str, model: str, content: str, *, finish: bool = False) -> str:
-    chunk = {
-        "id": chat_id,
-        "object": "chat.completion.chunk",
-        "created": int(time.time()),
-        "model": model,
-        "choices": [{
-            "index": 0,
-            "delta": {} if finish else {"role": "assistant", "content": content},
-            "finish_reason": "stop" if finish else None,
-        }],
-    }
-    return f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
-
-
-def _has_meaningful_delta(line: str) -> bool:
-    if not line.startswith("data: "):
-        return False
-    payload = line[6:].strip()
-    if payload == "[DONE]":
-        return False
-    try:
-        chunk = json.loads(payload)
-    except json.JSONDecodeError:
-        return False
-    choice = (chunk.get("choices") or [{}])[0]
-    delta = choice.get("delta") or {}
-    return bool(delta.get("content") or delta.get("tool_calls") or delta.get("reasoning_content"))
+def _ensure_not_backend_error_text(backend: str, text: str) -> None:
+    if not _is_backend_error(text):
+        return
+    health_tracker.record_failure(backend, error_code=429, error_text=text)
+    raise BackendError(
+        f"{backend} returned error response: {text[:60]}",
+        status_code=429,
+    )
 
 
 async def stream_openai_passthrough(
@@ -187,12 +147,10 @@ async def stream_openai_passthrough(
     if health_tracker.is_cooled_down(backend):
         raise BackendError(f"{backend} is cooling down", status_code=503)
 
-    # For TEXT_TOOL_BACKENDS: inject tool system prompt so model outputs tool calls as text
-    is_text_tool = backend in TEXT_TOOL_BACKENDS and tools
-    effective_messages = messages
-    if is_text_tool:
-        tool_prompt = build_tool_system_prompt(tools)
-        effective_messages = [{"role": "system", "content": tool_prompt}] + list(messages)
+    effective_messages, native_tools, text_tool_prompt = prepare_opencode_text_tool_payload(
+        backend, messages, tools, tool_choice
+    )
+    if text_tool_prompt:
         _log.info("[OPENCODE_DIRECT] %s is TEXT_TOOL_BACKEND, injected tool prompt", backend)
 
     headers = _build_headers(cfg, key=selected_key)
@@ -203,11 +161,11 @@ async def stream_openai_passthrough(
         system_prompt,
         ide,
         stream=True,
-        tools=None if is_text_tool else tools,  # Don't send native tools for TEXT_TOOL backends
+        tools=native_tools,
         reasoning_effort=reasoning_effort,
         backend_name=backend,
     )
-    if tools and tool_choice is not None and not is_text_tool:
+    if native_tools and tool_choice is not None:
         # _build_body returns bytes; parse, modify, re-encode
         if isinstance(body, bytes):
             body_dict = json.loads(body)
@@ -235,28 +193,38 @@ async def stream_openai_passthrough(
                 f"{backend} stream HTTP {resp.status_code}: {detail}",
                 status_code=resp.status_code,
             )
+        current_event = None  # Track current SSE event type
         async for line in resp.aiter_lines():
             if not line:
+                continue
+            # Anthropic uses event: + data: format, track event type
+            if line.startswith("event: "):
+                current_event = line[7:].strip()
+                # Don't yield event: lines, we'll convert to OpenAI format
                 continue
             if line.startswith("data: "):
                 if line[6:].strip() == "[DONE]" and not emitted_payload:
                     break
                 started = True
                 emitted_payload = emitted_payload or _has_meaningful_delta(line)
+                content_delta = _content_delta(line)
+                if content_delta:
+                    accumulated_content += content_delta
+                    _ensure_not_backend_error_text(backend, accumulated_content)
                 # Track if native tool_calls appear in the stream
-                if is_text_tool:
+                if text_tool_prompt:
                     try:
                         chunk = json.loads(line[6:].strip())
                         delta = (chunk.get("choices") or [{}])[0].get("delta", {})
                         if delta.get("tool_calls"):
                             has_native_tool_calls = True
-                        if delta.get("content"):
-                            accumulated_content += delta["content"]
                     except (json.JSONDecodeError, IndexError, KeyError):
-                        pass
+                        _log.debug("failed to parse text-tool stream chunk", exc_info=True)
                 yield _rewrite_sse_model(line + "\n\n", model, chat_id, backend)
+                current_event = None  # Reset after processing data
             elif started:
-                yield line + "\n\n"
+                # Skip other lines (like empty lines between event/data pairs)
+                pass
 
     if not emitted_payload:
         import http_caller
@@ -268,16 +236,17 @@ async def stream_openai_passthrough(
             max_tokens,
             system_prompt=system_prompt,
             ide=ide,
-            tools=None if is_text_tool else tools,
+            tools=native_tools,
             reasoning_effort=reasoning_effort,
         )
+        _ensure_not_backend_error_text(backend, answer)
         if answer:
             yield _content_chunk(chat_id, model, answer)
         yield _content_chunk(chat_id, model, "", finish=True)
         return
 
     # For TEXT_TOOL_BACKENDS: if no native tool_calls in stream, extract from text
-    if is_text_tool and not has_native_tool_calls and accumulated_content:
+    if text_tool_prompt and not has_native_tool_calls and accumulated_content:
         cleaned, tool_calls = extract_tool_calls_from_text(accumulated_content)
         if tool_calls:
             _log.info(

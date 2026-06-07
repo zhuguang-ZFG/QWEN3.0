@@ -128,17 +128,22 @@ def normalize_finish_reason(reason: str | None) -> str:
 
 
 def normalize_sse_chunk(chunk: dict) -> dict:
-    """规范化 SSE chunk 中的 finish_reason。
+    """规范化 SSE chunk 格式和 finish_reason。
 
-    修改传入的 chunk（或返回修改后的副本），确保 choices 中的
-    finish_reason 是 OpenCode 可识别的标准值。
+    处理两类问题：
+    1. Anthropic 格式 → OpenAI 格式转换
+    2. finish_reason 标准化
 
     Args:
         chunk: 原始 SSE chunk dict。
 
     Returns:
-        规范化后的 chunk dict。
+        规范化后的 chunk dict（OpenAI 格式）。
     """
+    # Step 1: Convert Anthropic format to OpenAI if needed
+    chunk = _convert_anthropic_to_openai(chunk)
+
+    # Step 2: Normalize finish_reason in choices
     choices = chunk.get("choices")
     if not choices:
         return chunk
@@ -166,6 +171,116 @@ def normalize_sse_chunk(chunk: dict) -> dict:
 
     if modified:
         return {**chunk, "choices": new_choices}
+    return chunk
+
+
+def _convert_anthropic_to_openai(chunk: dict) -> dict:
+    """Convert Anthropic SSE format to OpenAI format.
+
+    Anthropic format:
+        {"type": "message_start", "message": {...}}
+        {"type": "content_block_start", ...}
+        {"type": "content_block_delta", "delta": {"text": "..."}}
+        {"type": "message_delta", "delta": {"stop_reason": "end_turn"}}
+
+    OpenAI format:
+        {"id": "...", "object": "chat.completion.chunk", "choices": [...]}
+
+    Args:
+        chunk: Possibly Anthropic-formatted chunk.
+
+    Returns:
+        OpenAI-formatted chunk.
+    """
+    chunk_type = chunk.get("type")
+
+    # Not Anthropic format, return as-is
+    if not chunk_type:
+        return chunk
+
+    # Log conversion
+    _log.info("[PROTOCOL] Converting Anthropic type='%s' to OpenAI", chunk_type)
+
+    import time
+
+    # message_start → first chunk with empty content
+    if chunk_type == "message_start":
+        message = chunk.get("message", {})
+        return {
+            "id": message.get("id", "chatcmpl-unknown"),
+            "object": "chat.completion.chunk",
+            "created": int(time.time()),
+            "model": message.get("model", "unknown"),
+            "choices": [{
+                "index": 0,
+                "delta": {"role": "assistant"},
+                "finish_reason": None,
+            }],
+        }
+
+    # content_block_start → empty content chunk
+    if chunk_type == "content_block_start":
+        return {
+            "id": "chatcmpl-unknown",
+            "object": "chat.completion.chunk",
+            "created": int(time.time()),
+            "model": "unknown",
+            "choices": [{
+                "index": 0,
+                "delta": {},
+                "finish_reason": None,
+            }],
+        }
+
+    # content_block_delta → content chunk
+    if chunk_type == "content_block_delta":
+        delta = chunk.get("delta", {})
+        text = delta.get("text", "")
+        return {
+            "id": "chatcmpl-unknown",
+            "object": "chat.completion.chunk",
+            "created": int(time.time()),
+            "model": "unknown",
+            "choices": [{
+                "index": 0,
+                "delta": {"content": text} if text else {},
+                "finish_reason": None,
+            }],
+        }
+
+    # message_delta → finish chunk
+    if chunk_type == "message_delta":
+        delta = chunk.get("delta", {})
+        stop_reason = delta.get("stop_reason")
+        finish_reason = normalize_finish_reason(stop_reason) if stop_reason else "stop"
+        return {
+            "id": "chatcmpl-unknown",
+            "object": "chat.completion.chunk",
+            "created": int(time.time()),
+            "model": "unknown",
+            "choices": [{
+                "index": 0,
+                "delta": {},
+                "finish_reason": finish_reason,
+            }],
+        }
+
+    # content_block_stop / message_stop → skip (no content)
+    if chunk_type in ("content_block_stop", "message_stop"):
+        return {
+            "id": "chatcmpl-unknown",
+            "object": "chat.completion.chunk",
+            "created": int(time.time()),
+            "model": "unknown",
+            "choices": [{
+                "index": 0,
+                "delta": {},
+                "finish_reason": None,
+            }],
+        }
+
+    # Unknown Anthropic type, return as-is
+    _log.warning("Unknown Anthropic chunk type: %s", chunk_type)
     return chunk
 
 

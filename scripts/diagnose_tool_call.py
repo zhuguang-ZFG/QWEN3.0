@@ -48,6 +48,7 @@ async def test_simple_tool_call():
     headers = {
         "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json",
+        "User-Agent": "OpenCode/1.0",  # 触发 OpenCode 专用路径
     }
 
     print(f"\n[1] Sending request to {BASE_URL}/v1/chat/completions")
@@ -135,6 +136,7 @@ async def test_without_tools():
     headers = {
         "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json",
+        "User-Agent": "OpenCode/1.0",  # 触发 OpenCode 专用路径
     }
 
     start = time.time()
