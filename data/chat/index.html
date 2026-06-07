@@ -3,8 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0071e3">
+<link rel="manifest" href="/manifest.json">
 <title>LiMa Chat</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0%25' stop-color='%234dabf7'/><stop offset='100%25' stop-color='%230071e3'/></linearGradient></defs><rect width='100' height='100' rx='22' fill='url(%23g)'/><text x='50' y='72' font-size='56' font-weight='bold' fill='white' text-anchor='middle' font-family='system-ui'>Li</text></svg>">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
@@ -125,6 +127,42 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .sb-tags{padding:4px 12px 6px;display:flex;flex-wrap:wrap;gap:4px}
 .tag-chip{padding:2px 8px;border-radius:10px;border:1px solid var(--glass-b);background:none;color:var(--text3);font-size:10px;cursor:pointer;transition:all .2s;font-family:var(--font)}
 .tag-chip:hover,.tag-chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+/* Brand logo */
+.brand-svg{width:26px;height:26px;vertical-align:middle;flex-shrink:0}
+/* Welcome redesign */
+.welcome{background:radial-gradient(ellipse at 50% 0%,rgba(77,171,247,.08) 0%,transparent 70%);border-radius:24px;margin:20px 0;padding:60px 24px}
+.welcome-logo{margin-bottom:20px}.welcome-logo svg{filter:drop-shadow(0 4px 12px rgba(0,113,227,.3))}
+.welcome h2{background:linear-gradient(135deg,var(--accent),#4dabf7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.feat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;max-width:480px;margin:0 auto}
+.feat-card{padding:14px 16px;border-radius:14px;background:var(--bg2);border:1px solid var(--glass-b);cursor:pointer;transition:all .25s;text-align:left;font-family:var(--font)}
+.feat-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,113,227,.12)}
+.feat-card .fc-icon{font-size:22px;margin-bottom:6px}
+.feat-card .fc-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
+.feat-card .fc-desc{font-size:11px;color:var(--text3);line-height:1.4}
+@media(max-width:768px){.feat-grid{grid-template-columns:1fr}}
+/* Glassmorphism */
+.msg.ai .msg-bubble{background:var(--glass);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--glass-b)}
+.input-bar{background:var(--glass);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+/* Selectors */
+.sel-wrap{position:relative}
+.sel-btn{padding:5px 12px;border:1px solid var(--glass-b);border-radius:16px;background:none;color:var(--text2);font-size:12px;cursor:pointer;transition:all .2s;font-family:var(--font);display:flex;align-items:center;gap:4px;white-space:nowrap}
+.sel-btn:hover{border-color:var(--accent);color:var(--accent)}
+.sel-popup{display:none;position:absolute;bottom:calc(100% + 8px);left:0;z-index:200;background:var(--bg2);border:1px solid var(--glass-b);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.2);padding:8px;min-width:260px;max-height:300px;overflow-y:auto}
+.sel-popup.show{display:block;animation:fadeUp .2s ease}
+.sel-opt{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:background .15s}
+.sel-opt:hover{background:var(--bg3)}
+.sel-opt.on{background:var(--accent);color:#fff}.sel-opt.on .sel-desc{color:rgba(255,255,255,.7)}
+.sel-icon{font-size:18px;flex-shrink:0}.sel-info{flex:1;min-width:0}
+.sel-name{font-size:13px;font-weight:500}.sel-desc{font-size:11px;color:var(--text3)}
+/* Scroll to bottom */
+.scroll-bottom-btn{position:absolute;bottom:100px;right:24px;width:40px;height:40px;border:none;border-radius:50%;background:var(--bg2);border:1px solid var(--glass-b);color:var(--text2);cursor:pointer;font-size:18px;z-index:20;display:none;align-items:center;justify-content:center;transition:all .2s;box-shadow:0 4px 16px rgba(0,0,0,.12)}
+.scroll-bottom-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+/* Kbd hint */
+.kbd-hint{position:fixed;bottom:20px;right:20px;z-index:9999;background:var(--bg2);border:1px solid var(--glass-b);border-radius:14px;padding:16px 20px;box-shadow:0 8px 32px rgba(0,0,0,.2);font-size:12px;display:none;min-width:200px}
+.kbd-hint.show{display:block;animation:fadeUp .2s ease}
+.kbd-hint h4{margin-bottom:10px;font-size:13px}
+.kbd-row{display:flex;justify-content:space-between;padding:4px 0;gap:16px}
+.kbd-row kbd{background:var(--bg3);padding:2px 8px;border-radius:4px;font-family:var(--font);font-size:11px;border:1px solid var(--glass-b)}
 /* Thinking indicator */
 .thinking-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:12px;
   background:var(--bg3);font-size:12px;color:var(--text2);margin-bottom:8px}
@@ -177,7 +215,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 <div class="app">
   <aside class="sb" id="sb">
     <div class="sb-head">
-      <div class="sb-logo"><b>LiMa</b> Chat</div>
+            <div class="sb-logo" style="display:flex;align-items:center;gap:8px"><svg class="brand-svg" viewBox="0 0 100 100"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#4dabf7"/><stop offset="100%" stop-color="#0071e3"/></linearGradient></defs><rect width="100" height="100" rx="22" fill="url(#lg)"/><text x="50" y="72" font-size="56" font-weight="bold" fill="white" text-anchor="middle" font-family="system-ui">Li</text></svg><span><b style="color:var(--accent)">LiMa</b> Chat</span></div>
       <button class="sb-new" onclick="newConv()" title="新对话">+</button>
     </div>
     <div class="sb-search"><input id="sbSearch" placeholder="搜索对话..." oninput="renderList()"></div>
@@ -195,19 +233,18 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
         <button class="hbtn" onclick="clearAll()" title="清空对话">🗑️</button>
       </div>
     </header>
+    <button class="scroll-bottom-btn" id="scrollBtn" onclick="scrollBottom()">↓</button>
     <div class="chat" id="chatArea">
       <div class="chat-inner" id="chatInner">
         <div class="welcome" id="welcome">
-          <div class="welcome-icon">🧠</div>
+          <div class="welcome-logo"><svg width="72" height="72" viewBox="0 0 100 100"><defs><linearGradient id="wg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#4dabf7"/><stop offset="100%" stop-color="#0071e3"/></linearGradient></defs><rect width="100" height="100" rx="22" fill="url(#wg)"/><text x="50" y="72" font-size="56" font-weight="bold" fill="white" text-anchor="middle" font-family="system-ui">Li</text></svg></div>
           <h2>你好，我是 LiMa</h2>
-          <p>你的智能 AI 助手，100+ 后端模型智能路由<br>支持联网搜索 · 深度思考 · 代码生成 · 图片分析</p>
-          <div class="suggest">
-            <button onclick="ask('用 Python 写一个快速排序')">🐍 Python 快速排序</button>
-            <button onclick="ask('解释 React Hooks 的核心概念')">⚛️ React Hooks</button>
-            <button onclick="ask('深度思考：证明根号2是无理数')">🤔 数学证明</button>
-            <button onclick="ask('搜索最新的 AI 新闻')">🌐 联网搜索</button>
-            <button onclick="ask('帮我调试这个 TypeError')">🐛 调试 Bug</button>
-            <button onclick="ask('写一首关于春天的诗')">✍️ 写诗</button>
+          <p>你的智能 AI 助手 · 100+ 后端模型智能路由<br>支持联网搜索 · 深度思考 · 代码生成 · 图片分析</p>
+          <div class="feat-grid">
+            <div class="feat-card" onclick="ask('用 Python 写一个快速排序')"><div class="fc-icon">🐍</div><div class="fc-title">代码生成</div><div class="fc-desc">Python、JS、Rust 多语言编程</div></div>
+            <div class="feat-card" onclick="ask('深度思考：证明根号2是无理数')"><div class="fc-icon">🤔</div><div class="fc-title">深度思考</div><div class="fc-desc">数学推理、逻辑分析</div></div>
+            <div class="feat-card" onclick="ask('搜索最新的 AI 新闻')"><div class="fc-icon">🌐</div><div class="fc-title">联网搜索</div><div class="fc-desc">实时获取最新资讯</div></div>
+            <div class="feat-card" onclick="ask('解释 React Hooks 的核心概念')"><div class="fc-icon">⚛️</div><div class="fc-title">技术问答</div><div class="fc-desc">框架概念、最佳实践</div></div>
           </div>
         </div>
       </div>
@@ -225,9 +262,12 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
           <button class="ibtn send" id="sendBtn" onclick="sendOrStop()" disabled title="发送">↑</button>
         </div>
         <div class="input-tools">
+          <div class="sel-wrap"><button class="sel-btn" id="modelBtn" onclick="toggleModelPopup()">🤖 <span id="modelLabel">智能路由</span></button><div class="sel-popup" id="modelPopup"></div></div>
+          <div class="sel-wrap"><button class="sel-btn" id="personaBtn" onclick="cyclePersona()">🎭 <span id="personaLabel">默认</span></button></div>
           <button class="mode-pill" id="mThink" onclick="toggleMode('think')">💭 深度思考</button>
           <button class="mode-pill" id="mSearch" onclick="toggleMode('search')">🌐 联网搜索</button>
           <div class="input-right">
+            <button class="sel-btn" onclick="toggleKbdHelp()" title="快捷键" style="padding:5px 8px">⌨️</button>
             <span style="font-size:11px;color:var(--text3);line-height:34px" id="statusText"></span>
           </div>
         </div>
@@ -386,11 +426,78 @@ function startVoice(){
 function toggleTheme(){const t=document.documentElement.dataset.theme==='dark'?'light':'dark';
   document.documentElement.dataset.theme=t;localStorage.setItem('lima_theme',t);
   $('themeBtn').textContent=t==='dark'?'🌙':'☀️'}
-(function(){const t=localStorage.getItem('lima_theme');if(t){document.documentElement.dataset.theme=t;
-  $('themeBtn').textContent=t==='dark'?'🌙':'☀️'}})();
+(function(){const t=localStorage.getItem('lima_theme');
+  if(t){document.documentElement.dataset.theme=t;$('themeBtn').textContent=t==='dark'?'🌙':'☀️'}
+  else if(matchMedia('(prefers-color-scheme:light)').matches){document.documentElement.dataset.theme='light';$('themeBtn').textContent='☀️'}
+  matchMedia('(prefers-color-scheme:dark)').addEventListener('change',e=>{
+    if(!localStorage.getItem('lima_theme')){document.documentElement.dataset.theme=e.matches?'dark':'light';$('themeBtn').textContent=e.matches?'🌙':'☀️'}})})();
 
 // Mode toggles
 function toggleMode(m){mode[m]=!mode[m];$('m'+m[0].toUpperCase()+m.slice(1)).classList.toggle('on',mode[m])}
+
+// Models
+const MODELS=[
+  {id:'auto',name:'智能路由',icon:'🧠',desc:'自动选择最佳后端'},
+  {id:'gpt-4o',name:'GPT-4o',icon:'🟢',desc:'OpenAI 旗舰模型'},
+  {id:'claude-sonnet',name:'Claude Sonnet',icon:'🟣',desc:'Anthropic 强力助手'},
+  {id:'deepseek',name:'DeepSeek V3',icon:'🔵',desc:'国产高性价比'},
+  {id:'qwen-max',name:'通义千问 Max',icon:'🟡',desc:'阿里云旗舰'},
+  {id:'gemini',name:'Gemini Pro',icon:'🟠',desc:'Google AI'},
+];
+let selectedModel=localStorage.getItem('lima_model')||'auto';
+const PERSONAS=[
+  {id:'',name:'默认',icon:'🤖',prompt:''},
+  {id:'coder',name:'代码专家',icon:'👨‍💻',prompt:'你是一位资深软件工程师，擅长编写、审查和优化代码。回答时优先给出可运行的代码示例，附带简明解释。'},
+  {id:'translator',name:'翻译官',icon:'🌍',prompt:'你是一位专业翻译，精通中英日韩多语言。用户给出文本时自动翻译，并解释关键术语。'},
+  {id:'writer',name:'写作助手',icon:'✍️',prompt:'你是一位资深写作顾问，擅长文章润色、创意写作和学术写作。注重文采和逻辑性。'},
+  {id:'analyst',name:'分析师',icon:'📊',prompt:'你是一位数据分析师和商业顾问，擅长数据解读、商业分析和战略建议。'},
+];
+let selectedPersona=localStorage.getItem('lima_persona')||'';
+function toggleModelPopup(){const p=$('modelPopup');p.classList.toggle('show');
+  if(p.classList.contains('show'))renderModelPopup()}
+function renderModelPopup(){$('modelPopup').innerHTML=MODELS.map(m=>
+  `<div class="sel-opt${m.id===selectedModel?' on':''}" onclick="selectModel('${m.id}')">
+  <span class="sel-icon">${m.icon}</span><div class="sel-info"><div class="sel-name">${m.name}</div>
+  <div class="sel-desc">${m.desc}</div></div></div>`).join('')}
+function selectModel(id){selectedModel=id;localStorage.setItem('lima_model',id);
+  $('modelLabel').textContent=MODELS.find(m=>m.id===id)?.name||'智能路由';
+  $('modelPopup').classList.remove('show')}
+function cyclePersona(){const idx=PERSONAS.findIndex(p=>p.id===selectedPersona);
+  const next=PERSONAS[(idx+1)%PERSONAS.length];selectedPersona=next.id;
+  localStorage.setItem('lima_persona',next.id);
+  $('personaLabel').textContent=next.icon+' '+next.name}
+(function(){const m=MODELS.find(x=>x.id===selectedModel);
+  if(m)$('modelLabel').textContent=m.name;
+  const p=PERSONAS.find(x=>x.id===selectedPersona);
+  if(p)$('personaLabel').textContent=p.icon+' '+p.name})();
+
+// Keyboard shortcuts
+document.addEventListener('keydown',function(e){
+  if(e.ctrlKey&&e.key==='k'){e.preventDefault();$('sbSearch').focus()}
+  if(e.ctrlKey&&e.key==='n'){e.preventDefault();newConv()}
+  if(e.ctrlKey&&e.key==='/'){e.preventDefault();toggleSb()}
+  if(e.key==='Escape'){
+    if(document.querySelector('.sel-popup.show'))document.querySelectorAll('.sel-popup').forEach(p=>p.classList.remove('show'));
+    else if(document.querySelector('.kbd-hint.show'))document.querySelector('.kbd-hint').classList.remove('show');
+    else if(streaming)stopStream()}});
+
+// Scroll to bottom button
+$('chatArea').addEventListener('scroll',function(){
+  const a=this,sb=$('scrollBtn');
+  const near=a.scrollHeight-a.scrollTop-a.clientHeight<120;
+  sb.style.display=(!near&&a.scrollHeight>a.clientHeight+100)?'flex':'none'});
+
+// Kbd help panel
+function toggleKbdHelp(){let p=document.querySelector('.kbd-hint');
+  if(!p){p=document.createElement('div');p.className='kbd-hint';
+    p.innerHTML='<h4>⌨️ 快捷键</h4><div class="kbd-row"><span>新对话</span><kbd>Ctrl+N</kbd></div><div class="kbd-row"><span>搜索</span><kbd>Ctrl+K</kbd></div><div class="kbd-row"><span>侧栏</span><kbd>Ctrl+/</kbd></div><div class="kbd-row"><span>停止生成</span><kbd>Esc</kbd></div><div class="kbd-row"><span>发送</span><kbd>Enter</kbd></div><div class="kbd-row"><span>换行</span><kbd>Shift+Enter</kbd></div>';
+    document.body.appendChild(p)}p.classList.toggle('show')}
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.sel-wrap'))document.querySelectorAll('.sel-popup.show').forEach(p=>p.classList.remove('show'));
+  if(!e.target.closest('.kbd-hint')&&!e.target.closest('[title="快捷键"]')){const h=document.querySelector('.kbd-hint.show');if(h)h.classList.remove('show')}});
+
+// PWA
+if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
 
 // Send message
 async function send(){
@@ -435,7 +542,7 @@ async function send(){
   setStatus('正在连接…');
   try{
     abortCtrl=new AbortController();
-    const body={model:'lima-1.3',messages:[...apiMsgs,{role:'user',content:query!==text?query:text}].slice(0,-1)
+    const body={model:selectedModel||'lima-1.3',messages:[...apiMsgs,{role:'user',content:query!==text?query:text}].slice(0,-1)
       .concat([{role:'user',content:query}]),max_tokens:4096,stream:true};
     // De-duplicate: replace last user msg with query version
     body.messages=buildApiMessages(c.msgs,query,text);
@@ -487,6 +594,8 @@ function buildApiMessages(msgs,query,original){
   if(mode.search) sys+='用户启用了联网搜索模式，请优先使用最新网络信息回答。';
   const sysMsg={role:'system',content:sys};
   const result=[sysMsg];
+  if(selectedPersona){const ps=PERSONAS.find(p=>p.id===selectedPersona);
+    if(ps?.prompt)result.unshift({role:'system',content:ps.prompt})}
   for(let i=0;i<msgs.length;i++){
     const m=msgs[i];
     const isLast=i===msgs.length-1;
@@ -582,6 +691,7 @@ function ask(t){if(!getConv())newConv();$('input').value=t;autoGrow($('input'));
 if(!state.convs.length)newConv();
 renderList();renderChat();
 $('input').addEventListener('input',()=>autoGrow($('input')));
+renderModelPopup();
 </script>
 </body>
 </html>
