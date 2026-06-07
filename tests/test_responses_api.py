@@ -240,6 +240,26 @@ def test_stream_converter_preserves_usage_details_in_completed_event():
     assert '"output_tokens_details": {"reasoning_tokens": 5}' in out
 
 
+def test_stream_converter_maps_chat_error_to_response_failed_without_completed():
+    chunk = {
+        "error": {
+            "message": "upstream overloaded",
+            "code": "server_overloaded",
+            "param": "model",
+        },
+    }
+    lines = [f"data: {json.dumps(chunk)}", "data: [DONE]"]
+
+    out = "".join(transform_chat_sse_iter(iter(lines), model="lima-1.3"))
+
+    assert "response.failed" in out
+    assert '"status": "failed"' in out
+    assert '"message": "upstream overloaded"' in out
+    assert '"code": "server_overloaded"' in out
+    assert '"param": "model"' in out
+    assert "response.completed" not in out
+
+
 def test_stream_converter_maps_chat_reasoning_content_to_responses_reasoning_events():
     chunk = {
         "choices": [{

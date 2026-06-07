@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 import time
 import uuid
-from collections.abc import AsyncIterator, Iterator
 
+from converters.responses_errors import chat_error_from_chunk, failed_response_payload
 from converters.responses_usage import chat_usage_to_responses_usage
 
 
@@ -39,6 +39,7 @@ class ResponsesStreamConverter:
         self.tool_items: dict[int, dict] = {}
         self.next_output_index = 0
         self.usage: dict | None = None
+        self.failed = False
 
     def bootstrap_events(self) -> list[str]:
         return [
@@ -90,6 +91,18 @@ class ResponsesStreamConverter:
 
     def feed_chat_chunk(self, chunk: dict) -> list[str]:
         events: list[str] = []
+        error = chat_error_from_chunk(chunk)
+        if error:
+            self.failed = True
+            return [_sse_event("response.failed", {
+                "response": failed_response_payload(
+                    response_id=self.response_id,
+                    created_at=self.created_at,
+                    model=self.model,
+                    usage=self._usage(),
+                    error=error,
+                ),
+            })]
         if chunk.get("model"):
             self.model = chunk["model"]
         if chunk.get("usage"):
@@ -188,6 +201,8 @@ class ResponsesStreamConverter:
         return events
 
     def completion_events(self) -> list[str]:
+        if self.failed:
+            return []
         events: list[str] = []
         if self.reasoning_started:
             events.extend(self._complete_reasoning_item())
@@ -214,11 +229,7 @@ class ResponsesStreamConverter:
                     "content": [{"type": "output_text", "text": ""}],
                 },
             }))
-        usage = self.usage or {
-            "input_tokens": 0,
-            "output_tokens": 0,
-            "total_tokens": 0,
-        }
+        usage = self._usage()
         events.append(_sse_event("response.completed", {
             "response": {
                 "id": self.response_id,
@@ -232,6 +243,13 @@ class ResponsesStreamConverter:
             },
         }))
         return events
+
+    def _usage(self) -> dict:
+        return self.usage or {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0,
+        }
 
     def _complete_reasoning_item(self) -> list[str]:
         summary = [{"type": "summary_text", "text": self.reasoning_text}]
@@ -274,52 +292,3 @@ def _reasoning_delta(delta: dict) -> str:
         if isinstance(value, str) and value:
             return value
     return ""
-
-
-async def transform_chat_sse_stream(
-    source: AsyncIterator[bytes | str],
-    *,
-    model: str = "lima-1.3",
-) -> AsyncIterator[str]:
-    converter = ResponsesStreamConverter(model=model)
-    for ev in converter.bootstrap_events():
-        yield ev
-    async for raw in source:
-        if isinstance(raw, bytes):
-            line = raw.decode("utf-8", errors="replace")
-        else:
-            line = raw
-        for part in line.split("\n"):
-            chunk = parse_chat_sse_line(part)
-            if not chunk:
-                continue
-            if chunk.get("__done__"):
-                for ev in converter.completion_events():
-                    yield ev
-                return
-            for ev in converter.feed_chat_chunk(chunk):
-                yield ev
-    for ev in converter.completion_events():
-        yield ev
-
-
-def transform_chat_sse_iter(
-    lines: Iterator[str],
-    *,
-    model: str = "lima-1.3",
-) -> Iterator[str]:
-    converter = ResponsesStreamConverter(model=model)
-    for ev in converter.bootstrap_events():
-        yield ev
-    for line in lines:
-        chunk = parse_chat_sse_line(line)
-        if not chunk:
-            continue
-        if chunk.get("__done__"):
-            for ev in converter.completion_events():
-                yield ev
-            return
-        for ev in converter.feed_chat_chunk(chunk):
-            yield ev
-    for ev in converter.completion_events():
-        yield ev

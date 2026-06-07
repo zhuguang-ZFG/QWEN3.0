@@ -11,7 +11,7 @@ from converters.responses_content import (
     is_replay_metadata_item,
     tool_output_continuation_text,
 )
-from converters.responses_stream import transform_chat_sse_iter, transform_chat_sse_stream
+from converters.responses_stream_transform import transform_chat_sse_iter, transform_chat_sse_stream
 from converters.responses_usage import chat_usage_to_responses_usage
 
 
