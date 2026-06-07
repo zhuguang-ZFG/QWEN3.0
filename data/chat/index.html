@@ -321,7 +321,7 @@ function renderMsg(m,i){
   const avatar=role==='user'?'👤':'🧠';
   let html=role==='user'?esc(m.content):renderMd(m.content);
   if(m.image) html=`<img src="${m.image}" style="max-width:200px;border-radius:8px;margin-bottom:8px"><br>`+html;
-  if(role==='ai'&&m.tokens){html+=`<div class="token-badge">⚡ ${m.tokens.in||0} in / ${m.tokens.out||0} out</div>`}
+  if(m.tokens){const pre=m.tokens.est?'≈ ':'';html+=`<div class="token-badge">${pre}⚡ ${m.tokens.in||0} in / ${pre}${m.tokens.out||0} out</div>`}
   const fb=m.fb||0;
   return `<div class="msg ${role}">
     <div class="msg-avatar">${avatar}</div>
@@ -400,6 +400,9 @@ async function send(){
   // Build user message
   const userMsg={role:'user',content:text};
   if(pendingImg)userMsg.image=pendingImg;
+  // Estimate input tokens
+  const cjk=(text.match(/[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff]/g)||[]).length;
+  userMsg.tokens={in:Math.max(Math.round(cjk*1.5+(text.length-cjk)/4),1),out:0,est:true};
   c.msgs.push(userMsg);
   if(c.msgs.length===1)c.title=text.slice(0,40)||'图片对话';
   // Clear input
@@ -457,7 +460,16 @@ async function send(){
             scrollBottom()}}catch{}}
     }
     // Save AI response with token info
-    if(full){const msg={role:'assistant',content:full};if(tokens.in||tokens.out)msg.tokens=tokens;c.msgs.push(msg);c.ts=Date.now();save()}
+    if(full){
+      const msg={role:'assistant',content:full};
+      if(!tokens.in&&!tokens.out){
+        // Estimate: ~4 chars/token for latin, ~1.5 chars/token for CJK
+        const estIn=Math.round((text.length*1.2+apiMsgs.length*50)/4);
+        const estOut=Math.round((full.match(/[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff]/g)?.length||0)*1.5+(full.replace(/[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff]/g,'').length)/4);
+        msg.tokens={in:Math.max(estIn,1),out:Math.max(estOut,1),est:true};
+      } else msg.tokens=tokens;
+      c.msgs.push(msg);c.ts=Date.now();save()
+    }
     const ms=Date.now()-t0;setStatus(`完成 · ${ms}ms`);
   }catch(e){
     $('loadDot')?.remove();
