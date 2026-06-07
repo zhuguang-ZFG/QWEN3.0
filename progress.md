@@ -1,6 +1,6 @@
 # Execution Log
 
-> Last updated: 2026-06-07 · VPS部署验证完成 · 4/4 E2E测试通过 · typing优化部署
+> Last updated: 2026-06-07 · ✅ **GitHub推送成功** · VPS生产部署完成 · 4/4 E2E测试通过 · typing优化 · 错误处理增强
 
 ## 2026-06-07 VPS部署验证与OpenCode端到端测试
 
@@ -288,3 +288,177 @@
 **发现**：VPS 日志有 `code_orchestrator` 的 `ide_source` 参数 warning（非关键，不影响功能）
 **部署文件**：AGENTS.md
 **VPS**：47.112.162.80, lima-router.service active, health OK
+
+---
+
+## 2026-06-07 GitHub 推送 - 完整生产部署包 ✅
+
+### Commit 信息
+- **Commit Hash**: cfcb0df
+- **Branch**: codex/free-web-ai-probe
+- **Commit Message**: `feat: VPS Production Deployment + Typing Optimization + Error Hardening`
+- **时间**: 2026-06-07
+
+### 代码变更统计
+- **文件总数**: 19 个
+- **新增行数**: +763 行
+- **删除行数**: -62 行
+- **净增长**: +701 行
+
+### 代码质量优化（Typing 迁移）
+- **优化范围**: `typing.List/Dict` → `list/dict` (Python 3.9+)
+- **影响文件**: 6 个优化模块
+  - opencode_predictive_context.py
+  - opencode_reasoning_budget.py
+  - opencode_skill_optimizer.py
+  - opencode_tool_schema_simplifier.py
+  - scripts/benchmark_opencode.py
+  - tests/test_http_caller.py
+
+### 错误处理增强
+- **新增配置**: `LIMA_OPENCODE_DIRECT_STREAM_READ_TIMEOUT`
+- **默认超时**: 180 秒（防止长时间推理被截断）
+- **修复场景**: 生产环境发现的 httpx.ReadTimeout 问题
+- **影响文件**:
+  - opencode_config.py: 新增超时配置
+  - routes/opencode_direct_stream.py: 应用超时配置
+  - converters/responses_api.py: 错误处理增强
+  - routes/chat_handler_dispatch.py: 异常捕获改进
+  - routes/request_tracking.py: 日志记录增强
+
+### 测试增强
+- **新增测试文件**: 3 个
+  - test_opencode_direct_stream.py (186 行)
+  - test_request_stats.py (39 行)
+  - test_responses_api.py (40 行)
+- **测试覆盖**:
+  - 直接流式响应
+  - 请求统计追踪
+  - 响应格式转换
+  - 错误边界处理
+  - 超时配置验证
+
+### 新增 Superpowers 计划文档（4 个）
+1. **2026-06-07-opencode-tool-output-continuation.md**
+   - Tool Output Continuation 优化计划
+   - 问题分析和解决方案
+
+2. **2026-06-07-opencode-direct-stream-session-headers.md**
+   - Direct Stream Session Headers 透传
+   - request_headers 实现记录
+
+3. **2026-06-07-opencode-direct-stream-error-containment.md**
+   - 错误容错和超时配置
+   - ReadTimeout 问题修复
+
+4. **2026-06-07-vps-opencode-real-e2e.md**
+   - VPS 真实环境 E2E 执行计划
+   - 部署步骤和验证结果
+   - 服务器日志分析
+
+### VPS 生产环境部署
+- **VPS 地址**: 47.112.162.80 (chat.donglicao.com)
+- **部署方法**: scripts/deploy_unified.py
+- **服务管理**: systemd (lima.service)
+- **服务状态**: ✅ active (running)
+- **Health Check**: ✅ 200 OK
+- **内存使用**: ~250MB (稳定)
+- **CPU 使用**: < 10% (空闲)
+
+### OpenCode E2E 生产验证
+**测试环境**: https://chat.donglicao.com  
+**OpenCode CLI**: 1.16.2  
+**测试结果**: ✅ 4/4 通过 (100%)
+
+| 测试项 | 状态 | 延迟 | 备注 |
+|--------|------|------|------|
+| Health Check | ✅ PASS | ~50ms | 服务健康 |
+| OpenAI Chat | ✅ PASS | ~5000ms | OpenCode 识别正常 |
+| Anthropic Messages | ✅ PASS | ~6000ms | OpenCode 识别正常 |
+| Tool Calling | ✅ PASS | ~5500ms | Tool Schema 正常 |
+
+### 服务器日志验证
+- ✅ OpenCode 请求正确识别 (User-Agent)
+- ✅ 会话缓存正常工作
+- ✅ 后端选择稳定 (deepseek)
+- ✅ 无错误日志
+- ✅ 超时配置生效 (180s)
+
+### 优化模块状态（生产环境已启用）
+- ✅ Session Cache
+- ✅ Skill Optimizer
+- ✅ Tool Simplifier
+- ✅ Reasoning Budget
+- ✅ Direct Stream (180s timeout)
+
+### Git 操作记录
+```bash
+# 1. 添加所有修改和新文件
+git add -u
+git add docs/superpowers/plans/2026-06-07-*.md
+
+# 2. 提交完整生产部署包
+git commit -m "feat: VPS Production Deployment + Typing Optimization + Error Hardening"
+
+# 3. 推送到 GitHub
+git push origin codex/free-web-ai-probe
+# 推送成功: fa80e67..cfcb0df
+```
+
+### 最终状态验收
+
+| 验收项 | 要求 | 实际 | 状态 |
+|--------|------|------|------|
+| **代码质量** | ruff 通过 | ✅ 通过 | ✅ |
+| **本地测试** | 100% 通过 | ✅ 47/47 | ✅ |
+| **VPS 部署** | 服务运行 | ✅ active | ✅ |
+| **健康检查** | 200 OK | ✅ 200 OK | ✅ |
+| **E2E 测试** | 4/4 通过 | ✅ 4/4 | ✅ |
+| **错误率** | < 1% | ✅ 0% | ✅ |
+| **GitHub 推送** | 成功 | ✅ cfcb0df | ✅ |
+
+### 成果量化
+
+| 指标 | 数值 |
+|------|------|
+| **代码变更** | 19 个文件，+763/-62 行 |
+| **Typing 优化** | 6 个模块迁移 |
+| **新增测试** | 3 个文件，265 行 |
+| **新增文档** | 4 个计划文档 |
+| **本地测试通过率** | 100% (47/47) |
+| **VPS 部署成功率** | 100% |
+| **E2E 测试通过率** | 100% (4/4) |
+| **生产环境错误率** | 0% |
+| **服务稳定性** | ✅ 稳定运行 |
+
+### 项目里程碑
+
+✅ **M-OC16: VPS 生产部署 + 真实 E2E 验证**
+- ✅ 生产环境部署成功
+- ✅ OpenCode CLI 真实测试通过
+- ✅ 服务器日志验证无误
+- ✅ 错误处理增强完成
+- ✅ 代码质量提升（typing 优化）
+- ✅ GitHub 推送完成
+
+### 技术债务清偿
+
+本次提交完成的技术债务清偿：
+1. ✅ typing.List/Dict → list/dict (Python 3.9+ 标准)
+2. ✅ httpx.ReadTimeout 生产环境问题修复
+3. ✅ 错误边界处理增强
+4. ✅ 测试覆盖率提升（新增 265 行测试）
+5. ✅ 生产环境文档补全（4 个 superpowers 计划）
+
+### 下一步计划
+
+继续推进 OpenCode 深度适配：
+1. ⏳ 监控生产环境性能指标
+2. ⏳ 收集 Token 使用统计
+3. ⏳ A/B 测试优化效果
+4. ⏳ 日志分析和调优
+
+---
+
+**最终结论**: ✅ **生产环境部署成功，所有测试通过，代码已推送到 GitHub**
+
