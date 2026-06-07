@@ -100,17 +100,19 @@ def effective_score(backend: str, request_type: str, scenario: str = "",
                     *, health_score: float = 50.0,
                     state: dict | None = None,
                     avg_latency_ms: float = 1000.0,
-                    remaining_quota_score: float | None = None) -> float:
+                    remaining_quota_score: float | None = None,
+                    quality_trend_score: float = 1.0) -> float:
     quota_score = (
         budget_manager.get_remaining_quota_score(backend)
         if remaining_quota_score is None else remaining_quota_score
     )
     score = (
-        _norm_score(health_score) * 0.45
+        _norm_score(health_score) * 0.35
         + stability_score(state) * 0.25
         + latency_score(avg_latency_ms) * 0.15
         + max(0.0, min(quota_score, 1.0)) * 0.10
         + task_fit_score(backend, request_type, scenario) * 0.05
+        + max(0.0, min(quality_trend_score, 2.0)) * 0.10
     )
     return round(score, 6)
 
@@ -118,10 +120,12 @@ def effective_score(backend: str, request_type: str, scenario: str = "",
 def rank_backends(backends: list[str], request_type: str, scenario: str = "",
                   *, health_scores: dict[str, float] | None = None,
                   states: dict[str, dict] | None = None,
-                  latency_map: dict[str, float] | None = None) -> list[str]:
+                  latency_map: dict[str, float] | None = None,
+                  quality_trends: dict[str, float] | None = None) -> list[str]:
     health_scores = health_scores or {}
     states = states or {}
     latency_map = latency_map or {}
+    quality_trends = quality_trends or {}
 
     def key(item: tuple[int, str]) -> tuple[float, int]:
         idx, backend = item
@@ -133,6 +137,7 @@ def rank_backends(backends: list[str], request_type: str, scenario: str = "",
                 health_score=health_scores.get(backend, 50.0),
                 state=states.get(backend),
                 avg_latency_ms=latency_map.get(backend, 1000.0),
+                quality_trend_score=quality_trends.get(backend, 1.0),
             ),
             idx,
         )

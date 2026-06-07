@@ -153,6 +153,15 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
         deps.loaded_modules["mcp"] = False
 
     try:
+        from lima_mcp.fastmcp_server import mount_mcp
+
+        mount_mcp(app)
+        deps.loaded_modules["fastmcp"] = True
+    except ImportError as exc:
+        logging.warning("[STARTUP] FastMCP module not loaded: %s", exc)
+        deps.loaded_modules["fastmcp"] = False
+
+    try:
         from routes.agent_tasks import router as agent_tasks_router
 
         app.include_router(agent_tasks_router)

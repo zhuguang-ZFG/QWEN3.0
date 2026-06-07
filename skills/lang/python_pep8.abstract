@@ -1,0 +1,1 @@
+Follow PEP 8 style guide for Python. Use snake_case for functions and variables, PascalCase for classes. Keep lines under 79 chars.

@@ -70,10 +70,21 @@ def load_skills_from_dir(skills_dir: str) -> list[dict]:
             meta, body = _parse_frontmatter(raw)
             if not meta or "id" not in meta:
                 continue
+            # Load L0 abstract sidecar if present
+            abstract_path = fpath.rsplit(".", 1)[0] + ".abstract"
+            abstract = ""
+            if os.path.exists(abstract_path):
+                try:
+                    with open(abstract_path, encoding="utf-8") as af:
+                        abstract = af.read().strip()
+                except Exception:
+                    pass
+
             skills.append({
                 "id": meta["id"],
                 "category": meta.get("category", "general"),
                 "content": body,
+                "abstract": abstract,
                 "detect_keywords": meta.get("detect_keywords", []),
                 "always_apply": meta.get("always_apply", False),
                 "priority": meta.get("priority", 5),
@@ -141,6 +152,26 @@ def _trim_to_budget(text: str, max_tokens: int) -> str:
     if len(text) <= max_chars:
         return text
     return text[:max_chars - 3] + "..."
+
+
+def select_skill_tier(skill: dict, max_tokens: int = 200) -> str:
+    """Select appropriate tier based on token budget.
+
+    L0 (abstract): ~30 tokens — one-line summary for quick scanning
+    L2 (content): full skill body — when budget allows
+
+    Falls back to truncated L2 if L0 is empty.
+    """
+    abstract = skill.get("abstract", "")
+    content = skill.get("content", "")
+    max_chars = max_tokens * CHARS_PER_TOKEN
+
+    # L0: use abstract if budget is tight and abstract exists
+    if max_tokens <= 50 and abstract:
+        return abstract[:max_chars]
+
+    # L2: use full content, trimmed to budget
+    return _trim_to_budget(content, max_tokens)
 
 
 # ─── 双模式入口 ───────────────────────────────────────────────────────────────

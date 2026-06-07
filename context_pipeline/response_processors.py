@@ -103,6 +103,40 @@ def lesson_extraction_processor(ctx: ResponseContext) -> ResponseContext:
     return ctx
 
 
+def semantic_quality_processor(ctx: ResponseContext) -> ResponseContext:
+    """Evaluate semantic quality and record to quality history.
+
+    Uses semantic_eval.evaluate_response() for relevance/completeness/coherence
+    scoring, then records the score in quality_history for trend tracking.
+    Also updates health_tracker's quality scoring.
+    """
+    if not ctx.response_text or not ctx.quality_ok:
+        return ctx
+
+    try:
+        import quality_history
+        import semantic_eval
+
+        # Extract the original query from the response context if available
+        query = getattr(ctx, "query", "") or ""
+
+        result = semantic_eval.evaluate_response(query, ctx.response_text)
+
+        # Record to quality history ring buffer
+        if ctx.backend:
+            quality_history.record_quality(ctx.backend, result.total)
+
+            # Also feed into existing health_scoring quality system
+            import health_tracker
+            # Map semantic score (0-100) to existing quality scale (0.0-1.0)
+            health_tracker.record_quality_score(ctx.backend, result.total / 100.0)
+
+    except Exception as exc:
+        _log.debug("semantic_quality_processor: evaluation failed", exc_info=True)
+
+    return ctx
+
+
 def build_default_response_pipeline():
     """Build the standard response processing pipeline."""
     from context_pipeline.response_pipeline import ResponsePipeline
@@ -111,6 +145,7 @@ def build_default_response_pipeline():
         ResponsePipeline()
         .add("quality_check", quality_check_processor)
         .add("code_validation", code_validation_processor)
+        .add("semantic_quality", semantic_quality_processor)
         .add("memory_capture", memory_capture_processor)
         .add("event_recording", event_recording_processor)
         .add("lesson_extraction", lesson_extraction_processor)

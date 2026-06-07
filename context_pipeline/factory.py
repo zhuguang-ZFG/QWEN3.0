@@ -8,6 +8,7 @@ from .processors import (
     prompt_composition_processor,
     scenario_classification_processor,
 )
+from .openviking_processor import openviking_context_processor
 
 
 def build_default_pipeline() -> Pipeline:
@@ -19,6 +20,7 @@ def build_default_pipeline() -> Pipeline:
     3. Code Context → populates ctx.code_context (uses ctx.scenario)
     4. Prompt Composition → populates ctx.system_prompt (uses all above)
     5. Cache Optimization → reorders ctx.system_prompt for prefix caching
+    6. OpenViking Context → enriches ctx.system_prompt with Viking retrieval
     """
     return (
         Pipeline()
@@ -27,4 +29,5 @@ def build_default_pipeline() -> Pipeline:
         .add("code_context", code_context_processor)
         .add("prompt_composition", prompt_composition_processor)
         .add("cache_optimization", cache_optimization_processor)
+        .add("openviking_context", openviking_context_processor)
     )

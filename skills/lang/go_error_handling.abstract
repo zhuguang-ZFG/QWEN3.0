@@ -1,0 +1,1 @@
+Always check errors explicitly in Go. Use `if err != nil` pattern. Wrap errors with context using fmt.Errorf. Never use panic for normal error handling.

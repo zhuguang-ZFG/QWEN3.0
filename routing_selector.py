@@ -104,6 +104,16 @@ def select(request_type: str, health_map: dict,
     latency_map = re.health_tracker.get_latency_map()
     health_map = re.health_tracker.get_health_map()
 
+    # Compute quality trend factors for all backends
+    try:
+        import quality_history
+        quality_trends = {
+            b: quality_history.get_quality_score_for_routing(b)
+            for b in result
+        }
+    except ImportError:
+        quality_trends = {}
+
     for b in result:
         base = scores.get(b, 50)
 
@@ -124,6 +134,10 @@ def select(request_type: str, health_map: dict,
             scores[b] = base * 0.5 * latency_score * recency_bonus
         else:
             scores[b] = base * latency_score * (1 - error_penalty) * recency_bonus
+
+        # Apply semantic quality trend factor
+        qt = quality_trends.get(b, 1.0)
+        scores[b] *= qt
 
         try:
             from context_pipeline.routing_weights import get_routing_weights
@@ -206,7 +220,8 @@ def select(request_type: str, health_map: dict,
         result, request_type, scenario,
         health_scores=scores,
         states=states,
-        latency_map=re.health_tracker.get_latency_map())
+        latency_map=re.health_tracker.get_latency_map(),
+        quality_trends=quality_trends)
 
     # ── Agent task routing: prioritize hermes_agent (Mode 3) ──
     if needs_agent and "hermes_agent" in result:

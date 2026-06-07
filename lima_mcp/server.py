@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from lima_mcp import TOOL_DEFINITIONS
@@ -44,10 +45,22 @@ class ToolCallRequest(BaseModel):
 
 @router.get("/tools/list", dependencies=[Depends(_verify_mcp_access)])
 async def list_tools():
-    return {"tools": TOOL_DEFINITIONS}
+    return JSONResponse(
+        content={"tools": TOOL_DEFINITIONS},
+        headers={
+            "X-LiMa-Deprecation": "This simplified MCP endpoint is deprecated. Use /v2/mcp (MCP 2025-03-26 spec-compliant) instead.",
+            "X-LiMa-Migrate-To": "/v2/mcp",
+        },
+    )
 
 
 @router.post("/tools/call", dependencies=[Depends(_verify_mcp_access)])
 async def call_tool(req: ToolCallRequest):
     result = handle_tool_call(req.name, req.arguments)
-    return {"result": result}
+    return JSONResponse(
+        content={"result": result},
+        headers={
+            "X-LiMa-Deprecation": "This simplified MCP endpoint is deprecated. Use /v2/mcp (MCP 2025-03-26 spec-compliant) instead.",
+            "X-LiMa-Migrate-To": "/v2/mcp",
+        },
+    )

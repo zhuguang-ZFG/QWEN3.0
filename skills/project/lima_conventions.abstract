@@ -1,0 +1,1 @@
+This project uses Python 3.10+ with FastAPI and httpx.AsyncClient. Files should not exceed 300 lines. Test before deployment. Follow Superpowers principles: document first, small files, local verifica

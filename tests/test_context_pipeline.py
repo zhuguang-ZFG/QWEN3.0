@@ -137,13 +137,14 @@ def test_default_pipeline_processes_full_request():
     assert "编程助手" in ctx.system_prompt
     assert "编码实现" in ctx.system_prompt
     assert "质量门控" in ctx.system_prompt
-    assert len(ctx.processors_applied) == 5
+    assert len(ctx.processors_applied) == 6
     assert ctx.processors_applied == [
         "ide_detection",
         "scenario_classification",
         "code_context",
         "prompt_composition",
         "cache_optimization",
+        "openviking_context",
     ]
 
 
@@ -160,3 +161,29 @@ def test_default_pipeline_chat_scenario():
     assert ctx.scenario == "chat"
     assert "联网能力" in ctx.system_prompt
     assert "技术问答" in ctx.system_prompt
+
+
+def test_request_context_has_openviking_field():
+    from context_pipeline import RequestContext
+    ctx = RequestContext()
+    assert hasattr(ctx, "openviking_context")
+    assert ctx.openviking_context == ""
+
+
+def test_full_pipeline_with_openviking_disabled():
+    """Pipeline works normally when OpenViking is disabled (default)."""
+    import os
+    os.environ.pop("LIMA_OPENVIKING_ENABLED", None)
+    pipe = build_default_pipeline()
+    ctx = RequestContext(
+        headers={"user-agent": "opencode/1.0"},
+        messages=[{"role": "user", "content": "fix the auth bug"}],
+        path="/v1/chat/completions",
+    )
+    ctx = pipe.process(ctx)
+
+    assert ctx.ide == "OpenCode"
+    assert ctx.scenario == "coding"
+    assert "openviking_context" in ctx.processors_applied
+    assert ctx.openviking_context == ""  # disabled = empty
+    assert "编程助手" in ctx.system_prompt

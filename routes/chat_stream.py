@@ -22,6 +22,36 @@ FALLBACK_MSG = "抱歉，所有后端暂不可用，请稍后重试。可尝试 
 _META_PREFIX = "__LIMA_META__:"
 
 
+def _get_fallback_backends(
+    primary: str,
+    messages: list,
+    ide_source: str = "",
+) -> list[str]:
+    """Get ranked fallback backends excluding the primary.
+
+    Uses the routing engine to select healthy backends and returns
+    all except the primary as fallback candidates (up to 3).
+
+    Args:
+        primary: The primary backend name to exclude from fallbacks.
+        messages: Conversation messages (unused, reserved for future routing).
+        ide_source: IDE source identifier; selects 'ide' req_type if set.
+
+    Returns:
+        List of fallback backend names (max 3), excluding the primary.
+    """
+    try:
+        import health_tracker
+        import routing_engine
+        req_type = "ide" if ide_source else "chat"
+        hmap = health_tracker.get_health_map()
+        backends = routing_engine.select(req_type, hmap)
+        # Remove primary from fallbacks
+        return [b for b in backends if b != primary][:3]
+    except Exception:
+        return []
+
+
 def _extract_meta(chunk: str) -> dict | None:
     """Extract __LIMA_META__ metadata from a stream chunk. Returns None if not metadata."""
     if chunk.startswith(_META_PREFIX):
@@ -136,7 +166,25 @@ async def stream_response(
     stream_backend = prefer or "unknown"
 
     if prefer and not has_tools:
-        async for chunk in real_stream_chunks_async(prefer, messages, 4096, ide_source):
+        fallbacks = _get_fallback_backends(prefer, messages, ide_source)
+        failover_events = []
+
+        def _track_failover(failed_b, new_b, state):
+            failover_events.append({
+                "failed": failed_b, "replaced_by": new_b,
+                "chunks_before": state.chunk_count,
+            })
+            try:
+                from streaming_failover_metrics import record_stream_failover
+                record_stream_failover(failed_b, new_b, state.snapshot())
+            except (ImportError, Exception):
+                pass
+
+        async for chunk in real_stream_chunks_async(
+            prefer, messages, 4096, ide_source,
+            fallback_backends=fallbacks,
+            on_failover=_track_failover,
+        ):
             meta = _extract_meta(chunk)
             if meta:
                 if "usage" in meta:
@@ -155,7 +203,13 @@ async def stream_response(
             yield "data: [DONE]\n\n"
             return
 
-    async for _backend, chunk in speculative_stream_chunks(query, messages, 4096, ide_source):
+    spec_fallbacks = _get_fallback_backends(
+        prefer or "unknown", messages, ide_source
+    )
+    async for _backend, chunk in speculative_stream_chunks(
+        query, messages, 4096, ide_source,
+        fallback_backends=spec_fallbacks,
+    ):
         meta = _extract_meta(chunk)
         if meta:
             if "usage" in meta:

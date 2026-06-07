@@ -43,6 +43,22 @@ def execute(backends: list[str],
             if answer and len(answer.strip()) > 0:
                 re.health_tracker.record_success(backend, latency_ms)
                 re.budget_manager.record_usage(backend)
+
+                # Semantic quality evaluation (non-blocking, best-effort)
+                try:
+                    import quality_history
+                    import semantic_eval
+                    query_text = ""
+                    for msg in reversed(messages):
+                        if isinstance(msg, dict) and msg.get("role") == "user":
+                            query_text = msg.get("content", "")
+                            break
+                    if query_text:
+                        sq = semantic_eval.evaluate_response(query_text, answer)
+                        quality_history.record_quality(backend, sq.total)
+                except Exception:
+                    pass
+
                 return backend, answer, errors
 
             re.health_tracker.record_failure(backend, error_code=None)
