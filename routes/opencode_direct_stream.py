@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
+import time
 from collections.abc import AsyncIterator
 
 import health_tracker
 from backends import BACKENDS
+from backends_constants import TOOL_CAPABLE_BACKENDS
 from http_errors import BackendError
 from http_request_builder import _build_body, _build_headers, _select_key
 from opencode_config import (
@@ -24,7 +27,7 @@ from text_tool_extractor import (
 _log = logging.getLogger(__name__)
 
 
-def resolve_opencode_backend(prefer: str | None = None) -> str:
+def resolve_opencode_backend(prefer: str | None = None, *, require_tools: bool = False) -> str:
     """Pick a healthy OpenCode backend with minimal routing overhead."""
     candidates: list[str] = []
     if prefer:
@@ -36,12 +39,29 @@ def resolve_opencode_backend(prefer: str | None = None) -> str:
             if name.startswith(prefix) or name == prefix:
                 if name not in candidates:
                     candidates.append(name)
+    if require_tools:
+        for name in sorted(TOOL_CAPABLE_BACKENDS):
+            if name in BACKENDS and name not in candidates:
+                candidates.append(name)
     for name in candidates:
-        if name in BACKENDS and not health_tracker.is_cooled_down(name):
-            key, _ = _select_key(name, BACKENDS[name])
+        cfg = BACKENDS.get(name)
+        if not cfg:
+            continue
+        if require_tools and not _supports_tools(name, cfg):
+            continue
+        if not health_tracker.is_cooled_down(name):
+            key, _ = _select_key(name, cfg)
             if key:
                 return name
     raise BackendError("No healthy OpenCode backend available", status_code=503)
+
+
+def _supports_tools(name: str, cfg: dict) -> bool:
+    return (
+        name in TOOL_CAPABLE_BACKENDS
+        or name in TEXT_TOOL_BACKENDS
+        or "tool_calls" in cfg.get("caps", [])
+    )
 
 
 def _rewrite_sse_model(line: str, model: str, chat_id: str, backend: str = "") -> str:
@@ -87,6 +107,36 @@ def _rewrite_sse_model(line: str, model: str, chat_id: str, backend: str = "") -
 def _read_timeout_for(cfg: dict) -> float:
     backend_timeout = float(cfg.get("timeout", 90))
     return max(backend_timeout, OPENCODE_DIRECT_STREAM_READ_TIMEOUT)
+
+
+def _content_chunk(chat_id: str, model: str, content: str, *, finish: bool = False) -> str:
+    chunk = {
+        "id": chat_id,
+        "object": "chat.completion.chunk",
+        "created": int(time.time()),
+        "model": model,
+        "choices": [{
+            "index": 0,
+            "delta": {} if finish else {"role": "assistant", "content": content},
+            "finish_reason": "stop" if finish else None,
+        }],
+    }
+    return f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
+
+
+def _has_meaningful_delta(line: str) -> bool:
+    if not line.startswith("data: "):
+        return False
+    payload = line[6:].strip()
+    if payload == "[DONE]":
+        return False
+    try:
+        chunk = json.loads(payload)
+    except json.JSONDecodeError:
+        return False
+    choice = (chunk.get("choices") or [{}])[0]
+    delta = choice.get("delta") or {}
+    return bool(delta.get("content") or delta.get("tool_calls") or delta.get("reasoning_content"))
 
 
 async def stream_openai_passthrough(
@@ -173,6 +223,7 @@ async def stream_openai_passthrough(
         pool=30.0,
     )
     started = False
+    emitted_payload = False
     accumulated_content = ""
     has_native_tool_calls = False
     async with httpx.AsyncClient(timeout=timeout) as client, client.stream(
@@ -188,7 +239,10 @@ async def stream_openai_passthrough(
             if not line:
                 continue
             if line.startswith("data: "):
+                if line[6:].strip() == "[DONE]" and not emitted_payload:
+                    break
                 started = True
+                emitted_payload = emitted_payload or _has_meaningful_delta(line)
                 # Track if native tool_calls appear in the stream
                 if is_text_tool:
                     try:
@@ -203,6 +257,24 @@ async def stream_openai_passthrough(
                 yield _rewrite_sse_model(line + "\n\n", model, chat_id, backend)
             elif started:
                 yield line + "\n\n"
+
+    if not emitted_payload:
+        import http_caller
+
+        answer = await asyncio.to_thread(
+            http_caller.call_api,
+            backend,
+            effective_messages,
+            max_tokens,
+            system_prompt=system_prompt,
+            ide=ide,
+            tools=None if is_text_tool else tools,
+            reasoning_effort=reasoning_effort,
+        )
+        if answer:
+            yield _content_chunk(chat_id, model, answer)
+        yield _content_chunk(chat_id, model, "", finish=True)
+        return
 
     # For TEXT_TOOL_BACKENDS: if no native tool_calls in stream, extract from text
     if is_text_tool and not has_native_tool_calls and accumulated_content:

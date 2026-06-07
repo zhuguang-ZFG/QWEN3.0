@@ -227,6 +227,28 @@ async def ops_metrics(request: Request) -> JSONResponse:
         }
     except ImportError:
         _log.debug("ops_metrics: optional module not available", exc_info=True)
+
+    # Semantic quality trends
+    quality_metrics: dict[str, Any] = {}
+    try:
+        import quality_history
+        all_trends = quality_history.get_all_trends()
+        quality_metrics = {
+            "tracked_backends": len(all_trends),
+            "declining_backends": [
+                b for b, t in all_trends.items() if t.trend == "declining"
+            ],
+            "improving_backends": [
+                b for b, t in all_trends.items() if t.trend == "improving"
+            ],
+            "avg_quality": round(
+                sum(t.average for t in all_trends.values()) / max(len(all_trends), 1), 1
+            ),
+            "total_samples": sum(t.sample_count for t in all_trends.values()),
+        }
+    except ImportError:
+        _log.debug("ops_metrics: quality_history not available", exc_info=True)
+
     return JSONResponse({
         "timestamp": int(now),
         "uptime_sec": int(now - stats.get("start_time", now)),
@@ -246,6 +268,7 @@ async def ops_metrics(request: Request) -> JSONResponse:
         "retrieval_traces": retrieval_traces,
         "recent_agent_tasks": recent_tasks,
         "capability_evidence": _get_capability_evidence(),
+        "quality": quality_metrics,
     })
 
 

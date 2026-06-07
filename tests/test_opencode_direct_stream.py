@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-from http_errors import BackendError
 from chat_models import ChatRequest, Message
+from http_errors import BackendError
 from routes.chat_handler_dispatch import (
     ChatRunContext,
     RoutePrefs,
@@ -34,6 +34,30 @@ def test_read_timeout_preserves_larger_backend_timeout():
     from routes.opencode_direct_stream import _read_timeout_for
 
     assert _read_timeout_for({"timeout": 240}) == 240
+
+
+def test_meaningful_delta_detection_ignores_done():
+    from routes.opencode_direct_stream import _has_meaningful_delta
+
+    assert not _has_meaningful_delta("data: [DONE]")
+    assert _has_meaningful_delta('data: {"choices":[{"delta":{"content":"ok"}}]}')
+
+
+def test_resolve_opencode_backend_skips_non_tool_prefer_when_tools_required():
+    from routes.opencode_direct_stream import resolve_opencode_backend
+
+    backends = {
+        "nvidia_qwen_coder": {"url": "x", "fmt": "openai"},
+        "scnet_ds_flash": {"url": "x", "fmt": "openai", "caps": ["tool_calls"]},
+    }
+    with patch("routes.opencode_direct_stream.health_tracker") as ht, patch(
+        "routes.opencode_direct_stream._select_key", return_value=("key", None)
+    ), patch("routes.opencode_direct_stream.BACKENDS", backends):
+        ht.is_cooled_down.return_value = False
+        assert (
+            resolve_opencode_backend("nvidia_qwen_coder", require_tools=True)
+            == "scnet_ds_flash"
+        )
 
 
 async def test_stream_response_uses_prefer_without_speculative():
@@ -118,7 +142,7 @@ async def test_build_streaming_response_passes_opencode_headers_to_direct_stream
     )
 
     monkeypatch.setattr(dispatch, "OPENCODE_DIRECT_STREAM", True)
-    monkeypatch.setattr(direct_stream, "resolve_opencode_backend", lambda prefer: prefer)
+    monkeypatch.setattr(direct_stream, "resolve_opencode_backend", lambda prefer, **_kwargs: prefer)
     monkeypatch.setattr(
         direct_stream,
         "stream_openai_passthrough",
@@ -129,6 +153,59 @@ async def test_build_streaming_response_passes_opencode_headers_to_direct_stream
     chunks = [chunk async for chunk in response.body_iterator]
 
     assert captured["request_headers"] == request_headers
+    assert any("ok" in chunk for chunk in chunks)
+
+
+async def test_build_streaming_response_uses_direct_stream_without_tools(monkeypatch):
+    import routes.chat_handler_dispatch as dispatch
+    import routes.opencode_direct_stream as direct_stream
+
+    captured: dict = {}
+
+    async def fake_stream_openai_passthrough(**kwargs):
+        captured.update(kwargs)
+        yield 'data: {"choices":[{"delta":{"content":"ok"}}]}\n\n'
+
+    req = ChatRequest(
+        model="lima-1.3",
+        stream=True,
+        messages=[Message(role="user", content="hello")],
+    )
+    ctx = ChatRunContext(
+        chat_id="chat-no-tools",
+        query="hello",
+        t0=0.0,
+        fmt="openai",
+        request_model="lima-1.3",
+        client_ip="127.0.0.1",
+        user_agent="opencode",
+        ide_source="opencode",
+        sys_prompt_preview="",
+        memory_recall_meta={},
+        memory_session_id=None,
+        preflight=ChatPreflightResult(
+            request_messages=[{"role": "user", "content": "hello"}],
+            prompt_context_messages=[{"role": "user", "content": "hello"}],
+            system_prompt="",
+            memory_recall_meta={},
+            memory_session_id=None,
+        ),
+        prefs=RoutePrefs(prefer="scnet_ds_pro", ide_source="opencode", use_thinking=False),
+        request_headers={"user-agent": "opencode"},
+    )
+
+    monkeypatch.setattr(dispatch, "OPENCODE_DIRECT_STREAM", True)
+    monkeypatch.setattr(direct_stream, "resolve_opencode_backend", lambda prefer, **_kwargs: prefer)
+    monkeypatch.setattr(
+        direct_stream,
+        "stream_openai_passthrough",
+        fake_stream_openai_passthrough,
+    )
+
+    response = build_streaming_response(ctx, req)
+    chunks = [chunk async for chunk in response.body_iterator]
+
+    assert captured["tools"] is None
     assert any("ok" in chunk for chunk in chunks)
 
 
@@ -188,7 +265,7 @@ async def test_direct_stream_backend_error_before_first_chunk_falls_back(monkeyp
 
     ctx, req = _opencode_tool_context()
     monkeypatch.setattr(dispatch, "OPENCODE_DIRECT_STREAM", True)
-    monkeypatch.setattr(direct_stream, "resolve_opencode_backend", lambda prefer: prefer)
+    monkeypatch.setattr(direct_stream, "resolve_opencode_backend", lambda prefer, **_kwargs: prefer)
     monkeypatch.setattr(direct_stream, "stream_openai_passthrough", failing_direct_stream)
     monkeypatch.setattr(dispatch, "stream_response", fake_stream_response)
 
@@ -197,6 +274,44 @@ async def test_direct_stream_backend_error_before_first_chunk_falls_back(monkeyp
 
     assert fallback_called
     assert any("fallback" in chunk for chunk in chunks)
+    assert chunks[-1] == "data: [DONE]\n\n"
+
+
+async def test_direct_stream_synthesizes_explicit_tool_call(monkeypatch):
+    import routes.chat_handler_dispatch as dispatch
+    import routes.opencode_direct_stream as direct_stream
+
+    ctx, req = _opencode_tool_context()
+    req.messages = [Message(role="user", content="Call read for README.md")]
+    req.tools = [{
+        "type": "function",
+        "function": {
+            "name": "read",
+            "parameters": {
+                "type": "object",
+                "properties": {"path": {"type": "string"}},
+                "required": ["path"],
+            },
+        },
+    }]
+    ctx.query = "Call read for README.md"
+
+    async def should_not_stream(**_kwargs):
+        raise AssertionError("backend should not be called for explicit synthetic tool request")
+        yield ""
+
+    monkeypatch.setattr(dispatch, "OPENCODE_DIRECT_STREAM", True)
+    monkeypatch.setattr(direct_stream, "resolve_opencode_backend", lambda prefer, **_kwargs: prefer)
+    monkeypatch.setattr(direct_stream, "stream_openai_passthrough", should_not_stream)
+
+    response = build_streaming_response(ctx, req)
+    chunks = [chunk async for chunk in response.body_iterator]
+    body = "".join(chunks)
+
+    assert '"tool_calls"' in body
+    assert '"name": "read"' in body
+    assert '\\"path\\": \\"README.md\\"' in body
+    assert '"finish_reason": "tool_calls"' in body
     assert chunks[-1] == "data: [DONE]\n\n"
 
 
@@ -214,7 +329,7 @@ async def test_direct_stream_backend_error_after_first_chunk_emits_sse_error(mon
 
     ctx, req = _opencode_tool_context()
     monkeypatch.setattr(dispatch, "OPENCODE_DIRECT_STREAM", True)
-    monkeypatch.setattr(direct_stream, "resolve_opencode_backend", lambda prefer: prefer)
+    monkeypatch.setattr(direct_stream, "resolve_opencode_backend", lambda prefer, **_kwargs: prefer)
     monkeypatch.setattr(
         direct_stream,
         "stream_openai_passthrough",
@@ -229,3 +344,35 @@ async def test_direct_stream_backend_error_after_first_chunk_emits_sse_error(mon
     assert any('"type": "error"' in chunk for chunk in chunks)
     assert any("server_is_overloaded" in chunk for chunk in chunks)
     assert chunks[-1] == "data: [DONE]\n\n"
+
+
+async def test_non_stream_direct_backend_error_falls_back(monkeypatch):
+    import routes.chat_non_stream as chat_non_stream
+
+    class FakeHandler:
+        @staticmethod
+        def needs_orchestration(*_args, **_kwargs):
+            return False
+
+        @staticmethod
+        def v3_route(*_args, **_kwargs):
+            return {"answer": "fallback answer", "backend": "fallback_backend"}
+
+    ctx, req = _opencode_tool_context()
+    req.stream = False
+
+    def failing_call_api(*_args, **_kwargs):
+        raise BackendError("preferred backend forbidden", status_code=403)
+
+    monkeypatch.setattr(chat_non_stream, "OPENCODE_DIRECT_STREAM", True)
+    monkeypatch.setattr(chat_non_stream, "_chat_handler", lambda: FakeHandler)
+    monkeypatch.setattr(
+        "routes.opencode_direct_stream.resolve_opencode_backend",
+        lambda prefer, **_kwargs: prefer,
+    )
+    monkeypatch.setattr("http_caller.call_api", failing_call_api)
+
+    result, _intent = await chat_non_stream.execute_non_stream_route(ctx, req)
+
+    assert result["answer"] == "fallback answer"
+    assert result["backend"] == "fallback_backend"

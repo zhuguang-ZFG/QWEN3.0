@@ -122,8 +122,9 @@ def test_full_pipeline_processes_semantic_quality():
 def test_routing_executor_records_semantic_quality():
     """Verify routing_executor calls semantic_eval after successful response."""
     import sys
-    import semantic_eval as se
+
     import quality_history as qh
+    import semantic_eval as se
 
     # Mock routing_engine so execute() can run
     mock_re = MagicMock()

@@ -11,6 +11,7 @@ import logging
 
 import routing_facade
 from chat_models import ChatRequest
+from http_errors import BackendError
 from opencode_config import OPENCODE_DIRECT_STREAM
 from orchestrate import orchestrate
 
@@ -44,25 +45,31 @@ async def execute_non_stream_route(ctx, req: ChatRequest) -> tuple[dict, dict]:
         import http_caller
         from routes.opencode_direct_stream import resolve_opencode_backend
 
-        backend = resolve_opencode_backend(ctx.prefs.prefer)
-        answer = await asyncio.to_thread(
-            http_caller.call_api,
-            backend,
-            ctx.preflight.prompt_context_messages,
-            req.max_tokens or 4096,
-            system_prompt=ctx.preflight.system_prompt,
-            ide=ctx.ide_source,
-            tools=req.tools if req.has_tools else None,
-            reasoning_effort=req.reasoning_effort,
-        )
-        return (
-            {
-                "answer": answer,
-                "backend": backend,
-                "usage": http_caller.get_last_usage(backend),
-            },
-            intent if isinstance(intent, dict) else {},
-        )
+        try:
+            backend = resolve_opencode_backend(ctx.prefs.prefer, require_tools=req.has_tools)
+            answer = await asyncio.to_thread(
+                http_caller.call_api,
+                backend,
+                ctx.preflight.prompt_context_messages,
+                req.max_tokens or 4096,
+                system_prompt=ctx.preflight.system_prompt,
+                ide=ctx.ide_source,
+                tools=req.tools if req.has_tools else None,
+                reasoning_effort=req.reasoning_effort,
+            )
+            return (
+                {
+                    "answer": answer,
+                    "backend": backend,
+                    "usage": http_caller.get_last_usage(backend),
+                },
+                intent if isinstance(intent, dict) else {},
+            )
+        except BackendError as exc:
+            _log.debug(
+                "opencode non-stream direct path failed; using route fallback: %s",
+                type(exc).__name__,
+            )
     if use_orchestration:
         result = await asyncio.to_thread(orchestrate, ctx.query)
     else:

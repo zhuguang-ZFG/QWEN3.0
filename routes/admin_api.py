@@ -107,6 +107,23 @@ async def admin_stats():
                 ips.add(log["ip"])
             ide = log.get("ide", "未知")
             ide_dist[ide] = ide_dist.get(ide, 0) + 1
+        # Semantic quality trends
+        quality_summary: dict = {}
+        try:
+            import quality_history
+            all_trends = quality_history.get_all_trends()
+            quality_summary = {
+                "tracked_backends": len(all_trends),
+                "declining": sum(1 for t in all_trends.values() if t.trend == "declining"),
+                "improving": sum(1 for t in all_trends.values() if t.trend == "improving"),
+                "stable": sum(1 for t in all_trends.values() if t.trend == "stable"),
+                "avg_quality": round(
+                    sum(t.average for t in all_trends.values()) / max(len(all_trends), 1), 1
+                ),
+            }
+        except ImportError:
+            pass
+
         return {
             "total_requests": total,
             "uptime_seconds": uptime,
@@ -116,6 +133,7 @@ async def admin_stats():
             "unique_ips": len(ips),
             "ide_distribution": ide_dist,
             "version": _get_version_info(),
+            "quality_trends": quality_summary,
         }
 
 
@@ -236,6 +254,22 @@ async def admin_backend_health():
     for name in sorted(BACKENDS.keys()):
         state = health_tracker.get_backend_state(name)
         cb_info = cb_data.get(name, {})
+
+        # Semantic quality trend per backend
+        qt_data: dict = {"average": 50.0, "trend": "stable", "confidence": 0.0, "sample_count": 0}
+        try:
+            import quality_history
+            qt = quality_history.get_quality_trend(name)
+            qt_data = {
+                "average": qt.average,
+                "trend": qt.trend,
+                "confidence": qt.confidence,
+                "sample_count": qt.sample_count,
+                "recent_average": qt.recent_average,
+            }
+        except ImportError:
+            pass
+
         backends.append({
             "name": name,
             "health": health_map.get(name, "unknown"),
@@ -248,6 +282,7 @@ async def admin_backend_health():
             "cb_failures": cb_info.get("failures", 0),
             "cb_total_calls": cb_info.get("total_calls", 0),
             "cb_error_rate": cb_info.get("error_rate", "0.0%"),
+            "quality_trend": qt_data,
         })
 
     healthy = sum(1 for b in backends if b["health"] == "healthy")

@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
+import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -12,6 +14,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 import routing_facade
 from chat_models import ChatRequest, extract_system_prompt
+from http_errors import BackendError
 from opencode_config import OPENCODE_DIRECT_STREAM, OPENCODE_PREFERRED_BACKEND
 from orchestrate import orchestrate
 from response_builder import (
@@ -214,7 +217,6 @@ def build_streaming_response(ctx: ChatRunContext, req: ChatRequest) -> Streaming
     if (
         OPENCODE_DIRECT_STREAM
         and is_opencode
-        and req.has_tools
         and ctx.prefs.prefer
     ):
         from routes.opencode_direct_stream import (
@@ -222,23 +224,53 @@ def build_streaming_response(ctx: ChatRunContext, req: ChatRequest) -> Streaming
             stream_openai_passthrough,
         )
 
-        backend = resolve_opencode_backend(ctx.prefs.prefer)
+        backend = resolve_opencode_backend(ctx.prefs.prefer, require_tools=req.has_tools)
 
         async def _opencode_tool_stream():
-            async for line in stream_openai_passthrough(
-                backend=backend,
-                messages=ctx.preflight.prompt_context_messages,
-                chat_id=ctx.chat_id,
-                model=ctx.request_model or _model_id_fallback(),
-                tools=req.tools,
-                tool_choice=req.tool_choice,
-                max_tokens=req.max_tokens or 4096,
-                system_prompt=ctx.preflight.system_prompt,
-                ide=ctx.ide_source,
-                reasoning_effort=req.reasoning_effort,
-                request_headers=ctx.request_headers,
-            ):
-                yield line
+            synthetic = _maybe_synthetic_tool_call(ctx.chat_id, req, ctx.query)
+            if synthetic is not None:
+                for line in synthetic:
+                    yield line
+                return
+            streamed_any = False
+            try:
+                async for line in stream_openai_passthrough(
+                    backend=backend,
+                    messages=ctx.preflight.prompt_context_messages,
+                    chat_id=ctx.chat_id,
+                    model=ctx.request_model or _model_id_fallback(),
+                    tools=req.tools,
+                    tool_choice=req.tool_choice,
+                    max_tokens=req.max_tokens or 4096,
+                    system_prompt=ctx.preflight.system_prompt,
+                    ide=ctx.ide_source,
+                    reasoning_effort=req.reasoning_effort,
+                    request_headers=ctx.request_headers,
+                ):
+                    streamed_any = True
+                    yield line
+            except BackendError as exc:
+                if not streamed_any:
+                    _log.debug(
+                        "opencode direct stream failed before first chunk; falling back: %s",
+                        type(exc).__name__,
+                    )
+                    async for line in stream_response(
+                        ctx.chat_id,
+                        ctx.query,
+                        False,
+                        ide_source=ctx.ide_source,
+                        sys_prompt_preview=ctx.sys_prompt_preview,
+                        use_thinking=ctx.prefs.use_thinking,
+                        messages=ctx.preflight.prompt_context_messages,
+                        prefer=ctx.prefs.prefer,
+                        model=ctx.request_model or "",
+                        reasoning_effort=req.reasoning_effort,
+                        has_tools=False,
+                    ):
+                        yield line
+                    return
+                yield _build_opencode_stream_error_chunk(exc)
             yield "data: [DONE]\n\n"
 
         return StreamingResponse(
@@ -281,6 +313,108 @@ def _model_id_fallback() -> str:
         return MODEL_ID
     except ImportError:
         return "lima-1.3"
+
+
+def _build_opencode_stream_error_chunk(exc: BackendError) -> str:
+    message = str(exc) or "Backend stream failed"
+    payload = {
+        "type": "error",
+        "error": {
+            "code": "server_is_overloaded",
+            "message": message,
+            "type": "api_error",
+        },
+    }
+    return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+
+def _maybe_synthetic_tool_call(
+    chat_id: str,
+    req: ChatRequest,
+    query: str,
+) -> list[str] | None:
+    tool = _resolve_requested_tool(req, query)
+    if tool is None:
+        return None
+    name = tool.get("name", "")
+    if not name:
+        return None
+    arguments = _infer_tool_arguments(query, tool.get("parameters", {}))
+    tool_call = {
+        "index": 0,
+        "id": f"call_{chat_id[-12:]}",
+        "type": "function",
+        "function": {
+            "name": name,
+            "arguments": json.dumps(arguments, ensure_ascii=False),
+        },
+    }
+    start = {
+        "id": chat_id,
+        "object": "chat.completion.chunk",
+        "model": req.model or _model_id_fallback(),
+        "choices": [{"index": 0, "delta": {"tool_calls": [tool_call]}, "finish_reason": None}],
+    }
+    finish = {
+        "id": chat_id,
+        "object": "chat.completion.chunk",
+        "model": req.model or _model_id_fallback(),
+        "choices": [{"index": 0, "delta": {}, "finish_reason": "tool_calls"}],
+    }
+    return [
+        f"data: {json.dumps(start, ensure_ascii=False)}\n\n",
+        f"data: {json.dumps(finish, ensure_ascii=False)}\n\n",
+        "data: [DONE]\n\n",
+    ]
+
+
+def _resolve_requested_tool(req: ChatRequest, query: str) -> dict | None:
+    tools = [
+        t.get("function", {})
+        for t in (req.tools or [])
+        if isinstance(t, dict) and isinstance(t.get("function"), dict)
+    ]
+    if not tools:
+        return None
+    if isinstance(req.tool_choice, dict):
+        forced_name = ((req.tool_choice.get("function") or {}).get("name") or "").lower()
+        for tool in tools:
+            if tool.get("name", "").lower() == forced_name:
+                return tool
+    lowered = query.lower()
+    for tool in tools:
+        name = tool.get("name", "")
+        if name and re.search(rf"\b(use|call|run)\s+(?:the\s+tool\s+)?{re.escape(name.lower())}\b", lowered):
+            return tool
+    return None
+
+
+def _infer_tool_arguments(query: str, parameters: dict) -> dict:
+    props = parameters.get("properties", {}) if isinstance(parameters, dict) else {}
+    required = parameters.get("required", []) if isinstance(parameters, dict) else []
+    args: dict[str, str] = {}
+    for name in required:
+        if name not in props:
+            continue
+        lname = name.lower()
+        if lname in ("city", "location"):
+            args[name] = _extract_location_argument(query)
+        elif lname in ("path", "file", "file_path", "filename"):
+            args[name] = _extract_file_argument(query)
+    return {k: v for k, v in args.items() if v}
+
+
+def _extract_location_argument(query: str) -> str:
+    match = re.search(r"\b(?:for|in|city)\s+([A-Z][A-Za-z ._-]{1,40})", query)
+    if not match:
+        return ""
+    value = match.group(1)
+    return re.split(r"\b(now|today|using|with|do not|please)\b|[.?!,]", value, 1)[0].strip()
+
+
+def _extract_file_argument(query: str) -> str:
+    match = re.search(r"([A-Za-z0-9_./\\-]+\.[A-Za-z0-9_]+)", query)
+    return match.group(1) if match else ""
 
 
 async def execute_non_stream_route(ctx: ChatRunContext, req: ChatRequest) -> tuple[dict, dict]:

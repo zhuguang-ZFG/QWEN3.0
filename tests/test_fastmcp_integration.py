@@ -13,10 +13,9 @@ from __future__ import annotations
 
 import asyncio
 import json
-
-import pytest
 from unittest.mock import patch
 
+import pytest
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -452,7 +451,7 @@ class TestMCPCrossComponentConsistency:
 
     def test_mount_function_available(self):
         """mount_mcp must be importable and callable; mcp name must be 'LiMa'."""
-        from lima_mcp.fastmcp_server import mount_mcp, mcp
+        from lima_mcp.fastmcp_server import mcp, mount_mcp
         assert callable(mount_mcp)
         assert mcp.name == "LiMa"
 

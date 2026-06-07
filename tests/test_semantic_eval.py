@@ -2,7 +2,6 @@
 
 import semantic_eval
 
-
 # -- Keyword extraction -------------------------------------------------------
 
 def test_extract_keywords_filters_stop_words():

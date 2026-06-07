@@ -2,7 +2,29 @@
 
 > Last updated: 2026-06-07 · ✅ **GitHub推送成功** · VPS生产部署完成 · Hermes互联互通完成
 >
+> **系统瘦身 (2026-06-07)** · 日志清理 ✅ · 过期文档归档 ✅ · Markdown 精简 ✅ · 部署脚本迁移 ✅
 > **能力加厚 (2026-06-07)** · 代码质量收尾 ✅ · Hermes Agent Gateway ✅ · 智能分级路由 ✅ · 腾讯基础设施安装 ✅ · VPS smoke PASS
+
+## 2026-06-07 M-OC17 系统瘦身完成
+
+### 清理统计
+
+| 类别 | 数量 | 操作 |
+|------|------|------|
+| 根目录日志文件 | 5 | 删除 (`server*.log`) |
+| 临时文件 | 1 | 删除 (`tmp_sonic.tar.gz`) |
+| 临时报告 | 1 | 删除 (`openviking_install_report.md`) |
+| 过期文档 | 18 | 移至 `docs/archive/` |
+| 一次性部署脚本 | 3 | 移至 `scripts/archive/` |
+| Markdown 精简 | 3 | CLAUDE (82→27)、task_plan (67→30)、findings (1794→80) |
+| .gitignore 增强 | 1 | 新增 `*.tar.gz` |
+
+### 保留活跃文档 (docs/)
+14 个文档: ADMIN_BACKEND_CRUD_DESIGN, CODE_QUALITY_IMPROVEMENT_PLAN, CUSTOM_MODEL_ROUTING_DESIGN, DECOUPLE_FROM_LOCAL_HOST, DEPLOY_AND_RELEASE_CONVENTION, EXTERNAL_REPOS, LIMA_MEMORY, opencode-integration, PRODUCTION_ISSUES, PRODUCT_DEFINITION, REQUEST_PIPELINE_AUTHORITY, ROUTING_ENGINE_DESIGN, SMART_ROUTER_MIGRATION, VIBE_CODING_ANALYSIS
+
+### 验证
+- ruff check: 7 个预存错误（无新增）
+- pytest routing_engine: 47/47 通过 ✅
 
 ## 2026-06-07 LiMa ↔ Hermes 互联互通方案完成
 
@@ -283,7 +305,7 @@ Client → LiMa (:8080) → classify → hermes_agent → hermes_api (:8699) →
 - **VPS 健康检查**: ✅ PASS (version 2.0, model lima-1.3)
 - **认证问题**: ⚠️ API Key 需要同步
   - 本地 .env: `sk-local-debug-opencode-2026`
-  - VPS .env: `xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw`
+  - VPS .env: `LIMA_API_KEY=<set on server>`
   - 建议: 更新本地 .env 或使用 VPS API Key 进行测试
 - **待验证项**:
   - Simple Query (2+2)
@@ -294,7 +316,7 @@ Client → LiMa (:8080) → classify → hermes_agent → hermes_api (:8699) →
 
 ### 下一步
 - 同步 API Key 后重新运行 `python scripts/opencode_e2e_real.py`
-- 或使用 VPS API Key: `export LIMA_API_KEY=xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw`
+- 或使用 VPS API Key: `export LIMA_API_KEY=<set locally>`
 
 ## VPS 全功能验证 + AGENTS.md 重写 (2026-06-06)
 
@@ -514,4 +536,3 @@ git push origin codex/free-web-ai-probe
 ---
 
 **最终结论**: ✅ **生产环境部署成功，所有测试通过，代码已推送到 GitHub**
-

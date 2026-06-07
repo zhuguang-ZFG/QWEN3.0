@@ -54,6 +54,20 @@ python scripts/repo_stats.py              # refresh repo stats
 
 **PowerShell note**: use `;` or `if ($?) { ... }`; do not write Unix-style `&&` chains.
 
+### Makefile Shortcuts
+
+```text
+make install     # pip install -r requirements_server.txt
+make test        # pytest --tb=short -q
+make lint        # ruff check . + ruff format --check
+make format      # ruff format .
+make type-check  # pyright
+make serve       # uvicorn --reload (dev server, hot-reload)
+make deploy      # python scripts/deploy_unified.py
+make smoke-test  # health + models endpoint check
+make clean       # remove __pycache__, .pytest_cache, .ruff_cache, *.pyc
+```
+
 ## Test And CI Facts
 
 - `pytest.ini`: `testpaths = tests`, `pythonpath = .`, `asyncio_mode = auto`. Root-level `test_*.py` files are **not** in the default pytest suite.
@@ -161,6 +175,76 @@ Sub-modules: `routing_engine_context.py` (shared context), `routing_engine_types
 
 Default tool mode: `LIMA_OPENCODE_TOOL_MODE=direct` (OpenAI-format tools on direct routing path).
 
+## Architecture — Routes Directory
+
+`routes/` (~80 files) is organized by concern. All routers are centrally mounted via `routes/route_registry.py` with `RouteRegistryDeps`; `server.py` wires dependencies with `inject_state()` / `inject_deps()`, not FastAPI `Depends`.
+
+| Group | Key Files | Purpose |
+|-------|-----------|---------|
+| Chat endpoints | `chat_endpoints.py`, `chat_handler.py`, `chat_stream.py`, `chat_preflight.py` | OpenAI `/v1/chat` and Anthropic `/v1/messages` |
+| Anthropic protocol | `anthropic_messages_handler.py`, `anthropic_stream.py` | Native Anthropic message format, SSE streaming |
+| Admin | `admin_api.py`, `admin_ui.py`, `admin_state.py` | Backend CRUD, Apple-style HTML UI (`admin.html`) |
+| Agent tasks | `agent_tasks.py` + `agent_*.py` submodules | Task dispatch — NOT on chat hot path |
+| Tool forwarding | `tool_forward.py`, `tool_forward_stream.py` | OpenCode native tool call forwarding |
+| Quality | `quality_gate.py`, `quality_gate_window.py` | Route-level quality retry (≠ root `quality_gate.py` for coding eval) |
+| Telegram | `telegram_*.py` | Bot commands, knowledge base, eval tools |
+| Device gateway | `device_gateway_*.py` | MQTT + WebSocket device control |
+| Ops | `ops_metrics.py`, `request_tracking.py` | Metrics collection, IP/location tracking |
+| Stream | `stream_handlers.py`, `opencode_direct_stream.py` | SSE streaming outside routing_engine |
+| Registry | `route_registry.py` | Central route mounting via `RouteRegistryDeps` |
+
+## Architecture — Context Pipeline
+
+`context_pipeline/` (~46 files) provides retrieval-augmented context injection. Production uses pieces selectively — `factory.build_default_pipeline()` is a **lab/test harness only**:
+
+| Concern | Key Module | Production? |
+|---------|-----------|-------------|
+| Retrieval injection | `retrieval_injection.py` | ✅ Used by routing_engine |
+| Web search | `web_search.py` | ✅ Search gateway integration |
+| Code context | `code_context.py` | ✅ Code-aware context building |
+| Context compression | `context_compressor.py` | ✅ Token budget management |
+| Auto indexing | `auto_indexer.py` | ✅ Background code indexing (lifespan) |
+| Guardrails | `guardrails.py` | Optional preflight |
+| Factory pipeline | `factory.py` | 🔬 Lab/test harness only |
+
+## Architecture — Agent Runtime
+
+`agent_runtime/` (~29 files) implements autonomous agent execution — **strictly isolated from the chat hot path**:
+
+| Concern | Key Module |
+|---------|-----------|
+| Orchestrator | `orchestrator.py` (facade) + `orchestrator_*.py` submodules |
+| Task queue | Local lease queue, NOT on chat hot path |
+| Permissions | Shell, git, network sandbox permission model |
+| Audit | Execution audit trail |
+
+Keep agent execution, permissions, audit, and task queue strictly separated from `routing_engine`.
+
+## Pattern — Dependency Injection
+
+LiMa avoids global mutable state and FastAPI `Depends`. Modules expose `inject_state()` / `inject_deps()` functions that receive their dependencies at import time:
+
+```python
+# Module declares what it needs
+def inject_deps(*, model_id, record_request, record_fallback, build_pollinations_url):
+    global _model_id, _record_request
+    _model_id = model_id
+    _record_request = record_request
+    ...
+
+# server.py wires at import time (NOT via Depends)
+_inject_chat_handler_deps(
+    model_id=MODEL_ID,
+    record_request=_record_request,
+    ...
+)
+```
+
+Rules:
+- New shared modules: no global mutable state; expose `inject_state()` / `inject_deps()`.
+- Wiring happens in `server.py` at import time, not via FastAPI `Depends`.
+- Optional subsystems: `ImportError` → `logger.debug` with description; never silent `except: pass`.
+
 ## Module Ownership
 
 | Concern | Authority | Legacy / Avoid | Notes |
@@ -240,6 +324,18 @@ Graceful shutdown (finally block) closes:
 - Keep changes minimal. No backward-compat layers unless persisted data, shipped behavior, or external consumers require it.
 - Optional subsystems: `ImportError` → `logger.debug` with description; never silently swallow unknown exceptions.
 
+## Common Pitfalls
+
+- **PowerShell `&&`**: Use `;` or `if ($?) { ... }` — `&&` is not a valid statement separator in PowerShell.
+- **Port check**: Avoid `nc`; use `Test-NetConnection` (PowerShell) or `Invoke-RestMethod`.
+- **git status line count**: Avoid `wc -l` on Windows; use `Measure-Object` in PowerShell.
+- **ruff F401 auto-fix**: Re-export facades (`http_caller.py`, `backends.py`, `smart_router.py`, `routing_engine.py`) have per-file `F401` ignores in `ruff.toml`. Running `ruff check --fix` may incorrectly remove their re-exports.
+- **OpenCode config import-time**: Constants in `opencode_config.py` are read at **import time**; `LIMA_OPENCODE_*` env changes require process restart.
+- **HTTP 200 empty response**: An HTTP 200 with empty body means the backend is **unavailable** — treat as failure, not success.
+- **SearchReplace uniqueness**: The tool requires `original_text` to be a unique, long-enough string in the file. Provide surrounding context to ensure uniqueness.
+- **`time.sleep()` in async**: Use `asyncio.sleep()` or `asyncio.to_thread()`; never `time.sleep()` in async code.
+- **Silent degradation**: `except Exception: pass` is forbidden; log at least `logger.warning` with exception type.
+
 ## Superpowers Principles
 
 1. **Documentation first**: Non-trivial changes need a design doc in `docs/`.
@@ -286,3 +382,15 @@ Graceful shutdown (finally block) closes:
 | `docs/SMART_ROUTER_MIGRATION.md` | smart_router migration plan and caller list |
 | `docs/opencode-integration.md` | OpenCode integration guide |
 | `docs/archive/` | Historical plans — do not use for current priorities |
+
+## Project Skills (.qoder/skills/)
+
+This repository ships project-specific Qoder skills. Load via `Skill` tool when relevant:
+
+| Skill | Purpose |
+|-------|---------|
+| `lima-architecture` | Architecture navigation: request pipeline, module discovery, dependency injection, protocol handling |
+| `lima-deploy` | Automated VPS deployment: SSH, backup, upload, restart, `/health` smoke, rollback |
+| `lima-fastapi-standards` | Python/FastAPI coding standards: async patterns, error handling, import conventions, anti-patterns |
+| `superpowers` | Enforces Superpowers principles: anti-degradation, small files, safe deploy, progressive replacement |
+| `ui-ux-pro-max` | UI/UX design intelligence for admin panel (`admin.html`) and web interfaces |

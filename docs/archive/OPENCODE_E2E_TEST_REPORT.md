@@ -9,7 +9,7 @@
 - **本地**: Windows 11, Python 3.12
 - **VPS**: 阿里云 ECS, 47.112.162.80:8080
 - **网络**: Cloudflare CDN (172.70.x.x, 172.68.x.x)
-- **API Key**: `xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw`
+- **API Key**: loaded from `LIMA_API_KEY`
 
 ## 测试结果 ✅
 

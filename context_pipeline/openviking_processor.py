@@ -9,8 +9,9 @@ from __future__ import annotations
 
 import logging
 
-from . import RequestContext
 from openviking_client import get_openviking_client
+
+from . import RequestContext
 
 _log = logging.getLogger(__name__)
 

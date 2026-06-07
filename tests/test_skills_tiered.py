@@ -1,9 +1,10 @@
 """Tests for L0/L1/L2 tiered skill loading."""
 import os
 import tempfile
+
 import pytest
 
-from skills_injector import load_skills_from_dir, _trim_to_budget
+from skills_injector import _trim_to_budget, load_skills_from_dir
 
 
 def test_skill_with_sidecar_abstract(tmp_path):

@@ -148,6 +148,7 @@ _tcf2.py
 _upstream_check/
 *.log
 logs/
+*.tar.gz
 
 # 临时调试/审查文件（以下划线开头的一次性文件）
 _*.py

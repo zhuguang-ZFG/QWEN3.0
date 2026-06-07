@@ -1,6 +1,7 @@
 """Tests for OpenViking HTTP client wrapper."""
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 
 
 def test_client_default_url():

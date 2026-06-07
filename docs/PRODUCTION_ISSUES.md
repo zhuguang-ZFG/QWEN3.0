@@ -35,7 +35,7 @@ OpenCode 客户端无法通过 Cloudflare 调用 LiMa 服务，所有测试被 4
 ```bash
 # 绕过 Cloudflare 直接测试 8080 端口
 curl -H 'User-Agent: OpenCode/1.0.0' \
-  -H 'Authorization: Bearer xHzP3Uk9EA...' \
+  -H 'Authorization: Bearer <LIMA_API_KEY>' \
   http://47.112.162.80:8080/v1/chat/completions
 ```
 

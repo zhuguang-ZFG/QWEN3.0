@@ -58,6 +58,16 @@ async def _maybe_await(value: Any) -> Any:
     return value
 
 
+def _resolve_ide_source(messages: list, request: Request) -> str:
+    ide = _call("detect_ide", messages)
+    if ide:
+        return ide
+    ua = request.headers.get("user-agent", "").lower()
+    if "opencode" in ua:
+        return "OpenCode"
+    return ""
+
+
 # Backward-compatible test hook (CQ-014 slice 12).
 _anthropic_vision_messages = anthropic_vision_messages
 
@@ -83,7 +93,7 @@ async def chat_completions(request: Request):
         )
     raw_messages = body.get("messages", [])
     client_ip = _call("client_ip", request)
-    ide_source = _call("detect_ide", raw_messages)
+    ide_source = _resolve_ide_source(raw_messages, request)
 
     import rate_limiter
 

@@ -27,7 +27,7 @@ ssh root@47.112.162.80 'grep LIMA_API_KEY /opt/lima-router/.env'
 
 示例：
 ```
-LIMA_API_KEY=xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw
+LIMA_API_KEY=<set in local .env>
 ```
 
 ### 2. 测试连接

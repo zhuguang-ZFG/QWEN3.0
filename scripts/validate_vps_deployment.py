@@ -15,7 +15,7 @@ import httpx
 # VPS 配置（从环境变量读取）
 VPS_HOST = os.getenv("VPS_HOST", "localhost")
 VPS_PORT = os.getenv("VPS_PORT", "8080")
-API_KEY = os.getenv("LIMA_API_KEY", "xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw")
+API_KEY = os.getenv("LIMA_API_KEY", "")
 
 BASE_URL = f"http://{VPS_HOST}:{VPS_PORT}"
 OPENCODE_UA = "OpenCode/1.2.0 (Windows NT 10.0; Win64; x64) Node.js/18.17.0"
@@ -282,6 +282,9 @@ def main():
     print(f"Target: {BASE_URL}")
     print(f"User-Agent: {OPENCODE_UA}")
     print("="*60)
+    if not API_KEY:
+        print("Missing LIMA_API_KEY; set it before running deployment validation.")
+        return 2
 
     validator = DeploymentValidator()
 

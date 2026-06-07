@@ -5,6 +5,7 @@
 > 产品定义见 `docs/PRODUCT_DEFINITION.md`
 > M-OC0: LiMa CLI migrated to OpenCode MCP bridge. `lima-code` → `lima`. See `docs/opencode-integration.md`.
 > M-OC16: Backend-Aware Skill Reinjection + Routing Suite Stabilization Slice 2 完成 (196 routing tests 全通过).
+> M-OC17: 系统瘦身 — 6 个日志/tmp 文件删除、18 个过期文档归档、根目录 Markdown 精简、3 个一次性部署脚本迁移。
 
 ## 全部里程碑
 
@@ -44,6 +45,7 @@
 | M-OC14 | 基础设施升级：sqlite_manager 统一连接、Sentry 增强、Redis 服务、pyproject.toml、ruff 19+ 规则 | 0 |
 | M-OC15 | 死代码清理：365 未使用 import 移除 + 3 F811 修复 + graceful shutdown | 0 |
 | M-OC16 | Backend-Aware Skill Reinjection + Routing Suite Stabilization Slice 2 (196 routing tests, 24 files, +195/-160) | 0 |
+| M-OC17 | 系统瘦身：日志清理 (6)、过期文档归档 (18→archive)、MD 精简 (CLAUDE/task_plan/findings)、部署脚本迁移 (3) | 0 |
 
 ## 编码体验加厚（2026-06）
 
@@ -109,7 +111,7 @@
 | ModelScope 后端 | 8 个（ms_deepseek_v4/qwen35/kimi_k25/glm5 + code 变体） |
 | VPS reverse sidecar | 5/5 active |
 | net code removed | ~650 行 |
-| 总里程碑 | **29** 完成 |
+| 总里程碑 | **30** 完成 |
 
 ## LiMa CLI — 维护模式
 

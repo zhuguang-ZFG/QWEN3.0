@@ -177,8 +177,16 @@ async def stream_response(
             try:
                 from streaming_failover_metrics import record_stream_failover
                 record_stream_failover(failed_b, new_b, state.snapshot())
-            except (ImportError, Exception):
-                pass
+            except ImportError:
+                logging.getLogger(__name__).debug(
+                    "streaming_failover_metrics not available",
+                    exc_info=True,
+                )
+            except Exception as exc:
+                logging.getLogger(__name__).debug(
+                    "stream failover metric recording failed: %s",
+                    type(exc).__name__,
+                )
 
         async for chunk in real_stream_chunks_async(
             prefer, messages, 4096, ide_source,

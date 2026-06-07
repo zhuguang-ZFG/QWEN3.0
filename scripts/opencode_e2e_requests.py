@@ -19,7 +19,7 @@ if sys.platform == "win32":
 import requests
 
 VPS_BASE_URL = "https://chat.donglicao.com/v1"
-VPS_API_KEY = "xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw"
+VPS_API_KEY = os.getenv("LIMA_API_KEY", "")
 
 # 重试配置
 MAX_RETRIES = 3
@@ -337,6 +337,10 @@ def main() -> int:
     print(f"VPS: {VPS_BASE_URL}")
     print(f"重试配置: 最多 {MAX_RETRIES} 次，间隔 {RETRY_DELAY} 秒")
     print()
+
+    if not VPS_API_KEY:
+        print("Missing LIMA_API_KEY; set it before running OpenCode E2E.")
+        return 2
 
     tests = [
         ("Simple Query", test_simple_query),

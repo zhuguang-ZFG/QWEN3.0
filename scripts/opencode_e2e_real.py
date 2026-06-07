@@ -36,9 +36,10 @@ VPS_BASE_URL = "https://chat.donglicao.com/v1"
 try:
     from dotenv import load_dotenv
     load_dotenv()
-    VPS_API_KEY = os.getenv("LIMA_API_KEY", "xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw")
 except ImportError:
-    VPS_API_KEY = "xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw"
+    pass
+
+VPS_API_KEY = os.getenv("LIMA_API_KEY", "")
 
 # 测试项目路径（当前仓库）
 TEST_PROJECT_PATH = Path(__file__).parent.parent.absolute()
@@ -347,6 +348,9 @@ def main() -> int:
     print(f"VPS: {VPS_BASE_URL}")
     print(f"Project: {TEST_PROJECT_PATH}")
     print()
+    if not VPS_API_KEY:
+        print("Missing LIMA_API_KEY; set it in the environment or local .env before running E2E.")
+        return 2
 
     tests = [
         ("VPS Health Check", test_health_check),

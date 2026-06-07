@@ -1,5 +1,6 @@
 """Default pipeline factory for LiMa request processing."""
 
+from .openviking_processor import openviking_context_processor
 from .pipeline import Pipeline
 from .processors import (
     cache_optimization_processor,
@@ -8,7 +9,6 @@ from .processors import (
     prompt_composition_processor,
     scenario_classification_processor,
 )
-from .openviking_processor import openviking_context_processor
 
 
 def build_default_pipeline() -> Pipeline:

@@ -64,22 +64,35 @@ def auto_select_strategy(
     recent_error_rate: float,
     recent_fallback_rate: float,
     backends_available: int,
+    quality_trend: str = "stable",
 ) -> EvolutionStrategy:
-    """Auto-select routing strategy based on system health signals.
+    """Auto-select routing strategy based on system health and quality signals.
 
     Args:
         recent_error_rate: Error rate in last N requests (0.0-1.0)
         recent_fallback_rate: Fallback trigger rate (0.0-1.0)
         backends_available: Number of healthy backends
+        quality_trend: Overall quality trend ("improving", "declining", "stable")
     """
     if recent_error_rate > 0.5 or backends_available < 3:
         return EvolutionStrategy.REPAIR
 
+    # Quality feedback loop: declining quality triggers HARDEN
+    if quality_trend == "declining":
+        if recent_error_rate > 0.1 or recent_fallback_rate > 0.2:
+            return EvolutionStrategy.HARDEN
+        # Even without high errors, declining quality warrants caution
+        if recent_error_rate > 0.05:
+            return EvolutionStrategy.HARDEN
+
     if recent_error_rate > 0.2 or recent_fallback_rate > 0.3:
         return EvolutionStrategy.HARDEN
 
+    # Quality feedback loop: stable high quality enables INNOVATE
     if recent_error_rate < 0.05 and recent_fallback_rate < 0.1:
-        return EvolutionStrategy.INNOVATE
+        if quality_trend == "improving" or quality_trend == "stable":
+            return EvolutionStrategy.INNOVATE
+        return EvolutionStrategy.BALANCED
 
     return EvolutionStrategy.BALANCED
 

@@ -1,8 +1,9 @@
 """Tests for backward compatibility of legacy MCP endpoints — Task 6."""
 from __future__ import annotations
 
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 
 def test_legacy_server_module_imports():
@@ -27,10 +28,12 @@ def test_legacy_router_has_tools_call_endpoint():
 
 def test_legacy_list_tools_returns_deprecation_header():
     """Legacy /tools/list response must include X-LiMa-Deprecation header."""
+    import os
+
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
+
     from lima_mcp.server import router
-    import os
 
     os.environ["LIMA_API_KEY"] = "test-key-for-mcp"
     app = FastAPI()
@@ -48,10 +51,12 @@ def test_legacy_list_tools_returns_deprecation_header():
 
 def test_legacy_call_tool_returns_deprecation_header():
     """Legacy /tools/call response must include X-LiMa-Deprecation header."""
+    import os
+
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
+
     from lima_mcp.server import router
-    import os
 
     os.environ["LIMA_API_KEY"] = "test-key-for-mcp"
     app = FastAPI()
@@ -73,8 +78,8 @@ def test_legacy_call_tool_returns_deprecation_header():
 
 def test_legacy_and_new_coexist():
     """Both legacy router and new FastMCP server can be loaded together."""
-    from lima_mcp.server import router as legacy_router
     from lima_mcp.fastmcp_server import mcp as new_mcp
+    from lima_mcp.server import router as legacy_router
 
     assert legacy_router is not None
     assert new_mcp is not None

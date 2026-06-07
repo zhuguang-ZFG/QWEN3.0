@@ -1,8 +1,9 @@
 """Tests for FastMCP mount onto FastAPI -- Task 5."""
 from __future__ import annotations
 
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 
 def test_mount_mcp_function_exists():
@@ -14,6 +15,7 @@ def test_mount_mcp_function_exists():
 def test_mount_mcp_adds_sub_app():
     """mount_mcp must add a sub-application to the FastAPI app."""
     from fastapi import FastAPI
+
     from lima_mcp.fastmcp_server import mount_mcp
 
     test_app = FastAPI()
@@ -27,6 +29,7 @@ def test_mount_mcp_adds_sub_app():
 def test_mount_mcp_custom_path():
     """mount_mcp should accept a custom path."""
     from fastapi import FastAPI
+
     from lima_mcp.fastmcp_server import mount_mcp
 
     test_app = FastAPI()
@@ -47,9 +50,11 @@ def test_streamable_http_app_returns_asgi():
 
 def test_mount_mcp_default_path():
     """mount_mcp should default to /v2/mcp when no path is given."""
-    from fastapi import FastAPI
-    from lima_mcp.fastmcp_server import mount_mcp
     import inspect
+
+    from fastapi import FastAPI
+
+    from lima_mcp.fastmcp_server import mount_mcp
 
     sig = inspect.signature(mount_mcp)
     path_param = sig.parameters.get("path")
@@ -60,7 +65,8 @@ def test_mount_mcp_default_path():
 def test_mount_mcp_sets_streamable_http_path():
     """mount_mcp must set streamable_http_path to '/' so endpoint is at mount root."""
     from fastapi import FastAPI
-    from lima_mcp.fastmcp_server import mount_mcp, mcp
+
+    from lima_mcp.fastmcp_server import mcp, mount_mcp
 
     test_app = FastAPI()
     mount_mcp(test_app, path="/v2/mcp")
@@ -73,6 +79,7 @@ def test_mount_mcp_sets_streamable_http_path():
 def test_mount_mcp_does_not_conflict_with_old_mcp():
     """The /v2/mcp mount should not conflict with the old /mcp router."""
     from fastapi import FastAPI
+
     from lima_mcp.fastmcp_server import mount_mcp
 
     test_app = FastAPI()

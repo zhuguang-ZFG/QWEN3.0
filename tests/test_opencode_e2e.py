@@ -10,6 +10,7 @@ Validates the complete OpenCode request pipeline including:
 
 import json
 import os
+from types import SimpleNamespace
 from unittest.mock import patch
 
 # ─── Test 1: OpenCode IDE detection and routing ──────────────────────────────
@@ -34,6 +35,17 @@ def test_opencode_ide_detection_and_routing():
         {"role": "user", "content": "hello"},
     ]
     assert detect_ide(messages) == "OpenCode"
+
+
+def test_chat_endpoint_detects_opencode_user_agent(monkeypatch):
+    """Chat endpoint should detect OpenCode even without system prompt fingerprints."""
+    import routes.chat_endpoints as chat_endpoints
+
+    monkeypatch.setitem(chat_endpoints._deps, "detect_ide", lambda _messages: "")
+
+    request = SimpleNamespace(headers={"user-agent": "OpenCode/1.16.2 smoke"})
+
+    assert chat_endpoints._resolve_ide_source([], request) == "OpenCode"
 
 
 # ─── Test 2: Direct tool mode for OpenCode ───────────────────────────────────

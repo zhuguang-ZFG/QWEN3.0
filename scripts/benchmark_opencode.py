@@ -23,7 +23,7 @@ import httpx
 
 # 配置
 BASE_URL = "http://localhost:5007"
-API_KEY = os.getenv("LIMA_API_KEY", "xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw")
+API_KEY = os.getenv("LIMA_API_KEY", "")
 OPENCODE_UA = "OpenCode/1.2.0 (Windows NT 10.0; Win64; x64) Node.js/18.17.0"
 
 # 测试场景
@@ -320,6 +320,9 @@ def main():
     print(f"Test Rounds: {TEST_ROUNDS}")
     print(f"Test Cases: {len(TEST_CASES)}")
     print("="*60)
+    if not API_KEY:
+        print("Missing LIMA_API_KEY; set it before running the benchmark.")
+        return 2
 
     # 选择一个代表性测试用例
     test_case = TEST_CASES[1]  # "Code Explanation"

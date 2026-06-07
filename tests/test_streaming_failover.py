@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from streaming import bridge_stream_async, _track_text_from_chunk
+from streaming import _track_text_from_chunk, bridge_stream_async
 from streaming_state import StreamState
 
 

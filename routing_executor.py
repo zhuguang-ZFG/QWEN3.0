@@ -56,8 +56,8 @@ def execute(backends: list[str],
                     if query_text:
                         sq = semantic_eval.evaluate_response(query_text, answer)
                         quality_history.record_quality(backend, sq.total)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("semantic quality recording failed: %s", type(exc).__name__)
 
                 return backend, answer, errors
 

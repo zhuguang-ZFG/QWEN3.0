@@ -1,6 +1,8 @@
 """Tests for the OpenViking context pipeline processor (Stage 6)."""
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
+
 from context_pipeline import RequestContext
 
 

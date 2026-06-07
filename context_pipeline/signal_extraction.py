@@ -7,15 +7,19 @@ Scans event logs for patterns that should trigger evolution strategy changes:
 - Latency spikes → trigger harden mode
 """
 
+import logging
+
 from context_pipeline.event_log import EventLog, EventType
 from context_pipeline.evolution import EvolutionStrategy, auto_select_strategy
 
+_log = logging.getLogger(__name__)
+
 
 def extract_signals(log: EventLog) -> dict:
-    """Extract evolution signals from the event log."""
+    """Extract evolution signals from the event log, including quality trends."""
     events = log.events
     if not events:
-        return {"error_rate": 0.0, "fallback_rate": 0.0, "signals": []}
+        return {"error_rate": 0.0, "fallback_rate": 0.0, "quality_trend": "stable", "signals": []}
 
     total = len(events)
     errors = log.filter_by_type(EventType.RESPONSE_ERROR)
@@ -59,17 +63,46 @@ def extract_signals(log: EventLog) -> dict:
         if avg_latency > 10000:
             signals.append({"type": "latency_spike", "avg_ms": int(avg_latency)})
 
+    # Extract overall quality trend from quality_history
+    overall_quality_trend = "stable"
+    try:
+        import quality_history
+        all_trends = quality_history.get_all_trends()
+        if all_trends:
+            declining_count = sum(1 for t in all_trends.values() if t.trend == "declining")
+            improving_count = sum(1 for t in all_trends.values() if t.trend == "improving")
+            total_tracked = len(all_trends)
+
+            if declining_count > total_tracked * 0.3:
+                overall_quality_trend = "declining"
+                signals.append({
+                    "type": "quality_declining",
+                    "declining_backends": declining_count,
+                    "total_tracked": total_tracked,
+                })
+            elif improving_count > total_tracked * 0.3:
+                overall_quality_trend = "improving"
+                signals.append({
+                    "type": "quality_improving",
+                    "improving_backends": improving_count,
+                    "total_tracked": total_tracked,
+                })
+    except ImportError:
+        _log.debug("signal_extraction: quality_history not available", exc_info=True)
+
     return {
         "error_rate": round(error_rate, 3),
         "fallback_rate": round(fallback_rate, 3),
+        "quality_trend": overall_quality_trend,
         "signals": signals,
     }
 
 
 def recommend_strategy_from_signals(signals: dict, backends_available: int = 10) -> EvolutionStrategy:
-    """Recommend an evolution strategy based on extracted signals."""
+    """Recommend an evolution strategy based on extracted signals including quality."""
     return auto_select_strategy(
         recent_error_rate=signals["error_rate"],
         recent_fallback_rate=signals["fallback_rate"],
         backends_available=backends_available,
+        quality_trend=signals.get("quality_trend", "stable"),
     )
