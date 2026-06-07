@@ -88,6 +88,84 @@ def test_responses_content_list_function_call_output_to_user_turn():
     assert "README heading" in chat["messages"][0]["content"]
 
 
+def test_responses_skips_reasoning_and_item_reference_replay_metadata():
+    body = {
+        "model": "lima-1.3",
+        "input": [
+            {"role": "user", "content": [{"type": "input_text", "text": "Use the tool."}]},
+            {
+                "type": "reasoning",
+                "id": "rs_1",
+                "summary": [],
+                "encrypted_content": "encrypted-state",
+            },
+            {"type": "item_reference", "id": "rs_1"},
+            {
+                "type": "function_call",
+                "call_id": "call_1",
+                "name": "read",
+                "arguments": "{\"filePath\":\"AGENTS.md\"}",
+            },
+            {
+                "type": "function_call_output",
+                "call_id": "call_1",
+                "output": "# AGENTS.md",
+            },
+        ],
+        "store": False,
+        "include": ["reasoning.encrypted_content"],
+    }
+
+    chat = responses_body_to_chat(body)
+
+    assert [message["role"] for message in chat["messages"]] == ["user", "assistant", "user"]
+    assert all(message.get("content") != "" for message in chat["messages"])
+    assert "encrypted-state" not in json.dumps(chat["messages"])
+
+
+def test_responses_structured_function_call_output_to_readable_continuation():
+    body = {
+        "model": "lima-1.3",
+        "input": [{
+            "type": "function_call_output",
+            "call_id": "call_screenshot",
+            "output": [
+                {"type": "input_text", "text": "Screenshot captured"},
+                {"type": "input_image", "image_url": "data:image/png;base64," + ("a" * 400)},
+            ],
+        }],
+    }
+
+    chat = responses_body_to_chat(body)
+
+    content = chat["messages"][0]["content"]
+    assert "Tool output for call call_screenshot" in content
+    assert "Screenshot captured" in content
+    assert "[image:" in content
+    assert len(content) < 700
+
+
+def test_responses_passthrough_sampling_options_and_ignores_response_state_options():
+    body = {
+        "model": "lima-1.3",
+        "input": "hi",
+        "stream": True,
+        "top_p": 0.7,
+        "temperature": 0.2,
+        "store": False,
+        "include": ["reasoning.encrypted_content"],
+        "previous_response_id": "resp_previous",
+    }
+
+    chat = responses_body_to_chat(body)
+
+    assert chat["top_p"] == 0.7
+    assert chat["temperature"] == 0.2
+    assert "store" not in chat
+    assert "include" not in chat
+    assert "previous_response_id" not in chat
+
+
 def test_chat_completion_to_response_text():
     data = {
         "created": 1700000000,

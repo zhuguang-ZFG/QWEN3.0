@@ -8,6 +8,12 @@ import uuid
 from collections.abc import AsyncIterator, Iterator
 from typing import Any
 
+from converters.responses_content import (
+    content_to_text,
+    is_replay_metadata_item,
+    tool_output_continuation_text,
+)
+
 
 def _new_response_id() -> str:
     return f"resp_{uuid.uuid4().hex[:24]}"
@@ -17,41 +23,13 @@ def _new_item_id(prefix: str = "msg") -> str:
     return f"{prefix}_{uuid.uuid4().hex[:16]}"
 
 
-def _text_from_part(part: dict) -> str:
-    ptype = part.get("type", "")
-    if ptype in ("input_text", "output_text", "text"):
-        return str(part.get("text", "") or "")
-    if ptype == "input_image":
-        return "[image]"
-    return ""
-
-
-def _content_to_text(content: Any) -> str:
-    if content is None:
-        return ""
-    if isinstance(content, str):
-        return content
-    if isinstance(content, list):
-        parts = [_text_from_part(p) for p in content if isinstance(p, dict)]
-        return "\n".join(p for p in parts if p)
-    return str(content)
-
-
-def _tool_output_continuation_text(item: dict) -> str:
-    call_id = str(item.get("call_id") or item.get("id") or "unknown")
-    output = str(item.get("output", "") or "")
-    return (
-        f"Tool output for call {call_id}:\n"
-        f"{output}\n\n"
-        "Continue from this tool result and answer the user's request."
-    )
-
-
 def _convert_input_item(item: dict) -> list[dict]:
     """Map one Responses API input item to chat message(s)."""
     ptype = item.get("type", "")
+    if is_replay_metadata_item(item):
+        return []
     if ptype == "function_call_output":
-        return [{"role": "user", "content": _tool_output_continuation_text(item)}]
+        return [{"role": "user", "content": tool_output_continuation_text(item)}]
     if ptype == "function_call":
         return [{
             "role": "assistant",
@@ -98,14 +76,14 @@ def _convert_input_item(item: dict) -> list[dict]:
                 tool_msgs.append({
                     "role": "tool",
                     "tool_call_id": part.get("call_id", ""),
-                    "content": str(part.get("output", "") or ""),
+                    "content": content_to_text(part.get("output", "")),
                 })
                 tool_output_parts.append(part)
             elif ptype == "input_image":
-                text_parts.append("[image]")
+                text_parts.append(content_to_text([part]))
         if not text_parts and tool_msgs and all(msg["role"] == "tool" for msg in tool_msgs):
             content_text = "\n\n".join(
-                _tool_output_continuation_text(part) for part in tool_output_parts
+                tool_output_continuation_text(part) for part in tool_output_parts
             )
             return [{"role": "user", "content": content_text}]
         msgs: list[dict] = []
@@ -114,7 +92,7 @@ def _convert_input_item(item: dict) -> list[dict]:
         msgs.extend(tool_msgs)
         return msgs
 
-    return [{"role": role, "content": _content_to_text(content)}]
+    return [{"role": role, "content": content_to_text(content)}]
 
 
 def _convert_tools(tools: list | None) -> list[dict] | None:
@@ -184,6 +162,8 @@ def responses_body_to_chat(body: dict) -> dict:
 
     if body.get("temperature") is not None:
         chat["temperature"] = body["temperature"]
+    if body.get("top_p") is not None:
+        chat["top_p"] = body["top_p"]
 
     return chat
 
