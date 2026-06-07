@@ -1,6 +1,59 @@
 # Execution Log
 
-> Last updated: 2026-06-07 · ✅ **GitHub推送成功** · VPS生产部署完成 · 4/4 E2E测试通过 · typing优化 · 错误处理增强
+> Last updated: 2026-06-07 · ✅ **GitHub推送成功** · VPS生产部署完成 · Hermes互联互通完成
+>
+> **能力加厚 (2026-06-07)** · 代码质量收尾 ✅ · Hermes Agent Gateway ✅ · 智能分级路由 ✅ · 腾讯基础设施安装 ✅ · VPS smoke PASS
+
+## 2026-06-07 LiMa ↔ Hermes 互联互通方案完成
+
+### 背景
+- **目标**: 实现 LiMa (阿里云 VPS) 与 Hermes (腾讯服务器) 双向协同
+- **核心模块**: hermes_bridge.py, hermes_api.py, hermes_gateway.py
+- **路由集成**: routing_classifier.py, routing_selector.py, routing_tiers.py
+
+### 腾讯 Hermes 服务器基础设施安装 (5/5 完成)
+
+| # | 任务 | 状态 | 详情 |
+|---|------|------|------|
+| 1 | SSH 互信 | ✅ | 阿里云 VPS ↔ 腾讯服务器 (100.125.105.117) 双向免密 |
+| 2 | Hermes Gateway systemd | ✅ | 腾讯服务器自启服务已配置 |
+| 3 | fastembed 本地向量嵌入 | ✅ | 腾讯服务器本地向量化引擎 |
+| 4 | Playwright Chromium | ✅ | 浏览器自动化依赖安装 |
+| 5 | Sonic 全文搜索引擎 v1.6.0 | ✅ | 腾讯服务器 :1491，systemd 自启 |
+
+### 模式2: LiMa → Hermes Agent (4/4 完成)
+
+| 任务 | 状态 | 详情 |
+|------|------|------|
+| hermes_bridge.py | ✅ | OpenAI SDK 封装，支持结构化任务、流式输出、工具调用提取。371 行 |
+| hermes_api.py | ✅ | FastAPI 微服务 `127.0.0.1:8699`，OpenAI 兼容端点，systemd 自启 |
+| 注册 Hermes 后端 | ✅ | backends_registry.py + backends_constants.py (STRONG_MODELS, TOOL_CAPABLE, PREMIUM) |
+| 端到端验证 | ✅ | hermes-api 直接调用 + LiMa → hermes_agent 路由均正常 |
+
+### 模式3: 双端协同 (4/4 完成)
+
+| 任务 | 状态 | 详情 |
+|------|------|------|
+| classify_agent_task() | ✅ | routing_classifier.py: 多文件操作/Shell/浏览器/多步骤检测 |
+| Agent 路由优先级 | ✅ | routing_selector.py: agent 任务优先路由到 hermes_agent |
+| 增强 Hermes Bridge | ✅ | 支持流式、工具调用、结构化任务类型 |
+| 端到端验证 | ✅ | LiMa model=hermes-agent 路由 → hermes_api → LiMa → 正常响应 |
+
+### 架构验证
+```
+Client → LiMa (:8080) → classify → hermes_agent → hermes_api (:8699) → hermes_bridge → LiMa (:8080)
+                                                                              └─ 289 backends 智能路由
+```
+
+### 修复
+- `backends_constants.py`: 移除 TOOL_CAPABLE_BACKENDS 中重复的 `hermes_agent` 条目
+
+### VPS 服务状态
+- `hermes-api.service`: ✅ active (running), 监听 127.0.0.1:8699
+- `lima-router.service`: ✅ active (running), 监听 0.0.0.0:8080
+- Hermes v0.14.0 (阿里云), Hermes v0.15.1 (腾讯) 均正常运行
+
+---
 
 ## 2026-06-07 VPS部署验证与OpenCode端到端测试
 

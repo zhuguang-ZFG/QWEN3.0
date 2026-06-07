@@ -149,8 +149,6 @@ TOOL_CAPABLE_BACKENDS = frozenset({
     'chinamobile',
     # Longcat (Anthropic format, but supports tool_calls)
     'longcat', 'longcat_openai',
-    # Hermes Agent
-    'hermes_agent',
 })
 VISION_SYSTEM_PROMPT = "你是一位耐心的老师。用户上传了一道题目的图片。请：1. 识别题目内容 2. 分步骤解答 3. 给出最终答案。如果是选择题，明确指出正确选项。"
 
