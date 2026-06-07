@@ -185,4 +185,5 @@ router_status = _registered.router_status
 if __name__ == "__main__":
     print('[LiMa] Warming up router model...', file=sys.stderr)
     warmup_router_model()
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    port = int(os.getenv("PORT", os.getenv("LIMA_PORT", "8080")))
+    uvicorn.run(app, host="0.0.0.0", port=port)
