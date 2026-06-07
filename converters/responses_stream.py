@@ -192,7 +192,7 @@ class ResponsesStreamConverter:
                     "status": "in_progress",
                 },
             }))
-        if fn.get("arguments"):
+        if fn.get("arguments") and entry["announced"]:
             events.append(_sse_event("response.function_call_arguments.delta", {
                 "item_id": entry["id"],
                 "output_index": entry["output_index"],
@@ -207,6 +207,8 @@ class ResponsesStreamConverter:
         if self.reasoning_started:
             events.extend(self._complete_reasoning_item())
         for _idx, entry in sorted(self.tool_items.items()):
+            if not entry["announced"]:
+                continue
             events.append(_sse_event("response.output_item.done", {
                 "output_index": entry["output_index"],
                 "item": {

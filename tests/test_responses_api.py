@@ -329,3 +329,34 @@ def test_stream_converter_emits_tool_events():
     assert "function_call" in out
     assert "response.function_call_arguments.delta" in out
     assert "response.completed" in out
+
+
+def test_stream_converter_suppresses_tool_argument_delta_until_tool_is_announced():
+    first = {
+        "choices": [{
+            "delta": {
+                "tool_calls": [{
+                    "index": 0,
+                    "id": "call_late",
+                    "function": {"arguments": "{\"path\""},
+                }],
+            },
+        }],
+    }
+    second = {
+        "choices": [{
+            "delta": {
+                "tool_calls": [{
+                    "index": 0,
+                    "function": {"name": "read_file", "arguments": ":\"AGENTS.md\"}"},
+                }],
+            },
+        }],
+    }
+    lines = [f"data: {json.dumps(first)}", f"data: {json.dumps(second)}", "data: [DONE]"]
+
+    out = "".join(transform_chat_sse_iter(iter(lines)))
+
+    assert '"output_index": null' not in out
+    assert "response.output_item.added" in out
+    assert '"arguments": "{\\"path\\":\\"AGENTS.md\\"}"' in out
