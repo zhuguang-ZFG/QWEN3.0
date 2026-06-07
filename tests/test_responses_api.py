@@ -286,6 +286,21 @@ def test_stream_converter_emits_text_deltas():
     assert done_messages[0]["content"] == [{"type": "output_text", "text": "Hello"}]
 
 
+def test_stream_converter_maps_length_finish_to_response_incomplete():
+    lines = [
+        'data: {"choices":[{"delta":{"content":"partial"},"finish_reason":"length"}]}',
+        "data: [DONE]",
+    ]
+    out = "".join(transform_chat_sse_iter(iter(lines), model="lima-1.3"))
+    events = _responses_events(out)
+
+    terminal = events[-1]
+    assert terminal["type"] == "response.incomplete"
+    assert terminal["response"]["status"] == "incomplete"
+    assert terminal["response"]["incomplete_details"] == {"reason": "max_output_tokens"}
+    assert not any(event.get("type") == "response.completed" for event in events)
+
+
 def test_stream_converter_preserves_usage_details_in_completed_event():
     chunk = {
         "usage": {

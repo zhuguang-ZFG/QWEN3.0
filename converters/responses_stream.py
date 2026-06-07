@@ -41,6 +41,7 @@ class ResponsesStreamConverter:
         self.next_output_index = 0
         self.usage: dict | None = None
         self.failed = False
+        self.finish_reason = ""
 
     def bootstrap_events(self) -> list[str]:
         return [
@@ -110,6 +111,8 @@ class ResponsesStreamConverter:
             self.usage = chat_usage_to_responses_usage(chunk["usage"])
 
         for choice in chunk.get("choices") or []:
+            if choice.get("finish_reason") and not self.finish_reason:
+                self.finish_reason = choice["finish_reason"]
             delta = choice.get("delta") or {}
             reasoning_delta = _reasoning_delta(delta)
             if reasoning_delta:
@@ -234,16 +237,19 @@ class ResponsesStreamConverter:
                 },
             }))
         usage = self._usage()
-        events.append(_sse_event("response.completed", {
+        incomplete_details = self._incomplete_details()
+        terminal_event = "response.incomplete" if incomplete_details else "response.completed"
+        status = "incomplete" if incomplete_details else "completed"
+        events.append(_sse_event(terminal_event, {
             "response": {
                 "id": self.response_id,
                 "object": "response",
-                "status": "completed",
+                "status": status,
                 "created_at": self.created_at,
                 "model": self.model,
                 "output": [],
                 "usage": usage,
-                "incomplete_details": None,
+                "incomplete_details": incomplete_details,
             },
         }))
         return events
@@ -254,6 +260,10 @@ class ResponsesStreamConverter:
             "output_tokens": 0,
             "total_tokens": 0,
         }
+
+    def _incomplete_details(self) -> dict | None:
+        reason = _incomplete_reason(self.finish_reason)
+        return {"reason": reason} if reason else None
 
     def _complete_reasoning_item(self) -> list[str]:
         summary = [{"type": "summary_text", "text": self.reasoning_text}]
@@ -295,4 +305,12 @@ def _reasoning_delta(delta: dict) -> str:
         value = delta.get(key)
         if isinstance(value, str) and value:
             return value
+    return ""
+
+
+def _incomplete_reason(finish_reason: str) -> str:
+    if finish_reason == "length":
+        return "max_output_tokens"
+    if finish_reason == "content_filter":
+        return "content_filter"
     return ""
