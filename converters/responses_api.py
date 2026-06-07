@@ -12,6 +12,10 @@ from converters.responses_content import (
     tool_output_continuation_text,
 )
 from converters.responses_stream_transform import transform_chat_sse_iter, transform_chat_sse_stream
+from converters.responses_tools import (
+    responses_tool_choice_to_chat_tool_choice,
+    responses_tools_to_chat_tools,
+)
 from converters.responses_usage import chat_usage_to_responses_usage
 
 
@@ -93,27 +97,6 @@ def _convert_content_list(role: str, content: list) -> list[dict]:
     return msgs
 
 
-def _convert_tools(tools: list | None) -> list[dict] | None:
-    if not tools:
-        return None
-    out: list[dict] = []
-    for tool in tools:
-        if not isinstance(tool, dict):
-            continue
-        if tool.get("type") == "function" and "function" not in tool and "name" in tool:
-            out.append({
-                "type": "function",
-                "function": {
-                    "name": tool.get("name", ""),
-                    "description": tool.get("description", ""),
-                    "parameters": tool.get("parameters", {"type": "object", "properties": {}}),
-                },
-            })
-        else:
-            out.append(tool)
-    return out or None
-
-
 def responses_body_to_chat(body: dict) -> dict:
     """Convert POST /v1/responses body to /v1/chat/completions body."""
     messages: list[dict] = []
@@ -151,12 +134,12 @@ def responses_body_to_chat(body: dict) -> dict:
     if isinstance(reasoning, dict) and reasoning.get("effort"):
         chat["reasoning_effort"] = reasoning["effort"]
 
-    tools = _convert_tools(body.get("tools"))
+    tools = responses_tools_to_chat_tools(body.get("tools"))
     if tools:
         chat["tools"] = tools
 
     if body.get("tool_choice") is not None:
-        chat["tool_choice"] = body["tool_choice"]
+        chat["tool_choice"] = responses_tool_choice_to_chat_tool_choice(body["tool_choice"])
 
     if body.get("temperature") is not None:
         chat["temperature"] = body["temperature"]

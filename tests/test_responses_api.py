@@ -48,6 +48,37 @@ def test_responses_structured_input_and_tools():
     assert chat["reasoning_effort"] == "high"
 
 
+def test_responses_tool_choice_function_object_to_chat_shape():
+    body = {
+        "model": "lima-1.3",
+        "input": "Use the read tool.",
+        "tools": [{
+            "type": "function",
+            "name": "read",
+            "description": "Read a file",
+            "parameters": {"type": "object", "properties": {}},
+            "strict": True,
+        }],
+        "tool_choice": {"type": "function", "name": "read"},
+    }
+
+    chat = responses_body_to_chat(body)
+
+    assert chat["tool_choice"] == {"type": "function", "function": {"name": "read"}}
+    assert chat["tools"][0]["function"]["strict"] is True
+
+
+def test_responses_tool_choice_strings_pass_through():
+    for choice in ("auto", "none", "required"):
+        chat = responses_body_to_chat({
+            "model": "lima-1.3",
+            "input": "hi",
+            "tool_choice": choice,
+        })
+
+        assert chat["tool_choice"] == choice
+
+
 def test_responses_standalone_function_call_output_to_non_empty_user_turn():
     body = {
         "model": "lima-1.3",
