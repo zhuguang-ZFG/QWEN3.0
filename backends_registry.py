@@ -343,6 +343,8 @@ BACKENDS = {
     # ── Agnes AI 编程池 ──
     'agnes20_code': {'url': 'https://apihub.agnes-ai.com/v1/chat/completions', 'key': os.environ.get('AGNES_AI_API_KEY', ''), 'model': 'agnes-2.0-flash', 'fmt': 'openai', 'timeout': 45, 'admission': 'code_medium_candidate', 'private_code_allowed': True, 'caps': ['tool_calls', 'code']},
     'agnes15_code': {'url': 'https://apihub.agnes-ai.com/v1/chat/completions', 'key': os.environ.get('AGNES_AI_API_KEY', ''), 'model': 'agnes-1.5-flash', 'fmt': 'openai', 'timeout': 20, 'admission': 'code_floor_candidate', 'private_code_allowed': True, 'caps': ['tool_calls']},
+    # ── Hermes Agent (LiMa ↔ Hermes bridge, local microservice) ──
+    'hermes_agent': {'url': 'http://127.0.0.1:8699/v1/chat/completions', 'key': 'none', 'model': 'hermes-agent', 'fmt': 'openai', 'timeout': 120, 'caps': ['tool_calls']},
 }
 
 # M6: All host-dependent backends migrated to VPS or deleted.

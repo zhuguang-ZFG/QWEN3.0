@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""DEPRECATED — legacy compatibility facade only (Slice 6).
+"""DEPRECATED — legacy compatibility facade only.
+
+All production callers migrated to routing_engine / routing_facade as of 2026-06-07.
+Remaining production imports: 0 (verified by CI gate test_no_smart_router_imports_in_production).
 
 Do **not** add new ``import smart_router`` in production code.
 Use instead:

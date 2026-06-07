@@ -21,7 +21,7 @@ import sticky_session
 from context_pipeline.retrieval_injection import inject_retrieval_context
 from model_resolver import resolve_backend
 from response_cleaner import clean_response
-from routing_classifier import classify, classify_scenario
+from routing_classifier import classify, classify_agent_task, classify_scenario
 from routing_engine_context import inject_all_context
 from routing_engine_context import inject_all_context as prepare_route_context
 from routing_engine_opencode import try_code_orchestration
@@ -87,6 +87,12 @@ def route(query: str, messages: list[dict], *,
     scenario = classify_scenario(query, messages,
                                  ide_source=ide_source, request_type=req_type)
 
+    # ── Agent task detection (Mode 3: Hermes Agent routing) ──
+    needs_agent = classify_agent_task(
+        query, messages, ide_source=ide_source, system_prompt=system_prompt)
+    if needs_agent:
+        logging.info("routing_engine: agent task detected, routing to hermes_agent pipeline")
+
     _msg_count_before_ctx = len(messages)
     messages, _retrieval_text, recalled_backend, _injected_ids = inject_all_context(
         messages, query=query, scenario=scenario, req_type=req_type,
@@ -116,7 +122,8 @@ def route(query: str, messages: list[dict], *,
 
     hmap = health_tracker.get_health_map()
     backends = select(req_type, hmap, sticky_key=sticky_key, scenario=scenario,
-                      needs_tools=needs_tools, recalled_backend=recalled_backend,
+                      needs_tools=needs_tools, needs_agent=needs_agent,
+                      recalled_backend=recalled_backend,
                       ide_source=ide_source)
 
     # ── Client model override: resolve model param to specific backend ──

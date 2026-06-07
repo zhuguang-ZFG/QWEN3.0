@@ -54,6 +54,7 @@ STRONG_MODELS = frozenset({
     "naga_gpt41mini",
     "or_deepseek_r1", "nvidia_qwen_coder",
     "opencode_stealth", "fireworks_llama405b", "deepinfra_llama4",
+    "hermes_agent",
 })
 
 KEY_POOL_PREFIXES = {
@@ -137,6 +138,8 @@ TOOL_CAPABLE_BACKENDS = frozenset({
     'ogw_grok', 'ogw_kimi', 'ogw_glm5', 'ogw_minimax',
     # Agnes AI
     'agnes20', 'agnes15',
+    # Hermes Agent
+    'hermes_agent',
     # ModelScope (existing)
     'ms_deepseek_v4', 'ms_qwen35_27b', 'ms_kimi_k25', 'ms_glm5',
     # ModelScope 扩展 (2026-06-06)
@@ -146,6 +149,8 @@ TOOL_CAPABLE_BACKENDS = frozenset({
     'chinamobile',
     # Longcat (Anthropic format, but supports tool_calls)
     'longcat', 'longcat_openai',
+    # Hermes Agent
+    'hermes_agent',
 })
 VISION_SYSTEM_PROMPT = "你是一位耐心的老师。用户上传了一道题目的图片。请：1. 识别题目内容 2. 分步骤解答 3. 给出最终答案。如果是选择题，明确指出正确选项。"
 

@@ -56,9 +56,18 @@ def _has_valid_key(name: str) -> bool:
 
 def select(request_type: str, health_map: dict,
            sticky_key: str = None, scenario: str = "",
-           needs_tools: bool = False, recalled_backend: str = "",
-           ide_source: str = "") -> list[str]:
-    """从对应池选健康后端，按健康评分排序，过滤预算耗尽，sticky 优先"""
+           needs_tools: bool = False, needs_agent: bool = False,
+           recalled_backend: str = "",
+           ide_source: str = "",
+           difficulty: int = 50) -> list[str]:
+    """从对应池选健康后端，按健康评分排序，过滤预算耗尽，sticky 优先
+
+    When needs_agent=True, hermes_agent is prioritized first for
+    autonomous multi-step task execution (Mode 3: bidirectional).
+
+    difficulty: 0-100 task difficulty score for tiered model routing.
+      0-30 → prefer free/budget, 30-70 → budget, 70-100 → premium.
+    """
     import backends_registry as reg
     import routing_engine as re
 
@@ -160,6 +169,18 @@ def select(request_type: str, health_map: dict,
     except (ImportError, Exception):
         _log.debug("routing_selector: ML prediction boost not available", exc_info=True)
 
+    # ── Tiered model routing: boost backends matching task difficulty ──
+    if scenario == "coding":
+        try:
+            from routing_tiers import get_tier, tier_for_difficulty
+            target_tier = tier_for_difficulty(difficulty)
+            _TIER_BOOST = {"free": 1.4, "budget": 1.0, "premium": 1.4}
+            for b in result:
+                if get_tier(b) == target_tier:
+                    scores[b] = scores.get(b, 50) * _TIER_BOOST.get(target_tier, 1.0)
+        except ImportError:
+            _log.debug("routing_selector: tiered routing not available", exc_info=True)
+
     result.sort(key=lambda b: -(
         scores.get(b, 50) * budget_manager.get_budget_priority(b)
         + random.uniform(0, 3)
@@ -186,6 +207,11 @@ def select(request_type: str, health_map: dict,
         health_scores=scores,
         states=states,
         latency_map=re.health_tracker.get_latency_map())
+
+    # ── Agent task routing: prioritize hermes_agent (Mode 3) ──
+    if needs_agent and "hermes_agent" in result:
+        result = _prioritize("hermes_agent", result)
+        _log.info("routing_selector: agent task detected, prioritizing hermes_agent")
 
     if sticky_key:
         pinned = sticky_session.get_pinned_backend(sticky_key)

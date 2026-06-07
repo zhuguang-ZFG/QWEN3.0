@@ -56,7 +56,7 @@
 | P1 OpenCode E2E + 流错误重试 | ✅ | `tests/test_opencode_e2e_cases.py` · `routing_executor.py`（`is_retryable` fallback） |
 | P1 工具修复管线 MVP | ✅ | `tool_repair_pipeline.py` · `text_tool_extractor.py` · `workspace_sandbox.ReadTracker`（`LIMA_WORKSPACE_READ_GATE=1`） |
 | P2 上下文注入 trace | ✅ | `context_injection_trace.py` · Admin `GET /api/context-injection-traces` · 响应 `x_lima_meta.context_injection` |
-| P2 路由双轨收敛（渐进） | ✅ (Slice 1-3 done, 3 deps remain) | `routing_facade.py`（`/v1/status`、`ide_coder_pool`）· smart_router 生产引用 14→3 |
+| P2 路由双轨收敛（渐进） | ✅ (Slice 1-6 done, 0 deps remain) | `routing_facade.py`（`/v1/status`、`ide_coder_pool`）· smart_router 生产引用 14→0 |
 
 **Admin / 运维**
 
@@ -78,7 +78,7 @@
 | `LIMA_DOCS_ENABLED` | `""` | `1/true/yes` 时启用 Swagger/ReDoc 文档端点 |
 | `VPS_HOST` | `47.112.162.80` | VPS 地址（部署脚本使用，替代硬编码） |
 
-**仍渐进（非方向问题）**：`smart_router` 部分调用方未迁完 — 见 [`docs/SMART_ROUTER_MIGRATION.md`](docs/SMART_ROUTER_MIGRATION.md)（调用方清单 + 6 slice 热路径顺序）；`docs/NEXT_MILESTONES.md` 与 `docs/superpowers/plans/` 仅作档案。
+**已完成**：`smart_router` 生产调用方全部迁移 (2026-06-07, 14→0)。`docs/NEXT_MILESTONES.md` 与 `docs/superpowers/plans/` 仅作档案。
 
 ## 部署状态
 
