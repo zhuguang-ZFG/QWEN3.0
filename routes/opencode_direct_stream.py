@@ -63,16 +63,27 @@ def resolve_opencode_backend(prefer: str | None = None, *, require_tools: bool =
         for name in sorted(TOOL_CAPABLE_BACKENDS):
             if name in BACKENDS and name not in candidates:
                 candidates.append(name)
+
+    _log.info("[OPENCODE_ROUTE] candidates=%s (require_tools=%s, prefer=%s)",
+              candidates[:5], require_tools, prefer)
+
     for name in candidates:
         cfg = BACKENDS.get(name)
         if not cfg:
+            _log.debug("[OPENCODE_ROUTE] %s: no config", name)
             continue
         if require_tools and not _supports_tools(name, cfg):
+            _log.debug("[OPENCODE_ROUTE] %s: tools not supported", name)
             continue
         if not health_tracker.is_cooled_down(name):
             key, _ = _select_key(name, cfg)
             if key:
+                _log.info("[OPENCODE_ROUTE] selected=%s", name)
                 return name
+            else:
+                _log.debug("[OPENCODE_ROUTE] %s: no key available", name)
+        else:
+            _log.debug("[OPENCODE_ROUTE] %s: cooled down", name)
     raise BackendError("No healthy OpenCode backend available", status_code=503)
 
 
