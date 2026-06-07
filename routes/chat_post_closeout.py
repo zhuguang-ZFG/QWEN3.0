@@ -27,7 +27,10 @@ def persist_session_memory(
         from session_memory.compactor import compact_session, needs_compaction
         from session_memory.store import save_memory, save_typed_memory
 
-        session_id = memory_session_id or hashlib.md5((client_ip or "anon").encode()).hexdigest()[:12]
+        session_id = memory_session_id or hashlib.md5(
+            (client_ip or "anon").encode(),
+            usedforsecurity=False,
+        ).hexdigest()[:12]
 
         # Save raw messages
         save_memory(session_id, "user", query[:200])

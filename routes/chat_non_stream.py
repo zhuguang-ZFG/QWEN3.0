@@ -13,6 +13,7 @@ import routing_facade
 from chat_models import ChatRequest
 from http_errors import BackendError
 from opencode_config import OPENCODE_DIRECT_STREAM
+from opencode_text_tool_payload import prepare_opencode_text_tool_payload
 from orchestrate import orchestrate
 
 _log = logging.getLogger(__name__)
@@ -47,14 +48,20 @@ async def execute_non_stream_route(ctx, req: ChatRequest) -> tuple[dict, dict]:
 
         try:
             backend = resolve_opencode_backend(ctx.prefs.prefer, require_tools=req.has_tools)
+            messages, tools, _text_tool_prompt = prepare_opencode_text_tool_payload(
+                backend,
+                ctx.preflight.prompt_context_messages,
+                req.tools,
+                req.tool_choice,
+            )
             answer = await asyncio.to_thread(
                 http_caller.call_api,
                 backend,
-                ctx.preflight.prompt_context_messages,
+                messages,
                 req.max_tokens or 4096,
                 system_prompt=ctx.preflight.system_prompt,
                 ide=ctx.ide_source,
-                tools=req.tools if req.has_tools else None,
+                tools=tools,
                 reasoning_effort=req.reasoning_effort,
             )
             return (

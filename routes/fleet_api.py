@@ -13,10 +13,16 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
-router = APIRouter(prefix="/fleet", tags=["fleet"])
+from access_guard import require_private_api_key
+
+router = APIRouter(
+    prefix="/fleet",
+    tags=["fleet"],
+    dependencies=[Depends(require_private_api_key)],
+)
 _log = logging.getLogger(__name__)
 
 _admin_token: str = ""
@@ -67,9 +73,10 @@ async def register_node(req: RegisterRequest) -> dict:
     from fleet.node_registry import NodeCapabilities, get_registry
     caps = NodeCapabilities(
         gpu=req.gpu, gpu_model=req.gpu_model, gpu_vram_gb=req.gpu_vram_gb,
-        cpu_cores=req.cpu_cores, ram_gb=req.ram_gb,
-        shell=req.shell, workspace=req.workspace, models=req.models,
+        cpu_cores=req.cpu_cores, ram_gb=req.ram_gb, models=req.models,
     )
+    caps.shell = req.shell
+    caps.workspace = req.workspace
     node = get_registry().register(
         req.node_id, host=req.host, port=req.port, role=req.role,
         capabilities=caps,

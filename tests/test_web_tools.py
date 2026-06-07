@@ -7,6 +7,7 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from lima_fc_tools import web_tools
 from lima_fc_tools.web_tools import _browse_webpage, _clean_text, _fetch_url
 
 
@@ -35,7 +36,7 @@ async def test_fetch_url_returns_error_on_bad_url():
 
 
 @pytest.mark.asyncio
-async def test_browse_webpage_parses_html():
+async def test_browse_webpage_parses_html(monkeypatch):
     """Test HTML parsing with inline mock HTML via monkeypatch."""
 
     class FakeResponse:
@@ -62,6 +63,11 @@ async def test_browse_webpage_parses_html():
     import httpx as _httpx_mod
     original_client = _httpx_mod.AsyncClient
     _httpx_mod.AsyncClient = FakeClient
+    monkeypatch.setattr(
+        web_tools,
+        "_validate_public_http_url",
+        lambda *_args, **_kwargs: (True, ""),
+    )
     try:
         result = await _browse_webpage("http://example.com")
         assert result["title"] == "Test Page"

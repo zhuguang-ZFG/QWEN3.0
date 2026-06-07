@@ -135,7 +135,8 @@ async def cmd_dashboard(chat_id: str, args: str) -> None:
         import json
         import urllib.request
         req = urllib.request.Request("http://127.0.0.1:8080/health")
-        resp = urllib.request.urlopen(req, timeout=5)
+        # Fixed localhost health URL.
+        resp = urllib.request.urlopen(req, timeout=5)  # nosec B310
         h = json.loads(resp.read())
         modules = [k for k, v in h.get("modules", {}).items() if v]
         lines.append(f"*Health*: {h['status']} | {len(modules)} modules")

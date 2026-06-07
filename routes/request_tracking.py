@@ -59,7 +59,11 @@ def get_ip_location(ip: str) -> str:
         return "未知"
     try:
         import urllib.request
-        resp = urllib.request.urlopen(f"http://ip-api.com/json/{ip}?fields=country,city&lang=zh-CN", timeout=0.5)
+        # Fixed ip-api URL after IP literal validation.
+        resp = urllib.request.urlopen(  # nosec B310
+            f"http://ip-api.com/json/{ip}?fields=country,city&lang=zh-CN",
+            timeout=0.5,
+        )
         data = json.loads(resp.read().decode())
         return f"{data.get('country', '')} {data.get('city', '')}"
     except Exception as exc:

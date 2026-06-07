@@ -12,12 +12,12 @@ from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
 from streaming_bridge import bridge_stream
 
 try:
-    from streaming_state import StreamState
     from streaming_retry import (
         build_continuation_messages,
         extract_partial_from_state,
         should_attempt_failover,
     )
+    from streaming_state import StreamState
     _HAS_FAILOVER_DEPS = True
 except ImportError:
     _HAS_FAILOVER_DEPS = False

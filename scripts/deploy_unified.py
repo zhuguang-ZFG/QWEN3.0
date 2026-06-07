@@ -33,6 +33,7 @@ from scripts.deploy_common import (
 
 CORE_FILES = [
     "server.py",
+    "opencode_text_tool_payload.py",
     "routing_engine.py",
     "routing_selector.py",
     "router_v3.py",
@@ -44,6 +45,8 @@ CORE_FILES = [
     "budget_manager.py",
     "capability_matrix.py",
     "route_post_process.py",
+    "routes/chat_non_stream.py",
+    "routes/opencode_direct_stream.py",
 ]
 
 CORE_DIRS = [
@@ -144,6 +147,21 @@ def deploy_files(files: list[str], *, dry_run: bool = False) -> dict:
     return results
 
 
+def _expand_dir_files(dirs: list[str]) -> list[str]:
+    """Return deployable Python files from configured core directories."""
+    project_root = Path(__file__).resolve().parent.parent
+    expanded: list[str] = []
+    for dirname in dirs:
+        root = project_root / dirname
+        if not root.exists():
+            continue
+        for path in root.rglob("*.py"):
+            if "__pycache__" in path.parts:
+                continue
+            expanded.append(path.relative_to(project_root).as_posix())
+    return expanded
+
+
 def restart_server() -> bool:
     """Clear pycache, restart via systemd, then poll health."""
     ssh = paramiko.SSHClient()
@@ -221,10 +239,12 @@ def main() -> int:
         files = args.files
     elif args.slice == "all":
         files = CORE_FILES.copy()
+        files.extend(_expand_dir_files(CORE_DIRS))
         for slice_files in SLICE_FILES.values():
             files.extend(slice_files)
     elif args.slice == "core":
         files = CORE_FILES.copy()
+        files.extend(_expand_dir_files(CORE_DIRS))
     else:
         files = SLICE_FILES.get(args.slice, [])
 

@@ -21,7 +21,8 @@ import os
 import sys
 import time
 import uuid
-from typing import Any, AsyncGenerator
+from collections.abc import AsyncGenerator
+from typing import Any
 
 # Ensure local modules are importable
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -30,7 +31,7 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
-from hermes_bridge import call_lima, LIMA_MODEL, LIMA_TIMEOUT
+from hermes_bridge import LIMA_MODEL, LIMA_TIMEOUT, call_lima
 
 logger = logging.getLogger("hermes_api")
 logging.basicConfig(

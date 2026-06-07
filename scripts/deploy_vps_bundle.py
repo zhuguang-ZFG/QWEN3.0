@@ -53,11 +53,14 @@ FILES = [
     "routes/request_tracking.py",
     "routes/chat_handler.py",
     "routes/chat_handler_dispatch.py",
+    "routes/chat_non_stream.py",
+    "routes/opencode_direct_stream.py",
     "routes/chat_endpoints.py",
     "routes/anthropic_messages_handler.py",
     "routes/anthropic_vision_sse.py",
     "routes/tool_forward.py",
     "routes/tool_forward_stream.py",
+    "opencode_text_tool_payload.py",
     "admin.html",
     # 新增: FC 工具模块 (DIRS handles lima_fc_tools/ *.py auto-upload)
     # 新增: 代码执行沙箱 (DIRS handles sandbox/ *.py auto-upload)

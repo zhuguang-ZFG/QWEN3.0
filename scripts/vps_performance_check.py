@@ -12,7 +12,7 @@ import json
 import os
 import sys
 import time
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 try:
     import httpx

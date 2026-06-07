@@ -12,6 +12,7 @@ import sys
 import time
 
 import paramiko
+from deploy_common import configure_ssh_host_keys
 
 VPS_HOST = "47.112.162.80"
 VPS_USER = "root"
@@ -29,15 +30,7 @@ print("=" * 70)
 
 key = paramiko.Ed25519Key.from_private_key_file(VPS_KEY)
 ssh = paramiko.SSHClient()
-known_hosts = os.path.expanduser("~/.ssh/known_hosts")
-if os.path.exists(known_hosts):
-    try:
-        ssh.load_host_keys(known_hosts)
-    except Exception as exc:
-        print(f"[warn] failed to load known_hosts: {exc}")
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())  # noqa: S507
-else:
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())  # noqa: S507
+configure_ssh_host_keys(ssh)
 
 try:
     ssh.connect(VPS_HOST, username=VPS_USER, pkey=key, timeout=20)

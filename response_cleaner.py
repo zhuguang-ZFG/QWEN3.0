@@ -149,7 +149,7 @@ _BACKEND_ERROR_MARKERS = [
     '服务繁忙', '稍后重试', '请求频繁', '暂时不可用',
     '服务不可用', '系统繁忙', '请求过多', '限流',
     '服务器繁忙', '接口限流', '触发风控', '访问频率',
-    '系统维护',
+    '系统维护', '文件上传最大限制', '上传最大限制', '请缩减后再试',
     'rate limit', 'too many requests', 'service unavailable',
     'server is busy', 'try again later', 'overloaded',
     '[mimo cookie', '[mimo http', '[mimo error',

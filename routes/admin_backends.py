@@ -111,7 +111,8 @@ def test_backend_sync(name: str) -> dict:
         request = urllib.request.Request(
             url, data=payload, headers=headers, method="POST"
         )
-        resp = urllib.request.urlopen(request, timeout=15)
+        # Admin-authenticated backend probe; URL comes from configured backend.
+        resp = urllib.request.urlopen(request, timeout=15)  # nosec B310
         elapsed = int((time.time() - started) * 1000)
         data = json.loads(resp.read().decode())
         return {

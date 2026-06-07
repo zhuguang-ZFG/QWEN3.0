@@ -7,12 +7,11 @@ Environment:
     OPENVIKING_URL: Override default http://localhost:1933
     LIMA_OPENVIKING_ENABLED: Set to "1" to enable (default: "0")
 """
+import json
 import logging
 import os
-from urllib.request import urlopen, Request
 from urllib.error import URLError
-
-import json
+from urllib.request import Request, urlopen
 
 _log = logging.getLogger(__name__)
 

@@ -186,7 +186,8 @@ def anthropic_native_forward_sync(body: dict) -> dict:
             else:
                 headers["x-api-key"] = b["key"]
             req = _ur.Request(b["url"], data=payload, headers=headers)
-            with _ur.urlopen(req, timeout=60) as resp:
+            # Backend URL comes from the registry, not user-supplied input.
+            with _ur.urlopen(req, timeout=60) as resp:  # nosec B310
                 data = json.loads(resp.read().decode("utf-8"))
             _ht.record_success(name, 0)
             return data

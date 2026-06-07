@@ -5,6 +5,8 @@ import os
 
 import paramiko
 
+from scripts.deploy_common import configure_ssh_host_keys
+
 SERVER = "47.112.162.80"
 REMOTE = "/opt/lima-router"
 KEY = os.path.expanduser("~/.ssh/id_ed25519")
@@ -25,6 +27,8 @@ FILES = [
     "routing_engine.py",
     "routing_executor.py",
     "routes/chat_stream.py",
+    "routes/chat_non_stream.py",
+    "routes/opencode_direct_stream.py",
     "routes/chat_endpoints.py",
     "routes/responses_endpoints.py",
     "converters/responses_api.py",
@@ -61,6 +65,7 @@ FILES = [
     "routing_constants.py",  # Slice 5: ROUTE + PUBLIC_MODEL_NAME
     "tool_repair_pipeline.py",  # NEW: tool call repair pipeline
     "text_tool_extractor.py",  # NEW: text block → tool extraction
+    "opencode_text_tool_payload.py",  # NEW: OpenCode text-tool payload adapter
     "context_injection_trace.py",  # NEW: context injection trace endpoint
     "router_http.py",  # MODIFIED
     "router_v3.py",  # MODIFIED
@@ -95,16 +100,7 @@ FILES = [
 
 def main():
     ssh = paramiko.SSHClient()
-    known_hosts = os.path.expanduser("~/.ssh/known_hosts")
-    if os.path.exists(known_hosts):
-        try:
-            ssh.load_host_keys(known_hosts)
-        except Exception as exc:
-            print(f"[warn] failed to load known_hosts: {exc}")
-            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())  # noqa: S507
-    else:
-        print("[warn] known_hosts not found, using AutoAddPolicy")
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())  # noqa: S507
+    configure_ssh_host_keys(ssh)
     ssh.connect(SERVER, username="root", key_filename=KEY)
 
     sftp = ssh.open_sftp()

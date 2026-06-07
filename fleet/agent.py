@@ -114,12 +114,25 @@ def detect_capabilities() -> dict:
     return caps
 
 
+def _auth_headers() -> dict[str, str]:
+    """Return fleet API auth headers when a LiMa token is configured."""
+    token = (
+        os.environ.get("LIMA_FLEET_API_KEY", "").strip()
+        or os.environ.get("LIMA_AGENT_API_KEY", "").strip()
+        or os.environ.get("LIMA_API_KEY", "").strip()
+    )
+    if not token:
+        return {}
+    return {"Authorization": f"Bearer {token}"}
+
+
 def register(vps_url: str, node_id: str, caps: dict) -> bool:
     """Register this node with the VPS."""
     try:
         resp = httpx.post(
             f"{vps_url}/fleet/register",
             json={"node_id": node_id, "role": "worker", **caps},
+            headers=_auth_headers(),
             timeout=10,
         )
         data = resp.json()
@@ -136,6 +149,7 @@ def heartbeat(vps_url: str, node_id: str, load_avg: float = 0.0) -> bool:
         resp = httpx.post(
             f"{vps_url}/fleet/heartbeat",
             json={"node_id": node_id, "load_avg": load_avg},
+            headers=_auth_headers(),
             timeout=5,
         )
         return resp.json().get("ok", False)
@@ -147,7 +161,11 @@ def heartbeat(vps_url: str, node_id: str, load_avg: float = 0.0) -> bool:
 def poll_and_execute(vps_url: str, node_id: str) -> bool:
     """Poll VPS for tasks, execute, report result."""
     try:
-        resp = httpx.get(f"{vps_url}/fleet/poll/{node_id}", timeout=10)
+        resp = httpx.get(
+            f"{vps_url}/fleet/poll/{node_id}",
+            headers=_auth_headers(),
+            timeout=10,
+        )
         data = resp.json()
         if not data.get("ok") or not data.get("task"):
             return False
@@ -188,6 +206,7 @@ def poll_and_execute(vps_url: str, node_id: str) -> bool:
         httpx.post(
             f"{vps_url}/fleet/complete",
             json={"task_id": task_id, "result": result, "error": error},
+            headers=_auth_headers(),
             timeout=10,
         )
         return True

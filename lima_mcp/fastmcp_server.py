@@ -110,8 +110,8 @@ def _fetch_routing_scores() -> dict:
         import health_tracker
         scores = health_tracker.get_scores()
         return {"scores": dict(scores) if scores else {}, "source": "health_tracker"}
-    except (ImportError, Exception):
-        pass
+    except (ImportError, Exception) as exc:
+        _log.debug("Could not fetch health_tracker scores: %s", type(exc).__name__)
     try:
         import routing_selector
         if hasattr(routing_selector, "route_scorer"):
@@ -377,5 +377,5 @@ def mount_mcp(app, path: str = "/v2/mcp"):
         mcp_app = mcp.streamable_http_app()
         app.mount(path, mcp_app)
         _log.info("FastMCP Streamable HTTP mounted at %s", path)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         _log.warning("Failed to mount FastMCP Streamable HTTP app: %s", exc)

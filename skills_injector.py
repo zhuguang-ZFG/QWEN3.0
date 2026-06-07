@@ -77,8 +77,8 @@ def load_skills_from_dir(skills_dir: str) -> list[dict]:
                 try:
                     with open(abstract_path, encoding="utf-8") as af:
                         abstract = af.read().strip()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    _log.debug("skills abstract load failed for %s: %s", abstract_path, type(exc).__name__)
 
             skills.append({
                 "id": meta["id"],

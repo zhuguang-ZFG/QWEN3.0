@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import ipaddress
 import re
+import socket
 from typing import Any
+from urllib.parse import urlparse
 
 from .http_client import _get
 from .registry import tool
@@ -15,6 +18,46 @@ def _clean_text(text: str, max_len: int = 4000) -> str:
     if len(text) > max_len:
         text = text[:max_len] + "..."
     return text
+
+
+def _validate_public_http_url(url: str, *, resolve_host: bool = False) -> tuple[bool, str]:
+    """Validate that a URL points at a public HTTP(S) target."""
+    parsed = urlparse(url)
+    if parsed.scheme not in {"http", "https"}:
+        return False, "only http and https URLs are allowed"
+    host = (parsed.hostname or "").strip().lower().rstrip(".")
+    if not host:
+        return False, "URL host is required"
+    if host == "localhost" or host.endswith(".localhost"):
+        return False, "localhost targets are not allowed"
+    if _is_blocked_ip_literal(host):
+        return False, "private or local IP targets are not allowed"
+    if resolve_host:
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+        try:
+            infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+        except socket.gaierror:
+            return False, "host could not be resolved"
+        for info in infos:
+            address = info[4][0]
+            if _is_blocked_ip_literal(address):
+                return False, "host resolves to a private or local IP"
+    return True, ""
+
+
+def _is_blocked_ip_literal(host: str) -> bool:
+    try:
+        ip = ipaddress.ip_address(host.strip("[]"))
+    except ValueError:
+        return False
+    return (
+        ip.is_private
+        or ip.is_loopback
+        or ip.is_link_local
+        or ip.is_multicast
+        or ip.is_unspecified
+        or ip.is_reserved
+    )
 
 
 @tool(
@@ -47,10 +90,13 @@ async def _browse_webpage(
     max_length: int = 4000,
 ) -> dict[str, Any]:
     """Fetch *url* and return extracted content."""
+    allowed, reason = _validate_public_http_url(url, resolve_host=True)
+    if not allowed:
+        return {"error": reason, "url": url}
     try:
         import httpx
 
-        async with httpx.AsyncClient(timeout=15, follow_redirects=True, verify=False) as client:
+        async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
             resp = await client.get(
                 url,
                 headers={"User-Agent": "LiMa-Bot/1.0 (web-tools)"},
@@ -138,6 +184,9 @@ async def _browse_webpage(
 )
 async def _fetch_url(url: str) -> Any:
     """Simple URL fetch returning JSON or text."""
+    allowed, reason = _validate_public_http_url(url, resolve_host=True)
+    if not allowed:
+        return {"error": reason, "url": url}
     try:
         result = await _get(url, timeout=10)
         return result

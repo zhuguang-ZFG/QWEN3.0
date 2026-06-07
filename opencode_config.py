@@ -18,18 +18,6 @@ _log = logging.getLogger(__name__)
 # "convert" → route through Anthropic conversion pipeline (legacy)
 OPENCODE_TOOL_MODE = os.environ.get("LIMA_OPENCODE_TOOL_MODE", "direct")
 
-# Backward compatibility: OPENCODE_OPTIMIZATION_ENABLED=1 → direct mode
-if (os.environ.get("OPENCODE_OPTIMIZATION_ENABLED", "0") == "1"
-        and "LIMA_OPENCODE_TOOL_MODE" not in os.environ):
-    warnings.warn(
-        "OPENCODE_OPTIMIZATION_ENABLED is deprecated. "
-        "Set LIMA_OPENCODE_TOOL_MODE=direct instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    OPENCODE_TOOL_MODE = "direct"
-    _log.info("Legacy OPENCODE_OPTIMIZATION_ENABLED=1 → OPENCODE_TOOL_MODE=direct")
-
 # ── Backend affinity boost ────────────────────────────────────────────────
 # Score multiplier applied to fast coding backends for OpenCode requests.
 # Set to 1.0 to disable.
@@ -45,7 +33,22 @@ OPENCODE_RATE_MULTIPLIER = int(os.environ.get("LIMA_OPENCODE_RATE_MULTIPLIER", "
 # ── Preferred backend ─────────────────────────────────────────────────────
 # Default backend for OpenCode when no better routing decision is made.
 OPENCODE_PREFERRED_BACKEND = os.environ.get(
-    "LIMA_OPENCODE_PREFERRED_BACKEND", "nvidia_qwen_coder"
+    "LIMA_OPENCODE_PREFERRED_BACKEND", "scnet_ds_pro"
+)
+
+
+def _csv_tuple(value: str) -> tuple[str, ...]:
+    return tuple(item.strip() for item in value.split(",") if item.strip())
+
+
+# Preferred backend order for OpenCode requests that carry the full tool list.
+# These backends tolerate OpenCode's large tool surface via LiMa's text-tool
+# adapter and avoid providers that reject large native tool schemas.
+OPENCODE_TOOL_STABLE_BACKENDS = _csv_tuple(
+    os.environ.get(
+        "LIMA_OPENCODE_TOOL_STABLE_BACKENDS",
+        "scnet_ds_pro,scnet_ds_flash,scnet_qwen235b,scnet_qwen30b",
+    )
 )
 
 # ── Fast path ───────────────────────────────────────────────────────────────
@@ -104,6 +107,7 @@ def log_config_summary() -> None:
         f"direct_stream={OPENCODE_DIRECT_STREAM}",
         f"direct_stream_read_timeout={OPENCODE_DIRECT_STREAM_READ_TIMEOUT:g}s",
         f"preferred={OPENCODE_PREFERRED_BACKEND}",
+        f"tool_stable={list(OPENCODE_TOOL_STABLE_BACKENDS)}",
         f"fast_boost={OPENCODE_FAST_BOOST}",
         f"fast_backends={sorted(OPENCODE_FAST_BACKENDS)}",
         f"rate_multiplier={OPENCODE_RATE_MULTIPLIER}x",

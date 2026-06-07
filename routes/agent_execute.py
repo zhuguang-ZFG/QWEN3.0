@@ -14,10 +14,16 @@ import logging
 import time
 import uuid
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
-router = APIRouter(prefix="/agent", tags=["agent"])
+from access_guard import require_private_api_key
+
+router = APIRouter(
+    prefix="/agent",
+    tags=["agent"],
+    dependencies=[Depends(require_private_api_key)],
+)
 _log = logging.getLogger(__name__)
 
 _admin_token: str = ""

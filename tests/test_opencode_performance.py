@@ -13,10 +13,15 @@ import asyncio
 import json
 import os
 import time
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 import httpx
 import pytest
+
+pytestmark = pytest.mark.skipif(
+    os.environ.get("LIMA_RUN_PERF_TESTS") != "1",
+    reason="OpenCode performance baseline tests are live and opt-in",
+)
 
 # 测试目标 URL（本地或 VPS）
 BASE_URL = os.environ.get("LIMA_TEST_URL", "http://127.0.0.1:8090")
