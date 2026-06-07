@@ -114,6 +114,17 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .voice-name{font-size:13px;font-weight:500}.voice-desc{font-size:11px;color:var(--text3);margin-left:6px}
 .tts-loading{display:inline-block;width:14px;height:14px;border:2px solid var(--text3);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:4px}
 @keyframes spin{to{transform:rotate(360deg)}}
+.sb-item.pinned{border-left:3px solid var(--accent)}
+.sb-tag-dot{display:inline-block;width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.tag-group-h{font-size:10px;color:var(--text3);padding:10px 8px 3px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.token-badge{display:inline-block;padding:2px 8px;border-radius:8px;background:var(--bg3);color:var(--text3);font-size:10px;margin-top:4px;font-family:'SF Mono','Fira Code',monospace}
+.fb-btn{padding:2px 6px;border:none;border-radius:6px;background:none;color:var(--text3);font-size:12px;cursor:pointer;transition:all .15s;font-family:var(--font)}
+.fb-btn:hover{background:var(--bg3)}.fb-btn.active{color:var(--accent)}
+.typing-cursor{display:inline-block;width:2px;height:1em;background:var(--accent);margin-left:2px;vertical-align:text-bottom;animation:blink .5s infinite}
+@keyframes blink{50%{opacity:0}}
+.sb-tags{padding:4px 12px 6px;display:flex;flex-wrap:wrap;gap:4px}
+.tag-chip{padding:2px 8px;border-radius:10px;border:1px solid var(--glass-b);background:none;color:var(--text3);font-size:10px;cursor:pointer;transition:all .2s;font-family:var(--font)}
+.tag-chip:hover,.tag-chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 /* Thinking indicator */
 .thinking-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:12px;
   background:var(--bg3);font-size:12px;color:var(--text2);margin-bottom:8px}
@@ -170,6 +181,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
       <button class="sb-new" onclick="newConv()" title="新对话">+</button>
     </div>
     <div class="sb-search"><input id="sbSearch" placeholder="搜索对话..." oninput="renderList()"></div>
+    <div class="sb-tags" id="sbTags"></div>
     <div class="sb-list" id="sbList"></div>
   </aside>
   <div class="overlay" id="overlay" onclick="toggleSb()"></div>
@@ -259,14 +271,34 @@ function delConv(id,e){
   save();renderList();renderChat();
 }
 
+let activeTagFilter=null;
+const TAG_COLORS={'\u4ee3\u7801':'#4dabf7','\u5b66\u4e60':'#51cf66','\u5de5\u4f5c':'#ffd43b','\u521b\u610f':'#ff922b','\u91cd\u8981':'#ff6b6b'};
+const ALL_TAGS=['\u4ee3\u7801','\u5b66\u4e60','\u5de5\u4f5c','\u521b\u610f','\u91cd\u8981'];
+function togglePin(id,e){e.stopPropagation();const c=state.convs.find(x=>x.id===id);if(c){c.pinned=!c.pinned;save();renderList()}}
+function cycleTag(id,e){e.stopPropagation();const c=state.convs.find(x=>x.id===id);if(!c)return;if(!c.tags)c.tags=[];
+  const cur=c.tags[0],idx=ALL_TAGS.indexOf(cur);
+  if(idx===-1||idx===ALL_TAGS.length-1){if(cur)c.tags=[];else c.tags=[ALL_TAGS[0]]}
+  else c.tags=[ALL_TAGS[idx+1]];save();renderList()}
+function filterTag(t){activeTagFilter=activeTagFilter===t?null:t;renderList()}
 function renderList(){
   const q=$('sbSearch').value.toLowerCase();
-  $('sbList').innerHTML=state.convs.filter(c=>!q||c.title.toLowerCase().includes(q)||
-    c.msgs.some(m=>m.content?.toLowerCase().includes(q)))
-    .map(c=>`<div class="sb-item${c.id===state.active?' on':''}" onclick="switchConv('${c.id}')">
+  $('sbTags').innerHTML=ALL_TAGS.map(t=>`<button class="tag-chip${activeTagFilter===t?' on':''}" onclick="filterTag('${t}')">${t}</button>`).join('');
+  let list=state.convs.filter(c=>!q||c.title.toLowerCase().includes(q)||c.msgs.some(m=>m.content?.toLowerCase().includes(q)));
+  if(activeTagFilter)list=list.filter(c=>c.tags?.includes(activeTagFilter));
+  const pinned=list.filter(c=>c.pinned),unpinned=list.filter(c=>!c.pinned);
+  const groups={};unpinned.forEach(c=>{const t=c.tags?.[0]||'';(groups[t]=groups[t]||[]).push(c)});
+  let html='';
+  const item=(c)=>`<div class="sb-item${c.id===state.active?' on':''}${c.pinned?' pinned':''}" onclick="switchConv('${c.id}')">
     <span class="sb-t">${esc(c.title)}</span>
+    ${c.tags?.[0]?`<span class="sb-tag-dot" style="background:${TAG_COLORS[c.tags[0]]||'#999'}"></span>`:''}
     <span class="sb-time">${fmtTime(c.ts)}</span>
-    <button class="sb-del" onclick="delConv('${c.id}',event)">×</button></div>`).join('');
+    <button class="sb-del" onclick="togglePin('${c.id}',event)" title="${c.pinned?'\u53d6\u6d88\u7f6e\u9876':'\u7f6e\u9876'}">${c.pinned?'\ud83d\udccc':'\ud83d\udccc'}</button>
+    <button class="sb-del" onclick="cycleTag('${c.id}',event)" title="\u6807\u7b7e">\ud83c\udff7\ufe0f</button>
+    <button class="sb-del" onclick="delConv('${c.id}',event)">\u00d7</button></div>`;
+  if(pinned.length)html+=`<div class="tag-group-h">\ud83d\udccc \u7f6e\u9876</div>`+pinned.map(item).join('');
+  const sorted=Object.keys(groups).sort((a,b)=>a===''?1:b===''?-1:0);
+  for(const g of sorted){if(g)html+=`<div class="tag-group-h">${g}</div>`;html+=groups[g].map(item).join('')}
+  $('sbList').innerHTML=html;
 }
 
 function renderChat(){
@@ -289,14 +321,16 @@ function renderMsg(m,i){
   const avatar=role==='user'?'👤':'🧠';
   let html=role==='user'?esc(m.content):renderMd(m.content);
   if(m.image) html=`<img src="${m.image}" style="max-width:200px;border-radius:8px;margin-bottom:8px"><br>`+html;
+  if(role==='ai'&&m.tokens){html+=`<div class="token-badge">⚡ ${m.tokens.in||0} in / ${m.tokens.out||0} out</div>`}
+  const fb=m.fb||0;
   return `<div class="msg ${role}">
     <div class="msg-avatar">${avatar}</div>
     <div class="msg-body">
       <div class="msg-bubble">${html}</div>
       <div class="msg-actions">
         <button class="mbtn" onclick="copyMsg(${i})">📋 复制</button>
-        ${role==='user'?`<button class="mbtn" onclick="editMsg(${i})">✏️ 编辑</button>`:''}
-        ${role==='ai'?`<button class="mbtn" onclick="toggleVoice(${i})">🔊 朗读</button><button class="mbtn" onclick="regen(${i})">🔄 重新生成</button>`:''}
+        ${role==='user'?`<button class="mbtn" onclick="editMsg(${i})">✏️ 编辑</button><button class="mbtn" onclick="branchAt(${i})">🔀 分支</button>`:''}
+        ${role==='ai'?`<button class="fb-btn${fb===1?' active':''}" onclick="setFb(${i},1)">👍</button><button class="fb-btn${fb===-1?' active':''}" onclick="setFb(${i},-1)">👎</button><button class="mbtn" onclick="toggleVoice(${i})">🔊 朗读</button><button class="mbtn" onclick="regen(${i})">🔄 重新生成</button>`:''}
       </div>
     </div></div>`;
 }
@@ -408,7 +442,7 @@ async function send(){
     setStatus('正在回复…');
     $('loadDot')?.remove();
     const reader=resp.body.getReader(),dec=new TextDecoder();
-    let buf='',done=false;
+    let buf='',done=false,tokens={};
     while(!done){
       const{done:d,value}=await reader.read();done=d;
       buf+=dec.decode(value,{stream:true});
@@ -418,12 +452,12 @@ async function send(){
         const data=line.slice(5).trim();
         if(data==='[DONE]')continue;
         try{const j=JSON.parse(data);const delta=j.choices?.[0]?.delta?.content||'';
-          if(delta){full+=delta;$('streamBubble').innerHTML=renderMd(full);
-            $('chatInner').querySelectorAll('pre code:not(.hljs)').forEach(b=>hljs.highlightElement(b));
+          if(j.usage)tokens={in:j.usage.prompt_tokens||0,out:j.usage.completion_tokens||0};
+          if(delta){full+=delta;$('streamBubble').innerHTML=esc(full)+'<span class="typing-cursor"></span>';
             scrollBottom()}}catch{}}
     }
-    // Save AI response
-    if(full){c.msgs.push({role:'assistant',content:full});c.ts=Date.now();save()}
+    // Save AI response with token info
+    if(full){const msg={role:'assistant',content:full};if(tokens.in||tokens.out)msg.tokens=tokens;c.msgs.push(msg);c.ts=Date.now();save()}
     const ms=Date.now()-t0;setStatus(`完成 · ${ms}ms`);
   }catch(e){
     $('loadDot')?.remove();
@@ -469,6 +503,13 @@ function regen(i){const c=getConv();if(!c||streaming)return;
   if(lastUser){$('input').value=lastUser.content;autoGrow($('input'));send()}}
 function editMsg(i){const c=getConv();if(!c||streaming)return;
   $('input').value=c.msgs[i].content;autoGrow($('input'));c.msgs=c.msgs.slice(0,i);save();renderChat()}
+function branchAt(i){const c=getConv();if(!c)return;
+  const nc={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+    title:'\u5206\u652f: '+c.title.slice(0,20),msgs:c.msgs.slice(0,i+1).map(m=>({...m})),
+    ts:Date.now(),tags:c.tags?[...c.tags]:[]};
+  state.convs.unshift(nc);state.active=nc.id;save();renderList();renderChat()}
+function setFb(i,v){const c=getConv();if(!c)return;
+  c.msgs[i].fb=c.msgs[i].fb===v?0:v;save();renderChat()}
 let ttsAudio=null,ttsVoiceIdx=-1,ttsFallback=false;
 const ttsVoices=[{id:'冰糖',name:'冰糖',g:'f',desc:'温柔女声'},{id:'茉莉',name:'茉莉',g:'f',desc:'甜美女声'},{id:'苏打',name:'苏打',g:'m',desc:'清朗男声'},{id:'白桦',name:'白桦',g:'m',desc:'沉稳男声'},{id:'mimo_default',name:'默认',g:'f',desc:'系统默认'}];
 const webVoices=[{id:'browser-f',name:'浏览器女声',g:'f',desc:'Web Speech'},{id:'browser-m',name:'浏览器男声',g:'m',desc:'Web Speech'}];
