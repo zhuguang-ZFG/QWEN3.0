@@ -10,7 +10,11 @@ import health_tracker
 from backends import BACKENDS
 from http_errors import BackendError
 from http_request_builder import _build_body, _build_headers, _select_key
-from opencode_config import OPENCODE_FAST_BACKENDS, OPENCODE_PREFERRED_BACKEND
+from opencode_config import (
+    OPENCODE_DIRECT_STREAM_READ_TIMEOUT,
+    OPENCODE_FAST_BACKENDS,
+    OPENCODE_PREFERRED_BACKEND,
+)
 from text_tool_extractor import (
     TEXT_TOOL_BACKENDS,
     build_tool_system_prompt,
@@ -78,6 +82,11 @@ def _rewrite_sse_model(line: str, model: str, chat_id: str, backend: str = "") -
             _log.debug("opencode_direct_stream: tool splitter not available", exc_info=True)
         return f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
     return line
+
+
+def _read_timeout_for(cfg: dict) -> float:
+    backend_timeout = float(cfg.get("timeout", 90))
+    return max(backend_timeout, OPENCODE_DIRECT_STREAM_READ_TIMEOUT)
 
 
 async def stream_openai_passthrough(
@@ -159,7 +168,7 @@ async def stream_openai_passthrough(
 
     timeout = httpx.Timeout(
         connect=15.0,
-        read=float(cfg.get("timeout", 90)),
+        read=_read_timeout_for(cfg),
         write=30.0,
         pool=30.0,
     )

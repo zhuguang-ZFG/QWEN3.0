@@ -23,7 +23,7 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 _log = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ MAX_PREDICTIVE_FILES = 5
 MAX_FILE_SIZE = 100_000  # 100KB，避免加载大文件
 
 
-def extract_file_mentions(content: str) -> List[str]:
+def extract_file_mentions(content: str) -> list[str]:
     """从消息内容中提取文件路径引用。"""
     # 匹配常见模式：
     # - "Fix D:\GIT\server.py line 42"
@@ -79,7 +79,7 @@ def normalize_path(mentioned_path: str, project_root: Optional[str] = None) -> O
     return None
 
 
-def predict_related_files(file_path: str, max_related: int = 3) -> List[str]:
+def predict_related_files(file_path: str, max_related: int = 3) -> list[str]:
     """预测相关文件（基于命名规则）。"""
     if not file_path:
         return []
@@ -127,7 +127,7 @@ def predict_related_files(file_path: str, max_related: int = 3) -> List[str]:
     return related[:max_related]
 
 
-def load_predictive_context(messages: List[dict], project_root: Optional[str] = None) -> List[dict]:
+def load_predictive_context(messages: list[dict], project_root: Optional[str] = None) -> list[dict]:
     """从消息中预测并加载相关文件到上下文。"""
     if not ENABLED:
         return []
@@ -182,7 +182,7 @@ def load_predictive_context(messages: List[dict], project_root: Optional[str] = 
     return context_files
 
 
-def format_context_injection(context_files: List[dict]) -> str:
+def format_context_injection(context_files: list[dict]) -> str:
     """将预加载的文件格式化为上下文注入字符串。"""
     if not context_files:
         return ""

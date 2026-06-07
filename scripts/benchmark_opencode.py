@@ -18,7 +18,6 @@ import os
 import sys
 import time
 from statistics import mean, median, stdev
-from typing import Dict, List, Tuple
 
 import httpx
 
@@ -94,7 +93,7 @@ class BenchmarkResult:
         self.error = None
 
 
-def run_single_request(test_case: Dict, session_id: str = None) -> BenchmarkResult:
+def run_single_request(test_case: dict, session_id: str = None) -> BenchmarkResult:
     """执行单次请求"""
     result = BenchmarkResult()
 
@@ -147,7 +146,7 @@ def run_single_request(test_case: Dict, session_id: str = None) -> BenchmarkResu
             route_time = resp.headers.get("x-lima-route-ms", "0")
             try:
                 result.route_time_ms = int(route_time)
-            except:
+            except ValueError:
                 result.route_time_ms = 0
         else:
             result.error = f"HTTP {resp.status_code}"
@@ -157,7 +156,7 @@ def run_single_request(test_case: Dict, session_id: str = None) -> BenchmarkResu
     return result
 
 
-def run_benchmark(test_case: Dict, rounds: int, session_id: str = None) -> List[BenchmarkResult]:
+def run_benchmark(test_case: dict, rounds: int, session_id: str = None) -> list[BenchmarkResult]:
     """运行多轮基准测试"""
     results = []
 
@@ -176,7 +175,7 @@ def run_benchmark(test_case: Dict, rounds: int, session_id: str = None) -> List[
     return results
 
 
-def analyze_results(results: List[BenchmarkResult]) -> Dict:
+def analyze_results(results: list[BenchmarkResult]) -> dict:
     """分析测试结果"""
     successful = [r for r in results if r.success]
 
@@ -215,7 +214,7 @@ def analyze_results(results: List[BenchmarkResult]) -> Dict:
     }
 
 
-def compare_scenarios(baseline: Dict, optimized: Dict) -> Dict:
+def compare_scenarios(baseline: dict, optimized: dict) -> dict:
     """对比两个场景的性能"""
     comparison = {}
 
@@ -246,7 +245,7 @@ def compare_scenarios(baseline: Dict, optimized: Dict) -> Dict:
     return comparison
 
 
-def print_results(name: str, analysis: Dict):
+def print_results(name: str, analysis: dict):
     """打印分析结果"""
     print(f"\n{'='*60}")
     print(f"{name}")
@@ -279,7 +278,7 @@ def print_results(name: str, analysis: Dict):
     print(f"  Primary: {backends['most_common']}")
 
 
-def print_comparison(comparison: Dict):
+def print_comparison(comparison: dict):
     """打印对比结果"""
     print(f"\n{'='*60}")
     print("Performance Comparison (Optimized vs Baseline)")

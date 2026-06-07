@@ -1,3 +1,5 @@
+import logging
+
 from fastapi.testclient import TestClient
 
 import routes.request_tracking as request_tracking
@@ -41,6 +43,43 @@ def test_record_request_looks_up_country_before_stats_lock(monkeypatch):
 
     assert observed_locks == [False]
     assert request_tracking._stats["recent_logs"][-1]["country"] == "test-country"
+
+
+def test_record_request_fans_out_via_admin_sse(monkeypatch, caplog):
+    import routes.admin_sse as admin_sse
+
+    scheduled = []
+
+    class FakeLoop:
+        def is_running(self):
+            return True
+
+        def create_task(self, coro):
+            scheduled.append(coro)
+            coro.close()
+
+    async def fake_publish_log_event(_event):
+        return None
+
+    monkeypatch.setattr(request_tracking, "get_ip_location", lambda _ip: "")
+    monkeypatch.setattr(admin_sse, "_main_sse_loop", FakeLoop())
+    monkeypatch.setattr(admin_sse, "publish_log_event", fake_publish_log_event)
+    monkeypatch.setattr(
+        request_tracking,
+        "_stats",
+        {
+            "total_requests": 0,
+            "backend_calls": {},
+            "intent_distribution": {},
+            "recent_logs": [],
+        },
+    )
+
+    with caplog.at_level(logging.WARNING):
+        request_tracking.record_request("query", "backend", "chat", 7)
+
+    assert scheduled
+    assert "Failed to fan-out SSE log event" not in caplog.text
 
 
 def test_anthropic_vision_records_real_duration(monkeypatch):

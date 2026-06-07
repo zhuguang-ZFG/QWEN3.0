@@ -328,10 +328,10 @@ def test_build_client_normal_backend():
 # ── call_api (mocked) ─────────────────────────────────────────────────────────
 
 @patch('http_caller.health_tracker')
-@patch('http_caller._build_client')
-def test_call_api_success_openai(mock_build_client, mock_ht):
+@patch('http_caller._get_client')
+def test_call_api_success_openai(mock_get_client, mock_ht):
     mock_ht.is_cooled_down.return_value = False
-    mock_build_client.return_value = _mock_httpx_client({
+    mock_get_client.return_value = _mock_httpx_client({
         'choices': [{'message': {'content': 'hello world'}}],
     })
 
@@ -351,16 +351,16 @@ def test_call_api_success_openai(mock_build_client, mock_ht):
 @patch('http_caller.key_pool.report_key_result')
 @patch('http_caller.key_pool.get_key')
 @patch('http_caller.health_tracker')
-@patch('http_caller._build_client')
+@patch('http_caller._get_client')
 def test_call_api_uses_key_pool_key_and_reports_success(
-    mock_build_client, mock_ht, mock_get_key, mock_report_key_result,
+    mock_get_client, mock_ht, mock_get_key, mock_report_key_result,
     mock_ensure_env_pool, mock_is_exhausted,
 ):
     mock_ht.is_cooled_down.return_value = False
     mock_ensure_env_pool.return_value = True
     mock_is_exhausted.return_value = False
     mock_get_key.return_value = 'sk-pooled'
-    mock_build_client.return_value = _mock_httpx_client({
+    mock_get_client.return_value = _mock_httpx_client({
         'choices': [{'message': {'content': 'hello world'}}],
     })
 
@@ -371,7 +371,7 @@ def test_call_api_uses_key_pool_key_and_reports_success(
     }):
         result = call_api('pool_backend', [{'role': 'user', 'content': 'hi'}])
 
-    req_headers = mock_build_client.return_value.__enter__.return_value.post.call_args[1]['headers']
+    req_headers = mock_get_client.return_value.post.call_args[1]['headers']
     assert req_headers['Authorization'] == 'Bearer sk-pooled'
     assert 'hello world' in result
     mock_report_key_result.assert_called_once_with('unit-provider', 'sk-pooled', True)
@@ -382,9 +382,9 @@ def test_call_api_uses_key_pool_key_and_reports_success(
 @patch('http_caller.key_pool.report_key_result')
 @patch('http_caller.key_pool.get_key')
 @patch('http_caller.health_tracker')
-@patch('http_caller._build_client')
+@patch('http_caller._get_client')
 def test_call_api_reports_key_pool_failure_with_retry_after(
-    mock_build_client, mock_ht, mock_get_key, mock_report_key_result,
+    mock_get_client, mock_ht, mock_get_key, mock_report_key_result,
     mock_ensure_env_pool, mock_is_exhausted,
 ):
     import httpx
@@ -401,7 +401,7 @@ def test_call_api_reports_key_pool_failure_with_retry_after(
     mock_client.__exit__.return_value = False
     mock_client.post.side_effect = httpx.HTTPStatusError(
         "rate limited", request=MagicMock(), response=mock_resp)
-    mock_build_client.return_value = mock_client
+    mock_get_client.return_value = mock_client
 
     with patch.dict(http_caller.BACKENDS, {
         'pool_backend': {'url': 'http://test.com/v1/chat/completions',
@@ -415,14 +415,14 @@ def test_call_api_reports_key_pool_failure_with_retry_after(
 
 
 @patch('http_caller.health_tracker')
-@patch('http_caller._build_client')
+@patch('http_caller._get_client')
 def test_call_api_bootstraps_key_pool_from_provider_env(
-    mock_build_client, mock_ht, monkeypatch,
+    mock_get_client, mock_ht, monkeypatch,
 ):
     key_pool.clear_pools()
     monkeypatch.setenv('LIMA_KEY_POOL_GROQ', 'sk-env-1,sk-env-2:2')
     mock_ht.is_cooled_down.return_value = False
-    mock_build_client.return_value = _mock_httpx_client({
+    mock_get_client.return_value = _mock_httpx_client({
         'choices': [{'message': {'content': 'hello world'}}],
     })
 
@@ -433,7 +433,7 @@ def test_call_api_bootstraps_key_pool_from_provider_env(
     }):
         call_api('groq_unit', [{'role': 'user', 'content': 'hi'}])
 
-    req_headers = mock_build_client.return_value.__enter__.return_value.post.call_args[1]['headers']
+    req_headers = mock_get_client.return_value.post.call_args[1]['headers']
     assert req_headers['Authorization'] in {'Bearer sk-env-1', 'Bearer sk-env-2'}
     key_pool.clear_pools()
 
@@ -459,14 +459,14 @@ def test_call_api_no_key(mock_ht):
 
 
 @patch('http_caller.health_tracker')
-@patch('http_caller._build_client')
-def test_call_api_network_error(mock_build_client, mock_ht):
+@patch('http_caller._get_client')
+def test_call_api_network_error(mock_get_client, mock_ht):
     mock_ht.is_cooled_down.return_value = False
     mock_client = MagicMock()
     mock_client.__enter__.return_value = mock_client
     mock_client.__exit__.return_value = False
     mock_client.post.side_effect = Exception("Connection refused")
-    mock_build_client.return_value = mock_client
+    mock_get_client.return_value = mock_client
 
     with patch.dict(http_caller.BACKENDS, {
         'fail_backend': {'url': 'http://fail.com/v1', 'key': 'sk-x',
@@ -477,13 +477,13 @@ def test_call_api_network_error(mock_build_client, mock_ht):
 
 
 @patch('http_caller.health_tracker')
-@patch('http_caller._build_client')
-def test_call_api_backend_error_emits_observability(mock_build_client, mock_ht):
+@patch('http_caller._get_client')
+def test_call_api_backend_error_emits_observability(mock_get_client, mock_ht):
     from observability.metrics import get_metrics_snapshot, reset_metrics
 
     reset_metrics()
     mock_ht.is_cooled_down.return_value = False
-    mock_build_client.return_value = _mock_httpx_client({
+    mock_get_client.return_value = _mock_httpx_client({
         'choices': [{'message': {'content': 'rate limit'}}],
     })
 
@@ -502,10 +502,10 @@ def test_call_api_backend_error_emits_observability(mock_build_client, mock_ht):
 
 
 @patch('http_caller.health_tracker')
-@patch('http_caller._build_async_client')
-def test_call_api_async_success_openai(mock_build_async_client, mock_ht):
+@patch('http_caller._get_async_client')
+def test_call_api_async_success_openai(mock_get_async_client, mock_ht):
     mock_ht.is_cooled_down.return_value = False
-    mock_build_async_client.return_value = _MockAsyncHttpxClient({
+    mock_get_async_client.return_value = _MockAsyncHttpxClient({
         'choices': [{'message': {'content': 'hello async'}}],
     })
 
@@ -538,11 +538,11 @@ def test_call_raw_async_success(mock_build_async_client, mock_ht):
 
 
 @patch('http_caller.health_tracker')
-@patch('http_caller._build_async_client')
-def test_call_api_stream_async_success_openai(mock_build_async_client, mock_ht):
+@patch('http_caller._get_async_client')
+def test_call_api_stream_async_success_openai(mock_get_async_client, mock_ht):
     mock_ht.is_cooled_down.return_value = False
     line = 'data: ' + json.dumps({'choices': [{'delta': {'content': 'hello stream'}}]})
-    mock_build_async_client.return_value = _MockAsyncStreamClient([line, 'data: [DONE]'])
+    mock_get_async_client.return_value = _MockAsyncStreamClient([line, 'data: [DONE]'])
 
     with patch.dict(http_caller.BACKENDS, {
         'async_stream': {'url': 'http://test.com/v1/chat/completions',
@@ -590,10 +590,10 @@ def test_extract_usage_no_usage_field():
 # ── Token telemetry in call_api ───────────────────────────────────────────────
 
 @patch('http_caller.health_tracker')
-@patch('http_caller._build_client')
-def test_call_api_records_token_usage(mock_build_client, mock_ht):
+@patch('http_caller._get_client')
+def test_call_api_records_token_usage(mock_get_client, mock_ht):
     mock_ht.is_cooled_down.return_value = False
-    mock_build_client.return_value = _mock_httpx_client({
+    mock_get_client.return_value = _mock_httpx_client({
         'choices': [{'message': {'content': 'hello world'}}],
         'usage': {'prompt_tokens': 200, 'completion_tokens': 80, 'total_tokens': 280},
     })
@@ -655,16 +655,16 @@ def test_select_key_falls_back_to_backend_key_when_pool_not_configured(
 @patch('http_caller.key_pool.report_key_result')
 @patch('http_caller.key_pool.get_key')
 @patch('http_caller.health_tracker')
-@patch('http_caller._build_client')
+@patch('http_caller._get_client')
 def test_call_api_stream_reports_empty_stream_as_502_to_key_pool(
-    mock_build_client, mock_ht, mock_get_key, mock_report_key_result,
+    mock_get_client, mock_ht, mock_get_key, mock_report_key_result,
     mock_ensure_env_pool, mock_is_exhausted,
 ):
     mock_ht.is_cooled_down.return_value = False
     mock_ensure_env_pool.return_value = True
     mock_is_exhausted.return_value = False
     mock_get_key.return_value = 'sk-pooled'
-    mock_build_client.return_value = _mock_httpx_stream_client(['data: [DONE]'])
+    mock_get_client.return_value = _mock_httpx_stream_client(['data: [DONE]'])
 
     with patch.dict(http_caller.BACKENDS, {
         'pool_backend': {'url': 'http://test.com/v1/chat/completions',

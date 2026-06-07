@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 _log = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ def simplify_description(description: str, max_length: int = 100) -> str:
     return description[:max_length].rsplit(" ", 1)[0] + "..."
 
 
-def simplify_property(prop: Dict[str, Any], aggressive: bool = False) -> Dict[str, Any]:
+def simplify_property(prop: dict[str, Any], aggressive: bool = False) -> dict[str, Any]:
     """简化单个属性定义。"""
     simplified = prop.copy()
 

@@ -236,6 +236,7 @@ def build_streaming_response(ctx: ChatRunContext, req: ChatRequest) -> Streaming
                 system_prompt=ctx.preflight.system_prompt,
                 ide=ctx.ide_source,
                 reasoning_effort=req.reasoning_effort,
+                request_headers=ctx.request_headers,
             ):
                 yield line
             yield "data: [DONE]\n\n"

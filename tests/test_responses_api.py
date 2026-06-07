@@ -48,6 +48,46 @@ def test_responses_structured_input_and_tools():
     assert chat["reasoning_effort"] == "high"
 
 
+def test_responses_standalone_function_call_output_to_non_empty_user_turn():
+    body = {
+        "model": "lima-1.3",
+        "input": [{
+            "type": "function_call_output",
+            "call_id": "call_read_1",
+            "output": "# AGENTS.md\n\nProject instructions",
+        }],
+    }
+    chat = responses_body_to_chat(body)
+
+    assert chat["messages"] == [{
+        "role": "user",
+        "content": (
+            "Tool output for call call_read_1:\n"
+            "# AGENTS.md\n\nProject instructions\n\n"
+            "Continue from this tool result and answer the user's request."
+        ),
+    }]
+
+
+def test_responses_content_list_function_call_output_to_user_turn():
+    body = {
+        "model": "lima-1.3",
+        "input": [{
+            "role": "user",
+            "content": [{
+                "type": "function_call_output",
+                "call_id": "call_read_2",
+                "output": "README heading",
+            }],
+        }],
+    }
+    chat = responses_body_to_chat(body)
+
+    assert chat["messages"][0]["role"] == "user"
+    assert "Tool output for call call_read_2" in chat["messages"][0]["content"]
+    assert "README heading" in chat["messages"][0]["content"]
+
+
 def test_chat_completion_to_response_text():
     data = {
         "created": 1700000000,

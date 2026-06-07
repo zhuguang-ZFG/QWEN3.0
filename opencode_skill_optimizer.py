@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Dict, List, Optional
+from typing import Optional
 
 _log = logging.getLogger(__name__)
 
@@ -52,7 +52,7 @@ SIMPLIFY_CATEGORIES = {
 }
 
 
-def should_skip_skill(skill: Dict, ide_source: str, has_tools: bool) -> bool:
+def should_skip_skill(skill: dict, ide_source: str, has_tools: bool) -> bool:
     """判断是否应该跳过某个 skill 的注入。
 
     Args:
@@ -81,7 +81,7 @@ def should_skip_skill(skill: Dict, ide_source: str, has_tools: bool) -> bool:
     return False
 
 
-def simplify_skill_content(skill: Dict, category: str) -> Optional[str]:
+def simplify_skill_content(skill: dict, category: str) -> Optional[str]:
     """精简 skill 内容（删除示例代码和冗余说明）。
 
     Args:
@@ -134,10 +134,10 @@ def simplify_skill_content(skill: Dict, category: str) -> Optional[str]:
 
 
 def optimize_skills_for_opencode(
-    skills: List[Dict],
+    skills: list[dict],
     ide_source: str,
     has_tools: bool = False,
-) -> List[Dict]:
+) -> list[dict]:
     """为 OpenCode 优化 skill 注入列表。
 
     Args:
@@ -177,7 +177,7 @@ def optimize_skills_for_opencode(
     return optimized
 
 
-def get_optimization_stats(original: List[Dict], optimized: List[Dict]) -> Dict:
+def get_optimization_stats(original: list[dict], optimized: list[dict]) -> dict:
     """计算优化统计信息（调试用）。"""
     original_size = sum(len(s.get("content", "")) for s in original)
     optimized_size = sum(len(s.get("content", "")) for s in optimized)

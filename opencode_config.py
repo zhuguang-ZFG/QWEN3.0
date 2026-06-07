@@ -52,6 +52,13 @@ OPENCODE_PREFERRED_BACKEND = os.environ.get(
 # Pin OpenCode to preferred backend; skip speculative routing / heavy injections.
 OPENCODE_DIRECT_STREAM = os.environ.get("LIMA_OPENCODE_DIRECT_STREAM", "1") == "1"
 
+# OpenCode can keep a streaming response open while a coding backend thinks.
+# Use this as a floor over per-backend timeouts so direct stream does not cut
+# off otherwise healthy IDE responses.
+OPENCODE_DIRECT_STREAM_READ_TIMEOUT = float(
+    os.environ.get("LIMA_OPENCODE_DIRECT_STREAM_READ_TIMEOUT", "180")
+)
+
 # ── Skills injection ──────────────────────────────────────────────────────
 # Categories that OpenCode's built-in system prompt already covers.
 # Skills in these categories will be skipped during injection.
@@ -95,6 +102,7 @@ def log_config_summary() -> None:
     lines = [
         f"tool_mode={OPENCODE_TOOL_MODE}",
         f"direct_stream={OPENCODE_DIRECT_STREAM}",
+        f"direct_stream_read_timeout={OPENCODE_DIRECT_STREAM_READ_TIMEOUT:g}s",
         f"preferred={OPENCODE_PREFERRED_BACKEND}",
         f"fast_boost={OPENCODE_FAST_BOOST}",
         f"fast_backends={sorted(OPENCODE_FAST_BACKENDS)}",

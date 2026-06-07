@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Dict, List, Optional
+from typing import Optional
 
 _log = logging.getLogger(__name__)
 
@@ -114,8 +114,8 @@ def estimate_instruction_ambiguity(query: str) -> int:
 
 def recommend_reasoning_effort(
     query: str,
-    messages: List[Dict],
-    tools: Optional[List[Dict]] = None,
+    messages: list[dict],
+    tools: Optional[list[dict]] = None,
     current_effort: Optional[str] = None,
 ) -> str:
     """推荐 reasoning_effort 级别。
@@ -198,7 +198,7 @@ def recommend_reasoning_effort(
 
 def should_enable_reasoning(
     query: str,
-    messages: List[Dict],
+    messages: list[dict],
     backend: str,
 ) -> bool:
     """判断是否应该启用推理模式。

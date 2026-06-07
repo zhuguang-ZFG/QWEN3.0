@@ -37,8 +37,35 @@ def _content_to_text(content: Any) -> str:
     return str(content)
 
 
+def _tool_output_continuation_text(item: dict) -> str:
+    call_id = str(item.get("call_id") or item.get("id") or "unknown")
+    output = str(item.get("output", "") or "")
+    return (
+        f"Tool output for call {call_id}:\n"
+        f"{output}\n\n"
+        "Continue from this tool result and answer the user's request."
+    )
+
+
 def _convert_input_item(item: dict) -> list[dict]:
     """Map one Responses API input item to chat message(s)."""
+    ptype = item.get("type", "")
+    if ptype == "function_call_output":
+        return [{"role": "user", "content": _tool_output_continuation_text(item)}]
+    if ptype == "function_call":
+        return [{
+            "role": "assistant",
+            "content": None,
+            "tool_calls": [{
+                "id": item.get("call_id") or item.get("id") or _new_item_id("call"),
+                "type": "function",
+                "function": {
+                    "name": item.get("name", ""),
+                    "arguments": item.get("arguments", "{}"),
+                },
+            }],
+        }]
+
     role = item.get("role", "user")
     if role == "developer":
         role = "system"
@@ -47,6 +74,7 @@ def _convert_input_item(item: dict) -> list[dict]:
     if isinstance(content, list):
         tool_msgs: list[dict] = []
         text_parts: list[str] = []
+        tool_output_parts: list[dict] = []
         for part in content:
             if not isinstance(part, dict):
                 continue
@@ -72,8 +100,14 @@ def _convert_input_item(item: dict) -> list[dict]:
                     "tool_call_id": part.get("call_id", ""),
                     "content": str(part.get("output", "") or ""),
                 })
+                tool_output_parts.append(part)
             elif ptype == "input_image":
                 text_parts.append("[image]")
+        if not text_parts and tool_msgs and all(msg["role"] == "tool" for msg in tool_msgs):
+            content_text = "\n\n".join(
+                _tool_output_continuation_text(part) for part in tool_output_parts
+            )
+            return [{"role": "user", "content": content_text}]
         msgs: list[dict] = []
         if text_parts:
             msgs.append({"role": role, "content": "\n".join(text_parts)})
