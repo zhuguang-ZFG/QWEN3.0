@@ -12,6 +12,7 @@ from converters.responses_content import (
     tool_output_continuation_text,
 )
 from converters.responses_stream import transform_chat_sse_iter, transform_chat_sse_stream
+from converters.responses_usage import chat_usage_to_responses_usage
 
 
 def _new_response_id() -> str:
@@ -196,13 +197,6 @@ def chat_completion_to_response(data: dict) -> dict:
             "status": "completed",
         })
 
-    usage_raw = data.get("usage") or {}
-    usage = {
-        "input_tokens": usage_raw.get("prompt_tokens", 0),
-        "output_tokens": usage_raw.get("completion_tokens", 0),
-        "total_tokens": usage_raw.get("total_tokens", 0),
-    }
-
     return {
         "id": resp_id,
         "object": "response",
@@ -210,6 +204,6 @@ def chat_completion_to_response(data: dict) -> dict:
         "model": model,
         "status": "completed",
         "output": output,
-        "usage": usage,
+        "usage": chat_usage_to_responses_usage(data.get("usage")),
         "parallel_tool_calls": True,
     }

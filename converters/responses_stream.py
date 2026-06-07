@@ -7,6 +7,8 @@ import time
 import uuid
 from collections.abc import AsyncIterator, Iterator
 
+from converters.responses_usage import chat_usage_to_responses_usage
+
 
 def _new_response_id() -> str:
     return f"resp_{uuid.uuid4().hex[:24]}"
@@ -91,12 +93,7 @@ class ResponsesStreamConverter:
         if chunk.get("model"):
             self.model = chunk["model"]
         if chunk.get("usage"):
-            u = chunk["usage"]
-            self.usage = {
-                "input_tokens": u.get("prompt_tokens", 0),
-                "output_tokens": u.get("completion_tokens", 0),
-                "total_tokens": u.get("total_tokens", 0),
-            }
+            self.usage = chat_usage_to_responses_usage(chunk["usage"])
 
         for choice in chunk.get("choices") or []:
             delta = choice.get("delta") or {}

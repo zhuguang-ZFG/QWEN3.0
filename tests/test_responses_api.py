@@ -183,6 +183,31 @@ def test_chat_completion_to_response_text():
     assert resp["usage"]["total_tokens"] == 4
 
 
+def test_chat_completion_to_response_preserves_usage_details():
+    data = {
+        "created": 1700000000,
+        "model": "lima-1.3",
+        "choices": [{
+            "message": {"role": "assistant", "content": "OK"},
+            "finish_reason": "stop",
+        }],
+        "usage": {
+            "prompt_tokens": 30,
+            "completion_tokens": 12,
+            "total_tokens": 42,
+            "prompt_tokens_details": {"cached_tokens": 8},
+            "completion_tokens_details": {"reasoning_tokens": 5},
+        },
+    }
+
+    resp = chat_completion_to_response(data)
+
+    assert resp["usage"]["input_tokens"] == 30
+    assert resp["usage"]["output_tokens"] == 12
+    assert resp["usage"]["input_tokens_details"] == {"cached_tokens": 8}
+    assert resp["usage"]["output_tokens_details"] == {"reasoning_tokens": 5}
+
+
 def test_stream_converter_emits_text_deltas():
     lines = [
         'data: {"choices":[{"delta":{"content":"Hel"}}]}',
@@ -194,6 +219,25 @@ def test_stream_converter_emits_text_deltas():
     assert "response.output_text.delta" in out
     assert "response.completed" in out
     assert '"delta": "Hel"' in out or '"delta":"Hel"' in out.replace(" ", "")
+
+
+def test_stream_converter_preserves_usage_details_in_completed_event():
+    chunk = {
+        "usage": {
+            "prompt_tokens": 30,
+            "completion_tokens": 12,
+            "total_tokens": 42,
+            "prompt_tokens_details": {"cached_tokens": 8},
+            "completion_tokens_details": {"reasoning_tokens": 5},
+        },
+        "choices": [{"delta": {}}],
+    }
+    lines = [f"data: {json.dumps(chunk)}", "data: [DONE]"]
+
+    out = "".join(transform_chat_sse_iter(iter(lines), model="lima-1.3"))
+
+    assert '"input_tokens_details": {"cached_tokens": 8}' in out
+    assert '"output_tokens_details": {"reasoning_tokens": 5}' in out
 
 
 def test_stream_converter_maps_chat_reasoning_content_to_responses_reasoning_events():
