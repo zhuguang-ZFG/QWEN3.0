@@ -34,4 +34,8 @@ def get_thinking_backend() -> str:
     for name in THINKING_BACKENDS:
         if name in BACKENDS and BACKENDS[name].get("key") and cb_allow(name):
             return name
-    return "longcat_thinking"
+    # Fallback: first available thinking backend (even without circuit breaker)
+    for name in THINKING_BACKENDS:
+        if name in BACKENDS and BACKENDS[name].get("key"):
+            return name
+    return "scnet_ds_pro"  # safest default — always available

@@ -19,6 +19,7 @@ import routing_facade
 async def thinking_route(query: str, max_tokens: int = 4096, ide: str = "unknown") -> dict | None:
     """Route to a thinking-capable backend. Returns result dict or None on failure."""
     import logging
+
     from http_errors import BackendError
 
     _log = logging.getLogger(__name__)
@@ -28,7 +29,9 @@ async def thinking_route(query: str, max_tokens: int = 4096, ide: str = "unknown
     # Try primary backend
     try:
         result = await asyncio.wait_for(
-            asyncio.to_thread(http_caller.call_api, thinking_backend, msgs, max_tokens, ide),
+            asyncio.to_thread(
+                http_caller.call_api, thinking_backend, msgs, max_tokens, ide=ide
+            ),
             timeout=90.0,
         )
         if result and not (
@@ -41,6 +44,7 @@ async def thinking_route(query: str, max_tokens: int = 4096, ide: str = "unknown
         elif http_caller.DEBUG:
             print(f"[THINKING] {thinking_backend} failed: {exc}", file=sys.stderr)
     except (asyncio.TimeoutError, Exception) as exc:
+        _log.warning("[THINKING] %s primary failed: %s: %s", thinking_backend, type(exc).__name__, exc)
         if http_caller.DEBUG:
             print(f"[THINKING] {thinking_backend} failed: {exc}", file=sys.stderr)
 
@@ -54,14 +58,17 @@ async def thinking_route(query: str, max_tokens: int = 4096, ide: str = "unknown
             continue
         try:
             result = await asyncio.wait_for(
-                asyncio.to_thread(http_caller.call_api, alt, msgs, max_tokens, ide),
+                asyncio.to_thread(
+                    http_caller.call_api, alt, msgs, max_tokens, ide=ide
+                ),
                 timeout=90.0,
             )
             if result and not (
                 isinstance(result, str) and (result.startswith("[ERR]") or "暂时不可用" in result)
             ):
                 return {"answer": result, "backend": alt, "thinking_mode": True}
-        except (asyncio.TimeoutError, Exception):
+        except (asyncio.TimeoutError, Exception) as exc:
+            _log.debug("[THINKING] alt %s failed: %s", alt, type(exc).__name__)
             continue
     return None
 
