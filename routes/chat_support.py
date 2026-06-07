@@ -18,8 +18,14 @@ import routing_facade
 
 async def thinking_route(query: str, max_tokens: int = 4096, ide: str = "unknown") -> dict | None:
     """Route to a thinking-capable backend. Returns result dict or None on failure."""
+    import logging
+    from http_errors import BackendError
+
+    _log = logging.getLogger(__name__)
     thinking_backend = routing_facade.get_thinking_backend()
     msgs = [{"role": "user", "content": query}]
+
+    # Try primary backend
     try:
         result = await asyncio.wait_for(
             asyncio.to_thread(http_caller.call_api, thinking_backend, msgs, max_tokens, ide),
@@ -29,9 +35,16 @@ async def thinking_route(query: str, max_tokens: int = 4096, ide: str = "unknown
             isinstance(result, str) and (result.startswith("[ERR]") or "暂时不可用" in result)
         ):
             return {"answer": result, "backend": thinking_backend, "thinking_mode": True}
+    except BackendError as exc:
+        if exc.status_code == 401:
+            _log.warning("[THINKING] %s: 401 Unauthorized, trying alternatives", thinking_backend)
+        elif http_caller.DEBUG:
+            print(f"[THINKING] {thinking_backend} failed: {exc}", file=sys.stderr)
     except (asyncio.TimeoutError, Exception) as exc:
         if http_caller.DEBUG:
             print(f"[THINKING] {thinking_backend} failed: {exc}", file=sys.stderr)
+
+    # Try alternative backends
     for alt in backends.THINKING_BACKENDS:
         if alt == thinking_backend:
             continue

@@ -4,7 +4,12 @@ import os
 PUBLIC_MODEL_NAME = os.environ.get('PUBLIC_MODEL_NAME', 'LiMa')
 
 # Thinking-capable backends in priority order
-THINKING_BACKENDS = ["or_deepseek_r1"]
+THINKING_BACKENDS = [
+    "scnet_ds_pro",       # 支持深度推理（优先，本地可用）
+    "scnet_ds_flash",     # 备用
+    "kimi_thinking",      # Kimi 思考模式
+    "or_deepseek_r1",     # DeepSeek R1（需要 OpenRouter key）
+]
 
 # Vision-capable backends (must be registered in BACKENDS)
 VISION_BACKENDS = [
