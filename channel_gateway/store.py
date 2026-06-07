@@ -253,13 +253,15 @@ class ChannelStore:
         ).fetchone()
         if row is None:
             return None
+        # SQLite Row object doesn't support 'in' operator for column name checking
+        # Access columns directly; they're guaranteed to exist per schema
         return ChannelBinding(
             binding_id=row["binding_id"],
             channel=row["channel"],
             channel_user_id_hash=row["channel_user_id_hash"],
             display_name=row["display_name"],
             lima_user_id=row["lima_user_id"],
-            role=row["role"] if "role" in row else BindingRole.GUEST,
+            role=row["role"],
             status=row["status"],
             created_at=row["created_at"],
             updated_at=row["updated_at"],

@@ -16,6 +16,15 @@ if TYPE_CHECKING:
     from channel_gateway.chat_session import ChannelChatSession
 
 # Re-export owner handlers for backward compatibility
+from channel_gateway.owner_handlers import (
+    build_owner_artifact_handler,
+    build_owner_code_task_handler,
+    build_owner_device_handler,
+    build_owner_digest_handler,
+    build_owner_github_handler,
+    build_owner_memory_handler,
+    build_owner_status_handler,
+)
 
 
 def _friendly_guest_error(exc: BaseException) -> str:
