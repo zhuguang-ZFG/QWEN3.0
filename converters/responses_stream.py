@@ -31,6 +31,7 @@ class ResponsesStreamConverter:
         self.created_at = int(time.time())
         self.message_item_id = _new_item_id("msg")
         self.text_part_started = False
+        self.text_content = ""
         self.message_output_index: int | None = None
         self.reasoning_item_id = _new_item_id("rs")
         self.reasoning_output_index: int | None = None
@@ -114,6 +115,7 @@ class ResponsesStreamConverter:
             if reasoning_delta:
                 events.extend(self._feed_reasoning_delta(reasoning_delta))
             if delta.get("content"):
+                self.text_content += delta["content"]
                 events.extend(self._ensure_message_item())
                 events.append(_sse_event("response.output_text.delta", {
                     "item_id": self.message_item_id,
@@ -228,7 +230,7 @@ class ResponsesStreamConverter:
                     "id": self.message_item_id,
                     "role": "assistant",
                     "status": "completed",
-                    "content": [{"type": "output_text", "text": ""}],
+                    "content": [{"type": "output_text", "text": self.text_content}],
                 },
             }))
         usage = self._usage()

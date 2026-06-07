@@ -11,6 +11,15 @@ from converters.responses_api import (
 )
 
 
+def _responses_events(out: str) -> list[dict]:
+    events: list[dict] = []
+    for block in out.split("\n\n"):
+        for line in block.splitlines():
+            if line.startswith("data: "):
+                events.append(json.loads(line[6:]))
+    return events
+
+
 def test_responses_string_input_to_chat():
     body = {
         "model": "lima-1.3",
@@ -250,6 +259,13 @@ def test_stream_converter_emits_text_deltas():
     assert "response.output_text.delta" in out
     assert "response.completed" in out
     assert '"delta": "Hel"' in out or '"delta":"Hel"' in out.replace(" ", "")
+    done_messages = [
+        event["item"]
+        for event in _responses_events(out)
+        if event.get("type") == "response.output_item.done"
+        and event.get("item", {}).get("type") == "message"
+    ]
+    assert done_messages[0]["content"] == [{"type": "output_text", "text": "Hello"}]
 
 
 def test_stream_converter_preserves_usage_details_in_completed_event():
