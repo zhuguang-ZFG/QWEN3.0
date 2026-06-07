@@ -90,6 +90,7 @@ def log_sys_prompt(sys_prompt: str) -> None:
         return
 
     ide_source = "unknown"
+    # Retired: Only OpenCode has deep integration. Other IDE markers removed.
     ide_markers = {
         "OpenCode": "opencode",
     }

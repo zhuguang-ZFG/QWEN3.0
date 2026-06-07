@@ -110,15 +110,17 @@ DIRECT_BACKENDS = [
 
 _IDE_FINGERPRINTS = {
     "OpenCode": ["OpenCode", "opencode", "opencode-ai"],
-    "Claude Code": ["Claude Code", "claude-code"],
-    "Continue": ["Continue", "continue/"],
-    "Cursor": ["Cursor", "<user_query>"],
+    # Retired: Cursor, Continue.dev, Cline — focus on deep OpenCode integration.
+    # Other IDEs can still use the OpenAI-compatible API but without specialized optimizations.
 }
 
 # Known IDE sources (both canonical and lowercased forms for flexible matching).
 # Used by routing_engine.classify() and router_v3.classify_request().
 # Derived from _IDE_FINGERPRINTS — the single source of truth.
-IDE_SOURCES = set(_IDE_FINGERPRINTS.keys()) | {n.lower() for n in _IDE_FINGERPRINTS}
+# Includes all fingerprints (e.g., "opencode-ai") for flexible matching.
+IDE_SOURCES = set(_IDE_FINGERPRINTS.keys())
+for fingerprints in _IDE_FINGERPRINTS.values():
+    IDE_SOURCES.update(fp.lower() for fp in fingerprints)
 
 MAX_FALLBACKS = 8
 

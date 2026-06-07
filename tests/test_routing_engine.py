@@ -19,19 +19,19 @@ def test_classify_ide_from_anthropic_fmt():
 
 def test_classify_ide_from_ua():
     r = re_.classify("help", [], fmt="openai",
-                     ide_source="Claude Code", headers={"user-agent": "claude-code/2.1"})
+                     ide_source="OpenCode", headers={"user-agent": "opencode/1.0"})
     assert r == "ide"
 
 
-def test_classify_continue_from_ua():
+def test_classify_opencode_from_ua():
     r = re_.classify("help", [], fmt="openai",
-                     headers={"user-agent": "Continue/1.0 vscode"})
+                     headers={"user-agent": "OpenCode/2.0 vscode"})
     assert r == "ide"
 
 
 def test_classify_ide_from_system_prompt_fingerprint():
     r = re_.classify("fix bug", [], fmt="openai", ide_source="",
-                     system_prompt="You are Cursor, an AI coding assistant. Use <user_query> tags.")
+                     system_prompt="You are OpenCode, an AI coding assistant.")
     assert r == "ide"
 
 
@@ -304,7 +304,7 @@ def test_anthropic_tool_route_injects_context_preflight():
     )
 
     body = {
-        "system": "You are Claude Code.",
+        "system": "You are OpenCode.",
         "messages": [
             {
                 "role": "user",
@@ -317,7 +317,7 @@ def test_anthropic_tool_route_injects_context_preflight():
     inject_anthropic_context_preflight(messages, body)
 
     assert messages[0]["role"] == "system"
-    assert "You are Claude Code." in messages[0]["content"]
+    assert "You are OpenCode." in messages[0]["content"]
     assert "LiMa context preflight" in messages[0]["content"]
     assert "D:\\GIT\\server.py" in messages[0]["content"]
 
@@ -472,7 +472,7 @@ def test_route_e2e_ide_no_floor():
     result = re_.route(
         query="refactor this",
         messages=[{"role": "user", "content": "refactor this"}],
-        fmt="anthropic", ide_source="Claude Code",
+        fmt="anthropic", ide_source="OpenCode",
         call_fn=fake_call_fn, cache_enabled=False,
     )
     assert result.request_type.startswith("code_")

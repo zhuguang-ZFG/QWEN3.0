@@ -13,10 +13,11 @@ class TestClassifyScenario:
             "hello", [], request_type="ide") == "coding"
 
     def test_ide_source_forces_coding(self):
+        # Only OpenCode is deeply supported; test with OpenCode
         assert routing_engine.classify_scenario(
-            "你好", [], ide_source="Claude Code") == "coding"
+            "你好", [], ide_source="OpenCode") == "coding"
         assert routing_engine.classify_scenario(
-            "hi", [], ide_source="Cursor") == "coding"
+            "hi", [], ide_source="opencode") == "coding"
 
     def test_code_block_is_coding(self):
         msg = [{"role": "user", "content": "```python\nprint('hi')\n```"}]

@@ -7,9 +7,10 @@ For full history, read `STATUS.md`; for pipeline ownership, read `docs/REQUEST_P
 ## Repo Identity
 
 - LiMa is a **personal AI coding assistant backend**, not a commercial platform. Do not reintroduce payment, public registration, customer billing, or commercial dashboard work unless explicitly requested.
-- Runtime: Python 3.10 + FastAPI on port `8080`; primary clients are OpenCode/IDE and Telegram.
+- Runtime: Python 3.10 + FastAPI on port `8080`; primary client is **OpenCode** (deep integration).
 - OpenAI-compatible at `/v1/chat/completions`, Anthropic-compatible at `/v1/messages`.
 - Backend inventory is cloud-first: 184 providers in `backends_registry.py` + `backends_constants.py`. `LOCAL_ONLY_BACKENDS` is intentionally empty.
+- **IDE Support**: Deep integration with OpenCode only. Other IDEs (Cursor, Continue.dev, VS Code) can use the OpenAI-compatible API but without specialized optimizations.
 
 ## Commands
 

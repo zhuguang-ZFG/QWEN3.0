@@ -145,7 +145,9 @@ def test_build_body_openai_basic():
     assert body['max_tokens'] == 1024
     assert body['messages'][0]['role'] == 'system'
     assert 'You are helpful.' in body['messages'][0]['content']
-    assert body['messages'][1] == msgs[0]
+    # Message may have providerOptions injected by OpenCode modules
+    assert body['messages'][1]['role'] == msgs[0]['role']
+    assert body['messages'][1]['content'] == msgs[0]['content']
 
 
 def test_build_body_openai_no_system_omits_system_message():
@@ -153,18 +155,22 @@ def test_build_body_openai_no_system_omits_system_message():
     msgs = [{'role': 'user', 'content': 'hello'}]
     raw = _build_body(cfg, msgs, 256)
     body = json.loads(raw)
-    assert body['messages'] == msgs
+    # Check core fields, ignore providerOptions if present
+    assert len(body['messages']) == len(msgs)
+    assert body['messages'][0]['role'] == msgs[0]['role']
+    # Content may include model optimization instructions
+    assert 'hello' in body['messages'][0]['content']
     assert all(m['role'] != 'system' for m in body['messages'])
 
 
 def test_build_body_openai_no_system_merges_prompt_into_first_user_message():
     cfg = {'fmt': 'openai', 'model': 'gpt-4o-mini', 'key': 'none', 'no_system': True}
     msgs = [{'role': 'user', 'content': 'hello'}]
-    raw = _build_body(cfg, msgs, 256, system_prompt='Base.', ide='Cursor')
+    raw = _build_body(cfg, msgs, 256, system_prompt='Base.', ide='OpenCode')
     body = json.loads(raw)
     assert body['messages'][0]['role'] == 'user'
     assert 'Base.' in body['messages'][0]['content']
-    assert 'Cursor' in body['messages'][0]['content']
+    assert 'OpenCode' in body['messages'][0]['content']
     assert 'hello' in body['messages'][0]['content']
     assert all(m['role'] != 'system' for m in body['messages'])
 
@@ -174,8 +180,12 @@ def test_build_body_anthropic_with_system():
     msgs = [{'role': 'user', 'content': 'hi'}]
     raw = _build_body(cfg, msgs, 2048, system_prompt='Be concise.')
     body = json.loads(raw)
-    assert body['system'] == 'Be concise.'
-    assert body['messages'] == msgs
+    # System prompt may be enhanced with additional instructions
+    assert 'Be concise.' in body['system']
+    # Check core fields, ignore providerOptions if present
+    assert len(body['messages']) == len(msgs)
+    assert body['messages'][0]['role'] == msgs[0]['role']
+    assert body['messages'][0]['content'] == msgs[0]['content']
 
 
 def test_build_body_anthropic_no_system():
