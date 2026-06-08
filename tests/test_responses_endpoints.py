@@ -12,6 +12,10 @@ def test_responses_endpoint_non_stream(monkeypatch):
     async def fake_handle_chat(req, **kwargs):
         assert req.temperature == 0.2
         assert req.top_p == 0.7
+        assert (
+            kwargs["request_headers"]["x-session-affinity"]
+            == "session-recorded-opencode-loop"
+        )
         return JSONResponse({
             "id": "chatcmpl-test",
             "object": "chat.completion",
@@ -59,6 +63,43 @@ def test_responses_endpoint_non_stream(monkeypatch):
     assert data["include"] == ["reasoning.encrypted_content"]
     assert data["reasoning"] == {"effort": "medium", "summary": "auto"}
     assert data["text"] == {"verbosity": "low"}
+
+
+def test_responses_endpoint_session_affinity_header_wins(monkeypatch):
+    async def fake_handle_chat(req, **kwargs):
+        assert kwargs["request_headers"]["x-session-affinity"] == "explicit-affinity"
+        return JSONResponse({
+            "id": "chatcmpl-test",
+            "object": "chat.completion",
+            "created": 1700000000,
+            "model": "lima-1.3",
+            "choices": [{
+                "index": 0,
+                "message": {"role": "assistant", "content": "PONG"},
+                "finish_reason": "stop",
+            }],
+        })
+
+    monkeypatch.setenv("LIMA_API_KEY", "test-key")
+    monkeypatch.setattr(server, "_handle_chat", fake_handle_chat)
+
+    client = TestClient(server.app)
+    resp = client.post(
+        "/v1/responses",
+        headers={
+            "Authorization": "Bearer test-key",
+            "User-Agent": "OpenCode/1.0",
+            "x-session-affinity": "explicit-affinity",
+        },
+        json={
+            "model": "lima-1.3",
+            "input": "ping",
+            "stream": False,
+            "prompt_cache_key": "body-affinity",
+        },
+    )
+
+    assert resp.status_code == 200
 
 
 def test_responses_endpoint_stream(monkeypatch):

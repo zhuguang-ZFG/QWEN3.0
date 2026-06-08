@@ -47,6 +47,16 @@ def _resolve_ide_source(messages: list[dict], request: Request) -> str:
     return ""
 
 
+def _request_headers_with_responses_affinity(request: Request, body: dict) -> dict:
+    headers = dict(request.headers)
+    if headers.get("x-session-affinity"):
+        return headers
+    prompt_cache_key = body.get("prompt_cache_key")
+    if isinstance(prompt_cache_key, str) and prompt_cache_key.strip():
+        headers["x-session-affinity"] = prompt_cache_key.strip()
+    return headers
+
+
 @router.post("/v1/responses", dependencies=[Depends(require_private_api_key)])
 async def responses_create(request: Request):
     """OpenAI Responses API → internal chat/completions pipeline."""
@@ -91,7 +101,7 @@ async def responses_create(request: Request):
 
     sys_prompt_preview = extract_system_preview(raw_messages)
     chat_req = ChatRequest(**chat_body)
-    request_headers = dict(request.headers)
+    request_headers = _request_headers_with_responses_affinity(request, body)
     model_name = chat_body.get("model", "lima-1.3")
     stream = bool(chat_body.get("stream", False))
     has_tools = bool(chat_body.get("tools"))
