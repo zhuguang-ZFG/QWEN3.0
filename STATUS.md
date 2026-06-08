@@ -1,11 +1,22 @@
 # LiMa Status
 
-> Updated: 2026-06-09 (Telegram retirement closeout)
-> Branch: `main`
-> Tests: Telegram focused pytest **112 passed, 1 warning**; JSON/retirement supplement **9 passed, 1 warning**; full CI-style pytest attempted **2046 passed, 10 skipped, 8 unrelated failures**
-> Current VPS: Telegram bot/operator runtime removed; `/health` reports `modules.telegram=false`; public `/telegram/webhook` returns 404; authenticated `model=code` chat returns 200
-> VPS rollback: `/opt/lima-router/backups/telegram-retirement-20260609_031429/runtime-before.tgz`
+> Updated: 2026-06-09 (CI hygiene after retirement closeout)
+> Branch: `feat/kilo-provider-probe`
+> Tests: CI-hygiene focused pytest **64 passed, 1 warning**; CI-style pytest **2056 passed, 10 skipped, 1 warning**; touched `py_compile`, ruff, tracked ruff wrapper, and focused pyright clean
+> Current VPS: registry/router cleanup deployed with restart health OK; nginx edge returns HTTP `404` for public `POST /telegram/webhook` on both `api.donglicao.com` and `chat.donglicao.com`; authenticated `model=code` chat returns 200
+> VPS rollback: nginx backups `/etc/nginx/conf.d/donglicao.conf.bak-20260609-040449` and `/etc/nginx/conf.d/chat.donglicao.com.conf.bak-20260609-040449`
 > Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
+
+## 2026-06-09 CI Hygiene After Retirement Closeout
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| Backend registry drift | Done | Split registry now defines route-referenced local/direct, DuckAI, XFYun, DashScope, and Zhihu coding backends; phantom OpenRouter constants with no registry entries were removed |
+| IDE fingerprint ownership | Done | `backends_constants.py` owns `_IDE_FINGERPRINTS` and `IDE_SOURCES`; `router_v3.IDE_SOURCES is backends.IDE_SOURCES` verified `True` |
+| Ruff gate stability | Done | `scripts/run_ruff_check.py` now lints git-tracked `.py`/`.pyi` files with `--force-exclude`, so untracked scratch scripts do not break the CI gate |
+| Telegram edge guard | Done | VPS nginx backed up and reloaded; public `POST /telegram/webhook` returns HTTP `404` on both `api.donglicao.com` and `chat.donglicao.com` from VPS and local exits |
+| VPS smoke | Done | `scripts/deploy_unified.py --files backends_constants.py backends_registry/coding_pool.py backends_registry/free_web.py backends_registry/misc.py router_v3.py` uploaded `5`, restart health OK; public `/health=200`; authenticated `model=code` chat HTTP `200` |
+| Full local gates | Done | CI-style pytest with documented ignores returned `2056 passed, 10 skipped, 1 warning in 292.37s`; focused pyright on touched production files returned `0 errors` |
 
 ## 2026-06-09 Telegram Retirement Closeout
 

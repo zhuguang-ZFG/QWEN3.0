@@ -1,6 +1,6 @@
 # LiMa Online Distributions
 
-> Updated: 2026-05-25
+> Updated: 2026-06-09
 > Scope: VPS-hosted public surfaces that belong to the LiMa project and must be controlled from this repository.
 
 ## Rule
@@ -23,7 +23,7 @@ Do not commit secrets, cert private keys, provider tokens, database dumps, gener
 |---|---|---|---|---|---|
 | Official website | `https://www.donglicao.com`, `https://donglicao.com` | nginx root `/www/wwwroot/donglicao-site`; demo proxy `/api/demo` to LiMa router | `infra/vps/nginx/www.donglicao.com.conf`; local site source currently lives in nested `net/` working tree and must be imported without `.git`, build output, or large binaries before source changes are treated as tracked | Public product/brand entry and LiMa demo | Managed distribution; marketing/commercial direction remains paused unless user changes it. |
 | Chat interface | `https://chat.donglicao.com` | nginx root `/var/www/chat`; `/v1`, `/health`, `/agent`, `/mcp`, `/device` proxy to `127.0.0.1:8080`; `/ws/voice` proxies to `127.0.0.1:8091`; retired `/telegram/*` paths must stay unavailable | `infra/vps/nginx/chat.donglicao.com.conf`; LiMa runtime in tracked Python modules | Private chat UI plus OpenAI/Anthropic-compatible API and device edge | Primary private coding-assistant endpoint. |
-| Open platform | `https://api.donglicao.com` | nginx proxy to New API on `127.0.0.1:3003`, with LiMa branding sub-filters | `infra/vps/nginx/api.donglicao.com.conf`; New API DB/runtime retained on VPS | Existing OpenAI-compatible token gateway and UI | Retained but not active commercial rollout. Requires real New API token; `lima-local` is not valid here. |
+| Open platform / API compatibility | `https://api.donglicao.com` | nginx proxy to `/opt/ai-router/ai_router_mcp.py` on `127.0.0.1:8769`; retired `/telegram/*` paths return edge 404 | `infra/vps/nginx/api.donglicao.com.conf`; New API/One API runtimes are retained on VPS but are not the current nginx target for this host | Existing compatibility gateway state, not the primary LiMa IDE endpoint | Retained but not active commercial rollout. `chat.donglicao.com/v1` remains the primary private coding API. |
 | FRP endpoint | `http://47.112.162.80:8088` | VPS `frps` maps to Windows LiMa API `127.0.0.1:8080` | `docs/LOCAL_PROXY_RUNTIME_STATUS.md`, `frp/frpc.toml` when tracked | Public validation path for Windows local-router and local proxy providers | Operational smoke path, not the preferred HTTPS IDE endpoint. |
 | LiMa router | local service, public through nginx/FRP | `lima-router.service`, working dir `/opt/lima-router`, port `8080` | `infra/vps/systemd/lima-router.service`; runtime source in repo | Core FastAPI router | Secrets must live in `/opt/lima-router/.env`, not service unit files. |
 | Voice gateway | public only through chat nginx websocket path | `lima-voice.service`, working dir `/opt/lima-voice`, port `8091` | `infra/vps/systemd/lima-voice.service`; `voice_gateway_deploy.sh`/voice files when used | Voice websocket gateway | Secrets must live in `/opt/lima-voice/.env`, not service unit files. |
@@ -33,9 +33,10 @@ Do not commit secrets, cert private keys, provider tokens, database dumps, gener
 
 - Public HTTPS goes through nginx on ports `80` and `443`.
 - FRP public validation uses port `8088`.
-- Direct public access to internal service ports such as `8080`, `3003`, `8091`, and `6379` must remain blocked by firewall/cloud security group even if services bind `0.0.0.0`.
-- `api.donglicao.com` branding filters are a compatibility layer over New API, not a license to revive public commercial platform work.
+- Direct public access to internal service ports such as `8080`, `3003`, `8769`, `8091`, and `6379` must remain blocked by firewall/cloud security group even if services bind `0.0.0.0`.
+- `api.donglicao.com` is a compatibility surface, not a license to revive public commercial platform work.
 - `chat.donglicao.com/v1` is the primary IDE/agent base URL.
+- Retired `/telegram/*` paths must return 404 at the nginx edge on both `chat.donglicao.com` and `api.donglicao.com`.
 - `/device/v1/*` is public through `chat.donglicao.com` only and requires
   per-device token auth. VPS production uses Redis shared queues plus pub/sub
   task notifications so the process that owns a local WebSocket session can
@@ -57,6 +58,7 @@ Do not commit secrets, cert private keys, provider tokens, database dumps, gener
 - `systemctl cat` snapshots no longer contain provider key lines.
 - Service-unit secret backups were moved to `/root/secure-service-backups` with mode `600`.
 - Latest public health check: `https://chat.donglicao.com/health` returned `status=ok`.
+- Latest Telegram retirement edge check: public `POST /telegram/webhook` returned HTTP `404` on both `https://api.donglicao.com` and `https://chat.donglicao.com` after nginx backups `/etc/nginx/conf.d/donglicao.conf.bak-20260609-040449` and `/etc/nginx/conf.d/chat.donglicao.com.conf.bak-20260609-040449`.
 - Latest device gateway health check: `https://chat.donglicao.com/device/v1/health` returned `status=ok` with Redis task store and Redis session bus.
 - Latest post-migration smoke used `scripts/smoke_online_distributions.py --api-key lima-local --chat-exact ha_redis_guarded_ok` and passed `12/12`, including public `6379` guard.
 - Redis HA code path is controlled by `LIMA_DEVICE_TASK_STORE`, `LIMA_DEVICE_SESSION_BUS`, and `LIMA_DEVICE_REDIS_URL`; VPS production is currently enabled with Redis on loopback only.

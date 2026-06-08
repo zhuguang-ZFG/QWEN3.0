@@ -2,6 +2,17 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-06-09 CI Hygiene After Retirement Closeout
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| CI-HYG-1 | Backend registry | Post-retirement full-suite signal exposed backend names still referenced by route pools but missing from the split registry package. The registry now defines the still-referenced local/direct, DuckAI, XFYun, DashScope, and Zhihu entries, and removes phantom OpenRouter constants that had no registry definitions. | Closed |
+| CI-HYG-2 | CI gate | `scripts/run_ruff_check.py` scanned local scratch scripts, so unrelated operator experiments could fail the ruff gate. The wrapper now uses `git ls-files` for tracked `.py` / `.pyi` files and passes `--force-exclude`. | Closed |
+| CI-HYG-3 | Import ownership | `backends_constants.py` imported `IDE_SOURCES` from `router_v3`, creating fragile ownership around IDE fingerprints. `_IDE_FINGERPRINTS` and `IDE_SOURCES` now live in `backends_constants.py`; `router_v3` imports them and keeps the detection helper. | Closed |
+| CI-HYG-4 | Public edge | Although LiMa runtime and chat nginx returned 404 for `/telegram/webhook`, `api.donglicao.com` POST requests were still proxied to the compatibility backend and returned JSON-RPC HTTP 200. VPS nginx now returns edge 404 for `/telegram/` on both public domains. | Closed |
+| CI-HYG-5 | Topology drift | The tracked `api.donglicao.com` nginx snapshot still described New API on port `3003`, but live nginx targets `/opt/ai-router/ai_router_mcp.py` on port `8769`. The online-distribution docs and sanitized snapshot now record the observed live topology. | Closed |
+| CI-HYG-6 | Full-suite signal | After the registry and ruff-gate fixes, the CI-style pytest command with documented long/external ignores returned `2056 passed, 10 skipped, 1 warning`, replacing the previous post-retirement residual failure signal. | Closed |
+
 ## 2026-06-09 Telegram Retirement Closeout
 
 | ID | Area | Finding | Status |

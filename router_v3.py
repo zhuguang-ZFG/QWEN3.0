@@ -13,7 +13,28 @@ Layer 3: 执行器 (execute)
 
 
 import runtime_topology
-from backends import IDE_SOURCES as IDE_SOURCES
+from backends_constants import IDE_SOURCES, _IDE_FINGERPRINTS
+
+
+def detect_ide_by_fingerprints(text: str) -> str:
+    """根据文本内容检测 IDE 来源。
+
+    Args:
+        text: 要检测的文本（通常是 system prompt 或消息内容）
+
+    Returns:
+        IDE 名称（如 "cursor", "claude_code" 等），未检测到则返回空字符串
+    """
+    if not text or not isinstance(text, str):
+        return ""
+
+    text_lower = text.lower()
+    for ide, markers in _IDE_FINGERPRINTS.items():
+        for marker in markers:
+            if marker.lower() in text_lower:
+                return ide
+    return ""
+
 
 # ─── 后端池定义 ───────────────────────────────────────────────────────────────
 
@@ -121,20 +142,6 @@ DIRECT_BACKENDS = [
     "silicon_qwen8b", "chat_ubi", "llm7", "pollinations",
     "deepseek_free", "local_coder14b", "local_reasoning", "local_general", "local_fast", "local_chat",
 ]
-
-_IDE_FINGERPRINTS = {
-    "cursor": ["intelligent programmer", "You are Cursor"],
-    "claude_code": ["CLAUDE.md", "Claude Code", "EnterPlanMode"],
-    "codex": ["Codex", "codex"],
-    "aider": ["SEARCH/REPLACE", "RepoMap"],
-    "cline": ["<environment_details>", "Cline"],
-    "continue": ["Continue is an open-source", "continue.dev"],
-    "kiro": ["Kiro", "kiro"],
-    "zed": ["Zed", "zed-editor", "You are an AI assistant in Zed"],
-    "trae": ["Trae", "trae"],
-    "windsurf": ["Windsurf", "Codeium"],
-    "copilot": ["GitHub Copilot", "Copilot"],
-}
 
 MAX_FALLBACKS = 12
 

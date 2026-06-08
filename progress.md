@@ -4,6 +4,57 @@
 
 > Updated: 2026-06-09
 
+## 2026-06-09 CI hygiene after retirement closeout
+
+**Goal:** close the post-retirement gate noise that blocked the next LiMa
+Server optimization slice, while preserving the Telegram retirement hard
+boundary on all public surfaces.
+
+- Implementation:
+  - added missing split-registry entries for local/direct, DuckAI, XFYun,
+    DashScope, and Zhihu coding backends still referenced by route pools;
+  - removed phantom OpenRouter constants that had no registry definitions;
+  - moved IDE fingerprints into `backends_constants.py` and kept
+    `router_v3.detect_ide_by_fingerprints()` as the local helper;
+  - changed `scripts/run_ruff_check.py` to lint git-tracked `.py` / `.pyi`
+    files with `--force-exclude`, keeping scratch files out of the gate;
+  - added `tests/test_ci_gates.py` coverage for tracked-file filtering and
+    ruff config excludes;
+  - added nginx edge-level `/telegram/` 404 guards for both
+    `api.donglicao.com` and `chat.donglicao.com`.
+- Local verification:
+  - focused pytest:
+    `tests/test_backend_registry.py tests/test_phase_b.py tests/test_health_tracker.py tests/test_ci_gates.py tests/test_channel_retirement.py tests/test_route_registry.py`
+    -> `64 passed, 1 warning`;
+  - `python -m py_compile` on touched runtime/wrapper files: clean;
+  - focused ruff on touched Python files: clean;
+  - `python scripts/run_ruff_check.py`: clean (`All checks passed!`);
+  - focused pyright on touched production Python files: `0 errors`;
+  - CI-style pytest with documented long/external ignores:
+    `2056 passed, 10 skipped, 1 warning in 292.37s`;
+  - `git diff --check`: clean apart from Git CRLF normalization warnings;
+  - quick import check: missing registry entries `[]` and
+    `router_v3.IDE_SOURCES is backends.IDE_SOURCES` returned `True`.
+- VPS deploy and smoke:
+  - deployed registry/router files with
+    `scripts/deploy_unified.py --files backends_constants.py backends_registry/coding_pool.py backends_registry/free_web.py backends_registry/misc.py router_v3.py`;
+  - upload result: `5 uploaded`, `0 failed`, `0 skipped`; restart health OK;
+  - nginx backups:
+    `/etc/nginx/conf.d/donglicao.conf.bak-20260609-040449` and
+    `/etc/nginx/conf.d/chat.donglicao.com.conf.bak-20260609-040449`;
+  - after `nginx -t` and reload, VPS and local public exits both returned
+    HTTP `404` for `POST /telegram/webhook` on `api.donglicao.com` and
+    `chat.donglicao.com`;
+  - public `/health` returned HTTP `200`;
+  - authenticated public `model=code` chat returned HTTP `200`.
+- Residual risk:
+  - `api.donglicao.com` live nginx currently targets `/opt/ai-router` on
+    local port `8769`, while New API/One API processes remain on the VPS.
+    The tracked online-distribution docs and sanitized nginx snapshot now
+    record this observed topology.
+  - this checkout has no `gitee` remote, so the closeout can push only to
+    GitHub `origin`.
+
 ## 2026-06-09 Telegram retirement closeout
 
 **Goal:** fully retire the Telegram bot/operator surface while preserving

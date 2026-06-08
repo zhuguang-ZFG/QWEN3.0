@@ -1,6 +1,6 @@
 # LiMa Memory
 
-> **Updated: 2026-06-09 (Telegram retirement closeout)**
+> **Updated: 2026-06-09 (CI hygiene and Telegram edge guard closeout)**
 > **Branch:** `main` - **HEAD:** pending closeout push
 > **Latest authority:** `STATUS.md`, `progress.md`, `findings.md`, `docs/DOCUMENTATION_STATUS.md`
 
@@ -43,6 +43,11 @@
   - VPS-local `/health` reports `modules.telegram=false`;
   - public `/health=200`, public `POST /telegram/webhook=404`, authenticated
     public `model=code` chat HTTP `200`.
+  - edge guard follow-up:
+    `api.donglicao.com` and `chat.donglicao.com` now return nginx-level 404
+    for public `POST /telegram/webhook`; backups:
+    `/etc/nginx/conf.d/donglicao.conf.bak-20260609-040449` and
+    `/etc/nginx/conf.d/chat.donglicao.com.conf.bak-20260609-040449`.
 
 ## 2026-06-09 LiMa Code Retirement Snapshot
 
@@ -428,12 +433,12 @@ Paused or removed direction:
 | Component | Current Role |
 |---|---|
 | `chat.donglicao.com` | Public HTTPS entry for private chat and `/v1/*` proxy to LiMa. |
-| `api.donglicao.com` | New API/open-platform UI still exists, but commercial rollout is paused. |
+| `api.donglicao.com` | Compatibility API surface currently proxied by nginx to `/opt/ai-router/ai_router_mcp.py` on local port `8769`; commercial rollout is paused. |
 | `lima-router` | Python/FastAPI router on VPS, local port `8080`. |
-| New API | Local port `3003`, still retained for existing API gateway state. |
+| New API | Local port `3003`, still retained on VPS for existing gateway state but not the current `api.donglicao.com` nginx target. |
 | Voice gateway | Local port `8091`, retained but not the main direction. |
 
-Public direct access to internal ports `3000`, `3001`, `3003`, `8080`, and `8091` is blocked. nginx remains the external boundary.
+Public direct access to internal ports `3000`, `3001`, `3003`, `8769`, `8080`, and `8091` is blocked. nginx remains the external boundary.
 
 Online distribution control:
 
@@ -454,7 +459,7 @@ API key:          lima-local
 Model:            lima-1.3
 ```
 
-Do not use `api.donglicao.com` with `lima-local`; that host is still the New API gateway and returns `401 Invalid token` unless a real New API token is used.
+Do not use `api.donglicao.com` with `lima-local`; that host is a retained compatibility surface, not the primary LiMa router endpoint. Use `chat.donglicao.com/v1` for IDE and terminal-agent validation.
 
 ## Local Proxy And FRP Closure
 

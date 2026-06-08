@@ -9,6 +9,49 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def test_run_ruff_check_uses_tracked_python_files(monkeypatch, tmp_path):
+    import scripts.run_ruff_check as run_ruff_check
+
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append((cmd, kwargs))
+        return subprocess.CompletedProcess(
+            cmd,
+            0,
+            stdout=b"server.py\0scripts/run_ruff_check.py\0notes.txt\0stub.pyi\0",
+            stderr=b"",
+        )
+
+    monkeypatch.setattr(run_ruff_check.subprocess, "run", fake_run)
+
+    assert run_ruff_check.tracked_python_files(tmp_path) == [
+        "server.py",
+        "scripts/run_ruff_check.py",
+        "stub.pyi",
+    ]
+    assert calls[0][0] == ["git", "ls-files", "-z", "--", "*.py", "*.pyi"]
+    assert calls[0][1]["cwd"] == tmp_path
+
+
+def test_run_ruff_check_respects_config_excludes(monkeypatch, tmp_path):
+    import scripts.run_ruff_check as run_ruff_check
+
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append((cmd, kwargs))
+        return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(run_ruff_check.subprocess, "run", fake_run)
+
+    result = run_ruff_check.run_ruff(["server.py", "scripts/archive/old.py"], tmp_path)
+
+    assert result.returncode == 0
+    assert calls[0][0][:5] == [sys.executable, "-m", "ruff", "check", "--force-exclude"]
+    assert calls[0][1]["cwd"] == tmp_path
+
+
 def test_ruff_gate_passes():
     proc = subprocess.run(
         [sys.executable, "scripts/run_ruff_check.py"],

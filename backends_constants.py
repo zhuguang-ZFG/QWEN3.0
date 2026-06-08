@@ -34,8 +34,6 @@ GFW_BACKENDS = frozenset({
     'or_deepseek_r1', 'or_qwen3_coder', 'or_llama70b', 'or_nemotron',
     'or_qwen3_80b', 'or_nemotron120b', 'or_gptoss_120b', 'or_glm45',
     'or_minimax', 'or_gemma4', 'or_llama4_scout',
-    'or_kimi_k26', 'or_nemotron550b', 'or_laguna_m1', 'or_laguna_xs2',
-    'or_nemotron_omni', 'or_hermes405b',
     'kilo_auto_free', 'kilo_laguna_m1', 'kilo_stepfun_flash',
     'github_gpt4o', 'github_gpt4o_mini', 'github_gpt5', 'github_o3_mini',
     'github_o4_mini', 'github_deepseek_r1', 'github_llama70b', 'github_codestral',
@@ -97,8 +95,6 @@ CODE_CAPABLE_BACKENDS = frozenset({
     'github_gpt4o', 'github_gpt4o_mini', 'github_codestral',
     'cf_qwen_coder', 'cfai_qwen_coder', 'or_qwen3_coder', 'or_gptoss_120b',
     'cf_gptoss_120b', 'cf_deepseek_r1', 'cf_qwen3_30b', 'cfai_deepseek_r1',
-    'or_kimi_k26', 'or_nemotron550b', 'or_laguna_m1', 'or_laguna_xs2',
-    'or_nemotron_omni', 'or_hermes405b',
     'kilo_auto_free', 'kilo_laguna_m1', 'kilo_stepfun_flash',
     'mistral_large', 'mistral_devstral', 'mistral_pixtral', 'mistral_codestral',
     'cerebras_gptoss', 'groq_gptoss', 'groq_gptoss_20b',
@@ -136,8 +132,7 @@ TOOL_CAPABLE_BACKENDS = frozenset({
     # Cerebras
     'cerebras_qwen235b',
     # OpenRouter
-    'or_gptoss_120b', 'or_kimi_k26', 'or_nemotron550b',
-    'or_laguna_m1', 'or_laguna_xs2', 'or_hermes405b',
+    'or_gptoss_120b',
     'kilo_auto_free', 'kilo_laguna_m1', 'kilo_stepfun_flash',
     # NVIDIA
     'nvidia_mistral', 'nvidia_deepseek_v4', 'nvidia_qwen35_coder', 'nvidia_kimi_k25',
@@ -165,10 +160,21 @@ TOOL_CAPABLE_BACKENDS = frozenset({
 })
 VISION_SYSTEM_PROMPT = "你是一位耐心的老师。用户上传了一道题目的图片。请：1. 识别题目内容 2. 分步骤解答 3. 给出最终答案。如果是选择题，明确指出正确选项。"
 
-# Known IDE sources (both canonical and lowercased forms for flexible matching).
-# Used by routing_engine.classify() and router_v3.classify_request().
-# Single source of truth: router_v3._IDE_FINGERPRINTS.
-from router_v3 import IDE_SOURCES
+# Known IDE sources used by routing_engine.classify() and router_v3.classify_request().
+_IDE_FINGERPRINTS = {
+    "cursor": ["intelligent programmer", "You are Cursor"],
+    "claude_code": ["CLAUDE.md", "Claude Code", "EnterPlanMode"],
+    "codex": ["Codex", "codex"],
+    "aider": ["SEARCH/REPLACE", "RepoMap"],
+    "cline": ["<environment_details>", "Cline"],
+    "continue": ["Continue is an open-source", "continue.dev"],
+    "kiro": ["Kiro", "kiro"],
+    "zed": ["Zed", "zed-editor", "You are an AI assistant in Zed"],
+    "trae": ["Trae", "trae"],
+    "windsurf": ["Windsurf", "Codeium"],
+    "copilot": ["GitHub Copilot", "Copilot"],
+}
+IDE_SOURCES = list(_IDE_FINGERPRINTS.keys())
 
 # ── Model Aliases: client-friendly names → LiMa backend names ──
 # Used by model_resolver.resolve_backend() to let IDE clients
