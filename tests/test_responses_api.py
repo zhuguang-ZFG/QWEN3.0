@@ -655,3 +655,27 @@ def test_stream_converter_suppresses_tool_argument_delta_until_tool_is_announced
     assert '"arguments": "{\\"path\\":\\"AGENTS.md\\"}"' in out
     terminal = _responses_events(out)[-1]
     assert terminal["response"]["output"][0]["arguments"] == "{\"path\":\"AGENTS.md\"}"
+
+
+def test_stream_converter_serializes_structured_tool_argument_delta():
+    chunk = {
+        "choices": [{
+            "delta": {
+                "tool_calls": [{
+                    "index": 0,
+                    "id": "call_structured",
+                    "function": {
+                        "name": "lookup",
+                        "arguments": {"query": "weather", "limit": 2},
+                    },
+                }],
+            },
+        }],
+    }
+    lines = [f"data: {json.dumps(chunk)}", "data: [DONE]"]
+
+    out = "".join(transform_chat_sse_iter(iter(lines)))
+
+    assert '"delta": "{\\"query\\":\\"weather\\",\\"limit\\":2}"' in out
+    terminal = _responses_events(out)[-1]
+    assert terminal["response"]["output"][0]["arguments"] == '{"query":"weather","limit":2}'

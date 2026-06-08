@@ -14,7 +14,7 @@ from converters.responses_stream_items import (
     completed_tool_item,
     incomplete_reason,
 )
-from converters.responses_stream_parse import reasoning_delta
+from converters.responses_stream_parse import reasoning_delta, tool_arguments_delta
 from converters.responses_usage import chat_usage_to_responses_usage
 
 
@@ -194,8 +194,9 @@ class ResponsesStreamConverter:
         fn = tc.get("function") or {}
         if fn.get("name"):
             entry["name"] = fn["name"]
-        if fn.get("arguments"):
-            entry["arguments"] += fn["arguments"]
+        arg_delta = tool_arguments_delta(fn.get("arguments"))
+        if arg_delta:
+            entry["arguments"] += arg_delta
 
         if not entry["announced"] and entry["name"]:
             entry["announced"] = True
@@ -210,11 +211,11 @@ class ResponsesStreamConverter:
                     "status": "in_progress",
                 },
             }))
-        if fn.get("arguments") and entry["announced"]:
+        if arg_delta and entry["announced"]:
             events.append(_sse_event("response.function_call_arguments.delta", {
                 "item_id": entry["id"],
                 "output_index": entry["output_index"],
-                "delta": fn["arguments"],
+                "delta": arg_delta,
             }))
         return events
 

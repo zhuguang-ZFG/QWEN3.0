@@ -24,3 +24,11 @@ def reasoning_delta(delta: dict) -> str:
         if isinstance(value, str) and value:
             return value
     return ""
+
+
+def tool_arguments_delta(arguments: object) -> str:
+    if isinstance(arguments, str):
+        return arguments
+    if arguments is None:
+        return ""
+    return json.dumps(arguments, ensure_ascii=False, separators=(",", ":"))
