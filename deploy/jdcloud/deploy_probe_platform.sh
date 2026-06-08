@@ -27,13 +27,13 @@ touch "${INSTALL_DIR}/provider_probe/__init__.py"
 
 # 3. Install Python dependencies
 echo "[3/6] Installing Python dependencies..."
-pip3.10 install --quiet httpx fastapi uvicorn pydantic
+pip3 install --break-system-packages --quiet httpx fastapi uvicorn pydantic
 
 # 4. Install Playwright browser (optional - skip if already installed)
 echo "[4/6] Setting up browser service..."
 if ! command -v playwright &>/dev/null; then
-    pip3.10 install --quiet playwright
-    python3.10 -m playwright install chromium
+    pip3 install --break-system-packages --quiet playwright
+    python3 -m playwright install chromium
 fi
 cp "${SCRIPT_DIR}/lima-probe-browser.service" /etc/systemd/system/
 systemctl daemon-reload

@@ -17,11 +17,11 @@ apt-get install -y -qq \
 
 # 2. Install Python packages
 echo "[2/4] Installing Python packages..."
-pip3.10 install --quiet playwright fastapi uvicorn pydantic httpx
+pip3 install --break-system-packages --quiet playwright fastapi uvicorn pydantic httpx
 
 # 3. Install Chromium (Playwright-managed)
 echo "[3/4] Installing Chromium browser..."
-python3.10 -m playwright install chromium
+python3 -m playwright install chromium
 
 # 4. Create install dir and set up systemd
 echo "[4/4] Setting up systemd service..."

@@ -1,11 +1,21 @@
 # LiMa Status
 
-> Updated: 2026-06-09 (CI hygiene after retirement closeout)
+> Updated: 2026-06-09 (JDCloud workspace hygiene closeout)
 > Branch: `feat/kilo-provider-probe`
 > Tests: CI-hygiene focused pytest **64 passed, 1 warning**; CI-style pytest **2056 passed, 10 skipped, 1 warning**; touched `py_compile`, ruff, tracked ruff wrapper, and focused pyright clean
 > Current VPS: registry/router cleanup deployed with restart health OK; nginx edge returns HTTP `404` for public `POST /telegram/webhook` on both `api.donglicao.com` and `chat.donglicao.com`; authenticated `model=code` chat returns 200
 > VPS rollback: nginx backups `/etc/nginx/conf.d/donglicao.conf.bak-20260609-040449` and `/etc/nginx/conf.d/chat.donglicao.com.conf.bak-20260609-040449`
 > Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
+
+## 2026-06-09 JDCloud Workspace Hygiene Closeout
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| JDCloud ownership | Done | JDCloud `117.72.118.95` is recorded as a secondary provider-probe / monitoring node, not a primary LiMa public API surface |
+| Credential boundary | Done | Known local JDCloud password helpers, generated deployment reports, copied command transcripts, cookies, sessions, and root scratch scripts are protected by exact `.gitignore` rules |
+| CodeGraph runtime hygiene | Done | `.codegraph/daemon.pid` is removed from the Git index; CodeGraph PID/database/log files are ignored as local runtime state |
+| Tracked JDCloud assets | Done | `deploy/jdcloud/README.md` documents tracked non-secret deploy templates and the local-only boundary |
+| Remote action | Not performed | This hygiene slice did not redeploy JDCloud; future real JDCloud deploy/smoke evidence must be recorded in `docs/ops/JDCLOUD_RUNTIME_STATUS.md`, `progress.md`, and `findings.md` |
 
 ## 2026-06-09 CI Hygiene After Retirement Closeout
 

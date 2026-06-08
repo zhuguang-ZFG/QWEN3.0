@@ -4,6 +4,46 @@
 
 > Updated: 2026-06-09
 
+## 2026-06-09 JDCloud workspace hygiene closeout
+
+**Goal:** keep the newly added JDCloud server as a real LiMa ops asset while
+removing password-bearing local helper files and generated reports from normal
+repository review noise.
+
+- Implementation:
+  - added `deploy/jdcloud/README.md` as the tracked manifest for non-secret
+    JDCloud deploy templates;
+  - added `docs/ops/JDCLOUD_RUNTIME_STATUS.md` as the sanitized runtime status
+    and credential boundary;
+  - updated `docs/ONLINE_DISTRIBUTIONS.md` and
+    `docs/DOCUMENTATION_STATUS.md` so JDCloud is discoverable as a secondary
+    provider-probe / monitoring node;
+  - added exact `.gitignore` rules for local JDCloud password helpers,
+    generated deployment reports, command transcripts, local cookies/sessions,
+    root scratch scripts, and local agent/tool state;
+  - ignored CodeGraph PID files and removed `.codegraph/daemon.pid` from the
+    Git index without deleting the local runtime file;
+  - retained the JDCloud tracked script changes that switch probe services from
+    `python3.10` / `pip3.10` to the live server's `python3` / `pip3` path.
+- Verification:
+  - `git status --short` now shows only intentional JDCloud hygiene changes
+    instead of the previous large scratch-file list;
+  - local secret scan found password-bearing JDCloud helpers and those files
+    were not staged;
+  - `python -m py_compile provider_probe\browser_service.py provider_probe\discovery\scheduler.py`:
+    clean;
+  - `git diff --check`: clean apart from Git CRLF normalization warnings;
+  - `git check-ignore -v` confirmed the known JDCloud password helpers,
+    generated reports, root scratch files, local cookies, and CodeGraph PID are
+    ignored;
+  - bash is not available in this Windows shell, so `bash -n` syntax checks for
+    the JDCloud shell scripts were skipped.
+  - no JDCloud redeploy was performed in this slice.
+- Residual risk:
+  - any real JDCloud deployment still needs fresh SSH/service/smoke evidence;
+  - if the password-bearing helper files were ever copied outside this local
+    workspace, rotate the affected credentials.
+
 ## 2026-06-09 CI hygiene after retirement closeout
 
 **Goal:** close the post-retirement gate noise that blocked the next LiMa

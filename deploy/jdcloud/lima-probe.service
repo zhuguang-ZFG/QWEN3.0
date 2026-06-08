@@ -7,7 +7,7 @@ Wants=network-online.target lima-probe-browser.service
 Type=oneshot
 User=root
 WorkingDirectory=/opt/lima-probe
-ExecStart=/usr/bin/python3.10 -m provider_probe.discovery.scheduler
+ExecStart=/usr/bin/python3 -m provider_probe.discovery.scheduler
 StandardOutput=journal
 StandardError=journal
 Environment=PYTHONPATH=/opt/lima-probe

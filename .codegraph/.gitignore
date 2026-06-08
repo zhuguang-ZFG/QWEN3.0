@@ -12,5 +12,8 @@ cache/
 # Logs
 *.log
 
+# PID files
+*.pid
+
 # Hook markers
 .dirty

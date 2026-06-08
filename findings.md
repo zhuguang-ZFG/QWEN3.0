@@ -2,6 +2,16 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-06-09 JDCloud Workspace Hygiene Closeout
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| JD-HYG-1 | Ops ownership | JDCloud `117.72.118.95` is now recorded as a real secondary provider-probe / monitoring node, not disposable scratch and not a primary public API surface. | Closed |
+| JD-HYG-2 | Secret boundary | Local JDCloud deploy/debug helpers include password-bearing scripts and fixed admin-password examples. They are intentionally ignored and were not staged. | Closed |
+| JD-HYG-3 | Workspace noise | Root scratch scripts, local sessions/cookies, generated JDCloud reports, and local agent/tool state are now covered by exact `.gitignore` rules. | Closed |
+| JD-HYG-4 | Runtime files | `.codegraph/daemon.pid` was tracked local runtime state. It is removed from the Git index and PID files are ignored while preserving the local file. | Closed |
+| JD-HYG-5 | Deployment evidence | No fresh JDCloud deployment was performed in this hygiene slice. A future JDCloud deploy must record service status and smoke evidence before claiming runtime rollout. | Accepted |
+
 ## 2026-06-09 CI Hygiene After Retirement Closeout
 
 | ID | Area | Finding | Status |

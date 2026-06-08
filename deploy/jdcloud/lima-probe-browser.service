@@ -7,7 +7,7 @@ Wants=network-online.target
 Type=simple
 User=root
 WorkingDirectory=/opt/lima-probe
-ExecStart=/usr/bin/python3.10 /opt/lima-probe/browser_service.py
+ExecStart=/usr/bin/python3 /opt/lima-probe/browser_service.py
 Restart=always
 RestartSec=5
 Environment=PROBE_BROWSER_PORT=8092

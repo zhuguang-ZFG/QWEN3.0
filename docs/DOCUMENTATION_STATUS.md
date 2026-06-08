@@ -46,6 +46,7 @@ docs, active logs, and how to treat historical plan files. Use
 | `docs/REFERENCE_PROJECT_EVALUATION.md` | Active | Current evaluation of OpenRAG, Google Cloud always-on-memory-agent, TechSpar, and autonomy references against LiMa's real code state. |
 | `docs/REFERENCE_IMPLEMENTATION_LEDGER.md` | Active implementation ledger | Current reference-to-LiMa implementation status table; distinguishes implemented, gated, concept, evaluating, and rejected reference ideas. |
 | `docs/ONLINE_DISTRIBUTIONS.md` | Active | Source of truth for VPS-hosted official website, open platform, chat interface, FRP endpoint, nginx edge, and service ownership. |
+| `docs/ops/JDCLOUD_RUNTIME_STATUS.md` | Active | Sanitized status and credential boundary for the secondary JDCloud provider-probe / monitoring node. |
 | `docs/OPS_ENTRYPOINTS.md` | Compatibility record | Original FreeDomain-inspired ops-entrypoint plan file; points to `docs/ONLINE_DISTRIBUTIONS.md` as the expanded source of truth. |
 | `docs/superpowers/plans/2026-06-09-lima-code-retirement.md` | Active retirement record | Source of truth for the LiMa Code / `deepcode-cli` retirement slice and closeout evidence. |
 | `docs/superpowers/plans/2026-06-09-telegram-retirement.md` | Active retirement record | Source of truth for removing Telegram bot/operator routes, runtime files, deploy scripts, and tests. |

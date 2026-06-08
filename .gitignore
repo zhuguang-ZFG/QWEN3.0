@@ -174,3 +174,83 @@ feedback_queue.json
 # MemPalace per-project files (issue #185)
 mempalace.yaml
 entities.json
+
+# Local agent/tool state
+.pytest_cache/
+.learnings/
+.qoder/
+opencode-source/
+_codegraph_repo/
+
+# CodeGraph runtime belongs to the local machine.
+.codegraph/*.db
+.codegraph/*.db-shm
+.codegraph/*.db-wal
+.codegraph/*.log
+.codegraph/*.pid
+
+# Root-level one-off diagnostics and deploy helpers.
+/_admin_js_check.js
+/_check_final.py
+/_check_nginx.py
+/_debug_*.py
+/_deploy_jd*.py
+/_deploy_jdcloud.sh
+/_diag_vps*.py
+/_fix_nginx*.py
+/_restore_env.py
+/_smoke_admin_redesign.py
+/_smoke_final.py
+/_verify_final.py
+/_verify_https.py
+/_verify_login.py
+/_verify_versioned.py
+/check_*.py
+/check_jdcloud.bat
+/debug_*.py
+/verify_vps_files.py
+/tmp_*.py
+/fix_server.py
+/test_agentrouter.html
+/test_muyuan*.py
+/test_sharedchat*.py
+/test_vps_route.py
+
+# Local sessions, cookies, and generated operator artifacts.
+/cpk.json
+/kimi.txt
+/kimi_session_vps.json
+/tmp_sonic.tar.gz
+/data/client_keys.json
+/data/kimi_cookies_test.json
+/data/scnet_cookies_test.json
+/routes/*.backup
+
+# JDCloud local deploy/debug scratch. Durable non-secret status lives in
+# docs/ops/JDCLOUD_RUNTIME_STATUS.md and deploy/jdcloud/README.md.
+/docs/JDCLOUD_*.md
+/routes/ops_probe_ingest.py
+/scripts/test_jdcloud_connection.py
+/scripts/test_redis_from_local.py
+/scripts/test_cache_performance.py
+/scripts/test_kimi*.py
+/scripts/test_opencode_e2e.py
+/scripts/test_scnet*.py
+/scripts/test_text_tools*.py
+/scripts/extract_js.py
+/scripts/refactor_admin.py
+/scripts/sync_all_routes.py
+/deploy/jdcloud/DEPLOY_COMMANDS.txt
+/deploy/jdcloud/FIX_DEPLOY.txt
+/deploy/jdcloud/fix*.txt
+/deploy/jdcloud/native_*.txt
+/deploy/jdcloud/use_bitnami.txt
+/deploy/jdcloud/deploy.bat
+/deploy/jdcloud/*.bat
+/deploy/jdcloud/deploy_jd.py
+/deploy/jdcloud/deploy_via_paramiko.py
+/deploy/jdcloud/deploy_monitoring_stack.sh
+/deploy/jdcloud/auto_deploy.sh
+/deploy/jdcloud/quick_deploy.sh
+/deploy/jdcloud/remote_deploy.sh
+/deploy/jdcloud/ssh_helper.sh
