@@ -15,6 +15,7 @@ from converters.responses_response_fields import (
     response_fields_from_request,
     with_response_fields,
 )
+from converters.responses_stream_items import incomplete_reason
 from converters.responses_stream_transform import transform_chat_sse_iter, transform_chat_sse_stream
 from converters.responses_tools import (
     responses_tool_choice_to_chat_tool_choice,
@@ -162,6 +163,8 @@ def chat_completion_to_response(data: dict, request_body: dict | None = None) ->
     message = choice.get("message") or {}
     content = message.get("content") or ""
     tool_calls = message.get("tool_calls") or []
+    incomplete = incomplete_reason(str(choice.get("finish_reason") or ""))
+    status = "incomplete" if incomplete else "completed"
 
     output: list[dict] = []
     if content:
@@ -189,9 +192,10 @@ def chat_completion_to_response(data: dict, request_body: dict | None = None) ->
         "object": "response",
         "created_at": created,
         "model": model,
-        "status": "completed",
+        "status": status,
         "output": output,
         "usage": chat_usage_to_responses_usage(data.get("usage")),
+        "incomplete_details": {"reason": incomplete} if incomplete else None,
     }
     response = with_response_fields(
         response,

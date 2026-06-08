@@ -241,6 +241,39 @@ def test_chat_completion_to_response_text():
     assert resp["usage"]["total_tokens"] == 4
 
 
+def test_chat_completion_to_response_maps_length_finish_to_incomplete():
+    data = {
+        "created": 1700000000,
+        "model": "lima-1.3",
+        "choices": [{
+            "message": {"role": "assistant", "content": "partial"},
+            "finish_reason": "length",
+        }],
+    }
+
+    resp = chat_completion_to_response(data)
+
+    assert resp["status"] == "incomplete"
+    assert resp["incomplete_details"] == {"reason": "max_output_tokens"}
+    assert resp["output"][0]["content"][0]["text"] == "partial"
+
+
+def test_chat_completion_to_response_maps_content_filter_finish_to_incomplete():
+    data = {
+        "created": 1700000000,
+        "model": "lima-1.3",
+        "choices": [{
+            "message": {"role": "assistant", "content": ""},
+            "finish_reason": "content_filter",
+        }],
+    }
+
+    resp = chat_completion_to_response(data)
+
+    assert resp["status"] == "incomplete"
+    assert resp["incomplete_details"] == {"reason": "content_filter"}
+
+
 def test_chat_completion_to_response_preserves_usage_details():
     data = {
         "created": 1700000000,
