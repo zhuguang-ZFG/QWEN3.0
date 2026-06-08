@@ -32,6 +32,13 @@ def _new_item_id(prefix: str = "msg") -> str:
     return f"{prefix}_{uuid.uuid4().hex[:16]}"
 
 
+_VERBOSITY_SYSTEM_HINTS = {
+    "low": "Keep the response concise.",
+    "medium": "Use a balanced amount of detail.",
+    "high": "Provide thorough detail when useful.",
+}
+
+
 def _convert_input_item(item: dict) -> list[dict]:
     """Map one Responses API input item to chat message(s)."""
     ptype = item.get("type", "")
@@ -114,9 +121,9 @@ def responses_body_to_chat(body: dict) -> dict:
     """Convert POST /v1/responses body to /v1/chat/completions body."""
     messages: list[dict] = []
 
-    instructions = str(body.get("instructions") or "").strip()
-    if instructions:
-        messages.append({"role": "system", "content": instructions})
+    system_content = _system_content(body)
+    if system_content:
+        messages.append({"role": "system", "content": system_content})
 
     raw_input = body.get("input")
     if isinstance(raw_input, str) and raw_input.strip():
@@ -160,6 +167,25 @@ def responses_body_to_chat(body: dict) -> dict:
         chat["top_p"] = body["top_p"]
 
     return chat
+
+
+def _system_content(body: dict) -> str:
+    parts = []
+    instructions = str(body.get("instructions") or "").strip()
+    if instructions:
+        parts.append(instructions)
+    verbosity = _text_verbosity(body)
+    if verbosity:
+        parts.append(_VERBOSITY_SYSTEM_HINTS[verbosity])
+    return "\n\n".join(parts)
+
+
+def _text_verbosity(body: dict) -> str:
+    text = body.get("text")
+    if not isinstance(text, dict):
+        return ""
+    verbosity = text.get("verbosity")
+    return verbosity if verbosity in _VERBOSITY_SYSTEM_HINTS else ""
 
 
 def chat_completion_to_response(data: dict, request_body: dict | None = None) -> dict:

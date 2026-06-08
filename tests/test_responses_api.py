@@ -39,6 +39,38 @@ def test_responses_string_input_to_chat():
     assert chat["messages"][1] == {"role": "user", "content": "Hello"}
 
 
+def test_responses_text_verbosity_merges_with_instructions():
+    body = {
+        "model": "lima-1.3",
+        "input": "Hello",
+        "instructions": "You are concise.",
+        "text": {"verbosity": "low"},
+    }
+
+    chat = responses_body_to_chat(body)
+
+    assert chat["messages"][0]["role"] == "system"
+    assert "You are concise." in chat["messages"][0]["content"]
+    assert "Keep the response concise." in chat["messages"][0]["content"]
+    assert chat["messages"][1] == {"role": "user", "content": "Hello"}
+
+
+def test_responses_text_verbosity_adds_system_message_without_instructions():
+    body = {
+        "model": "lima-1.3",
+        "input": "Explain the diff.",
+        "text": {"verbosity": "high"},
+    }
+
+    chat = responses_body_to_chat(body)
+
+    assert chat["messages"][0] == {
+        "role": "system",
+        "content": "Provide thorough detail when useful.",
+    }
+    assert chat["messages"][1] == {"role": "user", "content": "Explain the diff."}
+
+
 def test_responses_structured_input_and_tools():
     body = {
         "model": "lima-1.3",
