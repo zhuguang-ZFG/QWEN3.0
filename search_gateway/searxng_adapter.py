@@ -96,7 +96,9 @@ class SearXNGAdapter:
             q = f"site:{domain.strip()} {q}"
         return q
 
-    def _normalize(self, raw: dict, *, max_results: int) -> list[dict]:
+    def _normalize(
+        self, raw: dict, *, max_results: int, categories: str = "general"
+    ) -> list[dict]:
         items = raw.get("results") if isinstance(raw, dict) else []
         if not isinstance(items, list):
             return []
@@ -105,29 +107,47 @@ class SearXNGAdapter:
             if not isinstance(item, dict):
                 continue
             engine = str(item.get("engine") or "searxng")
-            out.append(
-                {
-                    "title": str(item.get("title") or "Untitled")[:200],
-                    "url": str(item.get("url") or item.get("link") or "")[:500],
-                    "snippet": str(item.get("content") or item.get("snippet") or "")[:1000],
-                    "source": f"searxng:{engine}",
-                }
-            )
+            entry = {
+                "title": str(item.get("title") or "Untitled")[:200],
+                "url": str(item.get("url") or item.get("link") or "")[:500],
+                "snippet": str(item.get("content") or item.get("snippet") or "")[:1000],
+                "source": f"searxng:{engine}",
+            }
+            if categories == "videos":
+                thumbnail = str(item.get("thumbnail") or item.get("img_src") or "")
+                duration = str(item.get("duration") or item.get("length") or "")
+                uploader = str(item.get("uploader") or item.get("author") or "")
+                if thumbnail:
+                    entry["thumbnail"] = thumbnail[:500]
+                if duration:
+                    entry["duration"] = duration[:20]
+                if uploader:
+                    entry["uploader"] = uploader[:100]
+            out.append(entry)
         return out
 
-    def search(self, query: str, *, domain: str | None = None, max_results: int = 5) -> dict:
+    def search(
+        self,
+        query: str,
+        *,
+        domain: str | None = None,
+        max_results: int = 5,
+        categories: str = "general",
+    ) -> dict:
         if self._in_cooldown():
             return {"ok": False, "error": "searxng_cooldown"}
 
         q = self._build_query(query, domain=domain)
-        cache_key = f"search:{q}:{max_results}"
+        cache_key = f"search:{categories}:{q}:{max_results}"
         cached = self._cache_get(cache_key)
         if cached is not None:
             cached = dict(cached)
             cached["cached"] = True
             return cached
 
-        params = urllib.parse.urlencode({"q": q, "format": "json", "language": "en"})
+        params = urllib.parse.urlencode(
+            {"q": q, "format": "json", "language": "en", "categories": categories}
+        )
         url = f"{self.base_url}/search?{params}"
         try:
             raw = self._http_get_json(url)
@@ -140,7 +160,7 @@ class SearXNGAdapter:
             logger.warning("searxng search failed: %s", type(exc).__name__)
             return {"ok": False, "error": "searxng_unreachable"}
 
-        results = self._normalize(raw, max_results=max_results)
+        results = self._normalize(raw, max_results=max_results, categories=categories)
         payload = {"ok": True, "results": results, "source": "searxng"}
         self._cache_set(cache_key, payload)
         return payload

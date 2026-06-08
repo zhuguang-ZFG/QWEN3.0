@@ -47,6 +47,17 @@ _IDENTITY_PATTERNS = (
     "what is your name", "who are you",
 )
 
+# ── Video search intent keywords ──────────────────────────────────────────────
+
+_VIDEO_KEYWORDS = (
+    # Chinese
+    "视频", "教程视频", "找视频", "视频教程", "demo视频", "演示视频",
+    "录播", "回放", "直播录像", "直播回放", "找教程", "教学视频",
+    # English
+    "video", "tutorial video", "find video", "search video",
+    "youtube", "bilibili", "b站", "B站",
+)
+
 
 def _detect_search_intent(query: str) -> bool:
     """Check if a user query likely needs web search.
@@ -64,6 +75,14 @@ def _detect_search_intent(query: str) -> bool:
             return False
 
     return any(marker in lowered for marker in _SEARCH_KEYWORDS)
+
+
+def _detect_video_intent(query: str) -> bool:
+    """Check if a user query likely wants video results."""
+    if not query or not isinstance(query, str):
+        return False
+    lowered = query.lower().strip()
+    return any(marker in lowered for marker in _VIDEO_KEYWORDS)
 
 
 # ── URL extraction ────────────────────────────────────────────────────────────
@@ -88,7 +107,7 @@ def inject_web_search_context(
         (new_messages, search_context_text)
         search_context_text is "" if no search was needed or it failed.
     """
-    if not _detect_search_intent(query):
+    if not _detect_search_intent(query) and not _detect_video_intent(query):
         return list(messages), ""
 
     parts: list[str] = []
@@ -103,13 +122,23 @@ def inject_web_search_context(
         except Exception as exc:
             _log.debug("web_search: URL fetch failed for %s: %s", url, exc)
 
-    # 2. Web search
-    try:
-        search_result = _execute_search(query)
-        if search_result:
-            parts.append(search_result)
-    except Exception as exc:
-        _log.debug("web_search: search failed: %s", exc)
+    # 2. Video search (if video intent detected — runs before text search)
+    if _detect_video_intent(query):
+        try:
+            video_result = _execute_video_search(query)
+            if video_result:
+                parts.append(video_result)
+        except Exception as exc:
+            _log.debug("web_search: video search failed: %s", exc)
+
+    # 3. Web search (standard text search)
+    if _detect_search_intent(query):
+        try:
+            search_result = _execute_search(query)
+            if search_result:
+                parts.append(search_result)
+        except Exception as exc:
+            _log.debug("web_search: search failed: %s", exc)
 
     if not parts:
         return list(messages), ""
@@ -167,6 +196,73 @@ def _format_search_results(query: str, results: list[dict]) -> str:
         url = str(r.get("url", ""))[:200]
         snippet = str(r.get("snippet", ""))[:500]
         block = f"\n{i}. {title}\n   {url}\n   {snippet}"
+        if total + len(block) > _MAX_CONTEXT_CHARS:
+            break
+        lines.append(block)
+        total += len(block)
+
+    return "\n".join(lines)
+
+
+# ── Video search ──────────────────────────────────────────────────────────────
+
+
+def _execute_video_search(query: str) -> str:
+    """Run a video-specific search via SearXNG and return formatted results.
+
+    Bypasses the tiered adapter — directly uses SearXNG with categories=videos.
+    Returns empty string on failure.
+    """
+    try:
+        from search_gateway.searxng_adapter import SearXNGAdapter, searxng_enabled
+
+        if not searxng_enabled():
+            _log.debug("web_search: SearXNG not enabled, skipping video search")
+            return ""
+
+        adapter = SearXNGAdapter.from_env()
+        raw = adapter.search(query, max_results=_MAX_RESULTS, categories="videos")
+        if not raw.get("ok"):
+            _log.debug(
+                "web_search: video search adapter returned not ok: %s",
+                raw.get("error", ""),
+            )
+            return ""
+
+        results = raw.get("results") or []
+        if not results:
+            return ""
+
+        return _format_video_results(query, results)
+    except ImportError:
+        _log.debug("web_search: searxng_adapter not available")
+    except Exception as exc:
+        _log.debug("web_search: video search execution failed: %s", exc)
+    return ""
+
+
+def _format_video_results(query: str, results: list[dict]) -> str:
+    """Format video search results into a compact context block."""
+    lines = [f"[视频搜索结果: \"{query[:80]}\"]"]
+    total = len(lines[0])
+
+    for i, r in enumerate(results[:_MAX_RESULTS], 1):
+        title = str(r.get("title", ""))[:120]
+        url = str(r.get("url", ""))[:200]
+        snippet = str(r.get("snippet", ""))[:400]
+        duration = str(r.get("duration", ""))
+        uploader = str(r.get("uploader", ""))
+
+        parts: list[str] = [f"\n{i}. {title}"]
+        if duration:
+            parts.append(f" ({duration})")
+        parts.append(f"\n   {url}")
+        if uploader:
+            parts.append(f"\n   上传者: {uploader}")
+        if snippet:
+            parts.append(f"\n   {snippet}")
+
+        block = "".join(parts)
         if total + len(block) > _MAX_CONTEXT_CHARS:
             break
         lines.append(block)

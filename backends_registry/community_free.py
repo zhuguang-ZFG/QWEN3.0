@@ -18,6 +18,9 @@ BACKENDS = {
     'free_muyuan_codex': {'url': 'https://muyuan.do/v1/chat/completions', 'key': os.environ.get('FREE_MUYUAN_KEY', ''), 'model': 'codex-auto-review', 'fmt': 'openai', 'timeout': 60, 'caps': ['tool_calls'], 'headers': {'User-Agent': 'Mozilla/5.0'}},
     'free_muyuan_gpt55_compact': {'url': 'https://muyuan.do/v1/chat/completions', 'key': os.environ.get('FREE_MUYUAN_KEY', ''), 'model': 'gpt-5.5-openai-compact', 'fmt': 'openai', 'timeout': 60, 'headers': {'User-Agent': 'Mozilla/5.0'}},
     'free_muyuan_gpt54_compact': {'url': 'https://muyuan.do/v1/chat/completions', 'key': os.environ.get('FREE_MUYUAN_KEY', ''), 'model': 'gpt-5.4-openai-compact', 'fmt': 'openai', 'timeout': 60, 'headers': {'User-Agent': 'Mozilla/5.0'}},
+    'free_muyuan_claude_haiku': {'url': 'https://muyuan.do/v1/chat/completions', 'key': os.environ.get('FREE_MUYUAN_KEY', ''), 'model': 'claude-haiku-4-5-20251001', 'fmt': 'openai', 'timeout': 30, 'caps': ['tool_calls'], 'headers': {'User-Agent': 'Mozilla/5.0'}},
+    'free_muyuan_claude_sonnet': {'url': 'https://muyuan.do/v1/chat/completions', 'key': os.environ.get('FREE_MUYUAN_KEY', ''), 'model': 'claude-sonnet-4-6', 'fmt': 'openai', 'timeout': 60, 'caps': ['tool_calls'], 'headers': {'User-Agent': 'Mozilla/5.0'}},
+    'free_muyuan_claude_opus': {'url': 'https://muyuan.do/v1/chat/completions', 'key': os.environ.get('FREE_MUYUAN_KEY', ''), 'model': 'claude-opus-4-8', 'fmt': 'openai', 'timeout': 90, 'caps': ['tool_calls'], 'headers': {'User-Agent': 'Mozilla/5.0'}},
 
     # ── free_ajiakesi (codehub.ajiakesi.cn) ──
     'free_ajiakesi_gpt54': {'url': 'http://codehub.ajiakesi.cn/v1/chat/completions', 'key': os.environ.get('FREE_AJIAKESI_KEY', ''), 'model': 'gpt-5.4', 'fmt': 'openai', 'timeout': 60, 'caps': ['tool_calls'], 'headers': {'User-Agent': 'Mozilla/5.0'}},
