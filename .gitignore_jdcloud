@@ -1,0 +1,25 @@
+# 京东云增强项目 Git 忽略文件
+
+# 敏感信息
+redis_password.txt
+*.backup
+*.backup.*
+.env
+.env.*
+
+# 临时文件
+*.log
+*.tmp
+__pycache__/
+*.pyc
+*.pyo
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+

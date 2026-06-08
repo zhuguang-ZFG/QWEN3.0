@@ -8,7 +8,7 @@ import sys
 import httpx
 
 BASE_URL = "http://127.0.0.1:8090"
-API_KEY = "xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw"
+API_KEY = os.environ.get("LIMA_API_KEY", "")
 
 
 async def test_thinking_mode():

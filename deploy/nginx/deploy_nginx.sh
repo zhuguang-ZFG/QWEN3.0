@@ -14,6 +14,13 @@ SCP="scp -i $SSH_KEY -o StrictHostKeyChecking=no"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONF_DIR="/etc/nginx/conf.d"
 BACKUP_TS="$(date +%Y%m%d_%H%M%S)"
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
+
+if [[ -z "${LIMA_API_KEY:-}" ]]; then
+    echo "ERROR: LIMA_API_KEY is required to render nginx Authorization headers."
+    exit 1
+fi
 
 echo "=== LiMa Nginx Deploy ==="
 echo "Source: $SCRIPT_DIR"
@@ -28,7 +35,9 @@ $SSH "cd $CONF_DIR && for f in chat.donglicao.com.conf www.donglicao.com.conf do
 echo "[2/4] Uploading configs..."
 for conf in chat.donglicao.com.conf www.donglicao.com.conf donglicao.conf lima.257339.xyz.conf; do
     echo "  -> $conf"
-    $SCP "$SCRIPT_DIR/$conf" "$VPS:$CONF_DIR/$conf"
+    rendered="$TMP_DIR/$conf"
+    sed "s/REPLACE_WITH_LIMA_API_KEY/${LIMA_API_KEY//\//\\/}/g" "$SCRIPT_DIR/$conf" > "$rendered"
+    $SCP "$rendered" "$VPS:$CONF_DIR/$conf"
 done
 
 # 3. Test nginx config

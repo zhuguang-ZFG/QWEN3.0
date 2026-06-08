@@ -9,7 +9,7 @@ import time
 import httpx
 
 BASE_URL = "http://localhost:5007"
-API_KEY = os.getenv("LIMA_API_KEY", "xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw")
+API_KEY = os.getenv("LIMA_API_KEY", "")
 OPENCODE_UA = "OpenCode/1.2.0 (Windows NT 10.0; Win64; x64) Node.js/18.17.0"
 
 def test_health():
