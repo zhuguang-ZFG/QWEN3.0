@@ -86,7 +86,6 @@ def _function_call_message(item: dict) -> dict:
 def _convert_content_list(role: str, content: list) -> list[dict]:
     tool_msgs: list[dict] = []
     text_parts: list[str] = []
-    tool_output_parts: list[dict] = []
     for part in content:
         if not isinstance(part, dict):
             continue
@@ -96,20 +95,9 @@ def _convert_content_list(role: str, content: list) -> list[dict]:
         elif ptype == "function_call":
             tool_msgs.append(_function_call_message(part))
         elif ptype == "function_call_output":
-            tool_msgs.append({
-                "role": "tool",
-                "tool_call_id": part.get("call_id", ""),
-                "content": content_to_text(part.get("output", "")),
-            })
-            tool_output_parts.append(part)
+            text_parts.append(tool_output_continuation_text(part))
         elif ptype == "input_image":
             text_parts.append(content_to_text([part]))
-
-    if not text_parts and tool_msgs and all(msg["role"] == "tool" for msg in tool_msgs):
-        content_text = "\n\n".join(
-            tool_output_continuation_text(part) for part in tool_output_parts
-        )
-        return [{"role": "user", "content": content_text}]
 
     msgs: list[dict] = []
     if text_parts:

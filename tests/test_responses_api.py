@@ -162,6 +162,31 @@ def test_responses_content_list_function_call_output_to_user_turn():
     assert "README heading" in chat["messages"][0]["content"]
 
 
+def test_responses_content_list_mixed_tool_output_stays_user_text():
+    body = {
+        "model": "lima-1.3",
+        "input": [{
+            "role": "user",
+            "content": [
+                {"type": "input_text", "text": "Continue after this result."},
+                {
+                    "type": "function_call_output",
+                    "call_id": "call_read_3",
+                    "output": "README heading",
+                },
+            ],
+        }],
+    }
+
+    chat = responses_body_to_chat(body)
+
+    assert len(chat["messages"]) == 1
+    assert chat["messages"][0]["role"] == "user"
+    assert "Continue after this result." in chat["messages"][0]["content"]
+    assert "Tool output for call call_read_3" in chat["messages"][0]["content"]
+    assert all(message["role"] != "tool" for message in chat["messages"])
+
+
 def test_responses_function_call_input_serializes_structured_arguments():
     body = {
         "model": "lima-1.3",
