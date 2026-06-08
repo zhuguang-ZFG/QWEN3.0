@@ -1527,31 +1527,47 @@
 
       var placeholder = document.getElementById('imgPlaceholder');
       var loading = document.getElementById('imgLoading');
+      var loadingText = loading.querySelector('.img-loading-text');
       var output = document.getElementById('imgOutput');
       var btn = document.getElementById('imgBtn');
 
       placeholder.style.display = 'none';
       output.style.display = 'none';
       loading.style.display = 'flex';
+      loadingText.textContent = 'AI 绘图中，请稍候...';
       btn.disabled = true;
 
-      var seed = Math.floor(Math.random() * 100000);
-      var url = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(prompt) + '?width=512&height=512&seed=' + seed;
-
-      var img = new Image();
-      img.onload = function() {
+      // Agnes AI — synchronous, no polling needed
+      fetch('/api/agnes_generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: prompt,
+          model: 'agnes-image-2.1-flash',
+          size: '1024x1024',
+          n: 1
+        })
+      })
+      .then(function(r) {
+        if (!r.ok) return r.json().then(function(e) { throw new Error(e.detail || '生成失败'); });
+        return r.json();
+      })
+      .then(function(data) {
+        if (data.data && data.data.length && data.data[0].url) {
+          loading.style.display = 'none';
+          output.src = data.data[0].url;
+          output.style.display = 'block';
+          btn.disabled = false;
+        } else {
+          throw new Error('未返回图片');
+        }
+      })
+      .catch(function(err) {
         loading.style.display = 'none';
-        output.src = url;
-        output.style.display = 'block';
-        btn.disabled = false;
-      };
-      img.onerror = function() {
-        loading.style.display = 'none';
-        placeholder.textContent = '生成失败，请重试';
+        placeholder.textContent = '生成失败: ' + err.message;
         placeholder.style.display = 'block';
         btn.disabled = false;
-      };
-      img.src = url;
+      });
     }
 
     /* ===== EMAIL DEMO ===== */
@@ -1561,8 +1577,13 @@
       var btn = document.getElementById('emailSubmit');
       var resp = document.getElementById('emailResponse');
 
-      if (!email || !message) {
-        resp.textContent = '请填写邮箱和邮件内容';
+      if (!email) {
+        resp.textContent = '请填写你的邮箱地址';
+        resp.className = 'email-response show error';
+        return;
+      }
+      if (!message) {
+        resp.textContent = '请填写邮件内容';
         resp.className = 'email-response show error';
         return;
       }
@@ -1572,20 +1593,26 @@
       resp.className = 'email-response';
       resp.textContent = '';
 
+      var controller = new AbortController();
+      var timeout = setTimeout(function() { controller.abort(); }, 60000);
+
       fetch('/api/demo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'lima',
           messages: [
-            { role: 'system', content: '你是 LiMa 力码 AI 助手，由深圳市动力巢科技有限公司开发。用户通过官网邮件Demo功能向你提问，请简洁专业地回答。用户邮箱：' + email },
+            { role: 'system', content: '你是 LiMa 力码 AI 助手，由深圳市动力巢科技有限公司开发。用户通过官网邮件Demo功能向你提问，请简洁专业地回答。用户的联系邮箱是：' + email + '。如果用户的问题需要后续回复，提醒用户你会通过邮件联系。' },
             { role: 'user', content: message }
           ],
+          max_tokens: 1024,
           stream: false
-        })
+        }),
+        signal: controller.signal
       })
       .then(function(r) {
-        if (!r.ok) throw new Error('HTTP ' + r.status);
+        clearTimeout(timeout);
+        if (!r.ok) throw new Error('服务器返回 ' + r.status + '，请稍后重试');
         return r.json();
       })
       .then(function(data) {
@@ -1595,14 +1622,21 @@
           reply = data.choices[0].message.content;
         } else if (data.reply) {
           reply = data.reply;
+        } else if (data.error) {
+          throw new Error(typeof data.error === 'string' ? data.error : data.error.message || '未知错误');
         } else {
           reply = JSON.stringify(data);
         }
         resp.textContent = reply;
       })
       .catch(function(err) {
+        clearTimeout(timeout);
         resp.className = 'email-response show error';
-        resp.textContent = '请求失败: ' + err.message;
+        if (err.name === 'AbortError') {
+          resp.textContent = '请求超时，AI 正在处理中，请稍后重试';
+        } else {
+          resp.textContent = '请求失败: ' + err.message;
+        }
       })
       .finally(function() {
         btn.classList.remove('loading');

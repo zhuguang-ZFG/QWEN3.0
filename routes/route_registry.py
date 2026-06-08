@@ -57,6 +57,18 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
     app.include_router(images_router)
     _ = build_pollinations_url  # imported for server-side image intent handling
 
+    from routes.st236600_proxy import router as st236600_router
+
+    app.include_router(st236600_router)
+
+    from routes.agnes_proxy import router as agnes_router
+
+    app.include_router(agnes_router)
+
+    from routes.jina_embedding import router as jina_router
+
+    app.include_router(jina_router)
+
     import routes.chat_endpoints as chat_endpoints_mod
     from routes.chat_endpoints import router as chat_endpoints_router
 
