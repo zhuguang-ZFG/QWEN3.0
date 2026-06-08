@@ -59,4 +59,4 @@
 - [x] Run focused checks for docs/ignore hygiene.
 - [x] Run `git diff --check` and staged secret scan.
 - [x] Stage only JDCloud hygiene files.
-- [ ] Commit and push GitHub `origin`; record that this checkout still has no Gitee remote if unchanged.
+- [x] Commit and push GitHub `origin`; record that this checkout still has no Gitee remote if unchanged.
