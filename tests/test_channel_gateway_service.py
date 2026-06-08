@@ -6,14 +6,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 os.environ["LIMA_CHANNEL_ID_SALT"] = "test-salt-for-channel-tests"
 
+from channel_gateway.constants import TIP_FOOTER
 from channel_gateway.models import (
     BindingStatus,
     InboundMessage,
 )
-from channel_gateway.service import (
-    _TIP_FOOTER,
-    ChannelService,
-)
+from channel_gateway.service import ChannelService
 from channel_gateway.store import ChannelStore
 
 
@@ -196,7 +194,7 @@ class TestChannelServiceGuestLifecycle:
         text = reply.reply["text"]
         assert "LiMa" in text
         assert "/menu" in text
-        assert _TIP_FOOTER not in text
+        assert TIP_FOOTER not in text
 
     # -- Owner-Only Rejection -------------------------------------------
 
