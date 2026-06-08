@@ -50,6 +50,9 @@ Agent Worker path.
   - full `pytest -q` was attempted and timed out after about 350 seconds with
     many pre-existing failures/errors and a Windows temp cleanup `WinError 5`;
     the retirement-focused target suite passed.
+  - GitHub push completed on `origin/feat/kilo-provider-probe`; Gitee mirror
+    push was not available because this checkout has no `gitee` remote and
+    `origin` has only a GitHub push URL.
 
 ## 2026-05-31 bounded telemetry JSONL closeout
 

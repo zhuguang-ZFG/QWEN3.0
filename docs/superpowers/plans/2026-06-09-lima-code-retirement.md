@@ -97,7 +97,9 @@ git diff --check
 - [x] Run broader local validation appropriate to the changed production files.
 - [x] Deploy changed server files to VPS, restart `lima-router`, and verify `/health`.
 - [x] Record local and VPS evidence in `progress.md` and `findings.md`.
-- [x] Stage only retirement-related files, commit, and push to `origin` and `gitee`.
+- [x] Stage only retirement-related files, commit, and push to `origin`;
+  Gitee mirror push was not available because this checkout has no `gitee`
+  remote and `origin` has only a GitHub push URL.
 
 ## Closeout Evidence
 
@@ -126,3 +128,7 @@ git diff --check
   authenticated `model=code` chat HTTP `200` with marker `agent-worker-retirement-ok`,
   and `/agent/worker/preflight` HTTP `200`, `ready=true`,
   `contract_version=agent-task-v1+prompt-contract-v0.1`.
+- Git closeout:
+  pushed commit `e528635` to GitHub `origin/feat/kilo-provider-probe`;
+  Gitee mirror push was not attempted because no `gitee` remote or dual push URL
+  is configured in this checkout.
