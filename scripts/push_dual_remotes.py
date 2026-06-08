@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Push to GitHub (origin) then Gitee mirror; alert on failure (GI-G-1)."""
+"""Push to GitHub (origin) then Gitee mirror; report failures to stderr."""
 
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ def main() -> int:
         help="Comma-separated remote names (default: origin,gitee)",
     )
     parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--notify", action="store_true", help="Telegram alert on failure")
+    parser.add_argument("--notify", action="store_true", help="Print failure summary to stderr")
     args = parser.parse_args()
 
     repo = Path(args.repo)
@@ -70,15 +70,7 @@ def main() -> int:
             failures.append(f"{name}: {detail[:200]}")
 
     if failures and args.notify:
-        try:
-            import telegram_notify
-
-            telegram_notify.notify_ops_event(
-                "Git dual-remote push failed\n" + "\n".join(failures),
-                level="critical",
-            )
-        except Exception:
-            pass  # scripts/push_dual_remotes.py
+        print("Git dual-remote push failed\n" + "\n".join(failures), file=sys.stderr)
 
     return 1 if failures else 0
 

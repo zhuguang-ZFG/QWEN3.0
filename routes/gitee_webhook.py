@@ -1,4 +1,4 @@
-"""Gitee webhook endpoint — push/MR summaries to Telegram."""
+"""Gitee webhook endpoint for push/MR ingestion and activity records."""
 
 from __future__ import annotations
 
@@ -94,14 +94,13 @@ async def gitee_webhook(request: Request):
         return {"ok": True, "ignored": True}
 
     try:
-        from telegram_notify import notify_gitee_event
         from gitee_webhook.activity import classify_gitee_event
         from webhook_activity_buffer import record_webhook_event
 
         kind, repo = classify_gitee_event(event, payload)
         record_webhook_event(source="gitee", kind=kind, repo=repo)
-        notify_gitee_event(summary)
+        logger.info("gitee webhook event recorded event=%s repo=%s", event, repo)
     except Exception:
-        logger.exception("gitee webhook telegram notify failed event=%s", event)
+        logger.exception("gitee webhook activity record failed event=%s", event)
 
     return {"ok": True, "event": event or hook}

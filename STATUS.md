@@ -1,11 +1,23 @@
 # LiMa Status
 
-> Updated: 2026-06-09 (LiMa Code CLI retirement closeout)
+> Updated: 2026-06-09 (Telegram retirement closeout)
 > Branch: `main`
-> Tests: focused retirement pytest **116 passed, 1 warning**; focused pyright **0 errors**; active tracked ruff clean
-> Current VPS: LiMa Code retirement runtime deployed; public `/health` 200; authenticated `model=code` chat and Agent Worker preflight smoke passed
-> VPS rollback: `/opt/lima-router/backups/lima-code-retirement-20260609_020314/runtime-before.tgz`
+> Tests: Telegram focused pytest **112 passed, 1 warning**; JSON/retirement supplement **9 passed, 1 warning**; full CI-style pytest attempted **2046 passed, 10 skipped, 8 unrelated failures**
+> Current VPS: Telegram bot/operator runtime removed; `/health` reports `modules.telegram=false`; public `/telegram/webhook` returns 404; authenticated `model=code` chat returns 200
+> VPS rollback: `/opt/lima-router/backups/telegram-retirement-20260609_031429/runtime-before.tgz`
 > Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
+
+## 2026-06-09 Telegram Retirement Closeout
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| Runtime removal | Done | `/telegram` router registration is removed; startup no longer imports `routes.telegram`; health exposes `telegram=false` through `channel_retirement.py` |
+| Notification coupling | Done | GitHub/Gitee webhooks now record internal activity only; Agent Task review, Device Gateway phases, budgets, health, eval, deploy, and token health now log instead of importing Telegram helpers |
+| File retirement | Done | Telegram root modules, `routes/telegram*.py`, Telegram deploy/smoke scripts, Telegram tests, and deploy workflow Telegram curl notifications are removed locally and from VPS runtime |
+| Local verification | Done | focused pytest `112 passed, 1 warning`; supplement `tests/test_json_body_contract.py tests/test_channel_retirement.py` -> `9 passed, 1 warning`; `py_compile` clean; focused ruff clean; pyright `0 errors, 7 dependency-resolution warnings`; `git diff --check` clean |
+| VPS deploy | Done | backup `/opt/lima-router/backups/telegram-retirement-20260609_031429/runtime-before.tgz`; deployed 23 runtime files; deleted remote Telegram-only files; restart active |
+| Public smoke | Done | VPS-local `/health` returned `telegram:false`; public `/health` HTTP `200`; public `POST /telegram/webhook` HTTP `404`; authenticated public `model=code` chat HTTP `200`; deleted-file check returned `0` |
+| Residual local gates | Accepted | CI-style `tests/` run returned `2046 passed, 10 skipped, 8 failed`; failures are outside this slice: backend registry drift, full ruff gate GBK decode, `health_tracker` state assertion drift, and AutoIndexer mtime flake |
 
 ## 2026-06-09 LiMa Code CLI Retirement Closeout
 

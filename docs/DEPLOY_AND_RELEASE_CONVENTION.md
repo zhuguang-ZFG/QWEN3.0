@@ -148,10 +148,9 @@ python scripts/push_dual_remotes.py
 | 核心路由 | `deploy_v3.py` | `curl /health` |
 | 全量 bundle | `deploy_vps_bundle.py` | `curl /health` + `/v1/models` |
 | Agent 任务 | `deploy_prod008_slice.py` | `smoke_prod008_learning_loop_e2e.py` |
-| Telegram | `deploy_telegram_b2b_vps.py` | `smoke_telegram_operator_vps.py` |
 | Webhook | `deploy_github_webhook.py` | `smoke_github_webhook_public.py` |
 | Channel GW | `deploy_channel_gateway.py` | `curl /health` |
-| 可靠性 | `deploy_reliability_ops.py` | `smoke_telegram_outbound.py` |
+| 可靠性 | `deploy_reliability_ops.py` | Healthchecks + `/health` smoke |
 
 ---
 
@@ -161,7 +160,7 @@ python scripts/push_dual_remotes.py
 # VPS 部署
 LIMA_DEPLOY_KEY_PATH=~/.ssh/id_ed25519    # SSH 私钥
 LIMA_DEPLOY_KNOWN_HOSTS=~/.ssh/known_hosts # SSH 主机密钥
-LIMA_DEPLOY_NOTIFY=1                       # 部署通知（Telegram）
+LIMA_DEPLOY_NOTIFY=1                       # 保留兼容开关；Telegram 通知已退役
 
 # VPS 上运行时
 LIMA_DRY_RUN=1                             # 默认关闭真实执行

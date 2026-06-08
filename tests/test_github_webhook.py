@@ -177,8 +177,6 @@ def test_verify_missing_header():
 def gh_env(monkeypatch):
     monkeypatch.setenv("GITHUB_WEBHOOK_ENABLED", "1")
     monkeypatch.setenv("GITHUB_WEBHOOK_SECRET", "gh-secret")
-    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "tok")
-    monkeypatch.setenv("TELEGRAM_CHAT_ID", "123")
 
 
 def test_github_webhook_disabled_acknowledges_without_retry_noise(monkeypatch):
@@ -213,7 +211,7 @@ def test_github_webhook_rejects_bad_signature(gh_env):
     assert response.status_code == 403
 
 
-def test_github_webhook_accepts_push_and_notifies(gh_env):
+def test_github_webhook_accepts_push_and_records_activity(gh_env):
     client = TestClient(server.app)
     payload = {
         "repository": {"full_name": "zhuguang-ZFG/QWEN3.0"},
@@ -222,7 +220,7 @@ def test_github_webhook_accepts_push_and_notifies(gh_env):
         "commits": [{"id": "abc1234567890"}],
     }
     body = json.dumps(payload).encode()
-    with patch("telegram_notify.notify_github_event") as notify:
+    with patch("webhook_activity_buffer.record_webhook_event") as record:
         response = client.post(
             "/github/webhook",
             content=body,
@@ -234,8 +232,8 @@ def test_github_webhook_accepts_push_and_notifies(gh_env):
         )
     assert response.status_code == 200
     assert response.json()["ok"] is True
-    notify.assert_called_once()
-    assert "QWEN3.0" in notify.call_args.args[0]
+    record.assert_called_once()
+    assert record.call_args.kwargs["source"] == "github"
 
 
 def test_github_webhook_repo_allowlist_ignores(gh_env, monkeypatch):
@@ -243,7 +241,7 @@ def test_github_webhook_repo_allowlist_ignores(gh_env, monkeypatch):
     client = TestClient(server.app)
     payload = {"repository": {"full_name": "zhuguang-ZFG/QWEN3.0"}, "ref": "refs/heads/main", "commits": []}
     body = json.dumps(payload).encode()
-    with patch("telegram_notify.notify_github_event") as notify:
+    with patch("webhook_activity_buffer.record_webhook_event") as record:
         response = client.post(
             "/github/webhook",
             content=body,
@@ -254,10 +252,10 @@ def test_github_webhook_repo_allowlist_ignores(gh_env, monkeypatch):
         )
     assert response.status_code == 200
     assert response.json().get("ignored") is True
-    notify.assert_not_called()
+    record.assert_not_called()
 
 
-def test_github_webhook_issue_notifies(gh_env):
+def test_github_webhook_issue_records_activity(gh_env):
     client = TestClient(server.app)
     payload = {
         "action": "opened",
@@ -265,7 +263,7 @@ def test_github_webhook_issue_notifies(gh_env):
         "repository": {"full_name": "zhuguang-ZFG/QWEN3.0"},
     }
     body = json.dumps(payload).encode()
-    with patch("telegram_notify.notify_github_event") as notify:
+    with patch("webhook_activity_buffer.record_webhook_event") as record:
         response = client.post(
             "/github/webhook",
             content=body,
@@ -275,8 +273,8 @@ def test_github_webhook_issue_notifies(gh_env):
             },
         )
     assert response.status_code == 200
-    notify.assert_called_once()
-    assert "Bug" in notify.call_args.args[0]
+    record.assert_called_once()
+    assert record.call_args.kwargs["source"] == "github"
 
 
 def test_github_auto_task_disabled_by_default(gh_env):
@@ -287,16 +285,15 @@ def test_github_auto_task_disabled_by_default(gh_env):
         "repository": {"full_name": "zhuguang-ZFG/QWEN3.0"},
     }
     body = json.dumps(payload).encode()
-    with patch("telegram_notify.notify_github_event"):
-        with patch("routes.agent_task_service.create_task_from_body") as create:
-            response = client.post(
-                "/github/webhook",
-                content=body,
-                headers={
-                    "X-GitHub-Event": "issues",
-                    "X-Hub-Signature-256": _sign(body, "gh-secret"),
-                },
-            )
+    with patch("routes.agent_task_service.create_task_from_body") as create:
+        response = client.post(
+            "/github/webhook",
+            content=body,
+            headers={
+                "X-GitHub-Event": "issues",
+                "X-Hub-Signature-256": _sign(body, "gh-secret"),
+            },
+        )
     assert response.status_code == 200
     create.assert_not_called()
     assert "task_id" not in response.json()

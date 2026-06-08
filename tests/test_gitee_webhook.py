@@ -86,8 +86,6 @@ def test_dedupe_skips_gitee_after_github():
 def gitee_env(monkeypatch):
     monkeypatch.setenv("GITEE_WEBHOOK_ENABLED", "1")
     monkeypatch.setenv("GITEE_WEBHOOK_SECRET", "gitee-secret")
-    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "tok")
-    monkeypatch.setenv("TELEGRAM_CHAT_ID", "123")
 
 
 def test_gitee_webhook_disabled_acknowledges_without_retry_noise(monkeypatch):
@@ -122,7 +120,7 @@ def test_gitee_webhook_rejects_bad_token(gitee_env):
     assert response.status_code == 403
 
 
-def test_gitee_webhook_accepts_push_and_notifies(gitee_env):
+def test_gitee_webhook_accepts_push_and_records_activity(gitee_env):
     client = TestClient(server.app)
     payload = {
         "hook_name": "push_hooks",
@@ -133,7 +131,7 @@ def test_gitee_webhook_accepts_push_and_notifies(gitee_env):
         "sender": {"username": "owner"},
     }
     body = json.dumps(payload).encode()
-    with patch("telegram_notify.notify_gitee_event") as notify:
+    with patch("webhook_activity_buffer.record_webhook_event") as record:
         response = client.post(
             "/gitee/webhook",
             content=body,
@@ -143,8 +141,8 @@ def test_gitee_webhook_accepts_push_and_notifies(gitee_env):
             },
         )
     assert response.status_code == 200
-    notify.assert_called_once()
-    assert "QWEN3.0" in notify.call_args.args[0]
+    record.assert_called_once()
+    assert record.call_args.kwargs["source"] == "gitee"
 
 
 def test_gitee_webhook_dedupes_github_push(gitee_env):
@@ -161,14 +159,14 @@ def test_gitee_webhook_dedupes_github_push(gitee_env):
         "sender": {"username": "owner"},
     }
     body = json.dumps(payload).encode()
-    with patch("telegram_notify.notify_gitee_event") as notify:
+    with patch("webhook_activity_buffer.record_webhook_event") as record:
         response = client.post(
             "/gitee/webhook",
             content=body,
             headers={"X-Gitee-Token": "gitee-secret", "X-Gitee-Event": "Push Hook"},
         )
     assert response.json().get("deduped") is True
-    notify.assert_not_called()
+    record.assert_not_called()
 
 
 def test_extract_push_shas():

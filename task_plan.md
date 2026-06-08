@@ -9,6 +9,11 @@
 > `model="code"`, and generic Agent Task / Agent Worker contracts; do not use
 > `.lima-code` or LiMa Code launchers as active validation paths.
 >
+> Direction update 2026-06-09: Telegram bot/operator support is retired from
+> this repository. `/telegram/*` routes, webhook registration, outbound bot
+> delivery, and Telegram smoke paths must stay removed; validate GitHub/Gitee
+> webhooks through internal activity records and `/telegram/webhook` 404.
+>
 > ## Implementation Plan (2026-05-24)
 >
 > Source: `docs/superpowers/plans/2026-05-24-lima-implementation-review-plan.md`
@@ -158,9 +163,9 @@ Turn the existing LiMa router into a private coding assistant that ranks coding 
   1. Route-test collection restored for the current SQLite-backed task store.
   2. `/agent/tasks/{task_id}/claim` now rejects active running leases and allows expired lease reclaim.
   3. Admin HTML no longer supports query-token login or raw-token JavaScript injection; login uses a signed HttpOnly Secure session cookie.
-- Full local pytest collection now reaches execution but still reports 8 failures outside this slice: request stats, stream footer, and Telegram bot tests.
+- Historical pytest failures around Telegram bot tests are superseded by the 2026-06-09 Telegram retirement slice; active validation should prove the routes and modules remain absent.
 - Continued code review pass closed those 8 failures. Current local suite: `354 passed, 8 skipped`.
-- Remaining non-failing cleanup: migrate `routes/telegram.py` startup from deprecated `on_event`, remove Telegram notify coroutine warnings, and continue hot-path file decomposition.
+- Remaining non-failing cleanup: continue hot-path file decomposition and keep retired channel checks in the route registry.
 - More backends should be re-evaluated as keys, rate limits, and local socket policy failures are fixed.
 - A private access policy for IDE/agent use needs to stay simple and explicit.
 - `/v1/models` remains an explicit private-boundary decision: keep open only if IDE discovery requires it; otherwise apply `require_private_api_key`.

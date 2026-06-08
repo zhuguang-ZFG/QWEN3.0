@@ -56,19 +56,3 @@ jobs:
             echo ">> Health check FAILED"
             journalctl -u lima-router --no-pager -n 10 || true
             exit 1
-
-      - name: Notify Telegram (success)
-        if: success()
-        run: |
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d parse_mode=HTML \
-            -d text="<b>LiMa Deploy OK</b>%0ACommit: <code>${{ github.sha }}</code>%0ABy: ${{ github.actor }}"
-
-      - name: Notify Telegram (failure)
-        if: failure()
-        run: |
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d parse_mode=HTML \
-            -d text="<b>LiMa Deploy FAILED</b>%0ACommit: <code>${{ github.sha }}</code>%0APlease check GitHub Actions logs."

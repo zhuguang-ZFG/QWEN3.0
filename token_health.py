@@ -1,7 +1,7 @@
 """Token Health — validate and monitor API key/token health.
 
 Periodically checks each backend's authentication status.
-Expired tokens trigger Telegram alerts and can be refreshed via token-sync.
+Expired tokens are logged and can be refreshed via token-sync.
 """
 
 from __future__ import annotations
@@ -109,7 +109,7 @@ def save_token_status(results: list[dict]) -> None:
 
 
 def alert_expired_tokens() -> None:
-    """Send Telegram alert for expired tokens."""
+    """Log expired tokens for operator follow-up."""
     expired = get_expired_tokens()
     if not expired:
         return
@@ -119,13 +119,7 @@ def alert_expired_tokens() -> None:
     if len(names) > 5:
         message += f" (+{len(names)-5} more)"
 
-    try:
-        from telegram_notify import notify_health_change
-        for r in expired:
-            notify_health_change(r["backend"], "healthy", "auth_expired")
-    except ImportError:
-        pass
-    except Exception as exc:
-        _log.debug("token_health.py: {}", type(exc).__name__)
+    for r in expired:
+        logger.warning("token expired backend=%s", r["backend"])
 
     logger.warning("Expired tokens: %s", message)

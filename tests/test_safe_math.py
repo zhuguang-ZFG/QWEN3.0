@@ -1,4 +1,4 @@
-"""Tests for bounded math evaluation in Telegram FC tools."""
+"""Tests for bounded math evaluation helper."""
 
 import pytest
 

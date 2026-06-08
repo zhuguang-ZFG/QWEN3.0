@@ -218,11 +218,10 @@ def _save_retirement(backend: str, status: str, reason: str) -> None:
 
 
 def _notify_retirement(backend: str, status: str, reason: str) -> None:
-    """Send Telegram notification about backend retirement."""
-    try:
-        from telegram_notify import notify_health_change
-        notify_health_change(backend, "healthy", status)
-    except ImportError as exc:
-        logger.warning("telegram_notify unavailable; backend retirement notification skipped: %s", exc)
-    except Exception as exc:
-        _log.warning("backend retirement notification failed: %s", type(exc).__name__)
+    """Record backend retirement notification locally."""
+    _log.warning(
+        "backend retired backend=%s status=%s reason=%s",
+        backend,
+        status,
+        reason[:200],
+    )

@@ -22,7 +22,6 @@ def test_embeddings_rejects_malformed_json_after_auth(monkeypatch):
     assert response.status_code == 400
     assert response.json()["error"] == "valid JSON body required"
 
-
 def test_images_rejects_malformed_json_after_auth(monkeypatch):
     monkeypatch.setenv("LIMA_API_KEY", "test-key")
 
@@ -33,8 +32,6 @@ def test_images_rejects_malformed_json_after_auth(monkeypatch):
 
     assert response.status_code == 400
     assert response.json()["error"] == "valid JSON body required"
-
-
 def test_public_demo_rejects_malformed_json(monkeypatch):
     monkeypatch.setenv("LIMA_PUBLIC_DEMO_ENABLED", "1")
     public_demo._public_demo_hits.clear()
@@ -87,20 +84,6 @@ def test_outcome_ingest_rejects_malformed_json_after_auth(monkeypatch):
     response = _post_malformed(
         "/internal/v1/outcome",
         headers={"Authorization": "Bearer test-key"},
-    )
-
-    assert response.status_code == 400
-    assert response.json()["error"] == "valid JSON body required"
-
-
-def test_telegram_webhook_rejects_malformed_json_after_secret(monkeypatch):
-    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test-token-123")
-    monkeypatch.setenv("TELEGRAM_CHAT_ID", "987654321")
-    monkeypatch.setenv("TELEGRAM_WEBHOOK_SECRET", "hook-secret")
-
-    response = _post_malformed(
-        "/telegram/webhook",
-        headers={"x-telegram-bot-api-secret-token": "hook-secret"},
     )
 
     assert response.status_code == 400

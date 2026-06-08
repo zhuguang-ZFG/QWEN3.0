@@ -1,6 +1,6 @@
 # LiMa Memory
 
-> **Updated: 2026-06-09 (LiMa Code CLI retirement closeout)**
+> **Updated: 2026-06-09 (Telegram retirement closeout)**
 > **Branch:** `main` - **HEAD:** pending closeout push
 > **Latest authority:** `STATUS.md`, `progress.md`, `findings.md`, `docs/DOCUMENTATION_STATUS.md`
 
@@ -10,6 +10,39 @@
 > **本文件：** 跨会话 durable 事实；计划 checkbox 以状态文档为准。
 
 ---
+
+## 2026-06-09 Telegram Retirement Snapshot
+
+- Current direction: Telegram bot/operator support is retired from LiMa Server.
+  Do not revive `/telegram/*`, webhook registration, outbound bot delivery, or
+  Telegram-specific deploy/smoke scripts without an explicit direction change.
+- Runtime state:
+  - `channel_retirement.py` marks `telegram=false` in health output;
+  - `server_lifespan.py` no longer starts Telegram webhook/digest runtime;
+  - `routes/route_registry.py` no longer registers `routes.telegram`;
+  - GitHub/Gitee webhooks keep internal activity recording but do not send
+    Telegram messages;
+  - Agent Task review, Device Gateway phases, budgets, health/token alerts,
+    eval notify, and deploy helpers now log or record locally.
+- Repository state:
+  - Telegram root modules, `routes/telegram*.py`, Telegram tests, and
+    Telegram deploy/smoke scripts were removed;
+  - active docs and env examples now describe Telegram as retired.
+- Verification:
+  - focused pytest: `112 passed, 1 warning`;
+  - supplement: `tests/test_json_body_contract.py tests/test_channel_retirement.py`
+    -> `9 passed, 1 warning`;
+  - py_compile and focused ruff clean; pyright `0 errors` with dependency
+    resolution warnings only;
+  - CI-style full pytest attempted: `2046 passed, 10 skipped, 8 unrelated
+    failures`.
+- VPS evidence:
+  - rollback backup:
+    `/opt/lima-router/backups/telegram-retirement-20260609_031429/runtime-before.tgz`;
+  - deployed 23 runtime files and removed remote Telegram-only files;
+  - VPS-local `/health` reports `modules.telegram=false`;
+  - public `/health=200`, public `POST /telegram/webhook=404`, authenticated
+    public `model=code` chat HTTP `200`.
 
 ## 2026-06-09 LiMa Code Retirement Snapshot
 

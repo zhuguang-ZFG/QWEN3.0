@@ -12,6 +12,9 @@ docs, active logs, and how to treat historical plan files. Use
 ## Latest Closeout
 
 - 2026-06-09 LiMa Code CLI retirement closeout is deployed.
+- 2026-06-09 Telegram bot/operator retirement is deployed. `/telegram`
+  route registration and remote Telegram runtime files are removed; public
+  `POST /telegram/webhook` returns 404.
 - `deepcode-cli` is no longer a tracked submodule of the main LiMa repository.
 - Verification evidence lives in `STATUS.md`, `progress.md`, and `findings.md`:
   focused retirement pytest (`116 passed`), focused pyright (`0 errors`),
@@ -45,6 +48,7 @@ docs, active logs, and how to treat historical plan files. Use
 | `docs/ONLINE_DISTRIBUTIONS.md` | Active | Source of truth for VPS-hosted official website, open platform, chat interface, FRP endpoint, nginx edge, and service ownership. |
 | `docs/OPS_ENTRYPOINTS.md` | Compatibility record | Original FreeDomain-inspired ops-entrypoint plan file; points to `docs/ONLINE_DISTRIBUTIONS.md` as the expanded source of truth. |
 | `docs/superpowers/plans/2026-06-09-lima-code-retirement.md` | Active retirement record | Source of truth for the LiMa Code / `deepcode-cli` retirement slice and closeout evidence. |
+| `docs/superpowers/plans/2026-06-09-telegram-retirement.md` | Active retirement record | Source of truth for removing Telegram bot/operator routes, runtime files, deploy scripts, and tests. |
 | `docs/ESP32S_XYZ_MANAGEMENT.md` | Active | Source of truth for esp32S_XYZ submodule governance, LiMa backend boundaries, and cross-repo product verification. |
 | `docs/ESP32S_XYZ_OPTIMIZATION_ROADMAP.md` | Active | Optimization and refactor mandate for LiMa-led esp32S_XYZ improvement work. |
 | `docs/superpowers/plans/2026-05-24-lima-direct-device-gateway.md` | Active plan | Direct U8-to-LiMa Device Gateway plan; public route is deployed and now uses Redis-backed task queues plus pub/sub session-owner notification on VPS. |
@@ -69,13 +73,13 @@ docs, active logs, and how to treat historical plan files. Use
 | `docs/superpowers/plans/2026-05-22-complete-open-phases.md` | Active record | Completed closeout plan for IDE verification, free web AI admission, and routing optimization. |
 | `docs/superpowers/plans/2026-05-22-free-model-first-tier-eval.md` | Active record | Completed SCNet/Kimi first-tier evaluation plan. |
 | `docs/superpowers/plans/2026-05-22-personal-coding-assistant-eval.md` | Active record | Completed coding backend evaluation plan. |
-| `docs/superpowers/plans/2026-05-26-telegram-github-maximization.md` | **Active plan (P0 closeout)** | Telegram Operator + GitHub 事件；TG-GH-1~3 已 closeout。 |
-| `docs/superpowers/plans/2026-05-26-five-line-closeout.md` | **Active plan (P0 主线)** | Telegram/GitHub/Gitee/CF/Google 五线 closeout；生产力计划后置。 |
+| `docs/superpowers/plans/2026-05-26-telegram-github-maximization.md` | Retired record | Superseded by the 2026-06-09 Telegram retirement slice. |
+| `docs/superpowers/plans/2026-05-26-five-line-closeout.md` | Historical record | Telegram portions are retired; retain only GitHub/Gitee/CF/Google evidence. |
 | `docs/superpowers/plans/2026-05-26-lima-productivity-enhancement.md` | **Deferred (P2)** | 六能力；待五线 closeout 后再启。 |
-| `docs/superpowers/plans/2026-05-26-gitee-maximization.md` | **Active plan (P1)** | Gitee 镜像 + Webhook→Telegram + 模力方舟 AI + Pages；GI-G-3 blocked on resource pack。 |
-| `docs/superpowers/plans/2026-05-26-cloudflare-google-maximization.md` | **Active plan (P1)** | Cloudflare Workers AI + Google Gemini 免费额度盘点、预算、扩容与路由；次于 TG-GH-2。 |
+| `docs/superpowers/plans/2026-05-26-gitee-maximization.md` | Active plan (P1) | Gitee 镜像 + Webhook activity + 模力方舟 AI + Pages；GI-G-3 blocked on resource pack。 |
+| `docs/superpowers/plans/2026-05-26-cloudflare-google-maximization.md` | Active plan (P1) | Cloudflare Workers AI + Google Gemini 免费额度盘点、预算、扩容与路由；operator notification paths must not depend on Telegram. |
 | `docs/GITEE_BASELINE.md` | Active | GI-G-0 Gitee mirror baseline and event comparison. |
-| `docs/GITEE_WEBHOOK_INTEGRATION.md` | Active | GI-G-2 Gitee WebHook → Telegram + SHA dedupe. |
+| `docs/GITEE_WEBHOOK_INTEGRATION.md` | Retired/deleted | Old WebHook → Telegram doc is superseded by webhook activity recording tests. |
 | `docs/GITEE_MIRROR_RUNBOOK.md` | Active | GI-G-1 dual-remote push runbook. |
 | `docs/superpowers/plans/2026-05-26-lima-task-prompt-contract-v0.1.md` | Active Agent Worker contract record | Prompt Contract v0.1 remains useful for generic Agent Task / Agent Worker flows; LiMa Code CLI execution is retired. |
 | `docs/HEALTHCHECKS_SETUP.md` | Active | INF-B Healthchecks dead-man；login `/accounts/login/`；lima-vps-router live。 |
@@ -83,7 +87,7 @@ docs, active logs, and how to treat historical plan files. Use
 | `docs/FREE_RESOURCE_RADAR_MERGED.md` | Active radar | 免费资源索引 + **LiMa 状态列**；执行顺序见 `NEXT_MILESTONES.md`。 |
 | `docs/superpowers/plans/2026-05-26-lima-code-opencode-orchestration.md` | Retired/deleted | Superseded by the 2026-06-09 LiMa Code retirement closeout. |
 | `docs/superpowers/plans/2026-05-26-provider-model-automation-full-plan.md` | **Archived plan** | 免费模型发现/验证/准入完整方案；CF-G-2 与 PA-B 合并。 |
-| `docs/GITHUB_WEBHOOK_INTEGRATION.md` | Active | CQ-GH-001 webhook → Telegram；VPS smoke 2026-05-26。 |
+| `docs/GITHUB_WEBHOOK_INTEGRATION.md` | Retired/deleted | Old webhook → Telegram doc is superseded by GitHub webhook route/activity tests. |
 | `docs/PROVIDER_MODEL_AUTOMATION_PLAN.md` | Active policy | 模型发现策略与状态机；实施细节见 archived full plan。 |
 
 ## Historical Or Paused
@@ -112,10 +116,11 @@ These files are retained as reference, but they are not the current execution di
 6. When reporting tests, distinguish LiMa target-suite results from unrestricted full-repo pytest collection.
 7. Treat VPS public surfaces as tracked LiMa distributions; update `docs/ONLINE_DISTRIBUTIONS.md`, `infra/vps/`, `STATUS.md`, `docs/LIMA_MEMORY.md`, and `progress.md` when they change.
 8. Do not treat `deepcode-cli` as an active tracked submodule. LiMa Code CLI is retired from this repo; use generic Agent Task / Agent Worker contracts and update `STATUS.md`, `docs/LIMA_MEMORY.md`, and `progress.md` when those server contracts change.
-9. Treat `esp32S_XYZ` as the tracked downstream hardware/product submodule; update `docs/ESP32S_XYZ_MANAGEMENT.md`, `STATUS.md`, `docs/LIMA_MEMORY.md`, and `progress.md` when its pinned revision or LiMa backend contract changes.
-10. Treat MCP connectors as authority-bearing access paths, not simple prompts. Check `docs/reference/MCP_CONNECTOR_CATALOG.md` before enabling any new MCP server.
-11. Treat `docs/reference/AI_ENGINEERING_COMPETENCY_MAP_2026.md` as the baseline production-AI checklist before expanding model, agent, memory, eval, cost, or deployment features.
-12. Device Gateway production state is Redis HA on VPS; update `docs/superpowers/plans/2026-05-25-lima-device-gateway-ha.md` and `scripts/smoke_online_distributions.py` when changing Redis, worker count, or public port guards.
-13. Treat productivity and productization as the global decision filter. Prefer fixes that improve real coding or hardware execution loops over decorative features, speculative integrations, or broad rewrites.
-14. When reconciling "what is left to do", read `docs/NEXT_MILESTONES.md` first; do not treat unchecked boxes in `docs/superpowers/plans/` as open work.
-15. WeChat product goals are closed; do not revive `scripts/archive/wechat_retired/` paths without an explicit user direction change.
+9. Do not revive Telegram bot/operator support. `/telegram/*`, webhook registration, outbound bot delivery, and Telegram-specific deploy/smoke scripts are retired; validate replacement flows through GitHub/Gitee activity, Agent Task, and `/telegram/webhook` 404 evidence.
+10. Treat `esp32S_XYZ` as the tracked downstream hardware/product submodule; update `docs/ESP32S_XYZ_MANAGEMENT.md`, `STATUS.md`, `docs/LIMA_MEMORY.md`, and `progress.md` when its pinned revision or LiMa backend contract changes.
+11. Treat MCP connectors as authority-bearing access paths, not simple prompts. Check `docs/reference/MCP_CONNECTOR_CATALOG.md` before enabling any new MCP server.
+12. Treat `docs/reference/AI_ENGINEERING_COMPETENCY_MAP_2026.md` as the baseline production-AI checklist before expanding model, agent, memory, eval, cost, or deployment features.
+13. Device Gateway production state is Redis HA on VPS; update `docs/superpowers/plans/2026-05-25-lima-device-gateway-ha.md` and `scripts/smoke_online_distributions.py` when changing Redis, worker count, or public port guards.
+14. Treat productivity and productization as the global decision filter. Prefer fixes that improve real coding or hardware execution loops over decorative features, speculative integrations, or broad rewrites.
+15. When reconciling "what is left to do", read `docs/NEXT_MILESTONES.md` first; do not treat unchecked boxes in `docs/superpowers/plans/` as open work.
+16. WeChat product goals are closed; do not revive `scripts/archive/wechat_retired/` paths without an explicit user direction change.

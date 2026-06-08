@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 
 import http_caller
 import probe_loop
+from channel_retirement import retire_telegram_webhook_from_env
 
 _log = logging.getLogger(__name__)
 
@@ -56,12 +57,7 @@ async def lifespan(application):
         await start_daemon()
     except ImportError:
         _log.debug("session_memory.daemon not installed")
-    try:
-        from routes.telegram import start_telegram_webhook
-
-        await start_telegram_webhook()
-    except ImportError:
-        _log.debug("routes.telegram not installed")
+    await retire_telegram_webhook_from_env()
     try:
         from routes.device_gateway import start_device_gateway_runtime
 

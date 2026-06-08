@@ -4,6 +4,61 @@
 
 > Updated: 2026-06-09
 
+## 2026-06-09 Telegram retirement closeout
+
+**Goal:** fully retire the Telegram bot/operator surface while preserving
+LiMa Server, Agent Task / Agent Worker, GitHub/Gitee webhook ingestion,
+Device Gateway, and public coding API productivity.
+
+- Implementation:
+  - removed `/telegram` router registration and lifespan startup wiring;
+  - added `channel_retirement.py` so health explicitly reports
+    `modules.telegram=false` and legacy bot webhook cleanup is centralized;
+  - replaced Telegram push hooks in GitHub/Gitee webhooks, Agent Task review,
+    Device Gateway task phases, budgets, health/token alerts, eval notify, and
+    deploy helpers with internal activity records or structured logs;
+  - removed Telegram runtime modules, route modules, tests, deploy/smoke
+    scripts, GitHub Actions Telegram curl notifications, and active env
+    examples;
+  - updated active project rules and docs so future work validates
+    `/telegram/webhook` 404 instead of real Telegram messages.
+- Local verification:
+  - focused Telegram-retirement pytest:
+    `112 passed, 1 warning`;
+  - JSON/retirement supplement:
+    `tests/test_json_body_contract.py tests/test_channel_retirement.py` ->
+    `9 passed, 1 warning`;
+  - `python -m py_compile` on touched runtime files: clean;
+  - focused `ruff check` on touched runtime/tests: clean;
+  - focused `pyright`: `0 errors`, `7 warnings` for local dependency
+    resolution (`fastapi`/`httpx`) only;
+  - `git diff --check`: clean;
+  - local TestClient smoke: `/health=200`, `/telegram/webhook=404`,
+    `loaded_modules.telegram=False`.
+- Broad test signal:
+  - CI-style `tests/` run with the documented ignores completed:
+    `2046 passed, 10 skipped, 8 failed in 287.60s`;
+  - failures are outside the Telegram slice:
+    backend registry drift, full ruff gate GBK decode, `health_tracker`
+    state assertion drift, and AutoIndexer mtime detection flake.
+- VPS deploy and smoke:
+  - backup:
+    `/opt/lima-router/backups/telegram-retirement-20260609_031429/runtime-before.tgz`;
+  - deployed 23 runtime files with `scripts/deploy_unified.py --files`;
+  - removed backed-up remote Telegram-only files and Telegram pycache;
+  - service restart is active;
+  - VPS-local `/health` returned `modules.telegram=false`;
+  - public `/health` returned HTTP `200`;
+  - public `POST /telegram/webhook` returned HTTP `404`;
+  - authenticated public `model=code` chat returned HTTP `200`;
+  - remote deleted-file check returned `0`.
+- Residual risk:
+  - Cloudflare Worker source `deploy/lima_security_gateway.js` is updated
+    locally, but public `/telegram/webhook=404` already proves the active
+    public path is closed through the current edge/origin chain;
+  - full-suite residual failures should be closed in a separate backend
+    registry / CI hygiene slice, not mixed into Telegram retirement.
+
 ## 2026-06-09 LiMa Code CLI retirement closeout
 
 **Goal:** retire the tracked LiMa Code / `deepcode-cli` CLI integration from

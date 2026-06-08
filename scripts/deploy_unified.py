@@ -89,9 +89,6 @@ SLICE_FILES = {
         "context_pipeline/code_context_injection.py",
         "routing_engine.py",
         "routing_selector.py",
-        "routes/telegram_dev_skills.py",
-        "routes/telegram_dispatch.py",
-        "routes/telegram_quick_menu.py",
     ],
     "phase_b": [
         "context_pipeline/response_validator.py",

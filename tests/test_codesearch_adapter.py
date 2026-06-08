@@ -35,11 +35,11 @@ def test_search_local_code_success(monkeypatch, tmp_path: Path):
 
     class Proc:
         returncode = 0
-        stdout = '[{"path":"routes/telegram.py","snippet":"webhook"}]'
+        stdout = '[{"path":"routes/github_webhook.py","snippet":"webhook"}]'
         stderr = ""
 
     monkeypatch.setattr(mod, "_binary", lambda: "codesearch")
     monkeypatch.setattr(mod.subprocess, "run", lambda *a, **k: Proc())
-    result = mod.search_local_code("telegram webhook", path_hint=str(tmp_path))
+    result = mod.search_local_code("github webhook", path_hint=str(tmp_path))
     assert result["ok"] is True
-    assert result["results"][0]["path"] == "routes/telegram.py"
+    assert result["results"][0]["path"] == "routes/github_webhook.py"

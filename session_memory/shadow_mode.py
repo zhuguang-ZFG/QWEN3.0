@@ -177,7 +177,7 @@ def scan_for_candidates() -> list[CandidateImprovement]:
 def format_digest(candidates: list[CandidateImprovement] | None = None) -> str:
     """Generate a human-readable learning digest.
 
-    Returns markdown text suitable for Telegram or daily report.
+    Returns markdown text suitable for daily reports.
     """
     if candidates is None:
         candidates = scan_for_candidates()

@@ -1,4 +1,4 @@
-"""Codesearch MCP status probe for Telegram operators."""
+"""Codesearch MCP status probe for local operators."""
 
 from __future__ import annotations
 

@@ -35,10 +35,18 @@ if "limit_req zone=agent" not in content:
     )
     changed = True
 
-if "limit_req zone=webhook" not in content:
+if "location ^~ /github/" in content and "location ^~ /github/ {\n        limit_req zone=webhook" not in content:
     content = content.replace(
-        "location ^~ /telegram/ {",
-        "location ^~ /telegram/ {\n        limit_req zone=webhook burst=20 nodelay;",
+        "location ^~ /github/ {",
+        "location ^~ /github/ {\n        limit_req zone=webhook burst=20 nodelay;",
+        1,
+    )
+    changed = True
+
+if "location ^~ /gitee/" in content and "location ^~ /gitee/ {\n        limit_req zone=webhook" not in content:
+    content = content.replace(
+        "location ^~ /gitee/ {",
+        "location ^~ /gitee/ {\n        limit_req zone=webhook burst=20 nodelay;",
         1,
     )
     changed = True

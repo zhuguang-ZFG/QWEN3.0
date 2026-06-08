@@ -1,4 +1,4 @@
-"""Tests for deploy_common TG-GH-6 helpers."""
+"""Tests for deploy_common helpers."""
 
 from __future__ import annotations
 
@@ -46,21 +46,16 @@ def test_configure_ssh_host_keys_loads_extra_known_hosts(monkeypatch):
     ssh.load_host_keys.assert_called_once_with(r"C:\known_hosts")
 
 
-def test_notify_telegram_vps_skipped_when_disabled(monkeypatch):
+def test_notify_operator_vps_skipped_when_disabled(monkeypatch):
     monkeypatch.setenv("LIMA_DEPLOY_NOTIFY", "0")
     ssh = MagicMock()
-    assert deploy_common.notify_telegram_vps(ssh, "hello") is False
+    assert deploy_common.notify_operator_vps(ssh, "hello") is False
     ssh.exec_command.assert_not_called()
 
 
-def test_notify_telegram_vps_calls_remote(monkeypatch):
+def test_notify_operator_vps_retired_does_not_call_remote(monkeypatch):
     monkeypatch.setenv("LIMA_DEPLOY_NOTIFY", "1")
     ssh = MagicMock()
-    stdout = MagicMock()
-    stdout.read.return_value = b"notify_ok\n"
-    stderr = MagicMock()
-    stderr.read.return_value = b""
-    ssh.exec_command.return_value = (None, stdout, stderr)
     ok = deploy_common.notify_deploy_success(ssh, "test_slice", service="active")
-    assert ok is True
-    assert ssh.exec_command.called
+    assert ok is False
+    ssh.exec_command.assert_not_called()

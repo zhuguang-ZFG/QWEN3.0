@@ -1,4 +1,4 @@
-"""Notification module: Telegram alerts for newly discovered providers."""
+"""Notification module for newly discovered providers."""
 
 import logging
 import os
@@ -6,42 +6,14 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-TELEGRAM_BOT_TOKEN = os.environ.get("LIMA_TELEGRAM_BOT_TOKEN", "")
-TELEGRAM_CHAT_ID = os.environ.get("LIMA_TELEGRAM_CHAT_ID", "")
-
-
-async def send_telegram(message: str) -> bool:
-    """Send a Telegram notification via bot API."""
-    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        logger.info("Telegram not configured, skipping notification")
-        return False
-
-    try:
-        import httpx
-
-        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.post(
-                url,
-                json={
-                    "chat_id": TELEGRAM_CHAT_ID,
-                    "text": message,
-                    "parse_mode": "HTML",
-                    "disable_web_page_preview": True,
-                },
-            )
-            if resp.status_code == 200:
-                logger.info("Telegram notification sent")
-                return True
-            logger.debug("Telegram send failed: HTTP %d", resp.status_code)
-            return False
-    except Exception as exc:
-        logger.warning("Telegram notification error: %s", type(exc).__name__)
-        return False
+async def record_notification(message: str) -> bool:
+    """Record provider-discovery notification locally."""
+    logger.info("provider discovery notification: %s", message[:500])
+    return True
 
 
 def format_discovery_summary(summary: dict) -> str:
-    """Format a discovery summary into a readable Telegram message.
+    """Format a discovery summary into a readable message.
 
     Args:
         summary: Output from discovery.scheduler.run_all_discovery()
@@ -87,9 +59,9 @@ def format_discovery_summary(summary: dict) -> str:
 
 
 async def notify_discovery(summary: dict) -> bool:
-    """Send discovery results via Telegram.
+    """Record discovery results.
 
-    Only sends if new providers were found.
+    Only records if new providers were found.
     """
     new_count = summary.get("new_count", 0)
     if new_count == 0:
@@ -97,7 +69,7 @@ async def notify_discovery(summary: dict) -> bool:
         return True
 
     message = format_discovery_summary(summary)
-    return await send_telegram(message)
+    return await record_notification(message)
 
 
 async def notify_new_provider(provider: dict) -> bool:
@@ -121,4 +93,4 @@ async def notify_new_provider(provider: dict) -> bool:
     lines.append("")
     lines.append("<i>Auto-discovered by LiMa Provider Probe</i>")
 
-    return await send_telegram("\n".join(lines))
+    return await record_notification("\n".join(lines))

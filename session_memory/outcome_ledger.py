@@ -5,7 +5,7 @@ Every event — chat turn, CI run, device task, worker result, eval report —
 goes into ONE table with ONE schema. Queries and dashboards read from here.
 
 Schema:
-  source:  telegram | ci | agent_worker | vps_smoke | device_gateway | esp32
+  source:  ci | agent_worker | vps_smoke | device_gateway | esp32
   loop:    chat_ide | agent_worker | device_gateway | backend_eval | ops_learning
   outcome: success | failure | partial
   learned: 0=unlearned | 1=learned | 2=rejected | 3=applied

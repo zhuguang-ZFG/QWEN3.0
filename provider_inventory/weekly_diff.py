@@ -161,7 +161,7 @@ def format_weekly_diff_digest(
     *,
     max_items: int = 5,
 ) -> str:
-    """One-line excerpt for Telegram daily digest."""
+    """One-line excerpt for daily operator reports."""
     if not diff_data:
         return "Inventory 7d: (unavailable)"
 

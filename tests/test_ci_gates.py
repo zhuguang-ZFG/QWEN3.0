@@ -27,7 +27,6 @@ def test_p13_no_silent_exception_pass_in_active_paths():
     targets = [
         ROOT / "webhook_activity_buffer.py",
         ROOT / "gitee_webhook" / "dedupe.py",
-        ROOT / "telegram_digest.py",
         ROOT / "streaming.py",
         ROOT / "http_sync.py",
         ROOT / "semantic_cache.py",

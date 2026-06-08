@@ -1,14 +1,11 @@
-"""Tests for five-line closeout slices: CF-G-3, TG-GH-4, GI-G-5."""
+"""Tests for retained five-line closeout slices: CF-G-3 and GI-G-5."""
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
-
-import pytest
+from unittest.mock import MagicMock
 
 import router_v3
 from gitee_mirror import compare_mirror_heads, remote_head_sha
-from telegram_operator_tools import format_github_read, parse_github_args
 
 
 def test_chat_fast_strong_prefers_google_flash_lite():
@@ -22,37 +19,6 @@ def test_vision_pool_includes_cf_and_google():
     assert "cf_vision" in strong
     assert "google_flash" in strong
     assert "github_gpt4o" in strong
-
-
-def test_parse_github_args():
-    assert parse_github_args("psf/requests README.md main") == ("psf/requests", "README.md", "main")
-    assert parse_github_args("bad") is None
-
-
-def test_format_github_read_ok():
-    text = format_github_read({"ok": True, "title": "README", "text": "hello"})
-    assert "README" in text
-    assert "hello" in text
-    assert text.startswith("README\n---\n")
-
-
-@pytest.mark.asyncio
-async def test_fetch_device_gateway_status():
-    from telegram_operator_tools import fetch_device_gateway_status
-
-    mock_resp = MagicMock()
-    mock_resp.status_code = 200
-    mock_resp.json.return_value = {
-        "status": "ok",
-        "protocol": "lima-device-v1",
-        "task_store": {"backend": "redis"},
-        "session_bus": {"listener_alive": True},
-    }
-    client = AsyncMock()
-    client.get = AsyncMock(return_value=mock_resp)
-    text = await fetch_device_gateway_status(client=client, root="http://test")
-    assert "Device Gateway" in text
-    assert "redis" in text
 
 
 def test_remote_head_sha_parses_output():

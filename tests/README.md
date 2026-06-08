@@ -101,15 +101,9 @@ python -m pytest -q --ignore=tests/test_ci_gates.py --ignore=tests/test_backend_
 - `test_channel_branding_media.py` / `test_channel_chat_session.py`
 - `test_channel_keyword_voice_ux.py` / `test_channel_public_apis.py` / `test_channel_tools.py`
 
-### Telegram (17 files)
-- `test_telegram_bot.py` / `test_telegram_webhook.py` / `test_telegram_dispatch.py`
-- `test_telegram_chat_stream.py` / `test_telegram_chat_identity.py`
-- `test_telegram_inline.py` / `test_telegram_outbound.py`
-- `test_telegram_dev_skills.py` / `test_telegram_diag_tools.py`
-- `test_telegram_eval_tools.py` / `test_telegram_codesearch_tools.py`
-- `test_telegram_public_tools.py` / `test_telegram_push_translate.py`
-- `test_telegram_quick_menu.py` / `test_telegram_digest.py`
-- `test_telegram_b2b.py` / `test_telegram_archive.py`
+### Retired Channels
+- Telegram bot/operator tests were removed in the 2026-06-09 retirement slice.
+- `test_channel_retirement.py` proves `/telegram` routes are no longer registered.
 
 ### Security & Auth
 - `test_access_guard.py` / `test_identity_hardening.py`

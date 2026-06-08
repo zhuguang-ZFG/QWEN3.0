@@ -1,4 +1,4 @@
-"""Merged quick + full eval digest for Telegram /evaldigest."""
+"""Merged quick + full eval digest for local operator reports."""
 
 from __future__ import annotations
 

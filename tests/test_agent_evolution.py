@@ -120,11 +120,11 @@ def test_extract_candidate_from_task_evidence_records_tests_and_risks():
 
     candidate = extract_candidate_from_task_evidence(
         task_id="task_42",
-        goal="Patch Telegram token handling",
+        goal="Patch agent worker retry handling",
         result={
-            "summary": "patched notifier",
-            "changed_files": ["src/lima/telegram-notifier.ts"],
-            "test_commands": ["npm.cmd test -- src/tests/lima-telegram-notifier.test.ts"],
+            "summary": "patched worker retry",
+            "changed_files": ["src/lima/agent-worker-retry.ts"],
+            "test_commands": ["npm.cmd test -- src/tests/agent-worker-retry.test.ts"],
             "risks": ["manual review required"],
         },
     )
@@ -132,6 +132,6 @@ def test_extract_candidate_from_task_evidence_records_tests_and_risks():
     assert candidate.active is False
     assert candidate.promoted is False
     assert candidate.source_task_id == "task_42"
-    assert "telegram" in candidate.trigger_pattern.lower()
-    assert candidate.commands == ["npm.cmd test -- src/tests/lima-telegram-notifier.test.ts"]
+    assert "agent" in candidate.trigger_pattern.lower()
+    assert candidate.commands == ["npm.cmd test -- src/tests/agent-worker-retry.test.ts"]
     assert "ts" in candidate.file_categories

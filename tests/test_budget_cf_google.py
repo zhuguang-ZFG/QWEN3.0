@@ -1,15 +1,12 @@
 """CF-G-1: Cloudflare and Google budget configs, summary, and alerts."""
 
-from unittest.mock import patch
+import logging
 
 import budget_manager
 
 
 def setup_function():
     budget_manager.reset_for_tests()
-    import telegram_notify
-
-    telegram_notify.reset_budget_alerts_for_tests()
 
 
 def test_cf_backends_have_budget_config():
@@ -70,29 +67,26 @@ def test_get_total_requests_today_sums_budgeted_usage():
     assert budget_manager.get_total_requests_today() == 15
 
 
-@patch("telegram_notify.notify_budget_threshold")
-def test_record_usage_notifies_on_warning_cross(mock_notify):
+def test_record_usage_logs_on_warning_cross(caplog):
     cfg = budget_manager.BACKEND_BUDGETS["cf_qwen_coder"]
     warn_used = int(cfg.daily_limit * cfg.warn_at)
     budget_manager.set_usage_for_tests("cf_qwen_coder", warn_used - 1)
-    budget_manager.record_usage("cf_qwen_coder")
-    mock_notify.assert_called_once()
-    assert mock_notify.call_args.kwargs.get("level") == "warning"
+    with caplog.at_level(logging.WARNING):
+        budget_manager.record_usage("cf_qwen_coder")
+    assert "budget warning backend=cf_qwen_coder" in caplog.text
 
 
-@patch("telegram_notify.notify_budget_threshold")
-def test_record_usage_notifies_on_exhausted_cross(mock_notify):
+def test_record_usage_logs_on_exhausted_cross(caplog):
     cfg = budget_manager.BACKEND_BUDGETS["cf_qwen_coder"]
     budget_manager.set_usage_for_tests("cf_qwen_coder", cfg.daily_limit - 1)
-    budget_manager.record_usage("cf_qwen_coder")
-    mock_notify.assert_called_once()
-    assert mock_notify.call_args.kwargs.get("level") == "exhausted"
+    with caplog.at_level(logging.WARNING):
+        budget_manager.record_usage("cf_qwen_coder")
+    assert "budget exhausted backend=cf_qwen_coder" in caplog.text
 
 
-@patch("telegram_notify.notify_budget_threshold")
-def test_record_usage_notifies_cf_pool_warning(mock_notify):
+def test_record_usage_logs_cf_pool_warning(caplog):
     threshold = int(budget_manager.CF_ACCOUNT_DAILY_LIMIT * budget_manager.CF_ACCOUNT_WARN_AT)
     budget_manager.set_usage_for_tests("cf_qwen_coder", threshold - 1)
-    budget_manager.record_usage("cf_qwen_coder")
-    levels = [c.kwargs.get("level") for c in mock_notify.call_args_list]
-    assert "pool_warning" in levels
+    with caplog.at_level(logging.WARNING):
+        budget_manager.record_usage("cf_qwen_coder")
+    assert "cf pool budget warning" in caplog.text

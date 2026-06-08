@@ -119,16 +119,7 @@ def record_failure(
         new_health = _health_map[backend]
         should_persist = True
         if old_health != new_health:
-            try:
-                from telegram_notify import notify_health_change
-
-                notify_health_change(backend, old_health, new_health)
-            except Exception as exc:
-                _log.warning(
-                    "health telegram notify failed backend=%s: %s",
-                    backend,
-                    type(exc).__name__,
-                )
+            _log.info("backend health changed backend=%s old=%s new=%s", backend, old_health, new_health)
         try:
             import backend_reputation
 

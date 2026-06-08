@@ -7,7 +7,6 @@
 const ALLOWED_PATHS = [
   '/v1/',
   '/health',
-  '/telegram/webhook',
   '/agent/',
   '/mcp/',
   '/fleet/',
@@ -19,7 +18,6 @@ const RATE_LIMITS = {
   '/v1/': { rpm: 60, burst: 10 },
   '/agent/': { rpm: 30, burst: 5 },
   '/fleet/': { rpm: 60, burst: 10 },
-  '/telegram/webhook': { rpm: 120, burst: 20 },
 };
 
 export default {
@@ -42,13 +40,6 @@ export default {
       const token = auth.replace('Bearer ', '').trim();
       if (!token || token !== env.LIMA_ADMIN_TOKEN) {
         return new Response('Unauthorized', { status: 401 });
-      }
-    }
-
-    if (path === '/telegram/webhook') {
-      const secret = request.headers.get('X-Telegram-Bot-Api-Secret-Token');
-      if (!secret || secret !== env.TELEGRAM_WEBHOOK_SECRET) {
-        return new Response('Forbidden', { status: 403 });
       }
     }
 

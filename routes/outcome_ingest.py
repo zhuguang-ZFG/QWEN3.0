@@ -1,4 +1,4 @@
-"""Internal outcome ingestion endpoint — called by CI, smoke scripts, Telegram.
+"""Internal outcome ingestion endpoint — called by CI, smoke scripts, and agents.
 
 POST /internal/v1/outcome
   Body: {"source": "ci", "event_type": "workflow_run", "outcome": "success|failure",
@@ -20,7 +20,7 @@ router = APIRouter(prefix="/internal/v1", tags=["internal"])
 
 @router.post("/outcome", dependencies=[Depends(require_private_api_key)])
 async def ingest_outcome(request: Request):
-    """Record an outcome event from an external source (CI, smoke, Telegram)."""
+    """Record an outcome event from an external source."""
     body = await read_json_object(request)
     if isinstance(body, JSONResponse):
         return body

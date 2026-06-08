@@ -23,16 +23,6 @@ echo "  VPS_HOST: set"
 gh secret set VPS_USER --repo "$REPO" --body "root"
 echo "  VPS_USER: set"
 
-# Telegram notifications
 echo ""
-echo "Enter Telegram Bot Token:"
-gh secret set TELEGRAM_BOT_TOKEN --repo "$REPO"
-echo "  TELEGRAM_BOT_TOKEN: set"
-
-echo "Enter Telegram Chat ID:"
-gh secret set TELEGRAM_CHAT_ID --repo "$REPO"
-echo "  TELEGRAM_CHAT_ID: set"
-
-echo ""
-echo "Done! All 5 secrets configured."
+echo "Done! VPS deploy secrets configured."
 echo "Next: push to main to trigger the deploy workflow."

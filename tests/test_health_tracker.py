@@ -1,6 +1,3 @@
-import sys
-from types import SimpleNamespace
-
 import backend_reputation
 import health_tracker
 
@@ -14,21 +11,10 @@ def setup_function():
     backend_reputation._cooldowns.clear()
 
 
-def test_record_failure_notifies_health_transition(monkeypatch):
-    calls = []
-
-    def notify_health_change(backend, old, new):
-        calls.append((backend, old, new))
-
-    monkeypatch.setitem(
-        sys.modules,
-        "telegram_notify",
-        SimpleNamespace(notify_health_change=notify_health_change),
-    )
-
+def test_record_failure_updates_health_transition():
     health_tracker.record_failure("unit_backend", error_code=429, error_text="rate limit")
 
-    assert calls == [("unit_backend", "healthy", "degraded")]
+    assert health_tracker.get_backend_state("unit_backend")["state"] == "rate_limited"
 
 
 def test_record_failure_feeds_classified_reputation():

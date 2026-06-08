@@ -2,6 +2,16 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-06-09 Telegram Retirement Closeout
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| TG-RETIRE-1 | Runtime boundary | Telegram bot/operator support is removed from active route registration and startup. `/health` now reports `modules.telegram=false` through `channel_retirement.py`. | Closed |
+| TG-RETIRE-2 | Notification coupling | GitHub/Gitee webhooks, Agent Task review, Device Gateway task phases, budget alerts, health/token alerts, eval notify, and deploy helpers no longer import Telegram modules; replacement behavior is internal activity recording or structured logging. | Closed |
+| TG-RETIRE-3 | VPS cleanup | After backup `/opt/lima-router/backups/telegram-retirement-20260609_031429/runtime-before.tgz`, 23 runtime files were deployed and remote Telegram-only files were removed. Deleted-file check returned `0`. | Closed |
+| TG-RETIRE-4 | Public smoke | VPS-local `/health` returned `telegram:false`; public `/health` returned HTTP `200`; public `POST /telegram/webhook` returned HTTP `404`; authenticated public `model=code` chat returned HTTP `200`. | Closed |
+| TG-RETIRE-5 | Validation residual | Focused retirement tests passed (`112 passed` plus JSON/retirement supplement `9 passed`), but CI-style full pytest still has 8 unrelated failures in backend registry drift, ruff gate GBK decode, health tracker assertion drift, and AutoIndexer mtime flake. | Accepted |
+
 ## 2026-06-09 LiMa Code CLI Retirement Closeout
 
 | ID | Area | Finding | Status |

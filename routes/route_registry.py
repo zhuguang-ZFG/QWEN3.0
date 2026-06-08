@@ -10,6 +10,8 @@ from typing import Any, Callable
 
 from fastapi import FastAPI
 
+from channel_retirement import mark_retired_modules
+
 
 @dataclass
 class RouteRegistryDeps:
@@ -225,14 +227,7 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
         logging.warning("[STARTUP] token_sync not loaded: %s", exc)
         deps.loaded_modules["token_sync"] = False
 
-    try:
-        from routes.telegram import router as telegram_router
-
-        app.include_router(telegram_router)
-        deps.loaded_modules["telegram"] = True
-    except ImportError as exc:
-        logging.warning("[STARTUP] telegram module not loaded: %s", exc)
-        deps.loaded_modules["telegram"] = False
+    mark_retired_modules(deps.loaded_modules)
 
     try:
         from routes.github_webhook import router as github_webhook_router

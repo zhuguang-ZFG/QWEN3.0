@@ -1,4 +1,4 @@
-"""GitHub webhook endpoint — push/PR/CI summaries to Telegram."""
+"""GitHub webhook endpoint for push/PR/CI ingestion and activity records."""
 
 from __future__ import annotations
 
@@ -79,15 +79,14 @@ async def github_webhook(request: Request):
             logger.debug("github push dedupe record skipped", exc_info=True)
 
     try:
-        from telegram_notify import notify_github_event
         from github_webhook.activity import classify_github_event
         from webhook_activity_buffer import record_webhook_event
 
         kind, repo = classify_github_event(event, payload)
         record_webhook_event(source="github", kind=kind, repo=repo)
-        notify_github_event(summary)
+        logger.info("github webhook event recorded event=%s repo=%s", event, repo)
     except Exception:
-        logger.exception("github webhook telegram notify failed event=%s", event)
+        logger.exception("github webhook activity record failed event=%s", event)
 
     task_id = None
     if event == "issues":
@@ -96,12 +95,7 @@ async def github_webhook(request: Request):
 
             task_id = maybe_create_task_from_issue(payload)
             if task_id:
-                try:
-                    from telegram_notify import notify_github_event
-
-                    notify_github_event(f"Auto-task created: `{task_id}` from GitHub issue")
-                except Exception:
-                    logger.debug("auto_task telegram notify skipped", exc_info=True)
+                logger.info("github auto-task created task_id=%s", task_id)
         except Exception:
             logger.exception("github auto_task failed event=%s", event)
 

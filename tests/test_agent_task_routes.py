@@ -414,14 +414,14 @@ class TestTaskEndpoints:
             "next_action": "approve",
         }, headers=HEADERS)
 
-        reviewed = apply_task_review(task_id, "approved", reviewer="telegram")
+        reviewed = apply_task_review(task_id, "approved", reviewer="operator")
 
         assert reviewed == {"task_id": task_id, "status": "approved"}
         events = client.get(
             f"/agent/tasks/{task_id}/events", headers=HEADERS
         ).json()["events"]
         assert any(
-            e["type"] == "reviewed" and e["reviewer"] == "telegram"
+            e["type"] == "reviewed" and e["reviewer"] == "operator"
             for e in events
         )
 
@@ -436,10 +436,10 @@ class TestTaskEndpoints:
             "task_id": task_id,
             "status": "needs_review",
             "summary": "notifier pattern worked",
-            "changed_files": ["src/lima/telegram-notifier.ts"],
-            "test_commands": ["npm.cmd test -- src/tests/lima-telegram-notifier.test.ts"],
+            "changed_files": ["src/lima/agent-worker-retry.ts"],
+            "test_commands": ["npm.cmd test -- src/tests/agent-worker-retry.test.ts"],
             "test_results": [{
-                "command": "npm.cmd test -- src/tests/lima-telegram-notifier.test.ts",
+                "command": "npm.cmd test -- src/tests/agent-worker-retry.test.ts",
                 "exit_code": 0,
             }],
             "diff_preview": "",

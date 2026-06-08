@@ -64,11 +64,6 @@ def _loop(probe_fn: Callable[[str], bool]):
                     last_alert = getattr(_loop, '_last_alerts', {}).get(key, 0)
                     if now - last_alert > 3600:  # 1 hour cooldown
                         logger.warning("TOKEN EXPIRED: %s", r["backend"])
-                        try:
-                            from telegram_notify import notify_health_change
-                            notify_health_change(r["backend"], "healthy", "auth_expired")
-                        except (ImportError, Exception):
-                            pass
                         if not hasattr(_loop, '_last_alerts'):
                             _loop._last_alerts = {}
                         _loop._last_alerts[key] = now

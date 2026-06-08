@@ -1,6 +1,10 @@
-"""CF-G-1: Cloudflare pool, grouped summary, and Telegram budget alerts."""
+"""CF-G-1: Cloudflare pool and grouped budget summary."""
 
 from __future__ import annotations
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 CF_ACCOUNT_DAILY_LIMIT = 12000
 CF_ACCOUNT_WARN_AT = 0.7
@@ -116,18 +120,10 @@ def emit_budget_alerts(backend: str, old_used: int, new_used: int) -> None:
     limit = cfg.daily_limit
     old_ratio = old_used / limit
     new_ratio = new_used / limit
-    try:
-        import telegram_notify
-    except ImportError:
-        return
     if old_ratio < 1.0 <= new_ratio:
-        telegram_notify.notify_budget_threshold(
-            backend=backend, level="exhausted", used=new_used, limit=limit,
-        )
+        logger.warning("budget exhausted backend=%s used=%d limit=%d", backend, new_used, limit)
     elif old_ratio < cfg.warn_at <= new_ratio:
-        telegram_notify.notify_budget_threshold(
-            backend=backend, level="warning", used=new_used, limit=limit,
-        )
+        logger.warning("budget warning backend=%s used=%d limit=%d", backend, new_used, limit)
 
 
 def emit_cf_pool_alerts() -> None:
@@ -136,23 +132,7 @@ def emit_cf_pool_alerts() -> None:
         return
     ratio = used / limit
     prev_ratio = (used - 1) / limit if used > 0 else 0.0
-    try:
-        import telegram_notify
-    except ImportError:
-        return
     if prev_ratio < CF_ACCOUNT_WARN_AT <= ratio:
-        telegram_notify.notify_budget_threshold(
-            backend="cf_pool",
-            level="pool_warning",
-            used=used,
-            limit=limit,
-            pool_label="cf_*",
-        )
+        logger.warning("cf pool budget warning pool=cf_* used=%d limit=%d", used, limit)
     elif prev_ratio < 1.0 <= ratio:
-        telegram_notify.notify_budget_threshold(
-            backend="cf_pool",
-            level="exhausted",
-            used=used,
-            limit=limit,
-            pool_label="cf_*",
-        )
+        logger.warning("cf pool budget exhausted pool=cf_* used=%d limit=%d", used, limit)

@@ -195,27 +195,12 @@ def post_result_hooks(
         _log.debug("observability.correlation not installed")
 
     if result_status == "needs_review":
-        try:
-            from telegram_notify import notify_task_ready
-
-            tests_passed = sum(1 for t in body.test_results if t.get("exit_code") == 0)
-            tests_failed = len(body.test_results) - tests_passed
-            artifact_links = {}
-            for a in body.artifacts[:5]:
-                if isinstance(a, str) and a:
-                    artifact_links[a.split("/")[-1]] = a
-
-            notify_task_ready(
-                task_id, body.summary, body.changed_files,
-                tests_passed=tests_passed, tests_failed=tests_failed,
-                risks=body.risks, artifact_links=artifact_links or None,
-            )
-        except Exception as exc:
-            _log.warning(
-                "notify_task_ready failed task_id=%s err=%s",
-                task_id,
-                type(exc).__name__,
-            )
+        _log.info(
+            "agent task needs review task_id=%s changed_files=%d risks=%d",
+            task_id,
+            len(body.changed_files),
+            len(body.risks),
+        )
 
     try:
         from session_memory.learning_loop import ingest_from_agent_task_result

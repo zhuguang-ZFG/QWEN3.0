@@ -1,4 +1,4 @@
-"""Operator eval dashboard for Telegram /evalstatus."""
+"""Operator eval dashboard text for local reports."""
 
 from __future__ import annotations
 

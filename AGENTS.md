@@ -10,7 +10,7 @@
 - 路由引擎收到 coding 请求时，必须执行代码上下文注入，不允许静默跳过
 - 响应后处理必须执行语法+安全检查，不允许因为"可选模块未安装"而跳过
 - agent 执行器必须在 `LIMA_DRY_RUN=0` 时真正执行，不允许返回"disabled in scaffold"
-- Telegram 命令必须完整处理，不允许返回"Unknown command"后不给用户任何提示
+- Telegram bot/operator 已退役；不得重新注册 `/telegram` 路由、webhook 或出站通知
 - 任何 `except Exception: pass` 或 `except ImportError: pass` 在生产路径中都是**禁止的**——必须至少 `logger.warning` 并说明降级原因
 - 如果关键依赖不可用（如 chromadb、tree-sitter），必须在启动时日志明确告警，而不是运行时静默降级
 
@@ -20,7 +20,7 @@
 
 **所有演练和测试必须以 LiMa 后端 + LiMa Code 前端为核心对象。**
 
-- 演练场景必须覆盖：LiMa 路由端到端、LiMa Code agent 任务全生命周期、Telegram 开发者技能
+- 演练场景必须覆盖：LiMa 路由端到端、Agent Task/Agent Worker 任务全生命周期、Device Gateway/ESP32 生产路径
 - 不得用外部玩具项目代替自家项目的演练
 - 发现的问题必须记录到 `findings.md` 并修复
 - LiMa Code（`deepcode-cli` 子模块）的演练包括：CLI 启动、任务 claim、代码生成、结果提交
@@ -32,7 +32,7 @@
 - VPS 部署后必须在 VPS 上实际验证，不能只在本地测
 - 公网 API 必须用真实 token 通过公网域名测试，不能只测 localhost
 - LiMa Code 必须实际启动 TUI 并交互，不能只用 curl 模拟
-- Telegram 命令必须通过真实 Telegram 消息测试，不能只调用函数
+- Telegram 退役验证必须确认公网和本地 `/telegram/webhook` 不可用，不能只检查代码删除
 - 发现"不可达"时，必须诊断根因并修复，不允许标记为"跳过"或"待定"
 - 如果某个验证步骤因环境限制无法执行，必须明确说明原因和替代方案
 
@@ -42,7 +42,7 @@
 
 - `.env` 包含敏感凭据（API key、bot token、webhook secret），部署时必须先备份 VPS 原始 .env
 - 使用 `cat >> .env` 追加新变量，不使用 `sftp.put` 覆盖
-- 每次部署后立即验证关键服务（Telegram webhook、API key 认证）是否正常
+- 每次部署后立即验证关键服务（API key 认证、GitHub/Gitee webhook、退役 `/telegram` 路径 404）是否正常
 - 如果发现服务异常，第一反应是检查 .env 是否被覆盖
 - `.env` 文件必须在 `.gitignore` 中，不得提交到 git
 
@@ -225,14 +225,13 @@ Owner 明确要求：**里程碑切片完成后 Agent 自动 VPS 部署 + 自动
 | 切片 | 部署 | VPS smoke |
 |------|------|-----------|
 | CF admission | `deploy_cf_admission_overlay.py` | overlay + cf_smoke |
-| TG-GH-1 / INF-B | `deploy_reliability_ops.py` | `smoke_telegram_outbound.py` |
-| GitHub webhook | `deploy_telegram.sh` / 手动 | `smoke_github_webhook_public.py` |
+| INF-B | `deploy_reliability_ops.py` | Healthchecks + `/health` smoke |
+| GitHub webhook | 手动或切片部署脚本 | `smoke_github_webhook_public.py` |
 | Gitee MCP | `deploy_gitee_mcp_slice.py` | `smoke_gitee_mcp_tools.py`（先 `provision_gitee_token_vps.py`） |
 | LC-W-1e | `deploy_lcw1_e2e_slice.py` | `smoke_lcw1_lima_next_e2e.py`（worker 需本机 tsx） |
 | LC-W-2 | `deploy_lcw2_slice.py` | `smoke_lcw2_hooks_e2e.py`（worker 需本机 `.lima-code/skill-rules.json`） |
 | PROD-008 | `deploy_prod008_slice.py` | `smoke_prod008_learning_loop_e2e.py`（task→result→四通道 learning loop） |
 | CF-EVAL-1 | `run_cf_eval1_slice.py --completion-only` | 可加 `--apply` 写入 SANDBOX overlay |
-| TG-GH-2 | — | `smoke_tg_gh2_limacode_telegram_e2e.py`（`--send` 需 Telegram token） |
 | SCNET-DSPRO | — | `diag_scnet_ds_pro.py`（只读 probe 30s/90s） |
 
 Hard rules for this loop:
