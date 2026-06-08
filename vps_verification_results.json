@@ -1,0 +1,86 @@
+{
+  "timestamp": "2026-06-08 18:50:55",
+  "checks": [
+    {
+      "name": "lima-router 服务",
+      "status": true,
+      "details": "active"
+    },
+    {
+      "name": "nginx 服务",
+      "status": true,
+      "details": "active"
+    },
+    {
+      "name": "redis-server 服务",
+      "status": false,
+      "details": "inactive"
+    },
+    {
+      "name": "端口 8080",
+      "status": true,
+      "details": "1 个监听"
+    },
+    {
+      "name": "端口 6379",
+      "status": true,
+      "details": "2 个监听"
+    },
+    {
+      "name": "端口 80",
+      "status": true,
+      "details": "1 个监听"
+    },
+    {
+      "name": "端口 443",
+      "status": true,
+      "details": "1 个监听"
+    },
+    {
+      "name": "后端配置",
+      "status": true,
+      "details": "290 个后端"
+    },
+    {
+      "name": "OpenCode 模块",
+      "status": true,
+      "details": "30 个模块"
+    },
+    {
+      "name": "Redis 缓存",
+      "status": true,
+      "details": "PONG"
+    },
+    {
+      "name": "API 健康",
+      "status": true,
+      "details": "{\"status\":\"ok\",\"version\":\"2.0\",\"model\":\"lima-1.3\","
+    },
+    {
+      "name": "管理面板",
+      "status": false,
+      "details": "可访问"
+    },
+    {
+      "name": "磁盘空间",
+      "status": true,
+      "details": "61% 使用"
+    },
+    {
+      "name": "内存使用",
+      "status": true,
+      "details": "80% 使用"
+    },
+    {
+      "name": "系统负载",
+      "status": true,
+      "details": "0.65 (1分钟)"
+    }
+  ],
+  "summary": {
+    "passed": 13,
+    "total": 15,
+    "grade": "A",
+    "percentage": 86
+  }
+}
