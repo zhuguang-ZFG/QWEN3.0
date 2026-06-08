@@ -43,11 +43,20 @@ def _collect_backend_health() -> dict:
     latency_map = health_tracker.get_latency_map()
     health_map = health_tracker.get_health_map()
 
+    # Circuit breaker data
+    cb_data: dict = {}
+    try:
+        import smart_router
+        cb_data = smart_router.cb_status()
+    except (ImportError, AttributeError):
+        pass
+
     backends = []
     for name, cfg in sorted(BACKENDS.items()):
         state = health_tracker.get_backend_state(name)
         caps = detect_caps(name, cfg)
         budget_status = budget_manager.get_budget_status(name)
+        cb = cb_data.get(name, {})
 
         backends.append({
             "name": name,
@@ -63,6 +72,9 @@ def _collect_backend_health() -> dict:
             "caps": caps,
             "budget": budget_status,
             "model": cfg.get("model", ""),
+            "cb_state": cb.get("state", "unknown"),
+            "cb_failures": cb.get("failures", 0),
+            "cb_total_calls": cb.get("total_calls", 0),
         })
 
     healthy = sum(1 for b in backends if b["health"] == "healthy")
@@ -77,6 +89,12 @@ def _collect_backend_health() -> dict:
         "degraded": degraded,
         "dead": dead,
         "cooled": cooled,
+        "summary": {
+            "healthy": healthy,
+            "degraded": degraded,
+            "dead": dead,
+            "cooled": cooled,
+        },
         "backends": backends,
     }
 

@@ -1,4 +1,4 @@
-"""Sanitized LiMa Code CLI telemetry aggregation."""
+"""Sanitized developer-tool CLI telemetry aggregation."""
 
 from __future__ import annotations
 

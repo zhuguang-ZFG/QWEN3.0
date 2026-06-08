@@ -8,7 +8,6 @@ from pathlib import Path
 SKIP_PARTS = {
     "venv",
     ".git",
-    "deepcode-cli",
     "donglicao",
     "node_modules",
     "__pycache__",

@@ -10,7 +10,6 @@ paths = [
   '''^tests/''',
   '''^docs/''',
   '''^esp32S_XYZ/''',
-  '''^deepcode-cli/''',
   '''\.md$''',
   '''gitleaks\.toml$''',
 ]

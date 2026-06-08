@@ -9,7 +9,7 @@ def test_smoke_script_dry_run_outputs_payload():
             sys.executable,
             "scripts/create_lima_smoke_task.py",
             "--repo",
-            "D:/GIT/deepcode-cli",
+            "D:/GIT/lima-worker-sandbox",
             "--kind",
             "review",
             "--dry-run",
@@ -20,7 +20,7 @@ def test_smoke_script_dry_run_outputs_payload():
     )
     data = json.loads(proc.stdout)
     assert data["url_path"] == "/agent/worker/smoke-task"
-    assert data["payload"]["repo"] == "D:/GIT/deepcode-cli"
+    assert data["payload"]["repo"] == "D:/GIT/lima-worker-sandbox"
     assert data["payload"]["kind"] == "review"
     assert "api_key" not in proc.stdout.lower()
 

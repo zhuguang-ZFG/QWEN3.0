@@ -3,7 +3,6 @@ source = .
 parallel = true
 omit =
     esp32S_XYZ/*
-    deepcode-cli/*
     wechat_bridge/*
     scripts/archive/*
     tests/*

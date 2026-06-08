@@ -115,7 +115,7 @@ async def agent_loop(messages: list[dict], max_rounds: int = 10) -> dict:
     }
     for r in range(max_rounds):
         body = {
-            "model": "lima-code",
+            "model": "code",
             "messages": messages,
             "tools": TOOLS,
             "max_tokens": 2048,

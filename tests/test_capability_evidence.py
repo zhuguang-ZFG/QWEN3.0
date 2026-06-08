@@ -37,7 +37,7 @@ def test_record_evidence_caps_artifact_paths(evidence_db):
     from observability.capability_evidence import record_evidence, recent_evidence
 
     record_evidence(
-        loop="limacode_worker", request_id="req-2", task_id="task-2",
+        loop="agent_worker", request_id="req-2", task_id="task-2",
         entrypoint="/agent/tasks/task-2/result", status="needs_review",
         artifact_paths=[f"a{i}.md" for i in range(20)],
     )

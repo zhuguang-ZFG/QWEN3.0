@@ -338,7 +338,7 @@ def _ops_summary_from_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
     if quarantined:
         alerts.append(_alert("warning", "backend_quarantined", f"{quarantined} backend(s) are quarantined", quarantined))
     if int(cli.get("failed_recent", 0) or 0):
-        alerts.append(_alert("warning", "cli_failures", "Recent LiMa Code CLI failures observed", int(cli.get("failed_recent", 0))))
+        alerts.append(_alert("warning", "cli_failures", "Recent developer-tool CLI failures observed", int(cli.get("failed_recent", 0))))
     if int(backend_telemetry.get("slow_recent", 0) or 0):
         alerts.append(_alert("warning", "slow_backends", "Recent slow backend attempts observed", int(backend_telemetry.get("slow_recent", 0))))
     if probe_count:

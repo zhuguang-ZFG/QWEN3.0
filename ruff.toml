@@ -7,7 +7,6 @@ exclude = [
     "PyWxDump",
     "decrypt-wc",
     "esp32S_XYZ",
-    "deepcode-cli",
     "lima-miniprogram",
     "wechat_bridge",
     "wechat-automation-api",

@@ -95,6 +95,10 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
     app.include_router(admin_router)
     app.include_router(admin_agent_audit_router)
 
+    from routes.static_files import router as static_files_router
+
+    app.include_router(static_files_router)
+
     import routes.quality_gate as quality_gate_mod
 
     quality_gate_mod.inject_state(deps.backend_enabled)

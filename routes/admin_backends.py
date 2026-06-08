@@ -59,7 +59,9 @@ def describe_backend(name: str, cfg: dict, *, enabled: bool, status_info: dict) 
         "vendor": vendor,
         "tier": tier,
         "protocol": "Anthropic" if fmt == "anthropic" else "OpenAI",
+        "fmt": fmt,
         "capabilities": caps,
+        "caps": caps,
         "url": url,
         "model": cfg.get("model", ""),
         "auth": auth,
@@ -67,6 +69,10 @@ def describe_backend(name: str, cfg: dict, *, enabled: bool, status_info: dict) 
         "state": status_info.get("state", "closed"),
         "total_calls": status_info.get("total_calls", 0),
         "error_rate": status_info.get("error_rate", "0.0%"),
+        "key_configured": bool(cfg.get("key", "")),
+        "in_registry": True,
+        "pools": cfg.get("pools", []),
+        "admission": cfg.get("admission", ""),
     }
 
 

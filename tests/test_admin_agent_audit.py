@@ -31,7 +31,7 @@ def test_admin_agent_audit_requires_auth():
 
 def test_admin_agent_audit_returns_agent_tasks():
     task_id = client.post("/agent/tasks", json={
-        "repo": "D:/GIT/deepcode-cli",
+        "repo": "D:/GIT/lima-worker-sandbox",
         "goal": "admin audit",
         "allowed_tools": ["git_diff"],
         "mode": "review",
@@ -59,7 +59,7 @@ def test_admin_agent_audit_auth_uses_runtime_env_after_prior_admin_import(monkey
     local_client = TestClient(app)
 
     local_client.post("/agent/tasks", json={
-        "repo": "D:/GIT/deepcode-cli",
+        "repo": "D:/GIT/lima-worker-sandbox",
         "goal": "runtime admin token",
         "allowed_tools": ["git_diff"],
         "mode": "review",

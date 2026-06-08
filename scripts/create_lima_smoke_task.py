@@ -1,4 +1,4 @@
-"""Create a safe LiMa Code smoke task on LiMa Server."""
+"""Create a safe Agent Worker smoke task on LiMa Server."""
 
 import argparse
 import json
@@ -31,8 +31,8 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", required=True)
     parser.add_argument("--kind", choices=["review", "patch_readme"], default="review")
-    parser.add_argument("--server-url", default=os.environ.get("LIMA_CODE_SERVER_URL", ""))
-    parser.add_argument("--api-key", default=os.environ.get("LIMA_CODE_API_KEY", ""))
+    parser.add_argument("--server-url", default=os.environ.get("LIMA_WORKER_SERVER_URL", ""))
+    parser.add_argument("--api-key", default=os.environ.get("LIMA_WORKER_API_KEY", ""))
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
@@ -45,9 +45,9 @@ def main() -> None:
         return
 
     if not args.server_url:
-        raise SystemExit("LIMA_CODE_SERVER_URL or --server-url is required")
+        raise SystemExit("LIMA_WORKER_SERVER_URL or --server-url is required")
     if not args.api_key:
-        raise SystemExit("LIMA_CODE_API_KEY or --api-key is required")
+        raise SystemExit("LIMA_WORKER_API_KEY or --api-key is required")
 
     req = build_request(args.server_url, args.api_key, payload)
     try:
@@ -61,9 +61,9 @@ def main() -> None:
     print(json.dumps({
         "task_id": task_id,
         "next_commands": [
-            "/lima doctor",
-            f"/lima task {task_id}",
-            "/lima audit --last 5",
+            f"GET /agent/tasks/{task_id}",
+            f"POST /agent/tasks/{task_id}/claim",
+            f"POST /agent/tasks/{task_id}/result",
         ],
     }, ensure_ascii=False, indent=2))
 

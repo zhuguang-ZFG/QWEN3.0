@@ -60,7 +60,7 @@ class TestAgentTaskRequest:
 
     def test_accepts_worker_lifecycle_metadata(self):
         req = self._valid_request(
-            repo="D:/GIT/deepcode-cli",
+            repo="D:/GIT/lima-worker-sandbox",
             goal="review diff",
             allowed_tools=["git_diff"],
             max_runtime_sec=300,

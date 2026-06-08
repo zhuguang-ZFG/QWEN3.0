@@ -30,7 +30,6 @@
     "scripts",
     "active_model",
     "esp32S_XYZ",
-    "deepcode-cli",
     "PyWxDump",
     "decrypt-wc",
     "lima-miniprogram",

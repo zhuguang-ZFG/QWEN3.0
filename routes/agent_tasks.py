@@ -108,7 +108,7 @@ async def create_worker_smoke_task(body: WorkerSmokeTaskBody):
             repo=body.repo,
             branch=body.branch,
             goal=(
-                "LiMa Code real-machine patch smoke: replace README with a "
+                "Agent Worker real-machine patch smoke: replace README with a "
                 "harmless marker and run node --version."
             ),
             constraints=[
@@ -120,7 +120,7 @@ async def create_worker_smoke_task(body: WorkerSmokeTaskBody):
             allowed_tools=["write", "git_diff", "test"],
             max_runtime_sec=120,
             mode="patch",
-            patch_files=[{"file_path": "README.md", "content": "# LiMa Code Smoke\n"}],
+            patch_files=[{"file_path": "README.md", "content": "# Agent Worker Smoke\n"}],
             test_commands=["node --version"],
         )
     else:
@@ -128,7 +128,7 @@ async def create_worker_smoke_task(body: WorkerSmokeTaskBody):
             repo=body.repo,
             branch=body.branch,
             goal=(
-                "LiMa Code real-machine read-only smoke: review current git "
+                "Agent Worker real-machine read-only smoke: review current git "
                 "diff and report evidence."
             ),
             constraints=[

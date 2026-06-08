@@ -98,7 +98,7 @@ async def agent_loop(messages: list[dict], max_rounds: int = 8) -> dict:
 
     for round_num in range(max_rounds):
         body = {
-            "model": "lima-code",
+            "model": "code",
             "messages": messages,
             "tools": ANTHROPIC_TOOLS,
             "max_tokens": 2048,
@@ -152,7 +152,7 @@ async def test_code_fix_scenario():
     print("P0.2: Code Fix Scenario — read → edit → run → verify")
     print("=" * 60)
 
-    tmpdir = tempfile.mkdtemp(prefix="lima_codefix_")
+    tmpdir = tempfile.mkdtemp(prefix="lima_tool_fix_")
     buggy_file = os.path.join(tmpdir, "calculator.py")
     test_file = os.path.join(tmpdir, "test_calculator.py")
 

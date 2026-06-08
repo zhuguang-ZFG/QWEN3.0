@@ -1,292 +1,482 @@
-"""Admin dashboard HTML/JS templates (CQ-014 slice)."""
+"""Admin dashboard HTML templates — sidebar navigation + 14 panels."""
 
-# ── Admin HTML ─────────────────────────────────────────────────────────────────
-
-ADMIN_HTML = """<!DOCTYPE html>
+# ── HTML Head ─────────────────────────────────────────────────────────────────
+_HEAD = """\
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LiMa - 管理后台</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#1a1a2e;color:#e0e0e0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:20px}
-h1{color:#00d4ff;margin-bottom:20px;font-size:1.6em}
-h2{color:#00d4ff;margin-bottom:12px;font-size:1.1em;border-bottom:1px solid #2a2a4e;padding-bottom:6px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:24px}
-.card{background:#16213e;border-radius:10px;padding:18px;border:1px solid #2a2a4e}
-.stat-num{font-size:2em;font-weight:700;color:#00d4ff}
-.stat-label{font-size:0.85em;color:#888;margin-top:4px}
-table{width:100%;border-collapse:collapse;font-size:0.85em}
-th,td{padding:8px 10px;text-align:left;border-bottom:1px solid #2a2a4e}
-th{color:#00d4ff;font-weight:600}
-tr:hover{background:#1f2b47}
-.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.75em;font-weight:600}
-.badge-ok{background:#0d4d2e;color:#4caf50}
-.badge-err{background:#4d0d0d;color:#f44336}
-.badge-off{background:#3d3d3d;color:#999}
-button{background:#00d4ff;color:#1a1a2e;border:none;padding:6px 14px;border-radius:5px;cursor:pointer;font-size:0.8em;font-weight:600}
-button:hover{background:#00b8d4}
-button.danger{background:#f44336;color:#fff}
-button.danger:hover{background:#d32f2f}
-input,select{background:#0f1a30;border:1px solid #2a2a4e;color:#e0e0e0;padding:6px 10px;border-radius:5px;font-size:0.85em}
-input:focus,select:focus{outline:none;border-color:#00d4ff}
-.form-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center}
-.form-row input{flex:1;min-width:120px}
-.log-time{color:#888;font-size:0.8em}
-.log-backend{color:#00d4ff}
-.log-query{color:#ccc;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tabs{display:flex;gap:4px;margin-bottom:16px}
-.tab{padding:8px 18px;background:#16213e;border:1px solid #2a2a4e;border-radius:6px 6px 0 0;cursor:pointer;color:#888}
-.tab.active{background:#1f2b47;color:#00d4ff;border-bottom-color:#1f2b47}
-.panel{display:none}
-.panel.active{display:block}
-.refresh-info{font-size:0.75em;color:#555;margin-left:12px}
-</style>
+<title>LiMa · 管理后台</title>
+<link rel="stylesheet" href="/chat/admin.css?v=20260609">
 </head>"""
 
-ADMIN_BODY = """<body>
-<h1>LiMa 管理后台<span class="refresh-info" id="refresh-info">每5秒自动刷新</span></h1>
-<div class="tabs">
-  <div class="tab active" onclick="switchTab('stats')">实时指标</div>
-  <div class="tab" onclick="switchTab('backends')">后端管理</div>
-  <div class="tab" onclick="switchTab('model')">模型 & Fallback</div>
-  <div class="tab" onclick="switchTab('agents')">Agent Tasks</div>
-</div>
-
-<div id="panel-stats" class="panel active">
-  <div class="grid">
-    <div class="card"><div class="stat-num" id="s-total">0</div><div class="stat-label">总请求数</div></div>
-    <div class="card"><div class="stat-num" id="s-avg-ms">0ms</div><div class="stat-label">平均响应时间</div></div>
-    <div class="card"><div class="stat-num" id="s-uptime">0s</div><div class="stat-label">运行时间</div></div>
-    <div class="card"><div class="stat-num" id="s-backends">0</div><div class="stat-label">活跃后端</div></div>
-    <div class="card"><div class="stat-num" id="s-ips">0</div><div class="stat-label">活跃用户(IP)</div></div>
+# ── Sidebar ───────────────────────────────────────────────────────────────────
+_SIDEBAR = """\
+<body>
+<div class="sidebar-overlay"></div>
+<button class="mobile-menu-toggle" onclick="toggleMobileMenu()"><span></span></button>
+<div class="shell">
+<aside class="sidebar">
+  <div class="brand">
+    <div class="logo">Li</div>
+    <div><h1>LiMa</h1><p>智能路由管理后台</p></div>
   </div>
-  <div class="grid">
-    <div class="card"><h2>后端调用统计</h2><table><thead><tr><th>后端</th><th>调用</th><th>成功率</th><th>平均ms</th></tr></thead><tbody id="t-backends"></tbody></table></div>
-    <div class="card"><h2>意图分布</h2><table><thead><tr><th>意图</th><th>次数</th><th>占比</th></tr></thead><tbody id="t-intents"></tbody></table></div>
-    <div class="card"><h2>IDE 分布</h2><table><thead><tr><th>IDE</th><th>次数</th></tr></thead><tbody id="t-ides"></tbody></table></div>
+  <nav class="nav" id="nav">
+    <button class="active" data-panel="overview">📊 概览</button>
+    <button data-panel="traffic">📋 请求日志</button>
+    <button data-panel="backends">🔌 后端管理</button>
+    <button data-panel="retrieval">🔍 检索追踪</button>
+    <button data-panel="model">🧠 路由模型</button>
+    <button data-panel="health">💊 健康监控</button>
+    <button data-panel="client-keys">🔑 客户端 Key</button>
+    <button data-panel="keys">🔐 Key-URL 清单</button>
+    <button data-panel="agents">🤖 Agent 审计</button>
+    <button data-panel="agent-tasks">📝 Agent 任务</button>
+    <button data-panel="config">⚙️ 配置管理</button>
+    <button data-panel="devices">📱 设备管理</button>
+    <button data-panel="alerts">🔔 告警规则</button>
+    <button data-panel="live-logs">📡 实时日志</button>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="status-dot">系统运行中</div>
+    <div style="margin-top:8px"><a href="/admin/logout" style="color:var(--muted)">退出登录</a></div>
   </div>
-  <div class="card" style="margin-top:16px"><h2>最近请求日志</h2><table><thead><tr><th>时间</th><th>IP</th><th>国家</th><th>IDE</th><th>查询</th><th>后端</th><th>意图</th><th>耗时</th><th>状态</th></tr></thead><tbody id="t-logs"></tbody></table></div>
-</div>
+</aside>
+<main class="main">
+"""
 
-<div id="panel-backends" class="panel">
-  <div class="card" style="margin-bottom:16px">
+# ── Topbar ────────────────────────────────────────────────────────────────────
+_TOPBAR = """\
+<div class="topbar">
+  <div>
+    <div class="eyebrow">ADMIN CONSOLE</div>
+    <h1 class="title">LiMa 管理后台</h1>
+    <p class="subtitle">实时监控、后端管理、路由模型、Agent 任务全生命周期管控</p>
+  </div>
+  <div class="toolbar">
+    <button class="btn ghost" onclick="refreshAll()">⟳ 刷新</button>
+    <span class="mini" id="refresh-info">每10秒自动刷新</span>
+  </div>
+</div>
+"""
+
+# ── Panel: Overview ───────────────────────────────────────────────────────────
+_P_OVERVIEW = """\
+<section id="panel-overview" class="section active">
+  <div class="bento">
+    <div class="card"><div class="metric" id="s-total">0</div><div class="metric-label">总请求数</div></div>
+    <div class="card"><div class="metric" id="s-avg-ms">0ms</div><div class="metric-label">平均响应时间</div></div>
+    <div class="card"><div class="metric" id="s-uptime">0s</div><div class="metric-label">运行时间</div></div>
+    <div class="card"><div class="metric" id="s-ips">0</div><div class="metric-label">活跃 IP</div></div>
+    <div class="card"><div class="metric" id="s-backends">0</div><div class="metric-label">活跃后端</div></div>
+    <div class="card"><div class="metric mini" id="s-time" style="font-size:14px;padding-top:14px"></div><div class="metric-label">最后刷新</div></div>
+  </div>
+  <div class="bento" style="margin-top:18px">
+    <div class="card wide">
+      <h2>后端调用统计 <span class="mini" id="s-git"></span></h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>后端</th><th>调用</th><th>成功率</th><th>均耗ms</th><th>占比</th></tr></thead>
+        <tbody id="t-backends"></tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <h2>意图分布</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>意图</th><th>次数</th><th>占比</th></tr></thead>
+        <tbody id="t-intents"></tbody>
+      </table></div>
+    </div>
+  </div>
+  <div class="bento" style="margin-top:18px">
+    <div class="card full">
+      <h2>IDE 分布</h2>
+      <div id="ide-bars"></div>
+    </div>
+  </div>
+  <span class="mini" id="s-py" style="display:none"></span>
+</section>
+"""
+
+# ── Panel: Traffic ────────────────────────────────────────────────────────────
+_P_TRAFFIC = """\
+<section id="panel-traffic" class="section">
+  <div class="card full">
+    <h2>最近请求日志
+      <div class="toolbar">
+        <input class="search" id="log-filter" placeholder="搜索日志..." oninput="renderLogs()" style="max-width:240px">
+        <button class="btn ghost" onclick="exportLogsCSV()">导出 CSV</button>
+        <button class="btn ghost" onclick="exportLogsJSON()">导出 JSON</button>
+      </div>
+    </h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>时间</th><th>IP</th><th>国家</th><th>IDE</th><th>查询</th><th>后端</th><th>意图</th><th>耗时</th><th>状态</th></tr></thead>
+      <tbody id="t-logs"></tbody>
+    </table></div>
+  </div>
+</section>
+"""
+
+# ── Panel: Backends ───────────────────────────────────────────────────────────
+_P_BACKENDS = """\
+<section id="panel-backends" class="section">
+  <div class="card full">
+    <h2>后端列表
+      <div class="toolbar">
+        <input class="search" id="backend-filter" placeholder="搜索后端..." oninput="renderBackends()" style="max-width:200px">
+      </div>
+    </h2>
+    <div class="filter-bar">
+      <button class="btn active" id="pool-all" onclick="filterPool('all')">全部</button>
+      <button class="btn" id="pool-code" onclick="filterPool('code')">Code</button>
+      <button class="btn" id="pool-sandbox" onclick="filterPool('sandbox')">Sandbox</button>
+      <button class="btn" id="pool-general" onclick="filterPool('general')">General</button>
+    </div>
+    <div id="batch-bar" style="display:none;margin-bottom:12px">
+      <span id="batch-count" class="mini"></span>
+      <button class="btn" onclick="batchTest()">批量测试</button>
+      <button class="btn danger" onclick="batchDisable()">批量删除</button>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th><input type="checkbox" onchange="toggleSelectAll(this)"></th>
+        <th>注册</th><th>名称</th><th>URL</th><th>模型</th><th>Key</th>
+        <th>协议</th><th>能力</th><th>池</th><th>准入</th>
+        <th>调用</th><th>错误率</th><th>操作</th>
+      </tr></thead>
+      <tbody id="t-be-list"></tbody>
+    </table></div>
+  </div>
+  <div class="card full" style="margin-top:18px">
     <h2>添加新后端</h2>
-    <div class="form-row">
-      <input id="nb-name" placeholder="名称" style="flex:1">
-      <input id="nb-url" placeholder="API URL" style="flex:2">
-      <select id="nb-fmt"><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option></select>
-      <select id="nb-tier"><option value="">自动检测</option><option value="L0">L0 本地</option><option value="L1">L1 免费无限</option><option value="L2">L2 免费额度</option><option value="L3">L3 免费限量</option><option value="L4">L4 付费</option></select>
-    </div>
-    <div class="form-row" style="margin-top:6px">
-      <input id="nb-key" placeholder="API Key (可选)" style="flex:2">
-      <input id="nb-model" placeholder="模型名" style="flex:2">
-      <input id="nb-auth" placeholder="认证方式 (默认x-api-key)" style="flex:1">
-    </div>
-    <div class="form-row" style="margin-top:6px">
-      <input id="nb-caps" placeholder="能力标签(逗号分隔,如: 工具调用,视觉,深度推理)" style="flex:3">
-      <button onclick="addBackend()" style="flex:1">添加并测试</button>
+    <div class="form">
+      <input id="be-name" placeholder="名称 *">
+      <input id="be-url" class="span2" placeholder="API URL">
+      <input id="be-model" placeholder="模型名">
+      <input id="be-key" placeholder="API Key">
+      <select id="be-fmt"><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option></select>
+      <input id="be-auth" placeholder="认证方式">
+      <select id="be-tier"><option value="">自动检测</option><option value="L1">L1 免费无限</option><option value="L2">L2 免费额度</option><option value="L3">L3 免费限量</option><option value="L4">L4 付费</option></select>
+      <input id="be-admission" placeholder="准入策略" class="span2">
+      <button class="btn" onclick="addBackend()">添加</button>
     </div>
   </div>
-  <div class="card"><h2>后端列表</h2><table><thead><tr><th>名称</th><th>供应商</th><th>层级</th><th>协议</th><th>能力</th><th>模型</th><th>URL</th><th>状态</th><th>测试</th><th>操作</th></tr></thead><tbody id="t-be-list"></tbody></table></div>
-</div>
+</section>
+"""
 
-<div id="panel-model" class="panel">
-  <div class="grid">
+# ── Panel: Retrieval ──────────────────────────────────────────────────────────
+_P_RETRIEVAL = """\
+<section id="panel-retrieval" class="section">
+  <div class="bento">
+    <div class="card"><div class="metric" id="r-count">0</div><div class="metric-label">追踪条数</div></div>
+    <div class="card"><div class="metric" id="r-avg-cand">0</div><div class="metric-label">平均候选数</div></div>
+    <div class="card"><div class="metric" id="r-avg-prec">0%</div><div class="metric-label">平均精度</div></div>
+    <div class="card"><div class="metric" id="r-useful">0%</div><div class="metric-label">注入有用率</div></div>
+  </div>
+  <div class="card full" style="margin-top:18px">
+    <h2>检索追踪详情</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>时间</th><th>后端</th><th>查询实体</th><th>候选</th><th>注入字符</th><th>精度</th><th>有用</th><th>场景</th></tr></thead>
+      <tbody id="t-retrieval"></tbody>
+    </table></div>
+  </div>
+</section>
+"""
+
+# ── Panel: Model ──────────────────────────────────────────────────────────────
+_P_MODEL = """\
+<section id="panel-model" class="section">
+  <div class="bento">
     <div class="card">
       <h2>路由模型状态</h2>
-      <table>
-        <tr><td>当前模型</td><td id="m-model">-</td></tr>
-        <tr><td>准确率</td><td id="m-accuracy">-</td></tr>
-        <tr><td>数据量</td><td id="m-data">-</td></tr>
-        <tr><td>Fallback 率</td><td id="m-fallback-rate">-</td></tr>
-      </table>
+      <table style="min-width:auto"><tr><td>当前模型</td><td id="m-name" class="mono">-</td></tr>
+      <tr><td>准确率</td><td id="m-accuracy">-</td></tr>
+      <tr><td>训练数据</td><td id="m-data">0 条</td></tr>
+      <tr><td>Fallback 数</td><td id="s-fallbacks">0</td></tr></table>
     </div>
     <div class="card">
-      <h2>自动训练状态</h2>
-      <table>
-        <tr><td>Fallback 日志</td><td id="m-log-count">0 / 100</td></tr>
-        <tr><td>下次训练触发</td><td id="m-next-train">日志满100条</td></tr>
-        <tr><td>上次训练</td><td id="m-last-train">-</td></tr>
-      </table>
-      <button onclick="triggerRetrain()" style="margin-top:10px">手动触发训练</button>
+      <h2>自动训练</h2>
+      <button class="btn" onclick="triggerRetrain()">手动触发训练</button>
+      <div id="retrain-progress" style="margin-top:12px"></div>
     </div>
   </div>
-  <div class="card" style="margin-top:16px">
-    <h2>Fallback 日志（最近50条）</h2>
-    <table>
-      <thead><tr><th>时间</th><th>查询</th><th>原后端</th><th>Fallback到</th><th>IDE</th><th>意图</th></tr></thead>
-      <tbody id="t-fallback-logs"></tbody>
-    </table>
+  <div class="bento" style="margin-top:18px">
+    <div class="card full">
+      <h2>Fallback 分析 <span class="metric" id="fb-total" style="font-size:20px;margin-left:12px"></span></h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+        <div><h3 class="mini" style="margin-bottom:8px">按后端</h3>
+          <table style="min-width:auto"><thead><tr><th>后端</th><th>次数</th><th>占比</th><th></th></tr></thead><tbody id="fb-by-backend"></tbody></table>
+        </div>
+        <div><h3 class="mini" style="margin-bottom:8px">按意图</h3>
+          <table style="min-width:auto"><thead><tr><th>意图</th><th>次数</th><th>占比</th></tr></thead><tbody id="fb-by-intent"></tbody></table>
+        </div>
+      </div>
+      <h3 class="mini" style="margin:16px 0 8px">小时趋势</h3>
+      <div id="fb-hourly" style="height:100px;display:flex;align-items:flex-end"></div>
+    </div>
   </div>
-</div>
+  <div class="card full" style="margin-top:18px">
+    <h2>Fallback 日志</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>时间</th><th>查询</th><th>原后端</th><th>意图/原因</th></tr></thead>
+      <tbody id="t-fallbacks"></tbody>
+    </table></div>
+  </div>
+</section>
+"""
 
-<div id="panel-agents" class="panel">
-  <div class="card">
+# ── Panel: Health ─────────────────────────────────────────────────────────────
+_P_HEALTH = """\
+<section id="panel-health" class="section">
+  <div class="bento">
+    <div class="card"><div class="metric" style="color:var(--green)" id="h-healthy">0</div><div class="metric-label">健康</div></div>
+    <div class="card"><div class="metric" style="color:var(--amber)" id="h-degraded">0</div><div class="metric-label">降级</div></div>
+    <div class="card"><div class="metric" style="color:var(--red)" id="h-dead">0</div><div class="metric-label">宕机</div></div>
+    <div class="card"><div class="metric" style="color:var(--muted)" id="h-cooled">0</div><div class="metric-label">冷却中</div></div>
+  </div>
+  <div class="card full" style="margin-top:18px">
+    <h2>后端健康详情</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>名称</th><th>健康</th><th>分数</th><th>延迟ms</th><th>CB</th><th>CB失败</th><th>CB调用</th><th>连败</th><th>冷却</th><th>错误</th></tr></thead>
+      <tbody id="t-health"></tbody>
+    </table></div>
+  </div>
+</section>
+"""
+
+# ── Panel: Client Keys ────────────────────────────────────────────────────────
+_P_CLIENT_KEYS = """\
+<section id="panel-client-keys" class="section">
+  <div class="bento">
+    <div class="card"><div class="metric" id="ck-total">0</div><div class="metric-label">总 Key 数</div></div>
+    <div class="card"><div class="metric" style="color:var(--green)" id="ck-enabled">0</div><div class="metric-label">启用</div></div>
+    <div class="card"><div class="metric" style="color:var(--red)" id="ck-disabled">0</div><div class="metric-label">禁用</div></div>
+    <div class="card"><div class="metric" style="color:var(--cyan)" id="ck-active-today">0</div><div class="metric-label">今日活跃</div></div>
+  </div>
+  <div class="card full" style="margin-top:18px">
+    <h2>客户端 Key 管理
+      <button class="btn" onclick="showCreateKeyForm()">+ 发放 Key</button>
+    </h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Key</th><th>标签</th><th>状态</th><th>日限</th><th>月限</th><th>日用量</th><th>月用量</th><th>最后使用</th><th>允许URL</th><th>操作</th></tr></thead>
+      <tbody id="t-client-keys"></tbody>
+    </table></div>
+  </div>
+</section>
+"""
+
+# ── Panel: Key-URL Inventory ──────────────────────────────────────────────────
+_P_KEYS = """\
+<section id="panel-keys" class="section">
+  <div class="card full">
+    <h2>Key-URL 清单
+      <input class="search" id="key-filter" placeholder="搜索..." oninput="renderKeyUrlTable()" style="max-width:200px">
+    </h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>名称</th><th>URL</th><th>Key</th><th>模型</th><th>协议</th><th>操作</th></tr></thead>
+      <tbody id="t-key-url"></tbody>
+    </table></div>
+  </div>
+  <div class="card full" style="margin-top:18px">
+    <h2>Provider Key Pool</h2>
+    <div id="key-pool-info"></div>
+  </div>
+</section>
+"""
+
+# ── Panel: Agents Audit ───────────────────────────────────────────────────────
+_P_AGENTS = """\
+<section id="panel-agents" class="section">
+  <div class="card full">
     <h2>Agent Task Audit</h2>
-    <table>
-      <thead><tr><th>Task</th><th>Status</th><th>Mode</th><th>Repo</th><th>Goal</th><th>Events</th><th>Next</th></tr></thead>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Task ID</th><th>状态</th><th>模式</th><th>仓库</th><th>目标</th><th>事件</th><th>下一步</th></tr></thead>
       <tbody id="t-agent-audit"></tbody>
-    </table>
+    </table></div>
   </div>
-</div>"""
+</section>
+"""
 
-ADMIN_JS = """<script>
-function authFetch(url,opts={}){
-  opts.headers=Object.assign({},opts.headers||{});
-  opts.credentials='same-origin';
-  return fetch(url,opts);
-}
-function switchTab(name){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  event.target.classList.add('active');
-  document.getElementById('panel-'+name).classList.add('active');
-}
-function fmtUptime(s){
-  if(s<60)return s+'s';
-  if(s<3600)return Math.floor(s/60)+'m '+s%60+'s';
-  let h=Math.floor(s/3600),m=Math.floor((s%3600)/60);
-  return h+'h '+m+'m';
-}
-async function loadStats(){
-  try{
-    let r=await authFetch('/admin/api/stats');let d=await r.json();
-    document.getElementById('s-total').textContent=d.total_requests;
-    document.getElementById('s-avg-ms').textContent=d.avg_response_ms+'ms';
-    document.getElementById('s-uptime').textContent=fmtUptime(d.uptime_seconds);
-    document.getElementById('s-backends').textContent=Object.keys(d.backend_calls).length;
-    document.getElementById('s-ips').textContent=d.unique_ips||0;
-    let tb=document.getElementById('t-backends');tb.innerHTML='';
-    for(let[name,info]of Object.entries(d.backend_calls)){
-      let rate=info.count>0?Math.round(info.success/info.count*100):0;
-      let avg=info.count>0?Math.round(info.total_ms/info.count):0;
-      tb.innerHTML+=`<tr><td>${esc(name)}</td><td>${esc(String(info.count))}</td><td><span class="badge ${rate>90?'badge-ok':'badge-err'}">${esc(String(rate))}%</span></td><td>${esc(String(avg))}</td></tr>`;
-    }
-    let ti=document.getElementById('t-intents');ti.innerHTML='';
-    let total=Object.values(d.intent_distribution).reduce((a,b)=>a+b,0)||1;
-    let sorted=Object.entries(d.intent_distribution).sort((a,b)=>b[1]-a[1]);
-    for(let[intent,count]of sorted){
-      ti.innerHTML+=`<tr><td>${esc(intent)}</td><td>${esc(String(count))}</td><td>${esc(String(Math.round(count/total*100)))}%</td></tr>`;
-    }
-    let tIde=document.getElementById('t-ides');tIde.innerHTML='';
-    if(d.ide_distribution){
-      let ideSorted=Object.entries(d.ide_distribution).sort((a,b)=>b[1]-a[1]);
-      for(let[ide,count]of ideSorted){
-        tIde.innerHTML+=`<tr><td>${esc(ide)}</td><td>${esc(String(count))}</td></tr>`;
-      }
-    }
-  }catch(e){console.error('stats error',e)}
-}
-function esc(s){return s?s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):''}
-function escJs(s){return s?s.replace(/\\/g,'\\\\').replace(/'/g,"\\'"):''}
-async function loadLogs(){
-  try{
-    let r=await authFetch('/admin/api/logs');let d=await r.json();
-    let tl=document.getElementById('t-logs');tl.innerHTML='';
-    for(let log of d){
-      let cls=log.success?'badge-ok':'badge-err';
-      tl.innerHTML+=`<tr><td class="log-time">${esc(log.time)}</td><td style="font-size:11px">${esc(log.ip||'')}</td><td>${esc(log.country||'')}</td><td>${esc(log.ide||'')}</td><td class="log-query" title="${esc(log.sys_prompt||'')}">${esc(log.query)}</td><td class="log-backend">${esc(log.backend)}</td><td>${esc(log.intent)}</td><td>${log.ms}ms</td><td><span class="badge ${cls}">${log.success?'OK':'ERR'}</span></td></tr>`;
-    }
-  }catch(e){console.error('logs error',e)}
-}
-async function loadBackends(){
-  try{
-    let r=await authFetch('/admin/api/backends');let d=await r.json();
-    let tb=document.getElementById('t-be-list');tb.innerHTML='';
-    for(let b of d){
-      let stCls=b.enabled?'badge-ok':'badge-off';
-      let stTxt=b.enabled?'启用':'禁用';
-      let cbCls=b.state==='open'?'badge-err':'badge-ok';
-      let caps=(b.capabilities||[]).map(c=>`<span class="badge ${c.includes('工具')?'badge-ok':c.includes('推理')?'badge-off':''}" style="font-size:10px;margin:1px">${esc(c)}</span>`).join('');
-      let urlShort=(b.url||'').length>30?b.url.substring(0,30)+'...':(b.url||'');
-      tb.innerHTML+=`<tr><td>${esc(b.name)}</td><td>${esc(b.vendor||'')}</td><td><span class="badge ${b.tier&&b.tier.includes('免费')?'badge-ok':b.tier&&b.tier.includes('付费')?'badge-err':'badge-off'}">${esc(b.tier||'')}</span></td><td>${esc(b.protocol||'')}</td><td>${caps}</td><td style="font-size:11px">${esc(b.model)}</td><td style="font-size:10px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(b.url||'')}">${esc(urlShort)}</td><td><span class="badge ${stCls}">${esc(stTxt)}</span></td><td><button onclick="testBackend('${escJs(b.name)}')">测试</button> <button onclick="toggleBackend('${escJs(b.name)}')">${b.enabled?'禁用':'启用'}</button> <button class="danger" onclick="deleteBackend('${escJs(b.name)}')">删除</button></td></tr>`;
-    }
-  }catch(e){console.error('backends error',e)}
-}
-async function loadModelStatus(){
-  try{
-    let r=await authFetch('/admin/api/model-status');let d=await r.json();
-    document.getElementById('m-model').textContent=d.model||'-';
-    document.getElementById('m-accuracy').textContent=d.accuracy||'-';
-    document.getElementById('m-data').textContent=(d.data_count||0)+' 条';
-    let fbRate=d.fallback_log_count>0?Math.round(d.fallback_log_count/Math.max(1,d.data_count)*100)+'%':'-';
-    document.getElementById('m-fallback-rate').textContent=fbRate;
-    document.getElementById('m-log-count').textContent=d.fallback_log_count+' / '+d.threshold;
-    document.getElementById('m-next-train').textContent=d.fallback_log_count>=d.threshold?'已就绪，可触发':'日志满'+d.threshold+'条';
-    document.getElementById('m-last-train').textContent=d.model||'-';
-    let tb=document.getElementById('t-fallback-logs');tb.innerHTML='';
-    for(let log of (d.recent_fallbacks||[])){
-      tb.innerHTML+=`<tr><td class="log-time">${esc(log.timestamp||'')}</td><td class="log-query">${esc((log.query||'').substring(0,60))}</td><td>${esc(log.original_backend||'')}</td><td class="log-backend">${esc(log.fallback_backend||'')}</td><td>${esc(log.ide||'')}</td><td>${esc(log.intent||'')}</td></tr>`;
-    }
-  }catch(e){console.error('model-status error',e)}
-}
-async function triggerRetrain(){
-  if(!confirm('确定手动触发训练？'))return;
-  try{
-    let r=await authFetch('/admin/api/retrain',{method:'POST'});
-    let d=await r.json();
-    alert('训练触发: '+d.status+'\\n'+((d.output||'').substring(0,300)));
-    loadModelStatus();
-  }catch(e){alert('触发失败: '+e)}
-}
-async function addBackend(){
-  let name=document.getElementById('nb-name').value.trim();
-  let url=document.getElementById('nb-url').value.trim();
-  let key=document.getElementById('nb-key').value.trim();
-  let model=document.getElementById('nb-model').value.trim();
-  let fmt=document.getElementById('nb-fmt').value;
-  let tier=document.getElementById('nb-tier').value;
-  let auth=document.getElementById('nb-auth').value.trim();
-  let capsRaw=document.getElementById('nb-caps').value.trim();
-  let caps=capsRaw?capsRaw.split(',').map(s=>s.trim()).filter(s=>s):[];
-  if(!name||!url){alert('名称和URL必填');return}
-  let r=await authFetch('/admin/api/backends',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,url,key,model:model||name,fmt,tier,auth,caps})});
-  let d=await r.json();
-  if(r.ok){
-    document.getElementById('nb-name').value='';document.getElementById('nb-url').value='';document.getElementById('nb-key').value='';document.getElementById('nb-model').value='';document.getElementById('nb-auth').value='';document.getElementById('nb-caps').value='';
-    loadBackends();
-    if(d.test){alert(d.test.ok?`✅ 添加成功\n测试延迟: ${d.test.latency_ms}ms\n响应: ${d.test.response_preview||''}`:`⚠️ 添加成功但测试失败\n错误: ${d.test.error||''}`)}
-    else{alert(d.message||'添加成功')}
-  }else{alert(d.detail||'添加失败')}
-}
-async function deleteBackend(name){
-  if(!confirm('确定删除后端 '+name+' ?'))return;
-  await authFetch('/admin/api/backends/'+name,{method:'DELETE'});loadBackends();
-}
-async function toggleBackend(name){
-  await authFetch('/admin/api/backends/'+name+'/toggle',{method:'POST'});loadBackends();
-}
-async function testBackend(name){
-  let btn=event.target;btn.disabled=true;btn.textContent='测试中...';
-  try{
-    let r=await authFetch('/admin/api/backends/'+name+'/test',{method:'POST'});
-    let d=await r.json();
-    if(d.ok){alert(`✅ ${name} 可用\\n延迟: ${d.latency_ms}ms\\n响应: ${d.response_preview||''}`)}
-    else{alert(`❌ ${name} 不可用\\n延迟: ${d.latency_ms}ms\\n错误: ${d.error||''}`)}
-  }catch(e){alert('测试失败: '+e)}
-  btn.disabled=false;btn.textContent='测试';loadBackends();
-}
-async function loadAgentAudit(){
-  try{
-    let r=await authFetch('/admin/api/agent-audit?limit=20');let d=await r.json();
-    let tb=document.getElementById('t-agent-audit');if(!tb)return;tb.innerHTML='';
-    for(let task of (d.tasks||[])){
-      tb.innerHTML+=`<tr><td>${esc(task.task_id)}</td><td>${esc(task.status)}</td><td>${esc(task.mode)}</td><td>${esc(task.repo)}</td><td>${esc(task.goal)}</td><td>${task.event_count}</td><td>${esc(task.next_action||'')}</td></tr>`;
-    }
-  }catch(e){console.error('agent audit error',e)}
-}
-function refreshAll(){loadStats();loadLogs();loadBackends();loadModelStatus();loadAgentAudit()}
-refreshAll();
-setInterval(refreshAll,5000);
-</script>
+# ── Panel: Agent Tasks ────────────────────────────────────────────────────────
+_P_AGENT_TASKS = """\
+<section id="panel-agent-tasks" class="section">
+  <div class="bento">
+    <div class="card"><div class="metric" id="at-total">0</div><div class="metric-label">总任务</div></div>
+    <div class="card"><div class="metric" style="color:var(--amber)" id="at-running">0</div><div class="metric-label">运行中</div></div>
+    <div class="card"><div class="metric" style="color:var(--green)" id="at-completed">0</div><div class="metric-label">已完成</div></div>
+    <div class="card"><div class="metric" style="color:var(--red)" id="at-failed">0</div><div class="metric-label">失败</div></div>
+  </div>
+  <div class="card full" style="margin-top:18px">
+    <h2>Agent 任务列表
+      <div class="toolbar">
+        <input class="search" id="at-filter" placeholder="搜索任务..." oninput="renderAgentTasks()" style="max-width:200px">
+      </div>
+    </h2>
+    <div class="filter-bar">
+      <button class="btn active" id="at-all" onclick="filterAgentTasks('')">全部</button>
+      <button class="btn" id="at-running" onclick="filterAgentTasks('running')">运行中</button>
+      <button class="btn" id="at-completed" onclick="filterAgentTasks('completed')">已完成</button>
+      <button class="btn" id="at-failed" onclick="filterAgentTasks('failed')">失败</button>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>ID</th><th>状态</th><th>Worker</th><th>后端</th><th>描述</th><th>创建时间</th><th>操作</th></tr></thead>
+      <tbody id="t-agent-tasks"></tbody>
+    </table></div>
+  </div>
+  <div id="at-detail-card" class="card full" style="margin-top:18px;display:none">
+    <h2>任务详情 <button class="btn ghost" onclick="hideTaskDetail()">关闭</button></h2>
+    <div id="at-detail-content"></div>
+  </div>
+</section>
+"""
+
+# ── Panel: Config ─────────────────────────────────────────────────────────────
+_P_CONFIG = """\
+<section id="panel-config" class="section">
+  <div class="card">
+    <h2>配置导出</h2>
+    <p class="mini">版本: <span id="cfg-version" class="mono">-</span></p>
+    <pre id="cfg-preview" style="background:rgba(8,12,20,0.6);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:12px;max-height:300px;overflow:auto;margin:12px 0"></pre>
+    <button class="btn" onclick="exportConfig()">导出配置</button>
+  </div>
+  <div class="card">
+    <h2>配置导入</h2>
+    <input type="file" id="config-file" accept=".json" style="margin:12px 0">
+    <br><button class="btn" onclick="importConfig()">导入配置</button>
+  </div>
+</section>
+"""
+
+# ── Panel: Devices ────────────────────────────────────────────────────────────
+_P_DEVICES = """\
+<section id="panel-devices" class="section">
+  <div class="bento">
+    <div class="card"><div class="metric" id="dev-total">0</div><div class="metric-label">在线设备</div></div>
+    <div class="card"><div class="metric" style="color:var(--cyan)" id="dev-tasks">0</div><div class="metric-label">待处理任务</div></div>
+  </div>
+  <div class="card full" style="margin-top:18px">
+    <h2>设备列表</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>设备 ID</th><th>固件</th><th>能力</th><th>运行时间</th><th>任务数</th><th>操作</th></tr></thead>
+      <tbody id="t-devices"></tbody>
+    </table></div>
+  </div>
+</section>
+"""
+
+# ── Panel: Alerts ─────────────────────────────────────────────────────────────
+_P_ALERTS = """\
+<section id="panel-alerts" class="section">
+  <div class="bento">
+    <div class="card"><div class="metric" id="alert-total">0</div><div class="metric-label">总规则数</div></div>
+    <div class="card"><div class="metric" style="color:var(--green)" id="alert-active">0</div><div class="metric-label">启用中</div></div>
+  </div>
+  <div class="card full" style="margin-top:18px">
+    <h2>告警规则
+      <button class="btn" onclick="showAddAlert()">+ 添加规则</button>
+    </h2>
+    <div id="alert-add-form" style="display:none;margin-bottom:16px;padding:16px;border:1px solid var(--line);border-radius:16px">
+      <div class="form">
+        <input id="al-name" placeholder="规则名称">
+        <select id="al-metric"><option value="error_rate">错误率</option><option value="latency_ms">延迟</option><option value="fallback_rate">Fallback率</option><option value="request_count">请求量</option></select>
+        <select id="al-condition"><option value="gt">大于</option><option value="lt">小于</option><option value="eq">等于</option></select>
+        <input id="al-threshold" type="number" placeholder="阈值" step="0.01">
+        <input id="al-window" type="number" placeholder="窗口(秒)" value="300">
+        <button class="btn" onclick="addAlertRule()">创建</button>
+      </div>
+      <button class="btn ghost" onclick="hideAddAlert()" style="margin-top:8px">取消</button>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>ID</th><th>名称</th><th>指标</th><th>条件</th><th>阈值</th><th>窗口</th><th>状态</th><th>操作</th></tr></thead>
+      <tbody id="t-alerts"></tbody>
+    </table></div>
+  </div>
+</section>
+"""
+
+# ── Panel: Live Logs ──────────────────────────────────────────────────────────
+_P_LIVE_LOGS = """\
+<section id="panel-live-logs" class="section">
+  <div class="bento">
+    <div class="card"><div class="metric" id="ll-count">0</div><div class="metric-label">接收条数</div></div>
+    <div class="card"><div class="metric" style="color:var(--green)" id="ll-success">0</div><div class="metric-label">成功</div></div>
+    <div class="card"><div class="metric" style="color:var(--red)" id="ll-fail">0</div><div class="metric-label">失败</div></div>
+    <div class="card">
+      <span class="mini">状态: </span><span id="ll-status" class="mono">未连接</span>
+      <div style="margin-top:10px">
+        <button class="btn" id="ll-toggle" onclick="toggleLiveLogs()">开始监听</button>
+        <button class="btn ghost" onclick="clearLiveLogs()">清空</button>
+      </div>
+    </div>
+  </div>
+  <div class="card full" style="margin-top:18px">
+    <h2>实时日志流
+      <input class="search" id="ll-filter" placeholder="过滤..." oninput="filterLiveLogs()" style="max-width:200px">
+    </h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>时间</th><th>IP</th><th>国家</th><th>IDE</th><th>查询</th><th>后端</th><th>意图</th><th>耗时</th><th>状态</th></tr></thead>
+      <tbody id="t-live-logs"></tbody>
+    </table></div>
+  </div>
+</section>
+"""
+
+# ── Close shell ───────────────────────────────────────────────────────────────
+_CLOSE = """\
+</main>
+</div>
+<div class="toast" id="toast"></div>
+<script src="/chat/admin.js?v=20260609"></script>
 </body>
 </html>"""
 
 
+def render_admin_login(error_msg: str = "") -> str:
+    """Return the admin login page HTML."""
+    err = f'<p style="color:#f87171;margin:12px 0">{error_msg}</p>' if error_msg else ""
+    return f"""\
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LiMa · 管理登录</title>
+<link rel="stylesheet" href="/chat/admin.css?v=20260609">
+</head>
+<body style="display:grid;place-items:center;min-height:100vh">
+<div style="max-width:360px;width:100%;padding:40px">
+  <div class="brand" style="justify-content:center;margin-bottom:36px">
+    <div class="logo">Li</div>
+    <div><h1 style="font-size:22px">LiMa</h1><p style="color:var(--muted);font-size:13px">管理后台登录</p></div>
+  </div>
+  <form method="post" action="/admin/login" style="display:grid;gap:16px">
+    <input name="token" placeholder="Admin Token" type="password"
+           style="border:1px solid var(--line);border-radius:12px;background:rgba(8,12,20,0.6);color:var(--text);padding:14px 16px;font-size:14px">
+    <button type="submit" class="btn" style="padding:14px;font-size:15px">登 录</button>
+  </form>
+  {err}
+</div>
+</body></html>"""
 
 
 def render_admin_dashboard() -> str:
     """Return authenticated admin dashboard HTML."""
-    return ADMIN_HTML + ADMIN_BODY + ADMIN_JS
+    return (
+        _HEAD
+        + _SIDEBAR
+        + _TOPBAR
+        + _P_OVERVIEW
+        + _P_TRAFFIC
+        + _P_BACKENDS
+        + _P_RETRIEVAL
+        + _P_MODEL
+        + _P_HEALTH
+        + _P_CLIENT_KEYS
+        + _P_KEYS
+        + _P_AGENTS
+        + _P_AGENT_TASKS
+        + _P_CONFIG
+        + _P_DEVICES
+        + _P_ALERTS
+        + _P_LIVE_LOGS
+        + _CLOSE
+    )

@@ -70,7 +70,7 @@ def resolve_route_prefs(req: ChatRequest, ide_source: str, query: str) -> RouteP
     elif req.model in ("expert", "lima-thinking"):
         prefer = "scnet_ds_pro"
         req.thinking = True
-    elif req.model in ("code", "lima-code"):
+    elif req.model == "code":
         ide = ide or "chat_code_mode"
         prefer = "scnet_qwen235b"
 

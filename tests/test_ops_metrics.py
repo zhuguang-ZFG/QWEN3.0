@@ -211,7 +211,7 @@ def test_ops_metrics_includes_recent_agent_tasks(monkeypatch, tmp_path):
     from routes.agent_tasks import TaskCreateBody, _create_task_from_body
 
     created = _create_task_from_body(TaskCreateBody(
-        repo="D:/GIT/deepcode-cli",
+        repo="D:/GIT/lima-worker-sandbox",
         goal="ops metrics recent task",
         mode="review",
     ))

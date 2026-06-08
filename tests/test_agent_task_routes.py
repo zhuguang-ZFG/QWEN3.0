@@ -18,6 +18,7 @@ app.include_router(router)
 client = TestClient(app)
 
 HEADERS = {"Authorization": "Bearer test-admin-token"}
+WORKER_REPO = "D:/GIT/lima-worker-sandbox"
 
 
 class TestTaskEndpoints:
@@ -52,7 +53,7 @@ class TestTaskEndpoints:
         assert resp.status_code == 200
         assert len(resp.json()["events"]) >= 1
 
-    def test_get_task_returns_lima_code_task_envelope(self):
+    def test_get_task_returns_agent_task_envelope(self):
         resp = client.post("/agent/tasks", json={
             "repo": "D:/GIT",
             "goal": "review routing",
@@ -76,7 +77,7 @@ class TestTaskEndpoints:
 
     def test_create_task_preserves_patch_files_and_test_commands(self):
         resp = client.post("/agent/tasks", json={
-            "repo": "D:/GIT/deepcode-cli",
+            "repo": WORKER_REPO,
             "goal": "patch smoke",
             "mode": "patch",
             "allowed_tools": ["write", "git_diff", "test"],
@@ -187,7 +188,7 @@ class TestTaskEndpoints:
 
     def test_agent_audit_summary_returns_recent_task_events(self):
         task_id = client.post("/agent/tasks", json={
-            "repo": "D:/GIT/deepcode-cli",
+            "repo": WORKER_REPO,
             "goal": "audit smoke",
             "allowed_tools": ["git_diff"],
             "mode": "review",
@@ -220,7 +221,7 @@ class TestTaskEndpoints:
 
     def test_worker_preflight_reports_control_plane_readiness(self):
         task_id = client.post("/agent/tasks", json={
-            "repo": "D:/GIT/deepcode-cli",
+            "repo": WORKER_REPO,
             "goal": "preflight visible task",
             "allowed_tools": ["git_diff"],
             "mode": "review",
@@ -243,7 +244,7 @@ class TestTaskEndpoints:
 
     def test_create_worker_smoke_task_defaults_to_read_only_review(self):
         resp = client.post("/agent/worker/smoke-task", json={
-            "repo": "D:/GIT/deepcode-cli",
+            "repo": WORKER_REPO,
         }, headers=HEADERS)
 
         assert resp.status_code == 200
@@ -252,7 +253,7 @@ class TestTaskEndpoints:
         task = client.get(
             f"/agent/tasks/{data['task_id']}", headers=HEADERS
         ).json()["task"]
-        assert task["repo"] == "D:/GIT/deepcode-cli"
+        assert task["repo"] == WORKER_REPO
         assert task["mode"] == "review"
         assert task["allowed_tools"] == ["git_diff"]
         assert task["max_runtime_sec"] == 120
@@ -261,7 +262,7 @@ class TestTaskEndpoints:
 
     def test_create_worker_smoke_task_can_create_patch_test_task(self):
         resp = client.post("/agent/worker/smoke-task", json={
-            "repo": "D:/GIT/deepcode-cli",
+            "repo": WORKER_REPO,
             "kind": "patch_readme",
         }, headers=HEADERS)
 
@@ -272,13 +273,13 @@ class TestTaskEndpoints:
         assert task["allowed_tools"] == ["write", "git_diff", "test"]
         assert task["patch_files"] == [{
             "file_path": "README.md",
-            "content": "# LiMa Code Smoke\n",
+            "content": "# Agent Worker Smoke\n",
         }]
         assert task["test_commands"] == ["node --version"]
 
     def test_claim_task_assigns_worker_and_lease(self):
         task_id = client.post("/agent/tasks", json={
-            "repo": "D:/GIT/deepcode-cli",
+            "repo": WORKER_REPO,
             "goal": "review diff",
             "allowed_tools": ["git_diff"],
             "mode": "review",
@@ -298,7 +299,7 @@ class TestTaskEndpoints:
 
     def test_claim_task_rejects_active_running_lease(self):
         task_id = client.post("/agent/tasks", json={
-            "repo": "D:/GIT/deepcode-cli",
+            "repo": WORKER_REPO,
             "goal": "review diff",
             "allowed_tools": ["git_diff"],
             "mode": "review",
@@ -322,7 +323,7 @@ class TestTaskEndpoints:
 
     def test_claim_task_allows_expired_running_lease(self):
         task_id = client.post("/agent/tasks", json={
-            "repo": "D:/GIT/deepcode-cli",
+            "repo": WORKER_REPO,
             "goal": "review diff",
             "allowed_tools": ["git_diff"],
             "mode": "review",
@@ -347,7 +348,7 @@ class TestTaskEndpoints:
 
     def test_cancel_task_marks_control_flag(self):
         task_id = client.post("/agent/tasks", json={
-            "repo": "D:/GIT/deepcode-cli",
+            "repo": WORKER_REPO,
             "goal": "test cancel",
             "allowed_tools": ["git_diff"],
             "mode": "review",
@@ -363,7 +364,7 @@ class TestTaskEndpoints:
 
     def test_review_gate_promotes_only_approved_successful_task(self):
         task_id = client.post("/agent/tasks", json={
-            "repo": "D:/GIT/deepcode-cli",
+            "repo": WORKER_REPO,
             "goal": "safe patch",
             "allowed_tools": ["git_diff"],
             "mode": "review",
@@ -395,7 +396,7 @@ class TestTaskEndpoints:
         from routes.agent_tasks import apply_task_review
 
         task_id = client.post("/agent/tasks", json={
-            "repo": "D:/GIT/deepcode-cli",
+            "repo": WORKER_REPO,
             "goal": "callback review",
             "allowed_tools": ["git_diff"],
             "mode": "review",
@@ -426,7 +427,7 @@ class TestTaskEndpoints:
 
     def test_approved_successful_task_creates_candidate_skill(self):
         task_id = client.post("/agent/tasks", json={
-            "repo": "D:/GIT/deepcode-cli",
+            "repo": WORKER_REPO,
             "goal": "learn notifier pattern",
             "allowed_tools": ["git_diff"],
             "mode": "review",
@@ -464,7 +465,7 @@ class TestTaskEndpoints:
 
     def test_quarantine_task_updates_status_and_events(self):
         task_id = client.post("/agent/tasks", json={
-            "repo": "D:/GIT/deepcode-cli",
+            "repo": WORKER_REPO,
             "goal": "bad task",
             "allowed_tools": ["git_diff"],
             "mode": "review",
@@ -512,7 +513,7 @@ class TestSkillEndpoints:
 
     def test_promote_candidate_requires_mastery_evidence(self):
         task_id = client.post("/agent/tasks", json={
-            "repo": "D:/GIT/deepcode-cli",
+            "repo": WORKER_REPO,
             "goal": "learn safe promotion gate",
             "allowed_tools": ["git_diff"],
             "mode": "review",
@@ -552,7 +553,7 @@ class TestSkillEndpoints:
 
     def test_promote_candidate_accepts_mastery_evidence(self):
         task_id = client.post("/agent/tasks", json={
-            "repo": "D:/GIT/deepcode-cli",
+            "repo": WORKER_REPO,
             "goal": "learn verified promotion gate",
             "allowed_tools": ["git_diff"],
             "mode": "review",

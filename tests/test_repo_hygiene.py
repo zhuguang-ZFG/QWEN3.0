@@ -30,7 +30,6 @@ TRACKED_ALLOWLIST = set()
 UNTRACKED_SCAN_DIRS = (
     ROOT / "data",
     ROOT / "scripts",
-    ROOT / "deepcode-cli" / "data",
 )
 
 UNTRACKED_ALLOWLIST_PREFIXES = (
@@ -83,18 +82,9 @@ def test_worktree_has_no_untracked_high_risk_artifacts():
     assert offenders == [], f"untracked high-risk files: {offenders}"
 
 
-def test_deepcode_cli_runtime_data_ignored_in_root_gitignore():
-    """CI may not checkout the deepcode-cli submodule; root ignore is authoritative."""
-    text = (ROOT / ".gitignore").read_text(encoding="utf-8")
-    assert "deepcode-cli/data/" in text.replace("\\", "/")
-
-
-def test_deepcode_cli_submodule_gitignore_when_present():
-    submodule_gitignore = ROOT / "deepcode-cli" / ".gitignore"
-    if not submodule_gitignore.is_file():
-        return
-    text = submodule_gitignore.read_text(encoding="utf-8")
-    assert "data/" in text
+def test_deepcode_cli_submodule_is_retired_from_index():
+    """LiMa Code is retired from this repo; the root repo must not track its gitlink."""
+    assert "deepcode-cli" not in _git_ls_files()
 
 
 def test_scripts_archive_readme_exists():

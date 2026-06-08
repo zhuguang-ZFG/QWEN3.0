@@ -1,6 +1,3 @@
-[submodule "deepcode-cli"]
-	path = deepcode-cli
-	url = https://github.com/zhuguang-ZFG/deepcode-cli.git
 [submodule "esp32S_XYZ"]
 	path = esp32S_XYZ
 	url = https://github.com/zhuguang-ZFG/esp32S_XYZ.git

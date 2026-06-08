@@ -6,6 +6,7 @@ from fastapi import APIRouter, Cookie, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from routes.admin_api import router as admin_api_router
+from routes.admin_api_extra import router as admin_api_extra_router
 from routes.admin_auth import (
     SESSION_COOKIE,
     admin_session_value,
@@ -18,6 +19,7 @@ from routes.admin_ui import render_admin_dashboard
 
 router = APIRouter(prefix="/admin")
 router.include_router(admin_api_router)
+router.include_router(admin_api_extra_router)
 
 __all__ = ["router", "inject_state"]
 

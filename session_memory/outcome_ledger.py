@@ -5,8 +5,8 @@ Every event — chat turn, CI run, device task, worker result, eval report —
 goes into ONE table with ONE schema. Queries and dashboards read from here.
 
 Schema:
-  source:  telegram | ci | lima_code | vps_smoke | device_gateway | esp32
-  loop:    chat_ide | limacode_worker | device_gateway | backend_eval | ops_learning
+  source:  telegram | ci | agent_worker | vps_smoke | device_gateway | esp32
+  loop:    chat_ide | agent_worker | device_gateway | backend_eval | ops_learning
   outcome: success | failure | partial
   learned: 0=unlearned | 1=learned | 2=rejected | 3=applied
 """
@@ -30,7 +30,7 @@ _DB_PATH = os.environ.get("LIMA_OUTCOME_DB", _DEFAULT_DB_PATH)
 _ENABLED = os.environ.get("LIMA_OUTCOME_LEDGER", "1").strip().lower() in {"1", "true", "yes"}
 
 ALLOWED_LOOPS = {
-    "chat_ide", "limacode_worker", "device_gateway",
+    "chat_ide", "agent_worker", "limacode_worker", "device_gateway",
     "backend_eval", "ops_learning",
 }
 

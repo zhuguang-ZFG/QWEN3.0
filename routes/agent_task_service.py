@@ -48,7 +48,7 @@ async def require_admin(authorization: str = "") -> None:
         _log.info("require_admin: admin token accepted")
         return
 
-    # Accept any configured private API key (enables LiMa Code single-key auth)
+    # Accept any configured private API key for worker/client automation.
     api_keys = configured_api_keys()
     _log.info("require_admin: api_keys=%s, presented=%s...", list(api_keys)[:1], presented[:10])
     if api_keys and any(constant_time_equals(presented, k) for k in api_keys):
@@ -236,7 +236,7 @@ def post_result_hooks(
     from observability.capability_evidence import record_evidence_safe
 
     record_evidence_safe(
-        loop="limacode_worker",
+        loop="agent_worker",
         request_id=task_id,
         task_id=task_id,
         entrypoint=f"/agent/tasks/{task_id}/result",
