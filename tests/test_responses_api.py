@@ -308,6 +308,54 @@ def test_chat_completion_to_response_text():
     assert resp["usage"]["total_tokens"] == 4
 
 
+def test_chat_completion_to_response_normalizes_structured_message_content():
+    data = {
+        "created": 1700000000,
+        "model": "lima-1.3",
+        "choices": [{
+            "message": {
+                "role": "assistant",
+                "content": [
+                    {"type": "text", "text": "First"},
+                    {"type": "output_text", "text": "Second"},
+                ],
+            },
+            "finish_reason": "stop",
+        }],
+    }
+
+    resp = chat_completion_to_response(data)
+
+    assert resp["output"][0]["type"] == "message"
+    assert resp["output"][0]["content"][0]["text"] == "First\nSecond"
+
+
+def test_chat_completion_to_response_serializes_tool_arguments():
+    data = {
+        "created": 1700000000,
+        "model": "lima-1.3",
+        "choices": [{
+            "message": {
+                "role": "assistant",
+                "tool_calls": [{
+                    "id": "call_1",
+                    "type": "function",
+                    "function": {
+                        "name": "lookup",
+                        "arguments": {"query": "weather", "limit": 2},
+                    },
+                }],
+            },
+            "finish_reason": "tool_calls",
+        }],
+    }
+
+    resp = chat_completion_to_response(data)
+
+    assert resp["output"][0]["type"] == "function_call"
+    assert resp["output"][0]["arguments"] == '{"query":"weather","limit":2}'
+
+
 def test_chat_completion_to_response_preserves_reasoning_output():
     data = {
         "created": 1700000000,

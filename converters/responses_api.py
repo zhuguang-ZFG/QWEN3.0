@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import time
 import uuid
 from typing import Any
@@ -196,7 +197,7 @@ def chat_completion_to_response(data: dict, request_body: dict | None = None) ->
     choice = (data.get("choices") or [{}])[0]
     message = choice.get("message") or {}
     reasoning = _message_reasoning_text(message)
-    content = message.get("content") or ""
+    content = content_to_text(message.get("content") or "")
     tool_calls = message.get("tool_calls") or []
     incomplete = incomplete_reason(str(choice.get("finish_reason") or ""))
     status = "incomplete" if incomplete else "completed"
@@ -220,7 +221,7 @@ def chat_completion_to_response(data: dict, request_body: dict | None = None) ->
             "id": _new_item_id("fc"),
             "call_id": tc.get("id") or _new_item_id("call"),
             "name": fn.get("name", ""),
-            "arguments": fn.get("arguments", "{}"),
+            "arguments": _tool_arguments_text(fn.get("arguments")),
             "status": "completed",
         })
 
@@ -248,3 +249,11 @@ def _message_reasoning_text(message: dict) -> str:
         if isinstance(value, str) and value:
             return value
     return ""
+
+
+def _tool_arguments_text(arguments: Any) -> str:
+    if isinstance(arguments, str):
+        return arguments or "{}"
+    if arguments is None:
+        return "{}"
+    return json.dumps(arguments, ensure_ascii=False, separators=(",", ":"))
