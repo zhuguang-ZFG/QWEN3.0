@@ -1572,15 +1572,33 @@
       resp.className = 'email-response';
       resp.textContent = '';
 
-      fetch('/api/email-demo', {
+      fetch('/api/demo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email, message: message })
+        body: JSON.stringify({
+          model: 'lima',
+          messages: [
+            { role: 'system', content: '你是 LiMa 力码 AI 助手，由深圳市动力巢科技有限公司开发。用户通过官网邮件Demo功能向你提问，请简洁专业地回答。用户邮箱：' + email },
+            { role: 'user', content: message }
+          ],
+          stream: false
+        })
       })
-      .then(function(r) { return r.json(); })
+      .then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
       .then(function(data) {
         resp.className = 'email-response show';
-        resp.textContent = data.reply || data.message || JSON.stringify(data);
+        var reply = '';
+        if (data.choices && data.choices.length > 0 && data.choices[0].message) {
+          reply = data.choices[0].message.content;
+        } else if (data.reply) {
+          reply = data.reply;
+        } else {
+          reply = JSON.stringify(data);
+        }
+        resp.textContent = reply;
       })
       .catch(function(err) {
         resp.className = 'email-response show error';
