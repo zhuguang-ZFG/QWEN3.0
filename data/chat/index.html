@@ -453,6 +453,8 @@ button,a,[onclick]{touch-action:manipulation;-webkit-tap-highlight-color:transpa
   <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></symbol>
   <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></symbol>
+  <symbol id="i-video" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></symbol>
 </svg>
 
 <div class="app">
@@ -515,6 +517,8 @@ button,a,[onclick]{touch-action:manipulation;-webkit-tap-highlight-color:transpa
           <div class="sel-wrap"><button class="sel-btn" id="personaBtn" onclick="cyclePersona()"><svg><use href="#i-mask"/></svg> <span id="personaLabel">默认</span></button></div>
           <button class="mode-pill" id="mThink" onclick="toggleMode('think')"><svg><use href="#i-think"/></svg> 深度思考</button>
           <button class="mode-pill" id="mSearch" onclick="toggleMode('search')"><svg><use href="#i-globe"/></svg> 联网搜索</button>
+          <button class="mode-pill" id="mImage" onclick="toggleMode('image')"><svg><use href="#i-image"/></svg> AI生图</button>
+          <button class="mode-pill" id="mVideo" onclick="toggleMode('video')"><svg><use href="#i-video"/></svg> AI视频</button>
           <div class="input-right">
             <button class="sel-btn" onclick="toggleKbdHelp()" title="快捷键" style="padding:5px 10px"><svg style="width:14px;height:14px"><use href="#i-keyboard"/></svg></button>
             <span style="font-size:11px;color:var(--text3);line-height:34px;font-variant-numeric:tabular-nums" id="statusText"></span>
@@ -709,7 +713,104 @@ function toggleTheme(){const t=document.documentElement.dataset.theme==='dark'?'
       $('themeBtn').innerHTML=e.matches?'<svg><use href="#i-moon"/></svg>':'<svg><use href="#i-sun"/></svg>'}})})();
 
 // Mode toggles
-function toggleMode(m){mode[m]=!mode[m];$('m'+m[0].toUpperCase()+m.slice(1)).classList.toggle('on',mode[m])}
+function toggleMode(m){mode[m]=!mode[m];$('m'+m[0].toUpperCase()+m.slice(1)).classList.toggle('on',mode[m])
+  // Disable conflicting modes
+  if(m==='image'&&mode.image){mode.video=false;$('mVideo').classList.remove('on')}
+  if(m==='video'&&mode.video){mode.image=false;$('mImage').classList.remove('on')}}
+
+// AI Image Generation
+async function generateImage(prompt){
+  setStatus('正在生成图像…');
+  try{
+    const resp=await fetch('/v1/images/agnes_generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt,size:'1024x1024'})});
+    if(!resp.ok){const e=await resp.text();throw new Error(`HTTP ${resp.status}: ${e.slice(0,200)}`)}
+    const data=await resp.json();
+    if(data.data&&data.data[0]&&data.data[0].url){
+      return {type:'image',url:data.data[0].url,prompt:prompt};
+    }
+    throw new Error('No image URL in response');
+  }catch(e){
+    console.error('Image generation failed:',e);
+    throw e;
+  }
+}
+
+// AI Video Generation
+async function generateVideo(prompt){
+  setStatus('正在生成视频（可能需要1-2分钟）…');
+  try{
+    const resp=await fetch('/v1/videos/agnes_generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt,duration:5,aspect_ratio:'16:9'})});
+    if(!resp.ok){const e=await resp.text();throw new Error(`HTTP ${resp.status}: ${e.slice(0,200)}`)}
+    const data=await resp.json();
+    // Check if it's async (task_id) or sync (direct URL)
+    if(data.task_id){
+      // Poll for completion
+      return await pollVideoStatus(data.task_id);
+    }else if(data.data&&data.data[0]&&data.data[0].url){
+      return {type:'video',url:data.data[0].url,prompt:prompt};
+    }
+    throw new Error('Unexpected response format');
+  }catch(e){
+    console.error('Video generation failed:',e);
+    throw e;
+  }
+}
+
+async function pollVideoStatus(taskId){
+  const maxAttempts=60; // 5 minutes max
+  for(let i=0;i<maxAttempts;i++){
+    await new Promise(r=>setTimeout(r,5000)); // Wait 5 seconds
+    try{
+      const resp=await fetch(`/v1/videos/agnes_status/${taskId}`);
+      if(!resp.ok)continue;
+      const data=await resp.json();
+      const taskStatus=data.data?.status;
+      const videoData=data.data?.data;
+      
+      if(taskStatus==='completed'&&videoData&&videoData.video_url){
+        return {type:'video',url:videoData.video_url,prompt:videoData.prompt||''};
+      }else if(taskStatus==='failed'){
+        throw new Error('Video generation failed: '+(data.data?.fail_reason||'Unknown error'));
+      }
+      const progress=data.data?.progress||0;
+      setStatus(`正在生成视频… (${progress}%)`);
+    }catch(e){
+      if(i===maxAttempts-1)throw e;
+    }
+  }
+  throw new Error('Video generation timeout');
+}
+
+// Handle AI generation modes in send function
+async function handleAIGeneration(text,c){
+  if(mode.image){
+    try{
+      const result=await generateImage(text);
+      const msg={role:'assistant',content:`![AI生成图像](${result.url})\n\n**Prompt:** ${result.prompt}`,tokens:{in:50,out:50,est:true}};
+      c.msgs.push(msg);c.ts=Date.now();save();
+      renderChat();renderList();
+      setStatus('图像生成完成');
+    }catch(e){
+      setStatus('图像生成失败');
+      $('streamBubble').innerHTML=`<span style="color:var(--danger)">⚠️ 图像生成失败: ${esc(e.message)}</span>`;
+    }
+    return true;
+  }
+  if(mode.video){
+    try{
+      const result=await generateVideo(text);
+      const msg={role:'assistant',content:`<video controls style="max-width:100%;border-radius:12px"><source src="${result.url}" type="video/mp4"></video>\n\n**Prompt:** ${result.prompt}`,tokens:{in:100,out:100,est:true}};
+      c.msgs.push(msg);c.ts=Date.now();save();
+      renderChat();renderList();
+      setStatus('视频生成完成');
+    }catch(e){
+      setStatus('视频生成失败');
+      $('streamBubble').innerHTML=`<span style="color:var(--danger)">⚠️ 视频生成失败: ${esc(e.message)}</span>`;
+    }
+    return true;
+  }
+  return false;
+}
 
 // Models
 const MODELS=[
@@ -793,6 +894,23 @@ async function send(){
   renderList();
   $('chatInner').insertAdjacentHTML('beforeend',renderMsg(userMsg,c.msgs.length-1));
   scrollBottom();
+  // Check if AI generation mode is active
+  if(mode.image||mode.video){
+    // Show generation placeholder
+    $('chatInner').insertAdjacentHTML('beforeend',
+      `<div class="msg ai" id="streamMsg"><div class="msg-avatar"><svg style="width:18px;height:18px;color:var(--accent)"><use href="#i-sparkle"/></svg></div><div class="msg-body">
+      <div class="msg-bubble" id="streamBubble"><span class="thinking-dot" id="loadDot"></span></div>
+      </div></div>`);
+    scrollBottom();
+    streaming=true;
+    $('sendBtn').classList.add('stop');$('sendBtn').innerHTML='<svg style="width:14px;height:14px"><use href="#i-x"/></svg>';$('sendBtn').disabled=false;
+    try{
+      await handleAIGeneration(text,c);
+    }finally{
+      streaming=false;$('sendBtn').classList.remove('stop');$('sendBtn').innerHTML='<svg><use href="#i-arrow-up"/></svg>';renderChat();renderList();setTimeout(()=>setStatus(''),3000)
+    }
+    return;
+  }
   // Build API messages
   const apiMsgs=c.msgs.filter(m=>m.role!=='system').map(m=>{
     if(m.image){return{role:'user',content:[{type:'image_url',image_url:{url:m.image}},{type:'text',text:m.content}]}}

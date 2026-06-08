@@ -65,6 +65,10 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
 
     app.include_router(agnes_router)
 
+    from routes.agnes_video_proxy import router as agnes_video_router
+
+    app.include_router(agnes_video_router)
+
     from routes.jina_embedding import router as jina_router
 
     app.include_router(jina_router)
