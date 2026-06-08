@@ -2,7 +2,54 @@
 
 > Created: 2026-05-22
 
-> Updated: 2026-05-31
+> Updated: 2026-06-09
+
+## 2026-06-09 LiMa Code CLI retirement closeout
+
+**Goal:** retire the tracked LiMa Code / `deepcode-cli` CLI integration from
+the main LiMa repository while preserving the generic server-side Agent Task /
+Agent Worker path.
+
+- Implementation:
+  - removed the `deepcode-cli` submodule stanza from `.gitmodules` and removed
+    the gitlink from the main repository index;
+  - removed tracked `.lima-code` examples, local `start_lima*` launchers,
+    LiMa Code-only stress/verification scripts, and active LiMa Code
+    management/old implementation plan docs;
+  - changed active server/operator text from LiMa Code-specific wording to
+    generic Agent Worker / developer-tool wording;
+  - retired `model="lima-code"` as a first-class route alias while preserving
+    `model="code"` as the coding route;
+  - changed new learning/outcome evidence writes to `agent_worker` while
+    keeping `limacode_worker` accepted for historical database compatibility.
+- Local verification:
+  - focused retirement pytest: `116 passed, 1 warning`;
+  - `python -m py_compile` on retained touched scripts: clean;
+  - focused `ruff check` on touched files: clean;
+  - active tracked `ruff check` excluding archived scripts: clean;
+  - focused `pyright` on touched files: `0 errors, 6 warnings` for unresolved
+    FastAPI imports in the local pyright environment;
+  - `git diff --check` and `git diff --cached --check`: clean;
+  - `gitleaks` is not installed locally; manual staged added-line credential
+    scan returned no matches.
+- VPS deploy and smoke:
+  - backup:
+    `/opt/lima-router/backups/lima-code-retirement-20260609_020314/runtime-before.tgz`;
+  - deployed 11 runtime files with `scripts/deploy_unified.py`; upload count
+    `11`, restart health OK;
+  - public Python urllib smoke returned `/health=200`;
+  - authenticated public `model="code"` chat returned HTTP `200` and marker
+    `agent-worker-retirement-ok`;
+  - authenticated `/agent/worker/preflight` returned HTTP `200`, `ready=true`,
+    `contract_version=agent-task-v1+prompt-contract-v0.1`.
+- Residual risk:
+  - full `pyright` remains blocked by unrelated, already-staged admin redesign
+    work in `routes/admin_api_extra.py` (three type errors);
+  - unrestricted `ruff check .` is blocked by unrelated local scratch scripts
+    with Paramiko `AutoAddPolicy`; active tracked non-archive ruff is clean;
+  - full `pytest -q` was attempted and timed out after about 350 seconds with
+    many pre-existing failures/errors and a Windows temp cleanup `WinError 5`;
+    the retirement-focused target suite passed.
 
 ## 2026-05-31 bounded telemetry JSONL closeout
 

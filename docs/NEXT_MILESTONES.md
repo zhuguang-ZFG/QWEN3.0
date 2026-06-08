@@ -1,7 +1,8 @@
 # LiMa 下一里程碑（四线并行）
 
-> Updated: 2026-05-30
-> Latest closeout: 2026-05-30 whole-project code quality audit is deployed and pushed on `main`; deploy regression coverage is in `tests/test_deploy_unified.py`.
+> Updated: 2026-06-09
+> Latest closeout: 2026-06-09 LiMa Code CLI retirement is deployed; `deepcode-cli` is no longer a tracked submodule and generic Agent Worker remains the server-side task path.
+> Direction override: old "LiMa Code Worker" items below are historical unless they map directly to generic `/agent/tasks`, `/agent/worker/preflight`, and `model="code"` flows. Do not use `.lima-code`, `start_lima*`, or `deepcode-cli` as active validation paths.
 > 权威状态仍见 `STATUS.md`、`docs/EXECUTION_PLAN.md`、`findings.md`、`progress.md`。
 > 本文件只做**优先级与文档对齐**；`docs/superpowers/plans/` 内未勾 checkbox 以状态文档为准。
 

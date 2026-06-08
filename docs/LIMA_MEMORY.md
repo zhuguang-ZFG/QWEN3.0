@@ -1,6 +1,6 @@
 # LiMa Memory
 
-> **Updated: 2026-05-31 (runtime governance + telemetry aggregation closeout)**
+> **Updated: 2026-06-09 (LiMa Code CLI retirement closeout)**
 > **Branch:** `main` - **HEAD:** pending closeout push
 > **Latest authority:** `STATUS.md`, `progress.md`, `findings.md`, `docs/DOCUMENTATION_STATUS.md`
 
@@ -10,6 +10,35 @@
 > **本文件：** 跨会话 durable 事实；计划 checkbox 以状态文档为准。
 
 ---
+
+## 2026-06-09 LiMa Code Retirement Snapshot
+
+- Current direction: LiMa Server remains the private coding-assistant backend;
+  `deepcode-cli` / LiMa Code CLI is retired from the main repository.
+- Repository state:
+  - `deepcode-cli` is no longer a tracked submodule;
+  - tracked `.lima-code` examples and LiMa Code-only launchers/smokes were
+    removed;
+  - historical LiMa Code docs remain historical evidence only when still
+    present in old logs.
+- Runtime state:
+  - generic Agent Task / Agent Worker server endpoints remain active;
+  - `model="code"` remains the coding route;
+  - `model="lima-code"` is no longer a coding route alias;
+  - new learning/outcome records use `agent_worker`; `limacode_worker` is
+    accepted only for historical DB compatibility.
+- Verification:
+  - local focused retirement pytest: `116 passed, 1 warning`;
+  - focused pyright on touched files: `0 errors`;
+  - active tracked ruff: clean;
+  - public smoke: `/health=200`, authenticated `model=code` chat returned
+    `agent-worker-retirement-ok`, and `/agent/worker/preflight` returned
+    `ready=true`, `contract_version=agent-task-v1+prompt-contract-v0.1`.
+- VPS rollback:
+  `/opt/lima-router/backups/lima-code-retirement-20260609_020314/runtime-before.tgz`.
+- Known residual gates:
+  unrelated admin redesign type errors block full pyright, and full pytest is
+  currently not a clean signal in this dirty workspace.
 
 ## 2026-05-31 Closeout Snapshot
 

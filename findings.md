@@ -2,6 +2,16 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-06-09 LiMa Code CLI Retirement Closeout
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| LC-RETIRE-1 | Repo structure | `deepcode-cli` is no longer a tracked submodule in the main LiMa repository; `.gitmodules` has no LiMa Code stanza and `git ls-files --stage deepcode-cli` returns no entry. | Closed |
+| LC-RETIRE-2 | Runtime boundary | Active server routes and operator text now refer to Agent Worker / developer-tool paths instead of LiMa Code worker wording. Historical outcome loop `limacode_worker` remains accepted only for existing DB compatibility. | Closed |
+| LC-RETIRE-3 | Routing | `model="code"` still selects the coding route; retired `model="lima-code"` no longer sets the coding route preference. `tests/test_chat_route_prefs.py` covers both cases. | Closed |
+| LC-RETIRE-4 | VPS smoke | Retirement runtime files were deployed after backup `/opt/lima-router/backups/lima-code-retirement-20260609_020314/runtime-before.tgz`; public `/health` returned 200, authenticated `model=code` chat returned marker `agent-worker-retirement-ok`, and `/agent/worker/preflight` returned `ready=true` with contract version `agent-task-v1+prompt-contract-v0.1`. | Closed |
+| LC-RETIRE-5 | Validation residual | Focused retirement pytest passed (`116 passed`), but full pyright is blocked by unrelated `routes/admin_api_extra.py` type errors and full pytest timed out with many ambient failures plus Windows temp cleanup `WinError 5`. | Accepted |
+
 ## 2026-05-31 Bounded Telemetry JSONL Closeout
 
 | ID | Area | Finding | Status |

@@ -4,6 +4,11 @@
 > Scope: private coding assistant use of LiMa, chat.donglicao.com, and api.donglicao.com.
 > Rule: prioritize evidence from coding tasks over public-platform complexity.
 >
+> Direction update 2026-06-09: `deepcode-cli` / LiMa Code CLI is retired from
+> this repository. Continue coding-assistant work through LiMa Server,
+> `model="code"`, and generic Agent Task / Agent Worker contracts; do not use
+> `.lima-code` or LiMa Code launchers as active validation paths.
+>
 > ## Implementation Plan (2026-05-24)
 >
 > Source: `docs/superpowers/plans/2026-05-24-lima-implementation-review-plan.md`

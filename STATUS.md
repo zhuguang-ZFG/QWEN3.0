@@ -1,11 +1,24 @@
 # LiMa Status
 
-> Updated: 2026-05-31 (LiMa Code Chinese-first UX deepening closeout)
+> Updated: 2026-06-09 (LiMa Code CLI retirement closeout)
 > Branch: `main`
-> Tests: LiMa Code `npm.cmd run check` clean; full LiMa Code suite **495 passed, 7 skipped**; `npm.cmd run build` clean
-> Current VPS: unchanged for this CLI/TUI-only slice; last server smoke health OK with `/v1/ops/summary` 200
-> VPS: Memory 1454MB -> 1358MB (services restored), health check OK
+> Tests: focused retirement pytest **116 passed, 1 warning**; focused pyright **0 errors**; active tracked ruff clean
+> Current VPS: LiMa Code retirement runtime deployed; public `/health` 200; authenticated `model=code` chat and Agent Worker preflight smoke passed
+> VPS rollback: `/opt/lima-router/backups/lima-code-retirement-20260609_020314/runtime-before.tgz`
 > Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
+
+## 2026-06-09 LiMa Code CLI Retirement Closeout
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| Submodule retirement | Done | `.gitmodules` no longer contains `deepcode-cli`; `git ls-files --stage deepcode-cli` returns no entry |
+| Active CLI files | Done | Removed tracked `.lima-code` examples, `start_lima*` launchers, and LiMa Code-only stress/verification scripts from the main repo |
+| Routing contract | Done | `model="code"` still selects coding route preference; `model="lima-code"` no longer does; covered by `tests/test_chat_route_prefs.py` |
+| Agent Worker wording | Done | Active server/operator strings now use Agent Worker / developer-tool wording; new learning outcome records use `agent_worker` |
+| Local verification | Done | focused retirement pytest `116 passed, 1 warning`; touched-script `py_compile` clean; focused ruff clean; active tracked ruff clean; focused pyright `0 errors`; diff checks clean; staged credential scan clean |
+| VPS deploy | Done | backup `/opt/lima-router/backups/lima-code-retirement-20260609_020314/runtime-before.tgz`; deployed 11 runtime files; restart health OK |
+| Public smoke | Done | Python urllib smoke: `/health=200`, authenticated `model=code` chat HTTP `200` with `agent-worker-retirement-ok`, `/agent/worker/preflight` HTTP `200`, `ready=true`, `contract_version=agent-task-v1+prompt-contract-v0.1` |
+| Residual local gates | Accepted | full pyright blocked by unrelated `routes/admin_api_extra.py`; full pytest attempted but timed out after about 350s with many ambient failures plus Windows temp cleanup `WinError 5` |
 
 ## 2026-05-31 LiMa Code Chinese-First UX Deepening Closeout
 

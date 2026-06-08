@@ -33,8 +33,8 @@
 
 - [x] Remove the `deepcode-cli` submodule stanza from `.gitmodules`.
 - [x] Remove tracked `.lima-code` client config examples from the main repo.
-- [ ] Remove the `deepcode-cli` gitlink from the main repository index.
-- [ ] Verify `git ls-files --stage deepcode-cli` returns no entry.
+- [x] Remove the `deepcode-cli` gitlink from the main repository index.
+- [x] Verify `git ls-files --stage deepcode-cli` returns no entry.
 
 ### Task 2: Remove LiMa Code Active Scripts
 
@@ -80,7 +80,7 @@
 
 - [x] Update tests to use `D:/GIT` or a generic worker repository fixture.
 - [x] Remove active configuration exclusions for `deepcode-cli`.
-- [ ] Add retirement closeout evidence to active status docs.
+- [x] Add retirement closeout evidence to active status docs.
 
 ### Task 5: Validate, Deploy, And Close
 
@@ -93,8 +93,36 @@ pyright
 git diff --check
 ```
 
-- [ ] Run focused validation first.
-- [ ] Run broader local validation appropriate to the changed production files.
-- [ ] Deploy changed server files to VPS, restart `lima-router`, and verify `/health`.
-- [ ] Record local and VPS evidence in `progress.md` and `findings.md`.
-- [ ] Stage only retirement-related files, commit, and push to `origin` and `gitee`.
+- [x] Run focused validation first.
+- [x] Run broader local validation appropriate to the changed production files.
+- [x] Deploy changed server files to VPS, restart `lima-router`, and verify `/health`.
+- [x] Record local and VPS evidence in `progress.md` and `findings.md`.
+- [x] Stage only retirement-related files, commit, and push to `origin` and `gitee`.
+
+## Closeout Evidence
+
+- Local focused pytest:
+  `tests/test_chat_route_prefs.py tests/test_agent_task_routes.py tests/test_agent_task_contract.py tests/test_lima_smoke_task_script.py tests/test_repo_hygiene.py tests/test_telegram_b2b.py tests/test_ops_metrics.py tests/test_admin_agent_audit.py tests/test_tool_gateway.py tests/test_capability_evidence.py -q`
+  returned `116 passed, 1 warning`.
+- Local script compile:
+  `python -m py_compile scripts/ci_notify.py scripts/create_lima_smoke_task.py scripts/p02_code_tool_joint.py scripts/p11_error_recovery.py scripts/p13_multi_file.py scripts/repo_stats.py scripts/vibecode_e2e_smoke.py`
+  returned clean.
+- Static gates:
+  focused `ruff check` on touched runtime/tests passed;
+  active tracked `ruff check` excluding archived scripts passed;
+  focused `pyright` returned `0 errors, 6 warnings`;
+  `git diff --check` and `git diff --cached --check` returned clean.
+- Credential scan:
+  `gitleaks` is not installed locally; staged added-line credential scan returned no matches.
+- Broader gates:
+  full `pyright` is blocked by unrelated admin redesign file `routes/admin_api_extra.py`
+  with three type errors;
+  full `pytest -q` was attempted and timed out after about 350 seconds with many pre-existing errors/failures plus a WinError 5 cleanup failure under `tmp/pytest-run-full`.
+- VPS deploy:
+  backup `/opt/lima-router/backups/lima-code-retirement-20260609_020314/runtime-before.tgz`;
+  `scripts/deploy_unified.py` uploaded 11 retirement runtime files and restarted `lima-router` with health OK.
+- Public smoke:
+  Python urllib smoke against `https://chat.donglicao.com` returned `/health=200`,
+  authenticated `model=code` chat HTTP `200` with marker `agent-worker-retirement-ok`,
+  and `/agent/worker/preflight` HTTP `200`, `ready=true`,
+  `contract_version=agent-task-v1+prompt-contract-v0.1`.

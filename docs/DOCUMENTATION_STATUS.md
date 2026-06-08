@@ -1,6 +1,6 @@
 ﻿# Documentation Status
 
-> Updated: 2026-05-31
+> Updated: 2026-06-09
 > Purpose: prevent old commercial-platform plans from being mistaken for the active LiMa direction.
 
 ## Start Here
@@ -11,16 +11,14 @@ docs, active logs, and how to treat historical plan files. Use
 
 ## Latest Closeout
 
-- 2026-05-31 runtime governance + telemetry aggregation closeout is deployed.
-- Current branch is `main`; latest LiMa Code submodule commit is `3cae0bc`.
+- 2026-06-09 LiMa Code CLI retirement closeout is deployed.
+- `deepcode-cli` is no longer a tracked submodule of the main LiMa repository.
 - Verification evidence lives in `STATUS.md`, `progress.md`, and `findings.md`:
-  LiMa Code `npm test` (`476 pass, 6 skipped`), LiMa Server full `pytest`
-  (`2151 passed, 10 skipped`), VPS health, webhook ignored smoke, public CLI
-  telemetry aggregation smoke, and VPS environment reproducibility check.
-- Latest deployed backend fixes are `routes/agent_learn.py`,
-  `routes/ops_metrics.py`, `routes/github_webhook.py`,
-  `routes/gitee_webhook.py`, `observability/cli_telemetry.py`, and
-  `backend_retirement.py`.
+  focused retirement pytest (`116 passed`), focused pyright (`0 errors`),
+  active tracked ruff clean, VPS health, authenticated public `model=code`
+  smoke, and Agent Worker preflight smoke.
+- Latest deployed runtime files are the Agent Worker / routing / telemetry
+  files listed in `progress.md` for the 2026-06-09 retirement closeout.
 
 ## Current Source Of Truth
 
@@ -39,14 +37,14 @@ docs, active logs, and how to treat historical plan files. Use
 | `docs/CLOUDFLARE_MODEL_INVENTORY.md` | Active | Cloudflare direct/Worker model inventory, routing policy, and adapter boundaries. |
 | `docs/CLOUDFLARE_WORKER_QUICK_EVAL.md` | Active evidence | Worker quick coding eval for `cfai_qwen_coder`, `cfai_deepseek_r1`, and `cfai_mistral`. |
 | `docs/EXECUTION_PLAN.md` | Active | Current phase tracker for documentation/GitHub snapshot and next implementation order. |
-| `docs/NEXT_MILESTONES.md` | Active | Four-track priority map: coding backends, LiMa Code Worker, ESP32/Device Gateway, code quality; doc drift reconciliation table. |
+| `docs/NEXT_MILESTONES.md` | Active | Four-track priority map; LiMa Code Worker entries are superseded by the 2026-06-09 Agent Worker retirement note. |
 | `docs/WECHAT_RETIRED.md` | Active | WeChat/iLink/WCF/OpenClaw product channels retired; VPS cleanup via `scripts/cleanup_wechat_vps.py`. |
 | `docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md` | Active backlog | P0/P1 code quality slices; pair with `docs/NEXT_MILESTONES.md` §代码质量. |
 | `docs/REFERENCE_PROJECT_EVALUATION.md` | Active | Current evaluation of OpenRAG, Google Cloud always-on-memory-agent, TechSpar, and autonomy references against LiMa's real code state. |
 | `docs/REFERENCE_IMPLEMENTATION_LEDGER.md` | Active implementation ledger | Current reference-to-LiMa implementation status table; distinguishes implemented, gated, concept, evaluating, and rejected reference ideas. |
 | `docs/ONLINE_DISTRIBUTIONS.md` | Active | Source of truth for VPS-hosted official website, open platform, chat interface, FRP endpoint, nginx edge, and service ownership. |
 | `docs/OPS_ENTRYPOINTS.md` | Compatibility record | Original FreeDomain-inspired ops-entrypoint plan file; points to `docs/ONLINE_DISTRIBUTIONS.md` as the expanded source of truth. |
-| `docs/LIMACODE_MANAGEMENT.md` | Active | Source of truth for LiMa Code submodule governance, pinned revision updates, cross-repo verification, and admitted external workflow references. |
+| `docs/superpowers/plans/2026-06-09-lima-code-retirement.md` | Active retirement record | Source of truth for the LiMa Code / `deepcode-cli` retirement slice and closeout evidence. |
 | `docs/ESP32S_XYZ_MANAGEMENT.md` | Active | Source of truth for esp32S_XYZ submodule governance, LiMa backend boundaries, and cross-repo product verification. |
 | `docs/ESP32S_XYZ_OPTIMIZATION_ROADMAP.md` | Active | Optimization and refactor mandate for LiMa-led esp32S_XYZ improvement work. |
 | `docs/superpowers/plans/2026-05-24-lima-direct-device-gateway.md` | Active plan | Direct U8-to-LiMa Device Gateway plan; public route is deployed and now uses Redis-backed task queues plus pub/sub session-owner notification on VPS. |
@@ -64,7 +62,7 @@ docs, active logs, and how to treat historical plan files. Use
 | `docs/reference/TECHSPAR_BORROWING_NOTES.md` | Active boundary | Concept-borrowing record and license boundary for the local mastery loop. |
 | `docs/reference/AGENT_AUTONOMY_BORROWING_NOTES.md` | Active boundary | Concept-borrowing record for gated autonomy, role separation, and evidence-based promotion. |
 | `docs/reference/XIANYU_AUTO_AGENT_EXECUTION_NOTES.md` | Active boundary | Concept-only execution plan for XianyuAutoAgent-style channel agents: connector boundary, session state, expert routing, manual takeover, WebSocket health, prompt profiles, and audit gates. |
-| `docs/superpowers/plans/2026-05-23-lima-code-vibe-coding.md` | Active plan | LiMa Code fork integration plan for using LiMa as model router and LiMa Code as vibe coding worker/UI. |
+| `docs/superpowers/plans/2026-05-23-lima-code-vibe-coding.md` | Retired/deleted | Superseded by the 2026-06-09 LiMa Code retirement closeout. |
 | `docs/superpowers/plans/2026-05-22-cloudflare-workers-ai-routing.md` | Active record | Completed Cloudflare text/code routing implementation plan. |
 | `docs/superpowers/plans/2026-05-22-token-safe-local-proxy-routing.md` | Active record | Completed token-safe refresh, topology-aware local proxy routing, and exact-output quality hotfix plan. |
 | `docs/superpowers/plans/2026-05-22-free-web-ai-stability-routing.md` | Active record | Completed candidate registry, probes, stability, and quota-aware routing plan. |
@@ -79,11 +77,11 @@ docs, active logs, and how to treat historical plan files. Use
 | `docs/GITEE_BASELINE.md` | Active | GI-G-0 Gitee mirror baseline and event comparison. |
 | `docs/GITEE_WEBHOOK_INTEGRATION.md` | Active | GI-G-2 Gitee WebHook → Telegram + SHA dedupe. |
 | `docs/GITEE_MIRROR_RUNBOOK.md` | Active | GI-G-1 dual-remote push runbook. |
-| `docs/superpowers/plans/2026-05-26-lima-task-prompt-contract-v0.1.md` | **Active plan (LC-W-1)** | LiMa Code Worker Prompt Contract v0.1 — Context/Task/Constraints/Verify/Output。 |
+| `docs/superpowers/plans/2026-05-26-lima-task-prompt-contract-v0.1.md` | Active Agent Worker contract record | Prompt Contract v0.1 remains useful for generic Agent Task / Agent Worker flows; LiMa Code CLI execution is retired. |
 | `docs/HEALTHCHECKS_SETUP.md` | Active | INF-B Healthchecks dead-man；login `/accounts/login/`；lima-vps-router live。 |
 | `docs/superpowers/plans/2026-05-26-infra-tools-integration.md` | **Active plan (P1)** | Infisical + Healthchecks + Tailscale（零路由）；SearXNG 见 productivity-enhancement PE-D-1。 |
 | `docs/FREE_RESOURCE_RADAR_MERGED.md` | Active radar | 免费资源索引 + **LiMa 状态列**；执行顺序见 `NEXT_MILESTONES.md`。 |
-| `docs/superpowers/plans/2026-05-26-lima-code-opencode-orchestration.md` | Deferred plan | OpenCode/oh-my-opencode-inspired LiMa Code role orchestration；dry-run first、默认关、不替换 LiMa 路由和 closeout。 |
+| `docs/superpowers/plans/2026-05-26-lima-code-opencode-orchestration.md` | Retired/deleted | Superseded by the 2026-06-09 LiMa Code retirement closeout. |
 | `docs/superpowers/plans/2026-05-26-provider-model-automation-full-plan.md` | **Archived plan** | 免费模型发现/验证/准入完整方案；CF-G-2 与 PA-B 合并。 |
 | `docs/GITHUB_WEBHOOK_INTEGRATION.md` | Active | CQ-GH-001 webhook → Telegram；VPS smoke 2026-05-26。 |
 | `docs/PROVIDER_MODEL_AUTOMATION_PLAN.md` | Active policy | 模型发现策略与状态机；实施细节见 archived full plan。 |
@@ -113,7 +111,7 @@ These files are retained as reference, but they are not the current execution di
 5. Stage only relevant files. The repo contains many local reference directories and temporary experiments.
 6. When reporting tests, distinguish LiMa target-suite results from unrestricted full-repo pytest collection.
 7. Treat VPS public surfaces as tracked LiMa distributions; update `docs/ONLINE_DISTRIBUTIONS.md`, `infra/vps/`, `STATUS.md`, `docs/LIMA_MEMORY.md`, and `progress.md` when they change.
-8. Treat `deepcode-cli` as the tracked LiMa Code submodule; update `docs/LIMACODE_MANAGEMENT.md`, `STATUS.md`, `docs/LIMA_MEMORY.md`, and `progress.md` when its pinned revision or Server/Worker contract changes.
+8. Do not treat `deepcode-cli` as an active tracked submodule. LiMa Code CLI is retired from this repo; use generic Agent Task / Agent Worker contracts and update `STATUS.md`, `docs/LIMA_MEMORY.md`, and `progress.md` when those server contracts change.
 9. Treat `esp32S_XYZ` as the tracked downstream hardware/product submodule; update `docs/ESP32S_XYZ_MANAGEMENT.md`, `STATUS.md`, `docs/LIMA_MEMORY.md`, and `progress.md` when its pinned revision or LiMa backend contract changes.
 10. Treat MCP connectors as authority-bearing access paths, not simple prompts. Check `docs/reference/MCP_CONNECTOR_CATALOG.md` before enabling any new MCP server.
 11. Treat `docs/reference/AI_ENGINEERING_COMPETENCY_MAP_2026.md` as the baseline production-AI checklist before expanding model, agent, memory, eval, cost, or deployment features.
