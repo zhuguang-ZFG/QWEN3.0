@@ -162,6 +162,24 @@ def test_responses_content_list_function_call_output_to_user_turn():
     assert "README heading" in chat["messages"][0]["content"]
 
 
+def test_responses_function_call_input_serializes_structured_arguments():
+    body = {
+        "model": "lima-1.3",
+        "input": [{
+            "type": "function_call",
+            "call_id": "call_lookup",
+            "name": "lookup",
+            "arguments": {"query": "weather", "limit": 2},
+        }],
+    }
+
+    chat = responses_body_to_chat(body)
+
+    fn = chat["messages"][0]["tool_calls"][0]["function"]
+    assert fn["name"] == "lookup"
+    assert fn["arguments"] == '{"query":"weather","limit":2}'
+
+
 def test_responses_skips_reasoning_and_item_reference_replay_metadata():
     body = {
         "model": "lima-1.3",

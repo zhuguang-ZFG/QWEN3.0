@@ -77,7 +77,7 @@ def _function_call_message(item: dict) -> dict:
             "type": "function",
             "function": {
                 "name": item.get("name", ""),
-                "arguments": item.get("arguments", "{}"),
+                "arguments": _tool_arguments_text(item.get("arguments")),
             },
         }],
     }
