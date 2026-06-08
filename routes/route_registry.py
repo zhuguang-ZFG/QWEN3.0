@@ -108,6 +108,10 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
 
     app.include_router(embeddings_router)
 
+    from routes.static_files import router as static_files_router
+
+    app.include_router(static_files_router)
+
     import routes.admin as admin_mod
     from routes.admin import router as admin_router
     from routes.admin_agent_audit import router as admin_agent_audit_router

@@ -8,7 +8,7 @@ import time
 from collections import defaultdict
 
 from fastapi import APIRouter, Cookie, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 
 from access_guard import constant_time_equals
 from routes.admin_api import router as admin_api_router
@@ -120,7 +120,27 @@ async def admin_logout(request: Request):
         or request.headers.get("X-Forwarded-Proto", "") == "https"
         or not (request.url.hostname or "").startswith(("localhost", "127.0.0.1"))
     )
-    
+
     response = RedirectResponse("/admin", status_code=303)
     response.delete_cookie(SESSION_COOKIE, secure=is_production, samesite="strict")
     return response
+
+
+@router.get("/admin.js")
+async def serve_admin_js(lima_admin_session: str = Cookie(default="")):
+    """Serve admin.js file for authenticated users."""
+    if not get_admin_token():
+        raise HTTPException(503, "LIMA_ADMIN_TOKEN not configured")
+    if not is_valid_admin_session(lima_admin_session):
+        raise HTTPException(401, "Unauthorized")
+
+    js_path = os.path.join("data", "chat", "admin.js")
+    if not os.path.exists(js_path):
+        raise HTTPException(404, "admin.js not found")
+
+    return FileResponse(
+        js_path,
+        media_type="application/javascript",
+        headers={"Cache-Control": "no-cache"}
+    )
+
