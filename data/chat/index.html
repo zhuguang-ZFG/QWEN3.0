@@ -130,11 +130,15 @@ button,a,[onclick]{touch-action:manipulation;-webkit-tap-highlight-color:transpa
   animation:float 20s ease-in-out infinite}
 @keyframes float{0%,100%{transform:translate(0,0)}50%{transform:translate(2%,-2%)}}
 .welcome-logo{margin-bottom:24px;position:relative}
-.welcome-logo svg{filter:drop-shadow(0 8px 24px rgba(0,113,227,.2));transition:transform .3s var(--ease-spring)}
+.welcome-logo svg{filter:drop-shadow(0 8px 24px rgba(0,113,227,.2));transition:transform .3s var(--ease-spring);
+  animation:logoPulse 3s ease-in-out infinite}
 .welcome-logo svg:hover{transform:scale(1.08) rotate(-3deg)}
+@keyframes logoPulse{0%,100%{filter:drop-shadow(0 8px 24px rgba(0,113,227,.2))}50%{filter:drop-shadow(0 8px 32px rgba(0,113,227,.4))}}
 .welcome h2{font-size:30px;font-weight:700;margin-bottom:10px;letter-spacing:-.03em;
   background:linear-gradient(135deg,var(--accent),#4dabf7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.welcome p{color:var(--text2);font-size:14px;margin-bottom:36px;line-height:1.7;max-width:420px;margin-left:auto;margin-right:auto}
+.welcome p{color:var(--text2);font-size:14px;margin-bottom:36px;line-height:1.7;max-width:420px;margin-left:auto;margin-right:auto;
+  animation:subtitleFadeIn .8s ease-out both}
+@keyframes subtitleFadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .feat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;max-width:480px;margin:0 auto;position:relative}
 .feat-card{padding:16px 18px;border-radius:16px;background:var(--glass);backdrop-filter:blur(12px);
   -webkit-backdrop-filter:blur(12px);border:1px solid var(--glass-b);cursor:pointer;transition:all .25s var(--ease);
@@ -305,6 +309,9 @@ button,a,[onclick]{touch-action:manipulation;-webkit-tap-highlight-color:transpa
   -webkit-backdrop-filter:blur(16px);display:flex;align-items:center;gap:8px}
 .toast.show{transform:translateX(-50%) translateY(0)}
 .toast svg{width:16px;height:16px;flex-shrink:0}
+
+/* ── Char Count ── */
+.char-count{font-size:11px;color:var(--text3);font-variant-numeric:tabular-nums;transition:opacity .2s var(--ease);font-family:var(--mono)}
 
 /* ── Responsive: Tablet ── */
 @media(max-width:768px){
@@ -499,7 +506,7 @@ button,a,[onclick]{touch-action:manipulation;-webkit-tap-highlight-color:transpa
         </div>
         <div class="input-bar">
           <button class="ibtn" onclick="document.getElementById('fileIn').click()" title="上传图片"><svg><use href="#i-clip"/></svg></button>
-          <textarea id="input" rows="1" placeholder="问 LiMa 任何问题…" onkeydown="onKey(event)" oninput="autoGrow(this)"></textarea>
+          <textarea id="input" rows="1" placeholder="问 LiMa 任何问题…" onkeydown="onKey(event)" oninput="autoGrow(this);updateCharCount()"></textarea>
           <button class="ibtn" id="voiceBtn" onclick="startVoice()" title="语音输入"><svg><use href="#i-mic"/></svg></button>
           <button class="ibtn send" id="sendBtn" onclick="sendOrStop()" disabled title="发送"><svg><use href="#i-arrow-up"/></svg></button>
         </div>
@@ -511,6 +518,7 @@ button,a,[onclick]{touch-action:manipulation;-webkit-tap-highlight-color:transpa
           <div class="input-right">
             <button class="sel-btn" onclick="toggleKbdHelp()" title="快捷键" style="padding:5px 10px"><svg style="width:14px;height:14px"><use href="#i-keyboard"/></svg></button>
             <span style="font-size:11px;color:var(--text3);line-height:34px;font-variant-numeric:tabular-nums" id="statusText"></span>
+            <span class="char-count" id="charCount" style="display:none"></span>
           </div>
         </div>
       </div>
@@ -656,6 +664,8 @@ function fmtTime(t){const d=new Date(t),n=new Date();return d.toDateString()===n
 // ── Input ──
 function autoGrow(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,160)+'px';
   $('sendBtn').disabled=!el.value.trim()&&!pendingImg}
+function updateCharCount(){const len=$('input').value.length;const cc=$('charCount');
+  if(len>0){cc.textContent=len+'字';cc.style.display=''}else{cc.style.display='none'}}
 function onKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();if(!$('sendBtn').disabled)send()}}
 function sendOrStop(){if(streaming){stopStream()}else{send()}}
 function stopStream(){if(abortCtrl)abortCtrl.abort()}
@@ -777,7 +787,7 @@ async function send(){
   userMsg.tokens={in:Math.max(Math.round(cjk*1.5+(text.length-cjk)/4),1),out:0,est:true};
   c.msgs.push(userMsg);
   if(c.msgs.length===1)c.title=text.slice(0,40)||'图片对话';
-  $('input').value='';$('input').style.height='auto';$('sendBtn').disabled=true;
+  $('input').value='';$('input').style.height='auto';$('sendBtn').disabled=true;$('charCount').style.display='none';
   pendingImg=null;$('imgPrev').style.display='none';
   $('welcome').style.display='none';
   renderList();
@@ -824,8 +834,11 @@ async function send(){
         if(data==='[DONE]')continue;
         try{const j=JSON.parse(data);const delta=j.choices?.[0]?.delta?.content||'';
           if(j.usage)tokens={in:j.usage.prompt_tokens||0,out:j.usage.completion_tokens||0};
-          if(delta){full+=delta;$('streamBubble').innerHTML=esc(full)+'<span class="typing-cursor"></span>';
-            scrollBottom()}}catch{}}
+          if(delta){full+=delta;const sb=$('streamBubble');
+            sb.innerHTML=renderMd(full)+'<span class="typing-cursor"></span>';
+            sb.querySelectorAll('pre code:not(.hljs)').forEach(b=>hljs.highlightElement(b));
+            try{renderMathInElement(sb,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\(',right:'\\)',display:false}],throwOnError:false})}catch{}
+            const a=$('chatArea');if(a.scrollHeight-a.scrollTop-a.clientHeight<100)scrollBottom()}}catch{}}
     }
     if(full){
       const msg={role:'assistant',content:full};

@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>LiMa 力码 — 智能编程助手 | 深圳市动力巢科技有限公司</title>
   <meta name="description" content="LiMa 力码是深圳动力巢科技打造的智能编程助手，通过100+AI后端智能路由，为开发者匹配最优解答。">
   <meta property="og:title" content="LiMa 力码 — 智能编程助手">
@@ -10,682 +10,1584 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://donglicao.com">
   <meta name="theme-color" content="#6366f1">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    *, *::before, *::after {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    /* ===== RESET & VARIABLES ===== */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
       --bg: #0E0C15;
       --bg-card: rgba(255, 255, 255, 0.03);
+      --bg-card-hover: rgba(255, 255, 255, 0.06);
       --accent: #6366f1;
-      --accent-glow: rgba(99, 102, 241, 0.3);
+      --accent-light: #818cf8;
+      --accent-glow: rgba(99, 102, 241, 0.25);
+      --accent-glow-strong: rgba(99, 102, 241, 0.45);
       --text: #e2e8f0;
       --text-muted: #94a3b8;
+      --text-dim: #64748b;
       --border: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(99, 102, 241, 0.3);
       --radius: 16px;
+      --radius-sm: 10px;
+      --radius-xs: 6px;
+      --font: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      --mono: ui-monospace, 'Cascadia Code', 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', monospace;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
 
-    html {
-      scroll-behavior: smooth;
-    }
+    html { scroll-behavior: smooth; }
 
     body {
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-family: var(--font);
       background: var(--bg);
       color: var(--text);
       line-height: 1.6;
       overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
-    /* NAV */
-    nav {
+    /* ===== SVG ICON SPRITE (hidden) ===== */
+    .svg-sprites { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+    /* ===== ICON UTILITY ===== */
+    .icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1em;
+      height: 1em;
+      vertical-align: middle;
+    }
+    .icon svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* ===== NAV ===== */
+    .nav {
       position: fixed;
       top: 0;
-      width: 100%;
-      z-index: 100;
-      padding: 1rem 2rem;
-      backdrop-filter: blur(20px);
-      background: rgba(14, 12, 21, 0.8);
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      padding: 0 2rem;
+      padding-top: var(--safe-top);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      background: rgba(14, 12, 21, 0.82);
       border-bottom: 1px solid var(--border);
     }
-
-    nav .nav-inner {
+    .nav-inner {
       max-width: 1200px;
       margin: 0 auto;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      height: 60px;
     }
-    nav .logo {
+    .nav-logo {
       font-size: 1.25rem;
       font-weight: 700;
       color: var(--accent);
       text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
-
-    nav .nav-links a {
+    .nav-logo .icon { font-size: 1.4rem; color: var(--accent); }
+    .nav-links { display: flex; align-items: center; gap: 0.25rem; }
+    .nav-links a {
       color: var(--text-muted);
       text-decoration: none;
-      margin-left: 2rem;
+      padding: 0.5rem 1rem;
       font-size: 0.9rem;
-      transition: color 0.3s;
+      border-radius: var(--radius-xs);
+      transition: color 0.25s, background 0.25s;
+    }
+    .nav-links a:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+    .nav-links .nav-cta {
+      color: #fff;
+      background: var(--accent);
+      margin-left: 0.5rem;
+      font-weight: 500;
+    }
+    .nav-links .nav-cta:hover { background: var(--accent-light); }
+
+    /* Hamburger */
+    .nav-hamburger {
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      width: 44px;
+      height: 44px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      gap: 5px;
+      padding: 0;
+    }
+    .nav-hamburger span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: var(--text);
+      border-radius: 2px;
+      transition: transform 0.3s, opacity 0.3s;
+    }
+    .nav-hamburger.active span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .nav-hamburger.active span:nth-child(2) { opacity: 0; }
+    .nav-hamburger.active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    /* Mobile menu overlay */
+    .mobile-menu {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 999;
+      background: rgba(14, 12, 21, 0.96);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      padding-top: var(--safe-top);
+      padding-bottom: var(--safe-bottom);
+    }
+    .mobile-menu.open { display: flex; }
+    .mobile-menu a {
+      color: var(--text);
+      text-decoration: none;
+      font-size: 1.25rem;
+      padding: 1rem 2rem;
+      border-radius: var(--radius-sm);
+      transition: background 0.25s;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+    }
+    .mobile-menu a:hover { background: rgba(255,255,255,0.06); }
+    .mobile-menu .nav-cta {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+      margin-top: 1rem;
     }
 
-    nav .nav-links a:hover {
-      color: var(--accent);
-    }
-
-    /* SECTIONS */
-    section {
+    /* ===== SECTIONS ===== */
+    .section {
       max-width: 1200px;
       margin: 0 auto;
       padding: 6rem 2rem;
     }
-
+    .section-header {
+      text-align: center;
+      margin-bottom: 3.5rem;
+    }
     .section-title {
-      font-size: 2rem;
+      font-size: clamp(1.75rem, 4vw, 2.25rem);
       font-weight: 700;
-      text-align: center;
-      margin-bottom: 1rem;
+      margin-bottom: 0.75rem;
+      letter-spacing: -0.02em;
     }
-
+    .section-title .gradient {
+      background: linear-gradient(135deg, var(--accent) 0%, #a78bfa 50%, #f472b6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
     .section-subtitle {
-      text-align: center;
       color: var(--text-muted);
-      margin-bottom: 3rem;
-      font-size: 1.1rem;
+      font-size: 1.05rem;
+      max-width: 560px;
+      margin: 0 auto;
     }
 
-    /* HERO */
-    #hero {
+    /* ===== HERO ===== */
+    .hero {
       min-height: 100vh;
+      min-height: 100dvh;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       text-align: center;
       position: relative;
-      padding-top: 5rem;
+      padding: 7rem 2rem 4rem;
+      overflow: hidden;
     }
 
-    #hero::before {
+    /* Animated grid background */
+    .hero-grid-bg {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      z-index: 0;
+    }
+    .hero-grid-bg canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Radial glow */
+    .hero::before {
       content: '';
       position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(ellipse at center, rgba(99,102,241,0.08) 0%, transparent 60%);
-      animation: pulse 8s ease-in-out infinite;
+      top: -20%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 800px;
+      background: radial-gradient(circle, rgba(99,102,241,0.12) 0%, rgba(167,139,250,0.06) 40%, transparent 70%);
+      animation: heroGlow 8s ease-in-out infinite;
+      z-index: 0;
     }
-    @keyframes pulse {
-      0%, 100% { opacity: 0.5; transform: scale(1); }
-      50% { opacity: 1; transform: scale(1.1); }
-    }
-
-    #hero h1 {
-      font-size: clamp(2.5rem, 6vw, 4rem);
-      font-weight: 700;
-      position: relative;
-      margin-bottom: 1rem;
+    @keyframes heroGlow {
+      0%, 100% { opacity: 0.6; transform: translateX(-50%) scale(1); }
+      50% { opacity: 1; transform: translateX(-50%) scale(1.15); }
     }
 
-    #hero h1 span {
-      background: linear-gradient(135deg, var(--accent), #a78bfa);
+    .hero-content { position: relative; z-index: 1; max-width: 720px; }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 1rem;
+      border-radius: 100px;
+      border: 1px solid var(--border-accent);
+      background: rgba(99,102,241,0.08);
+      font-size: 0.8rem;
+      color: var(--accent-light);
+      margin-bottom: 1.5rem;
+    }
+    .hero-badge .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #34d399;
+      animation: dotPulse 2s ease-in-out infinite;
+    }
+    @keyframes dotPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 7vw, 4rem);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 1.25rem;
+    }
+    .hero h1 .gradient {
+      background: linear-gradient(135deg, #818cf8 0%, #a78bfa 40%, #f472b6 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
-
-    #hero p {
-      font-size: 1.25rem;
+    .hero-desc {
+      font-size: clamp(1.05rem, 2.5vw, 1.25rem);
       color: var(--text-muted);
-      max-width: 600px;
-      position: relative;
-      margin-bottom: 2.5rem;
+      max-width: 540px;
+      margin: 0 auto 2.5rem;
+      line-height: 1.7;
     }
-
     .hero-buttons {
       display: flex;
       gap: 1rem;
-      position: relative;
-      flex-wrap: wrap;
       justify-content: center;
+      flex-wrap: wrap;
     }
 
+    /* ===== BUTTONS ===== */
     .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
       padding: 0.85rem 2rem;
-      border-radius: 10px;
+      border-radius: var(--radius-sm);
       font-size: 1rem;
       font-weight: 500;
+      font-family: var(--font);
       text-decoration: none;
-      transition: all 0.3s;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       cursor: pointer;
       border: none;
+      min-height: 44px;
+      line-height: 1;
     }
-
     .btn-primary {
-      background: var(--accent);
+      background: linear-gradient(135deg, var(--accent), #7c3aed);
       color: #fff;
-      box-shadow: 0 4px 20px var(--accent-glow);
+      box-shadow: 0 4px 24px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,0.1);
     }
-
     .btn-primary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 30px var(--accent-glow);
+      box-shadow: 0 8px 40px var(--accent-glow-strong), inset 0 1px 0 rgba(255,255,255,0.15);
     }
-
     .btn-secondary {
       background: transparent;
       color: var(--text);
       border: 1px solid var(--border);
     }
-
     .btn-secondary:hover {
       border-color: var(--accent);
-      color: var(--accent);
+      color: var(--accent-light);
+      background: rgba(99,102,241,0.06);
     }
-    /* FEATURES */
+
+    /* ===== FEATURE CARDS ===== */
     .features-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap: 1.5rem;
     }
-
     .feature-card {
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 2rem;
-      backdrop-filter: blur(10px);
-      transition: all 0.3s;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
       opacity: 0;
-      transform: translateY(30px);
+      transition: opacity 0.4s;
     }
-
-    .feature-card.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
     .feature-card:hover {
-      border-color: var(--accent);
-      box-shadow: 0 0 30px var(--accent-glow);
+      border-color: var(--border-accent);
+      background: var(--bg-card-hover);
       transform: translateY(-4px);
+      box-shadow: 0 8px 40px rgba(99,102,241,0.12), 0 0 0 1px var(--border-accent);
     }
-
-    .feature-card .icon {
-      font-size: 2rem;
-      margin-bottom: 1rem;
+    .feature-card:hover::before { opacity: 1; }
+    .feature-card .card-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: rgba(99,102,241,0.1);
+      border: 1px solid var(--border-accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+      color: var(--accent-light);
+      font-size: 1.3rem;
     }
-
     .feature-card h3 {
-      font-size: 1.15rem;
+      font-size: 1.1rem;
+      font-weight: 600;
       margin-bottom: 0.5rem;
     }
-
     .feature-card p {
       color: var(--text-muted);
       font-size: 0.9rem;
+      line-height: 1.65;
     }
 
-    /* HOW IT WORKS */
+    /* ===== CHANNELS (Multi-access) ===== */
+    .channels-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+    }
+    .channel-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 1.25rem;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .channel-card:hover {
+      border-color: var(--border-accent);
+      background: var(--bg-card-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 24px rgba(99,102,241,0.1);
+    }
+    .channel-icon {
+      width: 48px;
+      height: 48px;
+      min-width: 48px;
+      border-radius: 12px;
+      background: rgba(99,102,241,0.1);
+      border: 1px solid var(--border-accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-light);
+      font-size: 1.25rem;
+    }
+    .channel-card h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+    }
+    .channel-card p {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      line-height: 1.6;
+    }
+
+    /* ===== HOW IT WORKS ===== */
     .steps {
       display: flex;
       justify-content: center;
-      align-items: center;
+      align-items: stretch;
       gap: 1rem;
-      flex-wrap: wrap;
     }
-
     .step {
       text-align: center;
-      padding: 2rem;
+      padding: 2rem 1.5rem;
       flex: 1;
-      min-width: 200px;
-      opacity: 0;
-      transform: translateY(30px);
-    }
-
-    .step.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    .step .step-icon {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
+      min-width: 180px;
       background: var(--bg-card);
       border: 1px solid var(--border);
+      border-radius: var(--radius);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .step:hover {
+      border-color: var(--border-accent);
+      box-shadow: 0 4px 24px rgba(99,102,241,0.1);
+    }
+    .step-num {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), #7c3aed);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.5rem;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #fff;
       margin: 0 auto 1rem;
     }
-
-    .step h3 {
-      font-size: 1rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .step p {
-      color: var(--text-muted);
-      font-size: 0.85rem;
-    }
-
+    .step h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .step p { color: var(--text-muted); font-size: 0.85rem; line-height: 1.6; }
     .step-arrow {
-      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
       color: var(--accent);
+      font-size: 1.25rem;
       flex-shrink: 0;
+      padding-top: 2.2rem;
     }
+    .step-arrow .icon { font-size: 1.25rem; }
 
-    /* DEVELOPER */
+    /* ===== DEVELOPER SECTION ===== */
     .dev-section {
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 3rem;
-      backdrop-filter: blur(10px);
+      position: relative;
+      overflow: hidden;
     }
-
-    .dev-section .endpoint {
+    .dev-section::after {
+      content: '';
+      position: absolute;
+      top: 0; right: 0;
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(99,102,241,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .dev-section h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    .endpoint {
       background: rgba(0,0,0,0.4);
-      border-radius: 8px;
-      padding: 1rem 1.5rem;
-      margin: 1.5rem 0;
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      font-size: 0.9rem;
+      border-radius: var(--radius-sm);
+      padding: 0.85rem 1.25rem;
+      margin: 0.75rem 0 1rem;
+      font-family: var(--mono);
+      font-size: 0.85rem;
       color: #a78bfa;
       border: 1px solid var(--border);
       overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
     }
-
+    .compat-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(99,102,241,0.12);
+      color: var(--accent-light);
+      padding: 0.35rem 0.9rem;
+      border-radius: 100px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      margin-bottom: 1.5rem;
+    }
     .code-block {
-      background: #1a1625;
+      background: rgba(0,0,0,0.45);
       border-radius: 12px;
       padding: 1.5rem;
-      margin: 1.5rem 0;
+      margin: 1rem 0;
       overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
       border: 1px solid var(--border);
       position: relative;
     }
-
     .code-block pre {
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      font-size: 0.85rem;
-      line-height: 1.7;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      line-height: 1.8;
       color: #e2e8f0;
+      white-space: pre;
     }
-    .code-block .comment { color: #6b7280; }
-    .code-block .string { color: #34d399; }
-    .code-block .key { color: #a78bfa; }
-    .code-block .cmd { color: #f472b6; }
-
-    .code-block .copy-btn {
+    .code-block .c-cmd { color: #f472b6; }
+    .code-block .c-str { color: #34d399; }
+    .code-block .c-key { color: #a78bfa; }
+    .code-block .c-comment { color: #6b7280; }
+    .copy-btn {
       position: absolute;
       top: 0.75rem;
       right: 0.75rem;
-      background: rgba(255,255,255,0.1);
-      border: none;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--border);
       color: var(--text-muted);
-      padding: 0.4rem 0.8rem;
-      border-radius: 6px;
+      padding: 0.35rem 0.75rem;
+      border-radius: var(--radius-xs);
       cursor: pointer;
       font-size: 0.75rem;
-      transition: all 0.3s;
+      font-family: var(--font);
+      transition: all 0.25s;
+      min-height: 32px;
     }
+    .copy-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .dev-link {
+      color: var(--accent-light);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.25s;
+    }
+    .dev-link:hover { color: #a78bfa; text-decoration: underline; }
 
-    .code-block .copy-btn:hover {
-      background: var(--accent);
+    /* ===== IMAGE GEN SECTION ===== */
+    .img-gen { max-width: 800px; margin-left: auto; margin-right: auto; }
+    .img-gen-form {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .img-gen-input {
+      flex: 1;
+      min-width: 240px;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-accent);
+      background: rgba(30, 27, 46, 0.8);
+      color: var(--text);
+      font-size: 16px; /* prevent iOS zoom */
+      font-family: var(--font);
+      outline: none;
+      transition: border-color 0.25s, box-shadow 0.25s;
+    }
+    .img-gen-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+    }
+    .img-gen-input::placeholder { color: var(--text-dim); }
+    .img-gen-btn {
+      padding: 12px 24px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: linear-gradient(135deg, var(--accent), #7c3aed);
       color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1rem;
+      font-family: var(--font);
+      white-space: nowrap;
+      min-height: 44px;
+      transition: all 0.3s;
+      box-shadow: 0 2px 12px var(--accent-glow);
+    }
+    .img-gen-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px var(--accent-glow-strong);
+    }
+    .img-gen-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
     }
 
-    .compat-badge {
-      display: inline-block;
-      background: rgba(99,102,241,0.15);
-      color: var(--accent);
-      padding: 0.3rem 0.8rem;
-      border-radius: 20px;
+    /* Tags/chips */
+    .img-tags {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+    .img-tag {
+      padding: 0.4rem 0.9rem;
+      border-radius: 100px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      color: var(--text-muted);
       font-size: 0.8rem;
-      margin-top: 1rem;
+      cursor: pointer;
+      transition: all 0.25s;
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+    }
+    .img-tag:hover {
+      border-color: var(--accent);
+      color: var(--accent-light);
+      background: rgba(99,102,241,0.08);
     }
 
-    /* STATS */
+    /* Image result area */
+    .img-result {
+      min-height: 300px;
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: rgba(30, 27, 46, 0.5);
+      border: 1px solid rgba(99, 102, 241, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .img-placeholder { color: var(--text-dim); font-size: 0.9rem; }
+    .img-loading {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .img-spinner {
+      width: 44px;
+      height: 44px;
+      border: 3px solid rgba(99,102,241,0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .img-loading-text { color: var(--text-muted); font-size: 0.85rem; }
+    .img-output {
+      display: none;
+      width: 100%;
+      height: auto;
+      max-height: 512px;
+      object-fit: contain;
+    }
+    .img-gen-note {
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      margin-top: 0.75rem;
+      text-align: center;
+      opacity: 0.7;
+    }
+
+    /* ===== EMAIL DEMO SECTION ===== */
+    .email-demo {
+      max-width: 640px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .email-form {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+    }
+    .email-field {
+      margin-bottom: 1rem;
+    }
+    .email-label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+      font-weight: 500;
+    }
+    .email-input,
+    .email-textarea {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,0.3);
+      color: var(--text);
+      font-size: 16px; /* prevent iOS zoom */
+      font-family: var(--font);
+      outline: none;
+      transition: border-color 0.25s, box-shadow 0.25s;
+    }
+    .email-input:focus,
+    .email-textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+    }
+    .email-input::placeholder,
+    .email-textarea::placeholder { color: var(--text-dim); }
+    .email-textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+    .email-submit {
+      width: 100%;
+      padding: 12px 24px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: linear-gradient(135deg, var(--accent), #7c3aed);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1rem;
+      font-family: var(--font);
+      min-height: 44px;
+      transition: all 0.3s;
+      box-shadow: 0 2px 12px var(--accent-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .email-submit:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px var(--accent-glow-strong);
+    }
+    .email-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .email-submit .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+    .email-submit.loading .spinner { display: block; }
+    .email-submit.loading .btn-text { display: none; }
+    .email-response {
+      margin-top: 1.25rem;
+      padding: 1.25rem;
+      border-radius: var(--radius-sm);
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      display: none;
+      font-size: 0.9rem;
+      line-height: 1.7;
+      color: var(--text-muted);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .email-response.show { display: block; }
+    .email-response.error { border-color: rgba(239,68,68,0.4); color: #fca5a5; }
+    .email-powered {
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      margin-top: 1rem;
+      opacity: 0.7;
+    }
+
+    /* ===== STATS ===== */
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      grid-template-columns: repeat(4, 1fr);
       gap: 2rem;
       text-align: center;
     }
-
-    .stat-item {
-      opacity: 0;
-      transform: translateY(30px);
-    }
-
-    .stat-item.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
+    .stat-item {}
     .stat-number {
-      font-size: 2.5rem;
-      font-weight: 700;
-      color: var(--accent);
-      margin-bottom: 0.5rem;
+      font-size: clamp(2rem, 5vw, 2.75rem);
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.35rem;
     }
+    .stat-label { color: var(--text-muted); font-size: 0.9rem; }
 
-    .stat-label {
-      color: var(--text-muted);
-      font-size: 0.9rem;
-    }
-    /* FOOTER */
-    footer {
+    /* ===== FOOTER ===== */
+    .footer {
       border-top: 1px solid var(--border);
       padding: 3rem 2rem;
+      padding-bottom: calc(3rem + var(--safe-bottom));
       text-align: center;
     }
-
-    footer .footer-inner {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-
-    footer .company {
-      font-size: 1.1rem;
+    .footer-inner { max-width: 1200px; margin: 0 auto; }
+    .footer-company {
+      font-size: 1.05rem;
       font-weight: 600;
-      margin-bottom: 1rem;
+      margin-bottom: 0.75rem;
     }
-
-    footer .links a {
+    .footer-links { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
+    .footer-links a {
       color: var(--text-muted);
       text-decoration: none;
-      margin: 0 1rem;
-      font-size: 0.9rem;
-      transition: color 0.3s;
+      padding: 0.4rem 0.75rem;
+      font-size: 0.85rem;
+      border-radius: var(--radius-xs);
+      transition: color 0.25s;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
     }
-
-    footer .links a:hover {
-      color: var(--accent);
-    }
-
-    footer .copyright {
-      color: var(--text-muted);
+    .footer-links a:hover { color: var(--accent-light); }
+    .footer-copy {
+      color: var(--text-dim);
       font-size: 0.8rem;
       margin-top: 1.5rem;
     }
 
-    /* ANIMATIONS */
+    /* ===== ANIMATIONS ===== */
     .fade-in {
       opacity: 0;
-      transform: translateY(30px);
-      transition: opacity 0.6s ease, transform 0.6s ease;
+      transform: translateY(24px);
+      transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1), transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
     }
-
     .fade-in.visible {
       opacity: 1;
       transform: translateY(0);
     }
+    .fade-in[data-delay="1"] { transition-delay: 0.1s; }
+    .fade-in[data-delay="2"] { transition-delay: 0.2s; }
+    .fade-in[data-delay="3"] { transition-delay: 0.3s; }
+    .fade-in[data-delay="4"] { transition-delay: 0.4s; }
+    .fade-in[data-delay="5"] { transition-delay: 0.5s; }
 
-    /* RESPONSIVE */
+    /* ===== RESPONSIVE ===== */
     @media (max-width: 768px) {
-      section { padding: 4rem 1.5rem; }
-      #hero h1 { font-size: 2rem; }
-      #hero p { font-size: 1rem; }
+      .nav-links { display: none; }
+      .nav-hamburger { display: flex; }
+      .section { padding: 4rem 1.25rem; }
+      .hero { padding: 6rem 1.25rem 3rem; }
+      .hero h1 { font-size: clamp(2rem, 8vw, 2.75rem); }
+      .channels-grid { grid-template-columns: 1fr; }
+      .steps { flex-direction: column; gap: 0.75rem; }
+      .step-arrow {
+        padding-top: 0;
+        justify-content: center;
+        transform: rotate(90deg);
+      }
       .dev-section { padding: 1.5rem; }
-      nav .nav-links { display: none; }
-      .steps { flex-direction: column; }
-      .step-arrow { transform: rotate(90deg); }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+      .email-form { padding: 1.5rem; }
+    }
+
+    @media (max-width: 480px) {
+      .nav { padding: 0 1rem; }
+      .section { padding: 3rem 1rem; }
+      .hero { padding: 5rem 1rem 2.5rem; }
+      .hero h1 { font-size: 1.85rem; }
+      .hero-desc { font-size: 0.95rem; }
+      .hero-buttons { flex-direction: column; width: 100%; }
+      .hero-buttons .btn { width: 100%; }
+      .features-grid { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+      .img-gen-form { flex-direction: column; }
+      .img-gen-input { min-width: 0; }
     }
   </style>
 </head>
 <body>
-  <!-- NAV -->
-  <nav>
+
+  <!-- ===== SVG ICON SPRITES ===== -->
+  <svg class="svg-sprites" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <!-- Brain / Smart routing -->
+      <symbol id="ico-brain" viewBox="0 0 24 24">
+        <path d="M12 2a6 6 0 0 0-6 6c0 1.66.68 3.16 1.76 4.24L12 16.48l4.24-4.24A6 6 0 0 0 12 2Z"/>
+        <path d="M12 2v20"/>
+        <path d="M8 8c0 2.21 1.79 4 4 4s4-1.79 4-4"/>
+        <circle cx="9" cy="7" r="1" fill="currentColor" stroke="none"/>
+        <circle cx="15" cy="7" r="1" fill="currentColor" stroke="none"/>
+      </symbol>
+      <!-- Lightning / Speed -->
+      <symbol id="ico-bolt" viewBox="0 0 24 24">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+      </symbol>
+      <!-- Chart / Matrix -->
+      <symbol id="ico-chart" viewBox="0 0 24 24">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <path d="M7 17V13"/>
+        <path d="M12 17V9"/>
+        <path d="M17 17V7"/>
+      </symbol>
+      <!-- Shield / Identity -->
+      <symbol id="ico-shield" viewBox="0 0 24 24">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/>
+        <path d="M9 12l2 2 4-4"/>
+      </symbol>
+      <!-- Upload -->
+      <symbol id="ico-upload" viewBox="0 0 24 24">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </symbol>
+      <!-- Search -->
+      <symbol id="ico-search" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="8"/>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </symbol>
+      <!-- Sparkle -->
+      <symbol id="ico-sparkle" viewBox="0 0 24 24">
+        <path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.64 5.64l2.83 2.83M15.54 15.54l2.83 2.83M5.64 18.36l2.83-2.83M15.54 8.46l2.83-2.83"/>
+      </symbol>
+      <!-- Arrow right -->
+      <symbol id="ico-arrow-right" viewBox="0 0 24 24">
+        <line x1="5" y1="12" x2="19" y2="12"/>
+        <polyline points="12 5 19 12 12 19"/>
+      </symbol>
+      <!-- Globe / Web -->
+      <symbol id="ico-globe" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M2 12h20"/>
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10A15.3 15.3 0 0 1 12 2Z"/>
+      </symbol>
+      <!-- API / Code -->
+      <symbol id="ico-code" viewBox="0 0 24 24">
+        <polyline points="16 18 22 12 16 6"/>
+        <polyline points="8 6 2 12 8 18"/>
+      </symbol>
+      <!-- Telegram / Send -->
+      <symbol id="ico-send" viewBox="0 0 24 24">
+        <line x1="22" y1="2" x2="11" y2="13"/>
+        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+      </symbol>
+      <!-- Email / Mail -->
+      <symbol id="ico-mail" viewBox="0 0 24 24">
+        <rect x="2" y="4" width="20" height="16" rx="2"/>
+        <path d="M22 4L12 13 2 4"/>
+      </symbol>
+      <!-- Image -->
+      <symbol id="ico-image" viewBox="0 0 24 24">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <circle cx="8.5" cy="8.5" r="1.5"/>
+        <path d="M21 15l-5-5L5 21"/>
+      </symbol>
+      <!-- Chat / Message -->
+      <symbol id="ico-chat" viewBox="0 0 24 24">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/>
+      </symbol>
+      <!-- Terminal -->
+      <symbol id="ico-terminal" viewBox="0 0 24 24">
+        <polyline points="4 17 10 11 4 5"/>
+        <line x1="12" y1="19" x2="20" y2="19"/>
+      </symbol>
+      <!-- Check -->
+      <symbol id="ico-check" viewBox="0 0 24 24">
+        <polyline points="20 6 9 17 4 12"/>
+      </symbol>
+    </defs>
+  </svg>
+
+  <!-- ===== NAV ===== -->
+  <header class="nav">
     <div class="nav-inner">
-      <a href="#" class="logo">LiMa 力码</a>
-      <div class="nav-links">
+      <a href="#" class="nav-logo">
+        <svg class="icon" style="width:1.4em;height:1.4em"><use href="#ico-terminal"/></svg>
+        LiMa 力码
+      </a>
+      <nav class="nav-links">
         <a href="#features">功能</a>
+        <a href="#channels">接入</a>
         <a href="#how-it-works">原理</a>
         <a href="#developer">开发者</a>
-        <a href="https://chat.donglicao.com" target="_blank">在线体验</a>
-      </div>
+        <a href="https://chat.donglicao.com" target="_blank" rel="noopener" class="nav-cta">在线体验</a>
+      </nav>
+      <button class="nav-hamburger" aria-label="菜单" onclick="toggleMenu()">
+        <span></span><span></span><span></span>
+      </button>
     </div>
-  </nav>
-  <!-- HERO -->
-  <section id="hero">
-    <h1><span>LiMa 力码</span> — 智能编程助手</h1>
-    <p>100+ AI 后端智能路由，为你匹配最优解答</p>
-    <div class="hero-buttons">
-      <a href="https://chat.donglicao.com" class="btn btn-primary">开始使用</a>
-      <a href="#developer" class="btn btn-secondary">开发者文档</a>
+  </header>
+
+  <!-- Mobile menu -->
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="#features" onclick="closeMenu()">功能</a>
+    <a href="#channels" onclick="closeMenu()">接入</a>
+    <a href="#how-it-works" onclick="closeMenu()">原理</a>
+    <a href="#developer" onclick="closeMenu()">开发者</a>
+    <a href="https://chat.donglicao.com" target="_blank" rel="noopener" class="nav-cta">在线体验</a>
+  </div>
+
+  <!-- ===== HERO ===== -->
+  <section class="hero" id="hero">
+    <div class="hero-grid-bg"><canvas id="heroCanvas"></canvas></div>
+    <div class="hero-content">
+      <div class="hero-badge fade-in"><span class="dot"></span> 100+ AI 后端在线</div>
+      <h1 class="fade-in" data-delay="1"><span class="gradient">LiMa 力码</span><br>智能编程助手</h1>
+      <p class="hero-desc fade-in" data-delay="2">100+ AI 后端智能路由，自动匹配最优模型<br>为开发者提供最快、最准的编程解答</p>
+      <div class="hero-buttons fade-in" data-delay="3">
+        <a href="https://chat.donglicao.com" class="btn btn-primary" target="_blank" rel="noopener">
+          <svg class="icon" style="width:1.1em;height:1.1em"><use href="#ico-chat"/></svg>
+          开始使用
+        </a>
+        <a href="#developer" class="btn btn-secondary">
+          <svg class="icon" style="width:1.1em;height:1.1em"><use href="#ico-code"/></svg>
+          开发者文档
+        </a>
+      </div>
     </div>
   </section>
 
-  <!-- FEATURES -->
-  <section id="features">
-    <h2 class="section-title">核心能力</h2>
-    <p class="section-subtitle">四大核心技术，让每次对话都找到最佳后端</p>
+  <!-- ===== FEATURES ===== -->
+  <section class="section" id="features">
+    <div class="section-header">
+      <h2 class="section-title fade-in">核心<span class="gradient">能力</span></h2>
+      <p class="section-subtitle fade-in" data-delay="1">四大核心技术，让每次对话都找到最佳后端</p>
+    </div>
     <div class="features-grid">
-      <div class="feature-card fade-in">
-        <div class="icon">🧠</div>
+      <div class="feature-card fade-in" data-delay="1">
+        <div class="card-icon">
+          <svg class="icon"><use href="#ico-brain"/></svg>
+        </div>
         <h3>智能路由</h3>
         <p>自动匹配最优后端，代码问题走代码模型，简单问题走快速模型</p>
       </div>
-      <div class="feature-card fade-in">
-        <div class="icon">⚡</div>
+      <div class="feature-card fade-in" data-delay="2">
+        <div class="card-icon">
+          <svg class="icon"><use href="#ico-bolt"/></svg>
+        </div>
         <h3>并行投机</h3>
         <p>多后端竞速，谁快用谁，延迟降到最低</p>
       </div>
-      <div class="feature-card fade-in">
-        <div class="icon">📊</div>
+      <div class="feature-card fade-in" data-delay="3">
+        <div class="card-icon">
+          <svg class="icon"><use href="#ico-chart"/></svg>
+        </div>
         <h3>能力矩阵</h3>
         <p>6维能力评测，精准匹配每个问题的最佳后端</p>
       </div>
-      <div class="feature-card fade-in">
-        <div class="icon">🎭</div>
+      <div class="feature-card fade-in" data-delay="4">
+        <div class="card-icon">
+          <svg class="icon"><use href="#ico-shield"/></svg>
+        </div>
         <h3>身份统一</h3>
         <p>无论哪个后端响应，始终以 LiMa 身份回答</p>
       </div>
     </div>
   </section>
 
-  <!-- HOW IT WORKS -->
-  <section id="how-it-works">
-    <h2 class="section-title">工作原理</h2>
-    <p class="section-subtitle">三步完成智能路由，毫秒级响应</p>
+  <!-- ===== MULTI-CHANNEL ACCESS ===== -->
+  <section class="section" id="channels">
+    <div class="section-header">
+      <h2 class="section-title fade-in">多通道<span class="gradient">接入</span></h2>
+      <p class="section-subtitle fade-in" data-delay="1">四种方式，随时随地与 LiMa 对话</p>
+    </div>
+    <div class="channels-grid">
+      <div class="channel-card fade-in" data-delay="1">
+        <div class="channel-icon">
+          <svg class="icon"><use href="#ico-globe"/></svg>
+        </div>
+        <div>
+          <h3>Web Chat</h3>
+          <p>浏览器直接访问，无需安装，开箱即用的全功能对话界面</p>
+        </div>
+      </div>
+      <div class="channel-card fade-in" data-delay="2">
+        <div class="channel-icon">
+          <svg class="icon"><use href="#ico-code"/></svg>
+        </div>
+        <div>
+          <h3>OpenAI API</h3>
+          <p>完全兼容 OpenAI SDK 格式，一行代码无缝接入你的应用</p>
+        </div>
+      </div>
+      <div class="channel-card fade-in" data-delay="3">
+        <div class="channel-icon">
+          <svg class="icon"><use href="#ico-send"/></svg>
+        </div>
+        <div>
+          <h3>Telegram Bot</h3>
+          <p>在 Telegram 中直接与 LiMa 对话，移动端随时随地编程</p>
+        </div>
+      </div>
+      <div class="channel-card fade-in" data-delay="4">
+        <div class="channel-icon">
+          <svg class="icon"><use href="#ico-mail"/></svg>
+        </div>
+        <div>
+          <h3>AI Email</h3>
+          <p>发送邮件即可获得 AI 智能回复，异步沟通无障碍</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== HOW IT WORKS ===== -->
+  <section class="section" id="how-it-works">
+    <div class="section-header">
+      <h2 class="section-title fade-in">工作<span class="gradient">原理</span></h2>
+      <p class="section-subtitle fade-in" data-delay="1">三步完成智能路由，毫秒级响应</p>
+    </div>
     <div class="steps">
-      <div class="step fade-in">
-        <div class="step-icon">📤</div>
+      <div class="step fade-in" data-delay="1">
+        <div class="step-num">1</div>
         <h3>发送请求</h3>
         <p>兼容 OpenAI 格式，无缝接入</p>
       </div>
-      <span class="step-arrow">→</span>
-      <div class="step fade-in">
-        <div class="step-icon">🔍</div>
+      <div class="step-arrow" aria-hidden="true">
+        <svg class="icon"><use href="#ico-arrow-right"/></svg>
+      </div>
+      <div class="step fade-in" data-delay="2">
+        <div class="step-num">2</div>
         <h3>意图分类</h3>
         <p>6维评测，精准识别需求类型</p>
       </div>
-      <span class="step-arrow">→</span>
-      <div class="step fade-in">
-        <div class="step-icon">✨</div>
+      <div class="step-arrow" aria-hidden="true">
+        <svg class="icon"><use href="#ico-arrow-right"/></svg>
+      </div>
+      <div class="step fade-in" data-delay="3">
+        <div class="step-num">3</div>
         <h3>最优响应</h3>
         <p>自动选择最佳后端，流式返回</p>
       </div>
     </div>
   </section>
-  <!-- DEVELOPER -->
-  <section id="developer">
-    <h2 class="section-title">开发者接入</h2>
-    <p class="section-subtitle">兼容 OpenAI 格式，一行代码切换</p>
-    <div class="dev-section fade-in">
+
+  <!-- ===== DEVELOPER ===== -->
+  <section class="section" id="developer">
+    <div class="section-header">
+      <h2 class="section-title fade-in">开发者<span class="gradient">接入</span></h2>
+      <p class="section-subtitle fade-in" data-delay="1">兼容 OpenAI 格式，一行代码切换</p>
+    </div>
+    <div class="dev-section fade-in" data-delay="2">
       <h3>API Endpoint</h3>
       <div class="endpoint">https://api.donglicao.com/v1/chat/completions</div>
-      <span class="compat-badge">兼容 OpenAI SDK</span>
+      <span class="compat-badge">
+        <svg class="icon" style="width:0.9em;height:0.9em"><use href="#ico-check"/></svg>
+        兼容 OpenAI SDK
+      </span>
 
-      <h3 style="margin-top: 2rem;">快速开始</h3>
+      <h3 style="margin-top:1.5rem;">快速开始</h3>
       <div class="code-block">
         <button class="copy-btn" onclick="copyCode(this)">复制</button>
-        <pre><span class="cmd">curl</span> https://api.donglicao.com/v1/chat/completions \
-  <span class="cmd">-H</span> <span class="string">"Content-Type: application/json"</span> \
-  <span class="cmd">-H</span> <span class="string">"Authorization: Bearer $YOUR_API_KEY"</span> \
-  <span class="cmd">-d</span> <span class="string">'{
-  <span class="key">"model"</span>: "lima",
-  <span class="key">"messages"</span>: [
-    {<span class="key">"role"</span>: "user", <span class="key">"content"</span>: "用Python写一个快速排序"}
+        <pre><span class="c-cmd">curl</span> https://api.donglicao.com/v1/chat/completions \
+  <span class="c-cmd">-H</span> <span class="c-str">"Content-Type: application/json"</span> \
+  <span class="c-cmd">-H</span> <span class="c-str">"Authorization: Bearer $YOUR_API_KEY"</span> \
+  <span class="c-cmd">-d</span> <span class="c-str">'{
+  <span class="c-key">"model"</span>: "lima",
+  <span class="c-key">"messages"</span>: [
+    {<span class="c-key">"role"</span>: "user", <span class="c-key">"content"</span>: "用Python写一个快速排序"}
   ],
-  <span class="key">"stream"</span>: true
+  <span class="c-key">"stream"</span>: true
 }'</span></pre>
       </div>
-      <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 1rem;">
+      <p style="color:var(--text-muted);font-size:0.9rem;margin-top:1rem;">
         完整文档请访问
-        <a href="https://api.donglicao.com/docs" style="color: var(--accent);">Quickstart Guide →</a>
+        <a href="https://api.donglicao.com/docs" class="dev-link" target="_blank" rel="noopener">Quickstart Guide &rarr;</a>
       </p>
     </div>
   </section>
 
-  <!-- IMAGE GENERATION -->
-  <section id="image-gen" style="padding: 5rem 2rem;">
-    <div style="max-width: 800px; margin: 0 auto; text-align: center;">
-      <h2 class="fade-in" style="font-size: 2rem; margin-bottom: 0.5rem;">AI 图片生成</h2>
-      <p class="fade-in" style="color: var(--text-muted); margin-bottom: 2rem;">输入描述，LiMa 为你生成高质量图片 — 完全免费</p>
-      <div class="fade-in" style="display:flex;gap:12px;margin-bottom:1.5rem;flex-wrap:wrap;justify-content:center;">
-        <input id="img-prompt" type="text" placeholder="描述你想生成的图片，例如：一只在太空中的猫" style="flex:1;min-width:250px;padding:12px 16px;border-radius:10px;border:1px solid rgba(99,102,241,.3);background:rgba(30,27,46,.8);color:#e2e8f0;font-size:1rem;outline:none;" />
-        <button id="img-btn" onclick="generateImage()" style="padding:12px 24px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;font-size:1rem;white-space:nowrap;">生成图片</button>
+  <!-- ===== IMAGE GENERATION ===== -->
+  <section class="section" id="image-gen">
+    <div class="img-gen">
+      <div class="section-header">
+        <h2 class="section-title fade-in">AI <span class="gradient">图片生成</span></h2>
+        <p class="section-subtitle fade-in" data-delay="1">输入描述，LiMa 为你生成高质量图片 — 完全免费</p>
       </div>
-      <div id="img-tags" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:1.5rem;">
+      <div class="img-gen-form fade-in" data-delay="2">
+        <input id="imgPrompt" class="img-gen-input" type="text" placeholder="描述你想生成的图片，例如：一只在太空中的猫" />
+        <button id="imgBtn" class="img-gen-btn" onclick="generateImage()">生成图片</button>
+      </div>
+      <div class="img-tags fade-in" data-delay="3">
         <span class="img-tag" onclick="setPrompt('a cute cat astronaut floating in space, digital art')">太空猫</span>
         <span class="img-tag" onclick="setPrompt('cyberpunk city at night with neon lights, rain, cinematic')">赛博朋克</span>
         <span class="img-tag" onclick="setPrompt('beautiful Chinese landscape painting with mountains and rivers, ink wash style')">山水画</span>
         <span class="img-tag" onclick="setPrompt('futuristic robot programmer writing code, holographic display')">机器人程序员</span>
       </div>
-      <div id="img-result" style="min-height:300px;border-radius:16px;overflow:hidden;background:rgba(30,27,46,.5);border:1px solid rgba(99,102,241,.15);display:flex;align-items:center;justify-content:center;position:relative;">
-        <p id="img-placeholder" style="color:var(--text-muted);font-size:0.9rem;">图片将在这里显示</p>
-        <div id="img-loading" style="display:none;flex-direction:column;align-items:center;gap:12px;">
-          <div style="width:40px;height:40px;border:3px solid rgba(99,102,241,.3);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;"></div>
-          <span style="color:var(--text-muted);font-size:0.85rem;">正在生成...</span>
+      <div class="img-result fade-in" data-delay="4">
+        <p class="img-placeholder" id="imgPlaceholder">图片将在这里显示</p>
+        <div class="img-loading" id="imgLoading">
+          <div class="img-spinner"></div>
+          <span class="img-loading-text">正在生成...</span>
         </div>
-        <img id="img-output" style="display:none;width:100%;height:auto;max-height:512px;object-fit:contain;" />
+        <img class="img-output" id="imgOutput" alt="AI 生成的图片" />
       </div>
-      <p style="color:var(--text-muted);font-size:0.75rem;margin-top:0.8rem;opacity:0.7;">Powered by Pollinations.ai — 免费开源图片生成</p>
+      <p class="img-gen-note">Powered by Pollinations.ai — 免费开源图片生成</p>
     </div>
   </section>
 
-  <!-- STATS -->
-  <section id="stats">
+  <!-- ===== AI EMAIL ASSISTANT ===== -->
+  <section class="section" id="email-demo">
+    <div class="email-demo">
+      <div class="section-header">
+        <h2 class="section-title fade-in">AI 邮件助手 — <span class="gradient">智能自动回复</span></h2>
+        <p class="section-subtitle fade-in" data-delay="1">给 LiMa 发一封邮件，AI 自动智能回复</p>
+      </div>
+      <div class="email-form fade-in" data-delay="2">
+        <div class="email-field">
+          <label class="email-label" for="emailAddr">你的邮箱</label>
+          <input id="emailAddr" class="email-input" type="email" placeholder="you@example.com" autocomplete="email" />
+        </div>
+        <div class="email-field">
+          <label class="email-label" for="emailMsg">邮件内容</label>
+          <textarea id="emailMsg" class="email-textarea" placeholder="写下你想问 LiMa 的问题..."></textarea>
+        </div>
+        <button class="email-submit" id="emailSubmit" onclick="sendEmail()">
+          <span class="spinner"></span>
+          <span class="btn-text">
+            <svg class="icon" style="width:1.1em;height:1.1em"><use href="#ico-send"/></svg>
+            发送邮件
+          </span>
+        </button>
+      </div>
+      <div class="email-response" id="emailResponse"></div>
+      <p class="email-powered fade-in" data-delay="3">Powered by ClawEmail — AI Agent 邮件引擎</p>
+    </div>
+  </section>
+
+  <!-- ===== STATS ===== -->
+  <section class="section" id="stats">
     <div class="stats-grid">
-      <div class="stat-item fade-in">
+      <div class="stat-item fade-in" data-delay="1">
         <div class="stat-number" data-target="100">0</div>
         <div class="stat-label">AI 后端</div>
       </div>
-      <div class="stat-item fade-in">
+      <div class="stat-item fade-in" data-delay="2">
         <div class="stat-number" data-target="2" data-prefix="<" data-suffix="s">0</div>
         <div class="stat-label">平均响应</div>
       </div>
-      <div class="stat-item fade-in">
+      <div class="stat-item fade-in" data-delay="3">
         <div class="stat-number" data-target="99.9" data-suffix="%">0</div>
         <div class="stat-label">可用性</div>
       </div>
-      <div class="stat-item fade-in">
+      <div class="stat-item fade-in" data-delay="4">
         <div class="stat-number" data-target="6" data-suffix="维">0</div>
         <div class="stat-label">能力评测</div>
       </div>
     </div>
   </section>
-  <!-- FOOTER -->
-  <footer>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="footer">
     <div class="footer-inner">
-      <div class="company">深圳市动力巢科技有限公司</div>
-      <div class="links">
-        <a href="https://chat.donglicao.com" target="_blank">在线体验</a>
-        <a href="https://api.donglicao.com" target="_blank">API 服务</a>
-        <a href="https://api.donglicao.com/docs" target="_blank">开发文档</a>
+      <div class="footer-company">深圳市动力巢科技有限公司</div>
+      <div class="footer-links">
+        <a href="https://chat.donglicao.com" target="_blank" rel="noopener">在线体验</a>
+        <a href="https://api.donglicao.com" target="_blank" rel="noopener">API 服务</a>
+        <a href="https://api.donglicao.com/docs" target="_blank" rel="noopener">开发文档</a>
       </div>
-      <div class="copyright">Copyright &copy; 2024-2026 DongLiCao Technology. All rights reserved.</div>
+      <div class="footer-copy">Copyright &copy; 2024-2026 DongLiCao Technology. All rights reserved.</div>
     </div>
   </footer>
 
   <script>
-    // Intersection Observer for fade-in animations
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry, index) => {
+    /* ===== MOBILE MENU ===== */
+    function toggleMenu() {
+      var btn = document.querySelector('.nav-hamburger');
+      var menu = document.getElementById('mobileMenu');
+      btn.classList.toggle('active');
+      menu.classList.toggle('open');
+      document.body.style.overflow = menu.classList.contains('open') ? 'hidden' : '';
+    }
+    function closeMenu() {
+      var btn = document.querySelector('.nav-hamburger');
+      var menu = document.getElementById('mobileMenu');
+      btn.classList.remove('active');
+      menu.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    /* ===== SCROLL ANIMATIONS (IntersectionObserver) ===== */
+    var fadeObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
         if (entry.isIntersecting) {
-          setTimeout(() => {
-            entry.target.classList.add('visible');
-          }, index * 100);
-          observer.unobserve(entry.target);
+          entry.target.classList.add('visible');
+          fadeObserver.unobserve(entry.target);
         }
       });
-    }, { threshold: 0.1 });
+    }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
 
-    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+    document.querySelectorAll('.fade-in').forEach(function(el) {
+      fadeObserver.observe(el);
+    });
 
-    // Animated counters
-    const counterObserver = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
+    /* ===== ANIMATED COUNTERS ===== */
+    var counterDone = false;
+    var counterObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting && !counterDone) {
+          counterDone = true;
           animateCounters();
           counterObserver.unobserve(entry.target);
         }
       });
     }, { threshold: 0.3 });
 
-    const statsSection = document.getElementById('stats');
-    if (statsSection) counterObserver.observe(statsSection);
+    var statsEl = document.getElementById('stats');
+    if (statsEl) counterObserver.observe(statsEl);
 
     function animateCounters() {
-      document.querySelectorAll('.stat-number').forEach(counter => {
-        const target = parseFloat(counter.dataset.target);
-        const prefix = counter.dataset.prefix || '';
-        const suffix = counter.dataset.suffix || '+';
-        const duration = 2000;
-        const start = performance.now();
+      document.querySelectorAll('.stat-number').forEach(function(counter) {
+        var target = parseFloat(counter.dataset.target);
+        var prefix = counter.dataset.prefix || '';
+        var suffix = counter.dataset.suffix || '+';
+        var duration = 2000;
+        var start = performance.now();
 
         function update(now) {
-          const elapsed = now - start;
-          const progress = Math.min(elapsed / duration, 1);
-          const eased = 1 - Math.pow(1 - progress, 3);
-          const current = target * eased;
-          if (target === 99.9) {
+          var elapsed = now - start;
+          var progress = Math.min(elapsed / duration, 1);
+          var eased = 1 - Math.pow(1 - progress, 3);
+          var current = target * eased;
+          if (target % 1 !== 0) {
             counter.textContent = prefix + current.toFixed(1) + suffix;
           } else {
             counter.textContent = prefix + Math.floor(current) + suffix;
           }
-
-          if (progress < 1) {
-            requestAnimationFrame(update);
-          }
+          if (progress < 1) requestAnimationFrame(update);
         }
         requestAnimationFrame(update);
       });
     }
 
-    // Copy code button
+    /* ===== COPY CODE ===== */
     function copyCode(btn) {
-      const code = btn.parentElement.querySelector('pre').textContent;
-      navigator.clipboard.writeText(code).then(() => {
+      var code = btn.parentElement.querySelector('pre').textContent;
+      navigator.clipboard.writeText(code).then(function() {
         btn.textContent = '已复制';
-        setTimeout(() => { btn.textContent = '复制'; }, 2000);
+        setTimeout(function() { btn.textContent = '复制'; }, 2000);
       });
     }
 
-    // Smooth scroll for nav links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    /* ===== SMOOTH SCROLL FOR ANCHOR LINKS ===== */
+    document.querySelectorAll('a[href^="#"]').forEach(function(anchor) {
       anchor.addEventListener('click', function(e) {
+        var href = this.getAttribute('href');
+        if (href === '#') return;
         e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-          target.scrollIntoView({ behavior: 'smooth' });
-        }
+        var target = document.querySelector(href);
+        if (target) target.scrollIntoView({ behavior: 'smooth' });
       });
     });
+
+    /* ===== IMAGE GENERATION ===== */
+    function setPrompt(text) {
+      document.getElementById('imgPrompt').value = text;
+    }
+
+    function generateImage() {
+      var prompt = document.getElementById('imgPrompt').value.trim();
+      if (!prompt) return;
+
+      var placeholder = document.getElementById('imgPlaceholder');
+      var loading = document.getElementById('imgLoading');
+      var output = document.getElementById('imgOutput');
+      var btn = document.getElementById('imgBtn');
+
+      placeholder.style.display = 'none';
+      output.style.display = 'none';
+      loading.style.display = 'flex';
+      btn.disabled = true;
+
+      var seed = Math.floor(Math.random() * 100000);
+      var url = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(prompt) + '?width=512&height=512&seed=' + seed;
+
+      var img = new Image();
+      img.onload = function() {
+        loading.style.display = 'none';
+        output.src = url;
+        output.style.display = 'block';
+        btn.disabled = false;
+      };
+      img.onerror = function() {
+        loading.style.display = 'none';
+        placeholder.textContent = '生成失败，请重试';
+        placeholder.style.display = 'block';
+        btn.disabled = false;
+      };
+      img.src = url;
+    }
+
+    /* ===== EMAIL DEMO ===== */
+    function sendEmail() {
+      var email = document.getElementById('emailAddr').value.trim();
+      var message = document.getElementById('emailMsg').value.trim();
+      var btn = document.getElementById('emailSubmit');
+      var resp = document.getElementById('emailResponse');
+
+      if (!email || !message) {
+        resp.textContent = '请填写邮箱和邮件内容';
+        resp.className = 'email-response show error';
+        return;
+      }
+
+      btn.classList.add('loading');
+      btn.disabled = true;
+      resp.className = 'email-response';
+      resp.textContent = '';
+
+      fetch('/api/email-demo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, message: message })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        resp.className = 'email-response show';
+        resp.textContent = data.reply || data.message || JSON.stringify(data);
+      })
+      .catch(function(err) {
+        resp.className = 'email-response show error';
+        resp.textContent = '请求失败: ' + err.message;
+      })
+      .finally(function() {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+      });
+    }
+
+    /* ===== HERO CANVAS — ANIMATED GRID + PARTICLES ===== */
+    (function() {
+      var canvas = document.getElementById('heroCanvas');
+      if (!canvas) return;
+      var ctx = canvas.getContext('2d');
+      var particles = [];
+      var w, h, cols, rows, cellSize;
+      var mouse = { x: -1000, y: -1000 };
+      var rafId;
+
+      function resize() {
+        var dpr = Math.min(window.devicePixelRatio || 1, 2);
+        var rect = canvas.parentElement.getBoundingClientRect();
+        w = rect.width;
+        h = rect.height;
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        canvas.style.width = w + 'px';
+        canvas.style.height = h + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        cellSize = Math.max(40, Math.min(60, w / 24));
+        cols = Math.ceil(w / cellSize) + 1;
+        rows = Math.ceil(h / cellSize) + 1;
+        initParticles();
+      }
+
+      function initParticles() {
+        particles = [];
+        var count = Math.min(40, Math.floor(w * h / 18000));
+        for (var i = 0; i < count; i++) {
+          particles.push({
+            x: Math.random() * w,
+            y: Math.random() * h,
+            vx: (Math.random() - 0.5) * 0.3,
+            vy: (Math.random() - 0.5) * 0.3,
+            r: Math.random() * 1.5 + 0.5,
+            a: Math.random() * 0.5 + 0.2
+          });
+        }
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, w, h);
+
+        /* Grid */
+        ctx.strokeStyle = 'rgba(99,102,241,0.04)';
+        ctx.lineWidth = 0.5;
+        for (var i = 0; i < cols; i++) {
+          var x = i * cellSize;
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, h);
+          ctx.stroke();
+        }
+        for (var j = 0; j < rows; j++) {
+          var y = j * cellSize;
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(w, y);
+          ctx.stroke();
+        }
+
+        /* Glow near mouse */
+        var grd = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 200);
+        grd.addColorStop(0, 'rgba(99,102,241,0.06)');
+        grd.addColorStop(1, 'transparent');
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, w, h);
+
+        /* Particles */
+        for (var k = 0; k < particles.length; k++) {
+          var p = particles[k];
+          p.x += p.vx;
+          p.y += p.vy;
+          if (p.x < 0) p.x = w;
+          if (p.x > w) p.x = 0;
+          if (p.y < 0) p.y = h;
+          if (p.y > h) p.y = 0;
+
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(129,140,248,' + p.a + ')';
+          ctx.fill();
+        }
+
+        /* Connect nearby particles */
+        ctx.strokeStyle = 'rgba(99,102,241,0.06)';
+        ctx.lineWidth = 0.5;
+        for (var m = 0; m < particles.length; m++) {
+          for (var n = m + 1; n < particles.length; n++) {
+            var dx = particles[m].x - particles[n].x;
+            var dy = particles[m].y - particles[n].y;
+            var dist = dx * dx + dy * dy;
+            if (dist < 18000) {
+              ctx.globalAlpha = 1 - dist / 18000;
+              ctx.beginPath();
+              ctx.moveTo(particles[m].x, particles[m].y);
+              ctx.lineTo(particles[n].x, particles[n].y);
+              ctx.stroke();
+            }
+          }
+        }
+        ctx.globalAlpha = 1;
+
+        rafId = requestAnimationFrame(draw);
+      }
+
+      /* Mouse tracking */
+      canvas.parentElement.addEventListener('mousemove', function(e) {
+        var rect = canvas.getBoundingClientRect();
+        mouse.x = e.clientX - rect.left;
+        mouse.y = e.clientY - rect.top;
+      });
+      canvas.parentElement.addEventListener('mouseleave', function() {
+        mouse.x = -1000;
+        mouse.y = -1000;
+      });
+
+      /* Lifecycle */
+      resize();
+      draw();
+      window.addEventListener('resize', function() {
+        cancelAnimationFrame(rafId);
+        resize();
+        draw();
+      });
+    })();
   </script>
 </body>
 </html>
