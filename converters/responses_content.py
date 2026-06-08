@@ -61,8 +61,8 @@ def tool_output_to_text(output: Any) -> str:
 
 
 def is_replay_metadata_item(item: dict) -> bool:
-    """Return true for Responses state replay items that chat backends cannot use."""
-    return item.get("type") in {"reasoning", "item_reference"}
+    """Return true for opaque Responses replay items that chat backends cannot use."""
+    return item.get("type") == "item_reference"
 
 
 def _image_marker(image_url: Any) -> str:

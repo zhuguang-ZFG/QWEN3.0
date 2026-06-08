@@ -35,6 +35,14 @@ def _new_item_id(prefix: str = "msg") -> str:
 def _convert_input_item(item: dict) -> list[dict]:
     """Map one Responses API input item to chat message(s)."""
     ptype = item.get("type", "")
+    if ptype == "reasoning":
+        summary = content_to_text(item.get("summary")).strip()
+        if summary:
+            return [{
+                "role": "assistant",
+                "content": f"Previous reasoning summary:\n{summary}",
+            }]
+        return []
     if is_replay_metadata_item(item):
         return []
     if ptype == "function_call_output":

@@ -165,6 +165,41 @@ def test_responses_skips_reasoning_and_item_reference_replay_metadata():
     assert "encrypted-state" not in json.dumps(chat["messages"])
 
 
+def test_responses_preserves_reasoning_summary_without_encrypted_state():
+    body = {
+        "model": "lima-1.3",
+        "input": [
+            {"role": "user", "content": [{"type": "input_text", "text": "What happened?"}]},
+            {
+                "type": "reasoning",
+                "id": "rs_1",
+                "summary": [{
+                    "type": "summary_text",
+                    "text": "I inspected the previous turn.",
+                }],
+                "encrypted_content": "encrypted-state",
+            },
+            {"role": "assistant", "content": [{"type": "output_text", "text": "It showed a file."}]},
+            {"role": "user", "content": [{"type": "input_text", "text": "Continue."}]},
+        ],
+        "store": False,
+        "include": ["reasoning.encrypted_content"],
+    }
+
+    chat = responses_body_to_chat(body)
+
+    dumped = json.dumps(chat["messages"])
+    assert "Previous reasoning summary" in dumped
+    assert "I inspected the previous turn." in dumped
+    assert "encrypted-state" not in dumped
+    assert [message["role"] for message in chat["messages"]] == [
+        "user",
+        "assistant",
+        "assistant",
+        "user",
+    ]
+
+
 def test_responses_structured_function_call_output_to_readable_continuation():
     body = {
         "model": "lima-1.3",
