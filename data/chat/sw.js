@@ -5,5 +5,5 @@ self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.
 self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;
   if(e.request.url.includes('/v1/')||e.request.url.includes('/tts'))return;
   e.respondWith(caches.match(e.request).then(c=>c||fetch(e.request).then(r=>{
-    if(r.status===200){const cl=r.clone();caches.open(CACHE).then(cache=>cache.put(e.request,cl))}return r}).catch(()=>c))));
+    if(r.status===200){const cl=r.clone();caches.open(CACHE).then(cache=>cache.put(e.request,cl))}return r}).catch(()=>c)));
 });
