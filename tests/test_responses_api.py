@@ -308,6 +308,32 @@ def test_chat_completion_to_response_text():
     assert resp["usage"]["total_tokens"] == 4
 
 
+def test_chat_completion_to_response_preserves_reasoning_output():
+    data = {
+        "created": 1700000000,
+        "model": "lima-1.3",
+        "choices": [{
+            "message": {
+                "role": "assistant",
+                "reasoning_content": "I should inspect the result first.",
+                "content": "OK",
+            },
+            "finish_reason": "stop",
+        }],
+    }
+
+    resp = chat_completion_to_response(data)
+
+    assert resp["output"][0]["type"] == "reasoning"
+    assert resp["output"][0]["summary"] == [{
+        "type": "summary_text",
+        "text": "I should inspect the result first.",
+    }]
+    assert resp["output"][0]["encrypted_content"] is None
+    assert resp["output"][1]["type"] == "message"
+    assert resp["output"][1]["content"][0]["text"] == "OK"
+
+
 def test_chat_completion_to_response_maps_length_finish_to_incomplete():
     data = {
         "created": 1700000000,

@@ -15,7 +15,7 @@ from converters.responses_response_fields import (
     response_fields_from_request,
     with_response_fields,
 )
-from converters.responses_stream_items import incomplete_reason
+from converters.responses_stream_items import completed_reasoning_item, incomplete_reason
 from converters.responses_stream_transform import transform_chat_sse_iter, transform_chat_sse_stream
 from converters.responses_tools import (
     responses_tool_choice_to_chat_tool_choice,
@@ -195,12 +195,15 @@ def chat_completion_to_response(data: dict, request_body: dict | None = None) ->
     model = data.get("model", "lima-1.3")
     choice = (data.get("choices") or [{}])[0]
     message = choice.get("message") or {}
+    reasoning = _message_reasoning_text(message)
     content = message.get("content") or ""
     tool_calls = message.get("tool_calls") or []
     incomplete = incomplete_reason(str(choice.get("finish_reason") or ""))
     status = "incomplete" if incomplete else "completed"
 
     output: list[dict] = []
+    if reasoning:
+        output.append(completed_reasoning_item(_new_item_id("rs"), reasoning))
     if content:
         output.append({
             "type": "message",
@@ -237,3 +240,11 @@ def chat_completion_to_response(data: dict, request_body: dict | None = None) ->
     )
     response.setdefault("parallel_tool_calls", True)
     return response
+
+
+def _message_reasoning_text(message: dict) -> str:
+    for key in ("reasoning_content", "reasoning_text", "reasoning"):
+        value = message.get(key)
+        if isinstance(value, str) and value:
+            return value
+    return ""
