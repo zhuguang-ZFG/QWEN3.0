@@ -1,0 +1,21 @@
+[Unit]
+Description=LiMa Provider Probe - Browser Service
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/lima-probe
+ExecStart=/usr/bin/python3.10 /opt/lima-probe/browser_service.py
+Restart=always
+RestartSec=5
+Environment=PROBE_BROWSER_PORT=8092
+Environment=PYTHONUNBUFFERED=1
+
+# Security
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

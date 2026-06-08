@@ -1,0 +1,20 @@
+[Unit]
+Description=LiMa Provider Probe - Discovery Pipeline
+After=network.target network-online.target lima-probe-browser.service
+Wants=network-online.target lima-probe-browser.service
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/lima-probe
+ExecStart=/usr/bin/python3.10 -m provider_probe.discovery.scheduler
+StandardOutput=journal
+StandardError=journal
+Environment=PYTHONPATH=/opt/lima-probe
+Environment=PROBE_OUTPUT_DIR=/opt/lima-probe/data
+Environment=SEARXNG_URL=http://127.0.0.1:8081
+Environment=PROBE_BROWSER_URL=http://127.0.0.1:8092
+
+# Security
+NoNewPrivileges=yes
+PrivateTmp=yes

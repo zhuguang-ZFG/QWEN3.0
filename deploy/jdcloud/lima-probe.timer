@@ -1,0 +1,11 @@
+[Unit]
+Description=LiMa Provider Probe - Daily Discovery Timer
+Requires=lima-probe.service
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=1800
+Persistent=true
+
+[Install]
+WantedBy=timers.target
