@@ -106,8 +106,9 @@ async def responses_create(request: Request):
     stream = bool(chat_body.get("stream", False))
     has_tools = bool(chat_body.get("tools"))
 
-    # OpenCode Build: tools + stream → direct OpenAI path (not Anthropic forward).
-    if has_tools and stream and ide_source == "OpenCode" and OPENCODE_TOOL_MODE == "direct":
+    # OpenCode Build: tools + direct mode → direct OpenAI path (not Anthropic forward).
+    # This applies to both streaming and non-streaming requests.
+    if has_tools and ide_source == "OpenCode" and OPENCODE_TOOL_MODE == "direct":
         pass  # fall through to handle_chat below
     elif has_tools and stream:
         from routes.chat_endpoints import _openai_to_anthropic_tool_body, _wrap_tool_stream_with_recording

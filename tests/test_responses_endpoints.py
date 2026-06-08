@@ -102,6 +102,46 @@ def test_responses_endpoint_session_affinity_header_wins(monkeypatch):
     assert resp.status_code == 200
 
 
+def test_responses_endpoint_non_stream_opencode_tools_use_direct_path(monkeypatch):
+    async def fake_handle_chat(req, **kwargs):
+        assert req.stream is False
+        assert req.tools[0]["function"]["name"] == "lookup"
+        return JSONResponse({
+            "id": "chatcmpl-test",
+            "object": "chat.completion",
+            "created": 1700000000,
+            "model": "lima-1.3",
+            "choices": [{
+                "index": 0,
+                "message": {"role": "assistant", "content": "DIRECT"},
+                "finish_reason": "stop",
+            }],
+        })
+
+    monkeypatch.setenv("LIMA_API_KEY", "test-key")
+    monkeypatch.setattr(server, "_handle_chat", fake_handle_chat)
+
+    client = TestClient(server.app)
+    resp = client.post(
+        "/v1/responses",
+        headers={"Authorization": "Bearer test-key", "User-Agent": "OpenCode/1.0"},
+        json={
+            "model": "lima-1.3",
+            "input": "use lookup",
+            "stream": False,
+            "tools": [{
+                "type": "function",
+                "name": "lookup",
+                "description": "Lookup data",
+                "parameters": {"type": "object", "properties": {}},
+            }],
+        },
+    )
+
+    assert resp.status_code == 200
+    assert resp.json()["output"][0]["content"][0]["text"] == "DIRECT"
+
+
 def test_responses_endpoint_stream(monkeypatch):
     from fastapi.responses import StreamingResponse
 
