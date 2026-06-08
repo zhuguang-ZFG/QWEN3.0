@@ -11,6 +11,10 @@ from converters.responses_content import (
     is_replay_metadata_item,
     tool_output_continuation_text,
 )
+from converters.responses_response_fields import (
+    response_fields_from_request,
+    with_response_fields,
+)
 from converters.responses_stream_transform import transform_chat_sse_iter, transform_chat_sse_stream
 from converters.responses_tools import (
     responses_tool_choice_to_chat_tool_choice,
@@ -149,7 +153,7 @@ def responses_body_to_chat(body: dict) -> dict:
     return chat
 
 
-def chat_completion_to_response(data: dict) -> dict:
+def chat_completion_to_response(data: dict, request_body: dict | None = None) -> dict:
     """Convert chat.completion JSON to Responses API response object."""
     resp_id = _new_response_id()
     created = int(data.get("created") or time.time())
@@ -180,7 +184,7 @@ def chat_completion_to_response(data: dict) -> dict:
             "status": "completed",
         })
 
-    return {
+    response = {
         "id": resp_id,
         "object": "response",
         "created_at": created,
@@ -188,5 +192,10 @@ def chat_completion_to_response(data: dict) -> dict:
         "status": "completed",
         "output": output,
         "usage": chat_usage_to_responses_usage(data.get("usage")),
-        "parallel_tool_calls": True,
     }
+    response = with_response_fields(
+        response,
+        response_fields_from_request(request_body),
+    )
+    response.setdefault("parallel_tool_calls", True)
+    return response

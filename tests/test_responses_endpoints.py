@@ -42,6 +42,11 @@ def test_responses_endpoint_non_stream(monkeypatch):
             "stream": False,
             "temperature": 0.2,
             "top_p": 0.7,
+            "store": False,
+            "prompt_cache_key": "session-recorded-opencode-loop",
+            "include": ["reasoning.encrypted_content"],
+            "reasoning": {"effort": "medium", "summary": "auto"},
+            "text": {"verbosity": "low"},
         },
     )
     assert resp.status_code == 200
@@ -49,6 +54,11 @@ def test_responses_endpoint_non_stream(monkeypatch):
     assert data["object"] == "response"
     assert data["status"] == "completed"
     assert data["output"][0]["content"][0]["text"] == "PONG"
+    assert data["store"] is False
+    assert data["prompt_cache_key"] == "session-recorded-opencode-loop"
+    assert data["include"] == ["reasoning.encrypted_content"]
+    assert data["reasoning"] == {"effort": "medium", "summary": "auto"}
+    assert data["text"] == {"verbosity": "low"}
 
 
 def test_responses_endpoint_stream(monkeypatch):
@@ -69,10 +79,22 @@ def test_responses_endpoint_stream(monkeypatch):
         "POST",
         "/v1/responses",
         headers={"Authorization": "Bearer test-key", "User-Agent": "OpenCode/1.0"},
-        json={"model": "lima-1.3", "input": "hi", "stream": True},
+        json={
+            "model": "lima-1.3",
+            "input": "hi",
+            "stream": True,
+            "store": False,
+            "prompt_cache_key": "session-recorded-opencode-loop",
+            "include": ["reasoning.encrypted_content"],
+            "reasoning": {"effort": "medium", "summary": "auto"},
+            "text": {"verbosity": "low"},
+        },
     ) as resp:
         assert resp.status_code == 200
         body = "".join(resp.iter_text())
     assert "response.created" in body
     assert "response.output_text.delta" in body
     assert "response.completed" in body
+    assert '"prompt_cache_key": "session-recorded-opencode-loop"' in body
+    assert '"include": ["reasoning.encrypted_content"]' in body
+    assert '"text": {"verbosity": "low"}' in body

@@ -266,6 +266,40 @@ def test_chat_completion_to_response_preserves_usage_details():
     assert resp["usage"]["output_tokens_details"] == {"reasoning_tokens": 5}
 
 
+def test_chat_completion_to_response_preserves_opencode_response_metadata():
+    data = {
+        "created": 1700000000,
+        "model": "lima-1.3",
+        "choices": [{
+            "message": {"role": "assistant", "content": "OK"},
+            "finish_reason": "stop",
+        }],
+    }
+    request_body = {
+        "store": False,
+        "prompt_cache_key": "session-recorded-opencode-loop",
+        "include": ["reasoning.encrypted_content"],
+        "reasoning": {"effort": "medium", "summary": "auto"},
+        "text": {"verbosity": "low"},
+        "temperature": 1.0,
+        "top_p": 0.98,
+        "input": "not echoed",
+        "stream": False,
+    }
+
+    resp = chat_completion_to_response(data, request_body=request_body)
+
+    assert resp["store"] is False
+    assert resp["prompt_cache_key"] == "session-recorded-opencode-loop"
+    assert resp["include"] == ["reasoning.encrypted_content"]
+    assert resp["reasoning"] == {"effort": "medium", "summary": "auto"}
+    assert resp["text"] == {"verbosity": "low"}
+    assert resp["temperature"] == 1.0
+    assert resp["top_p"] == 0.98
+    assert "input" not in resp
+    assert "stream" not in resp
+
+
 def test_stream_converter_emits_text_deltas():
     lines = [
         'data: {"choices":[{"delta":{"content":"Hel"}}]}',
@@ -322,6 +356,38 @@ def test_stream_converter_preserves_usage_details_in_completed_event():
 
     assert '"input_tokens_details": {"cached_tokens": 8}' in out
     assert '"output_tokens_details": {"reasoning_tokens": 5}' in out
+
+
+def test_stream_converter_preserves_opencode_response_metadata():
+    request_body = {
+        "store": False,
+        "prompt_cache_key": "session-recorded-opencode-loop",
+        "include": ["reasoning.encrypted_content"],
+        "reasoning": {"effort": "medium", "summary": "auto"},
+        "text": {"verbosity": "low"},
+    }
+    lines = [
+        'data: {"choices":[{"delta":{"content":"OK"}}]}',
+        "data: [DONE]",
+    ]
+
+    out = "".join(
+        transform_chat_sse_iter(
+            iter(lines),
+            model="lima-1.3",
+            request_body=request_body,
+        )
+    )
+    events = _responses_events(out)
+    created = events[0]["response"]
+    terminal = events[-1]["response"]
+
+    for response in (created, terminal):
+        assert response["store"] is False
+        assert response["prompt_cache_key"] == "session-recorded-opencode-loop"
+        assert response["include"] == ["reasoning.encrypted_content"]
+        assert response["reasoning"] == {"effort": "medium", "summary": "auto"}
+        assert response["text"] == {"verbosity": "low"}
 
 
 def test_stream_converter_maps_chat_error_to_response_failed_without_completed():

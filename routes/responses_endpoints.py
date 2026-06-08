@@ -128,7 +128,7 @@ async def responses_create(request: Request):
             _dep("anthropic_native_forward")(_openai_to_anthropic_tool_body(chat_body))
         )
         openai_result = _convert_anthropic_tool_response_to_openai(result, chat_body)
-        return JSONResponse(chat_completion_to_response(openai_result))
+        return JSONResponse(chat_completion_to_response(openai_result, request_body=body))
 
     handle_chat = _dep("handle_chat")
     result = await handle_chat(
@@ -146,6 +146,7 @@ async def responses_create(request: Request):
             transform_chat_sse_stream(
                 result.body_iterator,
                 model=model_name,
+                request_body=body,
             ),
             media_type="text/event-stream",
             headers={
@@ -160,7 +161,7 @@ async def responses_create(request: Request):
         except (TypeError, json.JSONDecodeError):
             return result
         if "choices" in payload:
-            return JSONResponse(chat_completion_to_response(payload))
+            return JSONResponse(chat_completion_to_response(payload, request_body=body))
         return result
 
     return result

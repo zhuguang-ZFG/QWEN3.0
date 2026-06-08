@@ -7,12 +7,14 @@ import time
 import uuid
 
 from converters.responses_errors import chat_error_from_chunk, failed_response_payload
+from converters.responses_response_fields import with_response_fields
 from converters.responses_stream_items import (
     completed_message_item,
     completed_reasoning_item,
     completed_tool_item,
     incomplete_reason,
 )
+from converters.responses_stream_parse import reasoning_delta
 from converters.responses_usage import chat_usage_to_responses_usage
 
 
@@ -31,10 +33,16 @@ def _sse_event(event_type: str, payload: dict) -> str:
 
 
 class ResponsesStreamConverter:
-    def __init__(self, *, model: str = "lima-1.3") -> None:
+    def __init__(
+        self,
+        *,
+        model: str = "lima-1.3",
+        response_fields: dict | None = None,
+    ) -> None:
         self.response_id = _new_response_id()
         self.model = model
         self.created_at = int(time.time())
+        self.response_fields = dict(response_fields or {})
         self.message_item_id = _new_item_id("msg")
         self.text_part_started = False
         self.text_content = ""
@@ -52,19 +60,15 @@ class ResponsesStreamConverter:
     def bootstrap_events(self) -> list[str]:
         return [
             _sse_event("response.created", {
-                "response": {
-                    "id": self.response_id,
-                    "object": "response",
-                    "status": "in_progress",
-                    "created_at": self.created_at,
-                    "model": self.model,
-                },
+                "response": self._response_payload(
+                    status="in_progress",
+                    output=[],
+                    usage=None,
+                    incomplete_details=None,
+                ),
             }),
             _sse_event("response.in_progress", {
-                "response": {
-                    "id": self.response_id,
-                    "status": "in_progress",
-                },
+                "response": self._response_payload(status="in_progress"),
             }),
         ]
 
@@ -102,14 +106,17 @@ class ResponsesStreamConverter:
         error = chat_error_from_chunk(chunk)
         if error:
             self.failed = True
+            payload = failed_response_payload(
+                response_id=self.response_id,
+                created_at=self.created_at,
+                model=self.model,
+                usage=self._usage(),
+                error=error,
+            )
+            response = with_response_fields(payload, self.response_fields)
+            response.setdefault("parallel_tool_calls", True)
             return [_sse_event("response.failed", {
-                "response": failed_response_payload(
-                    response_id=self.response_id,
-                    created_at=self.created_at,
-                    model=self.model,
-                    usage=self._usage(),
-                    error=error,
-                ),
+                "response": response,
             })]
         if chunk.get("model"):
             self.model = chunk["model"]
@@ -120,9 +127,9 @@ class ResponsesStreamConverter:
             if choice.get("finish_reason") and not self.finish_reason:
                 self.finish_reason = choice["finish_reason"]
             delta = choice.get("delta") or {}
-            reasoning_delta = _reasoning_delta(delta)
-            if reasoning_delta:
-                events.extend(self._feed_reasoning_delta(reasoning_delta))
+            reasoning = reasoning_delta(delta)
+            if reasoning:
+                events.extend(self._feed_reasoning_delta(reasoning))
             if delta.get("content"):
                 self.text_content += delta["content"]
                 events.extend(self._ensure_message_item())
@@ -242,18 +249,27 @@ class ResponsesStreamConverter:
         terminal_event = "response.incomplete" if incomplete_details else "response.completed"
         status = "incomplete" if incomplete_details else "completed"
         events.append(_sse_event(terminal_event, {
-            "response": {
-                "id": self.response_id,
-                "object": "response",
-                "status": status,
-                "created_at": self.created_at,
-                "model": self.model,
-                "output": output_items,
-                "usage": usage,
-                "incomplete_details": incomplete_details,
-            },
+            "response": self._response_payload(
+                status=status,
+                output=output_items,
+                usage=usage,
+                incomplete_details=incomplete_details,
+            ),
         }))
         return events
+
+    def _response_payload(self, *, status: str, **extra: object) -> dict:
+        payload = {
+            "id": self.response_id,
+            "object": "response",
+            "status": status,
+            "created_at": self.created_at,
+            "model": self.model,
+            **extra,
+        }
+        payload = with_response_fields(payload, self.response_fields)
+        payload.setdefault("parallel_tool_calls", True)
+        return payload
 
     def _usage(self) -> dict:
         return self.usage or {
@@ -280,24 +296,3 @@ class ResponsesStreamConverter:
                 "item": item,
             }),
         ]
-
-
-def parse_chat_sse_line(line: str) -> dict | None:
-    line = line.strip()
-    if not line.startswith("data: "):
-        return None
-    payload = line[6:].strip()
-    if payload == "[DONE]":
-        return {"__done__": True}
-    try:
-        return json.loads(payload)
-    except json.JSONDecodeError:
-        return None
-
-
-def _reasoning_delta(delta: dict) -> str:
-    for key in ("reasoning_content", "reasoning", "reasoning_text"):
-        value = delta.get(key)
-        if isinstance(value, str) and value:
-            return value
-    return ""
