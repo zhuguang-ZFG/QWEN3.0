@@ -7,6 +7,7 @@ from typing import Any
 from device_artifacts.store import artifact_store
 from device_ledger.events import new_event
 from device_ledger.store import ledger_store
+from device_policy import policy_engine
 
 from .intent import resolve_voice_task
 from .safety import DEFAULT_FEED, safe_point
@@ -95,6 +96,35 @@ def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_i
         return task
 
     task_id = _next_task_id()
+
+    # M3: policy gate — evaluate before storing
+    policy_result = policy_engine.decide(
+        capability=capability,
+        device_id=device_id,
+        fw_rev=voice_task.get("fw_rev", ""),
+        params=sanitized,
+        profile=voice_task.get("profile"),
+    )
+    policy_dict = policy_result.to_dict()
+
+    # Block dispatch when policy is not allow
+    if policy_result.decision != "allow":
+        task = {
+            "type": "motion_task",
+            "task_id": task_id,
+            "device_id": device_id,
+            "capability": capability if capability in CONTROL_CAPABILITIES else "run_path",
+            "source": voice_task.get("source", "voice"),
+            "params": {},
+            "policy": policy_dict,
+            "error": {"code": f"policy_{policy_result.decision}", "reason": policy_result.reason},
+        }
+        if request_id:
+            task["request_id"] = request_id
+        store_mod.task_store.create_task_state(task, status="blocked")
+        _record_task_created(task, status="blocked")
+        return task
+
     task = {
         "type": "motion_task",
         "task_id": task_id,
@@ -102,6 +132,7 @@ def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_i
         "capability": capability if capability in CONTROL_CAPABILITIES else "run_path",
         "source": voice_task.get("source", "voice"),
         "params": sanitized,
+        "policy": policy_dict,
     }
     if request_id:
         task["request_id"] = request_id

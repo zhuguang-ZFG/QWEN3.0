@@ -2,6 +2,16 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-06-09 LiMa Hardware AI Phase 1 M3 Closeout
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| HAI-M3-1 | Decision vocabulary | `device_policy.decisions` provides 7 deterministic decisions with Chinese labels; `PolicyResult` is frozen with unknown-value rejection. | Closed |
+| HAI-M3-2 | Protocol registry | `device_protocol_registry` maps protocol version, min firmware, supported capabilities, and deprecated fields; firmware comparison uses string ordering (adequate for v-prefixed semver). | Closed |
+| HAI-M3-3 | Policy gate | `project_to_motion_task()` now calls `policy_engine.decide()` after validation; blocked tasks get `status="blocked"` with `policy` dict in task output. | Closed |
+| HAI-M3-4 | Backward compat | Existing M1/M2/gateway route tests (57 total) all pass; policy gate defaults to `allow` for standard capabilities with valid params. | Closed |
+| HAI-M3-5 | Boundary | Policy engine is stateless; future M5/M6 work may add shadow-based home/self-check gating and memory-driven personalization. | Accepted |
+
 ## 2026-06-09 LiMa Hardware AI Phase 1 M2 Closeout
 
 | ID | Area | Finding | Status |

@@ -4,6 +4,40 @@
 
 > Updated: 2026-06-09
 
+## 2026-06-09 Hardware AI Phase 1 M3: Policy Engine + Protocol Registry Closeout
+
+**Goal:** Centralize permission, safety, compatibility, and approval decisions
+before task dispatch.
+
+- Implementation:
+  - added `device_policy/decisions.py` with 7 decision values (allow,
+    require_approval, reject, require_self_check, require_home, require_ota,
+    degrade_to_asset) and Chinese labels;
+  - added `device_policy/engine.py` with 3-gate PolicyEngine: protocol
+    compatibility → profile safety → capability match;
+  - added `device_protocol_registry.py` with ProtocolRegistry dataclass
+    mapping protocol version, min firmware, supported capabilities, and
+    deprecated fields;
+  - wired `policy_engine.decide()` into `device_gateway/tasks.py`
+    `project_to_motion_task()` — stores policy result in task params,
+    blocks dispatch with status="blocked" when decision is not "allow";
+  - created `tests/test_device_policy_protocol_registry.py` with 23 tests
+    covering decision vocabulary, protocol compatibility, and engine logic.
+- Local verification:
+  - focused pytest: `tests/test_device_ledger_artifacts.py
+    tests/test_device_intelligence_safety.py
+    tests/test_device_intelligence_schemas.py
+    tests/test_device_intelligence_shadow.py
+    tests/test_device_policy_protocol_registry.py
+    tests/test_device_gateway_routes.py` →
+    `57 passed, 1 warning`;
+  - `py_compile` clean.
+- Residual risk:
+  - M3 is in-memory and interface-shaped; SQLite/Redis durability for
+    policy decisions deferred to later milestones.
+  - The policy engine currently uses string comparison for firmware
+    versioning; a semver library would be more robust for real hardware.
+
 ## 2026-06-09 capacity-aware deploy + JDCloud probe closeout
 
 **Goal:** make primary VPS deployment capacity-aware and turn the new JDCloud

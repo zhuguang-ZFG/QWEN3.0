@@ -165,27 +165,29 @@ Expected: pass.
 - Modify: `device_gateway/tasks.py`
 - Test: `tests/test_device_policy_protocol_registry.py`
 
-- [ ] **Step 1: Add decision vocabulary tests**
+- [x] **Step 1: Add decision vocabulary tests**
 
 Cover `allow`, `require_approval`, `reject`, `require_self_check`, `require_home`, `require_ota`, and `degrade_to_asset`.
 
-- [ ] **Step 2: Add protocol compatibility tests**
+- [x] **Step 2: Add protocol compatibility tests**
 
 Old firmware cannot receive new capability fields. Unsupported capability is rejected before dispatch.
 
-- [ ] **Step 3: Implement registry**
+- [x] **Step 3: Implement registry**
 
 Registry maps protocol version, min firmware, supported capabilities, and deprecated fields.
 
-- [ ] **Step 4: Wire policy decision before task dispatch**
+- [x] **Step 4: Wire policy decision before task dispatch**
 
 Task creation stores policy decision in params/artifacts and blocks dispatch when decision is not `allow`.
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run: `python -m pytest tests/test_device_policy_protocol_registry.py tests/test_device_intelligence_safety.py tests/test_device_gateway_routes.py -q`
 
 Expected: pass.
+
+M3 closeout: 23 focused + 34 M1/M2/gateway tests = 57 passed. Policy gate wired into `project_to_motion_task()`.
 
 ### M4: Planner, Simulator, and Workflow
 
