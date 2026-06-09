@@ -2,6 +2,17 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-06-09 LiMa Hardware AI Phase 1 M4 Closeout
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| HAI-M4-1 | Planner | `device_intelligence.planner` wraps gateway intent parser into immutable `TaskPlan` objects; `PlannerError` raised for empty commands; plan_ids are uuid-based and unique. | Closed |
+| HAI-M4-2 | Simulator | `device_intelligence.simulator` computes deterministic metrics: draw distance (pen-down XY), pen-up distance (z>0 XY), runtime (total/ feed *60), risk score (workspace usage + density). | Closed |
+| HAI-M4-3 | Workflow | `device_workflow` provides 9-state machine with VALID_TRANSITIONS table; terminal is a sink state; WorkflowOrchestrator is thread-safe with RLock. | Closed |
+| HAI-M4-4 | Integration | `project_to_motion_task()` now advances workflow CREATED→PLANNED→SIMULATED→READY_TO_DISPATCH (or WAITING_APPROVAL for risk ≥0.7); adds `simulation` and `workflow_state` keys to task output without breaking existing format. | Closed |
+| HAI-M4-5 | Test coverage | 65 M4 tests + 143 existing = 208 total device tests pass; ruff clean on all new files. | Closed |
+| HAI-M4-6 | Boundary | Risk threshold 0.7 is a starting default; workflow is in-memory; both need real hardware tuning. | Accepted |
+
 ## 2026-06-09 LiMa Hardware AI Phase 1 M3 Closeout
 
 | ID | Area | Finding | Status |

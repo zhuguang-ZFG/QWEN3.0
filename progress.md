@@ -4,6 +4,42 @@
 
 > Updated: 2026-06-09
 
+## 2026-06-09 Hardware AI Phase 1 M4: Planner + Simulator + Workflow Closeout
+
+**Goal:** Make task creation an explicit workflow, not a route helper.
+
+- Implementation:
+  - added `device_intelligence/planner.py` — `plan_from_text()` wraps the
+    gateway intent parser and produces immutable `TaskPlan` instances with
+    unique plan_ids; `PlannerError` for empty/invalid input;
+  - added `device_intelligence/simulator.py` — `simulate_motion()` computes
+    draw distance, pen-up distance, estimated runtime, and risk score (0–1)
+    from path geometry; `SimResult` is a frozen dataclass with `to_dict()`;
+  - added `device_workflow/state.py` — `TaskState` enum (9 states: created
+    → planned → simulated → waiting_approval → ready_to_dispatch → dispatched
+    → running → recovering → terminal), `WorkflowEvent` enum, transition
+    table, and `WorkflowTransitionError`;
+  - added `device_workflow/orchestrator.py` — thread-safe
+    `WorkflowOrchestrator` with register/advance/get_state/history/snapshot;
+  - wired planner+simulator+workflow into `device_gateway/tasks.py`:
+    `project_to_motion_task()` now registers tasks in workflow, runs
+    simulation, and advances through CREATED→PLANNED→SIMULATED→READY_TO_DISPATCH
+    (or WAITING_APPROVAL for high-risk tasks); `mark_task_dispatched()` and
+    `record_motion_event()` advance workflow on dispatch/terminal events;
+  - created 3 test files: `test_device_intelligence_planner.py` (19 tests),
+    `test_device_intelligence_simulator.py` (17 tests),
+    `test_device_workflow.py` (29 tests).
+- Local verification:
+  - focused pytest: all 65 M4 tests pass;
+  - full device suite: `208 passed, 1 warning` (includes all M1–M4 + gateway tests);
+  - ruff check clean on all 10 modified/created files.
+- Residual risk:
+  - Workflow is in-memory; SQLite/Redis durability deferred.
+  - Risk threshold (0.7) for approval gating is a starting default; tuning
+    requires real hardware evidence.
+  - `create_task_from_transcript()` response format is backward-compatible;
+    new keys (`simulation`, `workflow_state`) are additive.
+
 ## 2026-06-09 Hardware AI Phase 1 M3: Policy Engine + Protocol Registry Closeout
 
 **Goal:** Centralize permission, safety, compatibility, and approval decisions

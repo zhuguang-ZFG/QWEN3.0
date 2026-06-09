@@ -204,27 +204,29 @@ M3 closeout: 23 focused + 34 M1/M2/gateway tests = 57 passed. Policy gate wired 
 - Test: `tests/test_device_intelligence_simulator.py`
 - Test: `tests/test_device_workflow.py`
 
-- [ ] **Step 1: Add planner intent tests**
+- [x] **Step 1: Add planner intent tests**
 
-Map "回零", "暂停", "继续", "停止", "状态", writing prompts, and drawing prompts to structured plan requests.
+Map "归零", "暂停", "继续", "停止", "状态", writing prompts, and drawing prompts to structured plan requests.
 
-- [ ] **Step 2: Add simulator tests**
+- [x] **Step 2: Add simulator tests**
 
 For a square path, compute draw distance, pen-up distance, estimated runtime, and risk score deterministically.
 
-- [ ] **Step 3: Add workflow transition tests**
+- [x] **Step 3: Add workflow transition tests**
 
 Valid states: `created`, `planned`, `simulated`, `waiting_approval`, `ready_to_dispatch`, `dispatched`, `running`, `recovering`, `terminal`.
 
-- [ ] **Step 4: Implement planner/simulator/workflow**
+- [x] **Step 4: Implement planner/simulator/workflow**
 
 Keep current `create_task_from_transcript()` response compatible.
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run: `python -m pytest tests/test_device_intelligence_planner.py tests/test_device_intelligence_simulator.py tests/test_device_workflow.py tests/test_device_gateway_routes.py -q`
 
 Expected: pass.
+
+M4 closeout: 65 focused + 143 existing tests = 208 passed. Planner+Simulator+Workflow wired into `project_to_motion_task()`. Tasks now carry `simulation` and `workflow_state` keys.
 
 ### M5: Recovery and Reliability Fake Tests
 

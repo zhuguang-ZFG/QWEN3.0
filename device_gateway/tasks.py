@@ -5,9 +5,13 @@ from __future__ import annotations
 from typing import Any
 
 from device_artifacts.store import artifact_store
+from device_intelligence.simulator import simulate_motion
+from device_intelligence.schemas import TaskPlan
 from device_ledger.events import new_event
 from device_ledger.store import ledger_store
 from device_policy import policy_engine
+from device_workflow.orchestrator import workflow
+from device_workflow.state import TaskState
 
 from .intent import resolve_voice_task
 from .safety import DEFAULT_FEED, safe_point
@@ -24,6 +28,7 @@ def reset_tasks_for_tests() -> None:
     store_mod.task_store.reset()
     ledger_store.reset()
     artifact_store.reset()
+    workflow.reset()
 
 
 def install_task_store_for_tests(store: DeviceTaskStore | None = None) -> DeviceTaskStore:
@@ -136,6 +141,31 @@ def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_i
     }
     if request_id:
         task["request_id"] = request_id
+
+    # M4: workflow — register and advance through plan → sim
+    workflow.register(task_id)
+    workflow.advance(task_id, TaskState.PLANNED)
+
+    # M4: simulator — compute motion metrics
+    sim_plan = TaskPlan(
+        plan_id=f"sim-{task_id}",
+        device_id=device_id,
+        capability=task["capability"],
+        params=sanitized,
+    )
+    sim_result = simulate_motion(sim_plan)
+    task["simulation"] = sim_result.to_dict()
+
+    # Decide if approval is needed (high risk → waiting_approval)
+    if sim_result.risk_score >= 0.7:
+        workflow.advance(task_id, TaskState.SIMULATED)
+        workflow.advance(task_id, TaskState.WAITING_APPROVAL)
+        task["workflow_state"] = TaskState.WAITING_APPROVAL.value
+    else:
+        workflow.advance(task_id, TaskState.SIMULATED)
+        workflow.advance(task_id, TaskState.READY_TO_DISPATCH)
+        task["workflow_state"] = TaskState.READY_TO_DISPATCH.value
+
     store_mod.task_store.create_task_state(task, status="created")
     _record_task_created(task, status="created")
     _record_preview_artifact(task)
@@ -148,30 +178,48 @@ def create_task_from_transcript(device_id: str, text: str, request_id: str | Non
 
 def record_motion_event(event: dict[str, Any]) -> dict[str, Any]:
     summary = store_mod.task_store.record_motion_event(event)
+    # M4: advance workflow on running/terminal events
+    task_id = str(event.get("task_id", ""))
+    phase = event.get("phase", "")
+    _advance_workflow_on_event(task_id, phase)
     ledger_store.append_event(
         new_event(
             event_type="motion_event",
-            task_id=str(event["task_id"]),
+            task_id=task_id,
             device_id=str(event.get("device_id", "")),
             payload={"motion_event": event},
         )
     )
-    if event.get("phase") in TERMINAL_PHASES:
+    if phase in TERMINAL_PHASES:
         ledger_store.append_event(
             new_event(
                 event_type="task_terminal",
-                task_id=str(event["task_id"]),
+                task_id=task_id,
                 device_id=str(event.get("device_id", "")),
                 payload={"terminal_event": event},
             )
         )
         artifact_store.put_artifact(
-            task_id=str(event["task_id"]),
+            task_id=task_id,
             artifact_type="terminal_result",
             content=event,
             retention_days=90,
         )
     return summary
+
+
+def _advance_workflow_on_event(task_id: str, phase: str) -> None:
+    """Best-effort workflow advancement from motion events."""
+    if not task_id:
+        return
+    try:
+        current = workflow.get_state(task_id)
+    except Exception:
+        return
+    if phase == "processing" and current == TaskState.DISPATCHED:
+        workflow.advance(task_id, TaskState.RUNNING)
+    elif phase in TERMINAL_PHASES and current in (TaskState.RUNNING, TaskState.RECOVERING):
+        workflow.advance(task_id, TaskState.TERMINAL)
 
 
 def task_snapshot(task_id: str) -> dict[str, Any] | None:
@@ -192,6 +240,13 @@ def requeue_pending_tasks(device_id: str, tasks: list[dict[str, Any]]) -> int:
 
 def mark_task_dispatched(task_id: str) -> None:
     store_mod.task_store.mark_task_dispatched(task_id)
+    # M4: advance workflow to dispatched
+    try:
+        current = workflow.get_state(task_id)
+        if current == TaskState.READY_TO_DISPATCH:
+            workflow.advance(task_id, TaskState.DISPATCHED)
+    except Exception:
+        pass  # best-effort for legacy tasks
     snapshot = store_mod.task_store.task_snapshot(task_id)
     task = snapshot.get("task") if snapshot else None
     device_id = str(task.get("device_id", "")) if isinstance(task, dict) else ""
