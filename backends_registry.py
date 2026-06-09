@@ -100,12 +100,6 @@ BACKENDS = {
     'featherless': {'url': 'https://api.featherless.ai/v1/chat/completions', 'key': os.environ.get('FEATHERLESS_API_KEY', ''), 'model': 'Qwen/Qwen3-32B', 'fmt': 'openai', 'timeout': 20},
     'glhf': {'url': 'https://glhf.chat/api/openai/v1/chat/completions', 'key': os.environ.get('GLHF_API_KEY', ''), 'model': 'hf:Qwen/Qwen3-32B', 'fmt': 'openai', 'timeout': 20},
     'agentrouter': {'url': 'https://agentrouter.org/v1/chat/completions', 'key': os.environ.get('AGENTROUTER_API_KEY', ''), 'model': 'qwen/qwen3-32b', 'fmt': 'openai', 'timeout': 20},
-    # ── 新增: OpenCode Zen (零Key零注册, Big Pickle Stealth 72% SWE-bench) ──
-    'opencode_stealth': {'url': 'https://opencode.ai/zen/v1/chat/completions', 'key': 'none', 'model': 'big-pickle', 'fmt': 'openai', 'timeout': 45},
-    'opencode_ds_flash': {'url': 'https://opencode.ai/zen/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-flash-free', 'fmt': 'openai', 'timeout': 30},
-    'opencode_qwen': {'url': 'https://opencode.ai/zen/v1/chat/completions', 'key': 'none', 'model': 'qwen3.6-plus-free', 'fmt': 'openai', 'timeout': 30},
-    'opencode_nemotron': {'url': 'https://opencode.ai/zen/v1/chat/completions', 'key': 'none', 'model': 'nemotron-3-super-free', 'fmt': 'openai', 'timeout': 30},
-    'opencode_minimax': {'url': 'https://opencode.ai/zen/v1/chat/completions', 'key': 'none', 'model': 'minimax-m2.5-free', 'fmt': 'openai', 'timeout': 30},
     # ── 新增: Fireworks AI (Llama 3.1 405B 独家, 最大开源模型) ──
     'fireworks_llama405b': {'url': 'https://api.fireworks.ai/inference/v1/chat/completions', 'key': os.environ.get('FIREWORKS_API_KEY', ''), 'model': 'accounts/fireworks/models/llama-v3p1-405b-instruct', 'fmt': 'openai', 'timeout': 45},
     # ── 新增: OVHcloud (欧洲直连, 零注册, 40+模型, 待服务器验证可达性) ──

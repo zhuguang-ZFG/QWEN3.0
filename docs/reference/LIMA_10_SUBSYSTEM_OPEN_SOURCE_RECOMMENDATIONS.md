@@ -130,7 +130,6 @@
 |---|---|---:|---|---|
 | `Textualize/rich` | MIT | P1 | New candidate. Better CLI tables, panels, progress, markdown rendering. | Keep output plain-text compatible and log-safe. |
 | `paul-gauthier/aider` | Apache-2.0 | P1 | Existing local docs reference. Borrow SEARCH/REPLACE editing, repo map, weak/strong model split. | Do not import agent behavior wholesale; LiMa Code remains executor. |
-| `anomalyco/opencode` | MIT | P1 | Existing radar item. Borrow terminal packaging, installer, localization, UX. | Keep LiMa backend admission and local audit trail. |
 | `Textualize/textual` | MIT | P2 | New candidate. Future TUI panels and local developer dashboard. | Defer until CLI contracts stabilize. |
 | `OpenInterpreter/open-interpreter` | AGPL-3.0 | P2 | Concept-only natural-language computer API reference. | AGPL isolation; no code copy or runtime dependency. |
 

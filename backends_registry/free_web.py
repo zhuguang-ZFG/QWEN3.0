@@ -54,13 +54,6 @@ BACKENDS = {
     'scnet_ds_flash': {'url': 'https://scnet.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-flash', 'fmt': 'openai', 'timeout': 30, 'caps': ['tool_calls']},
     'scnet_ds_pro': {'url': 'https://scnet.zhuguang.ccwu.cc/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-pro', 'fmt': 'openai', 'timeout': 90, 'caps': ['tool_calls']},
 
-    # ── OpenCode Zen (零Key零注册) ──
-    'opencode_stealth': {'url': 'https://opencode.ai/zen/v1/chat/completions', 'key': 'none', 'model': 'big-pickle', 'fmt': 'openai', 'timeout': 45},
-    'opencode_ds_flash': {'url': 'https://opencode.ai/zen/v1/chat/completions', 'key': 'none', 'model': 'deepseek-v4-flash-free', 'fmt': 'openai', 'timeout': 30},
-    'opencode_qwen': {'url': 'https://opencode.ai/zen/v1/chat/completions', 'key': 'none', 'model': 'qwen3.6-plus-free', 'fmt': 'openai', 'timeout': 30},
-    'opencode_nemotron': {'url': 'https://opencode.ai/zen/v1/chat/completions', 'key': 'none', 'model': 'nemotron-3-super-free', 'fmt': 'openai', 'timeout': 30},
-    'opencode_minimax': {'url': 'https://opencode.ai/zen/v1/chat/completions', 'key': 'none', 'model': 'minimax-m2.5-free', 'fmt': 'openai', 'timeout': 30},
-
     # ── 其他免费 ──
     'chat_ubi': {'url': 'https://ch.at/v1/chat/completions', 'key': 'none', 'model': 'gpt-3', 'fmt': 'openai', 'timeout': 20},
     'llm7': {'url': 'https://api.llm7.io/v1/chat/completions', 'key': 'none', 'model': 'auto', 'fmt': 'openai', 'timeout': 20},

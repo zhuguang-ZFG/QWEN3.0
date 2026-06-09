@@ -600,61 +600,6 @@
     "response_preview": ""
   },
   {
-    "backend": "opencode_ds_flash",
-    "case_id": "code_review",
-    "score": 0,
-    "latency_ms": 924,
-    "ok": false,
-    "notes": [
-      "call failed: BackendError: HTTP Error 429: Too Many Requests"
-    ],
-    "response_preview": ""
-  },
-  {
-    "backend": "opencode_minimax",
-    "case_id": "code_review",
-    "score": 0,
-    "latency_ms": 863,
-    "ok": false,
-    "notes": [
-      "call failed: BackendError: HTTP Error 401: Unauthorized"
-    ],
-    "response_preview": ""
-  },
-  {
-    "backend": "opencode_nemotron",
-    "case_id": "code_review",
-    "score": 0,
-    "latency_ms": 910,
-    "ok": false,
-    "notes": [
-      "call failed: BackendError: HTTP Error 401: Unauthorized"
-    ],
-    "response_preview": ""
-  },
-  {
-    "backend": "opencode_qwen",
-    "case_id": "code_review",
-    "score": 0,
-    "latency_ms": 827,
-    "ok": false,
-    "notes": [
-      "call failed: BackendError: HTTP Error 401: Unauthorized"
-    ],
-    "response_preview": ""
-  },
-  {
-    "backend": "opencode_stealth",
-    "case_id": "code_review",
-    "score": 0,
-    "latency_ms": 849,
-    "ok": false,
-    "notes": [
-      "call failed: BackendError: HTTP Error 429: Too Many Requests"
-    ],
-    "response_preview": ""
-  },
-  {
     "backend": "or_deepseek_r1",
     "case_id": "code_review",
     "score": 0,

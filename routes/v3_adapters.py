@@ -39,11 +39,11 @@ def v3_predict(query):
             for b in stream_stable:
                 if not health_tracker.is_cooled_down(b):
                     return b
-            import code_orchestrator
-            pool = code_orchestrator.backend_reputation.sort_by_reputation(
-                code_orchestrator.POOLS["coder"])
-            if pool:
-                return pool[0]
+            from router_v3 import POOLS
+            pool = POOLS.get("ide", {}).get("strong", [])
+            for b in pool:
+                if not health_tracker.is_cooled_down(b):
+                    return b
         else:
             chat_only = ["longcat_chat", "zhipu_flash", "cf_llama70b",
                          "groq_llama70b", "longcat_lite"]
@@ -80,11 +80,11 @@ def v3_select(query, system_prompt, ide, messages):
             for b in stream_stable:
                 if not health_tracker.is_cooled_down(b):
                     return (b, messages)
-            import code_orchestrator
-            pool = code_orchestrator.backend_reputation.sort_by_reputation(
-                code_orchestrator.POOLS["coder"])
-            if pool:
-                return (pool[0], messages)
+            from router_v3 import POOLS
+            pool = POOLS.get("ide", {}).get("strong", [])
+            for b in pool:
+                if not health_tracker.is_cooled_down(b):
+                    return (b, messages)
         else:
             chat_only = ["longcat_chat", "zhipu_flash", "cf_llama70b",
                          "groq_llama70b", "longcat_lite", "longcat_chat"]
@@ -106,8 +106,8 @@ def v3_call_stream(backend, messages, max_tokens, ide):
     """V3 流式调用适配器。注入上下文增强 + 非真流式后端强制走非流式。"""
     sys_prompt = ""
     try:
-        import code_orchestrator
         from routing_engine import classify_scenario
+        from lima_context import build_context_digest
         query = ""
         for m in reversed(messages):
             if m.get("role") == "user" and isinstance(m.get("content"), str):
@@ -119,10 +119,10 @@ def v3_call_stream(backend, messages, max_tokens, ide):
                                          ide_source=ide if is_ide else "",
                                          request_type="ide" if is_ide else "chat")
             if scenario == "coding":
-                ctx = code_orchestrator.enhance_context(query, messages, scenario)
-                sys_prompt = ctx.get("system_prompt", "")
-                messages = ctx.get("enhanced_messages", messages)
-                # Layer think/plan on top of orchestrator (not instead of)
+                digest = build_context_digest(query, messages, ide_source=ide)
+                if digest:
+                    sys_prompt = digest
+                # Layer think/plan on top of context (not instead of)
                 try:
                     from think_plan_context import enhance_coding_prompt, needs_plan
                     if needs_plan(query):
@@ -166,9 +166,10 @@ def v3_call_api(backend, messages, max_tokens, ide):
                                          ide_source=ide if is_ide else "",
                                          request_type="ide" if is_ide else "chat")
             if scenario == "coding":
-                import code_orchestrator
-                ctx = code_orchestrator.enhance_context(query, messages, scenario)
-                sys_prompt = ctx.get("system_prompt", "")
+                from lima_context import build_context_digest
+                digest = build_context_digest(query, messages, ide_source=ide)
+                if digest:
+                    sys_prompt = digest
             else:
                 no_code = "Answer the question directly in plain text. Do not generate code, functions, or programming examples unless the user explicitly asks for code."
                 messages = [{"role": "system", "content": no_code}] + list(messages)
@@ -190,8 +191,8 @@ async def v3_call_stream_async(backend, messages, max_tokens, ide) -> AsyncItera
     """Async streaming adapter. Falls back to non-stream for fake-stream backends."""
     sys_prompt = ""
     try:
-        import code_orchestrator
         from routing_engine import classify_scenario
+        from lima_context import build_context_digest
         query = ""
         for m in reversed(messages):
             if m.get("role") == "user" and isinstance(m.get("content"), str):
@@ -203,10 +204,10 @@ async def v3_call_stream_async(backend, messages, max_tokens, ide) -> AsyncItera
                                          ide_source=ide if is_ide else "",
                                          request_type="ide" if is_ide else "chat")
             if scenario == "coding":
-                ctx = code_orchestrator.enhance_context(query, messages, scenario)
-                sys_prompt = ctx.get("system_prompt", "")
-                messages = ctx.get("enhanced_messages", messages)
-                # Layer think/plan on top of orchestrator (not instead of)
+                digest = build_context_digest(query, messages, ide_source=ide)
+                if digest:
+                    sys_prompt = digest
+                # Layer think/plan on top of context (not instead of)
                 try:
                     from think_plan_context import enhance_coding_prompt, needs_plan
                     if needs_plan(query):
@@ -253,9 +254,10 @@ async def v3_call_api_async(backend, messages, max_tokens, ide):
                                          ide_source=ide if is_ide else "",
                                          request_type="ide" if is_ide else "chat")
             if scenario == "coding":
-                import code_orchestrator
-                ctx = code_orchestrator.enhance_context(query, messages, scenario)
-                sys_prompt = ctx.get("system_prompt", "")
+                from lima_context import build_context_digest
+                digest = build_context_digest(query, messages, ide_source=ide)
+                if digest:
+                    sys_prompt = digest
             else:
                 no_code = "Answer the question directly in plain text. Do not generate code, functions, or programming examples unless the user explicitly asks for code."
                 messages = [{"role": "system", "content": no_code}] + list(messages)

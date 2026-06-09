@@ -202,8 +202,6 @@ _FREE_BACKENDS = {
     "pollinations_openai_large", "pollinations_deepseek", "pollinations_qwen_coder",
     "scnet_qwen30b", "scnet_qwen235b", "scnet_ds_flash", "scnet_ds_pro",
     "scnet_minimax",
-    "opencode_stealth", "opencode_ds_flash", "opencode_qwen",
-    "opencode_nemotron", "opencode_minimax",
     "ovh_llama70b", "ovh_deepseek",
     "cfai_llama70b", "cfai_llama4", "cfai_qwen_coder",
     "cfai_deepseek_r1", "cfai_mistral",

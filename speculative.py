@@ -276,7 +276,7 @@ AFFINITY = {
     ],
     "code": [
         "nvidia_qwen_coder", "cf_qwen_coder",
-        "opencode_stealth", "mistral_devstral",
+        "mistral_devstral",
         "groq_llama70b", "cerebras_gptoss",
         "github_codestral", "or_qwen3_coder", "mistral_codestral",
         "scnet_qwen30b", "scnet_qwen235b", "scnet_ds_flash",

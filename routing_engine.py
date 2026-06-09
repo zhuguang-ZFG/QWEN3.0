@@ -168,42 +168,9 @@ def route(query: str, messages: list[dict], *,
         pass
 
     if scenario == "coding" and call_fn:
-        try:
-            import code_orchestrator
-            orch_result = code_orchestrator.handle(
-                query, messages, call_fn, max_tokens)
-            if orch_result.get("answer"):
-                ms = int((time.time() - t0) * 1000)
-                # Record feedback for code orchestrator results too
-                try:
-                    from routing_loop.feedback_bridge import on_request_complete
-                    on_request_complete(
-                        request_id=make_chat_id(), scenario=scenario,
-                        messages=messages, backend=orch_result["backend"],
-                        success=True, latency_ms=float(ms),
-                    )
-                except Exception as exc:
-                    _log.debug("routing_engine.py: {}", type(exc).__name__)
-                # Also run full post-route integrations
-                apply_post_route_integrations(
-                    final_backend=orch_result["backend"],
-                    answer=orch_result["answer"],
-                    backends=[orch_result["backend"]],
-                    messages_injected=messages,
-                    messages=messages,
-                    req_type="coding",
-                    scenario=scenario,
-                    ms=ms,
-                )
-                return RouteResult(
-                    backend=orch_result["backend"],
-                    answer=orch_result["answer"],
-                    request_type=f"code_{orch_result['tier']}",
-                    ms=ms, scenario=scenario,
-                    retrieval_context=_retrieval_text)
-        except Exception as e:
-            import logging as _logging
-            _logging.warning(f"[ORCH] code_orchestrator failed: {type(e).__name__}: {e}")
+        # code_orchestrator retired; coding context is injected via
+        # lima_context.build_context_digest() in the normal routing path.
+        pass
 
     sticky_key = sticky_session.compute_key(
         model or "default",

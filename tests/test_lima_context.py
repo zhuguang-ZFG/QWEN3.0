@@ -1,5 +1,3 @@
-import code_orchestrator
-
 from lima_context import build_context_digest
 
 
@@ -66,17 +64,4 @@ def test_build_context_digest_respects_max_chars():
     assert digest.endswith("...")
 
 
-def test_code_orchestrator_injects_preflight_into_coding_context():
-    messages = [
-        {
-            "role": "user",
-            "content": "Fix D:\\GIT\\server.py\nTypeError: bad operand",
-        }
-    ]
-
-    ctx = code_orchestrator.enhance_context(
-        "Fix D:\\GIT\\server.py", messages, "coding"
-    )
-
-    assert "LiMa context preflight" in ctx["system_prompt"]
-    assert "D:\\GIT\\server.py" in ctx["system_prompt"]
+# code_orchestrator module retired — test removed

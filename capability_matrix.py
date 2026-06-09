@@ -25,7 +25,6 @@ _DEFAULT_MATRIX = {
     "mistral_codestral": {"code": 9, "debug": 8, "chinese": 3, "english": 8, "reasoning": 5, "speed": 7},
     "mistral_devstral": {"code": 8, "debug": 7, "chinese": 3, "english": 8, "reasoning": 5, "speed": 7},
     "or_qwen3_coder": {"code": 9, "debug": 8, "chinese": 7, "english": 7, "reasoning": 6, "speed": 5},
-    "opencode_stealth": {"code": 8, "debug": 7, "chinese": 5, "english": 7, "reasoning": 6, "speed": 6},
 
     # 快速通用后端
     "groq_llama70b": {"code": 7, "debug": 6, "chinese": 4, "english": 8, "reasoning": 6, "speed": 9},

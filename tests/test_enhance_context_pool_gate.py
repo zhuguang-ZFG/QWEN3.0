@@ -1,34 +1,30 @@
-"""Tests for enhance_context eval pool filtering."""
+"""Tests for routing_engine coding context injection.
+
+code_orchestrator_context retired; coding context now flows through
+routing_engine.route() → lima_context.build_context_digest().
+"""
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
 
-import code_orchestrator_context as ctx
+def test_lima_context_returns_empty_for_chat():
+    """Non-coding queries should not get context injection."""
+    from lima_context import build_context_digest
+
+    result = build_context_digest(
+        "hello",
+        [{"role": "user", "content": "hello"}],
+    )
+    assert result == ""
 
 
-def test_enhance_context_filters_demoted_backends(tmp_path: Path, monkeypatch):
-    path = tmp_path / "coding_backend_scores_full_test.json"
-    path.write_text(
-        json.dumps([{"backend": "scnet_large_ds_pro", "score": 0, "ok": False}]),
-        encoding="utf-8",
-    )
-    monkeypatch.setattr(
-        "eval_pool_gate.latest_scores_path",
-        lambda data_dir, full=False: path if full else None,
-    )
-    monkeypatch.setattr(
-        ctx.backend_reputation,
-        "sort_by_reputation",
-        lambda pool: list(pool),
-    )
+def test_lima_context_extracts_file_path():
+    """Coding queries with file paths should get context."""
+    from lima_context import build_context_digest
 
-    result = ctx.enhance_context(
-        "refactor this module with tests",
-        [{"role": "user", "content": "refactor this module with tests"}],
-        scenario="coding",
+    result = build_context_digest(
+        "Fix server.py",
+        [{"role": "user", "content": "Fix D:\\project\\server.py\nTypeError: bad"}],
+        ide_source="Claude Code",
     )
-    pool = result["backend_pool"]
-    assert "scnet_large_ds_pro" not in pool
-    assert pool
+    assert "server.py" in result

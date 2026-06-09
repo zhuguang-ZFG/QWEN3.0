@@ -33,16 +33,18 @@ def test_all_routing_pool_backends_registered():
     assert not missing, f"POOLS backends not in BACKENDS: {missing}"
 
 
-def test_all_code_orchestrator_pools_registered():
-    from code_orchestrator import POOLS as CO_POOLS
+def test_router_v3_pools_registered():
+    """code_orchestrator retired; verify router_v3 pools are in BACKENDS instead."""
+    from router_v3 import POOLS
 
     missing = []
-    for pool_name, pool_backends in CO_POOLS.items():
-        for b in pool_backends:
-            if b not in backends.BACKENDS:
-                missing.append(f"code_orchestrator.POOLS[{pool_name}]: {b}")
+    for pool_name, groups in POOLS.items():
+        for tier_name, tier_backends in groups.items():
+            for b in tier_backends:
+                if b not in backends.BACKENDS:
+                    missing.append(f"POOLS[{pool_name}][{tier_name}]: {b}")
 
-    assert not missing, f"Code orchestrator backends not in BACKENDS: {missing}"
+    assert not missing, f"router_v3 POOLS backends not in BACKENDS: {missing}"
 
 
 def test_direct_backends_registered():

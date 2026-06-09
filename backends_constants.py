@@ -40,8 +40,6 @@ GFW_BACKENDS = frozenset({
     'naga_llama70b', 'naga_gpt41mini', 'naga_glm45', 'naga_llama4',
     'featherless', 'glhf', 'agentrouter',
     'zuki_codestral', 'zuki_mistral_small',
-    'opencode_stealth', 'opencode_ds_flash', 'opencode_qwen',
-    'opencode_nemotron', 'opencode_minimax',
     'fireworks_llama405b',
     'cohere_command', 'cohere_command_plus', 'cohere_reasoning', 'cohere_vision',
     'sambanova_llama4', 'sambanova_ds_v3',
@@ -59,7 +57,7 @@ STRONG_MODELS = frozenset({
     "longcat",
     "naga_gpt41mini",
     "or_deepseek_r1", "nvidia_qwen_coder",
-    "opencode_stealth", "fireworks_llama405b", "deepinfra_llama4",
+    "fireworks_llama405b", "deepinfra_llama4",
     "hermes_agent",
 })
 

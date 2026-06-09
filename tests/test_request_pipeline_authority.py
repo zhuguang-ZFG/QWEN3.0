@@ -33,12 +33,10 @@ def test_quality_gate_modules_are_distinct():
     assert hasattr(routes_pkg, "quality_check")
 
 
-def test_code_orchestrator_context_split_preserves_exports():
-    orchestrator = importlib.import_module("code_orchestrator")
-    context = importlib.import_module("code_orchestrator_context")
-    for name in ("POOLS", "classify_code_tier", "enhance_context", "handle"):
-        assert hasattr(orchestrator, name)
-        assert hasattr(context, name) or name == "handle"
+def test_lima_context_module_exports():
+    """code_orchestrator retired; verify lima_context provides context building."""
+    lima_ctx = importlib.import_module("lima_context")
+    assert hasattr(lima_ctx, "build_context_digest")
 
 
 def test_agent_task_evolution_routes_mounted():
