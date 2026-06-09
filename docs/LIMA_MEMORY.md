@@ -1,6 +1,6 @@
 # LiMa Memory
 
-> **Updated: 2026-06-09 (JDCloud workspace hygiene closeout)**
+> **Updated: 2026-06-09 (pre-commit hook hygiene closeout)**
 > **Branch:** `main` - **HEAD:** pending closeout push
 > **Latest authority:** `STATUS.md`, `progress.md`, `findings.md`, `docs/DOCUMENTATION_STATUS.md`
 
@@ -64,6 +64,23 @@
   cookies/sessions, and scratch scripts are ignored and must not be staged.
 - `.codegraph/daemon.pid` is no longer tracked; CodeGraph PID/database/log
   files are local runtime state.
+
+## 2026-06-09 Pre-Commit Hook Snapshot
+
+- The local `.git/hooks/pre-commit.ps1` now delegates to tracked
+  `scripts/run_pre_commit_check.py`.
+- Quick default gate:
+  - tracked-file ruff via `scripts/run_ruff_check.py`;
+  - staged whitespace via `git diff --cached --check`;
+  - `py_compile` for staged `.py` files.
+- Full gate:
+  `python scripts/run_pre_commit_check.py --full`, using the documented
+  long/external pytest ignore list plus unique `--basetemp`.
+- Verification:
+  - focused CI gate tests: `8 passed`;
+  - quick wrapper and direct local hook: clean;
+  - full wrapper: `2060 passed, 10 skipped, 1 warning`.
+- No VPS deploy is tied to this hook change.
 
 ## 2026-06-09 LiMa Code Retirement Snapshot
 

@@ -232,6 +232,7 @@ _codegraph_repo/
 /routes/ops_probe_ingest.py
 /scripts/test_jdcloud_connection.py
 /scripts/test_redis_from_local.py
+/scripts/jdcloud_monitor.py
 /scripts/test_cache_performance.py
 /scripts/test_kimi*.py
 /scripts/test_opencode_e2e.py
@@ -254,3 +255,5 @@ _codegraph_repo/
 /deploy/jdcloud/quick_deploy.sh
 /deploy/jdcloud/remote_deploy.sh
 /deploy/jdcloud/ssh_helper.sh
+/deploy/deploy_prometheus_metrics.py
+/deploy/deploy_prometheus_metrics.sh

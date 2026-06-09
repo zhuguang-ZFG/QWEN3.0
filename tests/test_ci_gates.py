@@ -52,6 +52,71 @@ def test_run_ruff_check_respects_config_excludes(monkeypatch, tmp_path):
     assert calls[0][1]["cwd"] == tmp_path
 
 
+def test_pre_commit_staged_python_files_filters_git_output(monkeypatch, tmp_path):
+    import scripts.run_pre_commit_check as pre_commit_check
+
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append((cmd, kwargs))
+        return subprocess.CompletedProcess(
+            cmd,
+            0,
+            stdout=b"server.py\0README.md\0stub.pyi\0",
+            stderr=b"",
+        )
+
+    monkeypatch.setattr(pre_commit_check.subprocess, "run", fake_run)
+
+    assert pre_commit_check.staged_python_files(tmp_path) == ["server.py", "stub.pyi"]
+    assert calls[0][0] == [
+        "git",
+        "diff",
+        "--cached",
+        "--name-only",
+        "-z",
+        "--diff-filter=ACMRT",
+        "--",
+        "*.py",
+        "*.pyi",
+    ]
+    assert calls[0][1]["cwd"] == tmp_path
+
+
+def test_pre_commit_quick_commands_use_tracked_gates():
+    import scripts.run_pre_commit_check as pre_commit_check
+
+    commands = pre_commit_check.quick_commands(["server.py", "types.pyi"], python="py")
+
+    assert commands == [
+        ["py", "scripts/run_ruff_check.py"],
+        ["git", "diff", "--cached", "--check"],
+        ["py", "-m", "py_compile", "server.py"],
+    ]
+
+
+def test_pre_commit_quick_commands_skip_compile_without_staged_python():
+    import scripts.run_pre_commit_check as pre_commit_check
+
+    commands = pre_commit_check.quick_commands([], python="py")
+
+    assert commands == [
+        ["py", "scripts/run_ruff_check.py"],
+        ["git", "diff", "--cached", "--check"],
+    ]
+
+
+def test_pre_commit_full_command_uses_documented_ignores():
+    import scripts.run_pre_commit_check as pre_commit_check
+
+    command = pre_commit_check.full_pytest_command(python="py", basetemp="tmp/run")
+
+    assert command[:6] == ["py", "-m", "pytest", "-p", "no:cacheprovider", "tests"]
+    assert "--basetemp=tmp/run" in command
+    for ignored in pre_commit_check.CI_PYTEST_IGNORES:
+        assert f"--ignore={ignored}" in command
+
+
 def test_ruff_gate_passes():
     proc = subprocess.run(
         [sys.executable, "scripts/run_ruff_check.py"],

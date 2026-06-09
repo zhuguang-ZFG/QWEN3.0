@@ -4,6 +4,37 @@
 
 > Updated: 2026-06-09
 
+## 2026-06-09 pre-commit hook hygiene closeout
+
+**Goal:** stop local commits from hanging on the wrong full-suite command while
+keeping a real, repeatable LiMa quality gate available.
+
+- Implementation:
+  - added `scripts/run_pre_commit_check.py`;
+  - default quick mode runs tracked-file ruff through
+    `scripts/run_ruff_check.py`, staged whitespace via
+    `git diff --cached --check`, and `py_compile` for staged `.py` files;
+  - `--full` mode runs the documented CI-style pytest command with the same
+    long/external ignore list used in closeouts;
+  - `--full` now creates a unique `tmp/pytest-run-precommit-full-*`
+    `--basetemp`, avoiding the Windows pytest temp cleanup issue seen during
+    the first wrapper attempt;
+  - local `.git/hooks/pre-commit.ps1` now delegates to the tracked wrapper.
+- Verification:
+  - focused CI gate pytest: `8 passed`;
+  - `python scripts/run_pre_commit_check.py`: clean;
+  - direct local hook run:
+    `powershell.exe -ExecutionPolicy Bypass -File .git/hooks/pre-commit.ps1`
+    clean;
+  - `python scripts/run_pre_commit_check.py --full`:
+    `2060 passed, 10 skipped, 1 warning in 656.60s`;
+  - touched `py_compile`: clean;
+  - focused ruff on touched files: clean.
+- Residual risk:
+  - `.git/hooks/pre-commit.ps1` is local Git metadata and is not committed;
+    the durable behavior lives in `scripts/run_pre_commit_check.py`.
+  - No VPS deploy was needed because this is local developer tooling only.
+
 ## 2026-06-09 JDCloud workspace hygiene closeout
 
 **Goal:** keep the newly added JDCloud server as a real LiMa ops asset while

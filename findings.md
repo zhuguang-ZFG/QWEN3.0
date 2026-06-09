@@ -2,6 +2,16 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-06-09 Pre-Commit Hook Hygiene Closeout
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| HOOK-1 | Commit latency | The local pre-commit hook ran raw `pytest tests/` and `ruff check .`, bypassing the documented ignore list and tracked-file ruff wrapper. This caused commits to hang or scan local scratch files. | Closed |
+| HOOK-2 | Tracked gate | `scripts/run_pre_commit_check.py` now owns the reusable gate: quick mode for local commits and `--full` for CI-style pytest. | Closed |
+| HOOK-3 | Windows temp | The first wrapper `--full` attempt timed out; adding a unique `--basetemp` fixed the Windows pytest temp path issue. `--full` now passes with `2060 passed, 10 skipped`. | Closed |
+| HOOK-4 | Local hook | `.git/hooks/pre-commit.ps1` now delegates to the tracked wrapper. The hook file itself is local Git metadata and is not committed. | Closed |
+| HOOK-5 | VPS | No VPS deployment was performed or needed because this slice changes local developer tooling only. | Accepted |
+
 ## 2026-06-09 JDCloud Workspace Hygiene Closeout
 
 | ID | Area | Finding | Status |

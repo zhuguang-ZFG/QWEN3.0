@@ -1,11 +1,21 @@
 # LiMa Status
 
-> Updated: 2026-06-09 (JDCloud workspace hygiene closeout)
+> Updated: 2026-06-09 (pre-commit hook hygiene closeout)
 > Branch: `feat/kilo-provider-probe`
-> Tests: CI-hygiene focused pytest **64 passed, 1 warning**; CI-style pytest **2056 passed, 10 skipped, 1 warning**; touched `py_compile`, ruff, tracked ruff wrapper, and focused pyright clean
+> Tests: pre-commit focused pytest **8 passed**; hook quick mode clean; `run_pre_commit_check.py --full` **2060 passed, 10 skipped, 1 warning**; touched `py_compile` and ruff clean
 > Current VPS: registry/router cleanup deployed with restart health OK; nginx edge returns HTTP `404` for public `POST /telegram/webhook` on both `api.donglicao.com` and `chat.donglicao.com`; authenticated `model=code` chat returns 200
 > VPS rollback: nginx backups `/etc/nginx/conf.d/donglicao.conf.bak-20260609-040449` and `/etc/nginx/conf.d/chat.donglicao.com.conf.bak-20260609-040449`
 > Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
+
+## 2026-06-09 Pre-Commit Hook Hygiene Closeout
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| Hook scope | Done | Local `.git/hooks/pre-commit.ps1` now delegates to tracked `scripts/run_pre_commit_check.py` instead of running raw `pytest tests/` and `ruff check .` |
+| Quick gate | Done | Default hook runs tracked-file ruff, staged whitespace check, and staged Python compile only |
+| Full gate | Done | `scripts/run_pre_commit_check.py --full` runs the documented CI-style pytest command with long/external tests ignored and a unique `--basetemp`; result `2060 passed, 10 skipped, 1 warning` |
+| Test coverage | Done | `tests/test_ci_gates.py` covers staged Python filtering, quick command construction, and full pytest ignore list |
+| VPS deploy | Not needed | This slice changes local developer tooling only; LiMa Server runtime and nginx were not changed |
 
 ## 2026-06-09 JDCloud Workspace Hygiene Closeout
 
