@@ -9,7 +9,7 @@
   <meta property="og:description" content="让每个家庭拥有会画画、会写字的智能伙伴">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://donglicao.com">
-  <meta name="theme-color" content="#6366f1">
+  <meta name="theme-color" content="#000000">
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -31,10 +31,7 @@
       --radius: 20px;
       --radius-sm: 12px;
       --ease-apple: cubic-bezier(0.25, 0.1, 0.25, 1);
-      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-
-    html { scroll-behavior: smooth; }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', 'Segoe UI', system-ui, sans-serif;
@@ -85,7 +82,8 @@
     .nav-logo-text {
       font-size: 1.25rem; font-weight: 800;
       background: linear-gradient(135deg, var(--accent), var(--accent-light));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
       letter-spacing: -0.02em;
     }
     nav .nav-links a {
@@ -101,7 +99,7 @@
     }
     nav .nav-links a.cta-link {
       color: var(--accent-light);
-      border: 1px solid rgba(99,102,241,0.25);
+      border: 0.5px solid rgba(99,102,241,0.25);
       margin-left: 0.5rem;
       font-weight: 500;
     }
@@ -126,14 +124,11 @@
       background: radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%);
       pointer-events: none;
     }
-    @keyframes heroGlow {
-      0%, 100% { opacity: 0.6; } 50% { opacity: 1; }
-    }
 
     .hero-badge {
       display: inline-flex; align-items: center; gap: 0.5rem;
       padding: 6px 16px; border-radius: 980px;
-      background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.15);
+      background: rgba(99,102,241,0.08); border: 0.5px solid rgba(99,102,241,0.15);
       font-size: 12px; color: var(--accent-light); font-weight: 500;
       margin-bottom: 24px; position: relative;
       letter-spacing: 0.01em;
@@ -141,7 +136,7 @@
     .hero-badge .dot {
       width: 6px; height: 6px; border-radius: 50%;
       background: var(--green);
-      animation: blink 2s ease-in-out infinite;
+      animation: blink 2s var(--ease-apple) infinite;
     }
     @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
 
@@ -179,18 +174,16 @@
       box-shadow: 0 2px 12px rgba(99,102,241,0.2);
     }
     .btn-primary:hover {
-      transform: scale(1.02);
       filter: brightness(1.1);
       box-shadow: 0 4px 20px rgba(99,102,241,0.3);
     }
     .btn-secondary {
       background: transparent; color: var(--text);
-      border: 1px solid rgba(255,255,255,0.18);
+      border: 0.5px solid rgba(255,255,255,0.18);
     }
     .btn-secondary:hover {
       border-color: var(--accent);
       background: rgba(99,102,241,0.06);
-      transform: scale(1.02);
     }
 
     /* DEVICE VISUAL */
@@ -226,7 +219,7 @@
     }
     .device-card:hover {
       border-color: rgba(99,102,241,0.2);
-      transform: translateY(-4px) scale(1.01);
+      transform: translateY(-2px);
       box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 0 0.5px rgba(99,102,241,0.15);
     }
     .device-card.featured {
@@ -260,9 +253,9 @@
     }
     .device-cap-tag {
       font-size: 0.62rem; padding: 0.15rem 0.5rem;
-      border-radius: 4px; font-weight: 500;
+      border-radius: 980px; font-weight: 500;
       background: rgba(255,255,255,0.03); color: var(--text-faint);
-      border: 1px solid rgba(255,255,255,0.04);
+      border: 0.5px solid rgba(255,255,255,0.04);
     }
     .device-cap-tag.draw-t { background: rgba(99,102,241,0.06); color: rgba(129,140,248,0.65); border-color: rgba(99,102,241,0.08); }
     .device-cap-tag.write-t { background: rgba(245,158,11,0.06); color: rgba(245,158,11,0.55); border-color: rgba(245,158,11,0.08); }
@@ -418,7 +411,7 @@
       display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
       gap: 0; text-align: center;
       padding: 3rem 0; margin-top: 2rem;
-      border-top: 1px solid var(--border);
+      border-top: 0.5px solid var(--border);
     }
     .stat-item {
       padding: 1rem 1.5rem;
@@ -427,12 +420,13 @@
     .stat-item:not(:last-child)::after {
       content: '';
       position: absolute; right: 0; top: 20%; bottom: 20%;
-      width: 1px; background: var(--border);
+      width: 0.5px; background: var(--border);
     }
     .stat-num {
       font-size: 48px; font-weight: 600;
       background: linear-gradient(135deg, var(--accent), var(--accent-light));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
       margin-bottom: 4px; line-height: 1.05; letter-spacing: -0.04em;
     }
     .stat-label { color: var(--text-dim); font-size: 13px; font-weight: 400; letter-spacing: -0.01em; }
@@ -451,6 +445,7 @@
       letter-spacing: -0.03em; line-height: 1.15;
     }
     .dev-compact-text p { color: var(--text-muted); margin-bottom: 16px; font-size: 15px; line-height: 1.5; }
+    .dev-compact-text .btn { margin-top: 8px; }
     .dev-compact-code {
       flex: 1;
       border: 0.5px solid rgba(255,255,255,0.06);
@@ -489,15 +484,15 @@
       display: inline-block; vertical-align: middle;
       width: 1em; height: 1em;
       stroke: currentColor; fill: none;
-      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+      stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
     }
     .icon-wrap {
-      width: 44px; height: 44px; border-radius: 11px;
+      width: 44px; height: 44px; border-radius: 10px;
       display: flex; align-items: center; justify-content: center;
       margin-bottom: 1.1rem;
     }
     .device-icon-wrap {
-      width: 64px; height: 64px; border-radius: 18px;
+      width: 64px; height: 64px; border-radius: 14px;
       display: flex; align-items: center; justify-content: center;
       margin: 0 auto 1rem;
     }
@@ -511,7 +506,7 @@
       color: var(--warm);
     }
     .scenario-icon-wrap {
-      width: 64px; height: 64px; border-radius: 16px;
+      width: 64px; height: 64px; border-radius: 14px;
       display: flex; align-items: center; justify-content: center;
       position: relative; z-index: 1;
     }
@@ -549,7 +544,8 @@
     .footer-brand .logo-text {
       font-size: 17px; font-weight: 600;
       background: linear-gradient(135deg, var(--accent), var(--accent-light));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
       margin-bottom: 6px; letter-spacing: -0.02em;
     }
     .footer-brand p { color: var(--text-faint); font-size: 13px; max-width: 260px; line-height: 1.5; }
@@ -572,12 +568,23 @@
 
     /* ANIMATIONS */
     .fade-in {
-      opacity: 0; transform: translateY(16px);
+      opacity: 0; transform: translateY(10px);
       transition: opacity 0.6s var(--ease-apple), transform 0.6s var(--ease-apple);
     }
     .fade-in.visible { opacity: 1; transform: translateY(0); }
 
+    .section-eyebrow.left { text-align: left; }
+
     /* RESPONSIVE */
+    .mobile-menu-btn {
+      display: none; background: none; border: none;
+      color: var(--text-muted); cursor: pointer; padding: 6px;
+      border-radius: 8px;
+      transition: background 0.2s var(--ease-apple);
+    }
+    .mobile-menu-btn:hover { background: rgba(255,255,255,0.06); }
+    .mobile-menu-btn .svg-icon { width: 20px; height: 20px; }
+
     @media (max-width: 768px) {
       section { padding: 64px 16px; }
       #hero h1 { font-size: 32px; letter-spacing: -0.03em; }
@@ -588,7 +595,23 @@
       .tech-flow { flex-direction: column; }
       .tech-step:not(:last-child)::after { display: none; }
       .dev-compact { flex-direction: column; padding: 24px; gap: 24px; }
-      nav .nav-links { display: none; }
+      .mobile-menu-btn { display: flex; align-items: center; justify-content: center; }
+      nav .nav-links {
+        display: none;
+        position: absolute; top: 48px; left: 0; right: 0;
+        background: rgba(0,0,0,0.92);
+        backdrop-filter: saturate(180%) blur(20px);
+        -webkit-backdrop-filter: saturate(180%) blur(20px);
+        border-bottom: 0.5px solid rgba(255,255,255,0.08);
+        padding: 8px 16px 16px;
+        flex-direction: column; gap: 2px;
+      }
+      nav .nav-links.open { display: flex; }
+      nav .nav-links a {
+        margin-left: 0; padding: 10px 12px;
+        border-radius: 10px; font-size: 15px;
+      }
+      nav .nav-links a.cta-link { margin-left: 0; margin-top: 4px; text-align: center; }
       footer .footer-inner { flex-direction: column; }
       .stat-item:not(:last-child)::after { display: none; }
       .stat-num { font-size: 36px; }
@@ -650,23 +673,31 @@
     <symbol id="i-arrow-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
     </symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
+    </symbol>
   </svg>
 
-  <nav>
+  <nav aria-label="主导航">
     <div class="nav-inner">
       <a href="#" class="logo">
-        <div class="nav-brand-mark"><svg class="svg-icon"><use href="#i-sparkles"/></svg></div>
+        <div class="nav-brand-mark"><svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-sparkles"/></svg></div>
         <span class="nav-logo-text">LiMa</span>
       </a>
+      <button class="mobile-menu-btn" aria-label="打开菜单" aria-expanded="false">
+        <svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-menu"/></svg>
+      </button>
       <div class="nav-links">
         <a href="#products">产品</a>
         <a href="#features">技术</a>
         <a href="#scenarios">场景</a>
         <a href="#developer">开发者</a>
-        <a href="https://chat.donglicao.com" target="_blank" class="cta-link">控制台</a>
+        <a href="https://chat.donglicao.com" target="_blank" rel="noopener noreferrer" class="cta-link">控制台</a>
       </div>
     </div>
   </nav>
+
+  <main>
 
   <!-- HERO -->
   <section id="hero">
@@ -684,14 +715,14 @@
     </p>
     <div class="hero-buttons">
       <a href="#products" class="btn btn-primary">了解产品</a>
-      <a href="https://chat.donglicao.com" class="btn btn-secondary" target="_blank">在线体验</a>
+      <a href="https://chat.donglicao.com" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">在线体验</a>
     </div>
 
     <div class="hero-visual">
       <div class="device-showcase">
         <div class="device-card featured fade-in">
           <div class="device-icon-wrap draw">
-            <svg class="svg-icon"><use href="#i-pen-tool"/></svg>
+            <svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-pen-tool"/></svg>
           </div>
           <h3>AI 绘图机</h3>
           <p>自然语言生成 SVG，路径管线自动转换，一笔绘制任意图案</p>
@@ -704,7 +735,7 @@
         </div>
         <div class="device-card fade-in">
           <div class="device-icon-wrap write">
-            <svg class="svg-icon"><use href="#i-pencil"/></svg>
+            <svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-pencil"/></svg>
           </div>
           <h3>AI 写字机</h3>
           <p>笔画字体渲染、运动路径仿真，双 ESP32 协同精准书写</p>
@@ -727,22 +758,22 @@
 
     <div class="features-grid">
       <div class="feature-card fade-in">
-        <div class="icon-wrap voice"><svg class="svg-icon"><use href="#i-mic"/></svg></div>
+        <div class="icon-wrap voice"><svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-mic"/></svg></div>
         <h3>说出你的想法</h3>
         <p>"画一只在月球上的猫"— AI 理解自然语言，自动生成创作方案</p>
       </div>
       <div class="feature-card fade-in">
-        <div class="icon-wrap ai"><svg class="svg-icon"><use href="#i-brain"/></svg></div>
+        <div class="icon-wrap ai"><svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-brain"/></svg></div>
         <h3>多模型智能路由</h3>
         <p>300+ 后端 × 6 维能力矩阵，自动匹配最优 AI 引擎</p>
       </div>
       <div class="feature-card fade-in">
-        <div class="icon-wrap route"><svg class="svg-icon"><use href="#i-compass"/></svg></div>
+        <div class="icon-wrap route"><svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-compass"/></svg></div>
         <h3>路径智能管线</h3>
         <p>SVG 路径命令解析、笔画字体生成、运动轨迹一键转换</p>
       </div>
       <div class="feature-card fade-in">
-        <div class="icon-wrap exec"><svg class="svg-icon"><use href="#i-cog"/></svg></div>
+        <div class="icon-wrap exec"><svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-cog"/></svg></div>
         <h3>设备精准执行</h3>
         <p>MQTT + WebSocket 双通道，影子状态实时同步，双 ESP32 精准还原轨迹</p>
       </div>
@@ -757,31 +788,31 @@
 
     <div class="tech-flow fade-in">
       <div class="tech-step">
-        <div class="tech-step-icon"><svg class="svg-icon"><use href="#i-message-circle"/></svg></div>
+        <div class="tech-step-icon"><svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-message-circle"/></svg></div>
         <div class="step-num">1</div>
         <h4>意图理解</h4>
         <p>自然语言解析<br>五层智能路由</p>
       </div>
       <div class="tech-step">
-        <div class="tech-step-icon"><svg class="svg-icon"><use href="#i-image"/></svg></div>
+        <div class="tech-step-icon"><svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-image"/></svg></div>
         <div class="step-num">2</div>
         <h4>内容生成</h4>
         <p>SVG 矢量图生成<br>笔画字体渲染</p>
       </div>
       <div class="tech-step">
-        <div class="tech-step-icon"><svg class="svg-icon"><use href="#i-route"/></svg></div>
+        <div class="tech-step-icon"><svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-route"/></svg></div>
         <div class="step-num">3</div>
         <h4>路径管线</h4>
         <p>SVG 路径解析<br>运动轨迹生成</p>
       </div>
       <div class="tech-step">
-        <div class="tech-step-icon"><svg class="svg-icon"><use href="#i-brain"/></svg></div>
+        <div class="tech-step-icon"><svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-brain"/></svg></div>
         <div class="step-num">4</div>
         <h4>策略验证</h4>
         <p>协议兼容检查<br>安全仿真评估</p>
       </div>
       <div class="tech-step">
-        <div class="tech-step-icon"><svg class="svg-icon"><use href="#i-cpu"/></svg></div>
+        <div class="tech-step-icon"><svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-cpu"/></svg></div>
         <div class="step-num">5</div>
         <h4>设备执行</h4>
         <p>MQTT + WS 双通道<br>影子状态同步</p>
@@ -817,7 +848,7 @@
     <div class="scenarios-grid">
       <div class="scenario-card fade-in">
         <div class="scenario-visual">
-          <div class="scenario-icon-wrap home"><svg class="svg-icon"><use href="#i-house"/></svg></div>
+          <div class="scenario-icon-wrap home"><svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-house"/></svg></div>
         </div>
         <div class="scenario-body">
           <h3>家庭创作</h3>
@@ -831,7 +862,7 @@
       </div>
       <div class="scenario-card fade-in">
         <div class="scenario-visual">
-          <div class="scenario-icon-wrap edu"><svg class="svg-icon"><use href="#i-book-open"/></svg></div>
+          <div class="scenario-icon-wrap edu"><svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-book-open"/></svg></div>
         </div>
         <div class="scenario-body">
           <h3>教育课堂</h3>
@@ -845,7 +876,7 @@
       </div>
       <div class="scenario-card fade-in">
         <div class="scenario-visual">
-          <div class="scenario-icon-wrap custom"><svg class="svg-icon"><use href="#i-gift"/></svg></div>
+          <div class="scenario-icon-wrap custom"><svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-gift"/></svg></div>
         </div>
         <div class="scenario-body">
           <h3>个性定制</h3>
@@ -864,10 +895,10 @@
   <section id="developer">
     <div class="dev-compact fade-in">
       <div class="dev-compact-text">
-        <div class="section-eyebrow" style="text-align:left;">Developer API</div>
+        <div class="section-eyebrow left">Developer API</div>
         <h3>面向开发者的开放接口</h3>
         <p>兼容 OpenAI 格式的 API，支持设备控制（REST + WebSocket）、内容生成、多模型路由。一行代码接入 LiMa 云端能力。</p>
-        <a href="https://chat.donglicao.com" class="btn btn-secondary" target="_blank" style="margin-top:0.5rem;">查看文档 →</a>
+        <a href="https://chat.donglicao.com" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">查看文档 →</a>
       </div>
       <div class="dev-compact-code">
         <div class="code-window-bar">
@@ -893,8 +924,10 @@
     </div>
   </section>
 
+  </main>
+
   <!-- FOOTER -->
-  <footer>
+  <footer aria-label="站点底部">
     <div class="footer-inner">
       <div class="footer-brand">
         <div class="logo-text">LiMa 力码</div>
@@ -904,18 +937,18 @@
         <h4>产品</h4>
         <a href="#products">AI 绘图机</a>
         <a href="#products">AI 写字机</a>
-        <a href="https://chat.donglicao.com" target="_blank">云端控制台</a>
+        <a href="https://chat.donglicao.com" target="_blank" rel="noopener noreferrer">云端控制台</a>
       </div>
       <div class="footer-links">
         <h4>开发者</h4>
         <a href="#developer">API 文档</a>
-        <a href="https://github.com/zhuguang-ZFG/lima" target="_blank">GitHub</a>
-        <a href="https://gitee.com/zhuguang-zfg/lima" target="_blank">Gitee</a>
+        <a href="https://github.com/zhuguang-ZFG/lima" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="https://gitee.com/zhuguang-zfg/lima" target="_blank" rel="noopener noreferrer">Gitee</a>
       </div>
       <div class="footer-links">
         <h4>公司</h4>
-        <a href="#">关于我们</a>
-        <a href="#">联系方式</a>
+        <a href="#hero">关于我们</a>
+        <a href="#developer">联系方式</a>
       </div>
     </div>
     <div class="footer-bottom">
@@ -958,7 +991,7 @@
           const p = Math.min((now - start) / dur, 1);
           const ease = 1 - Math.pow(1 - p, 3);
           const val = target * ease;
-          el.textContent = prefix + (target === 99.9 ? val.toFixed(1) : Math.floor(val)) + suffix;
+          el.textContent = prefix + Math.floor(val) + suffix;
           if (p < 1) requestAnimationFrame(tick);
         }
         requestAnimationFrame(tick);
@@ -975,15 +1008,28 @@
     });
 
     // Nav scroll effect
-    let lastScroll = 0;
     window.addEventListener('scroll', () => {
       const nav = document.querySelector('nav');
-      const scrollY = window.scrollY;
-      nav.style.background = scrollY > 50
+      nav.style.background = window.scrollY > 50
         ? 'rgba(0,0,0,0.88)'
         : 'rgba(0,0,0,0.72)';
-      lastScroll = scrollY;
     });
+
+    // Mobile menu toggle
+    const menuBtn = document.querySelector('.mobile-menu-btn');
+    const navLinks = document.querySelector('.nav-links');
+    if (menuBtn && navLinks) {
+      menuBtn.addEventListener('click', () => {
+        const isOpen = navLinks.classList.toggle('open');
+        menuBtn.setAttribute('aria-expanded', isOpen);
+      });
+      navLinks.querySelectorAll('a').forEach(a => {
+        a.addEventListener('click', () => {
+          navLinks.classList.remove('open');
+          menuBtn.setAttribute('aria-expanded', 'false');
+        });
+      });
+    }
   </script>
 </body>
 </html>
