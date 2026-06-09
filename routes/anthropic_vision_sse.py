@@ -1,18 +1,34 @@
 """
-Anthropic vision SSE - Simplified stub for strategic pivot.
+Temporary stub for anthropic_vision_sse - marked for Phase 2 removal.
 
-原 anthropic_vision_sse.py 已删除（编码助手专属）。
-此文件提供最小占位符，避免大量修改 routes/chat_endpoints.py。
-Phase 2 将重构为设备场景专用的视觉处理。
+战略转型说明：
+- Anthropic Vision SSE 是编码助手专属特性
+- 设备场景使用统一的视觉处理流程
+- Phase 2 将完全重构移除这些依赖
 """
-from typing import AsyncIterator
+
+import logging
+from typing import Any, Dict, List
+from fastapi.responses import StreamingResponse
+
+_log = logging.getLogger(__name__)
 
 
 async def anthropic_vision_messages(
-    chat_id: str,
-    content: str,
-    model: str = "vision-stub",
-) -> AsyncIterator[str]:
-    """视觉消息 SSE 流（占位符）"""
-    # TODO Phase 2: 实现设备场景的视觉流式响应
-    yield f"data: {{'type':'error','message':'Vision SSE not implemented in device mode'}}\n\n"
+    messages: List[Dict[str, Any]],
+    model: str,
+    max_tokens: int,
+    temperature: float = 0.7,
+    **kwargs
+) -> StreamingResponse:
+    """
+    简化实现 - 抛出异常，表示不支持。
+    设备场景应该使用标准的视觉处理接口。
+    """
+    raise NotImplementedError(
+        "Anthropic Vision SSE is deprecated in device-first architecture. "
+        "Use standard vision API endpoints instead."
+    )
+
+
+_log.info("anthropic_vision_sse stub loaded - marked for Phase 2 removal")

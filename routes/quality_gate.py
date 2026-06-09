@@ -1,96 +1,89 @@
 """
-Quality gate - Simplified stub for strategic pivot.
+Temporary stub for quality_gate - marked for removal in Phase 2.
 
-原 quality_gate.py 已删除（编码助手专属质量门控）。
-此文件提供最小占位符，避免大量修改 routes/chat_fallback.py 和 routes/chat_handler.py。
-Phase 2 将重构为设备场景专用的质量检查。
+战略转型说明：
+- 质量门控是编码助手的特性，设备场景不需要
+- 这个 stub 仅用于保持现有代码运行
+- Phase 2 将完全重构 chat_handler 和 chat_fallback 移除这些依赖
 """
-from __future__ import annotations
 
 import logging
-from typing import Any
-
-from fastapi.responses import JSONResponse
+from typing import Any, Dict, List, Optional, Tuple
 
 _log = logging.getLogger(__name__)
 
-# State placeholder
-_backend_enabled: dict[str, bool] = {}
+
+def quality_check(answer: str, query: str, backend: str) -> Tuple[bool, float, List[str]]:
+    """
+    简化的质量检查 - 总是返回通过。
+    设备场景不需要复杂的代码质量门控。
+
+    Returns: (passed, score, issues)
+    """
+    return (True, 1.0, [])
 
 
-def inject_state(backend_enabled: dict[str, bool]) -> None:
-    """注入后端状态（占位符）"""
-    global _backend_enabled
-    _backend_enabled = backend_enabled
+def default_route(
+    messages: List[Dict[str, Any]],
+    max_tokens: int,
+    stream: bool,
+    **kwargs
+) -> Tuple[str, str]:
+    """
+    简化的默认路由 - 返回空后端和答案，让调用者使用正常路由。
+
+    Returns: (backend, answer)
+    """
+    return ("", "")
 
 
-def quality_check(response_text: str, query: str) -> bool:
-    """质量检查（占位符 - 始终通过）"""
-    # TODO Phase 2: 实现设备场景的质量检查
-    return True
+def get_same_tier_backends(backend: str, all_backends: List[str]) -> List[str]:
+    """
+    简化实现 - 返回空列表，禁用同层重试。
+    设备场景使用简单的顺序回退即可。
+    """
+    return []
 
 
-def default_route(model: str, backend_enabled: dict[str, bool]) -> str:
-    """默认路由选择（占位符）"""
-    # TODO Phase 2: 实现设备场景的路由选择
-    for backend, enabled in backend_enabled.items():
-        if enabled:
-            return backend
-    return "openrouter"
-
-
-def get_same_tier_backends(backend: str, backend_enabled: dict[str, bool]) -> list[str]:
-    """获取同级后端（占位符）"""
-    # TODO Phase 2: 实现设备场景的后端分层
-    return [b for b, enabled in backend_enabled.items() if enabled and b != backend]
-
-
-def get_upgrade_chain(backend: str, backend_enabled: dict[str, bool]) -> list[str]:
-    """获取升级链（占位符）"""
-    # TODO Phase 2: 实现设备场景的升级策略
+def get_upgrade_chain(backend: str, all_backends: List[str]) -> List[str]:
+    """
+    简化实现 - 返回空列表，禁用升级链。
+    """
     return []
 
 
 def honest_failure_response(
-    chat_id: str, query: str, backend: str, duration_ms: int, fmt: str = "openai"
-) -> JSONResponse:
-    """诚实的失败响应（占位符）"""
-    # TODO Phase 2: 实现设备场景的失败处理
-    error_msg = f"Request failed on backend {backend}"
-    if fmt == "anthropic":
-        return JSONResponse(
-            status_code=500,
-            content={
-                "type": "error",
-                "error": {
-                    "type": "internal_error",
-                    "message": error_msg,
-                },
-            },
-        )
-    return JSONResponse(
-        status_code=500,
-        content={
-            "error": {
-                "message": error_msg,
-                "type": "internal_error",
-            }
-        },
-    )
+    fallback_exhausted: bool,
+    last_backend: str,
+    request_type: str = "chat"
+) -> str:
+    """
+    诚实的失败响应 - 告诉用户服务暂时不可用。
+    """
+    return "抱歉，服务暂时不可用，请稍后重试。"
 
 
-async def try_backend(
+def try_backend(
     backend: str,
-    chat_req: Any,
-    fmt: str,
-    client_ip: str,
-    ide_source: str,
-    sys_prompt_preview: str,
-    request_headers: dict[str, str],
-    call_route: Any,
-    maybe_await: Any,
-) -> tuple[str | None, int]:
-    """尝试调用后端（占位符）"""
-    # TODO Phase 2: 实现设备场景的后端调用
-    _log.warning("[STUB] try_backend called with backend=%s", backend)
-    return None, 0
+    messages: List[Dict[str, Any]],
+    max_tokens: int,
+    call_fn: Any,
+    **kwargs
+) -> Tuple[Optional[str], int]:
+    """
+    简化的后端尝试 - 委托给 call_fn。
+
+    Returns: (answer, status_code)
+    """
+    try:
+        result = call_fn(backend, messages, max_tokens)
+        if isinstance(result, tuple):
+            return result[0], 200
+        return result, 200
+    except Exception as exc:
+        _log.debug(f"try_backend failed: {type(exc).__name__}")
+        return None, 500
+
+
+# 标记为临时实现
+_log.info("quality_gate stub loaded - marked for Phase 2 removal (device-first refactor)")

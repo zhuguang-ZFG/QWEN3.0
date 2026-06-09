@@ -67,17 +67,8 @@ _detect_ide = _rt_mod.detect_ide
 _elapsed_ms = _rt_mod.elapsed_ms
 FALLBACK_LOG = _rt_mod.FALLBACK_LOG
 
-import routes.tool_forward as _tool_fwd
-_tool_fwd.inject_state(_record_request, MODEL_ID)
-_anthropic_native_forward = _tool_fwd.anthropic_native_forward
-_anthropic_native_stream = _tool_fwd.anthropic_native_stream
-_simulate_anthropic_sse = _tool_fwd.simulate_anthropic_sse
-_tool_call_forward = _tool_fwd.tool_call_forward
-_tool_call_stream = _tool_fwd.tool_call_stream
-_pick_tool_backend = _tool_fwd.pick_tool_backend
-_iter_tool_backends = _tool_fwd.iter_tool_backends
-TOOL_TIER1_BACKENDS = _tool_fwd.TOOL_TIER1_BACKENDS
-ANTHROPIC_NATIVE_BACKENDS = _tool_fwd.ANTHROPIC_NATIVE_BACKENDS
+# REMOVED 2026-06-09: routes.tool_forward (编码助手专属功能)
+# 战略转型为智能设备服务端，删除编码助手相关代码
 
 from routes.images import build_pollinations_url as _build_pollinations_url
 
@@ -96,18 +87,8 @@ _inject_chat_stream_deps(
     build_pollinations_url=_build_pollinations_url,
 )
 
-from routes.anthropic_stream import (
-    anthropic_stream as _anthropic_stream,
-    anthropic_stream_passthrough as _anthropic_stream_passthrough,
-    inject_deps as _inject_anthropic_stream_deps,
-)
-_inject_anthropic_stream_deps(
-    last_resort_call=_last_resort_call,
-    thinking_route=_thinking_route,
-    record_request=_record_request,
-    extract_system_prompt=extract_system_prompt,
-    log_sys_prompt=_log_sys_prompt,
-)
+# REMOVED 2026-06-09: routes.anthropic_stream (编码助手专属功能)
+# 战略转型为智能设备服务端，删除编码助手相关代码
 
 from routes.route_registry import RouteRegistryDeps, register_all_routes
 
@@ -126,15 +107,16 @@ _registered = register_all_routes(
         vision_route=lambda messages, max_tokens=4096, ide="unknown": _vision_route(messages, max_tokens, ide),
         stream_vision_response=lambda chat_id, content: _stream_vision_response(chat_id, content),
         record_request=lambda *args, **kwargs: _record_request(*args, **kwargs),
-        anthropic_native_stream=lambda body: _anthropic_native_stream(body),
-        anthropic_native_forward=lambda body: _anthropic_native_forward(body),
-        anthropic_stream=lambda *args, **kwargs: _anthropic_stream(*args, **kwargs),
-        anthropic_stream_passthrough=lambda body, model: _anthropic_stream_passthrough(body, model),
+        # REMOVED 2026-06-09: anthropic 相关回调（编码助手专属功能）
+        anthropic_native_stream=None,
+        anthropic_native_forward=None,
+        anthropic_stream=None,
+        anthropic_stream_passthrough=None,
         handle_chat=lambda *args, **kwargs: _handle_chat(*args, **kwargs),
     ),
 )
 chat_completions = _registered.chat_completions
-anthropic_messages = _registered.anthropic_messages
+# REMOVED 2026-06-09: anthropic_messages (编码助手专属路由)
 list_models = _registered.list_models
 health = _registered.health
 live_key = _registered.live_key

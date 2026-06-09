@@ -3,7 +3,10 @@ from __future__ import annotations
 
 from copy import deepcopy
 import json
+import logging
 from typing import Any
+
+_log = logging.getLogger(__name__)
 
 
 class RedisDeviceTaskStore:
@@ -52,6 +55,23 @@ class RedisDeviceTaskStore:
             "status": state.get("status"),
             "events": deepcopy(list(state.get("events", []))),
         }
+
+    def active_tasks_for_device(self, device_id: str) -> list[dict[str, Any]]:
+        active: list[dict[str, Any]] = []
+        raw_states = self._redis.hgetall(self._key("tasks"))
+        values = raw_states.values() if isinstance(raw_states, dict) else raw_states
+        for raw_state in values:
+            try:
+                state = self._decode(raw_state)
+            except (json.JSONDecodeError, UnicodeDecodeError, RuntimeError) as exc:
+                _log.warning("redis active task decode failed: %s", type(exc).__name__)
+                continue
+            task = state.get("task")
+            if not isinstance(task, dict) or task.get("device_id") != device_id:
+                continue
+            if state.get("status") in _ACTIVE_STATUSES:
+                active.append(deepcopy(task))
+        return active
 
     def enqueue_pending_task(self, device_id: str, task: dict[str, Any]) -> int:
         task["_enqueued_at"] = self._redis.time()[0]
@@ -224,3 +244,6 @@ class RedisDeviceTaskStore:
         if not isinstance(data, dict):
             raise RuntimeError(f"expected Redis JSON object, got: {data!r}")
         return data
+
+
+_ACTIVE_STATUSES = frozenset({"dispatched", "running", "processing", "progress", "accepted"})

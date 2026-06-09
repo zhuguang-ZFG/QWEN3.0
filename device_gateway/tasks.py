@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict
 from typing import Any
 
 from device_artifacts.store import artifact_store
+from device_intelligence.recovery import recovery_action
 from device_intelligence.simulator import simulate_motion
 from device_intelligence.schemas import TaskPlan
 from device_ledger.events import new_event
@@ -181,13 +183,18 @@ def record_motion_event(event: dict[str, Any]) -> dict[str, Any]:
     # M4: advance workflow on running/terminal events
     task_id = str(event.get("task_id", ""))
     phase = event.get("phase", "")
+    payload: dict[str, Any] = {"motion_event": event}
+    if phase == "failed":
+        recovery = _recovery_for_event(event)
+        if recovery is not None:
+            payload["recovery"] = asdict(recovery)
     _advance_workflow_on_event(task_id, phase)
     ledger_store.append_event(
         new_event(
             event_type="motion_event",
             task_id=task_id,
             device_id=str(event.get("device_id", "")),
-            payload={"motion_event": event},
+            payload=payload,
         )
     )
     if phase in TERMINAL_PHASES:
@@ -208,6 +215,17 @@ def record_motion_event(event: dict[str, Any]) -> dict[str, Any]:
     return summary
 
 
+def _recovery_for_event(event: dict[str, Any]) -> Any | None:
+    error = event.get("error")
+    code = ""
+    if isinstance(error, dict):
+        code = str(error.get("code", ""))
+    code = code or str(event.get("error_code", ""))
+    if not code:
+        return None
+    return recovery_action(code)
+
+
 def _advance_workflow_on_event(task_id: str, phase: str) -> None:
     """Best-effort workflow advancement from motion events."""
     if not task_id:
@@ -224,6 +242,10 @@ def _advance_workflow_on_event(task_id: str, phase: str) -> None:
 
 def task_snapshot(task_id: str) -> dict[str, Any] | None:
     return store_mod.task_store.task_snapshot(task_id)
+
+
+def active_tasks_for_device(device_id: str) -> list[dict[str, Any]]:
+    return store_mod.task_store.active_tasks_for_device(device_id)
 
 
 def enqueue_pending_task(device_id: str, task: dict[str, Any]) -> int:

@@ -12,10 +12,15 @@ from device_gateway.protocol import ProtocolError, ack_frame, hello_ack
 from device_gateway.sessions import DeviceSession, registry
 from device_gateway.tasks import (
     ack_processing_task,
+    active_tasks_for_device,
     create_task_from_transcript,
     enqueue_pending_task,
     record_motion_event,
 )
+from device_ledger.events import new_event
+from device_ledger.store import ledger_store
+from device_workflow.orchestrator import workflow
+from device_workflow.state import TaskState, WorkflowTransitionError
 from routes.device_gateway_dispatch import (
     dispatch_task_to_session,
     drain_pending_tasks,
@@ -51,15 +56,60 @@ async def handle_hello(
     )
     previous = registry.register(session)
     if previous and previous.websocket is not websocket:
+        _reattach_tasks(session, previous.take_outstanding_tasks())
         try:
             await previous.websocket.close(code=1012)
         except Exception as exc:
             _log.debug("close superseded websocket device=%s: %s", device_id, type(exc).__name__)
+    _reattach_tasks(session, active_tasks_for_device(device_id))
     shadow_store.update_hello(message)
     await session.send_json(hello_ack(device_id, shadow_store.delta_for_hello(device_id)))
     if not await drain_pending_tasks(session):
         return device_id, session, False
     return device_id, session, True
+
+
+def _reattach_tasks(session: DeviceSession, tasks: list[dict[str, Any]]) -> None:
+    seen = set(session.inflight_tasks)
+    for task in tasks:
+        task_id = str(task.get("task_id", ""))
+        if not task_id or task_id in seen:
+            continue
+        session.mark_task_dispatched(task)
+        seen.add(task_id)
+        _record_device_reconnected(session.device_id, task_id)
+        _recover_workflow(task_id)
+
+
+def _record_device_reconnected(device_id: str, task_id: str) -> None:
+    ledger_store.append_event(
+        new_event(
+            event_type="motion_event",
+            task_id=task_id,
+            device_id=device_id,
+            payload={
+                "motion_event": {
+                    "type": "motion_event",
+                    "device_id": device_id,
+                    "task_id": task_id,
+                    "phase": "device_reconnected",
+                }
+            },
+        )
+    )
+
+
+def _recover_workflow(task_id: str) -> None:
+    try:
+        current = workflow.get_state(task_id)
+        if current == TaskState.DISPATCHED:
+            workflow.advance(task_id, TaskState.RUNNING)
+            current = TaskState.RUNNING
+        if current == TaskState.RUNNING:
+            workflow.advance(task_id, TaskState.RECOVERING)
+            workflow.advance(task_id, TaskState.RUNNING)
+    except WorkflowTransitionError as exc:
+        _log.debug("workflow reconnect recovery skipped task=%s err=%s", task_id, exc)
 
 
 async def handle_heartbeat(

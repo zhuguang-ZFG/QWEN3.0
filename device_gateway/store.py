@@ -33,6 +33,9 @@ class DeviceTaskStore(Protocol):
     def task_snapshot(self, task_id: str) -> dict[str, Any] | None:
         ...
 
+    def active_tasks_for_device(self, device_id: str) -> list[dict[str, Any]]:
+        ...
+
     def enqueue_pending_task(self, device_id: str, task: dict[str, Any]) -> int:
         ...
 
@@ -98,6 +101,17 @@ class InMemoryDeviceTaskStore:
                 "events": deepcopy(list(state.get("events", []))),
             }
 
+    def active_tasks_for_device(self, device_id: str) -> list[dict[str, Any]]:
+        with self._lock:
+            active: list[dict[str, Any]] = []
+            for state in self._tasks.values():
+                task = state.get("task")
+                if not isinstance(task, dict) or task.get("device_id") != device_id:
+                    continue
+                if state.get("status") in _ACTIVE_STATUSES:
+                    active.append(deepcopy(task))
+            return active
+
     def enqueue_pending_task(self, device_id: str, task: dict[str, Any]) -> int:
         with self._lock:
             self._pending_by_device.setdefault(device_id, deque()).append(task)
@@ -151,6 +165,8 @@ class InMemoryDeviceTaskStore:
 
 
 task_store: DeviceTaskStore = InMemoryDeviceTaskStore()
+
+_ACTIVE_STATUSES = frozenset({"dispatched", "running", "processing", "progress", "accepted"})
 
 
 def task_store_health() -> dict[str, Any]:

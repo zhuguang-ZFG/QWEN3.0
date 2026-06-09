@@ -18,7 +18,6 @@ import health_tracker
 import budget_manager
 import identity_guard
 import router_v3
-import semantic_cache
 import skills_injector as skills_mod
 import speculative
 import sticky_session
@@ -94,24 +93,7 @@ def route(query: str, messages: list[dict], *,
         return RouteResult(backend="identity_guard", answer=identity_answer,
                            request_type="identity", ms=ms)
 
-    if cache_enabled:
-        cached = semantic_cache.get(model or "default", messages)
-        if cached:
-            cleaned = clean_response(cached, "cache")
-            answer = cleaned if cleaned else cached
-            ms = int((time.time() - t0) * 1000)
-            # Log cache hit to request_store for ML training visibility
-            try:
-                from routing_loop.feedback_bridge import on_request_complete
-                on_request_complete(
-                    request_id=make_chat_id(), scenario="cache_hit",
-                    messages=messages, backend="cache", success=True,
-                    latency_ms=float(ms),
-                )
-            except Exception as exc:
-                _log.debug("routing_engine.py: {}", type(exc).__name__)
-            return RouteResult(backend="cache", answer=answer,
-                               request_type="cache_hit", ms=ms)
+    # Semantic cache removed - device scenarios don't need it
 
     req_type = classify(query, messages, fmt=fmt, ide_source=ide_source,
                         system_prompt=system_prompt, headers=headers or {})
@@ -246,9 +228,7 @@ def route(query: str, messages: list[dict], *,
 
         if final_backend != "exhausted":
             sticky_session.pin_backend(sticky_key, final_backend)
-            if cache_enabled and answer:
-                to_cache = clean_response(answer, final_backend) or answer
-                semantic_cache.put(model or "default", messages, 0, to_cache)
+            # Semantic cache removed - device scenarios don't need it
 
         if answer and scenario == "coding":
             try:
