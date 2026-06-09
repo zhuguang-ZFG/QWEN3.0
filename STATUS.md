@@ -4,7 +4,7 @@
 > **转型文档**: [`docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md`](docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md)
 > **Phase 0 启动**: [`docs/superpowers/plans/2026-06-09-phase0-strategic-confirmation.md`](docs/superpowers/plans/2026-06-09-phase0-strategic-confirmation.md)
 
-> Updated: 2026-06-09 (capacity-aware deploy + JDCloud probe activation closeout)
+> Updated: 2026-06-09 (Phase 0 文档更新 + 战略转型启动)
 > Branch: `feat/kilo-provider-probe`
 > Tests: deploy/JDCloud focused **10 passed**; touched `py_compile` clean; tracked ruff clean; `git diff --check` clean except CRLF warnings; `run_pre_commit_check.py --full` **2074 passed, 10 skipped, 1 warning**
 > Current VPS: capacity-aware `scripts/deploy_unified.py` uploaded final helper scripts with no restart; preflight reported `disk_free_mb=13685`, `mem_available_mb=488`; public `chat.donglicao.com/health=200`; `/health` still reports `telegram=false`
@@ -17,9 +17,18 @@
 |------|--------|----------|
 | 转型决策 | ✅ 已确认 | 用户确认执行战略转型，从"编码助手" → "智能设备服务端" |
 | Phase 0 文档 | ✅ 完成 | 生成战略分析、Phase 0 启动文档、Phase 0 Checklist |
-| 核心文档更新 | 🔄 进行中 | README.md / CLAUDE.md / STATUS.md 已更新产品定位 |
+| 核心文档更新 | ✅ 完成 | README.md / CLAUDE.md / STATUS.md 已更新产品定位 |
 | 任务追踪 | ✅ 创建 | 创建 6 个任务追踪转型进度 |
 | 待办事项 | 📋 本周 | Day 2: 文档更新 + 依赖安装；Day 3-5: Schema 设计 + 协议扩展 + 技术选型 |
+
+## 2026-06-09 Phase 0 战略转型文档更新 Closeout
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| README.md 更新 | Done | 产品定位已更新为"AI 智能设备云端服务"，删除编码助手相关内容，添加设备场景示例 |
+| CLAUDE.md 更新 | Done | 架构速览更新为战略转型后架构，列出已删除模块，添加新增依赖 |
+| STATUS.md 更新 | Done | 标记 Phase 0 文档更新完成，记录转型里程碑 |
+| 转型计划文档 | Done | `2026-06-09-lima-strategic-pivot-to-smart-devices.md` 和 `2026-06-09-phase0-strategic-confirmation.md` 已创建 |
 
 ## 2026-06-09 Capacity-Aware Deploy + JDCloud Probe Closeout
 
