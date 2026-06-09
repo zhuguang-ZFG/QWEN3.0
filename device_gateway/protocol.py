@@ -1,4 +1,4 @@
-"""Protocol helpers for LiMa direct device sessions."""
+﻿"""Protocol helpers for LiMa direct device sessions."""
 
 from __future__ import annotations
 
@@ -212,6 +212,40 @@ def ack_frame(ack_type: str, device_id: str, **extra: Any) -> dict[str, Any]:
     frame.update(extra)
     return frame
 
+
+
+def run_path_dispatch_frame(
+    device_id: str,
+    task_id: str,
+    path: list[dict[str, float]],
+    feed: float = 500.0,
+    request_id: str | None = None,
+    extra_params: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Build a downlink dispatch frame for a run_path motion task.
+
+    The 'path' parameter is a list of {x, y, z} dictionaries representing
+    the absolute toolpath in millimetres. The 'feed' parameter is the
+    feed rate in mm/min. The device must execute the path and report
+    progress via motion_event uplinks.
+    """
+    frame: dict[str, Any] = {
+        "type": "task_dispatch",
+        "device_id": device_id,
+        "task_id": task_id,
+        "capability": "run_path",
+        "params": {
+            "path": path,
+            "feed": float(feed),
+        },
+    }
+    if request_id:
+        frame["request_id"] = request_id
+    if extra_params:
+        for key in ("source_capability", "text", "prompt", "preview_svg"):
+            if key in extra_params:
+                frame["params"][key] = extra_params[key]
+    return frame
 
 def motion_failure_event(
     device_id: str,

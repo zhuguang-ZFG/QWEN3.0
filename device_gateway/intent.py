@@ -1,4 +1,4 @@
-"""Deterministic device command parser with grammar rules and confidence scoring.
+﻿"""Deterministic device command parser with grammar rules and confidence scoring.
 
 Upgrades the first-slice keyword mapping to a small pattern-based parser
 that extracts structured intents from natural-language commands.
@@ -34,7 +34,9 @@ _COMMAND_PATTERNS: list[tuple[re.Pattern, str, dict | None]] = [
     # Draw
     (re.compile(r"^画(个?|出?|入?)(?P<prompt>.{1,80})$"), "draw_generated", None),
     (re.compile(r"^(?P<kw>draw|sketch|plot)\s+(?P<prompt>.{1,80})$", re.I), "draw_generated", None),
-    # Explicit path (SVG-style)
+        # Run path (explicit motion path execution)
+    (re.compile(r"^运行路径$|^run[_ ]?path$", re.I), "run_path", None),
+    (re.compile(r"^执行路径\s*(?P<prompt>.{1,40})$"), "run_path", None),# Explicit path (SVG-style)
     (re.compile(r"^(?P<kw>path|svg|gcode)\s+(?P<prompt>.{1,200})$", re.I), "draw_generated", None),
     # Move commands
     (re.compile(r"^(移动|移动到|移到|go\s*to|move\s*to)\s*x\s*(?P<x>-?\d+)\s*y\s*(?P<y>-?\d+)(\s*z\s*(?P<z>-?\d+))?"), "move_abs", None),
