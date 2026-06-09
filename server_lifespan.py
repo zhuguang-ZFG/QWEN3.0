@@ -83,9 +83,21 @@ async def lifespan(application):
     except ImportError:
         _log.debug("auto_indexer not installed")
     try:
+        from observability.prometheus_exporter import start_exporter
+
+        start_exporter()
+    except ImportError:
+        _log.debug("prometheus_exporter not installed")
+    try:
         yield
     finally:
         probe_loop.stop()
+        try:
+            from observability.prometheus_exporter import stop_exporter
+
+            stop_exporter()
+        except ImportError:
+            _log.debug("prometheus_exporter stop skipped")
         try:
             from context_pipeline.auto_indexer import stop_auto_indexer
 
