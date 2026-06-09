@@ -4,9 +4,12 @@ Catches bad input at task-creation time (Server side) so invalid tasks
 never reach the device. Returns structured error codes matching the
 MotionErrorCode enum in protocol_families.py.
 """
+
 from __future__ import annotations
 
 from device_gateway.protocol_families import MotionErrorCode
+from device_intelligence.safety import profile_limit_error
+from device_intelligence.schemas import DeviceProfile
 
 MAX_PATH_POINTS = 200
 MAX_POINT_COORD = 500.0
@@ -28,7 +31,7 @@ CAPABILITY_PATH_MAP: dict[str, frozenset[str]] = {
 CONTROL_CAPABILITIES = frozenset({"home", "pause", "resume", "stop", "get_device_info"})
 
 
-def validate_run_path_params(params: dict) -> tuple[dict, str | None]:
+def validate_run_path_params(params: dict, profile: DeviceProfile | None = None) -> tuple[dict, str | None]:
     """Validate motion task run_path parameters.
 
     Returns (sanitized_params, None) on success or ({}, error_code) on failure.
@@ -36,6 +39,9 @@ def validate_run_path_params(params: dict) -> tuple[dict, str | None]:
     """
     if not isinstance(params, dict):
         return {}, MotionErrorCode.E_BAD_PARAMS.value
+    profile_error = profile_limit_error(params, profile)
+    if profile_error:
+        return {}, profile_error
 
     path = params.get("path")
     if not isinstance(path, list) or len(path) == 0:
@@ -67,6 +73,7 @@ def validate_run_path_params(params: dict) -> tuple[dict, str | None]:
 def validate_capability_params(
     capability: str,
     params: dict,
+    profile: DeviceProfile | None = None,
 ) -> tuple[dict, str | None]:
     """Validate that the given capability's required params are present.
 
@@ -81,7 +88,7 @@ def validate_capability_params(
             "source_capability": str(params.get("source_capability", capability)),
         }, None
 
-    sanitized, error = validate_run_path_params(params)
+    sanitized, error = validate_run_path_params(params, profile=profile)
     if error:
         return {}, error
 

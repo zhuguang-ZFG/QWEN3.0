@@ -7,6 +7,7 @@ from typing import Any
 
 from fastapi import WebSocket
 
+from device_intelligence.shadow import shadow_store
 from device_gateway.protocol import ProtocolError, ack_frame, hello_ack
 from device_gateway.sessions import DeviceSession, registry
 from device_gateway.tasks import (
@@ -54,7 +55,8 @@ async def handle_hello(
             await previous.websocket.close(code=1012)
         except Exception as exc:
             _log.debug("close superseded websocket device=%s: %s", device_id, type(exc).__name__)
-    await session.send_json(hello_ack(device_id))
+    shadow_store.update_hello(message)
+    await session.send_json(hello_ack(device_id, shadow_store.delta_for_hello(device_id)))
     if not await drain_pending_tasks(session):
         return device_id, session, False
     return device_id, session, True
@@ -67,6 +69,7 @@ async def handle_heartbeat(
     request_id: str | None,
 ) -> None:
     registry.update_heartbeat(device_id, message["uptime_ms"])
+    shadow_store.update_heartbeat(device_id, message["uptime_ms"])
     session = registry.get(device_id)
     sender = session.send_json if session is not None else websocket.send_json
     await sender(
@@ -106,6 +109,7 @@ async def handle_transcript(
 
 async def handle_motion_event(device_id: str, message: dict[str, Any], request_id: str | None) -> None:
     summary = record_motion_event(message)
+    shadow_store.update_motion_event(message)
     ack_processing_task(device_id, message["task_id"])
     record_motion_event_observability(message, device_id)
     session = registry.get(device_id)
@@ -140,13 +144,15 @@ async def handle_motion_event(device_id: str, message: dict[str, Any], request_i
             _log.debug("outcome ledger record failed", exc_info=True)
 
 
-async def handle_device_info(device_id: str, request_id: str | None) -> None:
+async def handle_device_info(device_id: str, message: dict[str, Any], request_id: str | None) -> None:
+    shadow_store.update_device_info(message)
     session = registry.get(device_id)
     if session is not None:
         await session.send_json(ack_frame("device_info_ack", device_id, request_id=request_id))
 
 
 async def handle_self_check(device_id: str, message: dict[str, Any], request_id: str | None) -> None:
+    shadow_store.update_self_check(message)
     session = registry.get(device_id)
     if session is not None:
         await session.send_json(

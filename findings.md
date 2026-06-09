@@ -2,6 +2,16 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-06-09 LiMa Hardware AI Phase 1 M2 Closeout
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| HAI-M2-1 | Device schema | `device_intelligence.schemas` now provides deterministic `DeviceProfile` and `TaskPlan` contracts with empty-id rejection and stable JSON output. | Closed |
+| HAI-M2-2 | Profile-aware safety | `device_gateway.path_validator` can validate against a `DeviceProfile`, rejecting workspace overflow, feed above profile cap, and unsupported firmware/profile prefixes. | Closed |
+| HAI-M2-3 | Device shadow | `shadow_store` now tracks `hello`, `heartbeat`, `device_info`, `self_check`, and `motion_event` state from both WebSocket and HTTP device event paths. | Closed |
+| HAI-M2-4 | Protocol compatibility | `hello_ack()` can include an optional `shadow` delta without changing the existing v1 fields, preserving old fake U8/client behavior. | Closed |
+| HAI-M2-5 | Boundary | Profile-aware safety is available at the validator boundary; broader planner/task creation selection of per-device profiles should land with M3/M4 policy/planner work. | Accepted |
+
 ## 2026-06-09 LiMa Hardware AI Phase 1 M1 Closeout
 
 | ID | Area | Finding | Status |

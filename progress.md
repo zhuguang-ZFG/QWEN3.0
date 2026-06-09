@@ -6050,6 +6050,37 @@ Verification note:
 - VPS:
   - not deployed. This is LiMa Code CLI/TUI package and GitHub Release only.
 
+## 2026-06-09 LiMa Hardware AI Phase 1 M2
+
+- Scope:
+  - added `device_intelligence.schemas` with deterministic `DeviceProfile`
+    and `TaskPlan` JSON contracts;
+  - added `device_intelligence.profile_store` with an in-memory,
+    SQLite-friendly profile boundary and default DLC P1 profile;
+  - added `device_intelligence.shadow` for reported device state from
+    `hello`, `heartbeat`, `device_info`, `self_check`, and `motion_event`;
+  - added `device_intelligence.safety` for firmware/profile compatibility and
+    profile-aware feed/workspace/path limits;
+  - extended `device_gateway.path_validator` to accept an optional
+    `DeviceProfile`;
+  - extended protocol `hello` parsing to retain optional profile/device fields
+    and `hello_ack()` to include optional `shadow` delta;
+  - wired WebSocket and HTTP device event paths to update `shadow_store`;
+  - marked M2 complete in
+    `docs/superpowers/plans/2026-06-09-lima-hardware-ai-phase1-execution-plan.md`.
+- Local verification:
+  - M2 plan gate:
+    `tests/test_device_intelligence_schemas.py tests/test_device_intelligence_safety.py tests/test_device_intelligence_shadow.py tests/test_device_gateway_routes.py`
+    -> `29 passed, 1 warning`;
+  - nearby protocol/path regression:
+    `tests/test_device_intelligence_schemas.py tests/test_device_intelligence_safety.py tests/test_device_intelligence_shadow.py tests/test_device_gateway_routes.py tests/test_device_gateway_protocol.py tests/test_device_gateway_path_validator.py tests/test_device_gateway_motion_contract.py`
+    -> `64 passed, 1 warning`;
+  - `ruff check` and `ruff format --check` on touched M2 runtime/tests -> clean;
+  - focused `pyright` on touched M2 runtime/tests -> `0 errors`.
+- Full-gate status:
+  - full `scripts/run_pre_commit_check.py --full` remains blocked by the same
+    current-baseline missing modules recorded as `HAI-M1-5`; not rerun for M2.
+
 ## 2026-06-09 LiMa Hardware AI Phase 1 M1
 
 - Scope:

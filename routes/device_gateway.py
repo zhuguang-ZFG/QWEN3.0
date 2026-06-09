@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, Request, WebSocket
 from fastapi.responses import JSONResponse
 
 from access_guard import require_private_api_key
+from device_intelligence.shadow import shadow_store
 from device_gateway.auth import token_configured
 from device_gateway.protocol import (
     PROTOCOL_VERSION,
@@ -21,7 +22,13 @@ from device_gateway.protocol import (
 )
 from device_gateway.sessions import registry
 from device_gateway.store import configure_task_store_from_env, task_store_health
-from device_gateway.notifier import configure_notifier_from_env, notifier_health, publish_task_available, start_task_notifier, stop_task_notifier
+from device_gateway.notifier import (
+    configure_notifier_from_env,
+    notifier_health,
+    publish_task_available,
+    start_task_notifier,
+    stop_task_notifier,
+)
 from device_gateway.tasks import (
     ack_processing_task,
     create_task_from_transcript,
@@ -74,14 +81,15 @@ async def device_gateway_events(request: Request) -> JSONResponse:
     device_id = message.get("device_id", "")
     if msg_type == "motion_event":
         summary = record_motion_event(message)
+        shadow_store.update_motion_event(message)
         ack_processing_task(device_id, message["task_id"])
         record_motion_event_observability(message, device_id)
-        return JSONResponse(
-            ack_frame("motion_event_ack", device_id, **summary, request_id=message.get("request_id"))
-        )
+        return JSONResponse(ack_frame("motion_event_ack", device_id, **summary, request_id=message.get("request_id")))
     if msg_type == "device_info":
+        shadow_store.update_device_info(message)
         return JSONResponse(ack_frame("device_info_ack", device_id, request_id=message.get("request_id")))
     if msg_type == "self_check":
+        shadow_store.update_self_check(message)
         return JSONResponse(
             ack_frame(
                 "self_check_ack",
@@ -130,7 +138,9 @@ async def device_gateway_tasks(request: Request) -> JSONResponse:
         )
 
     device_id = device_id.strip()
-    task = create_task_from_transcript(device_id, text.strip(), request_id=request_id if isinstance(request_id, str) else None)
+    task = create_task_from_transcript(
+        device_id, text.strip(), request_id=request_id if isinstance(request_id, str) else None
+    )
     if task.get("error"):
         _record_device_task_evidence(
             device_id=device_id,
@@ -204,3 +214,4 @@ async def device_ws(websocket: WebSocket) -> None:
 def _reset_for_tests() -> None:
     registry.clear()
     reset_tasks_for_tests()
+    shadow_store.reset()

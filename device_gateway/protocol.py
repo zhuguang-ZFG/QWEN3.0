@@ -1,4 +1,5 @@
 """Protocol helpers for LiMa direct device sessions."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -85,6 +86,10 @@ def validate_hello(message: dict[str, Any]) -> dict[str, Any]:
         "fw_rev": fw_rev,
         "capabilities": capabilities,
         "request_id": request_id,
+        "model": message.get("model", ""),
+        "hw_rev": message.get("hw_rev", ""),
+        "workspace_mm": message.get("workspace_mm", {}),
+        "profile_id": message.get("profile_id", ""),
     }
 
 
@@ -190,13 +195,16 @@ def error_frame(error: ProtocolError | Exception, request_id: str | None = None)
     return frame
 
 
-def hello_ack(device_id: str) -> dict[str, Any]:
-    return {
+def hello_ack(device_id: str, shadow_delta: dict[str, Any] | None = None) -> dict[str, Any]:
+    frame = {
         "type": "hello_ack",
         "protocol": PROTOCOL_VERSION,
         "device_id": device_id,
         "server_time": now_iso(),
     }
+    if shadow_delta:
+        frame.update(shadow_delta)
+    return frame
 
 
 def ack_frame(ack_type: str, device_id: str, **extra: Any) -> dict[str, Any]:

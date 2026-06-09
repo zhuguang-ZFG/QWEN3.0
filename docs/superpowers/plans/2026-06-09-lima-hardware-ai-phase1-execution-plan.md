@@ -123,29 +123,32 @@ motion-event paths use the same ledger/artifact write path without a direct WebS
 - Test: `tests/test_device_intelligence_safety.py`
 - Test: `tests/test_device_intelligence_shadow.py`
 
-- [ ] **Step 1: Add schemas for device profile and task plan**
+- [x] **Step 1: Add schemas for device profile and task plan**
 
 Guard deterministic JSON conversion and empty id rejection.
 
-- [ ] **Step 2: Add profile-aware safety tests**
+- [x] **Step 2: Add profile-aware safety tests**
 
 Reject path points outside workspace, feed above profile cap, and unsupported firmware/profile combinations.
 
-- [ ] **Step 3: Add device shadow tests**
+- [x] **Step 3: Add device shadow tests**
 
 Verify `hello`, `heartbeat`, `device_info`, `self_check`, and `motion_event` update reported state.
 
-- [ ] **Step 4: Implement minimal profile store and shadow**
+- [x] **Step 4: Implement minimal profile store and shadow**
 
 Use SQLite-friendly interfaces and in-memory defaults for tests.
 
-- [ ] **Step 5: Wire hello ack delta**
+- [x] **Step 5: Wire hello ack delta**
 
 Add optional shadow delta to `hello_ack` without breaking v1 clients.
 
-- [ ] **Step 6: Verify**
+- [x] **Step 6: Verify**
 
 Run: `python -m pytest tests/test_device_intelligence_schemas.py tests/test_device_intelligence_safety.py tests/test_device_intelligence_shadow.py tests/test_device_gateway_routes.py -q`
+
+M2 closeout note: implemented `device_intelligence` schemas/profile/shadow/safety, profile-aware path validation,
+optional `hello_ack.shadow`, and shadow updates for WebSocket plus HTTP device event paths.
 
 Expected: pass.
 
