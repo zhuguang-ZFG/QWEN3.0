@@ -42,6 +42,13 @@ def test_registry_marks_device_gateway_loaded():
     assert server._loaded_modules.get("device_gateway") is True
 
 
+def test_server_registers_xiaozhi_v1_compat_routes():
+    paths = _api_paths()
+
+    assert "/api/v1/login" in paths
+    assert server._loaded_modules.get("xiaozhi_v1_compat") is True
+
+
 def test_register_all_routes_is_idempotent_on_fresh_app():
     from fastapi import FastAPI
     import routes.chat_endpoints as chat_endpoints_mod
@@ -75,6 +82,8 @@ def test_register_all_routes_is_idempotent_on_fresh_app():
         registered = route_registry.register_all_routes(app, deps)
         paths = {route.path for route in app.routes if isinstance(route, APIRoute)}
         assert "/v1/chat/completions" in paths
+        assert "/api/v1/login" in paths
+        assert deps.loaded_modules.get("xiaozhi_v1_compat") is True
         assert registered.health is not None
     finally:
         chat_endpoints_mod._deps.clear()

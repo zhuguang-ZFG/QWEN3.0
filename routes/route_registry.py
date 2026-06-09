@@ -119,6 +119,15 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
     deps.loaded_modules["device_gateway"] = True
 
     try:
+        from routes.xiaozhi_v1_compat import router as xiaozhi_v1_compat_router
+
+        app.include_router(xiaozhi_v1_compat_router)
+        deps.loaded_modules["xiaozhi_v1_compat"] = True
+    except ImportError as exc:
+        logging.warning("[STARTUP] xiaozhi_v1_compat module not loaded: %s", exc)
+        deps.loaded_modules["xiaozhi_v1_compat"] = False
+
+    try:
         from routes.ops_metrics import router as ops_metrics_router
 
         app.include_router(ops_metrics_router)
