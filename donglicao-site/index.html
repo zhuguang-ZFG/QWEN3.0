@@ -669,7 +669,7 @@
     </h1>
     <p class="subtitle">
       LiMa 是 AI 绘图机和写字机的云端大脑。<br>
-      说一句"画一只猫"，AI 自动生成、路径规划、设备执行 —— 一笔成型。
+      说一句"画一只猫"，AI 生成、路径转换、策略校验、设备执行 —— 一笔成型。
     </p>
     <div class="hero-buttons">
       <a href="#products" class="btn btn-primary">了解产品</a>
@@ -683,10 +683,10 @@
             <svg class="svg-icon"><use href="#i-pen-tool"/></svg>
           </div>
           <h3>AI 绘图机</h3>
-          <p>自然语言生成 SVG，智能路径优化，一笔绘制任意图案</p>
+          <p>自然语言生成 SVG，路径管线自动转换，一笔绘制任意图案</p>
           <div class="device-cap-tags">
             <span class="device-cap-tag draw-t">SVG 生成</span>
-            <span class="device-cap-tag draw-t">TSP 路径</span>
+            <span class="device-cap-tag draw-t">路径管线</span>
             <span class="device-cap-tag draw-t">G-code</span>
           </div>
           <div class="device-status"><span class="dot"></span> 云端就绪</div>
@@ -696,11 +696,11 @@
             <svg class="svg-icon"><use href="#i-pencil"/></svg>
           </div>
           <h3>AI 写字机</h3>
-          <p>诗歌生成、字体渲染、笔画轨迹规划，机械臂精准书写</p>
+          <p>笔画字体渲染、运动路径仿真，双 ESP32 协同精准书写</p>
           <div class="device-cap-tags">
-            <span class="device-cap-tag write-t">字体渲染</span>
-            <span class="device-cap-tag write-t">笔画规划</span>
-            <span class="device-cap-tag write-t">机械臂</span>
+            <span class="device-cap-tag write-t">笔画字体</span>
+            <span class="device-cap-tag write-t">运动仿真</span>
+            <span class="device-cap-tag write-t">双芯协作</span>
           </div>
           <div class="device-status"><span class="dot"></span> 云端就绪</div>
         </div>
@@ -723,17 +723,17 @@
       <div class="feature-card fade-in">
         <div class="icon-wrap ai"><svg class="svg-icon"><use href="#i-brain"/></svg></div>
         <h3>多模型智能路由</h3>
-        <p>自动选择最佳 AI 后端，生成 SVG 矢量图或文字排版</p>
+        <p>300+ 后端 × 6 维能力矩阵，自动匹配最优 AI 引擎</p>
       </div>
       <div class="feature-card fade-in">
         <div class="icon-wrap route"><svg class="svg-icon"><use href="#i-compass"/></svg></div>
-        <h3>路径智能规划</h3>
-        <p>图形转最优运动路径，TSP 算法减少空笔行程</p>
+        <h3>路径智能管线</h3>
+        <p>SVG 路径命令解析、笔画字体生成、运动轨迹一键转换</p>
       </div>
       <div class="feature-card fade-in">
         <div class="icon-wrap exec"><svg class="svg-icon"><use href="#i-cog"/></svg></div>
         <h3>设备精准执行</h3>
-        <p>MQTT 实时通信 + ESP32 硬件，精准还原每一笔轨迹</p>
+        <p>MQTT + WebSocket 双通道，影子状态实时同步，双 ESP32 精准还原轨迹</p>
       </div>
     </div>
   </section>
@@ -741,52 +741,58 @@
   <!-- FEATURES / TECH -->
   <section id="features">
     <div class="section-eyebrow">Technology</div>
-    <h2 class="section-title">四大核心技术</h2>
-    <p class="section-subtitle">从一句话到一幅画，全程 AI 驱动</p>
+    <h2 class="section-title">五层技术管线</h2>
+    <p class="section-subtitle">从一句话到一幅画，逐层校验、安全执行</p>
 
     <div class="tech-flow fade-in">
       <div class="tech-step">
         <div class="tech-step-icon"><svg class="svg-icon"><use href="#i-message-circle"/></svg></div>
         <div class="step-num">1</div>
         <h4>意图理解</h4>
-        <p>自然语言解析<br>多模型智能路由</p>
+        <p>自然语言解析<br>五层智能路由</p>
       </div>
       <div class="tech-step">
         <div class="tech-step-icon"><svg class="svg-icon"><use href="#i-image"/></svg></div>
         <div class="step-num">2</div>
         <h4>内容生成</h4>
-        <p>SVG 矢量图生成<br>中文字体渲染</p>
+        <p>SVG 矢量图生成<br>笔画字体渲染</p>
       </div>
       <div class="tech-step">
         <div class="tech-step-icon"><svg class="svg-icon"><use href="#i-route"/></svg></div>
         <div class="step-num">3</div>
-        <h4>路径优化</h4>
-        <p>TSP 路径规划<br>G-code 指令生成</p>
+        <h4>路径管线</h4>
+        <p>SVG 路径解析<br>运动轨迹生成</p>
+      </div>
+      <div class="tech-step">
+        <div class="tech-step-icon"><svg class="svg-icon"><use href="#i-brain"/></svg></div>
+        <div class="step-num">4</div>
+        <h4>策略验证</h4>
+        <p>协议兼容检查<br>安全仿真评估</p>
       </div>
       <div class="tech-step">
         <div class="tech-step-icon"><svg class="svg-icon"><use href="#i-cpu"/></svg></div>
-        <div class="step-num">4</div>
+        <div class="step-num">5</div>
         <h4>设备执行</h4>
-        <p>MQTT 双向通信<br>实时状态监控</p>
+        <p>MQTT + WS 双通道<br>影子状态同步</p>
       </div>
     </div>
 
     <div class="stats-row fade-in">
       <div class="stat-item">
-        <div class="stat-num" data-target="170" data-suffix="+">0</div>
+        <div class="stat-num" data-target="300" data-suffix="+">0</div>
         <div class="stat-label">AI 后端接入</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" data-target="50" data-suffix="+">0</div>
+        <div class="stat-label">供应商接入</div>
       </div>
       <div class="stat-item">
         <div class="stat-num" data-target="6" data-suffix="维">0</div>
         <div class="stat-label">能力评测</div>
       </div>
       <div class="stat-item">
-        <div class="stat-num" data-target="99.9" data-suffix="%">0</div>
-        <div class="stat-label">服务可用性</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-num" data-target="2" data-suffix="ms" data-prefix="<">0</div>
-        <div class="stat-label">路由延迟</div>
+        <div class="stat-num" data-target="9" data-suffix="步">0</div>
+        <div class="stat-label">任务状态机</div>
       </div>
     </div>
   </section>
@@ -849,7 +855,7 @@
       <div class="dev-compact-text">
         <div class="section-eyebrow" style="text-align:left;">Developer API</div>
         <h3>面向开发者的开放接口</h3>
-        <p>兼容 OpenAI 格式的 API，支持设备控制、内容生成、多模型路由。一行代码接入 LiMa 云端能力。</p>
+        <p>兼容 OpenAI 格式的 API，支持设备控制（REST + WebSocket）、内容生成、多模型路由。一行代码接入 LiMa 云端能力。</p>
         <a href="https://chat.donglicao.com" class="btn btn-secondary" target="_blank" style="margin-top:0.5rem;">查看文档 →</a>
       </div>
       <div class="dev-compact-code">

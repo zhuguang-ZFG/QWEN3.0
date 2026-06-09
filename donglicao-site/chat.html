@@ -685,7 +685,7 @@
         </div>
         <div class="device-tags">
           <span class="tag draw-tag">SVG</span>
-          <span class="tag draw-tag">路径规划</span>
+          <span class="tag draw-tag">路径管线</span>
           <span class="tag draw-tag">G-code</span>
         </div>
       </div>
@@ -703,8 +703,9 @@
           </div>
         </div>
         <div class="device-tags">
-          <span class="tag write-tag">字体渲染</span>
-          <span class="tag write-tag">笔画轨迹</span>
+          <span class="tag write-tag">笔画字体</span>
+          <span class="tag write-tag">运动仿真</span>
+          <span class="tag write-tag">双芯协作</span>
         </div>
       </div>
     </div>
@@ -767,19 +768,19 @@
           </div>
           <h2>一句话，一件作品</h2>
           <p class="welcome-desc">
-            告诉 LiMa 你想要什么 — 它会理解你的意图，生成创作方案，
+            告诉 LiMa 你想要什么 — 它会理解意图、生成方案、校验安全策略，
             驱动设备一笔成型。
           </p>
           <div class="quick-grid">
             <div class="qa-card" onclick="sendQuick('画一只可爱的猫咪')">
               <div class="qa-icon draw"><svg class="svg-icon"><use href="#i-pen-tool"/></svg></div>
               <div class="qa-title">画一只猫</div>
-              <div class="qa-desc">自然语言 → SVG → 绘图机执行</div>
+              <div class="qa-desc">自然语言 → SVG → 路径管线 → 绘图机</div>
             </div>
             <div class="qa-card" onclick="sendQuick('写一首关于春天的诗')">
               <div class="qa-icon write"><svg class="svg-icon"><use href="#i-pencil"/></svg></div>
               <div class="qa-title">写一首诗</div>
-              <div class="qa-desc">AI 创作 → 字体渲染 → 写字机书写</div>
+              <div class="qa-desc">AI 创作 → 笔画渲染 → 双芯书写</div>
             </div>
             <div class="qa-card" onclick="sendQuick('帮我画一个生日贺卡')">
               <div class="qa-icon gift"><svg class="svg-icon"><use href="#i-gift"/></svg></div>
@@ -789,7 +790,7 @@
             <div class="qa-card" onclick="sendQuick('设备状态怎么样？')">
               <div class="qa-icon status"><svg class="svg-icon"><use href="#i-cpu"/></svg></div>
               <div class="qa-title">设备状态</div>
-              <div class="qa-desc">查看已连接设备的实时信息</div>
+              <div class="qa-desc">查看设备影子状态与实时信息</div>
             </div>
           </div>
         </div>
