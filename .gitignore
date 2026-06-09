@@ -181,6 +181,11 @@ entities.json
 .qoder/
 opencode-source/
 _codegraph_repo/
+codegraph/
+PyWxDump/
+lima-miniprogram/
+mempalace/
+wx_key_tool/
 
 # CodeGraph runtime belongs to the local machine.
 .codegraph/*.db
