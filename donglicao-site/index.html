@@ -3,688 +3,810 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LiMa 力码 — 智能编程助手 | 深圳市动力巢科技有限公司</title>
-  <meta name="description" content="LiMa 力码是深圳动力巢科技打造的智能编程助手，通过100+AI后端智能路由，为开发者匹配最优解答。">
-  <meta property="og:title" content="LiMa 力码 — 智能编程助手">
-  <meta property="og:description" content="100+ AI 后端智能路由，为你匹配最优解答">
+  <title>LiMa 力码 — AI 智能设备云端 | 深圳市动力巢科技有限公司</title>
+  <meta name="description" content="LiMa 力码是深圳动力巢科技打造的 AI 智能设备云端平台，为 AI 绘图机、写字机提供云端大脑，让每个家庭拥有会画画、会写字的智能伙伴。">
+  <meta property="og:title" content="LiMa 力码 — AI 智能设备云端">
+  <meta property="og:description" content="让每个家庭拥有会画画、会写字的智能伙伴">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://donglicao.com">
   <meta name="theme-color" content="#6366f1">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    *, *::before, *::after {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --bg: #0E0C15;
-      --bg-card: rgba(255, 255, 255, 0.03);
+      --bg: #050508;
+      --bg-card: rgba(255,255,255,0.03);
+      --bg-card-hover: rgba(255,255,255,0.06);
       --accent: #6366f1;
-      --accent-glow: rgba(99, 102, 241, 0.3);
-      --text: #e2e8f0;
+      --accent-light: #818cf8;
+      --accent-glow: rgba(99,102,241,0.25);
+      --warm: #f59e0b;
+      --warm-glow: rgba(245,158,11,0.2);
+      --green: #10b981;
+      --text: #f1f5f9;
       --text-muted: #94a3b8;
-      --border: rgba(255, 255, 255, 0.08);
-      --radius: 16px;
+      --text-dim: #64748b;
+      --border: rgba(255,255,255,0.06);
+      --radius: 20px;
+      --radius-sm: 12px;
     }
 
-    html {
-      scroll-behavior: smooth;
-    }
+    html { scroll-behavior: smooth; }
 
     body {
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
       background: var(--bg);
       color: var(--text);
-      line-height: 1.6;
+      line-height: 1.7;
       overflow-x: hidden;
     }
 
     /* NAV */
     nav {
-      position: fixed;
-      top: 0;
-      width: 100%;
-      z-index: 100;
-      padding: 1rem 2rem;
-      backdrop-filter: blur(20px);
-      background: rgba(14, 12, 21, 0.8);
+      position: fixed; top: 0; width: 100%; z-index: 100;
+      padding: 0.8rem 2rem;
+      backdrop-filter: blur(30px) saturate(1.5);
+      background: rgba(5,5,8,0.75);
       border-bottom: 1px solid var(--border);
+      transition: background 0.3s;
     }
-
     nav .nav-inner {
-      max-width: 1200px;
-      margin: 0 auto;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      max-width: 1200px; margin: 0 auto;
+      display: flex; justify-content: space-between; align-items: center;
     }
     nav .logo {
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: var(--accent);
-      text-decoration: none;
+      font-size: 1.3rem; font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      text-decoration: none; letter-spacing: -0.02em;
     }
-
     nav .nav-links a {
-      color: var(--text-muted);
-      text-decoration: none;
-      margin-left: 2rem;
-      font-size: 0.9rem;
+      color: var(--text-muted); text-decoration: none;
+      margin-left: 2rem; font-size: 0.88rem; font-weight: 500;
       transition: color 0.3s;
     }
+    nav .nav-links a:hover { color: var(--text); }
 
-    nav .nav-links a:hover {
-      color: var(--accent);
-    }
-
-    /* SECTIONS */
-    section {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 6rem 2rem;
-    }
-
-    .section-title {
-      font-size: 2rem;
-      font-weight: 700;
-      text-align: center;
-      margin-bottom: 1rem;
-    }
-
-    .section-subtitle {
-      text-align: center;
-      color: var(--text-muted);
-      margin-bottom: 3rem;
-      font-size: 1.1rem;
-    }
+    section { max-width: 1200px; margin: 0 auto; padding: 7rem 2rem; }
 
     /* HERO */
     #hero {
       min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      position: relative;
-      padding-top: 5rem;
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      text-align: center; position: relative; padding-top: 5rem;
+    }
+    #hero::before {
+      content: ''; position: absolute;
+      top: -20%; left: 50%; transform: translateX(-50%);
+      width: 800px; height: 800px;
+      background: radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%);
+      animation: heroGlow 10s ease-in-out infinite;
+      pointer-events: none;
+    }
+    #hero::after {
+      content: ''; position: absolute;
+      top: 30%; right: 10%;
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(245,158,11,0.06) 0%, transparent 70%);
+      animation: heroGlow 12s ease-in-out infinite reverse;
+      pointer-events: none;
+    }
+    @keyframes heroGlow {
+      0%, 100% { opacity: 0.6; } 50% { opacity: 1; }
     }
 
-    #hero::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(ellipse at center, rgba(99,102,241,0.08) 0%, transparent 60%);
-      animation: pulse 8s ease-in-out infinite;
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.4rem 1rem; border-radius: 50px;
+      background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2);
+      font-size: 0.8rem; color: var(--accent-light);
+      margin-bottom: 2rem; position: relative;
     }
-    @keyframes pulse {
-      0%, 100% { opacity: 0.5; transform: scale(1); }
-      50% { opacity: 1; transform: scale(1.1); }
+    .hero-badge .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--green);
+      animation: blink 2s ease-in-out infinite;
     }
+    @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
 
     #hero h1 {
-      font-size: clamp(2.5rem, 6vw, 4rem);
-      font-weight: 700;
-      position: relative;
-      margin-bottom: 1rem;
+      font-size: clamp(2.8rem, 7vw, 4.5rem);
+      font-weight: 800; position: relative;
+      line-height: 1.15; letter-spacing: -0.03em;
+      margin-bottom: 1.5rem;
     }
-
-    #hero h1 span {
-      background: linear-gradient(135deg, var(--accent), #a78bfa);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+    #hero h1 .gradient {
+      background: linear-gradient(135deg, var(--accent) 0%, #a78bfa 50%, var(--warm) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
       background-clip: text;
     }
-
-    #hero p {
-      font-size: 1.25rem;
-      color: var(--text-muted);
-      max-width: 600px;
-      position: relative;
-      margin-bottom: 2.5rem;
+    #hero .subtitle {
+      font-size: 1.25rem; color: var(--text-muted);
+      max-width: 580px; position: relative;
+      margin-bottom: 3rem; font-weight: 400; line-height: 1.8;
     }
 
     .hero-buttons {
-      display: flex;
-      gap: 1rem;
-      position: relative;
-      flex-wrap: wrap;
+      display: flex; gap: 1rem; position: relative; flex-wrap: wrap;
       justify-content: center;
     }
-
     .btn {
-      padding: 0.85rem 2rem;
-      border-radius: 10px;
-      font-size: 1rem;
-      font-weight: 500;
-      text-decoration: none;
-      transition: all 0.3s;
-      cursor: pointer;
-      border: none;
+      padding: 0.9rem 2.2rem; border-radius: var(--radius-sm);
+      font-size: 0.95rem; font-weight: 600;
+      text-decoration: none; transition: all 0.3s;
+      cursor: pointer; border: none; display: inline-flex;
+      align-items: center; gap: 0.5rem;
     }
-
     .btn-primary {
-      background: var(--accent);
-      color: #fff;
-      box-shadow: 0 4px 20px var(--accent-glow);
+      background: var(--accent); color: #fff;
+      box-shadow: 0 4px 24px var(--accent-glow);
     }
-
     .btn-primary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 30px var(--accent-glow);
+      box-shadow: 0 8px 40px var(--accent-glow);
     }
-
     .btn-secondary {
-      background: transparent;
-      color: var(--text);
-      border: 1px solid var(--border);
+      background: transparent; color: var(--text);
+      border: 1px solid rgba(255,255,255,0.12);
     }
-
     .btn-secondary:hover {
       border-color: var(--accent);
-      color: var(--accent);
+      background: rgba(99,102,241,0.05);
     }
+
+    /* DEVICE VISUAL */
+    .hero-visual {
+      position: relative; margin-top: 4rem;
+      width: 100%; max-width: 800px;
+    }
+    .device-showcase {
+      display: flex; gap: 2rem; justify-content: center;
+      align-items: flex-end; position: relative;
+    }
+    .device-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 2rem;
+      backdrop-filter: blur(10px);
+      text-align: center; flex: 1; max-width: 340px;
+      transition: all 0.4s;
+    }
+    .device-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-4px);
+      box-shadow: 0 0 40px var(--accent-glow);
+    }
+    .device-card.featured {
+      border-color: rgba(99,102,241,0.3);
+      background: rgba(99,102,241,0.04);
+    }
+    .device-icon {
+      font-size: 3.5rem; margin-bottom: 1rem;
+      display: block;
+    }
+    .device-card h3 {
+      font-size: 1.2rem; font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    .device-card p {
+      color: var(--text-muted); font-size: 0.85rem;
+      line-height: 1.6;
+    }
+    .device-status {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      margin-top: 1rem; font-size: 0.75rem; color: var(--green);
+    }
+    .device-status .dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--green);
+    }
+
+    /* SECTION TITLES */
+    .section-eyebrow {
+      text-align: center; font-size: 0.8rem;
+      color: var(--accent-light); font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.15em;
+      margin-bottom: 0.75rem;
+    }
+    .section-title {
+      font-size: 2.2rem; font-weight: 800;
+      text-align: center; margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+    }
+    .section-subtitle {
+      text-align: center; color: var(--text-muted);
+      margin-bottom: 4rem; font-size: 1.05rem;
+      max-width: 600px; margin-left: auto; margin-right: auto;
+    }
+
     /* FEATURES */
     .features-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.25rem;
+    }
+    .feature-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 2rem;
+      transition: all 0.3s; position: relative; overflow: hidden;
+    }
+    .feature-card::before {
+      content: ''; position: absolute; top: 0; left: 0;
+      width: 100%; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .feature-card:hover {
+      border-color: rgba(99,102,241,0.3);
+      background: var(--bg-card-hover);
+      transform: translateY(-2px);
+    }
+    .feature-card:hover::before { opacity: 1; }
+    .feature-card .icon {
+      width: 48px; height: 48px; border-radius: 12px;
+      background: rgba(99,102,241,0.1);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem; margin-bottom: 1.2rem;
+    }
+    .feature-card h3 {
+      font-size: 1.05rem; font-weight: 700; margin-bottom: 0.5rem;
+    }
+    .feature-card p { color: var(--text-muted); font-size: 0.88rem; }
+
+    /* SCENARIOS */
+    .scenarios-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
       gap: 1.5rem;
     }
-
-    .feature-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 2rem;
-      backdrop-filter: blur(10px);
+    .scenario-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
       transition: all 0.3s;
-      opacity: 0;
-      transform: translateY(30px);
+    }
+    .scenario-card:hover {
+      border-color: rgba(99,102,241,0.3);
+      transform: translateY(-3px);
+    }
+    .scenario-visual {
+      height: 180px; display: flex; align-items: center;
+      justify-content: center; font-size: 4rem;
+      background: linear-gradient(135deg, rgba(99,102,241,0.05), rgba(245,158,11,0.03));
+      border-bottom: 1px solid var(--border);
+    }
+    .scenario-body { padding: 1.5rem; }
+    .scenario-body h3 {
+      font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem;
+    }
+    .scenario-body p { color: var(--text-muted); font-size: 0.88rem; }
+    .scenario-tags {
+      display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap;
+    }
+    .scenario-tag {
+      padding: 0.2rem 0.6rem; border-radius: 6px;
+      background: rgba(99,102,241,0.08); color: var(--accent-light);
+      font-size: 0.72rem; font-weight: 500;
     }
 
-    .feature-card.visible {
-      opacity: 1;
-      transform: translateY(0);
+    /* TECH STACK */
+    .tech-flow {
+      display: flex; align-items: stretch; gap: 1px;
+      background: var(--border); border-radius: var(--radius);
+      overflow: hidden;
     }
-
-    .feature-card:hover {
-      border-color: var(--accent);
-      box-shadow: 0 0 30px var(--accent-glow);
-      transform: translateY(-4px);
+    .tech-step {
+      flex: 1; padding: 2rem 1.5rem;
+      background: rgba(10,10,18,0.9);
+      text-align: center; transition: background 0.3s;
     }
-
-    .feature-card .icon {
-      font-size: 2rem;
-      margin-bottom: 1rem;
-    }
-
-    .feature-card h3 {
-      font-size: 1.15rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .feature-card p {
-      color: var(--text-muted);
-      font-size: 0.9rem;
-    }
-
-    /* HOW IT WORKS */
-    .steps {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-
-    .step {
-      text-align: center;
-      padding: 2rem;
-      flex: 1;
-      min-width: 200px;
-      opacity: 0;
-      transform: translateY(30px);
-    }
-
-    .step.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    .step .step-icon {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.5rem;
+    .tech-step:hover { background: rgba(99,102,241,0.04); }
+    .tech-step .step-num {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: rgba(99,102,241,0.15); color: var(--accent-light);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem; font-weight: 700;
       margin: 0 auto 1rem;
     }
-
-    .step h3 {
-      font-size: 1rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .step p {
-      color: var(--text-muted);
-      font-size: 0.85rem;
-    }
-
-    .step-arrow {
-      font-size: 1.5rem;
-      color: var(--accent);
-      flex-shrink: 0;
-    }
-
-    /* DEVELOPER */
-    .dev-section {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 3rem;
-      backdrop-filter: blur(10px);
-    }
-
-    .dev-section .endpoint {
-      background: rgba(0,0,0,0.4);
-      border-radius: 8px;
-      padding: 1rem 1.5rem;
-      margin: 1.5rem 0;
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      font-size: 0.9rem;
-      color: #a78bfa;
-      border: 1px solid var(--border);
-      overflow-x: auto;
-    }
-
-    .code-block {
-      background: #1a1625;
-      border-radius: 12px;
-      padding: 1.5rem;
-      margin: 1.5rem 0;
-      overflow-x: auto;
-      border: 1px solid var(--border);
-      position: relative;
-    }
-
-    .code-block pre {
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      font-size: 0.85rem;
-      line-height: 1.7;
-      color: #e2e8f0;
-    }
-    .code-block .comment { color: #6b7280; }
-    .code-block .string { color: #34d399; }
-    .code-block .key { color: #a78bfa; }
-    .code-block .cmd { color: #f472b6; }
-
-    .code-block .copy-btn {
-      position: absolute;
-      top: 0.75rem;
-      right: 0.75rem;
-      background: rgba(255,255,255,0.1);
-      border: none;
-      color: var(--text-muted);
-      padding: 0.4rem 0.8rem;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 0.75rem;
-      transition: all 0.3s;
-    }
-
-    .code-block .copy-btn:hover {
-      background: var(--accent);
-      color: #fff;
-    }
-
-    .compat-badge {
-      display: inline-block;
-      background: rgba(99,102,241,0.15);
-      color: var(--accent);
-      padding: 0.3rem 0.8rem;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      margin-top: 1rem;
-    }
+    .tech-step h4 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.4rem; }
+    .tech-step p { color: var(--text-dim); font-size: 0.8rem; }
 
     /* STATS */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 2rem;
-      text-align: center;
+    .stats-row {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 2rem; text-align: center;
+      padding: 3rem 0;
     }
+    .stat-num {
+      font-size: 2.8rem; font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 0.3rem;
+    }
+    .stat-label { color: var(--text-muted); font-size: 0.85rem; }
 
-    .stat-item {
-      opacity: 0;
-      transform: translateY(30px);
+    /* DEVELOPER (compact) */
+    .dev-compact {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 3rem;
+      display: flex; gap: 3rem; align-items: center;
     }
+    .dev-compact-text { flex: 1; }
+    .dev-compact-text h3 {
+      font-size: 1.4rem; font-weight: 700; margin-bottom: 0.75rem;
+    }
+    .dev-compact-text p { color: var(--text-muted); margin-bottom: 1.5rem; }
+    .dev-compact-code {
+      flex: 1; background: #0d0d14;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 1.5rem; font-family: 'SF Mono','Fira Code',monospace;
+      font-size: 0.82rem; line-height: 1.8; overflow-x: auto;
+    }
+    .code-c { color: #6b7280; }
+    .code-s { color: #34d399; }
+    .code-k { color: #a78bfa; }
+    .code-cmd { color: #f472b6; }
 
-    .stat-item.visible {
-      opacity: 1;
-      transform: translateY(0);
+    /* SVG ICONS */
+    .svg-icon {
+      display: inline-block; vertical-align: middle;
+      width: 1em; height: 1em;
+      stroke: currentColor; fill: none;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
     }
+    .icon-wrap {
+      width: 48px; height: 48px; border-radius: 12px;
+      background: rgba(99,102,241,0.1);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 1.2rem;
+    }
+    .icon-wrap .svg-icon { width: 22px; height: 22px; color: var(--accent-light); }
+    .device-icon-wrap {
+      width: 64px; height: 64px; border-radius: 18px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1rem;
+    }
+    .device-icon-wrap .svg-icon { width: 32px; height: 32px; }
+    .device-icon-wrap.draw {
+      background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(168,85,247,0.1));
+      color: var(--accent-light);
+    }
+    .device-icon-wrap.write {
+      background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(234,88,12,0.1));
+      color: var(--warm);
+    }
+    .scenario-icon-wrap {
+      width: 72px; height: 72px; border-radius: 18px;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(168,85,247,0.05));
+      color: var(--accent-light);
+    }
+    .scenario-icon-wrap .svg-icon { width: 32px; height: 32px; }
+    .tech-step-icon {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: rgba(99,102,241,0.1);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 0.75rem;
+      color: var(--accent-light);
+    }
+    .tech-step-icon .svg-icon { width: 20px; height: 20px; }
+    .hero-badge-icon { width: 14px; height: 14px; color: var(--green); }
 
-    .stat-number {
-      font-size: 2.5rem;
-      font-weight: 700;
-      color: var(--accent);
-      margin-bottom: 0.5rem;
-    }
-
-    .stat-label {
-      color: var(--text-muted);
-      font-size: 0.9rem;
-    }
     /* FOOTER */
     footer {
       border-top: 1px solid var(--border);
-      padding: 3rem 2rem;
-      text-align: center;
+      padding: 4rem 2rem 3rem;
     }
-
     footer .footer-inner {
-      max-width: 1200px;
-      margin: 0 auto;
+      max-width: 1200px; margin: 0 auto;
+      display: flex; justify-content: space-between;
+      align-items: flex-start; flex-wrap: wrap; gap: 2rem;
     }
-
-    footer .company {
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin-bottom: 1rem;
+    .footer-brand .logo-text {
+      font-size: 1.2rem; font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
     }
-
-    footer .links a {
-      color: var(--text-muted);
-      text-decoration: none;
-      margin: 0 1rem;
-      font-size: 0.9rem;
-      transition: color 0.3s;
+    .footer-brand p { color: var(--text-dim); font-size: 0.85rem; max-width: 300px; }
+    .footer-links h4 {
+      font-size: 0.8rem; font-weight: 600; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 0.75rem;
     }
-
-    footer .links a:hover {
-      color: var(--accent);
+    .footer-links a {
+      display: block; color: var(--text-dim); text-decoration: none;
+      font-size: 0.85rem; margin-bottom: 0.4rem; transition: color 0.3s;
     }
-
-    footer .copyright {
-      color: var(--text-muted);
-      font-size: 0.8rem;
-      margin-top: 1.5rem;
+    .footer-links a:hover { color: var(--accent-light); }
+    .footer-bottom {
+      max-width: 1200px; margin: 2rem auto 0;
+      padding-top: 2rem; border-top: 1px solid var(--border);
+      text-align: center; color: var(--text-dim); font-size: 0.78rem;
     }
 
     /* ANIMATIONS */
     .fade-in {
-      opacity: 0;
-      transform: translateY(30px);
-      transition: opacity 0.6s ease, transform 0.6s ease;
+      opacity: 0; transform: translateY(24px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
     }
-
-    .fade-in.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    .fade-in.visible { opacity: 1; transform: translateY(0); }
 
     /* RESPONSIVE */
     @media (max-width: 768px) {
-      section { padding: 4rem 1.5rem; }
-      #hero h1 { font-size: 2rem; }
-      #hero p { font-size: 1rem; }
-      .dev-section { padding: 1.5rem; }
+      section { padding: 4rem 1.25rem; }
+      #hero h1 { font-size: 2.2rem; }
+      #hero .subtitle { font-size: 1rem; }
+      .device-showcase { flex-direction: column; align-items: center; }
+      .tech-flow { flex-direction: column; }
+      .dev-compact { flex-direction: column; }
       nav .nav-links { display: none; }
-      .steps { flex-direction: column; }
-      .step-arrow { transform: rotate(90deg); }
+      footer .footer-inner { flex-direction: column; }
     }
   </style>
 </head>
 <body>
-  <!-- NAV -->
+  <!-- SVG SPRITE (Lucide Icons - MIT) -->
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+    <symbol id="i-pen-tool" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M15.707 21.293a1 1 0 0 1-1.414 0l-1.586-1.586a1 1 0 0 1 0-1.414l5.586-5.586a1 1 0 0 1 1.414 0l1.586 1.586a1 1 0 0 1 0 1.414z"/><path d="m18 13-1.375-6.874a1 1 0 0 0-.746-.776L3.235 2.028a1 1 0 0 0-1.207 1.207L5.35 15.879a1 1 0 0 0 .776.746L13 18"/><path d="m2.3 2.3 7.286 7.286"/><circle cx="11" cy="11" r="2"/>
+    </symbol>
+    <symbol id="i-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>
+    </symbol>
+    <symbol id="i-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/>
+    </symbol>
+    <symbol id="i-brain" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 18V5"/><path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4"/><path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5"/><path d="M17.997 5.125a4 4 0 0 1 2.526 5.77"/><path d="M18 18a4 4 0 0 0 2-7.464"/><path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517"/><path d="M6 18a4 4 0 0 1-2-7.464"/><path d="M6.003 5.125a4 4 0 0 0-2.526 5.77"/>
+    </symbol>
+    <symbol id="i-compass" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"/>
+    </symbol>
+    <symbol id="i-cog" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="2"/><circle cx="12" cy="12" r="8"/><path d="M12 22v-2M12 2v2M14 12h8m-8 0H2m17.66 5-1.73-1m1.73-7-1.73 1M3.34 17l1.73-1m-1.73-7 1.73 1M17 20.66l-1-1.73M17 3.34l-1 1.73M11 10.27L7 3.34m4 10.39l-4 6.93"/>
+    </symbol>
+    <symbol id="i-house" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+    </symbol>
+    <symbol id="i-book-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>
+    </symbol>
+    <symbol id="i-gift" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 7v14"/><path d="M20 11v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="M7.5 7a1 1 0 0 1 0-5A4.8 8 0 0 1 12 7a4.8 8 0 0 1 4.5-5 1 1 0 0 1 0 5"/><rect x="3" y="7" width="18" height="4" rx="1"/>
+    </symbol>
+    <symbol id="i-route" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/>
+    </symbol>
+    <symbol id="i-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="4" y="4" width="16" height="16" rx="2"/><rect x="8" y="8" width="8" height="8" rx="1"/><path d="M12 20v2M12 2v2M17 20v2M17 2v2M7 20v2M7 2v2M2 12h2M2 17h2M2 7h2M20 12h2M20 17h2M20 7h2"/>
+    </symbol>
+    <symbol id="i-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+    </symbol>
+    <symbol id="i-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4M22 4h-4"/><circle cx="4" cy="20" r="2"/>
+    </symbol>
+    <symbol id="i-palette" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/>
+    </symbol>
+    <symbol id="i-rocket" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05"/><path d="M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z"/>
+    </symbol>
+    <symbol id="i-message-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/>
+    </symbol>
+    <symbol id="i-arrow-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+    </symbol>
+  </svg>
+
   <nav>
     <div class="nav-inner">
-      <a href="#" class="logo">LiMa 力码</a>
+      <a href="#" class="logo">LiMa</a>
       <div class="nav-links">
-        <a href="#features">功能</a>
-        <a href="#how-it-works">原理</a>
+        <a href="#products">产品</a>
+        <a href="#features">技术</a>
+        <a href="#scenarios">场景</a>
         <a href="#developer">开发者</a>
-        <a href="https://chat.donglicao.com" target="_blank">在线体验</a>
+        <a href="https://chat.donglicao.com" target="_blank">控制台</a>
       </div>
     </div>
   </nav>
+
   <!-- HERO -->
   <section id="hero">
-    <h1><span>LiMa 力码</span> — 智能编程助手</h1>
-    <p>100+ AI 后端智能路由，为你匹配最优解答</p>
+    <div class="hero-badge">
+      <span class="dot"></span>
+      <span>AI 智能设备云端 · 现已上线</span>
+    </div>
+    <h1>
+      让每个家庭拥有<br>
+      <span class="gradient">会画画、会写字的智能伙伴</span>
+    </h1>
+    <p class="subtitle">
+      LiMa 是 AI 绘图机和写字机的云端大脑。<br>
+      说一句"画一只猫"，AI 自动生成、路径规划、设备执行 —— 一笔成型。
+    </p>
     <div class="hero-buttons">
-      <a href="https://chat.donglicao.com" class="btn btn-primary">开始使用</a>
-      <a href="#developer" class="btn btn-secondary">开发者文档</a>
+      <a href="#products" class="btn btn-primary">了解产品</a>
+      <a href="https://chat.donglicao.com" class="btn btn-secondary" target="_blank">在线体验</a>
+    </div>
+
+    <div class="hero-visual">
+      <div class="device-showcase">
+        <div class="device-card featured fade-in">
+          <div class="device-icon-wrap draw">
+            <svg class="svg-icon"><use href="#i-pen-tool"/></svg>
+          </div>
+          <h3>AI 绘图机</h3>
+          <p>自然语言生成 SVG，智能路径优化，一笔绘制任意图案</p>
+          <div class="device-status"><span class="dot"></span> 云端就绪</div>
+        </div>
+        <div class="device-card fade-in">
+          <div class="device-icon-wrap write">
+            <svg class="svg-icon"><use href="#i-pencil"/></svg>
+          </div>
+          <h3>AI 写字机</h3>
+          <p>诗歌生成、字体渲染、笔画轨迹规划，机械臂精准书写</p>
+          <div class="device-status"><span class="dot"></span> 云端就绪</div>
+        </div>
+      </div>
     </div>
   </section>
 
-  <!-- FEATURES -->
-  <section id="features">
-    <h2 class="section-title">核心能力</h2>
-    <p class="section-subtitle">四大核心技术，让每次对话都找到最佳后端</p>
+  <!-- PRODUCTS -->
+  <section id="products">
+    <div class="section-eyebrow">Products</div>
+    <h2 class="section-title">两款智能设备，一个云端大脑</h2>
+    <p class="section-subtitle">从灵感到作品，只需一句话的距离</p>
+
     <div class="features-grid">
       <div class="feature-card fade-in">
-        <div class="icon">🧠</div>
-        <h3>智能路由</h3>
-        <p>自动匹配最优后端，代码问题走代码模型，简单问题走快速模型</p>
+        <div class="icon-wrap"><svg class="svg-icon"><use href="#i-mic"/></svg></div>
+        <h3>说出你的想法</h3>
+        <p>"画一只在月球上的猫"—— LiMa 的 AI 理解你的意图，自动生成创作方案</p>
       </div>
       <div class="feature-card fade-in">
-        <div class="icon">⚡</div>
-        <h3>并行投机</h3>
-        <p>多后端竞速，谁快用谁，延迟降到最低</p>
+        <div class="icon-wrap"><svg class="svg-icon"><use href="#i-brain"/></svg></div>
+        <h3>AI 自动生成</h3>
+        <p>多模型智能路由，自动选择最佳 AI 后端生成 SVG 矢量图或文字排版</p>
       </div>
       <div class="feature-card fade-in">
-        <div class="icon">📊</div>
-        <h3>能力矩阵</h3>
-        <p>6维能力评测，精准匹配每个问题的最佳后端</p>
+        <div class="icon-wrap"><svg class="svg-icon"><use href="#i-compass"/></svg></div>
+        <h3>路径智能规划</h3>
+        <p>自动将图形转化为最优运动路径，减少空笔行程，提升绘制效率</p>
       </div>
       <div class="feature-card fade-in">
-        <div class="icon">🎭</div>
-        <h3>身份统一</h3>
-        <p>无论哪个后端响应，始终以 LiMa 身份回答</p>
+        <div class="icon-wrap"><svg class="svg-icon"><use href="#i-cog"/></svg></div>
+        <h3>设备精准执行</h3>
+        <p>通过 MQTT 实时通信，ESP32 设备精准还原每一笔轨迹</p>
       </div>
     </div>
   </section>
 
-  <!-- HOW IT WORKS -->
-  <section id="how-it-works">
-    <h2 class="section-title">工作原理</h2>
-    <p class="section-subtitle">三步完成智能路由，毫秒级响应</p>
-    <div class="steps">
-      <div class="step fade-in">
-        <div class="step-icon">📤</div>
-        <h3>发送请求</h3>
-        <p>兼容 OpenAI 格式，无缝接入</p>
+  <!-- FEATURES / TECH -->
+  <section id="features">
+    <div class="section-eyebrow">Technology</div>
+    <h2 class="section-title">四大核心技术</h2>
+    <p class="section-subtitle">从一句话到一幅画，全程 AI 驱动</p>
+
+    <div class="tech-flow fade-in">
+      <div class="tech-step">
+        <div class="tech-step-icon"><svg class="svg-icon"><use href="#i-message-circle"/></svg></div>
+        <div class="step-num">1</div>
+        <h4>意图理解</h4>
+        <p>自然语言解析<br>多模型智能路由</p>
       </div>
-      <span class="step-arrow">→</span>
-      <div class="step fade-in">
-        <div class="step-icon">🔍</div>
-        <h3>意图分类</h3>
-        <p>6维评测，精准识别需求类型</p>
+      <div class="tech-step">
+        <div class="tech-step-icon"><svg class="svg-icon"><use href="#i-image"/></svg></div>
+        <div class="step-num">2</div>
+        <h4>内容生成</h4>
+        <p>SVG 矢量图生成<br>中文字体渲染</p>
       </div>
-      <span class="step-arrow">→</span>
-      <div class="step fade-in">
-        <div class="step-icon">✨</div>
-        <h3>最优响应</h3>
-        <p>自动选择最佳后端，流式返回</p>
+      <div class="tech-step">
+        <div class="tech-step-icon"><svg class="svg-icon"><use href="#i-route"/></svg></div>
+        <div class="step-num">3</div>
+        <h4>路径优化</h4>
+        <p>TSP 路径规划<br>G-code 指令生成</p>
+      </div>
+      <div class="tech-step">
+        <div class="tech-step-icon"><svg class="svg-icon"><use href="#i-cpu"/></svg></div>
+        <div class="step-num">4</div>
+        <h4>设备执行</h4>
+        <p>MQTT 双向通信<br>实时状态监控</p>
       </div>
     </div>
-  </section>
-  <!-- DEVELOPER -->
-  <section id="developer">
-    <h2 class="section-title">开发者接入</h2>
-    <p class="section-subtitle">兼容 OpenAI 格式，一行代码切换</p>
-    <div class="dev-section fade-in">
-      <h3>API Endpoint</h3>
-      <div class="endpoint">https://api.donglicao.com/v1/chat/completions</div>
-      <span class="compat-badge">兼容 OpenAI SDK</span>
 
-      <h3 style="margin-top: 2rem;">快速开始</h3>
-      <div class="code-block">
-        <button class="copy-btn" onclick="copyCode(this)">复制</button>
-        <pre><span class="cmd">curl</span> https://api.donglicao.com/v1/chat/completions \
-  <span class="cmd">-H</span> <span class="string">"Content-Type: application/json"</span> \
-  <span class="cmd">-H</span> <span class="string">"Authorization: Bearer $YOUR_API_KEY"</span> \
-  <span class="cmd">-d</span> <span class="string">'{
-  <span class="key">"model"</span>: "lima",
-  <span class="key">"messages"</span>: [
-    {<span class="key">"role"</span>: "user", <span class="key">"content"</span>: "用Python写一个快速排序"}
-  ],
-  <span class="key">"stream"</span>: true
-}'</span></pre>
+    <div class="stats-row fade-in">
+      <div>
+        <div class="stat-num" data-target="170" data-suffix="+">0</div>
+        <div class="stat-label">AI 后端接入</div>
       </div>
-      <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 1rem;">
-        完整文档请访问
-        <a href="https://api.donglicao.com/docs" style="color: var(--accent);">Quickstart Guide →</a>
-      </p>
-    </div>
-  </section>
-
-  <!-- IMAGE GENERATION -->
-  <section id="image-gen" style="padding: 5rem 2rem;">
-    <div style="max-width: 800px; margin: 0 auto; text-align: center;">
-      <h2 class="fade-in" style="font-size: 2rem; margin-bottom: 0.5rem;">AI 图片生成</h2>
-      <p class="fade-in" style="color: var(--text-muted); margin-bottom: 2rem;">输入描述，LiMa 为你生成高质量图片 — 完全免费</p>
-      <div class="fade-in" style="display:flex;gap:12px;margin-bottom:1.5rem;flex-wrap:wrap;justify-content:center;">
-        <input id="img-prompt" type="text" placeholder="描述你想生成的图片，例如：一只在太空中的猫" style="flex:1;min-width:250px;padding:12px 16px;border-radius:10px;border:1px solid rgba(99,102,241,.3);background:rgba(30,27,46,.8);color:#e2e8f0;font-size:1rem;outline:none;" />
-        <button id="img-btn" onclick="generateImage()" style="padding:12px 24px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;font-size:1rem;white-space:nowrap;">生成图片</button>
-      </div>
-      <div id="img-tags" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:1.5rem;">
-        <span class="img-tag" onclick="setPrompt('a cute cat astronaut floating in space, digital art')">太空猫</span>
-        <span class="img-tag" onclick="setPrompt('cyberpunk city at night with neon lights, rain, cinematic')">赛博朋克</span>
-        <span class="img-tag" onclick="setPrompt('beautiful Chinese landscape painting with mountains and rivers, ink wash style')">山水画</span>
-        <span class="img-tag" onclick="setPrompt('futuristic robot programmer writing code, holographic display')">机器人程序员</span>
-      </div>
-      <div id="img-result" style="min-height:300px;border-radius:16px;overflow:hidden;background:rgba(30,27,46,.5);border:1px solid rgba(99,102,241,.15);display:flex;align-items:center;justify-content:center;position:relative;">
-        <p id="img-placeholder" style="color:var(--text-muted);font-size:0.9rem;">图片将在这里显示</p>
-        <div id="img-loading" style="display:none;flex-direction:column;align-items:center;gap:12px;">
-          <div style="width:40px;height:40px;border:3px solid rgba(99,102,241,.3);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;"></div>
-          <span style="color:var(--text-muted);font-size:0.85rem;">正在生成...</span>
-        </div>
-        <img id="img-output" style="display:none;width:100%;height:auto;max-height:512px;object-fit:contain;" />
-      </div>
-      <p style="color:var(--text-muted);font-size:0.75rem;margin-top:0.8rem;opacity:0.7;">Powered by Pollinations.ai — 免费开源图片生成</p>
-    </div>
-  </section>
-
-  <!-- STATS -->
-  <section id="stats">
-    <div class="stats-grid">
-      <div class="stat-item fade-in">
-        <div class="stat-number" data-target="100">0</div>
-        <div class="stat-label">AI 后端</div>
-      </div>
-      <div class="stat-item fade-in">
-        <div class="stat-number" data-target="2" data-prefix="<" data-suffix="s">0</div>
-        <div class="stat-label">平均响应</div>
-      </div>
-      <div class="stat-item fade-in">
-        <div class="stat-number" data-target="99.9" data-suffix="%">0</div>
-        <div class="stat-label">可用性</div>
-      </div>
-      <div class="stat-item fade-in">
-        <div class="stat-number" data-target="6" data-suffix="维">0</div>
+      <div>
+        <div class="stat-num" data-target="6" data-suffix="维">0</div>
         <div class="stat-label">能力评测</div>
       </div>
+      <div>
+        <div class="stat-num" data-target="99.9" data-suffix="%">0</div>
+        <div class="stat-label">服务可用性</div>
+      </div>
+      <div>
+        <div class="stat-num" data-target="2" data-suffix="ms" data-prefix="<">0</div>
+        <div class="stat-label">路由延迟</div>
+      </div>
     </div>
   </section>
+
+  <!-- SCENARIOS -->
+  <section id="scenarios">
+    <div class="section-eyebrow">Scenarios</div>
+    <h2 class="section-title">适用场景</h2>
+    <p class="section-subtitle">从家庭到教室，从创意到礼物</p>
+
+    <div class="scenarios-grid">
+      <div class="scenario-card fade-in">
+        <div class="scenario-visual">
+          <div class="scenario-icon-wrap"><svg class="svg-icon"><use href="#i-house"/></svg></div>
+        </div>
+        <div class="scenario-body">
+          <h3>家庭创作</h3>
+          <p>孩子说"画一只恐龙"，AI 绘图机立刻开始创作。亲子互动，激发想象力。</p>
+          <div class="scenario-tags">
+            <span class="scenario-tag">亲子互动</span>
+            <span class="scenario-tag">创意启蒙</span>
+            <span class="scenario-tag">趣味礼物</span>
+          </div>
+        </div>
+      </div>
+      <div class="scenario-card fade-in">
+        <div class="scenario-visual">
+          <div class="scenario-icon-wrap"><svg class="svg-icon"><use href="#i-book-open"/></svg></div>
+        </div>
+        <div class="scenario-body">
+          <h3>教育课堂</h3>
+          <p>书法练习、几何绘制、诗词创作——AI 写字机让传统文化学习更有趣。</p>
+          <div class="scenario-tags">
+            <span class="scenario-tag">书法练习</span>
+            <span class="scenario-tag">几何教学</span>
+            <span class="scenario-tag">诗词创作</span>
+          </div>
+        </div>
+      </div>
+      <div class="scenario-card fade-in">
+        <div class="scenario-visual">
+          <div class="scenario-icon-wrap"><svg class="svg-icon"><use href="#i-gift"/></svg></div>
+        </div>
+        <div class="scenario-body">
+          <h3>个性定制</h3>
+          <p>手写贺卡、定制画作、个性签名——每一份礼物都独一无二。</p>
+          <div class="scenario-tags">
+            <span class="scenario-tag">手写贺卡</span>
+            <span class="scenario-tag">定制画作</span>
+            <span class="scenario-tag">个性签名</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DEVELOPER (compact) -->
+  <section id="developer">
+    <div class="dev-compact fade-in">
+      <div class="dev-compact-text">
+        <div class="section-eyebrow" style="text-align:left;">Developer API</div>
+        <h3>面向开发者的开放接口</h3>
+        <p>兼容 OpenAI 格式的 API，支持设备控制、内容生成、多模型路由。一行代码接入 LiMa 云端能力。</p>
+        <a href="https://chat.donglicao.com" class="btn btn-secondary" target="_blank" style="margin-top:0.5rem;">查看文档 →</a>
+      </div>
+      <div class="dev-compact-code">
+        <span class="code-c"># 一句话生成绘图指令</span><br>
+        <span class="code-cmd">import</span> openai<br><br>
+        client = openai.OpenAI(<br>
+        &nbsp;&nbsp;base_url=<span class="code-s">"https://chat.donglicao.com/v1"</span>,<br>
+        &nbsp;&nbsp;api_key=<span class="code-s">"your-key"</span><br>
+        )<br><br>
+        response = client.chat.completions.create(<br>
+        &nbsp;&nbsp;model=<span class="code-s">"lima"</span>,<br>
+        &nbsp;&nbsp;messages=[{<span class="code-k">"role"</span>: <span class="code-s">"user"</span>,<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-k">"content"</span>: <span class="code-s">"画一只猫"</span>}]<br>
+        )
+      </div>
+    </div>
+  </section>
+
   <!-- FOOTER -->
   <footer>
     <div class="footer-inner">
-      <div class="company">深圳市动力巢科技有限公司</div>
-      <div class="links">
-        <a href="https://chat.donglicao.com" target="_blank">在线体验</a>
-        <a href="https://api.donglicao.com" target="_blank">API 服务</a>
-        <a href="https://api.donglicao.com/docs" target="_blank">开发文档</a>
+      <div class="footer-brand">
+        <div class="logo-text">LiMa 力码</div>
+        <p>AI 驱动的智能设备云端平台<br>让每个家庭拥有会画画、会写字的智能伙伴</p>
       </div>
-      <div class="copyright">Copyright &copy; 2024-2026 DongLiCao Technology. All rights reserved.</div>
+      <div class="footer-links">
+        <h4>产品</h4>
+        <a href="#products">AI 绘图机</a>
+        <a href="#products">AI 写字机</a>
+        <a href="https://chat.donglicao.com" target="_blank">云端控制台</a>
+      </div>
+      <div class="footer-links">
+        <h4>开发者</h4>
+        <a href="#developer">API 文档</a>
+        <a href="https://github.com/zhuguang-ZFG/lima" target="_blank">GitHub</a>
+        <a href="https://gitee.com/zhuguang-zfg/lima" target="_blank">Gitee</a>
+      </div>
+      <div class="footer-links">
+        <h4>公司</h4>
+        <a href="#">关于我们</a>
+        <a href="#">联系方式</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      深圳市动力巢科技有限公司 · Copyright &copy; 2024-2026 DongLiCao Technology. All rights reserved.
     </div>
   </footer>
 
   <script>
-    // Intersection Observer for fade-in animations
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry, index) => {
+    // Intersection Observer for fade-in
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach((entry, i) => {
         if (entry.isIntersecting) {
-          setTimeout(() => {
-            entry.target.classList.add('visible');
-          }, index * 100);
-          observer.unobserve(entry.target);
+          setTimeout(() => entry.target.classList.add('visible'), i * 80);
+          obs.unobserve(entry.target);
         }
       });
     }, { threshold: 0.1 });
+    document.querySelectorAll('.fade-in').forEach(el => obs.observe(el));
 
-    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
-
-    // Animated counters
-    const counterObserver = new IntersectionObserver((entries) => {
+    // Counter animation
+    const counterObs = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           animateCounters();
-          counterObserver.unobserve(entry.target);
+          counterObs.unobserve(entry.target);
         }
       });
     }, { threshold: 0.3 });
-
-    const statsSection = document.getElementById('stats');
-    if (statsSection) counterObserver.observe(statsSection);
+    const statsEl = document.querySelector('.stats-row');
+    if (statsEl) counterObs.observe(statsEl);
 
     function animateCounters() {
-      document.querySelectorAll('.stat-number').forEach(counter => {
-        const target = parseFloat(counter.dataset.target);
-        const prefix = counter.dataset.prefix || '';
-        const suffix = counter.dataset.suffix || '+';
-        const duration = 2000;
+      document.querySelectorAll('.stat-num').forEach(el => {
+        const target = parseFloat(el.dataset.target);
+        const prefix = el.dataset.prefix || '';
+        const suffix = el.dataset.suffix || '+';
+        const dur = 2000;
         const start = performance.now();
-
-        function update(now) {
-          const elapsed = now - start;
-          const progress = Math.min(elapsed / duration, 1);
-          const eased = 1 - Math.pow(1 - progress, 3);
-          const current = target * eased;
-          if (target === 99.9) {
-            counter.textContent = prefix + current.toFixed(1) + suffix;
-          } else {
-            counter.textContent = prefix + Math.floor(current) + suffix;
-          }
-
-          if (progress < 1) {
-            requestAnimationFrame(update);
-          }
+        function tick(now) {
+          const p = Math.min((now - start) / dur, 1);
+          const ease = 1 - Math.pow(1 - p, 3);
+          const val = target * ease;
+          el.textContent = prefix + (target === 99.9 ? val.toFixed(1) : Math.floor(val)) + suffix;
+          if (p < 1) requestAnimationFrame(tick);
         }
-        requestAnimationFrame(update);
+        requestAnimationFrame(tick);
       });
     }
 
-    // Copy code button
-    function copyCode(btn) {
-      const code = btn.parentElement.querySelector('pre').textContent;
-      navigator.clipboard.writeText(code).then(() => {
-        btn.textContent = '已复制';
-        setTimeout(() => { btn.textContent = '复制'; }, 2000);
-      });
-    }
-
-    // Smooth scroll for nav links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', function(e) {
+    // Smooth scroll
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
         e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-          target.scrollIntoView({ behavior: 'smooth' });
-        }
+        const t = document.querySelector(a.getAttribute('href'));
+        if (t) t.scrollIntoView({ behavior: 'smooth' });
       });
+    });
+
+    // Nav scroll effect
+    let lastScroll = 0;
+    window.addEventListener('scroll', () => {
+      const nav = document.querySelector('nav');
+      const scrollY = window.scrollY;
+      nav.style.background = scrollY > 100
+        ? 'rgba(5,5,8,0.92)'
+        : 'rgba(5,5,8,0.75)';
+      lastScroll = scrollY;
     });
   </script>
 </body>

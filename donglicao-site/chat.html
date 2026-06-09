@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LiMa — AI 智能设备云端控制台</title>
+  <meta name="description" content="LiMa 智能设备云端控制台 — 管理 AI 绘图机、写字机，一句话生成创意作品">
+  <meta name="theme-color" content="#6366f1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0a0a10;
+      --bg-sidebar: #0d0d15;
+      --bg-chat: #0f0f18;
+      --bg-input: #14141f;
+      --bg-msg-user: rgba(99,102,241,0.12);
+      --bg-msg-ai: rgba(255,255,255,0.03);
+      --accent: #6366f1;
+      --accent-light: #818cf8;
+      --accent-glow: rgba(99,102,241,0.2);
+      --green: #10b981;
+      --yellow: #f59e0b;
+      --red: #ef4444;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --border: rgba(255,255,255,0.06);
+      --radius: 16px;
+      --radius-sm: 10px;
+      --sidebar-w: 280px;
+    }
+
+    html, body { height: 100%; overflow: hidden; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      flex-shrink: 0;
+      transition: transform 0.3s;
+    }
+
+    .sidebar-header {
+      padding: 1.25rem 1.25rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-brand {
+      display: flex; align-items: center; gap: 0.6rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .sidebar-brand .logo {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.8rem; color: #fff;
+    }
+
+    .sidebar-brand h1 {
+      font-size: 1.1rem; font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .sidebar-brand-sub {
+      font-size: 0.7rem; color: var(--text-dim);
+      margin-top: 0.2rem;
+    }
+
+    /* NEW CHAT BUTTON */
+    .new-chat-btn {
+      margin: 1rem 1rem 0.5rem;
+      padding: 0.65rem 1rem;
+      border-radius: var(--radius-sm);
+      background: var(--accent);
+      color: #fff; border: none;
+      font-size: 0.85rem; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; gap: 0.5rem;
+      justify-content: center;
+    }
+    .new-chat-btn:hover {
+      background: var(--accent-light);
+      transform: translateY(-1px);
+    }
+
+    /* DEVICE LIST */
+    .sidebar-section {
+      padding: 0.75rem 1rem 0.25rem;
+      font-size: 0.7rem; font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .device-list {
+      flex: 1; overflow-y: auto;
+      padding: 0.25rem 0.75rem;
+    }
+
+    .device-item {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.7rem 0.75rem;
+      border-radius: var(--radius-sm);
+      cursor: pointer; transition: background 0.2s;
+      margin-bottom: 2px;
+    }
+    .device-item:hover { background: rgba(255,255,255,0.03); }
+    .device-item.active { background: rgba(99,102,241,0.08); }
+
+    .device-avatar {
+      /* base reset - variant styles below */
+    }
+
+    .device-info { flex: 1; min-width: 0; }
+    .device-name {
+      font-size: 0.85rem; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .device-status-text {
+      font-size: 0.72rem; color: var(--text-dim);
+      display: flex; align-items: center; gap: 0.3rem;
+    }
+    .device-status-dot {
+      width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0;
+    }
+    .device-status-dot.online { background: var(--green); }
+    .device-status-dot.offline { background: var(--text-dim); }
+    .device-status-dot.busy { background: var(--yellow); }
+
+    /* CHAT HISTORY */
+    .chat-history {
+      padding: 0.25rem 0.75rem;
+      overflow-y: auto; max-height: 200px;
+    }
+    .history-item {
+      padding: 0.5rem 0.75rem;
+      border-radius: 8px; cursor: pointer;
+      font-size: 0.8rem; color: var(--text-muted);
+      transition: background 0.2s;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .history-item:hover { background: rgba(255,255,255,0.03); color: var(--text); }
+
+    /* SIDEBAR FOOTER */
+    .sidebar-footer {
+      padding: 1rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.72rem; color: var(--text-dim);
+      text-align: center;
+    }
+    .sidebar-footer a {
+      color: var(--accent-light); text-decoration: none;
+    }
+
+    /* MAIN CHAT AREA */
+    .main {
+      flex: 1; display: flex; flex-direction: column;
+      min-width: 0;
+    }
+
+    /* TOP BAR */
+    .topbar {
+      padding: 0.85rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center;
+      justify-content: space-between;
+      background: rgba(15,15,24,0.8);
+      backdrop-filter: blur(10px);
+    }
+    .topbar-left {
+      display: flex; align-items: center; gap: 0.75rem;
+    }
+    .topbar-title {
+      font-size: 0.95rem; font-weight: 600;
+    }
+    .topbar-badge {
+      padding: 0.15rem 0.5rem; border-radius: 4px;
+      background: rgba(16,185,129,0.1); color: var(--green);
+      font-size: 0.7rem; font-weight: 500;
+    }
+    .topbar-right {
+      display: flex; align-items: center; gap: 1rem;
+    }
+    .topbar-btn {
+      padding: 0.4rem 0.75rem; border-radius: 8px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      color: var(--text-muted); font-size: 0.78rem;
+      cursor: pointer; transition: all 0.2s;
+      font-weight: 500;
+    }
+    .topbar-btn:hover {
+      background: rgba(99,102,241,0.08);
+      border-color: var(--accent);
+      color: var(--accent-light);
+    }
+
+    .menu-toggle {
+      display: none; background: none; border: none;
+      color: var(--text-muted); font-size: 1.3rem;
+      cursor: pointer; padding: 0.25rem;
+    }
+
+    /* CHAT MESSAGES */
+    .chat-area {
+      flex: 1; overflow-y: auto;
+      padding: 1.5rem 0;
+    }
+
+    .chat-inner {
+      max-width: 760px; margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* WELCOME STATE */
+    .welcome {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      min-height: 60vh; text-align: center;
+    }
+    /* .welcome-icon replaced by .welcome-icon-wrap */
+    .welcome h2 {
+      font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem;
+    }
+    .welcome p {
+      color: var(--text-muted); font-size: 0.95rem;
+      max-width: 440px; margin-bottom: 2rem;
+    }
+
+    .quick-actions {
+      display: grid; grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem; max-width: 500px; width: 100%;
+    }
+    .quick-action {
+      padding: 1rem 1.25rem;
+      background: var(--bg-msg-ai);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer; transition: all 0.2s;
+      text-align: left;
+    }
+    .quick-action:hover {
+      border-color: var(--accent);
+      background: rgba(99,102,241,0.05);
+      transform: translateY(-1px);
+    }
+    /* .qa-icon replaced by .qa-icon-wrap */
+    .quick-action .qa-title {
+      font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;
+    }
+    .quick-action .qa-desc {
+      font-size: 0.75rem; color: var(--text-dim);
+    }
+
+    /* MESSAGES */
+    .message {
+      display: flex; gap: 0.75rem;
+      margin-bottom: 1.25rem;
+      animation: msgIn 0.3s ease;
+    }
+    @keyframes msgIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message.user { flex-direction: row-reverse; }
+
+    /* msg-avatar defined in SVG icons section */
+
+    .msg-body { max-width: 85%; min-width: 0; }
+    .msg-bubble {
+      padding: 0.85rem 1.15rem;
+      border-radius: 14px;
+      font-size: 0.9rem; line-height: 1.7;
+      word-wrap: break-word;
+    }
+    .message.user .msg-bubble {
+      background: var(--bg-msg-user);
+      border: 1px solid rgba(99,102,241,0.15);
+      border-bottom-right-radius: 4px;
+    }
+    .message.ai .msg-bubble {
+      background: var(--bg-msg-ai);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+    }
+
+    .msg-meta {
+      font-size: 0.68rem; color: var(--text-dim);
+      margin-top: 0.3rem; padding: 0 0.25rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .message.user .msg-meta { justify-content: flex-end; }
+
+    .msg-model {
+      padding: 0.1rem 0.4rem; border-radius: 3px;
+      background: rgba(99,102,241,0.08); color: var(--accent-light);
+      font-size: 0.65rem;
+    }
+
+    /* TYPING INDICATOR */
+    .typing-indicator {
+      display: none; align-items: center; gap: 0.5rem;
+      padding: 0.5rem 0;
+    }
+    .typing-indicator.active { display: flex; }
+    .typing-dots {
+      display: flex; gap: 3px;
+    }
+    .typing-dots span {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--text-dim);
+      animation: typingDot 1.4s ease-in-out infinite;
+    }
+    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typingDot {
+      0%, 60%, 100% { opacity: 0.3; transform: scale(0.8); }
+      30% { opacity: 1; transform: scale(1); }
+    }
+    .typing-text {
+      font-size: 0.75rem; color: var(--text-dim);
+    }
+
+    /* INPUT AREA */
+    .input-area {
+      padding: 1rem 1.5rem 1.25rem;
+      border-top: 1px solid var(--border);
+      background: rgba(15,15,24,0.6);
+    }
+    .input-inner {
+      max-width: 760px; margin: 0 auto;
+      display: flex; gap: 0.75rem; align-items: flex-end;
+    }
+
+    .input-wrapper {
+      flex: 1; position: relative;
+    }
+    .input-field {
+      width: 100%; padding: 0.85rem 1.15rem;
+      border-radius: var(--radius-sm);
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 0.9rem; font-family: inherit;
+      resize: none; outline: none;
+      min-height: 46px; max-height: 150px;
+      line-height: 1.5;
+      transition: border-color 0.2s;
+    }
+    .input-field:focus { border-color: var(--accent); }
+    .input-field::placeholder { color: var(--text-dim); }
+
+    .send-btn {
+      width: 46px; height: 46px;
+      border-radius: var(--radius-sm);
+      background: var(--accent);
+      border: none; color: #fff;
+      cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .send-btn:hover { background: var(--accent-light); transform: translateY(-1px); }
+    .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .send-btn svg { width: 18px; height: 18px; }
+
+    .input-hint {
+      text-align: center; font-size: 0.68rem;
+      color: var(--text-dim); margin-top: 0.5rem;
+    }
+
+    /* MOBILE */
+    @media (max-width: 768px) {
+      .sidebar {
+        position: fixed; left: 0; top: 0;
+        height: 100%; z-index: 200;
+        transform: translateX(-100%);
+      }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-overlay {
+        display: none; position: fixed;
+        inset: 0; background: rgba(0,0,0,0.5);
+        z-index: 199;
+      }
+      .sidebar-overlay.open { display: block; }
+      .menu-toggle { display: block; }
+      .quick-actions { grid-template-columns: 1fr; }
+      .input-area { padding: 0.75rem 1rem 1rem; }
+    }
+
+    /* SCROLLBAR */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+
+    /* CODE BLOCKS IN MESSAGES */
+    .msg-bubble pre {
+      background: rgba(0,0,0,0.3);
+      border-radius: 8px; padding: 0.75rem 1rem;
+      margin: 0.5rem 0; overflow-x: auto;
+      font-family: 'SF Mono','Fira Code',monospace;
+      font-size: 0.82rem; line-height: 1.6;
+    }
+    .msg-bubble code {
+      background: rgba(0,0,0,0.2);
+      padding: 0.1rem 0.35rem; border-radius: 4px;
+      font-family: 'SF Mono','Fira Code',monospace;
+      font-size: 0.82rem;
+    }
+    .msg-bubble pre code { background: none; padding: 0; }
+
+    /* SVG ICONS */
+    .svg-icon {
+      display: inline-block; vertical-align: middle;
+      width: 1em; height: 1em;
+      stroke: currentColor; fill: none;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
+    .device-avatar {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .device-avatar .svg-icon { width: 18px; height: 18px; }
+    .device-avatar.ai-chat { background: rgba(99,102,241,0.12); color: var(--accent-light); }
+    .device-avatar.draw { background: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(168,85,247,0.08)); color: var(--accent-light); }
+    .device-avatar.write { background: linear-gradient(135deg, rgba(245,158,11,0.12), rgba(234,88,12,0.08)); color: var(--yellow); }
+
+    .welcome-icon-wrap {
+      width: 68px; height: 68px; border-radius: 20px;
+      background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(168,85,247,0.1));
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 1.5rem; color: var(--accent-light);
+    }
+    .welcome-icon-wrap .svg-icon { width: 30px; height: 30px; }
+
+    .qa-icon-wrap {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 0.6rem;
+    }
+    .qa-icon-wrap .svg-icon { width: 18px; height: 18px; }
+    .qa-icon-wrap.draw { background: rgba(99,102,241,0.1); color: var(--accent-light); }
+    .qa-icon-wrap.write { background: rgba(245,158,11,0.1); color: var(--yellow); }
+    .qa-icon-wrap.gift { background: rgba(236,72,153,0.1); color: #f472b6; }
+    .qa-icon-wrap.status { background: rgba(16,185,129,0.1); color: var(--green); }
+
+    .msg-avatar {
+      width: 32px; height: 32px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .msg-avatar .svg-icon { width: 16px; height: 16px; }
+    .msg-avatar.ai { background: var(--bg-msg-ai); border: 1px solid var(--border); color: var(--accent-light); }
+    .msg-avatar.user { background: var(--bg-msg-user); border: 1px solid rgba(99,102,241,0.2); color: var(--accent-light); }
+
+    .sidebar-brand .logo {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.8rem; color: #fff;
+    }
+    .sidebar-brand .logo .svg-icon { width: 16px; height: 16px; color: #fff; stroke: #fff; }
+  </style>
+</head>
+<body>
+  <!-- SVG SPRITE (Lucide Icons - MIT) -->
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+    <symbol id="i-pen-tool" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M15.707 21.293a1 1 0 0 1-1.414 0l-1.586-1.586a1 1 0 0 1 0-1.414l5.586-5.586a1 1 0 0 1 1.414 0l1.586 1.586a1 1 0 0 1 0 1.414z"/><path d="m18 13-1.375-6.874a1 1 0 0 0-.746-.776L3.235 2.028a1 1 0 0 0-1.207 1.207L5.35 15.879a1 1 0 0 0 .776.746L13 18"/><path d="m2.3 2.3 7.286 7.286"/><circle cx="11" cy="11" r="2"/>
+    </symbol>
+    <symbol id="i-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>
+    </symbol>
+    <symbol id="i-message-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/>
+    </symbol>
+    <symbol id="i-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2M20 14h2M15 13v2M9 13v2"/>
+    </symbol>
+    <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+    </symbol>
+    <symbol id="i-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4M22 4h-4"/><circle cx="4" cy="20" r="2"/>
+    </symbol>
+    <symbol id="i-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+    </symbol>
+    <symbol id="i-gift" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 7v14"/><path d="M20 11v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="M7.5 7a1 1 0 0 1 0-5A4.8 8 0 0 1 12 7a4.8 8 0 0 1 4.5-5 1 1 0 0 1 0 5"/><rect x="3" y="7" width="18" height="4" rx="1"/>
+    </symbol>
+    <symbol id="i-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="4" y="4" width="16" height="16" rx="2"/><rect x="8" y="8" width="8" height="8" rx="1"/><path d="M12 20v2M12 2v2M17 20v2M17 2v2M7 20v2M7 2v2M2 12h2M2 17h2M2 7h2M20 12h2M20 17h2M20 7h2"/>
+    </symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 12h14M12 5v14"/>
+    </symbol>
+    <symbol id="i-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/>
+    </symbol>
+    <symbol id="i-rocket" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05"/><path d="M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z"/>
+    </symbol>
+  </svg>
+
+  <!-- SIDEBAR OVERLAY (mobile) -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <div class="logo">
+          <svg class="svg-icon"><use href="#i-sparkles"/></svg>
+        </div>
+        <div>
+          <h1>LiMa</h1>
+          <div class="sidebar-brand-sub">AI 智能设备云端</div>
+        </div>
+      </div>
+    </div>
+
+    <button class="new-chat-btn" onclick="newChat()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 12h14M12 5v14"/>
+      </svg>
+      新对话
+    </button>
+
+    <div class="sidebar-section">我的设备</div>
+    <div class="device-list" id="deviceList">
+      <div class="device-item active" onclick="selectDevice(this, 'LiMa AI')">
+        <div class="device-avatar ai-chat">
+          <svg class="svg-icon"><use href="#i-bot"/></svg>
+        </div>
+        <div class="device-info">
+          <div class="device-name">LiMa AI 助手</div>
+          <div class="device-status-text">
+            <span class="device-status-dot online"></span>
+            在线 · 随时对话
+          </div>
+        </div>
+      </div>
+      <div class="device-item" onclick="selectDevice(this, '绘图机')">
+        <div class="device-avatar draw">
+          <svg class="svg-icon"><use href="#i-pen-tool"/></svg>
+        </div>
+        <div class="device-info">
+          <div class="device-name">AI 绘图机</div>
+          <div class="device-status-text">
+            <span class="device-status-dot online"></span>
+            在线 · 待命中
+          </div>
+        </div>
+      </div>
+      <div class="device-item" onclick="selectDevice(this, '写字机')">
+        <div class="device-avatar write">
+          <svg class="svg-icon"><use href="#i-pencil"/></svg>
+        </div>
+        <div class="device-info">
+          <div class="device-name">AI 写字机</div>
+          <div class="device-status-text">
+            <span class="device-status-dot offline"></span>
+            未连接
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">历史记录</div>
+    <div class="chat-history" id="chatHistory">
+      <!-- Populated dynamically -->
+    </div>
+
+    <div class="sidebar-footer">
+      <a href="https://donglicao.com" target="_blank">donglicao.com</a>
+      &nbsp;·&nbsp;
+      <a href="/health" target="_blank">系统状态</a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="menu-toggle" onclick="toggleSidebar()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 5h16M4 12h16M4 19h16"/>
+          </svg>
+        </button>
+        <span class="topbar-title" id="topbarTitle">LiMa AI 助手</span>
+        <span class="topbar-badge" id="topbarBadge">在线</span>
+      </div>
+      <div class="topbar-right">
+        <button class="topbar-btn" onclick="showApiInfo()">API 接入</button>
+        <button class="topbar-btn" onclick="window.open('https://donglicao.com','_blank')">官网</button>
+      </div>
+    </div>
+
+    <div class="chat-area" id="chatArea">
+      <div class="chat-inner" id="chatInner">
+        <!-- WELCOME -->
+        <div class="welcome" id="welcomeScreen">
+          <div class="welcome-icon-wrap">
+            <svg class="svg-icon"><use href="#i-rocket"/></svg>
+          </div>
+          <h2>欢迎使用 LiMa 云端控制台</h2>
+          <p>我是 LiMa AI 助手，可以帮你控制绘图机、写字机，或者回答任何问题。试试下面的快捷指令：</p>
+          <div class="quick-actions">
+            <div class="quick-action" onclick="sendQuick('画一只可爱的猫咪')">
+              <div class="qa-icon-wrap draw"><svg class="svg-icon"><use href="#i-pen-tool"/></svg></div>
+              <div class="qa-title">画一只猫</div>
+              <div class="qa-desc">AI 生成 SVG，绘图机一笔成型</div>
+            </div>
+            <div class="quick-action" onclick="sendQuick('写一首关于春天的诗')">
+              <div class="qa-icon-wrap write"><svg class="svg-icon"><use href="#i-pencil"/></svg></div>
+              <div class="qa-title">写一首诗</div>
+              <div class="qa-desc">AI 创作 + 字体渲染，写字机执行</div>
+            </div>
+            <div class="quick-action" onclick="sendQuick('帮我画一个生日贺卡')">
+              <div class="qa-icon-wrap gift"><svg class="svg-icon"><use href="#i-gift"/></svg></div>
+              <div class="qa-title">生日贺卡</div>
+              <div class="qa-desc">定制个性化手绘贺卡</div>
+            </div>
+            <div class="quick-action" onclick="sendQuick('设备状态怎么样？')">
+              <div class="qa-icon-wrap status"><svg class="svg-icon"><use href="#i-cpu"/></svg></div>
+              <div class="qa-title">设备状态</div>
+              <div class="qa-desc">查看已连接设备的实时状态</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TYPING INDICATOR -->
+      <div class="chat-inner">
+        <div class="typing-indicator" id="typingIndicator">
+          <div class="typing-dots">
+            <span></span><span></span><span></span>
+          </div>
+          <span class="typing-text" id="typingText">LiMa 正在思考...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- INPUT -->
+    <div class="input-area">
+      <div class="input-inner">
+        <div class="input-wrapper">
+          <textarea class="input-field" id="inputField"
+            placeholder="说点什么... 比如 &quot;画一只猫&quot; 或 &quot;写一首诗&quot;"
+            rows="1"
+            onkeydown="handleKey(event)"
+            oninput="autoResize(this)"></textarea>
+        </div>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/>
+            <path d="m21.854 2.147-10.94 10.939"/>
+          </svg>
+        </button>
+      </div>
+      <div class="input-hint">
+        LiMa 智能设备云端 · 兼容 OpenAI API · <a href="https://donglicao.com" target="_blank" style="color:var(--accent-light);text-decoration:none;">donglicao.com</a>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // State
+    let messages = [];
+    let isStreaming = false;
+    const apiKey = localStorage.getItem('lima-api-key') || '';
+
+    // Elements
+    const chatArea = document.getElementById('chatArea');
+    const chatInner = document.getElementById('chatInner');
+    const welcomeScreen = document.getElementById('welcomeScreen');
+    const typingIndicator = document.getElementById('typingIndicator');
+    const typingText = document.getElementById('typingText');
+    const inputField = document.getElementById('inputField');
+    const sendBtn = document.getElementById('sendBtn');
+
+    // Auto-resize textarea
+    function autoResize(el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 150) + 'px';
+      sendBtn.disabled = !el.value.trim();
+    }
+
+    // Handle keyboard
+    function handleKey(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (inputField.value.trim()) sendMessage();
+      }
+    }
+
+    // Toggle sidebar (mobile)
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+      document.getElementById('sidebarOverlay').classList.toggle('open');
+    }
+
+    // Select device
+    function selectDevice(el, name) {
+      document.querySelectorAll('.device-item').forEach(d => d.classList.remove('active'));
+      el.classList.add('active');
+      document.getElementById('topbarTitle').textContent =
+        name === 'LiMa AI' ? 'LiMa AI 助手' : name;
+      // Close sidebar on mobile
+      if (window.innerWidth <= 768) toggleSidebar();
+    }
+
+    // New chat
+    function newChat() {
+      messages = [];
+      // Remove all messages
+      document.querySelectorAll('.message').forEach(m => m.remove());
+      welcomeScreen.style.display = 'flex';
+      if (window.innerWidth <= 768) toggleSidebar();
+    }
+
+    // Send quick action
+    function sendQuick(text) {
+      inputField.value = text;
+      sendMessage();
+    }
+
+    // Add message to UI
+    function addMessage(role, content, meta) {
+      if (welcomeScreen.style.display !== 'none') {
+        welcomeScreen.style.display = 'none';
+      }
+
+      const msg = document.createElement('div');
+      msg.className = `message ${role}`;
+
+      const avatarClass = role === 'user' ? 'user' : 'ai';
+      const avatarIcon = role === 'user'
+        ? '<svg class="svg-icon"><use href="#i-user"/></svg>'
+        : '<svg class="svg-icon"><use href="#i-bot"/></svg>';
+      const modelTag = meta?.model ? `<span class="msg-model">${meta.model}</span>` : '';
+      const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+
+      msg.innerHTML = `
+        <div class="msg-avatar ${avatarClass}">${avatarIcon}</div>
+        <div class="msg-body">
+          <div class="msg-bubble">${formatContent(content)}</div>
+          <div class="msg-meta">${modelTag}<span>${time}</span></div>
+        </div>
+      `;
+
+      // Insert before typing indicator's parent
+      chatInner.appendChild(msg);
+      scrollToBottom();
+      return msg;
+    }
+
+    // Format content (basic markdown)
+    function formatContent(text) {
+      return text
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n/g, '<br>');
+    }
+
+    // Scroll to bottom
+    function scrollToBottom() {
+      chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    // Show typing
+    function showTyping(text) {
+      typingText.textContent = text || 'LiMa 正在思考...';
+      typingIndicator.classList.add('active');
+      scrollToBottom();
+    }
+
+    function hideTyping() {
+      typingIndicator.classList.remove('active');
+    }
+
+    // Update last AI message (for streaming)
+    function updateLastMessage(text) {
+      const lastMsg = chatInner.querySelector('.message.ai:last-of-type .msg-bubble');
+      if (lastMsg) {
+        lastMsg.innerHTML = formatContent(text);
+        scrollToBottom();
+      }
+    }
+
+    // Send message
+    async function sendMessage() {
+      const text = inputField.value.trim();
+      if (!text || isStreaming) return;
+
+      isStreaming = true;
+      inputField.value = '';
+      inputField.style.height = 'auto';
+      sendBtn.disabled = true;
+
+      // Add user message
+      addMessage('user', text);
+      messages.push({ role: 'user', content: text });
+
+      // Show typing
+      showTyping('LiMa 正在思考...');
+
+      try {
+        const response = await fetch('/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': apiKey ? `Bearer ${apiKey}` : '',
+          },
+          body: JSON.stringify({
+            model: 'lima',
+            messages: messages,
+            stream: true,
+          }),
+        });
+
+        hideTyping();
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            const key = prompt('请输入 API Key:');
+            if (key) {
+              localStorage.setItem('lima-api-key', key);
+              location.reload();
+            }
+            addMessage('ai', '需要 API Key 才能继续。请在弹出的对话框中输入你的 Key，或联系管理员获取。');
+            isStreaming = false;
+            return;
+          }
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        // Stream response
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let fullText = '';
+        let modelName = '';
+
+        // Add empty AI message
+        addMessage('ai', '', { model: '...' });
+
+        let buffer = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const data = line.slice(6).trim();
+            if (data === '[DONE]') continue;
+
+            try {
+              const json = JSON.parse(data);
+              const delta = json.choices?.[0]?.delta?.content || '';
+              if (json.model) modelName = json.model;
+              fullText += delta;
+              updateLastMessage(fullText);
+            } catch (e) { /* skip malformed chunks */ }
+          }
+        }
+
+        // Update model tag
+        if (modelName) {
+          const modelTag = chatInner.querySelector('.message.ai:last-of-type .msg-model');
+          if (modelTag) modelTag.textContent = modelName;
+        }
+
+        messages.push({ role: 'assistant', content: fullText });
+
+        // Add to history
+        addToHistory(text);
+
+      } catch (err) {
+        hideTyping();
+        addMessage('ai', `抱歉，请求出现错误：${err.message}。请检查网络连接或 API Key 是否正确。`);
+      }
+
+      isStreaming = false;
+    }
+
+    // Add to sidebar history
+    function addToHistory(text) {
+      const history = document.getElementById('chatHistory');
+      const item = document.createElement('div');
+      item.className = 'history-item';
+      item.textContent = text;
+      item.onclick = () => {
+        inputField.value = text;
+        inputField.focus();
+      };
+      history.insertBefore(item, history.firstChild);
+      // Keep max 20 items
+      while (history.children.length > 20) {
+        history.removeChild(history.lastChild);
+      }
+    }
+
+    // API Info modal
+    function showApiInfo() {
+      const info = `LiMa API 接入指南
+
+端点: https://chat.donglicao.com/v1/chat/completions
+模型: lima
+协议: 兼容 OpenAI
+
+curl 示例:
+curl https://chat.donglicao.com/v1/chat/completions \\
+  -H "Authorization: Bearer YOUR_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"model":"lima","messages":[{"role":"user","content":"画一只猫"}]}'
+
+设备网关:
+POST /device/v1/tasks  - 提交设备任务
+WS   /device/v1/ws     - 设备 WebSocket`;
+      alert(info);
+    }
+
+    // Focus input on load
+    inputField.focus();
+  </script>
+</body>
+</html>
