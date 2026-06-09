@@ -4,6 +4,63 @@
 
 > Updated: 2026-06-09
 
+## 2026-06-09 capacity-aware deploy + JDCloud probe closeout
+
+**Goal:** make primary VPS deployment capacity-aware and turn the new JDCloud
+server into a real, bounded monitoring/probe asset.
+
+- Implementation:
+  - added primary VPS deploy preflight to `scripts/deploy_unified.py`;
+  - deploy preflight checks free disk under `/opt/lima-router` and
+    `MemAvailable`, with `LIMA_DEPLOY_MIN_FREE_MB=512` and
+    `LIMA_DEPLOY_MIN_MEM_MB=128` defaults;
+  - non-dry-run deploys now create a remote tar backup before SFTP upload and
+    print the rollback path;
+  - added `scripts/check_jdcloud_node.py`, a read-only JDCloud smoke command
+    that reports sanitized capacity, service state, and primary LiMa health;
+  - added focused deploy/JDCloud pytest coverage.
+- Local verification:
+  - touched `py_compile`: clean;
+  - focused pytest:
+    `tests/test_deploy_unified.py tests/test_jdcloud_node_check.py` ->
+    `10 passed`;
+  - `scripts/run_ruff_check.py`: clean;
+  - `git diff --check`: clean apart from Git CRLF normalization warnings;
+  - `scripts/run_pre_commit_check.py --full`:
+    `2074 passed, 10 skipped, 1 warning in 393.43s`;
+  - deploy dry-run:
+    `scripts/deploy_unified.py --dry-run --files scripts/deploy_unified.py`
+    listed one safe upload.
+- Primary VPS deploy and smoke:
+  - final no-restart helper deploy:
+    `scripts/deploy_unified.py --files scripts/deploy_unified.py scripts/check_jdcloud_node.py --no-restart`;
+  - capacity preflight reported `disk_free_mb=13685`,
+    `mem_available_mb=488`;
+  - rollback backup:
+    `/opt/lima-router/backups/unified-files-20260609_130457/runtime-before.tgz`;
+  - upload result: `2 uploaded, 0 failed, 0 skipped`;
+  - public `https://chat.donglicao.com/health` returned HTTP `200` and
+    `modules.telegram=false`.
+- JDCloud runtime evidence:
+  - read-only smoke before activation returned `ok=true`,
+    `chat_health_http_code=200`, `prometheus_service=active`,
+    `disk_free_mb=41266`, and `mem_available_mb=2308`;
+  - `lima-probe.timer` was enabled but inactive, then started and became
+    active; next run was reported as `Wed 2026-06-10 00:18:10 CST`;
+  - manual `systemctl start lima-probe.service` completed with
+    `status=0/SUCCESS`;
+  - discovery reported `37 new, 37 total known` and wrote
+    `/opt/lima-probe/data/discoveries.jsonl` plus `known_providers.json`;
+  - follow-up smoke returned `ok=true`, `lima_probe_timer=active`,
+    `lima_probe_service=inactive`, `prometheus_service=active`,
+    `disk_free_mb=41266`, and `mem_available_mb=1761`.
+- Residual risk:
+  - JDCloud browser helper requests to `http://127.0.0.1:8092/render` return
+    HTTP `500`; keep port `8092` private and debug the helper as a separate
+    small slice;
+  - JDCloud key auth is not configured locally yet, so unattended checks need
+    either SSH key setup or an operator-provided `JDCLOUD_SSH_PASSWORD`.
+
 ## 2026-06-09 pre-commit hook hygiene closeout
 
 **Goal:** stop local commits from hanging on the wrong full-suite command while

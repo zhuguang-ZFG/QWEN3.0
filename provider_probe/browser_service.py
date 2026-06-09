@@ -11,6 +11,7 @@ Usage:
 
 import logging
 import os
+import re
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
@@ -20,6 +21,7 @@ from pydantic import BaseModel
 logger = logging.getLogger("provider_probe.browser")
 
 BROWSER_PORT = int(os.environ.get("PROBE_BROWSER_PORT", "8092"))
+CHROMIUM_EXECUTABLE = os.environ.get("PROBE_CHROMIUM_EXECUTABLE")
 
 # ---------------------------------------------------------------------------
 # Pydantic models
@@ -64,6 +66,44 @@ _browser = None
 _playwright = None
 
 
+def _sanitize_error(message: str) -> str:
+    """Keep operator-visible errors useful without leaking local paths."""
+    lines = [line.strip() for line in message.splitlines() if line.strip()]
+    first_line = lines[0] if lines else "unknown error"
+    first_line = re.sub(
+        r"(/root|/home/[^/\s]+|[A-Za-z]:\\Users\\[^\\\s]+)[^\s'\"<]*",
+        "<redacted-path>",
+        first_line,
+    )
+    return first_line[:300]
+
+
+def _browser_error_detail(exc: Exception, *, phase: str) -> dict[str, object]:
+    return {
+        "ready": False,
+        "service": "probe-browser",
+        "phase": phase,
+        "error_class": type(exc).__name__,
+        "error": _sanitize_error(str(exc)),
+    }
+
+
+def _browser_launch_options() -> dict[str, object]:
+    options: dict[str, object] = {
+        "headless": True,
+        "args": [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+        ],
+    }
+    executable = os.environ.get("PROBE_CHROMIUM_EXECUTABLE") or CHROMIUM_EXECUTABLE
+    if executable:
+        options["executable_path"] = executable
+    return options
+
+
 async def _get_browser():
     global _browser, _playwright
     if _browser is None:
@@ -71,18 +111,19 @@ async def _get_browser():
             from playwright.async_api import async_playwright
 
             _playwright = await async_playwright().start()
-            _browser = await _playwright.chromium.launch(
-                headless=True,
-                args=[
-                    "--no-sandbox",
-                    "--disable-setuid-sandbox",
-                    "--disable-dev-shm-usage",
-                    "--disable-gpu",
-                ],
-            )
+            _browser = await _playwright.chromium.launch(**_browser_launch_options())
             logger.info("Browser launched")
         except ImportError:
-            raise HTTPException(status_code=500, detail="playwright not installed")
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "ready": False,
+                    "service": "probe-browser",
+                    "phase": "import",
+                    "error_class": "ImportError",
+                    "error": "playwright not installed",
+                },
+            )
     return _browser
 
 
@@ -117,32 +158,47 @@ async def health():
     return {"status": "ok", "service": "probe-browser"}
 
 
+@app.get("/ready")
+async def ready():
+    try:
+        await _get_browser()
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=_browser_error_detail(exc, phase="browser_launch"),
+        ) from exc
+    return {"ready": True, "service": "probe-browser"}
+
+
 @app.post("/render", response_model=RenderResponse)
 async def render_page(req: RenderRequest):
     """Render a page and return text content + optional screenshot."""
-    browser = await _get_browser()
-    context = await browser.new_context(
-        extra_http_headers=req.extra_http_headers or {},
-        user_agent=(
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/130.0.0.0 Safari/537.36"
-        ),
-    )
-    page = await context.new_page()
-
-    network_requests = []
-
-    async def _on_request(request):
-        network_requests.append({
-            "url": request.url,
-            "method": request.method,
-            "resource_type": request.resource_type,
-        })
-
-    page.on("request", _on_request)
+    context = None
 
     try:
+        browser = await _get_browser()
+        context = await browser.new_context(
+            extra_http_headers=req.extra_http_headers or {},
+            user_agent=(
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/130.0.0.0 Safari/537.36"
+            ),
+        )
+        page = await context.new_page()
+
+        network_requests = []
+
+        async def _on_request(request):
+            network_requests.append({
+                "url": request.url,
+                "method": request.method,
+                "resource_type": request.resource_type,
+            })
+
+        page.on("request", _on_request)
         response = await page.goto(req.url, wait_until="domcontentloaded", timeout=30000)
         await page.wait_for_timeout(req.wait_ms)
 
@@ -176,9 +232,17 @@ async def render_page(req: RenderRequest):
             network_requests=network_requests[-50:],
             screenshot_b64=screenshot_b64,
         )
+    except HTTPException:
+        raise
     except Exception as exc:
-        await context.close()
-        raise HTTPException(status_code=502, detail=f"Render failed: {exc}")
+        if context:
+            await context.close()
+        status_code = 503 if _browser is None else 502
+        phase = "browser_launch" if _browser is None else "render"
+        raise HTTPException(
+            status_code=status_code,
+            detail=_browser_error_detail(exc, phase=phase),
+        ) from exc
 
 
 @app.post("/extract", response_model=ExtractResponse)

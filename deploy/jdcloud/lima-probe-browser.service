@@ -11,6 +11,7 @@ ExecStart=/usr/bin/python3 /opt/lima-probe/browser_service.py
 Restart=always
 RestartSec=5
 Environment=PROBE_BROWSER_PORT=8092
+Environment=PROBE_CHROMIUM_EXECUTABLE=/usr/bin/google-chrome
 Environment=PYTHONUNBUFFERED=1
 
 # Security

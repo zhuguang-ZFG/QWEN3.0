@@ -1,510 +1,89 @@
-"""routes/tool_forward.py — Anthropic tool-call forwarding infrastructure.
-
-Handles tool_use requests from Claude Code / IDE clients:
-- Tier 1: OpenAI-compatible backends (fast, format-converted)
-- Tier 2: LongCat Anthropic-native backends (fallback)
-- OpenRouter DeepSeek R1 (legacy direct forward)
 """
+Tool forward - Simplified stub for strategic pivot.
 
-import os
-import sys
-import json
-import time
-import uuid
-import asyncio
+原 tool_forward.py 已删除（编码助手专属工具调用）。
+此文件提供最小占位符，避免大量修改 server.py。
+Phase 2 将重构为设备场景专用的工具调用（如有需要）。
+"""
+from __future__ import annotations
+
 import logging
+from typing import Any, AsyncIterator
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-import httpx as _httpx
-from converters.anthropic_format import (
-    convert_tools_anthropic_to_openai,
-    convert_messages_anthropic_to_openai,
-    inject_anthropic_body_preflight,
-    inject_anthropic_context_preflight,
-    convert_response_openai_to_anthropic,
-)
-
-TOOL_BACKEND_URL = "https://openrouter.ai/api/v1/chat/completions"
-TOOL_BACKEND_MODEL = "deepseek/deepseek-v4-flash:free"
-TOOL_BACKEND_KEY = os.environ.get("OPENROUTER_API_KEY", "")
-
-ANTHROPIC_NATIVE_BACKENDS = [
-    'longcat_chat', 'longcat', 'deepseek_free',
-    'longcat_lite', 'longcat_thinking', 'longcat_omni',
-]
-
-TOOL_TIER1_BACKENDS: list[str] = []
 _log = logging.getLogger(__name__)
 
-STRONG_CODING_TOOL_BACKENDS = {
-    "dashscope_coding",
-    "dashscope_coding_anthropic",
-    "github_gpt4o",
-    "github_gpt4o_code",
-    "github_codestral",
-    "mistral_large",
-    "mistral_large_code",
-    "mistral_devstral",
-    "mistral_codestral",
-    "or_gptoss_120b",
-    "or_gptoss_120b_code",
-    "cfai_qwen_coder",
-    "cfai_qwen_coder_code",
-    "cf_qwen_coder",
-    "scnet_large_ds_flash",
-    "scnet_large_ds_pro",
-    "scnet_qwen235b",
-    "scnet_qwen235b_code",
-    "scnet_ds_pro",
-    "scnet_ds_pro_code",
-    "ms_qwen35_27b_code",
-    "ms_kimi_k25_code",
-    "ms_deepseek_v4_code",
-    "ms_glm5_code",
-    "xfyun_astron",
-}
-LARGE_TOOL_PAYLOAD_BYTES = 25000
+# Constants
+TOOL_TIER1_BACKENDS = ["openrouter", "openai"]
+ANTHROPIC_NATIVE_BACKENDS = ["anthropic", "bedrock"]
 
-
-def _refresh_tool_tiers() -> None:
-    """Dynamically discover tool-call-capable backends from registry."""
-    import importlib
-    try:
-        reg = importlib.import_module("backends_registry")
-    except ImportError:
-        return
-    tier1 = []
-    for name, cfg in getattr(reg, "BACKENDS", {}).items():
-        caps = set(cfg.get("caps", []))
-        if "tool_calls" not in caps:
-            continue
-        if cfg.get("fmt") == "anthropic":
-            if name not in ANTHROPIC_NATIVE_BACKENDS:
-                ANTHROPIC_NATIVE_BACKENDS.append(name)
-        elif cfg.get("fmt") == "openai":
-            tier1.append(name)
-    tier1 = _rank_tool_tier(tier1)
-    TOOL_TIER1_BACKENDS[:] = tier1
-
-
-_record_request_fn = None
+# State
+_record_request = None
 _model_id = "lima-1.3"
 
 
-def inject_state(record_fn, model_id: str):
-    global _record_request_fn, _model_id
-    _record_request_fn = record_fn
+def inject_state(record_request: Any, model_id: str) -> None:
+    """注入状态（占位符）"""
+    global _record_request, _model_id
+    _record_request = record_request
     _model_id = model_id
 
 
-def _record_backend_attempt(**kwargs) -> None:
-    try:
-        from observability.backend_telemetry import record_backend_attempt
-
-        record_backend_attempt(**kwargs)
-    except ImportError:
-        _log.debug("observability.backend_telemetry not installed; backend telemetry skipped")
-
-
-def _tool_backend_selectable(name: str) -> bool:
-    """Configured, healthy tool backends suitable for IDE tool forwarding."""
-    import health_tracker as _ht
-    from backends import BACKENDS
-    import route_scorer as _rs
-
-    if not BACKENDS.get(name, {}).get("key"):
-        return False
-    if _ht.is_cooled_down(name):
-        return False
-    state = _ht.get_backend_state(name)
-    return _rs.is_selectable(name, "ide", state)
+async def anthropic_native_forward(body: dict[str, Any]) -> dict[str, Any]:
+    """Anthropic 原生转发（占位符）"""
+    # TODO Phase 2: 实现设备场景的工具调用（如有需要）
+    _log.warning("[STUB] anthropic_native_forward called")
+    return {
+        "type": "error",
+        "error": {
+            "type": "not_implemented",
+            "message": "Tool calls not implemented in device mode",
+        },
+    }
 
 
-def pick_tool_backend(tier: list):
-    """从候选列表中按声明顺序选第一个健康后端。"""
-    for n in tier:
-        if _tool_backend_selectable(n):
-            return n
+async def anthropic_native_stream(body: dict[str, Any]) -> AsyncIterator[str]:
+    """Anthropic 原生流式转发（占位符）"""
+    # TODO Phase 2: 实现设备场景的工具调用（如有需要）
+    _log.warning("[STUB] anthropic_native_stream called")
+    yield 'data: {"type":"error","error":{"type":"not_implemented","message":"Tool stream not implemented"}}\n\n'
+
+
+async def simulate_anthropic_sse(response: dict[str, Any]) -> AsyncIterator[str]:
+    """模拟 Anthropic SSE（占位符）"""
+    # TODO Phase 2: 实现设备场景的 SSE（如有需要）
+    _log.warning("[STUB] simulate_anthropic_sse called")
+    yield 'data: {"type":"error","error":{"type":"not_implemented","message":"SSE not implemented"}}\n\n'
+
+
+async def tool_call_forward(body: dict[str, Any]) -> dict[str, Any]:
+    """工具调用转发（占位符）"""
+    # TODO Phase 2: 实现设备场景的工具调用（如有需要）
+    _log.warning("[STUB] tool_call_forward called")
+    return {
+        "error": {
+            "message": "Tool calls not implemented in device mode",
+            "type": "not_implemented",
+        }
+    }
+
+
+async def tool_call_stream(body: dict[str, Any]) -> AsyncIterator[str]:
+    """工具调用流式转发（占位符）"""
+    # TODO Phase 2: 实现设备场景的工具调用（如有需要）
+    _log.warning("[STUB] tool_call_stream called")
+    yield 'data: {"error":{"message":"Tool stream not implemented","type":"not_implemented"}}\n\n'
+
+
+def pick_tool_backend(backend_enabled: dict[str, bool]) -> str | None:
+    """选择工具后端（占位符）"""
+    # TODO Phase 2: 实现设备场景的后端选择（如有需要）
+    for backend in TOOL_TIER1_BACKENDS:
+        if backend_enabled.get(backend, False):
+            return backend
     return None
 
 
-def iter_tool_backends(tier: list):
-    """Yield configured, non-cooled tool backends once per request."""
-    for n in tier:
-        if _tool_backend_selectable(n):
-            yield n
-
-
-def _has_real_key(cfg: dict) -> bool:
-    return cfg.get("key", "") not in ("", "none", "YOUR_KEY_HERE")
-
-
-def _is_strong_coding_tool_backend(name: str, cfg: dict | None = None) -> bool:
-    cfg = cfg or {}
-    return (
-        name in STRONG_CODING_TOOL_BACKENDS
-        or name.endswith("_code")
-        or cfg.get("admission") == "code_medium_candidate"
-        or cfg.get("private_code_allowed") is True
-        or "code" in cfg.get("caps", [])
-    )
-
-
-def _rank_tool_tier(tier: list, *, body_size: int = 0) -> list:
-    """Prefer proven coding-tool backends for large repo/tool payloads."""
-    from backends import BACKENDS
-
-    large_payload = body_size >= LARGE_TOOL_PAYLOAD_BYTES
-
-    def _key(name: str) -> tuple[int, int, int, int, str]:
-        cfg = BACKENDS.get(name, {})
-        strong = _is_strong_coding_tool_backend(name, cfg)
-        timeout = int(cfg.get("timeout", 30) or 30)
-        if not large_payload:
-            return (
-                0 if _has_real_key(cfg) else 1,
-                timeout,
-                0 if strong else 1,
-                0,
-                name,
-            )
-        return (
-            0 if _has_real_key(cfg) else 1,
-            0 if strong else 1,
-            timeout,
-            0,
-            name,
-        )
-
-    return sorted(tier, key=_key)
-
-
-_refresh_tool_tiers()
-
-
-async def anthropic_native_forward(body: dict) -> dict:
-    """分层 tool 路由：第一梯队 OpenAI 格式(快) → 第二梯队 LongCat 原生(兜底)。"""
-    return await asyncio.to_thread(anthropic_native_forward_sync, body)
-
-
-def anthropic_native_forward_sync(body: dict) -> dict:
-    """同步版本，在线程池中执行。"""
-    from http_caller import call_raw, BackendError
-    from backends import BACKENDS
-    import health_tracker as _ht
-
-    body_size = len(json.dumps(body, ensure_ascii=False))
-    skip_tier1 = body_size > 100000
-
-    openai_tools = convert_tools_anthropic_to_openai(body.get("tools", []))
-    openai_msgs = convert_messages_anthropic_to_openai(body.get("messages", []))
-    inject_anthropic_context_preflight(openai_msgs, body)
-    inject_anthropic_body_preflight(body, openai_msgs)
-
-    if not skip_tier1:
-        ranked_tier1 = _rank_tool_tier(TOOL_TIER1_BACKENDS, body_size=body_size)
-        for name in iter_tool_backends(ranked_tier1):
-            b = BACKENDS[name]
-            msgs = list(openai_msgs)
-            # Inject JSON tool prompt for backends that output tools as text
-            if name in _TEXT_TOOL_BACKENDS:
-                msgs.insert(0, {"role": "system", "content": _TEXT_TOOL_SYSTEM_PROMPT})
-            req_body = {"model": b["model"], "messages": msgs,
-                "tools": openai_tools, "max_tokens": body.get("max_tokens", 4096),
-                "tool_choice": "auto"}
-            if name.startswith("aliyun"):
-                req_body["enable_thinking"] = False
-            payload = json.dumps(req_body, ensure_ascii=False).encode()
-            started = time.time()
-            try:
-                data = call_raw(name, payload)
-                # Text→tool extraction for backends that output JSON-as-text
-                if name in _TEXT_TOOL_BACKENDS:
-                    data = _extract_text_tools_from_response(data)
-                _record_backend_attempt(
-                    backend=name, scenario="coding", request_type="tool_use",
-                    success=True, latency_ms=(time.time() - started) * 1000,
-                    tools_requested=True, phase="tool_forward",
-                    attempt="tier1_openai", model=b.get("model", ""),
-                )
-                return convert_response_openai_to_anthropic(data, b["model"])
-            except BackendError as exc:
-                _ht.record_failure(name, error_code=exc.status_code)
-                _record_backend_attempt(
-                    backend=name, scenario="coding", request_type="tool_use",
-                    success=False, latency_ms=(time.time() - started) * 1000,
-                    tools_requested=True, status_code=exc.status_code,
-                    error=str(exc), phase="tool_forward",
-                    attempt="tier1_openai", model=b.get("model", ""),
-                )
-                continue
-            except Exception as exc:
-                code = getattr(exc, "code", None) or getattr(exc, "status", None) or 500
-                _ht.record_failure(name, error_code=code)
-                _record_backend_attempt(
-                    backend=name, scenario="coding", request_type="tool_use",
-                    success=False, latency_ms=(time.time() - started) * 1000,
-                    tools_requested=True, status_code=code, error=str(exc),
-                    phase="tool_forward", attempt="tier1_openai",
-                    model=b.get("model", ""),
-                )
-                continue
-
-    # Tier 2: LongCat Anthropic native
-    import urllib.request as _ur
-    for _attempt in range(2):
-        name = pick_tool_backend(ANTHROPIC_NATIVE_BACKENDS)
-        if not name:
-            break
-        b = BACKENDS[name]
-        fwd = dict(body)
-        fwd["model"] = b["model"]
-        payload = json.dumps(fwd, ensure_ascii=False).encode()
-        started = time.time()
-        try:
-            headers = {"Content-Type": "application/json",
-                       "anthropic-version": "2023-06-01"}
-            if b.get("auth") == "bearer":
-                headers["Authorization"] = f"Bearer {b['key']}"
-            else:
-                headers["x-api-key"] = b["key"]
-            req = _ur.Request(b["url"], data=payload, headers=headers)
-            with _ur.urlopen(req, timeout=60) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-            _ht.record_success(name, 0)
-            _record_backend_attempt(
-                backend=name, scenario="coding", request_type="tool_use",
-                success=True, latency_ms=(time.time() - started) * 1000,
-                tools_requested=True, phase="tool_forward",
-                attempt="tier2_native", model=b.get("model", ""),
-            )
-            return data
-        except Exception as e:
-            code = getattr(e, 'code', None) or getattr(e, 'status', None) or 500
-            _ht.record_failure(name, error_code=code)
-            _record_backend_attempt(
-                backend=name, scenario="coding", request_type="tool_use",
-                success=False, latency_ms=(time.time() - started) * 1000,
-                tools_requested=True, status_code=code, error=str(e),
-                phase="tool_forward", attempt="tier2_native",
-                model=b.get("model", ""),
-            )
-            continue
-
-    return {"type": "error", "error": {"type": "api_error",
-            "message": "All tool backends exhausted"}}
-
-
-def _stream_deps() -> dict:
-    from backends import BACKENDS
-    import health_tracker as _ht
-
-    return {
-        "BACKENDS": BACKENDS,
-        "health_tracker": _ht,
-        "iter_tool_backends": iter_tool_backends,
-        "pick_tool_backend": pick_tool_backend,
-        "rank_tool_tier": _rank_tool_tier,
-        "TOOL_TIER1_BACKENDS": TOOL_TIER1_BACKENDS,
-        "ANTHROPIC_NATIVE_BACKENDS": ANTHROPIC_NATIVE_BACKENDS,
-        "simulate_anthropic_sse": simulate_anthropic_sse,
-    }
-
-
-async def anthropic_native_stream(body: dict):
-    """分层 tool 流式路由：第一梯队 OpenAI(快) → 第二梯队 LongCat(兜底)。"""
-    from routes.tool_forward_stream import anthropic_native_stream as _stream
-
-    async for chunk in _stream(body, _stream_deps()):
-        yield chunk
-
-
-def simulate_anthropic_sse(result: dict):
-    """把完整的 Anthropic 响应转为 SSE 事件流。"""
-    msg_id = result.get("id", "msg_" + uuid.uuid4().hex[:12])
-    model = result.get("model", "lima-1.3")
-    yield f"event: message_start\ndata: {json.dumps({'type':'message_start','message':{'id':msg_id,'type':'message','role':'assistant','model':model,'content':[],'stop_reason':None,'usage':{'input_tokens':0,'output_tokens':0}}})}\n\n"
-    for i, block in enumerate(result.get("content", [])):
-        if block.get("type") == "text":
-            yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':i,'content_block':{'type':'text','text':''}})}\n\n"
-            text = block.get("text", "")
-            for j in range(0, len(text), 40):
-                yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':i,'delta':{'type':'text_delta','text':text[j:j+40]}}, ensure_ascii=False)}\n\n"
-            yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':i})}\n\n"
-        elif block.get("type") == "tool_use":
-            yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':i,'content_block':{'type':'tool_use','id':block['id'],'name':block['name'],'input':{}}})}\n\n"
-            yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':i,'delta':{'type':'input_json_delta','partial_json':json.dumps(block.get('input',{}), ensure_ascii=False)}})}\n\n"
-            yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':i})}\n\n"
-    stop_reason = result.get("stop_reason", "end_turn")
-    yield f"event: message_delta\ndata: {json.dumps({'type':'message_delta','delta':{'stop_reason':stop_reason},'usage':result.get('usage',{})})}\n\n"
-    yield f"event: message_stop\ndata: {json.dumps({'type':'message_stop'})}\n\n"
-
-
-async def tool_call_forward(body: dict) -> dict:
-    """Forward tool call request via OpenRouter."""
-    openai_tools = convert_tools_anthropic_to_openai(body["tools"])
-    openai_messages = convert_messages_anthropic_to_openai(body["messages"])
-    inject_anthropic_context_preflight(openai_messages, body)
-    inject_anthropic_body_preflight(body, openai_messages)
-
-    payload = {
-        "model": TOOL_BACKEND_MODEL,
-        "messages": openai_messages,
-        "tools": openai_tools,
-        "max_tokens": body.get("max_tokens", 4096),
-    }
-
-    t0 = time.time()
-    try:
-        async with _httpx.AsyncClient(timeout=120) as client:
-            resp = await client.post(
-                TOOL_BACKEND_URL,
-                headers={
-                    "Authorization": f"Bearer {TOOL_BACKEND_KEY}",
-                    "Content-Type": "application/json",
-                },
-                json=payload,
-            )
-            openai_resp = resp.json()
-    except Exception as e:
-        _record_backend_attempt(
-            backend="openrouter_tool_direct", scenario="coding",
-            request_type="tool_use", success=False,
-            latency_ms=(time.time() - t0) * 1000, tools_requested=True,
-            error=str(e), phase="tool_forward", attempt="legacy_direct",
-            model=TOOL_BACKEND_MODEL,
-        )
-        return {
-            "id": f"msg_{uuid.uuid4().hex[:24]}",
-            "type": "message", "role": "assistant",
-            "model": body.get("model", _model_id),
-            "content": [{"type": "text", "text": f"[Tool backend error: {e}]"}],
-            "stop_reason": "end_turn", "stop_sequence": None,
-            "usage": {"input_tokens": 0, "output_tokens": 0},
-        }
-
-    duration_ms = int((time.time() - t0) * 1000)
-    if _record_request_fn:
-        _record_request_fn("tool_call", TOOL_BACKEND_MODEL, "tool_use", duration_ms, True)
-
-    if "error" in openai_resp:
-        err_msg = openai_resp["error"].get("message", str(openai_resp["error"]))
-        _record_backend_attempt(
-            backend="openrouter_tool_direct", scenario="coding",
-            request_type="tool_use", success=False, latency_ms=duration_ms,
-            tools_requested=True, error=err_msg, phase="tool_forward",
-            attempt="legacy_direct", model=TOOL_BACKEND_MODEL,
-        )
-        return {
-            "id": f"msg_{uuid.uuid4().hex[:24]}",
-            "type": "message", "role": "assistant",
-            "model": body.get("model", _model_id),
-            "content": [{"type": "text", "text": f"[Tool backend error: {err_msg}]"}],
-            "stop_reason": "end_turn", "stop_sequence": None,
-            "usage": {"input_tokens": 0, "output_tokens": 0},
-        }
-
-    _record_backend_attempt(
-        backend="openrouter_tool_direct", scenario="coding",
-        request_type="tool_use", success=True, latency_ms=duration_ms,
-        tools_requested=True, phase="tool_forward",
-        attempt="legacy_direct", model=TOOL_BACKEND_MODEL,
-    )
-    return convert_response_openai_to_anthropic(
-        openai_resp, body.get("model", _model_id)
-    )
-
-
-async def tool_call_stream(body: dict):
-    """Tool call streaming response (waits for full response, then simulates SSE)."""
-    result = await tool_call_forward(body)
-    msg_id = result["id"]
-    model = result["model"]
-
-    yield f"event: message_start\ndata: {json.dumps({'type':'message_start','message':{'id':msg_id,'type':'message','role':'assistant','model':model,'content':[],'stop_reason':None,'stop_sequence':None,'usage':{'input_tokens':0,'output_tokens':0}}})}\n\n"
-
-    for i, block in enumerate(result.get("content", [])):
-        if block["type"] == "text":
-            yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':i,'content_block':{'type':'text','text':''}})}\n\n"
-            text = block["text"]
-            for j in range(0, len(text), 40):
-                chunk = text[j:j+40]
-                yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':i,'delta':{'type':'text_delta','text':chunk}}, ensure_ascii=False)}\n\n"
-                await asyncio.sleep(0.01)
-            yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':i})}\n\n"
-        elif block["type"] == "tool_use":
-            yield f"event: content_block_start\ndata: {json.dumps({'type':'content_block_start','index':i,'content_block':{'type':'tool_use','id':block['id'],'name':block['name'],'input':{}}})}\n\n"
-            input_json = json.dumps(block["input"], ensure_ascii=False)
-            yield f"event: content_block_delta\ndata: {json.dumps({'type':'content_block_delta','index':i,'delta':{'type':'input_json_delta','partial_json':input_json}})}\n\n"
-            yield f"event: content_block_stop\ndata: {json.dumps({'type':'content_block_stop','index':i})}\n\n"
-
-    stop_reason = result.get("stop_reason", "end_turn")
-    usage = result.get("usage", {"input_tokens": 0, "output_tokens": 0})
-    yield f"event: message_delta\ndata: {json.dumps({'type':'message_delta','delta':{'stop_reason':stop_reason,'stop_sequence':None},'usage':usage})}\n\n"
-    yield f"event: message_stop\ndata: {json.dumps({'type':'message_stop'})}\n\n"
-
-
-# ── Text → Tool Call Extraction ───────────────────────────────────────────────
-
-from text_tool_extractor import (
-    TEXT_TOOL_BACKENDS as _TEXT_TOOL_BACKENDS,
-    TEXT_TOOL_SYSTEM_PROMPT as _TEXT_TOOL_SYSTEM_PROMPT,
-)
-
-
-def _extract_text_tools_from_response(data: dict) -> dict:
-    """Extract tool calls from text content in OpenAI API response.
-
-    When a backend outputs tool calls as JSON text instead of using the
-    tool_calls protocol, parse them from the content and add to the response.
-    """
-    import re as _re
-    import uuid as _uuid
-
-    choices = data.get("choices", [])
-    if not choices:
-        return data
-
-    message = choices[0].get("message", {})
-    if message.get("tool_calls"):
-        return data  # Already has proper tool_calls
-
-    content = message.get("content", "") or ""
-    if not content:
-        return data
-
-    # Pattern 1: ```json ... ``` code blocks
-    json_block = _re.compile(r"```json\s*\n?(.*?)\n?```", _re.DOTALL | _re.IGNORECASE)
-    tool_calls = []
-    cleaned = content
-
-    for match in json_block.finditer(content):
-        try:
-            parsed = json.loads(match.group(1).strip())
-        except (json.JSONDecodeError, ValueError):
-            continue
-        if isinstance(parsed, dict):
-            parsed = [parsed]
-        if not isinstance(parsed, list):
-            continue
-        for item in parsed:
-            name = item.get("name", "")
-            args = item.get("arguments", {})
-            if not name:
-                continue
-            if isinstance(args, dict):
-                args = json.dumps(args, ensure_ascii=False)
-            tool_calls.append({
-                "id": f"call_{_uuid.uuid4().hex[:24]}",
-                "type": "function",
-                "function": {"name": name, "arguments": args},
-            })
-        cleaned = cleaned.replace(match.group(0), "")
-
-    if tool_calls:
-        message["tool_calls"] = tool_calls
-        message["content"] = _re.sub(r"\n{3,}", "\n\n", cleaned).strip() or None
-        choices[0]["finish_reason"] = "tool_calls"
-
-    return data
+def iter_tool_backends(backend_enabled: dict[str, bool]) -> list[str]:
+    """迭代工具后端（占位符）"""
+    # TODO Phase 2: 实现设备场景的后端迭代（如有需要）
+    return [b for b in TOOL_TIER1_BACKENDS if backend_enabled.get(b, False)]

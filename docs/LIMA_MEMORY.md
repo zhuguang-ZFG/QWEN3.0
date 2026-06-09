@@ -1,6 +1,6 @@
 # LiMa Memory
 
-> **Updated: 2026-06-09 (Prometheus metrics hardening closeout)**
+> **Updated: 2026-06-09 (capacity-aware deploy + JDCloud probe closeout)**
 > **Branch:** `feat/kilo-provider-probe` - **HEAD:** pending closeout push
 > **Latest authority:** `STATUS.md`, `progress.md`, `findings.md`, `docs/DOCUMENTATION_STATUS.md`
 
@@ -96,6 +96,42 @@
   cookies/sessions, and scratch scripts are ignored and must not be staged.
 - `.codegraph/daemon.pid` is no longer tracked; CodeGraph PID/database/log
   files are local runtime state.
+- New read-only smoke:
+  - `scripts/check_jdcloud_node.py --json` reports sanitized capacity/service
+    state and primary `chat.donglicao.com/health` reachability;
+  - key-based JDCloud SSH is not configured from this workstation yet, so the
+    script needs an operator-provided `JDCLOUD_SSH_PASSWORD` until key auth is
+    set up.
+- Runtime activation evidence:
+  - `lima-probe.timer` is active after manual start;
+  - manual `lima-probe.service` exited `status=0/SUCCESS`;
+  - discovery reported `37 new, 37 total known`;
+  - latest follow-up smoke returned `ok=true`, `chat_health_http_code=200`,
+    `prometheus_service=active`, `lima_probe_timer=active`,
+    `disk_free_mb=41266`, `mem_available_mb=1761`.
+- Residual JDCloud issue:
+  browser-backed discovery calls to loopback `127.0.0.1:8092/render` return
+  HTTP `500`; do not expose that port while debugging the helper.
+
+## 2026-06-09 Capacity-Aware Deploy Snapshot
+
+- `scripts/deploy_unified.py` now checks primary VPS disk and memory before
+  non-dry-run upload.
+- Defaults:
+  - `LIMA_DEPLOY_MIN_FREE_MB=512`;
+  - `LIMA_DEPLOY_MIN_MEM_MB=128`.
+- Non-dry-run deploys create a pre-upload tar backup under
+  `/opt/lima-router/backups/<label>-YYYYMMDD_HHMMSS/runtime-before.tgz`.
+- Final helper upload evidence:
+  - backup:
+    `/opt/lima-router/backups/unified-files-20260609_130457/runtime-before.tgz`;
+  - capacity: `disk_free_mb=13685`, `mem_available_mb=488`;
+  - result: `2 uploaded, 0 failed, 0 skipped`;
+  - public `chat.donglicao.com/health` returned HTTP `200`.
+- Verification:
+  - focused deploy/JDCloud pytest: `10 passed`;
+  - `scripts/run_pre_commit_check.py --full`:
+    `2074 passed, 10 skipped, 1 warning`.
 
 ## 2026-06-09 Pre-Commit Hook Snapshot
 

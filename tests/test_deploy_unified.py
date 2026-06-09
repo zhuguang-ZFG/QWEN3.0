@@ -90,6 +90,29 @@ class _RestartSsh:
         self.closed = True
 
 
+class _PrepareSsh:
+    def __init__(self) -> None:
+        self.commands: list[str] = []
+        self.closed = False
+
+    def load_system_host_keys(self) -> None:
+        pass
+
+    def connect(self, *args: object, **kwargs: object) -> None:
+        pass
+
+    def exec_command(self, command: str) -> tuple[None, _Stream, _Stream]:
+        self.commands.append(command)
+        if "df -Pm" in command:
+            return None, _Stream("disk_free_mb=2048\nmem_available_mb=512\n"), _Stream()
+        if "tar --ignore-failed-read" in command:
+            return None, _Stream("/opt/lima-router/backups/unit-test-20260609_010203/runtime-before.tgz\n"), _Stream()
+        return None, _Stream(), _Stream()
+
+    def close(self) -> None:
+        self.closed = True
+
+
 def test_deploy_files_uses_sftp_dirs_without_exec_channels(monkeypatch):
     sftp = _Sftp()
     ssh = _DeploySsh(sftp)
@@ -134,4 +157,44 @@ def test_restart_server_uses_systemd_and_polls_health(monkeypatch):
     assert "pkill" not in joined
     assert "nohup" not in joined
     assert any(command.startswith("curl ") for command in ssh.commands)
+    assert ssh.closed is True
+
+
+def test_parse_capacity_output():
+    capacity = deploy_unified.parse_capacity_output("disk_free_mb=2048\nmem_available_mb=512\n")
+
+    assert capacity == {"disk_free_mb": 2048, "mem_available_mb": 512}
+
+
+def test_capacity_result_rejects_low_disk_or_memory():
+    low_disk = deploy_unified.capacity_result(
+        {"disk_free_mb": 128, "mem_available_mb": 512},
+        min_free_mb=512,
+        min_mem_mb=128,
+    )
+    low_mem = deploy_unified.capacity_result(
+        {"disk_free_mb": 2048, "mem_available_mb": 64},
+        min_free_mb=512,
+        min_mem_mb=128,
+    )
+
+    assert low_disk["ok"] is False
+    assert "disk" in low_disk["reason"]
+    assert low_mem["ok"] is False
+    assert "memory" in low_mem["reason"]
+
+
+def test_prepare_remote_deploy_checks_capacity_and_creates_backup(monkeypatch):
+    ssh = _PrepareSsh()
+    monkeypatch.setattr(deploy_unified.paramiko, "SSHClient", lambda: ssh)
+    monkeypatch.setattr(deploy_unified, "configure_ssh_host_keys", lambda client: None)
+    monkeypatch.setattr(deploy_unified.time, "strftime", lambda fmt: "20260609_010203")
+
+    result = deploy_unified.prepare_remote_deploy(["server.py"], label="unit test")
+
+    assert result["ok"] is True
+    assert result["capacity"] == {"disk_free_mb": 2048, "mem_available_mb": 512}
+    assert result["backup_path"] == "/opt/lima-router/backups/unit-test-20260609_010203/runtime-before.tgz"
+    assert any("df -Pm" in command for command in ssh.commands)
+    assert any("tar --ignore-failed-read" in command for command in ssh.commands)
     assert ssh.closed is True

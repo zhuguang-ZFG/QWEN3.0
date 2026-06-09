@@ -1,11 +1,38 @@
 # LiMa Status
 
-> Updated: 2026-06-09 (Prometheus metrics hardening closeout)
+> **⚠️ 战略转型中**: LiMa 从"个人编码助手后端" → "AI 智能设备统一云端服务"（2026-06-09 启动）
+> **转型文档**: [`docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md`](docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md)
+> **Phase 0 启动**: [`docs/superpowers/plans/2026-06-09-phase0-strategic-confirmation.md`](docs/superpowers/plans/2026-06-09-phase0-strategic-confirmation.md)
+
+> Updated: 2026-06-09 (capacity-aware deploy + JDCloud probe activation closeout)
 > Branch: `feat/kilo-provider-probe`
-> Tests: Prometheus focused ops suite **28 passed**; deploy helper focused **6 passed**; `run_pre_commit_check.py --full` **2067 passed, 10 skipped, 1 warning**; touched `py_compile`, ruff, diff check, and focused pyright clean (`0 errors`)
-> Current VPS: Prometheus metrics hardening deployed; VPS-local `/health=200`; VPS-local authenticated `/v1/ops/metrics/prometheus=200`; public `chat.donglicao.com` authenticated Prometheus scrape `200`; public `model=code` chat returns `prometheus_smoke_ok`; `/telegram/webhook` remains `404`
-> VPS rollback: `/opt/lima-router/backups/prometheus-metrics-20260609_120036/runtime-before.tgz`
-> Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
+> Tests: deploy/JDCloud focused **10 passed**; touched `py_compile` clean; tracked ruff clean; `git diff --check` clean except CRLF warnings; `run_pre_commit_check.py --full` **2074 passed, 10 skipped, 1 warning**
+> Current VPS: capacity-aware `scripts/deploy_unified.py` uploaded final helper scripts with no restart; preflight reported `disk_free_mb=13685`, `mem_available_mb=488`; public `chat.donglicao.com/health=200`; `/health` still reports `telegram=false`
+> VPS rollback: `/opt/lima-router/backups/unified-files-20260609_130457/runtime-before.tgz`
+> Strategic Pivot Plan: [`docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md`](docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md)
+
+## 🚀 2026-06-09 LiMa 战略转型启动
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| 转型决策 | ✅ 已确认 | 用户确认执行战略转型，从"编码助手" → "智能设备服务端" |
+| Phase 0 文档 | ✅ 完成 | 生成战略分析、Phase 0 启动文档、Phase 0 Checklist |
+| 核心文档更新 | 🔄 进行中 | README.md / CLAUDE.md / STATUS.md 已更新产品定位 |
+| 任务追踪 | ✅ 创建 | 创建 6 个任务追踪转型进度 |
+| 待办事项 | 📋 本周 | Day 2: 文档更新 + 依赖安装；Day 3-5: Schema 设计 + 协议扩展 + 技术选型 |
+
+## 2026-06-09 Capacity-Aware Deploy + JDCloud Probe Closeout
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| Primary VPS deploy preflight | Done | `scripts/deploy_unified.py` now checks remote disk and `MemAvailable` before non-dry-run upload; defaults are `LIMA_DEPLOY_MIN_FREE_MB=512` and `LIMA_DEPLOY_MIN_MEM_MB=128` |
+| Automatic backup | Done | Final no-restart helper upload printed backup `/opt/lima-router/backups/unified-files-20260609_130457/runtime-before.tgz` before SFTP upload |
+| Primary VPS smoke | Done | Final upload reported `2 uploaded, 0 failed, 0 skipped`; public `https://chat.donglicao.com/health` returned HTTP `200` and `modules.telegram=false` |
+| JDCloud read-only smoke | Done | `scripts/check_jdcloud_node.py --json` reports sanitized capacity/service state; activated follow-up returned `ok=true`, `chat_health_http_code=200`, `prometheus_service=active`, `lima_probe_timer=active`, `disk_free_mb=41266`, `mem_available_mb=1761` |
+| JDCloud probe timer | Done | `lima-probe.timer` was enabled but inactive; `systemctl start lima-probe.timer` made it active, next scheduled run `Wed 2026-06-10 00:18:10 CST` |
+| Manual JDCloud probe | Done | `systemctl start lima-probe.service` exited `status=0/SUCCESS`; discovery reported `37 new, 37 total known` and wrote `/opt/lima-probe/data/discoveries.jsonl` plus `known_providers.json` |
+| Local verification | Done | `py_compile` clean; focused pytest `10 passed`; tracked ruff clean; deploy dry-run listed only `scripts/deploy_unified.py`; `run_pre_commit_check.py --full` returned `2074 passed, 10 skipped, 1 warning` |
+| Residual JDCloud issue | Accepted | Browser-backed probe calls to loopback `127.0.0.1:8092/render` returned HTTP `500`; non-browser discovery completed, and port `8092` remains non-public |
 
 ## 2026-06-09 Prometheus Metrics Hardening Closeout
 

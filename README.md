@@ -1,234 +1,304 @@
-# red V1flash — 通用智能路由编排器
+# LiMa（力码）—— AI 智能设备云端服务
 
 > 深圳市动力巢科技有限公司 (www.donglicao.com)
 
-**核心理念：1+N >> N**
-一个智能路由器 + N 个后端模型，远大于 N 个模型单独使用。
+**最新更新**: 2026-06-09 战略转型 —— 从个人编码助手后端 → AI 智能设备统一云端服务平台
+
+**核心理念：让 AI 硬件更智能**
+
+为 AI 绘图机、写字机等智能设备提供云端大脑，让每个家庭拥有会画画、会写字的智能伙伴。
 
 ---
 
-## 架构
+## 项目定位
+
+LiMa 是 **AI 智能硬件的云端大脑**，为 AI 绘图机、写字机等智能设备提供：
+
+- **智能理解**：自然语言 → 设备指令（AI 驱动）
+- **任务编排**：复杂任务分解与执行（绘图路径规划、字体渲染）
+- **设备网关**：MQTT 双向通信，实时状态监控
+- **多模型路由**：OpenRouter、OpenAI、本地模型智能调度
+
+### 核心场景
+
+1. **AI 绘图机**：「画一只猫」→ SVG 生成 → 路径优化 → G-code → ESP32 执行
+2. **AI 写字机**：「写首诗」→ 诗歌生成 → 字体渲染 → 笔画轨迹 → 机械臂书写
+3. **未来扩展**：语音交互、视觉识别、多设备协同
+
+---
+
+## 架构（战略转型后）
 
 ```
-用户 → Claude Code / Cursor → cc-switch → ngrok → server.py
-                                                      │
-                                                      ▼
-                                              smart_router.py
-                                                      │
-                              ┌────────────────────────┼────────────────────────┐
-                              ▼                        ▼                        ▼
-                     三层路由决策                                         
-          ┌──────────────────────────────────────────────────────────┐
-          │  L0: 预设直答 (0ms)     — 身份/问候/元问题              │
-          │  L1: 规则路由 (0ms)     — 关键词匹配，80%命中          │
-          │  L2: 本地模型路由 (50-100ms) — Qwen3-1.7B 意图分析     │
-          └──────────────────────────────────────────────────────────┘
-                              │
-              ┌───────────────┼───────────────────────────┐
-              ▼               ▼                           ▼
-         免费层 L1       免费层 L2                   付费层 L3
-      (LongCat/移动)   (Nvidia/OpenRouter)        (DeepSeek/Claude)
+小程序/App/Web 控制台
+          │ HTTPS/WebSocket
+          ▼
+   FastAPI (LiMa Core)
+    ┌──────┴──────┐
+    │  API Layer  │
+    │ - Chat API (OpenAI 兼容)
+    │ - Device Gateway (MQTT/WebSocket)
+    │ - Task Queue (绘图/写字)
+    └──────┬──────┘
+    ┌──────┴──────┐
+    │ Business Logic │
+    │ - AI Router (多模型调度)
+    │ - Drawing Engine (SVG → G-code)
+    │ - Writing Engine (字体渲染)
+    └──────┬──────┘
+    ┌──────┴──────┐
+    │ Infrastructure │
+    │ - SQLite (设备状态/任务队列)
+    │ - Prometheus (监控告警)
+    └──────┬──────┘
+           │ MQTT
+           ▼
+    ESP32 设备 (绘图机/写字机)
 ```
-
----
-
-## 路由策略：免费优先 + 付费兜底
-
-| 层级 | 策略 | 延迟 | 成本 |
-|------|------|------|------|
-| L0 预设直答 | 身份/问候/能力问题直接返回 | 0ms | 零 |
-| L1 规则路由 | 关键词匹配，覆盖80%请求 | 0ms | 零 |
-| L2 模型路由 | 本地 Qwen3-1.7B 意图分析 | 50-100ms | 零 |
-| 后端 L1 | LongCat/中国移动（免费无限） | 1-3s | 零 |
-| 后端 L2 | Nvidia NIM / OpenRouter（免费额度） | 2-5s | 零 |
-| 后端 L3 | DeepSeek / Claude（付费兜底） | 2-5s | 按量 |
-
----
-
-## 支持的后端（26个）
-
-### 免费层 L1 — LongCat / 中国移动（无限额度）
-
-| ID | 模型 | 用途 |
-|----|------|------|
-| longcat_lite | LongCat-Flash-Lite | 快速通用 |
-| longcat_chat | LongCat-Flash-Chat | 通用对话 |
-| longcat | LongCat-2.0-Preview | 综合最强 |
-| longcat_thinking | LongCat-Flash-Thinking | 推理型 |
-| longcat_omni | LongCat-Flash-Omni | 多模态 |
-| chinamobile | MiniMax-M25 | 中国移动 MaaS |
-
-### 免费层 L2 — Nvidia NIM
-
-| ID | 模型 | 用途 |
-|----|------|------|
-| nvidia_qwen_coder | Qwen3-Coder-480B | 代码生成 |
-| nvidia_nemotron | Nemotron-Super-49B | 推理 |
-| nvidia_phi4 | Phi-4 Mini | 快速轻量 |
-| nvidia_llama4 | Llama4 Maverick | 通用 |
-| nvidia_llama70b | Llama-3.3-70B | 通用 |
-| nvidia_mistral | Mistral Large 675B | 综合 |
-
-### 免费层 L2 — OpenRouter 免费模型
-
-| ID | 模型 | 用途 |
-|----|------|------|
-| or_deepseek_r1 | DeepSeek V4 Flash | 推理 |
-| or_qwen3_235b | Qwen3 Coder | 代码 |
-| or_llama70b | Llama-3.3-70B | 通用 |
-| or_nemotron | Nemotron-3-Super-120B | 推理 |
-| or_qwen3_30b | Qwen3-Next-80B | 通用 |
-
-### 付费层 L3 — 兜底
-
-| ID | 模型 | 用途 |
-|----|------|------|
-| deepseek_pro | DeepSeek V4 Pro | 综合 |
-| deepseek_pro_1m | DeepSeek V4 Pro (1M) | 长上下文 |
-| deepseek_flash | DeepSeek V4 Flash | 快速 |
-| deepseek_flash_1m | DeepSeek V4 Flash (1M) | 长上下文快速 |
-| claude | Claude Sonnet 4.6 | 最强兜底 |
-| local | Qwen3-1.7B（训练中） | 本地推理 |
-
----
-
-<!-- APPEND_MARKER -->
-
-## Superpowers 原则
-
-路由器不只是"选后端"，它是整个系统的大脑。遵循以下原则：
-
-| 原则 | 含义 |
-|------|------|
-| **永不静默失败** | 任何路径都有 fallback，用户永远能得到回答 |
-| **自愈能力** | 后端挂了自动切换，不需要人工干预 |
-| **诚实边界** | 搞不定就说搞不定，不瞎编 |
-| **越用越强** | 收集真实请求日志，持续训练迭代 |
-| **IDE 感知** | 识别用户用的什么工具，调整路由策略 |
-
----
-
-## Fallback 架构（搞不定怎么办）
-
-```
-请求进入
-  │
-  ▼
-[正则快速通道] ─── 命中 ──→ 0ms 直接返回
-  │ 未命中
-  ▼
-[路由模型 Qwen3-1.7B] ─── 输出有效 JSON ──→ 执行路由决策
-  │ 无效/超时(>100ms)
-  ▼
-[默认规则] ─── 按 IDE 类型 + 问题长度选后端
-  │
-  ▼
-[执行路由] ─── 后端正常 ──→ 返回结果
-  │ 后端失败
-  ▼
-[同层降级] ─── 同层级换另一个后端重试
-  │ 同层全挂
-  ▼
-[跨层升级] ─── L1→L2→L3 逐级升级
-  │ 全部失败
-  ▼
-[诚实告知] ─── "当前服务繁忙，请稍后重试" + 记录日志
-```
-
-### 质量自检机制
-
-| 场景 | 检测方式 | 处理 |
-|------|---------|------|
-| 回答太短（<50字） | 长度检测 | 自动升级到更强后端重试 |
-| 模型不确定 | complexity>0.7 但路由到 lite | 自动升级 |
-| 用户不满意 | UI 反馈按钮 | 重新路由到付费后端 |
-| 能力超限 | 模型输出 action:"reject" | 诚实告知 + 记录 |
-
-### 日志驱动迭代
-
-所有"低置信度"和"fallback 触发"的请求自动记录到日志，定期：
-1. 人工标注正确路由
-2. 加入训练数据
-3. 重新训练模型
-4. 部署验证
-
----
-
-## IDE 感知路由（20 层识别特征）
-
-模型通过系统提示词自动识别用户使用的 AI IDE：
-
-| 层级 | 信号 | 置信度 |
-|------|------|--------|
-| L1 身份行 | "You are Claude Code..." / "Cursor IDE..." | 100% |
-| L2 工具名 | Edit/Write/Bash vs ApplyPatch/run_terminal_cmd | 100% |
-| L3 特有短语 | "CLAUDE.md" / "multi_tool_use.parallel" | 95% |
-| L4 目录指纹 | .claude/ vs .codex/ vs .kiro/ | 90% |
-| L5-L10 | 消息格式/二进制/API 端点 | 80-90% |
-| L11-L20 | 流协议/推理架构/权限系统/沙箱/遥测 | 70-85% |
-
-详见 `ROUTING_FEATURES.md` 和 `ROUTING_DEEP_FEATURES.md`。
-
----
-
-## 当前状态
-
-- Claude Code / Cursor / Kiro / Codex 已接入
-- Round 11 训练中（2387 条，含真实 IDE 提示词 + HuggingFace 数据）
-- 20 层 IDE 识别特征已整理
-- 三层路由 + Fallback 架构已设计
-- 熔断器 + 同层降级 + 跨层升级保护
-- UI 后台显示 IP/国家/IDE/协议/能力
 
 ---
 
 ## 技术栈
 
-| 组件 | 技术 |
-|------|------|
-| 路由核心 | Python + FastAPI |
-| 本地模型 | Qwen3-1.7B (QLoRA 微调) |
-| 协议兼容 | OpenAI ChatCompletion API |
-| 隧道 | ngrok |
-| 训练 | QLoRA + GRPO |
-| 部署 | LM Studio / vLLM |
+- **后端**: Python 3.10 + FastAPI + uvicorn
+- **数据库**: SQLite（设备状态、任务队列、会话记忆）
+- **通信**: MQTT（设备 ↔ 云端双向）
+- **AI**: OpenRouter（多模型聚合）、OpenAI、本地模型
+- **部署**: 阿里云 + 京东云（双 VPS 高可用）
+- **监控**: Prometheus + Grafana
+
+---
+
+## 支持的设备
+
+- **ESP32 绘图机**：XY 平台，单笔画绘制
+- **ESP32 写字机**：中文汉字书写
+- **扩展支持**（规划中）：激光雕刻、3D 打印、机械臂
 
 ---
 
 ## 快速开始
 
+### 1. 安装依赖
+
 ```bash
-# 1. 安装依赖
-pip install fastapi uvicorn python-dotenv
+pip install -r requirements_server.txt
+```
 
-# 2. 配置环境变量
+### 2. 配置环境变量
+
+```bash
 cp .env.example .env
-# 编辑 .env，填入 API Key
+# 编辑 .env 设置 LIMA_API_KEY、OPENROUTER_API_KEY 等
+```
 
-# 3. 启动服务
+### 3. 启动服务
+
+```bash
 python server.py
+```
 
-# 4. 启动 ngrok 隧道（可选，外网访问）
-start_tunnel.bat
+服务默认运行在 `http://localhost:8000`
+
+### 4. 健康检查
+
+```bash
+curl http://localhost:8000/health
 ```
 
 ---
 
-## 核心文件
+## API 端点
 
-| 文件 | 用途 |
-|------|------|
-| `server.py` | OpenAI 兼容 API 层（FastAPI） |
-| `smart_router.py` | 智能路由核心（三层路由 + 熔断器） |
-| `orchestrate.py` | 多步编排（复杂任务拆解） |
-| `model_registry.py` | 后端模型注册与管理 |
-| `quota_tracker.py` | 配额追踪 |
-| `generate_routing_data.py` | 路由训练数据生成 |
-| `train_model.py` | QLoRA 训练脚本 |
-| `auto_trainer.py` | 自动训练调度 |
-| `eval_loop.py` | 评估循环 |
-| `quality_gate.py` | 质量门控 |
+### OpenAI 兼容端点
+
+```bash
+POST /v1/chat/completions
+```
+
+支持 OpenAI SDK 直接接入：
+
+```python
+import openai
+
+client = openai.OpenAI(
+    base_url="http://localhost:8000/v1",
+    api_key="your-lima-api-key"
+)
+
+response = client.chat.completions.create(
+    model="lima-1.3",
+    messages=[{"role": "user", "content": "画一只猫"}]
+)
+```
+
+### 设备网关端点（规划中，Day 3-5 实现）
+
+```bash
+POST /device/register      # 设备注册
+POST /device/command       # 下发指令
+GET  /device/{id}/status   # 查询状态
+POST /device/task/drawing  # 绘图任务
+POST /device/task/writing  # 写字任务
+```
+
+### 管理端点
+
+```bash
+GET  /health               # 健康检查
+GET  /admin/status         # 系统状态
+GET  /admin/backends       # 后端列表
+POST /admin/reload         # 热重载配置
+```
 
 ---
 
-> 深圳市动力巢科技有限公司 (www.donglicao.com)
+## 部署
+
+### 本地开发
+
+```bash
+python server.py
+```
+
+### 生产部署（VPS）
+
+```bash
+# 阿里云 VPS
+python scripts/deploy_unified.py --target aliyun --profile lima-prod
+
+# 京东云 VPS（备用）
+python scripts/deploy_unified.py --target jdcloud --profile lima-probe
+```
+
+详见 [DEPLOYMENT.md](docs/DEPLOYMENT.md)
+
+---
+
+## 项目结构
+
+```
+D:\QWEN3.0\
+├── server.py                  # FastAPI 主入口
+├── routes/                    # 路由模块
+│   ├── device_gateway.py      # 设备网关（Day 3-5 新建）
+│   ├── chat_endpoints.py      # Chat API
+│   └── admin.py               # 管理端点
+├── routing_engine.py          # 多模型路由引擎
+├── smart_router.py            # 智能意图理解
+├── session_memory/            # 会话记忆
+├── device_schema.py           # 设备数据模型（Day 3 新建）
+├── migrations/                # 数据库迁移（Day 3 新建）
+├── deploy/                    # 部署脚本
+├── scripts/                   # 工具脚本
+├── tests/                     # 测试
+└── docs/                      # 文档
+    ├── ESP32S_XYZ_MANAGEMENT.md         # ESP32 管理
+    ├── DEVICE_SCENARIOS.md              # 设备场景（Day 3 新建）
+    ├── DEVICE_MQTT_PROTOCOL.md          # MQTT 协议（Day 3 新建）
+    └── TECHNICAL_ARCHITECTURE.md        # 技术架构
+```
+
+---
+
+## 核心文档
+
+| 文档 | 说明 |
+|------|------|
+| [CLAUDE.md](CLAUDE.md) | 项目开发规范（必读） |
+| [STATUS.md](STATUS.md) | 项目状态 |
+| [AGENTS.md](AGENTS.md) | 协作规范 |
+| [ESP32S_XYZ_MANAGEMENT.md](docs/ESP32S_XYZ_MANAGEMENT.md) | ESP32 管理 |
+| [TECHNICAL_ARCHITECTURE.md](docs/TECHNICAL_ARCHITECTURE.md) | 技术架构 |
+| [DEPLOYMENT.md](docs/DEPLOYMENT.md) | 部署指南 |
+
+---
+
+## 开发规范
+
+### 代码质量
+
+- Python 3.10+ 类型注解
+- 单文件 ≤300 行，函数 ≤50 行
+- 禁止裸 `except Exception: pass`
+- 禁止降级处理（失败必须报错）
+
+### Git 工作流
+
+```bash
+# 1. 功能分支开发
+git checkout -b feat/your-feature
+
+# 2. 本地测试
+pytest
+
+# 3. 提交（包含 Co-Authored-By）
+git commit -m "feat: your feature
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
+
+# 4. 推送 origin（GitHub）
+git push origin feat/your-feature
+
+# 5. 同步 gitee
+git push gitee feat/your-feature
+```
+
+### 测试
+
+```bash
+# 运行所有测试
+pytest
+
+# 运行特定测试
+pytest tests/test_device_gateway.py
+
+# 覆盖率报告
+pytest --cov=. --cov-report=html
+```
+
+---
+
+## 战略转型（2026-06-09）
+
+### 从编码助手 → 设备云端服务
+
+**删除的功能**：
+- Agent Runtime（自主任务执行）
+- Tool Forwarding（工具调用）
+- Code Quality Gate（代码质量门控）
+- Semantic Cache（语义缓存）
+
+**保留的核心**：
+- 多模型路由（OpenRouter、OpenAI、本地模型）
+- 设备网关（MQTT 双向通信）
+- 会话记忆（SQLite）
+- 监控告警（Prometheus）
+
+**新增的功能**（Phase 1-3，Day 3-10）：
+- 设备状态管理（心跳、错误日志）
+- 任务队列（绘图、写字）
+- 路径规划（SVG → G-code）
+- MQTT 协议扩展
+
+详见：
+- [战略转型计划](docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md)
+- [LiMa 替换小智可行性分析](docs/superpowers/plans/2026-06-09-lima-replace-xiaozhi-feasibility.md)
+
+---
+
+## 许可证
+
+MIT License
+
+---
+
+## 联系方式
+
+- **开发者**: zhuguang-ZFG
+- **GitHub**: https://github.com/zhuguang-ZFG/lima
+- **Gitee**: https://gitee.com/zhuguang-zfg/lima
+
+---
+
+**LiMa —— 让 AI 硬件更智能！** 🤖✨

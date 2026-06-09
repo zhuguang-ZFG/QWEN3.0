@@ -20,3 +20,13 @@ prometheus_client>=0.20
 
 # Optional: MQTT device transport
 paho-mqtt>=2.0
+
+# 绘画引擎依赖（战略转型新增 2026-06-09）
+svgpathtools==1.6.1        # SVG 路径解析
+shapely==2.0.6             # 几何计算与路径优化
+pypotrace==0.3.0           # 位图矢量化
+dashscope==1.20.11         # 通义千问 SDK（文生图）
+Pillow==10.4.0             # 图像处理
+
+# 数据库扩展
+alembic==1.13.1            # 数据库迁移（可选）

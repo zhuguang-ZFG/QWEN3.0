@@ -1,169 +1,53 @@
-"""Anthropic /v1/messages request handling (CQ-014 slice 12)."""
+"""
+Anthropic messages handler - Simplified stub for strategic pivot.
 
-from __future__ import annotations
-
-import uuid
-from dataclasses import dataclass
-from typing import Callable
-
-from fastapi import Request
-from fastapi.responses import JSONResponse, StreamingResponse
-
-from chat_models import Message
-from chat_request_utils import extract_last_user_text, extract_system_preview
-from response_builder import build_anthropic_response
-from routes.anthropic_vision_sse import anthropic_vision_messages, vision_anthropic_stream
+原 anthropic_messages_handler.py 已删除（编码助手专属）。
+此文件提供最小占位符，避免大量修改 routes/chat_endpoints.py。
+Phase 2 将重构为设备场景专用的消息处理。
+"""
+from typing import Any
+from fastapi.responses import JSONResponse
 
 
-@dataclass
-class ParsedAnthropicMessages:
-    messages: list[Message]
-    has_image: bool
-    last_user_query: str
-    ide_source: str
-    sys_prompt_preview: str
-
-
-def anthropic_rate_limit_response() -> JSONResponse:
-    return JSONResponse(
-        status_code=429,
-        content={
-            "type": "error",
-            "error": {
-                "type": "rate_limit_error",
-                "message": "Rate limit exceeded. Try again later.",
-            },
-        },
-    )
-
-
-def check_anthropic_rate_limit(req: Request, client_ip: str) -> JSONResponse | None:
-    import rate_limiter
-
-    ua = req.headers.get("user-agent", "")
-    is_ide_client = any(
-        k in ua.lower() for k in ("claude-code", "continue", "cursor", "copilot")
-    )
-    multiplier = 5 if is_ide_client else 1
-    if rate_limiter.check_rate_limit(client_ip, multiplier=multiplier):
-        return None
-    return anthropic_rate_limit_response()
+def check_anthropic_rate_limit(req: Any, client_ip: str) -> JSONResponse | None:
+    """简化的速率限制检查（占位符）"""
+    # TODO Phase 2: 实现设备场景的速率限制
+    return None
 
 
 async def handle_tool_messages(
-    body: dict,
-    *,
-    native_stream: Callable,
-    native_forward: Callable,
-    maybe_await: Callable,
-) -> StreamingResponse | JSONResponse:
-    if body.get("stream", False):
-        return StreamingResponse(
-            native_stream(body),
-            media_type="text/event-stream",
-            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-        )
-    result = await maybe_await(native_forward(body))
-    return JSONResponse(result)
-
-
-def parse_anthropic_messages(body: dict, detect_ide: Callable) -> ParsedAnthropicMessages:
-    raw_messages = body.get("messages", [])
-    messages: list[Message] = []
-    has_image = False
-    for msg in raw_messages:
-        role = msg.get("role", "")
-        if role not in ("user", "assistant"):
-            continue
-        content = msg.get("content", "")
-        if isinstance(content, str):
-            messages.append(Message(role=role, content=content))
-        elif isinstance(content, list):
-            text_parts = []
-            for block in content:
-                if block.get("type") == "text":
-                    text_parts.append(block.get("text", ""))
-                elif block.get("type") == "image":
-                    has_image = True
-            messages.append(
-                Message(
-                    role=role,
-                    content="\n".join(text_parts) if text_parts else "[image]",
-                )
-            )
-
-    if body.get("system"):
-        system = body["system"]
-        if isinstance(system, str):
-            messages.insert(0, Message(role="system", content=system))
-        elif isinstance(system, list):
-            txt = " ".join(
-                block.get("text", "") for block in system if block.get("type") == "text"
-            )
-            if txt:
-                messages.insert(0, Message(role="system", content=txt))
-
-    return ParsedAnthropicMessages(
-        messages=messages,
-        has_image=has_image,
-        last_user_query=extract_last_user_text(raw_messages),
-        ide_source=detect_ide(raw_messages),
-        sys_prompt_preview=extract_system_preview(raw_messages, system=body.get("system")),
+    body: dict[str, Any],
+    native_stream: Any,
+    native_forward: Any,
+    maybe_await: Any,
+) -> JSONResponse:
+    """工具消息处理（占位符）"""
+    # TODO Phase 2: 实现设备场景的工具调用
+    return JSONResponse(
+        status_code=501,
+        content={"error": "Tool messages not implemented in device mode"},
     )
 
 
+def parse_anthropic_messages(body: dict[str, Any], detect_ide: Any) -> Any:
+    """解析 Anthropic 消息（占位符）"""
+    # TODO Phase 2: 实现设备场景的消息解析
+    class ParsedResult:
+        messages = body.get("messages", [])
+
+    return ParsedResult()
+
+
 async def maybe_vision_response(
-    *,
-    body: dict,
-    parsed: ParsedAnthropicMessages,
+    body: dict[str, Any],
+    parsed: Any,
     req_model: str,
     is_stream: bool,
     request_started_at: float,
     client_ip: str,
-    call: Callable,
-    maybe_await: Callable,
-) -> StreamingResponse | JSONResponse | None:
-    if not parsed.has_image:
-        return None
-
-    vision_msgs = anthropic_vision_messages(body.get("messages", []))
-    vision_result = await maybe_await(
-        call("vision_route", vision_msgs, body.get("max_tokens", 4096), parsed.ide_source)
-    )
-    if vision_result:
-        content_text = vision_result["answer"]
-        backend_used = vision_result["backend"]
-        duration_ms = call("elapsed_ms", request_started_at)
-        call(
-            "record_request",
-            parsed.last_user_query or "[vision]",
-            backend_used,
-            "vision",
-            duration_ms,
-            True,
-            client_ip=client_ip,
-            ide_source=parsed.ide_source,
-            sys_prompt_preview=parsed.sys_prompt_preview,
-        )
-        if is_stream:
-            return StreamingResponse(
-                vision_anthropic_stream(content_text, req_model),
-                media_type="text/event-stream",
-                headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-            )
-        return JSONResponse(
-            build_anthropic_response(
-                f"msg_{uuid.uuid4().hex[:24]}",
-                content_text,
-                backend_used,
-                req_model,
-            )
-        )
-
-    if is_stream:
-        return StreamingResponse(
-            call("anthropic_stream_passthrough", body, req_model),
-            media_type="text/event-stream",
-            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-        )
+    call: Any,
+    maybe_await: Any,
+) -> Any:
+    """视觉响应处理（占位符）"""
+    # TODO Phase 2: 实现设备场景的视觉处理
     return None

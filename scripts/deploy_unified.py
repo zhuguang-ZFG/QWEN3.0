@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
+import shlex
 import sys
 import time
 from pathlib import Path
@@ -100,6 +102,124 @@ SLICE_FILES = {
 
 HEALTH_WAIT_SECONDS = 90
 HEALTH_POLL_SECONDS = 2
+DEFAULT_MIN_FREE_MB = 512
+DEFAULT_MIN_MEM_MB = 128
+
+
+def _safe_backup_label(label: str) -> str:
+    cleaned = re.sub(r"[^A-Za-z0-9_.-]+", "-", label.strip()).strip("-._")
+    return cleaned or "unified"
+
+
+def _env_int(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None or raw.strip() == "":
+        return default
+    try:
+        return int(raw)
+    except ValueError as exc:
+        raise RuntimeError(f"{name} must be an integer") from exc
+
+
+def parse_capacity_output(output: str) -> dict[str, int]:
+    capacity: dict[str, int] = {}
+    for line in output.splitlines():
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        if key in {"disk_free_mb", "mem_available_mb"}:
+            capacity[key] = int(value.strip())
+    return capacity
+
+
+def capacity_result(capacity: dict[str, int], *, min_free_mb: int, min_mem_mb: int) -> dict[str, object]:
+    disk_free = capacity.get("disk_free_mb", -1)
+    mem_available = capacity.get("mem_available_mb", -1)
+    if disk_free < min_free_mb:
+        return {
+            "ok": False,
+            "reason": f"disk free {disk_free}MB below required {min_free_mb}MB",
+        }
+    if mem_available < min_mem_mb:
+        return {
+            "ok": False,
+            "reason": f"memory available {mem_available}MB below required {min_mem_mb}MB",
+        }
+    return {"ok": True, "reason": "capacity ok"}
+
+
+def _connect_ssh() -> paramiko.SSHClient:
+    ssh = paramiko.SSHClient()
+    ssh.load_system_host_keys()
+    configure_ssh_host_keys(ssh)
+    ssh.connect(SERVER, username="root", key_filename=KEY, timeout=15)
+    return ssh
+
+
+def _exec(ssh: paramiko.SSHClient, command: str) -> tuple[int, str, str]:
+    _stdin, stdout, stderr = ssh.exec_command(command)
+    code = stdout.channel.recv_exit_status()
+    out = stdout.read().decode("utf-8", errors="replace").strip()
+    err = stderr.read().decode("utf-8", errors="replace").strip()
+    return code, out, err
+
+
+def check_remote_capacity(ssh: paramiko.SSHClient) -> dict[str, int]:
+    command = (
+        "set -eu; "
+        f"disk=$(df -Pm {shlex.quote(REMOTE)} | awk 'NR==2 {{print $4}}'); "
+        "mem=$(awk '/MemAvailable/ {print int($2/1024)}' /proc/meminfo); "
+        'echo "disk_free_mb=$disk"; '
+        'echo "mem_available_mb=$mem"'
+    )
+    code, out, err = _exec(ssh, command)
+    if code != 0:
+        raise RuntimeError(f"remote capacity check failed: {err or out}")
+    capacity = parse_capacity_output(out)
+    if "disk_free_mb" not in capacity or "mem_available_mb" not in capacity:
+        raise RuntimeError(f"remote capacity check returned incomplete data: {out}")
+    return capacity
+
+
+def create_remote_backup(ssh: paramiko.SSHClient, files: list[str], *, label: str) -> str:
+    safe_label = _safe_backup_label(label)
+    backup_dir = f"{REMOTE}/backups/{safe_label}-{time.strftime('%Y%m%d_%H%M%S')}"
+    backup_file = f"{backup_dir}/runtime-before.tgz"
+    quoted_files = " ".join(shlex.quote(f) for f in files)
+    command = (
+        "set -eu; "
+        f"mkdir -p {shlex.quote(backup_dir)}; "
+        f"cd {shlex.quote(REMOTE)}; "
+        f"tar --ignore-failed-read -czf {shlex.quote(backup_file)} {quoted_files}; "
+        f"echo {shlex.quote(backup_file)}"
+    )
+    code, out, err = _exec(ssh, command)
+    if code != 0:
+        raise RuntimeError(f"remote backup failed: {err or out}")
+    return out.splitlines()[-1].strip()
+
+
+def prepare_remote_deploy(files: list[str], *, label: str) -> dict[str, object]:
+    min_free_mb = _env_int("LIMA_DEPLOY_MIN_FREE_MB", DEFAULT_MIN_FREE_MB)
+    min_mem_mb = _env_int("LIMA_DEPLOY_MIN_MEM_MB", DEFAULT_MIN_MEM_MB)
+    ssh = _connect_ssh()
+    try:
+        capacity = check_remote_capacity(ssh)
+        result = capacity_result(
+            capacity,
+            min_free_mb=min_free_mb,
+            min_mem_mb=min_mem_mb,
+        )
+        if not result["ok"]:
+            return {"ok": False, "capacity": capacity, "reason": result["reason"]}
+        backup_path = create_remote_backup(ssh, files, label=label)
+        return {
+            "ok": True,
+            "capacity": capacity,
+            "backup_path": backup_path,
+        }
+    finally:
+        ssh.close()
 
 
 def ensure_remote_dir(sftp: paramiko.SFTPClient, remote_dir: str) -> None:
@@ -217,6 +337,20 @@ def main() -> int:
     files = list(dict.fromkeys(files))
 
     print(f"Deploying {len(files)} files ({args.slice})...")
+    if not args.dry_run:
+        backup_label = "unified-files" if args.files else f"unified-{args.slice}"
+        try:
+            preflight = prepare_remote_deploy(files, label=backup_label)
+        except RuntimeError as exc:
+            print(f"preflight failed: {exc}")
+            return 1
+        if not preflight["ok"]:
+            print(f"capacity check failed: {preflight['reason']}")
+            print(f"capacity: {preflight['capacity']}")
+            return 1
+        print(f"Capacity: {preflight['capacity']}")
+        print(f"Backup: {preflight['backup_path']}")
+
     results = deploy_files(files, dry_run=args.dry_run)
 
     print(f"\nResult: {results['uploaded']} uploaded, {len(results['failed'])} failed, {len(results['skipped'])} skipped")

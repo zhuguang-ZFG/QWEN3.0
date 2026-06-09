@@ -90,20 +90,18 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
     app.include_router(embeddings_router)
 
     from routes.admin import router as admin_router
-    from routes.admin_agent_audit import router as admin_agent_audit_router
+    # NOTE: admin_agent_audit deleted in strategic pivot (2026-06-09)
     import routes.admin as admin_mod
 
     admin_mod.inject_state(deps.stats, deps.stats_lock, deps.backend_enabled)
     app.include_router(admin_router)
-    app.include_router(admin_agent_audit_router)
 
     from routes.static_files import router as static_files_router
 
     app.include_router(static_files_router)
 
-    import routes.quality_gate as quality_gate_mod
-
-    quality_gate_mod.inject_state(deps.backend_enabled)
+    # NOTE: quality_gate.py deleted in strategic pivot (2026-06-09)
+    # quality_gate_direct.py and quality_gate_tiers.py remain as utilities
 
     from routes.system_endpoints import router as system_endpoints_router
     import routes.system_endpoints as system_endpoints_mod
@@ -145,25 +143,9 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
         logging.warning("[STARTUP] MCP module not loaded: %s", exc)
         deps.loaded_modules["mcp"] = False
 
-    try:
-        from routes.agent_tasks import router as agent_tasks_router
-
-        app.include_router(agent_tasks_router)
-        deps.loaded_modules["agent_tasks"] = True
-    except ImportError as exc:
-        logging.warning("[STARTUP] agent_tasks module not loaded: %s", exc)
-        deps.loaded_modules["agent_tasks"] = False
-
-    try:
-        from routes.agent_execute import router as agent_execute_router
-        import routes.agent_execute as agent_execute_mod
-
-        agent_execute_mod.inject_state(admin_token=os.environ.get("LIMA_API_KEY", ""))
-        app.include_router(agent_execute_router)
-        deps.loaded_modules["agent_execute"] = True
-    except ImportError as exc:
-        logging.warning("[STARTUP] agent_execute module not loaded: %s", exc)
-        deps.loaded_modules["agent_execute"] = False
+    # NOTE: agent_tasks, agent_execute deleted in strategic pivot (2026-06-09)
+    deps.loaded_modules["agent_tasks"] = False
+    deps.loaded_modules["agent_execute"] = False
 
     try:
         from routes.fleet_api import router as fleet_router
@@ -176,29 +158,10 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
         logging.warning("[STARTUP] fleet module not loaded: %s", exc)
         deps.loaded_modules["fleet"] = False
 
-    try:
-        from routes.agent_events import router as events_router
-        app.include_router(events_router)
-        deps.loaded_modules["agent_events"] = True
-    except ImportError as exc:
-        logging.warning("[STARTUP] agent_events module not loaded: %s", exc)
-        deps.loaded_modules["agent_events"] = False
-
-    try:
-        from routes.agent_memory import router as memory_router
-        app.include_router(memory_router)
-        deps.loaded_modules["agent_memory"] = True
-    except ImportError as exc:
-        logging.warning("[STARTUP] agent_memory module not loaded: %s", exc)
-        deps.loaded_modules["agent_memory"] = False
-
-    try:
-        from routes.agent_learn import router as learn_router
-        app.include_router(learn_router)
-        deps.loaded_modules["agent_learn"] = True
-    except ImportError as exc:
-        logging.warning("[STARTUP] agent_learn module not loaded: %s", exc)
-        deps.loaded_modules["agent_learn"] = False
+    # NOTE: agent_events, agent_memory deleted in strategic pivot (2026-06-09)
+    deps.loaded_modules["agent_events"] = False
+    deps.loaded_modules["agent_memory"] = False
+    deps.loaded_modules["agent_learn"] = False
 
     try:
         from routes.eval_internal import router as eval_internal_router
