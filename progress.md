@@ -6050,6 +6050,48 @@ Verification note:
 - VPS:
   - not deployed. This is LiMa Code CLI/TUI package and GitHub Release only.
 
+## 2026-06-09 LiMa Hardware AI Phase 1 M1
+
+- Scope:
+  - added `device_ledger` append-only task events with typed event creation,
+    duplicate event-id rejection, task event lookup, and `replay_task()`;
+  - added `device_artifacts` in-memory artifact records with SHA-256 content
+    hashes, retention metadata, and copied read snapshots;
+  - wired `device_gateway.tasks.create_task_from_transcript()` to record
+    `task_created` and `preview_svg` artifacts;
+  - wired `device_gateway.tasks.mark_task_dispatched()` to record
+    `task_dispatched`;
+  - wired `device_gateway.tasks.record_motion_event()` to record every
+    `motion_event`, terminal `task_terminal`, and terminal-result artifacts;
+  - marked M1 complete in
+    `docs/superpowers/plans/2026-06-09-lima-hardware-ai-phase1-execution-plan.md`.
+- Local verification so far:
+  - `tests/test_device_ledger_artifacts.py` -> `5 passed`;
+  - M1 plan gate:
+    `tests/test_device_ledger_artifacts.py tests/test_device_gateway_routes.py`
+    -> `26 passed, 1 warning`;
+  - nearby device gateway regression:
+    `tests/test_device_ledger_artifacts.py tests/test_device_gateway_routes.py tests/test_device_gateway_store.py tests/test_device_gateway_concurrency.py tests/test_device_gateway_protocol.py`
+    -> `44 passed, 1 warning`;
+  - `ruff check device_ledger device_artifacts device_gateway/tasks.py tests/test_device_ledger_artifacts.py`
+    -> clean;
+  - `ruff format --check device_ledger device_artifacts device_gateway/tasks.py tests/test_device_ledger_artifacts.py`
+    -> clean after formatting `device_gateway/tasks.py`;
+  - focused `pyright` on touched runtime/tests -> `0 errors`.
+- Full-gate result:
+  - `scripts/run_pre_commit_check.py --full` started cleanly and
+    `scripts/run_ruff_check.py` passed;
+  - full pytest collection stopped with 11 import errors for current-baseline
+    missing modules such as `agent_runtime`, `routes.admin_agent_audit`, and
+    `routes.anthropic_stream_branches`;
+  - those missing paths are not present in the working tree and are not listed
+    by `git ls-files`, so this is recorded as a baseline/test-set mismatch
+    outside the M1 change.
+- Closeout status:
+  - no VPS deploy or git commit was performed because full pre-commit is
+    blocked by the unrelated collection baseline;
+  - M1 focused gates are green and ready for review.
+
 ## 2026-06-09 Prometheus Metrics Hardening
 
 - Scope:

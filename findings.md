@@ -2,6 +2,16 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-06-09 LiMa Hardware AI Phase 1 M1 Closeout
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| HAI-M1-1 | Device ledger | `device_ledger` now records append-only `task_created`, `task_dispatched`, `motion_event`, and `task_terminal` events with duplicate event-id rejection and task replay. | Closed |
+| HAI-M1-2 | Device artifacts | `device_artifacts` now stores copied artifact records with `task_id`, `artifact_type`, `content`, SHA-256 `content_hash`, `retention_days`, and `created_at`. | Closed |
+| HAI-M1-3 | Gateway wiring | `device_gateway.tasks` records preview SVG artifacts on task creation and terminal-result artifacts on `done` / `failed` / `cancelled`, covering both HTTP and WebSocket motion-event paths through the shared task wrapper. | Closed |
+| HAI-M1-4 | Boundary | M1 is intentionally in-memory and interface-shaped for later SQLite/Redis durability; it does not yet provide cross-process persistence or operator artifact APIs. | Accepted |
+| HAI-M1-5 | Full gate | Full `scripts/run_pre_commit_check.py --full` is blocked during pytest collection by current-baseline missing modules (`agent_runtime`, `routes.admin_agent_audit`, `routes.anthropic_stream_branches`) that are absent from the working tree and `git ls-files`; M1 focused gates pass. | Open |
+
 ## 2026-06-09 Capacity-Aware Deploy + JDCloud Probe Closeout
 
 | ID | Area | Finding | Status |
