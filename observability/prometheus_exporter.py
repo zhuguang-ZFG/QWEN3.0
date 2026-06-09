@@ -19,29 +19,17 @@ _stop_event = threading.Event()
 
 def _export_loop():
     """Background thread that updates Prometheus Gauge metrics."""
-    from observability.prometheus_metrics import is_enabled
+    from observability import prometheus_metrics
 
-    if not is_enabled():
+    if not prometheus_metrics.is_enabled():
         _log.debug("Prometheus metrics disabled, exporter thread exiting")
         return
 
     try:
-        from prometheus_client import Gauge
-    except ImportError:
-        _log.debug("prometheus_client not installed, exporter thread exiting")
+        prometheus_metrics.validate_startup()
+    except RuntimeError:
+        _log.error("Prometheus exporter cannot start because metrics validation failed", exc_info=True)
         return
-
-    # Create Gauge instruments
-    backend_health_gauge = Gauge(
-        "lima_backend_health",
-        "Backend health status (1=healthy, 0.5=degraded, 0=dead)",
-        ["backend", "status"],
-    )
-    backend_score_gauge = Gauge(
-        "lima_backend_score",
-        "Backend health score (0-1)",
-        ["backend"],
-    )
 
     _log.info("Prometheus exporter thread started")
 
@@ -54,24 +42,14 @@ def _export_loop():
             scores = health_tracker.get_scores()
 
             for backend, status in health_map.items():
-                # Set health value
-                if status == "healthy":
-                    value = 1.0
-                elif status == "degraded":
-                    value = 0.5
-                elif status == "dead":
-                    value = 0.0
-                else:
-                    value = 0.0
+                prometheus_metrics.record_backend_health(backend, str(status))
+                prometheus_metrics.record_backend_score(backend, float(scores.get(backend, 0.0)))
 
-                backend_health_gauge.labels(backend=backend, status=status).set(value)
-
-                # Set score gauge
-                score = scores.get(backend, 0.0)
-                backend_score_gauge.labels(backend=backend).set(score)
-
+        except ImportError as exc:
+            _log.warning("Prometheus gauge update skipped; health_tracker unavailable: %s", exc)
+            return
         except Exception as exc:
-            _log.debug("Prometheus gauge update failed: %s", type(exc).__name__, exc_info=True)
+            _log.warning("Prometheus gauge update failed: %s", type(exc).__name__, exc_info=True)
 
         # Sleep for 30 seconds or until stop event
         _stop_event.wait(timeout=30.0)
@@ -83,11 +61,12 @@ def start_exporter():
     """Start the background metrics exporter thread."""
     global _exporter_thread
 
-    from observability.prometheus_metrics import is_enabled
+    from observability import prometheus_metrics
 
-    if not is_enabled():
+    if not prometheus_metrics.is_enabled():
         _log.debug("Prometheus metrics disabled, not starting exporter")
         return
+    prometheus_metrics.validate_startup()
 
     if _exporter_thread is not None and _exporter_thread.is_alive():
         _log.debug("Prometheus exporter thread already running")

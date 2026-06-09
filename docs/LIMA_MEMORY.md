@@ -1,7 +1,7 @@
 # LiMa Memory
 
-> **Updated: 2026-06-09 (pre-commit hook hygiene closeout)**
-> **Branch:** `main` - **HEAD:** pending closeout push
+> **Updated: 2026-06-09 (Prometheus metrics hardening closeout)**
+> **Branch:** `feat/kilo-provider-probe` - **HEAD:** pending closeout push
 > **Latest authority:** `STATUS.md`, `progress.md`, `findings.md`, `docs/DOCUMENTATION_STATUS.md`
 
 > **Updated: 2026-05-26（P2-35 三切片 closeout）**  
@@ -10,6 +10,38 @@
 > **本文件：** 跨会话 durable 事实；计划 checkbox 以状态文档为准。
 
 ---
+
+## 2026-06-09 Prometheus Metrics Snapshot
+
+- Code default:
+  - `LIMA_PROMETHEUS_METRICS` remains default-off in code;
+  - when enabled, missing `prometheus_client` now raises explicit
+    `RuntimeError` during startup validation or scrape generation.
+- Runtime wiring:
+  - `/v1/ops/metrics/prometheus` is private and returns `404` when disabled,
+    `503` when enabled but broken, and `200 text/plain` when healthy;
+  - `routes.request_tracking.record_request()` feeds
+    `lima_requests_total{backend,status}` after normal LiMa in-memory stats;
+  - `observability.prometheus_exporter` writes backend health/score gauges
+    through `observability.prometheus_metrics` and starts only when enabled.
+- VPS state:
+  - current VPS `.env` already has `LIMA_PROMETHEUS_METRICS=1`;
+  - rollback backup:
+    `/opt/lima-router/backups/prometheus-metrics-20260609_120036/runtime-before.tgz`;
+  - local authenticated scrape returned `200` and included
+    `lima_backend_health`;
+  - public `chat.donglicao.com` authenticated scrape returned `200`;
+  - public `api.donglicao.com` scrape path remains `404`.
+- Deploy tooling:
+  - `scripts/deploy_unified.py` health wait is now `90s`; this slice showed
+    the previous `45s` window could false-negative because app startup finished
+    just after the deadline.
+- Verification:
+  - `tests/test_ops_metrics.py` -> `28 passed, 1 warning`;
+  - `scripts/run_pre_commit_check.py --full` ->
+    `2067 passed, 10 skipped, 1 warning`;
+  - public authenticated `model=code` chat returned marker
+    `prometheus_smoke_ok`.
 
 ## 2026-06-09 Telegram Retirement Snapshot
 

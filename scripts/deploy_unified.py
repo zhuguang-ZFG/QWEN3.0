@@ -98,6 +98,9 @@ SLICE_FILES = {
     ],
 }
 
+HEALTH_WAIT_SECONDS = 90
+HEALTH_POLL_SECONDS = 2
+
 
 def ensure_remote_dir(sftp: paramiko.SFTPClient, remote_dir: str) -> None:
     """Create a remote directory tree using SFTP only."""
@@ -177,13 +180,13 @@ def restart_server() -> bool:
                 print(f"restart command failed: {cmd}: {detail}")
                 return False
 
-        deadline = time.time() + 45
+        deadline = time.time() + HEALTH_WAIT_SECONDS
         while time.time() < deadline:
             stdin, stdout, stderr = ssh.exec_command("curl -sS -m 3 http://127.0.0.1:8080/health")
             health = stdout.read().decode("utf-8", errors="replace").strip()
             if stdout.channel.recv_exit_status() == 0 and "ok" in health:
                 return True
-            time.sleep(2)
+            time.sleep(HEALTH_POLL_SECONDS)
         return False
     finally:
         ssh.close()

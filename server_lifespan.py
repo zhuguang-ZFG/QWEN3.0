@@ -18,8 +18,8 @@ async def lifespan(application):
         import health_state
         loaded = health_state.load_health_state()
         _log.info("Loaded health state: %d backends", loaded)
-    except ImportError:
-        pass
+    except ImportError as exc:
+        _log.warning("health_state module not loaded; persisted health state skipped: %s", exc)
 
     # Load persisted backend profiles
     try:
@@ -27,16 +27,16 @@ async def lifespan(application):
         loaded = backend_profile.load_profiles()
         _log.info("Loaded backend profiles: %d", loaded)
         backend_profile.save_on_interval(300)
-    except ImportError:
-        pass
+    except ImportError as exc:
+        _log.warning("backend_profile module not loaded; persisted backend profiles skipped: %s", exc)
 
     # Load retired backends
     try:
         import backend_retirement
         loaded = backend_retirement.load_retired()
         _log.info("Loaded retired backends: %d", loaded)
-    except ImportError:
-        pass
+    except ImportError as exc:
+        _log.warning("backend_retirement module not loaded; retired backend state skipped: %s", exc)
 
     try:
         from backend_admission_store import apply_startup
@@ -83,11 +83,16 @@ async def lifespan(application):
     except ImportError:
         _log.debug("auto_indexer not installed")
     try:
+        from observability.prometheus_metrics import validate_startup
         from observability.prometheus_exporter import start_exporter
 
+        validate_startup()
         start_exporter()
-    except ImportError:
-        _log.debug("prometheus_exporter not installed")
+    except ImportError as exc:
+        _log.warning("prometheus metrics modules not loaded; metrics exporter skipped: %s", exc)
+    except RuntimeError as exc:
+        _log.error("prometheus metrics startup validation failed: %s", exc)
+        raise
     try:
         yield
     finally:
@@ -102,8 +107,8 @@ async def lifespan(application):
             from context_pipeline.auto_indexer import stop_auto_indexer
 
             stop_auto_indexer()
-        except ImportError:
-            pass
+        except ImportError as exc:
+            _log.debug("auto_indexer stop skipped; module not loaded: %s", exc)
         try:
             import periodic_coding_eval
 

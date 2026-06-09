@@ -2,6 +2,16 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-06-09 Prometheus Metrics Hardening Closeout
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| PROM-1 | Metrics contract | Prometheus support is now explicit: disabled returns `404`, enabled dependency/config failure returns `503` or startup `RuntimeError`, and healthy enabled scrape returns OpenMetrics text from a private registry. | Closed |
+| PROM-2 | Request telemetry | LiMa request tracking now records Prometheus request counters after normal in-memory stats without breaking user requests; failures are logged instead of silently skipped. | Closed |
+| PROM-3 | Exporter lifecycle | Backend health/score gauges are owned by `observability.prometheus_metrics`; the exporter only starts when metrics are enabled, validates before launch, and is idempotent on start/stop. | Closed |
+| PROM-4 | VPS state | VPS already had `LIMA_PROMETHEUS_METRICS=1` before this slice, so production smoke expects authenticated scrape `200` on `chat.donglicao.com`, not default-off `404`. `api.donglicao.com` still returns edge `404` for the scrape path. | Closed |
+| PROM-5 | Deploy tooling | `deploy_unified.py` reported health failed because the service completed startup just after the old 45s window; the wait window is now `HEALTH_WAIT_SECONDS=90` and covered by `tests/test_deploy_unified.py`. | Closed |
+
 ## 2026-06-09 Pre-Commit Hook Hygiene Closeout
 
 | ID | Area | Finding | Status |

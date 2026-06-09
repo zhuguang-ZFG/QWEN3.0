@@ -16,55 +16,109 @@ from __future__ import annotations
 
 import logging
 import os
+from typing import Any
 
 _log = logging.getLogger(__name__)
 
-_ENABLED = os.environ.get("LIMA_PROMETHEUS_METRICS", "0").strip().lower() in {
-    "1", "true", "yes",
-}
+_TRUE_VALUES = {"1", "true", "yes", "on"}
+_HEALTH_STATUSES = ("healthy", "degraded", "dead", "unknown")
+_HEALTH_VALUES = {"healthy": 1.0, "degraded": 0.5, "dead": 0.0, "unknown": 0.0}
 
-# Lazy-import prometheus_client to avoid hard dependency
-_counters: dict[str, object] = {}
-_histograms: dict[str, object] = {}
-
-
-def _ensure_instruments():
-    """Create Prometheus instruments on first use."""
-    if _counters or not _ENABLED:
-        return
-    try:
-        from prometheus_client import Counter, Histogram, generate_latest, REGISTRY  # noqa: F401
-
-        _counters["requests"] = Counter(
-            "lima_requests_total", "Total requests", ["backend", "status"],
-        )
-        _counters["backend_errors"] = Counter(
-            "lima_backend_errors_total", "Backend errors", ["backend", "error_type"],
-        )
-        _counters["device_tasks"] = Counter(
-            "lima_device_tasks_total", "Device tasks", ["capability", "status"],
-        )
-        _histograms["request_duration"] = Histogram(
-            "lima_request_duration_ms", "Request duration",
-            ["backend"],
-            buckets=[50, 100, 250, 500, 1000, 2500, 5000, 10000, 30000],
-        )
-        _histograms["backend_latency"] = Histogram(
-            "lima_backend_latency_ms", "Backend response latency",
-            ["backend"],
-            buckets=[100, 250, 500, 1000, 2500, 5000, 10000, 30000, 60000],
-        )
-    except ImportError:
-        _log.debug("prometheus_client not installed")
-    except Exception:
-        _log.debug("Prometheus instrument init failed", exc_info=True)
+_registry: Any | None = None
+_counters: dict[str, Any] = {}
+_histograms: dict[str, Any] = {}
+_gauges: dict[str, Any] = {}
 
 
 def is_enabled() -> bool:
-    return _ENABLED
+    return os.environ.get("LIMA_PROMETHEUS_METRICS", "0").strip().lower() in _TRUE_VALUES
+
+
+def _load_client() -> dict[str, Any]:
+    try:
+        from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram, generate_latest
+    except ImportError as exc:
+        message = "prometheus_client is required when LIMA_PROMETHEUS_METRICS=1"
+        _log.error(message)
+        raise RuntimeError(message) from exc
+    return {
+        "CollectorRegistry": CollectorRegistry,
+        "Counter": Counter,
+        "Gauge": Gauge,
+        "Histogram": Histogram,
+        "generate_latest": generate_latest,
+    }
+
+
+def validate_startup() -> None:
+    """Fail visibly when metrics are enabled without a working dependency."""
+    if not is_enabled():
+        return
+    _ensure_instruments()
+
+
+def _ensure_instruments() -> None:
+    """Create Prometheus instruments on first use."""
+    global _registry
+    if not is_enabled() or _registry is not None:
+        return
+
+    client = _load_client()
+    registry = client["CollectorRegistry"](auto_describe=True)
+    counter = client["Counter"]
+    gauge = client["Gauge"]
+    histogram = client["Histogram"]
+
+    _counters["requests"] = counter(
+        "lima_requests_total",
+        "Total requests",
+        ["backend", "status"],
+        registry=registry,
+    )
+    _counters["backend_errors"] = counter(
+        "lima_backend_errors_total",
+        "Backend errors",
+        ["backend", "error_type"],
+        registry=registry,
+    )
+    _counters["device_tasks"] = counter(
+        "lima_device_tasks_total",
+        "Device tasks",
+        ["capability", "status"],
+        registry=registry,
+    )
+    _histograms["request_duration"] = histogram(
+        "lima_request_duration_ms",
+        "Request duration",
+        ["backend"],
+        buckets=[50, 100, 250, 500, 1000, 2500, 5000, 10000, 30000],
+        registry=registry,
+    )
+    _histograms["backend_latency"] = histogram(
+        "lima_backend_latency_ms",
+        "Backend response latency",
+        ["backend"],
+        buckets=[100, 250, 500, 1000, 2500, 5000, 10000, 30000, 60000],
+        registry=registry,
+    )
+    _gauges["backend_health"] = gauge(
+        "lima_backend_health",
+        "Backend health status (1=healthy, 0.5=degraded, 0=dead)",
+        ["backend", "status"],
+        registry=registry,
+    )
+    _gauges["backend_score"] = gauge(
+        "lima_backend_score",
+        "Backend health score (0-1)",
+        ["backend"],
+        registry=registry,
+    )
+    _registry = registry
 
 
 def record_request(backend: str, status: str, duration_ms: float) -> None:
+    if not is_enabled():
+        return
     _ensure_instruments()
     c = _counters.get("requests")
     h = _histograms.get("request_duration")
@@ -75,6 +129,8 @@ def record_request(backend: str, status: str, duration_ms: float) -> None:
 
 
 def record_backend_error(backend: str, error_type: str) -> None:
+    if not is_enabled():
+        return
     _ensure_instruments()
     c = _counters.get("backend_errors")
     if c:
@@ -82,6 +138,8 @@ def record_backend_error(backend: str, error_type: str) -> None:
 
 
 def record_device_task(capability: str, status: str) -> None:
+    if not is_enabled():
+        return
     _ensure_instruments()
     c = _counters.get("device_tasks")
     if c:
@@ -89,18 +147,40 @@ def record_device_task(capability: str, status: str) -> None:
 
 
 def record_backend_latency(backend: str, latency_ms: float) -> None:
+    if not is_enabled():
+        return
     _ensure_instruments()
     h = _histograms.get("backend_latency")
     if h:
         h.labels(backend=backend).observe(latency_ms)
 
 
+def record_backend_health(backend: str, status: str) -> None:
+    if not is_enabled():
+        return
+    _ensure_instruments()
+    gauge = _gauges.get("backend_health")
+    if not gauge:
+        return
+    normalized = status if status in _HEALTH_STATUSES else "unknown"
+    for known_status in _HEALTH_STATUSES:
+        value = _HEALTH_VALUES[normalized] if known_status == normalized else 0.0
+        gauge.labels(backend=backend, status=known_status).set(value)
+
+
+def record_backend_score(backend: str, score: float) -> None:
+    if not is_enabled():
+        return
+    _ensure_instruments()
+    gauge = _gauges.get("backend_score")
+    if gauge:
+        gauge.labels(backend=backend).set(max(0.0, min(1.0, float(score))))
+
+
 def generate_metrics() -> bytes:
     """Generate Prometheus text format output."""
+    if not is_enabled():
+        return b""
     _ensure_instruments()
-    try:
-        from prometheus_client import generate_latest  # noqa: F811
-
-        return generate_latest()
-    except ImportError:
-        return b"# prometheus_client not installed\n"
+    client = _load_client()
+    return client["generate_latest"](_registry)

@@ -1,11 +1,24 @@
 # LiMa Status
 
-> Updated: 2026-06-09 (pre-commit hook hygiene closeout)
+> Updated: 2026-06-09 (Prometheus metrics hardening closeout)
 > Branch: `feat/kilo-provider-probe`
-> Tests: pre-commit focused pytest **8 passed**; hook quick mode clean; `run_pre_commit_check.py --full` **2060 passed, 10 skipped, 1 warning**; touched `py_compile` and ruff clean
-> Current VPS: registry/router cleanup deployed with restart health OK; nginx edge returns HTTP `404` for public `POST /telegram/webhook` on both `api.donglicao.com` and `chat.donglicao.com`; authenticated `model=code` chat returns 200
-> VPS rollback: nginx backups `/etc/nginx/conf.d/donglicao.conf.bak-20260609-040449` and `/etc/nginx/conf.d/chat.donglicao.com.conf.bak-20260609-040449`
+> Tests: Prometheus focused ops suite **28 passed**; deploy helper focused **6 passed**; `run_pre_commit_check.py --full` **2067 passed, 10 skipped, 1 warning**; touched `py_compile`, ruff, diff check, and focused pyright clean (`0 errors`)
+> Current VPS: Prometheus metrics hardening deployed; VPS-local `/health=200`; VPS-local authenticated `/v1/ops/metrics/prometheus=200`; public `chat.donglicao.com` authenticated Prometheus scrape `200`; public `model=code` chat returns `prometheus_smoke_ok`; `/telegram/webhook` remains `404`
+> VPS rollback: `/opt/lima-router/backups/prometheus-metrics-20260609_120036/runtime-before.tgz`
 > Improvement Plan: [`docs/IMPROVEMENT_PLAN_2026-05-27.md`](docs/IMPROVEMENT_PLAN_2026-05-27.md)
+
+## 2026-06-09 Prometheus Metrics Hardening Closeout
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| Fail-visible metrics | Done | `observability/prometheus_metrics.py` now uses dynamic env checks, a private Prometheus registry, idempotent instruments, and `validate_startup()`; enabled missing `prometheus_client` raises `RuntimeError` instead of returning fake scrape output |
+| Request/exporter wiring | Done | `routes.request_tracking.record_request()` records Prometheus request metrics after normal in-memory stats; `observability/prometheus_exporter` writes backend health/score gauges through the metrics module and remains default-off unless enabled |
+| Ops endpoint contract | Done | Private `/v1/ops/metrics/prometheus` returns `404` when disabled, `503` when enabled but broken, and `200 text/plain` when enabled and healthy |
+| Silent downgrade cleanup | Done | Touched production paths no longer use `except ImportError: pass`; `server_lifespan.py` logs skipped optional modules and fails startup when enabled Prometheus validation fails |
+| Deploy helper | Done | `scripts/deploy_unified.py` health wait increased from the observed-too-short 45s window to `HEALTH_WAIT_SECONDS=90`; test guards the lower bound |
+| Local verification | Done | Prometheus tests `7 passed`; full `tests/test_ops_metrics.py` `28 passed, 1 warning`; deploy helper focused `6 passed, 1 warning`; `run_pre_commit_check.py --full` `2067 passed, 10 skipped, 1 warning`; py_compile/ruff/diff check clean; focused pyright `0 errors` with dependency-resolution warnings only |
+| VPS deploy | Done | Backup `/opt/lima-router/backups/prometheus-metrics-20260609_120036/runtime-before.tgz`; `scripts/deploy_unified.py --files observability/prometheus_metrics.py observability/prometheus_exporter.py routes/ops_metrics.py routes/request_tracking.py server_lifespan.py` uploaded `5` files; service became healthy after startup completed |
+| VPS smoke | Done | VPS `.env` already has `LIMA_PROMETHEUS_METRICS=1`; local `/health=200`; local authenticated Prometheus scrape `200` with `lima_backend_health`; `chat.donglicao.com/health=200`; `chat.donglicao.com` authenticated Prometheus scrape `200`; `api.donglicao.com` Prometheus path remains edge `404`; both public Telegram webhook POST checks return `404`; public authenticated `model=code` chat returns `prometheus_smoke_ok` |
 
 ## 2026-06-09 Pre-Commit Hook Hygiene Closeout
 

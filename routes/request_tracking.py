@@ -140,12 +140,12 @@ def record_request(query: str, backend: str, intent: str, duration_ms: int,
         if len(_stats["recent_logs"]) > 100:
             _stats["recent_logs"] = _stats["recent_logs"][-100:]
 
-    # Record Prometheus metrics
     try:
         from observability.prometheus_metrics import record_request as prom_record_request
+
         status = "success" if success else "error"
         prom_record_request(backend, status, float(duration_ms))
-    except ImportError:
-        pass  # prometheus_metrics module not available
+    except ImportError as exc:
+        log.warning("Prometheus metrics module unavailable; request metric skipped: %s", exc)
     except Exception as exc:
-        log.debug("Prometheus metrics recording failed: %s", type(exc).__name__)
+        log.warning("Prometheus metrics recording failed: %s", type(exc).__name__)

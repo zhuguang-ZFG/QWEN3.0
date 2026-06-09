@@ -5992,3 +5992,63 @@ Verification note:
     by the operator because it was exposed in terminal history.
 - VPS:
   - not deployed. This is LiMa Code CLI/TUI package and GitHub Release only.
+
+## 2026-06-09 Prometheus Metrics Hardening
+
+- Scope:
+  - hardened `observability/prometheus_metrics.py` with dynamic
+    `LIMA_PROMETHEUS_METRICS` checks, private Prometheus registry,
+    idempotent instruments, and `validate_startup()`;
+  - moved backend health/score Gauge ownership into the metrics module and
+    made `observability/prometheus_exporter.py` default-off/idempotent;
+  - wired `routes.request_tracking.record_request()` to record request
+    counters without silent `ImportError` skips;
+  - made private `/v1/ops/metrics/prometheus` return `404` when disabled,
+    `503` when enabled but broken, and `200 text/plain` when enabled;
+  - increased `scripts/deploy_unified.py` restart health wait to 90s after
+    this deploy showed the previous 45s window could false-negative.
+- Local verification:
+  - Prometheus focused tests:
+    `tests/test_ops_metrics.py::{test_prometheus_*...}` -> `7 passed`;
+  - full ops metrics file:
+    `tests/test_ops_metrics.py` -> `28 passed, 1 warning`;
+  - deploy helper focused:
+    `tests/test_deploy_unified.py` plus selected Prometheus tests ->
+    `6 passed, 1 warning`;
+  - `py_compile` for touched runtime/tests/scripts -> clean;
+  - `scripts/run_ruff_check.py` -> clean;
+  - `git diff --check` -> clean;
+  - focused pyright on touched production files -> `0 errors`, dependency
+    resolution warnings only;
+  - `scripts/run_pre_commit_check.py --full` ->
+    `2067 passed, 10 skipped, 1 warning in 426.13s`.
+- VPS deployment:
+  - rollback backup:
+    `/opt/lima-router/backups/prometheus-metrics-20260609_120036/runtime-before.tgz`;
+  - deployed runtime files:
+    `observability/prometheus_metrics.py`,
+    `observability/prometheus_exporter.py`, `routes/ops_metrics.py`,
+    `routes/request_tracking.py`, `server_lifespan.py`;
+  - upload result: `5 uploaded, 0 failed, 0 skipped`;
+  - initial deploy helper health check returned `FAILED` because app startup
+    completed just after the old 45s window; follow-up diagnostics showed
+    service `active` and local `/health=200`.
+- VPS smoke:
+  - VPS `.env` already has `LIMA_PROMETHEUS_METRICS=1`;
+  - local `/health=200`;
+  - local authenticated `/v1/ops/metrics/prometheus=200`, body includes
+    `lima_backend_health`;
+  - public `chat.donglicao.com/health=200`;
+  - public `chat.donglicao.com/v1/ops/metrics/prometheus=200` with bearer auth
+    and `text/plain; version=0.0.4`;
+  - public `api.donglicao.com/v1/ops/metrics/prometheus=404`, preserving the
+    current edge boundary for that domain;
+  - public `POST /telegram/webhook=404` on both public domains;
+  - public authenticated `model=code` chat returned HTTP `200` and marker
+    `prometheus_smoke_ok`.
+- Residual:
+  - Prometheus is enabled on the current VPS; code remains default-off for
+    fresh environments.
+  - `api.donglicao.com/health` returns JSON from the API edge with a larger
+    payload than `chat.donglicao.com/health`; this was pre-existing topology,
+    not changed by the slice.

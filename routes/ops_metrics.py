@@ -615,12 +615,21 @@ def ops_metrics_prometheus(request: Request):
     Enable with LIMA_PROMETHEUS_METRICS=1.
     Requires prometheus_client package installed.
     """
-    from observability.prometheus_metrics import generate_metrics, is_enabled
+    try:
+        from observability import prometheus_metrics
+    except ImportError as exc:
+        logger.warning("Prometheus metrics module unavailable: %s", exc)
+        return JSONResponse({"error": "Prometheus metrics unavailable"}, status_code=503)
 
-    if not is_enabled():
+    if not prometheus_metrics.is_enabled():
         return JSONResponse(
-            {"error": "Prometheus metrics disabled. Set LIMA_PROMETHEUS_METRICS=1"},
+            {"error": "Prometheus metrics disabled"},
             status_code=404,
         )
     from fastapi.responses import PlainTextResponse
-    return PlainTextResponse(generate_metrics(), media_type="text/plain; version=0.0.4")
+    try:
+        body = prometheus_metrics.generate_metrics()
+    except RuntimeError as exc:
+        logger.warning("Prometheus metrics generation failed: %s", exc)
+        return JSONResponse({"error": "Prometheus metrics unavailable"}, status_code=503)
+    return PlainTextResponse(body, media_type="text/plain; version=0.0.4")
