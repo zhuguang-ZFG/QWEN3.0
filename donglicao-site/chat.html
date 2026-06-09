@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LiMa — AI 智能设备云端控制台</title>
   <meta name="description" content="LiMa 智能设备云端控制台 — 管理 AI 绘图机、写字机，一句话生成创意作品">
-  <meta name="theme-color" content="#6366f1">
+  <meta name="theme-color" content="#000000">
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -55,9 +55,9 @@
       content: '';
       position: fixed; inset: 0;
       background:
-        radial-gradient(ellipse 600px 400px at 15% 50%, rgba(99,102,241,0.04) 0%, transparent 70%),
-        radial-gradient(ellipse 400px 300px at 85% 20%, rgba(245,158,11,0.025) 0%, transparent 70%),
-        radial-gradient(ellipse 500px 500px at 60% 80%, rgba(99,102,241,0.03) 0%, transparent 70%);
+        radial-gradient(ellipse 600px 400px at 15% 50%, rgba(99,102,241,0.03) 0%, transparent 70%),
+        radial-gradient(ellipse 400px 300px at 85% 20%, rgba(245,158,11,0.02) 0%, transparent 70%),
+        radial-gradient(ellipse 500px 500px at 60% 80%, rgba(99,102,241,0.02) 0%, transparent 70%);
       pointer-events: none; z-index: 0;
     }
 
@@ -302,7 +302,7 @@
     /* Animated canvas */
     .hero-canvas {
       width: 120px; height: 120px;
-      margin-bottom: 2rem; position: relative;
+      margin-bottom: 1.75rem; position: relative;
     }
     .hero-canvas svg {
       width: 100%; height: 100%;
@@ -310,23 +310,23 @@
     .canvas-ring {
       position: absolute; inset: 0;
       border-radius: 50%;
-      border: 1.5px solid rgba(99,102,241,0.12);
-      animation: ringPulse 4s ease-in-out infinite;
+      border: 0.5px solid rgba(99,102,241,0.1);
+      animation: ringPulse 4s var(--ease-apple) infinite;
     }
     .canvas-ring:nth-child(2) {
       inset: -8px;
-      border-color: rgba(99,102,241,0.06);
+      border-color: rgba(99,102,241,0.05);
       animation-delay: 1.3s;
     }
     @keyframes ringPulse {
-      0%, 100% { opacity: 0.4; transform: scale(1); }
-      50% { opacity: 1; transform: scale(1.03); }
+      0%, 100% { opacity: 0.3; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(1.03); }
     }
 
     .canvas-draw-path {
       stroke-dasharray: 200;
       stroke-dashoffset: 200;
-      animation: drawStroke 3s ease-in-out infinite;
+      animation: drawStroke 3.5s var(--ease-apple) infinite;
     }
     @keyframes drawStroke {
       0% { stroke-dashoffset: 200; opacity: 0; }
@@ -339,7 +339,7 @@
     .canvas-write-line {
       stroke-dasharray: 120;
       stroke-dashoffset: 120;
-      animation: writeLine 3s ease-in-out infinite 0.5s;
+      animation: writeLine 3.5s var(--ease-apple) infinite 0.5s;
     }
     @keyframes writeLine {
       0% { stroke-dashoffset: 120; opacity: 0; }
@@ -348,7 +348,6 @@
       80% { opacity: 1; }
       100% { stroke-dashoffset: 0; opacity: 0; }
     }
-
     .welcome h2 {
       font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 600;
       letter-spacing: -0.03em; margin-bottom: 0.5rem;
@@ -584,17 +583,17 @@
 
     /* ─── CODE IN MESSAGES ─── */
     .msg-bubble pre {
-      background: rgba(0,0,0,0.35);
-      border: 1px solid rgba(255,255,255,0.05);
-      border-radius: 8px; padding: 0.75rem 1rem;
+      background: rgba(0,0,0,0.3);
+      border: 0.5px solid rgba(255,255,255,0.06);
+      border-radius: 12px; padding: 0.75rem 1rem;
       margin: 0.5rem 0; overflow-x: auto;
-      font-family: 'SF Mono','Fira Code', monospace;
+      font-family: 'SF Mono', SFMono-Regular, ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
       font-size: 0.8rem; line-height: 1.6;
     }
     .msg-bubble code {
       background: rgba(0,0,0,0.2);
-      padding: 0.1rem 0.35rem; border-radius: 4px;
-      font-family: 'SF Mono','Fira Code', monospace;
+      padding: 0.1rem 0.35rem; border-radius: 6px;
+      font-family: 'SF Mono', SFMono-Regular, ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
       font-size: 0.8rem;
     }
     .msg-bubble pre code { background: none; padding: 0; }
@@ -604,7 +603,7 @@
       display: inline-block; vertical-align: middle;
       width: 1em; height: 1em;
       stroke: currentColor; fill: none;
-      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+      stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
     }
   </style>
 </head>
