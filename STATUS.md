@@ -4,13 +4,24 @@
 > **转型文档**: [`docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md`](docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md)
 > **Phase 0 启动**: [`docs/superpowers/plans/2026-06-09-phase0-strategic-confirmation.md`](docs/superpowers/plans/2026-06-09-phase0-strategic-confirmation.md)
 
-> Updated: 2026-06-09 (Phase 0 文档更新 + 战略转型启动)
-> Branch: `feat/kilo-provider-probe`
+> Updated: 2026-06-10 (device model routing + whole-project docs refresh)
+> Branch: `feat/code-simplification`
 > Tests: deploy/JDCloud focused **10 passed**; touched `py_compile` clean; tracked ruff clean; `git diff --check` clean except CRLF warnings; `run_pre_commit_check.py --full` **2074 passed, 10 skipped, 1 warning**
 > Current VPS: capacity-aware `scripts/deploy_unified.py` uploaded final helper scripts with no restart; preflight reported `disk_free_mb=13685`, `mem_available_mb=488`; public `chat.donglicao.com/health=200`; `/health` still reports `telegram=false`
 > VPS rollback: `/opt/lima-router/backups/unified-files-20260609_130457/runtime-before.tgz`
 > Strategic Pivot Plan: [`docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md`](docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md)
 
+## 2026-06-10 Device Model Routing + ESP32 Schema Closeout
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| Model routing guide | Done | `docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE.md` defines task-family routing, model roles, admission gates, switching policy, device-aware inputs, safety, observability, and verification commands for AI drawing/writing machines. |
+| Project optimization roadmap | Done | `docs/PROJECT_OPTIMIZATION_ROADMAP.md` defines the active whole-project optimization streams, phases, gates, risks, and immediate next coding tasks for device routing, model admission, firmware integration, CI, deploy, and docs. |
+| Device route roles | Done | `device_gateway/model_routing.py` classifies `device_control`, `device_write`, `device_draw`, `device_vector`, and `device_unknown`; `device_gateway/tasks.py` attaches `route_policy` to successful, validation-failed, and policy-blocked `motion_task` payloads. |
+| SVG prompt guard | Done | `draw cat` no longer gets misparsed as an SVG cubic path; SVG-like prompt detection now requires a path command plus numeric coordinate evidence. |
+| Product schema compatibility | Done | `esp32S_XYZ` commit `a8d98e3` adds `route_policy` to Edge-B and Edge-C `motion_task` schemas and examples; main repo commit `423bf3e` advances the submodule pointer. |
+| Verification | Done | Device route tests `4 passed`; device gateway focused regression `26 passed, 2 skipped`; product schema validation `validated=62 passed=62 failed=0`; product schema unittest `5 passed`; ruff, py_compile, diff checks, and pre-commit passed. |
+| Deployment | Not needed | Runtime route metadata and schema/docs only; no VPS restart or firmware flash performed in this slice. |
 ## 🚀 2026-06-09 LiMa 战略转型启动
 
 | Area | Status | Evidence |

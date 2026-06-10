@@ -38,6 +38,19 @@ When a document and code disagree, production behavior follows code. Update this
 document when changing route pools, provider admission, device task contracts,
 or the model requirements for drawing/writing tasks.
 
+## Implementation Status
+
+Current as of 2026-06-10:
+
+| Area | Status | Evidence |
+|---|---|---|
+| Cloud-side guide | Done | This document defines route roles, model admission, switching policy, safety, observability, and verification for AI drawing/writing machines. |
+| Device route roles | Done | `device_gateway/model_routing.py` classifies `device_control`, `device_write`, `device_draw`, `device_vector`, and `device_unknown`. |
+| Task metadata | Done | `device_gateway/tasks.py` attaches `route_policy` to successful, validation-failed, and policy-blocked `motion_task` payloads. |
+| Product schema compatibility | Done | `esp32S_XYZ` commit `a8d98e3` accepts `route_policy` in Edge-B and Edge-C `motion_task` schemas and examples. |
+| LiMa submodule pointer | Done | Main repo commit `423bf3e` advances `esp32S_XYZ` to the schema-compatible revision. |
+| Firmware consumption | Next | Fake U8 should consume, log, and echo route policy evidence before direct U1 motion firmware behavior changes. |
+
 ## Ownership Boundary
 
 LiMa cloud owns:

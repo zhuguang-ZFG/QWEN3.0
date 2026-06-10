@@ -4,6 +4,8 @@
 
 **Goal:** Add explicit cloud-side routing roles for AI drawing/writing device tasks so LiMa can later admit and switch models by task family instead of relying on generic chat/code route pools.
 
+**Current Status:** Task 1 is complete and pushed in main repo commit `6933a12`. Product schema compatibility is complete and pushed in `esp32S_XYZ` commit `a8d98e3`, with the main repo submodule pointer updated in `423bf3e`.
+
 **Architecture:** Keep this phase cloud-only and firmware-safe. Add a small `device_gateway.model_routing` module that classifies parsed device tasks into route roles and emits serializable route policy metadata; attach that metadata to `motion_task` payloads created by `device_gateway.tasks.project_to_motion_task()`. Do not call real image providers in this phase.
 
 **Tech Stack:** Python 3.10, pytest, existing `device_gateway` modules, existing task store/workflow/ledger behavior.
@@ -26,7 +28,7 @@
 - Create: `tests/test_device_gateway_model_routing.py`
 - Modify: `device_gateway/tasks.py`
 
-- [ ] **Step 1: Write failing tests for route role behavior**
+- [x] **Step 1: Write failing tests for route role behavior**
 
 Add tests that call public device gateway functions:
 
@@ -68,10 +70,15 @@ def test_svg_like_generated_drawing_uses_vector_route_without_model():
     assert policy["model_required"] is False
 ```
 
-Run: `python -m pytest tests/test_device_gateway_model_routing.py -q`
-Expected: FAIL because `device_gateway.model_routing` does not exist.
+Actual RED:
 
-- [ ] **Step 2: Implement minimal route policy module**
+```powershell
+.\.venv310\Scripts\python.exe -m pytest tests\test_device_gateway_model_routing.py -q
+```
+
+Result: failed with `ModuleNotFoundError: No module named 'device_gateway.model_routing'`.
+
+- [x] **Step 2: Implement minimal route policy module**
 
 Create `device_gateway/model_routing.py`:
 
@@ -117,7 +124,9 @@ def _policy(route_role: str, model_required: bool, primary_strategy: str, artifa
     }
 ```
 
-- [ ] **Step 3: Attach policy in task projection**
+Actual implementation tightened `looks_like_svg_path()` so ordinary prompts such as `draw cat` are not misparsed as SVG cubic commands; SVG-like strings must include numeric coordinates.
+
+- [x] **Step 3: Attach policy in task projection**
 
 In `device_gateway/tasks.py`, import `resolve_device_route_policy` and set:
 
@@ -130,7 +139,7 @@ task["route_policy"] = route_policy
 Apply this to successful tasks and failed/blocked task objects so diagnostics can
 see the route role even when validation or policy blocks dispatch.
 
-- [ ] **Step 4: Run focused tests**
+- [x] **Step 4: Run focused tests**
 
 Run:
 
@@ -140,7 +149,9 @@ python -m pytest tests/test_device_gateway_model_routing.py tests/test_device_ga
 
 Expected: PASS.
 
-- [ ] **Step 5: Run local lint/whitespace gate**
+Actual result: `26 passed, 2 skipped, 2 warnings`.
+
+- [x] **Step 5: Run local lint/whitespace gate**
 
 Run:
 
@@ -150,6 +161,40 @@ git diff --check
 ```
 
 Expected: PASS.
+
+Actual result: `scripts/run_ruff_check.py`, touched-file `py_compile`, `git diff --check`, and pre-commit all passed.
+
+## Task 1b: Product Schema Compatibility
+
+**Files:**
+- Modify: `esp32S_XYZ/docs/schemas/edge_b/motion_task.schema.json`
+- Modify: `esp32S_XYZ/docs/schemas/edge_c/motion_task.schema.json`
+- Modify: `esp32S_XYZ/docs/schemas/edge_b/examples/motion_task.run_path.json`
+- Modify: `esp32S_XYZ/docs/schemas/edge_c/examples/motion_task.run_path.downlink.json`
+
+- [x] **Step 1: Add `route_policy` to Edge-B and Edge-C motion_task schemas**
+
+Edge-B and Edge-C now accept:
+
+```json
+{
+  "route_role": "device_vector",
+  "model_required": false,
+  "primary_strategy": "provided_path",
+  "artifact_required": "preview_svg"
+}
+```
+
+- [x] **Step 2: Verify product schema tree**
+
+Run:
+
+```powershell
+python tools\validate_schemas.py
+python -m unittest tests.ci.test_validate_schemas -v
+```
+
+Actual result: `validated=62 passed=62 failed=0`; unittest `5 passed`.
 
 ## Task 2: Role-Aware Route Evidence
 

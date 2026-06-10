@@ -1,6 +1,6 @@
 # esp32S_XYZ Management
 
-> Updated: 2026-05-25
+> Updated: 2026-06-10
 
 ## Purpose
 
@@ -46,7 +46,7 @@ LiMa owns:
 Current pinned revision:
 
 ```text
-78a62c9 test: add fake lima u8 client
+a8d98e3 feat: accept route policy in motion task schemas
 ```
 
 ## Integration Model
@@ -71,7 +71,7 @@ families, fallback behavior, and device-aware routing rules, use
 
 ## Refactor Authority
 
-LiMa may modify `D:\GIT\esp32S_XYZ` directly when working on this product.
+LiMa may modify `D:\QWEN3.0\esp32S_XYZ` directly when working on this product.
 Allowed work includes:
 
 - code-quality fixes and test hardening;
@@ -93,7 +93,7 @@ Before advancing the submodule pointer for product/backend integration, use the
 product repository CI-equivalent checks that match the touched area:
 
 ```powershell
-cd D:\GIT\esp32S_XYZ
+cd D:\QWEN3.0\esp32S_XYZ
 python tools/validate_schemas.py
 python tools/check_gpio.py
 python tools/test_check_gpio.py -v
@@ -109,14 +109,14 @@ python -m unittest tests.ci.test_fake_integration -v
 For manager API changes:
 
 ```powershell
-cd D:\GIT\esp32S_XYZ\server\xiaozhi-esp32-server\main\manager-api
+cd D:\QWEN3.0\esp32S_XYZ\server\xiaozhi-esp32-server\main\manager-api
 mvn test
 ```
 
 For manager mobile changes:
 
 ```powershell
-cd D:\GIT\esp32S_XYZ\server\xiaozhi-esp32-server\main\manager-mobile
+cd D:\QWEN3.0\esp32S_XYZ\server\xiaozhi-esp32-server\main\manager-mobile
 corepack pnpm install --frozen-lockfile --ignore-scripts
 corepack pnpm run type-check
 corepack pnpm run build:mp-weixin
@@ -163,6 +163,11 @@ Latest LiMa backend evidence:
   `wss://chat.donglicao.com/device/v1/ws`.
 - Cross-process delivery was verified by creating a task on a private temp
   router while the device WebSocket stayed connected to the public main router.
+- LiMa device tasks now include `route_policy` metadata for `device_control`,
+  `device_write`, `device_draw`, `device_vector`, and `device_unknown`.
+- `esp32S_XYZ` Edge-B and Edge-C `motion_task` schemas accept the same
+  `route_policy` contract, and run_path examples include a `device_vector`
+  policy.
 
 ## Safety Boundary
 

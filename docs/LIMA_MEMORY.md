@@ -2356,3 +2356,46 @@ Deployment: not performed.
   - final `/v1/ops/summary` still reports `critical`, but counts improved to
     `dead_backends=124` and `probe_candidates=12`. Remaining failures are
     provider/upstream issues rather than VPS DNS/proxy false negatives.
+
+## 2026-06-10 Device Model Routing And ESP32 Schema Alignment
+
+- LiMa now has an explicit AI drawing/writing model-routing guide at
+  `docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE.md`.
+- `device_gateway/model_routing.py` owns cloud-side device task route roles:
+  `device_control`, `device_write`, `device_draw`, `device_vector`, and
+  `device_unknown`.
+- `device_gateway/tasks.py` attaches `route_policy` to created motion tasks,
+  including successful, validation-failed, and policy-blocked tasks.
+- SVG-like drawing prompts now require a path command plus numeric coordinate
+  evidence; this prevents prompts such as `draw cat` from being parsed as SVG
+  cubic paths.
+- `esp32S_XYZ` commit `a8d98e3` adds `route_policy` to Edge-B and Edge-C
+  `motion_task` schemas and run_path examples.
+- Main repo commit `423bf3e` advances the `esp32S_XYZ` submodule pointer to
+  that schema-compatible product commit.
+- Verification evidence:
+  - main device route tests `4 passed`;
+  - main focused device regression `26 passed, 2 skipped`;
+  - product schema tree `validated=62 passed=62 failed=0`;
+  - product schema unittest `5 passed`;
+  - ruff, py_compile, diff checks, and pre-commit passed.
+- No VPS restart or physical firmware flash was performed. Treat the next
+  firmware-side step as fake U8/U8 protocol consumption of `route_policy`, not
+  direct U1 motion changes.
+
+## 2026-06-10 Whole-Project Documentation Refresh
+
+- `docs/PROJECT_OPTIMIZATION_ROADMAP.md` is now the active whole-project
+  optimization roadmap after the smart-device pivot.
+- The roadmap coordinates device task routing, drawing/writing model admission,
+  product firmware/schema integration, motion safety, generic LLM routing,
+  observability, CI/release gates, and documentation governance.
+- `docs/README.md` is the documentation entry point and now links the roadmap,
+  device model routing guide, product submodule management doc, and active
+  superpowers plans.
+- `docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE.md` now includes implementation
+  status for route roles, `route_policy`, product schema compatibility, and the
+  next firmware-side fake U8 consumption boundary.
+- Do not treat the untracked
+  `docs/superpowers/plans/2026-06-10-project-health-and-improvement-roadmap.md`
+  draft as the active roadmap unless a future user explicitly adopts it.

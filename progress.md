@@ -6293,3 +6293,70 @@ pytest tests/ -k "device or chat or backend"
 - ✅ 更新 `CLAUDE.md` 统计数据和已删除模块列表
 
 详见 `docs/superpowers/plans/2026-06-09-code-simplification-verification.md`
+
+---
+
+# 2026-06-10 Device Model Routing + ESP32 Schema
+
+## Scope
+
+- Added `docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE.md` as the cloud-side
+  model routing and admission guide for the AI drawing/writing machine.
+- Added `device_gateway/model_routing.py` for explicit device task route roles.
+- Updated `device_gateway/tasks.py` so every generated `motion_task` carries
+  `route_policy` metadata.
+- Updated `esp32S_XYZ` Edge-B and Edge-C `motion_task` schemas and examples to
+  accept the same `route_policy` contract.
+- Updated the main repo submodule pointer to `esp32S_XYZ` commit `a8d98e3`.
+
+## Evidence
+
+- Main repo commits:
+  - `88939cb docs: add device model routing guide`
+  - `6933a12 feat: add device task route roles`
+  - `423bf3e chore: update esp32 schema route policy pointer`
+- Product repo commit:
+  - `a8d98e3 feat: accept route policy in motion task schemas`
+- Main repo verification:
+  - `tests/test_device_gateway_model_routing.py` -> `4 passed`
+  - `tests/test_device_gateway_model_routing.py tests/test_device_gateway_protocol.py tests/test_p1_4_device_stability_gate.py` -> `26 passed, 2 skipped`
+  - `scripts/run_ruff_check.py` -> clean
+  - touched-file `py_compile` -> clean
+  - `git diff --check` and pre-commit -> clean
+- Product repo verification:
+  - `python tools/validate_schemas.py` -> `validated=62 passed=62 failed=0`
+  - `python -m unittest tests.ci.test_validate_schemas -v` -> `5 passed`
+
+## Notes
+
+- No VPS deployment was needed for this slice.
+- No physical firmware flashing was performed.
+- Existing unrelated dirty files remain outside this slice:
+  `.env.example`, old docs deletions, `routes/chat_handler_dispatch.py`,
+  `deploy_xiaozhi.tar.gz`, an untracked project-health roadmap draft, and
+  `esp32S_XYZ/tools/fake_lima_u8/*`.
+
+---
+
+# 2026-06-10 Whole-Project Documentation Refresh
+
+## Scope
+
+- Added `docs/PROJECT_OPTIMIZATION_ROADMAP.md` as the current whole-project
+  optimization roadmap after the smart-device pivot.
+- Updated `docs/README.md` so the roadmap, device routing guide, and active
+  Phase 1 device model routing plan are discoverable from the documentation
+  entry point.
+- Updated `docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE.md` with current
+  implementation status and the next firmware-side boundary.
+- Updated `docs/ESP32S_XYZ_MANAGEMENT.md` to the current 2026-06-10 document
+  date.
+- Updated `STATUS.md` top-level branch/date snapshot and added the roadmap to
+  the device routing closeout table.
+
+## Notes
+
+- This is a documentation-only refresh. Runtime tests were not rerun for this
+  docs slice; the device route/schema evidence remains the focused verification
+  already recorded above.
+- Existing unrelated dirty files remain outside this slice.

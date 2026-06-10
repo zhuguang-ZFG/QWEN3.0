@@ -12,6 +12,7 @@ LiMa 已从"编码助手"战略转型到"AI 智能设备统一云端服务"（20
 | 开发规范 | [`../CLAUDE.md`](../CLAUDE.md) |
 | 部署约定 | [`DEPLOY_AND_RELEASE_CONVENTION.md`](DEPLOY_AND_RELEASE_CONVENTION.md) |
 | 长期记忆 | [`LIMA_MEMORY.md`](LIMA_MEMORY.md) |
+| 项目优化路线图 | [`PROJECT_OPTIMIZATION_ROADMAP.md`](PROJECT_OPTIMIZATION_ROADMAP.md) |
 | 战略转型 | [`superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md`](superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md) |
 
 ## Architecture
@@ -22,6 +23,7 @@ LiMa 已从"编码助手"战略转型到"AI 智能设备统一云端服务"（20
 | `ROUTING_ENGINE_DESIGN.md` | 路由引擎设计 |
 | `REQUEST_PIPELINE_AUTHORITY.md` | 请求管线权威边界 |
 | `OBSERVABILITY_EVENTS.md` | 可观测性事件模型 |
+| `PROJECT_OPTIMIZATION_ROADMAP.md` | 全项目优化路线图：设备热路径、通用路由、固件、CI、部署、文档治理 |
 
 ## Operations
 
@@ -50,6 +52,7 @@ LiMa 已从"编码助手"战略转型到"AI 智能设备统一云端服务"（20
 | `superpowers/plans/2026-06-09-lima-hardware-ai-phase1-execution-plan.md` | Phase 1 执行计划 |
 | `superpowers/plans/2026-06-09-ai-drawing-writing-robot.md` | AI 绘图/写字机设计 |
 | `superpowers/plans/2026-06-09-writing-robot-lightweight-backend.md` | 轻量级后端 |
+| `superpowers/plans/2026-06-10-device-model-routing-phase1.md` | 设备模型路由 Phase 1：route_policy 和产品 schema 对齐 |
 
 ## Work Logs
 
@@ -70,10 +73,13 @@ LiMa 已从"编码助手"战略转型到"AI 智能设备统一云端服务"（20
 
 ## Documentation Statistics
 
-- **Total documents**: 98 (.md files)
-- **Top-level docs**: 18 (core references)
-- **Active strategic plans**: 7 (superpowers/plans/)
-- **Archived projects**: 3 directories
+- **Current documents**: 100+ Markdown files, with active work anchored by this
+  index instead of one-off execution reports.
+- **Top-level docs**: 18 core references after adding
+  `PROJECT_OPTIMIZATION_ROADMAP.md`.
+- **Active strategic plans**: 9 files in `docs/superpowers/plans/` in the
+  current workspace.
+- **Archived projects**: 3 directories.
 
 ## Document Lifecycle
 
@@ -85,4 +91,5 @@ plan.md → execution → report.md → merge to progress.md → delete
                                         archive/{project}-{YYYY-MM}/
 ```
 
-See `DOCUMENTATION_CLEANUP_PLAN.md` for details.
+Use `PROJECT_OPTIMIZATION_ROADMAP.md` for the current optimization direction
+and `WORKSPACE_HYGIENE.md` for workspace/document hygiene rules.
