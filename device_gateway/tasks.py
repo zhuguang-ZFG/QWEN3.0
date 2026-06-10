@@ -16,6 +16,7 @@ from device_workflow.orchestrator import workflow
 from device_workflow.state import TaskState
 
 from .intent import resolve_voice_task
+from .model_routing import looks_like_svg_path, resolve_device_route_policy
 from .safety import DEFAULT_FEED, safe_point
 from .path_validator import validate_capability_params
 from .path_pipeline import render_svg_task, render_text_task
@@ -45,16 +46,13 @@ def _next_task_id() -> str:
 
 def _looks_like_svg_path(text: str) -> bool:
     """Heuristic: does the text look like an SVG path 'd' attribute?"""
-    stripped = text.strip()
-    if not stripped:
-        return False
-    first = stripped[0]
-    return first in "MmLCcQqHhVvZz"
+    return looks_like_svg_path(text)
 
 
 def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_id: str | None = None) -> dict[str, Any]:
     capability = voice_task["capability"]
     params = voice_task.get("params", {})
+    route_policy = resolve_device_route_policy(voice_task)
     if capability == "write_text":
         rendered = render_text_task(str(params.get("text", "")))
         run_params = {
@@ -94,6 +92,7 @@ def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_i
             "capability": capability if capability in CONTROL_CAPABILITIES else "run_path",
             "source": voice_task.get("source", "voice"),
             "params": {},
+            "route_policy": route_policy,
             "error": {"code": error, "reason": f"validation failed: {error}"},
         }
         if request_id:
@@ -123,6 +122,7 @@ def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_i
             "capability": capability if capability in CONTROL_CAPABILITIES else "run_path",
             "source": voice_task.get("source", "voice"),
             "params": {},
+            "route_policy": route_policy,
             "policy": policy_dict,
             "error": {"code": f"policy_{policy_result.decision}", "reason": policy_result.reason},
         }
@@ -139,6 +139,7 @@ def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_i
         "capability": capability if capability in CONTROL_CAPABILITIES else "run_path",
         "source": voice_task.get("source", "voice"),
         "params": sanitized,
+        "route_policy": route_policy,
         "policy": policy_dict,
     }
     if request_id:
