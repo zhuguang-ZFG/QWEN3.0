@@ -43,7 +43,6 @@ pixels2svg/
 svg2gcode/
 vpype/
 vtracer/
-opencode/
 grblapp/
 grblapp-wake-smoke/
 clashfree/
@@ -179,7 +178,6 @@ entities.json
 .pytest_cache/
 .learnings/
 .qoder/
-opencode-source/
 _codegraph_repo/
 codegraph/
 PyWxDump/
@@ -240,7 +238,6 @@ wx_key_tool/
 /scripts/jdcloud_monitor.py
 /scripts/test_cache_performance.py
 /scripts/test_kimi*.py
-/scripts/test_opencode_e2e.py
 /scripts/test_scnet*.py
 /scripts/test_text_tools*.py
 /scripts/extract_js.py
