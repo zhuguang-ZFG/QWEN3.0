@@ -8,7 +8,7 @@ from typing import Any
 from fastapi import WebSocket
 
 from device_intelligence.shadow import shadow_store
-from device_gateway.protocol import ProtocolError, ack_frame, hello_ack
+from device_gateway.protocol import ProtocolError, ack_frame, build_voiceprint_sample_ack, hello_ack
 from device_gateway.sessions import DeviceSession, registry
 from device_gateway.tasks import (
     ack_processing_task,
@@ -210,6 +210,120 @@ async def handle_self_check(device_id: str, message: dict[str, Any], request_id:
                 "self_check_ack",
                 device_id,
                 status=message.get("status", "unknown"),
+                request_id=request_id,
+            )
+        )
+
+
+async def handle_voiceprint_sample(
+    websocket: WebSocket,
+    device_id: str,
+    message: dict[str, Any],
+    request_id: str | None,
+) -> None:
+    validated = shadow_store.validate_voiceprint_sample(message)
+    member_id = validated.get("member_id")
+    voiceprint_id = validated.get("voiceprint_id")
+    sample_index = validated.get("sample_index", 0)
+
+    try:
+        from session_memory.store_db import upsert_voiceprint_sample
+
+        upsert_voiceprint_sample(
+            voiceprint_id=voiceprint_id,
+            member_id=member_id,
+            device_id=device_id,
+            sample_index=sample_index,
+            audio_data=validated.get("audio_data"),
+            format=validated.get("format", "raw_pcm"),
+        )
+
+        ack = build_voiceprint_sample_ack(
+            device_id=device_id,
+            voiceprint_id=voiceprint_id,
+            sample_index=sample_index,
+            request_id=request_id,
+        )
+        await websocket.send_json(ack)
+    except ImportError:
+        _log.debug("session_memory.store_db not installed; skipping voiceprint sample validation")
+        await websocket.send_json(
+            ack_frame(
+                "voiceprint_sample_ack",
+                device_id,
+                voiceprint_id=voiceprint_id,
+                sample_index=sample_index,
+                request_id=request_id,
+            )
+        )
+        return
+
+    shadow_store.update_voiceprint_sample(message)
+    session = registry.get(device_id)
+    if session is not None:
+        await session.send_json(
+            ack_frame(
+                "voiceprint_sample_ack",
+                device_id,
+                voiceprint_id=voiceprint_id,
+                sample_index=sample_index,
+                request_id=request_id,
+            )
+        )
+
+
+async def handle_voiceprint_sample(
+    websocket: WebSocket,
+    device_id: str,
+    message: dict[str, Any],
+    request_id: str | None,
+) -> None:
+    validated = shadow_store.validate_voiceprint_sample(message)
+    member_id = validated.get("member_id")
+    voiceprint_id = validated.get("voiceprint_id")
+    sample_index = validated.get("sample_index", 0)
+
+    try:
+        from session_memory.store_db import upsert_voiceprint_sample
+
+        upsert_voiceprint_sample(
+            voiceprint_id=voiceprint_id,
+            member_id=member_id,
+            device_id=device_id,
+            sample_index=sample_index,
+            audio_data=validated.get("audio_data"),
+            format=validated.get("format", "raw_pcm"),
+        )
+
+        ack = build_voiceprint_sample_ack(
+            device_id=device_id,
+            voiceprint_id=voiceprint_id,
+            sample_index=sample_index,
+            request_id=request_id,
+        )
+        await websocket.send_json(ack)
+    except ImportError:
+        _log.debug("session_memory.store_db not installed; skipping voiceprint sample validation")
+        await websocket.send_json(
+            ack_frame(
+                "voiceprint_sample_ack",
+                device_id,
+                voiceprint_id=voiceprint_id,
+                sample_index=sample_index,
+                request_id=request_id,
+            )
+        )
+        return
+
+    shadow_store.update_voiceprint_sample(message)
+    session = registry.get(device_id)
+    if session is not None:
+        await session.send_json(
+            ack_frame(
+                "voiceprint_sample_ack",
+                device_id,
+                voiceprint_id=voiceprint_id,
+                sample_index=sample_index,
                 request_id=request_id,
             )
         )

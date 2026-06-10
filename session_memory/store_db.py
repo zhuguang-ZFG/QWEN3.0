@@ -129,3 +129,50 @@ def memory_stats() -> dict:
         "by_type": {t: c for t, c in by_type},
     }
 
+
+def upsert_voiceprint_sample(
+    *,
+    voiceprint_id: str,
+    member_id: str,
+    device_id: str,
+    sample_index: int,
+    audio_data: str,
+    format: str,
+) -> None:
+    """Update or insert a voiceprint sample record.
+
+    Updates the sample_count for an existing voiceprint record, or creates
+    a new one if it doesn't exist. This ensures the device gateway can track
+    the number of samples collected for each voiceprint.
+    """
+    conn = _get_conn()
+
+    try:
+        existing = conn.execute(
+            "SELECT sample_count FROM v2_voiceprint WHERE id = ? AND status != 'disabled'",
+            (voiceprint_id,)
+        ).fetchone()
+
+        if existing:
+            new_sample_count = existing["sample_count"] + 1
+            conn.execute(
+                "UPDATE v2_voiceprint SET sample_count = ?, embedding = ?, embedding_dim = ? WHERE id = ? AND status != 'disabled'",
+                (new_sample_count, audio_data, len(audio_data) // 4, voiceprint_id)
+            )
+        else:
+            conn.execute(
+                "INSERT INTO v2_voiceprint (id, member_id, device_id, embedding, embedding_dim, sample_count, confidence, status) VALUES (?, ?, ?, ?, ?, 1, 0.0, 'enrolled')",
+                (voiceprint_id, member_id, device_id, audio_data, len(audio_data) // 4, 1)
+            )
+        conn.commit()
+    except Exception as exc:
+        _log.debug("failed to upsert voiceprint sample voiceprint_id=%s err=%s", voiceprint_id, type(exc).__name__)
+    finally:
+        conn.close()
+
+
+def _log():
+    """Get logger for store_db module."""
+    import logging
+    return logging.getLogger(__name__)
+

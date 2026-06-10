@@ -16,6 +16,7 @@ from routes.device_gateway_ws_handlers import (
     handle_motion_event,
     handle_self_check,
     handle_transcript,
+    handle_voiceprint_sample,
 )
 
 _log = logging.getLogger(__name__)
@@ -38,6 +39,8 @@ async def _dispatch_authenticated_message(
         await handle_device_info(device_id, message, request_id)
     elif msg_type == "self_check":
         await handle_self_check(device_id, message, request_id)
+    elif msg_type == "voiceprint_sample":
+        await handle_voiceprint_sample(websocket, device_id, message, request_id)
     return True
 
 

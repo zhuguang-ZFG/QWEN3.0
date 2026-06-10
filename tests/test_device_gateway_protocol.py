@@ -122,3 +122,74 @@ def test_motion_event_accepts_esp32_session_id_and_cancelled_phase():
     assert event["device_id"] == "dev-1"
     assert event["session_id"] == "dev-1"
     assert event["phase"] == "cancelled"
+
+
+def test_validate_voiceprint_sample_normalizes_and_validates():
+    msg = validate_uplink(
+        {
+            "type": "voiceprint_sample",
+            "device_id": "dev-1",
+            "voiceprint_id": "vp-1",
+            "sample_index": 5,
+            "audio_data": "sample audio data",
+            "format": "raw_pcm",
+        }
+    )
+
+    assert msg["type"] == "voiceprint_sample"
+    assert msg["device_id"] == "dev-1"
+    assert msg["voiceprint_id"] == "vp-1"
+    assert msg["sample_index"] == 5
+    assert msg["audio_data"] == "sample audio data"
+    assert msg["format"] == "raw_pcm"
+
+
+def test_validate_voiceprint_sample_rejects_invalid_format():
+    with pytest.raises(ProtocolError) as exc_info:
+        validate_uplink(
+            {
+                "type": "voiceprint_sample",
+                "device_id": "dev-1",
+                "voiceprint_id": "vp-1",
+                "sample_index": 0,
+                "audio_data": "data",
+                "format": "invalid_format",
+            }
+        )
+
+    assert exc_info.value.code == "E_INVALID_MESSAGE"
+    assert "format must be one of raw_pcm, wav, opus, g711, or pcm" in exc_info.value.message
+
+
+def test_validate_voiceprint_sample_rejects_invalid_sample_index():
+    with pytest.raises(ProtocolError) as exc_info:
+        validate_uplink(
+            {
+                "type": "voiceprint_sample",
+                "device_id": "dev-1",
+                "voiceprint_id": "vp-1",
+                "sample_index": -1,
+                "audio_data": "data",
+            }
+        )
+
+    assert exc_info.value.code == "E_INVALID_MESSAGE"
+    assert "sample_index must be a non-negative integer" in exc_info.value.message
+
+
+def test_build_voiceprint_sample_ack_contains_required_fields():
+    from device_gateway.protocol import build_voiceprint_sample_ack
+
+    ack = build_voiceprint_sample_ack(
+        device_id="dev-1",
+        voiceprint_id="vp-1",
+        sample_index=3,
+        request_id="req-1",
+    )
+
+    assert ack["type"] == "voiceprint_sample_ack"
+    assert ack["device_id"] == "dev-1"
+    assert ack["voiceprint_id"] == "vp-1"
+    assert ack["sample_index"] == 3
+    assert ack["request_id"] == "req-1"
+    assert "server_time" in ack

@@ -19,6 +19,7 @@ class DeviceShadow:
     device_info: dict[str, Any] = field(default_factory=dict)
     self_check: dict[str, Any] = field(default_factory=dict)
     last_motion_event: dict[str, Any] = field(default_factory=dict)
+    voiceprint_sample: dict[str, Any] = field(default_factory=dict)
     desired: dict[str, Any] = field(default_factory=dict)
     updated_at: str = field(default_factory=lambda: _now_iso())
 
@@ -90,6 +91,42 @@ class DeviceShadowStore:
             shadow.last_motion_event = deepcopy({k: v for k, v in message.items() if k != "type"})
             shadow.updated_at = _now_iso()
             return shadow.to_dict()
+
+    def update_voiceprint_sample(self, message: dict[str, Any]) -> dict[str, Any]:
+        device_id = str(message["device_id"])
+        with self._lock:
+            shadow = self._shadow(device_id)
+            shadow.voiceprint_sample = deepcopy({k: v for k, v in message.items() if k not in {"type", "request_id"}})
+            shadow.updated_at = _now_iso()
+            return shadow.to_dict()
+
+    def validate_voiceprint_sample(self, message: dict[str, Any]) -> dict[str, Any]:
+        device_id = str(message["device_id"])
+        voiceprint_id = str(message.get("voiceprint_id", ""))
+        sample_index = message.get("sample_index", 0)
+        audio_data = message.get("audio_data")
+        format = message.get("format", "raw_pcm")
+        member_id = message.get("member_id")
+
+        if not device_id:
+            raise ValueError("device_id is required")
+        if not voiceprint_id:
+            raise ValueError("voiceprint_id is required")
+        if not isinstance(sample_index, int) or sample_index < 0:
+            raise ValueError("sample_index must be a non-negative integer")
+        if not audio_data or not isinstance(audio_data, str):
+            raise ValueError("audio_data must be a non-empty string")
+        if format not in ("raw_pcm", "wav", "opus", "g711", "pcm"):
+            raise ValueError("format must be one of raw_pcm, wav, opus, g711, or pcm")
+
+        return {
+            "device_id": device_id,
+            "voiceprint_id": voiceprint_id,
+            "sample_index": sample_index,
+            "audio_data": audio_data.strip(),
+            "format": format,
+            "member_id": member_id,
+        }
 
     def snapshot(self, device_id: str) -> dict[str, Any] | None:
         with self._lock:

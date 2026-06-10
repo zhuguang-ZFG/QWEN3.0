@@ -1,4 +1,4 @@
-﻿"""Protocol helpers for LiMa direct device sessions."""
+"""Protocol helpers for LiMa direct device sessions."""
 
 from __future__ import annotations
 
@@ -15,6 +15,7 @@ SUPPORTED_UPLINK_TYPES = {
     "motion_event",
     "device_info",
     "self_check",
+    "voiceprint_sample",
 }
 
 REQUIRED_MOTION_LIFECYCLE_PHASES = frozenset({"accepted", "running"})
@@ -169,6 +170,30 @@ def validate_self_check(message: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def validate_voiceprint_sample(message: dict[str, Any]) -> dict[str, Any]:
+    request_id = _optional_request_id(message)
+    device_id = _non_empty_string(message, "device_id")
+    voiceprint_id = _non_empty_string(message, "voiceprint_id")
+    sample_index = message.get("sample_index", 0)
+    if not isinstance(sample_index, int) or sample_index < 0:
+        raise ProtocolError("E_INVALID_MESSAGE", "sample_index must be a non-negative integer", request_id)
+    audio_data = message.get("audio_data")
+    if not isinstance(audio_data, str) or not audio_data.strip():
+        raise ProtocolError("E_INVALID_MESSAGE", "audio_data must be a non-empty string", request_id)
+    format = message.get("format", "raw_pcm")
+    if format not in ("raw_pcm", "wav", "opus", "g711", "pcm"):
+        raise ProtocolError("E_INVALID_MESSAGE", "format must be one of raw_pcm, wav, opus, g711, or pcm", request_id)
+    return {
+        "type": "voiceprint_sample",
+        "device_id": device_id,
+        "voiceprint_id": voiceprint_id,
+        "sample_index": sample_index,
+        "audio_data": audio_data.strip(),
+        "format": format,
+        "request_id": request_id,
+    }
+
+
 def validate_uplink(message: Any) -> dict[str, Any]:
     obj = ensure_object(message)
     msg_type = require_type(obj)
@@ -179,6 +204,7 @@ def validate_uplink(message: Any) -> dict[str, Any]:
         "motion_event": validate_motion_event,
         "device_info": validate_device_info,
         "self_check": validate_self_check,
+        "voiceprint_sample": validate_voiceprint_sample,
     }
     return validators[msg_type](obj)
 
@@ -205,6 +231,17 @@ def hello_ack(device_id: str, shadow_delta: dict[str, Any] | None = None) -> dic
     if shadow_delta:
         frame.update(shadow_delta)
     return frame
+
+
+def build_voiceprint_sample_ack(device_id: str, voiceprint_id: str, sample_index: int, **extra: Any) -> dict[str, Any]:
+    return {
+        "type": "voiceprint_sample_ack",
+        "device_id": device_id,
+        "voiceprint_id": voiceprint_id,
+        "sample_index": sample_index,
+        "server_time": now_iso(),
+        **extra,
+    }
 
 
 def ack_frame(ack_type: str, device_id: str, **extra: Any) -> dict[str, Any]:
