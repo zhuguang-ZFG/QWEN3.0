@@ -52,6 +52,15 @@ LiMa 是上海动力草科技（donglicao.com）面向 ESP32 绘图机/写字机
 ### routes/ — API 路由层
 `routes/` 是 FastAPI 路由注册层，由 `routes/route_registry.py` 统一挂载。当前已注册 `chat_endpoints`、`device_gateway`、`system_endpoints`、`ops_metrics` 等路由。
 
+### xiaozhi-v1 兼容层
+`routes/xiaozhi_v1_compat.py` 是 XiaoZhi 设备 App 协议到 LiMa 的 OpenAPI 兼容 REST 层，统一挂载在 `/api/v1/*`，把账号、设备、任务和家庭资产管理请求映射到 LiMa 设备云模型。
+
+兼容层当前覆盖 `xiaozhi_v1_compat.py` 的 28 个 REST 端点；OpenAPI 域面包括 Auth(5)、Device(7)、Task(6)、Member(2)、Voiceprint(2)、Transfer(4)、Supply(2)、SelfCheck(1)，整体为 28/29 OpenAPI 操作上线，剩余差异按兼容审计继续收敛。
+
+路由通过 `routes/route_registry.py` 的 `try/except ImportError` 模式注册，启动时缺失依赖会记录 warning，不阻断主服务。数据层由 `migrations/xiaozhi_schema.sql` 提供 SQLite schema，核心 10 张表为 `v2_account`、`v2_device`、`v2_device_binding`、`v2_member`、`v2_voiceprint`、`v2_task`、`v2_device_transfer_request`、`v2_device_rma_event`、`v2_device_supply`、`v2_self_check_event`。
+
+生产状态：`chat.donglicao.com` 已暴露 28/29 个兼容端点，13 个集成测试通过。兼容层负责 App 管理面；设备实时热路径仍由 MQTT/WS 与 Device Gateway 承接。
+
 ### device_gateway/ — 设备网关
 `device_gateway/` 负责设备协议、任务投递、会话管理和 MQTT/WebSocket 通信。`routes/device_gateway.py` 暴露 `/device/v1` 前缀的设备健康、事件、任务和 WebSocket 入口。
 
