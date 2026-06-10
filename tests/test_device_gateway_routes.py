@@ -108,7 +108,7 @@ def test_events_endpoint_requires_private_auth():
 
 
 def test_tasks_endpoint_creates_queued_motion_task_without_active_session(monkeypatch, tmp_path):
-    monkeypatch.setenv("LIMA_CAPABILITY_EVIDENCE_PATH", str(tmp_path / "evidence.jsonl"))
+    monkeypatch.setenv("LIMA_OUTCOME_DB", str(tmp_path / "outcome_ledger.db"))
     response = _client().post(
         "/device/v1/tasks",
         headers={"Authorization": "Bearer test-private-token"},

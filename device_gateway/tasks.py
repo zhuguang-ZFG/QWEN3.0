@@ -99,6 +99,7 @@ def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_i
             task["request_id"] = request_id
         store_mod.task_store.create_task_state(task, status="failed")
         _record_task_created(task, status="failed")
+        _record_route_evidence_artifact(task)
         return task
 
     task_id = _next_task_id()
@@ -130,6 +131,7 @@ def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_i
             task["request_id"] = request_id
         store_mod.task_store.create_task_state(task, status="blocked")
         _record_task_created(task, status="blocked")
+        _record_route_evidence_artifact(task)
         return task
 
     task = {
@@ -172,6 +174,7 @@ def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_i
     store_mod.task_store.create_task_state(task, status="created")
     _record_task_created(task, status="created")
     _record_preview_artifact(task)
+    _record_route_evidence_artifact(task)
     return task
 
 
@@ -318,4 +321,43 @@ def _record_preview_artifact(task: dict[str, Any]) -> None:
         artifact_type="preview_svg",
         content=preview_svg,
         retention_days=30,
+    )
+
+
+def _record_route_evidence_artifact(task: dict[str, Any]) -> None:
+    """Store route decision evidence as a queryable artifact.
+
+    Records route_role, primary_strategy, model_required, policy decision,
+    and simulation summary so the full route-to-motion trace is auditable.
+    """
+    route_policy = task.get("route_policy")
+    if not isinstance(route_policy, dict):
+        return
+    evidence: dict[str, Any] = {
+        "route_role": route_policy.get("route_role", ""),
+        "primary_strategy": route_policy.get("primary_strategy", ""),
+        "model_required": route_policy.get("model_required", False),
+        "artifact_required": route_policy.get("artifact_required", "none"),
+        "capability": task.get("capability", ""),
+        "source": task.get("source", ""),
+    }
+    policy = task.get("policy")
+    if isinstance(policy, dict):
+        evidence["policy_decision"] = policy.get("decision", "")
+        evidence["policy_reason"] = policy.get("reason", "")
+    simulation = task.get("simulation")
+    if isinstance(simulation, dict):
+        evidence["sim_risk_score"] = simulation.get("risk_score", 0.0)
+        evidence["sim_runtime_sec"] = simulation.get("estimated_runtime_sec", 0.0)
+    workflow_state = task.get("workflow_state")
+    if workflow_state:
+        evidence["workflow_state"] = workflow_state
+    error = task.get("error")
+    if isinstance(error, dict):
+        evidence["error_code"] = error.get("code", "")
+    artifact_store.put_artifact(
+        task_id=str(task["task_id"]),
+        artifact_type="route_evidence",
+        content=evidence,
+        retention_days=90,
     )

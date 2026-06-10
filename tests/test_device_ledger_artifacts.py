@@ -57,9 +57,11 @@ def test_task_creation_records_replayable_event_and_preview_artifact():
     assert replay["device_id"] == "dev-1"
     assert replay["status"] == "created"
     assert replay["task"]["request_id"] == "req-1"
-    assert [artifact.artifact_type for artifact in artifacts] == ["preview_svg"]
+    assert [artifact.artifact_type for artifact in artifacts] == ["preview_svg", "route_evidence"]
     assert artifacts[0].content_hash
     assert artifacts[0].content.startswith("<svg")
+    route_ev = artifacts[1]
+    assert route_ev.content["route_role"] == "device_write"
 
 
 def test_dispatch_records_task_dispatched_event():
