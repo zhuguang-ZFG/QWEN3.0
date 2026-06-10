@@ -1,0 +1,81 @@
+{
+  "name": "vectorizer",
+  "description": "光栅->矢量转换。5个测试用例，覆盖简单到复杂场景",
+  "cases": [
+    {
+      "id": 1,
+      "input": {
+        "data": "���rectangle 100x50 at (0,0)",
+        "format": "png"
+      },
+      "expected": [
+        {"type": "M", "x": 0, "y": 0},
+        {"type": "L", "x": 100, "y": 0},
+        {"type": "L", "x": 100, "y": 50},
+        {"type": "L", "x": 0, "y": 50},
+        {"type": "Z"}
+      ],
+      "expected_points": 5,
+      "note": "简单矩形光栅"
+    },
+    {
+      "id": 2,
+      "input": {
+        "data": "���polygon vertices: (0,0), (50,100), (100,0), (50,50)",
+        "format": "bmp"
+      },
+      "expected": [
+        {"type": "M", "x": 0, "y": 0},
+        {"type": "L", "x": 50, "y": 100},
+        {"type": "L", "x": 100, "y": 0},
+        {"type": "L", "x": 50, "y": 50},
+        {"type": "Z"}
+      ],
+      "expected_points": 5,
+      "note": "复杂多边形光栅"
+    },
+    {
+      "id": 3,
+      "input": {
+        "data": "",
+        "format": "jpg"
+      },
+      "expected": [],
+      "expected_points": 0,
+      "note": "空光栅数据"
+    },
+    {
+      "id": 4,
+      "input": {
+        "data": "���random_points 1000 2000 500",
+        "format": "tiff"
+      },
+      "expected": [
+        {"type": "M", "x": 1000, "y": 2000},
+        {"type": "L", "x": 1500, "y": 2000},
+        {"type": "L", "x": 1500, "y": 2500},
+        {"type": "L", "x": 1000, "y": 2500},
+        {"type": "Z"}
+      ],
+      "expected_points": 5,
+      "note": "边缘噪点光栅"
+    },
+    {
+      "id": 5,
+      "input": {
+        "data": "���large_rectangle 5000x3000 at (0,0)",
+        "format": "tif"
+      },
+      "expected": [
+        {"type": "M", "x": 0, "y": 0},
+        {"type": "L", "x": 5000, "y": 0},
+        {"type": "L", "x": 5000, "y": 3000},
+        {"type": "L", "x": 0, "y": 3000},
+        {"type": "Z"}
+      ],
+      "expected_points": 5,
+      "note": "大尺寸光栅"
+    }
+  ],
+  "total_cases": 5
+}

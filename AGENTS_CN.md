@@ -108,7 +108,7 @@ python scripts/repo_stats.py
 |--------|------|------|
 | 设备网关 | `device_gateway/`, `routes/device_gateway*.py` | `/device/v1/*`; Redis 任务队列 + WSS; ESP32/硬件 |
 | 渠道网关 | `channel_gateway/`, `routes/channel_gateway.py` | 斜杠命令, G3 会话 |
-| 代理运行时 | `agent_runtime/` | LiMa Code 任务编排 |
+| 代理运行时 | `agent_runtime/` | 通用 Agent Worker 任务编排 |
 | 会话内存 | `session_memory/` | 持久内存 + 学习循环 |
 | 上下文管道 | `context_pipeline/` (43 个模块) | 检索、代码上下文、验证、重排序 |
 | 可观测性 | `observability/` | Prometheus 指标、结构化日志 |

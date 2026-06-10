@@ -1,0 +1,82 @@
+{
+  "name": "coding_router",
+  "description": "编程路由。5个测试用例，覆盖不同编程语言和任务",
+  "cases": [
+    {
+      "id": 1,
+      "input": {
+        "code": "def hello():\n    print(\"Hello World!\")\n\nhello()",
+        "language": "python",
+        "task": "fix_bug"
+      },
+      "expected": {
+        "backend": "python_assistant",
+        "action": "fix",
+        "confidence": 0.95,
+        "suggestions": ["检查语法错误", "修复逻辑 bug", "添加测试"]
+      },
+      "note": "Python修复bug"
+    },
+    {
+      "id": 2,
+      "input": {
+        "code": "SELECT * FROM users WHERE id = 1 AND status = 'active'",
+        "language": "sql",
+        "task": "optimize"
+      },
+      "expected": {
+        "backend": "sql_assistant",
+        "action": "optimize",
+        "confidence": 0.88,
+        "suggestions": ["添加索引", "重写JOIN", "添加WHERE条件"]
+      },
+      "note": "SQL查询优化"
+    },
+    {
+      "id": 3,
+      "input": {
+        "code": "<!DOCTYPE html>\n<html>\n<head><title>Test</title></head>\n<body>\n<div style=\"width: 100%;\">Content</div>\n</body>\n</html>",
+        "language": "html",
+        "task": "refactor"
+      },
+      "expected": {
+        "backend": "web_assistant",
+        "action": "refactor",
+        "confidence": 0.92,
+        "suggestions": ["使用CSS类", "提取重复样式", "使用语义化标签"]
+      },
+      "note": "HTML/CSS重构"
+    },
+    {
+      "id": 4,
+      "input": {
+        "code": "def calculate_sum(numbers):\n    total = 0\n    for num in numbers:\n        total += num\n    return total",
+        "language": "python",
+        "task": "refactor"
+      },
+      "expected": {
+        "backend": "python_assistant",
+        "action": "refactor",
+        "confidence": 0.90,
+        "suggestions": ["使用sum()内置函数", "使用列表推导式", "添加类型注解"]
+      },
+      "note": "代码重构"
+    },
+    {
+      "id": 5,
+      "input": {
+        "code": "用户提问：我需要一个简单的聊天机器人。\n助手回复：好的，我可以帮你创建一个。\n用户说：请提供Python代码。\n助手回复：这里是代码...",
+        "language": "chat",
+        "task": "mixed_code_chat"
+      },
+      "expected": {
+        "backend": "mixed_assistant",
+        "action": "handle_mixed",
+        "confidence": 0.85,
+        "suggestions": ["分离代码和聊天内容", "提供完整示例", "添加错误处理"]
+      },
+      "note": "代码+聊天混合"
+    }
+  ],
+  "total_cases": 5
+}

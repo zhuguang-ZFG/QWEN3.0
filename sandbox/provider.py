@@ -1,4 +1,4 @@
-"""Sandbox provider interface for LiMa code execution and testing.
+"""Sandbox provider interface for Agent Worker code execution and testing.
 
 Provides an abstract interface for disposable execution environments
 with mandatory cleanup and timeout semantics. The default implementation

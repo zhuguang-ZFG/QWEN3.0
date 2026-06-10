@@ -1,10 +1,10 @@
-"""MCP Tool Definitions — auto-generated from lima_mcp/__init__.py"""
+﻿"""MCP Tool Definitions — auto-generated from lima_mcp/__init__.py"""
 from __future__ import annotations
 
 TOOL_DEFINITIONS = [
     {
         "name": "search_repo",
-        "description": "Search LiMa codebase by entity names, file paths, or keywords. Returns relevant code files with scores.",
+        "description": "Search Agent Workerbase by entity names, file paths, or keywords. Returns relevant code files with scores.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -132,7 +132,7 @@ TOOL_DEFINITIONS = [
     },
     {
         "name": "dev_summarize_sources",
-        "description": "Turn source dictionaries into a compact evidence block for LiMa Code.",
+        "description": "Turn source dictionaries into a compact evidence block for Agent Worker.",
         "parameters": {
             "type": "object",
             "properties": {

@@ -1,0 +1,72 @@
+{
+  "name": "writing_executor",
+  "description": "文本渲染。5个测试用例，覆盖中英文混合",
+  "cases": [
+    {
+      "id": 1,
+      "input": {
+        "text": "这是一个中文句子",
+        "language": "zh-CN",
+        "format": "png"
+      },
+      "expected": "这是一个中文句子",
+      "expected_width": 150,
+      "expected_height": 20,
+      "expected_encoding": "UTF-8",
+      "note": "中文文本"
+    },
+    {
+      "id": 2,
+      "input": {
+        "text": "Hello, World!",
+        "language": "en-US",
+        "format": "png"
+      },
+      "expected": "Hello, World!",
+      "expected_width": 100,
+      "expected_height": 20,
+      "expected_encoding": "UTF-8",
+      "note": "英文文本"
+    },
+    {
+      "id": 3,
+      "input": {
+        "text": "Hello 中文 English 世界",
+        "language": "mixed",
+        "format": "png"
+      },
+      "expected": "Hello 中文 English 世界",
+      "expected_width": 180,
+      "expected_height": 20,
+      "expected_encoding": "UTF-8",
+      "note": "中英文混合"
+    },
+    {
+      "id": 4,
+      "input": {
+        "text": "Hello 😀 World 🌍",
+        "language": "en-US",
+        "format": "png"
+      },
+      "expected": "Hello 😀 World 🌍",
+      "expected_width": 120,
+      "expected_height": 20,
+      "expected_encoding": "UTF-8",
+      "note": "包含emoji"
+    },
+    {
+      "id": 5,
+      "input": {
+        "text": "This is a very long text to test rendering of extended text content that exceeds typical line lengths and contains multiple sentences with various punctuation marks, special characters, and word combinations to ensure proper handling of complex text layouts and rendering performance.",
+        "language": "en-US",
+        "format": "png"
+      },
+      "expected": "This is a very long text to test rendering of extended text content that exceeds typical line lengths and contains multiple sentences with various punctuation marks, special characters, and word combinations to ensure proper handling of complex text layouts and rendering performance.",
+      "expected_width": 850,
+      "expected_height": 60,
+      "expected_encoding": "UTF-8",
+      "note": "长文本2000+字符"
+    }
+  ],
+  "total_cases": 5
+}

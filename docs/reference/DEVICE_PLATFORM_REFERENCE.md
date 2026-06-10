@@ -1,4 +1,4 @@
-# Device Platform Reference (PE-F-1)
+﻿# Device Platform Reference (PE-F-1)
 
 > **Status:** Active reference | **Created:** 2026-05-26  
 > **Scope:** ThingsBoard CE vs Eclipse Ditto vs LiMa Device Gateway — **借鉴，不替换生产路径**。
@@ -49,7 +49,7 @@ LiMa 现有等价物：
 
 ```mermaid
 sequenceDiagram
-    participant Op as Operator/LiMa Code
+    participant Op as Operator/Agent Worker
     participant DG as Device Gateway
     participant Redis as Redis Queue
     participant Dev as ESP32/U8

@@ -117,7 +117,7 @@ def apply_post_route_integrations(
     except Exception as exc:
         _warn("response_pipeline", exc)
 
-    # Learning loop: feed regular route() outcomes (not just LiMa Code)
+    # Learning loop: feed regular route() outcomes (not just Agent Worker)
     try:
         from session_memory.learning_loop import ingest_task_outcome, TaskOutcome
         outcome = TaskOutcome(

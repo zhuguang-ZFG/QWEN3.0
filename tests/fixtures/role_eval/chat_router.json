@@ -1,0 +1,47 @@
+{
+  "name": "chat_router",
+  "description": "聊天路由。5个测试用例，覆盖简单到复杂场景",
+  "cases": [
+    {
+      "id": 1,
+      "input": "Hello, how are you?",
+      "expected": "chat",
+      "expected_backend": "general_chat",
+      "expected_params": {"context": "simple_question", "complexity": "low"},
+      "note": "简单问题"
+    },
+    {
+      "id": 2,
+      "input": "",
+      "expected": "system",
+      "expected_backend": "system_handler",
+      "expected_params": {"action": "handle_empty"},
+      "note": "空消息"
+    },
+    {
+      "id": 3,
+      "input": "这是一个非常长的消息，用来测试路由系统的处理能力和内存管理，它包含了很多中英文混合的句子，包括一些很长的词和特殊的字符，比如：！@#$%^&*()_+-=[]{}|;':\",./<>?\\`~，以确保系统能够正确地处理和路由这样的复杂消息内容。",
+      "expected": "chat",
+      "expected_backend": "general_chat",
+      "expected_params": {"context": "long_text", "complexity": "high"},
+      "note": "长消息5000+字符"
+    },
+    {
+      "id": 4,
+      "input": "Hello, I need to fix a Python bug in my code. Can you help me understand the error and suggest a solution?",
+      "expected": "coding",
+      "expected_backend": "coding_assistant",
+      "expected_params": {"language": "python", "task": "debug", "complexity": "medium"},
+      "note": "混合语言聊天"
+    },
+    {
+      "id": 5,
+      "input": "SELECT * FROM users WHERE id = 1 AND status = 'active' ORDER BY created_at DESC;",
+      "expected": "sql",
+      "expected_backend": "sql_assistant",
+      "expected_params": {"language": "sql", "task": "query", "complexity": "medium"},
+      "note": "类SQL聊天"
+    }
+  ],
+  "total_cases": 5
+}

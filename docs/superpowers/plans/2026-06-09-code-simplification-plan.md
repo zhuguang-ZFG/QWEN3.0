@@ -1,168 +1,71 @@
-# LiMa 代码精简计划（战略转型）
+# LiMa 代码精简与退役适配清理计划
 
-**日期**: 2026-06-09
-**状态**: 执行中
-**优先级**: P0 - 战略转型关键步骤
-**Owner**: zhuguang-ZFG
+**日期**：2026-06-09
+**状态**：执行中
+**优先级**：P0 - 战略转型基础清理
+**Owner**：zhuguang-ZFG
 
 ---
 
 ## 一、背景
 
-根据 [`2026-06-09-lima-strategic-pivot-to-smart-devices.md`](./2026-06-09-lima-strategic-pivot-to-smart-devices.md)，LiMa 从"个人编码助手后端" → "AI 智能设备统一云端服务"。
+LiMa 已从“个人编码助手后端”转向“AI 智能设备统一云端服务”。当前清理目标不是删除所有代码能力，而是移除已经退役的旧适配路径，避免后续深度适配 AI 画图机/写字机时继续被历史命名、旧 CLI、旧本地状态目录误导。
 
-**目标**：代码量从 ~110K 行减少到 ~55K 行（减半）。
-
----
-
-## 二、当前代码统计
-
-| 指标 | 值 |
-|------|-----|
-| Python 文件 | 5,119 |
-| Python 总行数 | ~1,929,038 |
-| Routes 文件 | 48 |
-| Routes 行数 | 7,214 |
-| 测试文件（tests/） | 212 |
+本计划替换早期乱码版本。早期版本中“按行数删除 Anthropic、质量门、语义缓存、Agent 编排”等判断已经过时；这些模块目前仍可能服务通用 Chat API、OpenAI/Anthropic 兼容层、设备云端任务编排或质量控制，不再作为本轮删除对象。
 
 ---
 
-## 三、待删除模块清单
+## 二、清理边界
 
-### 3.1 编码助手专属路由（8 文件，~747 行）
+### 需要清理
 
-| 文件 | 行数 | 大小(KB) | 说明 |
-|------|-----:|--------:|------|
-| `routes/anthropic_messages_handler.py` | 47 | 1.5 | Anthropic 消息处理 |
-| `routes/anthropic_stream.py` | 32 | 1.3 | Anthropic 流式 |
-| `routes/anthropic_vision_sse.py` | 14 | 0.6 | Anthropic 视觉 SSE |
-| `routes/tool_forward.py` | 86 | 3.2 | 工具转发 |
-| `routes/tool_forward_stream.py` | 332 | 13.4 | 工具流式转发 |
-| `routes/quality_gate.py` | 88 | 2.8 | 编码质量门控 |
-| `routes/quality_gate_direct.py` | 69 | 2.0 | 质量门控直接调用 |
-| `routes/quality_gate_tiers.py` | 79 | 2.1 | 质量门控分层 |
-| **总计** | **747** | **26.9** | |
+- 退役的本地 CLI / Worker 品牌残留。
+- 旧本地运行目录与输出文件，例如 `.lima-code/`、`launch_lima.js`、`lima_out.txt`、`lima_err.txt`。
+- 当前文档中的乱码、过时删除计划、旧路径验证说明。
+- 非归档路径中会误导后续开发的旧命名。
 
-### 3.2 语义缓存（1 文件，154 行）
+### 暂不清理
 
-- `semantic_cache.py` (154 行) — 设备场景不需要
-
-### 3.3 Agent 编排（已不存在）
-
-- `agent_runtime/` 目录 — 已在之前删除
-
-### 3.4 相关测试文件（13 文件，~1,698 行）
-
-| 文件 | 行数 | 说明 |
-|------|-----:|------|
-| `tests/test_lima_code_dev_search_tools.py` | 320 | LiMa Code 开发搜索 |
-| `tests/test_tool_gateway.py` | 277 | 工具网关 |
-| `tests/test_tool_gateway_adapter.py` | 194 | 工具网关适配器 |
-| `tests/test_local_tool_modules.py` | 158 | 本地工具模块 |
-| `tests/test_channel_tools.py` | 124 | 频道工具 |
-| `tests/test_anthropic_preflight.py` | 110 | Anthropic 预检 |
-| `tests/test_anthropic_tool_protocol.py` | 93 | Anthropic 工具协议 |
-| `tests/test_tool_forward.py` | 86 | 工具转发 |
-| `tests/test_gitee_tools.py` | 86 | Gitee 工具 |
-| `tests/test_mcp_tools.py` | 84 | MCP 工具 |
-| `tests/test_admin_agent_audit.py` | 73 | Agent 审计 |
-| `tests/test_tool_forward_failures.py` | 60 | 工具转发失败 |
-| `tests/test_anthropic_format_tools.py` | 33 | Anthropic 格式工具 |
-| **总计** | **~1,698** | |
+- `docs/archive/**` 中的历史材料。
+- `STATUS.md`、`progress.md`、`findings.md`、`docs/LIMA_MEMORY*.md` 中的历史证据。
+- `model="code"`、通用 coding route、质量门、Anthropic 兼容接口、Agent Task / Agent Worker。
+- `tests/test_chat_route_prefs.py` 中针对退役别名的兼容断言。
+- `tests/test_repo_hygiene.py` 中阻止旧子模块重新进入索引的断言。
 
 ---
 
-## 四、执行计划
+## 三、当前执行项
 
-### Phase 1：备份与准备（30 分钟）
-
-- [x] 创建任务追踪
-- [ ] 生成当前代码统计报告
-- [ ] 创建 Git 分支 `feat/code-simplification`
-- [ ] 备份当前状态到 `/opt/lima-router/backups/pre-simplification-20260609/`
-
-### Phase 2：删除路由文件（1 小时）
-
-- [ ] 删除 8 个编码助手路由文件
-- [ ] 检查 `routes/__init__.py` 是否有引用
-- [ ] 检查 `server.py` 路由注册
-- [ ] 运行 `py_compile` 验证
-
-### Phase 3：删除语义缓存（30 分钟）
-
-- [ ] 删除 `semantic_cache.py`
-- [ ] 检查其他模块是否引用
-- [ ] 删除 `data/semantic_cache.db`
-- [ ] 更新 `requirements_server.txt`
-
-### Phase 4：删除测试文件（30 分钟）
-
-- [ ] 删除 13 个相关测试文件
-- [ ] 运行精简后的测试套件
-- [ ] 记录通过/失败数量
-
-### Phase 5：清理引用（1 小时）
-
-- [ ] 搜索并清理所有 import 引用
-- [ ] 检查 `routing_engine.py` 是否调用已删除模块
-- [ ] 检查 `server.py` 是否注册已删除路由
-- [ ] 运行 `ruff check` 和 `pyright`
-
-### Phase 6：文档更新（30 分钟）
-
-- [ ] 更新 `STATUS.md` 记录精简结果
-- [ ] 更新 `task_plan.md` 移除编码助手任务
-- [ ] 更新 `docs/LIMA_MEMORY.md` 移除编码助手记忆
-- [ ] 生成精简后代码统计
-
-### Phase 7：验证与部署（1 小时）
-
-- [ ] 本地运行 pytest（目标通过率 >90%）
-- [ ] 本地启动 `server.py` 验证健康检查
-- [ ] 提交到 Git
-- [ ] 部署到 VPS（可选，等待 Phase 0 完成后）
+- [x] 删除旧 LiMa 本地启动/输出文件：`launch_lima.js`、`lima_out.txt`、`lima_err.txt`。
+- [x] `.gitignore` 移除退役 CLI 路径，保留通用 `.lima-worker/dev/`。
+- [x] `worker_daemon.py` 默认状态文件迁移到 `.lima-worker/dev/`。
+- [x] 用户可见文案从旧 Worker 品牌改为通用 `Agent Worker`。
+- [x] 当前工作区清洁规则文档改为中文 UTF-8，并记录不得重新引入旧 CLI / 旧目录。
+- [x] 当前任务计划更新为 AI 智能设备云端服务方向。
+- [x] 修复本计划文档乱码与过时删除清单。
+- [ ] 复查非归档路径旧命名命中，只保留历史证据和测试兼容断言。
+- [ ] 运行聚焦测试与格式检查。
+- [ ] 仅暂存本轮相关文件并提交推送。
 
 ---
 
-## 五、预期效果
+## 四、验证命令
 
-| 指标 | 删除前 | 删除后（预估） | 减少量 |
-|------|-------:|-------------:|-------:|
-| Routes 文件 | 48 | 40 | -8 |
-| Routes 行数 | 7,214 | 6,467 | -747 |
-| 核心模块行数 | 154 | 0 | -154 |
-| 测试文件 | 212 | 199 | -13 |
-| 测试行数 | ~20,000+ | ~18,302 | -1,698 |
-| **总计减少** | | | **~2,599 行** |
+```powershell
+python -m pytest tests/test_chat_route_prefs.py tests/test_repo_hygiene.py -q
+python scripts/run_ruff_check.py
+git diff --check
+```
 
-**注意**：当前统计显示 Python 总行数为 ~1.9M，远超预期的 110K。需要重新评估统计范围（可能包含了 venv、esp32、deepcode-cli 等子模块）。
+同时执行退役命名扫描，排除归档目录和长期历史证据文档；扫描结果只应剩下“禁止重新引入旧路径”的规则说明，以及兼容测试中的退役别名断言。
 
 ---
 
-## 六、风险与缓解
+## 五、后续方向
 
-| 风险 | 严重度 | 缓解措施 |
-|-----|--------|---------|
-| 删除后破坏现有功能 | 🟡 中 | 1. 精简前备份；2. 分步验证；3. 保留回滚路径 |
-| 其他模块仍依赖已删除代码 | 🟡 中 | 全局搜索 import，逐一清理引用 |
-| 测试套件大量失败 | 🟢 低 | 删除的都是编码助手专属测试，核心测试应不受影响 |
-| VPS 部署失败 | 🟡 中 | 本地充分验证后再部署；保留 VPS 备份 |
+清理完成后，项目应以设备云端服务为主线推进：
 
----
-
-## 七、下一步
-
-1. **立即执行**：Phase 1-6（本地精简）
-2. **待 Phase 0 完成后**：Phase 7 VPS 部署
-3. **后续工作**：
-   - 简化 `routing_engine.py` 为设备对话路由
-   - 简化 `session_memory/` 为设备上下文
-   - 实现新增的 `xiaozhi_drawing/` 和 `xiaozhi_device/` 模块
-
----
-
-## 八、参考文档
-
-- [战略转型计划](./2026-06-09-lima-strategic-pivot-to-smart-devices.md)
-- [Phase 0 启动文档](./2026-06-09-phase0-strategic-confirmation.md)
-- [代码质量改进计划](../../CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md)
+1. 优先完善 `esp32S_XYZ` 的设备接入、任务状态、固件-云端协议和验收文档。
+2. 把画图机/写字机抽象为设备任务能力，而不是恢复旧编码助手 CLI。
+3. 保持模型路由、预算、健康度、质量门和 Agent Worker 为通用基础设施。
+4. 新增设备能力前先更新中文设计文档，再做代码、测试、部署与真实端到端验证。

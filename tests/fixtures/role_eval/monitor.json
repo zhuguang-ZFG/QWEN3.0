@@ -1,0 +1,106 @@
+{
+  "name": "monitor",
+  "description": "健康监控。5个测试用例，覆盖正常到异常状态",
+  "cases": [
+    {
+      "id": 1,
+      "input": {
+        "backend_stats": {
+          "backend_1": {"health": "healthy", "latency": 50},
+          "backend_2": {"health": "healthy", "latency": 60},
+          "backend_3": {"health": "healthy", "latency": 70}
+        },
+        "budget_info": {"used": 100, "total": 1000, "remaining": 900},
+        "cooldown_map": {},
+        "last_updated": "2026-06-11T12:00:00Z"
+      },
+      "expected": {
+        "overall_health": "healthy",
+        "degraded_backends": [],
+        "budget_status": "normal",
+        "cooldown_active": false,
+        "total_backends": 3
+      },
+      "note": "全部后端健康"
+    },
+    {
+      "id": 2,
+      "input": {
+        "backend_stats": {
+          "backend_1": {"health": "healthy", "latency": 50},
+          "backend_2": {"health": "degraded", "latency": 200},
+          "backend_3": {"health": "healthy", "latency": 70}
+        },
+        "budget_info": {"used": 800, "total": 1000, "remaining": 200},
+        "cooldown_map": {},
+        "last_updated": "2026-06-11T12:05:00Z"
+      },
+      "expected": {
+        "overall_health": "degraded",
+        "degraded_backends": ["backend_2"],
+        "budget_status": "warning",
+        "cooldown_active": false,
+        "total_backends": 3
+      },
+      "note": "一个后端降级"
+    },
+    {
+      "id": 3,
+      "input": {
+        "backend_stats": {
+          "backend_1": {"health": "healthy", "latency": 50},
+          "backend_2": {"health": "healthy", "latency": 60}
+        },
+        "budget_info": {"used": 1000, "total": 1000, "remaining": 0},
+        "cooldown_map": {},
+        "last_updated": "2026-06-11T12:10:00Z"
+      },
+      "expected": {
+        "overall_health": "budget_exhausted",
+        "degraded_backends": [],
+        "budget_status": "exhausted",
+        "cooldown_active": false,
+        "total_backends": 2
+      },
+      "note": "预算耗尽"
+    },
+    {
+      "id": 4,
+      "input": {
+        "backend_stats": {
+          "backend_1": {"health": "healthy", "latency": 50},
+          "backend_2": {"health": "healthy", "latency": 60}
+        },
+        "budget_info": {"used": 500, "total": 1000, "remaining": 500},
+        "cooldown_map": {"backend_1": "2026-06-11T12:30:00Z"},
+        "last_updated": "2026-06-11T12:15:00Z"
+      },
+      "expected": {
+        "overall_health": "healthy",
+        "degraded_backends": [],
+        "budget_status": "normal",
+        "cooldown_active": true,
+        "total_backends": 2
+      },
+      "note": "冷却期激活"
+    },
+    {
+      "id": 5,
+      "input": {
+        "backend_stats": {},
+        "budget_info": {"used": 0, "total": 0, "remaining": 0},
+        "cooldown_map": {},
+        "last_updated": "2026-06-11T12:20:00Z"
+      },
+      "expected": {
+        "overall_health": "empty_map",
+        "degraded_backends": [],
+        "budget_status": "empty",
+        "cooldown_active": false,
+        "total_backends": 0
+      },
+      "note": "空映射"
+    }
+  ],
+  "total_cases": 5
+}

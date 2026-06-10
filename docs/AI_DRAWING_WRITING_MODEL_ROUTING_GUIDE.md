@@ -77,7 +77,7 @@ Any change that affects both repositories must land in this order:
 
 1. Update `esp32S_XYZ` schema/firmware/fake-device behavior.
 2. Commit and push the product repository.
-3. Update LiMa code/docs/tests.
+3. 更新 LiMa 云端代码、文档和测试。
 4. Advance the LiMa submodule pointer.
 5. Record verification evidence in `STATUS.md`, `progress.md`, and
    `docs/LIMA_MEMORY.md`.

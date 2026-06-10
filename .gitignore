@@ -165,8 +165,6 @@ feedback_queue.json
 # PE-B-1 codesearch local index
 .codesearch.db/
 
-.lima-code/
-
 # Agent worker local task dirs
 .lima-worker/dev/
 

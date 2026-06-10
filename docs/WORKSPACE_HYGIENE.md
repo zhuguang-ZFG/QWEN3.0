@@ -1,6 +1,6 @@
-# Workspace Hygiene
+# 工作区卫生
 
-LiMa 主仓库 (`D:\GIT`) 只保留 Server、子模块、评测 fixture 与文档。
+LiMa 主仓库 (`D:\QWEN3.0`) 只保留 Server、设备子模块、评测 fixture 与文档。
 参考克隆、本地数据库、部署包和一次性脚本统一放在仓库外：
 
 ```text
@@ -13,23 +13,25 @@ D:\LIMA-external\
   scratch/             根目录散落脚本与 context-construction 笔记
   scratch/superpowers-plans/  未纳入 Git 的 superpowers 计划草稿
   archives/            压缩包
-  cursor-local/        .claude 本地配置
+  cursor-local/        .claude / 本地代理配置
 ```
 
 ## 保留在仓库内
 
 - LiMa Python 核心、`routes/`、`tests/`、`docs/`（已 tracked 的 superpowers plans）
-- Git 子模块：`deepcode-cli`、`esp32S_XYZ`
+- Git 子模块：`esp32S_XYZ`
 - `requirements_server.txt` and deliberate test fixtures stay tracked; mutable
   runtime JSON under `data/` stays ignored and must not be re-added
 - `donglicao-site/`（官网 demo，tracked）
+- Agent Worker 本地运行状态使用 `.lima-worker/dev/`，不得重新引入 `.lima-code/`
+  或 `deepcode-cli` 作为当前验证路径。
 
-## FRP 仍在 D:\GIT\frp 时
+## FRP 仍在仓库内时
 
 `frpc.exe` 若被进程占用，无法整目录搬走。可停止 FRP 后再迁移，或使用 junction：
 
 ```powershell
-cmd /c mklink /J D:\GIT\frp D:\LIMA-external\ops-tools\frp
+cmd /c mklink /J D:\QWEN3.0\frp D:\LIMA-external\ops-tools\frp
 ```
 
 ## 被锁定的本地 DB

@@ -1,0 +1,55 @@
+{
+  "name": "intent_parser",
+  "description": "语音/文本意图解析。6个测试用例，覆盖从空值到编程等各种场景",
+  "cases": [
+    {
+      "id": 1,
+      "input": "write hello world",
+      "expected": "write",
+      "expected_type": "function",
+      "expected_params": {"language": "auto", "content": "hello world"},
+      "note": "基础文本生成意图"
+    },
+    {
+      "id": 2,
+      "input": "draw a cat",
+      "expected": "draw",
+      "expected_type": "drawing",
+      "expected_params": {"content": "cat", "style": "auto"},
+      "note": "基础绘图意图"
+    },
+    {
+      "id": 3,
+      "input": "control: home",
+      "expected": "control",
+      "expected_type": "iot",
+      "expected_params": {"device": "home", "action": "control"},
+      "note": "物联网控制意图"
+    },
+    {
+      "id": 4,
+      "input": "chat: what is LiMa",
+      "expected": "chat",
+      "expected_type": "chat",
+      "expected_params": {"content": "what is LiMa"},
+      "note": "基础聊天意图"
+    },
+    {
+      "id": 5,
+      "input": "code: fix bug",
+      "expected": "code",
+      "expected_type": "code",
+      "expected_params": {"language": "auto", "task": "fix bug"},
+      "note": "编程意图"
+    },
+    {
+      "id": 6,
+      "input": "",
+      "expected": "chat",
+      "expected_type": "chat",
+      "expected_params": {"content": ""},
+      "note": "空值输入"
+    }
+  ],
+  "total_cases": 6
+}

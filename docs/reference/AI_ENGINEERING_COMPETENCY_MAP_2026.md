@@ -1,8 +1,8 @@
-# AI Engineering Competency Map 2026
+﻿# AI Engineering Competency Map 2026
 
 > Updated: 2026-05-25
 > Source type: user-provided 2026 AI engineer interview / production AI map.
-> Scope: map the 12 concepts to LiMa Server, LiMa Code, and future hardware
+> Scope: map the 12 concepts to LiMa Server, Agent Worker, and future hardware
 > control work.
 
 ## Purpose
@@ -16,15 +16,15 @@ deployment.
 
 | Concept | LiMa interpretation | Current LiMa state | Next gate |
 |---|---|---|---|
-| Prompt engineering | Prompt templates, task contracts, context preflight, tool instructions, identity handling, and prompt-injection defense. | Server prompt staging, IDE/source hints, context digest, LiMa Code task prompts, and prompt tests exist. | Make prompt contracts versioned data with regression snapshots for high-risk routes. |
+| Prompt engineering | Prompt templates, task contracts, context preflight, tool instructions, identity handling, and prompt-injection defense. | Server prompt staging, IDE/source hints, context digest, Agent Worker task prompts, and prompt tests exist. | Make prompt contracts versioned data with regression snapshots for high-risk routes. |
 | RAG | Knowledge is decoupled from model weights; retrieval trace quality limits answer quality. | Code/document retrieval, reranking, prompt injection, and MCP/admin retrieval traces exist. | Keep one authoritative retrieval injection path and add stronger source-quality scoring. |
 | Vector embeddings and databases | Semantic search is a storage/indexing problem, not just a model call. | LiMa has local code-context/index boundaries and semantic-cache data, but no required production vector DB. | Add a swappable graph/vector index interface before choosing PGVector, Qdrant, or another store. |
-| Agentic AI and tool calling | Agents are bounded workers with tools, ownership, evidence, and stop gates. | LiMa Code worker, MCP tools, Device Gateway tasks, and sub-agent governance are documented. | Add per-tool risk class, approval metadata, and audit events before broad tool expansion. |
+| Agentic AI and tool calling | Agents are bounded workers with tools, ownership, evidence, and stop gates. | Agent Worker, MCP tools, Device Gateway tasks, and sub-agent governance are documented. | Add per-tool risk class, approval metadata, and audit events before broad tool expansion. |
 | Reasoning and deliberation | Expensive reasoning is an explicit mode with cost/latency tradeoffs, not a hidden default. | Routing distinguishes reasoning/coding tiers and records backend evidence. | Add task-level reasoning budget policies and summarized reasoning evidence, not raw hidden chain-of-thought storage. |
 | Memory management | Long-running AI needs typed short-term/long-term memory, compaction, recall, and promotion gates. | SQLite session memory, daemon compaction, prompt-time recall, and memory promotion rules exist. | Add memory IDs/citations to more admin traces and worker recall outputs. |
 | Streaming and async | User experience and throughput depend on streaming, async tool work, and background jobs. | OpenAI/Anthropic streaming paths, async backends, background memory daemon, agent task store, and Redis-backed Device Gateway WebSocket task routing exist. | Expand async observability around tool calls, stream footers, Redis queue depth, and device in-flight tasks. |
 | Inference optimization | Cost and latency improve through model routing, caching, topology awareness, and local/proxy backends. | Backend scoring, health tracking, topology guard, SCNet/Cloudflare/local proxy routing, and fallback windows exist. | Add more formal cache hit/miss and p50/p95 cost-latency reports by route class. |
-| Token and cost management | FinOps is prompt compression, model routing, quotas, budgets, and telemetry. | Token-safe refresh, context budget checks, route scoring, quota-state handling, and provider key custody exist. | Add per-task budget envelopes and cost attribution to LiMa Code worker runs. |
+| Token and cost management | FinOps is prompt compression, model routing, quotas, budgets, and telemetry. | Token-safe refresh, context budget checks, route scoring, quota-state handling, and provider key custody exist. | Add per-task budget envelopes and cost attribution to Agent Worker runs. |
 | Fine-tuning and PEFT | Fine-tuning should align style/task format, not serve as a knowledge database. | LiMa currently prefers routing, prompts, RAG, memory, and adapters over training. | Keep fine-tuning gated until eval data, privacy, retention, and rollback are ready. |
 | LLM evaluation | Production AI needs repeatable fixtures, judge policies, golden cases, and CI-style evidence. | Coding backend evals, smoke reports, route admission, mastery loop, and pytest gates exist. | Add a unified eval registry that links model, route, fixture, score, and promotion decision. |
 | MLOps and deployment | Reliability comes from guardrails, monitoring, drift checks, rollback, and deployment evidence. | VPS deployment records, health checks, nginx/security notes, docs status, Device Gateway Redis HA deployment, and GitHub push discipline exist. | Add drift/regression dashboards and a separate worker-count rollout before multi-machine production. |
@@ -48,7 +48,7 @@ deployment.
 | Repo | Competency focus |
 |---|---|
 | Main LiMa repo | Routing, RAG, memory, evals, FinOps, MLOps, Device Gateway safety. |
-| `deepcode-cli` / LiMa Code | Prompt contracts, tool calling, local worker UX, MCP connector discipline, coding eval evidence. |
+| `retired CLI` / Agent Worker | Prompt contracts, tool calling, local worker UX, MCP connector discipline, coding eval evidence. |
 | `esp32S_XYZ` | Tool/hardware safety, async device control, command schemas, fake/real device verification. |
 
 ## Implementation Order

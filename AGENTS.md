@@ -108,7 +108,7 @@ Authority doc: `docs/REQUEST_PIPELINE_AUTHORITY.md`
 |-----------|------|---------|
 | Device Gateway | `device_gateway/`, `routes/device_gateway*.py` | `/device/v1/*`; Redis task queue + WSS; ESP32/hardware |
 | Channel Gateway | `channel_gateway/`, `routes/channel_gateway.py` | Slash commands, G3 sessions |
-| Agent Runtime | `agent_runtime/` | LiMa Code task orchestration |
+| Agent Runtime | `agent_runtime/` | Generic Agent Worker task orchestration |
 | Session Memory | `session_memory/` | Persistent memory + learning loop |
 | Context Pipeline | `context_pipeline/` (43 modules) | Retrieval, code context, validation, reranking |
 | Observability | `observability/` | Prometheus metrics, structured logging |

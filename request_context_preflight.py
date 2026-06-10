@@ -36,7 +36,7 @@ def enhance_messages(
     if not matches:
         return messages
 
-    lines = ["[LiMa code context: relevant local files]"]
+    lines = ["[LiMa local context: relevant local files]"]
     for record in matches:
         symbols = ", ".join(
             f"{symbol.name}:{symbol.kind}:{symbol.line}"
