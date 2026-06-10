@@ -154,6 +154,12 @@ Internet → VPS (nginx → lima-router :8080, Redis)
 3. **.env merge, not overwrite** — deploy must backup VPS `.env` first, append new vars, never `sftp.put` overwrite.
 4. **Telegram retired** — do not re-register `/telegram` routes, webhooks, or outbound notifications.
 
+### Documentation Language
+
+- **文档类产物必须使用中文**：新增或更新 `docs/**/*.md`、根部说明文档、计划、状态、进展、报告、runbook、PRD、架构说明和交接文档时，默认使用中文撰写。
+- 保留必要的英文代码标识、命令、API 字段、日志片段、协议字段、文件名、路径、提交信息和外部专有名词。
+- 如果修改既有英文文档，不要求一次性全文翻译，但本次新增段落和后续文档类增量必须优先使用中文。
+
 ### Size Constraints
 
 - Single file target: ≤300 lines
