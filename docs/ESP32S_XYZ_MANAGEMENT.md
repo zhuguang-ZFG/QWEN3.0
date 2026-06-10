@@ -65,6 +65,10 @@ Use a contract-first integration:
 5. Do not copy provider credentials, device secrets, VPS passwords, cert
    private keys, or production API keys between repositories.
 
+For cloud-side model selection, provider admission, AI drawing/writing task
+families, fallback behavior, and device-aware routing rules, use
+`docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE.md`.
+
 ## Refactor Authority
 
 LiMa may modify `D:\GIT\esp32S_XYZ` directly when working on this product.

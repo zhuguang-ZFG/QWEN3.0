@@ -36,6 +36,7 @@ LiMa 已从"编码助手"战略转型到"AI 智能设备统一云端服务"（20
 
 | Document | Content |
 |----------|---------|
+| `AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE.md` | AI drawing/writing model routing, admission, fallback, and device adaptation policy |
 | `ESP32S_XYZ_MANAGEMENT.md` | ESP32/硬件子模块 |
 | `MODEL_CATALOG.md` | 模型目录 |
 | `FREE_MODEL_ROUTING_STATUS.md` | 免费模型路由状态 |
