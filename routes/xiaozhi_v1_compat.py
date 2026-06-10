@@ -12,7 +12,7 @@ import secrets
 import sqlite3
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -48,6 +48,10 @@ _activation_warning_logged = False
 _ALLOWED_TASKS = frozenset({"run_path", "draw_image", "home", "calibrate"})
 _ALLOWED_SOURCES = frozenset({"api", "voice", "scheduled"})
 _ALLOWED_MEMBER_ROLES = frozenset({"child", "parent", "guest"})
+_ALLOWED_TASK_STATUSES = frozenset({"pending", "approved", "running", "completed", "failed", "cancelled", "rejected"})
+_ACTIVATION_TTL_SECONDS = 600
+_activation_codes: dict[str, dict[str, Any]] = {}
+_activation_lock = threading.Lock()
 
 
 def _ok(data: Any) -> JSONResponse:
@@ -122,6 +126,17 @@ def _make_token(account: sqlite3.Row, expires_in: int = 86400) -> str | None:
     return jwt.encode(payload, secret, algorithm="HS256")
 
 
+def _account_payload(account: sqlite3.Row | dict[str, Any]) -> dict[str, Any]:
+    return {
+        "accountId": account["id"],
+        "phone": account["phone"],
+        "nickname": account["nickname"],
+        "avatarUrl": account["avatar_url"],
+        "role": account["role"],
+        "createdAt": account["created_at"],
+    }
+
+
 def _authorize(authorization: str) -> dict[str, Any] | JSONResponse:
     if jwt is None:
         _log.warning("PyJWT is not installed: %s", _JWT_IMPORT_ERROR)
@@ -164,6 +179,14 @@ def _str(body: dict[str, Any], *names: str) -> str:
     return ""
 
 
+def _query_int(value: Any, default: int, minimum: int, maximum: int) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return default
+    return max(minimum, min(maximum, parsed))
+
+
 def _json_params(value: Any) -> str:
     return json.dumps(value if isinstance(value, dict) else {}, ensure_ascii=False, sort_keys=True)
 
@@ -196,6 +219,7 @@ def _require_device_access(conn: sqlite3.Connection, account: dict[str, Any], de
 
 def _device_payload(row: sqlite3.Row) -> dict[str, Any]:
     return {
+        "id": row["id"],
         "deviceId": row["id"],
         "deviceSn": row["device_sn"],
         "model": row["model"],
@@ -255,8 +279,120 @@ def _voiceprint_payload(row: sqlite3.Row, member_name: str = "") -> dict[str, An
     }
 
 
+def _transfer_payload(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "transferId": row["id"],
+        "id": row["id"],
+        "deviceId": row["device_id"],
+        "fromAccountId": row["from_account_id"],
+        "toAccountId": row["to_account_id"],
+        "status": row["status"],
+        "reason": row["reason"],
+        "expiresAt": row["expires_at"],
+        "acceptedAt": row["accepted_at"],
+        "cancelledAt": row["cancelled_at"],
+        "createdAt": row["created_at"],
+    }
+
+
+def _supply_payload(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "supplyId": row["id"],
+        "id": row["id"],
+        "deviceId": row["device_id"],
+        "supplyType": row["supply_type"],
+        "level": row["level"],
+        "status": row["status"],
+        "lastReplaced": row["last_replaced"],
+        "nextReplacement": row["next_replacement"],
+        "createdAt": row["created_at"],
+        "updatedAt": row["updated_at"],
+    }
+
+
+def _self_check_payload(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "id": row["id"],
+        "deviceId": row["device_id"],
+        "checkType": row["check_type"],
+        "result": row["result"],
+        "details": row["details"],
+        "durationMs": row["duration_ms"],
+        "triggeredBy": row["triggered_by"],
+        "createdAt": row["created_at"],
+    }
+
+
+def _expires_at(seconds: int) -> str:
+    return (
+        (datetime.now(timezone.utc) + timedelta(seconds=seconds))
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
+
+
+def _expire_pending_transfers(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        "UPDATE v2_device_transfer_request SET status='expired' WHERE status='pending' AND expires_at <= ?",
+        (_now(),),
+    )
+
+
+def _is_owner(conn: sqlite3.Connection, account: dict[str, Any], device_id: str) -> bool:
+    if account.get("role") == "admin":
+        return True
+    row = conn.execute(
+        """
+        SELECT 1 FROM v2_device_binding
+        WHERE device_id=? AND account_id=? AND bind_mode='owner' AND status='active'
+        """,
+        (device_id, account["id"]),
+    ).fetchone()
+    return row is not None
+
+
+def _parse_supply_updates(body: dict[str, Any]) -> tuple[list[dict[str, Any]], JSONResponse | None]:
+    raw_items: list[dict[str, Any]] = []
+    if isinstance(body.get("supplies"), list):
+        raw_items.extend(item for item in body["supplies"] if isinstance(item, dict))
+    direct_type = _str(body, "supplyType", "supply_type")
+    if direct_type:
+        raw_items.append(body)
+    for supply_type in ("pen", "paper", "battery"):
+        value = body.get(supply_type)
+        if isinstance(value, dict):
+            raw_items.append({"supplyType": supply_type, **value})
+    updates: dict[str, dict[str, Any]] = {}
+    for item in raw_items:
+        supply_type = _str(item, "supplyType", "supply_type")
+        status = _str(item, "status") or "unknown"
+        if not supply_type:
+            return [], _err(400, "supplyType is required", 400)
+        if status not in {"normal", "low", "empty", "unknown"}:
+            return [], _err(400, "invalid supply status", 400)
+        try:
+            level = float(item.get("level", 1.0))
+        except (TypeError, ValueError):
+            return [], _err(400, "supply level must be numeric", 400)
+        if not 0.0 <= level <= 1.0:
+            return [], _err(400, "supply level must be between 0.0 and 1.0", 400)
+        updates[supply_type] = {"supply_type": supply_type, "level": level, "status": status}
+    if not updates:
+        return [], _err(400, "at least one supply update is required", 400)
+    return list(updates.values()), None
+
+
 def _check_activation_code(code: str) -> bool:
     global _activation_warning_logged
+    now = time.time()
+    with _activation_lock:
+        for saved_code, data in list(_activation_codes.items()):
+            if data["expires_at"] <= now:
+                _activation_codes.pop(saved_code, None)
+        saved = _activation_codes.get(code)
+        if saved and saved["expires_at"] > now:
+            return True
     expected = os.environ.get("LIMA_XIAOZHI_ACTIVATION_CODE", "").strip()
     if expected:
         return secrets.compare_digest(code, expected)
@@ -264,6 +400,40 @@ def _check_activation_code(code: str) -> bool:
         _log.warning("LIMA_XIAOZHI_ACTIVATION_CODE is not configured; accepting non-empty activation codes")
         _activation_warning_logged = True
     return bool(code)
+
+
+def _new_activation_code(mac_address: str = "") -> str:
+    now = time.time()
+    with _activation_lock:
+        for saved_code, data in list(_activation_codes.items()):
+            if data["expires_at"] <= now:
+                _activation_codes.pop(saved_code, None)
+        while True:
+            code = f"{secrets.randbelow(1_000_000):06d}"
+            if code not in _activation_codes:
+                break
+        _activation_codes[code] = {"mac_address": mac_address, "expires_at": now + _ACTIVATION_TTL_SECONDS}
+        return code
+
+
+def _login_code() -> str:
+    return os.environ.get("LIMA_XIAOZHI_LOGIN_CODE", "").strip() or "000000"
+
+
+def _validate_login_code(code: str) -> bool:
+    return secrets.compare_digest(code, _login_code())
+
+
+def _login_response(row: sqlite3.Row) -> dict[str, Any] | JSONResponse:
+    token = _make_token(row)
+    if token is None:
+        return _err(503, "JWT support is unavailable", 503)
+    return {
+        "token": token,
+        "expiresIn": 86400,
+        "accountId": row["id"],
+        "phone": row["phone"],
+    }
 
 
 def _gateway_capability(intent: str, params: dict[str, Any]) -> tuple[str, dict[str, Any], str | None]:
@@ -343,8 +513,7 @@ async def login(request: Request) -> JSONResponse:
     code = _str(body, "code", "smsCode")
     if not phone or not code:
         return _err(400, "phone and code are required", 400)
-    expected_code = os.environ.get("LIMA_XIAOZHI_LOGIN_CODE", "").strip()
-    if expected_code and not secrets.compare_digest(code, expected_code):
+    if not _validate_login_code(code):
         return _err(401, "Invalid verification code", 401)
     with _connect() as conn:
         row = conn.execute("SELECT * FROM v2_account WHERE phone=? AND status='active'", (phone,)).fetchone()
@@ -353,10 +522,106 @@ async def login(request: Request) -> JSONResponse:
             conn.execute("INSERT INTO v2_account (id, phone, nickname) VALUES (?, ?, ?)", (account_id, phone, body.get("nickname")))
             conn.commit()
             row = conn.execute("SELECT * FROM v2_account WHERE id=?", (account_id,)).fetchone()
-    token = _make_token(row)
-    if token is None:
-        return _err(503, "JWT support is unavailable", 503)
-    return _ok({"token": token, "expiresIn": 86400, "accountId": row["id"], "phone": row["phone"]})
+    data = _login_response(row)
+    if isinstance(data, JSONResponse):
+        return data
+    return _ok(data)
+
+
+@router.post("/auth/register")
+async def register(request: Request) -> JSONResponse:
+    """Register a phone account with the Phase 0 SMS verification code."""
+    body = await _read_body(request)
+    if isinstance(body, JSONResponse):
+        return body
+    phone = _str(body, "phone", "mobile")
+    code = _str(body, "code", "smsCode")
+    if not phone or not code:
+        return _err(400, "phone and code are required", 400)
+    if not _validate_login_code(code):
+        return _err(401, "Invalid verification code", 401)
+    with _connect() as conn:
+        row = conn.execute("SELECT * FROM v2_account WHERE phone=? AND status='active'", (phone,)).fetchone()
+        if row is None:
+            account_id = _new_id()
+            conn.execute(
+                "INSERT INTO v2_account (id, phone, nickname) VALUES (?, ?, ?)",
+                (account_id, phone, body.get("nickname")),
+            )
+            conn.commit()
+            row = conn.execute("SELECT * FROM v2_account WHERE id=?", (account_id,)).fetchone()
+    data = _login_response(row)
+    if isinstance(data, JSONResponse):
+        return data
+    return _ok(data)
+
+
+@router.post("/auth/sms-verification")
+async def sms_verification(request: Request) -> JSONResponse:
+    """Return the Phase 0 mock SMS code."""
+    body = await _read_body(request)
+    if isinstance(body, JSONResponse):
+        return body
+    phone = _str(body, "phone", "mobile")
+    if not phone:
+        return _err(400, "phone is required", 400)
+    code = _login_code()
+    return _ok({"phone": phone, "code": code, "mock": True, "expiresIn": 300})
+
+
+@router.get("/auth/me")
+async def get_me(authorization: str = Header(default="")) -> JSONResponse:
+    """Return the current account from a JWT bearer token."""
+    account = _authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    return _ok(_account_payload(account))
+
+
+@router.post("/auth/account/delete")
+async def delete_account(authorization: str = Header(default="")) -> JSONResponse:
+    """Soft-delete the current account and unbind its active devices."""
+    account = _authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    deleted_at = _now()
+    with _connect() as conn:
+        conn.execute(
+            """
+            UPDATE v2_device_binding
+            SET status='unbound', unbound_at=?
+            WHERE account_id=? AND status='active'
+            """,
+            (deleted_at, account["id"]),
+        )
+        conn.execute(
+            """
+            UPDATE v2_account
+            SET status='deleted',
+                deleted_at=?,
+                nickname='deleted_user',
+                phone=NULL,
+                wechat_openid=NULL,
+                avatar_url=NULL
+            WHERE id=?
+            """,
+            (deleted_at, account["id"]),
+        )
+        conn.commit()
+    return _ok({"accountId": account["id"], "deletedAt": deleted_at})
+
+
+@router.post("/devices/register")
+async def register_device(request: Request, authorization: str = Header(default="")) -> JSONResponse:
+    """Generate a short-lived Phase 0 activation code for device pairing."""
+    account = _authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    body = await _read_body(request)
+    if isinstance(body, JSONResponse):
+        return body
+    activation_code = _new_activation_code(_str(body, "macAddress", "mac_address"))
+    return _ok({"activationCode": activation_code, "code": activation_code, "expiresIn": _ACTIVATION_TTL_SECONDS})
 
 
 @router.post("/devices/bind")
@@ -406,6 +671,116 @@ async def bind_device(request: Request, authorization: str = Header(default=""))
     return _ok({"bindingId": binding_id, "deviceId": device["id"], "device": _device_payload(device)})
 
 
+@router.get("/devices")
+async def list_devices(authorization: str = Header(default="")) -> JSONResponse:
+    """List devices actively bound to the current account."""
+    account = _authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    with _connect() as conn:
+        if account.get("role") == "admin":
+            rows = conn.execute("SELECT * FROM v2_device ORDER BY created_at DESC").fetchall()
+        else:
+            rows = conn.execute(
+                """
+                SELECT d.*
+                FROM v2_device d
+                JOIN v2_device_binding b ON b.device_id = d.id
+                WHERE b.account_id=? AND b.status='active'
+                ORDER BY b.bound_at DESC
+                """,
+                (account["id"],),
+            ).fetchall()
+    return _ok([_device_payload(row) for row in rows])
+
+
+@router.get("/devices/{device_id}")
+async def get_device(device_id: str, authorization: str = Header(default="")) -> JSONResponse:
+    """Return a bound device detail."""
+    account = _authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    with _connect() as conn:
+        denied = _require_device_access(conn, account, device_id)
+        if denied:
+            return denied
+        row = conn.execute("SELECT * FROM v2_device WHERE id=?", (device_id,)).fetchone()
+    if row is None:
+        return _err(404, "device not found", 404)
+    return _ok(_device_payload(row))
+
+
+@router.put("/devices/{device_id}")
+async def update_device(device_id: str, request: Request, authorization: str = Header(default="")) -> JSONResponse:
+    """Update mutable device profile fields."""
+    account = _authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    body = await _read_body(request)
+    if isinstance(body, JSONResponse):
+        return body
+    updates: dict[str, Any] = {}
+    for body_name, column_name in (
+        ("model", "model"),
+        ("firmwareVer", "firmware_ver"),
+        ("firmware_ver", "firmware_ver"),
+        ("hardwareVer", "hardware_ver"),
+        ("hardware_ver", "hardware_ver"),
+    ):
+        value = body.get(body_name)
+        if isinstance(value, str) and value.strip():
+            updates[column_name] = value.strip()
+    if "metadata" in body:
+        if isinstance(body["metadata"], dict):
+            updates["metadata"] = _json_params(body["metadata"])
+        elif isinstance(body["metadata"], str):
+            updates["metadata"] = body["metadata"]
+        else:
+            return _err(400, "metadata must be an object or string", 400)
+    if not updates:
+        return _err(400, "no supported device fields provided", 400)
+    with _connect() as conn:
+        denied = _require_device_access(conn, account, device_id)
+        if denied:
+            return denied
+        assignments = ", ".join(f"{column}=?" for column in updates)
+        result = conn.execute(
+            f"UPDATE v2_device SET {assignments} WHERE id=?",
+            (*updates.values(), device_id),
+        )
+        conn.commit()
+        if result.rowcount < 1:
+            return _err(404, "device not found", 404)
+        row = conn.execute("SELECT * FROM v2_device WHERE id=?", (device_id,)).fetchone()
+    return _ok(_device_payload(row))
+
+
+@router.post("/devices/{device_id}/unbind")
+async def unbind_device(device_id: str, authorization: str = Header(default="")) -> JSONResponse:
+    """Mark the current account's active device binding as unbound."""
+    account = _authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    with _connect() as conn:
+        denied = _require_device_access(conn, account, device_id)
+        if denied:
+            return denied
+        if account.get("role") == "admin":
+            result = conn.execute(
+                "UPDATE v2_device_binding SET status='unbound', unbound_at=? WHERE device_id=? AND status='active'",
+                (_now(), device_id),
+            )
+        else:
+            result = conn.execute(
+                "UPDATE v2_device_binding SET status='unbound', unbound_at=? WHERE device_id=? AND account_id=? AND status='active'",
+                (_now(), device_id, account["id"]),
+            )
+        conn.commit()
+    if result.rowcount < 1:
+        return _err(404, "active binding not found", 404)
+    return _ok({"deviceId": device_id, "status": "unbound"})
+
+
 @router.post("/devices/{device_id}/tasks")
 async def submit_task(device_id: str, request: Request, authorization: str = Header(default="")) -> JSONResponse:
     """提交运动任务。"""
@@ -449,7 +824,55 @@ async def submit_task(device_id: str, request: Request, authorization: str = Hea
     return _ok(data)
 
 
+@router.get("/devices/{device_id}/tasks")
+async def list_tasks(
+    device_id: str,
+    request: Request,
+    authorization: str = Header(default=""),
+) -> JSONResponse:
+    """List tasks for a bound device."""
+    account = _authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    status = str(request.query_params.get("status") or "").strip()
+    if status and status not in _ALLOWED_TASK_STATUSES:
+        return _err(400, "invalid task status", 400)
+    limit = _query_int(request.query_params.get("limit"), default=20, minimum=1, maximum=100)
+    with _connect() as conn:
+        denied = _require_device_access(conn, account, device_id)
+        if denied:
+            return denied
+        if status:
+            rows = conn.execute(
+                "SELECT * FROM v2_task WHERE device_id=? AND status=? ORDER BY created_at DESC LIMIT ?",
+                (device_id, status, limit),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM v2_task WHERE device_id=? ORDER BY created_at DESC LIMIT ?",
+                (device_id, limit),
+            ).fetchall()
+    return _ok([_task_payload(row) for row in rows])
+
+
 # ═══════════════════════ P1 Endpoints ═══════════════════════
+
+
+@router.get("/tasks/{task_id}")
+async def get_task(task_id: str, authorization: str = Header(default="")) -> JSONResponse:
+    """Return a task detail if the current account can access the device."""
+    account = _authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    with _connect() as conn:
+        row = conn.execute("SELECT * FROM v2_task WHERE id=?", (task_id,)).fetchone()
+        if row is None:
+            return _err(404, "task not found", 404)
+        denied = _require_device_access(conn, account, row["device_id"])
+        if denied:
+            return denied
+    return _ok(_task_payload(row))
+
 
 @router.post("/tasks/{task_id}/approve")
 async def approve_task(task_id: str, authorization: str = Header(default="")) -> JSONResponse:
@@ -598,3 +1021,164 @@ async def list_members(device_id: str, authorization: str = Header(default="")) 
             return denied
         rows = conn.execute("SELECT * FROM v2_member WHERE device_id=? AND status='active' ORDER BY created_at ASC", (device_id,)).fetchall()
     return _ok([_member_payload(row) for row in rows])
+
+@router.delete("/voiceprints/{voiceprint_id}")
+async def delete_voiceprint(voiceprint_id: str, authorization: str = Header(default="")) -> JSONResponse:
+    account = _authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    with _connect() as conn:
+        row = conn.execute("SELECT * FROM v2_voiceprint WHERE id=? AND status!='disabled'", (voiceprint_id,)).fetchone()
+        if row is None:
+            return _err(404, "voiceprint not found", 404)
+        denied = _require_device_access(conn, account, row["device_id"])
+        if denied:
+            return denied
+        conn.execute("UPDATE v2_voiceprint SET status='disabled' WHERE id=?", (voiceprint_id,))
+        conn.execute("UPDATE v2_member SET voiceprint_id=NULL WHERE voiceprint_id=?", (voiceprint_id,))
+        conn.commit()
+    return _ok({"voiceprintId": voiceprint_id, "status": "disabled"})
+
+
+@router.post("/devices/{device_id}/transfer")
+async def request_transfer(device_id: str, request: Request, authorization: str = Header(default="")) -> JSONResponse:
+    account = _authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    body = await _read_body(request)
+    if isinstance(body, JSONResponse):
+        return body
+    to_phone = _str(body, "toPhone", "to_phone")
+    to_account_id = _str(body, "toAccountId", "to_account_id")
+    reason = _str(body, "reason") or ""
+    with _connect() as conn:
+        if not _is_owner(conn, account, device_id):
+            return _err(403, "only the device owner can initiate a transfer", 403)
+        _expire_pending_transfers(conn)
+        if to_phone:
+            target = conn.execute("SELECT id FROM v2_account WHERE phone=? AND status='active'", (to_phone,)).fetchone()
+            if target is None:
+                return _err(404, "recipient account not found", 404)
+            to_account_id = target["id"]
+        if not to_account_id:
+            return _err(400, "toPhone or toAccountId is required", 400)
+        if to_account_id == account["id"]:
+            return _err(400, "cannot transfer to yourself", 400)
+        transfer_id = _new_id()
+        conn.execute(
+            "INSERT INTO v2_device_transfer_request (id, device_id, from_account_id, to_account_id, status, reason, expires_at) VALUES (?, ?, ?, ?, 'pending', ?, ?)",
+            (transfer_id, device_id, account["id"], to_account_id, reason, _expires_at(172800)),
+        )
+        conn.commit()
+        row = conn.execute("SELECT * FROM v2_device_transfer_request WHERE id=?", (transfer_id,)).fetchone()
+    return _ok(_transfer_payload(row))
+
+
+@router.get("/transfers/pending")
+async def list_pending_transfers(authorization: str = Header(default="")) -> JSONResponse:
+    account = _authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    with _connect() as conn:
+        _expire_pending_transfers(conn)
+        conn.commit()
+        rows = conn.execute(
+            "SELECT * FROM v2_device_transfer_request WHERE to_account_id=? AND status='pending' ORDER BY created_at DESC",
+            (account["id"],),
+        ).fetchall()
+    return _ok([_transfer_payload(row) for row in rows])
+
+
+@router.post("/transfers/{transfer_id}/accept")
+async def accept_transfer(transfer_id: str, authorization: str = Header(default="")) -> JSONResponse:
+    account = _authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    with _connect() as conn:
+        _expire_pending_transfers(conn)
+        row = conn.execute("SELECT * FROM v2_device_transfer_request WHERE id=? AND status='pending'", (transfer_id,)).fetchone()
+        if row is None:
+            return _err(404, "pending transfer not found or expired", 404)
+        if row["to_account_id"] != account["id"]:
+            return _err(403, "only the recipient can accept this transfer", 403)
+        conn.execute("UPDATE v2_device_binding SET status='unbound', unbound_at=? WHERE device_id=? AND bind_mode='owner' AND status='active'", (_now(), row["device_id"]))
+        existing = conn.execute("SELECT id FROM v2_device_binding WHERE device_id=? AND account_id=?", (row["device_id"], account["id"])).fetchone()
+        if existing:
+            conn.execute("UPDATE v2_device_binding SET status='active', bind_mode='owner', unbound_at=NULL WHERE id=?", (existing["id"],))
+        else:
+            conn.execute("INSERT INTO v2_device_binding (id, device_id, account_id, bind_mode, status) VALUES (?, ?, ?, 'owner', 'active')", (_new_id(), row["device_id"], account["id"]))
+        conn.execute("UPDATE v2_device_transfer_request SET status='accepted', accepted_at=? WHERE id=?", (_now(), transfer_id))
+        conn.commit()
+        row = conn.execute("SELECT * FROM v2_device_transfer_request WHERE id=?", (transfer_id,)).fetchone()
+    return _ok(_transfer_payload(row))
+
+
+@router.post("/transfers/{transfer_id}/cancel")
+async def cancel_transfer(transfer_id: str, authorization: str = Header(default="")) -> JSONResponse:
+    account = _authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    with _connect() as conn:
+        _expire_pending_transfers(conn)
+        row = conn.execute("SELECT * FROM v2_device_transfer_request WHERE id=? AND status='pending'", (transfer_id,)).fetchone()
+        if row is None:
+            return _err(404, "pending transfer not found or expired", 404)
+        if row["from_account_id"] != account["id"] and account.get("role") != "admin":
+            return _err(403, "only the initiator or an admin can cancel", 403)
+        conn.execute("UPDATE v2_device_transfer_request SET status='cancelled', cancelled_at=? WHERE id=?", (_now(), transfer_id))
+        conn.commit()
+        row = conn.execute("SELECT * FROM v2_device_transfer_request WHERE id=?", (transfer_id,)).fetchone()
+    return _ok(_transfer_payload(row))
+
+
+@router.get("/devices/{device_id}/self-checks")
+async def list_self_checks(device_id: str, request: Request, authorization: str = Header(default="")) -> JSONResponse:
+    account = _authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    limit = _query_int(request.query_params.get("limit"), default=20, minimum=1, maximum=100)
+    with _connect() as conn:
+        denied = _require_device_access(conn, account, device_id)
+        if denied:
+            return denied
+        rows = conn.execute("SELECT * FROM v2_self_check_event WHERE device_id=? ORDER BY created_at DESC LIMIT ?", (device_id, limit)).fetchall()
+    return _ok([_self_check_payload(row) for row in rows])
+
+
+@router.put("/devices/{device_id}/supplies")
+async def update_supplies(device_id: str, request: Request, authorization: str = Header(default="")) -> JSONResponse:
+    account = _authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    body = await _read_body(request)
+    if isinstance(body, JSONResponse):
+        return body
+    with _connect() as conn:
+        denied = _require_device_access(conn, account, device_id)
+        if denied:
+            return denied
+    items, error = _parse_supply_updates(body)
+    if error:
+        return error
+    with _connect() as conn:
+        for item in items:
+            conn.execute(
+                "INSERT INTO v2_device_supply (id, device_id, supply_type, level, status) VALUES (?, ?, ?, ?, ?) ON CONFLICT(device_id, supply_type) DO UPDATE SET level=?, status=?, updated_at=?",
+                (_new_id(), device_id, item["supply_type"], item["level"], item["status"], item["level"], item["status"], _now()),
+            )
+        conn.commit()
+        rows = conn.execute("SELECT * FROM v2_device_supply WHERE device_id=? ORDER BY supply_type", (device_id,)).fetchall()
+    return _ok([_supply_payload(row) for row in rows])
+
+
+@router.get("/devices/{device_id}/supplies")
+async def get_supplies(device_id: str, authorization: str = Header(default="")) -> JSONResponse:
+    account = _authorize(authorization)
+    if isinstance(account, JSONResponse):
+        return account
+    with _connect() as conn:
+        denied = _require_device_access(conn, account, device_id)
+        if denied:
+            return denied
+        rows = conn.execute("SELECT * FROM v2_device_supply WHERE device_id=? ORDER BY supply_type", (device_id,)).fetchall()
+    return _ok([_supply_payload(row) for row in rows])
