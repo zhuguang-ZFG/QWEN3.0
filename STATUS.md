@@ -4,13 +4,34 @@
 > **转型文档**: [`docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md`](docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md)
 > **Phase 0 启动**: [`docs/superpowers/plans/2026-06-09-phase0-strategic-confirmation.md`](docs/superpowers/plans/2026-06-09-phase0-strategic-confirmation.md)
 
-> Updated: 2026-06-11 (P1 xiaozhi refactor complete)
-> Branch: `feat/code-simplification`
+> Updated: 2026-06-11 (P1 xiaozhi + admin_ui refactor complete)
+> Branch: `main`
 > Tests: **1886 passed, 24 skipped**; ruff clean; git diff --check clean; pre-commit passing
-> Quality: P0 violations resolved; P1 xiaozhi refactor complete (1184→518 lines, 7 modules); ops_metrics partial (1/3)
+> Quality: P0 violations resolved; P1 xiaozhi complete (1184→518, 7 modules); P1 admin_ui complete (482→55, 4 modules); ops_metrics partial (1/3)
 > Current VPS: capacity-aware `scripts/deploy_unified.py`; preflight `disk_free_mb=13685`, `mem_available_mb=488`; public `chat.donglicao.com/health=200`
 > VPS rollback: `/opt/lima-router/backups/unified-files-20260609_130457/runtime-before.tgz`
 > Strategic Pivot Plan: [`docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md`](docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md)
+
+## 2026-06-11 admin_ui 模块化重构完成
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| 模块拆分 | Done | admin_ui.py (482行) → admin_ui/ 模块（4 文件，474 行）|
+| 主文件精简 | Done | main.py: 55 行，仅包含 2 个渲染函数 |
+| 模板分离 | Done | templates.py: 67 行（HEAD/SIDEBAR/TOPBAR/CLOSE）|
+| 面板分离 | Done | panels.py: 347 行（14 个仪表板面板）|
+| 测试验证 | Done | 14 个 admin 测试全部通过 ✅ |
+| Git 提交 | Done | Commit 96fcee9，已合并到 main 并推送 GitHub |
+
+**成果:**
+- 主文件：482 → 55 行 (-88%)
+- 模块化：4 个职责清晰文件
+- 可维护性：模板与面板分离，易于扩展
+
+**Commit:**
+```
+96fcee9 refactor: split admin_ui.py into modular structure
+```
 
 ## 2026-06-11 xiaozhi_v1_compat 重构完成
 

@@ -6385,3 +6385,25 @@ pytest tests/ -k "device or chat or backend"
 - 执行清单：`XIAOZHI_REFACTOR_CHECKLIST.md`
 - 重构计划：`docs/superpowers/plans/2026-06-11-xiaozhi-compat-refactor-plan.md`
 - 会话总结：`SESSION_SUMMARY_20260611_185229.md`
+
+## 2026-06-11 admin_ui 模块化重构完成
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| 模块拆分 | Done | admin_ui.py (482行) → admin_ui/ (4个文件，474行总计) |
+| 主文件精简 | Done | main.py: 55 行（仅包含2个渲染函数）|
+| 模板分离 | Done | templates.py: 67 行（HEAD/SIDEBAR/TOPBAR/CLOSE）|
+| 面板分离 | Done | panels.py: 347 行（14个仪表板面板）|
+| 测试验证 | Done | 14 个 admin 测试全部通过 ✅ |
+| Git 提交 | Done | 1 个 commit，已合并到 main 并推送 GitHub |
+
+**成果:**
+- 主文件行数：482 → 55 (-88%)
+- 模块化：4 个职责清晰的文件
+- 可维护性：模板与面板分离，易于扩展
+- 测试覆盖：14 passed ✅
+
+**Commit:**
+```
+96fcee9 refactor: split admin_ui.py into modular structure
+```
