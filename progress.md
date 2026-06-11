@@ -4,6 +4,37 @@
 
 > Updated: 2026-06-11
 
+## 2026-06-11 Stage 1 Week 3B: 真实矢量化（OpenCV）部署完成
+
+**目标:** 替换占位符 SVG 转换器，实现真实的位图转矢量路径。
+
+- 实现:
+  - 修改 `xiaozhi_drawing/svg_converter.py` (69 → 117 行): OpenCV 轮廓检测算法
+  - 流程: 下载 → 灰度化 → 高斯模糊 → Otsu 二值化 → findContours → approxPolyDP 简化 → SVG path
+  - 新增 `opencv-python-headless==4.10.0.84` 依赖
+  - 更新测试以验证真实轮廓检测（contour_count 字段）
+- 技术细节:
+  - Otsu 自动阈值二值化（适应不同亮度图像）
+  - Douglas-Peucker 轮廓简化（epsilon=2.0）
+  - 多轮廓支持（每个轮廓独立 M...Z 路径）
+  - 面积过滤（min_area=100，去除噪点）
+- VPS 部署:
+  - svg_converter.py 已更新（时间戳 21:27）
+  - opencv-python-headless 安装成功（版本 4.10.0）
+  - 模块导入验证通过，无错误
+  - 服务运行正常: PID 2897167，启动于 21:29
+- 本地验证:
+  - pytest: 25/25 测试通过（包含 OpenCV 矢量化验证）
+  - ruff: clean
+  - 文件规模: 117 行，符合 <150 行目标
+- Git 管理:
+  - 提交: 09e4745 feat(Stage1-Week3B): OpenCV real vectorization
+  - 推送: GitHub (origin) ✅
+- 质量改进:
+  - 从占位符矩形 → 真实图像轮廓
+  - 支持复杂图像的多轮廓检测
+  - 自动阈值算法，适应不同图像
+
 ## 2026-06-11 Stage 1 Week 3A: SVG 验证+优化 + device_draw 集成完成
 
 **目标:** 实现 SVG 验证和路径优化，集成到 device_draw 流程。
