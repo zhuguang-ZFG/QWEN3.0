@@ -1,68 +1,6 @@
-"""Admin dashboard HTML templates — sidebar navigation + 14 panels."""
+"""Admin UI panel HTML templates — 14 dashboard panels."""
 
-# ── HTML Head ─────────────────────────────────────────────────────────────────
-_HEAD = """\
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LiMa · 管理后台</title>
-<link rel="stylesheet" href="/chat/admin.css?v=20260609">
-</head>"""
-
-# ── Sidebar ───────────────────────────────────────────────────────────────────
-_SIDEBAR = """\
-<body>
-<div class="sidebar-overlay"></div>
-<button class="mobile-menu-toggle" onclick="toggleMobileMenu()"><span></span></button>
-<div class="shell">
-<aside class="sidebar">
-  <div class="brand">
-    <div class="logo">Li</div>
-    <div><h1>LiMa</h1><p>智能路由管理后台</p></div>
-  </div>
-  <nav class="nav" id="nav">
-    <button class="active" data-panel="overview">📊 概览</button>
-    <button data-panel="traffic">📋 请求日志</button>
-    <button data-panel="backends">🔌 后端管理</button>
-    <button data-panel="retrieval">🔍 检索追踪</button>
-    <button data-panel="model">🧠 路由模型</button>
-    <button data-panel="health">💊 健康监控</button>
-    <button data-panel="client-keys">🔑 客户端 Key</button>
-    <button data-panel="keys">🔐 Key-URL 清单</button>
-    <button data-panel="agents">🤖 Agent 审计</button>
-    <button data-panel="agent-tasks">📝 Agent 任务</button>
-    <button data-panel="config">⚙️ 配置管理</button>
-    <button data-panel="devices">📱 设备管理</button>
-    <button data-panel="alerts">🔔 告警规则</button>
-    <button data-panel="live-logs">📡 实时日志</button>
-  </nav>
-  <div class="sidebar-footer">
-    <div class="status-dot">系统运行中</div>
-    <div style="margin-top:8px"><a href="/admin/logout" style="color:var(--muted)">退出登录</a></div>
-  </div>
-</aside>
-<main class="main">
-"""
-
-# ── Topbar ────────────────────────────────────────────────────────────────────
-_TOPBAR = """\
-<div class="topbar">
-  <div>
-    <div class="eyebrow">ADMIN CONSOLE</div>
-    <h1 class="title">LiMa 管理后台</h1>
-    <p class="subtitle">实时监控、后端管理、路由模型、Agent 任务全生命周期管控</p>
-  </div>
-  <div class="toolbar">
-    <button class="btn ghost" onclick="refreshAll()">⟳ 刷新</button>
-    <span class="mini" id="refresh-info">每10秒自动刷新</span>
-  </div>
-</div>
-"""
-
-# ── Panel: Overview ───────────────────────────────────────────────────────────
-_P_OVERVIEW = """\
+OVERVIEW = """\
 <section id="panel-overview" class="section active">
   <div class="bento">
     <div class="card"><div class="metric" id="s-total">0</div><div class="metric-label">总请求数</div></div>
@@ -98,8 +36,7 @@ _P_OVERVIEW = """\
 </section>
 """
 
-# ── Panel: Traffic ────────────────────────────────────────────────────────────
-_P_TRAFFIC = """\
+TRAFFIC = """\
 <section id="panel-traffic" class="section">
   <div class="card full">
     <h2>最近请求日志
@@ -117,8 +54,7 @@ _P_TRAFFIC = """\
 </section>
 """
 
-# ── Panel: Backends ───────────────────────────────────────────────────────────
-_P_BACKENDS = """\
+BACKENDS = """\
 <section id="panel-backends" class="section">
   <div class="card full">
     <h2>后端列表
@@ -164,8 +100,7 @@ _P_BACKENDS = """\
 </section>
 """
 
-# ── Panel: Retrieval ──────────────────────────────────────────────────────────
-_P_RETRIEVAL = """\
+RETRIEVAL = """\
 <section id="panel-retrieval" class="section">
   <div class="bento">
     <div class="card"><div class="metric" id="r-count">0</div><div class="metric-label">追踪条数</div></div>
@@ -183,8 +118,7 @@ _P_RETRIEVAL = """\
 </section>
 """
 
-# ── Panel: Model ──────────────────────────────────────────────────────────────
-_P_MODEL = """\
+MODEL = """\
 <section id="panel-model" class="section">
   <div class="bento">
     <div class="card">
@@ -225,8 +159,7 @@ _P_MODEL = """\
 </section>
 """
 
-# ── Panel: Health ─────────────────────────────────────────────────────────────
-_P_HEALTH = """\
+HEALTH = """\
 <section id="panel-health" class="section">
   <div class="bento">
     <div class="card"><div class="metric" style="color:var(--green)" id="h-healthy">0</div><div class="metric-label">健康</div></div>
@@ -244,8 +177,7 @@ _P_HEALTH = """\
 </section>
 """
 
-# ── Panel: Client Keys ────────────────────────────────────────────────────────
-_P_CLIENT_KEYS = """\
+CLIENT_KEYS = """\
 <section id="panel-client-keys" class="section">
   <div class="bento">
     <div class="card"><div class="metric" id="ck-total">0</div><div class="metric-label">总 Key 数</div></div>
@@ -265,8 +197,7 @@ _P_CLIENT_KEYS = """\
 </section>
 """
 
-# ── Panel: Key-URL Inventory ──────────────────────────────────────────────────
-_P_KEYS = """\
+KEYS = """\
 <section id="panel-keys" class="section">
   <div class="card full">
     <h2>Key-URL 清单
@@ -284,8 +215,7 @@ _P_KEYS = """\
 </section>
 """
 
-# ── Panel: Agents Audit ───────────────────────────────────────────────────────
-_P_AGENTS = """\
+AGENTS = """\
 <section id="panel-agents" class="section">
   <div class="card full">
     <h2>Agent Task Audit</h2>
@@ -297,8 +227,7 @@ _P_AGENTS = """\
 </section>
 """
 
-# ── Panel: Agent Tasks ────────────────────────────────────────────────────────
-_P_AGENT_TASKS = """\
+AGENT_TASKS = """\
 <section id="panel-agent-tasks" class="section">
   <div class="bento">
     <div class="card"><div class="metric" id="at-total">0</div><div class="metric-label">总任务</div></div>
@@ -330,8 +259,7 @@ _P_AGENT_TASKS = """\
 </section>
 """
 
-# ── Panel: Config ─────────────────────────────────────────────────────────────
-_P_CONFIG = """\
+CONFIG = """\
 <section id="panel-config" class="section">
   <div class="card">
     <h2>配置导出</h2>
@@ -347,8 +275,7 @@ _P_CONFIG = """\
 </section>
 """
 
-# ── Panel: Devices ────────────────────────────────────────────────────────────
-_P_DEVICES = """\
+DEVICES = """\
 <section id="panel-devices" class="section">
   <div class="bento">
     <div class="card"><div class="metric" id="dev-total">0</div><div class="metric-label">在线设备</div></div>
@@ -364,8 +291,7 @@ _P_DEVICES = """\
 </section>
 """
 
-# ── Panel: Alerts ─────────────────────────────────────────────────────────────
-_P_ALERTS = """\
+ALERTS = """\
 <section id="panel-alerts" class="section">
   <div class="bento">
     <div class="card"><div class="metric" id="alert-total">0</div><div class="metric-label">总规则数</div></div>
@@ -394,8 +320,7 @@ _P_ALERTS = """\
 </section>
 """
 
-# ── Panel: Live Logs ──────────────────────────────────────────────────────────
-_P_LIVE_LOGS = """\
+LIVE_LOGS = """\
 <section id="panel-live-logs" class="section">
   <div class="bento">
     <div class="card"><div class="metric" id="ll-count">0</div><div class="metric-label">接收条数</div></div>
@@ -420,63 +345,3 @@ _P_LIVE_LOGS = """\
   </div>
 </section>
 """
-
-# ── Close shell ───────────────────────────────────────────────────────────────
-_CLOSE = """\
-</main>
-</div>
-<div class="toast" id="toast"></div>
-<script src="/chat/admin.js?v=20260609"></script>
-</body>
-</html>"""
-
-
-def render_admin_login(error_msg: str = "") -> str:
-    """Return the admin login page HTML."""
-    err = f'<p style="color:#f87171;margin:12px 0">{error_msg}</p>' if error_msg else ""
-    return f"""\
-<!DOCTYPE html>
-<html lang="zh-CN"><head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LiMa · 管理登录</title>
-<link rel="stylesheet" href="/chat/admin.css?v=20260609">
-</head>
-<body style="display:grid;place-items:center;min-height:100vh">
-<div style="max-width:360px;width:100%;padding:40px">
-  <div class="brand" style="justify-content:center;margin-bottom:36px">
-    <div class="logo">Li</div>
-    <div><h1 style="font-size:22px">LiMa</h1><p style="color:var(--muted);font-size:13px">管理后台登录</p></div>
-  </div>
-  <form method="post" action="/admin/login" style="display:grid;gap:16px">
-    <input name="token" placeholder="Admin Token" type="password"
-           style="border:1px solid var(--line);border-radius:12px;background:rgba(8,12,20,0.6);color:var(--text);padding:14px 16px;font-size:14px">
-    <button type="submit" class="btn" style="padding:14px;font-size:15px">登 录</button>
-  </form>
-  {err}
-</div>
-</body></html>"""
-
-
-def render_admin_dashboard() -> str:
-    """Return authenticated admin dashboard HTML."""
-    return (
-        _HEAD
-        + _SIDEBAR
-        + _TOPBAR
-        + _P_OVERVIEW
-        + _P_TRAFFIC
-        + _P_BACKENDS
-        + _P_RETRIEVAL
-        + _P_MODEL
-        + _P_HEALTH
-        + _P_CLIENT_KEYS
-        + _P_KEYS
-        + _P_AGENTS
-        + _P_AGENT_TASKS
-        + _P_CONFIG
-        + _P_DEVICES
-        + _P_ALERTS
-        + _P_LIVE_LOGS
-        + _CLOSE
-    )
