@@ -6433,3 +6433,22 @@ pytest tests/ -k "device or chat or backend"
 - ops_metrics (365行)：已有重构计划，部分完成 ✅
 
 **结论:** 主要代码质量问题已解决，项目达到良好的可维护性标准 🎉
+
+## 2026-06-11 阶段 0 止血修复（部分完成）
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| R-01: 工具调用路径断裂 | Done | 修复 chat_endpoints.py，工具调用通过标准路由 |
+| R-02: OpenCode /v1/responses | Skip | 战略废弃（OpenCode 不再支持，符合预期）|
+| R-03: tool_forward 冲突 | Documented | 已在 R-01 中一并解决 |
+| R-04: 分支碎片化 | In Progress | 已合并 fix/tool-calls-regression 到 main |
+
+**R-01 修复详情：**
+- 问题：anthropic_native_stream/forward 注入为 None，工具调用失败
+- 方案：OpenAI 端点改用标准路由；Anthropic 端点返回 400 引导
+- 测试：9 passed, 1 skipped ✅
+- Commit: 017c6a1 + merge 978d96d
+
+**下一步：**
+- 阶段 1: 设备核心补齐（Week 1-5）
+- 阶段 2: 代码瘦身（110k → 55k 行）
