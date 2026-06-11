@@ -27,11 +27,16 @@ def test_device_profile_serializes_deterministically():
         "capabilities": ["home", "run_path"],
         "supported_fw_prefixes": ["u8-"],
         "profile_version": "1",
+        "fw_rev": "",
+        "u1_fw_rev": "",
+        "hw_rev": "",
+        "limits": {"max_points": 200},
     }
     assert profile.to_json() == (
-        '{"capabilities":["home","run_path"],"max_feed":900.0,"max_path_points":200,'
-        '"model":"draw-line-control-p1","profile_id":"dlc-p1","profile_version":"1",'
-        '"supported_fw_prefixes":["u8-"],"workspace_mm":{"x":120.0,"y":80.0,"z":20.0}}'
+        '{"capabilities":["home","run_path"],"fw_rev":"","hw_rev":"","limits":{"max_points":200},'
+        '"max_feed":900.0,"max_path_points":200,"model":"draw-line-control-p1",'
+        '"profile_id":"dlc-p1","profile_version":"1","supported_fw_prefixes":["u8-"],'
+        '"u1_fw_rev":"","workspace_mm":{"x":120.0,"y":80.0,"z":20.0}}'
     )
 
 
