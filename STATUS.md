@@ -4,13 +4,35 @@
 > **转型文档**: [`docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md`](docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md)
 > **Phase 0 启动**: [`docs/superpowers/plans/2026-06-09-phase0-strategic-confirmation.md`](docs/superpowers/plans/2026-06-09-phase0-strategic-confirmation.md)
 
-> Updated: 2026-06-11 (P1 xiaozhi + admin_ui refactor complete)
+> Updated: 2026-06-12 (Phase 1 M6-M8 complete)
 > Branch: `main`
-> Tests: **1886 passed, 24 skipped**; ruff clean; git diff --check clean; pre-commit passing
+> Tests: **2009 passed, 24 skipped**; ruff clean; git diff --check clean; pre-commit passing
 > Quality: P0 violations resolved; P1 xiaozhi complete (1184→518, 7 modules); P1 admin_ui complete (482→55, 4 modules); ops_metrics partial (1/3)
 > Current VPS: capacity-aware `scripts/deploy_unified.py`; preflight `disk_free_mb=13685`, `mem_available_mb=488`; public `chat.donglicao.com/health=200`
 > VPS rollback: `/opt/lima-router/backups/unified-files-20260609_130457/runtime-before.tgz`
 > Strategic Pivot Plan: [`docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md`](docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md)
+
+## 2026-06-12 Phase 1 完成 (M1-M8)
+
+**范围**: Phase 1 全部 8 个里程碑
+
+| 里程碑 | 模块 | 测试 | 状态 |
+|--------|------|------|------|
+| M1 | Task Ledger + Artifacts | 5 | ✅ |
+| M2 | Device Intelligence | 集成 | ✅ |
+| M3 | Policy Engine | 85 | ✅ |
+| M4 | Planner + Simulator | 68 | ✅ |
+| M5 | Recovery | 25 | ✅ |
+| M6 | Memory | 7 | ✅ |
+| M7 | External Enrichment | 7 | ✅ |
+| M8 | OTA + Release Gate | 7 | ✅ |
+
+**M6-M8 成果**:
+- Device Memory: 安全个性化，TTL 过滤，跨设备隔离，家长控制
+- External Enrichment: 天气/节假日数据，缓存/限流/归因，离线测试
+- OTA: 发布门控，金丝雀部署，成功率跟踪
+
+**Commit**: `2715429 feat(Phase1): M6-M8 complete`
 
 ## 2026-06-11 Stage 1-2 交付完成
 
