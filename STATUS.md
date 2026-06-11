@@ -4,13 +4,43 @@
 > **转型文档**: [`docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md`](docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md)
 > **Phase 0 启动**: [`docs/superpowers/plans/2026-06-09-phase0-strategic-confirmation.md`](docs/superpowers/plans/2026-06-09-phase0-strategic-confirmation.md)
 
-> Updated: 2026-06-11 (Superpowers code quality audit + P0 fixes complete)
+> Updated: 2026-06-11 (P1 xiaozhi refactor complete)
 > Branch: `feat/code-simplification`
 > Tests: **1886 passed, 24 skipped**; ruff clean; git diff --check clean; pre-commit passing
-> Quality: P0 violations resolved (bare except: 2 CRITICAL → 0); P1 refactor plans ready (xiaozhi + ops_metrics)
+> Quality: P0 violations resolved; P1 xiaozhi refactor complete (1184→518 lines, 7 modules); ops_metrics partial (1/3)
 > Current VPS: capacity-aware `scripts/deploy_unified.py`; preflight `disk_free_mb=13685`, `mem_available_mb=488`; public `chat.donglicao.com/health=200`
 > VPS rollback: `/opt/lima-router/backups/unified-files-20260609_130457/runtime-before.tgz`
 > Strategic Pivot Plan: [`docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md`](docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md)
+
+## 2026-06-11 xiaozhi_v1_compat 重构完成
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| Phase 1-7 全部完成 | Done | 7 个 Phase 全部执行完成，8 次 Git 提交 |
+| 代码质量提升 | Done | 主文件 1184→518 行 (-56%)，所有模块 < 300 行 ✅ |
+| 模块拆分 | Done | 7 个文件：主文件 + shared.py + 5 个路由模块，职责清晰 |
+| 测试验证 | Done | pytest 62 passed，所有 xiaozhi 端点正常工作 |
+| 文档完善 | Done | 执行清单、重构计划、会话总结全部完成 |
+| Git 同步 | Done | 已推送到 GitHub origin/feat/code-simplification |
+
+**成果:**
+- 主文件：`xiaozhi_v1_compat.py` (518 行)
+- 共享模块：`shared.py` (472 行)
+- 路由模块：`device_routes.py` (231) + `task_routes.py` (198) + `misc_routes.py` (173) + `user_routes.py` (143) + `member_routes.py` (114)
+- 端点总数：37 个（保持不变）
+- 测试覆盖：62 passed ✅
+
+**Commits:**
+```
+b1d3a2c docs: update xiaozhi checklist - Phase 1-7 complete
+8c9db4a refactor(P1): xiaozhi Phase 7 - complete shared.py & fix imports
+a83e472 refactor(P1): xiaozhi Phase 6 - main file refactor (1184→518)
+8376fed refactor(P1): xiaozhi Phase 5 - member & misc routes
+3864c02 refactor(P1): xiaozhi Phase 4 - task routes module
+b94fc2f refactor(P1): xiaozhi Phase 3 - user routes module
+dbc57c5 refactor(P1): xiaozhi Phase 2 - device routes module
+173a86d docs: update xiaozhi checklist - Phase 1-3 complete
+```
 
 ## 2026-06-11 Superpowers Code Quality Audit Closeout
 

@@ -6360,3 +6360,28 @@ pytest tests/ -k "device or chat or backend"
   docs slice; the device route/schema evidence remains the focused verification
   already recorded above.
 - Existing unrelated dirty files remain outside this slice.
+
+## 2026-06-11 xiaozhi_v1_compat 重构完成
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| Phase 1: 共享模块 | Done | 创建 shared.py (472 行)，提取所有辅助函数 + 常量；commit c63c00d |
+| Phase 2: 设备路由 | Done | 创建 device_routes.py (231 行)，迁移 7 个设备端点；commit dbc57c5 |
+| Phase 3: 用户路由 | Done | 创建 user_routes.py (143 行)，迁移 5 个用户/认证端点；commit b94fc2f |
+| Phase 4: 任务路由 | Done | 创建 task_routes.py (198 行)，迁移 6 个任务端点；commit 3864c02 |
+| Phase 5: 成员 & 其他路由 | Done | 创建 member_routes.py (114 行) + misc_routes.py (173 行)，迁移 11 个端点；commit 8376fed |
+| Phase 6: 主文件重构 | Done | xiaozhi_v1_compat.py: 1184 → 518 行 (-56%)，使用 include_router 集成；commit a83e472 |
+| Phase 7: 测试验证 | Done | 补全 shared.py 缺失函数，修复导入错误，62 passed；commit 8c9db4a |
+| 代码质量提升 | Done | 主文件降至 518 行，所有模块 < 300 行，pytest 全部通过 |
+| 模块拆分 | Done | 7 个文件（1 主文件 + 1 shared + 5 路由），职责清晰，易维护 |
+
+**成果:**
+- 主文件行数：1184 → 518 (-56%)
+- 模块总数：7 个专注模块
+- 测试结果：62 passed ✅
+- 所有模块：< 300 行 ✅
+
+**参考文档:**
+- 执行清单：`XIAOZHI_REFACTOR_CHECKLIST.md`
+- 重构计划：`docs/superpowers/plans/2026-06-11-xiaozhi-compat-refactor-plan.md`
+- 会话总结：`SESSION_SUMMARY_20260611_185229.md`
