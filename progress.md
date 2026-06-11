@@ -6452,3 +6452,28 @@ pytest tests/ -k "device or chat or backend"
 **下一步：**
 - 阶段 1: 设备核心补齐（Week 1-5）
 - 阶段 2: 代码瘦身（110k → 55k 行）
+
+## 2026-06-11 阶段 1 Week 1 完成：设备模式
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| 设备模式配置 | Done | device_mode.py - LIMA_DEVICE_MODE=1 开关 |
+| context_pipeline 跳过 | Done | chat_preflight.py - 跳过 guardrails 和 token_budget |
+| 向后兼容 | Done | 默认模式行为不变，仅环境变量启用 |
+| 测试覆盖 | Done | 3 个设备模式测试 + 12 个 chat 测试通过 ✅ |
+
+**实现详情：**
+- 新增 `device_mode.py`: 提供 `is_device_mode()` 和 `should_skip_context_pipeline()`
+- 修改 `chat_preflight.py`: 设备模式下跳过重度 context_pipeline 操作
+- 向后兼容: 默认关闭，仅 `LIMA_DEVICE_MODE=1` 启用
+
+**影响：**
+- 设备场景：跳过 web_search/code_context/skills 注入
+- 编码助手场景：保持原有行为（LIMA_DEVICE_MODE 未设置）
+- 性能优化：减少绘图/写字机场景的延迟
+
+**Commits:**
+- b1b355c: feat(Stage1-Week1): device mode implementation
+- 1c9e86d: Merge to main
+
+**下一步：Week 2 - model_routing Phase 2（DashScope 图生 API）**
