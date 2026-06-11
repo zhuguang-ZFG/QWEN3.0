@@ -6,7 +6,7 @@ node used by LiMa ops experiments.
 ## Role
 
 - JDCloud node: `117.72.118.95`
-- Current role: secondary provider-probe / monitoring node.
+- Current roles: new-api (OpenAI API gateway, api.donglicao.com) + provider-probe / monitoring node.
 - Non-role: it is not the primary LiMa Router and does not replace
   `chat.donglicao.com/v1` for IDE or terminal-agent traffic.
 
@@ -20,6 +20,17 @@ node used by LiMa ops experiments.
 | `lima-probe.service` | oneshot systemd unit for provider discovery. |
 | `lima-probe.timer` | timer for scheduled provider discovery. |
 | `configure_*.sh`, `install_*.sh`, `nginx_hermes.conf` | Optional JDCloud service setup templates. Review before use. |
+| `install_newapi.sh` | New API 一键安装脚本（复用宿主机 MySQL 8.0 + Redis 7.0，host 网络模式）。 |
+| `configure_newapi_firewall.sh` | New API 专用 ufw 防火墙（保护 3000/3306/6379）。 |
+| `newapi.nginx.conf` | New API nginx 反代 + 自签证书配置（api.donglicao.com，无需 certbot）。 |
+
+## new-api 部署概览
+
+- 容器: `calciumion/new-api:latest`，host 网络模式，端口 3000
+- 数据库: 宿主机 MySQL 8.0（`newapi` 库，用户 `newapi`）
+- 缓存: 宿主机 Redis 7.0
+- 公网入口: `https://api.donglicao.com`（Cloudflare → 阿里云反代 → 京东云）
+- 详细 runbook: `docs/ops/JDCLOUD_NEWAPI_DEPLOY.md`
 
 ## Local-Only Files
 
