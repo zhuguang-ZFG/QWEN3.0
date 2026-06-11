@@ -371,10 +371,12 @@ mysql -e "UPDATE newapi.users SET access_token='<32位token>' WHERE username='ro
 | 项目 | 值 |
 |---|---|
 | 管理员账号 | `root` |
-| 管理员密码 | `NewApi@2026!` |
-| API Key | `K7Uhm6bOYBbZsFwA44xMJSOqdNBrxtox` |
+| 管理员密码 | **已重置，见 `docs/ops/NEWAPI_ISSUES_AND_FIXES.md`** |
+| API Key | **已重置，见 `docs/ops/NEWAPI_ISSUES_AND_FIXES.md`** |
 | 用户ID | 1 |
 | 角色 | admin（role=1） |
+
+> ⚠️ **安全警告**: 原密码和 API Key 已泄露，必须立即重置！详见 `docs/ops/NEWAPI_ISSUES_AND_FIXES.md` 修复方案。
 
 #### 3.7.4 待完成：Web UI 初始化
 
