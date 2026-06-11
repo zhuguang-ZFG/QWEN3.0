@@ -161,8 +161,8 @@ async def anthropic_messages(req: Request):
         return body
     client_ip = _call("client_ip", req)
 
-    rate_error = check_anthropic_rate_limit(req, client_ip)
-    if rate_error is not None:
+    is_limited, rate_error = check_anthropic_rate_limit(dict(req.headers))
+    if is_limited:
         return rate_error
 
     if body.get("tools"):
@@ -173,14 +173,16 @@ async def anthropic_messages(req: Request):
             maybe_await=_maybe_await,
         )
 
-    parsed = parse_anthropic_messages(body, _dep("detect_ide"))
+    messages, _meta = parse_anthropic_messages(body)
     req_model = body.get("model", _model_id())
     is_stream = body.get("stream", False)
+    ide_source = _call("detect_ide", messages)
+    sys_prompt_preview = extract_system_preview(messages)
 
-    vision_resp = await maybe_vision_response(
-        body=body,
-        parsed=parsed,
-        req_model=req_model,
+    vision_resp = maybe_vision_response(
+        messages=body.get("messages", []),
+        model=req_model,
+        parsed=(messages, _meta),
         is_stream=is_stream,
         request_started_at=request_started_at,
         client_ip=client_ip,
@@ -192,7 +194,7 @@ async def anthropic_messages(req: Request):
 
     chat_req = ChatRequest(
         model=req_model.replace("[1m]", ""),
-        messages=parsed.messages,
+        messages=messages,
         stream=False,
         max_tokens=body.get("max_tokens", 4096),
     )
@@ -204,8 +206,8 @@ async def anthropic_messages(req: Request):
                 chat_req,
                 req_model,
                 client_ip=client_ip,
-                ide_source=parsed.ide_source,
-                sys_prompt_preview=parsed.sys_prompt_preview,
+                ide_source=ide_source,
+                sys_prompt_preview=sys_prompt_preview,
             ),
             media_type="text/event-stream",
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
@@ -215,8 +217,8 @@ async def anthropic_messages(req: Request):
         fmt="anthropic",
         request_model=req_model,
         client_ip=client_ip,
-        ide_source=parsed.ide_source,
-        sys_prompt_preview=parsed.sys_prompt_preview,
+        ide_source=ide_source,
+        sys_prompt_preview=sys_prompt_preview,
         request_headers=dict(req.headers),
     )
 

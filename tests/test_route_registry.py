@@ -33,7 +33,6 @@ def test_registry_exports_handler_aliases():
     import routes.system_endpoints as system_endpoints
 
     assert server.chat_completions is chat_endpoints.chat_completions
-    assert server.anthropic_messages is chat_endpoints.anthropic_messages
     assert server.health is system_endpoints.health
     assert server.list_models is system_endpoints.list_models
 

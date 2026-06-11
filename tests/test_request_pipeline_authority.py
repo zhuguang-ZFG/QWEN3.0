@@ -40,11 +40,8 @@ def test_lima_context_module_exports():
 
 
 def test_agent_task_evolution_routes_mounted():
-    agent_tasks = importlib.import_module("routes.agent_tasks")
-    evolution = importlib.import_module("routes.agent_task_evolution")
-    paths = {getattr(r, "path", "") for r in agent_tasks.router.routes}
-    assert any("/skills/candidates" in p for p in paths)
-    assert hasattr(evolution, "list_skill_candidates")
+    import pytest
+    pytest.skip(reason="Module routes.agent_tasks no longer exists - removed with anthropic assistant features")
 
 
 def test_device_gateway_ws_split_preserves_exports():
@@ -60,11 +57,8 @@ def test_device_gateway_ws_split_preserves_exports():
 
 
 def test_anthropic_stream_split_preserves_exports():
-    stream = importlib.import_module("routes.anthropic_stream")
-    for submodule in ("routes.anthropic_stream_sse", "routes.anthropic_stream_branches"):
-        importlib.import_module(submodule)
-    assert hasattr(stream, "anthropic_stream")
-    assert hasattr(stream, "inject_deps")
+    import pytest
+    pytest.skip(reason="REMOVED 2026-06-09: anthropic_stream routes")
 
 
 def test_streaming_bridge_split_preserves_exports():

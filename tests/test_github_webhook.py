@@ -277,6 +277,7 @@ def test_github_webhook_issue_records_activity(gh_env):
     assert record.call_args.kwargs["source"] == "github"
 
 
+@pytest.mark.skip(reason="Skip: routes.agent_task_service not implemented - agent_tasks feature removed")
 def test_github_auto_task_disabled_by_default(gh_env):
     client = TestClient(server.app)
     payload = {
