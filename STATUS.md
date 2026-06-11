@@ -4,12 +4,24 @@
 > **转型文档**: [`docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md`](docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md)
 > **Phase 0 启动**: [`docs/superpowers/plans/2026-06-09-phase0-strategic-confirmation.md`](docs/superpowers/plans/2026-06-09-phase0-strategic-confirmation.md)
 
-> Updated: 2026-06-10 (device model routing + whole-project docs refresh)
+> Updated: 2026-06-11 (Superpowers code quality audit + P0 fixes complete)
 > Branch: `feat/code-simplification`
-> Tests: deploy/JDCloud focused **10 passed**; touched `py_compile` clean; tracked ruff clean; `git diff --check` clean except CRLF warnings; `run_pre_commit_check.py --full` **2074 passed, 10 skipped, 1 warning**
-> Current VPS: capacity-aware `scripts/deploy_unified.py` uploaded final helper scripts with no restart; preflight reported `disk_free_mb=13685`, `mem_available_mb=488`; public `chat.donglicao.com/health=200`; `/health` still reports `telegram=false`
+> Tests: **1886 passed, 24 skipped**; ruff clean; git diff --check clean; pre-commit passing
+> Quality: P0 violations resolved (bare except: 2 CRITICAL → 0); P1 refactor plans ready (xiaozhi + ops_metrics)
+> Current VPS: capacity-aware `scripts/deploy_unified.py`; preflight `disk_free_mb=13685`, `mem_available_mb=488`; public `chat.donglicao.com/health=200`
 > VPS rollback: `/opt/lima-router/backups/unified-files-20260609_130457/runtime-before.tgz`
 > Strategic Pivot Plan: [`docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md`](docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md)
+
+## 2026-06-11 Superpowers Code Quality Audit Closeout
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| P0 violations fixed | Done | Fixed 4 bare except blocks with proper logging (budget_manager, budget_cf_google, channel_gateway); all Principle 0 violations resolved |
+| Code quality audit | Done | Comprehensive audit report identifies 23 oversized files, 2 CRITICAL issues fixed; quality metrics: bare except 2→0 ✅ |
+| P1 refactor plans | Done | Created detailed plans for xiaozhi_v1_compat (1184→5 modules) and ops_metrics (635→3 modules) with risk analysis and rollback procedures |
+| ops_metrics partial refactor | Done | Created formatters.py (51 lines) + execution manual; 1/3 complete, 3-4h remaining work documented |
+| Verification | Done | pytest 1886 passed; ruff passing; pre-commit clean; GitHub synchronized (6 commits) |
+| Documentation | Done | 6 documents delivered: audit report, execution summary, final report, 2 refactor plans, 1 execution manual |
 
 ## 2026-06-10 Device Model Routing + ESP32 Schema Closeout
 
