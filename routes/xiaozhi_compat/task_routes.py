@@ -24,9 +24,9 @@ from .shared import (
     ALLOWED_SOURCES,
     ALLOWED_TASK_STATUSES,
 )
-from xiaozhi_device.workflow_manager import workflow, TaskState, WorkflowTransitionError
-from xiaozhi_device.motion_events import record_motion_event
-from task_snapshot import task_snapshot
+from device_gateway.tasks import record_motion_event, task_snapshot
+from device_workflow.orchestrator import workflow
+from device_workflow.state import TaskState, WorkflowTransitionError
 
 _log = logging.getLogger(__name__)
 

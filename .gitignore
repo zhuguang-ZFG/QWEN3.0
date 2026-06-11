@@ -92,6 +92,13 @@ data/weixin_share_qr.*
 decrypt-wc/
 frp/
 .claude/
+.cursor/
+.kiro/
+.codex/
+.opencode/
+.kiio/
+.mimocode/
+.qoder/
 
 # === 根目录散落脚本/笔记（已迁至 D:\LIMA-external\scratch）===
 /*-context-construction.md
