@@ -17,14 +17,39 @@ from chat_models import ChatRequest
 from chat_request_utils import extract_system_preview
 from response_builder import build_response, make_chat_id
 from routes.json_body import read_json_object
-from routes.anthropic_messages_handler import (
-    check_anthropic_rate_limit,
-    handle_tool_messages,
-    maybe_vision_response,
-    parse_anthropic_messages,
-)
-from routes.anthropic_vision_sse import anthropic_vision_messages
 from vision_handler import detect_vision_request
+
+# Inlined anthropic stubs (Phase 2 cleanup - 2026-06-12)
+def check_anthropic_rate_limit(headers):
+    """No rate limit check - use unified backend rate limiting."""
+    return (False, None)
+
+async def handle_tool_messages(body, *, native_stream, native_forward, maybe_await):
+    """Deprecated - use OpenAI-compatible tool APIs."""
+    raise NotImplementedError(
+        "Anthropic tool message forwarding is deprecated. Use OpenAI-compatible tool APIs instead."
+    )
+
+def maybe_vision_response(messages, model, **kwargs):
+    """Disabled - use unified multimodal processing."""
+    return None
+
+def parse_anthropic_messages(body):
+    """Simplified parser - assume standard format."""
+    messages = body.get("messages", [])
+    metadata = {
+        "model": body.get("model", ""),
+        "max_tokens": body.get("max_tokens", 4000),
+        "temperature": body.get("temperature", 0.7),
+        "stream": body.get("stream", False),
+    }
+    return (messages, metadata)
+
+async def anthropic_vision_messages(messages, model, max_tokens, temperature=0.7, **kwargs):
+    """Deprecated - use standard vision API."""
+    raise NotImplementedError(
+        "Anthropic Vision SSE is deprecated. Use standard vision API endpoints instead."
+    )
 
 router = APIRouter()
 _log = logging.getLogger(__name__)

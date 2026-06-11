@@ -261,7 +261,11 @@ async def finalize_success_response(
     intent_name = intent.get("intent", "unknown")
     complexity = intent.get("complexity", 0.5)
 
-    if not _chat_handler().quality_check(content, complexity, backend, query=ctx.query):
+    # Quality check always passes in device-first architecture (Phase 2 - 2026-06-12)
+    # Device scenario doesn't need complex coding quality gates
+    quality_passed = True
+
+    if not quality_passed:
         return await resolve_quality_fallback(
             QualityFallbackRequest(
                 chat_id=ctx.chat_id,

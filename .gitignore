@@ -14,6 +14,8 @@ __pycache__/
 .env
 .lima-data/
 tmp/
+.pytest_temp/
+*.pytest_temp/
 
 # === 第三方项目 ===
 llama.cpp/

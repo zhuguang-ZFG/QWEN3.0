@@ -124,8 +124,8 @@ def test_ruff_gate_passes():
         [sys.executable, "scripts/run_ruff_check.py"],
         cwd=ROOT,
         capture_output=True,
-        text=True,
         encoding="utf-8",
+        errors="replace",  # Handle encoding errors gracefully
         timeout=120,
         check=False,
     )

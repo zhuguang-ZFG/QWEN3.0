@@ -96,7 +96,6 @@ def test_handle_chat_applies_prompt_memory_before_routing(monkeypatch):
     monkeypatch.setattr(server.smart_router, "analyze", fake_analyze)
     monkeypatch.setattr(chat_handler, "needs_orchestration", lambda query, intent: False)
     monkeypatch.setattr(chat_handler, "v3_route", fake_v3_route)
-    monkeypatch.setattr(chat_handler, "quality_check", lambda *args, **kwargs: True)
     monkeypatch.setattr(chat_handler, "_record_request", lambda *args, **kwargs: None)
 
     req = ChatRequest(
@@ -146,7 +145,6 @@ def test_handle_chat_writes_and_recalls_same_header_session(monkeypatch):
     monkeypatch.setattr(server.smart_router, "analyze", fake_analyze)
     monkeypatch.setattr(chat_handler, "needs_orchestration", lambda query, intent: False)
     monkeypatch.setattr(chat_handler, "v3_route", fake_v3_route)
-    monkeypatch.setattr(chat_handler, "quality_check", lambda *args, **kwargs: True)
     monkeypatch.setattr(chat_handler, "_record_request", lambda *args, **kwargs: None)
 
     first = ChatRequest(

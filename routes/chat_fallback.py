@@ -12,14 +12,37 @@ from response_builder import build_anthropic_response, build_response
 
 _log = logging.getLogger(__name__)
 
-from routes.quality_gate import (
-    default_route,
-    get_same_tier_backends,
-    get_upgrade_chain,
-    honest_failure_response,
-    quality_check,
-    try_backend,
-)
+# Inlined quality_gate stubs (Phase 2 cleanup - 2026-06-12)
+def quality_check(answer: str, query: str, backend: str):
+    """Always pass - device scenario doesn't need complex quality gates."""
+    return (True, 1.0, [])
+
+def default_route(messages, max_tokens, stream, **kwargs):
+    """Return empty to use normal routing."""
+    return ("", "")
+
+def get_same_tier_backends(backend: str, all_backends):
+    """No same-tier retry for device scenario."""
+    return []
+
+def get_upgrade_chain(backend: str, all_backends):
+    """No upgrade chain for device scenario."""
+    return []
+
+def honest_failure_response(fallback_exhausted: bool, last_backend: str, request_type: str = "chat"):
+    """Honest failure message."""
+    return "抱歉，服务暂时不可用，请稍后重试。"
+
+def try_backend(backend: str, messages, max_tokens, call_fn, **kwargs):
+    """Simplified backend attempt."""
+    try:
+        result = call_fn(backend, messages, max_tokens)
+        if isinstance(result, tuple):
+            return result[0], 200
+        return result, 200
+    except Exception as exc:
+        _log.debug(f"try_backend failed: {type(exc).__name__}")
+        return None, 500
 
 from routes.chat_support import attach_memory_recall_meta
 

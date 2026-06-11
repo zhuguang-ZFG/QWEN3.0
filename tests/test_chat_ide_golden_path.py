@@ -43,7 +43,6 @@ def test_chat_golden_path_records_capability_evidence(evidence_db, monkeypatch):
             "fallback_used": False,
         },
     )
-    monkeypatch.setattr(chat_handler, "quality_check", lambda *args, **kwargs: True)
     monkeypatch.setattr(chat_handler, "_record_request", lambda *args, **kwargs: None)
 
     req = ChatRequest(

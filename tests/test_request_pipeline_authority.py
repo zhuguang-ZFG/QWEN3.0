@@ -26,11 +26,8 @@ def test_backends_facade_reexports_registry():
 
 
 def test_quality_gate_modules_are_distinct():
-    root_qg = importlib.import_module("quality_gate")
-    routes_pkg = importlib.import_module("routes.quality_gate")
-    assert root_qg is not routes_pkg
-    assert hasattr(root_qg, "check")
-    assert hasattr(routes_pkg, "quality_check")
+    import pytest
+    pytest.skip(reason="REMOVED 2026-06-12: routes.quality_gate deleted in Phase 2")
 
 
 def test_lima_context_module_exports():

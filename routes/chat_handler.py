@@ -10,7 +10,6 @@ from chat_models import ChatRequest
 from orchestrate import needs_orchestration as needs_orchestration
 from response_builder import extract_query
 from routes.chat_fallback import inject_deps as _inject_chat_fallback_deps
-from routes.quality_gate import quality_check as quality_check
 from routes.v3_adapters import v3_route as v3_route
 from routes.chat_handler_dispatch import (
     build_streaming_response,
