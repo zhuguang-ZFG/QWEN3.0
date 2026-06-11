@@ -17,7 +17,7 @@ import smart_router
 from routes.admin_auth import verify_admin, verify_csrf
 from routes.admin_backends import describe_backend, test_backend_sync
 from routes.admin_state import FALLBACK_LOG, stats_context
-from routes.ops_metrics import _backend_call_detail
+from routes.ops_metrics import backend_call_detail
 
 router = APIRouter()
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -35,7 +35,7 @@ async def admin_stats():
         uptime = int(time.time() - stats["start_time"])
         total = stats["total_requests"]
         backend_calls = {
-            name: _backend_call_detail(value)
+            name: backend_call_detail(value)
             for name, value in dict(stats["backend_calls"]).items()
         }
         avg_ms = 0

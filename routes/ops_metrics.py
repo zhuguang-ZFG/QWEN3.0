@@ -18,7 +18,7 @@ from fastapi.responses import JSONResponse
 
 from access_guard import require_private_api_key
 from routes.json_body import read_json_object
-from routes.ops_metrics import ops_metrics_snapshot
+from routes.ops_metrics.collectors import ops_metrics_snapshot
 
 router = APIRouter(prefix="/v1/ops")
 logger = logging.getLogger(__name__)
