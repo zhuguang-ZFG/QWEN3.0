@@ -6,6 +6,7 @@ import logging
 from dataclasses import dataclass
 
 from chat_models import ChatRequest, extract_system_prompt
+from device_mode import should_skip_context_pipeline
 from response_builder import messages_to_dicts
 from server_context import build_prompt_context, messages_with_system_context
 
@@ -22,6 +23,10 @@ class ChatPreflightResult:
 
 
 def run_input_guardrails(req: ChatRequest) -> None:
+    if should_skip_context_pipeline():
+        _log.debug("Skipping input guardrails in device mode")
+        return
+
     from context_pipeline.guardrails import GuardrailSeverity, run_input_guardrails as _run
 
     raw_messages: list[dict] = [
@@ -44,9 +49,14 @@ def apply_token_budget(
     system_prompt: str,
     ide_source: str,
 ) -> tuple[list[dict], list[dict]]:
+    prompt_messages = messages_with_system_context(request_messages, system_prompt)
+
+    if should_skip_context_pipeline():
+        _log.debug("Skipping token budget check in device mode")
+        return request_messages, prompt_messages
+
     from context_pipeline.token_budget import check_budget
 
-    prompt_messages = messages_with_system_context(request_messages, system_prompt)
     budget_status = check_budget(
         request_messages,
         system_prompt or "",
