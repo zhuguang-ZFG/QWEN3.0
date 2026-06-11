@@ -5,6 +5,20 @@ from device_gateway.device_draw_handler import handle_device_draw
 
 
 @pytest.mark.asyncio
+async def test_device_draw_preset_shape():
+    """测试预设图形快速路径（无 API 调用）"""
+    result = await handle_device_draw("画一个圆形", device_id="test-preset")
+
+    # 验证预设图形
+    assert result['status'] == 'success'
+    assert result['svg_path'] is not None
+    assert 'A' in result['svg_path']  # 圆弧指令
+    assert result['model'] == 'preset:circle'
+    assert result.get('preset') is True
+    assert result['image_url'] == ''  # 无图片 URL
+
+
+@pytest.mark.asyncio
 async def test_device_draw_with_validation_and_optimization():
     """测试完整流程：生成→转换→验证→优化"""
 

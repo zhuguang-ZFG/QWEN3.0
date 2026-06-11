@@ -5,8 +5,19 @@ from dashscope_image_client import DashScopeImageClient
 from xiaozhi_drawing.svg_converter import SVGConverter
 from xiaozhi_drawing.svg_validator import validate_svg_path
 from xiaozhi_drawing.path_optimizer import optimize_svg_path
+from xiaozhi_drawing.preset_shapes import get_preset_svg
 
 logger = logging.getLogger(__name__)
+
+# 预设图形关键词
+PRESET_KEYWORDS = {
+    'circle': ['圆', '圆形', 'circle'],
+    'square': ['方', '方形', '正方形', 'square'],
+    'triangle': ['三角', '三角形', 'triangle'],
+    'star': ['星', '星星', '五角星', 'star'],
+    'heart': ['心', '心形', 'heart', '爱心'],
+    'crescent': ['月', '月亮', '月牙', 'crescent']
+}
 
 
 async def handle_device_draw(
@@ -38,6 +49,23 @@ async def handle_device_draw(
     size = prefs.get('size', '1024*1024')
 
     logger.info(f"Device {device_id} draw request: {prompt[:50]}... (model={model})")
+
+    # 1. 检测预设图形（快速路径）
+    for shape, keywords in PRESET_KEYWORDS.items():
+        if any(kw in prompt.lower() for kw in keywords):
+            logger.info(f"Detected preset shape: {shape}")
+            result = get_preset_svg(shape, size=180)
+            if result['status'] == 'success':
+                return {
+                    'status': 'success',
+                    'image_url': '',  # 预设图形无图片
+                    'svg_path': result['svg_path'],
+                    'width': result['width'],
+                    'height': result['height'],
+                    'model': f'preset:{shape}',
+                    'error': None,
+                    'preset': True
+                }
 
     try:
         # 1. 生成图片
