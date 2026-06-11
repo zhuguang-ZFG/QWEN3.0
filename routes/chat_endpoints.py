@@ -42,7 +42,10 @@ def _dep(name: str) -> Any:
 
 
 def _call(name: str, *args: Any, **kwargs: Any) -> Any:
-    return _dep(name)(*args, **kwargs)
+    fn = _dep(name)
+    if fn is None:
+        raise RuntimeError(f"routes.chat_endpoints dependency is None: {name}")
+    return fn(*args, **kwargs)
 
 
 def _model_id() -> str:
@@ -226,7 +229,7 @@ async def anthropic_messages(req: Request):
 # ── OpenAI ↔ Anthropic tool format conversion ─────────────────────────────────
 
 def _openai_to_anthropic_tool_body(body: dict) -> dict:
-    """Convert OpenAI-format tool request to Anthropic-format for tool_forward pipeline."""
+    """Convert OpenAI-format tool request to Anthropic-format for native tool forwarding."""
     tools = []
     for t in body.get("tools", []):
         fn = t.get("function", {})

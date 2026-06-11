@@ -1,6 +1,8 @@
 """
 Temporary stub for anthropic_messages_handler - marked for Phase 2 removal.
 
+@deprecated Phase 2 removal — use OpenAI-compatible /v1/chat/completions instead.
+
 战略转型说明：
 - Anthropic Messages API 是编码助手专属特性
 - 设备场景使用标准 OpenAI 兼容接口
@@ -8,7 +10,7 @@ Temporary stub for anthropic_messages_handler - marked for Phase 2 removal.
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 _log = logging.getLogger(__name__)
 
@@ -23,12 +25,20 @@ def check_anthropic_rate_limit(headers: Dict[str, str]) -> Tuple[bool, Optional[
     return (False, None)
 
 
-def handle_tool_messages(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+async def handle_tool_messages(
+    body: Dict[str, Any],
+    *,
+    native_stream: Callable[..., Any],
+    native_forward: Callable[..., Any],
+    maybe_await: Callable[..., Any],
+) -> Any:
     """
-    简化实现 - 直接返回消息，不处理工具调用。
-    设备场景的工具调用通过标准函数调用接口处理。
+    @deprecated Phase 2 removal — Anthropic 工具转发已移除，请使用 OpenAI 兼容接口。
     """
-    return messages
+    raise NotImplementedError(
+        "Anthropic tool message forwarding is deprecated in device-first architecture. "
+        "Use standard OpenAI-compatible tool APIs instead."
+    )
 
 
 def maybe_vision_response(

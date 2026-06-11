@@ -93,8 +93,6 @@ def route(query: str, messages: list[dict], *,
         return RouteResult(backend="identity_guard", answer=identity_answer,
                            request_type="identity", ms=ms)
 
-    # Semantic cache removed - device scenarios don't need it
-
     req_type = classify(query, messages, fmt=fmt, ide_source=ide_source,
                         system_prompt=system_prompt, headers=headers or {})
 
@@ -228,7 +226,6 @@ def route(query: str, messages: list[dict], *,
 
         if final_backend != "exhausted":
             sticky_session.pin_backend(sticky_key, final_backend)
-            # Semantic cache removed - device scenarios don't need it
 
         if answer and scenario == "coding":
             try:
