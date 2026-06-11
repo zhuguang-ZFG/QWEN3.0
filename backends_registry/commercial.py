@@ -40,6 +40,7 @@ BACKENDS = {
     'aliyun_coder': {'url': 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', 'key': os.environ.get('ALIYUN_API_KEY', ''), 'model': 'qwen-3-coder-plus', 'fmt': 'openai', 'timeout': 15},
     'tencent_hunyuan': {'url': 'https://api.hunyuan.cloud.tencent.com/v1/chat/completions', 'key': os.environ.get('TENCENT_API_KEY', ''), 'model': 'hunyuan-lite', 'fmt': 'openai', 'timeout': 10},
     'chinamobile': {'url': 'https://maas.gd.chinamobile.com:36007/ai/uifm/open/v1/chat/completions', 'key': os.environ.get('CHINAMOBILE_API_KEY', ''), 'model': 'minimax-m25', 'fmt': 'openai', 'caps': ['tool_calls']},
+    'tokenrouter_minimax_m3': {'url': 'https://api.tokenrouter.com/v1/chat/completions', 'key': os.environ.get('TOKENROUTER_API_KEY', ''), 'model': 'MiniMax-M3', 'fmt': 'openai', 'timeout': 30, 'caps': ['tool_calls']},
 
     # ── FreeModel.dev ──
     'fm_gpt55': {'url': 'https://api.freemodel.dev/v1/chat/completions', 'key': os.environ.get('FREEMODEL_API_KEY', ''), 'model': 'gpt-5.5', 'fmt': 'openai', 'timeout': 90, 'caps': ['tool_calls']},

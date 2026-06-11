@@ -95,7 +95,14 @@ def parse_command(text: str) -> dict[str, Any]:
             for key in ("text", "prompt", "x", "y", "z", "dx", "dy"):
                 val = groupdict.get(key)
                 if val is not None:
-                    params[key] = val
+                    # 坐标参数转换为浮点数
+                    if key in ("x", "y", "z", "dx", "dy"):
+                        try:
+                            params[key] = float(val)
+                        except ValueError:
+                            params[key] = val
+                    else:
+                        params[key] = val
             if not params and m.lastgroup:
                 params["text"] = stripped[:40]
             return {

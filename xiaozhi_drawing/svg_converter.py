@@ -75,7 +75,8 @@ class SVGConverter:
                 # 转换为 SVG path
                 if len(approx) >= 3:
                     path = self._contour_to_svg_path(approx)
-                    svg_paths.append(path)
+                    if path:  # 过滤空字符串
+                        svg_paths.append(path)
 
             if not svg_paths:
                 # 无有效轮廓，返回边界框

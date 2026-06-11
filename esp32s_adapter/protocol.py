@@ -70,8 +70,8 @@ def edge_c_to_lima_event(edge_c_event: dict[str, Any]) -> dict[str, Any]:
     lima_event: dict[str, Any] = {
         "type": "motion_event",
         "device_id": edge_c_event.get("device_id", ""),
-        "task_id": edge_c_event["task_id"],
-        "phase": edge_c_event["phase"],
+        "task_id": edge_c_event.get("task_id", ""),
+        "phase": edge_c_event.get("phase", "unknown"),
     }
     if "progress" in edge_c_event and isinstance(edge_c_event["progress"], dict):
         lima_event["progress"] = edge_c_event["progress"]

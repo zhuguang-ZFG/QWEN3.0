@@ -171,6 +171,8 @@ def svg_path_to_motion(
         i += 1
 
         if cmd in ("M", "m"):
+            if i + 1 >= len(tokens):
+                break
             x = float(tokens[i]) * scale + (cx if cmd == "m" else 0)
             y = float(tokens[i + 1]) * scale + (cy if cmd == "m" else 0)
             i += 2
@@ -179,6 +181,8 @@ def svg_path_to_motion(
             path.append({"x": round(origin_x + x, 2), "y": round(origin_y - y, 2), "z": 0})
 
         elif cmd in ("L", "l"):
+            if i + 1 >= len(tokens):
+                break
             x = float(tokens[i]) * scale + (cx if cmd == "l" else 0)
             y = float(tokens[i + 1]) * scale + (cy if cmd == "l" else 0)
             i += 2
@@ -186,18 +190,24 @@ def svg_path_to_motion(
             path.append({"x": round(origin_x + x, 2), "y": round(origin_y - y, 2), "z": 0})
 
         elif cmd in ("H", "h"):
+            if i >= len(tokens):
+                break
             x = float(tokens[i]) * scale + (cx if cmd == "h" else 0)
             i += 1
             cx = x
             path.append({"x": round(origin_x + x, 2), "y": round(origin_y - cy, 2), "z": 0})
 
         elif cmd in ("V", "v"):
+            if i >= len(tokens):
+                break
             y = float(tokens[i]) * scale + (cy if cmd == "v" else 0)
             i += 1
             cy = y
             path.append({"x": round(origin_x + cx, 2), "y": round(origin_y - y, 2), "z": 0})
 
         elif cmd in ("C", "c"):
+            if i + 5 >= len(tokens):
+                break
             x1, y1 = float(tokens[i]), float(tokens[i + 1])
             x2, y2 = float(tokens[i + 2]), float(tokens[i + 3])
             x, y = float(tokens[i + 4]), float(tokens[i + 5])
@@ -215,6 +225,8 @@ def svg_path_to_motion(
                 path.append({"x": round(origin_x + cx, 2), "y": round(origin_y - cy, 2), "z": 0})
 
         elif cmd in ("Q", "q"):
+            if i + 3 >= len(tokens):
+                break
             x1, y1 = float(tokens[i]), float(tokens[i + 1])
             x, y = float(tokens[i + 2]), float(tokens[i + 3])
             i += 4
