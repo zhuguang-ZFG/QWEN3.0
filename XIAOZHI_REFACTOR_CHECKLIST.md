@@ -1,7 +1,7 @@
 # xiaozhi_v1_compat 拆分执行清单
 
-**状态:** Phase 1 完成，Phase 2-6 待执行
-**预计剩余时间:** 2-3 小时
+**状态:** Phase 1-3 完成（50%），Phase 4-7 待执行
+**预计剩余时间:** 1.5-2 小时
 
 ---
 
@@ -11,6 +11,20 @@
 - [x] 提取所有 `_*` 辅助函数并重命名
 - [x] 测试编译通过
 - [x] Git commit: c63c00d
+
+## ✅ Phase 2: 设备路由（已完成）
+
+- [x] 创建 `routes/xiaozhi_compat/device_routes.py` (231 行)
+- [x] 迁移 7 个设备端点
+- [x] 激活码管理逻辑
+- [x] Git commit: dbc57c5
+
+## ✅ Phase 3: 用户路由（已完成）
+
+- [x] 创建 `routes/xiaozhi_compat/user_routes.py` (143 行)
+- [x] 迁移 5 个用户/认证端点
+- [x] 登录验证逻辑
+- [x] Git commit: b94fc2f
 
 ---
 
@@ -219,6 +233,6 @@ git push origin feat/code-simplification
 
 ---
 
-**当前状态:** Phase 1 完成
-**下一步:** Phase 2 - device_routes.py
+**当前状态:** Phase 1-3 完成（50%）
+**下一步:** Phase 4 - task_routes.py (8 endpoints)
 **参考文档:** `docs/superpowers/plans/2026-06-11-xiaozhi-compat-refactor-plan.md`
