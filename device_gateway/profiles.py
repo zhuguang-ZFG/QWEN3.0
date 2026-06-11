@@ -9,11 +9,14 @@ scale, preset routes preferred, generated drawing downgraded or approval-gated.
 
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass, field
 from typing import Any
 
-from device_intelligence.schemas import DEFAULT_WORKSPACE_MM, DeviceProfile
+from device_gateway.device_profile import DeviceProfile
+from device_gateway.device_simplification_logger import record_simplification
+from device_intelligence.schemas import DEFAULT_WORKSPACE_MM
 
 _log = logging.getLogger(__name__)
 
@@ -85,12 +88,24 @@ def apply_profile_constraints(
     - Caps path points and feed to profile limits.
     - Adds profile routing metadata to the task.
     """
+    original_task = json.loads(json.dumps(task))
+
     if not resolved.complete and task.get("route_policy", {}).get("model_required"):
         policy = dict(task.get("route_policy", {}))
         policy["approval_required"] = True
         policy["approval_reason"] = "incomplete device profile"
         task["route_policy"] = policy
+        constrained_task = json.loads(json.dumps(task))
+        record_simplification(
+            device_id=str(task.get("device_id", "")),
+            task_id=str(task.get("task_id", "")),
+            simplification_type="approval_gate",
+            reason="incomplete device profile",
+            original=original_task,
+            constrained=constrained_task,
+        )
 
+    constrained_task = json.loads(json.dumps(task))
     task["profile_routing"] = {
         "profile_id": resolved.profile.profile_id,
         "complete": resolved.complete,
@@ -120,6 +135,7 @@ class ResolvedProfile:
 
 def _conservative_profile(device_id: str) -> DeviceProfile:
     return DeviceProfile(
+        device_id=device_id,
         profile_id=f"conservative-{device_id}",
         model="unknown",
         workspace_mm=dict(CONSERVATIVE_WORKSPACE_MM),
@@ -128,6 +144,10 @@ def _conservative_profile(device_id: str) -> DeviceProfile:
         capabilities=("home", "pause", "resume", "run_path", "stop"),
         supported_fw_prefixes=("",),
         profile_version="0",
+        fw_rev="",
+        u1_fw_rev="",
+        hw_rev="",
+        limits={"max_points": CONSERVATIVE_MAX_PATH_POINTS},
     )
 
 
@@ -146,6 +166,7 @@ def _profile_from_shadow(shadow: dict[str, Any], fallback_id: str) -> DeviceProf
 
     try:
         return DeviceProfile(
+            device_id=str(fallback_id),
             profile_id=str(shadow.get("profile_id", fallback_id)),
             model=str(shadow.get("model", "shadow")),
             workspace_mm=workspace if isinstance(workspace, dict) else dict(DEFAULT_WORKSPACE_MM),
@@ -153,6 +174,11 @@ def _profile_from_shadow(shadow: dict[str, Any], fallback_id: str) -> DeviceProf
             max_path_points=int(max_points) if isinstance(max_points, int) and max_points > 0 else 200,
             capabilities=tuple(capabilities) if isinstance(capabilities, (list, tuple)) else ("run_path",),
             supported_fw_prefixes=tuple(fw_prefixes) if isinstance(fw_prefixes, (list, tuple)) else ("",),
+            profile_version="1",
+            fw_rev=str(shadow.get("fw_rev", "")),
+            u1_fw_rev=str(shadow.get("u1_fw_rev", "")),
+            hw_rev=str(shadow.get("hw_rev", "")),
+            limits={"max_points": int(max_points) if isinstance(max_points, int) and max_points > 0 else 200},
         )
     except (ValueError, TypeError):
         _log.debug("shadow profile build failed for device=%s", fallback_id)

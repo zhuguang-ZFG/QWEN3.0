@@ -20,6 +20,10 @@ class DeviceProfile:
     capabilities: tuple[str, ...] = ("run_path", "home", "pause", "resume", "stop", "get_device_info")
     supported_fw_prefixes: tuple[str, ...] = ("",)
     profile_version: str = "1"
+    fw_rev: str = ""
+    u1_fw_rev: str = ""
+    hw_rev: str = ""
+    limits: dict[str, int] = field(default_factory=lambda: {"max_points": 200})
 
     def __post_init__(self) -> None:
         if not self.profile_id:
@@ -34,6 +38,7 @@ class DeviceProfile:
         object.__setattr__(self, "workspace_mm", workspace)
         object.__setattr__(self, "capabilities", tuple(sorted(set(self.capabilities))))
         object.__setattr__(self, "supported_fw_prefixes", tuple(self.supported_fw_prefixes or ("",)))
+        object.__setattr__(self, "limits", {"max_points": self.max_path_points})
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -45,6 +50,10 @@ class DeviceProfile:
             "capabilities": list(self.capabilities),
             "supported_fw_prefixes": list(self.supported_fw_prefixes),
             "profile_version": self.profile_version,
+            "fw_rev": self.fw_rev,
+            "u1_fw_rev": self.u1_fw_rev,
+            "hw_rev": self.hw_rev,
+            "limits": self.limits,
         }
 
     def to_json(self) -> str:

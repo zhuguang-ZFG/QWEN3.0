@@ -20,6 +20,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from device_intelligence.schemas import DeviceProfile as DeviceIntelligenceProfile
+
 _log = logging.getLogger(__name__)
 
 # ── Storage for device profiles ──────────────────────────────────────────
@@ -111,6 +113,35 @@ class DeviceProfile:
     capability: DeviceCapability = field(default_factory=DeviceCapability)
     preferences: DevicePreferences = field(default_factory=DevicePreferences)
     history: DeviceHistory = field(default_factory=DeviceHistory)
+    profile_id: str = ""
+    model: str = ""
+    workspace_mm: dict[str, float] = field(default_factory=lambda: {"x": 100.0, "y": 100.0, "z": 20.0})
+    max_feed: float = 1200.0
+    max_path_points: int = 200
+    capabilities: tuple[str, ...] = ("run_path", "home", "pause", "resume", "stop", "get_device_info")
+    supported_fw_prefixes: tuple[str, ...] = ("",)
+    profile_version: str = "1"
+    fw_rev: str = ""
+    u1_fw_rev: str = ""
+    hw_rev: str = ""
+    limits: dict[str, int] = field(default_factory=lambda: {"max_points": 200})
+
+    def to_device_intelligence_profile(self) -> DeviceIntelligenceProfile:
+        """Convert to DeviceIntelligence DeviceProfile for unified schema."""
+        return DeviceIntelligenceProfile(
+            profile_id=self.profile_id,
+            model=self.model,
+            workspace_mm=self.workspace_mm,
+            max_feed=self.max_feed,
+            max_path_points=self.max_path_points,
+            capabilities=self.capabilities,
+            supported_fw_prefixes=self.supported_fw_prefixes,
+            profile_version=self.profile_version,
+            fw_rev=self.fw_rev,
+            u1_fw_rev=self.u1_fw_rev,
+            hw_rev=self.hw_rev,
+            limits=self.limits,
+        )
 
 
 # ── Public API ─────────────────────────────────────────────────────────────
