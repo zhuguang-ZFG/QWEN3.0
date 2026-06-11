@@ -6407,3 +6407,29 @@ pytest tests/ -k "device or chat or backend"
 ```
 96fcee9 refactor: split admin_ui.py into modular structure
 ```
+
+## 2026-06-11 代码质量优化总结
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| routes/ 大文件优化 | Done | 完成 2 个最大文件的重构（xiaozhi + admin_ui）|
+| xiaozhi_v1_compat | Done | 1184 → 518 行（-56%），7 个模块 |
+| admin_ui | Done | 482 → 55 行（-88%），4 个模块 |
+| 剩余文件评估 | Done | admin_api_extra/chat_* 已有合理结构，无需拆分 |
+| 测试覆盖 | Done | 所有重构后测试通过（xiaozhi 62 passed, admin 14 passed）|
+| 文档完善 | Done | STATUS.md + progress.md 已更新 |
+
+**成果总结:**
+- 优化文件数：2 个主要大文件
+- 减少行数：1666 → 573 行（-65%）
+- 新增模块：11 个职责清晰的子模块
+- 代码质量：所有关键文件符合 < 300 行标准或已合理模块化
+- 测试状态：1886 passed, 24 skipped ✅
+
+**剩余文件状态:**
+- admin_api_extra (479行)：10个功能模块，各<100行，内部结构清晰 ✅
+- chat_handler_dispatch (338行)：10个函数，职责单一 ✅
+- chat_endpoints (338行)：2个主端点+工具函数 ✅
+- ops_metrics (365行)：已有重构计划，部分完成 ✅
+
+**结论:** 主要代码质量问题已解决，项目达到良好的可维护性标准 🎉
