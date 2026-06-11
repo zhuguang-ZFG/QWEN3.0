@@ -20,6 +20,7 @@ BACKENDS = {
     'nvidia_mistral': {'url': 'https://integrate.api.nvidia.com/v1/chat/completions', 'key': os.environ.get('NVIDIA_API_KEY', ''), 'model': 'mistralai/mistral-large-3-675b-instruct-2512', 'fmt': 'openai', 'caps': ['tool_calls']},
     'nvidia_phi4': {'url': 'https://integrate.api.nvidia.com/v1/chat/completions', 'key': os.environ.get('NVIDIA_API_KEY', ''), 'model': 'microsoft/phi-4-mini-instruct', 'fmt': 'openai'},
     'chinamobile': {'url': 'https://maas.gd.chinamobile.com:36007/ai/uifm/open/v1/chat/completions', 'key': os.environ.get('CHINAMOBILE_API_KEY', ''), 'model': 'minimax-m25', 'fmt': 'openai', 'caps': ['tool_calls']},
+    'tokenrouter_minimax_m3': {'url': 'https://api.tokenrouter.com/v1/chat/completions', 'key': os.environ.get('TOKENROUTER_API_KEY', 'sk-XUgLWnxztefVFNaYkrLVVl7ujlJOLFDx6x057784bCvxgJAe'), 'model': 'MiniMax-M3', 'fmt': 'openai', 'timeout': 30, 'caps': ['tool_calls']},
     'or_deepseek_r1': {'url': 'https://openrouter.ai/api/v1/chat/completions', 'key': os.environ.get('OPENROUTER_API_KEY', ''), 'model': 'deepseek/deepseek-v4-flash:free', 'fmt': 'openai', 'timeout': 60},
     'or_qwen3_coder': {'url': 'https://openrouter.ai/api/v1/chat/completions', 'key': os.environ.get('OPENROUTER_API_KEY', ''), 'model': 'qwen/qwen3-coder:free', 'fmt': 'openai', 'timeout': 60},
     'or_llama70b': {'url': 'https://openrouter.ai/api/v1/chat/completions', 'key': os.environ.get('OPENROUTER_API_KEY', ''), 'model': 'meta-llama/llama-3.3-70b-instruct:free', 'fmt': 'openai', 'timeout': 45},
@@ -237,4 +238,7 @@ BACKENDS = {
     'mimo_v2_pro_code': {'url': 'https://token-plan-cn.xiaomimimo.com/v1/chat/completions', 'key': os.environ.get('MIMO_V2_PRO_KEY', ''), 'model': 'mimo-v2-pro', 'fmt': 'openai', 'timeout': 45, 'force_stream_param': False, 'admission': 'code_medium_candidate', 'private_code_allowed': True, 'caps': ['tool_calls']},
     'mimo_v2_5_code': {'url': 'https://token-plan-cn.xiaomimimo.com/v1/chat/completions', 'key': os.environ.get('MIMO_V2_PRO_KEY', ''), 'model': 'mimo-v2.5', 'fmt': 'openai', 'timeout': 45, 'force_stream_param': False, 'admission': 'code_medium_candidate', 'private_code_allowed': True, 'caps': ['tool_calls']},
     'mimo_v2_omni_code': {'url': 'https://token-plan-cn.xiaomimimo.com/v1/chat/completions', 'key': os.environ.get('MIMO_V2_PRO_KEY', ''), 'model': 'mimo-v2-omni', 'fmt': 'openai', 'timeout': 30, 'force_stream_param': False, 'admission': 'code_medium_candidate', 'private_code_allowed': True, 'caps': ['tool_calls']},
+    # ── DashScope 图生 API (Wanx/Flux) ──
+    'dashscope_wanx': {'url': 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis', 'key': os.environ.get('ALIYUN_API_KEY', ''), 'model': 'wanx-v1', 'fmt': 'dashscope_image', 'timeout': 60, 'caps': ['image_generation'], 'admission': 'device_draw_candidate'},
+    'dashscope_flux': {'url': 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis', 'key': os.environ.get('ALIYUN_API_KEY', ''), 'model': 'flux-schnell', 'fmt': 'dashscope_image', 'timeout': 60, 'caps': ['image_generation'], 'admission': 'device_draw_candidate'},
 }
