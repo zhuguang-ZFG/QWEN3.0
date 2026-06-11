@@ -2,7 +2,36 @@
 
 > Created: 2026-05-22
 
-> Updated: 2026-06-09
+> Updated: 2026-06-11
+
+## 2026-06-11 Stage 1 Week 2: DashScope Image API + Device Draw/Write 部署完成
+
+**目标:** 实现图生功能并部署到 VPS。
+
+- 实现:
+  - 新增 `dashscope_image_client.py` (141 行): DashScope 文生图 API 客户端，支持 wanx-v1 和 flux-schnell 模型
+  - 新增 `device_gateway/device_draw_handler.py` (93 行): device_draw 路由处理器，调用 DashScope API 并转换为 SVG
+  - 新增 `device_gateway/device_write_handler.py` (56 行): device_write 确定性路由（无 LLM）
+  - 新增 `xiaozhi_drawing/svg_converter.py` (68 行): 图像下载 + SVG 转换（当前为占位符实现）
+  - 后端注册: `dashscope_wanx` (wanx-v1) 和 `dashscope_flux` (flux-schnell)
+  - 测试: 8 个单元测试全部通过 (test_dashscope_image_client.py: 6, test_svg_converter.py: 2)
+- VPS 部署:
+  - 5 个文件已部署: dashscope_image_client.py, device_draw_handler.py, device_write_handler.py, svg_converter.py, backends_registry.py
+  - 依赖安装: dashscope==1.20.11, Pillow==10.4.0 (pypotrace 等可选依赖因编译问题跳过)
+  - 服务重启成功，健康检查通过: /health 返回 status=ok, device_gateway=true
+  - 模块导入验证通过，后端注册确认
+  - 备份位置: /opt/lima-router/backups/unified-files-20260611_203701/runtime-before.tgz
+- 本地验证:
+  - pytest: 8/8 测试通过
+  - ruff: clean，所有文件符合规范
+  - 函数复杂度: 最大 46 行，符合 <50 行要求
+  - 文件规模: 最大 141 行，符合 <300 行要求
+- Git 管理:
+  - 提交: 8ca9433 feat(Stage1-Week2): DashScope image API + device_draw/write routing
+  - 推送: GitHub (origin) ✅
+- 残余风险:
+  - SVG 转换器当前是占位符实现（返回矩形路径），真实矢量化需要后续补充
+  - 可选依赖 (pypotrace, svgpathtools, shapely) 未安装，不影响当前功能
 
 ## 2026-06-09 Hardware AI Phase 1 M4: Planner + Simulator + Workflow Closeout
 

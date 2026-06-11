@@ -2,6 +2,18 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-06-11 Stage 1 Week 2 VPS 部署
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| W2-DEPLOY-1 | 文件部署 | 5 个文件已成功部署到 VPS：dashscope_image_client.py, device_draw_handler.py, device_write_handler.py, svg_converter.py, backends_registry.py | Closed |
+| W2-DEPLOY-2 | 依赖安装 | dashscope==1.20.11 和 Pillow==10.4.0 已安装；pypotrace/svgpathtools/shapely 因编译问题跳过（SVG 当前是占位符实现，不影响功能） | Closed |
+| W2-DEPLOY-3 | 服务重启 | uvicorn 服务已重启，PID 2831072，健康检查返回 status=ok | Closed |
+| W2-DEPLOY-4 | 模块验证 | device_draw_handler 和 DashScopeImageClient 可正常导入，无错误 | Closed |
+| W2-DEPLOY-5 | 后端注册 | dashscope_wanx 和 dashscope_flux 后端已注册，fmt='dashscope_image', caps=['image_generation'] | Closed |
+| W2-DEPLOY-6 | 备份记录 | VPS 备份位置: /opt/lima-router/backups/unified-files-20260611_203701/runtime-before.tgz | Closed |
+| W2-DEPLOY-7 | 残余风险 | 可选依赖未安装不影响当前功能；Week 3+ 实现真实矢量化时需安装 pypotrace 等库 | Accepted |
+
 ## 2026-06-09 LiMa Hardware AI Phase 1 M4 Closeout
 
 | ID | Area | Finding | Status |
