@@ -17,6 +17,7 @@ hypothesis>=6.0
 pyright>=1.1.0
 deptry>=0.20
 prometheus_client>=0.20
+pytest-timeout>=2.0
 
 # Optional: MQTT device transport
 paho-mqtt>=2.0
