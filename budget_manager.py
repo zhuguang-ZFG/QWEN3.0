@@ -7,10 +7,13 @@ LiMa Budget Manager — 请求预算管理
 - 每日 UTC 0:00 自动重置
 """
 
+import logging
 import time
 import threading
 from dataclasses import dataclass
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 # ── 预算配置 ─────────────────────────────────────────────────────────────────
 
@@ -264,7 +267,7 @@ def record_token_usage(backend: str, prompt_tokens: int = 0,
         _obs_record(token_usage_event(backend, prompt_tokens, completion_tokens,
                                        get_cost_class(backend)))
     except ImportError:
-        pass
+        logger.debug("observability metrics unavailable: optional dependency not installed")
 
 
 def get_token_usage(backend: str = "") -> dict:

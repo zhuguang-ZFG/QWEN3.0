@@ -9,6 +9,8 @@ V1: All handlers produce public/demo content only.
 Owner-only handlers are in owner_handlers.py (re-exported below).
 """
 
+import logging
+
 from typing import Callable, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -170,6 +172,7 @@ def build_draw_handler() -> Callable[[str, str], str]:
             ])
             return "\n".join(lines)
         except ImportError:
+            logging.getLogger(__name__).warning("device_gateway.path_pipeline unavailable for draw preview")
             return (
                 f"绘图预览：「{safe_text}」\n\n"
                 "预览模块未加载。\n"

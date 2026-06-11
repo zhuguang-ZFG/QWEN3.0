@@ -96,7 +96,8 @@ def get_usage_summary() -> dict[str, str]:
         from budget_gitee import get_gitee_summary_lines
 
         gitee_lines = get_gitee_summary_lines(usage_snapshot)
-    except Exception:
+    except Exception as e:
+        logger.debug(f"gitee budget summary unavailable: {e}")
         gitee_lines = []
     return {
         "Cloudflare": "\n".join(cf_lines),

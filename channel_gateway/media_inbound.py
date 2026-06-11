@@ -104,7 +104,7 @@ def _read_text_file(filename: str, data: bytes) -> str:
     for enc in ("utf-8", "gbk", "latin-1"):
         try:
             return data.decode(enc)[:12000]
-        except Exception:
+        except UnicodeDecodeError:
             continue
     return ""
 
