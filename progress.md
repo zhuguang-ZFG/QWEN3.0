@@ -4,6 +4,35 @@
 
 > Updated: 2026-06-11
 
+## 2026-06-11 Stage 1 Week 3C: 预设图形库部署完成
+
+**目标:** 实现预设图形快速响应，跳过 DashScope API 调用。
+
+- 实现:
+  - 新增 `xiaozhi_drawing/preset_shapes.py` (110 行): 6 种基础图形生成
+  - 修改 `device_gateway/device_draw_handler.py` (+21 行): 关键词检测与快速路径
+  - 图形: 圆形、正方形、三角形、五角星、心形、月牙
+  - 测试: 12 个测试全部通过（8 预设图形 + 4 集成）
+- 性能提升:
+  - 响应时间: 3-5 秒 → <100ms（预设图形）
+  - API 调用: 1 次 → 0 次（基础图形）
+  - 离线可用: 无需网络连接
+- 业务价值:
+  - 成本节省: 预设图形 0 API 费用
+  - 用户体验: 30-50 倍速度提升
+  - 可靠性: 网络故障时降级方案
+- VPS 部署:
+  - preset_shapes.py 和 device_draw_handler.py 已部署
+  - 模块导入验证通过，circle 测试成功
+  - 服务运行正常: PID 2923895，启动于 21:47
+- 本地验证:
+  - pytest: 12/12 测试通过
+  - ruff: clean
+  - 文件规模: preset_shapes.py 110 行
+- Git 管理:
+  - 提交: f418433 feat(Stage1-Week3C): Preset shape library
+  - 推送: GitHub (origin) ✅
+
 ## 2026-06-11 Stage 1 Week 3B: 真实矢量化（OpenCV）部署完成
 
 **目标:** 替换占位符 SVG 转换器，实现真实的位图转矢量路径。
