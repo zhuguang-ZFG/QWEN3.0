@@ -4,6 +4,7 @@ The heavy request execution path lives in routes/chat_handler.py; this module
 owns HTTP parsing, rate limiting, vision short-circuiting, and protocol wrapping.
 """
 import json
+import logging
 import time
 import uuid
 from typing import Any
@@ -26,6 +27,7 @@ from routes.anthropic_vision_sse import anthropic_vision_messages
 from vision_handler import detect_vision_request
 
 router = APIRouter()
+_log = logging.getLogger(__name__)
 
 _deps: dict[str, Any] = {}
 
@@ -127,19 +129,11 @@ async def chat_completions(request: Request):
                 )
             return JSONResponse(build_response(chat_id, content, backend, duration_ms))
 
-    # Route tool requests through the dedicated tool forwarding pipeline
-    # (GPT-4o/GitHub → real tool calls, unlike open-source models)
-    if body.get("tools") and body.get("stream"):
-        return StreamingResponse(
-            _call("anthropic_native_stream", _openai_to_anthropic_tool_body(body)),
-            media_type="text/event-stream",
-            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-        )
+    # Tool calls: use standard routing (native tool forwarding removed in Phase 0)
+    # OpenAI-compatible tools are handled by the routing_engine's native support
     if body.get("tools"):
-        result = await _maybe_await(
-            _call("anthropic_native_forward", _openai_to_anthropic_tool_body(body))
-        )
-        return JSONResponse(_convert_anthropic_tool_response_to_openai(result, body))
+        _log.info("Tool call request routed through standard chat pipeline (native forwarding removed)")
+        # Fall through to standard chat_req handling below
 
     chat_req = ChatRequest(**body)
     if body.get("thinking", False):
@@ -168,12 +162,18 @@ async def anthropic_messages(req: Request):
     if is_limited:
         return rate_error
 
+    # Tool calls not supported in Anthropic endpoint (native forwarding removed in Phase 0)
     if body.get("tools"):
-        return await handle_tool_messages(
-            body,
-            native_stream=lambda payload: _call("anthropic_native_stream", payload),
-            native_forward=lambda payload: _call("anthropic_native_forward", payload),
-            maybe_await=_maybe_await,
+        _log.warning("Anthropic tool calls not supported - use OpenAI-compatible /v1/chat/completions")
+        return JSONResponse(
+            {
+                "type": "error",
+                "error": {
+                    "type": "invalid_request_error",
+                    "message": "Tool calls are not supported in /v1/messages. Use /v1/chat/completions instead."
+                }
+            },
+            status_code=400
         )
 
     messages, _meta = parse_anthropic_messages(body)
