@@ -7,10 +7,17 @@ from xiaozhi_drawing.svg_converter import SVGConverter
 
 @pytest.mark.asyncio
 async def test_convert_url_to_svg_success():
-    """测试 URL 转 SVG 成功"""
-    # 创建 1x1 红色 PNG
+    """测试 URL 转 SVG 成功（OpenCV 矢量化）"""
+    # 创建简单的黑白图片（易于轮廓检测）
     from PIL import Image
-    img = Image.new('RGB', (100, 100), color='red')
+    import numpy as np
+
+    # 创建一个带黑色圆形的白色图片
+    img_array = np.ones((100, 100, 3), dtype=np.uint8) * 255
+    cv2 = __import__('cv2')
+    cv2.circle(img_array, (50, 50), 30, (0, 0, 0), -1)
+    img = Image.fromarray(img_array)
+
     img_bytes = BytesIO()
     img.save(img_bytes, format='PNG')
     img_bytes.seek(0)
@@ -29,8 +36,11 @@ async def test_convert_url_to_svg_success():
 
         assert result['status'] == 'success'
         assert result['svg_path']
+        assert result['svg_path'].startswith('M')
+        assert 'L' in result['svg_path']
         assert result['width'] > 0
         assert result['height'] > 0
+        assert 'contour_count' in result
         assert result['error'] is None
 
 
