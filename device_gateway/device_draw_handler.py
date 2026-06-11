@@ -3,6 +3,8 @@ import logging
 from typing import Dict, Any, Optional
 from dashscope_image_client import DashScopeImageClient
 from xiaozhi_drawing.svg_converter import SVGConverter
+from xiaozhi_drawing.svg_validator import validate_svg_path
+from xiaozhi_drawing.path_optimizer import optimize_svg_path
 
 logger = logging.getLogger(__name__)
 
@@ -60,14 +62,39 @@ async def handle_device_draw(
         svg_result = await converter.convert_url_to_svg(image_url)
 
         if svg_result['status'] == 'success':
+            svg_path = svg_result['svg_path']
+
+            # 3. 验证 SVG
+            validation = validate_svg_path(svg_path, workspace=(200, 200))
+            if not validation.valid:
+                logger.warning(f"SVG validation failed: {validation.errors}")
+                return {
+                    'status': 'partial',
+                    'image_url': image_url,
+                    'svg_path': None,
+                    'width': svg_result['width'],
+                    'height': svg_result['height'],
+                    'model': model,
+                    'error': f"SVG validation failed: {', '.join(validation.errors)}"
+                }
+
+            # 4. 优化路径
+            optimization = optimize_svg_path(svg_path, tolerance=2.0, target_size=(180, 180))
+            logger.info(f"Path optimized: {optimization.original_points} -> {optimization.optimized_points} points ({optimization.reduction_ratio:.1%} reduction)")
+
             return {
                 'status': 'success',
                 'image_url': image_url,
-                'svg_path': svg_result['svg_path'],
+                'svg_path': optimization.optimized_path,
                 'width': svg_result['width'],
                 'height': svg_result['height'],
                 'model': model,
-                'error': None
+                'error': None,
+                'optimization': {
+                    'original_points': optimization.original_points,
+                    'optimized_points': optimization.optimized_points,
+                    'reduction_ratio': optimization.reduction_ratio
+                }
             }
         else:
             return {
