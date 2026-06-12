@@ -4,13 +4,40 @@
 > **转型文档**: [`docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md`](docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md)
 > **Phase 0 启动**: [`docs/superpowers/plans/2026-06-09-phase0-strategic-confirmation.md`](docs/superpowers/plans/2026-06-09-phase0-strategic-confirmation.md)
 
-> Updated: 2026-06-12 (Phase 1 M6-M8 complete)
+> Updated: 2026-06-12 (Phase 2 Slice 1-4 complete)
 > Branch: `main`
-> Tests: **2009 passed, 24 skipped**; ruff clean; git diff --check clean; pre-commit passing
+> Tests: **2008 passed, 25 skipped**; ruff clean; git diff --check clean; pre-commit passing
 > Quality: P0 violations resolved; P1 xiaozhi complete (1184→518, 7 modules); P1 admin_ui complete (482→55, 4 modules); ops_metrics partial (1/3)
 > Current VPS: capacity-aware `scripts/deploy_unified.py`; preflight `disk_free_mb=13685`, `mem_available_mb=488`; public `chat.donglicao.com/health=200`
 > VPS rollback: `/opt/lima-router/backups/unified-files-20260609_130457/runtime-before.tgz`
 > Strategic Pivot Plan: [`docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md`](docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md)
+
+## 2026-06-12 Phase 2 Slice 1-4 完成 (smart_router 迁移)
+
+**范围**: smart_router.py 迁移计划 - Slice 1-4
+
+| Slice | 范围 | 文件数 | 引用数 | 状态 |
+|-------|------|--------|--------|------|
+| Slice 1 | 后端配置迁移 | 5 | 18+ | ✅ |
+| Slice 2 | 路由分类器迁移 | 3 | 5 | ✅ |
+| Slice 3 | 意图检测迁移 | 3 | 4 | ✅ |
+| Slice 4 | 熔断器迁移 | 4 | 4 | ✅ |
+
+**成果**:
+- 迁移: 15 个文件，31+ 处引用
+- 目标模块: `backends`, `router_classifier`, `router_intent`, `router_image`, `router_circuit_breaker`
+- 测试修复: `test_prompt_memory_recall.py` 2 个测试的 mock 更新
+- 质量保证: 所有 Slice 通过编译检查、Ruff 检查、全量测试 2008 passed
+
+**Commits**:
+- `refactor(Phase2-Slice1): 迁移 smart_router.BACKENDS → backends.BACKENDS`
+- `refactor(Phase2-Slice2): 迁移 smart_router.analyze/route → router_classifier/routing_engine`
+- `refactor(Phase2-Slice3): 迁移意图检测 smart_router → router_intent/router_image`
+- `refactor(Phase2-Slice4): 迁移熔断器 smart_router.cb_* → router_circuit_breaker.cb_*`
+
+**详细报告**: [`docs/PHASE2_SLICE1-4_PROGRESS.md`](docs/PHASE2_SLICE1-4_PROGRESS.md)
+
+**下一步**: Slice 5 - HTTP 调用迁移 (`call_api`, `call_local`)
 
 ## 2026-06-12 Phase 1 完成 (M1-M8)
 
