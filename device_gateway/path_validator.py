@@ -30,6 +30,11 @@ CAPABILITY_PATH_MAP: dict[str, frozenset[str]] = {
 
 CONTROL_CAPABILITIES = frozenset({"home", "pause", "resume", "stop", "get_device_info"})
 
+# Valid route_policy values per Edge-C schema
+VALID_ROUTE_ROLES = frozenset({"device_control", "device_write", "device_draw", "device_vector", "device_unknown"})
+VALID_PRIMARY_STRATEGIES = frozenset({"deterministic", "image_then_vector", "svg_vector", "provided_path", "planner_required"})
+VALID_ARTIFACT_REQUIRED = frozenset({"none", "preview_svg", "vector_path"})
+
 
 def validate_run_path_params(params: dict, profile: DeviceProfile | None = None) -> tuple[dict, str | None]:
     """Validate motion task run_path parameters.
@@ -106,3 +111,50 @@ def validate_capability_params(
             sanitized[key] = value
 
     return sanitized, None
+
+
+def validate_route_policy(route_policy: dict, capability: str = "") -> tuple[dict, str | None]:
+    """Validate route_policy against Edge-C schema constraints.
+
+    Returns (route_policy, None) on success or ({}, error_code) on failure.
+    Catches unknown route roles, invalid strategies, and firmware-incompatible
+    combinations before the task reaches the device.
+    """
+    if not isinstance(route_policy, dict):
+        return {}, MotionErrorCode.E_BAD_PARAMS.value
+
+    route_role = str(route_policy.get("route_role", ""))
+    primary_strategy = str(route_policy.get("primary_strategy", ""))
+    artifact_required = str(route_policy.get("artifact_required", ""))
+
+    if route_role not in VALID_ROUTE_ROLES:
+        return {}, MotionErrorCode.E_UNSUPPORTED_CAPABILITY.value
+
+    if primary_strategy not in VALID_PRIMARY_STRATEGIES:
+        return {}, MotionErrorCode.E_BAD_PARAMS.value
+
+    if artifact_required not in VALID_ARTIFACT_REQUIRED:
+        return {}, MotionErrorCode.E_BAD_PARAMS.value
+
+    # Firmware-incompatible combinations:
+    # device_control should never require a model
+    if route_role == "device_control" and route_policy.get("model_required", False):
+        return {}, MotionErrorCode.E_BAD_PARAMS.value
+
+    # device_control should use deterministic strategy
+    if route_role == "device_control" and primary_strategy != "deterministic":
+        return {}, MotionErrorCode.E_BAD_PARAMS.value
+
+    # device_draw must require a model (image_then_vector needs AI)
+    if route_role == "device_draw" and not route_policy.get("model_required", False):
+        return {}, MotionErrorCode.E_BAD_PARAMS.value
+
+    # device_draw must use image_then_vector
+    if route_role == "device_draw" and primary_strategy != "image_then_vector":
+        return {}, MotionErrorCode.E_BAD_PARAMS.value
+
+    # device_unknown must require planner
+    if route_role == "device_unknown" and primary_strategy != "planner_required":
+        return {}, MotionErrorCode.E_BAD_PARAMS.value
+
+    return route_policy, None

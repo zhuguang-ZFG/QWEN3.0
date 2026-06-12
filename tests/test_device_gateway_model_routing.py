@@ -1,5 +1,6 @@
 from device_artifacts.store import artifact_store
 from device_gateway.model_routing import resolve_device_route_policy
+from device_gateway.path_validator import validate_route_policy
 from device_gateway.tasks import create_task_from_transcript, reset_tasks_for_tests
 
 
@@ -40,6 +41,50 @@ def test_svg_like_generated_drawing_uses_vector_route_without_model():
     assert policy["model_required"] is False
 
 
+def test_route_policy_matrix_for_hot_device_families():
+    cases = [
+        (
+            {"capability": "home", "params": {}},
+            {
+                "route_role": "device_control",
+                "model_required": False,
+                "primary_strategy": "deterministic",
+                "artifact_required": "none",
+            },
+        ),
+        (
+            {"capability": "write_text", "params": {"text": "你好"}},
+            {
+                "route_role": "device_write",
+                "model_required": False,
+                "primary_strategy": "deterministic",
+                "artifact_required": "preview_svg",
+            },
+        ),
+        (
+            {"capability": "draw_generated", "params": {"prompt": "画一只猫"}},
+            {
+                "route_role": "device_draw",
+                "model_required": True,
+                "primary_strategy": "image_then_vector",
+                "artifact_required": "vector_path",
+            },
+        ),
+        (
+            {"capability": "draw_generated", "params": {"prompt": "M 0 0 L 10 10"}},
+            {
+                "route_role": "device_vector",
+                "model_required": False,
+                "primary_strategy": "svg_vector",
+                "artifact_required": "preview_svg",
+            },
+        ),
+    ]
+
+    for voice_task, expected in cases:
+        assert resolve_device_route_policy(voice_task) == expected
+
+
 def test_route_evidence_artifact_recorded_for_created_task():
     task = create_task_from_transcript("dev-1", "draw cat")
 
@@ -74,3 +119,103 @@ def test_route_evidence_artifact_recorded_for_write_task():
     evidence = records[0].content
     assert evidence["route_role"] == "device_write"
     assert evidence["artifact_required"] == "preview_svg"
+
+
+# ── Route policy validation tests ────────────────────────────────────────────
+
+
+def test_validate_route_policy_accepts_valid_control():
+    policy = {"route_role": "device_control", "model_required": False, "primary_strategy": "deterministic", "artifact_required": "none"}
+    validated, error = validate_route_policy(policy, "home")
+    assert error is None
+    assert validated["route_role"] == "device_control"
+
+
+def test_validate_route_policy_rejects_unknown_role():
+    policy = {"route_role": "unknown_role", "model_required": False, "primary_strategy": "deterministic", "artifact_required": "none"}
+    _, error = validate_route_policy(policy)
+    assert error is not None
+
+
+def test_validate_route_policy_rejects_control_with_model():
+    policy = {"route_role": "device_control", "model_required": True, "primary_strategy": "deterministic", "artifact_required": "none"}
+    _, error = validate_route_policy(policy, "home")
+    assert error is not None
+
+
+def test_validate_route_policy_rejects_draw_without_model():
+    policy = {"route_role": "device_draw", "model_required": False, "primary_strategy": "image_then_vector", "artifact_required": "vector_path"}
+    _, error = validate_route_policy(policy, "draw_generated")
+    assert error is not None
+
+
+def test_validate_route_policy_rejects_draw_wrong_strategy():
+    policy = {"route_role": "device_draw", "model_required": True, "primary_strategy": "deterministic", "artifact_required": "vector_path"}
+    _, error = validate_route_policy(policy, "draw_generated")
+    assert error is not None
+
+
+def test_validate_route_policy_rejects_unknown_not_planner():
+    policy = {"route_role": "device_unknown", "model_required": True, "primary_strategy": "deterministic", "artifact_required": "none"}
+    _, error = validate_route_policy(policy)
+    assert error is not None
+
+
+def test_validate_route_policy_rejects_invalid_artifact():
+    policy = {"route_role": "device_write", "model_required": False, "primary_strategy": "deterministic", "artifact_required": "invalid"}
+    _, error = validate_route_policy(policy)
+    assert error is not None
+
+
+def test_validate_route_policy_accepts_valid_draw():
+    policy = {"route_role": "device_draw", "model_required": True, "primary_strategy": "image_then_vector", "artifact_required": "vector_path"}
+    validated, error = validate_route_policy(policy, "draw_generated")
+    assert error is None
+    assert validated["route_role"] == "device_draw"
+
+
+def test_validate_route_policy_accepts_valid_vector():
+    policy = {"route_role": "device_vector", "model_required": False, "primary_strategy": "svg_vector", "artifact_required": "preview_svg"}
+    validated, error = validate_route_policy(policy, "draw_generated")
+    assert error is None
+    assert validated["route_role"] == "device_vector"
+
+
+def test_validate_route_policy_accepts_valid_write():
+    policy = {"route_role": "device_write", "model_required": False, "primary_strategy": "deterministic", "artifact_required": "preview_svg"}
+    validated, error = validate_route_policy(policy, "write_text")
+    assert error is None
+    assert validated["route_role"] == "device_write"
+
+
+def test_validate_route_policy_rejects_non_dict():
+    _, error = validate_route_policy("not a dict")
+    assert error is not None
+
+
+def test_route_evidence_includes_error_on_validation_failure():
+    """When route_policy validation fails, the task should have an error and evidence should record it."""
+    from device_gateway.model_routing import _policy
+    from device_gateway.tasks import project_to_motion_task
+
+    # Manually create a voice_task that would produce an invalid route_policy
+    # by patching resolve_device_route_policy to return an invalid policy
+    import device_gateway.tasks as tasks_mod
+    original = tasks_mod.resolve_device_route_policy
+
+    def bad_policy(voice_task, device_id=""):
+        return {"route_role": "INVALID", "model_required": False, "primary_strategy": "bad", "artifact_required": "nope"}
+
+    tasks_mod.resolve_device_route_policy = bad_policy
+    try:
+        task = project_to_motion_task("dev-1", {"capability": "home", "params": {}})
+        assert task.get("error") is not None
+        assert task["error"]["code"] != ""
+        # Evidence should be recorded even for failed tasks
+        records = artifact_store.artifacts_for_task(task["task_id"], "route_evidence")
+        assert len(records) == 1
+        evidence = records[0].content
+        assert evidence["route_role"] == "INVALID"
+        assert evidence.get("error_code") != ""
+    finally:
+        tasks_mod.resolve_device_route_policy = original

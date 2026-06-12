@@ -20,7 +20,7 @@ from .intent import resolve_voice_task
 from .model_routing import looks_like_svg_path, resolve_device_route_policy
 from .profiles import apply_profile_constraints, resolve_profile
 from .safety import DEFAULT_FEED, safe_point
-from .path_validator import validate_capability_params
+from .path_validator import validate_capability_params, validate_route_policy
 from .path_pipeline import render_svg_task, render_text_task
 from . import store as store_mod
 from .store import DeviceTaskStore, InMemoryDeviceTaskStore
@@ -55,6 +55,27 @@ def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_i
     capability = voice_task["capability"]
     params = voice_task.get("params", {})
     route_policy = resolve_device_route_policy(voice_task)
+
+    # Validate route_policy against Edge-C schema before task creation
+    validated_policy, policy_error = validate_route_policy(route_policy, capability)
+    if policy_error:
+        task_id = _next_task_id()
+        task = {
+            "type": "motion_task",
+            "task_id": task_id,
+            "device_id": device_id,
+            "capability": capability if capability in CONTROL_CAPABILITIES else "run_path",
+            "source": voice_task.get("source", "voice"),
+            "params": {},
+            "route_policy": route_policy,
+            "error": {"code": policy_error, "reason": f"route_policy validation failed: {policy_error}"},
+        }
+        if request_id:
+            task["request_id"] = request_id
+        store_mod.task_store.create_task_state(task, status="failed")
+        _record_task_created(task, status="failed")
+        _record_route_evidence_artifact(task)
+        return task
 
     # Resolve profile for routing decisions
     fw_rev = voice_task.get("fw_rev", "")
@@ -359,7 +380,8 @@ def _record_route_evidence_artifact(task: dict[str, Any]) -> None:
     """Store route decision evidence as a queryable artifact.
 
     Records route_role, primary_strategy, model_required, policy decision,
-    and simulation summary so the full route-to-motion trace is auditable.
+    validation results, and simulation summary so the full route-to-motion
+    trace is auditable.
     """
     route_policy = task.get("route_policy")
     if not isinstance(route_policy, dict):
@@ -386,6 +408,11 @@ def _record_route_evidence_artifact(task: dict[str, Any]) -> None:
     error = task.get("error")
     if isinstance(error, dict):
         evidence["error_code"] = error.get("code", "")
+        evidence["error_reason"] = error.get("reason", "")
+    # Record task status for validation trace
+    task_status = task.get("status", "")
+    if task_status:
+        evidence["task_status"] = task_status
     artifact_store.put_artifact(
         task_id=str(task["task_id"]),
         artifact_type="route_evidence",
