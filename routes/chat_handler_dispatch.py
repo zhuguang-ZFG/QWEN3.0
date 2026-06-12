@@ -22,7 +22,6 @@ from response_builder import (
     extract_query,
     make_chat_id,
 )
-from routes.chat_fallback import QualityFallbackRequest, resolve_quality_fallback
 
 _log = logging.getLogger(__name__)
 from routes.chat_post_closeout import (
@@ -35,11 +34,11 @@ from routes.chat_preflight import ChatPreflightResult, prepare_chat_preflight
 from routes.chat_stream import stream_response
 from routes.chat_support import attach_memory_recall_meta, log_sys_prompt, thinking_route
 
+
 def _chat_handler():
     import routes.chat_handler as mod
 
     return mod
-
 
 
 @dataclass
@@ -77,7 +76,7 @@ def resolve_route_prefs(req: ChatRequest, ide_source: str, query: str) -> RouteP
         ide = ide or "chat_code_mode"
         prefer = "scnet_qwen235b"
 
-    # Claude Code sends full history every turn → needs large context
+    # Claude Code sends full history every turn and needs a large context window.
     # SCNet DS Pro: 64K context, free, unlimited (safer than web reverse proxies)
     if ide_source and "claude" in ide_source.lower():
         prefer = prefer or "scnet_ds_pro"
@@ -135,7 +134,7 @@ async def maybe_image_response(
     if not is_image or not build_pollinations_url:
         return None
     image_url = build_pollinations_url(image_prompt, "1024x1024")
-    content = f"![image]({image_url})\n\n已为您生成图片，点击查看。"
+    content = f"![image]({image_url})\n\nImage generated. Open the link to view it."
     duration_ms = int((time.time() - ctx.t0) * 1000)
     record_request(
         ctx.query,
@@ -258,36 +257,11 @@ async def finalize_success_response(
 ) -> JSONResponse:
     content = result.get("answer", "")
     from response_cleaner import clean_response
+
     content = clean_response(content, result.get("backend", "")) or content
     backend = result.get("backend", "unknown")
     total_ms = result.get("total_ms", 0)
     intent_name = intent.get("intent", "unknown")
-    complexity = intent.get("complexity", 0.5)
-
-    # Quality check always passes in device-first architecture (Phase 2 - 2026-06-12)
-    # Device scenario doesn't need complex coding quality gates
-    quality_passed = True
-
-    if not quality_passed:
-        return await resolve_quality_fallback(
-            QualityFallbackRequest(
-                chat_id=ctx.chat_id,
-                query=ctx.query,
-                content=content,
-                backend=backend,
-                complexity=complexity,
-                intent_name=intent_name,
-                fmt=ctx.fmt,
-                request_model=ctx.request_model,
-                max_tokens=req.max_tokens or 1024,
-                ide_source=ctx.ide_source,
-                client_ip=ctx.client_ip,
-                sys_prompt_preview=ctx.sys_prompt_preview,
-                prompt_context_messages=ctx.preflight.prompt_context_messages,
-                memory_recall_meta=ctx.memory_recall_meta,
-                elapsed_ms=int((time.time() - ctx.t0) * 1000),
-            )
-        )
 
     duration_ms = int((time.time() - ctx.t0) * 1000)
     persist_session_memory(
