@@ -73,6 +73,38 @@ class RedisDeviceTaskStore:
                 active.append(deepcopy(task))
         return active
 
+    def list_tasks_for_device(
+        self,
+        device_id: str,
+        status: str = "",
+        limit: int = 20,
+    ) -> list[dict[str, Any]]:
+        tasks: list[dict[str, Any]] = []
+        raw_states = self._redis.hgetall(self._key("tasks"))
+        values = raw_states.values() if isinstance(raw_states, dict) else raw_states
+        for raw_state in values:
+            try:
+                state = self._decode(raw_state)
+            except (json.JSONDecodeError, UnicodeDecodeError, RuntimeError) as exc:
+                _log.warning("redis task list decode failed: %s", type(exc).__name__)
+                continue
+            task = state.get("task")
+            if not isinstance(task, dict) or task.get("device_id") != device_id:
+                continue
+            if status and state.get("status") != status:
+                continue
+            tasks.append(
+                {
+                    "task_id": task.get("task_id", ""),
+                    "status": state.get("status", "unknown"),
+                    "capability": task.get("capability", ""),
+                    "source": task.get("source", ""),
+                }
+            )
+            if len(tasks) >= limit:
+                break
+        return tasks
+
     def enqueue_pending_task(self, device_id: str, task: dict[str, Any]) -> int:
         task["_enqueued_at"] = self._redis.time()[0]
         queue_depth = int(self._redis.rpush(self._queue_key(device_id), self._encode(task)))

@@ -90,6 +90,35 @@ def _task(task_id, device_id="dev-1"):
     return {"type": "motion_task", "task_id": task_id, "device_id": device_id, "params": {"path": []}}
 
 
+def test_redis_store_lists_tasks_for_device_with_status_and_limit():
+    client = _FakeRedis()
+    store = RedisDeviceTaskStore("redis://unused", client=client, key_prefix="test:device")
+    first = _task(store.next_task_id(), "dev-1")
+    second = _task(store.next_task_id(), "dev-1")
+    other = _task(store.next_task_id(), "dev-2")
+
+    store.create_task_state(first, status="created")
+    store.create_task_state(second, status="queued")
+    store.create_task_state(other, status="created")
+
+    assert store.list_tasks_for_device("dev-1", limit=1) == [
+        {
+            "task_id": first["task_id"],
+            "status": "created",
+            "capability": "",
+            "source": "",
+        }
+    ]
+    assert store.list_tasks_for_device("dev-1", status="queued", limit=20) == [
+        {
+            "task_id": second["task_id"],
+            "status": "queued",
+            "capability": "",
+            "source": "",
+        }
+    ]
+
+
 def test_redis_store_preserves_task_state_queue_order_and_events():
     client = _FakeRedis()
     store = RedisDeviceTaskStore("redis://unused", client=client, key_prefix="test:device")
