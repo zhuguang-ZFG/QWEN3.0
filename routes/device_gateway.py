@@ -7,7 +7,7 @@ from typing import Any
 
 _log = logging.getLogger(__name__)
 
-from fastapi import APIRouter, Depends, Request, WebSocket
+from fastapi import APIRouter, Depends, Query, Request, WebSocket
 from fastapi.responses import JSONResponse
 
 from access_guard import require_private_api_key
@@ -221,41 +221,19 @@ async def device_task_status(task_id: str) -> JSONResponse:
 async def device_task_list(
     device_id: str = "",
     status: str = "",
-    limit: int = 20,
+    limit: int = Query(20, ge=1, le=100),
 ) -> JSONResponse:
     """查询任务列表"""
-    from device_gateway.tasks import active_tasks_for_device, task_snapshot
     from device_gateway.store import task_store
 
-    if device_id:
-        # 获取所有任务（包括非活跃任务）
-        with task_store._lock:
-            all_tasks = []
-            for task_id, state in task_store._tasks.items():
-                task = state.get("task")
-                if not isinstance(task, dict) or task.get("device_id") != device_id:
-                    continue
-                task_info = {
-                    "task_id": task_id,
-                    "status": state.get("status", "unknown"),
-                    "capability": task.get("capability", ""),
-                    "source": task.get("source", ""),
-                    "created_at": task.get("created_at", ""),
-                }
-                all_tasks.append(task_info)
-    else:
-        all_tasks = []
+    if not device_id:
+        return JSONResponse({"tasks": [], "count": 0})
 
-    # 过滤状态
-    if status:
-        all_tasks = [t for t in all_tasks if t.get("status") == status]
-
-    # 限制数量
-    all_tasks = all_tasks[:limit]
+    tasks = task_store.list_tasks_for_device(device_id, status=status, limit=limit)
 
     return JSONResponse({
-        "tasks": all_tasks,
-        "count": len(all_tasks),
+        "tasks": tasks,
+        "count": len(tasks),
     })
 
 

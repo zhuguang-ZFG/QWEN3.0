@@ -299,3 +299,9 @@ check_result.txt
 newapi_before.png
 test_*.json
 newapi_setup.bat
+
+# === Nginx 分发（不进 Git）===
+nginx/
+
+# === 运行态文件 ===
+.omx/

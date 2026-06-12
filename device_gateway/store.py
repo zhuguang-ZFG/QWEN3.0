@@ -57,6 +57,11 @@ class DeviceTaskStore(Protocol):
     def pending_count(self, device_id: str | None = None) -> int:
         ...
 
+    def list_tasks_for_device(
+        self, device_id: str, status: str = "", limit: int = 20
+    ) -> list[dict[str, Any]]:
+        ...
+
 
 class InMemoryDeviceTaskStore:
     backend_name = "memory"
@@ -162,6 +167,25 @@ class InMemoryDeviceTaskStore:
             if device_id is not None:
                 return len(self._pending_by_device.get(device_id, ()))
             return sum(len(queue) for queue in self._pending_by_device.values())
+
+    def list_tasks_for_device(
+        self, device_id: str, status: str = "", limit: int = 20
+    ) -> list[dict[str, Any]]:
+        with self._lock:
+            tasks: list[dict[str, Any]] = []
+            for state in self._tasks.values():
+                task = state.get("task")
+                if not isinstance(task, dict) or task.get("device_id") != device_id:
+                    continue
+                if status and state.get("status") != status:
+                    continue
+                tasks.append({
+                    "task_id": state.get("task", {}).get("task_id", ""),
+                    "status": state.get("status", "unknown"),
+                    "capability": task.get("capability", ""),
+                    "source": task.get("source", ""),
+                })
+            return tasks[:limit]
 
 
 task_store: DeviceTaskStore = InMemoryDeviceTaskStore()
