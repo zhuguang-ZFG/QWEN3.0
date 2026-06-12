@@ -266,3 +266,36 @@ wx_key_tool/
 /deploy/jdcloud/ssh_helper.sh
 /deploy/deploy_prometheus_metrics.py
 /deploy/deploy_prometheus_metrics.sh
+
+# === 临时调试/修复脚本 (Phase 2 清理 2026-06-12) ===
+_*.py
+*_temp*.py
+quick_fix.*
+patch_*.py
+setup_qwen*.py
+*_qwen2api*.py
+add_account*.py
+build_local.py
+update_*_config.py
+
+# === 临时文档报告 ===
+FINAL_*.md
+PROJECT_*_REPORT.md
+PROJECT_*_DELIVERY.md
+NEWAPI_*.md
+QWEN_PROXY_*.md
+MIMO_*_*.md
+FIX_*.md
+SECURITY_FIX_*.md
+DONGLICAO_CONFIG.md
+COMPLETE_PROJECT_REPORT.md
+
+# === 临时数据文件 ===
+tmp_*.txt
+tmp_*.json
+tmp_*.png
+check_result.txt
+*_blocked.png
+newapi_before.png
+test_*.json
+newapi_setup.bat
