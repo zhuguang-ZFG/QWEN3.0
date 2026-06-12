@@ -25,14 +25,12 @@ from device_gateway.store import configure_task_store_from_env, task_store_healt
 from device_gateway.notifier import (
     configure_notifier_from_env,
     notifier_health,
-    publish_task_available,
     start_task_notifier,
     stop_task_notifier,
 )
+from device_gateway.task_service import DeviceTaskRequest, create_and_route_task
 from device_gateway.tasks import (
     ack_processing_task,
-    create_task_from_transcript,
-    enqueue_pending_task,
     pending_count,
     record_motion_event,
     reset_tasks_for_tests,
@@ -138,41 +136,27 @@ async def device_gateway_tasks(request: Request) -> JSONResponse:
         )
 
     device_id = device_id.strip()
-    task = create_task_from_transcript(
-        device_id, text.strip(), request_id=request_id if isinstance(request_id, str) else None
-    )
-    if task.get("error"):
-        _record_device_task_evidence(
+    result = await create_and_route_task(
+        DeviceTaskRequest(
             device_id=device_id,
-            task=task,
-            status="failed",
+            text=text.strip(),
             request_id=request_id if isinstance(request_id, str) else "",
         )
-        return JSONResponse({"status": "failed", "sent": False, "queue_depth": pending_count(device_id), "task": task})
-    session = registry.get(device_id)
-    sent = False
-    if session is not None:
-        sent = await dispatch_task_to_session(session, task)
-        queue_depth = pending_count(device_id)
-    else:
-        queue_depth = enqueue_pending_task(device_id, task)
-        try:
-            await publish_task_available(device_id)
-        except Exception as exc:
-            _log.warning(
-                "publish_task_available failed device=%s task=%s err=%s",
-                device_id,
-                task.get("task_id", ""),
-                type(exc).__name__,
-            )
-    status = "sent" if sent else "queued"
+    )
     _record_device_task_evidence(
         device_id=device_id,
-        task=task,
-        status=status,
+        task=result.task,
+        status=result.status,
         request_id=request_id if isinstance(request_id, str) else "",
     )
-    return JSONResponse({"status": status, "sent": sent, "queue_depth": queue_depth, "task": task})
+    return JSONResponse(
+        {
+            "status": result.status,
+            "sent": result.sent,
+            "queue_depth": result.queue_depth,
+            "task": result.task,
+        }
+    )
 
 
 def _record_device_task_evidence(
@@ -209,6 +193,70 @@ async def stop_device_gateway_runtime() -> None:
 @router.websocket("/ws")
 async def device_ws(websocket: WebSocket) -> None:
     await handle_device_ws(websocket)
+
+
+@router.get("/tasks/{task_id}", dependencies=[Depends(require_private_api_key)])
+async def device_task_status(task_id: str) -> JSONResponse:
+    """查询任务状态"""
+    from device_gateway.tasks import task_snapshot
+
+    snapshot = task_snapshot(task_id)
+    if not snapshot:
+        return JSONResponse(
+            status_code=404,
+            content=error_frame(
+                ProtocolError("E_TASK_NOT_FOUND", f"Task {task_id} not found")
+            ),
+        )
+
+    return JSONResponse({
+        "task_id": task_id,
+        "status": snapshot.get("status", "unknown"),
+        "task": snapshot.get("task", {}),
+        "events": snapshot.get("events", []),
+    })
+
+
+@router.get("/tasks", dependencies=[Depends(require_private_api_key)])
+async def device_task_list(
+    device_id: str = "",
+    status: str = "",
+    limit: int = 20,
+) -> JSONResponse:
+    """查询任务列表"""
+    from device_gateway.tasks import active_tasks_for_device, task_snapshot
+    from device_gateway.store import task_store
+
+    if device_id:
+        # 获取所有任务（包括非活跃任务）
+        with task_store._lock:
+            all_tasks = []
+            for task_id, state in task_store._tasks.items():
+                task = state.get("task")
+                if not isinstance(task, dict) or task.get("device_id") != device_id:
+                    continue
+                task_info = {
+                    "task_id": task_id,
+                    "status": state.get("status", "unknown"),
+                    "capability": task.get("capability", ""),
+                    "source": task.get("source", ""),
+                    "created_at": task.get("created_at", ""),
+                }
+                all_tasks.append(task_info)
+    else:
+        all_tasks = []
+
+    # 过滤状态
+    if status:
+        all_tasks = [t for t in all_tasks if t.get("status") == status]
+
+    # 限制数量
+    all_tasks = all_tasks[:limit]
+
+    return JSONResponse({
+        "tasks": all_tasks,
+        "count": len(all_tasks),
+    })
 
 
 def _reset_for_tests() -> None:

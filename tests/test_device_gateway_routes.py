@@ -142,7 +142,7 @@ def test_tasks_endpoint_does_not_queue_validation_failed_task(monkeypatch):
             "error": {"code": "E_UNSUPPORTED_CAPABILITY", "reason": "unsupported"},
         }
 
-    monkeypatch.setattr("routes.device_gateway.create_task_from_transcript", fake_create_task_from_transcript)
+    monkeypatch.setattr("device_gateway.task_service.create_task_from_transcript", fake_create_task_from_transcript)
 
     response = _client().post(
         "/device/v1/tasks",
@@ -164,7 +164,7 @@ def test_tasks_endpoint_publishes_task_available_when_session_is_not_local(monke
     async def fake_publish(device_id: str) -> None:
         published.append(device_id)
 
-    monkeypatch.setattr("routes.device_gateway.publish_task_available", fake_publish)
+    monkeypatch.setattr("routes.device_gateway_dispatch.publish_task_available", fake_publish)
 
     response = _client().post(
         "/device/v1/tasks",
@@ -484,3 +484,77 @@ def test_websocket_rejects_invalid_device_token():
         "message": "device token is invalid",
         "request_id": "req-auth",
     }
+
+
+# ── Task status query tests ──────────────────────────────────────────────────
+
+
+def test_task_status_returns_404_for_nonexistent():
+    """查询不存在的任务返回 404"""
+    response = _client().get(
+        "/device/v1/tasks/nonexistent-task-id",
+        headers={"Authorization": "Bearer test-private-token"},
+    )
+    assert response.status_code == 404
+
+
+def test_task_status_returns_task_info():
+    """查询存在的任务返回任务信息"""
+    # 先创建一个任务
+    task = create_task_from_transcript("dev-1", "home")
+
+    response = _client().get(
+        f"/device/v1/tasks/{task['task_id']}",
+        headers={"Authorization": "Bearer test-private-token"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["task_id"] == task["task_id"]
+    assert "status" in data
+    assert "task" in data
+
+
+def test_task_list_returns_tasks():
+    """查询任务列表返回任务"""
+    # 创建一些任务
+    create_task_from_transcript("dev-1", "home")
+    create_task_from_transcript("dev-1", "write Hello")
+
+    response = _client().get(
+        "/device/v1/tasks?device_id=dev-1",
+        headers={"Authorization": "Bearer test-private-token"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "tasks" in data
+    assert "count" in data
+    assert data["count"] >= 2
+
+
+def test_task_list_filter_by_status():
+    """按状态过滤任务列表"""
+    # 创建任务
+    create_task_from_transcript("dev-1", "home")
+
+    response = _client().get(
+        "/device/v1/tasks?device_id=dev-1&status=created",
+        headers={"Authorization": "Bearer test-private-token"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "tasks" in data
+    # 所有返回的任务都应该是 created 状态
+    for task in data["tasks"]:
+        assert task.get("status") == "created"
+
+
+def test_task_list_requires_auth():
+    """查询任务列表需要认证"""
+    response = _client().get("/device/v1/tasks")
+    assert response.status_code == 401 or response.status_code == 403
+
+
+def test_task_status_requires_auth():
+    """查询任务状态需要认证"""
+    response = _client().get("/device/v1/tasks/test-task-id")
+    assert response.status_code == 401 or response.status_code == 403
