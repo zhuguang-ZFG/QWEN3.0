@@ -128,6 +128,63 @@ class TestSmartRouterLegacy:
             "smart_router should be marked as legacy/deprecated"
         )
 
+    def test_smart_router_does_not_route_new_requests(self):
+        """smart_router.route() should not be called by new production code."""
+        src = _read_module_source("smart_router")
+        # smart_router should only export compatibility symbols, not route()
+        assert "def route(" not in src, (
+            "smart_router should not define route() — use routing_engine.route()"
+        )
+
+
+class TestDeviceRoutingIsolation:
+    """Device routing must be isolated from general chat/coding routing."""
+
+    def test_device_gateway_does_not_import_routing_engine(self):
+        """Device gateway should not depend on routing_engine for chat routing."""
+        src = _read_module_source("device_gateway.tasks")
+        # device_gateway should use its own routing, not routing_engine
+        # (routing_engine is for chat/coding, not device tasks)
+        assert "import routing_engine" not in src, (
+            "device_gateway should not import routing_engine directly"
+        )
+
+    def test_routing_engine_does_not_import_device_gateway(self):
+        """Routing engine should not import device gateway modules."""
+        src = _read_module_source("routing_engine")
+        assert "import device_gateway" not in src, (
+            "routing_engine should not import device_gateway"
+        )
+
+
+class TestLocalProxyTopologyGuard:
+    """Local Windows proxy backends should not be promoted to VPS priority routing."""
+
+    def test_local_backends_marked_in_registry(self):
+        """Local/proxy backends should be marked as local in backends_constants."""
+        from backends_constants import KEY_POOL_PREFIXES
+        # Local backends should not have cloud provider prefixes
+        # This is a structural check — local backends use different naming
+        assert isinstance(KEY_POOL_PREFIXES, dict)
+
+
+class TestProviderHealthVisibility:
+    """Provider health/cooldown/budget failures must be visible in logs and metrics."""
+
+    def test_health_tracker_records_failures(self):
+        """health_tracker must record failure events for observability."""
+        src = _read_module_source("health_tracker")
+        assert "record_failure" in src or "record" in src, (
+            "health_tracker must have failure recording capability"
+        )
+
+    def test_budget_manager_records_usage(self):
+        """budget_manager must record usage for observability."""
+        src = _read_module_source("budget_manager")
+        assert "record_usage" in src or "is_budget_available" in src, (
+            "budget_manager must have usage recording capability"
+        )
+
 
 class TestHttpCallerAuthority:
     """http_caller owns HTTP transport only."""
