@@ -10,6 +10,7 @@ from datetime import datetime
 
 import asyncio
 
+import backends
 import smart_router
 
 
@@ -29,10 +30,10 @@ async def thinking_route(query: str, max_tokens: int = 4096, ide: str = "unknown
     except (asyncio.TimeoutError, Exception) as exc:
         if smart_router.DEBUG:
             print(f"[THINKING] {thinking_backend} failed: {exc}", file=sys.stderr)
-    for alt in smart_router.THINKING_BACKENDS:
+    for alt in backends.THINKING_BACKENDS:
         if alt == thinking_backend:
             continue
-        if alt not in smart_router.BACKENDS or not smart_router.BACKENDS[alt].get("key"):
+        if alt not in backends.BACKENDS or not backends.BACKENDS[alt].get("key"):
             continue
         if not smart_router.cb_allow(alt):
             continue

@@ -18,6 +18,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
+import backends
 from routes.admin_auth import verify_admin, verify_csrf
 from routes.admin_state import FALLBACK_LOG, stats_context
 
@@ -30,14 +31,10 @@ _log = logging.getLogger(__name__)
 @router.put("/api/backends/{name}", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
 async def admin_edit_backend(name: str, req: Request):
     """Update an existing backend's URL, model, caps, or admission policy."""
-    try:
-        import smart_router
-    except ImportError:
-        raise HTTPException(503, "smart_router not available")
-    if name not in smart_router.BACKENDS:
+    if name not in backends.BACKENDS:
         raise HTTPException(404, f"backend '{name}' not found")
     body = await req.json()
-    cfg = smart_router.BACKENDS[name]
+    cfg = backends.BACKENDS[name]
     for field in ("url", "model"):
         if field in body and body[field]:
             cfg[field] = body[field]
@@ -107,16 +104,11 @@ def _read_fallback_entries() -> list[dict]:
 @router.get("/api/key-url-inventory", dependencies=[Depends(verify_admin)])
 async def key_url_inventory():
     """List all backends with their URL, key status, and provider key pools."""
-    try:
-        import smart_router
-    except ImportError:
-        return {"backends": [], "key_pools": {"providers": {}}}
-
-    backends = []
-    for name, cfg in smart_router.BACKENDS.items():
+    backend_list = []
+    for name, cfg in backends.BACKENDS.items():
         key = cfg.get("key", "")
         masked = (key[:4] + "..." + key[-4:]) if key and len(key) > 8 else ("已配置" if key else "")
-        backends.append({
+        backend_list.append({
             "name": name,
             "url": cfg.get("url", ""),
             "key_configured": bool(key),
@@ -133,7 +125,7 @@ async def key_url_inventory():
     except (ImportError, AttributeError):
         pass
 
-    return {"backends": backends, "key_pools": {"providers": providers}}
+    return {"backends": backend_list, "key_pools": {"providers": providers}}
 
 
 # ── Retrain Jobs ──────────────────────────────────────────────────────────────
@@ -235,20 +227,16 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 async def config_export():
     """Export current backend configuration summary."""
     config: dict[str, Any] = {"version": "1.0", "exported_at": time.time()}
-    try:
-        import smart_router
-        config["backends"] = {
-            name: {
-                "url": cfg.get("url", ""),
-                "model": cfg.get("model", ""),
-                "fmt": cfg.get("fmt", "openai"),
-                "tier": cfg.get("tier", ""),
-                "caps": cfg.get("caps", []),
-            }
-            for name, cfg in smart_router.BACKENDS.items()
+    config["backends"] = {
+        name: {
+            "url": cfg.get("url", ""),
+            "model": cfg.get("model", ""),
+            "fmt": cfg.get("fmt", "openai"),
+            "tier": cfg.get("tier", ""),
+            "caps": cfg.get("caps", []),
         }
-    except ImportError:
-        config["backends"] = {}
+        for name, cfg in backends.BACKENDS.items()
+    }
     _stats, _lock, backend_enabled = stats_context()
     config["backend_enabled"] = dict(backend_enabled)
     return config
@@ -260,15 +248,11 @@ async def config_import(req: Request):
     if not body.get("version"):
         raise HTTPException(400, "Invalid config format: missing version")
     imported: list[str] = []
-    try:
-        import smart_router
-        new_backends = body.get("backends", {})
-        for name, cfg in new_backends.items():
-            if name not in smart_router.BACKENDS:
-                smart_router.BACKENDS[name] = cfg
-                imported.append(name)
-    except ImportError:
-        pass
+    new_backends = body.get("backends", {})
+    for name, cfg in new_backends.items():
+        if name not in backends.BACKENDS:
+            backends.BACKENDS[name] = cfg
+            imported.append(name)
     return {"ok": True, "imported": imported}
 
 
