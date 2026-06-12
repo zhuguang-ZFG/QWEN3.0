@@ -10,7 +10,8 @@ for line in open("/opt/lima-router/.env"):
         k, v = line.strip().split("=", 1)
         os.environ[k] = v
 
-from smart_router import call_api, BACKENDS
+from backends import BACKENDS
+from smart_router import call_api
 
 backends_to_test = [
     "zhipu_flash", "silicon_qwen8b", "baidu_ernie", "groq_llama4",
