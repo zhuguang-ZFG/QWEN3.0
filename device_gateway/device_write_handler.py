@@ -2,7 +2,23 @@
 import logging
 from typing import Dict, Any, Optional
 
+from device_gateway.path_pipeline import text_to_path, preview_svg
+
 logger = logging.getLogger(__name__)
+
+# 字体样式映射
+FONT_STYLES = {
+    'default': {'scale': 1.0, 'spacing': 1.0},
+    'handwriting': {'scale': 0.9, 'spacing': 1.2},
+    'calligraphy': {'scale': 1.1, 'spacing': 0.9},
+}
+
+# 字体大小映射
+FONT_SIZES = {
+    'small': {'scale': 0.5, 'target_height': 30},
+    'medium': {'scale': 1.0, 'target_height': 60},
+    'large': {'scale': 1.5, 'target_height': 90},
+}
 
 
 async def handle_device_write(
@@ -23,7 +39,10 @@ async def handle_device_write(
     Returns:
         {
             'status': 'success' | 'failed',
-            'path_data': str,  # SVG 路径数据
+            'path_data': list,  # 路径点列表
+            'preview_svg': str,  # 预览 SVG
+            'width': int,
+            'height': int,
             'model': 'deterministic',
             'error': str | None
         }
@@ -31,17 +50,42 @@ async def handle_device_write(
     logger.info(f"Device {device_id} write request: {text[:30]}... (font={font_style}, size={size})")
 
     try:
-        # TODO: 实现字体路径生成
-        # 1. 从字体库加载字体轮廓
-        # 2. 生成 SVG 路径
-        # 3. 应用尺寸和间距
+        # 获取字体参数
+        font_params = FONT_STYLES.get(font_style, FONT_STYLES['default'])
+        size_params = FONT_SIZES.get(size, FONT_SIZES['medium'])
 
-        # 临时返回占位符
-        path_data = "M 0 0 L 100 0 L 100 100 L 0 100 Z"  # 占位符矩形
+        # 计算缩放因子
+        scale = font_params['scale'] * size_params['scale']
+
+        # 生成路径（返回点列表）
+        path_list = text_to_path(
+            text,
+            origin_x=5.0,
+            origin_y=20.0,
+            scale=scale
+        )
+
+        # 计算边界
+        if path_list:
+            min_x = min(p['x'] for p in path_list)
+            max_x = max(p['x'] for p in path_list)
+            min_y = min(p['y'] for p in path_list)
+            max_y = max(p['y'] for p in path_list)
+            width = int(max_x - min_x) + 20  # 添加边距
+            height = int(max_y - min_y) + 20
+        else:
+            width = 100
+            height = 50
+
+        # 生成预览 SVG
+        svg_preview = preview_svg(path_list, width, height)
 
         return {
             'status': 'success',
-            'path_data': path_data,
+            'path_data': path_list,
+            'preview_svg': svg_preview,
+            'width': width,
+            'height': height,
             'model': 'deterministic',
             'error': None
         }
@@ -50,7 +94,10 @@ async def handle_device_write(
         logger.error(f"Device write failed: {e}")
         return {
             'status': 'failed',
-            'path_data': '',
+            'path_data': [],
+            'preview_svg': '',
+            'width': 0,
+            'height': 0,
             'model': 'deterministic',
             'error': str(e)
         }
