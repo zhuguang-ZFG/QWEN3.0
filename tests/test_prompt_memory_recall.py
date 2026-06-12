@@ -73,6 +73,7 @@ def test_apply_prompt_memory_recall_injects_memory_and_trace():
 
 def test_handle_chat_applies_prompt_memory_before_routing(monkeypatch):
     import routes.chat_handler as chat_handler
+    import router_classifier
     import server
     from chat_models import ChatRequest, Message
 
@@ -93,7 +94,7 @@ def test_handle_chat_applies_prompt_memory_before_routing(monkeypatch):
     monkeypatch.setenv("LIMA_SESSION_MEMORY", "1")
     monkeypatch.setattr(server.smart_router, "detect_image_intent", lambda query: (False, ""))
     monkeypatch.setattr(server.smart_router, "detect_thinking_intent", lambda query: False)
-    monkeypatch.setattr(server.smart_router, "analyze", fake_analyze)
+    monkeypatch.setattr(router_classifier, "analyze", fake_analyze)
     monkeypatch.setattr(chat_handler, "needs_orchestration", lambda query, intent: False)
     monkeypatch.setattr(chat_handler, "v3_route", fake_v3_route)
     monkeypatch.setattr(chat_handler, "_record_request", lambda *args, **kwargs: None)
@@ -121,6 +122,7 @@ def test_handle_chat_applies_prompt_memory_before_routing(monkeypatch):
 
 def test_handle_chat_writes_and_recalls_same_header_session(monkeypatch):
     import routes.chat_handler as chat_handler
+    import router_classifier
     import server
     from chat_models import ChatRequest, Message
 
@@ -142,7 +144,7 @@ def test_handle_chat_writes_and_recalls_same_header_session(monkeypatch):
     monkeypatch.setenv("LIMA_SESSION_MEMORY", "1")
     monkeypatch.setattr(server.smart_router, "detect_image_intent", lambda query: (False, ""))
     monkeypatch.setattr(server.smart_router, "detect_thinking_intent", lambda query: False)
-    monkeypatch.setattr(server.smart_router, "analyze", fake_analyze)
+    monkeypatch.setattr(router_classifier, "analyze", fake_analyze)
     monkeypatch.setattr(chat_handler, "needs_orchestration", lambda query, intent: False)
     monkeypatch.setattr(chat_handler, "v3_route", fake_v3_route)
     monkeypatch.setattr(chat_handler, "_record_request", lambda *args, **kwargs: None)

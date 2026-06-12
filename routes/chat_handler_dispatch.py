@@ -10,6 +10,7 @@ from typing import Callable
 
 from fastapi.responses import JSONResponse, StreamingResponse
 
+import router_classifier
 import smart_router
 from chat_models import ChatRequest, extract_system_prompt
 from orchestrate import orchestrate
@@ -193,7 +194,7 @@ async def maybe_thinking_response(
 
 
 def build_streaming_response(ctx: ChatRunContext, req: ChatRequest) -> StreamingResponse:
-    intent = smart_router.analyze(
+    intent = router_classifier.analyze(
         ctx.query, system_prompt=ctx.sys_prompt_preview, ide=ctx.ide_source
     )
     handler = _chat_handler()
@@ -219,7 +220,7 @@ def build_streaming_response(ctx: ChatRunContext, req: ChatRequest) -> Streaming
 
 
 async def execute_non_stream_route(ctx: ChatRunContext, req: ChatRequest) -> tuple[dict, dict]:
-    intent = smart_router.analyze(
+    intent = router_classifier.analyze(
         ctx.query, system_prompt=ctx.sys_prompt_preview, ide=ctx.ide_source
     )
     handler = _chat_handler()

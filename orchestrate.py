@@ -13,6 +13,7 @@ import smart_router
 import health_tracker
 import http_caller
 import routing_engine
+import router_classifier
 from backends import BACKENDS
 
 # ── 配置 ────────────────────────────────────────────────────────────────────
@@ -45,7 +46,7 @@ def needs_orchestration(query: str, intent: dict) -> bool:
 
     Args:
         query: 用户原始查询
-        intent: smart_router.analyze() 返回的意图字典
+        intent: router_classifier.analyze() 返回的意图字典
 
     Returns:
         True 表示需要编排，False 表示直接路由
@@ -131,7 +132,7 @@ def decompose(query: str) -> list[dict[str, Any]]:
 
 def execute_subtasks(subtasks: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """并发执行子任务（ThreadPoolExecutor，最多 MAX_CONCURRENT 个并发）。
-    每个子任务调用 smart_router.call_api 或 smart_router.route。
+    每个子任务调用 http_caller.call_api 或 routing_engine.route。
 
     Args:
         subtasks: decompose() 返回的子任务列表
@@ -265,13 +266,13 @@ def orchestrate(query: str) -> dict:
         query: 用户原始查询
 
     Returns:
-        与 smart_router.route() 相同格式的 dict:
+        与 routing_engine.route() 相同格式的 dict:
         {"answer": str, "backend": str, "intent": dict, "total_ms": int, ...}
     """
     t0 = time.time()
 
     # 意图分析
-    intent = smart_router.analyze(query)
+    intent = router_classifier.analyze(query)
 
     # 再次确认是否需要编排（防止外部直接调用）
     if not needs_orchestration(query, intent):
