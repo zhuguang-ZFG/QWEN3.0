@@ -259,6 +259,43 @@ async def device_task_list(
     })
 
 
+@router.get("/devices/{device_id}/history", dependencies=[Depends(require_private_api_key)])
+async def device_drawing_history(
+    device_id: str,
+    artifact_type: str = "",
+    limit: int = 20,
+    offset: int = 0,
+) -> JSONResponse:
+    """查询设备绘图历史"""
+    from device_artifacts.store import artifacts_for_device
+
+    artifacts = artifacts_for_device(
+        device_id=device_id,
+        artifact_type=artifact_type if artifact_type else None,
+        limit=limit,
+        offset=offset,
+    )
+
+    # 转换为可序列化的格式
+    history = []
+    for artifact in artifacts:
+        history.append({
+            "task_id": artifact.task_id,
+            "artifact_type": artifact.artifact_type,
+            "content": artifact.content,
+            "content_hash": artifact.content_hash,
+            "created_at": artifact.created_at,
+        })
+
+    return JSONResponse({
+        "device_id": device_id,
+        "history": history,
+        "count": len(history),
+        "offset": offset,
+        "limit": limit,
+    })
+
+
 def _reset_for_tests() -> None:
     registry.clear()
     reset_tasks_for_tests()

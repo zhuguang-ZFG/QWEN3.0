@@ -90,3 +90,31 @@ def _content_hash(content: Any) -> str:
 
 
 artifact_store = InMemoryArtifactStore()
+
+
+def artifacts_for_device(
+    device_id: str,
+    artifact_type: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+) -> list[ArtifactRecord]:
+    """Query artifacts by device_id with pagination."""
+    with artifact_store._lock:
+        records = []
+        for record in artifact_store._records:
+            # Check if content is a dict and has device_id
+            if isinstance(record.content, dict):
+                if record.content.get("device_id") != device_id:
+                    continue
+            else:
+                # If content is not a dict, skip device_id check
+                continue
+
+            if artifact_type is not None and record.artifact_type != artifact_type:
+                continue
+
+            records.append(record)
+
+        # Sort by created_at descending
+        records.sort(key=lambda r: r.created_at, reverse=True)
+        return [deepcopy(r) for r in records[offset:offset + limit]]
