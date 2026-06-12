@@ -1,10 +1,9 @@
 # LiMa Documentation
 
-> Updated: 2026-06-10
+> Updated: 2026-06-13
+> 项目定位: AI 智能设备统一云端服务
 
 ## Quick Start
-
-LiMa 已从"编码助手"战略转型到"AI 智能设备统一云端服务"（2026-06-09 启动）。
 
 | What you need | Read this |
 |---------------|-----------|
@@ -23,7 +22,7 @@ LiMa 已从"编码助手"战略转型到"AI 智能设备统一云端服务"（20
 | `ROUTING_ENGINE_DESIGN.md` | 路由引擎设计 |
 | `REQUEST_PIPELINE_AUTHORITY.md` | 请求管线权威边界 |
 | `OBSERVABILITY_EVENTS.md` | 可观测性事件模型 |
-| `PROJECT_OPTIMIZATION_ROADMAP.md` | 全项目优化路线图：设备热路径、通用路由、固件、CI、部署、文档治理 |
+| `PROJECT_OPTIMIZATION_ROADMAP.md` | 全项目优化路线图 |
 
 ## Operations
 
@@ -38,7 +37,7 @@ LiMa 已从"编码助手"战略转型到"AI 智能设备统一云端服务"（20
 
 | Document | Content |
 |----------|---------|
-| `AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE.md` | AI drawing/writing model routing, admission, fallback, and device adaptation policy |
+| `AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE.md` | AI 绘图/写字模型路由指南 |
 | `ESP32S_XYZ_MANAGEMENT.md` | ESP32/硬件子模块 |
 | `MODEL_CATALOG.md` | 模型目录 |
 | `FREE_MODEL_ROUTING_STATUS.md` | 免费模型路由状态 |
@@ -51,8 +50,7 @@ LiMa 已从"编码助手"战略转型到"AI 智能设备统一云端服务"（20
 | `superpowers/plans/2026-06-09-lima-hardware-ai-capability-redesign.md` | 硬件 AI 能力重设计 |
 | `superpowers/plans/2026-06-09-lima-hardware-ai-phase1-execution-plan.md` | Phase 1 执行计划 |
 | `superpowers/plans/2026-06-09-ai-drawing-writing-robot.md` | AI 绘图/写字机设计 |
-| `superpowers/plans/2026-06-09-writing-robot-lightweight-backend.md` | 轻量级后端 |
-| `superpowers/plans/2026-06-10-device-model-routing-phase1.md` | 设备模型路由 Phase 1：route_policy 和产品 schema 对齐 |
+| `superpowers/plans/2026-06-10-device-model-routing-phase1.md` | 设备模型路由 Phase 1 |
 
 ## Work Logs
 
@@ -68,28 +66,5 @@ LiMa 已从"编码助手"战略转型到"AI 智能设备统一云端服务"（20
 |-----------|---------|
 | `archive/phase0-2026-06/` | Phase 0 代码精简里程碑 |
 | `archive/jdcloud-2026-06/` | 京东云监控部署项目 |
-| `archive/superpowers-2026-05/` | 2026-05 历史计划 |
+| `archive/superpowers-2026-05/` | 2026-05 历史计划（已清理 LiMa Code 相关） |
 | `reference/` | 参考资料 |
-
-## Documentation Statistics
-
-- **Current documents**: 100+ Markdown files, with active work anchored by this
-  index instead of one-off execution reports.
-- **Top-level docs**: 18 core references after adding
-  `PROJECT_OPTIMIZATION_ROADMAP.md`.
-- **Active strategic plans**: 9 files in `docs/superpowers/plans/` in the
-  current workspace.
-- **Archived projects**: 3 directories.
-
-## Document Lifecycle
-
-```
-plan.md → execution → report.md → merge to progress.md → delete
-                                                        ↓
-                                              completed project
-                                                        ↓
-                                        archive/{project}-{YYYY-MM}/
-```
-
-Use `PROJECT_OPTIMIZATION_ROADMAP.md` for the current optimization direction
-and `WORKSPACE_HYGIENE.md` for workspace/document hygiene rules.
