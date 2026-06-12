@@ -123,11 +123,8 @@ async def ops_summary(request: Request) -> JSONResponse:
 
 @router.get("/correlate/summary", dependencies=[Depends(require_private_api_key)])
 async def ops_correlate_summary() -> JSONResponse:
-    try:
-        from observability.correlation import correlation_summary
-        return JSONResponse(correlation_summary())
-    except ImportError:
-        return JSONResponse({"error": "correlation module not loaded"}, status_code=503)
+    from routes.ops_metrics.correlator import correlation_summary
+    return JSONResponse(correlation_summary())
 
 
 @router.get("/correlate", dependencies=[Depends(require_private_api_key)])
@@ -143,40 +140,8 @@ async def ops_correlate(
             {"error": "Provide one of: request_id, task_id, or device_id"},
             status_code=400,
         )
-    try:
-        from observability.correlation import correlate_by_id, correlate_recent
-        matched = correlate_by_id(target)
-        if not matched:
-            recent = correlate_recent(10)
-            return JSONResponse({
-                "target": target,
-                "matched": [],
-                "hint": "no events found for this id",
-                "recent_events": recent,
-            })
-        # Build a trace timeline with cross-references
-        trace: list[dict] = []
-        seen_ids: set[str] = set()
-        for event in matched:
-            trace.append(event)
-            for key in ("request_id", "task_id", "device_id"):
-                eid = event.get(key, "")
-                if eid and eid != target and eid not in seen_ids:
-                    seen_ids.add(eid)
-        # Pull in related events for discovered ids
-        for related_id in list(seen_ids)[:5]:
-            for event in correlate_by_id(related_id, limit=10):
-                if event not in trace:
-                    trace.append(event)
-        trace.sort(key=lambda e: e.get("ts", 0))
-        return JSONResponse({
-            "target": target,
-            "matched_count": len(matched),
-            "related_ids": sorted(seen_ids),
-            "trace": trace,
-        })
-    except ImportError:
-        return JSONResponse({"error": "correlation module not loaded"}, status_code=503)
+    from routes.ops_metrics.correlator import build_trace
+    return JSONResponse(build_trace(target))
 
 
 @router.get("/eval/revision", dependencies=[Depends(require_private_api_key)])
