@@ -1538,3 +1538,33 @@ Latest command execution/security hardening closeout:
   `npm.cmd test` `497 tests, 490 pass, 7 skipped`, and
   `npm.cmd audit --omit=dev` `0 vulnerabilities`; VPS deployed 4 service files
   with health OK, public `/health` 200, and unauthenticated `/v1/models` 401.
+
+## 2026-06-12 Phase 2 代码精简启动（部分完成）
+
+| Area | Status | Evidence |
+|------|--------|----------|
+| Slice 0: 临时文件清理 | Done | 95 个临时文件删除，.gitignore 更新，Commit 779de8c |
+| Slice 1: Stub 模块删除 | Done | 已在 Phase 0 完成（4a03cb8），3 个 stub 文件 ~200 行 |
+| Slice 2: smart_router 迁移 | Paused | 发现 30+ 处依赖，需要单独迁移计划 |
+| 代码规模变化 | Done | Python 行数: 1,946,450 → 1,945,078 (-1,372 行) |
+| 测试验证 | Done | 2008 passed, 25 skipped ✅ |
+| 执行报告 | Done | docs/PHASE2_PROGRESS_2026-06-12.md 已创建 |
+
+**成果**:
+- ✅ 根目录清理：删除 95 个临时文档/脚本/数据文件
+- ✅ Stub 清理：Phase 0 已删除 3 个临时实现（quality_gate, anthropic_messages_handler, anthropic_vision_sse）
+- ⏸️ smart_router 迁移暂停：发现是遗留兼容层，仍被 30+ 处引用，需要分阶段迁移
+
+**关键发现**:
+- smart_router.py 删除复杂度超预期（18 处 BACKENDS 引用、3 处意图检测、4 处熔断器）
+- Phase 2 原计划过于乐观，快速清理与深度重构应该分开执行
+- 兼容层虽然是遗留代码，但起到了稳定作用，不应急于删除
+
+**下一步**:
+1. 制定 smart_router 独立迁移计划（依赖分析 + 迁移映射 + 分批执行）
+2. 暂缓 routing_engine 和 session_memory 深度重构，等 Phase 3 需求明确
+3. 继续 Phase 3: 小智功能迁移（绘画引擎、设备管理等核心能力）
+
+**Commit**: 779de8c (Slice 0)
+**文档**: docs/PHASE2_PROGRESS_2026-06-12.md
+**测试**: 2008 passed ✅
