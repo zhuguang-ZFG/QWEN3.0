@@ -1,5 +1,10 @@
 from device_artifacts.store import artifact_store
-from device_gateway.model_routing import resolve_device_route_policy
+from device_gateway.model_routing import (
+    DEVICE_ROLE_PREFERENCES,
+    get_preferred_backend,
+    get_route_role_alternatives,
+    resolve_device_route_policy,
+)
 from device_gateway.path_validator import validate_route_policy
 from device_gateway.tasks import create_task_from_transcript, reset_tasks_for_tests
 
@@ -219,3 +224,61 @@ def test_route_evidence_includes_error_on_validation_failure():
         assert evidence.get("error_code") != ""
     finally:
         tasks_mod.resolve_device_route_policy = original
+
+
+# ── Device role routing preference tests ────────────────────────────────────
+
+
+def test_get_preferred_backend_for_control():
+    result = get_preferred_backend("device_control")
+    assert result is not None
+    assert result["backend"] == "deterministic"
+
+
+def test_get_preferred_backend_for_draw():
+    result = get_preferred_backend("device_draw")
+    assert result is not None
+    assert result["backend"] == "dashscope_wanx"
+
+
+def test_get_preferred_backend_for_write():
+    result = get_preferred_backend("device_write")
+    assert result is not None
+    assert result["backend"] == "deterministic"
+
+
+def test_get_preferred_backend_for_vector():
+    result = get_preferred_backend("device_vector")
+    assert result is not None
+    assert result["backend"] == "opencv_contour"
+
+
+def test_get_preferred_backend_for_unknown_role():
+    result = get_preferred_backend("nonexistent_role")
+    assert result is None
+
+
+def test_get_route_role_alternatives_for_draw():
+    alternatives = get_route_role_alternatives("device_draw")
+    assert len(alternatives) == 2
+    assert alternatives[0]["backend"] == "dashscope_wanx"
+    assert alternatives[1]["backend"] == "dashscope_flux"
+
+
+def test_get_route_role_alternatives_for_control():
+    alternatives = get_route_role_alternatives("device_control")
+    assert len(alternatives) == 1
+    assert alternatives[0]["backend"] == "deterministic"
+
+
+def test_get_route_role_alternatives_for_unknown():
+    alternatives = get_route_role_alternatives("nonexistent_role")
+    assert len(alternatives) == 0
+
+
+def test_device_role_preferences_covers_all_roles():
+    """All valid route roles should have preferences defined."""
+    valid_roles = {"device_control", "device_write", "device_draw", "device_vector", "device_unknown"}
+    for role in valid_roles:
+        assert role in DEVICE_ROLE_PREFERENCES, f"Missing preferences for {role}"
+        assert len(DEVICE_ROLE_PREFERENCES[role]) > 0, f"Empty preferences for {role}"

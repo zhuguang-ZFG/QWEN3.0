@@ -79,10 +79,48 @@ MODEL_REGISTRY: list[dict[str, Any]] = [
 
 _TIER_ORDER = {"fast": 0, "balanced": 1, "quality": 2}
 
+# ── Device role routing preferences ─────────────────────────────────────────
+#
+# Maps route_role to preferred backends in priority order.
+# These are the admitted backends for each device role per the admission report.
+
+DEVICE_ROLE_PREFERENCES: dict[str, list[dict[str, Any]]] = {
+    "device_control": [
+        {"backend": "deterministic", "reason": "本地确定性解析器，无 LLM 依赖"},
+    ],
+    "device_write": [
+        {"backend": "deterministic", "reason": "本地确定性渲染器，文字转路径"},
+    ],
+    "device_draw": [
+        {"backend": "dashscope_wanx", "reason": "阿里云 Wanx 图生 API，已验证"},
+        {"backend": "dashscope_flux", "reason": "阿里云 Flux 图生 API，备选"},
+    ],
+    "device_vector": [
+        {"backend": "opencv_contour", "reason": "本地 OpenCV 轮廓检测，确定性"},
+    ],
+    "device_unknown": [
+        {"backend": "deterministic", "reason": "确定性解析器回退"},
+    ],
+}
+
 
 def looks_like_svg_path(text: str) -> bool:
     stripped = (text or "").strip()
     return bool(stripped) and stripped[0] in "MmLCcQqHhVvZz" and re.search(r"[-+]?\d", stripped) is not None
+
+
+def get_preferred_backend(route_role: str) -> dict[str, Any] | None:
+    """Get the preferred backend for a device route role.
+
+    Returns the first admitted backend for the role, or None if no preference.
+    """
+    prefs = DEVICE_ROLE_PREFERENCES.get(route_role, [])
+    return prefs[0] if prefs else None
+
+
+def get_route_role_alternatives(route_role: str) -> list[dict[str, Any]]:
+    """Get all admitted backends for a device route role (for fallback)."""
+    return DEVICE_ROLE_PREFERENCES.get(route_role, [])
 
 
 def resolve_device_route_policy(voice_task: dict[str, Any], device_id: str = "") -> dict[str, Any]:
