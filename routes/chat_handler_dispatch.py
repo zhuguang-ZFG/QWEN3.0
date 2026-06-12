@@ -11,6 +11,8 @@ from typing import Callable
 from fastapi.responses import JSONResponse, StreamingResponse
 
 import router_classifier
+import router_image
+import router_intent
 import smart_router
 from chat_models import ChatRequest, extract_system_prompt
 from orchestrate import orchestrate
@@ -80,7 +82,7 @@ def resolve_route_prefs(req: ChatRequest, ide_source: str, query: str) -> RouteP
     if ide_source and "claude" in ide_source.lower():
         prefer = prefer or "scnet_ds_pro"
 
-    use_thinking = getattr(req, "thinking", False) or smart_router.detect_thinking_intent(query)
+    use_thinking = getattr(req, "thinking", False) or router_intent.detect_thinking_intent(query)
     return RoutePrefs(prefer=prefer, ide_source=ide, use_thinking=use_thinking)
 
 
@@ -129,7 +131,7 @@ async def maybe_image_response(
     record_request: Callable[..., None],
     build_pollinations_url: Callable[[str, str], str] | None,
 ) -> JSONResponse | None:
-    is_image, image_prompt = smart_router.detect_image_intent(ctx.query)
+    is_image, image_prompt = router_image.detect_image_intent(ctx.query)
     if not is_image or not build_pollinations_url:
         return None
     image_url = build_pollinations_url(image_prompt, "1024x1024")

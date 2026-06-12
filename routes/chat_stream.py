@@ -9,6 +9,7 @@ from typing import Callable
 import health_tracker
 import http_caller
 import routing_engine
+import router_image
 import smart_router
 from orchestrate import orchestrate
 from response_builder import _split_sentences, build_stream_chunk
@@ -48,7 +49,7 @@ async def stream_response(
     build_url = _build_pollinations_url
     last_resort = _last_resort_call
 
-    is_image, image_prompt = smart_router.detect_image_intent(query)
+    is_image, image_prompt = router_image.detect_image_intent(query)
     if is_image and build_url:
         image_url = build_url(image_prompt, "1024x1024")
         content = f"![image]({image_url})\n\n已为您生成图片，点击查看。"

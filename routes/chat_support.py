@@ -11,12 +11,13 @@ from datetime import datetime
 import asyncio
 
 import backends
+import router_intent
 import smart_router
 
 
 async def thinking_route(query: str, max_tokens: int = 4096, ide: str = "unknown") -> dict | None:
     """Route to a thinking-capable backend. Returns result dict or None on failure."""
-    thinking_backend = smart_router.get_thinking_backend()
+    thinking_backend = router_intent.get_thinking_backend()
     msgs = [{"role": "user", "content": query}]
     try:
         result = await asyncio.wait_for(
