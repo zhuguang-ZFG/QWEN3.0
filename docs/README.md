@@ -1,70 +1,63 @@
-# LiMa Documentation
+# LiMa 文档索引
 
-> Updated: 2026-06-13
-> 项目定位: AI 智能设备统一云端服务
+> 更新日期：2026-06-13
+> 项目定位：AI 智能设备统一云端服务
 
-## Quick Start
+## 快速入口
 
-| What you need | Read this |
-|---------------|-----------|
-| 项目全貌 | [`../STATUS.md`](../STATUS.md) |
-| 开发规范 | [`../CLAUDE.md`](../CLAUDE.md) |
-| 部署约定 | [`DEPLOY_AND_RELEASE_CONVENTION.md`](DEPLOY_AND_RELEASE_CONVENTION.md) |
+| 目标 | 文档 |
+| --- | --- |
+| 当前状态 | [`../STATUS.md`](../STATUS.md) |
+| 开发约定 | [`../CLAUDE.md`](../CLAUDE.md) |
 | 长期记忆 | [`LIMA_MEMORY.md`](LIMA_MEMORY.md) |
-| 项目优化路线图 | [`PROJECT_OPTIMIZATION_ROADMAP.md`](PROJECT_OPTIMIZATION_ROADMAP.md) |
-| 战略转型 | [`superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md`](superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md) |
+| 项目路线图 | [`PROJECT_OPTIMIZATION_ROADMAP.md`](PROJECT_OPTIMIZATION_ROADMAP.md) |
+| 发布规则 | [`DEPLOY_AND_RELEASE_CONVENTION.md`](DEPLOY_AND_RELEASE_CONVENTION.md) |
 
-## Architecture
+## 架构与请求链路
 
-| Document | Content |
-|----------|---------|
-| `ARCHITECTURE.md` | 系统架构总览 |
-| `ROUTING_ENGINE_DESIGN.md` | 路由引擎设计 |
-| `REQUEST_PIPELINE_AUTHORITY.md` | 请求管线权威边界 |
-| `OBSERVABILITY_EVENTS.md` | 可观测性事件模型 |
-| `PROJECT_OPTIMIZATION_ROADMAP.md` | 全项目优化路线图 |
+| 主题 | 文档 |
+| --- | --- |
+| 系统总览 | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
+| 请求管线权威说明 | [`REQUEST_PIPELINE_AUTHORITY.md`](REQUEST_PIPELINE_AUTHORITY.md) |
+| 路由引擎设计 | [`ROUTING_ENGINE_DESIGN.md`](ROUTING_ENGINE_DESIGN.md) |
+| 可观测事件 | [`OBSERVABILITY_EVENTS.md`](OBSERVABILITY_EVENTS.md) |
 
-## Operations
+## 设备与模型
 
-| Document | Content |
-|----------|---------|
-| `DEPLOY_AND_RELEASE_CONVENTION.md` | 自动部署 + 发布约定 |
-| `OPS_ENTRYPOINTS.md` | 运维入口 |
-| `WORKSPACE_HYGIENE.md` | 工作区卫生 |
-| `ALIYUN_PROMETHEUS_DEPLOYMENT.md` | 阿里云 Prometheus 监控 |
+| 主题 | 文档 |
+| --- | --- |
+| 绘图/写字模型路由 | [`AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE.md`](AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE.md) |
+| ESP32S_XYZ 管理 | [`ESP32S_XYZ_MANAGEMENT.md`](ESP32S_XYZ_MANAGEMENT.md) |
+| 设备协议对齐 | [`device_protocol_alignment.md`](device_protocol_alignment.md) |
+| 模型目录 | [`MODEL_CATALOG.md`](MODEL_CATALOG.md) |
+| 免费模型路由状态 | [`FREE_MODEL_ROUTING_STATUS.md`](FREE_MODEL_ROUTING_STATUS.md) |
 
-## Device & Hardware
+## 运维与发布
 
-| Document | Content |
-|----------|---------|
-| `AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE.md` | AI 绘图/写字模型路由指南 |
-| `ESP32S_XYZ_MANAGEMENT.md` | ESP32/硬件子模块 |
-| `MODEL_CATALOG.md` | 模型目录 |
-| `FREE_MODEL_ROUTING_STATUS.md` | 免费模型路由状态 |
+| 主题 | 文档 |
+| --- | --- |
+| 运维入口 | [`OPS_ENTRYPOINTS.md`](OPS_ENTRYPOINTS.md) |
+| 工作区卫生 | [`WORKSPACE_HYGIENE.md`](WORKSPACE_HYGIENE.md) |
+| 在线分发 | [`ONLINE_DISTRIBUTIONS.md`](ONLINE_DISTRIBUTIONS.md) |
+| 发布检查清单 | [`RELEASE_GATE_CHECKLIST.md`](RELEASE_GATE_CHECKLIST.md) |
+| Prometheus 部署 | [`ALIYUN_PROMETHEUS_DEPLOYMENT.md`](ALIYUN_PROMETHEUS_DEPLOYMENT.md) |
 
-## Strategic Plans (Active)
+## 近期计划
 
-| Document | Content |
-|----------|---------|
-| `superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md` | 战略转型总纲 |
-| `superpowers/plans/2026-06-09-lima-hardware-ai-capability-redesign.md` | 硬件 AI 能力重设计 |
-| `superpowers/plans/2026-06-09-lima-hardware-ai-phase1-execution-plan.md` | Phase 1 执行计划 |
-| `superpowers/plans/2026-06-09-ai-drawing-writing-robot.md` | AI 绘图/写字机设计 |
-| `superpowers/plans/2026-06-10-device-model-routing-phase1.md` | 设备模型路由 Phase 1 |
+| 主题 | 文档 |
+| --- | --- |
+| 智能设备战略转型 | [`superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md`](superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md) |
+| 硬件 AI 能力重设计 | [`superpowers/plans/2026-06-09-lima-hardware-ai-capability-redesign.md`](superpowers/plans/2026-06-09-lima-hardware-ai-capability-redesign.md) |
+| 设备模型路由 Phase 1 | [`superpowers/plans/2026-06-10-device-model-routing-phase1.md`](superpowers/plans/2026-06-10-device-model-routing-phase1.md) |
+| Phase 2 代码瘦身 | [`superpowers/plans/2026-06-12-phase2-code-simplification-plan.md`](superpowers/plans/2026-06-12-phase2-code-simplification-plan.md) |
+| Smart Router 迁移 | [`superpowers/plans/2026-06-12-smart-router-migration-plan.md`](superpowers/plans/2026-06-12-smart-router-migration-plan.md) |
 
-## Work Logs
+## 工作日志与归档
 
-| Document | Content |
-|----------|---------|
-| `../progress.md` | 执行进展 |
-| `../findings.md` | 事实发现 |
-| `../PHASE0_COMPLETION_REPORT.md` | Phase 0 完成报告 |
-
-## Archived
-
-| Directory | Content |
-|-----------|---------|
-| `archive/phase0-2026-06/` | Phase 0 代码精简里程碑 |
-| `archive/jdcloud-2026-06/` | 京东云监控部署项目 |
-| `archive/superpowers-2026-05/` | 2026-05 历史计划（已清理 LiMa Code 相关） |
-| `reference/` | 参考资料 |
+| 主题 | 文档 |
+| --- | --- |
+| 执行进展 | [`../progress.md`](../progress.md) |
+| 事实发现 | [`../findings.md`](../findings.md) |
+| 中文总索引 | [`INDEX_CN.md`](INDEX_CN.md) |
+| 归档目录 | [`archive/`](archive/) |
+| 参考资料 | [`reference/`](reference/) |
