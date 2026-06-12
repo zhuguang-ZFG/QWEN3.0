@@ -2,24 +2,24 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Callable
 
 from fastapi import HTTPException
 
 from chat_models import ChatRequest
-from orchestrate import needs_orchestration as needs_orchestration
 from response_builder import extract_query
 from routes.chat_fallback import inject_deps as _inject_chat_fallback_deps
-from routes.v3_adapters import v3_route as v3_route
 from routes.chat_handler_dispatch import (
     build_streaming_response,
     execute_non_stream_route,
-    finalize_success_response,
     maybe_image_response,
     maybe_thinking_response,
     start_chat_run,
 )
+from routes.chat_response_finalize import finalize_success_response
 
+_log = logging.getLogger(__name__)
 _model_id = "lima-1.3"
 _record_request: Callable[..., None] = lambda *a, **kw: None
 _record_fallback: Callable[..., None] | None = None
@@ -63,7 +63,8 @@ async def handle_chat(
 
         trace = new_trace()
         trace.start_span("handle_chat", ide=ide_source)
-    except ImportError:
+    except ImportError as exc:
+        _log.warning("context_pipeline.tracing unavailable: %s", exc)
         trace = None
 
     ctx = start_chat_run(
