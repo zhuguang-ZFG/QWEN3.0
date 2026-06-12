@@ -14,6 +14,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 import backends
+import router_circuit_breaker
 import smart_router
 from routes.admin_auth import verify_admin, verify_csrf
 from routes.admin_backends import describe_backend, test_backend_sync
@@ -81,7 +82,7 @@ async def admin_retrieval_traces():
 @router.get("/api/backends", dependencies=[Depends(verify_admin)])
 async def admin_backends():
     _stats, _lock, backend_enabled = stats_context()
-    cb = smart_router.cb_status()
+    cb = router_circuit_breaker.cb_status()
     backends_list = []
     for name, cfg in backends.BACKENDS.items():
         enabled = backend_enabled.get(name, True)

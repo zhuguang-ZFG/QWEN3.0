@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from access_guard import require_private_api_key
 import backends
+import router_circuit_breaker
 import smart_router
 
 router = APIRouter()
@@ -70,7 +71,7 @@ async def live_key():
 @router.get("/v1/status", dependencies=[Depends(require_private_api_key)])
 async def router_status():
     return {
-        "circuit_breakers": smart_router.cb_status(),
+        "circuit_breakers": router_circuit_breaker.cb_status(),
         "backends": list(backends.BACKENDS.keys()),
         "route_table": smart_router.ROUTE,
         "public_model": smart_router.PUBLIC_MODEL_NAME,

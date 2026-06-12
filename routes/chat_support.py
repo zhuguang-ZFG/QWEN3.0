@@ -11,6 +11,7 @@ from datetime import datetime
 import asyncio
 
 import backends
+import router_circuit_breaker
 import router_intent
 import smart_router
 
@@ -36,7 +37,7 @@ async def thinking_route(query: str, max_tokens: int = 4096, ide: str = "unknown
             continue
         if alt not in backends.BACKENDS or not backends.BACKENDS[alt].get("key"):
             continue
-        if not smart_router.cb_allow(alt):
+        if not router_circuit_breaker.cb_allow(alt):
             continue
         try:
             result = await asyncio.wait_for(

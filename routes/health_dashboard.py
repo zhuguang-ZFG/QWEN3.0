@@ -46,8 +46,8 @@ def _collect_backend_health() -> dict:
     # Circuit breaker data
     cb_data: dict = {}
     try:
-        import smart_router
-        cb_data = smart_router.cb_status()
+        import router_circuit_breaker
+        cb_data = router_circuit_breaker.cb_status()
     except (ImportError, AttributeError):
         pass
 
