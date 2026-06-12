@@ -87,25 +87,47 @@ def apply_profile_constraints(
     - Downgrades draw_generated to approval-gated when profile is incomplete.
     - Caps path points and feed to profile limits.
     - Adds profile routing metadata to the task.
+    - Records simplification decisions for audit trail.
     """
     original_task = json.loads(json.dumps(task))
+    simplifications: list[str] = []
 
     if not resolved.complete and task.get("route_policy", {}).get("model_required"):
         policy = dict(task.get("route_policy", {}))
         policy["approval_required"] = True
         policy["approval_reason"] = "incomplete device profile"
         task["route_policy"] = policy
+        simplifications.append("approval_gate:incomplete_profile")
+
+    # Cap path points if task has path data
+    params = task.get("params", {})
+    if isinstance(params, dict) and "path" in params:
+        path = params.get("path", [])
+        if isinstance(path, list) and len(path) > resolved.profile.max_path_points:
+            params["path"] = path[:resolved.profile.max_path_points]
+            task["params"] = params
+            simplifications.append(f"cap_path_points:{len(path)}→{resolved.profile.max_path_points}")
+
+    # Cap feed rate if exceeds profile limit
+    if isinstance(params, dict):
+        feed = params.get("feed")
+        if isinstance(feed, (int, float)) and feed > resolved.profile.max_feed:
+            params["feed"] = resolved.profile.max_feed
+            task["params"] = params
+            simplifications.append(f"cap_feed:{feed}→{resolved.profile.max_feed}")
+
+    # Record simplification if any changes were made
+    if simplifications:
         constrained_task = json.loads(json.dumps(task))
         record_simplification(
             device_id=str(task.get("device_id", "")),
             task_id=str(task.get("task_id", "")),
-            simplification_type="approval_gate",
-            reason="incomplete device profile",
+            simplification_type=";".join(simplifications),
+            reason=f"profile_constraints:complete={resolved.complete},fw_compatible={resolved.fw_compatible}",
             original=original_task,
             constrained=constrained_task,
         )
 
-    constrained_task = json.loads(json.dumps(task))
     task["profile_routing"] = {
         "profile_id": resolved.profile.profile_id,
         "complete": resolved.complete,

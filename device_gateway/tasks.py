@@ -81,14 +81,48 @@ def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_i
     fw_rev = voice_task.get("fw_rev", "")
     resolved = resolve_profile(device_id=device_id, fw_rev=fw_rev)
 
+    # Block dispatch when firmware is incompatible
+    if resolved.routing_hints.get("block_dispatch"):
+        task_id = _next_task_id()
+        task = {
+            "type": "motion_task",
+            "task_id": task_id,
+            "device_id": device_id,
+            "capability": capability if capability in CONTROL_CAPABILITIES else "run_path",
+            "source": voice_task.get("source", "voice"),
+            "params": {},
+            "route_policy": route_policy,
+            "profile_routing": {
+                "profile_id": resolved.profile.profile_id,
+                "complete": resolved.complete,
+                "fw_compatible": resolved.fw_compatible,
+                "max_path_points": resolved.profile.max_path_points,
+                "max_feed": resolved.profile.max_feed,
+            },
+            "error": {
+                "code": "fw_incompatible",
+                "reason": resolved.routing_hints.get("block_reason", "firmware incompatible"),
+            },
+        }
+        if request_id:
+            task["request_id"] = request_id
+        store_mod.task_store.create_task_state(task, status="blocked")
+        _record_task_created(task, status="blocked")
+        _record_route_evidence_artifact(task)
+        return task
+
     # Create task from voice intent
     task = _create_task_from_voice_task(device_id, voice_task, request_id, route_policy, params, capability)
 
     # Apply profile constraints to add routing metadata
     task = apply_profile_constraints(task, resolved)
 
-    # Record route decision for sticky routing
-    if resolved.complete:
+    # Record route decision for sticky routing only when:
+    # 1. Profile is complete (known device)
+    # 2. Firmware is compatible
+    # 3. No approval required (task not downgraded)
+    approval_required = task.get("route_policy", {}).get("approval_required", False)
+    if resolved.complete and resolved.fw_compatible and not approval_required:
         task_id = task.get("task_id", "")
         backend = route_policy.get("backend", "unknown")
         record_route_decision(device_id, backend, True)
