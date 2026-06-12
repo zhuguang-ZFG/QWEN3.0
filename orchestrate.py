@@ -14,6 +14,7 @@ import health_tracker
 import http_caller
 import routing_engine
 import router_classifier
+import router_local
 from backends import BACKENDS
 
 # ── 配置 ────────────────────────────────────────────────────────────────────
@@ -99,7 +100,7 @@ def decompose(query: str) -> list[dict[str, Any]]:
         '- "backend_hint": 建议后端（留空则自动路由）\n\n'
         "只输出 JSON，不要其他文字。"
     )
-    resp = smart_router.call_local(
+    resp = router_local.call_local(
         [{"role": "user", "content": prompt}],
         mt=DECOMPOSE_MAX_TOKENS, t=0.3
     )
@@ -246,7 +247,7 @@ def synthesize(query: str, results: list[dict[str, Any]]) -> str:
         _log.debug("orchestrate synthesize longcat failed: %s", type(exc).__name__)
 
     # 回退到本地模型
-    answer = smart_router.call_local(msgs, mt=SYNTHESIZE_MAX_TOKENS, t=0.5)
+    answer = router_local.call_local(msgs, mt=SYNTHESIZE_MAX_TOKENS, t=0.5)
     if answer and not answer.startswith("[LOCAL_ERR]"):
         return answer
 

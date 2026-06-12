@@ -76,6 +76,7 @@ from router_http import (
     call_api,
     call_api_stream,
 )
+from router_local import call_local
 from router_image import detect_image_intent
 from response_cleaner import clean_response
 from vision_handler import (
@@ -148,21 +149,6 @@ def warmup_router_model():
             print("[ROUTER] Warmup skipped — model not available", file=sys.stderr)
     except Exception as exc:
         print(f"[ROUTER] Warmup failed (non-fatal): {exc}", file=sys.stderr)
-
-
-def call_local(msgs, mt=512, t=0.3):
-    payload = json.dumps(
-        {"model": "local-model", "messages": msgs, "max_tokens": mt, "temperature": t}
-    ).encode()
-    try:
-        request = urllib.request.Request(
-            LM_URL, data=payload, headers={"Content-Type": "application/json"}
-        )
-        with urllib.request.urlopen(request, timeout=30) as resp:
-            data = json.loads(resp.read().decode())
-        return data["choices"][0]["message"]["content"]
-    except Exception as exc:
-        return f"[LOCAL_ERR] {exc}"
 
 
 DISTILL_QUEUE_DIR = os.path.join(os.path.dirname(__file__), "data", "distill_queue", "pending")

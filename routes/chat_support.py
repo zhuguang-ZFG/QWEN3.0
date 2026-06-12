@@ -12,6 +12,7 @@ import asyncio
 
 import backends
 import router_circuit_breaker
+import router_http
 import router_intent
 import smart_router
 
@@ -22,7 +23,7 @@ async def thinking_route(query: str, max_tokens: int = 4096, ide: str = "unknown
     msgs = [{"role": "user", "content": query}]
     try:
         result = await asyncio.wait_for(
-            asyncio.to_thread(smart_router.call_api, thinking_backend, msgs, max_tokens, ide),
+            asyncio.to_thread(router_http.call_api, thinking_backend, msgs, max_tokens, ide),
             timeout=90.0,
         )
         if result and not (
@@ -41,7 +42,7 @@ async def thinking_route(query: str, max_tokens: int = 4096, ide: str = "unknown
             continue
         try:
             result = await asyncio.wait_for(
-                asyncio.to_thread(smart_router.call_api, alt, msgs, max_tokens, ide),
+                asyncio.to_thread(router_http.call_api, alt, msgs, max_tokens, ide),
                 timeout=90.0,
             )
             if result and not (
