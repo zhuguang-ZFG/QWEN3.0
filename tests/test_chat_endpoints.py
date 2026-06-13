@@ -21,24 +21,6 @@ def test_server_registers_extracted_chat_endpoints():
 
 
 def test_anthropic_vision_messages_convert_base64_blocks():
-
-    messages = [
-        {
-            "role": "user",
-            "content": [
-                {"type": "text", "text": "describe"},
-                {
-                    "type": "image",
-                    "source": {
-                        "type": "base64",
-                        "media_type": "image/png",
-                        "data": "YWJj",
-                    },
-                },
-            ],
-        }
-    ]
-
     # _anthropic_vision_messages is an alias to anthropic_vision_messages from routes.anthropic_vision_sse
     # which is now an async function that raises NotImplementedError
     # Since it's async, we can only verify it's callable and properly imported

@@ -5,6 +5,17 @@
 > Updated: 2026-06-13
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-13 代码清理：修复剩余 F841/F401 未使用变量与导入
+
+- 修复 15 处 F841 未使用变量：
+  - `backend_probe_loop.py`：删除 probe result 循环中的冗余解构变量
+  - `esp32s_adapter/bridge.py`：删除未使用的 `session` 赋值
+  - `provider_probe/integrate/backend_generator.py`：删除未使用的 `is_free` 赋值
+  - `routes/chat_handler_dispatch.py`：将未使用的 `handler` 改为显式副作用调用 `_chat_handler()`
+  - `tests/test_chat_endpoints.py`、`tests/test_routing_engine.py`、`tests/test_routing_engine_integration.py`：删除未使用的测试局部变量
+- 重写 `scripts/verify_drawing_deps.py`：用 `importlib.util.find_spec` 替代 try/except 直接导入，彻底消除 F401
+- 验证：`ruff check --select F401,F841` 全部通过；focused pytest `58 passed, 1 skipped`
+
 ## 2026-06-13 第二轮瘦身：文档死区清理 + 代码未使用导入清理
 
 - 文档清理：

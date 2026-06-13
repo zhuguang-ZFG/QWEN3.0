@@ -260,10 +260,6 @@ def _probe_loop() -> None:
 
             # Update health tracker and backend profile
             for result in results:
-                backend = result["backend"]
-                status = result.get("status", "unknown")
-                latency_ms = result.get("latency_ms", 0)
-
                 record_probe_result(result)
 
             healthy = sum(1 for r in results if r.get("status") == "healthy")

@@ -21,7 +21,7 @@ class ESP32SBridge:
         Returns:
             hello message for LiMa device_gateway
         """
-        session = self.session_manager.create_session(device_id)
+        self.session_manager.create_session(device_id)
         return {
             "type": "hello",
             "protocol": "lima-device-v1",

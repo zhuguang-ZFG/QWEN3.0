@@ -57,7 +57,6 @@ def generate_backend_entry(provider_info: dict) -> str:
     fmt = provider_info.get("fmt", "openai")
     requires_auth = provider_info.get("requires_auth", True)
     auth_type = provider_info.get("auth_type", "bearer")
-    is_free = provider_info.get("is_free", False)
     caps = provider_info.get("caps", ["tool_calls"])
     timeout = provider_info.get("timeout")
     models = provider_info.get("models", [])

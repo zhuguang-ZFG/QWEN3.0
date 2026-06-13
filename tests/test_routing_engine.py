@@ -252,7 +252,7 @@ class TestRoutingEngine(unittest.TestCase):
 
         mock_call_fn = MagicMock(return_value="test response")
 
-        result = route(
+        route(
             query="test query",
             messages=[{"role": "user", "content": "test message"}],
             call_fn=mock_call_fn,

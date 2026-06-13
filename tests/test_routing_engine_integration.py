@@ -76,13 +76,6 @@ class TestRoutingEngineIntegration(unittest.TestCase):
 
         验证 RouteResult 能够正确处理会话记忆查询结果
         """
-        # 模拟会话记忆
-        session_memories = [
-            MagicMock(summary="过去写入的代码"),
-            MagicMock(summary="修复的bug"),
-            MagicMock(summary="优化的算法")
-        ]
-
         # 创建 RouteResult
         result = RouteResult(
             backend="test_backend",
@@ -103,12 +96,6 @@ class TestRoutingEngineIntegration(unittest.TestCase):
 
         验证 RouteResult 能够正确处理复杂度评估结果
         """
-        # 模拟复杂度评估
-        complexity_info = {
-            "complexity": "medium",
-            "factors": {"length": 0.5, "technical_terms": 0.3}
-        }
-
         # 创建 RouteResult
         result = RouteResult(
             backend="test_backend",
@@ -155,13 +142,6 @@ class TestRoutingEngineIntegration(unittest.TestCase):
 
         验证 RouteResult 能够正确处理健康跟踪信息
         """
-        # 模拟健康跟踪
-        health_tracker_info = {
-            "backend_status": "healthy",
-            "last_failure_time": None,
-            "consecutive_failures": 0
-        }
-
         # 创建 RouteResult
         result = RouteResult(
             backend="test_backend",
@@ -182,13 +162,6 @@ class TestRoutingEngineIntegration(unittest.TestCase):
 
         验证 RouteResult 能够正确处理路由后集成
         """
-        # 模拟路由后集成
-        post_integrations = {
-            "analytics": "sent",
-            "logging": "completed",
-            "monitoring": "started"
-        }
-
         # 创建 RouteResult
         result = RouteResult(
             backend="test_backend",
@@ -209,18 +182,6 @@ class TestRoutingEngineIntegration(unittest.TestCase):
 
         验证 RouteResult 能够正确处理路由事件
         """
-        # 模拟路由事件
-        routing_events = {
-            "routing_decision": {
-                "backend": "test_backend",
-                "scenario": "general",
-                "req_type": "chat",
-                "latency_ms": 100,
-                "success": True,
-                "fallback_used": False
-            }
-        }
-
         # 创建 RouteResult
         result = RouteResult(
             backend="test_backend",
@@ -242,16 +203,6 @@ class TestRoutingEngineIntegration(unittest.TestCase):
 
         验证 RouteResult 能够正确处理反馈桥信息
         """
-        # 模拟反馈桥
-        feedback_info = {
-            "request_id": "test_request_id",
-            "scenario": "general",
-            "backend": "test_backend",
-            "success": True,
-            "latency_ms": 100,
-            "fallback_used": False
-        }
-
         # 创建 RouteResult
         result = RouteResult(
             backend="test_backend",

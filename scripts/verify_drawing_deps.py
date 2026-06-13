@@ -1,64 +1,49 @@
 #!/usr/bin/env python3
 """验证绘画引擎依赖是否正确安装"""
 
+import importlib.util
 import sys
 
-def verify_dependencies():
+
+def _check(module_name: str, attr: str = "__version__") -> tuple[bool, str]:
+    """Return (ok, info) for a module without importing it."""
+    spec = importlib.util.find_spec(module_name)
+    if spec is None:
+        return False, "not found"
+    try:
+        module = importlib.import_module(module_name)
+        version = getattr(module, attr, "imported")
+        return True, str(version)
+    except ImportError as exc:
+        return False, str(exc)
+
+
+def verify_dependencies() -> bool:
     """验证所有绘画引擎依赖"""
     errors = []
 
-    # 1. SVG 路径解析
-    try:
-        import svgpathtools
-        print(f"[OK] svgpathtools imported")
-    except ImportError as e:
-        errors.append(f"[FAIL] svgpathtools: {e}")
+    checks = [
+        ("svgpathtools", "__version__"),
+        ("shapely", "__version__"),
+        ("dashscope", "__version__"),
+        ("PIL", "__version__"),
+        ("alembic", "__version__"),
+    ]
 
-    # 2. 几何计算
-    try:
-        import shapely
-        print(f"[OK] shapely {shapely.__version__}")
-    except ImportError as e:
-        errors.append(f"[FAIL] shapely: {e}")
+    for module_name, attr in checks:
+        ok, info = _check(module_name, attr)
+        if ok:
+            print(f"[OK] {module_name} {info}")
+        else:
+            errors.append(f"[FAIL] {module_name}: {info}")
 
-    # 3. DashScope SDK
-    try:
-        import dashscope
-        version = getattr(dashscope, '__version__', 'imported')
-        print(f"[OK] dashscope {version}")
-    except ImportError as e:
-        errors.append(f"[FAIL] dashscope: {e}")
-
-    # 4. Pillow
-    try:
-        from PIL import Image
-        import PIL
-        print(f"[OK] Pillow {PIL.__version__}")
-    except ImportError as e:
-        errors.append(f"[FAIL] Pillow: {e}")
-
-    # 5. Alembic
-    try:
-        import alembic
-        print(f"[OK] alembic {alembic.__version__}")
-    except ImportError as e:
-        errors.append(f"[FAIL] alembic: {e}")
-
-    # 6. 位图矢量化（可选，检查多个可能的包）
+    # 位图矢量化（可选，检查多个可能的包）
     potrace_available = False
-    try:
-        import pypotrace
-        print(f"[OK] pypotrace found")
-        potrace_available = True
-    except ImportError:
-        pass
-
-    try:
-        import potracer
-        print(f"[OK] potracer {potracer.__version__}")
-        potrace_available = True
-    except ImportError:
-        pass
+    for module_name in ("pypotrace", "potracer"):
+        ok, info = _check(module_name)
+        if ok:
+            print(f"[OK] {module_name} {info}")
+            potrace_available = True
 
     if not potrace_available:
         print("[WARN] potrace: not found (pypotrace or potracer)")
@@ -72,6 +57,7 @@ def verify_dependencies():
 
     print("\n[SUCCESS] All core dependencies verified!")
     return True
+
 
 if __name__ == "__main__":
     success = verify_dependencies()

@@ -190,7 +190,7 @@ def build_streaming_response(ctx: ChatRunContext, req: ChatRequest) -> Streaming
     intent = routing_intent.analyze_intent(
         ctx.query, system_prompt=ctx.sys_prompt_preview, ide=ctx.ide_source
     )
-    handler = _chat_handler()
+    _chat_handler()  # ensures chat_handler deps are imported/injected
     use_orchestration = (
         needs_orchestration(ctx.query, intent)
         if not ctx.prefs.prefer
@@ -216,7 +216,7 @@ async def execute_non_stream_route(ctx: ChatRunContext, req: ChatRequest) -> tup
     intent = routing_intent.analyze_intent(
         ctx.query, system_prompt=ctx.sys_prompt_preview, ide=ctx.ide_source
     )
-    handler = _chat_handler()
+    _chat_handler()  # ensures chat_handler deps are imported/injected
     use_orchestration = (
         needs_orchestration(ctx.query, intent)
         if not ctx.prefs.prefer
