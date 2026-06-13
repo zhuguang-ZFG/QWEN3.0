@@ -24,6 +24,20 @@
 - 验证：`ruff check .` 通过；`pytest --ignore=tests/test_token_health.py`：2057 passed, 25 skipped
 - 残留：`tmp/pytest-lima-run` 目录被运行中 Python 进程占用，未能删除
 
+## 2026-06-13 docs/archive 去重合并（Phase 2）
+
+- 更新 `AGENTS.md`：移除对 `docs/archive/en/REQUEST_PIPELINE_AUTHORITY.md` 的英文归档回退提示
+- 删除 8 份英文归档文档及空目录 `docs/archive/en/`
+- 删除损坏文件：
+  - `docs/archive/doc-cleanup-2026-06/DOCUMENTATION_CLEANUP_PLAN.md`
+  - `docs/archive/doc-cleanup-2026-06/DOCUMENTATION_CLEANUP_EXECUTION.md`
+  - `docs/archive/jdcloud-2026-06/README.md`
+- 删除重复/失效索引：
+  - `docs/archive/cleanup-2026-06/root-historical/PHASE0_COMPLETION_REPORT.md`
+  - `docs/archive/cleanup-2026-06/root-historical/AGENTS_CN.md`
+  - `docs/archive/INDEX_CN.md`（39 个链接 38 个失效，已被 `docs/README.md` 取代）
+- 修正 `docs/archive/phase0-2026-06/README.md` 中指向已删除完成报告的链接
+
 ## 2026-06-13 英文文档归档与入口引用修复
 
 - 归档 8 份英文多语言文档到 `docs/archive/en/`：

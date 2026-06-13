@@ -56,7 +56,7 @@
 
 - 战略转型总纲: `../superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md`
 - Phase 1 计划: `../superpowers/plans/2026-06-09-lima-hardware-ai-phase1-execution-plan.md`
-- 完成报告: `../../PHASE0_COMPLETION_REPORT.md`
+- 完成报告：本文档即为 Phase 0 完成摘要
 
 ---
 

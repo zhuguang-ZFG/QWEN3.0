@@ -76,7 +76,7 @@ Client → server.py (BodySizeLimitMiddleware, access_guard)
       → Client (JSON or SSE)
 ```
 
-Authority doc: `docs/REQUEST_PIPELINE_AUTHORITY_CN.md`（中文权威版；英文归档：`docs/archive/en/REQUEST_PIPELINE_AUTHORITY.md`）
+Authority doc: `docs/REQUEST_PIPELINE_AUTHORITY_CN.md`（中文权威版；英文归档已删除）
 
 ### Key Module Ownership
 
