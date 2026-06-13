@@ -214,4 +214,4 @@ print(event["phase"])  # "done"
 
 - [协议适配器设计](ESP32S_XYZ_PROTOCOL_ADAPTER_DESIGN.md)
 - [esp32S_XYZ 架构定稿](../esp32S_XYZ/docs/架构定稿-v2.md)
-- [LiMa 设备网关协议](device_gateway/protocol.py)
+- [LiMa 设备网关协议](../device_gateway/protocol.py)

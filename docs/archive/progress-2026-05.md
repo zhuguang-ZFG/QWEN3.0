@@ -2,7 +2,7 @@
 
 > 来源：根目录 progress.md 拆分
 > 范围：2026-05-22 至 2026-05-31
-> 说明：本文件仅保留历史审计，当前进展请查看根目录 [progress.md](../progress.md)
+> 说明：本文件仅保留历史审计，当前进展请查看根目录 [progress.md](../../progress.md)
 
 ## 2026-05-31 bounded telemetry JSONL closeout
 

@@ -7,7 +7,7 @@
 > **Status:** Active plan | **Created:** 2026-05-26
 >
 > **Related:** `docs/LOCAL_PROXY_RUNTIME_STATUS.md`、`infra/README.md`、`docs/OBSERVABILITY_EVENTS.md`、
-> `docs/superpowers/plans/2026-05-26-telegram-github-maximization.md`（告警通道）、
+> （已退役）Telegram/GitHub 告警通道、
 > `AGENTS.md`（禁止提交真实密钥）
 
 ---

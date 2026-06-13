@@ -4,7 +4,7 @@
 **Owner：** zhuguang-ZFG
 **状态：** 已实现（2026-06-13）
 **前置：** [`2026-06-13-routing-authority-bypass-audit.md`](2026-06-13-routing-authority-bypass-audit.md) Phase 0–2 已完成
-**权威：** [`docs/REQUEST_PIPELINE_AUTHORITY.md`](../../REQUEST_PIPELINE_AUTHORITY.md)
+**权威：** [`docs/REQUEST_PIPELINE_AUTHORITY_CN.md`](../../REQUEST_PIPELINE_AUTHORITY_CN.md)
 
 ---
 

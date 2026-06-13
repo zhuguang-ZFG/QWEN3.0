@@ -38,6 +38,22 @@
   - `docs/archive/INDEX_CN.md`（39 个链接 38 个失效，已被 `docs/README.md` 取代）
 - 修正 `docs/archive/phase0-2026-06/README.md` 中指向已删除完成报告的链接
 
+## 2026-06-13 Markdown 失效链接修复（Phase 3）
+
+- 活跃文档：
+  - `CLAUDE.md:43`：`docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md` → `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md`
+  - `README.md`：删除指向未创建文档的 `lima-replace-xiaozhi-feasibility.md` 链接
+  - `docs/ESP32S_XYZ_INTEGRATION_GUIDE.md:217`：`device_gateway/protocol.py` → `../device_gateway/protocol.py`
+  - `docs/superpowers/plans/2026-06-13-stream-routing-consistency-p0-design.md`：`REQUEST_PIPELINE_AUTHORITY.md` → `REQUEST_PIPELINE_AUTHORITY_CN.md`
+  - `docs/README.md`：移除 `archive/INDEX_CN.md`、`archive/en/` 失效归档入口
+- 归档文档：
+  - `docs/archive/progress-2026-05.md`：`../progress.md` → `../../progress.md`
+  - `docs/archive/doc-cleanup-2026-06/DOCUMENTATION_CLEANUP_SUMMARY.md`：`README.md` → `../../README.md`；`DOCUMENTATION_CLEANUP_PLAN.md` → `DOCUMENTATION_DEEP_CLEANUP_PLAN.md`
+  - `docs/archive/superpowers-2026-05/` 中 6 份文档：将缺失的 `2026-05-26-telegram-github-maximization.md` 和 `../NEXT_MILESTONES.md` 链接替换为纯文本/退役说明
+- 子项目文档：
+  - `esp32S_XYZ/docs/U1-Grbl适配说明.md`：Windows 绝对路径 `C:/Users/...` → 相对仓库路径 `../firmware/...`
+- 扫描结果：仓库内相对链接从 55+ 失效降至 0（排除 `.venv` 与代码块内 lambda 语法误识别）
+
 ## 2026-06-13 英文文档归档与入口引用修复
 
 - 归档 8 份英文多语言文档到 `docs/archive/en/`：

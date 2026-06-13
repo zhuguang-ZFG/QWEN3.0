@@ -285,7 +285,6 @@ pytest --cov=. --cov-report=html
 
 详见：
 - [战略转型计划](docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md)
-- [LiMa 替换小智可行性分析](docs/superpowers/plans/2026-06-09-lima-replace-xiaozhi-feasibility.md)
 
 ---
 

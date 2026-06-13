@@ -4,8 +4,8 @@
 >
 > **Supersedes for scheduling:** `docs/superpowers/plans/2026-05-26-lima-productivity-enhancement.md`（Netdata/SearXNG 等 **后置**）
 >
-> **Related plans:**
-> - [`2026-05-26-telegram-github-maximization.md`](2026-05-26-telegram-github-maximization.md)
+> **Related plans：**
+> - Telegram/GitHub 告警通道（已退役）
 > - [`2026-05-26-gitee-maximization.md`](2026-05-26-gitee-maximization.md)
 > - [`2026-05-26-cloudflare-google-maximization.md`](2026-05-26-cloudflare-google-maximization.md)
 
@@ -96,4 +96,4 @@ P2  延后
 
 ## 5. 与生产力计划关系
 
-[`2026-05-26-lima-productivity-enhancement.md`](2026-05-26-lima-productivity-enhancement.md) **维持 P2**；§4 已 ≥95%，下一执行入口见 [`docs/NEXT_MILESTONES.md`](../NEXT_MILESTONES.md) 四线地图。
+[`2026-05-26-lima-productivity-enhancement.md`](2026-05-26-lima-productivity-enhancement.md) **维持 P2**；§4 已 ≥95%，下一执行入口见 `docs/NEXT_MILESTONES.md`（文档已归档/删除）四线地图。

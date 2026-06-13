@@ -6,7 +6,7 @@
 >
 > **Status:** Active plan | **Created:** 2026-05-26
 >
-> **Related:** [`2026-05-26-telegram-github-maximization.md`](2026-05-26-telegram-github-maximization.md)、
+> **Related:** Telegram/GitHub 告警通道（已退役）、
 > [`2026-05-26-cloudflare-google-maximization.md`](2026-05-26-cloudflare-google-maximization.md)（CF-G-5 官网）、
 > `docs/GITHUB_WEBHOOK_INTEGRATION.md`、`docs/LIMACODE_MANAGEMENT.md`
 
@@ -321,6 +321,6 @@ GITEE_AI_BASE_URL=https://ai.gitee.com/v1
 | 文档 | 用途 |
 |------|------|
 | `docs/GITHUB_WEBHOOK_INTEGRATION.md` | 对称实现模板 |
-| `docs/superpowers/plans/2026-05-26-telegram-github-maximization.md` | Telegram 主线 |
+| （已退役）Telegram/GitHub 告警通道 | Telegram 主线 |
 | [Gitee WebHook 帮助](https://help.gitee.com/webhook/gitee-webhook-push-data-format) | Payload / Header |
 | [模力方舟集成指南](https://ai.gitee.com/docs/integrations/intro) | OpenAI 兼容 API |

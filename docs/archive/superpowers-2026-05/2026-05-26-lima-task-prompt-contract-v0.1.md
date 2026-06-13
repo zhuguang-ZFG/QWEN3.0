@@ -1,7 +1,7 @@
 # LiMa Task Prompt Contract v0.1 (LC-W-1)
 
-> **Status:** Active (next slice) | **Created:** 2026-05-26  
-> **Parent:** [`docs/NEXT_MILESTONES.md`](../NEXT_MILESTONES.md) §2 LiMa Code Worker  
+> **Status:** Active (next slice) | **Created:** 2026-05-26
+> **Parent:** `docs/NEXT_MILESTONES.md`（文档已归档/删除）§2 LiMa Code Worker
 > **Depends on:** bounded `/lima task|next|work`, agent task store, summary constraints (existing)
 
 ---

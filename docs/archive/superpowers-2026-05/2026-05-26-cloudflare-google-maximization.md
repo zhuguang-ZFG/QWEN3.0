@@ -1,8 +1,6 @@
 # Cloudflare × Google 免费账号利用最大化 — 详细实施方案
 
-> **For agentic workers:** 文档先行；与
-> [`2026-05-26-telegram-github-maximization.md`](2026-05-26-telegram-github-maximization.md)
-> 并行规划，**次于 TG-GH-2** 启动编码实现。
+> **For agentic workers:** 文档先行；与 Telegram/GitHub 告警通道（已退役）并行规划，**次于 TG-GH-2** 启动编码实现。
 >
 > **Goal:** 把你已有的 **Cloudflare 账号** 与 **Google AI 免费额度** 变成 LiMa 可观测、可路由、可回退的生产力层——而不是注册后闲置。
 >
@@ -311,4 +309,4 @@ docs/CF_GOOGLE_INVENTORY_REPORT.md # 生成物
 | `docs/CLOUDFLARE_WORKER_QUICK_EVAL.md` | Worker eval 证据 |
 | `docs/FREE_MODEL_ROUTING_STATUS.md` | 免费模型 tier 决策 |
 | `docs/superpowers/plans/2026-05-26-provider-model-automation-full-plan.md` | 发现管道存档 |
-| `docs/superpowers/plans/2026-05-26-telegram-github-maximization.md` | 告警/早报通道 |
+| （已退役）Telegram/GitHub 告警通道 | 告警/早报通道 |
