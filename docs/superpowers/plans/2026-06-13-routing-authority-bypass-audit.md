@@ -78,8 +78,19 @@
 
 ### Phase 3 — 模块边界（P2）
 
-- `routing_engine` 考虑将 `select`/`execute` 改为 `_select`/`_execute` 或移入 `routing_engine/_internal.py`，仅 `route` 公开
+- `routing_engine` 考虑将 `select`/`execute` 改为 `_select`/`_execute` 或移入 `routing_engine/_internal.py`，仅 `route` / `pick_backend` 公开
 - 超大文件拆分见 CQ 计划（`routing_engine.py`、`xiaozhi_v1_compat.py` 等）
+
+### Phase P1 — 编排上下文与文档对齐 ✅ 2026-06-13
+
+| 项 | 状态 |
+|----|------|
+| `orchestrate._route_via_engine` 传递 `ide` / `system_prompt` / `tools` | ✅ |
+| `execute_subtasks` hint 路径传递 `ide` / `system_prompt` | ✅ |
+| `routing_engine` 错误路径 `%s` 日志修复 | ✅ |
+| `REQUEST_PIPELINE_AUTHORITY.md` 移除 semantic_cache / code_orchestrator | ✅ |
+| `prefer` 模型别名强制选路（流式/非流式） | 待设计 |
+| `eval_internal` eval 旁路 | Phase 3+ |
 
 ## 4. routes/ 超标文件（本地 wc，2026-06-13）
 

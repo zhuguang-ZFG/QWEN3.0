@@ -39,7 +39,6 @@ tests and VPS smoke (retrieval unification pattern, CQ-059).
 | Retrieval inject | `context_pipeline/retrieval_injection.py` | `local_retrieval` | 知识图谱/向量检索 |
 | Code context inject | `context_pipeline/code_context_injection.py` | — | tree-sitter 扫描 |
 | Skills inject | `skills_injector.py` | — | Temperature-gated |
-| Semantic cache | `semantic_cache.py` | — | temperature=0 only |
 | Session memory write | `session_memory/store*.py` | — | Split: db/crud/promote/admin |
 | Quality retry | `routes/quality_gate*.py` | root `quality_gate.py` (coding eval) | **Different modules** |
 | Response validation | `context_pipeline/response_validator.py` | — | 编码响应质量检查 |
@@ -52,26 +51,28 @@ tests and VPS smoke (retrieval unification pattern, CQ-059).
 
 `routing_engine.route()` 是唯一路由入口，内部按序执行：
 
+> **已知 bypass 收敛与流式一致性：** 见 [`docs/superpowers/plans/2026-06-13-routing-authority-bypass-audit.md`](superpowers/plans/2026-06-13-routing-authority-bypass-audit.md)。流式 speculative 选路使用 `pick_backend()`（与 `route()` 共享前半段），不经 `select()`/`execute()` 直调。
+
 ```text
 1. identity_guard    — 身份识别短路 (→ 直接返回)
-2. semantic_cache    — 缓存命中短路 (→ 直接返回)
-3. classify          — request_type (ide/chat/code/image)
-4. classify_scenario — scenario (coding/chat/device/...)
-5. skill_store       — 技能记忆召回 → recalled_backend
-6. retrieval_injection — 知识图谱/向量上下文注入
-7. code_context      — (coding only) tree-sitter 代码上下文
-8. memory_promote    — (coding only) 历史 coding_fact/routing_lesson
-9. complexity        — 请求复杂度评估
-10. code_orchestrator — (coding + call_fn) 编码 tier 逻辑 (→ 短路返回)
-11. router_v3.select_backends → routing_selector.select — 后端排名
-12. skills_injector  — Skills 注入到 messages
-13. context_compressor — (可选) 长对话压缩
-14. speculative      — (简单请求) 推测性并行调用
-15. routing_executor.execute — 按序/并行执行 + fallback
-16. response_validator — (coding) 响应质量验证 + 重试
-17. route_post_process — 后处理 (correlation/evidence/feedback)
-18. feedback_bridge  — 闭环反馈记录
+2. classify          — request_type (ide/chat/code/image)
+3. classify_scenario — scenario (coding/chat/device/...)
+4. skill_store       — 技能记忆召回 → recalled_backend
+5. retrieval_injection — 知识图谱/向量上下文注入
+6. code_context      — (coding only) tree-sitter 代码上下文
+7. memory_promote    — (coding only) 历史 coding_fact/routing_lesson
+8. complexity        — 请求复杂度评估
+9. router_v3.select_backends → routing_selector.select — 后端排名
+10. skills_injector  — Skills 注入到 messages
+11. context_compressor — (可选) 长对话压缩
+12. speculative      — (简单请求) 推测性并行调用
+13. routing_executor.execute — 按序/并行执行 + fallback
+14. response_validator — (coding) 响应质量验证 + 重试
+15. route_post_process — 后处理 (correlation/evidence/feedback)
+16. feedback_bridge  — 闭环反馈记录
 ```
+
+**流式 speculative（非完整 route）：** `routes/stream_handlers.speculative_stream_chunks` → `v3_predict` / `v3_select` → `pick_backend()` → `v3_call_stream*` 执行 HTTP。
 
 ## Request flow (chat)
 

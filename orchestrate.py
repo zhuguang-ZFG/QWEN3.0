@@ -166,7 +166,12 @@ def execute_subtasks(
         if hint and hint in BACKENDS and not health_tracker.is_cooled_down(hint):
             try:
                 answer = http_caller.call_api(
-                    hint, [{"role": "user", "content": task_query}])
+                    hint,
+                    [{"role": "user", "content": task_query}],
+                    max_tokens,
+                    system_prompt=system_prompt,
+                    ide=ide_source,
+                )
                 return {
                     "task": task_query,
                     "answer": answer,
@@ -275,8 +280,15 @@ def _route_via_engine(
 ):
     msgs = messages if messages else [{"role": "user", "content": query}]
 
-    def _call_fn(backend, msgs, mt):
-        return http_caller.call_api(backend, msgs, mt)
+    def _call_fn(backend, msgs, mt, tools=None):
+        return http_caller.call_api(
+            backend,
+            msgs,
+            mt,
+            system_prompt=system_prompt,
+            ide=ide_source,
+            tools=tools,
+        )
 
     return routing_engine.route(
         query,

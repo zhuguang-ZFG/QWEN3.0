@@ -223,7 +223,7 @@ def _inject_coding_context(messages: list[dict], scenario: str,
             insert_pos = 2 if messages and messages[0].get("role") == "system" else 1
             messages.insert(insert_pos, mem_msg)
     except Exception as exc:
-        _log.debug("routing_engine.py: {}", type(exc).__name__)
+        _log.debug("code_context memory promote failed: %s", type(exc).__name__)
 
     return messages, code_context_text
 
@@ -360,10 +360,10 @@ def _maybe_quality_retry(
                         try:
                             health_tracker.record_failure(final_backend, 200, "quality_retry")
                         except Exception as exc:
-                            _log.debug("routing_engine.py: {}", type(exc).__name__)
+                            _log.debug("quality retry health record failed: %s", type(exc).__name__)
                         return retry_backend, retry_answer
     except Exception as exc:
-        _log.debug("routing_engine.py: {}", type(exc).__name__)
+        _log.debug("response validation retry failed: %s", type(exc).__name__)
     return final_backend, answer
 
 
@@ -389,7 +389,7 @@ def _post_route(answer: str | None, final_backend: str, backends: list[str],
             "latency_ms": ms, "success": success, "fallback_used": fallback_used,
         })
     except Exception as exc:
-        _log.debug("routing_engine.py: {}", type(exc).__name__)
+        _log.debug("routing_decision event record failed: %s", type(exc).__name__)
 
     try:
         from routing_loop.feedback_bridge import on_request_complete

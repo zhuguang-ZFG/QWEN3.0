@@ -70,7 +70,11 @@ async def stream_response(
     messages: list | None = None,
     prefer: str | None = None,
 ):
-    """SSE generator: speculative streaming with orchestration/thinking fallbacks."""
+    """SSE generator: speculative streaming with orchestration/thinking fallbacks.
+
+    Note: ``prefer`` currently only disables orchestration in the caller; it does
+    not force backend selection on the speculative path (see audit P1 backlog).
+    """
     messages = messages or []
     build_url = _build_pollinations_url
     last_resort = _last_resort_call
