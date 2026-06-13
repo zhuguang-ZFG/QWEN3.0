@@ -10,7 +10,7 @@ Production LiMa chat requests use an **explicit, layered pipeline**. No single
 Authority order:
 
 1. **Edge** — `server.py`, `http_body_limit.BodySizeLimitMiddleware`, `access_guard`
-2. **Protocol routes** — `routes/chat_endpoints.py`, `routes/anthropic_messages_handler.py`, `routes/tool_forward*.py`
+2. **Protocol routes** — `routes/chat_endpoints.py`
 3. **Preflight** — `routes/chat_preflight.py`, `server_context.py`, optional `context_pipeline.guardrails`
 4. **Routing** — `routing_engine.route()` / `pick_backend()`（选路 + 执行；`select`/`execute` 分别在 `routing_selector` / `routing_executor`）
 5. **HTTP transport** — `http_caller` → `http_sync` / `http_async` / `http_stream`
@@ -43,8 +43,6 @@ tests and VPS smoke (retrieval unification pattern, CQ-059).
 | Quality retry | `routes/quality_gate*.py` | root `quality_gate.py` (coding eval) | **Different modules** |
 | Response validation | `context_pipeline/response_validator.py` | — | 编码响应质量检查 |
 | Post-route hooks | `route_post_process.py` | — | correlation/evidence/feedback |
-| Agent task HTTP | `routes/agent_tasks.py` | store/service/schemas submodules | Not on chat hot path |
-| Agent run queue | `agent_runtime/orchestrator*.py` | `orchestrator.py` facade | Local lease queue |
 | Ops metrics | `routes/ops_metrics.py` | — | Reads `app.state.stats` |
 
 ## routing_engine.route() 内部管线

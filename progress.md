@@ -4,6 +4,18 @@
 
 > Updated: 2026-06-13
 
+## 2026-06-13 项目文档更新与瘦身清理
+
+- C1：删除根目录零引用 Python 模块 10 个（append_datasets.py、capture_prompt.py、closed_loop.py、deep_context.py、generate_routing_data.py、grpo_train.py、intent_templates.py、router_classifier_final.py、verify_router.py、worker_daemon.py）
+- C3：清理 scratch/debug/tmp 脚本、日志、根目录 stray tests（test_muyuan*.py、test_sharedchat*.py、test_vps_route.py 等）
+- C4：删除占位 device_memory 子系统（routes/device_memory.py + device_memory/{consolidation,extractor,quality_gates,recall}.py）
+- C5：删除本地缓存与 IDE/agent 状态目录（.omc、.omx、.mimocode、.qoder、.reasonix、.codegraph、_codegraph_repo、.learnings、.hypothesis、.pytest_cache、.ruff_cache、__pycache__），释放约 100+ MB
+- C6：移除已跟踪二进制/运行时产物（router_model.pkl 1.4MB、deploy_xiaozhi.tar.gz、emu_screen.png、GIT_STATUS.txt）及本地凭证类文件（cpk.json、kimi.txt、kimi_session_vps.json）
+- C7：归档历史文档 22 份到 docs/archive/cleanup-2026-06/root-historical/（含 AGENTS_CN.md、May-18 prompt/model 文档、里程碑报告等）
+- C8：更新 README.md、AGENTS.md、docs/REQUEST_PIPELINE_AUTHORITY.md 中的失效引用与退役子系统描述
+- C9：legacy 路由/HTTP 栈（smart_router.py、router_http*.py 等）判定为独立里程碑，延后处理
+- 验证：ruff clean；pytest focused suite 49 passed
+
 ## 2026-06-13 Phase 5 xiaozhi compat 拆分收尾
 
 - `xiaozhi_v1_compat.py`：518 → ~27 行（删除与子模块重复 helper）

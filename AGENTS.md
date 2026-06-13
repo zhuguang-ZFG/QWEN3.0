@@ -56,11 +56,10 @@ python scripts/repo_stats.py
 
 ```
 Client → server.py (BodySizeLimitMiddleware, access_guard)
-      → routes/chat_endpoints.py | routes/anthropic_messages_handler.py
+      → routes/chat_endpoints.py
       → routes/chat_preflight.py (guardrails, budget, identity)
       → routing_engine.route()          ← authoritative routing entry
          ├─ identity_guard              (identity short-circuit)
-         ├─ semantic_cache              (cache hit short-circuit)
          ├─ routing_classifier.classify (request_type: ide/chat/code/image)
          ├─ routing_classifier.classify_scenario (scenario: coding/chat/device/...)
          ├─ skill_store recall          (skill memory → recalled_backend)
@@ -96,10 +95,8 @@ Authority doc: `docs/REQUEST_PIPELINE_AUTHORITY.md`
 | Retrieval inject | `context_pipeline/retrieval_injection.py` | — |
 | Code context | `context_pipeline/code_context_injection.py` | — |
 | Skills inject | `skills_injector.py` | — |
-| Semantic cache | `semantic_cache.py` | — |
 | Session memory | `session_memory/store*.py` (split: db/crud/promote/admin) | — |
 | Quality gate | `routes/quality_gate*.py` | root `quality_gate.py` (coding eval) |
-| Agent tasks | `routes/agent_tasks.py` + `agent_runtime/` | — |
 | Ops metrics | `routes/ops_metrics.py` | — |
 
 ### Parallel Subsystems (Non-Chat Hot Path)
@@ -108,7 +105,6 @@ Authority doc: `docs/REQUEST_PIPELINE_AUTHORITY.md`
 |-----------|------|---------|
 | Device Gateway | `device_gateway/`, `routes/device_gateway*.py` | `/device/v1/*`; Redis task queue + WSS; ESP32/hardware |
 | Channel Gateway | `channel_gateway/`, `routes/channel_gateway.py` | Slash commands, G3 sessions |
-| Agent Runtime | `agent_runtime/` | Generic Agent Worker task orchestration |
 | Session Memory | `session_memory/` | Persistent memory + learning loop |
 | Context Pipeline | `context_pipeline/` (43 modules) | Retrieval, code context, validation, reranking |
 | Observability | `observability/` | Prometheus metrics, structured logging |
@@ -212,10 +208,10 @@ Internet → VPS (nginx → lima-router :8080, Redis)
 | `CLAUDE.md` | Condensed dev rules + repo stats |
 | `docs/REQUEST_PIPELINE_AUTHORITY.md` | 18-step pipeline + module ownership matrix |
 | `docs/ROUTING_ENGINE_DESIGN.md` | routing_engine.py design decisions |
-| `docs/TECHNICAL_ARCHITECTURE.md` | Full architecture (note: some sections outdated) |
+| `docs/ARCHITECTURE.md` | System architecture |
 | `docs/DEPLOY_AND_RELEASE_CONVENTION.md` | Deploy/release hard rules |
 | `docs/LIMA_MEMORY.md` | Long-term project memory |
-| `docs/PERSONAL_CODING_ASSISTANT_PLAN.md` | Current main plan |
+| `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md` | Current optimization roadmap |
 | `task_plan.md` | Current task plan + evidence |
 | `findings.md` | Factual discoveries and ops conclusions |
 | `progress.md` | Execution progress log |

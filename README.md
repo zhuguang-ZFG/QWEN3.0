@@ -132,14 +132,16 @@ response = client.chat.completions.create(
 )
 ```
 
-### 设备网关端点（规划中，Day 3-5 实现）
+### 设备网关端点（已实现）
 
 ```bash
-POST /device/register      # 设备注册
-POST /device/command       # 下发指令
-GET  /device/{id}/status   # 查询状态
-POST /device/task/drawing  # 绘图任务
-POST /device/task/writing  # 写字任务
+POST /api/v1/devices/register      # 设备注册
+POST /api/v1/devices/bind          # 设备绑定
+GET  /api/v1/devices               # 设备列表
+POST /device/v1/tasks              # 下发任务
+GET  /device/v1/tasks/{task_id}    # 查询任务
+POST /device/v1/draw               # 绘图任务
+POST /device/v1/write              # 写字任务
 ```
 
 ### 管理端点
@@ -171,7 +173,7 @@ python scripts/deploy_unified.py --target aliyun --profile lima-prod
 python scripts/deploy_unified.py --target jdcloud --profile lima-probe
 ```
 
-详见 [DEPLOYMENT.md](docs/DEPLOYMENT.md)
+详见 [DEPLOY_AND_RELEASE_CONVENTION.md](docs/DEPLOY_AND_RELEASE_CONVENTION.md)
 
 ---
 
@@ -194,9 +196,9 @@ D:\QWEN3.0\
 ├── tests/                     # 测试
 └── docs/                      # 文档
     ├── ESP32S_XYZ_MANAGEMENT.md         # ESP32 管理
-    ├── DEVICE_SCENARIOS.md              # 设备场景（Day 3 新建）
-    ├── DEVICE_MQTT_PROTOCOL.md          # MQTT 协议（Day 3 新建）
-    └── TECHNICAL_ARCHITECTURE.md        # 技术架构
+    ├── ESP32S_XYZ_INTEGRATION_GUIDE.md  # 设备集成指南
+    ├── ESP32S_XYZ_PROTOCOL_ADAPTER_DESIGN.md  # 协议适配设计
+    └── ARCHITECTURE.md                  # 系统架构
 ```
 
 ---
@@ -209,8 +211,8 @@ D:\QWEN3.0\
 | [STATUS.md](STATUS.md) | 项目状态 |
 | [AGENTS.md](AGENTS.md) | 协作规范 |
 | [ESP32S_XYZ_MANAGEMENT.md](docs/ESP32S_XYZ_MANAGEMENT.md) | ESP32 管理 |
-| [TECHNICAL_ARCHITECTURE.md](docs/TECHNICAL_ARCHITECTURE.md) | 技术架构 |
-| [DEPLOYMENT.md](docs/DEPLOYMENT.md) | 部署指南 |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | 系统架构 |
+| [DEPLOY_AND_RELEASE_CONVENTION.md](docs/DEPLOY_AND_RELEASE_CONVENTION.md) | 部署与发布规范 |
 
 ---
 
