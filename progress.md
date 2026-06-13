@@ -53,6 +53,20 @@
 - Chat smoke：VPS local `POST /v1/chat/completions` model=`code`，prompt=`Return exactly: c10-deploy-ok` → HTTP 200，返回 exact `c10-deploy-ok`，backend=`cfai_qwen_coder`。
 - Git：提交 `cb91611`、`4cd5cf8` 已推送 origin/main。
 
+## 2026-06-13 阶段 1 Step 1：失败/阻止路径 route_policy 保留测试
+
+- 目标：`docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md` 阶段 1 要求每个 `motion_task`（含失败/阻止）都保留 `route_policy`。
+- 新增 `tests/test_device_gateway_route_policy_retention.py`（5 个测试）：
+  - route_policy 校验失败路径保留 `route_policy` + `error`
+  - 固件不兼容路径保留 `route_policy` + `error`
+  - capability 参数校验失败路径保留 `route_policy` + `error`
+  - policy 决策 `reject` 路径保留 `route_policy` + `policy`
+  - policy 决策 `require_approval` 路径保留 `route_policy` + `policy`
+- 验证：
+  - 新增测试：`5 passed`
+  - device 聚焦套件：`169 passed`
+  - ruff clean
+
 ## 2026-06-13 Phase 5 xiaozhi compat 拆分收尾
 
 - `xiaozhi_v1_compat.py`：518 → ~27 行（删除与子模块重复 helper）
