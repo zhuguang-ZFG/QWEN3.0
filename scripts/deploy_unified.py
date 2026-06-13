@@ -102,8 +102,9 @@ SLICE_FILES = {
     ],
 }
 
-HEALTH_WAIT_SECONDS = int(os.environ.get("LIMA_DEPLOY_HEALTH_WAIT_S", "180"))
+HEALTH_WAIT_SECONDS = int(os.environ.get("LIMA_DEPLOY_HEALTH_WAIT_S", "240"))
 HEALTH_POLL_SECONDS = 2
+HEALTH_GRACE_AFTER_RESTART_S = int(os.environ.get("LIMA_DEPLOY_HEALTH_GRACE_S", "20"))
 DEFAULT_MIN_FREE_MB = 512
 DEFAULT_MIN_MEM_MB = 128
 
@@ -290,6 +291,14 @@ def deploy_files(files: list[str], *, dry_run: bool = False) -> dict:
     return results
 
 
+def _ssh_exec(ssh: paramiko.SSHClient, command: str) -> tuple[int, str, str]:
+    _stdin, stdout, stderr = ssh.exec_command(command)
+    code = stdout.channel.recv_exit_status()
+    out = stdout.read().decode("utf-8", errors="replace").strip()
+    err = stderr.read().decode("utf-8", errors="replace").strip()
+    return code, out, err
+
+
 def restart_server() -> bool:
     """Clear pycache, restart the systemd service, and wait for health."""
     ssh = paramiko.SSHClient()
@@ -303,19 +312,27 @@ def restart_server() -> bool:
             "systemctl restart lima-router",
         ]
         for cmd in commands:
-            stdin, stdout, stderr = ssh.exec_command(cmd)
-            if stdout.channel.recv_exit_status() != 0:
-                detail = stderr.read().decode("utf-8", errors="replace").strip()
-                print(f"restart command failed: {cmd}: {detail}")
+            code, _out, err = _ssh_exec(ssh, cmd)
+            if code != 0:
+                print(f"restart command failed: {cmd}: {err}")
                 return False
 
+        if HEALTH_GRACE_AFTER_RESTART_S > 0:
+            time.sleep(HEALTH_GRACE_AFTER_RESTART_S)
+
         deadline = time.time() + HEALTH_WAIT_SECONDS
+        last_detail = ""
         while time.time() < deadline:
-            stdin, stdout, stderr = ssh.exec_command("curl -sS -m 3 http://127.0.0.1:8080/health")
-            health = stdout.read().decode("utf-8", errors="replace").strip()
-            if stdout.channel.recv_exit_status() == 0 and "ok" in health:
+            code, out, err = _ssh_exec(ssh, "curl -sS -m 5 http://127.0.0.1:8080/health")
+            last_detail = out or err or f"curl exit {code}"
+            if code == 0 and "ok" in last_detail.lower():
                 return True
             time.sleep(HEALTH_POLL_SECONDS)
+
+        print(f"  health never became ready; last: {last_detail[:240]}")
+        _code, logs, _err = _ssh_exec(ssh, "journalctl -u lima-router -n 15 --no-pager")
+        if logs:
+            print(logs)
         return False
     finally:
         ssh.close()

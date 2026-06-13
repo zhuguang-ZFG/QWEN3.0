@@ -104,11 +104,11 @@
 | 项 | 状态 |
 |----|------|
 | `scripts/vps_eval_smoke_remote.py` 入库 | ✅ |
-| `deploy_unified.py` health 等待默认 180s（`LIMA_DEPLOY_HEALTH_WAIT_S`） | ✅ |
+| `deploy_unified.py` health 等待默认 240s（`LIMA_DEPLOY_HEALTH_WAIT_S`）+ 重启后 grace | ✅ |
 | 部署 eval/routing 相关文件后自动跑 eval smoke | ✅ |
 | `--eval-smoke` / `--no-eval-smoke` 显式控制 | ✅ |
 
-**刻意不做（Phase 4-B 延后）：** 流式 `route()` 全 parity（post_process、coding quality retry）— speculative 路径为延迟 tradeoff，见 `REQUEST_PIPELINE_AUTHORITY.md`。
+**VPS 验收（2026-06-13）：** 手动 `vps_eval_smoke_remote.py` ✅（`scnet_qwen30b` + FRP `scnet_large_ds_flash` 各 1 case）。首次 `deploy_unified --eval-smoke` 在 180s 窗口内误报 health FAILED，服务约 2–3 分钟后自行恢复；已加固为 240s + 20s grace + 失败时 journal 输出。
 
 ### Phase 4-B — 流式 parity 文档化 ✅ 2026-06-13
 

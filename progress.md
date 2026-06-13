@@ -2,7 +2,16 @@
 
 > Created: 2026-05-22
 
-> Updated: 2026-06-11
+> Updated: 2026-06-13
+
+## 2026-06-13 路由权威收敛 Phase 4 closeout
+
+**目标：** bypass 归零 + 部署后 eval/executor 可证明可用。
+
+- Phase 4-A：`deploy_unified.py` 240s health + 20s grace + eval smoke 自动/手动门控
+- Phase 4-B：`REQUEST_PIPELINE_AUTHORITY.md` 流式 vs 非流式刻意差异文档化
+- VPS：`vps_eval_smoke_remote.py` 手动 ✅；`deploy_unified --eval-smoke` 全链路 ✅（backup `unified-files-20260613_175344`）
+- Git：`0980ed9`、`4add436` + 本轮 health 加固待提交
 
 ## 2026-06-11 Stage 1 Week 3C: 预设图形库部署完成
 
