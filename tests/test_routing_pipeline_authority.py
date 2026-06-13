@@ -132,30 +132,6 @@ class TestRoutingEngineAuthority:
         assert "call_pinned_backend" in src
 
 
-class TestSmartRouterLegacy:
-    """smart_router is legacy — should not be imported by routing_engine."""
-
-    def test_engine_does_not_import_smart_router(self):
-        src = _read_module_source("routing_engine")
-        assert "import smart_router" not in src, (
-            "routing_engine should not depend on smart_router"
-        )
-
-    def test_smart_router_has_legacy_marker(self):
-        src = _read_module_source("smart_router")
-        assert "legacy" in src.lower() or "V3" in src or "deprecated" in src.lower(), (
-            "smart_router should be marked as legacy/deprecated"
-        )
-
-    def test_smart_router_does_not_route_new_requests(self):
-        """smart_router.route() should not be called by new production code."""
-        src = _read_module_source("smart_router")
-        # smart_router should only export compatibility symbols, not route()
-        assert "def route(" not in src, (
-            "smart_router should not define route() — use routing_engine.route()"
-        )
-
-
 class TestDeviceRoutingIsolation:
     """Device routing must be isolated from general chat/coding routing."""
 

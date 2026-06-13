@@ -14,6 +14,12 @@ ROOT = Path(__file__).resolve().parent.parent
 def test_run_ruff_check_uses_tracked_python_files(monkeypatch, tmp_path):
     import scripts.run_ruff_check as run_ruff_check
 
+    (tmp_path / "server.py").write_text("")
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts" / "run_ruff_check.py").write_text("")
+    (tmp_path / "notes.txt").write_text("")
+    (tmp_path / "stub.pyi").write_text("")
+
     calls = []
 
     def fake_run(cmd, **kwargs):

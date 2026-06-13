@@ -64,11 +64,3 @@ def test_streaming_bridge_split_preserves_exports():
     assert hasattr(streaming, "bridge_stream")
     assert hasattr(streaming, "speculative_stream")
     assert hasattr(bridge, "bridge_stream")
-
-
-def test_router_http_legacy_submodules():
-    router_http = importlib.import_module("router_http")
-    for submodule in ("router_http_body", "router_http_scnet", "router_http_vision"):
-        importlib.import_module(submodule)
-    assert hasattr(router_http, "call_api")
-    assert hasattr(router_http, "_build_request_body")

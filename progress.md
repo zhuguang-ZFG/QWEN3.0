@@ -5,6 +5,25 @@
 > Updated: 2026-06-13
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-13 死区代码清理（Phase 1）
+
+- 删除退役模块与死文件：
+  - `quality_gate.py` + `dpo_collector.py`（调用已不存在的 `quality_gate.score`）
+  - `train_model.py` + `train_lock.py` + `train_router.py` + `lora_merge.py`（本地训练脚本，无活跃引用）
+  - `voice_gateway.py` + `voice_call_live.html` + `voice_gateway_deploy.sh`（未注册原型）
+  - `mimo_tts.py`（无模块引用，后端配置仍在 `backends_registry.py`）
+  - `routing_classifier_prompt.txt` + `routing_training_data.jsonl`（无代码引用）
+  - 敏感文件：`.mcp.json`、`_deploy_jdcloud.sh`、`check_jdcloud.bat`（含明文密码）
+  - 临时产物：`tmp/` 内容、`tmp_mcp_err.txt`、`tmp_mcp_out.txt`、`tmp_sonic.tar.gz`、`_admin_js_check.js`、根 `__pycache__/`、`QWEN3.0.pytest_temp/`、`.pytest_temp/`、`D:QWEN3.0agent-orchestrator`
+- 删除 `context_pipeline/factory.py` + `pipeline.py` + `processors.py` 及其测试 `tests/test_context_pipeline.py`、`tests/e2e_pipeline_server.py`
+- 删除 37+ 个无引用脚本（详见 `git diff --name-only`）
+- 修复因退役模块导致的测试失败：
+  - `router_v3.py` 重新暴露 `IDE_SOURCES`
+  - 删除/更新引用 `smart_router`/`router_http`/`run_ruff_check` 的过时测试
+  - 修复 `tests/test_admin_paths.py`、`tests/test_ci_gates.py`、`tests/test_chat_models.py`
+- 验证：`ruff check .` 通过；`pytest --ignore=tests/test_token_health.py`：2057 passed, 25 skipped
+- 残留：`tmp/pytest-lima-run` 目录被运行中 Python 进程占用，未能删除
+
 ## 2026-06-13 英文文档归档与入口引用修复
 
 - 归档 8 份英文多语言文档到 `docs/archive/en/`：

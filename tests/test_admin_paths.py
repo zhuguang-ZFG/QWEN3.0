@@ -4,8 +4,10 @@ import os
 from pathlib import Path
 
 from routes import request_tracking
-from routes.admin_api import REPO_ROOT
 from routes.admin_state import FALLBACK_LOG
+
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 def test_admin_state_shares_request_tracking_fallback_log():

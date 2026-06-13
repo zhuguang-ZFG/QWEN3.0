@@ -13,6 +13,7 @@ Layer 3: 执行器 (execute)
 
 
 import runtime_topology
+from backends import IDE_SOURCES
 from backends_constants import _IDE_FINGERPRINTS
 
 
