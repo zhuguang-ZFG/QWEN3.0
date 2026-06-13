@@ -1,7 +1,7 @@
 # smart_router.py 迁移计划
 
 **日期**: 2026-06-12
-**状态**: 计划中
+**状态**: 已完成（C9/C10 已执行）
 **优先级**: P1 - 技术债务治理
 **预计周期**: 3-5 天
 
@@ -85,7 +85,7 @@
 | `smart_router.VISION_BACKENDS` | `backends.VISION_BACKENDS` | 视觉模型列表 |
 | `smart_router.GFW_BACKENDS` | `backends.GFW_BACKENDS` | GFW 后端列表 |
 | `smart_router.THINKING_BACKENDS` | `backends.THINKING_BACKENDS` | 思维链后端 |
-| `smart_router.analyze` | `router_classifier.analyze` | 意图分析 |
+| `smart_router.analyze` | `routing_intent.analyze_intent` | 意图分析 |
 | `smart_router.route` | `routing_engine.route` | 路由入口 |
 | `smart_router.detect_image_intent` | `router_image.detect_image_intent` | 图片意图检测 |
 | `smart_router.detect_thinking_intent` | `router_intent.detect_thinking_intent` | 思维链检测 |
@@ -172,7 +172,7 @@ grep -r "smart_router\.BACKENDS\|smart_router\.VISION_BACKENDS" --include="*.py"
 
 **验证命令**:
 ```bash
-python -m pytest tests/test_routing_engine.py tests/test_router_classifier.py -q
+python -m pytest tests/test_routing_engine.py tests/test_router_classifier.py tests/test_orchestrate_route_context.py -q
 grep -r "smart_router\.analyze\|smart_router\.route" --include="*.py" . | wc -l  # 应为 0
 ```
 

@@ -12,8 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import health_tracker
 import http_caller
 import routing_engine
-import router_classifier
-import router_local
+import routing_intent
 from backends import BACKENDS
 
 # ── 配置 ────────────────────────────────────────────────────────────────────
@@ -21,6 +20,10 @@ MAX_CONCURRENT = 3          # 最大并发子任务数
 DECOMPOSE_MAX_TOKENS = 512  # 拆解任务的 token 上限
 SYNTHESIZE_MAX_TOKENS = 1024  # 合并结果的 token 上限
 COMPLEXITY_THRESHOLD = 0.75   # 复杂度阈值，超过则触发编排
+
+LOCAL_ROUTER_URL = os.environ.get(
+    "LOCAL_ROUTER_URL", "http://127.0.0.1:11434/v1/chat/completions"
+)
 
 # 多领域关键词（跨领域时触发编排）
 MULTI_DOMAIN_KEYWORDS = {
@@ -46,7 +49,7 @@ def needs_orchestration(query: str, intent: dict) -> bool:
 
     Args:
         query: 用户原始查询
-        intent: router_classifier.analyze() 返回的意图字典
+        intent: routing_intent.analyze_intent() 返回的意图字典
 
     Returns:
         True 表示需要编排，False 表示直接路由
@@ -79,6 +82,37 @@ def needs_orchestration(query: str, intent: dict) -> bool:
     return False
 
 
+def _call_local_router(
+    messages: list[dict[str, str]],
+    *,
+    max_tokens: int = 512,
+    temperature: float = 0.3,
+) -> str:
+    """Call the local router model (Ollama-compatible) for decomposition/synthesis."""
+    import urllib.request
+
+    payload = json.dumps(
+        {
+            "model": "local-model",
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+        },
+        ensure_ascii=False,
+    ).encode("utf-8")
+    try:
+        request = urllib.request.Request(
+            LOCAL_ROUTER_URL,
+            data=payload,
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(request, timeout=30) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        return data["choices"][0]["message"]["content"]
+    except Exception as exc:  # noqa: BLE001
+        return f"[LOCAL_ERR] {exc}"
+
+
 def decompose(query: str) -> list[dict[str, Any]]:
     """将复杂问题拆解为子任务列表。
     调用本地模型，输出 JSON 格式子任务。
@@ -99,9 +133,10 @@ def decompose(query: str) -> list[dict[str, Any]]:
         '- "backend_hint": 建议后端（留空则自动路由）\n\n'
         "只输出 JSON，不要其他文字。"
     )
-    resp = router_local.call_local(
+    resp = _call_local_router(
         [{"role": "user", "content": prompt}],
-        mt=DECOMPOSE_MAX_TOKENS, t=0.3
+        max_tokens=DECOMPOSE_MAX_TOKENS,
+        temperature=0.3,
     )
 
     # 解析 JSON
@@ -259,7 +294,9 @@ def synthesize(query: str, results: list[dict[str, Any]]) -> str:
         _log.debug("orchestrate synthesize longcat failed: %s", type(exc).__name__)
 
     # 回退到本地模型
-    answer = router_local.call_local(msgs, mt=SYNTHESIZE_MAX_TOKENS, t=0.5)
+    answer = _call_local_router(
+        msgs, max_tokens=SYNTHESIZE_MAX_TOKENS, temperature=0.5
+    )
     if answer and not answer.startswith("[LOCAL_ERR]"):
         return answer
 
@@ -329,7 +366,9 @@ def orchestrate(
     t0 = time.time()
 
     # 意图分析
-    intent = router_classifier.analyze(query)
+    intent = routing_intent.analyze_intent(
+        query, system_prompt=system_prompt, ide=ide_source
+    )
 
     # 再次确认是否需要编排（防止外部直接调用）
     if not needs_orchestration(query, intent):

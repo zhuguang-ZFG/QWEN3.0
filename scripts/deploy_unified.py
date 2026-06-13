@@ -41,7 +41,7 @@ CORE_FILES = [
     "routing_engine.py",
     "routing_selector.py",
     "router_v3.py",
-    "router_classifier.py",
+    "routing_intent.py",
     "health_tracker.py",
     "sticky_session.py",
     "rate_limiter.py",

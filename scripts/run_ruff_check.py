@@ -21,10 +21,11 @@ def tracked_python_files(root: Path = ROOT) -> list[str]:
     if result.returncode != 0:
         stderr = result.stderr.decode("utf-8", errors="replace").strip()
         raise RuntimeError(f"git ls-files failed: {stderr}")
+    root_path = Path(root)
     return [
         path
         for path in result.stdout.decode("utf-8", errors="replace").split("\0")
-        if path and path.endswith((".py", ".pyi"))
+        if path and path.endswith((".py", ".pyi")) and (root_path / path).exists()
     ]
 
 

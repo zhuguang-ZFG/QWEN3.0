@@ -22,6 +22,20 @@
   - 保留：router_classifier.py、router_local.py（orchestrate.py 仍依赖，作为后续里程碑）
 - 验证：ruff clean；pytest focused suite 95 passed
 
+## 2026-06-13 C10：router_classifier/router_local 清零
+
+- 在 `routing_intent.py` 新增 `analyze_intent()`，完整承接 `router_classifier.analyze()` 的规则/信号/上下文分类逻辑
+- `orchestrate.py`：
+  - 删除 `router_classifier`、`router_local` 导入
+  - 使用 `routing_intent.analyze_intent()` 进行编排触发判断
+  - 内联 `_call_local_router()` 替代 `router_local.call_local()`，保留 `LOCAL_ROUTER_URL` 环境变量行为
+- `routes/chat_handler_dispatch.py`：流式/非流入口统一改用 `routing_intent.analyze_intent()`
+- 更新测试：`tests/test_router_classifier.py` 改为测试 `routing_intent.analyze_intent()`；`tests/test_prompt_memory_recall.py` 移除对 `server.smart_router` 的死 monkeypatch，改 mock `routing_intent`
+- 清理配置：`scripts/deploy_unified.py` 核心文件列表替换为 `routing_intent.py`；`pyrightconfig.json` 移除 `router_classifier.py` / `smart_router.py`
+- 删除：`router_classifier.py`、`router_local.py`
+- 修复 `scripts/run_ruff_check.py`：过滤 `git ls-files` 中已不存在于工作区的 tracked 路径，避免删除文件未提交时 ruff gate 误报 E902
+- 验证：ruff clean；pytest focused suite 通过
+
 ## 2026-06-13 Phase 5 xiaozhi compat 拆分收尾
 
 - `xiaozhi_v1_compat.py`：518 → ~27 行（删除与子模块重复 helper）

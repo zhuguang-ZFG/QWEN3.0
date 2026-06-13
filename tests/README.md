@@ -31,7 +31,7 @@ python -m pytest -q --ignore=tests/test_ci_gates.py --ignore=tests/test_backend_
 - `test_http_caller.py` / `test_http_caller_concurrency.py` — backend transport
 - `test_http_body_limit.py` — ASGI body limit
 - `test_router_circuit_breaker.py` — health/cooldown
-- `test_router_classifier.py` — intent classification
+- `test_router_classifier.py` — `routing_intent.analyze_intent()` classification
 - `test_routing_weights.py` / `test_routing_weights_persistence.py` — weight learning
 - `test_routing_loop.py` — closed-loop feedback
 - `test_routing_ml.py` — ML routing model
