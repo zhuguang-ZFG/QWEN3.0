@@ -16,7 +16,7 @@ _log = logging.getLogger(__name__)
 # 注入函数签名
 CallStreamFn = Callable[[str, list, int, str], Iterator[str]]
 CallApiFn = Callable[[str, list, int, str], str]
-PredictFn = Callable[[str], str]
+PredictFn = Callable[[str, list, str, str], str]
 SelectFn = Callable[[str, str, str, list], tuple[str, list]]
 
 # Async callable signatures (M2-S2)
@@ -86,19 +86,20 @@ async def speculative_stream(
     call_stream_fn: CallStreamFn,
     call_fn: CallApiFn,
     *,
+    system_prompt: str = "",
     call_stream_async_fn: CallStreamAsyncFn | None = None,
     call_api_async_fn: CallApiAsyncFn | None = None,
 ) -> AsyncIterator[tuple[str, str]]:
     """预测后端立即流式传输，同时路由在后台验证。"""
-    predicted = predict_fn(query)
-    predicted_msgs = messages if messages else [{"role": "user", "content": query}]
+    stream_messages = messages if messages else [{"role": "user", "content": query}]
+    predicted = predict_fn(query, stream_messages, system_prompt, ide)
 
     route_task = asyncio.create_task(
-        asyncio.to_thread(select_fn, query, "", ide, messages)
+        asyncio.to_thread(select_fn, query, system_prompt, ide, messages)
     )
 
     actual_backend = predicted
-    actual_msgs = predicted_msgs
+    actual_msgs = stream_messages
     switched = False
 
     if call_stream_async_fn and call_api_async_fn:
@@ -115,7 +116,7 @@ async def speculative_stream(
         )
 
     try:
-        async for chunk in _streamer(predicted, predicted_msgs):
+        async for chunk in _streamer(predicted, stream_messages):
             if route_task.done() and not switched:
                 try:
                     actual_backend, actual_msgs = route_task.result()
@@ -125,7 +126,7 @@ async def speculative_stream(
                         type(exc).__name__,
                     )
                     actual_backend = predicted
-                    actual_msgs = predicted_msgs
+                    actual_msgs = stream_messages
 
                 if actual_backend != predicted:
                     switched = True

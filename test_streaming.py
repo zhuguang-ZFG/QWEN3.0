@@ -31,7 +31,7 @@ def _mock_call_api_fail(backend, msgs, max_tokens, ide):
     raise Exception("backend down")
 
 
-def _mock_predict(query):
+def _mock_predict(query, messages, system_prompt="", ide=""):
     return "longcat_chat"
 
 

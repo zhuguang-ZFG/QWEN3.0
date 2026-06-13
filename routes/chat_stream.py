@@ -128,7 +128,9 @@ async def stream_response(
 
     streamed_any = False
 
-    async for _backend, chunk in speculative_stream_chunks(query, messages, 4096, ide_source):
+    async for _backend, chunk in speculative_stream_chunks(
+        query, messages, 4096, ide_source, system_prompt=sys_prompt_preview,
+    ):
         streamed_any = True
         from response_cleaner import clean_response
         chunk = clean_response(chunk, _backend) or chunk

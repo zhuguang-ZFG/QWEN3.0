@@ -24,7 +24,7 @@
 | 9 | `routes/chat_handler_dispatch.py` | P0 | `orchestrate()` 非流式路径跳过 `route()` | ✅ Phase 1 已关闭 |
 | 10 | `routes/chat_stream.py` | P0 | `orchestrate()` 流式路径跳过 `route()` | ✅ Phase 1 已关闭 |
 | 11 | `routes/eval_internal.py` | P1 | eval 直调 `http_caller`，无 health/budget | 待 Phase 3+ |
-| 12 | `routes/token_sync.py` | P1 | urllib + 裸 `except Exception: return False` | ✅ 2026-06-13 已加 warning 日志 |
+| 12 | `routes/token_sync.py` | P1 | urllib + 裸 `except Exception: return False` | ✅ Phase 2.5 校验收紧 + warning 日志 |
 
 完整 JSON：`.omc/artifacts/lima-multi-cli/findings.json`（18 条，Qoder lane）。
 
@@ -69,6 +69,12 @@
 ### Phase 2 — v3_predict / v3_select（P1，流式 speculative） ✅ 2026-06-13
 
 **已完成：** 新增 `routing_engine.pick_backend()`（与 `route()` 共享 classify/inject/select/skills 管线）；`v3_predict` / `v3_select` 委托 `pick_backend`，移除硬编码 backend 列表与 `routing_engine.select()` 回退；`TestRoutesBypassGuard` allowlist 清空。
+
+### Phase 2.5 — 流式选路一致性 P0 ✅ 2026-06-13
+
+**设计文档：** [`2026-06-13-stream-routing-consistency-p0-design.md`](2026-06-13-stream-routing-consistency-p0-design.md)
+
+**已完成：** speculative 透传 `system_prompt`；`_pick_for_stream` 对齐 predict/select；`token_sync` 仅 2xx+有效 content 接受 override。
 
 ### Phase 3 — 模块边界（P2）
 

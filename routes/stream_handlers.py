@@ -38,7 +38,8 @@ async def real_stream_chunks_async(backend_name: str, msgs: list,
 
 async def speculative_stream_chunks(query: str, msgs: list,
                                      max_tokens: int = 4096,
-                                     ide: str = "unknown"):
+                                     ide: str = "unknown",
+                                     system_prompt: str = ""):
     """Speculative streaming with async-native path (M2-S2)."""
     async for item in streaming_mod.speculative_stream(
         query, msgs, max_tokens, ide,
@@ -46,6 +47,7 @@ async def speculative_stream_chunks(query: str, msgs: list,
         select_fn=v3_select,
         call_stream_fn=v3_call_stream,
         call_fn=v3_call_api,
+        system_prompt=system_prompt,
         call_stream_async_fn=v3_call_stream_async,
         call_api_async_fn=v3_call_api_async,
     ):

@@ -31,11 +31,29 @@ def _normalize_ide_source(ide: str) -> str:
     return ide if ide and ide not in ("unknown", "") else ""
 
 
-def v3_predict(query):
-    """V3 快速预测：委托 routing_engine.pick_backend（与 route 共享选路管线）。"""
-    msgs = [{"role": "user", "content": query}]
+def _pick_for_stream(
+    query: str,
+    messages: list,
+    *,
+    system_prompt: str = "",
+    ide: str = "",
+):
+    """流式 speculative 选路：与 v3_select 共享 pick_backend 入参。"""
+    msgs = messages if messages else [{"role": "user", "content": query}]
+    return routing_engine.pick_backend(
+        query,
+        msgs,
+        ide_source=_normalize_ide_source(ide),
+        system_prompt=system_prompt or "",
+    )
+
+
+def v3_predict(query, messages, system_prompt="", ide=""):
+    """V3 快速预测：委托 routing_engine.pick_backend（与 v3_select 共享上下文）。"""
     try:
-        picked = routing_engine.pick_backend(query, msgs)
+        picked = _pick_for_stream(
+            query, messages, system_prompt=system_prompt, ide=ide,
+        )
         return picked.backend
     except Exception as e:
         logging.warning(f"[V3_PREDICT] pick_backend failed: {type(e).__name__}: {e}")
@@ -45,10 +63,8 @@ def v3_predict(query):
 def v3_select(query, system_prompt, ide, messages):
     """V3 完整路由选择：委托 routing_engine.pick_backend。"""
     try:
-        picked = routing_engine.pick_backend(
-            query, messages,
-            ide_source=_normalize_ide_source(ide),
-            system_prompt=system_prompt or "",
+        picked = _pick_for_stream(
+            query, messages, system_prompt=system_prompt, ide=ide,
         )
         return (picked.backend, picked.messages)
     except Exception as e:

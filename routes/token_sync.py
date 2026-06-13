@@ -62,20 +62,23 @@ def _validate_token(name: str, key: str, url: str, model: str) -> bool:
         }
         req = urllib.request.Request(url, data=body, headers=headers)
         with urllib.request.urlopen(req, timeout=15) as resp:
+            if resp.status and not (200 <= resp.status < 300):
+                _log.warning(
+                    "token validation rejected backend=%s: HTTP %s",
+                    name,
+                    resp.status,
+                )
+                return False
             data = json.loads(resp.read())
-        # Check for valid response
         content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
         return bool(content)
     except urllib.error.HTTPError as e:
-        if e.code == 401:
-            _log.warning("token validation rejected backend=%s: HTTP 401", name)
-            return False
         _log.warning(
-            "token validation HTTP error backend=%s: HTTP %s",
+            "token validation rejected backend=%s: HTTP %s",
             name,
             e.code,
         )
-        return True
+        return False
     except Exception as exc:
         _log.warning(
             "token validation failed backend=%s: %s",
@@ -116,7 +119,7 @@ async def sync_tokens(body: TokenSyncBody) -> dict:
             validated.append(name)
             _log.info("Token updated and validated: %s", name)
         else:
-            failed.append(f"{name}: validation failed (401 or timeout)")
+            failed.append(f"{name}: validation failed")
 
     return {
         "updated": updated,
