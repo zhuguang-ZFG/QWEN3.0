@@ -1,3 +1,5 @@
+> ⚠️ **历史文档提示**：本文件制定于 2026-05-22，面向“个人编码助手”阶段。2026-06-09 战略转型为“AI 智能设备云服务”后，部分条目已完成或方向已变。当前活跃路线图请见 [`docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md`](docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md)，当前状态请见 [`STATUS.md`](STATUS.md)。本文件保留仅供审计。
+
 # Personal Coding Assistant Task Plan
 
 > Created: 2026-05-22

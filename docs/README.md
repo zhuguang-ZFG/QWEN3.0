@@ -2,16 +2,28 @@
 
 > 更新日期：2026-06-13
 > 项目定位：AI 智能设备统一云端服务
+>
+> **权威规则**：本索引列出当前有效的文档。若某文档被标注为“历史/归档”，则以当前有效文档为准；若存在冲突，以本索引中“当前状态”与“路线图”两类文档为最新依据。
+
+## 必读顺序（新协作者）
+
+1. [`../STATUS.md`](../STATUS.md) — 当前项目状态、已完成项、退役模块、部署健康
+2. [`PROJECT_OPTIMIZATION_ROADMAP_CN.md`](PROJECT_OPTIMIZATION_ROADMAP_CN.md) — 当前活跃路线图与阶段目标
+3. [`../AGENTS.md`](../AGENTS.md) — 代码规范、命令、Git/部署约定
+4. [`ARCHITECTURE.md`](ARCHITECTURE.md) — 系统架构与模块边界
+5. [`REQUEST_PIPELINE_AUTHORITY.md`](REQUEST_PIPELINE_AUTHORITY.md) — 请求处理管线权威说明
 
 ## 快速入口
 
-| 目标 | 文档 |
-| --- | --- |
-| 当前状态 | [`../STATUS.md`](../STATUS.md) |
-| 开发约定 | [`../CLAUDE.md`](../CLAUDE.md) |
-| 长期记忆 | [`LIMA_MEMORY.md`](LIMA_MEMORY.md) |
-| 项目路线图 | [`PROJECT_OPTIMIZATION_ROADMAP.md`](PROJECT_OPTIMIZATION_ROADMAP.md) |
-| 发布规则 | [`DEPLOY_AND_RELEASE_CONVENTION.md`](DEPLOY_AND_RELEASE_CONVENTION.md) |
+| 目标 | 文档 | 状态 |
+| --- | --- | --- |
+| 当前状态 | [`../STATUS.md`](../STATUS.md) | ✅ 活跃 |
+| 开发约定 | [`../CLAUDE.md`](../CLAUDE.md) | ✅ 活跃 |
+| 长期记忆 | [`LIMA_MEMORY.md`](LIMA_MEMORY.md) | ✅ 活跃 |
+| 项目路线图 | [`PROJECT_OPTIMIZATION_ROADMAP_CN.md`](PROJECT_OPTIMIZATION_ROADMAP_CN.md) | ✅ 活跃 |
+| 发布规则 | [`DEPLOY_AND_RELEASE_CONVENTION.md`](DEPLOY_AND_RELEASE_CONVENTION.md) | ✅ 活跃 |
+| 历史执行进展 | [`../progress.md`](../progress.md) | ✅ 活跃（近 3 个月） |
+| 旧任务计划 | [`../task_plan.md`](../task_plan.md) | ⚠️ 部分过时，仅作历史参考 |
 
 ## 架构与请求链路
 
@@ -52,12 +64,22 @@
 | Phase 2 代码瘦身 | [`superpowers/plans/2026-06-12-phase2-code-simplification-plan.md`](superpowers/plans/2026-06-12-phase2-code-simplification-plan.md) |
 | Smart Router 迁移 | [`superpowers/plans/2026-06-12-smart-router-migration-plan.md`](superpowers/plans/2026-06-12-smart-router-migration-plan.md) |
 
-## 工作日志与归档
+## 历史、归档与已过时
+
+以下文档保留以供审计，但不应作为当前决策依据：
+
+| 主题 | 文档 | 说明 |
+| --- | --- | --- |
+| 旧个人编码助手计划 | [`../task_plan.md`](../task_plan.md) | 战略转型前制定，其中 server.py 分解、BACKENDS 单一来源、key_pool 接入等项已完成或方向已变 |
+| 历史进展归档 | [`archive/progress-2026-01-to-05.md`](archive/progress-2026-01-to-05.md) | 2026-05-31 之前的 `progress.md` 记录 |
+| 历史切片 | [`superpowers/plans/`](superpowers/plans/) | 按里程碑记录，完成后即归档 |
+| 中文总索引 | [`INDEX_CN.md`](INDEX_CN.md) | 较旧的全文档索引，可能包含失效链接 |
+| 参考资料 | [`reference/`](reference/) | 外部项目/论文参考 |
+
+## 工作日志
 
 | 主题 | 文档 |
 | --- | --- |
 | 执行进展 | [`../progress.md`](../progress.md) |
+| 历史进展（2026-05） | [`archive/progress-2026-05.md`](archive/progress-2026-05.md) |
 | 事实发现 | [`../findings.md`](../findings.md) |
-| 中文总索引 | [`INDEX_CN.md`](INDEX_CN.md) |
-| 归档目录 | [`archive/`](archive/) |
-| 参考资料 | [`reference/`](reference/) |

@@ -8,7 +8,7 @@
 > Updated: 2026-06-13
 > Branch: `main`
 > Tests: **2009+ tests** (185 in focused device+routing+ops suite); ruff clean; pre-commit passing
-> Quality: P0 violations resolved; ops_metrics refactoring complete (3-module split)
+> Quality: P0 violations resolved; legacy routing/HTTP stack retired
 
 ## 当前项目状态
 
@@ -19,18 +19,25 @@
 - **设备策略**: 安全策略、固件兼容性、路径验证
 
 ### 最近完成（2026-06-13）
-- 优化路线图阶段 1-5 全部完成
+- Legacy 路由/HTTP 栈退役（C9/C10）：`smart_router.py`、`router_http*.py`、`router_circuit_breaker.py`、`router_classifier.py`、`router_local.py` 等已移除
+- `routing_intent.py` 承接意图分析，`analyze_intent()` 统一供编排与聊天入口使用
 - ops_metrics 模块化重构完成（formatters/collectors/correlator）
 - device_gateway/tasks.py 拆分完成（task_recorder.py）
 - BACKENDS 单一来源修复完成
 - 发布门清单和证据模板创建完成
+- 阶段 1 设备路由契约：失败/阻止路径 `route_policy` 保留测试补齐
 
 ### 测试结果
 ```
 185 passed (focused device+routing+ops suite)
 27 passed (ops_metrics)
 65 passed (device gateway)
+5 passed (route_policy retention)
 ```
+
+### 当前活跃路线图
+- 旧“个人编码助手”优化路线图阶段 1-5 已关闭
+- 新战略路线图见 [`docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md`](docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md)，当前处于阶段 1：稳定设备路由契约
 
 ## 退役模块
 
@@ -57,8 +64,25 @@
 | admin_ui 模块化 | ✅ 完成 (482→55, 4 模块) |
 | ops_metrics 重构 | ✅ 完成 (3 模块拆分) |
 | tasks.py 拆分 | ✅ 完成 (task_recorder.py) |
+| legacy 路由/HTTP 栈退役 | ✅ 完成 |
+
+## 已知技术债务与注意事项
+
+- **启动时间**：VPS 启动需 2-3 分钟，主要消耗在 backend profile / retirement 历史数据分析；非阻塞，但 health wait 较长
+- **隐式模块依赖**：`routing_executor.py` 通过 `re.budget_manager` / `re.health_tracker` 访问模块属性，建议后续改为显式导入
+- **文档归档中**：`task_plan.md`（旧个人编码助手计划）部分条目已过时，`docs/README.md` 已标注其历史定位
+- **本地/远程双环境**：Windows 本地代理后端、FRP `:8088`、VPS 直接后端共存，新增后端需明确拓扑归属
 
 ## 关键文档
+
+| 文档 | 用途 | 优先级 |
+|------|------|--------|
+| `docs/README.md` | 文档唯一入口与权威规则 | 必读 |
+| `STATUS.md` | 当前状态（本文件） | 必读 |
+| `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md` | 当前活跃路线图 | 必读 |
+| `AGENTS.md` | 开发约定与命令 | 必读 |
+| `docs/ARCHITECTURE.md` | 系统架构 | 推荐 |
+| `docs/REQUEST_PIPELINE_AUTHORITY.md` | 请求管线权威说明 | 推荐 |
 
 | 文档 | 用途 |
 |------|------|
