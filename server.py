@@ -44,7 +44,7 @@ if _sentry_dsn:
         from sentry_sdk.integrations.fastapi import FastApiIntegration  # type: ignore[reportMissingImports]
         sentry_sdk.init(
             dsn=_sentry_dsn,
-            send_default_pii=True,
+            send_default_pii=False,
             enable_logs=True,
             traces_sample_rate=0.1,
             integrations=[FastApiIntegration()],

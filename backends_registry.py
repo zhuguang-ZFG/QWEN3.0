@@ -20,7 +20,7 @@ BACKENDS = {
     'nvidia_mistral': {'url': 'https://integrate.api.nvidia.com/v1/chat/completions', 'key': os.environ.get('NVIDIA_API_KEY', ''), 'model': 'mistralai/mistral-large-3-675b-instruct-2512', 'fmt': 'openai', 'caps': ['tool_calls']},
     'nvidia_phi4': {'url': 'https://integrate.api.nvidia.com/v1/chat/completions', 'key': os.environ.get('NVIDIA_API_KEY', ''), 'model': 'microsoft/phi-4-mini-instruct', 'fmt': 'openai'},
     'chinamobile': {'url': 'https://maas.gd.chinamobile.com:36007/ai/uifm/open/v1/chat/completions', 'key': os.environ.get('CHINAMOBILE_API_KEY', ''), 'model': 'minimax-m25', 'fmt': 'openai', 'caps': ['tool_calls']},
-    'tokenrouter_minimax_m3': {'url': 'https://api.tokenrouter.com/v1/chat/completions', 'key': os.environ.get('TOKENROUTER_API_KEY', 'sk-XUgLWnxztefVFNaYkrLVVl7ujlJOLFDx6x057784bCvxgJAe'), 'model': 'MiniMax-M3', 'fmt': 'openai', 'timeout': 30, 'caps': ['tool_calls']},
+    'tokenrouter_minimax_m3': {'url': 'https://api.tokenrouter.com/v1/chat/completions', 'key': os.environ.get('TOKENROUTER_API_KEY', ''), 'model': 'MiniMax-M3', 'fmt': 'openai', 'timeout': 30, 'caps': ['tool_calls']},
     'or_deepseek_r1': {'url': 'https://openrouter.ai/api/v1/chat/completions', 'key': os.environ.get('OPENROUTER_API_KEY', ''), 'model': 'deepseek/deepseek-v4-flash:free', 'fmt': 'openai', 'timeout': 60},
     'or_qwen3_coder': {'url': 'https://openrouter.ai/api/v1/chat/completions', 'key': os.environ.get('OPENROUTER_API_KEY', ''), 'model': 'qwen/qwen3-coder:free', 'fmt': 'openai', 'timeout': 60},
     'or_llama70b': {'url': 'https://openrouter.ai/api/v1/chat/completions', 'key': os.environ.get('OPENROUTER_API_KEY', ''), 'model': 'meta-llama/llama-3.3-70b-instruct:free', 'fmt': 'openai', 'timeout': 45},

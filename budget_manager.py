@@ -99,7 +99,7 @@ register_gitee_budgets(BACKEND_BUDGETS, BudgetConfig)
 
 # ── 状态管理 ─────────────────────────────────────────────────────────────────
 
-_lock = threading.Lock()
+_lock = threading.RLock()
 _usage: dict[str, int] = {}
 _reset_day: int = 0
 
