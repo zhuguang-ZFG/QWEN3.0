@@ -93,9 +93,21 @@
 - `routes/eval_internal.py` — async 入口
 - `eval_call.make_eval_call_fn()` — 本地直连路径同步收敛
 
+### Phase 5 — xiaozhi compat 拆分收尾 ✅ 2026-06-13
+
+**设计：** [`2026-06-13-phase5-xiaozhi-compat-finish-split-design.md`](2026-06-13-phase5-xiaozhi-compat-finish-split-design.md)
+
+| 项 | 状态 |
+|----|------|
+| `xiaozhi_v1_compat.py` 瘦身为 router facade（~27 行） | ✅ |
+| `shared.py` 拆为 db/auth/http/payloads/access/gateway/constants | ✅ |
+| `pytest test_xiaozhi_v1_compat_p0/p1 + route_registry` | ✅ 18 passed |
+
+**延后（Slice 5-C）：** activation 独立模块、OpenAPI 路径逐条对齐。
+
 ### Phase 3+ — 延后
 
-- 其他超标 routes 文件拆分（`xiaozhi_v1_compat.py` 等）
+- 其他超标 routes 文件拆分（`admin_api_extra.py`、`chat_endpoints.py` 等）
 
 ### Phase 4 — 权威验收闭环 ✅ 2026-06-13
 
@@ -129,7 +141,8 @@
 
 | 文件 | 行数 | 备注 |
 |------|-----:|------|
-| `xiaozhi_v1_compat.py` | 432 | 超 AGENTS.md 300 行红线 |
+| `xiaozhi_v1_compat.py` | ~27 | Phase 5 facade；handlers 在 `xiaozhi_compat/*` |
+| `xiaozhi_compat/shared.py` | ~75 | barrel；子模块 db/auth/gateway 等 |
 | `admin_api_extra.py` | 377 | 同上 |
 | `chat_endpoints.py` | 310 | 同上 |
 | `routing_engine.py` | ~165 | Phase 3 facade；执行策略见 `routing_engine_execute_strategy.py` |

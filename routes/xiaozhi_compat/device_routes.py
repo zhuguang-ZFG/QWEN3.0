@@ -1,64 +1,18 @@
 """Device management routes for XiaoZhi v1 compatibility API."""
 from __future__ import annotations
 
-import logging
-import os
-import secrets
-import threading
-import time
 from typing import Any
 
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import JSONResponse
 
+from .activation import ACTIVATION_TTL_SECONDS, check_activation_code, new_activation_code
 from .shared import (
     authorize, ok, err, read_body, connect, now, new_id,
     str_field, json_params, device_payload, require_device_access
 )
 
 router = APIRouter()
-_log = logging.getLogger(__name__)
-
-# Activation code management
-_ACTIVATION_TTL_SECONDS = 600
-_activation_codes: dict[str, dict[str, Any]] = {}
-_activation_lock = threading.Lock()
-_activation_warning_logged = False
-
-
-def check_activation_code(code: str) -> bool:
-    """Validate activation code."""
-    global _activation_warning_logged
-    now_ts = time.time()
-    with _activation_lock:
-        for saved_code, data in list(_activation_codes.items()):
-            if data["expires_at"] <= now_ts:
-                _activation_codes.pop(saved_code, None)
-        saved = _activation_codes.get(code)
-        if saved and saved["expires_at"] > now_ts:
-            return True
-    expected = os.environ.get("LIMA_XIAOZHI_ACTIVATION_CODE", "").strip()
-    if expected:
-        return secrets.compare_digest(code, expected)
-    if not _activation_warning_logged:
-        _log.warning("LIMA_XIAOZHI_ACTIVATION_CODE is not configured; accepting non-empty activation codes")
-        _activation_warning_logged = True
-    return bool(code)
-
-
-def new_activation_code(mac_address: str = "") -> str:
-    """Generate new activation code."""
-    now_ts = time.time()
-    with _activation_lock:
-        for saved_code, data in list(_activation_codes.items()):
-            if data["expires_at"] <= now_ts:
-                _activation_codes.pop(saved_code, None)
-        while True:
-            code = f"{secrets.randbelow(1_000_000):06d}"
-            if code not in _activation_codes:
-                break
-        _activation_codes[code] = {"mac_address": mac_address, "expires_at": now_ts + _ACTIVATION_TTL_SECONDS}
-        return code
 
 
 @router.post("/devices/register")
@@ -71,7 +25,7 @@ async def register_device(request: Request, authorization: str = Header(default=
     if isinstance(body, JSONResponse):
         return body
     activation_code = new_activation_code(str_field(body, "macAddress", "mac_address"))
-    return ok({"activationCode": activation_code, "code": activation_code, "expiresIn": _ACTIVATION_TTL_SECONDS})
+    return ok({"activationCode": activation_code, "code": activation_code, "expiresIn": ACTIVATION_TTL_SECONDS})
 
 
 @router.post("/devices/bind")

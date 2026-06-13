@@ -1,8 +1,17 @@
-﻿# Personal Coding Assistant Progress
+# Personal Coding Assistant Progress
 
 > Created: 2026-05-22
 
 > Updated: 2026-06-13
+
+## 2026-06-13 Phase 5 xiaozhi compat 拆分收尾
+
+- `xiaozhi_v1_compat.py`：518 → ~27 行（删除与子模块重复 helper）
+- `xiaozhi_compat/shared.py` 拆为 7 个子模块 + barrel
+- `xiaozhi_compat/device_routes.py`：231 → 185 行（Slice 5-C：activation 状态机拆到 `activation.py`）
+- 新增 `routes/xiaozhi_compat/activation.py`（65 行）：激活码生成/校验/TTL 清理
+- 测试：`test_xiaozhi_v1_compat_p0/p1` + `test_route_registry` 18 passed
+- ruff：clean
 
 ## 2026-06-13 路由权威收敛 Phase 4 closeout
 
