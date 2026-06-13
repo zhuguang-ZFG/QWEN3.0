@@ -84,6 +84,162 @@ def test_finalize_openai_fmt_attaches_memory_meta(
 @patch("routes.chat_response_finalize.record_capability_evidence")
 @patch("routes.chat_response_finalize.record_chat_observability")
 @patch("routes.chat_response_finalize.persist_session_memory")
+def test_record_request_raises_still_returns_200(
+    _persist,
+    _obs,
+    _evidence,
+    _distill,
+    _log_prompt,
+):
+    def boom(*args, **kwargs):
+        raise RuntimeError("stats db locked")
+
+    response = asyncio.run(
+        finalize_success_response(
+            _ctx(),
+            _req(),
+            {"answer": "ok", "backend": "test_backend", "total_ms": 5},
+            {"intent": "chat"},
+            model_id="lima-1.3",
+            record_request=boom,
+        )
+    )
+
+    assert response.status_code == 200
+    body = json.loads(response.body.decode("utf-8"))
+    assert body["choices"][0]["message"]["content"] == "ok"
+
+
+@patch("routes.chat_response_finalize._log_system_prompt")
+@patch("routes.chat_response_finalize.maybe_log_distill_queue")
+@patch("routes.chat_response_finalize.record_capability_evidence")
+@patch("routes.chat_response_finalize.record_chat_observability")
+@patch("routes.chat_response_finalize.persist_session_memory")
+def test_persist_raises_still_returns_200(
+    mock_persist,
+    _obs,
+    _evidence,
+    _distill,
+    _log_prompt,
+):
+    mock_persist.side_effect = RuntimeError("sqlite locked")
+
+    response = asyncio.run(
+        finalize_success_response(
+            _ctx(),
+            _req(),
+            {"answer": "ok", "backend": "test_backend", "total_ms": 5},
+            {"intent": "chat"},
+            model_id="lima-1.3",
+            record_request=lambda *a, **k: None,
+        )
+    )
+
+    assert response.status_code == 200
+    body = json.loads(response.body.decode("utf-8"))
+    assert body["choices"][0]["message"]["content"] == "ok"
+
+
+@patch("routes.chat_response_finalize._log_system_prompt")
+@patch("routes.chat_response_finalize.maybe_log_distill_queue")
+@patch("routes.chat_response_finalize.record_capability_evidence")
+@patch("routes.chat_response_finalize.persist_session_memory")
+def test_record_chat_observability_raises_still_returns_200(
+    _persist,
+    mock_evidence,
+    mock_distill,
+    _log_prompt,
+):
+    with patch(
+        "routes.chat_response_finalize.record_chat_observability",
+        side_effect=RuntimeError("metrics unavailable"),
+    ):
+        response = asyncio.run(
+            finalize_success_response(
+                _ctx(),
+                _req(),
+                {"answer": "ok", "backend": "test_backend", "total_ms": 5},
+                {"intent": "chat"},
+                model_id="lima-1.3",
+                record_request=lambda *a, **k: None,
+            )
+        )
+
+    assert response.status_code == 200
+    body = json.loads(response.body.decode("utf-8"))
+    assert body["choices"][0]["message"]["content"] == "ok"
+
+
+@patch("routes.chat_response_finalize._log_system_prompt")
+@patch("routes.chat_response_finalize.maybe_log_distill_queue")
+@patch("routes.chat_response_finalize.record_capability_evidence")
+@patch("routes.chat_response_finalize.record_chat_observability")
+@patch("routes.chat_response_finalize.persist_session_memory")
+@patch("routes.chat_response_finalize.time.time", return_value=1000.0)
+def test_missing_total_ms_uses_duration_ms(
+    mock_time,
+    _persist,
+    _obs,
+    _evidence,
+    _distill,
+    _log_prompt,
+):
+    ctx = _ctx()
+    ctx.t0 = 999.0
+
+    response = asyncio.run(
+        finalize_success_response(
+            ctx,
+            _req(),
+            {"answer": "hi", "backend": "test_backend"},
+            {"intent": "chat"},
+            model_id="lima-1.3",
+            record_request=lambda *a, **k: None,
+        )
+    )
+
+    body = json.loads(response.body.decode("utf-8"))
+    assert body["x_lima_meta"]["total_ms"] == 1000
+    mock_time.assert_called()
+
+
+@patch("routes.chat_response_finalize._log_system_prompt")
+@patch("routes.chat_response_finalize.maybe_log_distill_queue")
+@patch("routes.chat_response_finalize.record_capability_evidence")
+@patch("routes.chat_response_finalize.record_chat_observability")
+@patch("routes.chat_response_finalize.persist_session_memory")
+@patch("routes.chat_response_finalize.time.time", return_value=1000.0)
+def test_explicit_total_ms_zero_not_replaced_by_duration(
+    _mock_time,
+    _persist,
+    _obs,
+    _evidence,
+    _distill,
+    _log_prompt,
+):
+    ctx = _ctx()
+    ctx.t0 = 999.0
+
+    response = asyncio.run(
+        finalize_success_response(
+            ctx,
+            _req(),
+            {"answer": "hi", "backend": "test_backend", "total_ms": 0},
+            {"intent": "chat"},
+            model_id="lima-1.3",
+            record_request=lambda *a, **k: None,
+        )
+    )
+
+    body = json.loads(response.body.decode("utf-8"))
+    assert body["x_lima_meta"]["total_ms"] == 0
+
+
+@patch("routes.chat_response_finalize._log_system_prompt")
+@patch("routes.chat_response_finalize.maybe_log_distill_queue")
+@patch("routes.chat_response_finalize.record_capability_evidence")
+@patch("routes.chat_response_finalize.record_chat_observability")
+@patch("routes.chat_response_finalize.persist_session_memory")
 def test_finalize_anthropic_fmt(
     _persist,
     _obs,
