@@ -35,6 +35,7 @@ async def health_dashboard(request: Request):
 def _collect_backend_health() -> dict:
     """Collect comprehensive health data for all backends."""
     import health_tracker
+    import health_state
     import budget_manager
     from backends_registry import BACKENDS
     from backends import detect_caps
@@ -43,20 +44,13 @@ def _collect_backend_health() -> dict:
     latency_map = health_tracker.get_latency_map()
     health_map = health_tracker.get_health_map()
 
-    # Circuit breaker data
-    cb_data: dict = {}
-    try:
-        import router_circuit_breaker
-        cb_data = router_circuit_breaker.cb_status()
-    except (ImportError, AttributeError):
-        pass
-
     backends = []
     for name, cfg in sorted(BACKENDS.items()):
         state = health_tracker.get_backend_state(name)
         caps = detect_caps(name, cfg)
         budget_status = budget_manager.get_budget_status(name)
-        cb = cb_data.get(name, {})
+        quality = health_state.get_backend_quality(name)
+        cb_state = "open" if health_tracker.is_cooled_down(name) else "closed"
 
         backends.append({
             "name": name,
@@ -67,14 +61,14 @@ def _collect_backend_health() -> dict:
             "cooldown_remaining_s": state.get("cooldown_remaining_s", 0),
             "last_error_code": state.get("last_error_code"),
             "last_error_class": state.get("last_error_class"),
-            "total_requests": state.get("total_requests", 0),
-            "empty_count": state.get("empty_count", 0),
+            "total_requests": quality.get("total_requests", 0),
+            "empty_count": quality.get("empty_count", 0),
             "caps": caps,
             "budget": budget_status,
             "model": cfg.get("model", ""),
-            "cb_state": cb.get("state", "unknown"),
-            "cb_failures": cb.get("failures", 0),
-            "cb_total_calls": cb.get("total_calls", 0),
+            "cb_state": cb_state,
+            "cb_failures": state.get("consecutive_failures", 0),
+            "cb_total_calls": quality.get("total_requests", 0),
         })
 
     healthy = sum(1 for b in backends if b["health"] == "healthy")

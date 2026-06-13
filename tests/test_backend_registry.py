@@ -9,14 +9,12 @@ Verifies that:
 """
 import backends
 import http_caller
-import smart_router
 
 
 # ── BACKENDS completeness ───────────────────────────────────────────────────────
 
 def test_proxy_backend_set_is_shared_from_backend_registry():
     assert http_caller.GFW_BACKENDS is backends.GFW_BACKENDS
-    assert smart_router.GFW_BACKENDS is backends.GFW_BACKENDS
     assert "google_flash" in backends.GFW_BACKENDS
 
 
@@ -203,12 +201,6 @@ def test_vision_handler_uses_backends_source():
 
     assert vision_handler.VISION_BACKENDS is backends.VISION_BACKENDS, (
         "vision_handler.VISION_BACKENDS should be backends.VISION_BACKENDS"
-    )
-
-
-def test_smart_router_uses_backends_vision_source():
-    assert smart_router.VISION_BACKENDS is backends.VISION_BACKENDS, (
-        "smart_router.VISION_BACKENDS should be backends.VISION_BACKENDS"
     )
 
 

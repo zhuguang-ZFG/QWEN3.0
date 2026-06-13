@@ -13,8 +13,14 @@
 - C6：移除已跟踪二进制/运行时产物（router_model.pkl 1.4MB、deploy_xiaozhi.tar.gz、emu_screen.png、GIT_STATUS.txt）及本地凭证类文件（cpk.json、kimi.txt、kimi_session_vps.json）
 - C7：归档历史文档 22 份到 docs/archive/cleanup-2026-06/root-historical/（含 AGENTS_CN.md、May-18 prompt/model 文档、里程碑报告等）
 - C8：更新 README.md、AGENTS.md、docs/REQUEST_PIPELINE_AUTHORITY.md 中的失效引用与退役子系统描述
-- C9：legacy 路由/HTTP 栈（smart_router.py、router_http*.py 等）判定为独立里程碑，延后处理
-- 验证：ruff clean；pytest focused suite 49 passed
+- C9：legacy 路由/HTTP 栈退役
+  - 删除：smart_router.py、router_http*.py、router_circuit_breaker.py、router_intent.py、router_image.py、router_prompt.py、auto_retrain.py、oldllm_*.py、patch_server_v3.py、scripts/validate_via_router.py、scripts/test_route_e2e.py
+  - 迁移调用方：server.py、routes/admin_api.py、routes/system_endpoints.py、routes/health_dashboard.py、routes/chat_support.py、routes/chat_post_closeout.py、routes/chat_handler_dispatch.py、routes/chat_stream.py、orchestrate.py
+  - 新增 `routing_intent.py` 承载 thinking/image 意图检测
+  - 新增 `health_state.get_backend_quality()` 支撑 admin/health dashboard 的熔断兼容视图
+  - 删除相关测试：test_router_http.py、test_router_image.py、test_vision_routing.py、test_router_circuit_breaker.py、test_oldllm_*.py
+  - 保留：router_classifier.py、router_local.py（orchestrate.py 仍依赖，作为后续里程碑）
+- 验证：ruff clean；pytest focused suite 95 passed
 
 ## 2026-06-13 Phase 5 xiaozhi compat 拆分收尾
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from router_intent import detect_thinking_intent
+from routing_intent import detect_thinking_intent
 
 RULES = [
     (r"你是什么|什么模型|who are you|what model|你好|hello|hi$|hey$", "trivial", 0.95),

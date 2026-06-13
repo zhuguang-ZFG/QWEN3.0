@@ -106,6 +106,19 @@ def get_backend_state(backend: str) -> dict:
         }
 
 
+def get_backend_quality(backend: str) -> dict:
+    """Return quality counters for a backend (total_requests, empty_count, error_msg_count)."""
+    with _lock:
+        quality = _quality_states.get(backend)
+        if not quality:
+            return {"total_requests": 0, "empty_count": 0, "error_msg_count": 0}
+        return {
+            "total_requests": quality.total_requests,
+            "empty_count": quality.empty_count,
+            "error_msg_count": quality.error_msg_count,
+        }
+
+
 def get_latency_map() -> dict:
     with _lock:
         result = {}

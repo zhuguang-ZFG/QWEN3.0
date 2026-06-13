@@ -9,14 +9,33 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from access_guard import require_private_api_key
 import backends
-import router_circuit_breaker
-import smart_router
+import health_state
+import health_tracker
 
 router = APIRouter()
 
 _model_id = "lima-1.3"
 _model_created = int(time.time())
 _loaded_modules: dict[str, Any] = {}
+_PUBLIC_MODEL_NAME = os.environ.get("PUBLIC_MODEL_NAME", "LiMa")
+
+
+def _circuit_breaker_status() -> dict:
+    """Return breaker summary compatible with the legacy circuit-breaker shape."""
+    result = {}
+    for name in backends.BACKENDS:
+        quality = health_state.get_backend_quality(name)
+        total = quality["total_requests"]
+        errors = quality["empty_count"] + quality["error_msg_count"]
+        error_rate = f"{errors / total:.1%}" if total > 0 else "0.0%"
+        result[name] = {
+            "state": "open" if health_tracker.is_cooled_down(name) else "closed",
+            "failures": health_state.get_backend_state(name).get("state", "ok") != "ok",
+            "error_rate": error_rate,
+            "avg_latency_ms": int(health_state.get_latency_map().get(name, 0)),
+            "total_calls": total,
+        }
+    return result
 
 
 def inject_state(*, model_id: str, model_created: int, loaded_modules: dict[str, Any]) -> None:
@@ -71,8 +90,8 @@ async def live_key():
 @router.get("/v1/status", dependencies=[Depends(require_private_api_key)])
 async def router_status():
     return {
-        "circuit_breakers": router_circuit_breaker.cb_status(),
+        "circuit_breakers": _circuit_breaker_status(),
         "backends": list(backends.BACKENDS.keys()),
-        "route_table": smart_router.ROUTE,
-        "public_model": smart_router.PUBLIC_MODEL_NAME,
+        "route_table": {},
+        "public_model": _PUBLIC_MODEL_NAME,
     }

@@ -6,28 +6,19 @@ import asyncio
 import json
 import logging
 import os
-import subprocess
-import sys
 import time
-from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 import backends
-import router_circuit_breaker
-import smart_router
+import health_tracker
 from routes.admin_auth import verify_admin, verify_csrf
 from routes.admin_backends import describe_backend, test_backend_sync
 from routes.admin_state import FALLBACK_LOG, stats_context
 from routes.ops_metrics import backend_call_detail
 
 router = APIRouter()
-REPO_ROOT = Path(__file__).resolve().parent.parent
 _log = logging.getLogger(__name__)
-
-_RETRAIN_LOCK = asyncio.Lock()
-_RETRAIN_JOBS: dict[str, dict[str, object]] = {}
-_RETRAIN_TIMEOUT_SEC = int(os.environ.get("LIMA_RETRAIN_TIMEOUT_SEC", "600"))
 
 
 @router.get("/api/stats", dependencies=[Depends(verify_admin)])
@@ -82,7 +73,6 @@ async def admin_retrieval_traces():
 @router.get("/api/backends", dependencies=[Depends(verify_admin)])
 async def admin_backends():
     _stats, _lock, backend_enabled = stats_context()
-    cb = router_circuit_breaker.cb_status()
     backends_list = []
     for name, cfg in backends.BACKENDS.items():
         enabled = backend_enabled.get(name, True)
@@ -91,10 +81,25 @@ async def admin_backends():
                 name,
                 cfg,
                 enabled=enabled,
-                status_info=cb.get(name, {}),
+                status_info=_backend_status_info(name),
             )
         )
     return backends_list
+
+
+def _backend_status_info(name: str) -> dict:
+    """Build admin-backend status compatible with the old circuit-breaker shape."""
+    import health_state
+
+    quality = health_state.get_backend_quality(name)
+    total = quality["total_requests"]
+    errors = quality["empty_count"] + quality["error_msg_count"]
+    error_rate = f"{errors / total:.1%}" if total > 0 else "0.0%"
+    return {
+        "state": "open" if health_tracker.is_cooled_down(name) else "closed",
+        "total_calls": total,
+        "error_rate": error_rate,
+    }
 
 
 @router.post("/api/backends", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
@@ -183,61 +188,3 @@ async def admin_model_status():
         "threshold": 100,
         "recent_fallbacks": recent_logs,
     }
-
-
-@router.post("/api/retrain", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
-async def admin_trigger_retrain():
-    async with _RETRAIN_LOCK:
-        for job in _RETRAIN_JOBS.values():
-            if job.get("status") == "running":
-                return {
-                    "status": "already_running",
-                    "job_id": job.get("job_id"),
-                }
-        job_id = f"retrain-{int(time.time())}"
-        _RETRAIN_JOBS[job_id] = {
-            "job_id": job_id,
-            "status": "running",
-            "started_at": time.time(),
-            "output": "",
-        }
-
-    asyncio.create_task(_run_retrain_job(job_id))
-    return {"status": "started", "job_id": job_id}
-
-
-async def _run_retrain_job(job_id: str) -> None:
-    try:
-        result = await asyncio.to_thread(
-            subprocess.run,
-            [sys.executable, "auto_retrain.py", "--force"],
-            capture_output=True,
-            text=True,
-            timeout=_RETRAIN_TIMEOUT_SEC,
-            cwd=str(REPO_ROOT),
-        )
-        output = (result.stdout or result.stderr or "")[-500:]
-        status = "completed" if result.returncode == 0 else "failed"
-        _RETRAIN_JOBS[job_id] = {
-            "job_id": job_id,
-            "status": status,
-            "returncode": result.returncode,
-            "output": output,
-            "finished_at": time.time(),
-        }
-    except subprocess.TimeoutExpired:
-        _log.warning("admin retrain job timed out: %s", job_id)
-        _RETRAIN_JOBS[job_id] = {
-            "job_id": job_id,
-            "status": "timeout",
-            "output": "",
-            "finished_at": time.time(),
-        }
-    except Exception as exc:
-        _log.warning("admin retrain job failed: %s err=%s", job_id, type(exc).__name__)
-        _RETRAIN_JOBS[job_id] = {
-            "job_id": job_id,
-            "status": "error",
-            "output": "",
-            "finished_at": time.time(),
-        }

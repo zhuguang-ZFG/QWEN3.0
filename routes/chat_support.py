@@ -12,13 +12,22 @@ from datetime import datetime
 import asyncio
 
 import backends
+import health_tracker
 import http_caller
-import router_circuit_breaker
-import router_intent
 import routing_executor
-import smart_router
 
 _log = logging.getLogger(__name__)
+
+_DISTILL_QUEUE_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "distill_queue", "pending")
+_DEBUG = os.environ.get("LIMA_DEBUG", "") == "1"
+
+
+def _get_thinking_backend() -> str:
+    """Pick an available thinking-capable backend."""
+    for name in backends.THINKING_BACKENDS:
+        if name in backends.BACKENDS and backends.BACKENDS[name].get("key") and not health_tracker.is_cooled_down(name):
+            return name
+    return "longcat_thinking"
 
 
 def _call_thinking_backend(backend: str, msgs: list, max_tokens: int, ide: str) -> str | None:
@@ -37,7 +46,7 @@ def _call_thinking_backend(backend: str, msgs: list, max_tokens: int, ide: str) 
 
 async def thinking_route(query: str, max_tokens: int = 4096, ide: str = "unknown") -> dict | None:
     """Route to a thinking-capable backend. Returns result dict or None on failure."""
-    thinking_backend = router_intent.get_thinking_backend()
+    thinking_backend = _get_thinking_backend()
     msgs = [{"role": "user", "content": query}]
     try:
         result = await asyncio.wait_for(
@@ -55,7 +64,7 @@ async def thinking_route(query: str, max_tokens: int = 4096, ide: str = "unknown
             continue
         if alt not in backends.BACKENDS or not backends.BACKENDS[alt].get("key"):
             continue
-        if not router_circuit_breaker.cb_allow(alt):
+        if health_tracker.is_cooled_down(alt):
             continue
         try:
             result = await asyncio.wait_for(
@@ -79,9 +88,9 @@ def attach_memory_recall_meta(response: dict, memory_meta: dict) -> dict:
 
 def log_sys_prompt(sys_prompt: str) -> None:
     """Record new system prompts with SHA256 dedup."""
-    os.makedirs(smart_router.DISTILL_QUEUE_DIR.replace("pending", "sys_prompts"), exist_ok=True)
+    sys_prompt_dir = os.path.join(os.path.dirname(_DISTILL_QUEUE_DIR), "sys_prompts")
+    os.makedirs(sys_prompt_dir, exist_ok=True)
     phash = hashlib.sha256(sys_prompt.encode()).hexdigest()[:16]
-    sys_prompt_dir = os.path.join(os.path.dirname(smart_router.DISTILL_QUEUE_DIR), "sys_prompts")
 
     existing = os.listdir(sys_prompt_dir) if os.path.exists(sys_prompt_dir) else []
     if any(phash in name for name in existing):
@@ -111,5 +120,5 @@ def log_sys_prompt(sys_prompt: str) -> None:
     fname = os.path.join(sys_prompt_dir, f"{ide_source}_{phash}.json")
     with open(fname, "w", encoding="utf-8") as handle:
         json.dump(entry, handle, ensure_ascii=False, indent=2)
-    if smart_router.DEBUG:
+    if _DEBUG:
         print(f"[SYS_PROMPT] new: {ide_source} ({len(sys_prompt)} chars)", file=sys.stderr)

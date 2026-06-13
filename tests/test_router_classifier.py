@@ -1,7 +1,7 @@
-"""Tests for router_classifier and router_intent (CQ-014 slice 6)."""
+"""Tests for router_classifier and routing_intent (CQ-014 slice 6)."""
 
 import router_classifier as clf
-import router_intent as intent
+import routing_intent as intent
 
 
 def test_rule_classify_trivial_greeting():
@@ -46,10 +46,3 @@ def test_analyze_default_fallback():
 def test_detect_thinking_intent_patterns():
     assert intent.detect_thinking_intent("think step by step about this proof") is True
     assert intent.detect_thinking_intent("hello world") is False
-
-
-def test_analyze_reexported_via_smart_router():
-    import smart_router
-
-    result = smart_router.analyze("你好")
-    assert result["intent"] == "trivial"

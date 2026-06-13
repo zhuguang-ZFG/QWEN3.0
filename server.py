@@ -15,7 +15,6 @@ from fastapi import FastAPI
 import uvicorn
 
 from chat_models import ChatRequest as ChatRequest, Message as Message, extract_system_prompt
-import smart_router
 from vision_handler import (
     _vision_route, _stream_vision_response,
 )
@@ -123,6 +122,4 @@ live_key = _registered.live_key
 router_status = _registered.router_status
 
 if __name__ == "__main__":
-    print('[LiMa] Warming up router model...', file=sys.stderr)
-    smart_router.warmup_router_model()
     uvicorn.run(app, host="0.0.0.0", port=8080)

@@ -2,11 +2,87 @@
 
 from __future__ import annotations
 
+import datetime
 import hashlib
+import json
 import logging
 import os
+import sys
+import time
 
 _log = logging.getLogger(__name__)
+
+_DISTILL_QUEUE_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "distill_queue", "pending")
+_DEBUG = os.environ.get("LIMA_DEBUG", "") == "1"
+
+
+def _quick_score(query: str, answer: str) -> float:
+    """Heuristic quality score for distill queue entries."""
+    if not answer:
+        return 0.0
+
+    length = len(answer)
+    if 100 <= length <= 2000:
+        len_score = 1.0
+    elif length < 50:
+        len_score = 0.0
+    elif length < 100:
+        len_score = (length - 50) / 50
+    else:
+        len_score = max(0.7, 1.0 - (length - 2000) / 5000)
+
+    fmt_score = 0.0
+    if "```" in answer and answer.count("```") % 2 == 0:
+        fmt_score += 0.4
+    if any(char.isdigit() for char in answer):
+        fmt_score += 0.3
+    if any(marker in answer for marker in ["1.", "2.", "- ", "* ", "步骤"]):
+        fmt_score += 0.3
+
+    comp_score = 1.0
+    if any(marker in answer for marker in ["抱歉", "无法", "不确定", "我不能", "暂时不可用"]):
+        comp_score = 0.3
+
+    query_words = set(query.lower().replace("?", "").replace("？", "").split())
+    answer_lower = answer.lower()
+    overlap = sum(1 for word in query_words if word and word in answer_lower)
+    overlap_score = min(1.0, overlap / max(1, len(query_words)))
+
+    return 0.3 * len_score + 0.25 * fmt_score + 0.25 * comp_score + 0.2 * overlap_score
+
+
+def _log_to_distill_queue(query: str, answer: str, intent: dict, backend: str) -> None:
+    """Write a distill-queue entry for later retraining/annotation."""
+    if os.environ.get("DISTILL_LOG", "0") != "1":
+        return
+    if backend == "local":
+        return
+    if not answer or "暂时不可用" in answer:
+        return
+
+    try:
+        os.makedirs(_DISTILL_QUEUE_DIR, exist_ok=True)
+        score = _quick_score(query, answer)
+        entry = {
+            "query": query,
+            "answer": answer,
+            "intent": intent.get("intent", "unknown"),
+            "complexity": intent.get("complexity", 0.5),
+            "source_backend": backend,
+            "quality_score": score,
+            "routing_correct": score >= 0.7,
+            "logged_at": datetime.datetime.now().isoformat(),
+        }
+        qhash = hashlib.md5(query.encode()).hexdigest()[:8]
+        ts = time.strftime("%Y%m%d_%H%M%S")
+        fname = os.path.join(_DISTILL_QUEUE_DIR, f"{ts}_{qhash}.json")
+        with open(fname, "w", encoding="utf-8") as handle:
+            json.dump(entry, handle, ensure_ascii=False, indent=2)
+        if _DEBUG:
+            print(f"[DISTILL] logged: {query[:30]}... -> {backend}", file=sys.stderr)
+    except Exception as exc:
+        if _DEBUG:
+            print(f"[DISTILL] log failed: {exc}", file=sys.stderr)
 
 
 def persist_session_memory(
@@ -110,10 +186,8 @@ def maybe_log_distill_queue(*, query: str, content: str, intent, backend: str) -
     if os.environ.get("DISTILL_LOG", "0") != "1":
         return
     try:
-        import smart_router
-
         intent_payload = intent if isinstance(intent, dict) else {"intent": intent}
-        smart_router._log_to_distill_queue(query, content, intent_payload, backend)
+        _log_to_distill_queue(query, content, intent_payload, backend)
     except Exception as exc:
         _log.debug("distill queue log skipped: %s", type(exc).__name__)
 

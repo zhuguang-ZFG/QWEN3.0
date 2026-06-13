@@ -9,7 +9,6 @@ from typing import Any
 _log = logging.getLogger(__name__)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import smart_router
 import health_tracker
 import http_caller
 import routing_engine
