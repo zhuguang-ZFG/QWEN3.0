@@ -246,5 +246,6 @@ async def execute_non_stream_route(ctx: ChatRunContext, req: ChatRequest) -> tup
             max_tokens=req.max_tokens or 4096,
             needs_tools=req.has_tools,
             tools=req.tools,
+            prefer=ctx.prefs.prefer,
         )
     return result, intent if isinstance(intent, dict) else {}

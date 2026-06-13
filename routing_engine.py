@@ -93,7 +93,8 @@ def pick_backend(query: str, messages: list[dict], *,
                  fmt: str = "openai", ide_source: str = "",
                  model: str = "", system_prompt: str = "",
                  headers: dict | None = None,
-                 needs_tools: bool = False) -> PickResult:
+                 needs_tools: bool = False,
+                 preferred_backend: str = "") -> PickResult:
     """选路前半段：与 route() 共享 classify/inject/select/skills 管线，不执行 HTTP。"""
     req_type = classify(query, messages, fmt=fmt, ide_source=ide_source,
                         system_prompt=system_prompt, headers=headers or {})
@@ -111,6 +112,7 @@ def pick_backend(query: str, messages: list[dict], *,
     hmap = health_tracker.get_health_map()
     backends = select(req_type, hmap, sticky_key=sticky_key, scenario=scenario,
                       needs_tools=needs_tools, recalled_backend=recalled_backend,
+                      preferred_backend=preferred_backend or "",
                       complexity=complexity_info)
 
     messages_injected = inject_skills(
@@ -138,7 +140,8 @@ def route(query: str, messages: list[dict], *,
           cache_enabled: bool = True,
           channel_role: str = "default",
           needs_tools: bool = False,
-          tools: list[dict] | None = None) -> RouteResult:
+          tools: list[dict] | None = None,
+          preferred_backend: str = "") -> RouteResult:
     """统一路由入口。call_fn(backend, messages, max_tokens) -> str"""
     t0 = time.time()
 
@@ -152,6 +155,7 @@ def route(query: str, messages: list[dict], *,
     picked = pick_backend(
         query, messages, fmt=fmt, ide_source=ide_source, model=model,
         system_prompt=system_prompt, headers=headers, needs_tools=needs_tools,
+        preferred_backend=preferred_backend or "",
     )
     req_type = picked.request_type
     scenario = picked.scenario

@@ -76,7 +76,10 @@
 
 **已完成：** speculative 透传 `system_prompt`；`_pick_for_stream` 对齐 predict/select；`token_sync` 仅 2xx+有效 content 接受 override。
 
-### Phase 3 — 模块边界（P2）
+### Phase P1.5 — prefer 模型别名选路 ✅ 2026-06-13
+
+**已完成：** `resolve_route_prefs()` 的 `prefer` 经 `v3_route` / `pick_backend` / `routing_selector.select(preferred_backend=)` 贯穿非流式与 speculative 流式路径；sticky 仍优先于 prefer。
+
 
 - `routing_engine` 考虑将 `select`/`execute` 改为 `_select`/`_execute` 或移入 `routing_engine/_internal.py`，仅 `route` / `pick_backend` 公开
 - 超大文件拆分见 CQ 计划（`routing_engine.py`、`xiaozhi_v1_compat.py` 等）
@@ -89,7 +92,7 @@
 | `execute_subtasks` hint 路径传递 `ide` / `system_prompt` | ✅ |
 | `routing_engine` 错误路径 `%s` 日志修复 | ✅ |
 | `REQUEST_PIPELINE_AUTHORITY.md` 移除 semantic_cache / code_orchestrator | ✅ |
-| `prefer` 模型别名强制选路（流式/非流式） | 待设计 |
+| `prefer` 模型别名强制选路（流式/非流式） | ✅ 2026-06-13 |
 | `eval_internal` eval 旁路 | Phase 3+ |
 
 ## 4. routes/ 超标文件（本地 wc，2026-06-13）

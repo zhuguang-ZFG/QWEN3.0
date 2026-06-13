@@ -10,7 +10,7 @@ import http_caller
 
 
 def v3_route(query, messages, system_prompt="", ide="", max_tokens=4096,
-             needs_tools=False, tools=None, **_kw):
+             needs_tools=False, tools=None, prefer=None, **_kw):
     """V3 路由适配器：返回与 smart_router.route() 兼容的 dict。"""
     def _call_fn(backend, msgs, mt, tools=None):
         return http_caller.call_api(backend, msgs, mt,
@@ -19,7 +19,8 @@ def v3_route(query, messages, system_prompt="", ide="", max_tokens=4096,
     result = routing_engine.route(
         query, messages, fmt="openai", ide_source=ide,
         system_prompt=system_prompt, max_tokens=max_tokens,
-        call_fn=_call_fn, needs_tools=needs_tools, tools=tools)
+        call_fn=_call_fn, needs_tools=needs_tools, tools=tools,
+        preferred_backend=prefer or "")
     return {"answer": result.answer, "backend": result.backend,
             "total_ms": result.ms, "fallback_used": result.fallback_used}
 
@@ -37,6 +38,7 @@ def _pick_for_stream(
     *,
     system_prompt: str = "",
     ide: str = "",
+    preferred_backend: str = "",
 ):
     """流式 speculative 选路：与 v3_select 共享 pick_backend 入参。"""
     msgs = messages if messages else [{"role": "user", "content": query}]
@@ -45,14 +47,16 @@ def _pick_for_stream(
         msgs,
         ide_source=_normalize_ide_source(ide),
         system_prompt=system_prompt or "",
+        preferred_backend=preferred_backend or "",
     )
 
 
-def v3_predict(query, messages, system_prompt="", ide=""):
+def v3_predict(query, messages, system_prompt="", ide="", preferred_backend=""):
     """V3 快速预测：委托 routing_engine.pick_backend（与 v3_select 共享上下文）。"""
     try:
         picked = _pick_for_stream(
             query, messages, system_prompt=system_prompt, ide=ide,
+            preferred_backend=preferred_backend,
         )
         return picked.backend
     except Exception as e:
@@ -60,11 +64,12 @@ def v3_predict(query, messages, system_prompt="", ide=""):
         return _FALLBACK_BACKEND
 
 
-def v3_select(query, system_prompt, ide, messages):
+def v3_select(query, system_prompt, ide, messages, preferred_backend=""):
     """V3 完整路由选择：委托 routing_engine.pick_backend。"""
     try:
         picked = _pick_for_stream(
             query, messages, system_prompt=system_prompt, ide=ide,
+            preferred_backend=preferred_backend,
         )
         return (picked.backend, picked.messages)
     except Exception as e:

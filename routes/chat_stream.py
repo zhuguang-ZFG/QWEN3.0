@@ -70,11 +70,7 @@ async def stream_response(
     messages: list | None = None,
     prefer: str | None = None,
 ):
-    """SSE generator: speculative streaming with orchestration/thinking fallbacks.
-
-    Note: ``prefer`` currently only disables orchestration in the caller; it does
-    not force backend selection on the speculative path (see audit P1 backlog).
-    """
+    """SSE generator: speculative streaming with orchestration/thinking fallbacks."""
     messages = messages or []
     build_url = _build_pollinations_url
     last_resort = _last_resort_call
@@ -133,7 +129,9 @@ async def stream_response(
     streamed_any = False
 
     async for _backend, chunk in speculative_stream_chunks(
-        query, messages, 4096, ide_source, system_prompt=sys_prompt_preview,
+        query, messages, 4096, ide_source,
+        system_prompt=sys_prompt_preview,
+        preferred_backend=prefer or "",
     ):
         streamed_any = True
         from response_cleaner import clean_response

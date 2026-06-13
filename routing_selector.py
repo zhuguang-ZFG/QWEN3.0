@@ -84,9 +84,36 @@ def _is_strong_coding_tool_backend(name: str, cfg: dict | None = None) -> bool:
     )
 
 
+def _pin_if_selectable(
+    name: str,
+    result: list[str],
+    health_map: dict,
+    request_type: str,
+    re,
+) -> list[str]:
+    """Pin explicit backend first when healthy, budgeted, and selectable."""
+    import backends_registry as reg
+
+    if not name or name not in reg.BACKENDS:
+        return result
+    if re.health_tracker.is_cooled_down(name):
+        return result
+    if not budget_manager.is_budget_available(name):
+        return result
+    if health_map.get(name, "healthy") == "dead":
+        return result
+    state = re.health_tracker.get_backend_state(name)
+    if not route_scorer.is_selectable(name, request_type, state):
+        return result
+    if name not in result:
+        return ([name] + result)[:MAX_FALLBACKS]
+    return _prioritize(name, result)
+
+
 def select(request_type: str, health_map: dict,
            sticky_key: str | None = None, scenario: str = "",
            needs_tools: bool = False, recalled_backend: str = "",
+           preferred_backend: str = "",
            complexity=None) -> list[str]:
     """从对应池选健康后端，按健康评分排序，过滤预算耗尽，sticky 优先"""
     import routing_engine as re
@@ -260,6 +287,10 @@ def select(request_type: str, health_map: dict,
                     pinned, request_type,
                     re.health_tracker.get_backend_state(pinned))):
             result = _prioritize(pinned, result)
+    elif preferred_backend:
+        result = _pin_if_selectable(
+            preferred_backend, result, health_map, request_type, re,
+        )
     elif recalled_backend and recalled_backend in result:
         if (health_map.get(recalled_backend, "healthy") != "dead"
                 and route_scorer.is_selectable(
