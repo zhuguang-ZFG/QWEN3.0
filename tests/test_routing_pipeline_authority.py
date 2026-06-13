@@ -124,6 +124,13 @@ class TestRoutingEngineAuthority:
             f"routing_engine should use routing_executor, not call http_caller directly: {direct_call_lines}"
         )
 
+    def test_eval_internal_uses_pinned_executor_not_http_caller(self):
+        src = _read_module_source("routes.eval_internal")
+        assert "http_caller" not in src, (
+            "eval_internal should delegate to eval_pinned_call, not http_caller"
+        )
+        assert "call_pinned_backend" in src
+
 
 class TestSmartRouterLegacy:
     """smart_router is legacy — should not be imported by routing_engine."""

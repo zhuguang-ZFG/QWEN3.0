@@ -74,6 +74,8 @@ tests and VPS smoke (retrieval unification pattern, CQ-059).
 
 **流式 speculative（非完整 route）：** `routes/stream_handlers.speculative_stream_chunks` → `v3_predict` / `v3_select` → `pick_backend()` → `v3_call_stream*` 执行 HTTP。
 
+**Eval 固定 backend（非 chat route）：** `POST /internal/v1/eval/call` 与 `eval_call.make_eval_call_fn()` 经 `eval_pinned_call.call_pinned_backend()` → `routing_executor.execute([backend], …)` → `http_caller`；不走 classify/select，但记录 health/budget。
+
 ## Request flow (chat)
 
 ```mermaid

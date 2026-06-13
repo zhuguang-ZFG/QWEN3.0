@@ -33,8 +33,8 @@ def test_eval_internal_direct_call(eval_client, monkeypatch):
     import backends
 
     monkeypatch.setattr(
-        "http_caller.call_api",
-        lambda backend, messages, max_tokens: "def foo(): pass",
+        "routes.eval_internal.call_pinned_backend",
+        lambda backend, messages, max_tokens: ("scnet_qwen30b", "def foo(): pass"),
     )
     if "scnet_qwen30b" not in backends.BACKENDS:
         monkeypatch.setitem(
@@ -55,3 +55,27 @@ def test_eval_internal_direct_call(eval_client, monkeypatch):
     data = resp.json()
     assert data["ok"] is True
     assert "def foo" in data["answer"]
+
+
+def test_eval_internal_exhausted_returns_502(eval_client, monkeypatch):
+    import backends
+
+    monkeypatch.setattr(
+        "routes.eval_internal.call_pinned_backend",
+        lambda backend, messages, max_tokens: ("exhausted", ""),
+    )
+    if "scnet_qwen30b" not in backends.BACKENDS:
+        monkeypatch.setitem(
+            backends.BACKENDS,
+            "scnet_qwen30b",
+            {"key": "x", "url": "http://example", "model": "m", "fmt": "openai"},
+        )
+    resp = eval_client.post(
+        "/internal/v1/eval/call",
+        json={
+            "backend": "scnet_qwen30b",
+            "messages": [{"role": "user", "content": "write foo"}],
+        },
+        headers={"Authorization": "Bearer eval-test-key"},
+    )
+    assert resp.status_code == 502

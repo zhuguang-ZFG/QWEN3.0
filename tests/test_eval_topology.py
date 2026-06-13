@@ -66,8 +66,8 @@ def test_make_eval_call_fn_uses_router(monkeypatch):
         lambda backend, messages, max_tokens: "via-router-answer",
     )
     monkeypatch.setattr(
-        "http_caller.call_api",
-        lambda backend, messages, max_tokens: "direct-answer",
+        "eval_pinned_call.call_pinned_backend",
+        lambda backend, messages, max_tokens: ("scnet_qwen30b", "direct-answer"),
     )
 
     call_fn = make_eval_call_fn()

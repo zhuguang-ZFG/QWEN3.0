@@ -23,7 +23,7 @@
 | 8 | `routes/chat_support.py` | P0 | `thinking_route` 直调 `router_http.call_api` | ✅ Phase 1 已关闭 |
 | 9 | `routes/chat_handler_dispatch.py` | P0 | `orchestrate()` 非流式路径跳过 `route()` | ✅ Phase 1 已关闭 |
 | 10 | `routes/chat_stream.py` | P0 | `orchestrate()` 流式路径跳过 `route()` | ✅ Phase 1 已关闭 |
-| 11 | `routes/eval_internal.py` | P1 | eval 直调 `http_caller`，无 health/budget | 待 Phase 3+ |
+| 11 | `routes/eval_internal.py` | P1 | eval 直调 `http_caller`，无 health/budget | ✅ Phase 3+ 2026-06-13 |
 | 12 | `routes/token_sync.py` | P1 | urllib + 裸 `except Exception: return False` | ✅ Phase 2.5 校验收紧 + warning 日志 |
 
 完整 JSON：`.omc/artifacts/lima-multi-cli/findings.json`（18 条，Qoder lane）。
@@ -86,9 +86,15 @@
 
 **已完成：** 拆分 `routing_engine_*` 子模块；`routing_engine.py` facade；`__all__` 移除 `select`/`execute`；`routing_selector` 直引 `router_v3`/`health_tracker`。
 
+### Phase 3+ — eval 旁路收敛 ✅ 2026-06-13
+
+**方案：** eval 仍**固定 backend**（不走 `route()`/select），统一经 `eval_pinned_call.call_pinned_backend()` → `routing_executor.execute()` + `http_caller`，获得 health/budget 记录。
+
+- `routes/eval_internal.py` — async 入口
+- `eval_call.make_eval_call_fn()` — 本地直连路径同步收敛
+
 ### Phase 3+ — 延后
 
-- `routes/eval_internal.py` eval 旁路
 - 其他超标 routes 文件拆分（`xiaozhi_v1_compat.py` 等）
 
 ### Phase P1 — 编排上下文与文档对齐 ✅ 2026-06-13
@@ -100,7 +106,7 @@
 | `routing_engine` 错误路径 `%s` 日志修复 | ✅ |
 | `REQUEST_PIPELINE_AUTHORITY.md` 移除 semantic_cache / code_orchestrator | ✅ |
 | `prefer` 模型别名强制选路（流式/非流式） | ✅ 2026-06-13 |
-| `eval_internal` eval 旁路 | Phase 3+ |
+| `eval_internal` eval 旁路 | ✅ Phase 3+ 2026-06-13 |
 
 ## 4. routes/ 超标文件（本地 wc，2026-06-13）
 
