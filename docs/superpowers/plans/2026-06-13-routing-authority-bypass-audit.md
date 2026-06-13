@@ -110,6 +110,10 @@
 
 **刻意不做（Phase 4-B 延后）：** 流式 `route()` 全 parity（post_process、coding quality retry）— speculative 路径为延迟 tradeoff，见 `REQUEST_PIPELINE_AUTHORITY.md`。
 
+### Phase 4-B — 流式 parity 文档化 ✅ 2026-06-13
+
+**已完成：** `docs/REQUEST_PIPELINE_AUTHORITY.md` 新增「流式 vs 非流式路由 parity（刻意差异）」— 对照表 + 共享/独占步骤 + closeout 差异 + 非目标说明。
+
 ### Phase P1 — 编排上下文与文档对齐 ✅ 2026-06-13
 
 | 项 | 状态 |
