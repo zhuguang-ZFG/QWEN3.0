@@ -54,6 +54,35 @@
   - `esp32S_XYZ/docs/U1-Grbl适配说明.md`：Windows 绝对路径 `C:/Users/...` → 相对仓库路径 `../firmware/...`
 - 扫描结果：仓库内相对链接从 55+ 失效降至 0（排除 `.venv` 与代码块内 lambda 语法误识别）
 
+## 2026-06-13 第二轮死区清理（中置信度脚本 + 根部过时文件）
+
+- 删除中置信度无引用脚本：
+  - `scripts/build_free_web_ai_admission.py`
+  - `scripts/create_lima_smoke_task.py`
+  - `scripts/gitee_mirror_lag_check.py` / `gitee_mirror_status.py`
+  - `scripts/jdcloud_monitor.py`
+  - `scripts/probe_cf_new_models.py` / `scripts/probe_free_web_ai.py`
+  - `scripts/refactor_admin.py` / `scripts/refactor_ops_metrics_helper.py`
+  - `scripts/stream_latency_evidence.py`
+  - `scripts/eval_coding_backends.py` / `scripts/eval_web_reverse_models.py`
+  - `scripts/deploy_site_update.py` / `scripts/deploy_vps_bundle.py`
+- 删除对应过时测试：
+  - `tests/test_lima_smoke_task_script.py`
+  - `tests/test_gitee_mirror.py`
+  - `tests/test_free_web_ai_probe.py`
+- 归档根部过时英文设计快照到 `docs/archive/top-level-design-snapshots/`：
+  - `CACHE_OPTIMIZATION_PLAN.md`
+  - `CACHE_SOLUTION_SUMMARY.md`
+  - `NGINX_CACHE_SOLUTION.md`
+  - `SUPPORTED_MODELS.md`
+- 删除根部本地文件：`set_qwen_env.ps1`、`newapi_models_export.json`
+- 保留作为运维 runbook 的手动脚本：
+  - `scripts/check_jdcloud_node.py` / `check_vps_environment.py`
+  - `scripts/test_redis_from_local.py` / `test_jdcloud_connection.py`
+  - `scripts/vps_eval_smoke_remote.py`
+  - `scripts/inventory_*.py`
+- 验证：`ruff check .` 通过；`pytest --ignore=tests/test_token_health.py`：2042 passed, 25 skipped
+
 ## 2026-06-13 英文文档归档与入口引用修复
 
 - 归档 8 份英文多语言文档到 `docs/archive/en/`：
