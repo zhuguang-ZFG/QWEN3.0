@@ -1,6 +1,5 @@
 """Memory store with TTL, isolation, and parent controls."""
 import json
-import sqlite3
 import time
 from typing import List, Optional
 from device_memory.schemas import MemoryEntry, MemoryType

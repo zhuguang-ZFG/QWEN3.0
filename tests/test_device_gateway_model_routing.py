@@ -200,7 +200,6 @@ def test_validate_route_policy_rejects_non_dict():
 
 def test_route_evidence_includes_error_on_validation_failure():
     """When route_policy validation fails, the task should have an error and evidence should record it."""
-    from device_gateway.model_routing import _policy
     from device_gateway.tasks import project_to_motion_task
 
     # Manually create a voice_task that would produce an invalid route_policy

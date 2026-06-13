@@ -23,7 +23,6 @@ def evidence_db(monkeypatch):
 def test_chat_golden_path_records_capability_evidence(evidence_db, monkeypatch):
     import routes.chat_handler as chat_handler
     import routes.chat_handler_dispatch as dispatch
-    import routes.v3_adapters as v3_adapters
     import server
 
     monkeypatch.setenv("LIMA_API_KEY", "test-private-token")

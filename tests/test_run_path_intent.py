@@ -6,7 +6,6 @@ Covers:
 - params.path data format validation
 - Protocol conversion end-to-end
 """
-import pytest
 
 from device_gateway.intent import parse_command, resolve_voice_task
 from device_gateway.protocol import run_path_dispatch_frame

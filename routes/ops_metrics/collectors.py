@@ -6,7 +6,7 @@ from typing import Any
 
 from fastapi import Request
 
-from .formatters import redacted, backend_call_count, backend_call_detail, top_backend_counts, top_backend_details
+from .formatters import redacted, top_backend_counts, top_backend_details
 
 
 def app_stats(request: Request) -> dict[str, Any]:

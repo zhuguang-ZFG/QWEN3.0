@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import math
 
-import pytest
 
 from device_intelligence.schemas import DeviceProfile, TaskPlan
 from device_intelligence.simulator import SimResult, simulate_motion

@@ -6,7 +6,7 @@ import re
 from typing import Any
 
 from .artifact_recorder import record_route_evidence
-from .device_profile import DeviceCapability, DeviceHistory, DevicePreferences, DeviceProfile
+from .device_profile import DevicePreferences, DeviceProfile
 
 CONTROL_CAPABILITIES = frozenset({"home", "pause", "resume", "stop", "get_device_info"})
 

@@ -1,7 +1,6 @@
 """Test device_simplification_logger module."""
 
 import json
-from pathlib import Path
 from device_gateway.device_simplification_logger import (
     record_simplification,
     ARTIFACT_DIR,

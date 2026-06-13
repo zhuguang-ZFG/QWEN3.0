@@ -1,6 +1,5 @@
 """Connectivity test: latency measurement and availability check."""
 
-import asyncio
 import logging
 import time
 

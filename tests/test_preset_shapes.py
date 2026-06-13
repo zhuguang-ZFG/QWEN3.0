@@ -1,5 +1,4 @@
 """Tests for preset_shapes.py"""
-import pytest
 from xiaozhi_drawing.preset_shapes import get_preset_svg
 
 

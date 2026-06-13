@@ -67,6 +67,14 @@ rtk/
 LIMA-external/
 
 # === 本地运行时（不进 Git）===
+# Runtime backups and ad-hoc local copies created during debugging/deploy.
+*.backup*
+*.bak*
+.env.bak*
+.env.backup*
+*_patch.py
+*_opencode.py
+*_cache_patch.py
 data/*.db
 data/*.db-shm
 data/*.db-wal

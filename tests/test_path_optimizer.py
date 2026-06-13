@@ -1,5 +1,4 @@
 """Tests for path_optimizer.py"""
-import pytest
 from xiaozhi_drawing.path_optimizer import optimize_svg_path
 
 

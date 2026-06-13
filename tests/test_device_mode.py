@@ -1,6 +1,5 @@
 """Tests for device mode configuration."""
 import os
-import pytest
 from device_mode import is_device_mode, should_skip_context_pipeline
 
 

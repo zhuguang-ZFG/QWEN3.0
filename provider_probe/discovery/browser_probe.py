@@ -4,7 +4,6 @@ For websites that require JavaScript rendering (most modern AI provider
 sites), uses the Playwright browser service to extract API information.
 """
 
-import json
 import logging
 import os
 

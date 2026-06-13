@@ -1,6 +1,5 @@
 """Static file routes for LiMa frontend assets."""
 
-import os
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException

@@ -1,6 +1,5 @@
 """Tests for esp32s_adapter protocol conversion."""
 
-import pytest
 
 from esp32s_adapter.protocol import edge_c_to_lima_event, generate_route_policy, lima_to_edge_c_task
 

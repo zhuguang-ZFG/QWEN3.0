@@ -2,19 +2,11 @@
 测试路由引擎集成 - 测试路由引擎的各个组件和集成路径
 """
 import unittest
-from unittest.mock import patch, MagicMock
-from typing import List, Dict, Any, Callable
+from unittest.mock import MagicMock
 
 from routing_engine import (
     RouteResult,
-    classify,
-    classify_scenario,
-    inject_skills,
-    respond,
-    route,
-    pick_backend,
 )
-from routing_engine_post import get_injected_ids
 
 
 class TestRoutingEngineIntegration(unittest.TestCase):

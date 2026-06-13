@@ -2,18 +2,13 @@
 测试路由引擎 - 测试路由引擎的各个组件和功能
 """
 import unittest
-from unittest.mock import patch, MagicMock, PropertyMock
-from dataclasses import dataclass, field
-from typing import List, Dict, Any, Callable
+from unittest.mock import patch, MagicMock
 
 from routing_engine import (
     RouteResult,
-    classify,
-    classify_scenario,
     inject_skills,
     respond,
     route,
-    pick_backend,
 )
 from routing_engine_post import get_injected_ids
 
@@ -488,7 +483,6 @@ class TestRoutingEngine(unittest.TestCase):
         验证路由引擎 re-export 的函数列表完整且正确
         """
         from routing_engine import (
-            RouteResult,
             classify,
             classify_scenario,
             inject_skills,

@@ -7,8 +7,7 @@ AI API services through structured web searches.
 import logging
 import os
 import re
-from dataclasses import dataclass, field
-from typing import Any
+from dataclasses import dataclass
 
 import httpx
 

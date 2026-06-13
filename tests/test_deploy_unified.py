@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import sys
-from types import SimpleNamespace
 
 from scripts import deploy_unified
 

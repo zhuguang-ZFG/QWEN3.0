@@ -6,7 +6,6 @@ from a TaskPlan's path. All calculations are pure geometry — no side effects.
 
 from __future__ import annotations
 
-from copy import deepcopy
 from dataclasses import dataclass, field
 import json
 import math

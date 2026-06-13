@@ -1,9 +1,7 @@
 """Tests for device_gateway.artifact_recorder."""
 
 import json
-import os
 import tempfile
-import threading
 import time
 import unittest
 from pathlib import Path
@@ -15,8 +13,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from device_gateway.artifact_recorder import (
     _STORAGE_BASE,
-    _get_executor,
-    _write_evidence,
     record_route_evidence,
     shutdown,
 )

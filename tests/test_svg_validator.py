@@ -1,5 +1,4 @@
 """Tests for svg_validator.py"""
-import pytest
 from xiaozhi_drawing.svg_validator import validate_svg_path
 
 

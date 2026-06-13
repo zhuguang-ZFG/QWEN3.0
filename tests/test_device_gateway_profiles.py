@@ -5,7 +5,6 @@ from device_gateway.device_simplification_logger import record_simplification
 from device_gateway.profiles import (
     CONSERVATIVE_MAX_PATH_POINTS,
     CONSERVATIVE_WORKSPACE_MM,
-    ResolvedProfile,
     apply_profile_constraints,
     register_profile,
     reset_profiles_for_tests,
@@ -349,7 +348,6 @@ def test_apply_profile_constraints_no_simplification_for_complete_profile():
 
 
 def test_task_creation_includes_profile_routing():
-    from device_gateway.tasks import create_task_from_transcript
 
     # Mock hello frame with device info
     class MockHelloFrame:

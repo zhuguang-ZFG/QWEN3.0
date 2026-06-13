@@ -5,6 +5,20 @@
 > Updated: 2026-06-13
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-13 第二轮瘦身：文档死区清理 + 代码未使用导入清理
+
+- 文档清理：
+  - 删除已被 `ONLINE_DISTRIBUTIONS.md` 取代的 `docs/OPS_ENTRYPOINTS.md`
+  - 归档 Phase 2 报告到 `docs/archive/phase2/`（`PHASE2_PROGRESS_2026-06-12.md`、`PHASE2_SLICE5_PLAN.md`、`PHASE2_SMART_ROUTER_MIGRATION_COMPLETE.md`）
+  - 归档 `STAGE_1_2_DELIVERY_REPORT.md`、`MODEL_ADMISSION_REPORT_2026-06.md`、`INDEX_CN.md` 到 `docs/archive/`
+  - 更新 `docs/README.md`：删除失效 OPS 链接，归档表补充 Phase 2 / Stage 1-2 / 旧准入报告 / INDEX_CN
+- 代码清理：
+  - 运行 `ruff check --select F401,F841 --fix`，自动移除 50 个文件中的未使用导入/变量（85 处修复）
+  - 涉及模块：`device_gateway/*`、`device_intelligence/*`、`device_policy/*`、`provider_probe/*`、`routes/*`、`server.py` 等
+- 配置清理：
+  - `.gitignore` 新增运行时备份/衍生文件过滤：`*.backup*`、`*.bak*`、`.env.bak*`、`.env.backup*`、`*_patch.py`、`*_opencode.py`、`*_cache_patch.py`
+- 验证：`ruff clean`；focused pytest `38 passed, 1 skipped`
+
 ## 2026-06-13 项目文档更新与瘦身清理
 
 - C1：删除根目录零引用 Python 模块 10 个（append_datasets.py、capture_prompt.py、closed_loop.py、deep_context.py、generate_routing_data.py、grpo_train.py、intent_templates.py、router_classifier_final.py、verify_router.py、worker_daemon.py）

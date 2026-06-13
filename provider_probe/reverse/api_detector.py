@@ -1,11 +1,9 @@
 """API format detection: identify whether a provider uses OpenAI, Anthropic,
 or custom API protocol by probing standard endpoints."""
 
-import json as _json
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
 
 import httpx
 

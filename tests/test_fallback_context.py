@@ -1,7 +1,5 @@
-import asyncio
 import pytest
 
-import server
 
 
 @pytest.mark.skip(reason="quality_gate removed in Phase 2 - device-first refactor (2026-06-12)")

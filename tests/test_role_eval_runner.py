@@ -4,9 +4,7 @@
 """
 import json
 import pytest
-import os
 from pathlib import Path
-from typing import Dict, Any, List
 
 
 class TestRoleEvalRunner:

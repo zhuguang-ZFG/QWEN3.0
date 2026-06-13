@@ -13,7 +13,7 @@ Layer 3: 执行器 (execute)
 
 
 import runtime_topology
-from backends_constants import IDE_SOURCES, _IDE_FINGERPRINTS
+from backends_constants import _IDE_FINGERPRINTS
 
 
 def detect_ide_by_fingerprints(text: str) -> str:

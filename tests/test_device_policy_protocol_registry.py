@@ -12,7 +12,6 @@ import pytest
 from device_policy import (
     PolicyDecision,
     PolicyResult,
-    PolicyEngine,
     policy_engine,
 )
 from device_policy.decisions import DECISION_VALUES, DECISION_LABELS_ZH

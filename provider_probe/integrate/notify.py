@@ -1,7 +1,6 @@
 """Notification module for newly discovered providers."""
 
 import logging
-import os
 from datetime import datetime
 
 logger = logging.getLogger(__name__)

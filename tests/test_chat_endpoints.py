@@ -21,7 +21,6 @@ def test_server_registers_extracted_chat_endpoints():
 
 
 def test_anthropic_vision_messages_convert_base64_blocks():
-    import pytest
 
     messages = [
         {

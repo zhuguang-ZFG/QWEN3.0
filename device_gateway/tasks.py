@@ -14,7 +14,7 @@ from device_policy import policy_engine
 from device_workflow.orchestrator import workflow
 from device_workflow.state import TaskState
 
-from .device_route_memory import get_route_memory, record_route_decision
+from .device_route_memory import record_route_decision
 from .intent import resolve_voice_task
 from .model_routing import looks_like_svg_path, resolve_device_route_policy
 from .profiles import apply_profile_constraints, resolve_profile

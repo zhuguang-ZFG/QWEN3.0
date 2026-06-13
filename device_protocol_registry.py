@@ -6,7 +6,6 @@ Defines the authoritative contract for what the LiMa cloud considers
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
 
 
 class ProtocolCompatibilityError(ValueError):

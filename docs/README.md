@@ -48,11 +48,12 @@
 
 | 主题 | 文档 |
 | --- | --- |
-| 运维入口 | [`OPS_ENTRYPOINTS.md`](OPS_ENTRYPOINTS.md) |
 | 工作区卫生 | [`WORKSPACE_HYGIENE.md`](WORKSPACE_HYGIENE.md) |
 | 在线分发 | [`ONLINE_DISTRIBUTIONS.md`](ONLINE_DISTRIBUTIONS.md) |
 | 发布检查清单 | [`RELEASE_GATE_CHECKLIST.md`](RELEASE_GATE_CHECKLIST.md) |
 | Prometheus 部署 | [`ALIYUN_PROMETHEUS_DEPLOYMENT.md`](ALIYUN_PROMETHEUS_DEPLOYMENT.md) |
+
+> 注：`OPS_ENTRYPOINTS.md` 已被 `ONLINE_DISTRIBUTIONS.md` 取代并删除。
 
 ## 近期计划
 
@@ -71,9 +72,12 @@
 | 主题 | 文档 | 说明 |
 | --- | --- | --- |
 | 旧个人编码助手计划 | [`../task_plan.md`](../task_plan.md) | 战略转型前制定，其中 server.py 分解、BACKENDS 单一来源、key_pool 接入等项已完成或方向已变 |
-| 历史进展归档 | [`archive/progress-2026-01-to-05.md`](archive/progress-2026-01-to-05.md) | 2026-05-31 之前的 `progress.md` 记录 |
+| 历史进展归档 | [`archive/progress-2026-05.md`](archive/progress-2026-05.md) | 2026-05-31 之前的 `progress.md` 记录 |
+| Phase 2 代码瘦身报告 | [`archive/phase2/`](archive/phase2/) | smart_router 迁移与代码精简执行报告 |
+| Stage 1-2 交付报告 | [`archive/STAGE_1_2_DELIVERY_REPORT.md`](archive/STAGE_1_2_DELIVERY_REPORT.md) | 2026-06-11 设备协议/智能/协同交付报告 |
+| 旧模型准入报告 | [`archive/MODEL_ADMISSION_REPORT_2026-06.md`](archive/MODEL_ADMISSION_REPORT_2026-06.md) | 早期通用后端准入草稿，当前以 `model_admission/` 下报告为准 |
 | 历史切片 | [`superpowers/plans/`](superpowers/plans/) | 按里程碑记录，完成后即归档 |
-| 中文总索引 | [`INDEX_CN.md`](INDEX_CN.md) | 较旧的全文档索引，可能包含失效链接 |
+| 中文总索引 | [`archive/INDEX_CN.md`](archive/INDEX_CN.md) | 较旧的全文档索引，含失效链接，仅供参考 |
 | 参考资料 | [`reference/`](reference/) | 外部项目/论文参考 |
 
 ## 工作日志

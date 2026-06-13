@@ -14,7 +14,7 @@ except ImportError:
 from fastapi import FastAPI
 import uvicorn
 
-from chat_models import ChatRequest as ChatRequest, Message as Message, extract_system_prompt
+from chat_models import ChatRequest as ChatRequest, Message as Message
 from vision_handler import (
     _vision_route, _stream_vision_response,
 )
@@ -73,7 +73,6 @@ from routes.images import build_pollinations_url as _build_pollinations_url
 
 from routes.chat_handler import handle_chat as _handle_chat, inject_deps as _inject_chat_handler_deps
 from routes.chat_stream import inject_deps as _inject_chat_stream_deps
-from routes.chat_support import log_sys_prompt as _log_sys_prompt, thinking_route as _thinking_route
 
 _inject_chat_handler_deps(
     model_id=MODEL_ID,

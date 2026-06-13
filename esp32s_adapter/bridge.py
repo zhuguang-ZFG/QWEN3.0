@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from typing import Any
 
 from .protocol import edge_c_to_lima_event, lima_to_edge_c_task

@@ -1,5 +1,4 @@
 """Tests for OTA release gate and canary deployment."""
-import pytest
 from device_ota.release import ReleaseGate
 from device_ota.canary import CanaryDeployment
 

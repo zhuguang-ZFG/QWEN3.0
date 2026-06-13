@@ -6,7 +6,6 @@ import pytest
 
 from device_workflow.state import (
     TaskState,
-    WorkflowEvent,
     WorkflowTransitionError,
     VALID_TRANSITIONS,
 )

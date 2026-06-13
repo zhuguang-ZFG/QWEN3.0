@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from device_intelligence.recovery import RecoveryAction, recovery_action, should_retry
+from device_intelligence.recovery import recovery_action, should_retry
 
 
 class TestRecoveryActionMapping:
