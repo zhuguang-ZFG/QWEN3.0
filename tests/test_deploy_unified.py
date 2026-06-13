@@ -151,7 +151,7 @@ def test_restart_server_uses_systemd_and_polls_health(monkeypatch):
 
     assert deploy_unified.restart_server() is True
 
-    assert deploy_unified.HEALTH_WAIT_SECONDS >= 90
+    assert deploy_unified.HEALTH_WAIT_SECONDS >= 180
     joined = "\n".join(ssh.commands)
     assert "systemctl restart lima-router" in ssh.commands
     assert "pkill" not in joined
@@ -198,3 +198,55 @@ def test_prepare_remote_deploy_checks_capacity_and_creates_backup(monkeypatch):
     assert any("df -Pm" in command for command in ssh.commands)
     assert any("tar --ignore-failed-read" in command for command in ssh.commands)
     assert ssh.closed is True
+
+
+def test_should_run_eval_smoke_trigger_files():
+    assert deploy_unified._should_run_eval_smoke(["eval_pinned_call.py"], force=False) is True
+    assert deploy_unified._should_run_eval_smoke(["routes/chat_handler.py"], force=False) is False
+    assert deploy_unified._should_run_eval_smoke(["routes/chat_handler.py"], force=True) is True
+
+
+def test_main_runs_eval_smoke_when_triggered(monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["deploy_unified.py", "--files", "eval_pinned_call.py"])
+    monkeypatch.setattr(
+        deploy_unified,
+        "prepare_remote_deploy",
+        lambda files, label="": {"ok": True, "capacity": {}, "backup_path": "/tmp/b"},
+    )
+    monkeypatch.setattr(
+        deploy_unified,
+        "deploy_files",
+        lambda files, dry_run=False: {"uploaded": 1, "failed": [], "skipped": []},
+    )
+    monkeypatch.setattr(deploy_unified, "restart_server", lambda: True)
+    smoke_calls: list[bool] = []
+    monkeypatch.setattr(
+        deploy_unified,
+        "run_eval_smoke",
+        lambda: smoke_calls.append(True) or True,
+    )
+
+    assert deploy_unified.main() == 0
+    assert smoke_calls == [True]
+
+
+def test_main_returns_failure_when_health_check_fails(monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["deploy_unified.py", "--files", "server.py"])
+    monkeypatch.setattr(
+        deploy_unified,
+        "prepare_remote_deploy",
+        lambda files, label="": {"ok": True, "capacity": {}, "backup_path": "/tmp/b"},
+    )
+    monkeypatch.setattr(
+        deploy_unified,
+        "deploy_files",
+        lambda files, dry_run=False: {"uploaded": 1, "failed": [], "skipped": []},
+    )
+    monkeypatch.setattr(deploy_unified, "restart_server", lambda: False)
+    monkeypatch.setattr(
+        deploy_unified,
+        "run_eval_smoke",
+        lambda: (_ for _ in ()).throw(AssertionError("eval smoke should not run")),
+    )
+
+    assert deploy_unified.main() == 1

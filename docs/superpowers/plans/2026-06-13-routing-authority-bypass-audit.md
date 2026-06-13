@@ -97,6 +97,19 @@
 
 - 其他超标 routes 文件拆分（`xiaozhi_v1_compat.py` 等）
 
+### Phase 4 — 权威验收闭环 ✅ 2026-06-13
+
+**第一性原理：** 路由收敛的价值 = 可证明「部署后 eval/executor 仍可用」，而非继续拆文件。
+
+| 项 | 状态 |
+|----|------|
+| `scripts/vps_eval_smoke_remote.py` 入库 | ✅ |
+| `deploy_unified.py` health 等待默认 180s（`LIMA_DEPLOY_HEALTH_WAIT_S`） | ✅ |
+| 部署 eval/routing 相关文件后自动跑 eval smoke | ✅ |
+| `--eval-smoke` / `--no-eval-smoke` 显式控制 | ✅ |
+
+**刻意不做（Phase 4-B 延后）：** 流式 `route()` 全 parity（post_process、coding quality retry）— speculative 路径为延迟 tradeoff，见 `REQUEST_PIPELINE_AUTHORITY.md`。
+
 ### Phase P1 — 编排上下文与文档对齐 ✅ 2026-06-13
 
 | 项 | 状态 |
@@ -128,6 +141,10 @@ python -m pytest tests/test_routing_pipeline_authority.py tests/test_routing_eng
 
 # multi-cli verify（可选）
 python .claude/skills/lima-multi-cli/driver.py verify --task "routing authority bypass closed"
+
+# VPS eval smoke（部署后或手动）
+python scripts/vps_eval_smoke_remote.py
+python scripts/deploy_unified.py --files eval_pinned_call.py --eval-smoke
 ```
 
 ## 6. 非目标

@@ -10,6 +10,7 @@ Usage:
     python deploy_unified.py --slice all        # deploy everything
     python deploy_unified.py --files a.py b.py  # deploy specific files
     python deploy_unified.py --dry-run          # show what would be deployed
+    python deploy_unified.py --eval-smoke       # after restart, run VPS eval smoke
 """
 
 from __future__ import annotations
@@ -18,6 +19,7 @@ import argparse
 import os
 import re
 import shlex
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -100,10 +102,17 @@ SLICE_FILES = {
     ],
 }
 
-HEALTH_WAIT_SECONDS = 90
+HEALTH_WAIT_SECONDS = int(os.environ.get("LIMA_DEPLOY_HEALTH_WAIT_S", "180"))
 HEALTH_POLL_SECONDS = 2
 DEFAULT_MIN_FREE_MB = 512
 DEFAULT_MIN_MEM_MB = 128
+
+EVAL_SMOKE_TRIGGER_FILES = frozenset({
+    "eval_pinned_call.py",
+    "eval_call.py",
+    "routes/eval_internal.py",
+    "routing_executor.py",
+})
 
 
 def _safe_backup_label(label: str) -> str:
@@ -312,6 +321,36 @@ def restart_server() -> bool:
         ssh.close()
 
 
+def _should_run_eval_smoke(files: list[str], force: bool) -> bool:
+    if force:
+        return True
+    normalized = {f.replace("\\", "/") for f in files}
+    return bool(normalized & EVAL_SMOKE_TRIGGER_FILES)
+
+
+def run_eval_smoke() -> bool:
+    """Run remote VPS eval smoke (pinned + FRP paths)."""
+    script = Path(__file__).resolve().parent / "vps_eval_smoke_remote.py"
+    if not script.is_file():
+        print(f"  eval smoke: missing {script.name}")
+        return False
+    print("\n=== VPS eval smoke ===")
+    try:
+        result = subprocess.run(
+            [sys.executable, str(script)],
+            cwd=str(script.parent.parent),
+            check=False,
+        )
+    except OSError as exc:
+        print(f"  eval smoke failed to start: {type(exc).__name__}: {exc}")
+        return False
+    if result.returncode == 0:
+        print("  eval smoke: OK")
+        return True
+    print(f"  eval smoke: FAILED (exit {result.returncode})")
+    return False
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Unified LiMa deploy")
     parser.add_argument("--slice", choices=["core", "m1m5", "phase_a", "phase_b", "all"],
@@ -319,6 +358,16 @@ def main() -> int:
     parser.add_argument("--files", nargs="+", help="Specific files to deploy")
     parser.add_argument("--dry-run", action="store_true", help="Show what would be deployed")
     parser.add_argument("--no-restart", action="store_true", help="Skip server restart")
+    parser.add_argument(
+        "--eval-smoke",
+        action="store_true",
+        help="After successful health check, run scripts/vps_eval_smoke_remote.py",
+    )
+    parser.add_argument(
+        "--no-eval-smoke",
+        action="store_true",
+        help="Skip auto eval smoke even when eval/routing files were deployed",
+    )
     args = parser.parse_args()
 
     files: list[str] = []
@@ -365,14 +414,20 @@ def main() -> int:
     if results["uploaded"] > 0:
         print("\nRestarting server...")
         ok = restart_server()
-        print(f"Health: {'OK' if ok else 'FAILED'}")
+        print(f"Health: {'OK' if ok else 'FAILED'} (wait up to {HEALTH_WAIT_SECONDS}s)")
 
-        if ok:
-            notify_text = format_deploy_ok(
-                f"unified/{args.slice}",
-                health=f"uploaded={results['uploaded']}",
-            )
-            print(f"\n{notify_text}")
+        if not ok:
+            return 1
+
+        notify_text = format_deploy_ok(
+            f"unified/{args.slice}",
+            health=f"uploaded={results['uploaded']}",
+        )
+        print(f"\n{notify_text}")
+
+        run_smoke = _should_run_eval_smoke(files, args.eval_smoke) and not args.no_eval_smoke
+        if run_smoke and not run_eval_smoke():
+            return 1
 
     return 0
 
