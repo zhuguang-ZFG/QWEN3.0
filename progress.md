@@ -5,6 +5,16 @@
 > Updated: 2026-06-13
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-13 删除遗留 distill/自动训练子系统
+
+- 识别出无人引用、无服务依赖、无测试覆盖的自包含闭环模块：
+  - `auto_distill_main.py`（443 行）
+  - `distill_scheduler.py`（578 行）
+  - `auto_trainer.py`（577 行）
+  - `quota_tracker.py`（124 行）
+- 删除上述 4 个文件，共减少 1722 行旧代码
+- 验证：`ruff clean`；`routes/chat_response_finalize`、`routing_engine`、`chat_endpoints` 等 focused pytest 通过
+
 ## 2026-06-13 代码清理：修复剩余 F841/F401 未使用变量与导入
 
 - 修复 15 处 F841 未使用变量：
