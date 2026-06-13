@@ -42,6 +42,17 @@
 - 修复：`routing_engine.py` 增加 `import budget_manager`，恢复模块级属性暴露。
 - 验证：ruff clean；pytest focused suite `54 passed`。
 
+## 2026-06-13 C10 VPS 部署与验证
+
+- 部署方式：git bundle 同步 HEAD 到 `/opt/lima-router`，清理 C9 遗留文件（`smart_router.py`、`router_http*.py`、`router_circuit_breaker.py`、`router_image.py`、`router_intent.py`、`router_prompt.py`、`auto_retrain.py`、`oldllm_*.py`、`patch_server_v3.py`、`scripts/validate_via_router.py`、`scripts/test_route_e2e.py`）。
+- 服务启动：VPS 启动耗时约 2.5 分钟（backend profile / retirement 分析）。
+- 健康检查：
+  - VPS local `http://127.0.0.1:8080/health` → HTTP 200
+  - Public `https://chat.donglicao.com/health` → HTTP 200，`modules.telegram=false`
+  - Public `https://chat.donglicao.com/device/v1/health` → HTTP 200
+- Chat smoke：VPS local `POST /v1/chat/completions` model=`code`，prompt=`Return exactly: c10-deploy-ok` → HTTP 200，返回 exact `c10-deploy-ok`，backend=`cfai_qwen_coder`。
+- Git：提交 `cb91611`、`4cd5cf8` 已推送 origin/main。
+
 ## 2026-06-13 Phase 5 xiaozhi compat 拆分收尾
 
 - `xiaozhi_v1_compat.py`：518 → ~27 行（删除与子模块重复 helper）
