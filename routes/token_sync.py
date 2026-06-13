@@ -67,8 +67,21 @@ def _validate_token(name: str, key: str, url: str, model: str) -> bool:
         content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
         return bool(content)
     except urllib.error.HTTPError as e:
-        return e.code != 401  # 401 = invalid key, other errors are transient
-    except Exception:
+        if e.code == 401:
+            _log.warning("token validation rejected backend=%s: HTTP 401", name)
+            return False
+        _log.warning(
+            "token validation HTTP error backend=%s: HTTP %s",
+            name,
+            e.code,
+        )
+        return True
+    except Exception as exc:
+        _log.warning(
+            "token validation failed backend=%s: %s",
+            name,
+            type(exc).__name__,
+        )
         return False
 
 

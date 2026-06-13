@@ -6,25 +6,25 @@
 
 ## 1. 审计结论（生产路径）
 
-| # | 文件 | 行号 | 调用 | 分类 | 风险 |
+| # | 文件 | 行号 | 调用 | 分类 | 状态 |
 |---|------|------|------|------|------|
 | 1 | `routes/v3_adapters.py` | 20–23 | `routing_engine.route()` | ✅ 合规 | — |
-| 2 | `routes/v3_adapters.py` | 56 | `routing_engine.select()` | ⚠️ bypass | `v3_predict` 回退路径跳过 classify/inject/execute 管线 |
-| 3 | `routes/v3_adapters.py` | 97 | `routing_engine.select()` | ⚠️ bypass | `v3_select` 回退路径同上 |
-| 4 | `routes/v3_adapters.py` | 67 | `inject_retrieval_context()` | ⚠️ 部分 bypass | 流式选路自行注入，与 `route()` 内注入顺序可能不一致 |
-| 5 | `routes/v3_adapters.py` | 32,72,109… | `classify_scenario()` | ⚠️ 部分 bypass | 硬编码 backend 列表 + 场景分类，未走 selector 排名 |
-| 6 | `routes/chat_stream.py` | 111–116 | `select()` + `execute()` | 🔴 bypass | speculative 流式失败后直接 select→execute，跳过 route 全流程 |
-| 7 | `routes/stream_handlers.py` | 45–46 | `v3_predict` / `v3_select` | ⚠️ 间接 bypass | 经 speculative 流式路径进入上表逻辑 |
+| 2 | `routes/v3_adapters.py` | — | `routing_engine.select()` | ⚠️ bypass | ✅ Phase 2 已关闭 |
+| 3 | `routes/v3_adapters.py` | — | `routing_engine.select()` | ⚠️ bypass | ✅ Phase 2 已关闭 |
+| 4 | `routes/v3_adapters.py` | — | `inject_retrieval_context()` | ⚠️ 部分 bypass | ✅ Phase 2 已关闭 |
+| 5 | `routes/v3_adapters.py` | — | `classify_scenario()` | ⚠️ 部分 bypass | ✅ Phase 2 已关闭 |
+| 6 | `routes/chat_stream.py` | — | `select()` + `execute()` | 🔴 bypass | ✅ Phase 1 已关闭 |
+| 7 | `routes/stream_handlers.py` | 45–46 | `v3_predict` / `v3_select` | ⚠️ 间接 bypass | ✅ Phase 2 已关闭 |
 
 **Qoder scout 补充（2026-06-13，同 scope `routes/`）：**
 
-| # | 文件 | 严重度 | 问题 |
-|---|------|--------|------|
-| 8 | `routes/chat_support.py` | P0 | `thinking_route` 直调 `router_http.call_api`，双 bypass（路由 + HTTP 传输） |
-| 9 | `routes/chat_handler_dispatch.py` | P0 | `orchestrate()` 非流式路径跳过 `route()` |
-| 10 | `routes/chat_stream.py` | P0 | `orchestrate()` 流式路径（L67/L90）跳过 `route()` |
-| 11 | `routes/eval_internal.py` | P1 | eval 直调 `http_caller`，无 health/budget |
-| 12 | `routes/token_sync.py` | P1 | urllib + 裸 `except Exception: return False` |
+| # | 文件 | 严重度 | 问题 | 状态 |
+|---|------|--------|------|------|
+| 8 | `routes/chat_support.py` | P0 | `thinking_route` 直调 `router_http.call_api` | ✅ Phase 1 已关闭 |
+| 9 | `routes/chat_handler_dispatch.py` | P0 | `orchestrate()` 非流式路径跳过 `route()` | ✅ Phase 1 已关闭 |
+| 10 | `routes/chat_stream.py` | P0 | `orchestrate()` 流式路径跳过 `route()` | ✅ Phase 1 已关闭 |
+| 11 | `routes/eval_internal.py` | P1 | eval 直调 `http_caller`，无 health/budget | 待 Phase 3+ |
+| 12 | `routes/token_sync.py` | P1 | urllib + 裸 `except Exception: return False` | ✅ 2026-06-13 已加 warning 日志 |
 
 完整 JSON：`.omc/artifacts/lima-multi-cli/findings.json`（18 条，Qoder lane）。
 
@@ -46,7 +46,7 @@
 
 ### Phase 0 — 门禁（本里程碑）
 
-- [x] 新增 `tests/test_routing_pipeline_authority.py::TestRoutesBypassGuard`（allowlist 仅 `v3_adapters.py` 的 `select`）
+- [x] 新增 `tests/test_routing_pipeline_authority.py::TestRoutesBypassGuard`（allowlist 已清空，Phase 2 后归零）
 - [x] 文档 SSOT：本文档 + `REQUEST_PIPELINE_AUTHORITY.md` 增加「已知 bypass 表」链接
 
 ### Phase 1 — chat_stream 兜底（P1，热路径） ✅ 2026-06-13
