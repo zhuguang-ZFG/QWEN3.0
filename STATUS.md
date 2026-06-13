@@ -82,13 +82,13 @@
 | `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md` | 当前活跃路线图 | 必读 |
 | `AGENTS.md` | 开发约定与命令 | 必读 |
 | `docs/ARCHITECTURE.md` | 系统架构 | 推荐 |
-| `docs/REQUEST_PIPELINE_AUTHORITY.md` | 请求管线权威说明 | 推荐 |
+| `docs/REQUEST_PIPELINE_AUTHORITY_CN.md` | 请求管线权威说明 | 推荐 |
 
 | 文档 | 用途 |
 |------|------|
 | `docs/ARCHITECTURE.md` | 系统架构 |
-| `docs/REQUEST_PIPELINE_AUTHORITY.md` | 请求管道权威文档 |
+| `docs/REQUEST_PIPELINE_AUTHORITY_CN.md` | 请求管道权威文档 |
 | `docs/ROUTING_ENGINE_DESIGN.md` | 路由引擎设计 |
-| `docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE.md` | 设备模型路由指南 |
+| `docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_CN.md` | 设备模型路由指南 |
 | `docs/RELEASE_GATE_CHECKLIST.md` | 发布门清单 |
 | `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md` | 优化路线图 |

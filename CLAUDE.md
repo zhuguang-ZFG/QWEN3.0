@@ -102,14 +102,14 @@ server.py → routes/route_registry.py
 ### 已关闭（CQ-097）
 
 - ~~略超 300 行~~：`orchestrator_queue.py` 已拆分/移除；`routes/agent_tasks.py` 已降至 ~260 行
-- 路由权威边界：`docs/REQUEST_PIPELINE_AUTHORITY.md` 已更新，含 18 步管线图 + 21 模块所有权表
+- 路由权威边界：`docs/REQUEST_PIPELINE_AUTHORITY_CN.md` 已更新，含 18 步管线图 + 21 模块所有权表
 
 ## 关键文档
 
 | 文档 | 内容 |
 |------|------|
 | `STATUS.md` | 项目状态 |
-| `docs/LIMA_MEMORY.md` | 长期记忆 |
+| `docs/LIMA_MEMORY_CN.md` | 长期记忆 |
 | `task_plan.md` | 当前任务计划 |
 | `docs/superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md` | 战略转型计划 |
 | `docs/superpowers/plans/2026-06-09-phase0-strategic-confirmation.md` | Phase 0 启动文档 |

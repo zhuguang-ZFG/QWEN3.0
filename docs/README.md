@@ -11,7 +11,7 @@
 2. [`PROJECT_OPTIMIZATION_ROADMAP_CN.md`](PROJECT_OPTIMIZATION_ROADMAP_CN.md) — 当前活跃路线图与阶段目标
 3. [`../AGENTS.md`](../AGENTS.md) — 代码规范、命令、Git/部署约定
 4. [`ARCHITECTURE.md`](ARCHITECTURE.md) — 系统架构与模块边界
-5. [`REQUEST_PIPELINE_AUTHORITY.md`](REQUEST_PIPELINE_AUTHORITY.md) — 请求处理管线权威说明
+5. [`REQUEST_PIPELINE_AUTHORITY_CN.md`](REQUEST_PIPELINE_AUTHORITY_CN.md) — 请求处理管线权威说明
 
 ## 快速入口
 
@@ -19,7 +19,7 @@
 | --- | --- | --- |
 | 当前状态 | [`../STATUS.md`](../STATUS.md) | ✅ 活跃 |
 | 开发约定 | [`../CLAUDE.md`](../CLAUDE.md) | ✅ 活跃 |
-| 长期记忆 | [`LIMA_MEMORY.md`](LIMA_MEMORY.md) | ✅ 活跃 |
+ | 长期记忆 | [`LIMA_MEMORY_CN.md`](LIMA_MEMORY_CN.md) | ✅ 活跃 |
 | 项目路线图 | [`PROJECT_OPTIMIZATION_ROADMAP_CN.md`](PROJECT_OPTIMIZATION_ROADMAP_CN.md) | ✅ 活跃 |
 | 发布规则 | [`DEPLOY_AND_RELEASE_CONVENTION.md`](DEPLOY_AND_RELEASE_CONVENTION.md) | ✅ 活跃 |
 | 历史执行进展 | [`../progress.md`](../progress.md) | ✅ 活跃（近 3 个月） |
@@ -30,26 +30,26 @@
 | 主题 | 文档 |
 | --- | --- |
 | 系统总览 | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
-| 请求管线权威说明 | [`REQUEST_PIPELINE_AUTHORITY.md`](REQUEST_PIPELINE_AUTHORITY.md) |
+| 请求管线权威说明 | [`REQUEST_PIPELINE_AUTHORITY_CN.md`](REQUEST_PIPELINE_AUTHORITY_CN.md) |
 | 路由引擎设计 | [`ROUTING_ENGINE_DESIGN.md`](ROUTING_ENGINE_DESIGN.md) |
-| 可观测事件 | [`OBSERVABILITY_EVENTS.md`](OBSERVABILITY_EVENTS.md) |
+| 可观测事件 | [`OBSERVABILITY_EVENTS_CN.md`](OBSERVABILITY_EVENTS_CN.md) |
 
 ## 设备与模型
 
 | 主题 | 文档 |
 | --- | --- |
-| 绘图/写字模型路由 | [`AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE.md`](AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE.md) |
-| ESP32S_XYZ 管理 | [`ESP32S_XYZ_MANAGEMENT.md`](ESP32S_XYZ_MANAGEMENT.md) |
+| 绘图/写字模型路由 | [`AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_CN.md`](AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_CN.md) |
+| ESP32S_XYZ 管理 | [`ESP32S_XYZ_MANAGEMENT_CN.md`](ESP32S_XYZ_MANAGEMENT_CN.md) |
 | 设备协议对齐 | [`device_protocol_alignment.md`](device_protocol_alignment.md) |
 | 模型目录 | [`MODEL_CATALOG.md`](MODEL_CATALOG.md) |
-| 免费模型路由状态 | [`FREE_MODEL_ROUTING_STATUS.md`](FREE_MODEL_ROUTING_STATUS.md) |
+| 免费模型路由状态 | [`FREE_MODEL_ROUTING_STATUS_CN.md`](FREE_MODEL_ROUTING_STATUS_CN.md) |
 
 ## 运维与发布
 
 | 主题 | 文档 |
 | --- | --- |
 | 工作区卫生 | [`WORKSPACE_HYGIENE.md`](WORKSPACE_HYGIENE.md) |
-| 在线分发 | [`ONLINE_DISTRIBUTIONS.md`](ONLINE_DISTRIBUTIONS.md) |
+| 在线分发 | [`ONLINE_DISTRIBUTIONS_CN.md`](ONLINE_DISTRIBUTIONS_CN.md) |
 | 发布检查清单 | [`RELEASE_GATE_CHECKLIST.md`](RELEASE_GATE_CHECKLIST.md) |
 | Prometheus 部署 | [`ALIYUN_PROMETHEUS_DEPLOYMENT.md`](ALIYUN_PROMETHEUS_DEPLOYMENT.md) |
 
@@ -78,6 +78,7 @@
 | 旧模型准入报告 | [`archive/MODEL_ADMISSION_REPORT_2026-06.md`](archive/MODEL_ADMISSION_REPORT_2026-06.md) | 早期通用后端准入草稿，当前以 `model_admission/` 下报告为准 |
 | 历史切片 | [`superpowers/plans/`](superpowers/plans/) | 按里程碑记录，完成后即归档 |
 | 中文总索引 | [`archive/INDEX_CN.md`](archive/INDEX_CN.md) | 较旧的全文档索引，含失效链接，仅供参考 |
+| 英文文档归档 | [`archive/en/`](archive/en/) | 多语言英文版统一归档，中文文档为活跃权威版本 |
 | 参考资料 | [`reference/`](reference/) | 外部项目/论文参考 |
 
 ## 工作日志

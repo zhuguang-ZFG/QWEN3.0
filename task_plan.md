@@ -111,8 +111,8 @@ Turn the existing LiMa router into a private coding assistant that ranks coding 
 - Final public Anthropic `/v1/messages` tool smoke returned 200 in 600ms with `stop_reason=tool_use`.
 - VPS free-model smoke passed for `scnet_ds_flash`, `scnet_ds_pro`, `scnet_qwen235b`, `scnet_qwen30b`, and `cf_kimi_k26`.
 - `scnet_large_*` and local `kimi*` proxy models are Windows-local services. The earlier VPS `localhost:4505/4504` checks were the wrong health signal for the FRP architecture.
-- `docs/FREE_MODEL_ROUTING_STATUS.md` records the free-model status table.
-- `docs/LIMA_MEMORY.md` records the detailed durable memory for future sessions.
+- `docs/FREE_MODEL_ROUTING_STATUS_CN.md` records the free-model status table (English version archived under `docs/archive/en/`).
+- `docs/LIMA_MEMORY_CN.md` records the detailed durable memory for future sessions (English version archived under `docs/archive/en/`).
 - Free-model routing deployment backup: `/opt/lima-router/backups/free-model-routing-20260522_184556`.
 - Post-deploy public coding smoke returned 200 in 4585ms.
 - Post-deploy public Anthropic tool smoke returned 200 in 672ms with `stop_reason=tool_use`.

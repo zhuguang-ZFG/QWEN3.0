@@ -29,7 +29,7 @@
 ## 2026-06-13 第二轮瘦身：文档死区清理 + 代码未使用导入清理
 
 - 文档清理：
-  - 删除已被 `ONLINE_DISTRIBUTIONS.md` 取代的 `docs/OPS_ENTRYPOINTS.md`
+  - 删除已被 `docs/ONLINE_DISTRIBUTIONS_CN.md` 取代的 `docs/OPS_ENTRYPOINTS.md`（英文版已归档至 `docs/archive/en/`）
   - 归档 Phase 2 报告到 `docs/archive/phase2/`（`PHASE2_PROGRESS_2026-06-12.md`、`PHASE2_SLICE5_PLAN.md`、`PHASE2_SMART_ROUTER_MIGRATION_COMPLETE.md`）
   - 归档 `STAGE_1_2_DELIVERY_REPORT.md`、`MODEL_ADMISSION_REPORT_2026-06.md`、`INDEX_CN.md` 到 `docs/archive/`
   - 更新 `docs/README.md`：删除失效 OPS 链接，归档表补充 Phase 2 / Stage 1-2 / 旧准入报告 / INDEX_CN
@@ -48,7 +48,7 @@
 - C5：删除本地缓存与 IDE/agent 状态目录（.omc、.omx、.mimocode、.qoder、.reasonix、.codegraph、_codegraph_repo、.learnings、.hypothesis、.pytest_cache、.ruff_cache、__pycache__），释放约 100+ MB
 - C6：移除已跟踪二进制/运行时产物（router_model.pkl 1.4MB、deploy_xiaozhi.tar.gz、emu_screen.png、GIT_STATUS.txt）及本地凭证类文件（cpk.json、kimi.txt、kimi_session_vps.json）
 - C7：归档历史文档 22 份到 docs/archive/cleanup-2026-06/root-historical/（含 AGENTS_CN.md、May-18 prompt/model 文档、里程碑报告等）
-- C8：更新 README.md、AGENTS.md、docs/REQUEST_PIPELINE_AUTHORITY.md 中的失效引用与退役子系统描述
+- C8：更新 README.md、AGENTS.md、docs/REQUEST_PIPELINE_AUTHORITY_CN.md 中的失效引用与退役子系统描述
 - C9：legacy 路由/HTTP 栈退役
   - 删除：smart_router.py、router_http*.py、router_circuit_breaker.py、router_intent.py、router_image.py、router_prompt.py、auto_retrain.py、oldllm_*.py、patch_server_v3.py、scripts/validate_via_router.py、scripts/test_route_e2e.py
   - 迁移调用方：server.py、routes/admin_api.py、routes/system_endpoints.py、routes/health_dashboard.py、routes/chat_support.py、routes/chat_post_closeout.py、routes/chat_handler_dispatch.py、routes/chat_stream.py、orchestrate.py
@@ -117,7 +117,7 @@
 **目标：** bypass 归零 + 部署后 eval/executor 可证明可用。
 
 - Phase 4-A：`deploy_unified.py` 240s health + 20s grace + eval smoke 自动/手动门控
-- Phase 4-B：`REQUEST_PIPELINE_AUTHORITY.md` 流式 vs 非流式刻意差异文档化
+- Phase 4-B：`docs/REQUEST_PIPELINE_AUTHORITY_CN.md` 流式 vs 非流式刻意差异文档化
 - VPS：`vps_eval_smoke_remote.py` 手动 ✅；`deploy_unified --eval-smoke` 全链路 ✅（backup `unified-files-20260613_175344`）
 - Git：`0980ed9`、`4add436` + 本轮 health 加固待提交
 
@@ -408,7 +408,7 @@ repository review noise.
     JDCloud deploy templates;
   - added `docs/ops/JDCLOUD_RUNTIME_STATUS.md` as the sanitized runtime status
     and credential boundary;
-  - updated `docs/ONLINE_DISTRIBUTIONS.md` and
+  - updated `docs/ONLINE_DISTRIBUTIONS_CN.md` and later removed the obsolete
     `docs/DOCUMENTATION_STATUS.md` so JDCloud is discoverable as a secondary
     provider-probe / monitoring node;
   - added exact `.gitignore` rules for local JDCloud password helpers,

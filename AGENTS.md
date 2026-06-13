@@ -76,7 +76,7 @@ Client → server.py (BodySizeLimitMiddleware, access_guard)
       → Client (JSON or SSE)
 ```
 
-Authority doc: `docs/REQUEST_PIPELINE_AUTHORITY.md`
+Authority doc: `docs/REQUEST_PIPELINE_AUTHORITY_CN.md`（中文权威版；英文归档：`docs/archive/en/REQUEST_PIPELINE_AUTHORITY.md`）
 
 ### Key Module Ownership
 
@@ -206,11 +206,11 @@ Internet → VPS (nginx → lima-router :8080, Redis)
 |----------|---------|
 | `STATUS.md` | Current project status |
 | `CLAUDE.md` | Condensed dev rules + repo stats |
-| `docs/REQUEST_PIPELINE_AUTHORITY.md` | 18-step pipeline + module ownership matrix |
+| `docs/REQUEST_PIPELINE_AUTHORITY_CN.md` | 18-step pipeline + module ownership matrix |
 | `docs/ROUTING_ENGINE_DESIGN.md` | routing_engine.py design decisions |
 | `docs/ARCHITECTURE.md` | System architecture |
 | `docs/DEPLOY_AND_RELEASE_CONVENTION.md` | Deploy/release hard rules |
-| `docs/LIMA_MEMORY.md` | Long-term project memory |
+| `docs/LIMA_MEMORY_CN.md` | Long-term project memory |
 | `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md` | Current optimization roadmap |
 | `task_plan.md` | Current task plan + evidence |
 | `findings.md` | Factual discoveries and ops conclusions |

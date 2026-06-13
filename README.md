@@ -195,7 +195,7 @@ D:\QWEN3.0\
 ├── scripts/                   # 工具脚本
 ├── tests/                     # 测试
 └── docs/                      # 文档
-    ├── ESP32S_XYZ_MANAGEMENT.md         # ESP32 管理
+    ├── ESP32S_XYZ_MANAGEMENT_CN.md      # ESP32 管理（中文权威版）
     ├── ESP32S_XYZ_INTEGRATION_GUIDE.md  # 设备集成指南
     ├── ESP32S_XYZ_PROTOCOL_ADAPTER_DESIGN.md  # 协议适配设计
     └── ARCHITECTURE.md                  # 系统架构
@@ -210,7 +210,7 @@ D:\QWEN3.0\
 | [CLAUDE.md](CLAUDE.md) | 项目开发规范（必读） |
 | [STATUS.md](STATUS.md) | 项目状态 |
 | [AGENTS.md](AGENTS.md) | 协作规范 |
-| [ESP32S_XYZ_MANAGEMENT.md](docs/ESP32S_XYZ_MANAGEMENT.md) | ESP32 管理 |
+| [ESP32S_XYZ_MANAGEMENT_CN.md](docs/ESP32S_XYZ_MANAGEMENT_CN.md) | ESP32 管理 |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | 系统架构 |
 | [DEPLOY_AND_RELEASE_CONVENTION.md](docs/DEPLOY_AND_RELEASE_CONVENTION.md) | 部署与发布规范 |
 
