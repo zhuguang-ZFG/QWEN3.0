@@ -6,7 +6,7 @@ import json
 import time
 import urllib.request
 
-import backends
+from backends_registry import BACKENDS
 
 
 def describe_backend(name: str, cfg: dict, *, enabled: bool, status_info: dict) -> dict:
@@ -77,9 +77,9 @@ def describe_backend(name: str, cfg: dict, *, enabled: bool, status_info: dict) 
 
 
 def test_backend_sync(name: str) -> dict:
-    if name not in backends.BACKENDS:
+    if name not in BACKENDS:
         return {"ok": False, "error": f"backend '{name}' not found"}
-    cfg = backends.BACKENDS[name]
+    cfg = BACKENDS[name]
     url = cfg.get("url", "")
     key = cfg.get("key", "")
     fmt = cfg.get("fmt", "openai")

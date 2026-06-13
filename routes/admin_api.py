@@ -9,7 +9,7 @@ import time
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-import backends
+from backends_registry import BACKENDS
 import health_tracker
 from routes.admin_auth import verify_admin, verify_csrf
 from routes.admin_backends import describe_backend, test_backend_sync
@@ -73,7 +73,7 @@ async def admin_retrieval_traces():
 async def admin_backends():
     _stats, _lock, backend_enabled = stats_context()
     backends_list = []
-    for name, cfg in backends.BACKENDS.items():
+    for name, cfg in BACKENDS.items():
         enabled = backend_enabled.get(name, True)
         backends_list.append(
             describe_backend(
@@ -115,9 +115,9 @@ async def admin_add_backend(req: Request):
         auth = "x-api-key" if fmt == "anthropic" else "bearer"
     if not name or not url:
         raise HTTPException(400, "name and url required")
-    if name in backends.BACKENDS:
+    if name in BACKENDS:
         raise HTTPException(409, f"backend '{name}' already exists")
-    backends.BACKENDS[name] = {
+    BACKENDS[name] = {
         "url": url,
         "key": key,
         "model": model,
@@ -142,9 +142,9 @@ async def admin_add_backend(req: Request):
 @router.delete("/api/backends/{name}", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
 async def admin_delete_backend(name: str):
     _stats, _lock, backend_enabled = stats_context()
-    if name not in backends.BACKENDS:
+    if name not in BACKENDS:
         raise HTTPException(404, f"backend '{name}' not found")
-    del backends.BACKENDS[name]
+    del BACKENDS[name]
     backend_enabled.pop(name, None)
     return {"ok": True, "message": f"backend '{name}' deleted"}
 
@@ -152,7 +152,7 @@ async def admin_delete_backend(name: str):
 @router.post("/api/backends/{name}/toggle", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
 async def admin_toggle_backend(name: str):
     _stats, _lock, backend_enabled = stats_context()
-    if name not in backends.BACKENDS:
+    if name not in BACKENDS:
         raise HTTPException(404, f"backend '{name}' not found")
     current = backend_enabled.get(name, True)
     backend_enabled[name] = not current
@@ -161,7 +161,7 @@ async def admin_toggle_backend(name: str):
 
 @router.post("/api/backends/{name}/test", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
 async def admin_test_backend(name: str):
-    if name not in backends.BACKENDS:
+    if name not in BACKENDS:
         raise HTTPException(404, f"backend '{name}' not found")
     return test_backend_sync(name)
 

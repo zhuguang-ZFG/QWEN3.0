@@ -160,8 +160,8 @@ def apply_startup(path: str | Path = "") -> int:
     data = load_store(path)
     applied = 0
     try:
-        import backends
-        from backends import BACKENDS
+        from backend_utils import set_enabled
+        from backends_registry import BACKENDS
     except ImportError:
         logger.debug("backend admission startup skipped: backends not importable")
         return 0
@@ -181,7 +181,7 @@ def apply_startup(path: str | Path = "") -> int:
 
     for entry in parse_watchlist(data):
         if entry.action == "disable":
-            backends.set_enabled(entry.backend_key, False)
+            set_enabled(entry.backend_key, False)
             logger.info("watchlist disabled backend %s: %s", entry.backend_key, entry.reason)
 
     if applied:

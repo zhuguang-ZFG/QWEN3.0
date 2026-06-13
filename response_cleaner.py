@@ -10,7 +10,7 @@ LiMa Response Cleaner — 响应清洗模块
 
 import re
 
-from backends import PUBLIC_MODEL_NAME
+from backends_constants import PUBLIC_MODEL_NAME
 
 # ── Brand Patterns ────────────────────────────────────────────────────────────
 

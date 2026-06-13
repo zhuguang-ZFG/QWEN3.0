@@ -11,7 +11,7 @@ from typing import NoReturn
 import httpx
 from response_cleaner import clean_response, _is_backend_error
 
-from backends import BACKENDS
+from backends_registry import BACKENDS
 from http_errors import BackendError, _emit_backend_error, _extract_code, _extract_retry_after
 from http_response import _extract_answer, _extract_usage
 

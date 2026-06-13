@@ -8,7 +8,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 
 from access_guard import require_private_api_key
-import backends
+from backends_registry import BACKENDS
 import health_state
 import health_tracker
 
@@ -23,7 +23,7 @@ _PUBLIC_MODEL_NAME = os.environ.get("PUBLIC_MODEL_NAME", "LiMa")
 def _circuit_breaker_status() -> dict:
     """Return breaker summary compatible with the legacy circuit-breaker shape."""
     result = {}
-    for name in backends.BACKENDS:
+    for name in BACKENDS:
         quality = health_state.get_backend_quality(name)
         total = quality["total_requests"]
         errors = quality["empty_count"] + quality["error_msg_count"]
@@ -91,7 +91,7 @@ async def live_key():
 async def router_status():
     return {
         "circuit_breakers": _circuit_breaker_status(),
-        "backends": list(backends.BACKENDS.keys()),
+        "backends": list(BACKENDS.keys()),
         "route_table": {},
         "public_model": _PUBLIC_MODEL_NAME,
     }

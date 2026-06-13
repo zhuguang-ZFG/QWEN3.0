@@ -6,7 +6,7 @@ import time
 
 from response_cleaner import clean_response, _is_backend_error
 
-from backends import BACKENDS
+from backends_registry import BACKENDS
 from http_errors import BackendError
 from http_response import _extract_answer, _extract_usage
 from http_sync import _handle_call_error

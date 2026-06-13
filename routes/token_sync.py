@@ -91,7 +91,7 @@ def _validate_token(name: str, key: str, url: str, model: str) -> bool:
 @router.post("/internal/v1/token-sync", dependencies=[Depends(_require_auth)])
 async def sync_tokens(body: TokenSyncBody) -> dict:
     """Receive refreshed tokens from Windows, validate, and apply."""
-    from backends import BACKENDS
+    from backends_registry import BACKENDS
 
     updated = []
     validated = []
@@ -132,7 +132,7 @@ async def sync_tokens(body: TokenSyncBody) -> dict:
 @router.get("/internal/v1/token-sync/status", dependencies=[Depends(_require_auth)])
 async def token_sync_status() -> dict:
     """Check current token override status."""
-    from backends import BACKENDS
+    from backends_registry import BACKENDS
 
     status = {}
     for name, override in _token_overrides.items():

@@ -11,7 +11,8 @@ from datetime import datetime
 
 import asyncio
 
-import backends
+from backends_constants import THINKING_BACKENDS
+from backends_registry import BACKENDS
 import health_tracker
 import http_caller
 import routing_executor
@@ -24,8 +25,8 @@ _DEBUG = os.environ.get("LIMA_DEBUG", "") == "1"
 
 def _get_thinking_backend() -> str:
     """Pick an available thinking-capable backend."""
-    for name in backends.THINKING_BACKENDS:
-        if name in backends.BACKENDS and backends.BACKENDS[name].get("key") and not health_tracker.is_cooled_down(name):
+    for name in THINKING_BACKENDS:
+        if name in BACKENDS and BACKENDS[name].get("key") and not health_tracker.is_cooled_down(name):
             return name
     return "longcat_thinking"
 
@@ -59,10 +60,10 @@ async def thinking_route(query: str, max_tokens: int = 4096, ide: str = "unknown
         _log.warning("thinking backend timeout backend=%s", thinking_backend)
     except Exception as exc:
         _log.warning("thinking backend failed backend=%s: %s", thinking_backend, type(exc).__name__)
-    for alt in backends.THINKING_BACKENDS:
+    for alt in THINKING_BACKENDS:
         if alt == thinking_backend:
             continue
-        if alt not in backends.BACKENDS or not backends.BACKENDS[alt].get("key"):
+        if alt not in BACKENDS or not BACKENDS[alt].get("key"):
             continue
         if health_tracker.is_cooled_down(alt):
             continue

@@ -15,7 +15,7 @@ GITEE_DEFAULT_BACKEND_BUDGETS = {
 def register_gitee_budgets(registry: dict, budget_config_cls) -> None:
     """Register per-backend budgets for any existing gitee_* keys."""
     try:
-        from backends import BACKENDS
+        from backends_registry import BACKENDS
     except ImportError:
         BACKENDS = {}
     for name in sorted(BACKENDS):

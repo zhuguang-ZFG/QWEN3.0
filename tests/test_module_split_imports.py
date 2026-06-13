@@ -3,11 +3,12 @@
 import pytest
 
 
-def test_backends_facade_exports():
-    import backends
+def test_backends_canonical_exports():
+    import backend_utils
+    import backends_registry
 
-    assert "scnet_ds_flash" in backends.BACKENDS
-    assert backends.detect_vendor("https://api.groq.com/openai/v1")
+    assert "scnet_ds_flash" in backends_registry.BACKENDS
+    assert backend_utils.detect_vendor("https://api.groq.com/openai/v1")
 
 
 @pytest.mark.skip(reason="Skip: routes.agent_tasks not yet implemented")

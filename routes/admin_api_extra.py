@@ -18,7 +18,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
-import backends
+from backends_registry import BACKENDS
 from routes.admin_auth import verify_admin, verify_csrf
 from routes.admin_state import FALLBACK_LOG, stats_context
 
@@ -31,10 +31,10 @@ _log = logging.getLogger(__name__)
 @router.put("/api/backends/{name}", dependencies=[Depends(verify_admin), Depends(verify_csrf)])
 async def admin_edit_backend(name: str, req: Request):
     """Update an existing backend's URL, model, caps, or admission policy."""
-    if name not in backends.BACKENDS:
+    if name not in BACKENDS:
         raise HTTPException(404, f"backend '{name}' not found")
     body = await req.json()
-    cfg = backends.BACKENDS[name]
+    cfg = BACKENDS[name]
     for field in ("url", "model"):
         if field in body and body[field]:
             cfg[field] = body[field]
@@ -105,7 +105,7 @@ def _read_fallback_entries() -> list[dict]:
 async def key_url_inventory():
     """List all backends with their URL, key status, and provider key pools."""
     backend_list = []
-    for name, cfg in backends.BACKENDS.items():
+    for name, cfg in BACKENDS.items():
         key = cfg.get("key", "")
         masked = (key[:4] + "..." + key[-4:]) if key and len(key) > 8 else ("已配置" if key else "")
         backend_list.append({
@@ -235,7 +235,7 @@ async def config_export():
             "tier": cfg.get("tier", ""),
             "caps": cfg.get("caps", []),
         }
-        for name, cfg in backends.BACKENDS.items()
+        for name, cfg in BACKENDS.items()
     }
     _stats, _lock, backend_enabled = stats_context()
     config["backend_enabled"] = dict(backend_enabled)
@@ -250,8 +250,8 @@ async def config_import(req: Request):
     imported: list[str] = []
     new_backends = body.get("backends", {})
     for name, cfg in new_backends.items():
-        if name not in backends.BACKENDS:
-            backends.BACKENDS[name] = cfg
+        if name not in BACKENDS:
+            BACKENDS[name] = cfg
             imported.append(name)
     return {"ok": True, "imported": imported}
 

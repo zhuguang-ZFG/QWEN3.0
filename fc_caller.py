@@ -5,7 +5,7 @@ import logging
 import http_caller
 import health_tracker
 import tool_dispatcher
-from backends import BACKENDS
+from backends_registry import BACKENDS
 
 log = logging.getLogger(__name__)
 

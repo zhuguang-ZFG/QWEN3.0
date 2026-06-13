@@ -30,15 +30,15 @@ def test_eval_internal_requires_auth(eval_client):
 
 
 def test_eval_internal_direct_call(eval_client, monkeypatch):
-    import backends
+    import backends_registry
 
     monkeypatch.setattr(
         "routes.eval_internal.call_pinned_backend",
         lambda backend, messages, max_tokens: ("scnet_qwen30b", "def foo(): pass"),
     )
-    if "scnet_qwen30b" not in backends.BACKENDS:
+    if "scnet_qwen30b" not in backends_registry.BACKENDS:
         monkeypatch.setitem(
-            backends.BACKENDS,
+            backends_registry.BACKENDS,
             "scnet_qwen30b",
             {"key": "x", "url": "http://example", "model": "m", "fmt": "openai"},
         )
@@ -58,15 +58,15 @@ def test_eval_internal_direct_call(eval_client, monkeypatch):
 
 
 def test_eval_internal_exhausted_returns_502(eval_client, monkeypatch):
-    import backends
+    import backends_registry
 
     monkeypatch.setattr(
         "routes.eval_internal.call_pinned_backend",
         lambda backend, messages, max_tokens: ("exhausted", ""),
     )
-    if "scnet_qwen30b" not in backends.BACKENDS:
+    if "scnet_qwen30b" not in backends_registry.BACKENDS:
         monkeypatch.setitem(
-            backends.BACKENDS,
+            backends_registry.BACKENDS,
             "scnet_qwen30b",
             {"key": "x", "url": "http://example", "model": "m", "fmt": "openai"},
         )

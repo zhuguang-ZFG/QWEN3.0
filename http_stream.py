@@ -10,7 +10,7 @@ from typing import AsyncIterator, Generator
 import httpx
 from response_cleaner import StreamIdentitySanitizer, clean_response, _is_backend_error
 
-from backends import BACKENDS
+from backends_registry import BACKENDS
 from http_errors import BackendError, _extract_code, _extract_retry_after
 from http_response import _parse_sse_chunk
 

@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-import backends
+import backend_utils
 import router_v3
 from backend_admission_store import (
     AdmissionOverlay,
@@ -97,12 +97,12 @@ def test_apply_startup_disables_watchlist_backend(tmp_path: Path, monkeypatch):
         }],
         "overlays": [],
     }), encoding="utf-8")
-    backends.set_enabled("cfai_mistral", True)
+    backend_utils.set_enabled("cfai_mistral", True)
     try:
         apply_startup(store)
-        assert backends.is_enabled("cfai_mistral") is False
+        assert backend_utils.is_enabled("cfai_mistral") is False
     finally:
-        backends.set_enabled("cfai_mistral", True)
+        backend_utils.set_enabled("cfai_mistral", True)
 
 
 def test_upsert_overlay_replaces_existing(tmp_path: Path):

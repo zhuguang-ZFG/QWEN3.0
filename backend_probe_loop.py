@@ -50,7 +50,7 @@ def stop_probe_loop() -> None:
 def probe_backend(backend: str, *, ignore_cooldown: bool = False) -> dict:
     """Probe a single backend. Returns probe result dict."""
     try:
-        from backends import BACKENDS
+        from backends_registry import BACKENDS
         import http_caller
 
         cfg = BACKENDS.get(backend, {})
@@ -211,7 +211,7 @@ def probe_and_record_backend(
 def get_probe_schedule() -> list[list[str]]:
     """Generate probe batches from all configured backends."""
     try:
-        from backends import BACKENDS
+        from backends_registry import BACKENDS
     except ImportError:
         return []
 

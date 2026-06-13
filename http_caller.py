@@ -16,7 +16,8 @@ import health_tracker
 import key_pool
 from response_cleaner import clean_response, _is_backend_error
 
-from backends import BACKENDS, GFW_BACKENDS
+from backends_constants import GFW_BACKENDS
+from backends_registry import BACKENDS
 from http_async import call_api_async, call_raw_async
 from http_errors import BackendError, _emit_backend_error, _extract_code, _extract_retry_after
 from http_request_builder import (

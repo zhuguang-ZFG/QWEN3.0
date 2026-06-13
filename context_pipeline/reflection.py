@@ -9,7 +9,7 @@ Based on all-agentic-architectures Reflection pattern:
 
 from dataclasses import dataclass
 
-from backends import backend_has_capability, first_backend_with_capability, is_weak_backend
+from backend_utils import backend_has_capability, first_backend_with_capability, is_weak_backend
 
 
 @dataclass

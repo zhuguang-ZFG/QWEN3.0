@@ -13,7 +13,7 @@ import health_tracker
 import http_caller
 import routing_engine
 import routing_intent
-from backends import BACKENDS
+from backends_registry import BACKENDS
 
 # ── 配置 ────────────────────────────────────────────────────────────────────
 MAX_CONCURRENT = 3          # 最大并发子任务数

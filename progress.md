@@ -5,6 +5,28 @@
 > Updated: 2026-06-13
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-14 遗留 facade 迁移（backends.py）
+
+- 修复 `smart_router.py` 删除后的残留引用：
+  - 删除完全损坏的 `tests/test_stream_footer.py`（依赖已删除的 `routes/anthropic_stream*`）
+  - 删除目标不存在的 `deploy/patch_phase1.py`
+  - 更新 `scripts/repo_stats.py` 的 `KEY_FILES`（移除已删除文件）
+  - 清理 `vision_handler.py` docstring 中的 `smart_router` 提及
+- 拆分 `backends.py` helper 函数到新建 `backend_utils.py`：
+  - `is_enabled` / `set_enabled` / `get_configured`
+  - `detect_vendor` / `detect_tier` / `detect_protocol` / `detect_caps`
+  - `backend_has_capability` / `is_weak_backend` / `first_backend_with_capability` / `infer_key_pool_provider`
+- 将 `backends.py` 改为纯兼容 shim，继续重导出 `backends_registry`、`backends_constants`、`backend_utils` 的符号
+- 迁移 20+ 个生产模块的直接导入：
+  - `BACKENDS` / `LM_URL` → `backends_registry`
+  - 常量集合 → `backends_constants`
+  - helper 函数 → `backend_utils`
+- 更新测试：
+  - `tests/test_backend_registry.py` 改为直接验证权威模块
+  - `tests/test_backend_admission_overlay.py` / `tests/test_eval_internal.py` / `tests/test_module_split_imports.py` 同步调整
+- 验证：`ruff check .` 通过；`pytest --ignore=tests/test_token_health.py`：2042 passed, 25 skipped
+- 生产代码中除 `backends.py` shim 自身外，已无 `import backends` / `from backends import`
+
 ## 2026-06-13 死区代码清理（Phase 1）
 
 - 删除退役模块与死文件：

@@ -38,7 +38,7 @@ def _collect_backend_health() -> dict:
     import health_state
     import budget_manager
     from backends_registry import BACKENDS
-    from backends import detect_caps
+    from backend_utils import detect_caps
 
     scores = health_tracker.get_scores()
     latency_map = health_tracker.get_latency_map()

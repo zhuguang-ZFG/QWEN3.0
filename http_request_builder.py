@@ -10,7 +10,9 @@ import time
 import httpx
 
 import key_pool
-from backends import GFW_BACKENDS, infer_key_pool_provider
+from backend_utils import infer_key_pool_provider
+from backends_constants import GFW_BACKENDS
+from backends_registry import BACKENDS
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +31,7 @@ def _needs_proxy(url: str) -> bool:
 
 def _build_client(backend: str, timeout: float) -> httpx.Client:
     if backend in GFW_BACKENDS:
-        import backends_registry as _reg
-        url = _reg.BACKENDS.get(backend, {}).get("url", "")
+        url = BACKENDS.get(backend, {}).get("url", "")
         if _needs_proxy(url):
             return httpx.Client(
                 proxy=GFW_PROXY_URL,
@@ -51,8 +52,7 @@ def _build_client(backend: str, timeout: float) -> httpx.Client:
 
 def _build_async_client(backend: str, timeout: float) -> httpx.AsyncClient:
     if backend in GFW_BACKENDS:
-        import backends_registry as _reg
-        url = _reg.BACKENDS.get(backend, {}).get("url", "")
+        url = BACKENDS.get(backend, {}).get("url", "")
         if _needs_proxy(url):
             return httpx.AsyncClient(
                 proxy=GFW_PROXY_URL,
