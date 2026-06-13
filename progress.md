@@ -36,6 +36,12 @@
 - 修复 `scripts/run_ruff_check.py`：过滤 `git ls-files` 中已不存在于工作区的 tracked 路径，避免删除文件未提交时 ruff gate 误报 E902
 - 验证：ruff clean；pytest focused suite 通过
 
+## 2026-06-13 C10 部署修复：routing_engine budget_manager 重导出
+
+- 问题：VPS `routing_executor.py` 仍通过 `re.budget_manager` 访问预算管理器，`routing_engine.py` 在 facade 拆分后未再导入 `budget_manager`，导致 chat 请求 500 (`AttributeError`)。
+- 修复：`routing_engine.py` 增加 `import budget_manager`，恢复模块级属性暴露。
+- 验证：ruff clean；pytest focused suite `54 passed`。
+
 ## 2026-06-13 Phase 5 xiaozhi compat 拆分收尾
 
 - `xiaozhi_v1_compat.py`：518 → ~27 行（删除与子模块重复 helper）

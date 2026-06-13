@@ -15,6 +15,7 @@ import json
 import time
 from typing import Callable
 
+import budget_manager
 import health_tracker
 import identity_guard
 import skills_injector as skills_mod
