@@ -5,6 +5,26 @@
 > Updated: 2026-06-13
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-13 英文文档归档与入口引用修复
+
+- 归档 8 份英文多语言文档到 `docs/archive/en/`：
+  - `AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE.md`
+  - `ESP32S_XYZ_MANAGEMENT.md`
+  - `FREE_MODEL_ROUTING_STATUS.md`
+  - `LIMA_MEMORY.md`
+  - `OBSERVABILITY_EVENTS.md`
+  - `ONLINE_DISTRIBUTIONS.md`
+  - `PROJECT_OPTIMIZATION_ROADMAP.md`
+  - `REQUEST_PIPELINE_AUTHORITY.md`
+- 将根级入口与状态日志中的失效英文引用切换为中文权威版路径：
+  - `README.md` → `docs/ESP32S_XYZ_MANAGEMENT_CN.md`
+  - `AGENTS.md` → `docs/REQUEST_PIPELINE_AUTHORITY_CN.md` / `docs/LIMA_MEMORY_CN.md`
+  - `CLAUDE.md` → `docs/REQUEST_PIPELINE_AUTHORITY_CN.md` / `docs/LIMA_MEMORY_CN.md`
+  - `STATUS.md` → `docs/REQUEST_PIPELINE_AUTHORITY_CN.md` / `docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_CN.md`
+  - `docs/README.md` → 统一入口表指向中文权威版，英文版标注归档位置
+  - `task_plan.md` / `findings.md` / `progress.md` → 同步修正历史记录中的失效引用
+- 提交：`9c9e2cd`
+
 ## 2026-06-13 删除遗留 distill/自动训练子系统
 
 - 识别出无人引用、无服务依赖、无测试覆盖的自包含闭环模块：
