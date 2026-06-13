@@ -23,17 +23,12 @@ SKIP_PARTS = {
 
 KEY_FILES = (
     "server.py",
-    "smart_router.py",
     "routing_engine.py",
     "http_body_limit.py",
-    "semantic_cache.py",
-    "routes/quality_gate.py",
     "routes/chat_handler_dispatch.py",
     "routes/system_endpoints.py",
     "backends.py",
-    "routes/agent_tasks.py",
     "session_memory/store.py",
-    "agent_runtime/orchestrator.py",
 )
 
 
