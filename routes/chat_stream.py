@@ -6,11 +6,7 @@ import asyncio
 import logging
 from typing import Callable
 
-import health_tracker
-import http_caller
-import routing_engine
 import router_image
-import smart_router
 from orchestrate import orchestrate
 from response_builder import _split_sentences, build_stream_chunk
 from routes.stream_handlers import speculative_stream_chunks
@@ -22,6 +18,7 @@ FALLBACK_MSG = "抱歉，所有后端暂不可用，请稍后重试。可尝试 
 
 _last_resort_call: Callable[[list], str] | None = None
 _build_pollinations_url: Callable[[str, str], str] | None = None
+_log = logging.getLogger(__name__)
 
 
 def inject_deps(
@@ -32,6 +29,35 @@ def inject_deps(
     global _last_resort_call, _build_pollinations_url
     _last_resort_call = last_resort_call
     _build_pollinations_url = build_pollinations_url
+
+
+async def _authoritative_route(
+    query: str,
+    messages: list,
+    *,
+    sys_prompt_preview: str = "",
+    ide_source: str = "",
+    max_tokens: int = 4096,
+    use_orchestration: bool = False,
+) -> dict:
+    """Non-stream fallback via orchestrate (multi-step) or v3_route (routing_engine.route)."""
+    if use_orchestration:
+        return await asyncio.to_thread(
+            orchestrate,
+            query,
+            messages=messages,
+            ide_source=ide_source,
+            system_prompt=sys_prompt_preview,
+            max_tokens=max_tokens,
+        )
+    return await asyncio.to_thread(
+        v3_route,
+        query,
+        messages,
+        system_prompt=sys_prompt_preview,
+        ide=ide_source,
+        max_tokens=max_tokens,
+    )
 
 
 async def stream_response(
@@ -63,17 +89,13 @@ async def stream_response(
         if thinking_result:
             content = thinking_result.get("answer", "")
         else:
-            if use_orchestration:
-                result = await asyncio.to_thread(orchestrate, query)
-            else:
-                result = await asyncio.to_thread(
-                    v3_route,
-                    query,
-                    messages,
-                    system_prompt=sys_prompt_preview,
-                    ide=ide_source,
-                    max_tokens=4096,
-                )
+            result = await _authoritative_route(
+                query,
+                messages,
+                sys_prompt_preview=sys_prompt_preview,
+                ide_source=ide_source,
+                use_orchestration=use_orchestration,
+            )
             content = result.get("answer", "") if isinstance(result, dict) else str(result)
         from response_cleaner import clean_response
         content = clean_response(content, "") or content
@@ -87,7 +109,13 @@ async def stream_response(
         return
 
     if use_orchestration:
-        result = await asyncio.to_thread(orchestrate, query)
+        result = await _authoritative_route(
+            query,
+            messages,
+            sys_prompt_preview=sys_prompt_preview,
+            ide_source=ide_source,
+            use_orchestration=True,
+        )
         content = result.get("answer", "") if isinstance(result, dict) else str(result)
         if not content or not content.strip():
             content = (last_resort(messages) if last_resort else "") or FALLBACK_MSG
@@ -108,20 +136,15 @@ async def stream_response(
 
     if not streamed_any:
         try:
-            backends = routing_engine.select(
-                "chat" if not ide_source else "ide",
-                health_tracker.get_health_map(),
-            )
-            _backend, answer, _ = await asyncio.to_thread(
-                routing_engine.execute,
-                backends,
-                lambda b, m, t: http_caller.call_api(b, m, t),
+            result = await _authoritative_route(
+                query,
                 messages,
-                4096,
+                sys_prompt_preview=sys_prompt_preview,
+                ide_source=ide_source,
             )
-            content = answer if answer else ""
+            content = result.get("answer", "") if isinstance(result, dict) else str(result)
         except Exception as exc:
-            logging.getLogger(__name__).debug("fallback execute failed: %s", type(exc).__name__)
+            _log.warning("stream authoritative route failed: %s", type(exc).__name__, exc_info=True)
             content = ""
         from response_cleaner import clean_response
         content = clean_response(content, "") or content

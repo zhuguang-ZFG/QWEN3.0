@@ -131,7 +131,13 @@ def decompose(query: str) -> list[dict[str, Any]]:
     return [{"task": query, "domain": "general", "backend_hint": ""}]
 
 
-def execute_subtasks(subtasks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def execute_subtasks(
+    subtasks: list[dict[str, Any]],
+    *,
+    ide_source: str = "",
+    system_prompt: str = "",
+    max_tokens: int = 4096,
+) -> list[dict[str, Any]]:
     """并发执行子任务（ThreadPoolExecutor，最多 MAX_CONCURRENT 个并发）。
     每个子任务调用 http_caller.call_api 或 routing_engine.route。
 
@@ -174,16 +180,18 @@ def execute_subtasks(subtasks: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     type(exc).__name__,
                 )
 
-        # 否则走完整路由
-        def _call_fn(backend, msgs, mt):
-            return http_caller.call_api(backend, msgs, mt)
-        r = routing_engine.route(task_query,
-            [{"role": "user", "content": task_query}], call_fn=_call_fn)
+        r = _route_via_engine(
+            task_query,
+            messages=[{"role": "user", "content": task_query}],
+            ide_source=ide_source,
+            system_prompt=system_prompt,
+            max_tokens=max_tokens,
+        )
         return {
             "task": task_query,
             "answer": r.answer,
             "backend": r.backend,
-            "ms": int((time.time() - t0) * 1000)
+            "ms": int((time.time() - t0) * 1000),
         }
 
     with ThreadPoolExecutor(max_workers=MAX_CONCURRENT) as executor:
@@ -255,7 +263,44 @@ def synthesize(query: str, results: list[dict[str, Any]]) -> str:
     return "\n\n".join(r["answer"] for r in results if r["answer"])
 
 
-def orchestrate(query: str) -> dict:
+def _route_via_engine(
+    query: str,
+    *,
+    messages: list[dict] | None = None,
+    ide_source: str = "",
+    system_prompt: str = "",
+    max_tokens: int = 4096,
+    needs_tools: bool = False,
+    tools: list[dict] | None = None,
+):
+    msgs = messages if messages else [{"role": "user", "content": query}]
+
+    def _call_fn(backend, msgs, mt):
+        return http_caller.call_api(backend, msgs, mt)
+
+    return routing_engine.route(
+        query,
+        msgs,
+        fmt="openai",
+        ide_source=ide_source,
+        system_prompt=system_prompt,
+        max_tokens=max_tokens,
+        call_fn=_call_fn,
+        needs_tools=needs_tools,
+        tools=tools,
+    )
+
+
+def orchestrate(
+    query: str,
+    *,
+    messages: list[dict] | None = None,
+    ide_source: str = "",
+    system_prompt: str = "",
+    max_tokens: int = 4096,
+    needs_tools: bool = False,
+    tools: list[dict] | None = None,
+) -> dict:
     """编排入口：复杂任务拆解 → 并发执行 → 合并结果。
 
     流程：
@@ -277,10 +322,15 @@ def orchestrate(query: str) -> dict:
 
     # 再次确认是否需要编排（防止外部直接调用）
     if not needs_orchestration(query, intent):
-        def _call_fn(backend, msgs, mt):
-            return http_caller.call_api(backend, msgs, mt)
-        r = routing_engine.route(query, [{"role": "user", "content": query}],
-                                 call_fn=_call_fn)
+        r = _route_via_engine(
+            query,
+            messages=messages,
+            ide_source=ide_source,
+            system_prompt=system_prompt,
+            max_tokens=max_tokens,
+            needs_tools=needs_tools,
+            tools=tools,
+        )
         return {"answer": r.answer, "backend": r.backend, "total_ms": r.ms}
 
     # 拆解
@@ -288,14 +338,24 @@ def orchestrate(query: str) -> dict:
 
     # 如果拆解失败（只有1个且等于原查询），直接路由
     if len(subtasks) == 1 and subtasks[0]["task"] == query:
-        def _call_fn(backend, msgs, mt):
-            return http_caller.call_api(backend, msgs, mt)
-        r = routing_engine.route(query, [{"role": "user", "content": query}],
-                                 call_fn=_call_fn)
+        r = _route_via_engine(
+            query,
+            messages=messages,
+            ide_source=ide_source,
+            system_prompt=system_prompt,
+            max_tokens=max_tokens,
+            needs_tools=needs_tools,
+            tools=tools,
+        )
         return {"answer": r.answer, "backend": r.backend, "total_ms": r.ms}
 
     # 并发执行
-    results = execute_subtasks(subtasks)
+    results = execute_subtasks(
+        subtasks,
+        ide_source=ide_source,
+        system_prompt=system_prompt,
+        max_tokens=max_tokens,
+    )
 
     # 合并
     final_answer = synthesize(query, results)

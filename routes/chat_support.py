@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import sys
 from datetime import datetime
@@ -11,10 +12,27 @@ from datetime import datetime
 import asyncio
 
 import backends
+import http_caller
 import router_circuit_breaker
-import router_http
 import router_intent
+import routing_executor
 import smart_router
+
+_log = logging.getLogger(__name__)
+
+
+def _call_thinking_backend(backend: str, msgs: list, max_tokens: int, ide: str) -> str | None:
+    _, answer, _ = routing_executor.execute(
+        [backend],
+        lambda b, m, t: http_caller.call_api(b, m, t, ide=ide),
+        msgs,
+        max_tokens,
+    )
+    if not answer:
+        return None
+    if isinstance(answer, str) and (answer.startswith("[ERR]") or "暂时不可用" in answer):
+        return None
+    return answer
 
 
 async def thinking_route(query: str, max_tokens: int = 4096, ide: str = "unknown") -> dict | None:
@@ -23,16 +41,15 @@ async def thinking_route(query: str, max_tokens: int = 4096, ide: str = "unknown
     msgs = [{"role": "user", "content": query}]
     try:
         result = await asyncio.wait_for(
-            asyncio.to_thread(router_http.call_api, thinking_backend, msgs, max_tokens, ide),
+            asyncio.to_thread(_call_thinking_backend, thinking_backend, msgs, max_tokens, ide),
             timeout=90.0,
         )
-        if result and not (
-            isinstance(result, str) and (result.startswith("[ERR]") or "暂时不可用" in result)
-        ):
+        if result:
             return {"answer": result, "backend": thinking_backend, "thinking_mode": True}
-    except (asyncio.TimeoutError, Exception) as exc:
-        if smart_router.DEBUG:
-            print(f"[THINKING] {thinking_backend} failed: {exc}", file=sys.stderr)
+    except asyncio.TimeoutError:
+        _log.warning("thinking backend timeout backend=%s", thinking_backend)
+    except Exception as exc:
+        _log.warning("thinking backend failed backend=%s: %s", thinking_backend, type(exc).__name__)
     for alt in backends.THINKING_BACKENDS:
         if alt == thinking_backend:
             continue
@@ -42,15 +59,15 @@ async def thinking_route(query: str, max_tokens: int = 4096, ide: str = "unknown
             continue
         try:
             result = await asyncio.wait_for(
-                asyncio.to_thread(router_http.call_api, alt, msgs, max_tokens, ide),
+                asyncio.to_thread(_call_thinking_backend, alt, msgs, max_tokens, ide),
                 timeout=90.0,
             )
-            if result and not (
-                isinstance(result, str) and (result.startswith("[ERR]") or "暂时不可用" in result)
-            ):
+            if result:
                 return {"answer": result, "backend": alt, "thinking_mode": True}
-        except (asyncio.TimeoutError, Exception):
-            continue
+        except asyncio.TimeoutError:
+            _log.debug("thinking alt backend timeout backend=%s", alt)
+        except Exception as exc:
+            _log.debug("thinking alt backend failed backend=%s: %s", alt, type(exc).__name__)
     return None
 
 

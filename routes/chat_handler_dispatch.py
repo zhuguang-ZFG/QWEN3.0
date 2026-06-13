@@ -15,7 +15,8 @@ import router_image
 import router_intent
 import smart_router
 from chat_models import ChatRequest
-from orchestrate import orchestrate
+from orchestrate import needs_orchestration, orchestrate
+from routes.v3_adapters import v3_route
 from response_builder import (
     build_anthropic_response,
     build_response,
@@ -194,7 +195,7 @@ def build_streaming_response(ctx: ChatRunContext, req: ChatRequest) -> Streaming
     )
     handler = _chat_handler()
     use_orchestration = (
-        handler.needs_orchestration(ctx.query, intent)
+        needs_orchestration(ctx.query, intent)
         if not ctx.prefs.prefer
         else False
     )
@@ -220,15 +221,24 @@ async def execute_non_stream_route(ctx: ChatRunContext, req: ChatRequest) -> tup
     )
     handler = _chat_handler()
     use_orchestration = (
-        handler.needs_orchestration(ctx.query, intent)
+        needs_orchestration(ctx.query, intent)
         if not ctx.prefs.prefer
         else False
     )
     if use_orchestration:
-        result = await asyncio.to_thread(orchestrate, ctx.query)
+        result = await asyncio.to_thread(
+            orchestrate,
+            ctx.query,
+            messages=ctx.preflight.request_messages,
+            ide_source=ctx.ide_source,
+            system_prompt=ctx.sys_prompt_preview,
+            max_tokens=req.max_tokens or 4096,
+            needs_tools=req.has_tools,
+            tools=req.tools,
+        )
     else:
         result = await asyncio.to_thread(
-            handler.v3_route,
+            v3_route,
             ctx.query,
             ctx.preflight.request_messages,
             system_prompt=ctx.sys_prompt_preview,

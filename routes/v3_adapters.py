@@ -7,7 +7,6 @@ from collections.abc import AsyncIterator
 
 import routing_engine
 import http_caller
-import health_tracker
 
 
 def v3_route(query, messages, system_prompt="", ide="", max_tokens=4096,
@@ -25,77 +24,36 @@ def v3_route(query, messages, system_prompt="", ide="", max_tokens=4096,
             "total_ms": result.ms, "fallback_used": result.fallback_used}
 
 
+_FALLBACK_BACKEND = "longcat_chat"
+
+
+def _normalize_ide_source(ide: str) -> str:
+    return ide if ide and ide not in ("unknown", "") else ""
+
+
 def v3_predict(query):
-    """V3 快速预测：根据场景选择后端池。"""
-    hmap = health_tracker.get_health_map()
+    """V3 快速预测：委托 routing_engine.pick_backend（与 route 共享选路管线）。"""
+    msgs = [{"role": "user", "content": query}]
     try:
-        from routing_engine import classify_scenario
-        scenario = classify_scenario(query, [], request_type="")
-        if scenario == "coding":
-            # scnet_ds_flash has strong coding capability (non-streaming verified)
-            stream_stable = ["longcat_chat", "scnet_ds_flash", "scnet_qwen235b",
-                             "scnet_qwen30b", "groq_gptoss", "github_gpt4o",
-                             "mistral_small", "cerebras_gptoss"]
-            for b in stream_stable:
-                if not health_tracker.is_cooled_down(b):
-                    return b
-            from router_v3 import POOLS
-            pool = POOLS.get("ide", {}).get("strong", [])
-            for b in pool:
-                if not health_tracker.is_cooled_down(b):
-                    return b
-        else:
-            chat_only = ["longcat_chat", "zhipu_flash", "cf_llama70b",
-                         "groq_llama70b", "longcat_lite"]
-            for b in chat_only:
-                if not health_tracker.is_cooled_down(b):
-                    return b
-            return "longcat_chat"
+        picked = routing_engine.pick_backend(query, msgs)
+        return picked.backend
     except Exception as e:
-        logging.warning(f"[V3_SELECT] classify/context failed: {type(e).__name__}: {e}")
-    backends = routing_engine.select("chat", hmap, scenario="chat")
-    return backends[0] if backends else "longcat_chat"
+        logging.warning(f"[V3_PREDICT] pick_backend failed: {type(e).__name__}: {e}")
+        return _FALLBACK_BACKEND
 
 
 def v3_select(query, system_prompt, ide, messages):
-    """V3 完整路由选择：根据场景选后端。"""
-    hmap = health_tracker.get_health_map()
-    is_ide = bool(ide and ide not in ("unknown", ""))
-
-    # Retrieval injection for streaming path
+    """V3 完整路由选择：委托 routing_engine.pick_backend。"""
     try:
-        messages, _ = routing_engine.inject_retrieval_context(messages)
+        picked = routing_engine.pick_backend(
+            query, messages,
+            ide_source=_normalize_ide_source(ide),
+            system_prompt=system_prompt or "",
+        )
+        return (picked.backend, picked.messages)
     except Exception as e:
-        logging.warning(f"[V3_SELECT] retrieval injection failed: {type(e).__name__}: {e}")
-
-    try:
-        from routing_engine import classify_scenario
-        scenario = classify_scenario(query, messages,
-                                     ide_source=ide if is_ide else "",
-                                     request_type="ide" if is_ide else "chat")
-        if scenario == "coding":
-            stream_stable = ["longcat_chat", "scnet_qwen235b", "scnet_qwen30b",
-                             "groq_gptoss", "cerebras_gptoss", "github_gpt4o",
-                             "mistral_small"]
-            for b in stream_stable:
-                if not health_tracker.is_cooled_down(b):
-                    return (b, messages)
-            from router_v3 import POOLS
-            pool = POOLS.get("ide", {}).get("strong", [])
-            for b in pool:
-                if not health_tracker.is_cooled_down(b):
-                    return (b, messages)
-        else:
-            chat_only = ["longcat_chat", "zhipu_flash", "cf_llama70b",
-                         "groq_llama70b", "longcat_lite", "longcat_chat"]
-            for b in chat_only:
-                if not health_tracker.is_cooled_down(b):
-                    return (b, messages)
-            return ("groq_llama70b", messages)
-    except Exception as e:
-        logging.warning(f"[V3_STREAM] classify/context failed: {type(e).__name__}: {e}")
-    backends = routing_engine.select("chat", hmap, scenario="chat")
-    return (backends[0] if backends else "longcat_chat", messages)
+        logging.warning(f"[V3_SELECT] pick_backend failed: {type(e).__name__}: {e}")
+        return (_FALLBACK_BACKEND, messages)
 
 
 # 非真流式后端（代理/逆向），强制走非流式保证身份清洗完整

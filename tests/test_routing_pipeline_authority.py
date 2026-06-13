@@ -88,6 +88,10 @@ class TestRoutingEngineAuthority:
         from routing_engine import route
         assert callable(route)
 
+    def test_pick_backend_exists(self):
+        from routing_engine import pick_backend
+        assert callable(pick_backend)
+
     def test_route_imports_all_layers(self):
         src = _read_module_source("routing_engine")
         for module in [
@@ -198,3 +202,24 @@ class TestHttpCallerAuthority:
         assert "classify" not in src or "classify" in src.split("class")[0], (
             "http_caller should not perform routing classification"
         )
+
+
+class TestRoutesBypassGuard:
+    """routes/ must not call routing_engine.select/execute outside allowlist."""
+
+    ALLOWLIST: dict[str, set[str]] = {}
+
+    def test_no_select_execute_bypass_outside_allowlist(self):
+        routes_dir = REPO / "routes"
+        violations: list[str] = []
+        patterns = ("routing_engine.select(", "routing_engine.execute(")
+        for path in sorted(routes_dir.glob("*.py")):
+            rel = path.relative_to(REPO).as_posix()
+            for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                for pattern in patterns:
+                    if pattern not in line:
+                        continue
+                    allowed = self.ALLOWLIST.get(rel, set())
+                    if pattern not in allowed:
+                        violations.append(f"{rel}:{line_no}: {pattern}")
+        assert not violations, "routing authority bypass in routes/:\n" + "\n".join(violations)

@@ -22,6 +22,8 @@ def evidence_db(monkeypatch):
 
 def test_chat_golden_path_records_capability_evidence(evidence_db, monkeypatch):
     import routes.chat_handler as chat_handler
+    import routes.chat_handler_dispatch as dispatch
+    import routes.v3_adapters as v3_adapters
     import server
 
     monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
@@ -32,9 +34,9 @@ def test_chat_golden_path_records_capability_evidence(evidence_db, monkeypatch):
         "analyze",
         lambda query, system_prompt="", ide="": {"intent": "chat", "complexity": 0.1},
     )
-    monkeypatch.setattr(chat_handler, "needs_orchestration", lambda query, intent: False)
+    monkeypatch.setattr(dispatch, "needs_orchestration", lambda query, intent: False)
     monkeypatch.setattr(
-        chat_handler,
+        dispatch,
         "v3_route",
         lambda query, messages, system_prompt="", ide="", max_tokens=4096, **kwargs: {
             "answer": "golden_path_ok",
