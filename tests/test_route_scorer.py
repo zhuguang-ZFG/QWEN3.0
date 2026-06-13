@@ -25,67 +25,73 @@ def test_ide_route_excludes_unproven_web_adapter():
 
 
 def test_routing_select_skips_terminal_state(monkeypatch):
-    import routing_engine
+    import health_tracker
+    import router_v3
+    from routing_selector import select
 
     monkeypatch.setattr(
-        routing_engine.router_v3,
+        router_v3,
         "select_backends",
         lambda req_type, health_map: ["kimi", "longcat_chat"],
     )
-    monkeypatch.setattr(routing_engine.health_tracker, "is_cooled_down", lambda b: False)
+    monkeypatch.setattr(health_tracker, "is_cooled_down", lambda b: False)
     monkeypatch.setattr(
-        routing_engine.health_tracker,
+        health_tracker,
         "get_backend_state",
         lambda b: {"state": "manual_refresh_required"} if b == "kimi" else {"state": "ok"},
     )
-    monkeypatch.setattr(routing_engine.health_tracker, "get_scores", lambda: {})
-    monkeypatch.setattr(routing_engine.health_tracker, "get_latency_map", lambda: {})
+    monkeypatch.setattr(health_tracker, "get_scores", lambda: {})
+    monkeypatch.setattr(health_tracker, "get_latency_map", lambda: {})
 
-    assert routing_engine.select("chat", {}) == ["longcat_chat"]
+    assert select("chat", {}) == ["longcat_chat"]
 
 
 def test_routing_select_excludes_web_adapter_for_ide(monkeypatch):
-    import routing_engine
+    import health_tracker
+    import router_v3
+    from routing_selector import select
 
     monkeypatch.setattr(
-        routing_engine.router_v3,
+        router_v3,
         "select_backends",
         lambda req_type, health_map: ["ddg_gpt4o_mini", "scnet_ds_flash"],
     )
-    monkeypatch.setattr(routing_engine.health_tracker, "is_cooled_down", lambda b: False)
+    monkeypatch.setattr(health_tracker, "is_cooled_down", lambda b: False)
     monkeypatch.setattr(
-        routing_engine.health_tracker,
+        health_tracker,
         "get_backend_state",
         lambda b: {"state": "ok"},
     )
-    monkeypatch.setattr(routing_engine.health_tracker, "get_scores", lambda: {})
-    monkeypatch.setattr(routing_engine.health_tracker, "get_latency_map", lambda: {})
+    monkeypatch.setattr(health_tracker, "get_scores", lambda: {})
+    monkeypatch.setattr(health_tracker, "get_latency_map", lambda: {})
 
-    assert routing_engine.select("ide", {}) == ["scnet_ds_flash"]
+    assert select("ide", {}) == ["scnet_ds_flash"]
 
 
 def test_routing_select_excludes_retired_backend(monkeypatch):
     import backend_retirement
-    import routing_engine
+    import health_tracker
+    import router_v3
+    from routing_selector import select
 
     backend_retirement._retired_backends.clear()
     backend_retirement._retired_backends.add("oldllm_gpt54")
     monkeypatch.setattr(
-        routing_engine.router_v3,
+        router_v3,
         "select_backends",
         lambda req_type, health_map: ["oldllm_gpt54", "longcat_chat"],
     )
-    monkeypatch.setattr(routing_engine.health_tracker, "is_cooled_down", lambda b: False)
+    monkeypatch.setattr(health_tracker, "is_cooled_down", lambda b: False)
     monkeypatch.setattr(
-        routing_engine.health_tracker,
+        health_tracker,
         "get_backend_state",
         lambda b: {"state": "ok"},
     )
-    monkeypatch.setattr(routing_engine.health_tracker, "get_scores", lambda: {})
-    monkeypatch.setattr(routing_engine.health_tracker, "get_latency_map", lambda: {})
+    monkeypatch.setattr(health_tracker, "get_scores", lambda: {})
+    monkeypatch.setattr(health_tracker, "get_latency_map", lambda: {})
 
     try:
-        assert routing_engine.select("chat", {}) == ["longcat_chat"]
+        assert select("chat", {}) == ["longcat_chat"]
     finally:
         backend_retirement._retired_backends.clear()
 
@@ -114,23 +120,25 @@ def test_routing_select_skips_recently_quarantined_backend(monkeypatch, tmp_path
         response_empty=True,
     )
 
-    import routing_engine
+    import health_tracker
+    import router_v3
+    from routing_selector import select
 
     monkeypatch.setattr(
-        routing_engine.router_v3,
+        router_v3,
         "select_backends",
         lambda req_type, health_map: ["flaky_backend", "stable_backend"],
     )
-    monkeypatch.setattr(routing_engine.health_tracker, "is_cooled_down", lambda b: False)
+    monkeypatch.setattr(health_tracker, "is_cooled_down", lambda b: False)
     monkeypatch.setattr(
-        routing_engine.health_tracker,
+        health_tracker,
         "get_backend_state",
         lambda b: {"state": "ok"},
     )
-    monkeypatch.setattr(routing_engine.health_tracker, "get_scores", lambda: {})
-    monkeypatch.setattr(routing_engine.health_tracker, "get_latency_map", lambda: {})
+    monkeypatch.setattr(health_tracker, "get_scores", lambda: {})
+    monkeypatch.setattr(health_tracker, "get_latency_map", lambda: {})
 
-    assert routing_engine.select("chat", {}) == ["stable_backend"]
+    assert select("chat", {}) == ["stable_backend"]
 
 
 def test_routing_select_keeps_only_backend_even_if_quarantined(monkeypatch, tmp_path):
@@ -144,20 +152,22 @@ def test_routing_select_keeps_only_backend_even_if_quarantined(monkeypatch, tmp_
         response_empty=True,
     )
 
-    import routing_engine
+    import health_tracker
+    import router_v3
+    from routing_selector import select
 
     monkeypatch.setattr(
-        routing_engine.router_v3,
+        router_v3,
         "select_backends",
         lambda req_type, health_map: ["only_backend"],
     )
-    monkeypatch.setattr(routing_engine.health_tracker, "is_cooled_down", lambda b: False)
+    monkeypatch.setattr(health_tracker, "is_cooled_down", lambda b: False)
     monkeypatch.setattr(
-        routing_engine.health_tracker,
+        health_tracker,
         "get_backend_state",
         lambda b: {"state": "ok"},
     )
-    monkeypatch.setattr(routing_engine.health_tracker, "get_scores", lambda: {})
-    monkeypatch.setattr(routing_engine.health_tracker, "get_latency_map", lambda: {})
+    monkeypatch.setattr(health_tracker, "get_scores", lambda: {})
+    monkeypatch.setattr(health_tracker, "get_latency_map", lambda: {})
 
-    assert routing_engine.select("chat", {}) == ["only_backend"]
+    assert select("chat", {}) == ["only_backend"]

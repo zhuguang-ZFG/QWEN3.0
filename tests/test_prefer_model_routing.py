@@ -48,16 +48,17 @@ def test_v3_predict_forwards_prefer(monkeypatch):
 def test_select_pins_preferred_backend_outside_pool(monkeypatch):
     import backends_registry as reg
     import budget_manager
-    import routing_engine as re
+    import health_tracker
+    import router_v3
 
     preferred = "scnet_qwen235b"
     assert preferred in reg.BACKENDS
 
-    monkeypatch.setattr(re.router_v3, "select_backends", lambda _pool, _hm: ["longcat_chat"])
-    monkeypatch.setattr(re.health_tracker, "is_cooled_down", lambda _b: False)
+    monkeypatch.setattr(router_v3, "select_backends", lambda _pool, _hm: ["longcat_chat"])
+    monkeypatch.setattr(health_tracker, "is_cooled_down", lambda _b: False)
     monkeypatch.setattr(budget_manager, "is_budget_available", lambda _b: True)
     monkeypatch.setattr(
-        re.health_tracker,
+        health_tracker,
         "get_backend_state",
         lambda _b: {"consecutive_failures": 0},
     )

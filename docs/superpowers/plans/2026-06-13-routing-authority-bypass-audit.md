@@ -80,9 +80,16 @@
 
 **已完成：** `resolve_route_prefs()` 的 `prefer` 经 `v3_route` / `pick_backend` / `routing_selector.select(preferred_backend=)` 贯穿非流式与 speculative 流式路径；sticky 仍优先于 prefer。
 
+### Phase 3 — 模块边界（P2） ✅ 2026-06-13
 
-- `routing_engine` 考虑将 `select`/`execute` 改为 `_select`/`_execute` 或移入 `routing_engine/_internal.py`，仅 `route` / `pick_backend` 公开
-- 超大文件拆分见 CQ 计划（`routing_engine.py`、`xiaozhi_v1_compat.py` 等）
+**设计文档：** [`2026-06-13-phase3-routing-engine-module-boundary-design.md`](2026-06-13-phase3-routing-engine-module-boundary-design.md)
+
+**已完成：** 拆分 `routing_engine_*` 子模块；`routing_engine.py` facade；`__all__` 移除 `select`/`execute`；`routing_selector` 直引 `router_v3`/`health_tracker`。
+
+### Phase 3+ — 延后
+
+- `routes/eval_internal.py` eval 旁路
+- 其他超标 routes 文件拆分（`xiaozhi_v1_compat.py` 等）
 
 ### Phase P1 — 编排上下文与文档对齐 ✅ 2026-06-13
 
@@ -102,7 +109,7 @@
 | `xiaozhi_v1_compat.py` | 432 | 超 AGENTS.md 300 行红线 |
 | `admin_api_extra.py` | 377 | 同上 |
 | `chat_endpoints.py` | 310 | 同上 |
-| `routing_engine.py` | 287 | 模块级 OK，但 `route()` 函数体仍过大 |
+| `routing_engine.py` | ~165 | Phase 3 facade；执行策略见 `routing_engine_execute_strategy.py` |
 
 ## 5. 验收清单
 

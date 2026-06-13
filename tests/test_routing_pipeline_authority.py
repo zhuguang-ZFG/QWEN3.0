@@ -97,11 +97,19 @@ class TestRoutingEngineAuthority:
         for module in [
             "routing_classifier",
             "routing_selector",
-            "routing_executor",
+            "routing_engine_execute_strategy",
             "health_tracker",
             "skills_injector",
         ]:
             assert module in src, f"routing_engine should import {module}"
+
+    def test_public_api_excludes_select_execute(self):
+        from routing_engine import __all__
+
+        assert "select" not in __all__
+        assert "execute" not in __all__
+        assert "pick_backend" in __all__
+        assert "route" in __all__
 
     def test_engine_does_not_call_caller_directly(self):
         src = _read_module_source("routing_engine")

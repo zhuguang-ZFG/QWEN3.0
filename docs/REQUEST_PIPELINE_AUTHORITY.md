@@ -12,7 +12,7 @@ Authority order:
 1. **Edge** — `server.py`, `http_body_limit.BodySizeLimitMiddleware`, `access_guard`
 2. **Protocol routes** — `routes/chat_endpoints.py`, `routes/anthropic_messages_handler.py`, `routes/tool_forward*.py`
 3. **Preflight** — `routes/chat_preflight.py`, `server_context.py`, optional `context_pipeline.guardrails`
-4. **Routing** — `routing_engine.route()` (authoritative for backend selection + execution)
+4. **Routing** — `routing_engine.route()` / `pick_backend()`（选路 + 执行；`select`/`execute` 分别在 `routing_selector` / `routing_executor`）
 5. **HTTP transport** — `http_caller` → `http_sync` / `http_async` / `http_stream`
 6. **Post-process** — `route_post_process.py`, `response_cleaner.py`, `identity_guard.py`
 7. **Closeout** — `routes/chat_post_closeout.py` (memory, observability, distill queue)

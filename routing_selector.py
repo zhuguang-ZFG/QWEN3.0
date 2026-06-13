@@ -6,7 +6,9 @@ import random
 import time
 
 import budget_manager
+import health_tracker
 import route_scorer
+import router_v3
 import sticky_session
 
 import os
@@ -89,20 +91,19 @@ def _pin_if_selectable(
     result: list[str],
     health_map: dict,
     request_type: str,
-    re,
 ) -> list[str]:
     """Pin explicit backend first when healthy, budgeted, and selectable."""
     import backends_registry as reg
 
     if not name or name not in reg.BACKENDS:
         return result
-    if re.health_tracker.is_cooled_down(name):
+    if health_tracker.is_cooled_down(name):
         return result
     if not budget_manager.is_budget_available(name):
         return result
     if health_map.get(name, "healthy") == "dead":
         return result
-    state = re.health_tracker.get_backend_state(name)
+    state = health_tracker.get_backend_state(name)
     if not route_scorer.is_selectable(name, request_type, state):
         return result
     if name not in result:
@@ -116,7 +117,6 @@ def select(request_type: str, health_map: dict,
            preferred_backend: str = "",
            complexity=None) -> list[str]:
     """从对应池选健康后端，按健康评分排序，过滤预算耗尽，sticky 优先"""
-    import routing_engine as re
     import backends_registry as reg
 
     # Read hierarchical memory for experience-based routing
@@ -134,7 +134,7 @@ def select(request_type: str, health_map: dict,
     elif request_type == "chat" and scenario == "chat":
         pool_key = "chat_fast"
 
-    result = re.router_v3.select_backends(pool_key, health_map)
+    result = router_v3.select_backends(pool_key, health_map)
     result = [b for b in result if not _is_retired(b)]
 
     if needs_tools:
@@ -143,7 +143,7 @@ def select(request_type: str, health_map: dict,
             all_capable = [
                 n for n, c in reg.BACKENDS.items()
                 if "tool_calls" in c.get("caps", [])
-                and not re.health_tracker.is_cooled_down(n)
+                and not health_tracker.is_cooled_down(n)
                 and budget_manager.is_budget_available(n)
                 and not _is_retired(n)
             ]
@@ -177,14 +177,14 @@ def select(request_type: str, health_map: dict,
     except ImportError:
         routing_guard_decisions = {}
 
-    scores = re.health_tracker.get_scores()
-    latency_map = re.health_tracker.get_latency_map()
-    health_map = re.health_tracker.get_health_map()
+    scores = health_tracker.get_scores()
+    latency_map = health_tracker.get_latency_map()
+    health_map = health_tracker.get_health_map()
 
     for b in result:
         base = scores.get(b, 50)
 
-        state = re.health_tracker.get_backend_state(b)
+        state = health_tracker.get_backend_state(b)
         consec_fails = state.get("consecutive_failures", 0)
         last_success = state.get("last_success", 0)
         avg_lat = latency_map.get(b, 1500)
@@ -258,7 +258,7 @@ def select(request_type: str, health_map: dict,
         + random.uniform(0, 3)
     ))
 
-    result = [b for b in result if not re.health_tracker.is_cooled_down(b)]
+    result = [b for b in result if not health_tracker.is_cooled_down(b)]
 
     try:
         from context_pipeline.signal_extraction import extract_signals, recommend_strategy_from_signals
@@ -269,7 +269,7 @@ def select(request_type: str, health_map: dict,
         result = apply_strategy_to_backends(result, strategy, proven_backends=result[:2])
     except ImportError:
         pass
-    states = {b: re.health_tracker.get_backend_state(b) for b in result}
+    states = {b: health_tracker.get_backend_state(b) for b in result}
     result = [
         b for b in result
         if route_scorer.is_selectable(b, request_type, states.get(b))
@@ -278,24 +278,24 @@ def select(request_type: str, health_map: dict,
         result, request_type, scenario,
         health_scores=scores,
         states=states,
-        latency_map=re.health_tracker.get_latency_map())
+        latency_map=health_tracker.get_latency_map())
 
     if sticky_key:
         pinned = sticky_session.get_pinned_backend(sticky_key)
         if (pinned and health_map.get(pinned, "healthy") != "dead"
                 and route_scorer.is_selectable(
                     pinned, request_type,
-                    re.health_tracker.get_backend_state(pinned))):
+                    health_tracker.get_backend_state(pinned))):
             result = _prioritize(pinned, result)
     elif preferred_backend:
         result = _pin_if_selectable(
-            preferred_backend, result, health_map, request_type, re,
+            preferred_backend, result, health_map, request_type,
         )
     elif recalled_backend and recalled_backend in result:
         if (health_map.get(recalled_backend, "healthy") != "dead"
                 and route_scorer.is_selectable(
                     recalled_backend, request_type,
-                    re.health_tracker.get_backend_state(recalled_backend))):
+                    health_tracker.get_backend_state(recalled_backend))):
             result = _prioritize(recalled_backend, result)
 
     return result[:MAX_FALLBACKS]

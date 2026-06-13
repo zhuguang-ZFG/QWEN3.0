@@ -10,13 +10,12 @@ from routing_engine import (
     RouteResult,
     classify,
     classify_scenario,
-    select,
     inject_skills,
-    execute,
     respond,
     route,
-    _get_injected_ids
+    pick_backend,
 )
+from routing_engine_post import get_injected_ids
 
 
 class TestRoutingEngine(unittest.TestCase):
@@ -161,13 +160,13 @@ class TestRoutingEngine(unittest.TestCase):
         self.assertEqual(result.request_type, "identity")
 
     @patch('routing_engine.identity_guard')
-    @patch('routing_engine.health_tracker')
-    @patch('routing_engine.budget_manager')
-    @patch('routing_engine.speculative')
+    @patch('routing_engine_execute_strategy.health_tracker')
+    @patch('routing_engine_execute_strategy.budget_manager')
+    @patch('routing_engine_execute_strategy.speculative')
     @patch('routing_engine.classify')
     @patch('routing_engine.classify_scenario')
     @patch('routing_engine.select')
-    @patch('routing_engine.execute')
+    @patch('routing_engine_execute_strategy.execute')
     def test_route_full_pipeline_with_call_fn_mock(
         self, mock_execute, mock_select, mock_classify_scenario,
         mock_classify, mock_speculative, mock_budget,
@@ -204,19 +203,24 @@ class TestRoutingEngine(unittest.TestCase):
         self.assertEqual(result.request_type, "chat")
         self.assertEqual(result.scenario, "general")
 
-    @patch('routing_engine.health_tracker')
-    @patch('routing_engine.budget_manager')
-    @patch('routing_engine.speculative')
-    @patch('routing_engine.execute')
+    @patch('routing_engine.classify')
+    @patch('routing_engine.classify_scenario')
+    @patch('routing_engine_execute_strategy.health_tracker')
+    @patch('routing_engine_execute_strategy.budget_manager')
+    @patch('routing_engine_execute_strategy.speculative')
+    @patch('routing_engine_execute_strategy.execute')
     @patch('routing_engine.select')
     def test_route_speculative_execution_fallback_on_runtimeerror(
-        self, mock_select, mock_execute, mock_speculative, mock_budget_manager, mock_health_tracker
+        self, mock_select, mock_execute, mock_speculative, mock_budget_manager,
+        mock_health_tracker, mock_classify_scenario, mock_classify,
     ):
         """测试 route() 函数的 speculative 执行回退机制
 
         验证当 speculative.speculative_call 抛出 RuntimeError 时
         route 函数正确回退到 execute
         """
+        mock_classify.return_value = "chat"
+        mock_classify_scenario.return_value = "chat"
         mock_select.return_value = ["backend1", "backend2"]
         mock_speculative.classify_complexity.return_value = "simple"
         mock_speculative.get_affinity_backends.return_value = ["fast_backend1", "fast_backend2"]
@@ -241,13 +245,15 @@ class TestRoutingEngine(unittest.TestCase):
 
         self.assertEqual(result.backend, "fallback_backend")
 
+    @patch('routing_engine_execute_strategy.sticky_session')
     @patch('routing_engine.sticky_session')
-    def test_route_sticky_session_integration(self, mock_sticky_session):
+    def test_route_sticky_session_integration(self, mock_sticky_session, mock_exec_sticky):
         """测试 route() 函数的 sticky_session 集成
 
         验证 route 函数正确调用 sticky_session.compute_key 和 pin_backend
         """
         mock_sticky_session.compute_key.return_value = "sticky_key_123"
+        mock_exec_sticky.pin_backend = mock_sticky_session.pin_backend
 
         mock_call_fn = MagicMock(return_value="test response")
 
@@ -273,22 +279,22 @@ class TestRoutingEngine(unittest.TestCase):
 
         expected_exports = [
             "RouteResult",
+            "PickResult",
             "classify",
             "classify_scenario",
-            "select",
             "inject_skills",
-            "execute",
             "respond",
+            "pick_backend",
             "route",
         ]
 
         for export in expected_exports:
             self.assertIn(export, __all__)
 
-    def test_get_injected_ids_helper_basic(self):
-        """测试 _get_injected_ids helper 的基本功能
+    def testget_injected_ids_helper_basic(self):
+        """测试 get_injected_ids helper 的基本功能
 
-        验证 _get_injected_ids 函数正确处理基本的情况
+        验证 get_injected_ids 函数正确处理基本的情况
         """
         original = [{"role": "user", "content": "test"}]
         modified = [
@@ -297,26 +303,26 @@ class TestRoutingEngine(unittest.TestCase):
             {"role": "assistant", "content": "test"}
         ]
 
-        result = _get_injected_ids(original, modified)
+        result = get_injected_ids(original, modified)
 
         self.assertEqual(result, ["dir:skill1", "dir:skill2"])
 
-    def test_get_injected_ids_helper_no_skills(self):
-        """测试 _get_injected_ids helper 的无技能情况
+    def testget_injected_ids_helper_no_skills(self):
+        """测试 get_injected_ids helper 的无技能情况
 
-        验证 _get_injected_ids 函数当没有找到技能时返回空列表
+        验证 get_injected_ids 函数当没有找到技能时返回空列表
         """
         original = [{"role": "user", "content": "test"}]
         modified = [{"role": "user", "content": "test"}]
 
-        result = _get_injected_ids(original, modified)
+        result = get_injected_ids(original, modified)
 
         self.assertEqual(result, [])
 
-    def test_get_injected_ids_helper_injected_skills(self):
-        """测试 _get_injected_ids helper 的注入技能情况
+    def testget_injected_ids_helper_injected_skills(self):
+        """测试 get_injected_ids helper 的注入技能情况
 
-        验证 _get_injected_ids 函数当有注入的技能时返回正确的ID
+        验证 get_injected_ids 函数当有注入的技能时返回正确的ID
         """
         original = [{"role": "user", "content": "test"}]
         modified = [
@@ -324,7 +330,7 @@ class TestRoutingEngine(unittest.TestCase):
             {"role": "system", "content": "Available skills: skill1"}
         ]
 
-        result = _get_injected_ids(original, modified)
+        result = get_injected_ids(original, modified)
 
         self.assertEqual(result, ["dir:skill1"])
 
@@ -406,10 +412,10 @@ class TestRoutingEngine(unittest.TestCase):
         self.assertEqual(result.backend, "identity_guard")
         self.assertEqual(result.answer, "Test identity")
 
-    def test_get_injected_ids_helper_with_unicode_skills(self):
-        """测试 _get_injected_ids helper 的 Unicode 技能名称
+    def testget_injected_ids_helper_with_unicode_skills(self):
+        """测试 get_injected_ids helper 的 Unicode 技能名称
 
-        验证 _get_injected_ids 函数可以正确处理 Unicode 编码的技能名称
+        验证 get_injected_ids 函数可以正确处理 Unicode 编码的技能名称
         """
         original = [{"role": "user", "content": "test"}]
         modified = [
@@ -417,14 +423,14 @@ class TestRoutingEngine(unittest.TestCase):
             {"role": "system", "content": "Available skills: skill_1, skill_2, skill_3"}
         ]
 
-        result = _get_injected_ids(original, modified)
+        result = get_injected_ids(original, modified)
 
         self.assertEqual(result, ["dir:skill_1", "dir:skill_2", "dir:skill_3"])
 
-    def test_get_injected_ids_helper_mixed_roles(self):
-        """测试 _get_injected_ids helper 的混合角色消息
+    def testget_injected_ids_helper_mixed_roles(self):
+        """测试 get_injected_ids helper 的混合角色消息
 
-        验证 _get_injected_ids 函数可以正确处理包含多种角色的消息
+        验证 get_injected_ids 函数可以正确处理包含多种角色的消息
         """
         original = [
             {"role": "system", "content": "initial system"},
@@ -437,7 +443,7 @@ class TestRoutingEngine(unittest.TestCase):
             {"role": "assistant", "content": "assistant message"}
         ]
 
-        result = _get_injected_ids(original, modified)
+        result = get_injected_ids(original, modified)
 
         self.assertEqual(result, ["dir:tool_a", "dir:tool_b"])
 
@@ -485,28 +491,26 @@ class TestRoutingEngine(unittest.TestCase):
             RouteResult,
             classify,
             classify_scenario,
-            select,
             inject_skills,
-            execute,
             respond,
             route,
-            _get_injected_ids
+            pick_backend,
         )
+        from routing_engine_post import get_injected_ids
 
         # 验证所有必要的函数都已导入
         self.assertTrue(callable(classify))
         self.assertTrue(callable(classify_scenario))
-        self.assertTrue(callable(select))
         self.assertTrue(callable(inject_skills))
-        self.assertTrue(callable(execute))
         self.assertTrue(callable(respond))
         self.assertTrue(callable(route))
-        self.assertTrue(callable(_get_injected_ids))
+        self.assertTrue(callable(pick_backend))
+        self.assertTrue(callable(get_injected_ids))
 
-    def test_get_injected_ids_helper_single_skill(self):
-        """测试 _get_injected_ids helper 单个技能的情况
+    def testget_injected_ids_helper_single_skill(self):
+        """测试 get_injected_ids helper 单个技能的情况
 
-        验证 _get_injected_ids 函数可以正确处理只有单个技能的情况
+        验证 get_injected_ids 函数可以正确处理只有单个技能的情况
         """
         original = [{"role": "user", "content": "test"}]
         modified = [
@@ -514,7 +518,7 @@ class TestRoutingEngine(unittest.TestCase):
             {"role": "system", "content": "Available skills: single_skill"}
         ]
 
-        result = _get_injected_ids(original, modified)
+        result = get_injected_ids(original, modified)
 
         self.assertEqual(result, ["dir:single_skill"])
 

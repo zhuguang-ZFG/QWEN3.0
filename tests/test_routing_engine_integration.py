@@ -9,13 +9,12 @@ from routing_engine import (
     RouteResult,
     classify,
     classify_scenario,
-    select,
     inject_skills,
-    execute,
     respond,
     route,
-    _get_injected_ids
+    pick_backend,
 )
+from routing_engine_post import get_injected_ids
 
 
 class TestRoutingEngineIntegration(unittest.TestCase):
