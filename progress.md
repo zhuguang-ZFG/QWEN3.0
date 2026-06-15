@@ -2,8 +2,38 @@
 
 > Created: 2026-05-22
 
-> Updated: 2026-06-13
+> Updated: 2026-06-15
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
+
+## 2026-06-15 路由/记忆子系统代码质量修复
+
+聚焦修复项目学习阶段发现的三类代码质量问题（详见 [findings.md](findings.md) 2026-06-15 条目）。
+
+### 修复内容
+
+1. **分层记忆死代码修复**（`context_pipeline/hierarchical_memory.py`）
+   - `get_context_for_routing()` 新增 `preferred_backends` 派生：从 L1 性能指数选出 success_rate ≥ 0.8 且样本 ≥ 3 的后端，按率/延迟排序，上限 5
+   - 使 `routing_selector.py:127` 既有的 15% boost 逻辑真正生效（此前恒为空列表）
+
+2. **critical 可选依赖告警升级**（`code_context/chroma_vector_store.py`、`code_context/treesitter_adapter.py`）
+   - chromadb / tree-sitter 缺失由 `debug` 改为 `warning`，加一次性 flag 防刷屏
+
+3. **路由热路径静默降级补 warning**（9 处）
+   - `context_pipeline/code_context_injection.py`（Phase 2/3 语义检索/图谱扩展）
+   - `session_memory/learning_loop.py`（5 处学习通道 + 新增 `_warn_dep_missing` 一次性告警辅助）
+   - `routing_engine_context.py`（skill_store recall / auto_compress）
+
+### 验证证据
+
+- pytest：`test_advanced_patterns.py`+`test_pipeline_integration.py`+`test_routing_engine.py` = **51 passed**
+- pytest：code_context/learning_loop/session_memory/route_post/routing 相关 = **63 passed**
+- ruff check：6 个修改文件 **All checks passed**
+- 手写边界用例：preferred_backends 派生逻辑 6 个用例全部通过
+
+### 未处理项（记录为技术债）
+
+- 生产代码剩余 ~41 处 `except ImportError: pass`（非热路径/防御性，留待专项清理）
+- `learning_loop.py`(316行)、`treesitter_adapter.py`(334行) 超 300 行约束，属既存债务
 
 ## 2026-06-14 遗留 facade 迁移（backends.py）
 

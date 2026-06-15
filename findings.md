@@ -2,6 +2,46 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-06-15 路由/记忆子系统代码质量修复
+
+> 来源：项目学习阶段对 `context_pipeline/`、`session_memory/`、`code_context/`、`routing_engine*` 的探索发现，已逐项亲自验证并修复。
+
+### 问题①：分层记忆 `preferred_backends` 为死代码（已修复）
+
+| 证据点 | 内容 |
+|--------|------|
+| 问题 | `routing_selector.py:122-129` 读取 `mem_context["preferred_backends"]` 并对该列表内后端 `scores[b] *= 1.15`，但 `context_pipeline/hierarchical_memory.py` 旧版 `get_context_for_routing()` 仅返回 `rules/performance/scenario`，从不返回 `preferred_backends` → 15% boost 恒不生效 |
+| 根因 | L1 性能指数 (`update_performance`) 已采集每个后端的 total/success/avg_latency/success_rate，但派生逻辑缺失 |
+| 修复 | `hierarchical_memory.py:get_context_for_routing` 增加 `preferred_backends` 派生：success_rate ≥ 0.8 且 total ≥ 3 的后端入选，按 (success_rate desc, avg_latency asc) 排序，上限 5 |
+| 验证 | 6 个边界用例（空 L1 / 率<0.8 / 满足条件 / 主排序键率 / 样本不足 / 上限5）全部通过；`test_advanced_patterns.py`(16) + `test_pipeline_integration.py`(11) + `test_routing_engine.py`(24) 共 51 passed |
+| 行为变化 | 历史成功率高的后端现在会真正获得路由 boost（符合分层记忆 L1 设计本意）；无 L1 数据时行为不变 |
+
+### 问题②：critical 可选依赖缺失静默降级（已修复）
+
+| 证据点 | 内容 |
+|--------|------|
+| 问题 | `code_context/chroma_vector_store.py` 检测 chromadb 缺失时用 `_log.debug`；`code_context/treesitter_adapter.py` 检测 tree-sitter 缺失时用 `_log.debug`。生产默认 INFO 级别下不可见，违反 AGENTS.md「Critical deps must log clear warnings」 |
+| 修复 | 两处均改为 `_log.warning`，并加模块级 `_MISSING_WARNED` flag 保证每个依赖每进程只告警一次（避免热路径刷日志） |
+| 验证 | ruff check 通过；`test_code_context_index.py`(22) passed |
+
+### 问题③：路由热路径裸 `except ImportError: pass`（已修复关键 9 处）
+
+| 证据点 | 内容 |
+|--------|------|
+| 问题 | 生产代码中共有 ~50 处 `except ImportError: pass`。本次聚焦路由/学习热路径，修复 9 处关键静默降级 |
+| 修复文件 | `context_pipeline/code_context_injection.py`(Phase 2/3)、`session_memory/learning_loop.py`(5 处学习通道 + 新增 `_warn_dep_missing` 一次性告警辅助)、`routing_engine_context.py`(skill_store recall / auto_compress) |
+| 修复方式 | 全部改为 `logger.warning` 并说明降级影响；learning_loop 用模块级 `_DEP_WARNING_SHOWN` set 实现每依赖一次性告警 |
+| 未修范围 | 其余 ~41 处（如 `store_db.py` 内部 facade 自引用、`http_errors.py` 可选依赖探测、`ops_metrics/collectors.py` 等）多为防御性编程或非热路径，记录为已知技术债，留待后续专项清理 |
+| 验证 | ruff check 通过；`test_learning_loop.py`(7) + `test_session_memory.py`(9) + `test_route_post_process.py`(2) + `test_routing_engine_integration.py`(2) 等共 63 passed |
+
+### 已知遗留技术债（本次未处理，需后续专项）
+
+| 项 | 说明 |
+|----|------|
+| 剩余 `except ImportError: pass` | 生产代码约 41 处，分布于 ops_metrics/collectors.py(11处)、route_post_process.py、channel_gateway、health_recorder 等。建议后续用脚本辅助批量审查 |
+| `learning_loop.py` 316 行 | 超出 300 行硬约束，属本次修复前既存债务（原 363 行，本次净减）。建议后续拆分 `_feed_*` 各通道为独立模块 |
+| `treesitter_adapter.py` 334 行 | 超出 300 行硬约束，属既存债务。本次仅加 warning 逻辑（约 +8 行），建议后续拆分 TreeSitterExtractor 类 |
+
 ## 2026-06-13 清理发现的敏感文件泄露
 
 | ID | Area | Finding | Status |

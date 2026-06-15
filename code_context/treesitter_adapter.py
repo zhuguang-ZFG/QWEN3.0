@@ -72,10 +72,10 @@ _TS_EXTENDS_TYPES = frozenset({
 })
 
 _TREE_SITTER_AVAILABLE: bool | None = None
-
+_TREE_SITTER_MISSING_WARNED = False
 
 def _check_tree_sitter() -> bool:
-    global _TREE_SITTER_AVAILABLE
+    global _TREE_SITTER_AVAILABLE, _TREE_SITTER_MISSING_WARNED
     if _TREE_SITTER_AVAILABLE is not None:
         return _TREE_SITTER_AVAILABLE
     try:
@@ -84,7 +84,14 @@ def _check_tree_sitter() -> bool:
         _TREE_SITTER_AVAILABLE = True
     except Exception:
         _TREE_SITTER_AVAILABLE = False
-        _log.debug("tree-sitter unavailable, using regex fallback")
+        if not _TREE_SITTER_MISSING_WARNED:
+            # Critical optional dep: warn once so ops sees the degradation.
+            _log.warning(
+                "tree-sitter (tree_sitter_languages) unavailable; multi-language "
+                "AST extraction degraded to regex/stdlib fallback. "
+                "Install tree-sitter-languages for full symbol extraction."
+            )
+            _TREE_SITTER_MISSING_WARNED = True
     return _TREE_SITTER_AVAILABLE
 
 

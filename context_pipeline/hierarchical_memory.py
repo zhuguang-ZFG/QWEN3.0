@@ -95,16 +95,42 @@ class HierarchicalMemory:
         self.L4.set(f"session:{session_id}", summary)
 
     def get_context_for_routing(self, backend: str, scenario: str) -> dict:
-        """Retrieve relevant context across all layers for a routing decision."""
-        context = {}
-        context["rules"] = {
-            "max_retries": self.L0.get("max_retries"),
-            "timeout_ms": self.L0.get("timeout_ms"),
+        """Retrieve relevant context across all layers for a routing decision.
+
+        Derives ``preferred_backends`` from the L1 performance index so the
+        caller (routing_selector) can boost historically reliable backends.
+        Selection criteria: success_rate >= 0.8 and total >= 3, ranked by
+        success_rate then latency. Capped at 5 to avoid over-biasing.
+        """
+        context: dict[str, Any] = {
+            "rules": {
+                "max_retries": self.L0.get("max_retries"),
+                "timeout_ms": self.L0.get("timeout_ms"),
+            },
+            "scenario": scenario,
         }
         perf = self.L1.get(f"perf:{backend}")
         if perf:
             context["performance"] = perf
-        context["scenario"] = scenario
+
+        # Derive preferred backends from observed L1 performance.
+        # Only promote backends with enough samples and a strong success rate.
+        candidates: list[tuple[float, int, str]] = []
+        for key, stats in self.L1.entries.items():
+            if not key.startswith("perf:") or not isinstance(stats, dict):
+                continue
+            total = stats.get("total", 0)
+            if total < 3:
+                continue
+            success_rate = stats.get("success_rate", 0.0)
+            if success_rate < 0.8:
+                continue
+            name = key[len("perf:"):]
+            # Rank by success_rate desc, then latency asc (lower is better).
+            candidates.append((success_rate, -stats.get("avg_latency", 9999), name))
+        candidates.sort(reverse=True)
+        if candidates:
+            context["preferred_backends"] = [c[2] for c in candidates[:5]]
         return context
 
     def save(self, db_path: str | None = None) -> None:

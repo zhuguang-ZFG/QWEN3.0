@@ -18,15 +18,22 @@ _log = logging.getLogger(__name__)
 
 _DEFAULT_COLLECTION = "lima_code_index"
 _CHROMADB_AVAILABLE: bool | None = None
+_CHROMADB_MISSING_WARNED = False
 
 
 def _is_chromadb_available() -> bool:
-    global _CHROMADB_AVAILABLE
+    global _CHROMADB_AVAILABLE, _CHROMADB_MISSING_WARNED
     if _CHROMADB_AVAILABLE is not None:
         return _CHROMADB_AVAILABLE
     _CHROMADB_AVAILABLE = importlib.util.find_spec("chromadb") is not None
-    if not _CHROMADB_AVAILABLE:
-        _log.debug("chromadb not installed, using in-memory fallback")
+    if not _CHROMADB_AVAILABLE and not _CHROMADB_MISSING_WARNED:
+        # Critical optional dep: warn once so ops sees the degradation.
+        # Semantic code search falls back to in-memory keyword index.
+        _log.warning(
+            "chromadb not installed; semantic code search degraded to in-memory "
+            "keyword index. Install chromadb to restore vector retrieval."
+        )
+        _CHROMADB_MISSING_WARNED = True
     return _CHROMADB_AVAILABLE
 
 

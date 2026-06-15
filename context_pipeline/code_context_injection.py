@@ -101,8 +101,11 @@ def scan_and_build_context(
             if ctx and total + len(ctx) < max_chars:
                 parts.append(f"[semantic match: score={result.score}]\n{ctx}")
                 total += len(ctx) + 30
-    except ImportError:
-        pass
+    except ImportError as exc:
+        _log.warning(
+            "semantic_code_retrieval unavailable; code context limited to "
+            "explicit file mentions. Reason: %s", exc
+        )
 
     # Phase 3: Graph expansion for remaining budget
     if total < max_chars * 0.5 and len(scanned_files) < _MAX_FILES:
@@ -120,8 +123,11 @@ def scan_and_build_context(
                 if ctx and total + len(ctx) < max_chars:
                     parts.append(ctx)
                     total += len(ctx)
-        except ImportError:
-            pass
+        except ImportError as exc:
+            _log.warning(
+                "graph_context_expander unavailable; code context graph "
+                "expansion skipped. Reason: %s", exc
+            )
 
     # Phase 4: Identifier search (existing approach)
     for ident in identifiers[:3]:

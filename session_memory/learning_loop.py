@@ -20,6 +20,25 @@ from typing import Any
 
 _log = logging.getLogger(__name__)
 
+# One-time guard so a missing learning-loop dependency warns once per process
+# instead of spamming on every task outcome (ingest is called frequently).
+_DEP_WARNING_SHOWN: set[str] = set()
+
+
+def _warn_dep_missing(dep: str, effect: str, exc: BaseException) -> None:
+    """Log a one-time warning when an optional learning-loop dep is absent.
+
+    Keeps the learning loop resilient (returns partial results) while making
+    the degradation visible to ops, per AGENTS.md "no silent degradation".
+    """
+    if dep in _DEP_WARNING_SHOWN:
+        return
+    _DEP_WARNING_SHOWN.add(dep)
+    _log.warning(
+        "%s unavailable; %s. Learning loop will skip this channel. Reason: %s",
+        dep, effect, exc,
+    )
+
 
 @dataclass
 class TaskOutcome:
@@ -148,8 +167,8 @@ def _feed_memory(outcome: TaskOutcome) -> dict[str, Any]:
         if outcome.changed_files:
             saved.append(f"code_fact:{len(outcome.changed_files)}")
 
-    except ImportError:
-        pass
+    except ImportError as exc:
+        _warn_dep_missing("session_memory.store", "typed memory channel skipped", exc)
 
     return {"saved": saved}
 
@@ -188,8 +207,8 @@ def _feed_prompt(outcome: TaskOutcome) -> dict[str, Any]:
             f"prompt_profile:{profile_key} task={outcome.task_id} status={outcome.status}",
             detail=json.dumps(entry, ensure_ascii=False),
         )
-    except ImportError:
-        pass
+    except ImportError as exc:
+        _warn_dep_missing("session_memory.store", "prompt profile memory skipped", exc)
 
     return {"profile_key": profile_key, "status": outcome.status}
 
@@ -221,8 +240,8 @@ def _feed_routing(outcome: TaskOutcome) -> dict[str, Any]:
             rw.record_success(outcome.backend, outcome.scenario)
         else:
             rw.record_failure(outcome.backend, outcome.scenario)
-    except ImportError:
-        pass
+    except ImportError as exc:
+        _warn_dep_missing("context_pipeline.routing_weights", "routing weight feedback skipped", exc)
 
     try:
         from session_memory.store import save_typed_memory
@@ -231,8 +250,8 @@ def _feed_routing(outcome: TaskOutcome) -> dict[str, Any]:
             f"route:{outcome.backend} scenario={outcome.scenario} status={outcome.status}",
             detail=json.dumps(feedback, ensure_ascii=False),
         )
-    except ImportError:
-        pass
+    except ImportError as exc:
+        _warn_dep_missing("session_memory.store", "routing lesson memory skipped", exc)
 
     return {"recorded": True, "backend": outcome.backend, "scenario": outcome.scenario}
 
@@ -310,8 +329,8 @@ def _maybe_promote_pattern(outcome: TaskOutcome) -> None:
                         "status": "needs_approval",
                     }, ensure_ascii=False),
                 )
-        except ImportError:
-            pass
+        except ImportError as exc:
+            _warn_dep_missing("session_memory.store", "eval pattern promotion skipped", exc)
 
 
 # ── Public query helpers ─────────────────────────────────────────────────────

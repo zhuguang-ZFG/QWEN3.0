@@ -15,8 +15,12 @@ def try_recall_backend(messages: list[dict], scenario: str) -> str:
         recalled = get_skill_store().recall(messages, scenario)
         if recalled:
             return recalled.backend
-    except ImportError:
-        pass
+    except ImportError as exc:
+        _log.warning(
+            "skill_store unavailable; backend recall from crystallized skills "
+            "skipped. Reason: %s",
+            exc,
+        )
     return ""
 
 
@@ -82,6 +86,10 @@ def auto_compress(messages: list[dict], backends: list[str], system_prompt: str)
 
         if backends and should_compress(messages, backends[0]):
             return compress_messages(messages, backends[0], system_prompt=system_prompt)
-    except ImportError:
-        pass
+    except ImportError as exc:
+        _log.warning(
+            "context_compressor unavailable; long conversations will not be "
+            "auto-compressed and may exceed backend context limits. Reason: %s",
+            exc,
+        )
     return messages
