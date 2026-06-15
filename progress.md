@@ -946,6 +946,17 @@ Agent Worker path.
   - 公网 health：`curl https://chat.donglicao.com/health` → `{"status":"ok"}`；
   - 公网 `/v1/models` 返回模型列表，服务已恢复对外可用。
 
+## 2026-06-16：CP-3 provider_automation 分层 + DREAM_MODE 勘误
+
+- **CP-3（已关闭）**：
+  - 新增 `provider_automation/README.md`：Warm（`adapters` + `backend_admission_store`）/ Cold（`runner`/`probe`）分层；
+  - 新增 `scripts/provider_automation/run_probe_batch.py`：离线批量探测 CLI，门控 `LIMA_PROVIDER_AUTOMATION_RUN=1`；
+  - `docs/CODEBASE_COLD_PRUNE_PRIORITY_CN.md` P2 标为已关闭；`docs/README.md` 索引更新。
+- **DREAM_MODE 三篇文档**：
+  - 新增 `docs/DREAM_MODE_ERRATA_CN.md`（事实校正 + 5 条未解谜题）；
+  - 主/补充/Prompt 文档文首链到勘误；修正 routing/context 分层、Telegram 退役、模块规模、Prompt Layer 3 分工。
+- **本地验证**：`pytest tests/test_provider_automation_*.py -q` → **57 passed**
+
 ## 历史归档
 
 - [2026-05 执行进展](docs/archive/progress-2026-05.md)

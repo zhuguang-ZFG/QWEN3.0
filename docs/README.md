@@ -1,6 +1,6 @@
 # LiMa 文档索引
 
-> 更新日期：2026-06-15
+> 更新日期：2026-06-16
 > 项目定位：AI 智能设备统一云端服务
 >
 > **权威规则**：本索引列出当前有效的文档。若某文档被标注为“历史/归档”，则以当前有效文档为准；若存在冲突，以本索引中“当前状态”与“路线图”两类文档为最新依据。
@@ -22,7 +22,8 @@
 | 长期记忆 | [`LIMA_MEMORY_CN.md`](LIMA_MEMORY_CN.md) | ✅ 活跃 |
 | 项目路线图 | [`PROJECT_OPTIMIZATION_ROADMAP_CN.md`](PROJECT_OPTIMIZATION_ROADMAP_CN.md) | ✅ 活跃 |
 | 子系统热度分层（瘦身评估） | [`CODEBASE_SUBSYSTEM_TIER_CN.md`](CODEBASE_SUBSYSTEM_TIER_CN.md) | ✅ 活跃（Q7） |
-| Cold 清理优先级（下一批删/迁） | [`CODEBASE_COLD_PRUNE_PRIORITY_CN.md`](CODEBASE_COLD_PRUNE_PRIORITY_CN.md) | ✅ 活跃（CP-0 规划） |
+| Cold 清理优先级（下一批删/迁） | [`CODEBASE_COLD_PRUNE_PRIORITY_CN.md`](CODEBASE_COLD_PRUNE_PRIORITY_CN.md) | ✅ 活跃（CP-1/2/3 已关） |
+| provider_automation（Warm/Cold） | [`../provider_automation/README.md`](../provider_automation/README.md) | ✅ 活跃（CP-3） |
 | context_pipeline 模块地图 | [`../context_pipeline/README.md`](../context_pipeline/README.md) | ✅ 活跃 |
 | provider_probe（Cold 离线） | [`../provider_probe/README.md`](../provider_probe/README.md) | ✅ 活跃 |
 | 发布规则 | [`DEPLOY_AND_RELEASE_CONVENTION.md`](DEPLOY_AND_RELEASE_CONVENTION.md) | ✅ 活跃 |
@@ -37,6 +38,8 @@
 | 请求管线权威说明 | [`REQUEST_PIPELINE_AUTHORITY_CN.md`](REQUEST_PIPELINE_AUTHORITY_CN.md) |
 | 路由引擎设计 | [`archive/ROUTING_ENGINE_DESIGN.md`](archive/ROUTING_ENGINE_DESIGN.md)（历史归档） |
 | 可观测事件 | [`OBSERVABILITY_EVENTS_CN.md`](OBSERVABILITY_EVENTS_CN.md) |
+| 做梦模式子系统隐喻（草稿） | [`DREAM_MODE_SUBSYSTEM_ANALYSIS_CN.md`](DREAM_MODE_SUBSYSTEM_ANALYSIS_CN.md) + [`DREAM_MODE_ALL_SUBSYSTEMS_CN.md`](DREAM_MODE_ALL_SUBSYSTEMS_CN.md) + [`DREAM_MODE_PROMPT_ENGINEERING_CN.md`](DREAM_MODE_PROMPT_ENGINEERING_CN.md) |
+| 做梦模式勘误（SSOT 校正） | [`DREAM_MODE_ERRATA_CN.md`](DREAM_MODE_ERRATA_CN.md) |
 
 ## 设备与模型
 

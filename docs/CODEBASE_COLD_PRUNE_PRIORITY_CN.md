@@ -104,18 +104,21 @@ python -m pytest tests/test_retrieval_injection.py tests/test_routing_engine.py 
 
 ---
 
-## P2 — `provider_automation` 结构与 CLI 分离（CP-3）
+## P2 — `provider_automation` 结构与 CLI 分离（CP-3）✅ 已关闭 2026-06-16
 
 生产仅 **Warm overlay 读路径**（`server_lifespan` → `backend_admission_store.apply_startup()`）。
 
-| 动作 | 保留（Warm） | 迁出至 `scripts/provider_automation/`（Cold） |
-|------|--------------|-----------------------------------------------|
-| 准入边界 | `adapters/*`、`backend_admission_store.py` | `runner.py`、`probe.py`、`catalog.py` 全流水线 |
-| 不变量 | `test_provider_automation_admission.py` 必须通过 | OpenRouter live fetch 保持 `LIMA_OPENROUTER_LIVE_FETCH=1` gate |
+| 动作 | 保留（Warm） | Cold / 运维入口 |
+|------|--------------|-----------------|
+| 准入边界 | `adapters/*`、`backend_admission_store.py`、`catalog.py`（类型枚举） | `runner.py`、`probe.py` 等全流水线 |
+| CLI | — | `scripts/provider_automation/run_probe_batch.py`（`LIMA_PROVIDER_AUTOMATION_RUN=1`） |
+| 文档 | [`../provider_automation/README.md`](../provider_automation/README.md) | Warm/Cold 分层 + 不变量测试命令 |
+
+**不变量**：`tests/test_provider_automation_admission.py`、`tests/test_provider_automation_runner.py` 通过；OpenRouter live fetch 保持 `LIMA_OPENROUTER_LIVE_FETCH=1` gate。
 
 **原则**：catalog 存在 ≠ 可路由；自动化产出仅为 candidate/watchlist。
 
----
+下一批见 **P3（CP-4）**。
 
 ## P3 — `context_pipeline/lab/` 物理搬迁（CP-4，需 `docs/` 设计短文）
 
