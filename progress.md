@@ -762,6 +762,29 @@ Agent Worker path.
     `origin` has only a GitHub push URL.
 
 
+## 2026-06-15：清理死区代码 / M5–M8 closeout / VPS 部署验证
+
+- 已完成内容：
+  - 清理并归档 Anthropic 残留文件、死区代码和过时文档；
+  - 完成 device_recovery、device_memory、device_support、device_ota 四个里程碑
+    的收尾与 review 修复；
+  - 提交并推送两个 closeout commit：
+    - `9dd7d38` M5–M8 closeout
+    - `23f8b70` cleanup closeout
+- 本地验证：
+  - M5–M8 相关 pytest：`452 passed, 1 warning`；
+  - cleanup 相关 pytest：`13 passed`；
+  - `ruff check` 与 `ruff format --check` 均干净；
+  - 工作区仅剩 `.agents/`、`.codegraph/` 等本地 IDE 未跟踪文件，按
+    AGENTS.md 规则不提交。
+- VPS 部署与公网验证：
+  - 部署脚本 `scripts/deploy_unified.py` 上传 28 个文件并重启服务；
+  - 服务 lifespan 启动耗时约 7 分钟（backend retirement / probe loop 初始化），
+    之后 `Application startup complete`；
+  - 本地 VPS health：`curl http://127.0.0.1:8080/health` → `{"status":"ok"}`；
+  - 公网 health：`curl https://chat.donglicao.com/health` → `{"status":"ok"}`；
+  - 公网 `/v1/models` 返回模型列表，服务已恢复对外可用。
+
 ## 历史归档
 
 - [2026-05 执行进展](docs/archive/progress-2026-05.md)
