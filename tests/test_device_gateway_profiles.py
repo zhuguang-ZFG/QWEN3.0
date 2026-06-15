@@ -18,6 +18,75 @@ def setup_function():
     reset_route_memory_for_tests()
 
 
+# ── M12: profile-aware route policy ─────────────────────────────────────────
+
+
+def test_resolve_route_policy_incomplete_profile_gates_draw():
+    from device_gateway.model_routing import resolve_device_route_policy
+
+    policy = resolve_device_route_policy(
+        {"capability": "draw_generated", "params": {"prompt": "画猫"}},
+        device_id="dev-new",
+    )
+
+    assert policy["route_role"] == "device_draw"
+    assert policy["profile_complete"] is False
+    assert policy["approval_required"] is True
+    assert policy["prefer_preset"] is True
+    assert policy["downgrade_generated"] is True
+
+
+def test_resolve_route_policy_complete_profile_no_draw_approval():
+    from device_gateway.model_routing import resolve_device_route_policy
+
+    profile = DeviceProfile(
+        profile_id="u8-full",
+        model="U8",
+        max_path_points=200,
+        capabilities=("home", "pause", "resume", "run_path", "stop", "write_text", "draw_generated"),
+    )
+    register_profile(profile)
+
+    policy = resolve_device_route_policy(
+        {"capability": "draw_generated", "params": {"prompt": "画猫"}},
+        device_id="dev-1",
+        profile_id="u8-full",
+    )
+
+    assert policy["profile_complete"] is True
+    assert policy.get("approval_required") is None
+
+
+def test_resolve_route_policy_fw_incompatible_sets_dispatch_blocked():
+    from device_gateway.model_routing import resolve_device_route_policy
+
+    profile = DeviceProfile(
+        profile_id="u8-v2",
+        model="U8",
+        supported_fw_prefixes=("v2.",),
+    )
+    register_profile(profile)
+
+    policy = resolve_device_route_policy(
+        {"capability": "home", "params": {}},
+        device_id="dev-1",
+        profile_id="u8-v2",
+        fw_rev="v1.0.0",
+    )
+
+    assert policy["dispatch_blocked"] is True
+    assert policy["fw_compatible"] is False
+
+
+def test_create_task_draw_unknown_device_requires_approval():
+    from device_gateway.tasks import create_task_from_transcript
+
+    task = create_task_from_transcript("dev-unknown", "draw cat")
+
+    assert task["route_policy"]["approval_required"] is True
+    assert task["route_policy"]["profile_complete"] is False
+
+
 # ── Conservative defaults ─────────────────────────────────────────────────
 
 
@@ -461,7 +530,7 @@ def test_route_evidence_records_error_on_validation_failure():
     import device_gateway.task_deps as task_deps
     original = task_deps.resolve_device_route_policy
 
-    def bad_policy(voice_task, device_id=""):
+    def bad_policy(voice_task, device_id="", **kwargs):
         return {"route_role": "INVALID", "model_required": False, "primary_strategy": "bad", "artifact_required": "nope"}
 
     task_deps.resolve_device_route_policy = bad_policy

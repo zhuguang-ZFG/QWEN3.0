@@ -35,7 +35,24 @@ def _looks_like_svg_path(text: str) -> bool:
 def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_id: str | None = None) -> dict[str, Any]:
     capability = voice_task["capability"]
     params = voice_task.get("params", {})
-    route_policy = deps.resolve_device_route_policy(voice_task, device_id=device_id)
+    fw_rev = str(voice_task.get("fw_rev", "") or "")
+    profile_id = str(voice_task.get("profile_id", "") or "")
+    shadow_profile = voice_task.get("shadow_profile") if isinstance(voice_task.get("shadow_profile"), dict) else None
+
+    resolved = deps.resolve_profile(
+        device_id=device_id,
+        profile_id=profile_id,
+        fw_rev=fw_rev,
+        shadow_profile=shadow_profile,
+    )
+    route_policy = deps.resolve_device_route_policy(
+        voice_task,
+        device_id=device_id,
+        profile_id=profile_id,
+        fw_rev=fw_rev,
+        shadow_profile=shadow_profile,
+        resolved_profile=resolved,
+    )
 
     validated_policy, policy_error = deps.validate_route_policy(route_policy, capability)
     if policy_error:
@@ -57,10 +74,7 @@ def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_i
         _record_route_evidence_artifact(task, scenario="route_policy_invalid")
         return task
 
-    fw_rev = voice_task.get("fw_rev", "")
-    resolved = deps.resolve_profile(device_id=device_id, fw_rev=fw_rev)
-
-    if resolved.routing_hints.get("block_dispatch"):
+    if resolved.routing_hints.get("block_dispatch") or route_policy.get("dispatch_blocked"):
         task_id = _next_task_id()
         task = {
             "type": "motion_task",
@@ -79,7 +93,8 @@ def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_i
             },
             "error": {
                 "code": "fw_incompatible",
-                "reason": resolved.routing_hints.get("block_reason", "firmware incompatible"),
+                "reason": resolved.routing_hints.get("block_reason")
+                or route_policy.get("block_reason", "firmware incompatible"),
             },
         }
         if request_id:

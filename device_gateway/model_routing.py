@@ -5,8 +5,10 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from device_gateway.device_profile import DevicePreferences, DeviceProfile
+from device_gateway.profiles import ResolvedProfile, enrich_route_policy_with_profile, resolve_profile
+
 from .artifact_recorder import record_route_evidence
-from .device_profile import DevicePreferences, DeviceProfile
 
 CONTROL_CAPABILITIES = frozenset({"home", "pause", "resume", "stop", "estop", "get_device_info"})
 
@@ -123,7 +125,15 @@ def get_route_role_alternatives(route_role: str) -> list[dict[str, Any]]:
     return DEVICE_ROLE_PREFERENCES.get(route_role, [])
 
 
-def resolve_device_route_policy(voice_task: dict[str, Any], device_id: str = "") -> dict[str, Any]:
+def resolve_device_route_policy(
+    voice_task: dict[str, Any],
+    device_id: str = "",
+    *,
+    profile_id: str = "",
+    fw_rev: str = "",
+    shadow_profile: dict[str, Any] | None = None,
+    resolved_profile: ResolvedProfile | None = None,
+) -> dict[str, Any]:
     capability = str(voice_task.get("capability", ""))
     params = voice_task.get("params", {})
     if not isinstance(params, dict):
@@ -144,22 +154,32 @@ def resolve_device_route_policy(voice_task: dict[str, Any], device_id: str = "")
     else:
         policy = _policy("device_unknown", True, "planner_required", "none")
 
-    # Select the admitted backend for this role and attach to the policy.
-    # get_preferred_backend returns the first entry of DEVICE_ROLE_PREFERENCES
-    # for the role (e.g. device_draw -> dashscope_wanx, device_control ->
-    # deterministic). Every route_role has at least one preference, so this
-    # is never None in practice; the guard keeps it defensive.
     preferred = get_preferred_backend(policy["route_role"])
     policy["backend"] = preferred["backend"] if preferred else ""
 
-    # Record route evidence (non-blocking) when device_id is provided
+    resolved = resolved_profile
+    if resolved is None and (device_id or profile_id or fw_rev or shadow_profile):
+        resolved = resolve_profile(
+            profile_id=profile_id or str(voice_task.get("profile_id", "") or ""),
+            device_id=device_id,
+            fw_rev=fw_rev or str(voice_task.get("fw_rev", "") or ""),
+            shadow_profile=shadow_profile
+            if shadow_profile is not None
+            else (voice_task.get("shadow_profile") if isinstance(voice_task.get("shadow_profile"), dict) else None),
+        )
+    if resolved is not None:
+        policy = enrich_route_policy_with_profile(policy, capability, resolved)
+
     if device_id:
+        profile_note = ""
+        if resolved is not None:
+            profile_note = f",profile_complete={resolved.complete}"
         record_route_evidence(
             device_id=device_id,
-            task_id="",  # task_id generated later in project_to_motion_task
+            task_id="",
             route_policy=policy,
             backend=policy["backend"],
-            reason=f"capability={capability}",
+            reason=f"capability={capability}{profile_note}",
         )
 
     return policy

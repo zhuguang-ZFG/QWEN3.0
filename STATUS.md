@@ -5,10 +5,10 @@
 > **公网端点**: chat.donglicao.com, api.donglicao.com
 > **部署**: Alibaba Cloud VPS + JDCloud 备用
 
-> Updated: 2026-06-15
-> Branch: `design/route-policy-backend-field`
-> Tests: 代码质量治理聚焦门 **112+83+22 passed**（Q0–Q3 / Q6 / Q7 切片）；device 套件 **452 passed**（M5–M8）；ruff clean
-> Quality: Q0–Q7 代码质量治理计划 **已关闭**；P13 CI 门恢复；仓库规模统计已校正（~805 文件 / ~98k 行）
+> Updated: 2026-06-16
+> Branch: `main`
+> Tests: M11/M12 聚焦门 **74 passed**（eval + profile 路由）；device 路由/profile 套件 **70 passed**；ruff clean
+> Quality: M9–M12 设备路由契约 + 准入脚手架 + profile 路由已关闭；下一里程碑 M13 发布证据模板
 
 ## 当前项目状态
 
@@ -17,6 +17,14 @@
 - **AI 路由**: 170+ 后端智能路由（设备任务 + 聊天/编码）
 - **任务管理**: 任务创建、派发、执行、监控、恢复
 - **设备策略**: 安全策略、固件兼容性、路径验证、route_policy/backend 字段贯通
+
+### 最近完成（2026-06-16）M9–M12 设备路由与准入
+
+- **M9 假 U8 消费 route_policy**：固件 `fake_lima_u8` 硬契约解析 + JSONL 证据；主仓稳定性门测试对齐
+- **M10 路由制品证据**：`task_recorder` 全场景 `route_evidence`（创建/阻止/验证失败/恢复/终端消费）
+- **M11 模型准入脚手架**：`docs/model_admission/TEMPLATE.md` + `scripts/eval_device_model_role.py`（8 角色评测）
+- **M12 Profile 路由输入**：`enrich_route_policy_with_profile()` 接入 `resolve_device_route_policy()`；不完整 profile 审批门控
+- **准入快照**：`docs/model_admission/2026-06-16-device-drawing-writing.md`
 
 ### 最近完成（2026-06-15）Hardware AI Phase 1 M5–M8 Closeout + 清理
 
@@ -61,7 +69,7 @@ ruff check: clean（触及文件）
 
 ### 当前活跃路线图
 - 旧“个人编码助手”优化路线图阶段 1-5 已关闭
-- 新战略路线图见 [`docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md`](docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md)，当前处于阶段 1：稳定设备路由契约
+- 新战略路线图见 [`docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md`](docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md)，M9–M12 已关闭；下一阶段 M13 发布证据模板
 
 ## 退役模块
 

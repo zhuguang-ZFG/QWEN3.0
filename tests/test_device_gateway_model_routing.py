@@ -213,7 +213,7 @@ def test_route_evidence_includes_error_on_validation_failure():
     import device_gateway.task_deps as task_deps
     original = task_deps.resolve_device_route_policy
 
-    def bad_policy(voice_task, device_id=""):
+    def bad_policy(voice_task, device_id="", **kwargs):
         return {"route_role": "INVALID", "model_required": False, "primary_strategy": "bad", "artifact_required": "nope"}
 
     task_deps.resolve_device_route_policy = bad_policy

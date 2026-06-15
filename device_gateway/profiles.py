@@ -20,6 +20,8 @@ from device_intelligence.schemas import DEFAULT_WORKSPACE_MM
 
 _log = logging.getLogger(__name__)
 
+_CONTROL_CAPABILITIES = frozenset({"home", "pause", "resume", "stop", "estop", "get_device_info"})
+
 # ── Conservative defaults for missing profile data ─────────────────────────
 
 CONSERVATIVE_MAX_PATH_POINTS = 50
@@ -78,6 +80,47 @@ def resolve_profile(
     )
 
 
+def enrich_route_policy_with_profile(
+    policy: dict[str, Any],
+    capability: str,
+    resolved: ResolvedProfile,
+) -> dict[str, Any]:
+    """Apply profile-aware routing gates to a base route_policy (M12).
+
+    Missing or incomplete profile data is conservative: preset preference,
+    approval gate on model-required draws, and profile metadata on the policy.
+    """
+    enriched = dict(policy)
+    hints = resolved.routing_hints
+    profile = resolved.profile
+
+    enriched["profile_id"] = profile.profile_id
+    enriched["profile_complete"] = resolved.complete
+    enriched["fw_compatible"] = resolved.fw_compatible
+
+    if hints.get("prefer_preset"):
+        enriched["prefer_preset"] = True
+    if hints.get("max_complexity"):
+        enriched["max_complexity"] = hints["max_complexity"]
+    if hints.get("downgrade_generated"):
+        enriched["downgrade_generated"] = True
+
+    if not resolved.fw_compatible:
+        enriched["dispatch_blocked"] = True
+        enriched["block_reason"] = hints.get("block_reason", "firmware incompatible")
+
+    if not resolved.complete and enriched.get("model_required"):
+        enriched.setdefault("approval_required", True)
+        enriched.setdefault("approval_reason", "incomplete device profile")
+
+    if capability not in _CONTROL_CAPABILITIES and capability not in profile.capabilities:
+        if not resolved.complete:
+            enriched["approval_required"] = True
+            enriched["approval_reason"] = enriched.get("approval_reason") or "capability not in device profile"
+
+    return enriched
+
+
 def apply_profile_constraints(
     task: dict[str, Any],
     resolved: ResolvedProfile,
@@ -94,9 +137,10 @@ def apply_profile_constraints(
 
     if not resolved.complete and task.get("route_policy", {}).get("model_required"):
         policy = dict(task.get("route_policy", {}))
-        policy["approval_required"] = True
-        policy["approval_reason"] = "incomplete device profile"
-        task["route_policy"] = policy
+        if not policy.get("approval_required"):
+            policy["approval_required"] = True
+            policy["approval_reason"] = "incomplete device profile"
+            task["route_policy"] = policy
         simplifications.append("approval_gate:incomplete_profile")
 
     # Cap path points if task has path data

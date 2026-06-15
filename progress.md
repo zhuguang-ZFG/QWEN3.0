@@ -5,6 +5,24 @@
 > Updated: 2026-06-15
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-16 M12 设备 profile 接入 route_policy（阶段 3 启动）
+
+- **`enrich_route_policy_with_profile()`**（`device_gateway/profiles.py`）：不完整 profile 时 `approval_required`、`prefer_preset`、`downgrade_generated`；固件不兼容时 `dispatch_blocked`
+- **`resolve_device_route_policy()`** 新增 `profile_id` / `fw_rev` / `shadow_profile` / `resolved_profile` 参数；有 `device_id` 时自动解析 profile
+- **`task_creation.project_to_motion_task`**：先 `resolve_profile` 再带 profile 解析路由；`block_dispatch` 同时读 policy 与 hints
+- **准入报告刷新**：`docs/model_admission/2026-06-16-device-drawing-writing.md`（eval 脚本生成）
+- **验证**：`pytest tests/test_device_gateway_profiles.py tests/test_device_gateway_model_routing.py tests/test_route_policy_backend_field.py -q` → **70 passed**；ruff clean
+
+## 2026-06-16 M11 设备模型准入脚手架（阶段 2 启动）
+
+- **模板**：`docs/model_admission/TEMPLATE.md`（中文准入报告结构 + 四道门控 + 复现命令）
+- **评测脚本**：`scripts/eval_device_model_role.py` + `scripts/device_model_role_eval_specs.py`
+  - 8 个角色：`intent_parser`、`text_planner`、`prompt_enhancer`(defer)、`image_generator`(conditional)、`vectorizer`、`vision_analyzer`(defer)、`recovery_explainer`、`route_policy`
+  - CLI：`--list` / `--all` / `--role` / `--json` / `--markdown`
+- **验证**：
+  - `pytest tests/test_eval_device_model_role.py -q` → **4 passed**
+  - `python scripts/eval_device_model_role.py --all` → 6 角色 admit/admit_conditional，2 defer，**0 failed**
+
 ## 2026-06-15 M9 假 U8 消费 route_policy（阶段 1 收尾）
 
 - **固件子模块 `esp32S_XYZ`**：`6ab214b` 已 push（`feat(fake-u8): consume route_policy with terminal motion_event evidence`）
@@ -41,6 +59,7 @@
 - **provider_probe/**：CodeGraph + fan-in 审计结论 — **保留**（Cold 离线管线；仅 `browser_service.py` 有测试引用，discovery/verify 为 JDCloud 手动入口，非生产热路径）
 - **文档**：治理计划归档链接修正；`docs/README.md` 索引更新；`provider_probe/README.md` 新增
 - **工具**：`scripts/setup_codegraph_agents.ps1` 纳入仓库（CodeGraph 多 Agent 装机脚本）
+- **主仓库**：`2939d29` 已 push `origin/main`
 
 ## 2026-06-15 M10 设备制品记录路由证据（阶段 1 收尾）
 
