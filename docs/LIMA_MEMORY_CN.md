@@ -286,8 +286,8 @@
 | P0.3 | `deploy/key_rotation.py` 退役 stub；legacy → `scripts/archive/key_rotation_legacy.py` | **Done** |
 | P1.1 | `semantic_cache` 写失败 `warning` + `db_write_errors` | **Done** |
 | P1.2 | admin 登录 `constant_time_equals` | **Done** |
-| P1.3 | 生产路径 `except: pass` → 日志 | **进行中** — 首批：`media_inbound`、`health_recorder`、`chat_post_closeout`、`admin_api` |
-| P2+ | 超 300 行文件拆分、`router_http` 迁移 | Backlog |
+| P1.3 | 生产路径 `except: pass` → 日志 | **Closed**（2026-06-15）— CI 门 `test_p13_no_silent_exception_pass_in_active_paths` 已恢复；见 [`superpowers/plans/2026-06-15-code-quality-governance-plan.md`](superpowers/plans/2026-06-15-code-quality-governance-plan.md) |
+| P2+ | 超 300 行文件拆分、`router_http` 迁移 | **进行中** — Q2 `tasks.py` 已拆；`router_http` 已退役 |
 
 **本次提交 `57ea35a`:** P1.3 首批 + `voice_call_live.html` fail-closed（禁止浏览器用 `/api/live-key` 拼 `?key=`）+ `test_channel_gateway_integrations` 中文文案对齐。
 

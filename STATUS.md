@@ -7,8 +7,8 @@
 
 > Updated: 2026-06-15
 > Branch: `design/route-policy-backend-field`
-> Tests: 聚焦 device 套件 **452 passed**；cleanup 套件 **71 passed, 8 skipped**；ruff clean
-> Quality: P0 违规已修复；legacy 路由/HTTP 栈已退役
+> Tests: 代码质量治理聚焦门 **112+83+22 passed**（Q0–Q3 / Q6 / Q7 切片）；device 套件 **452 passed**（M5–M8）；ruff clean
+> Quality: Q0–Q7 代码质量治理计划 **已关闭**；P13 CI 门恢复；仓库规模统计已校正（~805 文件 / ~98k 行）
 
 ## 当前项目状态
 
@@ -35,12 +35,27 @@
 - **双端语义统一**：`CONTROL_CAPABILITIES` 重构为单一真相源（model_routing.py）并补 `estop`；固件 generate_route_policy 对齐云端 resolve（run_path→device_vector）
 - **固件子模块指针**：更新至 esp32S_XYZ `a4cab61`；详见 findings.md 与 spec/plan
 
-### 测试结果
+### 最近完成（2026-06-15）代码质量治理 Q0–Q7 Closeout
+
+权威计划：[`docs/superpowers/plans/2026-06-15-code-quality-governance-plan.md`](docs/superpowers/plans/2026-06-15-code-quality-governance-plan.md)
+
+- **Q0 统计/CI**：`repo_stats.py` 排除 `.venv*`；`CLAUDE.md` 规模更正；P13 静默 `except: pass` 门恢复
+- **Q1 route_policy**：`esp32s_adapter` 委托 `resolve_device_route_policy`（`run_path`→`device_vector`）
+- **Q2 tasks 拆分**：`device_gateway/tasks.py` 521→68 行 facade + task_creation/events/lifecycle/deps
+- **Q3 routing_executor**：显式 `import health_tracker` / `budget_manager`
+- **Q4 Store 生产化**：Memory/Ledger env 切换（`memory|redis`）；health 暴露 store 后端
+- **Q5 超标文件拆分**：channel_gateway、orchestrate、admin_api_extra、eval_loop→scripts、routing_intent、speculative
+- **Q6 测试卫生**：`test_provider_automation` / `test_ops_metrics` 拆为 4+4 域文件；`tests/README.md` 聚焦/全量门
+- **Q7 战略评估**：[`docs/CODEBASE_SUBSYSTEM_TIER_CN.md`](docs/CODEBASE_SUBSYSTEM_TIER_CN.md) hot/warm/cold 分层
+
+### 测试结果（治理切片）
 
 ```text
+Q0–Q3 聚焦: 112 passed
+Q6 拆分套件: 83 passed, 1 skipped
+Q7 文档验证切片: 22 passed
 聚焦 device 套件: 452 passed
-清理相关套件: 71 passed, 8 skipped
-ruff check: clean
+ruff check: clean（触及文件）
 公网 health: https://chat.donglicao.com/health = 200
 ```
 
@@ -78,13 +93,15 @@ ruff check: clean
 | legacy 路由/HTTP 栈退役 | ✅ 完成 |
 | route_policy backend 字段贯通 | ✅ 完成 |
 | Edge-C route_policy 硬契约 | ✅ 完成 |
+| 代码质量治理 Q0–Q7 | ✅ 已关闭（见 governance plan） |
+| channel_gateway / orchestrate / admin 拆分 | ✅ 完成 |
+| Memory/Ledger Redis 后端 | ✅ 完成（env 切换） |
 
 ## 已知技术债务与注意事项
 
 - **启动时间**：VPS 启动需约 7 分钟，主要消耗在 backend profile / retirement 历史数据分析；这些初始化目前阻塞 lifespan 完成，导致 health 等待较长。后续应改为后台预热或并行启动。
-- **隐式模块依赖**：`routing_executor.py` 通过 `re.budget_manager` / `re.health_tracker` 访问模块属性，建议后续改为显式导入
 - **本地/远程双环境**：Windows 本地代理后端、FRP `:8088`、VPS 直接后端共存，新增后端需明确拓扑归属
-- **MemoryStore 生产化**：`device_memory/store.py` 当前为内存 + RLock，Redis/SQLite 后端待实现
+- **context_pipeline 膨胀**：Hot 五模块外仍有大量 Cold 实验代码；见 `docs/CODEBASE_SUBSYSTEM_TIER_CN.md` P0–P4 建议
 - **findings 历史**：2026-05 CQ-046~CQ-110 旧记录已归档至 `docs/archive/findings-2026-05.md`；当前 findings.md 仅保留 2026-06-09 战略转型后记录
 
 ## 关键文档
@@ -94,6 +111,7 @@ ruff check: clean
 | `docs/README.md` | 文档唯一入口与权威规则 | 必读 |
 | `STATUS.md` | 当前项目状态（本文件） | 必读 |
 | `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md` | 当前活跃路线图 | 必读 |
+| `docs/CODEBASE_SUBSYSTEM_TIER_CN.md` | 子系统 hot/warm/cold 分层 | 推荐 |
 | `AGENTS.md` | 开发约定与命令 | 必读 |
 | `docs/ARCHITECTURE.md` | 系统架构 | 推荐 |
 | `docs/REQUEST_PIPELINE_AUTHORITY_CN.md` | 生产路由所有权 | 推荐 |

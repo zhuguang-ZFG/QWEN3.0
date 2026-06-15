@@ -21,6 +21,7 @@
 | 开发约定 | [`../CLAUDE.md`](../CLAUDE.md) | ✅ 活跃 |
 | 长期记忆 | [`LIMA_MEMORY_CN.md`](LIMA_MEMORY_CN.md) | ✅ 活跃 |
 | 项目路线图 | [`PROJECT_OPTIMIZATION_ROADMAP_CN.md`](PROJECT_OPTIMIZATION_ROADMAP_CN.md) | ✅ 活跃 |
+| 子系统热度分层（瘦身评估） | [`CODEBASE_SUBSYSTEM_TIER_CN.md`](CODEBASE_SUBSYSTEM_TIER_CN.md) | ✅ 活跃（Q7） |
 | 发布规则 | [`DEPLOY_AND_RELEASE_CONVENTION.md`](DEPLOY_AND_RELEASE_CONVENTION.md) | ✅ 活跃 |
 | 历史执行进展 | [`../progress.md`](../progress.md) | ✅ 活跃（近 3 个月） |
 | 旧任务计划 | [`../task_plan.md`](../task_plan.md) | ⚠️ 部分过时，仅作历史参考 |
@@ -66,6 +67,7 @@
 | 设备模型路由 Phase 1 | [`superpowers/plans/2026-06-10-device-model-routing-phase1.md`](superpowers/plans/2026-06-10-device-model-routing-phase1.md) |
 | Phase 2 代码瘦身 | [`superpowers/plans/2026-06-12-phase2-code-simplification-plan.md`](superpowers/plans/2026-06-12-phase2-code-simplification-plan.md) |
 | Smart Router 迁移 | [`superpowers/plans/2026-06-12-smart-router-migration-plan.md`](superpowers/plans/2026-06-12-smart-router-migration-plan.md) |
+| **代码质量治理（活跃）** | [`superpowers/plans/2026-06-15-code-quality-governance-plan.md`](superpowers/plans/2026-06-15-code-quality-governance-plan.md) |
 
 ## 历史、归档与已过时
 

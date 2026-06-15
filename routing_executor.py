@@ -7,6 +7,9 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable, Optional
 
+import budget_manager
+import health_tracker
+
 MAX_FALLBACKS = 10
 MAX_FALLBACKS_TOOLS = 20
 PER_BACKEND_TIMEOUT = 15.0
@@ -23,14 +26,12 @@ def execute(backends: list[str],
             scenario: str = "",
             request_type: str = "") -> tuple[str, str, int]:
     """按序尝试后端，失败则快速 fallback。返回 (backend, answer, error_count)"""
-    import routing_engine as re
-
     t0 = time.time()
     errors = 0
     max_tries = MAX_FALLBACKS_TOOLS if tools else MAX_FALLBACKS
 
     for backend in backends[:max_tries]:
-        if re.health_tracker.is_cooled_down(backend):
+        if health_tracker.is_cooled_down(backend):
             _record_backend_attempt(
                 backend=backend, scenario=scenario, request_type=request_type,
                 success=False, latency_ms=0, tools_requested=bool(tools),
@@ -48,8 +49,8 @@ def execute(backends: list[str],
             latency_ms = (time.time() - t_backend) * 1000
 
             if answer and len(answer.strip()) > 5:
-                re.health_tracker.record_success(backend, latency_ms)
-                re.budget_manager.record_usage(backend)
+                health_tracker.record_success(backend, latency_ms)
+                budget_manager.record_usage(backend)
                 _record_backend_attempt(
                     backend=backend, scenario=scenario, request_type=request_type,
                     success=True, latency_ms=latency_ms,
@@ -57,7 +58,7 @@ def execute(backends: list[str],
                 )
                 return backend, answer, errors
 
-            re.health_tracker.record_failure(backend, error_code=None)
+            health_tracker.record_failure(backend, error_code=None)
             _record_backend_attempt(
                 backend=backend, scenario=scenario, request_type=request_type,
                 success=False, latency_ms=latency_ms,
@@ -68,7 +69,7 @@ def execute(backends: list[str],
         except Exception as e:
             latency_ms = (time.time() - t_backend) * 1000
             code = extract_error_code(e)
-            re.health_tracker.record_failure(backend, error_code=code)
+            health_tracker.record_failure(backend, error_code=code)
             _record_backend_attempt(
                 backend=backend, scenario=scenario, request_type=request_type,
                 success=False, latency_ms=latency_ms,
@@ -80,25 +81,23 @@ def execute(backends: list[str],
                 logger.warning("[EXECUTE] %s slow (%.0fs), skipping", backend, latency_ms / 1000)
 
     if backends:
-        re.health_tracker.detect_and_reset_mass_failure()
-        # Parallel fallback: try 3 backends simultaneously, first valid wins
+        health_tracker.detect_and_reset_mass_failure()
         candidates = [
             b for b in backends[:8]
-            if not re.health_tracker.is_cooled_down(b)
-            and re.budget_manager.is_budget_available(b)
+            if not health_tracker.is_cooled_down(b)
+            and budget_manager.is_budget_available(b)
         ][:3]
         if len(candidates) >= 2:
             result = _parallel_fallback(
-                candidates, call_fn, messages, max_tokens, tools, re,
+                candidates, call_fn, messages, max_tokens, tools,
                 scenario=scenario, request_type=request_type,
             )
             if result:
                 backend, answer = result
-                re.health_tracker.record_success(backend, (time.time() - t0) * 1000)
+                health_tracker.record_success(backend, (time.time() - t0) * 1000)
                 return backend, answer, errors
-        # Serial fallback for remaining
         for backend in candidates:
-            if re.health_tracker.is_cooled_down(backend):
+            if health_tracker.is_cooled_down(backend):
                 continue
             try:
                 if tools:
@@ -106,7 +105,7 @@ def execute(backends: list[str],
                 else:
                     answer = call_fn(backend, messages, max_tokens)
                 if answer and len(answer.strip()) > 5:
-                    re.health_tracker.record_success(backend, (time.time() - t0) * 1000)
+                    health_tracker.record_success(backend, (time.time() - t0) * 1000)
                     _record_backend_attempt(
                         backend=backend, scenario=scenario, request_type=request_type,
                         success=True, latency_ms=(time.time() - t0) * 1000,
@@ -131,7 +130,6 @@ def _parallel_fallback(
     messages: list[dict],
     max_tokens: int,
     tools: list[dict] | None,
-    re,
     *,
     scenario: str = "",
     request_type: str = "",
@@ -173,7 +171,6 @@ def _parallel_fallback(
             try:
                 result = future.result()
                 if result:
-                    # Cancel remaining futures
                     for f in futures:
                         f.cancel()
                     return result

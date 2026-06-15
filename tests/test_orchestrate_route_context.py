@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import orchestrate
+import orchestrate_pipeline
 
 
 def test_route_via_engine_passes_ide_and_system_prompt_to_http_caller(monkeypatch):
@@ -32,8 +33,8 @@ def test_route_via_engine_passes_ide_and_system_prompt_to_http_caller(monkeypatc
             "ms": 1,
         })()
 
-    monkeypatch.setattr(orchestrate.http_caller, "call_api", _fake_call_api)
-    monkeypatch.setattr(orchestrate.routing_engine, "route", _fake_route)
+    monkeypatch.setattr(orchestrate_pipeline.http_caller, "call_api", _fake_call_api)
+    monkeypatch.setattr(orchestrate_pipeline.routing_engine, "route", _fake_route)
 
     orchestrate._route_via_engine(
         "hello",

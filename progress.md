@@ -5,6 +5,75 @@
 > Updated: 2026-06-15
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-15 代码质量治理 Q0–Q3 Closeout
+
+权威计划：[`docs/superpowers/plans/2026-06-15-code-quality-governance-plan.md`](docs/superpowers/plans/2026-06-15-code-quality-governance-plan.md)
+
+- **Q0 统计/CI**：`repo_stats.py` 排除 `.venv*`；`CLAUDE.md` 规模更正为 805 files / ~98,768 lines；P13 CI 门恢复（`test_p13_no_silent_exception_pass_in_active_paths` 不再 skip）
+- **Q1 route_policy**：`esp32s_adapter/protocol.py` 委托 `resolve_device_route_policy`；`run_path`→`device_vector`；spec `docs/superpowers/specs/2026-06-15-esp32s-adapter-route-policy-unify.md`
+- **Q2 tasks 拆分**：`tasks.py` 521→68 行；新增 `task_creation.py`(233)、`task_events.py`(190)、`task_lifecycle.py`(72)、`task_deps.py`（测试 monkeypatch 面）
+- **Q3 routing_executor**：显式 `import budget_manager` / `import health_tracker`；移除 `routing_engine as re`
+- **验证**：`python -m pytest tests/test_ci_gates.py::test_p13 ... tests/test_routing_pipeline_authority.py -q` → **112 passed**；ruff clean（触及文件）
+
+## 2026-06-15 代码质量治理 Q4 Closeout
+
+- **Q4-A Memory Store**：`MemoryStoreBackend` 协议；`InMemoryMemoryStore`（默认）；`RedisMemoryStore`；`LIMA_DEVICE_MEMORY_STORE=memory|redis`
+- **Q4-B Ledger Store**：`LedgerStoreBackend` 协议；`RedisLedgerStore`；`LIMA_DEVICE_LEDGER_STORE=memory|redis`
+- **启动接线**：`start_device_gateway_runtime()` 调用 `configure_memory_store_from_env()` + `configure_ledger_store_from_env()`
+- **可观测**：`/device/v1/health` 增加 `memory_store` / `ledger_store` 后端信息
+- **验证**：`tests/test_device_store_redis_backends.py` + memory/ledger 回归 → **63 passed**；ruff clean
+
+## 2026-06-15 代码质量治理 Q5-1 Closeout
+
+- **P5-1 channel_gateway/service.py 拆分**：567→221 行；新增 `greeting.py`(24)、`outbound.py`(89)、`service_dispatch.py`(168)
+- **行为不变**：`dispatch_command` / `dispatch_state_change` / `do_bind` 从 `service.py` 迁至 `service_dispatch.py`；`_TIP_FOOTER` 测试别名保留
+- **验证**：`tests/test_channel_gateway_service.py` + branding + keyword voice → **41 passed**；ruff clean（4 文件）
+
+## 2026-06-15 代码质量治理 Q5-2 Closeout
+
+- **P5-2 orchestrate.py 拆分**：451→122 行 facade；新增 `orchestrate_constants.py`(41)、`orchestrate_detect.py`(35)、`orchestrate_pipeline.py`(238)
+- **兼容**：`orchestrate.py` 仍导出 `needs_orchestration` / `orchestrate` / `_route_via_engine`；测试 monkeypatch 改指向 `orchestrate_pipeline`
+- **验证**：`tests/test_orchestrate_route_context.py` **1 passed**；`python orchestrate.py` __main__ 通过；ruff clean
+
+## 2026-06-15 代码质量治理 Q5-3 Closeout
+
+- **P5-3 admin_api_extra 拆分**：463→29 行 facade；按域拆为 8 个子模块（insights、backend_edit、agent_tasks、config、devices、alerts、client_keys、logs）
+- **兼容**：`routes/admin.py` 仍 `from routes.admin_api_extra import router`；`broadcast_log` 从 facade 再导出
+- **验证**：`tests/test_admin_*.py` **11 passed**；ruff clean（9 文件）
+
+## 2026-06-15 代码质量治理 Q5-4 Closeout
+
+- **P5-4 eval_loop 退役主路径**：612 行根模块 → `scripts/eval_loop.py`(103) + `eval_loop_core.py`(247) + `eval_loop_paths.py`(20) + `scripts/eval_loop/default_eval_set.json`
+- **根目录 shim**：`eval_loop.py` 52 行，DeprecationWarning + 再导出；非 chat/device 热路径
+- **路径**：默认 `data/eval/`（`LIMA_DATA_DIR` / `LIMA_EVAL_*` 可覆盖）；去除硬编码 `D:/GIT`
+- **验证**：`python scripts/eval_loop.py` 自测通过；ruff clean
+
+## 2026-06-15 代码质量治理 Q5-5 Closeout
+
+- **P5-5 routing_intent 拆分**：312→247 行；`routing_intent_modal.py`(77) 承载 image/thinking 检测
+- **验证**：`tests/test_routing_intent.py` + `test_router_classifier.py` **13 passed**；ruff clean
+
+## 2026-06-15 代码质量治理 Q5-6 Closeout
+
+- **P5-6 speculative 拆分**：312→28 行 facade；`speculative_execution.py`(219) + `speculative_policy.py`(145)
+- **兼容**：`routing_engine_execute_strategy` 仍 `import speculative`；telemetry 测试 monkeypatch 面不变
+- **验证**：`tests/test_backend_telemetry.py` **1 passed**（含 speculative_call）；ruff clean
+
+## 2026-06-15 代码质量治理 Q6 Closeout
+
+- **Q6-1 provider_automation**：`test_provider_automation.py`(850) → catalog(391) / runner(110) / impact(81) / admission(292) + `provider_automation_helpers.py`
+- **Q6-2 ops_metrics**：`test_ops_metrics.py`(752) → core(239) / eval(132) / payload(198) / backends(220) + `ops_metrics_helpers.py`
+- **Q6-3 tests/README.md**：补充聚焦门 vs 全量门（`run_pre_commit_check.py` / `--full`）及领域 pytest 命令
+- **conftest**：`tests/` 加入 sys.path 以加载 helpers
+- **验证**：拆分后 8 文件 **83 passed, 1 skipped**；ruff clean
+
+## 2026-06-15 代码质量治理 Q7 Closeout
+
+- **产出**：`docs/CODEBASE_SUBSYSTEM_TIER_CN.md` — `context_pipeline` / `provider_probe` / `provider_automation` / `orchestrate*` 的 hot/warm/cold 分层与 P0–P4 瘦身建议
+- **关键结论**：`probe_loop.py` ≠ `provider_probe/`；context_pipeline Hot 五模块与 Cold 实验目录分离；provider_automation 仅 Warm overlay
+- **索引**：`docs/README.md` 快速入口已链入
+- **验证**：聚焦 pytest（retrieval + orchestrate + admission）命令已写入评估文档 §10
+
 ## 2026-06-15 LiMa Hardware AI Phase 1 M5–M8 Closeout
 
 - **M5 Recovery + Reliability**

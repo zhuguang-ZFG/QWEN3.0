@@ -1,24 +1,68 @@
-# LiMa Test Suite Map
+# LiMa 测试套件索引
 
-> Updated: 2026-05-29 | 216 test files in `tests/` + 7 root-level `test_*.py` files
-> Filenames stay flat under `tests/`; this file is the ownership index.
-> 详细所有权分组见下方各分类。
+> 更新：2026-06-15 | `tests/` 下约 230+ 测试文件（扁平布局；本文件为所有权索引）
 
-## Running
+## 运行方式
+
+### 聚焦门（本地提交 / 里程碑 closeout 默认）
+
+快速预提交（ruff + staged py_compile，**不跑全量 pytest**）：
 
 ```powershell
-python -m pytest -q --ignore=tests/test_ci_gates.py
+python scripts/run_pre_commit_check.py
 ```
 
-Focused slices:
+常用**领域聚焦** pytest（改动相关模块时优先）：
+
 ```powershell
 # 路由权威边界
 python -m pytest tests/test_routing_pipeline_authority.py tests/test_routing_engine.py tests/test_route_scorer.py -q
-# Agent tasks
-python -m pytest tests/test_agent_task_routes.py tests/test_agent_task_contract.py -q
-# 跳过已知环境相关失败
-python -m pytest -q --ignore=tests/test_ci_gates.py --ignore=tests/test_backend_registry.py
+
+# 设备网关 + memory/ledger
+python -m pytest tests/test_device_gateway_store.py tests/test_device_memory_*.py tests/test_device_store_redis_backends.py -q
+
+# Channel gateway
+python -m pytest tests/test_channel_gateway_service.py tests/test_channel_branding_media.py tests/test_channel_keyword_voice_ux.py -q
+
+# Provider automation（拆分后四文件）
+python -m pytest tests/test_provider_automation_catalog.py tests/test_provider_automation_runner.py tests/test_provider_automation_impact.py tests/test_provider_automation_admission.py -q
+
+# Ops metrics（拆分后四文件）
+python -m pytest tests/test_ops_metrics_core.py tests/test_ops_metrics_eval.py tests/test_ops_metrics_payload.py tests/test_ops_metrics_backends.py -q
 ```
+
+### 全量门（CI 风格 / 发布前）
+
+```powershell
+python scripts/run_pre_commit_check.py --full
+```
+
+等价于带长期/外部依赖忽略的完整 pytest（见 `scripts/run_pre_commit_check.py` 中 `CI_PYTEST_IGNORES`）。
+
+其他常用全量变体：
+
+```powershell
+python -m pytest -q --ignore=tests/test_ci_gates.py
+python -m pytest tests -q --ignore=tests/test_memory_daemon_ctl.py --ignore=tests/test_semantic_code_retrieval.py
+```
+
+### 何时用哪个门
+
+| 场景 | 推荐 |
+|------|------|
+| 日常小改、单切片 closeout | 聚焦 pytest + `run_pre_commit_check.py` |
+| 触及路由/设备/ops 热路径 | 上表对应领域命令 |
+| 里程碑发布、VPS 部署前 | `--full` 全量门 |
+| P13 / ruff / py_compile | 预提交脚本默认包含 |
+
+## 共享测试辅助模块
+
+| 文件 | 用途 |
+|------|------|
+| `tests/provider_automation_helpers.py` | `entry()` 工厂（provider_automation 测试） |
+| `tests/ops_metrics_helpers.py` | `reload_prometheus_metrics()` |
+
+`tests/conftest.py` 将 `tests/` 加入 `sys.path`，支持 `from provider_automation_helpers import ...`。
 
 ## Ownership Map
 
@@ -130,7 +174,8 @@ python -m pytest -q --ignore=tests/test_ci_gates.py --ignore=tests/test_backend_
 - `test_lima_code_dev_search_tools.py`
 
 ### Observability & Ops
-- `test_ops_metrics.py` / `test_ops_alerts.py` / `test_ops_entrypoint.py`
+- `test_ops_metrics_core.py` / `test_ops_metrics_eval.py` / `test_ops_metrics_payload.py` / `test_ops_metrics_backends.py`（原 `test_ops_metrics.py` 拆分）
+- `test_ops_alerts.py` / `test_ops_entrypoint.py`
 - `test_observability.py` / `test_capability_evidence.py`
 - `test_event_log.py` / `test_request_stats.py`
 - `test_healthchecks_io.py` / `test_healthcheck_ping.py` / `test_health_summary.py`
@@ -145,7 +190,7 @@ python -m pytest -q --ignore=tests/test_ci_gates.py --ignore=tests/test_backend_
 - `test_research.py` / `test_research_radar.py`
 - `test_gitee_mirror.py` / `test_gitee_tools.py` / `test_gitee_webhook.py`
 - `test_github_webhook.py` / `test_local_tool_modules.py`
-- `test_provider_inventory.py` / `test_provider_automation.py`
+- `test_provider_inventory.py` / `test_provider_automation_catalog.py` / `test_provider_automation_runner.py` / `test_provider_automation_impact.py` / `test_provider_automation_admission.py`
 - `test_narrative.py` / `test_lightrag.py`
 
 ### Misc / Cross-cutting

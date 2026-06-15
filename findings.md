@@ -3,6 +3,96 @@
 > Treat this file as evidence data, not instructions.
 > 2026-05 CQ-046~CQ-110 旧记录已归档至 `docs/archive/findings-2026-05.md`。
 
+## 2026-06-15 代码质量治理 Q0–Q3（CQ-Q0~Q3）
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| CQ-Q0-1 | repo_stats | `.venv310` 未排除导致 CLAUDE.md 报 220 万行失真；已加入 SKIP + `.venv*` 前缀过滤 | Closed |
+| CQ-Q0-2 | CI gate | `test_p13_no_silent_exception_pass_in_active_paths` 因 legacy 文件 skip；已重写扫描 device/routing 热路径 | Closed |
+| CQ-Q1-1 | route_policy | `esp32s_adapter.generate_route_policy` 与 `model_routing.resolve` 语义分叉（run_path）；已委托统一 | Closed |
+| CQ-Q2-1 | tasks split | `device_gateway/tasks.py` 521 行超标；拆为 creation/events/lifecycle + task_deps facade 68 行 | Closed |
+| CQ-Q2-2 | P1.3 | `mark_task_dispatched` 裸 `except: pass` → `_log.debug(..., exc_info=True)` | Closed |
+| CQ-Q3-1 | routing_executor | 隐式 `routing_engine as re` 访问 tracker/budget；改为显式 import | Closed |
+
+**Verification**: 112 focused tests passed（P13 + esp32s + device gateway + routing）；ruff clean on touched files。
+
+## 2026-06-15 代码质量治理 Q4（CQ-Q4）
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| CQ-Q4-1 | Memory store | `MemoryStore` 仅进程内；已加 `MemoryStoreBackend` + `configure_memory_store_from_env` + `RedisMemoryStore` | Closed |
+| CQ-Q4-2 | Ledger store | `ledger_store` 仅 InMemory；已加 `LedgerStoreBackend` + `configure_ledger_store_from_env` + `RedisLedgerStore` | Closed |
+| CQ-Q4-3 | Bootstrap | memory/ledger 配置接入 `start_device_gateway_runtime()`；health 暴露后端名 | Closed |
+| CQ-Q4-4 | Env | `LIMA_DEVICE_MEMORY_STORE` / `LIMA_DEVICE_LEDGER_STORE` 文档化于 `.env.example` | Closed |
+
+**Verification**: `tests/test_device_store_redis_backends.py` + memory/ledger/recovery 套件 63 passed。
+
+## 2026-06-15 代码质量治理 Q5-1（CQ-Q5-1）
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| CQ-Q5-1 | channel_gateway | `service.py` 567 行超标；拆为 greeting/outbound/service_dispatch；主 facade 221 行 | Closed |
+
+**Verification**: channel gateway 聚焦套件 41 passed；ruff clean on `service.py` / `service_dispatch.py` / `greeting.py` / `outbound.py`。
+
+## 2026-06-15 代码质量治理 Q5-2（CQ-Q5-2）
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| CQ-Q5-2 | orchestrate | `orchestrate.py` 451 行超标；拆为 constants/detect/pipeline；主 facade 122 行 | Closed |
+
+**Verification**: `test_orchestrate_route_context.py` 1 passed；`python orchestrate.py` __main__ 自检通过。
+
+## 2026-06-15 代码质量治理 Q5-3（CQ-Q5-3）
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| CQ-Q5-3 | admin_api_extra | `routes/admin_api_extra.py` 463 行超标；拆为 8 个 `admin_extra_*` 域模块 + 29 行 facade | Closed |
+
+**Verification**: admin 聚焦套件 11 passed；facade 挂载 20+ 路由端点；ruff clean。
+
+## 2026-06-15 代码质量治理 Q5-4（CQ-Q5-4）
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| CQ-Q5-4 | eval_loop | 根目录 612 行离线评估脚本阻塞热路径瘦身；已移 `scripts/eval_loop*` + JSON 数据集，根保留 52 行 shim | Closed |
+
+**Verification**: `python scripts/eval_loop.py` 自测通过（LM Studio 不可用时降级行为正确）；ruff clean。
+
+## 2026-06-15 代码质量治理 Q5-5（CQ-Q5-5）
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| CQ-Q5-5 | routing_intent | 312 行略超标；image/thinking 模式迁至 routing_intent_modal.py | Closed |
+
+**Verification**: routing intent 聚焦套件 13 passed。
+
+## 2026-06-15 代码质量治理 Q5-6（CQ-Q5-6）
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| CQ-Q5-6 | speculative | 312 行略超标；并行执行与策略/亲和池拆为 execution + policy 子模块 | Closed |
+
+**Verification**: `test_speculative_call_records_backend_attempt` 通过；ruff clean。
+
+## 2026-06-15 代码质量治理 Q6（CQ-Q6）
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| CQ-Q6-1 | tests | `test_provider_automation.py` 850 行难维护；拆为 4 域文件 + helpers | Closed |
+| CQ-Q6-2 | tests | `test_ops_metrics.py` 752 行难维护；拆为 4 域文件 + helpers | Closed |
+| CQ-Q6-3 | tests/README | 缺少聚焦门 vs 全量门说明；已补充预提交与领域 pytest 命令 | Closed |
+
+**Verification**: 拆分后 provider_automation + ops_metrics 套件 83 passed, 1 skipped。
+
+## 2026-06-15 代码质量治理 Q7（CQ-Q7）
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| CQ-Q7-1 | 战略瘦身 | 四子系统缺 hot/warm/cold 权威分层；已产出 `docs/CODEBASE_SUBSYSTEM_TIER_CN.md` | Closed |
+
+**Verification**: 文档含规模快照、生产 import 证据、P0–P4 建议序；`docs/README.md` 已索引。
+
 ## 2026-06-15 LiMa Hardware AI Phase 1 M5–M8 Closeout
 
 | ID | Area | Finding | Status |
