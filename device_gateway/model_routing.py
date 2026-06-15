@@ -144,12 +144,21 @@ def resolve_device_route_policy(voice_task: dict[str, Any], device_id: str = "")
     else:
         policy = _policy("device_unknown", True, "planner_required", "none")
 
+    # Select the admitted backend for this role and attach to the policy.
+    # get_preferred_backend returns the first entry of DEVICE_ROLE_PREFERENCES
+    # for the role (e.g. device_draw -> dashscope_wanx, device_control ->
+    # deterministic). Every route_role has at least one preference, so this
+    # is never None in practice; the guard keeps it defensive.
+    preferred = get_preferred_backend(policy["route_role"])
+    policy["backend"] = preferred["backend"] if preferred else ""
+
     # Record route evidence (non-blocking) when device_id is provided
     if device_id:
         record_route_evidence(
             device_id=device_id,
             task_id="",  # task_id generated later in project_to_motion_task
             route_policy=policy,
+            backend=policy["backend"],
             reason=f"capability={capability}",
         )
 
@@ -278,10 +287,12 @@ def _adjust_weight_for_preferences(
     return max(adjusted, 1)  # never drop below 1
 
 
-def _policy(route_role: str, model_required: bool, primary_strategy: str, artifact_required: str) -> dict[str, Any]:
+def _policy(route_role: str, model_required: bool, primary_strategy: str,
+            artifact_required: str, backend: str = "") -> dict[str, Any]:
     return {
         "route_role": route_role,
         "model_required": model_required,
         "primary_strategy": primary_strategy,
         "artifact_required": artifact_required,
+        "backend": backend,
     }

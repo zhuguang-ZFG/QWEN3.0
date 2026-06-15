@@ -55,6 +55,7 @@ def test_route_policy_matrix_for_hot_device_families():
                 "model_required": False,
                 "primary_strategy": "deterministic",
                 "artifact_required": "none",
+                "backend": "deterministic",
             },
         ),
         (
@@ -64,6 +65,7 @@ def test_route_policy_matrix_for_hot_device_families():
                 "model_required": False,
                 "primary_strategy": "deterministic",
                 "artifact_required": "preview_svg",
+                "backend": "deterministic",
             },
         ),
         (
@@ -73,6 +75,7 @@ def test_route_policy_matrix_for_hot_device_families():
                 "model_required": True,
                 "primary_strategy": "image_then_vector",
                 "artifact_required": "vector_path",
+                "backend": "dashscope_wanx",
             },
         ),
         (
@@ -82,6 +85,7 @@ def test_route_policy_matrix_for_hot_device_families():
                 "model_required": False,
                 "primary_strategy": "svg_vector",
                 "artifact_required": "preview_svg",
+                "backend": "opencv_contour",
             },
         ),
     ]
