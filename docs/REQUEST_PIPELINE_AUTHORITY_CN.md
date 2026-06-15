@@ -10,7 +10,7 @@
 权威顺序：
 
 1. **边缘** — `server.py`, `http_body_limit.BodySizeLimitMiddleware`, `access_guard`
-2. **协议路由** — `routes/chat_endpoints.py`, `routes/anthropic_messages_handler.py`, `routes/tool_forward*.py`
+2. **协议路由** — `routes/chat_endpoints.py`, `routes/chat_handler_dispatch.py`
 3. **预检** — `routes/chat_preflight.py`, `server_context.py`, 可选 `context_pipeline.guardrails`
 4. **路由** — `routing_engine.route()` (后端选择 + 执行的权威)
 5. **HTTP 传输** — `http_caller` → `http_sync` / `http_async` / `http_stream`
@@ -24,27 +24,25 @@
 
 | 关注点 | 权威模块 | 遗留/兼容外观 | 备注 |
 |--------|----------|---------------|------|
-| 后端注册 | `backends_registry.py` + `backends_constants.py` | `backends.py` 重导出 | 检测助手位于外观中 |
-| 意图 + 层级分类 | `routing_classifier.py` | `smart_router.classify` | `classify()` → request_type; `classify_scenario()` → scenario |
+| 后端注册 | `backends_registry.py` + `backends_constants.py` | `backends.py` 重导出 | 检测助手位于 `backend_utils.py` |
+| 意图分析 | `routing_intent.py` | — | `analyze_intent()` 统一意图分类 |
+| 场景分类 | `routing_classifier.py` | — | `classify()` → request_type; `classify_scenario()` → scenario |
 | 后端池定义 | `router_v3.py` | — | `POOLS` 字典; `select_backends()` 按 request_type 返回候选 |
 | 后端排名 | `routing_selector.py` | — | `select()`综合 health/budget/sticky/ML/memory/评分 |
 | 后端执行 | `routing_executor.py` | — | `execute()`按序/并行尝试，记录 health 成功/失败 |
-| HTTP 传输 | `http_caller.py` | `router_http.py` (urllib) | 将调用者迁移到 httpx 栈 |
-| 健康/冷却 | `health_tracker.py` | `router_circuit_breaker.py` | 新代码优先使用 health_tracker |
+| HTTP 传输 | `http_caller.py` (→ `http_sync`/`http_async`/`http_stream`) | — | httpx 栈，已无 urllib 遗留 |
+| 健康/冷却 | `health_tracker.py` | — | 新代码优先使用 health_tracker |
 | 预算管理 | `budget_manager.py` | — | `is_budget_available` + `record_usage` |
 | 粘性会话 | `sticky_session.py` | — | `pin_backend` / `get_pinned_backend` |
 | 路由评分 | `route_scorer.py` | — | 质量/稳定性/延迟/任务适配评分 |
-| 流桥接 | `streaming.py`, `routes/stream_handlers.py` | `routes/anthropic_stream.py` | 工具原生 vs 模拟 SSE |
+| 流桥接 | `streaming.py`, `routes/stream_handlers.py` | — | 工具原生 vs 模拟 SSE |
 | 检索注入 | `context_pipeline/retrieval_injection.py` | `local_retrieval` | 知识图谱/向量检索 |
 | 代码上下文注入 | `context_pipeline/code_context_injection.py` | — | tree-sitter 扫描 |
 | 技能注入 | `skills_injector.py` | — | 温度门控 |
-| 语义缓存 | `semantic_cache.py` | — | 仅 temperature=0 |
 | 会话内存写入 | `session_memory/store*.py` | — | 拆分: db/crud/promote/admin |
-| 质量重试 | `routes/quality_gate*.py` | 根 `quality_gate.py` (编码评估) | **不同模块** |
 | 响应验证 | `context_pipeline/response_validator.py` | — | 编码响应质量检查 |
 | 路由后钩子 | `route_post_process.py` | — | 关联/证据/反馈 |
 | 代理任务 HTTP | `routes/agent_tasks.py` | store/service/schemas 子模块 | 不在聊天热路径上 |
-| 代理运行队列 | `agent_runtime/orchestrator*.py` | `orchestrator.py` 外观 | 本地租赁队列 |
 | 运维指标 | `routes/ops_metrics.py` | — | 读取 `app.state.stats` |
 
 ## routing_engine.route() 内部管线
@@ -102,12 +100,7 @@ sequenceDiagram
 
 | 模块 | 状态 |
 |------|------|
-| `smart_router.py` 聊天路径 | 遗留。保留 warmup/distill/ROUTE 兼容；新请求走 `routing_engine.route()` |
-| `router_http.py` 直接调用 | 遗留 urllib 路径；使用 `http_caller` |
-| `v3_integration.py` | 已废弃；被 `routing_engine` 取代 |
-| `fallback_chain.py` | 未引用 |
-| `context_pipeline.factory` 作为唯一管道 | 仅限实验室 |
-| `deploy/key_rotation.py` | 已退役 (归档在 `scripts/archive/`) |
+| `context_pipeline.factory` 作为唯一管道 | 仅限实验室/测试工具 |
 
 ## 保护权威的测试
 

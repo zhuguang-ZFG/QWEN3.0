@@ -3,11 +3,8 @@
 > **更新时间: 2026-06-15（route_policy 硬契约 + backend 字段 closeout）**
 > **分支:** `design/route-policy-backend-field`
 > **最新权威来源:** `STATUS.md`、`progress.md`、`findings.md`、`docs/README.md`
-
-> **更新时间: 2026-05-26（P2-35 三切片 closeout）**
-> **分支:** `codex/free-web-ai-probe` · **HEAD:** `4077588`（已 push）
-> **权威状态:** `STATUS.md`、`docs/EXECUTION_PLAN.md`、`docs/NEXT_MILESTONES.md`
-> **本文件:** 跨会话 durable 事实；计划 checkbox 以状态文档为准。
+>
+> **注:** 2026-05-26 及更早的快照为历史记录，以最新节为准。
 
 ---
 
@@ -238,24 +235,23 @@
 |------|------|
 | `docs/LIMA_MEMORY_CN.md` | **本文件** — 拓扑、证据、运维、决策原因 |
 | `STATUS.md` | 一页式运行快照与 P0 全景 |
-| `docs/EXECUTION_PLAN.md` | Phase 完成度与全局 Next Order |
-| `docs/NEXT_MILESTONES.md` | 四线优先级：编码后端 / LiMa Code / ESP32 / 代码质量 |
-| `findings.md` | 里程碑证据表（WX/CQ/PROD ID） |
+| `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md` | 活跃全项目路线图与阶段目标 |
+| `findings.md` | 里程碑证据表 |
 | `progress.md` | 按日执行日志与测试数字 |
-| `docs/WECHAT_RETIRED.md` | 微信全线退役（产品决策） |
-| `docs/CODE_QUALITY_IMPROVEMENT_PLAN_2026-05-25.md` | 质量 backlog 与 P0 状态表 |
 | `docs/REQUEST_PIPELINE_AUTHORITY_CN.md` | 请求管线权威模块归属 |
 | `docs/WORKSPACE_HYGIENE.md` | 仓库外置与 `.gitignore` 本地垃圾 |
-| `task_plan.md` | 用户契约；M0–M11 complete，**M12 pending**（勿与 EXECUTION_PLAN 冲突项混读） |
+| `task_plan.md` | 历史任务计划（已过时，仅供参考） |
 
 ---
 
-## 2026-05-26 consolidated state（优先阅读）
+## 2026-05-26 consolidated state（历史记录，以下内容已过时）
 
-### 1. 产品方向（未变）
+> **注意:** 以下内容记录于 2026-05-26，反映当时的"私人编码助手"方向。2026-06-09 战略转型后，LiMa 已转为 AI 智能设备云服务。以下保留仅供审计，不作为当前决策依据。
 
-- LiMa = **私人编码助手后端**，不是商业化开放平台。
-- **主推入口:** `https://chat.donglicao.com`（访客与 IDE 私用）。
+### 1. 产品方向（已变）
+
+- LiMa 现为 **AI 智能设备统一云端服务**（2026-06-09 战略转型）。
+- **主推入口:** `https://chat.donglicao.com`（设备服务 + IDE 私用）。
 - **暂停:** 支付、公共注册、商业 billing、商业 dashboard、微信真机/机器人全路线。
 
 ### 2. 微信通道：已全部退役（2026-05-25）
@@ -361,9 +357,9 @@
 ### 10. 常见误判（避免重复踩坑）
 
 - VPS `localhost:4504/4505` **不是** SCNet/Kimi 健康信号；本机代理经 **Windows 8080** 或 **FRP 8088**。
-- `docs/superpowers/plans/` 未勾 checkbox **≠** 未完成；看 `PLAN_CLOSURE_STATUS.md`。
+- `docs/superpowers/plans/` 未勾 checkbox **≠** 未完成；看文件顶部状态标记。
 - `/channel` 契约测试名含 wechat **≠** 要恢复微信真机。
-- `TECHNICAL_ARCHITECTURE.md` 含 2026-05-20 商业平台图，**部分过时**；见该文顶部「当前架构」节。
+- 2026-05-26 及更早的 "Current Direction" / "产品方向" 描述已过时；当前方向见 `STATUS.md`。
 
 ---
 
@@ -380,17 +376,16 @@
 
 ## Current Direction
 
-LiMa 现为私人编码助手后端。首要目标: 让 Cursor/Continue/Claude Code 使用最佳编码后端；优先证据支持路由；VPS 简洁。暂停: 公开注册、支付、计费、商业 dashboard。
+LiMa 现为 AI 智能设备统一云端服务。首要目标: 让 AI 绘图/写字机工作流可靠、可观测和安全；同时保持 OpenAI/Anthropic 兼容 API 可用。暂停: 公开注册、支付、计费、商业 dashboard。
 
 ## Production Topology
 
 | 组件 | 当前角色 |
 |---|---|
-| `chat.donglicao.com` | 私有聊天和 `/v1/*` HTTPS 入口 |
-| `api.donglicao.com` | 兼容 API 面，暂停 |
+| `chat.donglicao.com` | 设备服务 + 聊天和 `/v1/*` HTTPS 入口 |
+| `api.donglicao.com` | 兼容 API 面 |
 | `JDCloud 117.72.118.95` | 辅助探测/监控节点 |
 | `lima-router` | FastAPI `:8080` |
-| New API / 语音网关 | 保留但非主要方向 |
 
 内部端口公开访问被阻断，nginx 保持外部边界。在线分布权威来源: `docs/ONLINE_DISTRIBUTIONS_CN.md`。
 
@@ -410,7 +405,7 @@ API key:          lima-local  |  Model: lima-1.3
 
 ## Active Runtime Files
 
-核心: `server.py`(薄入口)、`routing_engine.py`(场景分类/路由)、`router_v3.py`(后端池)、`code_orchestrator.py`(编码上下文)、`http_caller.py`(统一 HTTP)、`health_tracker.py`(健康/冷却)、`budget_manager.py`(预算)、`backends.py`(清单)、`mastery_loop/`、`agent_evolution/`。
+核心: `server.py`(薄入口)、`routing_engine.py`(统一路由)、`routing_intent.py`(意图分析)、`router_v3.py`(后端池)、`routing_selector.py`(后端排名)、`routing_executor.py`(执行)、`http_caller.py`(统一 HTTP)、`health_tracker.py`(健康/冷却)、`budget_manager.py`(预算)、`backends.py`(facade→registry)、`device_gateway/`(设备网关)、`device_intelligence/`(设备规划)、`device_policy/`(策略引擎)。
 
 ## Coding Backend Evidence
 

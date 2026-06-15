@@ -1,4 +1,4 @@
-﻿# LiMa 系统架构文档
+# LiMa 系统架构文档
 
 ## 1. 系统概述
 
@@ -50,7 +50,7 @@ LiMa 是上海动力草科技（donglicao.com）面向 ESP32 绘图机/写字机
 ## 3. 核心模块说明
 
 ### routes/ — API 路由层
-`routes/` 是 FastAPI 路由注册层，由 `routes/route_registry.py` 统一挂载。当前已注册 `chat_endpoints`、`device_gateway`、`system_endpoints`、`ops_metrics` 等路由。
+`routes/` 是 FastAPI 路由注册层，由 `routes/route_registry.py` 统一挂载。当前已注册 `chat_endpoints`、`device_gateway`、`system_endpoints`、`ops_metrics`、`xiaozhi_compat` 等路由。
 
 ### xiaozhi-v1 兼容层
 `routes/xiaozhi_v1_compat.py` 是 XiaoZhi 设备 App 协议到 LiMa 的 OpenAPI 兼容 REST 层，统一挂载在 `/api/v1/*`，把账号、设备、任务和家庭资产管理请求映射到 LiMa 设备云模型。
@@ -133,9 +133,11 @@ Client → POST /device/v1/tasks → device_gateway → intent.resolve
 
 ## 8. Phase 演进路线
 
-| Phase | 目标 |
-|-------|------|
-| Phase 0 | 战略转型 + 基础设施（当前） |
-| Phase 1 | 核心设备服务上线 |
-| Phase 2 | 绘图/写字引擎完善 |
-| Phase 3 | 规模化（PostgreSQL, >500 设备） |
+| Phase | 目标 | 状态 |
+|-------|------|------|
+| Phase 0 | 战略转型 + 基础设施 | ✅ 完成 |
+| Phase 1 | 核心设备服务 + 路由契约 | ✅ 阶段 1 关闭 |
+| Phase 2 | 按角色准入 AI 绘图/写字模型 | 进行中 |
+| Phase 3 | 设备配置文件路由输入 | 待开始 |
+| Phase 4 | 通用 LLM 路由加固 | 待开始 |
+| Phase 5 | AI 到运动发布门 | 待开始 |

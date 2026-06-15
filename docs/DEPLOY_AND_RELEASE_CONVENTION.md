@@ -52,45 +52,46 @@ git diff --stat
 ### Step 3: VPS 部署
 
 ```bash
-# 方式 A: 全量部署（核心模块变更时）
-python deploy_v3.py
+# 标准部署（推荐）
+python scripts/deploy_unified.py
 
-# 方式 B: 切片部署（单模块变更时）
-python scripts/deploy_<slice>_vps.py
+# 仅上传指定文件（不重启）
+python scripts/deploy_unified.py --files <file1> <file2> --no-restart
 
-# 方式 C: VPS bundle（大量文件变更时）
-python scripts/deploy_vps_bundle.py
+# Dry-run（仅检查，不执行）
+python scripts/deploy_unified.py --dry-run
 ```
 
 **部署前必须**:
 - 记录当前版本（`git log --oneline -1`）
-- 记录备份位置（VPS 上 `.bak.*` 文件）
+- 记录备份位置（VPS `/opt/lima-router/backups/`）
 - 确认 SSH 使用 `RejectPolicy`（非 `AutoAddPolicy`）
 
 **部署流程**:
-1. 备份 VPS 上的旧文件
-2. SFTP 上传新文件
-3. 重启服务（`pkill -f server.py && nohup python server.py &`）
-4. 等待端口 8080 就绪
+1. 自动检查 VPS 磁盘和内存容量
+2. 在 VPS 上创建 tar 备份
+3. SFTP 上传新文件
+4. `systemctl restart lima-router`
+5. 轮询 `/health` 等待服务就绪（最长 90s）
 
 ### Step 4: VPS 验证
 
 ```bash
-# 健康检查
-curl -s http://47.112.162.80:8080/health
+# 健康检查（deploy_unified.py 自动执行）
+curl -sf https://chat.donglicao.com/health
+
+# 设备网关健康
+curl -sf https://chat.donglicao.com/device/v1/health
 
 # 切片 smoke（按需）
 python scripts/smoke_<feature>_vps.py
-
-# 模型路由验证
-curl -s http://47.112.162.80:8080/v1/models | python -m json.tool
 ```
 
 **验证失败时**:
-1. 收集日志: `ssh root@47.112.162.80 'tail -50 /opt/lima-router/nohup.out'`
-2. 检查进程: `ssh root@47.112.162.80 'ps aux | grep server.py'`
+1. 收集日志: `ssh root@47.112.162.80 'journalctl -u lima-router -n 50 --no-pager'`
+2. 检查进程: `ssh root@47.112.162.80 'systemctl status lima-router'`
 3. 最小化修复 → 重新部署 → 重跑 smoke
-4. 仍失败则 rollback: `ssh root@47.112.162.80 'cp /opt/lima-router/<file>.bak.* /opt/lima-router/<file>'`
+4. 仍失败则 rollback: 从 `/opt/lima-router/backups/<label>/runtime-before.tgz` 恢复
 
 ### Step 5: 证据落盘
 
@@ -143,14 +144,12 @@ python scripts/push_dual_remotes.py
 
 ## 常用部署脚本速查
 
-| 切片 | 部署脚本 | Smoke 脚本 |
-|------|----------|------------|
-| 核心路由 | `deploy_v3.py` | `curl /health` |
-| 全量 bundle | `deploy_vps_bundle.py` | `curl /health` + `/v1/models` |
-| Agent 任务 | `deploy_prod008_slice.py` | `smoke_prod008_learning_loop_e2e.py` |
-| Webhook | `deploy_github_webhook.py` | `smoke_github_webhook_public.py` |
-| Channel GW | `deploy_channel_gateway.py` | `curl /health` |
-| 可靠性 | `deploy_reliability_ops.py` | Healthchecks + `/health` smoke |
+| 切片 | 部署脚本 | 说明 |
+|------|----------|------|
+| 标准部署 | `scripts/deploy_unified.py` | 容量检查 + 备份 + SFTP + 重启 + health 等待 |
+| JDCloud 探测 | `scripts/check_jdcloud_node.py` | 只读烟雾，不部署 |
+| 预提交门禁 | `scripts/run_pre_commit_check.py` | ruff + pytest 本地门禁 |
+| 双远程推送 | `scripts/push_dual_remotes.py` | GitHub + Gitee 同步 |
 
 ---
 
