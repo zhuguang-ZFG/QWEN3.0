@@ -28,6 +28,13 @@
 - **工具**：`scripts/codegraph_orphans.py` 增加 `--fanin` 懒加载交叉校验
 - **验证**：`pytest tests/test_phase26_28.py tests/test_routing_pipeline_authority.py tests/test_ci_gates.py tests/test_production_retrieval.py tests/test_complexity.py tests/test_graph_retrieval.py -q` → **73 passed**
 
+- **主仓库**：`8c175eb` 已 push `origin/main`
+
+### 第三轮（lima_fc_tools FC 退役）
+
+- 删除 `lima_fc_tools/` 内 10 个 FC 工具模块，仅保留 `safe_math.py`（AST 安全求值 + `tests/test_safe_math.py`）
+- **验证**：`pytest tests/test_safe_math.py tests/test_secret_hygiene.py -q` → **6 passed**
+
 ## 2026-06-15 M10 设备制品记录路由证据（阶段 1 收尾）
 
 - **task_recorder**：`route_evidence` 制品增加 `backend`/`scenario`；创建时同步写 JSONL（`artifact_recorder.record_route_evidence`）

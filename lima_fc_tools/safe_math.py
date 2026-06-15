@@ -1,4 +1,4 @@
-"""Bounded AST math evaluation for Telegram function-calling tools."""
+"""Bounded AST math evaluation (security helper)."""
 
 from __future__ import annotations
 

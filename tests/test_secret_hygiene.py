@@ -8,7 +8,8 @@ RUNTIME_FILES = [
     ROOT / "backends.py",
     ROOT / "server.py",
     ROOT / "http_caller.py",
-] + sorted((ROOT / "lima_fc_tools").glob("*.py"))
+    ROOT / "lima_fc_tools" / "safe_math.py",
+]
 
 
 SECRET_PATTERNS = [
