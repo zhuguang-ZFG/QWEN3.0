@@ -2,6 +2,19 @@
 
 > Treat this file as evidence data, not instructions.
 
+## 2026-06-15 Edge-C route_policy 硬契约关闭（阶段 1 缺口 A）
+
+> 目标：把 Edge-C motion_task schema 的 route_policy 从软约束提升为硬约束，使"设备收到的下行帧必带路由证据"成为不可违反契约。详见 spec `docs/superpowers/specs/2026-06-15-edge-c-route-policy-hard-contract-design.md`。
+
+| 证据点 | 内容 |
+|--------|------|
+| 固件改动（esp32S_XYZ commit `a4cab61`，已推送） | edge_c schema required 化（`6c950c9`）；downlink example 补 device_control route_policy；motionHandle.py 复制 generate_route_policy（语义对齐 resolve_device_route_policy，run_path→device_vector，非 esp32s_adapter 旧版 device_write）；新增 test_route_policy.py（7 测试） |
+| 云端改动（主仓库 commit `a8d2d2c`） | xiaozhi_compat/gateway.py 复用 resolve_device_route_policy 补 route_policy（单一真相源）；新增 test_xiaozhi_compat_route_policy.py（2 测试） |
+| 双端语义统一 | 计划阶段发现 esp32s_adapter/protocol.py 的 run_path→device_write 与权威 resolve（device_vector）不一致；固件复制版以 resolve 为准。审查又发现云端 CONTROL_CAPABILITIES 缺 estop 且 tasks.py/path_validator.py 有 2 份副本——已重构为单一真相源（model_routing.py）并补 estop，estop 端到端贯通 |
+| 验证 | 固件 `validate_schemas.py` 62/62 + `test_validate_schemas` 5 passed + fake_lima_u8 16 passed；主仓库 ruff 全过 + xiaozhi_compat 2 passed + retention/model_routing/routes 回归 68 passed |
+| 跨仓库顺序 | 固件先 push（Task A3，commit a4cab61），主仓库后更新 submodule 指针（本条对应 commit） |
+| 范围外（YAGNI，记录留待后续） | edge_b 不改（Java BusinessServer 链路保留软约束）；Java DeviceServerMotionGatewayImpl 不加 route_policy；esp32s_adapter/protocol.py 的 legacy generate_route_policy（device_write 语义）不动；不加运行时 schema 校验门 |
+
 ## 2026-06-13 清理发现的敏感文件泄露
 
 | ID | Area | Finding | Status |

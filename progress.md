@@ -2,8 +2,17 @@
 
 > Created: 2026-05-22
 
-> Updated: 2026-06-13
+> Updated: 2026-06-15
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
+
+## 2026-06-15 Edge-C route_policy 硬契约（阶段 1 缺口 A 收尾）
+
+关闭设备路由契约阶段 1 缺口 A。详见 spec `docs/superpowers/specs/2026-06-15-edge-c-route-policy-hard-contract-design.md` 与 plan `docs/superpowers/plans/2026-06-15-edge-c-route-policy-hard-contract.md`。
+
+- 固件子模块（先行，esp32S_XYZ commit `a4cab61`，已推送）：edge_c schema required 化（`6c950c9`）、downlink example 补 route_policy、motionHandle.py 复制 generate_route_policy 并对齐 resolve 语义（run_path→device_vector）、新增 7 个测试；固件 CI schema 门 + fake_lima_u8 全过。
+- 主仓库（后行，commit `a8d2d2c`）：xiaozhi_compat/gateway.py 复用 resolve_device_route_policy 补 route_policy、新增 2 个测试；审查发现 CONTROL_CAPABILITIES 三处副本+缺 estop，重构为单一真相源（model_routing.py）并补 estop，estop 端到端贯通；本 commit 更新 submodule 指针。
+- 验证：固件 `validate_schemas.py` 62/62、`test_validate_schemas` 5 passed、fake_lima_u8 16 passed；主仓库 ruff 全过、xiaozhi_compat 2 passed、retention/model_routing/routes 回归 68 passed。
+- 实施方式：subagent-driven，每个 Task 经 spec 审查 + code quality 审查两道 gate；code quality 审查发现并修复了 estop 三副本不一致的真实正确性问题。
 
 ## 2026-06-14 遗留 facade 迁移（backends.py）
 
