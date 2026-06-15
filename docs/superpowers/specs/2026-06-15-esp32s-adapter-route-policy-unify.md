@@ -2,7 +2,7 @@
 
 **日期**: 2026-06-15
 **状态**: 已关闭
-**父计划**: [`2026-06-15-code-quality-governance-plan.md`](../plans/2026-06-15-code-quality-governance-plan.md) Q1
+**父计划**: [`2026-06-15-code-quality-governance-plan.md`](../../archive/superpowers-2026-06/2026-06-15-code-quality-governance-plan.md) Q1
 
 ## 问题
 

@@ -22,6 +22,8 @@
 | 长期记忆 | [`LIMA_MEMORY_CN.md`](LIMA_MEMORY_CN.md) | ✅ 活跃 |
 | 项目路线图 | [`PROJECT_OPTIMIZATION_ROADMAP_CN.md`](PROJECT_OPTIMIZATION_ROADMAP_CN.md) | ✅ 活跃 |
 | 子系统热度分层（瘦身评估） | [`CODEBASE_SUBSYSTEM_TIER_CN.md`](CODEBASE_SUBSYSTEM_TIER_CN.md) | ✅ 活跃（Q7） |
+| context_pipeline 模块地图 | [`../context_pipeline/README.md`](../context_pipeline/README.md) | ✅ 活跃 |
+| provider_probe（Cold 离线） | [`../provider_probe/README.md`](../provider_probe/README.md) | ✅ 活跃 |
 | 发布规则 | [`DEPLOY_AND_RELEASE_CONVENTION.md`](DEPLOY_AND_RELEASE_CONVENTION.md) | ✅ 活跃 |
 | 历史执行进展 | [`../progress.md`](../progress.md) | ✅ 活跃（近 3 个月） |
 | 旧任务计划 | [`../task_plan.md`](../task_plan.md) | ⚠️ 部分过时，仅作历史参考 |
@@ -62,12 +64,9 @@
 | --- | --- |
 | route_policy backend 字段贯通 | [`archive/superpowers-2026-06/2026-06-15-route-policy-backend-field.md`](archive/superpowers-2026-06/2026-06-15-route-policy-backend-field.md)（已关闭归档） |
 | Edge-C route_policy 硬契约 | [`archive/superpowers-2026-06/2026-06-15-edge-c-route-policy-hard-contract.md`](archive/superpowers-2026-06/2026-06-15-edge-c-route-policy-hard-contract.md)（已关闭归档） |
-| 智能设备战略转型 | [`superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md`](superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md) |
-| 硬件 AI 能力重设计 | [`superpowers/plans/2026-06-09-lima-hardware-ai-capability-redesign.md`](superpowers/plans/2026-06-09-lima-hardware-ai-capability-redesign.md) |
-| 设备模型路由 Phase 1 | [`superpowers/plans/2026-06-10-device-model-routing-phase1.md`](superpowers/plans/2026-06-10-device-model-routing-phase1.md) |
-| Phase 2 代码瘦身 | [`superpowers/plans/2026-06-12-phase2-code-simplification-plan.md`](superpowers/plans/2026-06-12-phase2-code-simplification-plan.md) |
-| Smart Router 迁移 | [`superpowers/plans/2026-06-12-smart-router-migration-plan.md`](superpowers/plans/2026-06-12-smart-router-migration-plan.md) |
-| **代码质量治理（活跃）** | [`superpowers/plans/2026-06-15-code-quality-governance-plan.md`](superpowers/plans/2026-06-15-code-quality-governance-plan.md) |
+| 代码质量治理 Q0–Q7 | [`archive/superpowers-2026-06/2026-06-15-code-quality-governance-plan.md`](archive/superpowers-2026-06/2026-06-15-code-quality-governance-plan.md)（已关闭归档） |
+| 智能设备战略转型 | [`superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md`](superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md)（历史参考） |
+| Phase 2 代码瘦身 | [`superpowers/plans/2026-06-12-phase2-code-simplification-plan.md`](superpowers/plans/2026-06-12-phase2-code-simplification-plan.md)（Slice 1–2 已关闭） |
 
 ## 历史、归档与已过时
 

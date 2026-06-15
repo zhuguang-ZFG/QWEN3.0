@@ -172,6 +172,20 @@ def main() -> None:
     imports = _graph_imports(cur)
     _scan_root_orphans(imports, fanin=args.fanin)
     _scan_cold_modules(imports, fanin=args.fanin)
+    _scan_cold_packages()
+
+
+def _scan_cold_packages() -> None:
+    """Offline packages that look orphan-like but must be kept by policy."""
+    entries = (
+        ("provider_probe", "Cold probe pipeline; not mounted on server.py"),
+        ("scripts/eval_loop.py", "Cold eval harness (Q5-4 migrated from root)"),
+    )
+    print("\n=== Cold packages (keep — not slimming targets) ===")
+    for rel, note in entries:
+        path = ROOT / rel
+        status = "present" if path.exists() else "missing"
+        print(f"  KEEP {rel} ({status}) — {note}")
 
 
 if __name__ == "__main__":

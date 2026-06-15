@@ -81,7 +81,7 @@ LiMa 已完成从「个人编码助手后端」到「AI 智能设备统一云端
 
 ### 5.4 建议（`context_pipeline`）
 
-1. **P0**：在 `docs/REQUEST_PIPELINE_AUTHORITY_CN.md` 或模块 `README` 中标注 Hot 五文件清单（上表），避免全目录当 hot 维护。
+1. **P0**：在 `context_pipeline/README.md` 标注 Hot 五文件清单（2026-06-15 已完成）；`docs/REQUEST_PIPELINE_AUTHORITY_CN.md` 可交叉引用。
 2. **P1**：Cold 模块目录前缀或 `docs/` 侧车说明「非生产默认」；`auto_indexer` 保持 env gate（已有 lifespan try/import 模式）。
 3. **P2**：超标 hot 文件继续拆分（如 `retrieval_injection.py` 若 >300 行）；Cold 目录合并到 `context_pipeline/lab/` 为可选后续里程碑（需设计文档）。
 
@@ -202,7 +202,7 @@ python -m pytest tests/test_provider_automation_admission.py -q
 |------|------|
 | [`PROJECT_OPTIMIZATION_ROADMAP_CN.md`](PROJECT_OPTIMIZATION_ROADMAP_CN.md) | 设备路由与准入战略 |
 | [`REQUEST_PIPELINE_AUTHORITY_CN.md`](REQUEST_PIPELINE_AUTHORITY_CN.md) | 聊天热路径 18 步 |
-| [`superpowers/plans/2026-06-15-code-quality-governance-plan.md`](superpowers/plans/2026-06-15-code-quality-governance-plan.md) | Q0–Q7 治理计划 |
+| [`archive/superpowers-2026-06/2026-06-15-code-quality-governance-plan.md`](archive/superpowers-2026-06/2026-06-15-code-quality-governance-plan.md) | Q0–Q7 治理计划（已关闭） |
 | [`../tests/README.md`](../tests/README.md) | 聚焦门 / 全量门 |
 | [`../AGENTS.md`](../AGENTS.md) | `context_pipeline.factory` 禁止作为唯一 pipeline |
 

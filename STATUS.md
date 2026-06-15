@@ -37,7 +37,7 @@
 
 ### 最近完成（2026-06-15）代码质量治理 Q0–Q7 Closeout
 
-权威计划：[`docs/superpowers/plans/2026-06-15-code-quality-governance-plan.md`](docs/superpowers/plans/2026-06-15-code-quality-governance-plan.md)
+权威计划：[`docs/archive/superpowers-2026-06/2026-06-15-code-quality-governance-plan.md`](docs/archive/superpowers-2026-06/2026-06-15-code-quality-governance-plan.md)
 
 - **Q0 统计/CI**：`repo_stats.py` 排除 `.venv*`；`CLAUDE.md` 规模更正；P13 静默 `except: pass` 门恢复
 - **Q1 route_policy**：`esp32s_adapter` 委托 `resolve_device_route_policy`（`run_path`→`device_vector`）

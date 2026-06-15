@@ -34,6 +34,13 @@
 
 - 删除 `lima_fc_tools/` 内 10 个 FC 工具模块，仅保留 `safe_math.py`（AST 安全求值 + `tests/test_safe_math.py`）
 - **验证**：`pytest tests/test_safe_math.py tests/test_secret_hygiene.py -q` → **6 passed**
+- **主仓库**：`29c427b` 已 push `origin/main`
+
+## 2026-06-15 CodeGraph 瘦身收尾（文档 + Cold 包审计）
+
+- **provider_probe/**：CodeGraph + fan-in 审计结论 — **保留**（Cold 离线管线；仅 `browser_service.py` 有测试引用，discovery/verify 为 JDCloud 手动入口，非生产热路径）
+- **文档**：治理计划归档链接修正；`docs/README.md` 索引更新；`provider_probe/README.md` 新增
+- **工具**：`scripts/setup_codegraph_agents.ps1` 纳入仓库（CodeGraph 多 Agent 装机脚本）
 
 ## 2026-06-15 M10 设备制品记录路由证据（阶段 1 收尾）
 
