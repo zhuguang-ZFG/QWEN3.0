@@ -16,7 +16,11 @@ from device_workflow.state import TaskState
 
 from .device_route_memory import record_route_decision
 from .intent import resolve_voice_task
-from .model_routing import looks_like_svg_path, resolve_device_route_policy
+from .model_routing import (
+    CONTROL_CAPABILITIES,
+    looks_like_svg_path,
+    resolve_device_route_policy,
+)
 from .profiles import apply_profile_constraints, resolve_profile
 from .safety import DEFAULT_FEED, safe_point
 from .path_validator import validate_capability_params, validate_route_policy
@@ -29,7 +33,6 @@ from .task_recorder import (
 from . import store as store_mod
 from .store import DeviceTaskStore, InMemoryDeviceTaskStore
 
-CONTROL_CAPABILITIES = frozenset({"home", "pause", "resume", "stop", "get_device_info"})
 TERMINAL_PHASES = frozenset({"done", "failed", "cancelled"})
 
 

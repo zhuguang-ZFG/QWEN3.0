@@ -7,6 +7,7 @@ MotionErrorCode enum in protocol_families.py.
 
 from __future__ import annotations
 
+from device_gateway.model_routing import CONTROL_CAPABILITIES
 from device_gateway.protocol_families import MotionErrorCode
 from device_intelligence.safety import profile_limit_error
 from device_intelligence.schemas import DeviceProfile
@@ -25,10 +26,9 @@ CAPABILITY_PATH_MAP: dict[str, frozenset[str]] = {
     "pause": frozenset(),
     "resume": frozenset(),
     "stop": frozenset(),
+    "estop": frozenset(),
     "get_device_info": frozenset(),
 }
-
-CONTROL_CAPABILITIES = frozenset({"home", "pause", "resume", "stop", "get_device_info"})
 
 # Valid route_policy values per Edge-C schema
 VALID_ROUTE_ROLES = frozenset({"device_control", "device_write", "device_draw", "device_vector", "device_unknown"})

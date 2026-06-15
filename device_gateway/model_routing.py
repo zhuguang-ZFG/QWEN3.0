@@ -8,7 +8,7 @@ from typing import Any
 from .artifact_recorder import record_route_evidence
 from .device_profile import DevicePreferences, DeviceProfile
 
-CONTROL_CAPABILITIES = frozenset({"home", "pause", "resume", "stop", "get_device_info"})
+CONTROL_CAPABILITIES = frozenset({"home", "pause", "resume", "stop", "estop", "get_device_info"})
 
 # ── Model/backend registry (tiered) ────────────────────────────────────────
 #
