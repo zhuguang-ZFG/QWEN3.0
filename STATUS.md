@@ -5,7 +5,7 @@
 > **公网端点**: chat.donglicao.com, api.donglicao.com
 > **部署**: Alibaba Cloud VPS + JDCloud 备用
 
-> Updated: 2026-06-13
+> Updated: 2026-06-15
 > Branch: `main`
 > Tests: **2009+ tests** (185 in focused device+routing+ops suite); ruff clean; pre-commit passing
 > Quality: P0 violations resolved; legacy routing/HTTP stack retired
@@ -17,6 +17,11 @@
 - **AI 路由**: 170+ 后端智能路由（设备任务 + 聊天/编码）
 - **任务管理**: 任务创建、派发、执行、监控
 - **设备策略**: 安全策略、固件兼容性、路径验证
+
+### 最近完成（2026-06-15）
+- Edge-C motion_task `route_policy` 硬契约（阶段 1 缺口 A）：schema required 化（固件 edge_c）+ 固件 DeviceServer 与云端 xiaozhi_compat 两条下行链路补 route_policy
+- 双端语义统一：`CONTROL_CAPABILITIES` 重构为单一真相源（model_routing.py）并补 `estop`；固件 generate_route_policy 对齐云端 resolve（run_path→device_vector）
+- 固件子模块指针更新至 esp32S_XYZ `a4cab61`；详见 findings.md 与 spec/plan
 
 ### 最近完成（2026-06-13）
 - Legacy 路由/HTTP 栈退役（C9/C10）：`smart_router.py`、`router_http*.py`、`router_circuit_breaker.py`、`router_classifier.py`、`router_local.py` 等已移除

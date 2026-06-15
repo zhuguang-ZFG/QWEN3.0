@@ -59,12 +59,18 @@ def build_gateway_task(
     workflow.advance(task_id, TaskState.SIMULATED)
     needs_approval = bool(source == "voice" and params.get("requireApproval")) or sim.risk_score >= 0.7
     workflow.advance(task_id, TaskState.WAITING_APPROVAL if needs_approval else TaskState.READY_TO_DISPATCH)
+    from device_gateway.model_routing import resolve_device_route_policy
+
+    route_policy = resolve_device_route_policy(
+        {"capability": capability, "params": sanitized}, device_id=device_id,
+    )
     task = {
         "type": "motion_task",
         "task_id": task_id,
         "device_id": device_id,
         "capability": capability,
         "source": source,
+        "route_policy": route_policy,
         "params": sanitized,
         "policy": policy.to_dict(),
         "simulation": sim.to_dict(),
