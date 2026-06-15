@@ -106,13 +106,18 @@ def test_fake_u8_failure_event_e_missing_path():
         ws.send_json({"type": "motion_event", "device_id": "dev-1",
                       "task_id": task["task_id"], "phase": "failed",
                       "error": {"code": "E_MISSING_PATH", "reason": "path missing"}})
+        # M5 recovery may emit motion_task_retry before the terminal motion_event_ack.
         ack = ws.receive_json()
+        if ack["type"] == "motion_task_retry":
+            ack = ws.receive_json()
         assert ack["type"] == "motion_event_ack"
         assert ack["phase"] == "failed"
 
         snap = task_snapshot(task["task_id"])
-        assert snap["status"] == "failed"
         assert snap["events"][0]["error"]["code"] == "E_MISSING_PATH"
+        # M5: E_MISSING_PATH auto-retries; terminal status may be re-dispatched instead of failed.
+        assert snap.get("retry_count", 0) >= 1
+        assert snap["status"] in ("failed", "dispatched", "queued")
 
 
 def test_fake_u8_failure_event_e_unsupported_board():
@@ -157,14 +162,14 @@ def test_http_tasks_endpoint_preview_svg_present():
 
 def test_http_tasks_endpoint_failed_task_not_queued(monkeypatch):
     """Tasks with validation errors return status=failed without queuing."""
-    import device_gateway.tasks as dgt
+    import device_gateway.task_deps as task_deps
 
     c = _client()
     before = pending_count("dev-1")
 
-    # Inject validation failure for any params
+    # Inject validation failure for any params (Q2: creation reads task_deps, not tasks facade)
     monkeypatch.setattr(
-        dgt, "validate_capability_params",
+        task_deps, "validate_capability_params",
         lambda cap, params: ({}, "E_BAD_PARAMS"),
     )
     resp = c.post("/device/v1/tasks",

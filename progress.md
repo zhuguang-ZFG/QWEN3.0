@@ -5,9 +5,32 @@
 > Updated: 2026-06-15
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-15 M9 假 U8 消费 route_policy（阶段 1 收尾）
+
+- **固件子模块 `esp32S_XYZ`**（未 push）：
+  - 新增 `tools/fake_lima_u8/route_policy_consumer.py`：`parse_route_policy` 硬契约四必填字段；`record_route_policy_consumed` 写 JSONL；`attach_route_policy_evidence` 附到终端 `motion_event`
+  - 重写 `tools/fake_lima_u8/app.py`：`FakeU8Config.artifact_dir`；成功/失败/重连脚本统一 `_consume_route_policy`；修复重复发 `done`；CLI `--artifact-dir`
+  - 测试：`tools/fake_lima_u8/tests/` → **20 passed**（含缺 route_policy 失败、日志文件、failure 场景 evidence）
+- **主仓库测试对齐**：
+  - `test_p1_4_device_stability_gate.py`：M5 `E_MISSING_PATH` 自动重试（`motion_task_retry` + 非 terminal status）；Q2 monkeypatch 改指向 `device_gateway.task_deps`
+  - `pytest tests/test_p1_4_device_stability_gate.py tests/test_device_gateway_routes.py -q` → **39 passed**
+- **待办**：固件子模块 commit/push → 主仓库更新 submodule 指针；M10 设备制品记录路由证据
+
+## 2026-06-15 深度清理（CodeGraph 驱动死代码 + 文档归档）
+
+- **CodeGraph**：索引 2,285 文件 / 40k 节点；用 `scripts/codegraph_orphans.py` 扫描 import 图，确认 4 个根目录零引用死文件。
+- **删除死代码**（个人编码助手 / 本地训练遗留，全仓库无 import）：
+  - `evaluate_model.py`（本地 Qwen 训练评测，硬编码 `D:\GIT` 路径）
+  - `checkpoint.py`（vibecode 文件快照，无调用方）
+  - `warmup.py`（后端预热，未接入 `server_lifespan`）
+  - `text_tool_extractor.py`（文本工具调用解析，工具链已退役）
+- **模块 README（Q7 P0）**：新增 `context_pipeline/README.md`（Hot 五文件清单）、`provider_probe/README.md`（Cold 与 `probe_loop` 区分）。
+- **文档归档**：`2026-06-15-code-quality-governance-plan.md` → `docs/archive/superpowers-2026-06/`；修正 `docs/README.md`、`STATUS.md`、`LIMA_MEMORY_CN.md` 等失效链接；移除不存在的 `smart-router-migration-plan` / `device-model-routing-phase1` 索引项。
+- **验证**：`ruff check` clean；`pytest tests/test_ci_gates.py tests/test_chat_endpoints.py tests/test_routing_pipeline_authority.py -q` → **37 passed**；`codegraph sync` 已刷新索引。
+
 ## 2026-06-15 代码质量治理 Q0–Q3 Closeout
 
-权威计划：[`docs/superpowers/plans/2026-06-15-code-quality-governance-plan.md`](docs/superpowers/plans/2026-06-15-code-quality-governance-plan.md)
+权威计划：[`docs/archive/superpowers-2026-06/2026-06-15-code-quality-governance-plan.md`](docs/archive/superpowers-2026-06/2026-06-15-code-quality-governance-plan.md)
 
 - **Q0 统计/CI**：`repo_stats.py` 排除 `.venv*`；`CLAUDE.md` 规模更正为 805 files / ~98,768 lines；P13 CI 门恢复（`test_p13_no_silent_exception_pass_in_active_paths` 不再 skip）
 - **Q1 route_policy**：`esp32s_adapter/protocol.py` 委托 `resolve_device_route_policy`；`run_path`→`device_vector`；spec `docs/superpowers/specs/2026-06-15-esp32s-adapter-route-policy-unify.md`
