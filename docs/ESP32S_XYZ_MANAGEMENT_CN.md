@@ -1,6 +1,6 @@
 # esp32S_XYZ 管理
 
-> 更新时间: 2026-06-10
+> 更新时间: 2026-06-15
 
 ## 目的
 
@@ -37,7 +37,7 @@ LiMa 拥有：
 当前固定版本：
 
 ```text
-a8d98e3 feat: accept route policy in motion task schemas
+a4cab61 route_policy hard contract + backend field closeout
 ```
 
 ## 集成模型
@@ -50,7 +50,7 @@ a8d98e3 feat: accept route policy in motion task schemas
 4. 如果契约更改涉及双方，先提交并推送 `esp32S_XYZ`，然后更新主 LiMa 子模块指针以及匹配的 LiMa 文档/测试。
 5. 不要在仓库之间复制提供商凭证、设备密钥、VPS 密码、证书私钥或生产 API 密钥。
 
-对于云端模型选择、提供商准入、AI 绘图/写字任务族、回退行为和设备感知路由规则，使用 `docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE.md`。
+对于云端模型选择、提供商准入、AI 绘图/写字任务族、回退行为和设备感知路由规则，使用 `docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_CN.md`。
 
 ## 重构权限
 
@@ -98,16 +98,16 @@ corepack pnpm run type-check
 corepack pnpm run build:mp-weixin
 ```
 
-对于影响此产品的 LiMa 后端更改，还需验证相关的主仓库后端测试和公共/私有端点冒烟测试，然后将证据记录在 `STATUS.md`、`docs/LIMA_MEMORY.md` 和 `progress.md` 中。
+对于影响此产品的 LiMa 后端更改，还需验证相关的主仓库后端测试和公共/私有端点冒烟测试，然后将证据记录在 `STATUS.md`、`docs/LIMA_MEMORY_CN.md` 和 `progress.md` 中。
 
 ## 运维记录
 
 当此产品开始使用 LiMa 托管的后端端点时，记录在：
 
-- `docs/ONLINE_DISTRIBUTIONS.md` 用于公共/私有端点所有权；
+- `docs/ONLINE_DISTRIBUTIONS_CN.md` 用于公共/私有端点所有权；
 - `infra/vps/` 用于如果 VPS 服务更改时的消毒 nginx/systemd 快照；
 - `STATUS.md` 用于短期运维快照；
-- `docs/LIMA_MEMORY.md` 用于持久跨会话上下文；
+- `docs/LIMA_MEMORY_CN.md` 用于持久跨会话上下文；
 - `progress.md` 用于按时间顺序的关闭证据。
 
 ## LiMa 直接设备网关证据

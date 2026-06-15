@@ -136,7 +136,7 @@ break the user request while metrics are disabled.
 
 **Files:**
 - Modify: `STATUS.md`
-- Modify: `docs/LIMA_MEMORY.md`
+- Modify: `docs/LIMA_MEMORY_CN.md`
 - Modify: `progress.md`
 - Modify: `findings.md`
 

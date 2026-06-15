@@ -66,7 +66,7 @@
 - 继续使用 `routing_engine.route()` 和 `http_caller` 处理需要模型的请求；
 - 继续使用 `observability/`、`health_tracker.py`、`budget_manager.py`；
 - 不复活已退役的编码助手专用适配层；
-- 不绕过 `docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE.md` 的模型准入规则。
+- 不绕过 `docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_CN.md` 的模型准入规则。
 
 ## 阶段计划
 
@@ -120,8 +120,8 @@ curl -sf https://chat.donglicao.com/device/v1/health
 
 ## 关联文档
 
-- `docs/PROJECT_OPTIMIZATION_ROADMAP.md`
-- `docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE.md`
-- `docs/ESP32S_XYZ_MANAGEMENT.md`
-- `docs/REQUEST_PIPELINE_AUTHORITY.md`
+- `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md`
+- `docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_CN.md`
+- `docs/ESP32S_XYZ_MANAGEMENT_CN.md`
+- `docs/REQUEST_PIPELINE_AUTHORITY_CN.md`
 - `docs/superpowers/plans/2026-06-09-ai-drawing-writing-robot.md`

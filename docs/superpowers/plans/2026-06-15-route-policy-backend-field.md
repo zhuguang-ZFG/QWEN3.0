@@ -1,5 +1,11 @@
 # route_policy backend 字段贯通实施计划
 
+> **状态：已关闭（2026-06-15）**
+>
+> 关闭证据见 `progress.md` 的「2026-06-15 route_policy backend 字段贯通」和 `findings.md` 的同名条目。已完成固件 Edge-B/Edge-C schema 可选 `backend` 字段、云端 `resolve_device_route_policy()` 填充真实 backend、断点回归测试和 `esp32S_XYZ` 子模块指针更新至 `a4cab61`。
+>
+> 下方 checkbox 为实施时的历史执行轨迹，不表示当前待办。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 让 route_policy 携带本次任务选中的 backend，使粘性路由记忆记到真实 backend（不再是 "unknown"），并为阶段 2 后续子项目铺路。

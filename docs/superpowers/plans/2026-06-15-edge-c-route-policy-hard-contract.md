@@ -1,5 +1,11 @@
 # Edge-C route_policy 硬契约实施计划
 
+> **状态：已关闭（2026-06-15）**
+>
+> 关闭证据见 `progress.md` 的「2026-06-15 Edge-C route_policy 硬契约」和 `findings.md` 的同名条目。已完成 Edge-C schema required 化、固件 DeviceServer `route_policy` 补全、云端 `xiaozhi_compat` 补全、回归测试和 `esp32S_XYZ` 子模块指针更新至 `a4cab61`。
+>
+> 下方 checkbox 为实施时的历史执行轨迹，不表示当前待办。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 把 Edge-C motion_task schema 的 route_policy 从软约束提升为硬约束（required），并修复固件 DeviceServer 与云端 xiaozhi_compat 两条 Edge-C 下行链路，使"设备收到的下行帧必带 route_policy"成为不可违反的契约。

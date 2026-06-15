@@ -2,7 +2,7 @@
 
 **日期：** 2026-06-13
 **前置：** Phase 0–2.5 bypass 收敛、P1 编排上下文、P1.5 `prefer` 选路（均已 push）
-**权威：** `docs/REQUEST_PIPELINE_AUTHORITY.md` — 生产 chat/coding 仅 `routing_engine.route()` / `pick_backend()`
+**权威：** `docs/REQUEST_PIPELINE_AUTHORITY_CN.md` — 生产 chat/coding 仅 `routing_engine.route()` / `pick_backend()`
 
 ## 1. 问题
 
