@@ -1,6 +1,6 @@
 # Phase 2 代码精简计划（2026-06-12）
 
-**状态**: 计划中
+**状态**: Slice 1-2 已完成 (2026-06-15)；Slice 3-5 待重新评估
 **Owner**: zhuguang-ZFG
 **目标**: 代码行数从 ~194万 降至 ~97万（减半）
 
@@ -67,7 +67,7 @@ session_memory/store.py              51
 
 ## 三、分片执行计划（5 个 Slice）
 
-### **Slice 1: 删除临时 Stub 模块**
+### **Slice 1: 删除临时 Stub 模块** ✅ (已完成 2026-06-15)
 **目标**: 清理 Phase 0 遗留的临时实现
 
 **删除文件**:
@@ -94,7 +94,7 @@ python -m py_compile server.py routing_engine.py routes/*.py
 
 ---
 
-### **Slice 2: 删除 smart_router.py（过度设计）**
+### **Slice 2: 删除 smart_router.py** ✅ (已完成 2026-06-13，C9/C10)（过度设计）**
 **目标**: 简化路由逻辑
 
 **删除文件**:
@@ -216,7 +216,7 @@ git diff --stat
 
 ## 五、执行检查清单
 
-### Slice 1: 删除临时 Stub
+### Slice 1: 删除临时 Stub ✅ (已完成 2026-06-15)
 - [ ] 依赖检查（grep）
 - [ ] 删除 3 个文件
 - [ ] 更新路由注册
@@ -224,12 +224,12 @@ git diff --stat
 - [ ] py_compile 验证
 - [ ] git commit
 
-### Slice 2: 删除 smart_router
-- [ ] 依赖检查
-- [ ] 删除 smart_router.py
-- [ ] 更新 server.py 引用
-- [ ] 路由测试验证
-- [ ] git commit
+### Slice 2: 删除 smart_router ✅
+- [x] 依赖检查
+- [x] 删除 smart_router.py (2026-06-13)
+- [x] 更新 server.py 引用
+- [x] 路由测试验证
+- [x] git commit
 
 ### Slice 3: 重构 routing_engine
 - [ ] 创建 device_llm_router.py
@@ -260,8 +260,7 @@ git diff --stat
 
 ### 代码规模
 ```
-删除前: ~1,946,450 行
-删除后: ~1,460,000 行（预计减少 ~25%）
+当前: ~800+ Python 文件（含 esp32S_XYZ 子仓库）；业务代码 ~8-11 万行。Slice 1-2 已完成，Slice 3（routing_engine 重构）和 Slice 4（session_memory 合并）需要更大投入，建议推迟到 Phase 3。
 ```
 
 ### 核心模块
@@ -280,7 +279,24 @@ session_memory/ (多文件) → device_context.py (200)
 
 ---
 
-## 七、下一步（Phase 3）
+## 七、现状更新 (2026-06-15)
+
+Slice 1-2 已在 2026-06-13/15 清理轮中完成：
+- 3 个 stub 文件已删除
+- smart_router.py 已删除
+- Anthropic /v1/messages 端点已移除
+- chat_endpoints.py 363→142 行
+- route_registry.py Anthropic/agent_* 残留已清理
+- 24 个 agent_runtime 相关 dead import 已移除
+
+Slice 3-5 建议推迟到 Phase 3（小智功能迁移阶段），因为：
+- routing_engine 已精简至 165 行，重构为 device_llm_router 的边际收益有限
+- session_memory 仍在生产使用，合并风险高
+- 当前优先推进设备管线（绘图引擎、模型准入）
+
+---
+
+## 八、下一步（Phase 3）
 
 Phase 2 完成后，进入 **Phase 3: 小智功能迁移**（4-5 周）：
 - 绘画引擎实现（SVG/DashScope/矢量化）

@@ -12,7 +12,7 @@ from response_builder import build_anthropic_response, build_response
 
 _log = logging.getLogger(__name__)
 
-# Inlined quality_gate stubs (Phase 2 cleanup - 2026-06-12)
+# Simplified quality/stub wrappers (device-first refactor 2026-06-15)
 def quality_check(answer: str, query: str, backend: str):
     """Always pass - device scenario doesn't need complex quality gates."""
     return (True, 1.0, [])

@@ -18,9 +18,6 @@ from chat_models import ChatRequest as ChatRequest, Message as Message
 from vision_handler import (
     _vision_route, _stream_vision_response,
 )
-from converters.anthropic_format import (
-    convert_response_openai_to_anthropic as _convert_response_openai_to_anthropic,  # noqa: F401
-)
 from http_body_limit import BodySizeLimitMiddleware
 from server_bootstrap import (
     MAX_BODY_SIZE,
@@ -105,16 +102,10 @@ _registered = register_all_routes(
         vision_route=lambda messages, max_tokens=4096, ide="unknown": _vision_route(messages, max_tokens, ide),
         stream_vision_response=lambda chat_id, content: _stream_vision_response(chat_id, content),
         record_request=lambda *args, **kwargs: _record_request(*args, **kwargs),
-        # REMOVED 2026-06-09: anthropic 相关回调（编码助手专属功能）
-        anthropic_native_stream=None,
-        anthropic_native_forward=None,
-        anthropic_stream=None,
-        anthropic_stream_passthrough=None,
         handle_chat=lambda *args, **kwargs: _handle_chat(*args, **kwargs),
     ),
 )
 chat_completions = _registered.chat_completions
-# REMOVED 2026-06-09: anthropic_messages (编码助手专属路由)
 list_models = _registered.list_models
 health = _registered.health
 live_key = _registered.live_key

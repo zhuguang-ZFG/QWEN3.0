@@ -2,15 +2,7 @@ target-version = "py310"
 line-length = 120
 
 exclude = [
-    "codegraph",
-    "mempalace",
-    "PyWxDump",
-    "decrypt-wc",
     "esp32S_XYZ",
-    "lima-miniprogram",
-    "wechat_bridge",
-    "wechat-automation-api",
-    "wx_key_tool",
     "scripts/archive",
     "venv",
     ".venv",

@@ -18,7 +18,6 @@ def test_server_registers_core_routes_via_registry():
     paths = _api_paths()
     expected = {
         "/v1/chat/completions",
-        "/v1/messages",
         "/v1/models",
         "/v1/embeddings",
         "/health",
@@ -72,10 +71,6 @@ def test_register_all_routes_is_idempotent_on_fresh_app():
             vision_route=lambda *args, **kwargs: None,
             stream_vision_response=lambda *args, **kwargs: iter([]),
             record_request=lambda *args, **kwargs: None,
-            anthropic_native_stream=lambda body: iter([]),
-            anthropic_native_forward=lambda body: {},
-            anthropic_stream=lambda *args, **kwargs: iter([]),
-            anthropic_stream_passthrough=lambda body, model: iter([]),
             handle_chat=lambda *args, **kwargs: {},
         )
         registered = route_registry.register_all_routes(app, deps)

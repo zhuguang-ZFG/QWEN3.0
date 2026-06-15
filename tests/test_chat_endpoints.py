@@ -15,17 +15,14 @@ def test_server_registers_extracted_chat_endpoints():
     }
 
     assert "/v1/chat/completions" in paths
-    assert "/v1/messages" in paths
     assert "/public/demo/chat" in paths
     assert server.chat_completions is chat_endpoints.chat_completions
 
 
-def test_anthropic_vision_messages_convert_base64_blocks():
-    # _anthropic_vision_messages is an alias to anthropic_vision_messages from routes.anthropic_vision_sse
-    # which is now an async function that raises NotImplementedError
-    # Since it's async, we can only verify it's callable and properly imported
-    assert callable(chat_endpoints._anthropic_vision_messages)
-    assert hasattr(chat_endpoints, '_anthropic_vision_messages')
+def test_anthropic_endpoint_removed():
+    """Anthropic /v1/messages endpoint removed in 2026-06-15 strategic cleanup."""
+    import pytest
+    pytest.skip("Anthropic /v1/messages endpoint removed 2026-06-15")
 
 
 def test_openai_endpoint_delegates_to_server_handle_chat(monkeypatch):
@@ -78,21 +75,9 @@ def test_openai_endpoint_rejects_malformed_json(monkeypatch):
 
 
 def test_anthropic_endpoint_rejects_malformed_json(monkeypatch):
-    monkeypatch.setenv("LIMA_API_KEY", "test-key")
-
-    client = TestClient(server.app)
-    response = client.post(
-        "/v1/messages",
-        headers={
-            "Authorization": "Bearer test-key",
-            "Content-Type": "application/json",
-        },
-        content='{"model":',
-    )
-
-    assert response.status_code == 400
-    assert response.json()["error"]["type"] == "invalid_request_error"
-    assert response.json()["error"]["message"] == "valid JSON body required"
+    """Anthropic /v1/messages endpoint removed in 2026-06-15 strategic cleanup."""
+    import pytest
+    pytest.skip("Anthropic /v1/messages endpoint removed 2026-06-15")
 
 
 def test_public_demo_chat_fails_closed(monkeypatch):
@@ -159,71 +144,6 @@ def test_public_demo_chat_rejects_tool_requests(monkeypatch):
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Unsupported public demo request"
-
-
-def test_openai_tool_history_converts_to_anthropic_tool_blocks():
-    body = {
-        "model": "lima-1.3",
-        "messages": [
-            {"role": "user", "content": "run a tool"},
-            {
-                "role": "assistant",
-                "content": None,
-                "tool_calls": [
-                    {
-                        "id": "call_1",
-                        "type": "function",
-                        "function": {
-                            "name": "bash",
-                            "arguments": "{\"command\":\"echo ok\"}",
-                        },
-                    }
-                ],
-            },
-            {
-                "role": "tool",
-                "tool_call_id": "call_1",
-                "content": "ok\n",
-            },
-        ],
-        "tools": [
-            {
-                "type": "function",
-                "function": {
-                    "name": "bash",
-                    "description": "Run a command",
-                    "parameters": {"type": "object", "properties": {}},
-                },
-            }
-        ],
-    }
-
-    converted = chat_endpoints._openai_to_anthropic_tool_body(body)
-
-    assert converted["messages"] == [
-        {"role": "user", "content": "run a tool"},
-        {
-            "role": "assistant",
-            "content": [
-                {
-                    "type": "tool_use",
-                    "id": "call_1",
-                    "name": "bash",
-                    "input": {"command": "echo ok"},
-                }
-            ],
-        },
-        {
-            "role": "user",
-            "content": [
-                {
-                    "type": "tool_result",
-                    "tool_use_id": "call_1",
-                    "content": "ok\n",
-                }
-            ],
-        },
-    ]
 
 
 def test_openai_endpoint_routes_tool_history_before_chatrequest_validation(monkeypatch):
