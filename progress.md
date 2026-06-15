@@ -7,14 +7,22 @@
 
 ## 2026-06-15 M9 假 U8 消费 route_policy（阶段 1 收尾）
 
-- **固件子模块 `esp32S_XYZ`**（未 push）：
+- **固件子模块 `esp32S_XYZ`**：`6ab214b` 已 push（`feat(fake-u8): consume route_policy with terminal motion_event evidence`）
   - 新增 `tools/fake_lima_u8/route_policy_consumer.py`：`parse_route_policy` 硬契约四必填字段；`record_route_policy_consumed` 写 JSONL；`attach_route_policy_evidence` 附到终端 `motion_event`
   - 重写 `tools/fake_lima_u8/app.py`：`FakeU8Config.artifact_dir`；成功/失败/重连脚本统一 `_consume_route_policy`；修复重复发 `done`；CLI `--artifact-dir`
   - 测试：`tools/fake_lima_u8/tests/` → **20 passed**（含缺 route_policy 失败、日志文件、failure 场景 evidence）
 - **主仓库测试对齐**：
   - `test_p1_4_device_stability_gate.py`：M5 `E_MISSING_PATH` 自动重试（`motion_task_retry` + 非 terminal status）；Q2 monkeypatch 改指向 `device_gateway.task_deps`
   - `pytest tests/test_p1_4_device_stability_gate.py tests/test_device_gateway_routes.py -q` → **39 passed**
-- **待办**：固件子模块 commit/push → 主仓库更新 submodule 指针；M10 设备制品记录路由证据
+- **主仓库**：`f7d36a8` 已 push `origin/main`（子模块指针 + 稳定性门测试对齐）
+
+## 2026-06-15 M10 设备制品记录路由证据（阶段 1 收尾）
+
+- **task_recorder**：`route_evidence` 制品增加 `backend`/`scenario`；创建时同步写 JSONL（`artifact_recorder.record_route_evidence`）
+- **场景覆盖**：`task_created`、`route_policy_invalid`、`dispatch_blocked`、`validation_failed`、`policy_blocked`、`device_consumed`（终端 `route_policy_evidence`）、`recovery`
+- **task_creation**：`resolve_device_route_policy(voice_task, device_id=...)` 打通设备级 JSONL
+- **task_events**：终端事件写 `device_consumed`；`execute_recovery` 写 `recovery` 证据
+- **验证**：`pytest tests/test_device_gateway_model_routing.py tests/test_device_ledger_artifacts.py tests/test_artifact_recorder.py -q` → **43 passed**
 
 ## 2026-06-15 深度清理（CodeGraph 驱动死代码 + 文档归档）
 

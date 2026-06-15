@@ -14,6 +14,7 @@ from device_workflow.state import TaskState
 
 from . import store as store_mod
 from .task_lifecycle import enqueue_pending_task
+from .task_recorder import record_device_consumed_route_evidence, record_recovery_route_evidence
 
 _log = logging.getLogger(__name__)
 
@@ -55,6 +56,7 @@ def record_motion_event(event: dict[str, Any]) -> dict[str, Any]:
             content=event,
             retention_days=90,
         )
+        record_device_consumed_route_evidence(task_id, event)
         _extract_memory_from_terminal(task_id, str(event.get("device_id", "")), event)
     return summary
 
@@ -143,6 +145,10 @@ def execute_recovery(task_id: str, device_id: str, event: dict[str, Any]) -> dic
             result["action"] = action
     elif action == "home":
         _issue_home_command(device_id, task_id)
+
+    snap = store_mod.task_store.task_snapshot(task_id)
+    task = snap.get("task") if isinstance(snap, dict) else None
+    record_recovery_route_evidence(task_id, device_id, result, task if isinstance(task, dict) else None)
 
     return result
 

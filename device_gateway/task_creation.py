@@ -35,7 +35,7 @@ def _looks_like_svg_path(text: str) -> bool:
 def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_id: str | None = None) -> dict[str, Any]:
     capability = voice_task["capability"]
     params = voice_task.get("params", {})
-    route_policy = deps.resolve_device_route_policy(voice_task)
+    route_policy = deps.resolve_device_route_policy(voice_task, device_id=device_id)
 
     validated_policy, policy_error = deps.validate_route_policy(route_policy, capability)
     if policy_error:
@@ -54,7 +54,7 @@ def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_i
             task["request_id"] = request_id
         store_mod.task_store.create_task_state(task, status="failed")
         _record_task_created(task, status="failed")
-        _record_route_evidence_artifact(task)
+        _record_route_evidence_artifact(task, scenario="route_policy_invalid")
         return task
 
     fw_rev = voice_task.get("fw_rev", "")
@@ -86,7 +86,7 @@ def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_i
             task["request_id"] = request_id
         store_mod.task_store.create_task_state(task, status="blocked")
         _record_task_created(task, status="blocked")
-        _record_route_evidence_artifact(task)
+        _record_route_evidence_artifact(task, scenario="dispatch_blocked")
         return task
 
     task = _create_task_from_voice_task(device_id, voice_task, request_id, route_policy, params, capability)
@@ -155,7 +155,7 @@ def _create_task_from_voice_task(
             task["request_id"] = request_id
         store_mod.task_store.create_task_state(task, status="failed")
         _record_task_created(task, status="failed")
-        _record_route_evidence_artifact(task)
+        _record_route_evidence_artifact(task, scenario="validation_failed")
         return task
 
     task_id = _next_task_id()
@@ -185,7 +185,7 @@ def _create_task_from_voice_task(
             task["request_id"] = request_id
         store_mod.task_store.create_task_state(task, status="blocked")
         _record_task_created(task, status="blocked")
-        _record_route_evidence_artifact(task)
+        _record_route_evidence_artifact(task, scenario="policy_blocked")
         return task
 
     task = {
