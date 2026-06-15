@@ -957,6 +957,14 @@ Agent Worker path.
   - 主/补充/Prompt 文档文首链到勘误；修正 routing/context 分层、Telegram 退役、模块规模、Prompt Layer 3 分工。
 - **本地验证**：`pytest tests/test_provider_automation_*.py -q` → **57 passed**
 
+## 2026-06-16：MiMo MCP v0.2 全局化 + Agent 模式
+
+- `lima_mcp_stdio` 内置 `multi_cli/`（brief/merge），任意 git 仓库可用
+- `pyproject.toml` + console script `lima-mimo-mcp`；`scripts/install_mimo_mcp_global.ps1`
+- Agent 模式：review / verify / plan / security / tdd（compose skill 提示）
+- MCP 工具新增：`lima_mimo_agents`、`lima_mimo_plan`、`lima_mimo_run`
+- 测试：`pytest tests/test_mimo_mcp_runner.py -q` → **5 passed**
+
 ## 2026-06-16：MiMo MCP（Cursor stdio）
 
 - 新增 `lima_mcp_stdio/`：`lima_mimo_status` / `lima_mimo_review` / `lima_mimo_verify`

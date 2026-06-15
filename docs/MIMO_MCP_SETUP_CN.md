@@ -1,62 +1,94 @@
-# MiMo MCP（Cursor stdio）
+# MiMo MCP（全局 + Agent 模式）
 
-> 更新：2026-06-16
-> 用途：在 Cursor 里把 **MiMo CLI** 当作审查 lane 调用，复用 `lima-multi-cli` 产物（`findings.json`）。
-> **不**接入 LiMa 生产热路径（`server.py` / 设备网关）。
+> 更新：2026-06-16 v0.2
+> **任意 git 仓库**可用；通过 MiMo compose skills（review / verify / plan / tdd）发挥 Agent 架构优势。
 
-## 前置条件
+## 架构
 
-1. 本机已安装 **MiMo CLI**（`mimo` 在 PATH 中）
-2. Python 依赖（仅本机开发）：
-
-```powershell
-python -m pip install -r requirements_mcp_stdio.txt
+```
+Cursor Agent
+    → lima-mimo-mcp (stdio MCP)
+        → mimo run --dir <workspace> --trust -f review-brief.md
+        → compose skill 提示（review / verify / plan / security / tdd）
+        → MiMo 自带 MCP（CodeGraph、agentkey 等）在 MiMo 进程内使用
+    → .omc/artifacts/mimo-mcp/findings.json
 ```
 
-3. 可选环境变量：
+与旧版区别：
 
-| 变量 | 默认 | 说明 |
-|------|------|------|
-| `LIMA_TIMEOUT` | `180` | MiMo lane 超时（秒） |
-| `LIMA_MIMO_ARTIFACT_DIR` | `.omc/artifacts/lima-multi-cli` | 产物目录 |
+| 项 | v0.1（仓库内） | v0.2（全局） |
+|----|----------------|--------------|
+| 工作区 | 固定 `D:\QWEN3.0` | `MIMO_MCP_WORKSPACE` / `${workspaceFolder}` / git root |
+| brief/merge | 依赖 `.claude/skills/lima-multi-cli` | 内置 `lima_mcp_stdio/multi_cli/` |
+| MiMo 调用 | 纯文本 prompt | **模式化 prompt** + `-f` 附件 + `--trust` |
+| 安装 | 项目 `.mcp.json` | `pip install -e .` + 用户 `~/.cursor/mcp.json` |
 
-## 注册到 Cursor
+## 一键全局安装（Windows）
 
-复制 [`mcp.json.example`](../mcp.json.example) 片段到 Cursor **Settings → MCP**，或合并进项目 `.mcp.json`：
+```powershell
+cd D:\QWEN3.0
+pwsh -File scripts/install_mimo_mcp_global.ps1
+```
+
+然后 **Cursor → Reload Window**。
+
+手动安装：
+
+```powershell
+python -m pip install -e D:\QWEN3.0
+# 或仅依赖：python -m pip install -r requirements_mcp_stdio.txt
+```
+
+将 [`mcp.json.example`](../mcp.json.example) 合并到 `%USERPROFILE%\.cursor\mcp.json`：
 
 ```json
 "lima-mimo": {
-  "command": "python",
-  "args": ["-m", "lima_mcp_stdio"],
-  "cwd": "D:\\QWEN3.0",
-  "env": { "LIMA_TIMEOUT": "180" }
+  "command": "lima-mimo-mcp",
+  "args": [],
+  "env": {
+    "MIMO_MCP_WORKSPACE": "${workspaceFolder}",
+    "LIMA_TIMEOUT": "180"
+  }
 }
 ```
 
-保存后重启 MCP / Reload Window。
+## 环境变量
 
-## 工具一览
-
-| 工具 | 作用 |
+| 变量 | 说明 |
 |------|------|
-| `lima_mimo_status` | 检查 `mimo` 是否可用；读取上次 `findings.json` 摘要 |
-| `lima_mimo_review` | 对 `task` 跑单 lane MiMo 审查，返回结构化 findings |
-| `lima_mimo_verify` | 修复后复跑，对比 `closed` / `still_open` / `new` |
+| `MIMO_MCP_WORKSPACE` | 工作区根（Cursor 用 `${workspaceFolder}`） |
+| `MIMO_MCP_ARTIFACT_DIR` | 产物目录（默认 `<workspace>/.omc/artifacts/mimo-mcp`） |
+| `MIMO_MCP_AGENT` | 覆盖 `mimo run --agent`（如 `build`） |
+| `MIMO_MCP_MODEL` | 覆盖 `mimo run -m provider/model` |
+| `MIMO_MCP_SKIP_PERMISSIONS` | `1` 时加 `--dangerously-skip-permissions`（仅本机信任环境） |
+| `LIMA_TIMEOUT` / `MIMO_MCP_TIMEOUT` | 超时秒数，默认 180 |
 
-## 产物路径
+## MCP 工具
 
-```
-.omc/artifacts/lima-multi-cli/
-├── review-brief.md
-├── mimo.md
-├── findings.json
-├── synthesis.md
-├── fix-pack.md
-└── verify-delta.json
+| 工具 | MiMo 模式 | 用途 |
+|------|-----------|------|
+| `lima_mimo_status` | — | CLI / workspace / modes / 上次 findings |
+| `lima_mimo_agents` | — | 列出 review/verify/plan/security/tdd |
+| `lima_mimo_review` | review | 质量门禁 + JSON findings |
+| `lima_mimo_verify` | verify | 修复后 delta |
+| `lima_mimo_plan` | plan | 只读执行计划 |
+| `lima_mimo_run` | 任意 | 通用入口 |
+
+## 发挥 MiMo Agent 优势的建议
+
+1. **在 MiMo 内配置 MCP**（`mimo mcp list`）：CodeGraph、agentkey 等 — MCP 调 MiMo，MiMo 再调自己的工具链。
+2. **审查用 `review`，修完用 `verify`** — 对应 compose verify skill 工作流。
+3. **大改用 `plan` 再实现** — Cursor 主改，MiMo 只出计划与测试清单。
+4. **设 `MIMO_MCP_AGENT=build`** 若你使用 MiMo 主 agent 配置。
+
+## 测试
+
+```powershell
+python -m pytest tests/test_mimo_mcp_runner.py -q
 ```
 
 ## 相关
 
-- 编排内核：`.claude/skills/lima-multi-cli/driver.py`
+- 包入口：`pyproject.toml` → console script `lima-mimo-mcp`
 - 实现：`lima_mcp_stdio/`
-- 测试：`tests/test_mimo_mcp_runner.py`
+- LiMa 批处理仍可用：`.claude/skills/lima-multi-cli/driver.py`

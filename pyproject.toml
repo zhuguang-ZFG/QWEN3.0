@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lima-mimo-mcp"
+version = "0.2.0"
+description = "Cursor stdio MCP — MiMo Agent review/verify/plan lanes for any git workspace"
+readme = "docs/MIMO_MCP_SETUP_CN.md"
+requires-python = ">=3.10"
+dependencies = [
+  "mcp>=1.6.0",
+]
+license = { text = "Proprietary" }
+
+[project.scripts]
+lima-mimo-mcp = "lima_mcp_stdio.server:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["lima_mcp_stdio*"]
+
+[tool.setuptools.package-data]
+lima_mcp_stdio = ["py.typed"]

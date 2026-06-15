@@ -1,58 +1,54 @@
-"""MiMo lane orchestration — reuses lima-multi-cli skill modules (offline only)."""
+"""MiMo MCP orchestration — workspace-aware, Agent mode prompts, structured findings."""
 
 from __future__ import annotations
 
 import json
 import os
-import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-SKILL_DIR = PROJECT_ROOT / ".claude" / "skills" / "lima-multi-cli"
-DEFAULT_ARTIFACT_DIR = PROJECT_ROOT / ".omc" / "artifacts" / "lima-multi-cli"
+from lima_mcp_stdio import mimo_agents, mimo_invoke
+from lima_mcp_stdio.multi_cli import brief as brief_mod
+from lima_mcp_stdio.multi_cli import merge_findings
+from lima_mcp_stdio.multi_cli.scope import resolve_scope
+from lima_mcp_stdio.workspace import resolve_workspace
+
 MIMO_LANE = "mimo"
-
-
-def _skill_imports():
-    import sys
-
-    skill = str(SKILL_DIR)
-    if skill not in sys.path:
-        sys.path.insert(0, skill)
-    from brief import write_brief
-    from lanes import run_lane
-    from merge_findings import compare_findings_lists, merge_lane_artifacts, write_findings_bundle
-    from scope import resolve_scope
-
-    return write_brief, run_lane, merge_lane_artifacts, write_findings_bundle, compare_findings_lists, resolve_scope
+DEFAULT_ARTIFACT_SUBDIR = ".omc/artifacts/mimo-mcp"
 
 
 def _timeout(raw: int | None) -> int:
     if raw is not None:
         return max(30, min(raw, 600))
     try:
-        return max(30, int(os.environ.get("LIMA_TIMEOUT", "180")))
+        return max(30, int(os.environ.get("LIMA_TIMEOUT", os.environ.get("MIMO_MCP_TIMEOUT", "180"))))
     except ValueError:
         return 180
 
 
-def _artifact_dir() -> Path:
-    raw = os.environ.get("LIMA_MIMO_ARTIFACT_DIR", "").strip()
-    return Path(raw).resolve() if raw else DEFAULT_ARTIFACT_DIR
+def _artifact_dir(workspace: Path) -> Path:
+    raw = os.environ.get("MIMO_MCP_ARTIFACT_DIR", "").strip()
+    if raw:
+        return Path(raw).expanduser().resolve()
+    return (workspace / DEFAULT_ARTIFACT_SUBDIR).resolve()
 
 
-def status() -> dict[str, Any]:
-    """CLI availability + last findings summary."""
-    binary = shutil.which("mimo")
-    artifact_dir = _artifact_dir()
+def status(*, workspace: str | None = None) -> dict[str, Any]:
+    ws = resolve_workspace(workspace)
+    artifact_dir = _artifact_dir(ws)
+    binary = mimo_invoke.mimo_binary()
     payload: dict[str, Any] = {
         "ok": bool(binary),
         "mimo_cli": binary or "",
-        "project_root": str(PROJECT_ROOT),
+        "workspace": str(ws),
         "artifact_dir": str(artifact_dir),
-        "skill_dir": str(SKILL_DIR),
+        "modes": mimo_agents.list_modes(),
+        "env": {
+            "MIMO_MCP_WORKSPACE": os.environ.get("MIMO_MCP_WORKSPACE", ""),
+            "MIMO_MCP_AGENT": os.environ.get("MIMO_MCP_AGENT", ""),
+            "MIMO_MCP_MODEL": os.environ.get("MIMO_MCP_MODEL", ""),
+        },
     }
     findings_path = artifact_dir / "findings.json"
     if findings_path.is_file():
@@ -69,54 +65,87 @@ def status() -> dict[str, Any]:
     return payload
 
 
-def review(*, task: str, scope: str | None = None, timeout: int | None = None) -> dict[str, Any]:
-    """Run single MiMo lane and merge JSON findings."""
+def run(
+    *,
+    task: str,
+    mode: str = "review",
+    scope: str | None = None,
+    workspace: str | None = None,
+    timeout: int | None = None,
+    json_findings: bool = True,
+    session_continue: bool = False,
+) -> dict[str, Any]:
     task = (task or "").strip()
     if not task:
         return {"ok": False, "error": "task is required"}
-
-    if not shutil.which("mimo"):
+    if not mimo_invoke.mimo_binary():
         return {"ok": False, "error": "mimo CLI not found on PATH"}
 
-    write_brief, run_lane, merge_lane_artifacts, write_findings_bundle, _, resolve_scope = _skill_imports()
-
-    artifact_dir = _artifact_dir()
+    ws = resolve_workspace(workspace)
+    artifact_dir = _artifact_dir(ws)
     artifact_dir.mkdir(parents=True, exist_ok=True)
-    resolved_scope = resolve_scope(task, scope, PROJECT_ROOT)
-    brief_path = write_brief(PROJECT_ROOT, artifact_dir, task, resolved_scope)
+    resolved_scope = resolve_scope(task, scope, ws)
+    brief_path = brief_mod.write_brief(ws, artifact_dir, task, resolved_scope)
+
+    attach: list[Path] = [brief_path]
+    if resolved_scope:
+        scope_path = ws / resolved_scope
+        if scope_path.is_file():
+            attach.append(scope_path)
+
+    prior_findings = artifact_dir / "findings.json"
+    if mode == "verify" and prior_findings.is_file():
+        attach.append(prior_findings)
+
+    prompt = mimo_agents.build_prompt(mode, task, json_output=json_findings)
+    agent = mimo_agents.resolve_agent(mode)
     lane_timeout = _timeout(timeout)
+    out_path = artifact_dir / f"{MIMO_LANE}.md"
 
-    result = run_lane(MIMO_LANE, task, brief_path, PROJECT_ROOT, artifact_dir, lane_timeout)
-    lane_row = {
-        "lane": result.lane,
-        "ok": result.ok,
-        "exit_code": result.exit_code,
-        "error": result.error,
-        "path": str(result.output_path),
-    }
-
-    findings = merge_lane_artifacts(artifact_dir, (MIMO_LANE,))
-    findings_path, synthesis_path, fixpack_path = write_findings_bundle(
-        artifact_dir, findings, [lane_row], task, "mimo-mcp"
+    invoke = mimo_invoke.run_mimo(
+        prompt,
+        ws,
+        attach_files=attach,
+        agent=agent,
+        session_continue=session_continue,
+        timeout=lane_timeout,
+        output_path=out_path,
     )
 
-    log_path = artifact_dir / "execution.log"
-    log_path.write_text(
-        f"mimo-mcp {datetime.now(timezone.utc).isoformat()} ok={result.ok} exit={result.exit_code}\n",
+    lane_row = {
+        "lane": MIMO_LANE,
+        "ok": invoke.ok,
+        "exit_code": invoke.exit_code,
+        "error": "" if invoke.ok else "invoke failed",
+        "path": str(out_path),
+        "mode": mode,
+        "command": invoke.command,
+    }
+
+    findings = merge_findings.merge_lane_artifacts(artifact_dir, (MIMO_LANE,))
+    mode_tag = f"mimo-mcp-{mode}"
+    findings_path, synthesis_path, fixpack_path = merge_findings.write_findings_bundle(
+        artifact_dir, findings, [lane_row], task, mode_tag
+    )
+
+    (artifact_dir / "execution.log").write_text(
+        f"{mode_tag} {datetime.now(timezone.utc).isoformat()} ok={invoke.ok} exit={invoke.exit_code}\n",
         encoding="utf-8",
     )
 
     return {
-        "ok": result.ok,
+        "ok": invoke.ok,
         "task": task,
+        "mode": mode,
         "scope": resolved_scope,
+        "workspace": str(ws),
         "lane": lane_row,
         "findings_count": len(findings),
         "summary": _count_severity(findings),
         "findings": findings,
         "paths": {
             "brief": str(brief_path),
-            "lane_output": str(result.output_path),
+            "lane_output": str(out_path),
             "findings": str(findings_path),
             "synthesis": str(synthesis_path),
             "fix_pack": str(fixpack_path),
@@ -124,9 +153,13 @@ def review(*, task: str, scope: str | None = None, timeout: int | None = None) -
     }
 
 
-def verify(*, task: str | None = None, scope: str | None = None, timeout: int | None = None) -> dict[str, Any]:
-    """Re-run MiMo review and diff against previous findings.json."""
-    artifact_dir = _artifact_dir()
+def review(*, task: str, scope: str | None = None, workspace: str | None = None, timeout: int | None = None) -> dict[str, Any]:
+    return run(task=task, mode="review", scope=scope, workspace=workspace, timeout=timeout)
+
+
+def verify(*, task: str | None = None, scope: str | None = None, workspace: str | None = None, timeout: int | None = None) -> dict[str, Any]:
+    ws = resolve_workspace(workspace)
+    artifact_dir = _artifact_dir(ws)
     baseline_path = artifact_dir / "findings.json"
     if not baseline_path.is_file():
         return {"ok": False, "error": f"baseline not found: {baseline_path}"}
@@ -135,16 +168,14 @@ def verify(*, task: str | None = None, scope: str | None = None, timeout: int | 
     old_findings = old_data.get("findings") or []
     run_task = (task or old_data.get("task") or "verify after fixes").strip()
 
-    outcome = review(task=run_task, scope=scope, timeout=timeout)
-    if not outcome.get("ok") and outcome.get("error"):
+    outcome = run(task=run_task, mode="verify", scope=scope, workspace=str(ws), timeout=timeout)
+    if outcome.get("error") and not outcome.get("findings"):
         return outcome
 
     new_findings = outcome.get("findings") or []
-    _, _, _, _, compare_findings_lists, _ = _skill_imports()
-    delta = compare_findings_lists(old_findings, new_findings)
+    delta = merge_findings.compare_findings_lists(old_findings, new_findings)
     delta_path = artifact_dir / "verify-delta.json"
     delta_path.write_text(json.dumps(delta, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-
     outcome["verify"] = {
         "delta_path": str(delta_path),
         "closed": len(delta["closed"]),

@@ -1,10 +1,10 @@
 {
   "mcpServers": {
     "lima-mimo": {
-      "command": "python",
-      "args": ["-m", "lima_mcp_stdio"],
-      "cwd": "D:\\QWEN3.0",
+      "command": "lima-mimo-mcp",
+      "args": [],
       "env": {
+        "MIMO_MCP_WORKSPACE": "${workspaceFolder}",
         "LIMA_TIMEOUT": "180"
       }
     }
