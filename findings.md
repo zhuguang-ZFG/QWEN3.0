@@ -15,6 +15,20 @@
 | 跨仓库顺序 | 固件先 push（Task A3，commit a4cab61），主仓库后更新 submodule 指针（本条对应 commit） |
 | 范围外（YAGNI，记录留待后续） | edge_b 不改（Java BusinessServer 链路保留软约束）；Java DeviceServerMotionGatewayImpl 不加 route_policy；esp32s_adapter/protocol.py 的 legacy generate_route_policy（device_write 语义）不动；不加运行时 schema 校验门 |
 
+## 2026-06-15 route_policy backend 字段贯通（阶段 2 子项目 #5）
+
+> 目标：修复 route_policy 缺 backend 字段的断点，使粘性路由记忆记到真实 backend。详见 spec `docs/superpowers/specs/2026-06-15-route-policy-backend-field-design.md`。
+
+| 证据点 | 内容 |
+|--------|------|
+| 固件改动（esp32S_XYZ commit `5004082`，已推送） | edge_c/edge_b schema route_policy 加可选 backend 属性；edge_c downlink example 补 backend:"deterministic" |
+| 云端改动（主仓库 commit `58d4b01`） | model_routing.py: `_policy()` 加 backend 参数；`resolve_device_route_policy` 复用既有 `get_preferred_backend(route_role)` 填充 backend + 联动 `record_route_evidence`；修正 matrix 测试 4 个 expected |
+| 新增测试（主仓库 commit `e454c3f`） | 4 个断点修复测试：resolve 含 backend / backend 匹配 DEVICE_ROLE_PREFERENCES / 永不返回 unknown / _policy 默认值兼容 |
+| 断点修复证据 | `create_task_from_transcript('dev-1','draw cat')` 的 `route_policy.backend` 从缺失变为 `"dashscope_wanx"`；粘性记忆端到端需真实设备 profile 才触发（单测环境门控不通过，backend 字段本身已修复） |
+| 验证 | 固件 schema 门 62/62 + CI 9 passed；主仓库 model_routing 29 passed + 新测试 4 passed + retention/routes 回归 66 passed + ruff clean |
+| 范围外（YAGNI） | 不统一 MODEL_REGISTRY（子项目 #1）；不给 deterministic 创建真实后端注册；不改 validate_route_policy；不动 edge_b 顶层软约束 |
+| 后续 | 子项目 #1（注册表统一）可在此基础上推进 |
+
 ## 2026-06-13 清理发现的敏感文件泄露
 
 | ID | Area | Finding | Status |
