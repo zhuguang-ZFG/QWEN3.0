@@ -5,7 +5,6 @@ import time
 os.environ["LIMA_WEIGHTS_PATH"] = tempfile.mktemp(suffix=".json")
 
 from context_pipeline.routing_weights import RoutingWeights
-from context_pipeline.concurrency_pool import ConcurrencyPool
 from context_pipeline.skill_store import SkillStore, RoutingSkill
 
 
@@ -54,53 +53,6 @@ def test_grpo_clipped_delta():
     w = rw.get_weight("x", "coding")
     # Fresh instance: baseline=0.5, advantage=0.5, delta=0.04
     assert 1.0 < w <= 1.15
-
-
-# === Phase 27: Concurrency Pool ===
-
-def test_pool_acquire_and_release():
-    pool = ConcurrencyPool(["key1", "key2"], max_concurrent=2)
-    k = pool.acquire()
-    assert k in ("key1", "key2")
-    pool.release(k)
-
-
-def test_pool_respects_concurrency_limit():
-    pool = ConcurrencyPool(["key1"], max_concurrent=2)
-    pool.acquire()
-    pool.acquire()
-    third = pool.acquire()
-    assert third is None
-
-
-def test_pool_release_frees_slot():
-    pool = ConcurrencyPool(["key1"], max_concurrent=1)
-    k = pool.acquire()
-    assert pool.acquire() is None
-    pool.release(k)
-    assert pool.acquire() is not None
-
-
-def test_pool_rate_limit_cooldown():
-    pool = ConcurrencyPool(["key1", "key2"], max_concurrent=3)
-    pool.mark_rate_limited("key1", cooldown_sec=60)
-    k = pool.acquire()
-    assert k == "key2"
-
-
-def test_pool_rotate_on_failure():
-    pool = ConcurrencyPool(["key1", "key2", "key3"], max_concurrent=3)
-    next_key = pool.rotate_on_failure("key1")
-    assert next_key in ("key2", "key3")
-
-
-def test_pool_stats():
-    pool = ConcurrencyPool(["a", "b", "c"], max_concurrent=2)
-    pool.acquire()
-    pool.acquire()
-    stats = pool.stats()
-    assert stats["total_keys"] == 3
-    assert stats["in_flight"] == 2
 
 
 # === Phase 28: Cognee EMA Decay ===

@@ -16,6 +16,18 @@
   - `pytest tests/test_p1_4_device_stability_gate.py tests/test_device_gateway_routes.py -q` → **39 passed**
 - **主仓库**：`f7d36a8` 已 push `origin/main`（子模块指针 + 稳定性门测试对齐）
 
+## 2026-06-15 CodeGraph 空虚瘦身（第二轮）
+
+- **方法**：`codegraph_orphans.py --fanin`（图 + ripgrep 交叉）；图内「零引用」根目录文件多为 **lazy import**，不可盲删
+- **删除根目录死代码**（上轮已删，本轮提交）：`evaluate_model.py`、`checkpoint.py`、`warmup.py`、`text_tool_extractor.py`
+- **删除纯测试冷模块/包**（生产零 fan-in）：
+  - `context_pipeline/`：`ensemble.py`、`concurrency_pool.py`、`index_protocol.py`、`reranker_protocol.py`
+  - `mastery_loop/`（8 文件）、`research_radar/`（3 文件）、`developer_skills/`（4 文件）
+  - 对应测试：`test_ensemble`、`test_index_protocol`、`test_reranker_protocol`、`test_mastery_loop`、`test_research_radar`、`test_developer_skills`；`test_phase26_28` 移除 Phase 27 并发池用例
+  - 根目录 Telegram FC 遗留：`fc_caller.py`、`tool_dispatcher.py`（生产零引用）
+- **工具**：`scripts/codegraph_orphans.py` 增加 `--fanin` 懒加载交叉校验
+- **验证**：`pytest tests/test_phase26_28.py tests/test_routing_pipeline_authority.py tests/test_ci_gates.py tests/test_production_retrieval.py tests/test_complexity.py tests/test_graph_retrieval.py -q` → **73 passed**
+
 ## 2026-06-15 M10 设备制品记录路由证据（阶段 1 收尾）
 
 - **task_recorder**：`route_evidence` 制品增加 `backend`/`scenario`；创建时同步写 JSONL（`artifact_recorder.record_route_evidence`）
@@ -23,6 +35,7 @@
 - **task_creation**：`resolve_device_route_policy(voice_task, device_id=...)` 打通设备级 JSONL
 - **task_events**：终端事件写 `device_consumed`；`execute_recovery` 写 `recovery` 证据
 - **验证**：`pytest tests/test_device_gateway_model_routing.py tests/test_device_ledger_artifacts.py tests/test_artifact_recorder.py -q` → **43 passed**
+- **主仓库**：`73f2e55` 已 push `origin/main`
 
 ## 2026-06-15 深度清理（CodeGraph 驱动死代码 + 文档归档）
 
