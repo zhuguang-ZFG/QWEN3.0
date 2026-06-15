@@ -11,10 +11,12 @@ class ReleaseGate:
             "safety_review": False,
         }
 
-    def set_criteria(self, name: str, passed: bool):
-        """Set a release criterion."""
+    def set_criteria(self, name: str, passed: bool) -> bool:
+        """Set a release criterion. Returns True if the criterion exists."""
         if name in self.criteria:
             self.criteria[name] = passed
+            return True
+        return False
 
     def is_ready(self) -> bool:
         """Check if all criteria are met."""

@@ -22,6 +22,8 @@ from device_gateway.protocol import (
 )
 from device_gateway.sessions import registry
 from device_gateway.store import configure_task_store_from_env, task_store_health
+from device_ledger.store import configure_ledger_store_from_env, ledger_store_health
+from device_memory.store import configure_memory_store_from_env, memory_store_health
 from device_gateway.notifier import (
     configure_notifier_from_env,
     notifier_health,
@@ -60,6 +62,8 @@ async def device_gateway_health() -> dict[str, Any]:
         "active_sessions": registry.count(),
         "pending_tasks": pending_count(),
         "task_store": task_store_health(),
+        "memory_store": memory_store_health(),
+        "ledger_store": ledger_store_health(),
         "session_bus": notifier_health(),
         "auth_configured": token_configured(),
     }
@@ -182,6 +186,8 @@ def _record_device_task_evidence(
 
 async def start_device_gateway_runtime() -> None:
     configure_task_store_from_env()
+    configure_memory_store_from_env()
+    configure_ledger_store_from_env()
     configure_notifier_from_env()
     await start_task_notifier(notify_local_session_task_available)
 

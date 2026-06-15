@@ -7,17 +7,14 @@
 const ALLOWED_PATHS = [
   '/v1/',
   '/health',
-  '/agent/',
-  '/mcp/',
-  '/fleet/',
+  '/device/',
+  '/admin/',
 ];
 
-const ADMIN_PATHS = ['/agent/', '/mcp/', '/fleet/'];
+const ADMIN_PATHS = ['/admin/'];
 
 const RATE_LIMITS = {
   '/v1/': { rpm: 60, burst: 10 },
-  '/agent/': { rpm: 30, burst: 5 },
-  '/fleet/': { rpm: 60, burst: 10 },
 };
 
 export default {

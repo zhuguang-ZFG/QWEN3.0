@@ -138,19 +138,59 @@ def test_ruff_gate_passes():
     assert proc.returncode == 0, proc.stdout + proc.stderr
 
 
-@pytest.mark.skip(reason="Skip: test_p13_no_silent_exception_pass_in_active_paths depends on removed semantic_cache.py and other legacy files")
+_SILENT_EXCEPTION_PASS_SNIPPETS = (
+    "except Exception:\n        pass",
+    "except Exception:\n                pass",
+    "except Exception:\n            pass",
+)
+
+_P13_SKIP_DIRS = frozenset(
+    {
+        "tests",
+        "scripts",
+        "esp32S_XYZ",
+        "developer_skills",
+        ".git",
+        "node_modules",
+        "__pycache__",
+        ".pytest_cache",
+        "venv",
+        ".venv",
+        ".venv310",
+        "data",
+        ".agents",
+        ".codegraph",
+    }
+)
+
+
+def _p13_scan_paths() -> list[Path]:
+    paths: list[Path] = []
+    for rel in ("device_gateway", "routes"):
+        base = ROOT / rel
+        if base.is_dir():
+            paths.extend(sorted(base.rglob("*.py")))
+    for pattern in ("routing_*.py", "http_*.py", "server*.py"):
+        paths.extend(sorted(ROOT.glob(pattern)))
+    deduped: list[Path] = []
+    seen: set[Path] = set()
+    for path in paths:
+        if not path.is_file():
+            continue
+        if any(part in _P13_SKIP_DIRS or part.startswith(".venv") for part in path.parts):
+            continue
+        if path in seen:
+            continue
+        seen.add(path)
+        deduped.append(path)
+    return deduped
+
+
 def test_p13_no_silent_exception_pass_in_active_paths():
-    """Residual P1.3: no bare `except Exception: pass` in production-adjacent modules."""
-    targets = [
-        ROOT / "webhook_activity_buffer.py",
-        ROOT / "gitee_webhook" / "dedupe.py",
-        ROOT / "streaming.py",
-        ROOT / "http_sync.py",
-        ROOT / "semantic_cache.py",
-    ]
+    """P1.3 gate: no bare `except Exception: pass` in device/routing hot paths."""
     bad: list[str] = []
-    for path in targets:
+    for path in _p13_scan_paths():
         text = path.read_text(encoding="utf-8")
-        if "except Exception:\n        pass" in text or "except Exception:\n                pass" in text:
+        if any(snippet in text for snippet in _SILENT_EXCEPTION_PASS_SNIPPETS):
             bad.append(str(path.relative_to(ROOT)))
     assert not bad, f"silent Exception pass remains: {bad}"

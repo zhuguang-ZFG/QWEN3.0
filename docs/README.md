@@ -21,6 +21,7 @@
 | 开发约定 | [`../CLAUDE.md`](../CLAUDE.md) | ✅ 活跃 |
 | 长期记忆 | [`LIMA_MEMORY_CN.md`](LIMA_MEMORY_CN.md) | ✅ 活跃 |
 | 项目路线图 | [`PROJECT_OPTIMIZATION_ROADMAP_CN.md`](PROJECT_OPTIMIZATION_ROADMAP_CN.md) | ✅ 活跃 |
+| 子系统热度分层（瘦身评估） | [`CODEBASE_SUBSYSTEM_TIER_CN.md`](CODEBASE_SUBSYSTEM_TIER_CN.md) | ✅ 活跃（Q7） |
 | 发布规则 | [`DEPLOY_AND_RELEASE_CONVENTION.md`](DEPLOY_AND_RELEASE_CONVENTION.md) | ✅ 活跃 |
 | 历史执行进展 | [`../progress.md`](../progress.md) | ✅ 活跃（近 3 个月） |
 | 旧任务计划 | [`../task_plan.md`](../task_plan.md) | ⚠️ 部分过时，仅作历史参考 |
@@ -31,7 +32,7 @@
 | --- | --- |
 | 系统总览 | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
 | 请求管线权威说明 | [`REQUEST_PIPELINE_AUTHORITY_CN.md`](REQUEST_PIPELINE_AUTHORITY_CN.md) |
-| 路由引擎设计 | [`ROUTING_ENGINE_DESIGN.md`](ROUTING_ENGINE_DESIGN.md) |
+| 路由引擎设计 | [`archive/ROUTING_ENGINE_DESIGN.md`](archive/ROUTING_ENGINE_DESIGN.md)（历史归档） |
 | 可观测事件 | [`OBSERVABILITY_EVENTS_CN.md`](OBSERVABILITY_EVENTS_CN.md) |
 
 ## 设备与模型
@@ -41,8 +42,8 @@
 | 绘图/写字模型路由 | [`AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_CN.md`](AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_CN.md) |
 | ESP32S_XYZ 管理 | [`ESP32S_XYZ_MANAGEMENT_CN.md`](ESP32S_XYZ_MANAGEMENT_CN.md) |
 | 设备协议对齐 | [`device_protocol_alignment.md`](device_protocol_alignment.md) |
-| 模型目录 | [`MODEL_CATALOG.md`](MODEL_CATALOG.md) |
-| 免费模型路由状态 | [`FREE_MODEL_ROUTING_STATUS_CN.md`](FREE_MODEL_ROUTING_STATUS_CN.md) |
+| 模型目录 | [`archive/MODEL_CATALOG.md`](archive/MODEL_CATALOG.md)（历史归档） |
+| 免费模型路由状态 | [`archive/FREE_MODEL_ROUTING_STATUS_CN.md`](archive/FREE_MODEL_ROUTING_STATUS_CN.md)（历史归档） |
 
 ## 运维与发布
 
@@ -59,13 +60,14 @@
 
 | 主题 | 文档 |
 | --- | --- |
-| route_policy backend 字段贯通 | [`superpowers/plans/2026-06-15-route-policy-backend-field.md`](superpowers/plans/2026-06-15-route-policy-backend-field.md)（已关闭，见文件顶部状态） |
-| Edge-C route_policy 硬契约 | [`superpowers/plans/2026-06-15-edge-c-route-policy-hard-contract.md`](superpowers/plans/2026-06-15-edge-c-route-policy-hard-contract.md)（已关闭，见文件顶部状态） |
+| route_policy backend 字段贯通 | [`archive/superpowers-2026-06/2026-06-15-route-policy-backend-field.md`](archive/superpowers-2026-06/2026-06-15-route-policy-backend-field.md)（已关闭归档） |
+| Edge-C route_policy 硬契约 | [`archive/superpowers-2026-06/2026-06-15-edge-c-route-policy-hard-contract.md`](archive/superpowers-2026-06/2026-06-15-edge-c-route-policy-hard-contract.md)（已关闭归档） |
 | 智能设备战略转型 | [`superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md`](superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md) |
 | 硬件 AI 能力重设计 | [`superpowers/plans/2026-06-09-lima-hardware-ai-capability-redesign.md`](superpowers/plans/2026-06-09-lima-hardware-ai-capability-redesign.md) |
 | 设备模型路由 Phase 1 | [`superpowers/plans/2026-06-10-device-model-routing-phase1.md`](superpowers/plans/2026-06-10-device-model-routing-phase1.md) |
 | Phase 2 代码瘦身 | [`superpowers/plans/2026-06-12-phase2-code-simplification-plan.md`](superpowers/plans/2026-06-12-phase2-code-simplification-plan.md) |
 | Smart Router 迁移 | [`superpowers/plans/2026-06-12-smart-router-migration-plan.md`](superpowers/plans/2026-06-12-smart-router-migration-plan.md) |
+| **代码质量治理（活跃）** | [`superpowers/plans/2026-06-15-code-quality-governance-plan.md`](superpowers/plans/2026-06-15-code-quality-governance-plan.md) |
 
 ## 历史、归档与已过时
 
@@ -73,7 +75,7 @@
 
 | 主题 | 文档 | 说明 |
 | --- | --- | --- |
-| 旧个人编码助手计划 | [`../task_plan.md`](../task_plan.md) | 战略转型前制定，其中 server.py 分解、BACKENDS 单一来源、key_pool 接入等项已完成或方向已变 |
+| 旧个人编码助手计划 | [`archive/task_plan.md`](archive/task_plan.md) | 已归档；战略转型前制定，其中 server.py 分解、BACKENDS 单一来源、key_pool 接入等项已完成或方向已变 |
 | 历史进展归档 | [`archive/progress-2026-05.md`](archive/progress-2026-05.md) | 2026-05-31 之前的 `progress.md` 记录 |
 | Phase 2 代码瘦身报告 | [`archive/phase2/`](archive/phase2/) | smart_router 迁移与代码精简执行报告 |
 | Stage 1-2 交付报告 | [`archive/STAGE_1_2_DELIVERY_REPORT.md`](archive/STAGE_1_2_DELIVERY_REPORT.md) | 2026-06-11 设备协议/智能/协同交付报告 |

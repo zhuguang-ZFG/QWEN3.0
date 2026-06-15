@@ -1,0 +1,87 @@
+"""Consolidation: build procedure confidence from repeated task episodes."""
+
+from __future__ import annotations
+
+import json
+import time
+from typing import Any
+
+from device_memory.schemas import MemoryEntry, MemoryType
+from device_memory.store import MemoryStore
+
+
+def consolidate_task_episodes(store: MemoryStore, device_id: str) -> list[MemoryEntry]:
+    """Analyze task episodes for a device and produce/update procedure-confidence memories.
+
+    Returns any newly created or updated confidence entries.
+    """
+    episodes = [
+        e for e in store.list_by_device(device_id, include_expired=False)
+        if e.type == MemoryType.TASK_EPISODE and not e.disabled
+    ]
+    if len(episodes) < 2:
+        return []
+
+    by_type: dict[str, list[dict[str, Any]]] = {}
+    for ep in episodes:
+        data = _parse_episode_value(ep.value)
+        task_type = data.get("task_type", "unknown")
+        by_type.setdefault(task_type, []).append(data)
+
+    results: list[MemoryEntry] = []
+    for task_type, items in by_type.items():
+        total = len(items)
+        successes = sum(1 for d in items if d.get("outcome") == "success")
+        if total < 2:
+            continue
+
+        success_rate = successes / total
+        confidence = _compute_confidence(total, successes)
+
+        existing_key = f"conf_{task_type}"
+        old = store.recall(device_id, existing_key, MemoryType.PROCEDURE_CONFIDENCE)
+        if old is not None and old.value:
+            old_data = json.loads(old.value)
+            old_rate = old_data.get("success_rate", 0)
+            old_total = old_data.get("total_count", 0)
+            if old_total == total and abs(old_rate - success_rate) < 0.01:
+                continue  # no change
+
+        entry = MemoryEntry(
+            id=f"conf-{device_id}-{task_type}",
+            device_id=device_id,
+            type=MemoryType.PROCEDURE_CONFIDENCE,
+            key=existing_key,
+            value=json.dumps({
+                "task_type": task_type,
+                "success_rate": round(success_rate, 3),
+                "total_count": total,
+                "confidence": round(confidence, 3),
+            }),
+            ttl_days=90,
+            created_at=int(time.time()),
+            source="consolidation",
+            confidence=round(confidence, 3),
+        )
+        store.create(entry)
+        results.append(entry)
+
+    return results
+
+
+def _compute_confidence(total: int, successes: int) -> float:
+    """Confidence grows with volume and success rate."""
+    base_rate = successes / max(total, 1)
+    # Volume factor: 2 episodes = 0.3, 10+ = 0.9
+    volume_factor = min(0.9, max(0.1, total / 12.0))
+    return round(base_rate * 0.7 + volume_factor * 0.3, 3)
+
+
+def _parse_episode_value(value: str) -> dict[str, Any]:
+    try:
+        data = json.loads(value)
+        if isinstance(data, dict):
+            return data
+    except (json.JSONDecodeError, TypeError):
+        pass
+    return {}

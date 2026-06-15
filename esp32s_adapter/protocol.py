@@ -1,35 +1,19 @@
-"""Protocol conversion between lima-device-v1 and esp32S_XYZ Edge-C."""
+"""Protocol conversion between lima-device-v1 and esp32S_XYZ Edge-C.
+
+Route policy authority lives in ``device_gateway.model_routing``; this module
+only adapts capability strings into Edge-C motion_task frames.
+"""
 
 from __future__ import annotations
 
 from typing import Any
 
-CONTROL_CAPABILITIES = frozenset({"home", "pause", "resume", "stop", "estop", "get_device_info"})
+from device_gateway.model_routing import resolve_device_route_policy
 
 
 def generate_route_policy(capability: str) -> dict[str, Any]:
-    """Generate route_policy for Edge-C motion_task from capability."""
-    if capability in CONTROL_CAPABILITIES:
-        return {
-            "route_role": "device_control",
-            "model_required": False,
-            "primary_strategy": "deterministic",
-            "artifact_required": "none",
-        }
-    elif capability == "run_path":
-        return {
-            "route_role": "device_write",
-            "model_required": False,
-            "primary_strategy": "provided_path",
-            "artifact_required": "none",
-        }
-    else:
-        return {
-            "route_role": "device_unknown",
-            "model_required": False,
-            "primary_strategy": "planner_required",
-            "artifact_required": "none",
-        }
+    """Generate route_policy for Edge-C motion_task from capability only."""
+    return resolve_device_route_policy({"capability": capability})
 
 
 def lima_to_edge_c_task(lima_task: dict[str, Any]) -> dict[str, Any]:

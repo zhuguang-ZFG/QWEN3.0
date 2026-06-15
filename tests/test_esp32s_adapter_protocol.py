@@ -14,7 +14,7 @@ class TestRoutePolicy:
 
     def test_run_path_capability(self):
         policy = generate_route_policy("run_path")
-        assert policy["route_role"] == "device_write"
+        assert policy["route_role"] == "device_vector"
         assert policy["primary_strategy"] == "provided_path"
 
     def test_unknown_capability(self):
@@ -55,7 +55,7 @@ class TestLimaToEdgeC:
         assert edge_c["params"]["path"] == [{"x": 0, "y": 0, "z": 0}]
         assert edge_c["params"]["feed"] == 500.0
         assert edge_c["request_id"] == "req_123"
-        assert edge_c["route_policy"]["route_role"] == "device_write"
+        assert edge_c["route_policy"]["route_role"] == "device_vector"
 
     def test_preserves_trace_id(self):
         lima_task = {

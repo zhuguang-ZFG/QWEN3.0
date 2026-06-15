@@ -54,7 +54,6 @@ CORE_DIRS = [
     "routes",
     "context_pipeline",
     "session_memory",
-    "agent_runtime",
     "code_context",
     "search_gateway",
     "channel_gateway",
@@ -62,32 +61,6 @@ CORE_DIRS = [
 ]
 
 SLICE_FILES = {
-    "m1m5": [
-        "agent_runtime/shell_executor.py",
-        "agent_runtime/git_executor.py",
-        "agent_runtime/network_executor.py",
-        "agent_runtime/real_executor.py",
-        "code_context/treesitter_adapter.py",
-        "code_context/sqlite_graph_store.py",
-        "code_context/chroma_vector_store.py",
-        "code_context/file_watcher.py",
-        "code_context/ast_adapter.py",
-        "code_context/graph_index.py",
-        "code_context/scanner.py",
-        "code_context/index_store.py",
-        "context_pipeline/memory_persistence.py",
-        "context_pipeline/routing_bridge.py",
-        "context_pipeline/hierarchical_memory.py",
-        "developer_skills/__init__.py",
-        "developer_skills/investigate.py",
-        "developer_skills/review.py",
-        "developer_skills/ship.py",
-        "developer_skills/learn.py",
-        "research/__init__.py",
-        "research/orchestrator.py",
-        "research/source_adapters.py",
-        "research/synthesizer.py",
-    ],
     "phase_a": [
         "context_pipeline/code_context_injection.py",
         "routing_engine.py",
@@ -106,13 +79,6 @@ HEALTH_POLL_SECONDS = 2
 HEALTH_GRACE_AFTER_RESTART_S = int(os.environ.get("LIMA_DEPLOY_HEALTH_GRACE_S", "20"))
 DEFAULT_MIN_FREE_MB = 512
 DEFAULT_MIN_MEM_MB = 128
-
-EVAL_SMOKE_TRIGGER_FILES = frozenset({
-    "eval_pinned_call.py",
-    "eval_call.py",
-    "routes/eval_internal.py",
-    "routing_executor.py",
-})
 
 
 def _safe_backup_label(label: str) -> str:
@@ -337,53 +303,13 @@ def restart_server() -> bool:
         ssh.close()
 
 
-def _should_run_eval_smoke(files: list[str], force: bool) -> bool:
-    if force:
-        return True
-    normalized = {f.replace("\\", "/") for f in files}
-    return bool(normalized & EVAL_SMOKE_TRIGGER_FILES)
-
-
-def run_eval_smoke() -> bool:
-    """Run remote VPS eval smoke (pinned + FRP paths)."""
-    script = Path(__file__).resolve().parent / "vps_eval_smoke_remote.py"
-    if not script.is_file():
-        print(f"  eval smoke: missing {script.name}")
-        return False
-    print("\n=== VPS eval smoke ===")
-    try:
-        result = subprocess.run(
-            [sys.executable, str(script)],
-            cwd=str(script.parent.parent),
-            check=False,
-        )
-    except OSError as exc:
-        print(f"  eval smoke failed to start: {type(exc).__name__}: {exc}")
-        return False
-    if result.returncode == 0:
-        print("  eval smoke: OK")
-        return True
-    print(f"  eval smoke: FAILED (exit {result.returncode})")
-    return False
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(description="Unified LiMa deploy")
-    parser.add_argument("--slice", choices=["core", "m1m5", "phase_a", "phase_b", "all"],
+    parser.add_argument("--slice", choices=["core", "phase_a", "phase_b", "all"],
                         default="core", help="Which slice to deploy")
     parser.add_argument("--files", nargs="+", help="Specific files to deploy")
     parser.add_argument("--dry-run", action="store_true", help="Show what would be deployed")
     parser.add_argument("--no-restart", action="store_true", help="Skip server restart")
-    parser.add_argument(
-        "--eval-smoke",
-        action="store_true",
-        help="After successful health check, run scripts/vps_eval_smoke_remote.py",
-    )
-    parser.add_argument(
-        "--no-eval-smoke",
-        action="store_true",
-        help="Skip auto eval smoke even when eval/routing files were deployed",
-    )
     args = parser.parse_args()
 
     files: list[str] = []
@@ -440,10 +366,6 @@ def main() -> int:
             health=f"uploaded={results['uploaded']}",
         )
         print(f"\n{notify_text}")
-
-        run_smoke = _should_run_eval_smoke(files, args.eval_smoke) and not args.no_eval_smoke
-        if run_smoke and not run_eval_smoke():
-            return 1
 
     return 0
 

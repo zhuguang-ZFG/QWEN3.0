@@ -29,10 +29,6 @@ class RouteRegistryDeps:
     vision_route: Callable[..., Any]
     stream_vision_response: Callable[..., Any]
     record_request: Callable[..., None]
-    anthropic_native_stream: Callable[..., Any]
-    anthropic_native_forward: Callable[..., Any]
-    anthropic_stream: Callable[..., Any]
-    anthropic_stream_passthrough: Callable[..., Any]
     handle_chat: Callable[..., Any]
 
 
@@ -41,7 +37,6 @@ class RegisteredRoutes:
     """Handler aliases re-exported by server.py for compatibility."""
 
     chat_completions: Callable[..., Any]
-    anthropic_messages: Callable[..., Any]
     list_models: Callable[..., Any]
     health: Callable[..., Any]
     live_key: Callable[..., Any]
@@ -68,10 +63,6 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
         vision_route=deps.vision_route,
         stream_vision_response=deps.stream_vision_response,
         record_request=deps.record_request,
-        anthropic_native_stream=deps.anthropic_native_stream,
-        anthropic_native_forward=deps.anthropic_native_forward,
-        anthropic_stream=deps.anthropic_stream,
-        anthropic_stream_passthrough=deps.anthropic_stream_passthrough,
         handle_chat=deps.handle_chat,
     )
     app.include_router(chat_endpoints_router)
@@ -152,10 +143,6 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
         logging.warning("[STARTUP] MCP module not loaded: %s", exc)
         deps.loaded_modules["mcp"] = False
 
-    # NOTE: agent_tasks, agent_execute deleted in strategic pivot (2026-06-09)
-    deps.loaded_modules["agent_tasks"] = False
-    deps.loaded_modules["agent_execute"] = False
-
     try:
         from routes.fleet_api import router as fleet_router
         import routes.fleet_api as fleet_mod
@@ -166,11 +153,6 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
     except ImportError as exc:
         logging.warning("[STARTUP] fleet module not loaded: %s", exc)
         deps.loaded_modules["fleet"] = False
-
-    # NOTE: agent_events, agent_memory deleted in strategic pivot (2026-06-09)
-    deps.loaded_modules["agent_events"] = False
-    deps.loaded_modules["agent_memory"] = False
-    deps.loaded_modules["agent_learn"] = False
 
     try:
         from routes.eval_internal import router as eval_internal_router
@@ -220,6 +202,33 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
         deps.loaded_modules["gitee_webhook"] = False
 
     try:
+        from routes.device_memory import router as device_memory_router
+
+        app.include_router(device_memory_router)
+        deps.loaded_modules["device_memory"] = True
+    except ImportError as exc:
+        logging.warning("[STARTUP] device_memory module not loaded: %s", exc)
+        deps.loaded_modules["device_memory"] = False
+
+    try:
+        from routes.device_support import router as device_support_router
+
+        app.include_router(device_support_router)
+        deps.loaded_modules["device_support"] = True
+    except ImportError as exc:
+        logging.warning("[STARTUP] device_support module not loaded: %s", exc)
+        deps.loaded_modules["device_support"] = False
+
+    try:
+        from routes.device_ota import router as device_ota_router
+
+        app.include_router(device_ota_router)
+        deps.loaded_modules["device_ota"] = True
+    except ImportError as exc:
+        logging.warning("[STARTUP] device_ota module not loaded: %s", exc)
+        deps.loaded_modules["device_ota"] = False
+
+    try:
         from routes.channel_gateway import router as channel_gateway_router
 
         app.include_router(channel_gateway_router)
@@ -230,7 +239,6 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
 
     return RegisteredRoutes(
         chat_completions=chat_endpoints_mod.chat_completions,
-        anthropic_messages=chat_endpoints_mod.anthropic_messages,
         list_models=system_endpoints_mod.list_models,
         health=system_endpoints_mod.health,
         live_key=system_endpoints_mod.live_key,

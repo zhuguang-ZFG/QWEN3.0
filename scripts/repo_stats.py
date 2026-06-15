@@ -7,6 +7,8 @@ from pathlib import Path
 
 SKIP_PARTS = {
     "venv",
+    ".venv",
+    ".venv310",
     ".git",
     "donglicao",
     "node_modules",
@@ -40,7 +42,11 @@ def main() -> None:
     root = Path(__file__).resolve().parents[1]
     py_files = []
     for p in root.rglob("*.py"):
-        if not p.is_file() or any(s in p.parts for s in SKIP_PARTS):
+        if not p.is_file():
+            continue
+        if any(s in p.parts for s in SKIP_PARTS):
+            continue
+        if any(part.startswith(".venv") for part in p.parts):
             continue
         py_files.append(p.relative_to(root))
     total_lines = sum(line_count(root / p) for p in py_files)

@@ -458,13 +458,13 @@ def test_route_evidence_records_error_on_validation_failure():
     from device_gateway.tasks import project_to_motion_task
 
     # Patch resolve_device_route_policy to return invalid policy
-    import device_gateway.tasks as tasks_mod
-    original = tasks_mod.resolve_device_route_policy
+    import device_gateway.task_deps as task_deps
+    original = task_deps.resolve_device_route_policy
 
     def bad_policy(voice_task, device_id=""):
         return {"route_role": "INVALID", "model_required": False, "primary_strategy": "bad", "artifact_required": "nope"}
 
-    tasks_mod.resolve_device_route_policy = bad_policy
+    task_deps.resolve_device_route_policy = bad_policy
     try:
         task = project_to_motion_task("dev-1", {"capability": "home", "params": {}})
         assert task.get("error") is not None
@@ -475,7 +475,7 @@ def test_route_evidence_records_error_on_validation_failure():
         assert evidence["route_role"] == "INVALID"
         assert evidence.get("error_code") != ""
     finally:
-        tasks_mod.resolve_device_route_policy = original
+        task_deps.resolve_device_route_policy = original
 
 
 def test_model_admission_report_exists():

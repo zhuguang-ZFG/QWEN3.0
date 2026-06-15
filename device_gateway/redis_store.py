@@ -53,6 +53,7 @@ class RedisDeviceTaskStore:
         return {
             "task": deepcopy(state.get("task")),
             "status": state.get("status"),
+            "retry_count": state.get("retry_count", 0),
             "events": deepcopy(list(state.get("events", []))),
         }
 
@@ -166,6 +167,32 @@ class RedisDeviceTaskStore:
         for key in self._redis.scan_iter(f"{self._prefix}:pending:*"):
             total += int(self._redis.llen(key))
         return total
+
+    def increment_retry_count(self, task_id: str) -> int:
+        state = self._read_task_state(task_id)
+        if state is None:
+            return 0
+        count = int(state.get("retry_count", 0)) + 1
+        state["retry_count"] = count
+        self._write_task_state(task_id, state)
+        return count
+
+    def reset_task_for_retry(self, task_id: str) -> None:
+        state = self._read_task_state(task_id)
+        if state is not None:
+            state["status"] = "queued"
+            self._write_task_state(task_id, state)
+
+    def remove_pending_task(self, device_id: str, task_id: str) -> bool:
+        key = self._queue_key(device_id)
+        for item in self._redis.lrange(key, 0, -1):
+            try:
+                data = self._decode(item)
+            except Exception:
+                continue
+            if data.get("task_id") == task_id:
+                return bool(self._redis.lrem(key, 1, item))
+        return False
 
     def _key(self, suffix: str) -> str:
         return f"{self._prefix}:{suffix}"
