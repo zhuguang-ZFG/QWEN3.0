@@ -222,3 +222,27 @@ See `.env.example` for full list. Critical:
 - `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_TOKEN` — nuclear fallback backend
 - `LIMA_DEPLOY_PASS` — VPS deploy password
 - Feature flags default to off: `GITEE_WEBHOOK_ENABLED=0`, `GITHUB_WEBHOOK_ENABLED=0`, `SEARXNG_ENABLED=0`, `CODESEARCH_MCP_ENABLED=0`, etc.
+
+## CodeGraph — Code Intelligence (preferred over GitNexus)
+
+This repo uses **CodeGraph** for call-graph exploration, impact analysis, and dead-code audits. Index lives at `.codegraph/codegraph.db`. **Do not** use GitNexus hooks or `gitnexus_*` MCP tools here.
+
+### Always do
+
+- After pulling or large refactors: `codegraph sync .` (or `codegraph index .` if missing).
+- Before editing unfamiliar symbols: CodeGraph MCP or `codegraph impact <symbol>`.
+- Before deleting modules: `python scripts/codegraph_orphans.py --fanin` (graph + ripgrep; graph-only orphans may be lazy imports).
+
+### Setup
+
+| Task | Command |
+|------|---------|
+| MCP for all local agents | `pwsh -File scripts/setup_codegraph_agents.ps1` |
+| LiMa MCP bundle (codegraph + context7 + fetch) | `pwsh -File scripts/setup_lima_mcps.ps1` |
+| Per-project index | `codegraph index .` then `codegraph sync .` |
+
+### References
+
+- Multi-agent map: `.agents/PROJECT_MAP.md` (CodeGraph section)
+- Orphan audit: `scripts/codegraph_orphans.py`
+- Slimming evidence: `progress.md` (2026-06-15 CodeGraph entries)

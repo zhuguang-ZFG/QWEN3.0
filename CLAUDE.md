@@ -131,3 +131,26 @@ python scripts/repo_stats.py
 见 `AGENTS.md`：Owner 实现 → Agent 审查/修复/全量测试 → 更新 progress/findings → 仅 stage 相关文件 → commit → push → 下一里程碑计划。
 
 全局 closeout 默认包含：本地门禁通过、VPS 自动部署与 health/smoke 验证、失败时记录调试和 rollback 证据、仅 stage 本轮相关文件、无凭据检查后提交，并优先上传 GitHub (`origin`) 再同步 Gitee。完整硬规则以 `AGENTS.md` 的“自动部署、VPS 验证调试与 GitHub 上传（项目全局）”为准。
+
+## CodeGraph 代码智能（本仓库首选，不用 GitNexus）
+
+本仓库以 **CodeGraph** 为权威代码图工具（MCP + CLI），索引位于 `.codegraph/codegraph.db`。GitNexus 自动注入块已移除；勿在本仓启用 `gitnexus_*` MCP 或 `npx gitnexus analyze`。
+
+### 常用命令
+
+```powershell
+codegraph index .          # 首次建索引
+codegraph sync .           # 拉代码或大改后同步
+codegraph status           # 检查索引新鲜度
+codegraph impact <symbol>  # 改动前看调用方
+python scripts/codegraph_orphans.py --fanin   # 删模块前：图 + ripgrep 交叉
+```
+
+### 装机脚本
+
+| 场景 | 命令 |
+|------|------|
+| 多 Agent 写入 codegraph MCP | `pwsh -File scripts/setup_codegraph_agents.ps1` |
+| LiMa 推荐 MCP 包（含 codegraph） | `pwsh -File scripts/setup_lima_mcps.ps1` |
+
+详见 `.agents/PROJECT_MAP.md` 与 `progress.md`（2026-06-15 CodeGraph 瘦身记录）。
