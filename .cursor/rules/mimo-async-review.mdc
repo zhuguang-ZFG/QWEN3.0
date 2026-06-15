@@ -1,0 +1,36 @@
+---
+description: 实质性代码改动后自动后台派发 MiMo 审查，主 Agent 可并行继续实现
+globs: "**/*.py"
+alwaysApply: true
+---
+
+# MiMo 异步审查（并行）
+
+## 何时自动调用
+
+完成以下任一情况后，**在同轮对话内**调用 `lima_mimo_review_async`（不要等用户提醒）：
+
+- 修改了 `routing_engine*`、`routes/chat_*`、`device_gateway*`、`server*.py` 等热路径
+- 完成一个里程碑切片或用户说「同意 / commit / closeout」之前
+- 单次会话内累计改动 ≥2 个生产 `.py` 文件
+
+## 并行工作流
+
+1. **派发**：`lima_mimo_review_async(task=简短说明, scope=主文件路径)` → 拿到 `job_id`
+2. **继续**：立刻做测试、文档、其他文件实现（不要阻塞等 MiMo）
+3. **收口前**：`lima_mimo_job_status(job_id=...)` 或 `lima_mimo_poll`
+   - `status=done` → 处理 P0/P1 findings 或记入 closeout
+   - `status=running` → 说明仍在跑，可继续其他工作或再 poll
+4. **修复后**：`lima_mimo_verify`（可 async 或 sync）
+
+## 禁止
+
+- 不要用同步 `lima_mimo_review` 占满整轮（除非用户明确要求「等审查结果」）
+- 不要在 MiMo 未跑完时声称 milestone 已审查通过
+- 不要跳过 `job_status` 就 closeout
+
+## task 模板
+
+```
+Review <scope>: <what changed> — check regression, tests, silent degradation, AGENTS.md red lines.
+```

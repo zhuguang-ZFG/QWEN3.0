@@ -1,11 +1,12 @@
 {
   "mcpServers": {
     "lima-mimo": {
-      "command": "lima-mimo-mcp",
-      "args": [],
+      "command": "python",
+      "args": ["-m", "lima_mcp_stdio"],
       "env": {
         "MIMO_MCP_WORKSPACE": "${workspaceFolder}",
-        "LIMA_TIMEOUT": "180"
+        "LIMA_TIMEOUT": "300",
+        "MIMO_MCP_SKIP_PERMISSIONS": "1"
       }
     }
   }

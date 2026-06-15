@@ -957,6 +957,13 @@ Agent Worker path.
   - 主/补充/Prompt 文档文首链到勘误；修正 routing/context 分层、Telegram 退役、模块规模、Prompt Layer 3 分工。
 - **本地验证**：`pytest tests/test_provider_automation_*.py -q` → **57 passed**
 
+## 2026-06-16：MiMo MCP v0.3 异步并行
+
+- `lima_mimo_review_async` + `lima_mimo_job_status`：后台 worker，主 Agent 可并行
+- 修复 `mimo run` 参数顺序；`lima_mimo_poll`；MCP 改用 `python -m lima_mcp_stdio`
+- `.cursor/rules/mimo-async-review.mdc`：热路径改动后自动派发审查
+- 测试：`pytest tests/test_mimo_mcp_*.py -q`
+
 ## 2026-06-16：MiMo MCP v0.2 全局化 + Agent 模式
 
 - `lima_mcp_stdio` 内置 `multi_cli/`（brief/merge），任意 git 仓库可用

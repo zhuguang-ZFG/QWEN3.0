@@ -92,7 +92,7 @@ def build_prompt(mode: str, task: str, *, json_output: bool = True) -> str:
         f"[MIMO_MCP mode={spec.name} skill={spec.skill_hint}]\n"
         f"{spec.focus}\n"
         f"Task: {task}\n"
-        f"Attached: review-brief.md (and scope files if any).\n"
+        f"Read attached review-brief.md (and scope files). Use your MCP tools as needed.\n"
         f"{suffix}"
     ).strip()
 

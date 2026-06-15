@@ -35,12 +35,14 @@ def build_command(
     if not binary:
         raise FileNotFoundError("mimo CLI not found on PATH")
 
-    cmd: list[str] = [binary, "run", prompt, "--dir", str(workspace), "--trust"]
+    cmd: list[str] = [binary, "run"]
     if agent:
         cmd.extend(["--agent", agent])
     model = model or os.environ.get("MIMO_MCP_MODEL", "").strip()
     if model:
         cmd.extend(["-m", model])
+    cmd.append(f"--dir={workspace}")
+    cmd.append("--trust")
     if session_continue:
         cmd.append("--continue")
     for path in attach_files or []:
@@ -48,6 +50,8 @@ def build_command(
             cmd.extend(["-f", str(path)])
     if os.environ.get("MIMO_MCP_SKIP_PERMISSIONS", "").strip() in {"1", "true", "yes"}:
         cmd.append("--dangerously-skip-permissions")
+    # Positional message must be last (yargs); keep prompt short if using -f attachments.
+    cmd.append(prompt)
     return cmd
 
 

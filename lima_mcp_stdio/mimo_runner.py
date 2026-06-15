@@ -62,7 +62,34 @@ def status(*, workspace: str | None = None) -> dict[str, Any]:
         }
     else:
         payload["last_run"] = None
+    done_path = artifact_dir / "last_done.json"
+    if done_path.is_file():
+        payload["last_done"] = json.loads(done_path.read_text(encoding="utf-8"))
     return payload
+
+
+def poll(*, workspace: str | None = None) -> dict[str, Any]:
+    """Read completion marker without re-running MiMo."""
+    ws = resolve_workspace(workspace)
+    artifact_dir = _artifact_dir(ws)
+    out: dict[str, Any] = {
+        "workspace": str(ws),
+        "artifact_dir": str(artifact_dir),
+        "findings_path": str(artifact_dir / "findings.json"),
+        "last_done_path": str(artifact_dir / "last_done.json"),
+    }
+    done_path = artifact_dir / "last_done.json"
+    if done_path.is_file():
+        out["last_done"] = json.loads(done_path.read_text(encoding="utf-8"))
+        out["ready"] = True
+    else:
+        out["ready"] = False
+    findings_path = artifact_dir / "findings.json"
+    if findings_path.is_file():
+        data = json.loads(findings_path.read_text(encoding="utf-8"))
+        out["summary"] = data.get("summary")
+        out["findings_count"] = len(data.get("findings") or [])
+    return out
 
 
 def run(
@@ -130,6 +157,24 @@ def run(
 
     (artifact_dir / "execution.log").write_text(
         f"{mode_tag} {datetime.now(timezone.utc).isoformat()} ok={invoke.ok} exit={invoke.exit_code}\n",
+        encoding="utf-8",
+    )
+
+    done_flag = artifact_dir / "last_done.json"
+    done_flag.write_text(
+        json.dumps(
+            {
+                "finished_at": datetime.now(timezone.utc).isoformat(),
+                "ok": invoke.ok,
+                "mode": mode,
+                "task": task,
+                "findings_path": str(findings_path),
+                "summary": _count_severity(findings),
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+        + "\n",
         encoding="utf-8",
     )
 

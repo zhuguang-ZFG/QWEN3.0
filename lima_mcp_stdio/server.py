@@ -5,13 +5,14 @@ from __future__ import annotations
 from mcp.server.fastmcp import FastMCP
 
 from lima_mcp_stdio import mimo_agents, mimo_runner as mr
+from lima_mcp_stdio import job_runner as jr
 
 mcp = FastMCP(
     "lima-mimo",
     instructions=(
-        "MiMo Agent MCP: review, verify, plan, security, tdd modes. "
-        "Uses mimo run with compose skill prompts, git brief, and JSON findings. "
-        "Set MIMO_MCP_WORKSPACE or open a folder; never on LiMa production server hot path."
+        "MiMo Agent MCP. Prefer lima_mimo_review_async after substantive code edits so Cursor can "
+        "keep working in parallel; poll lima_mimo_job_status before milestone closeout. "
+        "Sync tools (lima_mimo_review) block until MiMo finishes. Modes: review|verify|plan|security|tdd."
     ),
 )
 
@@ -79,6 +80,38 @@ def lima_mimo_run(
         workspace=workspace or None,
         timeout=timeout_seconds,
     )
+
+
+@mcp.tool()
+def lima_mimo_review_async(
+    task: str,
+    scope: str = "",
+    workspace: str = "",
+    timeout_seconds: int = 300,
+) -> dict:
+    """Start MiMo review in background (non-blocking). Returns job_id — poll with lima_mimo_job_status."""
+    return jr.start_async_run(
+        task=task,
+        mode="review",
+        scope=scope or None,
+        workspace=workspace or None,
+        timeout=timeout_seconds,
+    )
+
+
+@mcp.tool()
+def lima_mimo_job_status(job_id: str = "", workspace: str = "") -> dict:
+    """Poll async job by job_id (empty = latest job). Returns status and result when done."""
+    return jr.job_status(job_id=job_id or None, workspace=workspace or None)
+
+
+@mcp.tool()
+def lima_mimo_poll(workspace: str = "") -> dict:
+    """Poll last_done.json, findings summary, and latest async job status."""
+    out = mr.poll(workspace=workspace or None)
+    job = jr.job_status(workspace=workspace or None)
+    out["latest_job"] = job
+    return out
 
 
 def main() -> None:

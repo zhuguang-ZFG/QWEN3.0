@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lima-mimo-mcp"
-version = "0.2.0"
+version = "0.3.0"
 description = "Cursor stdio MCP — MiMo Agent review/verify/plan lanes for any git workspace"
 readme = "docs/MIMO_MCP_SETUP_CN.md"
 requires-python = ">=3.10"

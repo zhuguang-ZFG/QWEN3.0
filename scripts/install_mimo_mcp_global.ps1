@@ -36,11 +36,12 @@ $dir = Split-Path $CursorMcp -Parent
 if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir | Out-Null }
 
 $entry = @{
-    command = "lima-mimo-mcp"
-    args    = @()
+    command = "python"
+    args    = @("-m", "lima_mcp_stdio")
     env     = @{
-        MIMO_MCP_WORKSPACE = '${workspaceFolder}'
-        LIMA_TIMEOUT       = "180"
+        MIMO_MCP_WORKSPACE        = '${workspaceFolder}'
+        LIMA_TIMEOUT              = "300"
+        MIMO_MCP_SKIP_PERMISSIONS = "1"
     }
 }
 

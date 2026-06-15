@@ -65,14 +65,26 @@ python -m pip install -e D:\QWEN3.0
 
 ## MCP 工具
 
-| 工具 | MiMo 模式 | 用途 |
-|------|-----------|------|
-| `lima_mimo_status` | — | CLI / workspace / modes / 上次 findings |
-| `lima_mimo_agents` | — | 列出 review/verify/plan/security/tdd |
-| `lima_mimo_review` | review | 质量门禁 + JSON findings |
-| `lima_mimo_verify` | verify | 修复后 delta |
-| `lima_mimo_plan` | plan | 只读执行计划 |
-| `lima_mimo_run` | 任意 | 通用入口 |
+| 工具 | 阻塞 | 用途 |
+|------|------|------|
+| **`lima_mimo_review_async`** | 否 | **推荐**：后台审查，返回 `job_id` |
+| **`lima_mimo_job_status`** | 否 | 轮询任务（`job_id` 空=最新） |
+| `lima_mimo_poll` | 否 | last_done + findings + 最新 job |
+| `lima_mimo_status` | 否 | CLI / workspace / modes |
+| `lima_mimo_agents` | 否 | 模式列表 |
+| `lima_mimo_review` | 是 | 同步审查（仅当必须等待） |
+| `lima_mimo_verify` | 是 | 修复后 delta |
+| `lima_mimo_plan` | 是 | 只读计划 |
+| `lima_mimo_run` | 是 | 通用入口 |
+
+## 并行工作流（Agent 自动）
+
+规则：`.cursor/rules/mimo-async-review.mdc`
+
+1. 改完热路径 → `lima_mimo_review_async`
+2. 继续实现 / pytest
+3. closeout 前 → `lima_mimo_job_status`
+4. 产物：`.omc/artifacts/mimo-mcp/jobs/<job_id>/status.json`
 
 ## 发挥 MiMo Agent 优势的建议
 
@@ -84,7 +96,7 @@ python -m pip install -e D:\QWEN3.0
 ## 测试
 
 ```powershell
-python -m pytest tests/test_mimo_mcp_runner.py -q
+python -m pytest tests/test_mimo_mcp_runner.py tests/test_mimo_mcp_jobs.py -q
 ```
 
 ## 相关
