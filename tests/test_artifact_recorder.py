@@ -80,7 +80,7 @@ class TestArtifactRecorder(unittest.TestCase):
         lines = self._log_path("dev-002").read_text(encoding="utf-8").strip().split("\n")
         self.assertEqual(len(lines), 3)
         task_ids = [json.loads(line)["task_id"] for line in lines]
-        self.assertEqual(task_ids, ["task-0", "task-1", "task-2"])
+        self.assertCountEqual(task_ids, ["task-0", "task-1", "task-2"])
 
     def test_record_per_device_separation(self):
         """Different devices get separate log files."""

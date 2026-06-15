@@ -36,5 +36,5 @@ cmd /c mklink /J D:\QWEN3.0\frp D:\LIMA-external\ops-tools\frp
 
 ## 被锁定的本地 DB
 
-`data/agent_tasks.db`、`data/semantic_cache.db` 等在服务运行时无法移动。
+`data/agent_tasks.db` 等在服务运行时无法移动。
 已在 `.gitignore` 忽略；停服后可手动移到 `D:\LIMA-external\local-runtime\data\`。
