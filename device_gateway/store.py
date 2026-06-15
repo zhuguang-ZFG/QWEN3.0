@@ -62,6 +62,15 @@ class DeviceTaskStore(Protocol):
     ) -> list[dict[str, Any]]:
         ...
 
+    def increment_retry_count(self, task_id: str) -> int:
+        ...
+
+    def reset_task_for_retry(self, task_id: str) -> None:
+        ...
+
+    def remove_pending_task(self, device_id: str, task_id: str) -> bool:
+        ...
+
 
 class InMemoryDeviceTaskStore:
     backend_name = "memory"
@@ -103,6 +112,7 @@ class InMemoryDeviceTaskStore:
             return {
                 "task": deepcopy(state.get("task")),
                 "status": state.get("status"),
+                "retry_count": state.get("retry_count", 0),
                 "events": deepcopy(list(state.get("events", []))),
             }
 
@@ -167,6 +177,32 @@ class InMemoryDeviceTaskStore:
             if device_id is not None:
                 return len(self._pending_by_device.get(device_id, ()))
             return sum(len(queue) for queue in self._pending_by_device.values())
+
+    def increment_retry_count(self, task_id: str) -> int:
+        with self._lock:
+            state = self._tasks.get(task_id)
+            if state is None:
+                return 0
+            count = state.get("retry_count", 0) + 1
+            state["retry_count"] = count
+            return count
+
+    def reset_task_for_retry(self, task_id: str) -> None:
+        with self._lock:
+            state = self._tasks.get(task_id)
+            if state is not None:
+                state["status"] = "queued"
+
+    def remove_pending_task(self, device_id: str, task_id: str) -> bool:
+        with self._lock:
+            queue = self._pending_by_device.get(device_id)
+            if not queue:
+                return False
+            for index, task in enumerate(queue):
+                if str(task.get("task_id", "")) == task_id:
+                    del queue[index]
+                    return True
+            return False
 
     def list_tasks_for_device(
         self, device_id: str, status: str = "", limit: int = 20

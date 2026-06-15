@@ -187,3 +187,34 @@ def test_redis_store_recovers_by_processing_age_not_pending_age():
     assert store.recover_stale_processing("dev-1", timeout_sec=120) == 1
     assert store.pending_count("dev-1") == 1
     assert client.lists["test:device:processing:dev-1"] == []
+
+
+def test_redis_store_tracks_retry_count_and_resets_for_retry():
+    client = _FakeRedis()
+    store = RedisDeviceTaskStore("redis://unused", client=client, key_prefix="test:device")
+    task = _task(store.next_task_id())
+
+    store.create_task_state(task, status="failed")
+    assert store.increment_retry_count(task["task_id"]) == 1
+    assert store.increment_retry_count(task["task_id"]) == 2
+    assert store.task_snapshot(task["task_id"])["retry_count"] == 2
+
+    store.reset_task_for_retry(task["task_id"])
+    assert store.task_snapshot(task["task_id"])["status"] == "queued"
+
+
+def test_redis_store_remove_pending_task_drops_only_matching_task():
+    client = _FakeRedis()
+    store = RedisDeviceTaskStore("redis://unused", client=client, key_prefix="test:device")
+    first = _task(store.next_task_id())
+    second = _task(store.next_task_id())
+
+    store.create_task_state(first)
+    store.create_task_state(second)
+    store.enqueue_pending_task("dev-1", first)
+    store.enqueue_pending_task("dev-1", second)
+
+    assert store.remove_pending_task("dev-1", first["task_id"]) is True
+    assert store.pending_count("dev-1") == 1
+    assert store.remove_pending_task("dev-1", first["task_id"]) is False
+    assert store.remove_pending_task("dev-unknown", second["task_id"]) is False

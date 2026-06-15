@@ -60,3 +60,20 @@ def test_in_memory_store_contract_generates_unique_ids_under_parallel_calls():
 
     assert len(task_ids) == 80
     assert len(set(task_ids)) == 80
+
+
+def test_remove_pending_task_drops_only_matching_task():
+    store = InMemoryDeviceTaskStore()
+    t1 = _task(store.next_task_id(), "dev-1")
+    t2 = _task(store.next_task_id(), "dev-1")
+    t3 = _task(store.next_task_id(), "dev-2")
+
+    store.enqueue_pending_task("dev-1", t1)
+    store.enqueue_pending_task("dev-1", t2)
+    store.enqueue_pending_task("dev-2", t3)
+
+    assert store.remove_pending_task("dev-1", t1["task_id"]) is True
+    assert store.pending_count("dev-1") == 1
+    assert store.remove_pending_task("dev-1", t1["task_id"]) is False
+    assert store.remove_pending_task("dev-unknown", t2["task_id"]) is False
+    assert store.pending_count("dev-2") == 1

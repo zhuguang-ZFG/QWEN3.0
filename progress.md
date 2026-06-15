@@ -5,6 +5,39 @@
 > Updated: 2026-06-15
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-15 LiMa Hardware AI Phase 1 M5–M8 Closeout
+
+- **M5 Recovery + Reliability**
+  - `device_intelligence/recovery.py` 5 错误码映射 retry/home/stop；`execute_recovery()` 集成到 `routes/device_gateway_ws_handlers.py`
+  - task store 新增 `increment_retry_count()` / `reset_task_for_retry()` / `remove_pending_task()`；InMemory + Redis 双后端实现
+  - review 修复：重试耗尽后 `action="stop"`；retry WS 直发后从 pending queue 移除避免双发
+  - 测试：`tests/test_device_recovery_execution.py` 18 passed + `tests/test_device_gateway_store.py` + `tests/test_device_gateway_redis_store.py`
+
+- **M6 Memory + Continuous Learning**
+  - 新增 `device_memory/{schemas,store,extractor,consolidation,recall,quality_gates}.py` + `routes/device_memory.py`
+  - terminal 事件自动提取 TASK_EPISODE / DEVICE_FAILURE；procedure confidence 从重复 episode 生成
+  - anti-learning：blocked sources/capabilities、hard safety 不可覆盖、recall confidence 阈值
+  - review 修复：memory 提取失败 `logger.warning`；episode ID 加入 `event_id`；`MemoryStore` 加 RLock + 生产化 TODO
+  - 测试：`tests/test_device_memory_*.py` 全部通过
+
+- **M7 External Enrichment + Support/Ops**
+  - `device_support/snapshot.py` 集成 shadow / active tasks / failure warnings / redacted recommendation
+  - `external_enrichment` weather/holiday provider 验证可用
+  - review 修复：`_list_recent_terminal_tasks()` 增加 24h 时间窗口 + ISO 时间戳解析
+  - 测试：`tests/test_device_support_snapshot.py` 11 passed
+
+- **M8 OTA + Release Gate**
+  - `device_ota/release.py` + `device_ota/canary.py` + `routes/device_ota.py`
+  - 新增 admin 端点：deploy、record-success、record-failure、remove canary device
+  - review 修复：未知 criterion 返回 400；gate 未就绪 deploy 返回 412；部署新版本重置 canary 计数
+  - 测试：`tests/test_device_ota.py` 13 passed
+
+- **验证**
+  - `python -m pytest tests/test_device_*.py tests/test_route_registry.py -q` → 452 passed
+  - `ruff check` on all touched files → clean
+  - 代码审查 skill 驱动：review → 修复 → 再验证闭环完成
+
+
 ## 2026-06-15 route_policy backend 字段贯通（阶段 2 子项目 #5）
 
 - 固件先行：edge_c/edge_b schema route_policy 加可选 backend + downlink example 补字段；固件 CI schema 门 62/62（commit `5004082`）。

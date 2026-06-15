@@ -15,7 +15,10 @@ from device_gateway.tasks import (
     active_tasks_for_device,
     create_task_from_transcript,
     enqueue_pending_task,
+    execute_recovery,
+    mark_task_dispatched,
     record_motion_event,
+    remove_pending_task,
 )
 from device_ledger.events import new_event
 from device_ledger.store import ledger_store
@@ -162,6 +165,42 @@ async def handle_motion_event(device_id: str, message: dict[str, Any], request_i
     shadow_store.update_motion_event(message)
     ack_processing_task(device_id, message["task_id"])
     record_motion_event_observability(message, device_id)
+
+    # M5: execute recovery action on failure
+    recovery_result = execute_recovery(message.get("task_id", ""), device_id, message)
+    if recovery_result:
+        _log.info(
+            "device recovery action=%s attempt=%s device_id=%s task_id=%s",
+            recovery_result["action"],
+            recovery_result.get("attempt", 0),
+            device_id,
+            message.get("task_id", ""),
+        )
+        session = registry.get(device_id)
+        if session is not None:
+            # Notify device about recovery action (home/retry)
+            action = recovery_result["action"]
+            retry_task = recovery_result.get("task")
+            if action == "home":
+                await session.send_json(
+                    ack_frame("home_command", device_id,
+                              task_id=message.get("task_id", ""),
+                              reason="recovery_action_home",
+                              request_id=request_id)
+                )
+            elif action == "retry" and retry_task:
+                await session.send_json(
+                    ack_frame("motion_task_retry", device_id,
+                              task_id=message.get("task_id", ""),
+                              task=retry_task,
+                              attempt=recovery_result.get("attempt", 0),
+                              request_id=request_id)
+                )
+                # Avoid double-delivery via pending queue; task is already inflight.
+                session.mark_task_dispatched(retry_task)
+                mark_task_dispatched(retry_task["task_id"])
+                remove_pending_task(device_id, retry_task["task_id"])
+
     session = registry.get(device_id)
     if session is not None:
         session.mark_task_acknowledged(message["task_id"])
@@ -210,63 +249,6 @@ async def handle_self_check(device_id: str, message: dict[str, Any], request_id:
                 "self_check_ack",
                 device_id,
                 status=message.get("status", "unknown"),
-                request_id=request_id,
-            )
-        )
-
-
-async def handle_voiceprint_sample(
-    websocket: WebSocket,
-    device_id: str,
-    message: dict[str, Any],
-    request_id: str | None,
-) -> None:
-    validated = shadow_store.validate_voiceprint_sample(message)
-    member_id = validated.get("member_id")
-    voiceprint_id = validated.get("voiceprint_id")
-    sample_index = validated.get("sample_index", 0)
-
-    try:
-        from session_memory.store_db import upsert_voiceprint_sample
-
-        upsert_voiceprint_sample(
-            voiceprint_id=voiceprint_id,
-            member_id=member_id,
-            device_id=device_id,
-            sample_index=sample_index,
-            audio_data=validated.get("audio_data"),
-            format=validated.get("format", "raw_pcm"),
-        )
-
-        ack = build_voiceprint_sample_ack(
-            device_id=device_id,
-            voiceprint_id=voiceprint_id,
-            sample_index=sample_index,
-            request_id=request_id,
-        )
-        await websocket.send_json(ack)
-    except ImportError:
-        _log.debug("session_memory.store_db not installed; skipping voiceprint sample validation")
-        await websocket.send_json(
-            ack_frame(
-                "voiceprint_sample_ack",
-                device_id,
-                voiceprint_id=voiceprint_id,
-                sample_index=sample_index,
-                request_id=request_id,
-            )
-        )
-        return
-
-    shadow_store.update_voiceprint_sample(message)
-    session = registry.get(device_id)
-    if session is not None:
-        await session.send_json(
-            ack_frame(
-                "voiceprint_sample_ack",
-                device_id,
-                voiceprint_id=voiceprint_id,
-                sample_index=sample_index,
                 request_id=request_id,
             )
         )

@@ -27,6 +27,13 @@ def test_release_gate_status():
     assert status["criteria"]["tests_passing"] is True
 
 
+def test_release_gate_rejects_unknown_criterion():
+    """Unknown criteria are rejected and state is unchanged."""
+    gate = ReleaseGate()
+    assert gate.set_criteria("unknown_criterion", True) is False
+    assert gate.is_ready() is False
+
+
 def test_canary_identifies_devices():
     """Canary deployment identifies canary devices."""
     canary = CanaryDeployment()
@@ -64,3 +71,127 @@ def test_canary_not_healthy_without_data():
     canary = CanaryDeployment()
     canary.add_canary_device("dev_1")
     assert canary.is_healthy() is False  # No data yet
+
+
+# ── Route tests ─────────────────────────────────────────────────────────
+
+
+def test_ota_route_unknown_criterion_returns_400(monkeypatch):
+    """Admin endpoint rejects unknown release criteria."""
+    monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
+
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from routes.device_ota import router
+
+    app = FastAPI()
+    app.include_router(router)
+    client = TestClient(app)
+
+    response = client.post(
+        "/device/v1/ota/release/criteria",
+        headers={"Authorization": "Bearer test-private-token"},
+        params={"name": "unknown_criterion", "passed": "true"},
+    )
+    assert response.status_code == 400
+    assert "unknown_criterion" in response.json()["detail"]
+
+
+def _ota_client(monkeypatch):
+    monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
+
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from routes.device_ota import router, _gate, _canary
+
+    # Reset shared state for test isolation
+    _gate.criteria = {name: False for name in _gate.criteria}
+    _canary.canary_devices.clear()
+    _canary.deployed_version = ""
+    _canary.success_count = 0
+    _canary.failure_count = 0
+
+    app = FastAPI()
+    app.include_router(router)
+    return TestClient(app)
+
+
+def test_ota_route_known_criterion_returns_200(monkeypatch):
+    """Admin endpoint accepts known release criteria."""
+    client = _ota_client(monkeypatch)
+
+    response = client.post(
+        "/device/v1/ota/release/criteria",
+        headers={"Authorization": "Bearer test-private-token"},
+        params={"name": "tests_passing", "passed": "true"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["ok"] is True
+    assert data["name"] == "tests_passing"
+
+
+def test_ota_deploy_blocked_until_gate_ready(monkeypatch):
+    """Deploy is rejected until all release criteria pass."""
+    client = _ota_client(monkeypatch)
+
+    response = client.post(
+        "/device/v1/ota/deploy/v2.0.0",
+        headers={"Authorization": "Bearer test-private-token"},
+    )
+    assert response.status_code == 412
+    assert "release gate not ready" in response.json()["detail"]
+
+
+def test_ota_deploy_succeeds_when_gate_ready(monkeypatch):
+    """Deploy succeeds once all release criteria pass."""
+    client = _ota_client(monkeypatch)
+
+    for name in ("tests_passing", "canary_verified", "safety_review"):
+        r = client.post(
+            "/device/v1/ota/release/criteria",
+            headers={"Authorization": "Bearer test-private-token"},
+            params={"name": name, "passed": "true"},
+        )
+        assert r.status_code == 200
+
+    response = client.post(
+        "/device/v1/ota/deploy/v2.0.0",
+        headers={"Authorization": "Bearer test-private-token"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["ok"] is True
+    assert data["version"] == "v2.0.0"
+
+
+def test_ota_canary_success_failure_lifecycle(monkeypatch):
+    """Canary success/failure endpoints update counters and health."""
+    client = _ota_client(monkeypatch)
+
+    client.post(
+        "/device/v1/ota/canary/devices/dev-1",
+        headers={"Authorization": "Bearer test-private-token"},
+    )
+
+    r1 = client.post(
+        "/device/v1/ota/canary/record-success/dev-1",
+        headers={"Authorization": "Bearer test-private-token"},
+    )
+    assert r1.status_code == 200
+    assert r1.json()["success_count"] == 1
+
+    r2 = client.post(
+        "/device/v1/ota/canary/record-failure/dev-1",
+        headers={"Authorization": "Bearer test-private-token"},
+    )
+    assert r2.status_code == 200
+    assert r2.json()["failure_count"] == 1
+    assert r2.json()["healthy"] is False
+
+    r3 = client.delete(
+        "/device/v1/ota/canary/devices/dev-1",
+        headers={"Authorization": "Bearer test-private-token"},
+    )
+    assert r3.status_code == 200
+    assert r3.json()["ok"] is True
