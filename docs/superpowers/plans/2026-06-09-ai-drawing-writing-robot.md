@@ -65,11 +65,11 @@
 5. 生成绘画必须经过模型准入、向量化、边界校验、点数限制和预览 artifact。
 6. 上传图片必须经过隐私/内容策略、图像简化和路径校验。
 
-详细规则以 `docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE.md` 为准。
+详细规则以 `docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_CN.md` 为准。
 
 ## 当前已落地
 
-- `docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE.md` 已成为设备模型路由准则。
+- `docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_CN.md` 已成为设备模型路由准则。
 - `device_gateway/model_routing.py` 已定义设备任务路由角色：
   `device_control`、`device_write`、`device_draw`、`device_vector`、
   `device_unknown`。
@@ -154,11 +154,11 @@ python -m pytest tests/test_device_gateway_model_routing.py tests/test_device_ga
 
 ## 关联文档
 
-- `docs/PROJECT_OPTIMIZATION_ROADMAP.md`
-- `docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE.md`
-- `docs/ESP32S_XYZ_MANAGEMENT.md`
-- `docs/REQUEST_PIPELINE_AUTHORITY.md`
+- `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md`
+- `docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_CN.md`
+- `docs/ESP32S_XYZ_MANAGEMENT_CN.md`
+- `docs/REQUEST_PIPELINE_AUTHORITY_CN.md`
 - `docs/device_protocol_alignment.md`
 - `STATUS.md`
 - `progress.md`
-- `docs/LIMA_MEMORY.md`
+- `docs/LIMA_MEMORY_CN.md`

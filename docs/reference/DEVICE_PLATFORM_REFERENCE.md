@@ -82,7 +82,7 @@ TB CE 适合「多设备台账 + 可视化 + 规则」；LiMa 仅需 **编码生
 | 选项 | 用途 | 状态 |
 |------|------|------|
 | `esp32S_XYZ/fake-u8` smoke | 无真机联调 | ✅ 已有 fake smoke |
-| ESPHome compose | 传感器样机 | **不默认部署**；见 `docs/ESP32S_XYZ_MANAGEMENT.md` |
+| ESPHome compose | 传感器样机 | **不默认部署**；见 `docs/ESP32S_XYZ_MANAGEMENT_CN.md` |
 
 PE-F-1 不在生产路径增加 ESPHome 依赖。
 
@@ -113,8 +113,8 @@ PE-F-1 不在生产路径增加 ESPHome 依赖。
 | 文档 | 内容 |
 |------|------|
 | `docs/superpowers/plans/2026-05-25-lima-device-gateway-ha.md` | Redis HA 队列语义 |
-| `docs/ONLINE_DISTRIBUTIONS.md` | 公网 `/device/v1/*` 路由 |
-| `docs/ESP32S_XYZ_MANAGEMENT.md` | ESP32/fake-u8 证据 |
+| `docs/ONLINE_DISTRIBUTIONS_CN.md` | 公网 `/device/v1/*` 路由 |
+| `docs/ESP32S_XYZ_MANAGEMENT_CN.md` | ESP32/fake-u8 证据 |
 | `docs/OPENOBSERVE_SETUP.md` | 历史日志（FRP/Redis/DG 场景） |
 
 ## 7. 验收（PE-F-1）

@@ -5,6 +5,12 @@
 > Updated: 2026-06-15
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-15 route_policy backend 字段贯通（阶段 2 子项目 #5）
+
+- 固件先行：edge_c/edge_b schema route_policy 加可选 backend + downlink example 补字段；固件 CI schema 门 62/62（commit `5004082`）。
+- 主仓库后行：model_routing `_policy()` 加 backend 参数、`resolve_device_route_policy` 复用 `get_preferred_backend` 填充、`record_route_evidence` 联动（commit `58d4b01`）；修正 matrix 测试；新增 4 个断点修复测试（commit `e454c3f`）；更新 submodule 指针。
+- 断点修复证据：draw 任务的 `route_policy.backend` 从缺失变为 `"dashscope_wanx"`。
+- 验证：固件 schema 门 + 主仓库 model_routing 29 passed + 新测试 4 passed + retention/routes 回归 66 passed + ruff clean。
 ## 2026-06-15 Edge-C route_policy 硬契约（阶段 1 缺口 A 收尾）
 
 关闭设备路由契约阶段 1 缺口 A。详见 spec `docs/superpowers/specs/2026-06-15-edge-c-route-policy-hard-contract-design.md` 与 plan `docs/superpowers/plans/2026-06-15-edge-c-route-policy-hard-contract.md`。
