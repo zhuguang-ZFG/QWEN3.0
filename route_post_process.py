@@ -39,20 +39,7 @@ def apply_post_route_integrations(
         except Exception as exc:
             _warn("narrative", exc)
 
-    try:
-        from context_pipeline.hierarchical_memory import get_hierarchical_memory
-        hmem = get_hierarchical_memory()
-        hmem.update_performance(final_backend, ms, bool(answer))
-        hmem.set_global_fact(f"last_scenario:{scenario}", final_backend)
-        if ms > 0:
-            hmem.save()
-    except ImportError:
-        pass
-    except Exception as exc:
-        _warn("hierarchical_memory", exc)
-
-    # routing_bridge: only update hierarchical memory and session enhancer
-    # (routing_weights is handled by the response pipeline below)
+    # routing_bridge: routing_weights handled by response pipeline below
     try:
         from context_pipeline.routing_bridge import record_routing_outcome
         record_routing_outcome(final_backend, ms, bool(answer), scenario, skip_weights=True)
@@ -60,15 +47,6 @@ def apply_post_route_integrations(
         pass
     except Exception as exc:
         _warn("routing_bridge", exc)
-
-    try:
-        if answer and scenario == "coding":
-            from context_pipeline.session_memory_enhancer import process_session_outcome
-            process_session_outcome(
-                messages, backend=final_backend, scenario=scenario, success=bool(answer),
-            )
-    except Exception as exc:
-        _warn("session_memory_enhancer", exc)
 
     # Cloud services logging (Supabase + LangSmith)
     try:

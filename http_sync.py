@@ -49,17 +49,8 @@ def _caller():
 
 
 def _apply_artifact_handles(messages: list[dict]) -> None:
-    try:
-        from context_pipeline.artifact import create_handle, should_use_handle
-
-        for index, msg in enumerate(messages):
-            if isinstance(msg, dict) and msg.get("role") == "user":
-                content = msg.get("content", "")
-                if isinstance(content, str) and should_use_handle(content):
-                    handle = create_handle(f"message:{index}", content)
-                    messages[index] = {**msg, "content": handle.to_context_line()}
-    except ImportError:
-        _log.debug("context_pipeline.artifact not installed; artifact handles skipped")
+    """Artifact handle compression retired with context_pipeline.artifact (CP-1)."""
+    return
 
 
 def _record_success_telemetry(

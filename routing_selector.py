@@ -119,15 +119,6 @@ def select(request_type: str, health_map: dict,
     """从对应池选健康后端，按健康评分排序，过滤预算耗尽，sticky 优先"""
     import backends_registry as reg
 
-    # Read hierarchical memory for experience-based routing
-    try:
-        from context_pipeline.hierarchical_memory import get_hierarchical_memory
-        hmem = get_hierarchical_memory()
-        mem_context = hmem.get_context_for_routing("", scenario)
-        _preferred = mem_context.get("preferred_backends", []) if isinstance(mem_context, dict) else []
-    except Exception:
-        _preferred = []
-
     pool_key = request_type
     if request_type == "chat" and scenario == "coding":
         pool_key = "code"
@@ -231,10 +222,6 @@ def select(request_type: str, health_map: dict,
                 scores[b] *= float(guard_decision.get("penalty_multiplier", 1.0))
             except (TypeError, ValueError):
                 scores[b] *= 1.0
-
-        # Hierarchical memory boost for preferred backends
-        if b in _preferred:
-            scores[b] *= 1.15
 
     # ML prediction boost — batch apply after per-backend scoring
     try:

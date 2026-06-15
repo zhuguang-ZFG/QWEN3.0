@@ -1,22 +1,9 @@
-"""Tests for B1 (auto-indexer) + B3 (session memory enhancer)."""
+"""Tests for B1 (auto-indexer)."""
 
 from __future__ import annotations
 
-
-
 from context_pipeline.auto_indexer import AutoIndexer
-from context_pipeline.session_memory_enhancer import (
-    ExtractedDecision,
-    extract_decisions,
-    store_decisions,
-    process_session_outcome,
-    recall_relevant_decisions,
-)
 
-
-# ---------------------------------------------------------------------------
-# B1: Auto-Indexer
-# ---------------------------------------------------------------------------
 
 class TestAutoIndexer:
     def test_scan_once_empty_dir(self, tmp_path):
@@ -70,76 +57,3 @@ class TestAutoIndexer:
         indexer.scan_once()
         assert indexer._graph is not None
         assert indexer._graph.edge_count > 0
-
-
-# ---------------------------------------------------------------------------
-# B3: Session Memory Enhancer
-# ---------------------------------------------------------------------------
-
-class TestExtractDecisions:
-    def test_extracts_tool_choice(self):
-        messages = [
-            {"role": "user", "content": "Use FastAPI for the API layer"},
-            {"role": "assistant", "content": "Sure, I'll use FastAPI."},
-        ]
-        decisions = extract_decisions(messages)
-        assert any(d.category == "tool_choice" for d in decisions)
-
-    def test_extracts_convention(self):
-        messages = [
-            {"role": "user", "content": "Convention is to use snake_case for functions"},
-        ]
-        decisions = extract_decisions(messages)
-        assert any(d.category == "convention" for d in decisions)
-
-    def test_extracts_backend_pref(self):
-        messages = [
-            {"role": "assistant", "content": "groq is fast for this task"},
-        ]
-        decisions = extract_decisions(messages)
-        assert any(d.category == "backend_pref" for d in decisions)
-
-    def test_empty_messages(self):
-        decisions = extract_decisions([])
-        assert len(decisions) == 0
-
-    def test_deduplicates(self):
-        messages = [
-            {"role": "user", "content": "Use FastAPI for the API. Prefer FastAPI for routing."},
-        ]
-        decisions = extract_decisions(messages)
-        tool_choices = [d for d in decisions if d.category == "tool_choice"]
-        assert len(tool_choices) <= 2
-
-    def test_with_backend_and_scenario(self):
-        decisions = extract_decisions([], backend="groq", scenario="coding")
-        assert any(d.category == "routing_preference" for d in decisions)
-
-
-class TestStoreDecisions:
-    def test_store_returns_count(self):
-        decisions = [
-            ExtractedDecision(category="pattern", key="repository pattern", confidence=0.8),
-        ]
-        count = store_decisions(decisions)
-        assert count == 1
-
-
-class TestProcessSessionOutcome:
-    def test_processes成功的session(self):
-        messages = [
-            {"role": "user", "content": "Use pytest for testing"},
-            {"role": "assistant", "content": "I'll use pytest."},
-        ]
-        count = process_session_outcome(messages, backend="groq", scenario="coding", success=True)
-        assert count >= 0
-
-    def test_skips_failed_session(self):
-        count = process_session_outcome([], success=False)
-        assert count == 0
-
-
-class TestRecallDecisions:
-    def test_recall_empty(self):
-        results = recall_relevant_decisions("nonexistent topic xyz")
-        assert isinstance(results, list)

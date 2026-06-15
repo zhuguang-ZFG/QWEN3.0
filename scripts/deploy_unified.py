@@ -69,7 +69,6 @@ SLICE_FILES = {
     "phase_b": [
         "context_pipeline/response_validator.py",
         "context_pipeline/auto_indexer.py",
-        "context_pipeline/session_memory_enhancer.py",
         "route_post_process.py",
     ],
 }

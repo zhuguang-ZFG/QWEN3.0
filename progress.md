@@ -2,8 +2,16 @@
 
 > Created: 2026-05-22
 
-> Updated: 2026-06-15
+> Updated: 2026-06-16
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
+
+## 2026-06-16 CP-1 context_pipeline 冷模块删除（去缝合）
+
+- **文档**：`docs/CODEBASE_COLD_PRUNE_PRIORITY_CN.md` 落盘并索引；`CODEBASE_SUBSYSTEM_TIER_CN.md` 交叉链接
+- **删除**（5 模块 + 2 测试文件）：`reflection`、`session_memory_enhancer`、`artifact`、`hierarchical_memory`、`memory_persistence`；`tests/test_artifact.py`、`tests/test_reflection.py`
+- **生产清理**：`routing_selector`、`route_post_process`、`routing_bridge`、`http_sync`、`deploy_unified.py` 移除对应 lazy import / 部署清单项
+- **保留**：`entity_extraction`（`retrieval_injection` Hot lazy）
+- **验证**：`pytest tests/test_retrieval_injection.py tests/test_routing_engine.py tests/test_device_gateway_model_routing.py tests/test_pipeline_integration.py tests/test_advanced_patterns.py tests/test_phase_b.py tests/test_backend_registry.py -q`；`ruff check` 触及文件
 
 ## 2026-06-16 M12 设备 profile 接入 route_policy（阶段 3 启动）
 

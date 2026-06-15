@@ -1,7 +1,3 @@
-from context_pipeline.hierarchical_memory import (
-    HierarchicalMemory,
-    MemoryLayer,
-)
 from context_pipeline.skill_store import SkillStore
 from context_pipeline.evolution import (
     EvolutionStrategy,
@@ -9,50 +5,6 @@ from context_pipeline.evolution import (
     get_strategy_config,
     apply_strategy_to_backends,
 )
-
-
-# === Phase 16: Hierarchical Memory ===
-
-def test_memory_layer_set_and_get():
-    layer = MemoryLayer(0, "test", max_entries=5)
-    layer.set("key1", "value1")
-    assert layer.get("key1") == "value1"
-    assert layer.get("missing") is None
-
-
-def test_memory_layer_eviction():
-    layer = MemoryLayer(0, "test", max_entries=3)
-    layer.set("a", 1)
-    layer.set("b", 2)
-    layer.set("c", 3)
-    layer.set("d", 4)
-    assert layer.get("a") is None
-    assert layer.get("d") == 4
-
-
-def test_hierarchical_memory_l0_rules():
-    mem = HierarchicalMemory()
-    assert mem.L0.get("max_retries") == 3
-    assert mem.L0.get("timeout_ms") == 30000
-
-
-def test_hierarchical_memory_performance_update():
-    mem = HierarchicalMemory()
-    mem.update_performance("scnet_qwen72b", 500, True)
-    mem.update_performance("scnet_qwen72b", 700, True)
-    mem.update_performance("scnet_qwen72b", 1000, False)
-    stats = mem.L1.get("perf:scnet_qwen72b")
-    assert stats["total"] == 3
-    assert stats["success"] == 2
-    assert abs(stats["success_rate"] - 2/3) < 0.01
-
-
-def test_hierarchical_memory_skill_store():
-    mem = HierarchicalMemory()
-    mem.store_skill("coding:fix_bug", {"backend": "scnet", "latency": 500})
-    result = mem.find_skill("fix_bug")
-    assert result is not None
-    assert result["backend"] == "scnet"
 
 
 # === Phase 17: Skill Crystallization ===

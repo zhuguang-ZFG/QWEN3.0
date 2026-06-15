@@ -1,6 +1,6 @@
 # context_pipeline
 
-> 更新：2026-06-15
+> 更新：2026-06-16
 > 权威分层：[`docs/CODEBASE_SUBSYSTEM_TIER_CN.md`](../docs/CODEBASE_SUBSYSTEM_TIER_CN.md) §5
 
 **不要**把整个目录都当成聊天热路径。仅下表 **Hot** 五模块在绝大多数 `/v1/chat` 与路由决策中会同步触及；其余为 Warm（条件/后台）或 Cold（实验/离线评测）。
@@ -21,9 +21,9 @@
 
 ## Cold（实验 / 离线）
 
-`evolution.py`、`reflection.py`、`graph_retrieval.py`、`hierarchical_memory.py`、`retrieval_eval*.py`、`complexity.py` 等——**不得**在 `server.py` 启动或设备热路径默认 import。准入与评测产物见 `local_retrieval/`、`scripts/eval_loop*`。
+`evolution.py`、`graph_retrieval.py`、`retrieval_eval*.py`、`complexity.py` 等——**不得**在 `server.py` 启动或设备热路径默认 import。准入与评测产物见 `local_retrieval/`、`scripts/eval_loop*`。
 
-**已退役（2026-06-15 CodeGraph 瘦身）**：`ensemble.py`、`concurrency_pool.py`、`index_protocol.py`、`reranker_protocol.py`（仅测试引用，已删）。
+**已退役（CodeGraph 瘦身 + CP-1）**：`ensemble.py`、`concurrency_pool.py`、`index_protocol.py`、`reranker_protocol.py`、`reflection.py`、`hierarchical_memory.py`、`memory_persistence.py`、`session_memory_enhancer.py`、`artifact.py`（`device_artifacts/` 与 `context_pipeline/artifact` 无关）。
 
 ## 维护约定
 

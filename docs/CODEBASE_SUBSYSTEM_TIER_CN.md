@@ -174,6 +174,8 @@ provider_probe/
 | P3 | `context_pipeline/lab/` 物理搬迁 | context_pipeline cold | 重构（需设计文档） |
 | P4 | `provider_probe` 归档或仅保留 JDCloud 节点部署包 | provider_probe | 运维 |
 
+**下一批可执行清单**（含 CodeGraph `--fanin` 证据与批次验证命令）：[`CODEBASE_COLD_PRUNE_PRIORITY_CN.md`](CODEBASE_COLD_PRUNE_PRIORITY_CN.md)
+
 ---
 
 ## 10. 验证与复现

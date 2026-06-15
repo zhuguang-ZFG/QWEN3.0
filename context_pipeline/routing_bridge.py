@@ -1,8 +1,7 @@
-"""Routing bridge — wires evolution, reflection, and memory into routing decisions.
+"""Routing bridge — wires evolution strategy and routing weights into routing decisions.
 
-Connects the existing context_pipeline components (evolution strategy selection,
-routing reflection, hierarchical memory) to the actual request flow via
-route_post_process.py.
+Connects context_pipeline evolution (optional) and routing_weights to
+route_post_process.py. Hierarchical memory / reflection retired (CP-1).
 """
 
 from __future__ import annotations
@@ -65,25 +64,7 @@ def reflect_and_adjust(
     success: bool,
     scenario: str,
 ) -> RoutingDecision:
-    """Apply reflection correction after a routing outcome."""
-    try:
-        from context_pipeline.reflection import reflect_on_routing
-        result = reflect_on_routing(backend, scenario, ide="")
-        corrected = getattr(result, "corrected_backend", None) or str(result)
-        was_corrected = getattr(result, "was_corrected", False)
-        if was_corrected and corrected != backend:
-            _log.info("reflection adjusted: %s -> %s", backend, corrected)
-            return RoutingDecision(
-                backend=corrected,
-                strategy="reflection_correction",
-                confidence=0.8,
-                reflection_notes=[f"corrected {backend} -> {corrected}"],
-            )
-    except ImportError:
-        _log.debug("reflection module not available")
-    except Exception as exc:
-        _log.debug("reflection failed: %s", exc)
-
+    """Post-route reflection hook (retired; kept for routing_bridge API stability)."""
     return RoutingDecision(backend=backend, strategy="unchanged")
 
 
@@ -94,14 +75,7 @@ def record_routing_outcome(
     scenario: str,
     skip_weights: bool = False,
 ) -> None:
-    """Record routing outcome into hierarchical memory and routing weights."""
-    try:
-        from context_pipeline.hierarchical_memory import get_hierarchical_memory
-        hmem = get_hierarchical_memory()
-        hmem.update_performance(backend, latency_ms, success)
-    except Exception as exc:
-        _log.debug("hierarchical_memory update failed: %s", exc)
-
+    """Record routing outcome into routing weights."""
     if not skip_weights:
         try:
             from context_pipeline.routing_weights import get_routing_weights
@@ -115,16 +89,5 @@ def record_routing_outcome(
 
 
 def get_metrics_snapshot() -> dict:
-    """Collect metrics from hierarchical memory for evolution strategy."""
-    try:
-        from context_pipeline.hierarchical_memory import get_hierarchical_memory
-        hmem = get_hierarchical_memory()
-        perf_entries = hmem.L1.search("perf:")
-        return {
-            "backends": {
-                k.replace("perf:", ""): v
-                for k, v in perf_entries
-            }
-        }
-    except Exception:
-        return {}
+    """Collect metrics for evolution strategy (hierarchical memory retired)."""
+    return {}

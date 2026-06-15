@@ -252,29 +252,4 @@ def test_backend_set_enabled_and_is_enabled():
 
 
 # ── Reflection uses registry ─────────────────────────────────────────────────────
-
-
-def test_reflection_uses_backend_registry_capabilities(monkeypatch):
-    from context_pipeline.reflection import reflect_on_routing
-
-    monkeypatch.setitem(
-        backends_registry.BACKENDS,
-        "unit_code_backend",
-        {
-            "url": "https://example.test/v1/chat/completions",
-            "key": "none",
-            "model": "unit-code",
-            "fmt": "openai",
-            "caps": ["code"],
-        },
-    )
-
-    result = reflect_on_routing(
-        backend="pollinations",
-        scenario="coding",
-        ide="",
-        available_backends=["pollinations", "unit_code_backend"],
-    )
-
-    assert result.was_corrected
-    assert result.corrected_backend == "unit_code_backend"
+# (context_pipeline.reflection retired in CP-1; backend capability checks live in routing_selector.)
