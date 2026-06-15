@@ -1,13 +1,8 @@
-"""Tests for context_pipeline: graph_retrieval, reranking, entity_extraction, retrieval_eval."""
+"""Tests for context_pipeline: graph_retrieval and reranking."""
 from context_pipeline.graph_retrieval import (
     CodeGraph, RetrievalResult, dual_layer_search,
 )
 from context_pipeline.reranking import rerank_results, format_for_injection
-from context_pipeline.retrieval_eval import (
-    RetrievalQuery, evaluate_single, evaluate_queries,
-    compute_recall, compute_precision_at_k, compute_reciprocal_rank,
-    format_summary,
-)
 
 
 # -- CodeGraph ------------------------------------------------------------------
@@ -138,89 +133,3 @@ def test_format_for_injection_respects_max_chars():
 
 def test_format_for_injection_empty():
     assert format_for_injection([]) == ""
-
-
-# -- retrieval_eval -------------------------------------------------------------
-
-def test_compute_recall_full():
-    assert compute_recall(["a.py", "b.py"], ["a.py", "b.py", "c.py"]) == 1.0
-
-
-def test_compute_recall_partial():
-    assert compute_recall(["a.py", "b.py", "c.py"], ["a.py"]) == 1.0 / 3.0
-
-
-def test_compute_recall_empty_expected():
-    assert compute_recall([], ["a.py"]) == 1.0
-
-
-def test_compute_precision_at_k():
-    expected = ["a.py", "b.py"]
-    retrieved = ["a.py", "c.py", "d.py"]
-    assert compute_precision_at_k(expected, retrieved, k=2) == 0.5
-    assert compute_precision_at_k(expected, retrieved, k=1) == 1.0
-
-
-def test_compute_reciprocal_rank_first():
-    assert compute_reciprocal_rank(["target"], ["target", "a", "b"]) == 1.0
-
-
-def test_compute_reciprocal_rank_third():
-    assert compute_reciprocal_rank(["target"], ["a", "b", "target"]) == 1.0 / 3.0
-
-
-def test_compute_reciprocal_rank_miss():
-    assert compute_reciprocal_rank(["target"], ["a", "b", "c"]) == 0.0
-
-
-def test_evaluate_single():
-    q = RetrievalQuery(query="find routing", expected_paths=["routing_engine.py"])
-    result = evaluate_single(q, ["routing_engine.py", "http_caller.py"])
-    assert result.hit is True
-    assert result.recall == 1.0
-    assert result.reciprocal_rank == 1.0
-
-
-def test_evaluate_single_miss():
-    q = RetrievalQuery(query="find routing", expected_paths=["routing_engine.py"])
-    result = evaluate_single(q, ["other.py"])
-    assert result.hit is False
-    assert result.recall == 0.0
-
-
-def test_evaluate_queries_summary():
-    queries = [
-        RetrievalQuery("q1", ["a.py"]),
-        RetrievalQuery("q2", ["b.py"]),
-    ]
-    retrieved = [["a.py", "c.py"], ["x.py"]]
-    summary = evaluate_queries(queries, retrieved, k=5)
-    assert summary.queries == 2
-    assert summary.hit_rate == 0.5
-    assert summary.mean_recall == 0.5
-
-
-def test_evaluate_queries_counts_missing_retrieval_as_miss():
-    queries = [
-        RetrievalQuery("q1", ["a.py"]),
-        RetrievalQuery("q2", ["b.py"]),
-    ]
-    summary = evaluate_queries(queries, [["a.py"]], k=5)
-
-    assert summary.queries == 2
-    assert summary.results[1].retrieved_paths == []
-    assert summary.hit_rate == 0.5
-
-
-def test_format_summary():
-    q = RetrievalQuery("test", ["a.py"])
-    result = evaluate_single(q, ["a.py"])
-    from context_pipeline.retrieval_eval import EvalSummary
-    summary = EvalSummary(
-        queries=1, mean_recall=1.0, mean_precision_at_k=1.0,
-        hit_rate=1.0, mean_mrr=1.0, results=[result],
-    )
-    text = format_summary(summary)
-    assert "Queries: 1" in text
-    assert "Recall" in text and "1.000" in text
-    assert "Hit Rate" in text

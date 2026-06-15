@@ -20,16 +20,11 @@ ROOT_KEEP = frozenset({"server.py", "conftest.py"})
 
 # Cold modules eligible for test-only pruning (see docs/CODEBASE_SUBSYSTEM_TIER_CN.md)
 COLD_MODULES = [
-    "evolution",
     "graph_retrieval",
-    "retrieval_eval",
-    "retrieval_eval_runner",
     "complexity",
     "entity_extraction",
     "graph_context_expander",
     "production_index",
-    "session_memory_enhancer",
-    "signal_extraction",
     "concurrency_pool",
     "index_protocol",
     "reranker_protocol",

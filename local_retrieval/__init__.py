@@ -1,7 +1,6 @@
 """Local retrieval lab without heavy runtime dependencies."""
 
 from local_retrieval.chunking import Chunker, CodeAwareChunker, SimpleTextChunker, TextChunk
-from local_retrieval.eval_bridge import evaluate_index, format_eval_report, make_eval_query
 from local_retrieval.index import InMemoryTokenIndex, LocalRetrievalIndex, RetrievalHit
 from local_retrieval.leann_adapter import (
     LeannAdapterConfig,
@@ -30,9 +29,6 @@ __all__ = [
     "SimpleTextChunker",
     "TextChunk",
     "create_leann_index",
-    "evaluate_index",
-    "format_eval_report",
     "is_leann_available",
     "leann_status",
-    "make_eval_query",
 ]

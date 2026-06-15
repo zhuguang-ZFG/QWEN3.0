@@ -5,6 +5,13 @@
 > Updated: 2026-06-16
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-16 CP-2 context_pipeline 离线评测与进化链删除
+
+- **删除**（4 模块 + eval_bridge + 1 测试文件）：`retrieval_eval`、`retrieval_eval_runner`、`evolution`、`signal_extraction`；`local_retrieval/eval_bridge.py`；`tests/test_retrieval_eval_fixture.py`
+- **生产清理**：`routing_selector` 移除 signal/evolution 重排；`routing_bridge.select_backend_with_evolution` 简化为 fallback
+- **保留**：`production_index` / `retrieval_corpus`（`retrieval_injection` Warm）
+- **验证**：CP-2 切片 **127 passed**；ruff clean（pre-commit）
+
 ## 2026-06-16 CP-1 context_pipeline 冷模块删除（去缝合）
 
 - **文档**：`docs/CODEBASE_COLD_PRUNE_PRIORITY_CN.md` 落盘并索引；`CODEBASE_SUBSYSTEM_TIER_CN.md` 交叉链接

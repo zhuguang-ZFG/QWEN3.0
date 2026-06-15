@@ -21,9 +21,9 @@
 
 ## Cold（实验 / 离线）
 
-`evolution.py`、`graph_retrieval.py`、`retrieval_eval*.py`、`complexity.py` 等——**不得**在 `server.py` 启动或设备热路径默认 import。准入与评测产物见 `local_retrieval/`、`scripts/eval_loop*`。
+`evolution.py`、`graph_retrieval.py`、`retrieval_eval*.py`、`complexity.py` 等——**不得**在 `server.py` 启动或设备热路径默认 import。准入与评测产物见 `local_retrieval/`（索引）、`scripts/eval_loop*`。
 
-**已退役（CodeGraph 瘦身 + CP-1）**：`ensemble.py`、`concurrency_pool.py`、`index_protocol.py`、`reranker_protocol.py`、`reflection.py`、`hierarchical_memory.py`、`memory_persistence.py`、`session_memory_enhancer.py`、`artifact.py`（`device_artifacts/` 与 `context_pipeline/artifact` 无关）。
+**已退役（CodeGraph 瘦身 + CP-1/CP-2）**：`ensemble.py`、`concurrency_pool.py`、`index_protocol.py`、`reranker_protocol.py`、`reflection.py`、`hierarchical_memory.py`、`memory_persistence.py`、`session_memory_enhancer.py`、`artifact.py`、`evolution.py`、`signal_extraction.py`、`retrieval_eval.py`、`retrieval_eval_runner.py`、`local_retrieval/eval_bridge.py`（`device_artifacts/` 与 `context_pipeline/artifact` 无关；`production_index` / `retrieval_corpus` 仍由 `retrieval_injection` Warm 使用）。
 
 ## 维护约定
 

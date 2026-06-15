@@ -247,15 +247,6 @@ def select(request_type: str, health_map: dict,
 
     result = [b for b in result if not health_tracker.is_cooled_down(b)]
 
-    try:
-        from context_pipeline.signal_extraction import extract_signals, recommend_strategy_from_signals
-        from context_pipeline.evolution import apply_strategy_to_backends
-        from context_pipeline.event_log import get_request_log
-        signals = extract_signals(get_request_log())
-        strategy = recommend_strategy_from_signals(signals, backends_available=len(result))
-        result = apply_strategy_to_backends(result, strategy, proven_backends=result[:2])
-    except ImportError:
-        pass
     states = {b: health_tracker.get_backend_state(b) for b in result}
     result = [
         b for b in result

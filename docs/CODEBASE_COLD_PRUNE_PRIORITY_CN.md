@@ -66,16 +66,32 @@ python -m pytest tests/test_retrieval_injection.py tests/test_routing_engine.py 
 
 ---
 
-## P1 — 离线评测 / 进化实验链（CP-2）
+## P1 — 离线评测 / 进化实验链（**CP-2 已关闭 2026-06-16**）
+
+已删除并清理生产 lazy import：
+
+| 模块 | 状态 |
+|------|------|
+| `retrieval_eval.py` + `retrieval_eval_runner.py` | ✅ 已删；`tests/test_retrieval_eval_fixture.py` 移除 |
+| `evolution.py` + `signal_extraction.py` | ✅ 已删；`routing_selector` / `routing_bridge` 清理 |
+| `local_retrieval/eval_bridge.py` | ✅ 已删 |
+
+**CP-2 保留（Warm/Hot）**：`production_index.py` + `retrieval_corpus.py`（`retrieval_injection`）、`graph_retrieval.py`、`complexity.py`。
+
+下一批见 **P2（CP-3）**。
+
+---
+
+## P1（历史规划 — 已由 CP-2 覆盖）
 
 仅测试或 `local_retrieval` 桥接，**不**在 `routing_engine.route()` 主链。
 
 | 模块 | 说明 | 注意 |
 |------|------|------|
-| `retrieval_eval_runner.py` | TEST-ONLY 图引用 | 先删 runner 再删 eval |
-| `retrieval_eval.py` | 引 runner + `local_retrieval/eval_bridge.py` | 评估 `eval_bridge` 是否仅服务离线 |
-| `evolution.py` + `signal_extraction.py` | 进化实验链 | `tests/test_advanced_patterns.py` 需改或删 |
-| `production_index.py` + `retrieval_corpus.py` | 生产语料索引实验 | 确认 `retrieval_injection` 未 lazy 引用后再动 |
+| `retrieval_eval_runner.py` | **CP-2 已删** | — |
+| `retrieval_eval.py` | **CP-2 已删** | — |
+| `evolution.py` + `signal_extraction.py` | **CP-2 已删** | — |
+| `production_index.py` + `retrieval_corpus.py` | **保留** | `retrieval_injection` lazy |
 
 **勿放入 P1**（看似冷、实则 Warm/Hot lazy）：
 

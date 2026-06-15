@@ -6,9 +6,6 @@ from context_pipeline.guardrails import (
     run_input_guardrails,
     GuardrailSeverity,
 )
-from context_pipeline.signal_extraction import extract_signals, recommend_strategy_from_signals
-from context_pipeline.event_log import EventLog, EventType
-from context_pipeline.evolution import EvolutionStrategy
 from context_pipeline.token_budget import (
     estimate_tokens,
     estimate_request_tokens,
@@ -66,41 +63,6 @@ def test_run_input_guardrails_combined():
     messages = [{"role": "user", "content": "normal coding question"}]
     result = run_input_guardrails(messages)
     assert result.passed
-
-
-# === Phase 20: Signal Extraction ===
-
-def test_extract_signals_empty_log():
-    log = EventLog()
-    signals = extract_signals(log)
-    assert signals["error_rate"] == 0.0
-
-
-def test_extract_signals_high_error():
-    log = EventLog()
-    for _ in range(3):
-        log.emit(EventType.RESPONSE_ERROR, backend="groq")
-    log.emit(EventType.RESPONSE_RECEIVED, backend="scnet", latency_ms=500)
-    signals = extract_signals(log)
-    assert signals["error_rate"] > 0.5
-    assert any(s["type"] == "critical_error_rate" for s in signals["signals"])
-
-
-def test_extract_signals_backend_repeated_failure():
-    log = EventLog()
-    for _ in range(5):
-        log.emit(EventType.RESPONSE_ERROR, backend="groq_llama70b")
-    signals = extract_signals(log)
-    assert any(
-        s["type"] == "backend_repeated_failure" and s["backend"] == "groq_llama70b"
-        for s in signals["signals"]
-    )
-
-
-def test_recommend_strategy_from_signals():
-    signals = {"error_rate": 0.6, "fallback_rate": 0.3, "signals": []}
-    strategy = recommend_strategy_from_signals(signals)
-    assert strategy == EvolutionStrategy.REPAIR
 
 
 # === Phase 21: Token Budget ===

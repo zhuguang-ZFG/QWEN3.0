@@ -3,7 +3,6 @@
 
 
 from local_retrieval.chunking import CodeAwareChunker, SimpleTextChunker
-from local_retrieval.eval_bridge import evaluate_index, format_eval_report, make_eval_query
 from local_retrieval.index import InMemoryTokenIndex, RetrievalHit
 from local_retrieval.leann_adapter import (
     LeannAdapterConfig,
@@ -260,42 +259,6 @@ def test_in_memory_token_index_search_order_is_deterministic(tmp_path):
     second = [hit.chunk_id for hit in index.search("alpha", top_k=5)]
 
     assert first == second
-
-
-def test_eval_bridge_with_toy_index_uses_chunk_ids(tmp_path):
-    index = InMemoryTokenIndex(index_id="eval-test")
-    file_path = tmp_path / "doc_0.txt"
-    file_path.write_text(
-        "python routing engine selects backends based on health scores",
-        encoding="utf-8",
-    )
-    index.add_documents([str(file_path)])
-    expected_chunk = index.search("routing engine health", top_k=1)[0].chunk_id
-
-    queries = [make_eval_query("routing engine health", [expected_chunk])]
-    summary = evaluate_index(index, queries, top_k=5)
-
-    assert summary.queries == 1
-    assert summary.mean_recall == 1.0
-    assert summary.hit_rate == 1.0
-    assert summary.mean_mrr == 1.0
-    assert "Recall" in format_eval_report(summary)
-
-
-def test_eval_bridge_empty_queries():
-    index = InMemoryTokenIndex(index_id="eval-empty")
-
-    summary = evaluate_index(index, [], top_k=5)
-
-    assert summary.queries == 0
-    assert summary.mean_recall == 0.0
-
-
-def test_make_eval_query():
-    query = make_eval_query("test query", ["a.py", "b.py"], "test description")
-
-    assert query.query == "test query"
-    assert query.expected_paths == ["a.py", "b.py"]
 
 
 def test_is_leann_available_default_false(monkeypatch):
