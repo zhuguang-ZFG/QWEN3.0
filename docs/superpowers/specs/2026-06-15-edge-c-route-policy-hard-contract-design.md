@@ -35,11 +35,21 @@
 
 **理由**：edge_c 是"设备真正收到的帧"，让这一层硬约束即达成阶段 1 核心价值；edge_b 涉及 Java 跨语言改动，范围过大，留待后续周期。本次同步修复 edge_c 链路上的两处 Python 漏点（motionHandle.py、xiaozhi_compat gateway）+ 2 个 edge_c example，使 edge_c 链路自洽。
 
-### 决策 2：固件侧复制 `generate_route_policy` 纯函数
+### 决策 2：固件侧复制 `generate_route_policy` 纯函数（语义以云端 resolve 为准）
 
-`esp32S_XYZ` 是独立 git submodule 仓库，固件 CI 必须能在无主仓库情况下独立运行。因此固件侧 `motionHandle.py` 内复制一份 `generate_route_policy`（与 `esp32s_adapter/protocol.py:10-32` 一致的 32 行纯函数），不跨仓库 import。
+`esp32S_XYZ` 是独立 git submodule 仓库，固件 CI 必须能在无主仓库情况下独立运行。因此固件侧 `motionHandle.py` 内复制一份 `generate_route_policy` 纯函数，不跨仓库 import。
 
-**复制可接受的依据**：纯函数、无外部依赖、极少变化（capability→policy 静态映射）。在 docstring 标注"须与 `esp32s_adapter/protocol.py:generate_route_policy` 保持同步"，双端测试守护一致性。
+**复制可接受的依据**：纯函数、无外部依赖、极少变化（capability→policy 静态映射）。在 docstring 标注"须与 `device_gateway/model_routing.py:resolve_device_route_policy` 语义保持同步"，双端测试守护一致性。
+
+**语义统一（重要）**：计划阶段发现 `esp32s_adapter/protocol.py:generate_route_policy` 的 run_path 分支返回 `device_write`，而权威的 `resolve_device_route_policy`（model_routing.py:142-143）返回 `device_vector`（schema example `device_vector.json` 亦印证）。固件复制时**以云端 resolve 语义为准**（run_path→device_vector），而非照抄 esp32s_adapter，确保 Edge-C 下行帧的 route_role 在固件生成与云端解析两条路径上一致。
+
+固件复制版 `generate_route_policy` 语义表（与 `resolve_device_route_policy` 对齐）：
+
+| capability | route_role | model_required | primary_strategy | artifact_required |
+|-----------|-----------|----------------|------------------|-------------------|
+| home/pause/resume/stop/estop/get_device_info | device_control | false | deterministic | none |
+| run_path | device_vector | false | provided_path | preview_svg |
+| 其他 | device_unknown | true | planner_required | none |
 
 ### 决策 3：云端复用 `resolve_device_route_policy`（单一真相源）
 
