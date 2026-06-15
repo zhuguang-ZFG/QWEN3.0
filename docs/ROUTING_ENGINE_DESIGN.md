@@ -1,5 +1,7 @@
 # routing_engine.py 设计
 
+> **历史文档**：本文档制定于 2026-05-20，描述 routing_engine.py 的初始设计意图。当前权威架构说明见 `docs/REQUEST_PIPELINE_AUTHORITY_CN.md` 和 `docs/ARCHITECTURE.md`。smart_router.py、semantic_cache.py、v3_integration.py 等引用的旧模块已全部删除。
+
 > 日期: 2026-05-20
 > 目标: 合并 smart_router.route + v3_integration + router_v3 为单一统一入口
 > 原则: ≤250行 / 单一职责 / 渐进替换
