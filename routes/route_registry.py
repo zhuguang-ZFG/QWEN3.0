@@ -134,14 +134,8 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
     except ImportError as exc:
         logging.warning("[STARTUP] health_dashboard module not loaded: %s", exc)
 
-    try:
-        from lima_mcp.server import router as mcp_router
-
-        app.include_router(mcp_router)
-        deps.loaded_modules["mcp"] = True
-    except ImportError as exc:
-        logging.warning("[STARTUP] MCP module not loaded: %s", exc)
-        deps.loaded_modules["mcp"] = False
+    # lima_mcp HTTP router retired — see docs/CODEBASE_COLD_PRUNE_PRIORITY_CN.md P5.
+    deps.loaded_modules["mcp"] = False
 
     try:
         from routes.fleet_api import router as fleet_router

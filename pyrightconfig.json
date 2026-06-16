@@ -6,7 +6,6 @@
     "search_gateway/",
     "context_pipeline/",
     "session_memory/",
-    "lima_mcp/",
     "lima_mcp_stdio/",
     "tool_gateway/",
     "chat_models.py",

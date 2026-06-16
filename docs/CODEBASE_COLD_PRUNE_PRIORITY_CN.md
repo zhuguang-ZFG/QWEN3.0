@@ -176,7 +176,7 @@ python -m pytest tests/test_retrieval_injection.py tests/test_routing_engine.py 
 | 候选 | 条件 | 风险 | 状态 |
 |------|------|------|------|
 | `routes/gitee_webhook.py` + `github_webhook.py` | 生产 `*_WEBHOOK_ENABLED=0` 且长期不用 | 中（有测试） | **✅ 已退役 2026-06-17** |
-| `lima_mcp/` 路由 | `route_registry` try-import；若产品不用 MCP 面 | 中（依赖 `graph_retrieval`） | 待评估 |
+| `lima_mcp/` HTTP 路由 | `route_registry` try-import；产品战略转型为设备云端控制平面后不用 MCP 面 | 中（依赖 `graph_retrieval`） | **✅ 已退役 2026-06-17** |
 | ~~`channel_gateway/`~~ | ~~确认无活跃 G3 会话~~ | ~~高~~ | **✅ 已退役 2026-06-16**（见下方 P6） |
 
 **P5 退役内容（2026-06-17）**：
@@ -187,6 +187,13 @@ python -m pytest tests/test_retrieval_injection.py tests/test_routing_engine.py 
 - 更新 `scripts/check_vps_environment.py`：移除 `GITHUB_WEBHOOK_SECRET`、`GITEE_WEBHOOK_SECRET` 检查。
 - 更新 `tests/test_vps_environment_check.py`：改用 `LIMA_ADMIN_TOKEN` 作为 secret 示例。
 - 更新 `.env.example`：移除 `GITHUB_WEBHOOK_*`、`GITEE_WEBHOOK_*` 变量。
+
+**P5 余项 — `lima_mcp/` HTTP 路由退役（2026-06-17）**：
+- 删除 `lima_mcp/` 目录（含 `access_plane.py`、`fs_allowlist.py`、`github/`、`server.py`、`tool_defs.py`、`tools.py` 等）。
+- 删除 `tests/test_mcp_access_plane.py`、`tests/test_hypothesis_fs_allowlist.py`。
+- 更新 `routes/route_registry.py`：移除 `lima_mcp.server` 注册块，改为 `deps.loaded_modules["mcp"] = False`。
+- 更新 `pyrightconfig.json`：移除 `"lima_mcp/"` 条目。
+- 保留 `lima_mcp_stdio/`：它是独立的 stdio MCP 入口（`lima-mimo-mcp` CLI），与 HTTP `lima_mcp` 路由解耦。
 
 **不建议**：为「少缝合」而删 `orchestrate*`（Warm 复杂聊天）；设备战略不依赖，但公共 API 仍可能触发。
 

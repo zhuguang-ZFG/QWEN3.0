@@ -5,6 +5,24 @@
 > Updated: 2026-06-16
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-17 可选 P5 余项：`lima_mcp/` HTTP 路由退役（完成）
+
+- **目标**：执行 [`docs/CODEBASE_COLD_PRUNE_PRIORITY_CN.md`](docs/CODEBASE_COLD_PRUNE_PRIORITY_CN.md) 可选 P5 余项，删除产品战略转型后不再使用的 `lima_mcp` HTTP 路由面。
+- **删除**：
+  - `lima_mcp/` 目录（`__init__.py`、`access_plane.py`、`fs_allowlist.py`、`github/`、`github_handlers.py`、`github_tools.py`、`server.py`、`tool_defs.py`、`tools.py`）。
+  - `tests/test_mcp_access_plane.py`、`tests/test_hypothesis_fs_allowlist.py`。
+- **修改**：
+  - `routes/route_registry.py`：移除 `lima_mcp.server` 注册块，改为 `deps.loaded_modules["mcp"] = False`。
+  - `pyrightconfig.json`：移除 `"lima_mcp/"` 条目。
+  - `docs/CODEBASE_COLD_PRUNE_PRIORITY_CN.md`：P5 表格状态改为「已退役 2026-06-17」，并列出 `lima_mcp` 退役内容。
+- **保留**：`lima_mcp_stdio/` 是独立 stdio MCP 入口（`lima-mimo-mcp` CLI），与 HTTP `lima_mcp` 路由解耦，不删除。
+- **验证**：
+  - `pytest tests/test_route_registry.py tests/test_system_endpoints.py tests/test_mimo_mcp_runner.py tests/test_mimo_mcp_jobs.py -v` → **19 passed**。
+  - `pytest tests/test_retrieval_injection.py tests/test_routing_engine.py tests/test_device_gateway_model_routing.py tests/test_provider_automation_admission.py -q` → **77 passed**。
+  - `ruff check .` → clean。
+  - `python scripts/repo_stats.py` → `python_files=654`，`python_lines=77,460`。
+- **文档同步**：`STATUS.md` scale 更新为 654/77,460，新增最近完成条目。
+
 ## 2026-06-17 认证公开 chat smoke（model=code）（完成）
 
 - **目标**：执行 M13 发布证据剩余阻塞项——使用真实 VPS `LIMA_API_KEY` 验证公开 `/v1/chat/completions` 端点。
