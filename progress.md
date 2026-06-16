@@ -10,15 +10,20 @@
 - **目标**：安装 [Ponytail](https://github.com/DietrichGebert/ponytail) 的精简理念，作为 LiMa 的代码顾问，同时确保 LiMa 硬规则优先。
 - **实现**：
   - 克隆 Ponytail 到 `reference/ponytail/`（本地参考，gitignored）。
-  - Cursor：新增 `.cursor/rules/ponytail.mdc`，并复制到全局 `C:/Users/zhugu/.cursor/rules/ponytail.mdc`。
-  - Kimi：新增 `.kimi-code/rules/ponytail.md`，并复制到全局 `C:/Users/zhugu/.kimi-code/rules/ponytail.md`。
-  - OpenCode：通过更新 `AGENTS.md` 引入 Ponytail 章节；详情拆分到 `docs/AGENTS_PONYTAIL.md` 以保持 `AGENTS.md` ≤300 行。
+  - Cursor：`.cursor/rules/ponytail.mdc` + 全局 `~/.cursor/rules/ponytail.mdc`。
+  - Kimi：`.kimi-code/rules/ponytail.md` + 全局 `~/.kimi-code/rules/ponytail.md`。
+  - OpenCode：通过 `AGENTS.md` + `docs/AGENTS_PONYTAIL.md` 引入。
+  - Claude：项目 `CLAUDE.md` + 全局 `~/.claude/AGENTS.md` 条件章节。
+  - Codex：项目 `AGENTS.md`（已覆盖）+ 全局 `~/.codex/AGENTS.md` 条件章节。
   - 所有 Ponytail 规则均前置 LiMa 覆盖声明：信任边界验证、安全、测试门禁、文档同步等 LiMa 硬规则不可简化。
 - **验证**：
   - `ruff check .` clean。
-  - `wc -l AGENTS.md` → **265 行**（符合 ≤300 行目标）。
+  - `wc -l AGENTS.md` → **265 行**，`CLAUDE.md` → **162 行**（均 ≤300 行）。
   - `wc -l docs/AGENTS_PONYTAIL.md` → 29 行。
-- **提交**：`3f6d046` chore(rules): adopt Ponytail lazy-senior-dev advisor with LiMa override，已 push 到 `origin main`。
+- **提交**：
+  - `3f6d046` chore(rules): adopt Ponytail lazy-senior-dev advisor with LiMa override
+  - `3ddee70` docs(CLAUDE): add Ponytail advisor section and fix dead .agents reference
+  - 均已 push 到 `origin main`。
 
 ## 2026-06-17 按 ECC 开发流程重新整理 LiMa（阶段 1-3 完成）
 

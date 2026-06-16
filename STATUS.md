@@ -34,10 +34,10 @@
   - 克隆 [Ponytail](https://github.com/DietrichGebert/ponytail) 到 `reference/ponytail/`。
   - Cursor：`.cursor/rules/ponytail.mdc` + 全局 `~/.cursor/rules/ponytail.mdc`。
   - Kimi：`.kimi-code/rules/ponytail.md` + 全局 `~/.kimi-code/rules/ponytail.md`。
-  - OpenCode：通过 `AGENTS.md` + `docs/AGENTS_PONYTAIL.md` 引入。
+  - OpenCode / Claude / Codex：通过 `AGENTS.md` / `CLAUDE.md` / `docs/AGENTS_PONYTAIL.md` + 全局 AGENTS 条件章节引入。
   - 所有 Ponytail 规则前置 LiMa 覆盖声明：安全、验证、测试门禁、文档同步不可简化。
-- **验证**：`ruff check .` clean；`AGENTS.md` 保持 265 行（≤300）。
-- **提交**：`3f6d046` 已 push 到 `origin main`。
+- **验证**：`ruff check .` clean；`AGENTS.md` 265 行、`CLAUDE.md` 162 行（均 ≤300）。
+- **提交**：`3f6d046`、`3ddee70` 已 push 到 `origin main`。
 
 ### 最近完成（2026-06-17）按 ECC 开发流程重新整理 LiMa（阶段 1-3 完成）
 
