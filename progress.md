@@ -5,6 +5,16 @@
 > Updated: 2026-06-16
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-17 G3 证据边界瘦身（小批）
+
+- **目标**：执行作者意图计划 G3，沿证据边界删除一个冷区模块，保护 `routing_engine`、`device_gateway` 等热路径。
+- **审计**：`python scripts/codegraph_orphans.py --fanin` 发现 `eval_status.py` 为 ORPHAN（无静态/生产引用）。
+- **验证**：
+  - ripgrep 确认 `eval_status.py` 的导出函数无路由/ops/热路径调用。
+  - 删除后 eval 聚焦套件 **23 passed, 1 warning**。
+  - `ruff check .` clean。
+- **范围控制**：仅删除 `eval_status.py` 一个文件；保留 `eval_pinned_call.py`（`routes/eval_internal.py` 仍在使用）、`eval_preflight.py` / `eval_quiet.py`（`periodic_coding_eval.py` 使用）等相互依赖的模块。
+
 ## 2026-06-17 G2 设备模型准入复跑
 
 - **目标**：执行 [`docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md`](docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md) G2，让 `device_draw`、`device_vector`、`device_write`、`device_control` 的准入依据可复跑、可比较、可回滚。

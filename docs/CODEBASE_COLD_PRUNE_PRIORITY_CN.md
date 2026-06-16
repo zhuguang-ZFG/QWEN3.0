@@ -204,6 +204,20 @@ python -m pytest tests/test_retrieval_injection.py tests/test_routing_engine.py 
 
 ---
 
+---
+
+## P7 — G3 小批冷区删除（2026-06-17）
+
+> 主题：删除 CodeGraph + ripgrep 确认无生产引用的单个根目录冷模块。
+
+| 批次 | 动作 | 减行 |
+|------|------|------|
+| 孤儿 eval 仪表盘 | 删除 `eval_status.py` | ~115 |
+
+**关键发现**：`eval_status.py` 在 CodeGraph 中为 ORPHAN，ripgrep 确认无路由/ops/热路径调用；其余 eval 模块（`eval_pinned_call.py`、`eval_preflight.py`、`eval_quiet.py` 等）仍有 `routes/eval_internal.py` 或 `periodic_coding_eval.py` 依赖，保留。
+
+**验证**：`ruff check .` clean；eval 聚焦套件 23 passed。
+
 ## 与活跃路线图对齐
 
 | 路线图项 | 与清理关系 |
