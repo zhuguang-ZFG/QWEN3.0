@@ -1,10 +1,26 @@
 # LiMa 记忆
 
-> **更新时间: 2026-06-15（route_policy 硬契约 + backend 字段 closeout）**
-> **分支:** `design/route-policy-backend-field`
+> **更新时间: 2026-06-16（作者意图 + 设备开发文档入口）**
+> **分支:** `main`
 > **最新权威来源:** `STATUS.md`、`progress.md`、`findings.md`、`docs/README.md`
 >
 > **注:** 2026-05-26 及更早的快照为历史记录，以最新节为准。
+
+---
+
+## 2026-06-16 作者意图与设备开发入口快照
+
+- 当前项目主线不是继续扩张通用聊天后端，而是把多后端 AI 路由收束为 AI 绘图/写字设备的统一云端控制平面。
+- 下一阶段 G1-G4 以 `docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md` 为准：AI→Motion 发布门、设备模型准入复跑、证据边界瘦身、启动/部署不确定性降低。
+- 新协作者和设备联调应先看 `docs/DEVICE_DEVELOPER_GUIDE_CN.md`，再进入 `docs/device_protocol_alignment.md`、`docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_CN.md` 和 `docs/release_evidence/TEMPLATE_AI_TO_MOTION_RELEASE.md`。
+- `task_dispatch.route_policy` 是设备下行硬契约；设备必须消费、记录并在终端证据中可回溯。缺失或未知 `route_policy` 不得静默执行运动。
+- 模型准入证据以 `docs/model_admission/` 下有日期报告为准；历史 `MODEL_CATALOG` / `FREE_MODEL_ROUTING_STATUS` 仅作归档参考。
+- **2026-06-16 VPS 崩溃与恢复**：
+  - 现象：`lima-router.service` restart counter 超过 5752，`journalctl` 报 `ImportError: cannot import name 'configure_ledger_store_from_env' from 'device_ledger.store'`。
+  - 根因：VPS 上的 `device_ledger/store.py`、`device_memory/store.py`、`device_gateway/store.py`、`device_gateway/notifier.py` 等文件落后于本地 `main`，缺少 `configure_*_from_env` 系列函数；`routes/device_gateway.py` 导入失败导致注册路由时崩溃。
+  - 修复：使用 `scripts/deploy_unified.py --files` 部署 15 个相关文件（store/memory/notifier/gateway/lifespan），备份 `/opt/lima-router/backups/unified-files-20260616_190649/runtime-before.tgz`，重启后约 7–8 分钟启动完成。
+  - 结果：`https://chat.donglicao.com/health` 与 `/device/v1/health` 均返回 HTTP 200。
+  - 教训：新增 `configure_*_from_env` 入口后，必须同步部署所有调用方与实现文件；启动耗时 7 分钟属于已知行为，恢复后需等待 lifespan 完成再判 health。
 
 ---
 

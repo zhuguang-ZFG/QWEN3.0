@@ -5,6 +5,30 @@
 > Updated: 2026-06-16
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-16 M13 AI→Motion 发布门闭环证据
+
+- **目标**：执行 [`docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md`](docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md) G1，产出首份真实 AI→Motion 发布证据报告。
+- **报告**：[`docs/release_evidence/2026-06-16-M13-AI-to-Motion-release-gate.md`](docs/release_evidence/2026-06-16-M13-AI-to-Motion-release-gate.md)
+- **代码理解**：
+  - `device_gateway/model_routing.py` 通过 `DEVICE_ROLE_PREFERENCES` 把 `device_control/write/draw/vector/unknown` 映射到准入 backend；`route_policy.backend` 已贯通。
+  - `device_gateway/task_creation.py` 在任务创建、校验失败、固件不兼容、策略阻断、模拟评估等路径均保留 `route_policy` 并记录 `route_evidence` 制品。
+  - `device_gateway/artifact_recorder.py` 异步 JSONL 写入路由证据，OSError 显式 `logger.warning`，符合 AGENTS.md 无静默降级规则。
+- **验证**：
+  - `pytest tests/test_device_gateway_model_routing.py tests/test_device_gateway_protocol.py tests/test_device_gateway_routes.py tests/test_device_gateway_path_validator.py tests/test_device_gateway_profiles.py tests/test_route_policy_backend_field.py tests/test_routing_engine.py --tb=no -q` → **154 passed, 1 warning**。
+  - `python scripts/run_ruff_check.py` → **All checks passed!**
+- **部署状态**：
+  - 故障：VPS `lima-router.service` 因 `device_ledger.store` 缺失 `configure_ledger_store_from_env` 反复崩溃（restart counter 5752+）。
+  - 修复：使用 `scripts/deploy_unified.py --files` 部署 15 个 store/memory/notifier/gateway/lifespan 文件；备份 `/opt/lima-router/backups/unified-files-20260616_190649/runtime-before.tgz`；重启后约 7–8 分钟启动完成。
+  - 当前：`curl -sL https://chat.donglicao.com/health` → **HTTP 200**；`curl -sL https://chat.donglicao.com/device/v1/health` → **HTTP 200**。
+- **后续**：补认证公开 chat smoke（需 `LIMA_API_KEY`）、假 U1 证据和（如可能）物理设备证据。
+
+## 2026-06-16 开发文档细化
+
+- **模型路由指南**：更新 `docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_CN.md` 的日期、归档引用、模型准入报告和 AI→Motion 发布证据模板引用。
+- **设备开发入口**：新增 `docs/DEVICE_DEVELOPER_GUIDE_CN.md`，收敛设备联调、常用测试、证据要求和最小闭环入口。
+- **路线图同步**：`docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md` 增加 G1–G4 下一阶段执行主线，对齐作者意图计划。
+- **索引**：`docs/README.md` 增加设备开发入口，并将作者意图计划列为当前计划。
+
 ## 2026-06-16 CP-5 provider_probe 离线包归档
 
 - **迁入** `packages/provider-probe-offline/provider_probe/`；根 `provider_probe/README.md` 指针
@@ -996,6 +1020,18 @@ Agent Worker path.
 - 修复 `mimo run` 参数顺序；`lima_mimo_poll`；MCP 改用 `python -m lima_mcp_stdio`
 - `.cursor/rules/mimo-async-review.mdc`：热路径改动后自动派发审查
 - 测试：`pytest tests/test_mimo_mcp_*.py -q`
+
+## 2026-06-16：代码文档瘦身状态修复
+
+- 修复 `docs/CODEBASE_COLD_PRUNE_PRIORITY_CN.md` 与 `docs/CODEBASE_SUBSYSTEM_TIER_CN.md` 中 P6 瘦身记录的未来日期漂移：`2026-06-17` → `2026-06-16`。
+- 复查 P6 已退役路径：`channel_gateway/`、`research/`、`sandbox/`、`data_workbench/`、`ops_entrypoint/` 等仅剩未跟踪 `__pycache__`，源码文件已不在 Git 跟踪集中。
+- 清理上述退役目录残留的未跟踪 `__pycache__`，避免瘦身结果被生成缓存噪音污染。
+
+## 2026-06-16：作者意图理解与下一阶段计划
+
+- 新增 `docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md`：基于 `server.py`、`routes/route_registry.py`、`routing_engine.py`、`routes/device_gateway.py`、`device_gateway/task_creation.py`、`device_gateway/model_routing.py` 与当前权威文档，提炼作者意图。
+- 计划结论：LiMa 当前主线是 AI 绘图/写字设备统一云端控制平面；下一阶段优先固化 AI→Motion 发布门、模型准入复跑、证据边界瘦身和启动观测。
+- 索引同步到 `docs/README.md` 时需保留原文件编码，不做破坏性批量重写。
 
 ## 2026-06-16：MiMo MCP v0.2 全局化 + Agent 模式
 

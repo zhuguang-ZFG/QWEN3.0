@@ -18,6 +18,12 @@
 - **任务管理**: 任务创建、派发、执行、监控、恢复
 - **设备策略**: 安全策略、固件兼容性、路径验证、route_policy/backend 字段贯通
 
+### 当前开发文档入口（2026-06-16）
+
+- **设备开发入口**：[`docs/DEVICE_DEVELOPER_GUIDE_CN.md`](docs/DEVICE_DEVELOPER_GUIDE_CN.md) 汇总设备联调、常用测试、证据要求和最小闭环。
+- **下一阶段计划**：[`docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md`](docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md) 明确 G1–G4：AI→Motion 发布门、模型准入复跑、证据边界瘦身、启动/部署不确定性降低。
+- **协议开发闭环**：[`docs/device_protocol_alignment.md`](docs/device_protocol_alignment.md) 已补充 `hello` → `task_dispatch` → `motion_event` → 终态证据的调试路径，并明确 `route_policy` 为下行任务硬契约。
+
 ### 最近完成（2026-06-17）第二轮瘦身：零引用模块 + 归档脚本清理
 
 > 两轮合计：794→684 文件（-110），93,145→80,546 行（-12,599）
@@ -121,9 +127,10 @@ ruff check: clean（触及文件）
 
 - **主 VPS**: Alibaba Cloud 47.112.162.80
 - **备用节点**: JDCloud 117.72.118.95
-- **公网健康检查**: chat.donglicao.com/health = 200
+- **公网健康检查**: chat.donglicao.com/health = 200（2026-06-16 19:15 恢复；此前因 `device_ledger.store` 缺失 `configure_ledger_store_from_env` 导致 systemd 反复崩溃）
 - **设备网关**: chat.donglicao.com/device/v1/health = 200
 - **VPS 启动耗时**: 约 7 分钟（backend retirement / probe loop 历史数据分析预热），之后服务完全可用
+- **最近恢复操作**: 部署 15 个 store/memory/notifier/gateway/lifespan 文件，备份 `/opt/lima-router/backups/unified-files-20260616_190649/runtime-before.tgz`
 
 ## 代码质量
 
@@ -155,6 +162,7 @@ ruff check: clean（触及文件）
 | `docs/README.md` | 文档唯一入口与权威规则 | 必读 |
 | `STATUS.md` | 当前项目状态（本文件） | 必读 |
 | `docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md` | 当前活跃路线图 | 必读 |
+| `docs/DEVICE_DEVELOPER_GUIDE_CN.md` | 设备开发、联调、验证入口 | 必读 |
 | `docs/CODEBASE_SUBSYSTEM_TIER_CN.md` | 子系统 hot/warm/cold 分层 | 推荐 |
 | `AGENTS.md` | 开发约定与命令 | 必读 |
 | `docs/ARCHITECTURE.md` | 系统架构 | 推荐 |

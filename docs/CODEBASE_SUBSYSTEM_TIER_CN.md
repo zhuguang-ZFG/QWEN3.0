@@ -211,7 +211,7 @@ python -m pytest tests/test_provider_automation_admission.py -q
 
 ---
 
-## 13. 2026-06-17 大子系统审计（续 Q7）
+## 13. 2026-06-16 大子系统审计（续 Q7）
 
 > 审计范围：`search_gateway`、`channel_gateway`、`routes/` + 全仓冷模块扫描
 > 基数：794 文件 / 93,145 行 → 审计后：735 文件 / 85,203 行（**-59 文件 / -7,942 行**）

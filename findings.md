@@ -304,6 +304,13 @@
 | HOOK-4 | Local hook | `.git/hooks/pre-commit.ps1` now delegates to the tracked wrapper. The hook file itself is local Git metadata and is not committed. | Closed |
 | HOOK-5 | VPS | No VPS deployment was performed or needed because this slice changes local developer tooling only. | Accepted |
 
+## 2026-06-16 代码文档瘦身状态修复
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| SLIM-DOC-1 | 瘦身文档 | P6 大子系统审计记录误写为未来日期 `2026-06-17`，已修正为当前执行日期 `2026-06-16`。 | Closed |
+| SLIM-DOC-2 | 工作区残留 | 已退役目录仅残留未跟踪 `__pycache__`，`git ls-files` 确认无 tracked 源码；缓存目录已清理。 | Closed |
+
 ## 2026-06-09 JDCloud Workspace Hygiene Closeout
 
 | ID | Area | Finding | Status |

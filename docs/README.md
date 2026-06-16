@@ -10,8 +10,9 @@
 1. [`../STATUS.md`](../STATUS.md) — 当前项目状态、已完成项、退役模块、部署健康
 2. [`PROJECT_OPTIMIZATION_ROADMAP_CN.md`](PROJECT_OPTIMIZATION_ROADMAP_CN.md) — 当前活跃路线图与阶段目标
 3. [`../AGENTS.md`](../AGENTS.md) — 代码规范、命令、Git/部署约定
-4. [`ARCHITECTURE.md`](ARCHITECTURE.md) — 系统架构与模块边界
-5. [`REQUEST_PIPELINE_AUTHORITY_CN.md`](REQUEST_PIPELINE_AUTHORITY_CN.md) — 请求处理管线权威说明
+4. [`DEVICE_DEVELOPER_GUIDE_CN.md`](DEVICE_DEVELOPER_GUIDE_CN.md) — 设备开发、联调、验证入口
+5. [`ARCHITECTURE.md`](ARCHITECTURE.md) — 系统架构与模块边界
+6. [`REQUEST_PIPELINE_AUTHORITY_CN.md`](REQUEST_PIPELINE_AUTHORITY_CN.md) — 请求处理管线权威说明
 
 ## 快速入口
 
@@ -19,6 +20,7 @@
 | --- | --- | --- |
 | 当前状态 | [`../STATUS.md`](../STATUS.md) | ✅ 活跃 |
 | 开发约定 | [`../CLAUDE.md`](../CLAUDE.md) | ✅ 活跃 |
+| 设备开发入口 | [`DEVICE_DEVELOPER_GUIDE_CN.md`](DEVICE_DEVELOPER_GUIDE_CN.md) | ✅ 活跃 |
 | 长期记忆 | [`LIMA_MEMORY_CN.md`](LIMA_MEMORY_CN.md) | ✅ 活跃 |
 | 项目路线图 | [`PROJECT_OPTIMIZATION_ROADMAP_CN.md`](PROJECT_OPTIMIZATION_ROADMAP_CN.md) | ✅ 活跃 |
 | 子系统热度分层（瘦身评估） | [`CODEBASE_SUBSYSTEM_TIER_CN.md`](CODEBASE_SUBSYSTEM_TIER_CN.md) | ✅ 活跃（Q7） |
@@ -47,6 +49,7 @@
 
 | 主题 | 文档 |
 | --- | --- |
+| 设备开发入口 | [`DEVICE_DEVELOPER_GUIDE_CN.md`](DEVICE_DEVELOPER_GUIDE_CN.md) |
 | 绘图/写字模型路由 | [`AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_CN.md`](AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_CN.md) |
 | ESP32S_XYZ 管理 | [`ESP32S_XYZ_MANAGEMENT_CN.md`](ESP32S_XYZ_MANAGEMENT_CN.md) |
 | 设备协议对齐 | [`device_protocol_alignment.md`](device_protocol_alignment.md) |
@@ -72,6 +75,7 @@
 | route_policy backend 字段贯通 | [`archive/superpowers-2026-06/2026-06-15-route-policy-backend-field.md`](archive/superpowers-2026-06/2026-06-15-route-policy-backend-field.md)（已关闭归档） |
 | Edge-C route_policy 硬契约 | [`archive/superpowers-2026-06/2026-06-15-edge-c-route-policy-hard-contract.md`](archive/superpowers-2026-06/2026-06-15-edge-c-route-policy-hard-contract.md)（已关闭归档） |
 | 代码质量治理 Q0–Q7 | [`archive/superpowers-2026-06/2026-06-15-code-quality-governance-plan.md`](archive/superpowers-2026-06/2026-06-15-code-quality-governance-plan.md)（已关闭归档） |
+| 作者意图理解与下一阶段计划 | [`superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md`](superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md)（当前计划） |
 | 智能设备战略转型 | [`superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md`](superpowers/plans/2026-06-09-lima-strategic-pivot-to-smart-devices.md)（历史参考） |
 | Phase 2 代码瘦身 | [`superpowers/plans/2026-06-12-phase2-code-simplification-plan.md`](superpowers/plans/2026-06-12-phase2-code-simplification-plan.md)（Slice 1–2 已关闭） |
 
