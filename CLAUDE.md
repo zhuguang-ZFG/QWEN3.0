@@ -153,4 +153,10 @@ python scripts/codegraph_orphans.py --fanin   # 删模块前：图 + ripgrep 交
 | 多 Agent 写入 codegraph MCP | `pwsh -File scripts/setup_codegraph_agents.ps1` |
 | LiMa 推荐 MCP 包（含 codegraph） | `pwsh -File scripts/setup_lima_mcps.ps1` |
 
-详见 `.agents/PROJECT_MAP.md` 与 `progress.md`（2026-06-15 CodeGraph 瘦身记录）。
+详见 `AGENTS.md` 与 `progress.md`（2026-06-15 CodeGraph 瘦身记录）。
+
+## Ponytail（顾问规则，LiMa 优先）
+
+本项目采用 [Ponytail](https://github.com/DietrichGebert/ponytail) 的「lazy senior dev」理念作为代码精简顾问。写代码前按决策阶梯检查：YAGNI → stdlib → 原生特性 → 已有依赖 → 一行 → 最小实现。
+
+LiMa 硬规则优先：信任边界验证、安全、测试门禁（`pytest`、`ruff`、`pyright`、`scripts/check_code_size.py`）、文档同步、conventional commits 不可简化。详情见 [`docs/AGENTS_PONYTAIL.md`](docs/AGENTS_PONYTAIL.md)。
