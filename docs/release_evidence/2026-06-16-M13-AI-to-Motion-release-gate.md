@@ -72,6 +72,7 @@ sequenceDiagram
 - **启动耗时**：约 7–8 分钟（backend retirement / probe loop 历史数据分析），之后 `/health` 与 `/device/v1/health` 均返回 200。
 - **注意**：`modules.channel_gateway` 在 health JSON 中仍报告 `true`，与退役状态不符；此显示项不影响设备主线，可后续清理。
 - **2026-06-17 smoke 复测**：`/health` 与 `/device/v1/health` 均返回 200；`/device/v1/health` 中 `auth_configured=false`，说明生产环境尚未配置 `LIMA_DEVICE_TOKENS`，设备 WebSocket 握手在生产上将失败。
+- **2026-06-17 修复**：SSH 备份 `/opt/lima-router/.env` 后追加 `LIMA_DEVICE_TOKENS=dev-test-1=<random>`，重启 `lima-router`；复测 `/device/v1/health` 返回 `auth_configured=true`。
 
 ---
 
@@ -199,14 +200,16 @@ python scripts/run_ruff_check.py
 | 门 A 部署 | ✅ 通过 | 公网 `/health` 与 `/device/v1/health` 均返回 200 |
 | 门 B–F 自动化 | ✅ 通过 | 154 项聚焦测试通过，ruff clean |
 | 物理设备 | ⏳ 未测 | 假 U1 已补齐；真机未执行 |
+| 生产认证 | ✅ 已配置 | VPS `LIMA_DEVICE_TOKENS` 已设置，`/device/v1/health` `auth_configured=true` |
 | **总体建议** | ✅ 可发布到测试环境 | 生产环境建议补真机证据后再最终声明 |
 
 **阻塞项（P0）**：
 
 1. ~~公网 502~~ 已恢复。
 2. ~~假 U1 运动执行证据~~ 已实现（`tests/test_fake_u1_cloud_loop.py`）。
-3. 物理设备运行记录缺失。
-4. 认证公开 chat smoke（`model=code`）未执行，因缺少 `LIMA_API_KEY`。
+3. ~~生产设备认证缺口~~ 已修复，`/device/v1/health` 返回 `auth_configured=true`。
+4. 物理设备运行记录缺失。
+5. 认证公开 chat smoke（`model=code`）未执行，因缺少 `LIMA_API_KEY`。
 
 **回滚方案**：
 
