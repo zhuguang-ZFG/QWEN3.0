@@ -7,9 +7,9 @@ sqlite_graph_store and chroma_vector_store for persistence.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
+import threading
 import time
 from pathlib import Path
 
@@ -168,32 +168,38 @@ def run_indexer_scan() -> dict:
 
 # ── Background loop for server lifespan ───────────────────────────────────────
 
-_INDEXER_TASK = None
+_indexer_thread: threading.Thread | None = None
+_indexer_stop = threading.Event()
 
 
 def start_auto_indexer(interval_sec: int = 300) -> None:
-    """Start background periodic scan. Non-blocking."""
-    global _INDEXER_TASK
-    try:
-        import asyncio
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
+    """Start background periodic scan in a daemon thread. Non-blocking."""
+    global _indexer_thread, _indexer_stop
+    if _indexer_thread and _indexer_thread.is_alive():
         return
-    _INDEXER_TASK = loop.create_task(_indexer_loop(interval_sec))
+    _indexer_stop.clear()
+    _indexer_thread = threading.Thread(
+        target=_indexer_loop,
+        args=(interval_sec, _indexer_stop),
+        daemon=True,
+        name="lima-auto-indexer",
+    )
+    _indexer_thread.start()
     _log.info("auto_indexer started (interval=%ds)", interval_sec)
 
 
-async def _indexer_loop(interval_sec: int) -> None:
-    while True:
+def _indexer_loop(interval_sec: int, stop_event: threading.Event) -> None:
+    while not stop_event.is_set():
         try:
             run_indexer_scan()
         except Exception as exc:
-            _log.debug("context_pipeline/auto_indexer.py: {}", type(exc).__name__)
-        await asyncio.sleep(interval_sec)
+            _log.debug("context_pipeline/auto_indexer.py: %s", type(exc).__name__)
+        stop_event.wait(timeout=interval_sec)
 
 
 def stop_auto_indexer() -> None:
-    global _INDEXER_TASK
-    if _INDEXER_TASK and not _INDEXER_TASK.done():
-        _INDEXER_TASK.cancel()
-        _INDEXER_TASK = None
+    global _indexer_thread
+    _indexer_stop.set()
+    if _indexer_thread and _indexer_thread.is_alive():
+        _indexer_thread.join(timeout=5)
+    _indexer_thread = None
