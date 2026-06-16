@@ -24,6 +24,18 @@
 - **下一阶段计划**：[`docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md`](docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md) 明确 G1–G4：AI→Motion 发布门、模型准入复跑、证据边界瘦身、启动/部署不确定性降低。
 - **协议开发闭环**：[`docs/device_protocol_alignment.md`](docs/device_protocol_alignment.md) 已补充 `hello` → `task_dispatch` → `motion_event` → 终态证据的调试路径，并明确 `route_policy` 为下行任务硬契约。
 
+### 最近完成（2026-06-17）G4 启动观测第一步： lifespan 阶段耗时记录
+
+- **目标**：降低启动和部署不确定性，先让每个启动阶段可观测。
+- **实现**：
+  - `server_lifespan.py` 增加 `_phase` 上下文管理器，为每个启动步骤记录 `elapsed_ms` / `status` / `detail`。
+  - 记录阶段包括 `health_state.load`、`backend_profile.load`、`backend_retirement.load`、`probe_loop.start`、`device_gateway.runtime.start`、`prometheus.start` 等 12 个关键步骤。
+  - `routes/system_endpoints.py` `/health` 返回 `"startup": {"status": "ready|starting|error", "phases": [...]}`，便于部署时判断启动瓶颈。
+- **验证**：
+  - `pytest tests/test_routing_engine.py tests/test_device_gateway_routes.py tests/test_system_endpoints.py -q` → **62 passed**。
+  - `ruff check server_lifespan.py routes/system_endpoints.py` → clean。
+- **后续**：基于阶段耗时日志，识别真正耗时任务后，再区分「ready 必须完成」与「warming 可后台完成」。
+
 ### 最近完成（2026-06-17）G3 证据边界瘦身（小批）
 
 - **目标**：沿证据边界删除一个冷区模块，保护热路径。
