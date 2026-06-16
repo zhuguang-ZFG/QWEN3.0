@@ -197,6 +197,58 @@ Internet → VPS (nginx → lima-router :8080, Redis)
 
 **Auto-closeout** (when user hasn't said "don't deploy/commit"): local pytest → VPS deploy + restart + health/smoke → update docs → git add/commit/push.
 
+## ECC 开发流程（增量采用）
+
+> 参考 [`reference/ECC`](./reference/ECC)（Everything Claude Code）的跨 harness 工程实践，按 LiMa 现状做增量裁剪。ECC 流程优先于通用建议，但低于本文件「Hard Rules」和用户的直接指令。
+
+### 1. Plan First
+
+- 非平凡改动（>2-3 个文件、新架构决策、用户意图不明确）必须先进入 Plan mode，输出计划文件并由用户批准。
+- 计划中必须包含：目标、验收标准、关键文件、风险、验证命令。
+
+### 2. TDD（RED → GREEN → REFACTOR）
+
+- 新增功能优先写测试；修改功能先写/更新测试再改实现。
+- 理想流程：
+  1. RED：运行测试，确认失败。
+  2. GREEN：写最小实现让测试通过。
+  3. REFACTOR：优化代码，保持测试通过。
+- 提交前必须通过 focused tests；生产改动必须通过 full tests（排除本地缺依赖的 2 个文件）。
+- 目标覆盖率 80%+（使用 `pytest --cov` 持续追踪）。
+
+### 3. Code Review
+
+- 代码变更后、提交前，必须使用 ECC 安全/代码审查清单自查：
+  - 无硬编码 secret（API key、token、密码）
+  - 所有用户输入已验证
+  - SQL 注入防护（参数化查询）
+  - 错误消息不泄露敏感数据
+  - 错误处理无静默吞掉（符合本文件 Hard Rule #1）
+  - 函数 ≤50 行，文件 ≤300 行（新模块/拆分必须遵守）
+  - 优先不可变：返回新对象而非原地修改
+
+### 4. 提交前 Checklist
+
+```text
+□ 测试通过：pytest focused → full
+□ ruff check . 通过
+□ pyright 对改动文件通过
+□ 代码尺寸检查无新增 >300 行文件 / >50 行函数（scripts/check_code_size.py）
+□ 无硬编码 secret
+□ STATUS.md / progress.md / findings.md 已按需更新
+□ 仅 stage 相关文件
+□ commit message 符合 conventional commits
+```
+
+### 5. 安全响应协议
+
+若发现安全漏洞：
+1. 立即停止当前工作。
+2. 修复 CRITICAL 问题。
+3. 轮换任何可能暴露的 secret。
+4. 检查代码库中是否存在类似问题。
+5. 更新 `findings.md` 记录事件与修复。
+
 ## Key Documents
 
 | Document | Purpose |

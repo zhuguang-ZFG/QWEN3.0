@@ -16,6 +16,9 @@ __pycache__/
 tmp/
 .pytest_temp/
 *.pytest_temp/
+.coverage
+.kimi-code/
+reference/
 
 # === 第三方项目 ===
 llama.cpp/

@@ -64,6 +64,18 @@ def quick_commands(staged_paths: Sequence[str], *, python: str = sys.executable)
     return commands
 
 
+def run_code_size_check(*, python: str = sys.executable) -> None:
+    """Run code-size check as a non-blocking warning and print the report."""
+    print("+ " + " ".join([python, "scripts/check_code_size.py"]), flush=True)
+    result = subprocess.run([python, "scripts/check_code_size.py"], cwd=ROOT, check=False)
+    if result.returncode != 0:
+        print(
+            "WARNING: code-size constraints violated (see above). "
+            "This is a baseline check and does not block commits.",
+            file=sys.stderr,
+        )
+
+
 def full_pytest_command(*, python: str = sys.executable, basetemp: str | None = None) -> list[str]:
     """Build the documented CI-style pytest command."""
     command = [python, "-m", "pytest", "-p", "no:cacheprovider", "tests", "-q"]
@@ -100,6 +112,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.full:
         basetemp = str(ROOT / "tmp" / f"pytest-run-precommit-full-{uuid.uuid4().hex}")
         commands.append(full_pytest_command(basetemp=basetemp))
+
+    run_code_size_check()
 
     for command in commands:
         returncode = run_command(command)
