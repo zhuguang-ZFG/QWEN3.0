@@ -101,7 +101,11 @@ async def lifespan(application):
             _log.debug("session_memory.daemon not installed")
 
     async with _phase("channel_retirement.telegram"):
-        await retire_telegram_webhook_from_env()
+        try:
+            import asyncio
+            asyncio.create_task(retire_telegram_webhook_from_env())
+        except Exception as exc:
+            _log.debug("telegram webhook cleanup scheduling failed: %s", type(exc).__name__)
 
     async with _phase("device_gateway.runtime.start"):
         try:
