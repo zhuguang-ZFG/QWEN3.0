@@ -2,10 +2,25 @@
 
 > Created: 2026-05-22
 
-> Updated: 2026-06-16
+> Updated: 2026-06-17
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
-## 2026-06-16 拆分四个热路径 oversized 函数（完成）
+## 2026-06-17 清理死代码并更新尺寸基线（步骤 2 完成）
+
+- **目标**：扫描并清理真正的死区模块，同时不删除被 `context_pipeline` 热路径 lazy import 的模块。
+- **实现**：
+  - `python scripts/codegraph_orphans.py --fanin` 显示 `webhook_activity_buffer.py` 无生产/测试引用。
+  - 删除 `webhook_activity_buffer.py`（109 行）。
+  - `context_pipeline/complexity.py`、`entity_extraction.py`、`graph_context_expander.py`、`production_index.py`、`retrieval_corpus.py`、`retrieval_trace.py` 均有热路径 lazy import，按 `CODEBASE_COLD_PRUNE_PRIORITY_CN.md` 保留。
+  - 更新 `findings.md` G3 条目与 ECC-2 尺寸基线。
+- **验证**：
+  - `ruff check .` clean。
+  - `python scripts/check_code_size.py` → 23 个 >300 行文件、99 个 >50 行函数。
+- **提交**：
+  - `f583784` chore(prune): delete orphan webhook_activity_buffer.py
+  - 已 push 到 `origin main`。
+
+## 2026-06-17 拆分四个热路径 oversized 函数（步骤 1 完成）
 
 - **目标**：将 `routing_selector.select`、`server_lifespan.lifespan`、`routes/chat_stream.stream_response`、`device_gateway/device_draw_handler.handle_device_draw` 四个热路径函数拆分为 ≤50 行，并保持文件 ≤300 行。
 - **实现**：
@@ -23,6 +38,7 @@
 - **提交**：
   - `7e029e5` refactor: split oversized functions in routing_selector, server_lifespan, chat_stream, device_draw_handler
   - `710d26f` fixup(chat_stream): preserve original blank vs [ERR] fallback behavior
+  - `a89790d` refactor(server_lifespan): split startup/shutdown phase helpers to ≤50 lines
   - 均已 push 到 `origin main`。
 
 ## 2026-06-17 接入 Ponytail「lazy senior dev」顾问规则（完成）

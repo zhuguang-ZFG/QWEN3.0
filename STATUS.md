@@ -42,6 +42,14 @@
 - **ECC 工程流程**：[`docs/ECC_WORKFLOW_CN.md`](docs/ECC_WORKFLOW_CN.md) 定义项目采用的 Plan First / TDD / Code Review / 提交规范，以及 `.kimi-code/rules/ecc-workflow.md` 本地 rule。
 - **Ponytail 精简顾问**：[`docs/AGENTS_PONYTAIL.md`](docs/AGENTS_PONYTAIL.md) 引入 lazy senior dev 决策阶梯，LiMa 硬规则优先。
 
+### 最近完成（2026-06-17）拆分热路径大函数 + 清理死代码（步骤 1-2）
+
+- **拆分**：`routing_selector.select` → 21 行；`server_lifespan.lifespan` → 8 行；`routes/chat_stream.stream_response` → 47 行；`device_gateway/device_draw_handler.handle_device_draw` → 45 行。
+- **死代码清理**：删除 `webhook_activity_buffer.py`（109 行）；`context_pipeline` lazy import 模块按 `CODEBASE_COLD_PRUNE_PRIORITY_CN.md` 保留。
+- **基线更新**：`scripts/check_code_size.py` → 23 个 >300 行文件、99 个 >50 行函数。
+- **验证**：路由/系统/聊天/设备绘图聚焦测试 87 passed；`ruff check .` clean。
+- **提交**：`7e029e5`、`710d26f`、`a89790d`、`f583784` 已 push 到 `origin main`。
+
 ### 最近完成（2026-06-17）接入 Ponytail「lazy senior dev」顾问规则
 
 - **实现**：

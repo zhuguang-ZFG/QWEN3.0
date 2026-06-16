@@ -8,7 +8,7 @@
 | ID | Area | Finding | Status |
 |----|------|---------|--------|
 | ECC-1 | process | LiMa 缺少显式 Plan → TDD → Code Review → Commit 闭环；已在 `AGENTS.md` 和 `docs/ECC_WORKFLOW_CN.md` 中增量采用 ECC 流程 | Closed |
-| ECC-2 | metrics | 缺少代码尺寸自动检查；新增 `scripts/check_code_size.py`，基线：26 个 >300 行文件、104 个 >50 行函数 | Open |
+| ECC-2 | metrics | 缺少代码尺寸自动检查；新增 `scripts/check_code_size.py`，基线更新：23 个 >300 行文件、99 个 >50 行函数（已拆 routing_selector/server_lifespan/chat_stream/device_draw_handler 热路径大函数） | Open |
 | ECC-3 | metrics | 缺少测试覆盖率基线；已安装 `pytest-cov` 并在 `pytest.ini` 配置；`device_gateway` 聚焦覆盖 38.2%（需逐步提升） | Open |
 | ECC-4 | tooling | `scripts/run_pre_commit_check.py` 已集成代码尺寸检查作为 warning（不阻塞，现有违规先记录） | Closed |
 
@@ -30,6 +30,8 @@
 | G3-1 | orphan | `eval_status.py` 在 CodeGraph + ripgrep 中均无生产引用，仅历史归档文档提及；已删除 | Closed |
 | G3-2 | verify | eval 聚焦套件（`test_eval_internal.py` / `test_eval_notify.py` / `test_eval_pinned_call.py` / `test_eval_pool_gate.py` / `test_eval_quiet.py` / `test_eval_slice_summary.py` / `test_eval_topology.py` / `test_periodic_coding_eval.py`）→ **23 passed, 1 warning** | Closed |
 | G3-3 | lint | `ruff check .` clean | Closed |
+| G3-4 | orphan | `webhook_activity_buffer.py` 无生产/测试引用，仅归档文档提及；已删除 | Closed |
+| G3-5 | orphan | `context_pipeline/` 中 `complexity`/`entity_extraction`/`graph_context_expander`/`production_index`/`retrieval_corpus`/`retrieval_trace` 为 Hot/Warm lazy import，`CODEBASE_COLD_PRUNE_PRIORITY_CN.md` 已标记保留；未删除 | Closed |
 
 ## 2026-06-17 G2 设备模型准入复跑
 
