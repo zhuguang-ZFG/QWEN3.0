@@ -86,7 +86,7 @@ sequenceDiagram
 | transcript → 任务创建 | ✅ | `task_created` 事件 / JSONL |
 | motion_event 上行 | ✅ | `motion_event_ack` + phase 序列 |
 | 下行含 `route_policy` | ✅ | `test_route_policy_matrix_for_hot_device_families` |
-| 假 U1 运动执行 | ✅ | `tests/test_fake_u1_cloud_loop.py`：home / write_text 两条链路均从 `/device/v1/tasks` 经 fake_device_server 驱动 fake_u1，终态 `done` |
+| 假 U1 运动执行 | ✅ | `tests/test_fake_u1_cloud_loop.py`：home / write_text / draw_generated（SVG path）三条链路均从 `/device/v1/tasks` 经 fake_device_server 驱动 fake_u1，终态 `done` |
 
 **协议族**：`lima-device-v1` / Edge-C
 
@@ -117,7 +117,7 @@ sequenceDiagram
 | Profile 不完整 → `approval_required` | ✅ | `tests/test_device_gateway_profiles.py` |
 | 固件不兼容 → 阻断 | ✅ | `test_fw_incompatible_blocks_task_creation` |
 | `backend` 字段与 `model_routing` 一致 | ✅ | `tests/test_route_policy_backend_field.py` |
-| 假 U1 云端闭环 | ✅ | `tests/test_fake_u1_cloud_loop.py` → **3 passed** |
+| 假 U1 云端闭环 | ✅ | `tests/test_fake_u1_cloud_loop.py` → **4 passed** |
 
 **本切片 route_policy 样例**（来自 `test_route_policy_backend_field.py`）：
 
@@ -209,7 +209,7 @@ python scripts/run_ruff_check.py
 **阻塞项（P0）**：
 
 1. ~~公网 502~~ 已恢复。
-2. ~~假 U1 运动执行证据~~ 已实现（`tests/test_fake_u1_cloud_loop.py`）。
+2. ~~假 U1 运动执行证据~~ 已实现（`tests/test_fake_u1_cloud_loop.py`，含 draw_generated SVG path 闭环）。
 3. ~~生产设备认证缺口~~ 已修复，`/device/v1/health` 返回 `auth_configured=true`。
 4. ~~认证公开 chat smoke~~ 已执行（`model=code` → `cerebras_gptoss`，HTTP 200）。
 5. ~~AI 绘画 prompt 优化~~ 已完成，`wanx2.1-t2i-turbo` live 生成成功。
