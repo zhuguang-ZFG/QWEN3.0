@@ -1,1 +1,0 @@
-"""LiMa notify package."""

@@ -1,1 +1,0 @@
-"""LiMa format converters package."""

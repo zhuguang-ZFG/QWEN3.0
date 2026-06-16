@@ -3,7 +3,6 @@ line-length = 120
 
 exclude = [
     "esp32S_XYZ",
-    "scripts/archive",
     "venv",
     ".venv",
     "managed_components",

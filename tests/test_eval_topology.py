@@ -52,24 +52,3 @@ def test_call_via_router_posts_internal_endpoint(monkeypatch):
     assert captured["url"].endswith("/internal/v1/eval/call")
     assert captured["auth"] == "Bearer test-key"
     assert captured["body"]["backend"] == "scnet_large_ds_flash"
-
-
-def test_make_eval_call_fn_uses_router(monkeypatch):
-    from eval_call import make_eval_call_fn
-
-    monkeypatch.setattr(
-        "eval_topology.needs_via_router",
-        lambda backend: backend == "scnet_large_ds_flash",
-    )
-    monkeypatch.setattr(
-        "eval_topology.call_via_router",
-        lambda backend, messages, max_tokens: "via-router-answer",
-    )
-    monkeypatch.setattr(
-        "eval_pinned_call.call_pinned_backend",
-        lambda backend, messages, max_tokens: ("scnet_qwen30b", "direct-answer"),
-    )
-
-    call_fn = make_eval_call_fn()
-    assert call_fn("scnet_large_ds_flash", [], 128) == "via-router-answer"
-    assert call_fn("scnet_qwen30b", [], 128) == "direct-answer"

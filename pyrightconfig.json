@@ -26,7 +26,6 @@
     "scripts",
     "active_model",
     "esp32S_XYZ",
-    "notify",
     "data"
   ],
   "reportMissingImports": "warning",

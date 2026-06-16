@@ -7,8 +7,8 @@
 
 > Updated: 2026-06-17
 > Branch: `main`
-> Scale: 735 文件 / 85,203 行（较上次 794/93,145 减 59 文件 / 7,942 行）
-> Tests: 全量 1736 passed / 25 skipped / 4 pre-existing failures；ruff clean
+> Scale: 684 文件 / 80,546 行（较初始 794/93,145 减 110 文件 / 12,599 行）
+> Tests: 全量 1637 passed / 24 skipped / 4 pre-existing failures；ruff clean
 
 ## 当前项目状态
 
@@ -17,6 +17,16 @@
 - **AI 路由**: 170+ 后端智能路由（设备任务 + 聊天/编码）
 - **任务管理**: 任务创建、派发、执行、监控、恢复
 - **设备策略**: 安全策略、固件兼容性、路径验证、route_policy/backend 字段贯通
+
+### 最近完成（2026-06-17）第二轮瘦身：零引用模块 + 归档脚本清理
+
+> 两轮合计：794→684 文件（-110），93,145→80,546 行（-12,599）
+
+- **14 个零生产引用模块删除**：`coding_eval`、`edit_protocol`、`esp32s_adapter/`、`eval_call`、`eval_digest`、`eval_registry`、`free_web_ai_admission`、`health_summary`、`healthchecks_io`、`mimo_stt`、`notify/`、`request_context_preflight`、`streaming_events`、`converters/` + 对应测试
+- **归档脚本清理**：`scripts/archive/` 13 个文件（deploy_legacy + openclaw_retired + key_rotation_legacy）
+- **配置同步**：`codegraph_orphans.py`、`pyrightconfig.json`、`ruff.toml` 移除已删模块条目
+- **测试修复**：`test_eval_topology.py` 移除 `eval_call` 测试；`test_secret_hygiene.py` 移除归档断言
+- **验证**：ruff clean；全量测试 1637 passed / 24 skipped / 4 pre-existing failures
 
 ### 最近完成（2026-06-17）大子系统审计瘦身
 

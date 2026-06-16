@@ -31,14 +31,3 @@ def test_runtime_files_do_not_contain_hardcoded_secret_literals():
                 break
 
     assert offenders == []
-
-
-def test_deploy_key_rotation_stub_does_not_serve_raw_keys():
-    """deploy/key_rotation.py removed 2026-06-15 in strategic cleanup."""
-    import pytest
-    pytest.skip("deploy/key_rotation.py removed 2026-06-15")
-
-
-def test_key_rotation_legacy_is_archived_not_deployed_runtime():
-    legacy = ROOT / "scripts" / "archive" / "key_rotation_legacy.py"
-    assert legacy.exists()

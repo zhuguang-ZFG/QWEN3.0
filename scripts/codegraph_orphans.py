@@ -51,7 +51,6 @@ PROD_SCAN_ROOTS = (
     "provider_automation",
     "lima_mcp",
     "xiaozhi_drawing",
-    "esp32s_adapter",
 )
 
 
