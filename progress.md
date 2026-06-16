@@ -20,7 +20,10 @@
   - `python -m pytest tests/test_system_endpoints.py -q` → 6 passed；`python -c "import server_lifespan; print('import ok')"` → ok。
   - `ruff check .` → clean。
   - `scripts/check_code_size.py` 不再报告上述 4 个文件/函数超标。
-- **提交**：`refactor: split oversized functions in routing_selector, server_lifespan, chat_stream, device_draw_handler` push 到 `origin main`。
+- **提交**：
+  - `7e029e5` refactor: split oversized functions in routing_selector, server_lifespan, chat_stream, device_draw_handler
+  - `710d26f` fixup(chat_stream): preserve original blank vs [ERR] fallback behavior
+  - 均已 push 到 `origin main`。
 
 ## 2026-06-17 接入 Ponytail「lazy senior dev」顾问规则（完成）
 

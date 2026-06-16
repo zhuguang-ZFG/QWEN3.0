@@ -26,7 +26,7 @@
   - 系统/聊天：`tests/test_system_endpoints.py tests/test_chat_handler.py` → 15 passed；`server_lifespan` import ok。
   - 设备绘图：`tests/test_draw_prompt_enhancer.py tests/test_device_gateway_model_routing.py` → 43 passed。
   - `ruff check .` clean；`scripts/check_code_size.py` 不再报告上述 4 个文件/函数超标。
-- **提交**：`refactor: split oversized functions in routing_selector, server_lifespan, chat_stream, device_draw_handler` 已 push 到 `origin main`。
+- **提交**：`7e029e5` refactor + `710d26f` fixup 已 push 到 `origin main`。
 
 ### 核心功能
 - **设备网关**: ESP32 绘图机/写字机云端控制
