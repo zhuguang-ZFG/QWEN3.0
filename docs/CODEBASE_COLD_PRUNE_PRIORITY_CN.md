@@ -173,11 +173,20 @@ python -m pytest tests/test_retrieval_injection.py tests/test_routing_engine.py 
 
 ## 可选 P5 — 默认关闭的表面（低优先级）
 
-| 候选 | 条件 | 风险 |
-|------|------|------|
-| `routes/gitee_webhook.py` + `github_webhook.py` | 生产 `*_WEBHOOK_ENABLED=0` 且长期不用 | 中（有测试） |
-| `lima_mcp/` 路由 | `route_registry` try-import；若产品不用 MCP 面 | 中（依赖 `graph_retrieval`） |
-| ~~`channel_gateway/`~~ | ~~确认无活跃 G3 会话~~ | ~~高~~ **✅ 已退役 2026-06-16**（见下方 P6） |
+| 候选 | 条件 | 风险 | 状态 |
+|------|------|------|------|
+| `routes/gitee_webhook.py` + `github_webhook.py` | 生产 `*_WEBHOOK_ENABLED=0` 且长期不用 | 中（有测试） | **✅ 已退役 2026-06-17** |
+| `lima_mcp/` 路由 | `route_registry` try-import；若产品不用 MCP 面 | 中（依赖 `graph_retrieval`） | 待评估 |
+| ~~`channel_gateway/`~~ | ~~确认无活跃 G3 会话~~ | ~~高~~ | **✅ 已退役 2026-06-16**（见下方 P6） |
+
+**P5 退役内容（2026-06-17）**：
+- 删除 `routes/github_webhook.py`、`routes/gitee_webhook.py`。
+- 删除 `github_webhook/`、`gitee_webhook/` 包目录。
+- 删除 `tests/test_github_webhook.py`、`tests/test_gitee_webhook.py`。
+- 更新 `routes/route_registry.py`：移除两个注册块，改为在 `deps.loaded_modules` 中标记为 `False`。
+- 更新 `scripts/check_vps_environment.py`：移除 `GITHUB_WEBHOOK_SECRET`、`GITEE_WEBHOOK_SECRET` 检查。
+- 更新 `tests/test_vps_environment_check.py`：改用 `LIMA_ADMIN_TOKEN` 作为 secret 示例。
+- 更新 `.env.example`：移除 `GITHUB_WEBHOOK_*`、`GITEE_WEBHOOK_*` 变量。
 
 **不建议**：为「少缝合」而删 `orchestrate*`（Warm 复杂聊天）；设备战略不依赖，但公共 API 仍可能触发。
 

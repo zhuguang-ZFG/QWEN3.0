@@ -183,23 +183,9 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
 
     mark_retired_modules(deps.loaded_modules)
 
-    try:
-        from routes.github_webhook import router as github_webhook_router
-
-        app.include_router(github_webhook_router)
-        deps.loaded_modules["github_webhook"] = True
-    except ImportError as exc:
-        logging.warning("[STARTUP] github_webhook module not loaded: %s", exc)
-        deps.loaded_modules["github_webhook"] = False
-
-    try:
-        from routes.gitee_webhook import router as gitee_webhook_router
-
-        app.include_router(gitee_webhook_router)
-        deps.loaded_modules["gitee_webhook"] = True
-    except ImportError as exc:
-        logging.warning("[STARTUP] gitee_webhook module not loaded: %s", exc)
-        deps.loaded_modules["gitee_webhook"] = False
+    # GitHub/Gitee webhooks retired — see docs/CODEBASE_COLD_PRUNE_PRIORITY_CN.md P5.
+    deps.loaded_modules["github_webhook"] = False
+    deps.loaded_modules["gitee_webhook"] = False
 
     try:
         from routes.device_memory import router as device_memory_router

@@ -5,6 +5,27 @@
 > Updated: 2026-06-16
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-17 可选 P5：GitHub/Gitee webhook 路由退役（完成）
+
+- **目标**：执行 [`docs/CODEBASE_COLD_PRUNE_PRIORITY_CN.md`](docs/CODEBASE_COLD_PRUNE_PRIORITY_CN.md) 可选 P5，删除生产默认关闭且长期不用的 GitHub/Gitee webhook 路由。
+- **删除文件**：
+  - `routes/github_webhook.py`、`routes/gitee_webhook.py`
+  - `github_webhook/` 包（`__init__.py`、`activity.py`、`auto_task.py`、`format.py`、`verify.py`）
+  - `gitee_webhook/` 包（`__init__.py`、`activity.py`、`dedupe.py`、`format.py`、`verify.py`）
+  - `tests/test_github_webhook.py`、`tests/test_gitee_webhook.py`
+- **修改文件**：
+  - `routes/route_registry.py`：移除两个 webhook 注册块，改为在 `deps.loaded_modules` 中直接标记为 `False`。
+  - `scripts/check_vps_environment.py`：移除 `GITHUB_WEBHOOK_SECRET`、`GITEE_WEBHOOK_SECRET`，新增 `LIMA_ADMIN_TOKEN`。
+  - `tests/test_vps_environment_check.py`：secret 示例改用 `LIMA_ADMIN_TOKEN`。
+  - `.env.example`：移除 `GITHUB_WEBHOOK_*`、`GITEE_WEBHOOK_*` 变量。
+  - `docs/CODEBASE_COLD_PRUNE_PRIORITY_CN.md`：P5 表格状态改为「已退役 2026-06-17」，并列出退役内容。
+- **验证**：
+  - `pytest tests/test_vps_environment_check.py tests/test_route_registry.py tests/test_system_endpoints.py -v` → **12 passed**。
+  - `pytest tests/test_retrieval_injection.py tests/test_routing_engine.py tests/test_device_gateway_model_routing.py tests/test_provider_automation_admission.py -q` → **77 passed**。
+  - `ruff check .` → clean。
+  - `python scripts/repo_stats.py` → `python_files=670`，`python_lines=79,447`。
+- **文档同步**：`STATUS.md` scale 更新为 670/79,447，新增最近完成条目。
+
 ## 2026-06-17 修复生产 LIMA_DEVICE_TOKENS 配置缺口（完成）
 
 - **目标**：解决 `/device/v1/health` 返回 `auth_configured=false` 的问题，使设备 WebSocket 握手可在生产验证。

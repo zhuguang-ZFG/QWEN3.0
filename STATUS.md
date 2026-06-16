@@ -7,7 +7,7 @@
 
 > Updated: 2026-06-17
 > Branch: `main`
-> Scale: 684 文件 / 80,546 行（较初始 794/93,145 减 110 文件 / 12,599 行）
+> Scale: 670 文件 / 79,447 行（较初始 794/93,145 减 124 文件 / 13,698 行）
 > Tests: 全量 1645 passed / 24 skipped / 0 failed；ruff clean
 > 注：`tests/test_device_draw_integration.py`、`tests/test_svg_converter.py` 因本地缺少 `cv2` 在收集阶段报错，非代码回归。
 > VPS smoke：`https://chat.donglicao.com/health` 200；`/device/v1/health` 200（`auth_configured=true`，已配置测试设备 token）。
@@ -25,6 +25,13 @@
 - **设备开发入口**：[`docs/DEVICE_DEVELOPER_GUIDE_CN.md`](docs/DEVICE_DEVELOPER_GUIDE_CN.md) 汇总设备联调、常用测试、证据要求和最小闭环。
 - **下一阶段计划**：[`docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md`](docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md) 明确 G1–G4：AI→Motion 发布门、模型准入复跑、证据边界瘦身、启动/部署不确定性降低。
 - **协议开发闭环**：[`docs/device_protocol_alignment.md`](docs/device_protocol_alignment.md) 已补充 `hello` → `task_dispatch` → `motion_event` → 终态证据的调试路径，并明确 `route_policy` 为下行任务硬契约。
+
+### 最近完成（2026-06-17）可选 P5：GitHub/Gitee webhook 路由退役
+
+- **删除**：`routes/github_webhook.py`、`routes/gitee_webhook.py`；`github_webhook/`、`gitee_webhook/` 包目录；`tests/test_github_webhook.py`、`tests/test_gitee_webhook.py`。
+- **更新**：`routes/route_registry.py` 移除两个注册块；`scripts/check_vps_environment.py` 移除 webhook secret 检查；`tests/test_vps_environment_check.py` 改用 `LIMA_ADMIN_TOKEN` 示例；`.env.example` 移除 `GITHUB_WEBHOOK_*` / `GITEE_WEBHOOK_*`；`docs/CODEBASE_COLD_PRUNE_PRIORITY_CN.md` 更新 P5 状态。
+- **验证**：聚焦门 `pytest tests/test_retrieval_injection.py tests/test_routing_engine.py tests/test_device_gateway_model_routing.py tests/test_provider_automation_admission.py -q` → **77 passed**；`ruff check .` clean。
+- **规模**：`python_files=670`，`python_lines=79,447`。
 
 ### 最近完成（2026-06-17）G1 后续：假 U1 运动执行闭环证据
 
