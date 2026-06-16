@@ -11,6 +11,7 @@ from access_guard import require_private_api_key
 from backends_registry import BACKENDS
 import health_state
 import health_tracker
+import server_lifespan
 
 router = APIRouter()
 
@@ -67,7 +68,16 @@ async def list_models():
 
 @router.get("/health")
 async def health():
-    return {"status": "ok", "version": "2.0", "model": _model_id, "modules": _loaded_modules}
+    phases = list(server_lifespan.STARTUP_PHASES)
+    has_error = any(p.get("status") == "error" for p in phases)
+    startup_status = "error" if has_error else ("ready" if phases else "starting")
+    return {
+        "status": "ok" if startup_status != "error" else "degraded",
+        "version": "2.0",
+        "model": _model_id,
+        "modules": _loaded_modules,
+        "startup": {"status": startup_status, "phases": phases},
+    }
 
 
 @router.get("/api/live-key", dependencies=[Depends(require_private_api_key)])
