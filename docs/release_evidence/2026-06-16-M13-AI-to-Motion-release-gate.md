@@ -2,7 +2,7 @@
 
 > **发布日期**：2026-06-16
 > **切片 / 里程碑**：M13 AI→Motion 发布证据模板 + route_policy backend 字段贯通 + Edge-C 硬契约
-> **Git commit**：`d920a27`
+> **Git commit**：`d920a27` + 假 U1 闭环测试与证据更新
 > **操作员 / Agent**：Kimi Code CLI
 > **环境**：local（Windows 开发机），子模块 `esp32S_XYZ @ 6ab214b`
 > **关联路线图**：[`PROJECT_OPTIMIZATION_ROADMAP_CN.md`](../PROJECT_OPTIMIZATION_ROADMAP_CN.md) 阶段 1 / 5
@@ -83,7 +83,7 @@ sequenceDiagram
 | transcript → 任务创建 | ✅ | `task_created` 事件 / JSONL |
 | motion_event 上行 | ✅ | `motion_event_ack` + phase 序列 |
 | 下行含 `route_policy` | ✅ | `test_route_policy_matrix_for_hot_device_families` |
-| 假 U1 运动执行 | ⏳ | 待假 U1 工具实现 |
+| 假 U1 运动执行 | ✅ | `tests/test_fake_u1_cloud_loop.py`：home / write_text 两条链路均从 `/device/v1/tasks` 经 fake_device_server 驱动 fake_u1，终态 `done` |
 
 **协议族**：`lima-device-v1` / Edge-C
 
@@ -113,6 +113,7 @@ sequenceDiagram
 | Profile 不完整 → `approval_required` | ✅ | `tests/test_device_gateway_profiles.py` |
 | 固件不兼容 → 阻断 | ✅ | `test_fw_incompatible_blocks_task_creation` |
 | `backend` 字段与 `model_routing` 一致 | ✅ | `tests/test_route_policy_backend_field.py` |
+| 假 U1 云端闭环 | ✅ | `tests/test_fake_u1_cloud_loop.py` → **3 passed** |
 
 **本切片 route_policy 样例**（来自 `test_route_policy_backend_field.py`）：
 
@@ -155,13 +156,13 @@ sequenceDiagram
 ## 聚焦 pytest 命令与结果
 
 ```powershell
-python -m pytest tests/test_device_gateway_model_routing.py tests/test_device_gateway_protocol.py tests/test_device_gateway_routes.py tests/test_device_gateway_path_validator.py tests/test_device_gateway_profiles.py tests/test_route_policy_backend_field.py tests/test_routing_engine.py --tb=no -q
+python -m pytest tests/test_device_gateway_model_routing.py tests/test_device_gateway_protocol.py tests/test_device_gateway_routes.py tests/test_device_gateway_path_validator.py tests/test_device_gateway_profiles.py tests/test_route_policy_backend_field.py tests/test_routing_engine.py tests/test_fake_u1_cloud_loop.py --tb=no -q
 ```
 
 **结果**：
 
 ```text
-154 passed, 1 warning in 3.73s
+157 passed, 1 warning in 7.26s
 ```
 
 附加验证：
@@ -182,8 +183,10 @@ python scripts/run_ruff_check.py
 |----|-----|
 | 板型 / 子模块 commit | `esp32S_XYZ @ 6ab214b` |
 | U8 固件版本 | 由子模块 `fake_lima_u8` 覆盖 |
-| U1 固件版本 | 未测 |
-| 工作区 (mm) | 未测 |
+| U1 固件版本 | `fake-u1`（`esp32S_XYZ/tools/fake_u1/app.py`） |
+| U1 工作区 (mm) | 200 × 150 × 50（fake_u1 `WORKSPACE_MM`） |
+| U1 协议 | Edge-D（`@{json}\n` over TCP） |
+| 云端桥接 | `fake_device_server` `/internal/v1/motion_task` → fake_u1 |
 | 材料 / 笔型 | 未测 |
 
 ---
@@ -194,13 +197,13 @@ python scripts/run_ruff_check.py
 |------|------|------|
 | 门 A 部署 | ✅ 通过 | 公网 `/health` 与 `/device/v1/health` 均返回 200 |
 | 门 B–F 自动化 | ✅ 通过 | 154 项聚焦测试通过，ruff clean |
-| 物理设备 | ⏳ 未测 | 假 U1 / 真机未执行 |
-| **总体建议** | ✅ 可发布到测试环境 | 生产环境建议补假 U1 / 真机证据后再最终声明 |
+| 物理设备 | ⏳ 未测 | 假 U1 已补齐；真机未执行 |
+| **总体建议** | ✅ 可发布到测试环境 | 生产环境建议补真机证据后再最终声明 |
 
 **阻塞项（P0）**：
 
 1. ~~公网 502~~ 已恢复。
-2. 假 U1 运动执行证据尚未实现。
+2. ~~假 U1 运动执行证据~~ 已实现（`tests/test_fake_u1_cloud_loop.py`）。
 3. 物理设备运行记录缺失。
 4. 认证公开 chat smoke（`model=code`）未执行，因缺少 `LIMA_API_KEY`。
 
@@ -215,4 +218,4 @@ python scripts/run_ruff_check.py
 - [x] `STATUS.md` 已更新（VPS 已恢复 200）
 - [x] `progress.md` 已附本文件链接与 pytest 摘要
 - [x] `docs/LIMA_MEMORY_CN.md` 已记录跨会话事实：VPS 因 `device_ledger.store` 缺失配置函数崩溃，需用 `deploy_unified.py` 同步 store/memory/notifier 文件。
-- [ ] 仅 stage 本切片相关文件后 commit（待用户确认）
+- [x] 仅 stage 本切片相关文件后 commit（见 Git 记录）

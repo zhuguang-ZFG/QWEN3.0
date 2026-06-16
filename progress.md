@@ -5,6 +5,28 @@
 > Updated: 2026-06-16
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-17 G1 后续：假 U1 运动执行闭环证据（完成）
+
+- **目标**：补齐 [`docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md`](docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md) G1 中「假 U1 运动执行 ⏳」项，把 LiMa 云端 `/device/v1/tasks` 到 `motion_event` 终态的链路完整跑到假 U1。
+- **新增测试**：`tests/test_fake_u1_cloud_loop.py`
+  - `test_cloud_to_fake_u1_home_loop`：云端 `home` 命令经 WebSocket `task_dispatch` → fake_device_server → fake_u1，终态 `done`。
+  - `test_cloud_to_fake_u1_write_text_loop`：云端 `write hi` 渲染为 `run_path` 路径 → fake_device_server → fake_u1 PATH 序列，终态 `done`。
+  - `test_cloud_task_command_translation_matches_u1_protocol`：校验 `motion_task` 到 Edge-D 命令序列的转换契约。
+- **代码理解**：
+  - `routes/device_gateway.py` `/device/v1/tasks` 创建任务后，若设备 WebSocket 在线则直接 `sent`，否则 `queued`。
+  - `routes/device_gateway_ws.py` 的 `hello` 握手 + `drain_pending_tasks` 会把待处理任务 flush 到设备。
+  - `esp32S_XYZ/tools/fake_device_server/app.py` 将 `motion_task`（`home` / `run_path`）转换为 Edge-D 帧并转发到 fake_u1 TCP 服务器。
+  - `esp32S_XYZ/tools/fake_u1/app.py` 维护 `FakeU1State`，对 `HOME`、`MOVE`、`PATH_BEGIN`/`SEG`/`END` 等命令返回状态/结果/错误。
+  - 设备端回传 `motion_event`（`accepted` → `running` → `done`）到 `/device/v1/events`，`task_snapshot` 终态为 `done`。
+- **验证**：
+  - `pytest tests/test_fake_u1_cloud_loop.py -v` → **3 passed**。
+  - `ruff check tests/test_fake_u1_cloud_loop.py` → clean。
+  - 聚焦门：`pytest tests/test_device_gateway_model_routing.py tests/test_device_gateway_protocol.py tests/test_device_gateway_routes.py tests/test_device_gateway_path_validator.py tests/test_device_gateway_profiles.py tests/test_route_policy_backend_field.py tests/test_routing_engine.py tests/test_fake_u1_cloud_loop.py --tb=no -q` → **157 passed, 1 warning**。
+- **证据更新**：
+  - [`docs/release_evidence/2026-06-16-M13-AI-to-Motion-release-gate.md`](docs/release_evidence/2026-06-16-M13-AI-to-Motion-release-gate.md) 中门 B「假 U1 运动执行」状态由 ⏳ 改为 ✅。
+  - 发布决策「物理设备」由「假 U1 / 真机未执行」改为「假 U1 已补齐；真机未执行」。
+- **后续**：物理设备运行记录仍缺失；认证公开 chat smoke 仍因缺少 `LIMA_API_KEY` 未执行。
+
 ## 2026-06-17 G4 启动与部署不确定性降低（完成）
 
 - **目标**：执行作者意图计划 G4，降低启动和部署不确定性。
@@ -67,7 +89,7 @@
   - 故障：VPS `lima-router.service` 因 `device_ledger.store` 缺失 `configure_ledger_store_from_env` 反复崩溃（restart counter 5752+）。
   - 修复：使用 `scripts/deploy_unified.py --files` 部署 15 个 store/memory/notifier/gateway/lifespan 文件；备份 `/opt/lima-router/backups/unified-files-20260616_190649/runtime-before.tgz`；重启后约 7–8 分钟启动完成。
   - 当前：`curl -sL https://chat.donglicao.com/health` → **HTTP 200**；`curl -sL https://chat.donglicao.com/device/v1/health` → **HTTP 200**。
-- **后续**：补认证公开 chat smoke（需 `LIMA_API_KEY`）、假 U1 证据和（如可能）物理设备证据。
+- **后续**：补认证公开 chat smoke（需 `LIMA_API_KEY`）；物理设备证据待真机执行。
 
 ## 2026-06-16 开发文档细化
 

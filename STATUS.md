@@ -8,7 +8,7 @@
 > Updated: 2026-06-17
 > Branch: `main`
 > Scale: 684 文件 / 80,546 行（较初始 794/93,145 减 110 文件 / 12,599 行）
-> Tests: 全量 1637 passed / 24 skipped / 4 pre-existing failures；ruff clean
+> Tests: 全量 1640 passed / 24 skipped / 4 pre-existing failures；ruff clean
 
 ## 当前项目状态
 
@@ -23,6 +23,14 @@
 - **设备开发入口**：[`docs/DEVICE_DEVELOPER_GUIDE_CN.md`](docs/DEVICE_DEVELOPER_GUIDE_CN.md) 汇总设备联调、常用测试、证据要求和最小闭环。
 - **下一阶段计划**：[`docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md`](docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md) 明确 G1–G4：AI→Motion 发布门、模型准入复跑、证据边界瘦身、启动/部署不确定性降低。
 - **协议开发闭环**：[`docs/device_protocol_alignment.md`](docs/device_protocol_alignment.md) 已补充 `hello` → `task_dispatch` → `motion_event` → 终态证据的调试路径，并明确 `route_policy` 为下行任务硬契约。
+
+### 最近完成（2026-06-17）G1 后续：假 U1 运动执行闭环证据
+
+- **新增测试**：`tests/test_fake_u1_cloud_loop.py`（3 cases）
+  - 云端 `home` / `write hi` 命令经 `/device/v1/tasks` → WebSocket `task_dispatch` → `fake_device_server` → fake U1 TCP 执行 → `/device/v1/events` 终态 `done`。
+  - 校验 `motion_task` 到 Edge-D 命令序列的转换契约。
+- **验证**：`pytest tests/test_fake_u1_cloud_loop.py -v` → **3 passed**；`ruff check` clean。
+- **证据更新**：`docs/release_evidence/2026-06-16-M13-AI-to-Motion-release-gate.md` 门 B「假 U1 运动执行」状态改为 ✅。
 
 ### 最近完成（2026-06-17）G4 启动与部署不确定性降低
 
