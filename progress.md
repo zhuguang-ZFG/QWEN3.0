@@ -5,6 +5,20 @@
 > Updated: 2026-06-16
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-17 AI 绘画 prompt 优化 + Wanx 模型更新（完成）
+
+- **目标**：优化 `device_draw_handler.py` 的 AI 绘画 prompt，使其更适合笔绘机矢量化；同时修复默认 Wanx 模型不可用的问题。
+- **实现**：
+  - 新增 `device_gateway/draw_prompt_enhancer.py`：`enhance_drawing_prompt()` 将用户描述包装为笔绘机约束 prompt（黑色线条、纯白背景、无阴影填充、封闭图形、线条间距等）。
+  - 修改 `device_gateway/device_draw_handler.py`：在调用 DashScope 前使用增强 prompt；默认模型从 `wanx-v1` 改为 `wanx2.1-t2i-turbo`（`wanx-v1` 任务失败，`wanx2.1-t2i-turbo` 可用）。
+  - 新增 `tests/test_draw_prompt_enhancer.py`：11 个单元测试覆盖约束、风格、复杂度、空输入、非字符串输入等。
+- **验证**：
+  - `pytest tests/test_draw_prompt_enhancer.py tests/test_device_gateway_routes.py tests/test_device_gateway_model_routing.py -q` → **75 passed**。
+  - `ruff check device_gateway/draw_prompt_enhancer.py device_gateway/device_draw_handler.py tests/test_draw_prompt_enhancer.py` → clean。
+  - Live 验证：VPS `ALIYUN_API_KEY` + `wanx2.1-t2i-turbo` + 增强 prompt「一只猫」→ **success**，返回可访问图片 URL。
+- **发现**：`wanx-v1` 已不可用（任务失败）；`wanx2.0-t2i-turbo` 也失败；`wanx2.1-t2i-turbo` 可用。
+- **文档同步**：`STATUS.md`、`progress.md`、`docs/release_evidence/2026-06-16-M13-AI-to-Motion-release-gate.md` 更新。
+
 ## 2026-06-17 可选 P5 余项：`lima_mcp/` HTTP 路由退役（完成）
 
 - **目标**：执行 [`docs/CODEBASE_COLD_PRUNE_PRIORITY_CN.md`](docs/CODEBASE_COLD_PRUNE_PRIORITY_CN.md) 可选 P5 余项，删除产品战略转型后不再使用的 `lima_mcp` HTTP 路由面。

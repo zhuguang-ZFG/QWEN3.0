@@ -7,6 +7,8 @@ from xiaozhi_drawing.svg_validator import validate_svg_path
 from xiaozhi_drawing.path_optimizer import optimize_svg_path
 from xiaozhi_drawing.preset_shapes import get_preset_svg
 
+from device_gateway.draw_prompt_enhancer import enhance_drawing_prompt
+
 logger = logging.getLogger(__name__)
 
 # 预设图形关键词
@@ -45,7 +47,8 @@ async def handle_device_draw(
         }
     """
     prefs = user_preferences or {}
-    model = prefs.get('model', 'wanx-v1')
+    # wanx-v1 is deprecated/ unavailable; use the current working model.
+    model = prefs.get('model', 'wanx2.1-t2i-turbo')
     size = prefs.get('size', '1024*1024')
 
     logger.info(f"Device {device_id} draw request: {prompt[:50]}... (model={model})")
@@ -68,9 +71,13 @@ async def handle_device_draw(
                 }
 
     try:
-        # 1. 生成图片
+        # 1. Enhance prompt for pen-plotter output
+        enhanced_prompt = enhance_drawing_prompt(prompt)
+        logger.info(f"Enhanced prompt: {enhanced_prompt[:100]}...")
+
+        # 2. 生成图片
         client = DashScopeImageClient()
-        result = client.generate(prompt=prompt, model=model, size=size, n=1)
+        result = client.generate(prompt=enhanced_prompt, model=model, size=size, n=1)
 
         if result['status'] != 'success' or not result['images']:
             return {

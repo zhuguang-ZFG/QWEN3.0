@@ -7,9 +7,9 @@
 
 > Updated: 2026-06-17
 > Branch: `main`
-> Scale: 654 文件 / 77,460 行（较初始 794/93,145 减 140 文件 / 15,685 行）
+> Scale: 656 文件 / 77,584 行（较初始 794/93,145 减 138 文件 / 15,561 行）
 > Tests: 全量 1616 passed / 23 skipped / 0 failed；ruff clean
-> 注：`tests/test_device_draw_integration.py`、`tests/test_svg_converter.py` 因本地缺少 `cv2` 在收集阶段报错，非代码回归；passed 较上次减少 29 系删除 30 个 webhook 测试所致。
+> 注：`tests/test_device_draw_integration.py`、`tests/test_svg_converter.py` 因本地缺少 `cv2` 在收集阶段报错，非代码回归。
 > VPS smoke：`https://chat.donglicao.com/health` 200；`/device/v1/health` 200（`auth_configured=true`）；`/v1/chat/completions model=code` 200（backend `cerebras_gptoss`）。
 
 ## 当前项目状态
@@ -25,6 +25,14 @@
 - **设备开发入口**：[`docs/DEVICE_DEVELOPER_GUIDE_CN.md`](docs/DEVICE_DEVELOPER_GUIDE_CN.md) 汇总设备联调、常用测试、证据要求和最小闭环。
 - **下一阶段计划**：[`docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md`](docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md) 明确 G1–G4：AI→Motion 发布门、模型准入复跑、证据边界瘦身、启动/部署不确定性降低。
 - **协议开发闭环**：[`docs/device_protocol_alignment.md`](docs/device_protocol_alignment.md) 已补充 `hello` → `task_dispatch` → `motion_event` → 终态证据的调试路径，并明确 `route_policy` 为下行任务硬契约。
+
+### 最近完成（2026-06-17）AI 绘画 prompt 优化 + Wanx 模型更新
+
+- **新增**：`device_gateway/draw_prompt_enhancer.py`，将用户描述包装为笔绘机约束 prompt。
+- **修改**：`device_gateway/device_draw_handler.py` 调用增强 prompt；默认模型从 `wanx-v1` 改为 `wanx2.1-t2i-turbo`（`wanx-v1` 已不可用）。
+- **新增测试**：`tests/test_draw_prompt_enhancer.py`（11 cases）。
+- **验证**：聚焦测试 75 passed；ruff clean；VPS `ALIYUN_API_KEY` live 生成「一只猫」成功。
+- **规模**：`python_files=656`，`python_lines=77,584`。
 
 ### 最近完成（2026-06-17）可选 P5 余项：`lima_mcp/` HTTP 路由退役
 

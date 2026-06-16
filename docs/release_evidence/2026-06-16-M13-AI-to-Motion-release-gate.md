@@ -99,6 +99,7 @@ sequenceDiagram
 | `home` / 控制 | `device_control` | ✅ | `test_control_command_uses_no_model_route` |
 | `write_text` | `device_write` | ✅ | `test_write_text_uses_device_write_route` |
 | `draw_generated` | `device_draw` | ✅ | `test_generated_drawing_uses_device_draw_route` |
+| `draw_generated` prompt 优化 | `device_draw` | ✅ | `tests/test_draw_prompt_enhancer.py` + VPS live 生成「一只猫」success |
 | SVG / `run_path` | `device_vector` | ✅ | `test_svg_like_generated_drawing_uses_vector_route_without_model` |
 | 非法 role / policy | 拒绝或阻断 | ✅ | `test_validate_route_policy_rejects_unknown_role` |
 | 不安全任务 | `dispatch_blocked` | ✅ | `test_policy_blocks_unsafe_task` |
@@ -211,7 +212,8 @@ python scripts/run_ruff_check.py
 2. ~~假 U1 运动执行证据~~ 已实现（`tests/test_fake_u1_cloud_loop.py`）。
 3. ~~生产设备认证缺口~~ 已修复，`/device/v1/health` 返回 `auth_configured=true`。
 4. ~~认证公开 chat smoke~~ 已执行（`model=code` → `cerebras_gptoss`，HTTP 200）。
-5. 物理设备运行记录缺失。
+5. ~~AI 绘画 prompt 优化~~ 已完成，`wanx2.1-t2i-turbo` live 生成成功。
+6. 物理设备运行记录缺失。
 
 **回滚方案**：
 
