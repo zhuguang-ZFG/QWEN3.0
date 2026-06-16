@@ -7,7 +7,6 @@ from typing import Any
 
 from fastapi import WebSocket
 
-from device_intelligence.shadow import shadow_store
 from device_gateway.protocol import ProtocolError, ack_frame, build_voiceprint_sample_ack, hello_ack
 from device_gateway.sessions import DeviceSession, registry
 from device_gateway.tasks import (
@@ -20,6 +19,7 @@ from device_gateway.tasks import (
     record_motion_event,
     remove_pending_task,
 )
+from device_intelligence.shadow import shadow_store
 from device_ledger.events import new_event
 from device_ledger.store import ledger_store
 from device_workflow.orchestrator import workflow
@@ -31,6 +31,8 @@ from routes.device_gateway_dispatch import (
     record_motion_event_observability,
     send_ws_error,
 )
+from routes.ws_lifecycle_helpers import reattach_tasks
+from routes.ws_task_helpers import record_outcome_ledger, send_recovery_ack
 from device_gateway.auth import validate_device_token
 
 _log = logging.getLogger(__name__)
@@ -59,60 +61,17 @@ async def handle_hello(
     )
     previous = registry.register(session)
     if previous and previous.websocket is not websocket:
-        _reattach_tasks(session, previous.take_outstanding_tasks())
+        reattach_tasks(session, previous.take_outstanding_tasks())
         try:
             await previous.websocket.close(code=1012)
         except Exception as exc:
             _log.debug("close superseded websocket device=%s: %s", device_id, type(exc).__name__)
-    _reattach_tasks(session, active_tasks_for_device(device_id))
+    reattach_tasks(session, active_tasks_for_device(device_id))
     shadow_store.update_hello(message)
     await session.send_json(hello_ack(device_id, shadow_store.delta_for_hello(device_id)))
     if not await drain_pending_tasks(session):
         return device_id, session, False
     return device_id, session, True
-
-
-def _reattach_tasks(session: DeviceSession, tasks: list[dict[str, Any]]) -> None:
-    seen = set(session.inflight_tasks)
-    for task in tasks:
-        task_id = str(task.get("task_id", ""))
-        if not task_id or task_id in seen:
-            continue
-        session.mark_task_dispatched(task)
-        seen.add(task_id)
-        _record_device_reconnected(session.device_id, task_id)
-        _recover_workflow(task_id)
-
-
-def _record_device_reconnected(device_id: str, task_id: str) -> None:
-    ledger_store.append_event(
-        new_event(
-            event_type="motion_event",
-            task_id=task_id,
-            device_id=device_id,
-            payload={
-                "motion_event": {
-                    "type": "motion_event",
-                    "device_id": device_id,
-                    "task_id": task_id,
-                    "phase": "device_reconnected",
-                }
-            },
-        )
-    )
-
-
-def _recover_workflow(task_id: str) -> None:
-    try:
-        current = workflow.get_state(task_id)
-        if current == TaskState.DISPATCHED:
-            workflow.advance(task_id, TaskState.RUNNING)
-            current = TaskState.RUNNING
-        if current == TaskState.RUNNING:
-            workflow.advance(task_id, TaskState.RECOVERING)
-            workflow.advance(task_id, TaskState.RUNNING)
-    except WorkflowTransitionError as exc:
-        _log.debug("workflow reconnect recovery skipped task=%s err=%s", task_id, exc)
 
 
 async def handle_heartbeat(
@@ -178,28 +137,7 @@ async def handle_motion_event(device_id: str, message: dict[str, Any], request_i
         )
         session = registry.get(device_id)
         if session is not None:
-            # Notify device about recovery action (home/retry)
-            action = recovery_result["action"]
-            retry_task = recovery_result.get("task")
-            if action == "home":
-                await session.send_json(
-                    ack_frame("home_command", device_id,
-                              task_id=message.get("task_id", ""),
-                              reason="recovery_action_home",
-                              request_id=request_id)
-                )
-            elif action == "retry" and retry_task:
-                await session.send_json(
-                    ack_frame("motion_task_retry", device_id,
-                              task_id=message.get("task_id", ""),
-                              task=retry_task,
-                              attempt=recovery_result.get("attempt", 0),
-                              request_id=request_id)
-                )
-                # Avoid double-delivery via pending queue; task is already inflight.
-                session.mark_task_dispatched(retry_task)
-                mark_task_dispatched(retry_task["task_id"])
-                remove_pending_task(device_id, retry_task["task_id"])
+            await send_recovery_ack(session, device_id, message, request_id, recovery_result)
 
     session = registry.get(device_id)
     if session is not None:
@@ -217,20 +155,7 @@ async def handle_motion_event(device_id: str, message: dict[str, Any], request_i
 
     # Record to Outcome Ledger (terminal phases only)
     if phase in ("done", "failed", "cancelled"):
-        try:
-            from session_memory.outcome_ledger import record as ledger_record
-
-            ledger_record(
-                source="device_gateway",
-                event_type="device_task",
-                outcome="success" if phase == "done" else "failure",
-                task_id=str(message.get("task_id", "")),
-                scenario="device",
-                summary=f"{phase}: {message.get('capability', message.get('source_capability', ''))}",
-                tags=["device", phase, str(message.get("capability", ""))],
-            )
-        except Exception:
-            _log.debug("outcome ledger record failed", exc_info=True)
+        record_outcome_ledger(device_id, message, phase)
 
 
 async def handle_device_info(device_id: str, message: dict[str, Any], request_id: str | None) -> None:
