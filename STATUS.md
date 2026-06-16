@@ -57,6 +57,14 @@
 - **验证**：`pytest tests/test_fake_u1_cloud_loop.py -v` → **4 passed**；`ruff check` clean。
 - **证据更新**：`docs/release_evidence/2026-06-16-M13-AI-to-Motion-release-gate.md` 门 B「假 U1 运动执行」状态改为 ✅。
 
+### 最近完成（2026-06-17）阶段 1 步骤 3：Edge-C 产品端 motion_task 示例
+
+- **新增示例**：`esp32S_XYZ/docs/schemas/edge_c/examples/`
+  - `motion_task.write_text.downlink.json`：`route_role=device_write`，`backend=scnet_ds`，`source_capability=write_text`。
+  - `motion_task.draw_generated.downlink.json`：`route_role=device_draw`，`backend=dashscope_wanx`，`source_capability=draw_generated`。
+  - 现有 `motion_task.downlink.json`（home / device_control）与 `motion_task.run_path.downlink.json`（device_vector）已覆盖其余两种 route_role。
+- **验证**：`python esp32S_XYZ/tools/validate_schemas.py` → **64 passed**；子模块 `esp32S_XYZ @ fac1eec` 已 push；LiMa 主仓库子模块指针已更新。
+
 ### 最近完成（2026-06-17）G4 启动与部署不确定性降低
 
 - **目标**：降低启动和部署不确定性，把耗时任务拆分为 ready 必须完成与 warming 可后台完成。

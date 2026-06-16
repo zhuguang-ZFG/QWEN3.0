@@ -5,6 +5,23 @@
 > Updated: 2026-06-17
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-17 Edge-C 产品端模式示例：device_write / device_draw（完成）
+
+- **目标**：执行 [`PROJECT_OPTIMIZATION_ROADMAP_CN.md`](docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md) 阶段 1 步骤 3，为 `device_control`、`device_write`、`device_draw`、`device_vector` 添加产品端 `motion_task` 示例，而不仅仅是 `run_path`。
+- **实现**：
+  - 在子模块 `esp32S_XYZ/docs/schemas/edge_c/examples/` 新增：
+    - `motion_task.write_text.downlink.json`：`route_role=device_write`、`primary_strategy=provided_path`、`artifact_required=preview_svg`、`backend=scnet_ds`，`params.source_capability=write_text`。
+    - `motion_task.draw_generated.downlink.json`：`route_role=device_draw`、`primary_strategy=image_then_vector`、`artifact_required=vector_path`、`backend=dashscope_wanx`，`params.source_capability=draw_generated`。
+  - 现有示例已覆盖 `device_control`（home）和 `device_vector`（run_path），因此四种 route_role 均有对应产品端示例。
+- **验证**：
+  - `python esp32S_XYZ/tools/validate_schemas.py` → **validated=64 passed=64 failed=0**（新增 2 个示例均通过 Edge-C schema）。
+  - `python -m unittest esp32S_XYZ/tests/ci/test_validate_schemas.py` → **5 passed**。
+  - `python -m unittest esp32S_XYZ/tools/fake_lima_u8/tests/test_app.py` → **10 passed**。
+  - `pytest esp32S_XYZ/tools/fake_lima_u8/tests/test_route_policy_consumer.py -v` → **3 passed**。
+- **提交**：
+  - 子模块 commit `fac1eec` 已 push 到 `esp32S_XYZ` origin。
+  - LiMa 主仓库子模块指针更新为 `fac1eec`。
+
 ## 2026-06-17 假 U1 闭环扩展到 AI 绘画/写字（draw_generated SVG path）（完成）
 
 - **目标**：把 `tests/test_fake_u1_cloud_loop.py` 的云→假 U1 运动闭环从 `home` / `write_text` 延伸到 `draw_generated`，覆盖 AI 绘画（SVG path 形式）端到端执行。
