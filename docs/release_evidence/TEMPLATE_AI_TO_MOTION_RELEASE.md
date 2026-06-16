@@ -1,84 +1,235 @@
-# AI 到 Motion 发布证据模板
+# AI → Motion 发布证据（填写模板）
 
-## 1. 路由证据
+> **用法**：复制本文件为 `docs/release_evidence/YYYY-MM-DD-<切片名>.md`，按门 A–F 填写。
+> **权威清单**：[`docs/RELEASE_GATE_CHECKLIST.md`](../RELEASE_GATE_CHECKLIST.md)
+> **参考样例**：[`2026-06-12-phase1-5-complete.md`](./2026-06-12-phase1-5-complete.md)
+>
+> **原则**：健康的 VPS ≠ 安全的运动。部署证据与硬件证据分开记录；任一 P0 门未通过不得宣称生产可发布。
 
-| 区域 | 状态 | 证据 |
+---
+
+## 元数据
+
+| 字段 | 值 |
+|------|-----|
+| 发布日期 | YYYY-MM-DD |
+| 切片 / 里程碑 | （例：M13、route_policy profile 接入、固件 edge_c 升级） |
+| Git commit | `________` |
+| 操作员 / Agent | |
+| 环境 | `local` / `staging` / `production` |
+| 关联路线图 | [`PROJECT_OPTIMIZATION_ROADMAP_CN.md`](../PROJECT_OPTIMIZATION_ROADMAP_CN.md) 阶段 ___ |
+| 上一版证据 | `docs/release_evidence/________.md` |
+
+## 变更摘要
+
+- **用户可见行为**：（例：语音「画一个圆」→ 生成路径 → 设备执行）
+- **触及模块**：（例：`device_gateway/task_creation.py`、`routes/device_gateway_ws_handlers.py`）
+- **非目标 / 未改**：（例：未改 U1 固件、未改聊天热路径）
+
+## 端到端链路（本切片要证明的路径）
+
+```mermaid
+sequenceDiagram
+    participant C as Client / 假 U8
+    participant DG as device_gateway
+    participant RP as route_policy + profile
+    participant Q as Redis task queue
+    participant Sim as path_validator / simulator
+    participant Dev as U8 / U1 / fake-u8
+
+    C->>DG: hello / transcript / POST /device/v1/tasks
+    DG->>RP: resolve_device_route_policy + enrich_route_policy_with_profile
+    RP-->>DG: route_policy (route_role, backend, approval_required)
+    DG->>Sim: 几何与安全校验（如适用）
+    DG->>Q: enqueue / dispatch
+    DG->>Dev: task_dispatch / motion_task (+ route_policy)
+    Dev->>DG: motion_event accepted → running → done|failed
+    DG->>DG: task_terminal + route_evidence 制品
+```
+
+**本切片覆盖的入口**（勾选）：
+
+- [ ] HTTP `POST /device/v1/tasks`
+- [ ] WebSocket `transcript`
+- [ ] WebSocket `hello` + 下行 `task_dispatch`
+- [ ] Edge-C `motion_task`（`esp32s_adapter`）
+- [ ] 其他：________
+
+---
+
+## 门 A：服务器健康（部署证据）
+
+| 检查项 | 状态 | 证据 |
+|--------|------|------|
+| `GET /health` → 200 | ⬜ | `curl -sf https://chat.donglicao.com/health` 输出 / 截图 |
+| `GET /device/v1/health` → 200 | ⬜ | 同上 |
+| 无 critical alerts | ⬜ | `/v1/ops/summary` 或 Prometheus 截图 |
+| 路由引擎 | ⬜ | `pytest tests/test_routing_engine.py -q` → ___ passed |
+| 设备网关聚焦门 | ⬜ | 见下方「聚焦 pytest 命令」→ ___ passed |
+
+**部署记录**（若本切片含 VPS 发布）：
+
+- 部署脚本：`python scripts/deploy_unified.py`
+- 备份路径：`/opt/lima-router/backups/________`
+- 回滚命令：（填写）
+
+---
+
+## 门 B：设备协议（假 U8 / 假 U1）
+
+| 检查项 | 状态 | 证据 |
+|--------|------|------|
+| 假 U8 hello 握手 | ⬜ | `test_fake_u8_hello_heartbeat_transcript_motion_event_loop` |
+| heartbeat / ack | ⬜ | 同上或 WS 日志片段 |
+| transcript → 任务创建 | ⬜ | `task_created` 事件 / JSONL |
+| motion_event 上行 | ⬜ | `motion_event_ack` + phase 序列 |
+| 下行含 `route_policy` | ⬜ | `motion_task` / `task_dispatch` 抓包或测试断言 |
+| 假 U1 运动执行 | ⬜ | 测试名 / 工具：________（未实现则标 ⏳） |
+
+**协议族**：`lima-device-v1` / Edge-C — 本切片：________
+
+---
+
+## 门 C：任务生命周期（按 capability）
+
+| capability | route_role（预期） | 状态 | pytest / 证据 |
+|------------|-------------------|------|----------------|
+| `home` / 控制 | `device_control` | ⬜ | `test_control_command_uses_no_model_route` |
+| `write_text` | `device_write` | ⬜ | `test_write_text_uses_device_write_route` |
+| `draw_generated` | `device_draw` | ⬜ | `test_generated_drawing_uses_device_draw_route` |
+| SVG / `run_path` | `device_vector` | ⬜ | `test_svg_like_generated_drawing_uses_vector_route_without_model` |
+| 非法 role / policy | 拒绝或阻断 | ⬜ | `test_validate_route_policy_rejects_unknown_role` |
+| 不安全任务 | `dispatch_blocked` | ⬜ | `test_policy_blocks_unsafe_task` |
+| WS 断线恢复 | 重连后可继续 | ⬜ | 测试名 / 手动步骤 |
+
+**motion_event 生命周期**（必需：`accepted` + `running`；终态：`done`/`failed`/…）：
+
+```
+（粘贴 phase 序列或 JSONL 片段）
+```
+
+---
+
+## 门 D：路由策略与 Profile
+
+| 检查项 | 状态 | 证据 |
+|--------|------|------|
+| `route_policy` 全路径保留 | ⬜ | `test_route_policy_matrix_for_hot_device_families` |
+| 无效组合被拒绝 | ⬜ | route_policy 验证测试套件 |
+| `route_evidence` 制品完整 | ⬜ | 含 `route_role`, `policy_decision`, `sim_risk_score` |
+| Profile 不完整 → `approval_required` | ⬜ | `test_device_gateway_profiles.py` 相关用例 |
+| 固件不兼容 → 阻断 | ⬜ | `test_fw_incompatible_blocks_task_creation` |
+| `backend` 字段与 `model_routing` 一致 | ⬜ | `test_route_policy_backend_field.py` |
+
+**本切片 route_policy 样例**（脱敏）：
+
+```json
+{
+  "route_role": "device_draw",
+  "backend": "dashscope_wanx",
+  "approval_required": false
+}
+```
+
+---
+
+## 门 E：安全与几何
+
+| 检查项 | 状态 | 证据 |
+|--------|------|------|
+| 设备安全策略 | ⬜ | `pytest tests/test_device_gateway_protocol.py -q` |
+| 路径越界拒绝 | ⬜ | `pytest tests/test_device_gateway_path_validator.py -q` |
+| 未知设备保守 profile | ⬜ | `test_unknown_device_gets_conservative_profile` |
+| 高风险需审批 | ⬜ | `test_high_risk_task_requires_approval` |
+| 无静默降级（AGENTS.md #0） | ⬜ | 相关路径 `logger.warning` 片段 / 代码审查 |
+
+---
+
+## 门 F：可观测性
+
+| 检查项 | 状态 | 证据 |
+|--------|------|------|
+| 路由决策事件 | ⬜ | `agent_events` 样例 |
+| 设备账本事件 | ⬜ | `task_created`, `task_dispatched`, `motion_event`, `task_terminal` |
+| `route_evidence` 可查询 | ⬜ | `GET /device/v1/devices/{id}/history?artifact_type=route_evidence` |
+| 指标 / 日志可关联 `task_id` | ⬜ | correlation_id 或 task_id 日志行 |
+
+---
+
+## 聚焦 pytest 命令（复制执行）
+
+```powershell
+# 门 C + 门 D 核心
+python -m pytest tests/test_device_gateway_model_routing.py -q
+
+# 门 B 假 U8 环
+python -m pytest tests/test_device_gateway_routes.py::test_fake_u8_hello_heartbeat_transcript_motion_event_loop -q
+
+# 门 E + Profile
+python -m pytest tests/test_device_gateway_protocol.py tests/test_device_gateway_path_validator.py tests/test_device_gateway_profiles.py -q
+
+# 路由引擎（门 A）
+python -m pytest tests/test_routing_engine.py -q
+```
+
+**本切片结果**：
+
+```
+（粘贴 pytest 摘要，例：33 passed, 0 failed）
+```
+
+---
+
+## 物理设备证据（可选，生产发布必填）
+
+> 假 U8 通过不能替代真机。发布到生产前至少记录一次真机或台架运行。
+
+### 设备信息
+
+| 项 | 值 |
+|----|-----|
+| 板型 / 子模块 commit | |
+| U8 固件版本 | |
+| U1 固件版本 | |
+| 工作区 (mm) | |
+| 材料 / 笔型 | |
+
+### 运行记录
+
+| 项 | 值 |
+|----|-----|
+| 输入（语音/文本/任务 JSON） | |
+| 生成物 hash (SHA-256) | |
+| 路径点数 | |
+| 终端 phase | `done` / `failed` |
+| 实际耗时 (s) | |
+| 操作员备注 | |
+
+---
+
+## 发布决策
+
+| 维度 | 结论 | 说明 |
 |------|------|------|
-| 入口路由配置 | ⭕ 通过 | - 网络拓扑图<br>- 端口映射规则<br>- 防火墙策略<br>- 域名解析记录 |
-| 中间路由转发 | ⭕ 通过 | - 路由表配置<br>- 负载均衡设置<br>- 代理服务器配置 |
-| 出口路由质量 | ⭕ 通过 | - 带宽测试结果<br>- 时延测量<br>- 丢包率分析 |
-| 路由监控系统 | ⭕ 通过 | - 监控日志<br>- 告警设置<br>- 历史记录 |
+| 门 A 部署 | ⬜ 通过 / ⬜ 失败 | |
+| 门 B–F 自动化 | ⬜ 通过 / ⬜ 部分 / ⬜ 失败 | |
+| 物理设备 | ⬜ 通过 / ⬜ 未测 / ⬜ N/A | |
+| **总体建议** | ⬜ 可发布生产 / ⬜ 仅测试环境 / ⬜ 阻塞 | |
 
-## 2. 模式校验
+**阻塞项（P0）**：
 
-| 区域 | 状态 | 证据 |
-|------|------|------|
-| 模式定义校验 | ⭕ 通过 | - 模式定义文件<br>- 模式验证脚本<br>- 测试结果报告 |
-| 模式一致性检查 | ⭕ 通过 | - 版本兼容性报告<br>- 架构一致性分析<br>- 迁移路径验证 |
-| 模式数据完整性 | ⭕ 通过 | - 数据完整性校验<br>- 加密签名验证<br>- 完整性报告 |
-| 模式变更控制 | ⭕ 通过 | - 变更请求记录<br>- 审批流程文件<br>- 变更后验证报告 |
+1.
+2.
 
-## 3. 模型认证
+**回滚方案**：
 
-| 区域 | 状态 | 证据 |
-|------|------|------|
-| 模型架构验证 | ⭕ 通过 | - 架构设计文档<br>- 设计评审记录<br>- 性能测试结果 |
-| 模型训练验证 | ⭕ 通过 | - 训练数据集<br>- 训练过程记录<br>- 评估结果报告 |
-| 模型性能校验 | ⭕ 通过 | - 基准测试报告<br>- 精度指标<br>- 效率指标 |
-| 模型安全认证 | ⭕ 通过 | - 安全扫描报告<br>- 漏洞评估<br>- 安全验证证书 |
+-
 
-## 4. 档案路由
+---
 
-| 区域 | 状态 | 证据 |
-|------|------|------|
-| 档案系统初始化 | ⭕ 通过 | - 系统初始化脚本<br>- 配置文件<br>- 初始化日志 |
-| 档案存储管理 | ⭕ 通过 | - 存储架构设计<br>- 存储容量规划<br>- 备份策略 |
-| 档案访问控制 | ⭕ 通过 | - 权限分配表<br>- 访问日志<br>- 安全审计报告 |
-| 档案检索系统 | ⭕ 通过 | - 检索测试报告<br>- 查询性能报告<br>- 数据恢复测试 |
+## 归档检查
 
-## 5. 安全模拟器
-
-| 区域 | 状态 | 证据 |
-|------|------|------|
-| 安全策略定义 | ⭕ 通过 | - 安全策略文档<br>- 风险评估报告<br>- 威胁建模 |
-| 安全控制实现 | ⭕ 通过 | - 安全控制列表<br>- 实施测试报告<br>- 控制验证结果 |
-| 安全事件响应 | ⭕ 通过 | - 响应预案<br>- 演练记录<br>- 修复验证报告 |
-| 安全合规检查 | ⭕ 通过 | - 合规性检查报告<br>- 差距分析<br>- 整改计划 |
-
-## 6. VPS/硬件烟雾测试
-
-| 区域 | 状态 | 证据 |
-|------|------|------|
-| 服务器基础配置 | ⭕ 通过 | - 服务器清单<br>- 配置文件<br>- 安装记录 |
-| 网络环境测试 | ⭕ 通过 | - 网络拓扑图<br>- 带宽测试<br>- 时延测量 |
-| 硬件兼容性测试 | ⭕ 通过 | - 硬件清单<br>- 驱动程序验证<br>- 兼容性测试报告 |
-| 负载压力测试 | ⭕ 通过 | - 负载测试报告<br>- 压力曲线<br>- 压力阈值验证 |
-| 监控系统验证 | ⭕ 通过 | - 监控系统配置<br>- 测试报告<br>- 数据验证结果 |
-
-## 7. 版本控制
-
-| 区域 | 状态 | 证据 |
-|------|------|------|
-| Git 仓库管理 | ⭕ 通过 | - 仓库配置<br>- 访问权限<br>- 版本历史 |
-| 标签管理 | ⭕ 通过 | - 标签策略<br>- 标签列表<br>- 使用记录 |
-| 分支管理 | ⭕ 通过 | - 分支策略<br>- 分支权限<br>- 合并记录 |
-| 代码安全检查 | ⭕ 通过 | - 安全扫描报告<br>- 漏洞修复记录<br>- 代码质量报告 |
-
-## 8. 文档化
-
-| 区域 | 状态 | 证据 |
-|------|------|------|
-| 文档生成 | ⭕ 通过 | - 生成脚本<br>- 输出文档<br>- 文档结构 |
-| 文档审查 | ⭕ 通过 | - 审查记录<br>- 修改日志<br>- 最终版本 |
-| 文档发布 | ⭕ 通过 | - 发布计划<br>- 发布记录<br>- 反馈收集 |
-| 知识库更新 | ⭕ 通过 | - 更新记录<br>- 文档内容<br>- 链接验证 |
-
-## 9. 发布后验证
-
-| 区域 | 状态 | 证据 |
-|------|------|------|
-| 功能验证 | ⭕ 通过 | - 功能测试报告<br>- 测试结果<br>- 验证记录 |
-| 性能验证 | ⭕ 通过 | - 性能测试报告<br>- 指标数据<br>- 验证结果 |
-| 用户体验验证 | ⭕ 通过 | - 用户反馈<br>- 满意度调查<br>- 改进建议 |
-| 可靠性验证 | ⭕ 通过 | - 可靠性测试<br>- 异常情况处理<br>- 恢复验证 |
-| 兼容性验证 | ⭕ 通过 | - 兼容性测试报告<br>- 测试结果<br>- 验证记录
+- [ ] `STATUS.md` 已更新（若里程碑级）
+- [ ] `progress.md` 已附本文件链接与 pytest 摘要
+- [ ] `docs/LIMA_MEMORY_CN.md` 已记录跨会话事实（若有）
+- [ ] 仅 stage 本切片相关文件后 commit

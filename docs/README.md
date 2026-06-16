@@ -59,6 +59,7 @@
 | 工作区卫生 | [`WORKSPACE_HYGIENE.md`](WORKSPACE_HYGIENE.md) |
 | 在线分发 | [`ONLINE_DISTRIBUTIONS_CN.md`](ONLINE_DISTRIBUTIONS_CN.md) |
 | 发布检查清单 | [`RELEASE_GATE_CHECKLIST.md`](RELEASE_GATE_CHECKLIST.md) |
+| AI→Motion 发布证据模板 | [`release_evidence/TEMPLATE_AI_TO_MOTION_RELEASE.md`](release_evidence/TEMPLATE_AI_TO_MOTION_RELEASE.md) |
 | Prometheus 部署 | [`ALIYUN_PROMETHEUS_DEPLOYMENT.md`](ALIYUN_PROMETHEUS_DEPLOYMENT.md) |
 
 > 注：`OPS_ENTRYPOINTS_CN.md` 已被 `ONLINE_DISTRIBUTIONS_CN.md` 取代为主要在线分发入口；旧运维入口仅作历史参考。

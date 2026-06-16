@@ -5,6 +5,24 @@
 > Updated: 2026-06-16
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-16 阶段 2 续 — Image Generator 真实 API 夹具
+
+- **新增** `tests/test_dashscope_image_live.py`（`dashscope_live` marker；opt-in）
+- **eval** `scripts/eval_device_model_role.py --live` + `device_model_role_eval_specs.live_pytest_targets`
+- **验证**：离线 image_generator 7 passed；全夹具 pytest 12 passed（live skipped）
+
+## 2026-06-16 M13 AI→Motion 发布证据模板
+
+- **重写** `docs/release_evidence/TEMPLATE_AI_TO_MOTION_RELEASE.md`（门 A–F、mermaid 链路、聚焦 pytest、物理设备节）
+- **索引** `docs/release_evidence/README.md`、`docs/README.md`
+- **验证**：`pytest tests/test_device_gateway_model_routing.py tests/test_device_gateway_routes.py::test_fake_u8_hello_heartbeat_transcript_motion_event_loop -q` → **33 passed**
+
+## 2026-06-16 MiMo MCP 并行审查（搁置）
+
+- **结论**：本机 `mimo run` 在 QWEN3.0 全仓审查下易 **300s 超时**；异步 job 有僵尸状态；投入产出比低，**暂停使用**。
+- **清理**：回滚未提交 WIP；删 `scripts/mimo_mcp_poll_once.py`、`.omc/artifacts/mimo-mcp/jobs/`；结束残留 `mimo` 进程；移除 `.cursor/rules/mimo-async-review.mdc`（不再自动派发）。
+- **保留**：`main` 上 `lima-mimo-mcp` 包与 `~/.cursor/mcp.json` 配置可忽略；审查改回 **pytest + 我直接 review**。
+
 ## 2026-06-16 CP-2 context_pipeline 离线评测与进化链删除
 
 - **删除**（4 模块 + eval_bridge + 1 测试文件）：`retrieval_eval`、`retrieval_eval_runner`、`evolution`、`signal_extraction`；`local_retrieval/eval_bridge.py`；`tests/test_retrieval_eval_fixture.py`

@@ -92,6 +92,12 @@ python scripts/eval_device_model_role.py --role intent_parser
 # 生成 Markdown 片段（粘贴到本报告）
 python scripts/eval_device_model_role.py --all --markdown
 
+# Image Generator 真实 DashScope 图生（需密钥，默认 CI 不跑）
+# .env: ALIYUN_API_KEY=sk-...
+$env:LIMA_DEVICE_ADMISSION_LIVE = "1"
+python scripts/eval_device_model_role.py --role image_generator --live
+python -m pytest tests/test_dashscope_image_live.py -v
+
 # 聚焦门（与路线图阶段 2 一致）
 python -m pytest tests/test_device_gateway_model_routing.py -q
 python -m pytest tests/test_routing_engine.py -q --tb=short

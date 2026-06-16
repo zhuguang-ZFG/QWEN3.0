@@ -8,7 +8,7 @@
 > Updated: 2026-06-16
 > Branch: `main`
 > Tests: M11/M12 聚焦门 **74 passed**（eval + profile 路由）；device 路由/profile 套件 **70 passed**；ruff clean
-> Quality: M9–M12 设备路由契约 + 准入脚手架 + profile 路由已关闭；下一里程碑 M13 发布证据模板
+> Quality: M9–M12 设备路由契约 + 准入脚手架 + profile 路由已关闭；M13 发布证据模板已关闭；**阶段 2 续 Image Generator 真实 API 夹具**已关闭
 
 ## 当前项目状态
 
@@ -17,6 +17,19 @@
 - **AI 路由**: 170+ 后端智能路由（设备任务 + 聊天/编码）
 - **任务管理**: 任务创建、派发、执行、监控、恢复
 - **设备策略**: 安全策略、固件兼容性、路径验证、route_policy/backend 字段贯通
+
+### 最近完成（2026-06-16）阶段 2 续 — Image Generator 真实 API 夹具
+
+- **`tests/test_dashscope_image_live.py`**：Wanx 同步 + 异步轮询；`ALIYUN_API_KEY` + `LIMA_DEVICE_ADMISSION_LIVE=1` 启用
+- **`eval_device_model_role.py --live`**：image_generator 合并 live 目标；默认离线 7 passed
+- **文档**：`docs/model_admission/TEMPLATE.md`、`.env.example`、`2026-06-16-device-drawing-writing.md`
+- **验证**：`pytest tests/test_eval_device_model_role.py tests/test_dashscope_image_client.py tests/test_dashscope_image_live.py` → **12 passed**（live 无密钥时 skip）
+
+### 最近完成（2026-06-16）M13 AI→Motion 发布证据模板
+
+- **重写** `docs/release_evidence/TEMPLATE_AI_TO_MOTION_RELEASE.md`：对齐门 A–F、`RELEASE_GATE_CHECKLIST`、假 U8 环与真实 pytest 命令；替换原通用占位表
+- **新增** `docs/release_evidence/README.md`；`docs/README.md` 索引
+- **验证**：`pytest tests/test_device_gateway_model_routing.py` + `test_fake_u8_hello_heartbeat_transcript_motion_event_loop` → **33 passed**
 
 ### 最近完成（2026-06-16）M9–M12 设备路由与准入
 

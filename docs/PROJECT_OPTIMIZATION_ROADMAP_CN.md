@@ -180,13 +180,9 @@ curl -sf https://chat.donglicao.com/device/v1/health
 
 按优先级排序（M9–M11 已关闭，见 `progress.md`）：
 
-1. **M13 AI 到运动发布证据模板（阶段 5 启动）**
-   - 目标：建立从请求到终端运动事件的端到端发布检查清单模板。
-   - 预期文件：`docs/release_evidence/TEMPLATE_AI_TO_MOTION_RELEASE.md`。
+1. **M13 AI 到运动发布证据模板（阶段 5 启动）** — ✅ 已关闭（见 `docs/release_evidence/TEMPLATE_AI_TO_MOTION_RELEASE.md`）
 
-2. **阶段 2 续：Image Generator 真实 API fixture**
-   - 目标：在 `eval_device_model_role.py` 中补充 DashScope 真实图生夹具（需密钥），更新准入报告。
-   - 参考：`docs/model_admission/2026-06-16-device-drawing-writing.md`
+2. **阶段 2 续：Image Generator 真实 API fixture** — ✅ 已关闭（`tests/test_dashscope_image_live.py` + `--live`）
 
 3. **阶段 1 余项：U1 固件侧 route_policy 拒绝**
    - 云端 `validate_route_policy` + 制品证据已覆盖；物理 U1 在 `esp32S_XYZ` 子模块。

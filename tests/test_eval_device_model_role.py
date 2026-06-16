@@ -41,3 +41,25 @@ def test_eval_script_lists_deferred_roles(tmp_path, monkeypatch):
     result = evaluate_role(defer)
     assert result.verdict == "defer"
     assert result.fixture_count == 0
+
+
+def test_image_generator_has_live_targets():
+    spec = get_role_spec("image_generator")
+    assert spec is not None
+    assert spec.live_pytest_targets == ("tests/test_dashscope_image_live.py",)
+
+
+def test_evaluate_role_include_live_merges_targets(monkeypatch):
+    from scripts.eval_device_model_role import evaluate_role
+
+    spec = get_role_spec("image_generator")
+    assert spec is not None
+    calls: list[tuple[str, ...]] = []
+
+    def fake_run(targets: tuple[str, ...]):
+        calls.append(targets)
+        return 7, 0, 0, "pytest ..."
+
+    monkeypatch.setattr("scripts.eval_device_model_role._run_pytest", fake_run)
+    evaluate_role(spec, include_live=True)
+    assert "tests/test_dashscope_image_live.py" in calls[0]

@@ -13,6 +13,7 @@ class RoleEvalSpec:
     implementation: str
     admission_status: str  # admitted | conditional | defer
     pytest_targets: tuple[str, ...]
+    live_pytest_targets: tuple[str, ...] = ()
     pass_rate_threshold: float = 0.8
     notes: str = ""
 
@@ -56,8 +57,9 @@ ROLE_SPECS: tuple[RoleEvalSpec, ...] = (
             "tests/test_dashscope_image_client.py",
             "tests/test_device_gateway_model_routing.py::test_generated_drawing_uses_device_draw_route",
         ),
+        live_pytest_targets=("tests/test_dashscope_image_live.py",),
         pass_rate_threshold=0.8,
-        notes="条件准入：预设图形离线可用；真实 API 评测需 LIMA 密钥",
+        notes="条件准入：离线 mock 7 项；真实 Wanx 需 ALIYUN_API_KEY + LIMA_DEVICE_ADMISSION_LIVE=1 + --live",
     ),
     RoleEvalSpec(
         role_id="vectorizer",

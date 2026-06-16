@@ -88,8 +88,8 @@ def _verdict(spec: RoleEvalSpec, pass_rate: float, fail_count: int) -> str:
     return "concerns"
 
 
-def evaluate_role(spec: RoleEvalSpec) -> RoleEvalResult:
-    if spec.admission_status == "defer" or not spec.pytest_targets:
+def evaluate_role(spec: RoleEvalSpec, *, include_live: bool = False) -> RoleEvalResult:
+    if spec.admission_status == "defer" or (not spec.pytest_targets and not (include_live and spec.live_pytest_targets)):
         return RoleEvalResult(
             role_id=spec.role_id,
             label_zh=spec.label_zh,
@@ -105,9 +105,15 @@ def evaluate_role(spec: RoleEvalSpec) -> RoleEvalResult:
             notes=spec.notes,
         )
 
-    passed, failed, skipped, cmd = _run_pytest(spec.pytest_targets)
+    targets = list(spec.pytest_targets)
+    if include_live and spec.live_pytest_targets:
+        targets.extend(spec.live_pytest_targets)
+    passed, failed, skipped, cmd = _run_pytest(tuple(targets))
     total = passed + failed
     pass_rate = (passed / total) if total else 0.0
+    notes = spec.notes
+    if include_live and spec.live_pytest_targets:
+        notes = f"{notes} [live fixtures included]".strip()
     return RoleEvalResult(
         role_id=spec.role_id,
         label_zh=spec.label_zh,
@@ -120,11 +126,11 @@ def evaluate_role(spec: RoleEvalSpec) -> RoleEvalResult:
         pass_rate=round(pass_rate, 4),
         verdict=_verdict(spec, pass_rate, failed),
         pytest_command=cmd,
-        notes=spec.notes,
+        notes=notes,
     )
 
 
-def evaluate_roles(role_ids: list[str] | None) -> list[RoleEvalResult]:
+def evaluate_roles(role_ids: list[str] | None, *, include_live: bool = False) -> list[RoleEvalResult]:
     if role_ids:
         specs = []
         for role_id in role_ids:
@@ -134,7 +140,7 @@ def evaluate_roles(role_ids: list[str] | None) -> list[RoleEvalResult]:
             specs.append(spec)
     else:
         specs = list(ROLE_SPECS)
-    return [evaluate_role(spec) for spec in specs]
+    return [evaluate_role(spec, include_live=include_live) for spec in specs]
 
 
 def _print_table(results: list[RoleEvalResult]) -> None:
@@ -168,6 +174,7 @@ def _markdown_report(results: list[RoleEvalResult]) -> str:
             lines.append(f"- **{row.label_zh}**: `{row.pytest_command}`")
     lines.append("")
     lines.append("- 全量角色：`python scripts/eval_device_model_role.py --all`")
+    lines.append("- 含 DashScope 真实图生：`LIMA_DEVICE_ADMISSION_LIVE=1 python scripts/eval_device_model_role.py --role image_generator --live`")
     return "\n".join(lines) + "\n"
 
 
@@ -178,6 +185,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--list", action="store_true", help="List role ids")
     parser.add_argument("--json", action="store_true", help="Emit JSON")
     parser.add_argument("--markdown", action="store_true", help="Emit markdown report")
+    parser.add_argument(
+        "--live",
+        action="store_true",
+        help="Include live API pytest targets (e.g. DashScope; needs ALIYUN_API_KEY)",
+    )
     args = parser.parse_args(argv)
 
     if args.list:
@@ -188,7 +200,7 @@ def main(argv: list[str] | None = None) -> int:
     if not args.all and not args.roles:
         parser.error("specify --all or --role <id>")
 
-    results = evaluate_roles(args.roles)
+    results = evaluate_roles(args.roles, include_live=args.live)
     if args.json:
         print(json.dumps([asdict(row) for row in results], ensure_ascii=False, indent=2))
     elif args.markdown:
