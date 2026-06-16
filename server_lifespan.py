@@ -22,7 +22,7 @@ def _record_phase(name: str, elapsed_ms: float, status: str = "ok", detail: str 
         "detail": detail,
     }
     STARTUP_PHASES.append(phase)
-    _log.info("[LIFESPAN] phase=%s elapsed_ms=%.1f status=%s %s", name, elapsed_ms, status, detail)
+    _log.warning("[LIFESPAN] phase=%s elapsed_ms=%.1f status=%s %s", name, elapsed_ms, status, detail)
 
 
 class _phase:
