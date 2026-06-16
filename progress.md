@@ -5,6 +5,15 @@
 > Updated: 2026-06-16
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-17 VPS 公网 smoke 验证（完成）
+
+- **目标**：确认当前 VPS 运行状态，补充 M13 发布证据的部署 smoke 记录。
+- **检查命令**：
+  - `curl -sfL https://chat.donglicao.com/health` → **HTTP 200**，`startup.status=ready`，13 个启动阶段均 `ok`。
+  - `curl -sfL https://chat.donglicao.com/device/v1/health` → **HTTP 200**，`protocol=lima-device-v1`，`status=ok`。
+- **观察**：`/device/v1/health` 返回 `auth_configured=false`，说明生产环境未设置 `LIMA_DEVICE_TOKENS`。设备 WebSocket 握手在生产上将失败，需后续配置。
+- **文档同步**：`docs/release_evidence/2026-06-16-M13-AI-to-Motion-release-gate.md` 门 A 追加本次 smoke 时间戳和 `auth_configured=false` 备注。
+
 ## 2026-06-17 全量测试基线修复与文档一致性审计（完成）
 
 - **目标**：运行全量 pytest，修复真实失败，更新 `STATUS.md` 测试基线。

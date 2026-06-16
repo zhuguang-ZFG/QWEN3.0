@@ -57,8 +57,8 @@ sequenceDiagram
 
 | 检查项 | 状态 | 证据 |
 |--------|------|------|
-| `GET /health` → 200 | ✅ | `curl -sL https://chat.donglicao.com/health` → `{"status":"ok","version":"2.0","model":"lima-1.3",...}` |
-| `GET /device/v1/health` → 200 | ✅ | `curl -sL https://chat.donglicao.com/device/v1/health` → `{"status":"ok","protocol":"lima-device-v1",...}` |
+| `GET /health` → 200 | ✅ | `curl -sL https://chat.donglicao.com/health` → `{"status":"ok","version":"2.0","model":"lima-1.3",...}`（2026-06-17 复测 200） |
+| `GET /device/v1/health` → 200 | ✅ | `curl -sL https://chat.donglicao.com/device/v1/health` → `{"status":"ok","protocol":"lima-device-v1",...}`（2026-06-17 复测 200） |
 | 无 critical alerts | ✅ | 服务正常启动，systemd 状态 `active (running)` |
 | 路由引擎 | ✅ | `pytest tests/test_routing_engine.py -q` → **24 passed** |
 | 设备网关聚焦门 | ✅ | 见下方「聚焦 pytest 命令」→ **154 passed, 1 warning** |
@@ -71,6 +71,7 @@ sequenceDiagram
 - **重启**：`systemctl restart lima-router`
 - **启动耗时**：约 7–8 分钟（backend retirement / probe loop 历史数据分析），之后 `/health` 与 `/device/v1/health` 均返回 200。
 - **注意**：`modules.channel_gateway` 在 health JSON 中仍报告 `true`，与退役状态不符；此显示项不影响设备主线，可后续清理。
+- **2026-06-17 smoke 复测**：`/health` 与 `/device/v1/health` 均返回 200；`/device/v1/health` 中 `auth_configured=false`，说明生产环境尚未配置 `LIMA_DEVICE_TOKENS`，设备 WebSocket 握手在生产上将失败。
 
 ---
 
