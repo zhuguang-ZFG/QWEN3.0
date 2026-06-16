@@ -9,8 +9,10 @@
 |----|------|---------|--------|
 | G4-1 | observability | `server_lifespan.py` 启动阶段无耗时记录，无法定位 7 分钟瓶颈；已添加 `_phase` 上下文管理器和 `STARTUP_PHASES` | Closed |
 | G4-2 | observability | `/health` 仅返回固定 `{"status":"ok"}`，无启动状态语义；已扩展为 `startup.status` + `startup.phases` | Closed |
-| G4-3 | verify | `test_routing_engine.py` / `test_device_gateway_routes.py` / `test_system_endpoints.py` → 62 passed | Closed |
-| G4-4 | risk | 真正 7 分钟瓶颈需真实 VPS 启动日志确认；当前仅完成观测，未做异步/延迟加载 | Accepted |
+| G4-3 | startup | 真实瓶颈是 `context_pipeline.auto_indexer` 的 asyncio task 阻塞事件循环（ChromaDB/ONNX 下载/解压）；已改为 daemon thread | Closed |
+| G4-4 | startup | `channel_retirement.telegram` 同步调用 Telegram API 耗时约 1.7s；已改为 `asyncio.create_task` 后台执行 | Closed |
+| G4-5 | ops | VPS 启动从约 7 分钟降至约 8 秒；公网 `/health` 与 `/device/v1/health` 均 200 | Closed |
+| G4-6 | verify | `test_routing_engine.py` / `test_system_endpoints.py` / `test_retrieval_injection.py` → 34 passed | Closed |
 
 ## 2026-06-17 G3 证据边界瘦身（小批）
 

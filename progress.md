@@ -5,19 +5,21 @@
 > Updated: 2026-06-16
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
-## 2026-06-17 G4 启动与部署不确定性降低（第一步）
+## 2026-06-17 G4 启动与部署不确定性降低（完成）
 
-- **目标**：执行作者意图计划 G4，先让 lifespan 启动阶段可观测，为后续「ready vs warming」拆分提供数据。
+- **目标**：执行作者意图计划 G4，降低启动和部署不确定性。
 - **实现**：
-  - `server_lifespan.py` 增加 `_phase` 上下文管理器与 `STARTUP_PHASES` 全局状态，为 12 个启动步骤记录耗时和状态。
+  - `server_lifespan.py` 增加 `_phase` 上下文管理器与 `STARTUP_PHASES` 全局状态，为 13 个启动步骤记录耗时和状态。
   - `routes/system_endpoints.py` `/health` 返回 `startup.status`（ready/starting/error）和 `startup.phases` 数组。
+  - `context_pipeline/auto_indexer.py` 把扫描循环从 asyncio task 改为 daemon thread，避免 ChromaDB/ONNX 初始化阻塞事件循环。
+  - `server_lifespan.py` 把 Telegram webhook 清理改为 `asyncio.create_task` 后台执行。
 - **代码理解**：
   - 启动流程顺序执行：health_state → backend_profile → backend_retirement → backend_admission_store → probe_loop → periodic_coding_eval → session_memory → channel_retirement → device_gateway → structured_logging → mqtt → auto_indexer → prometheus。
-  - 其中 `backend_profile.load_profiles()` / `backend_retirement.load_retired()` / `probe_loop.start()` 被 STATUS.md 标记为 7 分钟启动瓶颈嫌疑对象；新增日志将帮助确认实际耗时分布。
+  - 真实瓶颈不是 SQLite 加载，而是 `auto_indexer` 的 ChromaDB/ONNX 初始化在主事件循环中运行；次要瓶颈是 Telegram API 同步调用。
 - **验证**：
-  - `pytest tests/test_routing_engine.py tests/test_device_gateway_routes.py tests/test_system_endpoints.py -q` → **62 passed**。
-  - `ruff check server_lifespan.py routes/system_endpoints.py` → clean。
-- **后续**：收集真实 VPS 启动日志后，将耗时任务拆分为「ready 前必须完成」与「yield 后可后台 warming」两类。
+  - `pytest tests/test_routing_engine.py tests/test_system_endpoints.py tests/test_retrieval_injection.py -q` → **34 passed**。
+  - `ruff check server_lifespan.py context_pipeline/auto_indexer.py routes/system_endpoints.py` → clean。
+  - VPS 启动从约 7 分钟降至约 8 秒；`curl https://chat.donglicao.com/health` → 200；`/device/v1/health` → 200。
 
 ## 2026-06-17 G3 证据边界瘦身（小批）
 

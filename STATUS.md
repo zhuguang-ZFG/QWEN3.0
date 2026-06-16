@@ -24,17 +24,22 @@
 - **下一阶段计划**：[`docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md`](docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md) 明确 G1–G4：AI→Motion 发布门、模型准入复跑、证据边界瘦身、启动/部署不确定性降低。
 - **协议开发闭环**：[`docs/device_protocol_alignment.md`](docs/device_protocol_alignment.md) 已补充 `hello` → `task_dispatch` → `motion_event` → 终态证据的调试路径，并明确 `route_policy` 为下行任务硬契约。
 
-### 最近完成（2026-06-17）G4 启动观测第一步： lifespan 阶段耗时记录
+### 最近完成（2026-06-17）G4 启动与部署不确定性降低
 
-- **目标**：降低启动和部署不确定性，先让每个启动阶段可观测。
-- **实现**：
-  - `server_lifespan.py` 增加 `_phase` 上下文管理器，为每个启动步骤记录 `elapsed_ms` / `status` / `detail`。
-  - 记录阶段包括 `health_state.load`、`backend_profile.load`、`backend_retirement.load`、`probe_loop.start`、`device_gateway.runtime.start`、`prometheus.start` 等 12 个关键步骤。
-  - `routes/system_endpoints.py` `/health` 返回 `"startup": {"status": "ready|starting|error", "phases": [...]}`，便于部署时判断启动瓶颈。
+- **目标**：降低启动和部署不确定性，把耗时任务拆分为 ready 必须完成与 warming 可后台完成。
+- **发现**：
+  - 通过 `server_lifespan.py` 阶段日志定位到真正瓶颈：**`context_pipeline.auto_indexer` 在事件循环中运行，ChromaDB/ONNX 模型下载/解压阻塞了主事件循环**，导致 `/health` 长时间无法 ready。
+  - 次要瓶颈：`channel_retirement.telegram` 同步调用 Telegram API 耗时约 1.7s。
+- **修复**：
+  - `context_pipeline/auto_indexer.py`：把 `_indexer_loop` 从 asyncio task 改为 daemon thread，扫描（含 ChromaDB 初始化）不再阻塞事件循环。
+  - `server_lifespan.py`：把 `retire_telegram_webhook_from_env()` 改为 `asyncio.create_task` 后台执行。
+- **结果**：
+  - VPS 启动从约 **7 分钟** 降至约 **8 秒**（systemctl start → `/health` 200）。
+  - `/health` 返回 `startup.status=ready` 和 `startup.phases` 数组。
+  - 公网 smoke：`https://chat.donglicao.com/health` 200；`/device/v1/health` 200。
 - **验证**：
-  - `pytest tests/test_routing_engine.py tests/test_device_gateway_routes.py tests/test_system_endpoints.py -q` → **62 passed**。
-  - `ruff check server_lifespan.py routes/system_endpoints.py` → clean。
-- **后续**：基于阶段耗时日志，识别真正耗时任务后，再区分「ready 必须完成」与「warming 可后台完成」。
+  - `pytest tests/test_routing_engine.py tests/test_system_endpoints.py tests/test_retrieval_injection.py -q` → **34 passed**。
+  - `ruff check server_lifespan.py context_pipeline/auto_indexer.py routes/system_endpoints.py` → clean。
 
 ### 最近完成（2026-06-17）G3 证据边界瘦身（小批）
 
