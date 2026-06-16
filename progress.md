@@ -2,8 +2,25 @@
 
 > Created: 2026-05-22
 
-> Updated: 2026-06-17
+> Updated: 2026-06-16
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
+
+## 2026-06-16 拆分四个热路径 oversized 函数（完成）
+
+- **目标**：将 `routing_selector.select`、`server_lifespan.lifespan`、`routes/chat_stream.stream_response`、`device_gateway/device_draw_handler.handle_device_draw` 四个热路径函数拆分为 ≤50 行，并保持文件 ≤300 行。
+- **实现**：
+  - `routing_selector.py`：`select` 拆为池解析、初始筛选、guard 过滤、评分、ML boost、排序、pin 逻辑等私有 helper；文件从 285 行压缩至 300 行以内。
+  - `server_lifespan.py`：`lifespan` 拆为 `_run_startup_phases` 和 `_run_shutdown_phases`，启动/关闭阶段逻辑保持完整。
+  - `routes/chat_stream.py`：`stream_response` 拆为图片/thinking/编排/speculative/fallback 内容解析与流式 helper。
+  - `device_gateway/device_draw_handler.py`：`handle_device_draw` 拆为失败/部分/成功响应构造、预设图形、图片生成、SVG 转换优化等 helper。
+- **验证**：
+  - `python -m pytest tests/test_routing_engine.py tests/test_routing_guard.py tests/test_routing_weights.py -q` → 35 passed。
+  - `python -m pytest tests/test_system_endpoints.py tests/test_chat_handler.py -q` → 9 passed。
+  - `python -m pytest tests/test_draw_prompt_enhancer.py tests/test_device_gateway_model_routing.py -q` → 43 passed。
+  - `python -m pytest tests/test_system_endpoints.py -q` → 6 passed；`python -c "import server_lifespan; print('import ok')"` → ok。
+  - `ruff check .` → clean。
+  - `scripts/check_code_size.py` 不再报告上述 4 个文件/函数超标。
+- **提交**：`refactor: split oversized functions in routing_selector, server_lifespan, chat_stream, device_draw_handler` push 到 `origin main`。
 
 ## 2026-06-17 接入 Ponytail「lazy senior dev」顾问规则（完成）
 

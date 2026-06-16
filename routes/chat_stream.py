@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Callable
+from typing import Any, Callable
 
 import routing_intent
 from orchestrate import orchestrate
@@ -60,6 +60,138 @@ async def _authoritative_route(
     )
 
 
+def _extract_answer(result: Any) -> str:
+    """Extract answer text from a routing result."""
+    return result.get("answer", "") if isinstance(result, dict) else str(result)
+
+
+def _ensure_content(content: str, messages: list, *, err_prefix: str = "") -> str:
+    """Clean content and fall back to last-resort or default message."""
+    from response_cleaner import clean_response
+
+    content = clean_response(content, err_prefix) or content
+    if not content or not content.strip() or content.startswith("[ERR]"):
+        return (_last_resort_call(messages) if _last_resort_call else "") or FALLBACK_MSG
+    return content
+
+
+async def _stream_sentences(chat_id: str, content: str) -> None:
+    """Yield sentence chunks followed by finish markers."""
+    for sentence in _split_sentences(content):
+        yield build_stream_chunk(chat_id, sentence)
+        await asyncio.sleep(0.02)
+    yield build_stream_chunk(chat_id, "", finish=True)
+    yield "data: [DONE]\n\n"
+
+
+async def _resolve_image_content(query: str) -> str | None:
+    """Return image markdown content if image intent is detected and URL builder exists."""
+    build_url = _build_pollinations_url
+    is_image, image_prompt = routing_intent.detect_image_intent(query)
+    if not is_image or not build_url:
+        return None
+    image_url = build_url(image_prompt, "1024x1024")
+    return f"![image]({image_url})\n\n已为您生成图片，点击查看。"
+
+
+async def _resolve_thinking_content(
+    query: str,
+    messages: list,
+    *,
+    sys_prompt_preview: str,
+    ide_source: str,
+    use_orchestration: bool,
+) -> str:
+    """Resolve content for thinking route branch."""
+    thinking_result = await thinking_route(query, 4096, ide_source)
+    if thinking_result:
+        return thinking_result.get("answer", "")
+    result = await _authoritative_route(
+        query,
+        messages,
+        sys_prompt_preview=sys_prompt_preview,
+        ide_source=ide_source,
+        use_orchestration=use_orchestration,
+    )
+    return _extract_answer(result)
+
+
+async def _resolve_authoritative_content(
+    query: str,
+    messages: list,
+    *,
+    sys_prompt_preview: str,
+    ide_source: str,
+) -> str:
+    """Resolve content from authoritative route with exception logging."""
+    try:
+        result = await _authoritative_route(
+            query,
+            messages,
+            sys_prompt_preview=sys_prompt_preview,
+            ide_source=ide_source,
+        )
+        return _extract_answer(result)
+    except Exception as exc:
+        _log.warning("stream authoritative route failed: %s", type(exc).__name__, exc_info=True)
+        return ""
+
+
+async def _stream_orchestration(
+    query: str,
+    messages: list,
+    chat_id: str,
+    *,
+    sys_prompt_preview: str,
+    ide_source: str,
+) -> None:
+    """Stream orchestration route result as sentence chunks."""
+    result = await _authoritative_route(
+        query,
+        messages,
+        sys_prompt_preview=sys_prompt_preview,
+        ide_source=ide_source,
+        use_orchestration=True,
+    )
+    content = _ensure_content(_extract_answer(result), messages)
+    async for chunk in _stream_sentences(chat_id, content):
+        yield chunk
+
+
+async def _stream_speculative(
+    query: str,
+    messages: list,
+    chat_id: str,
+    *,
+    sys_prompt_preview: str,
+    ide_source: str,
+    prefer: str | None,
+) -> None:
+    """Try speculative streaming and fall back to authoritative route if needed."""
+    from response_cleaner import clean_response
+
+    streamed_any = False
+    async for _backend, chunk in speculative_stream_chunks(
+        query, messages, 4096, ide_source,
+        system_prompt=sys_prompt_preview,
+        preferred_backend=prefer or "",
+    ):
+        streamed_any = True
+        chunk = clean_response(chunk, _backend) or chunk
+        yield build_stream_chunk(chat_id, chunk)
+
+    if not streamed_any:
+        content = await _resolve_authoritative_content(
+            query,
+            messages,
+            sys_prompt_preview=sys_prompt_preview,
+            ide_source=ide_source,
+        )
+        content = _ensure_content(content, messages, err_prefix="")
+        async for chunk in _stream_sentences(chat_id, content):
+            yield chunk
+
+
 async def stream_response(
     chat_id: str,
     query: str,
@@ -72,91 +204,38 @@ async def stream_response(
 ):
     """SSE generator: speculative streaming with orchestration/thinking fallbacks."""
     messages = messages or []
-    build_url = _build_pollinations_url
-    last_resort = _last_resort_call
 
-    is_image, image_prompt = routing_intent.detect_image_intent(query)
-    if is_image and build_url:
-        image_url = build_url(image_prompt, "1024x1024")
-        content = f"![image]({image_url})\n\n已为您生成图片，点击查看。"
-        yield build_stream_chunk(chat_id, content)
+    image_content = await _resolve_image_content(query)
+    if image_content:
+        yield build_stream_chunk(chat_id, image_content)
         yield build_stream_chunk(chat_id, "", finish=True)
         yield "data: [DONE]\n\n"
         return
 
     if use_thinking:
-        thinking_result = await thinking_route(query, 4096, ide_source)
-        if thinking_result:
-            content = thinking_result.get("answer", "")
-        else:
-            result = await _authoritative_route(
-                query,
-                messages,
-                sys_prompt_preview=sys_prompt_preview,
-                ide_source=ide_source,
-                use_orchestration=use_orchestration,
-            )
-            content = result.get("answer", "") if isinstance(result, dict) else str(result)
-        from response_cleaner import clean_response
-        content = clean_response(content, "") or content
-        if not content or not content.strip():
-            content = (last_resort(messages) if last_resort else "") or FALLBACK_MSG
-        for sentence in _split_sentences(content):
-            yield build_stream_chunk(chat_id, sentence)
-            await asyncio.sleep(0.02)
-        yield build_stream_chunk(chat_id, "", finish=True)
-        yield "data: [DONE]\n\n"
-        return
-
-    if use_orchestration:
-        result = await _authoritative_route(
+        content = await _resolve_thinking_content(
             query,
             messages,
             sys_prompt_preview=sys_prompt_preview,
             ide_source=ide_source,
-            use_orchestration=True,
+            use_orchestration=use_orchestration,
         )
-        content = result.get("answer", "") if isinstance(result, dict) else str(result)
-        if not content or not content.strip():
-            content = (last_resort(messages) if last_resort else "") or FALLBACK_MSG
-        for sentence in _split_sentences(content):
-            yield build_stream_chunk(chat_id, sentence)
-            await asyncio.sleep(0.02)
-        yield build_stream_chunk(chat_id, "", finish=True)
-        yield "data: [DONE]\n\n"
+        async for chunk in _stream_sentences(chat_id, _ensure_content(content, messages)):
+            yield chunk
         return
 
-    streamed_any = False
+    if use_orchestration:
+        async for chunk in _stream_orchestration(
+            query, messages, chat_id,
+            sys_prompt_preview=sys_prompt_preview, ide_source=ide_source,
+        ):
+            yield chunk
+        return
 
-    async for _backend, chunk in speculative_stream_chunks(
-        query, messages, 4096, ide_source,
-        system_prompt=sys_prompt_preview,
-        preferred_backend=prefer or "",
+    async for chunk in _stream_speculative(
+        query, messages, chat_id,
+        sys_prompt_preview=sys_prompt_preview,
+        ide_source=ide_source,
+        prefer=prefer,
     ):
-        streamed_any = True
-        from response_cleaner import clean_response
-        chunk = clean_response(chunk, _backend) or chunk
-        yield build_stream_chunk(chat_id, chunk)
-
-    if not streamed_any:
-        try:
-            result = await _authoritative_route(
-                query,
-                messages,
-                sys_prompt_preview=sys_prompt_preview,
-                ide_source=ide_source,
-            )
-            content = result.get("answer", "") if isinstance(result, dict) else str(result)
-        except Exception as exc:
-            _log.warning("stream authoritative route failed: %s", type(exc).__name__, exc_info=True)
-            content = ""
-        from response_cleaner import clean_response
-        content = clean_response(content, "") or content
-        if not content or content.startswith("[ERR]"):
-            content = (last_resort(messages) if last_resort else "") or FALLBACK_MSG
-        for sentence in _split_sentences(content):
-            yield build_stream_chunk(chat_id, sentence)
-            await asyncio.sleep(0.02)
-
-    yield build_stream_chunk(chat_id, "", finish=True)
-    yield "data: [DONE]\n\n"
+        yield chunk

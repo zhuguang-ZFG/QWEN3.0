@@ -5,7 +5,7 @@
 > **公网端点**: chat.donglicao.com, api.donglicao.com
 > **部署**: Alibaba Cloud VPS + JDCloud 备用
 
-> Updated: 2026-06-17
+> Updated: 2026-06-16
 > Branch: `main`
 > Scale: 656 文件 / 77,584 行（较初始 794/93,145 减 138 文件 / 15,561 行）
 > Tests: 全量 1620 passed / 23 skipped / 0 failed；ruff clean
@@ -13,6 +13,20 @@
 > VPS smoke：`https://chat.donglicao.com/health` 200；`/device/v1/health` 200（`auth_configured=true`）；`/v1/chat/completions model=code` 200（backend `cerebras_gptoss`）。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-16）拆分四个热路径 oversized 函数
+
+- **实现**：
+  - `routing_selector.py::select` 拆为池解析、初始筛选、guard 过滤、评分、ML boost、排序、pin 等私有 helper。
+  - `server_lifespan.py::lifespan` 拆为 `_run_startup_phases` / `_run_shutdown_phases`。
+  - `routes/chat_stream.py::stream_response` 拆为图片/thinking/编排/speculative/fallback helper。
+  - `device_gateway/device_draw_handler.py::handle_device_draw` 拆为响应构造、预设图形、图片生成、SVG 转换优化 helper。
+- **验证**：
+  - 路由相关：`tests/test_routing_engine.py tests/test_routing_guard.py tests/test_routing_weights.py` → 35 passed。
+  - 系统/聊天：`tests/test_system_endpoints.py tests/test_chat_handler.py` → 15 passed；`server_lifespan` import ok。
+  - 设备绘图：`tests/test_draw_prompt_enhancer.py tests/test_device_gateway_model_routing.py` → 43 passed。
+  - `ruff check .` clean；`scripts/check_code_size.py` 不再报告上述 4 个文件/函数超标。
+- **提交**：`refactor: split oversized functions in routing_selector, server_lifespan, chat_stream, device_draw_handler` 已 push 到 `origin main`。
 
 ### 核心功能
 - **设备网关**: ESP32 绘图机/写字机云端控制

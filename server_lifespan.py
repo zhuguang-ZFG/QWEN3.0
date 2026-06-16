@@ -43,11 +43,8 @@ class _phase:
         _record_phase(self.name, elapsed_ms, status, detail)
 
 
-@asynccontextmanager
-async def lifespan(application):
-    """Start and stop background runtime helpers."""
-    STARTUP_PHASES.clear()
-
+async def _run_startup_phases() -> None:
+    """Execute all startup phases sequentially."""
     async with _phase("health_state.load"):
         try:
             import health_state
@@ -103,6 +100,7 @@ async def lifespan(application):
     async with _phase("channel_retirement.telegram"):
         try:
             import asyncio
+
             asyncio.create_task(retire_telegram_webhook_from_env())
         except Exception as exc:
             _log.debug("telegram webhook cleanup scheduling failed: %s", type(exc).__name__)
@@ -151,43 +149,55 @@ async def lifespan(application):
         except RuntimeError as exc:
             _log.error("prometheus metrics startup validation failed: %s", exc)
             raise
+
+
+async def _run_shutdown_phases() -> None:
+    """Execute all shutdown phases sequentially."""
+    probe_loop.stop()
+    try:
+        from observability.prometheus_exporter import stop_exporter
+
+        stop_exporter()
+    except ImportError:
+        _log.debug("prometheus_exporter stop skipped")
+    try:
+        from context_pipeline.auto_indexer import stop_auto_indexer
+
+        stop_auto_indexer()
+    except ImportError as exc:
+        _log.debug("auto_indexer stop skipped; module not loaded: %s", exc)
+    try:
+        import periodic_coding_eval
+
+        periodic_coding_eval.stop()
+    except ImportError:
+        _log.debug("periodic_coding_eval stop skipped")
+    try:
+        from session_memory.daemon import stop_daemon
+
+        await stop_daemon()
+    except ImportError:
+        _log.debug("session_memory.daemon stop skipped")
+    try:
+        from routes.device_gateway import stop_device_gateway_runtime
+
+        await stop_device_gateway_runtime()
+    except ImportError:
+        _log.debug("device_gateway runtime stop skipped")
+    try:
+        from device_gateway.mqtt_client import stop_mqtt_client
+
+        await stop_mqtt_client()
+    except ImportError:
+        _log.debug("mqtt_client stop skipped")
+
+
+@asynccontextmanager
+async def lifespan(application):
+    """Start and stop background runtime helpers."""
+    STARTUP_PHASES.clear()
+    await _run_startup_phases()
     try:
         yield
     finally:
-        probe_loop.stop()
-        try:
-            from observability.prometheus_exporter import stop_exporter
-
-            stop_exporter()
-        except ImportError:
-            _log.debug("prometheus_exporter stop skipped")
-        try:
-            from context_pipeline.auto_indexer import stop_auto_indexer
-
-            stop_auto_indexer()
-        except ImportError as exc:
-            _log.debug("auto_indexer stop skipped; module not loaded: %s", exc)
-        try:
-            import periodic_coding_eval
-
-            periodic_coding_eval.stop()
-        except ImportError:
-            _log.debug("periodic_coding_eval stop skipped")
-        try:
-            from session_memory.daemon import stop_daemon
-
-            await stop_daemon()
-        except ImportError:
-            _log.debug("session_memory.daemon stop skipped")
-        try:
-            from routes.device_gateway import stop_device_gateway_runtime
-
-            await stop_device_gateway_runtime()
-        except ImportError:
-            _log.debug("device_gateway runtime stop skipped")
-        try:
-            from device_gateway.mqtt_client import stop_mqtt_client
-
-            await stop_mqtt_client()
-        except ImportError:
-            _log.debug("mqtt_client stop skipped")
+        await _run_shutdown_phases()

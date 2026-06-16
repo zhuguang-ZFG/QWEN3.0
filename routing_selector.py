@@ -94,7 +94,6 @@ def _pin_if_selectable(
 ) -> list[str]:
     """Pin explicit backend first when healthy, budgeted, and selectable."""
     import backends_registry as reg
-
     if not name or name not in reg.BACKENDS:
         return result
     if health_tracker.is_cooled_down(name):
@@ -111,171 +110,187 @@ def _pin_if_selectable(
     return _prioritize(name, result)
 
 
+_NATIVE_TOOL_PREFER = {"github", "chinamobile", "ddg", "groq", "cerebras", "longcat"}
+
+
+def _filter_tool_backends(result: list[str], scenario: str) -> list[str]:
+    """Filter and rank backends that advertise tool_calls capability."""
+    import backends_registry as reg
+    result = [b for b in result if "tool_calls" in reg.BACKENDS.get(b, {}).get("caps", [])]
+    if len(result) < 8:
+        all_capable = [
+            n for n, c in reg.BACKENDS.items()
+            if "tool_calls" in c.get("caps", []) and not health_tracker.is_cooled_down(n)
+            and budget_manager.is_budget_available(n) and not _is_retired(n)
+        ]
+        for b in all_capable:
+            if b not in result:
+                result.append(b)
+    result.sort(key=lambda b: (
+        0 if scenario == "coding" and _is_strong_coding_tool_backend(b, reg.BACKENDS.get(b, {})) else 1,
+        0 if any(p in b for p in _NATIVE_TOOL_PREFER) else 1,
+        reg.BACKENDS.get(b, {}).get("timeout", 30),
+    ))
+    return result
+
+
+def _build_initial_pool(pool_key: str, health_map: dict, needs_tools: bool, scenario: str) -> list[str]:
+    """Select backends from the pool, filter retired/budget/tool constraints."""
+    result = router_v3.select_backends(pool_key, health_map)
+    result = [b for b in result if not _is_retired(b)]
+    if needs_tools:
+        result = _filter_tool_backends(result, scenario)
+    return [b for b in result if budget_manager.is_budget_available(b)]
+
+
+def _apply_guard_decisions(result: list[str]) -> tuple[list[str], dict[str, dict]]:
+    """Filter quarantined backends and return active decisions."""
+    try:
+        from observability.routing_guard import backend_guard_snapshot
+        raw = backend_guard_snapshot().get("decisions", {})
+        decisions = raw if isinstance(raw, dict) else {}
+    except ImportError:
+        decisions = {}
+    non_quarantined = [b for b in result if decisions.get(b, {}).get("status") != "quarantined"]
+    return (non_quarantined if non_quarantined else result), decisions
+
+
+def _compute_backend_score(
+    backend: str,
+    base: float,
+    latency_map: dict,
+    health_map: dict,
+    scenario: str,
+    request_type: str,
+    needs_tools: bool,
+    routing_guard_decisions: dict[str, dict],
+) -> float:
+    """Compute a single backend's health/latency/recency score."""
+    import backends_registry as reg
+    state = health_tracker.get_backend_state(backend)
+    consec_fails = state.get("consecutive_failures", 0)
+    last_success = state.get("last_success", 0)
+    avg_lat = latency_map.get(backend, 1500)
+    health = health_map.get(backend, "healthy")
+    latency_score = max(0.1, 1.0 - min(avg_lat / 3000, 1.0))
+    error_penalty = min(consec_fails * 0.15, 0.9)
+    age = time.time() - last_success if last_success else 300
+    recency_bonus = max(0, 1.0 - min(age / 60, 1.0))
+    if health == "dead":
+        score = 0.0
+    elif health == "degraded":
+        score = base * 0.5 * latency_score * recency_bonus
+    else:
+        score = base * latency_score * (1 - error_penalty) * recency_bonus
+    try:
+        from context_pipeline.routing_weights import get_routing_weights
+        score *= get_routing_weights().get_weight(backend, scenario or request_type)
+    except ImportError:
+        pass
+    if scenario == "coding":
+        try:
+            from coding_backend_scorer import get_coding_weight
+            score *= get_coding_weight(backend)
+        except ImportError:
+            pass
+        if needs_tools and _is_strong_coding_tool_backend(backend, reg.BACKENDS.get(backend, {})):
+            score *= 1.25
+    static_latency = _STATIC_LATENCY_ESTIMATE.get(backend)
+    if static_latency and consec_fails == 0:
+        score += max(0, (2000 - static_latency) / 100)
+    guard_decision = routing_guard_decisions.get(backend, {})
+    if guard_decision:
+        try:
+            score *= float(guard_decision.get("penalty_multiplier", 1.0))
+        except (TypeError, ValueError):
+            score *= 1.0
+    return score
+
+
+def _score_backends(
+    result: list[str], scores: dict, latency_map: dict, health_map: dict,
+    scenario: str, request_type: str, needs_tools: bool, routing_guard_decisions: dict[str, dict],
+) -> None:
+    """Compute and store scores for all candidate backends."""
+    for b in result:
+        base = scores.get(b, 50)
+        scores[b] = _compute_backend_score(
+            b, base, latency_map, health_map, scenario, request_type, needs_tools, routing_guard_decisions,
+        )
+
+
+def _apply_ml_boost(
+    result: list[str], scores: dict, scenario: str, request_type: str, health_map: dict,
+) -> None:
+    """Apply optional ML model boost to top candidate scores."""
+    try:
+        from routing_ml.routing_trainer import get_model, notify_request
+        from routing_ml.feature_extractor import extract_features
+        model = get_model()
+        if model and result:
+            features = extract_features([], scenario=scenario, health_map=health_map, top_backends=result[:5])
+            topk = model.predict_topk(features.features, k=min(5, len(result)))
+            for ml_backend, ml_score in topk:
+                if ml_backend in scores:
+                    scores[ml_backend] *= (1.0 + ml_score * 0.3)
+            notify_request()
+    except (ImportError, Exception):
+        pass
+
+
+def _rank_backends(result: list[str], scores: dict, request_type: str, scenario: str) -> list[str]:
+    """Sort, cool-down filter, selectability filter and rank candidates."""
+    result.sort(key=lambda b: -(scores.get(b, 50) * budget_manager.get_budget_priority(b) + random.uniform(0, 3)))
+    result = [b for b in result if not health_tracker.is_cooled_down(b)]
+    states = {b: health_tracker.get_backend_state(b) for b in result}
+    result = [b for b in result if route_scorer.is_selectable(b, request_type, states.get(b))]
+    return route_scorer.rank_backends(
+        result, request_type, scenario, health_scores=scores, states=states,
+        latency_map=health_tracker.get_latency_map(),
+    )
+
+
+def _apply_pin(
+    result: list[str], sticky_key: str | None, preferred_backend: str, recalled_backend: str,
+    health_map: dict, request_type: str,
+) -> list[str]:
+    """Apply sticky/preferred/recalled backend pinning."""
+    if sticky_key:
+        pinned = sticky_session.get_pinned_backend(sticky_key)
+        if pinned and health_map.get(pinned, "healthy") != "dead" and route_scorer.is_selectable(
+            pinned, request_type, health_tracker.get_backend_state(pinned),
+        ):
+            return _prioritize(pinned, result)
+    if preferred_backend:
+        return _pin_if_selectable(preferred_backend, result, health_map, request_type)
+    if recalled_backend and recalled_backend in result:
+        if health_map.get(recalled_backend, "healthy") != "dead" and route_scorer.is_selectable(
+            recalled_backend, request_type, health_tracker.get_backend_state(recalled_backend),
+        ):
+            return _prioritize(recalled_backend, result)
+    return result
+
+
 def select(request_type: str, health_map: dict,
            sticky_key: str | None = None, scenario: str = "",
            needs_tools: bool = False, recalled_backend: str = "",
            preferred_backend: str = "",
            complexity=None) -> list[str]:
     """从对应池选健康后端，按健康评分排序，过滤预算耗尽，sticky 优先"""
-    import backends_registry as reg
-
     pool_key = request_type
     if request_type == "chat" and scenario == "coding":
         pool_key = "code"
     elif request_type == "chat" and scenario == "chat":
         pool_key = "chat_fast"
-
-    result = router_v3.select_backends(pool_key, health_map)
-    result = [b for b in result if not _is_retired(b)]
-
-    if needs_tools:
-        result = [b for b in result if "tool_calls" in reg.BACKENDS.get(b, {}).get("caps", [])]
-        if len(result) < 8:
-            all_capable = [
-                n for n, c in reg.BACKENDS.items()
-                if "tool_calls" in c.get("caps", [])
-                and not health_tracker.is_cooled_down(n)
-                and budget_manager.is_budget_available(n)
-                and not _is_retired(n)
-            ]
-            for b in all_capable:
-                if b not in result:
-                    result.append(b)
-        # Prioritize backends verified to support native tool calling
-        _NATIVE_TOOL_PREFER = {"github", "chinamobile", "ddg", "groq", "cerebras", "longcat"}
-        result.sort(key=lambda b: (
-            0 if scenario == "coding" and _is_strong_coding_tool_backend(b, reg.BACKENDS.get(b, {})) else 1,
-            0 if any(p in b for p in _NATIVE_TOOL_PREFER) else 1,
-            reg.BACKENDS.get(b, {}).get("timeout", 30),
-        ))
-
-    result = [b for b in result if budget_manager.is_budget_available(b)]
-
-    routing_guard_decisions: dict[str, dict] = {}
-    try:
-        from observability.routing_guard import backend_guard_snapshot
-
-        guard_snapshot = backend_guard_snapshot()
-        raw_decisions = guard_snapshot.get("decisions", {})
-        if isinstance(raw_decisions, dict):
-            routing_guard_decisions = raw_decisions
-            non_quarantined = [
-                b for b in result
-                if routing_guard_decisions.get(b, {}).get("status") != "quarantined"
-            ]
-            if non_quarantined:
-                result = non_quarantined
-    except ImportError:
-        routing_guard_decisions = {}
-
+    result = _build_initial_pool(pool_key, health_map, needs_tools, scenario)
+    result, routing_guard_decisions = _apply_guard_decisions(result)
     scores = health_tracker.get_scores()
     latency_map = health_tracker.get_latency_map()
     health_map = health_tracker.get_health_map()
-
-    for b in result:
-        base = scores.get(b, 50)
-
-        state = health_tracker.get_backend_state(b)
-        consec_fails = state.get("consecutive_failures", 0)
-        last_success = state.get("last_success", 0)
-        avg_lat = latency_map.get(b, 1500)
-        health = health_map.get(b, "healthy")
-
-        latency_score = max(0.1, 1.0 - min(avg_lat / 3000, 1.0))
-        error_penalty = min(consec_fails * 0.15, 0.9)
-        age = time.time() - last_success if last_success else 300
-        recency_bonus = max(0, 1.0 - min(age / 60, 1.0))
-
-        if health == "dead":
-            scores[b] = 0
-        elif health == "degraded":
-            scores[b] = base * 0.5 * latency_score * recency_bonus
-        else:
-            scores[b] = base * latency_score * (1 - error_penalty) * recency_bonus
-
-        try:
-            from context_pipeline.routing_weights import get_routing_weights
-            rw = get_routing_weights()
-            w = rw.get_weight(b, scenario or request_type)
-            scores[b] *= w
-        except ImportError:
-            pass
-
-        # Apply coding quality scores for coding scenarios
-        if scenario == "coding":
-            try:
-                from coding_backend_scorer import get_coding_weight
-                scores[b] *= get_coding_weight(b)
-            except ImportError:
-                pass
-            if needs_tools and _is_strong_coding_tool_backend(b, reg.BACKENDS.get(b, {})):
-                scores[b] *= 1.25
-            pass
-
-        static_latency = _STATIC_LATENCY_ESTIMATE.get(b)
-        if static_latency and consec_fails == 0:
-            scores[b] += max(0, (2000 - static_latency) / 100)
-
-        guard_decision = routing_guard_decisions.get(b, {})
-        if guard_decision:
-            try:
-                scores[b] *= float(guard_decision.get("penalty_multiplier", 1.0))
-            except (TypeError, ValueError):
-                scores[b] *= 1.0
-
-    # ML prediction boost — batch apply after per-backend scoring
-    try:
-        from routing_ml.routing_trainer import get_model, notify_request
-        from routing_ml.feature_extractor import extract_features
-        _ml_model = get_model()
-        if _ml_model and result:
-            _features = extract_features(
-                [], scenario=scenario, health_map=health_map,
-                top_backends=result[:5])
-            _topk = _ml_model.predict_topk(_features.features, k=min(5, len(result)))
-            for _ml_backend, _ml_score in _topk:
-                if _ml_backend in scores:
-                    scores[_ml_backend] *= (1.0 + _ml_score * 0.3)  # up to 30% boost
-            notify_request()
-    except (ImportError, Exception):
-        pass
-
-    result.sort(key=lambda b: -(
-        scores.get(b, 50) * budget_manager.get_budget_priority(b)
-        + random.uniform(0, 3)
-    ))
-
-    result = [b for b in result if not health_tracker.is_cooled_down(b)]
-
-    states = {b: health_tracker.get_backend_state(b) for b in result}
-    result = [
-        b for b in result
-        if route_scorer.is_selectable(b, request_type, states.get(b))
-    ]
-    result = route_scorer.rank_backends(
-        result, request_type, scenario,
-        health_scores=scores,
-        states=states,
-        latency_map=health_tracker.get_latency_map())
-
-    if sticky_key:
-        pinned = sticky_session.get_pinned_backend(sticky_key)
-        if (pinned and health_map.get(pinned, "healthy") != "dead"
-                and route_scorer.is_selectable(
-                    pinned, request_type,
-                    health_tracker.get_backend_state(pinned))):
-            result = _prioritize(pinned, result)
-    elif preferred_backend:
-        result = _pin_if_selectable(
-            preferred_backend, result, health_map, request_type,
-        )
-    elif recalled_backend and recalled_backend in result:
-        if (health_map.get(recalled_backend, "healthy") != "dead"
-                and route_scorer.is_selectable(
-                    recalled_backend, request_type,
-                    health_tracker.get_backend_state(recalled_backend))):
-            result = _prioritize(recalled_backend, result)
-
+    _score_backends(result, scores, latency_map, health_map, scenario, request_type, needs_tools, routing_guard_decisions)
+    _apply_ml_boost(result, scores, scenario, request_type, health_map)
+    result = _rank_backends(result, scores, request_type, scenario)
+    result = _apply_pin(result, sticky_key, preferred_backend, recalled_backend, health_map, request_type)
     return result[:MAX_FALLBACKS]
 
 
