@@ -5,6 +5,13 @@
 > Updated: 2026-06-16
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-17 全量测试基线更新（webhook 退役后）（完成）
+
+- **目标**：webhook 路由退役后重新运行全量 pytest，确认基线并更新 `STATUS.md`。
+- **结果**：`pytest --tb=no -q`（排除本地缺 `cv2` 的 2 个文件）→ **1616 passed, 23 skipped, 0 failed**。
+- **说明**：passed 较上次 1645 减少 29，系删除 30 个 webhook 测试所致；skipped 减少 1 亦对应删除。
+- **文档同步**：`STATUS.md` 测试基线更新为 1616/23/0，并注明变化原因。
+
 ## 2026-06-17 可选 P5：GitHub/Gitee webhook 路由退役（完成）
 
 - **目标**：执行 [`docs/CODEBASE_COLD_PRUNE_PRIORITY_CN.md`](docs/CODEBASE_COLD_PRUNE_PRIORITY_CN.md) 可选 P5，删除生产默认关闭且长期不用的 GitHub/Gitee webhook 路由。
