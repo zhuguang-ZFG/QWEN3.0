@@ -5,6 +5,15 @@
 > Updated: 2026-06-17
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-17 生成 G1/G2 证据文档（步骤 4 完成）
+
+- **G1 AI→Motion 回归证据**：新增 `docs/release_evidence/2026-06-17-M13-AI-to-Motion-regression.md`，记录热路径拆分与覆盖率提升后的端到端回归结果。
+- **G2 模型准入复跑证据**：新增 `docs/model_admission/2026-06-17-device-drawing-writing-evidence.md`，记录 `eval_device_model_role.py --all` 复跑结果与本地 `cv2` 缺失说明。
+- **验证**：
+  - `pytest tests/test_fake_u1_cloud_loop.py tests/test_device_draw_handler.py tests/test_motion.py -q` → **28 passed**。
+  - `ruff check .` clean。
+- **提交**：`7806247` docs: add G1/G2 evidence docs for regression and model admission，已 push 到 `origin main`。
+
 ## 2026-06-17 提升 device_gateway 测试覆盖率（步骤 3 完成）
 
 - **目标**：把 `device_gateway` 聚焦覆盖率从 38.2% 提升。
