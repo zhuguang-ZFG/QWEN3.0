@@ -59,6 +59,7 @@ sequenceDiagram
 |--------|------|------|
 | `GET /health` → 200 | ✅ | `curl -sL https://chat.donglicao.com/health` → `{"status":"ok","version":"2.0","model":"lima-1.3",...}`（2026-06-17 复测 200） |
 | `GET /device/v1/health` → 200 | ✅ | `curl -sL https://chat.donglicao.com/device/v1/health` → `{"status":"ok","protocol":"lima-device-v1",...}`（2026-06-17 复测 200） |
+| `POST /v1/chat/completions` → 200 | ✅ | `model=code` → `cerebras_gptoss`，HTTP 200，响应含 `choices[0].message.content`（2026-06-17 VPS key smoke） |
 | 无 critical alerts | ✅ | 服务正常启动，systemd 状态 `active (running)` |
 | 路由引擎 | ✅ | `pytest tests/test_routing_engine.py -q` → **24 passed** |
 | 设备网关聚焦门 | ✅ | 见下方「聚焦 pytest 命令」→ **154 passed, 1 warning** |
@@ -201,6 +202,7 @@ python scripts/run_ruff_check.py
 | 门 B–F 自动化 | ✅ 通过 | 154 项聚焦测试通过，ruff clean |
 | 物理设备 | ⏳ 未测 | 假 U1 已补齐；真机未执行 |
 | 生产认证 | ✅ 已配置 | VPS `LIMA_DEVICE_TOKENS` 已设置，`/device/v1/health` `auth_configured=true` |
+| 公开 chat smoke | ✅ 已通过 | `model=code` → `cerebras_gptoss`，HTTP 200 |
 | **总体建议** | ✅ 可发布到测试环境 | 生产环境建议补真机证据后再最终声明 |
 
 **阻塞项（P0）**：
@@ -208,8 +210,8 @@ python scripts/run_ruff_check.py
 1. ~~公网 502~~ 已恢复。
 2. ~~假 U1 运动执行证据~~ 已实现（`tests/test_fake_u1_cloud_loop.py`）。
 3. ~~生产设备认证缺口~~ 已修复，`/device/v1/health` 返回 `auth_configured=true`。
-4. 物理设备运行记录缺失。
-5. 认证公开 chat smoke（`model=code`）未执行，因缺少 `LIMA_API_KEY`。
+4. ~~认证公开 chat smoke~~ 已执行（`model=code` → `cerebras_gptoss`，HTTP 200）。
+5. 物理设备运行记录缺失。
 
 **回滚方案**：
 

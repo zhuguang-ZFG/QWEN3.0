@@ -10,7 +10,7 @@
 > Scale: 670 文件 / 79,447 行（较初始 794/93,145 减 124 文件 / 13,698 行）
 > Tests: 全量 1616 passed / 23 skipped / 0 failed；ruff clean
 > 注：`tests/test_device_draw_integration.py`、`tests/test_svg_converter.py` 因本地缺少 `cv2` 在收集阶段报错，非代码回归；passed 较上次减少 29 系删除 30 个 webhook 测试所致。
-> VPS smoke：`https://chat.donglicao.com/health` 200；`/device/v1/health` 200（`auth_configured=true`，已配置测试设备 token）。
+> VPS smoke：`https://chat.donglicao.com/health` 200；`/device/v1/health` 200（`auth_configured=true`）；`/v1/chat/completions model=code` 200（backend `cerebras_gptoss`）。
 
 ## 当前项目状态
 

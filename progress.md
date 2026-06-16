@@ -5,6 +5,13 @@
 > Updated: 2026-06-16
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-17 认证公开 chat smoke（model=code）（完成）
+
+- **目标**：执行 M13 发布证据剩余阻塞项——使用真实 VPS `LIMA_API_KEY` 验证公开 `/v1/chat/completions` 端点。
+- **命令**：`curl -sL https://chat.donglicao.com/v1/chat/completions -H "Authorization: Bearer $LIMA_API_KEY" -H "Content-Type: application/json" -d '{"model":"code","messages":[{"role":"user","content":"hello"}],"max_tokens":10}'`
+- **结果**：**HTTP 200**，`model=lima-1.3`，后端路由至 `cerebras_gptoss`，响应包含 `choices[0].message.content`。
+- **文档同步**：`docs/release_evidence/2026-06-16-M13-AI-to-Motion-release-gate.md` 门 A 新增 chat smoke 检查项，阻塞项勾选；`STATUS.md` VPS smoke 追加 chat 证据。
+
 ## 2026-06-17 全量测试基线更新（webhook 退役后）（完成）
 
 - **目标**：webhook 路由退役后重新运行全量 pytest，确认基线并更新 `STATUS.md`。
