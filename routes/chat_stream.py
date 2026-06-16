@@ -65,12 +65,22 @@ def _extract_answer(result: Any) -> str:
     return result.get("answer", "") if isinstance(result, dict) else str(result)
 
 
-def _ensure_content(content: str, messages: list, *, err_prefix: str = "") -> str:
-    """Clean content and fall back to last-resort or default message."""
+def _ensure_content(content: str, messages: list) -> str:
+    """Clean content and fall back if blank."""
     from response_cleaner import clean_response
 
-    content = clean_response(content, err_prefix) or content
-    if not content or not content.strip() or content.startswith("[ERR]"):
+    content = clean_response(content, "") or content
+    if not content or not content.strip():
+        return (_last_resort_call(messages) if _last_resort_call else "") or FALLBACK_MSG
+    return content
+
+
+def _ensure_fallback_content(content: str, messages: list) -> str:
+    """Clean content and fall back if empty or error-prefixed."""
+    from response_cleaner import clean_response
+
+    content = clean_response(content, "") or content
+    if not content or content.startswith("[ERR]"):
         return (_last_resort_call(messages) if _last_resort_call else "") or FALLBACK_MSG
     return content
 
@@ -187,7 +197,7 @@ async def _stream_speculative(
             sys_prompt_preview=sys_prompt_preview,
             ide_source=ide_source,
         )
-        content = _ensure_content(content, messages, err_prefix="")
+        content = _ensure_fallback_content(content, messages)
         async for chunk in _stream_sentences(chat_id, content):
             yield chunk
 
