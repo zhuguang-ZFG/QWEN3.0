@@ -188,64 +188,13 @@ def _build_body(
     model = backend_cfg["model"]
     fmt = backend_cfg["fmt"]
 
-    sys_text = system_prompt
-    if ide and ide not in ("unknown", "未知"):
-        from prompt_engineering.layers import compose_system_prompt
-
-        scenario = "coding" if fmt != "anthropic" or ide else "chat"
-        sys_text = compose_system_prompt(
-            ide=ide,
-            scenario=scenario,
-            code_context=system_prompt if system_prompt else "",
-        )
-
-    try:
-        from context_pipeline.cache import optimize_for_prefix_cache
-
-        if sys_text and messages:
-            sys_text, messages = optimize_for_prefix_cache(sys_text, messages)
-    except ImportError:
-        pass
-    except Exception as exc:
-        logger.warning("prefix cache optimization failed: %s", exc, exc_info=True)
+    sys_text = _enrich_system_prompt(system_prompt, ide, fmt)
+    sys_text, messages = _apply_prefix_cache(sys_text, messages)
 
     if fmt == "anthropic":
-        if backend_cfg.get("no_system"):
-            omni_msgs = [
-                {
-                    "role": m["role"],
-                    "content": [{"type": "text", "text": m["content"]}]
-                    if isinstance(m["content"], str)
-                    else m["content"],
-                }
-                for m in messages
-            ]
-            body = {"model": model, "max_tokens": max_tokens, "messages": omni_msgs}
-        else:
-            body = {
-                "model": model,
-                "max_tokens": max_tokens,
-                "system": sys_text,
-                "messages": messages,
-            }
-    elif backend_cfg.get("no_system"):
-        outgoing = [dict(m) for m in messages]
-        if sys_text and outgoing:
-            for msg in outgoing:
-                if msg.get("role") == "user":
-                    content = msg.get("content", "")
-                    if isinstance(content, str):
-                        msg["content"] = f"{sys_text}\n\n{content}"
-                    elif isinstance(content, list):
-                        msg["content"] = [{"type": "text", "text": sys_text}] + content
-                    break
-        body = {"model": model, "max_tokens": max_tokens, "messages": outgoing}
+        body = _build_anthropic_body(backend_cfg, model, max_tokens, sys_text, messages)
     else:
-        body = {
-            "model": model,
-            "max_tokens": max_tokens,
-            "messages": [{"role": "system", "content": sys_text}] + messages,
-        }
+        body = _build_openai_body(backend_cfg, model, max_tokens, sys_text, messages)
 
     extra = backend_cfg.get("extra_body")
     if extra and isinstance(extra, dict):
@@ -258,3 +207,63 @@ def _build_body(
         body["tools"] = tools
 
     return json.dumps(body).encode()
+
+
+def _enrich_system_prompt(system_prompt: str, ide: str, fmt: str) -> str:
+    """Apply IDE-aware system prompt composition."""
+    if not ide or ide in ("unknown", "\u672a\u77e5"):
+        return system_prompt
+    from prompt_engineering.layers import compose_system_prompt
+    scenario = "coding" if fmt != "anthropic" or ide else "chat"
+    return compose_system_prompt(
+        ide=ide, scenario=scenario,
+        code_context=system_prompt if system_prompt else "",
+    )
+
+
+def _apply_prefix_cache(sys_text: str, messages: list[dict]) -> tuple[str, list[dict]]:
+    """Apply prefix cache optimization if available."""
+    try:
+        from context_pipeline.cache import optimize_for_prefix_cache
+        if sys_text and messages:
+            sys_text, messages = optimize_for_prefix_cache(sys_text, messages)
+    except ImportError:
+        pass
+    except Exception as exc:
+        logger.warning("prefix cache optimization failed: %s", exc, exc_info=True)
+    return sys_text, messages
+
+
+def _build_anthropic_body(cfg: dict, model: str, max_tokens: int,
+                          sys_text: str, messages: list[dict]) -> dict:
+    """Build request body in Anthropic format."""
+    if cfg.get("no_system"):
+        omni_msgs = [
+            {"role": m["role"],
+             "content": [{"type": "text", "text": m["content"]}]
+             if isinstance(m["content"], str) else m["content"]}
+            for m in messages
+        ]
+        return {"model": model, "max_tokens": max_tokens, "messages": omni_msgs}
+    return {"model": model, "max_tokens": max_tokens, "system": sys_text, "messages": messages}
+
+
+def _build_openai_body(cfg: dict, model: str, max_tokens: int,
+                       sys_text: str, messages: list[dict]) -> dict:
+    """Build request body in OpenAI-compatible format."""
+    if cfg.get("no_system"):
+        outgoing = [dict(m) for m in messages]
+        if sys_text and outgoing:
+            for msg in outgoing:
+                if msg.get("role") == "user":
+                    content = msg.get("content", "")
+                    if isinstance(content, str):
+                        msg["content"] = f"{sys_text}\n\n{content}"
+                    elif isinstance(content, list):
+                        msg["content"] = [{"type": "text", "text": sys_text}] + content
+                    break
+        return {"model": model, "max_tokens": max_tokens, "messages": outgoing}
+    return {
+        "model": model, "max_tokens": max_tokens,
+        "messages": [{"role": "system", "content": sys_text}] + messages,
+    }

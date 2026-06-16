@@ -68,10 +68,9 @@ def scan_and_build_context(
     file_mentions, identifiers = extract_file_mentions(query, messages)
     parts: list[str] = []
     total = 0
-
     scanned_files: set[str] = set()
 
-    # Phase 1: Direct file mentions (existing regex approach)
+    # Phase 1: Direct file mentions (regex)
     for fname in file_mentions[:_MAX_FILES]:
         path = _resolve_file(fname)
         if not path or str(path) in scanned_files:
@@ -82,48 +81,15 @@ def scan_and_build_context(
             parts.append(ctx)
             total += len(ctx)
 
-    # Phase 2: Semantic retrieval (find implicit relevant files)
-    try:
-        from context_pipeline.semantic_code_retrieval import retrieve_semantic
-        sem_results = retrieve_semantic(
-            query, max_results=5, messages=messages)
-        for result in sem_results:
-            if len(scanned_files) >= _MAX_FILES:
-                break
-            fpath = result.file_path
-            if fpath in scanned_files:
-                continue
-            # Only include if score is meaningful
-            if result.score < 0.1:
-                continue
-            scanned_files.add(fpath)
-            ctx = _scan_single_file(Path(fpath))
-            if ctx and total + len(ctx) < max_chars:
-                parts.append(f"[semantic match: score={result.score}]\n{ctx}")
-                total += len(ctx) + 30
-    except ImportError:
-        pass
+    # Phase 2: Semantic retrieval
+    parts, total, scanned_files = _phase_semantic_retrieval(
+        query, messages, parts, total, scanned_files, max_chars)
 
-    # Phase 3: Graph expansion for remaining budget
-    if total < max_chars * 0.5 and len(scanned_files) < _MAX_FILES:
-        try:
-            from context_pipeline.graph_context_expander import expand_context
-            expanded = expand_context(
-                list(scanned_files), max_hops=1, max_files=3)
-            for ef in expanded:
-                if len(scanned_files) >= _MAX_FILES:
-                    break
-                if ef.file_path in scanned_files:
-                    continue
-                scanned_files.add(ef.file_path)
-                ctx = _scan_single_file(Path(ef.file_path))
-                if ctx and total + len(ctx) < max_chars:
-                    parts.append(ctx)
-                    total += len(ctx)
-        except ImportError:
-            pass
+    # Phase 3: Graph expansion
+    parts, total, scanned_files = _phase_graph_expansion(
+        parts, total, scanned_files, max_chars)
 
-    # Phase 4: Identifier search (existing approach)
+    # Phase 4: Identifier search
     for ident in identifiers[:3]:
         if total >= max_chars or len(scanned_files) >= _MAX_FILES:
             break
@@ -142,6 +108,51 @@ def scan_and_build_context(
 
     header = f"[Code Context — {len(scanned_files)} files, {total} chars]"
     return header + "\n\n" + "\n---\n".join(parts)
+
+
+def _phase_semantic_retrieval(
+    query: str, messages: list[dict] | None,
+    parts: list[str], total: int, scanned: set[str], max_chars: int,
+) -> tuple[list[str], int, set[str]]:
+    """Phase 2: Semantic retrieval for implicit relevant files."""
+    try:
+        from context_pipeline.semantic_code_retrieval import retrieve_semantic
+        sem_results = retrieve_semantic(query, max_results=5, messages=messages)
+        for result in sem_results:
+            if len(scanned) >= _MAX_FILES or result.file_path in scanned:
+                continue
+            if result.score < 0.1:
+                continue
+            scanned.add(result.file_path)
+            ctx = _scan_single_file(Path(result.file_path))
+            if ctx and total + len(ctx) < max_chars:
+                parts.append(f"[semantic match: score={result.score}]\n{ctx}")
+                total += len(ctx) + 30
+    except ImportError:
+        pass
+    return parts, total, scanned
+
+
+def _phase_graph_expansion(
+    parts: list[str], total: int, scanned: set[str], max_chars: int,
+) -> tuple[list[str], int, set[str]]:
+    """Phase 3: Graph expansion for remaining budget."""
+    if total >= max_chars * 0.5 or len(scanned) >= _MAX_FILES:
+        return parts, total, scanned
+    try:
+        from context_pipeline.graph_context_expander import expand_context
+        expanded = expand_context(list(scanned), max_hops=1, max_files=3)
+        for ef in expanded:
+            if len(scanned) >= _MAX_FILES or ef.file_path in scanned:
+                continue
+            scanned.add(ef.file_path)
+            ctx = _scan_single_file(Path(ef.file_path))
+            if ctx and total + len(ctx) < max_chars:
+                parts.append(ctx)
+                total += len(ctx)
+    except ImportError:
+        pass
+    return parts, total, scanned
 
 
 def _resolve_file(fname: str) -> Path | None:

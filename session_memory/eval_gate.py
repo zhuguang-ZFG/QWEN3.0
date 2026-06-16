@@ -176,6 +176,42 @@ def promoted_patterns(limit: int = 20) -> list[dict[str, Any]]:
     return [c.to_dict() for c in candidates if c.promoted or c.can_promote]
 
 
+def _apply_routing_weights(candidate: EvalCandidate) -> tuple[dict, dict, bool]:
+    """Apply routing weight changes for a promoted pattern. Returns (before, after, ok)."""
+    if not (candidate.backend and candidate.scenario):
+        return {}, {}, True  # record-only promotion
+    try:
+        from context_pipeline.routing_weights import get_routing_weights
+        rw = get_routing_weights()
+        before = rw.get_stats(candidate.backend, candidate.scenario)
+        for _ in range(candidate.pass_count):
+            rw.record_success(candidate.backend, candidate.scenario)
+        after = rw.get_stats(candidate.backend, candidate.scenario)
+        return before, after, True
+    except ImportError:
+        return {}, {}, False
+    except Exception:
+        return {}, {}, False
+
+
+def _save_promotion_record(pattern_key: str, candidate: EvalCandidate,
+                           before: dict, after: dict, rw_applied: bool) -> None:
+    """Persist promotion record to typed memory store."""
+    save_typed_memory(
+        "reference_pattern", f"promoted:{pattern_key}",
+        detail=json.dumps({
+            "pattern_key": pattern_key, "backend": candidate.backend,
+            "scenario": candidate.scenario,
+            "evidence_count": candidate.pass_count + candidate.fail_count,
+            "promoted_at": time.time(),
+            "weight_before": before.get("weight", 1.0),
+            "weight_after": after.get("weight", 1.0),
+            "rw_applied": rw_applied,
+            "rollback_notes": candidate.rollback_notes,
+        }, ensure_ascii=False),
+    )
+
+
 def revision_check() -> dict[str, Any]:
     """Return all candidates and their promotion status (for ops/admin review)."""
     candidates = eval_candidates_from_memory(limit=50)
@@ -217,50 +253,18 @@ def apply_promotion(pattern_key: str) -> dict[str, Any]:
         return {"applied": False, "error": "pattern already promoted",
                 "pattern_key": pattern_key}
 
-    before = {}
-    after = {}
-    rw_applied = False
-    if candidate.backend and candidate.scenario:
-        try:
-            from context_pipeline.routing_weights import get_routing_weights
-            rw = get_routing_weights()
-            before = rw.get_stats(candidate.backend, candidate.scenario)
-            for _ in range(candidate.pass_count):
-                rw.record_success(candidate.backend, candidate.scenario)
-            after = rw.get_stats(candidate.backend, candidate.scenario)
-            rw_applied = True
-        except ImportError:
-            return {"applied": False,
-                    "error": "routing_weights module not available — promotion aborted"}
-        except Exception as exc:
-            return {"applied": False,
-                    "error": f"routing_weights write failed: {type(exc).__name__} — promotion aborted"}
-    else:
-        # No backend+scenario to promote — record-only
-        rw_applied = True
+    before, after, rw_ok = _apply_routing_weights(candidate)
+    if not rw_ok and candidate.backend and candidate.scenario:
+        return {"applied": False,
+                "error": "routing_weights module not available — promotion aborted"}
 
-    save_typed_memory(
-        "reference_pattern",
-        f"promoted:{pattern_key}",
-        detail=json.dumps({
-            "pattern_key": pattern_key,
-            "backend": candidate.backend,
-            "scenario": candidate.scenario,
-            "evidence_count": candidate.pass_count + candidate.fail_count,
-            "promoted_at": time.time(),
-            "weight_before": before.get("weight", 1.0),
-            "weight_after": after.get("weight", 1.0),
-            "rw_applied": rw_applied,
-            "rollback_notes": candidate.rollback_notes,
-        }, ensure_ascii=False),
-    )
-
+    _save_promotion_record(pattern_key, candidate, before, after, rw_ok)
     return {
         "applied": True, "pattern_key": pattern_key,
         "backend": candidate.backend, "scenario": candidate.scenario,
         "weight_before": before.get("weight", 1.0),
         "weight_after": after.get("weight", 1.0),
-        "rw_applied": rw_applied,
+        "rw_applied": rw_ok,
     }
 
 

@@ -202,68 +202,57 @@ def profile_from_hello_frame(
     return DeviceProfile(device_id=device_id, capability=cap, preferences=prefs, history=hist)
 
 
-def infer_profile_from_artifacts(
-    device_id: str,
-    artifact_dir: str | Path = "device_artifacts",
-    max_age_s: float = _MAX_EVIDENCE_AGE_S,
-) -> DeviceProfile | None:
-    """Infer a DeviceProfile from historical route evidence artifacts.
-
-    Reads ``route_evidence_{device_id}.log`` (JSONL) and aggregates
-    preferred_models and failed_backends.
-    """
-    log_path = Path(artifact_dir) / f"route_evidence_{device_id}.log"
-    if not log_path.exists():
-        return None
-
+def _parse_evidence_log(
+    log_path: Path, max_age_s: float,
+) -> tuple[dict[str, int], set[str], list[float], int, int]:
+    """Parse route evidence log and return aggregated stats."""
     models_seen: dict[str, int] = {}
     backends_failed: set[str] = set()
     latencies: list[float] = []
     successes = 0
     total = 0
+    for line in log_path.read_text(encoding="utf-8").strip().split("\n"):
+        if not line.strip():
+            continue
+        try:
+            rec = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        ts = rec.get("timestamp", "")
+        age = _age_seconds(ts)
+        if age is not None and age > max_age_s:
+            continue
+        total += 1
+        model = rec.get("selected_model", "")
+        if model:
+            models_seen[model] = models_seen.get(model, 0) + 1
+        backend = rec.get("backend", "")
+        reason = rec.get("reason", "")
+        if backend and ("fail" in reason.lower() or "error" in reason.lower()):
+            backends_failed.add(backend)
+        rp = rec.get("route_policy", {})
+        if isinstance(rp, dict) and rp:
+            successes += 1
+    return models_seen, backends_failed, latencies, successes, total
 
+
+def infer_profile_from_artifacts(
+    device_id: str,
+    artifact_dir: str | Path = "device_artifacts",
+    max_age_s: float = _MAX_EVIDENCE_AGE_S,
+) -> DeviceProfile | None:
+    """Infer a DeviceProfile from historical route evidence artifacts."""
+    log_path = Path(artifact_dir) / f"route_evidence_{device_id}.log"
+    if not log_path.exists():
+        return None
     try:
-        for line in log_path.read_text(encoding="utf-8").strip().split("\n"):
-            if not line.strip():
-                continue
-            try:
-                rec = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-
-            # Age filter
-            ts = rec.get("timestamp", "")
-            age = _age_seconds(ts)
-            if age is not None and age > max_age_s:
-                continue
-
-            total += 1
-
-            model = rec.get("selected_model", "")
-            if model:
-                models_seen[model] = models_seen.get(model, 0) + 1
-
-            backend = rec.get("backend", "")
-            reason = rec.get("reason", "")
-            if backend and ("fail" in reason.lower() or "error" in reason.lower()):
-                backends_failed.add(backend)
-
-            # Heuristic: success if route_policy non-empty
-            rp = rec.get("route_policy", {})
-            if isinstance(rp, dict) and rp:
-                successes += 1
-
+        models_seen, backends_failed, latencies, successes, total = _parse_evidence_log(log_path, max_age_s)
     except OSError as e:
         _log.warning("Failed to read artifact log for %s: %s", device_id, e)
         return None
-
     if total == 0:
         return None
-
-    # Sort models by frequency (descending)
     preferred = tuple(sorted(models_seen, key=models_seen.__getitem__, reverse=True))
-
-    # Cap total tasks to what we actually counted
     hist = DeviceHistory(
         preferred_models=preferred,
         failed_backends=tuple(sorted(backends_failed)),
@@ -271,12 +260,9 @@ def infer_profile_from_artifacts(
         success_rate=successes / total if total else 0.0,
         total_tasks=total,
     )
-
     return DeviceProfile(
-        device_id=device_id,
-        capability=DeviceCapability(),
-        preferences=DevicePreferences(),
-        history=hist,
+        device_id=device_id, capability=DeviceCapability(),
+        preferences=DevicePreferences(), history=hist,
     )
 
 

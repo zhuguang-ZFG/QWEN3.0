@@ -123,64 +123,39 @@ def create_model(
                         backend_names=list(backend_names), hidden_size=hidden_size)
 
 
-def train_step(
-    model: RoutingModel,
-    features: list[float],
-    target: list[float],
-    lr: float = 0.001,
-) -> float:
-    """Single training step with backprop. Returns loss."""
-    H = model.hidden_size
-    N = N_FEATURES
-    K = len(model.backend_names)
-
-    # Forward — cache for backprop
-    h_pre = [0.0] * H
-    for j in range(H):
-        s = model.b1[j]
-        for i in range(N):
-            s += features[i] * model.w1[i][j]
-        h_pre[j] = s
-
-    h = [max(0.0, v) for v in h_pre]  # ReLU
-
-    out_pre = [0.0] * K
-    for k in range(K):
-        s = model.b2[k]
-        for j in range(H):
-            s += h[j] * model.w2[j][k]
-        out_pre[k] = s
-
+def _forward(model: RoutingModel, features: list[float]
+             ) -> tuple[list[float], list[float], list[float], list[float]]:
+    """Forward pass returning all intermediates for backprop."""
+    H, N, K = model.hidden_size, N_FEATURES, len(model.backend_names)
+    h_pre = [model.b1[j] + sum(features[i] * model.w1[i][j] for i in range(N)) for j in range(H)]
+    h = [max(0.0, v) for v in h_pre]
+    out_pre = [model.b2[k] + sum(h[j] * model.w2[j][k] for j in range(H)) for k in range(K)]
     pred = [1.0 / (1.0 + math.exp(-max(-10.0, min(10.0, v)))) for v in out_pre]
+    return h_pre, h, out_pre, pred
 
-    # Loss (binary cross-entropy)
+
+def _backward(model: RoutingModel, features: list[float],
+              h_pre: list[float], h: list[float], pred: list[float], target: list[float]
+              ) -> tuple[float, list[list[float]], list[float], list[list[float]], list[float]]:
+    """Compute gradients via backprop. Returns (loss, d_w1, d_b1, d_w2, d_b2)."""
+    H, N, K = model.hidden_size, N_FEATURES, len(model.backend_names)
     eps = 1e-7
-    loss = 0.0
-    for k in range(K):
-        p = max(eps, min(1.0 - eps, pred[k]))
-        loss -= target[k] * math.log(p) + (1.0 - target[k]) * math.log(1.0 - p)
-    loss /= K
-
-    # Backward
-    d_out = [(pred[k] - target[k]) for k in range(K)]  # sigmoid gradient absorbed
-
-    # dW2, db2
+    loss = -sum(
+        target[k] * math.log(max(eps, min(1 - eps, pred[k])))
+        + (1 - target[k]) * math.log(max(eps, min(1 - eps, 1 - pred[k])))
+        for k in range(K)
+    ) / K
+    d_out = [pred[k] - target[k] for k in range(K)]
     d_w2 = [[h[j] * d_out[k] for k in range(K)] for j in range(H)]
-    d_b2 = list(d_out)
-
-    # dh
-    d_h = [0.0] * H
-    for j in range(H):
-        for k in range(K):
-            d_h[j] += d_out[k] * model.w2[j][k]
-        if h_pre[j] <= 0:
-            d_h[j] = 0.0  # ReLU grad
-
-    # dW1, db1
+    d_h = [sum(d_out[k] * model.w2[j][k] for k in range(K)) * (1.0 if h_pre[j] > 0 else 0.0) for j in range(H)]
     d_w1 = [[features[i] * d_h[j] for j in range(H)] for i in range(N)]
-    d_b1 = list(d_h)
+    return loss, d_w1, list(d_h), d_w2, list(d_out)
 
-    # Update
+
+def _apply_gradients(model: RoutingModel, lr: float,
+                     d_w1: list, d_b1: list, d_w2: list, d_b2: list) -> None:
+    """Apply gradient updates to model weights."""
+    H, N, K = model.hidden_size, N_FEATURES, len(model.backend_names)
     for i in range(N):
         for j in range(H):
             model.w1[i][j] -= lr * d_w1[i][j]
@@ -192,6 +167,17 @@ def train_step(
     for k in range(K):
         model.b2[k] -= lr * d_b2[k]
 
+
+def train_step(
+    model: RoutingModel,
+    features: list[float],
+    target: list[float],
+    lr: float = 0.001,
+) -> float:
+    """Single training step with backprop. Returns loss."""
+    h_pre, h, out_pre, pred = _forward(model, features)
+    loss, d_w1, d_b1, d_w2, d_b2 = _backward(model, features, h_pre, h, pred, target)
+    _apply_gradients(model, lr, d_w1, d_b1, d_w2, d_b2)
     model.n_updates += 1
     model.updated_at = time.time()
     return loss

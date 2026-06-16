@@ -62,6 +62,52 @@ def _api_request(method: str, path: str, body: dict | None = None) -> dict:
         return {"ok": False, "error": str(exc)[:300]}
 
 
+def _build_generate_body(
+    prompt: str, system_instruction: str, temperature: float,
+    max_tokens: int, tools: list[dict] | None, grounding: bool,
+) -> dict:
+    """Build the generateContent request body."""
+    body: dict = {
+        "contents": [{"parts": [{"text": prompt[:32000]}]}],
+        "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens},
+    }
+    if system_instruction:
+        body["systemInstruction"] = {"parts": [{"text": system_instruction[:8000]}]}
+    if grounding:
+        body["tools"] = [{"googleSearch": {}}]
+    if tools:
+        body.setdefault("tools", []).extend(tools)
+    return body
+
+
+def _parse_generate_response(data: dict, model: str) -> dict:
+    """Parse Gemini generateContent response into a normalised result."""
+    candidates = data.get("candidates", [])
+    text = ""
+    grounding_metadata = None
+    for c in candidates:
+        for p in c.get("content", {}).get("parts", []):
+            if "text" in p:
+                text += p["text"]
+    if candidates:
+        gm = candidates[0].get("groundingMetadata", {})
+        if gm:
+            grounding_metadata = {
+                "sources": [
+                    {"uri": s.get("uri", ""), "title": s.get("title", "")}
+                    for chunk in gm.get("groundingChunks", [])
+                    for s in [chunk.get("web", {})]
+                    if s
+                ]
+            }
+    return {
+        "ok": True, "text": text, "model": model,
+        "finish_reason": candidates[0].get("finishReason", "") if candidates else "",
+        "token_count": data.get("usageMetadata", {}).get("totalTokenCount", 0),
+        "grounding": grounding_metadata,
+    }
+
+
 def generate_content(
     prompt: str,
     *,
@@ -85,57 +131,10 @@ def generate_content(
 
     Privacy: caller must ensure private code is NOT sent here.
     """
-    parts: list[dict] = [{"text": prompt[:32000]}]
-
-    body: dict = {
-        "contents": [{"parts": parts}],
-        "generationConfig": {
-            "temperature": temperature,
-            "maxOutputTokens": max_tokens,
-        },
-    }
-    if system_instruction:
-        body["systemInstruction"] = {"parts": [{"text": system_instruction[:8000]}]}
-
-    if grounding:
-        body["tools"] = [{"googleSearch": {}}]
-
-    if tools:
-        body.setdefault("tools", []).extend(tools)
-
-    result = _api_request(
-        "POST", f"/models/{model}:generateContent", body,
-    )
+    body = _build_generate_body(prompt, system_instruction, temperature, max_tokens, tools, grounding)
+    result = _api_request("POST", f"/models/{model}:generateContent", body)
     if result.get("ok") and result.get("data"):
-        data = result["data"]
-        candidates = data.get("candidates", [])
-        text = ""
-        grounding_metadata = None
-        for c in candidates:
-            content = c.get("content", {})
-            for p in content.get("parts", []):
-                if "text" in p:
-                    text += p["text"]
-        # Extract grounding sources if available
-        if candidates:
-            gm = candidates[0].get("groundingMetadata", {})
-            if gm:
-                grounding_metadata = {
-                    "sources": [
-                        {"uri": s.get("uri", ""), "title": s.get("title", "")}
-                        for chunk in gm.get("groundingChunks", [])
-                        for s in [chunk.get("web", {})]
-                        if s
-                    ]
-                }
-        return {
-            "ok": True,
-            "text": text,
-            "model": model,
-            "finish_reason": candidates[0].get("finishReason", "") if candidates else "",
-            "token_count": data.get("usageMetadata", {}).get("totalTokenCount", 0),
-            "grounding": grounding_metadata,
-        }
+        return _parse_generate_response(result["data"], model)
     return result
 
 

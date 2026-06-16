@@ -50,6 +50,24 @@ AFFINITY = {
 }
 
 
+_CODE_SIGNALS = [
+    "代码", "code", "函数", "function", "bug", "error", "fix",
+    "def ", "class ", "import ", "```", "compile", "debug",
+    "实现", "implement", "refactor", "重构", "优化",
+    "TypeError", "ValueError", "Exception", "traceback",
+    "写", "改", "修复", "报错", "崩溃", "编译",
+    "接口", "接口文档", "单元测试", "部署", "配置",
+    "算法", "数据库", "查询", "性能", "内存",
+    "多线程", "并发", "异步", "协程", "回调",
+    "正则", "序列化", "反序列化", "编码", "解码",
+]
+
+
+def _has_code_signals(query: str) -> bool:
+    """Check if query contains code-related keywords."""
+    return any(kw in query for kw in _CODE_SIGNALS)
+
+
 def classify_complexity(query: str, messages: list[dict]) -> str:
     """Return 'simple' | 'code' | 'complex' for routing strategy selection."""
     query_len = len(query)
@@ -57,69 +75,12 @@ def classify_complexity(query: str, messages: list[dict]) -> str:
         len(m.get("content", "")) for m in messages if isinstance(m.get("content"), str)
     )
 
-    code_signals = [
-        "代码",
-        "code",
-        "函数",
-        "function",
-        "bug",
-        "error",
-        "fix",
-        "def ",
-        "class ",
-        "import ",
-        "```",
-        "compile",
-        "debug",
-        "实现",
-        "implement",
-        "refactor",
-        "重构",
-        "优化",
-        "TypeError",
-        "ValueError",
-        "Exception",
-        "traceback",
-        "写",
-        "改",
-        "修复",
-        "报错",
-        "崩溃",
-        "编译",
-        "接口",
-        "接口文档",
-        "单元测试",
-        "部署",
-        "配置",
-        "算法",
-        "数据库",
-        "查询",
-        "性能",
-        "内存",
-        "多线程",
-        "并发",
-        "异步",
-        "协程",
-        "回调",
-        "正则",
-        "序列化",
-        "反序列化",
-        "编码",
-        "解码",
-    ]
-    query_lower = query.lower()
-    if any(kw in query_lower for kw in code_signals):
+    if _has_code_signals(query.lower()):
         return "code"
-
     if total_context > 3000 or query_len > 500:
         return "complex"
-
     if len(messages) > 8:
         return "complex"
-
-    if query_len < 80 and total_context < 500:
-        return "simple"
-
     return "simple"
 
 

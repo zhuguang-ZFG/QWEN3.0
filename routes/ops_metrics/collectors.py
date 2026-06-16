@@ -95,28 +95,24 @@ def backend_recovery_snapshot(dead_backends: list[str], degraded_backends: list[
         }
 
 
-def ops_metrics_snapshot(request: Request) -> dict[str, Any]:
-    """Unified metrics snapshot across all subsystems."""
-    now = time.time()
-
-    # Request stats (injected from server)
-    stats = app_stats(request)
-    total_requests = int(stats.get("total_requests", 0))
-    backend_calls = dict(stats.get("backend_calls", {}))
-
-    # Health
+def _collect_health() -> tuple[dict, list[str], list[str]]:
+    """Return (health_map, dead_backends, degraded_backends)."""
     try:
         import health_tracker
         health_map = health_tracker.get_health_map()
-        dead_backends = [b for b, s in health_map.items() if s == "dead"]
-        degraded_backends = [b for b, s in health_map.items() if s == "degraded"]
+        dead = [b for b, s in health_map.items() if s == "dead"]
+        degraded = [b for b, s in health_map.items() if s == "degraded"]
     except ImportError:
-        health_map = {}
-        dead_backends = []
-        degraded_backends = []
+        health_map, dead, degraded = {}, [], []
+    return health_map, dead, degraded
 
-    # Device Gateway
-    device = {"sessions": 0, "pending_tasks": 0, "store_backend": "unknown", "bus_backend": "unknown"}
+
+def _collect_device_gateway() -> dict[str, Any]:
+    """Gather device gateway session, task, store, and bus health."""
+    device: dict[str, Any] = {
+        "sessions": 0, "pending_tasks": 0,
+        "store_backend": "unknown", "bus_backend": "unknown",
+    }
     try:
         from device_gateway.sessions import registry
         device["sessions"] = registry.count()
@@ -139,9 +135,12 @@ def ops_metrics_snapshot(request: Request) -> dict[str, Any]:
         device["bus"] = notifier_health()
     except ImportError:
         pass
+    return device
 
-    # Agent tasks
-    agent = {"active_workers": 0, "total_completed": 0, "total_failed": 0}
+
+def _collect_agent_workers() -> dict[str, Any]:
+    """Return agent worker summary."""
+    agent: dict[str, Any] = {"active_workers": 0, "total_completed": 0, "total_failed": 0}
     try:
         from tool_gateway.governance import list_workers
         workers = list_workers()
@@ -150,34 +149,32 @@ def ops_metrics_snapshot(request: Request) -> dict[str, Any]:
         agent["total_failed"] = sum(w.total_failed for w in workers)
     except ImportError:
         pass
+    return agent
 
-    # Recent retrieval traces
-    retrieval_traces: list[dict] = []
-    try:
-        from context_pipeline.retrieval_trace import get_recent_traces
-        retrieval_traces = get_recent_traces(limit=5)
-    except ImportError:
-        pass
 
-    recent_tasks = recent_agent_tasks(limit=5)
-
-    # Backend error summary
-    backend_errors: dict[str, dict] = {}
-    for backend_name in set(health_map.keys()) | set(backend_calls.keys()):
-        state = {}
+def _collect_backend_errors(
+    health_map: dict[str, str], backend_calls: dict[str, int],
+) -> dict[str, dict]:
+    """Build error summary for backends that have recorded errors."""
+    errors: dict[str, dict] = {}
+    for name in set(health_map.keys()) | set(backend_calls.keys()):
+        state: dict[str, Any] = {}
         try:
             from health_tracker import get_backend_state
-            state = get_backend_state(backend_name)
+            state = get_backend_state(name)
         except ImportError:
             pass
         if state.get("last_error_class"):
-            backend_errors[backend_name] = {
+            errors[name] = {
                 "error_class": state.get("last_error_class"),
                 "error_code": state.get("last_error_code"),
-                "health": health_map.get(backend_name, "unknown"),
+                "health": health_map.get(name, "unknown"),
             }
+    return errors
 
-    # Learning loop stats
+
+def _collect_learning() -> dict[str, Any]:
+    """Aggregate learning-loop, eval-gate, and routing-weights stats."""
     learning: dict[str, Any] = {}
     try:
         from session_memory.prompt_recall import recall_stats
@@ -188,10 +185,10 @@ def ops_metrics_snapshot(request: Request) -> dict[str, Any]:
         from context_pipeline.routing_weights import get_routing_weights
         rw = get_routing_weights()
         weights_data = rw._weights
-        scenarios = sorted(set(w.scenario for w in weights_data.values()))
+        scenarios = sorted({w.scenario for w in weights_data.values()})
         learning["routing_weights"] = {
             "total_patterns": len(weights_data),
-            "active_backends": len(set(w.backend for w in weights_data.values())),
+            "active_backends": len({w.backend for w in weights_data.values()}),
             "top_scenarios": scenarios[:10],
         }
     except ImportError:
@@ -204,20 +201,44 @@ def ops_metrics_snapshot(request: Request) -> dict[str, Any]:
             "promotable": sum(1 for c in revision.get("promotable", []) if c.get("can_promote")),
             "needs_approval": len(revision.get("needs_approval", [])),
             "blocked_by_rate": len(revision.get("blocked_by_pass_rate", [])),
+            "promoted_active": len([
+                c for c in revision.get("promotable", []) if c.get("promoted")
+            ]),
         }
-        promoted = [c for c in revision.get("promotable", []) if c.get("promoted")]
-        learning["eval_gate"]["promoted_active"] = len(promoted)
     except ImportError:
         pass
     try:
         from session_memory.learning_loop import get_eval_candidates, get_prompt_profile_stats
-
         learning["loop"] = {
             "eval_candidates": len(get_eval_candidates(200)),
             "prompt_profile_keys": len(get_prompt_profile_stats()),
         }
     except ImportError:
         pass
+    return learning
+
+
+def ops_metrics_snapshot(request: Request) -> dict[str, Any]:
+    """Unified metrics snapshot across all subsystems."""
+    now = time.time()
+    stats = app_stats(request)
+    total_requests = int(stats.get("total_requests", 0))
+    backend_calls = dict(stats.get("backend_calls", {}))
+
+    health_map, dead_backends, degraded_backends = _collect_health()
+    device = _collect_device_gateway()
+    agent = _collect_agent_workers()
+    backend_errors = _collect_backend_errors(health_map, backend_calls)
+    learning = _collect_learning()
+
+    retrieval_traces: list[dict] = []
+    try:
+        from context_pipeline.retrieval_trace import get_recent_traces
+        retrieval_traces = get_recent_traces(limit=5)
+    except ImportError:
+        pass
+
+    recent_tasks = recent_agent_tasks(limit=5)
 
     return {
         "timestamp": int(now),

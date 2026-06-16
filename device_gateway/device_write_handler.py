@@ -21,6 +21,22 @@ FONT_SIZES = {
 }
 
 
+def _resolve_font_params(font_style: str, size: str) -> float:
+    """Compute combined scale factor from font style and size."""
+    fp = FONT_STYLES.get(font_style, FONT_STYLES['default'])
+    sp = FONT_SIZES.get(size, FONT_SIZES['medium'])
+    return fp['scale'] * sp['scale']
+
+
+def _compute_bounds(path_list: list[dict]) -> tuple[int, int]:
+    """Compute width/height from path points with margin."""
+    if not path_list:
+        return 100, 50
+    xs = [p['x'] for p in path_list]
+    ys = [p['y'] for p in path_list]
+    return int(max(xs) - min(xs)) + 20, int(max(ys) - min(ys)) + 20
+
+
 async def handle_device_write(
     text: str,
     device_id: Optional[str] = None,
@@ -48,46 +64,14 @@ async def handle_device_write(
         }
     """
     logger.info(f"Device {device_id} write request: {text[:30]}... (font={font_style}, size={size})")
-
     try:
-        # 获取字体参数
-        font_params = FONT_STYLES.get(font_style, FONT_STYLES['default'])
-        size_params = FONT_SIZES.get(size, FONT_SIZES['medium'])
-
-        # 计算缩放因子
-        scale = font_params['scale'] * size_params['scale']
-
-        # 生成路径（返回点列表）
-        path_list = text_to_path(
-            text,
-            origin_x=5.0,
-            origin_y=20.0,
-            scale=scale
-        )
-
-        # 计算边界
-        if path_list:
-            min_x = min(p['x'] for p in path_list)
-            max_x = max(p['x'] for p in path_list)
-            min_y = min(p['y'] for p in path_list)
-            max_y = max(p['y'] for p in path_list)
-            width = int(max_x - min_x) + 20  # 添加边距
-            height = int(max_y - min_y) + 20
-        else:
-            width = 100
-            height = 50
-
-        # 生成预览 SVG
-        svg_preview = preview_svg(path_list, width, height)
-
+        scale = _resolve_font_params(font_style, size)
+        path_list = text_to_path(text, origin_x=5.0, origin_y=20.0, scale=scale)
+        width, height = _compute_bounds(path_list)
         return {
-            'status': 'success',
-            'path_data': path_list,
-            'preview_svg': svg_preview,
-            'width': width,
-            'height': height,
-            'model': 'deterministic',
-            'error': None
+            'status': 'success', 'path_data': path_list,
+            'preview_svg': preview_svg(path_list, width, height),
+            'width': width, 'height': height, 'model': 'deterministic', 'error': None,
         }
 
     except Exception as e:

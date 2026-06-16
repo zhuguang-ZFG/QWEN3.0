@@ -58,9 +58,14 @@ def _public_demo_limit() -> int:
 
 
 def _public_demo_client_key(request: Request) -> str:
-    forwarded_for = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
-    if forwarded_for:
-        return forwarded_for
+    """Rate-limit key derived from the direct TCP client IP.
+
+    We deliberately ignore X-Forwarded-For because it can be spoofed by
+    any caller not behind a trusted reverse proxy that strips/overwrites
+    the header.  The edge proxy (nginx) is responsible for setting
+    ``request.client.host`` to the real origin when properly configured
+    with ``--proxy-headers`` / ``--forwarded-allow-ips``.
+    """
     if request.client and request.client.host:
         return request.client.host
     return "unknown"

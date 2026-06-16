@@ -185,6 +185,53 @@ def resolve_device_route_policy(
     return policy
 
 
+def _filter_compatible_models(
+    device_profile: DeviceProfile,
+) -> list[tuple[int, dict[str, Any]]]:
+    """Filter and weight models compatible with a device profile."""
+    compatible: list[tuple[int, dict[str, Any]]] = []
+    for entry in MODEL_REGISTRY:
+        req = entry.get("requirement", {})
+        if not device_profile.capability.is_compatible(req):
+            continue
+        backend = entry.get("backend", "")
+        if backend in device_profile.history.failed_backends:
+            continue
+        weight = entry.get("default_weight", 5)
+        weight = _adjust_weight_for_preferences(
+            weight=weight, tier=entry.get("tier", "balanced"),
+            prefs=device_profile.preferences,
+        )
+        if entry["name"] in device_profile.history.preferred_models:
+            weight += 3
+        compatible.append((weight, entry))
+    compatible.sort(key=lambda x: (-x[0], _TIER_ORDER.get(x[1].get("tier", "balanced"), 99)))
+    return compatible
+
+
+def _build_selection_result(compatible: list[tuple[int, dict[str, Any]]]) -> dict[str, Any]:
+    """Build selection result dict from ranked compatible models."""
+    if not compatible:
+        return {
+            "selected_model": "", "backend": "", "tier": "",
+            "weight": 0, "alternatives": [],
+            "reason": "no compatible model for device profile",
+        }
+    best_weight, best_entry = compatible[0]
+    alternatives = [
+        {"model": entry["name"], "backend": entry.get("backend", ""), "weight": w}
+        for w, entry in compatible[1:]
+    ]
+    return {
+        "selected_model": best_entry["name"],
+        "backend": best_entry.get("backend", ""),
+        "tier": best_entry.get("tier", ""),
+        "weight": best_weight,
+        "alternatives": alternatives,
+        "reason": f"compatible={len(compatible)} candidates; best tier={best_entry.get('tier')} weight={best_weight}",
+    }
+
+
 def select_model_with_profile(
     device_profile: DeviceProfile,
     task_context: dict[str, Any] | None = None,
@@ -205,66 +252,8 @@ def select_model_with_profile(
       alternatives    — list of compatible alternatives with their weights
       reason          — human-readable selection rationale
     """
-    compatible: list[tuple[int, dict[str, Any]]] = []  # (adjusted_weight, entry)
-
-    for entry in MODEL_REGISTRY:
-        req = entry.get("requirement", {})
-
-        # 1. Filter by device capability
-        if not device_profile.capability.is_compatible(req):
-            continue
-
-        # 2. Exclude failed backends
-        backend = entry.get("backend", "")
-        if backend in device_profile.history.failed_backends:
-            continue
-
-        weight = entry.get("default_weight", 5)
-
-        # 3. Adjust weights based on preferences
-        weight = _adjust_weight_for_preferences(
-            weight=weight,
-            tier=entry.get("tier", "balanced"),
-            prefs=device_profile.preferences,
-        )
-
-        # Boost preferred models
-        if entry["name"] in device_profile.history.preferred_models:
-            weight += 3
-
-        compatible.append((weight, entry))
-
-    # Sort by weight descending, then by tier preference
-    compatible.sort(key=lambda x: (-x[0], _TIER_ORDER.get(x[1].get("tier", "balanced"), 99)))
-
-    if not compatible:
-        return {
-            "selected_model": "",
-            "backend": "",
-            "tier": "",
-            "weight": 0,
-            "alternatives": [],
-            "reason": "no compatible model for device profile",
-        }
-
-    best_weight, best_entry = compatible[0]
-    alternatives = [
-        {
-            "model": entry["name"],
-            "backend": entry.get("backend", ""),
-            "weight": w,
-        }
-        for w, entry in compatible[1:]
-    ]
-
-    return {
-        "selected_model": best_entry["name"],
-        "backend": best_entry.get("backend", ""),
-        "tier": best_entry.get("tier", ""),
-        "weight": best_weight,
-        "alternatives": alternatives,
-        "reason": f"compatible={len(compatible)} candidates; best tier={best_entry.get('tier')} weight={best_weight}",
-    }
+    compatible = _filter_compatible_models(device_profile)
+    return _build_selection_result(compatible)
 
 
 def _adjust_weight_for_preferences(

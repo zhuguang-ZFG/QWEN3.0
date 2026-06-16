@@ -33,32 +33,36 @@ def _alert(severity: str, code: str, message: str, count: int = 1) -> dict[str, 
     }
 
 
-def _ops_summary_from_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
-    raw_backends = metrics.get("backends")
-    backends = raw_backends if isinstance(raw_backends, dict) else {}
-    raw_recovery = backends.get("recovery")
-    recovery = raw_recovery if isinstance(raw_recovery, dict) else {}
-    raw_cli = metrics.get("cli_telemetry")
-    cli = raw_cli if isinstance(raw_cli, dict) else {}
-    raw_backend_telemetry = metrics.get("backend_telemetry")
-    backend_telemetry = raw_backend_telemetry if isinstance(raw_backend_telemetry, dict) else {}
-    raw_routing_guard = metrics.get("routing_guard")
-    routing_guard = raw_routing_guard if isinstance(raw_routing_guard, dict) else {}
-    raw_decisions = routing_guard.get("decisions")
-    decisions = raw_decisions if isinstance(raw_decisions, dict) else {}
+def _extract_metrics_sections(metrics: dict) -> tuple[dict, dict, dict, dict, dict]:
+    """Extract and validate metrics subsections."""
+    backends = metrics.get("backends")
+    backends = backends if isinstance(backends, dict) else {}
+    recovery = backends.get("recovery")
+    recovery = recovery if isinstance(recovery, dict) else {}
+    cli = metrics.get("cli_telemetry")
+    cli = cli if isinstance(cli, dict) else {}
+    backend_telemetry = metrics.get("backend_telemetry")
+    backend_telemetry = backend_telemetry if isinstance(backend_telemetry, dict) else {}
+    routing_guard = metrics.get("routing_guard")
+    routing_guard = routing_guard if isinstance(routing_guard, dict) else {}
+    return backends, recovery, cli, backend_telemetry, routing_guard
 
+
+def _build_ops_alerts(
+    backends: dict, recovery: dict, cli: dict,
+    backend_telemetry: dict, routing_guard: dict,
+) -> list[dict]:
+    """Build alert list from metrics sections."""
     dead = int(backends.get("dead", 0) or 0)
     degraded = int(backends.get("degraded", 0) or 0)
     retired = int(recovery.get("retired_count", 0) or 0)
+    decisions = routing_guard.get("decisions")
+    decisions = decisions if isinstance(decisions, dict) else {}
+    quarantined = sum(1 for v in decisions.values() if isinstance(v, dict) and v.get("status") == "quarantined")
     probe_candidates = recovery.get("probe_candidates", [])
     probe_count = len(probe_candidates) if isinstance(probe_candidates, list) else 0
-    quarantined = sum(
-        1
-        for value in decisions.values()
-        if isinstance(value, dict) and value.get("status") == "quarantined"
-    )
 
-    alerts: list[dict[str, Any]] = []
+    alerts: list[dict] = []
     if dead:
         alerts.append(_alert("critical", "backend_dead", f"{dead} backend(s) are dead", dead))
     if degraded:
@@ -73,6 +77,21 @@ def _ops_summary_from_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
         alerts.append(_alert("warning", "slow_backends", "Recent slow backend attempts observed", int(backend_telemetry.get("slow_recent", 0))))
     if probe_count:
         alerts.append(_alert("info", "probe_candidates", "Backends are ready for manual probe/recovery review", probe_count))
+    return alerts
+
+
+def _ops_summary_from_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
+    backends, recovery, cli, backend_telemetry, routing_guard = _extract_metrics_sections(metrics)
+    alerts = _build_ops_alerts(backends, recovery, cli, backend_telemetry, routing_guard)
+
+    dead = int(backends.get("dead", 0) or 0)
+    degraded = int(backends.get("degraded", 0) or 0)
+    retired = int(recovery.get("retired_count", 0) or 0)
+    probe_candidates = recovery.get("probe_candidates", [])
+    probe_count = len(probe_candidates) if isinstance(probe_candidates, list) else 0
+    decisions = routing_guard.get("decisions")
+    decisions = decisions if isinstance(decisions, dict) else {}
+    quarantined = sum(1 for v in decisions.values() if isinstance(v, dict) and v.get("status") == "quarantined")
 
     if any(item["severity"] == "critical" for item in alerts):
         status = "critical"
@@ -86,10 +105,8 @@ def _ops_summary_from_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
         "timestamp": metrics.get("timestamp"),
         "alerts": alerts[:20],
         "counts": {
-            "dead_backends": dead,
-            "degraded_backends": degraded,
-            "retired_backends": retired,
-            "probe_candidates": probe_count,
+            "dead_backends": dead, "degraded_backends": degraded,
+            "retired_backends": retired, "probe_candidates": probe_count,
             "quarantined_backends": quarantined,
             "cli_failures_recent": int(cli.get("failed_recent", 0) or 0),
             "slow_backend_attempts_recent": int(backend_telemetry.get("slow_recent", 0) or 0),

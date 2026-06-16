@@ -35,64 +35,60 @@ def on_request_complete(
         from routing_loop.request_store import get_request_store
         from routing_ml.feature_extractor import extract_features
 
-        # Compute real features from actual messages
-        feature_vec = extract_features(
-            messages or [], scenario=scenario,
-        )
-        feature_list = feature_vec.features
+        feature_vec = extract_features(messages or [], scenario=scenario)
+        message_length, code_ratio, chinese_ratio = _compute_message_metrics(messages or [])
 
-        # Compute message-level metrics (safe encoding)
-        text = " ".join(
-            str(m.get("content", "")) for m in (messages or [])
-            if isinstance(m, dict)
-        ).encode("utf-8", errors="replace").decode("utf-8")
-        message_length = len(text)
-
-        # Count code blocks
-        import re
-        try:
-            code_fences = re.findall(r"```[\s\S]*?```", text)
-            code_chars = sum(len(f) for f in code_fences)
-            code_ratio = code_chars / max(message_length, 1)
-
-            # Chinese ratio
-            chinese_chars = len(re.findall(r"[一-鿿]", text))
-            chinese_ratio = chinese_chars / max(message_length, 1)
-        except Exception:
-            code_ratio = 0.0
-            chinese_ratio = 0.0
-
-        # Persist to request log
         store = get_request_store()
-        store.log_request(
-            request_id=request_id,
-            scenario=scenario,
-            message_length=message_length,
-            code_ratio=code_ratio,
-            chinese_ratio=chinese_ratio,
-            feature_vector=feature_list,
-            backend=backend,
-            success=success,
-            latency_ms=latency_ms,
-            quality_score=quality_score,
-            fallback_used=fallback_used,
-            error_class=error_class,
-            tokens_prompt=tokens_prompt,
-            tokens_completion=tokens_completion,
-        )
+        _log_request(store, request_id, scenario, message_length, code_ratio,
+                     chinese_ratio, feature_vec.features, backend, success,
+                     latency_ms, quality_score, fallback_used, error_class,
+                     tokens_prompt, tokens_completion)
 
         # NOTE: routing_weights is updated by route_post_process.py, NOT here.
-        # Avoid double-writing which would double the GRPO learning rate.
-
-        # Increment ML training counter
         _check_training_trigger()
 
     except Exception as exc:
-        import logging as _dbg
-        _dbg.getLogger(__name__).warning(
+        _log.warning(
             "feedback_bridge.on_request_complete FAILED: %s: %s",
             type(exc).__name__, exc, exc_info=True,
         )
+
+
+def _compute_message_metrics(messages: list[dict]) -> tuple[int, float, float]:
+    """Compute message-level metrics (length, code ratio, chinese ratio)."""
+    import re
+    text = " ".join(
+        str(m.get("content", "")) for m in messages
+        if isinstance(m, dict)
+    ).encode("utf-8", errors="replace").decode("utf-8")
+    message_length = len(text)
+    try:
+        code_fences = re.findall(r"```[\s\S]*?```", text)
+        code_chars = sum(len(f) for f in code_fences)
+        code_ratio = code_chars / max(message_length, 1)
+        chinese_chars = len(re.findall(r"[一-鿿]", text))
+        chinese_ratio = chinese_chars / max(message_length, 1)
+    except Exception:
+        code_ratio = 0.0
+        chinese_ratio = 0.0
+    return message_length, code_ratio, chinese_ratio
+
+
+def _log_request(store, request_id: str, scenario: str, message_length: int,
+                 code_ratio: float, chinese_ratio: float, feature_list: list,
+                 backend: str, success: bool, latency_ms: float,
+                 quality_score: float, fallback_used: bool, error_class: str,
+                 tokens_prompt: int, tokens_completion: int) -> None:
+    """Persist request data to the request store."""
+    store.log_request(
+        request_id=request_id, scenario=scenario,
+        message_length=message_length, code_ratio=code_ratio,
+        chinese_ratio=chinese_ratio, feature_vector=feature_list,
+        backend=backend, success=success, latency_ms=latency_ms,
+        quality_score=quality_score, fallback_used=fallback_used,
+        error_class=error_class, tokens_prompt=tokens_prompt,
+        tokens_completion=tokens_completion,
+    )
 
 
 def _update_routing_weights(backend: str, scenario: str, success: bool) -> None:

@@ -50,6 +50,45 @@ async def mqtt_send_to_device(device_id: str, message: dict) -> bool:
     return True
 
 
+def _handle_mqtt_message(client, topic: str, payload: dict, _json, _time_mod) -> None:
+    """Process a single MQTT uplink message (hello / heartbeat / motion_event)."""
+    parts = topic.split("/")
+    device_id = parts[1] if len(parts) > 1 else ""
+    msg_type = payload.get("type", "")
+
+    if msg_type == "hello" and device_id:
+        register_mqtt_device(device_id)
+        from device_gateway.mqtt_topics import device_downlink_topic
+        ack = {"type": "hello_ack", "protocol": "lima-device-v1",
+               "device_id": device_id, "server_time": int(_time_mod.time())}
+        client.publish(device_downlink_topic(device_id), _json.dumps(ack), qos=1)
+
+    if msg_type == "heartbeat" and device_id:
+        from device_gateway.mqtt_topics import device_downlink_topic
+        ack = {"type": "heartbeat_ack", "device_id": device_id,
+               "server_time": int(_time_mod.time())}
+        client.publish(device_downlink_topic(device_id), _json.dumps(ack), qos=0)
+
+    if msg_type == "motion_event" and device_id:
+        try:
+            from routes.device_gateway_ws_handlers import handle_motion_event
+            asyncio.get_event_loop().create_task(handle_motion_event(device_id, payload, None))
+        except Exception:
+            _log.debug("motion event forward failed", exc_info=True)
+
+
+def _drain_downlink_queues(client, _json) -> None:
+    """Drain per-device downlink queues and publish messages."""
+    from device_gateway.mqtt_topics import device_downlink_topic
+    for did, q in list(_mqtt_devices.items()):
+        try:
+            while True:
+                msg = q.get_nowait()
+                client.publish(device_downlink_topic(did), _json.dumps(msg), qos=1)
+        except asyncio.QueueEmpty:
+            pass
+
+
 def register_mqtt_device(device_id: str) -> asyncio.Queue[dict]:
     """Register an MQTT-connected device. Returns its downlink queue."""
     queue: asyncio.Queue[dict] = asyncio.Queue(maxsize=32)
@@ -121,98 +160,40 @@ async def _mqtt_message_loop() -> None:
         if reason_code == 0:
             _log.info("MQTT connected to %s:%s", _MQTT_BROKER, _MQTT_PORT)
             client.subscribe(SERVER_SUB_FILTER)
-            _log.info("MQTT subscribed: %s", SERVER_SUB_FILTER)
         else:
             _log.warning("MQTT connect failed: rc=%s", reason_code)
 
     def on_message(client, userdata, msg):
         try:
-            topic = msg.topic
             payload = _json.loads(msg.payload.decode("utf-8", errors="replace"))
-            message_queue.put_nowait((topic, "uplink", payload))
+            message_queue.put_nowait((msg.topic, "uplink", payload))
         except Exception:
             _log.debug("MQTT message parse failed topic=%s", msg.topic, exc_info=True)
 
     def on_disconnect(client, userdata, flags, reason_code, properties=None):
         _log.info("MQTT disconnected: rc=%s", reason_code)
 
-    client = mqtt.Client(
-        mqtt.CallbackAPIVersion.VERSION2,
-        client_id=_MQTT_CLIENT_ID,
-    )
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=_MQTT_CLIENT_ID)
     client.on_connect = on_connect
     client.on_message = on_message
     client.on_disconnect = on_disconnect
+    client.will_set(device_status_topic(_MQTT_CLIENT_ID), LWT_OFFLINE, qos=0, retain=True)
 
-    # LWT
-    client.will_set(
-        device_status_topic(_MQTT_CLIENT_ID),
-        LWT_OFFLINE, qos=0, retain=True,
-    )
-
-    # Connect
     try:
         client.connect(_MQTT_BROKER, _MQTT_PORT, keepalive=60)
         client.loop_start()
-        _log.info("MQTT loop started: broker=%s:%s id=%s", _MQTT_BROKER, _MQTT_PORT, _MQTT_CLIENT_ID)
     except Exception as exc:
-        _log.warning("MQTT connect failed: %s (broker running?)", exc)
+        _log.warning("MQTT connect failed: %s", exc)
         client.loop_start()
-        _log.info("MQTT will retry connection automatically")
 
-    # Main loop: process incoming messages + drain downlink queues
     try:
         while True:
             try:
-                topic, direction, payload = await asyncio.wait_for(
-                    message_queue.get(), timeout=1.0,
-                )
-                # Parse device_id from topic: lima/{device_id}/uplink
-                parts = topic.split("/")
-                device_id = parts[1] if len(parts) > 1 else ""
-                msg_type = payload.get("type", "")
-
-                if msg_type == "hello" and device_id:
-                    register_mqtt_device(device_id)
-                    from device_gateway.mqtt_topics import device_downlink_topic
-                    ack = {"type": "hello_ack", "protocol": "lima-device-v1",
-                           "device_id": device_id, "server_time": int(_time_mod.time())}
-                    client.publish(
-                        device_downlink_topic(device_id),
-                        _json.dumps(ack), qos=1,
-                    )
-
-                if msg_type == "heartbeat" and device_id:
-                    ack = {"type": "heartbeat_ack", "device_id": device_id,
-                           "server_time": int(_time_mod.time())}
-                    client.publish(
-                        device_downlink_topic(device_id),
-                        _json.dumps(ack), qos=0,
-                    )
-
-                if msg_type == "motion_event" and device_id:
-                    # Forward to the WebSocket handler for ledger/card/ack
-                    try:
-                        from routes.device_gateway_ws_handlers import handle_motion_event
-                        await handle_motion_event(device_id, payload, None)
-                    except Exception:
-                        _log.debug("motion event forward failed", exc_info=True)
-
+                topic, direction, payload = await asyncio.wait_for(message_queue.get(), timeout=1.0)
+                _handle_mqtt_message(client, topic, payload, _json, _time_mod)
             except asyncio.TimeoutError:
                 pass
-
-            # Drain downlink queues
-            for did, queue in list(_mqtt_devices.items()):
-                try:
-                    while True:
-                        msg = queue.get_nowait()
-                        client.publish(
-                            device_downlink_topic(did),
-                            _json.dumps(msg), qos=1,
-                        )
-                except asyncio.QueueEmpty:
-                    pass
-
+            _drain_downlink_queues(client, _json)
     finally:
         client.loop_stop()
         client.disconnect()

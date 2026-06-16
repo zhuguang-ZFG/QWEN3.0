@@ -45,20 +45,8 @@ DEFAULT_FLEET_COMMAND_ALLOWLIST = {
 }
 
 
-def detect_capabilities() -> dict:
-    """Auto-detect node capabilities."""
-    caps = {
-        "gpu": False,
-        "gpu_model": "",
-        "gpu_vram_gb": 0.0,
-        "cpu_cores": os.cpu_count() or 1,
-        "ram_gb": 0.0,
-        "shell": True,
-        "workspace": True,
-        "models": [],
-    }
-
-    # Detect GPU via nvidia-smi
+def _detect_gpu(caps: dict) -> None:
+    """Detect GPU via nvidia-smi."""
     try:
         result = subprocess.run(
             ["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader"],
@@ -78,7 +66,9 @@ def detect_capabilities() -> dict:
     except (FileNotFoundError, subprocess.TimeoutExpired):
         pass
 
-    # Detect Ollama models
+
+def _detect_ollama(caps: dict) -> None:
+    """Detect Ollama models."""
     try:
         result = subprocess.run(
             ["curl", "-s", "http://127.0.0.1:11434/api/tags"],
@@ -92,7 +82,9 @@ def detect_capabilities() -> dict:
     except Exception as exc:
         _log.debug("fleet/agent.py: {}", type(exc).__name__)
 
-    # Detect RAM
+
+def _detect_ram(caps: dict) -> None:
+    """Detect system RAM."""
     try:
         if platform.system() == "Windows":
             import ctypes
@@ -123,6 +115,17 @@ def detect_capabilities() -> dict:
     except Exception as exc:
         _log.debug("fleet/agent.py: {}", type(exc).__name__)
 
+
+def detect_capabilities() -> dict:
+    """Auto-detect node capabilities."""
+    caps = {
+        "gpu": False, "gpu_model": "", "gpu_vram_gb": 0.0,
+        "cpu_cores": os.cpu_count() or 1, "ram_gb": 0.0,
+        "shell": True, "workspace": True, "models": [],
+    }
+    _detect_gpu(caps)
+    _detect_ollama(caps)
+    _detect_ram(caps)
     return caps
 
 

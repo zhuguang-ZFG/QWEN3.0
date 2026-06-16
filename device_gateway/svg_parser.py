@@ -43,6 +43,83 @@ def _bezier_to_polyline(
     return points
 
 
+def _pt(origin_x: float, origin_y: float, x: float, y: float) -> dict[str, float]:
+    return {"x": round(origin_x + x, 2), "y": round(origin_y - y, 2), "z": 0}
+
+
+def _handle_ml(tokens: list[str], i: int, cmd: str,
+               cx: float, cy: float, scale: float,
+               ox: float, oy: float, path: list) -> tuple[int, float, float, float, float]:
+    rel = cmd == "m"
+    if i + 1 >= len(tokens):
+        return len(tokens), cx, cy, cx if rel else 0.0, cy if rel else 0.0
+    x = float(tokens[i]) * scale + (cx if rel else 0)
+    y = float(tokens[i + 1]) * scale + (cy if rel else 0)
+    i += 2
+    path.append(_pt(ox, oy, x, y))
+    first_x = x if cmd == "M" or (cmd == "m" and not path[:-1]) else 0.0
+    first_y = y if cmd == "M" or (cmd == "m" and not path[:-1]) else 0.0
+    return i, x, y, first_x, first_y
+
+
+def _handle_hv(tokens: list[str], i: int, cmd: str,
+               cx: float, cy: float, scale: float,
+               ox: float, oy: float, path: list) -> tuple[int, float, float]:
+    rel = cmd in ("h", "v")
+    if i >= len(tokens):
+        return len(tokens), cx, cy
+    if cmd in ("H", "h"):
+        cx = float(tokens[i]) * scale + (cx if rel else 0)
+    else:
+        cy = float(tokens[i]) * scale + (cy if rel else 0)
+    i += 1
+    path.append(_pt(ox, oy, cx, cy))
+    return i, cx, cy
+
+
+def _handle_cubic(tokens: list[str], i: int, cmd: str,
+                  cx: float, cy: float, scale: float,
+                  ox: float, oy: float, path: list) -> tuple[int, float, float]:
+    if i + 5 >= len(tokens):
+        return len(tokens), cx, cy
+    x1, y1 = float(tokens[i]), float(tokens[i + 1])
+    x2, y2 = float(tokens[i + 2]), float(tokens[i + 3])
+    x, y = float(tokens[i + 4]), float(tokens[i + 5])
+    i += 6
+    if cmd == "c":
+        x, y = cx + x * scale, cy + y * scale
+        x1, y1 = cx + x1 * scale, cy + y1 * scale
+        x2, y2 = cx + x2 * scale, cy + y2 * scale
+    else:
+        x, y = x * scale, y * scale
+        x1, y1 = x1 * scale, y1 * scale
+        x2, y2 = x2 * scale, y2 * scale
+    for pt in _bezier_to_polyline(cx, cy, x1, y1, x2, y2, x, y, 8):
+        cx, cy = pt
+        path.append(_pt(ox, oy, cx, cy))
+    return i, cx, cy
+
+
+def _handle_quad(tokens: list[str], i: int, cmd: str,
+                 cx: float, cy: float, scale: float,
+                 ox: float, oy: float, path: list) -> tuple[int, float, float]:
+    if i + 3 >= len(tokens):
+        return len(tokens), cx, cy
+    x1, y1 = float(tokens[i]), float(tokens[i + 1])
+    x, y = float(tokens[i + 2]), float(tokens[i + 3])
+    i += 4
+    if cmd == "q":
+        x, y = cx + x * scale, cy + y * scale
+        x1, y1 = cx + x1 * scale, cy + y1 * scale
+    else:
+        x, y = x * scale, y * scale
+        x1, y1 = x1 * scale, y1 * scale
+    for pt in _bezier_to_polyline(cx, cy, x1, y1, x1, y1, x, y, 8):
+        cx, cy = pt
+        path.append(_pt(ox, oy, cx, cy))
+    return i, cx, cy
+
+
 def svg_path_to_motion(
     d_string: str,
     origin_x: float = 5.0,
@@ -59,84 +136,22 @@ def svg_path_to_motion(
     path: list[dict[str, float]] = []
     cx, cy = 0.0, 0.0
     first_x, first_y = 0.0, 0.0
-
     i = 0
     while i < len(tokens):
         cmd = tokens[i]
         i += 1
-
         if cmd in ("M", "m"):
-            if i + 1 >= len(tokens):
-                break
-            x = float(tokens[i]) * scale + (cx if cmd == "m" else 0)
-            y = float(tokens[i + 1]) * scale + (cy if cmd == "m" else 0)
-            i += 2
-            cx, cy = x, y
-            first_x, first_y = x, y
-            path.append({"x": round(origin_x + x, 2), "y": round(origin_y - y, 2), "z": 0})
-
+            i, cx, cy, first_x, first_y = _handle_ml(tokens, i, cmd, cx, cy, scale, origin_x, origin_y, path)
         elif cmd in ("L", "l"):
-            if i + 1 >= len(tokens):
-                break
-            x = float(tokens[i]) * scale + (cx if cmd == "l" else 0)
-            y = float(tokens[i + 1]) * scale + (cy if cmd == "l" else 0)
-            i += 2
-            cx, cy = x, y
-            path.append({"x": round(origin_x + x, 2), "y": round(origin_y - y, 2), "z": 0})
-
-        elif cmd in ("H", "h"):
-            if i >= len(tokens):
-                break
-            x = float(tokens[i]) * scale + (cx if cmd == "h" else 0)
-            i += 1
-            cx = x
-            path.append({"x": round(origin_x + x, 2), "y": round(origin_y - cy, 2), "z": 0})
-
-        elif cmd in ("V", "v"):
-            if i >= len(tokens):
-                break
-            y = float(tokens[i]) * scale + (cy if cmd == "v" else 0)
-            i += 1
-            cy = y
-            path.append({"x": round(origin_x + cx, 2), "y": round(origin_y - y, 2), "z": 0})
-
+            i, cx, cy, _, _ = _handle_ml(tokens, i, cmd, cx, cy, scale, origin_x, origin_y, path)
+        elif cmd in ("H", "h", "V", "v"):
+            i, cx, cy = _handle_hv(tokens, i, cmd, cx, cy, scale, origin_x, origin_y, path)
         elif cmd in ("C", "c"):
-            if i + 5 >= len(tokens):
-                break
-            x1, y1 = float(tokens[i]), float(tokens[i + 1])
-            x2, y2 = float(tokens[i + 2]), float(tokens[i + 3])
-            x, y = float(tokens[i + 4]), float(tokens[i + 5])
-            i += 6
-            if cmd == "c":
-                x, y = cx + x * scale, cy + y * scale
-                x1, y1 = cx + x1 * scale, cy + y1 * scale
-                x2, y2 = cx + x2 * scale, cy + y2 * scale
-            else:
-                x, y = x * scale, y * scale
-                x1, y1 = x1 * scale, y1 * scale
-                x2, y2 = x2 * scale, y2 * scale
-            for pt in _bezier_to_polyline(cx, cy, x1, y1, x2, y2, x, y, 8):
-                cx, cy = pt
-                path.append({"x": round(origin_x + cx, 2), "y": round(origin_y - cy, 2), "z": 0})
-
+            i, cx, cy = _handle_cubic(tokens, i, cmd, cx, cy, scale, origin_x, origin_y, path)
         elif cmd in ("Q", "q"):
-            if i + 3 >= len(tokens):
-                break
-            x1, y1 = float(tokens[i]), float(tokens[i + 1])
-            x, y = float(tokens[i + 2]), float(tokens[i + 3])
-            i += 4
-            if cmd == "q":
-                x, y = cx + x * scale, cy + y * scale
-                x1, y1 = cx + x1 * scale, cy + y1 * scale
-            else:
-                x, y = x * scale, y * scale
-                x1, y1 = x1 * scale, y1 * scale
-            for pt in _bezier_to_polyline(cx, cy, x1, y1, x1, y1, x, y, 8):
-                cx, cy = pt
-                path.append({"x": round(origin_x + cx, 2), "y": round(origin_y - cy, 2), "z": 0})
-
+            i, cx, cy = _handle_quad(tokens, i, cmd, cx, cy, scale, origin_x, origin_y, path)
         elif cmd in ("Z", "z"):
             cx, cy = first_x, first_y
-            path.append({"x": round(origin_x + cx, 2), "y": round(origin_y - cy, 2), "z": 0})
+            path.append(_pt(origin_x, origin_y, cx, cy))
 
     return clamp_path(path, max_points)

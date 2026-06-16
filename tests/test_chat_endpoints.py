@@ -125,7 +125,9 @@ def test_public_demo_chat_delegates_with_bounds(monkeypatch):
     assert captured["max_tokens"] == 200
     assert captured["messages"] == [("user", "hello public demo")]
     assert captured["kwargs"]["fmt"] == "openai"
-    assert captured["kwargs"]["client_ip"] == "203.0.113.10"
+    # After security fix, client_ip is derived from request.client.host (TCP peer),
+    # not from X-Forwarded-For (which can be spoofed).  TestClient reports "testclient".
+    assert captured["kwargs"]["client_ip"] == "testclient"
     assert captured["kwargs"]["ide_source"] == "public_demo"
 
 

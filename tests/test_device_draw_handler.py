@@ -2,31 +2,44 @@
 from __future__ import annotations
 
 import sys
-from types import ModuleType, SimpleNamespace
+from types import SimpleNamespace
 from unittest.mock import patch, MagicMock, AsyncMock
 
 import pytest
 
-# Stub xiaozhi_drawing submodules so we can import device_draw_handler
-# without cv2 / heavy dependencies present in this environment.
-_xiaozhi_drawing = ModuleType("xiaozhi_drawing")
-sys.modules["xiaozhi_drawing"] = _xiaozhi_drawing
+# Only stub xiaozhi_drawing submodules when the real ones are unavailable
+# (e.g. cv2 not installed).  This avoids polluting sys.modules for the rest
+# of the pytest session when the real modules *are* present.
+_NEED_STUBS = False
+try:
+    import xiaozhi_drawing.svg_converter  # noqa: F401
+    import xiaozhi_drawing.svg_validator  # noqa: F401
+    import xiaozhi_drawing.path_optimizer  # noqa: F401
+    import xiaozhi_drawing.preset_shapes  # noqa: F401
+except (ImportError, ModuleNotFoundError):
+    _NEED_STUBS = True
 
-_stub_svg_converter = ModuleType("xiaozhi_drawing.svg_converter")
-_stub_svg_converter.SVGConverter = lambda: None  # patched per-test
-sys.modules["xiaozhi_drawing.svg_converter"] = _stub_svg_converter
+if _NEED_STUBS:
+    from types import ModuleType as _MT
 
-_stub_svg_validator = ModuleType("xiaozhi_drawing.svg_validator")
-_stub_svg_validator.validate_svg_path = lambda *a, **k: None  # patched per-test
-sys.modules["xiaozhi_drawing.svg_validator"] = _stub_svg_validator
+    _xiaozhi_drawing = _MT("xiaozhi_drawing")
+    sys.modules.setdefault("xiaozhi_drawing", _xiaozhi_drawing)
 
-_stub_path_optimizer = ModuleType("xiaozhi_drawing.path_optimizer")
-_stub_path_optimizer.optimize_svg_path = lambda *a, **k: None  # patched per-test
-sys.modules["xiaozhi_drawing.path_optimizer"] = _stub_path_optimizer
+    _stub_svg_converter = _MT("xiaozhi_drawing.svg_converter")
+    _stub_svg_converter.SVGConverter = lambda: None
+    sys.modules["xiaozhi_drawing.svg_converter"] = _stub_svg_converter
 
-_stub_preset_shapes = ModuleType("xiaozhi_drawing.preset_shapes")
-_stub_preset_shapes.get_preset_svg = lambda *a, **k: None  # patched per-test
-sys.modules["xiaozhi_drawing.preset_shapes"] = _stub_preset_shapes
+    _stub_svg_validator = _MT("xiaozhi_drawing.svg_validator")
+    _stub_svg_validator.validate_svg_path = lambda *a, **k: None
+    sys.modules["xiaozhi_drawing.svg_validator"] = _stub_svg_validator
+
+    _stub_path_optimizer = _MT("xiaozhi_drawing.path_optimizer")
+    _stub_path_optimizer.optimize_svg_path = lambda *a, **k: None
+    sys.modules["xiaozhi_drawing.path_optimizer"] = _stub_path_optimizer
+
+    _stub_preset_shapes = _MT("xiaozhi_drawing.preset_shapes")
+    _stub_preset_shapes.get_preset_svg = lambda *a, **k: None
+    sys.modules["xiaozhi_drawing.preset_shapes"] = _stub_preset_shapes
 
 from device_gateway.device_draw_handler import (
     _build_failed_response,

@@ -68,6 +68,59 @@ def record_success(backend: str, latency_ms: float) -> None:
         pass
 
 
+def _apply_cooldown(state: "CooldownState", error_code: int | None,
+                    error_class: str) -> None:
+    """Apply cooldown and error class to the cooldown state."""
+    if error_class not in ("rate_limited", "quota_exhausted"):
+        state.consecutive_failures += 1
+    state.last_error_code = error_code
+    state.state = error_class
+    state.last_error_class = error_class
+    if error_class in ("auth_expired", "manual_refresh_required", "quota_exhausted"):
+        state.current_cooldown = COOLDOWN_AUTH_FIXED
+    elif error_class == "rate_limited":
+        state.current_cooldown = calc_cooldown(state.consecutive_failures, 429)
+    else:
+        state.current_cooldown = calc_cooldown(state.consecutive_failures, error_code)
+    state.cooldown_until = time.monotonic() + state.current_cooldown
+
+
+def _update_health_map(backend: str, error_class: str,
+                       consecutive_failures: int) -> None:
+    """Update the health map based on error class and failure count."""
+    if error_class in ("auth_expired", "manual_refresh_required"):
+        _health_map[backend] = "suspicious"
+    elif error_class in ("rate_limited", "quota_exhausted"):
+        _health_map[backend] = "degraded"
+    elif consecutive_failures >= FAILURE_THRESHOLD_MIN_REQUESTS:
+        _health_map[backend] = "dead"
+    else:
+        _health_map[backend] = "degraded"
+
+
+def _post_failure_hooks(backend: str, error_class: str) -> None:
+    """Run post-recording side effects (reputation, profile, retirement)."""
+    try:
+        import backend_reputation
+        backend_reputation.record_failure_class(backend, error_class)
+    except ImportError:
+        pass
+    except Exception as exc:
+        _log.debug("backend_reputation record failed backend=%s: %s", backend, type(exc).__name__)
+    try:
+        import backend_profile
+        backend_profile.record_request(backend, 0.0, success=False)
+    except ImportError:
+        pass
+    try:
+        import backend_retirement
+        action = backend_retirement.check_retirement(backend)
+        if action:
+            backend_retirement.apply_retirement(action)
+    except ImportError:
+        pass
+
+
 def record_failure(
     backend: str,
     error_code: Optional[int] = None,
@@ -82,21 +135,7 @@ def record_failure(
 
         state = _cooldown_states.setdefault(backend, CooldownState())
         error_class = classify_failure(error_code, error_text)
-        # Only count non-rate-limited failures toward dead threshold
-        if error_class not in ("rate_limited", "quota_exhausted"):
-            state.consecutive_failures += 1
-        state.last_error_code = error_code
-        state.state = error_class
-        state.last_error_class = error_class
-        if error_class in ("auth_expired", "manual_refresh_required", "quota_exhausted"):
-            state.current_cooldown = COOLDOWN_AUTH_FIXED
-        elif error_class == "rate_limited":
-            state.current_cooldown = calc_cooldown(state.consecutive_failures, 429)
-        else:
-            state.current_cooldown = calc_cooldown(
-                state.consecutive_failures, error_code
-            )
-        state.cooldown_until = time.monotonic() + state.current_cooldown
+        _apply_cooldown(state, error_code, error_class)
 
         quality = _quality_states.setdefault(backend, QualityState())
         quality.last_failure = time.monotonic()
@@ -104,53 +143,16 @@ def record_failure(
         quality.latencies.append(LATENCY_PENALTY)
 
         old_health = _health_map.get(backend, "healthy")
-        if error_class in ("auth_expired", "manual_refresh_required"):
-            _health_map[backend] = "suspicious"
-        elif error_class == "rate_limited":
-            # Rate limiting is temporary — never mark as dead
-            _health_map[backend] = "degraded"
-        elif error_class == "quota_exhausted":
-            _health_map[backend] = "degraded"
-        elif state.consecutive_failures >= FAILURE_THRESHOLD_MIN_REQUESTS:
-            _health_map[backend] = "dead"
-        else:
-            _health_map[backend] = "degraded"
-
+        _update_health_map(backend, error_class, state.consecutive_failures)
         new_health = _health_map[backend]
         should_persist = True
         if old_health != new_health:
-            _log.info("backend health changed backend=%s old=%s new=%s", backend, old_health, new_health)
-        try:
-            import backend_reputation
-
-            backend_reputation.record_failure_class(backend, error_class)
-        except ImportError:
-            pass
-        except Exception as exc:
-            _log.debug(
-                "backend_reputation record failed backend=%s: %s",
-                backend,
-                type(exc).__name__,
-            )
+            _log.info("backend health changed backend=%s old=%s new=%s",
+                      backend, old_health, new_health)
+        _post_failure_hooks(backend, error_class)
 
     if should_persist:
         _persist_health_state()
-
-    # Update backend profile (outside lock to avoid deadlock)
-    try:
-        import backend_profile
-        backend_profile.record_request(backend, 0.0, success=False)
-    except ImportError:
-        pass
-
-    # Check retirement
-    try:
-        import backend_retirement
-        action = backend_retirement.check_retirement(backend)
-        if action:
-            backend_retirement.apply_retirement(action)
-    except ImportError:
-        pass
 
 
 def record_response_quality(

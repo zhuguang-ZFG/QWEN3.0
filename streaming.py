@@ -79,6 +79,58 @@ async def bridge_stream_async(
             )
 
 
+def _make_streamer(
+    max_tokens: int, ide: str,
+    call_stream_async_fn: CallStreamAsyncFn | None,
+    call_api_async_fn: CallApiAsyncFn | None,
+    call_stream_fn: CallStreamFn, call_fn: CallApiFn,
+):
+    """Create the appropriate streamer (async or sync bridge)."""
+    if call_stream_async_fn and call_api_async_fn:
+        return lambda b, m: bridge_stream_async(
+            b, m, max_tokens, ide,
+            call_stream_async_fn=call_stream_async_fn,
+            call_api_async_fn=call_api_async_fn,
+        )
+    return lambda b, m: bridge_stream(
+        b, m, max_tokens, ide,
+        call_stream_fn=call_stream_fn, call_fn=call_fn,
+    )
+
+
+async def _stream_with_route_check(
+    streamer, predicted: str, stream_messages: list,
+    route_task: asyncio.Task, fallback: str,
+) -> AsyncIterator[tuple[str, str]]:
+    """Stream from predicted backend; switch if route task disagrees."""
+    actual_backend = predicted
+    actual_msgs = stream_messages
+    switched = False
+
+    async for chunk in streamer(predicted, stream_messages):
+        if route_task.done() and not switched:
+            try:
+                actual_backend, actual_msgs = route_task.result()
+            except Exception as exc:
+                _log.debug("speculative route task result failed: %s", type(exc).__name__)
+                actual_backend = predicted
+            if actual_backend != predicted:
+                switched = True
+                break
+        yield (actual_backend, chunk)
+
+    if not switched:
+        if not route_task.done():
+            try:
+                actual_backend, actual_msgs = await route_task
+            except Exception:
+                actual_backend = predicted
+        return
+
+    async for chunk in streamer(actual_backend, actual_msgs):
+        yield (actual_backend, chunk)
+
+
 async def speculative_stream(
     query: str, messages: list, max_tokens: int, ide: str,
     predict_fn: PredictFn,
@@ -98,55 +150,16 @@ async def speculative_stream(
         asyncio.to_thread(select_fn, query, system_prompt, ide, messages)
     )
 
-    actual_backend = predicted
-    actual_msgs = stream_messages
-    switched = False
-
-    if call_stream_async_fn and call_api_async_fn:
-        _streamer = lambda b, m: bridge_stream_async(
-            b, m, max_tokens, ide,
-            call_stream_async_fn=call_stream_async_fn,
-            call_api_async_fn=call_api_async_fn,
-        )
-    else:
-        _streamer = lambda b, m: bridge_stream(
-            b, m, max_tokens, ide,
-            call_stream_fn=call_stream_fn,
-            call_fn=call_fn,
-        )
+    streamer = _make_streamer(
+        max_tokens, ide, call_stream_async_fn, call_api_async_fn,
+        call_stream_fn, call_fn,
+    )
 
     try:
-        async for chunk in _streamer(predicted, stream_messages):
-            if route_task.done() and not switched:
-                try:
-                    actual_backend, actual_msgs = route_task.result()
-                except Exception as exc:
-                    _log.debug(
-                        "speculative route task result failed: %s",
-                        type(exc).__name__,
-                    )
-                    actual_backend = predicted
-                    actual_msgs = stream_messages
-
-                if actual_backend != predicted:
-                    switched = True
-                    break
-            yield (actual_backend, chunk)
-
-        if not switched:
-            if not route_task.done():
-                try:
-                    actual_backend, actual_msgs = await route_task
-                except Exception as exc:
-                    _log.debug(
-                        "speculative route task await failed: %s",
-                        type(exc).__name__,
-                    )
-            return
-
-        async for chunk in _streamer(actual_backend, actual_msgs):
-            yield (actual_backend, chunk)
-
+        async for item in _stream_with_route_check(
+            streamer, predicted, stream_messages, route_task, predicted,
+        ):
+            yield item
     finally:
         if not route_task.done():
             route_task.cancel()
@@ -155,7 +168,4 @@ async def speculative_stream(
             except asyncio.CancelledError:
                 pass
             except Exception as exc:
-                _log.debug(
-                    "speculative route task cancel failed: %s",
-                    type(exc).__name__,
-                )
+                _log.debug("speculative route task cancel failed: %s", type(exc).__name__)

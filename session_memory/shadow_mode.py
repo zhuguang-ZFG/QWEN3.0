@@ -103,61 +103,65 @@ class CandidateImprovement:
     rollback_notes: str = ""
 
 
+def _aggregate_backend_scenes(outcomes: list[dict]) -> dict[str, dict]:
+    """Aggregate outcomes by backend:scenario key."""
+    scene: dict[str, dict] = {}
+    for o in outcomes:
+        backend, scenario = o.get("backend", ""), o.get("scenario", "")
+        if not backend or not scenario:
+            continue
+        key = f"{backend}:{scenario}"
+        if key not in scene:
+            scene[key] = {"success": 0, "total": 0, "ids": []}
+        scene[key]["total"] += 1
+        if o["outcome"] == "success":
+            scene[key]["success"] += 1
+        scene[key]["ids"].append(o["event_id"])
+    return scene
+
+
+def _generate_candidates(backend_scene: dict[str, dict], existing: set[str]) -> list[CandidateImprovement]:
+    """Create boost/degrade candidates from aggregated scenes."""
+    new_candidates = []
+    for key, stats in backend_scene.items():
+        if stats["total"] < MIN_EVIDENCE:
+            continue
+        rate = stats["success"] / stats["total"]
+        hour_bucket = int(time.time() // 3600)
+        if rate >= 0.8:
+            cid = f"boost:{key}:{hour_bucket}"
+            if cid not in existing:
+                new_candidates.append(CandidateImprovement(
+                    id=cid, category="routing_weight",
+                    summary=f"Boost {key}: {stats['success']}/{stats['total']} ok",
+                    evidence_ids=stats["ids"][-5:], evidence_count=stats["total"],
+                    confidence=round(rate, 2), proposed_at=time.time(),
+                    rollback_notes="Set weight back to 1.0 if failure rate exceeds 30%",
+                ))
+        elif rate <= 0.3:
+            cid = f"degrade:{key}:{hour_bucket}"
+            if cid not in existing:
+                new_candidates.append(CandidateImprovement(
+                    id=cid, category="routing_weight",
+                    summary=f"Degrade {key}: {stats['success']}/{stats['total']} ok",
+                    evidence_ids=stats["ids"][-5:], evidence_count=stats["total"],
+                    confidence=round(1 - rate, 2), proposed_at=time.time(),
+                    rollback_notes="Restore weight if subsequent 3 outcomes succeed",
+                ))
+    for c in new_candidates:
+        save_candidate(c)
+    return new_candidates
+
+
 def scan_for_candidates() -> list[CandidateImprovement]:
     """Scan outcome ledger for patterns, persist new candidates. Returns all proposed."""
     candidates: list[CandidateImprovement] = []
-
     try:
         from session_memory.outcome_ledger import query
-
         outcomes = query(limit=100)
-
-        # Pattern: Backend+scenario success/failure aggregation
-        backend_scene: dict[str, dict] = {}
-        for o in outcomes:
-            backend = o.get("backend", "")
-            scenario = o.get("scenario", "")
-            if not backend or not scenario:
-                continue
-            key = f"{backend}:{scenario}"
-            if key not in backend_scene:
-                backend_scene[key] = {"success": 0, "total": 0, "ids": []}
-            backend_scene[key]["total"] += 1
-            if o["outcome"] == "success":
-                backend_scene[key]["success"] += 1
-            backend_scene[key]["ids"].append(o["event_id"])
-
+        backend_scene = _aggregate_backend_scenes(outcomes)
         existing = {c["id"] for c in list_candidates(status="proposed")}
-
-        for key, stats in backend_scene.items():
-            if stats["total"] >= MIN_EVIDENCE:
-                rate = stats["success"] / stats["total"]
-                if rate >= 0.8:
-                    cid = f"boost:{key}:{int(time.time() // 3600)}"
-                    if cid not in existing:
-                        c = CandidateImprovement(
-                            id=cid, category="routing_weight",
-                            summary=f"Boost {key}: {stats['success']}/{stats['total']} ok",
-                            evidence_ids=stats["ids"][-5:], evidence_count=stats["total"],
-                            confidence=round(rate, 2), proposed_at=time.time(),
-                            rollback_notes="Set weight back to 1.0 if failure rate exceeds 30%",
-                        )
-                        save_candidate(c)
-                        candidates.append(c)
-
-                elif rate <= 0.3:
-                    cid = f"degrade:{key}:{int(time.time() // 3600)}"
-                    if cid not in existing:
-                        c = CandidateImprovement(
-                            id=cid, category="routing_weight",
-                            summary=f"Degrade {key}: {stats['success']}/{stats['total']} ok",
-                            evidence_ids=stats["ids"][-5:], evidence_count=stats["total"],
-                            confidence=round(1 - rate, 2), proposed_at=time.time(),
-                            rollback_notes="Restore weight if subsequent 3 outcomes succeed",
-                        )
-                        save_candidate(c)
-                        candidates.append(c)
-
+        _generate_candidates(backend_scene, existing)
     except Exception:
         _log.debug("shadow scan failed", exc_info=True)
 
@@ -174,69 +178,52 @@ def scan_for_candidates() -> list[CandidateImprovement]:
     ]
 
 
-def format_digest(candidates: list[CandidateImprovement] | None = None) -> str:
-    """Generate a human-readable learning digest.
-
-    Returns markdown text suitable for daily reports.
-    """
-    if candidates is None:
-        candidates = scan_for_candidates()
-
+def _digest_stats() -> tuple[dict, dict]:
+    """Fetch ledger and memory stats for the digest."""
     try:
         from session_memory.outcome_ledger import stats as ledger_stats
         from session_memory.store_db import memory_stats
-
-        lstats = ledger_stats()
-        mstats = memory_stats()
+        return ledger_stats(), memory_stats()
     except Exception:
-        lstats = {"total": 0, "unlearned": 0}
-        mstats = {"total": 0, "embedding_pct": 0}
+        return {"total": 0, "unlearned": 0}, {"total": 0, "embedding_pct": 0}
 
-    lines = [
-        "*LiMa Learning Digest*",
-        f"`{time.strftime('%Y-%m-%d %H:%M')}`",
-        "",
-        "*Outcomes*",
-        f"  Total recorded: {lstats.get('total', 0)}",
-        f"  Awaiting review: {lstats.get('unlearned', 0)}",
-        "",
-        "*Memory*",
-        f"  Total entries: {mstats.get('total', 0)}",
-        f"  Embedding coverage: {mstats.get('embedding_pct', 0)}%",
-        "",
-    ]
 
-    if candidates:
-        lines.append("*Improvement Candidates*")
-        for c in candidates[:8]:
-            icon = "\U0001f7e2" if c.confidence >= 0.8 else "\U0001f7e1"
-            lines.append(
-                f"{icon} [{c.category}] {c.summary}\n"
-                f"  evidence={c.evidence_count} confidence={c.confidence}\n"
-                f"  `/learn approve {c.id[:40]}`"
-            )
-        lines.append("")
-    else:
-        lines.append("No improvement candidates. System is stable.")
+def _digest_candidates(candidates: list[CandidateImprovement]) -> list[str]:
+    """Format improvement candidates section."""
+    if not candidates:
+        return ["No improvement candidates. System is stable.", ""]
+    lines = ["*Improvement Candidates*"]
+    for c in candidates[:8]:
+        icon = "\U0001f7e2" if c.confidence >= 0.8 else "\U0001f7e1"
+        lines.append(
+            f"{icon} [{c.category}] {c.summary}\n"
+            f"  evidence={c.evidence_count} confidence={c.confidence}\n"
+            f"  `/learn approve {c.id[:40]}`"
+        )
+    return lines + [""]
 
-    lines.append("")
 
-    # Show applied candidates
+def _digest_applied() -> list[str]:
+    """Format recently applied candidates section."""
     try:
         applied = list_candidates(status="applied")
-        if applied:
-            lines.append("*Recently Applied*")
-            for c in applied[:5]:
-                lines.append(f"  ✅ {c['summary'][:100]}")
-            lines.append("")
+        if not applied:
+            return []
+        lines = ["*Recently Applied*"]
+        for c in applied[:5]:
+            lines.append(f"  \u2705 {c['summary'][:100]}")
+        return lines + [""]
     except Exception as exc:
         _log.debug("session_memory/shadow_mode.py: {}", type(exc).__name__)
+        return []
 
-    # Show routing weight effects
+
+def _digest_routing_effects() -> list[str]:
+    """Format routing weight effects section."""
     try:
         from context_pipeline.routing_weights import get_routing_weights
         rw = get_routing_weights()
-        lines.append("*Routing Effects*")
+        lines = ["*Routing Effects*"]
         for scenario in ["coding", "chat"]:
             stats_items = []
             for key, w in rw._weights.items():
@@ -246,10 +233,30 @@ def format_digest(candidates: list[CandidateImprovement] | None = None) -> str:
             for weight, rate, backend, total in stats_items[:3]:
                 icon = "\U0001f7e2" if rate >= 0.8 else ("\U0001f7e1" if rate >= 0.5 else "\U0001f534")
                 lines.append(f"  {icon} {backend}:{scenario} w={weight:.2f} rate={rate:.0%} n={total}")
-        lines.append("")
+        return lines + [""]
     except Exception as exc:
         _log.debug("session_memory/shadow_mode.py: {}", type(exc).__name__)
+        return []
 
+
+def format_digest(candidates: list[CandidateImprovement] | None = None) -> str:
+    """Generate a human-readable learning digest."""
+    if candidates is None:
+        candidates = scan_for_candidates()
+
+    lstats, mstats = _digest_stats()
+    lines = [
+        "*LiMa Learning Digest*",
+        f"`{time.strftime('%Y-%m-%d %H:%M')}`", "",
+        "*Outcomes*",
+        f"  Total recorded: {lstats.get('total', 0)}",
+        f"  Awaiting review: {lstats.get('unlearned', 0)}", "",
+        "*Memory*",
+        f"  Total entries: {mstats.get('total', 0)}",
+        f"  Embedding coverage: {mstats.get('embedding_pct', 0)}%", "",
+    ]
+    lines.extend(_digest_candidates(candidates))
+    lines.extend(_digest_applied())
+    lines.extend(_digest_routing_effects())
     lines.append("/learn to review  /outcome for ledger  /memstats for memory")
-
     return "\n".join(lines)

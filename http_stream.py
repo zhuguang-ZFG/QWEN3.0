@@ -24,6 +24,103 @@ def _caller():
     return http_caller
 
 
+def _stream_parse_lines(
+    lines, fmt: str, backend: str,
+    health_tracker, key_provider, selected_key,
+) -> Generator[str, None, None]:
+    """Parse SSE lines, yield cleaned text chunks. Raises BackendError on error."""
+    pending_chunks: list[str] = []
+    total_text = ""
+    flushed = False
+    stream_sanitizer: StreamIdentitySanitizer | None = None
+
+    for line in lines:
+        if not line or not line.startswith("data: "):
+            continue
+        data_str = line[6:]
+        if data_str == "[DONE]":
+            break
+        text = _parse_sse_chunk(data_str, fmt)
+        if not text:
+            continue
+        total_text += text
+        if flushed:
+            if stream_sanitizer is None:
+                stream_sanitizer = StreamIdentitySanitizer(backend)
+            cleaned_out = stream_sanitizer.feed(text)
+            if cleaned_out:
+                yield cleaned_out
+        else:
+            pending_chunks.append(text)
+            if len(total_text) > 200:
+                if _is_backend_error(total_text):
+                    health_tracker.record_failure(
+                        backend, error_code=429, error_text=total_text
+                    )
+                    raise BackendError(
+                        f"{backend} error: {total_text[:60]}", status_code=429,
+                    )
+                buffered = "".join(pending_chunks)
+                cleaned = clean_response(buffered, backend)
+                if cleaned:
+                    yield cleaned
+                pending_chunks = []
+                flushed = True
+                stream_sanitizer = StreamIdentitySanitizer(backend)
+
+    # Post-stream: flush sanitizer tail
+    if flushed and stream_sanitizer is not None:
+        tail = stream_sanitizer.flush()
+        if tail:
+            yield tail
+
+    # Post-stream: unflushed buffer
+    if not flushed:
+        if not total_text:
+            health_tracker.record_failure(backend, error_code=502, error_text="empty stream")
+            raise BackendError(f"{backend} returned empty stream", status_code=502)
+        if _is_backend_error(total_text):
+            health_tracker.record_failure(backend, error_code=429, error_text=total_text)
+            raise BackendError(f"{backend} returned error: {total_text[:60]}", status_code=429)
+        for chunk in pending_chunks:
+            cleaned = clean_response(chunk, backend)
+            if cleaned:
+                yield cleaned
+
+
+def _record_stream_success(hc, backend, key_provider, selected_key, total_text, started):
+    latency_ms = int((time.time() - started) * 1000)
+    hc.health_tracker.record_success(backend, latency_ms)
+    hc._report_key_result(key_provider, selected_key, True)
+    hc.health_tracker.record_response_quality(backend, len(total_text) if total_text else 0)
+
+
+def _record_stream_error(hc, backend, key_provider, selected_key, exc, label: str = ""):
+    if isinstance(exc, BackendError):
+        hc._report_key_result(
+            key_provider, selected_key, False,
+            error_code=exc.status_code or 0, retry_after=0,
+        )
+    elif isinstance(exc, httpx.HTTPStatusError):
+        error_code = exc.response.status_code
+        hc.health_tracker.record_failure(backend, error_code=error_code, error_text=str(exc))
+        hc._report_key_result(
+            key_provider, selected_key, False,
+            error_code=error_code, retry_after=_extract_retry_after(exc),
+        )
+        raise BackendError(str(exc), status_code=error_code) from exc
+    else:
+        error_code = _extract_code(exc)
+        hc.health_tracker.record_failure(backend, error_code=error_code, error_text=str(exc))
+        hc._report_key_result(
+            key_provider, selected_key, False,
+            error_code=error_code or 0, retry_after=_extract_retry_after(exc),
+        )
+        if DEBUG:
+            print(f"[STREAM] {backend} {label}error: {exc}", file=sys.stderr)
+        raise BackendError(str(exc), status_code=error_code) from exc
+
+
 def call_api_stream(
     backend: str,
     messages: list[dict],
@@ -50,116 +147,77 @@ def call_api_stream(
 
     try:
         with hc._build_client(backend, timeout) as client:
-            pending_chunks: list[str] = []
-            total_text = ""
-            flushed = False
-            stream_sanitizer: StreamIdentitySanitizer | None = None
-
             with client.stream("POST", cfg["url"], content=body, headers=headers) as resp:
                 resp.raise_for_status()
-                for line in resp.iter_lines():
-                    if not line or not line.startswith("data: "):
-                        continue
-                    data_str = line[6:]
-                    if data_str == "[DONE]":
-                        break
-                    text = _parse_sse_chunk(data_str, fmt)
-                    if not text:
-                        continue
-                    total_text += text
-                    if flushed:
-                        if stream_sanitizer is None:
-                            stream_sanitizer = StreamIdentitySanitizer(backend)
-                        cleaned_out = stream_sanitizer.feed(text)
-                        if cleaned_out:
-                            yield cleaned_out
-                    else:
-                        pending_chunks.append(text)
-                        if len(total_text) > 200:
-                            if _is_backend_error(total_text):
-                                hc.health_tracker.record_failure(
-                                    backend, error_code=429, error_text=total_text
-                                )
-                                raise BackendError(
-                                    f"{backend} error: {total_text[:60]}",
-                                    status_code=429,
-                                )
-                            buffered = "".join(pending_chunks)
-                            cleaned = clean_response(buffered, backend)
-                            if cleaned:
-                                yield cleaned
-                            pending_chunks = []
-                            flushed = True
-                            stream_sanitizer = StreamIdentitySanitizer(backend)
-
-        if flushed and stream_sanitizer is not None:
-            tail = stream_sanitizer.flush()
-            if tail:
-                yield tail
-
-        if not flushed:
-            if not total_text:
-                hc.health_tracker.record_failure(
-                    backend, error_code=502, error_text="empty stream"
+                yield from _stream_parse_lines(
+                    resp.iter_lines(), fmt, backend,
+                    hc.health_tracker, key_provider, selected_key,
                 )
-                raise BackendError(f"{backend} returned empty stream", status_code=502)
-            if _is_backend_error(total_text):
-                hc.health_tracker.record_failure(
-                    backend, error_code=429, error_text=total_text
-                )
-                raise BackendError(
-                    f"{backend} returned error: {total_text[:60]}",
-                    status_code=429,
-                )
-            for chunk in pending_chunks:
-                cleaned = clean_response(chunk, backend)
-                if cleaned:
-                    yield cleaned
+        _record_stream_success(hc, backend, key_provider, selected_key, None, started)
+    except (BackendError, httpx.HTTPStatusError, Exception) as exc:
+        _record_stream_error(hc, backend, key_provider, selected_key, exc)
 
-        latency_ms = int((time.time() - started) * 1000)
-        hc.health_tracker.record_success(backend, latency_ms)
-        hc._report_key_result(key_provider, selected_key, True)
-        hc.health_tracker.record_response_quality(
-            backend, len(total_text) if total_text else 0
-        )
 
-    except BackendError as exc:
-        hc._report_key_result(
-            key_provider,
-            selected_key,
-            False,
-            error_code=exc.status_code or 0,
-            retry_after=0,
-        )
-        raise
-    except httpx.HTTPStatusError as exc:
-        error_code = exc.response.status_code
-        hc.health_tracker.record_failure(
-            backend, error_code=error_code, error_text=str(exc)
-        )
-        hc._report_key_result(
-            key_provider,
-            selected_key,
-            False,
-            error_code=error_code,
-            retry_after=_extract_retry_after(exc),
-        )
-        raise BackendError(str(exc), status_code=error_code) from exc
-    except Exception as exc:
-        error_code = _extract_code(exc)
-        hc.health_tracker.record_failure(
-            backend, error_code=error_code, error_text=str(exc)
-        )
-        hc._report_key_result(
-            key_provider,
-            selected_key,
-            False,
-            error_code=error_code or 0,
-            retry_after=_extract_retry_after(exc),
-        )
-        if DEBUG:
-            print(f"[STREAM] {backend} error: {exc}", file=sys.stderr)
-        raise BackendError(str(exc), status_code=error_code) from exc
+async def _stream_parse_lines_async(
+    aiter_lines, fmt: str, backend: str,
+    health_tracker, key_provider, selected_key,
+) -> AsyncIterator[str]:
+    """Async version: parse SSE lines from an async iterator."""
+    pending_chunks: list[str] = []
+    total_text = ""
+    flushed = False
+    stream_sanitizer: StreamIdentitySanitizer | None = None
+
+    async for line in aiter_lines:
+        if not line or not line.startswith("data: "):
+            continue
+        data_str = line[6:]
+        if data_str == "[DONE]":
+            break
+        text = _parse_sse_chunk(data_str, fmt)
+        if not text:
+            continue
+        total_text += text
+        if flushed:
+            if stream_sanitizer is None:
+                stream_sanitizer = StreamIdentitySanitizer(backend)
+            cleaned_out = stream_sanitizer.feed(text)
+            if cleaned_out:
+                yield cleaned_out
+        else:
+            pending_chunks.append(text)
+            if len(total_text) > 200:
+                if _is_backend_error(total_text):
+                    health_tracker.record_failure(
+                        backend, error_code=429, error_text=total_text
+                    )
+                    raise BackendError(
+                        f"{backend} error: {total_text[:60]}", status_code=429,
+                    )
+                buffered = "".join(pending_chunks)
+                cleaned_out = clean_response(buffered, backend)
+                if cleaned_out:
+                    yield cleaned_out
+                pending_chunks = []
+                flushed = True
+                stream_sanitizer = StreamIdentitySanitizer(backend)
+
+    if flushed and stream_sanitizer is not None:
+        tail = stream_sanitizer.flush()
+        if tail:
+            yield tail
+
+    if not flushed:
+        if not total_text:
+            health_tracker.record_failure(backend, error_code=502, error_text="empty stream")
+            raise BackendError(f"{backend} returned empty stream", status_code=502)
+        if _is_backend_error(total_text):
+            health_tracker.record_failure(backend, error_code=429, error_text=total_text)
+            raise BackendError(f"{backend} returned error: {total_text[:60]}", status_code=429)
+        for chunk in pending_chunks:
+            cleaned_out = clean_response(chunk, backend)
+            if cleaned_out:
+                yield cleaned_out
 
 
 async def call_api_stream_async(
@@ -188,117 +246,15 @@ async def call_api_stream_async(
 
     try:
         async with hc._build_async_client(backend, timeout) as client:
-            pending_chunks: list[str] = []
-            total_text = ""
-            flushed = False
-            stream_sanitizer: StreamIdentitySanitizer | None = None
-
             async with client.stream(
                 "POST", cfg["url"], content=body, headers=headers
             ) as resp:
                 resp.raise_for_status()
-                async for line in resp.aiter_lines():
-                    if not line or not line.startswith("data: "):
-                        continue
-                    data_str = line[6:]
-                    if data_str == "[DONE]":
-                        break
-                    text = _parse_sse_chunk(data_str, fmt)
-                    if not text:
-                        continue
-                    total_text += text
-                    if flushed:
-                        if stream_sanitizer is None:
-                            stream_sanitizer = StreamIdentitySanitizer(backend)
-                        cleaned_out = stream_sanitizer.feed(text)
-                        if cleaned_out:
-                            yield cleaned_out
-                    else:
-                        pending_chunks.append(text)
-                        if len(total_text) > 200:
-                            if _is_backend_error(total_text):
-                                hc.health_tracker.record_failure(
-                                    backend, error_code=429, error_text=total_text
-                                )
-                                raise BackendError(
-                                    f"{backend} error: {total_text[:60]}",
-                                    status_code=429,
-                                )
-                            buffered = "".join(pending_chunks)
-                            cleaned_out = clean_response(buffered, backend)
-                            if cleaned_out:
-                                yield cleaned_out
-                            pending_chunks = []
-                            flushed = True
-                            stream_sanitizer = StreamIdentitySanitizer(backend)
-
-        if flushed and stream_sanitizer is not None:
-            tail = stream_sanitizer.flush()
-            if tail:
-                yield tail
-
-        if not flushed:
-            if not total_text:
-                hc.health_tracker.record_failure(
-                    backend, error_code=502, error_text="empty stream"
-                )
-                raise BackendError(
-                    f"{backend} returned empty stream", status_code=502
-                )
-            if _is_backend_error(total_text):
-                hc.health_tracker.record_failure(
-                    backend, error_code=429, error_text=total_text
-                )
-                raise BackendError(
-                    f"{backend} returned error: {total_text[:60]}",
-                    status_code=429,
-                )
-            for chunk in pending_chunks:
-                cleaned_out = clean_response(chunk, backend)
-                if cleaned_out:
-                    yield cleaned_out
-
-        latency_ms = int((time.time() - started) * 1000)
-        hc.health_tracker.record_success(backend, latency_ms)
-        hc._report_key_result(key_provider, selected_key, True)
-        hc.health_tracker.record_response_quality(
-            backend, len(total_text) if total_text else 0
-        )
-
-    except BackendError as exc:
-        hc._report_key_result(
-            key_provider,
-            selected_key,
-            False,
-            error_code=exc.status_code or 0,
-            retry_after=0,
-        )
-        raise
-    except httpx.HTTPStatusError as exc:
-        error_code = exc.response.status_code
-        hc.health_tracker.record_failure(
-            backend, error_code=error_code, error_text=str(exc)
-        )
-        hc._report_key_result(
-            key_provider,
-            selected_key,
-            False,
-            error_code=error_code,
-            retry_after=_extract_retry_after(exc),
-        )
-        raise BackendError(str(exc), status_code=error_code) from exc
-    except Exception as exc:
-        error_code = _extract_code(exc)
-        hc.health_tracker.record_failure(
-            backend, error_code=error_code, error_text=str(exc)
-        )
-        hc._report_key_result(
-            key_provider,
-            selected_key,
-            False,
-            error_code=error_code or 0,
-            retry_after=_extract_retry_after(exc),
-        )
-        if DEBUG:
-            print(f"[STREAM] {backend} async error: {exc}", file=sys.stderr)
-        raise BackendError(str(exc), status_code=error_code) from exc
+                async for chunk in _stream_parse_lines_async(
+                    resp.aiter_lines(), fmt, backend,
+                    hc.health_tracker, key_provider, selected_key,
+                ):
+                    yield chunk
+        _record_stream_success(hc, backend, key_provider, selected_key, None, started)
+    except (BackendError, httpx.HTTPStatusError, Exception) as exc:
+        _record_stream_error(hc, backend, key_provider, selected_key, exc, "async ")

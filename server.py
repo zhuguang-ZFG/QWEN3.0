@@ -2,14 +2,17 @@
 让 Cursor、Claude Code、VS Code Copilot 等 AI IDE 直接接入。
 支持流式/非流式 ChatCompletion，兼容 OpenAI API 格式。
 """
-import sys, os, time as time
+import sys, os, time as time, logging as _logging
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Bootstrap a minimal logger before any application logging is configured.
+_boot_log = _logging.getLogger("lima.bootstrap")
 
 try:
     from dotenv import load_dotenv
     load_dotenv()
 except ImportError:
-    pass
+    _boot_log.warning("python-dotenv not installed; .env file will not be loaded")
 
 from fastapi import FastAPI
 import uvicorn
@@ -46,7 +49,7 @@ if _sentry_dsn:
             integrations=[FastApiIntegration()],
         )
     except ImportError:
-        pass
+        _boot_log.warning("SENTRY_DSN is set but sentry_sdk is not installed; error tracking disabled")
 
 app.add_middleware(BodySizeLimitMiddleware, max_body_size=MAX_BODY_SIZE)
 

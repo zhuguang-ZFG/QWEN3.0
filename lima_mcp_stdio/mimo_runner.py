@@ -92,6 +92,64 @@ def poll(*, workspace: str | None = None) -> dict[str, Any]:
     return out
 
 
+def _prepare_run(
+    task: str, mode: str, scope: str | None, workspace: str | None,
+    session_continue: bool, timeout: int | None,
+) -> tuple[Path, Path, Path, list[Path], str, int, Path] | dict[str, Any]:
+    """Resolve workspace, brief, and attachments. Returns context tuple or error dict."""
+    ws = resolve_workspace(workspace)
+    artifact_dir = _artifact_dir(ws)
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+    resolved_scope = resolve_scope(task, scope, ws)
+    brief_path = brief_mod.write_brief(ws, artifact_dir, task, resolved_scope)
+
+    attach: list[Path] = [brief_path]
+    if resolved_scope:
+        scope_path = ws / resolved_scope
+        if scope_path.is_file():
+            attach.append(scope_path)
+    if mode == "verify" and (artifact_dir / "findings.json").is_file():
+        attach.append(artifact_dir / "findings.json")
+
+    out_path = artifact_dir / f"{MIMO_LANE}.md"
+    lane_timeout = _timeout(timeout)
+    return ws, artifact_dir, brief_path, attach, resolved_scope, lane_timeout, out_path
+
+
+def _finalize_run(
+    artifact_dir: Path, invoke, findings: list, lane_row: dict,
+    task: str, mode: str, brief_path: Path, out_path: Path,
+) -> dict[str, Any]:
+    """Write execution log, done marker, and build return payload."""
+    mode_tag = f"mimo-mcp-{mode}"
+    findings_path, synthesis_path, fixpack_path = merge_findings.write_findings_bundle(
+        artifact_dir, findings, [lane_row], task, mode_tag,
+    )
+    (artifact_dir / "execution.log").write_text(
+        f"{mode_tag} {datetime.now(timezone.utc).isoformat()} ok={invoke.ok} exit={invoke.exit_code}\n",
+        encoding="utf-8",
+    )
+    (artifact_dir / "last_done.json").write_text(
+        json.dumps({
+            "finished_at": datetime.now(timezone.utc).isoformat(),
+            "ok": invoke.ok, "mode": mode, "task": task,
+            "findings_path": str(findings_path),
+            "summary": _count_severity(findings),
+        }, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    return {
+        "ok": invoke.ok, "task": task, "mode": mode,
+        "findings_count": len(findings), "summary": _count_severity(findings),
+        "findings": findings,
+        "paths": {
+            "brief": str(brief_path), "lane_output": str(out_path),
+            "findings": str(findings_path), "synthesis": str(synthesis_path),
+            "fix_pack": str(fixpack_path),
+        },
+    }
+
+
 def run(
     *,
     task: str,
@@ -108,94 +166,28 @@ def run(
     if not mimo_invoke.mimo_binary():
         return {"ok": False, "error": "mimo CLI not found on PATH"}
 
-    ws = resolve_workspace(workspace)
-    artifact_dir = _artifact_dir(ws)
-    artifact_dir.mkdir(parents=True, exist_ok=True)
-    resolved_scope = resolve_scope(task, scope, ws)
-    brief_path = brief_mod.write_brief(ws, artifact_dir, task, resolved_scope)
-
-    attach: list[Path] = [brief_path]
-    if resolved_scope:
-        scope_path = ws / resolved_scope
-        if scope_path.is_file():
-            attach.append(scope_path)
-
-    prior_findings = artifact_dir / "findings.json"
-    if mode == "verify" and prior_findings.is_file():
-        attach.append(prior_findings)
+    ctx = _prepare_run(task, mode, scope, workspace, session_continue, timeout)
+    if isinstance(ctx, dict):
+        return ctx
+    ws, artifact_dir, brief_path, attach, resolved_scope, lane_timeout, out_path = ctx
 
     prompt = mimo_agents.build_prompt(mode, task, json_output=json_findings)
     agent = mimo_agents.resolve_agent(mode)
-    lane_timeout = _timeout(timeout)
-    out_path = artifact_dir / f"{MIMO_LANE}.md"
-
     invoke = mimo_invoke.run_mimo(
-        prompt,
-        ws,
-        attach_files=attach,
-        agent=agent,
-        session_continue=session_continue,
-        timeout=lane_timeout,
-        output_path=out_path,
+        prompt, ws, attach_files=attach, agent=agent,
+        session_continue=session_continue, timeout=lane_timeout, output_path=out_path,
     )
-
     lane_row = {
-        "lane": MIMO_LANE,
-        "ok": invoke.ok,
-        "exit_code": invoke.exit_code,
+        "lane": MIMO_LANE, "ok": invoke.ok, "exit_code": invoke.exit_code,
         "error": "" if invoke.ok else "invoke failed",
-        "path": str(out_path),
-        "mode": mode,
-        "command": invoke.command,
+        "path": str(out_path), "mode": mode, "command": invoke.command,
     }
-
     findings = merge_findings.merge_lane_artifacts(artifact_dir, (MIMO_LANE,))
-    mode_tag = f"mimo-mcp-{mode}"
-    findings_path, synthesis_path, fixpack_path = merge_findings.write_findings_bundle(
-        artifact_dir, findings, [lane_row], task, mode_tag
-    )
-
-    (artifact_dir / "execution.log").write_text(
-        f"{mode_tag} {datetime.now(timezone.utc).isoformat()} ok={invoke.ok} exit={invoke.exit_code}\n",
-        encoding="utf-8",
-    )
-
-    done_flag = artifact_dir / "last_done.json"
-    done_flag.write_text(
-        json.dumps(
-            {
-                "finished_at": datetime.now(timezone.utc).isoformat(),
-                "ok": invoke.ok,
-                "mode": mode,
-                "task": task,
-                "findings_path": str(findings_path),
-                "summary": _count_severity(findings),
-            },
-            indent=2,
-            ensure_ascii=False,
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-
-    return {
-        "ok": invoke.ok,
-        "task": task,
-        "mode": mode,
-        "scope": resolved_scope,
-        "workspace": str(ws),
-        "lane": lane_row,
-        "findings_count": len(findings),
-        "summary": _count_severity(findings),
-        "findings": findings,
-        "paths": {
-            "brief": str(brief_path),
-            "lane_output": str(out_path),
-            "findings": str(findings_path),
-            "synthesis": str(synthesis_path),
-            "fix_pack": str(fixpack_path),
-        },
-    }
+    result = _finalize_run(artifact_dir, invoke, findings, lane_row, task, mode, brief_path, out_path)
+    result["scope"] = resolved_scope
+    result["workspace"] = str(ws)
+    result["lane"] = lane_row
+    return result
 
 
 def review(*, task: str, scope: str | None = None, workspace: str | None = None, timeout: int | None = None) -> dict[str, Any]:

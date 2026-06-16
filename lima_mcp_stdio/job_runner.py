@@ -27,6 +27,51 @@ def _write_status(job_dir: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
+def _init_job(ws: Path, job_id: str, status: dict[str, Any]) -> tuple[Path, Path]:
+    """Create job directory and persist initial status."""
+    job_dir = _jobs_root(ws) / job_id
+    job_dir.mkdir(parents=True, exist_ok=True)
+    _write_status(job_dir, status)
+    return job_dir, job_dir / "worker.log"
+
+
+def _build_worker_cmd(job_id: str, task: str, mode: str, ws: Path,
+                      scope: str | None, timeout: int | None) -> list[str]:
+    """Build the worker subprocess command."""
+    cmd = [sys.executable, "-m", "lima_mcp_stdio.job_worker",
+           "--job-id", job_id, "--task", task, "--mode", mode,
+           "--workspace", str(ws)]
+    if scope:
+        cmd.extend(["--scope", scope])
+    if timeout is not None:
+        cmd.extend(["--timeout", str(timeout)])
+    return cmd
+
+
+def _spawn_worker(cmd: list[str], ws: Path, log_path: Path,
+                  status: dict[str, Any], job_dir: Path) -> dict[str, Any]:
+    """Spawn the worker process. Returns result dict."""
+    creationflags = 0
+    if sys.platform == "win32":
+        creationflags = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS  # type: ignore[attr-defined]
+    try:
+        with open(log_path, "w", encoding="utf-8") as log_fp:
+            proc = subprocess.Popen(
+                cmd, cwd=ws, stdout=log_fp, stderr=subprocess.STDOUT,
+                creationflags=creationflags, close_fds=False,
+            )
+    except OSError as exc:
+        status["status"] = "failed"
+        status["error"] = f"{type(exc).__name__}: {exc}"
+        _write_status(job_dir, status)
+        return {"ok": False, "job_id": status["job_id"], "error": status["error"]}
+    status["status"] = "running"
+    status["pid"] = proc.pid
+    status["log_path"] = str(log_path)
+    _write_status(job_dir, status)
+    return {}
+
+
 def start_async_run(
     *,
     task: str,
@@ -42,77 +87,25 @@ def start_async_run(
 
     ws = resolve_workspace(workspace)
     job_id = uuid.uuid4().hex[:12]
-    job_dir = _jobs_root(ws) / job_id
-    job_dir.mkdir(parents=True, exist_ok=True)
-
     started_at = datetime.now(timezone.utc).isoformat()
     status = {
-        "job_id": job_id,
-        "status": "queued",
-        "started_at": started_at,
-        "task": task,
-        "mode": mode,
-        "scope": scope or "",
-        "workspace": str(ws),
-        "timeout": timeout,
+        "job_id": job_id, "status": "queued", "started_at": started_at,
+        "task": task, "mode": mode, "scope": scope or "",
+        "workspace": str(ws), "timeout": timeout,
     }
-    _write_status(job_dir, status)
-
-    log_path = job_dir / "worker.log"
-    cmd = [
-        sys.executable,
-        "-m",
-        "lima_mcp_stdio.job_worker",
-        "--job-id",
-        job_id,
-        "--task",
-        task,
-        "--mode",
-        mode,
-        "--workspace",
-        str(ws),
-    ]
-    if scope:
-        cmd.extend(["--scope", scope])
-    if timeout is not None:
-        cmd.extend(["--timeout", str(timeout)])
-
-    creationflags = 0
-    if sys.platform == "win32":
-        creationflags = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS  # type: ignore[attr-defined]
-
-    try:
-        with open(log_path, "w", encoding="utf-8") as log_fp:
-            proc = subprocess.Popen(
-                cmd,
-                cwd=ws,
-                stdout=log_fp,
-                stderr=subprocess.STDOUT,
-                creationflags=creationflags,
-                close_fds=False,
-            )
-    except OSError as exc:
-        status["status"] = "failed"
-        status["error"] = f"{type(exc).__name__}: {exc}"
-        _write_status(job_dir, status)
-        return {"ok": False, "job_id": job_id, "error": status["error"]}
-
-    status["status"] = "running"
-    status["pid"] = proc.pid
-    status["log_path"] = str(log_path)
-    _write_status(job_dir, status)
+    job_dir, log_path = _init_job(ws, job_id, status)
+    cmd = _build_worker_cmd(job_id, task, mode, ws, scope, timeout)
+    err = _spawn_worker(cmd, ws, log_path, status, job_dir)
+    if err:
+        return err
 
     (_artifact_dir(ws) / "latest_job.json").write_text(
         json.dumps({"job_id": job_id, "started_at": started_at}, indent=2) + "\n",
         encoding="utf-8",
     )
-
     return {
-        "ok": True,
-        "job_id": job_id,
-        "status": "running",
-        "workspace": str(ws),
-        "job_dir": str(job_dir),
+        "ok": True, "job_id": job_id, "status": "running",
+        "workspace": str(ws), "job_dir": str(job_dir),
         "poll_tool": "lima_mimo_job_status",
         "hint": "Continue other work; poll job_status with this job_id before milestone closeout.",
     }

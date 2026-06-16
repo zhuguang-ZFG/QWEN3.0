@@ -14,7 +14,7 @@ def _token(account_id: str) -> str:
         "iat": int(time.time()),
         "exp": int(time.time()) + 3600,
     }
-    return compat.jwt.encode(payload, "test-secret", algorithm="HS256")
+    return compat.jwt.encode(payload, "test-secret-minimum-32-bytes-long!!", algorithm="HS256")
 
 
 def _headers(account_id: str) -> dict[str, str]:
@@ -57,7 +57,7 @@ def _json(response):
 
 def _client(tmp_path, monkeypatch) -> TestClient:
     monkeypatch.setenv("LIMA_DB_PATH", str(tmp_path / "xiaozhi.db"))
-    monkeypatch.setenv("LIMA_JWT_SECRET", "test-secret")
+    monkeypatch.setenv("LIMA_JWT_SECRET", "test-secret-minimum-32-bytes-long!!")
     compat._schema_ready_paths.clear()
     app = FastAPI()
     app.include_router(compat.router)

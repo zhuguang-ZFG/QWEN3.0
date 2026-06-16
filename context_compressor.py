@@ -96,38 +96,39 @@ def compress_messages(
     """
     limit = get_context_limit(backend) * SAFETY_FACTOR
 
-    # If already fits, return as-is
     if not should_compress(messages, backend, system_prompt):
         return messages
 
-    _log.info(
-        "Compressing %d messages for %s (limit=%d tokens)",
-        len(messages), backend, limit,
-    )
+    _log.info("Compressing %d messages for %s (limit=%d tokens)",
+              len(messages), backend, limit)
 
-    keep_count = 4  # Keep last 4 messages intact
+    keep_count = 4
     if len(messages) <= keep_count + 2:
-        # Not enough messages to compress meaningfully
-        # Just truncate oldest content
-        truncated = []
-        total_tokens = estimate_tokens(system_prompt)
-        for m in reversed(messages):
-            content = m.get("content", "")
-            if isinstance(content, str):
-                t = estimate_tokens(content)
-                if total_tokens + t > limit:
-                    m = {**m, "content": content[: int((limit - total_tokens) * CHARS_PER_TOKEN)]}
-                total_tokens += min(t, limit - total_tokens)
-            truncated.insert(0, m)
-            if total_tokens >= limit:
-                break
-        return truncated
+        return _truncate_to_fit(messages, system_prompt, limit)
 
-    early = messages[:-keep_count]
-    recent = messages[-keep_count:]
+    return _compress_with_summary(messages, keep_count)
 
-    # Build summary of early messages
-    summary_parts = []
+
+def _truncate_to_fit(messages: list[dict], system_prompt: str, limit: float) -> list[dict]:
+    """Simple truncation: fit messages within limit by cutting oldest content."""
+    truncated: list[dict] = []
+    total_tokens = estimate_tokens(system_prompt)
+    for m in reversed(messages):
+        content = m.get("content", "")
+        if isinstance(content, str):
+            t = estimate_tokens(content)
+            if total_tokens + t > limit:
+                m = {**m, "content": content[: int((limit - total_tokens) * CHARS_PER_TOKEN)]}
+            total_tokens += min(t, limit - total_tokens)
+        truncated.insert(0, m)
+        if total_tokens >= limit:
+            break
+    return truncated
+
+
+def _build_early_summary(early: list[dict]) -> tuple[str, int]:
+    """Build a summary string from early messages."""
+    summary_parts: list[str] = []
     early_tokens = 0
     for m in early:
         content = m.get("content", "")
@@ -147,18 +148,21 @@ def compress_messages(
         if early_tokens > 4000:
             summary_parts.append("... (earlier messages truncated)")
             break
-
     summary = (
         f"[Conversation Summary — {len(early)} earlier messages compressed]\n"
         + "\n".join(summary_parts[:20])
     )
+    return summary, early_tokens
 
+
+def _compress_with_summary(messages: list[dict], keep_count: int) -> list[dict]:
+    """Compress by summarizing early messages and keeping recent ones."""
+    early = messages[:-keep_count]
+    recent = messages[-keep_count:]
+    summary, early_tokens = _build_early_summary(early)
     compressed = [{"role": "system", "content": summary}] + recent
-    _log.info(
-        "Compressed %d→%d messages (saved %d tokens)",
-        len(messages), len(compressed),
-        early_tokens,
-    )
+    _log.info("Compressed %d→%d messages (saved %d tokens)",
+              len(messages), len(compressed), early_tokens)
     return compressed
 
 

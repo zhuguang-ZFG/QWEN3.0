@@ -68,85 +68,89 @@ def build_change_report(
     )
 
 
+def _format_routing_section(report: ChangeReport) -> list[str]:
+    if not report.routing_impacted:
+        return []
+    lines = ["### ROUTING IMPACTED (urgent)"]
+    for model in report.routing_impacted:
+        lines.append(f"  - {redact_provider_text(model.model_id)}: removed from provider catalog but still in routing")
+    return lines + [""]
+
+
+def _format_new_free_section(report: ChangeReport) -> list[str]:
+    if not report.new_free_models:
+        return []
+    lines = ["### New Free Models"]
+    for model in report.new_free_models:
+        caps = ", ".join(model.capabilities) if model.capabilities else "none"
+        watch = " [WATCHLIST]" if model.privacy_note else ""
+        lines.append(f"  + {redact_provider_text(model.model_id)} (ctx={model.context_window}, caps={redact_provider_text(caps)}){watch}")
+    return lines + [""]
+
+
+def _format_removed_section(report: ChangeReport) -> list[str]:
+    if not report.removed_models:
+        return []
+    lines = ["### Removed Models"]
+    for model in report.removed_models:
+        lines.append(f"  - {redact_provider_text(model.model_id)}")
+    return lines + [""]
+
+
+def _format_capability_section(report: ChangeReport) -> list[str]:
+    if not report.capability_changes:
+        return []
+    lines = ["### Capability Changes"]
+    for old, new in report.capability_changes:
+        added = ", ".join(sorted(set(new.capabilities) - set(old.capabilities)))
+        removed = ", ".join(sorted(set(old.capabilities) - set(new.capabilities)))
+        lines.append(f"  ~ {redact_provider_text(old.model_id)}:")
+        if added:
+            lines.append(f"      +added: {redact_provider_text(added)}")
+        if removed:
+            lines.append(f"      -removed: {redact_provider_text(removed)}")
+    return lines + [""]
+
+
+def _format_pricing_section(report: ChangeReport) -> list[str]:
+    if not report.pricing_or_policy_changes:
+        return []
+    lines = ["### Pricing/Policy/Endpoint Changes"]
+    for old, new in report.pricing_or_policy_changes:
+        lines.append(f"  ~ {redact_provider_text(old.model_id)}: pricing {old.pricing}->{new.pricing}, endpoints {old.endpoint_count}->{new.endpoint_count}")
+    return lines + [""]
+
+
+def _format_watchlist_section(report: ChangeReport) -> list[str]:
+    if not report.watchlist_models:
+        return []
+    lines = ["### Watchlist (requires evidence)"]
+    for model in report.watchlist_models:
+        lines.append(f"  ? {redact_provider_text(model.model_id)}: {redact_provider_text(model.privacy_note)}")
+    return lines + [""]
+
+
+def _format_review_section(report: ChangeReport) -> list[str]:
+    if not report.needs_review:
+        return []
+    lines = ["### Needs Manual Review"]
+    for model in report.needs_review:
+        lines.append(f"  * {redact_provider_text(model.model_id)}")
+    return lines + [""]
+
+
 def format_change_report(report: ChangeReport) -> str:
     """Format a change report as safe markdown."""
-    lines = [f"## Provider Change Report: {redact_provider_text(report.provider)}", ""]
-
-    if report.routing_impacted:
-        lines.append("### ROUTING IMPACTED (urgent)")
-        for model in report.routing_impacted:
-            lines.append(
-                f"  - {redact_provider_text(model.model_id)}: "
-                "removed from provider catalog but still in routing"
-            )
-        lines.append("")
-
-    if report.new_free_models:
-        lines.append("### New Free Models")
-        for model in report.new_free_models:
-            caps = ", ".join(model.capabilities) if model.capabilities else "none"
-            watch = " [WATCHLIST]" if model.privacy_note else ""
-            lines.append(
-                f"  + {redact_provider_text(model.model_id)} "
-                f"(ctx={model.context_window}, caps={redact_provider_text(caps)}){watch}"
-            )
-        lines.append("")
-
-    if report.removed_models:
-        lines.append("### Removed Models")
-        for model in report.removed_models:
-            lines.append(f"  - {redact_provider_text(model.model_id)}")
-        lines.append("")
-
-    if report.capability_changes:
-        lines.append("### Capability Changes")
-        for old, new in report.capability_changes:
-            old_caps = set(old.capabilities)
-            new_caps = set(new.capabilities)
-            added = ", ".join(sorted(new_caps - old_caps))
-            removed = ", ".join(sorted(old_caps - new_caps))
-            lines.append(f"  ~ {redact_provider_text(old.model_id)}:")
-            if added:
-                lines.append(f"      +added: {redact_provider_text(added)}")
-            if removed:
-                lines.append(f"      -removed: {redact_provider_text(removed)}")
-        lines.append("")
-
-    if report.pricing_or_policy_changes:
-        lines.append("### Pricing/Policy/Endpoint Changes")
-        for old, new in report.pricing_or_policy_changes:
-            lines.append(
-                f"  ~ {redact_provider_text(old.model_id)}: "
-                f"pricing {old.pricing}->{new.pricing}, "
-                f"endpoints {old.endpoint_count}->{new.endpoint_count}"
-            )
-        lines.append("")
-
-    if report.watchlist_models:
-        lines.append("### Watchlist (requires evidence)")
-        for model in report.watchlist_models:
-            lines.append(
-                f"  ? {redact_provider_text(model.model_id)}: "
-                f"{redact_provider_text(model.privacy_note)}"
-            )
-        lines.append("")
-
-    if report.needs_review:
-        lines.append("### Needs Manual Review")
-        for model in report.needs_review:
-            lines.append(f"  * {redact_provider_text(model.model_id)}")
-        lines.append("")
-
-    if not any(
-        [
-            report.routing_impacted,
-            report.new_free_models,
-            report.removed_models,
-            report.capability_changes,
-            report.pricing_or_policy_changes,
-            report.watchlist_models,
-        ]
-    ):
-        lines.append("No changes detected.")
-
-    return "\n".join(lines)
+    header = [f"## Provider Change Report: {redact_provider_text(report.provider)}", ""]
+    sections = [
+        *_format_routing_section(report),
+        *_format_new_free_section(report),
+        *_format_removed_section(report),
+        *_format_capability_section(report),
+        *_format_pricing_section(report),
+        *_format_watchlist_section(report),
+        *_format_review_section(report),
+    ]
+    if not sections:
+        sections = ["No changes detected."]
+    return "\n".join(header + sections)

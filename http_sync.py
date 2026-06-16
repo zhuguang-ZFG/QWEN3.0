@@ -131,6 +131,37 @@ def _handle_call_error(
     raise BackendError(str(exc), status_code=error_code) from exc
 
 
+def _process_response(
+    text: str, backend: str, cfg: dict, started: float,
+    key_provider: str, selected_key: str, hc,
+) -> str:
+    """Parse HTTP response text, validate content, and record telemetry."""
+    try:
+        payload = json.loads(text)
+    except (json.JSONDecodeError, ValueError):
+        content = _extract_answer_from_sse(text)
+        if content:
+            hc.health_tracker.record_success(backend, (time.time() - started) * 1000)
+            return content
+        hc.health_tracker.record_failure(backend, error_code=502, error_text="invalid JSON and no SSE content")
+        raise BackendError(f"{backend} returned unparseable response", status_code=502)
+
+    answer = _extract_answer(payload, cfg["fmt"])
+    if not (answer or "").strip():
+        hc.health_tracker.record_failure(backend, error_code=502, error_text="empty response body")
+        raise BackendError(f"{backend} returned empty response", status_code=502)
+    if _is_backend_error(answer):
+        hc.health_tracker.record_failure(backend, error_code=429, error_text=answer)
+        raise BackendError(f"{backend} returned error response: {answer[:60]}", status_code=429)
+
+    latency_ms = int((time.time() - started) * 1000)
+    hc.health_tracker.record_success(backend, latency_ms)
+    hc._report_key_result(key_provider, selected_key, True)
+    cleaned = clean_response(answer, backend)
+    _record_success_telemetry(backend, payload, cfg["fmt"], latency_ms, cleaned)
+    return cleaned
+
+
 def call_api(
     backend: str,
     messages: list[dict],
@@ -161,47 +192,9 @@ def call_api(
         with hc._build_client(backend, timeout) as client:
             resp = client.post(cfg["url"], content=body, headers=headers)
             resp.raise_for_status()
-            text = resp.text
-            try:
-                payload = json.loads(text)
-            except (json.JSONDecodeError, ValueError):
-                # SSE fallback: extract content from streaming chunks
-                content = _extract_answer_from_sse(text)
-                if content:
-                    hc.health_tracker.record_success(backend, (time.time() - started) * 1000)
-                    return content
-                hc.health_tracker.record_failure(
-                    backend, error_code=502, error_text="invalid JSON and no SSE content"
-                )
-                raise BackendError(
-                    f"{backend} returned unparseable response",
-                    status_code=502,
-                )
-
-        answer = _extract_answer(payload, cfg["fmt"])
-        if not (answer or "").strip():
-            hc.health_tracker.record_failure(
-                backend, error_code=502, error_text="empty response body"
+            return _process_response(
+                resp.text, backend, cfg, started, key_provider, selected_key, hc,
             )
-            raise BackendError(
-                f"{backend} returned empty response",
-                status_code=502,
-            )
-        if _is_backend_error(answer):
-            hc.health_tracker.record_failure(
-                backend, error_code=429, error_text=answer
-            )
-            raise BackendError(
-                f"{backend} returned error response: {answer[:60]}",
-                status_code=429,
-            )
-
-        latency_ms = int((time.time() - started) * 1000)
-        hc.health_tracker.record_success(backend, latency_ms)
-        hc._report_key_result(key_provider, selected_key, True)
-        cleaned = clean_response(answer, backend)
-        _record_success_telemetry(backend, payload, cfg["fmt"], latency_ms, cleaned)
-        return cleaned
     except Exception as exc:
         _handle_call_error(backend, key_provider, selected_key, exc, emit_obs=True)
 

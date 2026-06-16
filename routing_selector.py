@@ -11,7 +11,10 @@ import route_scorer
 import router_v3
 import sticky_session
 
+import logging
 import os
+
+_log = logging.getLogger(__name__)
 
 MAX_FALLBACKS = 12
 
@@ -186,13 +189,13 @@ def _compute_backend_score(
         from context_pipeline.routing_weights import get_routing_weights
         score *= get_routing_weights().get_weight(backend, scenario or request_type)
     except ImportError:
-        pass
+        _log.debug("context_pipeline.routing_weights not available; using base score")
     if scenario == "coding":
         try:
             from coding_backend_scorer import get_coding_weight
             score *= get_coding_weight(backend)
         except ImportError:
-            pass
+            _log.debug("coding_backend_scorer not available; skipping coding weight")
         if needs_tools and _is_strong_coding_tool_backend(backend, reg.BACKENDS.get(backend, {})):
             score *= 1.25
     static_latency = _STATIC_LATENCY_ESTIMATE.get(backend)

@@ -12,8 +12,9 @@ Endpoints:
 from __future__ import annotations
 
 import logging
+import secrets
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/fleet", tags=["fleet"])
@@ -25,6 +26,32 @@ _admin_token: str = ""
 def inject_state(admin_token: str = "") -> None:
     global _admin_token
     _admin_token = admin_token
+
+
+async def _require_fleet_token(
+    authorization: str | None = Header(None),
+    x_fleet_token: str | None = Header(None),
+) -> None:
+    """Mandatory bearer-token guard for every /fleet/* endpoint.
+
+    Accepts ``Authorization: Bearer <token>`` or ``X-Fleet-Token: <token>``.
+    """
+    if not _admin_token:
+        _log.warning("fleet API has no admin token configured — rejecting all requests")
+        raise HTTPException(status_code=503, detail="Fleet API is not configured")
+
+    token = x_fleet_token
+    if not token and authorization:
+        parts = authorization.split(None, 1)
+        if len(parts) == 2 and parts[0].lower() == "bearer":
+            token = parts[1]
+
+    if not token or not secrets.compare_digest(token, _admin_token):
+        raise HTTPException(status_code=401, detail="Invalid or missing fleet token")
+
+
+# Shorthand for endpoint signatures.
+_FleetAuth = Depends(_require_fleet_token)
 
 
 class RegisterRequest(BaseModel):
@@ -63,7 +90,7 @@ class CompleteRequest(BaseModel):
 
 
 @router.post("/register")
-async def register_node(req: RegisterRequest) -> dict:
+async def register_node(req: RegisterRequest, _auth: None = _FleetAuth) -> dict:
     from fleet.node_registry import NodeCapabilities, get_registry
     caps = NodeCapabilities(
         gpu=req.gpu, gpu_model=req.gpu_model, gpu_vram_gb=req.gpu_vram_gb,
@@ -78,7 +105,7 @@ async def register_node(req: RegisterRequest) -> dict:
 
 
 @router.post("/heartbeat")
-async def heartbeat(req: HeartbeatRequest) -> dict:
+async def heartbeat(req: HeartbeatRequest, _auth: None = _FleetAuth) -> dict:
     from fleet.node_registry import get_registry
     node = get_registry().heartbeat(req.node_id, load_avg=req.load_avg, status=req.status)
     if node is None:
@@ -87,7 +114,7 @@ async def heartbeat(req: HeartbeatRequest) -> dict:
 
 
 @router.get("/nodes")
-async def list_nodes() -> dict:
+async def list_nodes(_auth: None = _FleetAuth) -> dict:
     from fleet.node_registry import get_registry
     nodes = get_registry().get_all_nodes()
     return {
@@ -98,7 +125,7 @@ async def list_nodes() -> dict:
 
 
 @router.post("/submit")
-async def submit_task(req: SubmitRequest) -> dict:
+async def submit_task(req: SubmitRequest, _auth: None = _FleetAuth) -> dict:
     from fleet.task_dispatcher import get_dispatcher
     task = get_dispatcher().submit(
         task_type=req.task_type, command=req.command,
@@ -109,7 +136,7 @@ async def submit_task(req: SubmitRequest) -> dict:
 
 
 @router.get("/poll/{node_id}")
-async def poll_tasks(node_id: str) -> dict:
+async def poll_tasks(node_id: str, _auth: None = _FleetAuth) -> dict:
     from fleet.node_registry import get_registry
     from fleet.task_dispatcher import get_dispatcher
 
@@ -138,7 +165,7 @@ async def poll_tasks(node_id: str) -> dict:
 
 
 @router.post("/complete")
-async def complete_task(req: CompleteRequest) -> dict:
+async def complete_task(req: CompleteRequest, _auth: None = _FleetAuth) -> dict:
     from fleet.node_registry import get_registry
     from fleet.task_dispatcher import get_dispatcher
 

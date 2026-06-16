@@ -43,14 +43,41 @@ class RegisteredRoutes:
     router_status: Callable[..., Any]
 
 
-def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRoutes:
-    """Mount all LiMa routers and inject shared state."""
+def _try_include(
+    app: FastAPI,
+    loaded: dict,
+    import_path: str,
+    module_key: str,
+    *,
+    inject: Callable[[Any], None] | None = None,
+) -> bool:
+    """Import a router module and include it on *app*.
+
+    Records success/failure in *loaded* under *module_key*.
+    Returns True when the router was mounted.
+    """
+    try:
+        import importlib
+        mod = importlib.import_module(import_path)
+        app.include_router(mod.router)  # type: ignore[attr-defined]
+        if inject is not None:
+            inject(mod)
+        loaded[module_key] = True
+        return True
+    except ImportError as exc:
+        logging.warning("[STARTUP] %s module not loaded: %s", module_key, exc)
+        loaded[module_key] = False
+        return False
+
+
+def _register_core_routes(app: FastAPI, deps: RouteRegistryDeps) -> tuple:
+    """Mount always-present routers and return handler aliases."""
     from routes.images import router as images_router, build_pollinations_url
     import routes.images as images_mod
 
     images_mod.inject_record_request(deps.record_request)
     app.include_router(images_router)
-    _ = build_pollinations_url  # imported for server-side image intent handling
+    _ = build_pollinations_url
 
     from routes.chat_endpoints import router as chat_endpoints_router
     import routes.chat_endpoints as chat_endpoints_mod
@@ -70,29 +97,20 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
     from routes.public_demo import router as public_demo_router
     import routes.public_demo as public_demo_mod
 
-    public_demo_mod.inject_deps(
-        model_id=deps.model_id,
-        handle_chat=deps.handle_chat,
-    )
+    public_demo_mod.inject_deps(model_id=deps.model_id, handle_chat=deps.handle_chat)
     app.include_router(public_demo_router)
 
     from routes.embeddings import router as embeddings_router
-
     app.include_router(embeddings_router)
 
     from routes.admin import router as admin_router
-    # NOTE: admin_agent_audit deleted in strategic pivot (2026-06-09)
     import routes.admin as admin_mod
 
     admin_mod.inject_state(deps.stats, deps.stats_lock, deps.backend_enabled)
     app.include_router(admin_router)
 
     from routes.static_files import router as static_files_router
-
     app.include_router(static_files_router)
-
-    # NOTE: quality_gate.py deleted in strategic pivot (2026-06-09)
-    # quality_gate_direct.py and quality_gate_tiers.py remain as utilities
 
     from routes.system_endpoints import router as system_endpoints_router
     import routes.system_endpoints as system_endpoints_mod
@@ -105,108 +123,43 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
     app.include_router(system_endpoints_router)
 
     from routes.device_gateway import router as device_gateway_router
-
     app.include_router(device_gateway_router)
     deps.loaded_modules["device_gateway"] = True
 
-    try:
-        from routes.xiaozhi_v1_compat import router as xiaozhi_v1_compat_router
+    return chat_endpoints_mod, system_endpoints_mod
 
-        app.include_router(xiaozhi_v1_compat_router)
-        deps.loaded_modules["xiaozhi_v1_compat"] = True
-    except ImportError as exc:
-        logging.warning("[STARTUP] xiaozhi_v1_compat module not loaded: %s", exc)
-        deps.loaded_modules["xiaozhi_v1_compat"] = False
 
-    try:
-        from routes.ops_metrics import router as ops_metrics_router
+def _register_optional_routes(app: FastAPI, deps: RouteRegistryDeps) -> None:
+    """Mount optional routers with graceful ImportError fallback."""
+    loaded = deps.loaded_modules
 
-        app.include_router(ops_metrics_router)
-        deps.loaded_modules["ops_metrics"] = True
-    except ImportError as exc:
-        logging.warning("[STARTUP] ops_metrics module not loaded: %s", exc)
-        deps.loaded_modules["ops_metrics"] = False
+    _try_include(app, loaded, "routes.xiaozhi_v1_compat", "xiaozhi_v1_compat")
+    _try_include(app, loaded, "routes.ops_metrics", "ops_metrics")
+    _try_include(app, loaded, "routes.health_dashboard", "health_dashboard")
 
-    try:
-        from routes.health_dashboard import router as health_dashboard_router
+    def _fleet_inject(mod: Any) -> None:
+        mod.inject_state(admin_token=os.environ.get("LIMA_API_KEY", ""))
 
-        app.include_router(health_dashboard_router)
-    except ImportError as exc:
-        logging.warning("[STARTUP] health_dashboard module not loaded: %s", exc)
+    _try_include(app, loaded, "routes.fleet_api", "fleet", inject=_fleet_inject)
+    _try_include(app, loaded, "routes.eval_internal", "eval_internal")
+    _try_include(app, loaded, "routes.outcome_ingest", "outcome_ingest")
+    _try_include(app, loaded, "routes.token_sync", "token_sync")
+    _try_include(app, loaded, "routes.device_memory", "device_memory")
+    _try_include(app, loaded, "routes.device_support", "device_support")
+    _try_include(app, loaded, "routes.device_ota", "device_ota")
 
-    # lima_mcp HTTP router retired — see docs/CODEBASE_COLD_PRUNE_PRIORITY_CN.md P5.
-    deps.loaded_modules["mcp"] = False
+    # Retired subsystems — see docs/CODEBASE_COLD_PRUNE_PRIORITY_CN.md P5.
+    loaded["mcp"] = False
+    loaded["github_webhook"] = False
+    loaded["gitee_webhook"] = False
 
-    try:
-        from routes.fleet_api import router as fleet_router
-        import routes.fleet_api as fleet_mod
 
-        fleet_mod.inject_state(admin_token=os.environ.get("LIMA_API_KEY", ""))
-        app.include_router(fleet_router)
-        deps.loaded_modules["fleet"] = True
-    except ImportError as exc:
-        logging.warning("[STARTUP] fleet module not loaded: %s", exc)
-        deps.loaded_modules["fleet"] = False
-
-    try:
-        from routes.eval_internal import router as eval_internal_router
-
-        app.include_router(eval_internal_router)
-        deps.loaded_modules["eval_internal"] = True
-    except ImportError as exc:
-        logging.warning("[STARTUP] eval_internal module not loaded: %s", exc)
-        deps.loaded_modules["eval_internal"] = False
-
-    try:
-        from routes.outcome_ingest import router as outcome_router
-
-        app.include_router(outcome_router)
-        deps.loaded_modules["outcome_ingest"] = True
-    except ImportError as exc:
-        logging.warning("[STARTUP] outcome_ingest not loaded: %s", exc)
-        deps.loaded_modules["outcome_ingest"] = False
-
-    try:
-        from routes.token_sync import router as token_sync_router
-
-        app.include_router(token_sync_router)
-        deps.loaded_modules["token_sync"] = True
-    except ImportError as exc:
-        logging.warning("[STARTUP] token_sync not loaded: %s", exc)
-        deps.loaded_modules["token_sync"] = False
+def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRoutes:
+    """Mount all LiMa routers and inject shared state."""
+    chat_endpoints_mod, system_endpoints_mod = _register_core_routes(app, deps)
+    _register_optional_routes(app, deps)
 
     mark_retired_modules(deps.loaded_modules)
-
-    # GitHub/Gitee webhooks retired — see docs/CODEBASE_COLD_PRUNE_PRIORITY_CN.md P5.
-    deps.loaded_modules["github_webhook"] = False
-    deps.loaded_modules["gitee_webhook"] = False
-
-    try:
-        from routes.device_memory import router as device_memory_router
-
-        app.include_router(device_memory_router)
-        deps.loaded_modules["device_memory"] = True
-    except ImportError as exc:
-        logging.warning("[STARTUP] device_memory module not loaded: %s", exc)
-        deps.loaded_modules["device_memory"] = False
-
-    try:
-        from routes.device_support import router as device_support_router
-
-        app.include_router(device_support_router)
-        deps.loaded_modules["device_support"] = True
-    except ImportError as exc:
-        logging.warning("[STARTUP] device_support module not loaded: %s", exc)
-        deps.loaded_modules["device_support"] = False
-
-    try:
-        from routes.device_ota import router as device_ota_router
-
-        app.include_router(device_ota_router)
-        deps.loaded_modules["device_ota"] = True
-    except ImportError as exc:
-        logging.warning("[STARTUP] device_ota module not loaded: %s", exc)
-        deps.loaded_modules["device_ota"] = False
 
     return RegisteredRoutes(
         chat_completions=chat_endpoints_mod.chat_completions,

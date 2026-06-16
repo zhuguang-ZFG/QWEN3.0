@@ -93,38 +93,23 @@ def _collect_backend_health() -> dict:
     }
 
 
-def _render_dashboard(data: dict) -> str:
-    """Render HTML dashboard from health data."""
-    ts = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(data["timestamp"]))
-    rows = []
-    for b in sorted(data["backends"], key=lambda x: -x["score"]):
-        health = b["health"]
-        if health == "healthy":
-            color = "#22c55e"
-            badge = "Healthy"
-        elif health == "degraded":
-            color = "#eab308"
-            badge = "Degraded"
-        elif health == "dead":
-            color = "#ef4444"
-            badge = "Dead"
-        else:
-            color = "#6b7280"
-            badge = "Unknown"
+def _health_badge(health: str) -> tuple[str, str]:
+    """Return (color, label) for a health status."""
+    _MAP = {"healthy": ("#22c55e", "Healthy"), "degraded": ("#eab308", "Degraded"), "dead": ("#ef4444", "Dead")}
+    return _MAP.get(health, ("#6b7280", "Unknown"))
 
-        cooldown = ""
-        if b["cooldown_remaining_s"] > 0:
-            cooldown = f"{b['cooldown_remaining_s']:.0f}s"
 
-        error_info = ""
-        if b["last_error_code"]:
-            error_info = f"HTTP {b['last_error_code']}"
-        elif b["last_error_class"]:
-            error_info = b["last_error_class"]
-
-        caps_str = ", ".join(b["caps"]) if b["caps"] else "-"
-
-        rows.append(f"""
+def _build_backend_row(b: dict) -> str:
+    """Build one HTML table row for a backend."""
+    color, badge = _health_badge(b["health"])
+    cooldown = f"{b['cooldown_remaining_s']:.0f}s" if b["cooldown_remaining_s"] > 0 else ""
+    error_info = ""
+    if b["last_error_code"]:
+        error_info = f"HTTP {b['last_error_code']}"
+    elif b["last_error_class"]:
+        error_info = b["last_error_class"]
+    caps_str = ", ".join(b["caps"]) if b["caps"] else "-"
+    return f"""
         <tr>
             <td><span style="color:{color};font-weight:bold">●</span> {b['name']}</td>
             <td>{badge}</td>
@@ -135,8 +120,11 @@ def _render_dashboard(data: dict) -> str:
             <td>{error_info or '-'}</td>
             <td>{caps_str}</td>
             <td>{b['budget']}</td>
-        </tr>""")
+        </tr>"""
 
+
+def _build_dashboard_html(data: dict, ts: str, rows: list[str]) -> str:
+    """Assemble the full dashboard HTML page."""
     return f"""<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8">
@@ -170,3 +158,10 @@ tr:hover {{ background: #f1f5f9; }}
 </table>
 <div class="timestamp">Last updated: {ts} | Auto-refresh: 30s</div>
 </body></html>"""
+
+
+def _render_dashboard(data: dict) -> str:
+    """Render HTML dashboard from health data."""
+    ts = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(data["timestamp"]))
+    rows = [_build_backend_row(b) for b in sorted(data["backends"], key=lambda x: -x["score"])]
+    return _build_dashboard_html(data, ts, rows)
