@@ -5,6 +5,21 @@
 > Updated: 2026-06-16
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-17 全量测试基线修复与文档一致性审计（完成）
+
+- **目标**：运行全量 pytest，修复真实失败，更新 `STATUS.md` 测试基线。
+- **发现**：
+  - `tests/test_deploy_unified.py` 中 3 个用例引用 `deploy_unified._should_run_eval_smoke` / `run_eval_smoke`，但 `scripts/deploy_unified.py` 重构后已移除这些函数，导致 `AttributeError`。
+  - `tests/test_repo_hygiene.py::test_worktree_has_no_untracked_high_risk_artifacts` 因 `.agents/shared/memory_fts.db` 未跟踪 `.db` 文件失败。
+- **修复**：
+  - 删除 `tests/test_deploy_unified.py` 中 3 个过时用例（~50 行），保留与当前 `deploy_files`、`prepare_remote_deploy`、`restart_server`、`parse_capacity_output`、`capacity_result` 对齐的 6 个用例。
+  - 删除运行时生成的 `.agents/shared/memory_fts.db`。
+- **验证**：
+  - `pytest tests/test_deploy_unified.py tests/test_repo_hygiene.py -v` → **10 passed**。
+  - 全量 pytest（排除本地缺 `cv2` 的两个文件）→ **1645 passed, 24 skipped, 0 failed**。
+  - `ruff check tests/test_deploy_unified.py` → clean。
+- **文档同步**：`STATUS.md` 测试基线更新为 1645 passed / 24 skipped / 0 failed，并注明 cv2 缺失导致的收集报错。
+
 ## 2026-06-17 G1 后续：假 U1 运动执行闭环证据（完成）
 
 - **目标**：补齐 [`docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md`](docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md) G1 中「假 U1 运动执行 ⏳」项，把 LiMa 云端 `/device/v1/tasks` 到 `motion_event` 终态的链路完整跑到假 U1。

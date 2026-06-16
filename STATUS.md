@@ -8,7 +8,8 @@
 > Updated: 2026-06-17
 > Branch: `main`
 > Scale: 684 文件 / 80,546 行（较初始 794/93,145 减 110 文件 / 12,599 行）
-> Tests: 全量 1640 passed / 24 skipped / 4 pre-existing failures；ruff clean
+> Tests: 全量 1645 passed / 24 skipped / 0 failed；ruff clean
+> 注：`tests/test_device_draw_integration.py`、`tests/test_svg_converter.py` 因本地缺少 `cv2` 在收集阶段报错，非代码回归。
 
 ## 当前项目状态
 

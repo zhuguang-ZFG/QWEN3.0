@@ -218,6 +218,18 @@ python -m pytest tests/test_retrieval_injection.py tests/test_routing_engine.py 
 
 **验证**：`ruff check .` clean；eval 聚焦套件 23 passed。
 
+## P8 — 过时测试清理（2026-06-17）
+
+> 主题：删除因生产代码重构而失效的测试用例。
+
+| 批次 | 动作 | 减行 |
+|------|------|------|
+| deploy_unified 过时测试 | 删除 `tests/test_deploy_unified.py` 中引用已移除函数的 3 个用例 | ~50 |
+
+**关键发现**：`scripts/deploy_unified.py` 重构后已移除 `_should_run_eval_smoke` 和 `run_eval_smoke`；对应测试导致全量门 3 个失败。保留与当前 API 对齐的 6 个用例。
+
+**验证**：`pytest tests/test_deploy_unified.py tests/test_repo_hygiene.py -v` → **10 passed**；全量 pytest（本地缺 `cv2` 环境除外）→ **1645 passed, 24 skipped, 0 failed**。
+
 ## 与活跃路线图对齐
 
 | 路线图项 | 与清理关系 |
