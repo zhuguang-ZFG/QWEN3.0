@@ -26,6 +26,18 @@
 - **下一阶段计划**：[`docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md`](docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md) 明确 G1–G4：AI→Motion 发布门、模型准入复跑、证据边界瘦身、启动/部署不确定性降低。
 - **协议开发闭环**：[`docs/device_protocol_alignment.md`](docs/device_protocol_alignment.md) 已补充 `hello` → `task_dispatch` → `motion_event` → 终态证据的调试路径，并明确 `route_policy` 为下行任务硬契约。
 - **ECC 工程流程**：[`docs/ECC_WORKFLOW_CN.md`](docs/ECC_WORKFLOW_CN.md) 定义项目采用的 Plan First / TDD / Code Review / 提交规范，以及 `.kimi-code/rules/ecc-workflow.md` 本地 rule。
+- **Ponytail 精简顾问**：[`docs/AGENTS_PONYTAIL.md`](docs/AGENTS_PONYTAIL.md) 引入 lazy senior dev 决策阶梯，LiMa 硬规则优先。
+
+### 最近完成（2026-06-17）接入 Ponytail「lazy senior dev」顾问规则
+
+- **实现**：
+  - 克隆 [Ponytail](https://github.com/DietrichGebert/ponytail) 到 `reference/ponytail/`。
+  - Cursor：`.cursor/rules/ponytail.mdc` + 全局 `~/.cursor/rules/ponytail.mdc`。
+  - Kimi：`.kimi-code/rules/ponytail.md` + 全局 `~/.kimi-code/rules/ponytail.md`。
+  - OpenCode：通过 `AGENTS.md` + `docs/AGENTS_PONYTAIL.md` 引入。
+  - 所有 Ponytail 规则前置 LiMa 覆盖声明：安全、验证、测试门禁、文档同步不可简化。
+- **验证**：`ruff check .` clean；`AGENTS.md` 保持 265 行（≤300）。
+- **提交**：`3f6d046` 已 push 到 `origin main`。
 
 ### 最近完成（2026-06-17）按 ECC 开发流程重新整理 LiMa（阶段 1-3 完成）
 

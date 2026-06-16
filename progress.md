@@ -5,6 +5,21 @@
 > Updated: 2026-06-17
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-17 接入 Ponytail「lazy senior dev」顾问规则（完成）
+
+- **目标**：安装 [Ponytail](https://github.com/DietrichGebert/ponytail) 的精简理念，作为 LiMa 的代码顾问，同时确保 LiMa 硬规则优先。
+- **实现**：
+  - 克隆 Ponytail 到 `reference/ponytail/`（本地参考，gitignored）。
+  - Cursor：新增 `.cursor/rules/ponytail.mdc`，并复制到全局 `C:/Users/zhugu/.cursor/rules/ponytail.mdc`。
+  - Kimi：新增 `.kimi-code/rules/ponytail.md`，并复制到全局 `C:/Users/zhugu/.kimi-code/rules/ponytail.md`。
+  - OpenCode：通过更新 `AGENTS.md` 引入 Ponytail 章节；详情拆分到 `docs/AGENTS_PONYTAIL.md` 以保持 `AGENTS.md` ≤300 行。
+  - 所有 Ponytail 规则均前置 LiMa 覆盖声明：信任边界验证、安全、测试门禁、文档同步等 LiMa 硬规则不可简化。
+- **验证**：
+  - `ruff check .` clean。
+  - `wc -l AGENTS.md` → **265 行**（符合 ≤300 行目标）。
+  - `wc -l docs/AGENTS_PONYTAIL.md` → 29 行。
+- **提交**：`3f6d046` chore(rules): adopt Ponytail lazy-senior-dev advisor with LiMa override，已 push 到 `origin main`。
+
 ## 2026-06-17 按 ECC 开发流程重新整理 LiMa（阶段 1-3 完成）
 
 - **目标**：将 ECC（Everything Claude Code）核心工程流程（Plan → TDD → Code Review → Commit）与 LiMa 现有实践对齐，同时按 ECC 小文件原则拆分 3 个超标生产文件。
