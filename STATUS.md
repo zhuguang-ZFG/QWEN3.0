@@ -51,10 +51,10 @@
 
 ### 最近完成（2026-06-17）G1 后续：假 U1 运动执行闭环证据
 
-- **新增测试**：`tests/test_fake_u1_cloud_loop.py`（3 cases）
-  - 云端 `home` / `write hi` 命令经 `/device/v1/tasks` → WebSocket `task_dispatch` → `fake_device_server` → fake U1 TCP 执行 → `/device/v1/events` 终态 `done`。
+- **新增测试**：`tests/test_fake_u1_cloud_loop.py`（4 cases）
+  - 云端 `home` / `write hi` / `svg M0,0 L10,0 L10,10`（`draw_generated`）命令经 `/device/v1/tasks` → WebSocket `task_dispatch` → `fake_device_server` → fake U1 TCP 执行 → `/device/v1/events` 终态 `done`。
   - 校验 `motion_task` 到 Edge-D 命令序列的转换契约。
-- **验证**：`pytest tests/test_fake_u1_cloud_loop.py -v` → **3 passed**；`ruff check` clean。
+- **验证**：`pytest tests/test_fake_u1_cloud_loop.py -v` → **4 passed**；`ruff check` clean。
 - **证据更新**：`docs/release_evidence/2026-06-16-M13-AI-to-Motion-release-gate.md` 门 B「假 U1 运动执行」状态改为 ✅。
 
 ### 最近完成（2026-06-17）G4 启动与部署不确定性降低

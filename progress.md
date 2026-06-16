@@ -2,8 +2,25 @@
 
 > Created: 2026-05-22
 
-> Updated: 2026-06-16
+> Updated: 2026-06-17
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
+
+## 2026-06-17 假 U1 闭环扩展到 AI 绘画/写字（draw_generated SVG path）（完成）
+
+- **目标**：把 `tests/test_fake_u1_cloud_loop.py` 的云→假 U1 运动闭环从 `home` / `write_text` 延伸到 `draw_generated`，覆盖 AI 绘画（SVG path 形式）端到端执行。
+- **实现**：
+  - 在 `tests/test_fake_u1_cloud_loop.py` 新增 `test_cloud_to_fake_u1_draw_generated_svg_loop`：
+    - 输入文本 `"svg M0,0 L10,0 L10,10"` 被解析为 `capability=draw_generated`。
+    - `task_creation.py` 通过 `looks_like_svg_path()` 识别为 SVG path，调用 `render_svg_task()` 本地渲染为 motion path。
+    - 云端下发 `motion_task`（`capability=run_path`，`source_capability=draw_generated`）。
+    - 通过 `fake_device_server` 桥接为 Edge-D `PATH_BEGIN/PATH_SEG/PATH_END` 命令，fake U1 执行。
+    - 设备回传 `motion_event done`，云端任务状态到达 `done`。
+- **验证**：
+  - `pytest tests/test_fake_u1_cloud_loop.py -v` → **4 passed**。
+  - `pytest tests/test_fake_u1_cloud_loop.py tests/test_device_gateway_routes.py tests/test_device_gateway_model_routing.py tests/test_device_gateway_path_pipeline.py -q` → **81 passed**。
+  - `ruff check tests/test_fake_u1_cloud_loop.py` → clean。
+  - `pyright tests/test_fake_u1_cloud_loop.py` → 0 errors。
+- **说明**：当前 `draw_generated` 对非 SVG 的文本 prompt 在 `task_creation.py` 中仍走本地 `render_text_task`，未调用 DashScope AI 生图；本测试先覆盖已稳定可用的 SVG vector 路径闭环。AI 生图→矢量化→设备的完整闭环依赖 `device_draw_handler.py`，后续可在 task_creation 中集成（需处理 sync/async 边界）。
 
 ## 2026-06-17 AI 绘画 prompt 优化 + Wanx 模型更新（完成）
 
