@@ -56,7 +56,6 @@ CORE_DIRS = [
     "session_memory",
     "code_context",
     "search_gateway",
-    "channel_gateway",
     "observability",
 ]
 

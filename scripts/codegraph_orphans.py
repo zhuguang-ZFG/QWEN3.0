@@ -38,7 +38,6 @@ PROD_SCAN_ROOTS = (
     "routes",
     "context_pipeline",
     "session_memory",
-    "channel_gateway",
     "device_memory",
     "device_workflow",
     "device_intelligence",

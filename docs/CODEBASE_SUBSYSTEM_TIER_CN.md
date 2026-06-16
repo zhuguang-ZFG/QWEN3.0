@@ -211,7 +211,43 @@ python -m pytest tests/test_provider_automation_admission.py -q
 
 ---
 
-## 12. 结论
+## 13. 2026-06-17 大子系统审计（续 Q7）
+
+> 审计范围：`search_gateway`、`channel_gateway`、`routes/` + 全仓冷模块扫描
+> 基数：794 文件 / 93,145 行 → 审计后：735 文件 / 85,203 行（**-59 文件 / -7,942 行**）
+
+### 13.1 已退役模块
+
+| 模块 | 文件数 | 约行数 | 处置 | 理由 |
+|------|--------|--------|------|------|
+| `channel_gateway/` | 23 + 1 路由 + 13 测试 | ~3,500 | **整体退役** | WeChat 绑定层，生产 0 importer；`channel_retirement.py` 已标记 |
+| `research/` | 4 + 1 测试 | ~290 | 删除 | 非测试代码 0 import |
+| `web_reverse_eval.py` | 1 + 1 测试 | ~265 | 删除 | 非测试代码 0 import |
+| `cli_status.py` | 1 + 1 测试 | ~214 | 删除 | 非测试代码 0 import |
+| `sandbox/` | 2 + 1 测试 | ~254 | 删除 | 非测试代码 0 import |
+| `data_workbench/` | 3 + 1 测试 | ~262 | 删除 | 非测试代码 0 import |
+| `ops_entrypoint/` | 3 + 1 测试 | ~40 | 删除 | 非测试代码 0 import |
+| `search_gateway/zhihu_adapter.py` | 1 | ~143 | 删除 | 生产 0 引用 |
+| `search_gateway/public_feeder.py` | 1 | ~364 | 删除 | 生产 0 引用 |
+| `search_gateway/policy.py` | 1 + 测试片段 | ~80 | 删除 | channel_gateway 退役后 0 引用 |
+| `search_gateway/codesearch_status.py` | 1 | ~59 | 删除 | 0 引用 |
+| `eval_loop.py` | 1 | ~51 | 删除 | 死 shim，全仓 0 import |
+| 空目录（evals/、fragments/ 等） | — | 0 | 删除 | 无 .py 文件 |
+
+### 13.2 search_gateway 保留清单（lazy import 保护）
+
+以下适配器看似无直接 import，但被 `dev_adapter.py` / `dev_tools.py` 函数内 **lazy import** 引用，**禁止删除**：
+
+- `brave_adapter.py`、`tavily_adapter.py`、`tinyfish_transport.py`、`anysearch_adapter.py`、`searxng_adapter.py`
+- `codesearch_adapter.py`、`gemini_native.py`、`gitee_tools.py`
+
+### 13.3 连锁效应
+
+channel_gateway 退役后，其作为 search_gateway 主要消费者的引用消失，导致 `codesearch_status.py` 和 `policy.py` 变为 0 引用，已连锁清理。
+
+---
+
+## 14. 结论
 
 - **`context_pipeline`**：核心价值在 **Hot 五模块**；其余大量文件为 Warm/Cold，是仓库行数膨胀主因之一，应用分层治理而非「整包删除」。
 - **`provider_probe`**：整体 **Cold**，与运行时 `probe_loop` 无关；适合离线运维，不适合接入设备/聊天热路径。

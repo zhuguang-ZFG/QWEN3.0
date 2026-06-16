@@ -8,8 +8,8 @@ from collections.abc import MutableMapping
 
 logger = logging.getLogger(__name__)
 
-RETIRED_CHANNELS = frozenset({"telegram"})
-RETIRED_ROUTE_PREFIXES = frozenset({"/telegram"})
+RETIRED_CHANNELS = frozenset({"telegram", "channel_gateway"})
+RETIRED_ROUTE_PREFIXES = frozenset({"/telegram", "/channel"})
 
 
 def mark_retired_modules(loaded_modules: MutableMapping[str, bool]) -> None:

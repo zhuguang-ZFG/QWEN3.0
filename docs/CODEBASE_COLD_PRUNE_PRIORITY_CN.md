@@ -177,9 +177,28 @@ python -m pytest tests/test_retrieval_injection.py tests/test_routing_engine.py 
 |------|------|------|
 | `routes/gitee_webhook.py` + `github_webhook.py` | 生产 `*_WEBHOOK_ENABLED=0` 且长期不用 | 中（有测试） |
 | `lima_mcp/` 路由 | `route_registry` try-import；若产品不用 MCP 面 | 中（依赖 `graph_retrieval`） |
-| `channel_gateway/` | 确认无活跃 G3 会话 | 高（需产品确认） |
+| ~~`channel_gateway/`~~ | ~~确认无活跃 G3 会话~~ | ~~高~~ **✅ 已退役 2026-06-17**（见下方 P6） |
 
 **不建议**：为「少缝合」而删 `orchestrate*`（Warm 复杂聊天）；设备战略不依赖，但公共 API 仍可能触发。
+
+---
+
+## P6 — 大子系统审计瘦身（**2026-06-17 已完成**）
+
+> 审计范围：`search_gateway`、`channel_gateway`、`routes/` + 全仓冷模块扫描
+> 结果：794 文件 / 93,145 行 → 735 文件 / 85,203 行（**-59 文件 / -7,942 行**）
+
+| 批次 | 动作 | 减行 |
+|------|------|------|
+| 空目录 + 死 shim | 删除 `eval_loop.py`、`evals/`、`fragments/`、`reverse_gateway/`、`routes/.omc/` | ~51 |
+| 仅测试引用冷模块 | 删除 `research/`、`web_reverse_eval.py`、`cli_status.py`、`sandbox/`、`data_workbench/`、`ops_entrypoint/` + 测试 | ~1,325 |
+| search_gateway 死适配器 | 删除 `zhihu_adapter.py`、`public_feeder.py` | ~507 |
+| channel_gateway 整体退役 | 删除 23 文件 + `routes/channel_gateway.py` + 13 测试；`route_registry.py` 注册块移除；`channel_retirement.py` 标记 | ~3,500 |
+| 连锁清理 | `codesearch_status.py`、`policy.py`（channel_gateway 退役后 0 引用） | ~139 |
+
+**关键发现**：`search_gateway/dev_adapter.py` 和 `dev_tools.py` 在函数内做 lazy import，保护了 `brave_adapter`、`tavily_adapter`、`tinyfish_transport`、`codesearch_adapter`、`gemini_native`、`gitee_tools` 等适配器不被误删。详见 [`CODEBASE_SUBSYSTEM_TIER_CN.md`](CODEBASE_SUBSYSTEM_TIER_CN.md) §13。
+
+**验证**：`ruff check .` clean；全量测试 1736 passed / 25 skipped / 4 pre-existing failures。
 
 ---
 

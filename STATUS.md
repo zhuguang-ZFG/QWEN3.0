@@ -5,10 +5,10 @@
 > **公网端点**: chat.donglicao.com, api.donglicao.com
 > **部署**: Alibaba Cloud VPS + JDCloud 备用
 
-> Updated: 2026-06-16
+> Updated: 2026-06-17
 > Branch: `main`
-> Tests: M11/M12 聚焦门 **74 passed**（eval + profile 路由）；device 路由/profile 套件 **70 passed**；ruff clean
-> Quality: M9–M12 设备路由契约 + 准入脚手架 + profile 路由已关闭；M13 发布证据模板已关闭；**阶段 2 续 Image Generator 真实 API 夹具**已关闭
+> Scale: 735 文件 / 85,203 行（较上次 794/93,145 减 59 文件 / 7,942 行）
+> Tests: 全量 1736 passed / 25 skipped / 4 pre-existing failures；ruff clean
 
 ## 当前项目状态
 
@@ -17,6 +17,18 @@
 - **AI 路由**: 170+ 后端智能路由（设备任务 + 聊天/编码）
 - **任务管理**: 任务创建、派发、执行、监控、恢复
 - **设备策略**: 安全策略、固件兼容性、路径验证、route_policy/backend 字段贯通
+
+### 最近完成（2026-06-17）大子系统审计瘦身
+
+> 审计范围：`search_gateway`、`channel_gateway`、`routes/` + 全仓冷模块扫描
+> 详见 [`docs/CODEBASE_SUBSYSTEM_TIER_CN.md`](docs/CODEBASE_SUBSYSTEM_TIER_CN.md) §13 和 [`docs/CODEBASE_COLD_PRUNE_PRIORITY_CN.md`](docs/CODEBASE_COLD_PRUNE_PRIORITY_CN.md) P6
+
+- **channel_gateway 整体退役**：23 文件 + `routes/channel_gateway.py` + 13 测试删除；`route_registry.py` 注册块移除；`channel_retirement.py` RETIRED_CHANNELS 标记
+- **冷模块清理**：`research/`、`web_reverse_eval.py`、`cli_status.py`、`sandbox/`、`data_workbench/`、`ops_entrypoint/` 共 6 个模块 + 测试删除
+- **search_gateway 死适配器**：`zhihu_adapter.py`、`public_feeder.py`、`codesearch_status.py`、`policy.py` 删除
+- **空目录与死 shim**：`eval_loop.py` 删除；`evals/`、`fragments/`、`reverse_gateway/`、`routes/.omc/` 清理
+- **配置同步**：`pyrightconfig.json`、`deploy_unified.py`、`codegraph_orphans.py` 移除 channel_gateway 条目
+- **验证**：ruff clean；全量测试 1736 passed / 25 skipped / 4 pre-existing failures（无新增）
 
 ### 最近完成（2026-06-16）阶段 2 续 — Image Generator 真实 API 夹具
 
@@ -93,6 +105,7 @@ ruff check: clean（触及文件）
 | WeChat 集成 | ✅ 已退役 | 桥接代码已归档 |
 | agent_runtime 路由 | ✅ 已退役 | HTTP 路由已移除 |
 | Anthropic `/v1/messages` 兼容层 | ✅ 已退役 | 端点与转换函数已移除 |
+| channel_gateway（WeChat 绑定层） | ✅ 已退役 | 2026-06-17；23 文件 + 路由 + 13 测试删除；`channel_retirement.py` 标记 |
 
 ## 部署状态
 

@@ -1,13 +1,5 @@
 from search_gateway.anysearch_adapter import AnySearchAdapter
-from search_gateway.policy import should_search
 from search_gateway.safety import redact_sensitive_query
-
-
-def test_should_search_only_for_explicit_realtime_or_url_requests():
-    assert should_search("search latest Cohere pricing") is True
-    assert should_search("read https://example.com/docs") is True
-    assert should_search("查一下今天的模型状态") is True
-    assert should_search("why did routing_engine.select fail?") is False
 
 
 def test_redact_sensitive_query_removes_tokens_paths_and_private_ips():

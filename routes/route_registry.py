@@ -228,15 +228,6 @@ def register_all_routes(app: FastAPI, deps: RouteRegistryDeps) -> RegisteredRout
         logging.warning("[STARTUP] device_ota module not loaded: %s", exc)
         deps.loaded_modules["device_ota"] = False
 
-    try:
-        from routes.channel_gateway import router as channel_gateway_router
-
-        app.include_router(channel_gateway_router)
-        deps.loaded_modules["channel_gateway"] = True
-    except ImportError as exc:
-        logging.warning("[STARTUP] channel_gateway module not loaded: %s", exc)
-        deps.loaded_modules["channel_gateway"] = False
-
     return RegisteredRoutes(
         chat_completions=chat_endpoints_mod.chat_completions,
         list_models=system_endpoints_mod.list_models,
