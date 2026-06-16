@@ -9,7 +9,7 @@
 |----|------|---------|--------|
 | ECC-1 | process | LiMa 缺少显式 Plan → TDD → Code Review → Commit 闭环；已在 `AGENTS.md` 和 `docs/ECC_WORKFLOW_CN.md` 中增量采用 ECC 流程 | Closed |
 | ECC-2 | metrics | 缺少代码尺寸自动检查；新增 `scripts/check_code_size.py`，基线更新：23 个 >300 行文件、99 个 >50 行函数（已拆 routing_selector/server_lifespan/chat_stream/device_draw_handler 热路径大函数） | Open |
-| ECC-3 | metrics | 缺少测试覆盖率基线；已安装 `pytest-cov` 并在 `pytest.ini` 配置；`device_gateway` 聚焦覆盖 38.2%（需逐步提升） | Open |
+| ECC-3 | metrics | 缺少测试覆盖率基线；已安装 `pytest-cov` 并在 `pytest.ini` 配置；`device_gateway` 聚焦覆盖从 38.2% 提升至 **71.1%**（新增 `device_draw_handler`/`motion` 单元测试） | Open |
 | ECC-4 | tooling | `scripts/run_pre_commit_check.py` 已集成代码尺寸检查作为 warning（不阻塞，现有违规先记录） | Closed |
 
 ## 2026-06-17 G4 启动与部署不确定性降低

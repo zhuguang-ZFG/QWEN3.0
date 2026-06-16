@@ -5,6 +5,18 @@
 > Updated: 2026-06-17
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-17 提升 device_gateway 测试覆盖率（步骤 3 完成）
+
+- **目标**：把 `device_gateway` 聚焦覆盖率从 38.2% 提升。
+- **实现**：
+  - 新增 `tests/test_device_draw_handler.py`（11 cases）：通过 stub `xiaozhi_drawing` 子模块绕过本地缺失的 `cv2`，覆盖预设图形、成功、生成失败、SVG 转换失败、SVG 验证失败、异常路径。
+  - 新增 `tests/test_motion.py`（13 cases）：覆盖 `MotionPoint`、`MotionCommand`、`MotionEvent` 的序列化、命令工厂、边界情况。
+- **验证**：
+  - `pytest tests/test_device_draw_handler.py tests/test_motion.py tests/test_draw_prompt_enhancer.py -q` → **35 passed**。
+  - `ruff check` 通过。
+  - `pytest tests/test_device_gateway_*.py tests/test_motion.py tests/test_device_draw_handler.py --cov=device_gateway` → **211 passed**，`device_gateway` 覆盖率 **71.1%**（原 65.7%）。
+- **提交**：`7f4c93b` test(device_gateway): add unit tests for device_draw_handler and motion，已 push 到 `origin main`。
+
 ## 2026-06-17 清理死代码并更新尺寸基线（步骤 2 完成）
 
 - **目标**：扫描并清理真正的死区模块，同时不删除被 `context_pipeline` 热路径 lazy import 的模块。

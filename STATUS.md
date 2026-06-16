@@ -42,6 +42,12 @@
 - **ECC 工程流程**：[`docs/ECC_WORKFLOW_CN.md`](docs/ECC_WORKFLOW_CN.md) 定义项目采用的 Plan First / TDD / Code Review / 提交规范，以及 `.kimi-code/rules/ecc-workflow.md` 本地 rule。
 - **Ponytail 精简顾问**：[`docs/AGENTS_PONYTAIL.md`](docs/AGENTS_PONYTAIL.md) 引入 lazy senior dev 决策阶梯，LiMa 硬规则优先。
 
+### 最近完成（2026-06-17）提升 device_gateway 测试覆盖率（步骤 3）
+
+- **新增**：`tests/test_device_draw_handler.py`（11 cases）、`tests/test_motion.py`（13 cases）。
+- **验证**：`pytest` 聚焦 35 passed；`device_gateway` 覆盖率从 65.7% 提升至 **71.1%**。
+- **提交**：`7f4c93b` 已 push 到 `origin main`。
+
 ### 最近完成（2026-06-17）拆分热路径大函数 + 清理死代码（步骤 1-2）
 
 - **拆分**：`routing_selector.select` → 21 行；`server_lifespan.lifespan` → 8 行；`routes/chat_stream.stream_response` → 47 行；`device_gateway/device_draw_handler.handle_device_draw` → 45 行。
