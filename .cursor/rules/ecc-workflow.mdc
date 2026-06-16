@@ -1,0 +1,59 @@
+---
+description: ECC 开发流程（LiMa 增量版）— 非平凡改动 Plan First、TDD、Code Review、小文件/小函数
+alwaysApply: true
+---
+
+# ECC 开发流程（LiMa 增量版）
+
+## 触发条件
+
+本规则在处理 LiMa（`D:/QWEN3.0`）项目时生效。
+
+## 核心原则
+
+1. **Plan First**：非平凡改动先进入 Plan mode，用户批准后执行。
+2. **TDD**：新增/修改功能优先写测试；RED → GREEN → REFACTOR。
+3. **Code Review**：代码变更后、提交前使用 ECC 安全/代码审查清单自查。
+4. **小文件/小函数**：新模块 ≤300 行，函数 ≤50 行。
+5. **Immutability**：优先返回新对象，避免原地修改。
+6. **Security First**：无硬编码 secret，输入验证，错误不泄露敏感信息。
+
+## 执行流程
+
+### 接到任务时
+
+1. 判断任务是否非平凡（>2-3 文件、架构决策、意图不明确、安全敏感）。
+2. 若是，制定计划并获得用户批准后再执行。
+3. 若否，直接执行。
+
+### 实现时
+
+1. 写测试（RED）。
+2. 运行测试，确认失败。
+3. 写最小实现（GREEN）。
+4. 运行测试，确认通过。
+5. 重构（REFACTOR），保持测试通过。
+
+### 提交前
+
+1. 运行 focused tests → full tests。
+2. 运行 `ruff check .`。
+3. 运行 `pyright` 对改动文件。
+4. 运行 `python scripts/check_code_size.py`，确保无新增 >300 行文件 / >50 行函数。
+5. 检查无硬编码 secret。
+6. 更新 `STATUS.md` / `progress.md` / `findings.md`（如适用）。
+7. 仅 stage 相关文件，使用 conventional commits。
+
+### 发现安全问题时
+
+1. STOP 当前工作。
+2. 修复 CRITICAL 问题。
+3. 轮换暴露的 secret。
+4. 检查类似问题。
+5. 更新 `findings.md`。
+
+## 参考文档
+
+- `AGENTS.md`（LiMa 原生规则，优先级更高）
+- `docs/ECC_WORKFLOW_CN.md`（本流程的详细展开）
+- `reference/ECC/`（ECC 完整仓库，按需查阅）
