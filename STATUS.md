@@ -24,6 +24,18 @@
 - **下一阶段计划**：[`docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md`](docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md) 明确 G1–G4：AI→Motion 发布门、模型准入复跑、证据边界瘦身、启动/部署不确定性降低。
 - **协议开发闭环**：[`docs/device_protocol_alignment.md`](docs/device_protocol_alignment.md) 已补充 `hello` → `task_dispatch` → `motion_event` → 终态证据的调试路径，并明确 `route_policy` 为下行任务硬契约。
 
+### 最近完成（2026-06-17）G2 设备模型准入复跑
+
+- **目标**：执行作者意图计划 G2，让 `device_draw` / `device_vector` / `device_write` / `device_control` 的准入依据可复跑、可比较、可回滚。
+- **修复**：原 `docs/model_admission/2026-06-16-device-drawing-writing.md` 因 Windows 控制台重定向编码错误变为 ISO-8859 二进制损坏，已删除并重建为 `docs/model_admission/2026-06-17-device-drawing-writing.md`。
+- **报告**：按 `docs/model_admission/TEMPLATE.md` 补齐元数据、角色详情、路由偏好配置、准入门控和可复现命令。
+- **验证**：
+  - `python scripts/eval_device_model_role.py --all` → 6 角色 admit/admit_conditional，2 角色 defer，0 fail。
+  - `pytest tests/test_device_gateway_model_routing.py -q` → **32 passed**。
+  - `pytest tests/test_routing_engine.py -q --tb=short` → **24 passed**。
+  - `ruff check` 触及文件 clean。
+- **文档同步**：`docs/README.md` 最新准入报告索引更新为 2026-06-17 版本。
+
 ### 最近完成（2026-06-17）第二轮瘦身：零引用模块 + 归档脚本清理
 
 > 两轮合计：794→684 文件（-110），93,145→80,546 行（-12,599）

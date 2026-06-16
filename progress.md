@@ -5,9 +5,30 @@
 > Updated: 2026-06-16
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-17 G2 设备模型准入复跑
+
+- **目标**：执行 [`docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md`](docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md) G2，让 `device_draw`、`device_vector`、`device_write`、`device_control` 的准入依据可复跑、可比较、可回滚。
+- **报告**：[`docs/model_admission/2026-06-17-device-drawing-writing.md`](docs/model_admission/2026-06-17-device-drawing-writing.md)
+- **修复**：原 `docs/model_admission/2026-06-16-device-drawing-writing.md` 因 Windows 控制台重定向编码错误变为二进制损坏，已删除并按 TEMPLATE.md 格式重写为 2026-06-17 完整报告。
+- **代码理解**：
+  - `scripts/eval_device_model_role.py` 通过 `ROLE_SPECS` 定义 8 个设备模型角色，调用 pytest 计算 fixture 通过率并输出 verdict。
+  - `scripts/device_model_role_eval_specs.py` 把角色与 backend、`route_role`、pytest targets 对齐；`image_generator` 为条件准入并支持 `--live` 真实 API 门。
+  - `device_gateway/model_routing.py` 中 `DEVICE_ROLE_PREFERENCES` 与报告中的路由偏好配置一致。
+- **验证**：
+  - `python scripts/eval_device_model_role.py --all` → 6 角色 admit/admit_conditional，2 角色 defer，0 fail。
+  - `python -m pytest tests/test_device_gateway_model_routing.py -q` → **32 passed**。
+  - `python -m pytest tests/test_routing_engine.py -q --tb=short` → **24 passed**。
+  - `ruff check scripts/eval_device_model_role.py scripts/device_model_role_eval_specs.py docs/model_admission/2026-06-17-device-drawing-writing.md docs/README.md` → clean。
+- **文档同步**：`docs/README.md` 最新准入报告链接更新为 2026-06-17 版本。
+
 ## 2026-06-16 M13 AI→Motion 发布门闭环证据
 
 - **目标**：执行 [`docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md`](docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md) G1，产出首份真实 AI→Motion 发布证据报告。
+- **报告**：[`docs/release_evidence/2026-06-16-M13-AI-to-Motion-release-gate.md`](docs/release_evidence/2026-06-16-M13-AI-to-Motion-release-gate.md)
+- **代码理解**：
+  - `device_gateway/model_routing.py` 通过 `DEVICE_ROLE_PREFERENCES` 把 `device_control/write/draw/vector/unknown` 映射到准入 backend；`route_policy.backend` 已贯通。
+  - `device_gateway/task_creation.py` 在任务创建、校验失败、固件不兼容、策略阻断、模拟评估等路径均保留 `route_policy` 并记录 `route_evidence` 制品。
+  - `device_gateway/artifact_recorder.py` 异步 JSONL 写入路由证据，OSError 显式 `logger.warning`，符合 AGENTS.md 无静默降级规则。
 - **报告**：[`docs/release_evidence/2026-06-16-M13-AI-to-Motion-release-gate.md`](docs/release_evidence/2026-06-16-M13-AI-to-Motion-release-gate.md)
 - **代码理解**：
   - `device_gateway/model_routing.py` 通过 `DEVICE_ROLE_PREFERENCES` 把 `device_control/write/draw/vector/unknown` 映射到准入 backend；`route_policy.backend` 已贯通。

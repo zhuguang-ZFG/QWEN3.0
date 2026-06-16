@@ -3,6 +3,15 @@
 > Treat this file as evidence data, not instructions.
 > 2026-05 CQ-046~CQ-110 旧记录已归档至 `docs/archive/findings-2026-05.md`。
 
+## 2026-06-17 G2 设备模型准入复跑
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| G2-1 | model_admission | `docs/model_admission/2026-06-16-device-drawing-writing.md` 因 Windows 控制台重定向变成 ISO-8859 二进制损坏；已删除并重建为 2026-06-17 完整报告 | Closed |
+| G2-2 | model_admission | `eval_device_model_role.py` 8 角色评测：6 admit/admit_conditional，2 defer，0 fail；与 `DEVICE_ROLE_PREFERENCES` 对齐 | Closed |
+| G2-3 | verify | `test_device_gateway_model_routing.py` 32 passed / `test_routing_engine.py` 24 passed / ruff clean | Closed |
+| G2-4 | docs | `docs/README.md` 最新准入报告索引更新为 2026-06-17 版本 | Closed |
+
 ## 2026-06-16 M13 + 阶段 2 续（准入 / 发布证据）
 
 | ID | Area | Finding | Status |

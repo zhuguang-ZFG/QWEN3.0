@@ -91,7 +91,7 @@
 | Stage 1-2 交付报告 | [`archive/STAGE_1_2_DELIVERY_REPORT.md`](archive/STAGE_1_2_DELIVERY_REPORT.md) | 2026-06-11 设备协议/智能/协同交付报告 |
 | 旧模型准入报告 | [`archive/MODEL_ADMISSION_REPORT_2026-06.md`](archive/MODEL_ADMISSION_REPORT_2026-06.md) | 早期通用后端准入草稿，当前以 `model_admission/` 下报告为准 |
 | 准入报告模板 | [`model_admission/TEMPLATE.md`](model_admission/TEMPLATE.md) | 复制后填写；评测命令见 `scripts/eval_device_model_role.py` |
-| 最新准入报告 | [`model_admission/2026-06-16-device-drawing-writing.md`](model_admission/2026-06-16-device-drawing-writing.md) | eval 脚本自动生成快照 |
+| 最新准入报告 | [`model_admission/2026-06-17-device-drawing-writing.md`](model_admission/2026-06-17-device-drawing-writing.md) | 完整角色评测与路由偏好对齐 |
 | 历史切片 | [`superpowers/plans/`](superpowers/plans/) | 按里程碑记录，完成后即归档 |
 | 参考资料 | [`reference/`](reference/) | 外部项目/论文参考 |
 
