@@ -1,20 +1,18 @@
-# provider_probe
+# provider_probe（已归档）
 
-> 更新：2026-06-15
-> 层级：**Cold**（离线实验流水线）
-> 权威说明：[`docs/CODEBASE_SUBSYSTEM_TIER_CN.md`](../docs/CODEBASE_SUBSYSTEM_TIER_CN.md) §6
+> 更新：2026-06-16（CP-5）
 
-## 用途
+本目录仅保留**指针**。实现代码已迁至离线部署包：
 
-新 AI 提供商发现、网页/平台监控、浏览器逆向、连通性验证、后端常量**草稿**生成。产出须经人工 review 后合入 `backends_registry.py`。
+[`packages/provider-probe-offline/`](../packages/provider-probe-offline/README.md)
 
-## 与运行时探活的区别
+## 说明
 
-| 组件 | 层级 | 说明 |
-|------|------|------|
-| `probe_loop.py`（仓库根） | Warm | `server_lifespan` 启动的后端健康探活 |
-| **`provider_probe/` 包** | Cold | 不得被 `server.py` / 路由注册默认挂载 |
+| 项 | 内容 |
+|----|------|
+| 层级 | **Cold** — 不得被 `server.py` / 路由默认挂载 |
+| 运行时探活 | 仓库根 `probe_loop.py`（Warm），**与本包无关** |
+| 运行节点 | JDCloud `117.72.118.95` 手动/定时；见 `deploy/jdcloud/` |
+| 权威分层 | [`docs/CODEBASE_SUBSYSTEM_TIER_CN.md`](../docs/CODEBASE_SUBSYSTEM_TIER_CN.md) §6 |
 
-## 运行方式
-
-手动脚本或 JDCloud 探测节点；典型入口见 `browser_service.py` 与各 `discovery/`、`verify/` 子模块。无生产 API 依赖本包。
+本地开发与测试：将 `packages/provider-probe-offline` 加入 `PYTHONPATH`（`pytest.ini` 已配置）。

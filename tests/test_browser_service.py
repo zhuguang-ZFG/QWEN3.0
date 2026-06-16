@@ -1,6 +1,9 @@
 from fastapi.testclient import TestClient
+import pytest
 
 from provider_probe import browser_service
+
+pytestmark = pytest.mark.offline_probe
 
 
 def test_browser_launch_options_include_configured_executable(monkeypatch):

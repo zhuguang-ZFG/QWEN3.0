@@ -22,7 +22,8 @@ mkdir -p "${INSTALL_DIR}/data"
 
 # 2. Copy Python modules
 echo "[2/6] Copying Python modules..."
-cp -r "${REPO_ROOT}/provider_probe/"* "${INSTALL_DIR}/provider_probe/"
+PROBE_SRC="${REPO_ROOT}/packages/provider-probe-offline/provider_probe"
+cp -r "${PROBE_SRC}/"* "${INSTALL_DIR}/provider_probe/"
 touch "${INSTALL_DIR}/provider_probe/__init__.py"
 
 # 3. Install Python dependencies

@@ -21,7 +21,7 @@
 | **P1** | 低 | ~2k | 删离线评测链 | 无 |
 | **P2** | 中 | ~4k | `provider_automation` CLI 迁 `scripts/` | 无 |
 | **P3** | 中 | ~4k（首批 ~0.1k） | `context_pipeline/lab/` 物理搬迁 | 无（**CP-4 首批已关**） |
-| **P4** | 高 | ~2.2k | `provider_probe` 归档为 JDCloud 部署包 | 无（禁止挂 `server.py`） |
+| **P4** | 高 | ~2.2k | `provider_probe` 归档为 JDCloud 部署包 | 无（**CP-5 已关**） |
 
 **禁止整包删除**：`routing_engine*`、`device_gateway/*` Hot 路径、`session_memory` Hot facade、`probe_loop.py`（运行时探活 ≠ `provider_probe`）。
 
@@ -146,7 +146,21 @@ python -m pytest tests/test_retrieval_injection.py tests/test_routing_engine.py 
 
 ---
 
-## P4 — `provider_probe` 归档（CP-5，运维决策）
+## P4 — `provider_probe` 归档（**CP-5 已关闭 2026-06-16**）
+
+| 项 | 说明 |
+|----|------|
+| 动作 | `provider_probe/` → `packages/provider-probe-offline/provider_probe/`；根目录仅 `provider_probe/README.md` 指针 |
+| 设计 | [`provider_probe_offline_CN.md`](provider_probe_offline_CN.md) |
+| 部署 | `deploy/jdcloud/*.sh` 源路径已更新 |
+| 测试 | `tests/test_browser_service.py` + `pytest.mark.offline_probe`；`pytest.ini` `pythonpath` |
+| 不变量 | `server_lifespan` / `routes/*` **无** import；仅 JDCloud 手动/定时 |
+
+下一批见 **可选 P5**。
+
+---
+
+## P4（历史规划 — CP-5）
 
 | 项 | 说明 |
 |----|------|

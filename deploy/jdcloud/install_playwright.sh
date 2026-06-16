@@ -30,7 +30,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 
 mkdir -p "${INSTALL_DIR}"
-cp "${REPO_ROOT}/provider_probe/browser_service.py" "${INSTALL_DIR}/browser_service.py"
+cp "${REPO_ROOT}/packages/provider-probe-offline/provider_probe/browser_service.py" "${INSTALL_DIR}/browser_service.py"
 cp "${SCRIPT_DIR}/lima-probe-browser.service" /etc/systemd/system/lima-probe-browser.service
 
 systemctl daemon-reload

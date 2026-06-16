@@ -22,11 +22,12 @@
 | 长期记忆 | [`LIMA_MEMORY_CN.md`](LIMA_MEMORY_CN.md) | ✅ 活跃 |
 | 项目路线图 | [`PROJECT_OPTIMIZATION_ROADMAP_CN.md`](PROJECT_OPTIMIZATION_ROADMAP_CN.md) | ✅ 活跃 |
 | 子系统热度分层（瘦身评估） | [`CODEBASE_SUBSYSTEM_TIER_CN.md`](CODEBASE_SUBSYSTEM_TIER_CN.md) | ✅ 活跃（Q7） |
-| Cold 清理优先级（下一批删/迁） | [`CODEBASE_COLD_PRUNE_PRIORITY_CN.md`](CODEBASE_COLD_PRUNE_PRIORITY_CN.md) | ✅ 活跃（CP-1/2/3/4 首批已关） |
+| Cold 清理优先级（下一批删/迁） | [`CODEBASE_COLD_PRUNE_PRIORITY_CN.md`](CODEBASE_COLD_PRUNE_PRIORITY_CN.md) | ✅ 活跃（CP-1/2/3/4/5 已关） |
 | provider_automation（Warm/Cold） | [`../provider_automation/README.md`](../provider_automation/README.md) | ✅ 活跃（CP-3） |
 | MiMo MCP（Cursor stdio） | [`MIMO_MCP_SETUP_CN.md`](MIMO_MCP_SETUP_CN.md) | ✅ 活跃（本地 dev） |
 | context_pipeline 模块地图 | [`../context_pipeline/README.md`](../context_pipeline/README.md) | ✅ 活跃 |
-| provider_probe（Cold 离线） | [`../provider_probe/README.md`](../provider_probe/README.md) | ✅ 活跃 |
+| provider_probe 离线包（CP-5） | [`provider_probe_offline_CN.md`](provider_probe_offline_CN.md) | ✅ 活跃 |
+| provider_probe（Cold 离线） | [`../packages/provider-probe-offline/README.md`](../packages/provider-probe-offline/README.md) | ✅ 活跃（CP-5 归档） |
 | 发布规则 | [`DEPLOY_AND_RELEASE_CONVENTION.md`](DEPLOY_AND_RELEASE_CONVENTION.md) | ✅ 活跃 |
 | 历史执行进展 | [`../progress.md`](../progress.md) | ✅ 活跃（近 3 个月） |
 | 旧任务计划 | [`../task_plan.md`](../task_plan.md) | ⚠️ 部分过时，仅作历史参考 |

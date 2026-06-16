@@ -168,7 +168,7 @@ def main() -> None:
 def _scan_cold_packages() -> None:
     """Offline packages that look orphan-like but must be kept by policy."""
     entries = (
-        ("provider_probe", "Cold probe pipeline; not mounted on server.py"),
+        ("packages/provider-probe-offline/provider_probe", "Cold probe pipeline; not mounted on server.py"),
         ("scripts/eval_loop.py", "Cold eval harness (Q5-4 migrated from root)"),
     )
     print("\n=== Cold packages (keep — not slimming targets) ===")

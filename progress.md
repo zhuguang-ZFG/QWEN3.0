@@ -5,6 +5,13 @@
 > Updated: 2026-06-16
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-16 CP-5 provider_probe 离线包归档
+
+- **迁入** `packages/provider-probe-offline/provider_probe/`；根 `provider_probe/README.md` 指针
+- **文档** `docs/provider_probe_offline_CN.md`；更新 `deploy/jdcloud/`、`pytest.ini`、`CODEBASE_*`
+- **测试** `tests/test_browser_service.py` 标 `offline_probe` marker
+- **验证**：`pytest tests/test_browser_service.py tests/test_retrieval_injection.py tests/test_routing_engine.py -q`
+
 ## 2026-06-16 CP-4 context_pipeline/lab 首批 + agent_runtime 测试清理
 
 - **迁入** `context_pipeline/lab/static_analysis.py`（原根目录；仅 `tests/test_static_analysis.py`）

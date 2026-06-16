@@ -62,7 +62,7 @@ After changing JDCloud assets, verify at least:
 ```powershell
 git status --short
 git diff --check
-python -m py_compile provider_probe\browser_service.py provider_probe\discovery\scheduler.py
+python -m py_compile packages/provider-probe-offline/provider_probe/browser_service.py packages/provider-probe-offline/provider_probe/discovery/scheduler.py
 ```
 
 If a real JDCloud deployment is performed, record service status and smoke

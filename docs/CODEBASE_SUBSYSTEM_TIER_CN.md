@@ -86,17 +86,19 @@ LiMa 已完成从「个人编码助手后端」到「AI 智能设备统一云端
 
 ---
 
-## 6. `provider_probe/`（整体 **Cold**）
+## 6. `provider_probe`（整体 **Cold**，CP-5 归档）
 
 ### 6.1 结构与用途
 
 ```
-provider_probe/
+packages/provider-probe-offline/provider_probe/
   discovery/   # 网页搜索、中文平台、GitHub 监控、browser_probe
   reverse/     # API/鉴权/定价逆向
   verify/      # 连通性、coding eval、稳定性监控
   integrate/   # 后端常量生成、通知
 ```
+
+根目录 `provider_probe/README.md` 仅为指针，无 Python 实现。
 
 ### 6.2 生产耦合证据
 
@@ -110,7 +112,7 @@ provider_probe/
 ### 6.3 建议
 
 1. **保持 Cold**：不得在 `server.py` 或路由注册中默认挂载。
-2. **文档**：在 `provider_probe/README`（可选后续）标明运行方式为手动脚本 / JDCloud 探测节点。
+2. **文档**：[`packages/provider-probe-offline/README.md`](../packages/provider-probe-offline/README.md)、[`provider_probe_offline_CN.md`](provider_probe_offline_CN.md)。
 3. **瘦身候选**：`integrate/backend_generator.py` 生成物应经人工 review 后合入 `backends_registry`，禁止自动写热路径。
 4. **勿与 `probe_loop.py` 合并**：后者是运行时健康探活（Warm），职责不同。
 
@@ -171,7 +173,7 @@ provider_probe/
 | P1 | Cold 模块 env/启动 gate 审计（禁止 silent import） | context_pipeline lab、provider_probe | 门禁 |
 | P2 | `provider_automation` CLI 与 overlay 读路径分离 | provider_automation | 结构 |
 | P3 | `context_pipeline/lab/` 物理搬迁 | context_pipeline cold | 重构（需设计文档） |
-| P4 | `provider_probe` 归档或仅保留 JDCloud 节点部署包 | provider_probe | 运维 |
+| P4 | `provider_probe` 归档为 `packages/provider-probe-offline/` | provider_probe | 运维（**CP-5 已关**） |
 
 **下一批可执行清单**（含 CodeGraph `--fanin` 证据与批次验证命令）：[`CODEBASE_COLD_PRUNE_PRIORITY_CN.md`](CODEBASE_COLD_PRUNE_PRIORITY_CN.md)
 
