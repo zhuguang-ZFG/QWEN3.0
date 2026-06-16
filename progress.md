@@ -5,6 +5,35 @@
 > Updated: 2026-06-17
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-17 按 ECC 开发流程重新整理 LiMa（阶段 1-3 完成）
+
+- **目标**：将 ECC（Everything Claude Code）核心工程流程（Plan → TDD → Code Review → Commit）与 LiMa 现有实践对齐，同时按 ECC 小文件原则拆分 3 个超标生产文件。
+- **阶段 1：流程文档化**
+  - 更新 `AGENTS.md`：新增「ECC 开发流程（增量采用）」章节，含 Plan First、TDD、Code Review、提交前 Checklist、安全响应协议。
+  - 新增 `docs/ECC_WORKFLOW_CN.md`：详细 RED/GREEN/REFACTOR、测试层级、代码审查清单、提交规范。
+  - 新增 `.kimi-code/rules/ecc-workflow.md`：项目级 Kimi Code CLI rule。
+- **阶段 2：度量与门禁**
+  - 安装 `pytest-cov`，在 `pytest.ini` 配置覆盖率（branch coverage、omit 第三方/测试/脚本）。
+  - 新增 `scripts/check_code_size.py`：检查 >300 行文件和 >50 行函数。
+  - 更新 `scripts/run_pre_commit_check.py`：集成代码尺寸检查作为 warning（现有违规不阻塞）。
+  - 更新 `.gitignore`：忽略 `.coverage`、`.kimi-code/`、`reference/`。
+  - 更新 `findings.md`：记录代码尺寸基线（26 个 >300 行文件、104 个 >50 行函数）和覆盖率基线。
+- **阶段 3：生产代码拆分（保持接口兼容）**
+  - `device_gateway/protocol.py`（349 → 63 行 facade）→ `protocol_core.py`、`protocol_validators.py`、`protocol_frames.py`、`protocol_lifecycle.py`。
+  - `device_gateway/path_pipeline.py`（342 → 62 行 facade）→ `path_data.py`、`text_renderer.py`、`svg_parser.py`、`preview_svg.py`。
+  - `routes/device_gateway_ws_handlers.py`（311 → 237 行）→ `routes/ws_lifecycle_helpers.py`、`routes/ws_task_helpers.py`。
+- **验证**：
+  - `pytest tests/test_device_gateway_protocol.py tests/test_device_gateway_protocol_families.py tests/test_device_gateway_path_pipeline.py tests/test_device_gateway_path_validator.py tests/test_device_gateway_routes.py tests/test_fake_u1_cloud_loop.py -q` → **81 passed**。
+  - `ruff check .` → clean。
+  - `pyright` 对改动文件 → 0 errors。
+  - `scripts/check_code_size.py` → 超标文件从 26 降至 23。
+- **提交**：
+  - `027217b` chore(process): adopt ECC workflow docs, pytest-cov, and code-size baseline
+  - `021fb6b` refactor(device_gateway): split protocol.py into core/validators/frames/lifecycle
+  - `7423cfd` refactor(device_gateway): split path_pipeline.py into data/text/svg/preview modules
+  - `c378d00` refactor(routes): split device_gateway_ws_handlers.py into helpers, keep handlers
+  - 均已 push 到 `origin main`。
+
 ## 2026-06-17 Edge-C 产品端模式示例：device_write / device_draw（完成）
 
 - **目标**：执行 [`PROJECT_OPTIMIZATION_ROADMAP_CN.md`](docs/PROJECT_OPTIMIZATION_ROADMAP_CN.md) 阶段 1 步骤 3，为 `device_control`、`device_write`、`device_draw`、`device_vector` 添加产品端 `motion_task` 示例，而不仅仅是 `run_path`。

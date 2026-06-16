@@ -8,7 +8,7 @@
 > Updated: 2026-06-17
 > Branch: `main`
 > Scale: 656 文件 / 77,584 行（较初始 794/93,145 减 138 文件 / 15,561 行）
-> Tests: 全量 1616 passed / 23 skipped / 0 failed；ruff clean
+> Tests: 全量 1620 passed / 23 skipped / 0 failed；ruff clean
 > 注：`tests/test_device_draw_integration.py`、`tests/test_svg_converter.py` 因本地缺少 `cv2` 在收集阶段报错，非代码回归。
 > VPS smoke：`https://chat.donglicao.com/health` 200；`/device/v1/health` 200（`auth_configured=true`）；`/v1/chat/completions model=code` 200（backend `cerebras_gptoss`）。
 
@@ -25,6 +25,18 @@
 - **设备开发入口**：[`docs/DEVICE_DEVELOPER_GUIDE_CN.md`](docs/DEVICE_DEVELOPER_GUIDE_CN.md) 汇总设备联调、常用测试、证据要求和最小闭环。
 - **下一阶段计划**：[`docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md`](docs/superpowers/plans/2026-06-16-lima-author-intent-and-next-plan.md) 明确 G1–G4：AI→Motion 发布门、模型准入复跑、证据边界瘦身、启动/部署不确定性降低。
 - **协议开发闭环**：[`docs/device_protocol_alignment.md`](docs/device_protocol_alignment.md) 已补充 `hello` → `task_dispatch` → `motion_event` → 终态证据的调试路径，并明确 `route_policy` 为下行任务硬契约。
+- **ECC 工程流程**：[`docs/ECC_WORKFLOW_CN.md`](docs/ECC_WORKFLOW_CN.md) 定义项目采用的 Plan First / TDD / Code Review / 提交规范，以及 `.kimi-code/rules/ecc-workflow.md` 本地 rule。
+
+### 最近完成（2026-06-17）按 ECC 开发流程重新整理 LiMa（阶段 1-3 完成）
+
+- **流程文档**：更新 `AGENTS.md` 新增 ECC 章节；新增 `docs/ECC_WORKFLOW_CN.md`；新增 `.kimi-code/rules/ecc-workflow.md` 本地 rule。
+- **度量门禁**：安装 `pytest-cov` 并配置覆盖率；新增 `scripts/check_code_size.py`（检查 >300 行文件、>50 行函数）；更新 `scripts/run_pre_commit_check.py` 集成尺寸检查作为 warning；记录基线到 `findings.md`。
+- **Top 3 生产文件拆分**：
+  - `device_gateway/protocol.py` → `protocol_core/validators/frames/lifecycle.py`（接口兼容，原文件改为 facade）。
+  - `device_gateway/path_pipeline.py` → `path_data/text_renderer/svg_parser/preview_svg.py`（接口兼容，原文件改为 facade）。
+  - `routes/device_gateway_ws_handlers.py` → `routes/ws_lifecycle_helpers.py` + `routes/ws_task_helpers.py`。
+- **验证**：受影响模块回归 81 passed；`ruff check .` clean；`pyright` 改动文件 0 errors；尺寸检查从 26 个 >300 行文件降至 23 个。
+- **提交**：`027217b`、`021fb6b`、`7423cfd`、`c378d00` 已 push 到 `origin main`。
 
 ### 最近完成（2026-06-17）AI 绘画 prompt 优化 + Wanx 模型更新
 
