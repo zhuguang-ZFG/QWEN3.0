@@ -43,8 +43,7 @@ class _phase:
         _record_phase(self.name, elapsed_ms, status, detail)
 
 
-async def _run_startup_phases() -> None:
-    """Execute all startup phases sequentially."""
+async def _load_health_state() -> None:
     async with _phase("health_state.load"):
         try:
             import health_state
@@ -53,6 +52,8 @@ async def _run_startup_phases() -> None:
         except ImportError as exc:
             _log.warning("health_state module not loaded; persisted health state skipped: %s", exc)
 
+
+async def _load_backend_profiles() -> None:
     async with _phase("backend_profile.load"):
         try:
             import backend_profile
@@ -62,6 +63,8 @@ async def _run_startup_phases() -> None:
         except ImportError as exc:
             _log.warning("backend_profile module not loaded; persisted backend profiles skipped: %s", exc)
 
+
+async def _load_retired_backends() -> None:
     async with _phase("backend_retirement.load"):
         try:
             import backend_retirement
@@ -70,6 +73,8 @@ async def _run_startup_phases() -> None:
         except ImportError as exc:
             _log.warning("backend_retirement module not loaded; retired backend state skipped: %s", exc)
 
+
+async def _apply_startup_admission() -> None:
     async with _phase("backend_admission_store.apply_startup"):
         try:
             from backend_admission_store import apply_startup
@@ -78,9 +83,13 @@ async def _run_startup_phases() -> None:
         except ImportError:
             _log.debug("backend_admission_store not installed")
 
+
+async def _start_probe_loop() -> None:
     async with _phase("probe_loop.start"):
         probe_loop.start(probe_fn=http_caller.probe)
 
+
+async def _start_periodic_eval() -> None:
     async with _phase("periodic_coding_eval.start"):
         try:
             import periodic_coding_eval
@@ -89,6 +98,8 @@ async def _run_startup_phases() -> None:
         except ImportError:
             _log.debug("periodic_coding_eval not installed")
 
+
+async def _start_session_memory_daemon() -> None:
     async with _phase("session_memory.daemon.start"):
         try:
             from session_memory.daemon import start_daemon
@@ -97,6 +108,8 @@ async def _run_startup_phases() -> None:
         except ImportError:
             _log.debug("session_memory.daemon not installed")
 
+
+async def _schedule_telegram_retirement() -> None:
     async with _phase("channel_retirement.telegram"):
         try:
             import asyncio
@@ -105,6 +118,8 @@ async def _run_startup_phases() -> None:
         except Exception as exc:
             _log.debug("telegram webhook cleanup scheduling failed: %s", type(exc).__name__)
 
+
+async def _start_device_gateway_runtime() -> None:
     async with _phase("device_gateway.runtime.start"):
         try:
             from routes.device_gateway import start_device_gateway_runtime
@@ -113,6 +128,8 @@ async def _run_startup_phases() -> None:
         except ImportError:
             _log.debug("routes.device_gateway runtime not installed")
 
+
+async def _setup_structured_logging() -> None:
     async with _phase("observability.structured_logging"):
         try:
             from observability.structured_logging import setup_structured_logging
@@ -121,6 +138,8 @@ async def _run_startup_phases() -> None:
         except ImportError:
             _log.debug("observability.structured_logging not installed")
 
+
+async def _start_mqtt_client() -> None:
     async with _phase("device_gateway.mqtt_client.start"):
         try:
             from device_gateway.mqtt_client import start_mqtt_client
@@ -129,6 +148,8 @@ async def _run_startup_phases() -> None:
         except ImportError:
             _log.debug("device_gateway.mqtt_client not installed")
 
+
+async def _start_auto_indexer() -> None:
     async with _phase("context_pipeline.auto_indexer.start"):
         try:
             from context_pipeline.auto_indexer import start_auto_indexer
@@ -137,6 +158,8 @@ async def _run_startup_phases() -> None:
         except ImportError:
             _log.debug("auto_indexer not installed")
 
+
+async def _start_prometheus() -> None:
     async with _phase("observability.prometheus.start"):
         try:
             from observability.prometheus_metrics import validate_startup
@@ -151,45 +174,86 @@ async def _run_startup_phases() -> None:
             raise
 
 
-async def _run_shutdown_phases() -> None:
-    """Execute all shutdown phases sequentially."""
-    probe_loop.stop()
+async def _run_startup_phases() -> None:
+    """Execute all startup phases sequentially."""
+    await _load_health_state()
+    await _load_backend_profiles()
+    await _load_retired_backends()
+    await _apply_startup_admission()
+    await _start_probe_loop()
+    await _start_periodic_eval()
+    await _start_session_memory_daemon()
+    await _schedule_telegram_retirement()
+    await _start_device_gateway_runtime()
+    await _setup_structured_logging()
+    await _start_mqtt_client()
+    await _start_auto_indexer()
+    await _start_prometheus()
+
+
+async def _stop_prometheus() -> None:
     try:
         from observability.prometheus_exporter import stop_exporter
 
         stop_exporter()
     except ImportError:
         _log.debug("prometheus_exporter stop skipped")
+
+
+async def _stop_auto_indexer() -> None:
     try:
         from context_pipeline.auto_indexer import stop_auto_indexer
 
         stop_auto_indexer()
     except ImportError as exc:
         _log.debug("auto_indexer stop skipped; module not loaded: %s", exc)
+
+
+async def _stop_periodic_eval() -> None:
     try:
         import periodic_coding_eval
 
         periodic_coding_eval.stop()
     except ImportError:
         _log.debug("periodic_coding_eval stop skipped")
+
+
+async def _stop_session_memory_daemon() -> None:
     try:
         from session_memory.daemon import stop_daemon
 
         await stop_daemon()
     except ImportError:
         _log.debug("session_memory.daemon stop skipped")
+
+
+async def _stop_device_gateway_runtime() -> None:
     try:
         from routes.device_gateway import stop_device_gateway_runtime
 
         await stop_device_gateway_runtime()
     except ImportError:
         _log.debug("device_gateway runtime stop skipped")
+
+
+async def _stop_mqtt_client() -> None:
     try:
         from device_gateway.mqtt_client import stop_mqtt_client
 
         await stop_mqtt_client()
     except ImportError:
         _log.debug("mqtt_client stop skipped")
+
+
+async def _run_shutdown_phases() -> None:
+    """Execute all shutdown phases sequentially."""
+    probe_loop.stop()
+    await _stop_prometheus()
+    await _stop_auto_indexer()
+    await _stop_periodic_eval()
+    await _stop_session_memory_daemon()
+    await _stop_device_gateway_runtime()
+    await _stop_mqtt_client()
 
 
 @asynccontextmanager
