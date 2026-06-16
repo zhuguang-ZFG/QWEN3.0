@@ -1,6 +1,6 @@
-"""Tests for context_pipeline.static_analysis typed symbol extraction."""
+"""Tests for context_pipeline.lab.static_analysis typed symbol extraction."""
 
-from context_pipeline.static_analysis import (
+from context_pipeline.lab.static_analysis import (
     extract_typed_symbols,
     is_module_eligible,
 )

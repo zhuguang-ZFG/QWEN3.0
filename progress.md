@@ -5,6 +5,14 @@
 > Updated: 2026-06-16
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-16 CP-4 context_pipeline/lab 首批 + agent_runtime 测试清理
+
+- **迁入** `context_pipeline/lab/static_analysis.py`（原根目录；仅 `tests/test_static_analysis.py`）
+- **文档** `docs/context_pipeline_lab_CN.md`、`context_pipeline/README.md`、`CODEBASE_COLD_PRUNE_PRIORITY_CN.md`、`CODEBASE_SUBSYSTEM_TIER_CN.md`
+- **删除** 8 个 `agent_runtime` 遗留测试（`test_approval_gate` 等）；移除 `conftest.collect_ignore_glob`
+- **CI** `run_pre_commit_check.py` 去掉不存在的 `test_semantic_code_retrieval.py` ignore
+- **验证**：`pytest tests/test_static_analysis.py tests/test_retrieval_injection.py tests/test_routing_engine.py tests/test_module_split_imports.py -q`
+
 ## 2026-06-16 阶段 2 续 — Image Generator 真实 API 夹具
 
 - **新增** `tests/test_dashscope_image_live.py`（`dashscope_live` marker；opt-in）

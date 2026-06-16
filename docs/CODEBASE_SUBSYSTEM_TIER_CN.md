@@ -1,6 +1,6 @@
 # LiMa 子系统热度分层评估（Hot / Warm / Cold）
 
-> 版本：2026-06-15
+> 版本：2026-06-16
 > 范围：代码质量治理计划 Q7 产出
 > 审计对象：`context_pipeline/`、`provider_probe/`、`provider_automation/`、`orchestrate*`（含 Q5-4 迁至 `scripts/eval_loop*`）
 
@@ -18,16 +18,16 @@ LiMa 已完成从「个人编码助手后端」到「AI 智能设备统一云端
 | **Warm** | 启动时、异步后台、或条件分支（编码/复杂聊天/准入叠加）触及 | 默认开启或显式 env 开启；失败须打日志 | 保留但隔离边界；避免膨胀进 hot 文件 |
 | **Cold** | 运维脚本、实验评估、浏览器探测、离线准入流水线 | 不得被 `server.py` / 热路径 import | 迁 `scripts/`、文档标注 optional、长期考虑归档 |
 
-## 3. 规模快照（2026-06-15）
+## 3. 规模快照（2026-06-16）
 
 | 子系统 | Python 文件数 | 约行数 | 生产 import 面（非测试） |
 |--------|----------------|--------|-------------------------|
-| `context_pipeline/` | 40 | ~4,628 | 宽（路由、后处理、会话学习） |
+| `context_pipeline/` | 27（含 `lab/` 2） | ~3,000 | 宽（路由、后处理、会话学习） |
 | `provider_probe/` | 21 | ~2,253 | 极窄（几乎仅自引用 + 1 个测试） |
 | `provider_automation/` | 13 | ~2,193 | 窄（启动准入叠加 + adapter） |
 | `orchestrate*` + `scripts/eval_loop*` | 5 | ~500 | 窄（复杂聊天可选分支） |
 
-> 行数由仓库内 `*.py` 逐文件统计；与 `scripts/repo_stats.py` 全库统计口径不同。
+> 行数由仓库内 `*.py` 逐文件统计；与 `scripts/repo_stats.py` 全库统计口径不同。CP-1/CP-2/CP-4 后 `context_pipeline` 已从 ~40 文件瘦身。
 
 ## 4. 总览矩阵
 
@@ -56,7 +56,7 @@ LiMa 已完成从「个人编码助手后端」到「AI 智能设备统一云端
 | `response_validator.py` | 编码响应质量校验与重试 | `routing_engine_execute_strategy.py` |
 | `routing_weights.py` | 学习环路权重持久化 | `routes/ops_metrics` eval apply、selector 排序 |
 
-**风险**：Hot 子集外仍有 ~35 个文件；新人易误判「整个目录都在热路径」。
+**风险**：Hot 子集外仍有 ~20 个 Warm 根目录文件 + `lab/` 冷工具；新人易误判「整个目录都在热路径」。见 `context_pipeline/README.md` 与 `docs/context_pipeline_lab_CN.md`。
 
 ### 5.2 Warm（条件 / 后台 / 后处理）
 
@@ -73,17 +73,16 @@ LiMa 已完成从「个人编码助手后端」到「AI 智能设备统一云端
 
 | 模块 | 说明 |
 |------|------|
-| `retrieval_eval.py`、`retrieval_eval_runner.py` | 离线检索评测 |
-| `ensemble.py`、`evolution.py`、`reflection.py` | 实验性多模型/进化逻辑 |
-| `graph_retrieval.py`、`hierarchical_memory.py` | 图谱/分层记忆实验 |
-| `complexity.py`、`static_analysis.py`（部分） | 以测试与工具为主 |
-| `factory`（若引用） | **AGENTS.md 明确：仅 lab/test harness** |
+| `lab/static_analysis.py` | AST 类型符号提取（仅测试；CP-4 迁入） |
+| `retrieval_eval.py`、`retrieval_eval_runner.py` | **已删**（CP-2） |
+| `ensemble.py`、`evolution.py`、`reflection.py` | **已删**（CP-1/CP-2） |
+| `graph_retrieval.py`、`complexity.py` | Warm lazy；仍以测试为主，**保留根目录** |
 
 ### 5.4 建议（`context_pipeline`）
 
 1. **P0**：在 `context_pipeline/README.md` 标注 Hot 五文件清单（2026-06-15 已完成）；`docs/REQUEST_PIPELINE_AUTHORITY_CN.md` 可交叉引用。
 2. **P1**：Cold 模块目录前缀或 `docs/` 侧车说明「非生产默认」；`auto_indexer` 保持 env gate（已有 lifespan try/import 模式）。
-3. **P2**：超标 hot 文件继续拆分（如 `retrieval_injection.py` 若 >300 行）；Cold 目录合并到 `context_pipeline/lab/` 为可选后续里程碑（需设计文档）。
+3. **P2**：超标 hot 文件继续拆分（如 `retrieval_injection.py` 若 >300 行）；**CP-4 首批**已将 `static_analysis` 迁入 `context_pipeline/lab/`（2026-06-16）。
 
 ---
 

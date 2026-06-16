@@ -20,7 +20,7 @@
 | **P0** | 低 | ~1.5k | 删纯测试冷模块 | 无 |
 | **P1** | 低 | ~2k | 删离线评测链 | 无 |
 | **P2** | 中 | ~4k | `provider_automation` CLI 迁 `scripts/` | 无 |
-| **P3** | 中 | ~2.5k | `context_pipeline/lab/` 物理搬迁 | 无（需设计文档） |
+| **P3** | 中 | ~4k（首批 ~0.1k） | `context_pipeline/lab/` 物理搬迁 | 无（**CP-4 首批已关**） |
 | **P4** | 高 | ~2.2k | `provider_probe` 归档为 JDCloud 部署包 | 无（禁止挂 `server.py`） |
 
 **禁止整包删除**：`routing_engine*`、`device_gateway/*` Hot 路径、`session_memory` Hot facade、`probe_loop.py`（运行时探活 ≠ `provider_probe`）。
@@ -120,15 +120,29 @@ python -m pytest tests/test_retrieval_injection.py tests/test_routing_engine.py 
 
 下一批见 **P3（CP-4）**。
 
-## P3 — `context_pipeline/lab/` 物理搬迁（CP-4，需 `docs/` 设计短文）
+## P3 — `context_pipeline/lab/` 物理搬迁（**CP-4 首批已关闭 2026-06-16**）
+
+将 P0/P1 清理后仍残留的 Cold 文件迁入 `context_pipeline/lab/`，根目录只保留 Hot/Warm 生产面。设计说明：[`context_pipeline_lab_CN.md`](context_pipeline_lab_CN.md)。
+
+**Hot（禁止动）**：`retrieval_injection.py`、`code_context_injection.py`、`skill_store.py`、`response_validator.py`、`routing_weights.py`
+
+**CP-4 已迁 lab**：`static_analysis.py`（仅 `tests/test_static_analysis.py`）
+
+**Warm（慎动，仍留根目录）**：`auto_indexer.py`、`response_processors.py`、`response_pipeline.py`、`narrative.py`、`routing_bridge.py`、`cache.py`、`semantic_code_retrieval.py`、`event_log.py`、`reranking.py`、`code_scanner.py`、`guardrails.py`、`tracing.py`、`token_budget.py`、`complexity.py`、`graph_retrieval.py`、`retrieval_trace.py` 等
+
+**伴随清理（同批）**：删除 8 个 `agent_runtime` 遗留测试文件；移除 `tests/conftest.py` `collect_ignore_glob`；`run_pre_commit_check.py` 去掉不存在的 `test_semantic_code_retrieval.py` ignore。
+
+下一批见 **P4（CP-5）**。
+
+---
+
+## P3（历史规划 — CP-4 首批）
 
 将 P0/P1 清理后仍残留的 Cold 文件迁入 `context_pipeline/lab/`，根目录只保留：
 
 **Hot（禁止动）**：`retrieval_injection.py`、`code_context_injection.py`、`skill_store.py`、`response_validator.py`、`routing_weights.py`
 
-**Warm（慎动）**：`auto_indexer.py`、`response_processors.py`、`response_pipeline.py`、`narrative.py`、`routing_bridge.py`、`cache.py`、`semantic_code_retrieval.py`、`event_log.py`、`reranking.py`、`code_scanner.py`、`guardrails.py`、`tracing.py`、`token_budget.py`、`static_analysis.py`
-
-搬迁前更新 `context_pipeline/README.md` Hot 清单交叉引用。
+**Warm（慎动）**：`auto_indexer.py`、`response_processors.py`、`response_pipeline.py`、`narrative.py`、`routing_bridge.py`、`cache.py`、`semantic_code_retrieval.py`、`event_log.py`、`reranking.py`、`code_scanner.py`、`guardrails.py`、`tracing.py`、`token_budget.py`
 
 ---
 

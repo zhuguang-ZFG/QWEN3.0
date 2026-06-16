@@ -18,7 +18,6 @@ ROOT = Path(__file__).resolve().parent.parent
 
 CI_PYTEST_IGNORES = [
     "tests/test_memory_daemon_ctl.py",
-    "tests/test_semantic_code_retrieval.py",
     "tests/test_healthcheck_ping.py",
     "tests/test_lima_smoke_task_script.py",
     "tests/test_gitee_mirror.py",
