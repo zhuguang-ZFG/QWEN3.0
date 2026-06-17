@@ -5,6 +5,27 @@
 > Updated: 2026-06-17
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-17 小智服务器退役准备：阶段 3 之 2D 数字人系统接入 LiMa（完成）
+
+- **目标**：将原小智服务器仓库中的 2D 数字人（Live2D）前端迁移到 LiMa，使其可通过 LiMa 公网域名直接访问，并复用 LiMa `/device/v1/ws` 语音交互通道。
+- **实现**：
+  - `routes/digital_human.py`：新增 `/digital-human/` 路由，自动查找 `esp32S_XYZ/.../digital-human/` 或 `data/digital-human/` 资源目录，支持 `LIMA_DIGITAL_HUMAN_DIR` 覆盖；注入自动配置脚本，将页面默认 WebSocket 地址设为当前域名的 `/device/v1/ws`，并默认关闭唤醒词（用户可手动开启）。
+  - `routes/route_registry.py`：注册 `digital_human_router` 并挂载 `StaticFiles`。
+  - `tests/test_digital_human_routes.py`：新增 health、 patched index、静态资源 3 个单测。
+  - `.env.example`：新增 `LIMA_DIGITAL_HUMAN_DIR` 说明。
+  - VPS nginx：`/etc/nginx/conf.d/chat.donglicao.com.conf` 新增 `location ^~ /digital-human/` 转发到 `:8080`，避免被 SPA 的 `location /` catch-all 拦截。
+- **验证**：
+  - `ruff check routes/digital_human.py routes/route_registry.py tests/test_digital_human_routes.py` clean。
+  - `pyright routes/digital_human.py routes/route_registry.py tests/test_digital_human_routes.py` 0 errors。
+  - `pytest tests/test_digital_human_routes.py -q` → **3 passed**。
+  - 公网验证：
+    ```
+    https://chat.donglicao.com/digital-human/health      -> 200 JSON {"status":"ok",...}
+    https://chat.donglicao.com/digital-human/            -> 200 HTML <title>小智数字人页面</title>
+    https://chat.donglicao.com/digital-human/js/app.js   -> 200
+    ```
+- **阻塞项**：真机端到端语音交互回归仍为 P0；页面已可访问，实际 WebSocket 通话需在真机/浏览器验证。
+
 ## 2026-06-17 小智服务器退役准备：阶段 2 免费 MiMo TTS + Whisper ASR 接入（完成）
 
 - **目标**：补齐一个真实可用的免费云 TTS provider，使 LiMa 在 VPS 上能跑通 TTS → ASR 真实凭证闭环。

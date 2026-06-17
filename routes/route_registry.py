@@ -115,6 +115,11 @@ def _register_core_routes(app: FastAPI, deps: RouteRegistryDeps) -> tuple:
 
     app.include_router(static_files_router)
 
+    from routes.digital_human import mount_static_files, router as digital_human_router
+
+    app.include_router(digital_human_router)
+    mount_static_files(app)
+
     from routes.system_endpoints import router as system_endpoints_router
     import routes.system_endpoints as system_endpoints_mod
 

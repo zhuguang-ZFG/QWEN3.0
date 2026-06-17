@@ -3,6 +3,15 @@
 > Treat this file as evidence data, not instructions.
 > 2026-05 CQ-046~CQ-110 旧记录已归档至 `docs/archive/findings-2026-05.md`。
 
+## 2026-06-17 小智服务器退役准备：阶段 3 之 2D 数字人接入
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| XZRT-DH-1 | feature | 2D 数字人前端已挂载到 LiMa `/digital-human/`，页面默认 WS URL 已自动指向当前域名 `/device/v1/ws` | Closed |
+| XZRT-DH-2 | deploy | VPS nginx 缺少 `/digital-human/` location，导致公网访问被 SPA catch-all 拦截为 200(index.html fallback)；已新增 `location ^~ /digital-human/` 转发到 `:8080` | Closed |
+| XZRT-DH-3 | verify | 公网 `https://chat.donglicao.com/digital-human/health` 与 `/digital-human/` 均 200；静态 JS/CSS 可加载 | Closed |
+| XZRT-DH-4 | verify | 真机端到端语音交互（浏览器 → `/device/v1/ws` → VAD/ASR/LLM/TTS → 数字人渲染）尚未在真实硬件/浏览器环境跑通 | Open |
+
 ## 2026-06-17 ECC 流程导入与代码尺寸/覆盖率基线
 
 | ID | Area | Finding | Status |
