@@ -63,6 +63,7 @@ _PROVIDERS: dict[str, str] = {
     "edge": "device_voice.providers.tts_edge.EdgeTTSProvider",
     "doubao": "device_voice.providers.tts_doubao.DoubaoTTSProvider",
     "aliyun": "device_voice.providers.tts_aliyun.AliyunTTSProvider",
+    "dashscope": "device_voice.providers.tts_dashscope.DashScopeTTSProvider",
 }
 
 

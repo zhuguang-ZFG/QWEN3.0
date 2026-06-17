@@ -20,11 +20,11 @@
   - `.env.example`：新增阿里云 NLS / 火山豆包语音相关环境变量。
   - `requirements_voice.txt`：新增语音依赖清单。
 - **验证**：
-  - `.venv310/Scripts/python -m pytest tests/test_device_voice.py tests/test_device_voice_cloud_providers.py -v` → **45 passed**。
-  - VPS 已部署代码并安装 `alibabacloud-nls-python-sdk==1.0.2`，`websockets`/`edge_tts`/`httpx` 已存在。
-  - 真实凭证冒烟：VPS `.env` 中仅有 `ALIYUN_API_KEY` / `VOLCENGINE_API_KEY`（LLM key），缺少 `ALIBABA_CLOUD_ACCESS_KEY_ID/SECRET`、`ALIBABA_NLS_APP_KEY`、`DOUBAO_ASR_APPID/ACCESS_TOKEN`、`DOUBAO_TTS_APPID/ACCESS_TOKEN`。冒烟脚本因此跳过，待用户提供语音凭证后重跑。
-- **文档**：更新 `docs/XIAOZHI_SERVER_RETIREMENT_CHECKLIST_CN.md`，2.1 标记为完成（待冒烟验证）。
-- **阻塞项**：真机端到端回归、云 provider 真实凭证冒烟验证。
+  - `.venv310/Scripts/python -m pytest tests/test_device_voice.py tests/test_device_voice_cloud_providers.py -v` → **53 passed**（新增 8 个 DashScope 测试）。
+  - VPS 已部署代码并安装 `alibabacloud-nls-python-sdk==1.0.2`、`dashscope==1.20.11`。
+  - 真实凭证冒烟：新增 DashScope provider 可直接复用 `ALIYUN_API_KEY`，但 VPS 上该 key 调用 DashScope TTS 返回 `Arrearage/Access denied, please make sure your account is in good standing`（账户未开通语音服务/欠费/无额度）。阿里云 NLS / 火山豆包专用凭证仍缺失。
+- **文档**：更新 `docs/XIAOZHI_SERVER_RETIREMENT_CHECKLIST_CN.md`、`.env.example`、`requirements_voice.txt`。
+- **阻塞项**：DashScope 语音服务账户状态、阿里云 NLS / 火山豆包专用凭证、真机端到端回归。
 
 ## 2026-06-17 小智服务器退役准备：阶段 1 止血与合规（完成）
 

@@ -21,8 +21,9 @@
 | XZRT-9 | safety | 云 provider 统一使用 `device_voice.exceptions`，凭证缺失时抛 `ConfigurationError` 而非静默 stub | Closed |
 | XZRT-10 | verify | `tests/test_device_voice_cloud_providers.py` 13 个单测覆盖 4 个 provider 的正常/鉴权失败/网络超时路径 | Closed |
 | XZRT-11 | tooling | 新增 `scripts/smoke_voice_providers.py` 用于真实凭证下的 TTS→ASR 闭环冒烟 | Closed |
-| XZRT-12 | verify | VPS 运行时验证：已部署代码并安装 `alibabacloud-nls-python-sdk==1.0.2`，但 `.env` 缺少语音 provider 专用凭证，真实凭证冒烟未执行 | Open |
-| XZRT-13 | verify | VPS `.env` 现有 `ALIYUN_API_KEY` / `VOLCENGINE_API_KEY` 为 LLM key，与 `ALIBABA_CLOUD_ACCESS_KEY_ID/SECRET` + `ALIBABA_NLS_APP_KEY`、豆包 `APPID/ACCESS_TOKEN` 不是同一套凭证 | Open |
+| XZRT-12 | verify | VPS 运行时验证：已部署代码并安装 `alibabacloud-nls-python-sdk==1.0.2`、`dashscope==1.20.11` | Closed |
+| XZRT-13 | verify | VPS `.env` 现有 `ALIYUN_API_KEY` / `VOLCENGINE_API_KEY` 为 LLM key；新增 DashScope provider 可直接复用 `ALIYUN_API_KEY`，但调用 TTS 返回 `Arrearage/Access denied`（账户未开通语音服务/无额度） | Open |
+| XZRT-14 | verify | 阿里云 NLS 专用凭证（`ALIBABA_CLOUD_ACCESS_KEY_ID/SECRET` + `ALIBABA_NLS_APP_KEY`）与火山豆包语音凭证（`DOUBAO_*_APPID/ACCESS_TOKEN`）仍缺失，真实凭证闭环未跑通 | Open |
 
 ## 2026-06-17 小智服务器退役准备：阶段 1 止血与合规
 

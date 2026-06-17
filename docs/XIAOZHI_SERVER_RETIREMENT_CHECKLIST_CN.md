@@ -19,9 +19,9 @@
 | EdgeTTS 音频格式 | ✅ MP3 已转 PCM（依赖 ffmpeg） | 否 |
 | OpenAPI 最后 1 端点 | ⚠️ 28/29 | 否（P1） |
 | 真机端到端回归 | ❌ 未执行 | **是（P0）** |
-| VPS 运行时依赖验证 | ⚠️ 代码已部署、NLS SDK 已安装，但缺少语音凭证，未跑通冒烟 | **是（P0）** |
+| VPS 运行时依赖验证 | ⚠️ 代码已部署、SDK 已安装；DashScope 可用 `ALIYUN_API_KEY`，但返回 `Arrearage/Access denied`（账户未开通语音服务/无额度） | **是（P0）** |
 
-**当前判定**：小智服务器**仍不能退役**。阶段 2 已完成云 ASR/TTS SDK 接入与单元测试，VPS 已部署代码并安装 `alibabacloud-nls-python-sdk==1.0.2`；但 VPS `.env` 只有 `ALIYUN_API_KEY` / `VOLCENGINE_API_KEY`（LLM key），缺少阿里云 NLS / 火山豆包语音专用凭证，真实凭证冒烟与真机端到端回归未执行。
+**当前判定**：小智服务器**仍不能退役**。阶段 2 已完成云 ASR/TTS SDK 接入与单元测试（53 passed），并新增 DashScope provider 复用 `ALIYUN_API_KEY`；但 VPS 上该 key 调用 DashScope 语音服务被拒绝了（`Arrearage/Access denied, please make sure your account is in good standing`）。阿里云 NLS / 火山豆包专用凭证仍缺失，真实凭证闭环冒烟与真机端到端回归未执行。
 
 ---
 
@@ -29,18 +29,21 @@
 
 ### 2.1 云 ASR/TTS provider 是空壳 ⛔ → ✅ 已接入真实 SDK（待冒烟验证）
 
-`device_voice/providers/` 下 4 个文件已替换为真实 SDK / REST 实现：
+`device_voice/providers/` 下 4 个文件已替换为真实 SDK / REST 实现，并新增 2 个 DashScope provider 复用 `ALIYUN_API_KEY`：
 
 | 文件 | 现状 |
 | --- | --- |
 | `asr_aliyun.py` | 接入阿里云 NLS Python SDK (`nls.NlsSpeechRecognizer`) |
 | `asr_doubao.py` | 接入火山豆包 ASR WebSocket 协议 (`openspeech.bytedance.com/api/v2/asr`) |
+| `asr_dashscope.py` | 接入 DashScope 实时识别 (`dashscope.audio.asr.Recognition`)，复用 `ALIYUN_API_KEY` |
 | `tts_aliyun.py` | 接入阿里云 NLS Python SDK (`nls.NlsSpeechSynthesizer`) |
 | `tts_doubao.py` | 接入火山豆包 TTS HTTP API (`openspeech.bytedance.com/api/v1/tts`) |
+| `tts_dashscope.py` | 接入 DashScope Sambert 合成 (`dashscope.audio.tts.SpeechSynthesizer`)，复用 `ALIYUN_API_KEY` |
 
 - 凭证从环境变量读取；缺失时 `__init__` 抛出 `ConfigurationError`。
 - 新增 `device_voice/exceptions.py` 统一异常体系（`VoiceProviderError` / `AuthenticationError` / `NetworkError` / `ConfigurationError`）。
 - 新增 `scripts/smoke_voice_providers.py` 手动冒烟脚本：TTS → PCM → ASR 闭环。
+- **注意**：VPS 上的 `ALIYUN_API_KEY` 调用 DashScope 语音服务返回 `Arrearage/Access denied`，说明该 key 的账户未开通语音服务/无额度；代码路径已验证可通。
 
 **验收标准**：
 - [x] `asr_aliyun.py` 接入阿里云 NLS SDK，真实返回识别文本
