@@ -14,6 +14,12 @@
 
 ## 当前项目状态
 
+### 最近完成（2026-06-17）G4 启动/部署不确定性降低
+
+- **实现**：`server_lifespan.py` 将启动拆分为 critical（阻塞 ready）与 warm（后台异步预热）阶段；warm 阶段失败不阻塞服务。
+- **/health 语义**：新增 `starting` / `warming` / `ready` / `error`，响应包含 `pending_warm` 与 `errors`。
+- **验证**：`pytest` 全量 1662 passed / 23 skipped；`ruff check` / pyright clean；`tests/test_system_endpoints.py` 6 passed。
+
 ### 最近完成（2026-06-17）G3 小批冷区清理
 
 - **删除文件**：`search_gateway/dev_tools.py`（279 行）、`session_memory/hooks.py`（61 行）、`tool_gateway/executor.py`（136 行）、`infra/g4f_server.py`（18 行），合计 494 行。

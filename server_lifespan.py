@@ -1,5 +1,8 @@
 """FastAPI lifespan orchestration for LiMa Server."""
 
+from __future__ import annotations
+
+import asyncio
 import logging
 import time
 from contextlib import asynccontextmanager
@@ -12,6 +15,30 @@ from channel_retirement import retire_telegram_webhook_from_env
 _log = logging.getLogger(__name__)
 
 STARTUP_PHASES: list[dict[str, Any]] = []
+
+# Public startup state for /health and observability.
+# status: "starting" | "ready" | "warming" | "error"
+_startup_state: dict[str, Any] = {
+    "status": "starting",
+    "critical_done": False,
+    "pending_warm": [],
+    "errors": [],
+}
+
+
+def get_startup_state() -> dict[str, Any]:
+    """Return a snapshot of the current startup state."""
+    return {
+        "status": _startup_state["status"],
+        "critical_done": _startup_state["critical_done"],
+        "pending_warm": list(_startup_state["pending_warm"]),
+        "errors": list(_startup_state["errors"]),
+    }
+
+
+def _set_status(status: str) -> None:
+    _startup_state["status"] = status
+    _log.warning("[LIFESPAN] startup_status=%s", status)
 
 
 def _record_phase(name: str, elapsed_ms: float, status: str = "ok", detail: str = "") -> None:
@@ -54,18 +81,6 @@ async def _load_health_state() -> None:
             _log.warning("health_state module not loaded; persisted health state skipped: %s", exc)
 
 
-async def _load_backend_profiles() -> None:
-    async with _phase("backend_profile.load"):
-        try:
-            import backend_profile
-
-            loaded = backend_profile.load_profiles()
-            _log.info("Loaded backend profiles: %d", loaded)
-            backend_profile.save_on_interval(300)
-        except ImportError as exc:
-            _log.warning("backend_profile module not loaded; persisted backend profiles skipped: %s", exc)
-
-
 async def _load_retired_backends() -> None:
     async with _phase("backend_retirement.load"):
         try:
@@ -92,6 +107,43 @@ async def _start_probe_loop() -> None:
         probe_loop.start(probe_fn=http_caller.probe)
 
 
+async def _start_device_gateway_runtime() -> None:
+    async with _phase("device_gateway.runtime.start"):
+        try:
+            from routes.device_gateway import start_device_gateway_runtime
+
+            await start_device_gateway_runtime()
+        except ImportError as exc:
+            _log.warning("routes.device_gateway not installed; device gateway runtime skipped: %s", exc)
+
+
+async def _start_mqtt_client() -> None:
+    async with _phase("device_gateway.mqtt_client.start"):
+        try:
+            from device_gateway.mqtt_client import start_mqtt_client
+
+            await start_mqtt_client()
+        except ImportError as exc:
+            _log.warning("device_gateway.mqtt_client not installed; MQTT client skipped: %s", exc)
+
+
+# ---------------------------------------------------------------------------
+# Warm phases — may be deferred without blocking request serving.
+# ---------------------------------------------------------------------------
+
+
+async def _load_backend_profiles() -> None:
+    async with _phase("backend_profile.load"):
+        try:
+            import backend_profile
+
+            loaded = backend_profile.load_profiles()
+            _log.info("Loaded backend profiles: %d", loaded)
+            backend_profile.save_on_interval(300)
+        except ImportError as exc:
+            _log.warning("backend_profile module not loaded; persisted backend profiles skipped: %s", exc)
+
+
 async def _start_periodic_eval() -> None:
     async with _phase("periodic_coding_eval.start"):
         try:
@@ -115,21 +167,9 @@ async def _start_session_memory_daemon() -> None:
 async def _schedule_telegram_retirement() -> None:
     async with _phase("channel_retirement.telegram"):
         try:
-            import asyncio
-
             asyncio.create_task(retire_telegram_webhook_from_env())
         except Exception as exc:
             _log.debug("telegram webhook cleanup scheduling failed: %s", type(exc).__name__)
-
-
-async def _start_device_gateway_runtime() -> None:
-    async with _phase("device_gateway.runtime.start"):
-        try:
-            from routes.device_gateway import start_device_gateway_runtime
-
-            await start_device_gateway_runtime()
-        except ImportError as exc:
-            _log.warning("routes.device_gateway not installed; device gateway runtime skipped: %s", exc)
 
 
 async def _setup_structured_logging() -> None:
@@ -140,16 +180,6 @@ async def _setup_structured_logging() -> None:
             setup_structured_logging()
         except ImportError as exc:
             _log.warning("observability.structured_logging not installed; structured logging setup skipped: %s", exc)
-
-
-async def _start_mqtt_client() -> None:
-    async with _phase("device_gateway.mqtt_client.start"):
-        try:
-            from device_gateway.mqtt_client import start_mqtt_client
-
-            await start_mqtt_client()
-        except ImportError as exc:
-            _log.warning("device_gateway.mqtt_client not installed; MQTT client skipped: %s", exc)
 
 
 async def _start_auto_indexer() -> None:
@@ -177,21 +207,60 @@ async def _start_prometheus() -> None:
             raise
 
 
+async def _run_warm_phase(name: str, coro) -> None:
+    """Run a warm phase and track its completion."""
+    _startup_state["pending_warm"].append(name)
+    try:
+        await coro
+    except Exception as exc:
+        _log.warning("[LIFESPAN] warm phase %s failed: %s", name, exc, exc_info=True)
+        _startup_state["errors"].append(f"{name}: {exc}")
+    finally:
+        _startup_state["pending_warm"].remove(name)
+        if not _startup_state["pending_warm"] and _startup_state["critical_done"]:
+            _set_status("ready")
+
+
 async def _run_startup_phases() -> None:
-    """Execute all startup phases sequentially."""
-    await _load_health_state()
-    await _load_backend_profiles()
-    await _load_retired_backends()
-    await _apply_startup_admission()
-    await _start_probe_loop()
-    await _start_periodic_eval()
-    await _start_session_memory_daemon()
-    await _schedule_telegram_retirement()
-    await _start_device_gateway_runtime()
-    await _setup_structured_logging()
-    await _start_mqtt_client()
-    await _start_auto_indexer()
-    await _start_prometheus()
+    """Execute critical phases sequentially, then kick off warm phases."""
+    _startup_state["status"] = "starting"
+    _startup_state["critical_done"] = False
+    _startup_state["pending_warm"].clear()
+    _startup_state["errors"].clear()
+
+    critical = [
+        _load_health_state,
+        _load_retired_backends,
+        _apply_startup_admission,
+        _start_probe_loop,
+        _start_device_gateway_runtime,
+        _start_mqtt_client,
+    ]
+
+    for phase_fn in critical:
+        try:
+            await phase_fn()
+        except Exception as exc:
+            _log.error("[LIFESPAN] critical phase %s failed: %s", phase_fn.__name__, exc, exc_info=True)
+            _startup_state["errors"].append(f"{phase_fn.__name__}: {exc}")
+            _set_status("error")
+            return
+
+    _startup_state["critical_done"] = True
+    _set_status("warming")
+
+    warm = [
+        ("backend_profile.load", _load_backend_profiles),
+        ("periodic_coding_eval.start", _start_periodic_eval),
+        ("session_memory.daemon.start", _start_session_memory_daemon),
+        ("channel_retirement.telegram", _schedule_telegram_retirement),
+        ("observability.structured_logging", _setup_structured_logging),
+        ("context_pipeline.auto_indexer.start", _start_auto_indexer),
+        ("observability.prometheus.start", _start_prometheus),
+    ]
+
+    for name, phase_fn in warm:
+        asyncio.create_task(_run_warm_phase(name, phase_fn()))
 
 
 async def _stop_prometheus() -> None:

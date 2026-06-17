@@ -69,15 +69,27 @@ async def list_models():
 
 @router.get("/health")
 async def health():
+    state = server_lifespan.get_startup_state()
     phases = list(server_lifespan.STARTUP_PHASES)
-    has_error = any(p.get("status") == "error" for p in phases)
-    startup_status = "error" if has_error else ("ready" if phases else "starting")
+    startup_status = state["status"]
+    overall_status = "ok"
+    if startup_status == "error":
+        overall_status = "degraded"
+    elif startup_status == "warming":
+        overall_status = "ok"  # serving, but background warm-up still in progress
+    elif startup_status == "starting":
+        overall_status = "degraded"
     return {
-        "status": "ok" if startup_status != "error" else "degraded",
+        "status": overall_status,
         "version": "2.0",
         "model": _model_id,
         "modules": _loaded_modules,
-        "startup": {"status": startup_status, "phases": phases},
+        "startup": {
+            "status": startup_status,
+            "phases": phases,
+            "pending_warm": state["pending_warm"],
+            "errors": state["errors"],
+        },
     }
 
 

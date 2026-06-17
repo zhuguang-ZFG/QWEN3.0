@@ -1361,6 +1361,26 @@ Agent Worker path.
 - 文档：`docs/MIMO_MCP_SETUP_CN.md`、`mcp.json.example`
 - 测试：`pytest tests/test_mimo_mcp_runner.py -q` → **4 passed**
 
+## 2026-06-17：G4 启动/部署不确定性降低（lifespan 分阶段）
+
+- **目标**：把 VPS 启动约 7 分钟的问题拆成可观测、可延迟、可并行的启动阶段。
+- **实现**：
+  - `server_lifespan.py` 将启动阶段分为 **critical**（阻塞 ready）与 **warm**（后台异步预热）：
+    - critical：`health_state.load`、`backend_retirement.load`、`backend_admission_store.apply_startup`、`probe_loop.start`、`device_gateway.runtime.start`、`mqtt_client.start`
+    - warm：`backend_profile.load`、`periodic_coding_eval.start`、`session_memory.daemon.start`、`telegram retirement`、`structured_logging`、`auto_indexer`、`prometheus`
+  - 新增 `get_startup_state()` 与 `_startup_state`，跟踪 `starting` / `warming` / `ready` / `error`。
+  - 关键阶段失败立即标记 `error` 并停止启动；warm 阶段失败只记录日志，不阻塞服务。
+- **/health 状态语义**：
+  - `starting` → degraded（关键阶段未完成）
+  - `warming` → ok（可服务，后台预热中）
+  - `ready` → ok（全部完成）
+  - `error` → degraded（关键阶段失败）
+  - 响应新增 `startup.pending_warm` 与 `startup.errors`。
+- **验证**：
+  - `pytest` 全量：**1662 passed, 23 skipped, 0 failed**；
+  - `ruff check .` clean；pyright 权威文件 + system_endpoints clean；
+  - `tests/test_system_endpoints.py` 6 passed。
+
 ## 2026-06-17：G3 小批冷区清理（证据边界瘦身）
 
 - **删除清单**：
