@@ -26,7 +26,18 @@ def extract_ws_token(websocket: WebSocket) -> str:
         return authorization[7:].strip()
     if authorization.strip():
         return authorization.strip()
-    return websocket.query_params.get("token", "").strip()
+    # Some web testers (e.g. the 2D digital human page) pass the token as an
+    # ``authorization`` query parameter. Support both ``token`` and
+    # ``authorization`` for compatibility.
+    token = websocket.query_params.get("token", "").strip()
+    if token:
+        if token.lower().startswith("bearer "):
+            return token[7:].strip()
+        return token
+    auth_query = websocket.query_params.get("authorization", "").strip()
+    if auth_query.lower().startswith("bearer "):
+        return auth_query[7:].strip()
+    return auth_query
 
 
 async def send_ws_error(

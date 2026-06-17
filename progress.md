@@ -25,6 +25,11 @@
     https://chat.donglicao.com/digital-human/            -> 200 HTML <title>小智数字人页面</title>
     https://chat.donglicao.com/digital-human/js/app.js   -> 200
     ```
+- **数字人 WebSocket 报错修复**：
+  - 根因：数字人页面把令牌作为 `?authorization=Bearer <token>` 查询参数发给 `/device/v1/ws`，而 LiMa `extract_ws_token()` 只认 `token` 查询参数或 `Authorization` 头，导致认证失败、连接被后端关闭，前端显示“WebSocket错误: 未知错误”。
+  - 修复：`routes/device_gateway_dispatch.py` 的 `extract_ws_token()` 增加对 `authorization` 查询参数的支持，并兼容 `Bearer` 前缀。
+  - 验证：Python websocket 客户端使用 `?authorization=Bearer <token>` 成功握手并完成 `hello` → `hello_ack`。
+  - VPS 已热更新该文件并重启 `lima-router`。
 - **阻塞项**：真机端到端语音交互回归仍为 P0；页面已可访问，实际 WebSocket 通话需在真机/浏览器验证。
 
 ## 2026-06-17 小智服务器退役准备：阶段 2 免费 MiMo TTS + Whisper ASR 接入（完成）

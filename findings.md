@@ -11,6 +11,7 @@
 | XZRT-DH-2 | deploy | VPS nginx 缺少 `/digital-human/` location，导致公网访问被 SPA catch-all 拦截为 200(index.html fallback)；已新增 `location ^~ /digital-human/` 转发到 `:8080` | Closed |
 | XZRT-DH-3 | verify | 公网 `https://chat.donglicao.com/digital-human/health` 与 `/digital-human/` 均 200；静态 JS/CSS 可加载 | Closed |
 | XZRT-DH-4 | verify | 真机端到端语音交互（浏览器 → `/device/v1/ws` → VAD/ASR/LLM/TTS → 数字人渲染）尚未在真实硬件/浏览器环境跑通 | Open |
+| XZRT-DH-5 | auth | 数字人页面通过 `?authorization=Bearer <token>` 传令牌，LiMa `extract_ws_token()` 原只支持 `token` 查询参数或 `Authorization` 头，导致 WS 认证失败 | Closed |
 
 ## 2026-06-17 ECC 流程导入与代码尺寸/覆盖率基线
 
