@@ -101,7 +101,10 @@ async def live_key():
         raise HTTPException(status_code=503, detail="Gemini key not configured")
     return {
         "available": True,
-        "model": "models/gemini-2.0-flash-live-001",
+        "model": os.environ.get(
+            "LIMA_GEMINI_LIVE_MODEL",
+            "models/gemini-3.1-flash-live-preview",
+        ),
         "url": "/v1/live",
         "auth": "server_side_only",
         "detail": ("Connect to the LiMa Gemini Live WebSocket proxy at /v1/live."),

@@ -98,14 +98,14 @@ async def _test_gemini_live(api_key: str) -> dict:
                     {
                         "setup": {
                             "model": model,
-                            "generationConfig": {"responseModalities": ["TEXT"]},
+                            "generationConfig": {"responseModalities": ["AUDIO"]},
                         }
                     }
                 )
             )
             first = await asyncio.wait_for(ws.recv(), timeout=15)
             first_obj = json.loads(first)
-            if not first_obj.get("setupComplete"):
+            if "setupComplete" not in first_obj:
                 return {
                     "ok": False,
                     "error": f"expected setupComplete, got: {first_obj.keys()}",
@@ -122,18 +122,30 @@ async def _test_gemini_live(api_key: str) -> dict:
                     }
                 )
             )
-            second = await asyncio.wait_for(ws.recv(), timeout=20)
-            second_obj = json.loads(second)
-            text_parts = []
-            for part in second_obj.get("serverContent", {}).get("modelTurn", {}).get("parts", []):
-                if "text" in part:
-                    text_parts.append(part["text"])
+            received: list[str] = []
+            try:
+                while True:
+                    msg = await asyncio.wait_for(ws.recv(), timeout=20)
+                    if isinstance(msg, bytes):
+                        received.append(f"<binary audio {len(msg)} bytes>")
+                        break
+                    obj = json.loads(msg)
+                    if "serverContent" in obj:
+                        parts = obj.get("serverContent", {}).get("modelTurn", {}).get("parts", [])
+                        received.append(f"serverContent parts={len(parts)} types={[list(p.keys()) for p in parts]}")
+                        if any("inlineData" in p for p in parts):
+                            break
+                    elif obj.get("setupComplete"):
+                        received.append("setupComplete")
+                    else:
+                        received.append(str(list(obj.keys())))
+            except asyncio.TimeoutError:
+                received.append("<no audio response within 20s>")
             return {
-                "ok": bool(text_parts),
+                "ok": any("binary audio" in r or "inlineData" in r for r in received),
                 "model": model,
                 "first_keys": list(first_obj.keys()),
-                "text": text_parts,
-                "raw_keys": list(second_obj.keys()),
+                "received": received,
             }
     except websockets.exceptions.InvalidStatus as exc:
         return {"ok": False, "error": f"WebSocket handshake failed: {exc.status_code}"}
@@ -243,16 +255,16 @@ async def main() -> int:
     print("\n--- Gemini Live /v1/live proxy ---")
     gemini = await _test_gemini_live(api_key)
     if gemini["ok"]:
-        print("OK: handshake + text response succeeded")
+        print("OK: handshake + audio response succeeded")
         print(f"  model: {gemini['model']}")
         print(f"  setup response keys: {gemini['first_keys']}")
-        print(f"  response text preview: {gemini['text'][:120] if gemini['text'] else '(empty)'}")
+        print(f"  response messages: {gemini['received']}")
     else:
         print(f"FAIL: {gemini['error']}")
         if "first" in gemini:
             print(f"  first response: {gemini['first']}")
-        if "raw_keys" in gemini:
-            print(f"  raw keys: {gemini['raw_keys']}")
+        if "received" in gemini:
+            print(f"  received: {gemini['received']}")
 
     print("\n--- Digital human /device/v1/ws ---")
     dh = await _test_digital_human_ws()
