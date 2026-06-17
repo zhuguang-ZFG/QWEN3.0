@@ -5,14 +5,28 @@
 > **公网端点**: chat.donglicao.com, api.donglicao.com
 > **部署**: Alibaba Cloud VPS + JDCloud 备用
 
-> Updated: 2026-06-16
+> Updated: 2026-06-17
 > Branch: `main`
-> Scale: 656 文件 / 77,584 行（较初始 794/93,145 减 138 文件 / 15,561 行）
-> Tests: 全量 1620 passed / 23 skipped / 0 failed；ruff clean
-> 注：`tests/test_device_draw_integration.py`、`tests/test_svg_converter.py` 因本地缺少 `cv2` 在收集阶段报错，非代码回归。
-> VPS smoke：`https://chat.donglicao.com/health` 200；`/device/v1/health` 200（`auth_configured=true`）；`/v1/chat/completions model=code` 200（backend `cerebras_gptoss`）。
+> Scale: 约 1021 个 Python 文件 / 全仓 630 文件已格式化
+> Tests: 全量 1662 passed / 23 skipped / 0 failed；ruff check clean；ruff format clean
+> pyright 权威文件（server.py / routing_engine.py / routes/chat_endpoints.py）0 errors
+> VPS smoke：`https://chat.donglicao.com/health` 200；`/device/v1/health` 200（`auth_configured=true`）；沿用 2026-06-17 记录。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-17）代码质量门禁整改 + AI→Motion 发布门回归证据
+
+- **P0 静默异常治理**：生产路径约 38 处 `except ImportError/Exception: pass` 或仅 `logger.debug` 的关键依赖降级升级为 `logger.warning`，符合 AGENTS.md Hard Rule 1。
+- **P1 模块拆分**：`device_voice/voiceprint.py` 587→112 行、`routes/device_gateway_ws_handlers.py` 468→260 行、`session_memory/store_db.py` 361→129 行；新增 7 个职责单一子模块。
+- **P2 死代码清理**：删除 `backends.py`、`device_intelligence/profile_store.py`、`device_intelligence/planner.py`、`session_memory/shadow_mode.py` 及对应测试。
+- **P3 CI 强化**：`.github/workflows/test.yml` 增加 `ruff format --check` 与 `pyright` 权威文件类型检查。
+- **P4 全仓格式化**：`ruff format .` 统一 412 个文件风格。
+- **验证**：
+  - 全量 `pytest` → **1662 passed, 23 skipped, 0 failed**；
+  - AI→Motion 发布门聚焦测试 → **173 passed, 3 skipped**；
+  - `ruff check .`、`ruff format --check`、pyright 权威文件均 clean；
+  - 证据文档 `docs/release_evidence/2026-06-17-M13-code-quality-gate-evidence.md`。
+- **提交**：`4d5ef77`、`41b9389`、`9dce12a`、`297fba4`、`cd5edca` 已 push 到 `origin main`。
 
 ### 最近完成（2026-06-16）拆分四个热路径 oversized 函数
 

@@ -1361,6 +1361,24 @@ Agent Worker path.
 - 文档：`docs/MIMO_MCP_SETUP_CN.md`、`mcp.json.example`
 - 测试：`pytest tests/test_mimo_mcp_runner.py -q` → **4 passed**
 
+## 2026-06-17：代码质量门禁整改 + AI→Motion 发布门回归证据
+
+- **P0 静默异常治理**：生产路径约 38 处 `except ImportError/Exception: pass` 或仅 `logger.debug` 的关键依赖降级升级为 `logger.warning`；涉及 `http_*.py`、`routing_engine_context.py`、`context_pipeline/*`、`session_memory/learning_loop.py`、`health_recorder.py`、`server_lifespan.py` 等。
+- **P1 模块拆分**：
+  - `device_voice/voiceprint.py` 587→112 行；
+  - `routes/device_gateway_ws_handlers.py` 468→260 行；
+  - `session_memory/store_db.py` 361→129 行；
+  - 新增 `device_voice/voiceprint_types.py`、`voiceprint_cache.py`、`voiceprint_policy.py`、`providers/voiceprint_3dspeaker.py`、`providers/voiceprint_api.py`、`routes/device_voice_ws_helpers.py`、`session_memory/store_voiceprint.py`。
+- **P2 死代码清理**：删除 `backends.py`、`device_intelligence/profile_store.py`、`device_intelligence/planner.py`、`session_memory/shadow_mode.py` 及对应测试；更新 `device_intelligence/__init__.py` 与 `tests/test_request_pipeline_authority.py`。
+- **P3 CI 强化**：`.github/workflows/test.yml` 增加 `ruff format --check` 与 `pyright server.py routing_engine.py routes/chat_endpoints.py`。
+- **P4 全仓格式化**：`ruff format .` 统一 412 个文件风格。
+- **提交与推送**：5 个 conventional commits 已 push 到 `origin/main`：`4d5ef77`、`41b9389`、`9dce12a`、`297fba4`、`cd5edca`。
+- **回归验证**：
+  - `pytest` 全量：**1662 passed, 23 skipped, 0 failed**；
+  - AI→Motion 发布门聚焦测试：**173 passed, 3 skipped**；
+  - `ruff check .` clean、`ruff format --check` clean、pyright 权威文件 0 errors；
+  - 证据文档：`docs/release_evidence/2026-06-17-M13-code-quality-gate-evidence.md`。
+
 ## 历史归档
 
 - [2026-05 执行进展](docs/archive/progress-2026-05.md)
