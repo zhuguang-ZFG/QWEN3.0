@@ -19,16 +19,15 @@ SKIP_PREFIXES = ("tests/", "scripts/", "esp32S_XYZ/", "deepcode-cli/", ".venv")
 SKIP_DIRS = {"tests", "scripts", "esp32S_XYZ", "deepcode-cli", ".venv", "__pycache__"}
 ROOT_KEEP = frozenset({"server.py", "conftest.py"})
 
-# Cold modules eligible for test-only pruning (see docs/CODEBASE_SUBSYSTEM_TIER_CN.md)
+# Cold modules eligible for test-only pruning (see docs/CODEBASE_SUBSYSTEM_TIER_CN.md).
+# Keep this list in sync with the filesystem; modules that no longer exist are
+# skipped (and reported as MISSING) by _scan_cold_modules().
 COLD_MODULES = [
     "graph_retrieval",
     "complexity",
     "entity_extraction",
     "graph_context_expander",
     "production_index",
-    "concurrency_pool",
-    "index_protocol",
-    "reranker_protocol",
     "retrieval_corpus",
     "retrieval_trace",
 ]
@@ -129,6 +128,10 @@ def _scan_root_orphans(imports: list[sqlite3.Row], *, fanin: bool) -> None:
 def _scan_cold_modules(imports: list[sqlite3.Row], *, fanin: bool) -> None:
     print("\n=== context_pipeline cold modules (import refs outside tests) ===")
     for mod in COLD_MODULES:
+        mod_path = ROOT / "context_pipeline" / f"{mod}.py"
+        if not mod_path.is_file():
+            print(f"  {mod}: MISSING (module no longer exists)")
+            continue
         refs = [r["file_path"] for r in imports if mod in (r["name"] or "")]
         prod = sorted({f for f in refs if not f.startswith("tests/")})
         test_only = bool(refs) and not prod
