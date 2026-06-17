@@ -25,6 +25,11 @@
     https://chat.donglicao.com/digital-human/            -> 200 HTML <title>小智数字人页面</title>
     https://chat.donglicao.com/digital-human/js/app.js   -> 200
     ```
+- **入口集成**：
+  - 官网 `donglicao-site/index.html` 增加 Apple 风格「2D 数字人」卡片，点击跳转 `https://chat.donglicao.com/digital-human/`。
+  - 生产 Chat Web (`/var/www/chat/index.html`) 侧边栏新增「应用 → 2D 数字人」卡片，点击新标签打开数字人页面。
+  - 数字人页面首次打开自动填充设备 ID、client-id、device-name 与测试令牌（从 `LIMA_DIGITAL_HUMAN_DEFAULT_*` 环境变量读取），用户无需手动输入即可连接。
+
 - **数字人 WebSocket 报错修复**：
   - 根因：数字人页面把令牌作为 `?authorization=Bearer <token>` 查询参数发给 `/device/v1/ws`，而 LiMa `extract_ws_token()` 只认 `token` 查询参数或 `Authorization` 头，导致认证失败、连接被后端关闭，前端显示“WebSocket错误: 未知错误”。
   - 修复：`routes/device_gateway_dispatch.py` 的 `extract_ws_token()` 增加对 `authorization` 查询参数的支持，并兼容 `Bearer` 前缀。
@@ -1576,3 +1581,15 @@ Agent Worker path.
 
 - [2026-05 执行进展](docs/archive/progress-2026-05.md)
 - 更早的历史记录可在 Git 历史中检索
+
+## 2026-06-18 Codex 项Ŀ级 multi-agent 配置收敛
+
+- **Ŀ标**：保留项Ŀ级 `.codex/config.toml` 和 `agents/*.toml`，ͬʱÊսô `.gitignore` ±߽粢²¹³ä²ֿâÄÚ˵明。
+- **核ʵ**£º¹ٷ½ Codex Êֲáȷ认 project-scoped custom agents ֱ½ӴÓ `.codex/agents/*.toml` ×Զ⑾֣»`[agents]` ֻ承载ȫ¾ÖÏ߳Ì/Éî¶ÈÏÞÖơ£
+- **ʵ现**：
+  - `.gitignore` ֻ放行 `.codex/config.toml` 与 `.codex/agents/*.toml`，其余 `.codex/agents/**` ¼ÌÐøºöÂԡ£
+  - `.codex/config.toml` 仅保留 `multi_agent = true`，ɾ除冗余Ĭ认ֵ。
+  - `docs/WORKSPACE_HYGIENE.md` 增补 `.codex/` ±߽ç˵明。
+- **验֤**：
+  - `tomllib` 解析三个 TOML Îļþ → `toml ok`。
+  - `git check-ignore -v` ȷ认Ŀ标 TOML ·ÅÐУ¬`.codex/agents/notes.md` 与 `.codex/skills/ui-ux-pro-max/SKILL.md` ¼ÌÐø±»ºöÂԡ£
