@@ -12,6 +12,17 @@
 | ECC-3 | metrics | 缺少测试覆盖率基线；已安装 `pytest-cov` 并在 `pytest.ini` 配置；`device_gateway` 聚焦覆盖从 38.2% 提升至 **71.1%**（新增 `device_draw_handler`/`motion` 单元测试） | Open |
 | ECC-4 | tooling | `scripts/run_pre_commit_check.py` 已集成代码尺寸检查作为 warning（不阻塞，现有违规先记录） | Closed |
 
+## 2026-06-17 小智服务器退役准备：阶段 2 云 ASR/TTS SDK 接入
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| XZRT-7 | model_admission | 阿里云 NLS Python SDK (`alibabacloud-nls-python-sdk`) 已接入 ASR/TTS provider | Closed |
+| XZRT-8 | model_admission | 火山豆包 ASR/TTS 通过 WebSocket/HTTP REST 接入，无需额外 `volcengine` SDK 依赖 | Closed |
+| XZRT-9 | safety | 云 provider 统一使用 `device_voice.exceptions`，凭证缺失时抛 `ConfigurationError` 而非静默 stub | Closed |
+| XZRT-10 | verify | `tests/test_device_voice_cloud_providers.py` 13 个单测覆盖 4 个 provider 的正常/鉴权失败/网络超时路径 | Closed |
+| XZRT-11 | tooling | 新增 `scripts/smoke_voice_providers.py` 用于真实凭证下的 TTS→ASR 闭环冒烟 | Closed |
+| XZRT-12 | verify | 真实凭证冒烟、真机端到端回归、VPS 运行时验证尚未执行 | Open |
+
 ## 2026-06-17 小智服务器退役准备：阶段 1 止血与合规
 
 | ID | Area | Finding | Status |

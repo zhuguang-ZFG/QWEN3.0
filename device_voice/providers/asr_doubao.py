@@ -1,41 +1,155 @@
-"""Doubao (ByteDance/Volcano Engine) ASR provider — cloud speech recognition.
+"""Volcano Engine (Doubao) ASR provider.
 
-Ported from xiaozhi-server core/providers/asr/doubao.py.
+Implements the Doubao non-streaming ASR WebSocket protocol using the
+`websockets` client library. This is a port of the reference implementation
+from xiaozhi-server, adapted to LiMa's async ASRProvider interface.
 
-Required env: DOUBAO_ASR_APPID, DOUBAO_ASR_TOKEN
-Note: This is a stub — full implementation requires Volcano Engine SDK.
+Required env:
+    DOUBAO_ASR_APPID
+    DOUBAO_ASR_ACCESS_TOKEN
+Optional env:
+    DOUBAO_ASR_CLUSTER (default: volcengine_input_common)
 """
 
 from __future__ import annotations
 
+import asyncio
 import logging
+import os
+import uuid
 from collections.abc import AsyncIterator
+from typing import cast
+
+import websockets
 
 from device_voice.asr import ASRProvider
+from device_voice.exceptions import (
+    AuthenticationError,
+    ConfigurationError,
+    NetworkError,
+    VoiceProviderError,
+)
+from device_voice.providers.doubao_protocol import build_audio_frame, build_request_frame, parse_response
 
 _log = logging.getLogger(__name__)
 
+_DEFAULT_CLUSTER = "volcengine_input_common"
+_WS_URL = "wss://openspeech.bytedance.com/api/v2/asr"
+_SUCCESS_CODE = 1000
+_NO_VOICE_CODE = 1013
+
 
 class DoubaoASRProvider(ASRProvider):
-    """Volcano Engine ASR — high-quality cloud speech recognition."""
+    """Volcano Engine Doubao speech recognition."""
 
     def __init__(self) -> None:
-        _log.warning(
-            "DoubaoASRProvider is a stub — real Volcano Engine ASR SDK integration is "
-            "required before using this provider in production"
-        )
+        self._appid = os.environ.get("DOUBAO_ASR_APPID", "").strip()
+        self._access_token = os.environ.get("DOUBAO_ASR_ACCESS_TOKEN", "").strip()
+        self._cluster = os.environ.get("DOUBAO_ASR_CLUSTER", _DEFAULT_CLUSTER).strip()
+
+        if not self._appid or not self._access_token:
+            raise ConfigurationError(
+                "DoubaoASRProvider requires DOUBAO_ASR_APPID and DOUBAO_ASR_ACCESS_TOKEN."
+            )
+
+        _log.info("DoubaoASRProvider initialized cluster=%s", self._cluster)
 
     async def transcribe(self, audio_data: bytes, *, sample_rate: int = 16000) -> str:
-        raise NotImplementedError(
-            "Doubao ASR is not implemented. Set LIMA_VOICE_ASR_PROVIDER=funasr "
-            "or implement device_voice.providers.asr_doubao.DoubaoASRProvider."
-        )
+        """Recognize a complete utterance and return the transcript."""
+        if not audio_data:
+            return ""
+
+        reqid = str(uuid.uuid4())
+        request_payload = {
+            "app": {
+                "appid": self._appid,
+                "cluster": self._cluster,
+                "token": self._access_token,
+            },
+            "user": {"uid": str(uuid.uuid4())},
+            "request": {
+                "reqid": reqid,
+                "show_utterances": False,
+                "sequence": 1,
+            },
+            "audio": {
+                "format": "raw",
+                "rate": sample_rate,
+                "language": "zh-CN",
+                "bits": 16,
+                "channel": 1,
+                "codec": "raw",
+            },
+        }
+
+        headers = {"Authorization": f"Bearer; {self._access_token}"}
+
+        try:
+            async with websockets.connect(_WS_URL, additional_headers=headers) as ws:
+                await ws.send(build_request_frame(request_payload))
+                response = cast(bytes, await ws.recv())
+                result = parse_response(response)
+                payload = result.get("payload_msg", {})
+                code = payload.get("code")
+                if code not in (_SUCCESS_CODE, _NO_VOICE_CODE):
+                    raise _map_doubao_error(code, payload)
+
+                # Stream audio chunks to the server.
+                chunk_size = 3200  # 100ms of 16-bit mono @ 16kHz
+                total = len(audio_data)
+                for offset in range(0, total, chunk_size):
+                    is_last = offset + chunk_size >= total
+                    chunk = audio_data[offset : offset + chunk_size]
+                    await ws.send(build_audio_frame(chunk, is_last=is_last))
+
+                response = cast(bytes, await ws.recv())
+                result = parse_response(response)
+                payload = result.get("payload_msg", {})
+                code = payload.get("code")
+                if code == _NO_VOICE_CODE:
+                    return ""
+                if code != _SUCCESS_CODE:
+                    raise _map_doubao_error(code, payload)
+
+                results = payload.get("result", [])
+                if results:
+                    return results[0].get("text", "").strip()
+                return ""
+        except websockets.WebSocketException as exc:
+            error_text = str(exc).lower()
+            if "401" in error_text or "403" in error_text:
+                raise AuthenticationError(f"Doubao ASR authentication failed: {exc}") from exc
+            raise NetworkError(f"Doubao ASR websocket error: {exc}") from exc
+        except Exception as exc:
+            if isinstance(exc, VoiceProviderError):
+                raise
+            error_text = str(exc).lower()
+            if "401" in error_text or "403" in error_text:
+                raise AuthenticationError(f"Doubao ASR authentication failed: {exc}") from exc
+            raise VoiceProviderError(f"Doubao ASR request failed: {exc}") from exc
 
     async def stream_transcribe(
         self, audio_stream: AsyncIterator[bytes], *, sample_rate: int = 16000
     ) -> AsyncIterator[str]:
+        """Streaming ASR is not implemented for Doubao in this provider.
+
+        The non-streaming protocol already covers LiMa's current dialogue
+        pipeline, which buffers a complete utterance before calling ASR.
+        """
         raise NotImplementedError(
-            "Doubao ASR streaming is not implemented. Set LIMA_VOICE_ASR_PROVIDER=funasr "
-            "or implement device_voice.providers.asr_doubao.DoubaoASRProvider.stream_transcribe."
+            "DoubaoASRProvider.stream_transcribe is not implemented. "
+            "Use transcribe() with a complete utterance."
         )
         yield  # pragma: no cover
+
+
+def _map_doubao_error(code: int | None, payload: dict) -> VoiceProviderError:
+    """Map a Doubao ASR error code to a typed exception."""
+    message = payload.get("message", payload.get("error", "unknown error"))
+    error_text = f"Doubao ASR error {code}: {message}"
+
+    if code in (1001, 1002, 1003, 1004, 1005, 2001, 2002):
+        return AuthenticationError(error_text)
+    if code in (1006, 1007, 1008, 1009):
+        return NetworkError(error_text)
+    return VoiceProviderError(error_text)

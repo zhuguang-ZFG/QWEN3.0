@@ -15,6 +15,7 @@ import time
 from typing import Any, Optional
 
 from device_voice.audio_stream import AudioConfig, estimate_duration_ms
+from device_voice.exceptions import VoiceProviderError
 
 _log = logging.getLogger(__name__)
 
@@ -146,6 +147,9 @@ async def _run_asr(pcm_data: bytes, config: AudioConfig) -> str:
 
         asr = get_asr_provider()
         return await asr.transcribe(pcm_data, sample_rate=config.sample_rate)
+    except VoiceProviderError as exc:
+        _log.warning("ASR provider failed: %s", exc)
+        return ""
     except Exception:
         _log.warning("ASR provider failed", exc_info=True)
         return ""
@@ -194,6 +198,9 @@ async def _run_tts(text: str, voice: str, config: AudioConfig) -> bytes:
 
         tts = get_tts_provider()
         return await tts.synthesize(text, voice=voice, sample_rate=config.sample_rate)
+    except VoiceProviderError as exc:
+        _log.warning("TTS provider failed: %s", exc)
+        return b""
     except Exception:
         _log.warning("TTS provider failed", exc_info=True)
         return b""

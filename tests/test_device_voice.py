@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
 
 
@@ -86,39 +88,27 @@ class TestASRProvider:
 
         assert isinstance(provider, FunASRProvider)
 
-    def test_create_aliyun_stub(self):
+    def test_create_aliyun_requires_credentials(self, monkeypatch):
+        monkeypatch.setenv("ALIBABA_CLOUD_ACCESS_KEY_ID", "ak")
+        monkeypatch.setenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET", "sk")
+        monkeypatch.setenv("ALIBABA_NLS_APP_KEY", "appkey")
         from device_voice.asr import create_asr_provider
 
-        provider = create_asr_provider("aliyun")
+        with patch("nls.token.getToken", return_value={"Token": {"Id": "token"}}):
+            provider = create_asr_provider("aliyun")
         from device_voice.providers.asr_aliyun import AliyunASRProvider
 
         assert isinstance(provider, AliyunASRProvider)
 
-    def test_aliyun_stub_raises_not_implemented(self):
-        from device_voice.asr import create_asr_provider
-
-        provider = create_asr_provider("aliyun")
-        import asyncio
-
-        with pytest.raises(NotImplementedError):
-            asyncio.run(provider.transcribe(b"fake"))
-
-    def test_create_doubao_stub(self):
+    def test_create_doubao_requires_credentials(self, monkeypatch):
+        monkeypatch.setenv("DOUBAO_ASR_APPID", "appid")
+        monkeypatch.setenv("DOUBAO_ASR_ACCESS_TOKEN", "token")
         from device_voice.asr import create_asr_provider
 
         provider = create_asr_provider("doubao")
         from device_voice.providers.asr_doubao import DoubaoASRProvider
 
         assert isinstance(provider, DoubaoASRProvider)
-
-    def test_doubao_stub_raises_not_implemented(self):
-        from device_voice.asr import create_asr_provider
-
-        provider = create_asr_provider("doubao")
-        import asyncio
-
-        with pytest.raises(NotImplementedError):
-            asyncio.run(provider.transcribe(b"fake"))
 
     def test_funasr_transcribe_empty_audio(self):
         from device_voice.asr import create_asr_provider
@@ -161,7 +151,9 @@ class TestTTSProvider:
 
         assert isinstance(provider, EdgeTTSProvider)
 
-    def test_create_doubao_stub(self):
+    def test_create_doubao_requires_credentials(self, monkeypatch):
+        monkeypatch.setenv("DOUBAO_TTS_APPID", "appid")
+        monkeypatch.setenv("DOUBAO_TTS_ACCESS_TOKEN", "token")
         from device_voice.tts import create_tts_provider
 
         provider = create_tts_provider("doubao")
@@ -169,31 +161,17 @@ class TestTTSProvider:
 
         assert isinstance(provider, DoubaoTTSProvider)
 
-    def test_doubao_stub_raises_not_implemented(self):
+    def test_create_aliyun_requires_credentials(self, monkeypatch):
+        monkeypatch.setenv("ALIBABA_CLOUD_ACCESS_KEY_ID", "ak")
+        monkeypatch.setenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET", "sk")
+        monkeypatch.setenv("ALIBABA_NLS_APP_KEY", "appkey")
         from device_voice.tts import create_tts_provider
 
-        provider = create_tts_provider("doubao")
-        import asyncio
-
-        with pytest.raises(NotImplementedError):
-            asyncio.run(provider.synthesize("hello"))
-
-    def test_create_aliyun_stub(self):
-        from device_voice.tts import create_tts_provider
-
-        provider = create_tts_provider("aliyun")
+        with patch("nls.token.getToken", return_value={"Token": {"Id": "token"}}):
+            provider = create_tts_provider("aliyun")
         from device_voice.providers.tts_aliyun import AliyunTTSProvider
 
         assert isinstance(provider, AliyunTTSProvider)
-
-    def test_aliyun_stub_raises_not_implemented(self):
-        from device_voice.tts import create_tts_provider
-
-        provider = create_tts_provider("aliyun")
-        import asyncio
-
-        with pytest.raises(NotImplementedError):
-            asyncio.run(provider.synthesize("hello"))
 
     def test_edge_default_voice(self):
         from device_voice.tts import create_tts_provider

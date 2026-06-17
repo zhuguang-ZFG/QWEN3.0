@@ -13,7 +13,10 @@ from dataclasses import dataclass, field
 _log = logging.getLogger(__name__)
 
 
-class VADModelUnavailableError(RuntimeError):
+from device_voice.exceptions import ModelUnavailableError
+
+
+class VADModelUnavailableError(ModelUnavailableError):
     """Raised when the requested VAD model cannot be loaded.
 
     Previously the SileroVAD provider silently treated all audio as speech

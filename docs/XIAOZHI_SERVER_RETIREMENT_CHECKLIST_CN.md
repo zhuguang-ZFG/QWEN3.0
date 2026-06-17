@@ -14,39 +14,41 @@
 | --- | --- | --- |
 | 兼容 REST 层（OpenAPI 28/29） | ✅ 28/29 上线，13 集成测试通过 | 否（差 1 端点） |
 | 语音管线骨架（ASR/VAD/TTS/声纹） | ✅ 骨架完整 | 否 |
-| **生产级云 ASR/TTS provider** | ⚠️ **4 个仍是 stub，但已显式抛异常** | **是（P0）** |
+| **生产级云 ASR/TTS provider** | ✅ **4 个已接入真实 SDK/REST** | 否（待冒烟验证） |
 | **静默降级（违反 Hard Rule 1）** | ✅ VAD/声纹失败路径已加 warning/异常 | 否 |
 | EdgeTTS 音频格式 | ✅ MP3 已转 PCM（依赖 ffmpeg） | 否 |
 | OpenAPI 最后 1 端点 | ⚠️ 28/29 | 否（P1） |
 | 真机端到端回归 | ❌ 未执行 | **是（P0）** |
 | VPS 运行时依赖验证 | ❌ 未执行 | **是（P0）** |
 
-**当前判定**：小智服务器**仍不能退役**。阶段 1 止血已完成（静默降级消除、EdgeTTS PCM 转码），但云 ASR/TTS provider 仍是 stub、真机和 VPS 验证均未做。
+**当前判定**：小智服务器**仍不能退役**。阶段 2 已完成云 ASR/TTS SDK 接入与单元测试，但尚未用真实凭证跑通冒烟脚本，真机端到端回归与 VPS 运行时验证也未执行。
 
 ---
 
 ## 2. P0 阻塞项（必须解决才能退役）
 
-### 2.1 云 ASR/TTS provider 是空壳 ⛔ → ⚠️ 已止血（真实 SDK 接入待阶段 2）
+### 2.1 云 ASR/TTS provider 是空壳 ⛔ → ✅ 已接入真实 SDK（待冒烟验证）
 
-`device_voice/providers/` 下 4 个文件之前返回空字符串/空字节，现在**显式抛出 `NotImplementedError`**，并在 `__init__` 打印 warning：
+`device_voice/providers/` 下 4 个文件已替换为真实 SDK / REST 实现：
 
-| 文件 | 行号 | 现状 |
-| --- | --- | --- |
-| `asr_aliyun.py` | 25 | `raise NotImplementedError(...)` |
-| `asr_doubao.py` | 25 | `raise NotImplementedError(...)` |
-| `tts_aliyun.py` | 25 | `raise NotImplementedError(...)` |
-| `tts_doubao.py` | 25 | `raise NotImplementedError(...)` |
+| 文件 | 现状 |
+| --- | --- |
+| `asr_aliyun.py` | 接入阿里云 NLS Python SDK (`nls.NlsSpeechRecognizer`) |
+| `asr_doubao.py` | 接入火山豆包 ASR WebSocket 协议 (`openspeech.bytedance.com/api/v2/asr`) |
+| `tts_aliyun.py` | 接入阿里云 NLS Python SDK (`nls.NlsSpeechSynthesizer`) |
+| `tts_doubao.py` | 接入火山豆包 TTS HTTP API (`openspeech.bytedance.com/api/v1/tts`) |
 
-这消除了「配置走云端却静默返回空结果」的 Hard Rule 1 违规；但真实阿里云 NLS / 火山豆包 SDK 接入仍是退役的硬阻塞项，需在阶段 2 完成。
+- 凭证从环境变量读取；缺失时 `__init__` 抛出 `ConfigurationError`。
+- 新增 `device_voice/exceptions.py` 统一异常体系（`VoiceProviderError` / `AuthenticationError` / `NetworkError` / `ConfigurationError`）。
+- 新增 `scripts/smoke_voice_providers.py` 手动冒烟脚本：TTS → PCM → ASR 闭环。
 
 **验收标准**：
-- [ ] `asr_aliyun.py` 接入阿里云 NLS SDK，真实返回识别文本
-- [ ] `asr_doubao.py` 接入火山豆包 ASR，真实返回识别文本
-- [ ] `tts_aliyun.py` 接入阿里云 NLS，真实返回 PCM 音频
-- [ ] `tts_doubao.py` 接入火山豆包 TTS，真实返回 PCM 音频
-- [ ] 每个 provider 至少 3 个单测覆盖：正常 / 鉴权失败 / 网络超时
-- [x] stub 阶段不再静默返回空结果（显式异常 + 启动 warning）
+- [x] `asr_aliyun.py` 接入阿里云 NLS SDK，真实返回识别文本
+- [x] `asr_doubao.py` 接入火山豆包 ASR，真实返回识别文本
+- [x] `tts_aliyun.py` 接入阿里云 NLS，真实返回 PCM 音频
+- [x] `tts_doubao.py` 接入火山豆包 TTS，真实返回 PCM 音频
+- [x] 每个 provider 至少 3 个单测覆盖：正常 / 鉴权失败 / 网络超时
+- [ ] 手动冒烟脚本跑通（依赖真实凭证）
 - [ ] 真机连一次，确认云端 ASR→LLM→TTS 链路通
 
 ### 2.2 VAD 静默降级 ⛔ → ✅ 已修复

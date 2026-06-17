@@ -5,6 +5,26 @@
 > Updated: 2026-06-17
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-17 小智服务器退役准备：阶段 2 云 ASR/TTS SDK 接入（完成）
+
+- **目标**：用真实 SDK/REST 替换 `device_voice` 中 4 个云 ASR/TTS stub，使 LiMa 语音管线具备生产级云端能力。
+- **实现**：
+  - `device_voice/exceptions.py`：新增统一异常体系（`VoiceProviderError` / `AuthenticationError` / `NetworkError` / `ConfigurationError` / `RateLimitError` / `ModelUnavailableError`）。
+  - `device_voice/providers/asr_aliyun.py`：接入阿里云 NLS Python SDK，实现 `transcribe()`（一句话识别）与 `stream_transcribe()`（实时转写）。
+  - `device_voice/providers/tts_aliyun.py`：接入阿里云 NLS Python SDK，返回 PCM 音频。
+  - `device_voice/providers/doubao_protocol.py`：新增火山豆包二进制协议公共头/解析器。
+  - `device_voice/providers/asr_doubao.py`：接入火山豆包 ASR WebSocket 协议。
+  - `device_voice/providers/tts_doubao.py`：接入火山豆包 TTS HTTP REST API，返回 PCM。
+  - `device_voice/dialogue.py`：ASR/TTS 失败路径针对 `VoiceProviderError` 记录带原因 warning。
+  - `scripts/smoke_voice_providers.py`：新增手动冒烟脚本，TTS → PCM → ASR 闭环验证。
+  - `.env.example`：新增阿里云 NLS / 火山豆包语音相关环境变量。
+  - `requirements_voice.txt`：新增语音依赖清单。
+- **验证**：
+  - `.venv310/Scripts/python -m pytest tests/test_device_voice.py tests/test_device_voice_cloud_providers.py -v` → **45 passed**。
+  - 冒烟脚本尚未用真实凭证运行（下一阶段或用户提供凭证后执行）。
+- **文档**：更新 `docs/XIAOZHI_SERVER_RETIREMENT_CHECKLIST_CN.md`，2.1 标记为完成（待冒烟验证）。
+- **阻塞项**：真机端到端回归、VPS 运行时依赖验证、云 provider 真实凭证冒烟验证。
+
 ## 2026-06-17 小智服务器退役准备：阶段 1 止血与合规（完成）
 
 - **目标**：消除 `device_voice` 语音管线中的静默降级，使 LiMa 小智退役准备工作进入可验收状态。
