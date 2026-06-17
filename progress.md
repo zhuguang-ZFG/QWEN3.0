@@ -21,9 +21,10 @@
   - `requirements_voice.txt`：新增语音依赖清单。
 - **验证**：
   - `.venv310/Scripts/python -m pytest tests/test_device_voice.py tests/test_device_voice_cloud_providers.py -v` → **45 passed**。
-  - 冒烟脚本尚未用真实凭证运行（下一阶段或用户提供凭证后执行）。
+  - VPS 已部署代码并安装 `alibabacloud-nls-python-sdk==1.0.2`，`websockets`/`edge_tts`/`httpx` 已存在。
+  - 真实凭证冒烟：VPS `.env` 中仅有 `ALIYUN_API_KEY` / `VOLCENGINE_API_KEY`（LLM key），缺少 `ALIBABA_CLOUD_ACCESS_KEY_ID/SECRET`、`ALIBABA_NLS_APP_KEY`、`DOUBAO_ASR_APPID/ACCESS_TOKEN`、`DOUBAO_TTS_APPID/ACCESS_TOKEN`。冒烟脚本因此跳过，待用户提供语音凭证后重跑。
 - **文档**：更新 `docs/XIAOZHI_SERVER_RETIREMENT_CHECKLIST_CN.md`，2.1 标记为完成（待冒烟验证）。
-- **阻塞项**：真机端到端回归、VPS 运行时依赖验证、云 provider 真实凭证冒烟验证。
+- **阻塞项**：真机端到端回归、云 provider 真实凭证冒烟验证。
 
 ## 2026-06-17 小智服务器退役准备：阶段 1 止血与合规（完成）
 
