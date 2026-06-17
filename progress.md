@@ -5,6 +5,16 @@
 > Updated: 2026-06-18
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-18 Chat Web 图片/绘画结果渲染修复（完成）
+
+- **问题**：助手返回的图片 Markdown `![image](https://image.pollinations.ai/...)` 在 Chat Web 中作为纯文本展示，无法直接查看生成的图片。
+- **修复**：`chat-web/index.html` 的 `formatContent()` 增加正则，将 `![alt](url)` 渲染为带 `loading="lazy"` 的 `.media-card` 图片卡片。
+- **部署**：使用 `scripts/deploy_chat_web.py` 推送 `/var/www/chat/index.html`，生产环境已生效。
+- **验证**：
+  - 公网拉取验证页面中包含 `media-card` 与 `formatContent` 更新。
+  - `ruff check chat-web/index.html` clean（HTML 文件无 Python lint 问题）。
+  - Git commit `925c061` 已推送到 GitHub `origin main`。
+
 ## 2026-06-17 小智服务器退役准备：阶段 3 之 2D 数字人系统接入 LiMa（完成）
 
 - **目标**：将原小智服务器仓库中的 2D 数字人（Live2D）前端迁移到 LiMa，使其可通过 LiMa 公网域名直接访问，并复用 LiMa `/device/v1/ws` 语音交互通道。
