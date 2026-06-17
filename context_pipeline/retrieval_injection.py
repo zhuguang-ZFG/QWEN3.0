@@ -19,8 +19,8 @@ class RetrievalPayload:
 def _normalize_messages(messages: list) -> list[dict]:
     return [
         {"role": m.get("role", ""), "content": m.get("content", "")}
-        if isinstance(m, dict) else
-        {"role": getattr(m, "role", ""), "content": getattr(m, "content", "")}
+        if isinstance(m, dict)
+        else {"role": getattr(m, "role", ""), "content": getattr(m, "content", "")}
         for m in messages
     ]
 
@@ -33,7 +33,8 @@ def run_retrieval(messages: list[dict]) -> RetrievalPayload | None:
         from context_pipeline.graph_retrieval import dual_layer_search, RetrievalResult
         from context_pipeline.production_index import search_production_corpus
         from context_pipeline.reranking import rerank_results, format_for_injection
-    except ImportError:
+    except ImportError as exc:
+        logger.warning("context_pipeline modules not installed; retrieval injection disabled: %s", exc)
         return None
 
     try:
@@ -47,10 +48,7 @@ def run_retrieval(messages: list[dict]) -> RetrievalPayload | None:
         query = " ".join(terms)
         vector_results = search_production_corpus(query, top_k=8)
         if not vector_results:
-            vector_results = [
-                RetrievalResult(path=term, score=0.7, source="vector")
-                for term in terms[:5]
-            ]
+            vector_results = [RetrievalResult(path=term, score=0.7, source="vector") for term in terms[:5]]
         merged = dual_layer_search(terms, vector_results, graph, max_results=8)
         reranked = rerank_results(merged, terms, top_k=5)
         if not reranked:
@@ -80,17 +78,18 @@ def build_retrieval_text(messages: list[dict]) -> str:
 def _record_trace(payload: RetrievalPayload) -> None:
     from context_pipeline.retrieval_trace import record_trace, RetrievalTrace
 
-    record_trace(RetrievalTrace(
-        query_entities=payload.query_terms,
-        candidates_searched=payload.candidates_searched,
-        reranked_results=[
-            {"path": r.path, "score": round(r.score, 2), "source": r.source}
-            for r in payload.reranked_results
-        ],
-        injected_text=payload.text,
-        injected_chars=len(payload.text),
-        injection_useful=bool(payload.text and len(payload.text) > 50),
-    ))
+    record_trace(
+        RetrievalTrace(
+            query_entities=payload.query_terms,
+            candidates_searched=payload.candidates_searched,
+            reranked_results=[
+                {"path": r.path, "score": round(r.score, 2), "source": r.source} for r in payload.reranked_results
+            ],
+            injected_text=payload.text,
+            injected_chars=len(payload.text),
+            injection_useful=bool(payload.text and len(payload.text) > 50),
+        )
+    )
 
 
 def inject_retrieval_context(messages: list[dict]) -> tuple[list[dict], str]:

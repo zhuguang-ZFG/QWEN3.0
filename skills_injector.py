@@ -9,10 +9,13 @@ LiMa Skills Injector — 智能补缺注入
 核心原则: 逐条检测 → 只补缺的 → 最多5条 → 不超200 token
 """
 
+import logging
 import os
 import glob as glob_mod
 
 from backends_constants import STRONG_MODELS
+
+logger = logging.getLogger(__name__)
 
 # ─── 常量 ─────────────────────────────────────────────────────────────────────
 
@@ -23,14 +26,15 @@ CHARS_PER_TOKEN = 4
 IDE_COVERAGE = {
     # IDE → set of categories already well-covered by built-in system prompt
     "Claude Code": {"safety", "lang", "style"},  # 8000 tok covers almost everything
-    "Cursor": set(),                              # 642 tok covers almost nothing
-    "Codex": {"style"},                           # 4000 tok, 30% personality
-    "Aider": {"safety", "lang"},                  # 2000 tok
-    "Cline": {"safety", "style"},                 # 4000 tok
+    "Cursor": set(),  # 642 tok covers almost nothing
+    "Codex": {"style"},  # 4000 tok, 30% personality
+    "Aider": {"safety", "lang"},  # 2000 tok
+    "Cline": {"safety", "style"},  # 4000 tok
 }
 
 
 # ─── YAML frontmatter 解析 (零依赖) ───────────────────────────────────────────
+
 
 def _parse_frontmatter(text: str) -> tuple[dict, str]:
     """解析 --- ... --- frontmatter，返回 (meta, body)"""
@@ -53,10 +57,11 @@ def _parse_frontmatter(text: str) -> tuple[dict, str]:
                 meta[key] = int(val)
             else:
                 meta[key] = val.strip("\"'")
-    return meta, text[end + 3:].strip()
+    return meta, text[end + 3 :].strip()
 
 
 # ─── Skills 加载 ──────────────────────────────────────────────────────────────
+
 
 def load_skills_from_dir(skills_dir: str) -> list[dict]:
     """从 skills/ 目录加载所有 .md 文件，解析 frontmatter + body"""
@@ -69,21 +74,25 @@ def load_skills_from_dir(skills_dir: str) -> list[dict]:
             meta, body = _parse_frontmatter(raw)
             if not meta or "id" not in meta:
                 continue
-            skills.append({
-                "id": meta["id"],
-                "category": meta.get("category", "general"),
-                "content": body,
-                "detect_keywords": meta.get("detect_keywords", []),
-                "always_apply": meta.get("always_apply", False),
-                "priority": meta.get("priority", 5),
-                "globs": meta.get("globs", []),
-            })
-        except Exception:
+            skills.append(
+                {
+                    "id": meta["id"],
+                    "category": meta.get("category", "general"),
+                    "content": body,
+                    "detect_keywords": meta.get("detect_keywords", []),
+                    "always_apply": meta.get("always_apply", False),
+                    "priority": meta.get("priority", 5),
+                    "globs": meta.get("globs", []),
+                }
+            )
+        except Exception as exc:
+            logger.warning("failed to load skill from %s: %s", fpath, exc, exc_info=True)
             continue
     return skills
 
 
 # ─── 检测缺失 ─────────────────────────────────────────────────────────────────
+
 
 def detect_missing_skills(system_prompt: str, skills: list[dict]) -> list[dict]:
     """逐条检测 system prompt 中缺失的 skills，按 priority 排序返回"""
@@ -108,6 +117,7 @@ def _covered(skill: dict, prompt_lower: str) -> bool:
 
 
 # ─── 注入 Skills ──────────────────────────────────────────────────────────────
+
 
 def inject_skills(messages: list[dict], missing_skills: list[dict]) -> list[dict]:
     """在 messages 中插入补缺 skills（不修改用户原有内容）"""
@@ -136,14 +146,15 @@ def _trim_to_budget(text: str, max_tokens: int) -> str:
     max_chars = max_tokens * CHARS_PER_TOKEN
     if len(text) <= max_chars:
         return text
-    return text[:max_chars - 3] + "..."
+    return text[: max_chars - 3] + "..."
 
 
 # ─── 双模式入口 ───────────────────────────────────────────────────────────────
 
-def apply_skills(backend: str, messages: list[dict],
-                 system_prompt: str = "", ide_source: str = "",
-                 skills_dir: str = "") -> list[dict]:
+
+def apply_skills(
+    backend: str, messages: list[dict], system_prompt: str = "", ide_source: str = "", skills_dir: str = ""
+) -> list[dict]:
     """
     根据后端能力选择策略:
     - 强模型 → 目录模式 (只列 skill 名)
@@ -152,8 +163,7 @@ def apply_skills(backend: str, messages: list[dict],
     if skills_dir:
         all_skills = load_skills_from_dir(skills_dir)
     else:
-        all_skills = load_skills_from_dir(
-            os.path.join(os.path.dirname(__file__), "skills"))
+        all_skills = load_skills_from_dir(os.path.join(os.path.dirname(__file__), "skills"))
 
     if not all_skills:
         return list(messages)
@@ -167,8 +177,7 @@ def apply_skills(backend: str, messages: list[dict],
 def _directory_mode(messages: list[dict], all_skills: list[dict]) -> list[dict]:
     """强模型: 只列目录，让模型自己决定需要什么"""
     names = ", ".join(s["id"] for s in all_skills)
-    dir_msg = {"role": "system",
-               "content": f"Available skills: {names}"}
+    dir_msg = {"role": "system", "content": f"Available skills: {names}"}
     result = list(messages)
     if result and result[0].get("role") == "system":
         result.insert(1, dir_msg)
@@ -177,8 +186,7 @@ def _directory_mode(messages: list[dict], all_skills: list[dict]) -> list[dict]:
     return result
 
 
-def _injection_mode(messages: list[dict], all_skills: list[dict],
-                    system_prompt: str, ide_source: str) -> list[dict]:
+def _injection_mode(messages: list[dict], all_skills: list[dict], system_prompt: str, ide_source: str) -> list[dict]:
     """弱模型: 检测缺失，预注入"""
     relevant = _filter_by_ide(all_skills, ide_source)
     missing = detect_missing_skills(system_prompt, relevant)
@@ -192,12 +200,11 @@ def _filter_by_ide(skills: list[dict], ide_source: str) -> list[dict]:
     covered_cats = IDE_COVERAGE.get(ide_source, set())
     if not covered_cats:
         return skills  # Unknown or Cursor — keep all
-    return [s for s in skills
-            if s.get("category") not in covered_cats
-            or s.get("always_apply")]
+    return [s for s in skills if s.get("category") not in covered_cats or s.get("always_apply")]
 
 
 # ─── Token 估算 ───────────────────────────────────────────────────────────────
+
 
 def estimate_tokens(text: str) -> int:
     """粗略估算: 1 token ≈ 4 字符"""

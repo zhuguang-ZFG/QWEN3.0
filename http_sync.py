@@ -67,15 +67,15 @@ def _record_success_telemetry(
         import budget_manager
 
         budget_manager.record_token_usage(backend, prompt_tokens, completion_tokens)
-    except ImportError:
-        _log.debug("budget_manager not installed; token usage skipped")
+    except ImportError as exc:
+        _log.warning("budget_manager not installed; token usage not recorded: %s", exc)
     try:
         from observability.metrics import record as obs_record
         from observability.events import backend_call_event
 
         obs_record(backend_call_event("", backend, "", latency_ms=latency_ms))
-    except ImportError:
-        _log.debug("observability.metrics not installed; backend_call_event skipped")
+    except ImportError as exc:
+        _log.warning("observability.metrics not installed; backend_call_event not recorded: %s", exc)
 
 
 def _handle_call_error(
@@ -100,9 +100,7 @@ def _handle_call_error(
         raise
     if isinstance(exc, httpx.HTTPStatusError):
         error_code = exc.response.status_code
-        hc.health_tracker.record_failure(
-            backend, error_code=error_code, error_text=str(exc)
-        )
+        hc.health_tracker.record_failure(backend, error_code=error_code, error_text=str(exc))
         hc._report_key_result(
             key_provider,
             selected_key,
@@ -114,9 +112,7 @@ def _handle_call_error(
             _emit_backend_error(backend, error_code, str(exc))
         raise BackendError(str(exc), status_code=error_code) from exc
     error_code = _extract_code(exc)
-    hc.health_tracker.record_failure(
-        backend, error_code=error_code, error_text=str(exc)
-    )
+    hc.health_tracker.record_failure(backend, error_code=error_code, error_text=str(exc))
     hc._report_key_result(
         key_provider,
         selected_key,
@@ -132,8 +128,13 @@ def _handle_call_error(
 
 
 def _process_response(
-    text: str, backend: str, cfg: dict, started: float,
-    key_provider: str, selected_key: str, hc,
+    text: str,
+    backend: str,
+    cfg: dict,
+    started: float,
+    key_provider: str,
+    selected_key: str,
+    hc,
 ) -> str:
     """Parse HTTP response text, validate content, and record telemetry."""
     try:
@@ -193,7 +194,13 @@ def call_api(
             resp = client.post(cfg["url"], content=body, headers=headers)
             resp.raise_for_status()
             return _process_response(
-                resp.text, backend, cfg, started, key_provider, selected_key, hc,
+                resp.text,
+                backend,
+                cfg,
+                started,
+                key_provider,
+                selected_key,
+                hc,
             )
     except Exception as exc:
         _handle_call_error(backend, key_provider, selected_key, exc, emit_obs=True)

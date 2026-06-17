@@ -114,8 +114,8 @@ def persist_session_memory(
 
         if needs_compaction(session_id):
             compact_session(session_id)
-    except ImportError:
-        _log.debug("session_memory not installed; skipping persist_session_memory")
+    except ImportError as exc:
+        _log.warning("session_memory not installed; skipping persist_session_memory: %s", exc)
     except Exception as exc:
         _log.warning(
             "persist_session_memory failed: %s",
@@ -127,6 +127,7 @@ def persist_session_memory(
 def _extract_observations(query: str, content: str) -> list[tuple[str, str]]:
     """Extract structured observations from a coding interaction."""
     import re
+
     obs: list[tuple[str, str]] = []
 
     combined = (query + " " + content)[:5000]
@@ -160,7 +161,8 @@ def _extract_observations(query: str, content: str) -> list[tuple[str, str]]:
     # Extract error types
     errors = re.findall(
         r"\b(TypeError|ValueError|SyntaxError|ImportError|AttributeError|"
-        r"KeyError|ZeroDivisionError|RuntimeError|ConnectionError)\b", combined,
+        r"KeyError|ZeroDivisionError|RuntimeError|ConnectionError)\b",
+        combined,
     )
     for e in errors[:3]:
         obs.append(("error_seen", f"{e}: {query[:60]}"))
@@ -178,8 +180,8 @@ def record_chat_observability(*, chat_id: str, backend: str, duration_ms: int) -
             status="success",
             latency_ms=duration_ms,
         )
-    except ImportError:
-        pass
+    except ImportError as exc:
+        _log.warning("observability.correlation not installed; request correlation not recorded: %s", exc)
 
 
 def maybe_log_distill_queue(*, query: str, content: str, intent, backend: str) -> None:
@@ -189,7 +191,7 @@ def maybe_log_distill_queue(*, query: str, content: str, intent, backend: str) -
         intent_payload = intent if isinstance(intent, dict) else {"intent": intent}
         _log_to_distill_queue(query, content, intent_payload, backend)
     except Exception as exc:
-        _log.debug("distill queue log skipped: %s", type(exc).__name__)
+        _log.warning("distill queue log skipped: %s", exc, exc_info=True)
 
 
 def record_capability_evidence(

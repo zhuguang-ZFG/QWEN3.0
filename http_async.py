@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 import time
 
 from response_cleaner import clean_response, _is_backend_error
+
+_log = logging.getLogger(__name__)
 
 from backends_registry import BACKENDS
 from http_errors import BackendError
@@ -50,9 +53,7 @@ async def call_api_async(
 
         answer = _extract_answer(payload, cfg["fmt"])
         if _is_backend_error(answer):
-            hc.health_tracker.record_failure(
-                backend, error_code=429, error_text=answer
-            )
+            hc.health_tracker.record_failure(backend, error_code=429, error_text=answer)
             raise BackendError(
                 f"{backend} returned error response: {answer[:60]}",
                 status_code=429,
@@ -62,18 +63,14 @@ async def call_api_async(
         hc.health_tracker.record_success(backend, latency_ms)
         hc._report_key_result(key_provider, selected_key, True)
         cleaned = clean_response(answer, backend)
-        hc.health_tracker.record_response_quality(
-            backend, len(cleaned) if cleaned else 0
-        )
+        hc.health_tracker.record_response_quality(backend, len(cleaned) if cleaned else 0)
         prompt_tokens, completion_tokens = _extract_usage(payload, cfg["fmt"])
         try:
             import budget_manager
 
-            budget_manager.record_token_usage(
-                backend, prompt_tokens, completion_tokens
-            )
-        except ImportError:
-            pass
+            budget_manager.record_token_usage(backend, prompt_tokens, completion_tokens)
+        except ImportError as exc:
+            _log.warning("budget_manager not installed; token usage not recorded: %s", exc)
         return cleaned
     except Exception as exc:
         _handle_call_error(backend, key_provider, selected_key, exc, emit_obs=False)

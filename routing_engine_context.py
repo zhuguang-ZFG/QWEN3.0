@@ -15,13 +15,15 @@ def try_recall_backend(messages: list[dict], scenario: str) -> str:
         recalled = get_skill_store().recall(messages, scenario)
         if recalled:
             return recalled.backend
-    except ImportError:
-        pass
+    except ImportError as exc:
+        _log.warning("context_pipeline.skill_store not installed; backend recall disabled: %s", exc)
     return ""
 
 
 def inject_coding_context(
-    messages: list[dict], scenario: str, query: str,
+    messages: list[dict],
+    scenario: str,
+    query: str,
 ) -> tuple[list[dict], str]:
     """为 coding 场景注入代码上下文和历史记忆。返回 (messages, code_context_text)。"""
     code_context_text = ""
@@ -38,8 +40,8 @@ def inject_coding_context(
                 messages.insert(1, code_ctx_msg)
             else:
                 messages.insert(0, code_ctx_msg)
-    except Exception as e:
-        _log.debug("code_context_injection failed: %s", e)
+    except Exception as exc:
+        _log.warning("code_context_injection failed: %s", exc, exc_info=True)
 
     try:
         from session_memory.store_promote import query_by_type
@@ -54,7 +56,7 @@ def inject_coding_context(
             insert_pos = 2 if messages and messages[0].get("role") == "system" else 1
             messages.insert(insert_pos, mem_msg)
     except Exception as exc:
-        _log.debug("code_context memory promote failed: %s", type(exc).__name__)
+        _log.warning("code_context memory promote failed: %s", exc, exc_info=True)
 
     return messages, code_context_text
 
@@ -71,7 +73,11 @@ def assess_complexity(messages: list[dict], ide_source: str):
             for m in messages
         ]
         return assess_complexity(raw_msgs, ide=ide_source)
-    except (ImportError, Exception):
+    except ImportError as exc:
+        _log.warning("context_pipeline.complexity not installed; complexity assessment disabled: %s", exc)
+        return None
+    except Exception as exc:
+        _log.warning("complexity assessment failed: %s", exc, exc_info=True)
         return None
 
 
@@ -82,6 +88,6 @@ def auto_compress(messages: list[dict], backends: list[str], system_prompt: str)
 
         if backends and should_compress(messages, backends[0]):
             return compress_messages(messages, backends[0], system_prompt=system_prompt)
-    except ImportError:
-        pass
+    except ImportError as exc:
+        _log.warning("context_compressor not installed; auto compression disabled: %s", exc)
     return messages

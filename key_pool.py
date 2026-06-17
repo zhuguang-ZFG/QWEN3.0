@@ -15,8 +15,11 @@ import threading
 import os
 import re
 import hashlib
+import logging
 from typing import Optional
 from dataclasses import dataclass
+
+_log = logging.getLogger(__name__)
 
 MINUTE_COOLDOWN = 60
 DAY_COOLDOWN_HOUR = 24 * 3600
@@ -41,18 +44,18 @@ class KeyPool:
         self._lock = threading.Lock()
         self.entries: list[KeyEntry] = []
         for k in keys:
-            self.entries.append(KeyEntry(
-                key=k["key"],
-                weight=k.get("weight", 1),
-            ))
+            self.entries.append(
+                KeyEntry(
+                    key=k["key"],
+                    weight=k.get("weight", 1),
+                )
+            )
 
     def select(self) -> Optional[str]:
         """SWRR 选择一个可用 key"""
         with self._lock:
             now = time.monotonic()
-            active = [e for e in self.entries
-                      if e.status == "active" or
-                      (e.status == "cooled" and now > e.cool_until)]
+            active = [e for e in self.entries if e.status == "active" or (e.status == "cooled" and now > e.cool_until)]
             for e in active:
                 if e.status == "cooled":
                     e.status = "active"
@@ -101,9 +104,7 @@ class KeyPool:
     def get_active_count(self) -> int:
         with self._lock:
             now = time.monotonic()
-            return sum(1 for e in self.entries
-                       if e.status == "active" or
-                       (e.status == "cooled" and now > e.cool_until))
+            return sum(1 for e in self.entries if e.status == "active" or (e.status == "cooled" and now > e.cool_until))
 
     def snapshot(self) -> dict:
         with self._lock:
@@ -115,13 +116,15 @@ class KeyPool:
                 if status == "cooled" and now > e.cool_until:
                     status = "active"
                 counts[status] = counts.get(status, 0) + 1
-                entries.append({
-                    "key_id": _fingerprint_key(e.key),
-                    "weight": e.weight,
-                    "status": status,
-                    "cool_remaining_sec": max(0, int(e.cool_until - now)),
-                    "consecutive_429": e.consecutive_429,
-                })
+                entries.append(
+                    {
+                        "key_id": _fingerprint_key(e.key),
+                        "weight": e.weight,
+                        "status": status,
+                        "cool_remaining_sec": max(0, int(e.cool_until - now)),
+                        "consecutive_429": e.consecutive_429,
+                    }
+                )
             return {
                 "provider": self.provider,
                 "total": len(self.entries),
@@ -199,20 +202,19 @@ def clear_pools():
 def pool_snapshot(provider: str = "") -> dict:
     if provider:
         pool = _pools.get(provider)
-        return pool.snapshot() if pool else {
-            "provider": provider,
-            "total": 0,
-            "active": 0,
-            "cooled": 0,
-            "blocked": 0,
-            "entries": [],
-        }
-    return {
-        "providers": {
-            name: pool.snapshot()
-            for name, pool in sorted(_pools.items())
-        }
-    }
+        return (
+            pool.snapshot()
+            if pool
+            else {
+                "provider": provider,
+                "total": 0,
+                "active": 0,
+                "cooled": 0,
+                "blocked": 0,
+                "entries": [],
+            }
+        )
+    return {"providers": {name: pool.snapshot() for name, pool in sorted(_pools.items())}}
 
 
 def get_key(provider: str) -> Optional[str]:
@@ -223,8 +225,7 @@ def get_key(provider: str) -> Optional[str]:
     return pool.select()
 
 
-def report_key_result(provider: str, key: str, success: bool,
-                      error_code: int = 0, retry_after: int = 0):
+def report_key_result(provider: str, key: str, success: bool, error_code: int = 0, retry_after: int = 0):
     """上报 key 使用结果"""
     pool = _pools.get(provider)
     if not pool:
@@ -238,10 +239,11 @@ def report_key_result(provider: str, key: str, success: bool,
     try:
         from observability.metrics import record as _obs_record
         from observability.events import key_pool_event
+
         event_name = "success" if success else f"failure_{error_code}"
         _obs_record(key_pool_event(provider, event_name))
-    except ImportError:
-        pass
+    except ImportError as exc:
+        _log.warning("observability metrics not installed; key_pool event not recorded: %s", exc)
 
 
 def is_exhausted(provider: str) -> bool:

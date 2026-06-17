@@ -10,6 +10,7 @@ Connects the artifact-bundle outputs from agent worker runs to:
 All promotions are evidence-gated. Nothing changes routing behavior
 automatically — every learned pattern must pass eval before adoption.
 """
+
 from __future__ import annotations
 
 import json
@@ -67,14 +68,17 @@ def ingest_task_outcome(outcome: TaskOutcome) -> dict[str, Any]:
             scenario=outcome.scenario or "coding",
             summary=f"status={outcome.status} files={len(outcome.changed_files)} tests={tests_passed}/{tests_total}",
             details={
-                "status": outcome.status, "changed_files": outcome.changed_files[:10],
-                "tests_passed": tests_passed, "tests_total": tests_total,
-                "risks": outcome.risks[:5], "latency_ms": outcome.latency_ms,
+                "status": outcome.status,
+                "changed_files": outcome.changed_files[:10],
+                "tests_passed": tests_passed,
+                "tests_total": tests_total,
+                "risks": outcome.risks[:5],
+                "latency_ms": outcome.latency_ms,
             },
             tags=["agent_worker", outcome.status or "unknown"],
         )
-    except Exception:
-        _log.debug("outcome ledger record failed", exc_info=True)
+    except Exception as exc:
+        _log.warning("outcome ledger record failed: %s", exc, exc_info=True)
 
     try:
         from observability.capability_evidence import record_evidence_safe
@@ -90,13 +94,14 @@ def ingest_task_outcome(outcome: TaskOutcome) -> dict[str, Any]:
             evidence=[f"memory={bool(result.get('memory'))}", f"eval={bool(result.get('eval'))}"],
             rollback="promote routing/prompt changes only after eval gate",
         )
-    except Exception:
-        _log.debug("ops_learning evidence record failed", exc_info=True)
+    except Exception as exc:
+        _log.warning("ops_learning evidence record failed: %s", exc, exc_info=True)
 
     return result
 
 
 # ── Channel 1: Typed Memory ─────────────────────────────────────────────────
+
 
 def _feed_memory(outcome: TaskOutcome) -> dict[str, Any]:
     """Extract patterns from task outcome and save as typed memories."""
@@ -148,8 +153,8 @@ def _feed_memory(outcome: TaskOutcome) -> dict[str, Any]:
         if outcome.changed_files:
             saved.append(f"code_fact:{len(outcome.changed_files)}")
 
-    except ImportError:
-        pass
+    except ImportError as exc:
+        _log.warning("session_memory.store not installed; typed memory not saved: %s", exc)
 
     return {"saved": saved}
 
@@ -157,6 +162,7 @@ def _feed_memory(outcome: TaskOutcome) -> dict[str, Any]:
 # ── Channel 2: Prompt Profile ───────────────────────────────────────────────
 
 _PROMPT_PROFILES: dict[str, list[dict]] = {}
+
 
 def _feed_prompt(outcome: TaskOutcome) -> dict[str, Any]:
     """Record which prompt profile was used and the outcome.
@@ -183,18 +189,20 @@ def _feed_prompt(outcome: TaskOutcome) -> dict[str, Any]:
 
     try:
         from session_memory.store import save_typed_memory
+
         save_typed_memory(
             "reference_pattern",
             f"prompt_profile:{profile_key} task={outcome.task_id} status={outcome.status}",
             detail=json.dumps(entry, ensure_ascii=False),
         )
-    except ImportError:
-        pass
+    except ImportError as exc:
+        _log.warning("session_memory.store not installed; prompt profile not saved: %s", exc)
 
     return {"profile_key": profile_key, "status": outcome.status}
 
 
 # ── Channel 3: Routing Feedback ─────────────────────────────────────────────
+
 
 def _feed_routing(outcome: TaskOutcome) -> dict[str, Any]:
     """Record routing decision outcome for future route quality analysis.
@@ -216,23 +224,25 @@ def _feed_routing(outcome: TaskOutcome) -> dict[str, Any]:
 
     try:
         from context_pipeline.routing_weights import get_routing_weights
+
         rw = get_routing_weights()
         if outcome.status in ("succeeded", "needs_review"):
             rw.record_success(outcome.backend, outcome.scenario)
         else:
             rw.record_failure(outcome.backend, outcome.scenario)
-    except ImportError:
-        pass
+    except ImportError as exc:
+        _log.warning("context_pipeline.routing_weights not installed; routing feedback not recorded: %s", exc)
 
     try:
         from session_memory.store import save_typed_memory
+
         save_typed_memory(
             "routing_lesson",
             f"route:{outcome.backend} scenario={outcome.scenario} status={outcome.status}",
             detail=json.dumps(feedback, ensure_ascii=False),
         )
-    except ImportError:
-        pass
+    except ImportError as exc:
+        _log.warning("session_memory.store not installed; routing lesson not saved: %s", exc)
 
     return {"recorded": True, "backend": outcome.backend, "scenario": outcome.scenario}
 
@@ -240,6 +250,7 @@ def _feed_routing(outcome: TaskOutcome) -> dict[str, Any]:
 # ── Channel 4: Eval Candidate ───────────────────────────────────────────────
 
 _EVAL_CANDIDATES: list[dict] = []
+
 
 def _feed_eval(outcome: TaskOutcome) -> dict[str, Any]:
     """Queue outcome as an eval candidate. Promotion requires evidence.
@@ -283,7 +294,8 @@ def _maybe_promote_pattern(outcome: TaskOutcome) -> None:
     via session_memory.eval_gate.approve_candidate().
     """
     matches = [
-        c for c in _EVAL_CANDIDATES
+        c
+        for c in _EVAL_CANDIDATES
         if c["backend"] == outcome.backend
         and c["scenario"] == outcome.scenario
         and c["status"] in ("succeeded", "needs_review")
@@ -292,29 +304,33 @@ def _maybe_promote_pattern(outcome: TaskOutcome) -> None:
     if len(matches) >= 3:
         try:
             from session_memory.store import save_typed_memory, query_by_type
+
             existing = query_by_type("reference_pattern", limit=10)
             already_recorded = any(
-                f"candidate:{outcome.backend}:{outcome.scenario}" in (e.summary or "")
-                for e in existing
+                f"candidate:{outcome.backend}:{outcome.scenario}" in (e.summary or "") for e in existing
             )
             if not already_recorded:
                 save_typed_memory(
                     "reference_pattern",
-                    f"candidate:{outcome.backend}:{outcome.scenario} — {len(matches)+1} successes",
-                    detail=json.dumps({
-                        "backend": outcome.backend,
-                        "scenario": outcome.scenario,
-                        "evidence_count": len(matches) + 1,
-                        "latest_task": outcome.task_id,
-                        "recorded_at": time.time(),
-                        "status": "needs_approval",
-                    }, ensure_ascii=False),
+                    f"candidate:{outcome.backend}:{outcome.scenario} — {len(matches) + 1} successes",
+                    detail=json.dumps(
+                        {
+                            "backend": outcome.backend,
+                            "scenario": outcome.scenario,
+                            "evidence_count": len(matches) + 1,
+                            "latest_task": outcome.task_id,
+                            "recorded_at": time.time(),
+                            "status": "needs_approval",
+                        },
+                        ensure_ascii=False,
+                    ),
                 )
-        except ImportError:
-            pass
+        except ImportError as exc:
+            _log.warning("session_memory.store not installed; eval candidate not saved: %s", exc)
 
 
 # ── Public query helpers ─────────────────────────────────────────────────────
+
 
 def get_prompt_profile_stats() -> dict[str, Any]:
     """Return summary stats per prompt profile (for ops metrics)."""

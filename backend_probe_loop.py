@@ -86,7 +86,8 @@ def probe_backend(backend: str, *, ignore_cooldown: bool = False) -> dict:
                 "error": str(exc)[:100],
                 "error_class": error_class,
             }
-    except ImportError:
+    except ImportError as exc:
+        logger.warning("backends_registry or http_caller not installed; probe unavailable for %s: %s", backend, exc)
         return {"backend": backend, "status": "error", "error": "http_caller not available"}
 
 
@@ -212,18 +213,20 @@ def get_probe_schedule() -> list[list[str]]:
     """Generate probe batches from all configured backends."""
     try:
         from backends_registry import BACKENDS
-    except ImportError:
+    except ImportError as exc:
+        logger.warning("backends_registry not installed; probe schedule unavailable: %s", exc)
         return []
 
     all_backends = list(BACKENDS.keys())
     # Shuffle to spread load
     import random
+
     random.shuffle(all_backends)
 
     batch_size = max(1, len(all_backends) // NUM_BATCHES)
     batches = []
     for i in range(0, len(all_backends), batch_size):
-        batches.append(all_backends[i:i + batch_size])
+        batches.append(all_backends[i : i + batch_size])
     return batches
 
 

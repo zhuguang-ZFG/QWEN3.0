@@ -29,8 +29,8 @@ def _persist_health_state() -> None:
         from health_state import save_on_change
 
         save_on_change()
-    except ImportError:
-        _log.debug("health_state save_on_change unavailable")
+    except ImportError as exc:
+        _log.warning("health_state save_on_change unavailable; health state will not be persisted: %s", exc)
     except Exception as exc:
         _log.warning("health state persistence failed: %s", type(exc).__name__)
 
@@ -63,13 +63,13 @@ def record_success(backend: str, latency_ms: float) -> None:
     # Update backend profile (outside lock to avoid deadlock)
     try:
         import backend_profile
+
         backend_profile.record_request(backend, latency_ms, success=True)
-    except ImportError:
-        pass
+    except ImportError as exc:
+        _log.warning("backend_profile not installed; success profile not recorded: %s", exc)
 
 
-def _apply_cooldown(state: "CooldownState", error_code: int | None,
-                    error_class: str) -> None:
+def _apply_cooldown(state: "CooldownState", error_code: int | None, error_class: str) -> None:
     """Apply cooldown and error class to the cooldown state."""
     if error_class not in ("rate_limited", "quota_exhausted"):
         state.consecutive_failures += 1
@@ -85,8 +85,7 @@ def _apply_cooldown(state: "CooldownState", error_code: int | None,
     state.cooldown_until = time.monotonic() + state.current_cooldown
 
 
-def _update_health_map(backend: str, error_class: str,
-                       consecutive_failures: int) -> None:
+def _update_health_map(backend: str, error_class: str, consecutive_failures: int) -> None:
     """Update the health map based on error class and failure count."""
     if error_class in ("auth_expired", "manual_refresh_required"):
         _health_map[backend] = "suspicious"
@@ -102,23 +101,26 @@ def _post_failure_hooks(backend: str, error_class: str) -> None:
     """Run post-recording side effects (reputation, profile, retirement)."""
     try:
         import backend_reputation
+
         backend_reputation.record_failure_class(backend, error_class)
-    except ImportError:
-        pass
+    except ImportError as exc:
+        _log.warning("backend_reputation not installed; failure reputation not recorded: %s", exc)
     except Exception as exc:
-        _log.debug("backend_reputation record failed backend=%s: %s", backend, type(exc).__name__)
+        _log.warning("backend_reputation record failed backend=%s: %s", backend, exc, exc_info=True)
     try:
         import backend_profile
+
         backend_profile.record_request(backend, 0.0, success=False)
-    except ImportError:
-        pass
+    except ImportError as exc:
+        _log.warning("backend_profile not installed; failure profile not recorded: %s", exc)
     try:
         import backend_retirement
+
         action = backend_retirement.check_retirement(backend)
         if action:
             backend_retirement.apply_retirement(action)
-    except ImportError:
-        pass
+    except ImportError as exc:
+        _log.warning("backend_retirement not installed; retirement check skipped: %s", exc)
 
 
 def record_failure(
@@ -147,8 +149,7 @@ def record_failure(
         new_health = _health_map[backend]
         should_persist = True
         if old_health != new_health:
-            _log.info("backend health changed backend=%s old=%s new=%s",
-                      backend, old_health, new_health)
+            _log.info("backend health changed backend=%s old=%s new=%s", backend, old_health, new_health)
         _post_failure_hooks(backend, error_class)
 
     if should_persist:

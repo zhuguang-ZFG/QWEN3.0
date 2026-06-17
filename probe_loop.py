@@ -18,9 +18,9 @@ import health_tracker
 
 logger = logging.getLogger("probe_loop")
 
-PROBE_INTERVAL_SUSPICIOUS = 300   # 5 min
-PROBE_INTERVAL_DEAD = 900         # 15 min
-LOOP_SLEEP = 60                   # 主循环每分钟跑一次
+PROBE_INTERVAL_SUSPICIOUS = 300  # 5 min
+PROBE_INTERVAL_DEAD = 900  # 15 min
+LOOP_SLEEP = 60  # 主循环每分钟跑一次
 
 _stop_event = threading.Event()
 _thread: Optional[threading.Thread] = None
@@ -53,25 +53,27 @@ def _loop(probe_fn: Callable[[str], bool]):
         # Token health check every 30 minutes (reduce frequency)
         try:
             import token_health
+
             results = token_health.check_all_tokens()
             expired = [r for r in results if r.get("status") == "expired"]
             if expired:
                 # Only alert once per hour per backend
                 import time as _time
+
                 now = _time.time()
                 for r in expired:
                     key = f"alert_{r['backend']}"
-                    last_alert = getattr(_loop, '_last_alerts', {}).get(key, 0)
+                    last_alert = getattr(_loop, "_last_alerts", {}).get(key, 0)
                     if now - last_alert > 3600:  # 1 hour cooldown
                         logger.warning("TOKEN EXPIRED: %s", r["backend"])
-                        if not hasattr(_loop, '_last_alerts'):
+                        if not hasattr(_loop, "_last_alerts"):
                             _loop._last_alerts = {}
                         _loop._last_alerts[key] = now
             token_health.save_token_status(results)
-        except ImportError:
-            pass
+        except ImportError as exc:
+            logger.warning("token_health not installed; token health check disabled: %s", exc)
         except Exception as e:
-            logger.debug("Token health check error: %s", e)
+            logger.warning("Token health check error: %s", e, exc_info=True)
 
         _stop_event.wait(timeout=LOOP_SLEEP)
 
@@ -103,14 +105,16 @@ def _probe_cycle(probe_fn: Callable[[str], bool]):
             # Update backend profile
             try:
                 import backend_profile
+
                 backend_profile.record_request(backend, 0.0, success=True, scenario="probe")
-            except ImportError:
-                pass
+            except ImportError as exc:
+                logger.warning("backend_profile not installed; probe success not recorded: %s", exc)
         else:
             logger.debug(f"[PROBE] {backend} still down")
             # Update backend profile
             try:
                 import backend_profile
+
                 backend_profile.record_request(backend, 0.0, success=False, scenario="probe")
-            except ImportError:
-                pass
+            except ImportError as exc:
+                logger.warning("backend_profile not installed; probe failure not recorded: %s", exc)

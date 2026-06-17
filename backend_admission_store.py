@@ -100,11 +100,13 @@ def parse_watchlist(data: dict[str, Any]) -> list[WatchlistEntry]:
             continue
         key = str(item.get("backend_key") or "")
         if key:
-            entries.append(WatchlistEntry(
-                backend_key=key,
-                reason=str(item.get("reason") or ""),
-                action=str(item.get("action") or "watch"),
-            ))
+            entries.append(
+                WatchlistEntry(
+                    backend_key=key,
+                    reason=str(item.get("reason") or ""),
+                    action=str(item.get("action") or "watch"),
+                )
+            )
     return entries
 
 
@@ -141,9 +143,7 @@ def get_overlay_backends_by_tier(pool_key: str, path: str | Path = "") -> dict[s
             continue
         tier = overlay.tier if overlay.tier in grouped else "late_fallback"
         if pool_key in _CODE_POOLS:
-            if tier in ("floor", "late_fallback") or (
-                tier == "medium" and overlay.private_code_allowed
-            ):
+            if tier in ("floor", "late_fallback") or (tier == "medium" and overlay.private_code_allowed):
                 grouped["floor" if tier == "late_fallback" else tier].append(overlay.backend_key)
         elif pool_key in _CHAT_POOLS or pool_key == "vision":
             if tier == "late_fallback":
@@ -162,8 +162,8 @@ def apply_startup(path: str | Path = "") -> int:
     try:
         from backend_utils import set_enabled
         from backends_registry import BACKENDS
-    except ImportError:
-        logger.debug("backend admission startup skipped: backends not importable")
+    except ImportError as exc:
+        logger.warning("backend admission startup skipped: backends not importable: %s", exc)
         return 0
 
     for overlay in parse_overlays(data):
@@ -199,14 +199,9 @@ def upsert_overlay(overlay: AdmissionOverlay, path: str | Path = "") -> None:
 
 def append_watchlist(entry: WatchlistEntry, path: str | Path = "") -> None:
     data = load_store(path)
-    watchlist = [
-        w for w in parse_watchlist(data) if w.backend_key != entry.backend_key
-    ]
+    watchlist = [w for w in parse_watchlist(data) if w.backend_key != entry.backend_key]
     watchlist.append(entry)
-    data["watchlist"] = [
-        {"backend_key": w.backend_key, "reason": w.reason, "action": w.action}
-        for w in watchlist
-    ]
+    data["watchlist"] = [{"backend_key": w.backend_key, "reason": w.reason, "action": w.action} for w in watchlist]
     save_store(data, path)
 
 
@@ -221,9 +216,7 @@ def overlay_from_probe(entry, batch_result, *, latency_ms: float = 0.0) -> Admis
         return None
     tier = suggest_admission_tier(entry, batch_result)
     code_cap = "code" in entry.capabilities
-    coding_passed = any(
-        r.level.value == "coding_fixture" and r.passed for r in batch_result.results
-    )
+    coding_passed = any(r.level.value == "coding_fixture" and r.passed for r in batch_result.results)
     return AdmissionOverlay(
         backend_key=map_model_to_backend_key(entry.model_id),
         provider="cloudflare",

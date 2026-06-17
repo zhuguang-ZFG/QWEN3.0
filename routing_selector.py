@@ -59,6 +59,7 @@ STRONG_CODING_TOOL_BACKENDS = {
 def _has_valid_key(name: str) -> bool:
     """Check if a backend has a configured, non-empty API key."""
     import backends_registry as reg
+
     cfg = reg.BACKENDS.get(name, {})
     key = cfg.get("key", "")
     if not key or key in ("none", "YOUR_KEY_HERE", ""):
@@ -74,7 +75,8 @@ def _is_retired(name: str) -> bool:
         import backend_retirement
 
         return backend_retirement.is_retired(name)
-    except ImportError:
+    except ImportError as exc:
+        _log.warning("backend_retirement not installed; retirement check disabled: %s", exc)
         return False
 
 
@@ -97,6 +99,7 @@ def _pin_if_selectable(
 ) -> list[str]:
     """Pin explicit backend first when healthy, budgeted, and selectable."""
     import backends_registry as reg
+
     if not name or name not in reg.BACKENDS:
         return result
     if health_tracker.is_cooled_down(name):
@@ -119,21 +122,27 @@ _NATIVE_TOOL_PREFER = {"github", "chinamobile", "ddg", "groq", "cerebras", "long
 def _filter_tool_backends(result: list[str], scenario: str) -> list[str]:
     """Filter and rank backends that advertise tool_calls capability."""
     import backends_registry as reg
+
     result = [b for b in result if "tool_calls" in reg.BACKENDS.get(b, {}).get("caps", [])]
     if len(result) < 8:
         all_capable = [
-            n for n, c in reg.BACKENDS.items()
-            if "tool_calls" in c.get("caps", []) and not health_tracker.is_cooled_down(n)
-            and budget_manager.is_budget_available(n) and not _is_retired(n)
+            n
+            for n, c in reg.BACKENDS.items()
+            if "tool_calls" in c.get("caps", [])
+            and not health_tracker.is_cooled_down(n)
+            and budget_manager.is_budget_available(n)
+            and not _is_retired(n)
         ]
         for b in all_capable:
             if b not in result:
                 result.append(b)
-    result.sort(key=lambda b: (
-        0 if scenario == "coding" and _is_strong_coding_tool_backend(b, reg.BACKENDS.get(b, {})) else 1,
-        0 if any(p in b for p in _NATIVE_TOOL_PREFER) else 1,
-        reg.BACKENDS.get(b, {}).get("timeout", 30),
-    ))
+    result.sort(
+        key=lambda b: (
+            0 if scenario == "coding" and _is_strong_coding_tool_backend(b, reg.BACKENDS.get(b, {})) else 1,
+            0 if any(p in b for p in _NATIVE_TOOL_PREFER) else 1,
+            reg.BACKENDS.get(b, {}).get("timeout", 30),
+        )
+    )
     return result
 
 
@@ -150,6 +159,7 @@ def _apply_guard_decisions(result: list[str]) -> tuple[list[str], dict[str, dict
     """Filter quarantined backends and return active decisions."""
     try:
         from observability.routing_guard import backend_guard_snapshot
+
         raw = backend_guard_snapshot().get("decisions", {})
         decisions = raw if isinstance(raw, dict) else {}
     except ImportError:
@@ -170,6 +180,7 @@ def _compute_backend_score(
 ) -> float:
     """Compute a single backend's health/latency/recency score."""
     import backends_registry as reg
+
     state = health_tracker.get_backend_state(backend)
     consec_fails = state.get("consecutive_failures", 0)
     last_success = state.get("last_success", 0)
@@ -187,12 +198,14 @@ def _compute_backend_score(
         score = base * latency_score * (1 - error_penalty) * recency_bonus
     try:
         from context_pipeline.routing_weights import get_routing_weights
+
         score *= get_routing_weights().get_weight(backend, scenario or request_type)
     except ImportError:
         _log.debug("context_pipeline.routing_weights not available; using base score")
     if scenario == "coding":
         try:
             from coding_backend_scorer import get_coding_weight
+
             score *= get_coding_weight(backend)
         except ImportError:
             _log.debug("coding_backend_scorer not available; skipping coding weight")
@@ -211,31 +224,49 @@ def _compute_backend_score(
 
 
 def _score_backends(
-    result: list[str], scores: dict, latency_map: dict, health_map: dict,
-    scenario: str, request_type: str, needs_tools: bool, routing_guard_decisions: dict[str, dict],
+    result: list[str],
+    scores: dict,
+    latency_map: dict,
+    health_map: dict,
+    scenario: str,
+    request_type: str,
+    needs_tools: bool,
+    routing_guard_decisions: dict[str, dict],
 ) -> None:
     """Compute and store scores for all candidate backends."""
     for b in result:
         base = scores.get(b, 50)
         scores[b] = _compute_backend_score(
-            b, base, latency_map, health_map, scenario, request_type, needs_tools, routing_guard_decisions,
+            b,
+            base,
+            latency_map,
+            health_map,
+            scenario,
+            request_type,
+            needs_tools,
+            routing_guard_decisions,
         )
 
 
 def _apply_ml_boost(
-    result: list[str], scores: dict, scenario: str, request_type: str, health_map: dict,
+    result: list[str],
+    scores: dict,
+    scenario: str,
+    request_type: str,
+    health_map: dict,
 ) -> None:
     """Apply optional ML model boost to top candidate scores."""
     try:
         from routing_ml.routing_trainer import get_model, notify_request
         from routing_ml.feature_extractor import extract_features
+
         model = get_model()
         if model and result:
             features = extract_features([], scenario=scenario, health_map=health_map, top_backends=result[:5])
             topk = model.predict_topk(features.features, k=min(5, len(result)))
             for ml_backend, ml_score in topk:
                 if ml_backend in scores:
-                    scores[ml_backend] *= (1.0 + ml_score * 0.3)
+                    scores[ml_backend] *= 1.0 + ml_score * 0.3
             notify_request()
     except (ImportError, Exception):
         pass
@@ -248,37 +279,58 @@ def _rank_backends(result: list[str], scores: dict, request_type: str, scenario:
     states = {b: health_tracker.get_backend_state(b) for b in result}
     result = [b for b in result if route_scorer.is_selectable(b, request_type, states.get(b))]
     return route_scorer.rank_backends(
-        result, request_type, scenario, health_scores=scores, states=states,
+        result,
+        request_type,
+        scenario,
+        health_scores=scores,
+        states=states,
         latency_map=health_tracker.get_latency_map(),
     )
 
 
 def _apply_pin(
-    result: list[str], sticky_key: str | None, preferred_backend: str, recalled_backend: str,
-    health_map: dict, request_type: str,
+    result: list[str],
+    sticky_key: str | None,
+    preferred_backend: str,
+    recalled_backend: str,
+    health_map: dict,
+    request_type: str,
 ) -> list[str]:
     """Apply sticky/preferred/recalled backend pinning."""
     if sticky_key:
         pinned = sticky_session.get_pinned_backend(sticky_key)
-        if pinned and health_map.get(pinned, "healthy") != "dead" and route_scorer.is_selectable(
-            pinned, request_type, health_tracker.get_backend_state(pinned),
+        if (
+            pinned
+            and health_map.get(pinned, "healthy") != "dead"
+            and route_scorer.is_selectable(
+                pinned,
+                request_type,
+                health_tracker.get_backend_state(pinned),
+            )
         ):
             return _prioritize(pinned, result)
     if preferred_backend:
         return _pin_if_selectable(preferred_backend, result, health_map, request_type)
     if recalled_backend and recalled_backend in result:
         if health_map.get(recalled_backend, "healthy") != "dead" and route_scorer.is_selectable(
-            recalled_backend, request_type, health_tracker.get_backend_state(recalled_backend),
+            recalled_backend,
+            request_type,
+            health_tracker.get_backend_state(recalled_backend),
         ):
             return _prioritize(recalled_backend, result)
     return result
 
 
-def select(request_type: str, health_map: dict,
-           sticky_key: str | None = None, scenario: str = "",
-           needs_tools: bool = False, recalled_backend: str = "",
-           preferred_backend: str = "",
-           complexity=None) -> list[str]:
+def select(
+    request_type: str,
+    health_map: dict,
+    sticky_key: str | None = None,
+    scenario: str = "",
+    needs_tools: bool = False,
+    recalled_backend: str = "",
+    preferred_backend: str = "",
+    complexity=None,
+) -> list[str]:
     """从对应池选健康后端，按健康评分排序，过滤预算耗尽，sticky 优先"""
     pool_key = request_type
     if request_type == "chat" and scenario == "coding":
@@ -290,7 +342,9 @@ def select(request_type: str, health_map: dict,
     scores = health_tracker.get_scores()
     latency_map = health_tracker.get_latency_map()
     health_map = health_tracker.get_health_map()
-    _score_backends(result, scores, latency_map, health_map, scenario, request_type, needs_tools, routing_guard_decisions)
+    _score_backends(
+        result, scores, latency_map, health_map, scenario, request_type, needs_tools, routing_guard_decisions
+    )
     _apply_ml_boost(result, scores, scenario, request_type, health_map)
     result = _rank_backends(result, scores, request_type, scenario)
     result = _apply_pin(result, sticky_key, preferred_backend, recalled_backend, health_map, request_type)

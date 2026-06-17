@@ -37,8 +37,8 @@ def _mark_health_retired(backend: str) -> None:
     """Reflect persisted retirement in runtime health state."""
     try:
         import health_state
-    except ImportError:
-        logger.debug("health_state unavailable; retired backend not marked")
+    except ImportError as exc:
+        logger.warning("health_state unavailable; retired backend not marked: %s", exc)
         return
     except Exception as exc:
         logger.warning(
@@ -53,9 +53,7 @@ def _mark_health_retired(backend: str) -> None:
             current = health_state._health_map.get(backend)
             if current != STATUS_HEALTHY:
                 health_state._health_map[backend] = "dead"
-            state = health_state._cooldown_states.setdefault(
-                backend, health_state.CooldownState()
-            )
+            state = health_state._cooldown_states.setdefault(backend, health_state.CooldownState())
             state.state = STATUS_RETIRED
             state.last_error_class = STATUS_RETIRED
             state.last_error_code = None
@@ -71,6 +69,7 @@ def check_retirement(backend: str) -> dict | None:
     """Check if a backend should be retired. Returns retirement action or None."""
     try:
         import backend_profile
+
         profile = backend_profile.get_profile(backend)
     except ImportError as exc:
         logger.warning("backend_profile unavailable; cannot evaluate backend retirement: %s", exc)
@@ -139,8 +138,8 @@ def reactivate(backend: str) -> None:
         health_state.clear_cooldown(backend)
         with health_state._lock:
             health_state._health_map[backend] = STATUS_HEALTHY
-    except ImportError:
-        logger.debug("health_state unavailable; reactivated backend not marked")
+    except ImportError as exc:
+        logger.warning("health_state unavailable; reactivated backend not marked: %s", exc)
     except Exception as exc:
         logger.warning(
             "Failed to mark reactivated backend health backend=%s: %s",
@@ -167,9 +166,7 @@ def load_retired() -> int:
     try:
         conn = sqlite3.connect(DB_PATH, timeout=5)
         count = 0
-        for row in conn.execute(
-            "SELECT backend FROM retirements WHERE status = ?", (STATUS_RETIRED,)
-        ):
+        for row in conn.execute("SELECT backend FROM retirements WHERE status = ?", (STATUS_RETIRED,)):
             _retired_backends.add(row[0])
             _mark_health_retired(row[0])
             count += 1
@@ -180,7 +177,9 @@ def load_retired() -> int:
         return 0
 
 
-def get_recovery_snapshot(*, dead_backends: list[str] | None = None, degraded_backends: list[str] | None = None) -> dict:
+def get_recovery_snapshot(
+    *, dead_backends: list[str] | None = None, degraded_backends: list[str] | None = None
+) -> dict:
     """Return operator-facing recovery state without reactivating providers."""
     retired = sorted(_retired_backends)
     dead = sorted(set(dead_backends or []))

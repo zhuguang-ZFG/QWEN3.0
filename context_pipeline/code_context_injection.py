@@ -16,6 +16,7 @@ _log = logging.getLogger(__name__)
 _MAX_CONTEXT_CHARS = 4000
 _MAX_FILES = 8
 
+
 def _detect_project_root() -> str:
     env_root = os.environ.get("LIMA_PROJECT_ROOT", "")
     if env_root and os.path.isdir(env_root):
@@ -26,6 +27,7 @@ def _detect_project_root() -> str:
         if os.path.isdir(p) and os.path.exists(os.path.join(p, "routing_engine.py")):
             return p
     return cwd
+
 
 _PROJECT_ROOT = _detect_project_root()
 
@@ -42,11 +44,11 @@ def extract_file_mentions(
                 text += " " + str(msg.get("content", ""))[:500]
 
     file_patterns = re.findall(
-        r'[\w/\\.-]+\.(?:py|js|ts|tsx|jsx|go|rs|java|c|cpp|h|hpp)\b',
+        r"[\w/\\.-]+\.(?:py|js|ts|tsx|jsx|go|rs|java|c|cpp|h|hpp)\b",
         text,
     )
-    identifiers = re.findall(r'\b([A-Z][a-zA-Z]+(?:Error|Exception|Config|Result|Store|Index))\b', text)
-    identifiers += re.findall(r'\b([a-z_]{3,25})\b', text)
+    identifiers = re.findall(r"\b([A-Z][a-zA-Z]+(?:Error|Exception|Config|Result|Store|Index))\b", text)
+    identifiers += re.findall(r"\b([a-z_]{3,25})\b", text)
     identifiers = [i for i in identifiers if len(i) > 3][:10]
 
     return file_patterns, identifiers
@@ -82,12 +84,10 @@ def scan_and_build_context(
             total += len(ctx)
 
     # Phase 2: Semantic retrieval
-    parts, total, scanned_files = _phase_semantic_retrieval(
-        query, messages, parts, total, scanned_files, max_chars)
+    parts, total, scanned_files = _phase_semantic_retrieval(query, messages, parts, total, scanned_files, max_chars)
 
     # Phase 3: Graph expansion
-    parts, total, scanned_files = _phase_graph_expansion(
-        parts, total, scanned_files, max_chars)
+    parts, total, scanned_files = _phase_graph_expansion(parts, total, scanned_files, max_chars)
 
     # Phase 4: Identifier search
     for ident in identifiers[:3]:
@@ -111,12 +111,17 @@ def scan_and_build_context(
 
 
 def _phase_semantic_retrieval(
-    query: str, messages: list[dict] | None,
-    parts: list[str], total: int, scanned: set[str], max_chars: int,
+    query: str,
+    messages: list[dict] | None,
+    parts: list[str],
+    total: int,
+    scanned: set[str],
+    max_chars: int,
 ) -> tuple[list[str], int, set[str]]:
     """Phase 2: Semantic retrieval for implicit relevant files."""
     try:
         from context_pipeline.semantic_code_retrieval import retrieve_semantic
+
         sem_results = retrieve_semantic(query, max_results=5, messages=messages)
         for result in sem_results:
             if len(scanned) >= _MAX_FILES or result.file_path in scanned:
@@ -128,19 +133,23 @@ def _phase_semantic_retrieval(
             if ctx and total + len(ctx) < max_chars:
                 parts.append(f"[semantic match: score={result.score}]\n{ctx}")
                 total += len(ctx) + 30
-    except ImportError:
-        pass
+    except ImportError as exc:
+        _log.warning("context_pipeline.semantic_code_retrieval not installed; semantic retrieval disabled: %s", exc)
     return parts, total, scanned
 
 
 def _phase_graph_expansion(
-    parts: list[str], total: int, scanned: set[str], max_chars: int,
+    parts: list[str],
+    total: int,
+    scanned: set[str],
+    max_chars: int,
 ) -> tuple[list[str], int, set[str]]:
     """Phase 3: Graph expansion for remaining budget."""
     if total >= max_chars * 0.5 or len(scanned) >= _MAX_FILES:
         return parts, total, scanned
     try:
         from context_pipeline.graph_context_expander import expand_context
+
         expanded = expand_context(list(scanned), max_hops=1, max_files=3)
         for ef in expanded:
             if len(scanned) >= _MAX_FILES or ef.file_path in scanned:
@@ -150,8 +159,8 @@ def _phase_graph_expansion(
             if ctx and total + len(ctx) < max_chars:
                 parts.append(ctx)
                 total += len(ctx)
-    except ImportError:
-        pass
+    except ImportError as exc:
+        _log.warning("context_pipeline.graph_context_expander not installed; graph expansion disabled: %s", exc)
     return parts, total, scanned
 
 
@@ -170,11 +179,17 @@ def _resolve_file(fname: str) -> Path | None:
 def _scan_single_file(path: Path) -> str:
     try:
         from code_context.ast_adapter import get_extractor
+
         suffix = path.suffix.lower()
         lang_map = {
-            ".py": "python", ".js": "javascript", ".ts": "typescript",
-            ".tsx": "typescript", ".jsx": "javascript",
-            ".go": "go", ".rs": "rust", ".java": "java",
+            ".py": "python",
+            ".js": "javascript",
+            ".ts": "typescript",
+            ".tsx": "typescript",
+            ".jsx": "javascript",
+            ".go": "go",
+            ".rs": "rust",
+            ".java": "java",
         }
         lang = lang_map.get(suffix, "python")
         extractor = get_extractor(lang)
@@ -203,6 +218,7 @@ def _find_identifier_files(identifier: str) -> list[Path]:
     results: list[Path] = []
     try:
         from code_context.graph_index import build_graph_index
+
         g = build_graph_index()
         related = g.search([identifier], max_depth=1, max_results=3)
         for r in related:
@@ -215,6 +231,7 @@ def _find_identifier_files(identifier: str) -> list[Path]:
     if not results:
         try:
             from code_context.index_store import InMemoryCodeIndex
+
             idx = InMemoryCodeIndex()
             matches = idx.search(identifier, limit=3)
             for m in matches:

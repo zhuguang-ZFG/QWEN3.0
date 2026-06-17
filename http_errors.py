@@ -6,6 +6,10 @@ from typing import Optional
 
 import httpx
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class BackendError(Exception):
     """Backend call failed; carries status_code for health_tracker."""
@@ -61,5 +65,5 @@ def _emit_backend_error(backend: str, error_code: int | None, error_text: str) -
 
         failure_class = classify_failure(error_code, error_text)
         obs_record(backend_error_event("", backend, failure_class))
-    except ImportError:
-        pass
+    except ImportError as exc:
+        logger.warning("observability metrics not installed; backend error event not recorded: %s", exc)

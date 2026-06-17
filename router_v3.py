@@ -11,9 +11,11 @@ Layer 3: 执行器 (execute)
 - 全部失败返回诚实错误，不降级到不可接受质量
 """
 
-
+import logging
 import runtime_topology
 from backends_constants import IDE_SOURCES, _IDE_FINGERPRINTS
+
+logger = logging.getLogger(__name__)
 
 
 def detect_ide_by_fingerprints(text: str) -> str:
@@ -40,112 +42,274 @@ def detect_ide_by_fingerprints(text: str) -> str:
 
 POOLS = {
     "ide": {
-        "strong": ["scnet_ds_flash", "scnet_qwen235b", "scnet_qwen30b",
-                   "scnet_ds_pro",
-                   "cf_qwen_coder", "cfai_qwen_coder", "cf_llama70b",
-                   "cfai_llama70b", "cf_kimi_k26",
-                   "mistral_large", "mistral_small",
-                   "groq_llama70b", "cerebras_gptoss", "zhipu_flash", "deepseek_free",
-                   "fireworks_llama405b",
-                   "github_gpt4o", "github_codestral",
-                   "ms_kimi_k25", "longcat"],
-        "medium": ["cf_llama4", "cfai_llama4", "cf_gptoss_120b", "cf_qwen3_30b", "cf_glm47", "cf_deepseek_r1",
-                   "cfai_deepseek_r1",
-                   "cf_qwq", "cf_mistral", "cf_gemma4", "cf_nemotron",
-                   "groq_qwen32b", "groq_gptoss_20b", "cerebras_qwen235b", "mistral_devstral",
-                   "aliyun_qwen3", "nvidia_qwen_coder",
-                   "sambanova_llama4", "cohere_command",
-                   "deepinfra_llama4", "deepinfra_qwen235b",
-                   "github_gpt4o_mini", "github_llama70b", "google_flash",
-                   "groq_llama4", "groq_gptoss", "or_qwen3_coder",
-                   "mistral_codestral", "sambanova_ds_v3"],
-        "floor": ["google_flash", "ovh_llama70b", "ovh_deepseek",
-                  "google_flash_lite", "google_pro",
-                  "local_coder14b", "local_reasoning", "local_general",
-                  "ddg_gpt4o_mini", "ddg_gpt5_mini",
-                  "ddg_claude_haiku_45", "ddg_tinfoil_gptoss_120b"],
+        "strong": [
+            "scnet_ds_flash",
+            "scnet_qwen235b",
+            "scnet_qwen30b",
+            "scnet_ds_pro",
+            "cf_qwen_coder",
+            "cfai_qwen_coder",
+            "cf_llama70b",
+            "cfai_llama70b",
+            "cf_kimi_k26",
+            "mistral_large",
+            "mistral_small",
+            "groq_llama70b",
+            "cerebras_gptoss",
+            "zhipu_flash",
+            "deepseek_free",
+            "fireworks_llama405b",
+            "github_gpt4o",
+            "github_codestral",
+            "ms_kimi_k25",
+            "longcat",
+        ],
+        "medium": [
+            "cf_llama4",
+            "cfai_llama4",
+            "cf_gptoss_120b",
+            "cf_qwen3_30b",
+            "cf_glm47",
+            "cf_deepseek_r1",
+            "cfai_deepseek_r1",
+            "cf_qwq",
+            "cf_mistral",
+            "cf_gemma4",
+            "cf_nemotron",
+            "groq_qwen32b",
+            "groq_gptoss_20b",
+            "cerebras_qwen235b",
+            "mistral_devstral",
+            "aliyun_qwen3",
+            "nvidia_qwen_coder",
+            "sambanova_llama4",
+            "cohere_command",
+            "deepinfra_llama4",
+            "deepinfra_qwen235b",
+            "github_gpt4o_mini",
+            "github_llama70b",
+            "google_flash",
+            "groq_llama4",
+            "groq_gptoss",
+            "or_qwen3_coder",
+            "mistral_codestral",
+            "sambanova_ds_v3",
+        ],
+        "floor": [
+            "google_flash",
+            "ovh_llama70b",
+            "ovh_deepseek",
+            "google_flash_lite",
+            "google_pro",
+            "local_coder14b",
+            "local_reasoning",
+            "local_general",
+            "ddg_gpt4o_mini",
+            "ddg_gpt5_mini",
+            "ddg_claude_haiku_45",
+            "ddg_tinfoil_gptoss_120b",
+        ],
     },
     "chat": {
-        "strong": ["scnet_qwen30b", "scnet_ds_flash", "scnet_qwen235b",
-                   "scnet_ds_pro",
-                   "cf_qwen_coder", "cfai_qwen_coder", "cf_llama70b",
-                   "cfai_llama70b", "cf_kimi_k26",
-                   "groq_llama70b", "cerebras_gptoss", "zhipu_flash", "deepseek_free",
-                   "fireworks_llama405b",
-                   "github_gpt4o", "mistral_medium",
-                   "ms_kimi_k25", "longcat"],
-        "medium": ["cf_llama4", "cfai_llama4", "cf_gptoss_120b", "cf_qwen3_30b", "cf_glm47", "cf_deepseek_r1",
-                   "cfai_deepseek_r1",
-                   "cf_qwq", "cf_mistral", "cf_gemma4", "cf_nemotron",
-                   "groq_qwen32b", "mistral_large", "nvidia_qwen_coder",
-                   "sambanova_llama4", "cohere_command", "cohere_command_plus", "deepinfra_llama4", "deepinfra_qwen235b",
-                   "github_gpt4o_mini", "github_llama70b", "google_flash",
-                   "groq_llama4", "groq_gptoss", "or_llama70b", "or_nemotron",
-                   "or_qwen3_80b", "mistral_small", "sambanova_ds_v3"],
-        "floor": ["google_flash", "ovh_llama70b", "ovh_deepseek",
-                  "google_flash_lite", "google_pro",
-                  "local_fast", "local_chat", "local_general",
-                  "ddg_gpt4o_mini", "ddg_gpt5_mini",
-                  "ddg_claude_haiku_45", "ddg_tinfoil_gptoss_120b"],
+        "strong": [
+            "scnet_qwen30b",
+            "scnet_ds_flash",
+            "scnet_qwen235b",
+            "scnet_ds_pro",
+            "cf_qwen_coder",
+            "cfai_qwen_coder",
+            "cf_llama70b",
+            "cfai_llama70b",
+            "cf_kimi_k26",
+            "groq_llama70b",
+            "cerebras_gptoss",
+            "zhipu_flash",
+            "deepseek_free",
+            "fireworks_llama405b",
+            "github_gpt4o",
+            "mistral_medium",
+            "ms_kimi_k25",
+            "longcat",
+        ],
+        "medium": [
+            "cf_llama4",
+            "cfai_llama4",
+            "cf_gptoss_120b",
+            "cf_qwen3_30b",
+            "cf_glm47",
+            "cf_deepseek_r1",
+            "cfai_deepseek_r1",
+            "cf_qwq",
+            "cf_mistral",
+            "cf_gemma4",
+            "cf_nemotron",
+            "groq_qwen32b",
+            "mistral_large",
+            "nvidia_qwen_coder",
+            "sambanova_llama4",
+            "cohere_command",
+            "cohere_command_plus",
+            "deepinfra_llama4",
+            "deepinfra_qwen235b",
+            "github_gpt4o_mini",
+            "github_llama70b",
+            "google_flash",
+            "groq_llama4",
+            "groq_gptoss",
+            "or_llama70b",
+            "or_nemotron",
+            "or_qwen3_80b",
+            "mistral_small",
+            "sambanova_ds_v3",
+        ],
+        "floor": [
+            "google_flash",
+            "ovh_llama70b",
+            "ovh_deepseek",
+            "google_flash_lite",
+            "google_pro",
+            "local_fast",
+            "local_chat",
+            "local_general",
+            "ddg_gpt4o_mini",
+            "ddg_gpt5_mini",
+            "ddg_claude_haiku_45",
+            "ddg_tinfoil_gptoss_120b",
+        ],
     },
     "vision": {
-        "strong": ["cf_vision", "google_flash", "google_flash_lite",
-                   "cohere_vision", "cf_kimi_k26", "github_gpt4o", "mistral_pixtral"],
+        "strong": [
+            "cf_vision",
+            "google_flash",
+            "google_flash_lite",
+            "cohere_vision",
+            "cf_kimi_k26",
+            "github_gpt4o",
+            "mistral_pixtral",
+        ],
         "floor": ["pollinations"],
     },
     "image": {
         "strong": ["pollinations"],
     },
     "code": {
-        "strong": ["mimo_web_code", "mimo_web_think_code", "mimo_web",
-                   "ms_kimi_k25", "ms_kimi_k25_code", "longcat",
-                   "xfyun_astron", "dashscope_coding",
-                   "zhihu_zhida", "zhihu_zhida_think",
-                   "scnet_ds_flash", "scnet_qwen235b", "scnet_qwen30b",
-                   "scnet_ds_pro", "github_gpt4o", "github_gpt4o_mini",
-                   "groq_gptoss", "groq_gptoss_20b", "groq_llama8b",
-                   "cerebras_gptoss", "cerebras_qwen235b",
-                   "cf_qwen_coder", "cfai_qwen_coder", "or_gptoss_120b",
-                   "cf_gptoss_120b", "cf_deepseek_r1", "cf_qwen3_30b",
-                   "cfai_deepseek_r1", "github_codestral", "mistral_large",
-                   "mistral_devstral", "mistral_pixtral", "cf_kimi_k26",
-                   "scnet_large_ds_flash"],
-        "medium": ["cfai_llama70b", "cfai_llama4",
-                   "cerebras_gptoss", "groq_gptoss", "mistral_small",
-                   "mistral_medium", "groq_gptoss_20b",
-                   "kimi", "kimi_thinking", "kimi_search",
-                   "github_gpt4o", "github_codestral"],
-        "floor": ["mistral_devstral", "mistral_large", "cerebras_gptoss",
-                  "groq_gptoss", "local_coder14b",
-                  "local_reasoning",
-                  "ddg_gpt4o_mini", "ddg_gpt5_mini",
-                  "ddg_claude_haiku_45", "ddg_tinfoil_gptoss_120b"],
+        "strong": [
+            "mimo_web_code",
+            "mimo_web_think_code",
+            "mimo_web",
+            "ms_kimi_k25",
+            "ms_kimi_k25_code",
+            "longcat",
+            "xfyun_astron",
+            "dashscope_coding",
+            "zhihu_zhida",
+            "zhihu_zhida_think",
+            "scnet_ds_flash",
+            "scnet_qwen235b",
+            "scnet_qwen30b",
+            "scnet_ds_pro",
+            "github_gpt4o",
+            "github_gpt4o_mini",
+            "groq_gptoss",
+            "groq_gptoss_20b",
+            "groq_llama8b",
+            "cerebras_gptoss",
+            "cerebras_qwen235b",
+            "cf_qwen_coder",
+            "cfai_qwen_coder",
+            "or_gptoss_120b",
+            "cf_gptoss_120b",
+            "cf_deepseek_r1",
+            "cf_qwen3_30b",
+            "cfai_deepseek_r1",
+            "github_codestral",
+            "mistral_large",
+            "mistral_devstral",
+            "mistral_pixtral",
+            "cf_kimi_k26",
+            "scnet_large_ds_flash",
+        ],
+        "medium": [
+            "cfai_llama70b",
+            "cfai_llama4",
+            "cerebras_gptoss",
+            "groq_gptoss",
+            "mistral_small",
+            "mistral_medium",
+            "groq_gptoss_20b",
+            "kimi",
+            "kimi_thinking",
+            "kimi_search",
+            "github_gpt4o",
+            "github_codestral",
+        ],
+        "floor": [
+            "mistral_devstral",
+            "mistral_large",
+            "cerebras_gptoss",
+            "groq_gptoss",
+            "local_coder14b",
+            "local_reasoning",
+            "ddg_gpt4o_mini",
+            "ddg_gpt5_mini",
+            "ddg_claude_haiku_45",
+            "ddg_tinfoil_gptoss_120b",
+        ],
     },
     "chat_fast": {
-        "strong": ["google_flash_lite", "scnet_qwen30b", "scnet_ds_flash", "scnet_qwen235b",
-                   "groq_llama70b", "groq_qwen32b", "cerebras_gptoss",
-                   "cf_llama70b", "cfai_llama70b",
-                   "cf_kimi_k26"],
-        "medium": ["cf_qwen3_30b", "cfai_qwen_coder",
-                   "cfai_llama4", "cf_gemma4",
-                   "groq_gptoss", "groq_llama4",
-                   "google_flash"],
-        "floor": ["ovh_llama70b", "ovh_deepseek", "pollinations_openai",
-                  "local_fast", "local_chat",
-                  "ddg_gpt4o_mini", "ddg_gpt5_mini"],
+        "strong": [
+            "google_flash_lite",
+            "scnet_qwen30b",
+            "scnet_ds_flash",
+            "scnet_qwen235b",
+            "groq_llama70b",
+            "groq_qwen32b",
+            "cerebras_gptoss",
+            "cf_llama70b",
+            "cfai_llama70b",
+            "cf_kimi_k26",
+        ],
+        "medium": [
+            "cf_qwen3_30b",
+            "cfai_qwen_coder",
+            "cfai_llama4",
+            "cf_gemma4",
+            "groq_gptoss",
+            "groq_llama4",
+            "google_flash",
+        ],
+        "floor": [
+            "ovh_llama70b",
+            "ovh_deepseek",
+            "pollinations_openai",
+            "local_fast",
+            "local_chat",
+            "ddg_gpt4o_mini",
+            "ddg_gpt5_mini",
+        ],
     },
 }
 
 DIRECT_BACKENDS = [
-    "zhipu_flash", "zhipu_flash7",
-    "silicon_qwen8b", "chat_ubi", "llm7", "pollinations",
-    "deepseek_free", "local_coder14b", "local_reasoning", "local_general", "local_fast", "local_chat",
+    "zhipu_flash",
+    "zhipu_flash7",
+    "silicon_qwen8b",
+    "chat_ubi",
+    "llm7",
+    "pollinations",
+    "deepseek_free",
+    "local_coder14b",
+    "local_reasoning",
+    "local_general",
+    "local_fast",
+    "local_chat",
 ]
 
 MAX_FALLBACKS = 12
 
 
 # ─── Layer 1: 请求分类器 ─────────────────────────────────────────────────────
+
 
 def classify_request(path: str, headers: dict, body: dict) -> dict:
     """看元数据分类，不看内容。<1ms"""
@@ -155,7 +319,23 @@ def classify_request(path: str, headers: dict, body: dict) -> dict:
         req_type = "ide"
     else:
         ua = headers.get("user-agent", "").lower()
-        if any(x in ua for x in ["claude-code", "cursor", "aider", "codex", "cline", "continue", "vscode", "kiro", "zed", "trae", "windsurf", "copilot"]):
+        if any(
+            x in ua
+            for x in [
+                "claude-code",
+                "cursor",
+                "aider",
+                "codex",
+                "cline",
+                "continue",
+                "vscode",
+                "kiro",
+                "zed",
+                "trae",
+                "windsurf",
+                "copilot",
+            ]
+        ):
             req_type = "ide"
 
     if req_type != "ide":
@@ -199,6 +379,7 @@ def _has_image_blocks(body: dict) -> bool:
 
 # ─── Layer 2: 后端池选择 ─────────────────────────────────────────────────────
 
+
 def select_backends(req_type: str, health_map: dict, proxy_healthy: bool = True) -> list:
     """从对应 Pool 选健康后端，同层随机，P2C 优化"""
     pool = POOLS.get(req_type, POOLS["chat"])
@@ -221,8 +402,7 @@ def select_backends(req_type: str, health_map: dict, proxy_healthy: bool = True)
 
     # 极端保底：只加非 dead 的
     if not result:
-        result = [b for b in ["chat_ubi", "pollinations"]
-                  if health_map.get(b, "healthy") != "dead"]
+        result = [b for b in ["chat_ubi", "pollinations"] if health_map.get(b, "healthy") != "dead"]
 
     return result[:MAX_FALLBACKS]
 
@@ -230,7 +410,8 @@ def select_backends(req_type: str, health_map: dict, proxy_healthy: bool = True)
 def _overlay_tiers_for_pool(pool_key: str) -> dict[str, list[str]]:
     try:
         from backend_admission_store import get_overlay_backends_by_tier
-    except ImportError:
+    except ImportError as exc:
+        logger.warning("backend_admission_store not installed; overlay tiers disabled: %s", exc)
         return {"medium": [], "floor": []}
     grouped = get_overlay_backends_by_tier(pool_key)
     return {
@@ -240,6 +421,7 @@ def _overlay_tiers_for_pool(pool_key: str) -> dict[str, list[str]]:
 
 
 # ─── Layer 3: IDE 检测 ─────────────────────────────────────────────────────
+
 
 def detect_ide_from_system_prompt(text: str) -> str:
     """公开接口：从 system prompt 检测 IDE 来源"""
