@@ -8,6 +8,7 @@ connection URL so the page works out of the box when served from LiMa.
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 from pathlib import Path
@@ -51,29 +52,67 @@ else:
     )
 
 
-_AUTO_CONFIG_SCRIPT = """<script>
-(function () {
+def _build_auto_config_script(
+    *,
+    device_id: str,
+    device_name: str,
+    client_id: str,
+    token: str,
+    wakeword_enabled: bool,
+) -> str:
+    """Return an inline script that pre-fills LiMa connection defaults.
+
+    Defaults are only applied when the corresponding field/localStorage entry
+    is empty, so returning visitors keep their own settings after the first
+    visit.
+    """
+    ws_url = '" + proto + "//" + window.location.host + "/device/v1/ws"'
+    return f"""<script>
+(function () {{
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const defaultWsUrl = proto + "//" + window.location.host + "/device/v1/ws";
-  const limaInput = document.getElementById("limaWsUrl");
-  if (limaInput && !limaInput.value) {
-    limaInput.value = defaultWsUrl;
-  }
+  function setInput(id, value) {{
+    const el = document.getElementById(id);
+    if (el && !el.value && value) el.value = value;
+  }}
+  function seedStorage(key, value) {{
+    try {{
+      if (value && !localStorage.getItem(key)) localStorage.setItem(key, value);
+    }} catch (e) {{}}
+  }}
+  setInput("limaWsUrl", {ws_url});
+  setInput("deviceMac", {json.dumps(device_id)});
+  setInput("deviceName", {json.dumps(device_name)});
+  setInput("clientId", {json.dumps(client_id)});
+  setInput("limaToken", {json.dumps(token)});
+  seedStorage("xz_tester_deviceMac", {json.dumps(device_id)});
+  seedStorage("xz_tester_deviceName", {json.dumps(device_name)});
+  seedStorage("xz_tester_clientId", {json.dumps(client_id)});
+  seedStorage("xz_tester_limaToken", {json.dumps(token)});
   const wwEnabled = document.getElementById("wakewordEnabled");
-  if (wwEnabled) {
-    wwEnabled.value = "false";
-  }
-})();
+  if (wwEnabled && !wwEnabled.value) wwEnabled.value = {json.dumps("true" if wakeword_enabled else "false")};
+}})();
 </script>
 """
 
 
+def _digital_human_defaults() -> dict[str, str | bool]:
+    """Return default connection values from environment variables."""
+    return {
+        "device_id": os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_DEVICE_ID", "web-tester").strip(),
+        "device_name": os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_DEVICE_NAME", "Web 数字人").strip(),
+        "client_id": os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_CLIENT_ID", "web_test_client").strip(),
+        "token": os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_TOKEN", "").strip(),
+        "wakeword_enabled": os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_WAKEUP_WORD_ENABLED", "false").strip().lower() == "true",
+    }
+
+
 def _patch_index_html(content: str) -> str:
     """Inject auto-configuration script into the digital-human index page."""
+    script = _build_auto_config_script(**_digital_human_defaults())  # type: ignore[arg-type]
     marker = '<script type="module" src="js/app.js?v=0205"></script>'
     if marker in content:
-        return content.replace(marker, _AUTO_CONFIG_SCRIPT + "\n    " + marker)
-    return content.replace("</body>", _AUTO_CONFIG_SCRIPT + "</body>")
+        return content.replace(marker, script + "\n    " + marker)
+    return content.replace("</body>", script + "</body>")
 
 
 router = APIRouter(prefix="/digital-human")

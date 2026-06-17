@@ -2,7 +2,7 @@
 
 > Created: 2026-05-22
 
-> Updated: 2026-06-17
+> Updated: 2026-06-18
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
 ## 2026-06-17 小智服务器退役准备：阶段 3 之 2D 数字人系统接入 LiMa（完成）

@@ -9,1029 +9,404 @@
   <meta property="og:description" content="让每个家庭拥有会画画、会写字的智能伙伴">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://donglicao.com">
-  <meta name="theme-color" content="#000000">
+  <meta name="theme-color" content="#060612">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
-    :root {
-      --bg: #000000;
-      --bg-card: rgba(255,255,255,0.04);
-      --bg-card-hover: rgba(255,255,255,0.07);
-      --accent: #6366f1;
-      --accent-light: #818cf8;
-      --accent-glow: rgba(99,102,241,0.2);
-      --warm: #f59e0b;
-      --warm-glow: rgba(245,158,11,0.15);
-      --green: #30d158;
-      --text: #f5f5f7;
-      --text-muted: #86868b;
-      --text-dim: #6e6e73;
-      --text-faint: #48484a;
-      --border: rgba(255,255,255,0.08);
-      --radius: 20px;
-      --radius-sm: 12px;
-      --ease-apple: cubic-bezier(0.25, 0.1, 0.25, 1);
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --bg:#060612;--bg2:#0a0a1a;--surface:rgba(255,255,255,0.03);
+      --surface-h:rgba(255,255,255,0.06);--glass:rgba(255,255,255,0.04);
+      --accent:#6366f1;--accent2:#818cf8;--cyan:#22d3ee;--cyan-g:rgba(34,211,238,0.15);
+      --violet:#a78bfa;--violet-g:rgba(167,139,250,0.12);
+      --amber:#f59e0b;--amber-g:rgba(245,158,11,0.12);
+      --green:#34d399;--green-g:rgba(52,211,153,0.12);
+      --pink:#f472b6;--pink-g:rgba(244,114,182,0.12);
+      --text:#eef0f6;--muted:#8b8fa8;--dim:#5c5f77;--faint:#3d3f54;
+      --border:rgba(255,255,255,0.06);--border-h:rgba(255,255,255,0.12);
+      --r:18px;--r-sm:12px;--ease:cubic-bezier(.22,1,.36,1);
     }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', 'Segoe UI', system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.5;
-      overflow-x: hidden;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      letter-spacing: -0.01em;
+    body{
+      font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+      background:var(--bg);color:var(--text);line-height:1.6;
+      overflow-x:hidden;-webkit-font-smoothing:antialiased;
     }
-    body::before {
-      content: '';
-      position: fixed; inset: 0;
+    body::before{
+      content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
       background:
-        radial-gradient(ellipse 500px 350px at 20% 30%, rgba(99,102,241,0.03) 0%, transparent 70%),
-        radial-gradient(ellipse 400px 300px at 80% 70%, rgba(245,158,11,0.02) 0%, transparent 70%);
-      pointer-events: none; z-index: 0;
+        radial-gradient(ellipse 900px 600px at 15% 20%,rgba(99,102,241,.06) 0%,transparent 70%),
+        radial-gradient(ellipse 700px 500px at 80% 60%,rgba(34,211,238,.04) 0%,transparent 70%),
+        radial-gradient(ellipse 600px 400px at 50% 90%,rgba(167,139,250,.04) 0%,transparent 70%);
     }
-    body > * { position: relative; z-index: 1; }
-
+    body::after{
+      content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;
+      background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");
+    }
+    body>*{position:relative;z-index:1}
     /* NAV */
-    nav {
-      position: fixed; top: 0; width: 100%; z-index: 100;
-      padding: 0 2rem; height: 48px;
-      display: flex; align-items: center;
-      backdrop-filter: saturate(180%) blur(20px);
-      -webkit-backdrop-filter: saturate(180%) blur(20px);
-      background: rgba(0,0,0,0.72);
-      border-bottom: 0.5px solid rgba(255,255,255,0.08);
-      transition: background 0.3s var(--ease-apple);
+    nav{
+      position:fixed;top:12px;left:50%;transform:translateX(-50%);
+      width:min(92%,1060px);z-index:100;padding:0 8px;height:52px;
+      display:flex;align-items:center;border-radius:16px;
+      backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);
+      background:rgba(6,6,18,.65);border:1px solid var(--border);
+      transition:all .4s var(--ease);
     }
-    nav .nav-inner {
-      max-width: 980px; margin: 0 auto; width: 100%;
-      display: flex; justify-content: space-between; align-items: center;
+    nav.scrolled{background:rgba(6,6,18,.85);border-color:var(--border-h);box-shadow:0 8px 32px rgba(0,0,0,.4)}
+    .nav-inner{max-width:1060px;margin:0 auto;width:100%;display:flex;justify-content:space-between;align-items:center;padding:0 12px}
+    .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+    .logo-mark{
+      width:32px;height:32px;border-radius:10px;
+      background:linear-gradient(135deg,var(--accent),var(--cyan));
+      display:flex;align-items:center;justify-content:center;
+      box-shadow:0 0 20px rgba(99,102,241,.25);
     }
-    nav .logo {
-      display: flex; align-items: center; gap: 0.55rem;
-      text-decoration: none;
-    }
-    .nav-brand-mark {
-      width: 28px; height: 28px; border-radius: 7px;
-      background: linear-gradient(135deg, var(--accent), #a78bfa);
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 0 14px rgba(99,102,241,0.3);
-    }
-    .nav-brand-mark .svg-icon { width: 14px; height: 14px; color: #fff; stroke: #fff; }
-    .nav-logo-text {
-      font-size: 1.25rem; font-weight: 800;
-      background: linear-gradient(135deg, var(--accent), var(--accent-light));
-      -webkit-background-clip: text; background-clip: text;
-      -webkit-text-fill-color: transparent;
-      letter-spacing: -0.02em;
-    }
-    nav .nav-links a {
-      color: var(--text-muted); text-decoration: none;
-      margin-left: 0.25rem; font-size: 0.8rem; font-weight: 400;
-      padding: 0.3rem 0.75rem; border-radius: 980px;
-      transition: all 0.2s var(--ease-apple);
-      letter-spacing: 0;
-    }
-    nav .nav-links a:hover {
-      color: var(--text);
-      background: rgba(255,255,255,0.06);
-    }
-    nav .nav-links a.cta-link {
-      color: var(--accent-light);
-      border: 0.5px solid rgba(99,102,241,0.25);
-      margin-left: 0.5rem;
-      font-weight: 500;
-    }
-    nav .nav-links a.cta-link:hover {
-      background: rgba(99,102,241,0.1);
-      border-color: rgba(99,102,241,0.4);
-    }
-
-    section { max-width: 980px; margin: 0 auto; padding: 96px 24px; }
-
+    .logo-mark svg{width:16px;height:16px;color:#fff;stroke:#fff}
+    .logo-text{font-size:1.3rem;font-weight:800;letter-spacing:-.03em;
+      background:linear-gradient(135deg,var(--accent2),var(--cyan));
+      -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+    .nav-links{display:flex;align-items:center;gap:2px}
+    .nav-links a{
+      color:var(--muted);text-decoration:none;font-size:.82rem;font-weight:500;
+      padding:6px 14px;border-radius:10px;transition:all .25s var(--ease);letter-spacing:-.01em}
+    .nav-links a:hover{color:var(--text);background:rgba(255,255,255,.05)}
+    .nav-cta{
+      color:var(--cyan)!important;border:1px solid rgba(34,211,238,.2)!important;
+      background:rgba(34,211,238,.06)!important;margin-left:8px;font-weight:600!important}
+    .nav-cta:hover{background:rgba(34,211,238,.12)!important;border-color:rgba(34,211,238,.35)!important}
+    .mobile-btn{display:none;background:none;border:none;color:var(--muted);cursor:pointer;padding:6px;border-radius:8px}
+    .mobile-btn svg{width:22px;height:22px}
+    /* SECTIONS */
+    section{max-width:1060px;margin:0 auto;padding:100px 24px}
     /* HERO */
-    #hero {
-      min-height: 100vh;
-      display: flex; flex-direction: column;
-      justify-content: center; align-items: center;
-      text-align: center; position: relative; padding-top: 48px;
-    }
-    #hero::before {
-      content: ''; position: absolute;
-      top: -10%; left: 50%; transform: translateX(-50%);
-      width: 680px; height: 680px;
-      background: radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%);
-      pointer-events: none;
-    }
-
-    .hero-badge {
-      display: inline-flex; align-items: center; gap: 0.5rem;
-      padding: 6px 16px; border-radius: 980px;
-      background: rgba(99,102,241,0.08); border: 0.5px solid rgba(99,102,241,0.15);
-      font-size: 12px; color: var(--accent-light); font-weight: 500;
-      margin-bottom: 24px; position: relative;
-      letter-spacing: 0.01em;
-    }
-    .hero-badge .dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: var(--green);
-      animation: blink 2s var(--ease-apple) infinite;
-    }
-    @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
-
-    #hero h1 {
-      font-size: clamp(40px, 7vw, 56px);
-      font-weight: 600; position: relative;
-      line-height: 1.07; letter-spacing: -0.04em;
-      margin-bottom: 16px;
-    }
-    #hero h1 .gradient {
-      background: linear-gradient(135deg, var(--accent) 0%, #a78bfa 50%, var(--warm) 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    #hero .subtitle {
-      font-size: 17px; color: var(--text-muted);
-      max-width: 520px; position: relative;
-      margin-bottom: 32px; font-weight: 400; line-height: 1.53;
-      letter-spacing: -0.01em;
-    }
-
-    .hero-buttons {
-      display: flex; gap: 1rem; position: relative; flex-wrap: wrap;
-      justify-content: center;
-    }
-    .btn {
-      padding: 12px 24px; border-radius: 980px;
-      font-size: 15px; font-weight: 400;
-      text-decoration: none; transition: all 0.2s var(--ease-apple);
-      cursor: pointer; border: none; display: inline-flex;
-      align-items: center; gap: 8px; letter-spacing: -0.01em;
-    }
-    .btn-primary {
-      background: var(--accent); color: #fff;
-      box-shadow: 0 2px 12px rgba(99,102,241,0.2);
-    }
-    .btn-primary:hover {
-      filter: brightness(1.1);
-      box-shadow: 0 4px 20px rgba(99,102,241,0.3);
-    }
-    .btn-secondary {
-      background: transparent; color: var(--text);
-      border: 0.5px solid rgba(255,255,255,0.18);
-    }
-    .btn-secondary:hover {
-      border-color: var(--accent);
-      background: rgba(99,102,241,0.06);
-    }
-
-    /* DEVICE VISUAL */
-    .hero-visual {
-      position: relative; margin-top: 4rem;
-      width: 100%; max-width: 820px;
-    }
-    .hero-visual::before {
-      content: '';
-      position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 110%; height: 130%;
-      background: radial-gradient(ellipse, rgba(99,102,241,0.06) 0%, transparent 65%);
-      pointer-events: none;
-    }
-    .device-showcase {
-      display: flex; gap: 1.5rem; justify-content: center;
-      align-items: stretch; position: relative;
-    }
-    .device-card {
-      background: rgba(255,255,255,0.04);
-      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-      border: 0.5px solid rgba(255,255,255,0.08);
-      border-radius: 20px; padding: 32px 24px;
-      text-align: center; flex: 1; max-width: 360px;
-      transition: all 0.3s var(--ease-apple);
-      position: relative; overflow: hidden;
-    }
-    .device-card::after {
-      content: '';
-      position: absolute; top: 0; left: 0; right: 0; height: 0.5px;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-    }
-    .device-card:hover {
-      border-color: rgba(99,102,241,0.2);
-      transform: translateY(-2px);
-      box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 0 0.5px rgba(99,102,241,0.15);
-    }
-    .device-card.featured {
-      border-color: rgba(99,102,241,0.2);
-      background: linear-gradient(180deg, rgba(99,102,241,0.04) 0%, rgba(99,102,241,0.01) 100%);
-    }
-    .device-card.featured::after {
-      background: linear-gradient(90deg, transparent, rgba(99,102,241,0.3), transparent);
-    }
-    .device-card h3 {
-      font-size: 1.15rem; font-weight: 700;
-      margin-bottom: 0.5rem; letter-spacing: -0.01em;
-    }
-    .device-card p {
-      color: var(--text-muted); font-size: 0.85rem;
-      line-height: 1.6;
-    }
-    .device-status {
-      display: inline-flex; align-items: center; gap: 0.4rem;
-      margin-top: 1rem; font-size: 0.72rem; color: var(--green);
-      font-weight: 500;
-    }
-    .device-status .dot {
-      width: 5px; height: 5px; border-radius: 50%;
-      background: var(--green);
-      box-shadow: 0 0 6px rgba(16,185,129,0.4);
-    }
-    .device-cap-tags {
-      display: flex; gap: 0.35rem; justify-content: center;
-      margin-top: 0.85rem; flex-wrap: wrap;
-    }
-    .device-cap-tag {
-      font-size: 0.62rem; padding: 0.15rem 0.5rem;
-      border-radius: 980px; font-weight: 500;
-      background: rgba(255,255,255,0.03); color: var(--text-faint);
-      border: 0.5px solid rgba(255,255,255,0.04);
-    }
-    .device-cap-tag.draw-t { background: rgba(99,102,241,0.06); color: rgba(129,140,248,0.65); border-color: rgba(99,102,241,0.08); }
-    .device-cap-tag.write-t { background: rgba(245,158,11,0.06); color: rgba(245,158,11,0.55); border-color: rgba(245,158,11,0.08); }
-
-    /* SECTION TITLES */
-    .section-eyebrow {
-      text-align: center; font-size: 12px;
-      color: var(--accent-light); font-weight: 600;
-      text-transform: uppercase; letter-spacing: 0.08em;
-      margin-bottom: 8px;
-    }
-    .section-title {
-      font-size: 40px; font-weight: 600;
-      text-align: center; margin-bottom: 8px;
-      letter-spacing: -0.03em; line-height: 1.1;
-    }
-    .section-subtitle {
-      text-align: center; color: var(--text-muted);
-      margin-bottom: 48px; font-size: 17px; font-weight: 400;
-      max-width: 480px; margin-left: auto; margin-right: auto;
-      letter-spacing: -0.01em; line-height: 1.5;
-    }
-
-    /* FEATURES */
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 1rem;
-    }
-    .feature-card {
-      background: rgba(255,255,255,0.04);
-      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-      border: 0.5px solid rgba(255,255,255,0.06);
-      border-radius: 20px; padding: 24px;
-      transition: all 0.3s var(--ease-apple);
-      position: relative; overflow: hidden;
-    }
-    .feature-card::before {
-      content: ''; position: absolute; top: 0; left: 0;
-      width: 100%; height: 0.5px;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
-      opacity: 0; transition: opacity 0.3s var(--ease-apple);
-    }
-    .feature-card:hover {
-      border-color: rgba(99,102,241,0.15);
-      background: rgba(255,255,255,0.06);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-    }
-    .feature-card:hover::before { opacity: 1; }
-    .feature-card h3 {
-      font-size: 17px; font-weight: 600; margin-bottom: 6px;
-      letter-spacing: -0.02em;
-    }
-    .feature-card p { color: var(--text-muted); font-size: 14px; line-height: 1.5; letter-spacing: -0.01em; }
-
-    /* Individual icon accent colors */
-    .icon-wrap.voice { background: rgba(99,102,241,0.08); color: var(--accent-light); }
-    .icon-wrap.ai { background: rgba(168,85,247,0.08); color: #a78bfa; }
-    .icon-wrap.route { background: rgba(16,185,129,0.08); color: var(--green); }
-    .icon-wrap.exec { background: rgba(245,158,11,0.08); color: var(--warm); }
-    .icon-wrap .svg-icon { width: 22px; height: 22px; }
-
-    /* SCENARIOS */
-    .scenarios-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 1.25rem;
-    }
-    .scenario-card {
-      background: rgba(255,255,255,0.04);
-      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-      border: 0.5px solid rgba(255,255,255,0.06);
-      border-radius: 20px; overflow: hidden;
-      transition: all 0.3s var(--ease-apple);
-    }
-    .scenario-card:hover {
-      border-color: rgba(99,102,241,0.15);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-    }
-    .scenario-visual {
-      height: 160px; display: flex; align-items: center;
-      justify-content: center;
-      position: relative; overflow: hidden;
-    }
-    .scenario-visual::before {
-      content: '';
-      position: absolute; inset: 0;
-      background: radial-gradient(circle at 50% 50%, rgba(99,102,241,0.06) 0%, transparent 70%);
-    }
-    .scenario-card:nth-child(2) .scenario-visual::before {
-      background: radial-gradient(circle at 50% 50%, rgba(245,158,11,0.05) 0%, transparent 70%);
-    }
-    .scenario-card:nth-child(3) .scenario-visual::before {
-      background: radial-gradient(circle at 50% 50%, rgba(236,72,153,0.05) 0%, transparent 70%);
-    }
-    .scenario-body { padding: 20px 24px; }
-    .scenario-body h3 {
-      font-size: 17px; font-weight: 600; margin-bottom: 6px;
-      letter-spacing: -0.02em;
-    }
-    .scenario-body p { color: var(--text-muted); font-size: 14px; line-height: 1.5; }
-    .scenario-tags {
-      display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap;
-    }
-    .scenario-tag {
-      padding: 3px 10px; border-radius: 980px;
-      background: rgba(99,102,241,0.06); color: var(--accent-light);
-      font-size: 11px; font-weight: 500;
-      border: 0.5px solid rgba(99,102,241,0.08);
-    }
-
-    /* TECH STACK */
-    .tech-flow {
-      display: flex; align-items: stretch; gap: 0;
-      border-radius: var(--radius);
-      overflow: hidden; position: relative;
-    }
-    .tech-step {
-      flex: 1; padding: 24px 16px;
-      background: rgba(255,255,255,0.02);
-      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-      border: 0.5px solid rgba(255,255,255,0.06);
-      text-align: center; transition: all 0.3s var(--ease-apple);
-      position: relative;
-    }
-    .tech-step:not(:last-child)::after {
-      content: '';
-      position: absolute; right: -1px; top: 50%;
-      transform: translateY(-50%);
-      width: 0; height: 0;
-      border-top: 8px solid transparent;
-      border-bottom: 8px solid transparent;
-      border-left: 8px solid rgba(99,102,241,0.2);
-      z-index: 2;
-    }
-    .tech-step:hover {
-      background: rgba(99,102,241,0.03);
-      border-color: rgba(99,102,241,0.12);
-    }
-    .tech-step .step-num {
-      width: 24px; height: 24px; border-radius: 50%;
-      background: rgba(99,102,241,0.1); color: var(--accent-light);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 11px; font-weight: 600;
-      margin: 0 auto 8px;
-    }
-    .tech-step h4 { font-size: 15px; font-weight: 600; margin-bottom: 4px; letter-spacing: -0.02em; }
-    .tech-step p { color: var(--text-dim); font-size: 12px; line-height: 1.5; }
-
+    #hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding-top:80px;position:relative}
+    .aurora-orb{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none;animation:orbFloat 8s ease-in-out infinite}
+    .aurora-orb.a{width:400px;height:400px;background:rgba(99,102,241,.12);top:10%;left:10%;animation-delay:0s}
+    .aurora-orb.b{width:300px;height:300px;background:rgba(34,211,238,.08);top:20%;right:15%;animation-delay:2.5s}
+    .aurora-orb.c{width:250px;height:250px;background:rgba(167,139,250,.08);bottom:20%;left:30%;animation-delay:5s}
+    @keyframes orbFloat{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(20px,-15px) scale(1.05)}66%{transform:translate(-15px,10px) scale(.95)}}
+    .hero-badge{
+      display:inline-flex;align-items:center;gap:8px;padding:6px 18px;border-radius:980px;
+      background:rgba(34,211,238,.06);border:1px solid rgba(34,211,238,.15);
+      font-size:12px;color:var(--cyan);font-weight:600;margin-bottom:28px;letter-spacing:.02em}
+    .hero-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s ease infinite}
+    @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(52,211,153,.4)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(52,211,153,0)}}
+    #hero h1{font-size:clamp(36px,6.5vw,60px);font-weight:800;line-height:1.08;letter-spacing:-.04em;margin-bottom:20px;position:relative}
+    .grad-text{background:linear-gradient(135deg,var(--accent2) 0%,var(--cyan) 40%,var(--violet) 70%,var(--amber) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;background-size:200% 200%;animation:gradShift 6s ease infinite}
+    @keyframes gradShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+    #hero .sub{font-size:17px;color:var(--muted);max-width:540px;margin-bottom:36px;line-height:1.65;font-weight:400}
+    .hero-btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+    .btn{padding:12px 28px;border-radius:12px;font-size:14px;font-weight:600;text-decoration:none;transition:all .3s var(--ease);cursor:pointer;border:none;display:inline-flex;align-items:center;gap:8px;letter-spacing:-.01em}
+    .btn-p{background:linear-gradient(135deg,var(--accent),#7c3aed);color:#fff;box-shadow:0 4px 20px rgba(99,102,241,.3)}
+    .btn-p:hover{box-shadow:0 6px 30px rgba(99,102,241,.45);transform:translateY(-1px)}
+    .btn-s{background:rgba(255,255,255,.04);color:var(--text);border:1px solid var(--border)}
+    .btn-s:hover{border-color:var(--accent2);background:rgba(99,102,241,.06)}
+    /* DEVICE CARDS */
+    .device-show{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:64px;width:100%;max-width:840px;position:relative}
+    .d-card{
+      background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+      border:1px solid var(--border);border-radius:var(--r);padding:28px 24px;text-align:center;
+      transition:all .4s var(--ease);position:relative;overflow:hidden}
+    .d-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent)}
+    .d-card:hover{border-color:rgba(99,102,241,.2);transform:translateY(-3px);box-shadow:0 16px 48px rgba(0,0,0,.4)}
+    .d-card.feat{border-color:rgba(99,102,241,.15);background:linear-gradient(180deg,rgba(99,102,241,.04),transparent)}
+    .d-card.feat::before{background:linear-gradient(90deg,transparent,rgba(99,102,241,.4),transparent)}
+    .d-icon{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+    .d-icon svg{width:26px;height:26px}
+    .d-icon.draw{background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(34,211,238,.1));color:var(--cyan)}
+    .d-icon.write{background:linear-gradient(135deg,rgba(245,158,11,.15),rgba(244,114,182,.1));color:var(--amber)}
+    .d-icon.human{background:linear-gradient(135deg,rgba(244,114,182,.15),rgba(167,139,250,.1));color:var(--pink)}
+    .d-card h3{font-size:1.1rem;font-weight:700;margin-bottom:6px;letter-spacing:-.02em}
+    .d-card p{color:var(--muted);font-size:.84rem;line-height:1.55}
+    .d-tags{display:flex;gap:4px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+    .d-tag{font-size:.65rem;padding:2px 10px;border-radius:980px;font-weight:600}
+    .d-tag.dt{background:rgba(99,102,241,.08);color:var(--accent2);border:1px solid rgba(99,102,241,.1)}
+    .d-tag.wt{background:rgba(245,158,11,.08);color:var(--amber);border:1px solid rgba(245,158,11,.1)}
+    .d-status{display:inline-flex;align-items:center;gap:5px;margin-top:12px;font-size:.72rem;color:var(--green);font-weight:600}
+    .d-status .dot{width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 8px rgba(52,211,153,.4)}
+    /* SECTION HEADERS */
+    .s-label{text-align:center;font-size:12px;color:var(--cyan);font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px}
+    .s-title{font-size:clamp(28px,4vw,42px);font-weight:800;text-align:center;margin-bottom:10px;letter-spacing:-.03em;line-height:1.12}
+    .s-sub{text-align:center;color:var(--muted);margin-bottom:52px;font-size:16px;max-width:500px;margin-left:auto;margin-right:auto;line-height:1.55}
+    /* BENTO FEATURES */
+    .bento{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:auto auto;gap:12px}
+    .b-card{
+      background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+      border:1px solid var(--border);border-radius:var(--r);padding:24px;
+      transition:all .35s var(--ease);position:relative;overflow:hidden}
+    .b-card:hover{border-color:var(--border-h);background:var(--surface-h);transform:translateY(-2px);box-shadow:0 12px 36px rgba(0,0,0,.3)}
+    .b-card.span2{grid-column:span 2}
+    .b-card h3{font-size:16px;font-weight:700;margin-bottom:4px;letter-spacing:-.02em}
+    .b-card p{color:var(--muted);font-size:13px;line-height:1.55}
+    .icon-box{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+    .icon-box svg{width:20px;height:20px}
+    .icon-box.i1{background:rgba(99,102,241,.1);color:var(--accent2)}
+    .icon-box.i2{background:rgba(167,139,250,.1);color:var(--violet)}
+    .icon-box.i3{background:rgba(34,211,238,.1);color:var(--cyan)}
+    .icon-box.i4{background:rgba(245,158,11,.1);color:var(--amber)}
+    /* TECH PIPELINE */
+    .pipeline{display:flex;gap:0;border-radius:var(--r);overflow:hidden;position:relative}
+    .p-step{
+      flex:1;padding:24px 14px;background:var(--glass);border:1px solid var(--border);
+      text-align:center;transition:all .35s var(--ease);position:relative}
+    .p-step:not(:last-child)::after{
+      content:'';position:absolute;right:-1px;top:50%;transform:translateY(-50%);
+      border:7px solid transparent;border-left:7px solid rgba(34,211,238,.2);z-index:2}
+    .p-step:hover{background:rgba(99,102,241,.04);border-color:rgba(99,102,241,.12)}
+    .p-num{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--cyan));color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;margin:0 auto 10px}
+    .p-step h4{font-size:14px;font-weight:700;margin-bottom:4px;letter-spacing:-.02em}
+    .p-step p{color:var(--dim);font-size:11px;line-height:1.5}
     /* STATS */
-    .stats-row {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 0; text-align: center;
-      padding: 3rem 0; margin-top: 2rem;
-      border-top: 0.5px solid var(--border);
-    }
-    .stat-item {
-      padding: 1rem 1.5rem;
-      position: relative;
-    }
-    .stat-item:not(:last-child)::after {
-      content: '';
-      position: absolute; right: 0; top: 20%; bottom: 20%;
-      width: 0.5px; background: var(--border);
-    }
-    .stat-num {
-      font-size: 48px; font-weight: 600;
-      background: linear-gradient(135deg, var(--accent), var(--accent-light));
-      -webkit-background-clip: text; background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 4px; line-height: 1.05; letter-spacing: -0.04em;
-    }
-    .stat-label { color: var(--text-dim); font-size: 13px; font-weight: 400; letter-spacing: -0.01em; }
-
-    /* DEVELOPER (compact) */
-    .dev-compact {
-      background: rgba(255,255,255,0.04);
-      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-      border: 0.5px solid rgba(255,255,255,0.06);
-      border-radius: 20px; padding: 40px;
-      display: flex; gap: 40px; align-items: center;
-    }
-    .dev-compact-text { flex: 1; }
-    .dev-compact-text h3 {
-      font-size: 28px; font-weight: 600; margin-bottom: 8px;
-      letter-spacing: -0.03em; line-height: 1.15;
-    }
-    .dev-compact-text p { color: var(--text-muted); margin-bottom: 16px; font-size: 15px; line-height: 1.5; }
-    .dev-compact-text .btn { margin-top: 8px; }
-    .dev-compact-code {
-      flex: 1;
-      border: 0.5px solid rgba(255,255,255,0.06);
-      border-radius: 12px;
-      overflow: hidden;
-    }
-    .code-window-bar {
-      display: flex; align-items: center; gap: 6px;
-      padding: 10px 14px;
-      background: rgba(255,255,255,0.02);
-      border-bottom: 0.5px solid rgba(255,255,255,0.06);
-    }
-    .code-dot {
-      width: 10px; height: 10px; border-radius: 50%;
-    }
-    .code-dot.r { background: #ff5f57; }
-    .code-dot.y { background: #febc2e; }
-    .code-dot.g { background: #28c840; }
-    .code-window-title {
-      font-size: 12px; color: var(--text-faint);
-      margin-left: 8px; font-weight: 400;
-    }
-    .code-body {
-      background: rgba(0,0,0,0.4);
-      padding: 16px;
-      font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
-      font-size: 12px; line-height: 1.7; overflow-x: auto;
-    }
-    .code-c { color: #6b7280; }
-    .code-s { color: #34d399; }
-    .code-k { color: #a78bfa; }
-    .code-cmd { color: #f472b6; }
-
-    /* SVG ICONS */
-    .svg-icon {
-      display: inline-block; vertical-align: middle;
-      width: 1em; height: 1em;
-      stroke: currentColor; fill: none;
-      stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
-    }
-    .icon-wrap {
-      width: 44px; height: 44px; border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      margin-bottom: 1.1rem;
-    }
-    .device-icon-wrap {
-      width: 64px; height: 64px; border-radius: 14px;
-      display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 1rem;
-    }
-    .device-icon-wrap .svg-icon { width: 32px; height: 32px; }
-    .device-icon-wrap.draw {
-      background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(168,85,247,0.1));
-      color: var(--accent-light);
-    }
-    .device-icon-wrap.write {
-      background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(234,88,12,0.1));
-      color: var(--warm);
-    }
-    .scenario-icon-wrap {
-      width: 64px; height: 64px; border-radius: 14px;
-      display: flex; align-items: center; justify-content: center;
-      position: relative; z-index: 1;
-    }
-    .scenario-icon-wrap .svg-icon { width: 28px; height: 28px; }
-    .scenario-icon-wrap.home {
-      background: rgba(99,102,241,0.08); color: var(--accent-light);
-    }
-    .scenario-icon-wrap.edu {
-      background: rgba(245,158,11,0.08); color: var(--warm);
-    }
-    .scenario-icon-wrap.custom {
-      background: rgba(236,72,153,0.08); color: #f472b6;
-    }
-    .tech-step-icon {
-      width: 44px; height: 44px; border-radius: 50%;
-      background: rgba(99,102,241,0.1);
-      display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 0.75rem;
-      color: var(--accent-light);
-    }
-    .tech-step-icon .svg-icon { width: 20px; height: 20px; }
-    .hero-badge-icon { width: 14px; height: 14px; color: var(--green); }
-
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:0;text-align:center;padding:48px 0;margin-top:40px;border-top:1px solid var(--border)}
+    .stat{padding:12px 16px;position:relative}
+    .stat:not(:last-child)::after{content:'';position:absolute;right:0;top:15%;bottom:15%;width:1px;background:var(--border)}
+    .stat-n{font-size:44px;font-weight:800;letter-spacing:-.04em;line-height:1;margin-bottom:6px;
+      background:linear-gradient(135deg,var(--accent2),var(--cyan));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+    .stat-l{color:var(--dim);font-size:13px;font-weight:500}
+    /* SCENARIOS */
+    .sc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+    .sc-card{
+      background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+      border:1px solid var(--border);border-radius:var(--r);overflow:hidden;
+      transition:all .35s var(--ease)}
+    .sc-card:hover{border-color:var(--border-h);transform:translateY(-2px);box-shadow:0 12px 36px rgba(0,0,0,.3)}
+    .sc-visual{height:140px;display:flex;align-items:center;justify-content:center;position:relative}
+    .sc-visual::before{content:'';position:absolute;inset:0}
+    .sc-card:nth-child(1) .sc-visual::before{background:radial-gradient(circle at 50% 60%,rgba(99,102,241,.08),transparent 70%)}
+    .sc-card:nth-child(2) .sc-visual::before{background:radial-gradient(circle at 50% 60%,rgba(245,158,11,.06),transparent 70%)}
+    .sc-card:nth-child(3) .sc-visual::before{background:radial-gradient(circle at 50% 60%,rgba(244,114,182,.06),transparent 70%)}
+    .sc-icon{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;position:relative;z-index:1}
+    .sc-icon svg{width:26px;height:26px}
+    .sc-icon.s1{background:rgba(99,102,241,.1);color:var(--accent2)}
+    .sc-icon.s2{background:rgba(245,158,11,.1);color:var(--amber)}
+    .sc-icon.s3{background:rgba(244,114,182,.1);color:var(--pink)}
+    .sc-body{padding:18px 22px}
+    .sc-body h3{font-size:16px;font-weight:700;margin-bottom:4px;letter-spacing:-.02em}
+    .sc-body p{color:var(--muted);font-size:13px;line-height:1.55}
+    .sc-tags{display:flex;gap:5px;margin-top:10px;flex-wrap:wrap}
+    .sc-tag{padding:3px 10px;border-radius:980px;background:rgba(99,102,241,.06);color:var(--accent2);font-size:11px;font-weight:600;border:1px solid rgba(99,102,241,.08)}
+    /* DEVELOPER */
+    .dev-box{
+      background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+      border:1px solid var(--border);border-radius:var(--r);padding:44px;display:flex;gap:40px;align-items:center}
+    .dev-text{flex:1}
+    .dev-text h3{font-size:26px;font-weight:800;margin-bottom:10px;letter-spacing:-.03em;line-height:1.15}
+    .dev-text p{color:var(--muted);margin-bottom:18px;font-size:15px;line-height:1.6}
+    .dev-code{flex:1;border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden}
+    .code-bar{display:flex;align-items:center;gap:6px;padding:10px 14px;background:rgba(255,255,255,.02);border-bottom:1px solid var(--border)}
+    .code-dot{width:10px;height:10px;border-radius:50%}
+    .code-dot.r{background:#ff5f57}.code-dot.y{background:#febc2e}.code-dot.g{background:#28c840}
+    .code-fn{font-size:12px;color:var(--dim);margin-left:8px}
+    .code-body{background:rgba(0,0,0,.4);padding:16px;font-family:'SF Mono','JetBrains Mono',monospace;font-size:12px;line-height:1.75;overflow-x:auto}
+    .cc{color:#6b7280}.cs{color:var(--green)}.ck{color:var(--violet)}.cm{color:var(--pink)}
+    /* SVG */
+    .svg-icon{display:inline-block;vertical-align:middle;width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
     /* FOOTER */
-    footer {
-      border-top: 0.5px solid rgba(255,255,255,0.06);
-      padding: 40px 24px 24px;
-      background: rgba(0,0,0,0.4);
-    }
-    footer .footer-inner {
-      max-width: 980px; margin: 0 auto;
-      display: flex; justify-content: space-between;
-      align-items: flex-start; flex-wrap: wrap; gap: 32px;
-    }
-    .footer-brand .logo-text {
-      font-size: 17px; font-weight: 600;
-      background: linear-gradient(135deg, var(--accent), var(--accent-light));
-      -webkit-background-clip: text; background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 6px; letter-spacing: -0.02em;
-    }
-    .footer-brand p { color: var(--text-faint); font-size: 13px; max-width: 260px; line-height: 1.5; }
-    .footer-links h4 {
-      font-size: 11px; font-weight: 600; color: var(--text-dim);
-      text-transform: uppercase; letter-spacing: 0.06em;
-      margin-bottom: 8px;
-    }
-    .footer-links a {
-      display: block; color: var(--text-faint); text-decoration: none;
-      font-size: 13px; margin-bottom: 4px; transition: color 0.2s var(--ease-apple);
-    }
-    .footer-links a:hover { color: var(--accent-light); }
-    .footer-bottom {
-      max-width: 980px; margin: 24px auto 0;
-      padding-top: 16px; border-top: 0.5px solid rgba(255,255,255,0.06);
-      text-align: center; color: var(--text-faint); font-size: 11px;
-      opacity: 0.6;
-    }
-
-    /* ANIMATIONS */
-    .fade-in {
-      opacity: 0; transform: translateY(10px);
-      transition: opacity 0.6s var(--ease-apple), transform 0.6s var(--ease-apple);
-    }
-    .fade-in.visible { opacity: 1; transform: translateY(0); }
-
-    .section-eyebrow.left { text-align: left; }
-
+    footer{border-top:1px solid var(--border);padding:44px 24px 24px;background:rgba(6,6,18,.6)}
+    .ft-inner{max-width:1060px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:32px}
+    .ft-brand .ft-logo{font-size:18px;font-weight:800;background:linear-gradient(135deg,var(--accent2),var(--cyan));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}
+    .ft-brand p{color:var(--dim);font-size:13px;max-width:280px;line-height:1.55}
+    .ft-col h4{font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+    .ft-col a{display:block;color:var(--faint);text-decoration:none;font-size:13px;margin-bottom:5px;transition:color .2s var(--ease)}
+    .ft-col a:hover{color:var(--cyan)}
+    .ft-bottom{max-width:1060px;margin:28px auto 0;padding-top:18px;border-top:1px solid var(--border);text-align:center;color:var(--dim);font-size:11px;opacity:.7}
+    /* ANIM */
+    .fade-in{opacity:0;transform:translateY(12px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
+    .fade-in.visible{opacity:1;transform:translateY(0)}
     /* RESPONSIVE */
-    .mobile-menu-btn {
-      display: none; background: none; border: none;
-      color: var(--text-muted); cursor: pointer; padding: 6px;
-      border-radius: 8px;
-      transition: background 0.2s var(--ease-apple);
+    @media(max-width:768px){
+      nav{width:calc(100% - 24px);top:8px}
+      .mobile-btn{display:flex;align-items:center;justify-content:center}
+      .nav-links{display:none;position:absolute;top:56px;left:0;right:0;background:rgba(6,6,18,.95);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid var(--border);border-radius:14px;margin:0 4px;padding:8px;flex-direction:column;gap:2px}
+      .nav-links.open{display:flex}
+      .nav-links a{padding:10px 14px;border-radius:10px;font-size:15px}
+      .nav-cta{margin-left:0!important;text-align:center}
+      section{padding:64px 16px}
+      #hero h1{font-size:30px}
+      .device-show{grid-template-columns:1fr;max-width:100%}
+      .bento{grid-template-columns:1fr 1fr;}.b-card.span2{grid-column:span 2}
+      .pipeline{flex-direction:column}
+      .p-step:not(:last-child)::after{display:none}
+      .sc-grid{grid-template-columns:1fr}
+      .dev-box{flex-direction:column;padding:24px;gap:24px}
+      .stats{grid-template-columns:1fr 1fr}
+      .stat:not(:last-child)::after{display:none}
+      footer .ft-inner{flex-direction:column}
     }
-    .mobile-menu-btn:hover { background: rgba(255,255,255,0.06); }
-    .mobile-menu-btn .svg-icon { width: 20px; height: 20px; }
-
-    @media (max-width: 768px) {
-      section { padding: 64px 16px; }
-      #hero h1 { font-size: 32px; letter-spacing: -0.03em; }
-      #hero .subtitle { font-size: 15px; }
-      .section-title { font-size: 28px; }
-      .device-showcase { flex-direction: column; align-items: center; gap: 16px; }
-      .device-card { max-width: 100%; }
-      .tech-flow { flex-direction: column; }
-      .tech-step:not(:last-child)::after { display: none; }
-      .dev-compact { flex-direction: column; padding: 24px; gap: 24px; }
-      .mobile-menu-btn { display: flex; align-items: center; justify-content: center; }
-      nav .nav-links {
-        display: none;
-        position: absolute; top: 48px; left: 0; right: 0;
-        background: rgba(0,0,0,0.92);
-        backdrop-filter: saturate(180%) blur(20px);
-        -webkit-backdrop-filter: saturate(180%) blur(20px);
-        border-bottom: 0.5px solid rgba(255,255,255,0.08);
-        padding: 8px 16px 16px;
-        flex-direction: column; gap: 2px;
-      }
-      nav .nav-links.open { display: flex; }
-      nav .nav-links a {
-        margin-left: 0; padding: 10px 12px;
-        border-radius: 10px; font-size: 15px;
-      }
-      nav .nav-links a.cta-link { margin-left: 0; margin-top: 4px; text-align: center; }
-      footer .footer-inner { flex-direction: column; }
-      .stat-item:not(:last-child)::after { display: none; }
-      .stat-num { font-size: 36px; }
-      .stats-row { gap: 16px; }
-    }
+    @media(max-width:480px){.bento{grid-template-columns:1fr}.b-card.span2{grid-column:span 1}}
   </style>
 </head>
 <body>
-  <!-- SVG SPRITE (Lucide Icons - MIT) -->
   <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
-    <symbol id="i-pen-tool" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M15.707 21.293a1 1 0 0 1-1.414 0l-1.586-1.586a1 1 0 0 1 0-1.414l5.586-5.586a1 1 0 0 1 1.414 0l1.586 1.586a1 1 0 0 1 0 1.414z"/><path d="m18 13-1.375-6.874a1 1 0 0 0-.746-.776L3.235 2.028a1 1 0 0 0-1.207 1.207L5.35 15.879a1 1 0 0 0 .776.746L13 18"/><path d="m2.3 2.3 7.286 7.286"/><circle cx="11" cy="11" r="2"/>
-    </symbol>
-    <symbol id="i-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>
-    </symbol>
-    <symbol id="i-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/>
-    </symbol>
-    <symbol id="i-brain" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M12 18V5"/><path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4"/><path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5"/><path d="M17.997 5.125a4 4 0 0 1 2.526 5.77"/><path d="M18 18a4 4 0 0 0 2-7.464"/><path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517"/><path d="M6 18a4 4 0 0 1-2-7.464"/><path d="M6.003 5.125a4 4 0 0 0-2.526 5.77"/>
-    </symbol>
-    <symbol id="i-compass" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"/>
-    </symbol>
-    <symbol id="i-cog" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="2"/><circle cx="12" cy="12" r="8"/><path d="M12 22v-2M12 2v2M14 12h8m-8 0H2m17.66 5-1.73-1m1.73-7-1.73 1M3.34 17l1.73-1m-1.73-7 1.73 1M17 20.66l-1-1.73M17 3.34l-1 1.73M11 10.27L7 3.34m4 10.39l-4 6.93"/>
-    </symbol>
-    <symbol id="i-house" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-    </symbol>
-    <symbol id="i-book-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>
-    </symbol>
-    <symbol id="i-gift" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M12 7v14"/><path d="M20 11v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="M7.5 7a1 1 0 0 1 0-5A4.8 8 0 0 1 12 7a4.8 8 0 0 1 4.5-5 1 1 0 0 1 0 5"/><rect x="3" y="7" width="18" height="4" rx="1"/>
-    </symbol>
-    <symbol id="i-route" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/>
-    </symbol>
-    <symbol id="i-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="4" y="4" width="16" height="16" rx="2"/><rect x="8" y="8" width="8" height="8" rx="1"/><path d="M12 20v2M12 2v2M17 20v2M17 2v2M7 20v2M7 2v2M2 12h2M2 17h2M2 7h2M20 12h2M20 17h2M20 7h2"/>
-    </symbol>
-    <symbol id="i-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
-    </symbol>
-    <symbol id="i-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4M22 4h-4"/><circle cx="4" cy="20" r="2"/>
-    </symbol>
-    <symbol id="i-palette" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/>
-    </symbol>
-    <symbol id="i-rocket" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05"/><path d="M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z"/>
-    </symbol>
-    <symbol id="i-message-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/>
-    </symbol>
-    <symbol id="i-arrow-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
-    </symbol>
-    <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
-    </symbol>
+    <symbol id="i-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4M22 4h-4"/><circle cx="4" cy="20" r="2"/></symbol>
+    <symbol id="i-pen-tool" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.707 21.293a1 1 0 0 1-1.414 0l-1.586-1.586a1 1 0 0 1 0-1.414l5.586-5.586a1 1 0 0 1 1.414 0l1.586 1.586a1 1 0 0 1 0 1.414z"/><path d="m18 13-1.375-6.874a1 1 0 0 0-.746-.776L3.235 2.028a1 1 0 0 0-1.207 1.207L5.35 15.879a1 1 0 0 0 .776.746L13 18"/><path d="m2.3 2.3 7.286 7.286"/><circle cx="11" cy="11" r="2"/></symbol>
+    <symbol id="i-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></symbol>
+    <symbol id="i-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/></symbol>
+    <symbol id="i-brain" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 18V5"/><path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4"/><path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5"/><path d="M17.997 5.125a4 4 0 0 1 2.526 5.77"/><path d="M18 18a4 4 0 0 0 2-7.464"/><path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517"/><path d="M6 18a4 4 0 0 1-2-7.464"/><path d="M6.003 5.125a4 4 0 0 0-2.526 5.77"/></symbol>
+    <symbol id="i-compass" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"/></symbol>
+    <symbol id="i-cog" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><circle cx="12" cy="12" r="8"/><path d="M12 22v-2M12 2v2M14 12h8m-8 0H2m17.66 5-1.73-1m1.73-7-1.73 1M3.34 17l1.73-1m-1.73-7 1.73 1M17 20.66l-1-1.73M17 3.34l-1 1.73M11 10.27L7 3.34m4 10.39l-4 6.93"/></symbol>
+    <symbol id="i-house" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+    <symbol id="i-book-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+    <symbol id="i-gift" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v14"/><path d="M20 11v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="M7.5 7a1 1 0 0 1 0-5A4.8 8 0 0 1 12 7a4.8 8 0 0 1 4.5-5 1 1 0 0 1 0 5"/><rect x="3" y="7" width="18" height="4" rx="1"/></symbol>
+    <symbol id="i-route" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></symbol>
+    <symbol id="i-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="8" y="8" width="8" height="8" rx="1"/><path d="M12 20v2M12 2v2M17 20v2M17 2v2M7 20v2M7 2v2M2 12h2M2 17h2M2 7h2M20 12h2M20 17h2M20 7h2"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></symbol>
+    <symbol id="i-message-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/></symbol>
+    <symbol id="i-arrow-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></symbol>
   </svg>
 
   <nav aria-label="主导航">
     <div class="nav-inner">
       <a href="#" class="logo">
-        <div class="nav-brand-mark"><svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-sparkles"/></svg></div>
-        <span class="nav-logo-text">LiMa</span>
+        <div class="logo-mark"><svg class="svg-icon"><use href="#i-sparkles"/></svg></div>
+        <span class="logo-text">LiMa</span>
       </a>
-      <button class="mobile-menu-btn" aria-label="打开菜单" aria-expanded="false">
-        <svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-menu"/></svg>
-      </button>
+      <button class="mobile-btn" aria-label="菜单" aria-expanded="false"><svg class="svg-icon"><use href="#i-menu"/></svg></button>
       <div class="nav-links">
-        <a href="#products">产品</a>
-        <a href="#features">技术</a>
-        <a href="#scenarios">场景</a>
-        <a href="#developer">开发者</a>
-        <a href="https://chat.donglicao.com" target="_blank" rel="noopener noreferrer" class="cta-link">控制台</a>
+        <a href="#products">产品</a><a href="#features">技术</a><a href="#scenarios">场景</a><a href="#developer">开发者</a>
+        <a href="https://chat.donglicao.com" target="_blank" rel="noopener" class="nav-cta">控制台</a>
       </div>
     </div>
   </nav>
 
   <main>
-
-  <!-- HERO -->
   <section id="hero">
-    <div class="hero-badge">
-      <span class="dot"></span>
-      <span>AI 智能设备云端 · 现已上线</span>
+    <div class="aurora-orb a"></div><div class="aurora-orb b"></div><div class="aurora-orb c"></div>
+    <div class="hero-badge"><span class="dot"></span>AI 智能设备云端 · 现已上线</div>
+    <h1>让每个家庭拥有<br><span class="grad-text">会画画、会写字的智能伙伴</span></h1>
+    <p class="sub">LiMa 是 AI 绘图机和写字机的云端大脑。说一句"画一只猫"，AI 生成、路径转换、策略校验、设备执行 —— 一笔成型。</p>
+    <div class="hero-btns">
+      <a href="#products" class="btn btn-p">了解产品</a>
+      <a href="https://chat.donglicao.com" class="btn btn-s" target="_blank" rel="noopener">在线体验 <svg class="svg-icon" style="width:14px;height:14px"><use href="#i-arrow-right"/></svg></a>
     </div>
-    <h1>
-      让每个家庭拥有<br>
-      <span class="gradient">会画画、会写字的智能伙伴</span>
-    </h1>
-    <p class="subtitle">
-      LiMa 是 AI 绘图机和写字机的云端大脑。<br>
-      说一句"画一只猫"，AI 生成、路径转换、策略校验、设备执行 —— 一笔成型。
-    </p>
-    <div class="hero-buttons">
-      <a href="#products" class="btn btn-primary">了解产品</a>
-      <a href="https://chat.donglicao.com" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">在线体验</a>
-    </div>
-
-    <div class="hero-visual">
-      <div class="device-showcase">
-        <div class="device-card featured fade-in">
-          <div class="device-icon-wrap draw">
-            <svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-pen-tool"/></svg>
-          </div>
-          <h3>AI 绘图机</h3>
-          <p>自然语言生成 SVG，路径管线自动转换，一笔绘制任意图案</p>
-          <div class="device-cap-tags">
-            <span class="device-cap-tag draw-t">SVG 生成</span>
-            <span class="device-cap-tag draw-t">路径管线</span>
-            <span class="device-cap-tag draw-t">G-code</span>
-          </div>
-          <div class="device-status"><span class="dot"></span> 云端就绪</div>
-        </div>
-        <div class="device-card fade-in">
-          <div class="device-icon-wrap write">
-            <svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-pencil"/></svg>
-          </div>
-          <h3>AI 写字机</h3>
-          <p>笔画字体渲染、运动路径仿真，双 ESP32 协同精准书写</p>
-          <div class="device-cap-tags">
-            <span class="device-cap-tag write-t">笔画字体</span>
-            <span class="device-cap-tag write-t">运动仿真</span>
-            <span class="device-cap-tag write-t">双芯协作</span>
-          </div>
-          <div class="device-status"><span class="dot"></span> 云端就绪</div>
-        </div>
+    <div class="device-show">
+      <div class="d-card feat fade-in">
+        <div class="d-icon draw"><svg class="svg-icon"><use href="#i-pen-tool"/></svg></div>
+        <h3>AI 绘图机</h3><p>自然语言生成 SVG，路径管线自动转换，一笔绘制任意图案</p>
+        <div class="d-tags"><span class="d-tag dt">SVG 生成</span><span class="d-tag dt">路径管线</span><span class="d-tag dt">G-code</span></div>
+        <div class="d-status"><span class="dot"></span>云端就绪</div>
       </div>
+      <div class="d-card fade-in">
+        <div class="d-icon write"><svg class="svg-icon"><use href="#i-pencil"/></svg></div>
+        <h3>AI 写字机</h3><p>笔画字体渲染、运动路径仿真，双 ESP32 协同精准书写</p>
+        <div class="d-tags"><span class="d-tag wt">笔画字体</span><span class="d-tag wt">运动仿真</span><span class="d-tag wt">双芯协作</span></div>
+        <div class="d-status"><span class="dot"></span>云端就绪</div>
+      </div>
+      <a href="https://chat.donglicao.com/digital-human/" target="_blank" class="d-card feat fade-in" style="text-decoration:none;color:inherit">
+        <div class="d-icon human"><svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 1 3 3v1h1a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h1V5a3 3 0 0 1 3-3z"/><path d="M9 14h6"/><path d="M9 18h6"/></svg></div>
+        <h3>2D 数字人</h3><p>Live2D 实时语音交互，一句话唤醒、对话、表情同步</p>
+        <div class="d-tags"><span class="d-tag dt">Live2D</span><span class="d-tag dt">语音对话</span><span class="d-tag dt">Web 端</span></div>
+        <div class="d-status"><span class="dot"></span>立即体验</div>
+      </a>
     </div>
   </section>
 
-  <!-- PRODUCTS -->
   <section id="products">
-    <div class="section-eyebrow">Products</div>
-    <h2 class="section-title">两款智能设备，一个云端大脑</h2>
-    <p class="section-subtitle">从灵感到作品，只需一句话的距离</p>
-
-    <div class="features-grid">
-      <div class="feature-card fade-in">
-        <div class="icon-wrap voice"><svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-mic"/></svg></div>
-        <h3>说出你的想法</h3>
-        <p>"画一只在月球上的猫"— AI 理解自然语言，自动生成创作方案</p>
+    <div class="s-label">Products</div><h2 class="s-title">两款智能设备，一个云端大脑</h2>
+    <p class="s-sub">从灵感到作品，只需一句话的距离</p>
+    <div class="bento">
+      <div class="b-card span2 fade-in">
+        <div class="icon-box i1"><svg class="svg-icon"><use href="#i-mic"/></svg></div>
+        <h3>说出你的想法</h3><p>"画一只在月球上的猫"— AI 理解自然语言，自动生成创作方案。支持语音输入、文字输入，多模态意图理解。</p>
       </div>
-      <div class="feature-card fade-in">
-        <div class="icon-wrap ai"><svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-brain"/></svg></div>
-        <h3>多模型智能路由</h3>
-        <p>300+ 后端 × 6 维能力矩阵，自动匹配最优 AI 引擎</p>
+      <div class="b-card fade-in">
+        <div class="icon-box i2"><svg class="svg-icon"><use href="#i-brain"/></svg></div>
+        <h3>多模型路由</h3><p>300+ 后端 × 6 维能力矩阵</p>
       </div>
-      <div class="feature-card fade-in">
-        <div class="icon-wrap route"><svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-compass"/></svg></div>
-        <h3>路径智能管线</h3>
-        <p>SVG 路径命令解析、笔画字体生成、运动轨迹一键转换</p>
+      <div class="b-card fade-in">
+        <div class="icon-box i3"><svg class="svg-icon"><use href="#i-compass"/></svg></div>
+        <h3>路径管线</h3><p>SVG 解析 → 运动轨迹</p>
       </div>
-      <div class="feature-card fade-in">
-        <div class="icon-wrap exec"><svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-cog"/></svg></div>
-        <h3>设备精准执行</h3>
-        <p>MQTT + WebSocket 双通道，影子状态实时同步，双 ESP32 精准还原轨迹</p>
+      <div class="b-card fade-in">
+        <div class="icon-box i4"><svg class="svg-icon"><use href="#i-cog"/></svg></div>
+        <h3>设备执行</h3><p>MQTT + WS 双通道</p>
+      </div>
+      <div class="b-card span2 fade-in" style="background:linear-gradient(135deg,rgba(99,102,241,.04),rgba(34,211,238,.03))">
+        <h3>影子状态同步</h3><p>设备影子实时同步在线状态、任务进度、声纹识别结果。断网重连自动恢复，任务不丢失。</p>
       </div>
     </div>
   </section>
 
-  <!-- FEATURES / TECH -->
   <section id="features">
-    <div class="section-eyebrow">Technology</div>
-    <h2 class="section-title">五层技术管线</h2>
-    <p class="section-subtitle">从一句话到一幅画，逐层校验、安全执行</p>
-
-    <div class="tech-flow fade-in">
-      <div class="tech-step">
-        <div class="tech-step-icon"><svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-message-circle"/></svg></div>
-        <div class="step-num">1</div>
-        <h4>意图理解</h4>
-        <p>自然语言解析<br>五层智能路由</p>
-      </div>
-      <div class="tech-step">
-        <div class="tech-step-icon"><svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-image"/></svg></div>
-        <div class="step-num">2</div>
-        <h4>内容生成</h4>
-        <p>SVG 矢量图生成<br>笔画字体渲染</p>
-      </div>
-      <div class="tech-step">
-        <div class="tech-step-icon"><svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-route"/></svg></div>
-        <div class="step-num">3</div>
-        <h4>路径管线</h4>
-        <p>SVG 路径解析<br>运动轨迹生成</p>
-      </div>
-      <div class="tech-step">
-        <div class="tech-step-icon"><svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-brain"/></svg></div>
-        <div class="step-num">4</div>
-        <h4>策略验证</h4>
-        <p>协议兼容检查<br>安全仿真评估</p>
-      </div>
-      <div class="tech-step">
-        <div class="tech-step-icon"><svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-cpu"/></svg></div>
-        <div class="step-num">5</div>
-        <h4>设备执行</h4>
-        <p>MQTT + WS 双通道<br>影子状态同步</p>
-      </div>
+    <div class="s-label">Technology</div><h2 class="s-title">五层技术管线</h2>
+    <p class="s-sub">从一句话到一幅画，逐层校验、安全执行</p>
+    <div class="pipeline fade-in">
+      <div class="p-step"><div class="p-num">1</div><h4>意图理解</h4><p>自然语言解析<br>五层智能路由</p></div>
+      <div class="p-step"><div class="p-num">2</div><h4>内容生成</h4><p>SVG 矢量图<br>笔画字体渲染</p></div>
+      <div class="p-step"><div class="p-num">3</div><h4>路径管线</h4><p>SVG 路径解析<br>运动轨迹生成</p></div>
+      <div class="p-step"><div class="p-num">4</div><h4>策略验证</h4><p>协议兼容检查<br>安全仿真评估</p></div>
+      <div class="p-step"><div class="p-num">5</div><h4>设备执行</h4><p>MQTT + WS<br>影子状态同步</p></div>
     </div>
-
-    <div class="stats-row fade-in">
-      <div class="stat-item">
-        <div class="stat-num" data-target="300" data-suffix="+">0</div>
-        <div class="stat-label">AI 后端接入</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-num" data-target="50" data-suffix="+">0</div>
-        <div class="stat-label">供应商接入</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-num" data-target="6" data-suffix="维">0</div>
-        <div class="stat-label">能力评测</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-num" data-target="9" data-suffix="步">0</div>
-        <div class="stat-label">任务状态机</div>
-      </div>
+    <div class="stats fade-in">
+      <div class="stat"><div class="stat-n" data-target="300" data-suffix="+">0</div><div class="stat-l">AI 后端接入</div></div>
+      <div class="stat"><div class="stat-n" data-target="50" data-suffix="+">0</div><div class="stat-l">供应商接入</div></div>
+      <div class="stat"><div class="stat-n" data-target="6" data-suffix="维">0</div><div class="stat-l">能力评测</div></div>
+      <div class="stat"><div class="stat-n" data-target="9" data-suffix="步">0</div><div class="stat-l">任务状态机</div></div>
     </div>
   </section>
 
-  <!-- SCENARIOS -->
   <section id="scenarios">
-    <div class="section-eyebrow">Scenarios</div>
-    <h2 class="section-title">适用场景</h2>
-    <p class="section-subtitle">从家庭到教室，从创意到礼物</p>
-
-    <div class="scenarios-grid">
-      <div class="scenario-card fade-in">
-        <div class="scenario-visual">
-          <div class="scenario-icon-wrap home"><svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-house"/></svg></div>
-        </div>
-        <div class="scenario-body">
-          <h3>家庭创作</h3>
-          <p>孩子说"画一只恐龙"，AI 绘图机立刻开始创作。亲子互动，激发想象力。</p>
-          <div class="scenario-tags">
-            <span class="scenario-tag">亲子互动</span>
-            <span class="scenario-tag">创意启蒙</span>
-            <span class="scenario-tag">趣味礼物</span>
-          </div>
-        </div>
+    <div class="s-label">Scenarios</div><h2 class="s-title">适用场景</h2>
+    <p class="s-sub">从家庭到教室，从创意到礼物</p>
+    <div class="sc-grid">
+      <div class="sc-card fade-in">
+        <div class="sc-visual"><div class="sc-icon s1"><svg class="svg-icon"><use href="#i-house"/></svg></div></div>
+        <div class="sc-body"><h3>家庭创作</h3><p>孩子说"画一只恐龙"，AI 绘图机立刻开始创作。亲子互动，激发想象力。</p>
+          <div class="sc-tags"><span class="sc-tag">亲子互动</span><span class="sc-tag">创意启蒙</span><span class="sc-tag">趣味礼物</span></div></div>
       </div>
-      <div class="scenario-card fade-in">
-        <div class="scenario-visual">
-          <div class="scenario-icon-wrap edu"><svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-book-open"/></svg></div>
-        </div>
-        <div class="scenario-body">
-          <h3>教育课堂</h3>
-          <p>书法练习、几何绘制、诗词创作——AI 写字机让传统文化学习更有趣。</p>
-          <div class="scenario-tags">
-            <span class="scenario-tag">书法练习</span>
-            <span class="scenario-tag">几何教学</span>
-            <span class="scenario-tag">诗词创作</span>
-          </div>
-        </div>
+      <div class="sc-card fade-in">
+        <div class="sc-visual"><div class="sc-icon s2"><svg class="svg-icon"><use href="#i-book-open"/></svg></div></div>
+        <div class="sc-body"><h3>教育课堂</h3><p>书法练习、几何绘制、诗词创作 — AI 写字机让传统文化学习更有趣。</p>
+          <div class="sc-tags"><span class="sc-tag">书法练习</span><span class="sc-tag">几何教学</span><span class="sc-tag">诗词创作</span></div></div>
       </div>
-      <div class="scenario-card fade-in">
-        <div class="scenario-visual">
-          <div class="scenario-icon-wrap custom"><svg class="svg-icon" aria-hidden="true" focusable="false"><use href="#i-gift"/></svg></div>
-        </div>
-        <div class="scenario-body">
-          <h3>个性定制</h3>
-          <p>手写贺卡、定制画作、个性签名——每一份礼物都独一无二。</p>
-          <div class="scenario-tags">
-            <span class="scenario-tag">手写贺卡</span>
-            <span class="scenario-tag">定制画作</span>
-            <span class="scenario-tag">个性签名</span>
-          </div>
-        </div>
+      <div class="sc-card fade-in">
+        <div class="sc-visual"><div class="sc-icon s3"><svg class="svg-icon"><use href="#i-gift"/></svg></div></div>
+        <div class="sc-body"><h3>个性定制</h3><p>手写贺卡、定制画作、个性签名 — 每一份礼物都独一无二。</p>
+          <div class="sc-tags"><span class="sc-tag">手写贺卡</span><span class="sc-tag">定制画作</span><span class="sc-tag">个性签名</span></div></div>
       </div>
     </div>
   </section>
 
-  <!-- DEVELOPER (compact) -->
   <section id="developer">
-    <div class="dev-compact fade-in">
-      <div class="dev-compact-text">
-        <div class="section-eyebrow left">Developer API</div>
+    <div class="dev-box fade-in">
+      <div class="dev-text">
+        <div class="s-label" style="text-align:left">Developer API</div>
         <h3>面向开发者的开放接口</h3>
         <p>兼容 OpenAI 格式的 API，支持设备控制（REST + WebSocket）、内容生成、多模型路由。一行代码接入 LiMa 云端能力。</p>
-        <a href="https://chat.donglicao.com" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">查看文档 →</a>
+        <a href="https://chat.donglicao.com" class="btn btn-s" target="_blank" rel="noopener">查看文档 <svg class="svg-icon" style="width:14px;height:14px"><use href="#i-arrow-right"/></svg></a>
       </div>
-      <div class="dev-compact-code">
-        <div class="code-window-bar">
-          <span class="code-dot r"></span>
-          <span class="code-dot y"></span>
-          <span class="code-dot g"></span>
-          <span class="code-window-title">quick_start.py</span>
-        </div>
-        <div class="code-body">
-          <span class="code-c"># 一句话生成绘图指令</span><br>
-          <span class="code-cmd">import</span> openai<br><br>
-          client = openai.OpenAI(<br>
-          &nbsp;&nbsp;base_url=<span class="code-s">"https://chat.donglicao.com/v1"</span>,<br>
-          &nbsp;&nbsp;api_key=<span class="code-s">"your-key"</span><br>
-          )<br><br>
-          response = client.chat.completions.create(<br>
-          &nbsp;&nbsp;model=<span class="code-s">"lima"</span>,<br>
-          &nbsp;&nbsp;messages=[{<span class="code-k">"role"</span>: <span class="code-s">"user"</span>,<br>
-          &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-k">"content"</span>: <span class="code-s">"画一只猫"</span>}]<br>
-          )
-        </div>
+      <div class="dev-code">
+        <div class="code-bar"><span class="code-dot r"></span><span class="code-dot y"></span><span class="code-dot g"></span><span class="code-fn">quick_start.py</span></div>
+        <div class="code-body"><span class="cc"># 一句话生成绘图指令</span><br><span class="cm">import</span> openai<br><br>client = openai.OpenAI(<br>&nbsp;&nbsp;base_url=<span class="cs">"https://chat.donglicao.com/v1"</span>,<br>&nbsp;&nbsp;api_key=<span class="cs">"your-key"</span><br>)<br><br>response = client.chat.completions.create(<br>&nbsp;&nbsp;model=<span class="cs">"lima"</span>,<br>&nbsp;&nbsp;messages=[{<span class="ck">"role"</span>: <span class="cs">"user"</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;<span class="ck">"content"</span>: <span class="cs">"画一只猫"</span>}]<br>)</div>
       </div>
     </div>
   </section>
 
-  <section id="lima-demo"></section>
-
+  <div id="lima-demo-slot"></div>
   </main>
 
-  <!-- FOOTER -->
   <footer aria-label="站点底部">
-    <div class="footer-inner">
-      <div class="footer-brand">
-        <div class="logo-text">LiMa 力码</div>
-        <p>AI 驱动的智能设备云端平台<br>让每个家庭拥有会画画、会写字的智能伙伴</p>
-      </div>
-      <div class="footer-links">
-        <h4>产品</h4>
-        <a href="#products">AI 绘图机</a>
-        <a href="#products">AI 写字机</a>
-        <a href="https://chat.donglicao.com" target="_blank" rel="noopener noreferrer">云端控制台</a>
-      </div>
-      <div class="footer-links">
-        <h4>开发者</h4>
-        <a href="#developer">API 文档</a>
-        <a href="https://github.com/zhuguang-ZFG/lima" target="_blank" rel="noopener noreferrer">GitHub</a>
-        <a href="https://gitee.com/zhuguang-zfg/lima" target="_blank" rel="noopener noreferrer">Gitee</a>
-      </div>
-      <div class="footer-links">
-        <h4>公司</h4>
-        <a href="#hero">关于我们</a>
-        <a href="#developer">联系方式</a>
-      </div>
+    <div class="ft-inner">
+      <div class="ft-brand"><div class="ft-logo">LiMa 力码</div><p>AI 驱动的智能设备云端平台<br>让每个家庭拥有会画画、会写字的智能伙伴</p></div>
+      <div class="ft-col"><h4>产品</h4><a href="#products">AI 绘图机</a><a href="#products">AI 写字机</a><a href="https://chat.donglicao.com" target="_blank" rel="noopener">云端控制台</a></div>
+      <div class="ft-col"><h4>开发者</h4><a href="#developer">API 文档</a><a href="https://github.com/zhuguang-ZFG/lima" target="_blank" rel="noopener">GitHub</a><a href="https://gitee.com/zhuguang-zfg/lima" target="_blank" rel="noopener">Gitee</a></div>
+      <div class="ft-col"><h4>公司</h4><a href="#hero">关于我们</a><a href="#developer">联系方式</a></div>
     </div>
-    <div class="footer-bottom">
-      深圳市动力巢科技有限公司 · Copyright &copy; 2024-2026 DongLiCao Technology. All rights reserved.
-    </div>
+    <div class="ft-bottom">深圳市动力巢科技有限公司 · Copyright &copy; 2024-2026 DongLiCao Technology. All rights reserved.</div>
   </footer>
 
   <script>
-    // Intersection Observer for fade-in
-    const obs = new IntersectionObserver((entries) => {
-      entries.forEach((entry, i) => {
-        if (entry.isIntersecting) {
-          setTimeout(() => entry.target.classList.add('visible'), i * 80);
-          obs.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.1 });
-    document.querySelectorAll('.fade-in').forEach(el => obs.observe(el));
-
-    // Counter animation
-    const counterObs = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          animateCounters();
-          counterObs.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.3 });
-    const statsEl = document.querySelector('.stats-row');
-    if (statsEl) counterObs.observe(statsEl);
-
-    function animateCounters() {
-      document.querySelectorAll('.stat-num').forEach(el => {
-        const target = parseFloat(el.dataset.target);
-        const prefix = el.dataset.prefix || '';
-        const suffix = el.dataset.suffix || '+';
-        const dur = 2000;
-        const start = performance.now();
-        function tick(now) {
-          const p = Math.min((now - start) / dur, 1);
-          const ease = 1 - Math.pow(1 - p, 3);
-          const val = target * ease;
-          el.textContent = prefix + Math.floor(val) + suffix;
-          if (p < 1) requestAnimationFrame(tick);
-        }
-        requestAnimationFrame(tick);
-      });
-    }
-
-    // Smooth scroll
-    document.querySelectorAll('a[href^="#"]').forEach(a => {
-      a.addEventListener('click', e => {
-        e.preventDefault();
-        const t = document.querySelector(a.getAttribute('href'));
-        if (t) t.scrollIntoView({ behavior: 'smooth' });
-      });
-    });
-
-    // Nav scroll effect
-    window.addEventListener('scroll', () => {
-      const nav = document.querySelector('nav');
-      nav.style.background = window.scrollY > 50
-        ? 'rgba(0,0,0,0.88)'
-        : 'rgba(0,0,0,0.72)';
-    });
-
-    // Mobile menu toggle
-    const menuBtn = document.querySelector('.mobile-menu-btn');
-    const navLinks = document.querySelector('.nav-links');
-    if (menuBtn && navLinks) {
-      menuBtn.addEventListener('click', () => {
-        const isOpen = navLinks.classList.toggle('open');
-        menuBtn.setAttribute('aria-expanded', isOpen);
-      });
-      navLinks.querySelectorAll('a').forEach(a => {
-        a.addEventListener('click', () => {
-          navLinks.classList.remove('open');
-          menuBtn.setAttribute('aria-expanded', 'false');
-        });
-      });
-    }
+    const obs=new IntersectionObserver(es=>{es.forEach((e,i)=>{if(e.isIntersecting){setTimeout(()=>e.target.classList.add('visible'),i*80);obs.unobserve(e.target)}})},{threshold:.1});
+    document.querySelectorAll('.fade-in').forEach(el=>obs.observe(el));
+    const cObs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){animateCounters();cObs.unobserve(e.target)}})},{threshold:.3});
+    const sEl=document.querySelector('.stats');if(sEl)cObs.observe(sEl);
+    function animateCounters(){document.querySelectorAll('.stat-n').forEach(el=>{const t=parseFloat(el.dataset.target),s=el.dataset.prefix||'',sf=el.dataset.suffix||'+',d=2000,st=performance.now();function tick(now){const p=Math.min((now-st)/d,1),ease=1-Math.pow(1-p,3);el.textContent=s+Math.floor(t*ease)+sf;if(p<1)requestAnimationFrame(tick)}requestAnimationFrame(tick)})}
+    document.querySelectorAll('a[href^="#"]').forEach(a=>{a.addEventListener('click',e=>{e.preventDefault();const t=document.querySelector(a.getAttribute('href'));if(t)t.scrollIntoView({behavior:'smooth'})})});
+    window.addEventListener('scroll',()=>{document.querySelector('nav').classList.toggle('scrolled',window.scrollY>50)});
+    const mb=document.querySelector('.mobile-btn'),nl=document.querySelector('.nav-links');
+    if(mb&&nl){mb.addEventListener('click',()=>{const o=nl.classList.toggle('open');mb.setAttribute('aria-expanded',o)});nl.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{nl.classList.remove('open');mb.setAttribute('aria-expanded','false')}))}
   </script>
   <script src="/lima-demo.js"></script>
 </body>
