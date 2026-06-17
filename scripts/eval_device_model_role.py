@@ -181,6 +181,12 @@ def _markdown_report(results: list[RoleEvalResult]) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Ensure UTF-8 output on Windows when redirected to a file.
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except (AttributeError, OSError):
+        pass
+
     parser = argparse.ArgumentParser(description="Evaluate device model roles for admission")
     parser.add_argument("--role", action="append", dest="roles", help="Role id (repeatable)")
     parser.add_argument("--all", action="store_true", help="Evaluate all roles")

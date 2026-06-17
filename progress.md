@@ -1361,6 +1361,16 @@ Agent Worker path.
 - 文档：`docs/MIMO_MCP_SETUP_CN.md`、`mcp.json.example`
 - 测试：`pytest tests/test_mimo_mcp_runner.py -q` → **4 passed**
 
+## 2026-06-17：G2 设备模型准入复跑（cv2 修复后）
+
+- **复跑命令**：`python scripts/eval_device_model_role.py --all --markdown`
+- **结果**：8 个角色全部与 `DEVICE_ROLE_PREFERENCES` 对齐；意图解析器/文本规划器/恢复解释器/路由策略契约 100% admit；图像生成器条件准入；提示增强器/视觉分析器 defer。
+- **关键修复**：本地安装 `cv2` 后，矢量化器 `opencv_contour_detect` 从 0/12 失败修正为 **12/12 通过**，裁决改为 `admit`。
+- **脚本修复**：`scripts/eval_device_model_role.py` 增加 `sys.stdout.reconfigure(encoding="utf-8")`，解决 Windows 重定向输出 GBK 乱码问题。
+- **文档更新**：
+  - `docs/model_admission/2026-06-17-device-drawing-writing-evidence.md` 更新复跑结果；
+  - `docs/model_admission/2026-06-17-device-drawing-writing.md` 矢量化器状态表补充 cv2 说明。
+
 ## 2026-06-17：代码质量门禁整改 + AI→Motion 发布门回归证据
 
 - **P0 静默异常治理**：生产路径约 38 处 `except ImportError/Exception: pass` 或仅 `logger.debug` 的关键依赖降级升级为 `logger.warning`；涉及 `http_*.py`、`routing_engine_context.py`、`context_pipeline/*`、`session_memory/learning_loop.py`、`health_recorder.py`、`server_lifespan.py` 等。

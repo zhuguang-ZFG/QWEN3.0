@@ -14,6 +14,13 @@
 
 ## 当前项目状态
 
+### 最近完成（2026-06-17）G2 设备模型准入复跑
+
+- **复跑命令**：`python scripts/eval_device_model_role.py --all --markdown`
+- **结果**：8 个角色与 `DEVICE_ROLE_PREFERENCES` 对齐；意图解析器/文本规划器/恢复解释器/路由策略契约 100% admit；图像生成器条件准入；矢量化器 `opencv_contour_detect` 因本地 `cv2` 已安装从 fail 修正为 **12/12 通过**；提示增强器/视觉分析器 defer。
+- **脚本修复**：`scripts/eval_device_model_role.py` 增加 `sys.stdout.reconfigure(encoding="utf-8")`，解决 Windows 重定向 UTF-8 乱码。
+- **文档**：更新 `docs/model_admission/2026-06-17-device-drawing-writing-evidence.md` 与完整报告。
+
 ### 最近完成（2026-06-17）代码质量门禁整改 + AI→Motion 发布门回归证据
 
 - **P0 静默异常治理**：生产路径约 38 处 `except ImportError/Exception: pass` 或仅 `logger.debug` 的关键依赖降级升级为 `logger.warning`，符合 AGENTS.md Hard Rule 1。

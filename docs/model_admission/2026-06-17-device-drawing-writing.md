@@ -21,7 +21,7 @@
 | Text Planner | 写字需求 → 路径规划 | P1 | deterministic_text_render | ✅ 已准入 |
 | Prompt Enhancer | 增强绘图提示词 | P2 | 待定 | ⏳ 待实现 |
 | Image Generator | 图生（后续矢量化） | P1 | dashscope_wanx | ⚠️ 条件准入 |
-| Vectorizer | 图像/提示 → SVG 路径 | P0 | opencv_contour_detect | ✅ 已准入 |
+| Vectorizer | 图像/提示 → SVG 路径 | P0 | opencv_contour_detect | ✅ 已准入（本地 cv2 已安装，12/12 通过） |
 | Vision Analyzer | 输出图像质量分析 | P2 | 待定 | ⏳ 待实现 |
 | Recovery Explainer | 故障恢复解释 | P1 | deterministic_error_mapping | ✅ 已准入 |
 | Route Policy | 路由角色/backend 契约 | P0 | device_role_preferences | ✅ 已准入 |
