@@ -95,9 +95,14 @@ async def _browser_to_gemini(browser: WebSocket, gemini: websockets.WebSocketCli
             await gemini.send(message)
         elif isinstance(message, bytes):
             await gemini.send(message)
-        elif isinstance(message, dict) and message.get("type") == "websocket.disconnect":
-            await gemini.close()
-            return
+        elif isinstance(message, dict):
+            if message.get("type") == "websocket.disconnect":
+                await gemini.close()
+                return
+            if "text" in message:
+                await gemini.send(message["text"])
+            elif "bytes" in message:
+                await gemini.send(message["bytes"])
 
 
 async def _gemini_to_browser(gemini: websockets.WebSocketClientProtocol, browser: WebSocket) -> None:

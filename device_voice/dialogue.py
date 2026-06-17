@@ -66,6 +66,37 @@ async def process_voice_utterance(
         estimate_duration_ms(len(pcm_data), cfg),
     )
 
+    return await _run_llm_tts_dialogue(
+        transcript, device_id, voice, cfg, t0, asr_ms=asr_ms, voiceprint_result=voiceprint_result
+    )
+
+
+async def process_text_utterance(
+    text: str,
+    device_id: str,
+    *,
+    voice: str = "",
+) -> dict[str, Any]:
+    """Process a text message through the LLM → TTS dialogue pipeline.
+
+    Skips ASR/voiceprint and is used by text-chat capable clients such as the
+    2D digital human page.
+    """
+    cfg = AudioConfig()
+    return await _run_llm_tts_dialogue(text, device_id, voice, cfg, time.monotonic())
+
+
+async def _run_llm_tts_dialogue(
+    transcript: str,
+    device_id: str,
+    voice: str,
+    cfg: AudioConfig,
+    t0: float,
+    *,
+    asr_ms: float = 0.0,
+    voiceprint_result: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
+    """Run LLM and TTS for a given transcript and assemble the result dict."""
     # ── LLM via LiMa routing engine ──
     llm_start = time.monotonic()
     reply_text = await _run_llm(transcript, device_id)
@@ -73,7 +104,7 @@ async def process_voice_utterance(
 
     if not reply_text:
         _log.debug("device=%s LLM returned empty reply", device_id)
-        return _empty_result(pcm_data, asr_ms, llm_ms, 0, t0, voiceprint_result)
+        return _empty_result(b"", asr_ms, llm_ms, 0, t0, voiceprint_result)
 
     # ── TTS ──
     tts_start = time.monotonic()
@@ -90,7 +121,7 @@ async def process_voice_utterance(
         total_ms,
     )
 
-    return {
+    result: dict[str, Any] = {
         "transcript": transcript,
         "reply_text": reply_text,
         "reply_audio": reply_audio,
@@ -98,8 +129,10 @@ async def process_voice_utterance(
         "llm_ms": llm_ms,
         "tts_ms": tts_ms,
         "total_ms": total_ms,
-        "voiceprint": voiceprint_result,
     }
+    if voiceprint_result is not None:
+        result["voiceprint"] = voiceprint_result
+    return result
 
 
 # ---------------------------------------------------------------------------
