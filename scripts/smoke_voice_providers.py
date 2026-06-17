@@ -169,6 +169,33 @@ async def _test_mimo() -> None:
     print(f"  Round-trip similarity: {similarity:.2f} (>=0.70 pass)")
 
 
+async def _test_mimo_aliyun_fallback() -> None:
+    from device_voice.providers.asr_composite import AliyunFallbackASRProvider
+    from device_voice.providers.tts_mimo import MiMoTTSProvider
+
+    text = "你好，这是一段测试语音。"
+    sample_rate = 16000
+
+    t0 = time.monotonic()
+    tts = MiMoTTSProvider()
+    audio = await tts.synthesize(text, sample_rate=sample_rate)
+    tts_ms = (time.monotonic() - t0) * 1000
+
+    if not audio:
+        print("  MiMo TTS returned empty audio")
+        return
+
+    t0 = time.monotonic()
+    asr = AliyunFallbackASRProvider()
+    recognized = await asr.transcribe(audio, sample_rate=sample_rate)
+    asr_ms = (time.monotonic() - t0) * 1000
+
+    print(f"  MiMo TTS: {tts_ms:.0f}ms -> {len(audio)} bytes")
+    print(f"  AliyunFallback ASR: {asr_ms:.0f}ms -> '{recognized}'")
+    similarity = _text_similarity(recognized, text)
+    print(f"  Round-trip similarity: {similarity:.2f} (>=0.70 pass)")
+
+
 def _normalize_text(s: str) -> str:
     """Strip spaces and punctuation for fuzzy round-trip comparison."""
     return re.sub(r"\W+", "", s.strip())
@@ -241,6 +268,14 @@ async def main() -> None:
         tested = True
     else:
         print("Skipping MiMo: MIMO_API_KEY not configured.")
+
+    if _has_mimo_credentials() and _has_aliyun_credentials():
+        print("Testing MiMo TTS -> AliyunFallback ASR...")
+        try:
+            await _test_mimo_aliyun_fallback()
+        except Exception as exc:
+            print(f"  MiMo + AliyunFallback test failed: {exc}")
+        tested = True
 
     if not tested:
         print("No cloud voice credentials found. Set env vars and retry.")

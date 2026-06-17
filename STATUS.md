@@ -14,6 +14,13 @@
 
 ## 当前项目状态
 
+### 最近完成（2026-06-17）阿里云 ASR fallback 链实现
+
+- **目标**：为设备语音管线提供「NLS → DashScope → Whisper」自动降级 ASR。
+- **实现**：新增 `device_voice/providers/asr_composite.py` 及 `aliyun_fallback` 工厂注册；阿里云 NLS/TTS provider 支持 `ALIYUN_AK_ID` / `ALIYUN_AK_SECRET` 别名，并兼容 SDK 直接返回 token 字符串的情况。
+- **验证**：`ruff check` clean；`pyright` 0 errors；`pytest tests/test_device_voice_cloud_providers.py -q` → **36 passed**；VPS `.env` 已写入凭证、代码已部署、服务 ready。
+- **真实凭证冒烟**：DashScope ASR/TTS match=True、阿里云 NLS ASR/TTS match=True、MiMo TTS → AliyunFallback ASR similarity=1.00。
+
 ### 最近完成（2026-06-17）阶段 1 剩余项：U1/U8 仿真固件侧拒绝未知 route_policy
 
 - **实现**：在 `esp32S_XYZ` 子模块新增 `tools/fake_u1/route_policy_validator.py`，与 LiMa `VALID_ROUTE_ROLES` / `VALID_PRIMARY_STRATEGIES` / `VALID_ARTIFACT_REQUIRED` 对齐；`tools/fake_u1/app.py` 在 `HOME` / `MOVE` / `PATH_BEGIN` 入口校验 `route_policy`；`tools/fake_device_server/app.py` 将 `route_policy` 透传至 fake U1。

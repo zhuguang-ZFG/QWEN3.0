@@ -28,6 +28,29 @@
     ```
 - **阻塞项**：真机端到端回归、VAD/声纹模型与音频硬件在真机上的实际表现。
 
+## 2026-06-17 小智服务器退役准备：阶段 3 阿里云 ASR fallback 链（实现中）
+
+- **目标**：实现「阿里云 NLS → DashScope → Whisper」自动降级 ASR，优先走免费/已开通的 NLS，NLS 失败时尝试 DashScope，最后落到本地 Whisper。
+- **实现**：
+  - `device_voice/providers/asr_composite.py`：新增 `AliyunFallbackASRProvider`，init 时 tolerant 地跳过无法初始化的 provider，`transcribe()` 按 NLS → DashScope → Whisper 顺序尝试，`stream_transcribe()` 缓冲后走同一 fallback 链。
+  - `device_voice/providers/asr_aliyun.py` / `device_voice/providers/tts_aliyun.py`：支持阿里云文档中的环境变量别名 `ALIYUN_AK_ID` / `ALIYUN_AK_SECRET`，兼容已有 `ALIBABA_CLOUD_ACCESS_KEY_ID` / `ALIBABA_CLOUD_ACCESS_KEY_SECRET`。
+  - `device_voice/asr.py`：工厂注册 `aliyun_fallback` provider。
+  - `device_voice/__init__.py`：文档注释增加 `aliyun_fallback` 选项。
+  - `.env.example`：新增 `LIMA_VOICE_ASR_PROVIDER` / `LIMA_VOICE_TTS_PROVIDER` 说明，补充 `ALIYUN_AK_ID` / `ALIYUN_AK_SECRET` 别名示例。
+  - 测试：`tests/test_device_voice_cloud_providers.py` 新增 `TestAliyunFallbackASRProvider` 覆盖初始化降级、成功短路、错误传播、stream 缓冲；并新增 alias 用例。
+- **验证**：
+  - `ruff check` clean；`pyright` 0 errors（仅 `nls` 包缺失 warning，VPS 已安装）。
+  - `pytest tests/test_device_voice_cloud_providers.py -q` → **36 passed**。
+  - VPS `.env` 已写入 `ALIBABA_CLOUD_ACCESS_KEY_ID` / `ALIBABA_CLOUD_ACCESS_KEY_SECRET` / `ALIBABA_NLS_APP_KEY`，并设置 `LIMA_VOICE_ASR_PROVIDER=aliyun_fallback`、`LIMA_VOICE_TTS_PROVIDER=mimo`；服务已重启，/health 返回 ready。
+  - NLS token 测试 OK（SDK 返回 token 字符串）。
+  - VPS 真实凭证端到端冒烟全部通过：
+    ```
+    DashScope TTS -> DashScope ASR: match=True
+    Aliyun NLS TTS -> Aliyun NLS ASR: match=True
+    MiMo TTS -> Whisper ASR: similarity=0.80 (>=0.70 pass)
+    MiMo TTS -> AliyunFallback ASR: similarity=1.00 (>=0.70 pass)
+    ```
+
 ## 2026-06-17 小智服务器退役准备：阶段 2 云 ASR/TTS SDK 接入（完成）
 
 - **目标**：用真实 SDK/REST 替换 `device_voice` 中 4 个云 ASR/TTS stub，使 LiMa 语音管线具备生产级云端能力。

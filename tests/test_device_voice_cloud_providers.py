@@ -15,6 +15,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from device_voice.exceptions import AuthenticationError, ConfigurationError, NetworkError
+
 
 class TestAliyunASRProvider:
     def test_missing_credentials_raises(self, monkeypatch):
@@ -72,11 +74,45 @@ class TestAliyunASRProvider:
             with pytest.raises(AuthenticationError):
                 AliyunASRProvider()
 
+    def test_transcribe_success_string_token(self, monkeypatch):
+        """The real NLS SDK may return the token as a plain string."""
+        monkeypatch.setenv("ALIBABA_CLOUD_ACCESS_KEY_ID", "ak")
+        monkeypatch.setenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET", "sk")
+        monkeypatch.setenv("ALIBABA_NLS_APP_KEY", "appkey")
+
+        from device_voice.providers.asr_aliyun import AliyunASRProvider
+
+        with patch("nls.token.getToken", return_value="token123"):
+            provider = AliyunASRProvider()
+
+        captured_callbacks: dict = {}
+
+        def _make_recognizer(*_args, **kwargs):
+            captured_callbacks.update(kwargs)
+            mock_recognizer = MagicMock()
+
+            def _start(**_start_kwargs):
+                on_completed = captured_callbacks.get("on_completed")
+                if on_completed:
+                    on_completed('{"payload":{"result":"你好"}}')
+
+            mock_recognizer.start = _start
+            mock_recognizer.send_audio = MagicMock()
+            mock_recognizer.stop = MagicMock()
+            mock_recognizer.shutdown = MagicMock()
+            return mock_recognizer
+
+        with patch("nls.NlsSpeechRecognizer", side_effect=_make_recognizer):
+            result = asyncio.run(provider.transcribe(b"fake pcm"))
+        assert result == "你好"
+
 
 class TestAliyunTTSProvider:
     def test_missing_credentials_raises(self, monkeypatch):
         monkeypatch.delenv("ALIBABA_CLOUD_ACCESS_KEY_ID", raising=False)
+        monkeypatch.delenv("ALIYUN_AK_ID", raising=False)
         monkeypatch.delenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET", raising=False)
+        monkeypatch.delenv("ALIYUN_AK_SECRET", raising=False)
         monkeypatch.delenv("ALIBABA_NLS_APP_KEY", raising=False)
 
         from device_voice.providers.tts_aliyun import AliyunTTSProvider
@@ -84,6 +120,21 @@ class TestAliyunTTSProvider:
 
         with pytest.raises(ConfigurationError):
             AliyunTTSProvider()
+
+    def test_credentials_accept_ak_aliases(self, monkeypatch):
+        monkeypatch.delenv("ALIBABA_CLOUD_ACCESS_KEY_ID", raising=False)
+        monkeypatch.delenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET", raising=False)
+        monkeypatch.setenv("ALIYUN_AK_ID", "ak-alias")
+        monkeypatch.setenv("ALIYUN_AK_SECRET", "sk-alias")
+        monkeypatch.setenv("ALIBABA_NLS_APP_KEY", "appkey")
+
+        from device_voice.providers.tts_aliyun import AliyunTTSProvider
+
+        with patch("nls.token.getToken", return_value={"Token": {"Id": "token123"}}):
+            provider = AliyunTTSProvider()
+
+        assert provider._ak_id == "ak-alias"
+        assert provider._ak_secret == "sk-alias"
 
     def test_synthesize_empty_text(self, monkeypatch):
         monkeypatch.setenv("ALIBABA_CLOUD_ACCESS_KEY_ID", "ak")
@@ -141,6 +192,39 @@ class TestAliyunTTSProvider:
             with pytest.raises(AuthenticationError):
                 AliyunTTSProvider()
 
+    def test_synthesize_success_string_token(self, monkeypatch):
+        """The real NLS SDK may return the token as a plain string."""
+        monkeypatch.setenv("ALIBABA_CLOUD_ACCESS_KEY_ID", "ak")
+        monkeypatch.setenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET", "sk")
+        monkeypatch.setenv("ALIBABA_NLS_APP_KEY", "appkey")
+
+        from device_voice.providers.tts_aliyun import AliyunTTSProvider
+
+        with patch("nls.token.getToken", return_value="token123"):
+            provider = AliyunTTSProvider()
+
+        captured_callbacks: dict = {}
+
+        def _make_synthesizer(*_args, **kwargs):
+            captured_callbacks.update(kwargs)
+            mock_synthesizer = MagicMock()
+
+            def _start(**_start_kwargs):
+                on_data = captured_callbacks.get("on_data")
+                if on_data:
+                    on_data(b"pcm_data")
+                on_completed = captured_callbacks.get("on_completed")
+                if on_completed:
+                    on_completed('{"payload":{}}')
+
+            mock_synthesizer.start = _start
+            mock_synthesizer.shutdown = MagicMock()
+            return mock_synthesizer
+
+        with patch("nls.NlsSpeechSynthesizer", side_effect=_make_synthesizer):
+            result = asyncio.run(provider.synthesize("你好"))
+        assert result == b"pcm_data"
+
 
 class TestDoubaoASRProvider:
     def test_missing_credentials_raises(self, monkeypatch):
@@ -173,8 +257,9 @@ class TestDoubaoASRProvider:
                 return {"payload_msg": {"code": 1000}}
             return {"payload_msg": {"code": 1000, "result": [{"text": "你好世界"}]}}
 
-        with patch("websockets.connect", return_value=mock_ws), patch(
-            "device_voice.providers.asr_doubao.parse_response", side_effect=_parse_response
+        with (
+            patch("websockets.connect", return_value=mock_ws),
+            patch("device_voice.providers.asr_doubao.parse_response", side_effect=_parse_response),
         ):
             result = await provider.transcribe(b"fake pcm")
 
@@ -426,9 +511,7 @@ class TestMiMoTTSProvider:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "choices": [
-                {"message": {"audio": {"data": base64.b64encode(wav).decode("ascii")}}}
-            ]
+            "choices": [{"message": {"audio": {"data": base64.b64encode(wav).decode("ascii")}}}]
         }
 
         mock_client = AsyncMock()
@@ -512,3 +595,186 @@ class TestWhisperASRProvider:
         provider = WhisperASRProvider()
         result = await provider.transcribe(b"")
         assert result == ""
+
+
+class TestAliyunFallbackASRProvider:
+    def test_all_missing_raises_configuration_error(self, monkeypatch):
+        from device_voice.providers.asr_composite import AliyunFallbackASRProvider
+        from device_voice.exceptions import ConfigurationError
+
+        with (
+            patch(
+                "device_voice.providers.asr_composite.AliyunASRProvider",
+                side_effect=ConfigurationError("no nls creds"),
+            ),
+            patch(
+                "device_voice.providers.asr_composite.DashScopeASRProvider",
+                side_effect=ConfigurationError("no dashscope creds"),
+            ),
+            patch(
+                "device_voice.providers.asr_composite.WhisperASRProvider",
+                side_effect=ConfigurationError("no whisper"),
+            ),
+        ):
+            with pytest.raises(ConfigurationError):
+                AliyunFallbackASRProvider()
+
+    @pytest.mark.asyncio
+    async def test_fallback_uses_first_successful_provider(self, monkeypatch):
+        monkeypatch.delenv("ALIBABA_CLOUD_ACCESS_KEY_ID", raising=False)
+        monkeypatch.delenv("ALIYUN_AK_ID", raising=False)
+        monkeypatch.delenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET", raising=False)
+        monkeypatch.delenv("ALIYUN_AK_SECRET", raising=False)
+        monkeypatch.delenv("ALIBABA_NLS_APP_KEY", raising=False)
+        monkeypatch.delenv("DASHSCOPE_API_KEY", raising=False)
+        monkeypatch.delenv("ALIYUN_API_KEY", raising=False)
+        monkeypatch.setenv("WHISPER_MODEL", "tiny")
+
+        from device_voice.providers.asr_composite import AliyunFallbackASRProvider
+        from device_voice.exceptions import VoiceProviderError
+
+        fake_primary = MagicMock()
+        fake_primary.transcribe = AsyncMock(side_effect=VoiceProviderError("nls down"))
+        fake_fallback = MagicMock()
+        fake_fallback.transcribe = AsyncMock(return_value="fallback text")
+        fake_whisper = MagicMock()
+        fake_whisper.transcribe = AsyncMock(return_value="whisper text")
+
+        with (
+            patch(
+                "device_voice.providers.asr_composite.AliyunASRProvider",
+                return_value=fake_primary,
+            ),
+            patch(
+                "device_voice.providers.asr_composite.DashScopeASRProvider",
+                return_value=fake_fallback,
+            ),
+            patch(
+                "device_voice.providers.asr_composite.WhisperASRProvider",
+                return_value=fake_whisper,
+            ),
+        ):
+            provider = AliyunFallbackASRProvider()
+            result = await provider.transcribe(b"fake pcm")
+
+        assert result == "fallback text"
+        fake_primary.transcribe.assert_awaited_once()
+        fake_fallback.transcribe.assert_awaited_once()
+        fake_whisper.transcribe.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_primary_success_skips_fallback(self, monkeypatch):
+        monkeypatch.setenv("WHISPER_MODEL", "tiny")
+
+        from device_voice.providers.asr_composite import AliyunFallbackASRProvider
+
+        fake_primary = MagicMock()
+        fake_primary.transcribe = AsyncMock(return_value="primary text")
+        fake_fallback = MagicMock()
+        fake_fallback.transcribe = AsyncMock(return_value="fallback text")
+        fake_whisper = MagicMock()
+        fake_whisper.transcribe = AsyncMock(return_value="whisper text")
+
+        with (
+            patch(
+                "device_voice.providers.asr_composite.AliyunASRProvider",
+                return_value=fake_primary,
+            ),
+            patch(
+                "device_voice.providers.asr_composite.DashScopeASRProvider",
+                return_value=fake_fallback,
+            ),
+            patch(
+                "device_voice.providers.asr_composite.WhisperASRProvider",
+                return_value=fake_whisper,
+            ),
+        ):
+            provider = AliyunFallbackASRProvider()
+            result = await provider.transcribe(b"fake pcm")
+
+        assert result == "primary text"
+        fake_fallback.transcribe.assert_not_awaited()
+        fake_whisper.transcribe.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_propagates_last_error_when_all_fail(self, monkeypatch):
+        monkeypatch.setenv("WHISPER_MODEL", "tiny")
+
+        from device_voice.providers.asr_composite import AliyunFallbackASRProvider
+        from device_voice.exceptions import VoiceProviderError, AuthenticationError
+
+        fake_primary = MagicMock()
+        fake_primary.transcribe = AsyncMock(side_effect=VoiceProviderError("nls down"))
+        fake_fallback = MagicMock()
+        fake_fallback.transcribe = AsyncMock(side_effect=AuthenticationError("dashscope auth"))
+        fake_whisper = MagicMock()
+        fake_whisper.transcribe = AsyncMock(side_effect=NetworkError("whisper fail"))
+
+        with (
+            patch(
+                "device_voice.providers.asr_composite.AliyunASRProvider",
+                return_value=fake_primary,
+            ),
+            patch(
+                "device_voice.providers.asr_composite.DashScopeASRProvider",
+                return_value=fake_fallback,
+            ),
+            patch(
+                "device_voice.providers.asr_composite.WhisperASRProvider",
+                return_value=fake_whisper,
+            ),
+        ):
+            provider = AliyunFallbackASRProvider()
+            with pytest.raises(NetworkError):
+                await provider.transcribe(b"fake pcm")
+
+    @pytest.mark.asyncio
+    async def test_stream_transcribe_buffers_and_yields(self, monkeypatch):
+        monkeypatch.setenv("WHISPER_MODEL", "tiny")
+
+        from device_voice.providers.asr_composite import AliyunFallbackASRProvider
+
+        fake_primary = MagicMock()
+        fake_primary.transcribe = AsyncMock(return_value="stream text")
+
+        async def _stream():
+            yield b"chunk1"
+            yield b"chunk2"
+
+        with (
+            patch(
+                "device_voice.providers.asr_composite.AliyunASRProvider",
+                return_value=fake_primary,
+            ),
+            patch(
+                "device_voice.providers.asr_composite.DashScopeASRProvider",
+                side_effect=ConfigurationError("should not init"),
+            ),
+            patch(
+                "device_voice.providers.asr_composite.WhisperASRProvider",
+                side_effect=ConfigurationError("should not init"),
+            ),
+        ):
+            provider = AliyunFallbackASRProvider()
+            results = [text async for text in provider.stream_transcribe(_stream())]
+
+        assert results == ["stream text"]
+        fake_primary.transcribe.assert_awaited_once()
+        call_args = fake_primary.transcribe.await_args
+        assert call_args.kwargs.get("sample_rate") == 16000
+        assert call_args.args[0] == b"chunk1chunk2"
+
+    def test_aliyun_credentials_accept_ak_aliases(self, monkeypatch):
+        monkeypatch.delenv("ALIBABA_CLOUD_ACCESS_KEY_ID", raising=False)
+        monkeypatch.delenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET", raising=False)
+        monkeypatch.setenv("ALIYUN_AK_ID", "ak-alias")
+        monkeypatch.setenv("ALIYUN_AK_SECRET", "sk-alias")
+        monkeypatch.setenv("ALIBABA_NLS_APP_KEY", "appkey")
+
+        from device_voice.providers.asr_aliyun import AliyunASRProvider
+
+        with patch("nls.token.getToken", return_value={"Token": {"Id": "token123"}}):
+            provider = AliyunASRProvider()
+
+        assert provider._ak_id == "ak-alias"
+        assert provider._ak_secret == "sk-alias"

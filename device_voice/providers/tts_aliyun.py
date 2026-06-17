@@ -5,9 +5,9 @@ Returns raw PCM bytes (s16le, mono, target sample_rate). Credentials are read
 from environment variables at init time; missing credentials raise
 ConfigurationError.
 
-Required env:
-    ALIBABA_CLOUD_ACCESS_KEY_ID
-    ALIBABA_CLOUD_ACCESS_KEY_SECRET
+Required env (aliases accepted):
+    ALIBABA_CLOUD_ACCESS_KEY_ID  or  ALIYUN_AK_ID
+    ALIBABA_CLOUD_ACCESS_KEY_SECRET  or  ALIYUN_AK_SECRET
     ALIBABA_NLS_APP_KEY
 Optional env:
     ALIBABA_NLS_REGION (default: cn-shanghai)
@@ -68,8 +68,21 @@ class _SynthesizerState:
             return b"".join(self.audio_parts)
 
 
+def _get_env_with_aliases(*aliases: str) -> str:
+    """Return the first non-empty environment variable value."""
+    for name in aliases:
+        value = os.environ.get(name, "").strip()
+        if value:
+            return value
+    return ""
+
+
 def _get_token(ak_id: str, ak_secret: str, region: str) -> str:
-    """Fetch an NLS access token from Alibaba Cloud."""
+    """Fetch an NLS access token from Alibaba Cloud.
+
+    The official SDK may return either the token string directly or a dict
+    wrapping ``{"Token": {"Id": "...", "ExpireTime": ...}}``.
+    """
     try:
         import nls.token
 
@@ -77,6 +90,8 @@ def _get_token(ak_id: str, ak_secret: str, region: str) -> str:
     except Exception as exc:
         raise AuthenticationError(f"Failed to obtain Alibaba NLS token: {exc}") from exc
 
+    if isinstance(token_response, str) and token_response:
+        return token_response
     if isinstance(token_response, dict):
         token = token_response.get("Token", {}).get("Id")
         if token:
@@ -88,8 +103,8 @@ class AliyunTTSProvider(TTSProvider):
     """Alibaba Cloud NLS text-to-speech."""
 
     def __init__(self) -> None:
-        self._ak_id = os.environ.get("ALIBABA_CLOUD_ACCESS_KEY_ID", "").strip()
-        self._ak_secret = os.environ.get("ALIBABA_CLOUD_ACCESS_KEY_SECRET", "").strip()
+        self._ak_id = _get_env_with_aliases("ALIBABA_CLOUD_ACCESS_KEY_ID", "ALIYUN_AK_ID")
+        self._ak_secret = _get_env_with_aliases("ALIBABA_CLOUD_ACCESS_KEY_SECRET", "ALIYUN_AK_SECRET")
         self._app_key = os.environ.get("ALIBABA_NLS_APP_KEY", "").strip()
         self._region = os.environ.get("ALIBABA_NLS_REGION", _DEFAULT_REGION).strip()
         self._voice = os.environ.get("ALIBABA_NLS_TTS_VOICE", _DEFAULT_VOICE).strip()
