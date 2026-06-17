@@ -13,6 +13,7 @@
   - `routes/route_registry.py`：注册 `digital_human_router` 并挂载 `StaticFiles`。
   - `tests/test_digital_human_routes.py`：新增 health、 patched index、静态资源 3 个单测。
   - `.env.example`：新增 `LIMA_DIGITAL_HUMAN_DIR` 说明。
+  - 子模块 `esp32S_XYZ`：提交并推送了 12 个文件改动（数字人前端 JS/HTML、`lima-device-v1` 协议支持、`fake_lima_u8` 测试工具）；LiMa 子模块指针已更新到 `2fe4fc7`。
   - VPS nginx：`/etc/nginx/conf.d/chat.donglicao.com.conf` 新增 `location ^~ /digital-human/` 转发到 `:8080`，避免被 SPA 的 `location /` catch-all 拦截。
 - **验证**：
   - `ruff check routes/digital_human.py routes/route_registry.py tests/test_digital_human_routes.py` clean。
