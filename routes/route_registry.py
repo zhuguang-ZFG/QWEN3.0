@@ -131,9 +131,23 @@ def _register_core_routes(app: FastAPI, deps: RouteRegistryDeps) -> tuple:
     app.include_router(system_endpoints_router)
 
     from routes.device_gateway import router as device_gateway_router
+    from routes.device_app_api import router as device_app_router
+    from routes.device_app_members import router as device_app_members_router
+    from routes.device_app_misc import router as device_app_misc_router
 
     app.include_router(device_gateway_router)
+    app.include_router(device_app_router)
+    app.include_router(device_app_members_router)
+    app.include_router(device_app_misc_router)
     deps.loaded_modules["device_gateway"] = True
+    deps.loaded_modules["device_app_api"] = True
+    deps.loaded_modules["device_app_members"] = True
+    deps.loaded_modules["device_app_misc"] = True
+
+    from routes.gemini_live_proxy import router as gemini_live_router
+
+    app.include_router(gemini_live_router)
+    deps.loaded_modules["gemini_live_proxy"] = True
 
     return chat_endpoints_mod, system_endpoints_mod
 
@@ -141,8 +155,10 @@ def _register_core_routes(app: FastAPI, deps: RouteRegistryDeps) -> tuple:
 def _register_optional_routes(app: FastAPI, deps: RouteRegistryDeps) -> None:
     """Mount optional routers with graceful ImportError fallback."""
     loaded = deps.loaded_modules
-
-    _try_include(app, loaded, "routes.xiaozhi_v1_compat", "xiaozhi_v1_compat")
+    if os.environ.get("LIMA_XIAOZHI_COMPAT_ENABLED", "").strip().lower() in {"1", "true", "yes"}:
+        _try_include(app, loaded, "routes.xiaozhi_v1_compat", "xiaozhi_v1_compat")
+    else:
+        loaded["xiaozhi_v1_compat"] = False
     _try_include(app, loaded, "routes.ops_metrics", "ops_metrics")
     _try_include(app, loaded, "routes.health_dashboard", "health_dashboard")
 

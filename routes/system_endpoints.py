@@ -102,8 +102,9 @@ async def live_key():
     return {
         "available": True,
         "model": "models/gemini-2.0-flash-live-001",
+        "url": "/v1/live",
         "auth": "server_side_only",
-        "detail": ("Provider credentials are not exposed via this API; use a server-side Gemini Live proxy."),
+        "detail": ("Connect to the LiMa Gemini Live WebSocket proxy at /v1/live."),
     }
 
 

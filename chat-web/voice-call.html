@@ -193,9 +193,21 @@ let ws=null,stream=null,audioCtx=null,worklet=null,frameTimer=null,playing=false
 let audioQueue=[],nextPlayTime=0;
 const SAMPLE_RATE_IN=16000,SAMPLE_RATE_OUT=24000;
 
+function getLimaApiKey(){
+  let key=localStorage.getItem('lima-api-key')||'';
+  if(!key){
+    key=prompt('请输入你的 LiMa API Key 以使用语音通话：','');
+    if(key)localStorage.setItem('lima-api-key',key);
+  }
+  return key.trim();
+}
+
 async function getApiConfig(){
-  const r=await fetch('/api/live-key');
-  if(!r.ok)throw new Error('无法获取 API 配置');
+  const key=getLimaApiKey();
+  if(!key)throw new Error('需要 LiMa API Key');
+  const r=await fetch('/api/live-key',{headers:{'Authorization':'Bearer '+key}});
+  if(r.status===401)throw new Error('LiMa API Key 无效或未授权');
+  if(!r.ok)throw new Error('无法获取 API 配置：'+r.status);
   return r.json();
 }
 
@@ -203,10 +215,14 @@ async function startCall(){
   statusEl.textContent='正在连接...';
   try{
     const cfg=await getApiConfig();
+    if(!cfg.url)throw new Error('服务端未返回通话地址');
     stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:640,height:480},audio:{sampleRate:SAMPLE_RATE_IN,echoCancellation:true,noiseSuppression:true}});
     videoEl.srcObject=stream;videoEl.style.display='block';placeholder.style.display='none';
 
-    const wsUrl=`wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${cfg.key}`;
+    const key=getLimaApiKey();
+    const proto=window.location.protocol==='https:'?'wss:':'ws:';
+    const base=cfg.url.startsWith('/')?window.location.host+cfg.url:cfg.url;
+    const wsUrl=proto+'//'+base+(base.includes('?')?'&':'?')+'authorization=Bearer '+encodeURIComponent(key);
     ws=new WebSocket(wsUrl);
     ws.onopen=()=>{
       ws.send(JSON.stringify({setup:{model:cfg.model,generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:'Aoede'}}}}}}));

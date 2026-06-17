@@ -28,6 +28,10 @@ def configured_device_tokens() -> dict[str, str]:
 
 def validate_device_token(device_id: str, token: str) -> bool:
     expected = configured_device_tokens().get(device_id)
+    if not expected and device_id == os.environ.get(
+        "LIMA_DIGITAL_HUMAN_DEFAULT_DEVICE_ID", "web-tester"
+    ).strip():
+        expected = os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_TOKEN", "").strip()
     if not expected or not token:
         return False
     return compare_digest(expected, token)

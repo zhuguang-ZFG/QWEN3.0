@@ -66,7 +66,7 @@ def _build_auto_config_script(
     is empty, so returning visitors keep their own settings after the first
     visit.
     """
-    ws_url = '" + proto + "//" + window.location.host + "/device/v1/ws"'
+    ws_url = 'proto + "://" + window.location.host + "/device/v1/ws"'
     return f"""<script>
 (function () {{
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
