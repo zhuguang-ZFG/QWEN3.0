@@ -435,3 +435,11 @@
 | LC-RETIRE-4 | VPS smoke | Retirement runtime files were deployed after backup `/opt/lima-router/backups/lima-code-retirement-20260609_020314/runtime-before.tgz`; public `/health` returned 200, authenticated `model=code` chat returned marker `agent-worker-retirement-ok`, and `/agent/worker/preflight` returned `ready=true` with contract version `agent-task-v1+prompt-contract-v0.1`. | Closed |
 | LC-RETIRE-5 | Validation residual | Focused retirement pytest passed (`116 passed`), but full pyright is blocked by unrelated `routes/admin_api_extra.py` type errors and full pytest timed out with many ambient failures plus Windows temp cleanup `WinError 5`. | Accepted |
 | LC-RETIRE-6 | Git mirror | Commit `e528635` was pushed to GitHub `origin/feat/kilo-provider-probe`. Gitee mirror push was not available in this checkout because no `gitee` remote or dual push URL is configured. | Accepted |
+
+## 2026-06-18 Codex 项Ŀ级 multi-agent 配置收敛
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| CODEX-AGENT-1 | docs | ¹ٷ½ Codex ÊֲáȷÈϣºproject-scoped custom agents ֱ½ӴÓ `.codex/agents/*.toml` ×Զ⑾֣»`[agents]` ֻ承载ȫ¾ÖÏ߳Ì/Éî¶ÈÏÞÖƣ¬²»Ҫ求 `[agents.<name>]` ע²ᡣ | Closed |
+| CODEX-AGENT-2 | gitignore | `.gitignore` Ïֽö·ÅÐÐ `.codex/config.toml` 与 `.codex/agents/*.toml`；`git check-ignore -v` 已ȷ认 `.codex/agents/notes.md` 和 `.codex/skills/ui-ux-pro-max/SKILL.md` ¼ÌÐøºöÂԡ£ | Closed |
+| CODEX-AGENT-3 | config | `.codex/config.toml` ɾ除了与 Codex Ĭ认ֵһÖµÄ `[agents]` ÈßÓàÉèÖã¬½ö±£Áô `multi_agent = true`。 | Closed |
