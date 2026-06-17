@@ -25,9 +25,7 @@
 
 根目录仍可能含 Warm lazy 模块（如 `graph_retrieval.py`、`complexity.py`）——由 env/场景触发，**不得**在 `server.py` 启动默认 import。
 
-**已退役（CodeGraph 瘦身 + CP-1/CP-2）**：`ensemble.py`、`concurrency_pool.py`、`index_protocol.py`、`reranker_protocol.py`、`reflection.py`、`hierarchical_memory.py`、`memory_persistence.py`、`session_memory_enhancer.py`、`artifact.py`、`evolution.py`、`signal_extraction.py`、`retrieval_eval.py`、`retrieval_eval_runner.py`、`local_retrieval/eval_bridge.py`（`device_artifacts/` 与 `context_pipeline/artifact` 无关；`production_index` / `retrieval_corpus` 仍由 `retrieval_injection` Warm 使用）。
-
-**CP-4 迁入 lab**：`static_analysis.py`（仅测试引用）。
+**已退役（CodeGraph 瘦身 + CP-1/CP-2 + CP-4 后续）**：`ensemble.py`、`concurrency_pool.py`、`index_protocol.py`、`reranker_protocol.py`、`reflection.py`、`hierarchical_memory.py`、`memory_persistence.py`、`session_memory_enhancer.py`、`artifact.py`、`evolution.py`、`signal_extraction.py`、`retrieval_eval.py`、`retrieval_eval_runner.py`、`local_retrieval/eval_bridge.py`、`lab/static_analysis.py`（`device_artifacts/` 与 `context_pipeline/artifact` 无关；`production_index` / `retrieval_corpus` 仍由 `retrieval_injection` Warm 使用）。
 
 ## 维护约定
 

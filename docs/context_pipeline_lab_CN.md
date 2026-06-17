@@ -14,17 +14,17 @@
 3. Warm 模块（含 lazy import：`retrieval_trace`、`graph_context_expander`、`complexity` 等）**暂不搬迁**；搬迁前须 `codegraph_orphans.py --fanin` + 人工核对 lazy 引用。
 4. lab 内模块可依赖标准库与仓库内其他 Cold 工具；**禁止**反向被 Hot 模块在模块顶层 import。
 
-## CP-4 首批（2026-06-16）
+## CP-4 首批（2026-06-16）→ 2026-06-17 已删除
 
 | 模块 | 原路径 | 证据 |
 |------|--------|------|
-| `static_analysis.py` | `context_pipeline/static_analysis.py` → `lab/static_analysis.py` | 仅 `tests/test_static_analysis.py`；`LIMA_STATIC_ANALYSIS=1` 可选工具链 |
+| ~~`static_analysis.py`~~ | `context_pipeline/static_analysis.py` → `lab/static_analysis.py` | 原仅 `tests/test_static_analysis.py`；2026-06-17 确认无生产引用后删除 |
 
 ## 回归门禁
 
 ```powershell
-python -m pytest tests/test_static_analysis.py tests/test_retrieval_injection.py tests/test_routing_engine.py -q
-ruff check context_pipeline/lab tests/test_static_analysis.py
+python -m pytest tests/test_retrieval_injection.py tests/test_routing_engine.py -q
+ruff check context_pipeline/lab
 ```
 
 ## 后续候选（未执行）

@@ -73,7 +73,7 @@ LiMa 已完成从「个人编码助手后端」到「AI 智能设备统一云端
 
 | 模块 | 说明 |
 |------|------|
-| `lab/static_analysis.py` | AST 类型符号提取（仅测试；CP-4 迁入） |
+| `lab/static_analysis.py` | **已删**（CP-4 迁入 lab，2026-06-17 删除；原仅测试引用） |
 | `retrieval_eval.py`、`retrieval_eval_runner.py` | **已删**（CP-2） |
 | `ensemble.py`、`evolution.py`、`reflection.py` | **已删**（CP-1/CP-2） |
 | `graph_retrieval.py`、`complexity.py` | Warm lazy；仍以测试为主，**保留根目录** |

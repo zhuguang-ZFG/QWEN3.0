@@ -120,13 +120,13 @@ python -m pytest tests/test_retrieval_injection.py tests/test_routing_engine.py 
 
 下一批见 **P3（CP-4）**。
 
-## P3 — `context_pipeline/lab/` 物理搬迁（**CP-4 首批已关闭 2026-06-16**）
+## P3 — `context_pipeline/lab/` 物理搬迁（**CP-4 首批已关闭 2026-06-16；static_analysis 已删 2026-06-17**）
 
 将 P0/P1 清理后仍残留的 Cold 文件迁入 `context_pipeline/lab/`，根目录只保留 Hot/Warm 生产面。设计说明：[`context_pipeline_lab_CN.md`](context_pipeline_lab_CN.md)。
 
 **Hot（禁止动）**：`retrieval_injection.py`、`code_context_injection.py`、`skill_store.py`、`response_validator.py`、`routing_weights.py`
 
-**CP-4 已迁 lab**：`static_analysis.py`（仅 `tests/test_static_analysis.py`）
+**CP-4 已迁 lab → 2026-06-17 已删**：`static_analysis.py`（原仅 `tests/test_static_analysis.py`）
 
 **Warm（慎动，仍留根目录）**：`auto_indexer.py`、`response_processors.py`、`response_pipeline.py`、`narrative.py`、`routing_bridge.py`、`cache.py`、`semantic_code_retrieval.py`、`event_log.py`、`reranking.py`、`code_scanner.py`、`guardrails.py`、`tracing.py`、`token_budget.py`、`complexity.py`、`graph_retrieval.py`、`retrieval_trace.py` 等
 
