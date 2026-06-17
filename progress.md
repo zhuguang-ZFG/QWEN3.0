@@ -5,17 +5,18 @@
 > Updated: 2026-06-18
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
-## 2026-06-18 数字人 / 语音 / 视频通话端到端验证与修复（部分完成）
+## 2026-06-18 数字人 / 语音 / 视频通话端到端验证与修复（完成）
 
 - **目标**：用真实 LiMa API Key 验证数字人、语音通话、视频通话的可用性，并修复验证中发现的问题。
 - **新增冒烟脚本**：`scripts/smoke_live_and_digital_human.py` 从 `.env` 取 Key，分别验证 `/v1/live` Gemini Live 代理与 `/device/v1/ws` 数字人 WebSocket。
 - **修复 Gemini Live 代理消息转发**：`routes/gemini_live_proxy.py` 原实现把 FastAPI `receive()` 返回的 dict 直接转发给 Gemini，导致浏览器文本帧丢失；改为提取 `message["text"]` / `message["bytes"]` 后再转发。
 - **修复数字人文本聊天链路**：`routes/device_gateway_ws_handlers.py` 对 `capabilities` 包含 `text_chat` 的设备，将 `transcript` 帧路由到新的语音对话分支，返回 `voice_status` → `audio_reply` → 二进制 PCM；`device_voice/dialogue.py` 新增 `process_text_utterance()` 并改用 `routes/chat_handler.handle_chat()` 走 LiMa 完整聊天管道，避免 `routing_engine.route()` 不带 `call_fn` 时返回空文本。
-- **部署**：通过 `git archive` 将本地工作树同步到 VPS `/opt/lima-router`（保留 `.env` 与 `data/`），服务已恢复并 health ok。
+- **适配可用 Gemini Live 模型**：用户提供的 Google key 没有 `gemini-2.0-flash-live-001` 权限，账户下可用的是 `models/gemini-3.1-flash-live-preview`（仅支持 AUDIO 输出）；`routes/system_endpoints.py` 的 `/api/live-key` 改为默认返回该模型，并允许通过 `LIMA_GEMINI_LIVE_MODEL` 覆盖。
+- **部署**：通过 `git archive` 将本地工作树同步到 VPS `/opt/lima-router`（保留 `.env` 与 `data/`），服务已恢复并 health ok；随后更新 `GOOGLE_AI_KEY` 并重启。
 - **验证结果**：
   - 数字人：WebSocket `hello/hello_ack` 成功；文本 transcript 已能收到 `voice_status(thinking)` → `voice_status(speaking, transcript=...)` → `audio_reply`，TTS 音频链路已通。
-  - 语音/视频通话：`/v1/live` 代理握手成功，但上游 Google Gemini Live 返回 `API key expired. Please renew the API key.`，无法完成 setup/响应。需更换 `GOOGLE_AI_KEY` 后才能真正通话。
-- **阻塞项**：`GOOGLE_AI_KEY` 已过期，需要新的 Google AI Studio key 并更新 VPS `.env` 后重测。
+  - 语音/视频通话：`/v1/live` 代理握手成功，发送 clientContent 后能收到 `setupComplete` 与二进制音频流，Google Gemini Live 链路已通。
+  - 冒烟脚本 `scripts/smoke_live_and_digital_human.py` 两项均 **OK**。
 
 ## 2026-06-18 Chat Web 图片/绘画结果渲染修复（完成）
 
