@@ -68,7 +68,7 @@ def has_pending_warm() -> bool:
     return bool(_startup_state["pending_warm"])
 
 
-def record_phase(name: str, elapsed_ms: float, status: str = "ok", detail: str = "") -> None:
+def record_phase(name: str, elapsed_ms: float, status: str = "ok", detail: str = "") -> dict[str, Any]:
     phase = {
         "name": name,
         "elapsed_ms": round(elapsed_ms, 1),
@@ -77,21 +77,32 @@ def record_phase(name: str, elapsed_ms: float, status: str = "ok", detail: str =
     }
     STARTUP_PHASES.append(phase)
     _log.warning("[LIFESPAN] phase=%s elapsed_ms=%.1f status=%s %s", name, elapsed_ms, status, detail)
+    return phase
 
 
 class PhaseTimer:
-    """Context manager that records elapsed time for a lifespan phase."""
+    """Context manager that records elapsed time for a lifespan phase.
+
+    Phases are appended to STARTUP_PHASES in start order so that critical
+    and warm phases remain readable even when warm tasks run concurrently.
+    """
 
     def __init__(self, name: str) -> None:
         self.name = name
         self.started = 0.0
+        self._phase: dict[str, Any] | None = None
 
     async def __aenter__(self):
         self.started = time.perf_counter()
+        self._phase = record_phase(self.name, 0.0, "running", "")
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
         elapsed_ms = (time.perf_counter() - self.started) * 1000
         status = "error" if exc else "ok"
         detail = f"{exc}" if exc else ""
-        record_phase(self.name, elapsed_ms, status, detail)
+        if self._phase is not None:
+            self._phase["elapsed_ms"] = round(elapsed_ms, 1)
+            self._phase["status"] = status
+            self._phase["detail"] = detail
+        _log.warning("[LIFESPAN] phase=%s elapsed_ms=%.1f status=%s %s", self.name, elapsed_ms, status, detail)

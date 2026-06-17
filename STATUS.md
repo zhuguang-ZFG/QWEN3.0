@@ -14,10 +14,15 @@
 
 ## 当前项目状态
 
-### 最近完成（2026-06-17）G4 启动/部署不确定性降低
+### 最近完成（2026-06-17）G4 启动/部署不确定性降低 + VPS 验证
 
 - **实现**：`server_lifespan.py` 拆分为 `server_lifespan_state.py`、`server_lifespan_phases.py`、`server_lifespan.py`（99 行）；启动阶段分为 critical（阻塞 ready）与 warm（后台异步预热），warm 失败不阻塞服务。
 - **/health 语义**：新增 `starting` / `warming` / `ready` / `error`，响应包含 `pending_warm` 与 `errors`。
+- **STARTUP_PHASES 顺序修复**：`PhaseTimer` 在阶段启动时立即追加记录，退出时仅更新耗时/状态，确保并发 warm 阶段仍按启动顺序展示（而非完成顺序）。
+- **VPS 验证**：
+  - 部署到 `47.112.162.80`，`/opt/lima-router/server_lifespan_state.py` 已更新。
+  - `https://chat.donglicao.com/health` → HTTP 200，`status=ok`，`startup.status=ready`，13 个 phase 按启动顺序返回（含 `observability.prometheus.start` 126.3ms 置尾）。
+  - `https://chat.donglicao.com/device/v1/health` → HTTP 200，`auth_configured=true`。
 - **验证**：`pytest` 全量 1662 passed / 23 skipped；`ruff check` / pyright clean；`tests/test_system_endpoints.py` 6 passed。
 
 ### 最近完成（2026-06-17）G3 小批冷区清理

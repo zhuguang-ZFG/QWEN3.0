@@ -5,6 +5,25 @@
 > Updated: 2026-06-17
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-17 G4 closeout：启动顺序修复 + VPS 部署验证（完成）
+
+- **目标**：完成 G4「启动/部署不确定性降低」收尾，修复 `STARTUP_PHASES` 记录顺序，并在 VPS 验证真实启动行为。
+- **实现**：
+  - `server_lifespan_state.py`：调整 `PhaseTimer` 为 `__aenter__` 阶段启动即调用 `record_phase()` 追加记录，`__aexit__` 仅更新 `elapsed_ms`/`status`/`detail`。
+  - 保证 critical 顺序执行阶段与并发 warm 后台任务在 `/health` 中均按启动顺序展示，便于定位真实瓶颈。
+- **VPS 部署**：
+  - 运行 `python scripts/deploy_unified.py` 上传 `server_lifespan_state.py` 并触发 `systemctl restart lima-router`。
+  - 脚本健康等待阶段因 300s 本地进程超时被杀（默认 `HEALTH_WAIT_SECONDS=240` + 20s grace + 上传耗时接近上限），但服务实际已完成启动。
+  - 通过独立 `curl` 确认生产端点健康。
+- **VPS smoke**：
+  - `curl -sf https://chat.donglicao.com/health` → 200，示例 phase 顺序：`health_state.load` → `backend_profile.load` → `backend_retirement.load` → `backend_admission_store.apply_startup` → `probe_loop.start` → `periodic_coding_eval.start` → `session_memory.daemon.start` → `channel_retirement.telegram` → `device_gateway.runtime.start` → `observability.structured_logging` → `device_gateway.mqtt_client.start` → `context_pipeline.auto_indexer.start` → `observability.prometheus.start`。
+  - `curl -sf https://chat.donglicao.com/device/v1/health` → 200，`auth_configured=true`。
+- **验证**：
+  - 全量 `pytest` → **1662 passed, 23 skipped, 0 failed**。
+  - `ruff check .` / `ruff format --check` clean。
+  - pyright 权威文件（`server.py` / `routing_engine.py` / `routes/chat_endpoints.py`）0 errors。
+- **提交**：`server_lifespan_state.py` 修复 + 文档同步，待提交 push。
+
 ## 2026-06-17 生成 G1/G2 证据文档（步骤 4 完成）
 
 - **G1 AI→Motion 回归证据**：新增 `docs/release_evidence/2026-06-17-M13-AI-to-Motion-regression.md`，记录热路径拆分与覆盖率提升后的端到端回归结果。

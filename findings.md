@@ -22,6 +22,7 @@
 | G4-4 | startup | `channel_retirement.telegram` 同步调用 Telegram API 耗时约 1.7s；已改为 `asyncio.create_task` 后台执行 | Closed |
 | G4-5 | ops | VPS 启动从约 7 分钟降至约 8 秒；公网 `/health` 与 `/device/v1/health` 均 200 | Closed |
 | G4-6 | verify | `test_routing_engine.py` / `test_system_endpoints.py` / `test_retrieval_injection.py` → 34 passed | Closed |
+| G4-7 | observability | `STARTUP_PHASES` 原按完成顺序追加，warm 任务并发时顺序不可读；已改为 `PhaseTimer` 启动即追加，退出仅更新状态/耗时，确保展示顺序为启动顺序 | Closed |
 
 ## 2026-06-17 G3 证据边界瘦身（小批）
 
