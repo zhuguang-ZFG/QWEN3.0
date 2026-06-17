@@ -46,6 +46,9 @@ curl -sf http://127.0.0.1:8080/health
 # Deploy to VPS
 python scripts/deploy_unified.py
 
+# Deploy Chat Web static files to VPS
+python scripts/deploy_chat_web.py
+
 # Repo stats
 python scripts/repo_stats.py
 ```
