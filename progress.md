@@ -30,6 +30,9 @@
   - 生产 Chat Web (`/var/www/chat/index.html`) 侧边栏新增「应用 → 2D 数字人」卡片，点击新标签打开数字人页面。
   - 数字人页面首次打开自动填充设备 ID、client-id、device-name 与测试令牌（从 `LIMA_DIGITAL_HUMAN_DEFAULT_*` 环境变量读取），用户无需手动输入即可连接。
 
+- **数字人页面默认值回填增强**：针对已访问过页面、localStorage 里存了空字符串的用户，自动脚本现在会在 localStorage 值为空时也重新写入默认值，避免设置框显示空白导致连接失败。
+- **Chat Web 图片生成**：生产环境 `/var/www/chat/index.html` 新增 `/image <描述>` 命令，调用 LiMa `/v1/images/generations`（Pollinations.ai）生成图片并直接显示在对话中；输入框 placeholder 已同步提示。
+
 - **数字人 WebSocket 报错修复**：
   - 根因：数字人页面把令牌作为 `?authorization=Bearer <token>` 查询参数发给 `/device/v1/ws`，而 LiMa `extract_ws_token()` 只认 `token` 查询参数或 `Authorization` 头，导致认证失败、连接被后端关闭，前端显示“WebSocket错误: 未知错误”。
   - 修复：`routes/device_gateway_dispatch.py` 的 `extract_ws_token()` 增加对 `authorization` 查询参数的支持，并兼容 `Bearer` 前缀。
