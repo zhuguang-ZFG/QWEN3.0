@@ -72,11 +72,12 @@ def _build_auto_config_script(
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
   function setInput(id, value) {{
     const el = document.getElementById(id);
-    if (el && !el.value && value) el.value = value;
+    if (el && !el.value.trim() && value) el.value = value;
   }}
   function seedStorage(key, value) {{
     try {{
-      if (value && !localStorage.getItem(key)) localStorage.setItem(key, value);
+      const stored = localStorage.getItem(key);
+      if (value && (!stored || !stored.trim())) localStorage.setItem(key, value);
     }} catch (e) {{}}
   }}
   setInput("limaWsUrl", {ws_url});
