@@ -1365,7 +1365,7 @@ Agent Worker path.
 
 - **目标**：把 VPS 启动约 7 分钟的问题拆成可观测、可延迟、可并行的启动阶段。
 - **实现**：
-  - `server_lifespan.py` 将启动阶段分为 **critical**（阻塞 ready）与 **warm**（后台异步预热）：
+  - `server_lifespan.py` 将启动阶段分为 **critical**（阻塞 ready）与 **warm**（后台异步预热），并拆分为 `server_lifespan_state.py` / `server_lifespan_phases.py` / `server_lifespan.py`（99 行）以符合 ≤300 行目标：
     - critical：`health_state.load`、`backend_retirement.load`、`backend_admission_store.apply_startup`、`probe_loop.start`、`device_gateway.runtime.start`、`mqtt_client.start`
     - warm：`backend_profile.load`、`periodic_coding_eval.start`、`session_memory.daemon.start`、`telegram retirement`、`structured_logging`、`auto_indexer`、`prometheus`
   - 新增 `get_startup_state()` 与 `_startup_state`，跟踪 `starting` / `warming` / `ready` / `error`。

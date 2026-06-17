@@ -16,7 +16,7 @@
 
 ### 最近完成（2026-06-17）G4 启动/部署不确定性降低
 
-- **实现**：`server_lifespan.py` 将启动拆分为 critical（阻塞 ready）与 warm（后台异步预热）阶段；warm 阶段失败不阻塞服务。
+- **实现**：`server_lifespan.py` 拆分为 `server_lifespan_state.py`、`server_lifespan_phases.py`、`server_lifespan.py`（99 行）；启动阶段分为 critical（阻塞 ready）与 warm（后台异步预热），warm 失败不阻塞服务。
 - **/health 语义**：新增 `starting` / `warming` / `ready` / `error`，响应包含 `pending_warm` 与 `errors`。
 - **验证**：`pytest` 全量 1662 passed / 23 skipped；`ruff check` / pyright clean；`tests/test_system_endpoints.py` 6 passed。
 
