@@ -31,13 +31,19 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements_server.txt
-          pip install pytest pytest-asyncio pytest-mock ruff bandit
+          pip install pytest pytest-asyncio pytest-mock ruff bandit pyright
 
       - name: Ruff lint
         run: ruff check .
+
+      - name: Ruff format check
+        run: ruff format --check
+
+      - name: Pyright type check (authority files)
+        run: pyright server.py routing_engine.py routes/chat_endpoints.py
 
       - name: Bandit security scan
         run: bandit -r routes/ -s B310,B324,B604,B608 -ll
 
       - name: Pytest
-        run: python -m pytest --tb=short -q --ignore=tests/test_memory_daemon_ctl.py --ignore=tests/test_semantic_code_retrieval.py --ignore=tests/test_healthcheck_ping.py --ignore=tests/test_lima_smoke_task_script.py --ignore=tests/test_gitee_mirror.py --ignore=tests/test_deploy_unified.py
+        run: python -m pytest --tb=short -q --ignore=tests/test_memory_daemon_ctl.py --ignore=tests/test_semantic_code_retrieval.py --ignore=tests/test_healthcheck_ping.py --ignore=tests/test_deploy_unified.py
