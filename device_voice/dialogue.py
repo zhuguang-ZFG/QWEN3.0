@@ -10,6 +10,7 @@ Flow:
 
 from __future__ import annotations
 
+import json
 import logging
 import time
 from typing import Any, Optional
@@ -189,35 +190,22 @@ async def _run_asr(pcm_data: bytes, config: AudioConfig) -> str:
 
 
 async def _run_llm(transcript: str, device_id: str) -> str:
-    """Send transcript through LiMa's routing engine and return reply text.
+    """Send transcript through LiMa's chat pipeline and return reply text.
 
-    This bridges the voice pipeline into LiMa's existing 170+ backend routing.
-    The routing_engine handles model selection, health scoring, budget, and
-    fallback — the voice pipeline just needs the final reply text.
+    This bridges the voice pipeline into the same path used by the web chat
+    endpoint, so voice requests benefit from the full routing, memory, and
+    fallback logic.
     """
     try:
-        import asyncio
-        from routing_engine import route
+        from chat_models import ChatRequest, Message
+        from routes.chat_handler import handle_chat
 
-        result = await asyncio.to_thread(
-            route,
-            query=transcript,
-            messages=[{"role": "user", "content": transcript}],
-            ide_source="voice",
-        )
-        # route() returns a dict or response object; extract text content
-        if isinstance(result, dict):
-            return result.get("reply", result.get("text", ""))
-        if isinstance(result, str):
-            return result
-        # FastAPI Response objects — extract body
-        if hasattr(result, "body"):
-            import json
-
-            body = json.loads(result.body)
-            choices = body.get("choices", [])
-            if choices:
-                return choices[0].get("message", {}).get("content", "")
+        req = ChatRequest(messages=[Message(role="user", content=transcript)])
+        result = await handle_chat(req, fmt="openai", client_ip="127.0.0.1", ide_source="voice")
+        body = json.loads(result.body)
+        choices = body.get("choices", [])
+        if choices:
+            return choices[0].get("message", {}).get("content", "")
         return ""
     except Exception:
         _log.warning("LLM routing failed for device=%s", device_id, exc_info=True)

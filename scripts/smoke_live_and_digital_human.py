@@ -174,7 +174,7 @@ async def _test_digital_human_ws() -> dict:
                         "protocol": "lima-device-v1",
                         "device_id": device_id,
                         "fw_rev": "smoke-test",
-                        "capabilities": ["audio", "asr", "tts"],
+                        "capabilities": ["audio", "text_chat"],
                     }
                 )
             )
@@ -200,18 +200,23 @@ async def _test_digital_human_ws() -> dict:
             responses: list[str] = []
             try:
                 while True:
-                    msg = await asyncio.wait_for(ws.recv(), timeout=30)
+                    msg = await asyncio.wait_for(ws.recv(), timeout=60)
                     if isinstance(msg, bytes):
-                        responses.append("<binary audio chunk>")
+                        responses.append(f"<binary audio chunk {len(msg)} bytes>")
                         break
                     obj = json.loads(msg)
-                    responses.append(obj.get("type", "unknown"))
+                    summary = obj.get("type", "unknown")
+                    if obj.get("type") == "voice_status":
+                        summary = f"voice_status({obj.get('status')}, transcript={obj.get('transcript','')[:40]!r})"
+                    elif obj.get("type") == "error":
+                        summary = f"error({obj.get('code')}: {obj.get('message')})"
+                    responses.append(summary)
                     if obj.get("type") == "audio_reply":
                         break
                     if obj.get("type") == "error":
                         break
             except asyncio.TimeoutError:
-                responses.append("<no further response within 30s>")
+                responses.append("<no further response within 60s>")
 
             return {
                 "ok": True,
