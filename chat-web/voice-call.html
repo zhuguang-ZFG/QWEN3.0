@@ -3,32 +3,169 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>LiMa AI Video Call</title>
+<meta name="theme-color" content="#000000">
+<title>LiMa AI 语音通话</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#0E0C15;color:#fff;font-family:-apple-system,system-ui,sans-serif;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;user-select:none}
-.brand{position:absolute;top:20px;left:50%;transform:translateX(-50%);font-size:1.1rem;font-weight:700;background:linear-gradient(90deg,#89F9E8,#FACB7B);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.status{position:absolute;top:52px;font-size:.75rem;color:#a5b4fc;opacity:.8}
-.video-container{position:relative;width:280px;height:280px;border-radius:50%;overflow:hidden;border:3px solid #6366f1;box-shadow:0 0 40px rgba(99,102,241,.3)}
-.video-container video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
-.video-container.speaking{border-color:#89F9E8;box-shadow:0 0 60px rgba(137,249,232,.4)}
-.video-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1e1b4b,#312e81)}
-.video-placeholder svg{width:80px;height:80px;fill:#6366f1}
-.subtitle{position:absolute;bottom:130px;width:90%;max-width:400px;text-align:center;font-size:.9rem;line-height:1.4;min-height:2.5em;color:#e2e8f0}
-.controls{position:absolute;bottom:40px;display:flex;gap:20px;align-items:center}
-.btn{border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
-.btn-call{width:68px;height:68px;background:linear-gradient(135deg,#10b981,#34d399);box-shadow:0 4px 20px rgba(16,185,129,.4)}
-.btn-call.active{background:linear-gradient(135deg,#6366f1,#818cf8);box-shadow:0 4px 20px rgba(99,102,241,.4)}
+:root{
+  --accent:#6366f1;
+  --accent-light:#818cf8;
+  --accent-glow:rgba(99,102,241,0.35);
+  --bg:#000000;
+  --bg-elevated:#0a0a0a;
+  --text:#f5f5f7;
+  --text-muted:#86868b;
+  --border:rgba(255,255,255,0.08);
+  --red:#ff453a;
+  --green:#30d158;
+}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text','Helvetica Neue','Segoe UI',system-ui,sans-serif;
+  height:100vh;
+  height:100dvh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  user-select:none;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 500px 350px at 20% 40%,rgba(99,102,241,0.06) 0%,transparent 70%),
+    radial-gradient(ellipse 400px 300px at 80% 70%,rgba(99,102,241,0.04) 0%,transparent 70%);
+  pointer-events:none;z-index:0;
+}
+.brand{
+  position:absolute;
+  top:max(24px,env(safe-area-inset-top));
+  left:50%;
+  transform:translateX(-50%);
+  font-size:1.1rem;
+  font-weight:700;
+  letter-spacing:-0.02em;
+  background:linear-gradient(90deg,var(--accent),var(--accent-light));
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  z-index:1;
+}
+.status{
+  position:absolute;
+  top:58px;
+  font-size:.75rem;
+  color:var(--text-muted);
+  opacity:.9;
+  z-index:1;
+}
+.video-container{
+  position:relative;
+  width:min(280px,72vw);
+  height:min(420px,58vh);
+  border-radius:28px;
+  overflow:hidden;
+  border:1px solid var(--border);
+  background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));
+  box-shadow:0 20px 60px rgba(0,0,0,0.6), inset 0 0 0 0.5px rgba(255,255,255,0.04);
+  z-index:1;
+  transition:border-color .25s ease,box-shadow .25s ease;
+}
+.video-container video{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  transform:scaleX(-1);
+}
+.video-container.speaking{
+  border-color:rgba(99,102,241,0.5);
+  box-shadow:0 20px 60px rgba(0,0,0,0.6),0 0 40px var(--accent-glow),inset 0 0 0 0.5px rgba(255,255,255,0.04);
+}
+.video-placeholder{
+  width:100%;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(99,102,241,0.02));
+}
+.video-placeholder svg{
+  width:72px;
+  height:72px;
+  color:var(--accent);
+  fill:currentColor;
+  opacity:.8;
+}
+.subtitle{
+  position:absolute;
+  bottom:max(130px,calc(env(safe-area-inset-bottom) + 130px));
+  width:90%;
+  max-width:420px;
+  text-align:center;
+  font-size:.9rem;
+  line-height:1.5;
+  min-height:2.5em;
+  color:var(--text-muted);
+  z-index:1;
+}
+.controls{
+  position:absolute;
+  bottom:max(40px,env(safe-area-inset-bottom));
+  display:flex;
+  gap:20px;
+  align-items:center;
+  z-index:1;
+}
+.btn{
+  border:none;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:all .2s cubic-bezier(0.25,0.1,0.25,1);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+}
+.btn-call{
+  width:68px;
+  height:68px;
+  border-radius:50%;
+  background:linear-gradient(135deg,var(--green),#34d399);
+  box-shadow:0 4px 20px rgba(48,209,88,.35);
+}
+.btn-call.active{
+  background:linear-gradient(135deg,var(--accent),var(--accent-light));
+  box-shadow:0 4px 24px var(--accent-glow);
+}
 .btn-call:active{transform:scale(.92)}
-.btn-end{width:52px;height:52px;background:#ef4444;box-shadow:0 4px 16px rgba(239,68,68,.3)}
+.btn-end{
+  width:52px;
+  height:52px;
+  border-radius:50%;
+  background:var(--red);
+  box-shadow:0 4px 16px rgba(255,68,58,.3);
+}
 .btn-end:active{transform:scale(.92)}
 .btn svg{width:26px;height:26px;fill:#fff}
-.btn-label{position:absolute;bottom:-20px;font-size:.65rem;color:#a5b4fc;white-space:nowrap}
+.btn-label{
+  position:absolute;
+  bottom:-22px;
+  font-size:.65rem;
+  color:var(--text-muted);
+  white-space:nowrap;
+}
+@media (prefers-reduced-motion:reduce){
+  .video-container{transition:none}
+  .btn{transition:none}
+}
 </style>
 </head>
 <body>
-<div class="brand">LiMa AI Video</div>
-<div class="status" id="status">点击绿色按钮开始视频通话</div>
+<div class="brand">LiMa AI 语音通话</div>
+<div class="status" id="status">点击绿色按钮开始语音通话</div>
 <div class="video-container" id="videoContainer">
   <div class="video-placeholder" id="placeholder">
     <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
@@ -44,7 +181,7 @@ body{background:#0E0C15;color:#fff;font-family:-apple-system,system-ui,sans-seri
     <button class="btn btn-call" id="btnCall">
       <svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
     </button>
-    <span class="btn-label">视频通话</span>
+    <span class="btn-label">语音通话</span>
   </div>
 </div>
 <script>

@@ -31,6 +31,7 @@
   - 数字人页面首次打开自动填充设备 ID、client-id、device-name 与测试令牌（从 `LIMA_DIGITAL_HUMAN_DEFAULT_*` 环境变量读取），用户无需手动输入即可连接。
 
 - **数字人页面默认值回填增强**：针对已访问过页面、localStorage 里存了空字符串的用户，自动脚本现在会在 localStorage 值为空时也重新写入默认值，避免设置框显示空白导致连接失败。
+- **官网与 Chat Web 门面精修**：完成 Apple 极简玻璃风打磨，校准官网文案（移除夸大/未实现能力描述），新增代码复制、toast/modal、图片 lightbox、语音通话入口；Chat Web 与 voice-call.html 已部署到 VPS。
 - **Chat Web 源码入仓**：将生产环境 `/var/www/chat/index.html` 与 `voice-call.html` 迁入仓库 `chat-web/`，新增 `scripts/deploy_chat_web.py` 一键部署到 VPS，并更新 `AGENTS.md` 常用命令。Chat Web 现在和 LiMa 后端一样走版本控制 + 脚本部署。
 - **Chat Web 图片生成**：生产环境 `/var/www/chat/index.html` 新增 `/image <描述>` 命令，调用 LiMa `/v1/images/generations`（Pollinations.ai）生成图片并直接显示在对话中；输入框 placeholder 已同步提示。
 

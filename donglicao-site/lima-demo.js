@@ -106,14 +106,14 @@
         <div class="lima-chat-footer">Powered by LiMa AI | DongLiCao.com</div>
       </div>
       <div class="lima-card" id="lima-card-video">
-        <div class="lima-card-title">AI 动态图像 · Beta</div>
+        <div class="lima-card-title">AI 场景序列 · Beta</div>
         <div class="lima-row">
-          <input class="lima-input" id="lima-vid-input" placeholder="描述视频场景...">
-          <button class="lima-btn" id="lima-vid-btn">生成动画</button>
+          <input class="lima-input" id="lima-vid-input" placeholder="描述一组画面...">
+          <button class="lima-btn" id="lima-vid-btn">生成序列</button>
         </div>
         <div class="lima-spinner" id="lima-vid-spin"></div>
         <div class="lima-slideshow" id="lima-slideshow">
-          <div class="lima-beta-label">AI 动态图像 · Beta</div>
+          <div class="lima-beta-label">AI 场景序列 · Beta</div>
         </div>
       </div>
     </div>
@@ -121,13 +121,14 @@
 
   // --- Insert into page ---
   function tryInsert() {
-    if (document.getElementById('lima-demo')) return;
-    var wrapper = document.querySelector('.overflow-hidden');
-    if (wrapper) {
-      wrapper.appendChild(section);
+    var slot = document.getElementById('lima-demo-slot');
+    if (slot) {
+      slot.parentNode.replaceChild(section, slot);
+    } else if (document.getElementById('lima-demo')) {
+      return;
     } else {
-      var firstDiv = document.querySelector('body > div');
-      if (firstDiv) firstDiv.appendChild(section);
+      var mainEl = document.querySelector('main');
+      if (mainEl) mainEl.appendChild(section);
       else document.body.appendChild(section);
     }
     setTimeout(function() {
