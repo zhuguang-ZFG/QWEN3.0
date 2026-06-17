@@ -8,9 +8,11 @@ connection URL so the page works out of the box when served from LiMa.
 
 from __future__ import annotations
 
+import html
 import json
 import logging
 import os
+import re
 from pathlib import Path
 
 from fastapi import APIRouter, FastAPI, HTTPException
@@ -80,17 +82,24 @@ def _build_auto_config_script(
       if (value && (!stored || !stored.trim())) localStorage.setItem(key, value);
     }} catch (e) {{}}
   }}
-  setInput("limaWsUrl", {ws_url});
-  setInput("deviceMac", {json.dumps(device_id)});
-  setInput("deviceName", {json.dumps(device_name)});
-  setInput("clientId", {json.dumps(client_id)});
-  setInput("limaToken", {json.dumps(token)});
-  seedStorage("xz_tester_deviceMac", {json.dumps(device_id)});
-  seedStorage("xz_tester_deviceName", {json.dumps(device_name)});
-  seedStorage("xz_tester_clientId", {json.dumps(client_id)});
-  seedStorage("xz_tester_limaToken", {json.dumps(token)});
-  const wwEnabled = document.getElementById("wakewordEnabled");
-  if (wwEnabled && !wwEnabled.value) wwEnabled.value = {json.dumps("true" if wakeword_enabled else "false")};
+  function apply() {{
+    setInput("limaWsUrl", {ws_url});
+    setInput("deviceMac", {json.dumps(device_id)});
+    setInput("deviceName", {json.dumps(device_name)});
+    setInput("clientId", {json.dumps(client_id)});
+    setInput("limaToken", {json.dumps(token)});
+    seedStorage("xz_tester_deviceMac", {json.dumps(device_id)});
+    seedStorage("xz_tester_deviceName", {json.dumps(device_name)});
+    seedStorage("xz_tester_clientId", {json.dumps(client_id)});
+    seedStorage("xz_tester_limaToken", {json.dumps(token)});
+    const wwEnabled = document.getElementById("wakewordEnabled");
+    if (wwEnabled && !wwEnabled.value) wwEnabled.value = {json.dumps("true" if wakeword_enabled else "false")};
+  }}
+  if (document.readyState === "loading") {{
+    document.addEventListener("DOMContentLoaded", apply);
+  }} else {{
+    apply();
+  }}
 }})();
 </script>
 """
@@ -109,11 +118,22 @@ def _digital_human_defaults() -> dict[str, str | bool]:
 
 def _patch_index_html(content: str) -> str:
     """Inject auto-configuration script into the digital-human index page."""
-    script = _build_auto_config_script(**_digital_human_defaults())  # type: ignore[arg-type]
+    defaults = _digital_human_defaults()
+    script = _build_auto_config_script(**defaults)  # type: ignore[arg-type]
     marker = '<script type="module" src="js/app.js?v=0205"></script>'
     if marker in content:
-        return content.replace(marker, script + "\n    " + marker)
-    return content.replace("</body>", script + "</body>")
+        content = content.replace(marker, script + "\n    " + marker)
+    else:
+        content = content.replace("</body>", script + "</body>")
+    token = str(defaults.get("token", ""))
+    if token:
+        escaped = html.escape(token, quote=True)
+        content = re.sub(
+            r'(<input\s+[^>]*id="limaToken"\s+[^>]*?)value=""',
+            rf'\1value="{escaped}"',
+            content,
+        )
+    return content
 
 
 router = APIRouter(prefix="/digital-human")
