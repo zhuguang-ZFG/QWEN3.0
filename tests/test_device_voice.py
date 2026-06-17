@@ -94,6 +94,15 @@ class TestASRProvider:
 
         assert isinstance(provider, AliyunASRProvider)
 
+    def test_aliyun_stub_raises_not_implemented(self):
+        from device_voice.asr import create_asr_provider
+
+        provider = create_asr_provider("aliyun")
+        import asyncio
+
+        with pytest.raises(NotImplementedError):
+            asyncio.run(provider.transcribe(b"fake"))
+
     def test_create_doubao_stub(self):
         from device_voice.asr import create_asr_provider
 
@@ -101,6 +110,15 @@ class TestASRProvider:
         from device_voice.providers.asr_doubao import DoubaoASRProvider
 
         assert isinstance(provider, DoubaoASRProvider)
+
+    def test_doubao_stub_raises_not_implemented(self):
+        from device_voice.asr import create_asr_provider
+
+        provider = create_asr_provider("doubao")
+        import asyncio
+
+        with pytest.raises(NotImplementedError):
+            asyncio.run(provider.transcribe(b"fake"))
 
     def test_funasr_transcribe_empty_audio(self):
         from device_voice.asr import create_asr_provider
@@ -151,6 +169,15 @@ class TestTTSProvider:
 
         assert isinstance(provider, DoubaoTTSProvider)
 
+    def test_doubao_stub_raises_not_implemented(self):
+        from device_voice.tts import create_tts_provider
+
+        provider = create_tts_provider("doubao")
+        import asyncio
+
+        with pytest.raises(NotImplementedError):
+            asyncio.run(provider.synthesize("hello"))
+
     def test_create_aliyun_stub(self):
         from device_voice.tts import create_tts_provider
 
@@ -158,6 +185,15 @@ class TestTTSProvider:
         from device_voice.providers.tts_aliyun import AliyunTTSProvider
 
         assert isinstance(provider, AliyunTTSProvider)
+
+    def test_aliyun_stub_raises_not_implemented(self):
+        from device_voice.tts import create_tts_provider
+
+        provider = create_tts_provider("aliyun")
+        import asyncio
+
+        with pytest.raises(NotImplementedError):
+            asyncio.run(provider.synthesize("hello"))
 
     def test_edge_default_voice(self):
         from device_voice.tts import create_tts_provider
@@ -183,6 +219,13 @@ class TestTTSProvider:
         result = asyncio.run(provider.synthesize("   "))
         assert result == b""
 
+    def test_mp3_to_pcm_requires_ffmpeg(self, monkeypatch):
+        from device_voice.providers import tts_edge
+
+        monkeypatch.setattr(tts_edge, "_ffmpeg_available", lambda: False)
+        with pytest.raises(RuntimeError, match="ffmpeg not found"):
+            tts_edge._mp3_to_pcm(b"fake-mp3")
+
 
 class TestVADProvider:
     """Tests for VAD provider and state management."""
@@ -204,17 +247,15 @@ class TestVADProvider:
         assert state.silence_frames == 0
 
     def test_silero_detect_empty_without_model(self, monkeypatch):
-        """SileroVAD without ONNX model → passes through as speech."""
+        """SileroVAD without ONNX model must raise, not silently pass-through."""
         monkeypatch.setenv("LIMA_VOICE_MODEL_DIR", "/nonexistent/path")
-        from device_voice.vad import create_vad_provider, VADState
+        from device_voice.vad import create_vad_provider, VADModelUnavailableError, VADState
 
         provider = create_vad_provider("silero")
         state = VADState()
         fake_pcm = b"\x00\x00" * 512  # 512 samples of silence
-        result = provider.detect(fake_pcm, state)
-        # Without model, treats all audio as speech
-        assert result is True
-        assert state.is_speaking is True
+        with pytest.raises(VADModelUnavailableError):
+            provider.detect(fake_pcm, state)
 
     def test_vad_reset_clears_state(self):
         from device_voice.vad import VADState
@@ -303,3 +344,4 @@ class TestVoiceprintProvider:
         result = asyncio.run(provider.identify_speaker(b"", "dev-1"))
         assert result.member_id == ""
         assert result.is_known is False
+        assert result.reason == "extraction_failed"

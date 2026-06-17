@@ -47,7 +47,7 @@ class VoiceprintProvider:
             if not self._model.available:
                 self._model.load()
             if not self._model.available:
-                _log.debug("3D-Speaker model not available; load_error=%s", self._model.load_error)
+                _log.warning("3D-Speaker model not available; load_error=%s", self._model.load_error)
                 return None
             return await asyncio.to_thread(self._model.extract_embedding, wav_data)
         if self._mode == "api":
@@ -61,13 +61,13 @@ class VoiceprintProvider:
 
     async def register_speaker(self, wav_data: bytes, member_id: str, device_id: str) -> Optional[list[float]]:
         if not self.enabled:
-            _log.debug("Voiceprint registration skipped: provider disabled")
+            _log.warning("Voiceprint registration skipped: provider disabled (mode=%s)", self._mode)
             return None
         embedding = await self.extract_embedding(wav_data)
         if embedding is None:
-            _log.warning("device=%s member=%s embedding extraction failed", device_id, member_id)
+            _log.warning("device=%s member=%s voiceprint embedding extraction failed", device_id, member_id)
             return None
-        _log.info("device=%s member=%s embedding extracted dim=%d", device_id, member_id, len(embedding))
+        _log.info("device=%s member=%s voiceprint embedding extracted dim=%d", device_id, member_id, len(embedding))
         return embedding
 
     async def _load_device_embeddings(self, device_id: str) -> None:
@@ -79,7 +79,7 @@ class VoiceprintProvider:
                 self.cache.update_device(device_id, entries)
                 _log.info("device=%s loaded %d voiceprint entries", device_id, len(entries))
         except ImportError:
-            _log.debug("session_memory.store_db not available")
+            _log.warning("session_memory.store_voiceprint not available; device=%s voiceprints will not persist", device_id)
         except Exception:
             _log.warning("device=%s failed to load voiceprint embeddings", device_id, exc_info=True)
 

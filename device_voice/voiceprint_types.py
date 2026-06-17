@@ -16,6 +16,17 @@ class SpeakerIdentity:
     confidence: float = 0.0
     is_known: bool = False
     speaker_ref: str = ""
+    reason: str = ""
+    """Reason for the identification result.
+
+    Values:
+      - "": default / unknown speaker
+      - "extraction_failed": embedding extraction failed (distinguishes a
+        provider failure from "no registered voiceprints" or "unknown").
+      - "matched": successfully matched a registered speaker.
+      - "no_voiceprints": no registered voiceprints for the device.
+      - "unknown": registered voiceprints exist but none matched.
+    """
 
 
 @dataclass(frozen=True)

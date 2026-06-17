@@ -20,15 +20,22 @@ class DoubaoTTSProvider(TTSProvider):
     """Volcano Engine TTS — high-quality neural voices."""
 
     def __init__(self) -> None:
-        _log.info("DoubaoTTSProvider initialized (stub — API integration pending)")
+        _log.warning(
+            "DoubaoTTSProvider is a stub — real Volcano Engine TTS SDK integration is "
+            "required before using this provider in production"
+        )
 
     async def synthesize(self, text: str, *, voice: str = "", sample_rate: int = 16000) -> bytes:
-        _log.debug("Doubao TTS stub: returning empty (not yet implemented)")
-        return b""
+        raise NotImplementedError(
+            "Doubao TTS is not implemented. Set LIMA_VOICE_TTS_PROVIDER=edge "
+            "or implement device_voice.providers.tts_doubao.DoubaoTTSProvider."
+        )
 
     async def stream_synthesize(
         self, text_stream: AsyncIterator[str], *, voice: str = "", sample_rate: int = 16000
     ) -> AsyncIterator[bytes]:
-        _log.debug("Doubao TTS stream stub: returning empty")
-        return
+        raise NotImplementedError(
+            "Doubao TTS streaming is not implemented. Set LIMA_VOICE_TTS_PROVIDER=edge "
+            "or implement device_voice.providers.tts_doubao.DoubaoTTSProvider.stream_synthesize."
+        )
         yield  # pragma: no cover

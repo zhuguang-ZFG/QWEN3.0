@@ -67,18 +67,18 @@ async def _identify_speaker_impl(
 ) -> SpeakerIdentity:
     """Identify the speaker by comparing embeddings in the provider cache."""
     if not provider.enabled:
-        return SpeakerIdentity()
+        return SpeakerIdentity(reason="voiceprint_off")
     embedding = await provider.extract_embedding(wav_data)
     if embedding is None:
-        _log.debug("device=%s embedding extraction failed", device_id)
-        return SpeakerIdentity()
+        _log.warning("device=%s voiceprint embedding extraction failed", device_id)
+        return SpeakerIdentity(reason="extraction_failed")
     entries = provider.cache.entries_for_device(device_id)
     if not entries:
         await provider._load_device_embeddings(device_id)
         entries = provider.cache.entries_for_device(device_id)
     if not entries:
-        _log.debug("device=%s no registered voiceprints", device_id)
-        return SpeakerIdentity()
+        _log.info("device=%s no registered voiceprints", device_id)
+        return SpeakerIdentity(reason="no_voiceprints")
     best_match = None
     best_score = 0.0
     for entry in entries:
@@ -90,7 +90,7 @@ async def _identify_speaker_impl(
             best_match = entry
     if best_match is None or best_score < threshold:
         _log.info("device=%s voiceprint unknown (best_score=%.3f threshold=%.3f)", device_id, best_score, threshold)
-        return SpeakerIdentity(confidence=best_score, is_known=False)
+        return SpeakerIdentity(confidence=best_score, is_known=False, reason="unknown")
     _log.info(
         "device=%s voiceprint matched: member=%s display=%s score=%.3f",
         device_id,
@@ -104,6 +104,7 @@ async def _identify_speaker_impl(
         confidence=best_score,
         is_known=True,
         speaker_ref=best_match.speaker_ref,
+        reason="matched",
     )
 
 

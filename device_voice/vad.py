@@ -13,6 +13,16 @@ from dataclasses import dataclass, field
 _log = logging.getLogger(__name__)
 
 
+class VADModelUnavailableError(RuntimeError):
+    """Raised when the requested VAD model cannot be loaded.
+
+    Previously the SileroVAD provider silently treated all audio as speech
+    when its ONNX model was missing. This exception makes the failure explicit
+    so the caller can surface an error frame instead of degrading the voice
+    pipeline.
+    """
+
+
 @dataclass
 class VADState:
     """Per-connection VAD state. The device gateway creates one per WebSocket."""

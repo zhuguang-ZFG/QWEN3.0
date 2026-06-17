@@ -5,6 +5,24 @@
 > Updated: 2026-06-17
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-17 小智服务器退役准备：阶段 1 止血与合规（完成）
+
+- **目标**：消除 `device_voice` 语音管线中的静默降级，使 LiMa 小智退役准备工作进入可验收状态。
+- **实现**：
+  - `device_voice/vad.py`：新增 `VADModelUnavailableError`。
+  - `device_voice/providers/vad_silero.py`：模型不可用时抛出 `VADModelUnavailableError`，不再把所有音频当语音 pass-through。
+  - `routes/device_voice_ws_helpers.py`：捕获 VAD 异常并发送 `voice_status` error 帧，保持 WebSocket 不崩溃。
+  - `device_voice/voiceprint_types.py`：`SpeakerIdentity` 新增 `reason` 字段。
+  - `device_voice/voiceprint_policy.py`/`voiceprint.py`：声纹失败路径带 `device_id`/`member_id` 上下文 warning；embedding 提取失败返回 `reason="extraction_failed"`，与未知说话人区分。
+  - `device_voice/providers/asr_aliyun.py`、`asr_doubao.py`、`tts_aliyun.py`、`tts_doubao.py`：stub 方法改为抛出 `NotImplementedError`，`__init__` 改为 warning 级别日志，消除云端配置下的静默空结果。
+  - `device_voice/providers/tts_edge.py`：新增 `_mp3_to_pcm()`，通过 ffmpeg subprocess 将 EdgeTTS 输出的 MP3 转码为 PCM s16le mono；无 ffmpeg 时显式 `RuntimeError`。
+- **验证**：
+  - `pytest tests/test_device_voice.py -v` → **36 passed**（新增 5 个单测）。
+  - `ruff check device_voice routes tests/test_device_voice.py` clean。
+  - `.venv310/Scripts/python -m pyright device_voice routes/device_voice_ws_helpers.py tests/test_device_voice.py` → 0 errors（14 warnings，均为既有可选依赖缺失或预存类型提示）。
+- **文档**：更新 `docs/XIAOZHI_SERVER_RETIREMENT_CHECKLIST_CN.md`，标记阶段 1 完成项；当前仍阻塞退役的 P0 项为云 ASR/TTS 真实 SDK 接入、真机端到端回归、VPS 运行时依赖验证。
+- **下一步**：阶段 2 接入阿里云 NLS / 火山豆包 ASR/TTS 真实 SDK。
+
 ## 2026-06-17 阶段 1 剩余项：U1/U8 仿真固件侧拒绝未知 route_policy（完成）
 
 - **目标**：完成 `PROJECT_OPTIMIZATION_ROADMAP_CN.md` 阶段 1 剩余项——U1/U8 运动固件侧拒绝未知策略。

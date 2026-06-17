@@ -20,15 +20,22 @@ class AliyunTTSProvider(TTSProvider):
     """Alibaba Cloud TTS — high-quality neural voices."""
 
     def __init__(self) -> None:
-        _log.info("AliyunTTSProvider initialized (stub — API integration pending)")
+        _log.warning(
+            "AliyunTTSProvider is a stub — real Alibaba NLS TTS SDK integration is "
+            "required before using this provider in production"
+        )
 
     async def synthesize(self, text: str, *, voice: str = "", sample_rate: int = 16000) -> bytes:
-        _log.debug("Aliyun TTS stub: returning empty (not yet implemented)")
-        return b""
+        raise NotImplementedError(
+            "Aliyun TTS is not implemented. Set LIMA_VOICE_TTS_PROVIDER=edge "
+            "or implement device_voice.providers.tts_aliyun.AliyunTTSProvider."
+        )
 
     async def stream_synthesize(
         self, text_stream: AsyncIterator[str], *, voice: str = "", sample_rate: int = 16000
     ) -> AsyncIterator[bytes]:
-        _log.debug("Aliyun TTS stream stub: returning empty")
-        return
+        raise NotImplementedError(
+            "Aliyun TTS streaming is not implemented. Set LIMA_VOICE_TTS_PROVIDER=edge "
+            "or implement device_voice.providers.tts_aliyun.AliyunTTSProvider.stream_synthesize."
+        )
         yield  # pragma: no cover

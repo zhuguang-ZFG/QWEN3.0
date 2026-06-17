@@ -54,7 +54,7 @@ async def _feed_audio_to_pipeline(
         return
 
     try:
-        from device_voice.vad import VADState
+        from device_voice.vad import VADModelUnavailableError, VADState
     except ImportError:
         _log.debug("device_voice.vad not available")
         return
@@ -68,7 +68,12 @@ async def _feed_audio_to_pipeline(
     vad_state, vad_provider = _audio_registry[device_id]
 
     # Feed chunk through VAD
-    vad_provider.detect(pcm_chunk, vad_state)
+    try:
+        vad_provider.detect(pcm_chunk, vad_state)
+    except VADModelUnavailableError:
+        _log.warning("device=%s VAD model unavailable; dropping audio chunk", device_id)
+        await websocket.send_json(voice_status_frame(device_id, "error", error="vad_model_unavailable"))
+        return
 
     # Check for utterance end
     utterance_ended = is_end or vad_provider.is_utterance_end(vad_state)

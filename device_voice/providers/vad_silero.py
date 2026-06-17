@@ -15,7 +15,7 @@ import time
 
 import numpy as np
 
-from device_voice.vad import VADProvider, VADState
+from device_voice.vad import VADModelUnavailableError, VADProvider, VADState
 
 _log = logging.getLogger(__name__)
 
@@ -85,12 +85,19 @@ class SileroVADProvider(VADProvider):
         return True
 
     def detect(self, audio_chunk: bytes, state: VADState) -> bool:
-        """Process PCM audio chunk and update VAD state."""
+        """Process PCM audio chunk and update VAD state.
+
+        Raises:
+            VADModelUnavailableError: if the SileroVAD ONNX model cannot be
+            loaded. Callers must handle this explicitly rather than accepting
+            a silently degraded pass-through.
+        """
         if not self._ensure_model():
-            # Model unavailable — treat all audio as speech (pass-through)
-            state.speech_buffer.extend(audio_chunk)
-            state.is_speaking = True
-            return True
+            raise VADModelUnavailableError(
+                "SileroVAD model unavailable: ensure onnxruntime is installed "
+                f"and the model is present at {_MODEL_DIR}/silero_vad.onnx "
+                f"(download from {_MODEL_URL})"
+            )
 
         if self._state is None or self._context is None:
             self._state = np.zeros((2, 1, 128), dtype=np.float32)

@@ -129,6 +129,7 @@ async def _identify_speaker(pcm_data: bytes, device_id: str, config: AudioConfig
             "display_name": result.display_name,
             "confidence": result.confidence,
             "speaker_ref": result.speaker_ref,
+            "reason": result.reason,
         }
     except ImportError:
         _log.debug("device_voice.voiceprint not available")

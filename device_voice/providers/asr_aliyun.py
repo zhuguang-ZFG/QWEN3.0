@@ -20,16 +20,22 @@ class AliyunASRProvider(ASRProvider):
     """Alibaba Cloud ASR — streaming cloud speech recognition."""
 
     def __init__(self) -> None:
-        _log.info("AliyunASRProvider initialized (stub — API integration pending)")
+        _log.warning(
+            "AliyunASRProvider is a stub — real Alibaba NLS SDK integration is "
+            "required before using this provider in production"
+        )
 
     async def transcribe(self, audio_data: bytes, *, sample_rate: int = 16000) -> str:
-        _log.debug("Aliyun ASR stub: returning empty (not yet implemented)")
-        return ""
+        raise NotImplementedError(
+            "Aliyun ASR is not implemented. Set LIMA_VOICE_ASR_PROVIDER=funasr "
+            "or implement device_voice.providers.asr_aliyun.AliyunASRProvider."
+        )
 
     async def stream_transcribe(
         self, audio_stream: AsyncIterator[bytes], *, sample_rate: int = 16000
     ) -> AsyncIterator[str]:
-        _log.debug("Aliyun ASR stream stub: returning empty")
-        # Currently returns empty — full NLS SDK integration needed for streaming
-        return
+        raise NotImplementedError(
+            "Aliyun ASR streaming is not implemented. Set LIMA_VOICE_ASR_PROVIDER=funasr "
+            "or implement device_voice.providers.asr_aliyun.AliyunASRProvider.stream_transcribe."
+        )
         yield  # pragma: no cover

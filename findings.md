@@ -12,6 +12,17 @@
 | ECC-3 | metrics | 缺少测试覆盖率基线；已安装 `pytest-cov` 并在 `pytest.ini` 配置；`device_gateway` 聚焦覆盖从 38.2% 提升至 **71.1%**（新增 `device_draw_handler`/`motion` 单元测试） | Open |
 | ECC-4 | tooling | `scripts/run_pre_commit_check.py` 已集成代码尺寸检查作为 warning（不阻塞，现有违规先记录） | Closed |
 
+## 2026-06-17 小智服务器退役准备：阶段 1 止血与合规
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| XZRT-1 | safety | `device_voice/providers/vad_silero.py` 在 ONNX 模型缺失时把所有音频当语音 pass-through，违反 Hard Rule 1 | Closed |
+| XZRT-2 | safety | `device_voice/providers/voiceprint_*.py` 与上层在 embedding 失败时返回 `None` 并被调用方静默吞掉 | Closed |
+| XZRT-3 | safety | `device_voice/providers/asr_aliyun.py` 等 4 个云语音 provider 返回空字符串/字节，云端配置下静默失败 | Closed |
+| XZRT-4 | compatibility | `device_voice/providers/tts_edge.py` 直接返回 MP3，而设备协议期望 PCM；已用 ffmpeg subprocess 转码 | Closed |
+| XZRT-5 | verify | `pytest tests/test_device_voice.py -v` → **36 passed**；`ruff check device_voice routes tests/test_device_voice.py` clean；pyright 0 errors | Closed |
+| XZRT-6 | process | 阶段 1 仅完成止血与合规；云 ASR/TTS 真实 SDK 接入、真机端到端回归、VPS 运行时验证仍为 P0 阻塞项 | Open |
+
 ## 2026-06-17 G4 启动与部署不确定性降低
 
 | ID | Area | Finding | Status |
