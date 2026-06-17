@@ -24,6 +24,15 @@
 | G4-6 | verify | `test_routing_engine.py` / `test_system_endpoints.py` / `test_retrieval_injection.py` → 34 passed | Closed |
 | G4-7 | observability | `STARTUP_PHASES` 原按完成顺序追加，warm 任务并发时顺序不可读；已改为 `PhaseTimer` 启动即追加，退出仅更新状态/耗时，确保展示顺序为启动顺序 | Closed |
 
+## 2026-06-17 阶段 1 剩余项：U1/U8 仿真固件侧 route_policy 拒绝
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| U1RP-1 | safety | 云端 `validate_route_policy` 已覆盖，但 fake U1/U8 仿真固件不消费 `route_policy`，无法形成端到端拒绝证据 | Closed |
+| U1RP-2 | safety | `tools/fake_device_server/app.py` 丢弃 `route_policy`，U1 命令无策略上下文 | Closed |
+| U1RP-3 | testing | `tests/test_fake_u1_cloud_loop.py` 缺少固件侧拒绝路径的端到端覆盖 | Closed |
+| U1RP-4 | scope | 真实 C++ 固件（u1-grbl / u8-xiaozhi）尚未实现等效拒绝；fake 仿真层已提供参考契约，后续硬件跟进 | Accepted |
+
 ## 2026-06-17 G3 证据边界瘦身（小批）
 
 | ID | Area | Finding | Status |

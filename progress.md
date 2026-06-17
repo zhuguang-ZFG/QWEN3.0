@@ -5,6 +5,23 @@
 > Updated: 2026-06-17
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-17 阶段 1 剩余项：U1/U8 仿真固件侧拒绝未知 route_policy（完成）
+
+- **目标**：完成 `PROJECT_OPTIMIZATION_ROADMAP_CN.md` 阶段 1 剩余项——U1/U8 运动固件侧拒绝未知策略。
+- **实现**：
+  - `esp32S_XYZ/tools/fake_u1/route_policy_validator.py`：新增，定义 `VALID_ROUTE_ROLES` / `VALID_PRIMARY_STRATEGIES` / `VALID_ARTIFACT_REQUIRED` / `VALID_BACKENDS`，与 LiMa 云端校验对齐。
+  - `esp32S_XYZ/tools/fake_u1/app.py`：`FakeU1Simulator` 在 `HOME` / `MOVE` / `PATH_BEGIN` 入口调用 `validate_route_policy_for_u1()`；新增 `fw_capabilities` 支持能力边界校验；未知/不兼容策略返回 `E009`。
+  - `esp32S_XYZ/tools/fake_device_server/app.py`：`motion_task_to_u1_command(s)` 将 `route_policy` 透传到 U1 命令；`_handle_motion_task` 在错误响应中标记 `route_policy_rejected`。
+  - `tests/test_fake_u1_cloud_loop.py`：现有 3 个闭环测试转发 `route_policy`；新增 `test_cloud_to_fake_u1_rejects_unknown_route_policy`。
+- **验证**：
+  - `python -m unittest esp32S_XYZ/tools/fake_u1/tests/test_app.py` → **14 passed**。
+  - `python -m unittest esp32S_XYZ/tools/fake_device_server/tests/test_app.py` → **17 passed**。
+  - `pytest tests/test_fake_u1_cloud_loop.py -v` → **5 passed**。
+  - `pytest tests/test_device_gateway_model_routing.py tests/test_device_gateway_protocol.py -q` → **47 passed**。
+  - `ruff check tests/test_fake_u1_cloud_loop.py` clean；`npx pyright tests/test_fake_u1_cloud_loop.py` 0 errors。
+- **文档**：新增 `docs/release_evidence/2026-06-17-M13-route-policy-firmware-rejection.md`；更新 `STATUS.md`、`progress.md`、`findings.md`。
+- **说明**：本次为 fake U1/U8 仿真层参考实现，真实 C++ 固件（u1-grbl / u8-xiaozhi）后续跟进。
+
 ## 2026-06-17 G4 closeout：启动顺序修复 + VPS 部署验证（完成）
 
 - **目标**：完成 G4「启动/部署不确定性降低」收尾，修复 `STARTUP_PHASES` 记录顺序，并在 VPS 验证真实启动行为。

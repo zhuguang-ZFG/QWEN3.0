@@ -14,6 +14,13 @@
 
 ## 当前项目状态
 
+### 最近完成（2026-06-17）阶段 1 剩余项：U1/U8 仿真固件侧拒绝未知 route_policy
+
+- **实现**：在 `esp32S_XYZ` 子模块新增 `tools/fake_u1/route_policy_validator.py`，与 LiMa `VALID_ROUTE_ROLES` / `VALID_PRIMARY_STRATEGIES` / `VALID_ARTIFACT_REQUIRED` 对齐；`tools/fake_u1/app.py` 在 `HOME` / `MOVE` / `PATH_BEGIN` 入口校验 `route_policy`；`tools/fake_device_server/app.py` 将 `route_policy` 透传至 fake U1。
+- **拒绝路径**：未知 `route_role`、不兼容 `primary_strategy`、缺少 `run_path` 能力等场景返回 `E009` 错误；fake_device_server 响应标记 `route_policy_rejected=true`。
+- **测试**：fake_u1 14 passed、fake_device_server 17 passed、LiMa `tests/test_fake_u1_cloud_loop.py` 5 passed（含新增拒绝路径）、设备网关聚焦 47 passed。
+- **文档**：新增 `docs/release_evidence/2026-06-17-M13-route-policy-firmware-rejection.md`。
+
 ### 最近完成（2026-06-17）G4 启动/部署不确定性降低 + VPS 验证
 
 - **实现**：`server_lifespan.py` 拆分为 `server_lifespan_state.py`、`server_lifespan_phases.py`、`server_lifespan.py`（99 行）；启动阶段分为 critical（阻塞 ready）与 warm（后台异步预热），warm 失败不阻塞服务。
