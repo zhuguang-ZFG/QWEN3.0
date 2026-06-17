@@ -236,7 +236,7 @@ python -m pytest tests/test_provider_automation_admission.py -q
 
 ### 13.2 search_gateway 保留清单（lazy import 保护）
 
-以下适配器看似无直接 import，但被 `dev_adapter.py` / `dev_tools.py` 函数内 **lazy import** 引用，**禁止删除**：
+以下适配器看似无直接 import，但被 `dev_adapter.py` 函数内 **lazy import** 引用，**禁止删除**：
 
 - `brave_adapter.py`、`tavily_adapter.py`、`tinyfish_transport.py`、`anysearch_adapter.py`、`searxng_adapter.py`
 - `codesearch_adapter.py`、`gemini_native.py`、`gitee_tools.py`
@@ -255,3 +255,32 @@ channel_gateway 退役后，其作为 search_gateway 主要消费者的引用消
 - **`orchestrate`**：**Warm 可选增强**；Q5 已完成 facade 拆分，设备战略不依赖此模块。
 
 **Q7 关闭标准**：本文档已落盘并被 `docs/README.md` 索引；不要求本阶段代码删除或搬迁。
+
+---
+
+## 15. 附录：2026-06-17 G3 小批冷区清理
+
+在代码质量门禁整改后，按本文档分层原则执行一轮小批删除：只处理已确认无生产/测试引用的独立模块，不触及热路径。
+
+### 15.1 本次删除清单
+
+| 文件 | 行数 | 原分层 | 删除理由 |
+|------|------|--------|----------|
+| `search_gateway/dev_tools.py` | 279 | Cold | 无 import、无字符串引用；`tool_gateway/registry.py` 仅注册同名 tool 字符串，未调用其中函数 |
+| `session_memory/hooks.py` | 61 | Cold | `on_request_start/on_response_complete/on_error` 无任何调用或导入 |
+| `tool_gateway/executor.py` | 136 | Cold | `ToolExecutor` 无任何实例化或导入 |
+| `infra/g4f_server.py` | 18 | Cold | 独立 g4f 启动脚本，无引用 |
+
+合计删除 **494 行**。
+
+### 15.2 验证
+
+- ripgrep 确认上述文件模块名、顶层类/函数名在全库无引用；
+- `python -m pytest --tb=short -q` → **1662 passed, 23 skipped, 0 failed**；
+- `ruff check .` clean；
+- 相关子系统 import (`tool_gateway.registry`、`session_memory.store`、`search_gateway`、`infra`) 无异常。
+
+### 15.3 未删除的候选（留待后续批次）
+
+- `deploy/path_proxy.py`、`deploy/deploy_prometheus_metrics.py`：独立部署脚本，无引用，但属于 `deploy/` 主题，不与本次冷模块混删。
+- `packages/provider-probe-offline/provider_probe/*`：AGENTS.md 已标记为 **KEEP cold package**，保持离线探针能力，不删除。

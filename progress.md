@@ -1361,6 +1361,21 @@ Agent Worker path.
 - 文档：`docs/MIMO_MCP_SETUP_CN.md`、`mcp.json.example`
 - 测试：`pytest tests/test_mimo_mcp_runner.py -q` → **4 passed**
 
+## 2026-06-17：G3 小批冷区清理（证据边界瘦身）
+
+- **删除清单**：
+  - `search_gateway/dev_tools.py`（279 行）
+  - `session_memory/hooks.py`（61 行）
+  - `tool_gateway/executor.py`（136 行）
+  - `infra/g4f_server.py`（18 行）
+- **合计**：494 行，无生产/测试引用，经 ripgrep 交叉验证。
+- **未删除候选**：`deploy/path_proxy.py`、`deploy/deploy_prometheus_metrics.py` 留待 `deploy/` 主题批次；`packages/provider-probe-offline/provider_probe/*` 按 AGENTS.md KEEP 保留。
+- **验证**：
+  - `pytest` 全量：**1662 passed, 23 skipped, 0 failed**；
+  - `ruff check .` clean；
+  - `tool_gateway.registry`、`session_memory.store`、`search_gateway`、`infra` import 正常。
+- **文档**：更新 `docs/CODEBASE_SUBSYSTEM_TIER_CN.md` 第 15 节附录与第 13.2 节保留清单。
+
 ## 2026-06-17：G2 设备模型准入复跑（cv2 修复后）
 
 - **复跑命令**：`python scripts/eval_device_model_role.py --all --markdown`

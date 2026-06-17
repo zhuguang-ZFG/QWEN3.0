@@ -14,6 +14,12 @@
 
 ## 当前项目状态
 
+### 最近完成（2026-06-17）G3 小批冷区清理
+
+- **删除文件**：`search_gateway/dev_tools.py`（279 行）、`session_memory/hooks.py`（61 行）、`tool_gateway/executor.py`（136 行）、`infra/g4f_server.py`（18 行），合计 494 行。
+- **验证**：ripgrep 确认无引用；`pytest` 全量 1662 passed / 23 skipped；`ruff check` clean。
+- **文档**：更新 `docs/CODEBASE_SUBSYSTEM_TIER_CN.md`。
+
 ### 最近完成（2026-06-17）G2 设备模型准入复跑
 
 - **复跑命令**：`python scripts/eval_device_model_role.py --all --markdown`
