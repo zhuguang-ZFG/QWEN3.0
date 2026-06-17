@@ -1,4 +1,5 @@
 """Device Gateway cross-process task notifications."""
+
 from __future__ import annotations
 
 import asyncio
@@ -16,14 +17,11 @@ class DeviceTaskNotifier(Protocol):
     backend_name: str
     shared_across_processes: bool
 
-    async def publish_task_available(self, device_id: str) -> None:
-        ...
+    async def publish_task_available(self, device_id: str) -> None: ...
 
-    async def start(self, callback: TaskAvailableCallback) -> None:
-        ...
+    async def start(self, callback: TaskAvailableCallback) -> None: ...
 
-    async def stop(self) -> None:
-        ...
+    async def stop(self) -> None: ...
 
 
 class LocalDeviceTaskNotifier:
@@ -123,6 +121,7 @@ def _device_id_from_message(data: Any) -> str:
 
 def _log(event: str, detail: str) -> None:
     import logging
+
     logging.getLogger("device_gateway.notifier").warning("%s: %s", event, detail[:200])
 
 

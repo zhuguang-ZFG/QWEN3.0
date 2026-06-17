@@ -4,6 +4,7 @@ Lightweight ring buffer that records touchpoints across subsystems so
 an operator can trace a request_id, task_id, or device_id through every
 system it reached, with failure reasons at each hop.
 """
+
 from __future__ import annotations
 
 import threading
@@ -34,8 +35,16 @@ class CorrelatedEvent:
             "ts": self.timestamp,
             "type": self.event_type,
         }
-        for key in ("request_id", "task_id", "device_id", "backend",
-                     "status", "error_code", "error_reason", "latency_ms"):
+        for key in (
+            "request_id",
+            "task_id",
+            "device_id",
+            "backend",
+            "status",
+            "error_code",
+            "error_reason",
+            "latency_ms",
+        ):
             val = getattr(self, key)
             if val:
                 d[key] = val
@@ -57,16 +66,18 @@ def record_request_correlation(
     error_reason: str = "",
 ) -> None:
     with _lock:
-        _events.append(CorrelatedEvent(
-            timestamp=time.time(),
-            event_type="request",
-            request_id=request_id,
-            backend=backend,
-            status=status,
-            latency_ms=latency_ms,
-            error_code=error_code,
-            error_reason=error_reason,
-        ))
+        _events.append(
+            CorrelatedEvent(
+                timestamp=time.time(),
+                event_type="request",
+                request_id=request_id,
+                backend=backend,
+                status=status,
+                latency_ms=latency_ms,
+                error_code=error_code,
+                error_reason=error_reason,
+            )
+        )
 
 
 def record_worker_task_correlation(
@@ -75,13 +86,15 @@ def record_worker_task_correlation(
     worker_id: str = "",
 ) -> None:
     with _lock:
-        _events.append(CorrelatedEvent(
-            timestamp=time.time(),
-            event_type="worker_task",
-            task_id=task_id,
-            status=status,
-            extra={"worker_id": worker_id} if worker_id else {},
-        ))
+        _events.append(
+            CorrelatedEvent(
+                timestamp=time.time(),
+                event_type="worker_task",
+                task_id=task_id,
+                status=status,
+                extra={"worker_id": worker_id} if worker_id else {},
+            )
+        )
 
 
 def record_device_task_correlation(
@@ -92,15 +105,17 @@ def record_device_task_correlation(
     error_reason: str = "",
 ) -> None:
     with _lock:
-        _events.append(CorrelatedEvent(
-            timestamp=time.time(),
-            event_type="device_task",
-            task_id=task_id,
-            device_id=device_id,
-            status=status,
-            error_code=error_code,
-            error_reason=error_reason,
-        ))
+        _events.append(
+            CorrelatedEvent(
+                timestamp=time.time(),
+                event_type="device_task",
+                task_id=task_id,
+                device_id=device_id,
+                status=status,
+                error_code=error_code,
+                error_reason=error_reason,
+            )
+        )
 
 
 def record_motion_event_correlation(
@@ -111,24 +126,23 @@ def record_motion_event_correlation(
     error_reason: str = "",
 ) -> None:
     with _lock:
-        _events.append(CorrelatedEvent(
-            timestamp=time.time(),
-            event_type="motion_event",
-            task_id=task_id,
-            device_id=device_id,
-            status=phase,
-            error_code=error_code,
-            error_reason=error_reason,
-        ))
+        _events.append(
+            CorrelatedEvent(
+                timestamp=time.time(),
+                event_type="motion_event",
+                task_id=task_id,
+                device_id=device_id,
+                status=phase,
+                error_code=error_code,
+                error_reason=error_reason,
+            )
+        )
 
 
 def correlate_by_id(target_id: str, limit: int = 50) -> list[dict[str, Any]]:
     """Find all events matching a request_id, task_id, or device_id."""
     with _lock:
-        matched = [
-            e for e in _events
-            if target_id in (e.request_id, e.task_id, e.device_id)
-        ]
+        matched = [e for e in _events if target_id in (e.request_id, e.task_id, e.device_id)]
     return [e.to_dict() for e in matched[-limit:]]
 
 

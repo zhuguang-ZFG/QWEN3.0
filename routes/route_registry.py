@@ -58,6 +58,7 @@ def _try_include(
     """
     try:
         import importlib
+
         mod = importlib.import_module(import_path)
         app.include_router(mod.router)  # type: ignore[attr-defined]
         if inject is not None:
@@ -101,6 +102,7 @@ def _register_core_routes(app: FastAPI, deps: RouteRegistryDeps) -> tuple:
     app.include_router(public_demo_router)
 
     from routes.embeddings import router as embeddings_router
+
     app.include_router(embeddings_router)
 
     from routes.admin import router as admin_router
@@ -110,6 +112,7 @@ def _register_core_routes(app: FastAPI, deps: RouteRegistryDeps) -> tuple:
     app.include_router(admin_router)
 
     from routes.static_files import router as static_files_router
+
     app.include_router(static_files_router)
 
     from routes.system_endpoints import router as system_endpoints_router
@@ -123,6 +126,7 @@ def _register_core_routes(app: FastAPI, deps: RouteRegistryDeps) -> tuple:
     app.include_router(system_endpoints_router)
 
     from routes.device_gateway import router as device_gateway_router
+
     app.include_router(device_gateway_router)
     deps.loaded_modules["device_gateway"] = True
 

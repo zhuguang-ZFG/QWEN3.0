@@ -1,4 +1,5 @@
 """Policy engine — centralizes permission, safety, and approval decisions."""
+
 from __future__ import annotations
 
 from typing import Any

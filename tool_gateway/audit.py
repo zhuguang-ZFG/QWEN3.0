@@ -36,6 +36,7 @@ def _sanitize_text(value: object) -> str:
     text = str(value)
     try:
         from session_memory.redact import sanitize_for_display
+
         return sanitize_for_display(text)
     except ImportError:
         lowered = text.lower()
@@ -65,7 +66,9 @@ def _sanitize_value(value: object) -> object:
         return value
     return _sanitize_text(value)
 
+
 # ── In-memory audit ─────────────────────────────────────────────────────────
+
 
 def audit_event(event_type: str, **kwargs) -> dict:
     event: dict = _sanitize_value({"time": int(time.time()), "event": event_type, **kwargs})  # type: ignore[assignment]
@@ -78,6 +81,7 @@ def audit_event(event_type: str, **kwargs) -> dict:
 
 
 # ── SQLite persistence ──────────────────────────────────────────────────────
+
 
 def _get_conn() -> sqlite3.Connection:
     db_path = _db_path()
@@ -107,13 +111,13 @@ def _persist_event(event: dict) -> None:
     try:
         conn = _get_conn()
         conn.execute(
-            "INSERT INTO audit_events (timestamp, event_type, tool, reason, details) "
-            "VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO audit_events (timestamp, event_type, tool, reason, details) VALUES (?, ?, ?, ?, ?)",
             (
-                event.get("time", 0), event.get("event", ""),
-                event.get("tool", ""), event.get("reason", ""),
-                json.dumps({k: v for k, v in event.items()
-                           if k not in ("time", "event", "tool", "reason")}),
+                event.get("time", 0),
+                event.get("event", ""),
+                event.get("tool", ""),
+                event.get("reason", ""),
+                json.dumps({k: v for k, v in event.items() if k not in ("time", "event", "tool", "reason")}),
             ),
         )
         conn.commit()
@@ -128,13 +132,16 @@ def _persist_event(event: dict) -> None:
 
 # ── Query ───────────────────────────────────────────────────────────────────
 
+
 def get_recent_events(limit: int = 50) -> list[dict]:
     with _lock:
         return list(_events[-limit:])
 
 
 def query_events(
-    event_type: str = "", tool: str = "", limit: int = 50,
+    event_type: str = "",
+    tool: str = "",
+    limit: int = 50,
 ) -> list[dict]:
     conn = _get_conn()
     conditions = []
@@ -153,8 +160,7 @@ def query_events(
     ).fetchall()
     conn.close()
     return [
-        {"time": r[0], "event": r[1], "tool": r[2], "reason": r[3],
-         "details": json.loads(r[4]) if r[4] else {}}
+        {"time": r[0], "event": r[1], "tool": r[2], "reason": r[3], "details": json.loads(r[4]) if r[4] else {}}
         for r in rows
     ]
 
@@ -170,14 +176,13 @@ def count_events(event_type: str = "", tool: str = "") -> int:
         conditions.append("tool = ?")
         params.append(tool)
     where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
-    count = conn.execute(
-        f"SELECT COUNT(*) FROM audit_events {where}", params
-    ).fetchone()[0]
+    count = conn.execute(f"SELECT COUNT(*) FROM audit_events {where}", params).fetchone()[0]
     conn.close()
     return count
 
 
 # ── Reset ───────────────────────────────────────────────────────────────────
+
 
 def reset_audit() -> None:
     with _lock:

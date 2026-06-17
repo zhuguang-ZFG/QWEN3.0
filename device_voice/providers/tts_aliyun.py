@@ -22,9 +22,7 @@ class AliyunTTSProvider(TTSProvider):
     def __init__(self) -> None:
         _log.info("AliyunTTSProvider initialized (stub — API integration pending)")
 
-    async def synthesize(
-        self, text: str, *, voice: str = "", sample_rate: int = 16000
-    ) -> bytes:
+    async def synthesize(self, text: str, *, voice: str = "", sample_rate: int = 16000) -> bytes:
         _log.debug("Aliyun TTS stub: returning empty (not yet implemented)")
         return b""
 

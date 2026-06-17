@@ -9,12 +9,16 @@ from context_pipeline.retrieval_injection import (
 
 
 def test_build_and_inject_share_same_payload(monkeypatch):
-    payload = type("Payload", (), {
-        "query_terms": ["routing_engine.py"],
-        "candidates_searched": 3,
-        "reranked_results": [],
-        "text": "[代码上下文]\n[routing_engine.py]",
-    })()
+    payload = type(
+        "Payload",
+        (),
+        {
+            "query_terms": ["routing_engine.py"],
+            "candidates_searched": 3,
+            "reranked_results": [],
+            "text": "[代码上下文]\n[routing_engine.py]",
+        },
+    )()
 
     with patch(
         "context_pipeline.retrieval_injection.run_retrieval",

@@ -74,14 +74,16 @@ async def key_url_inventory():
     for name, cfg in BACKENDS.items():
         key = cfg.get("key", "")
         masked = (key[:4] + "..." + key[-4:]) if key and len(key) > 8 else ("已配置" if key else "")
-        backend_list.append({
-            "name": name,
-            "url": cfg.get("url", ""),
-            "key_configured": bool(key),
-            "key_masked": masked,
-            "model": cfg.get("model", ""),
-            "fmt": cfg.get("fmt", "openai"),
-        })
+        backend_list.append(
+            {
+                "name": name,
+                "url": cfg.get("url", ""),
+                "key_configured": bool(key),
+                "key_masked": masked,
+                "model": cfg.get("model", ""),
+                "fmt": cfg.get("fmt", "openai"),
+            }
+        )
 
     providers: dict[str, Any] = {}
     try:

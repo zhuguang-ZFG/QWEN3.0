@@ -1,4 +1,5 @@
 """设备绘图路由 - device_draw 模式"""
+
 import logging
 from typing import Dict, Any, Optional
 from dashscope_image_client import DashScopeImageClient
@@ -13,25 +14,25 @@ logger = logging.getLogger(__name__)
 
 # 预设图形关键词
 PRESET_KEYWORDS = {
-    'circle': ['圆', '圆形', 'circle'],
-    'square': ['方', '方形', '正方形', 'square'],
-    'triangle': ['三角', '三角形', 'triangle'],
-    'star': ['星', '星星', '五角星', 'star'],
-    'heart': ['心', '心形', 'heart', '爱心'],
-    'crescent': ['月', '月亮', '月牙', 'crescent']
+    "circle": ["圆", "圆形", "circle"],
+    "square": ["方", "方形", "正方形", "square"],
+    "triangle": ["三角", "三角形", "triangle"],
+    "star": ["星", "星星", "五角星", "star"],
+    "heart": ["心", "心形", "heart", "爱心"],
+    "crescent": ["月", "月亮", "月牙", "crescent"],
 }
 
 
 def _build_failed_response(model: str, error: str) -> Dict[str, Any]:
     """Build a failed draw response payload."""
     return {
-        'status': 'failed',
-        'image_url': '',
-        'svg_path': None,
-        'width': 0,
-        'height': 0,
-        'model': model,
-        'error': error,
+        "status": "failed",
+        "image_url": "",
+        "svg_path": None,
+        "width": 0,
+        "height": 0,
+        "model": model,
+        "error": error,
     }
 
 
@@ -44,13 +45,13 @@ def _build_partial_response(
 ) -> Dict[str, Any]:
     """Build a partial draw response payload."""
     return {
-        'status': 'partial',
-        'image_url': image_url,
-        'svg_path': None,
-        'width': width,
-        'height': height,
-        'model': model,
-        'error': error,
+        "status": "partial",
+        "image_url": image_url,
+        "svg_path": None,
+        "width": width,
+        "height": height,
+        "model": model,
+        "error": error,
     }
 
 
@@ -62,17 +63,17 @@ def _build_success_response(
 ) -> Dict[str, Any]:
     """Build a successful draw response payload."""
     return {
-        'status': 'success',
-        'image_url': image_url,
-        'svg_path': optimization.optimized_path,
-        'width': svg_result['width'],
-        'height': svg_result['height'],
-        'model': model,
-        'error': None,
-        'optimization': {
-            'original_points': optimization.original_points,
-            'optimized_points': optimization.optimized_points,
-            'reduction_ratio': optimization.reduction_ratio,
+        "status": "success",
+        "image_url": image_url,
+        "svg_path": optimization.optimized_path,
+        "width": svg_result["width"],
+        "height": svg_result["height"],
+        "model": model,
+        "error": None,
+        "optimization": {
+            "original_points": optimization.original_points,
+            "optimized_points": optimization.optimized_points,
+            "reduction_ratio": optimization.reduction_ratio,
         },
     }
 
@@ -83,16 +84,16 @@ def _try_preset_shape(prompt: str) -> Optional[Dict[str, Any]]:
         if any(kw in prompt.lower() for kw in keywords):
             logger.info(f"Detected preset shape: {shape}")
             result = get_preset_svg(shape, size=180)
-            if result['status'] == 'success':
+            if result["status"] == "success":
                 return {
-                    'status': 'success',
-                    'image_url': '',
-                    'svg_path': result['svg_path'],
-                    'width': result['width'],
-                    'height': result['height'],
-                    'model': f'preset:{shape}',
-                    'error': None,
-                    'preset': True,
+                    "status": "success",
+                    "image_url": "",
+                    "svg_path": result["svg_path"],
+                    "width": result["width"],
+                    "height": result["height"],
+                    "model": f"preset:{shape}",
+                    "error": None,
+                    "preset": True,
                 }
     return None
 
@@ -113,20 +114,23 @@ async def _convert_and_optimize(
     converter = SVGConverter()
     svg_result = await converter.convert_url_to_svg(image_url)
 
-    if svg_result['status'] != 'success':
+    if svg_result["status"] != "success":
         return _build_partial_response(
-            image_url, 0, 0, model,
+            image_url,
+            0,
+            0,
+            model,
             error=f"SVG conversion failed: {svg_result['error']}",
         )
 
-    svg_path = svg_result['svg_path']
+    svg_path = svg_result["svg_path"]
     validation = validate_svg_path(svg_path, workspace=(200, 200))
     if not validation.valid:
         logger.warning(f"SVG validation failed: {validation.errors}")
         return _build_partial_response(
             image_url,
-            svg_result['width'],
-            svg_result['height'],
+            svg_result["width"],
+            svg_result["height"],
             model,
             error=f"SVG validation failed: {', '.join(validation.errors)}",
         )
@@ -140,9 +144,7 @@ async def _convert_and_optimize(
 
 
 async def handle_device_draw(
-    prompt: str,
-    device_id: Optional[str] = None,
-    user_preferences: Optional[Dict[str, Any]] = None
+    prompt: str, device_id: Optional[str] = None, user_preferences: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """
     处理设备绘图请求
@@ -165,8 +167,8 @@ async def handle_device_draw(
     """
     prefs = user_preferences or {}
     # wanx-v1 is deprecated/ unavailable; use the current working model.
-    model = prefs.get('model', 'wanx2.1-t2i-turbo')
-    size = prefs.get('size', '1024*1024')
+    model = prefs.get("model", "wanx2.1-t2i-turbo")
+    size = prefs.get("size", "1024*1024")
 
     logger.info(f"Device {device_id} draw request: {prompt[:50]}... (model={model})")
 
@@ -176,10 +178,10 @@ async def handle_device_draw(
 
     try:
         result = await _generate_image(prompt, model, size)
-        if result['status'] != 'success' or not result['images']:
-            return _build_failed_response(model, result.get('error', 'Unknown error'))
+        if result["status"] != "success" or not result["images"]:
+            return _build_failed_response(model, result.get("error", "Unknown error"))
 
-        image_url = result['images'][0]['url']
+        image_url = result["images"][0]["url"]
         return await _convert_and_optimize(image_url, model)
     except Exception as e:
         logger.error(f"Device draw failed: {e}")

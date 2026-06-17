@@ -1,4 +1,5 @@
 """Device management routes for XiaoZhi v1 compatibility API."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -8,8 +9,17 @@ from fastapi.responses import JSONResponse
 
 from .activation import ACTIVATION_TTL_SECONDS, check_activation_code, new_activation_code
 from .shared import (
-    authorize, ok, err, read_body, connect, now, new_id,
-    str_field, json_params, device_payload, require_device_access
+    authorize,
+    ok,
+    err,
+    read_body,
+    connect,
+    now,
+    new_id,
+    str_field,
+    json_params,
+    device_payload,
+    require_device_access,
 )
 
 router = APIRouter()

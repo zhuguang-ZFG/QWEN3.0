@@ -19,12 +19,7 @@ def _extract_answer(data: dict, fmt: str) -> str:
                 return block.get("thinking", "")
         return ""
     message = data["choices"][0]["message"]
-    return (
-        message.get("content")
-        or message.get("reasoning_content")
-        or message.get("reasoning")
-        or ""
-    )
+    return message.get("content") or message.get("reasoning_content") or message.get("reasoning") or ""
 
 
 def _extract_usage(data: dict, fmt: str) -> tuple[int, int]:
@@ -39,11 +34,7 @@ def _parse_sse_chunk(data_str: str, fmt: str) -> str:
         data = json.loads(data_str)
         if fmt == "openai":
             delta = data["choices"][0]["delta"]
-            return (
-                delta.get("content")
-                or delta.get("reasoning_content")
-                or ""
-            )
+            return delta.get("content") or delta.get("reasoning_content") or ""
         if data.get("type") == "content_block_delta":
             delta = data.get("delta", {})
             if delta.get("type") == "text_delta":

@@ -10,7 +10,8 @@ def _isolated_weights(tmp_path, monkeypatch):
     """Use a temp file for each test to avoid cross-test contamination."""
     weights_file = tmp_path / "weights.json"
     monkeypatch.setattr(
-        "context_pipeline.routing_weights.WEIGHTS_PATH", weights_file,
+        "context_pipeline.routing_weights.WEIGHTS_PATH",
+        weights_file,
     )
     yield weights_file
 
@@ -18,6 +19,7 @@ def _isolated_weights(tmp_path, monkeypatch):
 def _fresh():
     """Create a fresh RoutingWeights instance (bypass singleton)."""
     from context_pipeline.routing_weights import RoutingWeights
+
     return RoutingWeights()
 
 
@@ -107,6 +109,7 @@ def test_no_persistence_when_no_data(_isolated_weights):
 def test_corrupt_file_handled():
     """Corrupt weights file should not crash initialization."""
     from context_pipeline.routing_weights import RoutingWeights, WEIGHTS_PATH
+
     WEIGHTS_PATH.parent.mkdir(parents=True, exist_ok=True)
     WEIGHTS_PATH.write_text("NOT JSON {{{", encoding="utf-8")
     rw = RoutingWeights()

@@ -9,9 +9,7 @@ DECOMPOSE_MAX_TOKENS = 512
 SYNTHESIZE_MAX_TOKENS = 1024
 COMPLEXITY_THRESHOLD = 0.75
 
-LOCAL_ROUTER_URL = os.environ.get(
-    "LOCAL_ROUTER_URL", "http://127.0.0.1:11434/v1/chat/completions"
-)
+LOCAL_ROUTER_URL = os.environ.get("LOCAL_ROUTER_URL", "http://127.0.0.1:11434/v1/chat/completions")
 
 MULTI_DOMAIN_KEYWORDS = {
     "hardware": ["电路", "PCB", "硬件", "传感器", "驱动", "GPIO", "ADC"],

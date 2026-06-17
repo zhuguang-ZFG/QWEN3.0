@@ -27,8 +27,7 @@ class Chunker(ABC):
     """Abstract chunker interface."""
 
     @abstractmethod
-    def chunk(self, text: str, source_path: str = "") -> list[TextChunk]:
-        ...
+    def chunk(self, text: str, source_path: str = "") -> list[TextChunk]: ...
 
 
 class SimpleTextChunker(Chunker):
@@ -62,18 +61,20 @@ class SimpleTextChunker(Chunker):
 
             chunk_text = "\n".join(chunk_lines)
             char_offset = sum(len(line) + 1 for line in lines[:line_index])
-            chunks.append(TextChunk(
-                chunk_id=_stable_id(source_path, chunk_index),
-                text=chunk_text,
-                start_line=line_index + 1,
-                end_line=end_index,
-                char_offset=char_offset,
-                char_length=len(chunk_text),
-                metadata={
-                    "path": source_path,
-                    "chunk_index": chunk_index,
-                },
-            ))
+            chunks.append(
+                TextChunk(
+                    chunk_id=_stable_id(source_path, chunk_index),
+                    text=chunk_text,
+                    start_line=line_index + 1,
+                    end_line=end_index,
+                    char_offset=char_offset,
+                    char_length=len(chunk_text),
+                    metadata={
+                        "path": source_path,
+                        "chunk_index": chunk_index,
+                    },
+                )
+            )
 
             chunk_index += 1
             step = max(1, len(chunk_lines) - self.overlap_lines)

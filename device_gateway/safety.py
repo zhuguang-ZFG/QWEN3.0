@@ -1,4 +1,5 @@
 """Safety constraints for first-slice device motion tasks."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -45,4 +46,3 @@ def validate_run_path_params(params: dict[str, Any]) -> dict[str, Any]:
     result["feed"] = int(feed)
     result["path"] = normalized_path
     return result
-

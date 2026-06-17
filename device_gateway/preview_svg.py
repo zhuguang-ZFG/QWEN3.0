@@ -14,7 +14,7 @@ def preview_svg(
     if not path:
         return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}"><text x="10" y="20" font-size="12">(empty path)</text></svg>'
 
-    points_str = " ".join(f'{p["x"]},{p["y"]}' for p in path)
+    points_str = " ".join(f"{p['x']},{p['y']}" for p in path)
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}">'
         f'<rect width="{width}" height="{height}" fill="#fafafa" stroke="#ccc"/>'

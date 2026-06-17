@@ -11,9 +11,7 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-BROWSER_SERVICE_URL = os.environ.get(
-    "PROBE_BROWSER_URL", "http://127.0.0.1:8092"
-)
+BROWSER_SERVICE_URL = os.environ.get("PROBE_BROWSER_URL", "http://127.0.0.1:8092")
 
 # Sites that likely contain AI API information but require JS rendering
 _JS_HEAVY_SITES = [
@@ -84,12 +82,14 @@ async def probe_known_sites() -> list[dict]:
         logger.info("Browser probing: %s", url[:80])
         data = await probe_site(url)
         if data:
-            results.append({
-                "url": url,
-                "title": data.get("title", ""),
-                "text_preview": data.get("text", "")[:2000],
-                "network_count": len(data.get("network_requests", [])),
-            })
+            results.append(
+                {
+                    "url": url,
+                    "title": data.get("title", ""),
+                    "text_preview": data.get("text", "")[:2000],
+                    "network_count": len(data.get("network_requests", [])),
+                }
+            )
 
     return results
 
@@ -119,11 +119,13 @@ async def reverse_web_chat(url: str) -> dict:
     for call in api_calls:
         call_url = call.get("url", "")
         if any(kw in call_url.lower() for kw in ("chat", "completion", "message", "conversation", "stream")):
-            chat_endpoints.append({
-                "url": call_url,
-                "method": call.get("method", "POST"),
-                "headers": call.get("headers", {}),
-            })
+            chat_endpoints.append(
+                {
+                    "url": call_url,
+                    "method": call.get("method", "POST"),
+                    "headers": call.get("headers", {}),
+                }
+            )
 
     # Step 3: Try to identify auth mechanism
     auth_info = {"type": "unknown"}

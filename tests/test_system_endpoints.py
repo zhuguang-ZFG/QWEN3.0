@@ -14,11 +14,7 @@ def _route_for(path: str, method: str) -> APIRoute:
 
 
 def test_server_registers_extracted_system_endpoints():
-    paths = {
-        route.path
-        for route in server.app.routes
-        if isinstance(route, APIRoute)
-    }
+    paths = {route.path for route in server.app.routes if isinstance(route, APIRoute)}
 
     assert "/v1/models" in paths
     assert "/health" in paths

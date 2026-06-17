@@ -16,7 +16,8 @@ def consolidate_task_episodes(store: MemoryStore, device_id: str) -> list[Memory
     Returns any newly created or updated confidence entries.
     """
     episodes = [
-        e for e in store.list_by_device(device_id, include_expired=False)
+        e
+        for e in store.list_by_device(device_id, include_expired=False)
         if e.type == MemoryType.TASK_EPISODE and not e.disabled
     ]
     if len(episodes) < 2:
@@ -52,12 +53,14 @@ def consolidate_task_episodes(store: MemoryStore, device_id: str) -> list[Memory
             device_id=device_id,
             type=MemoryType.PROCEDURE_CONFIDENCE,
             key=existing_key,
-            value=json.dumps({
-                "task_type": task_type,
-                "success_rate": round(success_rate, 3),
-                "total_count": total,
-                "confidence": round(confidence, 3),
-            }),
+            value=json.dumps(
+                {
+                    "task_type": task_type,
+                    "success_rate": round(success_rate, 3),
+                    "total_count": total,
+                    "confidence": round(confidence, 3),
+                }
+            ),
             ttl_days=90,
             created_at=int(time.time()),
             source="consolidation",

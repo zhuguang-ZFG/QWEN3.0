@@ -91,9 +91,7 @@ def test_compose_system_prompt_chat_no_context():
 
 
 def test_compose_system_prompt_has_all_four_layers():
-    prompt = compose_system_prompt(
-        ide="Kiro", scenario="coding", code_context="server.py | embeddings"
-    )
+    prompt = compose_system_prompt(ide="Kiro", scenario="coding", code_context="server.py | embeddings")
     layers_found = 0
     if "编程助手" in prompt:
         layers_found += 1

@@ -24,9 +24,7 @@ from routing_ml.training_data import (
 
 _log = logging.getLogger(__name__)
 
-MODEL_PATH = os.environ.get(
-    "LIMA_ROUTING_MODEL_PATH", "data/routing_model.json"
-)
+MODEL_PATH = os.environ.get("LIMA_ROUTING_MODEL_PATH", "data/routing_model.json")
 
 TRAIN_INTERVAL = 1000
 TRAIN_EPOCHS = 5
@@ -92,6 +90,7 @@ def try_train() -> bool:
 
     # Train epochs
     import random
+
     losses = []
     for _ in range(TRAIN_EPOCHS):
         indices = list(range(len(samples)))
@@ -111,7 +110,10 @@ def try_train() -> bool:
         model.save(MODEL_PATH)
         _log.info(
             "routing_ml: trained round=%d samples=%d loss=%.4f backends=%d",
-            _state.total_rounds, len(samples), avg_loss, len(all_backends),
+            _state.total_rounds,
+            len(samples),
+            avg_loss,
+            len(all_backends),
         )
     except OSError as exc:
         _log.warning("routing_ml: failed to save model: %s", exc)

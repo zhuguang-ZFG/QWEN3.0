@@ -30,13 +30,11 @@ def scan_file(path: Path) -> FileRecord:
         return FileRecord(path=str(path), mtime=0.0)
     try:
         from .ast_adapter import get_extractor
+
         extractor = get_extractor(lang)
         if extractor:
             ast = extractor.scan_file(path)
-            symbols = [
-                CodeSymbol(name=s.name, kind=s.kind, line=s.line)
-                for s in ast.symbols
-            ]
+            symbols = [CodeSymbol(name=s.name, kind=s.kind, line=s.line) for s in ast.symbols]
             imports = [(r.target, r.line) for r in ast.relations if r.relation_type == "imports"]
             return FileRecord(
                 path=str(path),

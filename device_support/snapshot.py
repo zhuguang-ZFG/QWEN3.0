@@ -89,12 +89,14 @@ def _list_recent_terminal_tasks(
             payload = ev.payload or {}
             te = payload.get("terminal_event") or {}
             if isinstance(te, dict):
-                terminal_events.append({
-                    "task_id": ev.task_id,
-                    "phase": te.get("phase", ""),
-                    "capability": te.get("capability", te.get("source_capability", "")),
-                    "created_at": ev.created_at,
-                })
+                terminal_events.append(
+                    {
+                        "task_id": ev.task_id,
+                        "phase": te.get("phase", ""),
+                        "capability": te.get("capability", te.get("source_capability", "")),
+                        "created_at": ev.created_at,
+                    }
+                )
         if len(terminal_events) >= limit:
             break
     return terminal_events

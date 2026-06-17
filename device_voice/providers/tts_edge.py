@@ -30,9 +30,7 @@ class EdgeTTSProvider(TTSProvider):
     def default_voice(self) -> str:
         return self._voice
 
-    async def synthesize(
-        self, text: str, *, voice: str = "", sample_rate: int = 16000
-    ) -> bytes:
+    async def synthesize(self, text: str, *, voice: str = "", sample_rate: int = 16000) -> bytes:
         """Synthesize text to PCM audio via EdgeTTS.
 
         EdgeTTS produces MP3 audio; we return it directly (device can decode).

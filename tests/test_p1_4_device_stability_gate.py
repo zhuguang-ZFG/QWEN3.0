@@ -15,6 +15,7 @@ Run as:
     pytest tests/test_p1_4_device_stability_gate.py -v
     pytest tests/test_p1_4_device_stability_gate.py -v -k "stability" --stability-rounds 20
 """
+
 from __future__ import annotations
 
 
@@ -56,8 +57,9 @@ def test_fake_u8_full_success_cycle():
     c = _client()
     with c.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
         # hello
-        ws.send_json({"type": "hello", "protocol": "lima-device-v1",
-                      "device_id": "dev-1", "capabilities": ["run_path"]})
+        ws.send_json(
+            {"type": "hello", "protocol": "lima-device-v1", "device_id": "dev-1", "capabilities": ["run_path"]}
+        )
         assert ws.receive_json()["type"] == "hello_ack"
 
         # heartbeat
@@ -65,8 +67,7 @@ def test_fake_u8_full_success_cycle():
         assert ws.receive_json()["type"] == "heartbeat_ack"
 
         # transcript → motion_task
-        ws.send_json({"type": "transcript", "device_id": "dev-1",
-                      "text": "写LiMa", "request_id": "req-smoke"})
+        ws.send_json({"type": "transcript", "device_id": "dev-1", "text": "写LiMa", "request_id": "req-smoke"})
         task = ws.receive_json()
         assert task["type"] == "motion_task"
         assert task["capability"] == "run_path"
@@ -75,10 +76,13 @@ def test_fake_u8_full_success_cycle():
         task_id = task["task_id"]
 
         # accepted → running → progress → done
-        for phase, progress in [("accepted", None), ("running", None),
-                                ("progress", {"percent": 50}), ("done", {"percent": 100})]:
-            event = {"type": "motion_event", "device_id": "dev-1",
-                     "task_id": task_id, "phase": phase}
+        for phase, progress in [
+            ("accepted", None),
+            ("running", None),
+            ("progress", {"percent": 50}),
+            ("done", {"percent": 100}),
+        ]:
+            event = {"type": "motion_event", "device_id": "dev-1", "task_id": task_id, "phase": phase}
             if progress:
                 event["progress"] = progress
             ws.send_json(event)
@@ -95,17 +99,23 @@ def test_fake_u8_failure_event_e_missing_path():
     """Fake device sends failed + E_MISSING_PATH."""
     c = _client()
     with c.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
-        ws.send_json({"type": "hello", "protocol": "lima-device-v1",
-                      "device_id": "dev-1", "capabilities": ["run_path"]})
+        ws.send_json(
+            {"type": "hello", "protocol": "lima-device-v1", "device_id": "dev-1", "capabilities": ["run_path"]}
+        )
         assert ws.receive_json()["type"] == "hello_ack"
 
-        ws.send_json({"type": "transcript", "device_id": "dev-1",
-                      "text": "写LiMa"})
+        ws.send_json({"type": "transcript", "device_id": "dev-1", "text": "写LiMa"})
         task = ws.receive_json()
 
-        ws.send_json({"type": "motion_event", "device_id": "dev-1",
-                      "task_id": task["task_id"], "phase": "failed",
-                      "error": {"code": "E_MISSING_PATH", "reason": "path missing"}})
+        ws.send_json(
+            {
+                "type": "motion_event",
+                "device_id": "dev-1",
+                "task_id": task["task_id"],
+                "phase": "failed",
+                "error": {"code": "E_MISSING_PATH", "reason": "path missing"},
+            }
+        )
         # M5 recovery may emit motion_task_retry before the terminal motion_event_ack.
         ack = ws.receive_json()
         if ack["type"] == "motion_task_retry":
@@ -124,17 +134,24 @@ def test_fake_u8_failure_event_e_unsupported_board():
     """Firmware-side error_code/error_message format is preserved."""
     c = _client()
     with c.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
-        ws.send_json({"type": "hello", "protocol": "lima-device-v1",
-                      "device_id": "dev-1", "capabilities": ["run_path"]})
+        ws.send_json(
+            {"type": "hello", "protocol": "lima-device-v1", "device_id": "dev-1", "capabilities": ["run_path"]}
+        )
         ws.receive_json()
 
         ws.send_json({"type": "transcript", "device_id": "dev-1", "text": "home"})
         task = ws.receive_json()
 
-        ws.send_json({"type": "motion_event", "device_id": "dev-1",
-                      "task_id": task["task_id"], "phase": "failed",
-                      "error_code": "E_UNSUPPORTED_BOARD",
-                      "error_message": "board does not support motion tasks"})
+        ws.send_json(
+            {
+                "type": "motion_event",
+                "device_id": "dev-1",
+                "task_id": task["task_id"],
+                "phase": "failed",
+                "error_code": "E_UNSUPPORTED_BOARD",
+                "error_message": "board does not support motion tasks",
+            }
+        )
         ack = ws.receive_json()
         assert ack["phase"] == "failed"
 
@@ -149,9 +166,11 @@ def test_http_tasks_endpoint_preview_svg_present():
     """HTTP /device/v1/tasks creates task with preview SVGs for write/draw."""
     c = _client()
     for text, expected_cap in [("写LiMa", "write_text")]:
-        resp = c.post("/device/v1/tasks",
-                      headers={"Authorization": "Bearer test-private-token"},
-                      json={"device_id": "dev-1", "text": text, "request_id": f"req-{expected_cap}"})
+        resp = c.post(
+            "/device/v1/tasks",
+            headers={"Authorization": "Bearer test-private-token"},
+            json={"device_id": "dev-1", "text": text, "request_id": f"req-{expected_cap}"},
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] != "failed", f"{expected_cap} unexpectedly failed: {data}"
@@ -169,12 +188,15 @@ def test_http_tasks_endpoint_failed_task_not_queued(monkeypatch):
 
     # Inject validation failure for any params (Q2: creation reads task_deps, not tasks facade)
     monkeypatch.setattr(
-        task_deps, "validate_capability_params",
+        task_deps,
+        "validate_capability_params",
         lambda cap, params: ({}, "E_BAD_PARAMS"),
     )
-    resp = c.post("/device/v1/tasks",
-                  headers={"Authorization": "Bearer test-private-token"},
-                  json={"device_id": "dev-1", "text": "anything"})
+    resp = c.post(
+        "/device/v1/tasks",
+        headers={"Authorization": "Bearer test-private-token"},
+        json={"device_id": "dev-1", "text": "anything"},
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["status"] == "failed", f"expected failed, got {data['status']}"
@@ -184,12 +206,16 @@ def test_http_tasks_endpoint_failed_task_not_queued(monkeypatch):
 def test_multi_device_independent_queues():
     """dev-1 and dev-2 have independent pending queues."""
     c = _client()
-    c.post("/device/v1/tasks",
-           headers={"Authorization": "Bearer test-private-token"},
-           json={"device_id": "dev-1", "text": "写LiMa"})
-    c.post("/device/v1/tasks",
-           headers={"Authorization": "Bearer test-private-token"},
-           json={"device_id": "dev-2", "text": "写Hello"})
+    c.post(
+        "/device/v1/tasks",
+        headers={"Authorization": "Bearer test-private-token"},
+        json={"device_id": "dev-1", "text": "写LiMa"},
+    )
+    c.post(
+        "/device/v1/tasks",
+        headers={"Authorization": "Bearer test-private-token"},
+        json={"device_id": "dev-2", "text": "写Hello"},
+    )
 
     d1 = pending_count("dev-1")
     d2 = pending_count("dev-2")
@@ -211,14 +237,14 @@ def test_correlation_events_recorded_on_motion():
 
     c = _client()
     with c.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
-        ws.send_json({"type": "hello", "protocol": "lima-device-v1",
-                      "device_id": "dev-1", "capabilities": ["run_path"]})
+        ws.send_json(
+            {"type": "hello", "protocol": "lima-device-v1", "device_id": "dev-1", "capabilities": ["run_path"]}
+        )
         ws.receive_json()
         ws.send_json({"type": "transcript", "device_id": "dev-1", "text": "写LiMa"})
         task = ws.receive_json()
 
-        ws.send_json({"type": "motion_event", "device_id": "dev-1",
-                      "task_id": task["task_id"], "phase": "done"})
+        ws.send_json({"type": "motion_event", "device_id": "dev-1", "task_id": task["task_id"], "phase": "done"})
         ws.receive_json()
 
     events = correlate_by_id(task["task_id"])
@@ -241,23 +267,22 @@ def test_stability_loop(request):
         try:
             _reset_for_tests()  # Clean state between rounds
             with c.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
-                ws.send_json({"type": "hello", "protocol": "lima-device-v1",
-                              "device_id": "dev-1", "capabilities": ["run_path"]})
+                ws.send_json(
+                    {"type": "hello", "protocol": "lima-device-v1", "device_id": "dev-1", "capabilities": ["run_path"]}
+                )
                 ack = ws.receive_json()
                 assert ack["type"] == "hello_ack", f"round {i}: expected hello_ack"
 
                 ws.send_json({"type": "heartbeat", "device_id": "dev-1", "uptime_ms": i * 100})
                 assert ws.receive_json()["type"] == "heartbeat_ack"
 
-                ws.send_json({"type": "transcript", "device_id": "dev-1",
-                              "text": f"写LiMa_{i}"})
+                ws.send_json({"type": "transcript", "device_id": "dev-1", "text": f"写LiMa_{i}"})
                 task = ws.receive_json()
                 assert task["type"] == "motion_task", f"round {i}: expected motion_task"
 
                 task_id = task["task_id"]
                 for phase in ("accepted", "running", "progress", "done"):
-                    ws.send_json({"type": "motion_event", "device_id": "dev-1",
-                                  "task_id": task_id, "phase": phase})
+                    ws.send_json({"type": "motion_event", "device_id": "dev-1", "task_id": task_id, "phase": phase})
                     ack = ws.receive_json()
                     assert ack["type"] == "motion_event_ack", f"round {i} phase {phase}"
 

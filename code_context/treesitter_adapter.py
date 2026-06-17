@@ -50,26 +50,34 @@ _TS_NODE_KINDS: dict[str, str] = {
     "method_definition": "method",
 }
 
-_TS_CALLABLE_KINDS = frozenset({
-    "function", "method", "arrow_function",
-})
+_TS_CALLABLE_KINDS = frozenset(
+    {
+        "function",
+        "method",
+        "arrow_function",
+    }
+)
 
-_TS_IMPORT_NODE_TYPES = frozenset({
-    "import_statement",
-    "import_declaration",
-    "import_from_statement",
-    "import_specifier",
-    "import_alias",
-    "required_import",
-    "import_specifier",
-    "package_clause",
-})
+_TS_IMPORT_NODE_TYPES = frozenset(
+    {
+        "import_statement",
+        "import_declaration",
+        "import_from_statement",
+        "import_specifier",
+        "import_alias",
+        "required_import",
+        "import_specifier",
+        "package_clause",
+    }
+)
 
-_TS_EXTENDS_TYPES = frozenset({
-    "class_heritage",
-    "superclass",
-    "base_class",
-})
+_TS_EXTENDS_TYPES = frozenset(
+    {
+        "class_heritage",
+        "superclass",
+        "base_class",
+    }
+)
 
 _TREE_SITTER_AVAILABLE: bool | None = None
 
@@ -80,6 +88,7 @@ def _check_tree_sitter() -> bool:
         return _TREE_SITTER_AVAILABLE
     try:
         from tree_sitter_languages import get_parser
+
         get_parser("python")
         _TREE_SITTER_AVAILABLE = True
     except Exception:
@@ -125,6 +134,7 @@ class TreeSitterExtractor(AstExtractor):
     def _init_parsers(self) -> None:
         try:
             from tree_sitter_languages import get_parser
+
             for lang_name in ("python", "javascript", "typescript", "go", "rust", "java", "c"):
                 try:
                     self._parsers[lang_name] = get_parser(lang_name)
@@ -146,7 +156,9 @@ class TreeSitterExtractor(AstExtractor):
         return self._extract_regex_symbols(source, lang)
 
     def extract_relations(
-        self, file_path: Path, module_map: dict[str, str] | None = None,
+        self,
+        file_path: Path,
+        module_map: dict[str, str] | None = None,
     ) -> list[RelationInfo]:
         lang = _detect_language(file_path)
         if not lang:
@@ -184,7 +196,11 @@ class TreeSitterExtractor(AstExtractor):
             return self._extract_regex_symbols(source, lang)
 
     def _walk_ts_node(
-        self, node: object, symbols: list[SymbolInfo], source: str, depth: int,
+        self,
+        node: object,
+        symbols: list[SymbolInfo],
+        source: str,
+        depth: int,
     ) -> None:
         if depth > 20:
             return
@@ -207,7 +223,7 @@ class TreeSitterExtractor(AstExtractor):
                 lines = source.split("\n")
                 if start[0] < len(lines):
                     line_text = lines[start[0]]
-                    return line_text[start[1]:end[1]]
+                    return line_text[start[1] : end[1]]
         return ""
 
     def _extract_regex_symbols(self, source: str, lang: str) -> list[SymbolInfo]:
@@ -280,7 +296,10 @@ class TreeSitterExtractor(AstExtractor):
         return symbols
 
     def _extract_regex_relations(
-        self, source: str, lang: str, filename: str,
+        self,
+        source: str,
+        lang: str,
+        filename: str,
     ) -> list[RelationInfo]:
         relations: list[RelationInfo] = []
         lines = source.split("\n")

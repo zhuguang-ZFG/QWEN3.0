@@ -23,15 +23,9 @@ def _headers(account_id: str) -> dict[str, str]:
 
 def _seed_base() -> None:
     with compat._connect() as conn:
-        conn.execute(
-            "INSERT INTO v2_account (id, phone, nickname) VALUES ('a-owner', '10001', 'owner')"
-        )
-        conn.execute(
-            "INSERT INTO v2_account (id, phone, nickname) VALUES ('a-target', '10002', 'target')"
-        )
-        conn.execute(
-            "INSERT INTO v2_device (id, device_sn, model) VALUES ('d-1', 'SN-001', 'esp32s3_xyz')"
-        )
+        conn.execute("INSERT INTO v2_account (id, phone, nickname) VALUES ('a-owner', '10001', 'owner')")
+        conn.execute("INSERT INTO v2_account (id, phone, nickname) VALUES ('a-target', '10002', 'target')")
+        conn.execute("INSERT INTO v2_device (id, device_sn, model) VALUES ('d-1', 'SN-001', 'esp32s3_xyz')")
         conn.execute(
             """
             INSERT INTO v2_device_binding (id, device_id, account_id, bind_mode, status)

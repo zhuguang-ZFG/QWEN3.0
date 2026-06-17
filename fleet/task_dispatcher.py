@@ -13,7 +13,7 @@ _log = logging.getLogger(__name__)
 @dataclass
 class FleetTask:
     task_id: str = ""
-    task_type: str = ""   # shell, inference, workspace
+    task_type: str = ""  # shell, inference, workspace
     command: str = ""
     required_gpu: bool = False
     required_model: str = ""
@@ -140,11 +140,14 @@ class TaskDispatcher:
     def to_dict(self) -> dict:
         return {
             "queue_size": len(self._queue),
-            "tasks": {tid: {
-                "status": t.status,
-                "assigned_to": t.assigned_to,
-                "task_type": t.task_type,
-            } for tid, t in self._tasks.items()},
+            "tasks": {
+                tid: {
+                    "status": t.status,
+                    "assigned_to": t.assigned_to,
+                    "task_type": t.task_type,
+                }
+                for tid, t in self._tasks.items()
+            },
         }
 
 

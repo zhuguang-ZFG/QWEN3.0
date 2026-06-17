@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 # ── 预算配置 ─────────────────────────────────────────────────────────────────
 
+
 @dataclass
 class BudgetConfig:
     daily_limit: Optional[int]
@@ -33,7 +34,6 @@ BACKEND_BUDGETS: dict[str, BudgetConfig] = {
     "longcat_web": BudgetConfig(daily_limit=500),
     "longcat_web_think": BudgetConfig(daily_limit=300),
     "longcat_web_research": BudgetConfig(daily_limit=200),
-
     # NVIDIA 免费: 中等
     "nvidia_nemotron": BudgetConfig(daily_limit=1000),
     "nvidia_llama70b": BudgetConfig(daily_limit=1000),
@@ -41,7 +41,6 @@ BACKEND_BUDGETS: dict[str, BudgetConfig] = {
     "nvidia_llama4": BudgetConfig(daily_limit=800),
     "nvidia_mistral": BudgetConfig(daily_limit=800),
     "nvidia_phi4": BudgetConfig(daily_limit=800),
-
     # OpenRouter 免费: 保守
     "or_deepseek_r1": BudgetConfig(daily_limit=500, warn_at=0.7),
     "or_qwen3_coder": BudgetConfig(daily_limit=500, warn_at=0.7),
@@ -49,33 +48,26 @@ BACKEND_BUDGETS: dict[str, BudgetConfig] = {
     "or_nemotron": BudgetConfig(daily_limit=500, warn_at=0.7),
     "or_qwen3_80b": BudgetConfig(daily_limit=500, warn_at=0.7),
     "or_nemotron120b": BudgetConfig(daily_limit=500, warn_at=0.7),
-
     # GitHub Models 免费: 保守
     "github_gpt4o": BudgetConfig(daily_limit=500, warn_at=0.7),
     "github_gpt4o_mini": BudgetConfig(daily_limit=500, warn_at=0.7),
     "github_llama70b": BudgetConfig(daily_limit=500, warn_at=0.7),
     "github_codestral": BudgetConfig(daily_limit=500, warn_at=0.7),
-
     # Google 免费: 宽松
     "google_flash_lite": BudgetConfig(daily_limit=1000, warn_at=0.8),
     "google_gemini3": BudgetConfig(daily_limit=1000, warn_at=0.8),
     "google_gemma4": BudgetConfig(daily_limit=1000, warn_at=0.8),
-
     # Groq 免费: 宽松
     "groq_llama4": BudgetConfig(daily_limit=1000, warn_at=0.8),
     "groq_gptoss": BudgetConfig(daily_limit=1000, warn_at=0.8),
-
     # SambaNova 免费: 保守
     "sambanova_ds_v3": BudgetConfig(daily_limit=500, warn_at=0.7),
-
     # Mistral 免费: 中等
     "mistral_small": BudgetConfig(daily_limit=800, warn_at=0.8),
     "mistral_medium": BudgetConfig(daily_limit=800, warn_at=0.8),
     "mistral_codestral": BudgetConfig(daily_limit=800, warn_at=0.8),
-
     # 中国移动: 保守
     "chinamobile": BudgetConfig(daily_limit=500, warn_at=0.7),
-
     # 逆向代理: 最保守
     "deepseek_free": BudgetConfig(daily_limit=200, warn_at=0.6),
 }
@@ -114,6 +106,7 @@ def _check_reset():
 
 
 # ── 公开接口 ─────────────────────────────────────────────────────────────────
+
 
 def record_usage(backend: str):
     """记录一次请求使用。"""
@@ -196,26 +189,62 @@ COST_CLASS: dict[str, str] = {}
 
 # Local / free-tier backends
 _LOCAL_BACKENDS = {
-    "local_coder14b", "local_reasoning", "local_general",
-    "local_fast", "local_chat", "local_qwen3", "local_phi4", "local_mistral",
+    "local_coder14b",
+    "local_reasoning",
+    "local_general",
+    "local_fast",
+    "local_chat",
+    "local_qwen3",
+    "local_phi4",
+    "local_mistral",
     "deepseek_free",
 }
 _FREE_BACKENDS = {
-    "chat_ubi", "llm7", "pollinations", "pollinations_openai",
-    "pollinations_openai_large", "pollinations_deepseek", "pollinations_qwen_coder",
-    "scnet_qwen30b", "scnet_qwen235b", "scnet_ds_flash", "scnet_ds_pro",
+    "chat_ubi",
+    "llm7",
+    "pollinations",
+    "pollinations_openai",
+    "pollinations_openai_large",
+    "pollinations_deepseek",
+    "pollinations_qwen_coder",
+    "scnet_qwen30b",
+    "scnet_qwen235b",
+    "scnet_ds_flash",
+    "scnet_ds_pro",
     "scnet_minimax",
-    "ovh_llama70b", "ovh_deepseek",
-    "cfai_llama70b", "cfai_llama4", "cfai_qwen_coder",
-    "cfai_deepseek_r1", "cfai_mistral",
-    "tele_reason", "tele_standard", "tele_apps",
-    "assist_brainstorm", "vision_joycaption",
-    "stock_gpt4o_mini", "stock_gemini_flash", "stock_deepseek",
-    "stock_llama4", "stock_kimi_k2", "stock_glm46",
-    "stock_qwen3_coder", "stock_news", "stock_mistral",
-    "oldllm_gpt54", "oldllm_gpt53", "oldllm_gpt52", "oldllm_gpt51",
-    "oldllm_gpt5", "oldllm_gpt5_mini", "oldllm_gpt41", "oldllm_gpt41_mini",
-    "oldllm_gpt41_nano", "oldllm_gpt4", "oldllm_o1", "oldllm_o4_mini",
+    "ovh_llama70b",
+    "ovh_deepseek",
+    "cfai_llama70b",
+    "cfai_llama4",
+    "cfai_qwen_coder",
+    "cfai_deepseek_r1",
+    "cfai_mistral",
+    "tele_reason",
+    "tele_standard",
+    "tele_apps",
+    "assist_brainstorm",
+    "vision_joycaption",
+    "stock_gpt4o_mini",
+    "stock_gemini_flash",
+    "stock_deepseek",
+    "stock_llama4",
+    "stock_kimi_k2",
+    "stock_glm46",
+    "stock_qwen3_coder",
+    "stock_news",
+    "stock_mistral",
+    "oldllm_gpt54",
+    "oldllm_gpt53",
+    "oldllm_gpt52",
+    "oldllm_gpt51",
+    "oldllm_gpt5",
+    "oldllm_gpt5_mini",
+    "oldllm_gpt41",
+    "oldllm_gpt41_mini",
+    "oldllm_gpt41_nano",
+    "oldllm_gpt4",
+    "oldllm_o1",
+    "oldllm_o4_mini",
 }
 
 
@@ -245,17 +274,21 @@ _token_lock = threading.Lock()
 _token_usage: dict[str, dict] = {}
 
 
-def record_token_usage(backend: str, prompt_tokens: int = 0,
-                        completion_tokens: int = 0):
+def record_token_usage(backend: str, prompt_tokens: int = 0, completion_tokens: int = 0):
     """Best-effort token tracking from API response.usage."""
     if prompt_tokens <= 0 and completion_tokens <= 0:
         return
     if not should_track_cost(backend):
         return
     with _token_lock:
-        entry = _token_usage.setdefault(backend, {
-            "prompt": 0, "completion": 0, "requests": 0,
-        })
+        entry = _token_usage.setdefault(
+            backend,
+            {
+                "prompt": 0,
+                "completion": 0,
+                "requests": 0,
+            },
+        )
         entry["prompt"] += prompt_tokens
         entry["completion"] += completion_tokens
         entry["requests"] += 1
@@ -264,8 +297,8 @@ def record_token_usage(backend: str, prompt_tokens: int = 0,
     try:
         from observability.metrics import record as _obs_record
         from observability.events import token_usage_event
-        _obs_record(token_usage_event(backend, prompt_tokens, completion_tokens,
-                                       get_cost_class(backend)))
+
+        _obs_record(token_usage_event(backend, prompt_tokens, completion_tokens, get_cost_class(backend)))
     except ImportError:
         logger.debug("observability metrics unavailable: optional dependency not installed")
 

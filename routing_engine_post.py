@@ -22,24 +22,35 @@ def post_route(
 ) -> None:
     """路由后处理：post-route 集成、事件记录、反馈闭环。"""
     apply_post_route_integrations(
-        final_backend=final_backend, answer=answer or "",
-        backends=backends, messages_injected=messages_injected,
-        messages=messages, req_type=req_type, scenario=scenario, ms=ms,
+        final_backend=final_backend,
+        answer=answer or "",
+        backends=backends,
+        messages_injected=messages_injected,
+        messages=messages,
+        req_type=req_type,
+        scenario=scenario,
+        ms=ms,
     )
 
     fallback_used = bool(
-        final_backend not in ("exhausted", "none") and backends
-        and final_backend != backends[0],
+        final_backend not in ("exhausted", "none") and backends and final_backend != backends[0],
     )
     success = bool(answer and len(answer) > 5)
 
     try:
         from routes.agent_events import record_event
 
-        record_event("routing_decision", {
-            "backend": final_backend, "scenario": scenario, "req_type": req_type,
-            "latency_ms": ms, "success": success, "fallback_used": fallback_used,
-        })
+        record_event(
+            "routing_decision",
+            {
+                "backend": final_backend,
+                "scenario": scenario,
+                "req_type": req_type,
+                "latency_ms": ms,
+                "success": success,
+                "fallback_used": fallback_used,
+            },
+        )
     except Exception as exc:
         _log.debug("routing_decision event record failed: %s", type(exc).__name__)
 
@@ -47,8 +58,12 @@ def post_route(
         from routing_loop.feedback_bridge import on_request_complete
 
         on_request_complete(
-            request_id=make_chat_id(), scenario=scenario, messages=messages,
-            backend=final_backend, success=success, latency_ms=float(ms),
+            request_id=make_chat_id(),
+            scenario=scenario,
+            messages=messages,
+            backend=final_backend,
+            success=success,
+            latency_ms=float(ms),
             fallback_used=fallback_used,
         )
     except Exception as _fb_exc:

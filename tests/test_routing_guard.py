@@ -1,4 +1,4 @@
-﻿from observability.backend_telemetry import record_backend_attempt
+from observability.backend_telemetry import record_backend_attempt
 from observability.routing_guard import backend_guard_snapshot, is_backend_quarantined, penalty_multiplier
 
 

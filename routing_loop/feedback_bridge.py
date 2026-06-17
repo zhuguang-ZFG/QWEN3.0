@@ -39,10 +39,23 @@ def on_request_complete(
         message_length, code_ratio, chinese_ratio = _compute_message_metrics(messages or [])
 
         store = get_request_store()
-        _log_request(store, request_id, scenario, message_length, code_ratio,
-                     chinese_ratio, feature_vec.features, backend, success,
-                     latency_ms, quality_score, fallback_used, error_class,
-                     tokens_prompt, tokens_completion)
+        _log_request(
+            store,
+            request_id,
+            scenario,
+            message_length,
+            code_ratio,
+            chinese_ratio,
+            feature_vec.features,
+            backend,
+            success,
+            latency_ms,
+            quality_score,
+            fallback_used,
+            error_class,
+            tokens_prompt,
+            tokens_completion,
+        )
 
         # NOTE: routing_weights is updated by route_post_process.py, NOT here.
         _check_training_trigger()
@@ -50,17 +63,21 @@ def on_request_complete(
     except Exception as exc:
         _log.warning(
             "feedback_bridge.on_request_complete FAILED: %s: %s",
-            type(exc).__name__, exc, exc_info=True,
+            type(exc).__name__,
+            exc,
+            exc_info=True,
         )
 
 
 def _compute_message_metrics(messages: list[dict]) -> tuple[int, float, float]:
     """Compute message-level metrics (length, code ratio, chinese ratio)."""
     import re
-    text = " ".join(
-        str(m.get("content", "")) for m in messages
-        if isinstance(m, dict)
-    ).encode("utf-8", errors="replace").decode("utf-8")
+
+    text = (
+        " ".join(str(m.get("content", "")) for m in messages if isinstance(m, dict))
+        .encode("utf-8", errors="replace")
+        .decode("utf-8")
+    )
     message_length = len(text)
     try:
         code_fences = re.findall(r"```[\s\S]*?```", text)
@@ -74,19 +91,38 @@ def _compute_message_metrics(messages: list[dict]) -> tuple[int, float, float]:
     return message_length, code_ratio, chinese_ratio
 
 
-def _log_request(store, request_id: str, scenario: str, message_length: int,
-                 code_ratio: float, chinese_ratio: float, feature_list: list,
-                 backend: str, success: bool, latency_ms: float,
-                 quality_score: float, fallback_used: bool, error_class: str,
-                 tokens_prompt: int, tokens_completion: int) -> None:
+def _log_request(
+    store,
+    request_id: str,
+    scenario: str,
+    message_length: int,
+    code_ratio: float,
+    chinese_ratio: float,
+    feature_list: list,
+    backend: str,
+    success: bool,
+    latency_ms: float,
+    quality_score: float,
+    fallback_used: bool,
+    error_class: str,
+    tokens_prompt: int,
+    tokens_completion: int,
+) -> None:
     """Persist request data to the request store."""
     store.log_request(
-        request_id=request_id, scenario=scenario,
-        message_length=message_length, code_ratio=code_ratio,
-        chinese_ratio=chinese_ratio, feature_vector=feature_list,
-        backend=backend, success=success, latency_ms=latency_ms,
-        quality_score=quality_score, fallback_used=fallback_used,
-        error_class=error_class, tokens_prompt=tokens_prompt,
+        request_id=request_id,
+        scenario=scenario,
+        message_length=message_length,
+        code_ratio=code_ratio,
+        chinese_ratio=chinese_ratio,
+        feature_vector=feature_list,
+        backend=backend,
+        success=success,
+        latency_ms=latency_ms,
+        quality_score=quality_score,
+        fallback_used=fallback_used,
+        error_class=error_class,
+        tokens_prompt=tokens_prompt,
         tokens_completion=tokens_completion,
     )
 
@@ -95,6 +131,7 @@ def _update_routing_weights(backend: str, scenario: str, success: bool) -> None:
     """Update the GRPO-style routing weights (existing system)."""
     try:
         from context_pipeline.routing_weights import get_routing_weights
+
         rw = get_routing_weights()
         if success:
             rw.record_success(backend, scenario)
@@ -116,6 +153,7 @@ def _check_training_trigger() -> None:
         _request_counter = 0
         try:
             from routing_loop.loop_closer import close_loop
+
             close_loop()
         except Exception as exc:
             _log.debug("loop_closer.close_loop failed: %s", exc)

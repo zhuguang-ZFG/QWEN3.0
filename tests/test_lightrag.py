@@ -9,6 +9,7 @@ from context_pipeline.reranking import rerank_results, format_for_injection
 
 # === Phase 23: Entity Extraction ===
 
+
 def test_extract_file_paths():
     messages = [{"role": "user", "content": "fix the bug in server.py and routing_engine.py"}]
     entities = extract_entities(messages)
@@ -53,6 +54,7 @@ def test_to_query_terms():
 
 # === Phase 24: Graph-aware Retrieval ===
 
+
 def test_code_graph_add_and_get():
     graph = CodeGraph()
     graph.add_relation("server.py", "routing_engine.py", "imports")
@@ -91,6 +93,7 @@ def test_dual_layer_boosts_both_source():
 
 
 # === Phase 25: Reranking ===
+
 
 def test_rerank_entity_overlap_boost():
     results = [

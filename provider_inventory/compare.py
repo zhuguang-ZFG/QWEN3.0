@@ -41,22 +41,18 @@ def compare_inventory(
     registered_not_in_remote = sorted(registered_ids - remote_ids)
 
     backend_by_model = {entry["model_id"]: entry["backend_key"] for entry in registered.values()}
-    registered_in_remote = sorted(
-        mid for mid in registered_ids if mid in remote_ids
-    )
+    registered_in_remote = sorted(mid for mid in registered_ids if mid in remote_ids)
 
     return {
         "provider": inventory.get("provider"),
         "remote_count": len(remote_ids),
         "registered_backend_count": len(registered),
         "registered_in_remote": [
-            {"model_id": mid, "backend_key": backend_by_model.get(mid, "")}
-            for mid in registered_in_remote
+            {"model_id": mid, "backend_key": backend_by_model.get(mid, "")} for mid in registered_in_remote
         ],
         "unregistered_remote": unregistered_remote,
         "registered_missing_from_remote": [
-            {"model_id": mid, "backend_key": backend_by_model.get(mid, "")}
-            for mid in registered_not_in_remote
+            {"model_id": mid, "backend_key": backend_by_model.get(mid, "")} for mid in registered_not_in_remote
         ],
     }
 

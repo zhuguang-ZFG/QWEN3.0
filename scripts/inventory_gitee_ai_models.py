@@ -37,10 +37,7 @@ def main() -> int:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(inventory, ensure_ascii=False, indent=2), encoding="utf-8")
     snap = parse_inventory(out_path)
-    print(
-        f"gitee_ai_inventory_ok models={inventory['model_count']} "
-        f"chat_candidates={len(snap.models)} path={out_path}"
-    )
+    print(f"gitee_ai_inventory_ok models={inventory['model_count']} chat_candidates={len(snap.models)} path={out_path}")
     return 0
 
 

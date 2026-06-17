@@ -13,5 +13,10 @@ pytest_plugins = ["pytest_asyncio"]
 
 
 def pytest_addoption(parser):
-    parser.addoption("--stability-rounds", action="store", default=0, type=int,
-                     help="Number of stability loop iterations (0 = skip).")
+    parser.addoption(
+        "--stability-rounds",
+        action="store",
+        default=0,
+        type=int,
+        help="Number of stability loop iterations (0 = skip).",
+    )

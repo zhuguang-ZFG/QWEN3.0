@@ -1,4 +1,5 @@
 """Tests for device_gateway.path_pipeline — text/SVG-to-path rendering."""
+
 from device_gateway.path_pipeline import (
     MAX_PATH_POINTS,
     preview_svg,
@@ -54,7 +55,7 @@ def test_svg_path_to_motion_parses_cubic_bezier():
 
 
 def test_svg_path_to_motion_clamps_max_points():
-    d = " ".join(f"M {i} {i} L {i+1} {i+1}" for i in range(300))
+    d = " ".join(f"M {i} {i} L {i + 1} {i + 1}" for i in range(300))
     path = svg_path_to_motion(d, max_points=50)
     assert len(path) <= 50
 

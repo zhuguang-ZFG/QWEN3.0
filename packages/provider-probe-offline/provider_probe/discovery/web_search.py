@@ -68,12 +68,14 @@ async def search_searxng(query: str, limit: int = 10) -> list[SearchResult]:
 
                 # Boost results that mention free + AI model
                 if _FREE_PATTERN.search(snippet + title) and _MODEL_PATTERN.search(snippet + title):
-                    results.append(SearchResult(
-                        title=title,
-                        url=url,
-                        snippet=snippet,
-                        source_query=query,
-                    ))
+                    results.append(
+                        SearchResult(
+                            title=title,
+                            url=url,
+                            snippet=snippet,
+                            source_query=query,
+                        )
+                    )
             return results
     except Exception as exc:
         logger.warning("SearXNG search error: %s", type(exc).__name__)
@@ -119,15 +121,17 @@ async def scan_web() -> list[dict]:
         for r in results:
             urls = extract_api_urls(r.snippet + " " + r.url)
             for url in urls:
-                all_providers.append({
-                    "source": "searxng",
-                    "query": query,
-                    "title": r.title,
-                    "url": url,
-                    "snippet": r.snippet[:300],
-                    "is_free": bool(_FREE_PATTERN.search(r.snippet + r.title)),
-                    "mentioned_models": _MODEL_PATTERN.findall(r.snippet + r.title),
-                })
+                all_providers.append(
+                    {
+                        "source": "searxng",
+                        "query": query,
+                        "title": r.title,
+                        "url": url,
+                        "snippet": r.snippet[:300],
+                        "is_free": bool(_FREE_PATTERN.search(r.snippet + r.title)),
+                        "mentioned_models": _MODEL_PATTERN.findall(r.snippet + r.title),
+                    }
+                )
 
     # Fallback: Bing if SearXNG returned nothing
     if not all_providers:
@@ -137,15 +141,17 @@ async def scan_web() -> list[dict]:
             for r in results:
                 urls = extract_api_urls(r.snippet + " " + r.url)
                 for url in urls:
-                    all_providers.append({
-                        "source": "bing",
-                        "query": query,
-                        "title": r.title,
-                        "url": url,
-                        "snippet": r.snippet[:300],
-                        "is_free": bool(_FREE_PATTERN.search(r.snippet + r.title)),
-                        "mentioned_models": _MODEL_PATTERN.findall(r.snippet + r.title),
-                    })
+                    all_providers.append(
+                        {
+                            "source": "bing",
+                            "query": query,
+                            "title": r.title,
+                            "url": url,
+                            "snippet": r.snippet[:300],
+                            "is_free": bool(_FREE_PATTERN.search(r.snippet + r.title)),
+                            "mentioned_models": _MODEL_PATTERN.findall(r.snippet + r.title),
+                        }
+                    )
 
     # Deduplicate by URL
     seen_urls = set()

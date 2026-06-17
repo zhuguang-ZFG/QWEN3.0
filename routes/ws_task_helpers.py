@@ -26,18 +26,24 @@ async def send_recovery_ack(
     retry_task = recovery_result.get("task")
     if action == "home":
         await session.send_json(
-            ack_frame("home_command", device_id,
-                      task_id=message.get("task_id", ""),
-                      reason="recovery_action_home",
-                      request_id=request_id)
+            ack_frame(
+                "home_command",
+                device_id,
+                task_id=message.get("task_id", ""),
+                reason="recovery_action_home",
+                request_id=request_id,
+            )
         )
     elif action == "retry" and retry_task:
         await session.send_json(
-            ack_frame("motion_task_retry", device_id,
-                      task_id=message.get("task_id", ""),
-                      task=retry_task,
-                      attempt=recovery_result.get("attempt", 0),
-                      request_id=request_id)
+            ack_frame(
+                "motion_task_retry",
+                device_id,
+                task_id=message.get("task_id", ""),
+                task=retry_task,
+                attempt=recovery_result.get("attempt", 0),
+                request_id=request_id,
+            )
         )
         # Avoid double-delivery via pending queue; task is already inflight.
         session.mark_task_dispatched(retry_task)

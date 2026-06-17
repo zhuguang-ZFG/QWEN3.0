@@ -6,6 +6,7 @@ tasks.py:135 `route_policy.get("backend", "unknown")` resolves to the real
 backend instead of 'unknown' whenever the sticky-routing gate passes.
 See spec docs/superpowers/specs/2026-06-15-route-policy-backend-field-design.md.
 """
+
 from device_gateway.model_routing import resolve_device_route_policy
 
 
@@ -28,19 +29,17 @@ def test_resolve_includes_backend_for_all_capability_families():
 
 def test_backend_matches_device_role_preferences():
     # Real backend for device_draw.
-    assert resolve_device_route_policy(
-        {"capability": "draw_generated", "params": {"prompt": "画一只猫"}}
-    )["backend"] == "dashscope_wanx"
+    assert (
+        resolve_device_route_policy({"capability": "draw_generated", "params": {"prompt": "画一只猫"}})["backend"]
+        == "dashscope_wanx"
+    )
     # Local markers for the deterministic/local roles.
-    assert resolve_device_route_policy(
-        {"capability": "draw_generated", "params": {"prompt": "M 0 0 L 10 10"}}
-    )["backend"] == "opencv_contour"
-    assert resolve_device_route_policy(
-        {"capability": "run_path", "params": {}}
-    )["backend"] == "opencv_contour"
-    assert resolve_device_route_policy(
-        {"capability": "home", "params": {}}
-    )["backend"] == "deterministic"
+    assert (
+        resolve_device_route_policy({"capability": "draw_generated", "params": {"prompt": "M 0 0 L 10 10"}})["backend"]
+        == "opencv_contour"
+    )
+    assert resolve_device_route_policy({"capability": "run_path", "params": {}})["backend"] == "opencv_contour"
+    assert resolve_device_route_policy({"capability": "home", "params": {}})["backend"] == "deterministic"
 
 
 def test_resolve_never_returns_unknown_as_backend():
@@ -51,8 +50,7 @@ def test_resolve_never_returns_unknown_as_backend():
     for capability in ("home", "write_text", "draw_generated", "run_path", "nope"):
         policy = resolve_device_route_policy({"capability": capability, "params": {"prompt": "cat"}})
         assert policy["backend"] != "unknown", (
-            f"resolve returned backend='unknown' for {capability}; the "
-            "backend-field gap is not closed"
+            f"resolve returned backend='unknown' for {capability}; the backend-field gap is not closed"
         )
 
 

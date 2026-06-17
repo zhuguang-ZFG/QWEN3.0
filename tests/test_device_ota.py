@@ -1,4 +1,5 @@
 """Tests for OTA release gate and canary deployment."""
+
 from device_ota.release import ReleaseGate
 from device_ota.canary import CanaryDeployment
 

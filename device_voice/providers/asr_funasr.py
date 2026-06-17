@@ -30,10 +30,7 @@ class FunASRProvider(ASRProvider):
         try:
             from funasr import AutoModel  # noqa: F401
         except ImportError:
-            _log.warning(
-                "funasr not installed; ASR unavailable. "
-                "Install: pip install funasr modelscope"
-            )
+            _log.warning("funasr not installed; ASR unavailable. Install: pip install funasr modelscope")
             return False
 
         try:

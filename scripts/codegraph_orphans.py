@@ -6,6 +6,7 @@ Usage:
 
 Requires: codegraph index on project root (.codegraph/codegraph.db).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -111,11 +112,7 @@ def _scan_root_orphans(imports: list[sqlite3.Row], *, fanin: bool) -> None:
         stem = path.stem
         if stem in imported_modules:
             continue
-        refs = [
-            r["file_path"]
-            for r in imports
-            if stem in (r["name"] or "") or (r["name"] or "").endswith(stem)
-        ]
+        refs = [r["file_path"] for r in imports if stem in (r["name"] or "") or (r["name"] or "").endswith(stem)]
         prod_refs = [f for f in refs if not any(f.startswith(s) for s in SKIP_PREFIXES)]
         if prod_refs:
             continue

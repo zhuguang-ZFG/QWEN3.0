@@ -22,6 +22,7 @@ from provider_automation.snapshot_store import (
 
 from provider_automation_helpers import entry
 
+
 def test_model_entry_key():
     entry = ProviderModelEntry(model_id="gpt-4o", provider="openrouter")
 
@@ -279,18 +280,26 @@ def test_compute_delta_rejects_different_providers():
 # M14: Snapshot store
 
 from provider_automation.snapshot_store import (
-    save_snapshot, load_snapshot, load_latest_snapshot,
-    list_snapshots, count_snapshots, reset_snapshots,
+    save_snapshot,
+    load_snapshot,
+    load_latest_snapshot,
+    list_snapshots,
+    count_snapshots,
+    reset_snapshots,
 )
 import os
 
 
 def test_save_and_load_snapshot(tmp_path, monkeypatch):
     monkeypatch.setenv("LIMA_SNAPSHOT_DIR", str(tmp_path))
-    snap = ProviderModelSnapshot(provider="openrouter", source="fixture", models=[
-        ProviderModelEntry(model_id="m1", provider="openrouter"),
-        ProviderModelEntry(model_id="m2", provider="openrouter"),
-    ])
+    snap = ProviderModelSnapshot(
+        provider="openrouter",
+        source="fixture",
+        models=[
+            ProviderModelEntry(model_id="m1", provider="openrouter"),
+            ProviderModelEntry(model_id="m2", provider="openrouter"),
+        ],
+    )
     path = save_snapshot(snap)
     assert os.path.exists(path)
 
@@ -302,14 +311,22 @@ def test_save_and_load_snapshot(tmp_path, monkeypatch):
 
 def test_load_latest_snapshot(tmp_path, monkeypatch):
     monkeypatch.setenv("LIMA_SNAPSHOT_DIR", str(tmp_path))
-    snap1 = ProviderModelSnapshot(provider="openrouter", source="f",
-                                  fetched_at=100, models=[
-        ProviderModelEntry(model_id="old", provider="openrouter"),
-    ])
-    snap2 = ProviderModelSnapshot(provider="openrouter", source="f",
-                                  fetched_at=200, models=[
-        ProviderModelEntry(model_id="new", provider="openrouter"),
-    ])
+    snap1 = ProviderModelSnapshot(
+        provider="openrouter",
+        source="f",
+        fetched_at=100,
+        models=[
+            ProviderModelEntry(model_id="old", provider="openrouter"),
+        ],
+    )
+    snap2 = ProviderModelSnapshot(
+        provider="openrouter",
+        source="f",
+        fetched_at=200,
+        models=[
+            ProviderModelEntry(model_id="new", provider="openrouter"),
+        ],
+    )
     save_snapshot(snap1)
     save_snapshot(snap2)
     latest = load_latest_snapshot("openrouter")
@@ -327,9 +344,13 @@ def test_load_snapshot_bad_file(tmp_path, monkeypatch):
 def test_list_and_count_snapshots(tmp_path, monkeypatch):
     monkeypatch.setenv("LIMA_SNAPSHOT_DIR", str(tmp_path))
     for i in range(3):
-        snap = ProviderModelSnapshot(provider="or", source="f", models=[
-            ProviderModelEntry(model_id=f"m{i}", provider="or"),
-        ])
+        snap = ProviderModelSnapshot(
+            provider="or",
+            source="f",
+            models=[
+                ProviderModelEntry(model_id=f"m{i}", provider="or"),
+            ],
+        )
         snap.fetched_at = 100 + i  # distinct timestamps
         save_snapshot(snap)
     assert count_snapshots("or") == 3
@@ -338,9 +359,13 @@ def test_list_and_count_snapshots(tmp_path, monkeypatch):
 
 def test_reset_snapshots(tmp_path, monkeypatch):
     monkeypatch.setenv("LIMA_SNAPSHOT_DIR", str(tmp_path))
-    snap = ProviderModelSnapshot(provider="or", source="f", models=[
-        ProviderModelEntry(model_id="m1", provider="or"),
-    ])
+    snap = ProviderModelSnapshot(
+        provider="or",
+        source="f",
+        models=[
+            ProviderModelEntry(model_id="m1", provider="or"),
+        ],
+    )
     save_snapshot(snap)
     reset_snapshots("or")
     assert count_snapshots("or") == 0
@@ -348,11 +373,16 @@ def test_reset_snapshots(tmp_path, monkeypatch):
 
 # M14: Probe runner
 
+
 def test_snapshot_provider_name_is_sanitized_and_stays_in_store(tmp_path, monkeypatch):
     monkeypatch.setenv("LIMA_SNAPSHOT_DIR", str(tmp_path))
-    snap = ProviderModelSnapshot(provider="../bad/provider", source="f", models=[
-        ProviderModelEntry(model_id="m1", provider="../bad/provider"),
-    ])
+    snap = ProviderModelSnapshot(
+        provider="../bad/provider",
+        source="f",
+        models=[
+            ProviderModelEntry(model_id="m1", provider="../bad/provider"),
+        ],
+    )
 
     path = save_snapshot(snap)
 
@@ -365,12 +395,22 @@ def test_snapshot_provider_name_is_sanitized_and_stays_in_store(tmp_path, monkey
 
 def test_snapshot_same_second_saves_do_not_overwrite(tmp_path, monkeypatch):
     monkeypatch.setenv("LIMA_SNAPSHOT_DIR", str(tmp_path))
-    snap1 = ProviderModelSnapshot(provider="or", source="f", fetched_at=100, models=[
-        ProviderModelEntry(model_id="m1", provider="or"),
-    ])
-    snap2 = ProviderModelSnapshot(provider="or", source="f", fetched_at=100, models=[
-        ProviderModelEntry(model_id="m2", provider="or"),
-    ])
+    snap1 = ProviderModelSnapshot(
+        provider="or",
+        source="f",
+        fetched_at=100,
+        models=[
+            ProviderModelEntry(model_id="m1", provider="or"),
+        ],
+    )
+    snap2 = ProviderModelSnapshot(
+        provider="or",
+        source="f",
+        fetched_at=100,
+        models=[
+            ProviderModelEntry(model_id="m2", provider="or"),
+        ],
+    )
 
     path1 = save_snapshot(snap1)
     path2 = save_snapshot(snap2)
@@ -382,9 +422,15 @@ def test_snapshot_same_second_saves_do_not_overwrite(tmp_path, monkeypatch):
 def test_reset_snapshots_without_provider_removes_all(tmp_path, monkeypatch):
     monkeypatch.setenv("LIMA_SNAPSHOT_DIR", str(tmp_path))
     for provider in ("a", "b"):
-        save_snapshot(ProviderModelSnapshot(provider=provider, source="f", models=[
-            ProviderModelEntry(model_id=f"{provider}-m", provider=provider),
-        ]))
+        save_snapshot(
+            ProviderModelSnapshot(
+                provider=provider,
+                source="f",
+                models=[
+                    ProviderModelEntry(model_id=f"{provider}-m", provider=provider),
+                ],
+            )
+        )
 
     reset_snapshots()
 

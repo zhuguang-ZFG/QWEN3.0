@@ -199,7 +199,8 @@ def _filter_compatible_models(
             continue
         weight = entry.get("default_weight", 5)
         weight = _adjust_weight_for_preferences(
-            weight=weight, tier=entry.get("tier", "balanced"),
+            weight=weight,
+            tier=entry.get("tier", "balanced"),
             prefs=device_profile.preferences,
         )
         if entry["name"] in device_profile.history.preferred_models:
@@ -213,14 +214,16 @@ def _build_selection_result(compatible: list[tuple[int, dict[str, Any]]]) -> dic
     """Build selection result dict from ranked compatible models."""
     if not compatible:
         return {
-            "selected_model": "", "backend": "", "tier": "",
-            "weight": 0, "alternatives": [],
+            "selected_model": "",
+            "backend": "",
+            "tier": "",
+            "weight": 0,
+            "alternatives": [],
             "reason": "no compatible model for device profile",
         }
     best_weight, best_entry = compatible[0]
     alternatives = [
-        {"model": entry["name"], "backend": entry.get("backend", ""), "weight": w}
-        for w, entry in compatible[1:]
+        {"model": entry["name"], "backend": entry.get("backend", ""), "weight": w} for w, entry in compatible[1:]
     ]
     return {
         "selected_model": best_entry["name"],
@@ -296,8 +299,9 @@ def _adjust_weight_for_preferences(
     return max(adjusted, 1)  # never drop below 1
 
 
-def _policy(route_role: str, model_required: bool, primary_strategy: str,
-            artifact_required: str, backend: str = "") -> dict[str, Any]:
+def _policy(
+    route_role: str, model_required: bool, primary_strategy: str, artifact_required: str, backend: str = ""
+) -> dict[str, Any]:
     return {
         "route_role": route_role,
         "model_required": model_required,

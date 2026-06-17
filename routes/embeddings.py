@@ -1,4 +1,5 @@
 """routes/embeddings.py — OpenAI-compatible embeddings proxy (Jina AI)."""
+
 import json
 import os
 import urllib.error as _ue
@@ -36,11 +37,15 @@ async def embeddings(request: Request):
     else:
         opener = _ur.build_opener()
     payload = json.dumps({"model": model, "input": inp, "dimensions": dimensions}).encode()
-    req = _ur.Request("https://api.jina.ai/v1/embeddings", data=payload, headers={
-        "Authorization": f"Bearer {jina_key}",
-        "Content-Type": "application/json",
-        "User-Agent": "LiMa/1.3",
-    })
+    req = _ur.Request(
+        "https://api.jina.ai/v1/embeddings",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {jina_key}",
+            "Content-Type": "application/json",
+            "User-Agent": "LiMa/1.3",
+        },
+    )
     try:
         resp = opener.open(req, timeout=15)
         data = json.loads(resp.read())

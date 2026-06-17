@@ -56,9 +56,14 @@ def _decision_multiplier(failures: int, attempts: int) -> float:
 def _empty_backend_stats() -> dict[str, Any]:
     """Default per-backend stats accumulator."""
     return {
-        "attempts": 0, "success": 0, "failures": 0, "hard_failures": 0,
-        "latest_success_ts": 0.0, "latest_success_order": -1,
-        "latest_failure_ts": 0.0, "latest_failure_order": -1,
+        "attempts": 0,
+        "success": 0,
+        "failures": 0,
+        "hard_failures": 0,
+        "latest_success_ts": 0.0,
+        "latest_success_order": -1,
+        "latest_failure_ts": 0.0,
+        "latest_failure_order": -1,
         "latest_failure_class": "",
     }
 
@@ -117,37 +122,27 @@ def _compute_quarantine_decisions(
         latest_failure_order = int(stats["latest_failure_order"])
         latest_success_order = int(stats["latest_success_order"])
         latest_error = _short(stats["latest_failure_class"], 40)
-        latest_failure_age = (
-            int(max(0.0, current - latest_failure_ts)) if latest_failure_ts else 0
-        )
-        failure_after_success = (
-            (latest_failure_ts, latest_failure_order)
-            > (latest_success_ts, latest_success_order)
-        )
+        latest_failure_age = int(max(0.0, current - latest_failure_ts)) if latest_failure_ts else 0
+        failure_after_success = (latest_failure_ts, latest_failure_order) > (latest_success_ts, latest_success_order)
 
         status = "healthy"
         reason = ""
         multiplier = _decision_multiplier(failures, attempts)
-        if (
-            failure_after_success
-            and latest_error in HARD_FAILURE_CLASSES
-            and latest_failure_age <= quarantine_sec
-        ):
+        if failure_after_success and latest_error in HARD_FAILURE_CLASSES and latest_failure_age <= quarantine_sec:
             status, reason, multiplier = "quarantined", "recent_hard_failure", 0.05
-        elif (
-            failure_after_success
-            and failures >= repeated_threshold
-            and latest_failure_age <= quarantine_sec
-        ):
+        elif failure_after_success and failures >= repeated_threshold and latest_failure_age <= quarantine_sec:
             status, reason, multiplier = "quarantined", "repeated_recent_failures", 0.05
         elif failures:
             status, reason = "penalized", "recent_failure_ratio"
 
         if status != "healthy":
             decisions[backend] = {
-                "status": status, "reason": reason,
-                "attempts": attempts, "success": int(stats["success"]),
-                "failures": failures, "hard_failures": int(stats["hard_failures"]),
+                "status": status,
+                "reason": reason,
+                "attempts": attempts,
+                "success": int(stats["success"]),
+                "failures": failures,
+                "hard_failures": int(stats["hard_failures"]),
                 "last_error_class": latest_error,
                 "last_failure_age_sec": latest_failure_age,
                 "penalty_multiplier": multiplier,
@@ -183,14 +178,13 @@ def backend_guard_snapshot(
     if not enabled:
         return snapshot
 
-    records = [
-        item for item in _recent_records(limit)
-        if current - float(item.get("ts", 0) or 0) <= window_sec
-    ]
+    records = [item for item in _recent_records(limit) if current - float(item.get("ts", 0) or 0) <= window_sec]
     per_backend = _aggregate_records(records)
     snapshot["decisions"] = _compute_quarantine_decisions(
-        per_backend, current=current,
-        quarantine_sec=quarantine_sec, repeated_threshold=repeated_threshold,
+        per_backend,
+        current=current,
+        quarantine_sec=quarantine_sec,
+        repeated_threshold=repeated_threshold,
     )
     return snapshot
 

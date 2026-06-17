@@ -18,8 +18,15 @@ class TestTaskStates:
     @pytest.mark.parametrize(
         "state",
         [
-            "created", "planned", "simulated", "waiting_approval",
-            "ready_to_dispatch", "dispatched", "running", "recovering", "terminal",
+            "created",
+            "planned",
+            "simulated",
+            "waiting_approval",
+            "ready_to_dispatch",
+            "dispatched",
+            "running",
+            "recovering",
+            "terminal",
         ],
     )
     def test_state_exists(self, state: str) -> None:
@@ -124,8 +131,11 @@ class TestWorkflowOrchestrator:
     def test_recovery_path(self) -> None:
         self.wf.register("task-005")
         for target in (
-            TaskState.PLANNED, TaskState.SIMULATED,
-            TaskState.READY_TO_DISPATCH, TaskState.DISPATCHED, TaskState.RUNNING,
+            TaskState.PLANNED,
+            TaskState.SIMULATED,
+            TaskState.READY_TO_DISPATCH,
+            TaskState.DISPATCHED,
+            TaskState.RUNNING,
         ):
             self.wf.advance("task-005", target)
         self.wf.advance("task-005", TaskState.RECOVERING)

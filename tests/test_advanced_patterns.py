@@ -3,6 +3,7 @@ from context_pipeline.skill_store import SkillStore
 
 # === Phase 17: Skill Crystallization ===
 
+
 def test_skill_crystallize_and_recall():
     store = SkillStore()
     messages = [{"role": "user", "content": "fix the routing bug in server.py"}]
@@ -37,6 +38,9 @@ def test_skill_store_eviction():
     for i in range(5):
         store.crystallize(
             [{"role": "user", "content": f"request {i}"}],
-            "coding", f"backend_{i}", 3, 500,
+            "coding",
+            f"backend_{i}",
+            3,
+            500,
         )
     assert store.skill_count <= 3

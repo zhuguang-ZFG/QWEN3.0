@@ -6,14 +6,14 @@ from provider_automation.runner import ProbeRunner, ProbeRunnerConfig, format_ba
 
 from provider_automation_helpers import entry
 
+
 def test_probe_runner_metadata_only():
     cfg = ProbeRunnerConfig(run_completion_smoke=False)
     runner = ProbeRunner(cfg)
     models = [ProviderModelEntry(model_id="good", provider="x", endpoint_count=1)]
     results = runner.run(models)
     assert len(results) == 1
-    assert results[0].final_status in (
-        ModelAdmissionStatus.SANDBOX_ONLY, ModelAdmissionStatus.CANDIDATE)
+    assert results[0].final_status in (ModelAdmissionStatus.SANDBOX_ONLY, ModelAdmissionStatus.CANDIDATE)
 
 
 def test_probe_runner_rejects_bad_metadata():
@@ -30,8 +30,7 @@ def test_probe_runner_with_smoke():
     runner.set_smoke_callable(lambda m, msgs, mt: "Hello from smoke test")
     models = [ProviderModelEntry(model_id="good", provider="x", endpoint_count=1)]
     results = runner.run(models)
-    assert results[0].final_status in (
-        ModelAdmissionStatus.SANDBOX_ONLY, ModelAdmissionStatus.CANDIDATE)
+    assert results[0].final_status in (ModelAdmissionStatus.SANDBOX_ONLY, ModelAdmissionStatus.CANDIDATE)
 
 
 def test_probe_runner_smoke_failure():
@@ -46,13 +45,17 @@ def test_probe_runner_smoke_failure():
 def test_format_batch_results():
     from provider_automation.probe import ProbeResult
     from provider_automation.runner import BatchProbeResult
+
     br = BatchProbeResult(
         model=ProviderModelEntry(model_id="test", provider="x"),
-        results=[ProbeResult(
-            model=ProviderModelEntry(model_id="test", provider="x"),
-            level=ProbeLevel.METADATA_ONLY, passed=True,
-            status=ModelAdmissionStatus.CANDIDATE,
-        )],
+        results=[
+            ProbeResult(
+                model=ProviderModelEntry(model_id="test", provider="x"),
+                level=ProbeLevel.METADATA_ONLY,
+                passed=True,
+                status=ModelAdmissionStatus.CANDIDATE,
+            )
+        ],
         final_status=ModelAdmissionStatus.CANDIDATE,
     )
     text = format_batch_results([br])
@@ -60,6 +63,7 @@ def test_format_batch_results():
 
 
 # M14: Impact smoke
+
 
 def test_probe_runner_missing_requested_callable_goes_to_watchlist():
     cfg = ProbeRunnerConfig(run_metadata=True, run_completion_smoke=True)
@@ -90,16 +94,19 @@ def test_probe_runner_highest_level_uses_probe_order_not_string_order():
 def test_format_batch_results_redacts_secret_like_model_ids_and_errors():
     from provider_automation.probe import ProbeResult
     from provider_automation.runner import BatchProbeResult
+
     model = ProviderModelEntry(model_id="sk-secret-model", provider="x")
     batch = BatchProbeResult(
         model=model,
-        results=[ProbeResult(
-            model=model,
-            level=ProbeLevel.COMPLETION_SMOKE,
-            passed=False,
-            status=ModelAdmissionStatus.REJECTED,
-            error="Bearer should not leak",
-        )],
+        results=[
+            ProbeResult(
+                model=model,
+                level=ProbeLevel.COMPLETION_SMOKE,
+                passed=False,
+                status=ModelAdmissionStatus.REJECTED,
+                error="Bearer should not leak",
+            )
+        ],
         final_status=ModelAdmissionStatus.REJECTED,
     )
 

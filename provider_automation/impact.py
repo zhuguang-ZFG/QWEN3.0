@@ -35,10 +35,7 @@ class ImpactSmoke:
         return [
             result
             for result in self.results
-            if not result.in_routing
-            and result.is_free
-            and not result.has_privacy_note
-            and not result.warnings
+            if not result.in_routing and result.is_free and not result.has_privacy_note and not result.warnings
         ]
 
 
@@ -93,9 +90,7 @@ def check_removal_impact(
 
         _collect_pool_membership(result, model, pools)
         if result.in_routing:
-            result.warnings.append(
-                "REMOVED from catalog but still in routing - cool/disable required"
-            )
+            result.warnings.append("REMOVED from catalog but still in routing - cool/disable required")
 
         results.append(result)
 

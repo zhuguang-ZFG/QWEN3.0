@@ -67,11 +67,13 @@ def test_lesson_extraction_skips_success():
 
 def test_default_response_pipeline_full_flow():
     pipe = build_default_response_pipeline()
-    ctx = pipe.process(ResponseContext(
-        backend="scnet_qwen72b",
-        response_text="Fixed the routing bug by updating line 42.",
-        latency_ms=800,
-    ))
+    ctx = pipe.process(
+        ResponseContext(
+            backend="scnet_qwen72b",
+            response_text="Fixed the routing bug by updating line 42.",
+            latency_ms=800,
+        )
+    )
     assert ctx.quality_ok is True
     assert "scnet_qwen72b" in ctx.summary
     assert ctx.lesson == ""
@@ -80,12 +82,14 @@ def test_default_response_pipeline_full_flow():
 
 def test_default_response_pipeline_failure_flow():
     pipe = build_default_response_pipeline()
-    ctx = pipe.process(ResponseContext(
-        backend="groq_llama70b",
-        response_text="",
-        latency_ms=15000,
-        status_code=200,
-    ))
+    ctx = pipe.process(
+        ResponseContext(
+            backend="groq_llama70b",
+            response_text="",
+            latency_ms=15000,
+            status_code=200,
+        )
+    )
     assert ctx.quality_ok is False
     assert "groq_llama70b" in ctx.lesson
     assert len(ctx.processors_applied) == 5

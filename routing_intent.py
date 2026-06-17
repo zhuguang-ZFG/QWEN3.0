@@ -1,4 +1,5 @@
 """Intent detection helpers (migrated from legacy router_intent/router_image)."""
+
 from __future__ import annotations
 
 import re

@@ -26,10 +26,7 @@ async def admin_stats():
     with lock:
         uptime = int(time.time() - stats["start_time"])
         total = stats["total_requests"]
-        backend_calls = {
-            name: backend_call_detail(value)
-            for name, value in dict(stats["backend_calls"]).items()
-        }
+        backend_calls = {name: backend_call_detail(value) for name, value in dict(stats["backend_calls"]).items()}
         avg_ms = 0
         if total > 0:
             total_ms_all = sum(item["total_ms"] for item in backend_calls.values())

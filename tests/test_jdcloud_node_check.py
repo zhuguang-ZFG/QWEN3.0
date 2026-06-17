@@ -5,19 +5,21 @@ from scripts import check_jdcloud_node
 
 def test_parse_remote_report_normalizes_numbers_and_statuses():
     report = check_jdcloud_node.parse_remote_report(
-        "\n".join([
-            "disk_free_mb=2048",
-            "mem_available_mb=512",
-            "loadavg=0.10 0.20 0.30",
-            "lima_probe_timer=active",
-            "lima_probe_service=inactive",
-            "prometheus_service=active",
-            "chat_health_http_code=200",
-            "chat_prometheus_http_code=not_configured",
-            "browser_health_http_code=200",
-            "browser_ready_http_code=503",
-            "browser_render_http_code=500",
-        ])
+        "\n".join(
+            [
+                "disk_free_mb=2048",
+                "mem_available_mb=512",
+                "loadavg=0.10 0.20 0.30",
+                "lima_probe_timer=active",
+                "lima_probe_service=inactive",
+                "prometheus_service=active",
+                "chat_health_http_code=200",
+                "chat_prometheus_http_code=not_configured",
+                "browser_health_http_code=200",
+                "browser_ready_http_code=503",
+                "browser_render_http_code=500",
+            ]
+        )
     )
 
     assert report["disk_free_mb"] == 2048

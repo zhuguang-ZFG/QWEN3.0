@@ -117,6 +117,7 @@ def test_retriever_facade_preserves_planned_import_boundary():
 
 # -- graph_index -----------------------------------------------------------------
 
+
 def test_in_memory_graph_index_add_and_get_related():
     from code_context.graph_index import InMemoryGraphIndex
 

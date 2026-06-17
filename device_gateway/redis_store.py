@@ -1,4 +1,5 @@
 """Redis-backed Device Gateway task store."""
+
 from __future__ import annotations
 
 from copy import deepcopy
@@ -131,7 +132,9 @@ class RedisDeviceTaskStore:
         processing_started_at = self._redis.time()[0] if tasks else 0
         for task in tasks:
             state = self._read_task_state(task["task_id"]) or {
-                "task": task, "status": "queued", "events": [],
+                "task": task,
+                "status": "queued",
+                "events": [],
             }
             state["task"] = deepcopy(task)
             state["status"] = "dispatching"
@@ -227,7 +230,9 @@ class RedisDeviceTaskStore:
                 processing_started_at = 0
                 if state:
                     processing_started_at = float(state.get("processing_started_at") or 0)
-                processing_started_at = processing_started_at or float(data.get("_processing_at") or data.get("_enqueued_at") or 0)
+                processing_started_at = processing_started_at or float(
+                    data.get("_processing_at") or data.get("_enqueued_at") or 0
+                )
                 if processing_started_at > 0 and now - processing_started_at > timeout_sec:
                     # Atomically move from processing back to pending
                     removed = self._redis.lrem(proc_key, 0, item)

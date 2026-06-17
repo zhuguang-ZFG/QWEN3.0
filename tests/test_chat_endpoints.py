@@ -8,11 +8,7 @@ import server
 
 
 def test_server_registers_extracted_chat_endpoints():
-    paths = {
-        route.path
-        for route in server.app.routes
-        if isinstance(route, APIRoute)
-    }
+    paths = {route.path for route in server.app.routes if isinstance(route, APIRoute)}
 
     assert "/v1/chat/completions" in paths
     assert "/public/demo/chat" in paths
@@ -22,6 +18,7 @@ def test_server_registers_extracted_chat_endpoints():
 def test_anthropic_endpoint_removed():
     """Anthropic /v1/messages endpoint removed in 2026-06-15 strategic cleanup."""
     import pytest
+
     pytest.skip("Anthropic /v1/messages endpoint removed 2026-06-15")
 
 
@@ -77,6 +74,7 @@ def test_openai_endpoint_rejects_malformed_json(monkeypatch):
 def test_anthropic_endpoint_rejects_malformed_json(monkeypatch):
     """Anthropic /v1/messages endpoint removed in 2026-06-15 strategic cleanup."""
     import pytest
+
     pytest.skip("Anthropic /v1/messages endpoint removed 2026-06-15")
 
 

@@ -143,9 +143,7 @@ def test_dev_adapter_tiered_uses_first_non_empty_tier():
         def search(self, query: str, *, domain: str | None = None, max_results: int = 5) -> dict:
             return {"ok": True, "results": []}
 
-        def batch_search(
-            self, queries: list[str], *, domain: str | None = None, max_results: int = 5
-        ) -> dict:
+        def batch_search(self, queries: list[str], *, domain: str | None = None, max_results: int = 5) -> dict:
             return {"ok": True, "results": []}
 
         def extract_url(self, url: str) -> dict:
@@ -159,9 +157,7 @@ def test_dev_adapter_tiered_uses_first_non_empty_tier():
                 "source": "brave",
             }
 
-        def batch_search(
-            self, queries: list[str], *, domain: str | None = None, max_results: int = 5
-        ) -> dict:
+        def batch_search(self, queries: list[str], *, domain: str | None = None, max_results: int = 5) -> dict:
             return self.search(queries[0], domain=domain, max_results=max_results)
 
         def extract_url(self, url: str) -> dict:

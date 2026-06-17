@@ -89,7 +89,9 @@ def _verdict(spec: RoleEvalSpec, pass_rate: float, fail_count: int) -> str:
 
 
 def evaluate_role(spec: RoleEvalSpec, *, include_live: bool = False) -> RoleEvalResult:
-    if spec.admission_status == "defer" or (not spec.pytest_targets and not (include_live and spec.live_pytest_targets)):
+    if spec.admission_status == "defer" or (
+        not spec.pytest_targets and not (include_live and spec.live_pytest_targets)
+    ):
         return RoleEvalResult(
             role_id=spec.role_id,
             label_zh=spec.label_zh,
@@ -148,9 +150,7 @@ def _print_table(results: list[RoleEvalResult]) -> None:
     print(f"{'role':<20} {'verdict':<18} {'pass':>5} {'fail':>5} {'rate':>6}")
     for row in results:
         rate = f"{row.pass_rate:.0%}" if row.fixture_count else "—"
-        print(
-            f"{row.role_id:<20} {row.verdict:<18} {row.pass_count:>5} {row.fail_count:>5} {rate:>6}"
-        )
+        print(f"{row.role_id:<20} {row.verdict:<18} {row.pass_count:>5} {row.fail_count:>5} {rate:>6}")
 
 
 def _markdown_report(results: list[RoleEvalResult]) -> str:
@@ -174,7 +174,9 @@ def _markdown_report(results: list[RoleEvalResult]) -> str:
             lines.append(f"- **{row.label_zh}**: `{row.pytest_command}`")
     lines.append("")
     lines.append("- 全量角色：`python scripts/eval_device_model_role.py --all`")
-    lines.append("- 含 DashScope 真实图生：`LIMA_DEVICE_ADMISSION_LIVE=1 python scripts/eval_device_model_role.py --role image_generator --live`")
+    lines.append(
+        "- 含 DashScope 真实图生：`LIMA_DEVICE_ADMISSION_LIVE=1 python scripts/eval_device_model_role.py --role image_generator --live`"
+    )
     return "\n".join(lines) + "\n"
 
 

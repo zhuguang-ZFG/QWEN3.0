@@ -23,10 +23,7 @@ _git_remote_token: str | None = None
 
 def _access_token() -> str:
     global _git_remote_token
-    env = (
-        os.environ.get("GITEE_TOKEN", "").strip()
-        or os.environ.get("GITEE_ACCESS_TOKEN", "").strip()
-    )
+    env = os.environ.get("GITEE_TOKEN", "").strip() or os.environ.get("GITEE_ACCESS_TOKEN", "").strip()
     if env:
         return env
     if _git_remote_token is None:

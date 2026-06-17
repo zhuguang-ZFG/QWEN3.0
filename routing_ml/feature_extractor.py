@@ -17,11 +17,26 @@ from dataclasses import dataclass
 
 N_FEATURES = 12
 
-_DEBUG_KEYWORDS = frozenset({
-    "debug", "fix", "error", "bug", "crash", "exception",
-    "traceback", "stack trace", "panic", "segfault",
-    "修复", "报错", "异常", "崩溃", "调试", "出错",
-})
+_DEBUG_KEYWORDS = frozenset(
+    {
+        "debug",
+        "fix",
+        "error",
+        "bug",
+        "crash",
+        "exception",
+        "traceback",
+        "stack trace",
+        "panic",
+        "segfault",
+        "修复",
+        "报错",
+        "异常",
+        "崩溃",
+        "调试",
+        "出错",
+    }
+)
 
 _CODE_FENCE_RE = re.compile(r"```[\s\S]*?```", re.MULTILINE)
 _FILE_REF_RE = re.compile(r"(?:^|\s)([\w/\\.-]+\.(?:py|js|ts|tsx|jsx|go|rs|java|c|cpp|rb|php))\b")

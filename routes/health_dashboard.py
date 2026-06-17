@@ -12,6 +12,7 @@ router = APIRouter()
 
 def _require_admin(request: Request):
     from access_guard import require_private_api_key
+
     auth = request.headers.get("authorization", "")
     require_private_api_key(authorization=auth)
 
@@ -52,24 +53,26 @@ def _collect_backend_health() -> dict:
         quality = health_state.get_backend_quality(name)
         cb_state = "open" if health_tracker.is_cooled_down(name) else "closed"
 
-        backends.append({
-            "name": name,
-            "health": health_map.get(name, "unknown"),
-            "score": scores.get(name, 50),
-            "avg_latency_ms": latency_map.get(name, 0),
-            "consecutive_failures": state.get("consecutive_failures", 0),
-            "cooldown_remaining_s": state.get("cooldown_remaining_s", 0),
-            "last_error_code": state.get("last_error_code"),
-            "last_error_class": state.get("last_error_class"),
-            "total_requests": quality.get("total_requests", 0),
-            "empty_count": quality.get("empty_count", 0),
-            "caps": caps,
-            "budget": budget_status,
-            "model": cfg.get("model", ""),
-            "cb_state": cb_state,
-            "cb_failures": state.get("consecutive_failures", 0),
-            "cb_total_calls": quality.get("total_requests", 0),
-        })
+        backends.append(
+            {
+                "name": name,
+                "health": health_map.get(name, "unknown"),
+                "score": scores.get(name, 50),
+                "avg_latency_ms": latency_map.get(name, 0),
+                "consecutive_failures": state.get("consecutive_failures", 0),
+                "cooldown_remaining_s": state.get("cooldown_remaining_s", 0),
+                "last_error_code": state.get("last_error_code"),
+                "last_error_class": state.get("last_error_class"),
+                "total_requests": quality.get("total_requests", 0),
+                "empty_count": quality.get("empty_count", 0),
+                "caps": caps,
+                "budget": budget_status,
+                "model": cfg.get("model", ""),
+                "cb_state": cb_state,
+                "cb_failures": state.get("consecutive_failures", 0),
+                "cb_total_calls": quality.get("total_requests", 0),
+            }
+        )
 
     healthy = sum(1 for b in backends if b["health"] == "healthy")
     degraded = sum(1 for b in backends if b["health"] == "degraded")
@@ -111,15 +114,15 @@ def _build_backend_row(b: dict) -> str:
     caps_str = ", ".join(b["caps"]) if b["caps"] else "-"
     return f"""
         <tr>
-            <td><span style="color:{color};font-weight:bold">●</span> {b['name']}</td>
+            <td><span style="color:{color};font-weight:bold">●</span> {b["name"]}</td>
             <td>{badge}</td>
-            <td>{b['score']:.0f}</td>
-            <td>{b['avg_latency_ms']:.0f}ms</td>
-            <td>{b['total_requests']}</td>
-            <td>{cooldown or '-'}</td>
-            <td>{error_info or '-'}</td>
+            <td>{b["score"]:.0f}</td>
+            <td>{b["avg_latency_ms"]:.0f}ms</td>
+            <td>{b["total_requests"]}</td>
+            <td>{cooldown or "-"}</td>
+            <td>{error_info or "-"}</td>
             <td>{caps_str}</td>
-            <td>{b['budget']}</td>
+            <td>{b["budget"]}</td>
         </tr>"""
 
 
@@ -146,15 +149,15 @@ tr:hover {{ background: #f1f5f9; }}
 </head><body>
 <h1>LiMa Backend Health Dashboard</h1>
 <div class="stats">
-    <div class="stat"><div class="num" style="color:#22c55e">{data['healthy']}</div><div class="label">Healthy</div></div>
-    <div class="stat"><div class="num" style="color:#eab308">{data['degraded']}</div><div class="label">Degraded</div></div>
-    <div class="stat"><div class="num" style="color:#ef4444">{data['dead']}</div><div class="label">Dead</div></div>
-    <div class="stat"><div class="num" style="color:#6b7280">{data['cooled']}</div><div class="label">Cooled Down</div></div>
-    <div class="stat"><div class="num">{data['total']}</div><div class="label">Total Backends</div></div>
+    <div class="stat"><div class="num" style="color:#22c55e">{data["healthy"]}</div><div class="label">Healthy</div></div>
+    <div class="stat"><div class="num" style="color:#eab308">{data["degraded"]}</div><div class="label">Degraded</div></div>
+    <div class="stat"><div class="num" style="color:#ef4444">{data["dead"]}</div><div class="label">Dead</div></div>
+    <div class="stat"><div class="num" style="color:#6b7280">{data["cooled"]}</div><div class="label">Cooled Down</div></div>
+    <div class="stat"><div class="num">{data["total"]}</div><div class="label">Total Backends</div></div>
 </div>
 <table>
 <tr><th>Backend</th><th>Status</th><th>Score</th><th>Latency</th><th>Requests</th><th>Cooldown</th><th>Last Error</th><th>Capabilities</th><th>Budget</th></tr>
-{''.join(rows)}
+{"".join(rows)}
 </table>
 <div class="timestamp">Last updated: {ts} | Auto-refresh: 30s</div>
 </body></html>"""

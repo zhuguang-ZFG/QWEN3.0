@@ -1,4 +1,5 @@
 """Tests for session_memory.learning_loop — task outcome → memory/prompt/routing/eval."""
+
 from session_memory.learning_loop import (
     TaskOutcome,
     get_eval_candidates,
@@ -68,14 +69,16 @@ def test_ingest_task_without_backend_still_feeds_memory_and_prompt():
 
 def test_prompt_profile_accumulates_stats():
     for i in range(3):
-        ingest_task_outcome(TaskOutcome(
-            task_id=f"task-p{i}",
-            status="succeeded",
-            goal="fix type errors",
-            backend="github_gpt4o",
-            scenario="coding",
-            test_results=[{"command": "tsc --noEmit", "exit_code": 0}],
-        ))
+        ingest_task_outcome(
+            TaskOutcome(
+                task_id=f"task-p{i}",
+                status="succeeded",
+                goal="fix type errors",
+                backend="github_gpt4o",
+                scenario="coding",
+                test_results=[{"command": "tsc --noEmit", "exit_code": 0}],
+            )
+        )
     stats = get_prompt_profile_stats()
     assert len(stats) > 0
 
@@ -83,14 +86,16 @@ def test_prompt_profile_accumulates_stats():
 def test_eval_candidates_are_queued():
     initial = len(get_eval_candidates(100))
     for i in range(3):
-        ingest_task_outcome(TaskOutcome(
-            task_id=f"task-e{i}",
-            status="succeeded",
-            goal="implement feature",
-            backend="scnet_ds_flash",
-            scenario="coding",
-            test_results=[{"command": "pytest", "exit_code": 0}],
-        ))
+        ingest_task_outcome(
+            TaskOutcome(
+                task_id=f"task-e{i}",
+                status="succeeded",
+                goal="implement feature",
+                backend="scnet_ds_flash",
+                scenario="coding",
+                test_results=[{"command": "pytest", "exit_code": 0}],
+            )
+        )
     candidates = get_eval_candidates(100)
     assert len(candidates) >= initial + 3
 

@@ -13,7 +13,9 @@ import os
 _log = logging.getLogger(__name__)
 
 _EMBED_ENABLED = os.environ.get("LIMA_MEMORY_EMBED", "1").strip().lower() in {
-    "1", "true", "yes",
+    "1",
+    "true",
+    "yes",
 }
 
 

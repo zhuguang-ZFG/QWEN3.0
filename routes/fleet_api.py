@@ -92,13 +92,22 @@ class CompleteRequest(BaseModel):
 @router.post("/register")
 async def register_node(req: RegisterRequest, _auth: None = _FleetAuth) -> dict:
     from fleet.node_registry import NodeCapabilities, get_registry
+
     caps = NodeCapabilities(
-        gpu=req.gpu, gpu_model=req.gpu_model, gpu_vram_gb=req.gpu_vram_gb,
-        cpu_cores=req.cpu_cores, ram_gb=req.ram_gb,
-        shell=req.shell, workspace=req.workspace, models=req.models,
+        gpu=req.gpu,
+        gpu_model=req.gpu_model,
+        gpu_vram_gb=req.gpu_vram_gb,
+        cpu_cores=req.cpu_cores,
+        ram_gb=req.ram_gb,
+        shell=req.shell,
+        workspace=req.workspace,
+        models=req.models,
     )
     node = get_registry().register(
-        req.node_id, host=req.host, port=req.port, role=req.role,
+        req.node_id,
+        host=req.host,
+        port=req.port,
+        role=req.role,
         capabilities=caps,
     )
     return {"ok": True, "node": node.to_dict()}
@@ -107,6 +116,7 @@ async def register_node(req: RegisterRequest, _auth: None = _FleetAuth) -> dict:
 @router.post("/heartbeat")
 async def heartbeat(req: HeartbeatRequest, _auth: None = _FleetAuth) -> dict:
     from fleet.node_registry import get_registry
+
     node = get_registry().heartbeat(req.node_id, load_avg=req.load_avg, status=req.status)
     if node is None:
         return {"ok": False, "error": "node not registered"}
@@ -116,6 +126,7 @@ async def heartbeat(req: HeartbeatRequest, _auth: None = _FleetAuth) -> dict:
 @router.get("/nodes")
 async def list_nodes(_auth: None = _FleetAuth) -> dict:
     from fleet.node_registry import get_registry
+
     nodes = get_registry().get_all_nodes()
     return {
         "total": len(nodes),
@@ -127,9 +138,12 @@ async def list_nodes(_auth: None = _FleetAuth) -> dict:
 @router.post("/submit")
 async def submit_task(req: SubmitRequest, _auth: None = _FleetAuth) -> dict:
     from fleet.task_dispatcher import get_dispatcher
+
     task = get_dispatcher().submit(
-        task_type=req.task_type, command=req.command,
-        required_gpu=req.required_gpu, required_model=req.required_model,
+        task_type=req.task_type,
+        command=req.command,
+        required_gpu=req.required_gpu,
+        required_model=req.required_model,
         payload=req.payload,
     )
     return {"ok": True, "task_id": task.task_id, "status": task.status}

@@ -51,6 +51,7 @@ def record_routing_outcome(
     if not skip_weights:
         try:
             from context_pipeline.routing_weights import get_routing_weights
+
             rw = get_routing_weights()
             if success:
                 rw.record_success(backend, scenario)

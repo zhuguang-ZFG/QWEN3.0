@@ -10,9 +10,7 @@ import urllib.request
 
 _log = logging.getLogger(__name__)
 
-DEFAULT_EVAL_BASE_URL = os.environ.get(
-    "LIMA_EVAL_BASE_URL", "http://127.0.0.1:8080"
-).rstrip("/")
+DEFAULT_EVAL_BASE_URL = os.environ.get("LIMA_EVAL_BASE_URL", "http://127.0.0.1:8080").rstrip("/")
 
 DEFAULT_QUICK_BACKENDS = os.environ.get(
     "LIMA_EVAL_QUICK_BACKENDS",

@@ -19,10 +19,25 @@ _log = logging.getLogger(__name__)
 # Steps threshold: longer/complex prompts get plan→execute→verify
 _PLAN_THRESHOLD_CHARS = 200
 _PLAN_SIGNALS = [
-    "implement", "build", "create", "refactor", "重构",
-    "实现", "构建", "创建", "multi-file", "多文件", "module",
-    "fix all", "修复所有", "add feature", "添加功能",
-    "api", "endpoint", "database", "migration",
+    "implement",
+    "build",
+    "create",
+    "refactor",
+    "重构",
+    "实现",
+    "构建",
+    "创建",
+    "multi-file",
+    "多文件",
+    "module",
+    "fix all",
+    "修复所有",
+    "add feature",
+    "添加功能",
+    "api",
+    "endpoint",
+    "database",
+    "migration",
 ]
 
 _THINKING_PROMPT = (
@@ -66,14 +81,26 @@ def build_plan_prompt(query: str, files: list[str]) -> str:
 # ── Project Context Discovery ─────────────────────────────────────────────────
 
 _SCAN_IGNORE = {
-    "venv", "node_modules", "__pycache__", ".git", ".codegraph",
-    "dist", "build", "egg-info", "esp32S_XYZ", "PyWxDump",
-    "mempalace", "codegraph", "wx_key_tool", "lima-miniprogram",
+    "venv",
+    "node_modules",
+    "__pycache__",
+    ".git",
+    ".codegraph",
+    "dist",
+    "build",
+    "egg-info",
+    "esp32S_XYZ",
+    "PyWxDump",
+    "mempalace",
+    "codegraph",
+    "wx_key_tool",
+    "lima-miniprogram",
 }
 
 
 def discover_project_files(
-    root: str | None = None, max_files: int = 80,
+    root: str | None = None,
+    max_files: int = 80,
 ) -> dict[str, list[str]]:
     """Walk project and group source files by directory.
 
@@ -88,7 +115,13 @@ def discover_project_files(
         if any(p in _SCAN_IGNORE for p in entry.parts):
             continue
         if entry.is_file() and entry.suffix in (
-            ".py", ".js", ".ts", ".tsx", ".jsx", ".go", ".rs",
+            ".py",
+            ".js",
+            ".ts",
+            ".tsx",
+            ".jsx",
+            ".go",
+            ".rs",
         ):
             rel = str(entry.relative_to(root_path))
             directory = str(entry.parent.relative_to(root_path)) or "."
@@ -101,7 +134,9 @@ def discover_project_files(
 
 
 def find_related_files(
-    query: str, project_files: dict[str, list[str]], max_files: int = 5,
+    query: str,
+    project_files: dict[str, list[str]],
+    max_files: int = 5,
 ) -> list[str]:
     """Find files related to a coding query by matching keywords."""
     keywords = _extract_keywords(query)
@@ -111,10 +146,7 @@ def find_related_files(
         dir_lower = directory.lower()
         for f in files:
             f_lower = f.lower()
-            score = sum(
-                1 for kw in keywords
-                if kw.lower() in f_lower or kw.lower() in dir_lower
-            )
+            score = sum(1 for kw in keywords if kw.lower() in f_lower or kw.lower() in dir_lower)
             if score > 0:
                 scored.append((f, score))
 
@@ -139,20 +171,40 @@ def _extract_keywords(query: str) -> list[str]:
         r"engine|stream|async|routing|proxy|backend|"
         r"tool|forward|bridge|selector|executor|"
         r"registry|gateway|session|memory|orchestrat)\b",
-        query, re.I,
+        query,
+        re.I,
     )
     keywords.extend(tech_terms)
     # Any word >4 chars that isn't a stopword
-    stopwords = {"this", "that", "with", "from", "have", "been", "were",
-                 "when", "will", "would", "could", "should", "about",
-                 "into", "over", "after", "before", "between"}
+    stopwords = {
+        "this",
+        "that",
+        "with",
+        "from",
+        "have",
+        "been",
+        "were",
+        "when",
+        "will",
+        "would",
+        "could",
+        "should",
+        "about",
+        "into",
+        "over",
+        "after",
+        "before",
+        "between",
+    }
     words = re.findall(r"\b([a-z]{4,20})\b", query.lower())
     keywords.extend(w for w in words if w not in stopwords)
     return list(dict.fromkeys(keywords))[:15]
 
 
 def build_context_summary(
-    query: str, project_root: str | None = None, max_files: int = 8,
+    query: str,
+    project_root: str | None = None,
+    max_files: int = 8,
 ) -> str:
     """Build a project context summary for injection into coding prompts."""
     project_files = discover_project_files(project_root)
@@ -168,8 +220,7 @@ def build_context_summary(
     lines = ["[Project Context — auto-detected]"]
     for f in related[:max_files]:
         lines.append(f"  {f}")
-    lines.append(f"\n  ({len(project_files)} dirs, "
-                 f"{sum(len(v) for v in project_files.values())} src files total)")
+    lines.append(f"\n  ({len(project_files)} dirs, {sum(len(v) for v in project_files.values())} src files total)")
 
     return "\n".join(lines)
 
@@ -185,7 +236,8 @@ def enhance_coding_prompt(query: str, messages: list[dict] | None = None) -> dic
     project_root = os.environ.get("LIMA_PROJECT_ROOT", os.getcwd())
     context = build_context_summary(query, project_root)
     context_files = find_related_files(
-        query, discover_project_files(project_root),
+        query,
+        discover_project_files(project_root),
     )
 
     if needs_plan(query):

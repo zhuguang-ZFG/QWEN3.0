@@ -210,17 +210,17 @@ async def device_task_status(task_id: str) -> JSONResponse:
     if not snapshot:
         return JSONResponse(
             status_code=404,
-            content=error_frame(
-                ProtocolError("E_TASK_NOT_FOUND", f"Task {task_id} not found")
-            ),
+            content=error_frame(ProtocolError("E_TASK_NOT_FOUND", f"Task {task_id} not found")),
         )
 
-    return JSONResponse({
-        "task_id": task_id,
-        "status": snapshot.get("status", "unknown"),
-        "task": snapshot.get("task", {}),
-        "events": snapshot.get("events", []),
-    })
+    return JSONResponse(
+        {
+            "task_id": task_id,
+            "status": snapshot.get("status", "unknown"),
+            "task": snapshot.get("task", {}),
+            "events": snapshot.get("events", []),
+        }
+    )
 
 
 @router.get("/tasks", dependencies=[Depends(require_private_api_key)])
@@ -237,10 +237,12 @@ async def device_task_list(
 
     tasks = task_store.list_tasks_for_device(device_id, status=status, limit=limit)
 
-    return JSONResponse({
-        "tasks": tasks,
-        "count": len(tasks),
-    })
+    return JSONResponse(
+        {
+            "tasks": tasks,
+            "count": len(tasks),
+        }
+    )
 
 
 @router.get("/devices/{device_id}/history", dependencies=[Depends(require_private_api_key)])
@@ -263,21 +265,25 @@ async def device_drawing_history(
     # 转换为可序列化的格式
     history = []
     for artifact in artifacts:
-        history.append({
-            "task_id": artifact.task_id,
-            "artifact_type": artifact.artifact_type,
-            "content": artifact.content,
-            "content_hash": artifact.content_hash,
-            "created_at": artifact.created_at,
-        })
+        history.append(
+            {
+                "task_id": artifact.task_id,
+                "artifact_type": artifact.artifact_type,
+                "content": artifact.content,
+                "content_hash": artifact.content_hash,
+                "created_at": artifact.created_at,
+            }
+        )
 
-    return JSONResponse({
-        "device_id": device_id,
-        "history": history,
-        "count": len(history),
-        "offset": offset,
-        "limit": limit,
-    })
+    return JSONResponse(
+        {
+            "device_id": device_id,
+            "history": history,
+            "count": len(history),
+            "offset": offset,
+            "limit": limit,
+        }
+    )
 
 
 def _reset_for_tests() -> None:

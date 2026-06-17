@@ -2,6 +2,7 @@
 
 从 server.py 提取。通过 inject_state() 注入共享状态。
 """
+
 import logging
 import os
 import json
@@ -41,8 +42,8 @@ def record_fallback(query, original_backend, fallback_backend, intent, ide):
             "intent": intent,
             "ide": ide,
         }
-        with open(FALLBACK_LOG, 'a', encoding='utf-8') as f:
-            f.write(json.dumps(entry, ensure_ascii=False) + '\n')
+        with open(FALLBACK_LOG, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
     except Exception as e:
         log.warning(f"[FALLBACK_LOG] write failed: {e}")
 
@@ -53,10 +54,12 @@ def get_ip_location(ip: str) -> str:
     if ip in ("127.0.0.1", "localhost", "::1", ""):
         return "本地"
     import re
-    if not re.match(r'^[\d.:a-fA-F]+$', ip):
+
+    if not re.match(r"^[\d.:a-fA-F]+$", ip):
         return "未知"
     try:
         import urllib.request
+
         resp = urllib.request.urlopen(f"http://ip-api.com/json/{ip}?fields=country,city&lang=zh-CN", timeout=0.5)
         data = json.loads(resp.read().decode())
         return f"{data.get('country', '')} {data.get('city', '')}"
@@ -109,9 +112,16 @@ def elapsed_ms(started_at: float) -> int:
     return max(0, int((time.time() - started_at) * 1000))
 
 
-def record_request(query: str, backend: str, intent: str, duration_ms: int,
-                   success: bool = True, client_ip: str = "",
-                   ide_source: str = "", sys_prompt_preview: str = ""):
+def record_request(
+    query: str,
+    backend: str,
+    intent: str,
+    duration_ms: int,
+    success: bool = True,
+    client_ip: str = "",
+    ide_source: str = "",
+    sys_prompt_preview: str = "",
+):
     """记录一次请求到统计数据。"""
     country = get_ip_location(client_ip) if client_ip else ""
 

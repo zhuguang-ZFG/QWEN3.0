@@ -1,4 +1,5 @@
 """预设图形库 - 常用基础图形的 SVG 生成"""
+
 import math
 from typing import Dict, Any
 
@@ -22,46 +23,41 @@ def get_preset_svg(shape: str, size: int = 180) -> Dict[str, Any]:
         }
     """
     generators = {
-        'circle': _circle_path,
-        'square': _square_path,
-        'triangle': _triangle_path,
-        'star': _star_path,
-        'heart': _heart_path,
-        'crescent': _crescent_path
+        "circle": _circle_path,
+        "square": _square_path,
+        "triangle": _triangle_path,
+        "star": _star_path,
+        "heart": _heart_path,
+        "crescent": _crescent_path,
     }
 
     if shape not in generators:
         return {
-            'status': 'failed',
-            'svg_path': '',
-            'width': 0,
-            'height': 0,
-            'shape': shape,
-            'error': f'Unknown shape: {shape}'
+            "status": "failed",
+            "svg_path": "",
+            "width": 0,
+            "height": 0,
+            "shape": shape,
+            "error": f"Unknown shape: {shape}",
         }
 
     svg_path = generators[shape](size)
-    return {
-        'status': 'success',
-        'svg_path': svg_path,
-        'width': size,
-        'height': size,
-        'shape': shape,
-        'error': None
-    }
+    return {"status": "success", "svg_path": svg_path, "width": size, "height": size, "shape": shape, "error": None}
 
 
 def _circle_path(size: int) -> str:
     """圆形"""
     cx, cy = size / 2, size / 2
     r = size * 0.45
-    return f"M {cx-r} {cy} A {r} {r} 0 1 1 {cx+r} {cy} A {r} {r} 0 1 1 {cx-r} {cy} Z"
+    return f"M {cx - r} {cy} A {r} {r} 0 1 1 {cx + r} {cy} A {r} {r} 0 1 1 {cx - r} {cy} Z"
 
 
 def _square_path(size: int) -> str:
     """正方形"""
     margin = size * 0.1
-    return f"M {margin} {margin} L {size-margin} {margin} L {size-margin} {size-margin} L {margin} {size-margin} Z"
+    return (
+        f"M {margin} {margin} L {size - margin} {margin} L {size - margin} {size - margin} L {margin} {size - margin} Z"
+    )
 
 
 def _triangle_path(size: int) -> str:
@@ -98,7 +94,7 @@ def _heart_path(size: int) -> str:
     w = size * 0.8
     h = size * 0.7
     # 简化心形路径（两个圆 + 三角形）
-    return f"M {cx} {cy+h*0.3} C {cx-w*0.5} {cy-h*0.1} {cx-w*0.4} {cy-h*0.4} {cx} {cy-h*0.2} C {cx+w*0.4} {cy-h*0.4} {cx+w*0.5} {cy-h*0.1} {cx} {cy+h*0.3} Z"
+    return f"M {cx} {cy + h * 0.3} C {cx - w * 0.5} {cy - h * 0.1} {cx - w * 0.4} {cy - h * 0.4} {cx} {cy - h * 0.2} C {cx + w * 0.4} {cy - h * 0.4} {cx + w * 0.5} {cy - h * 0.1} {cx} {cy + h * 0.3} Z"
 
 
 def _crescent_path(size: int) -> str:
@@ -107,4 +103,4 @@ def _crescent_path(size: int) -> str:
     r = size * 0.45
     offset = r * 0.3
     # 两个圆弧相减
-    return f"M {cx+offset} {cy} A {r} {r} 0 1 1 {cx+offset} {cy+0.01} A {r*0.7} {r*0.7} 0 1 0 {cx+offset} {cy} Z"
+    return f"M {cx + offset} {cy} A {r} {r} 0 1 1 {cx + offset} {cy + 0.01} A {r * 0.7} {r * 0.7} 0 1 0 {cx + offset} {cy} Z"

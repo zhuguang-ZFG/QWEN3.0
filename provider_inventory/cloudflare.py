@@ -8,9 +8,7 @@ from typing import Any
 
 import httpx
 
-CF_SEARCH_URL = (
-    "https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/models/search"
-)
+CF_SEARCH_URL = "https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/models/search"
 
 
 def _account_id() -> str:
@@ -81,9 +79,7 @@ def fetch_cloudflare_models(
     account_id = account_id or _account_id()
     token = token or _token()
     if not account_id or not token:
-        raise RuntimeError(
-            "CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_TOKEN are required for live inventory"
-        )
+        raise RuntimeError("CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_TOKEN are required for live inventory")
 
     url = CF_SEARCH_URL.format(account_id=account_id)
     headers = {"Authorization": f"Bearer {token}"}

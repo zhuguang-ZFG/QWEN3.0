@@ -7,9 +7,7 @@ from typing import Protocol
 
 class DevSearchAdapter(Protocol):
     def search(self, query: str, *, domain: str | None = None, max_results: int = 5) -> dict: ...
-    def batch_search(
-        self, queries: list[str], *, domain: str | None = None, max_results: int = 5
-    ) -> dict: ...
+    def batch_search(self, queries: list[str], *, domain: str | None = None, max_results: int = 5) -> dict: ...
     def extract_url(self, url: str) -> dict: ...
 
 
@@ -32,9 +30,7 @@ class _TieredAdapter:
             return last
         return last
 
-    def batch_search(
-        self, queries: list[str], *, domain: str | None = None, max_results: int = 5
-    ) -> dict:
+    def batch_search(self, queries: list[str], *, domain: str | None = None, max_results: int = 5) -> dict:
         last: dict = {"ok": False, "error": "no_search_tier"}
         for index, (_name, adapter) in enumerate(self._tiers):
             result = adapter.batch_search(queries, domain=domain, max_results=max_results)

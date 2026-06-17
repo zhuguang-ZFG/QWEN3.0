@@ -36,10 +36,14 @@ class TestExecuteRecoveryNonePhase:
         assert result is None
 
     def test_no_error_code_returns_none(self):
-        result = execute_recovery("task-1", "dev-1", {
-            "phase": "failed",
-            "task_id": "task-1",
-        })
+        result = execute_recovery(
+            "task-1",
+            "dev-1",
+            {
+                "phase": "failed",
+                "task_id": "task-1",
+            },
+        )
         assert result is None
 
 
@@ -47,11 +51,15 @@ class TestRecoveryActions:
     def test_e_missing_path_retry(self):
         task = create_task_from_transcript("dev-1", "写你好")
         task_id = task["task_id"]
-        result = execute_recovery(task_id, "dev-1", {
-            "phase": "failed",
-            "task_id": task_id,
-            "error": {"code": "E_MISSING_PATH", "reason": "path missing"},
-        })
+        result = execute_recovery(
+            task_id,
+            "dev-1",
+            {
+                "phase": "failed",
+                "task_id": task_id,
+                "error": {"code": "E_MISSING_PATH", "reason": "path missing"},
+            },
+        )
         assert result is not None
         assert result["action"] == "retry"
         assert result["attempt"] == 1
@@ -60,11 +68,15 @@ class TestRecoveryActions:
     def test_e_estop_stop(self):
         task = create_task_from_transcript("dev-1", "写你好")
         task_id = task["task_id"]
-        result = execute_recovery(task_id, "dev-1", {
-            "phase": "failed",
-            "task_id": task_id,
-            "error": {"code": "E_ESTOP", "reason": "emergency stop"},
-        })
+        result = execute_recovery(
+            task_id,
+            "dev-1",
+            {
+                "phase": "failed",
+                "task_id": task_id,
+                "error": {"code": "E_ESTOP", "reason": "emergency stop"},
+            },
+        )
         assert result is not None
         assert result["action"] == "stop"
         assert result["attempt"] == 1
@@ -73,11 +85,15 @@ class TestRecoveryActions:
     def test_e_not_homed_home(self):
         task = create_task_from_transcript("dev-1", "写你好")
         task_id = task["task_id"]
-        result = execute_recovery(task_id, "dev-1", {
-            "phase": "failed",
-            "task_id": task_id,
-            "error": {"code": "E_NOT_HOMED", "reason": "not homed"},
-        })
+        result = execute_recovery(
+            task_id,
+            "dev-1",
+            {
+                "phase": "failed",
+                "task_id": task_id,
+                "error": {"code": "E_NOT_HOMED", "reason": "not homed"},
+            },
+        )
         assert result is not None
         assert result["action"] == "home"
         assert result["attempt"] == 1
@@ -85,11 +101,15 @@ class TestRecoveryActions:
     def test_error_code_from_alternate_field(self):
         task = create_task_from_transcript("dev-1", "写你好")
         task_id = task["task_id"]
-        result = execute_recovery(task_id, "dev-1", {
-            "phase": "failed",
-            "task_id": task_id,
-            "error_code": "E_LIMIT",
-        })
+        result = execute_recovery(
+            task_id,
+            "dev-1",
+            {
+                "phase": "failed",
+                "task_id": task_id,
+                "error_code": "E_LIMIT",
+            },
+        )
         assert result is not None
         assert result["action"] == "retry"
 
@@ -100,43 +120,63 @@ class TestRetryCountTracking:
         task_id = task["task_id"]
 
         # First failure
-        r1 = execute_recovery(task_id, "dev-1", {
-            "phase": "failed",
-            "task_id": task_id,
-            "error": {"code": "E_MISSING_PATH"},
-        })
+        r1 = execute_recovery(
+            task_id,
+            "dev-1",
+            {
+                "phase": "failed",
+                "task_id": task_id,
+                "error": {"code": "E_MISSING_PATH"},
+            },
+        )
         assert r1["attempt"] == 1
 
         # Second failure
-        r2 = execute_recovery(task_id, "dev-1", {
-            "phase": "failed",
-            "task_id": task_id,
-            "error": {"code": "E_MISSING_PATH"},
-        })
+        r2 = execute_recovery(
+            task_id,
+            "dev-1",
+            {
+                "phase": "failed",
+                "task_id": task_id,
+                "error": {"code": "E_MISSING_PATH"},
+            },
+        )
         assert r2["attempt"] == 2
 
         # Third failure
-        r3 = execute_recovery(task_id, "dev-1", {
-            "phase": "failed",
-            "task_id": task_id,
-            "error": {"code": "E_MISSING_PATH"},
-        })
+        r3 = execute_recovery(
+            task_id,
+            "dev-1",
+            {
+                "phase": "failed",
+                "task_id": task_id,
+                "error": {"code": "E_MISSING_PATH"},
+            },
+        )
         assert r3["attempt"] == 3
 
     def test_retry_count_persisted_in_snapshot(self):
         task = create_task_from_transcript("dev-1", "写你好")
         task_id = task["task_id"]
 
-        execute_recovery(task_id, "dev-1", {
-            "phase": "failed",
-            "task_id": task_id,
-            "error": {"code": "E_MISSING_PATH"},
-        })
-        execute_recovery(task_id, "dev-1", {
-            "phase": "failed",
-            "task_id": task_id,
-            "error": {"code": "E_MISSING_PATH"},
-        })
+        execute_recovery(
+            task_id,
+            "dev-1",
+            {
+                "phase": "failed",
+                "task_id": task_id,
+                "error": {"code": "E_MISSING_PATH"},
+            },
+        )
+        execute_recovery(
+            task_id,
+            "dev-1",
+            {
+                "phase": "failed",
+                "task_id": task_id,
+                "error": {"code": "E_MISSING_PATH"},
+            },
+        )
 
         snap = task_snapshot(task_id)
         assert snap is not None
@@ -149,19 +189,27 @@ class TestRetryExhaustion:
         task_id = task["task_id"]
 
         for i in range(4):
-            result = execute_recovery(task_id, "dev-1", {
-                "phase": "failed",
-                "task_id": task_id,
-                "error": {"code": "E_MISSING_PATH"},
-            })
+            result = execute_recovery(
+                task_id,
+                "dev-1",
+                {
+                    "phase": "failed",
+                    "task_id": task_id,
+                    "error": {"code": "E_MISSING_PATH"},
+                },
+            )
             assert result is not None
 
         # 4th attempt (index 3) should stop, not retry
-        r4 = execute_recovery(task_id, "dev-1", {
-            "phase": "failed",
-            "task_id": task_id,
-            "error": {"code": "E_MISSING_PATH"},
-        })
+        r4 = execute_recovery(
+            task_id,
+            "dev-1",
+            {
+                "phase": "failed",
+                "task_id": task_id,
+                "error": {"code": "E_MISSING_PATH"},
+            },
+        )
         assert r4 is not None
         # After 4 increments, attempt=5, but should_retry(attempt-1=4) with max_retries=3 → False
         assert r4["action"] == "stop"
@@ -172,19 +220,27 @@ class TestRetryExhaustion:
         task_id = task["task_id"]
 
         # First: retry
-        r1 = execute_recovery(task_id, "dev-1", {
-            "phase": "failed",
-            "task_id": task_id,
-            "error": {"code": "E_LIMIT"},
-        })
+        r1 = execute_recovery(
+            task_id,
+            "dev-1",
+            {
+                "phase": "failed",
+                "task_id": task_id,
+                "error": {"code": "E_LIMIT"},
+            },
+        )
         assert r1["action"] == "retry"
 
         # Second: exhausted
-        r2 = execute_recovery(task_id, "dev-1", {
-            "phase": "failed",
-            "task_id": task_id,
-            "error": {"code": "E_LIMIT"},
-        })
+        r2 = execute_recovery(
+            task_id,
+            "dev-1",
+            {
+                "phase": "failed",
+                "task_id": task_id,
+                "error": {"code": "E_LIMIT"},
+            },
+        )
         assert r2 is not None
         assert r2["action"] == "stop"
         assert "task" not in r2
@@ -195,11 +251,15 @@ class TestRetryTaskDispatch:
         task = create_task_from_transcript("dev-1", "写你好")
         task_id = task["task_id"]
 
-        result = execute_recovery(task_id, "dev-1", {
-            "phase": "failed",
-            "task_id": task_id,
-            "error": {"code": "E_MISSING_PATH"},
-        })
+        result = execute_recovery(
+            task_id,
+            "dev-1",
+            {
+                "phase": "failed",
+                "task_id": task_id,
+                "error": {"code": "E_MISSING_PATH"},
+            },
+        )
         assert result is not None
         assert result["action"] == "retry"
         assert "task" in result
@@ -216,11 +276,15 @@ class TestRetryTaskDispatch:
         task = create_task_from_transcript("dev-1", "写你好")
         task_id = task["task_id"]
 
-        result = execute_recovery(task_id, "dev-1", {
-            "phase": "failed",
-            "task_id": task_id,
-            "error": {"code": "E_MISSING_PATH"},
-        })
+        result = execute_recovery(
+            task_id,
+            "dev-1",
+            {
+                "phase": "failed",
+                "task_id": task_id,
+                "error": {"code": "E_MISSING_PATH"},
+            },
+        )
 
         retried_task = result["task"]
         # Verify route_policy is preserved
@@ -234,11 +298,15 @@ class TestExplanationZh:
         task = create_task_from_transcript("dev-1", "写你好")
         task_id = task["task_id"]
 
-        result = execute_recovery(task_id, "dev-1", {
-            "phase": "failed",
-            "task_id": task_id,
-            "error": {"code": "E_ESTOP"},
-        })
+        result = execute_recovery(
+            task_id,
+            "dev-1",
+            {
+                "phase": "failed",
+                "task_id": task_id,
+                "error": {"code": "E_ESTOP"},
+            },
+        )
         assert result is not None
         assert "explanation_zh" in result
         assert "急停" in result["explanation_zh"]

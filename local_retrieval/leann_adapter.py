@@ -66,8 +66,5 @@ def leann_status() -> dict:
     return {
         "available": is_leann_available(),
         "env_gate": os.environ.get("LIMA_ENABLE_LEANN", "0") == "1",
-        "note": (
-            "LEANN is not a runtime dependency. Set LIMA_ENABLE_LEANN=1 "
-            "to enable probe."
-        ),
+        "note": ("LEANN is not a runtime dependency. Set LIMA_ENABLE_LEANN=1 to enable probe."),
     }

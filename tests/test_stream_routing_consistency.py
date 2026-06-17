@@ -24,12 +24,14 @@ def recorded_pick(monkeypatch):
     calls: list[_RecordedPick] = []
 
     def _fake_pick_backend(query, messages, **kwargs):
-        calls.append(_RecordedPick(
-            query=query,
-            messages=list(messages),
-            system_prompt=kwargs.get("system_prompt", ""),
-            ide=kwargs.get("ide_source", ""),
-        ))
+        calls.append(
+            _RecordedPick(
+                query=query,
+                messages=list(messages),
+                system_prompt=kwargs.get("system_prompt", ""),
+                ide=kwargs.get("ide_source", ""),
+            )
+        )
         backend = "backend_a" if kwargs.get("system_prompt") else "backend_b"
         return v3_adapters.routing_engine.PickResult(
             backend=backend,
@@ -51,10 +53,16 @@ def test_v3_predict_and_select_share_pick_backend_context(recorded_pick):
     ide = "cursor"
 
     backend = v3_adapters.v3_predict(
-        "follow up", messages, system_prompt=system_prompt, ide=ide,
+        "follow up",
+        messages,
+        system_prompt=system_prompt,
+        ide=ide,
     )
     select_backend, select_messages = v3_adapters.v3_select(
-        "follow up", system_prompt, ide, messages,
+        "follow up",
+        system_prompt,
+        ide,
+        messages,
     )
 
     assert len(recorded_pick) == 2

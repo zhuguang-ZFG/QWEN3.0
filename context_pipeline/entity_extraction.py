@@ -27,8 +27,14 @@ class ExtractedEntities:
 
     @property
     def total_entities(self) -> int:
-        return (len(self.file_paths) + len(self.functions) + len(self.classes)
-                + len(self.modules) + len(self.errors) + len(self.technologies))
+        return (
+            len(self.file_paths)
+            + len(self.functions)
+            + len(self.classes)
+            + len(self.modules)
+            + len(self.errors)
+            + len(self.technologies)
+        )
 
     def to_query_terms(self) -> list[str]:
         """Convert entities to search query terms for retrieval."""
@@ -40,16 +46,29 @@ class ExtractedEntities:
         return terms[:10]
 
 
-_FILE_PATTERN = re.compile(r'\b[\w/\\]+\.\w{1,4}\b')
-_FUNC_PATTERN = re.compile(r'\b(?:def|function|func)\s+(\w+)')
-_CLASS_PATTERN = re.compile(r'\b(?:class|struct|interface)\s+(\w+)')
-_ERROR_PATTERN = re.compile(r'\b(\w*(?:Error|Exception|Fault))\b')
+_FILE_PATTERN = re.compile(r"\b[\w/\\]+\.\w{1,4}\b")
+_FUNC_PATTERN = re.compile(r"\b(?:def|function|func)\s+(\w+)")
+_CLASS_PATTERN = re.compile(r"\b(?:class|struct|interface)\s+(\w+)")
+_ERROR_PATTERN = re.compile(r"\b(\w*(?:Error|Exception|Fault))\b")
 _MODULE_PATTERN = re.compile(r'\b(?:import|from|require)\s+["\']?([\w.]+)')
 
 TECH_KEYWORDS = {
-    "fastapi", "flask", "django", "express", "react", "vue",
-    "asyncio", "sqlite", "postgres", "redis", "docker",
-    "kubernetes", "nginx", "pytorch", "tensorflow", "numpy",
+    "fastapi",
+    "flask",
+    "django",
+    "express",
+    "react",
+    "vue",
+    "asyncio",
+    "sqlite",
+    "postgres",
+    "redis",
+    "docker",
+    "kubernetes",
+    "nginx",
+    "pytorch",
+    "tensorflow",
+    "numpy",
 }
 
 

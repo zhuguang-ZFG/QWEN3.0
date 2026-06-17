@@ -32,7 +32,9 @@ CAPABILITY_PATH_MAP: dict[str, frozenset[str]] = {
 
 # Valid route_policy values per Edge-C schema
 VALID_ROUTE_ROLES = frozenset({"device_control", "device_write", "device_draw", "device_vector", "device_unknown"})
-VALID_PRIMARY_STRATEGIES = frozenset({"deterministic", "image_then_vector", "svg_vector", "provided_path", "planner_required"})
+VALID_PRIMARY_STRATEGIES = frozenset(
+    {"deterministic", "image_then_vector", "svg_vector", "provided_path", "planner_required"}
+)
 VALID_ARTIFACT_REQUIRED = frozenset({"none", "preview_svg", "vector_path"})
 
 

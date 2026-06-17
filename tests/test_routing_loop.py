@@ -16,6 +16,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 class TestRequestStore:
     def _make_store(self):
         from routing_loop.request_store import RequestStore
+
         with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
             path = f.name
         return RequestStore(db_path=path)
@@ -23,10 +24,14 @@ class TestRequestStore:
     def test_log_and_read(self):
         store = self._make_store()
         store.log_request(
-            request_id="test-1", scenario="coding",
-            message_length=100, code_ratio=0.5,
-            feature_vector=[0.1] * 12, backend="groq_llama70b",
-            success=True, latency_ms=500.0,
+            request_id="test-1",
+            scenario="coding",
+            message_length=100,
+            code_ratio=0.5,
+            feature_vector=[0.1] * 12,
+            backend="groq_llama70b",
+            success=True,
+            latency_ms=500.0,
         )
         data = store.get_training_data(since_hours=1)
         assert len(data) == 1
@@ -41,7 +46,9 @@ class TestRequestStore:
         store = self._make_store()
         for i in range(10):
             store.log_request(
-                backend="a", scenario="coding", success=(i < 7),
+                backend="a",
+                scenario="coding",
+                success=(i < 7),
                 latency_ms=100 + i * 10,
             )
         stats = store.get_backend_stats("a", "coding")
@@ -56,7 +63,9 @@ class TestRequestStore:
         for i in range(5):
             store.log_request(
                 feature_vector=[float(i)] * 12,
-                backend="x", scenario="chat", success=True,
+                backend="x",
+                scenario="chat",
+                success=True,
             )
         features = store.get_recent_features(n=3)
         assert len(features) == 3
@@ -90,6 +99,7 @@ class TestFeedbackBridge:
 
         try:
             from routing_loop.feedback_bridge import on_request_complete
+
             on_request_complete(
                 request_id="test-bridge",
                 scenario="coding",
@@ -153,6 +163,7 @@ class TestLoopCloser:
                 )
 
             from routing_loop.loop_closer import close_loop
+
             result = close_loop()
             assert result["store_count"] == 50
             assert result["training"] is True

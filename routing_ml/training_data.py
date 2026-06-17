@@ -17,8 +17,8 @@ from routing_ml.feature_extractor import N_FEATURES
 
 @dataclass
 class TrainingSample:
-    features: list[float]   # length N_FEATURES
-    target: list[float]     # length N_BACKENDS — 1.0 for chosen+success, 0.0 otherwise
+    features: list[float]  # length N_FEATURES
+    target: list[float]  # length N_BACKENDS — 1.0 for chosen+success, 0.0 otherwise
     backend: str
     success: bool
     scenario: str
@@ -37,14 +37,16 @@ def load_weight_history(data_dir: str = "data") -> list[dict]:
     for key, entry in data.items():
         if not isinstance(entry, dict):
             continue
-        entries.append({
-            "backend": entry.get("backend", ""),
-            "scenario": entry.get("scenario", ""),
-            "weight": entry.get("weight", 1.0),
-            "successes": entry.get("successes", 0),
-            "failures": entry.get("failures", 0),
-            "last_updated": entry.get("last_updated", 0),
-        })
+        entries.append(
+            {
+                "backend": entry.get("backend", ""),
+                "scenario": entry.get("scenario", ""),
+                "weight": entry.get("weight", 1.0),
+                "successes": entry.get("successes", 0),
+                "failures": entry.get("failures", 0),
+                "last_updated": entry.get("last_updated", 0),
+            }
+        )
     return entries
 
 
@@ -123,18 +125,28 @@ def build_training_samples(
         target = [0.0] * len(backend_names)
         target[backend_idx[backend]] = min(max(weight / 2.0, 0.0), 1.0)
 
-        samples.append(TrainingSample(
-            features=features, target=target, backend=backend,
-            success=successes > failures, scenario=scenario,
-        ))
+        samples.append(
+            TrainingSample(
+                features=features,
+                target=target,
+                backend=backend,
+                success=successes > failures,
+                scenario=scenario,
+            )
+        )
 
         if failures > 0:
             neg_target = list(target)
             neg_target[backend_idx[backend]] *= 0.3
-            samples.append(TrainingSample(
-                features=list(features), target=neg_target, backend=backend,
-                success=False, scenario=scenario,
-            ))
+            samples.append(
+                TrainingSample(
+                    features=list(features),
+                    target=neg_target,
+                    backend=backend,
+                    success=False,
+                    scenario=scenario,
+                )
+            )
 
     return samples
 

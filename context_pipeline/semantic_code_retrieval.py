@@ -66,12 +66,14 @@ def retrieve_semantic(
     results = []
     for score, fpath, snippet in scored[:max_results]:
         file_info = file_index.get(fpath, {})
-        results.append(CodeResult(
-            file_path=fpath,
-            score=round(score, 4),
-            snippet=snippet[:500],
-            symbols=file_info.get("symbols", [])[:10],
-        ))
+        results.append(
+            CodeResult(
+                file_path=fpath,
+                score=round(score, 4),
+                snippet=snippet[:500],
+                symbols=file_info.get("symbols", [])[:10],
+            )
+        )
 
     return results
 
@@ -96,18 +98,27 @@ def assess_code_complexity(
     # Factor 2: query length and complexity indicators
     text = query.lower()
     complexity_indicators = [
-        "refactor", "architecture", "design", "migrate", "optimize",
-        "debug", "fix", "error", "broken", "race condition",
-        "重构", "架构", "迁移", "优化", "调试",
+        "refactor",
+        "architecture",
+        "design",
+        "migrate",
+        "optimize",
+        "debug",
+        "fix",
+        "error",
+        "broken",
+        "race condition",
+        "重构",
+        "架构",
+        "迁移",
+        "优化",
+        "调试",
     ]
     indicator_count = sum(1 for ind in complexity_indicators if ind in text)
     indicator_score = min(indicator_count / 3.0, 1.0)
 
     # Factor 3: cross-file references
-    cross_ref_count = sum(
-        1 for r in results
-        if r.symbols and len(r.symbols) > 3
-    )
+    cross_ref_count = sum(1 for r in results if r.symbols and len(r.symbols) > 3)
     cross_ref_score = min(cross_ref_count / 3.0, 1.0)
 
     return min((file_count_score * 0.4 + indicator_score * 0.3 + cross_ref_score * 0.3), 1.0)
@@ -125,21 +136,46 @@ def _tokenize_query(query: str, messages: list[dict] | None = None) -> list[str]
     terms = set()
 
     # CamelCase and snake_case identifiers
-    for match in re.finditer(r'\b([A-Z][a-zA-Z0-9]+)\b', text):
+    for match in re.finditer(r"\b([A-Z][a-zA-Z0-9]+)\b", text):
         terms.add(match.group(1).lower())
-    for match in re.finditer(r'\b([a-z][a-z0-9_]{2,})\b', text):
+    for match in re.finditer(r"\b([a-z][a-z0-9_]{2,})\b", text):
         terms.add(match.group(1))
 
     # File names
-    for match in re.finditer(r'([\w/\\.-]+\.(?:py|js|ts|go|rs|java))\b', text):
+    for match in re.finditer(r"([\w/\\.-]+\.(?:py|js|ts|go|rs|java))\b", text):
         terms.add(match.group(1).lower())
 
     # Stop words removal
     stop_words = {
-        "the", "this", "that", "with", "from", "have", "been", "were",
-        "does", "what", "when", "where", "which", "there", "their",
-        "about", "would", "could", "should", "will", "just", "also",
-        "some", "than", "them", "into", "over", "such", "your",
+        "the",
+        "this",
+        "that",
+        "with",
+        "from",
+        "have",
+        "been",
+        "were",
+        "does",
+        "what",
+        "when",
+        "where",
+        "which",
+        "there",
+        "their",
+        "about",
+        "would",
+        "could",
+        "should",
+        "will",
+        "just",
+        "also",
+        "some",
+        "than",
+        "them",
+        "into",
+        "over",
+        "such",
+        "your",
     }
     return [t for t in terms if t not in stop_words and len(t) > 1]
 
@@ -162,16 +198,16 @@ def _build_file_index(root: Path) -> dict[str, dict]:
 
         # Extract symbols (simple regex, not tree-sitter for speed)
         symbols = []
-        for match in re.finditer(r'^(?:class|def|async def)\s+(\w+)', content, re.MULTILINE):
+        for match in re.finditer(r"^(?:class|def|async def)\s+(\w+)", content, re.MULTILINE):
             symbols.append(match.group(1))
 
         # Extract imports for graph-like relationships
         imports = []
-        for match in re.finditer(r'^(?:from|import)\s+([\w.]+)', content, re.MULTILINE):
+        for match in re.finditer(r"^(?:from|import)\s+([\w.]+)", content, re.MULTILINE):
             imports.append(match.group(1))
 
         # Tokenize file content for scoring
-        words = set(re.findall(r'\b[a-z_][a-z0-9_]{2,}\b', content.lower()))
+        words = set(re.findall(r"\b[a-z_][a-z0-9_]{2,}\b", content.lower()))
         words.update(s.lower() for s in symbols)
 
         # Snippet: first meaningful lines

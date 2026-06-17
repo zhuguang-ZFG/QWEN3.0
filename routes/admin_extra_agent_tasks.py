@@ -26,14 +26,16 @@ async def admin_agent_tasks(limit: int = 100):
     result = []
     for t in tasks:
         req = t.get("request", {}) if isinstance(t, dict) else {}
-        result.append({
-            "task_id": t.get("task_id", t.get("id", "")) if isinstance(t, dict) else "",
-            "status": t.get("status", "unknown") if isinstance(t, dict) else "unknown",
-            "created_at": t.get("created_at", 0) if isinstance(t, dict) else 0,
-            "description": (req.get("goal", "") or req.get("description", ""))[:200],
-            "worker_id": t.get("worker_id", t.get("claim", {}).get("worker_id", "")) if isinstance(t, dict) else "",
-            "backend": t.get("backend", "") if isinstance(t, dict) else "",
-        })
+        result.append(
+            {
+                "task_id": t.get("task_id", t.get("id", "")) if isinstance(t, dict) else "",
+                "status": t.get("status", "unknown") if isinstance(t, dict) else "unknown",
+                "created_at": t.get("created_at", 0) if isinstance(t, dict) else 0,
+                "description": (req.get("goal", "") or req.get("description", ""))[:200],
+                "worker_id": t.get("worker_id", t.get("claim", {}).get("worker_id", "")) if isinstance(t, dict) else "",
+                "backend": t.get("backend", "") if isinstance(t, dict) else "",
+            }
+        )
     return {"tasks": result, "count": len(result)}
 
 

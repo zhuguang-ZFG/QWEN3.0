@@ -81,9 +81,14 @@ async def fallback_to_sync_call(
 
 
 async def _empty_stream_fallback(
-    backend: str, call_fn: CallApiFn, messages: list,
-    max_tokens: int, ide: str, cancel: threading.Event,
-    thread: threading.Thread, q: queue_mod.Queue,
+    backend: str,
+    call_fn: CallApiFn,
+    messages: list,
+    max_tokens: int,
+    ide: str,
+    cancel: threading.Event,
+    thread: threading.Thread,
+    q: queue_mod.Queue,
 ) -> str | None:
     """Handle empty stream: cancel worker, drain queue, try sync fallback."""
     cancel.set()
@@ -92,20 +97,33 @@ async def _empty_stream_fallback(
         _log.warning("[STREAM] %s worker thread still alive after cancel+join", backend)
     drain_queue(q)
     return await fallback_to_sync_call(
-        call_fn, backend, messages, max_tokens, ide,
+        call_fn,
+        backend,
+        messages,
+        max_tokens,
+        ide,
         log_label="stream empty fallback call failed",
     )
 
 
 async def _first_chunk_empty(
-    backend: str, call_fn: CallApiFn, messages: list,
-    max_tokens: int, ide: str, cancel: threading.Event, thread: threading.Thread,
+    backend: str,
+    call_fn: CallApiFn,
+    messages: list,
+    max_tokens: int,
+    ide: str,
+    cancel: threading.Event,
+    thread: threading.Thread,
 ) -> AsyncIterator[str]:
     """Handle first-chunk timeout with sync fallback."""
     cancel.set()
     thread.join(timeout=1.0)
     fallback = await fallback_to_sync_call(
-        call_fn, backend, messages, max_tokens, ide,
+        call_fn,
+        backend,
+        messages,
+        max_tokens,
+        ide,
         log_label="stream fallback call failed",
     )
     if fallback:

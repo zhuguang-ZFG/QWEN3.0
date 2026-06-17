@@ -2,7 +2,9 @@
 让 Cursor、Claude Code、VS Code Copilot 等 AI IDE 直接接入。
 支持流式/非流式 ChatCompletion，兼容 OpenAI API 格式。
 """
+
 import sys, os, time as time, logging as _logging
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Bootstrap a minimal logger before any application logging is configured.
@@ -10,6 +12,7 @@ _boot_log = _logging.getLogger("lima.bootstrap")
 
 try:
     from dotenv import load_dotenv
+
     load_dotenv()
 except ImportError:
     _boot_log.warning("python-dotenv not installed; .env file will not be loaded")
@@ -19,7 +22,8 @@ import uvicorn
 
 from chat_models import ChatRequest as ChatRequest, Message as Message
 from vision_handler import (
-    _vision_route, _stream_vision_response,
+    _vision_route,
+    _stream_vision_response,
 )
 from http_body_limit import BodySizeLimitMiddleware
 from server_bootstrap import (
@@ -31,9 +35,7 @@ from server_bootstrap import (
 )
 from server_lifespan import lifespan
 
-app = FastAPI(title="LiMa", version="1.3",
-              description="LiMa（力码）— 智能编程助手 API，OpenAI 兼容",
-              lifespan=lifespan)
+app = FastAPI(title="LiMa", version="1.3", description="LiMa（力码）— 智能编程助手 API，OpenAI 兼容", lifespan=lifespan)
 
 # Sentry error tracking
 _sentry_dsn = os.environ.get("SENTRY_DSN", "")
@@ -41,6 +43,7 @@ if _sentry_dsn:
     try:
         import sentry_sdk  # type: ignore[reportMissingImports]
         from sentry_sdk.integrations.fastapi import FastApiIntegration  # type: ignore[reportMissingImports]
+
         sentry_sdk.init(
             dsn=_sentry_dsn,
             send_default_pii=False,
@@ -57,6 +60,7 @@ _stats, _stats_lock, _backend_enabled, _loaded_modules = create_runtime_state()
 app.state.stats = _stats
 
 import routes.request_tracking as _rt_mod
+
 _rt_mod.inject_state(_stats, _stats_lock)
 _record_fallback = _rt_mod.record_fallback
 _record_request = _rt_mod.record_request

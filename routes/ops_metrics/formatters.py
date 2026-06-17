@@ -1,4 +1,5 @@
 """Ops metrics formatters — data transformation and redaction utilities."""
+
 from __future__ import annotations
 
 from typing import Any

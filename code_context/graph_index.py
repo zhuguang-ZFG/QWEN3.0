@@ -109,7 +109,8 @@ class InMemoryGraphIndex(GraphIndex):
                     seen[path].relations.append(f"{rel.relation_type}:{rel.source}")
                 else:
                     seen[path] = GraphSearchResult(
-                        entity=path, score=0.5,
+                        entity=path,
+                        score=0.5,
                         relations=[f"{rel.relation_type}:{rel.source}"],
                     )
         ranked = sorted(seen.values(), key=lambda r: -r.score)

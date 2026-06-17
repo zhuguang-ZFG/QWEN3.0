@@ -5,6 +5,7 @@ Covers:
 - Protocol compatibility (old firmware rejects new fields)
 - Policy engine wiring (decision blocks dispatch)
 """
+
 from __future__ import annotations
 
 import pytest
@@ -30,15 +31,17 @@ class TestDecisionVocabulary:
     """Verify the decision vocabulary is complete and deterministic."""
 
     def test_all_decisions_defined(self) -> None:
-        expected = frozenset({
-            "allow",
-            "require_approval",
-            "reject",
-            "require_self_check",
-            "require_home",
-            "require_ota",
-            "degrade_to_asset",
-        })
+        expected = frozenset(
+            {
+                "allow",
+                "require_approval",
+                "reject",
+                "require_self_check",
+                "require_home",
+                "require_ota",
+                "degrade_to_asset",
+            }
+        )
         assert DECISION_VALUES == expected
 
     def test_every_decision_has_chinese_label(self) -> None:

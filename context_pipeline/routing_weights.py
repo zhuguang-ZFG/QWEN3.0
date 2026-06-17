@@ -59,9 +59,7 @@ class RoutingWeights:
 
     def record_success(self, backend: str, scenario: str) -> None:
         key = self._key(backend, scenario)
-        w = self._weights.setdefault(
-            key, BackendWeight(backend=backend, scenario=scenario)
-        )
+        w = self._weights.setdefault(key, BackendWeight(backend=backend, scenario=scenario))
         # GRPO: calculate baseline BEFORE recording this event
         baseline = self._scenario_baseline(scenario)
         w.successes += 1
@@ -74,9 +72,7 @@ class RoutingWeights:
 
     def record_failure(self, backend: str, scenario: str) -> None:
         key = self._key(backend, scenario)
-        w = self._weights.setdefault(
-            key, BackendWeight(backend=backend, scenario=scenario)
-        )
+        w = self._weights.setdefault(key, BackendWeight(backend=backend, scenario=scenario))
         # GRPO: calculate baseline BEFORE recording this event
         baseline = self._scenario_baseline(scenario)
         w.failures += 1

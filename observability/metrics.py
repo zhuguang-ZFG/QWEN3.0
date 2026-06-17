@@ -94,10 +94,7 @@ def get_metrics_snapshot() -> dict:
     with _lock:
         backend_stats = {}
         all_backends = (
-            set(_success.keys())
-            | set(_failure.keys())
-            | set(_quality_samples.keys())
-            | set(_token_requests.keys())
+            set(_success.keys()) | set(_failure.keys()) | set(_quality_samples.keys()) | set(_token_requests.keys())
         )
         for backend in sorted(all_backends):
             latencies = _latency_samples.get(backend, [])
@@ -105,12 +102,10 @@ def get_metrics_snapshot() -> dict:
             backend_stats[backend] = {
                 "success": _success.get(backend, 0),
                 "failure": _failure.get(backend, 0),
-                "avg_latency_ms": round(sum(latencies) / len(latencies), 1)
-                if latencies else 0,
+                "avg_latency_ms": round(sum(latencies) / len(latencies), 1) if latencies else 0,
                 "p50_latency_ms": _percentile(latencies, 50),
                 "p95_latency_ms": _percentile(latencies, 95),
-                "avg_quality_score": round(sum(quality) / len(quality), 2)
-                if quality else 0,
+                "avg_quality_score": round(sum(quality) / len(quality), 2) if quality else 0,
                 "prompt_tokens": _token_prompt.get(backend, 0),
                 "completion_tokens": _token_completion.get(backend, 0),
                 "token_requests": _token_requests.get(backend, 0),

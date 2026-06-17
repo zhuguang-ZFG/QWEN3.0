@@ -28,8 +28,7 @@ def eval_via_router_enabled() -> bool:
 def eval_via_router_url() -> str:
     """FRP/Windows router base URL for proxy-backend eval (e.g. VPS :8088 → Windows :8080)."""
     explicit = (
-        os.environ.get("LIMA_EVAL_VIA_ROUTER_URL", "").strip()
-        or os.environ.get("LIMA_EVAL_WINDOWS_ROUTER", "").strip()
+        os.environ.get("LIMA_EVAL_VIA_ROUTER_URL", "").strip() or os.environ.get("LIMA_EVAL_WINDOWS_ROUTER", "").strip()
     )
     if explicit:
         return explicit.rstrip("/")
@@ -71,9 +70,7 @@ def call_via_router(
     """POST /internal/v1/eval/call on Windows router (via FRP from VPS)."""
     base = (router_url or eval_via_router_url()).rstrip("/")
     if not base:
-        raise OSError(
-            "local proxy unreachable; set LIMA_EVAL_VIA_ROUTER_URL=http://127.0.0.1:8088"
-        )
+        raise OSError("local proxy unreachable; set LIMA_EVAL_VIA_ROUTER_URL=http://127.0.0.1:8088")
     key = eval_api_key()
     if not key:
         raise OSError("LIMA_API_KEY required for eval via router")

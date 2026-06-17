@@ -3,6 +3,7 @@
 Extracted from routes/xiaozhi_v1_compat.py lines 1043-1184
 Device transfer, self-checks, supplies
 """
+
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import JSONResponse
 
@@ -85,18 +86,33 @@ async def accept_transfer(transfer_id: str, authorization: str = Header(default=
         return account
     with connect() as conn:
         expire_pending_transfers(conn)
-        row = conn.execute("SELECT * FROM v2_device_transfer_request WHERE id=? AND status='pending'", (transfer_id,)).fetchone()
+        row = conn.execute(
+            "SELECT * FROM v2_device_transfer_request WHERE id=? AND status='pending'", (transfer_id,)
+        ).fetchone()
         if row is None:
             return err(404, "pending transfer not found or expired", 404)
         if row["to_account_id"] != account["id"]:
             return err(403, "only the recipient can accept this transfer", 403)
-        conn.execute("UPDATE v2_device_binding SET status='unbound', unbound_at=? WHERE device_id=? AND bind_mode='owner' AND status='active'", (now(), row["device_id"]))
-        existing = conn.execute("SELECT id FROM v2_device_binding WHERE device_id=? AND account_id=?", (row["device_id"], account["id"])).fetchone()
+        conn.execute(
+            "UPDATE v2_device_binding SET status='unbound', unbound_at=? WHERE device_id=? AND bind_mode='owner' AND status='active'",
+            (now(), row["device_id"]),
+        )
+        existing = conn.execute(
+            "SELECT id FROM v2_device_binding WHERE device_id=? AND account_id=?", (row["device_id"], account["id"])
+        ).fetchone()
         if existing:
-            conn.execute("UPDATE v2_device_binding SET status='active', bind_mode='owner', unbound_at=NULL WHERE id=?", (existing["id"],))
+            conn.execute(
+                "UPDATE v2_device_binding SET status='active', bind_mode='owner', unbound_at=NULL WHERE id=?",
+                (existing["id"],),
+            )
         else:
-            conn.execute("INSERT INTO v2_device_binding (id, device_id, account_id, bind_mode, status) VALUES (?, ?, ?, 'owner', 'active')", (new_id(), row["device_id"], account["id"]))
-        conn.execute("UPDATE v2_device_transfer_request SET status='accepted', accepted_at=? WHERE id=?", (now(), transfer_id))
+            conn.execute(
+                "INSERT INTO v2_device_binding (id, device_id, account_id, bind_mode, status) VALUES (?, ?, ?, 'owner', 'active')",
+                (new_id(), row["device_id"], account["id"]),
+            )
+        conn.execute(
+            "UPDATE v2_device_transfer_request SET status='accepted', accepted_at=? WHERE id=?", (now(), transfer_id)
+        )
         conn.commit()
         row = conn.execute("SELECT * FROM v2_device_transfer_request WHERE id=?", (transfer_id,)).fetchone()
     return ok(transfer_payload(row))
@@ -109,12 +125,16 @@ async def cancel_transfer(transfer_id: str, authorization: str = Header(default=
         return account
     with connect() as conn:
         expire_pending_transfers(conn)
-        row = conn.execute("SELECT * FROM v2_device_transfer_request WHERE id=? AND status='pending'", (transfer_id,)).fetchone()
+        row = conn.execute(
+            "SELECT * FROM v2_device_transfer_request WHERE id=? AND status='pending'", (transfer_id,)
+        ).fetchone()
         if row is None:
             return err(404, "pending transfer not found or expired", 404)
         if row["from_account_id"] != account["id"] and account.get("role") != "admin":
             return err(403, "only the initiator or an admin can cancel", 403)
-        conn.execute("UPDATE v2_device_transfer_request SET status='cancelled', cancelled_at=? WHERE id=?", (now(), transfer_id))
+        conn.execute(
+            "UPDATE v2_device_transfer_request SET status='cancelled', cancelled_at=? WHERE id=?", (now(), transfer_id)
+        )
         conn.commit()
         row = conn.execute("SELECT * FROM v2_device_transfer_request WHERE id=?", (transfer_id,)).fetchone()
     return ok(transfer_payload(row))
@@ -130,7 +150,9 @@ async def list_self_checks(device_id: str, request: Request, authorization: str 
         denied = require_device_access(conn, account, device_id)
         if denied:
             return denied
-        rows = conn.execute("SELECT * FROM v2_self_check_event WHERE device_id=? ORDER BY created_at DESC LIMIT ?", (device_id, limit)).fetchall()
+        rows = conn.execute(
+            "SELECT * FROM v2_self_check_event WHERE device_id=? ORDER BY created_at DESC LIMIT ?", (device_id, limit)
+        ).fetchall()
     return ok([self_check_payload(row) for row in rows])
 
 
@@ -153,10 +175,21 @@ async def update_supplies(device_id: str, request: Request, authorization: str =
         for item in items:
             conn.execute(
                 "INSERT INTO v2_device_supply (id, device_id, supply_type, level, status) VALUES (?, ?, ?, ?, ?) ON CONFLICT(device_id, supply_type) DO UPDATE SET level=?, status=?, updated_at=?",
-                (new_id(), device_id, item["supply_type"], item["level"], item["status"], item["level"], item["status"], now()),
+                (
+                    new_id(),
+                    device_id,
+                    item["supply_type"],
+                    item["level"],
+                    item["status"],
+                    item["level"],
+                    item["status"],
+                    now(),
+                ),
             )
         conn.commit()
-        rows = conn.execute("SELECT * FROM v2_device_supply WHERE device_id=? ORDER BY supply_type", (device_id,)).fetchall()
+        rows = conn.execute(
+            "SELECT * FROM v2_device_supply WHERE device_id=? ORDER BY supply_type", (device_id,)
+        ).fetchall()
     return ok([supply_payload(row) for row in rows])
 
 
@@ -169,5 +202,7 @@ async def get_supplies(device_id: str, authorization: str = Header(default="")) 
         denied = require_device_access(conn, account, device_id)
         if denied:
             return denied
-        rows = conn.execute("SELECT * FROM v2_device_supply WHERE device_id=? ORDER BY supply_type", (device_id,)).fetchall()
+        rows = conn.execute(
+            "SELECT * FROM v2_device_supply WHERE device_id=? ORDER BY supply_type", (device_id,)
+        ).fetchall()
     return ok([supply_payload(row) for row in rows])

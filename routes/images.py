@@ -35,10 +35,7 @@ def build_pollinations_url(prompt: str, size: str = "1024x1024") -> str:
     width = int(parts[0]) if len(parts) == 2 else 1024
     height = int(parts[1]) if len(parts) == 2 else 1024
     encoded_prompt = urllib.parse.quote(prompt)
-    return (
-        f"https://image.pollinations.ai/prompt/{encoded_prompt}"
-        f"?width={width}&height={height}&nologo=true"
-    )
+    return f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true"
 
 
 _record_request_fn = None
@@ -66,14 +63,10 @@ async def image_generations(request: Request):
     if re.search(r"[\u4e00-\u9fff]", prompt):
         prompt = f"high quality, detailed, {prompt}"
 
-    urls = [
-        {"url": build_pollinations_url(prompt, img_req.size)}
-        for _ in range(img_req.n)
-    ]
+    urls = [{"url": build_pollinations_url(prompt, img_req.size)} for _ in range(img_req.n)]
 
-    client_ip = (
-        request.headers.get("x-forwarded-for", "").split(",")[0].strip()
-        or (request.client.host if request.client else "")
+    client_ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (
+        request.client.host if request.client else ""
     )
     if _record_request_fn:
         _record_request_fn(
@@ -85,7 +78,9 @@ async def image_generations(request: Request):
             client_ip=client_ip,
         )
 
-    return JSONResponse({
-        "created": int(time.time()),
-        "data": urls,
-    })
+    return JSONResponse(
+        {
+            "created": int(time.time()),
+            "data": urls,
+        }
+    )

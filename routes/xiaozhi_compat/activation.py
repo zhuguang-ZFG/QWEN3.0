@@ -1,4 +1,5 @@
 """Activation code state machine for XiaoZhi v1 device pairing."""
+
 from __future__ import annotations
 
 import logging
@@ -42,9 +43,7 @@ def check_activation_code(code: str) -> bool:
     if expected:
         return secrets.compare_digest(code, expected)
     if not _activation_warning_logged:
-        _log.warning(
-            "LIMA_XIAOZHI_ACTIVATION_CODE is not configured; accepting non-empty activation codes"
-        )
+        _log.warning("LIMA_XIAOZHI_ACTIVATION_CODE is not configured; accepting non-empty activation codes")
         _activation_warning_logged = True
     return bool(code)
 

@@ -43,7 +43,9 @@ class TestDeviceCapability:
             pass
 
     def test_is_compatible_passes_when_requirements_met(self):
-        cap = DeviceCapability(compute_level="high", memory_mb=2048, supported_features=("text", "vector_path", "vision"))
+        cap = DeviceCapability(
+            compute_level="high", memory_mb=2048, supported_features=("text", "vector_path", "vision")
+        )
         req = {
             "min_compute_level": "medium",
             "min_memory_mb": 512,
@@ -211,15 +213,36 @@ class TestInferFromArtifacts:
         with tempfile.TemporaryDirectory() as tmp:
             log_path = Path(tmp) / "route_evidence_dev-artifact.log"
             lines = [
-                json.dumps({"device_id": "dev-artifact", "selected_model": "scnet_ds_flash", "backend": "scnet_ds",
-                             "route_policy": {"route_role": "device_draw"}, "reason": "success",
-                             "timestamp": "2026-06-10T12:00:00+00:00"}),
-                json.dumps({"device_id": "dev-artifact", "selected_model": "scnet_ds_flash", "backend": "scnet_ds",
-                             "route_policy": {"route_role": "device_write"}, "reason": "success",
-                             "timestamp": "2026-06-10T12:01:00+00:00"}),
-                json.dumps({"device_id": "dev-artifact", "selected_model": "", "backend": "github_gpt4o",
-                             "route_policy": {}, "reason": "backend failed",
-                             "timestamp": "2026-06-10T12:02:00+00:00"}),
+                json.dumps(
+                    {
+                        "device_id": "dev-artifact",
+                        "selected_model": "scnet_ds_flash",
+                        "backend": "scnet_ds",
+                        "route_policy": {"route_role": "device_draw"},
+                        "reason": "success",
+                        "timestamp": "2026-06-10T12:00:00+00:00",
+                    }
+                ),
+                json.dumps(
+                    {
+                        "device_id": "dev-artifact",
+                        "selected_model": "scnet_ds_flash",
+                        "backend": "scnet_ds",
+                        "route_policy": {"route_role": "device_write"},
+                        "reason": "success",
+                        "timestamp": "2026-06-10T12:01:00+00:00",
+                    }
+                ),
+                json.dumps(
+                    {
+                        "device_id": "dev-artifact",
+                        "selected_model": "",
+                        "backend": "github_gpt4o",
+                        "route_policy": {},
+                        "reason": "backend failed",
+                        "timestamp": "2026-06-10T12:02:00+00:00",
+                    }
+                ),
             ]
             log_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -235,9 +258,16 @@ class TestInferFromArtifacts:
         with tempfile.TemporaryDirectory() as tmp:
             log_path = Path(tmp) / "route_evidence_dev-stale.log"
             lines = [
-                json.dumps({"device_id": "dev-stale", "selected_model": "old_model", "backend": "old",
-                             "route_policy": {"r": 1}, "reason": "success",
-                             "timestamp": "2020-01-01T00:00:00+00:00"}),
+                json.dumps(
+                    {
+                        "device_id": "dev-stale",
+                        "selected_model": "old_model",
+                        "backend": "old",
+                        "route_policy": {"r": 1},
+                        "reason": "success",
+                        "timestamp": "2020-01-01T00:00:00+00:00",
+                    }
+                ),
             ]
             log_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 

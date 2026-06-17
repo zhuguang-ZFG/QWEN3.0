@@ -12,6 +12,7 @@ or other automated decisions:
 No pattern is ever auto-promoted into routing. The eval gate ensures
 every promotion has explicit evidence, approval, and rollback.
 """
+
 from __future__ import annotations
 
 import json
@@ -161,11 +162,14 @@ def approve_candidate(pattern_key: str, rollback_notes: str = "") -> dict[str, A
     save_typed_memory(
         "reference_pattern",
         f"approved:{pattern_key}",
-        detail=json.dumps({
-            "pattern_key": pattern_key,
-            "approved_at": time.time(),
-            "rollback_notes": rollback_notes[:500],
-        }, ensure_ascii=False),
+        detail=json.dumps(
+            {
+                "pattern_key": pattern_key,
+                "approved_at": time.time(),
+                "rollback_notes": rollback_notes[:500],
+            },
+            ensure_ascii=False,
+        ),
     )
     return {"approved": True, "pattern_key": pattern_key, "rollback_notes": rollback_notes[:500]}
 
@@ -182,6 +186,7 @@ def _apply_routing_weights(candidate: EvalCandidate) -> tuple[dict, dict, bool]:
         return {}, {}, True  # record-only promotion
     try:
         from context_pipeline.routing_weights import get_routing_weights
+
         rw = get_routing_weights()
         before = rw.get_stats(candidate.backend, candidate.scenario)
         for _ in range(candidate.pass_count):
@@ -194,21 +199,27 @@ def _apply_routing_weights(candidate: EvalCandidate) -> tuple[dict, dict, bool]:
         return {}, {}, False
 
 
-def _save_promotion_record(pattern_key: str, candidate: EvalCandidate,
-                           before: dict, after: dict, rw_applied: bool) -> None:
+def _save_promotion_record(
+    pattern_key: str, candidate: EvalCandidate, before: dict, after: dict, rw_applied: bool
+) -> None:
     """Persist promotion record to typed memory store."""
     save_typed_memory(
-        "reference_pattern", f"promoted:{pattern_key}",
-        detail=json.dumps({
-            "pattern_key": pattern_key, "backend": candidate.backend,
-            "scenario": candidate.scenario,
-            "evidence_count": candidate.pass_count + candidate.fail_count,
-            "promoted_at": time.time(),
-            "weight_before": before.get("weight", 1.0),
-            "weight_after": after.get("weight", 1.0),
-            "rw_applied": rw_applied,
-            "rollback_notes": candidate.rollback_notes,
-        }, ensure_ascii=False),
+        "reference_pattern",
+        f"promoted:{pattern_key}",
+        detail=json.dumps(
+            {
+                "pattern_key": pattern_key,
+                "backend": candidate.backend,
+                "scenario": candidate.scenario,
+                "evidence_count": candidate.pass_count + candidate.fail_count,
+                "promoted_at": time.time(),
+                "weight_before": before.get("weight", 1.0),
+                "weight_after": after.get("weight", 1.0),
+                "rw_applied": rw_applied,
+                "rollback_notes": candidate.rollback_notes,
+            },
+            ensure_ascii=False,
+        ),
     )
 
 
@@ -219,8 +230,14 @@ def revision_check() -> dict[str, Any]:
         "total": len(candidates),
         "promotable": [c.to_dict() for c in candidates if c.can_promote],
         "needs_evidence": [c.to_dict() for c in candidates if not c.meets_evidence_threshold],
-        "needs_approval": [c.to_dict() for c in candidates if c.meets_evidence_threshold and c.meets_pass_rate and not c.manual_approved],
-        "blocked_by_pass_rate": [c.to_dict() for c in candidates if c.meets_evidence_threshold and not c.meets_pass_rate],
+        "needs_approval": [
+            c.to_dict()
+            for c in candidates
+            if c.meets_evidence_threshold and c.meets_pass_rate and not c.manual_approved
+        ],
+        "blocked_by_pass_rate": [
+            c.to_dict() for c in candidates if c.meets_evidence_threshold and not c.meets_pass_rate
+        ],
     }
 
 
@@ -243,25 +260,28 @@ def apply_promotion(pattern_key: str) -> dict[str, Any]:
     if not candidate:
         return {"applied": False, "error": "pattern not found or not approved"}
     if not candidate.can_promote:
-        return {"applied": False, "error": "pattern does not meet promotion criteria",
-                "evidence_count": candidate.evidence_count,
-                "pass_rate": round(candidate.pass_rate, 2),
-                "manual_approved": candidate.manual_approved}
+        return {
+            "applied": False,
+            "error": "pattern does not meet promotion criteria",
+            "evidence_count": candidate.evidence_count,
+            "pass_rate": round(candidate.pass_rate, 2),
+            "manual_approved": candidate.manual_approved,
+        }
 
     # Guard: check if already promoted (idempotency)
     if _already_promoted(pattern_key):
-        return {"applied": False, "error": "pattern already promoted",
-                "pattern_key": pattern_key}
+        return {"applied": False, "error": "pattern already promoted", "pattern_key": pattern_key}
 
     before, after, rw_ok = _apply_routing_weights(candidate)
     if not rw_ok and candidate.backend and candidate.scenario:
-        return {"applied": False,
-                "error": "routing_weights module not available — promotion aborted"}
+        return {"applied": False, "error": "routing_weights module not available — promotion aborted"}
 
     _save_promotion_record(pattern_key, candidate, before, after, rw_ok)
     return {
-        "applied": True, "pattern_key": pattern_key,
-        "backend": candidate.backend, "scenario": candidate.scenario,
+        "applied": True,
+        "pattern_key": pattern_key,
+        "backend": candidate.backend,
+        "scenario": candidate.scenario,
         "weight_before": before.get("weight", 1.0),
         "weight_after": after.get("weight", 1.0),
         "rw_applied": rw_ok,

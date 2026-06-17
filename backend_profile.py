@@ -23,6 +23,7 @@ _lock = threading.Lock()
 
 # ─── Data Model ───────────────────────────────────────────────────────────
 
+
 @dataclass
 class BackendProfile:
     name: str
@@ -162,10 +163,12 @@ def get_top_backends(scenario: str = "", n: int = 5) -> list[str]:
         for name, profile in _profiles.items():
             score = profile.composite_score()
             if scenario and profile.scenario_successes:
-                scenario_total = profile.scenario_successes.get(scenario, 0) + profile.scenario_failures.get(scenario, 0)
+                scenario_total = profile.scenario_successes.get(scenario, 0) + profile.scenario_failures.get(
+                    scenario, 0
+                )
                 if scenario_total >= 3:
                     scenario_rate = profile.scenario_successes.get(scenario, 0) / scenario_total
-                    score *= (0.5 + 0.5 * scenario_rate)
+                    score *= 0.5 + 0.5 * scenario_rate
             candidates.append((name, score))
         candidates.sort(key=lambda x: -x[1])
         return [name for name, _ in candidates[:n]]
@@ -188,6 +191,7 @@ def get_backend_summary() -> dict[str, dict]:
 
 # ─── Persistence ───────────────────────────────────────────────────────────
 
+
 def save_profiles() -> None:
     """Persist all profiles to SQLite."""
     with _lock:
@@ -208,22 +212,25 @@ def save_profiles() -> None:
                 )
             """)
             for name, profile in _profiles.items():
-                conn.execute("""
+                conn.execute(
+                    """
                     INSERT OR REPLACE INTO backend_profiles
                     (name, latencies, successes, failures, response_lengths,
                      scenario_successes, scenario_failures, total_requests, last_updated)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    name,
-                    json.dumps(profile.latencies),
-                    profile.successes,
-                    profile.failures,
-                    json.dumps(profile.response_lengths),
-                    json.dumps(profile.scenario_successes),
-                    json.dumps(profile.scenario_failures),
-                    profile.total_requests,
-                    profile.last_updated,
-                ))
+                """,
+                    (
+                        name,
+                        json.dumps(profile.latencies),
+                        profile.successes,
+                        profile.failures,
+                        json.dumps(profile.response_lengths),
+                        json.dumps(profile.scenario_successes),
+                        json.dumps(profile.scenario_failures),
+                        profile.total_requests,
+                        profile.last_updated,
+                    ),
+                )
             conn.commit()
             conn.close()
         except Exception as exc:
@@ -277,4 +284,3 @@ def save_on_interval(interval_sec: int = 300) -> None:
     t = threading.Thread(target=_save_loop, daemon=True)
     t.start()
     logger.info("Backend profile auto-save started (interval=%ds)", interval_sec)
-

@@ -17,10 +17,7 @@ def _api_key() -> str:
 
 def _inventory_proxy() -> str:
     """Proxy for Google API (same env chain as MCP inventory / http_caller)."""
-    return (
-        os.environ.get("GOOGLE_INVENTORY_PROXY", "").strip()
-        or os.environ.get("GFW_PROXY", "").strip()
-    )
+    return os.environ.get("GOOGLE_INVENTORY_PROXY", "").strip() or os.environ.get("GFW_PROXY", "").strip()
 
 
 def _build_client(*, proxy: str | None = None) -> httpx.Client:

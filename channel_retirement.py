@@ -24,10 +24,7 @@ def is_retired_route_path(path: str) -> bool:
 
 
 def _telegram_bot_token() -> str:
-    return (
-        os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
-        or os.environ.get("LIMA_TELEGRAM_BOT_TOKEN", "").strip()
-    )
+    return os.environ.get("TELEGRAM_BOT_TOKEN", "").strip() or os.environ.get("LIMA_TELEGRAM_BOT_TOKEN", "").strip()
 
 
 async def retire_telegram_webhook_from_env() -> bool:

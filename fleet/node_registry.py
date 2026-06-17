@@ -88,7 +88,10 @@ class NodeRegistry:
                 node.capabilities = capabilities
         else:
             node = NodeInfo(
-                node_id=node_id, host=host, port=port, role=role,
+                node_id=node_id,
+                host=host,
+                port=port,
+                role=role,
                 capabilities=capabilities or NodeCapabilities(),
                 last_heartbeat=now,
             )

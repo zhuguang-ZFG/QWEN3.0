@@ -48,6 +48,7 @@ def test_compact_session_preserves_summary():
 
     compact_session(sid)
     from session_memory.store import get_recent_memories
+
     memories = get_recent_memories(sid, limit=50)
     compacted = [m for m in memories if m.role == "compacted"]
     assert len(compacted) >= 1
@@ -74,6 +75,7 @@ def test_custom_summarizer():
     assert result["compacted"] is True
 
     from session_memory.store import get_recent_memories
+
     memories = get_recent_memories(sid, limit=50)
     compacted = [m for m in memories if m.role == "compacted"]
     assert "CUSTOM" in compacted[0].summary

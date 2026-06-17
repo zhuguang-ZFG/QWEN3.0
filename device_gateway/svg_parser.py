@@ -26,8 +26,14 @@ def _tokenize_svg_d(d_string: str) -> list[str]:
 
 
 def _bezier_to_polyline(
-    x0: float, y0: float, x1: float, y1: float,
-    x2: float, y2: float, x3: float, y3: float,
+    x0: float,
+    y0: float,
+    x1: float,
+    y1: float,
+    x2: float,
+    y2: float,
+    x3: float,
+    y3: float,
     segments: int,
 ) -> list[tuple[float, float]]:
     points: list[tuple[float, float]] = []
@@ -35,8 +41,8 @@ def _bezier_to_polyline(
         t = i / segments
         c0 = (1 - t) ** 3
         c1 = 3 * (1 - t) ** 2 * t
-        c2 = 3 * (1 - t) * t ** 2
-        c3 = t ** 3
+        c2 = 3 * (1 - t) * t**2
+        c3 = t**3
         x = c0 * x0 + c1 * x1 + c2 * x2 + c3 * x3
         y = c0 * y0 + c1 * y1 + c2 * y2 + c3 * y3
         points.append((x, y))
@@ -47,9 +53,9 @@ def _pt(origin_x: float, origin_y: float, x: float, y: float) -> dict[str, float
     return {"x": round(origin_x + x, 2), "y": round(origin_y - y, 2), "z": 0}
 
 
-def _handle_ml(tokens: list[str], i: int, cmd: str,
-               cx: float, cy: float, scale: float,
-               ox: float, oy: float, path: list) -> tuple[int, float, float, float, float]:
+def _handle_ml(
+    tokens: list[str], i: int, cmd: str, cx: float, cy: float, scale: float, ox: float, oy: float, path: list
+) -> tuple[int, float, float, float, float]:
     rel = cmd == "m"
     if i + 1 >= len(tokens):
         return len(tokens), cx, cy, cx if rel else 0.0, cy if rel else 0.0
@@ -62,9 +68,9 @@ def _handle_ml(tokens: list[str], i: int, cmd: str,
     return i, x, y, first_x, first_y
 
 
-def _handle_hv(tokens: list[str], i: int, cmd: str,
-               cx: float, cy: float, scale: float,
-               ox: float, oy: float, path: list) -> tuple[int, float, float]:
+def _handle_hv(
+    tokens: list[str], i: int, cmd: str, cx: float, cy: float, scale: float, ox: float, oy: float, path: list
+) -> tuple[int, float, float]:
     rel = cmd in ("h", "v")
     if i >= len(tokens):
         return len(tokens), cx, cy
@@ -77,9 +83,9 @@ def _handle_hv(tokens: list[str], i: int, cmd: str,
     return i, cx, cy
 
 
-def _handle_cubic(tokens: list[str], i: int, cmd: str,
-                  cx: float, cy: float, scale: float,
-                  ox: float, oy: float, path: list) -> tuple[int, float, float]:
+def _handle_cubic(
+    tokens: list[str], i: int, cmd: str, cx: float, cy: float, scale: float, ox: float, oy: float, path: list
+) -> tuple[int, float, float]:
     if i + 5 >= len(tokens):
         return len(tokens), cx, cy
     x1, y1 = float(tokens[i]), float(tokens[i + 1])
@@ -100,9 +106,9 @@ def _handle_cubic(tokens: list[str], i: int, cmd: str,
     return i, cx, cy
 
 
-def _handle_quad(tokens: list[str], i: int, cmd: str,
-                 cx: float, cy: float, scale: float,
-                 ox: float, oy: float, path: list) -> tuple[int, float, float]:
+def _handle_quad(
+    tokens: list[str], i: int, cmd: str, cx: float, cy: float, scale: float, ox: float, oy: float, path: list
+) -> tuple[int, float, float]:
     if i + 3 >= len(tokens):
         return len(tokens), cx, cy
     x1, y1 = float(tokens[i]), float(tokens[i + 1])

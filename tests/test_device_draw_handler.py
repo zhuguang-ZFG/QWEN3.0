@@ -1,4 +1,5 @@
 """Unit tests for device_gateway.device_draw_handler."""
+
 from __future__ import annotations
 
 import sys
@@ -171,9 +172,7 @@ class TestHandleDeviceDraw:
         mock_client_cls.return_value = mock_client
 
         mock_converter = MagicMock()
-        mock_converter.convert_url_to_svg = AsyncMock(
-            return_value={"status": "failed", "error": "cv2 missing"}
-        )
+        mock_converter.convert_url_to_svg = AsyncMock(return_value={"status": "failed", "error": "cv2 missing"})
         mock_converter_cls.return_value = mock_converter
 
         resp = await handle_device_draw("a cat")

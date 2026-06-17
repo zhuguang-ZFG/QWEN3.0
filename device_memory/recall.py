@@ -29,10 +29,12 @@ def recall_planner_hints(store: MemoryStore, device_id: str) -> dict[str, Any]:
             hints["preferences"][entry.key] = entry.value
         elif entry.type == MemoryType.DEVICE_FAILURE:
             data = _parse_value(entry.value)
-            hints["warnings"].append({
-                "error_code": data.get("error_code", ""),
-                "reason": data.get("reason", ""),
-            })
+            hints["warnings"].append(
+                {
+                    "error_code": data.get("error_code", ""),
+                    "reason": data.get("reason", ""),
+                }
+            )
         elif entry.type == MemoryType.PROCEDURE_CONFIDENCE:
             data = _parse_value(entry.value)
             task_type = data.get("task_type", "")
@@ -67,11 +69,13 @@ def get_device_failure_warnings(store: MemoryStore, device_id: str) -> list[dict
         if entry.type != MemoryType.DEVICE_FAILURE or entry.disabled:
             continue
         data = _parse_value(entry.value)
-        warnings.append({
-            "error_code": data.get("error_code", ""),
-            "reason": data.get("reason", ""),
-            "capability": data.get("capability", ""),
-        })
+        warnings.append(
+            {
+                "error_code": data.get("error_code", ""),
+                "reason": data.get("reason", ""),
+                "capability": data.get("capability", ""),
+            }
+        )
     return warnings
 
 

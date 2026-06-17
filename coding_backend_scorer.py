@@ -3,6 +3,7 @@
 Loads coding_backend_scores from data/ and provides per-backend quality weights
 used by routing_selector to prefer proven coding backends.
 """
+
 from __future__ import annotations
 
 import json
@@ -63,9 +64,12 @@ def get_coding_weight(backend: str) -> float:
 def get_coding_tier(backend: str) -> str:
     """Classify backend into coding tier: 'proven' | 'fallback' | 'skip' | 'unknown'."""
     w = get_coding_weight(backend)
-    if w >= 1.2:   return "proven"
-    if w >= 0.7:   return "fallback"
-    if w > 0:      return "skip"
+    if w >= 1.2:
+        return "proven"
+    if w >= 0.7:
+        return "fallback"
+    if w > 0:
+        return "skip"
     return "unknown"
 
 

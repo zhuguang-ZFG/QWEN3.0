@@ -29,15 +29,17 @@ async def extract_models(base_url: str, api_key: str = "") -> list[dict]:
 
             result = []
             for m in models:
-                result.append({
-                    "id": m.get("id", ""),
-                    "name": m.get("name", m.get("id", "")),
-                    "owned_by": m.get("owned_by", ""),
-                    "created": m.get("created", 0),
-                    "context_length": m.get("context_length", 0),
-                    "pricing": m.get("pricing", {}),
-                    "is_free": _is_free_model(m),
-                })
+                result.append(
+                    {
+                        "id": m.get("id", ""),
+                        "name": m.get("name", m.get("id", "")),
+                        "owned_by": m.get("owned_by", ""),
+                        "created": m.get("created", 0),
+                        "context_length": m.get("context_length", 0),
+                        "pricing": m.get("pricing", {}),
+                        "is_free": _is_free_model(m),
+                    }
+                )
             return result
     except Exception as exc:
         logger.debug("extract_models error: %s", type(exc).__name__)

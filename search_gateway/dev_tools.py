@@ -99,9 +99,7 @@ def search_codesearch(
         path = str(item.get("path") or "")
         snippet = str(item.get("snippet") or "")[:1000]
         title = path.rsplit("/", 1)[-1] if path else "match"
-        results.append(
-            DevSearchResult(title, path or "local", snippet, "codesearch").as_dict()
-        )
+        results.append(DevSearchResult(title, path or "local", snippet, "codesearch").as_dict())
     return {
         "ok": True,
         "tool": "dev_search_codesearch",

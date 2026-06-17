@@ -44,11 +44,7 @@ def average_scores_from_path(path: Path) -> dict[str, float]:
         if not backend:
             continue
         by_backend.setdefault(backend, []).append(float(row.get("score") or 0))
-    return {
-        backend: statistics.mean(scores)
-        for backend, scores in by_backend.items()
-        if scores
-    }
+    return {backend: statistics.mean(scores) for backend, scores in by_backend.items() if scores}
 
 
 def load_eval_averages(data_dir: Path | None = None) -> dict[str, float]:
@@ -75,9 +71,7 @@ def demoted_backends(
     if not scores:
         return frozenset()
     cutoff = min_avg_score() if threshold is None else threshold
-    return frozenset(
-        backend for backend, avg in scores.items() if avg < cutoff
-    )
+    return frozenset(backend for backend, avg in scores.items() if avg < cutoff)
 
 
 def filter_coding_pool(

@@ -25,8 +25,12 @@ def _caller():
 
 
 def _stream_parse_lines(
-    lines, fmt: str, backend: str,
-    health_tracker, key_provider, selected_key,
+    lines,
+    fmt: str,
+    backend: str,
+    health_tracker,
+    key_provider,
+    selected_key,
 ) -> Generator[str, None, None]:
     """Parse SSE lines, yield cleaned text chunks. Raises BackendError on error."""
     pending_chunks: list[str] = []
@@ -54,11 +58,10 @@ def _stream_parse_lines(
             pending_chunks.append(text)
             if len(total_text) > 200:
                 if _is_backend_error(total_text):
-                    health_tracker.record_failure(
-                        backend, error_code=429, error_text=total_text
-                    )
+                    health_tracker.record_failure(backend, error_code=429, error_text=total_text)
                     raise BackendError(
-                        f"{backend} error: {total_text[:60]}", status_code=429,
+                        f"{backend} error: {total_text[:60]}",
+                        status_code=429,
                     )
                 buffered = "".join(pending_chunks)
                 cleaned = clean_response(buffered, backend)
@@ -98,23 +101,32 @@ def _record_stream_success(hc, backend, key_provider, selected_key, total_text, 
 def _record_stream_error(hc, backend, key_provider, selected_key, exc, label: str = ""):
     if isinstance(exc, BackendError):
         hc._report_key_result(
-            key_provider, selected_key, False,
-            error_code=exc.status_code or 0, retry_after=0,
+            key_provider,
+            selected_key,
+            False,
+            error_code=exc.status_code or 0,
+            retry_after=0,
         )
     elif isinstance(exc, httpx.HTTPStatusError):
         error_code = exc.response.status_code
         hc.health_tracker.record_failure(backend, error_code=error_code, error_text=str(exc))
         hc._report_key_result(
-            key_provider, selected_key, False,
-            error_code=error_code, retry_after=_extract_retry_after(exc),
+            key_provider,
+            selected_key,
+            False,
+            error_code=error_code,
+            retry_after=_extract_retry_after(exc),
         )
         raise BackendError(str(exc), status_code=error_code) from exc
     else:
         error_code = _extract_code(exc)
         hc.health_tracker.record_failure(backend, error_code=error_code, error_text=str(exc))
         hc._report_key_result(
-            key_provider, selected_key, False,
-            error_code=error_code or 0, retry_after=_extract_retry_after(exc),
+            key_provider,
+            selected_key,
+            False,
+            error_code=error_code or 0,
+            retry_after=_extract_retry_after(exc),
         )
         if DEBUG:
             print(f"[STREAM] {backend} {label}error: {exc}", file=sys.stderr)
@@ -150,8 +162,12 @@ def call_api_stream(
             with client.stream("POST", cfg["url"], content=body, headers=headers) as resp:
                 resp.raise_for_status()
                 yield from _stream_parse_lines(
-                    resp.iter_lines(), fmt, backend,
-                    hc.health_tracker, key_provider, selected_key,
+                    resp.iter_lines(),
+                    fmt,
+                    backend,
+                    hc.health_tracker,
+                    key_provider,
+                    selected_key,
                 )
         _record_stream_success(hc, backend, key_provider, selected_key, None, started)
     except (BackendError, httpx.HTTPStatusError, Exception) as exc:
@@ -159,8 +175,12 @@ def call_api_stream(
 
 
 async def _stream_parse_lines_async(
-    aiter_lines, fmt: str, backend: str,
-    health_tracker, key_provider, selected_key,
+    aiter_lines,
+    fmt: str,
+    backend: str,
+    health_tracker,
+    key_provider,
+    selected_key,
 ) -> AsyncIterator[str]:
     """Async version: parse SSE lines from an async iterator."""
     pending_chunks: list[str] = []
@@ -188,11 +208,10 @@ async def _stream_parse_lines_async(
             pending_chunks.append(text)
             if len(total_text) > 200:
                 if _is_backend_error(total_text):
-                    health_tracker.record_failure(
-                        backend, error_code=429, error_text=total_text
-                    )
+                    health_tracker.record_failure(backend, error_code=429, error_text=total_text)
                     raise BackendError(
-                        f"{backend} error: {total_text[:60]}", status_code=429,
+                        f"{backend} error: {total_text[:60]}",
+                        status_code=429,
                     )
                 buffered = "".join(pending_chunks)
                 cleaned_out = clean_response(buffered, backend)
@@ -246,13 +265,15 @@ async def call_api_stream_async(
 
     try:
         async with hc._build_async_client(backend, timeout) as client:
-            async with client.stream(
-                "POST", cfg["url"], content=body, headers=headers
-            ) as resp:
+            async with client.stream("POST", cfg["url"], content=body, headers=headers) as resp:
                 resp.raise_for_status()
                 async for chunk in _stream_parse_lines_async(
-                    resp.aiter_lines(), fmt, backend,
-                    hc.health_tracker, key_provider, selected_key,
+                    resp.aiter_lines(),
+                    fmt,
+                    backend,
+                    hc.health_tracker,
+                    key_provider,
+                    selected_key,
                 ):
                     yield chunk
         _record_stream_success(hc, backend, key_provider, selected_key, None, started)

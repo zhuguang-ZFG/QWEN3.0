@@ -30,16 +30,15 @@ def test_production_index_searches_routing_engine():
     )
 
     assert hits
-    assert any(
-        "routing_engine.py" in hit.path or "routing_classifier.py" in hit.path
-        for hit in hits
-    )
+    assert any("routing_engine.py" in hit.path or "routing_classifier.py" in hit.path for hit in hits)
 
 
 def test_run_retrieval_uses_production_index_for_file_entities():
-    payload = run_retrieval([
-        {"role": "user", "content": "fix routing_engine.py select backend health"},
-    ])
+    payload = run_retrieval(
+        [
+            {"role": "user", "content": "fix routing_engine.py select backend health"},
+        ]
+    )
 
     assert payload is not None
     assert payload.text

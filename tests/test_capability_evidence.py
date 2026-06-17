@@ -1,4 +1,5 @@
 """Tests for unified outcome ledger / capability evidence (merged 2026-05-27)."""
+
 from __future__ import annotations
 
 import tempfile
@@ -22,9 +23,12 @@ def test_record_evidence_redacts_secret_like_values(evidence_db):
     from observability.capability_evidence import record_evidence, recent_evidence
 
     record_evidence(
-        loop="chat_ide", request_id="req-1",
-        entrypoint="/v1/chat/completions", selected_backend="scnet_ds_flash",
-        status="ok", evidence=["Bearer sk-test-123"],
+        loop="chat_ide",
+        request_id="req-1",
+        entrypoint="/v1/chat/completions",
+        selected_backend="scnet_ds_flash",
+        status="ok",
+        evidence=["Bearer sk-test-123"],
     )
     row = recent_evidence(limit=1)[0]
     assert row["loop"] == "chat_ide"
@@ -37,15 +41,20 @@ def test_record_evidence_caps_artifact_paths(evidence_db):
     from observability.capability_evidence import record_evidence, recent_evidence
 
     record_evidence(
-        loop="agent_worker", request_id="req-2", task_id="task-2",
-        entrypoint="/agent/tasks/task-2/result", status="needs_review",
+        loop="agent_worker",
+        request_id="req-2",
+        task_id="task-2",
+        entrypoint="/agent/tasks/task-2/result",
+        status="needs_review",
         artifact_paths=[f"a{i}.md" for i in range(20)],
     )
     row = recent_evidence(limit=1)[0]
     # artifact_paths are capped before persistence.
     paths = row.get("artifact_paths", [])
     if isinstance(paths, str):
-        import json; paths = json.loads(paths)
+        import json
+
+        paths = json.loads(paths)
     assert len(paths) <= 10
 
 
@@ -60,10 +69,16 @@ def test_record_evidence_stores_all_fields(evidence_db):
     from observability.capability_evidence import record_evidence, recent_evidence
 
     record_evidence(
-        loop="device_gateway", request_id="req-d", task_id="task-d",
-        device_id="dev-1", entrypoint="/device/v1/tasks",
-        selected_backend="", fallback_used=False, latency_ms=450,
-        status="sent", evidence=["device_task_created"],
+        loop="device_gateway",
+        request_id="req-d",
+        task_id="task-d",
+        device_id="dev-1",
+        entrypoint="/device/v1/tasks",
+        selected_backend="",
+        fallback_used=False,
+        latency_ms=450,
+        status="sent",
+        evidence=["device_task_created"],
         rollback="delete pending task",
     )
     row = recent_evidence(limit=1)[0]
@@ -84,10 +99,12 @@ def test_recent_evidence_respects_limit(evidence_db):
 
 def test_recent_evidence_empty_on_fresh_db(monkeypatch):
     import tempfile
+
     tmp = tempfile.mkdtemp()
     db = Path(tmp) / "fresh_empty.db"
     monkeypatch.setenv("LIMA_OUTCOME_DB", str(db))
     from observability.capability_evidence import recent_evidence
+
     rows = recent_evidence()
     assert rows == []
 

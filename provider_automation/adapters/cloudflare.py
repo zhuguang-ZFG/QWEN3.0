@@ -20,15 +20,53 @@ MAX_SMOKE_LATENCY_MS = 15_000
 _SMOKE_PROMPT = "Say OK only."
 
 _NON_CHAT_HINTS = (
-    "embedding", "bge-", "reranker", "flux", "stable-diffusion", "deepgram",
-    "aura-", "whisper", "lucid-origin", "phoenix", "dreamshaper", "indictrans",
-    "m2m100", "bart-large", "distilbert", "llava", "segment", "translation",
-    "/leonardo/", "embedgemma", "melotts", "smart-turn", "resnet-50", "llama-guard",
+    "embedding",
+    "bge-",
+    "reranker",
+    "flux",
+    "stable-diffusion",
+    "deepgram",
+    "aura-",
+    "whisper",
+    "lucid-origin",
+    "phoenix",
+    "dreamshaper",
+    "indictrans",
+    "m2m100",
+    "bart-large",
+    "distilbert",
+    "llava",
+    "segment",
+    "translation",
+    "/leonardo/",
+    "embedgemma",
+    "melotts",
+    "smart-turn",
+    "resnet-50",
+    "llama-guard",
 )
 _CHAT_HINTS = (
-    "instruct", "chat", "coder", "qwq", "reason", "thinking", "-it", "gpt-oss",
-    "nemotron", "gemma", "llama", "mistral", "deepseek", "glm", "kimi", "qwen",
-    "phi-", "sqlcoder", "hermes", "granite", "sea-lion",
+    "instruct",
+    "chat",
+    "coder",
+    "qwq",
+    "reason",
+    "thinking",
+    "-it",
+    "gpt-oss",
+    "nemotron",
+    "gemma",
+    "llama",
+    "mistral",
+    "deepseek",
+    "glm",
+    "kimi",
+    "qwen",
+    "phi-",
+    "sqlcoder",
+    "hermes",
+    "granite",
+    "sea-lion",
 )
 _PROBE_PREFIXES = ("@cf/", "@hf/")
 
@@ -143,10 +181,7 @@ def unregistered_probe_candidates(
     registered = registered_model_ids(("cf_",))
     admitted = _admitted_overlay_model_ids(admission_path)
     snapshot = parse_probe_inventory(path)
-    return [
-        m for m in snapshot.models
-        if m.model_id not in registered and m.model_id not in admitted
-    ]
+    return [m for m in snapshot.models if m.model_id not in registered and m.model_id not in admitted]
 
 
 def map_model_to_backend_key(model_id: str) -> str:

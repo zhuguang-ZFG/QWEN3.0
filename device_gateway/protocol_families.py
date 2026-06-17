@@ -7,6 +7,7 @@ until safety evidence and per-family approval gates pass.
 Only the writing-machine `motion_task` family is currently active.
 All other families remain gated.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -36,16 +37,18 @@ class MotionErrorCode(str, Enum):
 
 
 FAMILY_ALLOWLISTS: dict[str, frozenset[str]] = {
-    ProtocolFamily.MOTION.value: frozenset({
-        "run_path",
-        "write_text",
-        "draw_generated",
-        "home",
-        "pause",
-        "resume",
-        "stop",
-        "get_device_info",
-    }),
+    ProtocolFamily.MOTION.value: frozenset(
+        {
+            "run_path",
+            "write_text",
+            "draw_generated",
+            "home",
+            "pause",
+            "resume",
+            "stop",
+            "get_device_info",
+        }
+    ),
     ProtocolFamily.DISPLAY.value: frozenset({"show_image", "show_text", "clear_screen"}),
     ProtocolFamily.AUDIO.value: frozenset({"play_audio", "stop_audio", "set_volume"}),
     ProtocolFamily.SPEECH.value: frozenset({"tts_speak", "voice_clone"}),
@@ -56,11 +59,16 @@ FAMILY_ALLOWLISTS: dict[str, frozenset[str]] = {
 
 ACTIVE_FAMILIES: frozenset[str] = frozenset({ProtocolFamily.MOTION.value})
 
-GATED_FAMILIES: frozenset[str] = frozenset({
-    ProtocolFamily.DISPLAY.value, ProtocolFamily.AUDIO.value,
-    ProtocolFamily.SPEECH.value, ProtocolFamily.OCR.value,
-    ProtocolFamily.CAMERA.value, ProtocolFamily.PERCEPTION.value,
-})
+GATED_FAMILIES: frozenset[str] = frozenset(
+    {
+        ProtocolFamily.DISPLAY.value,
+        ProtocolFamily.AUDIO.value,
+        ProtocolFamily.SPEECH.value,
+        ProtocolFamily.OCR.value,
+        ProtocolFamily.CAMERA.value,
+        ProtocolFamily.PERCEPTION.value,
+    }
+)
 
 
 @dataclass
@@ -71,18 +79,30 @@ class ProtocolSchema:
 
 
 MOTION_SCHEMAS = [
-    ProtocolSchema("motion", "run_path", {
-        "feed": {"type": "int", "required": True},
-        "path": {"type": "array", "required": True},
-    }),
-    ProtocolSchema("motion", "write_text", {
-        "feed": {"type": "int", "required": True},
-        "text": {"type": "string", "required": True, "max_length": 80},
-    }),
-    ProtocolSchema("motion", "draw_generated", {
-        "feed": {"type": "int", "required": True},
-        "prompt": {"type": "string", "required": True, "max_length": 120},
-    }),
+    ProtocolSchema(
+        "motion",
+        "run_path",
+        {
+            "feed": {"type": "int", "required": True},
+            "path": {"type": "array", "required": True},
+        },
+    ),
+    ProtocolSchema(
+        "motion",
+        "write_text",
+        {
+            "feed": {"type": "int", "required": True},
+            "text": {"type": "string", "required": True, "max_length": 80},
+        },
+    ),
+    ProtocolSchema(
+        "motion",
+        "draw_generated",
+        {
+            "feed": {"type": "int", "required": True},
+            "prompt": {"type": "string", "required": True, "max_length": 120},
+        },
+    ),
     ProtocolSchema("motion", "home", {}),
     ProtocolSchema("motion", "pause", {}),
     ProtocolSchema("motion", "resume", {}),
@@ -91,44 +111,72 @@ MOTION_SCHEMAS = [
 ]
 
 DISPLAY_SCHEMAS = [
-    ProtocolSchema("display", "show_image", {
-        "url": {"type": "string", "required": True},
-    }),
-    ProtocolSchema("display", "show_text", {
-        "text": {"type": "string", "required": True, "max_length": 200},
-    }),
+    ProtocolSchema(
+        "display",
+        "show_image",
+        {
+            "url": {"type": "string", "required": True},
+        },
+    ),
+    ProtocolSchema(
+        "display",
+        "show_text",
+        {
+            "text": {"type": "string", "required": True, "max_length": 200},
+        },
+    ),
 ]
 
 AUDIO_SCHEMAS = [
-    ProtocolSchema("audio", "play_audio", {
-        "url": {"type": "string", "required": True},
-        "loop": {"type": "bool", "required": False},
-    }),
+    ProtocolSchema(
+        "audio",
+        "play_audio",
+        {
+            "url": {"type": "string", "required": True},
+            "loop": {"type": "bool", "required": False},
+        },
+    ),
 ]
 
 SPEECH_SCHEMAS = [
-    ProtocolSchema("speech", "tts_speak", {
-        "text": {"type": "string", "required": True, "max_length": 500},
-        "voice": {"type": "string", "required": False},
-    }),
+    ProtocolSchema(
+        "speech",
+        "tts_speak",
+        {
+            "text": {"type": "string", "required": True, "max_length": 500},
+            "voice": {"type": "string", "required": False},
+        },
+    ),
 ]
 
 OCR_SCHEMAS = [
-    ProtocolSchema("ocr", "capture_text", {
-        "region": {"type": "object", "required": False},
-    }),
+    ProtocolSchema(
+        "ocr",
+        "capture_text",
+        {
+            "region": {"type": "object", "required": False},
+        },
+    ),
 ]
 
 CAMERA_SCHEMAS = [
-    ProtocolSchema("camera", "capture_frame", {
-        "resolution": {"type": "string", "required": False},
-    }),
+    ProtocolSchema(
+        "camera",
+        "capture_frame",
+        {
+            "resolution": {"type": "string", "required": False},
+        },
+    ),
 ]
 
 PERCEPTION_SCHEMAS = [
-    ProtocolSchema("perception", "wifi_csi_sample", {
-        "duration_ms": {"type": "int", "required": False, "max": 5000},
-    }),
+    ProtocolSchema(
+        "perception",
+        "wifi_csi_sample",
+        {
+            "duration_ms": {"type": "int", "required": False, "max": 5000},
+        },
+    ),
 ]
 
 ALL_SCHEMAS: dict[str, list[ProtocolSchema]] = {

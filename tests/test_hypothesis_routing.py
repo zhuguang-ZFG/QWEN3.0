@@ -49,7 +49,8 @@ def test_route_never_crashes(query: str, fmt: str):
     messages = [{"role": "user", "content": query}]
     try:
         result = route(
-            query, messages,
+            query,
+            messages,
             fmt=fmt,
             model="lima-1.3",
             max_tokens=100,
@@ -61,13 +62,16 @@ def test_route_never_crashes(query: str, fmt: str):
         pass
 
 
-@pytest.mark.parametrize("query,expected_request_type", [
-    ("write a function to sort a list in Python", "code"),
-    ("hello how are you", "chat"),
-    ("generate an image of a cat", "image"),
-    ("what is LiMa", "identity"),
-    ("use the terminal to list files", "tool_use"),
-])
+@pytest.mark.parametrize(
+    "query,expected_request_type",
+    [
+        ("write a function to sort a list in Python", "code"),
+        ("hello how are you", "chat"),
+        ("generate an image of a cat", "image"),
+        ("what is LiMa", "identity"),
+        ("use the terminal to list files", "tool_use"),
+    ],
+)
 def test_classify_known_patterns(query, expected_request_type):
     """Known query patterns should map to expected types."""
     messages = [{"role": "user", "content": query}]

@@ -88,8 +88,7 @@ def apply_prompt_memory_recall(
     trace=None,
 ) -> PromptMemoryRecallResult:
     """Inject relevant session memory before routing, failing open on errors."""
-    memory_headers = build_memory_headers(
-        headers, client_ip=client_ip, ide_source=ide_source)
+    memory_headers = build_memory_headers(headers, client_ip=client_ip, ide_source=ide_source)
     base_prompt = system_prompt or ""
     span = None
 
@@ -132,11 +131,14 @@ def apply_prompt_memory_recall(
         return result
     except Exception as exc:
         if span is not None:
-            _update_span_metadata(span, {
-                "checked": True,
-                "applied": False,
-                "error": type(exc).__name__,
-            })
+            _update_span_metadata(
+                span,
+                {
+                    "checked": True,
+                    "applied": False,
+                    "error": type(exc).__name__,
+                },
+            )
         log.debug("prompt memory recall skipped: %s", exc)
         return PromptMemoryRecallResult(
             system_prompt=base_prompt,

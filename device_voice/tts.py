@@ -17,9 +17,7 @@ class TTSProvider(ABC):
     """Abstract base for text-to-speech providers."""
 
     @abstractmethod
-    async def synthesize(
-        self, text: str, *, voice: str = "", sample_rate: int = 16000
-    ) -> bytes:
+    async def synthesize(self, text: str, *, voice: str = "", sample_rate: int = 16000) -> bytes:
         """Synthesize text into raw PCM audio bytes (16-bit mono).
 
         Args:
@@ -76,6 +74,7 @@ def create_tts_provider(name: str) -> TTSProvider:
         dotted = _PROVIDERS["edge"]
     module_path, cls_name = dotted.rsplit(".", 1)
     import importlib
+
     mod = importlib.import_module(module_path)
     cls = getattr(mod, cls_name)
     return cls()

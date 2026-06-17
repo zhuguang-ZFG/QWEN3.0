@@ -37,12 +37,14 @@ class TavilyAdapter:
             d = r.json()
             results = []
             for item in d.get("results", []):
-                results.append({
-                    "title": item.get("title", ""),
-                    "url": item.get("url", ""),
-                    "snippet": item.get("content", "")[:300],
-                    "source": "tavily",
-                })
+                results.append(
+                    {
+                        "title": item.get("title", ""),
+                        "url": item.get("url", ""),
+                        "snippet": item.get("content", "")[:300],
+                        "source": "tavily",
+                    }
+                )
             answer = d.get("answer", "")
             return {
                 "ok": True,

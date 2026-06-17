@@ -50,9 +50,7 @@ async def detect_auth(base_url: str) -> dict:
                 if resp.status_code == 200:
                     result["requires_auth"] = True
                     result["auth_header_name"] = header_name
-                    result["auth_type"] = (
-                        "bearer" if "Authorization" in header_name else "api-key"
-                    )
+                    result["auth_type"] = "bearer" if "Authorization" in header_name else "api-key"
                     result["evidence"] = f"200 OK with {header_name}"
                     return result
                 elif resp.status_code in (401, 403):
@@ -92,9 +90,7 @@ async def probe_chat_auth(base_url: str) -> dict:
     # Try without auth
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.post(
-                url, json=body, headers={"Content-Type": "application/json"}
-            )
+            resp = await client.post(url, json=body, headers={"Content-Type": "application/json"})
             result["status"] = resp.status_code
             if resp.status_code == 200:
                 result["requires_auth"] = False

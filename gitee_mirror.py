@@ -123,9 +123,7 @@ def build_remote_entries(remotes: dict[str, dict[str, str]]) -> list[RemoteEntry
         fetch_url = cfg.get("fetch", "")
         push_url = cfg.get("push", fetch_url)
         host_kind = classify_host(push_url or fetch_url)
-        entries.append(
-            RemoteEntry(name=name, fetch_url=fetch_url, push_url=push_url, host_kind=host_kind)
-        )
+        entries.append(RemoteEntry(name=name, fetch_url=fetch_url, push_url=push_url, host_kind=host_kind))
     return entries
 
 

@@ -54,8 +54,7 @@ def has_tunnel_override(name: str) -> bool:
     return bool(os.environ.get(cfg[1], "").strip())
 
 
-def local_port_open(port: int, host: str = "127.0.0.1",
-                    timeout: float = 0.15) -> bool:
+def local_port_open(port: int, host: str = "127.0.0.1", timeout: float = 0.15) -> bool:
     try:
         with socket.create_connection((host, port), timeout=timeout):
             return True

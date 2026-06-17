@@ -1,4 +1,5 @@
 """Tests for backend_reputation.py — failure classification integration."""
+
 import backend_reputation
 
 
@@ -10,6 +11,7 @@ def setup_function():
 
 
 # ── Basic scoring ──────────────────────────────────────────────────────────────
+
 
 def test_initial_score():
     assert backend_reputation.get_score("any_backend") == 70
@@ -45,6 +47,7 @@ def test_cooldown_backend_removed_from_sort():
 
 
 # ── Failure class penalties ───────────────────────────────────────────────────
+
 
 def test_auth_failure_heavy_penalty():
     backend_reputation.record_failure_class("auth_test", "auth_expired")
@@ -86,6 +89,7 @@ def test_network_error_does_not_trigger_cooldown():
 
 # ── Sort by reputation ─────────────────────────────────────────────────────────
 
+
 def test_sort_by_reputation_ranks_higher_first():
     backend_reputation._scores = {"A": 90, "B": 50, "C": 75}
     pool = ["B", "A", "C"]
@@ -94,6 +98,7 @@ def test_sort_by_reputation_ranks_higher_first():
 
 
 # ── get_stats ──────────────────────────────────────────────────────────────────
+
 
 def test_get_stats_returns_dict():
     backend_reputation.record("stats_test", True)

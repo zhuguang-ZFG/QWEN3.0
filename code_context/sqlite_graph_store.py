@@ -66,13 +66,11 @@ class SqliteGraphIndex(GraphIndex):
     def add_relation(self, source: str, target: str, relation_type: str) -> None:
         now = time.time()
         self._conn.execute(
-            "INSERT INTO edges (source, target, relation_type, weight, created_at) "
-            "VALUES (?, ?, ?, 1.0, ?)",
+            "INSERT INTO edges (source, target, relation_type, weight, created_at) VALUES (?, ?, ?, 1.0, ?)",
             (source, target, relation_type, now),
         )
         self._conn.execute(
-            "INSERT INTO edges (source, target, relation_type, weight, created_at) "
-            "VALUES (?, ?, ?, 0.5, ?)",
+            "INSERT INTO edges (source, target, relation_type, weight, created_at) VALUES (?, ?, ?, 0.5, ?)",
             (target, source, f"rev_{relation_type}", now),
         )
         self._conn.commit()
@@ -86,13 +84,11 @@ class SqliteGraphIndex(GraphIndex):
         count = 0
         for rel in relations:
             self._conn.execute(
-                "INSERT INTO edges (source, target, relation_type, weight, created_at) "
-                "VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO edges (source, target, relation_type, weight, created_at) VALUES (?, ?, ?, ?, ?)",
                 (rel.source, rel.target, rel.relation_type, rel.weight, now),
             )
             self._conn.execute(
-                "INSERT INTO edges (source, target, relation_type, weight, created_at) "
-                "VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO edges (source, target, relation_type, weight, created_at) VALUES (?, ?, ?, ?, ?)",
                 (rel.target, rel.source, f"rev_{rel.relation_type}", rel.weight * 0.5, now),
             )
             count += 1
@@ -148,10 +144,7 @@ class SqliteGraphIndex(GraphIndex):
                 "WHERE edges_fts MATCH ? ORDER BY rank LIMIT ?",
                 (query, limit),
             ).fetchall()
-            return [
-                {"source": r[0], "target": r[1], "relation_type": r[2], "rank": r[3]}
-                for r in rows
-            ]
+            return [{"source": r[0], "target": r[1], "relation_type": r[2], "rank": r[3]} for r in rows]
         except Exception:
             return []
 

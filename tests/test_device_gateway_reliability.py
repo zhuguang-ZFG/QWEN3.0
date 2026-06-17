@@ -1,4 +1,4 @@
-﻿"""M5: Integration tests for device gateway reliability (reconnect, idempotency, failure injection)."""
+"""M5: Integration tests for device gateway reliability (reconnect, idempotency, failure injection)."""
 
 from __future__ import annotations
 
@@ -51,12 +51,15 @@ class TestTaskIdempotency:
     def test_dispatched_task_shows_active(self):
         task = create_task_from_transcript("dev-1", "写你好")
         from device_gateway.tasks import record_motion_event
-        record_motion_event({
-            "type": "motion_event",
-            "device_id": "dev-1",
-            "task_id": task["task_id"],
-            "phase": "accepted",
-        })
+
+        record_motion_event(
+            {
+                "type": "motion_event",
+                "device_id": "dev-1",
+                "task_id": task["task_id"],
+                "phase": "accepted",
+            }
+        )
         active = active_tasks_for_device("dev-1")
         assert len(active) >= 1
         task_ids = [t["task_id"] for t in active]
@@ -127,26 +130,32 @@ class TestRecoveryLedgerRecording:
         task_id = task["task_id"]
 
         from device_gateway.tasks import record_motion_event
-        record_motion_event({
-            "type": "motion_event",
-            "device_id": "dev-1",
-            "task_id": task_id,
-            "phase": "failed",
-            "error": {"code": "E_MISSING_PATH", "reason": "path missing"},
-        })
+
+        record_motion_event(
+            {
+                "type": "motion_event",
+                "device_id": "dev-1",
+                "task_id": task_id,
+                "phase": "failed",
+                "error": {"code": "E_MISSING_PATH", "reason": "path missing"},
+            }
+        )
 
         events = ledger_store.events_for_task(task_id)
-        recovery_found = any(
-            "recovery" in e.payload for e in events
-        )
+        recovery_found = any("recovery" in e.payload for e in events)
         assert recovery_found, "failed event should record recovery action in ledger"
 
 
 class TestWorkflowRecovery:
     def test_recovering_transition_from_running(self):
         workflow.register("task-wf-recover")
-        for s in (TaskState.PLANNED, TaskState.SIMULATED, TaskState.READY_TO_DISPATCH,
-                  TaskState.DISPATCHED, TaskState.RUNNING):
+        for s in (
+            TaskState.PLANNED,
+            TaskState.SIMULATED,
+            TaskState.READY_TO_DISPATCH,
+            TaskState.DISPATCHED,
+            TaskState.RUNNING,
+        ):
             workflow.advance("task-wf-recover", s)
 
         workflow.advance("task-wf-recover", TaskState.RECOVERING)

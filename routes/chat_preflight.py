@@ -30,7 +30,9 @@ def run_input_guardrails(req: ChatRequest) -> None:
     from context_pipeline.guardrails import GuardrailSeverity, run_input_guardrails as _run
 
     raw_messages: list[dict] = [
-        {"role": m.role, "content": m.content} if hasattr(m, "role") else {"role": m.get("role", ""), "content": m.get("content", "")}  # type: ignore[reportAssignmentType]
+        {"role": m.role, "content": m.content}
+        if hasattr(m, "role")
+        else {"role": m.get("role", ""), "content": m.get("content", "")}  # type: ignore[reportAssignmentType]
         for m in req.messages
     ]
     guard_result = _run(raw_messages)
@@ -107,16 +109,12 @@ def prepare_chat_preflight(
     system_prompt = prompt_ctx.system_prompt
 
     try:
-        request_messages, prompt_context_messages = apply_token_budget(
-            req, request_messages, system_prompt, ide_source
-        )
+        request_messages, prompt_context_messages = apply_token_budget(req, request_messages, system_prompt, ide_source)
     except ImportError:
         _log.debug("token budget module not installed; skipping apply_token_budget")
 
     try:
-        system_prompt, prompt_context_messages = adapt_identity_prompt(
-            system_prompt, client_ip, request_messages
-        )
+        system_prompt, prompt_context_messages = adapt_identity_prompt(system_prompt, client_ip, request_messages)
     except ImportError:
         _log.debug("identity adapter not installed; skipping adapt_identity_prompt")
 

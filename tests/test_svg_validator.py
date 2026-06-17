@@ -1,4 +1,5 @@
 """Tests for svg_validator.py"""
+
 from xiaozhi_drawing.svg_validator import validate_svg_path
 
 
@@ -9,8 +10,8 @@ def test_valid_simple_path():
 
     assert result.valid is True
     assert len(result.errors) == 0
-    assert result.complexity['point_count'] == 3
-    assert result.complexity['stroke_count'] == 1
+    assert result.complexity["point_count"] == 3
+    assert result.complexity["stroke_count"] == 1
 
 
 def test_empty_path():
@@ -53,7 +54,7 @@ def test_complex_path_with_curves():
     result = validate_svg_path(path)
 
     assert result.valid is True
-    assert result.complexity['point_count'] == 3  # M + C 终点 + Q 终点
+    assert result.complexity["point_count"] == 3  # M + C 终点 + Q 终点
 
 
 def test_max_points_exceeded():
@@ -83,7 +84,7 @@ def test_multiple_strokes():
     result = validate_svg_path(path)
 
     assert result.valid is True
-    assert result.complexity['stroke_count'] == 3
+    assert result.complexity["stroke_count"] == 3
 
 
 def test_bbox_calculation():
@@ -91,10 +92,10 @@ def test_bbox_calculation():
     path = "M 10 20 L 100 80 L 50 120"
     result = validate_svg_path(path)
 
-    bbox = result.complexity['bbox']
-    assert bbox['min_x'] == 10
-    assert bbox['max_x'] == 100
-    assert bbox['min_y'] == 20
-    assert bbox['max_y'] == 120
-    assert bbox['width'] == 90
-    assert bbox['height'] == 100
+    bbox = result.complexity["bbox"]
+    assert bbox["min_x"] == 10
+    assert bbox["max_x"] == 100
+    assert bbox["min_y"] == 20
+    assert bbox["max_y"] == 120
+    assert bbox["width"] == 90
+    assert bbox["height"] == 100

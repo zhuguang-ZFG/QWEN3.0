@@ -106,9 +106,7 @@ async def process_voice_utterance(
 # ---------------------------------------------------------------------------
 
 
-async def _identify_speaker(
-    pcm_data: bytes, device_id: str, config: AudioConfig
-) -> dict[str, Any] | None:
+async def _identify_speaker(pcm_data: bytes, device_id: str, config: AudioConfig) -> dict[str, Any] | None:
     """Run voiceprint identification on the utterance audio.
 
     Returns a dict with speaker identity info, or None if identification
@@ -116,6 +114,7 @@ async def _identify_speaker(
     """
     try:
         from device_voice.voiceprint import get_voiceprint_provider
+
         provider = get_voiceprint_provider()
         if not provider.enabled:
             return None
@@ -143,6 +142,7 @@ async def _run_asr(pcm_data: bytes, config: AudioConfig) -> str:
     """Run ASR provider on PCM data."""
     try:
         from device_voice import get_asr_provider
+
         asr = get_asr_provider()
         return await asr.transcribe(pcm_data, sample_rate=config.sample_rate)
     except Exception:
@@ -160,6 +160,7 @@ async def _run_llm(transcript: str, device_id: str) -> str:
     try:
         import asyncio
         from routing_engine import route
+
         result = await asyncio.to_thread(
             route,
             query=transcript,
@@ -174,6 +175,7 @@ async def _run_llm(transcript: str, device_id: str) -> str:
         # FastAPI Response objects — extract body
         if hasattr(result, "body"):
             import json
+
             body = json.loads(result.body)
             choices = body.get("choices", [])
             if choices:
@@ -188,6 +190,7 @@ async def _run_tts(text: str, voice: str, config: AudioConfig) -> bytes:
     """Run TTS provider to synthesize reply audio."""
     try:
         from device_voice import get_tts_provider
+
         tts = get_tts_provider()
         return await tts.synthesize(text, voice=voice, sample_rate=config.sample_rate)
     except Exception:
@@ -218,9 +221,7 @@ def _empty_result(
     return result
 
 
-def _pcm_to_wav(
-    pcm_data: bytes, sample_rate: int = 16000, channels: int = 1, bits_per_sample: int = 16
-) -> bytes:
+def _pcm_to_wav(pcm_data: bytes, sample_rate: int = 16000, channels: int = 1, bits_per_sample: int = 16) -> bytes:
     """Add a WAV header to raw PCM bytes."""
     import struct
 

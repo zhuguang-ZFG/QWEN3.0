@@ -14,13 +14,11 @@ def test_effective_score_prefers_healthy_fast_free_backend():
 
 
 def test_terminal_state_is_not_selectable():
-    assert not route_scorer.is_selectable(
-        "kimi", "chat", {"state": "manual_refresh_required"})
+    assert not route_scorer.is_selectable("kimi", "chat", {"state": "manual_refresh_required"})
 
 
 def test_ide_route_excludes_unproven_web_adapter():
-    assert not route_scorer.is_selectable(
-        "ddg_gpt4o_mini", "ide", {"state": "ok"})
+    assert not route_scorer.is_selectable("ddg_gpt4o_mini", "ide", {"state": "ok"})
     assert route_scorer.is_selectable("scnet_ds_flash", "ide", {"state": "ok"})
 
 

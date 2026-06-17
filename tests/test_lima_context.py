@@ -8,7 +8,7 @@ def test_build_context_digest_extracts_file_error_and_language():
             "content": (
                 "Fix D:\\GIT\\server.py after this error:\n"
                 "Traceback (most recent call last):\n"
-                "  File \"server.py\", line 10\n"
+                '  File "server.py", line 10\n'
                 "SyntaxError: invalid syntax"
             ),
         }

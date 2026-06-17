@@ -117,7 +117,7 @@ def alert_expired_tokens() -> None:
     names = [r["backend"] for r in expired]
     message = f"Token expired: {', '.join(names[:5])}"
     if len(names) > 5:
-        message += f" (+{len(names)-5} more)"
+        message += f" (+{len(names) - 5} more)"
 
     for r in expired:
         logger.warning("token expired backend=%s", r["backend"])

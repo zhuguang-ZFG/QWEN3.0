@@ -3,9 +3,7 @@
 
 def _text_from_content_blocks(content: list) -> str:
     return " ".join(
-        block.get("text", "")
-        for block in content
-        if isinstance(block, dict) and block.get("type") == "text"
+        block.get("text", "") for block in content if isinstance(block, dict) and block.get("type") == "text"
     )
 
 

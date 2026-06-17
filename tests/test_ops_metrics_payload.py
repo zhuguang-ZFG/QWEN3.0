@@ -13,7 +13,10 @@ from routes.ops_metrics import router
 
 from ops_metrics_helpers import reload_prometheus_metrics
 
-@pytest.mark.skip(reason="Skip: test_ops_metrics_includes_recent_agent_tasks depends on routes.agent_tasks not yet implemented")
+
+@pytest.mark.skip(
+    reason="Skip: test_ops_metrics_includes_recent_agent_tasks depends on routes.agent_tasks not yet implemented"
+)
 def test_ops_metrics_includes_recent_agent_tasks(monkeypatch, tmp_path):
     monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
 
@@ -25,11 +28,13 @@ def test_ops_metrics_includes_recent_agent_tasks(monkeypatch, tmp_path):
 
     from routes.agent_tasks import TaskCreateBody, _create_task_from_body
 
-    created = _create_task_from_body(TaskCreateBody(
-        repo="D:/GIT/lima-worker-sandbox",
-        goal="ops metrics recent task",
-        mode="review",
-    ))
+    created = _create_task_from_body(
+        TaskCreateBody(
+            repo="D:/GIT/lima-worker-sandbox",
+            goal="ops metrics recent task",
+            mode="review",
+        )
+    )
 
     app = FastAPI()
     app.state.stats = {"total_requests": 0, "backend_calls": {}, "start_time": 1}

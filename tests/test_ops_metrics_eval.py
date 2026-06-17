@@ -13,6 +13,7 @@ from routes.ops_metrics import router
 
 from ops_metrics_helpers import reload_prometheus_metrics
 
+
 def test_eval_approve_marks_candidate_manual_approved(monkeypatch, tmp_path):
     monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
     monkeypatch.setenv("LIMA_SESSION_DB", str(tmp_path / "memory.db"))

@@ -31,9 +31,17 @@ def _short(value: Any, limit: int = 80) -> str:
         text = sanitize_for_display(text)
     except ImportError:
         lowered = text.lower()
-        if any(token in lowered for token in (
-            "bearer ", "sk-", "api_key", "token", "password", "secret",
-        )):
+        if any(
+            token in lowered
+            for token in (
+                "bearer ",
+                "sk-",
+                "api_key",
+                "token",
+                "password",
+                "secret",
+            )
+        ):
             text = "[REDACTED]"
     return text[:limit]
 
@@ -155,7 +163,7 @@ def _read_recent(limit: int) -> list[dict[str, Any]]:
     if not path.exists():
         return []
     try:
-        lines = path.read_text(encoding="utf-8").splitlines()[-max(limit, 1):]
+        lines = path.read_text(encoding="utf-8").splitlines()[-max(limit, 1) :]
     except Exception as exc:
         _log.warning("failed to read backend telemetry: %s", type(exc).__name__)
         return []

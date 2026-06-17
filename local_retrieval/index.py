@@ -46,20 +46,16 @@ class LocalRetrievalIndex(ABC):
     """Abstract local retrieval interface."""
 
     @abstractmethod
-    def add_documents(self, paths: list[str]) -> int:
-        ...
+    def add_documents(self, paths: list[str]) -> int: ...
 
     @abstractmethod
-    def search(self, query: str, top_k: int = 5) -> list[RetrievalHit]:
-        ...
+    def search(self, query: str, top_k: int = 5) -> list[RetrievalHit]: ...
 
     @abstractmethod
-    def stats(self) -> dict:
-        ...
+    def stats(self) -> dict: ...
 
     @abstractmethod
-    def build_manifest(self) -> IndexManifest:
-        ...
+    def build_manifest(self) -> IndexManifest: ...
 
 
 class InMemoryTokenIndex(LocalRetrievalIndex):
@@ -100,22 +96,22 @@ class InMemoryTokenIndex(LocalRetrievalIndex):
                 )
                 for index, chunk in enumerate(chunks)
             ]
-            self._documents.append(IndexedDocument(
-                path=path,
-                file_hash=_make_content_hash(content),
-                file_size_bytes=len(content.encode()),
-                mtime=os.path.getmtime(path),
-                language=_guess_language(path),
-                chunks=chunk_records,
-            ))
+            self._documents.append(
+                IndexedDocument(
+                    path=path,
+                    file_hash=_make_content_hash(content),
+                    file_size_bytes=len(content.encode()),
+                    mtime=os.path.getmtime(path),
+                    language=_guess_language(path),
+                    chunks=chunk_records,
+                )
+            )
             self._chunks.extend(chunks)
             existing_paths.append(path)
             count += 1
 
         if not self._source_root and existing_paths:
-            self._source_root = os.path.commonpath(
-                [os.path.abspath(path) for path in existing_paths]
-            )
+            self._source_root = os.path.commonpath([os.path.abspath(path) for path in existing_paths])
             if os.path.isfile(self._source_root):
                 self._source_root = os.path.dirname(self._source_root)
 
@@ -142,26 +138,23 @@ class InMemoryTokenIndex(LocalRetrievalIndex):
             if not matched_terms:
                 continue
 
-            weighted_matches = sum(
-                min(query_counts[term], chunk_counts[term]) for term in matched_terms
-            )
+            weighted_matches = sum(min(query_counts[term], chunk_counts[term]) for term in matched_terms)
             score = weighted_matches / max(1, len(query_terms))
             scored.append((score, chunk.chunk_id, chunk, matched_terms))
 
         scored.sort(key=lambda item: (-item[0], item[1]))
         hits = []
         for score, _, chunk, matched_terms in scored[:top_k]:
-            reason = (
-                f"matched: {', '.join(matched_terms[:3])}; "
-                f"chunk_lines: {chunk.start_line}-{chunk.end_line}"
+            reason = f"matched: {', '.join(matched_terms[:3])}; chunk_lines: {chunk.start_line}-{chunk.end_line}"
+            hits.append(
+                RetrievalHit(
+                    chunk_id=chunk.chunk_id,
+                    document_path=str(chunk.metadata.get("path", "")),
+                    score=round(score, 4),
+                    reason=redact_text(reason),
+                    snippet=redact_text(chunk.text[:150].replace("\n", " ")),
+                )
             )
-            hits.append(RetrievalHit(
-                chunk_id=chunk.chunk_id,
-                document_path=str(chunk.metadata.get("path", "")),
-                score=round(score, 4),
-                reason=redact_text(reason),
-                snippet=redact_text(chunk.text[:150].replace("\n", " ")),
-            ))
         return hits
 
     def stats(self) -> dict:

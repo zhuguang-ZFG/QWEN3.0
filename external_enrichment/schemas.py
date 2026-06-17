@@ -1,9 +1,11 @@
 """Enrichment schemas."""
+
 from pydantic import BaseModel
 
 
 class EnrichmentResult(BaseModel):
     """Result from an enrichment provider."""
+
     provider: str
     data: dict
     cached: bool

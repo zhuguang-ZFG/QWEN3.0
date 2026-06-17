@@ -28,11 +28,7 @@ def admin_session_value() -> str:
 
 def is_valid_admin_session(value: str) -> bool:
     token = get_admin_token()
-    return bool(
-        token
-        and value
-        and secrets.compare_digest(value, admin_session_value())
-    )
+    return bool(token and value and secrets.compare_digest(value, admin_session_value()))
 
 
 async def verify_admin(
@@ -49,6 +45,7 @@ async def verify_admin(
         return
     # Require strict Bearer token with constant-time comparison
     from access_guard import extract_bearer_token, constant_time_equals
+
     presented = extract_bearer_token(authorization)
     if not presented or not constant_time_equals(presented, token_expected):
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -74,6 +71,7 @@ async def verify_csrf(
     - Cookie-only clients must have Origin/Referer hostname matching request host
     """
     from access_guard import extract_bearer_token
+
     if extract_bearer_token(authorization):
         return
     expected = (request.url.hostname or "").lower()

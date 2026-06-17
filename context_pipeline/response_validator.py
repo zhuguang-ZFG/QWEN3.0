@@ -87,10 +87,24 @@ def validate_response(response: str, query: str = "") -> ValidationResult:
     score = max(0.0, 1.0 - issue_ratio * 0.5 - len(security_issues) * 0.15)
 
     has_code_blocks = len(blocks) > 0
-    any(kw in query.lower() for kw in [
-        "code", "function", "class", "implement", "write", "fix", "refactor",
-        "代码", "函数", "实现", "编写", "修复", "重构",
-    ])
+    any(
+        kw in query.lower()
+        for kw in [
+            "code",
+            "function",
+            "class",
+            "implement",
+            "write",
+            "fix",
+            "refactor",
+            "代码",
+            "函数",
+            "实现",
+            "编写",
+            "修复",
+            "重构",
+        ]
+    )
 
     if has_code_blocks and security_issues:
         score *= 0.5

@@ -303,8 +303,9 @@ def restart_server() -> bool:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Unified LiMa deploy")
-    parser.add_argument("--slice", choices=["core", "phase_a", "phase_b", "all"],
-                        default="core", help="Which slice to deploy")
+    parser.add_argument(
+        "--slice", choices=["core", "phase_a", "phase_b", "all"], default="core", help="Which slice to deploy"
+    )
     parser.add_argument("--files", nargs="+", help="Specific files to deploy")
     parser.add_argument("--dry-run", action="store_true", help="Show what would be deployed")
     parser.add_argument("--no-restart", action="store_true", help="Skip server restart")
@@ -342,7 +343,9 @@ def main() -> int:
 
     results = deploy_files(files, dry_run=args.dry_run)
 
-    print(f"\nResult: {results['uploaded']} uploaded, {len(results['failed'])} failed, {len(results['skipped'])} skipped")
+    print(
+        f"\nResult: {results['uploaded']} uploaded, {len(results['failed'])} failed, {len(results['skipped'])} skipped"
+    )
     if results["failed"]:
         for f in results["failed"]:
             print(f"  FAIL: {f}")

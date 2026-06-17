@@ -50,11 +50,13 @@ def get_token_override(backend_name: str) -> str | None:
 def _validate_token(name: str, key: str, url: str, model: str) -> bool:
     """Quick validation: send a minimal request to check if the token works."""
     try:
-        body = json.dumps({
-            "model": model,
-            "messages": [{"role": "user", "content": "hi"}],
-            "max_tokens": 3,
-        }).encode()
+        body = json.dumps(
+            {
+                "model": model,
+                "messages": [{"role": "user", "content": "hi"}],
+                "max_tokens": 3,
+            }
+        ).encode()
         headers = {
             "Content-Type": "application/json",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win6; x64) AppleWebKit/537.36",

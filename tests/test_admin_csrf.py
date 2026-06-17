@@ -16,33 +16,45 @@ import routes.admin as admin_routes
 def test_csrf_rejects_cross_origin_cookie_request():
     request = type("Req", (), {"url": type("URL", (), {"hostname": "chat.example.com"})()})()
     with pytest.raises(HTTPException) as exc:
-        asyncio.run(admin_auth.verify_csrf(
-            request,
-            authorization="",
-            origin="https://evil.example.com",
-            referer="",
-        ))
+        asyncio.run(
+            admin_auth.verify_csrf(
+                request,
+                authorization="",
+                origin="https://evil.example.com",
+                referer="",
+            )
+        )
     assert exc.value.status_code == 403
 
 
 def test_csrf_allows_matching_origin():
     request = type("Req", (), {"url": type("URL", (), {"hostname": "chat.example.com"})()})()
-    assert asyncio.run(admin_auth.verify_csrf(
-        request,
-        authorization="",
-        origin="https://chat.example.com",
-        referer="",
-    )) is None
+    assert (
+        asyncio.run(
+            admin_auth.verify_csrf(
+                request,
+                authorization="",
+                origin="https://chat.example.com",
+                referer="",
+            )
+        )
+        is None
+    )
 
 
 def test_csrf_allows_bearer_authenticated_request():
     request = type("Req", (), {"url": type("URL", (), {"hostname": "chat.example.com"})()})()
-    assert asyncio.run(admin_auth.verify_csrf(
-        request,
-        authorization="Bearer secret-token",
-        origin="https://evil.example.com",
-        referer="",
-    )) is None
+    assert (
+        asyncio.run(
+            admin_auth.verify_csrf(
+                request,
+                authorization="Bearer secret-token",
+                origin="https://evil.example.com",
+                referer="",
+            )
+        )
+        is None
+    )
 
 
 def test_admin_login_uses_constant_time_compare(monkeypatch):

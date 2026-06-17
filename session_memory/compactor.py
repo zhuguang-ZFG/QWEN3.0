@@ -28,6 +28,7 @@ def needs_compaction(session_id: str) -> bool:
 def get_oldest_memories(session_id: str, limit: int = 10) -> list[MemoryEntry]:
     """Get oldest memories for compaction."""
     import json
+
     conn = _get_conn()
     rows = conn.execute(
         "SELECT id, session_id, timestamp, role, summary, detail, embedding "
@@ -37,8 +38,13 @@ def get_oldest_memories(session_id: str, limit: int = 10) -> list[MemoryEntry]:
     conn.close()
     return [
         MemoryEntry(
-            id=r[0], session_id=r[1], timestamp=r[2], role=r[3],
-            summary=r[4], detail=r[5], embedding=json.loads(r[6]),
+            id=r[0],
+            session_id=r[1],
+            timestamp=r[2],
+            role=r[3],
+            summary=r[4],
+            detail=r[5],
+            embedding=json.loads(r[6]),
         )
         for r in rows
     ]
@@ -50,9 +56,7 @@ def _delete_memories_by_ids(ids: list[int]) -> int:
         return 0
     conn = _get_conn()
     placeholders = ",".join("?" * len(ids))
-    cur = conn.execute(
-        f"DELETE FROM memories WHERE id IN ({placeholders})", ids
-    )
+    cur = conn.execute(f"DELETE FROM memories WHERE id IN ({placeholders})", ids)
     conn.commit()
     deleted = cur.rowcount
     conn.close()
@@ -126,15 +130,13 @@ def llm_summarizer_factory(call_fn):
     import asyncio
 
     def summarizer(summaries: list[str]) -> str:
-        prompt = (
-            "将以下对话摘要压缩为一句话（中文，不超过100字）：\n"
-            + "\n".join(f"- {s}" for s in summaries)
-        )
+        prompt = "将以下对话摘要压缩为一句话（中文，不超过100字）：\n" + "\n".join(f"- {s}" for s in summaries)
         messages = [{"role": "user", "content": prompt}]
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():
                 import concurrent.futures
+
                 with concurrent.futures.ThreadPoolExecutor() as pool:
                     result = pool.submit(asyncio.run, call_fn(messages)).result()
             else:

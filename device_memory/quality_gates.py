@@ -8,17 +8,21 @@ from __future__ import annotations
 from device_memory.schemas import MemoryEntry, MemoryType
 
 # Blocklist: never learn from these task outcomes
-_BLOCKED_SOURCES: frozenset[str] = frozenset({
-    "manual_override",   # Operator intervention
-    "test_task",         # Test/sandbox tasks
-    "simulated_failure",  # Injected failures for testing
-})
+_BLOCKED_SOURCES: frozenset[str] = frozenset(
+    {
+        "manual_override",  # Operator intervention
+        "test_task",  # Test/sandbox tasks
+        "simulated_failure",  # Injected failures for testing
+    }
+)
 
 # Blocklist: never personalize based on these capabilities
-_BLOCKED_CAPABILITIES: frozenset[str] = frozenset({
-    "estop",    # Emergency stop is never a preference
-    "unknown",  # Unknown capability type
-})
+_BLOCKED_CAPABILITIES: frozenset[str] = frozenset(
+    {
+        "estop",  # Emergency stop is never a preference
+        "unknown",  # Unknown capability type
+    }
+)
 
 # Minimum confidence threshold before a memory can influence planner
 _MIN_RECALL_CONFIDENCE = 0.5

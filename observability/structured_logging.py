@@ -13,7 +13,9 @@ import os
 import sys
 
 _ENABLED = os.environ.get("LIMA_STRUCTURED_LOGGING", "0").strip().lower() in {
-    "1", "true", "yes",
+    "1",
+    "true",
+    "yes",
 }
 _SERVICE_NAME = os.environ.get("LIMA_SERVICE_NAME", "lima-router")
 

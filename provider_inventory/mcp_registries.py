@@ -43,10 +43,7 @@ def _fetch_text(url: str, *, timeout: float = 25.0, accept_json: bool = True) ->
     headers = dict(_FETCH_HEADERS)
     if not accept_json:
         headers["Accept"] = "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8"
-    proxy = (
-        os.environ.get("MCP_INVENTORY_PROXY", "").strip()
-        or os.environ.get("GFW_PROXY", "").strip()
-    )
+    proxy = os.environ.get("MCP_INVENTORY_PROXY", "").strip() or os.environ.get("GFW_PROXY", "").strip()
     if proxy:
         try:
             import httpx

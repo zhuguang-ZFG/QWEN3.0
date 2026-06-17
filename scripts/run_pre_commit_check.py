@@ -70,8 +70,7 @@ def run_code_size_check(*, python: str = sys.executable) -> None:
     result = subprocess.run([python, "scripts/check_code_size.py"], cwd=ROOT, check=False)
     if result.returncode != 0:
         print(
-            "WARNING: code-size constraints violated (see above). "
-            "This is a baseline check and does not block commits.",
+            "WARNING: code-size constraints violated (see above). This is a baseline check and does not block commits.",
             file=sys.stderr,
         )
 

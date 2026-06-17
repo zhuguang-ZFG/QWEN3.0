@@ -30,6 +30,7 @@ def close_loop() -> dict:
     # 1. Get request store stats
     try:
         from routing_loop.request_store import get_request_store
+
         store = get_request_store()
         result["store_count"] = store.count()
     except Exception as exc:
@@ -38,9 +39,7 @@ def close_loop() -> dict:
 
     # 2. Train ML model with real data
     try:
-        result["training"], result["training_samples"], result["training_loss"] = (
-            _train_ml_model(store)
-        )
+        result["training"], result["training_samples"], result["training_loss"] = _train_ml_model(store)
     except Exception as exc:
         _log.debug("close_loop: ML training failed: %s", exc)
 
@@ -60,8 +59,11 @@ def close_loop() -> dict:
     duration_ms = (time.time() - t0) * 1000
     _log.info(
         "loop_closer: store=%d training=%s samples=%d loss=%.4f duration=%.0fms",
-        result["store_count"], result["training"],
-        result["training_samples"], result["training_loss"], duration_ms,
+        result["store_count"],
+        result["training"],
+        result["training_samples"],
+        result["training_loss"],
+        duration_ms,
     )
     return result
 
@@ -89,6 +91,7 @@ def _train_ml_model(store) -> tuple[bool, int, float]:
     backend_idx = {b: i for i, b in enumerate(model.backend_names)}
     losses = []
     import random
+
     for _ in range(3):  # 3 epochs
         random.shuffle(records)
         for rec in records[:200]:
@@ -111,9 +114,7 @@ def _persist_health_state() -> None:
         from health_tracker import get_health_map, get_scores, get_latency_map
         import sqlite3, os
 
-        db_path = os.path.join(
-            os.environ.get("LIMA_DATA_DIR", "data"), "request_log.db"
-        )
+        db_path = os.path.join(os.environ.get("LIMA_DATA_DIR", "data"), "request_log.db")
         conn = sqlite3.connect(db_path, timeout=5)
         conn.execute("""CREATE TABLE IF NOT EXISTS backend_health (
             backend TEXT PRIMARY KEY,
@@ -131,8 +132,7 @@ def _persist_health_state() -> None:
         for backend, state in health_map.items():
             conn.execute(
                 "INSERT INTO backend_health VALUES (?, ?, ?, ?, ?)",
-                (backend, state, scores.get(backend, 50),
-                 latency_map.get(backend, 1500), time.time()),
+                (backend, state, scores.get(backend, 50), latency_map.get(backend, 1500), time.time()),
             )
         conn.commit()
         conn.close()
@@ -144,6 +144,7 @@ def _trigger_eval_gate() -> None:
     """Try to auto-approve eval candidates that meet thresholds."""
     try:
         from session_memory.eval_gate import eval_candidates_from_memory, approve_candidate
+
         candidates = eval_candidates_from_memory()
         for c in candidates[:3]:
             if c.get("pass_rate", 0) >= 0.8 and c.get("total_tasks", 0) >= 3:

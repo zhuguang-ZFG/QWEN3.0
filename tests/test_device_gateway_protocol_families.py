@@ -14,16 +14,18 @@ def test_only_motion_family_is_active():
 
 
 def test_motion_capabilities_are_allowed():
-    assert family_capabilities("motion") == frozenset({
-        "run_path",
-        "write_text",
-        "draw_generated",
-        "home",
-        "pause",
-        "resume",
-        "stop",
-        "get_device_info",
-    })
+    assert family_capabilities("motion") == frozenset(
+        {
+            "run_path",
+            "write_text",
+            "draw_generated",
+            "home",
+            "pause",
+            "resume",
+            "stop",
+            "get_device_info",
+        }
+    )
     assert validate_capability("motion", "run_path")
     assert validate_capability("motion", "home")
     assert validate_capability("motion", "stop")

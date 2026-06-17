@@ -20,12 +20,37 @@ MAX_SMOKE_LATENCY_MS = 20_000
 _SMOKE_PROMPT = "Say OK only."
 
 _NON_CHAT_HINTS = (
-    "vidu", "wan2", "flux", "embedding", "bge-", "tts", "speech", "whisper",
-    "stable-diffusion", "image", "video", "ocr", "rerank",
+    "vidu",
+    "wan2",
+    "flux",
+    "embedding",
+    "bge-",
+    "tts",
+    "speech",
+    "whisper",
+    "stable-diffusion",
+    "image",
+    "video",
+    "ocr",
+    "rerank",
 )
 _CHAT_HINTS = (
-    "qwen", "deepseek", "glm", "llama", "mistral", "gemma", "instruct", "chat",
-    "coder", "phi-", "nemotron", "kimi", "hermes", "gpt", "flash", "turbo",
+    "qwen",
+    "deepseek",
+    "glm",
+    "llama",
+    "mistral",
+    "gemma",
+    "instruct",
+    "chat",
+    "coder",
+    "phi-",
+    "nemotron",
+    "kimi",
+    "hermes",
+    "gpt",
+    "flash",
+    "turbo",
 )
 
 
@@ -195,7 +220,9 @@ def probe_model(model_id: str) -> dict[str, Any]:
     """Smoke one model; returns status dict for probe reports."""
     try:
         text, latency_ms = call_gitee_chat(
-            model_id, [{"role": "user", "content": _SMOKE_PROMPT}], 8,
+            model_id,
+            [{"role": "user", "content": _SMOKE_PROMPT}],
+            8,
         )
         ok = bool(text.strip())
         return {

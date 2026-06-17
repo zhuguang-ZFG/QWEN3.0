@@ -11,9 +11,7 @@ _TOKEN_RE = re.compile(
     r"|xWVr[A-Za-z0-9]{10,})"
 )
 _WIN_PATH_RE = re.compile(r"[A-Za-z]:\\[^\s]+")
-_PRIVATE_IP_RE = re.compile(
-    r"\b(10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)\b"
-)
+_PRIVATE_IP_RE = re.compile(r"\b(10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)\b")
 
 
 def redact_sensitive_query(query: str) -> str:
@@ -34,9 +32,7 @@ _BLOCKED_HOSTNAMES = (
     "lvh.me",
 )
 
-_PROXY_FAKE_IP_NETWORKS = (
-    ipaddress.ip_network("198.18.0.0/15"),
-)
+_PROXY_FAKE_IP_NETWORKS = (ipaddress.ip_network("198.18.0.0/15"),)
 
 
 def sanitize_error_text(text: str, *, max_chars: int = 2000) -> str:

@@ -56,9 +56,7 @@ def summarize_eval_json(path: Path, *, top_n: int = 5) -> str:
     ranked.sort(key=lambda item: (-item[1], item[4]))
     lines = [f"Eval 摘要 ({path.name})", f"backends={len(ranked)} runs={len(raw)}"]
     for backend, avg_score, passes, total, avg_ms in ranked[:top_n]:
-        lines.append(
-            f"· {backend}: avg={avg_score:.0f} pass={passes}/{total} {avg_ms}ms"
-        )
+        lines.append(f"· {backend}: avg={avg_score:.0f} pass={passes}/{total} {avg_ms}ms")
     if len(ranked) > top_n:
         lines.append(f"… +{len(ranked) - top_n} more")
     return "\n".join(lines)

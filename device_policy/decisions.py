@@ -3,21 +3,24 @@
 Defines all possible decisions the policy engine can return,
 with Chinese labels for operator-facing diagnostics.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
-DECISION_VALUES: frozenset[str] = frozenset({
-    "allow",
-    "require_approval",
-    "reject",
-    "require_self_check",
-    "require_home",
-    "require_ota",
-    "degrade_to_asset",
-})
+DECISION_VALUES: frozenset[str] = frozenset(
+    {
+        "allow",
+        "require_approval",
+        "reject",
+        "require_self_check",
+        "require_home",
+        "require_ota",
+        "degrade_to_asset",
+    }
+)
 
 DECISION_LABELS_ZH: dict[str, str] = {
     "allow": "允许执行",

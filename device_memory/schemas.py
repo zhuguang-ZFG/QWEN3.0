@@ -1,10 +1,12 @@
 """Memory schemas for device personalization."""
+
 from enum import Enum
 from pydantic import BaseModel
 
 
 class MemoryType(str, Enum):
     """Memory entry types."""
+
     PREFERENCE = "preference"  # User preference (e.g., favorite color)
     DEVICE_FAILURE = "device_failure"  # Device-specific failure pattern
     TASK_EPISODE = "task_episode"  # Structured task execution record
@@ -13,6 +15,7 @@ class MemoryType(str, Enum):
 
 class MemoryEntry(BaseModel):
     """A single memory entry."""
+
     id: str
     device_id: str
     type: MemoryType

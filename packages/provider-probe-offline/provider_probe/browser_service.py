@@ -192,11 +192,13 @@ async def render_page(req: RenderRequest):
         network_requests = []
 
         async def _on_request(request):
-            network_requests.append({
-                "url": request.url,
-                "method": request.method,
-                "resource_type": request.resource_type,
-            })
+            network_requests.append(
+                {
+                    "url": request.url,
+                    "method": request.method,
+                    "resource_type": request.resource_type,
+                }
+            )
 
         page.on("request", _on_request)
         response = await page.goto(req.url, wait_until="domcontentloaded", timeout=30000)
@@ -207,13 +209,9 @@ async def render_page(req: RenderRequest):
 
         text = ""
         if req.extract_text:
-            text = await page.evaluate(
-                "() => document.body ? document.body.innerText : ''"
-            )
+            text = await page.evaluate("() => document.body ? document.body.innerText : ''")
 
-        html_length = await page.evaluate(
-            "() => document.documentElement.outerHTML.length"
-        )
+        html_length = await page.evaluate("() => document.documentElement.outerHTML.length")
 
         screenshot_b64 = None
         if req.screenshot:
@@ -265,9 +263,7 @@ async def extract_content(req: ExtractRequest):
                     .filter(Boolean)
             """)
         else:
-            text = await page.evaluate(
-                "() => document.body ? document.body.innerText : ''"
-            )
+            text = await page.evaluate("() => document.body ? document.body.innerText : ''")
 
         await context.close()
         return ExtractResponse(url=req.url, text=text[:50000], items=items[:200])
@@ -286,13 +282,15 @@ async def network_intercept(req: dict):
     requests = []
 
     async def _capture(request):
-        requests.append({
-            "url": request.url,
-            "method": request.method,
-            "headers": dict(request.headers),
-            "post_data": request.post_data[:1000] if request.post_data else None,
-            "resource_type": request.resource_type,
-        })
+        requests.append(
+            {
+                "url": request.url,
+                "method": request.method,
+                "headers": dict(request.headers),
+                "post_data": request.post_data[:1000] if request.post_data else None,
+                "resource_type": request.resource_type,
+            }
+        )
 
     page.on("request", _capture)
 
@@ -304,17 +302,15 @@ async def network_intercept(req: dict):
 
     await context.close()
 
-    api_calls = [
-        r for r in requests
-        if r["resource_type"] in ("fetch", "xhr")
-        and "api" in r["url"].lower()
-    ]
+    api_calls = [r for r in requests if r["resource_type"] in ("fetch", "xhr") and "api" in r["url"].lower()]
 
-    return JSONResponse({
-        "total_requests": len(requests),
-        "api_calls": api_calls,
-        "all_urls": [r["url"] for r in requests],
-    })
+    return JSONResponse(
+        {
+            "total_requests": len(requests),
+            "api_calls": api_calls,
+            "all_urls": [r["url"] for r in requests],
+        }
+    )
 
 
 # ---------------------------------------------------------------------------

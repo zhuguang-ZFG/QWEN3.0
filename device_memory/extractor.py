@@ -84,12 +84,14 @@ def extract_device_failure_from_event(
         device_id=device_id,
         type=MemoryType.DEVICE_FAILURE,
         key=f"failure_{code}",
-        value=_safe_json_dumps({
-            "error_code": code,
-            "reason": error.get("reason", "") if isinstance(error, dict) else "",
-            "capability": me.get("capability", ""),
-            "timestamp": event.created_at,
-        }),
+        value=_safe_json_dumps(
+            {
+                "error_code": code,
+                "reason": error.get("reason", "") if isinstance(error, dict) else "",
+                "capability": me.get("capability", ""),
+                "timestamp": event.created_at,
+            }
+        ),
         ttl_days=14,
         created_at=int(time.time()),
         source="device_failure_event",

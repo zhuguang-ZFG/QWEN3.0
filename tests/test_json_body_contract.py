@@ -22,6 +22,7 @@ def test_embeddings_rejects_malformed_json_after_auth(monkeypatch):
     assert response.status_code == 400
     assert response.json()["error"] == "valid JSON body required"
 
+
 def test_images_rejects_malformed_json_after_auth(monkeypatch):
     monkeypatch.setenv("LIMA_API_KEY", "test-key")
 
@@ -32,6 +33,8 @@ def test_images_rejects_malformed_json_after_auth(monkeypatch):
 
     assert response.status_code == 400
     assert response.json()["error"] == "valid JSON body required"
+
+
 def test_public_demo_rejects_malformed_json(monkeypatch):
     monkeypatch.setenv("LIMA_PUBLIC_DEMO_ENABLED", "1")
     public_demo._public_demo_hits.clear()

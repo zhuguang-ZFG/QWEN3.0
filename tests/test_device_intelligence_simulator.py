@@ -131,13 +131,17 @@ class TestSimulatorRiskScore:
         # Dense path with many points
         dense_path = [{"x": i, "y": 0, "z": 0} for i in range(50)]
         dense_plan = TaskPlan(
-            plan_id="sim-dense", device_id="dev-sim",
-            capability="run_path", params={"path": dense_path, "feed": 600},
+            plan_id="sim-dense",
+            device_id="dev-sim",
+            capability="run_path",
+            params={"path": dense_path, "feed": 600},
         )
         sparse_path = [{"x": 0, "y": 0, "z": 0}, {"x": 49, "y": 0, "z": 0}]
         sparse_plan = TaskPlan(
-            plan_id="sim-sparse", device_id="dev-sim",
-            capability="run_path", params={"path": sparse_path, "feed": 600},
+            plan_id="sim-sparse",
+            device_id="dev-sim",
+            capability="run_path",
+            params={"path": sparse_path, "feed": 600},
         )
         dense_r = simulate_motion(dense_plan, profile=profile)
         sparse_r = simulate_motion(sparse_plan, profile=profile)

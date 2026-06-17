@@ -10,6 +10,7 @@ from context_pipeline.skill_store import SkillStore, RoutingSkill
 
 # === Phase 26: GRPO Advantage Estimation ===
 
+
 def test_grpo_success_when_baseline_low():
     """When baseline is low, success gives bigger boost."""
     rw = RoutingWeights()
@@ -44,9 +45,11 @@ def test_grpo_failure_penalty_proportional():
 def test_grpo_clipped_delta():
     """Delta is clipped to [-0.15, +0.15]."""
     import tempfile as _tf
+
     os.environ["LIMA_WEIGHTS_PATH"] = _tf.mktemp(suffix=".json")
     from importlib import reload
     import context_pipeline.routing_weights as _rw_mod
+
     reload(_rw_mod)
     rw = _rw_mod.RoutingWeights()
     rw.record_success("x", "coding")
@@ -56,6 +59,7 @@ def test_grpo_clipped_delta():
 
 
 # === Phase 28: Cognee EMA Decay ===
+
 
 def test_skill_ema_success_grows_weight():
     store = SkillStore()
@@ -70,9 +74,13 @@ def test_skill_ema_success_grows_weight():
 
 def test_skill_ema_failure_decays_weight():
     skill = RoutingSkill(
-        skill_key="test", backend="x", scenario="coding",
-        complexity_score=3, latency_ms=500,
-        created_at=time.time(), last_used=time.time(),
+        skill_key="test",
+        backend="x",
+        scenario="coding",
+        complexity_score=3,
+        latency_ms=500,
+        created_at=time.time(),
+        last_used=time.time(),
         weight=1.0,
     )
     skill.on_failure()
@@ -83,9 +91,13 @@ def test_skill_ema_failure_decays_weight():
 
 def test_skill_ema_expired_when_weight_low():
     skill = RoutingSkill(
-        skill_key="test", backend="x", scenario="coding",
-        complexity_score=3, latency_ms=500,
-        created_at=time.time(), last_used=time.time(),
+        skill_key="test",
+        backend="x",
+        scenario="coding",
+        complexity_score=3,
+        latency_ms=500,
+        created_at=time.time(),
+        last_used=time.time(),
         weight=0.05,
     )
     assert skill.is_expired is True
@@ -93,9 +105,13 @@ def test_skill_ema_expired_when_weight_low():
 
 def test_skill_ema_weight_capped():
     skill = RoutingSkill(
-        skill_key="test", backend="x", scenario="coding",
-        complexity_score=3, latency_ms=500,
-        created_at=time.time(), last_used=time.time(),
+        skill_key="test",
+        backend="x",
+        scenario="coding",
+        complexity_score=3,
+        latency_ms=500,
+        created_at=time.time(),
+        last_used=time.time(),
         weight=2.9,
     )
     skill.on_success()

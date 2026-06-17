@@ -16,14 +16,26 @@ _log = logging.getLogger(__name__)
 
 def _row_to_dict(r: tuple) -> dict:
     d = {
-        "event_id": r[0], "source": r[1], "event_type": r[2], "loop": r[3],
-        "outcome": r[4], "backend": r[5], "scenario": r[6],
-        "task_id": r[7], "device_id": r[8], "request_id": r[9],
-        "entrypoint": r[10], "fallback_used": bool(r[11]), "latency_ms": r[12],
-        "summary": r[13], "tags": _json_loads_safe(r[14]),
+        "event_id": r[0],
+        "source": r[1],
+        "event_type": r[2],
+        "loop": r[3],
+        "outcome": r[4],
+        "backend": r[5],
+        "scenario": r[6],
+        "task_id": r[7],
+        "device_id": r[8],
+        "request_id": r[9],
+        "entrypoint": r[10],
+        "fallback_used": bool(r[11]),
+        "latency_ms": r[12],
+        "summary": r[13],
+        "tags": _json_loads_safe(r[14]),
         "evidence": _json_loads_safe(r[15]),
         "artifact_paths": _json_loads_safe(r[16]),
-        "rollback": r[17], "recorded_at": r[18], "learned": r[19],
+        "rollback": r[17],
+        "recorded_at": r[18],
+        "learned": r[19],
     }
     d["status"] = d["outcome"]
     d["selected_backend"] = d["backend"]
@@ -92,9 +104,15 @@ def query(
     conn.close()
     return [
         {
-            "event_id": r[0], "source": r[1], "event_type": r[2],
-            "outcome": r[3], "backend": r[4], "scenario": r[5],
-            "task_id": r[6], "summary": r[7], "tags": json.loads(r[8]),
+            "event_id": r[0],
+            "source": r[1],
+            "event_type": r[2],
+            "outcome": r[3],
+            "backend": r[4],
+            "scenario": r[5],
+            "task_id": r[6],
+            "summary": r[7],
+            "tags": json.loads(r[8]),
             "recorded_at": r[9],
         }
         for r in rows

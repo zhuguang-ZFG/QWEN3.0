@@ -2,6 +2,7 @@
 
 简化路径、缩放适配、笔画顺序优化。
 """
+
 from dataclasses import dataclass
 import re
 
@@ -9,6 +10,7 @@ import re
 @dataclass
 class OptimizationResult:
     """优化结果"""
+
     optimized_path: str
     original_points: int
     optimized_points: int
@@ -16,9 +18,7 @@ class OptimizationResult:
 
 
 def optimize_svg_path(
-    path_data: str,
-    tolerance: float = 2.0,
-    target_size: tuple[float, float] = (180.0, 180.0)
+    path_data: str, tolerance: float = 2.0, target_size: tuple[float, float] = (180.0, 180.0)
 ) -> OptimizationResult:
     """优化 SVG 路径
 
@@ -55,31 +55,31 @@ def optimize_svg_path(
         optimized_path=optimized_path,
         original_points=original_count,
         optimized_points=optimized_count,
-        reduction_ratio=reduction
+        reduction_ratio=reduction,
     )
 
 
 def _parse_points(path_data: str) -> list[tuple[float, float]]:
     """解析路径为点序列"""
-    pattern = r'([MLCQZmlcqz])\s*([-\d.,\s]*)'
+    pattern = r"([MLCQZmlcqz])\s*([-\d.,\s]*)"
     matches = re.findall(pattern, path_data)
     points = []
 
     for cmd, coords in matches:
-        if cmd.upper() == 'Z':
+        if cmd.upper() == "Z":
             continue
-        coords_clean = coords.replace(',', ' ').strip()
+        coords_clean = coords.replace(",", " ").strip()
         if coords_clean:
             nums = [float(x) for x in coords_clean.split()]
-            if cmd.upper() in ('M', 'L'):
+            if cmd.upper() in ("M", "L"):
                 for i in range(0, len(nums), 2):
                     if i + 1 < len(nums):
                         points.append((nums[i], nums[i + 1]))
-            elif cmd.upper() == 'C':
+            elif cmd.upper() == "C":
                 for i in range(0, len(nums), 6):
                     if i + 5 < len(nums):
                         points.append((nums[i + 4], nums[i + 5]))
-            elif cmd.upper() == 'Q':
+            elif cmd.upper() == "Q":
                 for i in range(0, len(nums), 4):
                     if i + 3 < len(nums):
                         points.append((nums[i + 2], nums[i + 3]))
@@ -105,14 +105,16 @@ def _simplify_points(points: list[tuple[float, float]], tolerance: float) -> lis
 
     # 递归简化
     if max_dist > tolerance:
-        left = _simplify_points(points[:max_idx + 1], tolerance)
+        left = _simplify_points(points[: max_idx + 1], tolerance)
         right = _simplify_points(points[max_idx:], tolerance)
         return left[:-1] + right
     else:
         return [first, last]
 
 
-def _perpendicular_distance(point: tuple[float, float], line_start: tuple[float, float], line_end: tuple[float, float]) -> float:
+def _perpendicular_distance(
+    point: tuple[float, float], line_start: tuple[float, float], line_end: tuple[float, float]
+) -> float:
     """点到线段的垂直距离"""
     x0, y0 = point
     x1, y1 = line_start
@@ -122,13 +124,13 @@ def _perpendicular_distance(point: tuple[float, float], line_start: tuple[float,
     dy = y2 - y1
 
     if dx == 0 and dy == 0:
-        return ((x0 - x1)**2 + (y0 - y1)**2)**0.5
+        return ((x0 - x1) ** 2 + (y0 - y1) ** 2) ** 0.5
 
     t = max(0, min(1, ((x0 - x1) * dx + (y0 - y1) * dy) / (dx * dx + dy * dy)))
     proj_x = x1 + t * dx
     proj_y = y1 + t * dy
 
-    return ((x0 - proj_x)**2 + (y0 - proj_y)**2)**0.5
+    return ((x0 - proj_x) ** 2 + (y0 - proj_y) ** 2) ** 0.5
 
 
 def _scale_to_fit(points: list[tuple[float, float]], target_size: tuple[float, float]) -> list[tuple[float, float]]:

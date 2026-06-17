@@ -37,7 +37,7 @@ class RoutingSkill:
 
     def on_failure(self) -> None:
         """EMA weight decay on failure."""
-        self.weight *= (1 - self.alpha)
+        self.weight *= 1 - self.alpha
 
 
 class SkillStore:

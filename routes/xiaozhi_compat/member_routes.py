@@ -2,6 +2,7 @@
 
 Extracted from routes/xiaozhi_v1_compat.py lines 952-1040
 """
+
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import JSONResponse
 
@@ -39,13 +40,21 @@ async def enroll_voiceprint(request: Request, authorization: str = Header(defaul
         denied = require_device_access(conn, account, device_id)
         if denied:
             return denied
-        member = conn.execute("SELECT * FROM v2_member WHERE id=? AND device_id=? AND status='active'", (member_id, device_id)).fetchone()
+        member = conn.execute(
+            "SELECT * FROM v2_member WHERE id=? AND device_id=? AND status='active'", (member_id, device_id)
+        ).fetchone()
         if member is None:
             return err(404, "member not found", 404)
-        row = conn.execute("SELECT * FROM v2_voiceprint WHERE member_id=? AND device_id=? AND status!='disabled'", (member_id, device_id)).fetchone()
+        row = conn.execute(
+            "SELECT * FROM v2_voiceprint WHERE member_id=? AND device_id=? AND status!='disabled'",
+            (member_id, device_id),
+        ).fetchone()
         if row is None:
             voiceprint_id = new_id()
-            conn.execute("INSERT INTO v2_voiceprint (id, member_id, device_id, status) VALUES (?, ?, ?, 'verifying')", (voiceprint_id, member_id, device_id))
+            conn.execute(
+                "INSERT INTO v2_voiceprint (id, member_id, device_id, status) VALUES (?, ?, ?, 'verifying')",
+                (voiceprint_id, member_id, device_id),
+            )
             conn.execute("UPDATE v2_member SET voiceprint_id=? WHERE id=?", (voiceprint_id, member_id))
             conn.commit()
             row = conn.execute("SELECT * FROM v2_voiceprint WHERE id=?", (voiceprint_id,)).fetchone()
@@ -92,7 +101,9 @@ async def list_members(device_id: str, authorization: str = Header(default="")) 
         denied = require_device_access(conn, account, device_id)
         if denied:
             return denied
-        rows = conn.execute("SELECT * FROM v2_member WHERE device_id=? AND status='active' ORDER BY created_at ASC", (device_id,)).fetchall()
+        rows = conn.execute(
+            "SELECT * FROM v2_member WHERE device_id=? AND status='active' ORDER BY created_at ASC", (device_id,)
+        ).fetchall()
     return ok([member_payload(row) for row in rows])
 
 

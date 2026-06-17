@@ -71,6 +71,7 @@ def create_vad_provider(name: str) -> VADProvider:
         dotted = _PROVIDERS["silero"]
     module_path, cls_name = dotted.rsplit(".", 1)
     import importlib
+
     mod = importlib.import_module(module_path)
     cls = getattr(mod, cls_name)
     return cls()

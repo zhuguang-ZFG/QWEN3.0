@@ -30,8 +30,12 @@ _DB_PATH = os.environ.get("LIMA_OUTCOME_DB", _DEFAULT_DB_PATH)
 _ENABLED = os.environ.get("LIMA_OUTCOME_LEDGER", "1").strip().lower() in {"1", "true", "yes"}
 
 ALLOWED_LOOPS = {
-    "chat_ide", "agent_worker", "limacode_worker", "device_gateway",
-    "backend_eval", "ops_learning",
+    "chat_ide",
+    "agent_worker",
+    "limacode_worker",
+    "device_gateway",
+    "backend_eval",
+    "ops_learning",
 }
 
 
@@ -53,8 +57,7 @@ def _clean_value(value: Any, *, max_items: int = 50) -> Any:
         return _clean_text(value)
     if isinstance(value, dict):
         return {
-            _clean_text(str(k), 80): _clean_value(v, max_items=max_items)
-            for k, v in list(value.items())[:max_items]
+            _clean_text(str(k), 80): _clean_value(v, max_items=max_items) for k, v in list(value.items())[:max_items]
         }
     if isinstance(value, (list, tuple)):
         return [_clean_value(v, max_items=max_items) for v in list(value)[:max_items]]
@@ -181,11 +184,21 @@ def record(
         "summary, details, tags, evidence, artifact_paths, rollback, recorded_at) "
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
-            event_id, clean_source, clean_event_type, clean_loop, clean_outcome,
-            clean_backend, clean_scenario,
-            clean_task_id, clean_device_id, clean_request_id, clean_entrypoint,
-            1 if fallback_used else 0, max(0, int(latency_ms or 0)),
-            _clean_text(summary, 500), json.dumps(_clean_value(details or {}), ensure_ascii=False),
+            event_id,
+            clean_source,
+            clean_event_type,
+            clean_loop,
+            clean_outcome,
+            clean_backend,
+            clean_scenario,
+            clean_task_id,
+            clean_device_id,
+            clean_request_id,
+            clean_entrypoint,
+            1 if fallback_used else 0,
+            max(0, int(latency_ms or 0)),
+            _clean_text(summary, 500),
+            json.dumps(_clean_value(details or {}), ensure_ascii=False),
             json.dumps(_clean_list(tags, max_items=20), ensure_ascii=False),
             json.dumps(clean_evidence, ensure_ascii=False),
             json.dumps(clean_artifacts, ensure_ascii=False),
@@ -239,12 +252,19 @@ def record_evidence(
     )
     return {
         "schema_version": "lima.capability_evidence.v0",
-        "loop": loop, "status": status,
-        "request_id": request_id, "task_id": task_id, "device_id": device_id,
-        "entrypoint": entrypoint, "selected_backend": selected_backend,
-        "fallback_used": fallback_used, "latency_ms": latency_ms,
-        "evidence": clean_evidence, "artifact_paths": clean_artifacts,
-        "rollback": rollback, "created_at": time.time(),
+        "loop": loop,
+        "status": status,
+        "request_id": request_id,
+        "task_id": task_id,
+        "device_id": device_id,
+        "entrypoint": entrypoint,
+        "selected_backend": selected_backend,
+        "fallback_used": fallback_used,
+        "latency_ms": latency_ms,
+        "evidence": clean_evidence,
+        "artifact_paths": clean_artifacts,
+        "rollback": rollback,
+        "created_at": time.time(),
     }
 
 

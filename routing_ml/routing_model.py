@@ -19,10 +19,11 @@ from routing_ml.feature_extractor import N_FEATURES
 @dataclass
 class RoutingModel:
     """Two-layer MLP for backend score prediction. Pure Python, no numpy."""
+
     w1: list[list[float]]  # N_FEATURES x HIDDEN
-    b1: list[float]        # HIDDEN
+    b1: list[float]  # HIDDEN
     w2: list[list[float]]  # HIDDEN x N_BACKENDS
-    b2: list[float]        # N_BACKENDS
+    b2: list[float]  # N_BACKENDS
     backend_names: list[str] = field(default_factory=list)
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
@@ -119,12 +120,10 @@ def create_model(
     w2 = [[_rand(rng, s2) for _ in range(n_out)] for _ in range(hidden_size)]
     b2 = [0.0] * n_out
 
-    return RoutingModel(w1=w1, b1=b1, w2=w2, b2=b2,
-                        backend_names=list(backend_names), hidden_size=hidden_size)
+    return RoutingModel(w1=w1, b1=b1, w2=w2, b2=b2, backend_names=list(backend_names), hidden_size=hidden_size)
 
 
-def _forward(model: RoutingModel, features: list[float]
-             ) -> tuple[list[float], list[float], list[float], list[float]]:
+def _forward(model: RoutingModel, features: list[float]) -> tuple[list[float], list[float], list[float], list[float]]:
     """Forward pass returning all intermediates for backprop."""
     H, N, K = model.hidden_size, N_FEATURES, len(model.backend_names)
     h_pre = [model.b1[j] + sum(features[i] * model.w1[i][j] for i in range(N)) for j in range(H)]
@@ -134,17 +133,25 @@ def _forward(model: RoutingModel, features: list[float]
     return h_pre, h, out_pre, pred
 
 
-def _backward(model: RoutingModel, features: list[float],
-              h_pre: list[float], h: list[float], pred: list[float], target: list[float]
-              ) -> tuple[float, list[list[float]], list[float], list[list[float]], list[float]]:
+def _backward(
+    model: RoutingModel,
+    features: list[float],
+    h_pre: list[float],
+    h: list[float],
+    pred: list[float],
+    target: list[float],
+) -> tuple[float, list[list[float]], list[float], list[list[float]], list[float]]:
     """Compute gradients via backprop. Returns (loss, d_w1, d_b1, d_w2, d_b2)."""
     H, N, K = model.hidden_size, N_FEATURES, len(model.backend_names)
     eps = 1e-7
-    loss = -sum(
-        target[k] * math.log(max(eps, min(1 - eps, pred[k])))
-        + (1 - target[k]) * math.log(max(eps, min(1 - eps, 1 - pred[k])))
-        for k in range(K)
-    ) / K
+    loss = (
+        -sum(
+            target[k] * math.log(max(eps, min(1 - eps, pred[k])))
+            + (1 - target[k]) * math.log(max(eps, min(1 - eps, 1 - pred[k])))
+            for k in range(K)
+        )
+        / K
+    )
     d_out = [pred[k] - target[k] for k in range(K)]
     d_w2 = [[h[j] * d_out[k] for k in range(K)] for j in range(H)]
     d_h = [sum(d_out[k] * model.w2[j][k] for k in range(K)) * (1.0 if h_pre[j] > 0 else 0.0) for j in range(H)]
@@ -152,8 +159,7 @@ def _backward(model: RoutingModel, features: list[float],
     return loss, d_w1, list(d_h), d_w2, list(d_out)
 
 
-def _apply_gradients(model: RoutingModel, lr: float,
-                     d_w1: list, d_b1: list, d_w2: list, d_b2: list) -> None:
+def _apply_gradients(model: RoutingModel, lr: float, d_w1: list, d_b1: list, d_w2: list, d_b2: list) -> None:
     """Apply gradient updates to model weights."""
     H, N, K = model.hidden_size, N_FEATURES, len(model.backend_names)
     for i in range(N):

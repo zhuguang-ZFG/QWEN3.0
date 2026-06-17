@@ -10,9 +10,7 @@ from __future__ import annotations
 import re
 
 
-PATH_RE = re.compile(
-    r"(?:[A-Za-z]:\\[^\s`'\"<>|]+|/(?:[\w .-]+/)+[\w .-]+\.\w+|[\w.-]+(?:/[\w.-]+)+\.\w+)"
-)
+PATH_RE = re.compile(r"(?:[A-Za-z]:\\[^\s`'\"<>|]+|/(?:[\w .-]+/)+[\w .-]+\.\w+|[\w.-]+(?:/[\w.-]+)+\.\w+)")
 ERROR_RE = re.compile(
     r"(Traceback|SyntaxError|TypeError|ValueError|ImportError|ModuleNotFoundError|"
     r"AssertionError|FAILED [^\n]+|error[:\s][^\n]+|Exception[:\s][^\n]+)",

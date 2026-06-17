@@ -114,9 +114,7 @@ def test_backend_sync(name: str) -> dict:
                     "messages": [{"role": "user", "content": "hi"}],
                 }
             ).encode()
-        request = urllib.request.Request(
-            url, data=payload, headers=headers, method="POST"
-        )
+        request = urllib.request.Request(url, data=payload, headers=headers, method="POST")
         resp = urllib.request.urlopen(request, timeout=15)
         elapsed = int((time.time() - started) * 1000)
         data = json.loads(resp.read().decode())

@@ -93,9 +93,14 @@ async def _spec_worker(
         _record_latency(backend, latency)
         is_valid = isinstance(result, str) and len(result.strip()) >= MIN_VALID_LENGTH
         _record_backend_attempt(
-            backend=backend, scenario=scenario, request_type=request_type,
-            success=is_valid, latency_ms=latency,
-            response_empty=not is_valid, phase="speculative", attempt="parallel",
+            backend=backend,
+            scenario=scenario,
+            request_type=request_type,
+            success=is_valid,
+            latency_ms=latency,
+            response_empty=not is_valid,
+            phase="speculative",
+            attempt="parallel",
         )
         return result if isinstance(result, str) else ""
     except Exception as e:
@@ -103,10 +108,15 @@ async def _spec_worker(
         health_tracker.record_failure(backend, error_code=getattr(e, "status_code", 500))
         _record_latency(backend, latency + _SLOW_THRESHOLD_MS)
         _record_backend_attempt(
-            backend=backend, scenario=scenario, request_type=request_type,
-            success=False, latency_ms=latency,
-            status_code=getattr(e, "status_code", 500), error=str(e),
-            phase="speculative", attempt="parallel",
+            backend=backend,
+            scenario=scenario,
+            request_type=request_type,
+            success=False,
+            latency_ms=latency,
+            status_code=getattr(e, "status_code", 500),
+            error=str(e),
+            phase="speculative",
+            attempt="parallel",
         )
         logger.debug("[SPEC_ASYNC] %s failed: %s", backend, type(e).__name__)
         return ""
@@ -127,7 +137,9 @@ async def _spec_race(
             if remaining <= 0:
                 break
             done, pending = await asyncio.wait(
-                pending, timeout=remaining, return_when=asyncio.FIRST_COMPLETED,
+                pending,
+                timeout=remaining,
+                return_when=asyncio.FIRST_COMPLETED,
             )
             if not done:
                 break
@@ -165,9 +177,7 @@ async def speculative_call_async(
 
     t0 = time.time()
     tasks: dict[asyncio.Task, str] = {
-        asyncio.create_task(
-            _spec_worker(b, async_call_fn, messages, max_tokens, scenario, request_type)
-        ): b
+        asyncio.create_task(_spec_worker(b, async_call_fn, messages, max_tokens, scenario, request_type)): b
         for b in candidates
     }
 

@@ -31,21 +31,40 @@ def execute_with_strategy(
 
     if needs_tools:
         final_backend, answer, _ = execute(
-            backends, call_fn, messages, max_tokens,
-            tools=tools, scenario=scenario, request_type=req_type,
+            backends,
+            call_fn,
+            messages,
+            max_tokens,
+            tools=tools,
+            scenario=scenario,
+            request_type=req_type,
         )
     elif complexity == "simple" and req_type in ("ide", "chat"):
         final_backend, answer = _try_speculative(
-            backends, call_fn, messages, max_tokens, scenario, req_type,
+            backends,
+            call_fn,
+            messages,
+            max_tokens,
+            scenario,
+            req_type,
         )
     elif complexity == "code":
         final_backend, answer = _execute_code_priority(
-            backends, call_fn, messages, max_tokens, scenario, req_type,
+            backends,
+            call_fn,
+            messages,
+            max_tokens,
+            scenario,
+            req_type,
         )
     else:
         final_backend, answer, _ = execute(
-            backends, call_fn, messages, max_tokens,
-            scenario=scenario, request_type=req_type,
+            backends,
+            call_fn,
+            messages,
+            max_tokens,
+            scenario=scenario,
+            request_type=req_type,
         )
 
     if final_backend != "exhausted":
@@ -53,8 +72,15 @@ def execute_with_strategy(
 
     if answer and scenario == "coding":
         final_backend, answer = _maybe_quality_retry(
-            final_backend, answer, backends, call_fn, messages, max_tokens,
-            query, scenario, req_type,
+            final_backend,
+            answer,
+            backends,
+            call_fn,
+            messages,
+            max_tokens,
+            query,
+            scenario,
+            req_type,
         )
 
     return final_backend, answer
@@ -71,7 +97,8 @@ def _try_speculative(
     """尝试投机执行，回退到标准执行。"""
     affinity_backends = speculative.get_affinity_backends("simple")
     spec_candidates = [
-        b for b in affinity_backends
+        b
+        for b in affinity_backends
         if not health_tracker.is_cooled_down(b)
         and budget_manager.is_budget_available(b)
         and speculative.is_historically_fast(b)
@@ -79,15 +106,24 @@ def _try_speculative(
     if len(spec_candidates) >= 2:
         try:
             return speculative.speculative_call(
-                spec_candidates, call_fn, messages, max_tokens,
-                max_parallel=5, timeout_sec=5.0,
-                scenario=scenario, request_type=req_type,
+                spec_candidates,
+                call_fn,
+                messages,
+                max_tokens,
+                max_parallel=5,
+                timeout_sec=5.0,
+                scenario=scenario,
+                request_type=req_type,
             )[:2]
         except RuntimeError:
             pass
     final_backend, answer, _ = execute(
-        backends, call_fn, messages, max_tokens,
-        scenario=scenario, request_type=req_type,
+        backends,
+        call_fn,
+        messages,
+        max_tokens,
+        scenario=scenario,
+        request_type=req_type,
     )
     return final_backend, answer
 
@@ -103,14 +139,16 @@ def _execute_code_priority(
     """代码场景优先使用 code affinity 后端。"""
     code_backends = speculative.get_affinity_backends("code")
     code_available = [
-        b for b in code_backends
-        if not health_tracker.is_cooled_down(b)
-        and budget_manager.is_budget_available(b)
+        b for b in code_backends if not health_tracker.is_cooled_down(b) and budget_manager.is_budget_available(b)
     ]
     merged = code_available + [b for b in backends if b not in code_available]
     final_backend, answer, _ = execute(
-        merged, call_fn, messages, max_tokens,
-        scenario=scenario, request_type=req_type,
+        merged,
+        call_fn,
+        messages,
+        max_tokens,
+        scenario=scenario,
+        request_type=req_type,
     )
     return final_backend, answer
 
@@ -136,11 +174,17 @@ def _maybe_quality_retry(
             if retry_backends:
                 _log.info(
                     "response validation failed (score=%.2f, issues=%s), retrying with %s",
-                    vr.score, vr.issues[:3], retry_backends,
+                    vr.score,
+                    vr.issues[:3],
+                    retry_backends,
                 )
                 retry_backend, retry_answer, _ = execute(
-                    retry_backends, call_fn, messages, max_tokens,
-                    scenario=scenario, request_type=req_type,
+                    retry_backends,
+                    call_fn,
+                    messages,
+                    max_tokens,
+                    scenario=scenario,
+                    request_type=req_type,
                 )
                 if retry_answer:
                     vr2 = validate_response(retry_answer, query)
@@ -149,7 +193,8 @@ def _maybe_quality_retry(
                             health_tracker.record_failure(final_backend, 200, "quality_retry")
                         except Exception as exc:
                             _log.debug(
-                                "quality retry health record failed: %s", type(exc).__name__,
+                                "quality retry health record failed: %s",
+                                type(exc).__name__,
                             )
                         return retry_backend, retry_answer
     except Exception as exc:

@@ -47,13 +47,28 @@ def infer_tech_level(messages: list[dict]) -> str:
         return "intermediate"
 
     senior_signals = [
-        "refactor", "architecture", "concurrency", "mutex",
-        "async/await", "type annotation", "generics", "decorator",
-        "middleware", "pipeline", "dependency injection",
+        "refactor",
+        "architecture",
+        "concurrency",
+        "mutex",
+        "async/await",
+        "type annotation",
+        "generics",
+        "decorator",
+        "middleware",
+        "pipeline",
+        "dependency injection",
     ]
     beginner_signals = [
-        "what is", "how to", "explain", "tutorial",
-        "什么是", "怎么", "如何", "教程", "入门",
+        "what is",
+        "how to",
+        "explain",
+        "tutorial",
+        "什么是",
+        "怎么",
+        "如何",
+        "教程",
+        "入门",
     ]
 
     text_lower = user_text.lower()

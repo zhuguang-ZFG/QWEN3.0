@@ -64,9 +64,7 @@ class RequestTrace:
         if target:
             target.end_time = time.time()
         if target == self._active_span:
-            parent = next(
-                (s for s in self.spans if s.span_id == target.parent_id), None
-            ) if target else None
+            parent = next((s for s in self.spans if s.span_id == target.parent_id), None) if target else None
             self._active_span = parent
 
     @property
@@ -95,9 +93,7 @@ class RequestTrace:
 # Context-var scoped trace per request
 import contextvars
 
-_current_trace: contextvars.ContextVar[RequestTrace | None] = contextvars.ContextVar(
-    "current_trace", default=None
-)
+_current_trace: contextvars.ContextVar[RequestTrace | None] = contextvars.ContextVar("current_trace", default=None)
 
 
 def new_trace() -> RequestTrace:

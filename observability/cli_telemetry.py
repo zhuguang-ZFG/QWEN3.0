@@ -136,7 +136,7 @@ def _read_recent(limit: int) -> list[dict[str, Any]]:
     if not path.exists():
         return []
     try:
-        lines = path.read_text(encoding="utf-8").splitlines()[-max(limit, 1):]
+        lines = path.read_text(encoding="utf-8").splitlines()[-max(limit, 1) :]
     except Exception as exc:
         _log.warning("failed to read cli telemetry: %s", type(exc).__name__)
         return []

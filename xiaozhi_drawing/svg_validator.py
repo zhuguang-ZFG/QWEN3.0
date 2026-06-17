@@ -2,6 +2,7 @@
 
 验证 SVG path 的有效性、复杂度和工作区适配。
 """
+
 from dataclasses import dataclass
 import re
 
@@ -9,6 +10,7 @@ import re
 @dataclass
 class ValidationResult:
     """验证结果"""
+
     valid: bool
     errors: list[str]
     warnings: list[str]
@@ -16,9 +18,7 @@ class ValidationResult:
 
 
 def validate_svg_path(
-    path_data: str,
-    workspace: tuple[float, float] = (200.0, 200.0),
-    max_points: int = 5000
+    path_data: str, workspace: tuple[float, float] = (200.0, 200.0), max_points: int = 5000
 ) -> ValidationResult:
     """验证 SVG 路径
 
@@ -48,14 +48,10 @@ def validate_svg_path(
 
     # 计算复杂度
     point_count = len(points)
-    stroke_count = commands.count('M')
+    stroke_count = commands.count("M")
     bbox = _calculate_bbox(points)
 
-    complexity = {
-        'point_count': point_count,
-        'stroke_count': stroke_count,
-        'bbox': bbox
-    }
+    complexity = {"point_count": point_count, "stroke_count": stroke_count, "bbox": bbox}
 
     # 检查点数限制
     if point_count > max_points:
@@ -66,9 +62,9 @@ def validate_svg_path(
     # 检查工作区范围
     if bbox:
         w, h = workspace
-        if bbox['max_x'] > w or bbox['max_y'] > h:
+        if bbox["max_x"] > w or bbox["max_y"] > h:
             errors.append(f"路径超出工作区 ({w}x{h})")
-        elif bbox['max_x'] > w * 0.95 or bbox['max_y'] > h * 0.95:
+        elif bbox["max_x"] > w * 0.95 or bbox["max_y"] > h * 0.95:
             warnings.append("路径接近工作区边界")
 
     valid = len(errors) == 0
@@ -78,7 +74,7 @@ def validate_svg_path(
 def _parse_path(path_data: str) -> tuple[list[str], list[tuple[float, float]]]:
     """解析 SVG path，提取指令和坐标点"""
     # 支持的指令：M L C Q Z
-    pattern = r'([MLCQZmlcqz])\s*([-\d.,\s]*)'
+    pattern = r"([MLCQZmlcqz])\s*([-\d.,\s]*)"
     matches = re.findall(pattern, path_data)
 
     if not matches:
@@ -91,23 +87,23 @@ def _parse_path(path_data: str) -> tuple[list[str], list[tuple[float, float]]]:
         commands.append(cmd.upper())
 
         # Z 指令无坐标
-        if cmd.upper() == 'Z':
+        if cmd.upper() == "Z":
             continue
 
         # 解析坐标
-        coords_clean = coords.replace(',', ' ').strip()
+        coords_clean = coords.replace(",", " ").strip()
         if coords_clean:
             nums = [float(x) for x in coords_clean.split()]
             # 按指令类型解析坐标对
-            if cmd.upper() in ('M', 'L'):
+            if cmd.upper() in ("M", "L"):
                 for i in range(0, len(nums), 2):
                     if i + 1 < len(nums):
                         points.append((nums[i], nums[i + 1]))
-            elif cmd.upper() == 'C':  # 三次贝塞尔
+            elif cmd.upper() == "C":  # 三次贝塞尔
                 for i in range(0, len(nums), 6):
                     if i + 5 < len(nums):
                         points.append((nums[i + 4], nums[i + 5]))
-            elif cmd.upper() == 'Q':  # 二次贝塞尔
+            elif cmd.upper() == "Q":  # 二次贝塞尔
                 for i in range(0, len(nums), 4):
                     if i + 3 < len(nums):
                         points.append((nums[i + 2], nums[i + 3]))
@@ -124,10 +120,10 @@ def _calculate_bbox(points: list[tuple[float, float]]) -> dict:
     ys = [p[1] for p in points]
 
     return {
-        'min_x': min(xs),
-        'max_x': max(xs),
-        'min_y': min(ys),
-        'max_y': max(ys),
-        'width': max(xs) - min(xs),
-        'height': max(ys) - min(ys)
+        "min_x": min(xs),
+        "max_x": max(xs),
+        "min_y": min(ys),
+        "max_y": max(ys),
+        "width": max(xs) - min(xs),
+        "height": max(ys) - min(ys),
     }

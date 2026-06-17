@@ -5,9 +5,15 @@ from __future__ import annotations
 import router_v3
 
 
-def classify(query: str, messages: list[dict], *,
-             fmt: str = "openai", ide_source: str = "",
-             system_prompt: str = "", headers: dict = None) -> str:
+def classify(
+    query: str,
+    messages: list[dict],
+    *,
+    fmt: str = "openai",
+    ide_source: str = "",
+    system_prompt: str = "",
+    headers: dict = None,
+) -> str:
     """判断请求类型: ide / chat / vision / image"""
     headers = headers or {}
 
@@ -18,7 +24,23 @@ def classify(query: str, messages: list[dict], *,
         return "ide"
 
     ua = headers.get("user-agent", "").lower()
-    if any(x in ua for x in ["claude-code", "cursor", "aider", "codex", "cline", "continue", "vscode", "kiro", "zed", "trae", "windsurf", "copilot"]):
+    if any(
+        x in ua
+        for x in [
+            "claude-code",
+            "cursor",
+            "aider",
+            "codex",
+            "cline",
+            "continue",
+            "vscode",
+            "kiro",
+            "zed",
+            "trae",
+            "windsurf",
+            "copilot",
+        ]
+    ):
         return "ide"
 
     if system_prompt and router_v3.detect_ide_from_system_prompt(system_prompt):
@@ -30,14 +52,19 @@ def classify(query: str, messages: list[dict], *,
     return "chat"
 
 
-def classify_scenario(query: str, messages: list[dict], *,
-                      ide_source: str = "", request_type: str = "") -> str:
+def classify_scenario(query: str, messages: list[dict], *, ide_source: str = "", request_type: str = "") -> str:
     """判断场景: coding / chat。决定走质量路径还是速度路径。"""
     if request_type == "ide":
         return "coding"
     if ide_source and ide_source.lower() in (
-        "claude code", "cursor", "aider", "cline", "codex",
-        "continue", "vscode", "vs code",
+        "claude code",
+        "cursor",
+        "aider",
+        "cline",
+        "codex",
+        "continue",
+        "vscode",
+        "vs code",
     ):
         return "coding"
 
@@ -46,8 +73,7 @@ def classify_scenario(query: str, messages: list[dict], *,
         last = messages[-1]
         last_content = last.get("content", "") if isinstance(last, dict) else ""
         if isinstance(last_content, list):
-            last_content = " ".join(
-                b.get("text", "") for b in last_content if isinstance(b, dict))
+            last_content = " ".join(b.get("text", "") for b in last_content if isinstance(b, dict))
 
     text = last_content or query
 
@@ -56,27 +82,63 @@ def classify_scenario(query: str, messages: list[dict], *,
     if any(kw in text for kw in ("Traceback", "Error:", "TypeError", "SyntaxError")):
         return "coding"
 
-    code_signals = ("def ", "class ", "import ", "function ", "const ", "async ",
-                    "return ", "if __name__", "from ", "export ")
+    code_signals = (
+        "def ",
+        "class ",
+        "import ",
+        "function ",
+        "const ",
+        "async ",
+        "return ",
+        "if __name__",
+        "from ",
+        "export ",
+    )
     if sum(1 for s in code_signals if s in text) >= 2:
         return "coding"
 
     # Chinese coding signals
-    cn_code_signals = ("写一个", "写个", "编写", "实现", "函数", "代码",
-                       "编程", "开发", "重构", "修复", "调试", "测试",
-                       "Python", "JavaScript", "Golang", "Rust", "Java")
+    cn_code_signals = (
+        "写一个",
+        "写个",
+        "编写",
+        "实现",
+        "函数",
+        "代码",
+        "编程",
+        "开发",
+        "重构",
+        "修复",
+        "调试",
+        "测试",
+        "Python",
+        "JavaScript",
+        "Golang",
+        "Rust",
+        "Java",
+    )
     if sum(1 for s in cn_code_signals if s in text) >= 2:
         return "coding"
 
     # English coding intent signals
-    en_code_signals = ("write a", "implement", "create a function",
-                       "sort", "algorithm", "function", "code",
-                       "fix bug", "refactor", "test case")
+    en_code_signals = (
+        "write a",
+        "implement",
+        "create a function",
+        "sort",
+        "algorithm",
+        "function",
+        "code",
+        "fix bug",
+        "refactor",
+        "test case",
+    )
     if sum(1 for s in en_code_signals if s.lower() in text.lower()) >= 2:
         return "coding"
 
     import re
-    if re.search(r'\w+\.(?:py|js|ts|tsx|jsx|go|rs|java|c|cpp)\b', text):
+
+    if re.search(r"\w+\.(?:py|js|ts|tsx|jsx|go|rs|java|c|cpp)\b", text):
         return "coding"
 
     return "chat"

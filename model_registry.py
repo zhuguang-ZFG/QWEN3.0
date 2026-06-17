@@ -243,6 +243,7 @@ if __name__ == "__main__":
     with tempfile.TemporaryDirectory() as tmpdir:
         # 重定向注册表到临时目录
         import model_registry as _self
+
         _self.REGISTRY_PATH = os.path.join(tmpdir, "registry.json")
 
         fake_adapter = os.path.join(tmpdir, "fake_adapter")
@@ -284,16 +285,14 @@ if __name__ == "__main__":
 
         record2 = _self.register(
             adapter_path=fake_adapter2,
-            metrics={"loss": 0.31, "grbl_acc": 0.94, "cnc_acc": 0.90,
-                     "embed_acc": 0.95, "overall": 0.93},
+            metrics={"loss": 0.31, "grbl_acc": 0.94, "cnc_acc": 0.90, "embed_acc": 0.95, "overall": 0.93},
             notes="第二轮蒸馏",
         )
         print(f"\n[2] 注册版本: {record2['version']}")
 
         # 3. 查询状态（激活前）
         status = _self.get_status()
-        print(f"\n[3] 状态: total={status['total_versions']}, "
-              f"active={status['active_version']}")
+        print(f"\n[3] 状态: total={status['total_versions']}, active={status['active_version']}")
 
         # 4. 激活第一个版本
         ok = _self.promote(record["version"])
@@ -313,12 +312,10 @@ if __name__ == "__main__":
         versions = _self.list_versions()
         print(f"\n[7] list_versions() ({len(versions)} 条，降序):")
         for v in versions:
-            print(f"    {v['version']} | active={v['active']} | "
-                  f"overall={v['metrics']['overall']}")
+            print(f"    {v['version']} | active={v['active']} | overall={v['metrics']['overall']}")
 
         # 8. 最终状态
         status = _self.get_status()
         print(f"\n[8] 最终状态: {status}")
 
     print("\n[OK] 所有测试通过")
-

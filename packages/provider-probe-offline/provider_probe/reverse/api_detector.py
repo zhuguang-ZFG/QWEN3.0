@@ -51,9 +51,7 @@ async def detect_format(base_url: str) -> ApiProfile:
                         data = resp.json()
                         if "data" in data and isinstance(data["data"], list):
                             profile.details["model_count"] = len(data["data"])
-                            profile.details["models_preview"] = [
-                                m.get("id", "") for m in data["data"][:20]
-                            ]
+                            profile.details["models_preview"] = [m.get("id", "") for m in data["data"][:20]]
                     except Exception:
                         logger.debug("models JSON parse failed", exc_info=True)
     except Exception as exc:

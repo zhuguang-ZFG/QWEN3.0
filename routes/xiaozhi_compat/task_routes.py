@@ -2,6 +2,7 @@
 
 Extracted from routes/xiaozhi_v1_compat.py lines 784-949
 """
+
 import logging
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import JSONResponse
@@ -55,7 +56,9 @@ async def submit_task(device_id: str, request: Request, authorization: str = Hea
         if denied:
             return denied
         if member_id:
-            member = conn.execute("SELECT 1 FROM v2_member WHERE id=? AND device_id=? AND status='active'", (member_id, device_id)).fetchone()
+            member = conn.execute(
+                "SELECT 1 FROM v2_member WHERE id=? AND device_id=? AND status='active'", (member_id, device_id)
+            ).fetchone()
             if member is None:
                 return err(404, "member not found", 404)
         task, error = build_gateway_task(device_id, intent, params, source, str_field(body, "requestId", "request_id"))
@@ -172,10 +175,20 @@ async def reject_task(task_id: str, request: Request, authorization: str = Heade
         denied = require_device_access(conn, account, row["device_id"])
         if denied:
             return denied
-        conn.execute("UPDATE v2_task SET status='rejected', error_msg=?, completed_at=? WHERE id=?", (reason, now(), task_id))
+        conn.execute(
+            "UPDATE v2_task SET status='rejected', error_msg=?, completed_at=? WHERE id=?", (reason, now(), task_id)
+        )
         conn.commit()
         row = conn.execute("SELECT * FROM v2_task WHERE id=?", (task_id,)).fetchone()
-    record_motion_event({"type": "motion_event", "device_id": row["device_id"], "task_id": task_id, "phase": "rejected", "error": {"code": "E_REJECTED", "reason": reason}})
+    record_motion_event(
+        {
+            "type": "motion_event",
+            "device_id": row["device_id"],
+            "task_id": task_id,
+            "phase": "rejected",
+            "error": {"code": "E_REJECTED", "reason": reason},
+        }
+    )
     try:
         if workflow.get_state(task_id) == TaskState.WAITING_APPROVAL:
             workflow.advance(task_id, TaskState.TERMINAL)
@@ -194,5 +207,7 @@ async def pending_tasks(device_id: str, authorization: str = Header(default=""))
         denied = require_device_access(conn, account, device_id)
         if denied:
             return denied
-        rows = conn.execute("SELECT * FROM v2_task WHERE device_id=? AND status='pending' ORDER BY created_at DESC", (device_id,)).fetchall()
+        rows = conn.execute(
+            "SELECT * FROM v2_task WHERE device_id=? AND status='pending' ORDER BY created_at DESC", (device_id,)
+        ).fetchall()
     return ok([task_payload(row) for row in rows])

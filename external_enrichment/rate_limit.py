@@ -1,4 +1,5 @@
 """Rate limiting for enrichment providers."""
+
 import time
 from collections import defaultdict
 
@@ -17,9 +18,7 @@ class RateLimiter:
         now = time.time()
         # Clean old entries (older than 1 hour)
         cutoff = now - 3600
-        self._provider_calls[provider] = [
-            ts for ts in self._provider_calls[provider] if ts > cutoff
-        ]
+        self._provider_calls[provider] = [ts for ts in self._provider_calls[provider] if ts > cutoff]
 
         if len(self._provider_calls[provider]) >= self.requests_per_hour:
             return False

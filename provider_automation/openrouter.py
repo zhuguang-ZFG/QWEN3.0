@@ -26,9 +26,7 @@ _WATCHLIST_PATTERNS: dict[str, str] = {
     "stealth": "opaque architecture; safety review needed",
 }
 
-_DEFAULT_FIXTURE = (
-    Path(__file__).resolve().parent.parent / "data" / "openrouter_fixture.json"
-)
+_DEFAULT_FIXTURE = Path(__file__).resolve().parent.parent / "data" / "openrouter_fixture.json"
 
 
 @dataclass
@@ -133,8 +131,7 @@ async def fetch_live() -> ProviderModelSnapshot:
     """Fetch OpenRouter model metadata when the runtime gate is enabled."""
     if not _live_fetch_enabled():
         raise RuntimeError(
-            "Live OpenRouter fetch requires LIMA_OPENROUTER_LIVE_FETCH=1. "
-            "Use parse_fixture() for offline testing."
+            "Live OpenRouter fetch requires LIMA_OPENROUTER_LIVE_FETCH=1. Use parse_fixture() for offline testing."
         )
 
     import httpx
@@ -209,9 +206,7 @@ def _parse_model_item(item: dict[str, Any]) -> ProviderModelEntry | None:
         context_length=context_length,
         pricing=item.get("pricing", {}) if isinstance(item.get("pricing"), dict) else {},
         description=str(item.get("description", "") or ""),
-        architecture=(
-            item.get("architecture", {}) if isinstance(item.get("architecture"), dict) else {}
-        ),
+        architecture=(item.get("architecture", {}) if isinstance(item.get("architecture"), dict) else {}),
         endpoint_count=_extract_endpoint_count(item),
     ).to_entry()
 

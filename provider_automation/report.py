@@ -16,12 +16,8 @@ class ChangeReport:
     provider: str
     new_free_models: list[ProviderModelEntry] = field(default_factory=list)
     removed_models: list[ProviderModelEntry] = field(default_factory=list)
-    capability_changes: list[tuple[ProviderModelEntry, ProviderModelEntry]] = field(
-        default_factory=list
-    )
-    pricing_or_policy_changes: list[tuple[ProviderModelEntry, ProviderModelEntry]] = field(
-        default_factory=list
-    )
+    capability_changes: list[tuple[ProviderModelEntry, ProviderModelEntry]] = field(default_factory=list)
+    pricing_or_policy_changes: list[tuple[ProviderModelEntry, ProviderModelEntry]] = field(default_factory=list)
     routing_impacted: list[ProviderModelEntry] = field(default_factory=list)
     needs_review: list[ProviderModelEntry] = field(default_factory=list)
     watchlist_models: list[ProviderModelEntry] = field(default_factory=list)
@@ -37,9 +33,7 @@ def build_change_report(
     new_free = [model for model in delta.added if model.pricing == "free"]
     removed = list(delta.removed)
     capability_changes = [
-        (old, new)
-        for old, new in delta.changed
-        if sorted(old.capabilities) != sorted(new.capabilities)
+        (old, new) for old, new in delta.changed if sorted(old.capabilities) != sorted(new.capabilities)
     ]
     pricing_or_policy_changes = [
         (old, new)
@@ -84,7 +78,9 @@ def _format_new_free_section(report: ChangeReport) -> list[str]:
     for model in report.new_free_models:
         caps = ", ".join(model.capabilities) if model.capabilities else "none"
         watch = " [WATCHLIST]" if model.privacy_note else ""
-        lines.append(f"  + {redact_provider_text(model.model_id)} (ctx={model.context_window}, caps={redact_provider_text(caps)}){watch}")
+        lines.append(
+            f"  + {redact_provider_text(model.model_id)} (ctx={model.context_window}, caps={redact_provider_text(caps)}){watch}"
+        )
     return lines + [""]
 
 
@@ -117,7 +113,9 @@ def _format_pricing_section(report: ChangeReport) -> list[str]:
         return []
     lines = ["### Pricing/Policy/Endpoint Changes"]
     for old, new in report.pricing_or_policy_changes:
-        lines.append(f"  ~ {redact_provider_text(old.model_id)}: pricing {old.pricing}->{new.pricing}, endpoints {old.endpoint_count}->{new.endpoint_count}")
+        lines.append(
+            f"  ~ {redact_provider_text(old.model_id)}: pricing {old.pricing}->{new.pricing}, endpoints {old.endpoint_count}->{new.endpoint_count}"
+        )
     return lines + [""]
 
 

@@ -2,6 +2,7 @@
 """Lightweight path-rewrite proxy for one-api
 Listens on :8901-8908 (zhipu/github/aliyun/chinamobile/google/baidu/volcengine/longcat)
 Rewrites /v1/chat/completions to the correct upstream path"""
+
 import http.server, urllib.request, ssl, json, sys, threading
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -11,7 +12,10 @@ ROUTES = {
     8902: ("https://models.inference.ai.azure.com/chat/completions", "models.inference.ai.azure.com"),
     8903: ("https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions", "dashscope.aliyuncs.com"),
     8904: ("https://maas.gd.chinamobile.com:36007/ai/uifm/open/v1/chat/completions", "maas.gd.chinamobile.com"),
-    8905: ("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", "generativelanguage.googleapis.com"),
+    8905: (
+        "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+        "generativelanguage.googleapis.com",
+    ),
     8906: ("https://qianfan.baidubce.com/v2/chat/completions", "qianfan.baidubce.com"),
     8907: ("https://ark.cn-beijing.volces.com/api/v3/chat/completions", "ark.cn-beijing.volces.com"),
     8908: ("https://api.longcat.chat/openai/v1/chat/completions", "api.longcat.chat"),
@@ -22,6 +26,7 @@ PROXY_PORTS = {8905}
 PROXY_URL = "http://127.0.0.1:7897"
 
 ctx = ssl.create_default_context()
+
 
 class ProxyHandler(http.server.BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
@@ -59,8 +64,21 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
                 if "Omni" in obj.get("model", ""):
                     upstream_url = "https://api.longcat.chat/anthropic/v1/messages"
                     msgs = [m for m in obj.get("messages", []) if m.get("role") != "system"]
-                    anth_msgs = [{"role": m["role"], "content": [{"type": "text", "text": m["content"] if isinstance(m["content"], str) else str(m["content"])}]} for m in msgs]
-                    body = json.dumps({"model": obj["model"], "messages": anth_msgs, "max_tokens": obj.get("max_tokens", 1024)}).encode()
+                    anth_msgs = [
+                        {
+                            "role": m["role"],
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "text": m["content"] if isinstance(m["content"], str) else str(m["content"]),
+                                }
+                            ],
+                        }
+                        for m in msgs
+                    ]
+                    body = json.dumps(
+                        {"model": obj["model"], "messages": anth_msgs, "max_tokens": obj.get("max_tokens", 1024)}
+                    ).encode()
                     headers["anthropic-version"] = "2023-06-01"
                     self._omni_convert = True
                 else:
@@ -80,7 +98,7 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
             resp_body = resp.read()
             if port in REWRITE_RESPONSE_PORTS:
                 resp_body = self._rewrite_reasoning(resp_body)
-            if getattr(self, '_omni_convert', False):
+            if getattr(self, "_omni_convert", False):
                 resp_body = self._anthropic_to_openai(resp_body)
             self.send_response(resp.status)
             self.send_header("Content-Type", "application/json")
@@ -109,7 +127,20 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
             for block in obj.get("content", []):
                 if block.get("type") == "text":
                     content += block.get("text", "")
-            openai_resp = {"id": obj.get("id", ""), "object": "chat.completion", "model": obj.get("model", ""), "choices": [{"index": 0, "message": {"role": "assistant", "content": content}, "finish_reason": "stop"}], "usage": {"prompt_tokens": obj.get("usage", {}).get("input_tokens", 0), "completion_tokens": obj.get("usage", {}).get("output_tokens", 0), "total_tokens": obj.get("usage", {}).get("input_tokens", 0) + obj.get("usage", {}).get("output_tokens", 0)}}
+            openai_resp = {
+                "id": obj.get("id", ""),
+                "object": "chat.completion",
+                "model": obj.get("model", ""),
+                "choices": [
+                    {"index": 0, "message": {"role": "assistant", "content": content}, "finish_reason": "stop"}
+                ],
+                "usage": {
+                    "prompt_tokens": obj.get("usage", {}).get("input_tokens", 0),
+                    "completion_tokens": obj.get("usage", {}).get("output_tokens", 0),
+                    "total_tokens": obj.get("usage", {}).get("input_tokens", 0)
+                    + obj.get("usage", {}).get("output_tokens", 0),
+                },
+            }
             return json.dumps(openai_resp).encode()
         except (json.JSONDecodeError, ValueError, KeyError):
             return resp_body
@@ -158,9 +189,11 @@ class ProxyHandler(http.server.BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
 
+
 def start_server(port):
     srv = http.server.HTTPServer(("0.0.0.0", port), ProxyHandler)
     srv.serve_forever()
+
 
 print("Starting path-rewrite proxy...")
 for port in ROUTES:
@@ -170,5 +203,6 @@ for port in ROUTES:
 
 print("Proxy ready.")
 import time
+
 while True:
     time.sleep(3600)

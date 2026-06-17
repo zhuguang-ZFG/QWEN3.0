@@ -10,6 +10,7 @@ Supports:
   - Per-backend context limits
   - Incremental compression (summarize in chunks)
 """
+
 from __future__ import annotations
 
 import logging
@@ -99,8 +100,7 @@ def compress_messages(
     if not should_compress(messages, backend, system_prompt):
         return messages
 
-    _log.info("Compressing %d messages for %s (limit=%d tokens)",
-              len(messages), backend, limit)
+    _log.info("Compressing %d messages for %s (limit=%d tokens)", len(messages), backend, limit)
 
     keep_count = 4
     if len(messages) <= keep_count + 2:
@@ -137,9 +137,7 @@ def _build_early_summary(early: list[dict]) -> tuple[str, int]:
             snippet = content[:500]
         elif isinstance(content, list):
             snippet = " ".join(
-                str(b.get("text", ""))[:200]
-                for b in content
-                if isinstance(b, dict) and b.get("type") == "text"
+                str(b.get("text", ""))[:200] for b in content if isinstance(b, dict) and b.get("type") == "text"
             )
         else:
             continue
@@ -148,10 +146,7 @@ def _build_early_summary(early: list[dict]) -> tuple[str, int]:
         if early_tokens > 4000:
             summary_parts.append("... (earlier messages truncated)")
             break
-    summary = (
-        f"[Conversation Summary — {len(early)} earlier messages compressed]\n"
-        + "\n".join(summary_parts[:20])
-    )
+    summary = f"[Conversation Summary — {len(early)} earlier messages compressed]\n" + "\n".join(summary_parts[:20])
     return summary, early_tokens
 
 
@@ -161,8 +156,7 @@ def _compress_with_summary(messages: list[dict], keep_count: int) -> list[dict]:
     recent = messages[-keep_count:]
     summary, early_tokens = _build_early_summary(early)
     compressed = [{"role": "system", "content": summary}] + recent
-    _log.info("Compressed %d→%d messages (saved %d tokens)",
-              len(messages), len(compressed), early_tokens)
+    _log.info("Compressed %d→%d messages (saved %d tokens)", len(messages), len(compressed), early_tokens)
     return compressed
 
 
@@ -175,11 +169,7 @@ def estimate_context_usage(messages: list[dict], system_prompt: str = "") -> dic
         if isinstance(content, str):
             t = estimate_tokens(content)
         elif isinstance(content, list):
-            t = sum(
-                estimate_tokens(str(b.get("text", "")))
-                for b in content
-                if isinstance(b, dict)
-            )
+            t = sum(estimate_tokens(str(b.get("text", ""))) for b in content if isinstance(b, dict))
         else:
             t = 0
         tokens += t

@@ -5,6 +5,7 @@ When LIMA_DEVICE_MODE=1, the chat pipeline runs in device-optimized mode:
 - Use device_llm_router thin wrapper instead of full routing_engine
 - Optimize for drawing/writing machine scenarios
 """
+
 import os
 
 

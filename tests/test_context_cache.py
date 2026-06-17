@@ -41,8 +41,7 @@ def test_build_cached_prompt_without_variable():
 
 def test_build_cached_prompt_with_variable_content():
     prompt, _ = build_cached_prompt(
-        "Cursor", "coding",
-        variable_content="[上下文]\nrouting_engine.py | select, classify"
+        "Cursor", "coding", variable_content="[上下文]\nrouting_engine.py | select, classify"
     )
     assert "routing_engine.py" in prompt
     parts = prompt.split("\n\n")

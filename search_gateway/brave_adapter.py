@@ -27,10 +27,7 @@ def brave_search_enabled() -> bool:
 
 
 def _api_key() -> str:
-    return (
-        os.environ.get("BRAVE_SEARCH_API_KEY", "").strip()
-        or os.environ.get("BRAVE_API_KEY", "").strip()
-    )
+    return os.environ.get("BRAVE_SEARCH_API_KEY", "").strip() or os.environ.get("BRAVE_API_KEY", "").strip()
 
 
 def _float_env(name: str, default: float) -> float:
@@ -156,9 +153,7 @@ class BraveSearchAdapter:
         self._cache_set(cache_key, payload)
         return payload
 
-    def batch_search(
-        self, queries: list[str], *, domain: str | None = None, max_results: int = 5
-    ) -> dict:
+    def batch_search(self, queries: list[str], *, domain: str | None = None, max_results: int = 5) -> dict:
         merged: list[dict] = []
         for query in queries:
             one = self.search(query, domain=domain, max_results=max_results)

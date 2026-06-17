@@ -40,6 +40,7 @@ def expand_context(
 
     try:
         from code_context.graph_index import build_graph_index
+
         graph = build_graph_index()
     except Exception as exc:
         _log.debug("graph expansion unavailable: %s", exc)
@@ -66,12 +67,14 @@ def expand_context(
                 distance = getattr(r, "distance", 1)
                 reason = f"{rel_type} from {Path(seed).name} (depth {distance})"
 
-                expanded.append(ExpandedFile(
-                    file_path=rpath,
-                    relationship_type=rel_type,
-                    distance=distance,
-                    relevance_reason=reason,
-                ))
+                expanded.append(
+                    ExpandedFile(
+                        file_path=rpath,
+                        relationship_type=rel_type,
+                        distance=distance,
+                        relevance_reason=reason,
+                    )
+                )
 
                 if len(expanded) >= max_files:
                     return expanded

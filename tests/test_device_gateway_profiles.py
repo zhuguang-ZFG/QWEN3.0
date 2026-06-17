@@ -130,9 +130,7 @@ def test_registered_profile_is_complete():
 
 
 def test_registered_profile_not_found_falls_back_to_conservative():
-    register_profile(
-        DeviceProfile(profile_id="u8-standard", model="U8")
-    )
+    register_profile(DeviceProfile(profile_id="u8-standard", model="U8"))
 
     resolved = resolve_profile(profile_id="u8-pro", device_id="dev-2")
 
@@ -528,10 +526,16 @@ def test_route_evidence_records_error_on_validation_failure():
 
     # Patch resolve_device_route_policy to return invalid policy
     import device_gateway.task_deps as task_deps
+
     original = task_deps.resolve_device_route_policy
 
     def bad_policy(voice_task, device_id="", **kwargs):
-        return {"route_role": "INVALID", "model_required": False, "primary_strategy": "bad", "artifact_required": "nope"}
+        return {
+            "route_role": "INVALID",
+            "model_required": False,
+            "primary_strategy": "bad",
+            "artifact_required": "nope",
+        }
 
     task_deps.resolve_device_route_policy = bad_policy
     try:

@@ -1,4 +1,5 @@
 """System and metadata endpoints for the LiMa API."""
+
 from __future__ import annotations
 
 import os
@@ -90,10 +91,7 @@ async def live_key():
         "available": True,
         "model": "models/gemini-2.0-flash-live-001",
         "auth": "server_side_only",
-        "detail": (
-            "Provider credentials are not exposed via this API; "
-            "use a server-side Gemini Live proxy."
-        ),
+        "detail": ("Provider credentials are not exposed via this API; use a server-side Gemini Live proxy."),
     }
 
 

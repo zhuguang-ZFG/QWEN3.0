@@ -13,6 +13,7 @@ output pipeline:
 No external dependencies. All safety limits (points, bounds, feed)
 are enforced at the pipeline boundary.
 """
+
 from __future__ import annotations
 
 from typing import Any

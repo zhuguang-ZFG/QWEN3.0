@@ -93,12 +93,14 @@ def _post_to_fake_device_server(fds: dict[str, Any], path: str, payload: dict[st
 
 
 def _send_motion_event(ws: Any, device_id: str, task_id: str, phase: str) -> dict[str, Any]:
-    ws.send_json({
-        "type": "motion_event",
-        "device_id": device_id,
-        "task_id": task_id,
-        "phase": phase,
-    })
+    ws.send_json(
+        {
+            "type": "motion_event",
+            "device_id": device_id,
+            "task_id": task_id,
+            "phase": phase,
+        }
+    )
     return ws.receive_json()
 
 
@@ -107,13 +109,15 @@ def test_cloud_to_fake_u1_home_loop(lima_client: TestClient, fake_device_server:
     device_id = "fake-u1-device"
 
     with lima_client.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
-        ws.send_json({
-            "type": "hello",
-            "protocol": "lima-device-v1",
-            "device_id": device_id,
-            "fw_rev": "u1-test",
-            "capabilities": ["run_path"],
-        })
+        ws.send_json(
+            {
+                "type": "hello",
+                "protocol": "lima-device-v1",
+                "device_id": device_id,
+                "fw_rev": "u1-test",
+                "capabilities": ["run_path"],
+            }
+        )
         assert ws.receive_json()["type"] == "hello_ack"
 
         response = lima_client.post(
@@ -179,13 +183,15 @@ def test_cloud_to_fake_u1_write_text_loop(
     assert fake_u1["simulator"].state.homed is True
 
     with lima_client.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
-        ws.send_json({
-            "type": "hello",
-            "protocol": "lima-device-v1",
-            "device_id": device_id,
-            "fw_rev": "u1-test",
-            "capabilities": ["run_path"],
-        })
+        ws.send_json(
+            {
+                "type": "hello",
+                "protocol": "lima-device-v1",
+                "device_id": device_id,
+                "fw_rev": "u1-test",
+                "capabilities": ["run_path"],
+            }
+        )
         assert ws.receive_json()["type"] == "hello_ack"
 
         response = lima_client.post(
@@ -251,13 +257,15 @@ def test_cloud_to_fake_u1_draw_generated_svg_loop(
     assert fake_u1["simulator"].state.homed is True
 
     with lima_client.websocket_connect("/device/v1/ws?token=test-device-token") as ws:
-        ws.send_json({
-            "type": "hello",
-            "protocol": "lima-device-v1",
-            "device_id": device_id,
-            "fw_rev": "u1-test",
-            "capabilities": ["run_path"],
-        })
+        ws.send_json(
+            {
+                "type": "hello",
+                "protocol": "lima-device-v1",
+                "device_id": device_id,
+                "fw_rev": "u1-test",
+                "capabilities": ["run_path"],
+            }
+        )
         assert ws.receive_json()["type"] == "hello_ack"
 
         svg_d = "M0,0 L10,0 L10,10"
@@ -310,17 +318,19 @@ def test_cloud_to_fake_u1_draw_generated_svg_loop(
 
 def test_cloud_task_command_translation_matches_u1_protocol() -> None:
     """The bridge converts LiMa motion_task payloads into valid Edge-D command sequences."""
-    commands = motion_task_to_u1_commands({
-        "device_id": "dev-1",
-        "task_id": "task-path",
-        "capability": "run_path",
-        "params": {
-            "feed": 900,
-            "path": [
-                {"cmd": "M", "x": 0, "y": 0, "z": 0},
-                {"cmd": "L", "x": 10, "y": 0, "z": 0},
-            ],
-        },
-    })
+    commands = motion_task_to_u1_commands(
+        {
+            "device_id": "dev-1",
+            "task_id": "task-path",
+            "capability": "run_path",
+            "params": {
+                "feed": 900,
+                "path": [
+                    {"cmd": "M", "x": 0, "y": 0, "z": 0},
+                    {"cmd": "L", "x": 10, "y": 0, "z": 0},
+                ],
+            },
+        }
+    )
     assert [cmd["cmd"] for cmd in commands] == ["PATH_BEGIN", "PATH_SEG", "PATH_SEG", "PATH_END"]
     assert commands[0]["total_segments"] == 2

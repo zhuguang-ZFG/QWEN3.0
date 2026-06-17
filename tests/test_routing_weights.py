@@ -56,4 +56,4 @@ def test_get_stats():
     stats = rw.get_stats("b1", "chat")
     assert stats["successes"] == 2
     assert stats["failures"] == 1
-    assert abs(stats["success_rate"] - 2/3) < 0.01
+    assert abs(stats["success_rate"] - 2 / 3) < 0.01

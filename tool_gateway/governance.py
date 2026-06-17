@@ -58,17 +58,24 @@ def _get_conn() -> sqlite3.Connection:
 
 def register_worker(worker_id: str, version: str = "", capacity: int = 1) -> WorkerRecord:
     now = time.time()
-    rec = WorkerRecord(worker_id=worker_id, registered_at=now, last_heartbeat=now,
-                       capacity=capacity, version=version)
+    rec = WorkerRecord(worker_id=worker_id, registered_at=now, last_heartbeat=now, capacity=capacity, version=version)
     with _lock:
         conn = _get_conn()
         conn.execute(
             "INSERT OR REPLACE INTO workers (worker_id, registered_at, last_heartbeat, "
             "status, capacity, active_tasks, total_completed, total_failed, version) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (rec.worker_id, rec.registered_at, rec.last_heartbeat,
-             rec.status, rec.capacity, json.dumps(rec.active_tasks),
-             rec.total_completed, rec.total_failed, rec.version),
+            (
+                rec.worker_id,
+                rec.registered_at,
+                rec.last_heartbeat,
+                rec.status,
+                rec.capacity,
+                json.dumps(rec.active_tasks),
+                rec.total_completed,
+                rec.total_failed,
+                rec.version,
+            ),
         )
         conn.commit()
         conn.close()
@@ -84,9 +91,7 @@ def heartbeat(worker_id: str, status: str = "idle", active_tasks: list[str] | No
         conn = _get_conn()
         set_clause = ", ".join(f"{k} = ?" for k in updates)
         values = list(updates.values()) + [worker_id]
-        cur = conn.execute(
-            f"UPDATE workers SET {set_clause} WHERE worker_id = ?", values
-        )
+        cur = conn.execute(f"UPDATE workers SET {set_clause} WHERE worker_id = ?", values)
         conn.commit()
         updated = cur.rowcount > 0
         conn.close()
@@ -98,16 +103,22 @@ def get_worker(worker_id: str) -> WorkerRecord | None:
     row = conn.execute(
         "SELECT worker_id, registered_at, last_heartbeat, status, capacity, "
         "active_tasks, total_completed, total_failed, version "
-        "FROM workers WHERE worker_id = ?", (worker_id,)
+        "FROM workers WHERE worker_id = ?",
+        (worker_id,),
     ).fetchone()
     conn.close()
     if not row:
         return None
     return WorkerRecord(
-        worker_id=row[0], registered_at=row[1], last_heartbeat=row[2],
-        status=row[3], capacity=row[4],
+        worker_id=row[0],
+        registered_at=row[1],
+        last_heartbeat=row[2],
+        status=row[3],
+        capacity=row[4],
         active_tasks=json.loads(row[5]) if row[5] else [],
-        total_completed=row[6], total_failed=row[7], version=row[8],
+        total_completed=row[6],
+        total_failed=row[7],
+        version=row[8],
     )
 
 
@@ -117,7 +128,8 @@ def list_workers(status: str = "") -> list[WorkerRecord]:
         rows = conn.execute(
             "SELECT worker_id, registered_at, last_heartbeat, status, capacity, "
             "active_tasks, total_completed, total_failed, version "
-            "FROM workers WHERE status = ? ORDER BY last_heartbeat DESC", (status,)
+            "FROM workers WHERE status = ? ORDER BY last_heartbeat DESC",
+            (status,),
         ).fetchall()
     else:
         rows = conn.execute(
@@ -128,10 +140,15 @@ def list_workers(status: str = "") -> list[WorkerRecord]:
     conn.close()
     return [
         WorkerRecord(
-            worker_id=r[0], registered_at=r[1], last_heartbeat=r[2],
-            status=r[3], capacity=r[4],
+            worker_id=r[0],
+            registered_at=r[1],
+            last_heartbeat=r[2],
+            status=r[3],
+            capacity=r[4],
             active_tasks=json.loads(r[5]) if r[5] else [],
-            total_completed=r[6], total_failed=r[7], version=r[8],
+            total_completed=r[6],
+            total_failed=r[7],
+            version=r[8],
         )
         for r in rows
     ]
@@ -139,9 +156,7 @@ def list_workers(status: str = "") -> list[WorkerRecord]:
 
 def quarantine_worker(worker_id: str, reason: str = "") -> bool:
     conn = _get_conn()
-    cur = conn.execute(
-        "UPDATE workers SET status = 'quarantined' WHERE worker_id = ?", (worker_id,)
-    )
+    cur = conn.execute("UPDATE workers SET status = 'quarantined' WHERE worker_id = ?", (worker_id,))
     conn.commit()
     updated = cur.rowcount > 0
     conn.close()
@@ -153,8 +168,7 @@ def mark_offline_stale(timeout_sec: float = 300) -> int:
     cutoff = time.time() - timeout_sec
     conn = _get_conn()
     cur = conn.execute(
-        "UPDATE workers SET status = 'offline' "
-        "WHERE status != 'quarantined' AND last_heartbeat < ?",
+        "UPDATE workers SET status = 'offline' WHERE status != 'quarantined' AND last_heartbeat < ?",
         (cutoff,),
     )
     conn.commit()

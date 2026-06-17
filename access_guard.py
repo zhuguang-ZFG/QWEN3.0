@@ -1,4 +1,5 @@
 """Private API key guard for LiMa public-compatible endpoints."""
+
 import os
 import secrets
 
@@ -28,7 +29,7 @@ def extract_bearer_token(authorization: str) -> str:
     value = (authorization or "").strip()
     prefix = "Bearer "
     if value.startswith(prefix) and len(value) > len(prefix):
-        return value[len(prefix):].strip()
+        return value[len(prefix) :].strip()
     return ""
 
 

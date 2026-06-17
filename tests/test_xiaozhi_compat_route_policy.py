@@ -4,6 +4,7 @@ Guards the Edge-C hard contract on the cloud side: build_gateway_task
 must attach route_policy so the downlink frame is contract-compliant
 regardless of which entry path produced the task.
 """
+
 import os
 import sys
 from pathlib import Path
@@ -17,12 +18,18 @@ os.environ.setdefault("LIMA_DEVICE_TASK_STORE", "memory")
 from routes.xiaozhi_compat.gateway import build_gateway_task  # noqa: E402
 
 _VALID_ROLES = {
-    "device_control", "device_write", "device_draw",
-    "device_vector", "device_unknown",
+    "device_control",
+    "device_write",
+    "device_draw",
+    "device_vector",
+    "device_unknown",
 }
 _VALID_STRATEGIES = {
-    "deterministic", "image_then_vector", "svg_vector",
-    "provided_path", "planner_required",
+    "deterministic",
+    "image_then_vector",
+    "svg_vector",
+    "provided_path",
+    "planner_required",
 }
 _VALID_ARTIFACTS = {"none", "preview_svg", "vector_path"}
 

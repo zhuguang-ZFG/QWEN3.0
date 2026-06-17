@@ -40,9 +40,7 @@ async def test_latency(url: str, samples: int = 3) -> dict:
     }
 
 
-async def test_chat_completion(
-    base_url: str, model: str = "", api_key: str = "", timeout: float = 30.0
-) -> dict:
+async def test_chat_completion(base_url: str, model: str = "", api_key: str = "", timeout: float = 30.0) -> dict:
     """Test actual chat completion with a simple query.
 
     Returns: status, latency_ms, model_used, tokens, error

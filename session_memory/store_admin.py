@@ -1,4 +1,5 @@
 """Memory deletion, export gates, and admin helpers."""
+
 from __future__ import annotations
 
 import json
@@ -10,6 +11,7 @@ from session_memory.store_crud import count_memories
 
 
 # Deletion
+
 
 def delete_memory(memory_id: int) -> bool:
     """Delete a single memory by ID. Returns True if deleted."""
@@ -36,9 +38,7 @@ def delete_memories_by_type(
             (memory_type, session_id),
         )
     else:
-        cur = conn.execute(
-            "DELETE FROM memories WHERE memory_type = ?", (memory_type,)
-        )
+        cur = conn.execute("DELETE FROM memories WHERE memory_type = ?", (memory_type,))
     conn.commit()
     deleted = cur.rowcount
     conn.close()
@@ -58,9 +58,7 @@ def delete_memories_older_than(days: int, session_id: str | None = None) -> int:
             (cutoff, session_id),
         )
     else:
-        cur = conn.execute(
-            "DELETE FROM memories WHERE timestamp < ?", (cutoff,)
-        )
+        cur = conn.execute("DELETE FROM memories WHERE timestamp < ?", (cutoff,))
     conn.commit()
     deleted = cur.rowcount
     conn.close()
@@ -68,6 +66,7 @@ def delete_memories_older_than(days: int, session_id: str | None = None) -> int:
 
 
 # Export
+
 
 def _gate_allowed(op: str) -> bool:
     """Check if a memory operation is explicitly allowed."""
@@ -106,8 +105,11 @@ def export_session_json(session_id: str) -> list[dict]:
         sanitize_for_display = lambda t: t
     return [
         {
-            "id": r[0], "session_id": r[1], "timestamp": r[2],
-            "role": r[3], "summary": sanitize_for_display(r[4]),
+            "id": r[0],
+            "session_id": r[1],
+            "timestamp": r[2],
+            "role": r[3],
+            "summary": sanitize_for_display(r[4]),
             "detail": sanitize_for_display(r[5]),
             "embedding": json.loads(r[6]),
             "memory_type": r[7] if len(r) > 7 else "exchange",
@@ -136,8 +138,11 @@ def export_by_type_json(memory_type: str, limit: int = 100) -> list[dict]:
         sanitize_for_display = lambda t: t
     return [
         {
-            "id": r[0], "session_id": r[1], "timestamp": r[2],
-            "role": r[3], "summary": sanitize_for_display(r[4]),
+            "id": r[0],
+            "session_id": r[1],
+            "timestamp": r[2],
+            "role": r[3],
+            "summary": sanitize_for_display(r[4]),
             "detail": sanitize_for_display(r[5]),
             "embedding": json.loads(r[6]),
             "memory_type": r[7] if len(r) > 7 else "exchange",

@@ -22,8 +22,12 @@ def signal_classify(query: str):
 
 
 def analyze(query: str, system_prompt: str = "", ide: str = "unknown"):
-    return rule_classify(query) or signal_classify(query) or {
-        "intent": "unknown",
-        "confidence": 0.5,
-        "source": "default_fallback",
-    }
+    return (
+        rule_classify(query)
+        or signal_classify(query)
+        or {
+            "intent": "unknown",
+            "confidence": 0.5,
+            "source": "default_fallback",
+        }
+    )

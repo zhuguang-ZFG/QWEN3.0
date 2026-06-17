@@ -131,30 +131,37 @@ class TestRoutingModel:
 
         # Get initial loss
         pred_before = model.predict(features)
-        loss_before = -(
-            target_success[0] * _logsafe(pred_before[0]) +
-            (1 - target_success[0]) * _logsafe(1 - pred_before[0]) +
-            target_success[1] * _logsafe(pred_before[1]) +
-            (1 - target_success[1]) * _logsafe(1 - pred_before[1])
-        ) / 2
+        loss_before = (
+            -(
+                target_success[0] * _logsafe(pred_before[0])
+                + (1 - target_success[0]) * _logsafe(1 - pred_before[0])
+                + target_success[1] * _logsafe(pred_before[1])
+                + (1 - target_success[1]) * _logsafe(1 - pred_before[1])
+            )
+            / 2
+        )
 
         # Train
         for _ in range(50):
             train_step(model, features, target_success, lr=0.01)
 
         pred_after = model.predict(features)
-        loss_after = -(
-            target_success[0] * _logsafe(pred_after[0]) +
-            (1 - target_success[0]) * _logsafe(1 - pred_after[0]) +
-            target_success[1] * _logsafe(pred_after[1]) +
-            (1 - target_success[1]) * _logsafe(1 - pred_after[1])
-        ) / 2
+        loss_after = (
+            -(
+                target_success[0] * _logsafe(pred_after[0])
+                + (1 - target_success[0]) * _logsafe(1 - pred_after[0])
+                + target_success[1] * _logsafe(pred_after[1])
+                + (1 - target_success[1]) * _logsafe(1 - pred_after[1])
+            )
+            / 2
+        )
 
         assert loss_after < loss_before
 
 
 def _logsafe(x: float) -> float:
     import math
+
     return math.log(max(1e-7, min(1.0 - 1e-7, x)))
 
 
@@ -171,12 +178,20 @@ class TestTrainingData:
         with tempfile.TemporaryDirectory() as tmp:
             data = {
                 "scnet_ds_flash:coding": {
-                    "backend": "scnet_ds_flash", "scenario": "coding",
-                    "weight": 1.12, "successes": 8, "failures": 0, "last_updated": 1000,
+                    "backend": "scnet_ds_flash",
+                    "scenario": "coding",
+                    "weight": 1.12,
+                    "successes": 8,
+                    "failures": 0,
+                    "last_updated": 1000,
                 },
                 "longcat_lite:chat": {
-                    "backend": "longcat_lite", "scenario": "chat",
-                    "weight": 0.96, "successes": 0, "failures": 2, "last_updated": 1000,
+                    "backend": "longcat_lite",
+                    "scenario": "chat",
+                    "weight": 0.96,
+                    "successes": 0,
+                    "failures": 2,
+                    "last_updated": 1000,
                 },
             }
             with open(os.path.join(tmp, "lima_routing_weights.json"), "w") as f:

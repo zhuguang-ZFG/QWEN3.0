@@ -89,7 +89,9 @@ def dual_layer_search(
                 merged[path].relations.append(f"{rel.relation_type}:{rel.source}")
             else:
                 merged[path] = RetrievalResult(
-                    path=path, score=0.5, source="graph",
+                    path=path,
+                    score=0.5,
+                    source="graph",
                     relations=[f"{rel.relation_type}:{rel.source}"],
                 )
 

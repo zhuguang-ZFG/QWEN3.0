@@ -1,11 +1,15 @@
 """Tests for context_pipeline: graph_retrieval and reranking."""
+
 from context_pipeline.graph_retrieval import (
-    CodeGraph, RetrievalResult, dual_layer_search,
+    CodeGraph,
+    RetrievalResult,
+    dual_layer_search,
 )
 from context_pipeline.reranking import rerank_results, format_for_injection
 
 
 # -- CodeGraph ------------------------------------------------------------------
+
 
 def test_code_graph_add_and_get_related():
     g = CodeGraph()
@@ -40,6 +44,7 @@ def test_code_graph_edge_count():
 
 
 # -- dual_layer_search ----------------------------------------------------------
+
 
 def test_dual_layer_search_merges_sources():
     g = CodeGraph()
@@ -78,6 +83,7 @@ def test_dual_layer_search_respects_max_results():
 
 # -- reranking ------------------------------------------------------------------
 
+
 def test_rerank_results_promotes_entity_overlap():
     results = [
         RetrievalResult(path="routing_engine.py", score=0.7, source="vector"),
@@ -102,10 +108,7 @@ def test_rerank_results_promotes_dual_source():
 
 
 def test_rerank_results_respects_top_k():
-    results = [
-        RetrievalResult(path=f"file_{i}.py", score=0.5, source="vector")
-        for i in range(10)
-    ]
+    results = [RetrievalResult(path=f"file_{i}.py", score=0.5, source="vector") for i in range(10)]
     reranked = rerank_results(results, [], top_k=3)
     assert len(reranked) == 3
 
@@ -113,8 +116,7 @@ def test_rerank_results_respects_top_k():
 def test_format_for_injection_produces_compact_output():
     results = [
         RetrievalResult(path="routing_engine.py", score=0.92, source="vector"),
-        RetrievalResult(path="http_caller.py", score=0.85, source="both",
-                        relations=["imports:server"]),
+        RetrievalResult(path="http_caller.py", score=0.85, source="both", relations=["imports:server"]),
     ]
     output = format_for_injection(results, max_chars=800)
     assert "routing_engine.py" in output
@@ -123,10 +125,7 @@ def test_format_for_injection_produces_compact_output():
 
 
 def test_format_for_injection_respects_max_chars():
-    results = [
-        RetrievalResult(path=f"very_long_path_name_file_{i}.py", score=0.9, source="vector")
-        for i in range(20)
-    ]
+    results = [RetrievalResult(path=f"very_long_path_name_file_{i}.py", score=0.9, source="vector") for i in range(20)]
     output = format_for_injection(results, max_chars=200)
     assert len(output) <= 210  # small tolerance
 

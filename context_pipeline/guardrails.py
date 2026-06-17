@@ -65,9 +65,7 @@ def check_injection(messages: list[dict]) -> GuardrailResult:
 def check_input_length(messages: list[dict]) -> GuardrailResult:
     """Validate input doesn't exceed safe limits."""
     violations = []
-    total_chars = sum(
-        len(str(m.get("content", ""))) for m in messages
-    )
+    total_chars = sum(len(str(m.get("content", ""))) for m in messages)
     if total_chars > MAX_INPUT_CHARS:
         violations.append(f"input_too_long:{total_chars}")
     if len(messages) > MAX_MESSAGES:
@@ -101,6 +99,7 @@ def check_format(messages: list[dict]) -> GuardrailResult:
 
 # ─── Output Guardrails ───────────────────────────────────────────────────────
 
+
 def check_output_safety(response_text: str) -> GuardrailResult:
     """Check response for unsafe content patterns."""
     violations = []
@@ -122,6 +121,7 @@ def check_output_safety(response_text: str) -> GuardrailResult:
 
 
 # ─── Combined Guardrail Runner ───────────────────────────────────────────────
+
 
 def run_input_guardrails(messages: list[dict]) -> GuardrailResult:
     """Run all input guardrails. Returns combined result."""

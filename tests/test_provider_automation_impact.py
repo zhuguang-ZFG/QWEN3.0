@@ -5,9 +5,9 @@ from provider_automation.impact import check_impact, check_removal_impact, forma
 
 from provider_automation_helpers import entry
 
+
 def test_check_impact_new_free_model():
-    models = [ProviderModelEntry(model_id="new_free", provider="x", pricing="free",
-                                 endpoint_count=1)]
+    models = [ProviderModelEntry(model_id="new_free", provider="x", pricing="free", endpoint_count=1)]
     smoke = check_impact(models, currently_routed=set())
     assert len(smoke.safe_additions) == 1
     assert smoke.safe_additions[0].model_id == "new_free"
@@ -21,8 +21,7 @@ def test_check_impact_paid_model_warns():
 
 
 def test_check_impact_privacy_watchlist():
-    models = [ProviderModelEntry(model_id="suspicious", provider="x",
-                                 privacy_note="prompts logged")]
+    models = [ProviderModelEntry(model_id="suspicious", provider="x", privacy_note="prompts logged")]
     smoke = check_impact(models, currently_routed=set())
     assert len(smoke.critical) == 1
 
@@ -41,8 +40,7 @@ def test_check_removal_impact_routed():
 
 
 def test_format_impact_smoke():
-    models = [ProviderModelEntry(model_id="safe", provider="x", pricing="free",
-                                 endpoint_count=1)]
+    models = [ProviderModelEntry(model_id="safe", provider="x", pricing="free", endpoint_count=1)]
     smoke = check_impact(models, currently_routed=set())
     text = format_impact_smoke(smoke)
     assert "safe" in text
@@ -50,6 +48,7 @@ def test_format_impact_smoke():
 
 
 # M14: Review bundle
+
 
 def test_check_removal_impact_pool_only_model_warns():
     models = [ProviderModelEntry(model_id="pool_gone", provider="x")]
@@ -65,13 +64,15 @@ def test_check_removal_impact_pool_only_model_warns():
 
 
 def test_format_impact_smoke_redacts_secret_like_values():
-    models = [ProviderModelEntry(
-        model_id="sk-impact",
-        provider="x",
-        pricing="free",
-        endpoint_count=1,
-        privacy_note="token=secret",
-    )]
+    models = [
+        ProviderModelEntry(
+            model_id="sk-impact",
+            provider="x",
+            pricing="free",
+            endpoint_count=1,
+            privacy_note="token=secret",
+        )
+    ]
     smoke = check_impact(models, currently_routed=set())
 
     text = format_impact_smoke(smoke)

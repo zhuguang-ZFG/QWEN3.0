@@ -50,7 +50,7 @@ def _trim_jsonl(path: Path, *, keep_lines: int, max_bytes: int) -> None:
         return
 
     lines = path.read_text(encoding="utf-8").splitlines()
-    kept = lines[-max(keep_lines, 1):]
+    kept = lines[-max(keep_lines, 1) :]
     payload = "\n".join(kept)
     if payload:
         payload += "\n"

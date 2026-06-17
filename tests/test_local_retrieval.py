@@ -1,7 +1,5 @@
 """Tests for M16 local retrieval index lab."""
 
-
-
 from local_retrieval.chunking import CodeAwareChunker, SimpleTextChunker
 from local_retrieval.index import InMemoryTokenIndex, RetrievalHit
 from local_retrieval.leann_adapter import (
@@ -74,12 +72,14 @@ def test_index_manifest_to_dict_and_from_dict_round_trips_chunks():
         embedding_model="none",
         build_config={"token": "secret", "safe": "ok"},
         evidence_refs=["Bearer token-string-here"],
-        documents=[IndexedDocument(
-            path="/home/user/project/a.py",
-            file_hash="h1",
-            file_size_bytes=100,
-            chunks=[chunk],
-        )],
+        documents=[
+            IndexedDocument(
+                path="/home/user/project/a.py",
+                file_hash="h1",
+                file_size_bytes=100,
+                chunks=[chunk],
+            )
+        ],
     )
 
     data = manifest.to_dict()
@@ -95,11 +95,13 @@ def test_index_manifest_to_dict_and_from_dict_round_trips_chunks():
 
 
 def test_manifest_from_dict_unknown_backend_defaults_to_token():
-    manifest = IndexManifest.from_dict({
-        "index_id": "idx",
-        "backend_kind": "unknown",
-        "documents": [],
-    })
+    manifest = IndexManifest.from_dict(
+        {
+            "index_id": "idx",
+            "backend_kind": "unknown",
+            "documents": [],
+        }
+    )
 
     assert manifest.backend_kind is IndexBackendKind.IN_MEMORY_TOKEN
 

@@ -1,4 +1,5 @@
 """Nager.Date public holiday provider (offline tests with mock)."""
+
 import time
 from typing import Optional
 from external_enrichment.schemas import EnrichmentResult

@@ -13,6 +13,7 @@ from device_memory.consolidation import consolidate_task_episodes
 
 def _make_episode(device_id: str, task_id: str, task_type: str, outcome: str) -> MemoryEntry:
     import json
+
     return MemoryEntry(
         id=f"ep-{task_id}",
         device_id=device_id,
@@ -41,6 +42,7 @@ def test_two_successes_create_confidence():
     assert len(results) == 1
     assert results[0].type == MemoryType.PROCEDURE_CONFIDENCE
     import json
+
     data = json.loads(results[0].value)
     assert data["success_rate"] == 1.0
     assert data["total_count"] == 2
@@ -54,6 +56,7 @@ def test_mixed_outcomes_lower_confidence():
     results = consolidate_task_episodes(store, "dev-1")
     assert len(results) == 1
     import json
+
     data = json.loads(results[0].value)
     assert data["success_rate"] == pytest.approx(2 / 3, abs=0.01)
     assert data["total_count"] == 3

@@ -37,13 +37,18 @@ from provider_automation.review import build_review_bundle
 
 from provider_automation_helpers import entry
 
+
 def test_build_review_bundle():
     from provider_automation.catalog import compute_delta
+
     old = ProviderModelSnapshot(provider="or", source="f", models=[])
-    new = ProviderModelSnapshot(provider="or", source="f", models=[
-        ProviderModelEntry(model_id="new_model", provider="or", pricing="free",
-                          endpoint_count=1),
-    ])
+    new = ProviderModelSnapshot(
+        provider="or",
+        source="f",
+        models=[
+            ProviderModelEntry(model_id="new_model", provider="or", pricing="free", endpoint_count=1),
+        ],
+    )
     delta = compute_delta(old, new)
     bundle = build_review_bundle(delta, impact_text="no impact")
     md = bundle.to_markdown()
@@ -55,10 +60,15 @@ def test_build_review_bundle():
 
 def test_review_bundle_redacts_injected_secret_text():
     from provider_automation.catalog import compute_delta
+
     old = ProviderModelSnapshot(provider="or", source="f", models=[])
-    new = ProviderModelSnapshot(provider="or", source="f", models=[
-        ProviderModelEntry(model_id="safe", provider="or", pricing="free"),
-    ])
+    new = ProviderModelSnapshot(
+        provider="or",
+        source="f",
+        models=[
+            ProviderModelEntry(model_id="safe", provider="or", pricing="free"),
+        ],
+    )
     delta = compute_delta(old, new)
 
     bundle = build_review_bundle(
@@ -73,7 +83,6 @@ def test_review_bundle_redacts_injected_secret_text():
     assert "Bearer should not leak" not in md
     assert "api_key=secret" not in md
     assert "token=secret" not in md
-
 
 
 def test_admission_status_values():

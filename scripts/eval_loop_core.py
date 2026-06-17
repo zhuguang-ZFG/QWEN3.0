@@ -184,10 +184,7 @@ def compare(new_result: dict) -> tuple:
     new_domains = new_result.get("domain_scores", {})
 
     if new_overall < old_overall:
-        reason = (
-            f"整体分数下降：{old_overall:.4f} → {new_overall:.4f}"
-            f"（下降 {old_overall - new_overall:.4f}）"
-        )
+        reason = f"整体分数下降：{old_overall:.4f} → {new_overall:.4f}（下降 {old_overall - new_overall:.4f}）"
         return (False, reason)
 
     for domain in ("grbl_config", "cnc_trouble", "embedded_dev"):
@@ -196,8 +193,7 @@ def compare(new_result: dict) -> tuple:
         drop = old_score - new_score
         if drop > MAX_DOMAIN_DROP:
             reason = (
-                f"域 [{domain}] 下降过大：{old_score:.4f} → {new_score:.4f}"
-                f"（下降 {drop:.4f} > 阈值 {MAX_DOMAIN_DROP}）"
+                f"域 [{domain}] 下降过大：{old_score:.4f} → {new_score:.4f}（下降 {drop:.4f} > 阈值 {MAX_DOMAIN_DROP}）"
             )
             return (False, reason)
 

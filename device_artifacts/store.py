@@ -117,4 +117,4 @@ def artifacts_for_device(
 
         # Sort by created_at descending
         records.sort(key=lambda r: r.created_at, reverse=True)
-        return [deepcopy(r) for r in records[offset:offset + limit]]
+        return [deepcopy(r) for r in records[offset : offset + limit]]

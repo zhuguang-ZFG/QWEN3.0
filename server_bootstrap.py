@@ -20,15 +20,14 @@ def last_resort_call(messages: list) -> str:
     token = os.environ.get("CLOUDFLARE_TOKEN", "")
     if not account_id or not token:
         return ""
-    url = (
-        f"https://api.cloudflare.com/client/v4/accounts/{account_id}"
-        "/ai/v1/chat/completions"
-    )
-    body = json.dumps({
-        "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
-        "messages": messages[-5:],
-        "max_tokens": 4096,
-    }).encode()
+    url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1/chat/completions"
+    body = json.dumps(
+        {
+            "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+            "messages": messages[-5:],
+            "max_tokens": 4096,
+        }
+    ).encode()
     req = urllib.request.Request(
         url,
         data=body,

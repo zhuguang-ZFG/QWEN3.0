@@ -76,7 +76,7 @@ def build_inventory() -> DeploymentInventory:
             "curl -s -H 'Authorization: Bearer $LIMA_API_KEY' "
             "-H 'Content-Type: application/json' "
             "https://chat.donglicao.com/v1/chat/completions "
-            "-d '{\"model\":\"lima-1.3\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}]}'",
+            '-d \'{"model":"lima-1.3","messages":[{"role":"user","content":"hi"}]}\'',
         ],
         rollback_steps=[
             "ls /opt/lima-router/backups/  # list available backups",
@@ -96,9 +96,7 @@ def format_inventory_markdown(inv: DeploymentInventory) -> str:
     ]
     for service in inv.services:
         health = f"{service.protocol}://localhost:{service.port}{service.health_path}"
-        lines.append(
-            f"| {service.name} | {service.port} | {service.protocol} | {health} |"
-        )
+        lines.append(f"| {service.name} | {service.port} | {service.protocol} | {health} |")
 
     lines += [
         "",

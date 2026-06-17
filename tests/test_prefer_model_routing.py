@@ -38,7 +38,8 @@ def test_v3_predict_forwards_prefer(monkeypatch):
 
     monkeypatch.setattr(v3_adapters.routing_engine, "pick_backend", _fake_pick)
     backend = v3_adapters.v3_predict(
-        "hi", [{"role": "user", "content": "hi"}],
+        "hi",
+        [{"role": "user", "content": "hi"}],
         preferred_backend="longcat_lite",
     )
     assert captured["preferred_backend"] == "longcat_lite"

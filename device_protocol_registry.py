@@ -3,6 +3,7 @@
 Defines the authoritative contract for what the LiMa cloud considers
 "supported" for a given device firmware and protocol version.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -16,18 +17,22 @@ class ProtocolCompatibilityError(ValueError):
 class ProtocolRegistry:
     protocol_version_str: str = "lima-device-v1"
     min_firmware_str: str = "v1.0.0"
-    supported_capabilities: frozenset[str] = field(default_factory=lambda: frozenset({
-        "run_path",
-        "write_text",
-        "draw_generated",
-        "draw_asset",
-        "home",
-        "pause",
-        "resume",
-        "stop",
-        "get_device_info",
-        "self_check",
-    }))
+    supported_capabilities: frozenset[str] = field(
+        default_factory=lambda: frozenset(
+            {
+                "run_path",
+                "write_text",
+                "draw_generated",
+                "draw_asset",
+                "home",
+                "pause",
+                "resume",
+                "stop",
+                "get_device_info",
+                "self_check",
+            }
+        )
+    )
     deprecated_fields_set: frozenset[str] = field(default_factory=lambda: frozenset({"text"}))
 
     def protocol_version(self) -> str:
@@ -63,8 +68,7 @@ class ProtocolRegistry:
         status = self.firmware_status(fw_rev)
         if status == "outdated":
             raise ProtocolCompatibilityError(
-                f"firmware {fw_rev} is below minimum {self.min_firmware_str}; "
-                "update required"
+                f"firmware {fw_rev} is below minimum {self.min_firmware_str}; update required"
             )
 
 

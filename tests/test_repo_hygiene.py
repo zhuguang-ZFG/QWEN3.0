@@ -32,9 +32,7 @@ UNTRACKED_SCAN_DIRS = (
     ROOT / "scripts",
 )
 
-UNTRACKED_ALLOWLIST_PREFIXES = (
-    "scripts/archive/",
-)
+UNTRACKED_ALLOWLIST_PREFIXES = ("scripts/archive/",)
 
 
 def _git_ls_files() -> list[str]:
@@ -61,11 +59,7 @@ def _is_forbidden(path: str) -> bool:
 
 
 def test_tracked_files_exclude_high_risk_artifacts():
-    violations = sorted(
-        path
-        for path in _git_ls_files()
-        if _is_forbidden(path) and path not in TRACKED_ALLOWLIST
-    )
+    violations = sorted(path for path in _git_ls_files() if _is_forbidden(path) and path not in TRACKED_ALLOWLIST)
     assert violations == [], f"tracked high-risk files: {violations}"
 
 

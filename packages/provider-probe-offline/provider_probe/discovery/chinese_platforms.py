@@ -95,11 +95,13 @@ def extract_api_info(html: str) -> list[dict]:
     # Check for known domains
     for domain, name in _KNOWN_DOMAINS.items():
         if domain in html:
-            results.append({
-                "url": f"https://{domain}",
-                "name": name,
-                "source": "known_domain",
-            })
+            results.append(
+                {
+                    "url": f"https://{domain}",
+                    "name": name,
+                    "source": "known_domain",
+                }
+            )
 
     return results
 
@@ -120,12 +122,14 @@ async def scan_v2ex() -> list[dict]:
             )
             matches = title_pattern.findall(content)
             for topic_id, title in matches:
-                all_results.append({
-                    "source": f"v2ex:{label}",
-                    "topic_id": topic_id,
-                    "title": title.strip(),
-                    "url": f"https://www.v2ex.com/t/{topic_id}",
-                })
+                all_results.append(
+                    {
+                        "source": f"v2ex:{label}",
+                        "topic_id": topic_id,
+                        "title": title.strip(),
+                        "url": f"https://www.v2ex.com/t/{topic_id}",
+                    }
+                )
                 logger.info("  V2EX topic: %s", title.strip()[:60])
 
     logger.info("V2EX scan: %d relevant topics", len(all_results))

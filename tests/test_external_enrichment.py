@@ -1,4 +1,5 @@
 """Tests for external enrichment offline behavior."""
+
 import time
 from external_enrichment.cache import EnrichmentCache
 from external_enrichment.rate_limit import RateLimiter

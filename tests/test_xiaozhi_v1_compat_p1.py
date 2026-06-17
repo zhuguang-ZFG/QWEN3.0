@@ -23,15 +23,9 @@ def _headers(account_id: str) -> dict[str, str]:
 
 def _seed_base() -> None:
     with compat._connect() as conn:
-        conn.execute(
-            "INSERT INTO v2_account (id, phone, nickname) VALUES ('a-owner', '10001', 'owner')"
-        )
-        conn.execute(
-            "INSERT INTO v2_account (id, phone, nickname) VALUES ('a-target', '10002', 'target')"
-        )
-        conn.execute(
-            "INSERT INTO v2_device (id, device_sn, model) VALUES ('d-1', 'SN-001', 'esp32s3_xyz')"
-        )
+        conn.execute("INSERT INTO v2_account (id, phone, nickname) VALUES ('a-owner', '10001', 'owner')")
+        conn.execute("INSERT INTO v2_account (id, phone, nickname) VALUES ('a-target', '10002', 'target')")
+        conn.execute("INSERT INTO v2_device (id, device_sn, model) VALUES ('d-1', 'SN-001', 'esp32s3_xyz')")
         conn.execute(
             """
             INSERT INTO v2_device_binding (id, device_id, account_id, bind_mode, status)
@@ -157,9 +151,7 @@ def test_transfer_accept_changes_owner_binding(tmp_path, monkeypatch):
     pending = _json(client.get("/api/v1/transfers/pending", headers=_headers("a-target")))
     assert [row["id"] for row in pending] == [transfer["id"]]
 
-    accepted = _json(
-        client.post(f"/api/v1/transfers/{transfer['id']}/accept", headers=_headers("a-target"))
-    )
+    accepted = _json(client.post(f"/api/v1/transfers/{transfer['id']}/accept", headers=_headers("a-target")))
     assert accepted["status"] == "accepted"
     with compat._connect() as conn:
         owner = conn.execute(
@@ -183,9 +175,7 @@ def test_cancel_transfer_and_upsert_supplies(tmp_path, monkeypatch):
             json={"toAccountId": "a-target"},
         )
     )
-    cancelled = _json(
-        client.post(f"/api/v1/transfers/{transfer['id']}/cancel", headers=_headers("a-owner"))
-    )
+    cancelled = _json(client.post(f"/api/v1/transfers/{transfer['id']}/cancel", headers=_headers("a-owner")))
     assert cancelled["status"] == "cancelled"
 
     updated = _json(

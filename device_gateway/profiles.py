@@ -148,7 +148,7 @@ def apply_profile_constraints(
     if isinstance(params, dict) and "path" in params:
         path = params.get("path", [])
         if isinstance(path, list) and len(path) > resolved.profile.max_path_points:
-            params["path"] = path[:resolved.profile.max_path_points]
+            params["path"] = path[: resolved.profile.max_path_points]
             task["params"] = params
             simplifications.append(f"cap_path_points:{len(path)}→{resolved.profile.max_path_points}")
 

@@ -179,6 +179,7 @@ def _sanitize_text(value: object) -> str:
     text = str(value)
     try:
         from session_memory.redact import sanitize_for_display
+
         return sanitize_for_display(text)
     except ImportError:
         return _fallback_redact(text)

@@ -182,7 +182,10 @@ async def _stream_speculative(
 
     streamed_any = False
     async for _backend, chunk in speculative_stream_chunks(
-        query, messages, 4096, ide_source,
+        query,
+        messages,
+        4096,
+        ide_source,
         system_prompt=sys_prompt_preview,
         preferred_backend=prefer or "",
     ):
@@ -236,14 +239,19 @@ async def stream_response(
 
     if use_orchestration:
         async for chunk in _stream_orchestration(
-            query, messages, chat_id,
-            sys_prompt_preview=sys_prompt_preview, ide_source=ide_source,
+            query,
+            messages,
+            chat_id,
+            sys_prompt_preview=sys_prompt_preview,
+            ide_source=ide_source,
         ):
             yield chunk
         return
 
     async for chunk in _stream_speculative(
-        query, messages, chat_id,
+        query,
+        messages,
+        chat_id,
         sys_prompt_preview=sys_prompt_preview,
         ide_source=ide_source,
         prefer=prefer,

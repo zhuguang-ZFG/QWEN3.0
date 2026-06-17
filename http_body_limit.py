@@ -26,10 +26,7 @@ SendCallable = Callable[[dict[str, Any]], Awaitable[None]]
 
 
 def _scope_headers(scope: dict[str, Any]) -> dict[str, str]:
-    return {
-        key.decode("latin-1").lower(): value.decode("latin-1")
-        for key, value in scope.get("headers", [])
-    }
+    return {key.decode("latin-1").lower(): value.decode("latin-1") for key, value in scope.get("headers", [])}
 
 
 def _is_json_api_route(method: str, path: str, content_type: str) -> bool:
@@ -173,11 +170,7 @@ class BodySizeLimitMiddleware:
         headers = _scope_headers(scope)
         declared_status = _check_declared_content_length(headers, self.max_body_size)
         if declared_status is not None:
-            payload = (
-                _oversized_payload()
-                if declared_status == 413
-                else _invalid_length_payload()
-            )
+            payload = _oversized_payload() if declared_status == 413 else _invalid_length_payload()
             await _send_json_response(send, declared_status, payload)
             await _drain_receive(receive)
             return

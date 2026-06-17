@@ -15,9 +15,7 @@ from dataclasses import dataclass
 
 _log = logging.getLogger(__name__)
 
-DEFAULT_DB_PATH = os.environ.get(
-    "LIMA_REQUEST_LOG_DB", "data/request_log.db"
-)
+DEFAULT_DB_PATH = os.environ.get("LIMA_REQUEST_LOG_DB", "data/request_log.db")
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS request_log (
@@ -109,20 +107,28 @@ class RequestStore:
                     quality_score, fallback_used, error_class, tokens_prompt, tokens_completion)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
-                    time.time(), request_id, scenario, message_length,
-                    code_ratio, chinese_ratio, fv_blob, backend,
-                    1 if success else 0, latency_ms, quality_score,
-                    1 if fallback_used else 0, error_class,
-                    tokens_prompt, tokens_completion,
+                    time.time(),
+                    request_id,
+                    scenario,
+                    message_length,
+                    code_ratio,
+                    chinese_ratio,
+                    fv_blob,
+                    backend,
+                    1 if success else 0,
+                    latency_ms,
+                    quality_score,
+                    1 if fallback_used else 0,
+                    error_class,
+                    tokens_prompt,
+                    tokens_completion,
                 ),
             )
             conn.commit()
         except Exception as exc:
             _log.debug("request_store.log_request failed: %s", exc)
 
-    def get_training_data(
-        self, since_hours: int = 168, min_backend: str = ""
-    ) -> list[RequestRecord]:
+    def get_training_data(self, since_hours: int = 168, min_backend: str = "") -> list[RequestRecord]:
         """Read recent requests for ML training (default: last 7 days)."""
         cutoff = time.time() - (since_hours * 3600)
         conn = self._get_conn()
@@ -146,8 +152,7 @@ class RequestStore:
             params.append(scenario)
 
         row = conn.execute(
-            f"SELECT COUNT(*), SUM(success), AVG(latency_ms), AVG(quality_score) "
-            f"FROM request_log WHERE {where}",
+            f"SELECT COUNT(*), SUM(success), AVG(latency_ms), AVG(quality_score) FROM request_log WHERE {where}",
             params,
         ).fetchone()
 
@@ -166,8 +171,7 @@ class RequestStore:
         """Read last N requests with feature vectors for incremental training."""
         conn = self._get_conn()
         rows = conn.execute(
-            "SELECT * FROM request_log WHERE feature_vector IS NOT NULL "
-            "ORDER BY timestamp DESC LIMIT ?",
+            "SELECT * FROM request_log WHERE feature_vector IS NOT NULL ORDER BY timestamp DESC LIMIT ?",
             (n,),
         ).fetchall()
         return [self._row_to_record(r) for r in rows]
@@ -184,13 +188,21 @@ class RequestStore:
             except Exception as exc:
                 _log.debug("routing_loop/request_store.py: {}", type(exc).__name__)
         return RequestRecord(
-            id=row[0], timestamp=row[1], request_id=row[2] or "",
-            scenario=row[3] or "", message_length=row[4] or 0,
-            code_ratio=row[5] or 0.0, chinese_ratio=row[6] or 0.0,
-            feature_vector=fv, backend=row[8] or "",
-            success=bool(row[9]), latency_ms=row[10] or 0.0,
-            quality_score=row[11] or 0.0, fallback_used=bool(row[12]),
-            error_class=row[13] or "", tokens_prompt=row[14] or 0,
+            id=row[0],
+            timestamp=row[1],
+            request_id=row[2] or "",
+            scenario=row[3] or "",
+            message_length=row[4] or 0,
+            code_ratio=row[5] or 0.0,
+            chinese_ratio=row[6] or 0.0,
+            feature_vector=fv,
+            backend=row[8] or "",
+            success=bool(row[9]),
+            latency_ms=row[10] or 0.0,
+            quality_score=row[11] or 0.0,
+            fallback_used=bool(row[12]),
+            error_class=row[13] or "",
+            tokens_prompt=row[14] or 0,
             tokens_completion=row[15] or 0,
         )
 

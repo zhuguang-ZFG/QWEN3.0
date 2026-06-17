@@ -29,8 +29,14 @@ class ComplexityAssessment:
 _CODE_INDICATORS = ["```", "def ", "class ", "function ", "import ", "const "]
 _FILE_EXTENSIONS = [".py", ".js", ".ts", ".go", ".rs", ".java", ".cpp"]
 _COMPLEX_KEYWORDS = [
-    "refactor", "architecture", "migrate", "redesign",
-    "concurrent", "distributed", "optimize", "performance",
+    "refactor",
+    "architecture",
+    "migrate",
+    "redesign",
+    "concurrent",
+    "distributed",
+    "optimize",
+    "performance",
 ]
 
 # (signal_list, high_threshold, low_threshold, high_label, low_label, high_score, low_score)
@@ -80,8 +86,9 @@ def assess_complexity(messages: list[dict], ide: str = "") -> ComplexityAssessme
         factors["ide_present"] = ide
     score = min(score, 10)
     parallelism, tier = _resolve_topology(score)
-    return ComplexityAssessment(score=score, factors=factors,
-                                recommended_parallelism=parallelism, recommended_tier=tier)
+    return ComplexityAssessment(
+        score=score, factors=factors, recommended_parallelism=parallelism, recommended_tier=tier
+    )
 
 
 def _extract_user_text(messages: list[dict]) -> str:

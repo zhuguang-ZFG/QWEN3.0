@@ -24,9 +24,7 @@ def _get_executor() -> ThreadPoolExecutor:
     if _executor is None:
         with _lock:
             if _executor is None:
-                _executor = ThreadPoolExecutor(
-                    max_workers=2, thread_name_prefix="artifact"
-                )
+                _executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="artifact")
     return _executor
 
 
@@ -67,9 +65,7 @@ def _write_evidence(device_id: str, evidence: dict[str, Any]) -> None:
     except OSError as e:
         import logging
 
-        logging.getLogger(__name__).warning(
-            "Failed to write route evidence for device %s: %s", device_id, e
-        )
+        logging.getLogger(__name__).warning("Failed to write route evidence for device %s: %s", device_id, e)
 
 
 def shutdown(wait: bool = True) -> None:

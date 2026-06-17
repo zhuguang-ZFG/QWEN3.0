@@ -45,9 +45,7 @@ def orchestrate(
     """编排入口：复杂任务拆解 → 并发执行 → 合并结果。"""
     t0 = time.time()
 
-    intent = routing_intent.analyze_intent(
-        query, system_prompt=system_prompt, ide=ide_source
-    )
+    intent = routing_intent.analyze_intent(query, system_prompt=system_prompt, ide=ide_source)
 
     if not needs_orchestration(query, intent):
         r = _route_via_engine(

@@ -1,4 +1,5 @@
 """Admin dashboard HTML rendering."""
+
 from __future__ import annotations
 
 from routes.admin_ui import panels, templates

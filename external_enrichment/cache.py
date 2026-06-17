@@ -1,4 +1,5 @@
 """Cache with TTL for enrichment results."""
+
 import time
 from typing import Optional
 from external_enrichment.schemas import EnrichmentResult

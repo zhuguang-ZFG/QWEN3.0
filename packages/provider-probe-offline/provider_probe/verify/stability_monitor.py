@@ -33,23 +33,24 @@ def _save_stability(data: dict):
 async def check_provider(url: str, provider_id: str) -> dict:
     """Check a single provider and record stability data."""
     stability = _load_stability()
-    entry = stability.get(provider_id, {
-        "url": url,
-        "checks": 0,
-        "successes": 0,
-        "last_success": None,
-        "last_failure": None,
-        "latencies": [],
-    })
+    entry = stability.get(
+        provider_id,
+        {
+            "url": url,
+            "checks": 0,
+            "successes": 0,
+            "last_success": None,
+            "last_failure": None,
+            "latencies": [],
+        },
+    )
 
     entry["checks"] += 1
 
     try:
         async with httpx.AsyncClient(timeout=20) as client:
             start = time.monotonic()
-            resp = await client.get(
-                url.rstrip("/") + "/v1/models", follow_redirects=True
-            )
+            resp = await client.get(url.rstrip("/") + "/v1/models", follow_redirects=True)
             elapsed = (time.monotonic() - start) * 1000
 
             if resp.status_code == 200:
@@ -61,16 +62,20 @@ async def check_provider(url: str, provider_id: str) -> dict:
                     entry["latencies"] = entry["latencies"][-100:]
             else:
                 entry["last_failure"] = datetime.now(timezone.utc).isoformat()
-                entry.setdefault("failures", []).append({
-                    "time": datetime.now(timezone.utc).isoformat(),
-                    "status": resp.status_code,
-                })
+                entry.setdefault("failures", []).append(
+                    {
+                        "time": datetime.now(timezone.utc).isoformat(),
+                        "status": resp.status_code,
+                    }
+                )
     except Exception as exc:
         entry["last_failure"] = datetime.now(timezone.utc).isoformat()
-        entry.setdefault("failures", []).append({
-            "time": datetime.now(timezone.utc).isoformat(),
-            "error": str(exc),
-        })
+        entry.setdefault("failures", []).append(
+            {
+                "time": datetime.now(timezone.utc).isoformat(),
+                "error": str(exc),
+            }
+        )
 
     stability[provider_id] = entry
     _save_stability(stability)
@@ -84,8 +89,7 @@ async def check_provider(url: str, provider_id: str) -> dict:
         "successes": entry["successes"],
         "uptime_pct": round(uptime, 1),
         "avg_latency_ms": (
-            round(sum(entry["latencies"][-20:]) / len(entry["latencies"][-20:]), 1)
-            if entry["latencies"] else -1
+            round(sum(entry["latencies"][-20:]) / len(entry["latencies"][-20:]), 1) if entry["latencies"] else -1
         ),
     }
 
@@ -101,17 +105,16 @@ def get_stability_report() -> list[dict]:
             continue
         uptime = (data["successes"] / checks) * 100
         latencies = data.get("latencies", [])
-        report.append({
-            "provider_id": pid,
-            "url": data.get("url", ""),
-            "uptime_pct": round(uptime, 1),
-            "checks": checks,
-            "avg_latency_ms": (
-                round(sum(latencies[-10:]) / len(latencies[-10:]), 1)
-                if latencies else -1
-            ),
-            "last_success": data.get("last_success", "never"),
-        })
+        report.append(
+            {
+                "provider_id": pid,
+                "url": data.get("url", ""),
+                "uptime_pct": round(uptime, 1),
+                "checks": checks,
+                "avg_latency_ms": (round(sum(latencies[-10:]) / len(latencies[-10:]), 1) if latencies else -1),
+                "last_success": data.get("last_success", "never"),
+            }
+        )
 
     report.sort(key=lambda x: x["uptime_pct"], reverse=True)
     return report

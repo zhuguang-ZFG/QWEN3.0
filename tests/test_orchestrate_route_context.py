@@ -10,12 +10,14 @@ def test_route_via_engine_passes_ide_and_system_prompt_to_http_caller(monkeypatc
     captured: dict[str, object] = {}
 
     def _fake_call_api(backend, msgs, max_tokens, *, system_prompt="", ide="", tools=None):
-        captured.update({
-            "backend": backend,
-            "system_prompt": system_prompt,
-            "ide": ide,
-            "tools": tools,
-        })
+        captured.update(
+            {
+                "backend": backend,
+                "system_prompt": system_prompt,
+                "ide": ide,
+                "tools": tools,
+            }
+        )
         return "ok"
 
     def _fake_route(query, messages, **kwargs):
@@ -27,11 +29,15 @@ def test_route_via_engine_passes_ide_and_system_prompt_to_http_caller(monkeypatc
             tools=kwargs.get("tools"),
         )
         captured["answer"] = answer
-        return type("RouteResult", (), {
-            "answer": answer,
-            "backend": "test_backend",
-            "ms": 1,
-        })()
+        return type(
+            "RouteResult",
+            (),
+            {
+                "answer": answer,
+                "backend": "test_backend",
+                "ms": 1,
+            },
+        )()
 
     monkeypatch.setattr(orchestrate_pipeline.http_caller, "call_api", _fake_call_api)
     monkeypatch.setattr(orchestrate_pipeline.routing_engine, "route", _fake_route)

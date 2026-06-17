@@ -14,6 +14,7 @@ from device_gateway.path_validator import validate_run_path_params, validate_cap
 
 # ── Intent parsing ──────────────────────────────────────────────────
 
+
 def test_parse_run_path_english():
     result = parse_command("run_path")
     assert result["capability"] == "run_path"
@@ -34,6 +35,7 @@ def test_resolve_voice_task_run_path():
 
 # ── Dispatch frame ──────────────────────────────────────────────────
 
+
 def test_run_path_dispatch_frame_minimal():
     path = [{"x": 0.0, "y": 0.0, "z": 0.0}, {"x": 10.0, "y": 20.0, "z": 1.0}]
     frame = run_path_dispatch_frame("d-1", "t-1", path)
@@ -52,9 +54,7 @@ def test_run_path_dispatch_frame_custom_feed():
 
 
 def test_run_path_dispatch_frame_with_request_id():
-    frame = run_path_dispatch_frame(
-        "d-1", "t-1", [{"x": 0.0, "y": 0.0}], request_id="req-123"
-    )
+    frame = run_path_dispatch_frame("d-1", "t-1", [{"x": 0.0, "y": 0.0}], request_id="req-123")
     assert frame["request_id"] == "req-123"
 
 
@@ -69,14 +69,13 @@ def test_run_path_dispatch_frame_with_extra_params():
 
 def test_run_path_dispatch_frame_ignores_unknown_extra_keys():
     path = [{"x": 0.0, "y": 0.0}]
-    frame = run_path_dispatch_frame(
-        "d-1", "t-1", path, extra_params={"unknown_field": "ignored", "text": "keep"}
-    )
+    frame = run_path_dispatch_frame("d-1", "t-1", path, extra_params={"unknown_field": "ignored", "text": "keep"})
     assert "unknown_field" not in frame["params"]
     assert frame["params"]["text"] == "keep"
 
 
 # ── Path data format ────────────────────────────────────────────────
+
 
 def test_validate_run_path_valid():
     path = [{"x": 0.0, "y": 0.0, "z": 0.0}, {"x": 100.0, "y": 200.0, "z": 10.0}]
@@ -99,23 +98,17 @@ def test_validate_run_path_empty_path():
 
 
 def test_validate_run_path_bad_coord_type():
-    sanitized, error = validate_run_path_params(
-        {"path": [{"x": "not_a_number", "y": 0}], "feed": 500.0}
-    )
+    sanitized, error = validate_run_path_params({"path": [{"x": "not_a_number", "y": 0}], "feed": 500.0})
     assert error is not None
 
 
 def test_validate_run_path_coord_out_of_range():
-    sanitized, error = validate_run_path_params(
-        {"path": [{"x": 1000.0, "y": 0.0}], "feed": 500.0}
-    )
+    sanitized, error = validate_run_path_params({"path": [{"x": 1000.0, "y": 0.0}], "feed": 500.0})
     assert error is not None
 
 
 def test_validate_run_path_feed_out_of_range():
-    sanitized, error = validate_run_path_params(
-        {"path": [{"x": 0.0, "y": 0.0}], "feed": 0.1}
-    )
+    sanitized, error = validate_run_path_params({"path": [{"x": 0.0, "y": 0.0}], "feed": 0.1})
     assert error is not None
 
 
@@ -141,6 +134,7 @@ def test_validate_capability_run_path_with_params():
 
 
 # ── Protocol conversion: intent → dispatch frame ─────────────────────
+
 
 def test_intent_to_dispatch_frame_roundtrip():
     """A run_path intent should produce valid dispatch frame params."""
@@ -171,8 +165,7 @@ def test_run_path_frame_serializable():
     import json
 
     path = [{"x": 1.5, "y": 2.5, "z": 0.0}]
-    frame = run_path_dispatch_frame("d-1", "t-1", path, feed=300.0, request_id="r-1",
-                                     extra_params={"text": "test"})
+    frame = run_path_dispatch_frame("d-1", "t-1", path, feed=300.0, request_id="r-1", extra_params={"text": "test"})
     serialized = json.dumps(frame)
     deserialized = json.loads(serialized)
     assert deserialized["type"] == "task_dispatch"

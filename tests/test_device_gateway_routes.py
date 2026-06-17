@@ -5,7 +5,13 @@ import pytest
 
 import server
 from device_gateway.sessions import DeviceSession, registry
-from device_gateway.tasks import create_task_from_transcript, enqueue_pending_task, pending_count, pop_pending_tasks, task_snapshot
+from device_gateway.tasks import (
+    create_task_from_transcript,
+    enqueue_pending_task,
+    pending_count,
+    pop_pending_tasks,
+    task_snapshot,
+)
 from routes.device_gateway import (
     _dispatch_task_to_session,
     _drain_pending_tasks,

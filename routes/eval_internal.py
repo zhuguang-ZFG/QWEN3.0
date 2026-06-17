@@ -41,12 +41,16 @@ async def eval_call_direct(body: EvalCallRequest) -> dict:
     messages = [m.model_dump() for m in body.messages]
     try:
         final_backend, answer = await asyncio.to_thread(
-            call_pinned_backend, name, messages, body.max_tokens,
+            call_pinned_backend,
+            name,
+            messages,
+            body.max_tokens,
         )
     except Exception as exc:
         _log.warning(
             "eval internal call failed backend=%s err=%s",
-            name, type(exc).__name__,
+            name,
+            type(exc).__name__,
         )
         raise HTTPException(
             status_code=502,

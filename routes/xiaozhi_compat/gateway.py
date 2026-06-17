@@ -62,7 +62,8 @@ def build_gateway_task(
     from device_gateway.model_routing import resolve_device_route_policy
 
     route_policy = resolve_device_route_policy(
-        {"capability": capability, "params": sanitized}, device_id=device_id,
+        {"capability": capability, "params": sanitized},
+        device_id=device_id,
     )
     task = {
         "type": "motion_task",

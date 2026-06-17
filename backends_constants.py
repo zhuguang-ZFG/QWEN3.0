@@ -1,14 +1,15 @@
 """Backend capability sets and routing constants."""
+
 import os
 
-PUBLIC_MODEL_NAME = os.environ.get('PUBLIC_MODEL_NAME', 'LiMa')
+PUBLIC_MODEL_NAME = os.environ.get("PUBLIC_MODEL_NAME", "LiMa")
 
 # Thinking-capable backends in priority order
 THINKING_BACKENDS = [
-    "scnet_ds_pro",       # 支持深度推理（优先，本地可用）
-    "scnet_ds_flash",     # 备用
-    "kimi_thinking",      # Kimi 思考模式
-    "or_deepseek_r1",     # DeepSeek R1（需要 OpenRouter key）
+    "scnet_ds_pro",  # 支持深度推理（优先，本地可用）
+    "scnet_ds_flash",  # 备用
+    "kimi_thinking",  # Kimi 思考模式
+    "or_deepseek_r1",  # DeepSeek R1（需要 OpenRouter key）
 ]
 
 # Vision-capable backends (must be registered in BACKENDS)
@@ -24,138 +25,275 @@ VISION_BACKENDS = [
 ]
 
 # Backends that should use the configured outbound proxy.
-GFW_BACKENDS = frozenset({
-    'google_flash', 'google_flash_lite', 'google_pro',
-    'mistral_large', 'mistral_small', 'mistral_medium',
-    'mistral_codestral', 'mistral_devstral', 'mistral_pixtral',
-    'groq_llama70b', 'groq_gptoss', 'groq_gptoss_20b',
-    'groq_qwen32b', 'groq_llama4', 'groq_llama8b',
-    'cerebras_qwen235b', 'cerebras_llama8b', 'cerebras_gptoss',
-    'or_deepseek_r1', 'or_qwen3_coder', 'or_llama70b', 'or_nemotron',
-    'or_qwen3_80b', 'or_nemotron120b', 'or_gptoss_120b', 'or_glm45',
-    'or_minimax', 'or_gemma4', 'or_llama4_scout',
-    'kilo_auto_free', 'kilo_laguna_m1', 'kilo_stepfun_flash',
-    'github_gpt4o', 'github_gpt4o_mini', 'github_gpt5', 'github_o3_mini',
-    'github_o4_mini', 'github_deepseek_r1', 'github_llama70b', 'github_codestral',
-    'naga_llama70b', 'naga_gpt41mini', 'naga_glm45', 'naga_llama4',
-    'featherless', 'glhf', 'agentrouter',
-    'zuki_codestral', 'zuki_mistral_small',
-    'fireworks_llama405b',
-    'cohere_command', 'cohere_command_plus', 'cohere_reasoning', 'cohere_vision',
-    'sambanova_llama4', 'sambanova_ds_v3',
-    'deepinfra_llama4', 'deepinfra_qwen235b',
-    'ovh_llama70b', 'ovh_deepseek',
-    'ogw_gpt55', 'ogw_gpt54', 'ogw_gpt5_codex', 'ogw_gpt4o_mini',
-    'ogw_claude_sonnet', 'ogw_claude_haiku', 'ogw_deepseek_v4', 'ogw_deepseek_flash',
-    'ogw_grok', 'ogw_kimi', 'ogw_glm5', 'ogw_minimax',
-})
+GFW_BACKENDS = frozenset(
+    {
+        "google_flash",
+        "google_flash_lite",
+        "google_pro",
+        "mistral_large",
+        "mistral_small",
+        "mistral_medium",
+        "mistral_codestral",
+        "mistral_devstral",
+        "mistral_pixtral",
+        "groq_llama70b",
+        "groq_gptoss",
+        "groq_gptoss_20b",
+        "groq_qwen32b",
+        "groq_llama4",
+        "groq_llama8b",
+        "cerebras_qwen235b",
+        "cerebras_llama8b",
+        "cerebras_gptoss",
+        "or_deepseek_r1",
+        "or_qwen3_coder",
+        "or_llama70b",
+        "or_nemotron",
+        "or_qwen3_80b",
+        "or_nemotron120b",
+        "or_gptoss_120b",
+        "or_glm45",
+        "or_minimax",
+        "or_gemma4",
+        "or_llama4_scout",
+        "kilo_auto_free",
+        "kilo_laguna_m1",
+        "kilo_stepfun_flash",
+        "github_gpt4o",
+        "github_gpt4o_mini",
+        "github_gpt5",
+        "github_o3_mini",
+        "github_o4_mini",
+        "github_deepseek_r1",
+        "github_llama70b",
+        "github_codestral",
+        "naga_llama70b",
+        "naga_gpt41mini",
+        "naga_glm45",
+        "naga_llama4",
+        "featherless",
+        "glhf",
+        "agentrouter",
+        "zuki_codestral",
+        "zuki_mistral_small",
+        "fireworks_llama405b",
+        "cohere_command",
+        "cohere_command_plus",
+        "cohere_reasoning",
+        "cohere_vision",
+        "sambanova_llama4",
+        "sambanova_ds_v3",
+        "deepinfra_llama4",
+        "deepinfra_qwen235b",
+        "ovh_llama70b",
+        "ovh_deepseek",
+        "ogw_gpt55",
+        "ogw_gpt54",
+        "ogw_gpt5_codex",
+        "ogw_gpt4o_mini",
+        "ogw_claude_sonnet",
+        "ogw_claude_haiku",
+        "ogw_deepseek_v4",
+        "ogw_deepseek_flash",
+        "ogw_grok",
+        "ogw_kimi",
+        "ogw_glm5",
+        "ogw_minimax",
+    }
+)
 
-WEAK_BACKENDS = frozenset({'chat_ubi', 'pollinations', 'llm7'})
+WEAK_BACKENDS = frozenset({"chat_ubi", "pollinations", "llm7"})
 
 # Models capable of tool calls and directory-mode skill injection
-STRONG_MODELS = frozenset({
-    "longcat",
-    "naga_gpt41mini",
-    "or_deepseek_r1", "nvidia_qwen_coder",
-    "fireworks_llama405b", "deepinfra_llama4",
-    "hermes_agent",
-})
+STRONG_MODELS = frozenset(
+    {
+        "longcat",
+        "naga_gpt41mini",
+        "or_deepseek_r1",
+        "nvidia_qwen_coder",
+        "fireworks_llama405b",
+        "deepinfra_llama4",
+        "hermes_agent",
+    }
+)
 
 KEY_POOL_PREFIXES = {
-    'groq_': 'groq',
-    'or_': 'openrouter',
-    'github_': 'github',
-    'mistral_': 'mistral',
-    'cerebras_': 'cerebras',
-    'google_': 'google',
-    'cf_': 'cloudflare',
-    'nvidia_': 'nvidia',
-    'zhipu_': 'zhipu',
-    'silicon_': 'siliconflow',
-    'baidu_': 'baidu',
-    'volcengine_': 'volcengine',
-    'aliyun_': 'aliyun',
-    'tencent_': 'tencent',
-    'naga_': 'naga',
-    'zuki_': 'zuki',
-    'cohere_': 'cohere',
-    'sambanova_': 'sambanova',
-    'deepinfra_': 'deepinfra',
-    'fireworks_': 'fireworks',
-    'ms_': 'modelscope',
-    'fm_': 'freemodel',
-    'ogw_': 'opengateway',
-        'agnes': 'agnes_ai',
+    "groq_": "groq",
+    "or_": "openrouter",
+    "github_": "github",
+    "mistral_": "mistral",
+    "cerebras_": "cerebras",
+    "google_": "google",
+    "cf_": "cloudflare",
+    "nvidia_": "nvidia",
+    "zhipu_": "zhipu",
+    "silicon_": "siliconflow",
+    "baidu_": "baidu",
+    "volcengine_": "volcengine",
+    "aliyun_": "aliyun",
+    "tencent_": "tencent",
+    "naga_": "naga",
+    "zuki_": "zuki",
+    "cohere_": "cohere",
+    "sambanova_": "sambanova",
+    "deepinfra_": "deepinfra",
+    "fireworks_": "fireworks",
+    "ms_": "modelscope",
+    "fm_": "freemodel",
+    "ogw_": "opengateway",
+    "agnes": "agnes_ai",
 }
 
-CODE_CAPABLE_BACKENDS = frozenset({
-    'scnet_ds_flash', 'scnet_qwen235b', 'scnet_qwen30b', 'scnet_ds_pro',
-    'github_gpt4o', 'github_gpt4o_mini', 'github_codestral',
-    'cf_qwen_coder', 'cfai_qwen_coder', 'or_qwen3_coder', 'or_gptoss_120b',
-    'cf_gptoss_120b', 'cf_deepseek_r1', 'cf_qwen3_30b', 'cfai_deepseek_r1',
-    'kilo_auto_free', 'kilo_laguna_m1', 'kilo_stepfun_flash',
-    'mistral_large', 'mistral_devstral', 'mistral_pixtral', 'mistral_codestral',
-    'cerebras_gptoss', 'groq_gptoss', 'groq_gptoss_20b',
-    'deepinfra_qwen235b',
-    # ModelScope 魔搭
-    'ms_qwen_coder_32b', 'ms_qwen_coder_14b', 'ms_qwen_coder_7b',
-    # NVIDIA NIM 新增强力模型
-    'nvidia_deepseek_v4', 'nvidia_qwen35_coder',
-    # FreeModel.dev
-    'fm_gpt55', 'fm_gpt54', 'fm_gpt54_mini', 'fm_gpt53_codex',
-    # Team 速登 (ChatGPT Team 账号)
-    'free_team_speed_gpt55',
-    # OpenGateway (Sionic AI)
-    'ogw_gpt55', 'ogw_gpt54', 'ogw_gpt5_codex', 'ogw_gpt4o_mini', 'ogw_gpt54_mini',
-    'ogw_claude_sonnet', 'ogw_claude_haiku', 'ogw_deepseek_v4', 'ogw_deepseek_flash',
-    'ogw_grok', 'ogw_kimi', 'ogw_glm5', 'ogw_minimax',
-    # Agnes AI (Sapiens AI, 新加坡免费网关)
-    'agnes20', 'agnes15',
-    # ModelScope 扩展 (2026-06-06)
-    'ms_ds_v32', 'ms_ds_r1',
-    'ms_qwen3_235b', 'ms_qwen3_235b_think',
-    'ms_qwen3_32b', 'ms_qwen3_coder_30b',
-    'ms_qwen3_next_80b', 'ms_qwen3_next_80b_think',
-    'ms_qwen35_35b', 'ms_qwen35_122b', 'ms_qwen35_397b',
-    'ms_glm51', 'ms_step37',
-    'ms_mistral_large', 'ms_llama4', 'ms_interns2',
-})
+CODE_CAPABLE_BACKENDS = frozenset(
+    {
+        "scnet_ds_flash",
+        "scnet_qwen235b",
+        "scnet_qwen30b",
+        "scnet_ds_pro",
+        "github_gpt4o",
+        "github_gpt4o_mini",
+        "github_codestral",
+        "cf_qwen_coder",
+        "cfai_qwen_coder",
+        "or_qwen3_coder",
+        "or_gptoss_120b",
+        "cf_gptoss_120b",
+        "cf_deepseek_r1",
+        "cf_qwen3_30b",
+        "cfai_deepseek_r1",
+        "kilo_auto_free",
+        "kilo_laguna_m1",
+        "kilo_stepfun_flash",
+        "mistral_large",
+        "mistral_devstral",
+        "mistral_pixtral",
+        "mistral_codestral",
+        "cerebras_gptoss",
+        "groq_gptoss",
+        "groq_gptoss_20b",
+        "deepinfra_qwen235b",
+        # ModelScope 魔搭
+        "ms_qwen_coder_32b",
+        "ms_qwen_coder_14b",
+        "ms_qwen_coder_7b",
+        # NVIDIA NIM 新增强力模型
+        "nvidia_deepseek_v4",
+        "nvidia_qwen35_coder",
+        # FreeModel.dev
+        "fm_gpt55",
+        "fm_gpt54",
+        "fm_gpt54_mini",
+        "fm_gpt53_codex",
+        # Team 速登 (ChatGPT Team 账号)
+        "free_team_speed_gpt55",
+        # OpenGateway (Sionic AI)
+        "ogw_gpt55",
+        "ogw_gpt54",
+        "ogw_gpt5_codex",
+        "ogw_gpt4o_mini",
+        "ogw_gpt54_mini",
+        "ogw_claude_sonnet",
+        "ogw_claude_haiku",
+        "ogw_deepseek_v4",
+        "ogw_deepseek_flash",
+        "ogw_grok",
+        "ogw_kimi",
+        "ogw_glm5",
+        "ogw_minimax",
+        # Agnes AI (Sapiens AI, 新加坡免费网关)
+        "agnes20",
+        "agnes15",
+        # ModelScope 扩展 (2026-06-06)
+        "ms_ds_v32",
+        "ms_ds_r1",
+        "ms_qwen3_235b",
+        "ms_qwen3_235b_think",
+        "ms_qwen3_32b",
+        "ms_qwen3_coder_30b",
+        "ms_qwen3_next_80b",
+        "ms_qwen3_next_80b_think",
+        "ms_qwen35_35b",
+        "ms_qwen35_122b",
+        "ms_qwen35_397b",
+        "ms_glm51",
+        "ms_step37",
+        "ms_mistral_large",
+        "ms_llama4",
+        "ms_interns2",
+    }
+)
 
 # Backends that reliably support tool_calls (OpenAI function calling format)
-TOOL_CAPABLE_BACKENDS = frozenset({
-    # Groq backends with tool_calls capability
-    'groq_llama70b', 'groq_gptoss', 'groq_qwen32b', 'groq_llama4',
-    # GitHub Models
-    'github_gpt4o', 'github_gpt4o_mini', 'github_gpt5', 'github_o3_mini', 'github_o4_mini',
-    # Cerebras
-    'cerebras_qwen235b',
-    # OpenRouter
-    'or_gptoss_120b',
-    'kilo_auto_free', 'kilo_laguna_m1', 'kilo_stepfun_flash',
-    # NVIDIA
-    'nvidia_mistral', 'nvidia_deepseek_v4', 'nvidia_qwen35_coder', 'nvidia_kimi_k25',
-    # FreeModel.dev
-    'fm_gpt55', 'fm_gpt54', 'fm_gpt53_codex',
-    # Team 速登
-    'free_team_speed_gpt55',
-    # OpenGateway
-    'ogw_gpt55', 'ogw_gpt54', 'ogw_gpt54_mini', 'ogw_gpt5_codex', 'ogw_gpt4o_mini',
-    'ogw_claude_sonnet', 'ogw_claude_haiku', 'ogw_deepseek_v4', 'ogw_deepseek_flash',
-    'ogw_grok', 'ogw_kimi', 'ogw_glm5', 'ogw_minimax',
-    # Agnes AI
-    'agnes20', 'agnes15',
-    # Hermes Agent
-    'hermes_agent',
-    # ModelScope (existing)
-    'ms_deepseek_v4', 'ms_qwen35_27b', 'ms_kimi_k25', 'ms_glm5',
-    # ModelScope 扩展 (2026-06-06)
-    'ms_ds_v32', 'ms_qwen3_235b', 'ms_qwen3_coder_30b',
-    'ms_qwen3_next_80b', 'ms_qwen35_122b', 'ms_glm51', 'ms_step37',
-    # China Mobile
-    'chinamobile',
-    # Longcat (Anthropic format, but supports tool_calls)
-    'longcat', 'longcat_openai',
-})
+TOOL_CAPABLE_BACKENDS = frozenset(
+    {
+        # Groq backends with tool_calls capability
+        "groq_llama70b",
+        "groq_gptoss",
+        "groq_qwen32b",
+        "groq_llama4",
+        # GitHub Models
+        "github_gpt4o",
+        "github_gpt4o_mini",
+        "github_gpt5",
+        "github_o3_mini",
+        "github_o4_mini",
+        # Cerebras
+        "cerebras_qwen235b",
+        # OpenRouter
+        "or_gptoss_120b",
+        "kilo_auto_free",
+        "kilo_laguna_m1",
+        "kilo_stepfun_flash",
+        # NVIDIA
+        "nvidia_mistral",
+        "nvidia_deepseek_v4",
+        "nvidia_qwen35_coder",
+        "nvidia_kimi_k25",
+        # FreeModel.dev
+        "fm_gpt55",
+        "fm_gpt54",
+        "fm_gpt53_codex",
+        # Team 速登
+        "free_team_speed_gpt55",
+        # OpenGateway
+        "ogw_gpt55",
+        "ogw_gpt54",
+        "ogw_gpt54_mini",
+        "ogw_gpt5_codex",
+        "ogw_gpt4o_mini",
+        "ogw_claude_sonnet",
+        "ogw_claude_haiku",
+        "ogw_deepseek_v4",
+        "ogw_deepseek_flash",
+        "ogw_grok",
+        "ogw_kimi",
+        "ogw_glm5",
+        "ogw_minimax",
+        # Agnes AI
+        "agnes20",
+        "agnes15",
+        # Hermes Agent
+        "hermes_agent",
+        # ModelScope (existing)
+        "ms_deepseek_v4",
+        "ms_qwen35_27b",
+        "ms_kimi_k25",
+        "ms_glm5",
+        # ModelScope 扩展 (2026-06-06)
+        "ms_ds_v32",
+        "ms_qwen3_235b",
+        "ms_qwen3_coder_30b",
+        "ms_qwen3_next_80b",
+        "ms_qwen35_122b",
+        "ms_glm51",
+        "ms_step37",
+        # China Mobile
+        "chinamobile",
+        # Longcat (Anthropic format, but supports tool_calls)
+        "longcat",
+        "longcat_openai",
+    }
+)
 VISION_SYSTEM_PROMPT = "你是一位耐心的老师。用户上传了一道题目的图片。请：1. 识别题目内容 2. 分步骤解答 3. 给出最终答案。如果是选择题，明确指出正确选项。"
 
 # Known IDE sources used by routing_engine.classify() and router_v3.classify_request().

@@ -43,9 +43,7 @@ class DiscoveredProvider:
     discovered_at: float = field(default_factory=time.time)
 
 
-async def fetch_github_readme(
-    owner: str, repo: str, path: str = "README.md"
-) -> str | None:
+async def fetch_github_readme(owner: str, repo: str, path: str = "README.md") -> str | None:
     """Fetch raw README content from a public GitHub repo."""
     url = f"https://raw.githubusercontent.com/{owner}/{repo}/main/{path}"
     try:
@@ -65,9 +63,7 @@ async def fetch_github_readme(
         return None
 
 
-def extract_providers_from_markdown(
-    content: str, source: str
-) -> list[DiscoveredProvider]:
+def extract_providers_from_markdown(content: str, source: str) -> list[DiscoveredProvider]:
     """Extract potential AI API providers from markdown content.
 
     Looks for:
@@ -106,13 +102,15 @@ def extract_providers_from_markdown(
                 parsed = urlparse(url)
                 name = parsed.netloc or url[:40]
 
-            providers.append(DiscoveredProvider(
-                source=source,
-                name=name,
-                base_url=url,
-                is_free=is_free,
-                raw_line=line[:200],
-            ))
+            providers.append(
+                DiscoveredProvider(
+                    source=source,
+                    name=name,
+                    base_url=url,
+                    is_free=is_free,
+                    raw_line=line[:200],
+                )
+            )
 
     return providers
 
@@ -123,9 +121,7 @@ async def scan_github() -> list[DiscoveredProvider]:
 
     for owner_repo, path in MONITOR_REPOS:
         logger.info("Scanning GitHub: %s", owner_repo)
-        content = await fetch_github_readme(
-            owner_repo.split("/")[0], owner_repo.split("/")[1], path
-        )
+        content = await fetch_github_readme(owner_repo.split("/")[0], owner_repo.split("/")[1], path)
         if content:
             providers = extract_providers_from_markdown(content, f"github:{owner_repo}")
             logger.info("  Found %d potential providers in %s", len(providers), owner_repo)
@@ -146,6 +142,7 @@ async def scan_github() -> list[DiscoveredProvider]:
 # ---------------------------------------------------------------------------
 # Standalone test
 # ---------------------------------------------------------------------------
+
 
 async def _main():
     logging.basicConfig(level=logging.INFO)

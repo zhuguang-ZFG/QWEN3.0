@@ -145,9 +145,7 @@ class SearXNGAdapter:
         self._cache_set(cache_key, payload)
         return payload
 
-    def batch_search(
-        self, queries: list[str], *, domain: str | None = None, max_results: int = 5
-    ) -> dict:
+    def batch_search(self, queries: list[str], *, domain: str | None = None, max_results: int = 5) -> dict:
         merged: list[dict] = []
         for query in queries:
             one = self.search(query, domain=domain, max_results=max_results)

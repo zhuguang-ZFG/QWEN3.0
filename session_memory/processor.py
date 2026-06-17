@@ -100,9 +100,7 @@ def session_memory_processor(ctx: RequestContext) -> RequestContext:
     return ctx
 
 
-def save_request_memory(
-    headers: dict, messages: list[dict], response_summary: str = ""
-) -> None:
+def save_request_memory(headers: dict, messages: list[dict], response_summary: str = "") -> None:
     """Save a request/response pair as a memory entry with embedding."""
     if os.environ.get("LIMA_SESSION_MEMORY", "0") != "1":
         return
@@ -125,5 +123,7 @@ def save_request_memory(
     from session_memory.embeddings import save_memory_with_embedding
 
     save_memory_with_embedding(
-        session_id=session_id, role="exchange", summary=summary,
+        session_id=session_id,
+        role="exchange",
+        summary=summary,
     )

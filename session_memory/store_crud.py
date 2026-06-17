@@ -1,10 +1,12 @@
 """Session memory CRUD and search."""
+
 from __future__ import annotations
 
 import json
 import time
 
 from session_memory.store_db import MemoryEntry, _get_conn, _sanitize_storage_text
+
 
 def save_memory(
     session_id: str,
@@ -22,8 +24,7 @@ def save_memory(
     cur = conn.execute(
         "INSERT INTO memories (session_id, timestamp, role, summary, detail, embedding, memory_type) "
         "VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (session_id, time.time(), role, summary, detail,
-         json.dumps(embedding or []), memory_type),
+        (session_id, time.time(), role, summary, detail, json.dumps(embedding or []), memory_type),
     )
     conn.commit()
     entry_id = cur.lastrowid
@@ -31,9 +32,7 @@ def save_memory(
     return entry_id or 0
 
 
-def get_recent_memories(
-    session_id: str, limit: int = 5
-) -> list[MemoryEntry]:
+def get_recent_memories(session_id: str, limit: int = 5) -> list[MemoryEntry]:
     """Get most recent memories for a session (progressive disclosure: summaries only)."""
     conn = _get_conn()
     rows = conn.execute(
@@ -44,17 +43,20 @@ def get_recent_memories(
     conn.close()
     return [
         MemoryEntry(
-            id=r[0], session_id=r[1], timestamp=r[2], role=r[3],
-            summary=r[4], detail=r[5], embedding=json.loads(r[6]),
+            id=r[0],
+            session_id=r[1],
+            timestamp=r[2],
+            role=r[3],
+            summary=r[4],
+            detail=r[5],
+            embedding=json.loads(r[6]),
             memory_type=r[7] if len(r) > 7 else "exchange",
         )
         for r in rows
     ]
 
 
-def search_memories_keyword(
-    session_id: str, query: str, limit: int = 3
-) -> list[MemoryEntry]:
+def search_memories_keyword(session_id: str, query: str, limit: int = 3) -> list[MemoryEntry]:
     """Keyword search across session memories."""
     conn = _get_conn()
     rows = conn.execute(
@@ -66,8 +68,13 @@ def search_memories_keyword(
     conn.close()
     return [
         MemoryEntry(
-            id=r[0], session_id=r[1], timestamp=r[2], role=r[3],
-            summary=r[4], detail=r[5], embedding=json.loads(r[6]),
+            id=r[0],
+            session_id=r[1],
+            timestamp=r[2],
+            role=r[3],
+            summary=r[4],
+            detail=r[5],
+            embedding=json.loads(r[6]),
             memory_type=r[7] if len(r) > 7 else "exchange",
         )
         for r in rows
@@ -102,11 +109,21 @@ def search_memories_semantic(
         norm_b = math.sqrt(sum(x * x for x in emb))
         sim = dot / (norm_a * norm_b) if norm_a and norm_b else 0.0
         if sim > 0.1:
-            entries.append((sim, MemoryEntry(
-                id=r[0], session_id=r[1], timestamp=r[2], role=r[3],
-                summary=r[4], detail=r[5], embedding=emb,
-                memory_type=r[7] if len(r) > 7 else "exchange",
-            )))
+            entries.append(
+                (
+                    sim,
+                    MemoryEntry(
+                        id=r[0],
+                        session_id=r[1],
+                        timestamp=r[2],
+                        role=r[3],
+                        summary=r[4],
+                        detail=r[5],
+                        embedding=emb,
+                        memory_type=r[7] if len(r) > 7 else "exchange",
+                    ),
+                )
+            )
 
     entries.sort(key=lambda x: -x[0])
     return [e for _, e in entries[:limit]]
@@ -126,9 +143,7 @@ def count_memories(session_id: str) -> int:
 def clear_session(session_id: str) -> int:
     """Delete all memories for a session. Returns count deleted."""
     conn = _get_conn()
-    cur = conn.execute(
-        "DELETE FROM memories WHERE session_id = ?", (session_id,)
-    )
+    cur = conn.execute("DELETE FROM memories WHERE session_id = ?", (session_id,))
     conn.commit()
     deleted = cur.rowcount
     conn.close()
@@ -142,8 +157,14 @@ def clear_session(session_id: str) -> int:
 # not appear in long-lived typed queries.
 
 MEMORY_TYPES = (
-    "exchange", "compacted", "project_fact", "code_fact",
-    "ops_event", "test_result", "routing_lesson",
-    "security_lesson", "reference_pattern", "user_pref",
+    "exchange",
+    "compacted",
+    "project_fact",
+    "code_fact",
+    "ops_event",
+    "test_result",
+    "routing_lesson",
+    "security_lesson",
+    "reference_pattern",
+    "user_pref",
 )
-

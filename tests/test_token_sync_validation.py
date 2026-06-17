@@ -14,9 +14,11 @@ from routes import token_sync
 
 
 def _ok_response(content: str = "hi"):
-    payload = json.dumps({
-        "choices": [{"message": {"content": content}}],
-    }).encode()
+    payload = json.dumps(
+        {
+            "choices": [{"message": {"content": content}}],
+        }
+    ).encode()
     resp = MagicMock()
     resp.status = 200
     resp.read.return_value = payload

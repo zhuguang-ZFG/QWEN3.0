@@ -1,4 +1,5 @@
 """Typed memory, promotion, and audit."""
+
 from __future__ import annotations
 
 import json
@@ -34,9 +35,7 @@ def save_typed_memory(
     )
 
 
-def query_by_type(
-    memory_type: str, limit: int = 10, session_id: str | None = None
-) -> list[MemoryEntry]:
+def query_by_type(memory_type: str, limit: int = 10, session_id: str | None = None) -> list[MemoryEntry]:
     """Query memories by type, optionally scoped to a session."""
     conn = store_db._get_conn()
     if session_id:
@@ -56,8 +55,13 @@ def query_by_type(
     conn.close()
     return [
         MemoryEntry(
-            id=r[0], session_id=r[1], timestamp=r[2], role=r[3],
-            summary=r[4], detail=r[5], embedding=json.loads(r[6]),
+            id=r[0],
+            session_id=r[1],
+            timestamp=r[2],
+            role=r[3],
+            summary=r[4],
+            detail=r[5],
+            embedding=json.loads(r[6]),
             memory_type=r[7] if len(r) > 7 else "exchange",
         )
         for r in rows
@@ -94,8 +98,8 @@ def promote_memory(
 
     conn = store_db._get_conn()
     row = conn.execute(
-        "SELECT id, session_id, timestamp, role, summary, detail, embedding, memory_type "
-        "FROM memories WHERE id = ?", (memory_id,)
+        "SELECT id, session_id, timestamp, role, summary, detail, embedding, memory_type FROM memories WHERE id = ?",
+        (memory_id,),
     ).fetchone()
     if not row:
         conn.close()
@@ -146,20 +150,25 @@ def auto_promote_candidates(session_id: str, limit: int = 50) -> list[int]:
 
 
 def _record_promotion_audit(
-    memory_id: int, old_type: str, new_type: str,
-    evidence: str, auto: bool,
+    memory_id: int,
+    old_type: str,
+    new_type: str,
+    evidence: str,
+    auto: bool,
 ) -> None:
     """Record promotion in audit log (lightweight JSONL)."""
     audit_dir = os.path.dirname(get_db_path())
     audit_path = os.path.join(audit_dir, "memory_promotions.jsonl")
     try:
         entry = {
-            "memory_id": memory_id, "old_type": old_type,
-            "new_type": new_type, "evidence": evidence,
-            "auto": auto, "timestamp": time.time(),
+            "memory_id": memory_id,
+            "old_type": old_type,
+            "new_type": new_type,
+            "evidence": evidence,
+            "auto": auto,
+            "timestamp": time.time(),
         }
         with open(audit_path, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
     except OSError:
         pass
-

@@ -84,12 +84,8 @@ class TestArtifactRecorder(unittest.TestCase):
 
     def test_record_per_device_separation(self):
         """Different devices get separate log files."""
-        record_route_evidence(
-            device_id="dev-a", task_id="t1", route_policy={}
-        )
-        record_route_evidence(
-            device_id="dev-b", task_id="t2", route_policy={}
-        )
+        record_route_evidence(device_id="dev-a", task_id="t1", route_policy={})
+        record_route_evidence(device_id="dev-b", task_id="t2", route_policy={})
         time.sleep(0.5)
         self.assertTrue(self._log_path("dev-a").exists())
         self.assertTrue(self._log_path("dev-b").exists())

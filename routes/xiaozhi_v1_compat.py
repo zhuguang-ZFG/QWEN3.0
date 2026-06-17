@@ -2,6 +2,7 @@
 
 Thin registration facade; handlers live under routes/xiaozhi_compat/.
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter

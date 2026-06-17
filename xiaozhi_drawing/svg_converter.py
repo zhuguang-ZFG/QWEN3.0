@@ -1,4 +1,5 @@
 """图像转 SVG 路径转换器 - OpenCV 矢量化"""
+
 import logging
 from typing import Dict, Any
 from io import BytesIO
@@ -20,7 +21,7 @@ async def _download_image(image_url: str) -> BytesIO:
 
 def _preprocess_image(image_data: BytesIO) -> tuple:
     """Load, resize, gray, blur, and Otsu-threshold the image."""
-    img = Image.open(image_data).convert('RGB')
+    img = Image.open(image_data).convert("RGB")
     img.thumbnail((512, 512), Image.Resampling.LANCZOS)
     gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
@@ -59,10 +60,7 @@ class SVGConverter:
     """图像 → SVG 路径转换器"""
 
     async def convert_url_to_svg(
-        self,
-        image_url: str,
-        simplify_epsilon: float = 2.0,
-        min_contour_area: int = 100
+        self, image_url: str, simplify_epsilon: float = 2.0, min_contour_area: int = 100
     ) -> Dict[str, Any]:
         """下载图片并转换为 SVG 路径（OpenCV 轮廓检测）。"""
         try:
@@ -75,15 +73,23 @@ class SVGConverter:
                 svg_paths = [f"M 0 0 L {w} 0 L {w} {h} L 0 {h} Z"]
 
             return {
-                'status': 'success',
-                'svg_path': " ".join(svg_paths),
-                'width': w, 'height': h,
-                'contour_count': len(svg_paths),
-                'error': None,
+                "status": "success",
+                "svg_path": " ".join(svg_paths),
+                "width": w,
+                "height": h,
+                "contour_count": len(svg_paths),
+                "error": None,
             }
         except httpx.HTTPError as e:
             logger.error(f"下载图片失败: {e}")
-            return {'status': 'failed', 'svg_path': '', 'width': 0, 'height': 0, 'contour_count': 0, 'error': f"Download failed: {e}"}
+            return {
+                "status": "failed",
+                "svg_path": "",
+                "width": 0,
+                "height": 0,
+                "contour_count": 0,
+                "error": f"Download failed: {e}",
+            }
         except Exception as e:
             logger.error(f"转换失败: {e}")
-            return {'status': 'failed', 'svg_path': '', 'width': 0, 'height': 0, 'contour_count': 0, 'error': str(e)}
+            return {"status": "failed", "svg_path": "", "width": 0, "height": 0, "contour_count": 0, "error": str(e)}

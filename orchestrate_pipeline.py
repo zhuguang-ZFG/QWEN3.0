@@ -131,8 +131,12 @@ def _route_via_engine(
 
 
 def _exec_subtask(
-    idx: int, subtask: dict[str, Any], *,
-    ide_source: str, system_prompt: str, max_tokens: int,
+    idx: int,
+    subtask: dict[str, Any],
+    *,
+    ide_source: str,
+    system_prompt: str,
+    max_tokens: int,
 ) -> dict[str, Any]:
     """Execute a single subtask via hinted backend or routing engine."""
     t0 = time.time()
@@ -142,20 +146,24 @@ def _exec_subtask(
     if hint and hint in BACKENDS and not health_tracker.is_cooled_down(hint):
         try:
             answer = http_caller.call_api(
-                hint, [{"role": "user", "content": task_query}],
-                max_tokens, system_prompt=system_prompt, ide=ide_source,
+                hint,
+                [{"role": "user", "content": task_query}],
+                max_tokens,
+                system_prompt=system_prompt,
+                ide=ide_source,
             )
-            return {"task": task_query, "answer": answer, "backend": hint,
-                    "ms": int((time.time() - t0) * 1000)}
+            return {"task": task_query, "answer": answer, "backend": hint, "ms": int((time.time() - t0) * 1000)}
         except Exception as exc:
             _log.debug("orchestrate hint backend failed hint=%s: %s", hint, type(exc).__name__)
 
     r = _route_via_engine(
-        task_query, messages=[{"role": "user", "content": task_query}],
-        ide_source=ide_source, system_prompt=system_prompt, max_tokens=max_tokens,
+        task_query,
+        messages=[{"role": "user", "content": task_query}],
+        ide_source=ide_source,
+        system_prompt=system_prompt,
+        max_tokens=max_tokens,
     )
-    return {"task": task_query, "answer": r.answer, "backend": r.backend,
-            "ms": int((time.time() - t0) * 1000)}
+    return {"task": task_query, "answer": r.answer, "backend": r.backend, "ms": int((time.time() - t0) * 1000)}
 
 
 def execute_subtasks(
@@ -167,14 +175,14 @@ def execute_subtasks(
 ) -> list[dict[str, Any]]:
     """Run subtasks concurrently via routing_engine or hinted backends."""
     results: list[dict[str, Any]] = [
-        {"task": st.get("task", ""), "answer": "", "backend": "pending", "ms": 0}
-        for st in subtasks
+        {"task": st.get("task", ""), "answer": "", "backend": "pending", "ms": 0} for st in subtasks
     ]
 
     with ThreadPoolExecutor(max_workers=MAX_CONCURRENT) as executor:
         futures = {
-            executor.submit(_exec_subtask, i, st,
-                            ide_source=ide_source, system_prompt=system_prompt, max_tokens=max_tokens): i
+            executor.submit(
+                _exec_subtask, i, st, ide_source=ide_source, system_prompt=system_prompt, max_tokens=max_tokens
+            ): i
             for i, st in enumerate(subtasks)
         }
         for future in as_completed(futures):
@@ -183,8 +191,10 @@ def execute_subtasks(
                 results[idx] = future.result()
             except Exception as e:
                 results[idx] = {
-                    "task": subtasks[idx]["task"], "answer": f"[\u5b50\u4efb\u52a1\u6267\u884c\u5931\u8d25: {e}]",
-                    "backend": "error", "ms": 0,
+                    "task": subtasks[idx]["task"],
+                    "answer": f"[\u5b50\u4efb\u52a1\u6267\u884c\u5931\u8d25: {e}]",
+                    "backend": "error",
+                    "ms": 0,
                 }
 
     return results

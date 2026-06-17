@@ -1,4 +1,5 @@
 """Device authentication helpers."""
+
 from __future__ import annotations
 
 import os
@@ -34,4 +35,3 @@ def validate_device_token(device_id: str, token: str) -> bool:
 
 def token_configured() -> bool:
     return bool(configured_device_tokens())
-

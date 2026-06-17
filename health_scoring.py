@@ -107,9 +107,7 @@ def get_backend_status(backend: str) -> dict:
         return {
             "health": _health_map.get(backend, "healthy"),
             "score": compute_score(backend),
-            "cooldown_remaining": max(0, state.cooldown_until - time.monotonic())
-            if state
-            else 0,
+            "cooldown_remaining": max(0, state.cooldown_until - time.monotonic()) if state else 0,
             "consecutive_failures": state.consecutive_failures if state else 0,
             "current_cooldown_s": state.current_cooldown if state else BASE_COOLDOWN,
             "last_error_code": state.last_error_code if state else None,

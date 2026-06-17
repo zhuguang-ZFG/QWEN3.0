@@ -2,6 +2,7 @@
 角色评估运行器测试文件 - Phase 2b
 使用所有7个角色评估fixture进行测试
 """
+
 import json
 import pytest
 from pathlib import Path
@@ -20,7 +21,7 @@ class TestRoleEvalRunner:
             "writing_executor.json",
             "chat_router.json",
             "coding_router.json",
-            "monitor.json"
+            "monitor.json",
         ]
         self.fixtures = {}
         self._load_fixtures()
@@ -30,19 +31,36 @@ class TestRoleEvalRunner:
         for fixture_file in self.fixture_files:
             fixture_path = self.fixture_dir / fixture_file
             if fixture_path.exists():
-                with open(fixture_path, 'r', encoding='utf-8') as f:
-                    self.fixtures[fixture_file.replace('.json', '')] = json.load(f)
+                with open(fixture_path, "r", encoding="utf-8") as f:
+                    self.fixtures[fixture_file.replace(".json", "")] = json.load(f)
 
     def test_all_fixtures_loaded(self):
         """测试：验证所有7个fixture都能正确加载"""
         assert len(self.fixtures) == 7, f"期待7个fixture，实际加载了{len(self.fixtures)}个"
-        expected_roles = ["intent_parser", "vectorizer", "drawing_executor",
-                         "writing_executor", "chat_router", "coding_router", "monitor"]
+        expected_roles = [
+            "intent_parser",
+            "vectorizer",
+            "drawing_executor",
+            "writing_executor",
+            "chat_router",
+            "coding_router",
+            "monitor",
+        ]
         for role in expected_roles:
             assert role in self.fixtures, f"缺失{role} fixture"
 
-    @pytest.mark.parametrize("role_name", ["intent_parser", "vectorizer", "drawing_executor",
-                                            "writing_executor", "chat_router", "coding_router", "monitor"])
+    @pytest.mark.parametrize(
+        "role_name",
+        [
+            "intent_parser",
+            "vectorizer",
+            "drawing_executor",
+            "writing_executor",
+            "chat_router",
+            "coding_router",
+            "monitor",
+        ],
+    )
     def test_fixture_structure(self, role_name):
         """测试：验证每个fixture的结构和字段完整性"""
         fixture = self.fixtures[role_name]
@@ -58,8 +76,18 @@ class TestRoleEvalRunner:
             assert "expected" in case, f"{role_name} case {i}缺失'expected'字段"
             assert case["id"] == i, f"{role_name} case {i} id与索引不匹配"
 
-    @pytest.mark.parametrize("role_name", ["intent_parser", "vectorizer", "drawing_executor",
-                                            "writing_executor", "chat_router", "coding_router", "monitor"])
+    @pytest.mark.parametrize(
+        "role_name",
+        [
+            "intent_parser",
+            "vectorizer",
+            "drawing_executor",
+            "writing_executor",
+            "chat_router",
+            "coding_router",
+            "monitor",
+        ],
+    )
     def test_fixture_content_validity(self, role_name):
         """测试：验证fixture内容的有效性和合理性"""
         fixture = self.fixtures[role_name]
@@ -82,11 +110,15 @@ class TestRoleEvalRunner:
             # 验证预期类型合理性
             if role_name == "intent_parser":
                 assert isinstance(expected_data, str), f"{role_name} case {case['id']}预期应为字符串"
-                assert expected_data in ["write", "draw", "control", "chat", "code"], f"{role_name} case {case['id']}预期值无效"
+                assert expected_data in ["write", "draw", "control", "chat", "code"], (
+                    f"{role_name} case {case['id']}预期值无效"
+                )
 
             elif role_name == "vectorizer":
                 assert isinstance(expected_data, list), f"{role_name} case {case['id']}预期应为列表"
-                assert all(isinstance(point, dict) for point in expected_data), f"{role_name} case {case['id']}预期列表元素类型错误"
+                assert all(isinstance(point, dict) for point in expected_data), (
+                    f"{role_name} case {case['id']}预期列表元素类型错误"
+                )
 
             elif role_name == "drawing_executor":
                 assert isinstance(expected_data, bool), f"{role_name} case {case['id']}预期应为布尔值"
@@ -157,11 +189,21 @@ class TestRoleEvalRunner:
         print(f"评估案例：{len(intent_fixture['cases'])}")
         print(f"通过：{passed_count}")
         print(f"失败：{failed_count}")
-        print(f"通过率：{passed_count/len(intent_fixture['cases'])*100:.1f}%")
+        print(f"通过率：{passed_count / len(intent_fixture['cases']) * 100:.1f}%")
         print("=== 测试完成 ===\n")
 
-    @pytest.mark.parametrize("role_name", ["intent_parser", "vectorizer", "drawing_executor",
-                                            "writing_executor", "chat_router", "coding_router", "monitor"])
+    @pytest.mark.parametrize(
+        "role_name",
+        [
+            "intent_parser",
+            "vectorizer",
+            "drawing_executor",
+            "writing_executor",
+            "chat_router",
+            "coding_router",
+            "monitor",
+        ],
+    )
     def test_all_roles_summary_report(self, role_name):
         """测试：生成所有角色的总结报告
 

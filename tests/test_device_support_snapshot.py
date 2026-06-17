@@ -6,7 +6,12 @@ import pytest
 
 import time
 
-from device_support.snapshot import build_support_snapshot, _build_recommendation, _list_recent_terminal_tasks, _redact_sensitive
+from device_support.snapshot import (
+    build_support_snapshot,
+    _build_recommendation,
+    _list_recent_terminal_tasks,
+    _redact_sensitive,
+)
 
 
 class TestBuildRecommendation:

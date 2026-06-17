@@ -115,9 +115,7 @@ def test_is_weak_backend():
 
 
 def test_first_backend_with_capability():
-    result = backend_utils.first_backend_with_capability(
-        ["groq_llama70b", "cf_vision", "scnet_qwen30b"], "vision"
-    )
+    result = backend_utils.first_backend_with_capability(["groq_llama70b", "cf_vision", "scnet_qwen30b"], "vision")
     assert result == "cf_vision"
 
     empty = backend_utils.first_backend_with_capability(["groq_llama70b"], "vision")

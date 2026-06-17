@@ -35,12 +35,21 @@ def _init_job(ws: Path, job_id: str, status: dict[str, Any]) -> tuple[Path, Path
     return job_dir, job_dir / "worker.log"
 
 
-def _build_worker_cmd(job_id: str, task: str, mode: str, ws: Path,
-                      scope: str | None, timeout: int | None) -> list[str]:
+def _build_worker_cmd(job_id: str, task: str, mode: str, ws: Path, scope: str | None, timeout: int | None) -> list[str]:
     """Build the worker subprocess command."""
-    cmd = [sys.executable, "-m", "lima_mcp_stdio.job_worker",
-           "--job-id", job_id, "--task", task, "--mode", mode,
-           "--workspace", str(ws)]
+    cmd = [
+        sys.executable,
+        "-m",
+        "lima_mcp_stdio.job_worker",
+        "--job-id",
+        job_id,
+        "--task",
+        task,
+        "--mode",
+        mode,
+        "--workspace",
+        str(ws),
+    ]
     if scope:
         cmd.extend(["--scope", scope])
     if timeout is not None:
@@ -48,8 +57,7 @@ def _build_worker_cmd(job_id: str, task: str, mode: str, ws: Path,
     return cmd
 
 
-def _spawn_worker(cmd: list[str], ws: Path, log_path: Path,
-                  status: dict[str, Any], job_dir: Path) -> dict[str, Any]:
+def _spawn_worker(cmd: list[str], ws: Path, log_path: Path, status: dict[str, Any], job_dir: Path) -> dict[str, Any]:
     """Spawn the worker process. Returns result dict."""
     creationflags = 0
     if sys.platform == "win32":
@@ -57,8 +65,12 @@ def _spawn_worker(cmd: list[str], ws: Path, log_path: Path,
     try:
         with open(log_path, "w", encoding="utf-8") as log_fp:
             proc = subprocess.Popen(
-                cmd, cwd=ws, stdout=log_fp, stderr=subprocess.STDOUT,
-                creationflags=creationflags, close_fds=False,
+                cmd,
+                cwd=ws,
+                stdout=log_fp,
+                stderr=subprocess.STDOUT,
+                creationflags=creationflags,
+                close_fds=False,
             )
     except OSError as exc:
         status["status"] = "failed"
@@ -89,9 +101,14 @@ def start_async_run(
     job_id = uuid.uuid4().hex[:12]
     started_at = datetime.now(timezone.utc).isoformat()
     status = {
-        "job_id": job_id, "status": "queued", "started_at": started_at,
-        "task": task, "mode": mode, "scope": scope or "",
-        "workspace": str(ws), "timeout": timeout,
+        "job_id": job_id,
+        "status": "queued",
+        "started_at": started_at,
+        "task": task,
+        "mode": mode,
+        "scope": scope or "",
+        "workspace": str(ws),
+        "timeout": timeout,
     }
     job_dir, log_path = _init_job(ws, job_id, status)
     cmd = _build_worker_cmd(job_id, task, mode, ws, scope, timeout)
@@ -104,8 +121,11 @@ def start_async_run(
         encoding="utf-8",
     )
     return {
-        "ok": True, "job_id": job_id, "status": "running",
-        "workspace": str(ws), "job_dir": str(job_dir),
+        "ok": True,
+        "job_id": job_id,
+        "status": "running",
+        "workspace": str(ws),
+        "job_dir": str(job_dir),
         "poll_tool": "lima_mimo_job_status",
         "hint": "Continue other work; poll job_status with this job_id before milestone closeout.",
     }

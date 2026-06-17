@@ -2,6 +2,7 @@
 backend_reputation.py — 后端信誉分系统
 根据质量门结果和失败分类动态调整后端优先级，低质量后端自动降级。
 """
+
 import time
 from collections import defaultdict
 
@@ -22,15 +23,15 @@ MAX_HISTORY = 100
 
 # Per-error-class penalty weights (multiplier on PENALTY)
 FAILURE_CLASS_PENALTY = {
-    "auth_expired": 5.0,          # 立即降级
+    "auth_expired": 5.0,  # 立即降级
     "manual_refresh_required": 5.0,
     "quota_exhausted": 5.0,
-    "rate_limited": 1.5,          # 较重惩罚
-    "network_error": 0.3,         # 网络波动，轻罚
-    "malformed_response": 0.5,    # 格式问题，中等
-    "provider_error": 1.0,        # 默认惩罚
+    "rate_limited": 1.5,  # 较重惩罚
+    "network_error": 0.3,  # 网络波动，轻罚
+    "malformed_response": 0.5,  # 格式问题，中等
+    "provider_error": 1.0,  # 默认惩罚
     "unknown_error": 0.8,
-    "timeout": 0.3,               # 老分类兼容
+    "timeout": 0.3,  # 老分类兼容
 }
 
 
@@ -43,8 +44,7 @@ def record(backend: str, passed: bool, task_type: str = "code"):
         score = min(100, score + REWARD)
     else:
         score = max(0, score - PENALTY)
-        recent = [h for h in _history[backend]
-                  if h[0] > now - HISTORY_WINDOW and not h[1]]
+        recent = [h for h in _history[backend] if h[0] > now - HISTORY_WINDOW and not h[1]]
         if len(recent) + 1 >= CONSECUTIVE_FAIL_THRESHOLD:
             _cooldowns[backend] = now + COOLDOWN_DURATION
 
@@ -95,6 +95,5 @@ def get_stats() -> dict:
     """返回当前信誉状态（调试用）"""
     return {
         "scores": dict(_scores),
-        "cooldowns": {k: v - time.time() for k, v in _cooldowns.items()
-                      if v > time.time()},
+        "cooldowns": {k: v - time.time() for k, v in _cooldowns.items() if v > time.time()},
     }

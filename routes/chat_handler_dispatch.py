@@ -140,9 +140,7 @@ async def maybe_image_response(
     )
     if ctx.fmt == "anthropic":
         return JSONResponse(
-            build_anthropic_response(
-                ctx.chat_id, content, "pollinations", ctx.request_model or model_id
-            )
+            build_anthropic_response(ctx.chat_id, content, "pollinations", ctx.request_model or model_id)
         )
     return JSONResponse(build_response(ctx.chat_id, content, "pollinations", duration_ms))
 
@@ -156,9 +154,7 @@ async def maybe_thinking_response(
 ) -> JSONResponse | None:
     if not ctx.prefs.use_thinking or req.stream:
         return None
-    thinking_result = await thinking_route(
-        ctx.query, req.max_tokens or 4096, ctx.ide_source
-    )
+    thinking_result = await thinking_route(ctx.query, req.max_tokens or 4096, ctx.ide_source)
     if not thinking_result:
         return None
     content = thinking_result["answer"]
@@ -175,11 +171,7 @@ async def maybe_thinking_response(
         sys_prompt_preview=ctx.sys_prompt_preview,
     )
     if ctx.fmt == "anthropic":
-        return JSONResponse(
-            build_anthropic_response(
-                ctx.chat_id, content, backend, ctx.request_model or model_id
-            )
-        )
+        return JSONResponse(build_anthropic_response(ctx.chat_id, content, backend, ctx.request_model or model_id))
     resp = build_response(ctx.chat_id, content, backend, duration_ms)
     resp["choices"][0]["message"]["thinking"] = True
     resp["x_lima_meta"]["thinking_mode"] = True
@@ -187,15 +179,9 @@ async def maybe_thinking_response(
 
 
 def build_streaming_response(ctx: ChatRunContext, req: ChatRequest) -> StreamingResponse:
-    intent = routing_intent.analyze_intent(
-        ctx.query, system_prompt=ctx.sys_prompt_preview, ide=ctx.ide_source
-    )
+    intent = routing_intent.analyze_intent(ctx.query, system_prompt=ctx.sys_prompt_preview, ide=ctx.ide_source)
     _chat_handler()  # ensures chat_handler deps are imported/injected
-    use_orchestration = (
-        needs_orchestration(ctx.query, intent)
-        if not ctx.prefs.prefer
-        else False
-    )
+    use_orchestration = needs_orchestration(ctx.query, intent) if not ctx.prefs.prefer else False
     return StreamingResponse(
         stream_response(
             ctx.chat_id,
@@ -213,15 +199,9 @@ def build_streaming_response(ctx: ChatRunContext, req: ChatRequest) -> Streaming
 
 
 async def execute_non_stream_route(ctx: ChatRunContext, req: ChatRequest) -> tuple[dict, dict]:
-    intent = routing_intent.analyze_intent(
-        ctx.query, system_prompt=ctx.sys_prompt_preview, ide=ctx.ide_source
-    )
+    intent = routing_intent.analyze_intent(ctx.query, system_prompt=ctx.sys_prompt_preview, ide=ctx.ide_source)
     _chat_handler()  # ensures chat_handler deps are imported/injected
-    use_orchestration = (
-        needs_orchestration(ctx.query, intent)
-        if not ctx.prefs.prefer
-        else False
-    )
+    use_orchestration = needs_orchestration(ctx.query, intent) if not ctx.prefs.prefer else False
     if use_orchestration:
         result = await asyncio.to_thread(
             orchestrate,

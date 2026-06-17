@@ -49,11 +49,13 @@ async def list_memories(device_id: str) -> dict[str, Any]:
     """List all memories for a device."""
     store = get_memory_store()
     entries = store.list_by_device(device_id, include_expired=False)
-    return JSONResponse({
-        "device_id": device_id,
-        "count": len(entries),
-        "entries": [e.model_dump() for e in entries],
-    })
+    return JSONResponse(
+        {
+            "device_id": device_id,
+            "count": len(entries),
+            "entries": [e.model_dump() for e in entries],
+        }
+    )
 
 
 @router.delete("/{device_id}/reset", dependencies=[Depends(require_private_api_key)])
@@ -92,8 +94,10 @@ async def trigger_consolidation(device_id: str) -> dict[str, Any]:
     """Trigger episode consolidation for a device."""
     store = get_memory_store()
     results = consolidate_task_episodes(store, device_id)
-    return JSONResponse({
-        "device_id": device_id,
-        "consolidated": len(results),
-        "entries": [e.model_dump() for e in results],
-    })
+    return JSONResponse(
+        {
+            "device_id": device_id,
+            "consolidated": len(results),
+            "entries": [e.model_dump() for e in results],
+        }
+    )

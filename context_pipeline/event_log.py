@@ -52,7 +52,7 @@ class EventLog:
         event = Event(type=event_type, timestamp=time.time(), data=data)
         self._events.append(event)
         if len(self._events) > self._max:
-            self._events = self._events[-self._max:]
+            self._events = self._events[-self._max :]
         return event
 
     @property
@@ -88,9 +88,7 @@ class EventLog:
 
 
 # Async-safe request-scoped event log using contextvars
-_request_log_var: contextvars.ContextVar[EventLog | None] = contextvars.ContextVar(
-    "request_log", default=None
-)
+_request_log_var: contextvars.ContextVar[EventLog | None] = contextvars.ContextVar("request_log", default=None)
 
 
 def get_request_log() -> EventLog:

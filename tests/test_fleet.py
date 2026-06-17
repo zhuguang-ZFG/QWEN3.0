@@ -58,8 +58,11 @@ class TestNodeRegistry:
 
     def test_capabilities(self):
         caps = NodeCapabilities(
-            gpu=True, gpu_model="RTX 5060 Ti", gpu_vram_gb=16.0,
-            cpu_cores=16, models=["ollama:qwen3"],
+            gpu=True,
+            gpu_model="RTX 5060 Ti",
+            gpu_vram_gb=16.0,
+            cpu_cores=16,
+            models=["ollama:qwen3"],
         )
         reg = NodeRegistry()
         node = reg.register("gpu-box", capabilities=caps)
@@ -104,6 +107,7 @@ class TestTaskDispatcher:
     def test_dispatch_to_matching_node(self):
         d = TaskDispatcher()
         from fleet.node_registry import NodeRegistry
+
         reg = NodeRegistry()
         reg.register("worker-1")
         task = d.submit(task_type="shell", command="ls")
@@ -116,6 +120,7 @@ class TestTaskDispatcher:
     def test_dispatch_gpu_task_to_cpu_node(self):
         d = TaskDispatcher()
         from fleet.node_registry import NodeRegistry
+
         reg = NodeRegistry()
         reg.register("cpu-only")  # no GPU
         d.submit(task_type="inference", command="run model", required_gpu=True)
@@ -125,6 +130,7 @@ class TestTaskDispatcher:
     def test_dispatch_gpu_task_to_gpu_node(self):
         d = TaskDispatcher()
         from fleet.node_registry import NodeRegistry
+
         reg = NodeRegistry()
         reg.register("gpu-node", capabilities=NodeCapabilities(gpu=True))
         d.submit(task_type="inference", command="run model", required_gpu=True)
@@ -134,6 +140,7 @@ class TestTaskDispatcher:
     def test_dispatch_model_specific_task(self):
         d = TaskDispatcher()
         from fleet.node_registry import NodeRegistry
+
         reg = NodeRegistry()
         reg.register("w1", capabilities=NodeCapabilities(models=["ollama:qwen3"]))
         d.submit(task_type="inference", required_model="ollama:qwen3")
@@ -166,12 +173,14 @@ class TestTaskDispatcher:
         d = TaskDispatcher()
         d.submit(task_type="shell", command="echo")
         from fleet.node_registry import NodeRegistry
+
         reg = NodeRegistry()
         assert d.dispatch(reg) is None
 
     def test_busy_node_skipped(self):
         d = TaskDispatcher()
         from fleet.node_registry import NodeRegistry
+
         reg = NodeRegistry()
         node = reg.register("busy-worker")
         node.status = "busy"
@@ -188,6 +197,7 @@ class TestTaskDispatcher:
 class TestFleetAgent:
     def test_detect_capabilities(self):
         from fleet.agent import detect_capabilities
+
         caps = detect_capabilities()
         assert "gpu" in caps
         assert "cpu_cores" in caps
@@ -234,6 +244,7 @@ class TestFleetAPIAuth:
 
     def _client(self, admin_token: str = ""):
         from fastapi.testclient import TestClient
+
         return TestClient(self._make_app(admin_token))
 
     def test_no_token_configured_returns_503(self):

@@ -13,6 +13,7 @@ from routes.ops_metrics import router
 
 from ops_metrics_helpers import reload_prometheus_metrics
 
+
 def test_ops_metrics_reads_starlette_app_state(monkeypatch):
     monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
     app = FastAPI()

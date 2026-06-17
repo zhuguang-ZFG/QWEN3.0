@@ -146,7 +146,8 @@ async def run_all_discovery() -> dict:
 
     logger.info(
         "Discovery complete: %d new, %d total known",
-        len(new_providers), len(known),
+        len(new_providers),
+        len(known),
     )
     return summary
 

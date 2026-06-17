@@ -11,6 +11,7 @@ from .safety import is_public_http_url
 SEARCH_URL = "https://api.search.tinyfish.ai"
 FETCH_URL = "https://api.fetch.tinyfish.ai"
 
+
 def _is_safe_url(url: str) -> bool:
     """Reject private/loopback URLs to prevent SSRF."""
     return is_public_http_url(url)
@@ -41,7 +42,7 @@ def tinyfish_transport(payload: dict) -> dict:
             resp = opener.open(req, timeout=10)
             data = json.loads(resp.read())
             results = data if isinstance(data, list) else data.get("results", [])
-            return {"ok": True, "results": results[:params.get("max_results", 5)]}
+            return {"ok": True, "results": results[: params.get("max_results", 5)]}
 
         elif method == "batch_search":
             queries = params.get("queries", [])
@@ -55,7 +56,7 @@ def tinyfish_transport(payload: dict) -> dict:
                 resp = opener.open(req, timeout=10)
                 data = json.loads(resp.read())
                 items = data if isinstance(data, list) else data.get("results", [])
-                all_results.extend(items[:params.get("max_results", 5)])
+                all_results.extend(items[: params.get("max_results", 5)])
             return {"ok": True, "results": all_results}
 
         elif method == "extract_url":
@@ -64,9 +65,9 @@ def tinyfish_transport(payload: dict) -> dict:
                 return {"ok": False, "error": "URL blocked: private/invalid"}
             body = json.dumps({"urls": [url]}).encode()
             req = urllib.request.Request(
-                FETCH_URL, data=body,
-                headers={"X-API-Key": key, "Content-Type": "application/json",
-                         "User-Agent": "LiMa/1.3"},
+                FETCH_URL,
+                data=body,
+                headers={"X-API-Key": key, "Content-Type": "application/json", "User-Agent": "LiMa/1.3"},
             )
             resp = opener.open(req, timeout=15)
             data = json.loads(resp.read())

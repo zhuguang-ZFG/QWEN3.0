@@ -20,9 +20,7 @@ from provider_automation.runner import ProbeRunner, ProbeRunnerConfig, format_ba
 
 def _require_run_gate() -> None:
     if os.environ.get("LIMA_PROVIDER_AUTOMATION_RUN", "").strip() != "1":
-        raise SystemExit(
-            "Refusing to run: set LIMA_PROVIDER_AUTOMATION_RUN=1 (offline ops / CI only)."
-        )
+        raise SystemExit("Refusing to run: set LIMA_PROVIDER_AUTOMATION_RUN=1 (offline ops / CI only).")
 
 
 def _load_models(*, fixture: Path | None, live_openrouter: bool) -> list:
@@ -41,8 +39,14 @@ def main(argv: list[str] | None = None) -> int:
 
     parser = argparse.ArgumentParser(description="Run provider_automation metadata/smoke probe batch")
     parser.add_argument("--fixture", type=Path, help="OpenRouter fixture JSON path")
-    parser.add_argument("--live-openrouter", action="store_true", help="Fetch live catalog (needs LIMA_OPENROUTER_LIVE_FETCH=1)")
-    parser.add_argument("--smoke", action="store_true", help="Enable completion smoke (requires configured callable; default metadata-only)")
+    parser.add_argument(
+        "--live-openrouter", action="store_true", help="Fetch live catalog (needs LIMA_OPENROUTER_LIVE_FETCH=1)"
+    )
+    parser.add_argument(
+        "--smoke",
+        action="store_true",
+        help="Enable completion smoke (requires configured callable; default metadata-only)",
+    )
     parser.add_argument("--limit", type=int, default=0, help="Max models to probe (0 = all)")
     args = parser.parse_args(argv)
 

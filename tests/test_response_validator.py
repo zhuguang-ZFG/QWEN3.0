@@ -54,15 +54,15 @@ class TestSecurity:
         assert any("hardcoded_secret" in i[1] for i in issues)
 
     def test_code_injection(self):
-        issues = _check_security('eval(user_input)', "python")
+        issues = _check_security("eval(user_input)", "python")
         assert any("code_injection" in i[1] for i in issues)
 
     def test_shell_true(self):
-        issues = _check_security('subprocess.call(cmd, shell=True)', "python")
+        issues = _check_security("subprocess.call(cmd, shell=True)", "python")
         assert any("command_injection" in i[1] or "shell_injection" in i[1] for i in issues)
 
     def test_clean_code(self):
-        issues = _check_security('x = 42\nprint(x)', "python")
+        issues = _check_security("x = 42\nprint(x)", "python")
         assert len(issues) == 0
 
 
@@ -91,8 +91,7 @@ class TestValidateResponse:
 
     def test_mixed_blocks_one_bad(self):
         result = validate_response(
-            "First block:\n```python\ndef ok(): pass\n```\n"
-            "Second block:\n```python\ndef bad(\n```"
+            "First block:\n```python\ndef ok(): pass\n```\nSecond block:\n```python\ndef bad(\n```"
         )
         assert result.blocks_checked == 2
         assert len(result.syntax_issues) > 0

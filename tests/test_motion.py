@@ -1,4 +1,5 @@
 """Unit tests for device_gateway.motion dataclasses and helpers."""
+
 from __future__ import annotations
 
 import pytest

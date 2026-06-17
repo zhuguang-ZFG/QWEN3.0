@@ -39,12 +39,14 @@ def test_check_retirement_low_success_rate():
 def test_apply_retirement():
     bp._profiles.clear()
     assert not br.is_retired("test_backend")
-    br.apply_retirement({
-        "action": "retire",
-        "backend": "test_backend",
-        "reason": "test",
-        "status": "retired",
-    })
+    br.apply_retirement(
+        {
+            "action": "retire",
+            "backend": "test_backend",
+            "reason": "test",
+            "status": "retired",
+        }
+    )
     assert br.is_retired("test_backend")
 
 
@@ -77,12 +79,14 @@ def test_reactivate():
 
 def test_load_retired():
     br._retired_backends.clear()
-    br.apply_retirement({
-        "action": "retire",
-        "backend": "load_test",
-        "reason": "test",
-        "status": "retired",
-    })
+    br.apply_retirement(
+        {
+            "action": "retire",
+            "backend": "load_test",
+            "reason": "test",
+            "status": "retired",
+        }
+    )
     br._retired_backends.clear()
     loaded = br.load_retired()
     assert loaded >= 1
@@ -94,12 +98,14 @@ def test_load_retired_marks_health_dead():
 
     br._retired_backends.clear()
     hs.reset_all_state()
-    br.apply_retirement({
-        "action": "retire",
-        "backend": "load_health_test",
-        "reason": "test",
-        "status": "retired",
-    })
+    br.apply_retirement(
+        {
+            "action": "retire",
+            "backend": "load_health_test",
+            "reason": "test",
+            "status": "retired",
+        }
+    )
     br._retired_backends.clear()
     hs.reset_all_state()
 

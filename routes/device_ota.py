@@ -53,23 +53,27 @@ async def deploy_version(version: str):
             detail="release gate not ready; all criteria must pass before deploy",
         )
     _canary.deploy_version(version)
-    return JSONResponse({
-        "ok": True,
-        "version": version,
-        "canary_devices": _canary.canary_devices,
-    })
+    return JSONResponse(
+        {
+            "ok": True,
+            "version": version,
+            "canary_devices": _canary.canary_devices,
+        }
+    )
 
 
 @router.get("/canary/status", dependencies=[Depends(require_private_api_key)])
 async def canary_status():
     """Check canary deployment health."""
-    return JSONResponse({
-        "canary_devices": _canary.canary_devices,
-        "deployed_version": _canary.deployed_version,
-        "success_count": _canary.success_count,
-        "failure_count": _canary.failure_count,
-        "healthy": _canary.is_healthy(),
-    })
+    return JSONResponse(
+        {
+            "canary_devices": _canary.canary_devices,
+            "deployed_version": _canary.deployed_version,
+            "success_count": _canary.success_count,
+            "failure_count": _canary.failure_count,
+            "healthy": _canary.is_healthy(),
+        }
+    )
 
 
 @router.post("/canary/devices/{device_id}", dependencies=[Depends(require_private_api_key)])
@@ -90,23 +94,27 @@ async def remove_canary_device(device_id: str):
 async def record_canary_success(device_id: str):
     """Record a successful canary deployment for a device."""
     _canary.record_success(device_id)
-    return JSONResponse({
-        "ok": True,
-        "device_id": device_id,
-        "success_count": _canary.success_count,
-        "failure_count": _canary.failure_count,
-        "healthy": _canary.is_healthy(),
-    })
+    return JSONResponse(
+        {
+            "ok": True,
+            "device_id": device_id,
+            "success_count": _canary.success_count,
+            "failure_count": _canary.failure_count,
+            "healthy": _canary.is_healthy(),
+        }
+    )
 
 
 @router.post("/canary/record-failure/{device_id}", dependencies=[Depends(require_private_api_key)])
 async def record_canary_failure(device_id: str):
     """Record a failed canary deployment for a device."""
     _canary.record_failure(device_id)
-    return JSONResponse({
-        "ok": True,
-        "device_id": device_id,
-        "success_count": _canary.success_count,
-        "failure_count": _canary.failure_count,
-        "healthy": _canary.is_healthy(),
-    })
+    return JSONResponse(
+        {
+            "ok": True,
+            "device_id": device_id,
+            "success_count": _canary.success_count,
+            "failure_count": _canary.failure_count,
+            "healthy": _canary.is_healthy(),
+        }
+    )

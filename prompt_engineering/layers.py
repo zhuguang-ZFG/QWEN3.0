@@ -97,12 +97,7 @@ def build_quality_gate(scenario: str) -> str:
             "- 技术术语使用正确\n"
             "- 不编造不存在的 API 或库"
         ),
-        "vision": (
-            "[质量门控]\n"
-            "- 描述必须基于图像实际内容\n"
-            "- 不推测图像中不存在的元素\n"
-            "- 区分确定信息和推断信息"
-        ),
+        "vision": ("[质量门控]\n- 描述必须基于图像实际内容\n- 不推测图像中不存在的元素\n- 区分确定信息和推断信息"),
     }
     return gate_map.get(scenario, gate_map["chat"])
 

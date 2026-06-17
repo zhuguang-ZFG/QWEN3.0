@@ -1,4 +1,4 @@
-﻿"""M5: Unit tests for device_intelligence.recovery module."""
+"""M5: Unit tests for device_intelligence.recovery module."""
 
 from __future__ import annotations
 

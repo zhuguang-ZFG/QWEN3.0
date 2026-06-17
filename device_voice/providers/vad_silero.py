@@ -78,9 +78,7 @@ class SileroVADProvider(VADProvider):
         opts = onnxruntime.SessionOptions()
         opts.inter_op_num_threads = 1
         opts.intra_op_num_threads = 1
-        self._session = onnxruntime.InferenceSession(
-            model_path, providers=["CPUExecutionProvider"], sess_options=opts
-        )
+        self._session = onnxruntime.InferenceSession(model_path, providers=["CPUExecutionProvider"], sess_options=opts)
         self._state = np.zeros((2, 1, 128), dtype=np.float32)
         self._context = np.zeros((1, 64), dtype=np.float32)
         _log.info("SileroVAD model loaded from %s", model_path)
@@ -106,9 +104,7 @@ class SileroVADProvider(VADProvider):
 
             audio_int16 = np.frombuffer(frame, dtype=np.int16)
             audio_float32 = audio_int16.astype(np.float32) / 32768.0
-            audio_input = np.concatenate(
-                [self._context, audio_float32.reshape(1, -1)], axis=1
-            ).astype(np.float32)
+            audio_input = np.concatenate([self._context, audio_float32.reshape(1, -1)], axis=1).astype(np.float32)
 
             ort_inputs = {
                 "input": audio_input,

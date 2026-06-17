@@ -101,9 +101,7 @@ class DeviceShadowStore:
             shadow.updated_at = _now_iso()
             return shadow.to_dict()
 
-    def update_voiceprint_result(
-        self, device_id: str, result: dict[str, Any]
-    ) -> dict[str, Any]:
+    def update_voiceprint_result(self, device_id: str, result: dict[str, Any]) -> dict[str, Any]:
         """Store voiceprint identification result in the device shadow.
 
         This is called after a successful voiceprint identification during

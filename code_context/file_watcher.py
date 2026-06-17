@@ -15,15 +15,37 @@ from pathlib import Path
 
 _log = logging.getLogger(__name__)
 
-_DEFAULT_EXTENSIONS = frozenset({
-    ".py", ".js", ".jsx", ".ts", ".tsx", ".go", ".rs",
-    ".java", ".c", ".cpp", ".cc", ".h", ".hpp",
-})
+_DEFAULT_EXTENSIONS = frozenset(
+    {
+        ".py",
+        ".js",
+        ".jsx",
+        ".ts",
+        ".tsx",
+        ".go",
+        ".rs",
+        ".java",
+        ".c",
+        ".cpp",
+        ".cc",
+        ".h",
+        ".hpp",
+    }
+)
 
-_IGNORE_DIRS = frozenset({
-    ".git", "__pycache__", "node_modules", ".venv", "venv",
-    ".mypy_cache", ".pytest_cache", ".ruff_cache", "site-packages",
-})
+_IGNORE_DIRS = frozenset(
+    {
+        ".git",
+        "__pycache__",
+        "node_modules",
+        ".venv",
+        "venv",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".ruff_cache",
+        "site-packages",
+    }
+)
 
 
 @dataclass

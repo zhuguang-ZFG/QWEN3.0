@@ -1,20 +1,29 @@
 """Tests for observability events, metrics, and redaction guarantees."""
+
 from observability.events import (
-    LiMaEvent, _hash_session, request_start_event, request_end_event,
-    backend_call_event, backend_error_event,
-    route_decision_event, quality_result_event,
-    key_pool_event, token_usage_event,
+    LiMaEvent,
+    _hash_session,
+    request_start_event,
+    request_end_event,
+    backend_call_event,
+    backend_error_event,
+    route_decision_event,
+    quality_result_event,
+    key_pool_event,
+    token_usage_event,
 )
 from observability.metrics import (
-    record, get_metrics_snapshot, reset_metrics,
-    get_top_failing_backends, get_top_quality_backends,
+    record,
+    get_metrics_snapshot,
+    reset_metrics,
+    get_top_failing_backends,
+    get_top_quality_backends,
     get_fastest_growing_failure_class,
 )
 
 
 def setup_function():
     reset_metrics()
-
 
 
 def test_event_defaults():
@@ -57,9 +66,7 @@ def test_request_end_event_failure():
 
 
 def test_backend_call_event():
-    e = backend_call_event(
-        "req1", "scnet_ds_flash", "coding_pool", session_id="s1", latency_ms=42.5
-    )
+    e = backend_call_event("req1", "scnet_ds_flash", "coding_pool", session_id="s1", latency_ms=42.5)
     assert e.event_type == "backend_call"
     assert e.backend == "scnet_ds_flash"
     assert e.route_reason == "coding_pool"
@@ -75,8 +82,9 @@ def test_backend_error_event():
 
 
 def test_route_decision_event():
-    e = route_decision_event("req1", "scnet_ds_flash", "reputation_top",
-                             candidates=["scnet_ds_flash", "github_gpt4o", "cf_qwen_coder"] * 2)
+    e = route_decision_event(
+        "req1", "scnet_ds_flash", "reputation_top", candidates=["scnet_ds_flash", "github_gpt4o", "cf_qwen_coder"] * 2
+    )
     assert e.event_type == "route_decision"
     assert len(e.metadata["candidates"]) <= 5
 
@@ -138,7 +146,6 @@ def test_hash_session_deterministic():
 
 def test_hash_session_empty():
     assert _hash_session("") == ""
-
 
 
 def test_record_request_start_increments_total():
@@ -238,7 +245,6 @@ def test_get_fastest_growing_failure_class():
     assert top[0][1] == 10
 
 
-
 def test_snapshot_never_contains_raw_key():
     snapshot = get_metrics_snapshot()
     text = str(snapshot)
@@ -257,7 +263,6 @@ def test_session_ids_are_hashed():
     e2 = backend_call_event("r2", "test", "", session_id="real_session_abc")
     assert e1.session_id_hash == e2.session_id_hash
     assert "real_session_abc" not in e1.session_id_hash
-
 
 
 def test_event_type_counts_accurate():

@@ -29,7 +29,7 @@ class TestCodeValidationProcessor:
         assert any("syntax" in i.lower() for i in result.quality_issues)
 
     def test_security_issue_marks_quality_fail(self):
-        ctx = _ctx('```python\nresult = eval(user_input)\n```')
+        ctx = _ctx("```python\nresult = eval(user_input)\n```")
         result = code_validation_processor(ctx)
         assert result.quality_ok is False
         assert any("security" in i.lower() for i in result.quality_issues)
@@ -70,7 +70,7 @@ class TestPipelineIntegration:
 
     def test_pipeline_validates_bad_code(self):
         pipeline = build_default_response_pipeline()
-        ctx = _ctx('```python\ndef bad(\n```')
+        ctx = _ctx("```python\ndef bad(\n```")
         result = pipeline.process(ctx)
         assert result.quality_ok is False
         assert any("syntax" in i.lower() for i in result.quality_issues)

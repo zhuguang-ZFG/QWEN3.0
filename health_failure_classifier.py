@@ -7,19 +7,41 @@ from typing import Optional
 # Ordered (markers, classification) — first match wins
 _TEXT_RULES: list[tuple[tuple[str, ...], str]] = [
     (("anonymous_usage_exceeded",), "manual_refresh_required"),
-    (("unauthorized", "forbidden", "invalid token", "invalid api key",
-      "not authenticated"), "auth_expired"),
+    (("unauthorized", "forbidden", "invalid token", "invalid api key", "not authenticated"), "auth_expired"),
     (("too many requests", "rate limit", "rate exceeded", "slow down"), "rate_limited"),
-    (("quota", "usage exhausted", "limit exceeded", "billing",
-      "insufficient_quota"), "quota_exhausted"),
-    (("connection refused", "connection reset", "connection aborted",
-      "name or service not known", "no route to host", "connection timed out",
-      "timed out", "read timed out", "could not resolve host",
-      "temporary failure in name resolution", "network is unreachable",
-      "connectionerror", "remote end closed"), "network_error"),
-    (("jsondecodeerror", "expecting value", "unterminated string",
-      "unexpected token", "invalid json", "syntax error", "expected",
-      "malformed", "parse error"), "malformed_response"),
+    (("quota", "usage exhausted", "limit exceeded", "billing", "insufficient_quota"), "quota_exhausted"),
+    (
+        (
+            "connection refused",
+            "connection reset",
+            "connection aborted",
+            "name or service not known",
+            "no route to host",
+            "connection timed out",
+            "timed out",
+            "read timed out",
+            "could not resolve host",
+            "temporary failure in name resolution",
+            "network is unreachable",
+            "connectionerror",
+            "remote end closed",
+        ),
+        "network_error",
+    ),
+    (
+        (
+            "jsondecodeerror",
+            "expecting value",
+            "unterminated string",
+            "unexpected token",
+            "invalid json",
+            "syntax error",
+            "expected",
+            "malformed",
+            "parse error",
+        ),
+        "malformed_response",
+    ),
 ]
 
 _CODE_RULES: list[tuple[set[int], str]] = [

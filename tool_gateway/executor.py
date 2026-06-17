@@ -70,13 +70,13 @@ class ToolExecutor:
 
         handler = self._handlers.get(name)
         if not handler:
-            audit_event("execute_rejected", tool=name, reason="no_handler",
-                       provenance=getattr(tool, "provenance", "unknown"))
+            audit_event(
+                "execute_rejected", tool=name, reason="no_handler", provenance=getattr(tool, "provenance", "unknown")
+            )
             return {"ok": False, "error": "no_handler_registered", "tool": tool.name}
 
         kind = handler["kind"]
         target = handler["target"]
-
 
         try:
             audit_event("execute_start", tool=name, kind=kind, args_keys=list(args.keys()))
@@ -94,12 +94,11 @@ class ToolExecutor:
             audit_event("execute_error", tool=name, error=str(exc)[:200])
             return {"ok": False, "error": str(exc)[:500], "tool": name}
 
-    def _exec_shell(
-        self, name: str, template: str, args: dict, *, timeout_sec: float
-    ) -> dict:
+    def _exec_shell(self, name: str, template: str, args: dict, *, timeout_sec: float) -> dict:
         """Run a shell command safely — no shell=True, args passed as list."""
         import re
-        _SAFE_ARG = re.compile(r'^[\w\-./=:@]+$')
+
+        _SAFE_ARG = re.compile(r"^[\w\-./=:@]+$")
         sanitized = {}
         for k, v in args.items():
             v_str = str(v)
@@ -108,9 +107,7 @@ class ToolExecutor:
             sanitized[k] = v_str
         cmd_str = template.format(**sanitized)
         cmd_list = shlex.split(cmd_str)
-        result = subprocess.run(
-            cmd_list, shell=False, capture_output=True, text=True, timeout=timeout_sec
-        )
+        result = subprocess.run(cmd_list, shell=False, capture_output=True, text=True, timeout=timeout_sec)
         return {
             "ok": result.returncode == 0,
             "tool": name,
@@ -119,9 +116,7 @@ class ToolExecutor:
             "returncode": result.returncode,
         }
 
-    def _exec_http(
-        self, name: str, url_template: str, args: dict, *, timeout_sec: float
-    ) -> dict:
+    def _exec_http(self, name: str, url_template: str, args: dict, *, timeout_sec: float) -> dict:
         """Make an HTTP request. Does not mutate caller's args dict."""
         args_copy = dict(args)
         method = args_copy.pop("_method", "POST").upper()

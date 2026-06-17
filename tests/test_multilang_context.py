@@ -23,6 +23,7 @@ from code_context.file_watcher import FileWatcher
 # AST Adapter - existing Python extractor
 # ---------------------------------------------------------------------------
 
+
 class TestStdlibAstExtractor:
     def test_extract_python_symbols(self, tmp_path):
         p = tmp_path / "test.py"
@@ -64,6 +65,7 @@ class TestStdlibAstExtractor:
 # ---------------------------------------------------------------------------
 # Tree-sitter adapter (regex fallback mode)
 # ---------------------------------------------------------------------------
+
 
 class TestTreeSitterAdapter:
     def test_typescript_symbols(self, tmp_path):
@@ -123,6 +125,7 @@ class TestTreeSitterAdapter:
 # Scanner - multi-language dispatch
 # ---------------------------------------------------------------------------
 
+
 class TestScanner:
     def test_scan_python_file(self, tmp_path):
         p = tmp_path / "test.py"
@@ -156,6 +159,7 @@ class TestScanner:
 # InMemoryGraphIndex
 # ---------------------------------------------------------------------------
 
+
 class TestInMemoryGraphIndex:
     def test_add_and_search(self):
         g = InMemoryGraphIndex()
@@ -176,6 +180,7 @@ class TestInMemoryGraphIndex:
 # ---------------------------------------------------------------------------
 # SQLite Graph Index
 # ---------------------------------------------------------------------------
+
 
 class TestSqliteGraphIndex:
     def test_persistence(self, tmp_path):
@@ -221,6 +226,7 @@ class TestSqliteGraphIndex:
 # InMemoryCodeIndex
 # ---------------------------------------------------------------------------
 
+
 class TestInMemoryCodeIndex:
     def test_upsert_and_search(self):
         idx = InMemoryCodeIndex()
@@ -246,6 +252,7 @@ class TestInMemoryCodeIndex:
 # FileWatcher
 # ---------------------------------------------------------------------------
 
+
 class TestFileWatcher:
     def test_detect_new_files(self, tmp_path):
         (tmp_path / "a.py").write_text("def a(): pass")
@@ -256,6 +263,7 @@ class TestFileWatcher:
 
     def test_detect_modified_files(self, tmp_path):
         import time
+
         (tmp_path / "a.py").write_text("def a(): pass")
         watcher = FileWatcher(root_path=str(tmp_path))
         watcher.scan()
@@ -300,6 +308,7 @@ class TestFileWatcher:
 # ---------------------------------------------------------------------------
 # Factory functions
 # ---------------------------------------------------------------------------
+
 
 class TestFactories:
     def test_build_graph_index_default(self):

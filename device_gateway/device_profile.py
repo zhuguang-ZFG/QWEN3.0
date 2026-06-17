@@ -87,7 +87,9 @@ class DevicePreferences:
 
     def __post_init__(self) -> None:
         if self.quality_priority not in PRIORITY_VALUES:
-            raise ValueError(f"quality_priority must be one of {sorted(PRIORITY_VALUES)}, got {self.quality_priority!r}")
+            raise ValueError(
+                f"quality_priority must be one of {sorted(PRIORITY_VALUES)}, got {self.quality_priority!r}"
+            )
         if self.cost_sensitivity not in COST_SENSITIVITY_VALUES:
             raise ValueError(
                 f"cost_sensitivity must be one of {sorted(COST_SENSITIVITY_VALUES)}, got {self.cost_sensitivity!r}"
@@ -203,7 +205,8 @@ def profile_from_hello_frame(
 
 
 def _parse_evidence_log(
-    log_path: Path, max_age_s: float,
+    log_path: Path,
+    max_age_s: float,
 ) -> tuple[dict[str, int], set[str], list[float], int, int]:
     """Parse route evidence log and return aggregated stats."""
     models_seen: dict[str, int] = {}
@@ -261,8 +264,10 @@ def infer_profile_from_artifacts(
         total_tasks=total,
     )
     return DeviceProfile(
-        device_id=device_id, capability=DeviceCapability(),
-        preferences=DevicePreferences(), history=hist,
+        device_id=device_id,
+        capability=DeviceCapability(),
+        preferences=DevicePreferences(),
+        history=hist,
     )
 
 

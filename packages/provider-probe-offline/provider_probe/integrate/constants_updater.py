@@ -105,6 +105,9 @@ def apply_to_frozenset(file_path: str, set_name: str, new_names: list[str]) -> b
 
     logger.info(
         "Added %d names to %s in %s: %s",
-        len(names_to_add), set_name, file_path, names_to_add,
+        len(names_to_add),
+        set_name,
+        file_path,
+        names_to_add,
     )
     return True

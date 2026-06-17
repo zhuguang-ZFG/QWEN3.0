@@ -116,6 +116,7 @@ def _select_key(backend: str, backend_cfg: dict) -> tuple[str, str]:
     # Check runtime token overrides first (from /internal/v1/token-sync)
     try:
         from routes.token_sync import get_token_override
+
         override = get_token_override(backend)
         if override:
             return override, f"override:{backend}"
@@ -141,8 +142,11 @@ def _select_key(backend: str, backend_cfg: dict) -> tuple[str, str]:
             raw_key = os.environ.get(key_env_var, "")
         if not raw_key:
             # Scan common env var patterns
-            for env_name in [f"{backend.upper()}_API_KEY", f"{backend.upper()}_KEY",
-                             f"{backend.replace('-', '_').upper()}_KEY"]:
+            for env_name in [
+                f"{backend.upper()}_API_KEY",
+                f"{backend.upper()}_KEY",
+                f"{backend.replace('-', '_').upper()}_KEY",
+            ]:
                 raw_key = os.environ.get(env_name, "")
                 if raw_key:
                     break
@@ -214,9 +218,11 @@ def _enrich_system_prompt(system_prompt: str, ide: str, fmt: str) -> str:
     if not ide or ide in ("unknown", "\u672a\u77e5"):
         return system_prompt
     from prompt_engineering.layers import compose_system_prompt
+
     scenario = "coding" if fmt != "anthropic" or ide else "chat"
     return compose_system_prompt(
-        ide=ide, scenario=scenario,
+        ide=ide,
+        scenario=scenario,
         code_context=system_prompt if system_prompt else "",
     )
 
@@ -225,6 +231,7 @@ def _apply_prefix_cache(sys_text: str, messages: list[dict]) -> tuple[str, list[
     """Apply prefix cache optimization if available."""
     try:
         from context_pipeline.cache import optimize_for_prefix_cache
+
         if sys_text and messages:
             sys_text, messages = optimize_for_prefix_cache(sys_text, messages)
     except ImportError:
@@ -234,22 +241,21 @@ def _apply_prefix_cache(sys_text: str, messages: list[dict]) -> tuple[str, list[
     return sys_text, messages
 
 
-def _build_anthropic_body(cfg: dict, model: str, max_tokens: int,
-                          sys_text: str, messages: list[dict]) -> dict:
+def _build_anthropic_body(cfg: dict, model: str, max_tokens: int, sys_text: str, messages: list[dict]) -> dict:
     """Build request body in Anthropic format."""
     if cfg.get("no_system"):
         omni_msgs = [
-            {"role": m["role"],
-             "content": [{"type": "text", "text": m["content"]}]
-             if isinstance(m["content"], str) else m["content"]}
+            {
+                "role": m["role"],
+                "content": [{"type": "text", "text": m["content"]}] if isinstance(m["content"], str) else m["content"],
+            }
             for m in messages
         ]
         return {"model": model, "max_tokens": max_tokens, "messages": omni_msgs}
     return {"model": model, "max_tokens": max_tokens, "system": sys_text, "messages": messages}
 
 
-def _build_openai_body(cfg: dict, model: str, max_tokens: int,
-                       sys_text: str, messages: list[dict]) -> dict:
+def _build_openai_body(cfg: dict, model: str, max_tokens: int, sys_text: str, messages: list[dict]) -> dict:
     """Build request body in OpenAI-compatible format."""
     if cfg.get("no_system"):
         outgoing = [dict(m) for m in messages]
@@ -264,6 +270,7 @@ def _build_openai_body(cfg: dict, model: str, max_tokens: int,
                     break
         return {"model": model, "max_tokens": max_tokens, "messages": outgoing}
     return {
-        "model": model, "max_tokens": max_tokens,
+        "model": model,
+        "max_tokens": max_tokens,
         "messages": [{"role": "system", "content": sys_text}] + messages,
     }

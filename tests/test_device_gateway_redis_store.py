@@ -74,7 +74,7 @@ class _FakeRedis:
 
     def lrange(self, key, start, end):
         lst = self.lists.get(key, [])
-        return lst[start:end if end >= 0 else None]
+        return lst[start : end if end >= 0 else None]
 
     def time(self):
         return [self.now, 0]

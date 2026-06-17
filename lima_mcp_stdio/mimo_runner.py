@@ -93,8 +93,12 @@ def poll(*, workspace: str | None = None) -> dict[str, Any]:
 
 
 def _prepare_run(
-    task: str, mode: str, scope: str | None, workspace: str | None,
-    session_continue: bool, timeout: int | None,
+    task: str,
+    mode: str,
+    scope: str | None,
+    workspace: str | None,
+    session_continue: bool,
+    timeout: int | None,
 ) -> tuple[Path, Path, Path, list[Path], str, int, Path] | dict[str, Any]:
     """Resolve workspace, brief, and attachments. Returns context tuple or error dict."""
     ws = resolve_workspace(workspace)
@@ -117,34 +121,56 @@ def _prepare_run(
 
 
 def _finalize_run(
-    artifact_dir: Path, invoke, findings: list, lane_row: dict,
-    task: str, mode: str, brief_path: Path, out_path: Path,
+    artifact_dir: Path,
+    invoke,
+    findings: list,
+    lane_row: dict,
+    task: str,
+    mode: str,
+    brief_path: Path,
+    out_path: Path,
 ) -> dict[str, Any]:
     """Write execution log, done marker, and build return payload."""
     mode_tag = f"mimo-mcp-{mode}"
     findings_path, synthesis_path, fixpack_path = merge_findings.write_findings_bundle(
-        artifact_dir, findings, [lane_row], task, mode_tag,
+        artifact_dir,
+        findings,
+        [lane_row],
+        task,
+        mode_tag,
     )
     (artifact_dir / "execution.log").write_text(
         f"{mode_tag} {datetime.now(timezone.utc).isoformat()} ok={invoke.ok} exit={invoke.exit_code}\n",
         encoding="utf-8",
     )
     (artifact_dir / "last_done.json").write_text(
-        json.dumps({
-            "finished_at": datetime.now(timezone.utc).isoformat(),
-            "ok": invoke.ok, "mode": mode, "task": task,
-            "findings_path": str(findings_path),
-            "summary": _count_severity(findings),
-        }, indent=2, ensure_ascii=False) + "\n",
+        json.dumps(
+            {
+                "finished_at": datetime.now(timezone.utc).isoformat(),
+                "ok": invoke.ok,
+                "mode": mode,
+                "task": task,
+                "findings_path": str(findings_path),
+                "summary": _count_severity(findings),
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+        + "\n",
         encoding="utf-8",
     )
     return {
-        "ok": invoke.ok, "task": task, "mode": mode,
-        "findings_count": len(findings), "summary": _count_severity(findings),
+        "ok": invoke.ok,
+        "task": task,
+        "mode": mode,
+        "findings_count": len(findings),
+        "summary": _count_severity(findings),
         "findings": findings,
         "paths": {
-            "brief": str(brief_path), "lane_output": str(out_path),
-            "findings": str(findings_path), "synthesis": str(synthesis_path),
+            "brief": str(brief_path),
+            "lane_output": str(out_path),
+            "findings": str(findings_path),
+            "synthesis": str(synthesis_path),
             "fix_pack": str(fixpack_path),
         },
     }
@@ -174,13 +200,22 @@ def run(
     prompt = mimo_agents.build_prompt(mode, task, json_output=json_findings)
     agent = mimo_agents.resolve_agent(mode)
     invoke = mimo_invoke.run_mimo(
-        prompt, ws, attach_files=attach, agent=agent,
-        session_continue=session_continue, timeout=lane_timeout, output_path=out_path,
+        prompt,
+        ws,
+        attach_files=attach,
+        agent=agent,
+        session_continue=session_continue,
+        timeout=lane_timeout,
+        output_path=out_path,
     )
     lane_row = {
-        "lane": MIMO_LANE, "ok": invoke.ok, "exit_code": invoke.exit_code,
+        "lane": MIMO_LANE,
+        "ok": invoke.ok,
+        "exit_code": invoke.exit_code,
         "error": "" if invoke.ok else "invoke failed",
-        "path": str(out_path), "mode": mode, "command": invoke.command,
+        "path": str(out_path),
+        "mode": mode,
+        "command": invoke.command,
     }
     findings = merge_findings.merge_lane_artifacts(artifact_dir, (MIMO_LANE,))
     result = _finalize_run(artifact_dir, invoke, findings, lane_row, task, mode, brief_path, out_path)
@@ -190,11 +225,15 @@ def run(
     return result
 
 
-def review(*, task: str, scope: str | None = None, workspace: str | None = None, timeout: int | None = None) -> dict[str, Any]:
+def review(
+    *, task: str, scope: str | None = None, workspace: str | None = None, timeout: int | None = None
+) -> dict[str, Any]:
     return run(task=task, mode="review", scope=scope, workspace=workspace, timeout=timeout)
 
 
-def verify(*, task: str | None = None, scope: str | None = None, workspace: str | None = None, timeout: int | None = None) -> dict[str, Any]:
+def verify(
+    *, task: str | None = None, scope: str | None = None, workspace: str | None = None, timeout: int | None = None
+) -> dict[str, Any]:
     ws = resolve_workspace(workspace)
     artifact_dir = _artifact_dir(ws)
     baseline_path = artifact_dir / "findings.json"

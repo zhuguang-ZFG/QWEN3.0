@@ -20,14 +20,19 @@ def test_medium_coding_request():
 
 
 def test_complex_multi_file_refactor():
-    messages = [{"role": "user", "content": (
-        "refactor the architecture of routing_engine.py and server.py "
-        "to use the new pipeline pattern. Also update http_caller.py "
-        "and add concurrent handling with proper mutex locks. "
-        "The performance optimization should cover all .ts and .go files. "
-        "```python\nimport asyncio\nclass Pipeline:\n    def __init__(self):\n        pass\n"
-        "    def process(self):\n        pass\n```"
-    )}]
+    messages = [
+        {
+            "role": "user",
+            "content": (
+                "refactor the architecture of routing_engine.py and server.py "
+                "to use the new pipeline pattern. Also update http_caller.py "
+                "and add concurrent handling with proper mutex locks. "
+                "The performance optimization should cover all .ts and .go files. "
+                "```python\nimport asyncio\nclass Pipeline:\n    def __init__(self):\n        pass\n"
+                "    def process(self):\n        pass\n```"
+            ),
+        }
+    ]
     result = assess_complexity(messages, ide="Claude Code")
     assert result.score >= 6
     assert result.recommended_tier == "strong"
@@ -50,11 +55,16 @@ def test_dynamic_ensemble_decision_simple():
 
 def test_dynamic_ensemble_decision_complex():
     code = "def process():\n    pass\n" * 100
-    messages = [{"role": "user", "content": (
-        "refactor the distributed architecture in server.py and routing_engine.py "
-        "with concurrent optimization for the .go and .rs services. "
-        f"```python\n{code}\n```"
-    )}]
+    messages = [
+        {
+            "role": "user",
+            "content": (
+                "refactor the distributed architecture in server.py and routing_engine.py "
+                "with concurrent optimization for the .go and .rs services. "
+                f"```python\n{code}\n```"
+            ),
+        }
+    ]
     decision = dynamic_ensemble_decision(messages, ide="Cursor")
     assert decision["strategy"] in ("ensemble_race", "single_strong")
     assert decision["complexity_score"] >= 4

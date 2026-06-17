@@ -25,6 +25,8 @@ def _log_info(msg: str, *args: object) -> None:
     text = msg % args if args else msg
     logger.info(text)
     print(f"[periodic-coding-eval] {text}", flush=True)
+
+
 _stop = threading.Event()
 _thread: threading.Thread | None = None
 

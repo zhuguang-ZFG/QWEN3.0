@@ -43,7 +43,8 @@ class ChromaCodeIndex:
         collection_name: str = _DEFAULT_COLLECTION,
     ) -> None:
         self._persist_dir = persist_directory or os.environ.get(
-            "LIMA_DATA_DIR", ".lima-data",
+            "LIMA_DATA_DIR",
+            ".lima-data",
         )
         self._collection_name = collection_name
         self._chroma_client = None
@@ -95,11 +96,13 @@ class ChromaCodeIndex:
             self._collection.upsert(
                 ids=[doc_id],
                 documents=[full_text],
-                metadatas=[{
-                    "path": path,
-                    "mtime": str(mtime),
-                    "symbol_count": str(len(symbols)),
-                }],
+                metadatas=[
+                    {
+                        "path": path,
+                        "mtime": str(mtime),
+                        "symbol_count": str(len(symbols)),
+                    }
+                ],
             )
         except Exception as exc:
             _log.debug("ChromaDB upsert failed for %s: %s", path, exc)

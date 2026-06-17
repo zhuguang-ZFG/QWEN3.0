@@ -49,10 +49,12 @@ def search_production_corpus(query: str, top_k: int = 8) -> list["RetrievalResul
     hits = index.search(query.strip(), top_k=top_k)
     results: list[RetrievalResult] = []
     for hit in hits:
-        results.append(RetrievalResult(
-            path=os.path.basename(hit.document_path),
-            score=max(hit.score, 0.1),
-            source="vector",
-            snippet=hit.snippet[:200] if hit.snippet else "",
-        ))
+        results.append(
+            RetrievalResult(
+                path=os.path.basename(hit.document_path),
+                score=max(hit.score, 0.1),
+                source="vector",
+                snippet=hit.snippet[:200] if hit.snippet else "",
+            )
+        )
     return results

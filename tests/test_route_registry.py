@@ -7,11 +7,7 @@ import server
 
 
 def _api_paths() -> set[str]:
-    return {
-        route.path
-        for route in server.app.routes
-        if isinstance(route, APIRoute)
-    }
+    return {route.path for route in server.app.routes if isinstance(route, APIRoute)}
 
 
 def test_server_registers_core_routes_via_registry():

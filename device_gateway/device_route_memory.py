@@ -86,7 +86,6 @@ def get_route_memory(device_id: str) -> dict[str, Any]:
     return record.to_dict() if record else {}
 
 
-
 def reset_route_memory_for_tests() -> None:
     """Clear all route memory (test isolation hook)."""
     _ROUTE_MEMORY.clear()

@@ -88,10 +88,7 @@ def get_usage_summary() -> dict[str, str]:
     for backend in _cf_backends():
         cf_lines.append(_format_backend_line(backend, usage_snapshot.get(backend, 0)))
 
-    google_lines = [
-        _format_backend_line(backend, usage_snapshot.get(backend, 0))
-        for backend in _google_backends()
-    ]
+    google_lines = [_format_backend_line(backend, usage_snapshot.get(backend, 0)) for backend in _google_backends()]
     try:
         from budget_gitee import get_gitee_summary_lines
 

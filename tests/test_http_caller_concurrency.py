@@ -83,8 +83,7 @@ BACKEND_CFG = {
 def test_call_api_async_parallel_success(mock_build_async_client, mock_ht):
     mock_ht.is_cooled_down.return_value = False
     clients = [
-        _CountingAsyncClient(f"c{i}", {"choices": [{"message": {"content": f"ok{i}"}}]}, delay=0.01)
-        for i in range(8)
+        _CountingAsyncClient(f"c{i}", {"choices": [{"message": {"content": f"ok{i}"}}]}, delay=0.01) for i in range(8)
     ]
     mock_build_async_client.side_effect = clients
 
@@ -141,10 +140,13 @@ def test_call_api_async_parallel_mixed_failures_isolated(mock_build_async_client
                 results.append(("err", str(exc)))
         return results
 
-    with patch.dict(http_caller.BACKENDS, {
-        "async_backend": dict(BACKEND_CFG),
-        "async_backend_fail": dict(BACKEND_CFG),
-    }):
+    with patch.dict(
+        http_caller.BACKENDS,
+        {
+            "async_backend": dict(BACKEND_CFG),
+            "async_backend_fail": dict(BACKEND_CFG),
+        },
+    ):
         outcomes = asyncio.run(_run())
 
     assert sum(1 for kind, _ in outcomes if kind == "ok") == 2
@@ -156,18 +158,17 @@ def test_call_api_async_parallel_mixed_failures_isolated(mock_build_async_client
 def test_call_api_stream_async_parallel_collects_chunks(mock_build_async_client, mock_ht):
     mock_ht.is_cooled_down.return_value = False
     line = "data: " + json.dumps({"choices": [{"delta": {"content": "x"}}]})
-    clients = [
-        _AsyncStreamClient([line, "data: [DONE]"], delay=0.01)
-        for _ in range(5)
-    ]
+    clients = [_AsyncStreamClient([line, "data: [DONE]"], delay=0.01) for _ in range(5)]
     mock_build_async_client.side_effect = clients
 
     async def _run():
         tasks = [
-            _collect_async(http_caller.call_api_stream_async(
-                "async_stream",
-                [{"role": "user", "content": f"hi {i}"}],
-            ))
+            _collect_async(
+                http_caller.call_api_stream_async(
+                    "async_stream",
+                    [{"role": "user", "content": f"hi {i}"}],
+                )
+            )
             for i in range(5)
         ]
         return await asyncio.gather(*tasks)
@@ -184,7 +185,11 @@ def test_call_api_stream_async_parallel_collects_chunks(mock_build_async_client,
 @patch("http_caller.health_tracker")
 @patch("http_caller._build_client")
 def test_call_api_thread_burst_all_succeed(
-    mock_build_client, mock_ht, mock_get_key, mock_ensure_env_pool, mock_is_exhausted,
+    mock_build_client,
+    mock_ht,
+    mock_get_key,
+    mock_ensure_env_pool,
+    mock_is_exhausted,
 ):
     mock_ht.is_cooled_down.return_value = False
     mock_ensure_env_pool.return_value = True

@@ -1,4 +1,5 @@
 """Ops metrics correlator — cross-system trace by request/task/device id."""
+
 from __future__ import annotations
 
 import logging
@@ -11,6 +12,7 @@ def correlate_by_id(target: str, limit: int = 50) -> list[dict[str, Any]]:
     """Correlate events by request_id, task_id, or device_id."""
     try:
         from observability.correlation import correlate_by_id as _correlate
+
         return _correlate(target, limit=limit)
     except ImportError:
         return []
@@ -20,6 +22,7 @@ def correlate_recent(limit: int = 10) -> list[dict[str, Any]]:
     """Get recent correlation events."""
     try:
         from observability.correlation import correlate_recent as _recent
+
         return _recent(limit)
     except ImportError:
         return []
@@ -29,6 +32,7 @@ def correlation_summary() -> dict[str, Any]:
     """Get correlation summary."""
     try:
         from observability.correlation import correlation_summary as _summary
+
         return _summary()
     except ImportError:
         return {"error": "correlation module not loaded"}

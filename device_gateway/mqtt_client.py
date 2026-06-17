@@ -18,7 +18,9 @@ import os
 _log = logging.getLogger(__name__)
 
 _MQTT_ENABLED = os.environ.get("LIMA_DEVICE_MQTT_ENABLED", "0").strip().lower() in {
-    "1", "true", "yes",
+    "1",
+    "true",
+    "yes",
 }
 _MQTT_BROKER = os.environ.get("LIMA_DEVICE_MQTT_BROKER", "localhost")
 _MQTT_PORT = int(os.environ.get("LIMA_DEVICE_MQTT_PORT", "1883"))
@@ -59,19 +61,25 @@ def _handle_mqtt_message(client, topic: str, payload: dict, _json, _time_mod) ->
     if msg_type == "hello" and device_id:
         register_mqtt_device(device_id)
         from device_gateway.mqtt_topics import device_downlink_topic
-        ack = {"type": "hello_ack", "protocol": "lima-device-v1",
-               "device_id": device_id, "server_time": int(_time_mod.time())}
+
+        ack = {
+            "type": "hello_ack",
+            "protocol": "lima-device-v1",
+            "device_id": device_id,
+            "server_time": int(_time_mod.time()),
+        }
         client.publish(device_downlink_topic(device_id), _json.dumps(ack), qos=1)
 
     if msg_type == "heartbeat" and device_id:
         from device_gateway.mqtt_topics import device_downlink_topic
-        ack = {"type": "heartbeat_ack", "device_id": device_id,
-               "server_time": int(_time_mod.time())}
+
+        ack = {"type": "heartbeat_ack", "device_id": device_id, "server_time": int(_time_mod.time())}
         client.publish(device_downlink_topic(device_id), _json.dumps(ack), qos=0)
 
     if msg_type == "motion_event" and device_id:
         try:
             from routes.device_gateway_ws_handlers import handle_motion_event
+
             asyncio.get_event_loop().create_task(handle_motion_event(device_id, payload, None))
         except Exception:
             _log.debug("motion event forward failed", exc_info=True)
@@ -80,6 +88,7 @@ def _handle_mqtt_message(client, topic: str, payload: dict, _json, _time_mod) ->
 def _drain_downlink_queues(client, _json) -> None:
     """Drain per-device downlink queues and publish messages."""
     from device_gateway.mqtt_topics import device_downlink_topic
+
     for did, q in list(_mqtt_devices.items()):
         try:
             while True:
@@ -115,7 +124,9 @@ async def start_mqtt_client() -> None:
 
     _log.info(
         "Starting MQTT device transport: %s:%s as %s",
-        _MQTT_BROKER, _MQTT_PORT, _MQTT_CLIENT_ID,
+        _MQTT_BROKER,
+        _MQTT_PORT,
+        _MQTT_CLIENT_ID,
     )
 
     # Start background task for MQTT message loop
@@ -149,8 +160,10 @@ async def _mqtt_message_loop() -> None:
         return  # unreachable
 
     from device_gateway.mqtt_topics import (
-        LWT_OFFLINE, SERVER_SUB_FILTER,
-        device_downlink_topic, device_status_topic,
+        LWT_OFFLINE,
+        SERVER_SUB_FILTER,
+        device_downlink_topic,
+        device_status_topic,
     )
 
     # Bridging: paho (sync) → asyncio

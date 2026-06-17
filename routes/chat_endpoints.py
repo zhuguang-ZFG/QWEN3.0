@@ -3,6 +3,7 @@
 The heavy request execution path lives in routes/chat_handler.py; this module
 owns HTTP parsing, rate limiting, vision short-circuiting, and protocol wrapping.
 """
+
 import logging
 import time
 from typing import Any
@@ -56,7 +57,11 @@ async def _read_json_body(request: Request) -> dict[str, Any] | JSONResponse:
 
 
 async def _handle_vision_shortcut(
-    raw_messages: list, body: dict, ide_source: str, client_ip: str, sys_prompt_preview: str,
+    raw_messages: list,
+    body: dict,
+    ide_source: str,
+    client_ip: str,
+    sys_prompt_preview: str,
 ) -> JSONResponse | StreamingResponse | None:
     """Handle vision requests (image analysis) as a fast-path shortcut."""
     if not detect_vision_request(raw_messages):
@@ -64,18 +69,23 @@ async def _handle_vision_shortcut(
     chat_id = make_chat_id()
     t0 = time.time()
     from chat_request_utils import extract_last_user_text
+
     query_text = extract_last_user_text(raw_messages)
-    vision_result = await _maybe_await(
-        _call("vision_route", raw_messages, body.get("max_tokens", 4096), ide_source)
-    )
+    vision_result = await _maybe_await(_call("vision_route", raw_messages, body.get("max_tokens", 4096), ide_source))
     if not vision_result:
         return None
     content = vision_result["answer"]
     backend = vision_result["backend"]
     duration_ms = int((time.time() - t0) * 1000)
     _call(
-        "record_request", query_text or "[vision]", backend, "vision",
-        duration_ms, True, client_ip=client_ip, ide_source=ide_source,
+        "record_request",
+        query_text or "[vision]",
+        backend,
+        "vision",
+        duration_ms,
+        True,
+        client_ip=client_ip,
+        ide_source=ide_source,
         sys_prompt_preview=sys_prompt_preview,
     )
     if body.get("stream", False):
@@ -117,7 +127,11 @@ async def chat_completions(request: Request):
     sys_prompt_preview = extract_system_preview(raw_messages)
 
     vision_resp = await _handle_vision_shortcut(
-        raw_messages, body, ide_source, client_ip, sys_prompt_preview,
+        raw_messages,
+        body,
+        ide_source,
+        client_ip,
+        sys_prompt_preview,
     )
     if vision_resp is not None:
         return vision_resp

@@ -22,9 +22,9 @@ STATUS_TOPIC = "lima/{device_id}/status"
 BROADCAST_TOPIC = "lima/broadcast"
 
 # QoS levels
-UPLINK_QOS = 1    # at-least-once for device telemetry
+UPLINK_QOS = 1  # at-least-once for device telemetry
 DOWNLINK_QOS = 1  # at-least-once for commands
-STATUS_QOS = 0    # best-effort for LWT
+STATUS_QOS = 0  # best-effort for LWT
 
 # LWT (Last Will Testament) payload
 LWT_ONLINE = '{"status":"online"}'

@@ -25,10 +25,12 @@ def reframe_for_handoff(
         if msg.get("role") == "assistant":
             content = msg.get("content", "")
             if isinstance(content, str) and content.strip():
-                reframed.append({
-                    "role": "user",
-                    "content": f"[前一个助手的回答，仅供参考:]\n{content}",
-                })
+                reframed.append(
+                    {
+                        "role": "user",
+                        "content": f"[前一个助手的回答，仅供参考:]\n{content}",
+                    }
+                )
             else:
                 reframed.append(msg)
         else:
@@ -54,9 +56,7 @@ def inject_handoff_context(
     """Full handoff: reframe messages + inject transition context."""
     reframed = reframe_for_handoff(messages, from_backend, to_backend)
 
-    transition_note = (
-        f"[系统提示] 之前的请求由 {from_backend} 处理但失败了"
-    )
+    transition_note = f"[系统提示] 之前的请求由 {from_backend} 处理但失败了"
     if error_reason:
         transition_note += f"（原因: {error_reason[:80]}）"
     transition_note += "。请你重新回答用户的问题。"

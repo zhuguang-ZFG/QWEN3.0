@@ -5,6 +5,7 @@ The concrete index implementation lives in `code_context.index_store`; this
 module keeps the planned import path stable while preserving the small local
 MVP shape.
 """
+
 from __future__ import annotations
 
 from .index_store import FileRecord, InMemoryCodeIndex

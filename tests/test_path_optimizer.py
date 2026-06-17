@@ -1,4 +1,5 @@
 """Tests for path_optimizer.py"""
+
 from xiaozhi_drawing.path_optimizer import optimize_svg_path
 
 
@@ -70,7 +71,7 @@ def test_complex_path_optimization():
 
 def test_tolerance_effect():
     """测试容差参数影响"""
-    path = "M 0 0 " + " ".join(f"L {i} {i+0.5}" for i in range(50))
+    path = "M 0 0 " + " ".join(f"L {i} {i + 0.5}" for i in range(50))
 
     result_low = optimize_svg_path(path, tolerance=0.5)
     result_high = optimize_svg_path(path, tolerance=5.0)

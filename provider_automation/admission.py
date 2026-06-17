@@ -109,10 +109,7 @@ def format_patch_plan(plan: PatchPlan) -> str:
     if plan.cool_disable:
         lines.append("## Cool/Disable (removed from catalog, was in routing)")
         for model in plan.cool_disable:
-            lines.append(
-                f"  - {redact_provider_text(model.model_id)}: "
-                "disable in backends.py, do NOT delete"
-            )
+            lines.append(f"  - {redact_provider_text(model.model_id)}: disable in backends.py, do NOT delete")
         lines.append("")
 
     if plan.removals:
@@ -124,9 +121,7 @@ def format_patch_plan(plan: PatchPlan) -> str:
     if plan.watchlist:
         lines.append("## Watchlist (needs evidence)")
         for model, reason in plan.watchlist:
-            lines.append(
-                f"  ? {redact_provider_text(model.model_id)}: {redact_provider_text(reason)}"
-            )
+            lines.append(f"  ? {redact_provider_text(model.model_id)}: {redact_provider_text(reason)}")
         lines.append("")
 
     lines.append("## Actions Required")

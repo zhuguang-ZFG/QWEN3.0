@@ -165,7 +165,12 @@ def record_recovery_route_evidence(
         _persist_route_evidence(
             task_id=task_id,
             device_id=device_id,
-            route_policy={"route_role": "", "model_required": False, "primary_strategy": "", "artifact_required": "none"},
+            route_policy={
+                "route_role": "",
+                "model_required": False,
+                "primary_strategy": "",
+                "artifact_required": "none",
+            },
             content=content,
         )
         return

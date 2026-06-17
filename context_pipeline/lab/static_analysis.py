@@ -50,10 +50,15 @@ class _SymbolVisitor(ast.NodeVisitor):
             if arg.annotation:
                 hints[arg.arg] = ast.unparse(arg.annotation)
         doc = ast.get_docstring(node) or ""
-        self._symbols.append(TypedSymbol(
-            name=node.name, kind="function", line=node.lineno,
-            type_hints=hints, docstring=doc[:200],
-        ))
+        self._symbols.append(
+            TypedSymbol(
+                name=node.name,
+                kind="function",
+                line=node.lineno,
+                type_hints=hints,
+                docstring=doc[:200],
+            )
+        )
         self.generic_visit(node)
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
@@ -64,28 +69,41 @@ class _SymbolVisitor(ast.NodeVisitor):
             if arg.annotation:
                 hints[arg.arg] = ast.unparse(arg.annotation)
         doc = ast.get_docstring(node) or ""
-        self._symbols.append(TypedSymbol(
-            name=node.name, kind="async_function", line=node.lineno,
-            type_hints=hints, docstring=doc[:200],
-        ))
+        self._symbols.append(
+            TypedSymbol(
+                name=node.name,
+                kind="async_function",
+                line=node.lineno,
+                type_hints=hints,
+                docstring=doc[:200],
+            )
+        )
         self.generic_visit(node)
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         doc = ast.get_docstring(node) or ""
         bases = [ast.unparse(b) for b in node.bases]
-        self._symbols.append(TypedSymbol(
-            name=node.name, kind="class", line=node.lineno,
-            type_hints={"bases": ", ".join(bases)} if bases else {},
-            docstring=doc[:200],
-        ))
+        self._symbols.append(
+            TypedSymbol(
+                name=node.name,
+                kind="class",
+                line=node.lineno,
+                type_hints={"bases": ", ".join(bases)} if bases else {},
+                docstring=doc[:200],
+            )
+        )
         self.generic_visit(node)
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
         if isinstance(node.target, ast.Name):
-            self._symbols.append(TypedSymbol(
-                name=node.target.id, kind="variable", line=node.lineno,
-                type_hints={"type": ast.unparse(node.annotation)},
-            ))
+            self._symbols.append(
+                TypedSymbol(
+                    name=node.target.id,
+                    kind="variable",
+                    line=node.lineno,
+                    type_hints={"type": ast.unparse(node.annotation)},
+                )
+            )
         self.generic_visit(node)
 
 
@@ -101,6 +119,10 @@ def is_module_eligible(filepath: str, allowlist: set[str] | None = None) -> bool
 
 def _default_allowlist() -> set[str]:
     return {
-        "routing_engine.py", "router_v3.py", "http_caller.py",
-        "health_tracker.py", "backends.py", "key_pool.py",
+        "routing_engine.py",
+        "router_v3.py",
+        "http_caller.py",
+        "health_tracker.py",
+        "backends.py",
+        "key_pool.py",
     }

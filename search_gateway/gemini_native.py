@@ -25,7 +25,9 @@ _API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 _DEFAULT_MODEL = "gemini-2.5-flash"
 _TIMEOUT = 30
 _ENABLED = os.environ.get("LIMA_GOOGLE_NATIVE", "0").strip().lower() in {
-    "1", "true", "yes",
+    "1",
+    "true",
+    "yes",
 }
 _API_KEY = os.environ.get("GOOGLE_AI_KEY", "")
 _GFW_PROXY = os.environ.get("GFW_PROXY", "")
@@ -63,8 +65,12 @@ def _api_request(method: str, path: str, body: dict | None = None) -> dict:
 
 
 def _build_generate_body(
-    prompt: str, system_instruction: str, temperature: float,
-    max_tokens: int, tools: list[dict] | None, grounding: bool,
+    prompt: str,
+    system_instruction: str,
+    temperature: float,
+    max_tokens: int,
+    tools: list[dict] | None,
+    grounding: bool,
 ) -> dict:
     """Build the generateContent request body."""
     body: dict = {
@@ -101,7 +107,9 @@ def _parse_generate_response(data: dict, model: str) -> dict:
                 ]
             }
     return {
-        "ok": True, "text": text, "model": model,
+        "ok": True,
+        "text": text,
+        "model": model,
         "finish_reason": candidates[0].get("finishReason", "") if candidates else "",
         "token_count": data.get("usageMetadata", {}).get("totalTokenCount", 0),
         "grounding": grounding_metadata,
@@ -151,7 +159,9 @@ def count_tokens(
         body["systemInstruction"] = {"parts": [{"text": system_instruction[:8000]}]}
 
     result = _api_request(
-        "POST", f"/models/{model}:countTokens", body,
+        "POST",
+        f"/models/{model}:countTokens",
+        body,
     )
     if result.get("ok") and result.get("data"):
         return {"ok": True, "total_tokens": result["data"].get("totalTokens", 0)}
@@ -183,7 +193,9 @@ def generate_with_url(
     }
 
     result = _api_request(
-        "POST", f"/models/{model}:generateContent", body,
+        "POST",
+        f"/models/{model}:generateContent",
+        body,
     )
     if result.get("ok") and result.get("data"):
         data = result["data"]

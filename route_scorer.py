@@ -58,8 +58,7 @@ def is_unproven_web_adapter(backend: str) -> bool:
     return backend in UNPROVEN_WEB_ADAPTERS
 
 
-def is_selectable(backend: str, request_type: str,
-                  state: dict | None = None) -> bool:
+def is_selectable(backend: str, request_type: str, state: dict | None = None) -> bool:
     if is_terminal_state(state):
         return False
     if request_type == "ide" and is_unproven_web_adapter(backend):
@@ -104,19 +103,24 @@ def task_fit_score(backend: str, request_type: str, scenario: str = "") -> float
     return 0.6
 
 
-def effective_score(backend: str, request_type: str, scenario: str = "",
-                    *, health_score: float = 50.0,
-                    state: dict | None = None,
-                    avg_latency_ms: float = 1000.0,
-                    remaining_quota_score: float | None = None) -> float:
+def effective_score(
+    backend: str,
+    request_type: str,
+    scenario: str = "",
+    *,
+    health_score: float = 50.0,
+    state: dict | None = None,
+    avg_latency_ms: float = 1000.0,
+    remaining_quota_score: float | None = None,
+) -> float:
     quota_score = (
-        budget_manager.get_remaining_quota_score(backend)
-        if remaining_quota_score is None else remaining_quota_score
+        budget_manager.get_remaining_quota_score(backend) if remaining_quota_score is None else remaining_quota_score
     )
 
     # Reputation score (0-1 normalized)
     try:
         import backend_reputation
+
         rep_score = backend_reputation.get_stats().get("scores", {}).get(backend, 70)
         reputation = _norm_score(rep_score)
     except (ImportError, Exception):
@@ -125,6 +129,7 @@ def effective_score(backend: str, request_type: str, scenario: str = "",
     # Learned weight score (0-1 normalized)
     try:
         from context_pipeline.routing_weights import get_routing_weights
+
         rw = get_routing_weights()
         weight = rw.get_weight(backend, scenario or request_type)
         learned = min(1.0, weight / 2.0)  # weight range is [0.1, 2.0]
@@ -134,6 +139,7 @@ def effective_score(backend: str, request_type: str, scenario: str = "",
     # Backend profile composite score (0-1)
     try:
         import backend_profile
+
         profile = backend_profile.get_profile(backend)
         profile_bonus = profile.composite_score() / 100.0
     except (ImportError, Exception):
@@ -153,10 +159,15 @@ def effective_score(backend: str, request_type: str, scenario: str = "",
     return round(score, 6)
 
 
-def rank_backends(backends: list[str], request_type: str, scenario: str = "",
-                  *, health_scores: dict[str, float] | None = None,
-                  states: dict[str, dict] | None = None,
-                  latency_map: dict[str, float] | None = None) -> list[str]:
+def rank_backends(
+    backends: list[str],
+    request_type: str,
+    scenario: str = "",
+    *,
+    health_scores: dict[str, float] | None = None,
+    states: dict[str, dict] | None = None,
+    latency_map: dict[str, float] | None = None,
+) -> list[str]:
     health_scores = health_scores or {}
     states = states or {}
     latency_map = latency_map or {}

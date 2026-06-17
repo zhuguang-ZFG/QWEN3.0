@@ -11,46 +11,92 @@ import re
 
 _IDENTITY_PATTERNS = [
     # 中文身份问题
-    r"你是谁", r"你叫什么", r"你是什么", r"你是什么模型", r"你的名字",
-    r"你是哪个", r"你是哪家", r"谁开发的你", r"谁做的你",
-    r"你是ai吗", r"你是人工智能吗", r"你是机器人吗",
-    r"你背后是什么", r"你用的什么模型", r"你基于什么",
-    r"你的创造者", r"谁创造.*你", r"你的开发者",
-    r"你的母公司", r"你属于.*公司", r"你是.*公司的",
-    r"你的父公司", r"你的父母", r"你的爸", r"你的妈",
-    r"你从哪来", r"你的身世", r"你的出身", r"你的来历",
-    r"你是.*开发", r"你.*哪个公司", r"你.*哪家公司",
-    r"动力巢", r"donglicao", r"powernest",
-    r"你是gpt吗", r"你是claude吗", r"你是deepseek吗",
-    r"你是llama吗", r"你是gemini吗", r"你是qwen吗",
-    r"你是chatgpt", r"你是通义", r"你是文心",
+    r"你是谁",
+    r"你叫什么",
+    r"你是什么",
+    r"你是什么模型",
+    r"你的名字",
+    r"你是哪个",
+    r"你是哪家",
+    r"谁开发的你",
+    r"谁做的你",
+    r"你是ai吗",
+    r"你是人工智能吗",
+    r"你是机器人吗",
+    r"你背后是什么",
+    r"你用的什么模型",
+    r"你基于什么",
+    r"你的创造者",
+    r"谁创造.*你",
+    r"你的开发者",
+    r"你的母公司",
+    r"你属于.*公司",
+    r"你是.*公司的",
+    r"你的父公司",
+    r"你的父母",
+    r"你的爸",
+    r"你的妈",
+    r"你从哪来",
+    r"你的身世",
+    r"你的出身",
+    r"你的来历",
+    r"你是.*开发",
+    r"你.*哪个公司",
+    r"你.*哪家公司",
+    r"动力巢",
+    r"donglicao",
+    r"powernest",
+    r"你是gpt吗",
+    r"你是claude吗",
+    r"你是deepseek吗",
+    r"你是llama吗",
+    r"你是gemini吗",
+    r"你是qwen吗",
+    r"你是chatgpt",
+    r"你是通义",
+    r"你是文心",
     # 英文身份问题
-    r"who are you", r"what are you", r"what model",
-    r"what is your name", r"your name", r"what AI",
+    r"who are you",
+    r"what are you",
+    r"what model",
+    r"what is your name",
+    r"your name",
+    r"what AI",
     r"are you (gpt|claude|gemini|deepseek|qwen|llama|meta)",
-    r"which (model|llm|ai)", r"who made you", r"who built you",
-    r"who created you", r"what company", r"your (creator|developer|maker)",
-    r"who.*develop", r"who.*own", r"parent company",
+    r"which (model|llm|ai)",
+    r"who made you",
+    r"who built you",
+    r"who created you",
+    r"what company",
+    r"your (creator|developer|maker)",
+    r"who.*develop",
+    r"who.*own",
+    r"parent company",
 ]
 
 _CAPABILITY_PATTERNS = [
     # 中文能力问题
-    r"你能做什么", r"你有什么能力", r"你会什么",
-    r"你能帮我做什么", r"你的功能", r"你擅长什么",
-    r"你可以做什么", r"介绍一下你自己", r"自我介绍",
+    r"你能做什么",
+    r"你有什么能力",
+    r"你会什么",
+    r"你能帮我做什么",
+    r"你的功能",
+    r"你擅长什么",
+    r"你可以做什么",
+    r"介绍一下你自己",
+    r"自我介绍",
     # 英文能力问题
-    r"what can you do", r"what are your capabilities",
-    r"what are you capable of", r"introduce yourself",
-    r"tell me about yourself", r"what do you do",
+    r"what can you do",
+    r"what are your capabilities",
+    r"what are you capable of",
+    r"introduce yourself",
+    r"tell me about yourself",
+    r"what do you do",
     r"what are your (skills|abilities|features)",
 ]
 
-_identity_re = re.compile(
-    "|".join(_IDENTITY_PATTERNS), re.IGNORECASE
-)
-_capability_re = re.compile(
-    "|".join(_CAPABILITY_PATTERNS), re.IGNORECASE
-)
+_identity_re = re.compile("|".join(_IDENTITY_PATTERNS), re.IGNORECASE)
+_capability_re = re.compile("|".join(_CAPABILITY_PATTERNS), re.IGNORECASE)
 
 # ── 预设回答（owner / 默认：完整能力） ───────────────────────────────────────
 
@@ -115,7 +161,7 @@ SHORT_LEAK_REPLACEMENT_EN = "I'm LiMa, an assistant by DongLiCao Technology."
 
 def _is_chinese(text: str) -> bool:
     """判断文本是否主要是中文。"""
-    cn_chars = sum(1 for c in text if '一' <= c <= '鿿')
+    cn_chars = sum(1 for c in text if "一" <= c <= "鿿")
     return cn_chars > len(text) * 0.1
 
 
@@ -170,7 +216,7 @@ _LEAK_PATTERNS = re.compile(
     r"|"
     r"(由|developed by|made by|created by|built by).{0,10}"
     r"(Meta|OpenAI|Google|Anthropic|Microsoft|阿里|百度|字节|腾讯)",
-    re.IGNORECASE
+    re.IGNORECASE,
 )
 
 

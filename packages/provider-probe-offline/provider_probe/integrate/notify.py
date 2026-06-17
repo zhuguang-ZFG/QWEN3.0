@@ -5,6 +5,7 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
+
 async def record_notification(message: str) -> bool:
     """Record provider-discovery notification locally."""
     logger.info("provider discovery notification: %s", message[:500])

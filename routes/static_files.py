@@ -25,8 +25,8 @@ async def serve_service_worker():
             "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
             "Pragma": "no-cache",
             "Expires": "0",
-            "X-Content-Type-Options": "nosniff"
-        }
+            "X-Content-Type-Options": "nosniff",
+        },
     )
 
 
@@ -37,11 +37,7 @@ async def serve_manifest():
     if not file_path.exists():
         raise HTTPException(404, "Manifest not found")
 
-    return FileResponse(
-        file_path,
-        media_type="application/json",
-        headers={"Cache-Control": "public, max-age=86400"}
-    )
+    return FileResponse(file_path, media_type="application/json", headers={"Cache-Control": "public, max-age=86400"})
 
 
 @router.get("/")
@@ -51,11 +47,7 @@ async def serve_index():
     if not file_path.exists():
         raise HTTPException(404, "Index not found")
 
-    return FileResponse(
-        file_path,
-        media_type="text/html",
-        headers={"Cache-Control": "no-cache"}
-    )
+    return FileResponse(file_path, media_type="text/html", headers={"Cache-Control": "no-cache"})
 
 
 @router.get("/chat/admin.css")
@@ -65,11 +57,7 @@ async def serve_admin_css():
     if not file_path.exists():
         raise HTTPException(404, "Admin CSS not found")
 
-    return FileResponse(
-        file_path,
-        media_type="text/css",
-        headers={"Cache-Control": "public, max-age=3600"}
-    )
+    return FileResponse(file_path, media_type="text/css", headers={"Cache-Control": "public, max-age=3600"})
 
 
 @router.get("/chat/admin.js")
@@ -80,7 +68,5 @@ async def serve_admin_js():
         raise HTTPException(404, "Admin JS not found")
 
     return FileResponse(
-        file_path,
-        media_type="application/javascript",
-        headers={"Cache-Control": "public, max-age=3600"}
+        file_path, media_type="application/javascript", headers={"Cache-Control": "public, max-age=3600"}
     )

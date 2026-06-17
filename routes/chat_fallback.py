@@ -12,30 +12,37 @@ from response_builder import build_anthropic_response, build_response
 
 _log = logging.getLogger(__name__)
 
+
 # Simplified quality/stub wrappers (device-first refactor 2026-06-15)
 def quality_check(answer: str, query, backend: str, **kwargs) -> tuple:
     """Always pass - device scenario doesn't need complex quality gates."""
     return (True, 1.0, [])
 
+
 def default_route(query, ide_source="", **kwargs):
     """Return empty to use normal routing."""
     return ("", "")
+
 
 def get_same_tier_backends(backend: str, **kwargs) -> list:
     """No same-tier retry for device scenario."""
     return []
 
+
 def get_upgrade_chain(backend: str, **kwargs) -> list:
     """No upgrade chain for device scenario."""
     return []
+
 
 def honest_failure_response(chat_id: str, fmt: str = "openai", request_model: str | None = None) -> str:
     """Honest failure message."""
     return "抱歉，服务暂时不可用，请稍后重试。"
 
+
 async def try_backend(backend: str, query, max_tokens: int, **kwargs):
     """Simplified backend attempt (stub returns None)."""
     return None
+
 
 from routes.chat_support import attach_memory_recall_meta
 
@@ -66,23 +73,31 @@ def _build_fallback_success_response(
 ) -> JSONResponse:
     """Record metrics and build JSON response for a successful fallback."""
     _record_fallback(
-        req.query, req.backend, backend, intent_label, req.ide_source,
+        req.query,
+        req.backend,
+        backend,
+        intent_label,
+        req.ide_source,
     )
     _record_request(
-        req.query, backend, intent_label, req.elapsed_ms, True,
-        client_ip=req.client_ip, ide_source=req.ide_source,
+        req.query,
+        backend,
+        intent_label,
+        req.elapsed_ms,
+        True,
+        client_ip=req.client_ip,
+        ide_source=req.ide_source,
         sys_prompt_preview=req.sys_prompt_preview,
     )
     _record_chat_evidence(
-        request_id=req.chat_id, backend=backend,
-        status="ok", fallback_used=True, latency_ms=req.elapsed_ms,
+        request_id=req.chat_id,
+        backend=backend,
+        status="ok",
+        fallback_used=True,
+        latency_ms=req.elapsed_ms,
     )
     if req.fmt == "anthropic":
-        return JSONResponse(
-            build_anthropic_response(
-                req.chat_id, content, backend, req.request_model or _model_id
-            )
-        )
+        return JSONResponse(build_anthropic_response(req.chat_id, content, backend, req.request_model or _model_id))
     return JSONResponse(
         attach_memory_recall_meta(
             build_response(req.chat_id, content, backend, req.elapsed_ms),
@@ -99,16 +114,20 @@ async def _try_fallback_candidates(
     """Try each candidate; return success JSONResponse or None."""
     for alt in candidates:
         alt_result = await try_backend(
-            alt, req.query, req.max_tokens,
+            alt,
+            req.query,
+            req.max_tokens,
             messages=req.prompt_context_messages,
         )
-        if alt_result and quality_check(
-            alt_result["answer"], req.complexity, alt, query=req.query
-        ):
+        if alt_result and quality_check(alt_result["answer"], req.complexity, alt, query=req.query):
             return _build_fallback_success_response(
-                req, alt_result["answer"], alt, intent_label,
+                req,
+                alt_result["answer"],
+                alt,
+                intent_label,
             )
     return None
+
 
 _record_request: Callable[..., None] = lambda *a, **kw: None
 _record_fallback: Callable[..., None] = lambda *a, **kw: None
@@ -149,16 +168,14 @@ class QualityFallbackRequest:
 async def resolve_quality_fallback(req: QualityFallbackRequest) -> JSONResponse:
     """Run same-tier and upgrade-chain fallback; return success or honest failure."""
     fallback_intent = req.intent_name if req.intent_name != "unknown" else "unknown"
-    fallback_backend = (
-        default_route(req.query, req.ide_source)
-        if req.backend == "unknown"
-        else req.backend
-    )
+    fallback_backend = default_route(req.query, req.ide_source) if req.backend == "unknown" else req.backend
 
     # Same-tier retry
     same_tier = get_same_tier_backends(fallback_backend)
     result = await _try_fallback_candidates(
-        req, same_tier, f"fallback_same_tier_{fallback_intent}",
+        req,
+        same_tier,
+        f"fallback_same_tier_{fallback_intent}",
     )
     if result:
         return result
@@ -166,21 +183,29 @@ async def resolve_quality_fallback(req: QualityFallbackRequest) -> JSONResponse:
     # Upgrade-chain retry
     upgrade_chain = get_upgrade_chain(fallback_backend)
     result = await _try_fallback_candidates(
-        req, upgrade_chain, f"fallback_upgrade_{fallback_intent}",
+        req,
+        upgrade_chain,
+        f"fallback_upgrade_{fallback_intent}",
     )
     if result:
         return result
 
     # All fallback paths exhausted
     _record_request(
-        req.query, "fallback_exhausted",
+        req.query,
+        "fallback_exhausted",
         f"fallback_exhausted_{fallback_intent}",
-        req.elapsed_ms, False,
-        client_ip=req.client_ip, ide_source=req.ide_source,
+        req.elapsed_ms,
+        False,
+        client_ip=req.client_ip,
+        ide_source=req.ide_source,
         sys_prompt_preview=req.sys_prompt_preview,
     )
     _record_chat_evidence(
-        request_id=req.chat_id, backend="fallback_exhausted",
-        status="failed", fallback_used=True, latency_ms=req.elapsed_ms,
+        request_id=req.chat_id,
+        backend="fallback_exhausted",
+        status="failed",
+        fallback_used=True,
+        latency_ms=req.elapsed_ms,
     )
     return JSONResponse(honest_failure_response(req.chat_id, req.fmt, req.request_model))

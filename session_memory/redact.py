@@ -20,21 +20,19 @@ logger = logging.getLogger("memory_redact")
 # Secret patterns
 
 _SECRET_RE = re.compile(
-    r'(sk-[a-zA-Z0-9]{20,}|sk-ant-[a-zA-Z0-9\-]{20,}|'
-    r'ghp_[a-zA-Z0-9]{36,}|xai-[a-zA-Z0-9]{20,}|'
-    r'AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z\-_]{35}|'
-    r'eyJ[a-zA-Z0-9_\-]+\.[a-zA-Z0-9_\-]+\.[a-zA-Z0-9_\-]+|'
-    r'Bearer\s+[a-zA-Z0-9._\-/+=]{20,}|'
-    r'(?:key|token|secret|password|apikey|api_key)\s*[=:]\s*\S{16,})',
+    r"(sk-[a-zA-Z0-9]{20,}|sk-ant-[a-zA-Z0-9\-]{20,}|"
+    r"ghp_[a-zA-Z0-9]{36,}|xai-[a-zA-Z0-9]{20,}|"
+    r"AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z\-_]{35}|"
+    r"eyJ[a-zA-Z0-9_\-]+\.[a-zA-Z0-9_\-]+\.[a-zA-Z0-9_\-]+|"
+    r"Bearer\s+[a-zA-Z0-9._\-/+=]{20,}|"
+    r"(?:key|token|secret|password|apikey|api_key)\s*[=:]\s*\S{16,})",
     re.IGNORECASE,
 )
 
-_CREDENTIAL_URL_RE = re.compile(
-    r'https?://[^@\s]+:[^@\s]+@\S+', re.IGNORECASE
-)
+_CREDENTIAL_URL_RE = re.compile(r"https?://[^@\s]+:[^@\s]+@\S+", re.IGNORECASE)
 
 _SSH_KEY_RE = re.compile(
-    r'-----BEGIN\s+(?:RSA|OPENSSH|DSA|EC|PGP)\s+PRIVATE KEY-----',
+    r"-----BEGIN\s+(?:RSA|OPENSSH|DSA|EC|PGP)\s+PRIVATE KEY-----",
     re.IGNORECASE,
 )
 

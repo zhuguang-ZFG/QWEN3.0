@@ -1,4 +1,5 @@
 """User and authentication routes for XiaoZhi v1 compatibility API."""
+
 from __future__ import annotations
 
 import os
@@ -51,7 +52,10 @@ async def login(request: Request) -> JSONResponse:
         row = conn.execute("SELECT * FROM v2_account WHERE phone=? AND status='active'", (phone,)).fetchone()
         if row is None:
             account_id = new_id()
-            conn.execute("INSERT INTO v2_account (id, phone, nickname) VALUES (?, ?, ?)", (account_id, phone, body.get("nickname")))
+            conn.execute(
+                "INSERT INTO v2_account (id, phone, nickname) VALUES (?, ?, ?)",
+                (account_id, phone, body.get("nickname")),
+            )
             conn.commit()
             row = conn.execute("SELECT * FROM v2_account WHERE id=?", (account_id,)).fetchone()
     data = login_response(row)

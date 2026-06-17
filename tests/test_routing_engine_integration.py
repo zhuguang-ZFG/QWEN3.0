@@ -1,6 +1,7 @@
 """
 测试路由引擎集成 - 测试路由引擎的各个组件和集成路径
 """
+
 import unittest
 from unittest.mock import MagicMock
 
@@ -40,7 +41,7 @@ class TestRoutingEngineIntegration(unittest.TestCase):
             scenario=self.mock_scenario,
             ms=100,
             skills_injected=skills_injected,
-            retrieval_context=retrieval_context
+            retrieval_context=retrieval_context,
         )
 
         # 验证集成
@@ -63,7 +64,7 @@ class TestRoutingEngineIntegration(unittest.TestCase):
             request_type="code",
             scenario="coding",
             ms=100,
-            retrieval_context=code_context
+            retrieval_context=code_context,
         )
 
         # 验证代码上下文处理
@@ -83,7 +84,7 @@ class TestRoutingEngineIntegration(unittest.TestCase):
             request_type="chat",
             scenario="coding",
             ms=100,
-            skills_injected=["code_fact", "routing_lesson"]
+            skills_injected=["code_fact", "routing_lesson"],
         )
 
         # 验证会话记忆处理
@@ -103,7 +104,7 @@ class TestRoutingEngineIntegration(unittest.TestCase):
             request_type="chat",
             scenario="general",
             ms=100,
-            skills_injected=[]
+            skills_injected=[],
         )
 
         # 验证复杂度评估处理
@@ -129,7 +130,7 @@ class TestRoutingEngineIntegration(unittest.TestCase):
             request_type="chat",
             scenario="general",
             ms=100,
-            skills_injected=[]
+            skills_injected=[],
         )
 
         # 验证响应验证处理
@@ -149,7 +150,7 @@ class TestRoutingEngineIntegration(unittest.TestCase):
             request_type="chat",
             scenario="general",
             ms=100,
-            skills_injected=[]
+            skills_injected=[],
         )
 
         # 验证健康跟踪处理
@@ -169,7 +170,7 @@ class TestRoutingEngineIntegration(unittest.TestCase):
             request_type="chat",
             scenario="general",
             ms=100,
-            skills_injected=["analytics", "logging"]
+            skills_injected=["analytics", "logging"],
         )
 
         # 验证路由后集成处理
@@ -189,7 +190,7 @@ class TestRoutingEngineIntegration(unittest.TestCase):
             request_type="chat",
             scenario="general",
             ms=100,
-            skills_injected=[]
+            skills_injected=[],
         )
 
         # 验证路由事件处理
@@ -210,7 +211,7 @@ class TestRoutingEngineIntegration(unittest.TestCase):
             request_type="chat",
             scenario="general",
             ms=100,
-            skills_injected=[]
+            skills_injected=[],
         )
 
         # 验证反馈桥处理
@@ -219,5 +220,5 @@ class TestRoutingEngineIntegration(unittest.TestCase):
         self.assertEqual(len(result.skills_injected), 0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

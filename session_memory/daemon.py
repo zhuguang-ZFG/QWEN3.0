@@ -16,9 +16,7 @@ from session_memory.store import save_typed_memory
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_INBOX_DIR = os.path.join(
-    os.path.dirname(__file__), "..", "data", "memory_inbox"
-)
+DEFAULT_INBOX_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "memory_inbox")
 CONSOLIDATION_THRESHOLD = 20
 
 _running = False
@@ -104,13 +102,15 @@ def run_once(*, ingest: bool = True, consolidate: bool = True) -> dict:
         error = str(e)
         logger.warning("[MemoryDaemon] cycle error: %s", e)
 
-    _stats.update({
-        "cycles": int(_stats["cycles"]) + 1,
-        "last_cycle_at": time.time(),
-        "last_ingested": ingested,
-        "last_consolidated": consolidated,
-        "last_error": error,
-    })
+    _stats.update(
+        {
+            "cycles": int(_stats["cycles"]) + 1,
+            "last_cycle_at": time.time(),
+            "last_ingested": ingested,
+            "last_consolidated": consolidated,
+            "last_error": error,
+        }
+    )
     return {
         "ingested": ingested,
         "consolidated": consolidated,
@@ -192,13 +192,13 @@ def _extract_facts(fname: str, content: str) -> list[tuple[str, str]]:
 
 
 _SECRET_PATTERNS = re.compile(
-    r'(sk-[a-zA-Z0-9]{20,}|sk-ant-[a-zA-Z0-9\-]{20,}|'
-    r'ghp_[a-zA-Z0-9]{36,}|xai-[a-zA-Z0-9]{20,}|'
-    r'AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z\-_]{35}|'
-    r'eyJ[a-zA-Z0-9_\-]+\.[a-zA-Z0-9_\-]+\.[a-zA-Z0-9_\-]+|'
-    r'Bearer\s+[a-zA-Z0-9._\-/+=]{20,}|'
-    r'(?:key|token|secret|password|apikey|api_key)\s*[=:]\s*\S{16,})',
-    re.IGNORECASE
+    r"(sk-[a-zA-Z0-9]{20,}|sk-ant-[a-zA-Z0-9\-]{20,}|"
+    r"ghp_[a-zA-Z0-9]{36,}|xai-[a-zA-Z0-9]{20,}|"
+    r"AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z\-_]{35}|"
+    r"eyJ[a-zA-Z0-9_\-]+\.[a-zA-Z0-9_\-]+\.[a-zA-Z0-9_\-]+|"
+    r"Bearer\s+[a-zA-Z0-9._\-/+=]{20,}|"
+    r"(?:key|token|secret|password|apikey|api_key)\s*[=:]\s*\S{16,})",
+    re.IGNORECASE,
 )
 
 
@@ -206,6 +206,7 @@ def _sanitize_text(text: str) -> str | None:
     """Redact or reject text containing secrets. Delegates to shared redact module."""
     try:
         from session_memory.redact import sanitize_for_memory
+
         return sanitize_for_memory(text)
     except ImportError:
         if _SECRET_PATTERNS.search(text):
@@ -248,14 +249,11 @@ def _consolidate_if_needed() -> int:
     consolidated = 0
     try:
         from session_memory.store import _get_conn
+
         conn = _get_conn()
-        rows = conn.execute(
-            "SELECT DISTINCT session_id FROM memories"
-        ).fetchall()
+        rows = conn.execute("SELECT DISTINCT session_id FROM memories").fetchall()
         for (sid,) in rows:
-            count = conn.execute(
-                "SELECT COUNT(*) FROM memories WHERE session_id = ?", (sid,)
-            ).fetchone()[0]
+            count = conn.execute("SELECT COUNT(*) FROM memories WHERE session_id = ?", (sid,)).fetchone()[0]
             if count > CONSOLIDATION_THRESHOLD:
                 if _consolidate_session(conn, sid):
                     consolidated += 1
@@ -285,8 +283,7 @@ def _consolidate_session(conn, session_id: str) -> bool:
     conn.execute(
         "INSERT INTO memories (session_id, timestamp, role, summary, detail, embedding, memory_type) "
         "VALUES (?, ?, 'system', ?, ?, '[]', 'compacted')",
-        (session_id, time.time(), f"[consolidated {len(ids)} exchanges] {merged}",
-         "\n".join(summaries)),
+        (session_id, time.time(), f"[consolidated {len(ids)} exchanges] {merged}", "\n".join(summaries)),
     )
     placeholders = ",".join("?" * len(ids))
     conn.execute(f"DELETE FROM memories WHERE id IN ({placeholders})", ids)

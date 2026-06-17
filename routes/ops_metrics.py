@@ -7,6 +7,7 @@ Provides authenticated endpoints:
 
 All raw prompts, keys, paths, and device tokens are redacted.
 """
+
 from __future__ import annotations
 
 import logging
@@ -23,6 +24,7 @@ from routes.ops_metrics.collectors import ops_metrics_snapshot
 router = APIRouter(prefix="/v1/ops")
 logger = logging.getLogger(__name__)
 _BACKEND_NAME_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,96}$")
+
 
 def _alert(severity: str, code: str, message: str, count: int = 1) -> dict[str, Any]:
     return {
@@ -49,8 +51,11 @@ def _extract_metrics_sections(metrics: dict) -> tuple[dict, dict, dict, dict, di
 
 
 def _build_ops_alerts(
-    backends: dict, recovery: dict, cli: dict,
-    backend_telemetry: dict, routing_guard: dict,
+    backends: dict,
+    recovery: dict,
+    cli: dict,
+    backend_telemetry: dict,
+    routing_guard: dict,
 ) -> list[dict]:
     """Build alert list from metrics sections."""
     dead = int(backends.get("dead", 0) or 0)
@@ -70,13 +75,31 @@ def _build_ops_alerts(
     if retired:
         alerts.append(_alert("warning", "backend_retired", f"{retired} backend(s) are manually retired", retired))
     if quarantined:
-        alerts.append(_alert("warning", "backend_quarantined", f"{quarantined} backend(s) are quarantined", quarantined))
+        alerts.append(
+            _alert("warning", "backend_quarantined", f"{quarantined} backend(s) are quarantined", quarantined)
+        )
     if int(cli.get("failed_recent", 0) or 0):
-        alerts.append(_alert("warning", "cli_failures", "Recent developer-tool CLI failures observed", int(cli.get("failed_recent", 0))))
+        alerts.append(
+            _alert(
+                "warning",
+                "cli_failures",
+                "Recent developer-tool CLI failures observed",
+                int(cli.get("failed_recent", 0)),
+            )
+        )
     if int(backend_telemetry.get("slow_recent", 0) or 0):
-        alerts.append(_alert("warning", "slow_backends", "Recent slow backend attempts observed", int(backend_telemetry.get("slow_recent", 0))))
+        alerts.append(
+            _alert(
+                "warning",
+                "slow_backends",
+                "Recent slow backend attempts observed",
+                int(backend_telemetry.get("slow_recent", 0)),
+            )
+        )
     if probe_count:
-        alerts.append(_alert("info", "probe_candidates", "Backends are ready for manual probe/recovery review", probe_count))
+        alerts.append(
+            _alert("info", "probe_candidates", "Backends are ready for manual probe/recovery review", probe_count)
+        )
     return alerts
 
 
@@ -105,8 +128,10 @@ def _ops_summary_from_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
         "timestamp": metrics.get("timestamp"),
         "alerts": alerts[:20],
         "counts": {
-            "dead_backends": dead, "degraded_backends": degraded,
-            "retired_backends": retired, "probe_candidates": probe_count,
+            "dead_backends": dead,
+            "degraded_backends": degraded,
+            "retired_backends": retired,
+            "probe_candidates": probe_count,
             "quarantined_backends": quarantined,
             "cli_failures_recent": int(cli.get("failed_recent", 0) or 0),
             "slow_backend_attempts_recent": int(backend_telemetry.get("slow_recent", 0) or 0),
@@ -141,6 +166,7 @@ async def ops_summary(request: Request) -> JSONResponse:
 @router.get("/correlate/summary", dependencies=[Depends(require_private_api_key)])
 async def ops_correlate_summary() -> JSONResponse:
     from routes.ops_metrics.correlator import correlation_summary
+
     return JSONResponse(correlation_summary())
 
 
@@ -158,6 +184,7 @@ async def ops_correlate(
             status_code=400,
         )
     from routes.ops_metrics.correlator import build_trace
+
     return JSONResponse(build_trace(target))
 
 
@@ -166,6 +193,7 @@ async def ops_eval_revision() -> JSONResponse:
     """Return all eval candidates with promotion status."""
     try:
         from session_memory.eval_gate import revision_check
+
         return JSONResponse(revision_check())
     except ImportError:
         return JSONResponse({"error": "eval_gate module not loaded"}, status_code=503)
@@ -183,6 +211,7 @@ async def ops_eval_approve(request: Request) -> JSONResponse:
         if not pattern_key:
             return JSONResponse({"error": "pattern_key required"}, status_code=400)
         from session_memory.eval_gate import approve_candidate
+
         return JSONResponse(approve_candidate(pattern_key, rollback))
     except ImportError:
         return JSONResponse({"error": "eval_gate module not loaded"}, status_code=503)
@@ -199,6 +228,7 @@ async def ops_eval_apply(request: Request) -> JSONResponse:
         if not isinstance(pattern_key, str) or not pattern_key.strip():
             return JSONResponse({"error": "pattern_key required"}, status_code=400)
         from session_memory.eval_gate import apply_promotion
+
         return JSONResponse(apply_promotion(pattern_key))
     except ImportError:
         return JSONResponse({"error": "eval_gate module not loaded"}, status_code=503)
@@ -282,13 +312,15 @@ async def ops_backend_probe(request: Request) -> JSONResponse:
     else:
         recommended = "keep_retired"
 
-    return JSONResponse({
-        "ok": healthy,
-        "backend": backend,
-        "probe": result,
-        "reactivated": reactivated,
-        "recommended_action": recommended,
-    })
+    return JSONResponse(
+        {
+            "ok": healthy,
+            "backend": backend,
+            "probe": result,
+            "reactivated": reactivated,
+            "recommended_action": recommended,
+        }
+    )
 
 
 @router.post("/backends/retire", dependencies=[Depends(require_private_api_key)])
@@ -306,12 +338,14 @@ async def ops_backend_retire(request: Request) -> JSONResponse:
     try:
         from backend_retirement import STATUS_RETIRED, apply_retirement
 
-        apply_retirement({
-            "action": "retire",
-            "backend": backend,
-            "reason": f"manual operator override: {reason[:200]}",
-            "status": STATUS_RETIRED,
-        })
+        apply_retirement(
+            {
+                "action": "retire",
+                "backend": backend,
+                "reason": f"manual operator override: {reason[:200]}",
+                "status": STATUS_RETIRED,
+            }
+        )
     except ImportError:
         return JSONResponse({"error": "backend_retirement module not loaded"}, status_code=503)
     except Exception as exc:
@@ -339,6 +373,7 @@ def ops_metrics_prometheus(request: Request):
             status_code=404,
         )
     from fastapi.responses import PlainTextResponse
+
     try:
         body = prometheus_metrics.generate_metrics()
     except RuntimeError as exc:

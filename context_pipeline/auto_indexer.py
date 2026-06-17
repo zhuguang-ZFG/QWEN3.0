@@ -27,7 +27,8 @@ class AutoIndexer:
         scan_interval: int = _DEFAULT_SCAN_INTERVAL,
     ) -> None:
         self._root = root_path or os.environ.get(
-            "LIMA_PROJECT_ROOT", os.getcwd(),
+            "LIMA_PROJECT_ROOT",
+            os.getcwd(),
         )
         self._interval = scan_interval
         self._last_scan = 0.0
@@ -38,18 +39,21 @@ class AutoIndexer:
     def _init_components(self) -> None:
         try:
             from code_context.file_watcher import FileWatcher
+
             self._watcher = FileWatcher(root_path=self._root)
         except Exception as exc:
             _log.debug("FileWatcher init failed: %s", exc)
 
         try:
             from code_context.graph_index import build_graph_index
+
             self._graph = build_graph_index()
         except Exception as exc:
             _log.debug("GraphIndex init failed: %s", exc)
 
         try:
             from code_context.chroma_vector_store import ChromaCodeIndex
+
             self._vector = ChromaCodeIndex()
         except Exception as exc:
             _log.debug("ChromaCodeIndex init failed: %s", exc)
@@ -93,7 +97,9 @@ class AutoIndexer:
         if indexed > 0:
             _log.info(
                 "AutoIndexer: %d files indexed, %d changed in %.0fms",
-                indexed, len(changed_paths), duration,
+                indexed,
+                len(changed_paths),
+                duration,
             )
 
         return stats
@@ -106,10 +112,16 @@ class AutoIndexer:
 
         try:
             from code_context.ast_adapter import get_extractor
+
             lang_map = {
-                ".py": "python", ".js": "javascript", ".ts": "typescript",
-                ".tsx": "typescript", ".jsx": "javascript",
-                ".go": "go", ".rs": "rust", ".java": "java",
+                ".py": "python",
+                ".js": "javascript",
+                ".ts": "typescript",
+                ".tsx": "typescript",
+                ".jsx": "javascript",
+                ".go": "go",
+                ".rs": "rust",
+                ".java": "java",
             }
             lang = lang_map.get(suffix, "python")
             extractor = get_extractor(lang)
@@ -129,8 +141,7 @@ class AutoIndexer:
                 except Exception as exc:
                     _log.debug("context_pipeline/auto_indexer.py: {}", type(exc).__name__)
                 symbols_data = [
-                    type("S", (), {"name": s.name, "kind": s.kind, "line": s.line})()
-                    for s in file_ast.symbols
+                    type("S", (), {"name": s.name, "kind": s.kind, "line": s.line})() for s in file_ast.symbols
                 ]
                 imports_data = [(r.target, r.line) for r in file_ast.relations if r.relation_type == "imports"]
                 self._vector.upsert_file(

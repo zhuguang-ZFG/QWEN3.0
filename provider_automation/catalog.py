@@ -147,11 +147,7 @@ class ProviderModelSnapshot:
             provider=provider,
             source=str(data.get("source", "")),
             fetched_at=float(data.get("fetched_at", 0.0) or 0.0),
-            models=[
-                ProviderModelEntry.from_dict(item)
-                for item in data.get("models", [])
-                if isinstance(item, dict)
-            ],
+            models=[ProviderModelEntry.from_dict(item) for item in data.get("models", []) if isinstance(item, dict)],
         )
 
 
@@ -181,9 +177,7 @@ class ProviderCatalogDelta:
         if self.added:
             lines.append("  New models:")
             for model in self.added:
-                lines.append(
-                    f"    + {model.model_id} ({model.pricing}, {model.context_window} ctx)"
-                )
+                lines.append(f"    + {model.model_id} ({model.pricing}, {model.context_window} ctx)")
         if self.removed:
             lines.append("  Removed models:")
             for model in self.removed:

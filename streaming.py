@@ -25,7 +25,10 @@ CallApiAsyncFn = Callable[[str, list, int, str], Awaitable[str]]
 
 
 async def bridge_stream_async(
-    backend: str, messages: list, max_tokens: int, ide: str,
+    backend: str,
+    messages: list,
+    max_tokens: int,
+    ide: str,
     call_stream_async_fn: CallStreamAsyncFn,
     call_api_async_fn: CallApiAsyncFn,
     first_chunk_timeout: float = 3.0,
@@ -80,27 +83,39 @@ async def bridge_stream_async(
 
 
 def _make_streamer(
-    max_tokens: int, ide: str,
+    max_tokens: int,
+    ide: str,
     call_stream_async_fn: CallStreamAsyncFn | None,
     call_api_async_fn: CallApiAsyncFn | None,
-    call_stream_fn: CallStreamFn, call_fn: CallApiFn,
+    call_stream_fn: CallStreamFn,
+    call_fn: CallApiFn,
 ):
     """Create the appropriate streamer (async or sync bridge)."""
     if call_stream_async_fn and call_api_async_fn:
         return lambda b, m: bridge_stream_async(
-            b, m, max_tokens, ide,
+            b,
+            m,
+            max_tokens,
+            ide,
             call_stream_async_fn=call_stream_async_fn,
             call_api_async_fn=call_api_async_fn,
         )
     return lambda b, m: bridge_stream(
-        b, m, max_tokens, ide,
-        call_stream_fn=call_stream_fn, call_fn=call_fn,
+        b,
+        m,
+        max_tokens,
+        ide,
+        call_stream_fn=call_stream_fn,
+        call_fn=call_fn,
     )
 
 
 async def _stream_with_route_check(
-    streamer, predicted: str, stream_messages: list,
-    route_task: asyncio.Task, fallback: str,
+    streamer,
+    predicted: str,
+    stream_messages: list,
+    route_task: asyncio.Task,
+    fallback: str,
 ) -> AsyncIterator[tuple[str, str]]:
     """Stream from predicted backend; switch if route task disagrees."""
     actual_backend = predicted
@@ -132,7 +147,10 @@ async def _stream_with_route_check(
 
 
 async def speculative_stream(
-    query: str, messages: list, max_tokens: int, ide: str,
+    query: str,
+    messages: list,
+    max_tokens: int,
+    ide: str,
     predict_fn: PredictFn,
     select_fn: SelectFn,
     call_stream_fn: CallStreamFn,
@@ -146,18 +164,24 @@ async def speculative_stream(
     stream_messages = messages if messages else [{"role": "user", "content": query}]
     predicted = predict_fn(query, stream_messages, system_prompt, ide)
 
-    route_task = asyncio.create_task(
-        asyncio.to_thread(select_fn, query, system_prompt, ide, messages)
-    )
+    route_task = asyncio.create_task(asyncio.to_thread(select_fn, query, system_prompt, ide, messages))
 
     streamer = _make_streamer(
-        max_tokens, ide, call_stream_async_fn, call_api_async_fn,
-        call_stream_fn, call_fn,
+        max_tokens,
+        ide,
+        call_stream_async_fn,
+        call_api_async_fn,
+        call_stream_fn,
+        call_fn,
     )
 
     try:
         async for item in _stream_with_route_check(
-            streamer, predicted, stream_messages, route_task, predicted,
+            streamer,
+            predicted,
+            stream_messages,
+            route_task,
+            predicted,
         ):
             yield item
     finally:

@@ -52,9 +52,7 @@ class InMemoryCodeIndex:
             embedding=embedding or [],
         )
 
-    def semantic_search(
-        self, query_embedding: list[float], limit: int = 5
-    ) -> list[FileRecord]:
+    def semantic_search(self, query_embedding: list[float], limit: int = 5) -> list[FileRecord]:
         """Search by cosine similarity against stored embeddings."""
         scored: list[tuple[float, FileRecord]] = []
         for record in self._files.values():
@@ -72,9 +70,7 @@ class InMemoryCodeIndex:
         scored: list[tuple[int, FileRecord]] = []
         for record in self._files.values():
             haystack = " ".join(
-                [record.path]
-                + [symbol.name for symbol in record.symbols]
-                + [name for name, _line in record.imports]
+                [record.path] + [symbol.name for symbol in record.symbols] + [name for name, _line in record.imports]
             ).lower()
             score = sum(1 for term in terms if term in haystack)
             if score:
@@ -95,6 +91,7 @@ def build_code_index(**kwargs) -> InMemoryCodeIndex:
     if data_dir:
         try:
             from code_context.chroma_vector_store import ChromaCodeIndex
+
             return ChromaCodeIndex(persist_directory=data_dir, **kwargs)  # type: ignore[return-value]
         except Exception as exc:
             _log.debug("code_context/index_store.py: {}", type(exc).__name__)

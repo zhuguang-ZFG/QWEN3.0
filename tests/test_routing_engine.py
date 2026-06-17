@@ -1,6 +1,7 @@
 """
 测试路由引擎 - 测试路由引擎的各个组件和功能
 """
+
 import unittest
 from unittest.mock import patch, MagicMock
 
@@ -53,7 +54,7 @@ class TestRoutingEngine(unittest.TestCase):
             ms=100,
             fallback_used=True,
             skills_injected=["skill1", "skill2"],
-            retrieval_context="context text"
+            retrieval_context="context text",
         )
         self.assertEqual(result.backend, "custom_backend")
         self.assertEqual(result.answer, "custom answer")
@@ -64,7 +65,7 @@ class TestRoutingEngine(unittest.TestCase):
         self.assertEqual(result.skills_injected, ["skill1", "skill2"])
         self.assertEqual(result.retrieval_context, "context text")
 
-    @patch('routing_engine.skills_mod')
+    @patch("routing_engine.skills_mod")
     def test_inject_skills_with_mock_skills_injector(self, mock_skills_mod):
         """测试 inject_skills 与 mock skills_injector 的集成
 
@@ -73,21 +74,21 @@ class TestRoutingEngine(unittest.TestCase):
         """
         mock_skills_mod.apply_skills.return_value = [
             {"role": "system", "content": "test system"},
-            {"role": "user", "content": "test user"}
+            {"role": "user", "content": "test user"},
         ]
 
         result = inject_skills(
             messages=[{"role": "user", "content": "test"}],
             backend="test_backend",
             ide_source="test_ide",
-            system_prompt="test system prompt"
+            system_prompt="test system prompt",
         )
 
         mock_skills_mod.apply_skills.assert_called_once_with(
             backend="test_backend",
             messages=[{"role": "user", "content": "test"}],
             system_prompt="test system prompt",
-            ide_source="test_ide"
+            ide_source="test_ide",
         )
 
         self.assertEqual(len(result), 2)
@@ -99,11 +100,7 @@ class TestRoutingEngine(unittest.TestCase):
         验证 respond 函数正确处理 openai 格式的响应
         """
         result = RouteResult(
-            backend="openai_backend",
-            answer="test answer",
-            request_type="chat",
-            ms=100,
-            skills_injected=["skill1"]
+            backend="openai_backend", answer="test answer", request_type="chat", ms=100, skills_injected=["skill1"]
         )
 
         response = respond(result, fmt="openai")
@@ -120,11 +117,7 @@ class TestRoutingEngine(unittest.TestCase):
 
         验证 respond 函数正确处理 anthropic 格式的响应
         """
-        result = RouteResult(
-            backend="anthropic_backend",
-            answer="test answer",
-            request_type="chat"
-        )
+        result = RouteResult(backend="anthropic_backend", answer="test answer", request_type="chat")
 
         response = respond(result, fmt="anthropic", model="anthropic-model")
 
@@ -132,7 +125,7 @@ class TestRoutingEngine(unittest.TestCase):
         self.assertEqual(response["content"][0]["text"], "test answer")
         self.assertEqual(response["model"], "anthropic-model")
 
-    @patch('routing_engine.identity_guard')
+    @patch("routing_engine.identity_guard")
     def test_route_identity_detection_path(self, mock_identity_guard):
         """测试 route() 函数的身份检测路径
 
@@ -140,32 +133,32 @@ class TestRoutingEngine(unittest.TestCase):
         """
         mock_identity_guard.detect_identity_question.return_value = "You are an assistant"
 
-        result = route(
-            query="Who are you?",
-            messages=[{"role": "user", "content": "test"}],
-            channel_role="test_role"
-        )
+        result = route(query="Who are you?", messages=[{"role": "user", "content": "test"}], channel_role="test_role")
 
-        mock_identity_guard.detect_identity_question.assert_called_once_with(
-            "Who are you?", channel_role="test_role"
-        )
+        mock_identity_guard.detect_identity_question.assert_called_once_with("Who are you?", channel_role="test_role")
 
         self.assertEqual(result.backend, "identity_guard")
         self.assertEqual(result.answer, "You are an assistant")
         self.assertEqual(result.request_type, "identity")
 
-    @patch('routing_engine.identity_guard')
-    @patch('routing_engine_execute_strategy.health_tracker')
-    @patch('routing_engine_execute_strategy.budget_manager')
-    @patch('routing_engine_execute_strategy.speculative')
-    @patch('routing_engine.classify')
-    @patch('routing_engine.classify_scenario')
-    @patch('routing_engine.select')
-    @patch('routing_engine_execute_strategy.execute')
+    @patch("routing_engine.identity_guard")
+    @patch("routing_engine_execute_strategy.health_tracker")
+    @patch("routing_engine_execute_strategy.budget_manager")
+    @patch("routing_engine_execute_strategy.speculative")
+    @patch("routing_engine.classify")
+    @patch("routing_engine.classify_scenario")
+    @patch("routing_engine.select")
+    @patch("routing_engine_execute_strategy.execute")
     def test_route_full_pipeline_with_call_fn_mock(
-        self, mock_execute, mock_select, mock_classify_scenario,
-        mock_classify, mock_speculative, mock_budget,
-        mock_health, mock_identity
+        self,
+        mock_execute,
+        mock_select,
+        mock_classify_scenario,
+        mock_classify,
+        mock_speculative,
+        mock_budget,
+        mock_health,
+        mock_identity,
     ):
         """测试 route() 函数的完整管道流程
 
@@ -182,11 +175,7 @@ class TestRoutingEngine(unittest.TestCase):
 
         mock_call_fn = MagicMock(return_value="backend1 response")
 
-        result = route(
-            query="test query",
-            messages=[{"role": "user", "content": "test message"}],
-            call_fn=mock_call_fn
-        )
+        result = route(query="test query", messages=[{"role": "user", "content": "test message"}], call_fn=mock_call_fn)
 
         mock_classify.assert_called_once()
         mock_classify_scenario.assert_called_once()
@@ -198,16 +187,22 @@ class TestRoutingEngine(unittest.TestCase):
         self.assertEqual(result.request_type, "chat")
         self.assertEqual(result.scenario, "general")
 
-    @patch('routing_engine.classify')
-    @patch('routing_engine.classify_scenario')
-    @patch('routing_engine_execute_strategy.health_tracker')
-    @patch('routing_engine_execute_strategy.budget_manager')
-    @patch('routing_engine_execute_strategy.speculative')
-    @patch('routing_engine_execute_strategy.execute')
-    @patch('routing_engine.select')
+    @patch("routing_engine.classify")
+    @patch("routing_engine.classify_scenario")
+    @patch("routing_engine_execute_strategy.health_tracker")
+    @patch("routing_engine_execute_strategy.budget_manager")
+    @patch("routing_engine_execute_strategy.speculative")
+    @patch("routing_engine_execute_strategy.execute")
+    @patch("routing_engine.select")
     def test_route_speculative_execution_fallback_on_runtimeerror(
-        self, mock_select, mock_execute, mock_speculative, mock_budget_manager,
-        mock_health_tracker, mock_classify_scenario, mock_classify,
+        self,
+        mock_select,
+        mock_execute,
+        mock_speculative,
+        mock_budget_manager,
+        mock_health_tracker,
+        mock_classify_scenario,
+        mock_classify,
     ):
         """测试 route() 函数的 speculative 执行回退机制
 
@@ -232,7 +227,7 @@ class TestRoutingEngine(unittest.TestCase):
             query="test query",
             messages=[{"role": "user", "content": "test message"}],
             call_fn=mock_call_fn,
-            needs_tools=False
+            needs_tools=False,
         )
 
         mock_speculative.speculative_call.assert_called_once()
@@ -240,8 +235,8 @@ class TestRoutingEngine(unittest.TestCase):
 
         self.assertEqual(result.backend, "fallback_backend")
 
-    @patch('routing_engine_execute_strategy.sticky_session')
-    @patch('routing_engine.sticky_session')
+    @patch("routing_engine_execute_strategy.sticky_session")
+    @patch("routing_engine.sticky_session")
     def test_route_sticky_session_integration(self, mock_sticky_session, mock_exec_sticky):
         """测试 route() 函数的 sticky_session 集成
 
@@ -256,12 +251,10 @@ class TestRoutingEngine(unittest.TestCase):
             query="test query",
             messages=[{"role": "user", "content": "test message"}],
             call_fn=mock_call_fn,
-            model="test_model"
+            model="test_model",
         )
 
-        mock_sticky_session.compute_key.assert_called_once_with(
-            "test_model", unittest.mock.ANY
-        )
+        mock_sticky_session.compute_key.assert_called_once_with("test_model", unittest.mock.ANY)
 
         self.assertEqual(mock_sticky_session.pin_backend.call_count, 1)
 
@@ -295,7 +288,7 @@ class TestRoutingEngine(unittest.TestCase):
         modified = [
             {"role": "user", "content": "test"},
             {"role": "system", "content": "Available skills: skill1, skill2"},
-            {"role": "assistant", "content": "test"}
+            {"role": "assistant", "content": "test"},
         ]
 
         result = get_injected_ids(original, modified)
@@ -320,10 +313,7 @@ class TestRoutingEngine(unittest.TestCase):
         验证 get_injected_ids 函数当有注入的技能时返回正确的ID
         """
         original = [{"role": "user", "content": "test"}]
-        modified = [
-            {"role": "user", "content": "test"},
-            {"role": "system", "content": "Available skills: skill1"}
-        ]
+        modified = [{"role": "user", "content": "test"}, {"role": "system", "content": "Available skills: skill1"}]
 
         result = get_injected_ids(original, modified)
 
@@ -342,7 +332,7 @@ class TestRoutingEngine(unittest.TestCase):
             ms=None,
             fallback_used=None,
             skills_injected=None,
-            retrieval_context=None
+            retrieval_context=None,
         )
 
         self.assertIsNone(result.backend)
@@ -362,12 +352,9 @@ class TestRoutingEngine(unittest.TestCase):
         mock_skills_mod = MagicMock()
         mock_skills_mod.apply_skills.return_value = []
 
-        with patch('routing_engine.skills_mod', mock_skills_mod):
+        with patch("routing_engine.skills_mod", mock_skills_mod):
             result = inject_skills(
-                messages=[],
-                backend="test_backend",
-                ide_source="test_ide",
-                system_prompt="test system prompt"
+                messages=[], backend="test_backend", ide_source="test_ide", system_prompt="test system prompt"
             )
 
         self.assertEqual(result, [])
@@ -377,13 +364,7 @@ class TestRoutingEngine(unittest.TestCase):
 
         验证 respond 函数可以正确处理空答案的情况
         """
-        result = RouteResult(
-            backend="test_backend",
-            answer="",
-            request_type="chat",
-            ms=0,
-            skills_injected=[]
-        )
+        result = RouteResult(backend="test_backend", answer="", request_type="chat", ms=0, skills_injected=[])
 
         response = respond(result, fmt="openai")
 
@@ -397,11 +378,9 @@ class TestRoutingEngine(unittest.TestCase):
         mock_identity_guard = MagicMock()
         mock_identity_guard.detect_identity_question.return_value = "Test identity"
 
-        with patch('routing_engine.identity_guard', mock_identity_guard):
+        with patch("routing_engine.identity_guard", mock_identity_guard):
             result = route(
-                query="Who are you?",
-                messages=[{"role": "user", "content": "test"}],
-                channel_role="test_role"
+                query="Who are you?", messages=[{"role": "user", "content": "test"}], channel_role="test_role"
             )
 
         self.assertEqual(result.backend, "identity_guard")
@@ -415,7 +394,7 @@ class TestRoutingEngine(unittest.TestCase):
         original = [{"role": "user", "content": "test"}]
         modified = [
             {"role": "user", "content": "test"},
-            {"role": "system", "content": "Available skills: skill_1, skill_2, skill_3"}
+            {"role": "system", "content": "Available skills: skill_1, skill_2, skill_3"},
         ]
 
         result = get_injected_ids(original, modified)
@@ -427,15 +406,12 @@ class TestRoutingEngine(unittest.TestCase):
 
         验证 get_injected_ids 函数可以正确处理包含多种角色的消息
         """
-        original = [
-            {"role": "system", "content": "initial system"},
-            {"role": "user", "content": "user message"}
-        ]
+        original = [{"role": "system", "content": "initial system"}, {"role": "user", "content": "user message"}]
         modified = [
             {"role": "system", "content": "initial system"},
             {"role": "user", "content": "user message"},
             {"role": "system", "content": "Available skills: tool_a, tool_b"},
-            {"role": "assistant", "content": "assistant message"}
+            {"role": "assistant", "content": "assistant message"},
         ]
 
         result = get_injected_ids(original, modified)
@@ -453,7 +429,7 @@ class TestRoutingEngine(unittest.TestCase):
             request_type="chat",
             scenario="coding_with_special_chars",
             skills_injected=["skill@1", "skill#2"],
-            retrieval_context="context with unicode: 你好世界"
+            retrieval_context="context with unicode: 你好世界",
         )
 
         self.assertEqual(result.backend, "backend_with_special_chars")
@@ -467,11 +443,7 @@ class TestRoutingEngine(unittest.TestCase):
 
         验证 respond 函数在 anthropic 格式中可以正确处理空答案
         """
-        result = RouteResult(
-            backend="test_backend",
-            answer="",
-            request_type="chat"
-        )
+        result = RouteResult(backend="test_backend", answer="", request_type="chat")
 
         response = respond(result, fmt="anthropic")
 
@@ -509,7 +481,7 @@ class TestRoutingEngine(unittest.TestCase):
         original = [{"role": "user", "content": "test"}]
         modified = [
             {"role": "user", "content": "test"},
-            {"role": "system", "content": "Available skills: single_skill"}
+            {"role": "system", "content": "Available skills: single_skill"},
         ]
 
         result = get_injected_ids(original, modified)
@@ -521,25 +493,13 @@ class TestRoutingEngine(unittest.TestCase):
 
         验证 RouteResult 数据类可以正确比较相等性和不相等性
         """
-        result1 = RouteResult(
-            backend="test",
-            answer="answer",
-            request_type="chat"
-        )
-        result2 = RouteResult(
-            backend="test",
-            answer="answer",
-            request_type="chat"
-        )
-        result3 = RouteResult(
-            backend="different",
-            answer="answer",
-            request_type="chat"
-        )
+        result1 = RouteResult(backend="test", answer="answer", request_type="chat")
+        result2 = RouteResult(backend="test", answer="answer", request_type="chat")
+        result3 = RouteResult(backend="different", answer="answer", request_type="chat")
 
         self.assertEqual(result1, result2)
         self.assertNotEqual(result1, result3)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

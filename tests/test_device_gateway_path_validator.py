@@ -1,4 +1,5 @@
 """Tests for device_gateway.path_validator."""
+
 from device_gateway.path_validator import (
     validate_capability_params,
     validate_run_path_params,

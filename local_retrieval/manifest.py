@@ -103,11 +103,7 @@ class IndexedDocument:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "IndexedDocument":
-        chunks = [
-            ChunkRecord.from_dict(item)
-            for item in data.get("chunks", [])
-            if isinstance(item, dict)
-        ]
+        chunks = [ChunkRecord.from_dict(item) for item in data.get("chunks", []) if isinstance(item, dict)]
         return cls(
             path=str(data.get("path", "")),
             file_hash=str(data.get("file_hash", "")),
@@ -154,11 +150,7 @@ class IndexManifest:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "IndexManifest":
-        documents = [
-            IndexedDocument.from_dict(item)
-            for item in data.get("documents", [])
-            if isinstance(item, dict)
-        ]
+        documents = [IndexedDocument.from_dict(item) for item in data.get("documents", []) if isinstance(item, dict)]
         return cls(
             index_id=str(data.get("index_id", "")),
             backend_kind=_parse_backend_kind(data.get("backend_kind")),
@@ -194,6 +186,7 @@ def redact_text(value: object) -> str:
         return _REDACTED
     try:
         from session_memory.redact import sanitize_for_display
+
         return sanitize_for_display(text)
     except ImportError:
         return text

@@ -1,4 +1,4 @@
-﻿"""Deterministic device command parser with grammar rules and confidence scoring.
+"""Deterministic device command parser with grammar rules and confidence scoring.
 
 Upgrades the first-slice keyword mapping to a small pattern-based parser
 that extracts structured intents from natural-language commands.
@@ -7,6 +7,7 @@ A gated LLM-backed planner (LIMA_DEVICE_LLM_PLANNER=1) can override
 low-confidence parses. Until that gate is opened, unknown commands fall
 back to write_text with an explicit explanation.
 """
+
 from __future__ import annotations
 
 import logging
@@ -34,12 +35,18 @@ _COMMAND_PATTERNS: list[tuple[re.Pattern, str, dict | None]] = [
     # Draw
     (re.compile(r"^画(个?|出?|入?)(?P<prompt>.{1,80})$"), "draw_generated", None),
     (re.compile(r"^(?P<kw>draw|sketch|plot)\s+(?P<prompt>.{1,80})$", re.I), "draw_generated", None),
-        # Run path (explicit motion path execution)
+    # Run path (explicit motion path execution)
     (re.compile(r"^运行路径$|^run[_ ]?path$", re.I), "run_path", None),
-    (re.compile(r"^执行路径\s*(?P<prompt>.{1,40})$"), "run_path", None),# Explicit path (SVG-style)
+    (re.compile(r"^执行路径\s*(?P<prompt>.{1,40})$"), "run_path", None),  # Explicit path (SVG-style)
     (re.compile(r"^(?P<kw>path|svg|gcode)\s+(?P<prompt>.{1,200})$", re.I), "draw_generated", None),
     # Move commands
-    (re.compile(r"^(移动|移动到|移到|go\s*to|move\s*to)\s*x\s*(?P<x>-?\d+)\s*y\s*(?P<y>-?\d+)(\s*z\s*(?P<z>-?\d+))?"), "move_abs", None),
+    (
+        re.compile(
+            r"^(移动|移动到|移到|go\s*to|move\s*to)\s*x\s*(?P<x>-?\d+)\s*y\s*(?P<y>-?\d+)(\s*z\s*(?P<z>-?\d+))?"
+        ),
+        "move_abs",
+        None,
+    ),
     (re.compile(r"^move\s+x\s*(?P<dx>-?\d+)\s*y\s*(?P<dy>-?\d+)", re.I), "move_rel", None),
 ]
 
@@ -50,10 +57,15 @@ def resolve_direct_device_command(text: str) -> dict[str, Any] | None:
     """Legacy direct-command mapping. Kept for backward compatibility."""
     normalized = (text or "").strip().lower()
     control_map = {
-        "归零": "home", "回零": "home", "home": "home",
-        "暂停": "pause", "pause": "pause",
-        "继续": "resume", "resume": "resume",
-        "停止": "stop", "stop": "stop",
+        "归零": "home",
+        "回零": "home",
+        "home": "home",
+        "暂停": "pause",
+        "pause": "pause",
+        "继续": "resume",
+        "resume": "resume",
+        "停止": "stop",
+        "stop": "stop",
         "设备信息": "get_device_info",
     }
     if normalized in control_map:
@@ -147,21 +159,28 @@ def _llm_replan(text: str, _fallback: dict[str, Any]) -> dict[str, Any] | None:
     """Gated LLM replanning for ambiguous commands. Returns None if unavailable."""
     try:
         import http_caller
+
         answer = http_caller.call_api(
             "longcat_lite",
-            [{"role": "user", "content": (
-                "You are a device command parser for a CNC writing machine. "
-                "Given a user command, output ONLY a JSON object with keys: "
-                "capability (one of: run_path, write_text, draw_generated, "
-                "home, pause, resume, stop, get_device_info), "
-                "params (object with text/prompt/x/y/z as needed). "
-                "If the command doesn't make sense for a CNC machine, set "
-                "capability to 'rejected' and include a 'reason' key.\n\n"
-                f"Command: {text}\n\nJSON:"
-            )}],
+            [
+                {
+                    "role": "user",
+                    "content": (
+                        "You are a device command parser for a CNC writing machine. "
+                        "Given a user command, output ONLY a JSON object with keys: "
+                        "capability (one of: run_path, write_text, draw_generated, "
+                        "home, pause, resume, stop, get_device_info), "
+                        "params (object with text/prompt/x/y/z as needed). "
+                        "If the command doesn't make sense for a CNC machine, set "
+                        "capability to 'rejected' and include a 'reason' key.\n\n"
+                        f"Command: {text}\n\nJSON:"
+                    ),
+                }
+            ],
             max_tokens=200,
         )
         import json as _json
+
         json_text = answer.strip()
         if json_text.startswith("```json"):
             json_text = json_text.removeprefix("```json").strip()
