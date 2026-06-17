@@ -58,6 +58,7 @@ _PROVIDERS: dict[str, str] = {
     "aliyun": "device_voice.providers.asr_aliyun.AliyunASRProvider",
     "doubao": "device_voice.providers.asr_doubao.DoubaoASRProvider",
     "dashscope": "device_voice.providers.asr_dashscope.DashScopeASRProvider",
+    "whisper": "device_voice.providers.asr_whisper.WhisperASRProvider",
 }
 
 

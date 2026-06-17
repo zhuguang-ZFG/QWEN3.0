@@ -110,6 +110,14 @@ class TestASRProvider:
 
         assert isinstance(provider, DoubaoASRProvider)
 
+    def test_create_whisper_returns_provider(self):
+        from device_voice.asr import create_asr_provider
+
+        provider = create_asr_provider("whisper")
+        from device_voice.providers.asr_whisper import WhisperASRProvider
+
+        assert isinstance(provider, WhisperASRProvider)
+
     def test_funasr_transcribe_empty_audio(self):
         from device_voice.asr import create_asr_provider
 
@@ -160,6 +168,15 @@ class TestTTSProvider:
         from device_voice.providers.tts_doubao import DoubaoTTSProvider
 
         assert isinstance(provider, DoubaoTTSProvider)
+
+    def test_create_mimo_requires_credentials(self, monkeypatch):
+        monkeypatch.setenv("MIMO_API_KEY", "sk-test")
+        from device_voice.tts import create_tts_provider
+
+        provider = create_tts_provider("mimo")
+        from device_voice.providers.tts_mimo import MiMoTTSProvider
+
+        assert isinstance(provider, MiMoTTSProvider)
 
     def test_create_aliyun_requires_credentials(self, monkeypatch):
         monkeypatch.setenv("ALIBABA_CLOUD_ACCESS_KEY_ID", "ak")

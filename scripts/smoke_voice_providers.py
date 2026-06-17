@@ -6,6 +6,7 @@ Requires credentials in environment / .env:
             ALIBABA_NLS_APP_KEY
   - Doubao: DOUBAO_TTS_APPID, DOUBAO_TTS_ACCESS_TOKEN,
             DOUBAO_ASR_APPID, DOUBAO_ASR_ACCESS_TOKEN
+  - MiMo: MIMO_API_KEY (ASR uses free local FunASR for the round-trip)
 
 Flow for each configured provider:
   1. TTS: text -> PCM audio
@@ -19,7 +20,9 @@ Run:
 from __future__ import annotations
 
 import asyncio
+import difflib
 import os
+import re
 import time
 from pathlib import Path
 
@@ -57,6 +60,10 @@ def _has_doubao_credentials() -> bool:
             "DOUBAO_ASR_ACCESS_TOKEN",
         )
     )
+
+
+def _has_mimo_credentials() -> bool:
+    return bool(os.environ.get("MIMO_API_KEY"))
 
 
 async def _test_dashscope() -> None:
@@ -137,6 +144,59 @@ async def _test_doubao() -> None:
     print(f"  Round-trip match: {recognized.strip() == text.strip()}")
 
 
+async def _test_mimo() -> None:
+    from device_voice.providers.tts_mimo import MiMoTTSProvider
+
+    text = "你好，这是一段测试语音。"
+    sample_rate = 16000
+
+    t0 = time.monotonic()
+    tts = MiMoTTSProvider()
+    audio = await tts.synthesize(text, sample_rate=sample_rate)
+    tts_ms = (time.monotonic() - t0) * 1000
+
+    if not audio:
+        print("  MiMo TTS returned empty audio")
+        return
+
+    t0 = time.monotonic()
+    asr_name, recognized = await _transcribe_with_whisper_or_funasr(audio, sample_rate=sample_rate)
+    asr_ms = (time.monotonic() - t0) * 1000
+
+    print(f"  MiMo TTS: {tts_ms:.0f}ms -> {len(audio)} bytes")
+    print(f"  {asr_name} ASR: {asr_ms:.0f}ms -> '{recognized}'")
+    similarity = _text_similarity(recognized, text)
+    print(f"  Round-trip similarity: {similarity:.2f} (>=0.70 pass)")
+
+
+def _normalize_text(s: str) -> str:
+    """Strip spaces and punctuation for fuzzy round-trip comparison."""
+    return re.sub(r"\W+", "", s.strip())
+
+
+def _text_similarity(a: str, b: str) -> float:
+    """Return a 0-1 similarity score for two strings."""
+    return difflib.SequenceMatcher(None, _normalize_text(a), _normalize_text(b)).ratio()
+
+
+async def _transcribe_with_whisper_or_funasr(audio: bytes, *, sample_rate: int) -> tuple[str, str]:
+    """Prefer faster-whisper (VPS-friendly), fall back to FunASR."""
+    try:
+        from device_voice.providers.asr_whisper import WhisperASRProvider
+
+        asr = WhisperASRProvider()
+        recognized = await asr.transcribe(audio, sample_rate=sample_rate)
+        return "Whisper", recognized
+    except Exception as exc:
+        print(f"  Whisper ASR unavailable ({exc}), falling back to FunASR")
+
+    from device_voice.providers.asr_funasr import FunASRProvider
+
+    asr = FunASRProvider()
+    recognized = await asr.transcribe(audio, sample_rate=sample_rate)
+    return "FunASR", recognized
+
+
 async def main() -> None:
     _load_env()
 
@@ -171,6 +231,16 @@ async def main() -> None:
         tested = True
     else:
         print("Skipping Doubao: credentials not configured.")
+
+    if _has_mimo_credentials():
+        print("Testing MiMo TTS -> FunASR ASR...")
+        try:
+            await _test_mimo()
+        except Exception as exc:
+            print(f"  MiMo test failed: {exc}")
+        tested = True
+    else:
+        print("Skipping MiMo: MIMO_API_KEY not configured.")
 
     if not tested:
         print("No cloud voice credentials found. Set env vars and retry.")

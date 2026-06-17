@@ -5,6 +5,29 @@
 > Updated: 2026-06-17
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-17 小智服务器退役准备：阶段 2 免费 MiMo TTS + Whisper ASR 接入（完成）
+
+- **目标**：补齐一个真实可用的免费云 TTS provider，使 LiMa 在 VPS 上能跑通 TTS → ASR 真实凭证闭环。
+- **调研**：MiMo-V2.5-TTS Series 使用 OpenAI 兼容的 `POST https://api.xiaomimimo.com/v1/chat/completions`，通过 `api-key` 头认证，返回 base64 音频；限时免费。MiMo 未提供云 ASR，ASR 仅开源权重。
+- **实现**：
+  - `device_voice/providers/tts_mimo.py`：新增小米 MiMo TTS provider，支持 `mimo-v2.5-tts` 等模型，自动将 24kHz WAV/PCM 重采样到目标采样率（依赖 ffmpeg），统一异常映射。
+  - `device_voice/providers/asr_whisper.py`：新增本地 faster-whisper ASR provider，默认 `tiny` 模型，VPS 内存友好，作为 FunASR 的轻量替代。
+  - `device_voice/tts.py` / `device_voice/asr.py`：工厂注册 `mimo` 和 `whisper` provider。
+  - `scripts/smoke_voice_providers.py`：MiMo 闭环优先使用 Whisper ASR，FunASR 作为 fallback；使用文本相似度判断冒烟通过。
+  - `.env.example`：新增 `MIMO_API_KEY`、`MIMO_TTS_MODEL`、`MIMO_TTS_VOICE`、`MIMO_TTS_FORMAT` 及 `WHISPER_*` 配置。
+  - 测试：`tests/test_device_voice_cloud_providers.py` 新增 MiMo TTS / Whisper ASR 单测；`tests/test_device_voice.py` 新增工厂创建测试。
+- **验证**：
+  - `ruff check` clean；`pyright` 0 errors；`pytest tests/test_device_voice.py tests/test_device_voice_cloud_providers.py -q` → **61 passed**。
+  - VPS 已部署代码、写入 `MIMO_API_KEY`、安装 `faster-whisper`（自带 `ctranslate2`/`av`/`onnxruntime`）。
+  - 真实凭证冒烟：
+    ```
+    Testing MiMo TTS -> FunASR ASR...
+      MiMo TTS: 7588ms -> 76800 bytes
+      Whisper ASR: 16542ms -> '你好 这是一段测试云'
+      Round-trip similarity: 0.84 (>=0.70 pass)
+    ```
+- **阻塞项**：真机端到端回归、VAD/声纹模型与音频硬件在真机上的实际表现。
+
 ## 2026-06-17 小智服务器退役准备：阶段 2 云 ASR/TTS SDK 接入（完成）
 
 - **目标**：用真实 SDK/REST 替换 `device_voice` 中 4 个云 ASR/TTS stub，使 LiMa 语音管线具备生产级云端能力。
