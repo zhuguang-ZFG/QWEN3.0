@@ -5,6 +5,8 @@ from __future__ import annotations
 import importlib
 import inspect
 
+import pytest
+
 
 def test_routing_engine_exposes_route():
     routing_engine = importlib.import_module("routing_engine")
@@ -19,14 +21,17 @@ def test_http_caller_is_transport_authority():
     assert "router_http" not in source
 
 
-def test_backends_facade_reexports_registry():
-    backends = importlib.import_module("backends")
+def test_backends_facade_removed_registry_is_authority():
+    """backends.py facade retired; backends_registry is the authority."""
+    with pytest.raises(ModuleNotFoundError):
+        importlib.import_module("backends")
     registry = importlib.import_module("backends_registry")
-    assert backends.BACKENDS is registry.BACKENDS
+    assert hasattr(registry, "BACKENDS")
 
 
 def test_quality_gate_modules_are_distinct():
     import pytest
+
     pytest.skip(reason="REMOVED 2026-06-12: routes.quality_gate deleted in Phase 2")
 
 
@@ -38,6 +43,7 @@ def test_lima_context_module_exports():
 
 def test_agent_task_evolution_routes_mounted():
     import pytest
+
     pytest.skip(reason="Module routes.agent_tasks no longer exists - removed with anthropic assistant features")
 
 
@@ -55,6 +61,7 @@ def test_device_gateway_ws_split_preserves_exports():
 
 def test_anthropic_stream_split_preserves_exports():
     import pytest
+
     pytest.skip(reason="REMOVED 2026-06-09: anthropic_stream routes")
 
 
