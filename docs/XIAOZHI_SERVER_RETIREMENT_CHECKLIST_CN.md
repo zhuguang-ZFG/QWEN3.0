@@ -14,14 +14,14 @@
 | --- | --- | --- |
 | 兼容 REST 层（OpenAPI 28/29） | ✅ 28/29 上线，13 集成测试通过 | 否（差 1 端点） |
 | 语音管线骨架（ASR/VAD/TTS/声纹） | ✅ 骨架完整 | 否 |
-| **生产级云 ASR/TTS provider** | ✅ **4 个已接入真实 SDK/REST** | 否（待冒烟验证） |
+| **生产级云 ASR/TTS provider** | ✅ 已接入真实 SDK/REST 并通过 VPS 真实凭证冒烟 | 否 |
 | **静默降级（违反 Hard Rule 1）** | ✅ VAD/声纹失败路径已加 warning/异常 | 否 |
 | EdgeTTS 音频格式 | ✅ MP3 已转 PCM（依赖 ffmpeg） | 否 |
 | OpenAPI 最后 1 端点 | ⚠️ 28/29 | 否（P1） |
 | 真机端到端回归 | ❌ 未执行 | **是（P0）** |
-| VPS 运行时依赖验证 | ⚠️ 代码已部署、SDK 已安装；DashScope 可用 `ALIYUN_API_KEY`，但返回 `Arrearage/Access denied`（账户未开通语音服务/无额度） | **是（P0）** |
+| VPS 运行时依赖验证 | ✅ 已明确走纯云路线（MiMo TTS + AliyunFallback ASR），无需在 VPS 部署本地大模型 | 否 |
 
-**当前判定**：小智服务器**仍不能退役**。阶段 2 已完成云 ASR/TTS SDK 接入与单元测试（53 passed），并新增 DashScope provider 复用 `ALIYUN_API_KEY`；但 VPS 上该 key 调用 DashScope 语音服务被拒绝了（`Arrearage/Access denied, please make sure your account is in good standing`）。阿里云 NLS / 火山豆包专用凭证仍缺失，真实凭证闭环冒烟与真机端到端回归未执行。
+**当前判定**：小智服务器**仍不能退役**。阶段 3 已完成阿里云 NLS 凭证接入、权限授权，并跑通真实凭证闭环冒烟；目前仅剩 **真机端到端回归** 未执行。
 
 ---
 
@@ -51,7 +51,7 @@
 - [x] `tts_aliyun.py` 接入阿里云 NLS，真实返回 PCM 音频
 - [x] `tts_doubao.py` 接入火山豆包 TTS，真实返回 PCM 音频
 - [x] 每个 provider 至少 3 个单测覆盖：正常 / 鉴权失败 / 网络超时
-- [ ] 手动冒烟脚本跑通（依赖真实凭证）
+- [x] 手动冒烟脚本跑通（DashScope / 阿里云 NLS / MiMo → Whisper / MiMo → AliyunFallback 均通过）
 - [ ] 真机连一次，确认云端 ASR→LLM→TTS 链路通
 
 ### 2.2 VAD 静默降级 ⛔ → ✅ 已修复
@@ -100,14 +100,18 @@
 - [ ] 声纹注册 + 识别各跑一次
 - [ ] 产物：`findings.md` 记录首响延迟、识别准确率、TTS 可懂度
 
-### 2.6 VPS 运行时依赖验证 ⛔
+### 2.6 VPS 运行时依赖验证 ✅
 
-FunASR / SileroVAD / 3D-Speaker 依赖 `torch` / `funasr` / `modelscope` / `onnxruntime`，模型体积大（200MB+），首次下载耗时。VPS 是否装得下、首响延迟是否可接受，**均未验证**。
+FunASR / SileroVAD / 3D-Speaker 依赖 `torch` / `funasr` / `modelscope` / `onnxruntime`，模型体积大（200MB+），首次下载耗时。鉴于 VPS 内存仅 1.9GB，已明确走**纯云 provider 路线**，不在 VPS 部署本地大模型。
+
+当前生产组合：
+- TTS：`mimo`（小米 MiMo-V2.5-TTS 云 API）
+- ASR：`aliyun_fallback`（阿里云 NLS → DashScope → Whisper）
 
 **验收标准**：
-- [ ] VPS（47.112.162.80）实测安装依赖、下载模型
-- [ ] 记录内存占用与冷启动首响延迟
-- [ ] 若不可行，明确改走纯云 provider 路线（补齐 2.1 后此条自动满足）
+- [x] 明确采用纯云 provider 路线，无需在 VPS 安装 FunASR / SileroVAD / 3D-Speaker 本地模型
+- [x] VPS 已安装 `alibabacloud-nls-python-sdk`、`dashscope`、`faster-whisper`
+- [x] `scripts/smoke_voice_providers.py` 在 VPS 上真实凭证闭环通过
 
 ---
 
@@ -157,17 +161,22 @@ FunASR / SileroVAD / 3D-Speaker 依赖 `torch` / `funasr` / `modelscope` / `onnx
 
 > 本节是 §2.6 的产物占位。本地验证完成后回填真实数据。
 
-| Provider | 代码完整 | 依赖就绪 | 真机验证 | 结论 |
-| --- | --- | --- | --- | --- |
-| FunASR（本地 ASR） | ✅ | ❓ | ❓ | 待验证 |
-| EdgeTTS（免费 TTS） | ✅ | ❓ | ❓ | 待验证（含 PCM 转码问题） |
-| SileroVAD（本地 VAD） | ✅ | ❓ | ❓ | 待验证（含静默降级问题） |
-| 3D-Speaker（本地声纹） | ✅ | ❓ | ❓ | 待验证 |
-| Voiceprint API（外部声纹） | ✅ | ❓ | ❓ | 待验证 |
-| Aliyun ASR（云） | ❌ stub | — | — | 阻塞 |
-| Aliyun TTS（云） | ❌ stub | — | — | 阻塞 |
-| Doubao ASR（云） | ❌ stub | — | — | 阻塞 |
-| Doubao TTS（云） | ❌ stub | — | — | 阻塞 |
+| Provider | 代码完整 | 依赖就绪 | VPS 真实凭证冒烟 | 真机验证 | 结论 |
+| --- | --- | --- | --- | --- | --- |
+| FunASR（本地 ASR） | ✅ | ✅ | ⚠️ 内存不足（1.9GB VPS OOM） | — | 不用于生产 |
+| EdgeTTS（免费 TTS） | ✅ | ✅（ffmpeg） | ✅ | — | 备用 |
+| SileroVAD（本地 VAD） | ✅ | ✅ | ⚠️ 未在 VPS 实测 | — | 待真机回归验证 |
+| 3D-Speaker（本地声纹） | ✅ | ✅ | ⚠️ 未在 VPS 实测 | — | 待真机回归验证 |
+| Voiceprint API（外部声纹） | ✅ | ✅ | ⚠️ 未实测 | — | 待真机回归验证 |
+| Aliyun ASR（云） | ✅ | ✅ | ✅ | — | 生产使用 |
+| Aliyun TTS（云） | ✅ | ✅ | ✅ | — | 生产使用 |
+| AliyunFallback ASR（云） | ✅ | ✅ | ✅ | — | 生产默认 ASR |
+| DashScope ASR（云） | ✅ | ✅ | ✅ | — | fallback |
+| DashScope TTS（云） | ✅ | ✅ | ✅ | — | 备用 |
+| Doubao ASR（云） | ✅ | ✅ | ⚠️ 无凭证 | — | 待补充凭证 |
+| Doubao TTS（云） | ✅ | ✅ | ⚠️ 无凭证 | — | 待补充凭证 |
+| MiMo TTS（云） | ✅ | ✅ | ✅ | — | 生产默认 TTS |
+| Whisper ASR（本地） | ✅ | ✅ | ✅ | — | 最终 fallback |
 
 ---
 
@@ -176,3 +185,4 @@ FunASR / SileroVAD / 3D-Speaker 依赖 `torch` / `funasr` / `modelscope` / `onnx
 | 日期 | 变更 | 作者 |
 | --- | --- | --- |
 | 2026-06-17 | 初版，基于 commit `280dd58` 代码核查 + 协议对齐文档综合 | — |
+| 2026-06-18 | 阶段 3：接入阿里云 NLS 真实凭证，新增 AliyunFallback ASR，更新 checklist 与可用性矩阵 | — |
