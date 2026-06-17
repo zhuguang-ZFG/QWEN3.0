@@ -1379,6 +1379,7 @@
     function formatContent(text) {
       return text
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g, '<div class="media-card"><img src="$2" alt="$1" loading="lazy"></div>')
         .replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
           return `<div class="code-card"><div class="code-header"><div class="code-lights"><span></span><span></span><span></span></div><button class="copy-btn" onclick="copyCode(this)">复制</button></div><pre><code>${code}</code></pre></div>`;
         })
