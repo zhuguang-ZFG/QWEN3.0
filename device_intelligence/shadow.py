@@ -20,6 +20,7 @@ class DeviceShadow:
     self_check: dict[str, Any] = field(default_factory=dict)
     last_motion_event: dict[str, Any] = field(default_factory=dict)
     voiceprint_sample: dict[str, Any] = field(default_factory=dict)
+    voiceprint_result: dict[str, Any] = field(default_factory=dict)
     desired: dict[str, Any] = field(default_factory=dict)
     updated_at: str = field(default_factory=lambda: _now_iso())
 
@@ -100,6 +101,20 @@ class DeviceShadowStore:
             shadow.updated_at = _now_iso()
             return shadow.to_dict()
 
+    def update_voiceprint_result(
+        self, device_id: str, result: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Store voiceprint identification result in the device shadow.
+
+        This is called after a successful voiceprint identification during
+        dialogue processing. The result includes speaker identity and confidence.
+        """
+        with self._lock:
+            shadow = self._shadow(device_id)
+            shadow.voiceprint_result = deepcopy(result)
+            shadow.updated_at = _now_iso()
+            return shadow.to_dict()
+
     def validate_voiceprint_sample(self, message: dict[str, Any]) -> dict[str, Any]:
         device_id = str(message["device_id"])
         voiceprint_id = str(message.get("voiceprint_id", ""))
@@ -138,13 +153,17 @@ class DeviceShadowStore:
             shadow = self._shadows.get(device_id)
             if shadow is None:
                 return {"shadow": {"known": False, "profile_id": "", "desired": {}}}
-            return {
+            delta = {
                 "shadow": {
                     "known": True,
                     "profile_id": shadow.profile_id,
                     "desired": deepcopy(shadow.desired),
                 }
             }
+            # Include voiceprint result if available
+            if shadow.voiceprint_result:
+                delta["voiceprint"] = deepcopy(shadow.voiceprint_result)
+            return delta
 
     def _shadow(self, device_id: str) -> DeviceShadow:
         if device_id not in self._shadows:

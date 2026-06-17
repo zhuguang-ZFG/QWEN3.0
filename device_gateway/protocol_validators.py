@@ -164,6 +164,28 @@ def validate_voiceprint_sample(message: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def validate_audio(message: dict[str, Any]) -> dict[str, Any]:
+    request_id = _optional_request_id(message)
+    device_id = _non_empty_string(message, "device_id")
+    data = message.get("data")
+    if not isinstance(data, str) or not data.strip():
+        raise ProtocolError("E_INVALID_MESSAGE", "audio data must be a non-empty base64 string", request_id)
+    seq = message.get("seq", 0)
+    if not isinstance(seq, int) or seq < 0:
+        seq = 0
+    is_end = message.get("is_end", False)
+    if not isinstance(is_end, bool):
+        is_end = False
+    return {
+        "type": "audio",
+        "device_id": device_id,
+        "data": data.strip(),
+        "seq": seq,
+        "is_end": is_end,
+        "request_id": request_id,
+    }
+
+
 def validate_uplink(message: Any) -> dict[str, Any]:
     obj = ensure_object(message)
     msg_type = require_type(obj)
@@ -175,5 +197,6 @@ def validate_uplink(message: Any) -> dict[str, Any]:
         "device_info": validate_device_info,
         "self_check": validate_self_check,
         "voiceprint_sample": validate_voiceprint_sample,
+        "audio": validate_audio,
     }
     return validators[msg_type](obj)

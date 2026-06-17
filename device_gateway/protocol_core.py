@@ -16,6 +16,7 @@ SUPPORTED_UPLINK_TYPES = {
     "device_info",
     "self_check",
     "voiceprint_sample",
+    "audio",
 }
 
 REQUIRED_MOTION_LIFECYCLE_PHASES = frozenset({"accepted", "running"})

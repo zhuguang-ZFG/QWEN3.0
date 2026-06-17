@@ -49,6 +49,57 @@ def ack_frame(ack_type: str, device_id: str, **extra: Any) -> dict[str, Any]:
     return frame
 
 
+def voice_status_frame(
+    device_id: str,
+    status: str,
+    *,
+    transcript: str = "",
+    request_id: str | None = None,
+    **extra: Any,
+) -> dict[str, Any]:
+    """Build a voice_status downlink frame for VAD/ASR progress updates.
+
+    status values: 'listening', 'transcribing', 'thinking', 'speaking', 'idle'
+    """
+    frame: dict[str, Any] = {
+        "type": "voice_status",
+        "device_id": device_id,
+        "status": status,
+        "server_time": now_iso(),
+    }
+    if transcript:
+        frame["transcript"] = transcript
+    if request_id:
+        frame["request_id"] = request_id
+    frame.update(extra)
+    return frame
+
+
+def audio_reply_frame(
+    device_id: str,
+    audio_format: str = "pcm",
+    sample_rate: int = 16000,
+    request_id: str | None = None,
+) -> dict[str, Any]:
+    """Build a metadata frame that precedes binary audio reply.
+
+    Sent as JSON before the binary PCM frame so the device knows
+    the audio format and can prepare its playback pipeline.
+    """
+    frame: dict[str, Any] = {
+        "type": "audio_reply",
+        "device_id": device_id,
+        "format": audio_format,
+        "sample_rate": sample_rate,
+        "channels": 1,
+        "sample_width": 2,
+        "server_time": now_iso(),
+    }
+    if request_id:
+        frame["request_id"] = request_id
+    return frame
+
+
 def run_path_dispatch_frame(
     device_id: str,
     task_id: str,

@@ -21,11 +21,13 @@ from device_gateway.protocol_core import (
 )
 from device_gateway.protocol_frames import (
     ack_frame,
+    audio_reply_frame,
     build_voiceprint_sample_ack,
     error_frame,
     hello_ack,
     motion_failure_event,
     run_path_dispatch_frame,
+    voice_status_frame,
 )
 from device_gateway.protocol_lifecycle import validate_motion_task_lifecycle
 from device_gateway.protocol_validators import (
@@ -46,6 +48,7 @@ __all__ = [
     "TERMINAL_MOTION_PHASES",
     "ProtocolError",
     "ack_frame",
+    "audio_reply_frame",
     "build_voiceprint_sample_ack",
     "ensure_object",
     "error_frame",
@@ -54,6 +57,7 @@ __all__ = [
     "now_iso",
     "require_type",
     "run_path_dispatch_frame",
+    "voice_status_frame",
     "validate_device_info",
     "validate_heartbeat",
     "validate_hello",
