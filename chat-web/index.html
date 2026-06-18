@@ -1,39 +1,29 @@
 <!DOCTYPE html>
-
 <html lang="zh-CN">
-
 <head>
-
   <meta charset="UTF-8">
-
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-
-  <title>LiMa — AI 智能设备云端控制台</title>
-
-  <meta name="description" content="LiMa 智能设备云端控制台 — 管理 AI 绘图机、写字机与 2D 数字人，一句话开始创作">
-
-  <meta name="theme-color" content="#000000">
-
-  <link rel="stylesheet" href="styles.css">
-
+  <title>LiMa 星云 — AI 智能设备星云系统控制台</title>
+  <meta name="description" content="LiMa 星云系统控制台 — 管理 AI 绘图机、写字机与 2D 数字人，一句话开始创作">
+  <meta name="theme-color" content="#0a0a0f">
+  <link rel="stylesheet" href="styles.css?v=nebula">
 </head>
-
 <body>
-
+  <!-- SOLAR SYSTEM BACKGROUND -->
+  <canvas id="solar-canvas"></canvas>
   <!-- SIDEBAR OVERLAY (mobile) -->
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
-
     <div class="sidebar-header">
       <div class="sidebar-brand">
         <div class="brand-mark">
           <svg class="svg-icon"><use href="icons.svg#i-sparkles"/></svg>
         </div>
         <div class="brand-text">
-          <h1>LiMa</h1>
-          <div class="brand-text-sub">智能设备云端</div>
+          <h1>LiMa 星云</h1>
+          <div class="brand-text-sub">星云系统</div>
         </div>
       </div>
     </div>
@@ -53,7 +43,7 @@
             <svg class="svg-icon"><use href="icons.svg#i-bot"/></svg>
           </div>
           <div class="device-meta">
-            <div class="device-name">LiMa AI 助手</div>
+            <div class="device-name">LiMa 星云 AI</div>
             <div class="device-sub">
               <span class="status-dot on"></span>
               在线
@@ -61,7 +51,7 @@
           </div>
         </div>
         <div class="device-tags">
-          <span class="tag ai-tag">对话</span>
+          <span class="tag ai-tag">星云对话</span>
           <span class="tag ai-tag">多模型</span>
         </div>
       </div>
@@ -107,7 +97,7 @@
 
     <div class="section-label">应用</div>
     <div class="device-list">
-      <div class="device-card" onclick="window.open('/digital-human/', '_blank')" style="border:0.5px solid rgba(244,114,182,0.08)">
+      <div class="device-card" onclick="window.open('/digital-human/', '_blank')" style="border:1px solid rgba(244,114,182,0.08)">
         <div class="device-card-top">
           <div class="device-icon human">
             <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 1 3 3v1h1a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h1V5a3 3 0 0 1 3-3z"/><path d="M9 14h6"/><path d="M9 18h6"/></svg>
@@ -149,12 +139,10 @@
       <span style="opacity:0.4;margin:0 0.3rem">|</span>
       <a href="/health" target="_blank">系统状态</a>
     </div>
-
   </aside>
 
   <!-- MAIN -->
   <main class="main">
-
     <div class="topbar">
       <div class="topbar-left">
         <button class="menu-toggle" onclick="toggleSidebar()" aria-label="打开侧边栏">
@@ -162,7 +150,7 @@
             <path d="M4 5h16M4 12h16M4 19h16"/>
           </svg>
         </button>
-        <span class="topbar-title" id="topbarTitle">LiMa AI 助手</span>
+        <span class="topbar-title" id="topbarTitle">LiMa 星云 AI</span>
         <span class="topbar-status online" id="topbarBadge">
           <span class="status-dot on" style="width:4px;height:4px"></span>
           在线
@@ -176,30 +164,14 @@
 
     <div class="chat-area" id="chatArea">
       <div class="chat-inner" id="chatInner">
-
         <!-- WELCOME -->
         <div class="welcome" id="welcomeScreen">
-          <div class="hero-canvas">
-            <div class="canvas-ring"></div>
-            <div class="canvas-ring"></div>
-            <svg viewBox="0 0 120 120" fill="none">
-              <path class="canvas-draw-path"
-                d="M60 20 L70 45 L95 45 L75 60 L82 85 L60 70 L38 85 L45 60 L25 45 L50 45 Z"
-                stroke="url(#grad1)" stroke-width="2" fill="none"/>
-              <path class="canvas-write-line"
-                d="M30 95 Q45 85 55 95 T80 90 T100 95"
-                stroke="rgba(245,158,11,0.5)" stroke-width="1.5" fill="none"/>
-              <defs>
-                <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" style="stop-color:rgba(99,102,241,0.8)"/>
-                  <stop offset="100%" style="stop-color:rgba(168,85,247,0.6)"/>
-                </linearGradient>
-              </defs>
-            </svg>
+          <div class="hero-canvas" id="heroCanvasContainer">
+            <canvas id="heroCanvas" width="160" height="160" style="width:160px;height:160px;"></canvas>
           </div>
-          <h2>一句话，开始创作</h2>
+          <h2>一句话，开启星云</h2>
           <p class="welcome-desc">
-            告诉 LiMa 你想要什么 — 它会理解意图、生成方案、校验安全策略，
+            告诉 LiMa 星云你想要什么 — 它会理解意图、生成方案、校验安全策略，
             驱动 AI 绘图机、写字机或 2D 数字人完成创作。
           </p>
           <div class="quick-grid">
@@ -225,7 +197,6 @@
             </div>
           </div>
         </div>
-
       </div>
 
       <!-- TYPING -->
@@ -237,7 +208,6 @@
           <span class="typing-label" id="typingText">思考中</span>
         </div>
       </div>
-
     </div>
 
     <!-- INPUT -->
@@ -268,11 +238,10 @@
         </button>
       </div>
       <div class="input-hint">
-        LiMa 云端 · 兼容 OpenAI API ·
+        LiMa 星云 · 兼容 OpenAI API ·
         <a href="https://donglicao.com" target="_blank">donglicao.com</a>
       </div>
     </div>
-
   </main>
 
   <!-- LIGHTBOX -->
@@ -287,7 +256,7 @@
   <div class="modal-overlay" id="apiKeyModal" onclick="if(event.target===this)closeApiKeyModal()">
     <div class="modal">
       <div class="modal-title">需要 API Key</div>
-      <div class="modal-desc">请输入你的 LiMa API Key 以继续对话。Key 仅保存在浏览器本地。</div>
+      <div class="modal-desc">请输入你的 LiMa 星云 API Key 以继续对话。Key 仅保存在浏览器本地。</div>
       <input type="password" class="modal-input" id="apiKeyInput" placeholder="sk-..." onkeydown="if(event.key==='Enter')confirmApiKey()">
       <div class="modal-actions">
         <button class="modal-btn" onclick="closeApiKeyModal()">取消</button>
@@ -299,13 +268,13 @@
   <!-- API INFO MODAL -->
   <div class="modal-overlay" id="apiInfoModal" onclick="if(event.target===this)closeApiInfoModal()">
     <div class="modal">
-      <div class="modal-title">LiMa API 接入指南</div>
+      <div class="modal-title">LiMa 星云 API 接入指南</div>
       <div class="modal-desc">
         端点：<code>https://chat.donglicao.com/v1/chat/completions</code><br>
         模型：<code>lima</code>，协议兼容 OpenAI。<br>
         设备网关：<code>POST /device/v1/tasks</code>、<code>WS /device/v1/ws</code>
       </div>
-      <pre id="apiInfoCurl" style="background:rgba(0,0,0,0.3);padding:12px;border-radius:8px;font-size:12px;overflow:auto;white-space:pre-wrap;word-break:break-all;color:var(--text);">curl https://chat.donglicao.com/v1/chat/completions \
+      <pre id="apiInfoCurl" style="background:rgba(0,0,0,0.3);padding:14px;border-radius:10px;font-size:12px;overflow:auto;white-space:pre-wrap;word-break:break-all;color:var(--text);border:1px solid rgba(255,255,255,0.06);">curl https://chat.donglicao.com/v1/chat/completions \
   -H &quot;Authorization: Bearer YOUR_KEY&quot; \
   -H &quot;Content-Type: application/json&quot; \
   -d '{&quot;model&quot;:&quot;lima&quot;,&quot;messages&quot;:[{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;画一只猫&quot;}]}'</pre>
@@ -319,7 +288,6 @@
   <script src="chat-ui.js"></script>
   <script src="chat-messages.js"></script>
   <script src="chat-api.js"></script>
-
+  <script src="solar-system.js?v=1"></script>
 </body>
-
 </html>

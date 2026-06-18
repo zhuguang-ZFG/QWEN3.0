@@ -86,7 +86,7 @@ function selectDevice(el, name) {
   document.querySelectorAll('.device-card').forEach(d => d.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('topbarTitle').textContent =
-    name === 'LiMa AI' ? 'LiMa AI 助手' : name;
+    name === 'LiMa AI' ? 'LiMa 星云 AI' : name;
   if (window.innerWidth <= 768) toggleSidebar();
 }
 

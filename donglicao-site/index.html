@@ -3,21 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LiMa 力码 — AI 智能设备云端 | 深圳市动力巢科技有限公司</title>
-  <meta name="description" content="LiMa 力码是深圳动力巢科技打造的 AI 智能设备云端平台，为 AI 绘图机、写字机与 2D 数字人提供云端中枢，让每个创作者拥有会画画、会写字、能对话的智能伙伴。">
-  <meta property="og:title" content="LiMa 力码 — AI 智能设备云端">
+  <title>LiMa 星云 — AI 智能设备星云系统 | 深圳市动力巢科技有限公司</title>
+  <meta name="description" content="LiMa 星云是深圳动力巢科技打造的 AI 智能设备星云系统，以动态太阳系为隐喻，为 AI 绘图机、写字机与 2D 数字人提供智能中枢，让每个创作者拥有会画画、会写字、能对话的智能伙伴。">
+  <meta property="og:title" content="LiMa 星云 — AI 智能设备星云系统">
   <meta property="og:description" content="让每个创作者拥有会画画、会写字、能对话的智能伙伴">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://donglicao.com">
-  <meta name="theme-color" content="#060612">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%236366f1'/%3E%3Cpath d='M50 20L58 45H82L62 62L70 86L50 70L30 86L38 62L18 45H42Z' fill='%23fff'/%3E%3C/svg%3E">
-  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%236366f1'/%3E%3Cpath d='M90 36L104 76H148L112 104L126 144L90 116L54 144L68 104L32 76H76Z' fill='%23fff'/%3E%3C/svg%3E">
+  <meta name="theme-color" content="#07070f">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%233b82f6'/%3E%3Cpath d='M50 20L58 45H82L62 62L70 86L50 70L30 86L38 62L18 45H42Z' fill='%23fff'/%3E%3C/svg%3E">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%233b82f6'/%3E%3Cpath d='M90 36L104 76H148L112 104L126 144L90 116L54 144L68 104L32 76H76Z' fill='%23fff'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=nebula">
 </head>
 <body>
+  <canvas id="solar-canvas"></canvas>
+
   <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
     <symbol id="i-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4M22 4h-4"/><circle cx="4" cy="20" r="2"/></symbol>
     <symbol id="i-pen-tool" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.707 21.293a1 1 0 0 1-1.414 0l-1.586-1.586a1 1 0 0 1 0-1.414l5.586-5.586a1 1 0 0 1 1.414 0l1.586 1.586a1 1 0 0 1 0 1.414z"/><path d="m18 13-1.375-6.874a1 1 0 0 0-.746-.776L3.235 2.028a1 1 0 0 0-1.207 1.207L5.35 15.879a1 1 0 0 0 .776.746L13 18"/><path d="m2.3 2.3 7.286 7.286"/><circle cx="11" cy="11" r="2"/></symbol>
@@ -36,13 +38,17 @@
     <symbol id="i-arrow-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
     <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+    <symbol id="i-zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></symbol>
+    <symbol id="i-network" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></symbol>
+    <symbol id="i-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></symbol>
   </svg>
 
   <nav aria-label="主导航">
     <div class="nav-inner">
       <a href="#" class="logo">
         <div class="logo-mark"><svg class="svg-icon"><use href="#i-sparkles"/></svg></div>
-        <span class="logo-text">LiMa</span>
+        <span class="logo-text">LiMa 星云</span>
       </a>
       <button class="mobile-btn" aria-label="菜单" aria-expanded="false"><svg class="svg-icon"><use href="#i-menu"/></svg></button>
       <div class="nav-links">
@@ -54,13 +60,12 @@
 
   <main>
   <section id="hero">
-    <div class="aurora-orb a"></div><div class="aurora-orb b"></div><div class="aurora-orb c"></div>
-    <div class="hero-badge"><span class="dot"></span>AI 智能设备云端 · 现已上线</div>
+    <div class="hero-badge"><span class="dot"></span>LiMa 星云系统 · 现已上线</div>
     <h1>让每个创作者拥有<br><span class="grad-text">会画画、会写字、能对话的智能伙伴</span></h1>
-    <p class="sub">LiMa 是 AI 绘图机、写字机与 2D 数字人的云端中枢。说一句"画一只猫"，AI 生成、路径转换、策略校验、设备执行 —— 一笔成型。</p>
+    <p class="sub">LiMa 星云是 AI 绘图机、写字机与 2D 数字人的智能中枢。说一句"画一只猫"，AI 生成、路径转换、策略校验、设备执行 —— 一笔成型。</p>
     <div class="hero-btns">
       <a href="#products" class="btn btn-p">了解产品</a>
-      <a href="https://chat.donglicao.com" class="btn btn-s" target="_blank" rel="noopener">在线体验 <svg class="svg-icon" style="width:14px;height:14px"><use href="#i-arrow-right"/></svg></a>
+      <a href="https://chat.donglicao.com" class="btn btn-s" target="_blank" rel="noopener">在线体验 <svg class="svg-icon" style="width:16px;height:16px"><use href="#i-arrow-right"/></svg></a>
     </div>
     <div class="device-show">
       <div class="d-card feat fade-in">
@@ -85,7 +90,7 @@
   </section>
 
   <section id="products">
-    <div class="s-label">Products</div><h2 class="s-title">AI 智能设备，一个云端中枢</h2>
+    <div class="s-label">Products</div><h2 class="s-title">AI 星云系统，一个智能中枢</h2>
     <p class="s-sub">从灵感到作品，一句话开始创作</p>
     <div class="bento">
       <div class="b-card span2 fade-in">
@@ -94,7 +99,7 @@
       </div>
       <div class="b-card fade-in">
         <div class="icon-box i2"><svg class="svg-icon"><use href="#i-brain"/></svg></div>
-        <h3>多模型路由</h3><p>多后端 × 能力矩阵动态调度</p>
+        <h3>多模型路由</h3><p>170+ 多后端 × 能力矩阵动态调度</p>
       </div>
       <div class="b-card fade-in">
         <div class="icon-box i3"><svg class="svg-icon"><use href="#i-compass"/></svg></div>
@@ -108,6 +113,26 @@
         <div class="icon-box i5"><svg class="svg-icon"><use href="#i-route"/></svg></div>
         <h3>影子状态同步</h3><p>设备在线状态、任务进度实时同步，断网自动恢复。</p>
       </div>
+    </div>
+  </section>
+
+  <!-- GALAXY ROUTING VISUALIZATION -->
+  <section id="galaxy" class="galaxy-section">
+    <div class="s-label">Nebula Network</div>
+    <h2 class="s-title">170+ 智能节点，星云路由</h2>
+    <p class="s-sub">每一颗请求如行星般在轨道中流转，智能引力调度至最优节点</p>
+    <div class="galaxy-container">
+      <canvas id="galaxy-canvas"></canvas>
+    </div>
+    <div class="galaxy-caption">
+      <div class="g-cap-item"><span class="g-cap-dot" style="background:rgba(59,130,246,.8)"></span>GPT 系列 · 28节点</div>
+      <div class="g-cap-item"><span class="g-cap-dot" style="background:rgba(139,92,246,.8)"></span>Claude 系列 · 18节点</div>
+      <div class="g-cap-item"><span class="g-cap-dot" style="background:rgba(52,211,153,.8)"></span>Groq 高速 · 15节点</div>
+      <div class="g-cap-item"><span class="g-cap-dot" style="background:rgba(245,158,11,.8)"></span>NVIDIA GPU · 12节点</div>
+      <div class="g-cap-item"><span class="g-cap-dot" style="background:rgba(6,182,212,.8)"></span>本地/边缘 · 20节点</div>
+      <div class="g-cap-item"><span class="g-cap-dot" style="background:rgba(244,114,182,.8)"></span>图像生成 · 10节点</div>
+      <div class="g-cap-item"><span class="g-cap-dot" style="background:rgba(168,85,247,.8)"></span>语音合成 · 8节点</div>
+      <div class="g-cap-item"><span class="g-cap-dot" style="background:rgba(148,163,184,.8)"></span>云端兜底 · 5节点</div>
     </div>
   </section>
 
@@ -157,7 +182,7 @@
         <div class="s-label" style="text-align:left">Developer API</div>
         <h3>面向开发者的开放接口</h3>
         <p>兼容 OpenAI 格式的 API，支持设备控制（REST + WebSocket）、内容生成、多模型路由。一行代码接入 LiMa 云端能力。</p>
-        <a href="https://chat.donglicao.com" class="btn btn-s" target="_blank" rel="noopener">打开控制台 <svg class="svg-icon" style="width:14px;height:14px"><use href="#i-arrow-right"/></svg></a>
+        <a href="https://chat.donglicao.com" class="btn btn-s" target="_blank" rel="noopener">打开控制台 <svg class="svg-icon" style="width:16px;height:16px"><use href="#i-arrow-right"/></svg></a>
       </div>
       <div class="dev-code">
         <div class="code-bar"><span class="code-dot r"></span><span class="code-dot y"></span><span class="code-dot g"></span><span class="code-fn">quick_start.py</span><button class="code-copy" type="button">复制</button></div>
@@ -171,7 +196,7 @@
 
   <footer aria-label="站点底部">
     <div class="ft-inner">
-      <div class="ft-brand"><div class="ft-logo">LiMa 力码</div><p>AI 驱动的智能设备云端平台<br>让每个创作者拥有会画画、会写字、能对话的智能伙伴</p></div>
+      <div class="ft-brand"><div class="ft-logo">LiMa 星云</div><p>AI 驱动的智能设备星云系统<br>让每个创作者拥有会画画、会写字、能对话的智能伙伴</p></div>
       <div class="ft-col"><h4>产品</h4><a href="#products">AI 绘图机</a><a href="#products">AI 写字机</a><a href="https://chat.donglicao.com/digital-human/" target="_blank" rel="noopener">2D 数字人</a><a href="https://chat.donglicao.com" target="_blank" rel="noopener">云端控制台</a></div>
       <div class="ft-col"><h4>开发者</h4><a href="https://chat.donglicao.com" target="_blank" rel="noopener">API 文档</a><a href="https://github.com/zhuguang-ZFG/QWEN3.0" target="_blank" rel="noopener">GitHub</a><a href="https://gitee.com/zhuguang-cn/QWEN3.0" target="_blank" rel="noopener">Gitee</a></div>
       <div class="ft-col"><h4>公司</h4><a href="#hero">关于我们</a><a href="#developer">联系方式</a></div>
@@ -182,6 +207,8 @@
   <div class="copy-toast" id="copyToast" role="status" aria-live="polite">已复制到剪贴板</div>
 
   <script src="site.js"></script>
+  <script src="solar-system.js?v=1"></script>
+  <script src="galaxy.js?v=2"></script>
   <script src="/lima-demo.js"></script>
 </body>
 </html>

@@ -70,13 +70,18 @@ async def handle_hello(
     request_id: str | None,
 ) -> tuple[str | None, DeviceSession | None, bool]:
     device_id = message["device_id"]
-    if not validate_device_token(device_id, extract_ws_token(websocket)):
+    token = extract_ws_token(websocket)
+    if not validate_device_token(device_id, token):
+        _log.warning(
+            "device hello auth failed device=%s token_len=%d", device_id, len(token)
+        )
         await send_ws_error(
             websocket,
             ProtocolError("E_UNAUTHORIZED_DEVICE", "device token is invalid", request_id),
         )
         await websocket.close(code=1008)
         return None, None, False
+    _log.info("device hello auth succeeded device=%s", device_id)
 
     session = DeviceSession(
         device_id=device_id,

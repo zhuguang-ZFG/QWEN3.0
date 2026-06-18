@@ -28,6 +28,7 @@ FILES = [
     "chat-ui.js",
     "chat-messages.js",
     "chat-api.js",
+    "galaxy-chat.js",
 ]
 
 

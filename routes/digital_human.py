@@ -18,6 +18,8 @@ from pathlib import Path
 from fastapi import APIRouter, FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 
+from device_gateway.auth import configured_device_tokens
+
 _log = logging.getLogger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -63,17 +65,22 @@ def _build_auto_config_script(
 ) -> str:
     """Return an inline script that pre-fills LiMa connection defaults.
 
-    Defaults are only applied when the corresponding field/localStorage entry
-    is empty, so returning visitors keep their own settings after the first
-    visit.
+    For limaWsUrl the value is always overwritten (forced) because the
+    original HTML hardcodes ws://127.0.0.1:8080 which only works on localhost.
+    Other fields are only set when empty so returning visitors keep their own
+    settings after the first visit.
     """
-    ws_url = 'proto + "://" + window.location.host + "/device/v1/ws"'
+    ws_url = 'proto + "//" + window.location.host + "/device/v1/ws"'
     return f"""<script>
 (function () {{
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
   function setInput(id, value) {{
     const el = document.getElementById(id);
     if (el && !el.value.trim() && value) el.value = value;
+  }}
+  function forceSetInput(id, value) {{
+    const el = document.getElementById(id);
+    if (el && value) el.value = value;
   }}
   function seedStorage(key, value) {{
     try {{
@@ -82,7 +89,7 @@ def _build_auto_config_script(
     }} catch (e) {{}}
   }}
   function apply() {{
-    setInput("limaWsUrl", {ws_url});
+    forceSetInput("limaWsUrl", {ws_url});
     setInput("deviceMac", {json.dumps(device_id)});
     setInput("deviceName", {json.dumps(device_name)});
     setInput("clientId", {json.dumps(client_id)});
@@ -105,19 +112,40 @@ def _build_auto_config_script(
 
 
 def _digital_human_defaults() -> dict[str, str | bool]:
-    """Return default connection values from environment variables."""
+    """Return default connection values from environment variables.
+
+    Token is taken from LIMA_DEVICE_TOKENS if the default device_id is present
+    there, so that the injected frontend token always matches the backend
+    validator. Falls back to LIMA_DIGITAL_HUMAN_DEFAULT_TOKEN for convenience.
+    """
+    device_id = os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_DEVICE_ID", "web-tester").strip()
+    token = configured_device_tokens().get(device_id, "").strip()
+    if not token:
+        token = os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_TOKEN", "").strip()
     return {
-        "device_id": os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_DEVICE_ID", "web-tester").strip(),
-        "device_name": os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_DEVICE_NAME", "Web 数字人").strip(),
+        "device_id": device_id,
+        "device_name": os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_DEVICE_NAME", "LiMa 星云数字人").strip(),
         "client_id": os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_CLIENT_ID", "web_test_client").strip(),
-        "token": os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_TOKEN", "").strip(),
+        "token": token,
         "wakeword_enabled": os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_WAKEUP_WORD_ENABLED", "false").strip().lower()
         == "true",
     }
 
 
 def _patch_index_html(content: str) -> str:
-    """Inject auto-configuration script into the digital-human index page."""
+    """Inject auto-configuration script and brand patches into the digital-human index page."""
+    # Replace brand in specific locations only (avoid breaking wake words that contain "小智")
+    content = content.replace("<title>小智数字人页面</title>", "<title>LiMa 星云数字人页面</title>")
+    content = content.replace("<div class=\"brand\">小智 AI 语音/视频通话</div>", "<div class=\"brand\">LiMa 星云 AI 语音/视频通话</div>")
+    content = content.replace("小智数字人页面", "LiMa 星云数字人页面")
+    content = content.replace("小智服务器", "星云服务器")
+    content = content.replace("小智 OTA", "LiMa 星云 OTA")
+    # Do NOT replace generic "小智" because wake words like "小智小智" must remain intact
+    # Replace LiMa labels
+    content = content.replace('"LiMa (直连)"', '"LiMa 星云 (直连)"')
+    content = content.replace('>LiMa WebSocket 地址:<', '>LiMa 星云 WebSocket 地址:<')
+    content = content.replace('"LiMa 认证令牌:"', '"LiMa 星云认证令牌:"')
+    content = content.replace('placeholder="LiMa WebSocket地址', 'placeholder="LiMa 星云 WebSocket地址')
     defaults = _digital_human_defaults()
     script = _build_auto_config_script(**defaults)  # type: ignore[arg-type]
     marker = '<script type="module" src="js/app.js?v=0205"></script>'
