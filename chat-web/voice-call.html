@@ -216,25 +216,12 @@ function getLimaApiKey(){
   return (localStorage.getItem('lima-api-key')||'').trim();
 }
 
-function askForApiKey(){
-  const key=prompt('请输入你的 LiMa API Key 以使用语音通话：','');
-  if(key)localStorage.setItem('lima-api-key',key.trim());
-  return getLimaApiKey();
-}
-
 async function getApiConfig(){
-  let key=getLimaApiKey();
-  async function fetchConfig(k){
-    const headers={'Content-Type':'application/json'};
-    if(k)headers['Authorization']='Bearer '+k;
-    return fetch('/api/live-key',{headers});
-  }
-  let r=await fetchConfig(key);
-  if(r.status===401){
-    key=askForApiKey();
-    r=await fetchConfig(key);
-  }
-  if(r.status===401)throw new Error('LiMa API Key 无效或未授权');
+  const key=getLimaApiKey();
+  const headers={'Content-Type':'application/json'};
+  if(key)headers['Authorization']='Bearer '+key;
+  const r=await fetch('/api/live-key',{headers});
+  if(r.status===401)throw new Error('当前未授权，免费语音通话可能暂时不可用');
   if(!r.ok)throw new Error('无法获取 API 配置：'+r.status);
   return r.json();
 }

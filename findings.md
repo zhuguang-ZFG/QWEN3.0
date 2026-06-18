@@ -521,3 +521,42 @@
 | XZRT-LIMA-14 | firmware | U8 固件 hello `fw_rev` 改为 `esp_app_get_description()->version`，修复 `Board::GetFirmwareVersion()` 不存在导致的 ESP-IDF 编译失败 | Closed |
 | XZRT-LIMA-15 | tooling | `scripts/firmware_idf_env.py` 会选择 ESP-IDF export Python venv、清理 MSYS/Mingw 变量、补齐 `ESP_ROM_ELF_DIR`/`OPENOCD_SCRIPTS`；focused 测试增至 13 passed | Closed |
 | XZRT-LIMA-16 | verify | `$env:IDF_PATH='D:\tmp\esp-idf-v5.5.4'; $env:IDF_TOOLS_PATH="$env:USERPROFILE\.espressif"; scripts\firmware_hardware_gate.py --build` 已通过并生成 `esp32S_XYZ/firmware/u8-xiaozhi/build/xiaozhi.bin`；真机 smoke 仍因缺设备凭据未执行 | Open |
+
+## 2026-06-18 全量问题审计与修复
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| AUDIT-SEC-1 | security | `scripts/test_jdcloud_connection.py` 与 `scripts/test_redis_from_local.py` 硬编码 root 密码与 Redis 密码 | Closed |
+| AUDIT-SEC-2 | security | `deploy/deploy_prometheus_metrics.sh` 硬编码 VPS 密码与 Prometheus Bearer Token | Closed |
+| AUDIT-SEC-3 | security | `routes/digital_human.py` 将默认设备令牌注入前端页面，任何访问者可见 | Accepted (free demo) |
+| AUDIT-SEC-4 | security | `device_gateway/auth.py` 对 `LIMA_DIGITAL_HUMAN_DEFAULT_DEVICE_ID` 回退使用默认 token，伪造 device_id 可连接 | Accepted (free demo) |
+| AUDIT-SEC-5 | security | `infra/vps/nginx/www.donglicao.com.conf` `/api/demo` 返回 `Access-Control-Allow-Origin *` | Closed |
+| AUDIT-SEC-6 | security | 图片域名白名单缺失（`data/chat/index.html` `safeImageUrl` 仅校验 `https:` 协议） | Open |
+| AUDIT-SEC-7 | security | `routes/gemini_live_proxy.py` / `routes/voice_pipeline_ws.py` 仍可从 query param 读取 token | Open |
+| AUDIT-FUNC-1 | functionality | `routes/admin_extra_insights.py::retrain_jobs` 导入已删除的 `routes.admin_api._RETRAIN_JOBS` | Closed |
+| AUDIT-FUNC-2 | functionality | Admin UI 调用未注册的 `POST /admin/api/retrain` 与 `GET /admin/api/agent-audit` | Closed |
+| AUDIT-FUNC-3 | functionality | 多处语音/设备路径捕获 `ImportError`/`Exception` 后仅 `debug` 日志，违反 Hard Rule 1 | Open |
+| AUDIT-UX-1 | ux | `chat-web/index.html` 在 401 时自动弹出 API Key 模态框，与免费策略冲突 | Closed |
+| AUDIT-UX-2 | ux | `chat-web/voice-call.html` 仍通过 `window.prompt()` 索要 API Key | Closed |
+| AUDIT-UX-3 | ux | `donglicao-site/lima-demo.js` 每次发送都弹窗询问 API Key | Closed |
+| AUDIT-UX-4 | ux | `donglicao-site/index.html` 页脚 GitHub/Gitee 仓库链接错误，「查看文档」按钮语义混乱 | Closed |
+| AUDIT-DEPLOY-1 | deploy | `scripts/deploy_unified.py` 默认 `core` slice 仅部署 `CORE_FILES`，遗漏 `CORE_DIRS` 与大量运行时目录，导致 VPS 启动崩溃/超时 | Closed |
+| AUDIT-DEPLOY-2 | deploy | `scripts/deploy_unified.py` 健康检查仅 grep `"ok"`，未解析 JSON | Closed |
+| AUDIT-DEPLOY-3 | deploy | `infra/vps/nginx/chat.donglicao.com.conf` 快照缺少 `/v1/live`、`/v1/voice` 与静态缓存更新 | Closed |
+| AUDIT-DEPLOY-4 | deploy | nginx 静态 `location /` 对 `index.html` 缓存 1h，导致前端更新延迟 | Closed |
+| AUDIT-DEPLOY-5 | deploy | nginx 仍保留已退役的 `/mcp/` location | Closed |
+| AUDIT-DEPLOY-6 | deploy | `gitee` remote 使用 SSH，本地无 key，push 失败 | Open |
+
+**修复动作（2026-06-18）**
+- 硬编码凭据脚本改为从环境变量读取；缺失凭据时直接退出并提示。
+- `routes/admin_extra_insights.py` 移除对 `_RETRAIN_JOBS` 的引用；新增 `POST /admin/api/retrain` 与 `GET /admin/api/agent-audit` 兼容端点，返回退役/空列表状态。
+- `chat-web/chat-api.js`、`chat-web/voice-call.html`、`donglicao-site/lima-demo.js` 移除所有 API Key 弹窗与 `prompt()`；401 时仅显示友好错误提示。
+- `donglicao-site/index.html` 修正 GitHub/Gitee 仓库链接，「查看文档」改为「打开控制台」。
+- `scripts/deploy_unified.py` 默认 `core`/`all` slice 改为遍历运行时文件树（排除 tests/docs/data/infra 等）；健康检查改为解析 `/health` JSON 并断言 `status` 为 `ok`/`warming`。
+- `_nginx_chat_temp.conf` 删除 `/mcp/` location，`location /` 对 SPA shell 设置 `no-cache`；同步更新 `infra/vps/nginx/chat.donglicao.com.conf` 快照。
+- `infra/vps/nginx/www.donglicao.com.conf` 的 `/api/demo` CORS 改为仅允许 `donglicao.com` / `www.donglicao.com`，并给 `location /` 增加 no-cache。
+
+**仍开放的问题**
+- 图片域名白名单、WebSocket token 仅走 header、语音/设备路径静默降级日志级别，需要额外改动并测试。
+- Gitee SSH 推送失败需配置 SSH key 或改用 HTTPS token。
+- `esp32S_XYZ` 子模块中硬编码 API key 需在子模块仓库内处理。

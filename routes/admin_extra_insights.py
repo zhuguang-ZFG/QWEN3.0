@@ -36,11 +36,13 @@ async def fallback_analysis():
         "total": len(entries),
         "by_backend": sorted(
             [{"backend": k, "count": v} for k, v in by_backend.items()],
-            key=lambda x: -x["count"],
+            key=lambda x: x["count"],
+            reverse=True,
         ),
         "by_intent": sorted(
             [{"intent": k, "count": v} for k, v in by_intent.items()],
-            key=lambda x: -x["count"],
+            key=lambda x: x["count"],
+            reverse=True,
         ),
         "hourly_trend": sorted(
             [{"hour": k, "count": v} for k, v in hourly.items()],
@@ -98,12 +100,22 @@ async def key_url_inventory():
 
 @router.get("/api/retrain/jobs", dependencies=[Depends(verify_admin)])
 async def retrain_jobs():
-    """List recent retrain job history."""
-    from routes.admin_api import _RETRAIN_JOBS
+    """List recent retrain job history.
 
-    jobs = sorted(
-        _RETRAIN_JOBS.values(),
-        key=lambda j: j.get("started_at", 0),
-        reverse=True,
-    )
-    return {"jobs": jobs[:20]}
+    The legacy ``auto_retrain.py`` scheduler was retired in Phase 0; this
+    endpoint is kept for admin UI compatibility and always returns an empty
+    list.
+    """
+    return {"jobs": []}
+
+
+@router.post("/api/retrain", dependencies=[Depends(verify_admin)])
+async def trigger_retrain():
+    """Manual trigger for the retired auto-retrain pipeline."""
+    return {"status": "retired", "message": "auto_retrain was retired in Phase 0; manual retraining is no longer supported."}
+
+
+@router.get("/api/agent-audit", dependencies=[Depends(verify_admin)])
+async def agent_audit(limit: int = 50):
+    """Legacy agent audit endpoint retained for admin UI compatibility."""
+    return {"tasks": []}

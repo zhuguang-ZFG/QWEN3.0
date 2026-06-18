@@ -60,6 +60,28 @@
   - `curl -sf https://chat.donglicao.com/` → 返回新的模块化 HTML，包含 `<link rel="stylesheet" href="styles.css">` 与三个 `<script src="chat-*.js">`。
 - **说明**：本次提交未改动后端 Python 代码，因此未执行 `scripts/deploy_unified.py`；仅部署前端静态资源与 nginx 配置。
 
+## 2026-06-18 全量问题审计与关键修复（进行中 → 待部署验证）
+
+- **全量审计**：并行启动安全 / 功能 / 前端 UX / 部署运维 4 个 explore agent，结合 pytest 全量通过（1743 passed, 37 skipped），整理出 20+ 项问题清单（见 `findings.md` 2026-06-18 全量问题审计与修复）。
+- **关键安全修复**：
+  - `scripts/test_jdcloud_connection.py`、`scripts/test_redis_from_local.py` 删除硬编码 root/Redis 密码，改为从环境变量读取。
+  - `deploy/deploy_prometheus_metrics.sh` 删除硬编码密码与 Bearer Token，改为环境变量读取。
+- **功能修复**：
+  - `routes/admin_extra_insights.py` 移除对已退役 `routes.admin_api._RETRAIN_JOBS` 的导入；新增 `POST /admin/api/retrain` 与 `GET /admin/api/agent-audit` 兼容端点，避免 admin UI 调用 500/404。
+- **免费体验一致性**：
+  - `chat-web/chat-api.js`：收到 401 时不再弹出 API Key 模态框，改为友好提示。
+  - `chat-web/voice-call.html`：移除 `window.prompt()`，直接无 Key 请求服务端配置。
+  - `donglicao-site/lima-demo.js`：移除每次发送前的 API Key 弹窗。
+- **官网细节**：修正 `donglicao-site/index.html` 页脚 GitHub/Gitee 仓库链接，「查看文档」改为「打开控制台」。
+- **部署与 nginx**：
+  - `scripts/deploy_unified.py` 默认 `core`/`all` slice 改为遍历运行时文件树（排除 tests/docs/data/infra 等），修复此前仅部署 `CORE_FILES` 导致 VPS 模块缺失/启动超时的问题。
+  - 健康检查改为解析 `/health` JSON 并断言 `status` 为 `ok`/`warming`。
+  - `_nginx_chat_temp.conf` 删除已退役 `/mcp/` location；`location /` 对 SPA shell 设置 `no-cache`。
+  - `infra/vps/nginx/chat.donglicao.com.conf` 快照同步至最新权威配置。
+  - `infra/vps/nginx/www.donglicao.com.conf` `/api/demo` CORS 收紧为 `donglicao.com` / `www.donglicao.com`，并给 `location /` 增加 no-cache。
+
+**仍开放**：图片域名白名单、WebSocket token 仅走 header、语音/设备路径静默降级日志、Gitee SSH push 配置、`esp32S_XYZ` 子模块硬编码 key。
+
 ## 2026-06-18 语音通话、数字人、Demo 全部免费化（完成）
 
 - **语音通话免费**：

@@ -239,16 +239,9 @@
     return (sessionStorage.getItem('lima-demo-api-key') || '').trim();
   }
 
-  function askForDemoApiKey() {
-    var key = (window.prompt('请输入 LiMa API Key（可选，留空即可免费体验；Key 仅保存在当前标签页）：', '') || '').trim();
-    if (key) sessionStorage.setItem('lima-demo-api-key', key);
-    return key;
-  }
-
   function demoHeaders() {
     var headers = {'Content-Type': 'application/json'};
     var key = getDemoApiKey();
-    if (!key) key = askForDemoApiKey();
     if (key) headers['Authorization'] = 'Bearer ' + key;
     return headers;
   }

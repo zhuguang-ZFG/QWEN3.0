@@ -35,8 +35,7 @@ async function generateImage(prompt) {
 
     if (!response.ok) {
       if (response.status === 401) {
-        openApiKeyModal(() => generateImage(prompt));
-        addMessage('ai', '需要 API Key 才能继续。请在设置中填写有效的 Key，或联系管理员获取。');
+        addMessage('ai', '当前请求未授权。LiMa 免费体验可能暂时不可用，请稍后再试或联系管理员。');
         isStreaming = false;
         setSendLoading(false);
         return;
@@ -57,7 +56,7 @@ async function generateImage(prompt) {
   } catch (err) {
     hideTyping();
     if (err.name !== 'AbortError') {
-      addMessage('ai', `图片生成失败：${err.message}。请检查 API Key 或稍后重试。`);
+      addMessage('ai', `图片生成失败：${err.message}。请检查网络连接或稍后重试。`);
       showToast(`图片生成失败：${err.message}`, { error: true });
     }
   }
@@ -103,8 +102,7 @@ async function sendMessage() {
 
     if (!response.ok) {
       if (response.status === 401) {
-        openApiKeyModal(() => sendMessageWithText(text));
-        addMessage('ai', '需要 API Key 才能继续。请在弹出的对话框中输入你的 Key，或联系管理员获取。');
+        addMessage('ai', '当前请求未授权。LiMa 免费体验可能暂时不可用，请稍后再试或联系管理员。');
         isStreaming = false;
         abortController = null;
         setSendLoading(false);
@@ -157,7 +155,7 @@ async function sendMessage() {
   } catch (err) {
     hideTyping();
     if (err.name !== 'AbortError') {
-      addMessage('ai', `请求出错：${err.message}。请检查网络或 API Key。`);
+      addMessage('ai', `请求出错：${err.message}。请检查网络连接或稍后再试。`);
       showToast(`请求出错：${err.message}`, { error: true });
     }
   }

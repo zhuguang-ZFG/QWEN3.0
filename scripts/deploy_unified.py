@@ -16,6 +16,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import shlex
@@ -57,6 +58,12 @@ CORE_DIRS = [
     "code_context",
     "search_gateway",
     "observability",
+    "device_ledger",
+    "device_memory",
+    "device_gateway",
+    "device_voice",
+    "backends_registry",
+    "channel_retirement",
 ]
 
 SLICE_FILES = {
@@ -77,6 +84,73 @@ HEALTH_POLL_SECONDS = 2
 HEALTH_GRACE_AFTER_RESTART_S = int(os.environ.get("LIMA_DEPLOY_HEALTH_GRACE_S", "20"))
 DEFAULT_MIN_FREE_MB = 512
 DEFAULT_MIN_MEM_MB = 128
+
+# Directories/files that should never be deployed from this script.
+_DEPLOY_EXCLUDES = {
+    ".git",
+    ".venv310",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".codegraph",
+    ".lima-data",
+    ".agent",
+    ".codebuddy",
+    ".continue",
+    ".gemini",
+    ".github",
+    ".hypothesis",
+    ".kimi-code",
+    ".kiro",
+    ".omc",
+    ".omk",
+    ".omx",
+    ".opencode",
+    ".pnpm-store",
+    ".qoder",
+    ".roo",
+    ".trae",
+    ".windsurf",
+    "andrej-karpathy-skills",
+    "data",
+    "docs",
+    "esp32S_XYZ",
+    "infra",
+    "packages",
+    "reference",
+    "scripts/archive",
+    "tests",
+    "__pycache__",
+}
+
+
+def _is_runtime_path(rel: str) -> bool:
+    """Return True for files that belong to the runtime deploy manifest."""
+    if not rel:
+        return False
+    parts = rel.replace("\\", "/").split("/")
+    if any(part in _DEPLOY_EXCLUDES or part.startswith(".") for part in parts):
+        return False
+    if "/__pycache__/" in rel or rel.endswith(".pyc") or rel.endswith(".pyo"):
+        return False
+    return True
+
+
+def _collect_runtime_files(project_root: Path) -> list[str]:
+    """Collect all runtime files for a full-repo deploy (excluding tests/docs/data)."""
+    files: list[str] = []
+    for root, dirs, filenames in os.walk(project_root):
+        # Prune excluded directories in-place to avoid walking them.
+        dirs[:] = [d for d in dirs if d not in _DEPLOY_EXCLUDES and not d.startswith(".")]
+        for name in filenames:
+            local_path = Path(root) / name
+            rel = local_path.relative_to(project_root).as_posix()
+            if not _is_runtime_path(rel):
+                continue
+            # Skip obvious non-runtime artifacts.
+            if name.endswith((".log", ".db", ".sqlite3", ".tgz", ".tar.gz", ".zip", ".tmp")):
+                continue
+            files.append(rel)
+    return sorted(set(files))
 
 
 def _safe_backup_label(label: str) -> str:
@@ -288,8 +362,13 @@ def restart_server() -> bool:
         while time.time() < deadline:
             code, out, err = _ssh_exec(ssh, "curl -sS -m 5 http://127.0.0.1:8080/health")
             last_detail = out or err or f"curl exit {code}"
-            if code == 0 and "ok" in last_detail.lower():
-                return True
+            if code == 0:
+                try:
+                    payload = json.loads(out)
+                    if payload.get("status") in ("ok", "warming"):
+                        return True
+                except json.JSONDecodeError:
+                    pass
             time.sleep(HEALTH_POLL_SECONDS)
 
         print(f"  health never became ready; last: {last_detail[:240]}")
@@ -313,14 +392,14 @@ def main() -> int:
 
     files: list[str] = []
 
+    project_root = Path(__file__).resolve().parent.parent
+
     if args.files:
         files = args.files
-    elif args.slice == "all":
-        files = CORE_FILES.copy()
-        for slice_files in SLICE_FILES.values():
-            files.extend(slice_files)
-    elif args.slice == "core":
-        files = CORE_FILES.copy()
+    elif args.slice in ("core", "all"):
+        # Deploy the complete runtime tree to avoid the partial-deploy crash
+        # loops caused by stale/missing modules on the VPS.
+        files = _collect_runtime_files(project_root)
     else:
         files = SLICE_FILES.get(args.slice, [])
 
