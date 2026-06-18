@@ -96,7 +96,7 @@ def _push_gitee_https(repo: Path, base_url: str, token: str, refspec: str) -> tu
     token_url = build_gitee_oauth_push_url(base_url, token)
     safe_url = redact_remote_url(token_url)
     tokenless_url = build_gitee_https_push_url(base_url)
-    with gitee_credential_store(token) as cred_file:
+    with gitee_credential_store(token, repo) as cred_file:
         cmd = [
             "git",
             "-C",

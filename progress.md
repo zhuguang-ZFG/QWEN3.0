@@ -23,6 +23,9 @@
   - 测试迁移至 `tests/test_gitee_mirror.py`（13 cases），覆盖 URL 编码、ssh://、非 Gitee 拒绝、credential store 生命周期。
 - **代码尺寸整理（第三轮）**：
   - 将 `gitee_mirror.py`（324 行）拆分为 `gitee_mirror_urls.py`（URL/打码/构建器）、`gitee_mirror_store.py`（临时 credential store）、`gitee_mirror.py`（remote 条目/镜像状态/HEAD 对比），均回到 ≤300 行；`gitee_mirror.py` 通过 `__all__` 保持向后兼容导出。
+- **验证与微调（第四轮）**：
+  - 临时 credential store 文件从系统 `tempfile` 目录改为创建在仓库 `.git` 目录，避免 Windows 上 git credential-store 锁文件跨目录权限告警。
+  - 使用 `GITEE_TOKEN=dummy` 执行 `scripts/push_dual_remotes.py --dry-run` 与真实 `--notify` 推送：origin 与 gitee 均返回 OK，HTTPS fallback 路径已实际跑通（本机可能依赖系统 credential manager 完成真实认证；dummy 仅验证脚本流程）。
 - **验证**：
   - `ruff check` clean；`pyright` 0 errors / 0 warnings。
   - 全量 `pytest` → **1780 passed, 23 skipped, 0 failed**。

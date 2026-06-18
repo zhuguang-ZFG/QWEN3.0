@@ -10,12 +10,18 @@ from typing import Iterator
 
 
 @contextmanager
-def gitee_credential_store(token: str) -> Iterator[Path]:
+def gitee_credential_store(token: str, repo: str | Path = "") -> Iterator[Path]:
     """Yield a temporary git credential-store file containing the Gitee token.
 
-    The file is created with mode 0600 and deleted when the context exits.
+    The file is created inside the repository's ``.git`` directory so git can
+    acquire its storage lock without cross-directory permission issues. It is
+    created with mode 0600 (on Unix) and deleted when the context exits.
     """
-    fd, path_str = tempfile.mkstemp(prefix="gitee_cred_", text=True)
+    repo_path = Path(repo) if repo else Path.cwd()
+    git_dir = repo_path / ".git"
+    if not git_dir.is_dir():
+        git_dir = repo_path
+    fd, path_str = tempfile.mkstemp(prefix="gitee_cred_", dir=git_dir, text=True)
     path = Path(path_str)
     try:
         os.write(fd, f"https://oauth2:{token}@gitee.com\n".encode())

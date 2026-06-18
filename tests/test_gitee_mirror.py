@@ -89,9 +89,12 @@ def test_build_gitee_oauth_push_url_rejects_non_gitee():
         build_gitee_oauth_push_url("git@github.com:foo/bar.git", "tok")
 
 
-def test_gitee_credential_store_creates_and_removes_file():
-    with gitee_credential_store("secret") as path:
+def test_gitee_credential_store_creates_and_removes_file(tmp_path):
+    git_dir = tmp_path / ".git"
+    git_dir.mkdir()
+    with gitee_credential_store("secret", repo=tmp_path) as path:
         assert path.exists()
+        assert path.parent == git_dir
         assert "oauth2:secret@gitee.com" in path.read_text()
         if os.name != "nt":
             assert path.stat().st_mode & 0o777 == 0o600
