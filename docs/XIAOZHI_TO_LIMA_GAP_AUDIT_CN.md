@@ -29,7 +29,7 @@ LiMa 已经接管设备直连、设备管理、任务、OTA、固件默认连接
 ## 仍需实机确认的点
 
 - 真机刷写新固件后，需要确认 `hello` -> `hello_ack` -> `task_dispatch` -> `motion_event` 在真实硬件上闭环。
-- 已新增 `scripts/firmware_hardware_gate.py`，可先跑静态固件契约；`--build` 缺少 ESP-IDF 时会明确阻塞，`--hardware-smoke` 缺少真实设备凭据时会明确阻塞。
+- 已新增 `scripts/firmware_hardware_gate.py`，可先跑静态固件契约；`--build` 缺少可用 ESP-IDF 源码树时会明确阻塞，`--hardware-smoke` 缺少真实设备凭据时会明确阻塞。
 - manager-mobile 已通过 type-check/build，但尚未在真实手机 App 包中做手工登录、绑定、任务审批回归。
 - 数据表仍沿用 `v2_*` 命名，这是迁移期数据库事实；外部 API 已切到 `/device/v1/app`。
 

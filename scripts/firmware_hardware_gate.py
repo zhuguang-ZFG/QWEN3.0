@@ -93,12 +93,37 @@ def build_idf_commands(
     return commands
 
 
-def prepare_idf_gate(firmware_dir: Path, *, target: str, path_env: str | None = None) -> CheckResult:
+def _valid_idf_source_tree(path: Path) -> bool:
+    return (path / "idf.py").exists() and (path / "tools" / "cmake" / "project.cmake").exists()
+
+
+def _resolve_idf_path(idf_py: str, env: Mapping[str, str] | None = None) -> Path | None:
+    idf_path = (env or {}).get("IDF_PATH", "").strip()
+    if idf_path:
+        return Path(idf_path)
+    idf_py_path = Path(idf_py)
+    parent = idf_py_path.parent
+    if _valid_idf_source_tree(parent):
+        return parent
+    return None
+
+
+def prepare_idf_gate(
+    firmware_dir: Path,
+    *,
+    target: str,
+    path_env: str | None = None,
+    env: Mapping[str, str] | None = None,
+) -> CheckResult:
     if not _protocol_path(firmware_dir).exists():
         return _result("esp_idf_build", "blocked", f"firmware directory is missing {_protocol_path(firmware_dir)}")
-    if find_idf_py(path_env=path_env) is None:
+    idf_py = find_idf_py(path_env=path_env)
+    if idf_py is None:
         return _result("esp_idf_build", "blocked", "ESP-IDF idf.py not found on PATH")
-    return _result("esp_idf_build", "pass", f"ESP-IDF available for target {target}")
+    idf_path = _resolve_idf_path(idf_py, env)
+    if idf_path is None or not _valid_idf_source_tree(idf_path):
+        return _result("esp_idf_build", "blocked", "IDF_PATH must point to a valid ESP-IDF source tree")
+    return _result("esp_idf_build", "pass", f"ESP-IDF available for target {target}: {idf_path}")
 
 
 def run_idf_build(
@@ -110,7 +135,7 @@ def run_idf_build(
     env: Mapping[str, str] | None = None,
 ) -> list[CheckResult]:
     path_env = None if env is None else env.get("PATH", "")
-    preflight = prepare_idf_gate(firmware_dir, target=target, path_env=path_env)
+    preflight = prepare_idf_gate(firmware_dir, target=target, path_env=path_env, env=env)
     if preflight.status != "pass":
         return [preflight]
     results: list[CheckResult] = []

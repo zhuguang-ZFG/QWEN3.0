@@ -17,9 +17,10 @@
 ## 验证命令
 
 - RED：`.venv310\Scripts\python.exe -m pytest tests\test_firmware_hardware_gate.py -q` -> 预期失败，缺少脚本模块。
-- GREEN：`.venv310\Scripts\python.exe -m pytest tests\test_firmware_hardware_gate.py -q` -> `8 passed`。
+- GREEN：`.venv310\Scripts\python.exe -m pytest tests\test_firmware_hardware_gate.py -q` -> `10 passed`。
 - 静态门禁：`.venv310\Scripts\python.exe scripts\firmware_hardware_gate.py` -> LiMa WSS/协议检查 `PASS`，ESP-IDF build 与 hardware smoke 为未请求 `SKIP`。
 - 构建门禁：`.venv310\Scripts\python.exe scripts\firmware_hardware_gate.py --build` -> 静态检查 `PASS`，`BLOCKED esp_idf_build - ESP-IDF idf.py not found on PATH`，退出码非 0。
+- 本机 ESP-IDF 残留诊断：把 `C:\Users\zhugu\.espressif\tools\idf-exe\1.0.3` 加入 PATH 后运行 `--build` -> 静态检查 `PASS`，`BLOCKED esp_idf_build - IDF_PATH must point to a valid ESP-IDF source tree`，说明工具链 wrapper 存在但 ESP-IDF 源码树缺失。
 - 静态检查：`.venv310\Scripts\python.exe -m ruff check scripts\firmware_hardware_gate.py tests\test_firmware_hardware_gate.py` -> `All checks passed!`。
 
 ## 保证
@@ -30,12 +31,14 @@
 | 2 | 固件文件出现非 TLS URL、`CONFIG_LIMA_DIRECT_MODE` 或原小智协议说明会失败 | `test_static_contract_checks_reject_insecure_or_legacy_firmware` | PASS |
 | 3 | `idf.py` 不在 PATH 时构建门禁返回 `blocked`，不伪装通过 | `test_build_gate_blocks_when_esp_idf_is_missing` | PASS |
 | 4 | ESP-IDF 命令使用参数列表构造，不通过 shell 拼接 | `test_build_idf_commands_are_explicit_and_shell_free` | PASS |
-| 5 | CLI 默认只跑静态契约，不声明 build 或真机已跑 | `test_cli_defaults_to_static_checks_without_claiming_hardware` | PASS |
-| 6 | CLI `--build` 使用注入的 PATH 检查 ESP-IDF，不绕到真实机器环境 | `test_cli_build_uses_injected_env_path` | PASS |
-| 7 | `--hardware-smoke` 缺少真机凭据时阻塞，并提示所需环境变量 | `test_cli_hardware_smoke_requires_real_credentials` | PASS |
+| 5 | `idf.py.exe` wrapper 存在但 `IDF_PATH` 源码树缺失时显式阻塞 | `test_build_gate_blocks_when_idf_path_source_tree_is_missing` | PASS |
+| 6 | 合法 `IDF_PATH` 源码树可通过 build preflight | `test_build_gate_accepts_valid_idf_path_source_tree` | PASS |
+| 7 | CLI 默认只跑静态契约，不声明 build 或真机已跑 | `test_cli_defaults_to_static_checks_without_claiming_hardware` | PASS |
+| 8 | CLI `--build` 使用注入的 PATH 检查 ESP-IDF，不绕到真实机器环境 | `test_cli_build_uses_injected_env_path` | PASS |
+| 9 | `--hardware-smoke` 缺少真机凭据时阻塞，并提示所需环境变量 | `test_cli_hardware_smoke_requires_real_credentials` | PASS |
 
 ## 已知缺口
 
-- 当前机器没有 `idf.py`，因此未执行真实 ESP-IDF 编译、刷机或串口监控。
+- 当前机器有 `.espressif` 工具链残留和 `idf.py.exe` wrapper，但 `.espressif/idf-env.json` 指向的 `C:\Users\zhugu\Desktop\xue\esp-idf-v5.5.4` 源码树已不存在，因此未执行真实 ESP-IDF 编译、刷机或串口监控。
 - 当前会话没有真实设备 `LIMA_HARDWARE_DEVICE_ID` / `LIMA_HARDWARE_DEVICE_TOKEN`，因此未执行真实 U8 硬件 `hello -> hello_ack -> task_dispatch -> motion_event` 闭环。
 - 下一次有 ESP-IDF 与真机时应运行：`.venv310\Scripts\python.exe scripts\firmware_hardware_gate.py --build --flash --port <COMx> --hardware-smoke --device-id <id> --device-token <token>`，并把输出补录到 `findings.md`。

@@ -1649,8 +1649,9 @@ Agent Worker path.
   - 新增 `tests/test_firmware_hardware_gate.py` 与 `docs/testing/firmware_hardware_gate.tdd.md` 记录 RED/GREEN 证据。
 - **验证**：
   - RED：`pytest tests/test_firmware_hardware_gate.py -q` 先因缺少 `scripts.firmware_hardware_gate` 失败。
-  - GREEN：`.venv310\Scripts\python.exe -m pytest tests\test_firmware_hardware_gate.py -q` -> **8 passed**。
+  - GREEN：`.venv310\Scripts\python.exe -m pytest tests\test_firmware_hardware_gate.py -q` -> **10 passed**。
   - 静态门禁：`.venv310\Scripts\python.exe scripts\firmware_hardware_gate.py` -> LiMa 固件契约 **PASS**，build/hardware smoke 未请求为 **SKIP**。
   - 构建门禁：`.venv310\Scripts\python.exe scripts\firmware_hardware_gate.py --build` -> 固件契约 **PASS**，`ESP-IDF idf.py not found on PATH`，退出码非 0。
+  - 本机 ESP-IDF 残留诊断：`.espressif` 中有 `idf.py.exe` wrapper，但 `idf-env.json` 指向的 `C:\Users\zhugu\Desktop\xue\esp-idf-v5.5.4` 已不存在；把 wrapper 加入 PATH 后门禁返回 `IDF_PATH must point to a valid ESP-IDF source tree`。
   - `ruff check scripts\firmware_hardware_gate.py tests\test_firmware_hardware_gate.py` -> clean。
-- **限制**：当前机器仍未安装 ESP-IDF，也没有真实 U8 设备 token；因此尚未执行真实编译、刷机、串口监控或硬件 `hello -> task_dispatch -> motion_event` 闭环。
+- **限制**：当前机器只有 ESP-IDF 工具链残留，缺少有效 ESP-IDF 源码树，也没有真实 U8 设备 token；因此尚未执行真实编译、刷机、串口监控或硬件 `hello -> task_dispatch -> motion_event` 闭环。

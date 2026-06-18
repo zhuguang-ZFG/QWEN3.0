@@ -87,6 +87,32 @@ def test_build_gate_blocks_when_esp_idf_is_missing(workspace_tmp: Path) -> None:
     assert "ESP-IDF idf.py not found" in result.message
 
 
+def test_build_gate_blocks_when_idf_path_source_tree_is_missing(workspace_tmp: Path, monkeypatch) -> None:
+    _write_protocol_file(workspace_tmp, _valid_protocol_source())
+    monkeypatch.setattr(gate, "find_idf_py", lambda path_env=None: r"C:\Users\zhugu\.espressif\tools\idf-exe\1.0.3\idf.py.exe")
+
+    result = gate.prepare_idf_gate(workspace_tmp, target="esp32s3", env={})
+
+    assert result.status == "blocked"
+    assert "IDF_PATH" in result.message
+    assert "ESP-IDF source tree" in result.message
+
+
+def test_build_gate_accepts_valid_idf_path_source_tree(workspace_tmp: Path, monkeypatch) -> None:
+    firmware_dir = workspace_tmp / "u8-xiaozhi"
+    idf_source = workspace_tmp / "esp-idf"
+    _write_protocol_file(firmware_dir, _valid_protocol_source())
+    (idf_source / "tools" / "cmake").mkdir(parents=True)
+    (idf_source / "idf.py").write_text("# fake idf", encoding="utf-8")
+    (idf_source / "tools" / "cmake" / "project.cmake").write_text("# fake project", encoding="utf-8")
+    monkeypatch.setattr(gate, "find_idf_py", lambda path_env=None: str(idf_source / "idf.py"))
+
+    result = gate.prepare_idf_gate(firmware_dir, target="esp32s3", env={"IDF_PATH": str(idf_source)})
+
+    assert result.status == "pass"
+    assert str(idf_source) in result.message
+
+
 def test_cli_defaults_to_static_checks_without_claiming_hardware(workspace_tmp: Path, capsys) -> None:
     firmware_dir = workspace_tmp / "u8-xiaozhi"
     _write_protocol_file(firmware_dir, _valid_protocol_source())
