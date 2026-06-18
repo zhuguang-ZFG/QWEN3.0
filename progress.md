@@ -105,7 +105,10 @@
   ```
 - 仍需操作：把上述公钥添加到 Gitee 账户；或提供 `GITEE_ACCESS_TOKEN` 改用 HTTPS。
 
-**仍开放**：`esp32S_XYZ` 子模块硬编码 key。
+**`esp32S_XYZ` 子模块硬编码 QWeather API Key（2026-06-18）**
+- 修复：子模块 `esp32S_XYZ` 内 `config.yaml` 与 `get_weather.py` 移除硬编码 `a861d0d5e7bf4ee1a83d9a9e4f96d4da`；改为从配置读取或 `QWEATHER_API_KEY` 环境变量；空 Key 时返回提示并不再调用和风天气。
+- 子模块已提交并推送：`zhuguang-ZFG/esp32S_XYZ@d3d5dd5`；父仓库 submodule pointer 已更新。
+- 注意：该 Key 仍存在于子模块 Git 历史与 manager-api 的 SQL changelog 中；若仍在用，请在和风天气控制台轮换。
 
 ## 2026-06-18 语音通话、数字人、Demo 全部免费化（完成）
 

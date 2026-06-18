@@ -595,3 +595,18 @@
 
 **仍需操作**
 - 把上述公钥添加到 Gitee 账户；或提供 `GITEE_ACCESS_TOKEN` 让脚本切换到 HTTPS 推送。
+
+## 2026-06-18 esp32S_XYZ 子模块硬编码 API Key 修复
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| AUDIT-SEC-SUBMODULE | security | `esp32S_XYZ/server/xiaozhi-esp32-server/main/xiaozhi-server/config.yaml` 硬编码和风天气 API Key | Closed |
+
+**修复动作**
+- 子模块 `config.yaml` 中 `plugins.get_weather.api_key` 改为空字符串。
+- 子模块 `plugins_func/functions/get_weather.py` 改为 `weather_config.get("api_key", "") or os.environ.get("QWEATHER_API_KEY", "")`；空 Key 时记录 warning 并返回友好提示。
+- 子模块已提交并推送：`zhuguang-ZFG/esp32S_XYZ@d3d5dd5`。
+- 父仓库 `esp32S_XYZ` submodule pointer 已更新到 `d3d5dd5`。
+
+**残余风险**
+- 该 Key 仍保留在子模块 Git 历史以及 `manager-api/src/main/resources/db/changelog/202504112058.sql` 中；如仍在使用，请在和风天气控制台轮换。
