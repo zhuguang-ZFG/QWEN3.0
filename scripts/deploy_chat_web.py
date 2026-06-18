@@ -20,7 +20,15 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CHAT_WEB_DIR = PROJECT_ROOT / "chat-web"
 REMOTE_HOST = os.environ.get("LIMA_DEPLOY_HOST", "root@47.112.162.80")
 REMOTE_DIR = "/var/www/chat"
-FILES = ["index.html", "voice-call.html"]
+FILES = [
+    "index.html",
+    "voice-call.html",
+    "styles.css",
+    "icons.svg",
+    "chat-ui.js",
+    "chat-messages.js",
+    "chat-api.js",
+]
 
 
 def run(cmd: list[str], *, check: bool = True) -> subprocess.CompletedProcess:

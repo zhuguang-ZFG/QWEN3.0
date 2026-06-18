@@ -20,9 +20,31 @@
   - `ruff check` 触及 Python 文件 clean。
   - 本地无 nginx 二进制，未执行 `nginx -t`；配置变更基于人工审查。
 - **已处理（2026-06-18）**：将 `docs/ALIYUN_PROMETHEUS_DEPLOYMENT.md` 与 `docs/archive/jdcloud-2026-06/` 中的真实 API Key 替换为 `<YOUR_API_KEY>`。若该 Key 仍有效，需在服务商控制台轮换，并考虑从 Git 历史清除。
+- **已解决（2026-06-18）**：
+  - `chat-web/index.html` 已拆分为 `chat-web/styles.css` + `chat-web/icons.svg` + `chat-web/chat-ui.js` + `chat-web/chat-messages.js` + `chat-web/chat-api.js`；HTML 从 1715 行降至 325 行。
 - **未解决（需后续里程碑）**：
-  - `chat-web/index.html` 1657 行、`donglicao-site/index.html` 内联脚本过多，需拆分为 HTML/CSS/JS。
+  - `donglicao-site/index.html` 内联脚本过多，需拆分。
   - `donglicao-site/chat.html` 与 `chat-web/index.html` 功能重复，需统一或重定向。
+
+## 2026-06-18 chat-web 前端模块化拆分（完成）
+
+- **目标**：将 1715 行的 `chat-web/index.html` 拆分为可维护的静态资源模块。
+- **实现**：
+  - 提取 CSS：新建 `chat-web/styles.css`（798 行）。
+  - 提取 SVG 图标精灵：新建 `chat-web/icons.svg`（57 行），将内联 `<symbol>` 全部外置；HTML 中 `<use href="#i-...">` 改为 `<use href="icons.svg#i-...">`。
+  - 拆分 JS：
+    - `chat-web/chat-ui.js`（153 行）：state、input、sidebar、toast、lightbox、API key modal；
+    - `chat-web/chat-messages.js`（127 行）：消息渲染、`formatContent`、代码复制、lightbox 绑定；并补齐 `copyCode()` 的 `navigator.clipboard` 存在性检查；
+    - `chat-web/chat-api.js`（215 行）：图片生成、SSE 聊天请求、历史记录、API info modal。
+  - 更新 `chat-web/index.html`：仅保留 HTML 结构与 `<link>`/`<script>` 引用，从 1715 行降至 325 行。
+  - 更新 `scripts/deploy_chat_web.py`：`FILES` 纳入 `styles.css`、`icons.svg`、`chat-ui.js`、`chat-messages.js`、`chat-api.js`。
+  - 更新 `_nginx_chat_temp.conf`：新增 `location ~* \.(css|js|svg)$` 静态资源缓存块。
+- **验证**：
+  - `pytest tests/test_static_files.py -v` → **2 passed**。
+  - `ruff check .` → clean。
+  - `node --check chat-web/chat-ui.js chat-web/chat-messages.js chat-web/chat-api.js` → JS syntax OK。
+  - `python scripts/deploy_chat_web.py --dry-run` → 7 个文件均在部署清单。
+  - 全量 pytest：1739 passed, 37 skipped，1 failed（`test_digital_human_static_js_served`，与本次改动无关，content-type 断言与 Starlette StaticFiles 实际返回不一致）。
 
 ## 2026-06-18 voice provider 测试可移植性 + 代码尺寸持续改进（完成）
 

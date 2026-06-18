@@ -21,13 +21,22 @@
 | WEB-DEPLOY-2 | hygiene | `*.bak.*`、`*.backup*` 备份文件残留在工作区 | Closed |
 | WEB-UX-1 | ux | `showApiInfo()` 用 toast 展示长文档，体验差 | Closed |
 | WEB-UX-2 | ux | 语音通话模式选项 `Gemini Live` / `本地语音管道` 不够直观 | Closed |
-| WEB-SIZE-1 | code_size | `chat-web/index.html` 1657 行、`donglicao-site/index.html` 内联脚本过多，需后续拆分 | Open |
+| WEB-SIZE-1 | code_size | `chat-web/index.html` 1657 行，需拆分为 HTML/CSS/JS/SVG | Closed |
 | WEB-SIZE-2 | code_size | `donglicao-site/chat.html` 与 `chat-web/index.html` 功能重复，需后续统一或重定向 | Open |
 
 **Review 衍生修复（2026-06-18 omk-review）**
 - 语音路径：前端 `/v1/voice` 与后端 `routes/voice_pipeline_ws.py` 一致；nginx 新增 `location = /v1/voice` WebSocket 代理到 `:8080`。
 - 图片转义：`formatContent()` 对 URL 改用 `escapeAttr`（仅转义引号），避免 `&amp;` 双重转义破坏查询参数。
 - Demo Key：`localStorage` → `sessionStorage`，并在存储前 trim。
+
+**前端模块化（2026-06-18）**
+- `chat-web/index.html` 拆分为：
+  - `chat-web/styles.css`（798 行）：全部样式变量与组件样式；
+  - `chat-web/icons.svg`（57 行）：Lucide 图标 sprite；
+  - `chat-web/chat-ui.js`（153 行）：状态、输入、侧边栏、toast、lightbox、API key modal；
+  - `chat-web/chat-messages.js`（127 行）：消息渲染、`formatContent`、代码复制、lightbox 绑定；
+  - `chat-web/chat-api.js`（215 行）：图片生成、SSE 聊天、历史记录、API info modal；
+- `chat-web/index.html` 从 1715 行降至 325 行；`copyCode()` 补齐 `navigator.clipboard` 存在性检查。
 
 **待确认（pre-existing）**
 - 相同 API Key（已文档化并已从当前工作树红码）仍出现在 `docs/ALIYUN_PROMETHEUS_DEPLOYMENT.md` 与 `docs/archive/jdcloud-2026-06/` 历史文档中。当前文件已替换为 `<YOUR_API_KEY>`；若该 Key 仍有效，仍需在服务商控制台轮换，并考虑从 Git 历史清除。
