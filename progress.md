@@ -5,6 +5,18 @@
 > Updated: 2026-06-18
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-18 health_state 尺寸拆分（完成）
+
+- **目标**：按顺序推进代码尺寸治理，将 `health_state.py`（303 行）拆分，使其回到 ≤300 行。
+- **实现**：
+  - 新增 `health_state_persistence.py`，包含 SQLite save/load/store-on-change 逻辑。
+  - `health_state.py` 保留内存状态、dataclasses、cooldown/quality 访问器； persistence 函数改为从 `health_state_persistence` 延迟导入的薄包装，避免循环依赖。
+- **验证**：
+  - `ruff check` clean；`pyright` 0 errors / 0 warnings。
+  - `pytest tests/test_health_state_persistence.py` → 3 passed。
+  - 全量 `pytest` → **1780 passed, 23 skipped, 0 failed**。
+  - `scripts/check_code_size.py` 超 300 行文件从 35 个降至 34 个，`health_state.py` 不再出现在列表中。
+
 ## 2026-06-18 Gitee HTTPS token fallback（完成）
 
 - **目标**：在无真机可推进的情况下，关闭 `AUDIT-DEPLOY-6` 代码同步侧的开放项：为 `gitee` remote 提供 HTTPS token 自动回退，避免 SSH key 缺失阻塞镜像推送。
