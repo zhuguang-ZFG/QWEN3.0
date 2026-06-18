@@ -555,7 +555,7 @@
 | AUDIT-DEPLOY-3 | deploy | `infra/vps/nginx/chat.donglicao.com.conf` 快照缺少 `/v1/live`、`/v1/voice` 与静态缓存更新 | Closed |
 | AUDIT-DEPLOY-4 | deploy | nginx 静态 `location /` 对 `index.html` 缓存 1h，导致前端更新延迟 | Closed |
 | AUDIT-DEPLOY-5 | deploy | nginx 仍保留已退役的 `/mcp/` location | Closed |
-| AUDIT-DEPLOY-6 | deploy | `gitee` remote 使用 SSH，本地无 key，push 失败 | Open |
+| AUDIT-DEPLOY-6 | deploy | `gitee` remote 使用 SSH，本地无 key，push 失败 | Accepted (HTTPS fallback implemented; needs GITEE_TOKEN) |
 
 **修复动作（2026-06-18）**
 - 硬编码凭据脚本改为从环境变量读取；缺失凭据时直接退出并提示。
@@ -574,18 +574,20 @@
 
 | ID | Area | Finding | Status |
 |----|------|---------|--------|
-| AUDIT-DEPLOY-6 | deploy | `gitee` remote 使用 SSH，本地无 key，push 失败 | Accepted (pending account action) |
+| AUDIT-DEPLOY-6 | deploy | `gitee` remote 使用 SSH，本地无 key，push 失败 | Accepted (HTTPS fallback implemented; needs GITEE_TOKEN) |
 
 **修复动作**
 - `scripts/push_dual_remotes.py` 增加 `_check_gitee_ssh()`：在推送 `gitee` 前先用 `ssh -T git@gitee.com` 验证认证；失败时跳过 `gitee` 并打印本机公钥与添加指引，避免阻塞 `origin` 推送。
-- 当前待添加到 Gitee 的公钥：
+- `scripts/push_dual_remotes.py` 新增 `_gitee_https_push_url()` 与 `_gitee_token()`：当 SSH 失败且环境变量 `GITEE_TOKEN`（或 `GITEE_ACCESS_TOKEN`）存在时，自动切换到 `https://oauth2:<token>@gitee.com/...` 进行 HTTPS 推送；URL 中的 token 在日志中会被打码。
+- 新增 `tests/test_push_dual_remotes.py`（7 cases）覆盖 SSH/HTTPS URL 转换、token 优先级和缺省场景。
+- 当前待添加到 Gitee 的公钥（SSH 方案）：
   ```
   ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHa12AjBDaxSOcx2q++0QxYr3WkeRSw6Z4xi4BBYXOtE zhuguang-ZFG@users.noreply.github.com
   ```
 - 添加地址：https://gitee.com/profile/sshkeys
 
 **仍需操作**
-- 把上述公钥添加到 Gitee 账户；或提供 `GITEE_ACCESS_TOKEN` 让脚本切换到 HTTPS 推送。
+- 把上述公钥添加到 Gitee 账户；或在本机 `.env` / 环境变量中设置 `GITEE_TOKEN=<私人令牌>`，脚本将自动使用 HTTPS fallback。
 
 ## 2026-06-18 esp32S_XYZ 子模块硬编码 API Key 修复
 

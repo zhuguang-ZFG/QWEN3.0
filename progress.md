@@ -5,6 +5,19 @@
 > Updated: 2026-06-18
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-18 Gitee HTTPS token fallback（完成）
+
+- **目标**：在无真机可推进的情况下，关闭 `AUDIT-DEPLOY-6` 代码同步侧的开放项：为 `gitee` remote 提供 HTTPS token 自动回退，避免 SSH key 缺失阻塞镜像推送。
+- **实现**：
+  - `scripts/push_dual_remotes.py` 新增 `_gitee_token()`（优先 `GITEE_TOKEN`，兼容 `GITEE_ACCESS_TOKEN`）和 `_gitee_https_push_url()`（将 `git@gitee.com:user/repo.git` 或已有 HTTPS URL 转换为带 `oauth2:<token>` 的 HTTPS URL）。
+  - SSH 认证失败且存在 token 时，自动用 HTTPS URL 直接推送；日志使用 `redact_remote_url()` 打码 token。
+  - 新增 `tests/test_push_dual_remotes.py`（7 cases），覆盖 SSH→HTTPS、HTTPS 替换旧凭据、非 Gitee URL 返回空、token 优先级与缺省。
+  - `findings.md` 更新 `AUDIT-DEPLOY-6` 状态为 Accepted，并补充 HTTPS fallback 证据。
+- **验证**：
+  - `ruff check` clean；`pyright` 0 errors / 0 warnings。
+  - 全量 `pytest` → **1774 passed, 23 skipped, 0 failed**（新增 7 个测试）。
+- **仍需操作**：在 `.env` 或环境变量中设置 `GITEE_TOKEN=<私人令牌>`，或在 Gitee 账户添加本机 SSH 公钥，即可恢复 gitee 自动推送。
+
 ## 2026-06-18 WebSocket token 鉴权重构与部署（完成）
 
 - **目标**：消除 `routes/voice_pipeline_ws.py` 与 `routes/gemini_live_proxy.py` 中重复的 header/query token 提取逻辑，补全测试，并落地到 VPS。
