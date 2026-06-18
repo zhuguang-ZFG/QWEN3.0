@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from device_intelligence.schemas import TaskPlan
@@ -12,8 +14,9 @@ from device_workflow.state import TaskState
 from .device_route_memory import record_route_decision
 from .intent import resolve_voice_task
 from .model_routing import CONTROL_CAPABILITIES, looks_like_svg_path
-from .path_pipeline import render_svg_task, render_text_task
+from .path_pipeline import render_svg_task
 from .safety import DEFAULT_FEED, safe_point
+from .task_draw_params import build_run_params_async
 from .task_recorder import (
     record_preview_artifact as _record_preview_artifact,
     record_route_evidence_artifact as _record_route_evidence_artifact,
@@ -104,7 +107,19 @@ def _handle_dispatch_blocked(
     return task
 
 
-def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_id: str | None = None) -> dict[str, Any]:
+def _run_sync(coro):
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+    # ponytail: thread offload when called under pytest-asyncio / FastAPI loop
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        return pool.submit(asyncio.run, coro).result()
+
+
+async def project_to_motion_task_async(
+    device_id: str, voice_task: dict[str, Any], request_id: str | None = None
+) -> dict[str, Any]:
     capability = voice_task["capability"]
     resolved, route_policy = _resolve_route_context(device_id, voice_task)
 
@@ -115,7 +130,7 @@ def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_i
     if resolved.routing_hints.get("block_dispatch") or route_policy.get("dispatch_blocked"):
         return _handle_dispatch_blocked(device_id, voice_task, request_id, route_policy, capability, resolved)
 
-    task = _create_task_from_voice_task(
+    task = await _create_task_from_voice_task(
         device_id, voice_task, request_id, route_policy, voice_task.get("params", {}), capability
     )
     task = deps.apply_profile_constraints(task, resolved)
@@ -128,30 +143,28 @@ def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_i
     return task
 
 
+def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_id: str | None = None) -> dict[str, Any]:
+    return _run_sync(project_to_motion_task_async(device_id, voice_task, request_id))
+
+
 def _build_run_params(capability: str, params: dict[str, Any]) -> dict[str, Any]:
-    """Build capability-specific run parameters."""
-    if capability == "write_text":
-        rendered = render_text_task(str(params.get("text", "")))
-        return {
-            "feed": DEFAULT_FEED,
-            "path": rendered["path"],
-            "source_capability": "write_text",
-            "text": str(params.get("text", ""))[:80],
-            "preview_svg": rendered.get("preview_svg", ""),
-        }
+    """Sync helper for legacy callers; draw_generated uses the async pipeline."""
     if capability == "draw_generated":
         prompt = str(params.get("prompt", ""))[:120]
-        rendered = render_svg_task(prompt) if _looks_like_svg_path(prompt) else render_text_task(prompt or "?")
-        return {
-            "feed": DEFAULT_FEED,
-            "path": rendered["path"],
-            "source_capability": "draw_generated",
-            "prompt": prompt,
-            "preview_svg": rendered.get("preview_svg", ""),
-        }
-    if capability in CONTROL_CAPABILITIES:
-        return {"source_capability": capability}
-    return {"feed": DEFAULT_FEED, "path": [safe_point(0, 0, 0)], "source_capability": capability}
+        if _looks_like_svg_path(prompt):
+            rendered = render_svg_task(prompt)
+            return {
+                "feed": DEFAULT_FEED,
+                "path": rendered["path"],
+                "source_capability": "draw_generated",
+                "prompt": prompt,
+                "preview_svg": rendered.get("preview_svg", ""),
+            }
+        raise RuntimeError("draw_generated requires project_to_motion_task_async")
+    run_params, error = _run_sync(build_run_params_async(capability, params, ""))
+    if error:
+        raise RuntimeError(error)
+    return run_params
 
 
 def _build_error_task(
@@ -212,7 +225,7 @@ def _run_task_simulation(task: dict[str, Any], sanitized: dict, device_id: str) 
     return task
 
 
-def _create_task_from_voice_task(
+async def _create_task_from_voice_task(
     device_id: str,
     voice_task: dict[str, Any],
     request_id: str | None,
@@ -221,7 +234,19 @@ def _create_task_from_voice_task(
     capability: str,
 ) -> dict[str, Any]:
     """Create a task from a voice task intent."""
-    run_params = _build_run_params(capability, params)
+    run_params, build_error = await build_run_params_async(capability, params, device_id)
+    if build_error:
+        return _build_error_task(
+            device_id,
+            voice_task,
+            request_id,
+            route_policy,
+            capability,
+            "draw_failed",
+            build_error,
+            "failed",
+            "draw_generation_failed",
+        )
 
     sanitized, error = deps.validate_capability_params(capability, run_params)
     if error:
@@ -277,5 +302,11 @@ def _create_task_from_voice_task(
     return _run_task_simulation(task, sanitized, device_id)
 
 
+async def create_task_from_transcript_async(
+    device_id: str, text: str, request_id: str | None = None
+) -> dict[str, Any]:
+    return await project_to_motion_task_async(device_id, resolve_voice_task(text), request_id)
+
+
 def create_task_from_transcript(device_id: str, text: str, request_id: str | None = None) -> dict[str, Any]:
-    return project_to_motion_task(device_id, resolve_voice_task(text), request_id)
+    return _run_sync(create_task_from_transcript_async(device_id, text, request_id))

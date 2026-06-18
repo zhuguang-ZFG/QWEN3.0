@@ -16,8 +16,7 @@ import re
 from pathlib import Path
 
 from fastapi import APIRouter, FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, HTMLResponse
 
 _log = logging.getLogger(__name__)
 
@@ -160,12 +159,25 @@ async def digital_human_health() -> dict[str, str]:
     }
 
 
-def mount_static_files(app) -> None:
-    """Mount the digital-human static directory on the FastAPI app.
+@router.get("/{path:path}")
+async def serve_digital_human_static(path: str) -> FileResponse:
+    """Serve the remaining static assets (JS/CSS/images) from the submodule."""
+    if not _ASSETS_AVAILABLE:
+        raise HTTPException(status_code=404, detail="Digital human assets not available")
+    target = (_DH_DIR / path).resolve()
+    try:
+        target.relative_to(_DH_DIR.resolve())
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Not found")
+    if not target.is_file():
+        raise HTTPException(status_code=404, detail="Not found")
+    return FileResponse(target)
 
-    This must be called *after* ``app.include_router(digital_human_router)``
-    so the index/health endpoints take precedence over the catch-all static
-    mount.
+
+def mount_static_files(app) -> None:
+    """No-op: static assets are served by the catch-all router route.
+
+    Kept for backward compatibility with server.py, which still calls this
+    function after ``app.include_router(digital_human_router)``.
     """
-    if _ASSETS_AVAILABLE:
-        app.mount("/digital-human", StaticFiles(directory=_DH_DIR), name="digital_human_static")
+    pass
