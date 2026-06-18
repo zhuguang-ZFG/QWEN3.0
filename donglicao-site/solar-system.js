@@ -8,15 +8,20 @@
   if (!canvas) return;
 
   const ctx = canvas.getContext('2d');
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
   let W, H, cx, cy, animFrame;
+  let running = true;
   let time = 0;
 
   // ─── Resize ───
   function resize() {
-    W = canvas.width = window.innerWidth * window.devicePixelRatio;
-    H = canvas.height = window.innerHeight * window.devicePixelRatio;
-    canvas.style.width = window.innerWidth + 'px';
-    canvas.style.height = window.innerHeight + 'px';
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = Math.floor(W * DPR);
+    canvas.height = Math.floor(H * DPR);
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     cx = W / 2;
     cy = H / 2;
   }
@@ -56,7 +61,7 @@
     { name: 'Neptune', color: '60,100,220',  orbit: 0.62, speed: 0.25, r: 4.2, hasRing: false },
   ];
 
-  const planets = PLANETS.map((cfg, i) => ({
+  const planets = PLANETS.map((cfg) => ({
     ...cfg,
     angle: Math.random() * Math.PI * 2,
     orbitR: 0,
@@ -71,7 +76,7 @@
     });
   }
   computeOrbits();
-  window.addEventListener('resize', () => { computeOrbits(); }, { passive: true });
+  window.addEventListener('resize', computeOrbits, { passive: true });
 
   // ─── Comets / Shooting Stars ───
   let comets = [];
@@ -220,13 +225,15 @@
 
   function drawComets() {
     if (Math.random() < 0.003) comets.push(new Comet());
-    comets.forEach((c, i) => {
+    for (let i = comets.length - 1; i >= 0; i--) {
+      const c = comets[i];
       c.update(); c.draw();
       if (c.done) comets.splice(i, 1);
-    });
+    }
   }
 
   function animate() {
+    if (!running) return;
     ctx.clearRect(0, 0, W, H);
     time += 0.016;
 
@@ -241,7 +248,12 @@
   animate();
 
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) cancelAnimationFrame(animFrame);
-    else animate();
+    if (document.hidden) {
+      running = false;
+      cancelAnimationFrame(animFrame);
+    } else if (!running) {
+      running = true;
+      animate();
+    }
   });
 })();

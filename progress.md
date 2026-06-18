@@ -17,9 +17,13 @@
   - `tests/test_digital_human_routes.py`：断言兼容 `setInput` / `forceSetInput`。
   - 复核 `donglicao-site/solar-system.js` 的 canvas height 设置，当前代码已正确设置为 `window.innerHeight`，无需改动。
 - **验证**：
-  - `pytest tests/test_digital_human_routes.py tests/test_deploy_unified.py tests/test_deploy_common.py -q` → **15 passed**。
-  - `ruff check` / `pyright` 触及文件 0 errors / 0 warnings。
-  - `python scripts/deploy_chat_web.py --dry-run` 能正确列出 `solar-system.js`。
+  - `pytest tests/test_digital_human_routes.py tests/test_device_gateway_ws_errors.py tests/test_device_gateway_routes.py tests/test_deploy_unified.py tests/test_deploy_common.py -q` → **48 passed**。
+  - `ruff check` / `pyright` 触及 Python 文件 0 errors / 0 warnings。
+- **部署验证**：
+  - `scripts/deploy_chat_web.py` 成功部署 chat-web 静态文件到 VPS `/var/www/chat/` 并 reload nginx。
+  - `scripts/deploy_unified.py --files routes/digital_human.py routes/device_gateway_ws_handlers.py` 上传阶段超时（健康等待），但文件已到 `/opt/lima-router/`。
+  - 重启时发现 VPS 缺少之前拆分出的 `routes/ws_voice_transcript_helpers.py` 与 `routes/ws_voiceprint_helpers.py`，补传后 `systemctl restart lima-router` 8s 内恢复 OK。
+  - 公网 `https://chat.donglicao.com/health` 返回 OK。
 
 ## 2026-06-18 代码尺寸治理：拆分 backends_constants.py（完成）
 

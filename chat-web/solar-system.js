@@ -3,16 +3,19 @@
 // Full-screen background + mini hero canvas for chat-web
 // ═══════════════════════════════════════════
 (function() {
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+
   // ─── MODE 1: Full-screen background (solar-canvas) ───
   const bgCanvas = document.getElementById('solar-canvas');
   if (bgCanvas) {
     const bgCtx = bgCanvas.getContext('2d');
     let W, H, cx, cy;
     let bgAnimFrame;
+    let bgRunning = true;
 
     function resizeBg() {
-      W = bgCanvas.width = window.innerWidth * window.devicePixelRatio;
-      H = bgCanvas.height = window.innerHeight * window.devicePixelRatio;
+      W = bgCanvas.width = Math.floor(window.innerWidth * DPR);
+      H = bgCanvas.height = Math.floor(window.innerHeight * DPR);
       bgCanvas.style.width = window.innerWidth + 'px';
       bgCanvas.style.height = window.innerHeight + 'px';
       cx = W / 2; cy = H / 2;
@@ -96,6 +99,7 @@
 
     let bgTime = 0;
     function bgAnimate() {
+      if (!bgRunning) return;
       bgCtx.clearRect(0, 0, W, H);
       bgTime += 0.016;
 
@@ -173,14 +177,23 @@
 
       // Comets
       if (Math.random() < 0.003) bgComets.push(new BgComet());
-      bgComets.forEach((c, i) => { c.update(); c.draw(); if (c.done) bgComets.splice(i, 1); });
+      for (let i = bgComets.length - 1; i >= 0; i--) {
+        const c = bgComets[i];
+        c.update(); c.draw();
+        if (c.done) bgComets.splice(i, 1);
+      }
 
       bgAnimFrame = requestAnimationFrame(bgAnimate);
     }
     bgAnimate();
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) cancelAnimationFrame(bgAnimFrame);
-      else bgAnimate();
+      if (document.hidden) {
+        bgRunning = false;
+        cancelAnimationFrame(bgAnimFrame);
+      } else if (!bgRunning) {
+        bgRunning = true;
+        bgAnimate();
+      }
     });
   }
 
@@ -188,14 +201,24 @@
   const heroCanvas = document.getElementById('heroCanvas');
   if (!heroCanvas) return;
   const hCtx = heroCanvas.getContext('2d');
-  const hSize = 160 * window.devicePixelRatio;
-  heroCanvas.width = hSize;
-  heroCanvas.height = hSize;
-  heroCanvas.style.width = '160px';
-  heroCanvas.style.height = '160px';
-  const hCx = hSize / 2;
-  const hCy = hSize / 2;
-  let hTime = 0, hAnimFrame;
+  let hSize = 160 * DPR;
+  let hCx = hSize / 2;
+  let hCy = hSize / 2;
+  let hAnimFrame;
+  let hRunning = true;
+
+  function resizeHero() {
+    const rect = heroCanvas.parentElement.getBoundingClientRect();
+    const cssSize = Math.max(1, Math.floor(Math.min(rect.width, rect.height) || 160));
+    hSize = cssSize * DPR;
+    heroCanvas.width = hSize;
+    heroCanvas.height = hSize;
+    heroCanvas.style.width = cssSize + 'px';
+    heroCanvas.style.height = cssSize + 'px';
+    hCx = hSize / 2;
+    hCy = hSize / 2;
+    hBodies.forEach(p => { p.orbitR = (hSize * 0.42) * p.orbit; });
+  }
 
   const hPlanets = [
     { color: '168,162,158', orbit: 0.18, speed: 2.5, r: 2.2 },
@@ -212,6 +235,9 @@
     orbitR: (hSize * 0.42) * cfg.orbit,
     tilt: (Math.random() - 0.5) * 0.15
   }));
+
+  resizeHero();
+  window.addEventListener('resize', resizeHero, { passive: true });
 
   let hComets = [];
   class HComet {
@@ -307,10 +333,16 @@
 
   function hDrawComets() {
     if (Math.random() < 0.005) hComets.push(new HComet());
-    hComets.forEach((c, i) => { c.update(); c.draw(); if (c.done) hComets.splice(i, 1); });
+    for (let i = hComets.length - 1; i >= 0; i--) {
+      const c = hComets[i];
+      c.update(); c.draw();
+      if (c.done) hComets.splice(i, 1);
+    }
   }
 
+  let hTime = 0;
   function hAnimate() {
+    if (!hRunning) return;
     hCtx.clearRect(0, 0, hSize, hSize);
     hTime += 0.016;
     hDrawOrbits();
@@ -321,7 +353,12 @@
   }
   hAnimate();
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) cancelAnimationFrame(hAnimFrame);
-    else hAnimate();
+    if (document.hidden) {
+      hRunning = false;
+      cancelAnimationFrame(hAnimFrame);
+    } else if (!hRunning) {
+      hRunning = true;
+      hAnimate();
+    }
   });
 })();

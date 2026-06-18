@@ -73,7 +73,7 @@ async def handle_hello(
     token = extract_ws_token(websocket)
     if not validate_device_token(device_id, token):
         _log.warning(
-            "device hello auth failed device=%s token_len=%d", device_id, len(token)
+            "device hello auth failed device=%r token_len=%d", device_id, len(token)
         )
         await send_ws_error(
             websocket,
@@ -81,7 +81,7 @@ async def handle_hello(
         )
         await websocket.close(code=1008)
         return None, None, False
-    _log.info("device hello auth succeeded device=%s", device_id)
+    _log.info("device hello auth succeeded device=%r", device_id)
 
     session = DeviceSession(
         device_id=device_id,

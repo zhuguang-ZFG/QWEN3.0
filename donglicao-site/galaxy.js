@@ -6,7 +6,10 @@
   const canvas = document.getElementById('galaxy-canvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
   let W, H, cx, cy, animFrame;
+  let running = false;
+  let isIntersecting = false;
   const particles = [];
   const shootingStars = [];
 
@@ -27,27 +30,25 @@
   function resize() {
     const rect = canvas.parentElement.getBoundingClientRect();
     if (rect.width < 10 || rect.height < 10) return false;
-    W = canvas.width = rect.width * window.devicePixelRatio;
-    H = canvas.height = rect.height * window.devicePixelRatio;
-    canvas.style.width = rect.width + 'px';
-    canvas.style.height = rect.height + 'px';
-    cx = W / 2;
-    cy = H / 2;
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-    W /= window.devicePixelRatio;
-    H /= window.devicePixelRatio;
+    W = rect.width;
+    H = rect.height;
+    canvas.width = Math.floor(W * DPR);
+    canvas.height = Math.floor(H * DPR);
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     cx = W / 2;
     cy = H / 2;
     return true;
   }
-  
+
   // Delay initial resize until layout is complete
   function initResize() {
     if (resize()) return;
     requestAnimationFrame(initResize);
   }
   initResize();
-  window.addEventListener('resize', () => { resize(); }, { passive: true });
+  window.addEventListener('resize', resize, { passive: true });
 
   class Node {
     constructor(category, index) {
@@ -128,15 +129,14 @@
       // Trail
       this.trail.forEach((t, i) => {
         if (i < this.trail.length - 1) {
+          const next = this.trail[i + 1];
+          if (!next) return;
           ctx.beginPath();
           ctx.moveTo(t.x, t.y);
-          ctx.next = this.trail[i + 1];
-          if (ctx.next) {
-            ctx.lineTo(ctx.next.x, ctx.next.y);
-            ctx.strokeStyle = `rgba(${this.color}, ${t.alpha * 0.6})`;
-            ctx.lineWidth = 2;
-            ctx.stroke();
-          }
+          ctx.lineTo(next.x, next.y);
+          ctx.strokeStyle = `rgba(${this.color}, ${t.alpha * 0.6})`;
+          ctx.lineWidth = 2;
+          ctx.stroke();
         }
       });
       // Head
@@ -162,8 +162,8 @@
   let mouseX = -1, mouseY = -1;
   canvas.addEventListener('mousemove', e => {
     const rect = canvas.getBoundingClientRect();
-    mouseX = (e.clientX - rect.left);
-    mouseY = (e.clientY - rect.top);
+    mouseX = e.clientX - rect.left;
+    mouseY = e.clientY - rect.top;
   });
   canvas.addEventListener('mouseleave', () => { mouseX = -1; mouseY = -1; });
 
@@ -226,41 +226,6 @@
     }
   }
 
-  function animate() {
-    ctx.clearRect(0, 0, W, H);
-    time += 0.016;
-
-    // Hover detection
-    particles.forEach(p => {
-      if (mouseX >= 0 && mouseY >= 0) {
-        const dx = p.x - mouseX;
-        const dy = p.y - mouseY;
-        p.hovered = Math.sqrt(dx * dx + dy * dy) < 20;
-      } else {
-        p.hovered = false;
-      }
-      p.update(time);
-    });
-
-    drawConnections();
-    drawCore();
-
-    particles.forEach(p => p.draw());
-
-    // Shooting stars (routing requests)
-    if (Math.random() < 0.02) shootingStars.push(new ShootingStar());
-    shootingStars.forEach((s, i) => {
-      s.update();
-      s.draw();
-      if (s.done) shootingStars.splice(i, 1);
-    });
-
-    // Legend
-    drawLegend();
-
-    animFrame = requestAnimationFrame(animate);
-  }
-
   function drawLegend() {
     const legendX = 24;
     const legendY = H - 24;
@@ -285,24 +250,66 @@
     ctx.fillText(`${TOTAL_NODES} 后端节点 · 智能路由`, legendX, y - 10);
   }
 
-  animate();
+  function animate() {
+    if (!running) return;
+    ctx.clearRect(0, 0, W, H);
+    time += 0.016;
 
-  // Pause when hidden
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) cancelAnimationFrame(animFrame);
-    else animate();
-  });
+    // Hover detection
+    particles.forEach(p => {
+      if (mouseX >= 0 && mouseY >= 0) {
+        const dx = p.x - mouseX;
+        const dy = p.y - mouseY;
+        p.hovered = Math.sqrt(dx * dx + dy * dy) < 20;
+      } else {
+        p.hovered = false;
+      }
+      p.update(time);
+    });
+
+    drawConnections();
+    drawCore();
+
+    particles.forEach(p => p.draw());
+
+    // Shooting stars (routing requests)
+    if (Math.random() < 0.02) shootingStars.push(new ShootingStar());
+    for (let i = shootingStars.length - 1; i >= 0; i--) {
+      const s = shootingStars[i];
+      s.update();
+      s.draw();
+      if (s.done) shootingStars.splice(i, 1);
+    }
+
+    // Legend
+    drawLegend();
+
+    animFrame = requestAnimationFrame(animate);
+  }
+
+  function startIfNeeded() {
+    if (running || !isIntersecting || document.hidden) return;
+    running = true;
+    animate();
+  }
+
+  function stop() {
+    running = false;
+    cancelAnimationFrame(animFrame);
+    animFrame = null;
+  }
 
   // Intersection observer for performance
   const galaxyObs = new IntersectionObserver(entries => {
-    entries.forEach(e => {
-      if (e.isIntersecting) {
-        if (!animFrame) animate();
-      } else {
-        cancelAnimationFrame(animFrame);
-        animFrame = null;
-      }
-    });
+    entries.forEach(e => { isIntersecting = e.isIntersecting; });
+    if (isIntersecting) startIfNeeded();
+    else stop();
   }, { threshold: 0.1 });
   galaxyObs.observe(canvas);
+
+  // Pause when hidden
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) stop();
+    else startIfNeeded();
+  });
 })();

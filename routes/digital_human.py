@@ -71,6 +71,13 @@ def _build_auto_config_script(
     settings after the first visit.
     """
     ws_url = 'proto + "//" + window.location.host + "/device/v1/ws"'
+
+    def _js(value: str | bool) -> str:
+        """JSON-encode a value for safe embedding inside a <script> tag."""
+        text = json.dumps(value)
+        # Escape the closing script tag sequence to prevent premature </script>.
+        return re.sub(r"</script", r"<\\/script", text, flags=re.IGNORECASE)
+
     return f"""<script>
 (function () {{
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -90,16 +97,16 @@ def _build_auto_config_script(
   }}
   function apply() {{
     forceSetInput("limaWsUrl", {ws_url});
-    setInput("deviceMac", {json.dumps(device_id)});
-    setInput("deviceName", {json.dumps(device_name)});
-    setInput("clientId", {json.dumps(client_id)});
-    setInput("limaToken", {json.dumps(token)});
-    seedStorage("xz_tester_deviceMac", {json.dumps(device_id)});
-    seedStorage("xz_tester_deviceName", {json.dumps(device_name)});
-    seedStorage("xz_tester_clientId", {json.dumps(client_id)});
-    seedStorage("xz_tester_limaToken", {json.dumps(token)});
+    setInput("deviceMac", {_js(device_id)});
+    setInput("deviceName", {_js(device_name)});
+    setInput("clientId", {_js(client_id)});
+    setInput("limaToken", {_js(token)});
+    seedStorage("xz_tester_deviceMac", {_js(device_id)});
+    seedStorage("xz_tester_deviceName", {_js(device_name)});
+    seedStorage("xz_tester_clientId", {_js(client_id)});
+    seedStorage("xz_tester_limaToken", {_js(token)});
     const wwEnabled = document.getElementById("wakewordEnabled");
-    if (wwEnabled && !wwEnabled.value) wwEnabled.value = {json.dumps("true" if wakeword_enabled else "false")};
+    if (wwEnabled && !wwEnabled.value) wwEnabled.value = {_js("true" if wakeword_enabled else "false")};
   }}
   if (document.readyState === "loading") {{
     document.addEventListener("DOMContentLoaded", apply);
