@@ -145,4 +145,4 @@ def record_motion_event_observability(message: dict[str, Any], device_id: str) -
             error_reason=error_reason,
         )
     except ImportError:
-        _log.debug("observability.correlation not installed")
+        _log.warning("observability.correlation not installed")

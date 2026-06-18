@@ -33,7 +33,7 @@ async def handle_audio_chunk(
     try:
         pcm_bytes = base64.b64decode(data_b64)
     except Exception:
-        _log.debug("device=%s invalid base64 audio data", device_id)
+        _log.warning("device=%s invalid base64 audio data", device_id)
         return True
 
     is_end = message.get("is_end", False)
@@ -56,7 +56,7 @@ async def _feed_audio_to_pipeline(
     try:
         from device_voice.vad import VADModelUnavailableError, VADState
     except ImportError:
-        _log.debug("device_voice.vad not available")
+        _log.warning("device_voice.vad not available")
         return
 
     if device_id not in _audio_registry:
@@ -134,7 +134,7 @@ async def _extract_and_store_voiceprint_embedding(
     try:
         audio_bytes = base64.b64decode(audio_data_b64)
     except Exception:
-        _log.debug("device=%s voiceprint_id=%s failed to decode audio", device_id, voiceprint_id)
+        _log.warning("device=%s voiceprint_id=%s failed to decode audio", device_id, voiceprint_id)
         return
 
     if not audio_bytes:
@@ -144,7 +144,7 @@ async def _extract_and_store_voiceprint_embedding(
         from device_voice import VOICE_ENABLED
 
         if not VOICE_ENABLED:
-            _log.debug("device_voice not enabled; skipping voiceprint embedding extraction")
+            _log.warning("device_voice not enabled; skipping voiceprint embedding extraction")
             return
 
         from device_voice.voiceprint import get_voiceprint_provider
@@ -156,7 +156,7 @@ async def _extract_and_store_voiceprint_embedding(
         # Convert audio to WAV if needed
         wav_bytes = _ensure_wav(audio_bytes, fmt)
         if wav_bytes is None:
-            _log.debug("device=%s voiceprint_id=%s failed to convert audio format", device_id, voiceprint_id)
+            _log.warning("device=%s voiceprint_id=%s failed to convert audio format", device_id, voiceprint_id)
             return
 
         embedding = await provider.register_speaker(wav_bytes, member_id, device_id)
@@ -178,7 +178,7 @@ async def _extract_and_store_voiceprint_embedding(
             # Invalidate cache so next identify_speaker picks up the new embedding
             await provider.invalidate_cache(device_id)
         except ImportError:
-            _log.debug("session_memory.store_db not available for embedding storage")
+            _log.warning("session_memory.store_db not available for embedding storage")
     except Exception:
         _log.warning("device=%s voiceprint embedding extraction failed", device_id, exc_info=True)
 

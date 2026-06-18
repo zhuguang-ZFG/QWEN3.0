@@ -48,7 +48,7 @@ async def process_voice_utterance(
     try:
         voiceprint_result = await _identify_speaker(pcm_data, device_id, cfg)
     except Exception:
-        _log.debug("device=%s voiceprint identification skipped", device_id, exc_info=True)
+        _log.warning("device=%s voiceprint identification skipped", device_id, exc_info=True)
 
     # ── ASR ──
     asr_start = time.monotonic()
@@ -167,7 +167,7 @@ async def _identify_speaker(pcm_data: bytes, device_id: str, config: AudioConfig
             "reason": result.reason,
         }
     except ImportError:
-        _log.debug("device_voice.voiceprint not available")
+        _log.warning("device_voice.voiceprint not available")
         return None
     except Exception:
         _log.warning("device=%s voiceprint identification failed", device_id, exc_info=True)

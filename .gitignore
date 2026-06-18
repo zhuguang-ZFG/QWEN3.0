@@ -321,3 +321,5 @@ nginx/
 # === 运行态文件 ===
 .omx/
 .omc/
+# Stale chat UI copy; authoritative source is chat-web/
+data/chat/index.html

@@ -20,6 +20,7 @@ from device_gateway.tasks import (
     ack_processing_task,
     active_tasks_for_device,
     create_task_from_transcript,
+    create_task_from_transcript_async,
     enqueue_pending_task,
     execute_recovery,
     mark_task_dispatched,
@@ -131,7 +132,7 @@ async def handle_transcript(
     if session is not None and "text_chat" in session.capabilities:
         return await _handle_voice_transcript(session, device_id, message, request_id)
 
-    task = create_task_from_transcript(device_id, message["text"], request_id=request_id)
+    task = await create_task_from_transcript_async(device_id, message["text"], request_id=request_id)
     if task.get("error"):
         await websocket.send_json(
             ack_frame(
@@ -283,7 +284,7 @@ async def handle_voiceprint_sample(
         )
         await websocket.send_json(ack)
     except ImportError:
-        _log.debug("session_memory.store_db not installed; skipping voiceprint sample validation")
+        _log.warning("session_memory.store_db not installed; skipping voiceprint sample validation")
         await websocket.send_json(
             ack_frame(
                 "voiceprint_sample_ack",
