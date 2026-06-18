@@ -17,6 +17,11 @@
   - `pytest tests/test_backend_registry.py tests/test_routing_pipeline_authority.py -q` → **55 passed**。
   - `ruff check` / `pyright` 触及文件 0 errors / 0 warnings。
   - `scripts/check_code_size.py` 超 300 行文件从 27 个降至 **26 个**。
+- **部署验证**：
+  - `scripts/deploy_unified.py --files backends_constants.py backends_constants_code_tools.py` 上传超时（健康等待阶段超过 300s），但文件已成功部署到 `/opt/lima-router/`。
+  - 手动 `systemctl restart lima-router` 后，VPS 本地 `http://127.0.0.1:8080/health` 8s 内恢复 OK。
+  - 公网 `https://chat.donglicao.com/health` 返回 OK，服务状态 `active (running)`。
+  - `/v1/chat/completions` 公网 POST 因连接超时尚未验证（可能为边缘网关/WAF 延迟），health 与本地 smoke 已确认服务正常。
 
 ## 2026-06-18 代码尺寸治理：拆分 model_registry.py（完成）
 
