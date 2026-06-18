@@ -1877,3 +1877,7 @@ Agent Worker path.
 - **部署**：
   - 通过 `python scripts/deploy_unified.py --files device_gateway/path_pipeline.py` 上传并重启 VPS `lima-router` 服务。
   - 重启后 `curl http://127.0.0.1:8080/health` 返回 `{"status":"ok",...}`；公域 `https://chat.donglicao.com/health` 同样 OK。
+
+- **提交与推送**：
+  - `git push origin main` 成功（`13a88f8..5d6b3df`）。
+  - `git push gitee main` 失败：`git@gitee.com: Permission denied (publickey)`；已提供公钥 `~/.ssh/id_ed25519.pub`，需要在 Gitee 账户「SSH 公钥」中添加该 key 后才能推送。此前修复的是 `push_dual_remotes` 对 gitee remote 的查找逻辑，本机 SSH key 尚未被 Gitee 授权。
