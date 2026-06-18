@@ -16,7 +16,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect, status
 
-from access_guard import configured_api_keys, extract_bearer_token
+from access_guard import configured_api_keys, extract_bearer_token, is_token_valid
 from device_voice.dialogue import process_text_utterance, process_voice_utterance
 from device_voice.exceptions import VoiceProviderError
 from device_voice.vad import VADState, create_vad_provider
@@ -35,7 +35,9 @@ async def voice_pipeline_ws(
 ) -> None:
     """Browser → LiMa → ASR → LLM → TTS → browser audio loop."""
     token = extract_bearer_token(websocket.headers.get("authorization", "")) or extract_bearer_token(authorization)
-    if not _valid_lima_token(token):
+    if not is_token_valid(token):
+        if not configured_api_keys():
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="LiMa private API key is not configured.")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
 
     try:
@@ -52,20 +54,6 @@ async def voice_pipeline_ws(
         _log.debug("voice pipeline client disconnected")
     finally:
         await session.close()
-
-
-def _valid_lima_token(token: str) -> bool:
-    keys = configured_api_keys()
-    return bool(keys and token and any(_constant_time_equals(token, k) for k in keys))
-
-
-def _constant_time_equals(a: str, b: str) -> bool:
-    if len(a) != len(b):
-        return False
-    result = 0
-    for x, y in zip(a, b, strict=True):
-        result |= ord(x) ^ ord(y)
-    return result == 0
 
 
 class _VoiceSession:

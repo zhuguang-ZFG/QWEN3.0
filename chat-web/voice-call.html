@@ -213,29 +213,36 @@ const SAMPLE_RATE_IN=16000;
 let SAMPLE_RATE_OUT=24000;
 
 function getLimaApiKey(){
-  let key=localStorage.getItem('lima-api-key')||'';
-  if(!key){
-    key=prompt('请输入你的 LiMa API Key 以使用语音通话：','');
-    if(key)localStorage.setItem('lima-api-key',key);
-  }
-  return key.trim();
+  return (localStorage.getItem('lima-api-key')||'').trim();
+}
+
+function askForApiKey(){
+  const key=prompt('请输入你的 LiMa API Key 以使用语音通话：','');
+  if(key)localStorage.setItem('lima-api-key',key.trim());
+  return getLimaApiKey();
 }
 
 async function getApiConfig(){
-  const key=getLimaApiKey();
-  if(!key)throw new Error('需要 LiMa API Key');
-  const r=await fetch('/api/live-key',{headers:{'Authorization':'Bearer '+key}});
+  const key=getLimaApiKey()||askForApiKey();
+  const headers={'Content-Type':'application/json'};
+  if(key)headers['Authorization']='Bearer '+key;
+  const r=await fetch('/api/live-key',{headers});
   if(r.status===401)throw new Error('LiMa API Key 无效或未授权');
   if(!r.ok)throw new Error('无法获取 API 配置：'+r.status);
   return r.json();
+}
+
+function wsUrlWithAuth(baseUrl,key){
+  if(!key)return baseUrl;
+  const sep=baseUrl.includes('?')?'&':'?';
+  return baseUrl+sep+'authorization=Bearer '+encodeURIComponent(key);
 }
 
 async function startCall(){
   statusEl.textContent='正在连接...';
   const mode=$('modeSelect').value;
   try{
-    const key=getLimaApiKey();
-    if(!key)throw new Error('需要 LiMa API Key');
+    let key=getLimaApiKey();
 
     if(mode==='gemini'){
       const cfg=await getApiConfig();
@@ -245,7 +252,7 @@ async function startCall(){
       SAMPLE_RATE_OUT=24000;
       const proto=window.location.protocol==='https:'?'wss:':'ws:';
       const base=cfg.url.startsWith('/')?window.location.host+cfg.url:cfg.url;
-      const wsUrl=proto+'//'+base+(base.includes('?')?'&':'?')+'authorization=Bearer '+encodeURIComponent(key);
+      const wsUrl=wsUrlWithAuth(proto+'//'+base,key);
       ws=new WebSocket(wsUrl);
       ws.onopen=()=>{
         ws.send(JSON.stringify({setup:{model:cfg.model,generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:'Aoede'}}}}}}));
@@ -259,7 +266,7 @@ async function startCall(){
       videoEl.style.display='none';placeholder.style.display='flex';
       SAMPLE_RATE_OUT=16000;
       const proto=window.location.protocol==='https:'?'wss:':'ws:';
-      const wsUrl=proto+'//'+window.location.host+'/v1/voice?authorization=Bearer '+encodeURIComponent(key);
+      const wsUrl=wsUrlWithAuth(proto+'//'+window.location.host+'/v1/voice',key);
       ws=new WebSocket(wsUrl);
       ws.onopen=()=>{
         statusEl.textContent='已连接 · 本地语音对话';

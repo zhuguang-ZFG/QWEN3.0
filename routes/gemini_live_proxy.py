@@ -16,7 +16,7 @@ from typing import Any
 import websockets
 from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect, status
 
-from access_guard import configured_api_keys, constant_time_equals, extract_bearer_token
+from access_guard import configured_api_keys, extract_bearer_token, is_token_valid
 
 _log = logging.getLogger(__name__)
 
@@ -33,13 +33,6 @@ def _google_api_key() -> str | None:
     return key or None
 
 
-def _validate_lima_token(token: str) -> bool:
-    keys = configured_api_keys()
-    if not keys or not token:
-        return False
-    return any(constant_time_equals(token, k) for k in keys)
-
-
 @router.websocket("/live")
 async def gemini_live_proxy(
     websocket: WebSocket,
@@ -54,7 +47,12 @@ async def gemini_live_proxy(
         )
 
     token = extract_bearer_token(websocket.headers.get("authorization", "")) or extract_bearer_token(authorization)
-    if not _validate_lima_token(token):
+    if not is_token_valid(token):
+        if not configured_api_keys():
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="LiMa private API key is not configured.",
+            )
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
 
     await websocket.accept()

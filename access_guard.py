@@ -48,6 +48,21 @@ def constant_time_equals(a: str, b: str) -> bool:
     return secrets.compare_digest(a.encode("utf-8"), b.encode("utf-8"))
 
 
+def is_token_valid(token: str) -> bool:
+    """Return whether a bearer token is valid, honouring anonymous access.
+
+    An empty token is considered valid when ``LIMA_ALLOW_ANONYMOUS=1`` and at
+    least one private key is configured.  Non-empty tokens are validated against
+    the configured keys.
+    """
+    keys = configured_api_keys()
+    if not keys:
+        return False
+    if not token:
+        return allow_anonymous_access()
+    return any(constant_time_equals(token, k) for k in keys)
+
+
 def require_private_api_key(authorization: str = Header(default="")) -> None:
     """FastAPI dependency that fails closed unless a configured key is supplied.
 
@@ -55,18 +70,12 @@ def require_private_api_key(authorization: str = Header(default="")) -> None:
     configured, requests without an Authorization header are allowed.  Explicit
     keys are still validated when present.
     """
-    keys = configured_api_keys()
-    if not keys:
+    token = extract_bearer_token(authorization)
+    if is_token_valid(token):
+        return
+    if not configured_api_keys():
         raise HTTPException(
             status_code=503,
             detail="LiMa private API key is not configured.",
         )
-
-    token = extract_bearer_token(authorization)
-    if not token:
-        if allow_anonymous_access():
-            return
-        raise HTTPException(status_code=401, detail="Unauthorized")
-
-    if not any(constant_time_equals(token, k) for k in keys):
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    raise HTTPException(status_code=401, detail="Unauthorized")
