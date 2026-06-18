@@ -5,6 +5,19 @@
 > Updated: 2026-06-18
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-18 代码尺寸治理：拆分 free_web.py（完成）
+
+- **目标**：按顺序继续治理代码尺寸，将 `backends_registry/free_web.py`（320 行）拆回 ≤300 行。
+- **实现**：
+  - 新增 `backends_registry/free_web_ddg.py`：DuckAI 本地反向代理 fallback。
+  - 新增 `backends_registry/free_web_pollinations.py`：PollinationsAI 免费后端。
+  - 新增 `backends_registry/free_web_workers.py`：lza6/tele、assist、vision、StockAI、TheOldLLM、SCNet、其他免费 Worker。
+  - `backends_registry/free_web.py` 降至 9 行：仅作为合并 facade，将三个子模块的 `BACKENDS` 合并输出；`backends_registry/__init__.py` 导入方式不变。
+- **验证**：
+  - `pytest tests/test_backend_registry.py tests/test_routing_engine.py -q` → **56 passed**。
+  - `ruff check` / `pyright` 触及文件 0 errors / 0 warnings。
+  - `scripts/check_code_size.py` 超 300 行文件从 30 个降至 **29 个**。
+
 ## 2026-06-18 代码尺寸治理：拆分 eval_gate.py（完成）
 
 - **目标**：按顺序继续治理代码尺寸，将 `session_memory/eval_gate.py`（315 行）拆回 ≤300 行。
