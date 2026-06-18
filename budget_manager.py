@@ -8,10 +8,17 @@ LiMa Budget Manager — 请求预算管理
 """
 
 import logging
-import time
 import threading
+import time
 from dataclasses import dataclass
 from typing import Optional
+
+from budget_cost_class import get_cost_class, should_track_cost
+from budget_token_telemetry import (
+    get_token_usage,
+    record_token_usage,
+    reset_token_usage,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +103,7 @@ _usage: dict[str, int] = {}
 _reset_day: int = 0
 
 
-def _check_reset():
+def _check_reset() -> None:
     """每日 UTC 0:00 自动重置。"""
     global _reset_day
     today = int(time.time()) // 86400
@@ -108,7 +115,7 @@ def _check_reset():
 # ── 公开接口 ─────────────────────────────────────────────────────────────────
 
 
-def record_usage(backend: str):
+def record_usage(backend: str) -> None:
     """记录一次请求使用。"""
     with _lock:
         _check_reset()
@@ -180,145 +187,39 @@ def get_all_budgets() -> dict[str, dict]:
         return result
 
 
-# ── Cost class ──────────────────────────────────────────────────────────────────
-
-# free = never block or count against quota
-# limited = counted, warn_at 80%, block at 100%
-# paid = never block (pay-as-you-go), just track
-COST_CLASS: dict[str, str] = {}
-
-# Local / free-tier backends
-_LOCAL_BACKENDS = {
-    "local_coder14b",
-    "local_reasoning",
-    "local_general",
-    "local_fast",
-    "local_chat",
-    "local_qwen3",
-    "local_phi4",
-    "local_mistral",
-    "deepseek_free",
-}
-_FREE_BACKENDS = {
-    "chat_ubi",
-    "llm7",
-    "pollinations",
-    "pollinations_openai",
-    "pollinations_openai_large",
-    "pollinations_deepseek",
-    "pollinations_qwen_coder",
-    "scnet_qwen30b",
-    "scnet_qwen235b",
-    "scnet_ds_flash",
-    "scnet_ds_pro",
-    "scnet_minimax",
-    "ovh_llama70b",
-    "ovh_deepseek",
-    "cfai_llama70b",
-    "cfai_llama4",
-    "cfai_qwen_coder",
-    "cfai_deepseek_r1",
-    "cfai_mistral",
-    "tele_reason",
-    "tele_standard",
-    "tele_apps",
-    "assist_brainstorm",
-    "vision_joycaption",
-    "stock_gpt4o_mini",
-    "stock_gemini_flash",
-    "stock_deepseek",
-    "stock_llama4",
-    "stock_kimi_k2",
-    "stock_glm46",
-    "stock_qwen3_coder",
-    "stock_news",
-    "stock_mistral",
-    "oldllm_gpt54",
-    "oldllm_gpt53",
-    "oldllm_gpt52",
-    "oldllm_gpt51",
-    "oldllm_gpt5",
-    "oldllm_gpt5_mini",
-    "oldllm_gpt41",
-    "oldllm_gpt41_mini",
-    "oldllm_gpt41_nano",
-    "oldllm_gpt4",
-    "oldllm_o1",
-    "oldllm_o4_mini",
-}
-
-
-def _build_cost_class():
-    for b in _LOCAL_BACKENDS:
-        COST_CLASS[b] = "free"
-    for b in _FREE_BACKENDS:
-        COST_CLASS.setdefault(b, "free")
-
-
-_build_cost_class()
-
-
-def get_cost_class(backend: str) -> str:
-    """free | limited | paid. Unknown backends default to 'paid' (conservative)."""
-    return COST_CLASS.get(backend, "limited")
-
-
-def should_track_cost(backend: str) -> bool:
-    """Free/local backends never block on cost. Limited backends do."""
-    return get_cost_class(backend) != "free"
-
-
-# ── Token telemetry ─────────────────────────────────────────────────────────────
-
-_token_lock = threading.Lock()
-_token_usage: dict[str, dict] = {}
-
-
-def record_token_usage(backend: str, prompt_tokens: int = 0, completion_tokens: int = 0):
-    """Best-effort token tracking from API response.usage."""
-    if prompt_tokens <= 0 and completion_tokens <= 0:
-        return
-    if not should_track_cost(backend):
-        return
-    with _token_lock:
-        entry = _token_usage.setdefault(
-            backend,
-            {
-                "prompt": 0,
-                "completion": 0,
-                "requests": 0,
-            },
-        )
-        entry["prompt"] += prompt_tokens
-        entry["completion"] += completion_tokens
-        entry["requests"] += 1
-
-    # Emit token_usage_event to observability (M6-S3)
-    try:
-        from observability.metrics import record as _obs_record
-        from observability.events import token_usage_event
-
-        _obs_record(token_usage_event(backend, prompt_tokens, completion_tokens, get_cost_class(backend)))
-    except ImportError:
-        logger.debug("observability metrics unavailable: optional dependency not installed")
-
-
-def get_token_usage(backend: str = "") -> dict:
-    """Return token telemetry. Pass empty string for all backends."""
-    with _token_lock:
-        if backend:
-            return dict(_token_usage.get(backend, {"prompt": 0, "completion": 0, "requests": 0}))
-        return {k: dict(v) for k, v in _token_usage.items()}
-
-
-def reset_for_tests():
+def reset_for_tests() -> None:
     with _lock:
         _usage.clear()
-    with _token_lock:
-        _token_usage.clear()
+    reset_token_usage()
 
 
-def set_usage_for_tests(backend: str, used: int):
+def set_usage_for_tests(backend: str, used: int) -> None:
     with _lock:
         _check_reset()
         _usage[backend] = used
+
+
+# Re-export cost-class and token telemetry APIs for backward compatibility.
+__all__ = [
+    "BACKEND_BUDGETS",
+    "BudgetConfig",
+    "CF_ACCOUNT_DAILY_LIMIT",
+    "CF_ACCOUNT_WARN_AT",
+    "CF_BACKEND_PREFIX",
+    "get_all_budgets",
+    "get_budget_priority",
+    "get_budget_status",
+    "get_cf_pool_status",
+    "get_cf_pool_usage",
+    "get_cost_class",
+    "get_remaining_quota_score",
+    "get_token_usage",
+    "get_total_requests_today",
+    "get_usage_summary",
+    "is_budget_available",
+    "record_token_usage",
+    "record_usage",
+    "reset_for_tests",
+    "set_usage_for_tests",
+    "should_track_cost",
+]

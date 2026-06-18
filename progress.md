@@ -5,6 +5,18 @@
 > Updated: 2026-06-18
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-18 代码尺寸治理：拆分 budget_manager.py（完成）
+
+- **目标**：按顺序继续治理代码尺寸，将 `budget_manager.py`（324 行）拆回 ≤300 行。
+- **实现**：
+  - 新增 `budget_cost_class.py`：承载 `COST_CLASS`、本地/免费后端集合、`get_cost_class`、`should_track_cost`。
+  - 新增 `budget_token_telemetry.py`：承载 token 使用量追踪 `record_token_usage`、`get_token_usage`。
+  - `budget_manager.py` 保留预算配置、请求计数、配额查询、CF/Google/Gitee 注册；通过 import 重新导出 `get_cost_class`、`should_track_cost`、`record_token_usage`、`get_token_usage`，所有调用方和测试无需修改。
+- **验证**：
+  - `pytest tests/test_budget_manager.py tests/test_budget_cf_google.py tests/test_routing_engine.py -q` → **47 passed**。
+  - `ruff check` / `pyright` 触及文件 0 errors / 0 warnings。
+  - `scripts/check_code_size.py` 超 300 行文件从 29 个降至 **28 个**。
+
 ## 2026-06-18 代码尺寸治理：拆分 free_web.py（完成）
 
 - **目标**：按顺序继续治理代码尺寸，将 `backends_registry/free_web.py`（320 行）拆回 ≤300 行。
