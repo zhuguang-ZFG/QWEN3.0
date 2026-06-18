@@ -29,22 +29,10 @@ def test_backends_facade_removed_registry_is_authority():
     assert hasattr(registry, "BACKENDS")
 
 
-def test_quality_gate_modules_are_distinct():
-    import pytest
-
-    pytest.skip(reason="REMOVED 2026-06-12: routes.quality_gate deleted in Phase 2")
-
-
 def test_lima_context_module_exports():
     """code_orchestrator retired; verify lima_context provides context building."""
     lima_ctx = importlib.import_module("lima_context")
     assert hasattr(lima_ctx, "build_context_digest")
-
-
-def test_agent_task_evolution_routes_mounted():
-    import pytest
-
-    pytest.skip(reason="Module routes.agent_tasks no longer exists - removed with anthropic assistant features")
 
 
 def test_device_gateway_ws_split_preserves_exports():
@@ -57,12 +45,6 @@ def test_device_gateway_ws_split_preserves_exports():
     assert hasattr(dispatch, "dispatch_task_to_session")
     assert hasattr(ws, "handle_device_ws")
     assert hasattr(handlers, "handle_transcript")
-
-
-def test_anthropic_stream_split_preserves_exports():
-    import pytest
-
-    pytest.skip(reason="REMOVED 2026-06-09: anthropic_stream routes")
 
 
 def test_streaming_bridge_split_preserves_exports():

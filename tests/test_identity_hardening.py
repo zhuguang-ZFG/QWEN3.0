@@ -7,7 +7,6 @@ from response_cleaner import (
     clean_response,
 )
 import identity_guard
-import routing_engine
 
 
 def test_clean_response_as_claude_intro():
@@ -95,47 +94,3 @@ def test_stream_sanitizer_cleans_cross_chunk_identity():
     combined = out + sanitizer.flush()
     if combined:
         assert "Claude" not in combined
-
-
-@pytest.mark.skip(reason="Skip: test_route_identity_guard_runs_before_cache depends on routing_engine.semantic_cache")
-def test_route_identity_guard_runs_before_cache(monkeypatch):
-    calls = {"cache_get": 0, "identity": 0}
-
-    def fake_get(*_args, **_kwargs):
-        calls["cache_get"] += 1
-        return "I am Claude from cache."
-
-    def fake_detect(query, *, channel_role="default"):
-        calls["identity"] += 1
-        if "who are you" in query.lower():
-            return "I'm LiMa."
-        return None
-
-    monkeypatch.setattr(routing_engine.semantic_cache, "get", fake_get)
-    monkeypatch.setattr(routing_engine.identity_guard, "detect_identity_question", fake_detect)
-
-    result = routing_engine.route("who are you", [{"role": "user", "content": "who are you"}])
-
-    assert result.backend == "identity_guard"
-    assert result.answer == "I'm LiMa."
-    assert calls["identity"] == 1
-    assert calls["cache_get"] == 0
-
-
-@pytest.mark.skip(reason="Skip: test_route_cache_hit_is_cleaned depends on routing_engine.semantic_cache")
-def test_route_cache_hit_is_cleaned(monkeypatch):
-    monkeypatch.setattr(
-        routing_engine.identity_guard,
-        "detect_identity_question",
-        lambda *_a, **_k: None,
-    )
-    monkeypatch.setattr(
-        routing_engine.semantic_cache,
-        "get",
-        lambda *_a, **_k: "As Claude, cached answer.",
-    )
-
-    result = routing_engine.route("explain python", [{"role": "user", "content": "explain python"}])
-
-    assert result.backend == "cache"
-    assert "Claude" not in result.answer

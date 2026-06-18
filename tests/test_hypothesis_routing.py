@@ -58,8 +58,8 @@ def test_route_never_crashes(query: str, fmt: str):
         assert result is not None
         assert hasattr(result, "backend")
         assert hasattr(result, "answer")
-    except ImportError:
-        pass
+    except ImportError as exc:
+        pytest.skip(f"optional dependency unavailable: {exc}")
 
 
 @pytest.mark.parametrize(
@@ -97,5 +97,5 @@ def test_route_empty_query():
     try:
         result = route("", [], fmt="openai", model="lima-1.3", max_tokens=10)
         assert result is not None
-    except ImportError:
-        pass
+    except ImportError as exc:
+        pytest.skip(f"optional dependency unavailable: {exc}")

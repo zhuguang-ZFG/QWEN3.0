@@ -15,13 +15,6 @@ def test_server_registers_extracted_chat_endpoints():
     assert server.chat_completions is chat_endpoints.chat_completions
 
 
-def test_anthropic_endpoint_removed():
-    """Anthropic /v1/messages endpoint removed in 2026-06-15 strategic cleanup."""
-    import pytest
-
-    pytest.skip("Anthropic /v1/messages endpoint removed 2026-06-15")
-
-
 def test_openai_endpoint_delegates_to_server_handle_chat(monkeypatch):
     captured = {}
 
@@ -69,13 +62,6 @@ def test_openai_endpoint_rejects_malformed_json(monkeypatch):
     assert response.status_code == 400
     assert response.json()["error"]["type"] == "invalid_request_error"
     assert response.json()["error"]["message"] == "valid JSON body required"
-
-
-def test_anthropic_endpoint_rejects_malformed_json(monkeypatch):
-    """Anthropic /v1/messages endpoint removed in 2026-06-15 strategic cleanup."""
-    import pytest
-
-    pytest.skip("Anthropic /v1/messages endpoint removed 2026-06-15")
 
 
 def test_public_demo_chat_fails_closed(monkeypatch):
@@ -144,15 +130,3 @@ def test_public_demo_chat_rejects_tool_requests(monkeypatch):
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Unsupported public demo request"
-
-
-def test_openai_endpoint_routes_tool_history_before_chatrequest_validation(monkeypatch):
-    import pytest
-
-    monkeypatch.setenv("LIMA_API_KEY", "test-key")
-
-    # anthropic_native_forward was removed on 2026-06-09; skipping test
-    pytest.skip(reason="REMOVED 2026-06-09: anthropic_native_forward functionality")
-
-    # The original test expected this to route through the tool forwarding pipeline,
-    # but anthropic_native_forward is now None in server.py

@@ -14,44 +14,6 @@ from routes.ops_metrics import router
 from ops_metrics_helpers import reload_prometheus_metrics
 
 
-@pytest.mark.skip(
-    reason="Skip: test_ops_metrics_includes_recent_agent_tasks depends on routes.agent_tasks not yet implemented"
-)
-def test_ops_metrics_includes_recent_agent_tasks(monkeypatch, tmp_path):
-    monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
-
-    import routes.agent_tasks as agent_tasks
-
-    agent_tasks._DB_PATH = str(tmp_path / "agent_tasks.db")
-    agent_tasks._store = agent_tasks._TaskStore(agent_tasks._DB_PATH)
-    agent_tasks._reset_for_tests()
-
-    from routes.agent_tasks import TaskCreateBody, _create_task_from_body
-
-    created = _create_task_from_body(
-        TaskCreateBody(
-            repo="D:/GIT/lima-worker-sandbox",
-            goal="ops metrics recent task",
-            mode="review",
-        )
-    )
-
-    app = FastAPI()
-    app.state.stats = {"total_requests": 0, "backend_calls": {}, "start_time": 1}
-    app.include_router(router)
-    response = TestClient(app).get(
-        "/v1/ops/metrics",
-        headers={"Authorization": "Bearer test-private-token"},
-    )
-
-    assert response.status_code == 200
-    recent = response.json().get("recent_agent_tasks", [])
-    assert any(item["task_id"] == created["task_id"] for item in recent)
-    assert any("ops metrics recent task" in item["goal"] for item in recent)
-
-    agent_tasks._reset_for_tests()
-
-
 def test_ops_metrics_includes_learning_loop_stats(monkeypatch):
     monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
     app = FastAPI()
