@@ -5,6 +5,22 @@
 > Updated: 2026-06-18
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-18 代码审查：修复 HEAD 数字人/token 改动的高优问题（完成）
+
+- **目标**：对用户最新提交（`45009c3 fix(device-gateway): unify digital-human token source and add auth logging` + 前端 LiMa 星云品牌刷新）执行 4 视角代码审查，并修复 Must Fix 项。
+- **审查发现**（详见 `.omk/CODE_REVIEW_ISSUES.md`）：
+  - 0 Critical，3 High，7 Medium，2 Low。
+  - 关键项：`scripts/deploy_chat_web.py` 漏掉 `solar-system.js`；`chat-web/galaxy-chat.js` 已提交但未被引用；`tests/test_digital_human_routes.py` 断言未随函数改名更新导致 CI 失败。
+- **已修复**：
+  - `scripts/deploy_chat_web.py`：`FILES` 加入 `solar-system.js`，移除未使用的 `galaxy-chat.js`。
+  - 删除 `chat-web/galaxy-chat.js`（与 `solar-system.js` 重复且未被引用）。
+  - `tests/test_digital_human_routes.py`：断言兼容 `setInput` / `forceSetInput`。
+  - 复核 `donglicao-site/solar-system.js` 的 canvas height 设置，当前代码已正确设置为 `window.innerHeight`，无需改动。
+- **验证**：
+  - `pytest tests/test_digital_human_routes.py tests/test_deploy_unified.py tests/test_deploy_common.py -q` → **15 passed**。
+  - `ruff check` / `pyright` 触及文件 0 errors / 0 warnings。
+  - `python scripts/deploy_chat_web.py --dry-run` 能正确列出 `solar-system.js`。
+
 ## 2026-06-18 代码尺寸治理：拆分 backends_constants.py（完成）
 
 - **目标**：按顺序继续治理代码尺寸，将 `backends_constants.py`（372 行）拆回 ≤300 行。

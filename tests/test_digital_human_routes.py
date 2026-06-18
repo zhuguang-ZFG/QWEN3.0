@@ -28,7 +28,7 @@ def test_digital_human_index_serves_patched_html():
     text = response.text
     assert "Digital human" in text or "数字人" in text or "live2d" in text.lower()
     # The patched auto-config script should be present.
-    assert 'setInput("limaWsUrl"' in text
+    assert ('setInput("limaWsUrl"' in text or 'forceSetInput("limaWsUrl"' in text)
     assert "/device/v1/ws" in text
     assert "seedStorage" in text
 
