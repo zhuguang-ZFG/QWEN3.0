@@ -236,31 +236,32 @@
   });
 
   function getDemoApiKey() {
-    var key = (sessionStorage.getItem('lima-demo-api-key') || '').trim();
-    if (!key) {
-      key = (window.prompt('请输入 LiMa API Key 以体验对话（Key 仅保存在当前标签页）：', '') || '').trim();
-      if (key) sessionStorage.setItem('lima-demo-api-key', key);
-    }
+    return (sessionStorage.getItem('lima-demo-api-key') || '').trim();
+  }
+
+  function askForDemoApiKey() {
+    var key = (window.prompt('请输入 LiMa API Key（可选，留空即可免费体验；Key 仅保存在当前标签页）：', '') || '').trim();
+    if (key) sessionStorage.setItem('lima-demo-api-key', key);
     return key;
+  }
+
+  function demoHeaders() {
+    var headers = {'Content-Type': 'application/json'};
+    var key = getDemoApiKey();
+    if (!key) key = askForDemoApiKey();
+    if (key) headers['Authorization'] = 'Bearer ' + key;
+    return headers;
   }
 
   function sendChat() {
     const text = chatInput.value.trim();
     if (!text) return;
-    const key = getDemoApiKey();
-    if (!key) {
-      appendMsg('请先输入 LiMa API Key 以体验对话。', false);
-      return;
-    }
     appendMsg(text, true);
     chatInput.value = '';
     chatBtn.disabled = true;
     fetch('/v1/chat/completions', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + key
-      },
+      headers: demoHeaders(),
       body: JSON.stringify({
         model: 'lima',
         messages: [{role: 'user', content: text}],
