@@ -60,6 +60,35 @@ def test_private_api_key_fails_closed_when_unconfigured(monkeypatch):
     assert exc.value.status_code == 503
 
 
+def test_private_api_key_allows_anonymous_when_enabled(monkeypatch):
+    monkeypatch.setenv("LIMA_API_KEY", "private-key")
+    monkeypatch.setenv("LIMA_ALLOW_ANONYMOUS", "1")
+
+    assert access_guard.require_private_api_key("") is None
+
+
+def test_private_api_key_still_validates_explicit_key_when_anonymous_enabled(monkeypatch):
+    monkeypatch.setenv("LIMA_API_KEY", "private-key")
+    monkeypatch.setenv("LIMA_ALLOW_ANONYMOUS", "1")
+
+    assert access_guard.require_private_api_key("Bearer private-key") is None
+
+    with pytest.raises(HTTPException) as exc:
+        access_guard.require_private_api_key("Bearer wrong-key")
+    assert exc.value.status_code == 401
+
+
+def test_private_api_key_anonymous_still_fails_when_no_keys_configured(monkeypatch):
+    monkeypatch.delenv("LIMA_API_KEY", raising=False)
+    monkeypatch.delenv("LIMA_API_KEYS", raising=False)
+    monkeypatch.setenv("LIMA_ALLOW_ANONYMOUS", "1")
+
+    with pytest.raises(HTTPException) as exc:
+        access_guard.require_private_api_key("")
+
+    assert exc.value.status_code == 503
+
+
 def test_admin_auth_fails_closed_without_configured_token(monkeypatch):
     monkeypatch.setattr(admin_auth, "_ADMIN_TOKEN", "")
     monkeypatch.delenv("LIMA_ADMIN_TOKEN", raising=False)

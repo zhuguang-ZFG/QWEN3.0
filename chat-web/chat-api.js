@@ -1,4 +1,11 @@
 // ─── SEND ───
+function authHeaders() {
+  const headers = { 'Content-Type': 'application/json' };
+  const key = getApiKey();
+  if (key) headers['Authorization'] = 'Bearer ' + key;
+  return headers;
+}
+
 async function generateImage(prompt) {
   if (isStreaming) return;
   isStreaming = true;
@@ -15,10 +22,7 @@ async function generateImage(prompt) {
     const response = await fetch('/v1/images/generations', {
       method: 'POST',
       signal: abortController.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': getApiKey() ? `Bearer ${getApiKey()}` : '',
-      },
+      headers: authHeaders(),
       body: JSON.stringify({
         model: 'lima-image',
         prompt: prompt,
@@ -87,10 +91,7 @@ async function sendMessage() {
     const response = await fetch('/v1/chat/completions', {
       method: 'POST',
       signal: abortController.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': getApiKey() ? `Bearer ${getApiKey()}` : '',
-      },
+      headers: authHeaders(),
       body: JSON.stringify({
         model: 'lima',
         messages: messages,

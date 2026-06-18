@@ -24,6 +24,16 @@ def is_private_access_configured() -> bool:
     return bool(configured_api_keys())
 
 
+def allow_anonymous_access() -> bool:
+    """Whether public endpoints may be used without an API key."""
+    return os.environ.get("LIMA_ALLOW_ANONYMOUS", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
 def extract_bearer_token(authorization: str) -> str:
     """Extract token from Bearer <token> header. Returns empty string on mismatch."""
     value = (authorization or "").strip()
@@ -39,15 +49,24 @@ def constant_time_equals(a: str, b: str) -> bool:
 
 
 def require_private_api_key(authorization: str = Header(default="")) -> None:
-    """FastAPI dependency that fails closed unless a configured key is supplied."""
+    """FastAPI dependency that fails closed unless a configured key is supplied.
+
+    When ``LIMA_ALLOW_ANONYMOUS=1`` is set and at least one private key is
+    configured, requests without an Authorization header are allowed.  Explicit
+    keys are still validated when present.
+    """
     keys = configured_api_keys()
     if not keys:
         raise HTTPException(
             status_code=503,
             detail="LiMa private API key is not configured.",
         )
+
     token = extract_bearer_token(authorization)
     if not token:
+        if allow_anonymous_access():
+            return
         raise HTTPException(status_code=401, detail="Unauthorized")
+
     if not any(constant_time_equals(token, k) for k in keys):
         raise HTTPException(status_code=401, detail="Unauthorized")
