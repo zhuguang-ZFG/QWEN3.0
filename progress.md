@@ -5,6 +5,17 @@
 > Updated: 2026-06-18
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-18 代码尺寸治理：拆分 model_registry.py（完成）
+
+- **目标**：按顺序继续治理代码尺寸，将 `model_registry.py`（321 行）拆回 ≤300 行。
+- **实现**：
+  - 将文件末尾 89 行的 `__main__` 自测块迁移为正式 pytest：`tests/test_model_registry.py`（146 行），覆盖注册、版本号解析、激活、回滚、列表、状态汇总、无 trainer_state 回退等 9 个 case。
+  - `model_registry.py` 降至 **232 行**：保留生产接口与核心逻辑，移除内联 smoke。
+- **验证**：
+  - `pytest tests/test_model_registry.py -q` → **9 passed**。
+  - `ruff check` / `pyright` 触及文件 0 errors / 0 warnings。
+  - `scripts/check_code_size.py` 超 300 行文件从 28 个降至 **27 个**。
+
 ## 2026-06-18 代码尺寸治理：拆分 budget_manager.py（完成）
 
 - **目标**：按顺序继续治理代码尺寸，将 `budget_manager.py`（324 行）拆回 ≤300 行。
