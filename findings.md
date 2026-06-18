@@ -23,7 +23,7 @@
 | WEB-UX-2 | ux | 语音通话模式选项 `Gemini Live` / `本地语音管道` 不够直观 | Closed |
 | WEB-SIZE-1 | code_size | `chat-web/index.html` 1657 行，需拆分为 HTML/CSS/JS/SVG | Closed |
 | WEB-SIZE-3 | code_size | `donglicao-site/index.html` 454 行，内联 CSS/JS 过多 | Closed |
-| WEB-SIZE-2 | code_size | `donglicao-site/chat.html` 与 `chat-web/index.html` 功能重复，需后续统一或重定向 | Open |
+| WEB-SIZE-2 | code_size | `donglicao-site/chat.html` 与 `chat-web/index.html` 功能重复，已替换为重定向页 | Closed |
 
 **Review 衍生修复（2026-06-18 omk-review）**
 - 语音路径：前端 `/v1/voice` 与后端 `routes/voice_pipeline_ws.py` 一致；nginx 新增 `location = /v1/voice` WebSocket 代理到 `:8080`。

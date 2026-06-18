@@ -23,8 +23,9 @@
 - **已解决（2026-06-18）**：
   - `chat-web/index.html` 已拆分为 `chat-web/styles.css` + `chat-web/icons.svg` + `chat-web/chat-ui.js` + `chat-web/chat-messages.js` + `chat-web/chat-api.js`；HTML 从 1715 行降至 325 行。
   - `donglicao-site/index.html` 已拆分为 `donglicao-site/styles.css` + `donglicao-site/site.js`；HTML 从 454 行降至 187 行。
+  - `donglicao-site/chat.html` 已由 347 行的独立聊天 UI 替换为 22 行的重定向页，统一跳转到 `https://chat.donglicao.com/`；本地开发提示打开 `chat-web/index.html`。
 - **未解决（需后续里程碑）**：
-  - `donglicao-site/chat.html` 与 `chat-web/index.html` 功能重复，需统一或重定向。
+  - 全量 pytest 中 `test_digital_human_static_js_served` content-type 断言与 Starlette StaticFiles 实际返回不一致。
 
 ## 2026-06-18 chat-web 前端模块化拆分（完成）
 
@@ -45,6 +46,17 @@
   - `node --check chat-web/chat-ui.js chat-web/chat-messages.js chat-web/chat-api.js` → JS syntax OK。
   - `python scripts/deploy_chat_web.py --dry-run` → 7 个文件均在部署清单。
   - 全量 pytest：1739 passed, 37 skipped，1 failed（`test_digital_human_static_js_served`，与本次改动无关，content-type 断言与 Starlette StaticFiles 实际返回不一致）。
+
+## 2026-06-18 消除 donglicao-site/chat.html 与 chat-web 重复（完成）
+
+- **目标**：将 `donglicao-site/chat.html` 的独立聊天 UI 替换为重定向，统一使用 `chat-web/index.html`。
+- **实现**：
+  - 删除原 347 行的 `donglicao-site/chat.html` 聊天 UI；
+  - 新建 22 行重定向页，通过 `meta refresh` + `location.replace` 跳转到 `https://chat.donglicao.com/`；
+  - 保留本地开发 fallback 提示，引导开发者直接打开 `chat-web/index.html`。
+- **验证**：
+  - `pytest tests/test_static_files.py -v` → **2 passed**（测试只校验文件存在与被优先返回）。
+  - `ruff check .` → clean。
 
 ## 2026-06-18 donglicao-site landing page 模块化拆分（完成）
 
