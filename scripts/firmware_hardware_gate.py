@@ -13,9 +13,13 @@ from pathlib import Path
 from typing import Mapping, Sequence
 
 if __package__:
+    from scripts.firmware_idf_env import clean_idf_env
+    from scripts.firmware_idf_env import idf_python_executable
     from scripts.firmware_hardware_smoke import run_hardware_smoke
 else:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from firmware_idf_env import clean_idf_env
+    from firmware_idf_env import idf_python_executable
     from firmware_hardware_smoke import run_hardware_smoke
 
 PROTOCOL_FILE = Path("main/protocols/websocket_protocol.cc")
@@ -54,6 +58,7 @@ def _required_lima_contract(text: str) -> CheckResult:
         '#define LIMA_PROTOCOL_VERSION "lima-device-v1"',
         'url = "wss://chat.donglicao.com/device/v1/ws";',
         'cJSON_AddStringToObject(root, "protocol", LIMA_PROTOCOL_VERSION);',
+        'cJSON_AddStringToObject(root, "fw_rev", esp_app_get_description()->version);',
         'strcmp(type->valuestring, "hello_ack") == 0',
         'strcmp(type->valuestring, "voice_status") == 0',
         'strcmp(type->valuestring, "audio_reply") == 0',
@@ -68,6 +73,7 @@ def _forbidden_legacy_contract(text: str) -> CheckResult:
     forbidden = [
         'url = "ws://chat.donglicao.com/device/v1/ws";',
         "CONFIG_LIMA_DIRECT_MODE",
+        "GetFirmwareVersion()",
         "Original xiaozhi-server protocol",
         "Original xiaozhi-server hello parsing",
     ]
@@ -127,7 +133,7 @@ def _resolve_idf_path(idf_py: str, env: Mapping[str, str] | None = None) -> Path
 def _idf_command(env: Mapping[str, str] | None, idf_py: str) -> list[str]:
     idf_path = _resolve_idf_path(idf_py, env)
     if idf_path is not None and _valid_idf_source_tree(idf_path):
-        return [sys.executable, str(idf_path / "tools" / "idf.py")]
+        return [idf_python_executable(idf_path, env), str(idf_path / "tools" / "idf.py")]
     return [idf_py]
 
 
@@ -142,11 +148,12 @@ def probe_idf_python_env(
     *,
     env: Mapping[str, str] | None = None,
 ) -> CheckResult:
+    run_env = clean_idf_env(env)
     try:
         completed = subprocess.run(
             [*idf_cmd, "--version"],
             cwd=firmware_dir,
-            env=env,
+            env=run_env,
             check=False,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -205,10 +212,11 @@ def run_idf_build(
     python_probe = probe_idf_python_env(idf_cmd, firmware_dir, env=env)
     if python_probe.status != "pass":
         return [python_probe]
+    run_env = clean_idf_env(env)
     results: list[CheckResult] = []
     for command in build_idf_commands(firmware_dir, target=target, flash=flash, port=port):
         runnable = idf_cmd + command[1:]
-        completed = subprocess.run(runnable, cwd=firmware_dir, env=env, check=False)  # noqa: S603
+        completed = subprocess.run(runnable, cwd=firmware_dir, env=run_env, check=False)  # noqa: S603
         name = "esp_idf_" + command[-1].replace("-", "_")
         if completed.returncode != 0:
             return results + [_result(name, "fail", f"{' '.join(runnable)} exited {completed.returncode}")]
@@ -256,17 +264,6 @@ def _exit_code(results: Sequence[CheckResult]) -> int:
     return 0
 
 
-def _resolve_hardware_credentials(
-    env: Mapping[str, str],
-    device_id: str | None,
-    token: str | None,
-) -> tuple[str, str]:
-    return (
-        (device_id or env.get("LIMA_HARDWARE_DEVICE_ID", "")).strip(),
-        (token or env.get("LIMA_HARDWARE_DEVICE_TOKEN", "")).strip(),
-    )
-
-
 def main(argv: list[str] | None = None, env: Mapping[str, str] | None = None) -> int:
     args = build_arg_parser().parse_args(argv)
     run_env = os.environ if env is None else env
@@ -281,7 +278,8 @@ def main(argv: list[str] | None = None, env: Mapping[str, str] | None = None) ->
     if args.hardware_smoke:
         preflight = hardware_preflight(run_env, args.device_id, args.device_token)
         if preflight.status == "pass":
-            device_id, token = _resolve_hardware_credentials(run_env, args.device_id, args.device_token)
+            device_id = (args.device_id or run_env.get("LIMA_HARDWARE_DEVICE_ID", "")).strip()
+            token = (args.device_token or run_env.get("LIMA_HARDWARE_DEVICE_TOKEN", "")).strip()
             smoke = asyncio.run(run_hardware_smoke(args.host, device_id, token))
             results.append(_result(smoke.name, smoke.status, smoke.message))
         else:

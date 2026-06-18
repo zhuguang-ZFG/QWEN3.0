@@ -28,6 +28,7 @@ LiMa 的作者意图不是继续堆叠一个“全能聊天后端”，而是把
 
 - `routes/device_gateway.py` 暴露 `/device/v1/health`、`/events`、`/tasks`、`/ws`、任务查询、设备历史等入口，并记录 `device_task_created` 能力证据。
 - `device_gateway/task_creation.py` 在任务创建时依次处理 profile、`route_policy`、策略校验、固件兼容、参数校验、策略引擎、workflow、模拟器、制品记录和路由证据。
+- `device_gateway/task_draw_params.py`（2026-06-18）负责 `draw_generated` 参数构建：`handle_device_draw` 或本地 SVG 解析。
 - `device_gateway/model_routing.py` 把设备任务拆成 `device_control`、`device_write`、`device_draw`、`device_vector`、`device_unknown`，并为每类角色绑定准入后的 backend，例如 `deterministic`、`dashscope_wanx`、`opencv_contour`。
 - 这说明作者不希望 LLM 直接控制硬件；AI 只能在角色和准入证据限定内提供规划/生成能力，运动下发仍由确定性校验链路守门。
 

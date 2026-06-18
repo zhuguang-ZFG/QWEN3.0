@@ -31,7 +31,8 @@
 - **实现**：新增并注册 `/device/v1/app` 原生管理面，覆盖账号、设备、任务、成员/声纹、转移、耗材、自检；`xiaozhi_v1_compat` 默认关闭，仅 `LIMA_XIAOZHI_COMPAT_ENABLED=1` opt-in。
 - **固件/移动端**：`esp32S_XYZ` 固件默认连接 `wss://chat.donglicao.com/device/v1/ws` 并使用 `lima-device-v1`；manager-mobile 默认 LiMa 公网、v2 页面和 `/device/v1/app` API，设置页用 `/health` 验证服务地址。
 - **OTA**：补齐设备侧升级计划和安装结果上报，发布/灰度状态可持久化。
-- **验证**：全量 `pytest` → **1741 passed, 23 skipped**；`ruff check .`、`ruff format --check` clean；pyright 目标文件 0 errors；manager-mobile `type-check` 和 `build:h5` 通过；VPS 公网 `/health`、`/device/v1/health` 验证通过，OpenAPI 已有 `/device/v1/app/*` 与 `/device/v1/ota/upgrade-plan`，默认无 `/api/v1/devices`。
+- **验证**：全量 `pytest` → **1746 passed, 37 skipped**；`ruff check .`、`ruff format --check` clean；pyright 目标文件 0 errors；`tests/test_firmware_hardware_gate.py` → **13 passed**；manager-mobile `type-check` 和 `build:h5` 通过；VPS 公网 `/health`、`/device/v1/health` 验证通过，OpenAPI 已有 `/device/v1/app/*` 与 `/device/v1/ota/upgrade-plan`，默认无 `/api/v1/devices`。
+- **提交**：固件硬件门禁脚本、ESP-IDF 环境助手、相关测试与文档已 commit 并 push 到 `origin main`；`esp32S_XYZ` 子模块 `fw_rev` 修复已 push 到子模块 `origin main`。
 
 ### 最近完成（2026-06-17）阿里云 ASR fallback 链实现
 

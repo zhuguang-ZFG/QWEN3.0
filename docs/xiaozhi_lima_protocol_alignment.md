@@ -156,7 +156,7 @@ OpenAPI 中 `TaskSubmitRequest.capability` 当前枚举是 `run_path`、`draw_im
 | OpenAPI capability | LiMa Gateway capability | 当前处理 |
 | --- | --- | --- |
 | `run_path` | `run_path` | 直接映射，保留 `source_capability=run_path`。 |
-| `draw_image` | `run_path` | 当前要求 `params.path` 已存在；`imageUrl` 到路径投影未接通。 |
+| `draw_image` | `draw_generated` → `run_path` | App 提交自然语言 prompt 时经 `handle_device_draw` 生图矢量化；若仅提供 `imageUrl` 而无 `prompt`，行为取决于参数映射（见 `routes/device_app_tasks.py`）。 |
 | `home` | `home` | 直接控制类任务。 |
 | `calibrate` | `home` | 临时映射到 `home`，保留 `source_capability=calibrate`。 |
 

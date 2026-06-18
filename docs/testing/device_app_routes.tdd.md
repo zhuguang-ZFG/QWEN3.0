@@ -53,4 +53,4 @@
 
 ## 结论
 
-LiMa 已开始接管小智的设备管理面，但这只是第一段。账号、成员、声纹、转移、耗材、自检还在后面。
+LiMa 原生 `/device/v1/app` 已覆盖账号、设备、任务、成员、声纹、转移、耗材、自检。结构化 `draw_generated` / `draw_image` 与语音/REST 任务共用 `project_to_motion_task_async`，自然语言绘图经 `task_draw_params` → `handle_device_draw`（2026-06-18）。

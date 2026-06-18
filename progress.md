@@ -1894,3 +1894,23 @@ Agent Worker path.
 - **提交与推送**：
   - `git push origin main` 成功（`13a88f8..5d6b3df`）。
   - `git push gitee main` 失败：`git@gitee.com: Permission denied (publickey)`；已提供公钥 `~/.ssh/id_ed25519.pub`，需要在 Gitee 账户「SSH 公钥」中添加该 key 后才能推送。此前修复的是 `push_dual_remotes` 对 gitee remote 的查找逻辑，本机 SSH key 尚未被 Gitee 授权。
+
+### 2026-06-18 续：小智服务器退役与固件硬件门禁闭合
+
+- **目标**：把未提交的小智服务器退役文档同步、U8 固件真实构建门禁和 `esp32S_XYZ` 子模块 `fw_rev` 修复整理提交。
+- **实现**：
+  - `scripts/firmware_hardware_gate.py`：静态契约检查（`wss://`、`lima-device-v1`、禁止 legacy 协议）、ESP-IDF 环境探测、无 shell 的 build 命令生成、可选 `--build` / `--flash` / `--hardware-smoke`。
+  - `scripts/firmware_idf_env.py`（新增）：定位 `IDF_PYTHON_ENV_PATH`，清理 MSYS/Mingw 环境变量，补齐 `ESP_ROM_ELF_DIR` 与 `OPENOCD_SCRIPTS`。
+  - `tests/test_firmware_hardware_gate.py`：覆盖静态契约、缺失/非法 IDF、build 命令形状、IDF Python 环境探测。
+  - `esp32S_XYZ` 子模块：`websocket_protocol.cc` 的 `fw_rev` 改用 `esp_app_get_description()->version`，移除不存在的 `Board::GetFirmwareVersion()`。
+  - 同步更新 `docs/ARCHITECTURE.md`、`README.md`、`LIMA_MEMORY_CN.md`、`PROJECT_OPTIMIZATION_ROADMAP_CN.md`、`XIAOZHI_SERVER_RETIREMENT_CHECKLIST_CN.md` 等退役相关文档。
+- **验证**：
+  - `pytest tests/test_firmware_hardware_gate.py -q` → **13 passed**。
+  - 全量 `pytest --tb=short -q` → **1746 passed, 37 skipped**。
+  - `ruff check` / `.venv310/Scripts/pyright` 触及文件 clean。
+- **提交与推送**：
+  - 父仓库 commit push 到 `origin main`。
+  - `esp32S_XYZ` 子模块 commit push 到子模块 `origin main`，父仓库指针同步更新。
+  - `git push gitee main` 仍因 Gitee SSH 公钥未授权失败，需用户到 Gitee 账户添加 `~/.ssh/id_ed25519.pub`。
+- **剩余阻塞**：
+  - 无真实 `LIMA_HARDWARE_DEVICE_ID` / `LIMA_HARDWARE_DEVICE_TOKEN` 与串口设备，尚未执行 `--flash`、串口监控或真机闭环。

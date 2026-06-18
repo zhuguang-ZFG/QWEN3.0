@@ -19,10 +19,10 @@
 | EdgeTTS 音频格式 | ✅ MP3 已转 PCM（依赖 ffmpeg） | 否 |
 | **2D 数字人系统** | ✅ 已挂载到 LiMa `/digital-human/`，前端已支持 LiMa 协议 | 否 |
 | OpenAPI 最后 1 端点 | ⚠️ 28/29 | 否（P1） |
-| 真机端到端回归 | ❌ 未执行；已补可复跑门禁 | **是（P0）** |
+| 真机端到端回归 | ❌ 真机未执行；固件已可本机 ESP-IDF build | **是（P0）** |
 | VPS 运行时依赖验证 | ✅ 已明确走纯云路线（MiMo TTS + AliyunFallback ASR），无需在 VPS 部署本地大模型 | 否 |
 
-**当前判定**：小智服务器**仍不能退役**。阶段 3 已完成阿里云 NLS 凭证接入、数字人接入 LiMa，并跑通真实凭证闭环冒烟；目前仅剩 **真机端到端回归** 未执行，且本机 ESP-IDF 只剩工具链 wrapper，源码树已缺失。
+**当前判定**：小智服务器**仍不能退役**。阶段 3 已完成阿里云 NLS 凭证接入、数字人接入 LiMa，并跑通真实凭证闭环冒烟；固件已在本机 ESP-IDF v5.5.4 下通过 `--build`，目前仅剩 **真机端到端回归** 未执行。
 
 ---
 
@@ -96,7 +96,7 @@
 
 从未在真 ESP32 设备上跑通完整链路。当前已补充 `scripts/firmware_hardware_gate.py`，用于在 ESP-IDF 缺失、ESP-IDF Python/export 环境损坏或真实设备凭据缺失时明确阻塞，不把未构建/未真机烟测误报为通过。
 
-2026-06-18 续查：`D:\tmp\esp-idf-v5.5.4` 已恢复 ESP-IDF v5.5.4 源码树，门禁可识别真实 `IDF_PATH\tools\idf.py` 布局；当前真实阻断点是 ESP-IDF Python/export 环境损坏，`idf.py --version` 报 `No module named 'esp_idf_monitor'`，且 `export.ps1` 在当前 shell 报 `MSys/Mingw is not supported` 与 `.espressif` venv 基础 Python 路径失效。
+2026-06-18 续查：`D:\tmp\esp-idf-v5.5.4` 已恢复 ESP-IDF v5.5.4 源码树，门禁可识别真实 `IDF_PATH\tools\idf.py` 布局，并优先使用 `IDF_TOOLS_PATH` 下匹配版本的 ESP-IDF Python venv；`scripts/firmware_hardware_gate.py --build` 已通过，生成 `build/xiaozhi.bin`。真实阻断点推进为：尚未连接真实 U8 设备执行刷机、串口监控和 `/device/v1/ws` 硬件烟测。
 
 **验收标准**：
 - [ ] 真机连 LiMa（不走小智），跑一轮：唤醒 → VAD → ASR → LLM → TTS → 播放
@@ -191,3 +191,4 @@ FunASR / SileroVAD / 3D-Speaker 依赖 `torch` / `funasr` / `modelscope` / `onnx
 | 2026-06-18 | 阶段 3：接入阿里云 NLS 真实凭证，新增 AliyunFallback ASR，更新 checklist 与可用性矩阵 | — |
 | 2026-06-18 | 补充固件/真机验证门禁：静态契约可本地通过，ESP-IDF 和真机缺失时显式阻塞 | — |
 | 2026-06-18 | 固件门禁识别真实 `tools/idf.py` 布局，并新增 ESP-IDF Python/export 环境阻塞诊断 | — |
+| 2026-06-18 | 修复固件 hello `fw_rev` 编译错误；门禁补齐 ESP-IDF export 环境，真实 `--build` 通过并生成 `xiaozhi.bin` | — |

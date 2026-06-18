@@ -18,6 +18,7 @@
 | 「智能编程助手」单一叙事 | **主轨**：AI 绘图/写字设备云端；**副轨**：OpenAI 兼容聊天/编码 API 仍在线 |
 | Context Pipeline = 前额叶唯一核心 | 设备热路径核心是 `device_gateway` + `route_policy`；`context_pipeline` 仅 **Hot 五文件**在聊天路由主链 |
 | Channel Gateway 含 Telegram | **Telegram 已退役**（AGENTS.md）；渠道示例勿再写 telegram |
+| draw_generated 走 render_text_task | **已修正（2026-06-18）**：自然语言经 `task_draw_params` → `handle_device_draw`；见 `DREAM_MODE_FIRMWARE_SERVER_INTERACTION_CN.md` 流程图 |
 
 ## 3. CP-1 / CP-2 已退役模块（勿再写入架构图）
 

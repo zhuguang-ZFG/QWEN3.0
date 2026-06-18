@@ -12,7 +12,7 @@ from scripts import firmware_hardware_gate as gate
 
 @pytest.fixture
 def workspace_tmp() -> Path:
-    path = Path.cwd() / ".test-tmp" / f"firmware-gate-{uuid.uuid4().hex}"
+    path = Path.cwd() / ".test-tmp" / uuid.uuid4().hex
     path.mkdir(parents=True)
     try:
         yield path
@@ -32,6 +32,7 @@ def _valid_protocol_source() -> str:
 #define LIMA_PROTOCOL_VERSION "lima-device-v1"
 url = "wss://chat.donglicao.com/device/v1/ws";
 cJSON_AddStringToObject(root, "protocol", LIMA_PROTOCOL_VERSION);
+cJSON_AddStringToObject(root, "fw_rev", esp_app_get_description()->version);
 strcmp(type->valuestring, "hello_ack") == 0
 strcmp(type->valuestring, "voice_status") == 0
 strcmp(type->valuestring, "audio_reply") == 0
@@ -56,6 +57,7 @@ def test_static_contract_checks_reject_insecure_or_legacy_firmware(workspace_tmp
 url = "ws://chat.donglicao.com/device/v1/ws";
 CONFIG_LIMA_DIRECT_MODE
 Original xiaozhi-server protocol
+GetFirmwareVersion()
 """,
     )
 
@@ -184,10 +186,81 @@ def test_run_idf_build_uses_idf_source_tree_tool_entrypoint(workspace_tmp: Path,
     assert [result.status for result in results] == ["pass", "pass"]
 
 
+def _create_exported_idf_layout(workspace_tmp: Path) -> dict[str, Path]:
+    idf_source = workspace_tmp / "esp-idf"
+    idf_python_env = workspace_tmp / ".espressif" / "python_env" / "idf5.5_py3.12_env"
+    idf_python = idf_python_env / "Scripts" / "python.exe"
+    ninja_dir = workspace_tmp / ".espressif" / "tools" / "ninja" / "1.12.1"
+    esp_rom_elf_dir = workspace_tmp / ".espressif" / "tools" / "esp-rom-elfs" / "20241011"
+    openocd_scripts = (
+        workspace_tmp / ".espressif/tools/openocd-esp32/v0.12.0-esp32-20251215/openocd-esp32/share/openocd/scripts"
+    )
+    (idf_source / "tools" / "cmake").mkdir(parents=True)
+    (idf_source / "tools" / "idf.py").write_text("# fake idf", encoding="utf-8")
+    (idf_source / "tools" / "cmake" / "project.cmake").write_text("# fake project", encoding="utf-8")
+    (idf_source / "tools" / "cmake" / "version.cmake").write_text(
+        "set(IDF_VERSION_MAJOR 5)\nset(IDF_VERSION_MINOR 5)\n", encoding="utf-8"
+    )
+    idf_python.parent.mkdir(parents=True)
+    idf_python.write_text("# fake python", encoding="utf-8")
+    (idf_python_env / "idf_version.txt").write_text("5.5", encoding="utf-8")
+    ninja_dir.mkdir(parents=True)
+    (ninja_dir / "ninja.exe").write_text("# fake ninja", encoding="utf-8")
+    esp_rom_elf_dir.mkdir(parents=True)
+    openocd_scripts.mkdir(parents=True)
+    return {
+        "idf_source": idf_source,
+        "idf_python_env": idf_python_env,
+        "idf_python": idf_python,
+        "ninja_dir": ninja_dir,
+        "esp_rom_elf_dir": esp_rom_elf_dir,
+        "openocd_scripts": openocd_scripts,
+    }
+
+
+def test_run_idf_build_uses_exported_idf_python_env(workspace_tmp: Path, monkeypatch) -> None:
+    firmware_dir = workspace_tmp / "u8-xiaozhi"
+    _write_protocol_file(firmware_dir, _valid_protocol_source())
+    paths = _create_exported_idf_layout(workspace_tmp)
+    calls: list[list[str]] = []
+
+    def fake_run(command, **kwargs):
+        calls.append(command)
+        assert "MSYSTEM" not in kwargs["env"]
+        assert "MINGW_PREFIX" not in kwargs["env"]
+        assert kwargs["env"]["IDF_PYTHON_ENV_PATH"] == str(paths["idf_python_env"])
+        assert kwargs["env"]["ESP_ROM_ELF_DIR"] == str(paths["esp_rom_elf_dir"])
+        assert kwargs["env"]["OPENOCD_SCRIPTS"] == str(paths["openocd_scripts"])
+        assert str(paths["ninja_dir"]) in kwargs["env"]["PATH"]
+        return subprocess.CompletedProcess(args=command, returncode=0, stdout="ESP-IDF v5.5.4\n")
+
+    monkeypatch.setattr(gate.subprocess, "run", fake_run)
+
+    results = gate.run_idf_build(
+        firmware_dir,
+        target="esp32s3",
+        flash=False,
+        port=None,
+        env={
+            "IDF_PATH": str(paths["idf_source"]),
+            "IDF_TOOLS_PATH": str(workspace_tmp / ".espressif"),
+            "MSYSTEM": "MINGW64",
+            "MINGW_PREFIX": "C:/Program Files/Git/mingw64",
+        },
+    )
+
+    idf_entrypoint = str(paths["idf_source"] / "tools" / "idf.py")
+    assert calls == [
+        [str(paths["idf_python"]), idf_entrypoint, "--version"],
+        [str(paths["idf_python"]), idf_entrypoint, "set-target", "esp32s3"],
+        [str(paths["idf_python"]), idf_entrypoint, "build"],
+    ]
+    assert [result.status for result in results] == ["pass", "pass"]
+
+
 def test_cli_defaults_to_static_checks_without_claiming_hardware(workspace_tmp: Path, capsys) -> None:
     firmware_dir = workspace_tmp / "u8-xiaozhi"
     _write_protocol_file(firmware_dir, _valid_protocol_source())
-
     code = gate.main(["--firmware-dir", str(firmware_dir)], env={"PATH": ""})
 
     captured = capsys.readouterr().out
@@ -200,7 +273,6 @@ def test_cli_defaults_to_static_checks_without_claiming_hardware(workspace_tmp: 
 def test_cli_build_uses_injected_env_path(workspace_tmp: Path, capsys) -> None:
     firmware_dir = workspace_tmp / "u8-xiaozhi"
     _write_protocol_file(firmware_dir, _valid_protocol_source())
-
     code = gate.main(["--firmware-dir", str(firmware_dir), "--build"], env={"PATH": ""})
 
     captured = capsys.readouterr().out
@@ -212,7 +284,6 @@ def test_cli_build_uses_injected_env_path(workspace_tmp: Path, capsys) -> None:
 def test_cli_hardware_smoke_requires_real_credentials(workspace_tmp: Path, capsys) -> None:
     firmware_dir = workspace_tmp / "u8-xiaozhi"
     _write_protocol_file(firmware_dir, _valid_protocol_source())
-
     code = gate.main(["--firmware-dir", str(firmware_dir), "--hardware-smoke"], env={"PATH": ""})
 
     captured = capsys.readouterr().out

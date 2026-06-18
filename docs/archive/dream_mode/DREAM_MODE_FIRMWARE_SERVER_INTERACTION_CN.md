@@ -306,14 +306,13 @@ LiMa Server
     │           │   └─ validate_route_policy(route_policy, capability)
     │           │
     │           ├─ 5. 创建任务参数
-    │           │   └─ _create_task_from_voice_task(...)
-    │           │       ├─ capability == "write_text"
-    │           │       │   └─ render_text_task(text)
-    │           │       │       └─ 返回: {path: [{x,y,z},...], preview_svg}
-    │           │       ├─ capability == "draw_generated"
-    │           │       │   └─ render_svg_task(prompt) 或 render_text_task(prompt)
-    │           │       └─ capability in CONTROL_CAPABILITIES
-    │           │           └─ 返回: {source_capability: capability}
+    │           │   └─ _create_task_from_voice_task(...)  [async]
+    │           │       ├─ build_run_params_async (task_draw_params.py)
+    │           │       │   ├─ write_text → render_text_task(text)
+    │           │       │   ├─ draw_generated + SVG path → render_svg_task(prompt)
+    │           │       │   ├─ draw_generated + 自然语言 → handle_device_draw → render_svg_task
+    │           │       │   └─ control → {source_capability}
+    │           │       └─ 生图失败 → draw_failed（不降级描字）
     │           │
     │           ├─ 6. 策略引擎检查
     │           │   └─ policy_engine.decide(capability, device_id, ...)

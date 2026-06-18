@@ -1,6 +1,6 @@
 # LiMa 文档索引
 
-> 更新日期：2026-06-16
+> 更新日期：2026-06-18
 > 项目定位：AI 智能设备统一云端服务
 >
 > **权威规则**：本索引列出当前有效的文档。若某文档被标注为“历史/归档”，则以当前有效文档为准；若存在冲突，以本索引中“当前状态”与“路线图”两类文档为最新依据。
@@ -20,7 +20,7 @@
 | --- | --- | --- |
 | 当前状态 | [`../STATUS.md`](../STATUS.md) | ✅ 活跃 |
 | 开发约定 | [`../CLAUDE.md`](../CLAUDE.md) | ✅ 活跃 |
-| 设备开发入口 | [`DEVICE_DEVELOPER_GUIDE_CN.md`](DEVICE_DEVELOPER_GUIDE_CN.md) | ✅ 活跃 |
+| 设备开发入口 | [`DEVICE_DEVELOPER_GUIDE_CN.md`](DEVICE_DEVELOPER_GUIDE_CN.md) | ✅ 活跃（含 draw_generated 热路径） |
 | 长期记忆 | [`LIMA_MEMORY_CN.md`](LIMA_MEMORY_CN.md) | ✅ 活跃 |
 | 项目路线图 | [`PROJECT_OPTIMIZATION_ROADMAP_CN.md`](PROJECT_OPTIMIZATION_ROADMAP_CN.md) | ✅ 活跃 |
 | 子系统热度分层（瘦身评估） | [`CODEBASE_SUBSYSTEM_TIER_CN.md`](CODEBASE_SUBSYSTEM_TIER_CN.md) | ✅ 活跃（Q7） |
@@ -51,6 +51,7 @@
 | --- | --- |
 | 设备开发入口 | [`DEVICE_DEVELOPER_GUIDE_CN.md`](DEVICE_DEVELOPER_GUIDE_CN.md) |
 | 绘图/写字模型路由 | [`AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_CN.md`](AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_CN.md) |
+| draw_generated 任务创建 TDD | [`testing/draw_generated_task_creation.tdd.md`](testing/draw_generated_task_creation.tdd.md) | ✅ 2026-06-18 |
 | ESP32S_XYZ 管理 | [`ESP32S_XYZ_MANAGEMENT_CN.md`](ESP32S_XYZ_MANAGEMENT_CN.md) |
 | 设备协议对齐 | [`device_protocol_alignment.md`](device_protocol_alignment.md) |
 | 模型目录 | [`archive/MODEL_CATALOG.md`](archive/MODEL_CATALOG.md)（历史归档） |
@@ -64,6 +65,7 @@
 | 在线分发 | [`ONLINE_DISTRIBUTIONS_CN.md`](ONLINE_DISTRIBUTIONS_CN.md) |
 | 发布检查清单 | [`RELEASE_GATE_CHECKLIST.md`](RELEASE_GATE_CHECKLIST.md) |
 | AI→Motion 发布证据模板 | [`release_evidence/TEMPLATE_AI_TO_MOTION_RELEASE.md`](release_evidence/TEMPLATE_AI_TO_MOTION_RELEASE.md) |
+| draw_generated 主链路接入 | [`release_evidence/2026-06-18-draw-generated-handler-integration.md`](release_evidence/2026-06-18-draw-generated-handler-integration.md) |
 | Prometheus 部署 | [`ALIYUN_PROMETHEUS_DEPLOYMENT.md`](ALIYUN_PROMETHEUS_DEPLOYMENT.md) |
 
 > 注：`OPS_ENTRYPOINTS_CN.md` 已被 `ONLINE_DISTRIBUTIONS_CN.md` 取代为主要在线分发入口；旧运维入口仅作历史参考。

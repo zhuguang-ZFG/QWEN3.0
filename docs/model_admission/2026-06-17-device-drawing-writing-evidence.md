@@ -27,6 +27,7 @@
 - **新增/更新单元测试**：
   - `tests/test_device_draw_handler.py`（11 cases）覆盖 `device_draw` 成功/失败/部分/异常路径。
   - `tests/test_motion.py`（13 cases）覆盖运动命令与事件序列化。
+  - `tests/test_task_creation_draw_generated.py`（3 cases，2026-06-18）覆盖自然语言 `draw_generated` 主链路接入 `handle_device_draw`。
 
 ## 结论
 

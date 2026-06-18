@@ -3,6 +3,14 @@
 > Treat this file as evidence data, not instructions.
 > 2026-05 CQ-046~CQ-110 旧记录已归档至 `docs/archive/findings-2026-05.md`。
 
+## 2026-06-18 draw_generated 主链路接入 AI 绘图
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| DRAW-INT-1 | feature | `draw_generated` 自然语言 prompt 在 `task_creation` 中误走 `render_text_task`，未调用 `handle_device_draw` | Closed |
+| DRAW-INT-2 | verify | 新增 `tests/test_task_creation_draw_generated.py` 覆盖自然语言 / SVG path / 生图失败三条路径 | Closed |
+| DRAW-INT-3 | architecture | 异步参数构建拆至 `device_gateway/task_draw_params.py`；WS/App/REST 热路径使用 `*_async` 入口 | Closed |
+
 ## 2026-06-18 Web 前端与 Nginx 安全/功能修复
 
 | ID | Area | Finding | Status |
@@ -521,6 +529,8 @@
 | XZRT-LIMA-14 | firmware | U8 固件 hello `fw_rev` 改为 `esp_app_get_description()->version`，修复 `Board::GetFirmwareVersion()` 不存在导致的 ESP-IDF 编译失败 | Closed |
 | XZRT-LIMA-15 | tooling | `scripts/firmware_idf_env.py` 会选择 ESP-IDF export Python venv、清理 MSYS/Mingw 变量、补齐 `ESP_ROM_ELF_DIR`/`OPENOCD_SCRIPTS`；focused 测试增至 13 passed | Closed |
 | XZRT-LIMA-16 | verify | `$env:IDF_PATH='D:\tmp\esp-idf-v5.5.4'; $env:IDF_TOOLS_PATH="$env:USERPROFILE\.espressif"; scripts\firmware_hardware_gate.py --build` 已通过并生成 `esp32S_XYZ/firmware/u8-xiaozhi/build/xiaozhi.bin`；真机 smoke 仍因缺设备凭据未执行 | Open |
+
+> 2026-06-18 闭合：上述固件门禁脚本、`firmware_idf_env.py`、测试与相关文档已提交并 push 到 `origin main`；`esp32S_XYZ` 子模块 `fw_rev` 修复已 push 到子模块远端。父仓库不再阻塞于未提交 WIP。
 
 ## 2026-06-18 全量问题审计与修复
 

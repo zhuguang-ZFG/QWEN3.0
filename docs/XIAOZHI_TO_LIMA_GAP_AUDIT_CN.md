@@ -52,6 +52,11 @@ LiMa 已经接管设备直连、设备管理、任务、OTA、固件默认连接
 
 ## 下一批优先级
 
-1. 安装/加载 ESP-IDF 后运行 `scripts/firmware_hardware_gate.py --build --flash --hardware-smoke`，刷写 U8 固件并跑完整设备任务闭环。
+1. 安装/加载 ESP-IDF 后运行 `scripts/firmware_hardware_gate.py --build --flash --hardware-smoke`，刷写 U8 固件并跑完整设备任务闭环（含自然语言「画一只猫」）。
 2. manager-mobile 真机 App 包登录、绑定、任务审批、OTA 检查回归。
 3. 观察一轮生产日志后删除或长期冻结小智 `/api/v1/*` 兼容文档入口。
+
+## 2026-06-18 增量：draw_generated 主链路
+
+- 自然语言 `draw_generated`（如「画一只猫」）已接入 `device_draw_handler`（万相 + OpenCV），不再误走笔画字库。
+- 证据：`docs/testing/draw_generated_task_creation.tdd.md`、`docs/release_evidence/2026-06-18-draw-generated-handler-integration.md`。

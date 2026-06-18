@@ -1,12 +1,22 @@
 # LiMa 记忆
 
-> **更新时间: 2026-06-16（作者意图 + 设备开发文档入口）**
+> **更新时间: 2026-06-18（draw_generated 主链路接入 + 设备开发文档）**
 > **分支:** `main`
 > **最新权威来源:** `STATUS.md`、`progress.md`、`findings.md`、`docs/README.md`
 >
 > **注:** 2026-05-26 及更早的快照为历史记录，以最新节为准。
 
 ---
+
+---
+
+## 2026-06-18 draw_generated 主链路接入快照
+
+- `device_gateway/task_draw_params.py` 将自然语言 `draw_generated` 接到 `handle_device_draw`（万相简笔画 → OpenCV → motion path）；SVG path 仍本地 `render_svg_task`。
+- `project_to_motion_task_async` / `create_task_from_transcript_async` 为 WS、`/device/v1/tasks`、`/device/v1/app/tasks` 的权威入口；生图失败为 `draw_failed`，禁止回退笔画字库。
+- 证据：`tests/test_task_creation_draw_generated.py`（3 passed）；`docs/testing/draw_generated_task_creation.tdd.md`。
+- 生产依赖：DashScope 图像 API 凭证 + OpenCV；无凭证时任务明确失败。
+- 仍开放：真机「画一只猫」硬件烟测；C++ 固件 `route_policy` 消费（见 U1RP-4）。
 
 ## 2026-06-16 作者意图与设备开发入口快照
 
