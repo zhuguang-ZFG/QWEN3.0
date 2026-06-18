@@ -89,6 +89,7 @@ class TestASRProvider:
         assert isinstance(provider, FunASRProvider)
 
     def test_create_aliyun_requires_credentials(self, monkeypatch):
+        pytest.importorskip("nls")
         monkeypatch.setenv("ALIBABA_CLOUD_ACCESS_KEY_ID", "ak")
         monkeypatch.setenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET", "sk")
         monkeypatch.setenv("ALIBABA_NLS_APP_KEY", "appkey")
@@ -111,6 +112,7 @@ class TestASRProvider:
         assert isinstance(provider, DoubaoASRProvider)
 
     def test_create_whisper_returns_provider(self):
+        pytest.importorskip("faster_whisper")
         from device_voice.asr import create_asr_provider
 
         provider = create_asr_provider("whisper")
@@ -179,6 +181,7 @@ class TestTTSProvider:
         assert isinstance(provider, MiMoTTSProvider)
 
     def test_create_aliyun_requires_credentials(self, monkeypatch):
+        pytest.importorskip("nls")
         monkeypatch.setenv("ALIBABA_CLOUD_ACCESS_KEY_ID", "ak")
         monkeypatch.setenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET", "sk")
         monkeypatch.setenv("ALIBABA_NLS_APP_KEY", "appkey")

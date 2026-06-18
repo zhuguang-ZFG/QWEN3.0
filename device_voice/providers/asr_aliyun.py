@@ -19,6 +19,7 @@ import json
 import logging
 import os
 import threading
+import time
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -36,6 +37,16 @@ _DEFAULT_REGION = "cn-shanghai"
 _RECOGNIZER_URL_TEMPLATE = "wss://nls-gateway.{region}.aliyuncs.com/ws/v1"
 
 
+def _parse_nls_result(message: str) -> str | None:
+    """Extract the transcript result from an NLS JSON message."""
+    try:
+        payload = json.loads(message)
+    except json.JSONDecodeError:
+        return None
+    result = payload.get("payload", {}).get("result", "")
+    return result if result else None
+
+
 class _RecognizerState:
     """Thread-safe result collector for NLS callback-style API."""
 
@@ -46,22 +57,15 @@ class _RecognizerState:
         self.lock = threading.Lock()
 
     def on_result_changed(self, message: str, *_args: Any) -> None:
-        try:
-            payload = json.loads(message)
-        except json.JSONDecodeError:
-            return
-        result = payload.get("payload", {}).get("result", "")
-        with self.lock:
-            self.final_text = result
+        result = _parse_nls_result(message)
+        if result:
+            with self.lock:
+                self.final_text = result
 
     def on_completed(self, message: str, *_args: Any) -> None:
-        try:
-            payload = json.loads(message)
-        except json.JSONDecodeError:
-            payload = {}
-        result = payload.get("payload", {}).get("result", "")
-        with self.lock:
-            if result:
+        result = _parse_nls_result(message)
+        if result:
+            with self.lock:
                 self.final_text = result
         self.completed.set()
 
@@ -71,6 +75,21 @@ class _RecognizerState:
 
     def on_close(self, *_args: Any) -> None:
         self.completed.set()
+
+
+class _StreamingRecognizerState(_RecognizerState):
+    """Result collector that also keeps incremental transcripts."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.stream_results: list[str] = []
+
+    def on_result_changed(self, message: str, *_args: Any) -> None:
+        result = _parse_nls_result(message)
+        if result:
+            with self.lock:
+                self.final_text = result
+                self.stream_results.append(result)
 
 
 def _get_env_with_aliases(*aliases: str) -> str:
@@ -83,14 +102,7 @@ def _get_env_with_aliases(*aliases: str) -> str:
 
 
 def _get_token(ak_id: str, ak_secret: str, region: str) -> str:
-    """Fetch an NLS access token from Alibaba Cloud.
-
-    The official SDK may return either the token string directly or a dict
-    wrapping ``{"Token": {"Id": "...", "ExpireTime": ...}}``.
-
-    Raises:
-        AuthenticationError: if the token request fails.
-    """
+    """Fetch an NLS token; the SDK may return a string or dict wrapper."""
     try:
         import nls.token
 
@@ -183,81 +195,17 @@ class AliyunASRProvider(ASRProvider):
         async iterator by running the recognizer in a worker thread and feeding
         chunks from the async stream.
         """
-
-        def _sync_stream(
-            queue: asyncio.Queue[bytes | None],
-            loop: asyncio.AbstractEventLoop,
-        ) -> list[str]:
-            state = _RecognizerState()
-            results: list[str] = []
-
-            def _on_result_changed(message: str, *_args: Any) -> None:
-                try:
-                    payload = json.loads(message)
-                except json.JSONDecodeError:
-                    return
-                result = payload.get("payload", {}).get("result", "")
-                if result:
-                    results.append(result)
-
-            state.on_result_changed = _on_result_changed
-
-            try:
-                import nls
-            except ImportError as exc:
-                raise ConfigurationError("nls package not installed") from exc
-
-            transcriber = nls.NlsSpeechTranscriber(
-                url=self._url,
-                token=self._token,
-                appkey=self._app_key,
-                on_start=None,
-                on_sentence_begin=None,
-                on_sentence_end=state.on_completed,
-                on_result_changed=state.on_result_changed,
-                on_completed=state.on_completed,
-                on_error=state.on_error,
-                on_close=state.on_close,
-            )
-
-            try:
-                transcriber.start(
-                    aformat="pcm",
-                    sample_rate=sample_rate,
-                    ch=1,
-                    enable_intermediate_result=True,
-                    enable_punctuation_prediction=True,
-                    enable_inverse_text_normalization=True,
-                    timeout=10,
-                    ping_interval=8,
-                    ping_timeout=None,
-                )
-
-                while True:
-                    try:
-                        chunk = queue.get_nowait()
-                    except asyncio.QueueEmpty:
-                        # Running in a worker thread; short blocking sleep is fine.
-                        import time
-
-                        time.sleep(0.01)
-                        continue
-                    if chunk is None:
-                        break
-                    transcriber.send_audio(chunk)
-
-                transcriber.stop()
-                state.completed.wait(timeout=30)
-            finally:
-                transcriber.shutdown()
-
-            if state.error_message:
-                raise _map_nls_error(state.error_message)
-            return results
-
         queue: asyncio.Queue[bytes | None] = asyncio.Queue()
         loop = asyncio.get_running_loop()
-        future = loop.run_in_executor(None, _sync_stream, queue, loop)
+        future = loop.run_in_executor(
+            None,
+            _run_streaming_worker,
+            queue,
+            self._url,
+            self._token,
+            self._app_key,
+            sample_rate,
+        )
 
         try:
             async for chunk in audio_stream:
@@ -271,6 +219,63 @@ class AliyunASRProvider(ASRProvider):
             if not future.done():
                 future.cancel()
             raise
+
+
+def _run_streaming_worker(
+    queue: asyncio.Queue[bytes | None],
+    url: str,
+    token: str,
+    appkey: str,
+    sample_rate: int,
+) -> list[str]:
+    """Synchronous worker for NLS streaming transcription."""
+    state = _StreamingRecognizerState()
+    try:
+        import nls
+    except ImportError as exc:
+        raise ConfigurationError("nls package not installed") from exc
+
+    transcriber = nls.NlsSpeechTranscriber(
+        url=url,
+        token=token,
+        appkey=appkey,
+        on_start=None,
+        on_sentence_begin=None,
+        on_sentence_end=state.on_completed,
+        on_result_changed=state.on_result_changed,
+        on_completed=state.on_completed,
+        on_error=state.on_error,
+        on_close=state.on_close,
+    )
+    try:
+        transcriber.start(
+            aformat="pcm",
+            sample_rate=sample_rate,
+            ch=1,
+            enable_intermediate_result=True,
+            enable_punctuation_prediction=True,
+            enable_inverse_text_normalization=True,
+            timeout=10,
+            ping_interval=8,
+            ping_timeout=None,
+        )
+        while True:
+            try:
+                chunk = queue.get_nowait()
+            except asyncio.QueueEmpty:
+                time.sleep(0.01)
+                continue
+            if chunk is None:
+                break
+            transcriber.send_audio(chunk)
+        transcriber.stop()
+        state.completed.wait(timeout=30)
+    finally:
+        transcriber.shutdown()
+
+    if state.error_message:
+        raise _map_nls_error(state.error_message)
+    return state.stream_results
 
 
 def _map_nls_error(message: str) -> VoiceProviderError:

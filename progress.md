@@ -5,6 +5,18 @@
 > Updated: 2026-06-18
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-18 voice provider 测试可移植性 + 代码尺寸持续改进（完成）
+
+- **目标**：消除本地开发环境因缺少可选语音依赖（`nls`、`faster-whisper`）导致的测试失败，并拆分最近加入的生产超大函数。
+- **实现**：
+  - `tests/test_device_voice.py`、`tests/test_device_voice_cloud_providers.py`：为依赖 `nls` 的阿里云 NLS ASR/TTS 测试与依赖 `faster-whisper` 的 Whisper 测试添加 `pytest.importorskip`，使其在可选依赖缺失时 skip 而非报错。
+  - `device_voice/providers/asr_aliyun.py`：将 97 行的 `stream_transcribe`（含嵌套 `_sync_stream`）拆分为 `_parse_nls_result`、`_StreamingRecognizerState`、`_run_streaming_worker` 三个职责单一 helper；`stream_transcribe` 本体现为 34 行；文件从 291 行压回 295 行以内，符合 ≤300 行目标。
+- **验证**：
+  - `pytest tests/test_device_voice.py tests/test_device_voice_cloud_providers.py tests/test_device_gateway_model_routing.py tests/test_routing_engine.py tests/test_system_endpoints.py tests/test_route_registry.py -q` → **125 passed, 14 skipped**。
+  - `ruff check tests/test_device_voice.py tests/test_device_voice_cloud_providers.py device_voice/providers/asr_aliyun.py` clean。
+  - `ruff format --check` clean。
+  - `scripts/check_code_size.py` 不再将 `device_voice/providers/asr_aliyun.py` 或 `stream_transcribe` 列为超标项。
+
 ## 2026-06-18 小智服务器退役：LiMa 原生设备/固件/移动端贯通（完成）
 
 - **目标**：把设备管理、任务、OTA、固件默认连接和移动端管理入口统一到 LiMa 原生 `/device/v1/*`，让小智 `/api/v1/*` 兼容层默认退役。
@@ -1669,3 +1681,15 @@ Agent Worker path.
 - **验证**：
   - `.venv310\Scripts\python.exe -m pytest tests\test_firmware_hardware_gate.py -q` -> **12 passed**。
   - `.venv310\Scripts\python.exe -m ruff check scripts\firmware_hardware_gate.py scripts\firmware_hardware_smoke.py tests\test_firmware_hardware_gate.py` -> clean。
+
+### 2026-06-18 续：固件真实 build 通过，真机烟测仍待设备
+
+- **固件修复**：`websocket_protocol.cc` 的 hello `fw_rev` 不再调用不存在的 `Board::GetFirmwareVersion()`，改为使用 ESP-IDF 应用描述 `esp_app_get_description()->version`；静态门禁同步禁止 `GetFirmwareVersion()` 残留。
+- **ESP-IDF 环境修复**：新增 `scripts/firmware_idf_env.py`，门禁会优先选择 `IDF_TOOLS_PATH\python_env\idf5.5_py*_env`，清理 `MSYSTEM`/`MINGW_*` 变量，并补齐 `ESP_ROM_ELF_DIR` 与 `OPENOCD_SCRIPTS`，避免 MSYS/Mingw 与 gdbinit 环境噪声。
+- **真实 build 证据**：`$env:IDF_PATH='D:\tmp\esp-idf-v5.5.4'; $env:IDF_TOOLS_PATH="$env:USERPROFILE\.espressif"; .\.venv310\Scripts\python.exe scripts\firmware_hardware_gate.py --build` -> 固件契约 `PASS`，`esp_idf_esp32s3` `PASS`，`esp_idf_build` `PASS`，生成 `esp32S_XYZ/firmware/u8-xiaozhi/build/xiaozhi.bin`；hardware smoke 未请求为 `SKIP`。
+- **验证**：
+  - `.venv310\Scripts\python.exe -m pytest tests\test_firmware_hardware_gate.py -q` -> **13 passed**。
+  - `.venv310\Scripts\python.exe -m ruff check scripts\firmware_hardware_gate.py scripts\firmware_hardware_smoke.py scripts\firmware_idf_env.py tests\test_firmware_hardware_gate.py` -> clean。
+  - `.venv310\Scripts\python.exe -m ruff format --check scripts\firmware_hardware_gate.py scripts\firmware_hardware_smoke.py scripts\firmware_idf_env.py tests\test_firmware_hardware_gate.py` -> clean。
+  - `.venv310\Scripts\python.exe scripts\check_code_size.py` -> 仍因仓库历史超限失败；本轮 touched Python 文件均未出现在超限列表中。
+- **剩余阻塞**：没有真实 `LIMA_HARDWARE_DEVICE_ID` / `LIMA_HARDWARE_DEVICE_TOKEN` 与串口设备，因此尚未执行 `--flash`、串口监控或 `hello -> hello_ack -> task_dispatch -> motion_event` 真机闭环。

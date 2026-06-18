@@ -31,6 +31,7 @@ class TestAliyunASRProvider:
             AliyunASRProvider()
 
     def test_transcribe_success(self, monkeypatch):
+        pytest.importorskip("nls")
         monkeypatch.setenv("ALIBABA_CLOUD_ACCESS_KEY_ID", "ak")
         monkeypatch.setenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET", "sk")
         monkeypatch.setenv("ALIBABA_NLS_APP_KEY", "appkey")
@@ -63,6 +64,7 @@ class TestAliyunASRProvider:
         assert result == "你好"
 
     def test_transcribe_auth_failure(self, monkeypatch):
+        pytest.importorskip("nls")
         monkeypatch.setenv("ALIBABA_CLOUD_ACCESS_KEY_ID", "ak")
         monkeypatch.setenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET", "sk")
         monkeypatch.setenv("ALIBABA_NLS_APP_KEY", "appkey")
@@ -76,6 +78,7 @@ class TestAliyunASRProvider:
 
     def test_transcribe_success_string_token(self, monkeypatch):
         """The real NLS SDK may return the token as a plain string."""
+        pytest.importorskip("nls")
         monkeypatch.setenv("ALIBABA_CLOUD_ACCESS_KEY_ID", "ak")
         monkeypatch.setenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET", "sk")
         monkeypatch.setenv("ALIBABA_NLS_APP_KEY", "appkey")
@@ -122,6 +125,7 @@ class TestAliyunTTSProvider:
             AliyunTTSProvider()
 
     def test_credentials_accept_ak_aliases(self, monkeypatch):
+        pytest.importorskip("nls")
         monkeypatch.delenv("ALIBABA_CLOUD_ACCESS_KEY_ID", raising=False)
         monkeypatch.delenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET", raising=False)
         monkeypatch.setenv("ALIYUN_AK_ID", "ak-alias")
@@ -137,6 +141,7 @@ class TestAliyunTTSProvider:
         assert provider._ak_secret == "sk-alias"
 
     def test_synthesize_empty_text(self, monkeypatch):
+        pytest.importorskip("nls")
         monkeypatch.setenv("ALIBABA_CLOUD_ACCESS_KEY_ID", "ak")
         monkeypatch.setenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET", "sk")
         monkeypatch.setenv("ALIBABA_NLS_APP_KEY", "appkey")
@@ -149,6 +154,7 @@ class TestAliyunTTSProvider:
         assert result == b""
 
     def test_synthesize_success(self, monkeypatch):
+        pytest.importorskip("nls")
         monkeypatch.setenv("ALIBABA_CLOUD_ACCESS_KEY_ID", "ak")
         monkeypatch.setenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET", "sk")
         monkeypatch.setenv("ALIBABA_NLS_APP_KEY", "appkey")
@@ -181,6 +187,7 @@ class TestAliyunTTSProvider:
         assert result == b"pcm_data"
 
     def test_synthesize_auth_failure(self, monkeypatch):
+        pytest.importorskip("nls")
         monkeypatch.setenv("ALIBABA_CLOUD_ACCESS_KEY_ID", "ak")
         monkeypatch.setenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET", "sk")
         monkeypatch.setenv("ALIBABA_NLS_APP_KEY", "appkey")
@@ -194,6 +201,7 @@ class TestAliyunTTSProvider:
 
     def test_synthesize_success_string_token(self, monkeypatch):
         """The real NLS SDK may return the token as a plain string."""
+        pytest.importorskip("nls")
         monkeypatch.setenv("ALIBABA_CLOUD_ACCESS_KEY_ID", "ak")
         monkeypatch.setenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET", "sk")
         monkeypatch.setenv("ALIBABA_NLS_APP_KEY", "appkey")
@@ -572,6 +580,7 @@ class TestMiMoTTSProvider:
 class TestWhisperASRProvider:
     @pytest.mark.asyncio
     async def test_transcribe_success(self, monkeypatch):
+        pytest.importorskip("faster_whisper")
         monkeypatch.setenv("WHISPER_MODEL", "tiny")
 
         from device_voice.providers.asr_whisper import WhisperASRProvider
@@ -590,6 +599,7 @@ class TestWhisperASRProvider:
 
     @pytest.mark.asyncio
     async def test_transcribe_empty_audio(self):
+        pytest.importorskip("faster_whisper")
         from device_voice.providers.asr_whisper import WhisperASRProvider
 
         provider = WhisperASRProvider()
@@ -765,6 +775,7 @@ class TestAliyunFallbackASRProvider:
         assert call_args.args[0] == b"chunk1chunk2"
 
     def test_aliyun_credentials_accept_ak_aliases(self, monkeypatch):
+        pytest.importorskip("nls")
         monkeypatch.delenv("ALIBABA_CLOUD_ACCESS_KEY_ID", raising=False)
         monkeypatch.delenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET", raising=False)
         monkeypatch.setenv("ALIYUN_AK_ID", "ak-alias")
