@@ -47,6 +47,19 @@
   - `python scripts/deploy_chat_web.py --dry-run` → 7 个文件均在部署清单。
   - 全量 pytest：1739 passed, 37 skipped，1 failed（`test_digital_human_static_js_served`，与本次改动无关，content-type 断言与 Starlette StaticFiles 实际返回不一致）。
 
+## 2026-06-18 VPS 部署验证（完成）
+
+- **部署内容**：
+  - `python scripts/deploy_chat_web.py` → 7 个静态文件（index.html / voice-call.html / styles.css / icons.svg / chat-ui.js / chat-messages.js / chat-api.js）部署到 `/var/www/chat/`，nginx reload 成功。
+  - 同步 `_nginx_chat_temp.conf` → `/etc/nginx/conf.d/chat.donglicao.com.conf`，备份旧配置后 reload，`nginx -t` 通过。
+- **冒烟验证**：
+  - `curl -sf https://chat.donglicao.com/health` → `{"status":"ok","version":"2.0","model":"lima-1.3",...}`
+  - `curl -sfI https://chat.donglicao.com/styles.css` → 200 OK, Content-Type: text/css
+  - `curl -sfI https://chat.donglicao.com/chat-api.js` → 200 OK, Content-Type: application/javascript
+  - `curl -sfI https://chat.donglicao.com/icons.svg` → 200 OK, Content-Type: image/svg+xml
+  - `curl -sf https://chat.donglicao.com/` → 返回新的模块化 HTML，包含 `<link rel="stylesheet" href="styles.css">` 与三个 `<script src="chat-*.js">`。
+- **说明**：本次提交未改动后端 Python 代码，因此未执行 `scripts/deploy_unified.py`；仅部署前端静态资源与 nginx 配置。
+
 ## 2026-06-18 修复 digital human 静态 JS 路由测试（完成）
 
 - **目标**：修复 `tests/test_digital_human_routes.py::test_digital_human_static_js_served` 在全量 pytest 中的失败。
