@@ -137,12 +137,12 @@ def generate_constants_additions(provider_names: list[str]) -> str:
     names_str = ", ".join(f"'{n}'" for n in provider_names)
 
     return dedent(f"""\
-    # Add to GFW_BACKENDS:
+    # Add to GFW_BACKENDS in backends_constants.py:
     {names_str},
 
-    # Add to CODE_CAPABLE_BACKENDS (if coding verified):
+    # Add to CODE_CAPABLE_BACKENDS in backends_constants_code_tools.py (if coding verified):
     {names_str},
 
-    # Add to TOOL_CAPABLE_BACKENDS (if tool_calls supported):
+    # Add to TOOL_CAPABLE_BACKENDS in backends_constants_code_tools.py (if tool_calls supported):
     {names_str},
     """)

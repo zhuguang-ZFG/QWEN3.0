@@ -1,4 +1,4 @@
-"""Constants updater: safely update backends_constants.py with new providers."""
+"""Constants updater: safely update backend constants files with new providers."""
 
 import logging
 import re
@@ -6,20 +6,49 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-# Regex patterns for locating insertion points in backends_constants.py
+# Each frozenset now lives in the module that owns it.
+_SET_FILE_MAP = {
+    "GFW_BACKENDS": "backends_constants.py",
+    "CODE_CAPABLE_BACKENDS": "backends_constants_code_tools.py",
+    "TOOL_CAPABLE_BACKENDS": "backends_constants_code_tools.py",
+}
+
+# Regex patterns for locating insertion points in constants files
 _GFW_INSERT = re.compile(r"(GFW_BACKENDS = frozenset\(\{)", re.MULTILINE)
 _CODE_INSERT = re.compile(r"(CODE_CAPABLE_BACKENDS = frozenset\(\{)", re.MULTILINE)
 _TOOL_INSERT = re.compile(r"(TOOL_CAPABLE_BACKENDS = frozenset\(\{)", re.MULTILINE)
 
 
+def _resolve_constants_path(file_path: str | None, set_name: str) -> Path | None:
+    """Return the actual constants file for a given set name."""
+    if file_path is None:
+        rel_path = _SET_FILE_MAP.get(set_name)
+    else:
+        path = Path(file_path)
+        basename = path.name
+        mapped = _SET_FILE_MAP.get(set_name)
+        if mapped and basename != mapped:
+            logger.warning(
+                "%s is stored in %s, not %s; redirecting.",
+                set_name,
+                mapped,
+                basename,
+            )
+        rel_path = _SET_FILE_MAP.get(set_name, file_path)
+
+    if rel_path is None:
+        return None
+    return Path(rel_path)
+
+
 def generate_patch(
-    constants_path: str,
-    new_names: list[str],
+    constants_path: str | None = None,
+    new_names: list[str] | None = None,
     gfw: bool = True,
     code: bool = True,
     tool: bool = True,
 ) -> str:
-    """Generate a unified diff-style patch for backends_constants.py.
+    """Generate a unified diff-style patch for the constants files.
 
     Instead of directly modifying the file, this generates the additions
     that a human or CI pipeline can apply. This is safer than auto-editing
@@ -28,6 +57,8 @@ def generate_patch(
     Returns:
         A human-readable diff showing what to add where.
     """
+    if new_names is None:
+        new_names = []
     names_str = ", ".join(f"'{n}'" for n in new_names)
 
     lines = [
@@ -37,37 +68,51 @@ def generate_patch(
     ]
 
     if gfw:
-        lines.append("# In GFW_BACKENDS frozenset, add:")
+        lines.append(f"# In {_SET_FILE_MAP['GFW_BACKENDS']} GFW_BACKENDS frozenset, add:")
         lines.append(f"    {names_str},")
         lines.append("")
 
     if code:
-        lines.append("# In CODE_CAPABLE_BACKENDS frozenset, add:")
+        lines.append(
+            f"# In {_SET_FILE_MAP['CODE_CAPABLE_BACKENDS']} CODE_CAPABLE_BACKENDS frozenset, add:"
+        )
         lines.append(f"    {names_str},")
         lines.append("")
 
     if tool:
-        lines.append("# In TOOL_CAPABLE_BACKENDS frozenset, add:")
+        lines.append(
+            f"# In {_SET_FILE_MAP['TOOL_CAPABLE_BACKENDS']} TOOL_CAPABLE_BACKENDS frozenset, add:"
+        )
         lines.append(f"    {names_str},")
         lines.append("")
 
     return "\n".join(lines)
 
 
-def apply_to_frozenset(file_path: str, set_name: str, new_names: list[str]) -> bool:
-    """Directly insert new names into a frozenset in backends_constants.py.
+def apply_to_frozenset(
+    set_name: str,
+    new_names: list[str],
+    file_path: str | None = None,
+) -> bool:
+    """Directly insert new names into a frozenset in the correct constants file.
 
     Args:
-        file_path: Path to backends_constants.py
-        set_name: Name of the frozenset ('GFW_BACKENDS', 'CODE_CAPABLE_BACKENDS', 'TOOL_CAPABLE_BACKENDS')
-        new_names: List of backend IDs to add
+        set_name: Name of the frozenset ('GFW_BACKENDS', 'CODE_CAPABLE_BACKENDS',
+            'TOOL_CAPABLE_BACKENDS').
+        new_names: List of backend IDs to add.
+        file_path: Optional path to the constants file. If omitted or wrong,
+            the updater redirects to the module that owns the set.
 
     Returns:
         True if successfully applied, False otherwise.
     """
-    path = Path(file_path)
+    path = _resolve_constants_path(file_path, set_name)
+    if path is None:
+        logger.warning("No constants file known for set %s", set_name)
+        return False
+
     if not path.exists():
-        logger.warning("Constants file not found: %s", file_path)
+        logger.warning("Constants file not found: %s", path)
         return False
 
     content = path.read_text(encoding="utf-8")
@@ -79,7 +124,7 @@ def apply_to_frozenset(file_path: str, set_name: str, new_names: list[str]) -> b
     )
     match = pattern.search(content)
     if not match:
-        logger.warning("Set %s not found in %s", set_name, file_path)
+        logger.warning("Set %s not found in %s", set_name, path)
         return False
 
     # Find a good insertion point — after the opening brace
@@ -107,7 +152,7 @@ def apply_to_frozenset(file_path: str, set_name: str, new_names: list[str]) -> b
         "Added %d names to %s in %s: %s",
         len(names_to_add),
         set_name,
-        file_path,
+        path,
         names_to_add,
     )
     return True

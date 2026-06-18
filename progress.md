@@ -5,6 +5,19 @@
 > Updated: 2026-06-18
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-18 代码尺寸治理：拆分 backends_constants.py（完成）
+
+- **目标**：按顺序继续治理代码尺寸，将 `backends_constants.py`（372 行）拆回 ≤300 行。
+- **实现**：
+  - 新增 `backends_constants_code_tools.py`（146 行）：承载 `CODE_CAPABLE_BACKENDS` 与 `TOOL_CAPABLE_BACKENDS` 两个大型 frozenset。
+  - `backends_constants.py` 降至 **226 行**：保留 `PUBLIC_MODEL_NAME`、`THINKING_BACKENDS`、`VISION_BACKENDS`、`GFW_BACKENDS`、`WEAK_BACKENDS`、`STRONG_MODELS`、`KEY_POOL_PREFIXES`、`VISION_SYSTEM_PROMPT`、`_IDE_FINGERPRINTS`、`IDE_SOURCES`、`MODEL_ALIASES`；通过 import 重新导出 `CODE_CAPABLE_BACKENDS`、`TOOL_CAPABLE_BACKENDS`，所有调用方与测试无需修改。
+  - 同步更新 `packages/provider-probe-offline/provider_probe/integrate/constants_updater.py`：增加 `GFW_BACKENDS` / `CODE_CAPABLE_BACKENDS` / `TOOL_CAPABLE_BACKENDS` 到对应文件路径的映射，避免离线 provider probe 工具在拆分后找不到集合定义。
+  - 同步更新 `packages/provider-probe-offline/provider_probe/integrate/backend_generator.py` 的提示文本，标注 CODE/TOOL 集合应写入 `backends_constants_code_tools.py`。
+- **验证**：
+  - `pytest tests/test_backend_registry.py tests/test_routing_pipeline_authority.py -q` → **55 passed**。
+  - `ruff check` / `pyright` 触及文件 0 errors / 0 warnings。
+  - `scripts/check_code_size.py` 超 300 行文件从 27 个降至 **26 个**。
+
 ## 2026-06-18 代码尺寸治理：拆分 model_registry.py（完成）
 
 - **目标**：按顺序继续治理代码尺寸，将 `model_registry.py`（321 行）拆回 ≤300 行。
