@@ -31,6 +31,28 @@ def _push_remote(repo: Path, remote: str, refspec: str) -> tuple[bool, str]:
     return proc.returncode == 0, out[-500:]
 
 
+def _check_gitee_ssh(repo: Path, entries: dict[str, str]) -> tuple[bool, str]:
+    """Return (ok, message). If gitee uses SSH, verify the key is accepted."""
+    gitee_url = entries.get("gitee", "")
+    if not gitee_url.startswith("git@gitee.com:"):
+        return True, "gitee is not using SSH"
+    proc = subprocess.run(
+        ["ssh", "-T", "git@gitee.com"],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=15,
+    )
+    if proc.returncode == 0:
+        return True, ""
+    detail = (proc.stdout or "") + (proc.stderr or "")
+    pub_key = Path.home() / ".ssh" / "id_ed25519.pub"
+    if not pub_key.exists():
+        pub_key = Path.home() / ".ssh" / "id_rsa.pub"
+    key_hint = f"\nPublic key to add to Gitee: {pub_key}\n{pub_key.read_text().strip() if pub_key.exists() else '(not found)'}"
+    return False, f"Gitee SSH authentication failed.{key_hint}\nAdd the key at https://gitee.com/profile/sshkeys or set GITEE_ACCESS_TOKEN and use HTTPS.\nUnderlying error: {detail.strip()[:300]}"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", default=str(ROOT))
@@ -61,6 +83,13 @@ def main() -> int:
         return 0
 
     failures: list[str] = []
+    if "gitee" in names:
+        ok, detail = _check_gitee_ssh(repo, entries)
+        if not ok:
+            print(f"FAIL: gitee\n{detail}", file=sys.stderr)
+            failures.append(f"gitee: {detail[:200]}")
+            names = [n for n in names if n != "gitee"]
+
     for name in names:
         ok, detail = _push_remote(repo, name, args.ref)
         if ok:
