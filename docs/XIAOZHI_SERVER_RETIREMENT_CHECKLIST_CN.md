@@ -94,7 +94,9 @@
 
 ### 2.5 真机端到端回归 ⛔
 
-从未在真 ESP32 设备上跑通完整链路。当前已补充 `scripts/firmware_hardware_gate.py`，用于在没有可用 ESP-IDF 源码树或真实设备凭据时明确阻塞，不把未构建/未真机烟测误报为通过。
+从未在真 ESP32 设备上跑通完整链路。当前已补充 `scripts/firmware_hardware_gate.py`，用于在 ESP-IDF 缺失、ESP-IDF Python/export 环境损坏或真实设备凭据缺失时明确阻塞，不把未构建/未真机烟测误报为通过。
+
+2026-06-18 续查：`D:\tmp\esp-idf-v5.5.4` 已恢复 ESP-IDF v5.5.4 源码树，门禁可识别真实 `IDF_PATH\tools\idf.py` 布局；当前真实阻断点是 ESP-IDF Python/export 环境损坏，`idf.py --version` 报 `No module named 'esp_idf_monitor'`，且 `export.ps1` 在当前 shell 报 `MSys/Mingw is not supported` 与 `.espressif` venv 基础 Python 路径失效。
 
 **验收标准**：
 - [ ] 真机连 LiMa（不走小智），跑一轮：唤醒 → VAD → ASR → LLM → TTS → 播放
@@ -188,3 +190,4 @@ FunASR / SileroVAD / 3D-Speaker 依赖 `torch` / `funasr` / `modelscope` / `onnx
 | 2026-06-17 | 初版，基于 commit `280dd58` 代码核查 + 协议对齐文档综合 | — |
 | 2026-06-18 | 阶段 3：接入阿里云 NLS 真实凭证，新增 AliyunFallback ASR，更新 checklist 与可用性矩阵 | — |
 | 2026-06-18 | 补充固件/真机验证门禁：静态契约可本地通过，ESP-IDF 和真机缺失时显式阻塞 | — |
+| 2026-06-18 | 固件门禁识别真实 `tools/idf.py` 布局，并新增 ESP-IDF Python/export 环境阻塞诊断 | — |

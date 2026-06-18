@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
 import os
 import shutil
 import subprocess
@@ -13,9 +12,16 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping, Sequence
 
+if __package__:
+    from scripts.firmware_hardware_smoke import run_hardware_smoke
+else:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from firmware_hardware_smoke import run_hardware_smoke
+
 PROTOCOL_FILE = Path("main/protocols/websocket_protocol.cc")
 DEFAULT_FIRMWARE_DIR = Path("esp32S_XYZ/firmware/u8-xiaozhi")
 DEFAULT_HOST = "chat.donglicao.com"
+IDF_PROBE_TIMEOUT_SECONDS = 30
 
 
 @dataclass(frozen=True)
@@ -75,6 +81,13 @@ def find_idf_py(path_env: str | None = None) -> str | None:
     return shutil.which("idf.py", path=path_env)
 
 
+def _find_idf_py_with_env(path_env: str | None, env: Mapping[str, str] | None) -> str | None:
+    idf_path = (env or {}).get("IDF_PATH", "").strip()
+    if idf_path and (Path(idf_path) / "tools" / "idf.py").exists():
+        return str(Path(idf_path) / "tools" / "idf.py")
+    return find_idf_py(path_env=path_env)
+
+
 def build_idf_commands(
     firmware_dir: Path,
     *,
@@ -94,7 +107,7 @@ def build_idf_commands(
 
 
 def _valid_idf_source_tree(path: Path) -> bool:
-    return (path / "idf.py").exists() and (path / "tools" / "cmake" / "project.cmake").exists()
+    return (path / "tools" / "idf.py").exists() and (path / "tools" / "cmake" / "project.cmake").exists()
 
 
 def _resolve_idf_path(idf_py: str, env: Mapping[str, str] | None = None) -> Path | None:
@@ -105,7 +118,54 @@ def _resolve_idf_path(idf_py: str, env: Mapping[str, str] | None = None) -> Path
     parent = idf_py_path.parent
     if _valid_idf_source_tree(parent):
         return parent
+    grandparent = parent.parent
+    if parent.name == "tools" and _valid_idf_source_tree(grandparent):
+        return grandparent
     return None
+
+
+def _idf_command(env: Mapping[str, str] | None, idf_py: str) -> list[str]:
+    idf_path = _resolve_idf_path(idf_py, env)
+    if idf_path is not None and _valid_idf_source_tree(idf_path):
+        return [sys.executable, str(idf_path / "tools" / "idf.py")]
+    return [idf_py]
+
+
+def _summarize_output(output: str) -> str:
+    lines = [line.strip() for line in output.splitlines() if line.strip()]
+    return " | ".join(lines[-3:]) if lines else "no output"
+
+
+def probe_idf_python_env(
+    idf_cmd: Sequence[str],
+    firmware_dir: Path,
+    *,
+    env: Mapping[str, str] | None = None,
+) -> CheckResult:
+    try:
+        completed = subprocess.run(
+            [*idf_cmd, "--version"],
+            cwd=firmware_dir,
+            env=env,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            timeout=IDF_PROBE_TIMEOUT_SECONDS,
+        )  # noqa: S603
+    except FileNotFoundError as exc:
+        return _result("esp_idf_python_env", "blocked", f"ESP-IDF command is not runnable: {exc}")
+    except subprocess.TimeoutExpired:
+        return _result("esp_idf_python_env", "blocked", "ESP-IDF idf.py --version timed out")
+
+    output = completed.stdout or ""
+    if completed.returncode == 0:
+        return _result("esp_idf_python_env", "pass", f"ESP-IDF Python environment ready: {_summarize_output(output)}")
+    return _result(
+        "esp_idf_python_env",
+        "blocked",
+        f"ESP-IDF Python environment is not ready: {_summarize_output(output)}",
+    )
 
 
 def prepare_idf_gate(
@@ -117,7 +177,7 @@ def prepare_idf_gate(
 ) -> CheckResult:
     if not _protocol_path(firmware_dir).exists():
         return _result("esp_idf_build", "blocked", f"firmware directory is missing {_protocol_path(firmware_dir)}")
-    idf_py = find_idf_py(path_env=path_env)
+    idf_py = _find_idf_py_with_env(path_env, env)
     if idf_py is None:
         return _result("esp_idf_build", "blocked", "ESP-IDF idf.py not found on PATH")
     idf_path = _resolve_idf_path(idf_py, env)
@@ -138,13 +198,21 @@ def run_idf_build(
     preflight = prepare_idf_gate(firmware_dir, target=target, path_env=path_env, env=env)
     if preflight.status != "pass":
         return [preflight]
+    idf_py = _find_idf_py_with_env(path_env, env)
+    if idf_py is None:
+        return [_result("esp_idf_build", "blocked", "ESP-IDF idf.py not found on PATH")]
+    idf_cmd = _idf_command(env, idf_py)
+    python_probe = probe_idf_python_env(idf_cmd, firmware_dir, env=env)
+    if python_probe.status != "pass":
+        return [python_probe]
     results: list[CheckResult] = []
     for command in build_idf_commands(firmware_dir, target=target, flash=flash, port=port):
-        completed = subprocess.run(command, cwd=firmware_dir, env=env, check=False)  # noqa: S603
+        runnable = idf_cmd + command[1:]
+        completed = subprocess.run(runnable, cwd=firmware_dir, env=env, check=False)  # noqa: S603
         name = "esp_idf_" + command[-1].replace("-", "_")
         if completed.returncode != 0:
-            return results + [_result(name, "fail", f"{' '.join(command)} exited {completed.returncode}")]
-        results.append(_result(name, "pass", " ".join(command)))
+            return results + [_result(name, "fail", f"{' '.join(runnable)} exited {completed.returncode}")]
+        results.append(_result(name, "pass", " ".join(runnable)))
     return results
 
 
@@ -158,29 +226,6 @@ def hardware_preflight(env: Mapping[str, str], device_id: str | None, token: str
             "requires LIMA_HARDWARE_DEVICE_ID and LIMA_HARDWARE_DEVICE_TOKEN or matching CLI flags",
         )
     return _result("hardware_smoke", "pass", f"credentials available for device {resolved_device}")
-
-
-async def run_hardware_smoke(host: str, device_id: str, token: str) -> CheckResult:
-    try:
-        import websockets
-    except ImportError as exc:
-        raise RuntimeError("Install websockets to run hardware smoke") from exc
-
-    ws_url = f"wss://{host}/device/v1/ws?authorization=Bearer {token}"
-    hello = {
-        "type": "hello",
-        "protocol": "lima-device-v1",
-        "device_id": device_id,
-        "fw_rev": "firmware-hardware-gate",
-        "capabilities": ["audio", "run_path", "device_info", "self_check"],
-    }
-    async with websockets.connect(ws_url, additional_headers={"User-Agent": "LiMaFirmwareGate/1.0"}) as ws:
-        await ws.send(json.dumps(hello, ensure_ascii=False, separators=(",", ":")))
-        raw = await asyncio.wait_for(ws.recv(), timeout=15)
-    ack = json.loads(raw)
-    if ack.get("type") != "hello_ack":
-        return _result("hardware_smoke", "fail", f"expected hello_ack, got {ack.get('type')}")
-    return _result("hardware_smoke", "pass", "real /device/v1/ws hello_ack received")
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -237,7 +282,8 @@ def main(argv: list[str] | None = None, env: Mapping[str, str] | None = None) ->
         preflight = hardware_preflight(run_env, args.device_id, args.device_token)
         if preflight.status == "pass":
             device_id, token = _resolve_hardware_credentials(run_env, args.device_id, args.device_token)
-            results.append(asyncio.run(run_hardware_smoke(args.host, device_id, token)))
+            smoke = asyncio.run(run_hardware_smoke(args.host, device_id, token))
+            results.append(_result(smoke.name, smoke.status, smoke.message))
         else:
             results.append(preflight)
     else:

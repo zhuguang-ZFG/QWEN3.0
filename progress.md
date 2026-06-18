@@ -1655,3 +1655,17 @@ Agent Worker path.
   - 本机 ESP-IDF 残留诊断：`.espressif` 中有 `idf.py.exe` wrapper，但 `idf-env.json` 指向的 `C:\Users\zhugu\Desktop\xue\esp-idf-v5.5.4` 已不存在；把 wrapper 加入 PATH 后门禁返回 `IDF_PATH must point to a valid ESP-IDF source tree`。
   - `ruff check scripts\firmware_hardware_gate.py tests\test_firmware_hardware_gate.py` -> clean。
 - **限制**：当前机器只有 ESP-IDF 工具链残留，缺少有效 ESP-IDF 源码树，也没有真实 U8 设备 token；因此尚未执行真实编译、刷机、串口监控或硬件 `hello -> task_dispatch -> motion_event` 闭环。
+
+### 2026-06-18 续：ESP-IDF 源码树布局与 Python 环境诊断
+
+- **实现修正**：
+  - ESP-IDF 源码树入口按真实布局识别为 `IDF_PATH\tools\idf.py`，不再假设根目录存在 `idf.py`。
+  - `--build` 在执行 `set-target/build` 前先运行 `idf.py --version` 探测 ESP-IDF Python 环境；依赖缺失时返回 `BLOCKED esp_idf_python_env`，避免把本机工具链问题误报成固件源码编译失败。
+  - 真实 `/device/v1/ws` hello 烟测实现拆到 `scripts/firmware_hardware_smoke.py`，让主门禁脚本保持在 300 行以下。
+- **真实本机证据**：
+  - `D:\tmp\esp-idf-v5.5.4` 已有 ESP-IDF v5.5.4 源码树，`tools\idf.py` 与 `tools\cmake\project.cmake` 存在。
+  - `$env:IDF_PATH='D:\tmp\esp-idf-v5.5.4'; .venv310\Scripts\python.exe scripts\firmware_hardware_gate.py --build` -> 固件契约 `PASS`，随后 `BLOCKED esp_idf_python_env - ... No module named 'esp_idf_monitor' ...`。
+  - `export.ps1` 在当前 shell 仍被 ESP-IDF 判定为 `MSys/Mingw is not supported`，且 `.espressif` 既有 Python venv 指向已不存在的 `Python312` 路径；真实 build 仍未完成。
+- **验证**：
+  - `.venv310\Scripts\python.exe -m pytest tests\test_firmware_hardware_gate.py -q` -> **12 passed**。
+  - `.venv310\Scripts\python.exe -m ruff check scripts\firmware_hardware_gate.py scripts\firmware_hardware_smoke.py tests\test_firmware_hardware_gate.py` -> clean。

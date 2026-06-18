@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+import subprocess
 import uuid
 from pathlib import Path
 
@@ -89,7 +90,9 @@ def test_build_gate_blocks_when_esp_idf_is_missing(workspace_tmp: Path) -> None:
 
 def test_build_gate_blocks_when_idf_path_source_tree_is_missing(workspace_tmp: Path, monkeypatch) -> None:
     _write_protocol_file(workspace_tmp, _valid_protocol_source())
-    monkeypatch.setattr(gate, "find_idf_py", lambda path_env=None: r"C:\Users\zhugu\.espressif\tools\idf-exe\1.0.3\idf.py.exe")
+    monkeypatch.setattr(
+        gate, "find_idf_py", lambda path_env=None: r"C:\Users\zhugu\.espressif\tools\idf-exe\1.0.3\idf.py.exe"
+    )
 
     result = gate.prepare_idf_gate(workspace_tmp, target="esp32s3", env={})
 
@@ -103,14 +106,82 @@ def test_build_gate_accepts_valid_idf_path_source_tree(workspace_tmp: Path, monk
     idf_source = workspace_tmp / "esp-idf"
     _write_protocol_file(firmware_dir, _valid_protocol_source())
     (idf_source / "tools" / "cmake").mkdir(parents=True)
-    (idf_source / "idf.py").write_text("# fake idf", encoding="utf-8")
+    (idf_source / "tools" / "idf.py").write_text("# fake idf", encoding="utf-8")
     (idf_source / "tools" / "cmake" / "project.cmake").write_text("# fake project", encoding="utf-8")
-    monkeypatch.setattr(gate, "find_idf_py", lambda path_env=None: str(idf_source / "idf.py"))
+    monkeypatch.setattr(gate, "find_idf_py", lambda path_env=None: str(idf_source / "tools" / "idf.py"))
 
     result = gate.prepare_idf_gate(firmware_dir, target="esp32s3", env={"IDF_PATH": str(idf_source)})
 
     assert result.status == "pass"
     assert str(idf_source) in result.message
+
+
+def test_run_idf_build_blocks_when_idf_python_env_is_broken(workspace_tmp: Path, monkeypatch) -> None:
+    firmware_dir = workspace_tmp / "u8-xiaozhi"
+    idf_source = workspace_tmp / "esp-idf"
+    _write_protocol_file(firmware_dir, _valid_protocol_source())
+    (idf_source / "tools" / "cmake").mkdir(parents=True)
+    (idf_source / "tools" / "idf.py").write_text("# fake idf", encoding="utf-8")
+    (idf_source / "tools" / "cmake" / "project.cmake").write_text("# fake project", encoding="utf-8")
+
+    def fake_run(*args, **kwargs):
+        del args, kwargs
+        return subprocess.CompletedProcess(
+            args=["idf.py", "--version"],
+            returncode=1,
+            stdout="ModuleNotFoundError: No module named 'esp_idf_monitor'\n",
+        )
+
+    monkeypatch.setattr(gate.subprocess, "run", fake_run)
+
+    results = gate.run_idf_build(
+        firmware_dir,
+        target="esp32s3",
+        flash=False,
+        port=None,
+        env={"IDF_PATH": str(idf_source)},
+    )
+
+    assert results == [
+        gate.CheckResult(
+            name="esp_idf_python_env",
+            status="blocked",
+            message="ESP-IDF Python environment is not ready: ModuleNotFoundError: No module named 'esp_idf_monitor'",
+        )
+    ]
+
+
+def test_run_idf_build_uses_idf_source_tree_tool_entrypoint(workspace_tmp: Path, monkeypatch) -> None:
+    firmware_dir = workspace_tmp / "u8-xiaozhi"
+    idf_source = workspace_tmp / "esp-idf"
+    _write_protocol_file(firmware_dir, _valid_protocol_source())
+    (idf_source / "tools" / "cmake").mkdir(parents=True)
+    (idf_source / "tools" / "idf.py").write_text("# fake idf", encoding="utf-8")
+    (idf_source / "tools" / "cmake" / "project.cmake").write_text("# fake project", encoding="utf-8")
+    calls: list[list[str]] = []
+
+    def fake_run(command, **kwargs):
+        del kwargs
+        calls.append(command)
+        return subprocess.CompletedProcess(args=command, returncode=0, stdout="ESP-IDF v5.5.4\n")
+
+    monkeypatch.setattr(gate.subprocess, "run", fake_run)
+
+    results = gate.run_idf_build(
+        firmware_dir,
+        target="esp32s3",
+        flash=False,
+        port=None,
+        env={"IDF_PATH": str(idf_source)},
+    )
+
+    idf_entrypoint = str(idf_source / "tools" / "idf.py")
+    assert calls == [
+        [gate.sys.executable, idf_entrypoint, "--version"],
+        [gate.sys.executable, idf_entrypoint, "set-target", "esp32s3"],
+        [gate.sys.executable, idf_entrypoint, "build"],
+    ]
+    assert [result.status for result in results] == ["pass", "pass"]
 
 
 def test_cli_defaults_to_static_checks_without_claiming_hardware(workspace_tmp: Path, capsys) -> None:

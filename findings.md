@@ -464,3 +464,5 @@
 | XZRT-LIMA-9 | verify | `.venv310\Scripts\python.exe -m pytest tests\test_firmware_hardware_gate.py -q` -> 10 passed；ruff focused clean | Closed |
 | XZRT-LIMA-10 | verify | `.venv310\Scripts\python.exe scripts\firmware_hardware_gate.py --build` 在当前机器明确返回 `BLOCKED esp_idf_build - IDF_PATH must point to a valid ESP-IDF source tree`；工具链 wrapper 不足以冒充可编译环境 | Closed |
 | XZRT-LIMA-11 | verify | 当前机器只有 `.espressif` 工具链残留，没有有效 ESP-IDF 源码树，也没有真实 U8 凭据，真实刷机、串口监控、`hello -> task_dispatch -> motion_event` 硬件闭环仍未执行 | Open |
+| XZRT-LIMA-12 | verify | `D:\tmp\esp-idf-v5.5.4` 已恢复 ESP-IDF v5.5.4 源码树；门禁已识别真实 `tools\idf.py` 布局，但 `idf.py --version` 阶段因缺少 `esp_idf_monitor` 返回 `BLOCKED esp_idf_python_env`，说明当前阻断点已从源码树缺失推进到 ESP-IDF Python/export 环境损坏 | Open |
+| XZRT-LIMA-13 | tooling | `scripts/firmware_hardware_gate.py --build` 现在会在 `set-target/build` 前探测 ESP-IDF Python 环境；对应 focused 测试增至 12 passed，ruff focused clean | Closed |
