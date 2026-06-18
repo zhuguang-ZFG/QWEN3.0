@@ -150,7 +150,7 @@ def test_restart_server_uses_systemd_and_polls_health(monkeypatch):
 
     assert deploy_unified.restart_server() is True
 
-    assert deploy_unified.HEALTH_WAIT_SECONDS >= 240
+    assert deploy_unified.HEALTH_WAIT_SECONDS >= 60
     joined = "\n".join(ssh.commands)
     assert "systemctl restart lima-router" in ssh.commands
     assert "pkill" not in joined

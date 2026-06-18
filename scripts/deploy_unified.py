@@ -33,6 +33,7 @@ from scripts.deploy_common import (
     configure_ssh_host_keys,
     format_deploy_ok,
 )
+from scripts.deploy_unified_helpers import expand_with_dependencies
 
 import paramiko
 
@@ -79,7 +80,7 @@ SLICE_FILES = {
     ],
 }
 
-HEALTH_WAIT_SECONDS = int(os.environ.get("LIMA_DEPLOY_HEALTH_WAIT_S", "240"))
+HEALTH_WAIT_SECONDS = int(os.environ.get("LIMA_DEPLOY_HEALTH_WAIT_S", "60"))
 HEALTH_POLL_SECONDS = 2
 HEALTH_GRACE_AFTER_RESTART_S = int(os.environ.get("LIMA_DEPLOY_HEALTH_GRACE_S", "20"))
 DEFAULT_MIN_FREE_MB = 512
@@ -360,6 +361,19 @@ def restart_server() -> bool:
         deadline = time.time() + HEALTH_WAIT_SECONDS
         last_detail = ""
         while time.time() < deadline:
+            # Fast-path: if the service already failed, stop polling immediately.
+            active_code, active_out, _active_err = _ssh_exec(
+                ssh, "systemctl is-active lima-router"
+            )
+            if active_code != 0:
+                print(f"  service not active (is-active exit {active_code}); fetching logs...")
+                _code, logs, _err = _ssh_exec(
+                    ssh, "journalctl -u lima-router -n 25 --no-pager"
+                )
+                if logs:
+                    print(logs)
+                return False
+
             code, out, err = _ssh_exec(ssh, "curl -sS -m 5 http://127.0.0.1:8080/health")
             last_detail = out or err or f"curl exit {code}"
             if code == 0:
@@ -372,7 +386,7 @@ def restart_server() -> bool:
             time.sleep(HEALTH_POLL_SECONDS)
 
         print(f"  health never became ready; last: {last_detail[:240]}")
-        _code, logs, _err = _ssh_exec(ssh, "journalctl -u lima-router -n 15 --no-pager")
+        _code, logs, _err = _ssh_exec(ssh, "journalctl -u lima-router -n 25 --no-pager")
         if logs:
             print(logs)
         return False
@@ -395,7 +409,13 @@ def main() -> int:
     project_root = Path(__file__).resolve().parent.parent
 
     if args.files:
-        files = args.files
+        exclude_prefixes = tuple(f"{d}/" for d in _DEPLOY_EXCLUDES)
+        files = expand_with_dependencies(
+            args.files, project_root, exclude_patterns=exclude_prefixes
+        )
+        added = [f for f in files if f not in args.files]
+        if added:
+            print(f"  auto-added {len(added)} local dependencies: {', '.join(added)}")
     elif args.slice in ("core", "all"):
         # Deploy the complete runtime tree to avoid the partial-deploy crash
         # loops caused by stale/missing modules on the VPS.
