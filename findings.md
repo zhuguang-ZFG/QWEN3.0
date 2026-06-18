@@ -455,3 +455,12 @@
 | CODEX-AGENT-1 | docs | ¹ٷ½ Codex ÊֲáȷÈϣºproject-scoped custom agents ֱ½ӴÓ `.codex/agents/*.toml` ×Զ⑾֣»`[agents]` ֻ承载ȫ¾ÖÏ߳Ì/Éî¶ÈÏÞÖƣ¬²»Ҫ求 `[agents.<name>]` ע²ᡣ | Closed |
 | CODEX-AGENT-2 | gitignore | `.gitignore` Ïֽö·ÅÐÐ `.codex/config.toml` 与 `.codex/agents/*.toml`；`git check-ignore -v` 已ȷ认 `.codex/agents/notes.md` 和 `.codex/skills/ui-ux-pro-max/SKILL.md` ¼ÌÐøºöÂԡ£ | Closed |
 | CODEX-AGENT-3 | config | `.codex/config.toml` ɾ除了与 Codex Ĭ认ֵһÖµÄ `[agents]` ÈßÓàÉèÖã¬½ö±£Áô `multi_agent = true`。 | Closed |
+
+## 2026-06-18 小智服务器退役：固件/真机门禁
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| XZRT-LIMA-8 | tooling | 新增 `scripts/firmware_hardware_gate.py`，默认检查 U8 固件 LiMa WSS、`lima-device-v1` hello、`hello_ack`/语音回复解析，以及非 TLS/小智协议残留禁止项 | Closed |
+| XZRT-LIMA-9 | verify | `.venv310\Scripts\python.exe -m pytest tests\test_firmware_hardware_gate.py -q` -> 8 passed；ruff focused clean | Closed |
+| XZRT-LIMA-10 | verify | `.venv310\Scripts\python.exe scripts\firmware_hardware_gate.py --build` 在当前机器明确返回 `BLOCKED esp_idf_build - ESP-IDF idf.py not found on PATH`，未把未构建误报为通过 | Closed |
+| XZRT-LIMA-11 | verify | 当前机器仍没有 ESP-IDF 与真实 U8 凭据，真实刷机、串口监控、`hello -> task_dispatch -> motion_event` 硬件闭环仍未执行 | Open |

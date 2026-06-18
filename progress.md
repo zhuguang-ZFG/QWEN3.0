@@ -1638,3 +1638,19 @@ Agent Worker path.
 - **验֤**：
   - `tomllib` 解析三个 TOML Îļþ → `toml ok`。
   - `git check-ignore -v` ȷ认Ŀ标 TOML ·ÅÐУ¬`.codex/agents/notes.md` 与 `.codex/skills/ui-ux-pro-max/SKILL.md` ¼ÌÐø±»ºöÂԡ£
+
+## 2026-06-18 小智服务器退役：固件/真机验证门禁补齐
+
+- **目标**：把“U8 固件编译/刷机/真实硬件烟测未跑”从口头缺口变成可重复执行的门禁，避免在缺少 ESP-IDF 或真机凭据时误报完成。
+- **实现**：
+  - 新增 `scripts/firmware_hardware_gate.py`，默认执行 U8 固件静态契约检查，确认默认 `wss://chat.donglicao.com/device/v1/ws`、`lima-device-v1` hello、`hello_ack`/语音回复解析存在，且无非 TLS URL、`CONFIG_LIMA_DIRECT_MODE` 或原小智协议残留。
+  - `--build` / `--flash` 显式 opt-in 调用 `idf.py set-target`、`idf.py build`、`idf.py flash`；本机缺少 `idf.py` 时返回 `BLOCKED esp_idf_build`，不伪装成通过。
+  - `--hardware-smoke` 显式 opt-in 连接公网 `/device/v1/ws` 并验证 `hello_ack`；缺少 `LIMA_HARDWARE_DEVICE_ID` / `LIMA_HARDWARE_DEVICE_TOKEN` 时返回 `BLOCKED hardware_smoke`。
+  - 新增 `tests/test_firmware_hardware_gate.py` 与 `docs/testing/firmware_hardware_gate.tdd.md` 记录 RED/GREEN 证据。
+- **验证**：
+  - RED：`pytest tests/test_firmware_hardware_gate.py -q` 先因缺少 `scripts.firmware_hardware_gate` 失败。
+  - GREEN：`.venv310\Scripts\python.exe -m pytest tests\test_firmware_hardware_gate.py -q` -> **8 passed**。
+  - 静态门禁：`.venv310\Scripts\python.exe scripts\firmware_hardware_gate.py` -> LiMa 固件契约 **PASS**，build/hardware smoke 未请求为 **SKIP**。
+  - 构建门禁：`.venv310\Scripts\python.exe scripts\firmware_hardware_gate.py --build` -> 固件契约 **PASS**，`ESP-IDF idf.py not found on PATH`，退出码非 0。
+  - `ruff check scripts\firmware_hardware_gate.py tests\test_firmware_hardware_gate.py` -> clean。
+- **限制**：当前机器仍未安装 ESP-IDF，也没有真实 U8 设备 token；因此尚未执行真实编译、刷机、串口监控或硬件 `hello -> task_dispatch -> motion_event` 闭环。
