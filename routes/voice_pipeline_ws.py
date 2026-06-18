@@ -34,7 +34,11 @@ async def voice_pipeline_ws(
     authorization: str = Query(default=""),
 ) -> None:
     """Browser → LiMa → ASR → LLM → TTS → browser audio loop."""
-    token = extract_bearer_token(websocket.headers.get("authorization", "")) or extract_bearer_token(authorization)
+    header_token = extract_bearer_token(websocket.headers.get("authorization", ""))
+    query_auth = authorization.strip()
+    token = header_token or extract_bearer_token(query_auth)
+    if not header_token and query_auth:
+        _log.warning("Token supplied via query param for %s; ensure nginx access_log is off", websocket.url.path)
     if not is_token_valid(token):
         if not configured_api_keys():
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="LiMa private API key is not configured.")

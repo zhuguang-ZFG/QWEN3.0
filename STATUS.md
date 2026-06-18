@@ -11,6 +11,7 @@
 > Tests: 全量 1746 passed / 37 skipped / 0 failed；ruff check clean；ruff format clean
 > pyright 目标文件 0 errors（sandbox 下仅 import-resolution warnings）
 > VPS smoke：`https://chat.donglicao.com/health` 200 且 `startup.status=ready`；`/device/v1/health` 200 且 `protocol=lima-device-v1`；`xiaozhi_v1_compat=false`。
+> 安全审计：`findings.md` 2026-06-18 全量审计中安全项已全部 Closed / Accepted（图片域名白名单已落地；WebSocket query-param token 已加 `access_log off` 与 warning 日志）。
 
 ## 当前项目状态
 

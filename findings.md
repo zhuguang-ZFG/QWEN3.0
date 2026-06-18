@@ -541,11 +541,11 @@
 | AUDIT-SEC-3 | security | `routes/digital_human.py` 将默认设备令牌注入前端页面，任何访问者可见 | Accepted (free demo) |
 | AUDIT-SEC-4 | security | `device_gateway/auth.py` 对 `LIMA_DIGITAL_HUMAN_DEFAULT_DEVICE_ID` 回退使用默认 token，伪造 device_id 可连接 | Accepted (free demo) |
 | AUDIT-SEC-5 | security | `infra/vps/nginx/www.donglicao.com.conf` `/api/demo` 返回 `Access-Control-Allow-Origin *` | Closed |
-| AUDIT-SEC-6 | security | 图片域名白名单缺失（`data/chat/index.html` `safeImageUrl` 仅校验 `https:` 协议） | Open |
-| AUDIT-SEC-7 | security | `routes/gemini_live_proxy.py` / `routes/voice_pipeline_ws.py` 仍可从 query param 读取 token | Open |
+| AUDIT-SEC-6 | security | 图片域名白名单缺失（`data/chat/index.html` 已退役；`chat-web/chat-messages.js` 已维护 `allowedImageDomains`） | Closed |
+| AUDIT-SEC-7 | security | `routes/gemini_live_proxy.py` / `routes/voice_pipeline_ws.py` 可从 query param 读取 token（浏览器 WebSocket 无法设置自定义 header，已加 `access_log off` 与 warning 日志） | Accepted |
 | AUDIT-FUNC-1 | functionality | `routes/admin_extra_insights.py::retrain_jobs` 导入已删除的 `routes.admin_api._RETRAIN_JOBS` | Closed |
 | AUDIT-FUNC-2 | functionality | Admin UI 调用未注册的 `POST /admin/api/retrain` 与 `GET /admin/api/agent-audit` | Closed |
-| AUDIT-FUNC-3 | functionality | 多处语音/设备路径捕获 `ImportError`/`Exception` 后仅 `debug` 日志，违反 Hard Rule 1 | Open |
+| AUDIT-FUNC-3 | functionality | 多处语音/设备路径捕获 `ImportError`/`Exception` 后仅 `debug` 日志，违反 Hard Rule 1 | Closed |
 | AUDIT-UX-1 | ux | `chat-web/index.html` 在 401 时自动弹出 API Key 模态框，与免费策略冲突 | Closed |
 | AUDIT-UX-2 | ux | `chat-web/voice-call.html` 仍通过 `window.prompt()` 索要 API Key | Closed |
 | AUDIT-UX-3 | ux | `donglicao-site/lima-demo.js` 每次发送都弹窗询问 API Key | Closed |
@@ -567,27 +567,8 @@
 - `infra/vps/nginx/www.donglicao.com.conf` 的 `/api/demo` CORS 改为仅允许 `donglicao.com` / `www.donglicao.com`，并给 `location /` 增加 no-cache。
 
 **仍开放的问题**
-- 图片域名白名单、WebSocket token 仅走 header、语音/设备路径静默降级日志级别，需要额外改动并测试。
 - Gitee SSH 推送失败需配置 SSH key 或改用 HTTPS token。
-- `esp32S_XYZ` 子模块中硬编码 API key 需在子模块仓库内处理。
-
-## 2026-06-18 第二批审计问题修复
-
-| ID | Area | Finding | Status |
-|----|------|---------|--------|
-| AUDIT-SEC-6 | security | 图片域名白名单缺失（`data/chat/index.html` `safeImageUrl` 仅校验 `https:` 协议） | Closed |
-| AUDIT-SEC-7 | security | `routes/gemini_live_proxy.py` / `routes/voice_pipeline_ws.py` 仍可从 query param 读取 token | Accepted (browser WebSocket 无法设置自定义 header；已通过 nginx `access_log off` 降低日志泄露风险) |
-| AUDIT-FUNC-3 | functionality | 多处语音/设备路径捕获 `ImportError`/`Exception` 后仅 `debug` 日志，违反 Hard Rule 1 | Closed |
-
-**修复动作（2026-06-18 第二批）**
-- 删除未跟踪的 `data/chat/index.html`，并在 `.gitignore` 中排除；`chat-web/chat-messages.js` 已维护图片域名白名单。
-- `_nginx_chat_temp.conf` 与 `infra/vps/nginx/chat.donglicao.com.conf` 快照中为 `/device/v1/ws`、`/v1/live`、`/v1/voice` 增加 `access_log off`，避免 query-string token 进入 nginx access log。
-- `device_voice/dialogue.py`、`routes/device_voice_ws_helpers.py`、`routes/device_gateway_ws_handlers.py`、`routes/device_gateway_dispatch.py` 中的生产路径静默降级日志全部从 `debug` 升级到 `warning`。
-- 手动补发本地修改的 `device_gateway/tasks.py`、`task_service.py` 与未跟踪的 `task_draw_params.py`，修复 VPS 导入不匹配导致的启动崩溃。
-
-**仍开放**
-- Gitee SSH push 配置
-- `esp32S_XYZ` 子模块硬编码 API key
+- 真机固件刷写与硬件闭环仍因缺少 `LIMA_HARDWARE_DEVICE_ID` / `LIMA_HARDWARE_DEVICE_TOKEN` 和串口设备未执行。
 
 ## 2026-06-18 Gitee push 诊断
 
