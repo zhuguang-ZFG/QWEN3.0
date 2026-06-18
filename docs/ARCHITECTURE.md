@@ -26,7 +26,7 @@ LiMa 是上海动力草科技（donglicao.com）面向 ESP32 绘图机/写字机
                 ▼
 ┌──────────────────────────────────────────────────────────────┐
 │ 业务层                                                       │
-│ - AI Router：routing_engine.py / router_v3.py / selector     │
+│ - AI Router：routing_engine.py / router_v3/ 包 / selector     │
 │ - Drawing Engine：自然语言 → SVG → 路径优化 → G-code          │
 │ - Writing Engine：device_gateway/path_pipeline.py 文本渲染    │
 │ - Voiceprint Service：v2_voiceprint 数据模型                 │
@@ -65,7 +65,7 @@ LiMa 是上海动力草科技（donglicao.com）面向 ESP32 绘图机/写字机
 `device_gateway/` 负责设备协议、任务投递、会话管理和 MQTT/WebSocket 通信。`routes/device_gateway.py` 暴露 `/device/v1` 前缀的设备健康、事件、任务和 WebSocket 入口。
 
 ### routing_engine.py — AI 路由
-AI 路由入口，负责身份短路由、请求分类、场景分类、检索上下文注入、后端选择、技能注入、推测调用、执行与结果封装。后端池来自 `backends_registry/` 与 `router_v3.py`，支持 170+ 后端调度、健康检查和熔断。
+AI 路由入口，负责身份短路由、请求分类、场景分类、检索上下文注入、后端选择、技能注入、推测调用、执行与结果封装。后端池来自 `backends_registry/` 与 `router_v3/` 包，支持 170+ 后端调度、健康检查和熔断。
 
 ### xiaozhi_device/ — 设备管理
 目标业务域，对应能力已在数据层和网关层部分落地，包括 `v2_device`、`v2_device_binding`、`v2_device_transfer_request`、`v2_device_rma_event`、`v2_device_supply`、`v2_self_check_event` 等表。

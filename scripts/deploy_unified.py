@@ -42,7 +42,7 @@ CORE_FILES = [
     "server.py",
     "routing_engine.py",
     "routing_selector.py",
-    "router_v3.py",
+    "router_v3/__init__.py",
     "routing_intent.py",
     "health_tracker.py",
     "sticky_session.py",
