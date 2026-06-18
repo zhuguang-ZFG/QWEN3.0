@@ -2,7 +2,7 @@
 
 > **发布日期**：2026-06-18
 > **切片 / 里程碑**：M14 draw_generated 异步 AI 绘图管线接入 + SVG 路径工作区归一化
-> **Git commit**：`89fbcb0`
+> **Git commit**：`cf012d8`
 > **操作员 / Agent**：Kimi Code CLI
 > **环境**：local（Windows 开发机）+ VPS `47.112.162.80`
 > **关联路线图**：[`PROJECT_OPTIMIZATION_ROADMAP_CN.md`](../PROJECT_OPTIMIZATION_ROADMAP_CN.md) 阶段 1 / 2
