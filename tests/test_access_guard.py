@@ -130,3 +130,29 @@ def test_admin_page_does_not_render_admin_token_after_cookie_login(monkeypatch):
     assert response.status_code == 200
     assert "secret-admin-token" not in response.text
     assert "const _ADMIN_TOKEN" not in response.text
+
+
+class _DummyWebSocket:
+    def __init__(self, headers=None):
+        self.headers = headers or {}
+
+
+@pytest.mark.parametrize(
+    "headers,query,expected_token,expected_used_query",
+    [
+        ({}, "", "", False),
+        ({"authorization": "Bearer header-token"}, "", "header-token", False),
+        ({}, "Bearer query-token", "query-token", True),
+        ({"authorization": "Bearer header-token"}, "Bearer query-token", "header-token", False),
+        ({"authorization": "Basic foo"}, "Bearer query-token", "query-token", True),
+        ({}, "not-a-bearer", "", False),
+        ({}, "   Bearer spaced-token  ", "spaced-token", True),
+    ],
+)
+def test_extract_websocket_token_prefers_header_and_flags_query_param(
+    headers, query, expected_token, expected_used_query
+):
+    ws = _DummyWebSocket(headers)
+    token, used_query = access_guard.extract_websocket_token(ws, query)
+    assert token == expected_token
+    assert used_query == expected_used_query

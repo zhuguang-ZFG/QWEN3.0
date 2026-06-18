@@ -3,7 +3,12 @@
 import os
 import secrets
 
-from fastapi import Header, HTTPException
+from fastapi import Header, HTTPException, WebSocket
+
+
+WS_QUERY_PARAM_TOKEN_WARNING = (
+    "Token supplied via query param for %s; ensure nginx access_log is off"
+)
 
 
 def configured_api_keys() -> set[str]:
@@ -41,6 +46,25 @@ def extract_bearer_token(authorization: str) -> str:
     if value.startswith(prefix) and len(value) > len(prefix):
         return value[len(prefix) :].strip()
     return ""
+
+
+def extract_websocket_token(
+    websocket: WebSocket,
+    query_authorization: str = "",
+) -> tuple[str, bool]:
+    """Extract bearer token from a WebSocket header or query param.
+
+    Browsers cannot set custom headers on WebSocket connections, so the
+    ``authorization`` query parameter is allowed as a fallback.  Returns the
+    extracted token and a boolean indicating whether the query parameter was
+    used.
+    """
+    header_token = extract_bearer_token(websocket.headers.get("authorization", ""))
+    query_auth = query_authorization.strip()
+    query_token = extract_bearer_token(query_auth)
+    if not header_token and query_token:
+        return query_token, True
+    return header_token, False
 
 
 def constant_time_equals(a: str, b: str) -> bool:

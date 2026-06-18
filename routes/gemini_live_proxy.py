@@ -16,7 +16,12 @@ from typing import Any
 import websockets
 from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect, status
 
-from access_guard import configured_api_keys, extract_bearer_token, is_token_valid
+from access_guard import (
+    WS_QUERY_PARAM_TOKEN_WARNING,
+    configured_api_keys,
+    extract_websocket_token,
+    is_token_valid,
+)
 
 _log = logging.getLogger(__name__)
 
@@ -46,11 +51,9 @@ async def gemini_live_proxy(
             detail="Gemini Live is not configured on this server.",
         )
 
-    header_token = extract_bearer_token(websocket.headers.get("authorization", ""))
-    query_auth = authorization.strip()
-    token = header_token or extract_bearer_token(query_auth)
-    if not header_token and query_auth:
-        _log.warning("Token supplied via query param for %s; ensure nginx access_log is off", websocket.url.path)
+    token, used_query_param = extract_websocket_token(websocket, authorization)
+    if used_query_param:
+        _log.warning(WS_QUERY_PARAM_TOKEN_WARNING, websocket.url.path)
     if not is_token_valid(token):
         if not configured_api_keys():
             raise HTTPException(
