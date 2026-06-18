@@ -19,7 +19,7 @@
   - `pytest tests/ -k 'chat_web or voice or demo' -q` → **76 passed, 14 skipped**。
   - `ruff check` 触及 Python 文件 clean。
   - 本地无 nginx 二进制，未执行 `nginx -t`；配置变更基于人工审查。
-- **待确认**：相同 API Key `xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw` 仍出现在 `docs/ALIYUN_PROMETHEUS_DEPLOYMENT.md` 与 `docs/archive/jdcloud-2026-06/` 历史文档中；若仍有效需轮换并清除历史。
+- **已处理（2026-06-18）**：将 `docs/ALIYUN_PROMETHEUS_DEPLOYMENT.md` 与 `docs/archive/jdcloud-2026-06/` 中的真实 API Key 替换为 `<YOUR_API_KEY>`。若该 Key 仍有效，需在服务商控制台轮换，并考虑从 Git 历史清除。
 - **未解决（需后续里程碑）**：
   - `chat-web/index.html` 1657 行、`donglicao-site/index.html` 内联脚本过多，需拆分为 HTML/CSS/JS。
   - `donglicao-site/chat.html` 与 `chat-web/index.html` 功能重复，需统一或重定向。

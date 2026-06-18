@@ -7,7 +7,7 @@
 
 | ID | Area | Finding | Status |
 |----|------|---------|--------|
-| WEB-SEC-1 | security | `_nginx_chat_temp.conf` 硬编码 API Key `xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw` 并自动注入 `/v1/` | Closed |
+| WEB-SEC-1 | security | `_nginx_chat_temp.conf` 硬编码 API Key `<REDACTED>` 并自动注入 `/v1/` | Closed |
 | WEB-SEC-2 | security | `chat-web/index.html` 的 `formatContent()` 渲染任意域图片且 `alt` 文本未转义，存在 XSS/钓鱼风险 | Closed |
 | WEB-SEC-3 | security | SSE 解析中 `catch (e) { /* skip */ }` 静默吞异常，违反 Hard Rule 1 | Closed |
 | WEB-SEC-4 | security | `formatContent()` 图片白名单含 `localhost`/`127.0.0.1`，可导致客户端 SSRF/本地端口探测 | Closed |
@@ -30,7 +30,7 @@
 - Demo Key：`localStorage` → `sessionStorage`，并在存储前 trim。
 
 **待确认（pre-existing）**
-- 相同 API Key `xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw` 仍出现在 `docs/ALIYUN_PROMETHEUS_DEPLOYMENT.md` 与 `docs/archive/jdcloud-2026-06/` 历史文档中。若该 Key 仍有效，需轮换并从仓库历史清除。
+- 相同 API Key（已文档化并已从当前工作树红码）仍出现在 `docs/ALIYUN_PROMETHEUS_DEPLOYMENT.md` 与 `docs/archive/jdcloud-2026-06/` 历史文档中。当前文件已替换为 `<YOUR_API_KEY>`；若该 Key 仍有效，仍需在服务商控制台轮换，并考虑从 Git 历史清除。
 
 ## 2026-06-18 voice provider 测试可移植性与代码尺寸改进
 

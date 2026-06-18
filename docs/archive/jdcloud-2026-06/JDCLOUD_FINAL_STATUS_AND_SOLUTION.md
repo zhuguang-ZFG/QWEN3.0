@@ -71,7 +71,7 @@ scrape_configs:
     scheme: https
     metrics_path: '/v1/ops/metrics/prometheus'
     authorization:
-      credentials: 'xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw'
+      credentials: '<YOUR_API_KEY>'
     static_configs:
       - targets: ['api.lima.example.com:443']
 ```
@@ -110,7 +110,7 @@ scrape_configs:
 curl -v http://47.112.162.80:8080/health
 
 # 测试 metrics（需认证）
-curl -H "Authorization: Bearer xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw" \
+curl -H "Authorization: Bearer <YOUR_API_KEY>" \
   http://47.112.162.80:8080/v1/ops/metrics/prometheus | head -20
 ```
 

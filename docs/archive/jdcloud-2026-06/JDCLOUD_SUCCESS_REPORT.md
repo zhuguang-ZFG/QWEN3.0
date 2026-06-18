@@ -106,7 +106,7 @@ rate(process_cpu_seconds_total[1m]) * 100
 
 ### LiMa Router Metrics
 - **URL**: https://chat.donglicao.com/v1/ops/metrics/prometheus
-- **认证**: `Authorization: Bearer xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw`
+- **认证**: `Authorization: Bearer <YOUR_API_KEY>`
 
 ---
 
@@ -207,7 +207,7 @@ systemctl restart prometheus
 # 检查端口监�?ss -tlnp | grep 9090
 
 # 测试采集端点
-curl -H "Authorization: Bearer xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw" \
+curl -H "Authorization: Bearer <YOUR_API_KEY>" \
   https://chat.donglicao.com/v1/ops/metrics/prometheus
 
 # 查看 Prometheus 日志

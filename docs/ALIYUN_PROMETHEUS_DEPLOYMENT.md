@@ -91,7 +91,7 @@ nohup /usr/local/bin/python3.10 -m uvicorn server:app --host 0.0.0.0 --port 8080
 ### 4.1 端点测试
 ```bash
 # 在 VPS 本地测试
-curl -s -H 'Authorization: Bearer xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw' \
+curl -s -H 'Authorization: Bearer <YOUR_API_KEY>' \
   http://localhost:8080/v1/ops/metrics/prometheus | head -50
 ```
 
@@ -99,7 +99,7 @@ curl -s -H 'Authorization: Bearer xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw' \
 
 ### 4.2 业务指标验证
 ```bash
-curl -s -H 'Authorization: Bearer xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw' \
+curl -s -H 'Authorization: Bearer <YOUR_API_KEY>' \
   http://localhost:8080/v1/ops/metrics/prometheus | grep '^lima_'
 ```
 
@@ -133,7 +133,7 @@ scrape_configs:
     scheme: https
     metrics_path: '/v1/ops/metrics/prometheus'
     authorization:
-      credentials: 'xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw'
+      credentials: '<YOUR_API_KEY>'
     static_configs:
       - targets: ['chat.donglicao.com']
         labels:
