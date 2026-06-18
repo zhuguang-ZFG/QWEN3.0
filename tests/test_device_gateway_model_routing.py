@@ -1,3 +1,7 @@
+from unittest.mock import AsyncMock, patch
+
+import pytest
+
 from device_artifacts.store import artifact_store
 from device_gateway.model_routing import (
     DEVICE_ROLE_PREFERENCES,
@@ -11,6 +15,24 @@ from device_gateway.tasks import create_task_from_transcript, reset_tasks_for_te
 
 def setup_function():
     reset_tasks_for_tests()
+
+
+@pytest.fixture(autouse=True)
+def _mock_device_draw(monkeypatch):
+    monkeypatch.setattr(
+        "device_gateway.task_draw_params.handle_device_draw",
+        AsyncMock(
+            return_value={
+                "status": "success",
+                "image_url": "",
+                "svg_path": "M 10 10 L 50 50 L 90 10 Z",
+                "width": 180,
+                "height": 180,
+                "model": "test-draw",
+                "error": None,
+            }
+        ),
+    )
 
 
 def test_control_command_uses_no_model_route():
@@ -93,7 +115,19 @@ def test_route_policy_matrix_for_hot_device_families():
 
 
 def test_route_evidence_artifact_recorded_for_created_task():
-    task = create_task_from_transcript("dev-1", "draw cat")
+    mock_draw = AsyncMock(
+        return_value={
+            "status": "success",
+            "image_url": "http://example.com/cat.jpg",
+            "svg_path": "M 10 10 L 50 50 L 90 10 Z",
+            "width": 180,
+            "height": 180,
+            "model": "wanx2.1-t2i-turbo",
+            "error": None,
+        }
+    )
+    with patch("device_gateway.task_draw_params.handle_device_draw", mock_draw):
+        task = create_task_from_transcript("dev-1", "draw cat")
 
     records = artifact_store.artifacts_for_task(task["task_id"], "route_evidence")
     assert len(records) == 1

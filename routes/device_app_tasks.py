@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 
 from device_gateway import store as store_mod
 from device_gateway.path_validator import validate_capability_params
-from device_gateway.task_creation import project_to_motion_task
+from device_gateway.task_creation import project_to_motion_task_async
 from device_gateway.task_service import DeviceTaskRequest, create_and_route_task
 from device_gateway.tasks import task_snapshot
 from device_workflow.state import TaskState
@@ -67,7 +67,7 @@ def _normalize_capability(capability: str, params: dict[str, Any]) -> tuple[str,
     return capability, task_params, None
 
 
-def _build_app_gateway_task(
+async def _build_app_gateway_task(
     device_id: str, capability: str, params: dict[str, Any], source: str, request_id: str
 ) -> tuple[dict[str, Any] | None, JSONResponse | None]:
     capability, task_params, error = _normalize_capability(capability, params)
@@ -76,7 +76,7 @@ def _build_app_gateway_task(
     sanitized, validation_error = validate_capability_params(capability, task_params)
     if validation_error:
         return None, err(4002, f"validation failed: {validation_error}", 400)
-    task = project_to_motion_task(
+    task = await project_to_motion_task_async(
         device_id, {"capability": capability, "params": sanitized, "source": source}, request_id or None
     )
     task_error = task.get("error")
@@ -132,7 +132,7 @@ async def _create_structured_task(
         return err(400, "invalid source", 400)
     raw_params = body.get("params")
     params: dict[str, Any] = dict(raw_params) if isinstance(raw_params, dict) else {}
-    task, error = _build_app_gateway_task(
+    task, error = await _build_app_gateway_task(
         device_id,
         str_field(body, "capability", "intent") or "write_text",
         params,

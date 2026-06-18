@@ -6,7 +6,12 @@ from device_ledger.store import ledger_store
 
 from . import store as store_mod
 from .store import DeviceTaskStore, InMemoryDeviceTaskStore
-from .task_creation import create_task_from_transcript, project_to_motion_task
+from .task_creation import (
+    create_task_from_transcript,
+    create_task_from_transcript_async,
+    project_to_motion_task,
+    project_to_motion_task_async,
+)
 from .task_events import TERMINAL_PHASES, execute_recovery, record_motion_event
 from .task_lifecycle import (
     ack_processing_task,
@@ -35,6 +40,7 @@ __all__ = [
     "ack_processing_task",
     "active_tasks_for_device",
     "create_task_from_transcript",
+    "create_task_from_transcript_async",
     "enqueue_pending_task",
     "execute_recovery",
     "install_task_store_for_tests",
@@ -42,6 +48,7 @@ __all__ = [
     "pending_count",
     "pop_pending_tasks",
     "project_to_motion_task",
+    "project_to_motion_task_async",
     "record_motion_event",
     "recover_stale_processing",
     "remove_pending_task",

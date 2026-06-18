@@ -6,7 +6,12 @@ from dataclasses import dataclass
 from typing import Any
 
 from device_gateway.sessions import registry
-from device_gateway.tasks import create_task_from_transcript, enqueue_pending_task, pending_count
+from device_gateway.tasks import (
+    create_task_from_transcript,
+    create_task_from_transcript_async,
+    enqueue_pending_task,
+    pending_count,
+)
 from routes.device_gateway_dispatch import dispatch_task_to_session, publish_task_available_safe
 
 
@@ -29,7 +34,7 @@ async def create_and_route_task(request: DeviceTaskRequest) -> DeviceTaskRouteRe
     """Create a motion task, then dispatch locally or enqueue for the device."""
     device_id = request.device_id.strip()
     text = request.text.strip()
-    task = create_task_from_transcript(
+    task = await create_task_from_transcript_async(
         device_id,
         text,
         request_id=request.request_id or None,

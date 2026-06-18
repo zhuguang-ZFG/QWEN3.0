@@ -13,9 +13,7 @@ from device_workflow.state import TaskState
 
 from .device_route_memory import record_route_decision
 from .intent import resolve_voice_task
-from .model_routing import CONTROL_CAPABILITIES, looks_like_svg_path
-from .path_pipeline import render_svg_task
-from .safety import DEFAULT_FEED, safe_point
+from .model_routing import CONTROL_CAPABILITIES
 from .task_draw_params import build_run_params_async
 from .task_recorder import (
     record_preview_artifact as _record_preview_artifact,
@@ -28,11 +26,6 @@ from . import task_deps as deps
 
 def _next_task_id() -> str:
     return store_mod.task_store.next_task_id()
-
-
-def _looks_like_svg_path(text: str) -> bool:
-    """Heuristic: does the text look like an SVG path 'd' attribute?"""
-    return looks_like_svg_path(text)
 
 
 def _resolve_route_context(
@@ -145,26 +138,6 @@ async def project_to_motion_task_async(
 
 def project_to_motion_task(device_id: str, voice_task: dict[str, Any], request_id: str | None = None) -> dict[str, Any]:
     return _run_sync(project_to_motion_task_async(device_id, voice_task, request_id))
-
-
-def _build_run_params(capability: str, params: dict[str, Any]) -> dict[str, Any]:
-    """Sync helper for legacy callers; draw_generated uses the async pipeline."""
-    if capability == "draw_generated":
-        prompt = str(params.get("prompt", ""))[:120]
-        if _looks_like_svg_path(prompt):
-            rendered = render_svg_task(prompt)
-            return {
-                "feed": DEFAULT_FEED,
-                "path": rendered["path"],
-                "source_capability": "draw_generated",
-                "prompt": prompt,
-                "preview_svg": rendered.get("preview_svg", ""),
-            }
-        raise RuntimeError("draw_generated requires project_to_motion_task_async")
-    run_params, error = _run_sync(build_run_params_async(capability, params, ""))
-    if error:
-        raise RuntimeError(error)
-    return run_params
 
 
 def _build_error_task(

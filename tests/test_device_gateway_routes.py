@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.routing import APIRoute, APIWebSocketRoute
 from fastapi.testclient import TestClient
 import pytest
+from unittest.mock import AsyncMock
 
 import server
 from device_gateway.sessions import DeviceSession, registry
@@ -25,6 +26,20 @@ from routes.device_gateway import (
 def _device_gateway_test_env(monkeypatch):
     monkeypatch.setenv("LIMA_DEVICE_TOKENS", "dev-1=test-device-token")
     monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
+    monkeypatch.setattr(
+        "device_gateway.task_draw_params.handle_device_draw",
+        AsyncMock(
+            return_value={
+                "status": "success",
+                "image_url": "",
+                "svg_path": "M 10 10 L 50 50 L 90 10 Z",
+                "width": 180,
+                "height": 180,
+                "model": "test-draw",
+                "error": None,
+            }
+        ),
+    )
     _reset_for_tests()
     yield
     _reset_for_tests()
@@ -138,7 +153,7 @@ def test_tasks_endpoint_creates_queued_motion_task_without_active_session(monkey
 
 
 def test_tasks_endpoint_does_not_queue_validation_failed_task(monkeypatch):
-    def fake_create_task_from_transcript(device_id: str, text: str, request_id: str | None = None) -> dict:
+    async def fake_create_task_from_transcript(device_id: str, text: str, request_id: str | None = None) -> dict:
         return {
             "type": "motion_task",
             "task_id": "task-invalid",
@@ -148,7 +163,10 @@ def test_tasks_endpoint_does_not_queue_validation_failed_task(monkeypatch):
             "error": {"code": "E_UNSUPPORTED_CAPABILITY", "reason": "unsupported"},
         }
 
-    monkeypatch.setattr("device_gateway.task_service.create_task_from_transcript", fake_create_task_from_transcript)
+    monkeypatch.setattr(
+        "device_gateway.task_service.create_task_from_transcript_async",
+        fake_create_task_from_transcript,
+    )
 
     response = _client().post(
         "/device/v1/tasks",
@@ -421,7 +439,7 @@ def test_fake_u8_hello_heartbeat_transcript_motion_event_loop():
 
 
 def test_websocket_transcript_failed_task_is_not_dispatched(monkeypatch):
-    def fake_create_task_from_transcript(device_id: str, text: str, request_id: str | None = None) -> dict:
+    async def fake_create_task_from_transcript(device_id: str, text: str, request_id: str | None = None) -> dict:
         return {
             "type": "motion_task",
             "task_id": "task-ws-invalid",
@@ -432,7 +450,7 @@ def test_websocket_transcript_failed_task_is_not_dispatched(monkeypatch):
         }
 
     monkeypatch.setattr(
-        "routes.device_gateway_ws_handlers.create_task_from_transcript",
+        "routes.device_gateway_ws_handlers.create_task_from_transcript_async",
         fake_create_task_from_transcript,
     )
 

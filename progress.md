@@ -5,6 +5,19 @@
 > Updated: 2026-06-18
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-18 draw_generated 主链路接入 device_draw_handler（完成）
+
+- **问题**：`handle_device_draw`（预设图形 / DashScope 万相 / OpenCV 矢量化）仅被单测与集成测调用；生产 `task_creation` 对「画一只猫」等自然语言仍走 `render_text_task`，与 `device_draw` + `image_then_vector` 路由策略脱节。
+- **实现**：
+  - 新增 `device_gateway/task_draw_params.py` 承载异步参数构建；`looks_like_svg_path(prompt)` 仍本地 `render_svg_task`，其余 prompt 调用 `handle_device_draw()` 后将 `svg_path` 转为 `path`。
+  - `project_to_motion_task_async` / `create_task_from_transcript_async`；`routes/device_gateway_ws_handlers.py`、`device_gateway/task_service.py`、`routes/device_app_tasks.py` 改为 await。
+  - 生图/矢量化失败 → `error.code=draw_failed`，场景 `draw_generation_failed`。
+- **验证**：
+  - `pytest tests/test_task_creation_draw_generated.py -q` → **3 passed**。
+  - `pytest tests/test_device_gateway_routes.py tests/test_device_gateway_model_routing.py tests/test_device_gateway_profiles.py -q` → **101 passed**。
+  - `ruff check device_gateway/task_creation.py device_gateway/task_draw_params.py routes/device_app_tasks.py` → clean。
+- **文档**：`docs/testing/draw_generated_task_creation.tdd.md`；同步更新设备开发入口、模型路由指南、协议对齐与 `DREAM_MODE_FIRMWARE_SERVER_INTERACTION_CN.md` 流程图。
+
 ## 2026-06-18 Web 前端与 Nginx 安全/功能修复（完成）
 
 - **目标**：修复网站组件中发现的安全隐患、功能不匹配和退役路由残留。
@@ -523,7 +536,7 @@
   - `pytest tests/test_fake_u1_cloud_loop.py tests/test_device_gateway_routes.py tests/test_device_gateway_model_routing.py tests/test_device_gateway_path_pipeline.py -q` → **81 passed**。
   - `ruff check tests/test_fake_u1_cloud_loop.py` → clean。
   - `pyright tests/test_fake_u1_cloud_loop.py` → 0 errors。
-- **说明**：当前 `draw_generated` 对非 SVG 的文本 prompt 在 `task_creation.py` 中仍走本地 `render_text_task`，未调用 DashScope AI 生图；本测试先覆盖已稳定可用的 SVG vector 路径闭环。AI 生图→矢量化→设备的完整闭环依赖 `device_draw_handler.py`，后续可在 task_creation 中集成（需处理 sync/async 边界）。
+- **说明**（2026-06-18 已关闭）：非 SVG 自然语言 prompt 已于 `task_creation` 接入 `handle_device_draw`；见 progress「2026-06-18 draw_generated 主链路接入 device_draw_handler」。本测试仍覆盖 SVG vector 直连路径；自然语言 AI 绘图见 `tests/test_task_creation_draw_generated.py`。
 
 ## 2026-06-17 AI 绘画 prompt 优化 + Wanx 模型更新（完成）
 

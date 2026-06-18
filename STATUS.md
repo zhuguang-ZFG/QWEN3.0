@@ -8,11 +8,23 @@
 > Updated: 2026-06-18
 > Branch: `main`
 > Scale: 约 1021 个 Python 文件 / 全仓 630 文件已格式化
-> Tests: 全量 1741 passed / 23 skipped / 0 failed；ruff check clean；ruff format clean
+> Tests: 全量 1746 passed / 37 skipped / 0 failed；ruff check clean；ruff format clean
 > pyright 目标文件 0 errors（sandbox 下仅 import-resolution warnings）
 > VPS smoke：`https://chat.donglicao.com/health` 200 且 `startup.status=ready`；`/device/v1/health` 200 且 `protocol=lima-device-v1`；`xiaozhi_v1_compat=false`。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-18）draw_generated 主链路接入 AI 绘图管线
+
+- **问题**：`device_draw_handler`（万相简笔画 → OpenCV 矢量化）已实现，但 `task_creation` 对自然语言 `draw_generated` 仍走 `render_text_task` 笔画字库，与 `route_policy.image_then_vector` 不一致。
+- **实现**：
+  - 新增 `device_gateway/task_draw_params.py`：`build_run_params_async()` / `build_draw_generated_params()` 在 SVG path 之外调用 `handle_device_draw()`。
+  - `task_creation.py` 异步化：`project_to_motion_task_async`、`create_task_from_transcript_async`；WS / App / `/device/v1/tasks` 热路径改为 await。
+  - 生图失败返回 `draw_failed` 任务，不静默降级为描字。
+- **验证**：`pytest tests/test_task_creation_draw_generated.py tests/test_device_gateway_routes.py tests/test_device_gateway_model_routing.py -q` → **116 passed**；全量 `pytest` → **1746 passed, 37 skipped**；`ruff check` / `pyright` 触及文件 clean。
+- **提交**：`device_gateway/task_draw_params.py` 等 draw_generated 管线文件已 commit 并 push 到 `origin main`。
+- **部署**：VPS `lima-router` 已重启，`/health` 与 `/device/v1/health` 均返回 200。
+- **文档**：`docs/testing/draw_generated_task_creation.tdd.md`、`docs/DEVICE_DEVELOPER_GUIDE_CN.md`、`docs/AI_DRAWING_WRITING_MODEL_ROUTING_GUIDE_CN.md`；`docs/release_evidence/2026-06-18-M14-draw-generated-async-pipeline.md`。
 
 ### 最近完成（2026-06-18）小智服务器退役：LiMa 原生设备/固件/移动端贯通
 
