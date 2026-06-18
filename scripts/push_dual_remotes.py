@@ -31,9 +31,10 @@ def _push_remote(repo: Path, remote: str, refspec: str) -> tuple[bool, str]:
     return proc.returncode == 0, out[-500:]
 
 
-def _check_gitee_ssh(repo: Path, entries: dict[str, str]) -> tuple[bool, str]:
+def _check_gitee_ssh(repo: Path, entries: list) -> tuple[bool, str]:
     """Return (ok, message). If gitee uses SSH, verify the key is accepted."""
-    gitee_url = entries.get("gitee", "")
+    gitee_entry = next((e for e in entries if e.name == "gitee"), None)
+    gitee_url = gitee_entry.push_url if gitee_entry else ""
     if not gitee_url.startswith("git@gitee.com:"):
         return True, "gitee is not using SSH"
     proc = subprocess.run(
