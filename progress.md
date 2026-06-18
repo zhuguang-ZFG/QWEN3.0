@@ -2,8 +2,27 @@
 
 > Created: 2026-05-22
 
-> Updated: 2026-06-18
+> Updated: 2026-06-19
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
+
+## 2026-06-19 代码尺寸治理 M1：deploy 加固 + 三大模块拆分 + 腐烂测试清理（完成）
+
+- **目标**：继续按顺序治理代码尺寸与工程债务：加固 VPS 部署脚本，拆分 `backends_registry.py`、`response_cleaner.py`、`router_v3.py`，清理腐烂/跳过测试与 hypothesis 中的 `ImportError` 吞异常。
+- **实现**：
+  - `scripts/deploy_unified.py`：默认健康等待从 240s 降到 60s；`--files` 模式通过新增 `scripts/deploy_unified_helpers.py::expand_with_dependencies` 自动补齐本地依赖并打印；`restart_server()` 在每次健康轮询前先检查 `systemctl is-active lima-router`，服务崩溃时立即拉 journal 并失败。
+  - 删除根目录 `backends_registry.py`（1614 行），`backends_registry/` 包成为唯一注册表来源；超 300 行文件从 26 降至 25。
+  - 将 `response_cleaner.py`（421 行）拆为 `response_cleaner/` 包：`patterns.py`、`error_detection.py`、`identity.py`、`core.py`、`sanitizer.py`；公开 API 不变，新增 `tests/test_response_cleaner.py` 19 个 case。
+  - 将 `router_v3.py`（431 行）拆为 `router_v3/` 包：`pools.py`、`classify.py`、`select.py`、`ide.py`；公开 API 不变；同步更新 `scripts/deploy_unified.py` CORE_FILES、`AGENTS.md`、`docs/ARCHITECTURE.md`、`docs/REQUEST_PIPELINE_AUTHORITY_CN.md`。
+  - 清理腐烂测试：删除 `tests/test_fallback_context.py`、`tests/test_zerokey_endpoints.py`；移除 7 个因已删除功能而永久 `skip` 的测试函数；将 `tests/test_hypothesis_routing.py` 中的裸 `except ImportError: pass` 改为显式 `pytest.skip(...)`。
+- **验证**：
+  - `pytest -q` 全量 → **1808 passed, 4 skipped**（新增 28 个 case，跳过数从 23 降至 4）。
+  - `ruff check .` → 0 errors；`pyright` 触及文件 → 0 errors / 0 warnings。
+  - `scripts/check_code_size.py` 超 300 行文件降至 **23 个**。
+- **部署验证**：
+  - 手动清理 VPS 上已删除的根文件：`backends_registry.py`、`response_cleaner.py`、`router_v3.py`、`backends.py`。
+  - `scripts/deploy_unified.py --files router_v3/__init__.py response_cleaner/__init__.py backends_registry/__init__.py` 自动展开 22 个文件，上传成功；脚本在 restart 阶段因 stdout 缓冲/SSH 等待挂起，改为手动 `systemctl restart lima-router`。
+  - VPS `http://127.0.0.1:8080/health` 返回 OK；公网 `https://chat.donglicao.com/health` 返回 OK。
+  - 公网 `POST /v1/chat/completions` 返回 200，服务正常。
 
 ## 2026-06-18 代码审查：修复 HEAD 数字人/token 改动的高优问题（完成）
 
