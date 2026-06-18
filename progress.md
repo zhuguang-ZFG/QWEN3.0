@@ -60,6 +60,21 @@
   - `curl -sf https://chat.donglicao.com/` → 返回新的模块化 HTML，包含 `<link rel="stylesheet" href="styles.css">` 与三个 `<script src="chat-*.js">`。
 - **说明**：本次提交未改动后端 Python 代码，因此未执行 `scripts/deploy_unified.py`；仅部署前端静态资源与 nginx 配置。
 
+## 2026-06-18 匿名访问与 VPS 部署验证（完成）
+
+- **目标**：解决用户反馈「需要 API Key」的问题，让聊天界面可免费使用。
+- **实现**：
+  - `access_guard.py` 新增 `LIMA_ALLOW_ANONYMOUS` 支持：未提供 Authorization 时允许访问（前提是已配置至少一个 API Key）。
+  - `chat-web/chat-api.js` 仅在用户填写 key 时才发送 `Authorization` 头。
+  - `tests/test_access_guard.py` 增加 3 个匿名访问相关测试。
+- **VPS 部署**：
+  - `python scripts/deploy_unified.py --files access_guard.py` → 部署成功（健康检查通过）。
+  - VPS `/opt/lima-router/.env` 追加 `LIMA_ALLOW_ANONYMOUS=1` 并重启 `lima-router`。
+  - `python scripts/deploy_chat_web.py` → 重新部署更新后的 7 个前端文件。
+- **验证**：
+  - `curl -X POST https://chat.donglicao.com/v1/chat/completions` 不带 `Authorization` → 200 OK，返回正常回复。
+  - `curl -sf https://chat.donglicao.com/health` → `status: ok`。
+
 ## 2026-06-18 修复 digital human 静态 JS 路由测试（完成）
 
 - **目标**：修复 `tests/test_digital_human_routes.py::test_digital_human_static_js_served` 在全量 pytest 中的失败。
