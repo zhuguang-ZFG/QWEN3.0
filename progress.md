@@ -1863,3 +1863,17 @@ Agent Worker path.
   - `.venv310\Scripts\python.exe -m ruff format --check scripts\firmware_hardware_gate.py scripts\firmware_hardware_smoke.py scripts\firmware_idf_env.py tests\test_firmware_hardware_gate.py` -> clean。
   - `.venv310\Scripts\python.exe scripts\check_code_size.py` -> 仍因仓库历史超限失败；本轮 touched Python 文件均未出现在超限列表中。
 - **剩余阻塞**：没有真实 `LIMA_HARDWARE_DEVICE_ID` / `LIMA_HARDWARE_DEVICE_TOKEN` 与串口设备，因此尚未执行 `--flash`、串口监控或 `hello -> hello_ack -> task_dispatch -> motion_event` 真机闭环。
+
+### 2026-06-18 续：修复全量 pytest 回归并部署设备路径规范化
+
+- **修复内容**：
+  - `tests/test_frontend_security_static.py`：静态安全检查的聊天页面路径从已不存在的 `data/chat/index.html` 更新为 `chat-web/index.html`。
+  - `device_gateway/path_pipeline.py`：`render_svg_task` 新增 `_normalize_path_to_workspace`，将任意 SVG path 解析出的坐标归一化到 `[0, 100] x [0, 100]` 工作区，避免设备运动任务生成越界点。
+  - `tests/test_device_task_service.py`：`create_and_route_task` 已切换为异步接口，将 monkeypatch 目标从 `create_task_from_transcript` 更新为 `create_task_from_transcript_async`，fake 函数也改为 `async def`。
+- **验证**：
+  - `python -m pytest --tb=short -q` -> **1746 passed, 37 skipped**。
+  - `ruff check device_gateway/path_pipeline.py tests/test_frontend_security_static.py tests/test_device_task_service.py` -> clean。
+  - `.venv310/Scripts/pyright device_gateway/path_pipeline.py tests/test_frontend_security_static.py tests/test_device_task_service.py` -> 0 errors。
+- **部署**：
+  - 通过 `python scripts/deploy_unified.py --files device_gateway/path_pipeline.py` 上传并重启 VPS `lima-router` 服务。
+  - 重启后 `curl http://127.0.0.1:8080/health` 返回 `{"status":"ok",...}`；公域 `https://chat.donglicao.com/health` 同样 OK。

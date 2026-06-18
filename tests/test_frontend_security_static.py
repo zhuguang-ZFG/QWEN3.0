@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 def test_public_chat_renderer_does_not_restore_unescaped_image_attributes() -> None:
     """Markdown image support must not reintroduce raw user/model strings into innerHTML."""
-    for rel in ("donglicao-site/chat.html", "data/chat/index.html"):
+    for rel in ("donglicao-site/chat.html", "chat-web/index.html"):
         text = (ROOT / rel).read_text(encoding="utf-8")
         assert "imgs.push({alt,url})" not in text
         assert "'<img src=\"'+img.url+'\" alt=\"'+img.alt" not in text

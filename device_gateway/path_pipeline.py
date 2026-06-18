@@ -34,9 +34,36 @@ def render_text_task(text: str) -> dict[str, Any]:
     }
 
 
+def _normalize_path_to_workspace(
+    path: list[dict[str, float]], width: float = 100.0, height: float = 100.0, margin: float = 2.0
+) -> list[dict[str, float]]:
+    """Scale and translate a path so all points fit inside [0, width] x [0, height]."""
+    if not path:
+        return path
+    xs = [pt["x"] for pt in path]
+    ys = [pt["y"] for pt in path]
+    min_x, max_x = min(xs), max(xs)
+    min_y, max_y = min(ys), max(ys)
+    span_x = max_x - min_x
+    span_y = max_y - min_y
+    available_w = width - 2 * margin
+    available_h = height - 2 * margin
+    if span_x <= 0 or span_y <= 0:
+        scale = 1.0
+    else:
+        scale = min(available_w / span_x, available_h / span_y, 1.0)
+    origin_x = margin - min_x * scale
+    origin_y = margin - min_y * scale
+    return [
+        {"x": round(origin_x + pt["x"] * scale, 2), "y": round(origin_y + pt["y"] * scale, 2), "z": 0}
+        for pt in path
+    ]
+
+
 def render_svg_task(d_string: str) -> dict[str, Any]:
     """Render an SVG path string into a motion task params dict with preview."""
     path = svg_path_to_motion(d_string[:2000])
+    path = _normalize_path_to_workspace(path)
     return {
         "path": path,
         "preview_svg": preview_svg(path, title=f"svg path — {len(path)} pts"),
