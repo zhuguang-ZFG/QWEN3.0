@@ -60,7 +60,7 @@
   - `curl -sf https://chat.donglicao.com/` → 返回新的模块化 HTML，包含 `<link rel="stylesheet" href="styles.css">` 与三个 `<script src="chat-*.js">`。
 - **说明**：本次提交未改动后端 Python 代码，因此未执行 `scripts/deploy_unified.py`；仅部署前端静态资源与 nginx 配置。
 
-## 2026-06-18 全量问题审计与关键修复（进行中 → 待部署验证）
+## 2026-06-18 全量问题审计与关键修复（已完成并部署）
 
 - **全量审计**：并行启动安全 / 功能 / 前端 UX / 部署运维 4 个 explore agent，结合 pytest 全量通过（1743 passed, 37 skipped），整理出 20+ 项问题清单（见 `findings.md` 2026-06-18 全量问题审计与修复）。
 - **关键安全修复**：
@@ -79,6 +79,15 @@
   - `_nginx_chat_temp.conf` 删除已退役 `/mcp/` location；`location /` 对 SPA shell 设置 `no-cache`。
   - `infra/vps/nginx/chat.donglicao.com.conf` 快照同步至最新权威配置。
   - `infra/vps/nginx/www.donglicao.com.conf` `/api/demo` CORS 收紧为 `donglicao.com` / `www.donglicao.com`，并给 `location /` 增加 no-cache。
+
+**VPS 部署验证**
+- `python scripts/deploy_unified.py --slice core` → 634 个文件上传成功，健康检查通过。
+- `python scripts/deploy_chat_web.py` → 7 个前端文件部署成功，nginx reload 成功。
+- 手动同步 nginx 配置到 `/etc/nginx/conf.d/chat.donglicao.com.conf` 与 `/etc/nginx/conf.d/www.donglicao.com.conf`，`nginx -t` 通过并 reload。
+- 手动同步 `donglicao-site/` 到 `/www/wwwroot/donglicao-site/`。
+- 修复 `/digital-human/` 404：改为由 router catch-all 提供静态资源，`/digital-human/` 现在返回 200 HTML 并注入默认 token。
+- 补充部署未跟踪的 `device_gateway/task_draw_params.py`，解决 `task_creation.py` 引入导致的启动崩溃。
+- 验证：`https://chat.donglicao.com/health` → `status: ok`；匿名 `POST /v1/chat/completions` 返回 200；`/digital-human/` 返回 200。
 
 **仍开放**：图片域名白名单、WebSocket token 仅走 header、语音/设备路径静默降级日志、Gitee SSH push 配置、`esp32S_XYZ` 子模块硬编码 key。
 
