@@ -436,8 +436,15 @@
 | CAP-JD-3 | Primary capacity | Final primary VPS preflight for helper upload reported `disk_free_mb=13685` and `mem_available_mb=488`; this is enough for the configured deploy gate but confirms the primary VPS is still memory-tight. | Accepted |
 | CAP-JD-4 | JDCloud role | JDCloud `117.72.118.95` is now a real secondary provider-probe / monitoring node with read-only smoke tooling; it is not a second public LiMa Router API. | Closed |
 | CAP-JD-5 | JDCloud activation | `lima-probe.timer` was enabled but inactive; it is now active. Manual `lima-probe.service` completed with `status=0/SUCCESS`, discovered `37 new, 37 total known`, and wrote probe data under `/opt/lima-probe/data`. | Closed |
-| CAP-JD-6 | Browser helper | JDCloud browser-backed discovery currently sees loopback render helper HTTP `500` on `127.0.0.1:8092/render`; the main discovery path succeeds, so this is a focused follow-up rather than a blocker. | Open |
-| CAP-JD-7 | JDCloud auth | Key-based JDCloud SSH is not yet configured for this workstation; unauthenticated/key-only `scripts/check_jdcloud_node.py --json` fails with `AuthenticationException`, while environment-provided password auth succeeds. | Open |
+| CAP-JD-6 | Browser helper | JDCloud browser-backed discovery currently sees loopback render helper HTTP `500` on `127.0.0.1:8092/render`; the main discovery path succeeds, so this is a focused follow-up rather than a blocker. | Closed |
+| CAP-JD-7 | JDCloud auth | Key-based JDCloud SSH is not yet configured for this workstation; unauthenticated/key-only `scripts/check_jdcloud_node.py --json` fails with `AuthenticationException`, while environment-provided password auth succeeds. | Closed |
+
+**修复动作（2026-06-18）**
+- 生成本地专用 JDCloud SSH key：`~/.ssh/jdcloud_ed25519`。
+- 通过 root 密码将公钥追加到 `117.72.118.95:/root/.ssh/authorized_keys`，并设置目录 `700`、文件 `600` 权限。
+- `ssh -i ~/.ssh/jdcloud_ed25519 -o BatchMode=yes root@117.72.118.95` 成功免密登录。
+- `scripts/check_jdcloud_node.py --key-path ~/.ssh/jdcloud_ed25519 --json` 返回 `ok=true`；`browser_render_http_code=200`（此前 500 的 browser helper 现已恢复）。
+- 建议：将 `JDCLOUD_SSH_KEY_PATH=~/.ssh/jdcloud_ed25519` 加入本地 `.env`，后续 `check_jdcloud_node.py` 无需再传 `--key-path` 或密码。
 
 ## 2026-06-09 Prometheus Metrics Hardening Closeout
 

@@ -5,6 +5,21 @@
 > Updated: 2026-06-18
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-18 JDCloud 备用节点 SSH 密钥认证与浏览器探针修复（完成）
+
+- **目标**：关闭 `findings.md` 中仍开放的 JDCloud 运维项（CAP-JD-6 浏览器 helper 500、CAP-JD-7 SSH key 认证缺失），使 JDCloud `117.72.118.95` 的只读烟测不再依赖明文密码。
+- **实现**：
+  - 生成本地专用 SSH key：`ssh-keygen -t ed25519 -f ~/.ssh/jdcloud_ed25519`。
+  - 通过 paramiko 使用 root 密码将公钥追加到 JDCloud `/root/.ssh/authorized_keys`，并修复 `.ssh` 目录权限（700）与 `authorized_keys` 权限（600）。
+  - 验证 `ssh -i ~/.ssh/jdcloud_ed25519 -o BatchMode=yes root@117.72.118.95 'echo key-auth-ok'` 成功。
+- **验证**：
+  - `python scripts/check_jdcloud_node.py --key-path ~/.ssh/jdcloud_ed25519 --json` 返回：
+    ```json
+    {"browser_health_http_code": 200, "browser_ready_http_code": 200, "browser_render_http_code": 200, "chat_health_http_code": 200, "disk_free_mb": 27064, "host": "117.72.118.95", "lima_probe_timer": "active", "loadavg": "0.05 0.07 0.02", "mem_available_mb": 1159, "ok": true, "prometheus_service": "active", "role": "secondary_probe_monitoring", "user": "root"}
+    ```
+  - `browser_render_http_code` 从 500 恢复为 200，说明 JDCloud 浏览器渲染 helper 已恢复正常。
+- **后续建议**：在本地 `.env` 中配置 `JDCLOUD_SSH_KEY_PATH=~/.ssh/jdcloud_ed25519`，后续无需再使用密码参数。
+
 ## 2026-06-18 health_state 尺寸拆分（完成）
 
 - **目标**：按顺序推进代码尺寸治理，将 `health_state.py`（303 行）拆分，使其回到 ≤300 行。
