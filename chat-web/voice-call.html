@@ -223,10 +223,17 @@ function askForApiKey(){
 }
 
 async function getApiConfig(){
-  const key=getLimaApiKey()||askForApiKey();
-  const headers={'Content-Type':'application/json'};
-  if(key)headers['Authorization']='Bearer '+key;
-  const r=await fetch('/api/live-key',{headers});
+  let key=getLimaApiKey();
+  async function fetchConfig(k){
+    const headers={'Content-Type':'application/json'};
+    if(k)headers['Authorization']='Bearer '+k;
+    return fetch('/api/live-key',{headers});
+  }
+  let r=await fetchConfig(key);
+  if(r.status===401){
+    key=askForApiKey();
+    r=await fetchConfig(key);
+  }
   if(r.status===401)throw new Error('LiMa API Key 无效或未授权');
   if(!r.ok)throw new Error('无法获取 API 配置：'+r.status);
   return r.json();
