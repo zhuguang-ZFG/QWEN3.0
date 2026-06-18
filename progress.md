@@ -5,6 +5,17 @@
 > Updated: 2026-06-18
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-18 代码尺寸治理：拆分 eval_gate.py（完成）
+
+- **目标**：按顺序继续治理代码尺寸，将 `session_memory/eval_gate.py`（315 行）拆回 ≤300 行。
+- **实现**：
+  - 新增 `session_memory/eval_gate_promotion.py`（116 行），承载晋升应用逻辑：`apply_promotion`、查找已批准候选、重复晋升检查、路由权重应用、晋升记录持久化。
+  - `session_memory/eval_gate.py` 降至 **219 行**：保留 `EvalGateConfig`、`EvalCandidate`、候选评估、批准、revision check；通过末尾 import 重新导出 `apply_promotion`，保持 `routes/ops_metrics.py` 等调用方不变。
+- **验证**：
+  - `pytest tests/test_session_memory.py tests/test_ops_metrics_core.py tests/test_ops_metrics_eval.py tests/test_routing_engine.py -q` → **48 passed**。
+  - `ruff check` / `pyright` 触及文件 0 errors / 0 warnings。
+  - `scripts/check_code_size.py` 超 300 行文件从 31 个降至 **30 个**。
+
 ## 2026-06-18 代码尺寸治理：拆分 device_gateway_ws_handlers.py（完成）
 
 - **目标**：按顺序继续治理代码尺寸，将 `routes/device_gateway_ws_handlers.py`（313 行）拆回 ≤300 行。
