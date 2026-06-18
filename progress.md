@@ -96,7 +96,16 @@
 - 手动补发本地修改的 `device_gateway/tasks.py`、`task_service.py` 与未跟踪的 `task_draw_params.py`，修复 VPS 上 `create_task_from_transcript_async` 导入失败导致的启动崩溃。
 - 验证：VPS `/health` ok、匿名聊天 200、`/digital-human/` 200。
 
-**仍开放**：Gitee SSH push 配置、`esp32S_XYZ` 子模块硬编码 key。
+**Gitee push（2026-06-18）**
+- 问题：`gitee` remote 使用 `git@gitee.com`，本地 SSH key `~/.ssh/id_ed25519` 未被 Gitee 账户接受。
+- 改进：`scripts/push_dual_remotes.py` 新增 Gitee SSH 预检：失败时自动打印本机公钥与添加地址（https://gitee.com/profile/sshkeys），并继续推送 `origin`。
+- 当前公钥：
+  ```
+  ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHa12AjBDaxSOcx2q++0QxYr3WkeRSw6Z4xi4BBYXOtE zhuguang-ZFG@users.noreply.github.com
+  ```
+- 仍需操作：把上述公钥添加到 Gitee 账户；或提供 `GITEE_ACCESS_TOKEN` 改用 HTTPS。
+
+**仍开放**：`esp32S_XYZ` 子模块硬编码 key。
 
 ## 2026-06-18 语音通话、数字人、Demo 全部免费化（完成）
 

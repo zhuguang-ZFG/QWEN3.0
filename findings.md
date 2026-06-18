@@ -578,3 +578,20 @@
 **仍开放**
 - Gitee SSH push 配置
 - `esp32S_XYZ` 子模块硬编码 API key
+
+## 2026-06-18 Gitee push 诊断
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| AUDIT-DEPLOY-6 | deploy | `gitee` remote 使用 SSH，本地无 key，push 失败 | Accepted (pending account action) |
+
+**修复动作**
+- `scripts/push_dual_remotes.py` 增加 `_check_gitee_ssh()`：在推送 `gitee` 前先用 `ssh -T git@gitee.com` 验证认证；失败时跳过 `gitee` 并打印本机公钥与添加指引，避免阻塞 `origin` 推送。
+- 当前待添加到 Gitee 的公钥：
+  ```
+  ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHa12AjBDaxSOcx2q++0QxYr3WkeRSw6Z4xi4BBYXOtE zhuguang-ZFG@users.noreply.github.com
+  ```
+- 添加地址：https://gitee.com/profile/sshkeys
+
+**仍需操作**
+- 把上述公钥添加到 Gitee 账户；或提供 `GITEE_ACCESS_TOKEN` 让脚本切换到 HTTPS 推送。
