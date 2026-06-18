@@ -5,6 +5,18 @@
 > Updated: 2026-06-18
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-18 代码尺寸治理：拆分 model_routing.py（完成）
+
+- **目标**：继续推进 `findings.md` ECC-2 代码尺寸基线治理，将生产文件 `device_gateway/model_routing.py`（311 行）拆回 ≤300 行。
+- **实现**：
+  - 新增 `device_gateway/model_routing_selection.py`（134 行），承载 `MODEL_REGISTRY`、按 device profile 筛选/排序模型、`_adjust_weight_for_preferences`、`select_model_with_profile` 等纯选择逻辑。
+  - `device_gateway/model_routing.py`（169 行）保留路由角色常量、能力识别、`resolve_device_route_policy`、`_policy`、以及向后兼容的 re-export。
+- **验证**：
+  - `pytest tests/test_device_gateway_model_routing.py tests/test_route_policy_backend_field.py tests/test_device_gateway_profiles.py -q` → **70 passed**。
+  - `pytest tests/test_fake_u1_cloud_loop.py tests/test_device_gateway_routes.py -q` → **37 passed**。
+  - `ruff check` / `pyright` 触及文件 clean。
+  - `scripts/check_code_size.py` 超 300 行文件从 34 个降至 **33 个**。
+
 ## 2026-06-18 JDCloud 备用节点 SSH 密钥认证与浏览器探针修复（完成）
 
 - **目标**：关闭 `findings.md` 中仍开放的 JDCloud 运维项（CAP-JD-6 浏览器 helper 500、CAP-JD-7 SSH key 认证缺失），使 JDCloud `117.72.118.95` 的只读烟测不再依赖明文密码。
