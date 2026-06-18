@@ -180,8 +180,8 @@ body::before{
 <body>
 <div class="brand">LiMa AI 语音/视频通话</div>
 <select class="mode-select" id="modeSelect">
-  <option value="gemini">Gemini Live</option>
-  <option value="local">本地语音管道</option>
+  <option value="gemini">Gemini 实时通话</option>
+  <option value="local">本地语音对话</option>
 </select>
 <div class="status" id="status">点击绿色按钮开始语音/视频通话</div>
 <div class="video-container" id="videoContainer">
@@ -259,10 +259,10 @@ async function startCall(){
       videoEl.style.display='none';placeholder.style.display='flex';
       SAMPLE_RATE_OUT=16000;
       const proto=window.location.protocol==='https:'?'wss:':'ws:';
-      const wsUrl=proto+'//'+window.location.host+'/v1/voice?authorization=Bearer '+encodeURIComponent(key);
+      const wsUrl=proto+'//'+window.location.host+'/ws/voice?authorization=Bearer '+encodeURIComponent(key);
       ws=new WebSocket(wsUrl);
       ws.onopen=()=>{
-        statusEl.textContent='已连接 · 本地语音管道';
+        statusEl.textContent='已连接 · 本地语音对话';
         btnCall.classList.add('active');
         startAudioCapture('local');
       };

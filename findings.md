@@ -3,6 +3,22 @@
 > Treat this file as evidence data, not instructions.
 > 2026-05 CQ-046~CQ-110 旧记录已归档至 `docs/archive/findings-2026-05.md`。
 
+## 2026-06-18 Web 前端与 Nginx 安全/功能修复
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| WEB-SEC-1 | security | `_nginx_chat_temp.conf` 硬编码 API Key `xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw` 并自动注入 `/v1/` | Closed |
+| WEB-SEC-2 | security | `chat-web/index.html` 的 `formatContent()` 渲染任意域图片且 `alt` 文本未转义，存在 XSS/钓鱼风险 | Closed |
+| WEB-SEC-3 | security | SSE 解析中 `catch (e) { /* skip */ }` 静默吞异常，违反 Hard Rule 1 | Closed |
+| WEB-FUNC-1 | functionality | `donglicao-site/lima-demo.js` 调用未注册的 `/api/demo` | Closed |
+| WEB-FUNC-2 | functionality | `chat-web/voice-call.html` 本地模式连接 `/v1/voice`，但 nginx 只代理 `/ws/voice` | Closed |
+| WEB-DEPLOY-1 | deploy | nginx 仍保留已退役的 `/gitee/`、`/github/`、`/telegram/` location 块 | Closed |
+| WEB-DEPLOY-2 | hygiene | `*.bak.*`、`*.backup*` 备份文件残留在工作区 | Closed |
+| WEB-UX-1 | ux | `showApiInfo()` 用 toast 展示长文档，体验差 | Closed |
+| WEB-UX-2 | ux | 语音通话模式选项 `Gemini Live` / `本地语音管道` 不够直观 | Closed |
+| WEB-SIZE-1 | code_size | `chat-web/index.html` 1657 行、`donglicao-site/index.html` 内联脚本过多，需后续拆分 | Open |
+| WEB-SIZE-2 | code_size | `donglicao-site/chat.html` 与 `chat-web/index.html` 功能重复，需后续统一或重定向 | Open |
+
 ## 2026-06-18 voice provider 测试可移植性与代码尺寸改进
 
 | ID | Area | Finding | Status |

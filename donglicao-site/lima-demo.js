@@ -235,16 +235,31 @@
     });
   });
 
+  function getDemoApiKey() {
+    var key = localStorage.getItem('lima-demo-api-key') || '';
+    if (!key) {
+      key = window.prompt('请输入 LiMa API Key 以体验对话（Key 仅保存在本地浏览器）：', '') || '';
+      if (key) localStorage.setItem('lima-demo-api-key', key);
+    }
+    return key.trim();
+  }
+
   function sendChat() {
     const text = chatInput.value.trim();
     if (!text) return;
+    const key = getDemoApiKey();
+    if (!key) {
+      appendMsg('请先输入 LiMa API Key 以体验对话。', false);
+      return;
+    }
     appendMsg(text, true);
     chatInput.value = '';
     chatBtn.disabled = true;
-    fetch('/api/demo', {
+    fetch('/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + key
       },
       body: JSON.stringify({
         model: 'lima',
@@ -253,15 +268,19 @@
         stream: false
       })
     })
-    .then(function(r) { return r.json(); })
+    .then(function(r) {
+      if (r.status === 401) throw new Error('API Key 无效');
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
     .then(function(data) {
       var reply = (data.choices && data.choices[0] && data.choices[0].message)
         ? data.choices[0].message.content
         : '抱歉，暂时无法回复，请稍后再试。';
       appendMsg(reply, false);
     })
-    .catch(function() {
-      appendMsg('网络连接异常，请检查网络后重试。', false);
+    .catch(function(err) {
+      appendMsg('请求失败：' + err.message, false);
     })
     .finally(function() { chatBtn.disabled = false; });
   }

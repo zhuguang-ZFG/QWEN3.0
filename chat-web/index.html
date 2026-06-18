@@ -1182,6 +1182,26 @@
     </div>
   </div>
 
+  <!-- API INFO MODAL -->
+  <div class="modal-overlay" id="apiInfoModal" onclick="if(event.target===this)closeApiInfoModal()">
+    <div class="modal">
+      <div class="modal-title">LiMa API 接入指南</div>
+      <div class="modal-desc">
+        端点：<code>https://chat.donglicao.com/v1/chat/completions</code><br>
+        模型：<code>lima</code>，协议兼容 OpenAI。<br>
+        设备网关：<code>POST /device/v1/tasks</code>、<code>WS /device/v1/ws</code>
+      </div>
+      <pre id="apiInfoCurl" style="background:rgba(0,0,0,0.3);padding:12px;border-radius:8px;font-size:12px;overflow:auto;white-space:pre-wrap;word-break:break-all;color:var(--text);">curl https://chat.donglicao.com/v1/chat/completions \
+  -H &quot;Authorization: Bearer YOUR_KEY&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '{&quot;model&quot;:&quot;lima&quot;,&quot;messages&quot;:[{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;画一只猫&quot;}]}'</pre>
+      <div class="modal-actions">
+        <button class="modal-btn" onclick="closeApiInfoModal()">关闭</button>
+        <button class="modal-btn primary" onclick="copyApiInfoCurl()">复制 curl</button>
+      </div>
+    </div>
+  </div>
+
 
 
   <script>
@@ -1377,9 +1397,38 @@
     }
 
     function formatContent(text) {
+      const allowedImageDomains = [
+        'image.pollinations.ai',
+        'chat.donglicao.com',
+        'api.donglicao.com',
+        'localhost',
+        '127.0.0.1'
+      ];
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+      function isAllowedImageUrl(url) {
+        try {
+          const u = new URL(url);
+          if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
+          return allowedImageDomains.some(domain => u.hostname === domain || u.hostname.endsWith('.' + domain));
+        } catch (e) {
+          return false;
+        }
+      }
       return text
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-        .replace(/!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g, '<div class="media-card"><img src="$2" alt="$1" loading="lazy"></div>')
+        .replace(/!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g, (match, alt, url) => {
+          if (!isAllowedImageUrl(url)) {
+            return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">[图片: ${escapeHtml(alt || 'image')}]</a>`;
+          }
+          return `<div class="media-card"><img src="${escapeHtml(url)}" alt="${escapeHtml(alt)}" loading="lazy"></div>`;
+        })
         .replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
           return `<div class="code-card"><div class="code-header"><div class="code-lights"><span></span><span></span><span></span></div><button class="copy-btn" onclick="copyCode(this)">复制</button></div><pre><code>${code}</code></pre></div>`;
         })
@@ -1579,7 +1628,9 @@
               if (json.model) modelName = json.model;
               fullText += delta;
               updateLastMessage(fullText);
-            } catch (e) { /* skip */ }
+            } catch (e) {
+              console.warn('Failed to parse SSE data line:', data, e);
+            }
           }
         }
 
@@ -1628,22 +1679,20 @@
 
     // ─── API INFO ───
     function showApiInfo() {
-      const info = `LiMa API 接入指南
+      document.getElementById('apiInfoModal').classList.add('open');
+    }
 
-端点: https://chat.donglicao.com/v1/chat/completions
-模型: lima
-协议: 兼容 OpenAI
+    function closeApiInfoModal() {
+      document.getElementById('apiInfoModal').classList.remove('open');
+    }
 
-curl 示例:
-curl https://chat.donglicao.com/v1/chat/completions \\
-  -H "Authorization: Bearer YOUR_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{"model":"lima","messages":[{"role":"user","content":"画一只猫"}]}'
-
-设备网关:
-POST /device/v1/tasks  - 提交设备任务
-WS   /device/v1/ws     - 设备 WebSocket`;
-      showToast(info, { duration: 8000 });
+    function copyApiInfoCurl() {
+      const text = document.getElementById('apiInfoCurl').textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('curl 命令已复制到剪贴板');
+      }).catch(() => {
+        showToast('复制失败，请手动复制', { error: true });
+      });
     }
 
 
