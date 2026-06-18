@@ -259,7 +259,7 @@ async function startCall(){
       videoEl.style.display='none';placeholder.style.display='flex';
       SAMPLE_RATE_OUT=16000;
       const proto=window.location.protocol==='https:'?'wss:':'ws:';
-      const wsUrl=proto+'//'+window.location.host+'/ws/voice?authorization=Bearer '+encodeURIComponent(key);
+      const wsUrl=proto+'//'+window.location.host+'/v1/voice?authorization=Bearer '+encodeURIComponent(key);
       ws=new WebSocket(wsUrl);
       ws.onopen=()=>{
         statusEl.textContent='已连接 · 本地语音对话';

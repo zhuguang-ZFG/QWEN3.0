@@ -236,12 +236,12 @@
   });
 
   function getDemoApiKey() {
-    var key = localStorage.getItem('lima-demo-api-key') || '';
+    var key = (sessionStorage.getItem('lima-demo-api-key') || '').trim();
     if (!key) {
-      key = window.prompt('请输入 LiMa API Key 以体验对话（Key 仅保存在本地浏览器）：', '') || '';
-      if (key) localStorage.setItem('lima-demo-api-key', key);
+      key = (window.prompt('请输入 LiMa API Key 以体验对话（Key 仅保存在当前标签页）：', '') || '').trim();
+      if (key) sessionStorage.setItem('lima-demo-api-key', key);
     }
-    return key.trim();
+    return key;
   }
 
   function sendChat() {

@@ -9,15 +9,17 @@
 
 - **目标**：修复网站组件中发现的安全隐患、功能不匹配和退役路由残留。
 - **实现**：
-  - `_nginx_chat_temp.conf`：移除硬编码 API Key，改为透传客户端 `Authorization` 头；删除已退役的 `/gitee/`、`/github/`、`/telegram/` location 块；文件头增加安全注释。
-  - `chat-web/index.html`：`formatContent()` 增加图片 URL 域名白名单（`image.pollinations.ai`、`chat.donglicao.com`、`api.donglicao.com`、`localhost`、`127.0.0.1`）与 `escapeHtml`；SSE 解析异常改为 `console.warn` 输出，不再静默跳过；`showApiInfo()` 从 toast 改为带「复制 curl」按钮的模态框。
-  - `chat-web/voice-call.html`：本地模式 WebSocket 路径从 `/v1/voice` 修正为 `/ws/voice`（与 nginx 代理一致）；模式选项改为「Gemini 实时通话」「本地语音对话」。
-  - `donglicao-site/lima-demo.js`：Demo 聊天从 `/api/demo` 改为调用 `/v1/chat/completions`，增加本地 API Key 提示与 `Authorization` 头，401/非 200 状态显式报错。
+  - `_nginx_chat_temp.conf`：移除硬编码 API Key，改为透传客户端 `Authorization` 头；删除已退役的 `/gitee/`、`/github/`、`/telegram/` location 块；新增 `location = /v1/voice` WebSocket 代理到 `:8080`，与后端 `routes/voice_pipeline_ws.py` 对齐；文件头增加安全注释。
+  - `chat-web/index.html`：`formatContent()` 增加图片 URL 域名白名单（`image.pollinations.ai`、`chat.donglicao.com`、`api.donglicao.com`）并移除 `localhost`/`127.0.0.1`；`alt` 使用 `escapeHtml`，URL 使用 `escapeAttr` 避免 `&amp;` 双重转义；SSE 解析异常改为 `console.warn`；`showApiInfo()` 从 toast 改为带「复制 curl」按钮的模态框，并增加 `navigator.clipboard` 存在性检查。
+  - `chat-web/voice-call.html`：本地模式 WebSocket 路径保持 `/v1/voice`（与后端一致）；模式选项改为「Gemini 实时通话」「本地语音对话」。
+  - `donglicao-site/lima-demo.js`：Demo 聊天从 `/api/demo` 改为调用 `/v1/chat/completions`；API Key 存储从 `localStorage` 改为 `sessionStorage`，并在存储前 trim，避免空白键死循环。
   - 清理工作区残留的 `*.bak.*`、`*.backup*` 备份文件。
 - **验证**：
+  - `pytest tests/test_device_voice.py tests/test_device_voice_cloud_providers.py tests/test_device_gateway_model_routing.py tests/test_routing_engine.py tests/test_system_endpoints.py tests/test_route_registry.py -q` → **125 passed, 14 skipped**。
   - `pytest tests/ -k 'chat_web or voice or demo' -q` → **76 passed, 14 skipped**。
+  - `ruff check` 触及 Python 文件 clean。
   - 本地无 nginx 二进制，未执行 `nginx -t`；配置变更基于人工审查。
-  - `chat-web/index.html`、`chat-web/voice-call.html`、`donglicao-site/lima-demo.js` 语义审查通过。
+- **待确认**：相同 API Key `xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw` 仍出现在 `docs/ALIYUN_PROMETHEUS_DEPLOYMENT.md` 与 `docs/archive/jdcloud-2026-06/` 历史文档中；若仍有效需轮换并清除历史。
 - **未解决（需后续里程碑）**：
   - `chat-web/index.html` 1657 行、`donglicao-site/index.html` 内联脚本过多，需拆分为 HTML/CSS/JS。
   - `donglicao-site/chat.html` 与 `chat-web/index.html` 功能重复，需统一或重定向。

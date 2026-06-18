@@ -10,14 +10,27 @@
 | WEB-SEC-1 | security | `_nginx_chat_temp.conf` 硬编码 API Key `xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw` 并自动注入 `/v1/` | Closed |
 | WEB-SEC-2 | security | `chat-web/index.html` 的 `formatContent()` 渲染任意域图片且 `alt` 文本未转义，存在 XSS/钓鱼风险 | Closed |
 | WEB-SEC-3 | security | SSE 解析中 `catch (e) { /* skip */ }` 静默吞异常，违反 Hard Rule 1 | Closed |
+| WEB-SEC-4 | security | `formatContent()` 图片白名单含 `localhost`/`127.0.0.1`，可导致客户端 SSRF/本地端口探测 | Closed |
+| WEB-SEC-5 | security | `lima-demo.js` 将 API Key 持久化到 `localStorage`，XSS 时可被读取 | Closed |
 | WEB-FUNC-1 | functionality | `donglicao-site/lima-demo.js` 调用未注册的 `/api/demo` | Closed |
 | WEB-FUNC-2 | functionality | `chat-web/voice-call.html` 本地模式连接 `/v1/voice`，但 nginx 只代理 `/ws/voice` | Closed |
+| WEB-FUNC-3 | functionality | `formatContent()` 对图片 URL 二次 escape，破坏含 `&` 的查询参数 | Closed |
+| WEB-FUNC-4 | functionality | `copyApiInfoCurl()` 未检查 `navigator.clipboard`，非安全上下文会抛出同步 TypeError | Closed |
+| WEB-FUNC-5 | functionality | `getDemoApiKey()` 仅在 return 时 trim，空白键会被写入 storage 并导致后续 401 死循环 | Closed |
 | WEB-DEPLOY-1 | deploy | nginx 仍保留已退役的 `/gitee/`、`/github/`、`/telegram/` location 块 | Closed |
 | WEB-DEPLOY-2 | hygiene | `*.bak.*`、`*.backup*` 备份文件残留在工作区 | Closed |
 | WEB-UX-1 | ux | `showApiInfo()` 用 toast 展示长文档，体验差 | Closed |
 | WEB-UX-2 | ux | 语音通话模式选项 `Gemini Live` / `本地语音管道` 不够直观 | Closed |
 | WEB-SIZE-1 | code_size | `chat-web/index.html` 1657 行、`donglicao-site/index.html` 内联脚本过多，需后续拆分 | Open |
 | WEB-SIZE-2 | code_size | `donglicao-site/chat.html` 与 `chat-web/index.html` 功能重复，需后续统一或重定向 | Open |
+
+**Review 衍生修复（2026-06-18 omk-review）**
+- 语音路径：前端 `/v1/voice` 与后端 `routes/voice_pipeline_ws.py` 一致；nginx 新增 `location = /v1/voice` WebSocket 代理到 `:8080`。
+- 图片转义：`formatContent()` 对 URL 改用 `escapeAttr`（仅转义引号），避免 `&amp;` 双重转义破坏查询参数。
+- Demo Key：`localStorage` → `sessionStorage`，并在存储前 trim。
+
+**待确认（pre-existing）**
+- 相同 API Key `xHzP3Uk9EAJfzIoAjjvzxKebXnBIirm6ByYz_zo1vJw` 仍出现在 `docs/ALIYUN_PROMETHEUS_DEPLOYMENT.md` 与 `docs/archive/jdcloud-2026-06/` 历史文档中。若该 Key 仍有效，需轮换并从仓库历史清除。
 
 ## 2026-06-18 voice provider 测试可移植性与代码尺寸改进
 

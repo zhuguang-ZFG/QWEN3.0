@@ -1400,9 +1400,7 @@
       const allowedImageDomains = [
         'image.pollinations.ai',
         'chat.donglicao.com',
-        'api.donglicao.com',
-        'localhost',
-        '127.0.0.1'
+        'api.donglicao.com'
       ];
       function escapeHtml(str) {
         return String(str)
@@ -1412,11 +1410,18 @@
           .replace(/"/g, '&quot;')
           .replace(/'/g, '&#39;');
       }
+      function escapeAttr(str) {
+        // The URL has already been globally HTML-escaped above; only quote-escaping
+        // is needed for safe attribute embedding.
+        return String(str)
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
       function isAllowedImageUrl(url) {
         try {
           const u = new URL(url);
           if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
-          return allowedImageDomains.some(domain => u.hostname === domain || u.hostname.endsWith('.' + domain));
+          return allowedImageDomains.some(domain => u.hostname === domain);
         } catch (e) {
           return false;
         }
@@ -1425,9 +1430,9 @@
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
         .replace(/!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g, (match, alt, url) => {
           if (!isAllowedImageUrl(url)) {
-            return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">[图片: ${escapeHtml(alt || 'image')}]</a>`;
+            return `<a href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">[图片: ${escapeHtml(alt || 'image')}]</a>`;
           }
-          return `<div class="media-card"><img src="${escapeHtml(url)}" alt="${escapeHtml(alt)}" loading="lazy"></div>`;
+          return `<div class="media-card"><img src="${escapeAttr(url)}" alt="${escapeHtml(alt)}" loading="lazy"></div>`;
         })
         .replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
           return `<div class="code-card"><div class="code-header"><div class="code-lights"><span></span><span></span><span></span></div><button class="copy-btn" onclick="copyCode(this)">复制</button></div><pre><code>${code}</code></pre></div>`;
@@ -1688,6 +1693,10 @@
 
     function copyApiInfoCurl() {
       const text = document.getElementById('apiInfoCurl').textContent;
+      if (!navigator.clipboard) {
+        showToast('复制失败：当前环境不支持剪贴板 API，请手动复制', { error: true });
+        return;
+      }
       navigator.clipboard.writeText(text).then(() => {
         showToast('curl 命令已复制到剪贴板');
       }).catch(() => {
