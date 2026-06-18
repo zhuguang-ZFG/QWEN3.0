@@ -89,7 +89,14 @@
 - 补充部署未跟踪的 `device_gateway/task_draw_params.py`，解决 `task_creation.py` 引入导致的启动崩溃。
 - 验证：`https://chat.donglicao.com/health` → `status: ok`；匿名 `POST /v1/chat/completions` 返回 200；`/digital-human/` 返回 200。
 
-**仍开放**：图片域名白名单、WebSocket token 仅走 header、语音/设备路径静默降级日志、Gitee SSH push 配置、`esp32S_XYZ` 子模块硬编码 key。
+**本轮补充修复（2026-06-18 第二批）**
+- 图片白名单：`chat-web/chat-messages.js` 已维护 `allowedImageDomains`；删除未跟踪的 `data/chat/index.html` 并在 `.gitignore` 中排除，避免其被误部署。
+- WebSocket token 不再写入 nginx access log：`_nginx_chat_temp.conf` 与快照中为 `/device/v1/ws`、`/v1/live`、`/v1/voice` 增加 `access_log off`。
+- 静默降级日志升级：`device_voice/dialogue.py`、`routes/device_voice_ws_helpers.py`、`routes/device_gateway_ws_handlers.py`、`routes/device_gateway_dispatch.py` 中的生产路径 `except ImportError/Exception: _log.debug(...)` 全部改为 `warning`。
+- 手动补发本地修改的 `device_gateway/tasks.py`、`task_service.py` 与未跟踪的 `task_draw_params.py`，修复 VPS 上 `create_task_from_transcript_async` 导入失败导致的启动崩溃。
+- 验证：VPS `/health` ok、匿名聊天 200、`/digital-human/` 200。
+
+**仍开放**：Gitee SSH push 配置、`esp32S_XYZ` 子模块硬编码 key。
 
 ## 2026-06-18 语音通话、数字人、Demo 全部免费化（完成）
 

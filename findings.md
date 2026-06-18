@@ -560,3 +560,21 @@
 - 图片域名白名单、WebSocket token 仅走 header、语音/设备路径静默降级日志级别，需要额外改动并测试。
 - Gitee SSH 推送失败需配置 SSH key 或改用 HTTPS token。
 - `esp32S_XYZ` 子模块中硬编码 API key 需在子模块仓库内处理。
+
+## 2026-06-18 第二批审计问题修复
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| AUDIT-SEC-6 | security | 图片域名白名单缺失（`data/chat/index.html` `safeImageUrl` 仅校验 `https:` 协议） | Closed |
+| AUDIT-SEC-7 | security | `routes/gemini_live_proxy.py` / `routes/voice_pipeline_ws.py` 仍可从 query param 读取 token | Accepted (browser WebSocket 无法设置自定义 header；已通过 nginx `access_log off` 降低日志泄露风险) |
+| AUDIT-FUNC-3 | functionality | 多处语音/设备路径捕获 `ImportError`/`Exception` 后仅 `debug` 日志，违反 Hard Rule 1 | Closed |
+
+**修复动作（2026-06-18 第二批）**
+- 删除未跟踪的 `data/chat/index.html`，并在 `.gitignore` 中排除；`chat-web/chat-messages.js` 已维护图片域名白名单。
+- `_nginx_chat_temp.conf` 与 `infra/vps/nginx/chat.donglicao.com.conf` 快照中为 `/device/v1/ws`、`/v1/live`、`/v1/voice` 增加 `access_log off`，避免 query-string token 进入 nginx access log。
+- `device_voice/dialogue.py`、`routes/device_voice_ws_helpers.py`、`routes/device_gateway_ws_handlers.py`、`routes/device_gateway_dispatch.py` 中的生产路径静默降级日志全部从 `debug` 升级到 `warning`。
+- 手动补发本地修改的 `device_gateway/tasks.py`、`task_service.py` 与未跟踪的 `task_draw_params.py`，修复 VPS 导入不匹配导致的启动崩溃。
+
+**仍开放**
+- Gitee SSH push 配置
+- `esp32S_XYZ` 子模块硬编码 API key
