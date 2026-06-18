@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -18,8 +17,12 @@ from dotenv import load_dotenv
 load_dotenv(ROOT / ".env")
 
 from gitee_mirror import (
+    build_gitee_https_push_url,
+    build_gitee_oauth_push_url,
     build_remote_entries,
     default_push_remotes,
+    gitee_credential_store,
+    gitee_env_token,
     parse_git_remotes,
     redact_remote_url,
     run_git_remote_v,
@@ -29,29 +32,8 @@ from gitee_mirror import (
 def _push_remote(repo: Path, remote: str, refspec: str) -> tuple[bool, str]:
     cmd = ["git", "-C", str(repo), "push", remote, refspec]
     proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
-    out = ((proc.stdout or "") + (proc.stderr or "")).strip()
+    out = redact_remote_url(((proc.stdout or "") + (proc.stderr or "")).strip())
     return proc.returncode == 0, out[-500:]
-
-
-def _gitee_token() -> str:
-    """Return Gitee personal access token from environment, preferring GITEE_TOKEN."""
-    return os.environ.get("GITEE_TOKEN", "").strip() or os.environ.get("GITEE_ACCESS_TOKEN", "").strip()
-
-
-def _gitee_https_push_url(base_url: str, token: str) -> str:
-    """Convert a Gitee SSH or HTTPS URL into an HTTPS URL with oauth2 token."""
-    if base_url.startswith("git@gitee.com:"):
-        repo_path = base_url[len("git@gitee.com:") :]
-        return f"https://oauth2:{token}@gitee.com/{repo_path}"
-    lowered = base_url.lower()
-    if "gitee.com" not in lowered or "://" not in base_url:
-        return ""
-    scheme, rest = base_url.split("://", 1)
-    # Strip any existing credentials from the netloc portion.
-    netloc_path = rest
-    if "@" in netloc_path.split("/", 1)[0]:
-        _, netloc_path = netloc_path.split("@", 1)
-    return f"{scheme}://oauth2:{token}@{netloc_path}"
 
 
 def _check_gitee_ssh(repo: Path, entries: list) -> tuple[bool, str]:
@@ -60,26 +42,74 @@ def _check_gitee_ssh(repo: Path, entries: list) -> tuple[bool, str]:
     gitee_url = gitee_entry.push_url if gitee_entry else ""
     if not gitee_url.startswith("git@gitee.com:"):
         return True, "gitee is not using SSH"
-    proc = subprocess.run(
-        ["ssh", "-T", "git@gitee.com"],
-        capture_output=True,
-        text=True,
-        check=False,
-        timeout=15,
-    )
-    if proc.returncode == 0:
-        return True, ""
+    try:
+        proc = subprocess.run(
+            [
+                "ssh",
+                "-T",
+                "-o",
+                "BatchMode=yes",
+                "-o",
+                "StrictHostKeyChecking=accept-new",
+                "git@gitee.com",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=15,
+        )
+    except (subprocess.TimeoutExpired, FileNotFoundError) as exc:
+        return False, f"Could not verify Gitee SSH status: {exc}"
+
     detail = (proc.stdout or "") + (proc.stderr or "")
+    # Gitee/GitHub return 1 on successful auth with a non-shell message.
+    if proc.returncode == 0 or (
+        proc.returncode == 1
+        and (
+            "successfully authenticated" in detail.lower()
+            or detail.strip().startswith("Hi ")
+        )
+    ):
+        return True, ""
+
     pub_key = Path.home() / ".ssh" / "id_ed25519.pub"
     if not pub_key.exists():
         pub_key = Path.home() / ".ssh" / "id_rsa.pub"
-    key_hint = f"\nPublic key to add to Gitee: {pub_key}\n{pub_key.read_text().strip() if pub_key.exists() else '(not found)'}"
+    key_hint = (
+        f"\nPublic key to add to Gitee: {pub_key}\n"
+        f"{pub_key.read_text().strip() if pub_key.exists() else '(not found)'}"
+    )
     return False, (
         f"Gitee SSH authentication failed.{key_hint}\n"
         "Add the key at https://gitee.com/profile/sshkeys "
         "or set GITEE_TOKEN / GITEE_ACCESS_TOKEN for HTTPS fallback.\n"
         f"Underlying error: {detail.strip()[:300]}"
     )
+
+
+def _push_gitee_https(repo: Path, base_url: str, token: str, refspec: str) -> tuple[bool, str]:
+    """Push to Gitee via HTTPS using a temporary credential store.
+
+    The token never appears in the git command line; it is supplied through a
+    short-lived git credential-store file that is deleted after the push.
+    """
+    token_url = build_gitee_oauth_push_url(base_url, token)
+    safe_url = redact_remote_url(token_url)
+    tokenless_url = build_gitee_https_push_url(base_url)
+    with gitee_credential_store(token) as cred_file:
+        cmd = [
+            "git",
+            "-C",
+            str(repo),
+            "-c",
+            f"credential.helper=store --file={cred_file}",
+            "push",
+            tokenless_url,
+            refspec,
+        ]
+        proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        out = redact_remote_url(((proc.stdout or "") + (proc.stderr or "")).strip())
+    return proc.returncode == 0, out[-500:], safe_url
 
 
 def main() -> int:
@@ -115,13 +145,11 @@ def main() -> int:
     if "gitee" in names:
         ssh_ok, ssh_detail = _check_gitee_ssh(repo, entries)
         if not ssh_ok:
-            token = _gitee_token()
+            token = gitee_env_token()
             gitee_entry = next((e for e in entries if e.name == "gitee"), None)
             base_url = (gitee_entry.push_url if gitee_entry else "").strip()
-            https_url = _gitee_https_push_url(base_url, token) if token and base_url else ""
-            if https_url:
-                safe_url = redact_remote_url(https_url)
-                ok, detail = _push_remote(repo, https_url, args.ref)
+            if token and base_url:
+                ok, detail, safe_url = _push_gitee_https(repo, base_url, token, args.ref)
                 if ok:
                     print(f"OK: gitee (HTTPS fallback via {safe_url})")
                 else:

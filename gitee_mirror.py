@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
+import tempfile
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Sequence
-from urllib.parse import urlparse
+from typing import Callable, Iterator, Sequence
+from urllib.parse import quote, urlparse
 
 _OAUTH_RE = re.compile(r"oauth2:[^@]+@", re.IGNORECASE)
 _OAUTH_TOKEN_RE = re.compile(r"oauth2:([^@]+)@", re.IGNORECASE)
@@ -75,6 +78,55 @@ def redact_remote_url(url: str) -> str:
                 rest = f"{user}:***@{path}"
             text = f"{scheme}://{rest}"
     return text
+
+
+def gitee_env_token() -> str:
+    """Return Gitee personal access token from environment, preferring GITEE_TOKEN."""
+    return os.environ.get("GITEE_TOKEN", "").strip() or os.environ.get("GITEE_ACCESS_TOKEN", "").strip()
+
+
+def _parse_gitee_repo_path(base_url: str) -> str:
+    """Extract 'user/repo.git' from a Gitee SSH or HTTPS URL.
+
+    Raises ValueError if the URL is not a Gitee repository URL.
+    """
+    if base_url.startswith("git@gitee.com:"):
+        return base_url[len("git@gitee.com:") :]
+    parsed = urlparse(base_url)
+    host = parsed.netloc.lower().split("@")[-1]
+    if "gitee.com" not in host:
+        raise ValueError(f"not a Gitee URL: {base_url}")
+    return parsed.path.lstrip("/")
+
+
+def build_gitee_oauth_push_url(base_url: str, token: str) -> str:
+    """Return a token-bearing HTTPS URL for Gitee (redact before logging)."""
+    repo_path = _parse_gitee_repo_path(base_url)
+    encoded_token = quote(token, safe="")
+    return f"https://oauth2:{encoded_token}@gitee.com/{repo_path}"
+
+
+def build_gitee_https_push_url(base_url: str) -> str:
+    """Return a token-less HTTPS URL for use with a git credential helper."""
+    repo_path = _parse_gitee_repo_path(base_url)
+    return f"https://gitee.com/{repo_path}"
+
+
+@contextmanager
+def gitee_credential_store(token: str) -> Iterator[Path]:
+    """Yield a temporary git credential-store file containing the Gitee token.
+
+    The file is created with mode 0600 and deleted when the context exits.
+    """
+    fd, path_str = tempfile.mkstemp(prefix="gitee_cred_", text=True)
+    path = Path(path_str)
+    try:
+        os.write(fd, f"https://oauth2:{token}@gitee.com\n".encode())
+        os.close(fd)
+        os.chmod(path, 0o600)
+        yield path
+    finally:
+        path.unlink(missing_ok=True)
 
 
 def parse_git_remotes(output: str) -> dict[str, dict[str, str]]:

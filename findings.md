@@ -578,8 +578,16 @@
 
 **修复动作**
 - `scripts/push_dual_remotes.py` 增加 `_check_gitee_ssh()`：在推送 `gitee` 前先用 `ssh -T git@gitee.com` 验证认证；失败时跳过 `gitee` 并打印本机公钥与添加指引，避免阻塞 `origin` 推送。
-- `scripts/push_dual_remotes.py` 新增 `_gitee_https_push_url()` 与 `_gitee_token()`：当 SSH 失败且环境变量 `GITEE_TOKEN`（或 `GITEE_ACCESS_TOKEN`）存在时，自动切换到 `https://oauth2:<token>@gitee.com/...` 进行 HTTPS 推送；URL 中的 token 在日志中会被打码。
-- 新增 `tests/test_push_dual_remotes.py`（7 cases）覆盖 SSH/HTTPS URL 转换、token 优先级和缺省场景。
+- URL/token 辅助函数迁移到 `gitee_mirror.py`：
+  - `gitee_env_token()` 读取 `GITEE_TOKEN` / `GITEE_ACCESS_TOKEN`。
+  - `build_gitee_oauth_push_url()` 生成带 token 的 HTTPS URL（仅用于日志，打印前经 `redact_remote_url()` 打码）。
+  - `build_gitee_https_push_url()` 生成无 token 的 HTTPS URL，供 git 命令使用。
+  - `gitee_credential_store()` 创建临时 credential-store 文件（权限 `0600`），让 git 在推送时读取 token，避免 token 进入子进程 `argv`。
+- HTTPS fallback 流程：SSH 失败 → 读取 token → 用临时 credential-store 文件执行 `git push https://gitee.com/<repo>`；git 输出经 `redact_remote_url()` 脱敏。
+- token 在 URL 中经 `urllib.parse.quote` 编码；强制使用 `https://`，拒绝 `http://` / `ssh://` scheme 残留。
+- `_check_gitee_ssh` 修复成功判断：接受退出码 `1` 且输出含 "successfully authenticated"；增加 `BatchMode=yes`、`StrictHostKeyChecking=accept-new` 与 `TimeoutExpired`/`FileNotFoundError` 捕获。
+- `.env.example` 增加 `GITEE_ACCESS_TOKEN=` 说明。
+- 新增 `tests/test_gitee_mirror.py`（13 cases）覆盖 URL 编码、ssh://、非 Gitee 拒绝、credential store 生命周期。
 - 当前待添加到 Gitee 的公钥（SSH 方案）：
   ```
   ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHa12AjBDaxSOcx2q++0QxYr3WkeRSw6Z4xi4BBYXOtE zhuguang-ZFG@users.noreply.github.com
