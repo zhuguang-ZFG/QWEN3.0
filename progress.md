@@ -22,8 +22,8 @@
 - **已处理（2026-06-18）**：将 `docs/ALIYUN_PROMETHEUS_DEPLOYMENT.md` 与 `docs/archive/jdcloud-2026-06/` 中的真实 API Key 替换为 `<YOUR_API_KEY>`。若该 Key 仍有效，需在服务商控制台轮换，并考虑从 Git 历史清除。
 - **已解决（2026-06-18）**：
   - `chat-web/index.html` 已拆分为 `chat-web/styles.css` + `chat-web/icons.svg` + `chat-web/chat-ui.js` + `chat-web/chat-messages.js` + `chat-web/chat-api.js`；HTML 从 1715 行降至 325 行。
+  - `donglicao-site/index.html` 已拆分为 `donglicao-site/styles.css` + `donglicao-site/site.js`；HTML 从 454 行降至 187 行。
 - **未解决（需后续里程碑）**：
-  - `donglicao-site/index.html` 内联脚本过多，需拆分。
   - `donglicao-site/chat.html` 与 `chat-web/index.html` 功能重复，需统一或重定向。
 
 ## 2026-06-18 chat-web 前端模块化拆分（完成）
@@ -45,6 +45,19 @@
   - `node --check chat-web/chat-ui.js chat-web/chat-messages.js chat-web/chat-api.js` → JS syntax OK。
   - `python scripts/deploy_chat_web.py --dry-run` → 7 个文件均在部署清单。
   - 全量 pytest：1739 passed, 37 skipped，1 failed（`test_digital_human_static_js_served`，与本次改动无关，content-type 断言与 Starlette StaticFiles 实际返回不一致）。
+
+## 2026-06-18 donglicao-site landing page 模块化拆分（完成）
+
+- **目标**：拆分 `donglicao-site/index.html` 中的内联 CSS/JS。
+- **实现**：
+  - 提取 CSS 到 `donglicao-site/styles.css`（244 行）。
+  - 提取 JS 到 `donglicao-site/site.js`（21 行）。
+  - `donglicao-site/index.html` 仅保留 HTML 结构与外部引用，从 454 行降至 187 行。
+  - 保留 `lima-demo.js` 外部引用不变。
+- **验证**：
+  - `pytest tests/test_static_files.py -v` → **2 passed**。
+  - `ruff check .` → clean。
+  - `node --check donglicao-site/site.js` → JS syntax OK。
 
 ## 2026-06-18 voice provider 测试可移植性 + 代码尺寸持续改进（完成）
 

@@ -22,6 +22,7 @@
 | WEB-UX-1 | ux | `showApiInfo()` 用 toast 展示长文档，体验差 | Closed |
 | WEB-UX-2 | ux | 语音通话模式选项 `Gemini Live` / `本地语音管道` 不够直观 | Closed |
 | WEB-SIZE-1 | code_size | `chat-web/index.html` 1657 行，需拆分为 HTML/CSS/JS/SVG | Closed |
+| WEB-SIZE-3 | code_size | `donglicao-site/index.html` 454 行，内联 CSS/JS 过多 | Closed |
 | WEB-SIZE-2 | code_size | `donglicao-site/chat.html` 与 `chat-web/index.html` 功能重复，需后续统一或重定向 | Open |
 
 **Review 衍生修复（2026-06-18 omk-review）**
