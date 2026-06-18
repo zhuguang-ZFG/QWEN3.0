@@ -2,131 +2,41 @@
 
 from __future__ import annotations
 
-import os
-import re
 import subprocess
-import tempfile
-from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Iterator, Sequence
-from urllib.parse import quote, urlparse
+from typing import Callable, Sequence
 
-_OAUTH_RE = re.compile(r"oauth2:[^@]+@", re.IGNORECASE)
-_OAUTH_TOKEN_RE = re.compile(r"oauth2:([^@]+)@", re.IGNORECASE)
-_TOKEN_IN_USER_RE = re.compile(r"^[^:/]+:[^@]+@")
+from gitee_mirror_store import gitee_credential_store
+from gitee_mirror_urls import (
+    build_gitee_https_push_url,
+    build_gitee_oauth_push_url,
+    classify_host,
+    extract_gitee_oauth_token,
+    gitee_env_token,
+    iter_gitee_remote_urls,
+    redact_remote_url,
+)
 
-
-def extract_gitee_oauth_token(url: str) -> str:
-    """Return oauth2 token embedded in a Gitee git remote URL (empty if absent)."""
-    text = (url or "").strip()
-    if not text or "gitee.com" not in text.lower():
-        return ""
-    match = _OAUTH_TOKEN_RE.search(text)
-    if not match:
-        return ""
-    from urllib.parse import unquote
-
-    return unquote(match.group(1).strip())
-
-
-def iter_gitee_remote_urls(remote_v_output: str) -> list[str]:
-    """Collect every gitee.com URL from `git remote -v` output."""
-    urls: list[str] = []
-    seen: set[str] = set()
-    for line in (remote_v_output or "").splitlines():
-        parts = line.split()
-        if len(parts) < 2:
-            continue
-        url = parts[1]
-        if "gitee.com" not in url.lower():
-            continue
-        if url not in seen:
-            seen.add(url)
-            urls.append(url)
-    return urls
-
-
-def gitee_token_from_git_remotes(
-    repo: str | Path = "",
-    *,
-    runner: Callable[..., subprocess.CompletedProcess] | None = None,
-) -> str:
-    """Resolve Gitee OpenAPI token from oauth2 credentials in git remotes."""
-    code, output = run_git_remote_v(repo, runner=runner)
-    if code != 0:
-        return ""
-    for url in iter_gitee_remote_urls(output):
-        token = extract_gitee_oauth_token(url)
-        if token:
-            return token
-    return ""
-
-
-def redact_remote_url(url: str) -> str:
-    """Remove credentials from git remote URLs for logs and docs."""
-    text = (url or "").strip()
-    if not text:
-        return ""
-    text = _OAUTH_RE.sub("oauth2:***@", text)
-    if "://" in text:
-        scheme, rest = text.split("://", 1)
-        if "@" in rest.split("/", 1)[0]:
-            user_host, path = rest.split("@", 1)
-            if ":" in user_host and not user_host.startswith("git@"):
-                user = user_host.split(":", 1)[0]
-                rest = f"{user}:***@{path}"
-            text = f"{scheme}://{rest}"
-    return text
-
-
-def gitee_env_token() -> str:
-    """Return Gitee personal access token from environment, preferring GITEE_TOKEN."""
-    return os.environ.get("GITEE_TOKEN", "").strip() or os.environ.get("GITEE_ACCESS_TOKEN", "").strip()
-
-
-def _parse_gitee_repo_path(base_url: str) -> str:
-    """Extract 'user/repo.git' from a Gitee SSH or HTTPS URL.
-
-    Raises ValueError if the URL is not a Gitee repository URL.
-    """
-    if base_url.startswith("git@gitee.com:"):
-        return base_url[len("git@gitee.com:") :]
-    parsed = urlparse(base_url)
-    host = parsed.netloc.lower().split("@")[-1]
-    if "gitee.com" not in host:
-        raise ValueError(f"not a Gitee URL: {base_url}")
-    return parsed.path.lstrip("/")
-
-
-def build_gitee_oauth_push_url(base_url: str, token: str) -> str:
-    """Return a token-bearing HTTPS URL for Gitee (redact before logging)."""
-    repo_path = _parse_gitee_repo_path(base_url)
-    encoded_token = quote(token, safe="")
-    return f"https://oauth2:{encoded_token}@gitee.com/{repo_path}"
-
-
-def build_gitee_https_push_url(base_url: str) -> str:
-    """Return a token-less HTTPS URL for use with a git credential helper."""
-    repo_path = _parse_gitee_repo_path(base_url)
-    return f"https://gitee.com/{repo_path}"
-
-
-@contextmanager
-def gitee_credential_store(token: str) -> Iterator[Path]:
-    """Yield a temporary git credential-store file containing the Gitee token.
-
-    The file is created with mode 0600 and deleted when the context exits.
-    """
-    fd, path_str = tempfile.mkstemp(prefix="gitee_cred_", text=True)
-    path = Path(path_str)
-    try:
-        os.write(fd, f"https://oauth2:{token}@gitee.com\n".encode())
-        os.close(fd)
-        os.chmod(path, 0o600)
-        yield path
-    finally:
-        path.unlink(missing_ok=True)
+__all__ = [
+    "build_gitee_https_push_url",
+    "build_gitee_oauth_push_url",
+    "build_remote_entries",
+    "classify_host",
+    "collect_mirror_status",
+    "compare_mirror_heads",
+    "default_push_remotes",
+    "extract_gitee_oauth_token",
+    "gitee_credential_store",
+    "gitee_env_token",
+    "gitee_token_from_git_remotes",
+    "iter_gitee_remote_urls",
+    "mirror_status_from_output",
+    "parse_git_remotes",
+    "redact_remote_url",
+    "remote_head_sha",
+    "run_git_remote_v",
+]
 
 
 def parse_git_remotes(output: str) -> dict[str, dict[str, str]]:
@@ -140,16 +50,6 @@ def parse_git_remotes(output: str) -> dict[str, dict[str, str]]:
         key = "fetch" if kind == "(fetch)" else "push"
         remotes.setdefault(name, {})[key] = url
     return remotes
-
-
-def classify_host(url: str) -> str:
-    lowered = url.lower()
-    if "gitee.com" in lowered:
-        return "gitee"
-    if "github.com" in lowered:
-        return "github"
-    host = urlparse(url).netloc.lower()
-    return host or "unknown"
 
 
 @dataclass(frozen=True)
@@ -177,6 +77,22 @@ def build_remote_entries(remotes: dict[str, dict[str, str]]) -> list[RemoteEntry
         host_kind = classify_host(push_url or fetch_url)
         entries.append(RemoteEntry(name=name, fetch_url=fetch_url, push_url=push_url, host_kind=host_kind))
     return entries
+
+
+def gitee_token_from_git_remotes(
+    repo: str | Path = "",
+    *,
+    runner: Callable[..., subprocess.CompletedProcess] | None = None,
+) -> str:
+    """Resolve Gitee OpenAPI token from oauth2 credentials in git remotes."""
+    code, output = run_git_remote_v(repo, runner=runner)
+    if code != 0:
+        return ""
+    for url in iter_gitee_remote_urls(output):
+        token = extract_gitee_oauth_token(url)
+        if token:
+            return token
+    return ""
 
 
 def mirror_status_from_output(output: str) -> dict[str, object]:

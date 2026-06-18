@@ -21,6 +21,8 @@
   - 修复 `_check_gitee_ssh` 成功判断：Gitee/GitHub 成功认证返回退出码 `1` 且含 "successfully authenticated"；增加 `BatchMode=yes`、`StrictHostKeyChecking=accept-new` 与异常捕获（`TimeoutExpired`、`FileNotFoundError`）。
   - `.env.example` 增加 `GITEE_ACCESS_TOKEN=` 说明。
   - 测试迁移至 `tests/test_gitee_mirror.py`（13 cases），覆盖 URL 编码、ssh://、非 Gitee 拒绝、credential store 生命周期。
+- **代码尺寸整理（第三轮）**：
+  - 将 `gitee_mirror.py`（324 行）拆分为 `gitee_mirror_urls.py`（URL/打码/构建器）、`gitee_mirror_store.py`（临时 credential store）、`gitee_mirror.py`（remote 条目/镜像状态/HEAD 对比），均回到 ≤300 行；`gitee_mirror.py` 通过 `__all__` 保持向后兼容导出。
 - **验证**：
   - `ruff check` clean；`pyright` 0 errors / 0 warnings。
   - 全量 `pytest` → **1780 passed, 23 skipped, 0 failed**。
