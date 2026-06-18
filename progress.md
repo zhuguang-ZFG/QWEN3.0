@@ -5,6 +5,18 @@
 > Updated: 2026-06-18
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-18 代码尺寸治理：拆分 device_gateway_ws_handlers.py（完成）
+
+- **目标**：按顺序继续治理代码尺寸，将 `routes/device_gateway_ws_handlers.py`（313 行）拆回 ≤300 行。
+- **实现**：
+  - 新增 `routes/ws_voice_transcript_helpers.py`（60 行）：承载数字人/文本聊天设备的语音对话分支 `handle_voice_transcript`。
+  - 新增 `routes/ws_voiceprint_helpers.py`（77 行）：承载声纹样本存储与 embedding 提取 `handle_voiceprint_sample`。
+  - `routes/device_gateway_ws_handlers.py` 降至 **207 行**：保留 hello、heartbeat、transcript、motion_event、device_info、self_check 等核心处理器；通过导入 helper 保持 `__all__` 向后兼容。
+- **验证**：
+  - `pytest tests/test_device_gateway_routes.py tests/test_device_gateway_model_routing.py tests/test_request_pipeline_authority.py -q` → **70 passed, 3 skipped**。
+  - `ruff check` / `pyright` 触及文件 0 errors / 0 warnings。
+  - `scripts/check_code_size.py` 超 300 行文件从 32 个降至 **31 个**。
+
 ## 2026-06-18 代码尺寸治理：拆分 redis_store.py（完成）
 
 - **目标**：按顺序继续治理代码尺寸，将 `device_gateway/redis_store.py`（313 行）拆回 ≤300 行。
