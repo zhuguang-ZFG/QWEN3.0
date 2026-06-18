@@ -24,8 +24,8 @@
   - `chat-web/index.html` 已拆分为 `chat-web/styles.css` + `chat-web/icons.svg` + `chat-web/chat-ui.js` + `chat-web/chat-messages.js` + `chat-web/chat-api.js`；HTML 从 1715 行降至 325 行。
   - `donglicao-site/index.html` 已拆分为 `donglicao-site/styles.css` + `donglicao-site/site.js`；HTML 从 454 行降至 187 行。
   - `donglicao-site/chat.html` 已由 347 行的独立聊天 UI 替换为 22 行的重定向页，统一跳转到 `https://chat.donglicao.com/`；本地开发提示打开 `chat-web/index.html`。
-- **未解决（需后续里程碑）**：
-  - 全量 pytest 中 `test_digital_human_static_js_served` content-type 断言与 Starlette StaticFiles 实际返回不一致。
+- **已解决（2026-06-18）**：
+  - 全量 pytest 中 `test_digital_human_static_js_served` 的 content-type 断言放宽为包含 `javascript`，兼容 Starlette StaticFiles 返回的 `text/javascript; charset=utf-8` 与 `application/javascript`。
 
 ## 2026-06-18 chat-web 前端模块化拆分（完成）
 
@@ -46,6 +46,16 @@
   - `node --check chat-web/chat-ui.js chat-web/chat-messages.js chat-web/chat-api.js` → JS syntax OK。
   - `python scripts/deploy_chat_web.py --dry-run` → 7 个文件均在部署清单。
   - 全量 pytest：1739 passed, 37 skipped，1 failed（`test_digital_human_static_js_served`，与本次改动无关，content-type 断言与 Starlette StaticFiles 实际返回不一致）。
+
+## 2026-06-18 修复 digital human 静态 JS 路由测试（完成）
+
+- **目标**：修复 `tests/test_digital_human_routes.py::test_digital_human_static_js_served` 在全量 pytest 中的失败。
+- **原因**：Starlette `StaticFiles` 在 Windows 环境下返回 `.js` 文件的 `Content-Type` 为 `text/javascript; charset=utf-8`，而测试原断言要求包含 `application/javascript`。
+- **修复**：将断言改为检查 content-type 是否包含 `javascript`，兼容两种 MIME 类型，并添加失败诊断信息。
+- **验证**：
+  - `pytest tests/test_digital_human_routes.py -v` → **3 passed**。
+  - `pytest tests/test_static_files.py tests/test_digital_human_routes.py -v` → **5 passed**。
+  - `ruff check .` → clean。
 
 ## 2026-06-18 消除 donglicao-site/chat.html 与 chat-web 重复（完成）
 

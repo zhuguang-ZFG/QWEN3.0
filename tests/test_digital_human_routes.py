@@ -39,4 +39,5 @@ def test_digital_human_static_js_served():
     if response.status_code == 404:
         return
     assert response.status_code == 200
-    assert "application/javascript" in response.headers.get("content-type", "")
+    content_type = response.headers.get("content-type", "")
+    assert "javascript" in content_type, f"expected javascript content-type, got {content_type!r}"

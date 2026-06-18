@@ -30,6 +30,9 @@
 - 图片转义：`formatContent()` 对 URL 改用 `escapeAttr`（仅转义引号），避免 `&amp;` 双重转义破坏查询参数。
 - Demo Key：`localStorage` → `sessionStorage`，并在存储前 trim。
 
+**测试修复（2026-06-18）**
+- `tests/test_digital_human_routes.py::test_digital_human_static_js_served` 原断言仅接受 `application/javascript`，但 Starlette StaticFiles 在 Windows 本地返回 `text/javascript; charset=utf-8`。已改为断言 content-type 包含 `javascript`，并附带诊断信息。
+
 **前端模块化（2026-06-18）**
 - `chat-web/index.html` 拆分为：
   - `chat-web/styles.css`（798 行）：全部样式变量与组件样式；
