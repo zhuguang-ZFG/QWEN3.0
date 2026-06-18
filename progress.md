@@ -60,6 +60,22 @@
   - `curl -sf https://chat.donglicao.com/` → 返回新的模块化 HTML，包含 `<link rel="stylesheet" href="styles.css">` 与三个 `<script src="chat-*.js">`。
 - **说明**：本次提交未改动后端 Python 代码，因此未执行 `scripts/deploy_unified.py`；仅部署前端静态资源与 nginx 配置。
 
+## 2026-06-18 语音通话、数字人、Demo 全部免费化（完成）
+
+- **语音通话免费**：
+  - `access_guard.py` 新增 `is_token_valid()`，HTTP 与 WebSocket 共享同一校验逻辑。
+  - `routes/voice_pipeline_ws.py`、`routes/gemini_live_proxy.py` 支持 `LIMA_ALLOW_ANONYMOUS=1`。
+  - `chat-web/voice-call.html`：本地模式直接连接；Gemini 模式先尝试无 Key 获取配置，仅在 401 时才提示输入。
+  - VPS 已部署并验证 `/v1/voice` WebSocket 可匿名建立连接。
+
+- **数字人修复**：
+  - 根因：`LIMA_DIGITAL_HUMAN_DEFAULT_TOKEN` 为空，设备网关 WebSocket 校验设备 token 失败。
+  - 修复：在 VPS `/opt/lima-router/.env` 设置 `LIMA_DIGITAL_HUMAN_DEFAULT_TOKEN=<demo-token>`，`routes/digital_human.py` 自动将其注入页面。
+  - 验证：`wss://chat.donglicao.com/device/v1/ws` 使用注入的 token 可成功连接。
+
+- **Landing page Demo 免费**：
+  - `donglicao-site/lima-demo.js`：API Key 改为可选，留空即可体验；仅当用户主动输入时才发送 `Authorization`。
+
 ## 2026-06-18 匿名访问与 VPS 部署验证（完成）
 
 - **目标**：解决用户反馈「需要 API Key」的问题，让聊天界面可免费使用。
