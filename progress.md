@@ -5,6 +5,19 @@
 > Updated: 2026-06-18
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-18 WebSocket token 鉴权重构与部署（完成）
+
+- **目标**：消除 `routes/voice_pipeline_ws.py` 与 `routes/gemini_live_proxy.py` 中重复的 header/query token 提取逻辑，补全测试，并落地到 VPS。
+- **实现**：
+  - `access_guard.py` 新增 `extract_websocket_token(websocket, query_authorization) -> tuple[str, bool]` 与 `WS_QUERY_PARAM_TOKEN_WARNING` 常量；仅当真正从 query param 提取到 Bearer token 时才返回 `used_query_param=True`。
+  - 两个 WebSocket 路由改为调用该 helper，移除重复代码。
+  - `tests/test_access_guard.py` 新增 7 组参数化测试，覆盖 header/query/同时存在/非 Bearer 等场景。
+- **验证**：
+  - `ruff check` clean；`pyright` 0 errors（仅 3 个 `websockets` 导入的既有 warning）。
+  - 全量 `pytest` → **1767 passed, 23 skipped, 0 failed**。
+  - VPS 部署 `access_guard.py`、`routes/voice_pipeline_ws.py`、`routes/gemini_live_proxy.py` 成功；`https://chat.donglicao.com/health` 返回 `startup.status=ready`。
+- **提交**：`621a557 refactor(access_guard,routes): centralize WebSocket token extraction and add tests`。
+
 ## 2026-06-18 draw_generated 主链路接入 device_draw_handler（完成）
 
 - **问题**：`handle_device_draw`（预设图形 / DashScope 万相 / OpenCV 矢量化）仅被单测与集成测调用；生产 `task_creation` 对「画一只猫」等自然语言仍走 `render_text_task`，与 `device_draw` + `image_then_vector` 路由策略脱节。
