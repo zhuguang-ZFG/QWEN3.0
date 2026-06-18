@@ -5,6 +5,18 @@
 > Updated: 2026-06-18
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-18 代码尺寸治理：拆分 redis_store.py（完成）
+
+- **目标**：按顺序继续治理代码尺寸，将 `device_gateway/redis_store.py`（313 行）拆回 ≤300 行。
+- **实现**：
+  - 新增 `device_gateway/redis_store_codec.py`（22 行），承载 Redis JSON 序列化/反序列化：`encode_redis_json`、`decode_redis_json`。
+  - `device_gateway/redis_store.py` 改为从 codec 模块导入，替换所有 `self._encode` / `self._decode` 调用；删除未使用的 `_lpop_many` 方法。
+  - 异常处理保持兼容：`decode_redis_json` 可能抛出 `UnicodeDecodeError` / `RuntimeError`（原代码还捕获 `json.JSONDecodeError`，但 JSON 解析错误已被 `RuntimeError` 包装）。
+- **验证**：
+  - `pytest tests/test_device_gateway_redis_store.py tests/test_device_store_redis_backends.py -q` → **11 passed**。
+  - `ruff check` clean；`pyright` 0 errors（保留 24 个既有 `redis` 导入/类型警告）。
+  - `scripts/check_code_size.py` 超 300 行文件从 33 个降至 **32 个**。
+
 ## 2026-06-18 代码尺寸治理：拆分 model_routing.py（完成）
 
 - **目标**：继续推进 `findings.md` ECC-2 代码尺寸基线治理，将生产文件 `device_gateway/model_routing.py`（311 行）拆回 ≤300 行。

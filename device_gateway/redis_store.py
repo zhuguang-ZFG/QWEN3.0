@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from copy import deepcopy
-import json
 import logging
 from typing import Any
+
+from device_gateway.redis_store_codec import decode_redis_json, encode_redis_json
 
 _log = logging.getLogger(__name__)
 
@@ -64,8 +65,8 @@ class RedisDeviceTaskStore:
         values = raw_states.values() if isinstance(raw_states, dict) else raw_states
         for raw_state in values:
             try:
-                state = self._decode(raw_state)
-            except (json.JSONDecodeError, UnicodeDecodeError, RuntimeError) as exc:
+                state = decode_redis_json(raw_state)
+            except (UnicodeDecodeError, RuntimeError) as exc:
                 _log.warning("redis active task decode failed: %s", type(exc).__name__)
                 continue
             task = state.get("task")
@@ -86,8 +87,8 @@ class RedisDeviceTaskStore:
         values = raw_states.values() if isinstance(raw_states, dict) else raw_states
         for raw_state in values:
             try:
-                state = self._decode(raw_state)
-            except (json.JSONDecodeError, UnicodeDecodeError, RuntimeError) as exc:
+                state = decode_redis_json(raw_state)
+            except (UnicodeDecodeError, RuntimeError) as exc:
                 _log.warning("redis task list decode failed: %s", type(exc).__name__)
                 continue
             task = state.get("task")
@@ -109,7 +110,7 @@ class RedisDeviceTaskStore:
 
     def enqueue_pending_task(self, device_id: str, task: dict[str, Any]) -> int:
         task["_enqueued_at"] = self._redis.time()[0]
-        queue_depth = int(self._redis.rpush(self._queue_key(device_id), self._encode(task)))
+        queue_depth = int(self._redis.rpush(self._queue_key(device_id), encode_redis_json(task)))
         state = self._read_task_state(task["task_id"]) or {"task": task, "status": "created", "events": []}
         state["task"] = deepcopy(task)
         state["status"] = "queued"
@@ -128,7 +129,7 @@ class RedisDeviceTaskStore:
             self._processing_key(device_id),
             limit,
         )
-        tasks = [self._decode(item) for item in raw_tasks]
+        tasks = [decode_redis_json(item) for item in raw_tasks]
         processing_started_at = self._redis.time()[0] if tasks else 0
         for task in tasks:
             state = self._read_task_state(task["task_id"]) or {
@@ -147,7 +148,7 @@ class RedisDeviceTaskStore:
             return self.pending_count(device_id)
         for task in tasks:
             self._remove_processing_task(device_id, task["task_id"])
-        encoded = [self._encode(task) for task in reversed(tasks)]
+        encoded = [encode_redis_json(task) for task in reversed(tasks)]
         queue_depth = int(self._redis.lpush(self._queue_key(device_id), *encoded))
         for task in tasks:
             state = self._read_task_state(task["task_id"]) or {"task": task, "status": "created", "events": []}
@@ -190,15 +191,12 @@ class RedisDeviceTaskStore:
         key = self._queue_key(device_id)
         for item in self._redis.lrange(key, 0, -1):
             try:
-                data = self._decode(item)
+                data = decode_redis_json(item)
             except Exception:
                 continue
             if data.get("task_id") == task_id:
                 return bool(self._redis.lrem(key, 1, item))
         return False
-
-    def _key(self, suffix: str) -> str:
-        return f"{self._prefix}:{suffix}"
 
     def ack_processing(self, device_id: str, task_id: str) -> bool:
         """Remove a task from the processing queue after device ack."""
@@ -224,7 +222,7 @@ class RedisDeviceTaskStore:
         items = self._redis.lrange(proc_key, 0, -1)
         for item in items:
             try:
-                data = self._decode(item)
+                data = decode_redis_json(item)
                 task_id = data.get("task_id", "")
                 state = self._read_task_state(task_id)
                 processing_started_at = 0
@@ -246,6 +244,9 @@ class RedisDeviceTaskStore:
             except Exception:
                 continue
         return count
+
+    def _key(self, suffix: str) -> str:
+        return f"{self._prefix}:{suffix}"
 
     def _queue_key(self, device_id: str) -> str:
         return self._key(f"pending:{device_id}")
@@ -269,7 +270,7 @@ class RedisDeviceTaskStore:
         key = self._processing_key(device_id)
         for item in self._redis.lrange(key, 0, -1):
             try:
-                data = self._decode(item)
+                data = decode_redis_json(item)
             except Exception:
                 continue
             if data.get("task_id") == task_id:
@@ -280,34 +281,10 @@ class RedisDeviceTaskStore:
         raw = self._redis.hget(self._key("tasks"), task_id)
         if raw is None:
             return None
-        if isinstance(raw, bytes):
-            raw = raw.decode("utf-8")
-        data = json.loads(raw)
-        return data if isinstance(data, dict) else None
+        return decode_redis_json(raw)
 
     def _write_task_state(self, task_id: str, state: dict[str, Any]) -> None:
-        self._redis.hset(self._key("tasks"), task_id, self._encode(state))
-
-    def _lpop_many(self, key: str, limit: int) -> list[str]:
-        popped = self._redis.lpop(key, count=limit)
-        if popped is None:
-            return []
-        if isinstance(popped, list):
-            return popped
-        return [popped]
-
-    @staticmethod
-    def _encode(value: dict[str, Any]) -> str:
-        return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
-
-    @staticmethod
-    def _decode(value: str | bytes) -> dict[str, Any]:
-        if isinstance(value, bytes):
-            value = value.decode("utf-8")
-        data = json.loads(value)
-        if not isinstance(data, dict):
-            raise RuntimeError(f"expected Redis JSON object, got: {data!r}")
-        return data
+        self._redis.hset(self._key("tasks"), task_id, encode_redis_json(state))
 
 
 _ACTIVE_STATUSES = frozenset({"dispatched", "running", "processing", "progress", "accepted"})
