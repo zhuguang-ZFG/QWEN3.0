@@ -13,6 +13,18 @@
 | XZRT-DH-4 | verify | 真机端到端语音交互（浏览器 → `/device/v1/ws` → VAD/ASR/LLM/TTS → 数字人渲染）尚未在真实硬件/浏览器环境跑通 | Open |
 | XZRT-DH-5 | auth | 数字人页面通过 `?authorization=Bearer <token>` 传令牌，LiMa `extract_ws_token()` 原只支持 `token` 查询参数或 `Authorization` 头，导致 WS 认证失败 | Closed |
 
+## 2026-06-18 小智服务器退役：LiMa 原生设备/固件/移动端贯通
+
+| ID | Area | Finding | Status |
+|----|------|---------|--------|
+| XZRT-LIMA-1 | feature | `routes/route_registry.py` 默认不再挂载 `xiaozhi_v1_compat`；兼容层仅在 `LIMA_XIAOZHI_COMPAT_ENABLED=1` 时 opt-in | Closed |
+| XZRT-LIMA-2 | feature | LiMa 已提供 `/device/v1/app` 原生设备管理面，覆盖 auth、devices、members、misc、tasks | Closed |
+| XZRT-LIMA-3 | feature | OTA 已提供设备侧 `/device/v1/ota/upgrade-plan` 与 `/device/v1/ota/install-result`；状态由 `device_ota/state_store.py` 持久化 | Closed |
+| XZRT-LIMA-4 | feature | `esp32S_XYZ` 固件默认接入 `wss://chat.donglicao.com/device/v1/ws`，hello 协议版本为 `lima-device-v1` | Closed |
+| XZRT-LIMA-5 | feature | manager-mobile 设置页已改为普通 `http/https` base URL，并使用 `/health` 作为连通性测试 | Closed |
+| XZRT-LIMA-6 | verify | `pytest tests/test_frontend_security_static.py tests/test_manager_mobile_lima_native.py -q` → 5 passed；`corepack pnpm type-check` 与 `corepack pnpm build:h5` 通过 | Closed |
+| XZRT-LIMA-7 | verify | 本轮未做真机固件刷写后的硬件端到端回归；仅完成静态协议与构建验证 | Open |
+
 ## 2026-06-17 ECC 流程导入与代码尺寸/覆盖率基线
 
 | ID | Area | Finding | Status |

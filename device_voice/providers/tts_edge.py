@@ -99,9 +99,7 @@ class EdgeTTSProvider(TTSProvider):
             import edge_tts
         except ImportError:
             _log.warning("edge-tts not installed; TTS unavailable. Install: pip install edge-tts")
-            raise RuntimeError(
-                "edge-tts is not installed. Install with: pip install edge-tts"
-            ) from None
+            raise RuntimeError("edge-tts is not installed. Install with: pip install edge-tts") from None
 
         v = voice or self._voice
         communicate = edge_tts.Communicate(text, voice=v)

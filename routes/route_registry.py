@@ -134,20 +134,31 @@ def _register_core_routes(app: FastAPI, deps: RouteRegistryDeps) -> tuple:
     from routes.device_app_api import router as device_app_router
     from routes.device_app_members import router as device_app_members_router
     from routes.device_app_misc import router as device_app_misc_router
+    from routes.device_app_auth import router as device_app_auth_router
+    from routes.device_app_tasks import router as device_app_tasks_router
 
     app.include_router(device_gateway_router)
     app.include_router(device_app_router)
     app.include_router(device_app_members_router)
     app.include_router(device_app_misc_router)
+    app.include_router(device_app_auth_router)
+    app.include_router(device_app_tasks_router)
     deps.loaded_modules["device_gateway"] = True
     deps.loaded_modules["device_app_api"] = True
     deps.loaded_modules["device_app_members"] = True
     deps.loaded_modules["device_app_misc"] = True
+    deps.loaded_modules["device_app_auth"] = True
+    deps.loaded_modules["device_app_tasks"] = True
 
     from routes.gemini_live_proxy import router as gemini_live_router
 
     app.include_router(gemini_live_router)
     deps.loaded_modules["gemini_live_proxy"] = True
+
+    from routes.voice_pipeline_ws import router as voice_pipeline_router
+
+    app.include_router(voice_pipeline_router)
+    deps.loaded_modules["voice_pipeline_ws"] = True
 
     return chat_endpoints_mod, system_endpoints_mod
 

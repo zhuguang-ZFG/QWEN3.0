@@ -184,9 +184,7 @@ async def _handle_voice_transcript(
     reply_text = result.get("reply_text", "")
     reply_audio = result.get("reply_audio", b"")
     if reply_text:
-        await session.send_json(
-            voice_status_frame(device_id, "speaking", transcript=reply_text, request_id=request_id)
-        )
+        await session.send_json(voice_status_frame(device_id, "speaking", transcript=reply_text, request_id=request_id))
     if reply_audio:
         await session.send_json(audio_reply_frame(device_id, request_id=request_id))
         await session.websocket.send_bytes(reply_audio)

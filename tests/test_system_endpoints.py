@@ -62,11 +62,13 @@ def test_live_key_returns_metadata_not_raw_provider_key(monkeypatch):
 
 
 def test_health_uses_shared_loaded_modules():
-    server._loaded_modules["unit_test_module"] = True
+    try:
+        system_endpoints._loaded_modules["unit_test_module"] = True
 
-    client = TestClient(server.app)
-    response = client.get("/health")
+        client = TestClient(server.app)
+        response = client.get("/health")
 
-    assert response.status_code == 200
-    assert response.json()["modules"]["unit_test_module"] is True
-    server._loaded_modules.pop("unit_test_module", None)
+        assert response.status_code == 200
+        assert response.json()["modules"]["unit_test_module"] is True
+    finally:
+        system_endpoints._loaded_modules.pop("unit_test_module", None)

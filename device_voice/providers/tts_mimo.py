@@ -172,12 +172,7 @@ class MiMoTTSProvider(TTSProvider):
         except Exception as exc:
             raise VoiceProviderError(f"MiMo TTS returned invalid JSON: {exc}") from exc
 
-        audio_b64 = (
-            data.get("choices", [{}])[0]
-            .get("message", {})
-            .get("audio", {})
-            .get("data")
-        )
+        audio_b64 = data.get("choices", [{}])[0].get("message", {}).get("audio", {}).get("data")
         if not audio_b64:
             raise VoiceProviderError(f"MiMo TTS response did not contain audio data: {data}")
 

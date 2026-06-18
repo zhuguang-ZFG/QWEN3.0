@@ -5,6 +5,23 @@
 > Updated: 2026-06-18
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-18 小智服务器退役：LiMa 原生设备/固件/移动端贯通（完成）
+
+- **目标**：把设备管理、任务、OTA、固件默认连接和移动端管理入口统一到 LiMa 原生 `/device/v1/*`，让小智 `/api/v1/*` 兼容层默认退役。
+- **实现**：
+  - LiMa 后端注册 `/device/v1/app` 原生管理路由：认证、设备绑定/解绑、任务列表/详情、成员/声纹、转移、耗材、自检、语音任务审批。
+  - `routes/route_registry.py` 默认不再挂载 `xiaozhi_v1_compat`，仅 `LIMA_XIAOZHI_COMPAT_ENABLED=1` 时 opt-in。
+  - OTA 增加设备侧 `/device/v1/ota/upgrade-plan` 与 `/device/v1/ota/install-result`，发布门/灰度状态可通过 `device_ota/state_store.py` 持久化。
+  - 子模块 `esp32S_XYZ` 的 U8 固件默认连接 `wss://chat.donglicao.com/device/v1/ws`，使用 `lima-device-v1` hello，并解析 `hello_ack` / `voice_status` / `audio_reply` / `task_dispatch`。
+  - manager-mobile 默认 `https://chat.donglicao.com`、v2 登录/设备页和 `/device/v1/app` API；设置页已去掉 `/xiaozhi` 结尾限制，连通性测试改为 `/health`。
+- **验证**：
+  - 根仓库全量：`pytest` → **1741 passed, 23 skipped**；`ruff check .` clean；`ruff format --check` clean；pyright 目标文件 0 errors。
+  - 设备/移动端静态：`pytest tests/test_frontend_security_static.py tests/test_manager_mobile_lima_native.py -q` → **5 passed**。
+  - manager-mobile：`corepack pnpm type-check` 通过；`corepack pnpm build:h5` 通过，构建环境变量显示 `VITE_SERVER_BASEURL=https://chat.donglicao.com`、`VITE_APP_PROXY=false`。
+  - VPS 公网：`https://chat.donglicao.com/health` 200 且 `startup.status=ready`；`/device/v1/health` 200 且 `protocol=lima-device-v1`；OpenAPI 存在 `/device/v1/app/devices`、`/device/v1/app/tasks`、`/device/v1/app/auth/login`、`/device/v1/ota/upgrade-plan`，且无 `/api/v1/devices`。
+  - 残留检查：manager-mobile 业务源码无 `/api/v1`、`/api/ping`、`/xiaozhi` 结尾校验残留；固件静态检查命中 `lima-device-v1` 与 LiMa WSS。
+- **限制**：本轮完成静态/构建/公网服务验证准备；真机刷固件后的端到端硬件回归仍需实机执行。
+
 ## 2026-06-18 数字人 / 语音 / 视频通话端到端验证与修复（完成）
 
 - **目标**：用真实 LiMa API Key 验证数字人、语音通话、视频通话的可用性，并修复验证中发现的问题。

@@ -98,16 +98,13 @@ class DashScopeASRProvider(ASRProvider):
         self._model = os.environ.get("DASHSCOPE_ASR_MODEL", _DEFAULT_MODEL).strip()
 
         if not self._api_key:
-            raise ConfigurationError(
-                "DashScopeASRProvider requires DASHSCOPE_API_KEY or ALIYUN_API_KEY."
-            )
+            raise ConfigurationError("DashScopeASRProvider requires DASHSCOPE_API_KEY or ALIYUN_API_KEY.")
 
         try:
             import dashscope
         except ImportError as exc:
             raise ConfigurationError(
-                "DashScopeASRProvider requires 'dashscope' package. "
-                "Install: pip install dashscope>=1.20"
+                "DashScopeASRProvider requires 'dashscope' package. Install: pip install dashscope>=1.20"
             ) from exc
 
         self._dashscope = dashscope

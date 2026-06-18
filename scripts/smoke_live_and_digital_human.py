@@ -3,6 +3,7 @@
 Uses credentials from `.env` (LIMA_API_KEY, LIMA_DIGITAL_HUMAN_DEFAULT_TOKEN,
 etc.) but never prints the raw values.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -219,7 +220,7 @@ async def _test_digital_human_ws() -> dict:
                     obj = json.loads(msg)
                     summary = obj.get("type", "unknown")
                     if obj.get("type") == "voice_status":
-                        summary = f"voice_status({obj.get('status')}, transcript={obj.get('transcript','')[:40]!r})"
+                        summary = f"voice_status({obj.get('status')}, transcript={obj.get('transcript', '')[:40]!r})"
                     elif obj.get("type") == "error":
                         summary = f"error({obj.get('code')}: {obj.get('message')})"
                     responses.append(summary)

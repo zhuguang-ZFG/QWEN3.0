@@ -54,9 +54,24 @@ async def mqtt_send_to_device(device_id: str, message: dict) -> bool:
 
 def _handle_mqtt_message(client, topic: str, payload: dict, _json, _time_mod) -> None:
     """Process a single MQTT uplink message (hello / heartbeat / motion_event)."""
+    from device_gateway.auth import validate_device_token
+    from device_gateway.protocol import ProtocolError, validate_uplink
+
     parts = topic.split("/")
     device_id = parts[1] if len(parts) > 1 else ""
-    msg_type = payload.get("type", "")
+    try:
+        message = validate_uplink(payload)
+    except ProtocolError as exc:
+        _log.warning("MQTT protocol error topic=%s code=%s", topic, exc.code)
+        return
+    if not device_id or message.get("device_id") != device_id:
+        _log.warning("MQTT device mismatch topic=%s payload_device=%s", topic, message.get("device_id", ""))
+        return
+    token = _extract_mqtt_token(payload)
+    if not validate_device_token(device_id, token):
+        _log.warning("MQTT unauthorized device=%s type=%s", device_id, message.get("type", ""))
+        return
+    msg_type = message["type"]
 
     if msg_type == "hello" and device_id:
         register_mqtt_device(device_id)
@@ -71,18 +86,31 @@ def _handle_mqtt_message(client, topic: str, payload: dict, _json, _time_mod) ->
         client.publish(device_downlink_topic(device_id), _json.dumps(ack), qos=1)
 
     if msg_type == "heartbeat" and device_id:
+        if device_id not in _mqtt_devices:
+            _log.warning("MQTT heartbeat before hello device=%s", device_id)
+            return
         from device_gateway.mqtt_topics import device_downlink_topic
 
         ack = {"type": "heartbeat_ack", "device_id": device_id, "server_time": int(_time_mod.time())}
         client.publish(device_downlink_topic(device_id), _json.dumps(ack), qos=0)
 
     if msg_type == "motion_event" and device_id:
+        if device_id not in _mqtt_devices:
+            _log.warning("MQTT motion_event before hello device=%s", device_id)
+            return
         try:
             from routes.device_gateway_ws_handlers import handle_motion_event
 
-            asyncio.get_event_loop().create_task(handle_motion_event(device_id, payload, None))
+            asyncio.get_event_loop().create_task(handle_motion_event(device_id, message, None))
         except Exception:
             _log.debug("motion event forward failed", exc_info=True)
+
+
+def _extract_mqtt_token(payload: dict) -> str:
+    value = str(payload.get("token") or payload.get("authorization") or "").strip()
+    if value.lower().startswith("bearer "):
+        return value[7:].strip()
+    return value
 
 
 def _drain_downlink_queues(client, _json) -> None:
@@ -149,7 +177,7 @@ async def _mqtt_message_loop() -> None:
     and bridges incoming messages to asyncio via queues.
     """
     try:
-        import paho.mqtt.client as mqtt
+        import paho.mqtt.client as mqtt  # type: ignore[import-not-found]
         import json as _json
         import time as _time_mod
     except ImportError:

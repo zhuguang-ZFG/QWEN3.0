@@ -1,12 +1,17 @@
 """图像转 SVG 路径转换器 - OpenCV 矢量化"""
 
-import logging
-from typing import Dict, Any
 from io import BytesIO
+import logging
+from typing import Any
+
 import httpx
-from PIL import Image
 import numpy as np
-import cv2
+from PIL import Image
+
+try:
+    import cv2  # type: ignore[import-not-found]
+except ImportError:  # pragma: no cover - local environments may omit OpenCV
+    cv2 = None
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +26,8 @@ async def _download_image(image_url: str) -> BytesIO:
 
 def _preprocess_image(image_data: BytesIO) -> tuple:
     """Load, resize, gray, blur, and Otsu-threshold the image."""
+    if cv2 is None:
+        raise RuntimeError("OpenCV is not installed")
     img = Image.open(image_data).convert("RGB")
     img.thumbnail((512, 512), Image.Resampling.LANCZOS)
     gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
@@ -43,6 +50,8 @@ def _contour_to_svg_path(contour: np.ndarray) -> str:
 
 def _extract_svg_paths(binary: np.ndarray, simplify_epsilon: float, min_contour_area: int) -> list[str]:
     """Find contours, filter by area, simplify, and convert to SVG paths."""
+    if cv2 is None:
+        raise RuntimeError("OpenCV is not installed")
     contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     svg_paths = []
     for contour in contours:
@@ -61,7 +70,7 @@ class SVGConverter:
 
     async def convert_url_to_svg(
         self, image_url: str, simplify_epsilon: float = 2.0, min_contour_area: int = 100
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """下载图片并转换为 SVG 路径（OpenCV 轮廓检测）。"""
         try:
             image_data = await _download_image(image_url)

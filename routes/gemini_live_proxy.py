@@ -79,8 +79,8 @@ async def gemini_live_proxy(
         _log.exception("Unexpected error in Gemini Live proxy: %s", exc)
         try:
             await websocket.close(code=1011, reason="Internal error")
-        except Exception:
-            pass
+        except RuntimeError as close_exc:
+            _log.warning("Gemini Live proxy close failed: %s", close_exc)
 
 
 async def _browser_to_gemini(browser: WebSocket, gemini: websockets.WebSocketClientProtocol) -> None:
@@ -115,5 +115,5 @@ async def _gemini_to_browser(gemini: websockets.WebSocketClientProtocol, browser
     except websockets.exceptions.ConnectionClosed:
         try:
             await browser.close()
-        except Exception:
-            pass
+        except RuntimeError as exc:
+            _log.warning("Gemini Live browser close failed: %s", exc)

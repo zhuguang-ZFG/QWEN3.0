@@ -23,7 +23,7 @@ from response_builder import (
 
 _log = logging.getLogger(__name__)
 from routes.chat_preflight import ChatPreflightResult, prepare_chat_preflight
-from routes.chat_stream import stream_response
+from routes.chat_stream import build_stream_chunk, stream_response
 from routes.chat_support import attach_memory_recall_meta, thinking_route
 
 
@@ -121,12 +121,12 @@ async def maybe_image_response(
     model_id: str,
     record_request: Callable[..., None],
     build_pollinations_url: Callable[[str, str], str] | None,
-) -> JSONResponse | None:
+) -> JSONResponse | StreamingResponse | None:
     is_image, image_prompt = routing_intent.detect_image_intent(ctx.query)
     if not is_image or not build_pollinations_url:
         return None
     image_url = build_pollinations_url(image_prompt, "1024x1024")
-    content = f"![image]({image_url})\n\nImage generated. Open the link to view it."
+    content = f"![image]({image_url})\n\n已为您生成图片，点击查看。"
     duration_ms = int((time.time() - ctx.t0) * 1000)
     record_request(
         ctx.query,
@@ -138,6 +138,19 @@ async def maybe_image_response(
         ide_source=ctx.ide_source,
         sys_prompt_preview=ctx.sys_prompt_preview,
     )
+    # Streaming: return SSE-formatted response so stream-parsing clients work
+    if req.stream:
+
+        async def _image_sse():
+            yield build_stream_chunk(ctx.chat_id, content)
+            yield build_stream_chunk(ctx.chat_id, "", finish=True)
+            yield "data: [DONE]\n\n"
+
+        return StreamingResponse(
+            _image_sse(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
     if ctx.fmt == "anthropic":
         return JSONResponse(
             build_anthropic_response(ctx.chat_id, content, "pollinations", ctx.request_model or model_id)

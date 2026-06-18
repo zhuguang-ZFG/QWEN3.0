@@ -79,7 +79,9 @@ class VoiceprintProvider:
                 self.cache.update_device(device_id, entries)
                 _log.info("device=%s loaded %d voiceprint entries", device_id, len(entries))
         except ImportError:
-            _log.warning("session_memory.store_voiceprint not available; device=%s voiceprints will not persist", device_id)
+            _log.warning(
+                "session_memory.store_voiceprint not available; device=%s voiceprints will not persist", device_id
+            )
         except Exception:
             _log.warning("device=%s failed to load voiceprint embeddings", device_id, exc_info=True)
 

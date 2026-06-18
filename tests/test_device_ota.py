@@ -100,6 +100,7 @@ def test_ota_route_unknown_criterion_returns_400(monkeypatch):
 
 def _ota_client(monkeypatch):
     monkeypatch.setenv("LIMA_API_KEY", "test-private-token")
+    monkeypatch.delenv("LIMA_DEVICE_OTA_STATE_PATH", raising=False)
 
     from fastapi import FastAPI
     from fastapi.testclient import TestClient

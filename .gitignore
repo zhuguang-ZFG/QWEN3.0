@@ -107,7 +107,11 @@ frp/
 .claude/
 .cursor/
 .kiro/
-.codex/
+.codex/*
+!.codex/config.toml
+!.codex/agents/
+.codex/agents/**
+!.codex/agents/*.toml
 .opencode/
 .kiio/
 .mimocode/

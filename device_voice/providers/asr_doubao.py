@@ -48,9 +48,7 @@ class DoubaoASRProvider(ASRProvider):
         self._cluster = os.environ.get("DOUBAO_ASR_CLUSTER", _DEFAULT_CLUSTER).strip()
 
         if not self._appid or not self._access_token:
-            raise ConfigurationError(
-                "DoubaoASRProvider requires DOUBAO_ASR_APPID and DOUBAO_ASR_ACCESS_TOKEN."
-            )
+            raise ConfigurationError("DoubaoASRProvider requires DOUBAO_ASR_APPID and DOUBAO_ASR_ACCESS_TOKEN.")
 
         _log.info("DoubaoASRProvider initialized cluster=%s", self._cluster)
 
@@ -137,8 +135,7 @@ class DoubaoASRProvider(ASRProvider):
         pipeline, which buffers a complete utterance before calling ASR.
         """
         raise NotImplementedError(
-            "DoubaoASRProvider.stream_transcribe is not implemented. "
-            "Use transcribe() with a complete utterance."
+            "DoubaoASRProvider.stream_transcribe is not implemented. Use transcribe() with a complete utterance."
         )
         yield  # pragma: no cover
 

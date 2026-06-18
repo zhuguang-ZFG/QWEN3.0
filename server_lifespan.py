@@ -42,9 +42,7 @@ async def _run_warm_phase(name: str, coro) -> None:
         # Warm phases are best-effort; log but do not fail startup.
         import logging
 
-        logging.getLogger(__name__).warning(
-            "[LIFESPAN] warm phase %s failed: %s", name, exc, exc_info=True
-        )
+        logging.getLogger(__name__).warning("[LIFESPAN] warm phase %s failed: %s", name, exc, exc_info=True)
         record_startup_error(name, exc)
     finally:
         remove_pending_warm(name)

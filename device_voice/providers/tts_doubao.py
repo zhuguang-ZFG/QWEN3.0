@@ -49,9 +49,7 @@ class DoubaoTTSProvider(TTSProvider):
         self._encoding = os.environ.get("DOUBAO_TTS_ENCODING", _DEFAULT_ENCODING).strip()
 
         if not self._appid or not self._access_token:
-            raise ConfigurationError(
-                "DoubaoTTSProvider requires DOUBAO_TTS_APPID and DOUBAO_TTS_ACCESS_TOKEN."
-            )
+            raise ConfigurationError("DoubaoTTSProvider requires DOUBAO_TTS_APPID and DOUBAO_TTS_ACCESS_TOKEN.")
 
         self._headers = {
             "Content-Type": "application/json",

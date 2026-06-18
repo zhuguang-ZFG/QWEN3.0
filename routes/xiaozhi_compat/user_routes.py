@@ -2,25 +2,13 @@
 
 from __future__ import annotations
 
-import os
-import secrets
-
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import JSONResponse
 
 from .shared import authorize, ok, err, read_body, connect, now, new_id, str_field, account_payload, make_token
+from .sms import login_code_error, sms_verification_payload, validate_login_code
 
 router = APIRouter()
-
-
-def login_code() -> str:
-    """Get login verification code."""
-    return os.environ.get("LIMA_XIAOZHI_LOGIN_CODE", "").strip() or "000000"
-
-
-def validate_login_code(code: str) -> bool:
-    """Validate login code."""
-    return secrets.compare_digest(code, login_code())
 
 
 def login_response(row) -> dict | JSONResponse:
@@ -46,6 +34,9 @@ async def login(request: Request) -> JSONResponse:
     code = str_field(body, "code", "smsCode")
     if not phone or not code:
         return err(400, "phone and code are required", 400)
+    config_error = login_code_error()
+    if config_error:
+        return config_error
     if not validate_login_code(code):
         return err(401, "Invalid verification code", 401)
     with connect() as conn:
@@ -74,6 +65,9 @@ async def register(request: Request) -> JSONResponse:
     code = str_field(body, "code", "smsCode")
     if not phone or not code:
         return err(400, "phone and code are required", 400)
+    config_error = login_code_error()
+    if config_error:
+        return config_error
     if not validate_login_code(code):
         return err(401, "Invalid verification code", 401)
     with connect() as conn:
@@ -101,8 +95,10 @@ async def sms_verification(request: Request) -> JSONResponse:
     phone = str_field(body, "phone", "mobile")
     if not phone:
         return err(400, "phone is required", 400)
-    code = login_code()
-    return ok({"phone": phone, "code": code, "mock": True, "expiresIn": 300})
+    config_error = login_code_error()
+    if config_error:
+        return config_error
+    return ok(sms_verification_payload(phone))
 
 
 @router.get("/auth/me")

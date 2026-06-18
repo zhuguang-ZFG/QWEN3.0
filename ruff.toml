@@ -7,6 +7,15 @@ exclude = [
     ".venv",
     "managed_components",
     ".ruff_cache",
+    ".agent",
+    ".codebuddy",
+    ".codex",
+    ".continue",
+    ".gemini",
+    ".github/prompts",
+    ".roo",
+    ".trae",
+    ".windsurf",
 ]
 
 [lint]

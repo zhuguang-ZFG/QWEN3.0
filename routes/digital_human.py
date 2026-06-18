@@ -112,7 +112,8 @@ def _digital_human_defaults() -> dict[str, str | bool]:
         "device_name": os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_DEVICE_NAME", "Web 数字人").strip(),
         "client_id": os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_CLIENT_ID", "web_test_client").strip(),
         "token": os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_TOKEN", "").strip(),
-        "wakeword_enabled": os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_WAKEUP_WORD_ENABLED", "false").strip().lower() == "true",
+        "wakeword_enabled": os.environ.get("LIMA_DIGITAL_HUMAN_DEFAULT_WAKEUP_WORD_ENABLED", "false").strip().lower()
+        == "true",
     }
 
 

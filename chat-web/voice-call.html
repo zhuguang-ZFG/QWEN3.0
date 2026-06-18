@@ -99,6 +99,20 @@ body::before{
   fill:currentColor;
   opacity:.8;
 }
+.mode-select{
+  position:absolute;
+  top:max(86px,env(safe-area-inset-top)+62px);
+  z-index:1;
+  background:rgba(255,255,255,0.06);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:6px 12px;
+  color:var(--text);
+  font-size:.8rem;
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  outline:none;
+}
 .subtitle{
   position:absolute;
   bottom:max(130px,calc(env(safe-area-inset-bottom) + 130px));
@@ -165,6 +179,10 @@ body::before{
 </head>
 <body>
 <div class="brand">LiMa AI 语音/视频通话</div>
+<select class="mode-select" id="modeSelect">
+  <option value="gemini">Gemini Live</option>
+  <option value="local">本地语音管道</option>
+</select>
 <div class="status" id="status">点击绿色按钮开始语音/视频通话</div>
 <div class="video-container" id="videoContainer">
   <div class="video-placeholder" id="placeholder">
@@ -191,7 +209,8 @@ const videoEl=$('localVideo'),placeholder=$('placeholder'),videoContainer=$('vid
 
 let ws=null,stream=null,audioCtx=null,worklet=null,frameTimer=null,playing=false;
 let audioQueue=[],nextPlayTime=0;
-const SAMPLE_RATE_IN=16000,SAMPLE_RATE_OUT=24000;
+const SAMPLE_RATE_IN=16000;
+let SAMPLE_RATE_OUT=24000;
 
 function getLimaApiKey(){
   let key=localStorage.getItem('lima-api-key')||'';
@@ -213,24 +232,41 @@ async function getApiConfig(){
 
 async function startCall(){
   statusEl.textContent='正在连接...';
+  const mode=$('modeSelect').value;
   try{
-    const cfg=await getApiConfig();
-    if(!cfg.url)throw new Error('服务端未返回通话地址');
-    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:640,height:480},audio:{sampleRate:SAMPLE_RATE_IN,echoCancellation:true,noiseSuppression:true}});
-    videoEl.srcObject=stream;videoEl.style.display='block';placeholder.style.display='none';
-
     const key=getLimaApiKey();
-    const proto=window.location.protocol==='https:'?'wss:':'ws:';
-    const base=cfg.url.startsWith('/')?window.location.host+cfg.url:cfg.url;
-    const wsUrl=proto+'//'+base+(base.includes('?')?'&':'?')+'authorization=Bearer '+encodeURIComponent(key);
-    ws=new WebSocket(wsUrl);
-    ws.onopen=()=>{
-      ws.send(JSON.stringify({setup:{model:cfg.model,generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:'Aoede'}}}}}}));
-      statusEl.textContent='已连接 · 正在通话';
-      btnCall.classList.add('active');
-      startAudioCapture();
-      startFrameCapture();
-    };
+    if(!key)throw new Error('需要 LiMa API Key');
+
+    if(mode==='gemini'){
+      const cfg=await getApiConfig();
+      if(!cfg.url)throw new Error('服务端未返回通话地址');
+      stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:640,height:480},audio:{sampleRate:SAMPLE_RATE_IN,echoCancellation:true,noiseSuppression:true}});
+      videoEl.srcObject=stream;videoEl.style.display='block';placeholder.style.display='none';
+      SAMPLE_RATE_OUT=24000;
+      const proto=window.location.protocol==='https:'?'wss:':'ws:';
+      const base=cfg.url.startsWith('/')?window.location.host+cfg.url:cfg.url;
+      const wsUrl=proto+'//'+base+(base.includes('?')?'&':'?')+'authorization=Bearer '+encodeURIComponent(key);
+      ws=new WebSocket(wsUrl);
+      ws.onopen=()=>{
+        ws.send(JSON.stringify({setup:{model:cfg.model,generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:'Aoede'}}}}}}));
+        statusEl.textContent='已连接 · Gemini Live 通话中';
+        btnCall.classList.add('active');
+        startAudioCapture('gemini');
+        startFrameCapture();
+      };
+    }else{
+      stream=await navigator.mediaDevices.getUserMedia({audio:{sampleRate:SAMPLE_RATE_IN,echoCancellation:true,noiseSuppression:true}});
+      videoEl.style.display='none';placeholder.style.display='flex';
+      SAMPLE_RATE_OUT=16000;
+      const proto=window.location.protocol==='https:'?'wss:':'ws:';
+      const wsUrl=proto+'//'+window.location.host+'/v1/voice?authorization=Bearer '+encodeURIComponent(key);
+      ws=new WebSocket(wsUrl);
+      ws.onopen=()=>{
+        statusEl.textContent='已连接 · 本地语音管道';
+        btnCall.classList.add('active');
+        startAudioCapture('local');
+      };
+    }
     ws.onmessage=e=>{try{handleMessage(JSON.parse(e.data))}catch(err){}};
     ws.onclose=()=>{statusEl.textContent='连接已断开';endCall()};
     ws.onerror=()=>{statusEl.textContent='连接失败';endCall()};
@@ -239,6 +275,21 @@ async function startCall(){
 
 function handleMessage(msg){
   if(msg.setupComplete){statusEl.textContent='通话中 · AI 可以看到你';return}
+  if(msg.type==='status'){
+    statusEl.textContent=msg.transcript?msg.status+' · '+msg.transcript:msg.status;
+    if(msg.status==='speaking')videoContainer.classList.add('speaking');
+    else videoContainer.classList.remove('speaking');
+    return;
+  }
+  if(msg.type==='transcript'){subtitleEl.textContent=msg.text;return}
+  if(msg.type==='reply'){subtitleEl.textContent=msg.text;return}
+  if(msg.type==='audio'){
+    const pcm=base64ToInt16(msg.data);
+    enqueueAudio(pcm);
+    videoContainer.classList.add('speaking');
+    return;
+  }
+  if(msg.type==='error'){statusEl.textContent='错误: '+msg.message;return}
   if(msg.serverContent?.modelTurn?.parts){
     for(const p of msg.serverContent.modelTurn.parts){
       if(p.inlineData?.mimeType?.includes('audio')){
@@ -252,7 +303,7 @@ function handleMessage(msg){
   if(msg.serverContent?.turnComplete){videoContainer.classList.remove('speaking')}
 }
 
-async function startAudioCapture(){
+async function startAudioCapture(mode){
   audioCtx=new AudioContext({sampleRate:SAMPLE_RATE_IN});
   await audioCtx.audioWorklet.addModule(createWorkletURL());
   const src=audioCtx.createMediaStreamSource(stream);
@@ -260,7 +311,11 @@ async function startAudioCapture(){
   worklet.port.onmessage=e=>{
     if(ws?.readyState===1){
       const b64=int16ToBase64(e.data);
-      ws.send(JSON.stringify({realtimeInput:{mediaChunks:[{mimeType:'audio/pcm;rate=16000',data:b64}]}}));
+      if(mode==='local'){
+        ws.send(JSON.stringify({type:'audio',data:b64}));
+      }else{
+        ws.send(JSON.stringify({realtimeInput:{mediaChunks:[{mimeType:'audio/pcm;rate=16000',data:b64}]}}));
+      }
     }
   };
   src.connect(worklet);

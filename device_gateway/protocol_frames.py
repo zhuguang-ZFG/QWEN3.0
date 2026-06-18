@@ -10,13 +10,12 @@ from device_gateway.protocol_families import MotionErrorCode
 
 def error_frame(error: ProtocolError | Exception, request_id: str | None = None) -> dict[str, Any]:
     if isinstance(error, ProtocolError):
-        frame = {"type": "error", "code": error.code, "message": error.message}
+        frame: dict[str, Any] = {"type": "error", "code": error.code, "message": error.message}
         req_id = error.request_id or request_id
     else:
         frame = {"type": "error", "code": "E_INTERNAL", "message": "internal device gateway error"}
         req_id = request_id
-    if req_id:
-        frame["request_id"] = req_id
+    frame["request_id"] = req_id
     return frame
 
 

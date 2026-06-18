@@ -11,6 +11,13 @@ router = APIRouter()
 _BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def _chat_index_candidates() -> list[Path]:
+    return [
+        _BASE_DIR / "donglicao-site" / "chat.html",
+        _BASE_DIR / "data" / "chat" / "index.html",
+    ]
+
+
 @router.get("/sw.js")
 async def serve_service_worker():
     """Serve the Service Worker file."""
@@ -43,8 +50,8 @@ async def serve_manifest():
 @router.get("/")
 async def serve_index():
     """Serve the main chat interface."""
-    file_path = _BASE_DIR / "data" / "chat" / "index.html"
-    if not file_path.exists():
+    file_path = next((path for path in _chat_index_candidates() if path.exists()), None)
+    if file_path is None:
         raise HTTPException(404, "Index not found")
 
     return FileResponse(file_path, media_type="text/html", headers={"Cache-Control": "no-cache"})

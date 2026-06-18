@@ -5,14 +5,21 @@
 > **公网端点**: chat.donglicao.com, api.donglicao.com
 > **部署**: Alibaba Cloud VPS + JDCloud 备用
 
-> Updated: 2026-06-17
+> Updated: 2026-06-18
 > Branch: `main`
 > Scale: 约 1021 个 Python 文件 / 全仓 630 文件已格式化
-> Tests: 全量 1662 passed / 23 skipped / 0 failed；ruff check clean；ruff format clean
-> pyright 权威文件（server.py / routing_engine.py / routes/chat_endpoints.py）0 errors
-> VPS smoke：`https://chat.donglicao.com/health` 200；`/device/v1/health` 200（`auth_configured=true`）；沿用 2026-06-17 记录。
+> Tests: 全量 1741 passed / 23 skipped / 0 failed；ruff check clean；ruff format clean
+> pyright 目标文件 0 errors（sandbox 下仅 import-resolution warnings）
+> VPS smoke：`https://chat.donglicao.com/health` 200 且 `startup.status=ready`；`/device/v1/health` 200 且 `protocol=lima-device-v1`；`xiaozhi_v1_compat=false`。
 
 ## 当前项目状态
+
+### 最近完成（2026-06-18）小智服务器退役：LiMa 原生设备/固件/移动端贯通
+
+- **实现**：新增并注册 `/device/v1/app` 原生管理面，覆盖账号、设备、任务、成员/声纹、转移、耗材、自检；`xiaozhi_v1_compat` 默认关闭，仅 `LIMA_XIAOZHI_COMPAT_ENABLED=1` opt-in。
+- **固件/移动端**：`esp32S_XYZ` 固件默认连接 `wss://chat.donglicao.com/device/v1/ws` 并使用 `lima-device-v1`；manager-mobile 默认 LiMa 公网、v2 页面和 `/device/v1/app` API，设置页用 `/health` 验证服务地址。
+- **OTA**：补齐设备侧升级计划和安装结果上报，发布/灰度状态可持久化。
+- **验证**：全量 `pytest` → **1741 passed, 23 skipped**；`ruff check .`、`ruff format --check` clean；pyright 目标文件 0 errors；manager-mobile `type-check` 和 `build:h5` 通过；VPS 公网 `/health`、`/device/v1/health` 验证通过，OpenAPI 已有 `/device/v1/app/*` 与 `/device/v1/ota/upgrade-plan`，默认无 `/api/v1/devices`。
 
 ### 最近完成（2026-06-17）阿里云 ASR fallback 链实现
 

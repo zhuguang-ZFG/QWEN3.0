@@ -7,6 +7,7 @@ for audio streaming (PCM 16kHz 16-bit mono).
 from __future__ import annotations
 
 import json
+from json import JSONDecodeError
 import logging
 
 from fastapi import WebSocket, WebSocketDisconnect
@@ -114,7 +115,14 @@ async def handle_device_ws(websocket: WebSocket) -> None:
                 if authenticated and device_id:
                     await _feed_audio_to_pipeline(websocket, device_id, data["bytes"])
             elif "text" in data:
-                raw = json.loads(data["text"])
+                try:
+                    raw = json.loads(data["text"])
+                except JSONDecodeError:
+                    await send_ws_error(
+                        websocket,
+                        ProtocolError("E_INVALID_JSON", "text frame must contain a JSON object", None),
+                    )
+                    continue
                 device_id, session, authenticated, keep_open = await _handle_text_frame(
                     websocket, raw, device_id, session, authenticated
                 )

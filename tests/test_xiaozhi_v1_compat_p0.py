@@ -99,11 +99,7 @@ def test_auth_sms_verification(tmp_path, monkeypatch):
         )
     )
     sms = _json(client.post("/api/v1/auth/sms-verification", json={"phone": "13002"}))
-    verification_code = sms.get("verificationCode") or sms["code"]
-
-    assert isinstance(verification_code, str)
-    assert len(verification_code) == 6
-    assert verification_code.isdigit()
+    assert sms == {"phone": "13002", "mock": True, "expiresIn": 300}
     with compat._connect() as conn:
         row = conn.execute("SELECT * FROM v2_account WHERE id=?", (account["accountId"],)).fetchone()
     assert row is not None

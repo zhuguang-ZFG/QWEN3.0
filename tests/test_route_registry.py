@@ -36,11 +36,53 @@ def test_registry_marks_device_gateway_loaded():
     assert server._loaded_modules.get("device_gateway") is True
 
 
+def test_registry_marks_device_app_api_loaded():
+    assert server._loaded_modules.get("device_app_api") is True
+    assert server._loaded_modules.get("device_app_members") is True
+    assert server._loaded_modules.get("device_app_misc") is True
+    assert server._loaded_modules.get("device_app_auth") is True
+    assert server._loaded_modules.get("device_app_tasks") is True
+
+
 def test_server_registers_xiaozhi_v1_compat_routes():
     paths = _api_paths()
 
+    assert "/api/v1/login" not in paths
+    assert server._loaded_modules.get("xiaozhi_v1_compat") is False
+    assert "/device/v1/app/devices" in paths
+    assert "/device/v1/app/tasks" in paths
+    assert "/device/v1/app/members" in paths
+    assert "/device/v1/app/auth/login" in paths
+    assert "/device/v1/app/devices/{device_id}/tasks" in paths
+
+
+def test_server_can_opt_in_to_xiaozhi_v1_compat_routes(monkeypatch):
+    from fastapi import FastAPI
+
+    monkeypatch.setenv("LIMA_XIAOZHI_COMPAT_ENABLED", "1")
+
+    app = FastAPI()
+    deps = route_registry.RouteRegistryDeps(
+        model_id="test",
+        model_created=0,
+        stats={},
+        stats_lock=server._stats_lock,
+        backend_enabled={},
+        loaded_modules={},
+        client_ip=lambda request: "127.0.0.1",
+        detect_ide=lambda messages: "test",
+        elapsed_ms=lambda started_at: 0,
+        vision_route=lambda *args, **kwargs: None,
+        stream_vision_response=lambda *args, **kwargs: iter([]),
+        record_request=lambda *args, **kwargs: None,
+        handle_chat=lambda *args, **kwargs: {},
+    )
+
+    route_registry.register_all_routes(app, deps)
+
+    paths = {route.path for route in app.routes if isinstance(route, APIRoute)}
     assert "/api/v1/login" in paths
-    assert server._loaded_modules.get("xiaozhi_v1_compat") is True
+    assert deps.loaded_modules.get("xiaozhi_v1_compat") is True
 
 
 def test_register_all_routes_is_idempotent_on_fresh_app():
@@ -72,8 +114,8 @@ def test_register_all_routes_is_idempotent_on_fresh_app():
         registered = route_registry.register_all_routes(app, deps)
         paths = {route.path for route in app.routes if isinstance(route, APIRoute)}
         assert "/v1/chat/completions" in paths
-        assert "/api/v1/login" in paths
-        assert deps.loaded_modules.get("xiaozhi_v1_compat") is True
+        assert "/api/v1/login" not in paths
+        assert deps.loaded_modules.get("xiaozhi_v1_compat") is False
         assert registered.health is not None
     finally:
         chat_endpoints_mod._deps.clear()

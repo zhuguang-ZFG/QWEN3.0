@@ -53,16 +53,13 @@ class DashScopeTTSProvider(TTSProvider):
         self._model = os.environ.get("DASHSCOPE_TTS_MODEL", _DEFAULT_MODEL).strip()
 
         if not self._api_key:
-            raise ConfigurationError(
-                "DashScopeTTSProvider requires DASHSCOPE_API_KEY or ALIYUN_API_KEY."
-            )
+            raise ConfigurationError("DashScopeTTSProvider requires DASHSCOPE_API_KEY or ALIYUN_API_KEY.")
 
         try:
             import dashscope
         except ImportError as exc:
             raise ConfigurationError(
-                "DashScopeTTSProvider requires 'dashscope' package. "
-                "Install: pip install dashscope>=1.20"
+                "DashScopeTTSProvider requires 'dashscope' package. Install: pip install dashscope>=1.20"
             ) from exc
 
         self._dashscope = dashscope
@@ -96,16 +93,10 @@ class DashScopeTTSProvider(TTSProvider):
             code = getattr(response, "code", "") or ""
             error_text = f"{code} {message}".lower()
             if "access denied" in error_text:
-                raise AuthenticationError(
-                    f"DashScope TTS access denied ({code}): {message}"
-                )
+                raise AuthenticationError(f"DashScope TTS access denied ({code}): {message}")
             if "modelnotfound" in error_text or "model not found" in error_text:
-                raise ConfigurationError(
-                    f"DashScope TTS model not found ({code}): {message}"
-                )
-            raise VoiceProviderError(
-                f"DashScope TTS request failed ({code}): {message}"
-            )
+                raise ConfigurationError(f"DashScope TTS model not found ({code}): {message}")
+            raise VoiceProviderError(f"DashScope TTS request failed ({code}): {message}")
 
         audio = result.get_audio_data()
         if not audio:
@@ -117,9 +108,7 @@ class DashScopeTTSProvider(TTSProvider):
             return _strip_wav_header(audio)
         return audio
 
-    async def _run_synthesis(
-        self, text: str, *, model: str, sample_rate: int
-    ) -> Any:
+    async def _run_synthesis(self, text: str, *, model: str, sample_rate: int) -> Any:
         """Run the synchronous DashScope SDK call in a worker thread."""
         # Return type is dashscope.audio.tts.SpeechSynthesisResult; kept as Any
         # because dashscope is an optional runtime dependency.

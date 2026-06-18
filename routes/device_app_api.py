@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import JSONResponse
 
-from device_gateway import store as store_mod
-from device_gateway.task_service import DeviceTaskRequest, create_and_route_task
-from device_gateway.tasks import task_snapshot
 from routes.xiaozhi_compat.activation import check_activation_code, new_activation_code
 from routes.xiaozhi_compat.shared import (
     authorize,
@@ -27,16 +26,6 @@ router = APIRouter(prefix="/device/v1/app", tags=["device-app"])
 
 def _device_row_by_sn(conn, device_sn: str):
     return conn.execute("SELECT * FROM v2_device WHERE device_sn=?", (device_sn,)).fetchone()
-
-
-def _task_summary_payload(task: dict[str, object]) -> dict[str, object]:
-    return {
-        "taskId": str(task.get("task_id", "")),
-        "deviceId": str(task.get("device_id", "")),
-        "capability": str(task.get("capability", "")),
-        "source": str(task.get("source", "")),
-        "status": str(task.get("status", "unknown")),
-    }
 
 
 def _apply_device_updates(body: dict[str, object]) -> tuple[dict[str, object], JSONResponse | None]:
@@ -65,7 +54,7 @@ def _apply_device_updates(body: dict[str, object]) -> tuple[dict[str, object], J
 
 
 @router.post("/devices/register")
-async def register_device(request: Request, authorization: str = Header(default="")) -> JSONResponse:
+async def register_device(request: Request, authorization: str = Header(default="")):
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account
@@ -77,7 +66,7 @@ async def register_device(request: Request, authorization: str = Header(default=
 
 
 @router.post("/devices/bind")
-async def bind_device(request: Request, authorization: str = Header(default="")) -> JSONResponse:
+async def bind_device(request: Request, authorization: str = Header(default="")):
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account
@@ -114,7 +103,9 @@ async def bind_device(request: Request, authorization: str = Header(default=""))
                     str_field(body, "model") or "esp32s3_xyz",
                     str_field(body, "firmwareVer", "firmware_ver") or "",
                     str_field(body, "hardwareVer", "hardware_ver") or "",
-                    json_params(body.get("metadata")) if isinstance(body.get("metadata"), dict) else body.get("metadata"),
+                    json_params(body.get("metadata"))
+                    if isinstance(body.get("metadata"), dict)
+                    else body.get("metadata"),
                 ),
             )
             device = conn.execute("SELECT * FROM v2_device WHERE id=?", (device_id,)).fetchone()
@@ -136,7 +127,7 @@ async def bind_device(request: Request, authorization: str = Header(default=""))
 
 
 @router.get("/devices")
-async def list_devices(authorization: str = Header(default="")) -> JSONResponse:
+async def list_devices(authorization: str = Header(default="")):
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account
@@ -158,7 +149,7 @@ async def list_devices(authorization: str = Header(default="")) -> JSONResponse:
 
 
 @router.get("/devices/{device_id}")
-async def get_device(device_id: str, authorization: str = Header(default="")) -> JSONResponse:
+async def get_device(device_id: str, authorization: str = Header(default="")):
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account
@@ -173,7 +164,7 @@ async def get_device(device_id: str, authorization: str = Header(default="")) ->
 
 
 @router.put("/devices/{device_id}")
-async def update_device(device_id: str, request: Request, authorization: str = Header(default="")) -> JSONResponse:
+async def update_device(device_id: str, request: Request, authorization: str = Header(default="")):
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account
@@ -200,7 +191,7 @@ async def update_device(device_id: str, request: Request, authorization: str = H
 
 
 @router.post("/devices/{device_id}/unbind")
-async def unbind_device(device_id: str, authorization: str = Header(default="")) -> JSONResponse:
+async def unbind_device(device_id: str, authorization: str = Header(default="")):
     account = authorize(authorization)
     if isinstance(account, JSONResponse):
         return account
@@ -222,66 +213,3 @@ async def unbind_device(device_id: str, authorization: str = Header(default=""))
     if result.rowcount < 1:
         return err(404, "active binding not found", 404)
     return {"deviceId": device_id, "status": "unbound"}
-
-
-@router.post("/devices/{device_id}/tasks")
-async def create_task(device_id: str, request: Request, authorization: str = Header(default="")) -> JSONResponse:
-    account = authorize(authorization)
-    if isinstance(account, JSONResponse):
-        return account
-    body = await read_body(request)
-    if isinstance(body, JSONResponse):
-        return body
-    text = str_field(body, "text", "prompt", "instruction")
-    request_id = str_field(body, "requestId", "request_id")
-    if not text:
-        return err(400, "text is required", 400)
-    with connect() as conn:
-        denied = require_device_access(conn, account, device_id)
-        if denied:
-            return denied
-    result = await create_and_route_task(DeviceTaskRequest(device_id=device_id, text=text, request_id=request_id or ""))
-    return {
-        "status": result.status,
-        "sent": result.sent,
-        "queueDepth": result.queue_depth,
-        "task": result.task,
-    }
-
-
-@router.get("/tasks")
-async def list_tasks(device_id: str, authorization: str = Header(default=""), status: str = "", limit: int = 20) -> JSONResponse:
-    account = authorize(authorization)
-    if isinstance(account, JSONResponse):
-        return account
-    with connect() as conn:
-        denied = require_device_access(conn, account, device_id)
-        if denied:
-            return denied
-    tasks = store_mod.task_store.list_tasks_for_device(device_id, status=status, limit=limit)
-    return {"tasks": [_task_summary_payload(task) for task in tasks], "count": len(tasks)}
-
-
-@router.get("/tasks/{task_id}")
-async def get_task(task_id: str, authorization: str = Header(default="")) -> JSONResponse:
-    account = authorize(authorization)
-    if isinstance(account, JSONResponse):
-        return account
-    snapshot = task_snapshot(task_id)
-    if not snapshot or not isinstance(snapshot.get("task"), dict):
-        return err(404, "task not found", 404)
-    task = snapshot["task"]
-    with connect() as conn:
-        denied = require_device_access(conn, account, str(task.get("device_id", "")))
-        if denied:
-            return denied
-    return {
-        "taskId": task_id,
-        "deviceId": task.get("device_id", ""),
-        "capability": task.get("capability", ""),
-        "source": task.get("source", ""),
-        "params": task.get("params", {}),
-        "status": snapshot.get("status", "unknown"),
-        "retryCount": snapshot.get("retry_count", 0),
-        "events": snapshot.get("events", []),
-    }

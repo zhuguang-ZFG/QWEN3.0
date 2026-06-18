@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 
 from device_gateway.device_profile import (
@@ -212,6 +213,7 @@ class TestInferFromArtifacts:
     def test_infer_from_log(self):
         with tempfile.TemporaryDirectory() as tmp:
             log_path = Path(tmp) / "route_evidence_dev-artifact.log"
+            recent_ts = datetime.now(timezone.utc).isoformat()
             lines = [
                 json.dumps(
                     {
@@ -220,7 +222,7 @@ class TestInferFromArtifacts:
                         "backend": "scnet_ds",
                         "route_policy": {"route_role": "device_draw"},
                         "reason": "success",
-                        "timestamp": "2026-06-10T12:00:00+00:00",
+                        "timestamp": recent_ts,
                     }
                 ),
                 json.dumps(
@@ -230,7 +232,7 @@ class TestInferFromArtifacts:
                         "backend": "scnet_ds",
                         "route_policy": {"route_role": "device_write"},
                         "reason": "success",
-                        "timestamp": "2026-06-10T12:01:00+00:00",
+                        "timestamp": recent_ts,
                     }
                 ),
                 json.dumps(
@@ -240,7 +242,7 @@ class TestInferFromArtifacts:
                         "backend": "github_gpt4o",
                         "route_policy": {},
                         "reason": "backend failed",
-                        "timestamp": "2026-06-10T12:02:00+00:00",
+                        "timestamp": recent_ts,
                     }
                 ),
             ]
