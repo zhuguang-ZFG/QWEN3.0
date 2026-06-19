@@ -5,6 +5,25 @@
 > Updated: 2026-06-19
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-19 代码尺寸治理 M4：拆分 16 个 >300 行测试文件（完成）
+
+- **目标**：继续推进代码尺寸治理，将剩余超过 300 行的测试文件全部拆分，使整个仓库无 >300 行文件。
+- **实现**：使用并行子代理将 16 个测试文件拆分为 64 个聚焦小文件：
+  - `tests/test_device_voice_cloud_providers.py` + `tests/test_device_voice.py` → `tests/device_voice/`（15 个文件）
+  - `tests/test_device_gateway_routes.py` + `test_device_gateway_profiles.py` + `test_device_gateway_model_routing.py` → `tests/device_gateway/` + `tests/test_device_gateway_profile_*.py` + `tests/test_device_gateway_route_*.py` + `tests/test_device_gateway_role_preferences.py`（19 个文件）
+  - `tests/test_routing_engine.py` → `tests/test_route_*.py` 等（6 个文件）
+  - `tests/test_xiaozhi_schema_migration.py` → `tests/xiaozhi_schema/`（6 个文件 + conftest）
+  - `tests/test_provider_automation_catalog.py` + `test_provider_automation_admission.py` → `tests/test_provider_automation_*.py`（9 个文件）
+  - `tests/test_fake_u1_cloud_loop.py` + `test_multilang_context.py` + `test_local_retrieval.py` → 15 个文件 + `tests/fake_u1_helpers.py`
+  - `tests/test_device_recovery_execution.py` → 5 个文件
+  - `tests/test_xiaozhi_v1_compat_p0.py` → 4 个文件
+- **验证**：
+  - `scripts/check_code_size.py`：**无 >300 行文件**。
+  - 全量 `pytest --tb=short -q` → **1820 passed, 4 skipped**（耗时约 139 秒）。
+  - `ruff check .` → 0 errors；`ruff format` 已应用。
+- **部署验证**：
+  - 已在前一步 M3 部署验证；M4 仅涉及测试文件，未变更生产代码，未重新部署。
+
 ## 2026-06-19 代码尺寸治理 M3：拆分最后 5 个生产大文件（完成）
 
 - **目标**：继续推进代码尺寸治理，将剩余 5 个超过 300 行的生产文件全部拆分，使生产代码无 >300 行文件。
