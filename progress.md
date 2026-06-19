@@ -5,6 +5,26 @@
 > Updated: 2026-06-19
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-19 固件 / WebChat / 数字人 / 小程序闭环审计（完成）
+
+- **目标**：处理微信小程序默认头像/后端迁移后，继续审计并关闭固件、WebChat、数字人其余闭环缺口。
+- **微信小程序（manager-mobile）**：
+  - 已修复 baseUrl/uploadUrl 默认指向 LiMa。
+  - 已修复默认头像被强制覆盖为旧小智 CDN（`oss.laf.run/ukw0y1-site/avatar.jpg`）的问题，改为本地 `/static/images/default-avatar.png`。
+  - 回归测试：`tests/test_manager_mobile_lima_native.py` 4 passed。
+- **固件（U8 / esp32S_XYZ）**：
+  - 静态契约检查：`scripts/firmware_hardware_gate.py` → `PASS firmware_required_lima_contract`、`PASS firmware_forbidden_legacy_contract`。
+  - 完整 ESP-IDF 构建：使用 `IDF_PATH=/d/tmp/esp-idf-v5.5.4` 成功生成 `esp32S_XYZ/firmware/u8-xiaozhi/build/xiaozhi.bin`（2496/2496 steps，binary 0x2c5c30，30% free）。
+  - 真机烟测仍缺失（无 `LIMA_HARDWARE_DEVICE_ID` / `LIMA_HARDWARE_DEVICE_TOKEN`）。
+- **WebChat（chat-web）**：
+  - 静态文件位于 `chat-web/`，部署脚本 `scripts/deploy_chat_web.py` 目标 `/var/www/chat`。
+  - 公网验证：`https://chat.donglicao.com/index.html` 与 `/chat-api.js` 均 200；代码中无 `xiaozhi`/`laf.run`/`localhost` 等旧地址；API 使用相对路径 `/v1/chat/completions`、`/v1/images/generations`。
+- **数字人（digital-human）**：
+  - `routes/digital_human.py` 已注册，`/digital-human/` 与 `/digital-human/health` 公网可访问（status=ok，static_path 正确）。
+  - `/digital-human/css/index.css`、`/digital-human/js/app.js` 静态资源 200。
+  - 默认 LiMa WS 地址通过注入脚本强制为当前 host 的 `/device/v1/ws`；HTML 中小智面板默认 `display:none`。
+  - 数字人 JS 中仍有 `xiaozhi-web-test` 等历史字符串，但不影响 LiMa 默认链路；后续可考虑彻底清理或保留兼容调试选项。
+
 ## 2026-06-19 微信小程序后端迁移：manager-mobile 默认指向 LiMa（完成）
 
 - **问题**：用户问“微信小程序从小智服务器迁移过来了吗”。检查发现 `esp32S_XYZ/server/xiaozhi-esp32-server/main/manager-mobile/src/utils/index.ts` 中微信小程序 develop/trial/release 的 baseUrl 和 uploadUrl 仍硬编码为旧小智服务器 `https://ukw0y1.laf.run`，属于未闭环点。
