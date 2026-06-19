@@ -5,6 +5,26 @@
 > Updated: 2026-06-19
 > 注：2026-05-31 及更早的记录已归档到 [docs/archive/progress-2026-05.md](docs/archive/progress-2026-05.md)。
 
+## 2026-06-19 函数级尺寸治理第一轮：拆分 Top 5 生产超长函数（完成）
+
+- **目标**：在文件尺寸已达标的基础上，治理函数级尺寸（≤50 行），先处理风险最低、收益最高的 5 个生产函数。
+- **实现**：
+  - `routing_classifier.py::classify_scenario`（90→24 行）：提取文本提取、代码强信号、意图关键字计数、文件扩展名检测 helper。
+  - `session_memory/prompt_recall.py::apply_prompt_memory_recall`（70→25 行）：提取输入解析、记忆召回、结果组装、错误处理 helper。
+  - `session_memory/outcome_ledger.py::record`（70→50 行）：提取 `_prepare_record_values`、`_insert_outcome_record`。
+  - `device_gateway/task_creation.py::_create_task_from_voice_task`（75→28 行）：提取参数构建、参数校验、策略决策、task 组装 helper。
+  - `device_gateway/mqtt_client.py::_mqtt_message_loop`（70→46 行）：提取 client 创建、消息泵、关闭逻辑 helper。
+- **修复拆分导致的文件尺寸回归**：
+  - `session_memory/outcome_ledger.py` → 改建为 `session_memory/outcome_ledger/` 子包（config/sanitize/db/record）。
+  - `device_gateway/task_creation.py` → 保留 facade，builder helper 移到 `device_gateway/task_creation_builders.py`。
+- **验证**：
+  - `scripts/check_code_size.py`：**无 >300 行文件**。
+  - 全量 `pytest -q` → **1836 passed, 4 skipped**。
+  - `ruff check .` → 0 errors。
+- **部署验证**：
+  - `scripts/deploy_unified.py --slice core` 上传 723 个文件，restart 后 health OK。
+  - 公网 `/health` 返回 `status ok`。
+
 ## 2026-06-19 设备能力族独立审批门（完成）
 
 - **目标**：实现 `display/audio/speech/ocr/camera/perception` 能力族的独立审批门，不再与 `motion` 共享全局放行条件。

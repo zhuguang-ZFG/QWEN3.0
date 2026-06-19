@@ -9,7 +9,8 @@ from __future__ import annotations
 import json
 import logging
 
-from session_memory.outcome_ledger import _get_conn, _json_loads_safe
+from session_memory.outcome_ledger.db import _get_conn
+from session_memory.outcome_ledger.sanitize import _json_loads_safe
 
 _log = logging.getLogger(__name__)
 

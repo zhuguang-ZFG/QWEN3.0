@@ -78,6 +78,68 @@ def _update_span_metadata(span, values: dict) -> None:
         span.setdefault("metadata", {}).update(values)
 
 
+def _resolve_inputs(messages, system_prompt, headers, client_ip, ide_source, trace):
+    memory_headers = build_memory_headers(headers, client_ip=client_ip, ide_source=ide_source)
+    base_prompt = system_prompt or ""
+    from session_memory.processor import _session_id_from_headers
+
+    session_id = _session_id_from_headers(memory_headers)
+    span = None
+    if trace:
+        span = trace.start_span(
+            "prompt_memory_recall",
+            session_id=session_id,
+            message_count=len(messages or []),
+        )
+    return memory_headers, base_prompt, session_id, span
+
+
+def _run_memory_recall(memory_headers, messages, base_prompt):
+    from session_memory.processor import session_memory_processor
+
+    ctx = RequestContext(
+        headers=memory_headers,
+        messages=_normalise_messages(messages),
+        system_prompt=base_prompt,
+    )
+    return session_memory_processor(ctx)
+
+
+def _build_result(ctx, base_prompt, session_id, memory_headers):
+    recalled_prompt = ctx.system_prompt or ""
+    added = max(0, len(recalled_prompt) - len(base_prompt))
+    applied = recalled_prompt != base_prompt
+    recalled_ids = getattr(ctx, "recalled_memory_ids", [])
+    result = PromptMemoryRecallResult(
+        system_prompt=recalled_prompt,
+        applied=applied,
+        session_id=session_id,
+        prompt_chars_added=added,
+        headers=memory_headers,
+        recalled_memory_ids=recalled_ids,
+    )
+    _record_recall(applied, added)
+    return result
+
+
+def _handle_recall_error(exc, system_prompt, headers, client_ip, ide_source, span):
+    if span is not None:
+        _update_span_metadata(
+            span,
+            {
+                "checked": True,
+                "applied": False,
+                "error": type(exc).__name__,
+            },
+        )
+    log.debug("prompt memory recall skipped: %s", exc)
+    return PromptMemoryRecallResult(
+        system_prompt=system_prompt or "",
+        session_id="",
+        headers=build_memory_headers(headers, client_ip=client_ip, ide_source=ide_source),
+    )
+
+
 def apply_prompt_memory_recall(
     messages: list,
     *,
@@ -88,63 +150,18 @@ def apply_prompt_memory_recall(
     trace=None,
 ) -> PromptMemoryRecallResult:
     """Inject relevant session memory before routing, failing open on errors."""
-    memory_headers = build_memory_headers(headers, client_ip=client_ip, ide_source=ide_source)
-    base_prompt = system_prompt or ""
     span = None
-
     try:
-        from session_memory.processor import (
-            _session_id_from_headers,
-            session_memory_processor,
+        memory_headers, base_prompt, session_id, span = _resolve_inputs(
+            messages, system_prompt, headers, client_ip, ide_source, trace
         )
-
-        session_id = _session_id_from_headers(memory_headers)
-        if trace:
-            span = trace.start_span(
-                "prompt_memory_recall",
-                session_id=session_id,
-                message_count=len(messages or []),
-            )
-
-        ctx = RequestContext(
-            headers=memory_headers,
-            messages=_normalise_messages(messages),
-            system_prompt=base_prompt,
-        )
-        ctx = session_memory_processor(ctx)
-        recalled_prompt = ctx.system_prompt or ""
-        added = max(0, len(recalled_prompt) - len(base_prompt))
-        applied = recalled_prompt != base_prompt
-        recalled_ids = getattr(ctx, "recalled_memory_ids", [])
-
-        result = PromptMemoryRecallResult(
-            system_prompt=recalled_prompt,
-            applied=applied,
-            session_id=session_id,
-            prompt_chars_added=added,
-            headers=memory_headers,
-            recalled_memory_ids=recalled_ids,
-        )
-        _record_recall(applied, added)
+        ctx = _run_memory_recall(memory_headers, messages, base_prompt)
+        result = _build_result(ctx, base_prompt, session_id, memory_headers)
         if span is not None:
             _update_span_metadata(span, result.meta())
         return result
     except Exception as exc:
-        if span is not None:
-            _update_span_metadata(
-                span,
-                {
-                    "checked": True,
-                    "applied": False,
-                    "error": type(exc).__name__,
-                },
-            )
-        log.debug("prompt memory recall skipped: %s", exc)
-        return PromptMemoryRecallResult(
-            system_prompt=base_prompt,
-            session_id="",
-            headers=memory_headers,
-        )
+        return _handle_recall_error(exc, system_prompt, headers, client_ip, ide_source, span)
     finally:
         if trace and span is not None:
             trace.end_span(span)

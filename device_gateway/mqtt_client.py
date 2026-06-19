@@ -169,6 +169,65 @@ async def stop_mqtt_client() -> None:
     _log.info("MQTT device transport stopped")
 
 
+def _create_mqtt_client(
+    mqtt,
+    _json,
+    message_queue: asyncio.Queue[tuple[str, str, dict]],
+    server_sub_filter: str,
+    client_id: str,
+    lwt_offline: str,
+    will_topic: str,
+):
+    """Create and configure a paho MQTT client with asyncio bridging callbacks."""
+
+    def on_connect(client, userdata, flags, reason_code, properties=None):
+        if reason_code == 0:
+            _log.info("MQTT connected to %s:%s", _MQTT_BROKER, _MQTT_PORT)
+            client.subscribe(server_sub_filter)
+        else:
+            _log.warning("MQTT connect failed: rc=%s", reason_code)
+
+    def on_message(client, userdata, msg):
+        try:
+            payload = _json.loads(msg.payload.decode("utf-8", errors="replace"))
+            message_queue.put_nowait((msg.topic, "uplink", payload))
+        except Exception:
+            _log.debug("MQTT message parse failed topic=%s", msg.topic, exc_info=True)
+
+    def on_disconnect(client, userdata, flags, reason_code, properties=None):
+        _log.info("MQTT disconnected: rc=%s", reason_code)
+
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=client_id)
+    client.on_connect = on_connect
+    client.on_message = on_message
+    client.on_disconnect = on_disconnect
+    client.will_set(will_topic, lwt_offline, qos=0, retain=True)
+    return client
+
+
+async def _run_mqtt_message_pump(
+    client,
+    message_queue: asyncio.Queue[tuple[str, str, dict]],
+    _json,
+    _time_mod,
+) -> None:
+    """Dequeue MQTT uplink messages and drain downlink queues."""
+    while True:
+        try:
+            topic, direction, payload = await asyncio.wait_for(message_queue.get(), timeout=1.0)
+            _handle_mqtt_message(client, topic, payload, _json, _time_mod)
+        except asyncio.TimeoutError:
+            pass
+        _drain_downlink_queues(client, _json)
+
+
+def _shutdown_mqtt_client(client) -> None:
+    """Stop the MQTT network loop and disconnect cleanly."""
+    client.loop_stop()
+    client.disconnect()
+    _log.info("MQTT transport stopped")
+
+
 async def _mqtt_message_loop() -> None:
     """Main MQTT message processing loop using paho-mqtt.
 
@@ -190,35 +249,19 @@ async def _mqtt_message_loop() -> None:
     from device_gateway.mqtt_topics import (
         LWT_OFFLINE,
         SERVER_SUB_FILTER,
-        device_downlink_topic,
         device_status_topic,
     )
 
-    # Bridging: paho (sync) → asyncio
     message_queue: asyncio.Queue[tuple[str, str, dict]] = asyncio.Queue()
-
-    def on_connect(client, userdata, flags, reason_code, properties=None):
-        if reason_code == 0:
-            _log.info("MQTT connected to %s:%s", _MQTT_BROKER, _MQTT_PORT)
-            client.subscribe(SERVER_SUB_FILTER)
-        else:
-            _log.warning("MQTT connect failed: rc=%s", reason_code)
-
-    def on_message(client, userdata, msg):
-        try:
-            payload = _json.loads(msg.payload.decode("utf-8", errors="replace"))
-            message_queue.put_nowait((msg.topic, "uplink", payload))
-        except Exception:
-            _log.debug("MQTT message parse failed topic=%s", msg.topic, exc_info=True)
-
-    def on_disconnect(client, userdata, flags, reason_code, properties=None):
-        _log.info("MQTT disconnected: rc=%s", reason_code)
-
-    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=_MQTT_CLIENT_ID)
-    client.on_connect = on_connect
-    client.on_message = on_message
-    client.on_disconnect = on_disconnect
-    client.will_set(device_status_topic(_MQTT_CLIENT_ID), LWT_OFFLINE, qos=0, retain=True)
+    client = _create_mqtt_client(
+        mqtt,
+        _json,
+        message_queue,
+        SERVER_SUB_FILTER,
+        _MQTT_CLIENT_ID,
+        LWT_OFFLINE,
+        device_status_topic(_MQTT_CLIENT_ID),
+    )
 
     try:
         client.connect(_MQTT_BROKER, _MQTT_PORT, keepalive=60)
@@ -228,14 +271,6 @@ async def _mqtt_message_loop() -> None:
         client.loop_start()
 
     try:
-        while True:
-            try:
-                topic, direction, payload = await asyncio.wait_for(message_queue.get(), timeout=1.0)
-                _handle_mqtt_message(client, topic, payload, _json, _time_mod)
-            except asyncio.TimeoutError:
-                pass
-            _drain_downlink_queues(client, _json)
+        await _run_mqtt_message_pump(client, message_queue, _json, _time_mod)
     finally:
-        client.loop_stop()
-        client.disconnect()
-        _log.info("MQTT transport stopped")
+        _shutdown_mqtt_client(client)
